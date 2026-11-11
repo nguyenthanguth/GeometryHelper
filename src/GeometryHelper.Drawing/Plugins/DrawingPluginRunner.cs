@@ -30,7 +30,16 @@ namespace GeometryHelper.Drawing.Plugins
         /// view or objects have gone is dropped; one whose plugin is not at hand is kept to be run again; one whose plugin
         /// throws is kept, nothing it added is used, and the drawing's warnings say so.
         /// </summary>
-        public static DrawingPluginRuns Run(IReadOnlyList<DrawingPluginRun> runs, DrawingPluginRun added, DrawingPlugin addedPlugin, DrawingPluginCatalog catalog, DrawingContent content, DrawingSource source, DrawingSettings settings, Tolerance tolerance)
+        public static DrawingPluginRuns Run(
+            IReadOnlyList<DrawingPluginRun> runs,
+            DrawingPluginRun added,
+            DrawingPlugin addedPlugin,
+            DrawingPluginCatalog catalog,
+            DrawingContent content,
+            DrawingSource source,
+            DrawingSettings settings,
+            Tolerance tolerance
+        )
         {
             var result = new DrawingPluginRuns();
             var all = new List<DrawingPluginRun>(runs);
@@ -52,7 +61,10 @@ namespace GeometryHelper.Drawing.Plugins
                 }
 
                 DrawingView view = content.Views.Find(v => string.Equals(v.Id, run.ViewId, StringComparison.Ordinal));
-                string reason = view == null ? "the drawing no longer has the view " + (run.ViewId ?? "(none)") : Missing(run, source);
+                string reason =
+                    view == null
+                        ? "the drawing no longer has the view " + (run.ViewId ?? "(none)")
+                        : Missing(run, source);
 
                 if (reason != null)
                 {
@@ -64,14 +76,29 @@ namespace GeometryHelper.Drawing.Plugins
                 {
                     var input = new DrawingPluginInput();
                     plugin.DefineInput(input);
-                    var context = new DrawingPluginContext(run, view, Objects(run, view, input, source), source, settings, Values(run, input), tolerance);
+                    var context = new DrawingPluginContext(
+                        run,
+                        view,
+                        Objects(run, view, input, source),
+                        source,
+                        settings,
+                        Values(run, input),
+                        tolerance
+                    );
                     plugin.Run(context);
                     Add(view, run, context.Dimensions);
                     result.Ran.Add(run);
                 }
                 catch (Exception exception)
                 {
-                    string line = "The plugin " + run.Plugin + " failed in its run " + run.Id + ": " + exception.Message + " What it added is left out.";
+                    string line =
+                        "The plugin "
+                        + run.Plugin
+                        + " failed in its run "
+                        + run.Id
+                        + ": "
+                        + exception.Message
+                        + " What it added is left out.";
                     GeometryHelperLog.Warn("DrawingPluginRunner: " + line, exception);
                     content.Warnings.Add(line);
 
@@ -106,14 +133,23 @@ namespace GeometryHelper.Drawing.Plugins
         }
 
         /// <summary>The objects a run was given; every object of its view of the kinds asked for where it was given none.</summary>
-        private static List<DrawingObject> Objects(DrawingPluginRun run, DrawingView view, DrawingPluginInput input, DrawingSource source)
+        private static List<DrawingObject> Objects(
+            DrawingPluginRun run,
+            DrawingView view,
+            DrawingPluginInput input,
+            DrawingSource source
+        )
         {
             var objects = new List<DrawingObject>();
             bool given = run.Inputs.ObjectIds.Count > 0;
 
             foreach (string id in given ? run.Inputs.ObjectIds : view.ObjectIds)
             {
-                if (source.TryGetObject(id, out DrawingObject item) && !objects.Contains(item) && (given || input.ObjectKinds.Count == 0 || Contains(input.ObjectKinds, item.Kind)))
+                if (
+                    source.TryGetObject(id, out DrawingObject item)
+                    && !objects.Contains(item)
+                    && (given || input.ObjectKinds.Count == 0 || Contains(input.ObjectKinds, item.Kind))
+                )
                 {
                     objects.Add(item);
                 }
@@ -147,7 +183,10 @@ namespace GeometryHelper.Drawing.Plugins
 
             foreach (KeyValuePair<string, string> value in run.Settings)
             {
-                if (values.ContainsKey(value.Key) && double.TryParse(value.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number))
+                if (
+                    values.ContainsKey(value.Key)
+                    && double.TryParse(value.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+                )
                 {
                     values[value.Key] = number;
                 }
@@ -191,7 +230,26 @@ namespace GeometryHelper.Drawing.Plugins
                 }
 
                 // The writer finds a dimension of a view by its own id, so the plugin's are given ids of their own.
-                dimensions.Add(new DrawingDimension(local, d.Kind, points, d.Value, d.Count, d.Text, d.Direction, d.Tier, d.Offset, d.DimensionLine, lines, d.TextBox, d.TextRotation, d.TextHeight, d.Scale, d.Rounding));
+                dimensions.Add(
+                    new DrawingDimension(
+                        local,
+                        d.Kind,
+                        points,
+                        d.Value,
+                        d.Count,
+                        d.Text,
+                        d.Direction,
+                        d.Tier,
+                        d.Offset,
+                        d.DimensionLine,
+                        lines,
+                        d.TextBox,
+                        d.TextRotation,
+                        d.TextHeight,
+                        d.Scale,
+                        d.Rounding
+                    )
+                );
                 ids.Add(view.Id + "/" + local);
             }
 

@@ -34,8 +34,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
         private static double Scale(DxfDimStyleTableRecord style) => style.Dimscale > 0.0 ? style.Dimscale : 1.0;
 
-        private static List<DxfLine> PictureLines(DxfDimension dimension)
-            => dimension.DimBlock.OfType<DxfLine>().Where(l => !l.IsErased && l.Layer != "Defpoints").ToList();
+        private static List<DxfLine> PictureLines(DxfDimension dimension) =>
+            dimension.DimBlock.OfType<DxfLine>().Where(l => !l.IsErased && l.Layer != "Defpoints").ToList();
 
         [Fact]
         public void DimContinue_GoesOnFromTheLastDimensionsSecondExtensionLine_OnTheSameLine()
@@ -143,7 +143,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string[] lines = All<DxfLine>(document.ModelSpace).Select(l => l.Handle).ToArray();
 
             Run(session, "QDIM", lines, Enter);
-            Assert.Equal("Specify dimension line position, or [Continuous/Staggered/Baseline/Ordinate/Radius/Diameter/datumPoint/Edit/seTtings] <Continuous>:", session.PromptText);
+            Assert.Equal(
+                "Specify dimension line position, or [Continuous/Staggered/Baseline/Ordinate/Radius/Diameter/datumPoint/Edit/seTtings] <Continuous>:",
+                session.PromptText
+            );
             Run(session, P(100, -40));
 
             List<DxfRotatedDimension> row = All<DxfRotatedDimension>(document.ModelSpace);
@@ -156,7 +159,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "QDIM", lines, Enter, "B", P(100, -40));
             List<DxfRotatedDimension> baseline = All<DxfRotatedDimension>(document.ModelSpace).Skip(3).ToList();
             Assert.Equal(new[] { 100.0, 250.0, 400.0 }, baseline.Select(d => Math.Round(d.Measurement, 9)));
-            Assert.Equal(new[] { -40.0, -40.0 - spacing, -40.0 - 2 * spacing }, baseline.Select(d => Math.Round(d.DimLinePoint.Y, 9)));
+            Assert.Equal(
+                new[] { -40.0, -40.0 - spacing, -40.0 - 2 * spacing },
+                baseline.Select(d => Math.Round(d.DimLinePoint.Y, 9))
+            );
 
             Run(session, "QDIM", lines, Enter, "S", P(100, -40));
             List<DxfRotatedDimension> staggered = All<DxfRotatedDimension>(document.ModelSpace).Skip(6).ToList();
@@ -165,7 +171,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             // Upright where the line is put to the right of the points.
             Run(session, "QDIM", lines, Enter, P(500, 25));
-            Assert.All(All<DxfRotatedDimension>(document.ModelSpace).Skip(8), d => Assert.Equal(Math.PI / 2.0, d.Rotation, 12));
+            Assert.All(All<DxfRotatedDimension>(document.ModelSpace).Skip(8), d =>
+                Assert.Equal(Math.PI / 2.0, d.Rotation, 12)
+            );
             Assert.Single(All<DxfRotatedDimension>(document.ModelSpace).Skip(8));
         }
 
@@ -178,12 +186,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string[] circles = All<DxfCircle>(document.ModelSpace).Select(l => l.Handle).ToArray();
 
             Run(session, "QDIM", circles, Enter, "R", P(50, 100));
-            Assert.Equal(new[] { 20.0, 30.0 }, All<DxfRadialDimension>(document.ModelSpace).Select(d => Math.Round(d.Measurement, 9)));
+            Assert.Equal(
+                new[] { 20.0, 30.0 },
+                All<DxfRadialDimension>(document.ModelSpace).Select(d => Math.Round(d.Measurement, 9))
+            );
 
             Run(session, "QDIM", circles, Enter, "E", P(100, 0), "X", "C", P(50, -50));
             Assert.Contains("One dimension point removed.", session.History);
             Assert.Empty(All<DxfRotatedDimension>(document.ModelSpace));
-            Assert.Contains("No dimensions made: the geometry selected has nothing to dimension that way.", session.History);
+            Assert.Contains(
+                "No dimensions made: the geometry selected has nothing to dimension that way.",
+                session.History
+            );
         }
 
         [Fact]
@@ -214,8 +228,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             // The first extension line now runs from (0, 0) at 60 degrees to the line 30 below: down and to the left.
             var slant = new GeoVector2(Math.Cos(Math.PI / 3.0), Math.Sin(Math.PI / 3.0));
-            Assert.Contains(PictureLines(dimension), l => Math.Abs(Math.Abs((l.EndPoint.X - l.StartPoint.X) * slant.Y - (l.EndPoint.Y - l.StartPoint.Y) * slant.X)) < 1E-9
-                && Math.Abs(l.StartPoint.X * slant.Y - l.StartPoint.Y * slant.X) < 1E-9);
+            Assert.Contains(PictureLines(dimension), l =>
+                Math.Abs(
+                    Math.Abs((l.EndPoint.X - l.StartPoint.X) * slant.Y - (l.EndPoint.Y - l.StartPoint.Y) * slant.X)
+                ) < 1E-9
+                && Math.Abs(l.StartPoint.X * slant.Y - l.StartPoint.Y * slant.X) < 1E-9
+            );
             Assert.Equal(100, dimension.Measurement, 9);
 
             Run(session, "DIMEDIT", Enter, new[] { handle }, Enter);
@@ -271,8 +289,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(2, PictureLines(level).Count(l => Along(l, -Math.PI / 6.0)));
         }
 
-        private static bool Along(DxfLine line, double angle)
-            => Math.Abs(Math.Sin(Math.Atan2(line.EndPoint.Y - line.StartPoint.Y, line.EndPoint.X - line.StartPoint.X) - angle)) < 1E-9;
+        private static bool Along(DxfLine line, double angle) =>
+            Math.Abs(
+                Math.Sin(Math.Atan2(line.EndPoint.Y - line.StartPoint.Y, line.EndPoint.X - line.StartPoint.X) - angle)
+            ) < 1E-9;
 
         [Fact]
         public void DimTedit_MovesTheWordsAndTheLineWithThem_LeftAndAngleAndHome()
@@ -288,7 +308,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "DIMTEDIT");
             Assert.Equal("Select dimension:", session.PromptText);
             Run(session, (object)new[] { handle });
-            Assert.Equal("Specify new location for dimension text or [Left/Right/Center/Home/Angle]:", session.PromptText);
+            Assert.Equal(
+                "Specify new location for dimension text or [Left/Right/Center/Home/Angle]:",
+                session.PromptText
+            );
             Run(session, P(60, -50));
 
             dimension = Entity<DxfRotatedDimension>(document, handle);
@@ -333,7 +356,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "DIMSPACE", new[] { dimensions[0].Handle }, others, Enter);
             Assert.Equal("Enter value or [Auto] <Auto>:", session.PromptText);
             Run(session, "10");
-            Assert.Contains("1 dimension is not parallel to the base dimension and stays where it is.", session.History);
+            Assert.Contains(
+                "1 dimension is not parallel to the base dimension and stays where it is.",
+                session.History
+            );
 
             dimensions = All<DxfRotatedDimension>(document.ModelSpace);
             Assert.Equal(-30, dimensions[0].DimLinePoint.Y, 9);
@@ -348,7 +374,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(-30 - 2 * auto, dimensions[2].DimLinePoint.Y, 9);
 
             Run(session, "DIMSPACE", new[] { dimensions[0].Handle }, others, Enter, "0");
-            Assert.All(All<DxfRotatedDimension>(document.ModelSpace).Take(3), d => Assert.Equal(-30, d.DimLinePoint.Y, 9));
+            Assert.All(All<DxfRotatedDimension>(document.ModelSpace).Take(3), d =>
+                Assert.Equal(-30, d.DimLinePoint.Y, 9)
+            );
         }
 
         [Fact]
@@ -368,17 +396,25 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, Enter);
             Assert.Equal("1 object modified", session.History.Last());
 
-            List<DxfLine> onLine = PictureLines(Entity<DxfRotatedDimension>(document, handle)).Where(l => Math.Abs(l.StartPoint.Y + 30) < 1E-9 && Math.Abs(l.EndPoint.Y + 30) < 1E-9).OrderBy(l => Math.Min(l.StartPoint.X, l.EndPoint.X)).ToList();
+            List<DxfLine> onLine = PictureLines(Entity<DxfRotatedDimension>(document, handle))
+                .Where(l => Math.Abs(l.StartPoint.Y + 30) < 1E-9 && Math.Abs(l.EndPoint.Y + 30) < 1E-9)
+                .OrderBy(l => Math.Min(l.StartPoint.X, l.EndPoint.X))
+                .ToList();
             Assert.Equal(2, onLine.Count);
             Assert.Equal(50 - size / 2, Math.Max(onLine[0].StartPoint.X, onLine[0].EndPoint.X), 9);
             Assert.Equal(50 + size / 2, Math.Min(onLine[1].StartPoint.X, onLine[1].EndPoint.X), 9);
             Assert.Equal("DIMBREAK", document.NextUndo.Name);
 
             Run(session, "DIMBREAK", new[] { handle }, "R");
-            Assert.Single(PictureLines(Entity<DxfRotatedDimension>(document, handle)), l => Math.Abs(l.StartPoint.Y + 30) < 1E-9 && Math.Abs(l.EndPoint.Y + 30) < 1E-9);
+            Assert.Single(PictureLines(Entity<DxfRotatedDimension>(document, handle)), l =>
+                Math.Abs(l.StartPoint.Y + 30) < 1E-9 && Math.Abs(l.EndPoint.Y + 30) < 1E-9
+            );
 
             Run(session, "DIMBREAK", new[] { handle }, "M", P(20, -30), P(30, -31));
-            onLine = PictureLines(Entity<DxfRotatedDimension>(document, handle)).Where(l => Math.Abs(l.StartPoint.Y + 30) < 1E-9).OrderBy(l => Math.Min(l.StartPoint.X, l.EndPoint.X)).ToList();
+            onLine = PictureLines(Entity<DxfRotatedDimension>(document, handle))
+                .Where(l => Math.Abs(l.StartPoint.Y + 30) < 1E-9)
+                .OrderBy(l => Math.Min(l.StartPoint.X, l.EndPoint.X))
+                .ToList();
             Assert.Equal(2, onLine.Count);
             Assert.Equal(20, Math.Max(onLine[0].StartPoint.X, onLine[0].EndPoint.X), 9);
             Assert.Equal(30, Math.Min(onLine[1].StartPoint.X, onLine[1].EndPoint.X), 9);
@@ -415,9 +451,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string breakData = Value(data, 5);
             Assert.Equal(
                 new[] { "70 0", "330 " + handle, "90 2" }
-                .Concat(Reference("0", "-1", "0", "0", "0", "0")).Concat(new[] { "331 " + lines[0].Handle, "73 2", "92 0" })
-                .Concat(Reference("0", "-1", "0", "0", "0", "0")).Concat(new[] { "331 " + lines[1].Handle, "73 2", "92 0" }),
-                AfterMarker(data, "AcDbBreakData"));
+                    .Concat(Reference("0", "-1", "0", "0", "0", "0"))
+                    .Concat(new[] { "331 " + lines[0].Handle, "73 2", "92 0" })
+                    .Concat(Reference("0", "-1", "0", "0", "0", "0"))
+                    .Concat(new[] { "331 " + lines[1].Handle, "73 2", "92 0" }),
+                AfterMarker(data, "AcDbBreakData")
+            );
             Assert.Contains(breakData, lines[0].GetPersistentReactorIds());
             Assert.Contains(breakData, lines[1].GetPersistentReactorIds());
             Assert.Empty(lines[2].GetPersistentReactorIds());
@@ -426,36 +465,74 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // line in two about y -15.
             Run(session, "DIMEDIT", "N", "<> X", new[] { handle }, Enter);
             dimension = Entity<DxfRotatedDimension>(document, handle);
-            Assert.Equal(2, PictureLines(dimension).Count(l => Math.Abs(l.StartPoint.Y + 30) < 1E-9 && Math.Abs(l.EndPoint.Y + 30) < 1E-9));
-            Assert.Equal(2, PictureLines(dimension).Count(l => Math.Abs(l.StartPoint.X) < 1E-9 && Math.Abs(l.EndPoint.X) < 1E-9));
+            Assert.Equal(
+                2,
+                PictureLines(dimension)
+                    .Count(l => Math.Abs(l.StartPoint.Y + 30) < 1E-9 && Math.Abs(l.EndPoint.Y + 30) < 1E-9)
+            );
+            Assert.Equal(
+                2,
+                PictureLines(dimension).Count(l => Math.Abs(l.StartPoint.X) < 1E-9 && Math.Abs(l.EndPoint.X) < 1E-9)
+            );
 
             Run(session, "DIMBREAK", new[] { handle }, "R");
             Assert.Empty(BreakData(document));
             Assert.Null(Entity<DxfRotatedDimension>(document, handle).ExtensionDictionary);
             Assert.Empty(lines[0].GetPersistentReactorIds());
-            Assert.Single(PictureLines(Entity<DxfRotatedDimension>(document, handle)), l => Math.Abs(l.StartPoint.Y + 30) < 1E-9 && Math.Abs(l.EndPoint.Y + 30) < 1E-9);
+            Assert.Single(PictureLines(Entity<DxfRotatedDimension>(document, handle)), l =>
+                Math.Abs(l.StartPoint.Y + 30) < 1E-9 && Math.Abs(l.EndPoint.Y + 30) < 1E-9
+            );
 
             Run(session, "DIMBREAK", new[] { handle }, "M", P(20, -30), P(30, -31));
             Run(session, "DIMBREAK", new[] { handle }, "M", P(0, -5), P(0, -8));
             Assert.Equal(
-                new[] { "70 0", "330 " + handle, "90 2" }.Concat(Reference("2", "3", "20", "-30", "30", "-31")).Concat(Reference("2", "0", "0", "-5", "0", "-8")),
-                AfterMarker(BreakData(document), "AcDbBreakData"));
+                new[] { "70 0", "330 " + handle, "90 2" }
+                    .Concat(Reference("2", "3", "20", "-30", "30", "-31"))
+                    .Concat(Reference("2", "0", "0", "-5", "0", "-8")),
+                AfterMarker(BreakData(document), "AcDbBreakData")
+            );
 
             // Read back from the file, the breaks kept break the picture drawn anew again.
             CadDocument again = CadDocument.From(DxfDatabase.Parse(document.Database.ToText()), "again.dxf");
             CadCommandSession other = Session(again);
             Run(other, "DIMEDIT", "N", "<> Y", new[] { handle }, Enter);
-            List<DxfLine> onLine = PictureLines(Entity<DxfRotatedDimension>(again, handle)).Where(l => Math.Abs(l.StartPoint.Y + 30) < 1E-9).OrderBy(l => Math.Min(l.StartPoint.X, l.EndPoint.X)).ToList();
+            List<DxfLine> onLine = PictureLines(Entity<DxfRotatedDimension>(again, handle))
+                .Where(l => Math.Abs(l.StartPoint.Y + 30) < 1E-9)
+                .OrderBy(l => Math.Min(l.StartPoint.X, l.EndPoint.X))
+                .ToList();
             Assert.Equal(2, onLine.Count);
             Assert.Equal(20, Math.Max(onLine[0].StartPoint.X, onLine[0].EndPoint.X), 9);
             Assert.Equal(30, Math.Min(onLine[1].StartPoint.X, onLine[1].EndPoint.X), 9);
-            Assert.Equal(2, PictureLines(Entity<DxfRotatedDimension>(again, handle)).Count(l => Math.Abs(l.StartPoint.X) < 1E-9 && Math.Abs(l.EndPoint.X) < 1E-9));
+            Assert.Equal(
+                2,
+                PictureLines(Entity<DxfRotatedDimension>(again, handle))
+                    .Count(l => Math.Abs(l.StartPoint.X) < 1E-9 && Math.Abs(l.EndPoint.X) < 1E-9)
+            );
             AssertReopens(again);
         }
 
         /// <summary>The groups of one AcDbBreakPointRef as AutoCAD 2021 writes them, from its marker to its second point (its reals written as the library writes them, 0 for 0.0).</summary>
-        private static IEnumerable<string> Reference(string kind, string line, string x1, string y1, string x2, string y2)
-            => new[] { "100 AcDbBreakPointRef", "71 " + kind, "72 0", "91 " + line, "10 " + x1, "20 " + y1, "30 0", "11 " + x2, "21 " + y2, "31 0" };
+        private static IEnumerable<string> Reference(
+            string kind,
+            string line,
+            string x1,
+            string y1,
+            string x2,
+            string y2
+        ) =>
+            new[]
+            {
+                "100 AcDbBreakPointRef",
+                "71 " + kind,
+                "72 0",
+                "91 " + line,
+                "10 " + x1,
+                "20 " + y1,
+                "30 0",
+                "11 " + x2,
+                "21 " + y2,
+                "31 0",
+            };
 
         /// <summary>The groups of the drawing's first BREAKDATA, as its text has them; none where it has none.</summary>
         private static List<KeyValuePair<int, string>> BreakData(CadDocument document)
@@ -485,10 +562,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return groups;
         }
 
-        private static string Value(List<KeyValuePair<int, string>> groups, int code) => groups.First(g => g.Key == code).Value;
+        private static string Value(List<KeyValuePair<int, string>> groups, int code) =>
+            groups.First(g => g.Key == code).Value;
 
-        private static List<string> AfterMarker(List<KeyValuePair<int, string>> groups, string marker)
-            => groups.SkipWhile(g => !(g.Key == 100 && g.Value == marker)).Skip(1).Select(g => g.Key.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " + g.Value).ToList();
+        private static List<string> AfterMarker(List<KeyValuePair<int, string>> groups, string marker) =>
+            groups
+                .SkipWhile(g => !(g.Key == 100 && g.Value == marker))
+                .Skip(1)
+                .Select(g => g.Key.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " + g.Value)
+                .ToList();
 
         [Fact]
         public void ADimensionOfTheModel_IsRefusedInWords_AndLeftAsItIs()

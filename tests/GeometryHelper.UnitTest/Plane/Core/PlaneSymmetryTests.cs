@@ -1,10 +1,10 @@
 using System;
+using System.Linq;
 using GeometryHelper;
 using GeometryHelper.Core;
 using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
-using System.Linq;
 
 namespace GeometryHelper.UnitTest.Plane
 {
@@ -45,10 +45,22 @@ namespace GeometryHelper.UnitTest.Plane
             var tolerance = new Tolerance(0.01, 0.01);
 
             // A point half a hundredth off a line ten units long: nearer than the tolerance, so On.
-            Assert.Equal(LineSide.On, Containment2.GetSide(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0)),
-                                                           new GeoPoint2(5, 0.005), tolerance));
-            Assert.Equal(LineSide.Left, Containment2.GetSide(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0)),
-                                                             new GeoPoint2(5, 0.02), tolerance));
+            Assert.Equal(
+                LineSide.On,
+                Containment2.GetSide(
+                    new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0)),
+                    new GeoPoint2(5, 0.005),
+                    tolerance
+                )
+            );
+            Assert.Equal(
+                LineSide.Left,
+                Containment2.GetSide(
+                    new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0)),
+                    new GeoPoint2(5, 0.02),
+                    tolerance
+                )
+            );
         }
 
         [Fact]
@@ -66,7 +78,10 @@ namespace GeometryHelper.UnitTest.Plane
             var point = new GeoPoint2(0, 5);
 
             Assert.Equal(Containment2.GetSide(Rising, point), point.GetSideOf(Rising));
-            Assert.Equal(Containment2.GetSide(Rising, point, Tolerance.Global), point.GetSideOf(Rising, Tolerance.Global));
+            Assert.Equal(
+                Containment2.GetSide(Rising, point, Tolerance.Global),
+                point.GetSideOf(Rising, Tolerance.Global)
+            );
         }
 
         [Fact]
@@ -105,7 +120,9 @@ namespace GeometryHelper.UnitTest.Plane
 
             // Within the segment the two agree.
             var inside = new GeoPoint2(6, 3);
-            Assert.True(Projection2.ProjectToInfiniteLine(segment, inside).IsEqualTo(Projection2.ProjectToLine(segment, inside)));
+            Assert.True(
+                Projection2.ProjectToInfiniteLine(segment, inside).IsEqualTo(Projection2.ProjectToLine(segment, inside))
+            );
         }
 
         [Fact]
@@ -113,7 +130,9 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var point = new GeoPoint2(1, 1);
 
-            Assert.Throws<InvalidOperationException>(() => Projection2.ProjectToInfiniteLine(new GeoLine2(point, point), new GeoPoint2(5, 5)));
+            Assert.Throws<InvalidOperationException>(() =>
+                Projection2.ProjectToInfiniteLine(new GeoLine2(point, point), new GeoPoint2(5, 5))
+            );
         }
 
         [Fact]
@@ -131,13 +150,23 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AFaceBalancesAtItsCentroidWithTheHolesTakenOut()
         {
-            var square = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+            var square = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
 
             // No holes: the centroid of the boundary.
             Assert.True(new GeoFace2(square).Centroid.IsEqualTo(new GeoPoint2(5, 5)));
 
             // A hole on the left pulls the centroid right, by the share of the area it takes with it.
-            var hole = new GeoPolygon2(new GeoPoint2(1, 4), new GeoPoint2(3, 4), new GeoPoint2(3, 6), new GeoPoint2(1, 6));
+            var hole = new GeoPolygon2(
+                new GeoPoint2(1, 4),
+                new GeoPoint2(3, 4),
+                new GeoPoint2(3, 6),
+                new GeoPoint2(1, 6)
+            );
             GeoPoint2 centroid = new GeoFace2(square, new[] { hole }).Centroid;
 
             double expectedX = (100.0 * 5.0 - 4.0 * 2.0) / 96.0;
@@ -150,11 +179,17 @@ namespace GeometryHelper.UnitTest.Plane
         public void AFaceInSpaceBalancesTheSameWay()
         {
             var square = new GeoPolygon3(
-                new GeoPoint3(0, 0, 4), new GeoPoint3(10, 0, 4),
-                new GeoPoint3(10, 10, 4), new GeoPoint3(0, 10, 4));
+                new GeoPoint3(0, 0, 4),
+                new GeoPoint3(10, 0, 4),
+                new GeoPoint3(10, 10, 4),
+                new GeoPoint3(0, 10, 4)
+            );
             var hole = new GeoPolygon3(
-                new GeoPoint3(1, 4, 4), new GeoPoint3(3, 4, 4),
-                new GeoPoint3(3, 6, 4), new GeoPoint3(1, 6, 4));
+                new GeoPoint3(1, 4, 4),
+                new GeoPoint3(3, 4, 4),
+                new GeoPoint3(3, 6, 4),
+                new GeoPoint3(1, 6, 4)
+            );
 
             GeoPoint3 centroid = new GeoFace3(square, new[] { hole }).Centroid;
 
@@ -166,9 +201,18 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void TheMeasurementsOfAPolygonAreReadTheSameWayInBothDimensions()
         {
-            var flat = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(4, 0), new GeoPoint2(4, 3), new GeoPoint2(0, 3));
+            var flat = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(4, 0),
+                new GeoPoint2(4, 3),
+                new GeoPoint2(0, 3)
+            );
             var inSpace = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(4, 0, 0), new GeoPoint3(4, 3, 0), new GeoPoint3(0, 3, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(4, 0, 0),
+                new GeoPoint3(4, 3, 0),
+                new GeoPoint3(0, 3, 0)
+            );
 
             // Properties on both sides, named alike.
             Assert.Equal(inSpace.Area, flat.Area, 9);
@@ -179,21 +223,39 @@ namespace GeometryHelper.UnitTest.Plane
 
             // A circle gives its length the way every other curve does.
             Assert.Equal(2.0 * Math.PI * 5.0, new GeoCircle2(GeoPoint2.Origin, 5).Length, 12);
-            Assert.Equal(new GeoCircle3(GeoPoint3.Origin, GeoVector3.ZAxis, 5).Length,
-                         new GeoCircle2(GeoPoint2.Origin, 5).Length, 12);
+            Assert.Equal(
+                new GeoCircle3(GeoPoint3.Origin, GeoVector3.ZAxis, 5).Length,
+                new GeoCircle2(GeoPoint2.Origin, 5).Length,
+                12
+            );
         }
 
         [Fact]
         public void TheShapesOfThePlaneCompareWithinToleranceLikeTheirSolidCounterparts()
         {
-            var square = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(4, 0), new GeoPoint2(4, 3), new GeoPoint2(0, 3));
-            var nudged = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(4, 0.00001), new GeoPoint2(4, 3), new GeoPoint2(0, 3));
+            var square = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(4, 0),
+                new GeoPoint2(4, 3),
+                new GeoPoint2(0, 3)
+            );
+            var nudged = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(4, 0.00001),
+                new GeoPoint2(4, 3),
+                new GeoPoint2(0, 3)
+            );
 
             Assert.True(square.IsEqualTo(nudged));
             Assert.False(square.IsEqualTo(nudged, new Tolerance(1E-9, 1E-9)));
 
             // "Where a loop starts is not part of the shape it encloses"
-            var started = new GeoPolygon2(new GeoPoint2(4, 3), new GeoPoint2(0, 3), new GeoPoint2(0, 0), new GeoPoint2(4, 0));
+            var started = new GeoPolygon2(
+                new GeoPoint2(4, 3),
+                new GeoPoint2(0, 3),
+                new GeoPoint2(0, 0),
+                new GeoPoint2(4, 0)
+            );
             Assert.True(square.IsEqualTo(started));
 
             // "The direction it runs in is part of the shape"
@@ -203,13 +265,27 @@ namespace GeometryHelper.UnitTest.Plane
 
             // A chain has ends, so it is read from its start.
             var chain = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(3, 0), new GeoPoint2(3, 4));
-            Assert.True(chain.IsEqualTo(new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(3, 0), new GeoPoint2(3, 4))));
+            Assert.True(
+                chain.IsEqualTo(new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(3, 0), new GeoPoint2(3, 4)))
+            );
             Assert.False(chain.IsEqualTo(chain.Reverse()));
 
             // A face matches hole for hole, in whatever order they are held.
-            var hole1 = new GeoPolygon2(new GeoPoint2(1, 1), new GeoPoint2(2, 1), new GeoPoint2(2, 2), new GeoPoint2(1, 2));
-            var hole2 = new GeoPolygon2(new GeoPoint2(3, 1), new GeoPoint2(3.5, 1), new GeoPoint2(3.5, 2), new GeoPoint2(3, 2));
-            Assert.True(new GeoFace2(square, new[] { hole1, hole2 }).IsEqualTo(new GeoFace2(square, new[] { hole2, hole1 })));
+            var hole1 = new GeoPolygon2(
+                new GeoPoint2(1, 1),
+                new GeoPoint2(2, 1),
+                new GeoPoint2(2, 2),
+                new GeoPoint2(1, 2)
+            );
+            var hole2 = new GeoPolygon2(
+                new GeoPoint2(3, 1),
+                new GeoPoint2(3.5, 1),
+                new GeoPoint2(3.5, 2),
+                new GeoPoint2(3, 2)
+            );
+            Assert.True(
+                new GeoFace2(square, new[] { hole1, hole2 }).IsEqualTo(new GeoFace2(square, new[] { hole2, hole1 }))
+            );
             Assert.False(new GeoFace2(square, new[] { hole1 }).IsEqualTo(new GeoFace2(square)));
         }
     }

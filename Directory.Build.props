@@ -1,6 +1,5 @@
 <Project>
-
-  <!--
+    <!--
     One place for the things every project in this repository agrees on.
 
     The four published packages are released as one set, so the version belongs here rather than in each
@@ -12,22 +11,22 @@
     the SDK does not generate: the COM visibility flag and the type library GUID.
   -->
 
-  <PropertyGroup>
-    <GeometryHelperVersion>13.11.0</GeometryHelperVersion>
-  </PropertyGroup>
+    <PropertyGroup>
+        <GeometryHelperVersion>13.11.0</GeometryHelperVersion>
+    </PropertyGroup>
 
-  <PropertyGroup>
-    <Version>$(GeometryHelperVersion)</Version>
-    <AssemblyVersion>$(GeometryHelperVersion).0</AssemblyVersion>
-    <FileVersion>$(GeometryHelperVersion).0</FileVersion>
-  </PropertyGroup>
+    <PropertyGroup>
+        <Version>$(GeometryHelperVersion)</Version>
+        <AssemblyVersion>$(GeometryHelperVersion).0</AssemblyVersion>
+        <FileVersion>$(GeometryHelperVersion).0</FileVersion>
+    </PropertyGroup>
 
-  <PropertyGroup>
-    <LangVersion>latest</LangVersion>
-    <Deterministic>true</Deterministic>
-  </PropertyGroup>
+    <PropertyGroup>
+        <LangVersion>latest</LangVersion>
+        <Deterministic>true</Deterministic>
+    </PropertyGroup>
 
-  <!--
+    <!--
     The Tekla Structures version the Tekla bridge is built against.
 
     Tekla's Open API assemblies are strong-named per release (Tekla.Structures, Version=2020.0.0.0 against
@@ -39,32 +38,31 @@
 
     Without the property (Visual Studio, a plain dotnet build) it is 2020.
   -->
-  <PropertyGroup>
-    <TeklaVersion Condition="'$(TeklaVersion)' == ''">2020</TeklaVersion>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TeklaVersion Condition="'$(TeklaVersion)' == ''">2020</TeklaVersion>
+    </PropertyGroup>
 
-  <!--
+    <!--
     The Tekla projects keep one bin and one obj per Tekla version, so building 2026 cannot overwrite the 2020
     assemblies that a later `dotnet pack` with no build would pick up. The paths have to be set here, before
     the SDK is imported, for restore to use them too. bin/ and obj/ as a whole are excluded from the default
     compile items, because the SDK only excludes the current version's folders, and a file generated into
     another version's obj (or into obj/ by an older build) would otherwise be compiled a second time.
   -->
-  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'GeometryHelper.TeklaConvert' Or '$(MSBuildProjectName)' == 'GeometryHelper.TeklaConvert.UnitTest'">
-    <BaseOutputPath>$(MSBuildProjectDirectory)\bin\Tekla$(TeklaVersion)\</BaseOutputPath>
-    <BaseIntermediateOutputPath>$(MSBuildProjectDirectory)\obj\Tekla$(TeklaVersion)\</BaseIntermediateOutputPath>
-    <DefaultItemExcludes>$(DefaultItemExcludes);bin\**;obj\**</DefaultItemExcludes>
-  </PropertyGroup>
+    <PropertyGroup Condition="'$(MSBuildProjectName)' == 'GeometryHelper.TeklaConvert' Or '$(MSBuildProjectName)' == 'GeometryHelper.TeklaConvert.UnitTest'">
+        <BaseOutputPath>$(MSBuildProjectDirectory)\bin\Tekla$(TeklaVersion)\</BaseOutputPath>
+        <BaseIntermediateOutputPath>$(MSBuildProjectDirectory)\obj\Tekla$(TeklaVersion)\</BaseIntermediateOutputPath>
+        <DefaultItemExcludes>$(DefaultItemExcludes);bin\**;obj\**</DefaultItemExcludes>
+    </PropertyGroup>
 
-  <!-- Shared package identity. Anything specific to one package stays in its own project file. -->
-  <PropertyGroup>
-    <Authors>Nguyen Thang</Authors>
-    <Company>Nguyen Thang</Company>
-    <Copyright>Copyright © 2026 Nguyen Thang</Copyright>
-    <PackageProjectUrl>https://nguyenthanguth.github.io/GeometryHelper/</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/nguyenthanguth/GeometryHelper</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-  </PropertyGroup>
-
+    <!-- Shared package identity. Anything specific to one package stays in its own project file. -->
+    <PropertyGroup>
+        <Authors>Nguyen Thang</Authors>
+        <Company>Nguyen Thang</Company>
+        <Copyright>Copyright © 2026 Nguyen Thang</Copyright>
+        <PackageProjectUrl>https://nguyenthanguth.github.io/GeometryHelper/</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/nguyenthanguth/GeometryHelper</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    </PropertyGroup>
 </Project>

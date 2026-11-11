@@ -46,7 +46,8 @@ namespace GeometryHelper.Dwg
             return mask;
         }
 
-        private static uint U32(byte[] data, long at) => (uint)(data[at] | (data[at + 1] << 8) | (data[at + 2] << 16) | (data[at + 3] << 24));
+        private static uint U32(byte[] data, long at) =>
+            (uint)(data[at] | (data[at + 1] << 8) | (data[at + 2] << 16) | (data[at + 3] << 24));
 
         private static long U64(byte[] data, long at) => (long)(U32(data, at) | ((ulong)U32(data, at + 4) << 32));
 
@@ -110,8 +111,20 @@ namespace GeometryHelper.Dwg
             };
 
             bool hasUnknown = (version != "AC1018" && maintenance > 3) || string.CompareOrdinal(version, "AC1027") > 0;
-            container.Header = Section(Join(file, pages, Need(sections, "AcDb:Header"), ref budget), HeaderStart, HeaderEnd, "header variables", hasUnknown);
-            container.Classes = Section(Join(file, pages, Need(sections, "AcDb:Classes"), ref budget), ClassesStart, ClassesEnd, "classes", hasUnknown);
+            container.Header = Section(
+                Join(file, pages, Need(sections, "AcDb:Header"), ref budget),
+                HeaderStart,
+                HeaderEnd,
+                "header variables",
+                hasUnknown
+            );
+            container.Classes = Section(
+                Join(file, pages, Need(sections, "AcDb:Classes"), ref budget),
+                ClassesStart,
+                ClassesEnd,
+                "classes",
+                hasUnknown
+            );
             byte[] handles = Join(file, pages, Need(sections, "AcDb:Handles"), ref budget);
             container.Objects = Join(file, pages, Need(sections, "AcDb:AcDbObjects"), ref budget);
             container.ObjectMap = ReadObjectMap(handles, 0, handles.LongLength, container.Objects.LongLength);
@@ -149,7 +162,10 @@ namespace GeometryHelper.Dwg
             }
 
             long budget = Math.Min(int.MaxValue, (file.LongLength * Expansion) + Allowance);
-            Dictionary<int, long[]> pages = ReadPageMap(SystemPage(file, U64(head, 0x54) + 0x100, PageMapType, "page map", ref budget), file.LongLength);
+            Dictionary<int, long[]> pages = ReadPageMap(
+                SystemPage(file, U64(head, 0x54) + 0x100, PageMapType, "page map", ref budget),
+                file.LongLength
+            );
             byte[] map = SystemPage(file, pages[(int)U32(head, 0x5C)][0], SectionMapType, "section map", ref budget);
             Dictionary<string, Descriptor> descriptors = ReadSectionMap(map);
             var sections = new List<KeyValuePair<string, byte[]>>();
@@ -165,7 +181,9 @@ namespace GeometryHelper.Dwg
                 if (name.Length > 0)
                 {
                     layout[name] = new[] { (int)U32(map, at + 24), (int)U32(map, at + 12), (int)U32(map, at + 20) };
-                    sections.Add(new KeyValuePair<string, byte[]>(name, Join(file, pages, descriptors[name], ref budget)));
+                    sections.Add(
+                        new KeyValuePair<string, byte[]>(name, Join(file, pages, descriptors[name], ref budget))
+                    );
                 }
 
                 at += 96 + (16 * (int)U32(map, at + 8));
@@ -289,7 +307,13 @@ namespace GeometryHelper.Dwg
                 one.Name = Encoding.ASCII.GetString(data, at + 32, (end < 0 ? at + 96 : end) - (at + 32));
                 at += 96;
 
-                if (pageCount < 0 || pageCount > (data.Length - at) / 16 || one.Size < 0 || one.PageSize <= 0 || one.PageSize > MaxPageSize)
+                if (
+                    pageCount < 0
+                    || pageCount > (data.Length - at) / 16
+                    || one.Size < 0
+                    || one.PageSize <= 0
+                    || one.PageSize > MaxPageSize
+                )
                 {
                     throw new FormatException("The DWG section map is broken at the section " + one.Name + ".");
                 }
@@ -328,12 +352,16 @@ namespace GeometryHelper.Dwg
         {
             if (section.Encrypted == 1)
             {
-                throw new NotSupportedException("The DWG section " + section.Name + " is encrypted; such files are not read.");
+                throw new NotSupportedException(
+                    "The DWG section " + section.Name + " is encrypted; such files are not read."
+                );
             }
 
             if (section.Size > budget)
             {
-                throw new FormatException("The DWG section " + section.Name + " names a size beyond what the file can hold.");
+                throw new FormatException(
+                    "The DWG section " + section.Name + " names a size beyond what the file can hold."
+                );
             }
 
             budget -= section.Size;
@@ -344,7 +372,9 @@ namespace GeometryHelper.Dwg
             {
                 if (!pages.TryGetValue((int)entry[0], out long[] place))
                 {
-                    throw new FormatException("The DWG section " + section.Name + " has a page the page map does not place.");
+                    throw new FormatException(
+                        "The DWG section " + section.Name + " has a page the page map does not place."
+                    );
                 }
 
                 long at = place[0];
@@ -371,8 +401,14 @@ namespace GeometryHelper.Dwg
                 uint headSum = U32(head, 24);
                 uint dataSum = U32(head, 28);
 
-                if (U32(head, 0) != DataPageType || size > place[1] || at + 32 + size > file.LongLength || start != entry[1]
-                    || start < 0 || start >= section.Size)
+                if (
+                    U32(head, 0) != DataPageType
+                    || size > place[1]
+                    || at + 32 + size > file.LongLength
+                    || start != entry[1]
+                    || start < 0
+                    || start >= section.Size
+                )
                 {
                     throw new FormatException("The DWG section " + section.Name + " has a broken page.");
                 }
@@ -381,7 +417,9 @@ namespace GeometryHelper.Dwg
 
                 if (DwgCrc.OfPage(file, at + 32, size, 0) != dataSum || DwgCrc.OfPage(head, 0, 32, dataSum) != headSum)
                 {
-                    throw new FormatException("The DWG section " + section.Name + " has a page with a wrong check sum.");
+                    throw new FormatException(
+                        "The DWG section " + section.Name + " has a page with a wrong check sum."
+                    );
                 }
 
                 int length;

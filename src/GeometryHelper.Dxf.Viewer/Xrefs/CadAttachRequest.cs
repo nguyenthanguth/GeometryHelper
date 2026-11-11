@@ -72,7 +72,11 @@ namespace GeometryHelper.Dxf.Viewer
                     _fileName = Path.GetFullPath(_fileName);
                     Name = Path.GetFileNameWithoutExtension(_fileName);
                 }
-                catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException || exception is PathTooLongException)
+                catch (Exception exception)
+                    when (exception is ArgumentException
+                        || exception is NotSupportedException
+                        || exception is PathTooLongException
+                    )
                 {
                     Error = "Invalid file name.";
                     Name = string.Empty;
@@ -103,7 +107,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// Gets the path written for the file: as <see cref="PathType"/> says, from the drawing's folder for Relative, the full
         /// path while the drawing has no file yet; empty while no file is chosen.
         /// </summary>
-        public string SavedPath => _fileName == null ? string.Empty : CadXrefManager.PathFor(_fileName, PathType, Document.DrawingFolder);
+        public string SavedPath =>
+            _fileName == null ? string.Empty : CadXrefManager.PathFor(_fileName, PathType, Document.DrawingFolder);
 
         /// <summary>Gets whether Relative is asked of a drawing not saved yet, which is written with the full path instead.</summary>
         public bool IsRelativeFallingBack => PathType == CadPathType.Relative && Document.DrawingFolder == null;

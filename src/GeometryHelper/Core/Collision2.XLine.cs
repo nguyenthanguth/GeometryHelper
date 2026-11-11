@@ -20,28 +20,32 @@ namespace GeometryHelper.Core
 
         internal static bool CollidesWith(GeoPolygon2 poly, GeoXLine2 xline, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             return CollidesWith(poly, XLine2.CutPast(xline, poly, tolerance), tolerance);
         }
 
         internal static bool CollidesWith(GeoPolygonArc2 loop, GeoXLine2 xline, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return CollidesWith(loop, XLine2.CutPast(xline, loop, tolerance), tolerance);
         }
 
         internal static bool CollidesWith(GeoPolyline2 polyline, GeoXLine2 xline, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return CollidesWith(polyline, XLine2.CutPast(xline, polyline, tolerance), tolerance);
         }
 
         internal static bool CollidesWith(GeoPolylineArc2 chain, GeoXLine2 xline, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return CollidesWith(chain, XLine2.CutPast(xline, chain, tolerance), tolerance);
         }

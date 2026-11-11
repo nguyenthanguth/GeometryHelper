@@ -75,8 +75,11 @@ namespace GeometryHelper.UnitTest.Plane
         public void Clone_Polygon_ProducesAnEqualButSeparateInstance()
         {
             var original = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
             var clone = original.Clone();
 
             // Equal by value, but a different object.
@@ -92,8 +95,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Clone_Polygon_DoesNotShareTheVertexArray()
         {
-            var original = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10));
+            var original = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10));
             var clone = original.Clone();
 
             // The point of cloning a reference type is that the two hold separate storage.
@@ -104,7 +106,11 @@ namespace GeometryHelper.UnitTest.Plane
         public void Clone_Polyline_ProducesAnEqualButSeparateInstance()
         {
             var original = new GeoPolyline2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
             var clone = original.Clone();
 
             Assert.Equal(original, clone);
@@ -145,9 +151,12 @@ namespace GeometryHelper.UnitTest.Plane
             // other. Clone must not re-run that filter, or widening the global would silently shrink a
             // polygon that was perfectly valid when it was built.
             var original = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(2, 0), new GeoPoint2(2, 2), new GeoPoint2(0, 2));
-            var originalLine = new GeoPolyline2(
-                new GeoPoint2(0, 0), new GeoPoint2(2, 0), new GeoPoint2(2, 2));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(2, 0),
+                new GeoPoint2(2, 2),
+                new GeoPoint2(0, 2)
+            );
+            var originalLine = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(2, 0), new GeoPoint2(2, 2));
 
             Tolerance saved = Tolerance.Global;
             try
@@ -181,7 +190,12 @@ namespace GeometryHelper.UnitTest.Plane
             var line = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0));
             var circle = new GeoCircle2(new GeoPoint2(5, 5), 4);
             var rect = new GeoRectangle2(new GeoPoint2(5, 5), 8, 6, 0.4);
-            var poly = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+            var poly = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
             var polyline = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10));
 
             Assert.Equal(probe.DistanceTo(line), probe.DistanceTo(line.Clone()), 9);

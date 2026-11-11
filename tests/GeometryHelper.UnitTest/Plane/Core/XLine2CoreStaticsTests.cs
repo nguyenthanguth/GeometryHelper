@@ -90,7 +90,10 @@ namespace GeometryHelper.UnitTest.Plane
 
             // The ends of an arc on a circle of 1E11 are known to about 1E-5, so only to that.
             Assert.InRange(cut.Length, 101.9, 102.1);
-            Assert.True(cut.StartPoint.DistanceTo(P(-1, 0)) <= 1E-3 && cut.EndPoint.DistanceTo(P(101, 0)) <= 1E-3, cut.ToString());
+            Assert.True(
+                cut.StartPoint.DistanceTo(P(-1, 0)) <= 1E-3 && cut.EndPoint.DistanceTo(P(101, 0)) <= 1E-3,
+                cut.ToString()
+            );
 
             // Square to its chord, the line meets its middle: the arc reaches 1E-8 off the chord and the cut stays 102 long.
             GeoLine2 across = XLine2.CutPast(new GeoXLine2(P(50, -30), GeoVector2.YAxis), flat, Strict);
@@ -101,11 +104,17 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ALoopWithANearlyStraightEdge_IsCutPastItsCornersAndTheArcsExtremesOnly()
         {
-            var loop = new GeoPolygonArc2(new[] { P(0, 0), P(100, 0), P(100, 100), P(0, 100) }, new[] { 0.0, 1E-9, 0.0, 0.0 });
+            var loop = new GeoPolygonArc2(
+                new[] { P(0, 0), P(100, 0), P(100, 100), P(0, 100) },
+                new[] { 0.0, 1E-9, 0.0, 0.0 }
+            );
             GeoLine2 cut = XLine2.CutPast(new GeoXLine2(P(-50, 50), GeoVector2.XAxis), loop, Strict);
 
             // The arc bows 5E-8 past its chord, which the cut takes in.
-            Assert.True(cut.StartPoint.DistanceTo(P(-1, 50)) <= 1E-6 && cut.EndPoint.DistanceTo(P(101, 50)) <= 1E-6, cut.ToString());
+            Assert.True(
+                cut.StartPoint.DistanceTo(P(-1, 50)) <= 1E-6 && cut.EndPoint.DistanceTo(P(101, 50)) <= 1E-6,
+                cut.ToString()
+            );
         }
 
         [Fact]
@@ -132,8 +141,16 @@ namespace GeometryHelper.UnitTest.Plane
             var line = new GeoXLine2(P(0, 0), GeoVector2.XAxis);
 
             AssertEnds(XLine2.CutPast(line, new GeoLine2(P(80, 5), P(20, 9)), Strict), P(19, 0), P(81, 0));
-            AssertEnds(XLine2.CutPast(line, new GeoTriangle2(P(0, 0), P(100, 0), P(0, 100)), Strict), P(-1, 0), P(101, 0));
-            AssertEnds(XLine2.CutPast(line, new GeoPolyline2(P(10, 0), P(30, 5), P(-20, 5)), Strict), P(-21, 0), P(31, 0));
+            AssertEnds(
+                XLine2.CutPast(line, new GeoTriangle2(P(0, 0), P(100, 0), P(0, 100)), Strict),
+                P(-1, 0),
+                P(101, 0)
+            );
+            AssertEnds(
+                XLine2.CutPast(line, new GeoPolyline2(P(10, 0), P(30, 5), P(-20, 5)), Strict),
+                P(-21, 0),
+                P(31, 0)
+            );
         }
 
         [Fact]
@@ -255,7 +272,10 @@ namespace GeometryHelper.UnitTest.Plane
 
                 Assert.Equal(forward.StartPoint, backward.EndPoint);
                 Assert.Equal(forward.EndPoint, backward.StartPoint);
-                Assert.Equal(a.TryIntersectWith(b, out GeoPoint2 one, Strict), b.TryIntersectWith(a, out GeoPoint2 other, Strict));
+                Assert.Equal(
+                    a.TryIntersectWith(b, out GeoPoint2 one, Strict),
+                    b.TryIntersectWith(a, out GeoPoint2 other, Strict)
+                );
                 Assert.Equal(one, other);
             }
         }
@@ -265,7 +285,9 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(1E4)]
         [InlineData(1E5)]
         [InlineData(1E6)]
-        public void ALineRebuiltFromTwoOfThePointsOfAnotherOffsetByTen_IsTenFromIt_AtCoordinatesUpToAMillion(double scale)
+        public void ALineRebuiltFromTwoOfThePointsOfAnotherOffsetByTen_IsTenFromIt_AtCoordinatesUpToAMillion(
+            double scale
+        )
         {
             // The direction rebuilt from two points a hundred apart is a sine of about 1E-14 off at coordinates of 1E4 and 1E-11 at
             // 1E7: the two cross 1E15 along, or 1E12, where a double cannot place the crossing within a thousandth only for the
@@ -277,11 +299,18 @@ namespace GeometryHelper.UnitTest.Plane
             for (int i = 0; i < 100000; i++)
             {
                 double angle = random.NextDouble() * Math.PI;
-                var original = new GeoXLine2(P(scale * random.NextDouble(), scale * random.NextDouble()), new GeoVector2(Math.Cos(angle), Math.Sin(angle)));
+                var original = new GeoXLine2(
+                    P(scale * random.NextDouble(), scale * random.NextDouble()),
+                    new GeoVector2(Math.Cos(angle), Math.Sin(angle))
+                );
                 GeoXLine2 offset = original.Offset(10);
                 var rebuilt = new GeoXLine2(offset.GetPointAtDistance(-50), offset.GetPointAtDistance(50));
 
-                if (Math.Abs(original.DistanceTo(rebuilt, Strict) - 10.0) > 1E-6 || Math.Abs(rebuilt.DistanceTo(original, Strict) - 10.0) > 1E-6 || original.CollidesWith(rebuilt, Strict))
+                if (
+                    Math.Abs(original.DistanceTo(rebuilt, Strict) - 10.0) > 1E-6
+                    || Math.Abs(rebuilt.DistanceTo(original, Strict) - 10.0) > 1E-6
+                    || original.CollidesWith(rebuilt, Strict)
+                )
                 {
                     wrong++;
                 }
@@ -343,7 +372,10 @@ namespace GeometryHelper.UnitTest.Plane
                 double sine = Math.Pow(10, -16 + 8 * random.NextDouble());
                 double scale = Math.Pow(10, 3 + 10 * random.NextDouble());
                 var a = new GeoXLine2(P(scale * random.NextDouble(), scale * random.NextDouble()), GeoVector2.XAxis);
-                var b = new GeoXLine2(P(scale * random.NextDouble(), scale * random.NextDouble()), new GeoVector2(1, sine * (random.Next(2) == 0 ? 1 : -1)));
+                var b = new GeoXLine2(
+                    P(scale * random.NextDouble(), scale * random.NextDouble()),
+                    new GeoVector2(1, sine * (random.Next(2) == 0 ? 1 : -1))
+                );
                 var t = new Tolerance(tolerance, 1E-5);
 
                 if (a.DistanceTo(b, t) != b.DistanceTo(a, t) || a.CollidesWith(b, t) != b.CollidesWith(a, t))
@@ -365,12 +397,29 @@ namespace GeometryHelper.UnitTest.Plane
             var loop = new GeoPolygonArc2(
                 new[]
                 {
-                    P(9990.0414020358749, -29913.411238533416), P(9903.0670783605947, -29964.890028193284), P(9982.90047356723, -30017.299915798219),
-                    P(9986.26860712989, -30095.644033875855), P(10042.199115901429, -30042.986733362188), P(10061.679080622835, -30044.700950502407),
-                    P(10067.689902025786, -30017.467208106471)
+                    P(9990.0414020358749, -29913.411238533416),
+                    P(9903.0670783605947, -29964.890028193284),
+                    P(9982.90047356723, -30017.299915798219),
+                    P(9986.26860712989, -30095.644033875855),
+                    P(10042.199115901429, -30042.986733362188),
+                    P(10061.679080622835, -30044.700950502407),
+                    P(10067.689902025786, -30017.467208106471),
                 },
-                new[] { 9.48552042711855E-11, -8.6952454776946669E-05, -7.9676751550136564E-06, 0.0027120569733493083, -0.25698857412533305, -0.10179449082435787, 2.9720468786414926E-05 });
-            var line = new GeoXLine2(P(10767.250420656392, -29354.291150776437), new GeoVector2(0.72436188481049291, 0.6894199444705601));
+                new[]
+                {
+                    9.48552042711855E-11,
+                    -8.6952454776946669E-05,
+                    -7.9676751550136564E-06,
+                    0.0027120569733493083,
+                    -0.25698857412533305,
+                    -0.10179449082435787,
+                    2.9720468786414926E-05,
+                }
+            );
+            var line = new GeoXLine2(
+                P(10767.250420656392, -29354.291150776437),
+                new GeoVector2(0.72436188481049291, 0.6894199444705601)
+            );
 
             Assert.Equal(2, line.GetIntersections(loop, tolerance).Length);
             Assert.Equal(0.0, line.DistanceTo(loop, tolerance));

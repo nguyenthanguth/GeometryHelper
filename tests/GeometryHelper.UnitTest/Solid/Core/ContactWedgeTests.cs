@@ -25,12 +25,18 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
         private static readonly SolidBooleanOptions Touching = new SolidBooleanOptions(Fine, 0.01);
 
-        private static GeoSolid3 Box() => new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(250, 250, 900)).ToObb().ToSolid();
+        private static GeoSolid3 Box() =>
+            new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(250, 250, 900)).ToObb().ToSolid();
 
-        private static GeoSolid3 Wedge() => GeoSolid3.Extrude(
-            new GeoPolygon3(new[] { new GeoPoint3(249.994, 90, 0), new GeoPoint3(250, 90, 0), new GeoPoint3(250, 162, 0) }, Fine),
-            new GeoVector3(0, 0, 900),
-            Fine);
+        private static GeoSolid3 Wedge() =>
+            GeoSolid3.Extrude(
+                new GeoPolygon3(
+                    new[] { new GeoPoint3(249.994, 90, 0), new GeoPoint3(250, 90, 0), new GeoPoint3(250, 162, 0) },
+                    Fine
+                ),
+                new GeoVector3(0, 0, 900),
+                Fine
+            );
 
         [Fact]
         public void AWedgeThinnerThanTheContactOnAFace_IsCutOutWithoutThrowing_LeavingTheBoxLessAtMostTheWedge()
@@ -47,7 +53,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [Fact]
         public void AWedgeThinnerThanTheContactOnAFace_IsIntersectedWithoutThrowing_SharingAtMostTheWedge()
         {
-            bool made = Boolean3.TryIntersect(Box(), Wedge(), out GeoSolid3 shared, Touching, out BooleanOutcome outcome);
+            bool made = Boolean3.TryIntersect(
+                Box(),
+                Wedge(),
+                out GeoSolid3 shared,
+                Touching,
+                out BooleanOutcome outcome
+            );
 
             // Taken as touching, nothing is shared; taken as it is, the wedge. Either way no more than the wedge.
             if (outcome == BooleanOutcome.Empty)

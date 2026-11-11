@@ -64,7 +64,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(new[] { a, b, c }, DrawnOrder(document));
 
             CadCommandSession session = Run(Session(document), "DR", new[] { c }, Enter);
-            Assert.Equal("Enter object ordering option [Above objects/Under objects/Front/Back] <Back>:", session.PromptText);
+            Assert.Equal(
+                "Enter object ordering option [Above objects/Under objects/Front/Back] <Back>:",
+                session.PromptText
+            );
             Run(session, Enter);
 
             Assert.False(session.IsRunning);
@@ -72,7 +75,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string text = document.Database.ToText();
             Assert.Contains("SORTENTSTABLE", text);
             Assert.Contains("ACAD_SORTENTS", text);
-            Assert.Equal(new[] { c, a, b }, document.Database.ModelSpace.DrawOrderTable.GetFullDrawOrder().Select(e => e.Handle));
+            Assert.Equal(
+                new[] { c, a, b },
+                document.Database.ModelSpace.DrawOrderTable.GetFullDrawOrder().Select(e => e.Handle)
+            );
             AssertReopens(document);
 
             Assert.True(document.Undo());
@@ -102,7 +108,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void Texttofront_BringsEveryTextToTheFront_AndSaysHowMany()
         {
             var db = new DxfDatabase("AC1027");
-            string text = Put(db.ModelSpace, new DxfMText { Contents = "NOTE", Location = new GeoPoint3(0, 0, 0), TextHeight = 2.5 });
+            string text = Put(
+                db.ModelSpace,
+                new DxfMText
+                {
+                    Contents = "NOTE",
+                    Location = new GeoPoint3(0, 0, 0),
+                    TextHeight = 2.5,
+                }
+            );
             string line = Put(db.ModelSpace, new DxfLine(new GeoPoint3(-20, 0, 0), new GeoPoint3(20, 0, 0)));
             CadDocument document = CadDocument.From(db, "text.dxf");
 
@@ -111,7 +125,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "T");
 
             Assert.Equal("1 object(s) brought to front.", session.History.Last());
-            Assert.Equal(new[] { line, text }, document.Database.ModelSpace.DrawOrderTable.GetFullDrawOrder().Select(e => e.Handle));
+            Assert.Equal(
+                new[] { line, text },
+                document.Database.ModelSpace.DrawOrderTable.GetFullDrawOrder().Select(e => e.Handle)
+            );
         }
 
         [Fact]
@@ -163,7 +180,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Three(out string a, out string b, out string c);
             CadCommandSession session = Run(Session(document), "-GROUP");
-            Assert.Equal("Enter a group option [?/Order/Add/Remove/Explode/REName/Selectable/Create] <Create>:", session.PromptText);
+            Assert.Equal(
+                "Enter a group option [?/Order/Add/Remove/Explode/REName/Selectable/Create] <Create>:",
+                session.PromptText
+            );
             Run(session, Enter, "PLATE", "Plate P1", new[] { a }, Enter);
             Assert.Equal("Group \"PLATE\" has been created.", session.History.Last());
 
@@ -177,7 +197,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.False(document.Database.GroupDictionary.Contains("PLATE"));
 
             Run(session, "-GROUP", "S", "P1");
-            Assert.Equal("This group is selectable. Do you want to make it unselectable? [Yes/No] <Yes>:", session.PromptText);
+            Assert.Equal(
+                "This group is selectable. Do you want to make it unselectable? [Yes/No] <Yes>:",
+                session.PromptText
+            );
             Run(session, Enter);
             Assert.False(((DxfGroup)document.Database.GroupDictionary.GetAt("P1")).Selectable);
 
@@ -213,7 +236,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Plan();
             Assert.Null(document.Database.NamedObjectsDictionary);
 
-            CadCommandSession session = Run(Session(document), "-GROUP", Enter, "PLATE", "Plate P1", new[] { "A1", "A2" }, Enter);
+            CadCommandSession session = Run(
+                Session(document),
+                "-GROUP",
+                Enter,
+                "PLATE",
+                "Plate P1",
+                new[] { "A1", "A2" },
+                Enter
+            );
 
             Assert.Equal("Group \"PLATE\" has been created.", session.History.Last());
             var group = (DxfGroup)document.Database.GroupDictionary.GetAt("PLATE");
@@ -234,11 +265,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             db.LayerTable.Add(new DxfLayerTableRecord { Name = "EMPTY2" });
             db.LayerTable.Add(new DxfLayerTableRecord { Name = "CURRENT" });
             db.Clayer = "CURRENT";
-            db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)) { Layer = "WALLS" });
+            db.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)) { Layer = "WALLS" }
+            );
             CadDocument document = CadDocument.From(db, "purge.dxf");
 
             CadCommandSession session = Run(Session(document), "-PURGE");
-            Assert.StartsWith("Enter type of unused objects to purge [Blocks/Dimstyles/Groups/LAyers/LTypes/MUltileaderstyles/Plotstyles/SHapes/textSTyles/Tablestyles/Visualstyles/Regapps/Zero-length geometry/Empty text objects/All]:", session.PromptText);
+            Assert.StartsWith(
+                "Enter type of unused objects to purge [Blocks/Dimstyles/Groups/LAyers/LTypes/MUltileaderstyles/Plotstyles/SHapes/textSTyles/Tablestyles/Visualstyles/Regapps/Zero-length geometry/Empty text objects/All]:",
+                session.PromptText
+            );
             Run(session, "LA", Enter);
             Assert.Equal("Verify each name to be purged? [Yes/No] <Yes>:", session.PromptText);
             Run(session, Enter);
@@ -268,7 +304,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             var db = new DxfDatabase("AC1027");
             db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(0.0004, 0, 0)));
             string kept = Put(db.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)));
-            db.ModelSpace.AppendEntity(new DxfMText { Contents = " ", Location = new GeoPoint3(0, 0, 0), TextHeight = 2.5 });
+            db.ModelSpace.AppendEntity(
+                new DxfMText
+                {
+                    Contents = " ",
+                    Location = new GeoPoint3(0, 0, 0),
+                    TextHeight = 2.5,
+                }
+            );
             CadDocument document = CadDocument.From(db, "zero.dxf");
 
             CadCommandSession session = Run(Session(document), "-PU", "Z");
@@ -284,9 +327,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             var db = new DxfDatabase("AC1027");
             db.LayerTable.Add(new DxfLayerTableRecord { Name = "WALLS" });
             db.LayerTable.Add(new DxfLayerTableRecord { Name = "DOORS" });
-            db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)) { Layer = "WALLS" });
-            db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 10, 0), new GeoPoint3(200, 10, 0)) { Layer = "WALLS" });
-            db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 20, 0), new GeoPoint3(300, 20, 0)) { Layer = "DOORS" });
+            db.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)) { Layer = "WALLS" }
+            );
+            db.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(0, 10, 0), new GeoPoint3(200, 10, 0)) { Layer = "WALLS" }
+            );
+            db.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(0, 20, 0), new GeoPoint3(300, 20, 0)) { Layer = "DOORS" }
+            );
             db.ModelSpace.AppendEntity(new DxfCircle(new GeoPoint3(0, 0, 0), Up, 10) { Layer = "WALLS" });
             return CadDocument.From(db, "walls.dxf");
         }
@@ -299,29 +348,75 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Tolerance tolerance = Tolerance.Default;
 
             Assert.Equal(new[] { CadQuickSelect.Multiple, "Circle", "Line" }, quick.ObjectTypes);
-            Assert.Equal(new[] { "Color", "Layer", "Linetype", "Linetype scale", "Lineweight", "Start X", "Start Y", "Start Z", "End X", "End Y", "End Z", "Length", "Angle" }, quick.PropertiesOf("Line"));
+            Assert.Equal(
+                new[]
+                {
+                    "Color",
+                    "Layer",
+                    "Linetype",
+                    "Linetype scale",
+                    "Lineweight",
+                    "Start X",
+                    "Start Y",
+                    "Start Z",
+                    "End X",
+                    "End Y",
+                    "End Z",
+                    "Length",
+                    "Angle",
+                },
+                quick.PropertiesOf("Line")
+            );
             Assert.Equal(new[] { "DOORS", "WALLS" }, quick.ValuesOf("Line", "Layer"));
             Assert.Empty(quick.ValuesOf("Line", "Length"));
 
-            Assert.Equal(2, quick.Match("Line", "Layer", CadQuickSelectOperator.EqualTo, "walls", true, tolerance).Count);
-            Assert.Equal(3, quick.Match(CadQuickSelect.Multiple, "Layer", CadQuickSelectOperator.EqualTo, "WALLS", true, tolerance).Count);
+            Assert.Equal(
+                2,
+                quick.Match("Line", "Layer", CadQuickSelectOperator.EqualTo, "walls", true, tolerance).Count
+            );
+            Assert.Equal(
+                3,
+                quick
+                    .Match(CadQuickSelect.Multiple, "Layer", CadQuickSelectOperator.EqualTo, "WALLS", true, tolerance)
+                    .Count
+            );
             Assert.Single(quick.Match("Line", "Layer", CadQuickSelectOperator.NotEqualTo, "WALLS", true, tolerance));
-            Assert.Equal(2, quick.Match("Line", "Length", CadQuickSelectOperator.GreaterThan, "150", true, tolerance).Count);
+            Assert.Equal(
+                2,
+                quick.Match("Line", "Length", CadQuickSelectOperator.GreaterThan, "150", true, tolerance).Count
+            );
             Assert.Single(quick.Match("Line", "Length", CadQuickSelectOperator.LessThan, "150", true, tolerance));
             Assert.Single(quick.Match("Line", "Length", CadQuickSelectOperator.EqualTo, "200.0004", true, tolerance));
             Assert.Equal(3, quick.Match("Line", "Layer", CadQuickSelectOperator.Wildcard, "*S", true, tolerance).Count);
             Assert.Single(quick.Match("Line", "Layer", CadQuickSelectOperator.Wildcard, "W*", false, tolerance));
             Assert.Equal(3, quick.Match("Line", null, CadQuickSelectOperator.SelectAll, null, true, tolerance).Count);
 
-            IReadOnlyList<string> walls = quick.Match("Line", "Layer", CadQuickSelectOperator.EqualTo, "WALLS", true, tolerance);
+            IReadOnlyList<string> walls = quick.Match(
+                "Line",
+                "Layer",
+                CadQuickSelectOperator.EqualTo,
+                "WALLS",
+                true,
+                tolerance
+            );
             Assert.Equal("2 item(s) selected.", quick.Apply(walls, false));
             Assert.Equal(2, document.Selection.Count);
-            IReadOnlyList<string> circles = new CadQuickSelect(document).Match("Circle", null, CadQuickSelectOperator.SelectAll, null, true, tolerance);
+            IReadOnlyList<string> circles = new CadQuickSelect(document).Match(
+                "Circle",
+                null,
+                CadQuickSelectOperator.SelectAll,
+                null,
+                true,
+                tolerance
+            );
             new CadQuickSelect(document).Apply(circles, true);
             Assert.Equal(3, document.Selection.Count);
 
             // Apply to: Current selection looks among the objects selected only.
-            Assert.Equal(new[] { CadQuickSelect.Multiple, "Circle", "Line" }, new CadQuickSelect(document, null, document.Selection.Handles).ObjectTypes);
+            Assert.Equal(
+                new[] { CadQuickSelect.Multiple, "Circle", "Line" },
+                new CadQuickSelect(document, null, document.Selection.Handles).ObjectTypes
+            );
             Assert.Equal(3, new CadQuickSelect(document, null, document.Selection.Handles).Count);
         }
 
@@ -337,15 +432,34 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             var db = new DxfDatabase("AC1027");
             text = Put(db.ModelSpace, new DxfDBText { TextString = "M20 x 60", Height = 2.5 });
-            mtext = Put(db.ModelSpace, new DxfMText { Contents = "{\\fArial|b1;Bolts M20}\\PAll M200 holes", Location = new GeoPoint3(0, 10, 0), TextHeight = 2.5 });
-            db.ModelSpace.AppendEntity(new DxfDBText { TextString = "m20 lower", Height = 2.5, Position = new GeoPoint3(0, 20, 0) });
+            mtext = Put(
+                db.ModelSpace,
+                new DxfMText
+                {
+                    Contents = "{\\fArial|b1;Bolts M20}\\PAll M200 holes",
+                    Location = new GeoPoint3(0, 10, 0),
+                    TextHeight = 2.5,
+                }
+            );
+            db.ModelSpace.AppendEntity(
+                new DxfDBText
+                {
+                    TextString = "m20 lower",
+                    Height = 2.5,
+                    Position = new GeoPoint3(0, 20, 0),
+                }
+            );
             var block = new DxfBlockTableRecord { Name = "BOLT" };
             db.BlockTable.Add(block);
-            block.AppendEntity(new DxfAttributeDefinition(new GeoPoint3(0, 0, 0), "M16", "SIZE", "Size", null) { Height = 2.5 });
+            block.AppendEntity(
+                new DxfAttributeDefinition(new GeoPoint3(0, 0, 0), "M16", "SIZE", "Size", null) { Height = 2.5 }
+            );
             block.AppendEntity(new DxfDBText { TextString = "Bolt M20", Height = 2.5 });
             var reference = new DxfBlockReference(new GeoPoint3(50, 0, 0), block);
             insert = Put(db.ModelSpace, reference);
-            reference.AttributeCollection.AppendAttribute(new DxfAttributeReference(new GeoPoint3(50, 0, 0), "M20", "SIZE", null) { Height = 2.5 });
+            reference.AttributeCollection.AppendAttribute(
+                new DxfAttributeReference(new GeoPoint3(50, 0, 0), "M20", "SIZE", null) { Height = 2.5 }
+            );
             return CadDocument.From(db, "bolts.dxf");
         }
 
@@ -363,10 +477,52 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(new[] { "Model", "Model", "Model", "BOLT" }, found.Select(r => r.Location));
 
             // Without whole words M200 counts; without case, m20 too; with no blocks searched, the block's text not.
-            Assert.Equal(2, CadFind.Find(document, "M20", new CadFindOptions { MatchCase = true }, CadFindScope.EntireDrawing)[1].Count);
-            Assert.Equal(5, CadFind.Find(document, "M20", new CadFindOptions { WholeWords = true }, CadFindScope.EntireDrawing).Count);
-            Assert.Equal(3, CadFind.Find(document, "M20", new CadFindOptions { MatchCase = true, WholeWords = true, SearchBlocks = false }, CadFindScope.EntireDrawing).Count);
-            Assert.Equal(2, CadFind.Find(document, "M2#", new CadFindOptions { MatchCase = true, WholeWords = true, UseWildcards = true, BlockAttributes = false, SearchBlocks = false }, CadFindScope.EntireDrawing).Count);
+            Assert.Equal(
+                2,
+                CadFind
+                    .Find(document, "M20", new CadFindOptions { MatchCase = true }, CadFindScope.EntireDrawing)[1]
+                    .Count
+            );
+            Assert.Equal(
+                5,
+                CadFind
+                    .Find(document, "M20", new CadFindOptions { WholeWords = true }, CadFindScope.EntireDrawing)
+                    .Count
+            );
+            Assert.Equal(
+                3,
+                CadFind
+                    .Find(
+                        document,
+                        "M20",
+                        new CadFindOptions
+                        {
+                            MatchCase = true,
+                            WholeWords = true,
+                            SearchBlocks = false,
+                        },
+                        CadFindScope.EntireDrawing
+                    )
+                    .Count
+            );
+            Assert.Equal(
+                2,
+                CadFind
+                    .Find(
+                        document,
+                        "M2#",
+                        new CadFindOptions
+                        {
+                            MatchCase = true,
+                            WholeWords = true,
+                            UseWildcards = true,
+                            BlockAttributes = false,
+                            SearchBlocks = false,
+                        },
+                        CadFindScope.EntireDrawing
+                    )
+                    .Count
+            );
             Assert.Single(CadFind.Find(document, "M20", options, CadFindScope.SelectedObjects, new[] { text }));
         }
 
@@ -384,15 +540,34 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(CadFind.ReplaceAll(document, found, "M20", "M24", options).Succeeded);
             Assert.Equal("FIND", document.NextUndo.Name);
             Assert.Equal("M24 x 60", Entity<DxfDBText>(document, text).TextString);
-            Assert.Equal("M24", Entity<DxfBlockReference>(document, insert).AttributeCollection.Cast<DxfAttributeReference>().Single().TextString);
-            Assert.Equal("Bolt M24", document.Database.BlockTable["BOLT"].OfType<DxfDBText>().Single(t => !(t is DxfAttributeDefinition)).TextString);
+            Assert.Equal(
+                "M24",
+                Entity<DxfBlockReference>(document, insert)
+                    .AttributeCollection.Cast<DxfAttributeReference>()
+                    .Single()
+                    .TextString
+            );
+            Assert.Equal(
+                "Bolt M24",
+                document
+                    .Database.BlockTable["BOLT"]
+                    .OfType<DxfDBText>()
+                    .Single(t => !(t is DxfAttributeDefinition))
+                    .TextString
+            );
             Assert.Empty(CadFind.Find(document, "M20", options, CadFindScope.EntireDrawing));
             AssertReopens(document);
 
             // One undo takes every replacement of Replace All back, and leaves that of Replace.
             Assert.True(document.Undo());
             Assert.Equal("M20 x 60", Entity<DxfDBText>(document, text).TextString);
-            Assert.Equal("M20", Entity<DxfBlockReference>(document, insert).AttributeCollection.Cast<DxfAttributeReference>().Single().TextString);
+            Assert.Equal(
+                "M20",
+                Entity<DxfBlockReference>(document, insert)
+                    .AttributeCollection.Cast<DxfAttributeReference>()
+                    .Single()
+                    .TextString
+            );
             Assert.Equal("{\\fArial|b1;Bolts M24}\\PAll M200 holes", Entity<DxfMText>(document, mtext).Contents);
         }
 
@@ -417,22 +592,42 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             for (int i = 0; i < 50000; i++)
             {
-                db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, i, 0), new GeoPoint3(100 + (i % 7), i, 0)) { Layer = i % 3 == 0 ? "WALLS" : "0" });
-                db.ModelSpace.AppendEntity(new DxfDBText { TextString = "P" + i, Height = 2.5, Position = new GeoPoint3(200, i, 0) });
+                db.ModelSpace.AppendEntity(
+                    new DxfLine(new GeoPoint3(0, i, 0), new GeoPoint3(100 + (i % 7), i, 0))
+                    {
+                        Layer = i % 3 == 0 ? "WALLS" : "0",
+                    }
+                );
+                db.ModelSpace.AppendEntity(
+                    new DxfDBText
+                    {
+                        TextString = "P" + i,
+                        Height = 2.5,
+                        Position = new GeoPoint3(200, i, 0),
+                    }
+                );
             }
 
             CadDocument document = CadDocument.From(db, "big.dxf");
             var watch = Stopwatch.StartNew();
             var quick = new CadQuickSelect(document);
-            int walls = quick.Match("Line", "Layer", CadQuickSelectOperator.EqualTo, "WALLS", true, Tolerance.Default).Count;
+            int walls = quick
+                .Match("Line", "Layer", CadQuickSelectOperator.EqualTo, "WALLS", true, Tolerance.Default)
+                .Count;
             long layer = watch.ElapsedMilliseconds;
             watch.Restart();
-            int longer = quick.Match("Line", "Length", CadQuickSelectOperator.GreaterThan, "103", true, Tolerance.Default).Count;
+            int longer = quick
+                .Match("Line", "Length", CadQuickSelectOperator.GreaterThan, "103", true, Tolerance.Default)
+                .Count;
             long length = watch.ElapsedMilliseconds;
             watch.Restart();
-            int texts = CadFind.Find(document, "P4999#", new CadFindOptions { UseWildcards = true }, CadFindScope.EntireDrawing).Count;
+            int texts = CadFind
+                .Find(document, "P4999#", new CadFindOptions { UseWildcards = true }, CadFindScope.EntireDrawing)
+                .Count;
             long find = watch.ElapsedMilliseconds;
-            _output.WriteLine("QSELECT Layer = : " + layer + " ms, Length > : " + length + " ms, FIND: " + find + " ms");
+            _output.WriteLine(
+                "QSELECT Layer = : " + layer + " ms, Length > : " + length + " ms, FIND: " + find + " ms"
+            );
 
             Assert.Equal(16667, walls);
             Assert.Equal(21428, longer);

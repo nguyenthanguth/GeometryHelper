@@ -80,7 +80,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfEntity entity in c.Space.Block)
             {
-                if (entity is DxfDimension dimension && !dimension.IsErased && (IsChained(dimension) || dimension is DxfOrdinateDimension))
+                if (
+                    entity is DxfDimension dimension
+                    && !dimension.IsErased
+                    && (IsChained(dimension) || dimension is DxfOrdinateDimension)
+                )
                 {
                     last = dimension;
                 }
@@ -103,7 +107,10 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     DxfDimension picked = c.Document.FindEntity(c.Input.Handles[0]) as DxfDimension;
-                    chain = picked == null || !(IsChained(picked) || picked is DxfOrdinateDimension) ? null : ChainOf(picked, c.Input.Point, baseline);
+                    chain =
+                        picked == null || !(IsChained(picked) || picked is DxfOrdinateDimension)
+                            ? null
+                            : ChainOf(picked, c.Input.Point, baseline);
 
                     if (chain == null)
                     {
@@ -120,13 +127,43 @@ namespace GeometryHelper.Dxf.Viewer
                 CadPreview shown = DimPreview(c, input =>
                 {
                     Chain after = ChainNext(from, spacing, input.Point);
-                    return from.Ordinate ? OrdinateMade(c, style, from.AlongX, from.Origin, from.Turn, input.Point, after.LeaderEnd, null, null, out _, out _)
-                        : from.Angular ? AngularDimensionMade(c, style, from.Vertex, from.Origin, input.Point, after.Radius, out _, out _)
+                    return from.Ordinate
+                            ? OrdinateMade(
+                                c,
+                                style,
+                                from.AlongX,
+                                from.Origin,
+                                from.Turn,
+                                input.Point,
+                                after.LeaderEnd,
+                                null,
+                                null,
+                                out _,
+                                out _
+                            )
+                        : from.Angular
+                            ? AngularDimensionMade(
+                                c,
+                                style,
+                                from.Vertex,
+                                from.Origin,
+                                input.Point,
+                                after.Radius,
+                                out _,
+                                out _
+                            )
                         : LinearDimensionMade(c, style, from.Angle, from.Origin, input.Point, after.Line, out _, out _);
                 });
-                yield return (chain.Ordinate
-                    ? CadPrompt.ForPoint("Specify feature location", null, new[] { "Select", "Undo" }, "Select")
-                    : CadPrompt.ForPoint("Specify a second extension line origin", chain.Origin, new[] { "Select", "Undo" }, "Select")).Previewing(shown);
+                yield return (
+                    chain.Ordinate
+                        ? CadPrompt.ForPoint("Specify feature location", null, new[] { "Select", "Undo" }, "Select")
+                        : CadPrompt.ForPoint(
+                            "Specify a second extension line origin",
+                            chain.Origin,
+                            new[] { "Select", "Undo" },
+                            "Select"
+                        )
+                ).Previewing(shown);
 
                 if (c.Input.IsPoint)
                 {
@@ -135,17 +172,37 @@ namespace GeometryHelper.Dxf.Viewer
 
                     // AutoCAD 2021 ties the new dimension's second point to what it was snapped to, and its first to what the
                     // origin it starts from was tied to: DIMCONTINUE the last one's second, DIMBASELINE the base's first.
-                    DxfOsnapPointRef snapped = chain.Ordinate || chain.Angular
-                        ? CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap)
-                        : CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap, chain.Origin, chain.OriginTie);
+                    DxfOsnapPointRef snapped =
+                        chain.Ordinate || chain.Angular
+                            ? CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap)
+                            : CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap, chain.Origin, chain.OriginTie);
 
                     if (chain.Ordinate)
                     {
-                        handle = OrdinateDimension(c, style, chain.AlongX, chain.Origin, chain.Turn, c.Input.Point, next.LeaderEnd, null, null, true);
+                        handle = OrdinateDimension(
+                            c,
+                            style,
+                            chain.AlongX,
+                            chain.Origin,
+                            chain.Turn,
+                            c.Input.Point,
+                            next.LeaderEnd,
+                            null,
+                            null,
+                            true
+                        );
                     }
                     else if (chain.Angular)
                     {
-                        handle = AngularDimension(c, style, chain.Vertex, chain.Origin, c.Input.Point, next.Radius, true);
+                        handle = AngularDimension(
+                            c,
+                            style,
+                            chain.Vertex,
+                            chain.Origin,
+                            c.Input.Point,
+                            next.Radius,
+                            true
+                        );
                     }
                     else
                     {
@@ -154,7 +211,13 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (handle != null)
                     {
-                        CadDimAssociation.Tie(c, handle, chain.Ordinate ? new[] { snapped } : new[] { chain.OriginTie, snapped, chain.Angular ? chain.VertexTie : null });
+                        CadDimAssociation.Tie(
+                            c,
+                            handle,
+                            chain.Ordinate
+                                ? new[] { snapped }
+                                : new[] { chain.OriginTie, snapped, chain.Angular ? chain.VertexTie : null }
+                        );
 
                         if (!baseline && !chain.Ordinate)
                         {
@@ -202,7 +265,9 @@ namespace GeometryHelper.Dxf.Viewer
             if (chain.Ordinate)
             {
                 // Continued or based alike, an ordinate dimension measures from the same origin, its leader ending level with the last's.
-                GeoVector2 square = chain.AlongX ? new GeoVector2(-Math.Sin(chain.Turn), Math.Cos(chain.Turn)) : new GeoVector2(Math.Cos(chain.Turn), Math.Sin(chain.Turn));
+                GeoVector2 square = chain.AlongX
+                    ? new GeoVector2(-Math.Sin(chain.Turn), Math.Cos(chain.Turn))
+                    : new GeoVector2(Math.Cos(chain.Turn), Math.Sin(chain.Turn));
                 double across = (chain.LeaderEnd - point).X * square.X + (chain.LeaderEnd - point).Y * square.Y;
                 next.LeaderEnd = point + square * across;
             }
@@ -222,8 +287,11 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Whether a dimension is one a row goes on from: a linear (rotated or aligned) or an angular one.</summary>
-        private static bool IsChained(DxfDimension dimension)
-            => dimension is DxfRotatedDimension || dimension is DxfAlignedDimension || dimension is DxfPoint3AngularDimension || dimension is DxfLineAngularDimension2;
+        private static bool IsChained(DxfDimension dimension) =>
+            dimension is DxfRotatedDimension
+            || dimension is DxfAlignedDimension
+            || dimension is DxfPoint3AngularDimension
+            || dimension is DxfLineAngularDimension2;
 
         /// <summary>
         /// The row a dimension starts: its line or arc, and the origin the next dimension starts from, its second (continued) or
@@ -292,7 +360,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// The vertex of an angular dimension, a point on each ray of the angle it measures (the first counter-clockwise from
         /// the second) and the radius of its arc; false where it measures nothing.
         /// </summary>
-        private static bool AngularRays(DxfDimension dimension, out GeoPoint2 vertex, out GeoPoint2 first, out GeoPoint2 second, out double radius)
+        private static bool AngularRays(
+            DxfDimension dimension,
+            out GeoPoint2 vertex,
+            out GeoPoint2 first,
+            out GeoPoint2 second,
+            out double radius
+        )
         {
             vertex = default;
             first = default;
@@ -315,7 +389,11 @@ namespace GeometryHelper.Dxf.Viewer
                     line1 = new DxfLine(two.XLine1Start, two.XLine1End);
                     line2 = new DxfLine(two.XLine2Start, two.XLine2End);
 
-                    if (line1.StartPoint.DistanceTo(line1.EndPoint) <= 1E-12 || line2.StartPoint.DistanceTo(line2.EndPoint) <= 1E-12 || !Meet(line1, line2, new Tolerance(1E-9, 1E-9), out vertex))
+                    if (
+                        line1.StartPoint.DistanceTo(line1.EndPoint) <= 1E-12
+                        || line2.StartPoint.DistanceTo(line2.EndPoint) <= 1E-12
+                        || !Meet(line1, line2, new Tolerance(1E-9, 1E-9), out vertex)
+                    )
                     {
                         return false;
                     }
@@ -328,7 +406,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             radius = (arc - vertex).Length;
 
-            if (radius <= 1E-12 || (line1 == null && ((points[0] - vertex).Length <= 1E-12 || (points[1] - vertex).Length <= 1E-12)))
+            if (
+                radius <= 1E-12
+                || (line1 == null && ((points[0] - vertex).Length <= 1E-12 || (points[1] - vertex).Length <= 1E-12))
+            )
             {
                 return false;
             }
@@ -353,9 +434,26 @@ namespace GeometryHelper.Dxf.Viewer
         /// one; "Dimension text = ..." written where <paramref name="echo"/> says. The handle of the dimension, or null where it
         /// measures nothing or was not made.
         /// </summary>
-        private static string LinearDimension(CadCommandContext c, DxfDimStyleTableRecord style, double angle, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 onLine, bool echo)
+        private static string LinearDimension(
+            CadCommandContext c,
+            DxfDimStyleTableRecord style,
+            double angle,
+            GeoPoint2 p1,
+            GeoPoint2 p2,
+            GeoPoint2 onLine,
+            bool echo
+        )
         {
-            List<DxfEntity> picture = LinearDimensionMade(c, style, angle, p1, p2, onLine, out DxfDimension made, out string words);
+            List<DxfEntity> picture = LinearDimensionMade(
+                c,
+                style,
+                angle,
+                p1,
+                p2,
+                onLine,
+                out DxfDimension made,
+                out string words
+            );
 
             if (picture == null)
             {
@@ -376,7 +474,16 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The picture of the rotated dimension <see cref="LinearDimension"/> makes, and the dimension; null where it measures nothing.</summary>
-        private static List<DxfEntity> LinearDimensionMade(CadCommandContext c, DxfDimStyleTableRecord style, double angle, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 onLine, out DxfDimension made, out string words)
+        private static List<DxfEntity> LinearDimensionMade(
+            CadCommandContext c,
+            DxfDimStyleTableRecord style,
+            double angle,
+            GeoPoint2 p1,
+            GeoPoint2 p2,
+            GeoPoint2 onLine,
+            out DxfDimension made,
+            out string words
+        )
         {
             var along = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
             double measured = Math.Abs((p2 - p1).X * along.X + (p2 - p1).Y * along.Y);
@@ -400,9 +507,26 @@ namespace GeometryHelper.Dxf.Viewer
         /// Makes a three-point angular dimension about a vertex between two points, of the smaller of the two angles they make,
         /// its arc at a radius; the handle of the dimension, or null where it measures nothing.
         /// </summary>
-        private static string AngularDimension(CadCommandContext c, DxfDimStyleTableRecord style, GeoPoint2 vertex, GeoPoint2 a, GeoPoint2 b, double radius, bool echo)
+        private static string AngularDimension(
+            CadCommandContext c,
+            DxfDimStyleTableRecord style,
+            GeoPoint2 vertex,
+            GeoPoint2 a,
+            GeoPoint2 b,
+            double radius,
+            bool echo
+        )
         {
-            List<DxfEntity> picture = AngularDimensionMade(c, style, vertex, a, b, radius, out DxfDimension made, out string words);
+            List<DxfEntity> picture = AngularDimensionMade(
+                c,
+                style,
+                vertex,
+                a,
+                b,
+                radius,
+                out DxfDimension made,
+                out string words
+            );
 
             if (picture == null)
             {
@@ -423,12 +547,25 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The picture of the angular dimension <see cref="AngularDimension"/> makes, and the dimension; null where it measures nothing.</summary>
-        private static List<DxfEntity> AngularDimensionMade(CadCommandContext c, DxfDimStyleTableRecord style, GeoPoint2 vertex, GeoPoint2 a, GeoPoint2 b, double radius, out DxfDimension made, out string words)
+        private static List<DxfEntity> AngularDimensionMade(
+            CadCommandContext c,
+            DxfDimStyleTableRecord style,
+            GeoPoint2 vertex,
+            GeoPoint2 a,
+            GeoPoint2 b,
+            double radius,
+            out DxfDimension made,
+            out string words
+        )
         {
             made = null;
             words = null;
 
-            if ((a - vertex).Length <= c.Session.Tolerance.EqualPoint || (b - vertex).Length <= c.Session.Tolerance.EqualPoint || radius <= c.Session.Tolerance.EqualPoint)
+            if (
+                (a - vertex).Length <= c.Session.Tolerance.EqualPoint
+                || (b - vertex).Length <= c.Session.Tolerance.EqualPoint
+                || radius <= c.Session.Tolerance.EqualPoint
+            )
             {
                 return null;
             }
@@ -530,7 +667,18 @@ namespace GeometryHelper.Dxf.Viewer
 
             string mode = "Continuous";
             GeoPoint2? datum = null;
-            string[] keywords = { "Continuous", "Staggered", "Baseline", "Ordinate", "Radius", "Diameter", "datumPoint", "Edit", "seTtings" };
+            string[] keywords =
+            {
+                "Continuous",
+                "Staggered",
+                "Baseline",
+                "Ordinate",
+                "Radius",
+                "Diameter",
+                "datumPoint",
+                "Edit",
+                "seTtings",
+            };
 
             // The dimensions put at a point, made; or, given a list, their pictures added to it, as the row previews at the cursor.
             int Dimensioned(GeoPoint2 location, List<DxfEntity> preview)
@@ -552,18 +700,27 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify dimension line position,", null, keywords, mode).Previewing(DimPreview(c, input =>
-                {
-                    var preview = new List<DxfEntity>();
-                    return Dimensioned(input.Point, preview) > 0 ? preview : null;
-                }));
+                yield return CadPrompt
+                    .ForPoint("Specify dimension line position,", null, keywords, mode)
+                    .Previewing(DimPreview(c, input =>
+                        {
+                            var preview = new List<DxfEntity>();
+                            return Dimensioned(input.Point, preview) > 0 ? preview : null;
+                        }));
 
                 if (c.Input.IsPoint)
                 {
                     break;
                 }
 
-                if (c.Input.Is("Continuous") || c.Input.Is("Staggered") || c.Input.Is("Baseline") || c.Input.Is("Ordinate") || c.Input.Is("Radius") || c.Input.Is("Diameter"))
+                if (
+                    c.Input.Is("Continuous")
+                    || c.Input.Is("Staggered")
+                    || c.Input.Is("Baseline")
+                    || c.Input.Is("Ordinate")
+                    || c.Input.Is("Radius")
+                    || c.Input.Is("Diameter")
+                )
                 {
                     mode = c.Input.Text;
                 }
@@ -583,14 +740,28 @@ namespace GeometryHelper.Dxf.Viewer
                     while (true)
                     {
                         yield return removing
-                            ? CadPrompt.ForPoint("Indicate dimension point to remove,", null, new[] { "Add", "eXit" }, "eXit")
-                            : CadPrompt.ForPoint("Indicate dimension point to add,", null, new[] { "Remove", "eXit" }, "eXit");
+                            ? CadPrompt.ForPoint(
+                                "Indicate dimension point to remove,",
+                                null,
+                                new[] { "Add", "eXit" },
+                                "eXit"
+                            )
+                            : CadPrompt.ForPoint(
+                                "Indicate dimension point to add,",
+                                null,
+                                new[] { "Remove", "eXit" },
+                                "eXit"
+                            );
 
                         if (c.Input.IsPoint && removing)
                         {
                             int nearest = Nearest(points, c.Input.Point);
 
-                            if (nearest >= 0 && (points[nearest] - c.Input.Point).Length <= Math.Max(c.Session.PickAperture, c.Session.Tolerance.EqualPoint))
+                            if (
+                                nearest >= 0
+                                && (points[nearest] - c.Input.Point).Length
+                                    <= Math.Max(c.Session.PickAperture, c.Session.Tolerance.EqualPoint)
+                            )
                             {
                                 GeoPoint2 gone = points[nearest];
                                 points.RemoveAll(p => (p - gone).Length <= c.Session.Tolerance.EqualPoint);
@@ -618,7 +789,11 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (c.Input.Is("seTtings"))
                 {
-                    yield return CadPrompt.ForKeyword("Associative dimension priority", new[] { "Endpoint", "Intersection" }, "Endpoint");
+                    yield return CadPrompt.ForKeyword(
+                        "Associative dimension priority",
+                        new[] { "Endpoint", "Intersection" },
+                        "Endpoint"
+                    );
                 }
                 else
                 {
@@ -653,7 +828,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// dimensioned as the mode says. The number made; given a list to preview into, the number whose pictures were added to
         /// it instead.
         /// </summary>
-        private static int QuickLinear(CadCommandContext c, DxfDimStyleTableRecord style, List<GeoPoint2> points, Dictionary<GeoPoint2, DxfOsnapPointRef> ties, GeoPoint2? datum, GeoPoint2 location, string mode, List<DxfEntity> preview = null)
+        private static int QuickLinear(
+            CadCommandContext c,
+            DxfDimStyleTableRecord style,
+            List<GeoPoint2> points,
+            Dictionary<GeoPoint2, DxfOsnapPointRef> ties,
+            GeoPoint2? datum,
+            GeoPoint2 location,
+            string mode,
+            List<DxfEntity> preview = null
+        )
         {
             CadUcs ucs = c.Session.Ucs;
             var local = new List<GeoPoint2>();
@@ -684,18 +868,20 @@ namespace GeometryHelper.Dxf.Viewer
                 order.Add(i);
             }
 
-            order.Sort((i, j) =>
-            {
-                int byAlong = (level ? local[i].X : local[i].Y).CompareTo(level ? local[j].X : local[j].Y);
-
-                if (byAlong != 0)
+            order.Sort(
+                (i, j) =>
                 {
-                    return byAlong;
-                }
+                    int byAlong = (level ? local[i].X : local[i].Y).CompareTo(level ? local[j].X : local[j].Y);
 
-                int byAcross = (level ? local[i].Y : local[i].X).CompareTo(level ? local[j].Y : local[j].X);
-                return byAcross != 0 ? byAcross : i.CompareTo(j);
-            });
+                    if (byAlong != 0)
+                    {
+                        return byAlong;
+                    }
+
+                    int byAcross = (level ? local[i].Y : local[i].X).CompareTo(level ? local[j].Y : local[j].X);
+                    return byAcross != 0 ? byAcross : i.CompareTo(j);
+                }
+            );
 
             var row = new List<GeoPoint2>();
             double lastAlong = double.NaN;
@@ -730,7 +916,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                 for (int i = 0; i < tied.Length; i++)
                 {
-                    references[i] = ties.TryGetValue(tied[i], out DxfOsnapPointRef tie) ? CadDimAssociation.Renumbered(tie, first + i) : null;
+                    references[i] = ties.TryGetValue(tied[i], out DxfOsnapPointRef tie)
+                        ? CadDimAssociation.Renumbered(tie, first + i)
+                        : null;
                 }
 
                 CadDimAssociation.Tie(c, handle, references);
@@ -763,11 +951,19 @@ namespace GeometryHelper.Dxf.Viewer
                         GeoPoint2 end = ucs.ToWorld(level ? new GeoPoint2(u.X, at.Y) : new GeoPoint2(at.X, u.Y));
                         if (preview == null)
                         {
-                            made += Tied(OrdinateDimension(c, style, level, zero, ucs.Angle, point, end, null, null, false), 1, point) ? 1 : 0;
+                            made += Tied(
+                                OrdinateDimension(c, style, level, zero, ucs.Angle, point, end, null, null, false),
+                                1,
+                                point
+                            )
+                                ? 1
+                                : 0;
                         }
                         else if ((end - point).Length > c.Session.Tolerance.EqualPoint)
                         {
-                            preview.AddRange(OrdinateMade(c, style, level, zero, ucs.Angle, point, end, null, null, out _, out _));
+                            preview.AddRange(
+                                OrdinateMade(c, style, level, zero, ucs.Angle, point, end, null, null, out _, out _)
+                            );
                             made++;
                         }
                     }
@@ -814,7 +1010,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// A radius or a diameter of a circle or an arc for QDIM, its line toward the point the dimensions are put at; given a
         /// list to preview into, its picture added to it instead.
         /// </summary>
-        private static bool RadialOf(CadCommandContext c, DxfDimStyleTableRecord style, DxfCurve curve, GeoPoint2 location, bool diameter, List<DxfEntity> preview = null)
+        private static bool RadialOf(
+            CadCommandContext c,
+            DxfDimStyleTableRecord style,
+            DxfCurve curve,
+            GeoPoint2 location,
+            bool diameter,
+            List<DxfEntity> preview = null
+        )
         {
             GeoPoint2 center;
             double radius;
@@ -849,7 +1052,18 @@ namespace GeometryHelper.Dxf.Viewer
                 ? (DxfDimension)new DxfDiametricDimension(P3(chord), P3(far), leader, string.Empty, null)
                 : new DxfRadialDimension(P3(center), P3(chord), leader, string.Empty, null);
             string words = Words(style, made, diameter ? 2.0 * radius : radius, null, prefix);
-            List<DxfEntity> picture = Radial(style, Dimscale(c), textHeight, center, radius, chord, far, chord + unit * leader, diameter, words);
+            List<DxfEntity> picture = Radial(
+                style,
+                Dimscale(c),
+                textHeight,
+                center,
+                radius,
+                chord,
+                far,
+                chord + unit * leader,
+                diameter,
+                words
+            );
 
             if (preview != null)
             {

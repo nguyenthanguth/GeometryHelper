@@ -44,7 +44,8 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
         public string ShadowFolder => Path.Combine(Root, "copies");
 
         /// <summary>The sample plugin as the build left it beside the tests.</summary>
-        public static string BuiltSample => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SamplePlugin", SampleName + ".dll");
+        public static string BuiltSample =>
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SamplePlugin", SampleName + ".dll");
 
         public CadPluginManager Manager(bool confirm = false)
         {
@@ -69,14 +70,23 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
         }
 
         /// <summary>A .ghplugin of the sample, with the manifest given.</summary>
-        public string Package(string manifest, string name = "sample.ghplugin", params KeyValuePair<string, string>[] extra)
+        public string Package(
+            string manifest,
+            string name = "sample.ghplugin",
+            params KeyValuePair<string, string>[] extra
+        )
         {
             string path = Path.Combine(Root, name);
 
             using (FileStream stream = File.Create(path))
             using (var zip = new ZipArchive(stream, ZipArchiveMode.Create))
             {
-                using (var writer = new StreamWriter(zip.CreateEntry(CadPluginManifest.FileName).Open(), new UTF8Encoding(false)))
+                using (
+                    var writer = new StreamWriter(
+                        zip.CreateEntry(CadPluginManifest.FileName).Open(),
+                        new UTF8Encoding(false)
+                    )
+                )
                 {
                     writer.Write(manifest);
                 }
@@ -95,9 +105,21 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
             return path;
         }
 
-        public static string Manifest(string id = "number-circles", string name = "Number circles", string api = "1.0", string kind = "command")
-            => "{ \"id\": \"" + id + "\", \"name\": \"" + name + "\", \"version\": \"1.2.0\", \"author\": \"Nguyen Thang\", \"kind\": \"" + kind
-               + "\", \"minimumApiVersion\": \"" + api + "\", \"commands\": [ \"NUMCIRCLES\", \"FAILNOW\" ], \"icon\": \"icon.png\" }";
+        public static string Manifest(
+            string id = "number-circles",
+            string name = "Number circles",
+            string api = "1.0",
+            string kind = "command"
+        ) =>
+            "{ \"id\": \""
+            + id
+            + "\", \"name\": \""
+            + name
+            + "\", \"version\": \"1.2.0\", \"author\": \"Nguyen Thang\", \"kind\": \""
+            + kind
+            + "\", \"minimumApiVersion\": \""
+            + api
+            + "\", \"commands\": [ \"NUMCIRCLES\", \"FAILNOW\" ], \"icon\": \"icon.png\" }";
 
         public void Dispose() => Delete(Root);
 
@@ -123,11 +145,13 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
                 Circle(0, 0, 10, "C1"),
                 Circle(50, 0, 10, "C2"),
                 Circle(100, 20, 10, "C3"),
-                Entity("LINE", "L1", "10", 0.0, "20", -30.0, "30", 0.0, "11", 100.0, "21", -30.0, "31", 0.0));
+                Entity("LINE", "L1", "10", 0.0, "20", -30.0, "30", 0.0, "11", 100.0, "21", -30.0, "31", 0.0)
+            );
             return CadDocument.From(database, "circles.dxf");
         }
 
-        public static CadCommandSession Session(CadDocument document, CadCommandRegistry registry) => new CadCommandSession(document, registry) { PickAperture = 1.0 };
+        public static CadCommandSession Session(CadDocument document, CadCommandRegistry registry) =>
+            new CadCommandSession(document, registry) { PickAperture = 1.0 };
 
         public static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
@@ -147,15 +171,20 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
             return texts;
         }
 
-        private static string Circle(double x, double y, double radius, string handle) => Entity("CIRCLE", handle, "10", x, "20", y, "30", 0.0, "40", radius);
+        private static string Circle(double x, double y, double radius, string handle) =>
+            Entity("CIRCLE", handle, "10", x, "20", y, "30", 0.0, "40", radius);
 
         private static DxfDatabase Drawing(params string[] entities)
         {
             var text = new StringBuilder();
             text.Append("0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1015\n0\nENDSEC\n");
             text.Append("0\nSECTION\n2\nTABLES\n");
-            text.Append("0\nTABLE\n2\nLTYPE\n70\n1\n0\nLTYPE\n2\nCONTINUOUS\n70\n0\n3\nSolid line\n72\n65\n73\n0\n40\n0\n0\nENDTAB\n");
-            text.Append("0\nTABLE\n2\nLAYER\n70\n1\n0\nLAYER\n2\n0\n70\n0\n62\n7\n6\nCONTINUOUS\n0\nENDTAB\n0\nENDSEC\n");
+            text.Append(
+                "0\nTABLE\n2\nLTYPE\n70\n1\n0\nLTYPE\n2\nCONTINUOUS\n70\n0\n3\nSolid line\n72\n65\n73\n0\n40\n0\n0\nENDTAB\n"
+            );
+            text.Append(
+                "0\nTABLE\n2\nLAYER\n70\n1\n0\nLAYER\n2\n0\n70\n0\n62\n7\n6\nCONTINUOUS\n0\nENDTAB\n0\nENDSEC\n"
+            );
             text.Append("0\nSECTION\n2\nBLOCKS\n0\nENDSEC\n");
             text.Append("0\nSECTION\n2\nENTITIES\n").Append(string.Concat(entities)).Append("0\nENDSEC\n0\nEOF\n");
             return DxfDatabase.Parse(text.ToString());
@@ -169,7 +198,11 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
             for (int i = 0; i + 1 < codes.Length; i += 2)
             {
                 object value = codes[i + 1];
-                builder.Append(codes[i]).Append('\n').Append(value is double number ? number.ToString("R", CultureInfo.InvariantCulture) : value).Append('\n');
+                builder
+                    .Append(codes[i])
+                    .Append('\n')
+                    .Append(value is double number ? number.ToString("R", CultureInfo.InvariantCulture) : value)
+                    .Append('\n');
             }
 
             return builder.ToString();

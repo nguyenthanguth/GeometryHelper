@@ -96,7 +96,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>TEXTTOFRONT: "Bring to front [Text/Dimensions/Leaders/All] &lt;All&gt;:", every one of the kind in every space brought to the front.</summary>
         private static IEnumerable<CadPrompt> TextToFront(CadCommandContext c)
         {
-            yield return CadPrompt.ForKeyword("Bring to front", new[] { "Text", "Dimensions", "Leaders", "All" }, "All");
+            yield return CadPrompt.ForKeyword(
+                "Bring to front",
+                new[] { "Text", "Dimensions", "Leaders", "All" },
+                "All"
+            );
 
             if (c.Input.Kind != CadInputKind.Keyword)
             {
@@ -117,7 +121,12 @@ namespace GeometryHelper.Dxf.Viewer
                     bool dimension = entity is DxfDimension;
                     bool leader = entity is DxfLeader || entity is DxfMLeader;
 
-                    if ((option == "Text" && text) || (option == "Dimensions" && dimension) || (option == "Leaders" && leader) || (option == "All" && (text || dimension || leader)))
+                    if (
+                        (option == "Text" && text)
+                        || (option == "Dimensions" && dimension)
+                        || (option == "Leaders" && leader)
+                        || (option == "All" && (text || dimension || leader))
+                    )
                     {
                         found.Add(entity);
                     }
@@ -132,13 +141,16 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (count > 0)
             {
-                CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Draw order", null, "Front") }, s =>
-                {
-                    foreach (KeyValuePair<DxfBlockTableRecord, List<DxfEntity>> pair in spaces)
+                CadEditResult result = c.Apply(
+                    new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Draw order", null, "Front") },
+                    s =>
                     {
-                        pair.Key.CreateDrawOrderTable().MoveToTop(pair.Value);
+                        foreach (KeyValuePair<DxfBlockTableRecord, List<DxfEntity>> pair in spaces)
+                        {
+                            pair.Key.CreateDrawOrderTable().MoveToTop(pair.Value);
+                        }
                     }
-                });
+                );
 
                 if (!result.Succeeded)
                 {

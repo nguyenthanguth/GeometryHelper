@@ -78,8 +78,20 @@ namespace GeometryHelper.Drawing.Annotation
             MarkSettings settings,
             MarkContent content,
             double scale,
-            Tolerance tolerance)
-            => Mark(view, objects, frame, dimensions, new GeoRectangle2[0], new GeoLine2[0], settings, content, scale, tolerance);
+            Tolerance tolerance
+        ) =>
+            Mark(
+                view,
+                objects,
+                frame,
+                dimensions,
+                new GeoRectangle2[0],
+                new GeoLine2[0],
+                settings,
+                content,
+                scale,
+                tolerance
+            );
 
         /// <summary>
         /// Marks the objects of a view, placed clear of its dimensions, of boxes and lines given, as the texts and lines of
@@ -119,7 +131,8 @@ namespace GeometryHelper.Drawing.Annotation
             MarkSettings settings,
             MarkContent content,
             double scale,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             if (clearOfBoxes == null)
             {
@@ -138,7 +151,10 @@ namespace GeometryHelper.Drawing.Annotation
 
             if (!frame.IsValid)
             {
-                throw new ArgumentException("The frame has to have three unit axes square to each other.", nameof(frame));
+                throw new ArgumentException(
+                    "The frame has to have three unit axes square to each other.",
+                    nameof(frame)
+                );
             }
 
             if (settings == null)
@@ -153,23 +169,53 @@ namespace GeometryHelper.Drawing.Annotation
 
             if (!(scale > 0.0) || double.IsInfinity(scale))
             {
-                throw new ArgumentOutOfRangeException(nameof(scale), scale, "The scale has to be a finite number above nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(scale),
+                    scale,
+                    "The scale has to be a finite number above nought."
+                );
             }
 
             List<DrawingObject> sorted = Sorted(objects);
             List<DrawingDimension> dims = Dimensions(dimensions);
             double tol = tolerance.EqualPoint;
             double height = settings.TextHeight * scale;
-            var placer = new MarkPlacer(view, sorted, frame, dims, new List<GeoRectangle2>(clearOfBoxes), new List<GeoLine2>(clearOfLines), height, settings.Offset * scale, tolerance);
+            var placer = new MarkPlacer(
+                view,
+                sorted,
+                frame,
+                dims,
+                new List<GeoRectangle2>(clearOfBoxes),
+                new List<GeoLine2>(clearOfLines),
+                height,
+                settings.Offset * scale,
+                tolerance
+            );
             List<MarkPlacer.Candidate> candidates = placer.Candidates(settings, content);
             List<DrawingMark> marks = placer.Place(candidates, scale, out List<string> dropped);
 
             if (dropped.Count > 0)
             {
-                GeometryHelperLog.Debug(string.Format(CultureInfo.InvariantCulture, "Marker: {0} marks found no place clear of the dimensions and the other marks and were left out: {1}.", dropped.Count, string.Join(", ", dropped)));
+                GeometryHelperLog.Debug(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "Marker: {0} marks found no place clear of the dimensions and the other marks and were left out: {1}.",
+                        dropped.Count,
+                        string.Join(", ", dropped)
+                    )
+                );
             }
 
-            GeometryHelperLog.Info(string.Format(CultureInfo.InvariantCulture, "Marker: {0} objects gave {1} marks, {2} left out (tolerance {3}).", sorted.Count, marks.Count, dropped.Count, tol));
+            GeometryHelperLog.Info(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "Marker: {0} objects gave {1} marks, {2} left out (tolerance {3}).",
+                    sorted.Count,
+                    marks.Count,
+                    dropped.Count,
+                    tol
+                )
+            );
             return marks;
         }
 
@@ -192,7 +238,11 @@ namespace GeometryHelper.Drawing.Annotation
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the marks or the dimensions are null.</exception>
         /// <exception cref="ArgumentException">Thrown when a mark or a dimension is null.</exception>
-        public static IReadOnlyList<string> FindOverlaps(IEnumerable<DrawingMark> marks, IEnumerable<DrawingDimension> dimensions, Tolerance tolerance)
+        public static IReadOnlyList<string> FindOverlaps(
+            IEnumerable<DrawingMark> marks,
+            IEnumerable<DrawingDimension> dimensions,
+            Tolerance tolerance
+        )
         {
             if (marks == null)
             {
@@ -217,7 +267,18 @@ namespace GeometryHelper.Drawing.Annotation
 
                 for (int j = i + 1; j < list.Count; j++)
                 {
-                    MarkClash(a.Id, a.TextBox, a.Leader[0], a.Anchor, list[j].Id, list[j].TextBox, list[j].Leader[0], list[j].Anchor, tol, found);
+                    MarkClash(
+                        a.Id,
+                        a.TextBox,
+                        a.Leader[0],
+                        a.Anchor,
+                        list[j].Id,
+                        list[j].TextBox,
+                        list[j].Leader[0],
+                        list[j].Anchor,
+                        tol,
+                        found
+                    );
                 }
             }
 
@@ -237,7 +298,13 @@ namespace GeometryHelper.Drawing.Annotation
         /// <returns>One line of words for each overlap, the marks in their order; empty where none overlaps.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the marks, the dimensions, the boxes or the lines are null.</exception>
         /// <exception cref="ArgumentException">Thrown when a mark or a dimension is null.</exception>
-        public static IReadOnlyList<string> FindOverlaps(IEnumerable<DrawingMark> marks, IEnumerable<DrawingDimension> dimensions, IEnumerable<GeoRectangle2> clearOfBoxes, IEnumerable<GeoLine2> clearOfLines, Tolerance tolerance)
+        public static IReadOnlyList<string> FindOverlaps(
+            IEnumerable<DrawingMark> marks,
+            IEnumerable<DrawingDimension> dimensions,
+            IEnumerable<GeoRectangle2> clearOfBoxes,
+            IEnumerable<GeoLine2> clearOfLines,
+            Tolerance tolerance
+        )
         {
             if (clearOfBoxes == null)
             {
@@ -255,7 +322,16 @@ namespace GeometryHelper.Drawing.Annotation
 
             foreach (DrawingMark mark in marks)
             {
-                SymbolClash(mark.Id, mark.TextBox, mark.Leader[0], mark.Anchor, boxes, lines, tolerance.EqualPoint, found);
+                SymbolClash(
+                    mark.Id,
+                    mark.TextBox,
+                    mark.Leader[0],
+                    mark.Anchor,
+                    boxes,
+                    lines,
+                    tolerance.EqualPoint,
+                    found
+                );
             }
 
             return found;
@@ -265,7 +341,16 @@ namespace GeometryHelper.Drawing.Annotation
         /// Adds a line for each way a mark meets the boxes and lines kept clear of: its text over a box or a line, its leader
         /// across a box; with no list, stops at the first and says whether there was one.
         /// </summary>
-        internal static bool SymbolClash(string id, GeoRectangle2 text, GeoPoint2 a, GeoPoint2 b, List<GeoRectangle2> boxes, List<GeoLine2> lines, double tol, List<string> found)
+        internal static bool SymbolClash(
+            string id,
+            GeoRectangle2 text,
+            GeoPoint2 a,
+            GeoPoint2 b,
+            List<GeoRectangle2> boxes,
+            List<GeoLine2> lines,
+            double tol,
+            List<string> found
+        )
         {
             bool any = false;
 
@@ -308,7 +393,15 @@ namespace GeometryHelper.Drawing.Annotation
         /// dimension line shorter than two arrows is taken run on by an arrow at each end, as it is drawn with its arrows
         /// outside, and each arrow as the box round it.
         /// </summary>
-        internal static bool DimensionClash(string id, GeoRectangle2 text, GeoPoint2 a, GeoPoint2 b, List<DrawingDimension> dims, double tol, List<string> found)
+        internal static bool DimensionClash(
+            string id,
+            GeoRectangle2 text,
+            GeoPoint2 a,
+            GeoPoint2 b,
+            List<DrawingDimension> dims,
+            double tol,
+            List<string> found
+        )
         {
             bool any = false;
 
@@ -367,7 +460,18 @@ namespace GeometryHelper.Drawing.Annotation
         /// Adds a line for each way two marks meet: text over text, a leader across the other's text; with no list, says
         /// whether they meet.
         /// </summary>
-        internal static bool MarkClash(string idA, GeoRectangle2 textA, GeoPoint2 a0, GeoPoint2 a1, string idB, GeoRectangle2 textB, GeoPoint2 b0, GeoPoint2 b1, double tol, List<string> found)
+        internal static bool MarkClash(
+            string idA,
+            GeoRectangle2 textA,
+            GeoPoint2 a0,
+            GeoPoint2 a1,
+            string idB,
+            GeoRectangle2 textB,
+            GeoPoint2 b0,
+            GeoPoint2 b1,
+            double tol,
+            List<string> found
+        )
         {
             bool any = false;
 

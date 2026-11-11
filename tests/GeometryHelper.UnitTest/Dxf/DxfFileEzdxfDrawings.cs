@@ -10,7 +10,8 @@ namespace GeometryHelper.UnitTest.Dxf
     internal static class DxfFileEzdxfDrawings
     {
         /// <summary>The drawing of R12.</summary>
-        internal const string R12 = @"  0
+        internal const string R12 =
+            @"  0
 SECTION
   2
 HEADER
@@ -1883,7 +1884,8 @@ EOF
 ";
 
         /// <summary>The drawing of R2000, its text as Windows-1252 reads its bytes.</summary>
-        internal const string R2000 = @"  0
+        internal const string R2000 =
+            @"  0
 SECTION
   2
 HEADER
@@ -7592,7 +7594,8 @@ EOF
 ";
 
         /// <summary>The drawing of R2018.</summary>
-        internal const string R2018 = @"  0
+        internal const string R2018 =
+            @"  0
 SECTION
   2
 HEADER

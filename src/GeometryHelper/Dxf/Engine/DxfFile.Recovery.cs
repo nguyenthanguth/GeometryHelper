@@ -6,7 +6,8 @@ namespace GeometryHelper.Dxf
     internal sealed partial class DxfFile
     {
         /// <summary>A file read from bytes <see cref="DxfRecovery"/> has repaired, said in the log as from where they came.</summary>
-        internal static DxfFile Recovered(byte[] bytes, int length, string source) => new DxfFile(bytes, length, source);
+        internal static DxfFile Recovered(byte[] bytes, int length, string source) =>
+            new DxfFile(bytes, length, source);
 
         /// <summary>What <see cref="DxfDatabase.Audit"/> reads of an entity: the names its head record gives, and what is wrong with its numbers.</summary>
         internal sealed class Audited
@@ -22,7 +23,8 @@ namespace GeometryHelper.Dxf
             internal string Block { get; set; }
 
             /// <summary>Each number found wrong: the record (0 its own, then those that follow it), the index of the group as <see cref="SetValueAt"/> counts it, its code, its text, its kind, and the value it is given.</summary>
-            internal List<Tuple<int, int, int, string, DxfRepairKind, string>> Wrong { get; } = new List<Tuple<int, int, int, string, DxfRepairKind, string>>();
+            internal List<Tuple<int, int, int, string, DxfRepairKind, string>> Wrong { get; } =
+                new List<Tuple<int, int, int, string, DxfRepairKind, string>>();
         }
 
         /// <summary>
@@ -57,7 +59,16 @@ namespace GeometryHelper.Dxf
 
                         if (verdict != 0)
                         {
-                            audited.Wrong.Add(Tuple.Create(r, index, code, text, verdict == 2 ? DxfRepairKind.NonFiniteNumber : DxfRepairKind.BadNumber, value));
+                            audited.Wrong.Add(
+                                Tuple.Create(
+                                    r,
+                                    index,
+                                    code,
+                                    text,
+                                    verdict == 2 ? DxfRepairKind.NonFiniteNumber : DxfRepairKind.BadNumber,
+                                    value
+                                )
+                            );
                         }
                     }
 
@@ -80,7 +91,16 @@ namespace GeometryHelper.Dxf
 
                 if (at >= 0)
                 {
-                    audited.Wrong.Add(Tuple.Create(0, at, codes[at], values[at], type == "HATCH" ? DxfRepairKind.WrongLoopCount : DxfRepairKind.WrongVertexCount, should.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+                    audited.Wrong.Add(
+                        Tuple.Create(
+                            0,
+                            at,
+                            codes[at],
+                            values[at],
+                            type == "HATCH" ? DxfRepairKind.WrongLoopCount : DxfRepairKind.WrongVertexCount,
+                            should.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        )
+                    );
                 }
             }
 
@@ -97,10 +117,13 @@ namespace GeometryHelper.Dxf
                 case 6 when audited.Linetype == null:
                     audited.Linetype = DxfReader.NameOf(Text(record, start, end));
                     break;
-                case 7 when audited.TextStyle == null && (type == "TEXT" || type == "MTEXT" || type == "ATTRIB" || type == "ATTDEF"):
+                case 7
+                    when audited.TextStyle == null
+                        && (type == "TEXT" || type == "MTEXT" || type == "ATTRIB" || type == "ATTDEF"):
                     audited.TextStyle = DxfReader.NameOf(Text(record, start, end));
                     break;
-                case 3 when audited.DimStyle == null && (type == "DIMENSION" || type == "LEADER" || type == "TOLERANCE"):
+                case 3
+                    when audited.DimStyle == null && (type == "DIMENSION" || type == "LEADER" || type == "TOLERANCE"):
                     audited.DimStyle = DxfReader.NameOf(Text(record, start, end));
                     break;
                 case 2 when audited.Block == null && type == "INSERT":
@@ -159,7 +182,10 @@ namespace GeometryHelper.Dxf
 
                     while (walk.Next(out int code, out int start, out int end))
                     {
-                        string text = code == 5 || code == 100 || code == 3 || code == 350 || code == 360 ? Text(record, start, end) : null;
+                        string text =
+                            code == 5 || code == 100 || code == 3 || code == 350 || code == 360
+                                ? Text(record, start, end)
+                                : null;
                         handle = code == 5 && handle == null ? text.Trim() : handle;
                         own |= code == 100 && text.Trim() == "AcDbDictionary";
 
@@ -171,9 +197,19 @@ namespace GeometryHelper.Dxf
                             {
                                 found.Add(Tuple.Create<DxfItem, int, int, string, string>(null, name, 1, named, null));
                             }
-                            else if (pointer && (name < 0 || !DxfRecovery.TryHex(text, out ulong pointed) || pointed == 0))
+                            else if (
+                                pointer && (name < 0 || !DxfRecovery.TryHex(text, out ulong pointed) || pointed == 0)
+                            )
                             {
-                                found.Add(Tuple.Create<DxfItem, int, int, string, string>(null, name < 0 ? index : name, name < 0 ? 1 : 2, named, text.Trim()));
+                                found.Add(
+                                    Tuple.Create<DxfItem, int, int, string, string>(
+                                        null,
+                                        name < 0 ? index : name,
+                                        name < 0 ? 1 : 2,
+                                        named,
+                                        text.Trim()
+                                    )
+                                );
                             }
 
                             name = pointer ? -1 : index;

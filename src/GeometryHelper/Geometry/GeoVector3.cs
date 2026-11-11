@@ -62,9 +62,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vector">Source vector.</param>
         public GeoVector3(GeoVector3 vector)
-            : this(vector.X, vector.Y, vector.Z)
-        {
-        }
+            : this(vector.X, vector.Y, vector.Z) { }
 
         /// <summary>
         /// Creates a copy of this vector.
@@ -159,10 +157,7 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         public GeoVector3 CrossProduct(GeoVector3 other)
         {
-            return new GeoVector3(
-                Y * other.Z - Z * other.Y,
-                Z * other.X - X * other.Z,
-                X * other.Y - Y * other.X);
+            return new GeoVector3(Y * other.Z - Z * other.Y, Z * other.X - X * other.Z, X * other.Y - Y * other.X);
         }
 
         /// <summary>
@@ -250,9 +245,10 @@ namespace GeometryHelper.Geometry
             double ay = Math.Abs(Y);
             double az = Math.Abs(Z);
 
-            GeoVector3 leastAligned = ax <= ay && ax <= az
-                ? XAxis
-                : ay <= az ? YAxis : ZAxis;
+            GeoVector3 leastAligned =
+                ax <= ay && ax <= az ? XAxis
+                : ay <= az ? YAxis
+                : ZAxis;
 
             return CrossProduct(leastAligned).Normalize();
         }
@@ -388,7 +384,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this vector points the same way as another vector within tolerance.
         /// </summary>
-        public bool IsCodirectionalTo(GeoVector3 other, Tolerance tolerance) => Parallel3.IsCodirectional(this, other, tolerance);
+        public bool IsCodirectionalTo(GeoVector3 other, Tolerance tolerance) =>
+            Parallel3.IsCodirectional(this, other, tolerance);
 
         /// <summary>
         /// Checks whether this vector is perpendicular to another vector using the default tolerance.
@@ -398,7 +395,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this vector is perpendicular to another vector within tolerance.
         /// </summary>
-        public bool IsPerpendicularTo(GeoVector3 other, Tolerance tolerance) => Parallel3.IsPerpendicular(this, other, tolerance);
+        public bool IsPerpendicularTo(GeoVector3 other, Tolerance tolerance) =>
+            Parallel3.IsPerpendicular(this, other, tolerance);
 
         /// <summary>
         /// Checks whether this vector lies in the plane spanned by two other vectors, using the default tolerance.
@@ -408,7 +406,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this vector lies in the plane spanned by two other vectors, within tolerance.
         /// </summary>
-        public bool IsCoplanarWith(GeoVector3 v1, GeoVector3 v2, Tolerance tolerance) => Parallel3.IsCoplanar(this, v1, v2, tolerance);
+        public bool IsCoplanarWith(GeoVector3 v1, GeoVector3 v2, Tolerance tolerance) =>
+            Parallel3.IsCoplanar(this, v1, v2, tolerance);
 
         #endregion
 

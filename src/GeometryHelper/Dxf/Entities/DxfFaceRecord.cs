@@ -18,13 +18,13 @@ namespace GeometryHelper.Dxf
     {
         // The groups of AcDbFaceRecord in the order AutoCAD writes them: its marker alone, no AcDbVertex before it, as AutoCAD
         // refuses a face record with one ("Class separator for class AcDbFaceRecord expected").
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 10, 20, 30, 70, 71, 72, 73, 74 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 10, 20, 30, 70, 71, 72, 73, 74 }
+        );
 
         /// <summary>Initializes a face of no corners, as AutoCAD's <c>new FaceRecord()</c>, in no mesh.</summary>
         public DxfFaceRecord()
-            : this(0, 0, 0, 0)
-        {
-        }
+            : this(0, 0, 0, 0) { }
 
         /// <summary>
         /// Initializes a face of the points of its numbers, as AutoCAD's <c>new FaceRecord(vtx0, vtx1, vtx2, vtx3)</c>, in no mesh
@@ -35,14 +35,10 @@ namespace GeometryHelper.Dxf
         /// <param name="vtx2">The number of the third corner.</param>
         /// <param name="vtx3">The number of the fourth corner; nought for a triangle.</param>
         public DxfFaceRecord(short vtx0, short vtx1, short vtx2, short vtx3)
-            : base(Groups(vtx0, vtx1, vtx2, vtx3))
-        {
-        }
+            : base(Groups(vtx0, vtx1, vtx2, vtx3)) { }
 
         private DxfFaceRecord(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets the number of a corner among the mesh's points (group 71 + index), from 1, as AutoCAD's <c>GetVertexAt</c>: its
@@ -62,7 +58,11 @@ namespace GeometryHelper.Dxf
         {
             if (vertexIndex < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(vertexIndex), vertexIndex, "A corner's number is from 1, or nought for none.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(vertexIndex),
+                    vertexIndex,
+                    "A corner's number is from 1, or nought for none."
+                );
             }
 
             int now = Number(index);
@@ -99,8 +99,10 @@ namespace GeometryHelper.Dxf
         }
 
         [DxfType("VERTEX")]
-        internal static DxfEntity Create(DxfItem item)
-            => item.Parent != null && (ParentFlags(item) & 64) != 0 && (DxfPolyline2d.Flags(item) & 64) == 0 ? new DxfFaceRecord(item) : null;
+        internal static DxfEntity Create(DxfItem item) =>
+            item.Parent != null && (ParentFlags(item) & 64) != 0 && (DxfPolyline2d.Flags(item) & 64) == 0
+                ? new DxfFaceRecord(item)
+                : null;
 
         /// <inheritdoc/>
         private protected override IReadOnlyList<int> GroupOrder => Order;
@@ -119,7 +121,12 @@ namespace GeometryHelper.Dxf
         {
             if (value != Number(index))
             {
-                SetGroups(new KeyValuePair<int, string>(71 + index, value == 0 ? null : value.ToString(CultureInfo.InvariantCulture)));
+                SetGroups(
+                    new KeyValuePair<int, string>(
+                        71 + index,
+                        value == 0 ? null : value.ToString(CultureInfo.InvariantCulture)
+                    )
+                );
             }
         }
 

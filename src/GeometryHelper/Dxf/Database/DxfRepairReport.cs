@@ -38,9 +38,14 @@ namespace GeometryHelper.Dxf
         /// Gets the report in one sentence, as AutoCAD ends its audit: "No errors found." for a sound file, else how many were
         /// found and fixed, "3 errors found, 3 fixed."
         /// </summary>
-        public string Summary => Count == 0
-            ? "No errors found."
-            : Count.ToString(CultureInfo.InvariantCulture) + (Count == 1 ? " error" : " errors") + " found, " + FixedCount.ToString(CultureInfo.InvariantCulture) + " fixed.";
+        public string Summary =>
+            Count == 0
+                ? "No errors found."
+                : Count.ToString(CultureInfo.InvariantCulture)
+                    + (Count == 1 ? " error" : " errors")
+                    + " found, "
+                    + FixedCount.ToString(CultureInfo.InvariantCulture)
+                    + " fixed.";
 
         /// <summary>Counts what was found of one kind.</summary>
         /// <param name="kind">The kind.</param>

@@ -20,19 +20,24 @@ namespace GeometryHelper.UnitTest.Dxf
 
         // AutoCAD 2021's records (after AcDbMLeader, its proxy graphics left out) of words "ABC" 4 high held at (100, 50), a line
         // from (0, 0) and a leader whose dogleg of 8 runs from (90, 48): its EnableDogleg made false (d07)...
-        private const string NoDogleg = "270 2|300 CONTEXT_DATA{|40 1.0|10 98.0|20 48.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 100.0|22 50.0|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 90.0|20 48.0|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 0.0|20 0.0|30 0.0|91 0|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 296000|170 1|91 -1056964608|341 5B|171 -2|290 1|291 0|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
+        private const string NoDogleg =
+            "270 2|300 CONTEXT_DATA{|40 1.0|10 98.0|20 48.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 100.0|22 50.0|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 90.0|20 48.0|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 0.0|20 0.0|30 0.0|91 0|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 296000|170 1|91 -1056964608|341 5B|171 -2|290 1|291 0|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
 
         // ... its leader lines splined, a second line from (0, 100) (d19) ...
-        private const string Splined = "270 2|300 CONTEXT_DATA{|40 1.0|10 98.0|20 48.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 100.0|22 50.0|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 90.0|20 48.0|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 0.0|20 0.0|30 0.0|91 0|305 }|304 LEADER_LINE{|10 0.0|20 100.0|30 0.0|91 1|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 295937|170 2|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
+        private const string Splined =
+            "270 2|300 CONTEXT_DATA{|40 1.0|10 98.0|20 48.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 100.0|22 50.0|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 90.0|20 48.0|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 0.0|20 0.0|30 0.0|91 0|305 }|304 LEADER_LINE{|10 0.0|20 100.0|30 0.0|91 1|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 295937|170 2|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
 
         // ... words 60 wide, the line's arrows 2 of its own, then Scale set to 2 (h1c) ...
-        private const string ScaledTwice = "270 2|300 CONTEXT_DATA{|40 2.0|10 106.0|20 48.0|30 0.0|41 8.0|140 8.0|145 4.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 110.0|22 52.0|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 120.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 90.0|20 48.0|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 16.0|304 LEADER_LINE{|10 0.0|20 0.0|30 0.0|91 0|40 2.0|93 16|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 17073152|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 2.0|271 0|272 9|273 9|295 1";
+        private const string ScaledTwice =
+            "270 2|300 CONTEXT_DATA{|40 2.0|10 106.0|20 48.0|30 0.0|41 8.0|140 8.0|145 4.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 110.0|22 52.0|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 120.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 90.0|20 48.0|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 16.0|304 LEADER_LINE{|10 0.0|20 0.0|30 0.0|91 0|40 2.0|93 16|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 17073152|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 2.0|271 0|272 9|273 9|295 1";
 
         // ... three lines of words met at their top or bottom, a line from (100, -50) (d15) ...
-        private const string Vertical = "270 2|300 CONTEXT_DATA{|40 1.0|10 98.0|20 48.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 A\\PBB\\PCCC|11 0.0|21 0.0|31 1.0|340 55|12 92.66666666666667|22 67.33333333333333|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 98.0|20 48.0|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 100.0|20 -50.0|30 0.0|91 0|305 }|271 1|303 }|272 9|273 9|301 }|340 67|90 295936|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 1|272 9|273 9|295 1";
+        private const string Vertical =
+            "270 2|300 CONTEXT_DATA{|40 1.0|10 98.0|20 48.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 A\\PBB\\PCCC|11 0.0|21 0.0|31 1.0|340 55|12 92.66666666666667|22 67.33333333333333|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 98.0|20 48.0|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 100.0|20 -50.0|30 0.0|91 0|305 }|271 1|303 }|272 9|273 9|301 }|340 67|90 295936|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 1|272 9|273 9|295 1";
 
         // ... and, on a Standard of words 0.18 high, gaps of 0.09 and doglegs of 0.36, its DoglegLength made nought (c08).
-        private const string NoLength = "270 2|300 CONTEXT_DATA{|40 1.0|10 99.90999999999999|20 49.90999999999999|30 0.0|41 0.2|140 0.18|145 0.09|174 1|175 6|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 100.0|22 50.01|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 99.90999999999999|20 49.90999999999999|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 0.0|304 LEADER_LINE{|10 0.0|20 0.0|30 0.0|91 0|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 361600|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 0.0|42 0.18|172 2|343 55|173 1|95 6|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
+        private const string NoLength =
+            "270 2|300 CONTEXT_DATA{|40 1.0|10 99.90999999999999|20 49.90999999999999|30 0.0|41 0.2|140 0.18|145 0.09|174 1|175 6|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 100.0|22 50.01|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 99.90999999999999|20 49.90999999999999|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 0.0|304 LEADER_LINE{|10 0.0|20 0.0|30 0.0|91 0|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 361600|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 0.0|42 0.18|172 2|343 55|173 1|95 6|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
 
         private static DxfDatabase Drawing() => DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
 
@@ -42,7 +47,15 @@ namespace GeometryHelper.UnitTest.Dxf
         /// </summary>
         private static DxfMLeader AutoCads(DxfDatabase db, string record)
         {
-            var made = new DxfMLeader { MText = new DxfMText { Contents = "X", Location = new GeoPoint3(0, 0, 0), TextHeight = 4.0 } };
+            var made = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = "X",
+                    Location = new GeoPoint3(0, 0, 0),
+                    TextHeight = 4.0,
+                },
+            };
             db.ModelSpace.AppendEntity(made);
             List<DxfTypedValue> tail = made.Item.File.TailOf(made.Item, 0);
             int marker = tail.FindIndex(g => g.TypeCode == 100 && g.Value.Trim() == "AcDbMLeader");
@@ -62,7 +75,10 @@ namespace GeometryHelper.UnitTest.Dxf
                     continue;
                 }
 
-                value = code == 340 && value == "67" ? style : (code == 340 || code == 343) && value == "55" ? text : value;
+                value =
+                    code == 340 && value == "67" ? style
+                    : (code == 340 || code == 343) && value == "55" ? text
+                    : value;
                 groups.Add(new KeyValuePair<int, string>(code, value));
             }
 
@@ -80,7 +96,8 @@ namespace GeometryHelper.UnitTest.Dxf
             return arrow.GetPointAt(1).DistanceTo(new GeoPoint3((a.X + c.X) / 2, (a.Y + c.Y) / 2, (a.Z + c.Z) / 2));
         }
 
-        private static void Near(GeoPoint3 expected, GeoPoint3 actual) => Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
+        private static void Near(GeoPoint3 expected, GeoPoint3 actual) =>
+            Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
 
         /// <summary>
         /// The number of the first group of a code in the multileader's record after the first group of another code (301, the
@@ -97,7 +114,15 @@ namespace GeometryHelper.UnitTest.Dxf
         /// <summary>A multileader made in code as GHD31 made AutoCAD's: words "ABC" 4 high held at (100, 50), by the library's defaults (gap 2, dogleg 8, the middle of the top line).</summary>
         private static DxfMLeader Words(DxfDatabase db, string words = "ABC", params GeoPoint3[] points)
         {
-            var mleader = new DxfMLeader { MText = new DxfMText { Contents = words, Location = P(100, 50), TextHeight = 4.0 } };
+            var mleader = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = words,
+                    Location = P(100, 50),
+                    TextHeight = 4.0,
+                },
+            };
 
             foreach (GeoPoint3 point in points.Length == 0 ? new[] { P(0, 0) } : points)
             {
@@ -237,7 +262,9 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // AutoCAD 2021 (h2): the INSERT of the block of a multileader of 0.30 and Continuous is 0.30 and Continuous.
             DxfDatabase db = Drawing();
-            DxfMLeader block = db.ModelSpace.OfType<DxfMLeader>().Single(m => m.ContentType == DxfContentType.BlockContent);
+            DxfMLeader block = db
+                .ModelSpace.OfType<DxfMLeader>()
+                .Single(m => m.ContentType == DxfContentType.BlockContent);
             block.LineWeight = DxfLineWeight.LineWeight030;
             block.Linetype = "Continuous";
 
@@ -258,13 +285,21 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData(DxfTextAttachmentType.AttachmentBottomOfTopLine, 45.200000000000003)]
         [InlineData(DxfTextAttachmentType.AttachmentBottomOfTop, 46.0)]
         [InlineData(DxfTextAttachmentType.AttachmentAllLine, 45.200000000000003)]
-        public void ALeaderAddedOnTheLeftOfThreeLinesOfWords_IsLandedWhereAutoCadLandsIt(DxfTextAttachmentType attachment, double y)
+        public void ALeaderAddedOnTheLeftOfThreeLinesOfWords_IsLandedWhereAutoCadLandsIt(
+            DxfTextAttachmentType attachment,
+            double y
+        )
         {
             // AutoCAD 2021 (d04): words A, BB, CCC 4 high at (100, 50), met on the left as given, a line from (0, 0): the dogleg
             // of 8 from (90, y) to (98, y). The library started it at the words' place, (100, 50).
             var mleader = new DxfMLeader();
             mleader.SetTextAttachmentType(attachment, DxfLeaderDirectionType.LeftLeader);
-            mleader.MText = new DxfMText { Contents = "A\\PBB\\PCCC", Location = P(100, 50), TextHeight = 4.0 };
+            mleader.MText = new DxfMText
+            {
+                Contents = "A\\PBB\\PCCC",
+                Location = P(100, 50),
+                TextHeight = 4.0,
+            };
             mleader.AddLeaderLine(P(0, 0));
             Drawing().ModelSpace.AppendEntity(mleader);
 
@@ -284,7 +319,12 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(P(90, 48), Words(Drawing(), "ABC", P(50, 100)).GetLastVertex(0));
 
             var wide = new DxfMLeader { LandingGap = 5, DoglegLength = 15 };
-            wide.MText = new DxfMText { Contents = "ABC", Location = P(100, 50), TextHeight = 4.0 };
+            wide.MText = new DxfMText
+            {
+                Contents = "ABC",
+                Location = P(100, 50),
+                TextHeight = 4.0,
+            };
             wide.AddLeaderLine(P(0, 0));
             Near(P(80, 48), wide.GetLastVertex(0));
             Assert.Equal(15.0, wide.GetDoglegLength(0));
@@ -305,7 +345,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Near(P(110, 78), mleader.GetLastVertex(0));
             Near(P(0, 0), mleader.GetFirstVertex(0));
-            Assert.Equal(new double?[] { 118, 78 }, new[] { After(mleader, "CONTEXT_DATA{", 10), After(mleader, "CONTEXT_DATA{", 20) });
+            Assert.Equal(
+                new double?[] { 118, 78 },
+                new[] { After(mleader, "CONTEXT_DATA{", 10), After(mleader, "CONTEXT_DATA{", 20) }
+            );
         }
 
         [Fact]
@@ -378,14 +421,23 @@ namespace GeometryHelper.UnitTest.Dxf
 
         // ---- inserting a drawing of INSERTs of blocks it has not -----------------------------------------------------------
 
-        private const string Head = "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1009\n  0\nENDSEC\n  0\nSECTION\n  2\nBLOCKS\n";
+        private const string Head =
+            "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1009\n  0\nENDSEC\n  0\nSECTION\n  2\nBLOCKS\n";
         private const string Line = "  0\nLINE\n  8\n0\n 10\n0\n 20\n0\n 30\n0\n 11\n1\n 21\n0\n 31\n0\n";
 
         private static string Insert(string name) => "  0\nINSERT\n  8\n0\n  2\n" + name + "\n 10\n0\n 20\n0\n 30\n0\n";
 
-        private static string Block(string name, string entities) => "  0\nBLOCK\n  8\n0\n  2\n" + name + "\n 70\n" + (name.StartsWith("*", StringComparison.Ordinal) ? "1" : "0") + "\n 10\n0\n 20\n0\n 30\n0\n" + entities + "  0\nENDBLK\n  8\n0\n";
+        private static string Block(string name, string entities) =>
+            "  0\nBLOCK\n  8\n0\n  2\n"
+            + name
+            + "\n 70\n"
+            + (name.StartsWith("*", StringComparison.Ordinal) ? "1" : "0")
+            + "\n 10\n0\n 20\n0\n 30\n0\n"
+            + entities
+            + "  0\nENDBLK\n  8\n0\n";
 
-        private static string R12(string blocks, string entities) => Head + blocks + "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n" + entities + "  0\nENDSEC\n  0\nEOF\n";
+        private static string R12(string blocks, string entities) =>
+            Head + blocks + "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n" + entities + "  0\nENDSEC\n  0\nEOF\n";
 
         private static List<string> Logged(Action action)
         {
@@ -408,7 +460,8 @@ namespace GeometryHelper.UnitTest.Dxf
             return written;
         }
 
-        private static string[] Placed(DxfBlockTableRecord block) => block.OfType<DxfBlockReference>().Select(r => r.Name).ToArray();
+        private static string[] Placed(DxfBlockTableRecord block) =>
+            block.OfType<DxfBlockReference>().Select(r => r.Name).ToArray();
 
         [Fact]
         public void ADrawingInsertedWithAnInsertOfABlockItHasNot_InABlockItMerges_IsCopiedAsItIs_AsAutoCadInsertsIt()
@@ -424,7 +477,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new[] { "Z" }, Placed(read.BlockTable["M"]));
             Assert.Equal(new[] { "M" }, Placed(read.ModelSpace));
             Assert.False(read.BlockTable.Has("Z"));
-            Assert.Contains(logged, m => m.StartsWith("Debug ", StringComparison.Ordinal) && m.Contains("1 INSERT") && m.Contains("(Z)"));
+            Assert.Contains(logged, m =>
+                m.StartsWith("Debug ", StringComparison.Ordinal) && m.Contains("1 INSERT") && m.Contains("(Z)")
+            );
 
             DxfDatabase named = DxfDatabase.Parse(R12(Block("P", Line), string.Empty));
             named.Insert("NEWB", other, true);

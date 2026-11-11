@@ -38,9 +38,10 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string what = "This " + Describe(entity);
-            reason = rule == CadEditRule.MoveOnly
-                ? what + " belongs to the model and can only be moved."
-                : what + " belongs to the model and cannot be changed here.";
+            reason =
+                rule == CadEditRule.MoveOnly
+                    ? what + " belongs to the model and can only be moved."
+                    : what + " belongs to the model and cannot be changed here.";
             return false;
         }
 
@@ -72,7 +73,10 @@ namespace GeometryHelper.Dxf.Viewer
                         case "Mirror":
                             return CadEditKind.Mirror;
                         default:
-                            return record.Property != null && record.Property.StartsWith("Grip", StringComparison.Ordinal) ? CadEditKind.Move : CadEditKind.Grip;
+                            return
+                                record.Property != null && record.Property.StartsWith("Grip", StringComparison.Ordinal)
+                                ? CadEditKind.Move
+                                : CadEditKind.Grip;
                     }
 
                 default:

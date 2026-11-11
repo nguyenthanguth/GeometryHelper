@@ -9,16 +9,36 @@ namespace GeometryHelper.Viewer.Tests
     {
         private const double Radius = SnapEngine.DefaultRadius;
 
-        private static SnapHit SnapAt(ViewFixture view, Vec3 near, SnapKinds kinds, double offsetX = 1.5, double offsetY = -1.0, Func<int, bool> visible = null)
+        private static SnapHit SnapAt(
+            ViewFixture view,
+            Vec3 near,
+            SnapKinds kinds,
+            double offsetX = 1.5,
+            double offsetY = -1.0,
+            Func<int, bool> visible = null
+        )
         {
             (double x, double y) = view.Pixel(near);
-            return SnapEngine.Find(view.Geometry, view.Map, x + offsetX, y + offsetY, kinds, Radius, view.Scene.EqualPoint, visible);
+            return SnapEngine.Find(
+                view.Geometry,
+                view.Map,
+                x + offsetX,
+                y + offsetY,
+                kinds,
+                Radius,
+                view.Scene.EqualPoint,
+                visible
+            );
         }
 
         [Fact]
         public void TheVertexOfAChain_SnapsAsAnEnd_ExactlyWhereItIs()
         {
-            var view = ViewFixture.Top(new SceneWriter().Add(new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 60))));
+            var view = ViewFixture.Top(
+                new SceneWriter().Add(
+                    new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 60))
+                )
+            );
 
             SnapHit hit = SnapAt(view, new Vec3(100, 0, 0), SnapKinds.All);
 
@@ -30,7 +50,9 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ThePointItem_SnapsByTheNamePoint()
         {
-            var view = ViewFixture.Top(new SceneWriter().Add(new GeoPoint3(12.5, -3.25, 4)).Add(new GeoPoint3(50, 50, 50)));
+            var view = ViewFixture.Top(
+                new SceneWriter().Add(new GeoPoint3(12.5, -3.25, 4)).Add(new GeoPoint3(50, 50, 50))
+            );
 
             SnapHit hit = SnapAt(view, new Vec3(12.5, -3.25, 4), SnapKinds.End);
 
@@ -41,7 +63,9 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheMiddleOfASegment_IsTheHalfwayPointOfItsEnds()
         {
-            var view = ViewFixture.Top(new SceneWriter().Add(new GeoLine2(new GeoPoint2(10.1, 20.3), new GeoPoint2(110.7, 80.9))));
+            var view = ViewFixture.Top(
+                new SceneWriter().Add(new GeoLine2(new GeoPoint2(10.1, 20.3), new GeoPoint2(110.7, 80.9)))
+            );
 
             SnapHit hit = SnapAt(view, new Vec3(60.4, 50.6, 0), SnapKinds.Mid);
 
@@ -68,7 +92,10 @@ namespace GeometryHelper.Viewer.Tests
         public void TheBulgeOfAChain_GivesAnArcWithItsEndsExactlyTheVerticesAndTheMiddleAHalfBulgeOffTheChord()
         {
             // A bulge of 0.5 on a chord of 100 turns through 4 atan 0.5 = 106 degrees: the sagitta is 25, the radius 62.5 and the centre 37.5 up the chord.
-            var chain = new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 80) }, new[] { 0.5, 0.0, 0.0 });
+            var chain = new GeoPolylineArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 80) },
+                new[] { 0.5, 0.0, 0.0 }
+            );
             var view = ViewFixture.Top(new SceneWriter().Add(chain));
 
             ViewFixture.AssertNear(new Vec3(50, -25, 0), SnapAt(view, new Vec3(50, -25, 0), SnapKinds.Mid).Point);
@@ -83,11 +110,17 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ABulgeTheOtherWay_PutsTheMiddleOnTheOtherSideOfTheChord()
         {
-            var chain = new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 80) }, new[] { -0.5, 0.0, 0.0 });
+            var chain = new GeoPolylineArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 80) },
+                new[] { -0.5, 0.0, 0.0 }
+            );
             var view = ViewFixture.Top(new SceneWriter().Add(chain));
 
             ViewFixture.AssertNear(new Vec3(50, 25, 0), SnapAt(view, new Vec3(50, 25, 0), SnapKinds.Mid).Point);
-            ViewFixture.AssertNear(new Vec3(50, -37.5, 0), SnapAt(view, new Vec3(50, -37.5, 0), SnapKinds.Centre).Point);
+            ViewFixture.AssertNear(
+                new Vec3(50, -37.5, 0),
+                SnapAt(view, new Vec3(50, -37.5, 0), SnapKinds.Centre).Point
+            );
         }
 
         [Fact]
@@ -100,7 +133,10 @@ namespace GeometryHelper.Viewer.Tests
 
             Assert.Equal(new Vec3(10.25, -7.5, 0), SnapAt(view, new Vec3(10.25, -7.5, 0), SnapKinds.Centre).Point);
             Assert.Equal(new Vec3(200.5, 40.125, 0), SnapAt(view, new Vec3(200.5, 40.125, 0), SnapKinds.Centre).Point);
-            ViewFixture.AssertNear(new Vec3(-120.75, 33.5, 0), SnapAt(view, new Vec3(-120.75, 33.5, 0), SnapKinds.Centre).Point);
+            ViewFixture.AssertNear(
+                new Vec3(-120.75, 33.5, 0),
+                SnapAt(view, new Vec3(-120.75, 33.5, 0), SnapKinds.Centre).Point
+            );
             Assert.Equal("centre", SnapAt(view, new Vec3(10.25, -7.5, 0), SnapKinds.Centre).Name);
         }
 
@@ -116,9 +152,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TwoSegmentsThatCross_SnapAtTheirCrossing()
         {
-            var view = ViewFixture.Top(new SceneWriter()
-                .Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 100)))
-                .Add(new GeoLine2(new GeoPoint2(0, 100), new GeoPoint2(100, 0))));
+            var view = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 100)))
+                    .Add(new GeoLine2(new GeoPoint2(0, 100), new GeoPoint2(100, 0)))
+            );
 
             SnapHit hit = SnapAt(view, new Vec3(50, 50, 0), SnapKinds.Intersection);
 
@@ -131,9 +169,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TwoSegmentsThatMeetOnlyAtAnEnd_GiveTheEnd_AndTheCrossingWhereEndsAreOff()
         {
-            var view = ViewFixture.Top(new SceneWriter()
-                .Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0)))
-                .Add(new GeoLine2(new GeoPoint2(100, 0), new GeoPoint2(100, 100))));
+            var view = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0)))
+                    .Add(new GeoLine2(new GeoPoint2(100, 0), new GeoPoint2(100, 100)))
+            );
 
             // Ends are snapped to: the meeting is the end. Where they are not, it is still a crossing, the one place the two come together.
             Assert.Equal("end", SnapAt(view, new Vec3(100, 0, 0), SnapKinds.All).Name);
@@ -147,16 +187,24 @@ namespace GeometryHelper.Viewer.Tests
             var line = new GeoLine2(new GeoPoint2(0, 50), new GeoPoint2(100, 50));
             var view = ViewFixture.Top(new SceneWriter().Add(circle).Add(line));
 
-            ViewFixture.AssertNear(new Vec3(20, 50, 0), SnapAt(view, new Vec3(20, 50, 0), SnapKinds.Intersection).Point);
-            ViewFixture.AssertNear(new Vec3(80, 50, 0), SnapAt(view, new Vec3(80, 50, 0), SnapKinds.Intersection).Point);
+            ViewFixture.AssertNear(
+                new Vec3(20, 50, 0),
+                SnapAt(view, new Vec3(20, 50, 0), SnapKinds.Intersection).Point
+            );
+            ViewFixture.AssertNear(
+                new Vec3(80, 50, 0),
+                SnapAt(view, new Vec3(80, 50, 0), SnapKinds.Intersection).Point
+            );
         }
 
         [Fact]
         public void ASegmentAcrossAnEllipse_CrossesItAtTheEndOfTheMinorAxis()
         {
-            var view = ViewFixture.Top(new SceneWriter()
-                .Add(new GeoEllipse2(new GeoPoint2(0, 0), new GeoVector2(1, 0), 10.0, 5.0))
-                .Add(new GeoLine2(new GeoPoint2(0, -20), new GeoPoint2(0, 20))));
+            var view = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoEllipse2(new GeoPoint2(0, 0), new GeoVector2(1, 0), 10.0, 5.0))
+                    .Add(new GeoLine2(new GeoPoint2(0, -20), new GeoPoint2(0, 20)))
+            );
 
             ViewFixture.AssertNear(new Vec3(0, 5, 0), SnapAt(view, new Vec3(0, 5, 0), SnapKinds.Intersection).Point);
             ViewFixture.AssertNear(new Vec3(0, -5, 0), SnapAt(view, new Vec3(0, -5, 0), SnapKinds.Intersection).Point);
@@ -165,14 +213,15 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TwoCirclesThatOverlap_CrossInTwoPoints()
         {
-            var view = ViewFixture.Top(new SceneWriter()
-                .Add(new GeoCircle2(new GeoPoint2(0, 0), 5.0))
-                .Add(new GeoCircle2(new GeoPoint2(6, 0), 5.0)));
+            var view = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoCircle2(new GeoPoint2(0, 0), 5.0))
+                    .Add(new GeoCircle2(new GeoPoint2(6, 0), 5.0))
+            );
 
             ViewFixture.AssertNear(new Vec3(3, 4, 0), SnapAt(view, new Vec3(3, 4, 0), SnapKinds.Intersection).Point);
             ViewFixture.AssertNear(new Vec3(3, -4, 0), SnapAt(view, new Vec3(3, -4, 0), SnapKinds.Intersection).Point);
         }
-
 
         [Fact]
         public void AnArcAndASegment_CrossOnlyWhereTheArcIs()
@@ -192,18 +241,22 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TwoSegmentsInSpace_CrossWhereTheyCome_AndNotWhereTheyPassOver()
         {
-            var meeting = ViewFixture.Top(new SceneWriter()
-                .Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 10)))
-                .Add(new GeoLine3(new GeoPoint3(10, 0, 5), new GeoPoint3(0, 10, 5))));
+            var meeting = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 10)))
+                    .Add(new GeoLine3(new GeoPoint3(10, 0, 5), new GeoPoint3(0, 10, 5)))
+            );
 
             SceneCurve a = meeting.Geometry.Curves[0];
             SceneCurve b = meeting.Geometry.Curves[1];
             ViewFixture.AssertNear(new Vec3(5, 5, 5), Assert.Single(CurveIntersections.Find(a, b, 1E-9)));
 
             // Raised a millimetre they pass over one another: seen from above they cross, in space they do not.
-            var apart = ViewFixture.Top(new SceneWriter()
-                .Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 10)))
-                .Add(new GeoLine3(new GeoPoint3(10, 0, 6), new GeoPoint3(0, 10, 6))));
+            var apart = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 10)))
+                    .Add(new GeoLine3(new GeoPoint3(10, 0, 6), new GeoPoint3(0, 10, 6)))
+            );
 
             Assert.Empty(CurveIntersections.Find(apart.Geometry.Curves[0], apart.Geometry.Curves[1], 1E-3));
         }
@@ -226,7 +279,10 @@ namespace GeometryHelper.Viewer.Tests
             var upright = new GeoCircle3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 1, 0), 10.0);
             var view = ViewFixture.Iso(new SceneWriter().Add(flat).Add(upright));
 
-            Vec3[] found = CurveIntersections.Find(view.Geometry.Curves[0], view.Geometry.Curves[1], 1E-9).OrderBy(p => p.X).ToArray();
+            Vec3[] found = CurveIntersections
+                .Find(view.Geometry.Curves[0], view.Geometry.Curves[1], 1E-9)
+                .OrderBy(p => p.X)
+                .ToArray();
 
             Assert.Equal(2, found.Length);
             ViewFixture.AssertNear(new Vec3(-10, 0, 0), found[0]);
@@ -236,9 +292,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AnEllipseAgainstACircle_IsNotLookedFor()
         {
-            var view = ViewFixture.Top(new SceneWriter()
-                .Add(new GeoEllipse2(new GeoPoint2(0, 0), new GeoVector2(1, 0), 10.0, 5.0))
-                .Add(new GeoCircle2(new GeoPoint2(0, 0), 7.0)));
+            var view = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoEllipse2(new GeoPoint2(0, 0), new GeoVector2(1, 0), 10.0, 5.0))
+                    .Add(new GeoCircle2(new GeoPoint2(0, 0), 7.0))
+            );
 
             Assert.False(CurveIntersections.IsSupported(view.Geometry.Curves[0], view.Geometry.Curves[1]));
             Assert.Empty(CurveIntersections.Find(view.Geometry.Curves[0], view.Geometry.Curves[1], 1E-9));
@@ -260,10 +318,24 @@ namespace GeometryHelper.Viewer.Tests
 
             // Beside the end the end wins, though the nearest point is nearer the cursor.
             (double ex, double ey) = view.Pixel(new Vec3(100, 0, 0));
-            Assert.Equal("end", SnapEngine.Find(view.Geometry, view.Map, ex - 8.0, ey + 1.0, SnapKinds.All, Radius, 1E-3, null).Name);
+            Assert.Equal(
+                "end",
+                SnapEngine.Find(view.Geometry, view.Map, ex - 8.0, ey + 1.0, SnapKinds.All, Radius, 1E-3, null).Name
+            );
 
             // With nearest off there is nothing to snap to at the third.
-            Assert.Null(SnapEngine.Find(view.Geometry, view.Map, x, y + 2.0, SnapKinds.End | SnapKinds.Mid | SnapKinds.Centre | SnapKinds.Intersection, Radius, 1E-3, null));
+            Assert.Null(
+                SnapEngine.Find(
+                    view.Geometry,
+                    view.Map,
+                    x,
+                    y + 2.0,
+                    SnapKinds.End | SnapKinds.Mid | SnapKinds.Centre | SnapKinds.Intersection,
+                    Radius,
+                    1E-3,
+                    null
+                )
+            );
         }
 
         [Fact]
@@ -273,7 +345,16 @@ namespace GeometryHelper.Viewer.Tests
             var view = ViewFixture.Top(new SceneWriter().Add(circle));
 
             (double x, double y) = view.Pixel(new Vec3(100 + 37.5 * Math.Cos(0.7), 200 + 37.5 * Math.Sin(0.7), 0));
-            SnapHit hit = SnapEngine.Find(view.Geometry, view.Map, x + 3.0, y - 2.0, SnapKinds.Nearest, Radius, 1E-3, null);
+            SnapHit hit = SnapEngine.Find(
+                view.Geometry,
+                view.Map,
+                x + 3.0,
+                y - 2.0,
+                SnapKinds.Nearest,
+                Radius,
+                1E-3,
+                null
+            );
 
             Assert.Equal("nearest", hit.Name);
             Assert.Equal(37.5, (hit.Point - new Vec3(100, 200, 0)).Length, 12);
@@ -282,7 +363,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ACursorFarFromEverything_SnapsToNothing()
         {
-            var view = ViewFixture.Top(new SceneWriter().Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0))).Add(new GeoPoint2(0, 100)));
+            var view = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0)))
+                    .Add(new GeoPoint2(0, 100))
+            );
 
             Assert.Null(SnapEngine.Find(view.Geometry, view.Map, 900.0, 40.0, SnapKinds.All, Radius, 1E-3, null));
             Assert.Null(SnapEngine.Find(view.Geometry, view.Map, 500.0, 400.0, SnapKinds.None, Radius, 1E-3, null));
@@ -291,7 +376,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AnItemThatIsHidden_IsNotSnappedTo()
         {
-            var view = ViewFixture.Top(new SceneWriter().Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0))).Add(new GeoLine2(new GeoPoint2(0, 50), new GeoPoint2(100, 50))));
+            var view = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0)))
+                    .Add(new GeoLine2(new GeoPoint2(0, 50), new GeoPoint2(100, 50)))
+            );
 
             Assert.Equal(0, SnapAt(view, new Vec3(0, 0, 0), SnapKinds.End, 0, 0).ItemIndex);
             Assert.Null(SnapAt(view, new Vec3(0, 0, 0), SnapKinds.End, 0, 0, item => item != 0));
@@ -300,7 +389,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void InPerspective_TheSnapsAreFoundAtTheirExactPlacesToo()
         {
-            var view = ViewFixture.Iso(new SceneWriter().Add(new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 20, 30), new GeoPoint3(100, 120, 60))));
+            var view = ViewFixture.Iso(
+                new SceneWriter().Add(
+                    new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 20, 30), new GeoPoint3(100, 120, 60))
+                )
+            );
 
             Assert.False(view.Map.Orthographic);
             ViewFixture.AssertNear(new Vec3(100, 20, 30), SnapAt(view, new Vec3(100, 20, 30), SnapKinds.End).Point);
@@ -312,14 +405,18 @@ namespace GeometryHelper.Viewer.Tests
         public void TwoSnapsAsNearAsEachOther_AreChosenByKindAndNotByTheOrderTheCurvesAreHeldIn()
         {
             // The middle of one segment lies on the end of two others: three snaps in one place.
-            var forward = ViewFixture.Top(new SceneWriter()
-                .Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0)))
-                .Add(new GeoLine2(new GeoPoint2(50, 0), new GeoPoint2(50, 60)))
-                .Add(new GeoLine2(new GeoPoint2(50, 0), new GeoPoint2(50, -60))));
-            var backward = ViewFixture.Top(new SceneWriter()
-                .Add(new GeoLine2(new GeoPoint2(50, 0), new GeoPoint2(50, -60)))
-                .Add(new GeoLine2(new GeoPoint2(50, 0), new GeoPoint2(50, 60)))
-                .Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0))));
+            var forward = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0)))
+                    .Add(new GeoLine2(new GeoPoint2(50, 0), new GeoPoint2(50, 60)))
+                    .Add(new GeoLine2(new GeoPoint2(50, 0), new GeoPoint2(50, -60)))
+            );
+            var backward = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoLine2(new GeoPoint2(50, 0), new GeoPoint2(50, -60)))
+                    .Add(new GeoLine2(new GeoPoint2(50, 0), new GeoPoint2(50, 60)))
+                    .Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0)))
+            );
 
             SnapHit a = SnapAt(forward, new Vec3(50, 0, 0), SnapKinds.All, 0, 0);
             SnapHit b = SnapAt(backward, new Vec3(50, 0, 0), SnapKinds.All, 0, 0);

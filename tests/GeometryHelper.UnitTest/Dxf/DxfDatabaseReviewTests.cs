@@ -18,7 +18,12 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfDatabaseReviewTests
     {
-        private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
+        private static readonly string[] Drawings =
+        {
+            DxfFileEzdxfDrawings.R12,
+            DxfFileEzdxfDrawings.R2000,
+            DxfFileEzdxfDrawings.R2018,
+        };
 
         #region Model and paper space
 
@@ -34,7 +39,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 db.ModelSpace.XData = new[] { new DxfTypedValue(1001, "MSX"), new DxfTypedValue(1000, "v") };
 
                 DxfDatabase reopened = DxfDatabase.Parse(db.ToText());
-                Assert.Equal(new[] { "1001 MSX", "1000 v" }, reopened.ModelSpace.GetXDataForApplication("MSX").Select(g => g.ToString()));
+                Assert.Equal(
+                    new[] { "1001 MSX", "1000 v" },
+                    reopened.ModelSpace.GetXDataForApplication("MSX").Select(g => g.ToString())
+                );
                 Assert.Same(reopened.ModelSpace, reopened.BlockTable["*Model_Space"]);
             }
 
@@ -71,11 +79,14 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ModelSpaceOfAFileWithNoRecordOfIt_RefusesExtendedData()
         {
-            string bare = "  0\nSECTION\n  2\nENTITIES\n  0\nLINE\n  8\n0\n 10\n0\n 20\n0\n 11\n1\n 21\n0\n  0\nENDSEC\n  0\nEOF\n";
+            string bare =
+                "  0\nSECTION\n  2\nENTITIES\n  0\nLINE\n  8\n0\n 10\n0\n 20\n0\n 11\n1\n 21\n0\n  0\nENDSEC\n  0\nEOF\n";
             DxfDatabase db = DxfDatabase.Parse(bare);
 
             Assert.Null(db.ModelSpace.Handle);
-            Assert.Throws<InvalidOperationException>(() => db.ModelSpace.XData = new[] { new DxfTypedValue(1001, "MSX") });
+            Assert.Throws<InvalidOperationException>(() =>
+                db.ModelSpace.XData = new[] { new DxfTypedValue(1001, "MSX") }
+            );
             Assert.Equal(bare, db.ToText());
         }
 
@@ -173,14 +184,27 @@ namespace GeometryHelper.UnitTest.Dxf
                     db.ModelSpace.AppendEntity(copy);
 
                     string record = Records(db.ToText()).Single(r => HandleOf(r) == copy.Handle);
-                    Assert.StartsWith("  0\nLINE\n  5\n" + copy.Handle + "\n330\n" + db.ModelSpace.Handle + "\n100\nAcDbEntity\n", record, StringComparison.Ordinal);
+                    Assert.StartsWith(
+                        "  0\nLINE\n  5\n" + copy.Handle + "\n330\n" + db.ModelSpace.Handle + "\n100\nAcDbEntity\n",
+                        record,
+                        StringComparison.Ordinal
+                    );
                     Assert.Contains("\n100\nAcDbLine\n", record, StringComparison.Ordinal);
-                    Assert.True(record.IndexOf("\n  8\n", StringComparison.Ordinal) < record.IndexOf("\n100\nAcDbLine\n", StringComparison.Ordinal));
-                    Assert.True(record.IndexOf("\n100\nAcDbLine\n", StringComparison.Ordinal) < record.IndexOf("\n 10\n", StringComparison.Ordinal));
+                    Assert.True(
+                        record.IndexOf("\n  8\n", StringComparison.Ordinal)
+                            < record.IndexOf("\n100\nAcDbLine\n", StringComparison.Ordinal)
+                    );
+                    Assert.True(
+                        record.IndexOf("\n100\nAcDbLine\n", StringComparison.Ordinal)
+                            < record.IndexOf("\n 10\n", StringComparison.Ordinal)
+                    );
                 }
 
                 DxfDatabase reopened = DxfDatabase.Parse(db.ToText());
-                Assert.Equal(Bits(((GeoLine3)copies[0].GetGeometry()[0]).StartPoint), Bits(((GeoLine3)ByHandle<DxfLine>(reopened, copies[0].Handle).GetGeometry()[0]).StartPoint));
+                Assert.Equal(
+                    Bits(((GeoLine3)copies[0].GetGeometry()[0]).StartPoint),
+                    Bits(((GeoLine3)ByHandle<DxfLine>(reopened, copies[0].Handle).GetGeometry()[0]).StartPoint)
+                );
             }
         }
 
@@ -197,8 +221,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 ["44"] = "AcDbEntity AcDbPoint",
                 ["45"] = "AcDbEntity AcDbFace",
                 ["46"] = "AcDbEntity AcDbTrace",
-                ["47"] = "AcDbEntity AcDb3dPolyline|AcDbEntity AcDbVertex AcDb3dPolylineVertex|AcDbEntity AcDbVertex AcDb3dPolylineVertex|AcDbEntity AcDbVertex AcDb3dPolylineVertex|AcDbEntity",
-                ["4C"] = "AcDbEntity AcDb2dPolyline|AcDbEntity AcDbVertex AcDb2dVertex|AcDbEntity AcDbVertex AcDb2dVertex|AcDbEntity AcDbVertex AcDb2dVertex|AcDbEntity",
+                ["47"] =
+                    "AcDbEntity AcDb3dPolyline|AcDbEntity AcDbVertex AcDb3dPolylineVertex|AcDbEntity AcDbVertex AcDb3dPolylineVertex|AcDbEntity AcDbVertex AcDb3dPolylineVertex|AcDbEntity",
+                ["4C"] =
+                    "AcDbEntity AcDb2dPolyline|AcDbEntity AcDbVertex AcDb2dVertex|AcDbEntity AcDbVertex AcDb2dVertex|AcDbEntity AcDbVertex AcDb2dVertex|AcDbEntity",
                 ["67"] = "AcDbEntity AcDbText AcDbText",
                 ["68"] = "AcDbEntity AcDbBlockReference|AcDbEntity AcDbText AcDbAttribute|AcDbEntity",
             };
@@ -211,7 +237,12 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfEntity original = r12.ModelSpace.Single(e => e.Handle == entry.Key);
                 DxfItem copy = r12.File.CopyOf(original.Item);
                 DxfItem added = r2018.File.Adopt(r2018.File.ModelSpace, copy);
-                string markers = string.Join("|", Enumerable.Range(0, r2018.File.RecordCount(added)).Select(i => string.Join(" ", Markers(r2018.File, added, i))));
+                string markers = string.Join(
+                    "|",
+                    Enumerable
+                        .Range(0, r2018.File.RecordCount(added))
+                        .Select(i => string.Join(" ", Markers(r2018.File, added, i)))
+                );
 
                 Assert.Equal(entry.Value, markers);
                 Assert.Equal(original.GetGeometry().Count, DxfEntity.Of(added).GetGeometry().Count);
@@ -226,7 +257,10 @@ namespace GeometryHelper.UnitTest.Dxf
         private static IEnumerable<string> Markers(DxfFile file, DxfItem item, int record)
         {
             DxfFile.Rec rec = file.RecordAt(item, record);
-            string[] lines = Encoding.UTF8.GetString(rec.Bytes, rec.Start, rec.End - rec.Start).Replace("\r\n", "\n").Split('\n');
+            string[] lines = Encoding
+                .UTF8.GetString(rec.Bytes, rec.Start, rec.End - rec.Start)
+                .Replace("\r\n", "\n")
+                .Split('\n');
 
             for (int i = 0; i + 1 < lines.Length; i += 2)
             {
@@ -255,8 +289,16 @@ namespace GeometryHelper.UnitTest.Dxf
             line.Visible = true;
             Assert.Equal(before, db.ToText());
 
-            Assert.Throws<ArgumentException>(() => db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)) { LinetypeScale = 2.0 }));
-            Assert.Throws<ArgumentException>(() => db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)) { Visible = false }));
+            Assert.Throws<ArgumentException>(() =>
+                db.ModelSpace.AppendEntity(
+                    new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)) { LinetypeScale = 2.0 }
+                )
+            );
+            Assert.Throws<ArgumentException>(() =>
+                db.ModelSpace.AppendEntity(
+                    new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)) { Visible = false }
+                )
+            );
             Assert.Equal(before, db.ToText());
         }
 
@@ -321,7 +363,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 OnlyTheseChanged(text, db.ToText(), handle);
                 DxfDatabase reopened = DxfDatabase.Parse(db.ToText());
-                DxfEntity again = DxfEntity.Of(reopened.File.FollowerOf(reopened.ModelSpace.Single(e => e.Handle == polyline.Handle).Item, 2));
+                DxfEntity again = DxfEntity.Of(
+                    reopened.File.FollowerOf(reopened.ModelSpace.Single(e => e.Handle == polyline.Handle).Item, 2)
+                );
 
                 Assert.Equal(handle, again.Handle);
                 Assert.Equal(layer, again.Layer);
@@ -339,11 +383,21 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfDatabase db = DxfDatabase.Parse(text);
                 DxfEntity polyline = db.ModelSpace.First(e => e.Item.Type == "POLYLINE");
                 int count = db.File.RecordCount(polyline.Item);
-                List<DxfEntity> before = Enumerable.Range(1, count - 1).Select(i => DxfEntity.Of(db.File.FollowerOf(polyline.Item, i))).ToList();
+                List<DxfEntity> before = Enumerable
+                    .Range(1, count - 1)
+                    .Select(i => DxfEntity.Of(db.File.FollowerOf(polyline.Item, i)))
+                    .ToList();
                 string[] handles = before.Select(v => v.Handle).ToArray();
 
                 // A vertex made in code put in second: (7, 8) of a 2D polyline.
-                var groups = new List<DxfTypedValue> { new DxfTypedValue(100, "AcDbVertex"), new DxfTypedValue(100, "AcDb2dVertex"), new DxfTypedValue(10, "7"), new DxfTypedValue(20, "8"), new DxfTypedValue(30, "0") };
+                var groups = new List<DxfTypedValue>
+                {
+                    new DxfTypedValue(100, "AcDbVertex"),
+                    new DxfTypedValue(100, "AcDb2dVertex"),
+                    new DxfTypedValue(10, "7"),
+                    new DxfTypedValue(20, "8"),
+                    new DxfTypedValue(30, "0"),
+                };
                 var made = new DxfUnknownEntity(DxfFile.Detached("VERTEX", groups));
                 made.Bind(db.File.InsertFollower(polyline.Item, 2, made.Item));
 
@@ -367,7 +421,12 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfEntity again = reopened.ModelSpace.Single(e => e.Handle == polyline.Handle);
                 Assert.Equal(count, reopened.File.RecordCount(again.Item));
                 Assert.Equal("VERTEX", reopened.File.RecordType(again.Item, 1));
-                Assert.Equal(handles.Skip(1), Enumerable.Range(2, count - 2).Select(i => DxfEntity.Of(reopened.File.FollowerOf(again.Item, i)).Handle));
+                Assert.Equal(
+                    handles.Skip(1),
+                    Enumerable
+                        .Range(2, count - 2)
+                        .Select(i => DxfEntity.Of(reopened.File.FollowerOf(again.Item, i)).Handle)
+                );
             }
         }
 
@@ -386,7 +445,18 @@ namespace GeometryHelper.UnitTest.Dxf
 
             for (int i = 1; i < count - 1; i++)
             {
-                values.Add(new KeyValuePair<int, IList<KeyValuePair<int, string>>>(i, new[] { new KeyValuePair<int, string>(20, (points[i - 1].Y + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)) }));
+                values.Add(
+                    new KeyValuePair<int, IList<KeyValuePair<int, string>>>(
+                        i,
+                        new[]
+                        {
+                            new KeyValuePair<int, string>(
+                                20,
+                                (points[i - 1].Y + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                            ),
+                        }
+                    )
+                );
             }
 
             DxfEntity last = DxfEntity.Of(db.File.FollowerOf(polyline.Item, count - 2));
@@ -429,7 +499,12 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void TheLookOfAnother_IsTakenWithTheNameOfItsColourBook_OrNotAtAll()
         {
-            var source = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)) { Layer = "brass", TrueColor = 0xB5A642, LinetypeScale = 2.0 };
+            var source = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0))
+            {
+                Layer = "brass",
+                TrueColor = 0xB5A642,
+                LinetypeScale = 2.0,
+            };
             source.Item.File.SetCommon(source.Item, 430, "RAL$RAL 1000");
 
             DxfDatabase r2018 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
@@ -501,9 +576,31 @@ namespace GeometryHelper.UnitTest.Dxf
             // UnitsValue, names and numbers.
             string[] names =
             {
-                "Undefined", "Inches", "Feet", "Miles", "Millimeters", "Centimeters", "Meters", "Kilometers", "MicroInches", "Mils",
-                "Yards", "Angstroms", "Nanometers", "Microns", "Decimeters", "Dekameters", "Hectometers", "Gigameters",
-                "Astronomical", "LightYears", "Parsecs", "USSurveyFeet", "USSurveyInch", "USSurveyYard", "USSurveyMile",
+                "Undefined",
+                "Inches",
+                "Feet",
+                "Miles",
+                "Millimeters",
+                "Centimeters",
+                "Meters",
+                "Kilometers",
+                "MicroInches",
+                "Mils",
+                "Yards",
+                "Angstroms",
+                "Nanometers",
+                "Microns",
+                "Decimeters",
+                "Dekameters",
+                "Hectometers",
+                "Gigameters",
+                "Astronomical",
+                "LightYears",
+                "Parsecs",
+                "USSurveyFeet",
+                "USSurveyInch",
+                "USSurveyYard",
+                "USSurveyMile",
             };
             Assert.Equal(names, Enumerable.Range(0, 25).Select(i => ((DxfUnits)i).ToString()));
             Assert.Equal(names.Length, Enum.GetValues(typeof(DxfUnits)).Length);
@@ -528,16 +625,93 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // An MTEXT of R2018 turned by 30 degrees (50) with no direction (11) and no width (41) of its own: the object of its
             // columns, embedded after its 101, has a direction (10), the insertion point (11) and a height (41) of its own.
-            string text = string.Join("\n", new[]
-            {
-                "  0", "SECTION", "  2", "HEADER", "  9", "$ACADVER", "  1", "AC1032", "  0", "ENDSEC",
-                "  0", "SECTION", "  2", "ENTITIES",
-                "  0", "MTEXT", "  5", "2A", "100", "AcDbEntity", "  8", "0", "100", "AcDbMText",
-                " 10", "5.0", " 20", "6.0", " 30", "0.0", " 40", "2.5", " 71", "1", " 72", "5", "  1", "Two columns", " 50", "30.0",
-                "101", "Embedded Object", " 70", "1", " 10", "1.0", " 20", "0.0", " 30", "0.0", " 11", "5.0", " 21", "6.0", " 31", "0.0",
-                " 40", "50.0", " 41", "12.0", " 42", "110.0", " 43", "12.0", " 71", "2", " 72", "2", " 44", "50.0", " 45", "10.0", " 73", "0", " 74", "0",
-                "  0", "ENDSEC", "  0", "EOF", string.Empty,
-            });
+            string text = string.Join(
+                "\n",
+                new[]
+                {
+                    "  0",
+                    "SECTION",
+                    "  2",
+                    "HEADER",
+                    "  9",
+                    "$ACADVER",
+                    "  1",
+                    "AC1032",
+                    "  0",
+                    "ENDSEC",
+                    "  0",
+                    "SECTION",
+                    "  2",
+                    "ENTITIES",
+                    "  0",
+                    "MTEXT",
+                    "  5",
+                    "2A",
+                    "100",
+                    "AcDbEntity",
+                    "  8",
+                    "0",
+                    "100",
+                    "AcDbMText",
+                    " 10",
+                    "5.0",
+                    " 20",
+                    "6.0",
+                    " 30",
+                    "0.0",
+                    " 40",
+                    "2.5",
+                    " 71",
+                    "1",
+                    " 72",
+                    "5",
+                    "  1",
+                    "Two columns",
+                    " 50",
+                    "30.0",
+                    "101",
+                    "Embedded Object",
+                    " 70",
+                    "1",
+                    " 10",
+                    "1.0",
+                    " 20",
+                    "0.0",
+                    " 30",
+                    "0.0",
+                    " 11",
+                    "5.0",
+                    " 21",
+                    "6.0",
+                    " 31",
+                    "0.0",
+                    " 40",
+                    "50.0",
+                    " 41",
+                    "12.0",
+                    " 42",
+                    "110.0",
+                    " 43",
+                    "12.0",
+                    " 71",
+                    "2",
+                    " 72",
+                    "2",
+                    " 44",
+                    "50.0",
+                    " 45",
+                    "10.0",
+                    " 73",
+                    "0",
+                    " 74",
+                    "0",
+                    "  0",
+                    "ENDSEC",
+                    "  0",
+                    "EOF",
+                    string.Empty,
+                }
+            );
 
             DxfText read = Assert.IsType<DxfText>(DxfReader.Parse(text).Shapes.Single().Shape);
 

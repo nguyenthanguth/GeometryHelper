@@ -29,14 +29,16 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the points where the rim of this circle crosses an infinite line, within a tolerance.
         /// </summary>
-        public GeoPoint3[] GetIntersections(GeoXLine3 xline, Tolerance tolerance) => Arc3.GetIntersections(this, xline, tolerance);
+        public GeoPoint3[] GetIntersections(GeoXLine3 xline, Tolerance tolerance) =>
+            Arc3.GetIntersections(this, xline, tolerance);
 
         /// <summary>
         /// Tries to find where the rim of this circle crosses an infinite line, using the default tolerance.
         /// </summary>
         /// <param name="xline">The infinite line.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoXLine3 xline, out GeoPoint3[] intersections) => TryIntersectWith(xline, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoXLine3 xline, out GeoPoint3[] intersections) =>
+            TryIntersectWith(xline, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the rim of this circle crosses an infinite line, within a tolerance.
@@ -44,7 +46,8 @@ namespace GeometryHelper.Geometry
         /// <param name="xline">The infinite line.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool TryIntersectWith(GeoXLine3 xline, out GeoPoint3[] intersections, Tolerance tolerance) => Arc3.TryIntersectWith(this, xline, out intersections, tolerance);
+        public bool TryIntersectWith(GeoXLine3 xline, out GeoPoint3[] intersections, Tolerance tolerance) =>
+            Arc3.TryIntersectWith(this, xline, out intersections, tolerance);
 
         #endregion
     }

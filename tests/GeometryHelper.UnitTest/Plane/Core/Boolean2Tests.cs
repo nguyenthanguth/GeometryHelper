@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -26,7 +26,10 @@ namespace GeometryHelper.UnitTest.Plane
         private static GeoPolygon2 P(params double[] xy)
         {
             var points = new GeoPoint2[xy.Length / 2];
-            for (int i = 0; i < points.Length; i++) { points[i] = new GeoPoint2(xy[2 * i], xy[2 * i + 1]); }
+            for (int i = 0; i < points.Length; i++)
+            {
+                points[i] = new GeoPoint2(xy[2 * i], xy[2 * i + 1]);
+            }
             return new GeoPolygon2(points);
         }
 
@@ -61,8 +64,10 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Empty(overlap.Holes);
             Assert.Equal(4, overlap.Boundary.VertexCount);
-            Assert.All(new[] { new GeoPoint2(5, 5), new GeoPoint2(10, 5), new GeoPoint2(10, 10), new GeoPoint2(5, 10) },
-                corner => Assert.Contains(overlap.Boundary.Vertices, v => v.DistanceTo(corner) < 1e-12));
+            Assert.All(
+                new[] { new GeoPoint2(5, 5), new GeoPoint2(10, 5), new GeoPoint2(10, 10), new GeoPoint2(5, 10) },
+                corner => Assert.Contains(overlap.Boundary.Vertices, v => v.DistanceTo(corner) < 1e-12)
+            );
         }
 
         [Fact]
@@ -139,7 +144,13 @@ namespace GeometryHelper.UnitTest.Plane
         public void Slab_WithManyOpenings_CutInOneCall()
         {
             GeoPolygon2 slab = Box(0, 0, 100, 40);
-            var openings = new[] { Box(10, 10, 20, 20), Box(30, 10, 40, 20), Box(50, 10, 60, 20), Box(95, 30, 105, 35) };
+            var openings = new[]
+            {
+                Box(10, 10, 20, 20),
+                Box(30, 10, 40, 20),
+                Box(50, 10, 60, 20),
+                Box(95, 30, 105, 35),
+            };
 
             GeoFace2 cut = slab.Subtract(openings).Single();
 
@@ -157,7 +168,10 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 for (int j = 0; j < 5; j++)
                 {
-                    if (i == 2 && j == 2) { continue; }
+                    if (i == 2 && j == 2)
+                    {
+                        continue;
+                    }
                     tiles.Add(Box(i * 10, j * 10, i * 10 + 10.5, j * 10 + 10.5));
                 }
             }
@@ -187,7 +201,10 @@ namespace GeometryHelper.UnitTest.Plane
         public void FarFromTheOrigin_TheAnswerIsExact()
         {
             var shift = new GeoVector2(4e6, -3e6);
-            GeoFace2 overlap = Box(0, 0, 10, 10).Translate(shift).Intersect(Box(5, 5, 15, 15).Translate(shift)).Single();
+            GeoFace2 overlap = Box(0, 0, 10, 10)
+                .Translate(shift)
+                .Intersect(Box(5, 5, 15, 15).Translate(shift))
+                .Single();
 
             Assert.Equal(25.0, overlap.Area, 6);
             Assert.Contains(overlap.Boundary.Vertices, v => v.DistanceTo(new GeoPoint2(5, 5).Add(shift)) < 1e-8);
@@ -236,7 +253,8 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 int n = 5 + rng.Next(20);
                 var points = new GeoPoint2[n];
-                double cx = rng.NextDouble() * spread, cy = rng.NextDouble() * spread;
+                double cx = rng.NextDouble() * spread,
+                    cy = rng.NextDouble() * spread;
 
                 for (int i = 0; i < n; i++)
                 {
@@ -287,7 +305,10 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 GeoPolygon2 a = stars[k];
                 GeoPolygon2 b = stars[k + 1];
-                GeoFace2[] union = a.Union(b), both = a.Intersect(b), aOnly = a.Subtract(b), either = a.Xor(b);
+                GeoFace2[] union = a.Union(b),
+                    both = a.Intersect(b),
+                    aOnly = a.Subtract(b),
+                    either = a.Xor(b);
 
                 for (int i = 0; i < 200; i++)
                 {
@@ -296,12 +317,16 @@ namespace GeometryHelper.UnitTest.Plane
                     // Points on or next to an outline could go either way: within the point tolerance of one, a
                     // point is on it, held by the shape and by any result bounded there. The rest must agree exactly.
                     double band = 2 * Tolerance.Global.EqualPoint;
-                    if (a.GetClosestPointOnBoundary(p).DistanceTo(p) < band || b.GetClosestPointOnBoundary(p).DistanceTo(p) < band)
+                    if (
+                        a.GetClosestPointOnBoundary(p).DistanceTo(p) < band
+                        || b.GetClosestPointOnBoundary(p).DistanceTo(p) < band
+                    )
                     {
                         continue;
                     }
 
-                    bool inA = a.Contains(p), inB = b.Contains(p);
+                    bool inA = a.Contains(p),
+                        inB = b.Contains(p);
                     Assert.Equal(inA || inB, Inside(union, p));
                     Assert.Equal(inA && inB, Inside(both, p));
                     Assert.Equal(inA && !inB, Inside(aOnly, p));
@@ -323,7 +348,12 @@ namespace GeometryHelper.UnitTest.Plane
 
                 for (int k = 0; k + 1 < stars.Length; k += 2)
                 {
-                    foreach (GeoFace2 face in stars[k].Union(stars[k + 1]).Concat(stars[k].Subtract(stars[k + 1])).Concat(stars[k].Xor(stars[k + 1])))
+                    foreach (
+                        GeoFace2 face in stars[k]
+                            .Union(stars[k + 1])
+                            .Concat(stars[k].Subtract(stars[k + 1]))
+                            .Concat(stars[k].Xor(stars[k + 1]))
+                    )
                     {
                         Assert.True(face.Boundary.IsSimple());
                         Assert.False(face.Boundary.IsClockwise);
@@ -343,7 +373,8 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int k = 0; k + 1 < stars.Length; k += 2)
             {
-                GeoPolygon2 a = stars[k], b = stars[k + 1];
+                GeoPolygon2 a = stars[k],
+                    b = stars[k + 1];
                 GeoPolygon2 ma = a.RotateBy(0.8, new GeoPoint2(0, 0)).Translate(shift);
                 GeoPolygon2 mb = b.RotateBy(0.8, new GeoPoint2(0, 0)).Translate(shift);
 

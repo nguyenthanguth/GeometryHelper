@@ -16,9 +16,18 @@ namespace GeometryHelper.UnitTest.Solid
         {
             var corners = new List<GeoPoint2>
             {
-                new GeoPoint2(-b / 2, -h / 2), new GeoPoint2(b / 2, -h / 2), new GeoPoint2(b / 2, -h / 2 + tf), new GeoPoint2(tw / 2, -h / 2 + tf),
-                new GeoPoint2(tw / 2, h / 2 - tf), new GeoPoint2(b / 2, h / 2 - tf), new GeoPoint2(b / 2, h / 2), new GeoPoint2(-b / 2, h / 2),
-                new GeoPoint2(-b / 2, h / 2 - tf), new GeoPoint2(-tw / 2, h / 2 - tf), new GeoPoint2(-tw / 2, -h / 2 + tf), new GeoPoint2(-b / 2, -h / 2 + tf),
+                new GeoPoint2(-b / 2, -h / 2),
+                new GeoPoint2(b / 2, -h / 2),
+                new GeoPoint2(b / 2, -h / 2 + tf),
+                new GeoPoint2(tw / 2, -h / 2 + tf),
+                new GeoPoint2(tw / 2, h / 2 - tf),
+                new GeoPoint2(b / 2, h / 2 - tf),
+                new GeoPoint2(b / 2, h / 2),
+                new GeoPoint2(-b / 2, h / 2),
+                new GeoPoint2(-b / 2, h / 2 - tf),
+                new GeoPoint2(-tw / 2, h / 2 - tf),
+                new GeoPoint2(-tw / 2, -h / 2 + tf),
+                new GeoPoint2(-b / 2, -h / 2 + tf),
             };
             var profile = new List<GeoPoint2>();
 
@@ -40,7 +49,10 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(1, false)]
         [InlineData(150, false)]
         [InlineData(300, true)]
-        public void AColumnWhoseFacesComeInStrips_IsJoinedToABeamFramingIntoItsFlangeWithoutLosingVolume(int pieces, bool beamFirst)
+        public void AColumnWhoseFacesComeInStrips_IsJoinedToABeamFramingIntoItsFlangeWithoutLosingVolume(
+            int pieces,
+            bool beamFirst
+        )
         {
             // A column 300 by 300, web 11, flanges 19, 4 000 long, every edge of its profile cut into pieces, and a beam 500 by
             // 180, web 10, flanges 16, 3 000 long, its end 0.002 into the column's flange and its flanges 60 past the column's
@@ -50,13 +62,37 @@ namespace GeometryHelper.UnitTest.Solid
             // corner makes with its neighbours, a strip apart, where the face reaches the whole flange.
             var tolerance = new Tolerance(0.01, 1E-5, 1E-5, 0.01);
             const double d = 0.002;
-            GeoTransform3 turn = GeoTransform3.RotationAxis(GeoPoint3.Origin, new GeoVector3(-0.012101969920146283, 0.49921442428567187, -0.049937243363790795), 4.260549139352771);
-            GeoSolid3 column = GeoSolid3.Extrude(Profile(300, 300, 11, 19, pieces), new GeoCoordinateSystem3(GeoPoint3.Origin, new GeoVector3(0, 1, 0), new GeoVector3(-1, 0, 0)), 4000, tolerance).TransformBy(turn);
-            GeoSolid3 beam = GeoSolid3.Extrude(Profile(500, 180, 10, 16, 1), new GeoCoordinateSystem3(new GeoPoint3(150 - d, 120, 3000), new GeoVector3(0, 1, 0), new GeoVector3(0, 0, 1)), 3000, tolerance).TransformBy(turn);
+            GeoTransform3 turn = GeoTransform3.RotationAxis(
+                GeoPoint3.Origin,
+                new GeoVector3(-0.012101969920146283, 0.49921442428567187, -0.049937243363790795),
+                4.260549139352771
+            );
+            GeoSolid3 column = GeoSolid3
+                .Extrude(
+                    Profile(300, 300, 11, 19, pieces),
+                    new GeoCoordinateSystem3(GeoPoint3.Origin, new GeoVector3(0, 1, 0), new GeoVector3(-1, 0, 0)),
+                    4000,
+                    tolerance
+                )
+                .TransformBy(turn);
+            GeoSolid3 beam = GeoSolid3
+                .Extrude(
+                    Profile(500, 180, 10, 16, 1),
+                    new GeoCoordinateSystem3(
+                        new GeoPoint3(150 - d, 120, 3000),
+                        new GeoVector3(0, 1, 0),
+                        new GeoVector3(0, 0, 1)
+                    ),
+                    3000,
+                    tolerance
+                )
+                .TransformBy(turn);
             double two = 14282.0 * 4000 + 10440.0 * 3000;
 
             GeoSolid3 union;
-            Assert.True(beamFirst ? beam.TryUnion(column, out union, tolerance) : column.TryUnion(beam, out union, tolerance));
+            Assert.True(
+                beamFirst ? beam.TryUnion(column, out union, tolerance) : column.TryUnion(beam, out union, tolerance)
+            );
             Assert.True(union.Validate(tolerance).IsValid, union.Validate(tolerance).ToString());
 
             // Between the two less the beam's whole end, moved onto the column's face, and the two less their overlap.

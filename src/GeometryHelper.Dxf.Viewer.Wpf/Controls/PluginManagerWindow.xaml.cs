@@ -21,8 +21,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Model = model ?? throw new ArgumentNullException(nameof(model));
             InitializeComponent();
             DataContext = model;
-            model.LoadRequested += (s, e) => Pick("Load a plugin", "Plugins (*.dll;*.ghplugin)|*.dll;*.ghplugin", path => Model.Load(path));
-            model.InstallRequested += (s, e) => Pick("Install a plugin package", "Plugin packages (*.ghplugin)|*.ghplugin", path => Model.Install(path));
+            model.LoadRequested += (s, e) =>
+                Pick("Load a plugin", "Plugins (*.dll;*.ghplugin)|*.dll;*.ghplugin", path => Model.Load(path));
+            model.InstallRequested += (s, e) =>
+                Pick("Install a plugin package", "Plugin packages (*.ghplugin)|*.ghplugin", path =>
+                    Model.Install(path)
+                );
             model.AddFolderRequested += (s, e) => PickFolder();
             model.SettingsRequested += (s, e) => ShowSettings();
             model.LogLines.CollectionChanged += (s, e) => LogScroll.ScrollToEnd();
@@ -38,12 +42,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Shows the Open dialog for a plugin's .dll and loads the one chosen, as PLUGINLOAD's window does.</summary>
         /// <param name="owner">The window the dialog belongs to.</param>
         /// <param name="load">What is done with the path chosen.</param>
-        public static void PickPlugin(Window owner, Action<string> load) => Pick(owner, "Load a plugin", "Plugins (*.dll;*.ghplugin)|*.dll;*.ghplugin", load);
+        public static void PickPlugin(Window owner, Action<string> load) =>
+            Pick(owner, "Load a plugin", "Plugins (*.dll;*.ghplugin)|*.dll;*.ghplugin", load);
 
         /// <summary>Shows the Open dialog for a .ghplugin and installs the one chosen.</summary>
         /// <param name="owner">The window the dialog belongs to.</param>
         /// <param name="install">What is done with the path chosen.</param>
-        public static void PickPackage(Window owner, Action<string> install) => Pick(owner, "Install a plugin package", "Plugin packages (*.ghplugin)|*.ghplugin", install);
+        public static void PickPackage(Window owner, Action<string> install) =>
+            Pick(owner, "Install a plugin package", "Plugin packages (*.ghplugin)|*.ghplugin", install);
 
         private static void Pick(Window owner, string title, string filter, Action<string> then)
         {
@@ -60,7 +66,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Add folder: a Save dialog chooses the folder, as .NET Framework's WPF has no folder dialog.</summary>
         private void PickFolder()
         {
-            var dialog = new SaveFileDialog { Title = "Choose a folder to trust", FileName = "Trust this folder", Filter = "Folders|*.folder", OverwritePrompt = false };
+            var dialog = new SaveFileDialog
+            {
+                Title = "Choose a folder to trust",
+                FileName = "Trust this folder",
+                Filter = "Folders|*.folder",
+                OverwritePrompt = false,
+            };
 
             if (dialog.ShowDialog(this) == true)
             {

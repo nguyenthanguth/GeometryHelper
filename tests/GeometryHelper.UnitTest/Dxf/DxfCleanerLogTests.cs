@@ -20,7 +20,13 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
             DxfDimension followed = db.ModelSpace.OfType<DxfDimension>().Single(d => d.Handle == "4D");
-            db.NamedObjectsDictionary.SetAt("GH_LINK", new DxfXrecord { Data = new List<DxfTypedValue> { new DxfTypedValue(1, "follows"), new DxfTypedValue(330, "4D") } });
+            db.NamedObjectsDictionary.SetAt(
+                "GH_LINK",
+                new DxfXrecord
+                {
+                    Data = new List<DxfTypedValue> { new DxfTypedValue(1, "follows"), new DxfTypedValue(330, "4D") },
+                }
+            );
             List<string> written = Logged(() =>
             {
                 db.BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single().Erase();

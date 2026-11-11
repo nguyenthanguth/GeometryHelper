@@ -18,14 +18,24 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class SpaceCopyG1wrTests
     {
-        private static readonly Tolerance Millionth = new Tolerance(1E-6, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-6);
-        private static readonly Tolerance Tight = new Tolerance(1E-12, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-12);
+        private static readonly Tolerance Millionth = new Tolerance(
+            1E-6,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-6
+        );
+        private static readonly Tolerance Tight = new Tolerance(
+            1E-12,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-12
+        );
 
         private static GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
 
         // The chain (0, 0, 0), (10, 0, 0), (10, 0, 10) rounded by 0.0005 at a millionth: an arc 0.0007 across between two legs.
-        private static GeoPolylineArc3 Rounded()
-            => new GeoPolyline3(new[] { P(0, 0, 0), P(10, 0, 0), P(10, 0, 10) }).Fillet(0.0005, Millionth);
+        private static GeoPolylineArc3 Rounded() =>
+            new GeoPolyline3(new[] { P(0, 0, 0), P(10, 0, 0), P(10, 0, 10) }).Fillet(0.0005, Millionth);
 
         private static int ArcsOf(GeoPolylineArc3 chain) => chain.GetEdges().Count(edge => edge.IsArc);
 
@@ -75,8 +85,14 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // 8.4E-7 square units: the hole's 1.6E-7 taken from the boundary's 1E-6 about (0.0003, 0, 0.0003) moves the
             // balance from (0.0005, 0, 0.0005) to 0.000452 / 0.84 = 0.000538095... along x and z.
-            var boundary = new GeoPolygon3(new[] { P(0, 0, 0), P(0.001, 0, 0), P(0.001, 0, 0.001), P(0, 0, 0.001) }, Millionth);
-            var hole = new GeoPolygon3(new[] { P(0.0001, 0, 0.0001), P(0.0001, 0, 0.0005), P(0.0005, 0, 0.0005), P(0.0005, 0, 0.0001) }, Millionth);
+            var boundary = new GeoPolygon3(
+                new[] { P(0, 0, 0), P(0.001, 0, 0), P(0.001, 0, 0.001), P(0, 0, 0.001) },
+                Millionth
+            );
+            var hole = new GeoPolygon3(
+                new[] { P(0.0001, 0, 0.0001), P(0.0001, 0, 0.0005), P(0.0005, 0, 0.0005), P(0.0005, 0, 0.0001) },
+                Millionth
+            );
             var face = new GeoFace3(boundary, new[] { hole }, Millionth);
 
             GeoPoint3 centroid = face.Centroid;
@@ -97,7 +113,11 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TwoAxesTwoThousandthsLongAtAnAngle_SpanACoordinateSystemSquaredUp()
         {
-            var system = new GeoCoordinateSystem3(P(1, 2, 3), new GeoVector3(0.002, 0, 0), new GeoVector3(0.001, 0.002, 0));
+            var system = new GeoCoordinateSystem3(
+                P(1, 2, 3),
+                new GeoVector3(0.002, 0, 0),
+                new GeoVector3(0.001, 0.002, 0)
+            );
 
             Assert.Equal(1.0, system.XAxis.X, 15);
             Assert.Equal(1.0, system.YAxis.Y, 15);
@@ -107,14 +127,18 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TwoUnitAxesAMillionthOfARadianApart_AreParallel()
         {
-            Assert.Throws<ArgumentException>(() => new GeoCoordinateSystem3(P(0, 0, 0), new GeoVector3(1, 0, 0), new GeoVector3(1, 1E-6, 0)));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoCoordinateSystem3(P(0, 0, 0), new GeoVector3(1, 0, 0), new GeoVector3(1, 1E-6, 0))
+            );
         }
 
         [Fact]
         public void TwoAxesTenLongFiveMillionthsOfARadianApart_AreParallel()
         {
             // Their cross product is 5E-4 long, which the vector tolerance read as a length took for a plane they span.
-            Assert.Throws<ArgumentException>(() => new GeoCoordinateSystem3(P(0, 0, 0), new GeoVector3(10, 0, 0), new GeoVector3(10, 0.00005, 0)));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoCoordinateSystem3(P(0, 0, 0), new GeoVector3(10, 0, 0), new GeoVector3(10, 0.00005, 0))
+            );
         }
     }
 }

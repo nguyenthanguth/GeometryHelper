@@ -26,6 +26,6 @@ namespace GeometryHelper.Enums
         /// <summary>
         /// The point lies on the boundary (or edge / surface) of the shape within tolerance.
         /// </summary>
-        OnSide
+        OnSide,
     }
 }

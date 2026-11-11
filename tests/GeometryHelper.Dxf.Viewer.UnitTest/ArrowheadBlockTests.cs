@@ -38,7 +38,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 Assert.Equal("0", part.Layer);
                 Assert.True(part.Color.IsByBlock);
                 Assert.Equal("ByBlock", part.Linetype);
-                Assert.Equal(part is DxfLine || part is DxfCircle || part is DxfArc ? DxfLineWeight.ByBlock : DxfLineWeight.ByLayer, part.LineWeight);
+                Assert.Equal(
+                    part is DxfLine || part is DxfCircle || part is DxfArc
+                        ? DxfLineWeight.ByBlock
+                        : DxfLineWeight.ByLayer,
+                    part.LineWeight
+                );
             }
         }
 
@@ -209,21 +214,32 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string before = document.Database.ToText();
             Assert.Equal("Closed filled", Arrowhead(document, mleader.Handle));
 
-            CadEditResult result = CadPropertyEditor.Set(document, new[] { mleader.Handle }, "Arrowhead", "datum triangle filled");
+            CadEditResult result = CadPropertyEditor.Set(
+                document,
+                new[] { mleader.Handle },
+                "Arrowhead",
+                "datum triangle filled"
+            );
 
             Assert.True(result.Succeeded, result.Message);
             mleader = Entity<DxfMLeader>(document, mleader.Handle);
             Assert.Equal("_DatumFilled", mleader.ArrowSymbol.Name);
             Assert.Equal("Datum triangle filled", Arrowhead(document, mleader.Handle));
-            Assert.False(CadPropertyEditor.Set(document, new[] { mleader.Handle }, "Arrowhead", "Arrow of nobody").Succeeded);
+            Assert.False(
+                CadPropertyEditor.Set(document, new[] { mleader.Handle }, "Arrowhead", "Arrow of nobody").Succeeded
+            );
             AssertReopens(document);
 
             Assert.True(document.Undo());
             Assert.Equal(before, document.Database.ToText());
         }
 
-        private static string Arrowhead(CadDocument document, string handle)
-            => CadProperties.Describe(document, null, new[] { handle }).Groups.Single(g => g.Title == "Leaders").Rows.Single(r => r.Label == "Arrowhead").Value;
+        private static string Arrowhead(CadDocument document, string handle) =>
+            CadProperties
+                .Describe(document, null, new[] { handle })
+                .Groups.Single(g => g.Title == "Leaders")
+                .Rows.Single(r => r.Label == "Arrowhead")
+                .Value;
 
         [Fact]
         public void TheDotOfABlockIsDrawnFilled_ADiscOfHalfItsSize_AndTheTickAsABand()
@@ -231,8 +247,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             var database = new DxfDatabase("AC1027");
             DxfBlockTableRecord dot = CadArrowheads.Ensure(database, "Dot");
             DxfBlockTableRecord tick = CadArrowheads.Ensure(database, "Architectural tick");
-            database.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(10, 10, 0), dot) { ScaleFactors = new GeoVector3(2, 2, 2) });
-            database.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(100, 0, 0), tick) { ScaleFactors = new GeoVector3(4, 4, 4) });
+            database.ModelSpace.AppendEntity(
+                new DxfBlockReference(new GeoPoint3(10, 10, 0), dot) { ScaleFactors = new GeoVector3(2, 2, 2) }
+            );
+            database.ModelSpace.AppendEntity(
+                new DxfBlockReference(new GeoPoint3(100, 0, 0), tick) { ScaleFactors = new GeoVector3(4, 4, 4) }
+            );
             CadDocument document = CadDocument.From(database, "arrows.dxf");
 
             List<DisplayFill2> fills = document.GetDisplay(document.ModelSpace).Items.OfType<DisplayFill2>().ToList();

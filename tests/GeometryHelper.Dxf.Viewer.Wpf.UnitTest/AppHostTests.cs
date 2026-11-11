@@ -61,7 +61,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Equal(800, frame.PixelHeight);
 
                 // A dialog of GeometryHelper Drawing's is not one of this app's.
-                (int refused, string why) = RunApp("--screenshot", Path.Combine(folder.FullPath, "update.png"), "--dialog", "update");
+                (int refused, string why) = RunApp(
+                    "--screenshot",
+                    Path.Combine(folder.FullPath, "update.png"),
+                    "--dialog",
+                    "update"
+                );
                 Assert.Equal(2, refused);
                 Assert.Contains("--dialog update: no such dialog.", why);
                 Assert.False(File.Exists(Path.Combine(folder.FullPath, "update.png")));
@@ -74,7 +79,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             var bin = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar));
             string configuration = bin.Parent.Name;
             string root = bin.Parent.Parent.Parent.Parent.Parent.FullName;
-            string exe = Path.Combine(root, "src", "GeometryHelper.Dxf.App", "bin", configuration, "net8.0-windows", "GeometryHelper.Dxf.App.exe");
+            string exe = Path.Combine(
+                root,
+                "src",
+                "GeometryHelper.Dxf.App",
+                "bin",
+                configuration,
+                "net8.0-windows",
+                "GeometryHelper.Dxf.App.exe"
+            );
             Assert.True(File.Exists(exe), exe);
             var start = new ProcessStartInfo(exe)
             {

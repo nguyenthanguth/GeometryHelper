@@ -32,7 +32,9 @@ namespace GeometryHelper.UnitTest.Dxf
         /// </summary>
         private static byte[] Txt(bool deep = false)
         {
-            byte[] g = deep ? new byte[] { 1, 0x3C, 0x40, 0x74, 2, 0x4C, 0x20, 0 } : new byte[] { 1, 0x2C, 0x40, 0x64, 2, 0x4C, 0x20, 0 };
+            byte[] g = deep
+                ? new byte[] { 1, 0x3C, 0x40, 0x74, 2, 0x4C, 0x20, 0 }
+                : new byte[] { 1, 0x2C, 0x40, 0x64, 2, 0x4C, 0x20, 0 };
             var letters = new Dictionary<int, byte[]> { { ' ', new byte[] { 2, 0x60, 0 } }, { 'g', g } };
 
             for (char c = 'A'; c <= 'Z'; c++)
@@ -48,7 +50,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             foreach (KeyValuePair<int, byte[]> letter in letters.OrderBy(l => l.Key))
             {
-                byte[] record = new byte[] { 0 }.Concat(letter.Value).ToArray();
+                byte[] record = new byte[] { 0 }
+                    .Concat(letter.Value)
+                    .ToArray();
                 bytes.AddRange(BitConverter.GetBytes((ushort)letter.Key));
                 bytes.AddRange(BitConverter.GetBytes((ushort)record.Length));
                 bytes.AddRange(record);
@@ -80,11 +84,14 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static GeoPoint3 P(double x, double y) => new GeoPoint3(x, y, 0);
 
-        private static void Is(GeoPoint3 expected, GeoPoint3 actual) => Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
+        private static void Is(GeoPoint3 expected, GeoPoint3 actual) =>
+            Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
 
-        private static void Is(GeoVector3 expected, GeoVector3 actual) => Assert.True(expected.Subtract(actual).Length <= 1E-9, "expected " + expected + ", got " + actual);
+        private static void Is(GeoVector3 expected, GeoVector3 actual) =>
+            Assert.True(expected.Subtract(actual).Length <= 1E-9, "expected " + expected + ", got " + actual);
 
-        private static GeoTransform3 Mirror(double x, double y, double z) => GeoTransform3.Mirror(new GeoPlane3(P(0, 0), new GeoVector3(x, y, z)));
+        private static GeoTransform3 Mirror(double x, double y, double z) =>
+            GeoTransform3.Mirror(new GeoPlane3(P(0, 0), new GeoVector3(x, y, z)));
 
         /// <summary>A drawing of a Standard multileader style, its fonts looked for in the folder given (none where null).</summary>
         private static DxfDatabase Leaders(string folder)
@@ -102,12 +109,26 @@ namespace GeometryHelper.UnitTest.Dxf
         /// <summary>A multileader made in code as D38's plugin made AutoCAD's: words 4 high at (100, 50) on the Standard of a gap of 2 and doglegs of 8, met at the middle of their top line, its lines from the points given.</summary>
         private static DxfMLeader Made(DxfDatabase db, string words, params GeoPoint3[] from)
         {
-            var mleader = new DxfMLeader { MText = new DxfMText { Contents = words, Location = P(100, 50), TextHeight = 4.0 } };
+            var mleader = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = words,
+                    Location = P(100, 50),
+                    TextHeight = 4.0,
+                },
+            };
             db.ModelSpace.AppendEntity(mleader);
             mleader.LandingGap = 2;
             mleader.DoglegLength = 8;
-            mleader.SetTextAttachmentType(DxfTextAttachmentType.AttachmentMiddleOfTop, DxfLeaderDirectionType.LeftLeader);
-            mleader.SetTextAttachmentType(DxfTextAttachmentType.AttachmentMiddleOfTop, DxfLeaderDirectionType.RightLeader);
+            mleader.SetTextAttachmentType(
+                DxfTextAttachmentType.AttachmentMiddleOfTop,
+                DxfLeaderDirectionType.LeftLeader
+            );
+            mleader.SetTextAttachmentType(
+                DxfTextAttachmentType.AttachmentMiddleOfTop,
+                DxfLeaderDirectionType.RightLeader
+            );
             mleader.TextLocation = P(100, 50);
 
             foreach (GeoPoint3 point in from)
@@ -137,7 +158,10 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             List<DxfTypedValue> tail = Tail(mleader);
             int end = tail.FindIndex(g => g.TypeCode == 301);
-            return int.Parse(tail.Skip(end + 1).First(g => g.TypeCode == 90).Value.Trim(), CultureInfo.InvariantCulture);
+            return int.Parse(
+                tail.Skip(end + 1).First(g => g.TypeCode == 90).Value.Trim(),
+                CultureInfo.InvariantCulture
+            );
         }
 
         /// <summary>The value of a group after the context data; null where there is none.</summary>
@@ -154,7 +178,11 @@ namespace GeometryHelper.UnitTest.Dxf
             List<DxfTypedValue> tail = Tail(mleader);
             int start = tail.FindIndex(g => g.TypeCode == 300);
             int end = tail.FindIndex(g => g.TypeCode == 302 || g.TypeCode == 301);
-            return tail.Skip(start + 1).Take(end - start - 1).Where(g => g.TypeCode == code).Select(g => g.Value.Trim()).LastOrDefault();
+            return tail.Skip(start + 1)
+                .Take(end - start - 1)
+                .Where(g => g.TypeCode == code)
+                .Select(g => g.Value.Trim())
+                .LastOrDefault();
         }
 
         /// <summary>The base point of the content, 10 of the context data.</summary>
@@ -172,7 +200,11 @@ namespace GeometryHelper.UnitTest.Dxf
             List<DxfTypedValue> tail = Tail(mleader);
             int start = tail.FindIndex(g => g.TypeCode == 304);
             int end = tail.FindIndex(start, g => g.TypeCode == 296);
-            return tail.Skip(start).Take(end - start).Where(g => g.TypeCode == code).Select(g => g.Value.Trim()).FirstOrDefault();
+            return tail.Skip(start)
+                .Take(end - start)
+                .Where(g => g.TypeCode == code)
+                .Select(g => g.Value.Trim())
+                .FirstOrDefault();
         }
 
         /// <summary>The groups of each LEADER_LINE, as "code value" texts.</summary>
@@ -213,7 +245,15 @@ namespace GeometryHelper.UnitTest.Dxf
         /// </summary>
         private static DxfMLeader AutoCads(DxfDatabase db, string record)
         {
-            var made = new DxfMLeader { MText = new DxfMText { Contents = "X", Location = new GeoPoint3(0, 0, 0), TextHeight = 4.0 } };
+            var made = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = "X",
+                    Location = new GeoPoint3(0, 0, 0),
+                    TextHeight = 4.0,
+                },
+            };
             db.ModelSpace.AppendEntity(made);
             List<DxfTypedValue> tail = made.Item.File.TailOf(made.Item, 0);
             int marker = tail.FindIndex(g => g.TypeCode == 100 && g.Value.Trim() == "AcDbMLeader");
@@ -233,7 +273,10 @@ namespace GeometryHelper.UnitTest.Dxf
                     continue;
                 }
 
-                value = code == 340 && value == "67" ? style : (code == 340 || code == 343) && value == "55" ? text : value;
+                value =
+                    code == 340 && value == "67" ? style
+                    : (code == 340 || code == 343) && value == "55" ? text
+                    : value;
                 groups.Add(new KeyValuePair<int, string>(code, value));
             }
 
@@ -242,7 +285,8 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         // AutoCAD 2021's record of "ABC" 4 high at (100, 50) met from (0, 0), mirrored across the XY plane (D38 m-mxy).
-        private const string MirroredRecord = "270 2|300 CONTEXT_DATA{|40 1.0|10 98.0|20 48.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 -1.0|340 55|12 110.6666666666666|22 50.0|32 0.0|13 -1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 -1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 90.0|20 48.0|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 0.0|20 0.0|30 0.0|91 0|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 295936|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 1|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
+        private const string MirroredRecord =
+            "270 2|300 CONTEXT_DATA{|40 1.0|10 98.0|20 48.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 -1.0|340 55|12 110.6666666666666|22 50.0|32 0.0|13 -1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 -1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 90.0|20 48.0|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 0.0|20 0.0|30 0.0|91 0|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 295936|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 1|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
 
         // ---- item 1: words that run against the plane's x axis -------------------------------------------------------------------
 
@@ -272,7 +316,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 Is(P(110.66666666666667, 48), top.TextLocation);
 
                 DxfMLeader under = Mirrored(db, "ABC", Left);
-                under.SetTextAttachmentType(DxfTextAttachmentType.AttachmentBottomOfTopLine, DxfLeaderDirectionType.LeftLeader);
+                under.SetTextAttachmentType(
+                    DxfTextAttachmentType.AttachmentBottomOfTopLine,
+                    DxfLeaderDirectionType.LeftLeader
+                );
                 Is(P(110.66666666666667, 52.8), under.TextLocation);
 
                 DxfMLeader moved = Mirrored(db, "ABC", Left);
@@ -363,7 +410,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 Is(was.Add(new GeoVector3(-12, 0, 0)), BasePoint(anew));
 
                 DxfMLeader under = Mirrored(db, "ABC", Right);
-                under.SetTextAttachmentType(DxfTextAttachmentType.AttachmentBottomOfTopLine, DxfLeaderDirectionType.RightLeader);
+                under.SetTextAttachmentType(
+                    DxfTextAttachmentType.AttachmentBottomOfTopLine,
+                    DxfLeaderDirectionType.RightLeader
+                );
                 Is(P(110.66666666666667, 52.8), under.TextLocation);
             });
         }
@@ -408,7 +458,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 Is(P(132.66666666666666, 48), anew.GetLastVertex(1));
 
                 DxfMLeader under = Mirrored(db, "ABC", Both);
-                under.SetTextAttachmentType(DxfTextAttachmentType.AttachmentBottomOfTopLine, DxfLeaderDirectionType.LeftLeader);
+                under.SetTextAttachmentType(
+                    DxfTextAttachmentType.AttachmentBottomOfTopLine,
+                    DxfLeaderDirectionType.LeftLeader
+                );
                 Is(P(110.66666666666667, 52.8), under.TextLocation);
                 Is(P(90, 48), under.GetLastVertex(0));
                 Is(P(120.66666666666667, 50.8), under.GetLastVertex(1));
@@ -467,13 +520,25 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>A multileader of Standard, added, met at the attachment given on both sides, then given words 4 high at (100, 50) in the text style given, then its lines from the points given.</summary>
-        private static DxfMLeader Given(DxfDatabase db, string words, string style, int attachment, params GeoPoint3[] from)
+        private static DxfMLeader Given(
+            DxfDatabase db,
+            string words,
+            string style,
+            int attachment,
+            params GeoPoint3[] from
+        )
         {
             var mleader = new DxfMLeader();
             db.ModelSpace.AppendEntity(mleader);
             mleader.SetTextAttachmentType((DxfTextAttachmentType)attachment, DxfLeaderDirectionType.LeftLeader);
             mleader.SetTextAttachmentType((DxfTextAttachmentType)attachment, DxfLeaderDirectionType.RightLeader);
-            mleader.MText = new DxfMText { Contents = words, Location = P(100, 50), TextHeight = 4.0, TextStyleName = style };
+            mleader.MText = new DxfMText
+            {
+                Contents = words,
+                Location = P(100, 50),
+                TextHeight = 4.0,
+                TextStyleName = style,
+            };
 
             foreach (GeoPoint3 point in from)
             {
@@ -513,7 +578,16 @@ namespace GeometryHelper.UnitTest.Dxf
                 Is(P(90, 50 - txt), deep.GetLastVertex(0));
 
                 // Given in no drawing, they are moved as the multileader is added (o3-*).
-                var memory = new DxfMLeader { MText = new DxfMText { Contents = "Ag", Location = P(100, 50), TextHeight = 4.0, TextStyleName = "GH" } };
+                var memory = new DxfMLeader
+                {
+                    MText = new DxfMText
+                    {
+                        Contents = "Ag",
+                        Location = P(100, 50),
+                        TextHeight = 4.0,
+                        TextStyleName = "GH",
+                    },
+                };
                 db.ModelSpace.AppendEntity(memory);
                 Is(P(100, 50 + gh - txt), memory.TextLocation);
                 memory.AddLeaderLine(P(0, 0));
@@ -604,7 +678,16 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("-1073741824", Own(plain, 92));
             Assert.Equal("-1073741824", Words(plain, 90));
 
-            var red = new DxfMLeader { MText = new DxfMText { Contents = "ABC", Location = P(100, 50), TextHeight = 4.0, Color = DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1) } };
+            var red = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = "ABC",
+                    Location = P(100, 50),
+                    TextHeight = 4.0,
+                    Color = DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1),
+                },
+            };
             db.ModelSpace.AppendEntity(red);
             Assert.Equal(DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1), red.TextColor);
             Assert.Equal("-1023410175", Words(red, 90));
@@ -617,7 +700,16 @@ namespace GeometryHelper.UnitTest.Dxf
             red.MText = again;
             Assert.Equal(DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1), red.TextColor);
 
-            var byBlock = new DxfMLeader { MText = new DxfMText { Contents = "ABC", Location = P(100, 50), TextHeight = 4.0, Color = DxfColor.ByBlock } };
+            var byBlock = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = "ABC",
+                    Location = P(100, 50),
+                    TextHeight = 4.0,
+                    Color = DxfColor.ByBlock,
+                },
+            };
             db.ModelSpace.AppendEntity(byBlock);
             Assert.Equal(DxfColor.ByBlock, byBlock.TextColor);
             Assert.False(Bit(byBlock, 15));
@@ -674,7 +766,14 @@ namespace GeometryHelper.UnitTest.Dxf
                     centred.TransformBy(Mirror(1, 0, 0));
                     Assert.Equal("1", Head(centred, 176));
 
-                    foreach (GeoTransform3[] keeps in new[] { new[] { Mirror(0, 0, 1) }, new[] { Mirror(0, 1, 0) }, new[] { GeoTransform3.RotationZ(Math.PI / 2), Mirror(1, 0, 0) } })
+                    foreach (
+                        GeoTransform3[] keeps in new[]
+                        {
+                            new[] { Mirror(0, 0, 1) },
+                            new[] { Mirror(0, 1, 0) },
+                            new[] { GeoTransform3.RotationZ(Math.PI / 2), Mirror(1, 0, 0) },
+                        }
+                    )
                     {
                         DxfMLeader kept = made();
 

@@ -28,7 +28,12 @@ namespace GeometryHelper.Dxf
         private int _removed;
         private int _version;
 
-        internal DxfSpace(DxfFile file, List<DxfItem> items, DxfSpaceKind kind = DxfSpaceKind.Model, DxfFileBlock block = null)
+        internal DxfSpace(
+            DxfFile file,
+            List<DxfItem> items,
+            DxfSpaceKind kind = DxfSpaceKind.Model,
+            DxfFileBlock block = null
+        )
         {
             _file = file;
             _items = items;
@@ -88,7 +93,8 @@ namespace GeometryHelper.Dxf
         /// BLOCK_RECORD from R13 on, and the extents of the header grown to hold it. A chain of the plane in a file of R12 is a
         /// POLYLINE with its vertices, exact.
         /// </remarks>
-        public DxfItem Add(object shape, string layer = null) => _file.Add(this, shape, layer, null, null, null, null, 0.0, 0);
+        public DxfItem Add(object shape, string layer = null) =>
+            _file.Add(this, shape, layer, null, null, null, null, 0.0, 0);
 
         /// <summary>
         /// Adds an entity as a new one of the space, at the end of the ENTITIES section: its shape, on its layer, in its
@@ -114,7 +120,17 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(entity));
             }
 
-            return _file.Add(this, entity.Shape, entity.Layer, entity.Color, entity.TrueColor, entity.Linetype, entity.LineWeight, entity.Thickness, entity.HiddenEdges);
+            return _file.Add(
+                this,
+                entity.Shape,
+                entity.Layer,
+                entity.Color,
+                entity.TrueColor,
+                entity.Linetype,
+                entity.LineWeight,
+                entity.Thickness,
+                entity.HiddenEdges
+            );
         }
 
         /// <summary>
@@ -159,7 +175,9 @@ namespace GeometryHelper.Dxf
             {
                 if (version != _version)
                 {
-                    throw new InvalidOperationException("The entities of the space were changed while they were walked.");
+                    throw new InvalidOperationException(
+                        "The entities of the space were changed while they were walked."
+                    );
                 }
 
                 yield return _items[i];

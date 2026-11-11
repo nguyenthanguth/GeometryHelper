@@ -26,8 +26,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < 3; i++)
             {
-                if (Intersection3.TryIntersectWith(first.GetEdgeAt(i), second, out _, Tol) ||
-                    Intersection3.TryIntersectWith(second.GetEdgeAt(i), first, out _, Tol))
+                if (
+                    Intersection3.TryIntersectWith(first.GetEdgeAt(i), second, out _, Tol)
+                    || Intersection3.TryIntersectWith(second.GetEdgeAt(i), first, out _, Tol)
+                )
                 {
                     return true;
                 }
@@ -36,8 +38,10 @@ namespace GeometryHelper.UnitTest.Solid
             // Amended with fault F3 (2026-10-12): the pair is in one plane when either lies wholly in the other's
             // plane, read both ways round, and two that neither cross nor overlap in one plane still touch where they
             // come within the point tolerance. The full test before it read one corner of the second only.
-            if (!Parallel3.IsParallel(first.Normal, second.Normal, Tol) ||
-                (!LiesIn(first, second) && !LiesIn(second, first)))
+            if (
+                !Parallel3.IsParallel(first.Normal, second.Normal, Tol)
+                || (!LiesIn(first, second) && !LiesIn(second, first))
+            )
             {
                 return WithinThePointTolerance(first, second);
             }
@@ -53,10 +57,10 @@ namespace GeometryHelper.UnitTest.Solid
             return WithinThePointTolerance(first, second);
         }
 
-        private static bool LiesIn(GeoTriangle3 plane, GeoTriangle3 other)
-            => Math.Abs(plane.GetPlane().SignedDistanceTo(other.A)) <= Tol.EqualPlanar &&
-               Math.Abs(plane.GetPlane().SignedDistanceTo(other.B)) <= Tol.EqualPlanar &&
-               Math.Abs(plane.GetPlane().SignedDistanceTo(other.C)) <= Tol.EqualPlanar;
+        private static bool LiesIn(GeoTriangle3 plane, GeoTriangle3 other) =>
+            Math.Abs(plane.GetPlane().SignedDistanceTo(other.A)) <= Tol.EqualPlanar
+            && Math.Abs(plane.GetPlane().SignedDistanceTo(other.B)) <= Tol.EqualPlanar
+            && Math.Abs(plane.GetPlane().SignedDistanceTo(other.C)) <= Tol.EqualPlanar;
 
         private static bool WithinThePointTolerance(GeoTriangle3 first, GeoTriangle3 second)
         {
@@ -76,7 +80,10 @@ namespace GeometryHelper.UnitTest.Solid
             for (int i = 0; i < 3; i++)
             {
                 // The corner's distance as Distance3 measures it, a sliver where it is.
-                if (Distance3.DistanceTo(second, first[i]) <= Tol.EqualPoint || Distance3.DistanceTo(first, second[i]) <= Tol.EqualPoint)
+                if (
+                    Distance3.DistanceTo(second, first[i]) <= Tol.EqualPoint
+                    || Distance3.DistanceTo(first, second[i]) <= Tol.EqualPoint
+                )
                 {
                     return true;
                 }
@@ -89,8 +96,10 @@ namespace GeometryHelper.UnitTest.Solid
         {
             for (int i = 0; i < 3; i++)
             {
-                if (Intersection3.TryIntersectWith(first.GetEdgeAt(i), second, out GeoPoint3 through, Tol) ||
-                    Intersection3.TryIntersectWith(second.GetEdgeAt(i), first, out through, Tol))
+                if (
+                    Intersection3.TryIntersectWith(first.GetEdgeAt(i), second, out GeoPoint3 through, Tol)
+                    || Intersection3.TryIntersectWith(second.GetEdgeAt(i), first, out through, Tol)
+                )
                 {
                     return new GeoLine3(through, through);
                 }
@@ -125,8 +134,12 @@ namespace GeometryHelper.UnitTest.Solid
 
         #endregion
 
-        private static GeoPoint3 Point(Random rng, double scale, GeoPoint3 around)
-            => new GeoPoint3(around.X + (rng.NextDouble() - 0.5) * scale, around.Y + (rng.NextDouble() - 0.5) * scale, around.Z + (rng.NextDouble() - 0.5) * scale);
+        private static GeoPoint3 Point(Random rng, double scale, GeoPoint3 around) =>
+            new GeoPoint3(
+                around.X + (rng.NextDouble() - 0.5) * scale,
+                around.Y + (rng.NextDouble() - 0.5) * scale,
+                around.Z + (rng.NextDouble() - 0.5) * scale
+            );
 
         /// <summary>
         /// Pairs of every sort: far apart and crossing, and above all one triangle set off the other's plane by
@@ -142,7 +155,11 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 GeoPoint3 origin = rng.NextDouble() < 0.3 ? new GeoPoint3(1E5, -2E5, 3E4) : GeoPoint3.Origin;
                 double size = rng.NextDouble() < 0.5 ? 10.0 : 1000.0;
-                var first = new GeoTriangle3(Point(rng, size, origin), Point(rng, size, origin), Point(rng, size, origin));
+                var first = new GeoTriangle3(
+                    Point(rng, size, origin),
+                    Point(rng, size, origin),
+                    Point(rng, size, origin)
+                );
 
                 if (first.IsDegenerate(Tol))
                 {
@@ -156,14 +173,22 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     case 0:
                         // Anywhere nearby.
-                        second = new GeoTriangle3(Point(rng, size, origin), Point(rng, size, origin), Point(rng, size, origin));
+                        second = new GeoTriangle3(
+                            Point(rng, size, origin),
+                            Point(rng, size, origin),
+                            Point(rng, size, origin)
+                        );
                         break;
 
                     case 1:
                     {
                         // The same triangle slid along its plane and set off it, one side or the other.
                         double off = offsets[rng.Next(offsets.Length)] * (rng.NextDouble() < 0.5 ? -1 : 1);
-                        GeoVector3 slide = new GeoVector3((rng.NextDouble() - 0.5) * size, (rng.NextDouble() - 0.5) * size, (rng.NextDouble() - 0.5) * size);
+                        GeoVector3 slide = new GeoVector3(
+                            (rng.NextDouble() - 0.5) * size,
+                            (rng.NextDouble() - 0.5) * size,
+                            (rng.NextDouble() - 0.5) * size
+                        );
                         slide = slide.Subtract(normal.Multiply(slide.DotProduct(normal))).Multiply(0.5);
                         GeoVector3 move = slide.Add(normal.Multiply(off));
                         second = new GeoTriangle3(first.A.Add(move), first.B.Add(move), first.C.Add(move));
@@ -174,11 +199,17 @@ namespace GeometryHelper.UnitTest.Solid
                     {
                         // A triangle standing off the plane, its nearest corner a few tolerances from a point of the first.
                         double off = offsets[rng.Next(offsets.Length)] * (rng.NextDouble() < 0.5 ? -1 : 1);
-                        GeoPoint3 foot = new GeoPoint3((first.A.X + first.B.X + first.C.X) / 3, (first.A.Y + first.B.Y + first.C.Y) / 3, (first.A.Z + first.B.Z + first.C.Z) / 3);
+                        GeoPoint3 foot = new GeoPoint3(
+                            (first.A.X + first.B.X + first.C.X) / 3,
+                            (first.A.Y + first.B.Y + first.C.Y) / 3,
+                            (first.A.Z + first.B.Z + first.C.Z) / 3
+                        );
                         GeoPoint3 corner = foot.Add(normal.Multiply(off));
                         double side = off >= 0 ? 1.0 : -1.0;
-                        GeoPoint3 b = Point(rng, size, corner).Add(normal.Multiply(side * size * (0.2 + rng.NextDouble())));
-                        GeoPoint3 c = Point(rng, size, corner).Add(normal.Multiply(side * size * (0.2 + rng.NextDouble())));
+                        GeoPoint3 b = Point(rng, size, corner)
+                            .Add(normal.Multiply(side * size * (0.2 + rng.NextDouble())));
+                        GeoPoint3 c = Point(rng, size, corner)
+                            .Add(normal.Multiply(side * size * (0.2 + rng.NextDouble())));
                         second = new GeoTriangle3(corner, b, c);
                         break;
                     }
@@ -188,9 +219,17 @@ namespace GeometryHelper.UnitTest.Solid
                         // Nearly parallel: the first turned a hair about its centre, and set off.
                         double off = offsets[rng.Next(offsets.Length)];
                         GeoPoint3 centre = first.Centroid;
-                        GeoTransform3 turn = GeoTransform3.RotationAxis(centre, new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() - 0.5), (rng.NextDouble() - 0.5) * 1E-5);
+                        GeoTransform3 turn = GeoTransform3.RotationAxis(
+                            centre,
+                            new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() - 0.5),
+                            (rng.NextDouble() - 0.5) * 1E-5
+                        );
                         GeoVector3 move = normal.Multiply(off);
-                        second = new GeoTriangle3(first.A.TransformBy(turn).Add(move), first.B.TransformBy(turn).Add(move), first.C.TransformBy(turn).Add(move));
+                        second = new GeoTriangle3(
+                            first.A.TransformBy(turn).Add(move),
+                            first.B.TransformBy(turn).Add(move),
+                            first.C.TransformBy(turn).Add(move)
+                        );
                         break;
                     }
                 }
@@ -202,7 +241,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void EveryPairCollidesOrNotAsTheFullTestSaid()
         {
-            int touching = 0, clear = 0, pairs = 0;
+            int touching = 0,
+                clear = 0,
+                pairs = 0;
 
             foreach ((GeoTriangle3 a, GeoTriangle3 b) in Pairs(1, 60000))
             {
@@ -211,7 +252,12 @@ namespace GeometryHelper.UnitTest.Solid
 
                 pairs++;
                 touching += before ? 1 : 0;
-                clear += !a.IsDegenerate(Tol) && !b.IsDegenerate(Tol) && (Collision3.IsClearOf(a, b, Tol) || Collision3.IsClearOf(b, a, Tol)) ? 1 : 0;
+                clear +=
+                    !a.IsDegenerate(Tol)
+                    && !b.IsDegenerate(Tol)
+                    && (Collision3.IsClearOf(a, b, Tol) || Collision3.IsClearOf(b, a, Tol))
+                        ? 1
+                        : 0;
             }
 
             Assert.True(touching > pairs / 10, $"only {touching} of {pairs} pairs touch");
@@ -226,8 +272,10 @@ namespace GeometryHelper.UnitTest.Solid
                 GeoLine3 before = ShortestAsBefore(a, b);
                 GeoLine3 now = Projection3.GetShortestLineTo(a, b, Tol);
 
-                Assert.True(before.StartPoint.Equals(now.StartPoint) && before.EndPoint.Equals(now.EndPoint),
-                    $"{a} / {b}: {before} before, {now} now");
+                Assert.True(
+                    before.StartPoint.Equals(now.StartPoint) && before.EndPoint.Equals(now.EndPoint),
+                    $"{a} / {b}: {before} before, {now} now"
+                );
             }
         }
 

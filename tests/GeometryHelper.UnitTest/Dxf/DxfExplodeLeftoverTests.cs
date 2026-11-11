@@ -45,9 +45,16 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfSpline spline = leader.Spline;
             Assert.Equal(3, spline.NurbsData.Degree);
             Assert.Equal(drawn.NurbsData.GetKnots(), spline.NurbsData.GetKnots());
-            Assert.Equal(drawn.NurbsData.GetControlPoints().Select(Bits), spline.NurbsData.GetControlPoints().Select(Bits));
+            Assert.Equal(
+                drawn.NurbsData.GetControlPoints().Select(Bits),
+                spline.NurbsData.GetControlPoints().Select(Bits)
+            );
             Assert.Equal(chords, leader.EndParam, 12);
-            Assert.True(drawn.GetPointAtParameter(0.5 * chords).IsEqualTo(leader.GetPointAtParameter(0.5 * chords), new Tolerance(1E-12, 1E-12)));
+            Assert.True(
+                drawn
+                    .GetPointAtParameter(0.5 * chords)
+                    .IsEqualTo(leader.GetPointAtParameter(0.5 * chords), new Tolerance(1E-12, 1E-12))
+            );
             Assert.True(leader.GetPointAtParameter(chords).IsEqualTo(new GeoPoint3(20, 10, 0), Tol));
 
             double length = leader.GetDistanceAtParameter(leader.EndParam);
@@ -55,11 +62,17 @@ namespace GeometryHelper.UnitTest.Dxf
             GeoPoint3 middle = leader.GetPointAtDist(length / 2.0);
             Assert.Equal(length / 2.0, leader.GetDistAtPoint(middle), 6);
             Assert.Equal(leader.GetParameterAtDistance(length / 2.0), leader.GetParameterAtPoint(middle), 6);
-            Assert.True(leader.GetClosestPointTo(new GeoPoint3(middle.X, middle.Y + 1E-4, 0), false).IsEqualTo(middle, Tol));
+            Assert.True(
+                leader.GetClosestPointTo(new GeoPoint3(middle.X, middle.Y + 1E-4, 0), false).IsEqualTo(middle, Tol)
+            );
             GeoVector3 leaving = leader.GetFirstDerivative(0.0).Normalize();
             Assert.Equal(Math.Sqrt(0.5), leaving.X, 9);
             Assert.Equal(Math.Sqrt(0.5), leaving.Y, 9);
-            Assert.True(drawn.GetSecondDerivative(0.25 * chords).IsEqualTo(leader.GetSecondDerivative(0.25 * chords), new Tolerance(1E-12, 1E-12)));
+            Assert.True(
+                drawn
+                    .GetSecondDerivative(0.25 * chords)
+                    .IsEqualTo(leader.GetSecondDerivative(0.25 * chords), new Tolerance(1E-12, 1E-12))
+            );
             Assert.Throws<ArgumentOutOfRangeException>(() => leader.GetPointAtParameter(1.5 * chords));
 
             // Straight again, it is walked by its vertices as before.
@@ -164,12 +177,27 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfFace[] faces = mesh.Explode().Cast<DxfFace>().ToArray();
 
                 Assert.Equal(4, faces.Length);
-                GeoPoint3[] corners = { new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0), new GeoPoint3(0, 1, 0), new GeoPoint3(0, 0, 1) };
-                int[][] named = { new[] { 2, 1, 0, 0 }, new[] { 0, 1, 3, 3 }, new[] { 1, 2, 3, 3 }, new[] { 3, 2, 0, 0 } };
+                GeoPoint3[] corners =
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(1, 0, 0),
+                    new GeoPoint3(0, 1, 0),
+                    new GeoPoint3(0, 0, 1),
+                };
+                int[][] named =
+                {
+                    new[] { 2, 1, 0, 0 },
+                    new[] { 0, 1, 3, 3 },
+                    new[] { 1, 2, 3, 3 },
+                    new[] { 3, 2, 0, 0 },
+                };
 
                 for (int f = 0; f < 4; f++)
                 {
-                    Assert.Equal(named[f].Select(i => Bits(corners[i])), Enumerable.Range(0, 4).Select(i => Bits(faces[f].GetVertexAt((short)i))));
+                    Assert.Equal(
+                        named[f].Select(i => Bits(corners[i])),
+                        Enumerable.Range(0, 4).Select(i => Bits(faces[f].GetVertexAt((short)i)))
+                    );
                     Assert.All(Enumerable.Range(0, 4), i => Assert.True(faces[f].IsEdgeVisibleAt((short)i)));
                     Assert.Equal(mesh.Layer, faces[f].Layer);
                     Assert.Equal(mesh.ColorIndex, faces[f].ColorIndex);
@@ -180,7 +208,10 @@ namespace GeometryHelper.UnitTest.Dxf
                     db.ModelSpace.AppendEntity(face);
                 }
 
-                Assert.Equal(4, DxfDatabase.Parse(db.ToText()).ModelSpace.Count(e => faces.Any(p => p.Handle == e.Handle)));
+                Assert.Equal(
+                    4,
+                    DxfDatabase.Parse(db.ToText()).ModelSpace.Count(e => faces.Any(p => p.Handle == e.Handle))
+                );
             }
         }
 
@@ -206,18 +237,41 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = WithMeshes(
                 Mesh("C01", 1, Cube(), "0 3 2 1|4 5 6 7|0 1 5 4|1 2 6 5|2 3 7 6|3 0 4 7", 0)
-                + Mesh("C02", 0, new[] { "0 0 0", "10 0 0", "13 8 0", "5 13 0", "-3 8 0" }, "0 1 2 3 4", 0)
-                + Mesh("C03", 0, Cube(), "0 3 2 1|4 5 6 7|0 1 5 4|1 2 6 5|2 3 7 6|3 0 4 7", 1)
-                + Mesh("C04", 0, Cube(), "0 3 2 1|4 5 6 8", 0)
-                + Mesh("C05", 0, Cube(), "0 3", 0)
-                + Mesh("C06", 0, Cube(), "0 3 2 1", 0).Replace(" 93\n5\n", " 93\n7\n").Replace(" 94\n0\n", " 90\n4\n 90\n0\n 94\n0\n"));
+                    + Mesh("C02", 0, new[] { "0 0 0", "10 0 0", "13 8 0", "5 13 0", "-3 8 0" }, "0 1 2 3 4", 0)
+                    + Mesh("C03", 0, Cube(), "0 3 2 1|4 5 6 7|0 1 5 4|1 2 6 5|2 3 7 6|3 0 4 7", 1)
+                    + Mesh("C04", 0, Cube(), "0 3 2 1|4 5 6 8", 0)
+                    + Mesh("C05", 0, Cube(), "0 3", 0)
+                    + Mesh("C06", 0, Cube(), "0 3 2 1", 0)
+                        .Replace(" 93\n5\n", " 93\n7\n")
+                        .Replace(" 94\n0\n", " 90\n4\n 90\n0\n 94\n0\n")
+            );
 
-            Assert.Contains("MESH C01 is smoothed to level 1", Assert.Throws<NotSupportedException>(() => ByHandle<DxfUnknownEntity>(db, "C01").Explode()).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "MESH C01 is smoothed to level 1",
+                Assert.Throws<NotSupportedException>(() => ByHandle<DxfUnknownEntity>(db, "C01").Explode()).Message,
+                StringComparison.Ordinal
+            );
             Assert.Equal(3, ByHandle<DxfUnknownEntity>(db, "C02").Explode().Count);
-            Assert.Contains("MESH C03 gives 1 of", Assert.Throws<NotSupportedException>(() => ByHandle<DxfUnknownEntity>(db, "C03").Explode()).Message, StringComparison.Ordinal);
-            Assert.Contains("the vertex 8", Assert.Throws<InvalidOperationException>(() => ByHandle<DxfUnknownEntity>(db, "C04").Explode()).Message, StringComparison.Ordinal);
-            Assert.Contains("three at least", Assert.Throws<InvalidOperationException>(() => ByHandle<DxfUnknownEntity>(db, "C05").Explode()).Message, StringComparison.Ordinal);
-            Assert.Contains("ends before them", Assert.Throws<InvalidOperationException>(() => ByHandle<DxfUnknownEntity>(db, "C06").Explode()).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "MESH C03 gives 1 of",
+                Assert.Throws<NotSupportedException>(() => ByHandle<DxfUnknownEntity>(db, "C03").Explode()).Message,
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "the vertex 8",
+                Assert.Throws<InvalidOperationException>(() => ByHandle<DxfUnknownEntity>(db, "C04").Explode()).Message,
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "three at least",
+                Assert.Throws<InvalidOperationException>(() => ByHandle<DxfUnknownEntity>(db, "C05").Explode()).Message,
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "ends before them",
+                Assert.Throws<InvalidOperationException>(() => ByHandle<DxfUnknownEntity>(db, "C06").Explode()).Message,
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -229,13 +283,27 @@ namespace GeometryHelper.UnitTest.Dxf
             const string Faces = "0 3 2 1|4 5 6 7|0 1 5 4|1 2 6 5|2 3 7 6|3 0 4 7";
             DxfDatabase db = WithMeshes(
                 Mesh("C07", 0, Cube(), Faces, 0).Replace(" 95\n0\n", string.Empty)
-                + Mesh("C08", 0, Cube(), Faces, 0).Replace(" 92\n8\n", " 92\n9\n")
-                + Mesh("C09", 0, Cube(), Faces, 0).Replace(" 94\n0\n 95\n0\n", string.Empty)
-                + Mesh("C10", 0, Cube(), Faces, 0).Replace(" 94\n0\n 95\n0\n", " 94\n1\n 90\n0\n 90\n1\n 95\n1\n140\n0.0\n"));
+                    + Mesh("C08", 0, Cube(), Faces, 0).Replace(" 92\n8\n", " 92\n9\n")
+                    + Mesh("C09", 0, Cube(), Faces, 0).Replace(" 94\n0\n 95\n0\n", string.Empty)
+                    + Mesh("C10", 0, Cube(), Faces, 0)
+                        .Replace(" 94\n0\n 95\n0\n", " 94\n1\n 90\n0\n 90\n1\n 95\n1\n140\n0.0\n")
+            );
 
-            Assert.Contains("MESH C07 holds no count of its creases (95)", Assert.Throws<InvalidOperationException>(() => ByHandle<DxfUnknownEntity>(db, "C07").Explode()).Message, StringComparison.Ordinal);
-            Assert.Contains("MESH C08 holds fewer vertices", Assert.Throws<InvalidOperationException>(() => ByHandle<DxfUnknownEntity>(db, "C08").Explode()).Message, StringComparison.Ordinal);
-            Assert.Contains("(94)", Assert.Throws<InvalidOperationException>(() => ByHandle<DxfUnknownEntity>(db, "C09").Explode()).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "MESH C07 holds no count of its creases (95)",
+                Assert.Throws<InvalidOperationException>(() => ByHandle<DxfUnknownEntity>(db, "C07").Explode()).Message,
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "MESH C08 holds fewer vertices",
+                Assert.Throws<InvalidOperationException>(() => ByHandle<DxfUnknownEntity>(db, "C08").Explode()).Message,
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "(94)",
+                Assert.Throws<InvalidOperationException>(() => ByHandle<DxfUnknownEntity>(db, "C09").Explode()).Message,
+                StringComparison.Ordinal
+            );
             Assert.Equal(6, ByHandle<DxfUnknownEntity>(db, "C10").Explode().Count);
         }
 
@@ -278,7 +346,16 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal(new[] { "NUM=42" }, Values(original));
 
-            foreach (DxfEntity made in new DxfEntity[] { copy, copy.Clone(), original.GetTransformedCopy(GeoTransform3.Identity), back, ByHandle<DxfMLeader>(DxfDatabase.Parse(db.ToText()), back.Handle) })
+            foreach (
+                DxfEntity made in new DxfEntity[]
+                {
+                    copy,
+                    copy.Clone(),
+                    original.GetTransformedCopy(GeoTransform3.Identity),
+                    back,
+                    ByHandle<DxfMLeader>(DxfDatabase.Parse(db.ToText()), back.Handle),
+                }
+            )
             {
                 Assert.Equal(new[] { "NUM=42" }, Values(made));
             }
@@ -300,7 +377,10 @@ namespace GeometryHelper.UnitTest.Dxf
             other.ModelSpace.AppendEntity(copy);
 
             Assert.Equal(new[] { "NUM=42" }, Values(copy));
-            Assert.Equal(new[] { "NUM=42" }, Values(ByHandle<DxfMLeader>(DxfDatabase.Parse(other.ToText()), copy.Handle)));
+            Assert.Equal(
+                new[] { "NUM=42" },
+                Values(ByHandle<DxfMLeader>(DxfDatabase.Parse(other.ToText()), copy.Handle))
+            );
 
             DxfDatabase bare = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             var lost = (DxfMLeader)original.Clone();
@@ -308,7 +388,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Same(bare.BlockTable["GKTAG"], lost.BlockContent);
             Assert.Equal(new[] { "NUM=42" }, Values(lost));
-            Assert.Equal(new[] { "NUM=42" }, Values(ByHandle<DxfMLeader>(DxfDatabase.Parse(bare.ToText()), lost.Handle)));
+            Assert.Equal(
+                new[] { "NUM=42" },
+                Values(ByHandle<DxfMLeader>(DxfDatabase.Parse(bare.ToText()), lost.Handle))
+            );
         }
 
         [Fact]
@@ -319,7 +402,10 @@ namespace GeometryHelper.UnitTest.Dxf
             string text = DxfHatchLeaderDrawings.R2018.Replace("\r\n", "\n");
             int start = text.IndexOf("MULTILEADER\n  5\nBA\n", StringComparison.Ordinal);
             int end = text.IndexOf("\n  0\n", start, StringComparison.Ordinal);
-            text = text.Substring(0, start) + text.Substring(start, end - start).Replace("\nB5\n", "\nFFF\n") + text.Substring(end);
+            text =
+                text.Substring(0, start)
+                + text.Substring(start, end - start).Replace("\nB5\n", "\nFFF\n")
+                + text.Substring(end);
             DxfMLeader original = ByHandle<DxfMLeader>(DxfDatabase.Parse(text), "BA");
 
             DxfEntity[] expected = original.Explode().ToArray();
@@ -355,14 +441,23 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ALeaderOfManyVertices_IsPlanedAndBoxedInTimeGrowingWithThem()
         {
             // 6 000 vertices on the floor: each read of a vertex reads them all, so that reading them once for each took seconds.
-            var text = new StringBuilder("  0\nSECTION\n  2\nENTITIES\n  0\nLEADER\n  5\nC10\n100\nAcDbEntity\n  8\n0\n100\nAcDbLeader\n  3\nStandard\n 71\n1\n 72\n0\n 73\n3\n 76\n6000\n");
+            var text = new StringBuilder(
+                "  0\nSECTION\n  2\nENTITIES\n  0\nLEADER\n  5\nC10\n100\nAcDbEntity\n  8\n0\n100\nAcDbLeader\n  3\nStandard\n 71\n1\n 72\n0\n 73\n3\n 76\n6000\n"
+            );
 
             for (int i = 0; i < 6000; i++)
             {
-                text.Append(" 10\n" + (i * 10).ToString(CultureInfo.InvariantCulture) + "\n 20\n" + ((i % 2) * 5).ToString(CultureInfo.InvariantCulture) + "\n 30\n0.0\n");
+                text.Append(
+                    " 10\n"
+                        + (i * 10).ToString(CultureInfo.InvariantCulture)
+                        + "\n 20\n"
+                        + ((i % 2) * 5).ToString(CultureInfo.InvariantCulture)
+                        + "\n 30\n0.0\n"
+                );
             }
 
-            DxfLeader leader = (DxfLeader)DxfDatabase.Parse(text.Append("  0\nENDSEC\n  0\nEOF\n").ToString()).ModelSpace.First();
+            DxfLeader leader = (DxfLeader)
+                DxfDatabase.Parse(text.Append("  0\nENDSEC\n  0\nEOF\n").ToString()).ModelSpace.First();
 
             GeoPlane3 plane = leader.GetPlane();
             GeoAabb3 box = leader.GeometricExtents;
@@ -395,24 +490,64 @@ namespace GeometryHelper.UnitTest.Dxf
 
             switch (part)
             {
-                case DxfBlockReference insert: where = insert.Name + " " + Bits(insert.Position) + " " + Bits(insert.Rotation) + " " + string.Join(",", insert.AttributeCollection.Cast<DxfAttributeReference>().Select(a => a.Tag + "=" + a.TextString)); break;
-                case DxfMText mtext: where = mtext.Contents + " " + Bits(mtext.Location) + " " + mtext.TextStyleName; break;
-                case DxfLine line: where = Bits(line.StartPoint) + " " + Bits(line.EndPoint); break;
-                case DxfSolid solid: where = Bits(solid.GetPointAt(0)) + " " + Bits(solid.GetPointAt(1)); break;
-                default: where = string.Empty; break;
+                case DxfBlockReference insert:
+                    where =
+                        insert.Name
+                        + " "
+                        + Bits(insert.Position)
+                        + " "
+                        + Bits(insert.Rotation)
+                        + " "
+                        + string.Join(
+                            ",",
+                            insert
+                                .AttributeCollection.Cast<DxfAttributeReference>()
+                                .Select(a => a.Tag + "=" + a.TextString)
+                        );
+                    break;
+                case DxfMText mtext:
+                    where = mtext.Contents + " " + Bits(mtext.Location) + " " + mtext.TextStyleName;
+                    break;
+                case DxfLine line:
+                    where = Bits(line.StartPoint) + " " + Bits(line.EndPoint);
+                    break;
+                case DxfSolid solid:
+                    where = Bits(solid.GetPointAt(0)) + " " + Bits(solid.GetPointAt(1));
+                    break;
+                default:
+                    where = string.Empty;
+                    break;
             }
 
-            return part.GetType().Name + " " + where + " " + part.Layer + " " + part.ColorIndex + " " + part.Linetype + " " + part.LineWeight;
+            return part.GetType().Name
+                + " "
+                + where
+                + " "
+                + part.Layer
+                + " "
+                + part.ColorIndex
+                + " "
+                + part.Linetype
+                + " "
+                + part.LineWeight;
         }
 
         /// <summary>The attributes of the INSERT a multileader of a block explodes into, each its tag and value.</summary>
-        private static string[] Values(DxfEntity multileader)
-            => ((DxfBlockReference)multileader.Explode()[0]).AttributeCollection.Cast<DxfAttributeReference>().Select(a => a.Tag + "=" + a.TextString).ToArray();
+        private static string[] Values(DxfEntity multileader) =>
+            ((DxfBlockReference)multileader.Explode()[0])
+                .AttributeCollection.Cast<DxfAttributeReference>()
+                .Select(a => a.Tag + "=" + a.TextString)
+                .ToArray();
 
-        private static string[] Corners(DxfFace face)
-            => Enumerable.Range(0, 4).Select(i => face.GetVertexAt((short)i)).Select(p => string.Format(CultureInfo.InvariantCulture, "{0},{1},{2}", p.X, p.Y, p.Z)).ToArray();
+        private static string[] Corners(DxfFace face) =>
+            Enumerable
+                .Range(0, 4)
+                .Select(i => face.GetVertexAt((short)i))
+                .Select(p => string.Format(CultureInfo.InvariantCulture, "{0},{1},{2}", p.X, p.Y, p.Z))
+                .ToArray();
 
-        private static string[] Cube() => new[] { "0 0 0", "10 0 0", "10 10 0", "0 10 0", "0 0 10", "10 0 10", "10 10 10", "0 10 10" };
+        private static string[] Cube() =>
+            new[] { "0 0 0", "10 0 0", "10 10 0", "0 10 0", "0 0 10", "10 0 10", "10 10 10", "0 10 10" };
 
         /// <summary>
         /// A MESH as ezdxf writes one, in colour 5 with the true colour (10, 200, 30) and the lineweight 0.35: its level of
@@ -421,7 +556,15 @@ namespace GeometryHelper.UnitTest.Dxf
         /// </summary>
         private static string Mesh(string handle, int level, string[] vertices, string faces, int overrides)
         {
-            var text = new StringBuilder("  0\nMESH\n  5\n" + handle + "\n330\n17\n100\nAcDbEntity\n  8\n0\n 62\n5\n370\n35\n420\n706590\n100\nAcDbSubDMesh\n 71\n2\n 72\n0\n 91\n" + level + "\n 92\n" + vertices.Length + "\n");
+            var text = new StringBuilder(
+                "  0\nMESH\n  5\n"
+                    + handle
+                    + "\n330\n17\n100\nAcDbEntity\n  8\n0\n 62\n5\n370\n35\n420\n706590\n100\nAcDbSubDMesh\n 71\n2\n 72\n0\n 91\n"
+                    + level
+                    + "\n 92\n"
+                    + vertices.Length
+                    + "\n"
+            );
 
             foreach (string vertex in vertices)
             {
@@ -455,8 +598,14 @@ namespace GeometryHelper.UnitTest.Dxf
         /// <summary>The drawing of ezdxf's R2018 with entities added at the end of its ENTITIES, its handle seed raised past them.</summary>
         private static DxfDatabase WithMeshes(string entities)
         {
-            string text = DxfFileEzdxfDrawings.R2018.Replace("\r\n", "\n").Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nC00\n");
-            int end = text.IndexOf("  0\nENDSEC\n", text.IndexOf("\nENTITIES\n", StringComparison.Ordinal), StringComparison.Ordinal);
+            string text = DxfFileEzdxfDrawings
+                .R2018.Replace("\r\n", "\n")
+                .Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nC00\n");
+            int end = text.IndexOf(
+                "  0\nENDSEC\n",
+                text.IndexOf("\nENTITIES\n", StringComparison.Ordinal),
+                StringComparison.Ordinal
+            );
             return DxfDatabase.Parse(text.Insert(end, entities));
         }
     }

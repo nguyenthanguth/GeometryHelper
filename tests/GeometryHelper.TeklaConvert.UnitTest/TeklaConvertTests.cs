@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using GeometryHelper.Geometry;
 using GeometryHelper.TeklaConvert;
-using TSG = Tekla.Structures.Geometry3d;
 using Xunit;
+using TSG = Tekla.Structures.Geometry3d;
 
 namespace GeometryHelper.TeklaConvert.UnitTest
 {
@@ -85,7 +85,8 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             var original = new TSG.CoordinateSystem(
                 new TSG.Point(10, -20, 30),
                 new TSG.Vector(2, 0, 0),
-                new TSG.Vector(3, 4, 0));
+                new TSG.Vector(3, 4, 0)
+            );
 
             GeoCoordinateSystem3 converted = original.ToGeoCoordinateSystem3();
 
@@ -130,7 +131,7 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             {
                 new TSG.Point(0, 0, 0),
                 new TSG.Point(3, 0, 0),
-                new TSG.Point(3, 4, 0)
+                new TSG.Point(3, 4, 0),
             };
 
             GeoPolyline3 chain = points.ToGeoPolyline3();
@@ -146,7 +147,7 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             {
                 new TSG.Point(0, 0, 10),
                 new TSG.Point(3, 0, 20),
-                new TSG.Point(3, 4, 30)
+                new TSG.Point(3, 4, 30),
             };
 
             GeoPolyline2 chain = points.ToGeoPolyline2();
@@ -163,7 +164,7 @@ namespace GeometryHelper.TeklaConvert.UnitTest
                 new TSG.Point(0, 0, 0),
                 new TSG.Point(4, 0, 0),
                 new TSG.Point(4, 3, 0),
-                new TSG.Point(0, 3, 0)
+                new TSG.Point(0, 3, 0),
             };
 
             GeoPolygon3 polygon = points.ToGeoPolygon3();
@@ -180,7 +181,7 @@ namespace GeometryHelper.TeklaConvert.UnitTest
                 new TSG.Point(0, 0, 10),
                 new TSG.Point(4, 0, 20),
                 new TSG.Point(4, 3, 30),
-                new TSG.Point(0, 3, 40)
+                new TSG.Point(0, 3, 40),
             };
 
             GeoPolygon2 polygon = points.ToGeoPolygon2();
@@ -204,7 +205,7 @@ namespace GeometryHelper.TeklaConvert.UnitTest
                 new TSG.Point(1, 0, 0),
                 new TSG.Point(0, 1, 0),
                 new TSG.Point(0, 0, 1),
-                new TSG.Point(7, -3, 11)
+                new TSG.Point(7, -3, 11),
             };
 
             foreach (TSG.Point probe in probes)
@@ -232,7 +233,8 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             var frame = new TSG.CoordinateSystem(
                 new TSG.Point(100, -50, 25),
                 new TSG.Vector(1, 1, 0),
-                new TSG.Vector(-1, 1, 0));
+                new TSG.Vector(-1, 1, 0)
+            );
 
             TSG.Matrix toFrame = TSG.MatrixFactory.ToCoordinateSystem(frame);
             TSG.Matrix fromFrame = TSG.MatrixFactory.FromCoordinateSystem(frame);
@@ -247,7 +249,8 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             var frame = new TSG.CoordinateSystem(
                 new TSG.Point(100, -50, 25),
                 new TSG.Vector(1, 1, 0),
-                new TSG.Vector(-1, 1, 0));
+                new TSG.Vector(-1, 1, 0)
+            );
 
             TSG.Matrix original = TSG.MatrixFactory.FromCoordinateSystem(frame);
             TSG.Matrix back = original.ToGeoTransform3().ToTeklaMatrix();
@@ -258,7 +261,8 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         [Fact]
         public void ATransformationBuiltHereConvertsIntoOneTeklaAgreesWith()
         {
-            GeoTransform3 motion = GeoTransform3.Translation(new GeoVector3(10, -20, 30))
+            GeoTransform3 motion = GeoTransform3
+                .Translation(new GeoVector3(10, -20, 30))
                 .Multiply(GeoTransform3.RotationZ(Math.PI / 3.0));
 
             AssertSameTransform(motion.ToTeklaMatrix(), motion);

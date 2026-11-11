@@ -20,12 +20,19 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static readonly GeoPoint3[] Arch =
         {
-            new GeoPoint3(0, 0, 0), new GeoPoint3(100, 150, 60), new GeoPoint3(200, 150, 60), new GeoPoint3(300, 0, 0)
+            new GeoPoint3(0, 0, 0),
+            new GeoPoint3(100, 150, 60),
+            new GeoPoint3(200, 150, 60),
+            new GeoPoint3(300, 0, 0),
         };
 
         private static readonly double[] BezierKnots = { 0, 0, 0, 0, 1, 1, 1, 1 };
 
-        private static readonly GeoCoordinateSystem3 Floor = new GeoCoordinateSystem3(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0), new GeoVector3(0, 1, 0));
+        private static readonly GeoCoordinateSystem3 Floor = new GeoCoordinateSystem3(
+            new GeoPoint3(0, 0, 0),
+            new GeoVector3(1, 0, 0),
+            new GeoVector3(0, 1, 0)
+        );
 
         private static GeoSpline3 Cubic() => new GeoSpline3(3, Arch, BezierKnots);
 
@@ -33,7 +40,12 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static void AssertPoint(double x, double y, double z, GeoPoint3 actual, double within)
         {
-            Assert.True(Math.Abs(actual.X - x) <= within && Math.Abs(actual.Y - y) <= within && Math.Abs(actual.Z - z) <= within, "expected (" + x + ", " + y + ", " + z + "), got " + actual);
+            Assert.True(
+                Math.Abs(actual.X - x) <= within
+                    && Math.Abs(actual.Y - y) <= within
+                    && Math.Abs(actual.Z - z) <= within,
+                "expected (" + x + ", " + y + ", " + z + "), got " + actual
+            );
         }
 
         [Fact]
@@ -118,10 +130,15 @@ namespace GeometryHelper.UnitTest.Solid
         {
             var points = Enumerable.Range(0, 7).Select(i => new GeoPoint3(i * 10, i % 2 * 5, i));
 
-            Assert.Equal(new[] { 0, 0, 0, 0, 0.25, 0.5, 0.75, 1, 1, 1, 1 }, GeoSpline3.FromControlPoints(3, points).Knots.ToArray());
+            Assert.Equal(
+                new[] { 0, 0, 0, 0, 0.25, 0.5, 0.75, 1, 1, 1, 1 },
+                GeoSpline3.FromControlPoints(3, points).Knots.ToArray()
+            );
             Assert.Equal(Cubic(), GeoSpline3.FromControlPoints(3, Arch));
 
-            var polyline = new GeoPolyline3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0) });
+            var polyline = new GeoPolyline3(
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0) }
+            );
             GeoSpline3 spline = GeoSpline3.FromPolyline(polyline);
 
             Assert.Equal(new[] { 0, 0, 2.0 / 3.0, 1, 1 }, spline.Knots.ToArray());
@@ -137,9 +154,35 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Throws<ArgumentException>(() => GeoSpline3.FromControlPoints(4, Arch));
             Assert.Throws<ArgumentException>(() => new GeoSpline3(3, Arch, new double[] { 0, 0, 0, 0, 1, 1, 1 }));
             Assert.Throws<ArgumentException>(() => new GeoSpline3(3, Arch, new double[] { 0, 0, 0, 1, 1, 1, 1, 1 }));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoSpline3(3, Arch, BezierKnots, new double[] { 1, 1, 0, 1 }));
-            Assert.Throws<ArgumentException>(() => new GeoSpline3(3, new[] { new GeoPoint3(1, 2, 3), new GeoPoint3(1, 2, 3), new GeoPoint3(1, 2, 3), new GeoPoint3(1, 2, 3) }, BezierKnots));
-            Assert.Throws<ArgumentException>(() => new GeoSpline3(3, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(1, double.NaN, 3), new GeoPoint3(1, 2, 3), new GeoPoint3(4, 2, 3) }, BezierKnots));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new GeoSpline3(3, Arch, BezierKnots, new double[] { 1, 1, 0, 1 })
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new GeoSpline3(
+                    3,
+                    new[]
+                    {
+                        new GeoPoint3(1, 2, 3),
+                        new GeoPoint3(1, 2, 3),
+                        new GeoPoint3(1, 2, 3),
+                        new GeoPoint3(1, 2, 3),
+                    },
+                    BezierKnots
+                )
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new GeoSpline3(
+                    3,
+                    new[]
+                    {
+                        new GeoPoint3(0, 0, 0),
+                        new GeoPoint3(1, double.NaN, 3),
+                        new GeoPoint3(1, 2, 3),
+                        new GeoPoint3(4, 2, 3),
+                    },
+                    BezierKnots
+                )
+            );
             Assert.Throws<ArgumentNullException>(() => new GeoSpline3(3, null, BezierKnots));
             Assert.Throws<ArgumentOutOfRangeException>(() => Cubic().GetPointAtKnot(double.NaN));
             Assert.Throws<ArgumentOutOfRangeException>(() => Cubic().Split(1.0));
@@ -149,7 +192,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void InterpolatingInSpace_MeetsTheFitPoints_AndTheTangents()
         {
-            var fit = new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 50, 20), new GeoPoint3(200, 0, 40), new GeoPoint3(300, 50, 60), new GeoPoint3(400, 0, 20) };
+            var fit = new[]
+            {
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 50, 20),
+                new GeoPoint3(200, 0, 40),
+                new GeoPoint3(300, 50, 60),
+                new GeoPoint3(400, 0, 20),
+            };
             GeoSpline3 spline = GeoSpline3.Interpolate(fit, 3, Tol);
             double[] u = new double[fit.Length];
 
@@ -174,8 +224,12 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.True(tangent.GetPointAtKnot(u[i] / u[fit.Length - 1]).DistanceTo(fit[i]) <= 1E-9, "point " + i);
             }
 
-            Assert.Throws<ArgumentException>(() => GeoSpline3.Interpolate(fit, GeoVector3.Zero, new GeoVector3(0, 1, 0), 3, Tol));
-            Assert.Throws<ArgumentOutOfRangeException>(() => GeoSpline3.Interpolate(fit, new GeoVector3(1, 0, 0), new GeoVector3(0, 1, 0), 1, Tol));
+            Assert.Throws<ArgumentException>(() =>
+                GeoSpline3.Interpolate(fit, GeoVector3.Zero, new GeoVector3(0, 1, 0), 3, Tol)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                GeoSpline3.Interpolate(fit, new GeoVector3(1, 0, 0), new GeoVector3(0, 1, 0), 1, Tol)
+            );
             Assert.Throws<ArgumentException>(() => GeoSpline3.Interpolate(fit.Take(3), 3, Tol));
             Assert.Throws<ArgumentNullException>(() => GeoSpline3.Interpolate(null, 3, Tol));
         }
@@ -218,8 +272,17 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ASplineInTheFloor_ProjectsToTheSplineItCameFrom_AndOneStandingOnItsEndIsRefused()
         {
-            var frame = new GeoCoordinateSystem3(new GeoPoint3(10, 20, 30), new GeoVector3(1, 1, 0), new GeoVector3(0, 0, 1));
-            var flat = new GeoSpline2(3, new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 150), new GeoPoint2(200, 150), new GeoPoint2(300, 0) }, BezierKnots, new double[] { 1, 2, 0.5, 1 });
+            var frame = new GeoCoordinateSystem3(
+                new GeoPoint3(10, 20, 30),
+                new GeoVector3(1, 1, 0),
+                new GeoVector3(0, 0, 1)
+            );
+            var flat = new GeoSpline2(
+                3,
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 150), new GeoPoint2(200, 150), new GeoPoint2(300, 0) },
+                BezierKnots,
+                new double[] { 1, 2, 0.5, 1 }
+            );
             GeoSpline3 lifted = PlanarMap.ToSpline3(frame, flat);
             GeoSpline2 back = PlanarMap.ProjectToSpline2(frame, lifted);
 
@@ -239,7 +302,17 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(shadow.Length < Cubic().Length);
             Assert.Equal(new GeoPoint2(150, 112.5).X, shadow.GetPointAtKnot(0.5).X, 12);
 
-            var standing = new GeoSpline3(3, new[] { new GeoPoint3(5, 5, 0), new GeoPoint3(5, 5, 10), new GeoPoint3(5, 5, 20), new GeoPoint3(5, 5, 30) }, BezierKnots);
+            var standing = new GeoSpline3(
+                3,
+                new[]
+                {
+                    new GeoPoint3(5, 5, 0),
+                    new GeoPoint3(5, 5, 10),
+                    new GeoPoint3(5, 5, 20),
+                    new GeoPoint3(5, 5, 30),
+                },
+                BezierKnots
+            );
             Assert.Throws<InvalidOperationException>(() => standing.ProjectToSpline2(Floor));
             Assert.Throws<ArgumentNullException>(() => PlanarMap.ProjectToSpline2(frame, null));
             Assert.Throws<ArgumentNullException>(() => PlanarMap.ToSpline3(frame, null));
@@ -255,10 +328,24 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(spline.GetTangentAtKnot(0.5).IsEqualTo(new GeoVector3(1, 0, 0), Tol));
             Assert.True(spline.GetCurvatureAtKnot(0.5) > 0.0);
 
-            var straight = new GeoSpline3(1, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 10) }, new double[] { 0, 0, 1, 1 });
+            var straight = new GeoSpline3(
+                1,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 10) },
+                new double[] { 0, 0, 1, 1 }
+            );
             Assert.Equal(0.0, straight.GetCurvatureAtKnot(0.5), 12);
 
-            var stuck = new GeoSpline3(3, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, 100) }, BezierKnots);
+            var stuck = new GeoSpline3(
+                3,
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(0, 0, 100),
+                },
+                BezierKnots
+            );
             Assert.True(stuck.GetTangentAtKnot(0.0).IsEqualTo(new GeoVector3(0, 0, 1), Tol));
             Assert.Throws<InvalidOperationException>(() => stuck.GetCurvatureAtKnot(0.0));
         }
@@ -266,7 +353,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TheDistanceFromAPointInSpace_IsTheExactOne_FromEitherSide_AndTheShortestLineIsAsLongAsIt()
         {
-            GeoSpline3 circle = GeoSpline3.FromCircle(new GeoCircle3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 100.0));
+            GeoSpline3 circle = GeoSpline3.FromCircle(
+                new GeoCircle3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 100.0)
+            );
 
             Assert.Equal(60.0, circle.DistanceTo(new GeoPoint3(160, 0, 0)), 11);
             Assert.Equal(100.0, circle.DistanceTo(new GeoPoint3(0, 0, 0)), 11);
@@ -328,7 +417,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.False(Cubic().Equals(null));
             Assert.True((GeoSpline3)null == null);
             Assert.Equal("GeoSpline3[Degree:3, 4 control points, Domain:[0, 1]]", Cubic().ToString());
-            Assert.Equal("GeoSpline3[Degree:2, 9 control points, Domain:[0, 1], Rational]", GeoSpline3.FromCircle(new GeoCircle3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 1.0)).ToString());
+            Assert.Equal(
+                "GeoSpline3[Degree:2, 9 control points, Domain:[0, 1], Rational]",
+                GeoSpline3.FromCircle(new GeoCircle3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 1.0)).ToString()
+            );
         }
 
         [Fact]

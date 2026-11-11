@@ -129,8 +129,15 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Makes an independent copy of the camera.
         /// </summary>
-        public ViewCamera Clone()
-            => new ViewCamera { Target = Target, Distance = Distance, Azimuth = Azimuth, Elevation = Elevation, Orthographic = Orthographic };
+        public ViewCamera Clone() =>
+            new ViewCamera
+            {
+                Target = Target,
+                Distance = Distance,
+                Azimuth = Azimuth,
+                Elevation = Elevation,
+                Orthographic = Orthographic,
+            };
 
         /// <summary>
         /// Gets how far the eye stands from the target. A perspective camera stands <see cref="Distance"/> away. An orthographic
@@ -172,7 +179,11 @@ namespace GeometryHelper.Viewer
 
                 for (int i = 0; i < 8; i++)
                 {
-                    var corner = new Vec3((i & 1) == 0 ? scene.Min.X : scene.Max.X, (i & 2) == 0 ? scene.Min.Y : scene.Max.Y, (i & 4) == 0 ? scene.Min.Z : scene.Max.Z);
+                    var corner = new Vec3(
+                        (i & 1) == 0 ? scene.Min.X : scene.Max.X,
+                        (i & 2) == 0 ? scene.Min.Y : scene.Max.Y,
+                        (i & 4) == 0 ? scene.Min.Z : scene.Max.Z
+                    );
                     double depth = Vec3.Dot(corner - Target, forward);
                     nearest = Math.Min(nearest, depth);
                     farthest = Math.Max(farthest, depth);
@@ -221,7 +232,11 @@ namespace GeometryHelper.Viewer
 
                 for (int i = 0; i < 8; i++)
                 {
-                    var corner = new Vec3((i & 1) == 0 ? scene.Min.X : scene.Max.X, (i & 2) == 0 ? scene.Min.Y : scene.Max.Y, (i & 4) == 0 ? scene.Min.Z : scene.Max.Z);
+                    var corner = new Vec3(
+                        (i & 1) == 0 ? scene.Min.X : scene.Max.X,
+                        (i & 2) == 0 ? scene.Min.Y : scene.Max.Y,
+                        (i & 4) == 0 ? scene.Min.Z : scene.Max.Z
+                    );
                     reach = Math.Max(reach, Vec3.Dot(corner - eye, forward));
                 }
             }
@@ -412,7 +427,11 @@ namespace GeometryHelper.Viewer
 
             for (int i = 0; i < 8; i++)
             {
-                var corner = new Vec3((i & 1) == 0 ? -half.X : half.X, (i & 2) == 0 ? -half.Y : half.Y, (i & 4) == 0 ? -half.Z : half.Z);
+                var corner = new Vec3(
+                    (i & 1) == 0 ? -half.X : half.X,
+                    (i & 2) == 0 ? -half.Y : half.Y,
+                    (i & 4) == 0 ? -half.Z : half.Z
+                );
                 double x = Math.Abs(Vec3.Dot(corner, right));
                 double y = Math.Abs(Vec3.Dot(corner, up));
                 double depth = Vec3.Dot(corner, forward);

@@ -27,24 +27,35 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class ShortEdgeG1wTests
     {
-        private static readonly Tolerance Hundredth = new Tolerance(1E-2, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-2);
+        private static readonly Tolerance Hundredth = new Tolerance(
+            1E-2,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-2
+        );
 
         /// <summary>How far each corner of the short side is from a point 0.03 to the right of its middle.</summary>
         private static readonly double ToACorner = Math.Sqrt(0.03 * 0.03 + 0.003 * 0.003);
 
-        private static GeoPolygon2 Polygon()
-            => new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 0.006), new GeoPoint2(0, 10));
+        private static GeoPolygon2 Polygon() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 0.006), new GeoPoint2(0, 10));
 
-        private static GeoPolyline2 Hairpin()
-            => new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 0.006), new GeoPoint2(0, 0.006));
+        private static GeoPolyline2 Hairpin() =>
+            new GeoPolyline2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 0.006),
+                new GeoPoint2(0, 0.006)
+            );
 
         private static GeoRectangle2 Strip() => new GeoRectangle2(0, 0, 10, 0.006);
 
         private static GeoRectangle2 ThinStrip() => new GeoRectangle2(0, 0, 10, 0.0006);
 
-        private static bool IsTheRightSide(GeoLine2 edge, double top)
-            => Math.Abs(edge.StartPoint.X - 10) < 1E-12 && Math.Abs(edge.EndPoint.X - 10) < 1E-12
-                && Math.Abs(Math.Abs(edge.EndPoint.Y - edge.StartPoint.Y) - top) < 1E-12;
+        private static bool IsTheRightSide(GeoLine2 edge, double top) =>
+            Math.Abs(edge.StartPoint.X - 10) < 1E-12
+            && Math.Abs(edge.EndPoint.X - 10) < 1E-12
+            && Math.Abs(Math.Abs(edge.EndPoint.Y - edge.StartPoint.Y) - top) < 1E-12;
 
         [Fact]
         public void TheShortestLineToASegmentBesideTheMiddleOfAShortStraightSide_IsAsLongAsTheDistance()
@@ -82,8 +93,16 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // A triangle, a polyline and a square turned 45 degrees, each with a corner at (10.03, 0.003) and running away
             // to the right, so no corner of the short side has a nearer side of theirs to project onto.
-            var triangle = new GeoPolygon2(new GeoPoint2(10.03, 0.003), new GeoPoint2(10.05, -0.01), new GeoPoint2(10.05, 0.02));
-            var polyline = new GeoPolyline2(new GeoPoint2(10.05, -0.01), new GeoPoint2(10.03, 0.003), new GeoPoint2(10.05, 0.02));
+            var triangle = new GeoPolygon2(
+                new GeoPoint2(10.03, 0.003),
+                new GeoPoint2(10.05, -0.01),
+                new GeoPoint2(10.05, 0.02)
+            );
+            var polyline = new GeoPolyline2(
+                new GeoPoint2(10.05, -0.01),
+                new GeoPoint2(10.03, 0.003),
+                new GeoPoint2(10.05, 0.02)
+            );
             var diamond = new GeoRectangle2(new GeoPoint2(10.03 + 0.01 * Math.Sqrt(2), 0.003), 0.02, 0.02, Math.PI / 4);
 
             Assert.True(ToACorner - 0.03 > 1E-4);
@@ -158,11 +177,13 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The chain runs straight from (-2, -0.002), 0.006 from the segment, to (-0.004, 0), then round the half circle
             // of radius 0.004 below the origin, 0.004 from it; the straight edge was taken, the arc measured 0.008 off.
-            var chain = new GeoPolylineArc2(new[]
-            {
-                new GeoEdge2(new GeoPoint2(-2, -0.002), new GeoPoint2(-0.004, 0)),
-                new GeoEdge2(new GeoPoint2(-0.004, 0), new GeoPoint2(0.004, 0), 1.0),
-            });
+            var chain = new GeoPolylineArc2(
+                new[]
+                {
+                    new GeoEdge2(new GeoPoint2(-2, -0.002), new GeoPoint2(-0.004, 0)),
+                    new GeoEdge2(new GeoPoint2(-0.004, 0), new GeoPoint2(0.004, 0), 1.0),
+                }
+            );
             var segment = new GeoLine2(new GeoPoint2(-5, -0.008), new GeoPoint2(5, -0.008));
 
             Assert.Equal(0.004, chain.DistanceTo(segment, Hundredth), 12);
@@ -213,7 +234,10 @@ namespace GeometryHelper.UnitTest.Plane
             var first = new GeoArc2(new GeoPoint2(0, 0), 50, 0, Math.PI / 2);
             double past = Math.PI / 2 + 0.0009 / 50;
             var crossing = new GeoPoint2(50 * Math.Cos(past), 50 * Math.Sin(past));
-            var centre = new GeoPoint2(crossing.X - 50 * Math.Cos(Math.PI / 6), crossing.Y - 50 * Math.Sin(Math.PI / 6));
+            var centre = new GeoPoint2(
+                crossing.X - 50 * Math.Cos(Math.PI / 6),
+                crossing.Y - 50 * Math.Sin(Math.PI / 6)
+            );
             double start = Math.PI / 6 + 0.0009 / 50;
             var second = new GeoArc2(centre, 50, start, start + 0.5);
             double gap = first.DistanceTo(second, thousandth);

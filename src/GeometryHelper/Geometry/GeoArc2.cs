@@ -48,9 +48,7 @@ namespace GeometryHelper.Geometry
         /// <param name="endAngle">The angle the arc ends at, in radians. Equal angles mean a whole turn.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not a positive number, or an angle is not a number.</exception>
         public GeoArc2(GeoPoint2 center, double radius, double startAngle, double endAngle)
-            : this(center, radius, startAngle, endAngle, false)
-        {
-        }
+            : this(center, radius, startAngle, endAngle, false) { }
 
         /// <summary>
         /// Initializes an arc running from one angle to another, either way round.
@@ -85,7 +83,14 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Initializes an arc from its start angle and the angle it sweeps through.
         /// </summary>
-        private GeoArc2(GeoPoint2 center, double radius, double startAngle, double sweptAngle, bool clockwise, bool bySweep)
+        private GeoArc2(
+            GeoPoint2 center,
+            double radius,
+            double startAngle,
+            double sweptAngle,
+            bool clockwise,
+            bool bySweep
+        )
         {
             Center = center;
             Radius = radius;
@@ -149,7 +154,8 @@ namespace GeometryHelper.Geometry
 
             var offset = new GeoVector2(
                 (toEnd.Y * middleSquared - toMiddle.Y * endSquared) * factor,
-                (toMiddle.X * endSquared - toEnd.X * middleSquared) * factor);
+                (toMiddle.X * endSquared - toEnd.X * middleSquared) * factor
+            );
 
             GeoPoint2 center = start.Add(offset);
             double radius = offset.Length;
@@ -162,9 +168,19 @@ namespace GeometryHelper.Geometry
             // A circle of a radius past the reach of the digits misses the points it was solved through.
             double size = Math.Abs(start.X) + Math.Abs(start.Y) + toMiddle.Length + toEnd.Length;
 
-            if (!PassesThrough(arc.StartPoint.DistanceTo(start), arc.EndPoint.DistanceTo(end), arc.DistanceTo(middle), size, tolerance))
+            if (
+                !PassesThrough(
+                    arc.StartPoint.DistanceTo(start),
+                    arc.EndPoint.DistanceTo(end),
+                    arc.DistanceTo(middle),
+                    size,
+                    tolerance
+                )
+            )
             {
-                throw new InvalidOperationException("Three points so nearly on one line have no arc through them that the digits can hold.");
+                throw new InvalidOperationException(
+                    "Three points so nearly on one line have no arc through them that the digits can hold."
+                );
             }
 
             return arc;
@@ -195,7 +211,13 @@ namespace GeometryHelper.Geometry
         /// tolerance of the first and the last, and the middle within it of the arc, with a thousand-millionth of the
         /// points' size besides for the rounding of the solve.
         /// </summary>
-        internal static bool PassesThrough(double offStart, double offEnd, double offMiddle, double size, Tolerance tolerance)
+        internal static bool PassesThrough(
+            double offStart,
+            double offEnd,
+            double offMiddle,
+            double size,
+            Tolerance tolerance
+        )
         {
             double within = tolerance.EqualPoint + 1E-9 * size;
 
@@ -222,7 +244,10 @@ namespace GeometryHelper.Geometry
         {
             if (double.IsNaN(bulge) || bulge == 0.0)
             {
-                throw new ArgumentOutOfRangeException(nameof(bulge), "A bulge of zero is a straight segment, not an arc.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(bulge),
+                    "A bulge of zero is a straight segment, not an arc."
+                );
             }
 
             GeoVector2 chord = start.GetVectorTo(end);
@@ -248,7 +273,8 @@ namespace GeometryHelper.Geometry
             if (magnitude <= 0.5)
             {
                 radius = Math.Abs(chordLength / (2.0 * Math.Sin(sweep * 0.5)));
-                apothem = Math.Sqrt(Math.Max(0.0, radius * radius - chordLength * chordLength * 0.25)) * Math.Sign(bulge);
+                apothem =
+                    Math.Sqrt(Math.Max(0.0, radius * radius - chordLength * chordLength * 0.25)) * Math.Sign(bulge);
             }
             else
             {
@@ -322,9 +348,7 @@ namespace GeometryHelper.Geometry
         /// <param name="angleRad">The angle in radians, measured counter-clockwise from the X axis.</param>
         public GeoPoint2 GetPointAtAngle(double angleRad)
         {
-            return new GeoPoint2(
-                Center.X + Radius * Math.Cos(angleRad),
-                Center.Y + Radius * Math.Sin(angleRad));
+            return new GeoPoint2(Center.X + Radius * Math.Cos(angleRad), Center.Y + Radius * Math.Sin(angleRad));
         }
 
         /// <summary>
@@ -389,7 +413,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the arc length from the start of the arc to the point of it nearest a point, within a tolerance.
         /// </summary>
-        public double GetDistanceAtPoint(GeoPoint2 point, Tolerance tolerance) => GetParameterAtPoint(point, tolerance) * Length;
+        public double GetDistanceAtPoint(GeoPoint2 point, Tolerance tolerance) =>
+            GetParameterAtPoint(point, tolerance) * Length;
 
         /// <summary>
         /// Gets the arc length from the start of the arc to a normalized parameter.
@@ -423,7 +448,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Moves the arc by a vector.
         /// </summary>
-        public GeoArc2 Translate(GeoVector2 vector) => new GeoArc2(Center.Add(vector), Radius, StartAngle, SweptAngle, IsClockwise, true);
+        public GeoArc2 Translate(GeoVector2 vector) =>
+            new GeoArc2(Center.Add(vector), Radius, StartAngle, SweptAngle, IsClockwise, true);
 
         /// <summary>
         /// Turns the arc about a point.
@@ -556,8 +582,14 @@ namespace GeometryHelper.Geometry
             bool mirrored = transform.GetDeterminant() < 0.0;
             double sweep = mirrored ? -SweptAngle : SweptAngle;
 
-            return new GeoArc2(center, Radius * alongX.Length, AngleOf(center, start), sweep, sweep < 0.0, true)
-                .WithMiddleThrough(middle);
+            return new GeoArc2(
+                center,
+                Radius * alongX.Length,
+                AngleOf(center, start),
+                sweep,
+                sweep < 0.0,
+                true
+            ).WithMiddleThrough(middle);
         }
 
         /// <summary>
@@ -598,7 +630,9 @@ namespace GeometryHelper.Geometry
             for (int i = 1; i < 16; i++)
             {
                 GeoVector2 across = transform.Transform(Across(StartAngle, SweptAngle * (i / 16.0)));
-                double off = (across.LengthSquared - 2.0 * across.DotProduct(toCentre) + shift) / (across.Subtract(toCentre).Length + radius);
+                double off =
+                    (across.LengthSquared - 2.0 * across.DotProduct(toCentre) + shift)
+                    / (across.Subtract(toCentre).Length + radius);
 
                 if (Math.Abs(off) > tolerance)
                 {
@@ -613,8 +647,10 @@ namespace GeometryHelper.Geometry
             gaps[0] = shift;
             gaps[16] = toEnd.LengthSquared - 2.0 * toEnd.DotProduct(toCentre) + shift;
 
-            if (Math.Abs(gaps[0] / (toCentre.Length + radius)) > tolerance
-                || Math.Abs(gaps[16] / (toEnd.Subtract(toCentre).Length + radius)) > tolerance)
+            if (
+                Math.Abs(gaps[0] / (toCentre.Length + radius)) > tolerance
+                || Math.Abs(gaps[16] / (toEnd.Subtract(toCentre).Length + radius)) > tolerance
+            )
             {
                 return false;
             }
@@ -654,7 +690,10 @@ namespace GeometryHelper.Geometry
 
             if (EndsMeetUnder(transform))
             {
-                throw new ArgumentException("This transformation brings the ends of the arc together, so no arc runs through them and its middle.", nameof(transform));
+                throw new ArgumentException(
+                    "This transformation brings the ends of the arc together, so no arc runs through them and its middle.",
+                    nameof(transform)
+                );
             }
 
             if (!Arc2.TryBulgeThrough(toEnd, toMiddle, out double bulge))
@@ -669,8 +708,9 @@ namespace GeometryHelper.Geometry
         /// Determines whether the arc sweeps past a half turn and a transformation brings its ends within the global point
         /// tolerance of each other: a hair short of a whole turn, whose chord says nothing about which way round it runs.
         /// </summary>
-        private bool EndsMeetUnder(GeoTransform2 transform)
-            => Math.Abs(SweptAngle) > Math.PI && !(transform.Transform(Across(StartAngle, SweptAngle)).Length > Tolerance.Global.EqualPoint);
+        private bool EndsMeetUnder(GeoTransform2 transform) =>
+            Math.Abs(SweptAngle) > Math.PI
+            && !(transform.Transform(Across(StartAngle, SweptAngle)).Length > Tolerance.Global.EqualPoint);
 
         /// <summary>
         /// Gets the chord from the point of the arc's circle at one angle to the point a turn further round.
@@ -689,7 +729,14 @@ namespace GeometryHelper.Geometry
         /// </summary>
         private GeoArc2 WithMiddleThrough(GeoPoint2 middle)
         {
-            GeoArc2 other = new GeoArc2(Center, Radius, StartAngle, -Math.Sign(SweptAngle) * (FullTurn - Math.Abs(SweptAngle)), SweptAngle > 0.0, true);
+            GeoArc2 other = new GeoArc2(
+                Center,
+                Radius,
+                StartAngle,
+                -Math.Sign(SweptAngle) * (FullTurn - Math.Abs(SweptAngle)),
+                SweptAngle > 0.0,
+                true
+            );
 
             return MidPoint.GetDistanceSquaredTo(middle) <= other.MidPoint.GetDistanceSquaredTo(middle) ? this : other;
         }
@@ -803,18 +850,20 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Lengthens the arc along itself at one end, within a tolerance.
         /// </summary>
-        public GeoArc2 Extend(double distance, LineEnd end, Tolerance tolerance) => Lengthen2.Extend(this, distance, end, tolerance);
+        public GeoArc2 Extend(double distance, LineEnd end, Tolerance tolerance) =>
+            Lengthen2.Extend(this, distance, end, tolerance);
 
         /// <summary>
         /// Lengthens the arc along itself at both ends at once.
         /// </summary>
-        public GeoArc2 Extend(double startDistance, double endDistance) => Lengthen2.Extend(this, startDistance, endDistance);
+        public GeoArc2 Extend(double startDistance, double endDistance) =>
+            Lengthen2.Extend(this, startDistance, endDistance);
 
         /// <summary>
         /// Lengthens the arc along itself at both ends at once, within a tolerance.
         /// </summary>
-        public GeoArc2 Extend(double startDistance, double endDistance, Tolerance tolerance)
-            => Lengthen2.Extend(this, startDistance, endDistance, tolerance);
+        public GeoArc2 Extend(double startDistance, double endDistance, Tolerance tolerance) =>
+            Lengthen2.Extend(this, startDistance, endDistance, tolerance);
 
         /// <summary>
         /// Lengthens or shortens the arc at one end until it is a given arc length.
@@ -824,29 +873,32 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Lengthens or shortens the arc at one end until it is a given arc length, within a tolerance.
         /// </summary>
-        public GeoArc2 ExtendToLength(double length, LineEnd end, Tolerance tolerance) => Lengthen2.ExtendToLength(this, length, end, tolerance);
+        public GeoArc2 ExtendToLength(double length, LineEnd end, Tolerance tolerance) =>
+            Lengthen2.ExtendToLength(this, length, end, tolerance);
 
         /// <summary>
         /// Lengthens the arc at one end until it reaches a point on its own circle.
         /// </summary>
-        public bool TryExtendTo(GeoPoint2 point, LineEnd end, out GeoArc2 result) => Lengthen2.TryExtendTo(this, point, end, out result);
+        public bool TryExtendTo(GeoPoint2 point, LineEnd end, out GeoArc2 result) =>
+            Lengthen2.TryExtendTo(this, point, end, out result);
 
         /// <summary>
         /// Lengthens the arc at one end until it reaches a point on its own circle, within a tolerance.
         /// </summary>
-        public bool TryExtendTo(GeoPoint2 point, LineEnd end, out GeoArc2 result, Tolerance tolerance)
-            => Lengthen2.TryExtendTo(this, point, end, out result, tolerance);
+        public bool TryExtendTo(GeoPoint2 point, LineEnd end, out GeoArc2 result, Tolerance tolerance) =>
+            Lengthen2.TryExtendTo(this, point, end, out result, tolerance);
 
         /// <summary>
         /// Shortens the arc at one end back to a point on it.
         /// </summary>
-        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoArc2 result) => Lengthen2.TryTrimTo(this, point, end, out result);
+        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoArc2 result) =>
+            Lengthen2.TryTrimTo(this, point, end, out result);
 
         /// <summary>
         /// Shortens the arc at one end back to a point on it, within a tolerance.
         /// </summary>
-        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoArc2 result, Tolerance tolerance)
-            => Lengthen2.TryTrimTo(this, point, end, out result, tolerance);
+        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoArc2 result, Tolerance tolerance) =>
+            Lengthen2.TryTrimTo(this, point, end, out result, tolerance);
 
         #endregion
 
@@ -925,7 +977,12 @@ namespace GeometryHelper.Geometry
         /// the <c>out</c> of a <c>Try</c> method holds when the method said false — may not be, and answers
         /// questions without complaint all the same. A default one has no radius.
         /// </remarks>
-        public bool IsValid => Center.IsValid && Radius > 0.0 && Guard.IsFinite(Radius) && Guard.IsFinite(StartAngle) && Guard.IsFinite(SweptAngle);
+        public bool IsValid =>
+            Center.IsValid
+            && Radius > 0.0
+            && Guard.IsFinite(Radius)
+            && Guard.IsFinite(StartAngle)
+            && Guard.IsFinite(SweptAngle);
 
         /// <summary>
         /// Describes the arc.
@@ -1013,7 +1070,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Splits this arc at a normalized parameter, within a tolerance.
         /// </summary>
-        public bool TrySplitAt(double parameter, out GeoArc2[] pieces, Tolerance tolerance) => Arc2.TrySplitAt(this, parameter, out pieces, tolerance);
+        public bool TrySplitAt(double parameter, out GeoArc2[] pieces, Tolerance tolerance) =>
+            Arc2.TrySplitAt(this, parameter, out pieces, tolerance);
 
         /// <summary>
         /// Splits this arc at the point of it nearest a point.
@@ -1023,7 +1081,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Splits this arc at the point of it nearest a point, within a tolerance.
         /// </summary>
-        public bool TrySplitAt(GeoPoint2 point, out GeoArc2[] pieces, Tolerance tolerance) => Arc2.TrySplitAt(this, point, out pieces, tolerance);
+        public bool TrySplitAt(GeoPoint2 point, out GeoArc2[] pieces, Tolerance tolerance) =>
+            Arc2.TrySplitAt(this, point, out pieces, tolerance);
 
         #endregion
     }

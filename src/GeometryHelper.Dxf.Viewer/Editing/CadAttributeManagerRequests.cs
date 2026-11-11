@@ -90,8 +90,14 @@ namespace GeometryHelper.Dxf.Viewer
             get
             {
                 var letters = new StringBuilder();
-                letters.Append(Invisible ? "I" : string.Empty).Append(Constant ? "C" : string.Empty).Append(Verify ? "V" : string.Empty);
-                letters.Append(Preset ? "P" : string.Empty).Append(LockPosition ? "L" : string.Empty).Append(MultipleLines ? "M" : string.Empty);
+                letters
+                    .Append(Invisible ? "I" : string.Empty)
+                    .Append(Constant ? "C" : string.Empty)
+                    .Append(Verify ? "V" : string.Empty);
+                letters
+                    .Append(Preset ? "P" : string.Empty)
+                    .Append(LockPosition ? "L" : string.Empty)
+                    .Append(MultipleLines ? "M" : string.Empty);
                 return letters.ToString();
             }
         }
@@ -109,11 +115,27 @@ namespace GeometryHelper.Dxf.Viewer
     public sealed class CadAttributeManagerSettings
     {
         /// <summary>Gets the columns the grid may show, in AutoCAD's order; Tag is always shown.</summary>
-        public static IReadOnlyList<string> AllColumns { get; } = new[]
-        {
-            "Tag", "Prompt", "Default", "Modes", "Annotative", "Style", "Justification", "Height", "Rotation", "Width Factor",
-            "Oblique Angle", "Boundary Width", "Layer", "Linetype", "Color", "Lineweight", "Plot style",
-        };
+        public static IReadOnlyList<string> AllColumns { get; } =
+            new[]
+            {
+                "Tag",
+                "Prompt",
+                "Default",
+                "Modes",
+                "Annotative",
+                "Style",
+                "Justification",
+                "Height",
+                "Rotation",
+                "Width Factor",
+                "Oblique Angle",
+                "Boundary Width",
+                "Layer",
+                "Linetype",
+                "Color",
+                "Lineweight",
+                "Plot style",
+            };
 
         /// <summary>Gets the columns shown, in the order of <see cref="AllColumns"/>; Tag, Prompt, Default and Modes until set.</summary>
         public IList<string> Columns { get; } = new List<string> { "Tag", "Prompt", "Default", "Modes" };
@@ -136,7 +158,11 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     public sealed class CadAttributeManagerRequest
     {
-        internal CadAttributeManagerRequest(CadDocument document, CadAttributeManagerSettings settings, IReadOnlyList<string> blocks)
+        internal CadAttributeManagerRequest(
+            CadDocument document,
+            CadAttributeManagerSettings settings,
+            IReadOnlyList<string> blocks
+        )
         {
             Document = document ?? throw new ArgumentNullException(nameof(document));
             Settings = settings ?? throw new ArgumentNullException(nameof(settings));

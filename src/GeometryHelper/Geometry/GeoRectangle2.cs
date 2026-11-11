@@ -1,9 +1,9 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -41,7 +41,8 @@ namespace GeometryHelper.Geometry
         /// Gets a value indicating whether the rectangle is rotated, that is whether its rotation angle
         /// differs from zero by more than the angular tolerance once full turns are removed.
         /// </summary>
-        public bool IsRotated => Math.Abs(Angle.FromRadians(AngleRad).NormalizeSigned().Radians) > Tolerance.Global.EqualAngleRad;
+        public bool IsRotated =>
+            Math.Abs(Angle.FromRadians(AngleRad).NormalizeSigned().Radians) > Tolerance.Global.EqualAngleRad;
 
         /// <summary>
         /// Gets the perimeter (total boundary length) of the rectangle.
@@ -88,9 +89,7 @@ namespace GeometryHelper.Geometry
         /// <param name="height">The size along the system's Y axis.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a size is negative or not a number.</exception>
         public GeoRectangle2(GeoCoordinateSystem2 coordinateSystem, double width, double height)
-            : this(coordinateSystem.Origin, width, height, coordinateSystem.AngleRad)
-        {
-        }
+            : this(coordinateSystem.Origin, width, height, coordinateSystem.AngleRad) { }
 
         /// <summary>
         /// Initializes a new GeoRectangle2 instance from the bottom-left corner position (unrotated) and dimensions.
@@ -100,9 +99,7 @@ namespace GeometryHelper.Geometry
         /// <param name="width">Rectangle width.</param>
         /// <param name="height">Rectangle height.</param>
         public GeoRectangle2(double x, double y, double width, double height)
-            : this(new GeoPoint2(x + width * 0.5, y + height * 0.5), width, height, 0.0)
-        {
-        }
+            : this(new GeoPoint2(x + width * 0.5, y + height * 0.5), width, height, 0.0) { }
 
         /// <summary>
         /// Creates a copy of this rectangle.
@@ -152,14 +149,16 @@ namespace GeometryHelper.Geometry
         /// <param name="kind">The kind of faces.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
         /// <exception cref="ArgumentException">Thrown for <see cref="Meshing.MeshKind.Grid"/>, which needs the size of its cells.</exception>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshKind kind) => Meshing.Mesh2.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Tolerance.Global);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshKind kind) =>
+            Meshing.Mesh2.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Tolerance.Global);
 
         /// <summary>
         /// Breaks the rectangle into faces as the options say, using the default tolerance.
         /// </summary>
         /// <param name="options">How to break it up.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options) => Meshing.Mesh2.ToMesh(this, options, Tolerance.Global);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options) =>
+            Meshing.Mesh2.ToMesh(this, options, Tolerance.Global);
 
         /// <summary>
         /// Breaks the rectangle into faces as the options say, within a tolerance: triangles, the cells of a grid, strips or
@@ -177,7 +176,8 @@ namespace GeometryHelper.Geometry
         /// A grid and strips run along its own width unless the options give an angle, and a grid starting at its lower
         /// left corner lays its cells from there.
         /// </remarks>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) => Meshing.Mesh2.ToMesh(this, options, tolerance);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) =>
+            Meshing.Mesh2.ToMesh(this, options, tolerance);
 
         /// <summary>
         /// Divides the rectangle into equal rectangles along its own sides.
@@ -248,19 +248,22 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the arc length from the LowerLeft corner of this rectangle perimeter to a normalized parameter.
         /// </summary>
-        public double GetDistanceAtParameter(double parameter) => Parametrization2.GetDistanceAtParameter(this, parameter);
+        public double GetDistanceAtParameter(double parameter) =>
+            Parametrization2.GetDistanceAtParameter(this, parameter);
 
         /// <summary>
         /// Gets the normalized parameter at an arc length measured from the LowerLeft corner of this rectangle perimeter.
         /// </summary>
-        public double GetParameterAtDistance(double distance) => Parametrization2.GetParameterAtDistance(this, distance);
+        public double GetParameterAtDistance(double distance) =>
+            Parametrization2.GetParameterAtDistance(this, distance);
 
         /// <summary>
         /// Translates the rectangle by a displacement vector.
         /// </summary>
         /// <param name="vector">The displacement vector.</param>
         /// <returns>A new translated GeoRectangle2 keeping the same size and rotation.</returns>
-        public GeoRectangle2 Translate(GeoVector2 vector) => new GeoRectangle2(Center.Add(vector), Width, Height, AngleRad);
+        public GeoRectangle2 Translate(GeoVector2 vector) =>
+            new GeoRectangle2(Center.Add(vector), Width, Height, AngleRad);
 
         /// <summary>
         /// Rotates the rectangle around a center point by an angle in radians (counter-clockwise).
@@ -268,7 +271,8 @@ namespace GeometryHelper.Geometry
         /// <param name="angleRad">Rotation angle in radians.</param>
         /// <param name="center">Center of rotation.</param>
         /// <returns>A new rotated GeoRectangle2.</returns>
-        public GeoRectangle2 RotateBy(double angleRad, GeoPoint2 center) => new GeoRectangle2(Center.RotateBy(angleRad, center), Width, Height, AngleRad + angleRad);
+        public GeoRectangle2 RotateBy(double angleRad, GeoPoint2 center) =>
+            new GeoRectangle2(Center.RotateBy(angleRad, center), Width, Height, AngleRad + angleRad);
 
         /// <summary>
         /// Grows this rectangle by a distance on every side, or shrinks it when the distance is negative,
@@ -277,7 +281,8 @@ namespace GeometryHelper.Geometry
         /// <param name="distance">How far each side moves: outward when positive.</param>
         /// <param name="result">The rectangle with the same center and angle, or this one when the method returns false.</param>
         /// <returns>true if a rectangle is left; false if it shrinks to nothing.</returns>
-        public bool TryOffset(double distance, out GeoRectangle2 result) => Offset2.TryOffset(this, distance, out result, Tolerance.Global);
+        public bool TryOffset(double distance, out GeoRectangle2 result) =>
+            Offset2.TryOffset(this, distance, out result, Tolerance.Global);
 
         /// <summary>
         /// Grows this rectangle by a distance on every side, or shrinks it when the distance is negative,
@@ -287,7 +292,8 @@ namespace GeometryHelper.Geometry
         /// <param name="result">The rectangle with the same center and angle, or this one when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if a rectangle is left; false if it shrinks to nothing.</returns>
-        public bool TryOffset(double distance, out GeoRectangle2 result, Tolerance tolerance) => Offset2.TryOffset(this, distance, out result, tolerance);
+        public bool TryOffset(double distance, out GeoRectangle2 result, Tolerance tolerance) =>
+            Offset2.TryOffset(this, distance, out result, tolerance);
 
         /// <summary>
         /// Combines this rectangle with another rectangle, returning a new rectangle that encloses both.
@@ -365,7 +371,15 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Projects a point into this rectangle's local axes and widens the running bounds to reach it.
         /// </summary>
-        private void ExpandLocalBounds(GeoPoint2 point, double cos, double sin, ref double minX, ref double maxX, ref double minY, ref double maxY)
+        private void ExpandLocalBounds(
+            GeoPoint2 point,
+            double cos,
+            double sin,
+            ref double minX,
+            ref double maxX,
+            ref double minY,
+            ref double maxY
+        )
         {
             double dx = point.X - Center.X;
             double dy = point.Y - Center.Y;
@@ -373,16 +387,27 @@ namespace GeometryHelper.Geometry
             double localX = dx * cos + dy * sin;
             double localY = -dx * sin + dy * cos;
 
-            if (localX < minX) minX = localX;
-            if (localX > maxX) maxX = localX;
-            if (localY < minY) minY = localY;
-            if (localY > maxY) maxY = localY;
+            if (localX < minX)
+                minX = localX;
+            if (localX > maxX)
+                maxX = localX;
+            if (localY < minY)
+                minY = localY;
+            if (localY > maxY)
+                maxY = localY;
         }
 
         /// <summary>
         /// Rebuilds a rectangle on this one's axes from bounds expressed in its local coordinate system.
         /// </summary>
-        private GeoRectangle2 FromLocalBounds(double minX, double maxX, double minY, double maxY, double cos, double sin)
+        private GeoRectangle2 FromLocalBounds(
+            double minX,
+            double maxX,
+            double minY,
+            double maxY,
+            double cos,
+            double sin
+        )
         {
             double localCenterX = (minX + maxX) * 0.5;
             double localCenterY = (minY + maxY) * 0.5;
@@ -404,9 +429,7 @@ namespace GeometryHelper.Geometry
                 double sin = Math.Sin(AngleRad);
                 double halfW = Width * 0.5;
                 double halfH = Height * 0.5;
-                return new GeoPoint2(
-                    Center.X - halfW * cos + halfH * sin,
-                    Center.Y - halfW * sin - halfH * cos);
+                return new GeoPoint2(Center.X - halfW * cos + halfH * sin, Center.Y - halfW * sin - halfH * cos);
             }
         }
 
@@ -421,9 +444,7 @@ namespace GeometryHelper.Geometry
                 double sin = Math.Sin(AngleRad);
                 double halfW = Width * 0.5;
                 double halfH = Height * 0.5;
-                return new GeoPoint2(
-                    Center.X + halfW * cos + halfH * sin,
-                    Center.Y + halfW * sin - halfH * cos);
+                return new GeoPoint2(Center.X + halfW * cos + halfH * sin, Center.Y + halfW * sin - halfH * cos);
             }
         }
 
@@ -438,9 +459,7 @@ namespace GeometryHelper.Geometry
                 double sin = Math.Sin(AngleRad);
                 double halfW = Width * 0.5;
                 double halfH = Height * 0.5;
-                return new GeoPoint2(
-                    Center.X - halfW * cos - halfH * sin,
-                    Center.Y - halfW * sin + halfH * cos);
+                return new GeoPoint2(Center.X - halfW * cos - halfH * sin, Center.Y - halfW * sin + halfH * cos);
             }
         }
 
@@ -455,9 +474,7 @@ namespace GeometryHelper.Geometry
                 double sin = Math.Sin(AngleRad);
                 double halfW = Width * 0.5;
                 double halfH = Height * 0.5;
-                return new GeoPoint2(
-                    Center.X + halfW * cos - halfH * sin,
-                    Center.Y + halfW * sin + halfH * cos);
+                return new GeoPoint2(Center.X + halfW * cos - halfH * sin, Center.Y + halfW * sin + halfH * cos);
             }
         }
 
@@ -500,7 +517,7 @@ namespace GeometryHelper.Geometry
                 new GeoLine2(v[0], v[1]),
                 new GeoLine2(v[1], v[2]),
                 new GeoLine2(v[2], v[3]),
-                new GeoLine2(v[3], v[0])
+                new GeoLine2(v[3], v[0]),
             };
         }
 
@@ -527,7 +544,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether the rectangle entirely contains a polyline within tolerance.
         /// </summary>
-        public bool Contains(GeoPolyline2 polyline, Tolerance tolerance) => Containment2.Contains(this, polyline, tolerance);
+        public bool Contains(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Containment2.Contains(this, polyline, tolerance);
 
         /// <summary>
         /// Classifies the location of a point relative to this rectangle (Inside, OutSide, or OnSide) using default tolerance.
@@ -537,7 +555,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Classifies the location of a point relative to this rectangle (Inside, OutSide, or OnSide) within tolerance.
         /// </summary>
-        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) => Containment2.Locate(this, point, tolerance);
+        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) =>
+            Containment2.Locate(this, point, tolerance);
 
         /// <summary>
         /// Checks whether a line segment is parallel to this rectangle's axes using default tolerance.
@@ -557,7 +576,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether another rectangle is parallel in orientation to this rectangle within angular tolerance.
         /// </summary>
-        public bool IsParallelTo(GeoRectangle2 other, Tolerance tolerance) => Parallel2.IsParallel(this, other, tolerance);
+        public bool IsParallelTo(GeoRectangle2 other, Tolerance tolerance) =>
+            Parallel2.IsParallel(this, other, tolerance);
 
         /// <summary>
         /// Translates a rectangle by a vector.
@@ -576,10 +596,10 @@ namespace GeometryHelper.Geometry
         /// <returns>true if the current rectangle is equal to the other parameter; otherwise, false.</returns>
         public bool Equals(GeoRectangle2 other)
         {
-            return Center.Equals(other.Center) &&
-                   Width.Equals(other.Width) &&
-                   Height.Equals(other.Height) &&
-                   AngleRad.Equals(other.AngleRad);
+            return Center.Equals(other.Center)
+                && Width.Equals(other.Width)
+                && Height.Equals(other.Height)
+                && AngleRad.Equals(other.AngleRad);
         }
 
         /// <summary>
@@ -629,13 +649,20 @@ namespace GeometryHelper.Geometry
         /// the <c>out</c> of a <c>Try</c> method holds when the method said false — may not be, and answers
         /// questions without complaint all the same.
         /// </remarks>
-        public bool IsValid => Center.IsValid && Width >= 0.0 && Guard.IsFinite(Width) && Height >= 0.0 && Guard.IsFinite(Height) && Guard.IsFinite(AngleRad);
+        public bool IsValid =>
+            Center.IsValid
+            && Width >= 0.0
+            && Guard.IsFinite(Width)
+            && Height >= 0.0
+            && Guard.IsFinite(Height)
+            && Guard.IsFinite(AngleRad);
 
         /// <summary>
         /// Returns the string representation of the rectangle.
         /// </summary>
         /// <returns>A string representation detailing center, width, height, and angle.</returns>
-        public override string ToString() => $"GeoRectangle2[Center:{Center}, Width:{Width:0.###}, Height:{Height:0.###}, AngleRad:{AngleRad:0.###}]";
+        public override string ToString() =>
+            $"GeoRectangle2[Center:{Center}, Width:{Width:0.###}, Height:{Height:0.###}, AngleRad:{AngleRad:0.###}]";
 
         /// <summary>
         /// Gets the area the rectangle encloses. Turning it does not change it.

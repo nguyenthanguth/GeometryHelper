@@ -11,8 +11,7 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     public class SplitRegionByVolumeTests
     {
-        private static GeoSolid3 MakeBoxSolid(GeoPoint3 min, GeoPoint3 max) =>
-            new GeoAabb3(min, max).ToObb().ToSolid();
+        private static GeoSolid3 MakeBoxSolid(GeoPoint3 min, GeoPoint3 max) => new GeoAabb3(min, max).ToObb().ToSolid();
 
         private static double TotalArea(GeoPolygon3[] pieces)
         {
@@ -29,11 +28,13 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A 20 by 20 plate lying in the plane z = 5, spanning -5 to 15 on both axes.
         /// </summary>
-        private static GeoPolygon3 MakePlate() => new GeoPolygon3(
-            new GeoPoint3(-5, -5, 5),
-            new GeoPoint3(15, -5, 5),
-            new GeoPoint3(15, 15, 5),
-            new GeoPoint3(-5, 15, 5));
+        private static GeoPolygon3 MakePlate() =>
+            new GeoPolygon3(
+                new GeoPoint3(-5, -5, 5),
+                new GeoPoint3(15, -5, 5),
+                new GeoPoint3(15, 15, 5),
+                new GeoPoint3(-5, 15, 5)
+            );
 
         [Fact]
         public void APlateThroughABoxIsDividedAtItsWalls()
@@ -137,15 +138,18 @@ namespace GeometryHelper.UnitTest.Solid
         public void AConcaveBodyCutsThePlateToItsOwnShape()
         {
             // An L-shaped prism spanning the plate's plane.
-            GeoSolid3 lShape = MakePrism(new[]
-            {
-                new GeoPoint3(0, 0, 0),
-                new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 4, 0),
-                new GeoPoint3(4, 4, 0),
-                new GeoPoint3(4, 10, 0),
-                new GeoPoint3(0, 10, 0)
-            }, 10.0);
+            GeoSolid3 lShape = MakePrism(
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 4, 0),
+                    new GeoPoint3(4, 4, 0),
+                    new GeoPoint3(4, 10, 0),
+                    new GeoPoint3(0, 10, 0),
+                },
+                10.0
+            );
 
             GeoPolygon3 plate = MakePlate();
 
@@ -190,7 +194,9 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoPolygon3 plate = MakePlate();
 
-            Assert.Throws<ArgumentNullException>(() => plate.TrySplitBy((GeoSolid3)null, out GeoPolygon3[] _, out GeoPolygon3[] _));
+            Assert.Throws<ArgumentNullException>(() =>
+                plate.TrySplitBy((GeoSolid3)null, out GeoPolygon3[] _, out GeoPolygon3[] _)
+            );
         }
 
         /// <summary>

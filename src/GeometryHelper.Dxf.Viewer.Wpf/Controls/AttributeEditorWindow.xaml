@@ -1,10 +1,17 @@
-<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.AttributeEditorWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
-        Title="Enhanced Attribute Editor" Width="600" Height="560" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" Background="#262B33">
-
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.AttributeEditorWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Enhanced Attribute Editor"
+    Width="600"
+    Height="560"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -17,12 +24,21 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ListBoxItem">
-                            <Border x:Name="Row" BorderBrush="{StaticResource GhHeader}" BorderThickness="0,1,0,0" Background="Transparent">
+                            <Border
+                                x:Name="Row"
+                                BorderBrush="{StaticResource GhHeader}"
+                                BorderThickness="0,1,0,0"
+                                Background="Transparent"
+                            >
                                 <ContentPresenter />
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsSelected" Value="True">
-                                    <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
+                                    <Setter
+                                        TargetName="Row"
+                                        Property="Background"
+                                        Value="{StaticResource GhSelected}"
+                                    />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -38,21 +54,59 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
-            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
-            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
         <DockPanel>
-            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
-                    <TextBlock Text="Enhanced Attribute Editor" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock
+                        Text="Enhanced Attribute Editor"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"
+                    />
                 </DockPanel>
             </Border>
 
             <DockPanel DockPanel.Dock="Top" Margin="16,10">
-                <Button DockPanel.Dock="Right" Style="{StaticResource GhDialogButton}" Padding="10,4" Click="OnSelectBlock" VerticalAlignment="Center">
+                <Button
+                    DockPanel.Dock="Right"
+                    Style="{StaticResource GhDialogButton}"
+                    Padding="10,4"
+                    Click="OnSelectBlock"
+                    VerticalAlignment="Center"
+                >
                     <StackPanel Orientation="Horizontal">
-                        <Path Data="{StaticResource BlockSelectIcon}" Stroke="#C9D1DB" StrokeThickness="1.8" Width="14" Height="14" Stretch="Uniform" Margin="0,0,6,0" />
+                        <Path
+                            Data="{StaticResource BlockSelectIcon}"
+                            Stroke="#C9D1DB"
+                            StrokeThickness="1.8"
+                            Width="14"
+                            Height="14"
+                            Stretch="Uniform"
+                            Margin="0,0,6,0"
+                        />
                         <TextBlock Text="Select block" />
                     </StackPanel>
                 </Button>
@@ -68,33 +122,90 @@
                     <TextBlock Text="Block:" Foreground="{StaticResource GhTextMuted}" />
                     <TextBlock Grid.Column="1" Text="{Binding Block}" FontWeight="SemiBold" />
                     <TextBlock Grid.Row="1" Text="Tag:" Foreground="{StaticResource GhTextMuted}" Margin="0,2,0,0" />
-                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Tag}" FontFamily="{StaticResource GhMonoFont}" Margin="0,2,0,0" />
+                    <TextBlock
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Text="{Binding Tag}"
+                        FontFamily="{StaticResource GhMonoFont}"
+                        Margin="0,2,0,0"
+                    />
                 </Grid>
             </DockPanel>
 
-            <Border DockPanel.Dock="Top" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,0,0,1" Padding="16,0">
+            <Border
+                DockPanel.Dock="Top"
+                BorderBrush="{StaticResource GhBorder}"
+                BorderThickness="0,0,0,1"
+                Padding="16,0"
+            >
                 <StackPanel Orientation="Horizontal">
-                    <RadioButton Style="{StaticResource StyleTab}" GroupName="Tabs" Content="Attribute" IsChecked="True" Checked="OnTab" />
-                    <RadioButton Style="{StaticResource StyleTab}" GroupName="Tabs" Content="Text Options" Checked="OnTab" x:Name="TextTab" />
-                    <RadioButton Style="{StaticResource StyleTab}" GroupName="Tabs" Content="Properties" Checked="OnTab" x:Name="PropertiesTab" />
+                    <RadioButton
+                        Style="{StaticResource StyleTab}"
+                        GroupName="Tabs"
+                        Content="Attribute"
+                        IsChecked="True"
+                        Checked="OnTab"
+                    />
+                    <RadioButton
+                        Style="{StaticResource StyleTab}"
+                        GroupName="Tabs"
+                        Content="Text Options"
+                        Checked="OnTab"
+                        x:Name="TextTab"
+                    />
+                    <RadioButton
+                        Style="{StaticResource StyleTab}"
+                        GroupName="Tabs"
+                        Content="Properties"
+                        Checked="OnTab"
+                        x:Name="PropertiesTab"
+                    />
                 </StackPanel>
             </Border>
 
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                        <Button Style="{StaticResource GhDialogButton}" Content="Apply" Padding="14,5" Margin="0,0,8,0" Click="OnApply" />
-                        <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Click="OnCancel" IsCancel="True" />
-                        <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Click="OnOk" IsDefault="True" />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Apply"
+                            Padding="14,5"
+                            Margin="0,0,8,0"
+                            Click="OnApply"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            Margin="0,0,8,0"
+                            Click="OnCancel"
+                            IsCancel="True"
+                        />
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="OK"
+                            Padding="14,5"
+                            Click="OnOk"
+                            IsDefault="True"
+                        />
                     </StackPanel>
-                    <TextBlock Text="Double-click a block with attributes opens this editor." Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                    <TextBlock
+                        Text="Double-click a block with attributes opens this editor."
+                        Foreground="{StaticResource GhTextMuted}"
+                        VerticalAlignment="Center"
+                    />
                 </DockPanel>
             </Border>
 
             <Grid Margin="16,12,16,12">
                 <!-- Attribute: the list and the value of the one chosen. -->
                 <StackPanel Visibility="{Binding IsAttributeTab, Converter={StaticResource Shown}}">
-                    <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Margin="0,0,0,10">
+                    <Border
+                        BorderBrush="{StaticResource GhBorder}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Margin="0,0,0,10"
+                    >
                         <StackPanel>
                             <Grid Background="{StaticResource GhHeader}">
                                 <Grid.ColumnDefinitions>
@@ -102,12 +213,39 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="120" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="Tag" Padding="10,5" FontSize="11" FontWeight="Medium" Foreground="{StaticResource GhTextMuted}" />
-                                <TextBlock Grid.Column="1" Text="Prompt" Padding="10,5" FontSize="11" FontWeight="Medium" Foreground="{StaticResource GhTextMuted}" />
-                                <TextBlock Grid.Column="2" Text="Value" Padding="10,5" FontSize="11" FontWeight="Medium" Foreground="{StaticResource GhTextMuted}" />
+                                <TextBlock
+                                    Text="Tag"
+                                    Padding="10,5"
+                                    FontSize="11"
+                                    FontWeight="Medium"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Text="Prompt"
+                                    Padding="10,5"
+                                    FontSize="11"
+                                    FontWeight="Medium"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                />
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Text="Value"
+                                    Padding="10,5"
+                                    FontSize="11"
+                                    FontWeight="Medium"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                />
                             </Grid>
-                            <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected, Mode=TwoWay}" Background="Transparent" BorderThickness="0"
-                                     ItemContainerStyle="{StaticResource AttributeRow}" MaxHeight="220" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox
+                                ItemsSource="{Binding Rows}"
+                                SelectedItem="{Binding Selected, Mode=TwoWay}"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                ItemContainerStyle="{StaticResource AttributeRow}"
+                                MaxHeight="220"
+                                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            >
                                 <ListBox.ItemTemplate>
                                     <DataTemplate DataType="{x:Type local:AttributeRowViewModel}">
                                         <Grid Width="566">
@@ -116,9 +254,25 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="120" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding Tag}" Padding="10,5" FontFamily="{StaticResource GhMonoFont}" Foreground="{StaticResource GhText}" />
-                                            <TextBlock Grid.Column="1" Text="{Binding Prompt}" Padding="10,5" Foreground="{StaticResource GhText}" />
-                                            <TextBlock Grid.Column="2" Text="{Binding Value}" Padding="10,5" FontFamily="{StaticResource GhMonoFont}" Foreground="{StaticResource GhText}" />
+                                            <TextBlock
+                                                Text="{Binding Tag}"
+                                                Padding="10,5"
+                                                FontFamily="{StaticResource GhMonoFont}"
+                                                Foreground="{StaticResource GhText}"
+                                            />
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Text="{Binding Prompt}"
+                                                Padding="10,5"
+                                                Foreground="{StaticResource GhText}"
+                                            />
+                                            <TextBlock
+                                                Grid.Column="2"
+                                                Text="{Binding Value}"
+                                                Padding="10,5"
+                                                FontFamily="{StaticResource GhMonoFont}"
+                                                Foreground="{StaticResource GhText}"
+                                            />
                                         </Grid>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -126,15 +280,42 @@
                         </StackPanel>
                     </Border>
                     <DockPanel Margin="0,0,0,10">
-                        <TextBlock Text="Value:" Width="52" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
-                        <Button DockPanel.Dock="Right" Style="{StaticResource GhDialogButton}" Content="%" Width="30" Padding="0" Margin="6,0,0,0" IsEnabled="False" ToolTip="Insert field (not built)" />
-                        <TextBox Style="{StaticResource BlockNumber}" BorderBrush="{StaticResource GhAccent}" Text="{Binding Selected.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Value" />
+                        <TextBlock
+                            Text="Value:"
+                            Width="52"
+                            Foreground="{StaticResource GhTextMuted}"
+                            VerticalAlignment="Center"
+                        />
+                        <Button
+                            DockPanel.Dock="Right"
+                            Style="{StaticResource GhDialogButton}"
+                            Content="%"
+                            Width="30"
+                            Padding="0"
+                            Margin="6,0,0,0"
+                            IsEnabled="False"
+                            ToolTip="Insert field (not built)"
+                        />
+                        <TextBox
+                            Style="{StaticResource BlockNumber}"
+                            BorderBrush="{StaticResource GhAccent}"
+                            Text="{Binding Selected.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            AutomationProperties.Name="Value"
+                        />
                     </DockPanel>
-                    <TextBlock Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" Text="Apply writes the values and keeps the dialog open for the next attribute." />
+                    <TextBlock
+                        Foreground="{StaticResource GhTextMuted}"
+                        TextWrapping="Wrap"
+                        Text="Apply writes the values and keeps the dialog open for the next attribute."
+                    />
                 </StackPanel>
 
                 <!-- Text Options of the attribute chosen. -->
-                <Grid Visibility="{Binding DataContext.IsTextTab, ElementName=Root, Converter={StaticResource Shown}}" DataContext="{Binding Selected}" VerticalAlignment="Top">
+                <Grid
+                    Visibility="{Binding DataContext.IsTextTab, ElementName=Root, Converter={StaticResource Shown}}"
+                    DataContext="{Binding Selected}"
+                    VerticalAlignment="Top"
+                >
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="110" />
                         <ColumnDefinition Width="*" />
@@ -150,29 +331,99 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Style="{StaticResource FieldLabel}" Text="Text Style:" />
-                    <ComboBox Grid.Column="1" Style="{StaticResource GhComboBox}" Margin="0,0,0,8" ItemsSource="{Binding DataContext.Styles, ElementName=Root}" SelectedItem="{Binding TextStyle, Mode=TwoWay}" />
+                    <ComboBox
+                        Grid.Column="1"
+                        Style="{StaticResource GhComboBox}"
+                        Margin="0,0,0,8"
+                        ItemsSource="{Binding DataContext.Styles, ElementName=Root}"
+                        SelectedItem="{Binding TextStyle, Mode=TwoWay}"
+                    />
                     <TextBlock Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Justification:" />
-                    <ComboBox Grid.Column="4" Style="{StaticResource GhComboBox}" Margin="0,0,0,8" ItemsSource="{Binding DataContext.Justifications, ElementName=Root}" SelectedItem="{Binding Justification, Mode=TwoWay}" />
+                    <ComboBox
+                        Grid.Column="4"
+                        Style="{StaticResource GhComboBox}"
+                        Margin="0,0,0,8"
+                        ItemsSource="{Binding DataContext.Justifications, ElementName=Root}"
+                        SelectedItem="{Binding Justification, Mode=TwoWay}"
+                    />
                     <TextBlock Grid.Row="1" Style="{StaticResource FieldLabel}" Text="Height:" />
-                    <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource BlockNumber}" Margin="0,0,0,8" Text="{Binding Height, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBox
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Style="{StaticResource BlockNumber}"
+                        Margin="0,0,0,8"
+                        Text="{Binding Height, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    />
                     <TextBlock Grid.Row="1" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Rotation:" />
-                    <TextBox Grid.Row="1" Grid.Column="4" Style="{StaticResource BlockNumber}" Margin="0,0,0,8" Text="{Binding Rotation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBox
+                        Grid.Row="1"
+                        Grid.Column="4"
+                        Style="{StaticResource BlockNumber}"
+                        Margin="0,0,0,8"
+                        Text="{Binding Rotation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    />
                     <TextBlock Grid.Row="2" Style="{StaticResource FieldLabel}" Text="Backwards:" />
-                    <CheckBox Grid.Row="2" Grid.Column="1" Style="{StaticResource BlockCheck}" Margin="0,0,0,8" IsChecked="{Binding Backwards, Mode=TwoWay}" />
+                    <CheckBox
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        Style="{StaticResource BlockCheck}"
+                        Margin="0,0,0,8"
+                        IsChecked="{Binding Backwards, Mode=TwoWay}"
+                    />
                     <TextBlock Grid.Row="2" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Upside down:" />
-                    <CheckBox Grid.Row="2" Grid.Column="4" Style="{StaticResource BlockCheck}" Margin="0,0,0,8" IsChecked="{Binding UpsideDown, Mode=TwoWay}" />
+                    <CheckBox
+                        Grid.Row="2"
+                        Grid.Column="4"
+                        Style="{StaticResource BlockCheck}"
+                        Margin="0,0,0,8"
+                        IsChecked="{Binding UpsideDown, Mode=TwoWay}"
+                    />
                     <TextBlock Grid.Row="3" Style="{StaticResource FieldLabel}" Text="Width Factor:" />
-                    <TextBox Grid.Row="3" Grid.Column="1" Style="{StaticResource BlockNumber}" Margin="0,0,0,8" Text="{Binding WidthFactor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBox
+                        Grid.Row="3"
+                        Grid.Column="1"
+                        Style="{StaticResource BlockNumber}"
+                        Margin="0,0,0,8"
+                        Text="{Binding WidthFactor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    />
                     <TextBlock Grid.Row="3" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Oblique Angle:" />
-                    <TextBox Grid.Row="3" Grid.Column="4" Style="{StaticResource BlockNumber}" Margin="0,0,0,8" Text="{Binding Oblique, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBox
+                        Grid.Row="3"
+                        Grid.Column="4"
+                        Style="{StaticResource BlockNumber}"
+                        Margin="0,0,0,8"
+                        Text="{Binding Oblique, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    />
                     <TextBlock Grid.Row="4" Style="{StaticResource FieldLabel}" Text="Annotative:" />
-                    <CheckBox Grid.Row="4" Grid.Column="1" Style="{StaticResource BlockCheck}" Margin="0,0,0,8" IsEnabled="False" />
-                    <TextBlock Grid.Row="4" Grid.Column="3" Style="{StaticResource FieldLabel}" Text="Boundary Width:" />
-                    <TextBox Grid.Row="4" Grid.Column="4" Style="{StaticResource BlockNumber}" Margin="0,0,0,8" Text="—" IsEnabled="False" />
+                    <CheckBox
+                        Grid.Row="4"
+                        Grid.Column="1"
+                        Style="{StaticResource BlockCheck}"
+                        Margin="0,0,0,8"
+                        IsEnabled="False"
+                    />
+                    <TextBlock
+                        Grid.Row="4"
+                        Grid.Column="3"
+                        Style="{StaticResource FieldLabel}"
+                        Text="Boundary Width:"
+                    />
+                    <TextBox
+                        Grid.Row="4"
+                        Grid.Column="4"
+                        Style="{StaticResource BlockNumber}"
+                        Margin="0,0,0,8"
+                        Text="—"
+                        IsEnabled="False"
+                    />
                 </Grid>
 
                 <!-- Properties of the attribute chosen. -->
-                <Grid Visibility="{Binding DataContext.IsPropertiesTab, ElementName=Root, Converter={StaticResource Shown}}" DataContext="{Binding Selected}" VerticalAlignment="Top">
+                <Grid
+                    Visibility="{Binding DataContext.IsPropertiesTab, ElementName=Root, Converter={StaticResource Shown}}"
+                    DataContext="{Binding Selected}"
+                    VerticalAlignment="Top"
+                >
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="110" />
                         <ColumnDefinition Width="*" />
@@ -185,15 +436,49 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Style="{StaticResource FieldLabel}" Text="Layer:" />
-                    <ComboBox Grid.Column="1" Style="{StaticResource GhComboBox}" Margin="0,0,0,8" ItemsSource="{Binding DataContext.Layers, ElementName=Root}" SelectedItem="{Binding Layer, Mode=TwoWay}" />
+                    <ComboBox
+                        Grid.Column="1"
+                        Style="{StaticResource GhComboBox}"
+                        Margin="0,0,0,8"
+                        ItemsSource="{Binding DataContext.Layers, ElementName=Root}"
+                        SelectedItem="{Binding Layer, Mode=TwoWay}"
+                    />
                     <TextBlock Grid.Row="1" Style="{StaticResource FieldLabel}" Text="Linetype:" />
-                    <ComboBox Grid.Row="1" Grid.Column="1" Style="{StaticResource GhComboBox}" Margin="0,0,0,8" ItemsSource="{Binding DataContext.Linetypes, ElementName=Root}" SelectedItem="{Binding Linetype, Mode=TwoWay}" />
+                    <ComboBox
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Style="{StaticResource GhComboBox}"
+                        Margin="0,0,0,8"
+                        ItemsSource="{Binding DataContext.Linetypes, ElementName=Root}"
+                        SelectedItem="{Binding Linetype, Mode=TwoWay}"
+                    />
                     <TextBlock Grid.Row="2" Style="{StaticResource FieldLabel}" Text="Color:" />
-                    <ComboBox Grid.Row="2" Grid.Column="1" Style="{StaticResource GhComboBox}" Margin="0,0,0,8" ItemsSource="{Binding DataContext.Colors, ElementName=Root}" SelectedItem="{Binding Color, Mode=TwoWay}" />
+                    <ComboBox
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        Style="{StaticResource GhComboBox}"
+                        Margin="0,0,0,8"
+                        ItemsSource="{Binding DataContext.Colors, ElementName=Root}"
+                        SelectedItem="{Binding Color, Mode=TwoWay}"
+                    />
                     <TextBlock Grid.Row="3" Style="{StaticResource FieldLabel}" Text="Lineweight:" />
-                    <ComboBox Grid.Row="3" Grid.Column="1" Style="{StaticResource GhComboBox}" Margin="0,0,0,8" ItemsSource="{Binding DataContext.LineWeights, ElementName=Root}" SelectedItem="{Binding LineWeight, Mode=TwoWay}" />
+                    <ComboBox
+                        Grid.Row="3"
+                        Grid.Column="1"
+                        Style="{StaticResource GhComboBox}"
+                        Margin="0,0,0,8"
+                        ItemsSource="{Binding DataContext.LineWeights, ElementName=Root}"
+                        SelectedItem="{Binding LineWeight, Mode=TwoWay}"
+                    />
                     <TextBlock Grid.Row="4" Style="{StaticResource FieldLabel}" Text="Plot style:" />
-                    <TextBox Grid.Row="4" Grid.Column="1" Style="{StaticResource BlockBox}" Margin="0,0,0,8" Text="ByColor (not available)" IsEnabled="False" />
+                    <TextBox
+                        Grid.Row="4"
+                        Grid.Column="1"
+                        Style="{StaticResource BlockBox}"
+                        Margin="0,0,0,8"
+                        Text="ByColor (not available)"
+                        IsEnabled="False"
+                    />
                 </Grid>
             </Grid>
         </DockPanel>

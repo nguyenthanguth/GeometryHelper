@@ -15,7 +15,9 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly List<DisplayItem2> _items;
 
         // The insertion points by handle, for the snap Insertion: looked up only, never enumerated.
-        private readonly Dictionary<string, List<GeoPoint2>> _insertions = new Dictionary<string, List<GeoPoint2>>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, List<GeoPoint2>> _insertions = new Dictionary<string, List<GeoPoint2>>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private DisplayBox _bounds = DisplayBox.Empty;
 
         // The entities of the space in the order they were drawn, each with its items and the layers it read, so that an edit
@@ -27,14 +29,15 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Makes an empty list.</summary>
         public DisplayList2()
-            : this(null)
-        {
-        }
+            : this(null) { }
 
         /// <summary>Makes an empty list that numbers its layers as an older list of the same space did, so that it can be patched as that one could.</summary>
         internal DisplayList2(DisplayList2 older)
         {
-            _layerBits = older == null ? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) : new Dictionary<string, int>(older._layerBits, StringComparer.OrdinalIgnoreCase);
+            _layerBits =
+                older == null
+                    ? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+                    : new Dictionary<string, int>(older._layerBits, StringComparer.OrdinalIgnoreCase);
 
             // Sized as the older list, which a patch mostly copies: grown by doubling, a list of 178 000 items and 100 000 runs
             // makes some 12 MB of arrays on the large object heap, and the collections they bring land in the patch.
@@ -73,8 +76,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// its attributes shown, of a TEXT or an MTEXT the point it is placed by; empty for any other entity. In drawing units,
         /// in the order they were drawn.
         /// </summary>
-        internal IReadOnlyList<GeoPoint2> InsertionPointsOf(string handle)
-            => handle != null && _insertions.TryGetValue(handle, out List<GeoPoint2> points) ? points : NoPoints;
+        internal IReadOnlyList<GeoPoint2> InsertionPointsOf(string handle) =>
+            handle != null && _insertions.TryGetValue(handle, out List<GeoPoint2> points) ? points : NoPoints;
 
         /// <summary>Keeps an insertion point of an entity.</summary>
         internal void AddInsertionPoint(string handle, double x, double y)
@@ -131,7 +134,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Closes the run of an entity drawn: the items added since <paramref name="start"/>, the layers it read, and the other entities and anonymous blocks it read (null for none).</summary>
-        internal void AddRun(string handle, int start, ulong layers, string[] reads) => _runs.Add(new DisplayRun(handle, start, _items.Count - start, layers, reads));
+        internal void AddRun(string handle, int start, ulong layers, string[] reads) =>
+            _runs.Add(new DisplayRun(handle, start, _items.Count - start, layers, reads));
 
         /// <summary>Takes the run of an entity from an older list of the same space as it was drawn there: its items, its insertion points and its layers.</summary>
         internal void CopyRun(DisplayList2 from, DisplayRun run)
@@ -144,7 +148,10 @@ namespace GeometryHelper.Dxf.Viewer
                 Add(from._items[i]);
             }
 
-            if (!string.IsNullOrEmpty(run.Handle) && from._insertions.TryGetValue(run.Handle, out List<GeoPoint2> points))
+            if (
+                !string.IsNullOrEmpty(run.Handle)
+                && from._insertions.TryGetValue(run.Handle, out List<GeoPoint2> points)
+            )
             {
                 _insertions[run.Handle] = points;
             }
@@ -202,7 +209,21 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="style">How its frame is drawn.</param>
         /// <param name="handle">The handle of the viewport entity.</param>
         /// <param name="layer">The layer of the viewport entity.</param>
-        public DisplayViewport2(double centerX, double centerY, double width, double height, double viewCenterX, double viewCenterY, double scale, double twist, DisplayList2 model, ISet<string> frozenLayers, DisplayStyle style, string handle, string layer)
+        public DisplayViewport2(
+            double centerX,
+            double centerY,
+            double width,
+            double height,
+            double viewCenterX,
+            double viewCenterY,
+            double scale,
+            double twist,
+            DisplayList2 model,
+            ISet<string> frozenLayers,
+            DisplayStyle style,
+            string handle,
+            string layer
+        )
             : base(style, handle, layer)
         {
             CenterX = centerX;
@@ -215,7 +236,12 @@ namespace GeometryHelper.Dxf.Viewer
             Twist = twist;
             Model = model ?? throw new ArgumentNullException(nameof(model));
             FrozenLayers = frozenLayers ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            _bounds = new DisplayBox(centerX - width / 2.0, centerY - height / 2.0, centerX + width / 2.0, centerY + height / 2.0);
+            _bounds = new DisplayBox(
+                centerX - width / 2.0,
+                centerY - height / 2.0,
+                centerX + width / 2.0,
+                centerY + height / 2.0
+            );
         }
 
         /// <summary>Gets the X of the centre of the frame, in paper units.</summary>

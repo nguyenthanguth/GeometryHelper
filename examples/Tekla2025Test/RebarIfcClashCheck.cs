@@ -58,7 +58,8 @@ namespace Tekla2025Test
                 // ModelObjectSelector too, hence the full name). A rebar set is not a Reinforcement, but holds them.
                 var reinforcements = new List<Reinforcement>();
                 var referenceObjects = new List<ReferenceModelObject>();
-                ModelObjectEnumerator selection = new Tekla.Structures.Model.UI.ModelObjectSelector().GetSelectedObjects();
+                ModelObjectEnumerator selection =
+                    new Tekla.Structures.Model.UI.ModelObjectSelector().GetSelectedObjects();
                 while (selection.MoveNext())
                 {
                     if (selection.Current is Reinforcement reinforcement)
@@ -79,7 +80,10 @@ namespace Tekla2025Test
 
                 if (reinforcements.Count == 0 || referenceObjects.Count == 0)
                 {
-                    MessageBox.Show("Select reinforcement and the reference objects to check it against.", "Clash check");
+                    MessageBox.Show(
+                        "Select reinforcement and the reference objects to check it against.",
+                        "Clash check"
+                    );
                     return;
                 }
 
@@ -110,7 +114,9 @@ namespace Tekla2025Test
                     {
                         try
                         {
-                            bars.Add(GeoSolid3.Pipe(geometry.ToGeoPolylineArc3(), geometry.ToBarRadius(), BarChordTolerance));
+                            bars.Add(
+                                GeoSolid3.Pipe(geometry.ToGeoPolylineArc3(), geometry.ToBarRadius(), BarChordTolerance)
+                            );
                             barOwners.Add(reinforcement);
                         }
                         catch (Exception error) when (error is ArgumentException || error is InvalidOperationException)
@@ -130,7 +136,9 @@ namespace Tekla2025Test
                 // can say which member it is with: the same work as ToGeoSolids, which gives the bodies alone. Their
                 // openings are left uncut here (ApplyVoids = false) for speed, so a bar through a hole in a web is
                 // reported; set it to true when openings matter.
-                IReadOnlyList<IfcProductGeometry> products = referenceObjects.ToIfcGeometries(new IfcConvertOptions { ApplyVoids = false });
+                IReadOnlyList<IfcProductGeometry> products = referenceObjects.ToIfcGeometries(
+                    new IfcConvertOptions { ApplyVoids = false }
+                );
                 var bodies = new List<GeoSolid3>();
                 var bodyOwners = new List<IfcProductGeometry>();
                 foreach (IfcProductGeometry product in products)
@@ -151,23 +159,32 @@ namespace Tekla2025Test
 
                 string notBuilt = unbuilt > 0 ? $" ({unbuilt} could not be built)" : string.Empty;
                 string found =
-                    $"{bars.Count} bar(s){notBuilt}, {bars.Sum(bar => bar.Faces.Count)} faces, of {reinforcements.Count} reinforcement(s), " +
-                    $"against {bodies.Count} IFC body(ies), {bodies.Sum(body => body.Faces.Count)} faces, " +
-                    $"of {products.Count} IFC product(s) from {referenceObjects.Count} reference object(s)." +
-                    Environment.NewLine +
-                    $"{clashes.Count(c => c.Kind == ClashKind.Hard)} hard, {clashes.Count(c => c.Kind == ClashKind.Touch)} touching, " +
-                    $"{clashes.Count(c => c.Kind == ClashKind.Clearance)} nearer than {Clearance} mm, {clashes.Count(c => c.Kind == ClashKind.Unresolved)} unresolved.";
+                    $"{bars.Count} bar(s){notBuilt}, {bars.Sum(bar => bar.Faces.Count)} faces, of {reinforcements.Count} reinforcement(s), "
+                    + $"against {bodies.Count} IFC body(ies), {bodies.Sum(body => body.Faces.Count)} faces, "
+                    + $"of {products.Count} IFC product(s) from {referenceObjects.Count} reference object(s)."
+                    + Environment.NewLine
+                    + $"{clashes.Count(c => c.Kind == ClashKind.Hard)} hard, {clashes.Count(c => c.Kind == ClashKind.Touch)} touching, "
+                    + $"{clashes.Count(c => c.Kind == ClashKind.Clearance)} nearer than {Clearance} mm, {clashes.Count(c => c.Kind == ClashKind.Unresolved)} unresolved.";
 
                 // Nothing in the model changed. The clashes are listed in a window of their own, which leaves Tekla free to
                 // use, and draws a clash and zooms to it when asked.
-                string summary = found + Environment.NewLine + Environment.NewLine + Members(clashes, barOwners, bodyOwners) +
-                    Environment.NewLine + Environment.NewLine + Timings(stages, total.Elapsed);
+                string summary =
+                    found
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + Members(clashes, barOwners, bodyOwners)
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + Timings(stages, total.Elapsed);
                 new ClashReportForm("Clash check", summary, clashes, barOwners, bodyOwners).Show();
             }
             catch (Exception ex)
             {
                 Lap("Until it failed");
-                MessageBox.Show(Timings(stages, total.Elapsed) + Environment.NewLine + Environment.NewLine + ex, "Clash check failed");
+                MessageBox.Show(
+                    Timings(stages, total.Elapsed) + Environment.NewLine + Environment.NewLine + ex,
+                    "Clash check failed"
+                );
             }
         }
 
@@ -180,7 +197,9 @@ namespace Tekla2025Test
 
             foreach ((string stage, TimeSpan time) in stages)
             {
-                text.AppendLine($"{stage}: {time.TotalMilliseconds:0.#} ms ({time.TotalMilliseconds / total.TotalMilliseconds:0%})");
+                text.AppendLine(
+                    $"{stage}: {time.TotalMilliseconds:0.#} ms ({time.TotalMilliseconds / total.TotalMilliseconds:0%})"
+                );
             }
 
             text.Append($"Total: {total.TotalMilliseconds:0.#} ms");
@@ -192,10 +211,16 @@ namespace Tekla2025Test
         /// reinforcement of several bars, or a product of several bodies, can clash more than once; each pair of
         /// members is listed once, with how many clashes of each kind it has.
         /// </summary>
-        private static string Members(IEnumerable<ClashResult> clashes, IReadOnlyList<Reinforcement> barOwners, IReadOnlyList<IfcProductGeometry> bodyOwners)
+        private static string Members(
+            IEnumerable<ClashResult> clashes,
+            IReadOnlyList<Reinforcement> barOwners,
+            IReadOnlyList<IfcProductGeometry> bodyOwners
+        )
         {
             // By the product itself rather than its GlobalId: the same IFC file loaded twice is two sets of members.
-            var pairs = clashes.GroupBy(clash => (Rebar: barOwners[clash.First].Identifier.ID, Product: bodyOwners[clash.Second])).ToList();
+            var pairs = clashes
+                .GroupBy(clash => (Rebar: barOwners[clash.First].Identifier.ID, Product: bodyOwners[clash.Second]))
+                .ToList();
 
             if (pairs.Count == 0)
             {
@@ -203,9 +228,11 @@ namespace Tekla2025Test
             }
 
             var text = new StringBuilder();
-            text.AppendLine(pairs.Count > ListedPairs
-                ? $"{pairs.Count} pairs of members clash; the first {ListedPairs}:"
-                : $"{pairs.Count} pair(s) of members clash:");
+            text.AppendLine(
+                pairs.Count > ListedPairs
+                    ? $"{pairs.Count} pairs of members clash; the first {ListedPairs}:"
+                    : $"{pairs.Count} pair(s) of members clash:"
+            );
 
             foreach (var pair in pairs.Take(ListedPairs))
             {
@@ -227,7 +254,9 @@ namespace Tekla2025Test
 
                 if (near.Length > 0)
                 {
-                    what.Add($"{near.Length} nearer than {Clearance} mm, the nearest {near.Min(clash => clash.Distance):0.0} mm");
+                    what.Add(
+                        $"{near.Length} nearer than {Clearance} mm, the nearest {near.Min(clash => clash.Distance):0.0} mm"
+                    );
                 }
 
                 if (unresolved > 0)
@@ -235,7 +264,9 @@ namespace Tekla2025Test
                     what.Add($"{unresolved} unresolved");
                 }
 
-                text.AppendLine($"   rebar {pair.Key.Rebar} x {NameOf(pair.Key.Product)} ({pair.Key.Product.GlobalId}): {string.Join(", ", what)}");
+                text.AppendLine(
+                    $"   rebar {pair.Key.Rebar} x {NameOf(pair.Key.Product)} ({pair.Key.Product.GlobalId}): {string.Join(", ", what)}"
+                );
             }
 
             return text.ToString().TrimEnd();

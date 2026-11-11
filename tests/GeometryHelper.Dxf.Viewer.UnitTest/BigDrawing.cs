@@ -19,9 +19,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             var text = new StringBuilder(count * 160);
             text.Append("0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1015\n9\n$HANDSEED\n5\nFFFFFF\n0\nENDSEC\n");
             text.Append("0\nSECTION\n2\nTABLES\n");
-            text.Append("0\nTABLE\n2\nLTYPE\n70\n1\n0\nLTYPE\n2\nCONTINUOUS\n70\n0\n3\nSolid line\n72\n65\n73\n0\n40\n0\n0\nENDTAB\n");
+            text.Append(
+                "0\nTABLE\n2\nLTYPE\n70\n1\n0\nLTYPE\n2\nCONTINUOUS\n70\n0\n3\nSolid line\n72\n65\n73\n0\n40\n0\n0\nENDTAB\n"
+            );
             text.Append("0\nTABLE\n2\nLAYER\n70\n3\n");
-            text.Append(TestDrawings.Layer("0", 7)).Append(TestDrawings.Layer("Steel", 1)).Append(TestDrawings.Layer("Notes", 2)).Append(TestDrawings.Layer("Bolts", 3));
+            text.Append(TestDrawings.Layer("0", 7))
+                .Append(TestDrawings.Layer("Steel", 1))
+                .Append(TestDrawings.Layer("Notes", 2))
+                .Append(TestDrawings.Layer("Bolts", 3));
             text.Append("0\nENDTAB\n0\nENDSEC\n");
             text.Append("0\nSECTION\n2\nBLOCKS\n0\nBLOCK\n8\n0\n2\nB20\n70\n0\n10\n0\n20\n0\n30\n0\n3\nB20\n1\n\n");
 
@@ -54,7 +59,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 string handle = (0x100 + i).ToString("X", CultureInfo.InvariantCulture);
                 double x = (i % Columns) * Cell;
                 double y = (i / Columns) * Cell;
-                string layer = (i % 3) == 0 ? "Steel" : (i % 3) == 1 ? "Notes" : "Bolts";
+                string layer =
+                    (i % 3) == 0 ? "Steel"
+                    : (i % 3) == 1 ? "Notes"
+                    : "Bolts";
 
                 if (i % 50 == 25)
                 {
@@ -76,9 +84,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                         Circle(text, handle, layer, x + 15, y + 15, 9);
                         break;
                     case 3:
-                        text.Append("0\nLWPOLYLINE\n5\n").Append(handle).Append("\n8\n").Append(layer).Append("\n100\nAcDbEntity\n100\nAcDbPolyline\n90\n4\n70\n1\n");
+                        text.Append("0\nLWPOLYLINE\n5\n")
+                            .Append(handle)
+                            .Append("\n8\n")
+                            .Append(layer)
+                            .Append("\n100\nAcDbEntity\n100\nAcDbPolyline\n90\n4\n70\n1\n");
                         text.Append("10\n").Append(Number(x)).Append("\n20\n").Append(Number(y)).Append('\n');
-                        text.Append("10\n").Append(Number(x + 20)).Append("\n20\n").Append(Number(y)).Append("\n42\n0.5\n");
+                        text.Append("10\n")
+                            .Append(Number(x + 20))
+                            .Append("\n20\n")
+                            .Append(Number(y))
+                            .Append("\n42\n0.5\n");
                         text.Append("10\n").Append(Number(x + 20)).Append("\n20\n").Append(Number(y + 20)).Append('\n');
                         text.Append("10\n").Append(Number(x)).Append("\n20\n").Append(Number(y + 20)).Append('\n');
                         break;
@@ -96,8 +112,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
         private static string Number(double value) => TestDrawings.Number(value);
 
-        private static void Point(StringBuilder text, int code, double x, double y)
-            => text.Append(code).Append('\n').Append(Number(x)).Append('\n').Append(code + 10).Append('\n').Append(Number(y)).Append('\n').Append(code + 20).Append("\n0\n");
+        private static void Point(StringBuilder text, int code, double x, double y) =>
+            text.Append(code)
+                .Append('\n')
+                .Append(Number(x))
+                .Append('\n')
+                .Append(code + 10)
+                .Append('\n')
+                .Append(Number(y))
+                .Append('\n')
+                .Append(code + 20)
+                .Append("\n0\n");
 
         private static void Head(StringBuilder text, string type, string handle, string layer)
         {
@@ -111,7 +136,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             text.Append("8\n").Append(layer).Append('\n');
         }
 
-        private static void Line(StringBuilder text, string handle, string layer, double x0, double y0, double x1, double y1)
+        private static void Line(
+            StringBuilder text,
+            string handle,
+            string layer,
+            double x0,
+            double y0,
+            double x1,
+            double y1
+        )
         {
             Head(text, "LINE", handle, layer);
             Point(text, 10, x0, y0);
@@ -125,11 +158,26 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             text.Append("40\n").Append(Number(radius)).Append('\n');
         }
 
-        private static void Arc(StringBuilder text, string handle, string layer, double x, double y, double radius, double start, double end)
+        private static void Arc(
+            StringBuilder text,
+            string handle,
+            string layer,
+            double x,
+            double y,
+            double radius,
+            double start,
+            double end
+        )
         {
             Head(text, "ARC", handle, layer);
             Point(text, 10, x, y);
-            text.Append("40\n").Append(Number(radius)).Append("\n50\n").Append(Number(start)).Append("\n51\n").Append(Number(end)).Append('\n');
+            text.Append("40\n")
+                .Append(Number(radius))
+                .Append("\n50\n")
+                .Append(Number(start))
+                .Append("\n51\n")
+                .Append(Number(end))
+                .Append('\n');
         }
     }
 }

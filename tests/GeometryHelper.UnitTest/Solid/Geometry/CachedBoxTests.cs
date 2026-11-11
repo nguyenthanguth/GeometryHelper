@@ -57,14 +57,20 @@ namespace GeometryHelper.UnitTest.Solid
             for (int round = 0; round < 50; round++)
             {
                 var centre = new GeoPoint3(rng.Next(-1000, 1000), rng.Next(-1000, 1000), rng.Next(-1000, 1000));
-                var circle = new GeoCircle3(centre, new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() + 0.1), rng.Next(1, 300));
+                var circle = new GeoCircle3(
+                    centre,
+                    new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() + 0.1),
+                    rng.Next(1, 300)
+                );
                 GeoPolygon3 polygon = circle.ToPolygon(3 + rng.Next(0, 20));
 
                 AssertKept(polygon);
                 AssertKept(polygon.Flip());
                 AssertKept(polygon.Clone());
                 AssertKept(new GeoPolygon3(polygon.Vertices.Reverse()));
-                AssertKept(polygon.TransformBy(GeoTransform3.RotationAxis(centre, GeoVector3.ZAxis, rng.NextDouble() * 6)));
+                AssertKept(
+                    polygon.TransformBy(GeoTransform3.RotationAxis(centre, GeoVector3.ZAxis, rng.NextDouble() * 6))
+                );
             }
         }
 
@@ -82,8 +88,18 @@ namespace GeometryHelper.UnitTest.Solid
                 plate,
                 plate.Clone(),
                 box.TransformBy(GeoTransform3.RotationAxis(new GeoPoint3(50, 30, 10), new GeoVector3(1, 2, 3), 0.7)),
-                GeoSolid3.Extrude(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(40, 0), new GeoPoint2(40, 10), new GeoPoint2(10, 10), new GeoPoint2(10, 40), new GeoPoint2(0, 40)),
-                    new GeoCoordinateSystem3(new GeoPoint3(5, 5, 5), GeoVector3.XAxis, GeoVector3.YAxis), 30),
+                GeoSolid3.Extrude(
+                    new GeoPolygon2(
+                        new GeoPoint2(0, 0),
+                        new GeoPoint2(40, 0),
+                        new GeoPoint2(40, 10),
+                        new GeoPoint2(10, 10),
+                        new GeoPoint2(10, 40),
+                        new GeoPoint2(0, 40)
+                    ),
+                    new GeoCoordinateSystem3(new GeoPoint3(5, 5, 5), GeoVector3.XAxis, GeoVector3.YAxis),
+                    30
+                ),
             };
 
             Assert.True(plate.TryCutOpenings(out GeoSolid3 material));
@@ -104,7 +120,9 @@ namespace GeometryHelper.UnitTest.Solid
             }
 
             // The openings take material away and do not widen the box.
-            GeoSolid3 poking = box.WithOpenings(new[] { GeoSolid3.Cylinder(new GeoPoint3(50, 30, -500), new GeoPoint3(50, 30, 500), 5, 8) });
+            GeoSolid3 poking = box.WithOpenings(
+                new[] { GeoSolid3.Cylinder(new GeoPoint3(50, 30, -500), new GeoPoint3(50, 30, 500), 5, 8) }
+            );
             Assert.Equal(box.GetAabb().Min, poking.GetAabb().Min);
             Assert.Equal(box.GetAabb().Max, poking.GetAabb().Max);
         }

@@ -10,9 +10,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             DxfDatabase database = TestDrawings.DrawingWithLinetypes(
                 TestDrawings.Linetype("DASHED", 10, -5),
-                TestDrawings.Layer("Steel", 1) + TestDrawings.Layer("Empty", 2) + TestDrawings.Layer("Defpoints", 7) + TestDrawings.Layer("Base|Grid", 3),
+                TestDrawings.Layer("Steel", 1)
+                    + TestDrawings.Layer("Empty", 2)
+                    + TestDrawings.Layer("Defpoints", 7)
+                    + TestDrawings.Layer("Base|Grid", 3),
                 null,
-                TestDrawings.Line(0, 0, 100, 0, "Steel", handle: "A1"));
+                TestDrawings.Line(0, 0, 100, 0, "Steel", handle: "A1")
+            );
             return CadDocument.From(database, "layers.dxf");
         }
 
@@ -39,11 +43,26 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadLayerEditor.SetCurrent(document, "Empty");
             string before = document.Database.ToText();
 
-            Assert.Equal("Layer \"0\" cannot be deleted: layer 0 and Defpoints are kept.", CadLayerEditor.Delete(document, "0").Message);
-            Assert.Equal("Layer \"Defpoints\" cannot be deleted: layer 0 and Defpoints are kept.", CadLayerEditor.Delete(document, "Defpoints").Message);
-            Assert.Equal("Layer \"Empty\" cannot be deleted: it is the current layer.", CadLayerEditor.Delete(document, "Empty").Message);
-            Assert.Equal("Layer \"Base|Grid\" cannot be deleted: it is part of an external reference.", CadLayerEditor.Delete(document, "Base|Grid").Message);
-            Assert.Equal("Layer \"Steel\" cannot be deleted: objects are on it.", CadLayerEditor.Delete(document, "Steel").Message);
+            Assert.Equal(
+                "Layer \"0\" cannot be deleted: layer 0 and Defpoints are kept.",
+                CadLayerEditor.Delete(document, "0").Message
+            );
+            Assert.Equal(
+                "Layer \"Defpoints\" cannot be deleted: layer 0 and Defpoints are kept.",
+                CadLayerEditor.Delete(document, "Defpoints").Message
+            );
+            Assert.Equal(
+                "Layer \"Empty\" cannot be deleted: it is the current layer.",
+                CadLayerEditor.Delete(document, "Empty").Message
+            );
+            Assert.Equal(
+                "Layer \"Base|Grid\" cannot be deleted: it is part of an external reference.",
+                CadLayerEditor.Delete(document, "Base|Grid").Message
+            );
+            Assert.Equal(
+                "Layer \"Steel\" cannot be deleted: objects are on it.",
+                CadLayerEditor.Delete(document, "Steel").Message
+            );
             Assert.True(CadLayerEditor.Delete(document, "Nope").Refused);
             Assert.Equal(before, document.Database.ToText());
         }
@@ -56,7 +75,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(CadLayerEditor.SetLinetype(document, "Steel", "dashed").Succeeded);
             Assert.Equal("DASHED", document.Database.LayerTable["Steel"].LinetypeName);
             Assert.Equal("LAYER", document.NextUndo.Name);
-            Assert.Equal("The drawing has no linetype \"HIDDEN\": load it into the drawing first.", CadLayerEditor.SetLinetype(document, "Steel", "HIDDEN").Message);
+            Assert.Equal(
+                "The drawing has no linetype \"HIDDEN\": load it into the drawing first.",
+                CadLayerEditor.SetLinetype(document, "Steel", "HIDDEN").Message
+            );
             Assert.True(CadLayerEditor.SetLinetype(document, "Steel", "ByLayer").Refused);
         }
 

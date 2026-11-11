@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -68,10 +68,14 @@ namespace GeometryHelper.Geometry
             {
                 switch (index)
                 {
-                    case 0: return A;
-                    case 1: return B;
-                    case 2: return C;
-                    default: throw new ArgumentOutOfRangeException(nameof(index), "A triangle has three vertices.");
+                    case 0:
+                        return A;
+                    case 1:
+                        return B;
+                    case 2:
+                        return C;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(index), "A triangle has three vertices.");
                 }
             }
         }
@@ -84,10 +88,14 @@ namespace GeometryHelper.Geometry
         {
             switch (index)
             {
-                case 0: return new GeoLine2(A, B);
-                case 1: return new GeoLine2(B, C);
-                case 2: return new GeoLine2(C, A);
-                default: throw new ArgumentOutOfRangeException(nameof(index), "A triangle has three edges.");
+                case 0:
+                    return new GeoLine2(A, B);
+                case 1:
+                    return new GeoLine2(B, C);
+                case 2:
+                    return new GeoLine2(C, A);
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(index), "A triangle has three edges.");
             }
         }
 
@@ -149,8 +157,10 @@ namespace GeometryHelper.Geometry
 
         private static double AngleAt(GeoPoint2 vertex, GeoPoint2 next, GeoPoint2 previous)
         {
-            double ux = next.X - vertex.X, uy = next.Y - vertex.Y;
-            double vx = previous.X - vertex.X, vy = previous.Y - vertex.Y;
+            double ux = next.X - vertex.X,
+                uy = next.Y - vertex.Y;
+            double vx = previous.X - vertex.X,
+                vy = previous.Y - vertex.Y;
 
             return Math.Atan2(Math.Abs(ux * vy - uy * vx), ux * vx + uy * vy);
         }
@@ -169,8 +179,10 @@ namespace GeometryHelper.Geometry
             }
 
             // Measured from A, so that a triangle far from the origin costs no precision.
-            double bx = B.X - A.X, by = B.Y - A.Y;
-            double cx = C.X - A.X, cy = C.Y - A.Y;
+            double bx = B.X - A.X,
+                by = B.Y - A.Y;
+            double cx = C.X - A.X,
+                cy = C.Y - A.Y;
             double d = 2.0 * (bx * cy - by * cx);
             double b2 = bx * bx + by * by;
             double c2 = cx * cx + cy * cy;
@@ -199,7 +211,10 @@ namespace GeometryHelper.Geometry
                 return false;
             }
 
-            var center = new GeoPoint2((a * A.X + b * B.X + c * C.X) / perimeter, (a * A.Y + b * B.Y + c * C.Y) / perimeter);
+            var center = new GeoPoint2(
+                (a * A.X + b * B.X + c * C.X) / perimeter,
+                (a * A.Y + b * B.Y + c * C.Y) / perimeter
+            );
             circle = new GeoCircle2(center, 2.0 * Area / perimeter);
             return true;
         }
@@ -245,9 +260,12 @@ namespace GeometryHelper.Geometry
                 return false;
             }
 
-            double px = point.X - A.X, py = point.Y - A.Y;
-            double bx = B.X - A.X, by = B.Y - A.Y;
-            double cx = C.X - A.X, cy = C.Y - A.Y;
+            double px = point.X - A.X,
+                py = point.Y - A.Y;
+            double bx = B.X - A.X,
+                by = B.Y - A.Y;
+            double cx = C.X - A.X,
+                cy = C.Y - A.Y;
 
             v = (px * cy - py * cx) / cross;
             w = (bx * py - by * px) / cross;
@@ -280,7 +298,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vector">How far to move it, and which way.</param>
         /// <returns>The triangle in its new place.</returns>
-        public GeoTriangle2 Translate(GeoVector2 vector) => new GeoTriangle2(A.Add(vector), B.Add(vector), C.Add(vector));
+        public GeoTriangle2 Translate(GeoVector2 vector) =>
+            new GeoTriangle2(A.Add(vector), B.Add(vector), C.Add(vector));
 
         /// <summary>
         /// Rotates the triangle around a point, counter-clockwise by an angle in radians.
@@ -288,8 +307,8 @@ namespace GeometryHelper.Geometry
         /// <param name="angleRad">Rotation angle in radians.</param>
         /// <param name="center">Center of rotation.</param>
         /// <returns>The rotated triangle.</returns>
-        public GeoTriangle2 RotateBy(double angleRad, GeoPoint2 center)
-            => new GeoTriangle2(A.RotateBy(angleRad, center), B.RotateBy(angleRad, center), C.RotateBy(angleRad, center));
+        public GeoTriangle2 RotateBy(double angleRad, GeoPoint2 center) =>
+            new GeoTriangle2(A.RotateBy(angleRad, center), B.RotateBy(angleRad, center), C.RotateBy(angleRad, center));
 
         /// <summary>
         /// Applies a transformation to this triangle. A transformation that turns shapes round, a mirror or a negative
@@ -355,7 +374,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Locates a point relative to this triangle, within a tolerance: on its edges, inside it, or outside.
         /// </summary>
-        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) => Containment2.Locate(this, point, tolerance);
+        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) =>
+            Containment2.Locate(this, point, tolerance);
 
         /// <summary>
         /// Checks whether a point lies inside this triangle or on its edges, using the default tolerance.
@@ -389,7 +409,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this triangle holds a polyline whole, its edges included, within a tolerance.
         /// </summary>
-        public bool Contains(GeoPolyline2 polyline, Tolerance tolerance) => Triangle2.Contains(this, polyline, tolerance);
+        public bool Contains(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Triangle2.Contains(this, polyline, tolerance);
 
         /// <summary>
         /// Checks whether an edge of this triangle runs parallel to a segment, using the default tolerance.
@@ -476,9 +497,11 @@ namespace GeometryHelper.Geometry
         {
             for (int shift = 0; shift < 3; shift++)
             {
-                if (A.IsEqualTo(other[shift], tolerance) &&
-                    B.IsEqualTo(other[(shift + 1) % 3], tolerance) &&
-                    C.IsEqualTo(other[(shift + 2) % 3], tolerance))
+                if (
+                    A.IsEqualTo(other[shift], tolerance)
+                    && B.IsEqualTo(other[(shift + 1) % 3], tolerance)
+                    && C.IsEqualTo(other[(shift + 2) % 3], tolerance)
+                )
                 {
                     return true;
                 }

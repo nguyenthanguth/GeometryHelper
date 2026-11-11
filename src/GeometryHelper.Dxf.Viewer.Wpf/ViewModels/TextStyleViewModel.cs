@@ -112,9 +112,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public TextStyleViewModel(CadDocument document)
         {
             _document = document ?? throw new ArgumentNullException(nameof(document));
-            _shxFiles = ShxFiles(document.Fonts.Folders.Concat(new[] { document.HasFile ? Path.GetDirectoryName(document.FileName) : null }));
+            _shxFiles = ShxFiles(
+                document.Fonts.Folders.Concat(
+                    new[] { document.HasFile ? Path.GetDirectoryName(document.FileName) : null }
+                )
+            );
             var fonts = new List<FontItemViewModel>();
-            fonts.AddRange(_shxFiles.Where(f => !f.Value && !CadFonts.IsBuiltIn(f.Key)).Select(f => new FontItemViewModel(f.Key, false)));
+            fonts.AddRange(
+                _shxFiles
+                    .Where(f => !f.Value && !CadFonts.IsBuiltIn(f.Key))
+                    .Select(f => new FontItemViewModel(f.Key, false))
+            );
             fonts.AddRange(CadTrueTypeFonts.Families.Select(f => new FontItemViewModel(f, true)));
             fonts.Add(new FontItemViewModel(BuiltInFont, false));
             FontNames = Ordered(fonts);
@@ -214,8 +222,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets whether the font is TrueType: Font Style is offered, Use Big Font and Vertical are not.</summary>
-        public bool IsTrueType => FontNames.Any(f => f.IsTrueType && string.Equals(f.Name, _fontName, StringComparison.OrdinalIgnoreCase))
-            || (_fontName != null && !_fontName.EndsWith(".shx", StringComparison.OrdinalIgnoreCase) && Path.GetExtension(_fontName).Length > 0);
+        public bool IsTrueType =>
+            FontNames.Any(f => f.IsTrueType && string.Equals(f.Name, _fontName, StringComparison.OrdinalIgnoreCase))
+            || (
+                _fontName != null
+                && !_fontName.EndsWith(".shx", StringComparison.OrdinalIgnoreCase)
+                && Path.GetExtension(_fontName).Length > 0
+            );
 
         /// <summary>Gets the font styles of a TrueType font: Regular, Bold, Italic, Bold Italic.</summary>
         public IReadOnlyList<string> FontStyles => Styles4;
@@ -377,10 +390,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return _notice;
                 }
 
-                return "Unsaved changes to " + _selected.Name + ". Apply redraws the " + _selected.Uses.ToString(CultureInfo.InvariantCulture)
-                    + (_selected.Uses == 1 ? " text that uses it" : " texts that use it") + ", as one undo step.";
+                return "Unsaved changes to "
+                    + _selected.Name
+                    + ". Apply redraws the "
+                    + _selected.Uses.ToString(CultureInfo.InvariantCulture)
+                    + (_selected.Uses == 1 ? " text that uses it" : " texts that use it")
+                    + ", as one undo step.";
             }
-
             private set
             {
                 _notice = value ?? string.Empty;
@@ -401,7 +417,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string PreviewTitle => "Preview · " + _selected?.Name;
 
         /// <summary>Gets the line at the foot: "Current style: Standard · 6 styles".</summary>
-        public string Footer => "Current style: " + CadTextStyleEditor.Current(_document.Database) + " · " + Styles.Count.ToString(CultureInfo.InvariantCulture) + (Styles.Count == 1 ? " style" : " styles");
+        public string Footer =>
+            "Current style: "
+            + CadTextStyleEditor.Current(_document.Database)
+            + " · "
+            + Styles.Count.ToString(CultureInfo.InvariantCulture)
+            + (Styles.Count == 1 ? " style" : " styles");
 
         /// <summary>Gets what the Font style box shows for an SHX font, which takes none: "Regular · not for SHX fonts".</summary>
         public string FontStyleUnused => "Regular · not for SHX fonts";
@@ -417,7 +438,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets the preview: "AaBbCcD 123" in the settings shown, drawn as the canvas draws it.</summary>
-        public ImageSource Preview => _preview ?? (_preview = Read(out CadTextStyleSettings settings, out _) ? CadStylePreview.Text(settings, _document.Fonts, 516, 92) : null);
+        public ImageSource Preview =>
+            _preview
+            ?? (
+                _preview = Read(out CadTextStyleSettings settings, out _)
+                    ? CadStylePreview.Text(settings, _document.Fonts, 516, 92)
+                    : null
+            );
 
         /// <summary>Gets the command of Set Current.</summary>
         public ICommand SetCurrentCommand { get; }
@@ -474,7 +501,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
-            return Report(CadTextStyleEditor.Delete(_document, _selected.Name), CadTextStyleEditor.Current(_document.Database));
+            return Report(
+                CadTextStyleEditor.Delete(_document, _selected.Name),
+                CadTextStyleEditor.Current(_document.Database)
+            );
         }
 
         /// <summary>Renames the style shown.</summary>
@@ -532,7 +562,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
-            bool? answer = AskSave == null ? false : AskSave("The current style has been modified. Do you want to save your changes?");
+            bool? answer =
+                AskSave == null
+                    ? false
+                    : AskSave("The current style has been modified. Do you want to save your changes?");
 
             if (answer == null)
             {
@@ -572,13 +605,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 int uses = CadTextStyleEditor.CountUses(_document.Database, style.Name);
 
-                if (_filter == AllStyles || uses > 0 || string.Equals(style.Name, current, StringComparison.OrdinalIgnoreCase))
+                if (
+                    _filter == AllStyles
+                    || uses > 0
+                    || string.Equals(style.Name, current, StringComparison.OrdinalIgnoreCase)
+                )
                 {
-                    Styles.Add(new StyleRowViewModel(style.Name, string.Equals(style.Name, current, StringComparison.OrdinalIgnoreCase), uses, FontOf(CadTextStyleSettings.Of(style))));
+                    Styles.Add(
+                        new StyleRowViewModel(
+                            style.Name,
+                            string.Equals(style.Name, current, StringComparison.OrdinalIgnoreCase),
+                            uses,
+                            FontOf(CadTextStyleSettings.Of(style))
+                        )
+                    );
                 }
             }
 
-            _selected = Styles.FirstOrDefault(s => string.Equals(s.Name, show, StringComparison.OrdinalIgnoreCase)) ?? Styles.FirstOrDefault();
+            _selected = Styles.FirstOrDefault(s => string.Equals(s.Name, show, StringComparison.OrdinalIgnoreCase))
+                ?? Styles.FirstOrDefault();
             Raise(nameof(SelectedStyle));
             Raise(nameof(CurrentStyleText));
             Raise(nameof(PreviewTitle));
@@ -589,7 +634,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Shows the settings of the selected style as it is in the drawing, nothing changed.</summary>
         private void Load()
         {
-            DxfTextStyleTableRecord style = _selected == null ? null : _document.Database.TextStyleTable[_selected.Name];
+            DxfTextStyleTableRecord style =
+                _selected == null ? null : _document.Database.TextStyleTable[_selected.Name];
             CadTextStyleSettings settings = style == null ? new CadTextStyleSettings() : CadTextStyleSettings.Of(style);
             _saved = settings;
             _loading = true;
@@ -601,7 +647,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Raise(nameof(FontNames));
             }
 
-            FontStyle = settings.Font.Bold ? (settings.Font.Italic ? "Bold Italic" : "Bold") : (settings.Font.Italic ? "Italic" : "Regular");
+            FontStyle = settings.Font.Bold
+                ? (settings.Font.Italic ? "Bold Italic" : "Bold")
+                : (settings.Font.Italic ? "Italic" : "Regular");
             BigFont = settings.BigFontFileName.Length > 0 ? settings.BigFontFileName : null;
             UseBigFont = settings.BigFontFileName.Length > 0;
             Height = Number(settings.Height);
@@ -660,13 +708,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (IsTrueType)
             {
-                string family = Path.GetExtension(_fontName ?? string.Empty).Length > 0 ? CadTrueTypeFonts.FamilyOf(_fontName) ?? Path.GetFileNameWithoutExtension(_fontName) : _fontName;
+                string family =
+                    Path.GetExtension(_fontName ?? string.Empty).Length > 0
+                        ? CadTrueTypeFonts.FamilyOf(_fontName) ?? Path.GetFileNameWithoutExtension(_fontName)
+                        : _fontName;
                 bool bold = _fontStyle.StartsWith("Bold", StringComparison.Ordinal);
                 bool italic = _fontStyle.EndsWith("Italic", StringComparison.Ordinal);
                 DxfFontDescriptor was = _saved?.Font ?? default;
                 bool same = string.Equals(was.TypeFace, family, StringComparison.OrdinalIgnoreCase);
-                settings.FileName = same && _saved.FileName.Length > 0 ? _saved.FileName : CadTrueTypeFonts.FileOf(family);
-                settings.Font = new DxfFontDescriptor(family ?? string.Empty, bold, italic, same ? was.CharacterSet : 0, same ? was.PitchAndFamily : 34);
+                settings.FileName =
+                    same && _saved.FileName.Length > 0 ? _saved.FileName : CadTrueTypeFonts.FileOf(family);
+                settings.Font = new DxfFontDescriptor(
+                    family ?? string.Empty,
+                    bold,
+                    italic,
+                    same ? was.CharacterSet : 0,
+                    same ? was.PitchAndFamily : 34
+                );
             }
             else
             {
@@ -686,8 +744,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>The fonts in the list's order: the presenter's own first, then by name, an SHX file before a TrueType family of the same name.</summary>
-        private static List<FontItemViewModel> Ordered(IEnumerable<FontItemViewModel> fonts)
-            => fonts.OrderBy(f => f.Name == BuiltInFont ? 0 : 1).ThenBy(f => f.Name, StringComparer.OrdinalIgnoreCase).ThenBy(f => f.IsTrueType).ToList();
+        private static List<FontItemViewModel> Ordered(IEnumerable<FontItemViewModel> fonts) =>
+            fonts
+                .OrderBy(f => f.Name == BuiltInFont ? 0 : 1)
+                .ThenBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(f => f.IsTrueType)
+                .ToList();
 
         /// <summary>The font of a style as the list names it: its TrueType family, the presenter's own font by its name in the list, else its SHX file with .shx.</summary>
         private static string FontOf(CadTextStyleSettings settings)
@@ -739,7 +801,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 try
                 {
-                    foreach (string path in Directory.GetFiles(folder, "*.shx").OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
+                    foreach (
+                        string path in Directory
+                            .GetFiles(folder, "*.shx")
+                            .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                    )
                     {
                         string name = Path.GetFileName(path);
 
@@ -751,7 +817,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
                 catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
                 {
-                    GeometryHelperLog.Warn("TextStyleViewModel: the font folder " + folder + " could not be listed.", exception);
+                    GeometryHelperLog.Warn(
+                        "TextStyleViewModel: the font folder " + folder + " could not be listed.",
+                        exception
+                    );
                 }
             }
 
@@ -766,7 +835,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     var head = new byte[22];
                     int read = stream.Read(head, 0, head.Length);
-                    return Encoding.ASCII.GetString(head, 0, read).StartsWith("AutoCAD-86 bigfont", StringComparison.Ordinal);
+                    return Encoding
+                        .ASCII.GetString(head, 0, read)
+                        .StartsWith("AutoCAD-86 bigfont", StringComparison.Ordinal);
                 }
             }
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
@@ -775,8 +846,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private static bool TryNumber(string text, out double value)
-            => double.TryParse((text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value) && !double.IsNaN(value) && !double.IsInfinity(value);
+        private static bool TryNumber(string text, out double value) =>
+            double.TryParse((text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+            && !double.IsNaN(value)
+            && !double.IsInfinity(value);
 
         private static string Number(double value) => value.ToString("0.####", CultureInfo.InvariantCulture);
     }

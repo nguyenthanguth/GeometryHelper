@@ -58,7 +58,9 @@ namespace GeometryHelper.Dxf
 
             if (empty.Count > 0)
             {
-                GeometryHelperLog.Info("DxfDatabase: " + empty.Count.ToString(CultureInfo.InvariantCulture) + " empty objects were erased.");
+                GeometryHelperLog.Info(
+                    "DxfDatabase: " + empty.Count.ToString(CultureInfo.InvariantCulture) + " empty objects were erased."
+                );
             }
 
             return empty.Count;
@@ -102,7 +104,14 @@ namespace GeometryHelper.Dxf
 
             if (count.Length < ids.Count)
             {
-                throw new ArgumentException("The counts are " + count.Length.ToString(CultureInfo.InvariantCulture) + " for " + ids.Count.ToString(CultureInfo.InvariantCulture) + " objects: one is given for each.", nameof(count));
+                throw new ArgumentException(
+                    "The counts are "
+                        + count.Length.ToString(CultureInfo.InvariantCulture)
+                        + " for "
+                        + ids.Count.ToString(CultureInfo.InvariantCulture)
+                        + " objects: one is given for each.",
+                    nameof(count)
+                );
             }
 
             CheckOwn(ids, nameof(ids));
@@ -159,7 +168,9 @@ namespace GeometryHelper.Dxf
             foreach (DxfDBObject value in ids)
             {
                 // A layer, a linetype or a block any pointer names, a soft one too, is one its Erase refuses.
-                bool pointed = (value is DxfLayerTableRecord || value is DxfLinetypeTableRecord || value is DxfBlockTableRecord) && uses.IsPointedAt(value.Handle);
+                bool pointed =
+                    (value is DxfLayerTableRecord || value is DxfLinetypeTableRecord || value is DxfBlockTableRecord)
+                    && uses.IsPointedAt(value.Handle);
 
                 if (!pointed && !KeptByAutoCad(value, root) && References(value, uses) == 0)
                 {
@@ -194,7 +205,11 @@ namespace GeometryHelper.Dxf
 
             if (skippedModel + skippedPaper > 0)
             {
-                GeometryHelperLog.Debug("DxfDatabase: the extents were worked out anew, " + (skippedModel + skippedPaper).ToString(CultureInfo.InvariantCulture) + " entities having no extents to count.");
+                GeometryHelperLog.Debug(
+                    "DxfDatabase: the extents were worked out anew, "
+                        + (skippedModel + skippedPaper).ToString(CultureInfo.InvariantCulture)
+                        + " entities having no extents to count."
+                );
             }
         }
 
@@ -251,7 +266,12 @@ namespace GeometryHelper.Dxf
                     {
                         GeoPoint2 vertex = polyline.GetPoint2dAt(i);
 
-                        if (!SamePoint(new GeoPoint3(first.X, first.Y, elevation), new GeoPoint3(vertex.X, vertex.Y, elevation)))
+                        if (
+                            !SamePoint(
+                                new GeoPoint3(first.X, first.Y, elevation),
+                                new GeoPoint3(vertex.X, vertex.Y, elevation)
+                            )
+                        )
                         {
                             return false;
                         }
@@ -321,7 +341,10 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private static double RoundingOf(GeoPoint3 a, GeoPoint3 b)
         {
-            double largest = Math.Max(Math.Max(Math.Max(Math.Abs(a.X), Math.Abs(a.Y)), Math.Abs(a.Z)), Math.Max(Math.Max(Math.Abs(b.X), Math.Abs(b.Y)), Math.Abs(b.Z)));
+            double largest = Math.Max(
+                Math.Max(Math.Max(Math.Abs(a.X), Math.Abs(a.Y)), Math.Abs(a.Z)),
+                Math.Max(Math.Max(Math.Abs(b.X), Math.Abs(b.Y)), Math.Abs(b.Z))
+            );
             return 4.0 * 2.220446049250313E-16 * largest;
         }
 
@@ -348,7 +371,12 @@ namespace GeometryHelper.Dxf
 
                 if (!value.IsResident || value.IsErased || value.Item.File != File)
                 {
-                    throw new ArgumentException("The " + value + " is not an object of this drawing: erased, of another drawing, or made in code.", parameter);
+                    throw new ArgumentException(
+                        "The "
+                            + value
+                            + " is not an object of this drawing: erased, of another drawing, or made in code.",
+                        parameter
+                    );
                 }
             }
         }
@@ -389,7 +417,8 @@ namespace GeometryHelper.Dxf
                 case DxfSymbolTableRecord record when record.IsDependent:
                     return true;
                 case DxfLayerTableRecord layer:
-                    return layer.Name == "0" || string.Equals(layer.Name, "Defpoints", StringComparison.OrdinalIgnoreCase);
+                    return layer.Name == "0"
+                        || string.Equals(layer.Name, "Defpoints", StringComparison.OrdinalIgnoreCase);
                 case DxfLinetypeTableRecord linetype:
                     return IsOneOf(linetype.Name, "ByBlock", "ByLayer", "Continuous");
                 case DxfTextStyleTableRecord style:
@@ -401,7 +430,11 @@ namespace GeometryHelper.Dxf
                 case DxfMlineStyle mlineStyle:
                     return IsOneOf(mlineStyle.Name, "Standard");
                 case DxfDBDictionary dictionary:
-                    return root != null && (string.Equals(dictionary.Handle, root, StringComparison.OrdinalIgnoreCase) || string.Equals(dictionary.OwnerHandle, root, StringComparison.OrdinalIgnoreCase));
+                    return root != null
+                        && (
+                            string.Equals(dictionary.Handle, root, StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(dictionary.OwnerHandle, root, StringComparison.OrdinalIgnoreCase)
+                        );
                 case DxfEntity _:
                     return true;
                 default:
@@ -424,7 +457,12 @@ namespace GeometryHelper.Dxf
                 case "VISUALSTYLE":
                     return true;
                 case "MATERIAL":
-                    return IsOneOf(DxfReader.NameOf(File.ValueOf(value.Item, 1) ?? string.Empty).Trim(), "Global", "ByLayer", "ByBlock");
+                    return IsOneOf(
+                        DxfReader.NameOf(File.ValueOf(value.Item, 1) ?? string.Empty).Trim(),
+                        "Global",
+                        "ByLayer",
+                        "ByBlock"
+                    );
                 case "MLEADERSTYLE":
                 case "TABLESTYLE":
                     return IsOneOf(EntryName(value), "Standard");
@@ -439,11 +477,13 @@ namespace GeometryHelper.Dxf
         private string EntryName(DxfDBObject value)
         {
             DxfItem owner = File.ObjectItem(value.OwnerHandle);
-            return (owner == null ? null : (DxfDBObject.OfObject(owner) as DxfDBDictionary)?.NameOf(value)) ?? string.Empty;
+            return (owner == null ? null : (DxfDBObject.OfObject(owner) as DxfDBDictionary)?.NameOf(value))
+                ?? string.Empty;
         }
 
         /// <summary>Whether a name is one of those given, letters of either case the same.</summary>
-        private static bool IsOneOf(string name, params string[] names) => Array.Exists(names, n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase));
+        private static bool IsOneOf(string name, params string[] names) =>
+            Array.Exists(names, n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase));
 
         /// <summary>The box of the extents of the entities of a space, least x, y, z then most; null where none has extents.</summary>
         private static double[] BoxOf(DxfBlockTableRecord space, out int skipped)
@@ -466,7 +506,15 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                double[] own = { extents.Min.X, extents.Min.Y, extents.Min.Z, extents.Max.X, extents.Max.Y, extents.Max.Z };
+                double[] own =
+                {
+                    extents.Min.X,
+                    extents.Min.Y,
+                    extents.Min.Z,
+                    extents.Max.X,
+                    extents.Max.Y,
+                    extents.Max.Z,
+                };
 
                 if (box == null)
                 {

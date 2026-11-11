@@ -100,7 +100,12 @@ namespace GeometryHelper.Core
         /// the tolerance, or the clipped outline is not a clean body. The caller then asks the general boolean,
         /// which decides such cases as it always has; so this answers only where the two must agree.
         /// </returns>
-        internal static bool TryIntersectConvex(GeoSolid3 first, GeoSolid3 second, Tolerance tolerance, out GeoSolid3[] shared)
+        internal static bool TryIntersectConvex(
+            GeoSolid3 first,
+            GeoSolid3 second,
+            Tolerance tolerance,
+            out GeoSolid3[] shared
+        )
         {
             shared = null;
 
@@ -120,7 +125,8 @@ namespace GeometryHelper.Core
             foreach (GeoFace3 cutter in second.Faces)
             {
                 GeoPlane3 plane = cutter.GetPlane();
-                double nearest = double.MaxValue, farthest = double.MinValue;
+                double nearest = double.MaxValue,
+                    farthest = double.MinValue;
 
                 foreach (List<GeoPoint3> ring in rings)
                 {
@@ -223,7 +229,12 @@ namespace GeometryHelper.Core
         /// A corner within the tolerance of the plane counts as on it, and is kept; an edge running from well behind
         /// to well in front is cut where it crosses. So a corner the plane grazes is neither lost nor doubled.
         /// </remarks>
-        internal static List<GeoPoint3> Clip(IReadOnlyList<GeoPoint3> ring, GeoPlane3 plane, double on, List<GeoPoint3> cap)
+        internal static List<GeoPoint3> Clip(
+            IReadOnlyList<GeoPoint3> ring,
+            GeoPlane3 plane,
+            double on,
+            List<GeoPoint3> cap
+        )
         {
             int count = ring.Count;
             var distances = new double[count];
@@ -238,7 +249,8 @@ namespace GeometryHelper.Core
             for (int i = 0; i < count; i++)
             {
                 int j = (i + 1) % count;
-                double here = distances[i], next = distances[j];
+                double here = distances[i],
+                    next = distances[j];
 
                 if (here <= on)
                 {
@@ -256,7 +268,8 @@ namespace GeometryHelper.Core
                     GeoPoint3 crossing = new GeoPoint3(
                         ring[i].X + (ring[j].X - ring[i].X) * t,
                         ring[i].Y + (ring[j].Y - ring[i].Y) * t,
-                        ring[i].Z + (ring[j].Z - ring[i].Z) * t);
+                        ring[i].Z + (ring[j].Z - ring[i].Z) * t
+                    );
 
                     kept.Add(crossing);
                     cap?.Add(crossing);
@@ -278,7 +291,9 @@ namespace GeometryHelper.Core
                 return outline;
             }
 
-            double x = 0.0, y = 0.0, z = 0.0;
+            double x = 0.0,
+                y = 0.0,
+                z = 0.0;
 
             foreach (GeoPoint3 point in points)
             {
@@ -289,7 +304,10 @@ namespace GeometryHelper.Core
 
             var centre = new GeoPoint3(x / points.Count, y / points.Count, z / points.Count);
             GeoVector3 normal = plane.Normal;
-            GeoVector3 u = Math.Abs(normal.X) < 0.9 ? GeoVector3.XAxis.CrossProduct(normal) : GeoVector3.YAxis.CrossProduct(normal);
+            GeoVector3 u =
+                Math.Abs(normal.X) < 0.9
+                    ? GeoVector3.XAxis.CrossProduct(normal)
+                    : GeoVector3.YAxis.CrossProduct(normal);
             u = u.Normalize();
             GeoVector3 v = normal.CrossProduct(u);
 

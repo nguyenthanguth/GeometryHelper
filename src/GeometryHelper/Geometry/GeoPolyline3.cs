@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -55,9 +55,7 @@ namespace GeometryHelper.Geometry
         /// segment with no usable direction in the middle of the chain.
         /// </remarks>
         public GeoPolyline3(IEnumerable<GeoPoint3> vertices)
-            : this(vertices, Tolerance.Global)
-        {
-        }
+            : this(vertices, Tolerance.Global) { }
 
         /// <summary>
         /// Initializes a chain from a sequence of vertices, a vertex going only where it lands within a tolerance of the
@@ -97,9 +95,7 @@ namespace GeometryHelper.Geometry
         /// Initializes a new polyline directly from vertex arguments.
         /// </summary>
         public GeoPolyline3(params GeoPoint3[] vertices)
-            : this((IEnumerable<GeoPoint3>)vertices)
-        {
-        }
+            : this((IEnumerable<GeoPoint3>)vertices) { }
 
         /// <summary>
         /// Initializes a polyline from vertices that have already been filtered and validated.
@@ -217,23 +213,27 @@ namespace GeometryHelper.Geometry
         /// Rounds the corners of this chain, each by its own radius.
         /// </summary>
         /// <param name="radii">The radius wanted at each vertex, read the way the bulges are read. A radius of nought leaves that corner alone, and a short list leaves the rest of the chain alone.</param>
-        public GeoPolylineArc3 Fillet(System.Collections.Generic.IReadOnlyList<double> radii) => Corner3.Fillet(this, radii);
+        public GeoPolylineArc3 Fillet(System.Collections.Generic.IReadOnlyList<double> radii) =>
+            Corner3.Fillet(this, radii);
 
         /// <summary>
         /// Rounds the corners of this chain, each by its own radius, within a tolerance.
         /// </summary>
-        public GeoPolylineArc3 Fillet(System.Collections.Generic.IReadOnlyList<double> radii, Tolerance tolerance) => Corner3.Fillet(this, radii, tolerance);
+        public GeoPolylineArc3 Fillet(System.Collections.Generic.IReadOnlyList<double> radii, Tolerance tolerance) =>
+            Corner3.Fillet(this, radii, tolerance);
 
         /// <summary>
         /// Rounds one named corner of this chain.
         /// </summary>
-        public bool TryFilletAt(int index, double radius, out GeoPolylineArc3 result) => Corner3.TryFilletAt(this, index, radius, out result);
+        public bool TryFilletAt(int index, double radius, out GeoPolylineArc3 result) =>
+            Corner3.TryFilletAt(this, index, radius, out result);
 
         /// <summary>
         /// Rounds one named corner of this chain, within a tolerance.
         /// </summary>
-        public bool TryFilletAt(int index, double radius, out GeoPolylineArc3 result, Tolerance tolerance)
-            => Corner3.TryFilletAt(this, index, radius, out result, tolerance);
+        public bool TryFilletAt(int index, double radius, out GeoPolylineArc3 result, Tolerance tolerance) =>
+            Corner3.TryFilletAt(this, index, radius, out result, tolerance);
+
         /// <summary>
         /// Cuts every corner of the chain back by the same distance.
         /// </summary>
@@ -254,21 +254,25 @@ namespace GeometryHelper.Geometry
         /// Cuts every corner of the chain back, by one distance along the way in and another along the way out,
         /// within a tolerance.
         /// </summary>
-        public GeoPolyline3 Chamfer(double distance1, double distance2, Tolerance tolerance)
-            => Corner3.Chamfer(this, distance1, distance2, tolerance);
+        public GeoPolyline3 Chamfer(double distance1, double distance2, Tolerance tolerance) =>
+            Corner3.Chamfer(this, distance1, distance2, tolerance);
 
         /// <summary>
         /// Cuts one corner of the chain back; the two ends of a chain are not corners.
         /// </summary>
-        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolyline3 result)
-            => Corner3.TryChamferAt(this, index, distance1, distance2, out result);
+        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolyline3 result) =>
+            Corner3.TryChamferAt(this, index, distance1, distance2, out result);
 
         /// <summary>
         /// Cuts one corner of the chain back within a tolerance; the two ends of a chain are not corners.
         /// </summary>
-        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolyline3 result, Tolerance tolerance)
-            => Corner3.TryChamferAt(this, index, distance1, distance2, out result, tolerance);
-
+        public bool TryChamferAt(
+            int index,
+            double distance1,
+            double distance2,
+            out GeoPolyline3 result,
+            Tolerance tolerance
+        ) => Corner3.TryChamferAt(this, index, distance1, distance2, out result, tolerance);
 
         /// <summary>
         /// Gets the polyline running the other way.
@@ -311,7 +315,11 @@ namespace GeometryHelper.Geometry
                 count--;
             }
 
-            return new GeoPolygon3(new ArraySegment<GeoPoint3>(_vertices, 0, count), default(Tolerance), Tolerance.Global);
+            return new GeoPolygon3(
+                new ArraySegment<GeoPoint3>(_vertices, 0, count),
+                default(Tolerance),
+                Tolerance.Global
+            );
         }
 
         /// <summary>
@@ -513,12 +521,14 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the arc length from the start of this polyline to a normalized parameter.
         /// </summary>
-        public double GetDistanceAtParameter(double parameter) => Parametrization3.GetDistanceAtParameter(this, parameter);
+        public double GetDistanceAtParameter(double parameter) =>
+            Parametrization3.GetDistanceAtParameter(this, parameter);
 
         /// <summary>
         /// Gets the normalized parameter at an arc length measured from the start of this polyline.
         /// </summary>
-        public double GetParameterAtDistance(double distance) => Parametrization3.GetParameterAtDistance(this, distance);
+        public double GetParameterAtDistance(double distance) =>
+            Parametrization3.GetParameterAtDistance(this, distance);
 
         /// <summary>
         /// Checks whether a point lies on this polyline, using the default tolerance.
@@ -537,19 +547,21 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Splits this polyline at an arc length from its start, using the default tolerance.
         /// </summary>
-        public bool TrySplitAtDistance(double distance, out GeoPolyline3[] pieces) => Splition3.TrySplitAtDistance(this, distance, out pieces);
+        public bool TrySplitAtDistance(double distance, out GeoPolyline3[] pieces) =>
+            Splition3.TrySplitAtDistance(this, distance, out pieces);
 
         /// <summary>
         /// Splits this polyline at an arc length from its start, within a tolerance.
         /// </summary>
-        public bool TrySplitAtDistance(double distance, out GeoPolyline3[] pieces, Tolerance tolerance) => Splition3.TrySplitAtDistance(this, distance, out pieces, tolerance);
+        public bool TrySplitAtDistance(double distance, out GeoPolyline3[] pieces, Tolerance tolerance) =>
+            Splition3.TrySplitAtDistance(this, distance, out pieces, tolerance);
 
         /// <summary>
         /// Splits the chain at an arc length from its start into the piece before and the piece after, using the
         /// default tolerance.
         /// </summary>
-        public bool TrySplitAtDistance(double distance, out GeoPolyline3 first, out GeoPolyline3 second)
-            => TrySplitAtDistance(distance, out first, out second, Tolerance.Global);
+        public bool TrySplitAtDistance(double distance, out GeoPolyline3 first, out GeoPolyline3 second) =>
+            TrySplitAtDistance(distance, out first, out second, Tolerance.Global);
 
         /// <summary>
         /// Splits the chain at an arc length from its start into the piece before and the piece after, within a
@@ -560,7 +572,12 @@ namespace GeometryHelper.Geometry
         /// <param name="second">The piece holding the end; null when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the chain was cut in two; false when the distance falls at or beyond an end.</returns>
-        public bool TrySplitAtDistance(double distance, out GeoPolyline3 first, out GeoPolyline3 second, Tolerance tolerance)
+        public bool TrySplitAtDistance(
+            double distance,
+            out GeoPolyline3 first,
+            out GeoPolyline3 second,
+            Tolerance tolerance
+        )
         {
             first = null;
             second = null;
@@ -578,27 +595,32 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Splits this polyline at a point on it, using the default tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoPoint3 point, out GeoPolyline3[] pieces) => Splition3.TrySplitBy(this, point, out pieces);
+        public bool TrySplitBy(GeoPoint3 point, out GeoPolyline3[] pieces) =>
+            Splition3.TrySplitBy(this, point, out pieces);
 
         /// <summary>
         /// Splits this polyline at a point on it, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoPoint3 point, out GeoPolyline3[] pieces, Tolerance tolerance) => Splition3.TrySplitBy(this, point, out pieces, tolerance);
+        public bool TrySplitBy(GeoPoint3 point, out GeoPolyline3[] pieces, Tolerance tolerance) =>
+            Splition3.TrySplitBy(this, point, out pieces, tolerance);
 
         /// <summary>
         /// Splits this polyline wherever a plane crosses it, using the default tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoPlane3 cutter, out GeoPolyline3[] pieces) => Splition3.TrySplitBy(this, cutter, out pieces);
+        public bool TrySplitBy(GeoPlane3 cutter, out GeoPolyline3[] pieces) =>
+            Splition3.TrySplitBy(this, cutter, out pieces);
 
         /// <summary>
         /// Splits this polyline wherever a plane crosses it, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoPlane3 cutter, out GeoPolyline3[] pieces, Tolerance tolerance) => Splition3.TrySplitBy(this, cutter, out pieces, tolerance);
+        public bool TrySplitBy(GeoPlane3 cutter, out GeoPolyline3[] pieces, Tolerance tolerance) =>
+            Splition3.TrySplitBy(this, cutter, out pieces, tolerance);
 
         /// <summary>
         /// Splits this polyline at several arc lengths at once, using the default tolerance.
         /// </summary>
-        public GeoPolyline3[] SplitAtDistances(IEnumerable<double> distances) => Splition3.SplitAtDistances(this, distances);
+        public GeoPolyline3[] SplitAtDistances(IEnumerable<double> distances) =>
+            Splition3.SplitAtDistances(this, distances);
 
         /// <summary>
         /// Splits this polyline at several arc lengths at once, within a tolerance.
@@ -610,13 +632,15 @@ namespace GeometryHelper.Geometry
         /// than the tolerance takes the corner before it, where the piece ended at that corner. See
         /// <see cref="Splition3.SplitAtDistances(GeoPolyline3, IEnumerable{double}, Tolerance)"/>.
         /// </remarks>
-        public GeoPolyline3[] SplitAtDistances(IEnumerable<double> distances, Tolerance tolerance) => Splition3.SplitAtDistances(this, distances, tolerance);
+        public GeoPolyline3[] SplitAtDistances(IEnumerable<double> distances, Tolerance tolerance) =>
+            Splition3.SplitAtDistances(this, distances, tolerance);
 
         /// <summary>
         /// Splits this polyline by a solid, sorting the pieces into those inside it and those outside,
         /// using the default tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoSolid3 cutter, out GeoPolyline3[] inside, out GeoPolyline3[] outside) => Splition3.TrySplitBy(this, cutter, out inside, out outside);
+        public bool TrySplitBy(GeoSolid3 cutter, out GeoPolyline3[] inside, out GeoPolyline3[] outside) =>
+            Splition3.TrySplitBy(this, cutter, out inside, out outside);
 
         /// <summary>
         /// Splits this polyline by a solid, within a tolerance.
@@ -628,13 +652,19 @@ namespace GeometryHelper.Geometry
         /// face and the polyline came back whole. A cut within the tolerance of a corner is made at the corner, as
         /// <see cref="SplitAtDistances(IEnumerable{double}, Tolerance)"/> makes it.
         /// </remarks>
-        public bool TrySplitBy(GeoSolid3 cutter, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Tolerance tolerance) => Splition3.TrySplitBy(this, cutter, out inside, out outside, tolerance);
+        public bool TrySplitBy(
+            GeoSolid3 cutter,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside,
+            Tolerance tolerance
+        ) => Splition3.TrySplitBy(this, cutter, out inside, out outside, tolerance);
 
         /// <summary>
         /// Splits this polyline by several solids taken together as their union, using the default
         /// tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoSolid3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside) => Splition3.TrySplitBy(this, cutters, out inside, out outside);
+        public bool TrySplitBy(GeoSolid3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside) =>
+            Splition3.TrySplitBy(this, cutters, out inside, out outside);
 
         /// <summary>
         /// Splits this polyline by several solids taken together as their union, within a tolerance.
@@ -643,81 +673,120 @@ namespace GeometryHelper.Geometry
         /// A leg is crossed as it is however short, as <see cref="TrySplitBy(GeoSolid3, out GeoPolyline3[], out GeoPolyline3[], Tolerance)"/>
         /// crosses it.
         /// </remarks>
-        public bool TrySplitBy(GeoSolid3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Tolerance tolerance) => Splition3.TrySplitBy(this, cutters, out inside, out outside, tolerance);
+        public bool TrySplitBy(
+            GeoSolid3[] cutters,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside,
+            Tolerance tolerance
+        ) => Splition3.TrySplitBy(this, cutters, out inside, out outside, tolerance);
 
         /// <summary>
         /// Splits this polyline by an oriented box, using the default tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoObb3 cutter, out GeoPolyline3[] inside, out GeoPolyline3[] outside) => Splition3.TrySplitBy(this, cutter, out inside, out outside);
+        public bool TrySplitBy(GeoObb3 cutter, out GeoPolyline3[] inside, out GeoPolyline3[] outside) =>
+            Splition3.TrySplitBy(this, cutter, out inside, out outside);
 
         /// <summary>
         /// Splits this polyline by an oriented box, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoObb3 cutter, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Tolerance tolerance) => Splition3.TrySplitBy(this, cutter, out inside, out outside, tolerance);
+        public bool TrySplitBy(
+            GeoObb3 cutter,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside,
+            Tolerance tolerance
+        ) => Splition3.TrySplitBy(this, cutter, out inside, out outside, tolerance);
 
         /// <summary>
         /// Splits this polyline by an axis-aligned box, using the default tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoAabb3 cutter, out GeoPolyline3[] inside, out GeoPolyline3[] outside) => Splition3.TrySplitBy(this, cutter, out inside, out outside);
+        public bool TrySplitBy(GeoAabb3 cutter, out GeoPolyline3[] inside, out GeoPolyline3[] outside) =>
+            Splition3.TrySplitBy(this, cutter, out inside, out outside);
 
         /// <summary>
         /// Splits this polyline by an axis-aligned box, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoAabb3 cutter, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Tolerance tolerance) => Splition3.TrySplitBy(this, cutter, out inside, out outside, tolerance);
+        public bool TrySplitBy(
+            GeoAabb3 cutter,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside,
+            Tolerance tolerance
+        ) => Splition3.TrySplitBy(this, cutter, out inside, out outside, tolerance);
 
         /// <summary>
         /// Splits this polyline by several oriented boxes taken together as their union, using the default
         /// tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoObb3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside) => Splition3.TrySplitBy(this, cutters, out inside, out outside);
+        public bool TrySplitBy(GeoObb3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside) =>
+            Splition3.TrySplitBy(this, cutters, out inside, out outside);
 
         /// <summary>
         /// Splits this polyline by several oriented boxes taken together as their union, within a
         /// tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoObb3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Tolerance tolerance) => Splition3.TrySplitBy(this, cutters, out inside, out outside, tolerance);
+        public bool TrySplitBy(
+            GeoObb3[] cutters,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside,
+            Tolerance tolerance
+        ) => Splition3.TrySplitBy(this, cutters, out inside, out outside, tolerance);
 
         /// <summary>
         /// Splits this polyline by several axis-aligned boxes taken together as their union, using the
         /// default tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoAabb3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside) => Splition3.TrySplitBy(this, cutters, out inside, out outside);
+        public bool TrySplitBy(GeoAabb3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside) =>
+            Splition3.TrySplitBy(this, cutters, out inside, out outside);
 
         /// <summary>
         /// Splits this polyline by several axis-aligned boxes taken together as their union, within a
         /// tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoAabb3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Tolerance tolerance) => Splition3.TrySplitBy(this, cutters, out inside, out outside, tolerance);
+        public bool TrySplitBy(
+            GeoAabb3[] cutters,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside,
+            Tolerance tolerance
+        ) => Splition3.TrySplitBy(this, cutters, out inside, out outside, tolerance);
 
         /// <summary>
         /// Splits this chain by a plane and sorts the pieces by side, using the default tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoPlane3 cutter, out GeoPolyline3[] above, out GeoPolyline3[] below) => Splition3.TrySplitBy(this, cutter, out above, out below);
+        public bool TrySplitBy(GeoPlane3 cutter, out GeoPolyline3[] above, out GeoPolyline3[] below) =>
+            Splition3.TrySplitBy(this, cutter, out above, out below);
 
         /// <summary>
         /// Splits this chain by a plane and sorts the pieces by side, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoPlane3 cutter, out GeoPolyline3[] above, out GeoPolyline3[] below, Tolerance tolerance) => Splition3.TrySplitBy(this, cutter, out above, out below, tolerance);
+        public bool TrySplitBy(
+            GeoPlane3 cutter,
+            out GeoPolyline3[] above,
+            out GeoPolyline3[] below,
+            Tolerance tolerance
+        ) => Splition3.TrySplitBy(this, cutter, out above, out below, tolerance);
 
         /// <summary>
         /// Splits this chain wherever it passes through a polygon, using the default tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoPolygon3 cutter, out GeoPolyline3[] pieces) => Splition3.TrySplitBy(this, cutter, out pieces);
+        public bool TrySplitBy(GeoPolygon3 cutter, out GeoPolyline3[] pieces) =>
+            Splition3.TrySplitBy(this, cutter, out pieces);
 
         /// <summary>
         /// Splits this chain wherever it passes through a polygon, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoPolygon3 cutter, out GeoPolyline3[] pieces, Tolerance tolerance) => Splition3.TrySplitBy(this, cutter, out pieces, tolerance);
+        public bool TrySplitBy(GeoPolygon3 cutter, out GeoPolyline3[] pieces, Tolerance tolerance) =>
+            Splition3.TrySplitBy(this, cutter, out pieces, tolerance);
 
         /// <summary>
         /// Splits this chain wherever it passes through a face, using the default tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoFace3 cutter, out GeoPolyline3[] pieces) => Splition3.TrySplitBy(this, cutter, out pieces);
+        public bool TrySplitBy(GeoFace3 cutter, out GeoPolyline3[] pieces) =>
+            Splition3.TrySplitBy(this, cutter, out pieces);
 
         /// <summary>
         /// Splits this chain wherever it passes through a face, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoFace3 cutter, out GeoPolyline3[] pieces, Tolerance tolerance) => Splition3.TrySplitBy(this, cutter, out pieces, tolerance);
+        public bool TrySplitBy(GeoFace3 cutter, out GeoPolyline3[] pieces, Tolerance tolerance) =>
+            Splition3.TrySplitBy(this, cutter, out pieces, tolerance);
 
         /// <summary>
         /// Gets the curve parallel to this flat polyline at a distance to its left within its plane, with sharp
@@ -726,37 +795,51 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="distance">How far to move it, to its left seen from the tip of the normal when positive.</param>
         /// <param name="planeNormal">Which side of the plane it is seen from.</param>
-        public GeoPolyline3[] OffsetInPlane(double distance, GeoVector3 planeNormal) => Offset3.OffsetInPlane(this, distance, planeNormal);
+        public GeoPolyline3[] OffsetInPlane(double distance, GeoVector3 planeNormal) =>
+            Offset3.OffsetInPlane(this, distance, planeNormal);
 
         /// <summary>
         /// Gets the curve parallel to this flat polyline at a distance to its left within its plane, with sharp
         /// corners, within a tolerance.
         /// </summary>
-        public GeoPolyline3[] OffsetInPlane(double distance, GeoVector3 planeNormal, Tolerance tolerance) => Offset3.OffsetInPlane(this, distance, planeNormal, tolerance);
+        public GeoPolyline3[] OffsetInPlane(double distance, GeoVector3 planeNormal, Tolerance tolerance) =>
+            Offset3.OffsetInPlane(this, distance, planeNormal, tolerance);
 
         /// <summary>
         /// Gets the curve parallel to this flat polyline at a distance to its left within its plane, with the
         /// given corners, using the default tolerance.
         /// </summary>
-        public GeoPolyline3[] OffsetInPlane(double distance, GeoVector3 planeNormal, OffsetJoin join) => Offset3.OffsetInPlane(this, distance, planeNormal, join);
+        public GeoPolyline3[] OffsetInPlane(double distance, GeoVector3 planeNormal, OffsetJoin join) =>
+            Offset3.OffsetInPlane(this, distance, planeNormal, join);
 
         /// <summary>
         /// Gets the curve parallel to this flat polyline at a distance to its left within its plane, with the
         /// given corners, within a tolerance.
         /// </summary>
-        public GeoPolyline3[] OffsetInPlane(double distance, GeoVector3 planeNormal, OffsetJoin join, Tolerance tolerance) => Offset3.OffsetInPlane(this, distance, planeNormal, join, tolerance);
+        public GeoPolyline3[] OffsetInPlane(
+            double distance,
+            GeoVector3 planeNormal,
+            OffsetJoin join,
+            Tolerance tolerance
+        ) => Offset3.OffsetInPlane(this, distance, planeNormal, join, tolerance);
 
         /// <summary>
         /// Gets the curve parallel to this flat polyline at a distance to its left within its plane, as the
         /// options say, using the default tolerance.
         /// </summary>
-        public GeoPolyline3[] OffsetInPlane(double distance, GeoVector3 planeNormal, OffsetOptions options) => Offset3.OffsetInPlane(this, distance, planeNormal, options);
+        public GeoPolyline3[] OffsetInPlane(double distance, GeoVector3 planeNormal, OffsetOptions options) =>
+            Offset3.OffsetInPlane(this, distance, planeNormal, options);
 
         /// <summary>
         /// Gets the curve parallel to this flat polyline at a distance to its left within its plane, as the
         /// options say, within a tolerance.
         /// </summary>
-        public GeoPolyline3[] OffsetInPlane(double distance, GeoVector3 planeNormal, OffsetOptions options, Tolerance tolerance) => Offset3.OffsetInPlane(this, distance, planeNormal, options, tolerance);
+        public GeoPolyline3[] OffsetInPlane(
+            double distance,
+            GeoVector3 planeNormal,
+            OffsetOptions options,
+            Tolerance tolerance
+        ) => Offset3.OffsetInPlane(this, distance, planeNormal, options, tolerance);
 
         #endregion
 
@@ -869,6 +952,7 @@ namespace GeometryHelper.Geometry
         /// <param name="frame">The frame to lay it out in.</param>
         /// <returns>The chain in the plane of the frame.</returns>
         public GeoPolyline2 ProjectToPolyline2(GeoCoordinateSystem3 frame) => PlanarMap.ProjectToPolyline2(frame, this);
+
         #region Extending and trimming
 
         /// <summary>
@@ -884,7 +968,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Lengthens the chain along its end leg, within a tolerance.
         /// </summary>
-        public GeoPolyline3 Extend(double distance, LineEnd end, Tolerance tolerance) => Lengthen3.Extend(this, distance, end, tolerance);
+        public GeoPolyline3 Extend(double distance, LineEnd end, Tolerance tolerance) =>
+            Lengthen3.Extend(this, distance, end, tolerance);
 
         /// <summary>
         /// Lengthens the chain along its end leg until the whole chain is a given length.
@@ -894,18 +979,20 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Lengthens the chain along its end leg until the whole chain is a given length, within a tolerance.
         /// </summary>
-        public GeoPolyline3 ExtendToLength(double length, LineEnd end, Tolerance tolerance) => Lengthen3.ExtendToLength(this, length, end, tolerance);
+        public GeoPolyline3 ExtendToLength(double length, LineEnd end, Tolerance tolerance) =>
+            Lengthen3.ExtendToLength(this, length, end, tolerance);
 
         /// <summary>
         /// Shortens the chain at one end back to a point on it.
         /// </summary>
-        public bool TryTrimTo(GeoPoint3 point, LineEnd end, out GeoPolyline3 result) => Lengthen3.TryTrimTo(this, point, end, out result);
+        public bool TryTrimTo(GeoPoint3 point, LineEnd end, out GeoPolyline3 result) =>
+            Lengthen3.TryTrimTo(this, point, end, out result);
 
         /// <summary>
         /// Shortens the chain at one end back to a point on it, within a tolerance.
         /// </summary>
-        public bool TryTrimTo(GeoPoint3 point, LineEnd end, out GeoPolyline3 result, Tolerance tolerance)
-            => Lengthen3.TryTrimTo(this, point, end, out result, tolerance);
+        public bool TryTrimTo(GeoPoint3 point, LineEnd end, out GeoPolyline3 result, Tolerance tolerance) =>
+            Lengthen3.TryTrimTo(this, point, end, out result, tolerance);
 
         #endregion
 
@@ -925,8 +1012,7 @@ namespace GeometryHelper.Geometry
         /// <param name="point">The point.</param>
         /// <param name="tolerance">The tolerance that decides what counts as on it.</param>
         /// <returns><c>OnSide</c> when the point is on the chain; otherwise, <c>OutSide</c>.</returns>
-        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance)
-            => IsPointOn(point, tolerance) ? PointLocation.OnSide : PointLocation.OutSide;
-
+        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) =>
+            IsPointOn(point, tolerance) ? PointLocation.OnSide : PointLocation.OutSide;
     }
 }

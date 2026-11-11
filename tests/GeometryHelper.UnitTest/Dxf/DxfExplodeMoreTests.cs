@@ -27,7 +27,16 @@ namespace GeometryHelper.UnitTest.Dxf
             mesh.ColorIndex = 5;
             mesh.LineWeight = DxfLineWeight.LineWeight035;
 
-            foreach (GeoPoint3 point in new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0), new GeoPoint3(5, 5, 6) })
+            foreach (
+                GeoPoint3 point in new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(0, 10, 0),
+                    new GeoPoint3(5, 5, 6),
+                }
+            )
             {
                 mesh.AppendVertex(new DxfPolyFaceMeshVertex(point));
             }
@@ -43,12 +52,18 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(3, faces.Length);
             Assert.Equal(Bits(new GeoPoint3(10, 0, 0)), Bits(faces[0].GetVertexAt(1)));
             Assert.Equal(Bits(new GeoPoint3(0, 10, 0)), Bits(faces[0].GetVertexAt(3)));
-            Assert.Equal(new[] { true, false, true, true }, Enumerable.Range(0, 4).Select(i => faces[0].IsEdgeVisibleAt((short)i)));
+            Assert.Equal(
+                new[] { true, false, true, true },
+                Enumerable.Range(0, 4).Select(i => faces[0].IsEdgeVisibleAt((short)i))
+            );
             Assert.Equal(Bits(new GeoPoint3(5, 5, 6)), Bits(faces[1].GetVertexAt(2)));
             Assert.Equal(Bits(new GeoPoint3(5, 5, 6)), Bits(faces[1].GetVertexAt(3)));
 
             // The edge from the third corner back to the first is the fourth of a 3DFACE of three corners: hidden with the third.
-            Assert.Equal(new[] { true, true, false, false }, Enumerable.Range(0, 4).Select(i => faces[1].IsEdgeVisibleAt((short)i)));
+            Assert.Equal(
+                new[] { true, true, false, false },
+                Enumerable.Range(0, 4).Select(i => faces[1].IsEdgeVisibleAt((short)i))
+            );
             Assert.Equal(new[] { 5, 5, 5 }, faces.Select(f => f.ColorIndex));
             Assert.All(faces, f => Assert.Equal(DxfLineWeight.LineWeight035, f.LineWeight));
 
@@ -57,13 +72,25 @@ namespace GeometryHelper.UnitTest.Dxf
                 db.ModelSpace.AppendEntity(face);
             }
 
-            Assert.Equal(3, DxfDatabase.Parse(db.ToText()).ModelSpace.OfType<DxfFace>().Count(e => faces.Any(f => f.Handle == e.Handle)));
+            Assert.Equal(
+                3,
+                DxfDatabase
+                    .Parse(db.ToText())
+                    .ModelSpace.OfType<DxfFace>()
+                    .Count(e => faces.Any(f => f.Handle == e.Handle))
+            );
         }
 
         [Fact]
         public void ThePolyfaceMeshOfEzdxf_ExplodesIntoTheFacesOfItsCube()
         {
-            foreach (string[] drawing in new[] { new[] { DxfFileEzdxfDrawings.R2000, "4E" }, new[] { DxfFileEzdxfDrawings.R12, "51" } })
+            foreach (
+                string[] drawing in new[]
+                {
+                    new[] { DxfFileEzdxfDrawings.R2000, "4E" },
+                    new[] { DxfFileEzdxfDrawings.R12, "51" },
+                }
+            )
             {
                 DxfPolyFaceMesh mesh = ByHandle<DxfPolyFaceMesh>(DxfDatabase.Parse(drawing[0]), drawing[1]);
 
@@ -103,7 +130,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(6, cells.Length);
             Assert.Equal(
                 new[] { Bits(points[0]), Bits(points[4]), Bits(points[5]), Bits(points[1]) },
-                Enumerable.Range(0, 4).Select(i => Bits(cells[0].GetVertexAt((short)i))));
+                Enumerable.Range(0, 4).Select(i => Bits(cells[0].GetVertexAt((short)i)))
+            );
             Assert.Equal(Bits(points[7]), Bits(cells[2].GetVertexAt(2)));
             Assert.Equal(Bits(points[4]), Bits(cells[3].GetVertexAt(0)));
             Assert.All(cells, c => Assert.Equal("Wand€Außen", c.Layer));
@@ -111,10 +139,12 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(12, round.Length);
             Assert.Equal(
                 new[] { Bits(points[3]), Bits(points[7]), Bits(points[4]), Bits(points[0]) },
-                Enumerable.Range(0, 4).Select(i => Bits(round[3].GetVertexAt((short)i))));
+                Enumerable.Range(0, 4).Select(i => Bits(round[3].GetVertexAt((short)i)))
+            );
             Assert.Equal(
                 new[] { Bits(points[11]), Bits(points[3]), Bits(points[0]), Bits(points[8]) },
-                Enumerable.Range(0, 4).Select(i => Bits(round[11].GetVertexAt((short)i))));
+                Enumerable.Range(0, 4).Select(i => Bits(round[11].GetVertexAt((short)i)))
+            );
         }
 
         [Fact]
@@ -134,7 +164,9 @@ namespace GeometryHelper.UnitTest.Dxf
             var mesh = new DxfPolygonMesh(DxfPolyMeshType.SimpleMesh, 4, 4, points, false, false);
             db.ModelSpace.AppendEntity(mesh);
             mesh.SurfaceFit(DxfPolyMeshType.CubicSurfaceMesh, 5, 6);
-            List<GeoPoint3> surface = mesh.Where(v => v.VertexType == DxfVertex3dType.FitVertex).Select(v => v.Position).ToList();
+            List<GeoPoint3> surface = mesh.Where(v => v.VertexType == DxfVertex3dType.FitVertex)
+                .Select(v => v.Position)
+                .ToList();
 
             DxfFace[] faces = mesh.Explode().Cast<DxfFace>().ToArray();
 
@@ -155,7 +187,10 @@ namespace GeometryHelper.UnitTest.Dxf
         public void AnMLineOfTheStyleStandardExploded_GivesALineForEachElementAlongEachSegment()
         {
             // Through (0, 0), (20, 0) and (20, 10), the two elements of Standard 0.5 either side, the corner mitered.
-            DxfDatabase db = WithRecords(Mline("B02", "Standard", "22", 1, Corner(new[] { 0.5, 0.0 }, new[] { -0.5, 0.0 })), string.Empty);
+            DxfDatabase db = WithRecords(
+                Mline("B02", "Standard", "22", 1, Corner(new[] { 0.5, 0.0 }, new[] { -0.5, 0.0 })),
+                string.Empty
+            );
             var mline = ByHandle<DxfUnknownEntity>(db, "B02");
 
             DxfLine[] lines = mline.Explode().Cast<DxfLine>().ToArray();
@@ -182,7 +217,10 @@ namespace GeometryHelper.UnitTest.Dxf
         public void AnMLineBrokenAlongASegment_GivesALineForEachPieceLeft()
         {
             // The lower element of the first segment broken from 5 to 8 along it, as MLEDIT cuts one: its parameters -0.5, 0, 5, 8.
-            DxfDatabase db = WithRecords(Mline("B03", "Standard", "22", 1, Corner(new[] { 0.5, 0.0 }, new[] { -0.5, 0.0, 5.0, 8.0 })), string.Empty);
+            DxfDatabase db = WithRecords(
+                Mline("B03", "Standard", "22", 1, Corner(new[] { 0.5, 0.0 }, new[] { -0.5, 0.0, 5.0, 8.0 })),
+                string.Empty
+            );
 
             DxfLine[] lines = ByHandle<DxfUnknownEntity>(db, "B03").Explode().Cast<DxfLine>().ToArray();
 
@@ -198,16 +236,37 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // A style of two elements, red 0.5 to the left and blue 0.5 to the right, with lines across both ends, an outer arc at
             // both ends and a miter line at each joint (70 of 2 + 16 + 64 + 256 + 1024).
-            const string Caps = "  0\nMLINESTYLE\n  5\nB01\n330\n10\n100\nAcDbMlineStyle\n  2\nCAPS\n 70\n1362\n  3\n\n 62\n256\n 51\n90.0\n 52\n90.0\n 71\n2\n 49\n0.5\n 62\n1\n  6\nBYLAYER\n 49\n-0.5\n 62\n5\n  6\nBYLAYER\n";
+            const string Caps =
+                "  0\nMLINESTYLE\n  5\nB01\n330\n10\n100\nAcDbMlineStyle\n  2\nCAPS\n 70\n1362\n  3\n\n 62\n256\n 51\n90.0\n 52\n90.0\n 71\n2\n 49\n0.5\n 62\n1\n  6\nBYLAYER\n 49\n-0.5\n 62\n5\n  6\nBYLAYER\n";
             string corner = Corner(new[] { 0.5, 0.0 }, new[] { -0.5, 0.0 });
-            DxfDatabase db = WithRecords(Mline("B04", "CAPS", "B01", 1, corner) + Mline("B05", "CAPS", "B01", 1 | 4 | 8, corner), Caps);
+            DxfDatabase db = WithRecords(
+                Mline("B04", "CAPS", "B01", 1, corner) + Mline("B05", "CAPS", "B01", 1 | 4 | 8, corner),
+                Caps
+            );
 
             DxfEntity[] parts = ByHandle<DxfUnknownEntity>(db, "B04").Explode().ToArray();
             DxfEntity[] bare = ByHandle<DxfUnknownEntity>(db, "B05").Explode().ToArray();
 
             Assert.Equal(
-                new[] { "Line", "Line", "Arc", "Arc", "Line", "Line", "Line", "Line", "Line", "Line", "Line", "Line", "Arc", "Arc" },
-                parts.Select(p => p.GetType().Name.Substring(3)));
+                new[]
+                {
+                    "Line",
+                    "Line",
+                    "Arc",
+                    "Arc",
+                    "Line",
+                    "Line",
+                    "Line",
+                    "Line",
+                    "Line",
+                    "Line",
+                    "Line",
+                    "Line",
+                    "Arc",
+                    "Arc",
+                },
+                parts.Select(p => p.GetType().Name.Substring(3))
+            );
             Assert.Equal(new[] { 1, 5, 1, 5, 1, 5, 1, 5, 1, 5, 1, 5, 5, 1 }, parts.Select(p => p.ColorIndex));
             Near(new GeoPoint3(0, 0, 0), ((DxfLine)parts[0]).EndPoint);
             var start = (DxfArc)parts[2];
@@ -227,14 +286,31 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AnMLineWhoseStyleIsNotInItsDrawing_AndTheBodiesOfAutoCADsModeler_Refuse()
         {
-            const string Region = "  0\nREGION\n  5\nB07\n330\n17\n100\nAcDbEntity\n  8\n0\n100\nAcDbModelerGeometry\n 70\n1\n";
-            const string Solid = "  0\n3DSOLID\n  5\nB08\n330\n17\n100\nAcDbEntity\n  8\n0\n100\nAcDbModelerGeometry\n 70\n1\n";
-            DxfDatabase db = WithRecords(Mline("B06", "NONE", "FFF", 1, Corner(new[] { 0.5, 0.0 }, new[] { -0.5, 0.0 })) + Region + Solid, string.Empty);
+            const string Region =
+                "  0\nREGION\n  5\nB07\n330\n17\n100\nAcDbEntity\n  8\n0\n100\nAcDbModelerGeometry\n 70\n1\n";
+            const string Solid =
+                "  0\n3DSOLID\n  5\nB08\n330\n17\n100\nAcDbEntity\n  8\n0\n100\nAcDbModelerGeometry\n 70\n1\n";
+            DxfDatabase db = WithRecords(
+                Mline("B06", "NONE", "FFF", 1, Corner(new[] { 0.5, 0.0 }, new[] { -0.5, 0.0 })) + Region + Solid,
+                string.Empty
+            );
 
             Assert.Throws<InvalidOperationException>(() => ByHandle<DxfUnknownEntity>(db, "B06").Explode());
-            Assert.Contains("modeler", Assert.Throws<NotSupportedException>(() => ByHandle<DxfUnknownEntity>(db, "B07").Explode()).Message, StringComparison.Ordinal);
-            Assert.Contains("modeler", Assert.Throws<NotSupportedException>(() => ByHandle<DxfUnknownEntity>(db, "B08").Explode()).Message, StringComparison.Ordinal);
-            Assert.Contains("eNotApplicable", Assert.Throws<NotSupportedException>(() => db.ModelSpace.OfType<DxfCircle>().First().Explode()).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "modeler",
+                Assert.Throws<NotSupportedException>(() => ByHandle<DxfUnknownEntity>(db, "B07").Explode()).Message,
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "modeler",
+                Assert.Throws<NotSupportedException>(() => ByHandle<DxfUnknownEntity>(db, "B08").Explode()).Message,
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "eNotApplicable",
+                Assert.Throws<NotSupportedException>(() => db.ModelSpace.OfType<DxfCircle>().First().Explode()).Message,
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -245,7 +321,15 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             var leader = new DxfLeader();
 
-            foreach (GeoPoint3 vertex in new[] { new GeoPoint3(0, 20, 0), new GeoPoint3(10, 30, 0), new GeoPoint3(25, 28, 0), new GeoPoint3(40, 35, 0) })
+            foreach (
+                GeoPoint3 vertex in new[]
+                {
+                    new GeoPoint3(0, 20, 0),
+                    new GeoPoint3(10, 30, 0),
+                    new GeoPoint3(25, 28, 0),
+                    new GeoPoint3(40, 35, 0),
+                }
+            )
             {
                 leader.AppendVertex(vertex);
             }
@@ -267,7 +351,10 @@ namespace GeometryHelper.UnitTest.Dxf
             double c1 = back.DistanceTo(new GeoPoint3(10, 30, 0));
             double c2 = c1 + new GeoPoint3(10, 30, 0).DistanceTo(new GeoPoint3(25, 28, 0));
             double c3 = c2 + new GeoPoint3(25, 28, 0).DistanceTo(new GeoPoint3(40, 35, 0));
-            Assert.Equal(new[] { 0, 0, 0, 0, c1, c2, c3, c3, c3, c3 }.Select(k => Math.Round(k, 9)), nurbs.GetKnots().Select(k => Math.Round(k, 9)));
+            Assert.Equal(
+                new[] { 0, 0, 0, 0, c1, c2, c3, c3, c3, c3 }.Select(k => Math.Round(k, 9)),
+                nurbs.GetKnots().Select(k => Math.Round(k, 9))
+            );
             Assert.All(parts, p => Assert.Equal(3, p.ColorIndex));
             Assert.Equal(Bits(new GeoPoint3(0, 20, 0)), Bits(((DxfSolid)parts[0]).GetPointAt(1)));
 
@@ -291,12 +378,31 @@ namespace GeometryHelper.UnitTest.Dxf
                 hatch.SetHatchPattern(DxfHatchPatternType.UserDefined, "_USER");
                 hatch.PatternAngle = Math.PI / 4.0;
                 hatch.PatternSpace = 3.175;
-                hatch.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(0, 0), new GeoPoint2(30, 0), new GeoPoint2(30, 20), new GeoPoint2(0, 20) }, null);
+                hatch.AppendLoop(
+                    DxfHatchLoopTypes.External,
+                    new[] { new GeoPoint2(0, 0), new GeoPoint2(30, 0), new GeoPoint2(30, 20), new GeoPoint2(0, 20) },
+                    null
+                );
 
                 if (islands)
                 {
-                    hatch.AppendLoop(new DxfHatchLoop(DxfHatchLoopTypes.Outermost, new object[] { new GeoCircle3(centre, new GeoVector3(0, 0, 1), 5) }));
-                    hatch.AppendLoop(DxfHatchLoopTypes.Default, new[] { new GeoPoint2(13, 8), new GeoPoint2(17, 8), new GeoPoint2(17, 12), new GeoPoint2(13, 12) }, null);
+                    hatch.AppendLoop(
+                        new DxfHatchLoop(
+                            DxfHatchLoopTypes.Outermost,
+                            new object[] { new GeoCircle3(centre, new GeoVector3(0, 0, 1), 5) }
+                        )
+                    );
+                    hatch.AppendLoop(
+                        DxfHatchLoopTypes.Default,
+                        new[]
+                        {
+                            new GeoPoint2(13, 8),
+                            new GeoPoint2(17, 8),
+                            new GeoPoint2(17, 12),
+                            new GeoPoint2(13, 12),
+                        },
+                        null
+                    );
                 }
 
                 hatch.HatchStyle = style;
@@ -310,24 +416,47 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfLine[] ignore = Made(DxfHatchStyle.Ignore, true).Explode().Cast<DxfLine>().ToArray();
 
             DxfHatch circled = Made(DxfHatchStyle.Normal, false);
-            circled.AppendLoop(new DxfHatchLoop(DxfHatchLoopTypes.Outermost, new object[] { new GeoCircle3(centre, new GeoVector3(0, 0, 1), 5) }));
+            circled.AppendLoop(
+                new DxfHatchLoop(
+                    DxfHatchLoopTypes.Outermost,
+                    new object[] { new GeoCircle3(centre, new GeoVector3(0, 0, 1), 5) }
+                )
+            );
 
             Assert.Equal(11, plain.Length);
             Assert.Equal(14, circled.Explode().Count);
             Assert.All(plain, l => Assert.Equal(4, l.ColorIndex));
             Assert.All(plain, l => Assert.Equal(l.StartPoint.X - l.StartPoint.Y, l.EndPoint.X - l.EndPoint.Y, 9));
-            Assert.Equal(ignore.Select(l => Bits(l.StartPoint) + Bits(l.EndPoint)), plain.Select(l => Bits(l.StartPoint) + Bits(l.EndPoint)));
+            Assert.Equal(
+                ignore.Select(l => Bits(l.StartPoint) + Bits(l.EndPoint)),
+                plain.Select(l => Bits(l.StartPoint) + Bits(l.EndPoint))
+            );
 
             // Each end on the square, the circle or the small square, to the bit of a double; no line runs inside the circle but
             // in the small square, where the normal style hatches again and the outer style does not.
-            bool OnEdge(GeoPoint3 p)
-                => Math.Abs(p.X) < 1E-9 || Math.Abs(p.X - 30) < 1E-9 || Math.Abs(p.Y) < 1E-9 || Math.Abs(p.Y - 20) < 1E-9
-                    || Math.Abs(p.DistanceTo(centre) - 5) < 1E-9 || ((Math.Abs(p.X - 13) < 1E-9 || Math.Abs(p.X - 17) < 1E-9 || Math.Abs(p.Y - 8) < 1E-9 || Math.Abs(p.Y - 12) < 1E-9) && p.DistanceTo(centre) < 3);
+            bool OnEdge(GeoPoint3 p) =>
+                Math.Abs(p.X) < 1E-9
+                || Math.Abs(p.X - 30) < 1E-9
+                || Math.Abs(p.Y) < 1E-9
+                || Math.Abs(p.Y - 20) < 1E-9
+                || Math.Abs(p.DistanceTo(centre) - 5) < 1E-9
+                || (
+                    (
+                        Math.Abs(p.X - 13) < 1E-9
+                        || Math.Abs(p.X - 17) < 1E-9
+                        || Math.Abs(p.Y - 8) < 1E-9
+                        || Math.Abs(p.Y - 12) < 1E-9
+                    )
+                    && p.DistanceTo(centre) < 3
+                );
 
-            GeoPoint3 Middle(DxfLine l) => new GeoPoint3((l.StartPoint.X + l.EndPoint.X) / 2, (l.StartPoint.Y + l.EndPoint.Y) / 2, 0);
+            GeoPoint3 Middle(DxfLine l) =>
+                new GeoPoint3((l.StartPoint.X + l.EndPoint.X) / 2, (l.StartPoint.Y + l.EndPoint.Y) / 2, 0);
             bool InSmall(GeoPoint3 p) => p.X > 13 && p.X < 17 && p.Y > 8 && p.Y < 12;
 
-            Assert.All(normal.Concat(outer), l => Assert.True(OnEdge(l.StartPoint) && OnEdge(l.EndPoint), l.StartPoint + " " + l.EndPoint));
+            Assert.All(normal.Concat(outer), l =>
+                Assert.True(OnEdge(l.StartPoint) && OnEdge(l.EndPoint), l.StartPoint + " " + l.EndPoint)
+            );
             Assert.All(normal, l => Assert.True(Middle(l).DistanceTo(centre) > 5 || InSmall(Middle(l))));
             Assert.Contains(normal, l => InSmall(Middle(l)));
             Assert.All(outer, l => Assert.True(Middle(l).DistanceTo(centre) > 5));
@@ -339,7 +468,8 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // One pattern line along x, 2 apart, a dash 2, a gap 1, a dot and a gap 1, in the square from (0, 0.5) to (10, 9.5):
             // the lines y = 2, 4, 6 and 8, each a dash from 0 to 2, a dot at 3, a dash from 4 to 6, a dot at 7, a dash from 8 to 10.
-            const string Dashed = "  0\nHATCH\n  5\nB10\n330\n17\n100\nAcDbEntity\n  8\n0\n 62\n1\n100\nAcDbHatch\n 10\n0.0\n 20\n0.0\n 30\n0.0\n210\n0.0\n220\n0.0\n230\n1.0\n"
+            const string Dashed =
+                "  0\nHATCH\n  5\nB10\n330\n17\n100\nAcDbEntity\n  8\n0\n 62\n1\n100\nAcDbHatch\n 10\n0.0\n 20\n0.0\n 30\n0.0\n210\n0.0\n220\n0.0\n230\n1.0\n"
                 + "  2\nGH_DASHED\n 70\n0\n 71\n0\n 91\n1\n 92\n3\n 72\n0\n 73\n1\n 93\n4\n 10\n0.0\n 20\n0.5\n 10\n10.0\n 20\n0.5\n 10\n10.0\n 20\n9.5\n 10\n0.0\n 20\n9.5\n 97\n0\n"
                 + " 75\n0\n 76\n2\n 52\n0.0\n 41\n1.0\n 77\n0\n 78\n1\n 53\n0.0\n 43\n0.0\n 44\n0.0\n 45\n0.0\n 46\n2.0\n 79\n4\n 49\n2.0\n 49\n-1.0\n 49\n0.0\n 49\n-1.0\n 98\n0\n";
             DxfDatabase db = WithRecords(Dashed, string.Empty);
@@ -349,7 +479,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(20, parts.Length);
             Assert.Equal(
                 new[] { 0.0, 2, 3, 3, 4, 6, 7, 7, 8, 10 },
-                parts.Take(5).SelectMany(l => new[] { Math.Round(l.StartPoint.X, 12), Math.Round(l.EndPoint.X, 12) }));
+                parts.Take(5).SelectMany(l => new[] { Math.Round(l.StartPoint.X, 12), Math.Round(l.EndPoint.X, 12) })
+            );
             Assert.Equal(new[] { 2.0, 4, 6, 8 }, parts.Where((l, i) => i % 5 == 0).Select(l => l.StartPoint.Y));
             Assert.All(parts, l => Assert.Equal(1, l.ColorIndex));
         }
@@ -364,14 +495,34 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfLine[] lines = user.Explode().Cast<DxfLine>().ToArray();
 
             Assert.NotEmpty(lines);
-            Assert.All(lines, l => Assert.Equal(user.Elevation, normal.X * l.StartPoint.X + normal.Y * l.StartPoint.Y + normal.Z * l.StartPoint.Z, 9));
-            Assert.All(lines, l => Assert.Equal(user.Elevation, normal.X * l.EndPoint.X + normal.Y * l.EndPoint.Y + normal.Z * l.EndPoint.Z, 9));
+            Assert.All(lines, l =>
+                Assert.Equal(
+                    user.Elevation,
+                    normal.X * l.StartPoint.X + normal.Y * l.StartPoint.Y + normal.Z * l.StartPoint.Z,
+                    9
+                )
+            );
+            Assert.All(lines, l =>
+                Assert.Equal(
+                    user.Elevation,
+                    normal.X * l.EndPoint.X + normal.Y * l.EndPoint.Y + normal.Z * l.EndPoint.Z,
+                    9
+                )
+            );
             Assert.Throws<NotSupportedException>(() => ByHandle<DxfHatch>(db, "AD").Explode());
             Assert.Throws<NotSupportedException>(() => ByHandle<DxfHatch>(db, "AF").Explode());
             var named = new DxfHatch();
             named.SetHatchPattern(DxfHatchPatternType.PreDefined, "ANSI31");
-            named.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10) }, null);
-            Assert.Contains("ANSI31", Assert.Throws<NotSupportedException>(() => named.Explode()).Message, StringComparison.Ordinal);
+            named.AppendLoop(
+                DxfHatchLoopTypes.External,
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10) },
+                null
+            );
+            Assert.Contains(
+                "ANSI31",
+                Assert.Throws<NotSupportedException>(() => named.Explode()).Message,
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -386,7 +537,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfEntity[] parts = words.Explode().ToArray();
             DxfEntity[] marked = block.Explode().ToArray();
 
-            Assert.Equal(new[] { "DxfMText", "DxfLine", "DxfPolyline", "DxfSolid" }, parts.Select(p => p.GetType().Name));
+            Assert.Equal(
+                new[] { "DxfMText", "DxfLine", "DxfPolyline", "DxfSolid" },
+                parts.Select(p => p.GetType().Name)
+            );
             var mtext = (DxfMText)parts[0];
             Assert.Equal("note", mtext.Contents);
             Assert.Equal(Bits(new GeoPoint3(0, 20, 0)), Bits(mtext.Location));
@@ -406,24 +560,34 @@ namespace GeometryHelper.UnitTest.Dxf
             var insert = Assert.IsType<DxfBlockReference>(marked[0]);
             Assert.Equal("GKTAG", insert.Name);
             Assert.Equal(15.0, insert.Rotation * 180.0 / Math.PI, 9);
-            Assert.Equal(new[] { "DxfBlockReference", "DxfLine", "DxfPolyline", "DxfSolid" }, marked.Select(p => p.GetType().Name));
+            Assert.Equal(
+                new[] { "DxfBlockReference", "DxfLine", "DxfPolyline", "DxfSolid" },
+                marked.Select(p => p.GetType().Name)
+            );
 
             foreach (DxfEntity part in parts.Concat(marked))
             {
                 db.ModelSpace.AppendEntity(part);
             }
 
-            Assert.Equal(8, DxfDatabase.Parse(db.ToText()).ModelSpace.Count(e => parts.Concat(marked).Any(p => p.Handle == e.Handle)));
+            Assert.Equal(
+                8,
+                DxfDatabase
+                    .Parse(db.ToText())
+                    .ModelSpace.Count(e => parts.Concat(marked).Any(p => p.Handle == e.Handle))
+            );
         }
 
         [Fact]
         public void AClosedMLine_GivesEachElementAlongEverySegment_TheClosingOneAmongThem_AMiterAtEveryJoint_AndNoCaps()
         {
             // The square of side 20 closed, of the style CAPS (caps at both ends, miters), its elements 0.5 inside and outside.
-            const string Caps = "  0\nMLINESTYLE\n  5\nB01\n330\n10\n100\nAcDbMlineStyle\n  2\nCAPS\n 70\n1362\n  3\n\n 62\n256\n 51\n90.0\n 52\n90.0\n 71\n2\n 49\n0.5\n 62\n1\n  6\nBYLAYER\n 49\n-0.5\n 62\n5\n  6\nBYLAYER\n";
+            const string Caps =
+                "  0\nMLINESTYLE\n  5\nB01\n330\n10\n100\nAcDbMlineStyle\n  2\nCAPS\n 70\n1362\n  3\n\n 62\n256\n 51\n90.0\n 52\n90.0\n 71\n2\n 49\n0.5\n 62\n1\n  6\nBYLAYER\n 49\n-0.5\n 62\n5\n  6\nBYLAYER\n";
             double s = Math.Sqrt(0.5);
             double[] Both(double sign) => new[] { sign * 0.5 / s, 0.0 };
-            string vertices = Vertex(new[] { 0.0, 0, 0 }, new[] { 1.0, 0, 0 }, new[] { s, s, 0 }, Both(1), Both(-1))
+            string vertices =
+                Vertex(new[] { 0.0, 0, 0 }, new[] { 1.0, 0, 0 }, new[] { s, s, 0 }, Both(1), Both(-1))
                 + Vertex(new[] { 20.0, 0, 0 }, new[] { 0.0, 1, 0 }, new[] { -s, s, 0 }, Both(1), Both(-1))
                 + Vertex(new[] { 20.0, 20, 0 }, new[] { -1.0, 0, 0 }, new[] { -s, -s, 0 }, Both(1), Both(-1))
                 + Vertex(new[] { 0.0, 20, 0 }, new[] { 0.0, -1, 0 }, new[] { s, -s, 0 }, Both(1), Both(-1));
@@ -460,10 +624,21 @@ namespace GeometryHelper.UnitTest.Dxf
             GeoVector3 along = new GeoVector3(18, -2, 0).Normalize();
             GeoPoint3 back = new GeoPoint3(-20, 20, 0).Add(along.Multiply(4.0));
             double chord = back.DistanceTo(new GeoPoint3(-2, 18, 0));
-            GeoPoint3[] expected = { back, back.Add(along.Multiply(chord / 3.0)), new GeoPoint3(-2 - chord / 3.0, 18, 0), new GeoPoint3(-2, 18, 0) };
+            GeoPoint3[] expected =
+            {
+                back,
+                back.Add(along.Multiply(chord / 3.0)),
+                new GeoPoint3(-2 - chord / 3.0, 18, 0),
+                new GeoPoint3(-2, 18, 0),
+            };
             Assert.Equal(4, nurbs.GetControlPoints().Count);
-            Assert.All(expected.Zip(nurbs.GetControlPoints(), (e, a) => e.DistanceTo(a)), d => Assert.True(d < 1E-8, d.ToString()));
-            Assert.Equal(new[] { 0.0, 0, 0, 0, chord, chord, chord, chord }.Select(k => Math.Round(k, 9)), nurbs.GetKnots().Select(k => Math.Round(k, 9)));
+            Assert.All(expected.Zip(nurbs.GetControlPoints(), (e, a) => e.DistanceTo(a)), d =>
+                Assert.True(d < 1E-8, d.ToString())
+            );
+            Assert.Equal(
+                new[] { 0.0, 0, 0, 0, chord, chord, chord, chord }.Select(k => Math.Round(k, 9)),
+                nurbs.GetKnots().Select(k => Math.Round(k, 9))
+            );
         }
 
         [Fact]
@@ -496,17 +671,36 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // One line of dashes 0.0005 long and 0.001 apart along a stretch 2 000.0005 long: 2 000 001 dashes, one past the 2 000 000;
             // 1 999.9995 long it gives 2 000 000 and is exploded, which takes 6 s and is not tested here.
-            const string Dense = "  0\nHATCH\n  5\nB10\n330\n17\n100\nAcDbEntity\n  8\n0\n100\nAcDbHatch\n 10\n0.0\n 20\n0.0\n 30\n0.0\n210\n0.0\n220\n0.0\n230\n1.0\n"
+            const string Dense =
+                "  0\nHATCH\n  5\nB10\n330\n17\n100\nAcDbEntity\n  8\n0\n100\nAcDbHatch\n 10\n0.0\n 20\n0.0\n 30\n0.0\n210\n0.0\n220\n0.0\n230\n1.0\n"
                 + "  2\nGH_DENSE\n 70\n0\n 71\n0\n 91\n1\n 92\n3\n 72\n0\n 73\n1\n 93\n4\n 10\n0.0\n 20\n-0.5\n 10\n2000.0005\n 20\n-0.5\n 10\n2000.0005\n 20\n0.5\n 10\n0.0\n 20\n0.5\n 97\n0\n"
                 + " 75\n0\n 76\n2\n 52\n0.0\n 41\n1.0\n 77\n0\n 78\n1\n 53\n0.0\n 43\n0.0\n 44\n0.0\n 45\n0.0\n 46\n1000.0\n 79\n2\n 49\n0.0005\n 49\n-0.0005\n 98\n0\n";
             DxfDatabase db = WithRecords(Dense, string.Empty);
             var far = new DxfHatch();
             far.SetHatchPattern(DxfHatchPatternType.UserDefined, "_USER");
             far.PatternSpace = 1E-6;
-            far.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(0, 1E10), new GeoPoint2(1, 1E10), new GeoPoint2(1, 1E10 + 1E-4), new GeoPoint2(0, 1E10 + 1E-4) }, null);
+            far.AppendLoop(
+                DxfHatchLoopTypes.External,
+                new[]
+                {
+                    new GeoPoint2(0, 1E10),
+                    new GeoPoint2(1, 1E10),
+                    new GeoPoint2(1, 1E10 + 1E-4),
+                    new GeoPoint2(0, 1E10 + 1E-4),
+                },
+                null
+            );
 
-            Assert.Contains("2000000", Assert.Throws<InvalidOperationException>(() => ByHandle<DxfHatch>(db, "B10").Explode()).Message, StringComparison.Ordinal);
-            Assert.Contains("2^52", Assert.Throws<InvalidOperationException>(() => far.Explode()).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "2000000",
+                Assert.Throws<InvalidOperationException>(() => ByHandle<DxfHatch>(db, "B10").Explode()).Message,
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "2^52",
+                Assert.Throws<InvalidOperationException>(() => far.Explode()).Message,
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -520,7 +714,17 @@ namespace GeometryHelper.UnitTest.Dxf
 
             for (int i = 0; i < 1001; i++)
             {
-                hatch.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(i * 10, 0), new GeoPoint2(i * 10 + 10, 0), new GeoPoint2(i * 10 + 10, 10), new GeoPoint2(i * 10, 10) }, null);
+                hatch.AppendLoop(
+                    DxfHatchLoopTypes.External,
+                    new[]
+                    {
+                        new GeoPoint2(i * 10, 0),
+                        new GeoPoint2(i * 10 + 10, 0),
+                        new GeoPoint2(i * 10 + 10, 10),
+                        new GeoPoint2(i * 10, 10),
+                    },
+                    null
+                );
             }
 
             DxfLine[] lines = hatch.Explode().Cast<DxfLine>().ToArray();
@@ -534,11 +738,22 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // A circle of radius 5 about (50, 5) given as an arc edge from 1E20 to 1E20 degrees, a whole turn, and from 7E18 to
             // 7E18 + 360, lines along x 1.5 apart: the lines y = 1.5 to 9, 6 of them, as the same circle from 0 to 360 gives.
-            string Circle(string handle, string from, string to)
-                => "  0\nHATCH\n  5\n" + handle + "\n330\n17\n100\nAcDbEntity\n  8\n0\n100\nAcDbHatch\n 10\n0.0\n 20\n0.0\n 30\n0.0\n210\n0.0\n220\n0.0\n230\n1.0\n"
-                    + "  2\nGH_ROUND\n 70\n0\n 71\n0\n 91\n1\n 92\n1\n 93\n1\n 72\n2\n 10\n50.0\n 20\n5.0\n 40\n5.0\n 50\n" + from + "\n 51\n" + to + "\n 73\n1\n 97\n0\n"
-                    + " 75\n0\n 76\n2\n 52\n0.0\n 41\n1.0\n 77\n0\n 78\n1\n 53\n0.0\n 43\n0.0\n 44\n0.0\n 45\n0.0\n 46\n1.5\n 79\n0\n 98\n0\n";
-            DxfDatabase db = WithRecords(Circle("B11", "0.0", "360.0") + Circle("B12", "1E20", "1E20") + Circle("B13", "7E18", "7000000000000000360"), string.Empty);
+            string Circle(string handle, string from, string to) =>
+                "  0\nHATCH\n  5\n"
+                + handle
+                + "\n330\n17\n100\nAcDbEntity\n  8\n0\n100\nAcDbHatch\n 10\n0.0\n 20\n0.0\n 30\n0.0\n210\n0.0\n220\n0.0\n230\n1.0\n"
+                + "  2\nGH_ROUND\n 70\n0\n 71\n0\n 91\n1\n 92\n1\n 93\n1\n 72\n2\n 10\n50.0\n 20\n5.0\n 40\n5.0\n 50\n"
+                + from
+                + "\n 51\n"
+                + to
+                + "\n 73\n1\n 97\n0\n"
+                + " 75\n0\n 76\n2\n 52\n0.0\n 41\n1.0\n 77\n0\n 78\n1\n 53\n0.0\n 43\n0.0\n 44\n0.0\n 45\n0.0\n 46\n1.5\n 79\n0\n 98\n0\n";
+            DxfDatabase db = WithRecords(
+                Circle("B11", "0.0", "360.0")
+                    + Circle("B12", "1E20", "1E20")
+                    + Circle("B13", "7E18", "7000000000000000360"),
+                string.Empty
+            );
 
             DxfLine[] plain = ByHandle<DxfHatch>(db, "B11").Explode().Cast<DxfLine>().ToArray();
 
@@ -549,17 +764,32 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfLine[] huge = ByHandle<DxfHatch>(db, handle).Explode().Cast<DxfLine>().ToArray();
 
                 Assert.Equal(6, huge.Length);
-                Assert.All(huge.Zip(plain, (a, b) => a.StartPoint.DistanceTo(b.StartPoint) + a.EndPoint.DistanceTo(b.EndPoint)), d => Assert.True(d < 1E-9, d.ToString()));
+                Assert.All(
+                    huge.Zip(plain, (a, b) =>
+                        a.StartPoint.DistanceTo(b.StartPoint) + a.EndPoint.DistanceTo(b.EndPoint)
+                    ),
+                    d => Assert.True(d < 1E-9, d.ToString())
+                );
             }
         }
 
         /// <summary>The drawing of ezdxf's R2018 with entities added at the end of its ENTITIES and objects at the end of its OBJECTS, its handle seed raised past them.</summary>
         private static DxfDatabase WithRecords(string entities, string objects)
         {
-            string text = DxfFileEzdxfDrawings.R2018.Replace("\r\n", "\n").Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nC00\n");
-            int end = text.IndexOf("  0\nENDSEC\n", text.IndexOf("\nENTITIES\n", StringComparison.Ordinal), StringComparison.Ordinal);
+            string text = DxfFileEzdxfDrawings
+                .R2018.Replace("\r\n", "\n")
+                .Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nC00\n");
+            int end = text.IndexOf(
+                "  0\nENDSEC\n",
+                text.IndexOf("\nENTITIES\n", StringComparison.Ordinal),
+                StringComparison.Ordinal
+            );
             text = text.Insert(end, entities);
-            end = text.IndexOf("  0\nENDSEC\n", text.IndexOf("\nOBJECTS\n", StringComparison.Ordinal), StringComparison.Ordinal);
+            end = text.IndexOf(
+                "  0\nENDSEC\n",
+                text.IndexOf("\nOBJECTS\n", StringComparison.Ordinal),
+                StringComparison.Ordinal
+            );
             return DxfDatabase.Parse(text.Insert(end, objects));
         }
 
@@ -573,19 +803,42 @@ namespace GeometryHelper.UnitTest.Dxf
             double s = Math.Sqrt(0.5);
             double[] Stretched(double[] p) => new[] { p[0] / s, 0.0 };
             return Vertex(new[] { 0.0, 0, 0 }, new[] { 1.0, 0, 0 }, new[] { 0.0, 1, 0 }, upper, lower)
-                + Vertex(new[] { 20.0, 0, 0 }, new[] { 0.0, 1, 0 }, new[] { -s, s, 0 }, Stretched(upper), Stretched(lower))
-                + Vertex(new[] { 20.0, 10, 0 }, new[] { 0.0, 1, 0 }, new[] { -1.0, 0, 0 }, new[] { upper[0], 0.0 }, new[] { lower[0], 0.0 });
+                + Vertex(
+                    new[] { 20.0, 0, 0 },
+                    new[] { 0.0, 1, 0 },
+                    new[] { -s, s, 0 },
+                    Stretched(upper),
+                    Stretched(lower)
+                )
+                + Vertex(
+                    new[] { 20.0, 10, 0 },
+                    new[] { 0.0, 1, 0 },
+                    new[] { -1.0, 0, 0 },
+                    new[] { upper[0], 0.0 },
+                    new[] { lower[0], 0.0 }
+                );
         }
 
         private static string Vertex(double[] at, double[] along, double[] miter, params double[][] elements)
         {
             var text = new System.Text.StringBuilder();
 
-            foreach (var point in new[] { new { Code = 11, Value = at }, new { Code = 12, Value = along }, new { Code = 13, Value = miter } })
+            foreach (
+                var point in new[]
+                {
+                    new { Code = 11, Value = at },
+                    new { Code = 12, Value = along },
+                    new { Code = 13, Value = miter },
+                }
+            )
             {
                 for (int i = 0; i < 3; i++)
                 {
-                    text.Append(' ').Append(point.Code + 10 * i).Append('\n').Append(Number(point.Value[i])).Append('\n');
+                    text.Append(' ')
+                        .Append(point.Code + 10 * i)
+                        .Append('\n')
+                        .Append(Number(point.Value[i]))
+                        .Append('\n');
                 }
             }
 
@@ -605,11 +858,29 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>An MLINE of colour 2 in model space, of a style by its name and handle and of flags (71), justified on its zero line, through its vertices, three where not said.</summary>
-        private static string Mline(string handle, string style, string styleHandle, int flags, string vertices, int count = 3)
-            => "  0\nMLINE\n  5\n" + handle + "\n330\n17\n100\nAcDbEntity\n  8\n0\n 62\n2\n100\nAcDbMline\n  2\n" + style + "\n340\n" + styleHandle
-                + "\n 40\n1.0\n 70\n1\n 71\n" + flags + "\n 72\n" + count + "\n 73\n2\n 10\n0.0\n 20\n0.0\n 30\n0.0\n210\n0.0\n220\n0.0\n230\n1.0\n" + vertices;
+        private static string Mline(
+            string handle,
+            string style,
+            string styleHandle,
+            int flags,
+            string vertices,
+            int count = 3
+        ) =>
+            "  0\nMLINE\n  5\n"
+            + handle
+            + "\n330\n17\n100\nAcDbEntity\n  8\n0\n 62\n2\n100\nAcDbMline\n  2\n"
+            + style
+            + "\n340\n"
+            + styleHandle
+            + "\n 40\n1.0\n 70\n1\n 71\n"
+            + flags
+            + "\n 72\n"
+            + count
+            + "\n 73\n2\n 10\n0.0\n 20\n0.0\n 30\n0.0\n210\n0.0\n220\n0.0\n230\n1.0\n"
+            + vertices;
 
-        private static string Number(double value) => value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+        private static string Number(double value) =>
+            value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
 
         private static void Near(GeoPoint3 expected, GeoPoint3 actual)
         {

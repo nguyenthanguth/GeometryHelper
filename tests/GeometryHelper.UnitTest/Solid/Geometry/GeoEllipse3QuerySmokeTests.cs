@@ -14,13 +14,23 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Tol = new Tolerance(1E-3, 1E-5);
 
-        private static readonly GeoEllipse3 Plan = new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, GeoVector3.XAxis, 300, 100);
+        private static readonly GeoEllipse3 Plan = new GeoEllipse3(
+            GeoPoint3.Origin,
+            GeoVector3.ZAxis,
+            GeoVector3.XAxis,
+            300,
+            100
+        );
 
         private static GeoVector3 RandomUnit(Random random)
         {
             while (true)
             {
-                var v = new GeoVector3(2 * random.NextDouble() - 1, 2 * random.NextDouble() - 1, 2 * random.NextDouble() - 1);
+                var v = new GeoVector3(
+                    2 * random.NextDouble() - 1,
+                    2 * random.NextDouble() - 1,
+                    2 * random.NextDouble() - 1
+                );
                 double length = v.Length;
 
                 if (length > 0.1 && length <= 1.0)
@@ -40,7 +50,11 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static GeoPoint3 RandomPoint(Random random, double reach)
         {
-            return new GeoPoint3(reach * (2 * random.NextDouble() - 1), reach * (2 * random.NextDouble() - 1), reach * (2 * random.NextDouble() - 1));
+            return new GeoPoint3(
+                reach * (2 * random.NextDouble() - 1),
+                reach * (2 * random.NextDouble() - 1),
+                reach * (2 * random.NextDouble() - 1)
+            );
         }
 
         private static void Near(GeoPoint3 expected, GeoPoint3 actual, double within)
@@ -84,19 +98,28 @@ namespace GeometryHelper.UnitTest.Solid
         {
             Assert.False(Plan.CollidesWith(new GeoLine3(new GeoPoint3(0, 0, -10), new GeoPoint3(0, 0, 10)), Tol));
 
-            Same(new[] { new GeoPoint3(300, 0, 0) }, Plan.GetIntersections(new GeoLine3(new GeoPoint3(295, 0, -10), new GeoPoint3(305, 0, 10)), Tol), 1E-9);
+            Same(
+                new[] { new GeoPoint3(300, 0, 0) },
+                Plan.GetIntersections(new GeoLine3(new GeoPoint3(295, 0, -10), new GeoPoint3(305, 0, 10)), Tol),
+                1E-9
+            );
 
             double x = 300 * Math.Sqrt(0.75);
             Same(
                 new[] { new GeoPoint3(-x, 50, 0), new GeoPoint3(x, 50, 0) },
                 Plan.GetIntersections(new GeoLine3(new GeoPoint3(-400, 50, 0), new GeoPoint3(400, 50, 0)), Tol),
-                1E-9);
+                1E-9
+            );
         }
 
         [Fact]
         public void ARayInThePlaneFromTheCentreCrossesTheRimOnceAhead()
         {
-            Same(new[] { new GeoPoint3(300, 0, 0) }, Plan.GetIntersections(new GeoRay3(GeoPoint3.Origin, GeoVector3.XAxis), Tol), 1E-9);
+            Same(
+                new[] { new GeoPoint3(300, 0, 0) },
+                Plan.GetIntersections(new GeoRay3(GeoPoint3.Origin, GeoVector3.XAxis), Tol),
+                1E-9
+            );
         }
 
         [Fact]
@@ -126,14 +149,25 @@ namespace GeometryHelper.UnitTest.Solid
         public void TheRimsAreWhatCountSoAShapeInsideTheDiscTouchesNothing()
         {
             Assert.False(Plan.CollidesWith(new GeoCircle3(GeoPoint3.Origin, GeoVector3.ZAxis, 50), Tol));
-            Assert.False(Plan.CollidesWith(new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, GeoVector3.XAxis, 150, 50), Tol));
+            Assert.False(
+                Plan.CollidesWith(new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, GeoVector3.XAxis, 150, 50), Tol)
+            );
         }
 
         [Fact]
         public void AFlatRegionHoldingTheWholeRimInItsPlaneTouchesItAndCrossesItNowhere()
         {
-            var square = new GeoPolygon3(new GeoPoint3(-400, -400, 0), new GeoPoint3(400, -400, 0), new GeoPoint3(400, 400, 0), new GeoPoint3(-400, 400, 0));
-            var triangle = new GeoTriangle3(new GeoPoint3(-1000, -1000, 0), new GeoPoint3(1000, -1000, 0), new GeoPoint3(0, 1000, 0));
+            var square = new GeoPolygon3(
+                new GeoPoint3(-400, -400, 0),
+                new GeoPoint3(400, -400, 0),
+                new GeoPoint3(400, 400, 0),
+                new GeoPoint3(-400, 400, 0)
+            );
+            var triangle = new GeoTriangle3(
+                new GeoPoint3(-1000, -1000, 0),
+                new GeoPoint3(1000, -1000, 0),
+                new GeoPoint3(0, 1000, 0)
+            );
 
             Assert.Empty(Plan.GetIntersections(square, Tol));
             Assert.True(Plan.CollidesWith(square, Tol));
@@ -146,11 +180,21 @@ namespace GeometryHelper.UnitTest.Solid
         {
             var box = new GeoObb3(GeoPoint3.Origin, 200, 300, 200);
             double y = 100 * Math.Sqrt(1 - 1.0 / 9);
-            var expected = new[] { new GeoPoint3(100, -y, 0), new GeoPoint3(100, y, 0), new GeoPoint3(-100, y, 0), new GeoPoint3(-100, -y, 0) };
+            var expected = new[]
+            {
+                new GeoPoint3(100, -y, 0),
+                new GeoPoint3(100, y, 0),
+                new GeoPoint3(-100, y, 0),
+                new GeoPoint3(-100, -y, 0),
+            };
 
             Same(expected, Plan.GetIntersections(box, Tol), 1E-9);
             Same(expected, Plan.GetIntersections(box.ToSolid(), Tol), 1E-9);
-            Same(expected, Plan.GetIntersections(new GeoAabb3(new GeoPoint3(-100, -150, -100), new GeoPoint3(100, 150, 100)), Tol), 1E-9);
+            Same(
+                expected,
+                Plan.GetIntersections(new GeoAabb3(new GeoPoint3(-100, -150, -100), new GeoPoint3(100, 150, 100)), Tol),
+                1E-9
+            );
 
             var small = new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, GeoVector3.XAxis, 30, 10);
 
@@ -162,7 +206,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AChainWithAStraightLegThroughTheRimMeetsItThere()
         {
-            var chain = new GeoPolylineArc3(new[] { new GeoPoint3(300, 0, -10), new GeoPoint3(300, 0, 10), new GeoPoint3(400, 0, 10) });
+            var chain = new GeoPolylineArc3(
+                new[] { new GeoPoint3(300, 0, -10), new GeoPoint3(300, 0, 10), new GeoPoint3(400, 0, 10) }
+            );
 
             Same(new[] { new GeoPoint3(300, 0, 0) }, Plan.GetIntersections(chain, Tol), 1E-9);
             Assert.True(Plan.CollidesWith(chain, Tol));
@@ -223,10 +269,18 @@ namespace GeometryHelper.UnitTest.Solid
                 double other = 1 + 999 * random.NextDouble();
                 var upright = new GeoCircle3(rim.Add(Square(normal, random).Multiply(other)), normal, other);
                 Same(circle.GetIntersections(upright, Tol), ellipse.GetIntersections(upright, Tol), within);
-                Same(circle.GetIntersections(upright, Tol), ellipse.GetIntersections(GeoEllipse3.FromCircle(upright), Tol), within);
+                Same(
+                    circle.GetIntersections(upright, Tol),
+                    ellipse.GetIntersections(GeoEllipse3.FromCircle(upright), Tol),
+                    within
+                );
                 Assert.Equal(circle.CollidesWith(upright, Tol), ellipse.CollidesWith(upright, Tol));
 
-                var flat = new GeoCircle3(circle.Center.Add(Square(circle.Normal, random).Multiply(radius * random.NextDouble())), circle.Normal, radius * (0.5 + random.NextDouble()));
+                var flat = new GeoCircle3(
+                    circle.Center.Add(Square(circle.Normal, random).Multiply(radius * random.NextDouble())),
+                    circle.Normal,
+                    radius * (0.5 + random.NextDouble())
+                );
                 Same(circle.GetIntersections(flat, Tol), ellipse.GetIntersections(flat, Tol), within);
                 Assert.Equal(circle.CollidesWith(flat, Tol), ellipse.CollidesWith(flat, Tol));
 
@@ -235,11 +289,19 @@ namespace GeometryHelper.UnitTest.Solid
                 var triangle = new GeoTriangle3(
                     rim.Add(across.Multiply(-radius)).Add(up.Multiply(-radius)),
                     rim.Add(across.Multiply(radius)).Add(up.Multiply(-0.5 * radius)),
-                    rim.Add(up.Multiply(radius)));
+                    rim.Add(up.Multiply(radius))
+                );
                 Same(circle.GetIntersections(triangle, Tol), ellipse.GetIntersections(triangle, Tol), within);
                 Assert.Equal(circle.CollidesWith(triangle, Tol), ellipse.CollidesWith(triangle, Tol));
 
-                var box = new GeoObb3(circle.Center.Add(RandomUnit(random).Multiply(radius * random.NextDouble())), radius, 1.5 * radius, 0.7 * radius, RandomUnit(random), RandomUnit(random));
+                var box = new GeoObb3(
+                    circle.Center.Add(RandomUnit(random).Multiply(radius * random.NextDouble())),
+                    radius,
+                    1.5 * radius,
+                    0.7 * radius,
+                    RandomUnit(random),
+                    RandomUnit(random)
+                );
                 Same(circle.GetIntersections(box, Tol), ellipse.GetIntersections(box, Tol), within);
                 Assert.Equal(circle.CollidesWith(box, Tol), ellipse.CollidesWith(box, Tol));
             }
@@ -256,7 +318,11 @@ namespace GeometryHelper.UnitTest.Solid
             var start = new GeoPoint3(-400, 50, -0.0009);
             var end = new GeoPoint3(400, 50, 0.0011);
             double x = 300 * Math.Sqrt(0.75);
-            var expected = new[] { new GeoPoint3(-x, 50, -0.0009 + 0.002 * (400 - x) / 800), new GeoPoint3(x, 50, -0.0009 + 0.002 * (400 + x) / 800) };
+            var expected = new[]
+            {
+                new GeoPoint3(-x, 50, -0.0009 + 0.002 * (400 - x) / 800),
+                new GeoPoint3(x, 50, -0.0009 + 0.002 * (400 + x) / 800),
+            };
 
             Same(expected, Plan.GetIntersections(new GeoLine3(start, end), Tol), 1E-9);
             Assert.True(Plan.CollidesWith(new GeoLine3(start, end), Tol));
@@ -274,7 +340,8 @@ namespace GeometryHelper.UnitTest.Solid
             Same(
                 new[] { new GeoPoint3(-x, 50, 5E-4), new GeoPoint3(x, 50, 5E-4) },
                 Plan.GetIntersections(new GeoLine3(new GeoPoint3(-400, 50, 5E-4), new GeoPoint3(400, 50, 5E-4)), tight),
-                1E-9);
+                1E-9
+            );
         }
 
         /// <summary>
@@ -285,7 +352,10 @@ namespace GeometryHelper.UnitTest.Solid
         public void APlaneStoredFarAlongTheChordStillCrossesACircleOfRadius300AtBothEnds()
         {
             var circle = new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, GeoVector3.XAxis, 300, 300);
-            var plane = new GeoPlane3(new GeoPoint3(299.99999933, 1E4, 0), new GeoVector3(Math.Sin(1E-5), 0, Math.Cos(1E-5)));
+            var plane = new GeoPlane3(
+                new GeoPoint3(299.99999933, 1E4, 0),
+                new GeoVector3(Math.Sin(1E-5), 0, Math.Cos(1E-5))
+            );
             GeoPoint3[] points = circle.GetIntersections(plane, Tol);
             double y = Math.Sqrt(300 * 300 - 299.99999933 * 299.99999933);
 

@@ -13,37 +13,44 @@ namespace GeometryHelper.UnitTest.Arranging
     public abstract class ArrangeTestKit
     {
         /// <summary>The options most tests run with: three rows on either side, 5 apart.</summary>
-        public static ArrangeOptions OptionsFor()
-            => new ArrangeOptions { RowGap = 5.0, PerpendicularLevels = 3 };
+        public static ArrangeOptions OptionsFor() => new ArrangeOptions { RowGap = 5.0, PerpendicularLevels = 3 };
 
         /// <summary>A label 20 by 10 unless told otherwise, at the middle of its leader, 5 off either side.</summary>
-        public static ArrangeItem LabelOn(GeoLine2 leader, double width = 20.0, double height = 10.0)
-            => new ArrangeItem
+        public static ArrangeItem LabelOn(GeoLine2 leader, double width = 20.0, double height = 10.0) =>
+            new ArrangeItem
             {
                 Leader = leader,
                 Box = new GeoRectangle2(leader.MidPoint, width, height),
-                Offset = 5.0
+                Offset = 5.0,
             };
 
         /// <summary>The box of the label, moved by the translation a run gave it.</summary>
-        public static GeoRectangle2 MovedBox(ArrangeItem arrange, GeoVector2 translation)
-            => new GeoRectangle2(arrange.Box.Center + translation, arrange.Box.Width, arrange.Box.Height, arrange.Box.AngleRad);
+        public static GeoRectangle2 MovedBox(ArrangeItem arrange, GeoVector2 translation) =>
+            new GeoRectangle2(
+                arrange.Box.Center + translation,
+                arrange.Box.Width,
+                arrange.Box.Height,
+                arrange.Box.AngleRad
+            );
 
         /// <summary>An axis-aligned rectangle as a region to keep clear of.</summary>
-        public static GeoPolygon2 Rectangle(double x0, double y0, double x1, double y1)
-            => new GeoPolygon2(new GeoPoint2(x0, y0), new GeoPoint2(x1, y0), new GeoPoint2(x1, y1), new GeoPoint2(x0, y1));
+        public static GeoPolygon2 Rectangle(double x0, double y0, double x1, double y1) =>
+            new GeoPolygon2(new GeoPoint2(x0, y0), new GeoPoint2(x1, y0), new GeoPoint2(x1, y1), new GeoPoint2(x0, y1));
 
         /// <summary>
         /// Labels far apart, each on a leader of its own 100 long, its 20 by 10 box above and to the right of the
         /// middle of the leader, 5 off either side.
         /// </summary>
-        public static List<ArrangeItem> LabelsApart(int count)
-            => Enumerable.Range(0, count).Select(i => new ArrangeItem
-            {
-                Leader = new GeoLine2(200.0 * i, 0.0, 200.0 * i + 100.0, 0.0),
-                Box = new GeoRectangle2(new GeoPoint2(200.0 * i + 90.0, 30.0), 20.0, 10.0),
-                Offset = 5.0,
-            }).ToList();
+        public static List<ArrangeItem> LabelsApart(int count) =>
+            Enumerable
+                .Range(0, count)
+                .Select(i => new ArrangeItem
+                {
+                    Leader = new GeoLine2(200.0 * i, 0.0, 200.0 * i + 100.0, 0.0),
+                    Box = new GeoRectangle2(new GeoPoint2(200.0 * i + 90.0, 30.0), 20.0, 10.0),
+                    Offset = 5.0,
+                })
+                .ToList();
 
         /// <summary>
         /// Runs the labels and checks that each is placed at the candidate nearest to where its box stands, the first
@@ -56,7 +63,11 @@ namespace GeometryHelper.UnitTest.Arranging
             for (int i = 0; i < items.Count; i++)
             {
                 GeoPoint2 centre = items[i].Box.Center;
-                GeoVector2 nearest = items[i].GetPlacePoints(options).Select(p => centre.GetVectorTo(p)).OrderBy(v => v.Length).First();
+                GeoVector2 nearest = items[i]
+                    .GetPlacePoints(options)
+                    .Select(p => centre.GetVectorTo(p))
+                    .OrderBy(v => v.Length)
+                    .First();
 
                 Assert.True(results[i].Placed, $"label {i}: {results[i]}");
                 Assert.True(nearest.Equals(results[i].Translation), $"label {i}: {results[i]}, not moved by {nearest}");

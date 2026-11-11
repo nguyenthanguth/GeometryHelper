@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper;
 using GeometryHelper.Clipper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -28,13 +28,19 @@ namespace GeometryHelper.UnitTest.Plane
         private static GeoPolygon2 P(params double[] xy)
         {
             var points = new GeoPoint2[xy.Length / 2];
-            for (int i = 0; i < points.Length; i++) { points[i] = new GeoPoint2(xy[2 * i], xy[2 * i + 1]); }
+            for (int i = 0; i < points.Length; i++)
+            {
+                points[i] = new GeoPoint2(xy[2 * i], xy[2 * i + 1]);
+            }
             return new GeoPolygon2(points);
         }
 
         private static readonly GeoPolygon2 Square = P(0, 0, 10, 0, 10, 10, 0, 10);
 
-        private static readonly OffsetOptions SharpAlways = new OffsetOptions(OffsetJoin.Miter, double.PositiveInfinity);
+        private static readonly OffsetOptions SharpAlways = new OffsetOptions(
+            OffsetJoin.Miter,
+            double.PositiveInfinity
+        );
 
         private static void AssertSameLoop(GeoPolygon2 expected, GeoPolygon2 actual, double tolerance = 1e-9)
         {
@@ -42,11 +48,15 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(expected.IsClockwise == actual.IsClockwise, "the loops run opposite ways");
 
             // Same loop, possibly starting at another vertex.
-            int shift = Enumerable.Range(0, actual.VertexCount).FirstOrDefault(k => actual[k].DistanceTo(expected[0]) <= tolerance);
+            int shift = Enumerable
+                .Range(0, actual.VertexCount)
+                .FirstOrDefault(k => actual[k].DistanceTo(expected[0]) <= tolerance);
             for (int i = 0; i < expected.VertexCount; i++)
             {
-                Assert.True(expected[i].DistanceTo(actual[(i + shift) % actual.VertexCount]) <= tolerance,
-                    $"vertex {i}: expected {expected[i]}, got {actual[(i + shift) % actual.VertexCount]}");
+                Assert.True(
+                    expected[i].DistanceTo(actual[(i + shift) % actual.VertexCount]) <= tolerance,
+                    $"vertex {i}: expected {expected[i]}, got {actual[(i + shift) % actual.VertexCount]}"
+                );
             }
         }
 
@@ -90,7 +100,10 @@ namespace GeometryHelper.UnitTest.Plane
                 double exact = 100 + 40 * d + Math.PI * d * d;
                 double round = Square.Offset(d, OffsetJoin.Round)[0].Area;
                 Assert.True(round < exact);
-                Assert.True(exact - round < 4 * (Math.PI / 2 * d) * OffsetOptions.AutomaticArcToleranceRatio * d, $"round area {round} too far below {exact}");
+                Assert.True(
+                    exact - round < 4 * (Math.PI / 2 * d) * OffsetOptions.AutomaticArcToleranceRatio * d,
+                    $"round area {round} too far below {exact}"
+                );
 
                 // A finer arc tolerance gets closer.
                 double fine = Square.Offset(d, new OffsetOptions(OffsetJoin.Round, arcTolerance: 1e-6))[0].Area;
@@ -191,7 +204,13 @@ namespace GeometryHelper.UnitTest.Plane
 
             foreach (double d in new[] { 0.5, 1.0, -0.5 })
             {
-                foreach ((OffsetJoin ours, JoinType theirs) in new[] { (OffsetJoin.Miter, JoinType.Miter), (OffsetJoin.Chamfer, JoinType.Square) })
+                foreach (
+                    (OffsetJoin ours, JoinType theirs) in new[]
+                    {
+                        (OffsetJoin.Miter, JoinType.Miter),
+                        (OffsetJoin.Chamfer, JoinType.Square),
+                    }
+                )
                 {
                     GeoPolygon2[] result = notched.Offset(d, new OffsetOptions(ours, double.PositiveInfinity));
                     PathsD expected = Oracle(new[] { notched }, d, theirs, FillRule.NonZero);
@@ -208,10 +227,28 @@ namespace GeometryHelper.UnitTest.Plane
             // Found by fuzzing with the detour through inside corners taken out of the raw offset: ten short edges
             // about two units across, shrunk by three. Nothing can be left, and the detours are what make the
             // raw loop's folds cancel; without them a piece of 2.1 square units survived.
-            var walk = P(1.29120435487293, 0.8529122511717194, 2.0692576855245406, 1.8246495197613428, 2.2463920430178077, 2.5563866007258804,
-                         2.111849016130124, 3.2240605527713724, 2.131484777697378, 3.5052053578503806, 1.5969035822287925, 4.292744418060094,
-                         1.204212114951118, 4.359962079953233, 0.6624590592209036, 4.244928638591521, 0.2404842875843622, 3.88891733400727,
-                         0.14789238177608988, 3.7046090201323696);
+            var walk = P(
+                1.29120435487293,
+                0.8529122511717194,
+                2.0692576855245406,
+                1.8246495197613428,
+                2.2463920430178077,
+                2.5563866007258804,
+                2.111849016130124,
+                3.2240605527713724,
+                2.131484777697378,
+                3.5052053578503806,
+                1.5969035822287925,
+                4.292744418060094,
+                1.204212114951118,
+                4.359962079953233,
+                0.6624590592209036,
+                4.244928638591521,
+                0.2404842875843622,
+                3.88891733400727,
+                0.14789238177608988,
+                3.7046090201323696
+            );
 
             foreach (OffsetJoin join in new[] { OffsetJoin.Miter, OffsetJoin.Round, OffsetJoin.Chamfer })
             {
@@ -227,27 +264,86 @@ namespace GeometryHelper.UnitTest.Plane
                 // Found by fuzzing against Clipper: teeth narrower than twice the distance, shrunk away. Where a
                 // tooth is shorter across than the offset, the offset edges of its two sides pass each other without
                 // crossing, and only the detour through each original corner keeps the base's outline right.
-                var comb = P(0, 0, 12.556810211975506, 0, 12.556810211975506, 1,
-                             12.346807620649603, 1, 12.346807620649603, 5.422796114544755, 11.030278669032398, 5.422796114544755,
-                             11.030278669032398, 1, 9.675089881091886, 1, 9.675089881091886, 6.886248821339686,
-                             9.400917458069006, 6.886248821339686, 9.400917458069006, 1, 8.00142274857565, 1,
-                             8.00142274857565, 3.632585188668494, 7.289240777813476, 3.632585188668494, 7.289240777813476, 1,
-                             6.227419358178703, 1, 6.227419358178703, 7.821611514697602, 5.277756546427383, 7.821611514697602,
-                             5.277756546427383, 1, 4.161423784103907, 1, 4.161423784103907, 6.20141693353719,
-                             3.7245509831349137, 6.20141693353719, 3.7245509831349137, 1, 2.459634663052687, 1,
-                             2.459634663052687, 8.855549968711822, 2.1069624506435183, 8.855549968711822, 2.1069624506435183, 1,
-                             0.6055348466641897, 1, 0.6055348466641897, 4.003288449255418, 0, 4.003288449255418,
-                             0, 1);
+                var comb = P(
+                    0,
+                    0,
+                    12.556810211975506,
+                    0,
+                    12.556810211975506,
+                    1,
+                    12.346807620649603,
+                    1,
+                    12.346807620649603,
+                    5.422796114544755,
+                    11.030278669032398,
+                    5.422796114544755,
+                    11.030278669032398,
+                    1,
+                    9.675089881091886,
+                    1,
+                    9.675089881091886,
+                    6.886248821339686,
+                    9.400917458069006,
+                    6.886248821339686,
+                    9.400917458069006,
+                    1,
+                    8.00142274857565,
+                    1,
+                    8.00142274857565,
+                    3.632585188668494,
+                    7.289240777813476,
+                    3.632585188668494,
+                    7.289240777813476,
+                    1,
+                    6.227419358178703,
+                    1,
+                    6.227419358178703,
+                    7.821611514697602,
+                    5.277756546427383,
+                    7.821611514697602,
+                    5.277756546427383,
+                    1,
+                    4.161423784103907,
+                    1,
+                    4.161423784103907,
+                    6.20141693353719,
+                    3.7245509831349137,
+                    6.20141693353719,
+                    3.7245509831349137,
+                    1,
+                    2.459634663052687,
+                    1,
+                    2.459634663052687,
+                    8.855549968711822,
+                    2.1069624506435183,
+                    8.855549968711822,
+                    2.1069624506435183,
+                    1,
+                    0.6055348466641897,
+                    1,
+                    0.6055348466641897,
+                    4.003288449255418,
+                    0,
+                    4.003288449255418,
+                    0,
+                    1
+                );
 
                 foreach (double d in new[] { -0.3, 0.3, -0.12 })
                 {
                     GeoPolygon2[] round = comb.Offset(d, new OffsetOptions(OffsetJoin.Round, arcTolerance: 0.001));
                     PathsD expectedRound = Oracle(new[] { comb }, d, JoinType.Round, FillRule.NonZero, 0.001);
-                    Assert.True(XorArea(ToPaths(round), expectedRound) < 0.002 * (round.Sum(p => p.Length) + 1.0), $"round offset {d} differs from Clipper");
+                    Assert.True(
+                        XorArea(ToPaths(round), expectedRound) < 0.002 * (round.Sum(p => p.Length) + 1.0),
+                        $"round offset {d} differs from Clipper"
+                    );
 
                     GeoPolygon2[] sharp = comb.Offset(d, SharpAlways);
                     PathsD expectedSharp = Oracle(new[] { comb }, d, JoinType.Miter, FillRule.NonZero);
-                    Assert.True(XorArea(ToPaths(sharp), expectedSharp) < 1e-5, $"sharp offset {d} differs from Clipper");
+                    Assert.True(
+                        XorArea(ToPaths(sharp), expectedSharp) < 1e-5,
+                        $"sharp offset {d} differs from Clipper"
+                    );
                 }
             }
         }
@@ -300,7 +396,13 @@ namespace GeometryHelper.UnitTest.Plane
             // The cut is square to the bisector of the corner, the miter limit times the distance from it.
             GeoPoint2[] cut = limited.Vertices.Where(v => v.X > 100).ToArray();
             Assert.Equal(2, cut.Length);
-            Assert.Equal(OffsetOptions.DefaultMiterLimit * 1.0, new GeoLine2(cut[0], cut[1]).GetClosestPointOnBoundary(new GeoPoint2(100, 0)).DistanceTo(new GeoPoint2(100, 0)), 9);
+            Assert.Equal(
+                OffsetOptions.DefaultMiterLimit * 1.0,
+                new GeoLine2(cut[0], cut[1])
+                    .GetClosestPointOnBoundary(new GeoPoint2(100, 0))
+                    .DistanceTo(new GeoPoint2(100, 0)),
+                9
+            );
         }
 
         [Fact]
@@ -322,7 +424,11 @@ namespace GeometryHelper.UnitTest.Plane
             // Two triangles touching at (5, 5), grown into one region.
             GeoPolygon2[] grown = bow.Offset(1.0, SharpAlways);
             Assert.Single(grown);
-            Assert.Equal(ClipperArea(Oracle(new[] { bow }, 1.0, JoinType.Miter, FillRule.EvenOdd)), grown.Sum(g => g.SignedArea), 6);
+            Assert.Equal(
+                ClipperArea(Oracle(new[] { bow }, 1.0, JoinType.Miter, FillRule.EvenOdd)),
+                grown.Sum(g => g.SignedArea),
+                6
+            );
         }
 
         [Fact]
@@ -353,7 +459,10 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(Offset2.Offset(l, 1.5), l.Offset(1.5));
             Assert.Equal(Offset2.Offset(l, -1.5, Tolerance.Global), l.Offset(-1.5, Tolerance.Global));
             Assert.Equal(Offset2.Offset(l, 1.5, OffsetJoin.Chamfer), l.Offset(1.5, OffsetJoin.Chamfer));
-            Assert.Equal(Offset2.Offset(l, 1.5, OffsetJoin.Chamfer, Tolerance.Global), l.Offset(1.5, OffsetJoin.Chamfer, Tolerance.Global));
+            Assert.Equal(
+                Offset2.Offset(l, 1.5, OffsetJoin.Chamfer, Tolerance.Global),
+                l.Offset(1.5, OffsetJoin.Chamfer, Tolerance.Global)
+            );
             Assert.Equal(Offset2.Offset(l, 1.5, options), l.Offset(1.5, options));
             Assert.Equal(Offset2.Offset(l, 1.5, options, Tolerance.Global), l.Offset(1.5, options, Tolerance.Global));
         }
@@ -409,7 +518,10 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(PointLocation.OutSide, face.Locate(new GeoPoint2(30, 10)));
             Assert.True(face.Contains(new GeoPoint2(5, 10)));
             Assert.False(face.Contains(new GeoPoint2(10, 10)));
-            Assert.Equal(Containment2.Locate(face, new GeoPoint2(2, 2)), face.Locate(new GeoPoint2(2, 2), Tolerance.Global));
+            Assert.Equal(
+                Containment2.Locate(face, new GeoPoint2(2, 2)),
+                face.Locate(new GeoPoint2(2, 2), Tolerance.Global)
+            );
         }
 
         [Fact]
@@ -440,7 +552,8 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 int n = 5 + rng.Next(30);
                 var points = new GeoPoint2[n];
-                double cx = rng.NextDouble() * 20 - 10, cy = rng.NextDouble() * 20 - 10;
+                double cx = rng.NextDouble() * 20 - 10,
+                    cy = rng.NextDouble() * 20 - 10;
 
                 for (int i = 0; i < n; i++)
                 {
@@ -494,7 +607,10 @@ namespace GeometryHelper.UnitTest.Plane
                         {
                             foreach (GeoPolygon2 loop in star.Offset(d, join))
                             {
-                                Assert.True(loop.IsSimple(), $"offset {d} {join} of a star gave a loop that is not simple");
+                                Assert.True(
+                                    loop.IsSimple(),
+                                    $"offset {d} {join} of a star gave a loop that is not simple"
+                                );
                             }
                         }
                     }
@@ -539,7 +655,13 @@ namespace GeometryHelper.UnitTest.Plane
             return paths;
         }
 
-        private static PathsD Oracle(IEnumerable<GeoPolygon2> polygons, double d, JoinType join, FillRule rule, double arcTolerance = 0.0)
+        private static PathsD Oracle(
+            IEnumerable<GeoPolygon2> polygons,
+            double d,
+            JoinType join,
+            FillRule rule,
+            double arcTolerance = 0.0
+        )
         {
             // Clipper inflates a set of paths as the region they fill, so the input is first reduced to that
             // region under the rule our own offset reads it with.
@@ -550,8 +672,10 @@ namespace GeometryHelper.UnitTest.Plane
         private static double ClipperArea(PathsD paths) => Clipper2.Area(paths);
 
         // The join of Clipper2's offset that ours is held against: a chamfer is its square join.
-        private static JoinType ClipperJoin(OffsetJoin ours)
-            => ours == OffsetJoin.Miter ? JoinType.Miter : ours == OffsetJoin.Chamfer ? JoinType.Square : JoinType.Round;
+        private static JoinType ClipperJoin(OffsetJoin ours) =>
+            ours == OffsetJoin.Miter ? JoinType.Miter
+            : ours == OffsetJoin.Chamfer ? JoinType.Square
+            : JoinType.Round;
 
         private static double XorArea(PathsD a, PathsD b)
         {
@@ -577,7 +701,10 @@ namespace GeometryHelper.UnitTest.Plane
                         PathsD expected = Oracle(new[] { star }, d, theirs, FillRule.NonZero);
 
                         double xor = XorArea(ToPaths(result), expected);
-                        Assert.True(xor < 1e-5 * (1 + Math.Abs(ClipperArea(expected))), $"star {compared}: offset {d} differs from Clipper by area {xor}");
+                        Assert.True(
+                            xor < 1e-5 * (1 + Math.Abs(ClipperArea(expected))),
+                            $"star {compared}: offset {d} differs from Clipper by area {xor}"
+                        );
                         compared++;
                     }
                 }
@@ -621,8 +748,21 @@ namespace GeometryHelper.UnitTest.Plane
                 var rects = new PathsD();
                 for (int k = 0; k < 2 + rng.Next(5); k++)
                 {
-                    double x = rng.Next(0, 20), y = rng.Next(0, 20), w = 1 + rng.Next(8), h = 1 + rng.Next(8);
-                    rects.Add(new PathD(new[] { new PointD(x, y), new PointD(x + w, y), new PointD(x + w, y + h), new PointD(x, y + h) }));
+                    double x = rng.Next(0, 20),
+                        y = rng.Next(0, 20),
+                        w = 1 + rng.Next(8),
+                        h = 1 + rng.Next(8);
+                    rects.Add(
+                        new PathD(
+                            new[]
+                            {
+                                new PointD(x, y),
+                                new PointD(x + w, y),
+                                new PointD(x + w, y + h),
+                                new PointD(x, y + h),
+                            }
+                        )
+                    );
                 }
 
                 PathsD region = Clipper2.Union(rects, new PathsD(), FillRule.NonZero, 8);
@@ -659,15 +799,24 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static List<GeoFace2> ToFaces(PathsD region)
         {
-            var outers = region.Where(Clipper2.IsPositive).Select(p => new GeoPolygon2(p.Select(q => new GeoPoint2(q.x, q.y)))).ToList();
-            var holes = region.Where(p => !Clipper2.IsPositive(p)).Select(p => new GeoPolygon2(p.Select(q => new GeoPoint2(q.x, q.y)))).ToList();
+            var outers = region
+                .Where(Clipper2.IsPositive)
+                .Select(p => new GeoPolygon2(p.Select(q => new GeoPoint2(q.x, q.y))))
+                .ToList();
+            var holes = region
+                .Where(p => !Clipper2.IsPositive(p))
+                .Select(p => new GeoPolygon2(p.Select(q => new GeoPoint2(q.x, q.y))))
+                .ToList();
             var faces = new List<GeoFace2>();
 
             foreach (GeoPolygon2 outer in outers)
             {
-                var inside = holes.Where(h => outer.Contains(h.GetEdgeAt(0).MidPoint) &&
-                                              !outers.Any(o => o != outer && o.Area < outer.Area && o.Contains(h.GetEdgeAt(0).MidPoint)))
-                                  .ToList();
+                var inside = holes
+                    .Where(h =>
+                        outer.Contains(h.GetEdgeAt(0).MidPoint)
+                        && !outers.Any(o => o != outer && o.Area < outer.Area && o.Contains(h.GetEdgeAt(0).MidPoint))
+                    )
+                    .ToList();
                 faces.Add(new GeoFace2(outer, inside));
             }
 

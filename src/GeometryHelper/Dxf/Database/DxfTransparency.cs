@@ -44,7 +44,11 @@ namespace GeometryHelper.Dxf
         {
             if (method < DxfTransparencyMethod.ByLayer || method > DxfTransparencyMethod.ErrorValue)
             {
-                throw new ArgumentOutOfRangeException(nameof(method), method, "A method of transparency is one of DxfTransparencyMethod.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(method),
+                    method,
+                    "A method of transparency is one of DxfTransparencyMethod."
+                );
             }
 
             _method = method;
@@ -96,7 +100,8 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets whether the transparency equals another.</summary>
         /// <param name="other">The other.</param>
         /// <returns>Whether their methods and, by alpha, their alphas are equal.</returns>
-        public bool Equals(DxfTransparency other) => _method == other._method && (_method != DxfTransparencyMethod.ByAlpha || _alpha == other._alpha);
+        public bool Equals(DxfTransparency other) =>
+            _method == other._method && (_method != DxfTransparencyMethod.ByAlpha || _alpha == other._alpha);
 
         /// <summary>Gets whether the transparency equals an object.</summary>
         /// <param name="obj">The object.</param>
@@ -111,7 +116,8 @@ namespace GeometryHelper.Dxf
         /// Gives the transparency as a line: <c>ByLayer</c>, <c>ByBlock</c>, <c>ByAlpha 127</c> or <c>ErrorValue</c>.
         /// </summary>
         /// <returns>The line.</returns>
-        public override string ToString() => IsByAlpha ? "ByAlpha " + _alpha.ToString(CultureInfo.InvariantCulture) : _method.ToString();
+        public override string ToString() =>
+            IsByAlpha ? "ByAlpha " + _alpha.ToString(CultureInfo.InvariantCulture) : _method.ToString();
 
         /// <summary>
         /// The transparency of the value a file writes (an entity's 440, a layer's 1071 of <c>AcCmTransparency</c>): its top byte
@@ -121,14 +127,21 @@ namespace GeometryHelper.Dxf
         {
             switch ((value >> 24) & 0xFF)
             {
-                case 0: return ByLayer;
-                case 1: return ByBlock;
-                case 2: return new DxfTransparency((byte)(value & 0xFF));
-                default: return new DxfTransparency(DxfTransparencyMethod.ErrorValue);
+                case 0:
+                    return ByLayer;
+                case 1:
+                    return ByBlock;
+                case 2:
+                    return new DxfTransparency((byte)(value & 0xFF));
+                default:
+                    return new DxfTransparency(DxfTransparencyMethod.ErrorValue);
             }
         }
 
         /// <summary>The value a file writes for the transparency: 0x020000TT by alpha, 0x01000000 BYBLOCK, nought BYLAYER.</summary>
-        internal int Value => IsByAlpha ? 0x02000000 | _alpha : IsByBlock ? 0x01000000 : 0;
+        internal int Value =>
+            IsByAlpha ? 0x02000000 | _alpha
+            : IsByBlock ? 0x01000000
+            : 0;
     }
 }

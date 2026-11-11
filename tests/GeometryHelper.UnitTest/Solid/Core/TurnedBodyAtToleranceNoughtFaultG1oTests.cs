@@ -20,7 +20,9 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly GeoVector3 Up = Unit(new GeoVector3(0.3, -0.4, 0.866));
 
         /// <summary>The plate's length, square to its up.</summary>
-        private static readonly GeoVector3 Along = Unit(new GeoVector3(1, 0.2, 0).Subtract(Up.Multiply(new GeoVector3(1, 0.2, 0).DotProduct(Up))));
+        private static readonly GeoVector3 Along = Unit(
+            new GeoVector3(1, 0.2, 0).Subtract(Up.Multiply(new GeoVector3(1, 0.2, 0).DotProduct(Up)))
+        );
 
         /// <summary>The plate's width.</summary>
         private static readonly GeoVector3 Across = Up.CrossProduct(Along);
@@ -28,8 +30,8 @@ namespace GeometryHelper.UnitTest.Solid
         private static GeoVector3 Unit(GeoVector3 vector) => vector.Multiply(1 / vector.Length);
 
         /// <summary>The point at a length, a width and a height in the turned frame standing at (out, out, out).</summary>
-        private static GeoPoint3 At(double far, double x, double y, double z)
-            => new GeoPoint3(far, far, far).Add(Along.Multiply(x)).Add(Across.Multiply(y)).Add(Up.Multiply(z));
+        private static GeoPoint3 At(double far, double x, double y, double z) =>
+            new GeoPoint3(far, far, far).Add(Along.Multiply(x)).Add(Across.Multiply(y)).Add(Up.Multiply(z));
 
         /// <summary>
         /// A prism of an outline, given as pairs of length and width, standing a height up the turned frame, with openings
@@ -44,11 +46,24 @@ namespace GeometryHelper.UnitTest.Solid
                 corners.Add(At(far, outline[i], outline[i + 1], 0));
             }
 
-            GeoSolid3 body = GeoSolid3.Extrude(new GeoPolygon3(corners.ToArray()), Up.Multiply(height), Tolerance.Default);
+            GeoSolid3 body = GeoSolid3.Extrude(
+                new GeoPolygon3(corners.ToArray()),
+                Up.Multiply(height),
+                Tolerance.Default
+            );
             GeoSolid3[] openings = holes
-                .Select(h => GeoSolid3.Extrude(
-                    new GeoPolygon3(At(far, h[0], h[1], h[4]), At(far, h[2], h[1], h[4]), At(far, h[2], h[3], h[4]), At(far, h[0], h[3], h[4])),
-                    Up.Multiply(h[5] - h[4]), Tolerance.Default))
+                .Select(h =>
+                    GeoSolid3.Extrude(
+                        new GeoPolygon3(
+                            At(far, h[0], h[1], h[4]),
+                            At(far, h[2], h[1], h[4]),
+                            At(far, h[2], h[3], h[4]),
+                            At(far, h[0], h[3], h[4])
+                        ),
+                        Up.Multiply(h[5] - h[4]),
+                        Tolerance.Default
+                    )
+                )
                 .ToArray();
 
             return body.WithOpenings(openings);
@@ -77,7 +92,12 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The plate 200 by 100 by 3, the hole 20 by 20 drawn 7 past both faces: at nought the cut gave 7 faces, the bottom
             // lost, and said it had worked; a million out at a millionth of a millionth it gave the plate with no hole cut.
-            GeoSolid3 plate = Prism(far, new double[] { 0, 0, 200, 0, 200, 100, 0, 100 }, 3, new double[] { 90, 40, 110, 60, -7, 10 });
+            GeoSolid3 plate = Prism(
+                far,
+                new double[] { 0, 0, 200, 0, 200, 100, 0, 100 },
+                3,
+                new double[] { 90, 40, 110, 60, -7, 10 }
+            );
 
             var within = new Tolerance(tolerance, tolerance, tolerance, tolerance);
 
@@ -90,8 +110,13 @@ namespace GeometryHelper.UnitTest.Solid
             // The plate 200 by 100 by 3 a million out, two holes from under it, 1 and 1.5 deep: at nought the cut gave a shell
             // of 148 faces left open. Within the rounding, cut in together they leave it open, and taken out one at a time by a
             // difference the first took nothing out, and the plate held 57 600, closed.
-            GeoSolid3 plate = Prism(1E6, new double[] { 0, 0, 200, 0, 200, 100, 0, 100 }, 3,
-                new double[] { 20, 25, 50, 75, -7, 1 }, new double[] { 80, 30, 120, 70, -7, 1.5 });
+            GeoSolid3 plate = Prism(
+                1E6,
+                new double[] { 0, 0, 200, 0, 200, 100, 0, 100 },
+                3,
+                new double[] { 20, 25, 50, 75, -7, 1 },
+                new double[] { 80, 30, 120, 70, -7, 1.5 }
+            );
 
             AssertCutClosed(plate, 60_000 - 30 * 50 * 1 - 40 * 40 * 1.5, Nought);
         }
@@ -102,8 +127,13 @@ namespace GeometryHelper.UnitTest.Solid
         public void AtToleranceNought_ATurnedLWithAHoleThroughAndABlindOne_HoldsWhatTheHolesLeave(double far)
         {
             // The L 100 by 80, its legs 20 wide, 50 tall; a hole 25 by 12 through the one leg, one 12 by 35 down 30 into the other.
-            GeoSolid3 body = Prism(far, new double[] { 0, 0, 100, 0, 100, 20, 20, 20, 20, 80, 0, 80 }, 50,
-                new double[] { 30, 4, 55, 16, -7, 57 }, new double[] { 4, 35, 16, 70, 20, 57 });
+            GeoSolid3 body = Prism(
+                far,
+                new double[] { 0, 0, 100, 0, 100, 20, 20, 20, 20, 80, 0, 80 },
+                50,
+                new double[] { 30, 4, 55, 16, -7, 57 },
+                new double[] { 4, 35, 16, 70, 20, 57 }
+            );
 
             AssertCutClosed(body, 160_000 - 25 * 12 * 50 - 12 * 35 * 30, Nought);
         }
@@ -133,8 +163,14 @@ namespace GeometryHelper.UnitTest.Solid
                 area += outline[2 * j] * outline[2 * i + 1] - outline[2 * i] * outline[2 * j + 1];
             }
 
-            GeoSolid3 body = Prism(far, outline.ToArray(), 40,
-                new double[] { 37, 37, 49, 49, -7, 47 }, new double[] { 51, 37, 63, 49, 10, 47 }, new double[] { 44, 51, 56, 62, -7, 25 });
+            GeoSolid3 body = Prism(
+                far,
+                outline.ToArray(),
+                40,
+                new double[] { 37, 37, 49, 49, -7, 47 },
+                new double[] { 51, 37, 63, 49, 10, 47 },
+                new double[] { 44, 51, 56, 62, -7, 25 }
+            );
 
             AssertCutClosed(body, Math.Abs(area) / 2 * 40 - 144 * 40 - 144 * 30 - 132 * 25, Nought);
         }
@@ -145,11 +181,25 @@ namespace GeometryHelper.UnitTest.Solid
             // The plate 200 by 100 by 3 standing on the floor, the hole 20 by 20 through it: cut within the rounding, its faces
             // met on corners up to 1.4E-14 apart, and TryGetVolume at nought refused the material it gave.
             GeoSolid3 box = GeoSolid3.Extrude(
-                new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(200, 0, 0), new GeoPoint3(200, 100, 0), new GeoPoint3(0, 100, 0)),
-                new GeoVector3(0, 0, 3), Tolerance.Default);
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(200, 0, 0),
+                    new GeoPoint3(200, 100, 0),
+                    new GeoPoint3(0, 100, 0)
+                ),
+                new GeoVector3(0, 0, 3),
+                Tolerance.Default
+            );
             GeoSolid3 hole = GeoSolid3.Extrude(
-                new GeoPolygon3(new GeoPoint3(90, 40, -7), new GeoPoint3(110, 40, -7), new GeoPoint3(110, 60, -7), new GeoPoint3(90, 60, -7)),
-                new GeoVector3(0, 0, 17), Tolerance.Default);
+                new GeoPolygon3(
+                    new GeoPoint3(90, 40, -7),
+                    new GeoPoint3(110, 40, -7),
+                    new GeoPoint3(110, 60, -7),
+                    new GeoPoint3(90, 60, -7)
+                ),
+                new GeoVector3(0, 0, 17),
+                Tolerance.Default
+            );
 
             GeoSolid3 material = AssertCutClosed(box.WithOpenings(new[] { hole }), 58_800, Nought);
 
@@ -161,14 +211,32 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(40, 30, 80, 70, 0, 1.5, 120, 30, 160, 70, 1, 3, 54_400, 124)]
         [InlineData(40, 30, 80, 70, 1.5, 10, 60, 30, 100, 70, -7, 2, 54_800, 126)]
         public void APlanarToleranceOfNoughtWithAPointToleranceOfAThousandth_CutsAsItDid(
-            double x0, double y0, double x1, double y1, double z0, double z1,
-            double u0, double v0, double u1, double v1, double w0, double w1, double volume, int faces)
+            double x0,
+            double y0,
+            double x1,
+            double y1,
+            double z0,
+            double z1,
+            double u0,
+            double v0,
+            double u1,
+            double v1,
+            double w0,
+            double w1,
+            double volume,
+            int faces
+        )
         {
             // The plate a thousand out with a hole from under it and one from over it, flush with the faces or overlapping each
             // other: a planar tolerance below the rounding alone does not raise the cut to it. Raised, the overlapping holes
             // were refused, and the flush ones gave 35 faces where they give 124.
-            GeoSolid3 plate = Prism(1E3, new double[] { 0, 0, 200, 0, 200, 100, 0, 100 }, 3,
-                new[] { x0, y0, x1, y1, z0, z1 }, new[] { u0, v0, u1, v1, w0, w1 });
+            GeoSolid3 plate = Prism(
+                1E3,
+                new double[] { 0, 0, 200, 0, 200, 100, 0, 100 },
+                3,
+                new[] { x0, y0, x1, y1, z0, z1 },
+                new[] { u0, v0, u1, v1, w0, w1 }
+            );
 
             GeoSolid3 material = AssertCutClosed(plate, volume, new Tolerance(1E-3, 1E-5, Math.PI / 180, 0));
 
@@ -181,8 +249,13 @@ namespace GeometryHelper.UnitTest.Solid
             // The plate a thousand out with a hole 1.5 up from its floor and one 2 down from its top, each flush with a face:
             // cut at nought it came back holding 48 880 where it holds 54 400, not valid, and the cut said it had worked. Within
             // the rounding neither way of cutting closes it, and the method says so.
-            GeoSolid3 plate = Prism(1E3, new double[] { 0, 0, 200, 0, 200, 100, 0, 100 }, 3,
-                new double[] { 40, 30, 80, 70, 0, 1.5 }, new double[] { 120, 30, 160, 70, 1, 3 });
+            GeoSolid3 plate = Prism(
+                1E3,
+                new double[] { 0, 0, 200, 0, 200, 100, 0, 100 },
+                3,
+                new double[] { 40, 30, 80, 70, 0, 1.5 },
+                new double[] { 120, 30, 160, 70, 1, 3 }
+            );
 
             Assert.False(plate.TryCutOpenings(out GeoSolid3 material, Nought));
             Assert.Null(material);

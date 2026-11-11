@@ -18,7 +18,12 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfBlockReferenceTests
     {
-        private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
+        private static readonly string[] Drawings =
+        {
+            DxfFileEzdxfDrawings.R12,
+            DxfFileEzdxfDrawings.R2000,
+            DxfFileEzdxfDrawings.R2018,
+        };
 
         #region Read as ezdxf reads it
 
@@ -31,7 +36,9 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                DxfBlockReference bolt = Everything(db).OfType<DxfBlockReference>().Single(b => b.Owner == db.ModelSpace && b.Name == "BOLT" && !(b is DxfMInsertBlock));
+                DxfBlockReference bolt = Everything(db)
+                    .OfType<DxfBlockReference>()
+                    .Single(b => b.Owner == db.ModelSpace && b.Name == "BOLT" && !(b is DxfMInsertBlock));
 
                 Assert.Equal("BOLT", bolt.Name);
                 Assert.Same(db.ModelSpace, bolt.Owner);
@@ -76,8 +83,14 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(0.6, m[1, 2]);
             Near(-200.0, m[0, 3]);
 
-            DxfDocument read = DxfReader.Parse(DxfFileEzdxfDrawings.R2000, new DxfReadOptions { Tolerance = Tolerance.Default });
-            object[] theirs = read.Shapes.Where(s => s.InsertHandles.Count > 0 && s.InsertHandles[0] == "68").Select(s => s.Shape).ToArray();
+            DxfDocument read = DxfReader.Parse(
+                DxfFileEzdxfDrawings.R2000,
+                new DxfReadOptions { Tolerance = Tolerance.Default }
+            );
+            object[] theirs = read
+                .Shapes.Where(s => s.InsertHandles.Count > 0 && s.InsertHandles[0] == "68")
+                .Select(s => s.Shape)
+                .ToArray();
             Assert.NotEmpty(theirs);
             Assert.Equal(theirs.Length, frame.GetGeometry().Count);
             Assert.Equal(theirs.Select(s => s.ToString()), frame.GetGeometry().Select(s => s.ToString()));
@@ -131,7 +144,9 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                DxfBlockReference bolt = Everything(db).OfType<DxfBlockReference>().Single(b => b.Owner == db.ModelSpace && b.Name == "BOLT" && !(b is DxfMInsertBlock));
+                DxfBlockReference bolt = Everything(db)
+                    .OfType<DxfBlockReference>()
+                    .Single(b => b.Owner == db.ModelSpace && b.Name == "BOLT" && !(b is DxfMInsertBlock));
                 DxfAttributeReference mark = bolt.AttributeCollection[0];
                 string handle = bolt.Handle;
                 string attribute = mark.Handle;
@@ -142,7 +157,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 // Turned by 45 degrees more about the insertion point: the ATTRIB turns with it.
                 bolt.Rotation = Math.PI / 2.0;
-                Near(new GeoPoint3(60.0 + 1.0 * Math.Sin(Math.PI / 4.0), 55.0 - Math.Cos(Math.PI / 4.0), 1.0), mark.Position);
+                Near(
+                    new GeoPoint3(60.0 + 1.0 * Math.Sin(Math.PI / 4.0), 55.0 - Math.Cos(Math.PI / 4.0), 1.0),
+                    mark.Position
+                );
                 Near(Math.PI / 4.0, mark.Rotation);
 
                 bolt.ScaleFactors = new GeoVector3(3.0, 3.0, 3.0);
@@ -168,18 +186,25 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                DxfBlockReference bolt = Everything(db).OfType<DxfBlockReference>().Single(b => b.Owner == db.ModelSpace && b.Name == "BOLT" && !(b is DxfMInsertBlock));
+                DxfBlockReference bolt = Everything(db)
+                    .OfType<DxfBlockReference>()
+                    .Single(b => b.Owner == db.ModelSpace && b.Name == "BOLT" && !(b is DxfMInsertBlock));
                 DxfBlockTableRecord frame = db.BlockTable["FRAME"];
                 DxfBlockReference inFrame = frame.OfType<DxfBlockReference>().Single();
 
                 bolt.BlockTableRecord = frame;
                 Assert.Equal("FRAME", bolt.Name);
                 Assert.Same(frame, bolt.BlockTableRecord);
-                Assert.Equal("FRAME", ByHandle<DxfBlockReference>(DxfDatabase.Parse(db.ToText()), bolt.Handle ?? "68").Name);
+                Assert.Equal(
+                    "FRAME",
+                    ByHandle<DxfBlockReference>(DxfDatabase.Parse(db.ToText()), bolt.Handle ?? "68").Name
+                );
 
                 Assert.Throws<ArgumentException>(() => inFrame.BlockTableRecord = frame);
                 Assert.Throws<ArgumentException>(() => bolt.BlockTableRecord = db.ModelSpace);
-                Assert.Throws<ArgumentException>(() => bolt.BlockTableRecord = new DxfBlockTableRecord { Name = "LOOSE" });
+                Assert.Throws<ArgumentException>(() =>
+                    bolt.BlockTableRecord = new DxfBlockTableRecord { Name = "LOOSE" }
+                );
                 Assert.Equal("BOLT", inFrame.Name);
             }
         }
@@ -212,7 +237,15 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(-47.1215724403504 * (Math.PI / 180.0), mark.Rotation);
             Near(2.5, mark.Height);
 
-            var shear = new GeoTransform3(new double[,] { { 1, 1, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } });
+            var shear = new GeoTransform3(
+                new double[,]
+                {
+                    { 1, 1, 0, 0 },
+                    { 0, 1, 0, 0 },
+                    { 0, 0, 1, 0 },
+                    { 0, 0, 0, 1 },
+                }
+            );
             Assert.Throws<ArgumentException>(() => bolt.TransformBy(shear));
         }
 
@@ -226,7 +259,9 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                DxfBlockReference frame = Everything(db).OfType<DxfBlockReference>().Single(b => b.Owner == db.ModelSpace && b.Name == "FRAME");
+                DxfBlockReference frame = Everything(db)
+                    .OfType<DxfBlockReference>()
+                    .Single(b => b.Owner == db.ModelSpace && b.Name == "FRAME");
                 DxfEntity[] inBlock = db.BlockTable["FRAME"].ToArray();
 
                 var exploded = frame.Explode();
@@ -238,7 +273,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal("0", bolt.Layer);
 
                 // The INSERT of BOLT in FRAME placed by FRAME's placing: its own placing after FRAME's.
-                GeoTransform3 expected = frame.BlockTransform.Multiply(frame.BlockTableRecord.OfType<DxfBlockReference>().Single().BlockTransform);
+                GeoTransform3 expected = frame.BlockTransform.Multiply(
+                    frame.BlockTableRecord.OfType<DxfBlockReference>().Single().BlockTransform
+                );
                 Near(expected.Transform(db.BlockTable["BOLT"].Origin), bolt.Position);
 
                 db.ModelSpace.AppendEntity(bolt);
@@ -256,7 +293,11 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                var made = new DxfBlockReference(new GeoPoint3(11, 12, 0), db.BlockTable["BOLT"]) { Rotation = 0.2, ScaleFactors = new GeoVector3(2, 2, 2) };
+                var made = new DxfBlockReference(new GeoPoint3(11, 12, 0), db.BlockTable["BOLT"])
+                {
+                    Rotation = 0.2,
+                    ScaleFactors = new GeoVector3(2, 2, 2),
+                };
 
                 db.ModelSpace.AppendEntity(made);
                 Assert.Same(db.ModelSpace, made.Owner);
@@ -269,11 +310,25 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(Bits(new GeoVector3(2, 2, 2)), Bits(again.ScaleFactors));
 
                 // A block of no drawing, a layout, and an INSERT of FRAME put in BOLT, which FRAME inserts, are refused.
-                Assert.Throws<ArgumentException>(() => db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), new DxfBlockTableRecord { Name = "LOOSE" })));
+                Assert.Throws<ArgumentException>(() =>
+                    db.ModelSpace.AppendEntity(
+                        new DxfBlockReference(new GeoPoint3(0, 0, 0), new DxfBlockTableRecord { Name = "LOOSE" })
+                    )
+                );
                 Assert.Throws<ArgumentException>(() => new DxfBlockReference(new GeoPoint3(0, 0, 0), db.ModelSpace));
-                Assert.Throws<ArgumentException>(() => db.BlockTable["BOLT"].AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), db.BlockTable["FRAME"])));
-                Assert.Throws<ArgumentException>(() => db.BlockTable["BOLT"].AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), db.BlockTable["BOLT"])));
-                Assert.Throws<ArgumentException>(() => DxfDatabase.Parse(text).ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), db.BlockTable["BOLT"])));
+                Assert.Throws<ArgumentException>(() =>
+                    db.BlockTable["BOLT"]
+                        .AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), db.BlockTable["FRAME"]))
+                );
+                Assert.Throws<ArgumentException>(() =>
+                    db.BlockTable["BOLT"]
+                        .AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), db.BlockTable["BOLT"]))
+                );
+                Assert.Throws<ArgumentException>(() =>
+                    DxfDatabase
+                        .Parse(text)
+                        .ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), db.BlockTable["BOLT"]))
+                );
             }
         }
 
@@ -283,7 +338,9 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                DxfBlockReference bolt = Everything(db).OfType<DxfBlockReference>().Single(b => b.Owner == db.ModelSpace && b.Name == "BOLT" && !(b is DxfMInsertBlock));
+                DxfBlockReference bolt = Everything(db)
+                    .OfType<DxfBlockReference>()
+                    .Single(b => b.Owner == db.ModelSpace && b.Name == "BOLT" && !(b is DxfMInsertBlock));
                 DxfAttributeReference mark = bolt.AttributeCollection[0];
                 int records = Records(text).Count;
 
@@ -347,7 +404,9 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                DxfBlockReference frame = Everything(db).OfType<DxfBlockReference>().Single(b => b.Owner == db.ModelSpace && b.Name == "FRAME");
+                DxfBlockReference frame = Everything(db)
+                    .OfType<DxfBlockReference>()
+                    .Single(b => b.Owner == db.ModelSpace && b.Name == "FRAME");
                 frame.ScaleFactors = new GeoVector3(2.0, 1.0, 1.0);
                 GeoLine3[] wanted = frame.GetGeometry().OfType<GeoLine3>().ToArray();
 
@@ -355,7 +414,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 Assert.NotEmpty(wanted);
                 Assert.DoesNotContain(parts, p => p is DxfBlockReference);
-                SameLines(wanted, parts.OfType<DxfLine>().Select(l => new GeoLine3(l.StartPoint, l.EndPoint)).ToArray());
+                SameLines(
+                    wanted,
+                    parts.OfType<DxfLine>().Select(l => new GeoLine3(l.StartPoint, l.EndPoint)).ToArray()
+                );
             }
         }
 
@@ -373,7 +435,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 IReadOnlyList<DxfEntity> parts = bolt.Explode();
 
-                Assert.Equal(new[] { "DxfCircle", "DxfLine", "DxfAttributeDefinition" }, parts.Select(p => p.GetType().Name));
+                Assert.Equal(
+                    new[] { "DxfCircle", "DxfLine", "DxfAttributeDefinition" },
+                    parts.Select(p => p.GetType().Name)
+                );
                 Assert.DoesNotContain(parts, p => p is DxfDBText && !(p is DxfAttributeDefinition));
                 var mark = (DxfAttributeDefinition)parts[2];
                 Assert.Equal("MARK", mark.Tag);
@@ -391,7 +456,10 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // A POLYLINE of an arc in BOLT, stretched unlike along its axes, is placed by the reader as more shapes than it reads
             // alone; with no handles to tell them apart, each shape still comes out of its own entity, with that entity's look.
-            string text = DxfFileEzdxfDrawings.R12.Replace("  2\nMARK\n 70\n0\n  0\nENDBLK", "  2\nMARK\n 70\n0\n" + Bulged + "  0\nENDBLK");
+            string text = DxfFileEzdxfDrawings.R12.Replace(
+                "  2\nMARK\n 70\n0\n  0\nENDBLK",
+                "  2\nMARK\n 70\n0\n" + Bulged + "  0\nENDBLK"
+            );
             string bare = System.Text.RegularExpressions.Regex.Replace(text, "(?m)^  5\n[0-9A-Fa-f]+\n", string.Empty);
             Assert.NotEqual(text, bare);
 
@@ -401,7 +469,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfBlockReference bolt = Bolt(db);
                 bolt.Rotation = 0.0;
                 bolt.ScaleFactors = new GeoVector3(2.0, 1.0, 1.0);
-                return bolt.Explode().Select(p => p.GetType().Name + " " + p.Layer + " " + string.Join(";", p.GetGeometry())).ToArray();
+                return bolt.Explode()
+                    .Select(p => p.GetType().Name + " " + p.Layer + " " + string.Join(";", p.GetGeometry()))
+                    .ToArray();
             }
 
             string[] withHandles = Exploded(text);
@@ -428,7 +498,8 @@ namespace GeometryHelper.UnitTest.Dxf
                 // BOLT's BLOCK renamed NUT: the INSERTs of BOLT place a block the drawing has not.
                 int blocks = text.IndexOf("\nBLOCKS\n", StringComparison.Ordinal);
                 int named = text.IndexOf("\n  2\nBOLT\n", blocks, StringComparison.Ordinal);
-                string orphaned = text.Substring(0, named) + "\n  2\nNUT\n" + text.Substring(named + "\n  2\nBOLT\n".Length);
+                string orphaned =
+                    text.Substring(0, named) + "\n  2\nNUT\n" + text.Substring(named + "\n  2\nBOLT\n".Length);
                 DxfDatabase other = DxfDatabase.Parse(orphaned);
                 DxfBlockReference bolt = Bolt(other);
 
@@ -470,7 +541,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             InvalidOperationException refused = Assert.Throws<InvalidOperationException>(() => c1.Explode());
 
-            Assert.Equal("Exploding the INSERT of C1 would make more than 2000000 entities, the bound of DxfReadOptions.MaxPlacedEntities.", refused.Message);
+            Assert.Equal(
+                "Exploding the INSERT of C1 would make more than 2000000 entities, the bound of DxfReadOptions.MaxPlacedEntities.",
+                refused.Message
+            );
         }
 
         [Fact]
@@ -483,7 +557,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfDatabase db = DxfDatabase.Parse(text);
                 DxfLine line = db.BlockTable["BOLT"].OfType<DxfLine>().Single();
                 DxfBlockReference inFrame = db.BlockTable["FRAME"].OfType<DxfBlockReference>().Single();
-                DxfBlockReference frame = Everything(db).OfType<DxfBlockReference>().Single(b => b.Owner == db.ModelSpace && b.Name == "FRAME");
+                DxfBlockReference frame = Everything(db)
+                    .OfType<DxfBlockReference>()
+                    .Single(b => b.Owner == db.ModelSpace && b.Name == "FRAME");
 
                 line.EndPoint = new GeoPoint3(8.0, 0.0, 0.0);
                 inFrame.Position = new GeoPoint3(3.0, 4.0, 0.0);
@@ -529,7 +605,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 string saved = db.ToText();
                 DxfDatabase again = DxfDatabase.Parse(saved);
                 Assert.DoesNotContain(Everything(again).OfType<DxfBlockReference>(), b => b.Handle == handle);
-                Assert.Equal("MARK", Assert.IsType<DxfAttributeDefinition>(ByHandle<DxfEntity>(again, added[2].Handle)).Tag);
+                Assert.Equal(
+                    "MARK",
+                    Assert.IsType<DxfAttributeDefinition>(ByHandle<DxfEntity>(again, added[2].Handle)).Tag
+                );
                 Assert.DoesNotContain(Records(saved), r => r.Contains("\nB-12\n"));
             }
         }
@@ -560,8 +639,13 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // B holds a LINE and a CIRCLE: stretched to twice its width, the CIRCLE comes out an ELLIPSE, which R12 has not. The
             // LINE appended before it is taken out again.
-            DxfDatabase db = DxfDatabase.Parse(Nest("B", Line(0) + "  0\nCIRCLE\n  8\n0\n 10\n0.0\n 20\n0.0\n 30\n0.0\n 40\n1.0\n"));
-            var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), db.BlockTable["B"]) { ScaleFactors = new GeoVector3(2, 1, 1) };
+            DxfDatabase db = DxfDatabase.Parse(
+                Nest("B", Line(0) + "  0\nCIRCLE\n  8\n0\n 10\n0.0\n 20\n0.0\n 30\n0.0\n 40\n1.0\n")
+            );
+            var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), db.BlockTable["B"])
+            {
+                ScaleFactors = new GeoVector3(2, 1, 1),
+            };
             db.ModelSpace.AppendEntity(insert);
             string before = db.ToText();
 
@@ -603,7 +687,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(1.0, Bolt(db).UnitFactor);
             Assert.Equal(1.0, Bolt(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000)).UnitFactor);
 
-            DxfDatabase inches = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018.Replace("  2\nBOLT\n340\n0\n 70\n0\n", "  2\nBOLT\n340\n0\n 70\n1\n"));
+            DxfDatabase inches = DxfDatabase.Parse(
+                DxfFileEzdxfDrawings.R2018.Replace("  2\nBOLT\n340\n0\n 70\n0\n", "  2\nBOLT\n340\n0\n 70\n1\n")
+            );
             Assert.Equal(DxfUnits.Inches, Bolt(inches).BlockUnit);
             Assert.Equal(25.4 / 1000.0, Bolt(inches).UnitFactor);
 
@@ -645,19 +731,32 @@ namespace GeometryHelper.UnitTest.Dxf
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
                 DxfBlockReference bolt = Bolt(db);
-                DxfBlockReference frame = Everything(db).OfType<DxfBlockReference>().Single(b => b.Owner == db.ModelSpace && b.Name == "FRAME");
+                DxfBlockReference frame = Everything(db)
+                    .OfType<DxfBlockReference>()
+                    .Single(b => b.Owner == db.ModelSpace && b.Name == "FRAME");
 
                 Assert.False(bolt.IsDynamicBlock);
                 Assert.Same(db.BlockTable["BOLT"], bolt.DynamicBlockTableRecord);
                 Assert.Null(bolt.AnonymousBlockTableRecord);
 
-                db.BlockTable["BOLT"].XData = new[] { new DxfTypedValue(1001, "AcDbDynamicBlockGUID"), new DxfTypedValue(1000, "{4E1F21B3-8C4E-4F6B-9A39-3F0F2B9B6A11}") };
+                db.BlockTable["BOLT"].XData = new[]
+                {
+                    new DxfTypedValue(1001, "AcDbDynamicBlockGUID"),
+                    new DxfTypedValue(1000, "{4E1F21B3-8C4E-4F6B-9A39-3F0F2B9B6A11}"),
+                };
                 db.BlockTable["BOLT"].CreateExtensionDictionary();
                 db.BlockTable["BOLT"].ExtensionDictionary.SetAt("ACAD_ENHANCEDBLOCK", new DxfDBDictionary());
-                db.BlockTable["FRAME"].XData = new[] { new DxfTypedValue(1001, "AcDbBlockRepBTag"), new DxfTypedValue(1070, "1"), new DxfTypedValue(1005, db.BlockTable["BOLT"].Handle) };
+                db.BlockTable["FRAME"].XData = new[]
+                {
+                    new DxfTypedValue(1001, "AcDbBlockRepBTag"),
+                    new DxfTypedValue(1070, "1"),
+                    new DxfTypedValue(1005, db.BlockTable["BOLT"].Handle),
+                };
                 DxfDatabase again = DxfDatabase.Parse(db.ToText());
                 bolt = Bolt(again);
-                frame = Everything(again).OfType<DxfBlockReference>().Single(b => b.Owner == again.ModelSpace && b.Name == "FRAME");
+                frame = Everything(again)
+                    .OfType<DxfBlockReference>()
+                    .Single(b => b.Owner == again.ModelSpace && b.Name == "FRAME");
 
                 // The INSERT of BOLT, scaled (1.5, -1.5, 2), unlike along its axes, is not dynamic, as AutoCAD 2021 read such
                 // INSERTs (plugin v16, 23c and 23e), though its block is.
@@ -670,7 +769,12 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Same(again.BlockTable["FRAME"], frame.AnonymousBlockTableRecord);
 
                 // A tag that names no block record is a lost reference: not dynamic.
-                again.BlockTable["FRAME"].XData = new[] { new DxfTypedValue(1001, "AcDbBlockRepBTag"), new DxfTypedValue(1070, "1"), new DxfTypedValue(1005, "FFFF") };
+                again.BlockTable["FRAME"].XData = new[]
+                {
+                    new DxfTypedValue(1001, "AcDbBlockRepBTag"),
+                    new DxfTypedValue(1070, "1"),
+                    new DxfTypedValue(1005, "FFFF"),
+                };
                 Assert.False(frame.IsDynamicBlock);
                 Assert.Same(again.BlockTable["FRAME"], frame.DynamicBlockTableRecord);
                 Assert.Null(frame.AnonymousBlockTableRecord);
@@ -680,19 +784,26 @@ namespace GeometryHelper.UnitTest.Dxf
         #endregion
 
         // A POLYLINE of R12 on the layer poly: a half circle and a line, with handles of its own.
-        private const string Bulged = "  0\nPOLYLINE\n  5\nF1\n  8\npoly\n 66\n1\n 10\n0.0\n 20\n0.0\n 30\n0.0\n 70\n0\n"
+        private const string Bulged =
+            "  0\nPOLYLINE\n  5\nF1\n  8\npoly\n 66\n1\n 10\n0.0\n 20\n0.0\n 30\n0.0\n 70\n0\n"
             + "  0\nVERTEX\n  5\nF2\n  8\npoly\n 10\n0.0\n 20\n0.0\n 30\n0.0\n 42\n1.0\n"
             + "  0\nVERTEX\n  5\nF3\n  8\npoly\n 10\n4.0\n 20\n0.0\n 30\n0.0\n"
             + "  0\nVERTEX\n  5\nF4\n  8\npoly\n 10\n4.0\n 20\n3.0\n 30\n0.0\n"
             + "  0\nSEQEND\n  5\nF5\n  8\npoly\n";
 
-        private static DxfBlockReference Bolt(DxfDatabase db)
-            => Everything(db).OfType<DxfBlockReference>().Single(b => b.Owner == db.ModelSpace && b.Name == "BOLT" && !(b is DxfMInsertBlock));
+        private static DxfBlockReference Bolt(DxfDatabase db) =>
+            Everything(db)
+                .OfType<DxfBlockReference>()
+                .Single(b => b.Owner == db.ModelSpace && b.Name == "BOLT" && !(b is DxfMInsertBlock));
 
         /// <summary>A text with a piece of the BLOCK of a name replaced, the first after its BLOCK record.</summary>
         internal static string ReplaceInBlock(string text, string block, string piece, string by)
         {
-            int at = text.IndexOf("\n  2\n" + block + "\n", text.IndexOf("\nBLOCKS\n", StringComparison.Ordinal), StringComparison.Ordinal);
+            int at = text.IndexOf(
+                "\n  2\n" + block + "\n",
+                text.IndexOf("\nBLOCKS\n", StringComparison.Ordinal),
+                StringComparison.Ordinal
+            );
             int put = text.IndexOf(piece, at + 1, StringComparison.Ordinal);
             return text.Substring(0, put) + by + text.Substring(put + piece.Length);
         }
@@ -700,11 +811,15 @@ namespace GeometryHelper.UnitTest.Dxf
         /// <summary>A drawing of R12 of blocks given as their names and their entities, by turns.</summary>
         private static string Nest(params string[] blocks)
         {
-            var text = new StringBuilder("  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1009\n  0\nENDSEC\n  0\nSECTION\n  2\nBLOCKS\n");
+            var text = new StringBuilder(
+                "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1009\n  0\nENDSEC\n  0\nSECTION\n  2\nBLOCKS\n"
+            );
 
             for (int i = 0; i < blocks.Length; i += 2)
             {
-                text.Append("  0\nBLOCK\n  8\n0\n  2\n").Append(blocks[i]).Append("\n 70\n0\n 10\n0.0\n 20\n0.0\n 30\n0.0\n");
+                text.Append("  0\nBLOCK\n  8\n0\n  2\n")
+                    .Append(blocks[i])
+                    .Append("\n 70\n0\n 10\n0.0\n 20\n0.0\n 30\n0.0\n");
                 text.Append(blocks[i + 1]).Append("  0\nENDBLK\n  8\n0\n");
             }
 
@@ -712,18 +827,21 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>A LINE 1 long up the y axis, at x of the number given.</summary>
-        private static string Line(int x)
-            => "  0\nLINE\n  8\n0\n 10\n" + x + ".0\n 20\n0.0\n 30\n0.0\n 11\n" + x + ".0\n 21\n1.0\n 31\n0.0\n";
+        private static string Line(int x) =>
+            "  0\nLINE\n  8\n0\n 10\n" + x + ".0\n 20\n0.0\n 30\n0.0\n 11\n" + x + ".0\n 21\n1.0\n 31\n0.0\n";
 
         /// <summary>An INSERT of a block at x of the number given, turned by the degrees given.</summary>
-        private static string Insert(string block, int x, int degrees)
-            => "  0\nINSERT\n  8\n0\n  2\n" + block + "\n 10\n" + x + ".0\n 20\n0.0\n 30\n0.0\n 50\n" + degrees + ".0\n";
+        private static string Insert(string block, int x, int degrees) =>
+            "  0\nINSERT\n  8\n0\n  2\n" + block + "\n 10\n" + x + ".0\n 20\n0.0\n 30\n0.0\n 50\n" + degrees + ".0\n";
 
         /// <summary>An INSERT of a block of a drawing, added to its model space stretched to twice its width.</summary>
         private static DxfBlockReference Stretched(string drawing, string block)
         {
             DxfDatabase db = DxfDatabase.Parse(drawing);
-            var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), db.BlockTable[block]) { ScaleFactors = new GeoVector3(2, 1, 1) };
+            var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), db.BlockTable[block])
+            {
+                ScaleFactors = new GeoVector3(2, 1, 1),
+            };
             db.ModelSpace.AppendEntity(insert);
             return insert;
         }
@@ -735,7 +853,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             foreach (GeoLine3 line in wanted)
             {
-                double best = got.Min(g => Math.Max(g.StartPoint.DistanceTo(line.StartPoint), g.EndPoint.DistanceTo(line.EndPoint)));
+                double best = got.Min(g =>
+                    Math.Max(g.StartPoint.DistanceTo(line.StartPoint), g.EndPoint.DistanceTo(line.EndPoint))
+                );
                 Assert.True(best <= 1E-6, "the line " + line + " is " + best.ToString("R") + " from the nearest");
             }
         }

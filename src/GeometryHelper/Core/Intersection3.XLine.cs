@@ -32,7 +32,12 @@ namespace GeometryHelper.Core
 
         // The one point where the line crosses the plane, where a double can place it, or nothing: a line lying in the plane
         // names no place, as a segment lying in it names none.
-        internal static bool TryIntersectWith(GeoXLine3 xline, GeoPlane3 plane, out GeoPoint3 intersection, Tolerance tolerance)
+        internal static bool TryIntersectWith(
+            GeoXLine3 xline,
+            GeoPlane3 plane,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        )
         {
             intersection = GeoPoint3.Origin;
 
@@ -47,7 +52,12 @@ namespace GeometryHelper.Core
 
         // The line two planes share, read as the ray of TryIntersectWith(GeoPlane3, GeoPlane3, out GeoRay3) names it: its origin
         // the point of it nearest the world origin and its direction the cross product of the two normals.
-        internal static bool TryGetIntersectionLine(GeoPlane3 plane1, GeoPlane3 plane2, out GeoXLine3 intersection, Tolerance tolerance)
+        internal static bool TryGetIntersectionLine(
+            GeoPlane3 plane1,
+            GeoPlane3 plane2,
+            out GeoXLine3 intersection,
+            Tolerance tolerance
+        )
         {
             intersection = default(GeoXLine3);
 
@@ -60,24 +70,41 @@ namespace GeometryHelper.Core
             return true;
         }
 
-        internal static bool TryIntersectWith(GeoXLine3 xline, GeoTriangle3 triangle, out GeoPoint3 intersection, Tolerance tolerance)
+        internal static bool TryIntersectWith(
+            GeoXLine3 xline,
+            GeoTriangle3 triangle,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        )
         {
             return TryIntersectWith(XLine3.CutPast(xline, triangle, tolerance), triangle, out intersection, tolerance);
         }
 
-        internal static bool TryIntersectWith(GeoXLine3 xline, GeoPolygon3 polygon, out GeoPoint3 intersection, Tolerance tolerance)
+        internal static bool TryIntersectWith(
+            GeoXLine3 xline,
+            GeoPolygon3 polygon,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        )
         {
             return TryIntersectWith(XLine3.CutPast(xline, polygon, tolerance), polygon, out intersection, tolerance);
         }
 
-        internal static bool TryIntersectWith(GeoXLine3 xline, GeoFace3 face, out GeoPoint3 intersection, Tolerance tolerance)
+        internal static bool TryIntersectWith(
+            GeoXLine3 xline,
+            GeoFace3 face,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        )
         {
             return TryIntersectWith(XLine3.CutPast(xline, face, tolerance), face, out intersection, tolerance);
         }
 
         internal static GeoPoint3[] GetIntersections(GeoXLine3 xline, GeoPlane3 plane, Tolerance tolerance)
         {
-            return TryIntersectWith(xline, plane, out GeoPoint3 crossing, tolerance) ? new[] { crossing } : new GeoPoint3[0];
+            return TryIntersectWith(xline, plane, out GeoPoint3 crossing, tolerance)
+                ? new[] { crossing }
+                : new GeoPoint3[0];
         }
 
         // A line lying level over a flat shape is read so by the part of it over the shape, as a segment lying there is, and not by where
@@ -102,7 +129,12 @@ namespace GeometryHelper.Core
             return GetIntersections(polyline, XLine3.CutPast(xline, polyline, tolerance), tolerance);
         }
 
-        internal static bool TryIntersectWith(GeoPolyline3 polyline, GeoXLine3 xline, out GeoPoint3[] intersections, Tolerance tolerance)
+        internal static bool TryIntersectWith(
+            GeoPolyline3 polyline,
+            GeoXLine3 xline,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             return TryIntersectWith(polyline, XLine3.CutPast(xline, polyline, tolerance), out intersections, tolerance);
         }
@@ -112,7 +144,12 @@ namespace GeometryHelper.Core
             return GetIntersections(XLine3.CutPast(xline, line, tolerance), line, tolerance);
         }
 
-        internal static bool TryIntersectWith(GeoXLine3 xline, GeoLine3 line, out GeoPoint3[] intersections, Tolerance tolerance)
+        internal static bool TryIntersectWith(
+            GeoXLine3 xline,
+            GeoLine3 line,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(xline, line, tolerance);
 
@@ -136,7 +173,12 @@ namespace GeometryHelper.Core
             return join.Length <= tolerance.EqualPoint ? new[] { join.EndPoint } : new GeoPoint3[0];
         }
 
-        internal static bool TryIntersectWith(GeoXLine3 xline, GeoRay3 ray, out GeoPoint3[] intersections, Tolerance tolerance)
+        internal static bool TryIntersectWith(
+            GeoXLine3 xline,
+            GeoRay3 ray,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(xline, ray, tolerance);
 
@@ -150,17 +192,34 @@ namespace GeometryHelper.Core
         {
             // Both directions are of unit length, so the length of their cross product is the sine of the angle between them;
             // a NaN is parallel to everything.
-            if (!(xline1.Direction.CrossProduct(xline2.Direction).Length > tolerance.EqualAngleSin)
-                || !XLine3.TryBridge(xline1, xline2, tolerance, out double alongFirst, out double alongSecond, out double gap)
-                || !(gap <= tolerance.EqualPoint))
+            if (
+                !(xline1.Direction.CrossProduct(xline2.Direction).Length > tolerance.EqualAngleSin)
+                || !XLine3.TryBridge(
+                    xline1,
+                    xline2,
+                    tolerance,
+                    out double alongFirst,
+                    out double alongSecond,
+                    out double gap
+                )
+                || !(gap <= tolerance.EqualPoint)
+            )
             {
                 return new GeoPoint3[0];
             }
 
-            return new[] { xline1.GetPointAtDistance(alongFirst).GetMiddlePoint(xline2.GetPointAtDistance(alongSecond)) };
+            return new[]
+            {
+                xline1.GetPointAtDistance(alongFirst).GetMiddlePoint(xline2.GetPointAtDistance(alongSecond)),
+            };
         }
 
-        internal static bool TryIntersectWith(GeoXLine3 xline1, GeoXLine3 xline2, out GeoPoint3[] intersections, Tolerance tolerance)
+        internal static bool TryIntersectWith(
+            GeoXLine3 xline1,
+            GeoXLine3 xline2,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(xline1, xline2, tolerance);
 

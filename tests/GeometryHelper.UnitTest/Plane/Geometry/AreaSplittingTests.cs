@@ -21,18 +21,32 @@ namespace GeometryHelper.UnitTest.Plane
         private static readonly Tolerance Loose = new Tolerance(1E-7, 1E-7);
 
         /// <summary>A two hundred square at the origin.</summary>
-        private static GeoPolygon2 Square() => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200));
+        private static GeoPolygon2 Square() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200));
 
         /// <summary>An L, concave but in one piece whichever way it is cut across.</summary>
-        private static GeoPolygon2 Ell() => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(300, 0), new GeoPoint2(300, 100),
-            new GeoPoint2(100, 100), new GeoPoint2(100, 300), new GeoPoint2(0, 300));
+        private static GeoPolygon2 Ell() =>
+            new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(300, 0),
+                new GeoPoint2(300, 100),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(100, 300),
+                new GeoPoint2(0, 300)
+            );
 
         /// <summary>A U, whose two prongs part company when it is cut across them.</summary>
-        private static GeoPolygon2 Yoke() => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(300, 0), new GeoPoint2(300, 300), new GeoPoint2(200, 300),
-            new GeoPoint2(200, 100), new GeoPoint2(100, 100), new GeoPoint2(100, 300), new GeoPoint2(0, 300));
+        private static GeoPolygon2 Yoke() =>
+            new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(300, 0),
+                new GeoPoint2(300, 300),
+                new GeoPoint2(200, 300),
+                new GeoPoint2(200, 100),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(100, 300),
+                new GeoPoint2(0, 300)
+            );
 
         [Fact]
         public void ALoopCutByALineComesBackAsTwoLoopsThatAddUp()
@@ -116,8 +130,13 @@ namespace GeometryHelper.UnitTest.Plane
             // on its own, the cut has to separate something.
             GeoPolygon2 ell = Ell();
 
-            Assert.True(ell.TrySplitBy(new GeoLine2(new GeoPoint2(-50, 50), new GeoPoint2(350, 50)),
-                out GeoPolygon2[] ellAbove, out GeoPolygon2[] ellBelow));
+            Assert.True(
+                ell.TrySplitBy(
+                    new GeoLine2(new GeoPoint2(-50, 50), new GeoPoint2(350, 50)),
+                    out GeoPolygon2[] ellAbove,
+                    out GeoPolygon2[] ellBelow
+                )
+            );
             Assert.Single(ellAbove);
             Assert.Single(ellBelow);
             Assert.Equal(ell.Area, ellAbove[0].Area + ellBelow[0].Area, 6);
@@ -127,9 +146,17 @@ namespace GeometryHelper.UnitTest.Plane
         public void AFaceKeepsAHoleTheLineMissesAndOpensOneItCrosses()
         {
             var boundary = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(300, 0), new GeoPoint2(300, 300), new GeoPoint2(0, 300));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(300, 0),
+                new GeoPoint2(300, 300),
+                new GeoPoint2(0, 300)
+            );
             var hole = new GeoPolygon2(
-                new GeoPoint2(200, 200), new GeoPoint2(260, 200), new GeoPoint2(260, 260), new GeoPoint2(200, 260));
+                new GeoPoint2(200, 200),
+                new GeoPoint2(260, 200),
+                new GeoPoint2(260, 260),
+                new GeoPoint2(200, 260)
+            );
 
             var face = new GeoFace2(boundary, new[] { hole });
 
@@ -154,8 +181,7 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolygon2 square = Square();
 
             // A dog-leg from one side to the other, staying inside all the way.
-            var cutLine = new GeoPolyline2(
-                new GeoPoint2(0, 100), new GeoPoint2(100, 60), new GeoPoint2(200, 100));
+            var cutLine = new GeoPolyline2(new GeoPoint2(0, 100), new GeoPoint2(100, 60), new GeoPoint2(200, 100));
 
             Assert.True(square.TrySplitBy(cutLine, out GeoPolygon2[] pieces));
 
@@ -180,14 +206,12 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(square.Area, whole[0].Area, 6);
 
             // Out and back again would divide the loop into more than two, so it is refused.
-            var wandering = new GeoPolyline2(
-                new GeoPoint2(0, 100), new GeoPoint2(100, -100), new GeoPoint2(200, 100));
+            var wandering = new GeoPolyline2(new GeoPoint2(0, 100), new GeoPoint2(100, -100), new GeoPoint2(200, 100));
 
             Assert.False(square.TrySplitBy(wandering, out _));
 
             // A chain that comes back to where it started divides nothing off, so it is refused too.
-            var returning = new GeoPolyline2(
-                new GeoPoint2(0, 100), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+            var returning = new GeoPolyline2(new GeoPoint2(0, 100), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
 
             Assert.False(square.TrySplitBy(returning, out GeoPolygon2[] intact));
             Assert.Single(intact);
@@ -205,7 +229,10 @@ namespace GeometryHelper.UnitTest.Plane
             // The same shape lifted to z = 0, cut by the plane standing on the same line.
             GeoCoordinateSystem3 frame = GeoCoordinateSystem3.Global;
             GeoPolygon3 lifted = PlanarMap.ToPolygon3(frame, ell);
-            var plane = new GeoPlane3(new GeoPoint3(-50, 200, 0), GeoVector3.ZAxis.CrossProduct(new GeoVector3(400, 0, 0)));
+            var plane = new GeoPlane3(
+                new GeoPoint3(-50, 200, 0),
+                GeoVector3.ZAxis.CrossProduct(new GeoVector3(400, 0, 0))
+            );
 
             Assert.True(Splition3.TrySplitBy(lifted, plane, out GeoPolygon3[] above, out GeoPolygon3[] below));
 
@@ -226,17 +253,20 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Equal(
                 square.TrySplitBy(cutter, out GeoPolygon2[] a, out _),
-                square.TrySplitBy(cutter, out GeoPolygon2[] b, out _, global));
+                square.TrySplitBy(cutter, out GeoPolygon2[] b, out _, global)
+            );
             Assert.Equal(a[0].Area, b[0].Area, 9);
 
             Assert.Equal(
                 face.TrySplitBy(cutter, out GeoFace2[] c, out _),
-                face.TrySplitBy(cutter, out GeoFace2[] d, out _, global));
+                face.TrySplitBy(cutter, out GeoFace2[] d, out _, global)
+            );
             Assert.Equal(c[0].Area, d[0].Area, 9);
 
             Assert.Equal(
                 square.TrySplitBy(cutLine, out GeoPolygon2[] e),
-                square.TrySplitBy(cutLine, out GeoPolygon2[] f, global));
+                square.TrySplitBy(cutLine, out GeoPolygon2[] f, global)
+            );
             Assert.Equal(e.Length, f.Length);
 
             Assert.Throws<ArgumentNullException>(() => Splition2.TrySplitBy((GeoPolygon2)null, cutter, out _, out _));

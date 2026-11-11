@@ -24,7 +24,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a chain and a line segment.
         /// </summary>
-        public static double DistanceTo(GeoPolyline3 polyline, GeoLine3 line) => DistanceTo(polyline, line, Tolerance.Global);
+        public static double DistanceTo(GeoPolyline3 polyline, GeoLine3 line) =>
+            DistanceTo(polyline, line, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a chain and a line segment, within a tolerance: nought only where they
@@ -34,7 +35,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static double DistanceTo(GeoPolyline3 polyline, GeoLine3 line, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return Gap3.ChainToSegment(polyline, line.StartPoint, line.EndPoint, true, tolerance, 0.0);
         }
@@ -42,7 +44,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between two chains.
         /// </summary>
-        public static double DistanceTo(GeoPolyline3 polyline, GeoPolyline3 other) => DistanceTo(polyline, other, Tolerance.Global);
+        public static double DistanceTo(GeoPolyline3 polyline, GeoPolyline3 other) =>
+            DistanceTo(polyline, other, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between two chains, within a tolerance: nought only where they truly meet,
@@ -51,8 +54,10 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when either chain is null.</exception>
         public static double DistanceTo(GeoPolyline3 polyline, GeoPolyline3 other, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
 
             return Gap3.ChainToChain(polyline, other, 0.0);
         }
@@ -60,7 +65,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a chain and a triangle.
         /// </summary>
-        public static double DistanceTo(GeoPolyline3 polyline, GeoTriangle3 triangle) => DistanceTo(polyline, triangle, Tolerance.Global);
+        public static double DistanceTo(GeoPolyline3 polyline, GeoTriangle3 triangle) =>
+            DistanceTo(polyline, triangle, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a chain and a triangle, within a tolerance: nought only where one of
@@ -68,7 +74,8 @@ namespace GeometryHelper.Core
         /// </summary>
         public static double DistanceTo(GeoPolyline3 polyline, GeoTriangle3 triangle, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return Gap3.Chain(Gap3.Region.Of(triangle), polyline, 0.0);
         }
@@ -76,7 +83,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a chain and a polygon.
         /// </summary>
-        public static double DistanceTo(GeoPolyline3 polyline, GeoPolygon3 polygon) => DistanceTo(polyline, polygon, Tolerance.Global);
+        public static double DistanceTo(GeoPolyline3 polyline, GeoPolygon3 polygon) =>
+            DistanceTo(polyline, polygon, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a chain and a polygon, within a tolerance: nought only where an edge
@@ -84,8 +92,10 @@ namespace GeometryHelper.Core
         /// </summary>
         public static double DistanceTo(GeoPolyline3 polyline, GeoPolygon3 polygon, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             return Gap3.Chain(Gap3.Region.Of(polygon), polyline, 0.0);
         }
@@ -93,7 +103,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a chain and a plane.
         /// </summary>
-        public static double DistanceTo(GeoPolyline3 polyline, GeoPlane3 plane) => DistanceTo(polyline, plane, Tolerance.Global);
+        public static double DistanceTo(GeoPolyline3 polyline, GeoPlane3 plane) =>
+            DistanceTo(polyline, plane, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a chain and a plane, within a tolerance.
@@ -106,7 +117,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static double DistanceTo(GeoPolyline3 polyline, GeoPlane3 plane, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             double above = double.MinValue;
             double below = double.MaxValue;
@@ -130,15 +142,18 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a chain and an oriented box.
         /// </summary>
-        public static double DistanceTo(GeoPolyline3 polyline, GeoObb3 box) => DistanceTo(polyline, box, Tolerance.Global);
+        public static double DistanceTo(GeoPolyline3 polyline, GeoObb3 box) =>
+            DistanceTo(polyline, box, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a chain and an oriented box, within a tolerance.
         /// </summary>
         public static double DistanceTo(GeoPolyline3 polyline, GeoObb3 box, Tolerance tolerance)
         {
-            if (box == null) throw new ArgumentNullException(nameof(box));
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (box == null)
+                throw new ArgumentNullException(nameof(box));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return new Gap3.Block(box).Chain(polyline, 0.0);
         }
@@ -146,7 +161,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a chain and an axis-aligned box.
         /// </summary>
-        public static double DistanceTo(GeoPolyline3 polyline, GeoAabb3 box) => DistanceTo(polyline, box, Tolerance.Global);
+        public static double DistanceTo(GeoPolyline3 polyline, GeoAabb3 box) =>
+            DistanceTo(polyline, box, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a chain and an axis-aligned box, within a tolerance.

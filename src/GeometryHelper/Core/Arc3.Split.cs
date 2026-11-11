@@ -17,7 +17,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Cuts an arc at a normalized parameter.
         /// </summary>
-        public static bool TrySplitAt(GeoArc3 arc, double parameter, out GeoArc3[] pieces) => TrySplitAt(arc, parameter, out pieces, Tolerance.Global);
+        public static bool TrySplitAt(GeoArc3 arc, double parameter, out GeoArc3[] pieces) =>
+            TrySplitAt(arc, parameter, out pieces, Tolerance.Global);
 
         /// <summary>
         /// Cuts an arc at a normalized parameter, within a tolerance.
@@ -58,7 +59,14 @@ namespace GeometryHelper.Core
             pieces = new[]
             {
                 new GeoArc3(arc.Center, arc.Normal, arc.Radius, arc.StartAngle, cutAngle, arc.IsClockwise),
-                new GeoArc3(arc.Center, arc.Normal, arc.Radius, cutAngle, arc.StartAngle + arc.SweptAngle, arc.IsClockwise)
+                new GeoArc3(
+                    arc.Center,
+                    arc.Normal,
+                    arc.Radius,
+                    cutAngle,
+                    arc.StartAngle + arc.SweptAngle,
+                    arc.IsClockwise
+                ),
             };
 
             return true;
@@ -67,7 +75,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Cuts an arc at the point of it nearest a point.
         /// </summary>
-        public static bool TrySplitAt(GeoArc3 arc, GeoPoint3 point, out GeoArc3[] pieces) => TrySplitAt(arc, point, out pieces, Tolerance.Global);
+        public static bool TrySplitAt(GeoArc3 arc, GeoPoint3 point, out GeoArc3[] pieces) =>
+            TrySplitAt(arc, point, out pieces, Tolerance.Global);
 
         /// <summary>
         /// Cuts an arc at the point of it nearest a point, within a tolerance.
@@ -90,14 +99,19 @@ namespace GeometryHelper.Core
         /// (0.0005, 0.0003, 0), 50 from it, whose direction from the centre is no surer than the tolerance.
         /// </para>
         /// </remarks>
-        public static bool TrySplitAt(GeoArc3 arc, GeoPoint3 point, out GeoArc3[] pieces, Tolerance tolerance)
-            => TrySplitAt(arc, arc.GetParameterAtPoint(point, arc.IsPointOn(point, tolerance) ? default(Tolerance) : tolerance), out pieces, tolerance);
+        public static bool TrySplitAt(GeoArc3 arc, GeoPoint3 point, out GeoArc3[] pieces, Tolerance tolerance) =>
+            TrySplitAt(
+                arc,
+                arc.GetParameterAtPoint(point, arc.IsPointOn(point, tolerance) ? default(Tolerance) : tolerance),
+                out pieces,
+                tolerance
+            );
 
         /// <summary>
         /// Cuts an arc at an arc length measured from its start.
         /// </summary>
-        public static bool TrySplitAtDistance(GeoArc3 arc, double distance, out GeoArc3[] pieces)
-            => TrySplitAtDistance(arc, distance, out pieces, Tolerance.Global);
+        public static bool TrySplitAtDistance(GeoArc3 arc, double distance, out GeoArc3[] pieces) =>
+            TrySplitAtDistance(arc, distance, out pieces, Tolerance.Global);
 
         /// <summary>
         /// Cuts an arc at an arc length measured from its start, within a tolerance.
@@ -107,7 +121,11 @@ namespace GeometryHelper.Core
         /// <param name="pieces">The pieces in order along the arc, or the arc whole when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the arc was cut in two; otherwise, false.</returns>
-        public static bool TrySplitAtDistance(GeoArc3 arc, double distance, out GeoArc3[] pieces, Tolerance tolerance)
-            => TrySplitAt(arc, distance / Math.Max(arc.Length, tolerance.EqualPoint), out pieces, tolerance);
+        public static bool TrySplitAtDistance(
+            GeoArc3 arc,
+            double distance,
+            out GeoArc3[] pieces,
+            Tolerance tolerance
+        ) => TrySplitAt(arc, distance / Math.Max(arc.Length, tolerance.EqualPoint), out pieces, tolerance);
     }
 }

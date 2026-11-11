@@ -36,17 +36,59 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public const string ModelViewportLabel = "[-][Model][2D Wireframe]";
 
         private const int HistoryShown = 3;
-        private static readonly NumberFormatInfo Spaced = new NumberFormatInfo { NumberGroupSeparator = " ", NumberDecimalSeparator = "." };
-        private static readonly string[] ColorOptions = { "ByLayer", "ByBlock", "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White", SelectColorOption };
+        private static readonly NumberFormatInfo Spaced = new NumberFormatInfo
+        {
+            NumberGroupSeparator = " ",
+            NumberDecimalSeparator = ".",
+        };
+        private static readonly string[] ColorOptions =
+        {
+            "ByLayer",
+            "ByBlock",
+            "Red",
+            "Yellow",
+            "Green",
+            "Cyan",
+            "Blue",
+            "Magenta",
+            "White",
+            SelectColorOption,
+        };
 
         private static readonly string[] WeightOptions =
         {
-            "ByLayer", "ByBlock", "Default", "0.00 mm", "0.05 mm", "0.09 mm", "0.13 mm", "0.15 mm", "0.18 mm", "0.20 mm", "0.25 mm", "0.30 mm",
-            "0.35 mm", "0.40 mm", "0.50 mm", "0.53 mm", "0.60 mm", "0.70 mm", "0.80 mm", "0.90 mm", "1.00 mm", "1.06 mm", "1.20 mm", "1.40 mm",
-            "1.58 mm", "2.00 mm", "2.11 mm",
+            "ByLayer",
+            "ByBlock",
+            "Default",
+            "0.00 mm",
+            "0.05 mm",
+            "0.09 mm",
+            "0.13 mm",
+            "0.15 mm",
+            "0.18 mm",
+            "0.20 mm",
+            "0.25 mm",
+            "0.30 mm",
+            "0.35 mm",
+            "0.40 mm",
+            "0.50 mm",
+            "0.53 mm",
+            "0.60 mm",
+            "0.70 mm",
+            "0.80 mm",
+            "0.90 mm",
+            "1.00 mm",
+            "1.06 mm",
+            "1.20 mm",
+            "1.40 mm",
+            "1.58 mm",
+            "2.00 mm",
+            "2.11 mm",
         };
 
-        private readonly Dictionary<string, KnownFile> _files = new Dictionary<string, KnownFile>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, KnownFile> _files = new Dictionary<string, KnownFile>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private readonly List<string> _inputs = new List<string>();
         private readonly List<CadWorkspaceExtension> _extensions = new List<CadWorkspaceExtension>();
         private KnownFile _current;
@@ -109,7 +151,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             LayerManagerCommand = new DelegateCommand(_ => StartCommand("LAYER"));
             MakeCurrentCommand = new DelegateCommand(_ => StartCommand("LAYMCUR"));
             MatchLayerCommand = new DelegateCommand(_ => StartCommand("LAYMCH"));
-            NewFromModelCommand = new DelegateCommand(_ => _newFromModel?.Invoke(this, EventArgs.Empty), _ => _newFromModel != null);
+            NewFromModelCommand = new DelegateCommand(
+                _ => _newFromModel?.Invoke(this, EventArgs.Empty),
+                _ => _newFromModel != null
+            );
             SelectTabCommand = new DelegateCommand(p => SelectedTab = p as CadWorkspaceExtension);
 
             // The runs of an MTEXT of several looks are put one after another as the canvas measures their letters.
@@ -127,7 +172,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _newFromModel += value;
                 OnNewFromModelChanged();
             }
-
             remove
             {
                 _newFromModel -= value;
@@ -144,9 +188,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool CanMakeFromModel => _newFromModel != null;
 
         /// <summary>Gets the line under the name of the app on the start screen.</summary>
-        public string StartScreenText => CanMakeFromModel
-            ? "Open and edit any 2D drawing, or make drawings from a model. No file is open."
-            : "Open and edit any 2D drawing. No file is open.";
+        public string StartScreenText =>
+            CanMakeFromModel
+                ? "Open and edit any 2D drawing, or make drawings from a model. No file is open."
+                : "Open and edit any 2D drawing. No file is open.";
 
         /// <summary>
         /// Ctrl+N: a new drawing from a model where a host makes them (<see cref="NewFromModelRequested"/>), else a new empty
@@ -182,7 +227,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get => _selectedTab;
             set
             {
-                if (value != null && ((!_extensions.Contains(value) && !_builtInTabs.Contains(value)) || !value.IsTabVisible))
+                if (
+                    value != null
+                    && ((!_extensions.Contains(value) && !_builtInTabs.Contains(value)) || !value.IsTabVisible)
+                )
                 {
                     value = null;
                 }
@@ -331,10 +379,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool HasOwnFiles => _extensions.Any(e => !string.IsNullOrEmpty(e.FileKindName));
 
         /// <summary>Gets the text of the chip of the files extensions describe, with their number: "Model drawings 4".</summary>
-        public string OwnChipText => (_extensions.Select(e => e.FileKindName).FirstOrDefault(n => !string.IsNullOrEmpty(n)) ?? "Other") + " " + Count(_files.Values.Count(f => f.Info(_extensions) != null));
+        public string OwnChipText =>
+            (_extensions.Select(e => e.FileKindName).FirstOrDefault(n => !string.IsNullOrEmpty(n)) ?? "Other")
+            + " "
+            + Count(_files.Values.Count(f => f.Info(_extensions) != null));
 
         /// <summary>Gets the text of the chip of the files out of date, with their number: "Out of date 1".</summary>
-        public string OutOfDateChipText => "Out of date " + Count(_files.Values.Count(f => f.Info(_extensions)?.State == CadFileState.OutOfDate));
+        public string OutOfDateChipText =>
+            "Out of date " + Count(_files.Values.Count(f => f.Info(_extensions)?.State == CadFileState.OutOfDate));
 
         /// <summary>Gets whether a drawing is shown; false on the start screen.</summary>
         public bool HasDocument => _current != null;
@@ -371,23 +423,32 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return string.Empty;
                 }
 
-                string title = (_current.Info(_extensions)?.Title ?? _current.Document.Title) + (HasUnsavedChanges ? "*" : string.Empty);
+                string title =
+                    (_current.Info(_extensions)?.Title ?? _current.Document.Title)
+                    + (HasUnsavedChanges ? "*" : string.Empty);
                 CadSpace space = Space;
                 return space == null || space.IsModel ? title : title + " · " + space.Name;
             }
         }
 
         /// <summary>Gets the tabs under the canvas: Model and each layout.</summary>
-        public ObservableCollection<SpaceTabViewModel> SpaceTabs { get; } = new ObservableCollection<SpaceTabViewModel>();
+        public ObservableCollection<SpaceTabViewModel> SpaceTabs { get; } =
+            new ObservableCollection<SpaceTabViewModel>();
 
         /// <summary>Gets whether model space is shown.</summary>
         public bool IsModelSpace => Space?.IsModel ?? false;
 
         /// <summary>Gets MODEL or PAPER, as the status bar shows: MODEL on the Model tab and through a viewport of a layout; empty with no drawing.</summary>
-        public string SpaceLabel => _current == null ? string.Empty : IsWorkingInModel ? "MODEL" : "PAPER";
+        public string SpaceLabel =>
+            _current == null ? string.Empty
+            : IsWorkingInModel ? "MODEL"
+            : "PAPER";
 
         /// <summary>Gets the label at the top left of the canvas, <see cref="ModelViewportLabel"/> in model space and empty in a layout.</summary>
-        public string ViewportLabel => Document?.BlockEditor is CadBlockEditor editor ? "[-][Block Editor: " + editor.Name + "][2D Wireframe]" : IsModelSpace ? ModelViewportLabel : string.Empty;
+        public string ViewportLabel =>
+            Document?.BlockEditor is CadBlockEditor editor ? "[-][Block Editor: " + editor.Name + "][2D Wireframe]"
+            : IsModelSpace ? ModelViewportLabel
+            : string.Empty;
 
         /// <summary>Gets the text of the selection box of Properties: "No selection", "Line (1)", "Circle (2)".</summary>
         public string SelectionLabel
@@ -423,7 +484,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 string name = _current.Document.Database.Clayer;
                 return _layers.FirstOrDefault(l => string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase));
             }
-
             set
             {
                 if (_current == null || value == null || ReferenceEquals(value, CurrentLayer))
@@ -449,9 +509,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the last three lines of <see cref="History"/>, those the command line shows above its input; before any,
         /// <see cref="WelcomeText"/> where a host makes drawings from a model and <see cref="NewDrawingWelcomeText"/> where none does.
         /// </summary>
-        public IReadOnlyList<string> RecentHistory => History.Count == 0
-            ? new[] { CanMakeFromModel ? WelcomeText : NewDrawingWelcomeText }
-            : History.Skip(Math.Max(0, History.Count - HistoryShown)).ToList();
+        public IReadOnlyList<string> RecentHistory =>
+            History.Count == 0
+                ? new[] { CanMakeFromModel ? WelcomeText : NewDrawingWelcomeText }
+                : History.Skip(Math.Max(0, History.Count - HistoryShown)).ToList();
 
         /// <summary>Gets the prompt of the command running, empty with none.</summary>
         public string Prompt => Session?.PromptText ?? string.Empty;
@@ -505,7 +566,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the state text of the status bar: "Saved" or "Unsaved changes", or what an extension says of a document of its
         /// own; empty with no drawing.
         /// </summary>
-        public string StatusText => _current == null ? string.Empty : BlockEditorStatus ?? _current.Info(_extensions)?.StatusText ?? (HasUnsavedChanges ? "Unsaved changes" : "Saved");
+        public string StatusText =>
+            _current == null
+                ? string.Empty
+                : BlockEditorStatus
+                    ?? _current.Info(_extensions)?.StatusText
+                    ?? (HasUnsavedChanges ? "Unsaved changes" : "Saved");
 
         /// <summary>Gets a second state text an extension gives for a document of its own, drawn as a warning; empty for none.</summary>
         public string StatusNote => _current?.Info(_extensions)?.StatusNote ?? string.Empty;
@@ -579,7 +645,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 full = System.IO.Path.GetFullPath(path);
             }
-            catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is PathTooLongException)
+            catch (Exception ex)
+                when (ex is ArgumentException || ex is NotSupportedException || ex is PathTooLongException)
             {
                 Say("Cannot open " + path + ": " + ex.Message);
                 return false;
@@ -593,8 +660,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             // A document shown under a key of its own and saved to the file, as an extension's drawing just made is, is that file open already.
-            KnownFile saved = _files.Values.Where(f => f.Document != null && SamePath(f.Document.FileName, full))
-                .OrderBy(f => f.Path, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+            KnownFile saved = _files
+                .Values.Where(f => f.Document != null && SamePath(f.Document.FileName, full))
+                .OrderBy(f => f.Path, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault();
 
             if (saved != null)
             {
@@ -644,15 +713,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Say(line);
             }
 
-            Say("Opened " + document.Title + ": " + Count(document.EntityCount) + " entities, " + Count(document.Layers.Count) + " layers.");
+            Say(
+                "Opened "
+                    + document.Title
+                    + ": "
+                    + Count(document.EntityCount)
+                    + " entities, "
+                    + Count(document.Layers.Count)
+                    + " layers."
+            );
             NoteRecentFile(full);
             OfferMissingFonts(document);
             return true;
         }
 
         /// <summary>Whether a document's file name is the full path of a file; a document with no file of its own has none.</summary>
-        private static bool SamePath(string fileName, string full)
-            => !string.IsNullOrEmpty(fileName) && System.IO.Path.IsPathRooted(fileName) && string.Equals(fileName, full, StringComparison.OrdinalIgnoreCase);
+        private static bool SamePath(string fileName, string full) =>
+            !string.IsNullOrEmpty(fileName)
+            && System.IO.Path.IsPathRooted(fileName)
+            && string.Equals(fileName, full, StringComparison.OrdinalIgnoreCase);
 
         /// <summary>Shows a document already in memory, as a host that made the drawing itself shows it.</summary>
         /// <param name="document">The document.</param>
@@ -674,15 +753,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             key = key ?? document.FileName ?? document.Title;
-            string folder = string.IsNullOrEmpty(document.FileName) || !System.IO.Path.IsPathRooted(document.FileName)
-                ? "Open drawings"
-                : System.IO.Path.GetDirectoryName(document.FileName);
+            string folder =
+                string.IsNullOrEmpty(document.FileName) || !System.IO.Path.IsPathRooted(document.FileName)
+                    ? "Open drawings"
+                    : System.IO.Path.GetDirectoryName(document.FileName);
 
             if (!_files.TryGetValue(key, out KnownFile known) || known.Document != document)
             {
                 // A document listed already under another key, as one saved since under its file, is shown there.
-                KnownFile listed = _files.Values.Where(f => f.Document == document).OrderBy(f => f.Path, StringComparer.OrdinalIgnoreCase)
-                    .ThenBy(f => f.Path, StringComparer.Ordinal).FirstOrDefault();
+                KnownFile listed = _files
+                    .Values.Where(f => f.Document == document)
+                    .OrderBy(f => f.Path, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(f => f.Path, StringComparer.Ordinal)
+                    .FirstOrDefault();
 
                 if (listed != null)
                 {
@@ -703,13 +786,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             Show(known);
-            Say("Opened " + document.Title + ": " + Count(document.EntityCount) + " entities, " + Count(document.Layers.Count) + " layers.");
+            Say(
+                "Opened "
+                    + document.Title
+                    + ": "
+                    + Count(document.EntityCount)
+                    + " entities, "
+                    + Count(document.Layers.Count)
+                    + " layers."
+            );
         }
 
         /// <summary>Looks again for the DXF files of the folders listed.</summary>
         public void Refresh()
         {
-            foreach (string folder in _files.Values.Select(f => f.Folder).Distinct(StringComparer.OrdinalIgnoreCase).ToList())
+            foreach (
+                string folder in _files.Values.Select(f => f.Folder).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
+            )
             {
                 ListFolder(folder);
             }
@@ -740,7 +833,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="space">The space.</param>
         public void SelectSpace(CadSpace space)
         {
-            if (_current == null || space == null || space == _current.Document.CurrentSpace || !_current.Document.Spaces.Contains(space) || _current.Document.BlockEditor != null)
+            if (
+                _current == null
+                || space == null
+                || space == _current.Document.CurrentSpace
+                || !_current.Document.Spaces.Contains(space)
+                || _current.Document.BlockEditor != null
+            )
             {
                 return;
             }
@@ -808,7 +907,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return Array.Empty<string>();
             }
 
-            IReadOnlyList<string> found = CadPicking.BoxDone(_current.Document, Space, _current.Session, box, crossing, remove);
+            IReadOnlyList<string> found = CadPicking.BoxDone(
+                _current.Document,
+                Space,
+                _current.Session,
+                box,
+                crossing,
+                remove
+            );
             SyncHistory();
             return found;
         }
@@ -824,7 +930,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return null;
             }
 
-            return CadPicking.Snap(_current.Document, Space, Snap, point, aperture, _current.Session.Prompt.BasePoint, _current.Session.Prompt.SnapFrom);
+            return CadPicking.Snap(
+                _current.Document,
+                Space,
+                Snap,
+                point,
+                aperture,
+                _current.Session.Prompt.BasePoint,
+                _current.Session.Prompt.SnapFrom
+            );
         }
 
         /// <summary>Selects nothing.</summary>
@@ -983,7 +1097,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            string known = _current.Session.Registry.Find(name)?.Name ?? _current.Session.Registry.FindVariable(name)?.Name;
+            string known = _current.Session.Registry.Find(name)?.Name
+                ?? _current.Session.Registry.FindVariable(name)?.Name;
 
             if (known != null)
             {
@@ -1079,9 +1194,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 // A file another open document has, under its file or under a key of its own, is not written over: that document
                 // would leave the list unasked, and the two be saved to one file.
                 string target = System.IO.Path.GetFullPath(path);
-                bool taken = _files.Values.Any(f => f != _current && f.Document != null && f.Document != _current.Document
-                    && (string.Equals(f.Path, target, StringComparison.OrdinalIgnoreCase)
-                        || (f.Document.HasFile && string.Equals(System.IO.Path.GetFullPath(f.Document.FileName), target, StringComparison.OrdinalIgnoreCase))));
+                bool taken = _files.Values.Any(f =>
+                    f != _current
+                    && f.Document != null
+                    && f.Document != _current.Document
+                    && (
+                        string.Equals(f.Path, target, StringComparison.OrdinalIgnoreCase)
+                        || (
+                            f.Document.HasFile
+                            && string.Equals(
+                                System.IO.Path.GetFullPath(f.Document.FileName),
+                                target,
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                        )
+                    )
+                );
 
                 if (taken)
                 {
@@ -1091,7 +1219,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 _current.Document.SaveAs(path);
             }
-            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+            catch (Exception ex)
+                when (ex is IOException
+                    || ex is UnauthorizedAccessException
+                    || ex is ArgumentException
+                    || ex is NotSupportedException
+                )
             {
                 Say("Cannot save " + path + ": " + ex.Message);
                 return false;
@@ -1123,7 +1256,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Makes the view model of the Layer manager over the drawing shown; null with none. Dispose it when the dialog closes.</summary>
         /// <returns>The view model.</returns>
-        public LayerManagerViewModel CreateLayerManager() => _current == null ? null : new LayerManagerViewModel(_current.Document, Say);
+        public LayerManagerViewModel CreateLayerManager() =>
+            _current == null ? null : new LayerManagerViewModel(_current.Document, Say);
 
         /// <summary>Puts the line typed before the one shown into the command line, as Up does.</summary>
         public void RecallPrevious()
@@ -1246,9 +1380,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             DxfDatabase database = _current?.Document.Database;
 
             // A drawing in units other than decimal (LUNITS 2) shows them as AutoCAD does, 1'-3 1/2"; decimal keeps the settings' style.
-            CursorText = database != null && database.Lunits != 2
-                ? "X " + CadUnits.Length(shown.X, database.Lunits, database.Luprec) + "   Y " + CadUnits.Length(shown.Y, database.Lunits, database.Luprec)
-                : "X " + _settings.FormatNumber(shown.X, _settings.CoordinateDecimals) + "   Y " + _settings.FormatNumber(shown.Y, _settings.CoordinateDecimals);
+            CursorText =
+                database != null && database.Lunits != 2
+                    ? "X "
+                        + CadUnits.Length(shown.X, database.Lunits, database.Luprec)
+                        + "   Y "
+                        + CadUnits.Length(shown.Y, database.Lunits, database.Luprec)
+                    : "X "
+                        + _settings.FormatNumber(shown.X, _settings.CoordinateDecimals)
+                        + "   Y "
+                        + _settings.FormatNumber(shown.Y, _settings.CoordinateDecimals);
         }
 
         /// <summary>Formats a whole number as the design writes it, thousands set apart by a space: 2 418.</summary>
@@ -1256,7 +1397,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>The text.</returns>
         public static string Count(int value) => value.ToString("#,0", Spaced);
 
-        private static string Coordinates(double x, double y) => "X " + x.ToString("#,0.00", Spaced) + "   Y " + y.ToString("#,0.00", Spaced);
+        private static string Coordinates(double x, double y) =>
+            "X " + x.ToString("#,0.00", Spaced) + "   Y " + y.ToString("#,0.00", Spaced);
 
         /// <summary>The commands of the session: AutoCAD's of C2, Make Current and Match Layer of the Layers panel, the window's commands and variables, and the extensions'.</summary>
         private CadCommandRegistry Commands()
@@ -1344,7 +1486,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             c.OpenUndoStep();
             CadEditResult result = CadPropertyEditor.Set(c.Document, c.Selected, "Layer", target.Layer);
-            c.Write(result.Succeeded ? Count(c.Selected.Count) + " object(s) changed to layer \"" + target.Layer + "\"." : result.Message);
+            c.Write(
+                result.Succeeded
+                    ? Count(c.Selected.Count) + " object(s) changed to layer \"" + target.Layer + "\"."
+                    : result.Message
+            );
         }
 
         private void Attach(KnownFile file, CadDocument document)
@@ -1425,7 +1571,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(PromptTakesSpaces));
 
             // ZOOM and PAN move the view; a view the user moved is no longer refitted to a new canvas size.
-            if (!_current.Session.IsRunning && (_current.Session.LastCommandName == "ZOOM" || _current.Session.LastCommandName == "PAN"))
+            if (
+                !_current.Session.IsRunning
+                && (_current.Session.LastCommandName == "ZOOM" || _current.Session.LastCommandName == "PAN")
+            )
             {
                 NotifyViewChangedByUser();
             }
@@ -1588,7 +1737,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            FileRowViewModel row = FileRows.FirstOrDefault(r => string.Equals(r.Path, file.Path, StringComparison.OrdinalIgnoreCase));
+            FileRowViewModel row = FileRows.FirstOrDefault(r =>
+                string.Equals(r.Path, file.Path, StringComparison.OrdinalIgnoreCase)
+            );
 
             if (row != null)
             {
@@ -1655,7 +1806,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnExtensionChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(CadWorkspaceExtension.IsTabVisible) && sender == _selectedTab && !_selectedTab.IsTabVisible)
+            if (
+                e.PropertyName == nameof(CadWorkspaceExtension.IsTabVisible)
+                && sender == _selectedTab
+                && !_selectedTab.IsTabVisible
+            )
             {
                 SelectedTab = null;
             }
@@ -1747,11 +1902,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static IReadOnlyList<CadLayerInfo> SortedLayers(CadDocument document)
         {
             var layers = document.Layers.ToList();
-            layers.Sort((a, b) =>
-            {
-                int order = string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
-                return order != 0 ? order : string.CompareOrdinal(a.Name, b.Name);
-            });
+            layers.Sort(
+                (a, b) =>
+                {
+                    int order = string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+                    return order != 0 ? order : string.CompareOrdinal(a.Name, b.Name);
+                }
+            );
             return layers;
         }
 
@@ -1826,7 +1983,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            var handles = _current.Document.Selection.Handles.Where(h => _current.Document.FindEntity(h) != null).ToList();
+            var handles = _current
+                .Document.Selection.Handles.Where(h => _current.Document.FindEntity(h) != null)
+                .ToList();
             handles.Sort(StringComparer.OrdinalIgnoreCase);
             CadSelectionInfo info = CadProperties.Describe(_current.Document, Space, handles, View);
             string banner = null;
@@ -1849,13 +2008,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     // A dynamic block's property is set by its name, whatever it is named, through its own lists.
                     if (group.Title == CadProperties.CustomGroup)
                     {
-                        rows.Add(new PropertyRowViewModel(row, row.Choices, (r, text) => CommitCustomProperty(handles, r.Label, text)));
+                        rows.Add(
+                            new PropertyRowViewModel(row, row.Choices, (r, text) =>
+                                CommitCustomProperty(handles, r.Label, text)
+                            )
+                        );
                         continue;
                     }
 
                     // An MTEXT's contents are edited in its editor, as the palette's button opens it.
-                    IReadOnlyList<string> options = row.Label == "Contents" && info.Label == "MText (1)" ? new[] { EditMTextOption } : OptionsOf(row.Label) ?? row.Choices;
-                    rows.Add(new PropertyRowViewModel(row, options, (r, text) => CommitProperty(handles, r.Label, text)));
+                    IReadOnlyList<string> options =
+                        row.Label == "Contents" && info.Label == "MText (1)"
+                            ? new[] { EditMTextOption }
+                            : OptionsOf(row.Label) ?? row.Choices;
+                    rows.Add(
+                        new PropertyRowViewModel(row, options, (r, text) => CommitProperty(handles, r.Label, text))
+                    );
                 }
 
                 groups.Add(new PropertyGroupViewModel(group.Title, rows));
@@ -1946,7 +2114,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             else if (PickColor(dialog) && (old == null || !dialog.Color.Equals(old)))
             {
-                CadEditResult result = CadPropertyEditor.Set(_current.Document, handles, "Color", dialog.Color.ToString());
+                CadEditResult result = CadPropertyEditor.Set(
+                    _current.Document,
+                    handles,
+                    "Color",
+                    dialog.Color.ToString()
+                );
 
                 if (!result.Succeeded)
                 {
@@ -1964,11 +2137,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // A file an extension describes is listed under the group it names, after the folders of plain DXF files.
             var shown = Listed()
                 .Select(f => new { File = f, Info = f.Info(_extensions) })
-                .Where(f => (!_dxfOnly || (f.File.IsDxf && f.Info == null)) && (!_ownOnly || f.Info != null)
-                            && (!_outOfDateOnly || f.Info?.State == CadFileState.OutOfDate)
-                            && (_searchText.Length == 0 || (f.Info?.Label ?? f.File.Name).IndexOf(_searchText, StringComparison.OrdinalIgnoreCase) >= 0
-                                || (f.Info?.Detail ?? string.Empty).IndexOf(_searchText, StringComparison.OrdinalIgnoreCase) >= 0))
-                .GroupBy(f => (f.Info == null ? "0" : "1") + (f.Info == null ? f.File.Folder : f.Info.Group), StringComparer.OrdinalIgnoreCase)
+                .Where(f =>
+                    (!_dxfOnly || (f.File.IsDxf && f.Info == null))
+                    && (!_ownOnly || f.Info != null)
+                    && (!_outOfDateOnly || f.Info?.State == CadFileState.OutOfDate)
+                    && (
+                        _searchText.Length == 0
+                        || (f.Info?.Label ?? f.File.Name).IndexOf(_searchText, StringComparison.OrdinalIgnoreCase) >= 0
+                        || (f.Info?.Detail ?? string.Empty).IndexOf(_searchText, StringComparison.OrdinalIgnoreCase)
+                            >= 0
+                    )
+                )
+                .GroupBy(
+                    f => (f.Info == null ? "0" : "1") + (f.Info == null ? f.File.Folder : f.Info.Group),
+                    StringComparer.OrdinalIgnoreCase
+                )
                 .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(g => g.Key, StringComparer.Ordinal);
 
@@ -1977,17 +2160,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 string key = group.Key.Substring(1);
                 FileRows.Add(new FileRowViewModel(true, group.Key[0] == '0' ? key + " · DXF" : key, null, null));
 
-                foreach (var item in group.OrderBy(f => f.Info?.Label ?? f.File.Name, StringComparer.OrdinalIgnoreCase)
-                             .ThenBy(f => f.Info?.Label ?? f.File.Name, StringComparer.Ordinal).ThenBy(f => f.File.Path, StringComparer.Ordinal))
+                foreach (
+                    var item in group
+                        .OrderBy(f => f.Info?.Label ?? f.File.Name, StringComparer.OrdinalIgnoreCase)
+                        .ThenBy(f => f.Info?.Label ?? f.File.Name, StringComparer.Ordinal)
+                        .ThenBy(f => f.File.Path, StringComparer.Ordinal)
+                )
                 {
-                    FileRows.Add(new FileRowViewModel(false, item.Info?.Label ?? item.File.Name, item.File.Path, item.Info?.Detail ?? item.File.Detail())
-                    {
-                        IsCurrent = item.File == _current,
-                        HasUnsavedChanges = item.File.Document != null && item.File.Document.IsModified,
-                        Right = item.Info?.Right,
-                        State = StateOf(item.File, item.Info),
-                        IsOpen = item.File.Document != null,
-                    });
+                    FileRows.Add(
+                        new FileRowViewModel(
+                            false,
+                            item.Info?.Label ?? item.File.Name,
+                            item.File.Path,
+                            item.Info?.Detail ?? item.File.Detail()
+                        )
+                        {
+                            IsCurrent = item.File == _current,
+                            HasUnsavedChanges = item.File.Document != null && item.File.Document.IsModified,
+                            Right = item.Info?.Right,
+                            State = StateOf(item.File, item.Info),
+                            IsOpen = item.File.Document != null,
+                        }
+                    );
                 }
             }
 
@@ -2009,7 +2203,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             foreach (KnownFile file in _files.Values)
             {
-                if (file.Document != null && !string.IsNullOrEmpty(file.Document.FileName) && System.IO.Path.IsPathRooted(file.Document.FileName))
+                if (
+                    file.Document != null
+                    && !string.IsNullOrEmpty(file.Document.FileName)
+                    && System.IO.Path.IsPathRooted(file.Document.FileName)
+                )
                 {
                     saved.Add(file.Document.FileName);
                 }
@@ -2106,15 +2304,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (Document != null)
                 {
                     int layouts = Document.Spaces.Count - 1;
-                    return "DXF · " + Count(Document.EntityCount) + " entities · " + Count(layouts) + (layouts == 1 ? " layout" : " layouts");
+                    return "DXF · "
+                        + Count(Document.EntityCount)
+                        + " entities · "
+                        + Count(layouts)
+                        + (layouts == 1 ? " layout" : " layouts");
                 }
 
                 try
                 {
                     var info = new FileInfo(Path);
-                    return info.Exists ? "DXF · " + Count((int)Math.Max(1, (info.Length + 1023) / 1024)) + " KB" : "DXF";
+                    return info.Exists
+                        ? "DXF · " + Count((int)Math.Max(1, (info.Length + 1023) / 1024)) + " KB"
+                        : "DXF";
                 }
-                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException)
+                catch (Exception ex)
+                    when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException)
                 {
                     return "DXF";
                 }
@@ -2157,7 +2362,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="title">The title bar's text for it; null for the document's title.</param>
         /// <param name="statusText">The status bar's state text; null for "Saved" or "Unsaved changes".</param>
         /// <param name="statusNote">A second state text, drawn as a warning; null for none.</param>
-        public CadFileInfo(string group, string label, string detail, string right, CadFileState state, string title = null, string statusText = null, string statusNote = null)
+        public CadFileInfo(
+            string group,
+            string label,
+            string detail,
+            string right,
+            CadFileState state,
+            string title = null,
+            string statusText = null,
+            string statusNote = null
+        )
         {
             Group = group ?? string.Empty;
             Label = label ?? string.Empty;
@@ -2235,9 +2449,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Adds its commands and their aliases to the command line of a document, as the document is opened.</summary>
         /// <param name="registry">The registry of the document's command line.</param>
-        public virtual void AddCommands(CadCommandRegistry registry)
-        {
-        }
+        public virtual void AddCommands(CadCommandRegistry registry) { }
 
         /// <summary>Runs a command typed with no document open, as DRAWINGNEW; false for one it does not know.</summary>
         /// <param name="typed">The name or alias typed.</param>
@@ -2258,7 +2470,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="shown">What Properties shows otherwise.</param>
         /// <param name="banner">The banner; null for none.</param>
         /// <returns>What Properties shows.</returns>
-        public virtual CadSelectionInfo DescribeSelection(CadDocument document, IReadOnlyList<string> handles, CadSelectionInfo shown, out string banner)
+        public virtual CadSelectionInfo DescribeSelection(
+            CadDocument document,
+            IReadOnlyList<string> handles,
+            CadSelectionInfo shown,
+            out string banner
+        )
         {
             banner = null;
             return shown;
@@ -2269,14 +2486,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// take a document of its own back: a model drawing saved and opened again registers its owner here.
         /// </summary>
         /// <param name="document">The document opened.</param>
-        public virtual void DocumentOpened(CadDocument document)
-        {
-        }
+        public virtual void DocumentOpened(CadDocument document) { }
 
         /// <summary>Tells the extension a document has been closed (CLOSE), so that it lets go of what it kept of it.</summary>
         /// <param name="document">The document closed.</param>
-        public virtual void DocumentClosed(CadDocument document)
-        {
-        }
+        public virtual void DocumentClosed(CadDocument document) { }
     }
 }

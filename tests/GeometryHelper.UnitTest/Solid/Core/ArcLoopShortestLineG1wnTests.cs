@@ -15,13 +15,28 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class ArcLoopShortestLineG1wnTests
     {
-        private static readonly Tolerance Millionth = new Tolerance(1E-6, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-6);
-        private static readonly Tolerance Fine = new Tolerance(1E-11, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-11);
+        private static readonly Tolerance Millionth = new Tolerance(
+            1E-6,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-6
+        );
+        private static readonly Tolerance Fine = new Tolerance(
+            1E-11,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-11
+        );
 
         private static GeoPoint3 P(double x, double y) => new GeoPoint3(x, y, 0);
 
-        private static GeoPolygonArc3 Square()
-            => new GeoPolygonArc3(new[] { P(0, 0), P(10, 0), P(10, 10), P(0, 10) }, new[] { 0.0, 0.0, 0.0, 0.0 }, new[] { GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis }, Fine);
+        private static GeoPolygonArc3 Square() =>
+            new GeoPolygonArc3(
+                new[] { P(0, 0), P(10, 0), P(10, 10), P(0, 10) },
+                new[] { 0.0, 0.0, 0.0, 0.0 },
+                new[] { GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis },
+                Fine
+            );
 
         private static GeoPoint3[] Corners() => new[] { P(10.5004, 5), P(16, 2), P(16, 8), P(10.5, 5) };
 
@@ -58,7 +73,12 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ACurvedLoopWithItsNearestCornerOnASideShorterThanTheGlobalTolerance_IsMeasuredToThatCorner()
         {
-            var other = new GeoPolygonArc3(Corners(), new[] { 0.0, 0.0, 0.0, 0.0 }, new[] { GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis }, Fine);
+            var other = new GeoPolygonArc3(
+                Corners(),
+                new[] { 0.0, 0.0, 0.0, 0.0 },
+                new[] { GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis },
+                Fine
+            );
 
             GeoLine3 line = Square().GetShortestLineTo(other, Millionth);
 

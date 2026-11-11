@@ -88,13 +88,24 @@ namespace GeometryHelper.Dxf
         /// <returns>Whether they are the same.</returns>
         public bool IsEqualTo(DxfFitData other, Tolerance tolerance)
         {
-            if (Degree != other.Degree || TangentsExist != other.TangentsExist || KnotParam != other.KnotParam || Periodic != other.Periodic
-                || !(Math.Abs(FitTolerance - other.FitTolerance) <= tolerance.EqualPoint))
+            if (
+                Degree != other.Degree
+                || TangentsExist != other.TangentsExist
+                || KnotParam != other.KnotParam
+                || Periodic != other.Periodic
+                || !(Math.Abs(FitTolerance - other.FitTolerance) <= tolerance.EqualPoint)
+            )
             {
                 return false;
             }
 
-            if (TangentsExist && (!StartTangent.IsEqualTo(other.StartTangent, tolerance) || !EndTangent.IsEqualTo(other.EndTangent, tolerance)))
+            if (
+                TangentsExist
+                && (
+                    !StartTangent.IsEqualTo(other.StartTangent, tolerance)
+                    || !EndTangent.IsEqualTo(other.EndTangent, tolerance)
+                )
+            )
             {
                 return false;
             }
@@ -120,7 +131,11 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gives the data as a line for debugging: its degree and count of points.</summary>
         /// <returns>The data as a line, such as <c>degree 3, 5 fit points</c>.</returns>
-        public override string ToString()
-            => "degree " + Degree.ToString(CultureInfo.InvariantCulture) + ", " + GetFitPoints().Count.ToString(CultureInfo.InvariantCulture) + " fit points";
+        public override string ToString() =>
+            "degree "
+            + Degree.ToString(CultureInfo.InvariantCulture)
+            + ", "
+            + GetFitPoints().Count.ToString(CultureInfo.InvariantCulture)
+            + " fit points";
     }
 }

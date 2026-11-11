@@ -33,7 +33,13 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ASquareWhoseBottomBowsATrillionth_HasNoArcs()
         {
-            var corners = new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) };
+            var corners = new[]
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(0, 100),
+            };
             var square = new GeoPolygonArc2(corners, new[] { 1E-12, 0.0, 0.0, 0.0 });
             var chain = new GeoPolylineArc2(corners, new[] { 1E-12, 0.0, 0.0, 0.0 });
 

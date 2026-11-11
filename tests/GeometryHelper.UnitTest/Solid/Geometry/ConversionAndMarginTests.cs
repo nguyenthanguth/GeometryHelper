@@ -19,8 +19,8 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Loose = new Tolerance(1E-7, 1E-7);
 
-        private static GeoTriangle3 Triangle() => new GeoTriangle3(
-            new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0), new GeoPoint3(0, 400, 0));
+        private static GeoTriangle3 Triangle() =>
+            new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0), new GeoPoint3(0, 400, 0));
 
         [Fact]
         public void ATriangleReadsAsAPolygonOfTheSameAreaAndPlane()
@@ -91,8 +91,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AnOrientedBoxCanBeGrownAndShrunkWithoutLosingItsAxes()
         {
-            var turned = new GeoObb3(new GeoPoint3(0, 0, 0), 200, 100, 50,
-                new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 0));
+            var turned = new GeoObb3(
+                new GeoPoint3(0, 0, 0),
+                200,
+                100,
+                50,
+                new GeoVector3(1, 1, 0),
+                new GeoVector3(-1, 1, 0)
+            );
 
             Assert.True(turned.TryExpand(10.0, out GeoObb3 bigger));
 

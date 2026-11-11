@@ -26,7 +26,11 @@ namespace GeometryHelper.Viewer.Tests
             DiagnosticReport report = Diag.Run(scene, Edges, library);
 
             Assert.Equal(4, Diag.Count(report, DiagnosticKind.OpenEdge));
-            Assert.Equal(0, Diag.Count(report, DiagnosticKind.NonManifoldEdge) + Diag.Count(report, DiagnosticKind.InconsistentWinding));
+            Assert.Equal(
+                0,
+                Diag.Count(report, DiagnosticKind.NonManifoldEdge)
+                    + Diag.Count(report, DiagnosticKind.InconsistentWinding)
+            );
             Assert.All(Diag.Of(report, DiagnosticKind.OpenEdge), f =>
             {
                 Assert.True(f.IsFault);
@@ -108,10 +112,14 @@ namespace GeometryHelper.Viewer.Tests
         public void ABodyWoundInwards_IsReportedNotValidWithTheSignOfItsVolume()
         {
             GeoSolid3 box = SampleShapes.Box(30, 20, 10, false);
-            GeoSolid3 inside = new GeoSolid3(box.Faces.Select(f => new GeoFace3(new GeoPolygon3(f.Boundary.Vertices.Reverse()), null)));
+            GeoSolid3 inside = new GeoSolid3(
+                box.Faces.Select(f => new GeoFace3(new GeoPolygon3(f.Boundary.Vertices.Reverse()), null))
+            );
             Scene scene = new SceneWriter().Add(inside, name: "inside out").Scene;
 
-            DiagnosticFinding report = Assert.Single(Diag.Of(Diag.Run(scene, DiagnosticChecks.Report), DiagnosticKind.Report));
+            DiagnosticFinding report = Assert.Single(
+                Diag.Of(Diag.Run(scene, DiagnosticChecks.Report), DiagnosticKind.Report)
+            );
 
             Assert.True(report.IsFault);
             Assert.Contains("not valid", report.Message);
@@ -125,7 +133,9 @@ namespace GeometryHelper.Viewer.Tests
         {
             Scene scene = new SceneWriter().Add(SampleShapes.Box(30, 20, 10, false), name: "box").Scene;
 
-            DiagnosticFinding report = Assert.Single(Diag.Of(Diag.Run(scene, DiagnosticChecks.Report), DiagnosticKind.Report));
+            DiagnosticFinding report = Assert.Single(
+                Diag.Of(Diag.Run(scene, DiagnosticChecks.Report), DiagnosticKind.Report)
+            );
 
             Assert.False(report.IsFault);
             Assert.Contains("says valid", report.Message);
@@ -152,7 +162,9 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheBoundaryOfAMesh_IsOpenEdgesThatAreNotFaults_AndMatchesTheLibrary()
         {
-            GeoMesh3 mesh = new GeoPolygon3(SampleShapes.LShape().Select(p => new GeoPoint3(p.X, p.Y, 7.5))).ToMesh(MeshKind.Convex);
+            GeoMesh3 mesh = new GeoPolygon3(SampleShapes.LShape().Select(p => new GeoPoint3(p.X, p.Y, 7.5))).ToMesh(
+                MeshKind.Convex
+            );
             Scene scene = new SceneWriter().Add(mesh, name: "plate").Scene;
 
             DiagnosticReport report = Diag.Run(scene, Edges);
@@ -166,9 +178,21 @@ namespace GeometryHelper.Viewer.Tests
         public void TwoTrianglesOfAMeshSharingTheirEdgeTheSameWay_AreOneInconsistentWinding()
         {
             string points = Diag.Pts3(0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0);
-            SceneItem ok = Diag.Raw("GeoMesh3", "{\"kind\":\"Convex\",\"points\":" + points + ",\"faces\":[[0,1,2],[0,2,3]]}", "ok");
-            SceneItem flipped = Diag.Raw("GeoMesh3", "{\"kind\":\"Convex\",\"points\":" + points + ",\"faces\":[[0,1,2],[2,3,0]]}", "rotated");
-            SceneItem sameWay = Diag.Raw("GeoMesh3", "{\"kind\":\"Convex\",\"points\":" + points + ",\"faces\":[[0,1,2],[0,3,2]]}", "same way 2");
+            SceneItem ok = Diag.Raw(
+                "GeoMesh3",
+                "{\"kind\":\"Convex\",\"points\":" + points + ",\"faces\":[[0,1,2],[0,2,3]]}",
+                "ok"
+            );
+            SceneItem flipped = Diag.Raw(
+                "GeoMesh3",
+                "{\"kind\":\"Convex\",\"points\":" + points + ",\"faces\":[[0,1,2],[2,3,0]]}",
+                "rotated"
+            );
+            SceneItem sameWay = Diag.Raw(
+                "GeoMesh3",
+                "{\"kind\":\"Convex\",\"points\":" + points + ",\"faces\":[[0,1,2],[0,3,2]]}",
+                "same way 2"
+            );
 
             Assert.Equal(0, Diag.Count(Diag.Run(Diag.SceneOf(ok), Edges), DiagnosticKind.InconsistentWinding));
             Assert.Equal(0, Diag.Count(Diag.Run(Diag.SceneOf(flipped), Edges), DiagnosticKind.InconsistentWinding));
@@ -184,12 +208,18 @@ namespace GeometryHelper.Viewer.Tests
         {
             // Two triangles that meet at corners a ten-thousandth apart, each with its own vertex there.
             string points = Diag.Pts3(0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0001, 0, 0, 1.0001, 1, 0, 0.0001, 1, 0);
-            SceneItem mesh = Diag.Raw("GeoMesh3", "{\"kind\":\"Convex\",\"points\":" + points + ",\"faces\":[[0,1,2],[3,4,5]]}", "two");
+            SceneItem mesh = Diag.Raw(
+                "GeoMesh3",
+                "{\"kind\":\"Convex\",\"points\":" + points + ",\"faces\":[[0,1,2],[3,4,5]]}",
+                "two"
+            );
 
             DiagnosticReport report = Diag.Run(Diag.SceneOf(mesh), DiagnosticChecks.Duplicates);
 
             Assert.Equal(2, Diag.Count(report, DiagnosticKind.DuplicateVertex));
-            Assert.Contains(report.Findings, f => f.Message.Contains("vertices 2 and 4") && f.Message.Contains("are not joined"));
+            Assert.Contains(report.Findings, f =>
+                f.Message.Contains("vertices 2 and 4") && f.Message.Contains("are not joined")
+            );
         }
 
         #endregion
@@ -200,7 +230,12 @@ namespace GeometryHelper.Viewer.Tests
         [MemberData(nameof(BothWays))]
         public void ABowTieLoop_HasOneCrossingAtItsExactPoint(bool library)
         {
-            Scene scene = new SceneWriter().Add(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(2, 2), new GeoPoint2(2, 0), new GeoPoint2(0, 2)), name: "bow tie").Scene;
+            Scene scene = new SceneWriter()
+                .Add(
+                    new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(2, 2), new GeoPoint2(2, 0), new GeoPoint2(0, 2)),
+                    name: "bow tie"
+                )
+                .Scene;
 
             DiagnosticReport report = Diag.Run(scene, DiagnosticChecks.Crossings | DiagnosticChecks.Slivers, library);
 
@@ -220,9 +255,20 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ASimpleLoop_HasNoCrossing_AndAnAreaOfNoSignOfASliver()
         {
-            Scene scene = new SceneWriter().Add(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(2, 0), new GeoPoint2(2, 2), new GeoPoint2(0, 2)), name: "square").Scene;
+            Scene scene = new SceneWriter()
+                .Add(
+                    new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(2, 0), new GeoPoint2(2, 2), new GeoPoint2(0, 2)),
+                    name: "square"
+                )
+                .Scene;
 
-            DiagnosticReport report = Diag.Run(scene, DiagnosticChecks.Crossings | DiagnosticChecks.Slivers | DiagnosticChecks.Needles | DiagnosticChecks.Duplicates);
+            DiagnosticReport report = Diag.Run(
+                scene,
+                DiagnosticChecks.Crossings
+                    | DiagnosticChecks.Slivers
+                    | DiagnosticChecks.Needles
+                    | DiagnosticChecks.Duplicates
+            );
 
             Assert.Empty(report.Findings);
         }
@@ -232,7 +278,11 @@ namespace GeometryHelper.Viewer.Tests
         {
             // The chords make a rectangle 10 by 6; the arcs of the bottom and the top edges each rise 4 into it (a bulge of 0.8 on a chord of
             // 10) and meet where the circle of radius 5.125 is 3 up, 3.041 either side of the middle.
-            SceneItem item = Diag.Raw("GeoPolygonArc2", "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 6, 0, 6) + ",\"bulges\":[-0.8,0,-0.8,0]}", "arcs");
+            SceneItem item = Diag.Raw(
+                "GeoPolygonArc2",
+                "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 6, 0, 6) + ",\"bulges\":[-0.8,0,-0.8,0]}",
+                "arcs"
+            );
 
             DiagnosticReport report = Diag.Run(Diag.SceneOf(item), DiagnosticChecks.Crossings);
 
@@ -247,7 +297,11 @@ namespace GeometryHelper.Viewer.Tests
         public void ACrossingThatIsATouchOfAVertexOnAnEdge_IsSaidToTouch()
         {
             // The vertex (5, 0.0005) stands half a thousandth above the bottom edge: within EqualPoint of it, so it meets it.
-            SceneItem item = Diag.Raw("GeoPolygon2", "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 10, 5, 0.0005, 0, 10) + "}", "touch");
+            SceneItem item = Diag.Raw(
+                "GeoPolygon2",
+                "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 10, 5, 0.0005, 0, 10) + "}",
+                "touch"
+            );
 
             DiagnosticReport report = Diag.Run(Diag.SceneOf(item), DiagnosticChecks.Crossings);
 
@@ -261,9 +315,17 @@ namespace GeometryHelper.Viewer.Tests
         public void ANeedleSpike_IsOneNeedleAtItsTip(bool library)
         {
             // A square 10 by 10 with a spike 20 high and 0.02 wide at its base standing on the top edge.
-            SceneItem item = Diag.Raw("GeoPolygon2", "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 10, 5.01, 10, 5, 30, 4.99, 10, 0, 10) + "}", "spiked");
+            SceneItem item = Diag.Raw(
+                "GeoPolygon2",
+                "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 10, 5.01, 10, 5, 30, 4.99, 10, 0, 10) + "}",
+                "spiked"
+            );
 
-            DiagnosticReport report = Diag.Run(Diag.SceneOf(item), DiagnosticChecks.Needles | DiagnosticChecks.Crossings, library);
+            DiagnosticReport report = Diag.Run(
+                Diag.SceneOf(item),
+                DiagnosticChecks.Needles | DiagnosticChecks.Crossings,
+                library
+            );
 
             DiagnosticFinding needle = Assert.Single(report.Findings);
             Assert.Equal(DiagnosticKind.Needle, needle.Kind);
@@ -275,9 +337,19 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ASpikeTwoTenthsWideAtItsBase_IsNotANeedle_AndOneTwoHundredthsWideIs()
         {
-            Func<double, DiagnosticReport> run = half => Diag.Run(
-                Diag.SceneOf(Diag.Raw("GeoPolygon2", "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 10, 5 + half, 10, 5, 30, 5 - half, 10, 0, 10) + "}", "spiked")),
-                DiagnosticChecks.Needles);
+            Func<double, DiagnosticReport> run = half =>
+                Diag.Run(
+                    Diag.SceneOf(
+                        Diag.Raw(
+                            "GeoPolygon2",
+                            "{\"points\":"
+                                + Diag.Pts2(0, 0, 10, 0, 10, 10, 5 + half, 10, 5, 30, 5 - half, 10, 0, 10)
+                                + "}",
+                            "spiked"
+                        )
+                    ),
+                    DiagnosticChecks.Needles
+                );
 
             Assert.Empty(run(0.1).Findings);
             Assert.Single(run(0.01).Findings);
@@ -287,9 +359,16 @@ namespace GeometryHelper.Viewer.Tests
         public void AVertexACloseBeforeAnother_IsOneDuplicateVertex_AndNotACrossing()
         {
             // The corner (10, 0) is given twice, 0.0004 apart: closer than EqualPoint, 0.001.
-            SceneItem item = Diag.Raw("GeoPolygon2", "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 0.0004, 10, 10, 0, 10) + "}", "doubled");
+            SceneItem item = Diag.Raw(
+                "GeoPolygon2",
+                "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 0.0004, 10, 10, 0, 10) + "}",
+                "doubled"
+            );
 
-            DiagnosticReport report = Diag.Run(Diag.SceneOf(item), DiagnosticChecks.Duplicates | DiagnosticChecks.Crossings | DiagnosticChecks.Needles);
+            DiagnosticReport report = Diag.Run(
+                Diag.SceneOf(item),
+                DiagnosticChecks.Duplicates | DiagnosticChecks.Crossings | DiagnosticChecks.Needles
+            );
 
             DiagnosticFinding dup = Assert.Single(report.Findings);
             Assert.Equal(DiagnosticKind.DuplicateVertex, dup.Kind);
@@ -302,17 +381,35 @@ namespace GeometryHelper.Viewer.Tests
         {
             // 0.001 is not representable; the pair is made from the same double so that the distance is the tolerance bit for bit.
             double tol = new Scene().EqualPoint;
-            SceneItem within = Diag.Raw("GeoPolygon2", "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, tol, 10, 10, 0, 10) + "}", "within");
-            SceneItem beyond = Diag.Raw("GeoPolygon2", "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, tol * 1.01, 10, 10, 0, 10) + "}", "beyond");
+            SceneItem within = Diag.Raw(
+                "GeoPolygon2",
+                "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, tol, 10, 10, 0, 10) + "}",
+                "within"
+            );
+            SceneItem beyond = Diag.Raw(
+                "GeoPolygon2",
+                "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, tol * 1.01, 10, 10, 0, 10) + "}",
+                "beyond"
+            );
 
-            Assert.Equal(1, Diag.Count(Diag.Run(Diag.SceneOf(within), DiagnosticChecks.Duplicates), DiagnosticKind.DuplicateVertex));
-            Assert.Equal(0, Diag.Count(Diag.Run(Diag.SceneOf(beyond), DiagnosticChecks.Duplicates), DiagnosticKind.DuplicateVertex));
+            Assert.Equal(
+                1,
+                Diag.Count(Diag.Run(Diag.SceneOf(within), DiagnosticChecks.Duplicates), DiagnosticKind.DuplicateVertex)
+            );
+            Assert.Equal(
+                0,
+                Diag.Count(Diag.Run(Diag.SceneOf(beyond), DiagnosticChecks.Duplicates), DiagnosticKind.DuplicateVertex)
+            );
         }
 
         [Fact]
         public void ADuplicateRepeatedAtTheEndOfAClosedLoop_IsFoundBetweenTheLastAndTheFirst()
         {
-            SceneItem item = Diag.Raw("GeoPolygon2", "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 10, 0, 10, 0, 0) + "}", "closed twice");
+            SceneItem item = Diag.Raw(
+                "GeoPolygon2",
+                "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 10, 0, 10, 0, 0) + "}",
+                "closed twice"
+            );
 
             DiagnosticFinding dup = Assert.Single(Diag.Run(Diag.SceneOf(item), DiagnosticChecks.Duplicates).Findings);
 
@@ -323,7 +420,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ASliverTriangle_IsOneSliverAndAFatOneIsNone()
         {
-            SceneItem sliver = Diag.Raw("GeoTriangle2", "{\"points\":" + Diag.Pts2(0, 0, 100, 0, 50, 0.0005) + "}", "sliver");
+            SceneItem sliver = Diag.Raw(
+                "GeoTriangle2",
+                "{\"points\":" + Diag.Pts2(0, 0, 100, 0, 50, 0.0005) + "}",
+                "sliver"
+            );
             SceneItem fat = Diag.Raw("GeoTriangle2", "{\"points\":" + Diag.Pts2(0, 0, 100, 0, 50, 5) + "}", "fat");
 
             DiagnosticReport report = Diag.Run(Diag.SceneOf(sliver, fat), DiagnosticChecks.Slivers);
@@ -340,8 +441,16 @@ namespace GeometryHelper.Viewer.Tests
         {
             // A rectangle 100 by w has area 100 w and a longest edge of 100: a sliver when w is under EqualPoint.
             double tol = new Scene().EqualPoint;
-            SceneItem under = Diag.Raw("GeoPolygon2", "{\"points\":" + Diag.Pts2(0, 0, 100, 0, 100, tol * 0.99, 0, tol * 0.99) + "}", "under");
-            SceneItem over = Diag.Raw("GeoPolygon2", "{\"points\":" + Diag.Pts2(0, 0, 100, 0, 100, tol * 1.01, 0, tol * 1.01) + "}", "over");
+            SceneItem under = Diag.Raw(
+                "GeoPolygon2",
+                "{\"points\":" + Diag.Pts2(0, 0, 100, 0, 100, tol * 0.99, 0, tol * 0.99) + "}",
+                "under"
+            );
+            SceneItem over = Diag.Raw(
+                "GeoPolygon2",
+                "{\"points\":" + Diag.Pts2(0, 0, 100, 0, 100, tol * 1.01, 0, tol * 1.01) + "}",
+                "over"
+            );
 
             DiagnosticReport report = Diag.Run(Diag.SceneOf(under, over), DiagnosticChecks.Slivers);
 
@@ -352,7 +461,11 @@ namespace GeometryHelper.Viewer.Tests
         public void ALoopOfACircularSegmentWithAnArc_HasItsArcsInItsArea()
         {
             // Two arcs back to back make a lens: a bulge of 0.5 on a chord of 100 on each side, so it is no sliver though the chords have no area.
-            SceneItem lens = Diag.Raw("GeoPolygonArc2", "{\"points\":" + Diag.Pts2(0, 0, 100, 0) + ",\"bulges\":[0.5,0.5]}", "lens");
+            SceneItem lens = Diag.Raw(
+                "GeoPolygonArc2",
+                "{\"points\":" + Diag.Pts2(0, 0, 100, 0) + ",\"bulges\":[0.5,0.5]}",
+                "lens"
+            );
 
             Assert.Empty(Diag.Run(Diag.SceneOf(lens), DiagnosticChecks.Slivers).Findings);
         }
@@ -364,7 +477,9 @@ namespace GeometryHelper.Viewer.Tests
 
             DiagnosticReport report = Diag.Run(Diag.SceneOf(item), DiagnosticChecks.All & ~DiagnosticChecks.Gap);
 
-            Assert.DoesNotContain(report.Findings, f => f.Kind == DiagnosticKind.SelfCrossing || f.Kind == DiagnosticKind.Sliver);
+            Assert.DoesNotContain(report.Findings, f =>
+                f.Kind == DiagnosticKind.SelfCrossing || f.Kind == DiagnosticKind.Sliver
+            );
         }
 
         [Fact]
@@ -385,13 +500,31 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AHoleThatRunsTheSameWayAsItsOutline_IsAFactTheLibraryReads_NotAFault()
         {
-            SceneItem good = Diag.Raw("GeoFace2", "{\"outer\":" + Diag.Pts2(0, 0, 10, 0, 10, 10, 0, 10) + ",\"holes\":[" + Diag.Pts2(2, 2, 2, 4, 4, 4, 4, 2) + "]}", "good");
-            SceneItem bad = Diag.Raw("GeoFace2", "{\"outer\":" + Diag.Pts2(0, 0, 10, 0, 10, 10, 0, 10) + ",\"holes\":[" + Diag.Pts2(2, 2, 4, 2, 4, 4, 2, 4) + "]}", "bad");
+            SceneItem good = Diag.Raw(
+                "GeoFace2",
+                "{\"outer\":"
+                    + Diag.Pts2(0, 0, 10, 0, 10, 10, 0, 10)
+                    + ",\"holes\":["
+                    + Diag.Pts2(2, 2, 2, 4, 4, 4, 4, 2)
+                    + "]}",
+                "good"
+            );
+            SceneItem bad = Diag.Raw(
+                "GeoFace2",
+                "{\"outer\":"
+                    + Diag.Pts2(0, 0, 10, 0, 10, 10, 0, 10)
+                    + ",\"holes\":["
+                    + Diag.Pts2(2, 2, 4, 2, 4, 4, 2, 4)
+                    + "]}",
+                "bad"
+            );
 
             DiagnosticReport report = Diag.Run(Diag.SceneOf(good, bad), DiagnosticChecks.Winding);
 
             Assert.DoesNotContain(report.Findings, f => f.IsFault);
-            Assert.Contains(report.Findings, f => f.ItemName == "bad" && f.Message.Contains("a hole runs the same way as its outline"));
+            Assert.Contains(report.Findings, f =>
+                f.ItemName == "bad" && f.Message.Contains("a hole runs the same way as its outline")
+            );
             Assert.DoesNotContain(report.Findings, f => f.ItemName == "good" && f.Message.Contains("same way"));
         }
 
@@ -419,7 +552,10 @@ namespace GeometryHelper.Viewer.Tests
             string back = Diag.Pts3(0, 10, 0, 0, 10, 10, 10, 10, 10.01, 10, 10, 0);
             string left = Diag.Pts3(0, 0, 0, 0, 0, 10, 0, 10, 10, 0, 10, 0);
             string right = Diag.Pts3(10, 0, 0, 10, 10, 0, 10, 10, 10.01, 10, 0, 10);
-            string faces = string.Join(",", new[] { top, bottom, front, back, left, right }.Select(p => "{\"outer\":" + p + ",\"holes\":[]}"));
+            string faces = string.Join(
+                ",",
+                new[] { top, bottom, front, back, left, right }.Select(p => "{\"outer\":" + p + ",\"holes\":[]}")
+            );
             SceneItem item = Diag.Raw("GeoSolid3", "{\"faces\":[" + faces + "]}", "warped box");
 
             DiagnosticReport own = Diag.Run(Diag.SceneOf(item), DiagnosticChecks.Flatness, false);
@@ -472,7 +608,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheGapCheckOnOtherThanTwoItems_SaysSoAndDrawsNothing()
         {
-            Scene scene = Diag.SceneOf(Diag.Polygon2("a", 0, 0, 1, 0, 1, 1), Diag.Polygon2("b", 5, 0, 6, 0, 6, 1), Diag.Polygon2("c", 9, 0, 10, 0, 10, 1));
+            Scene scene = Diag.SceneOf(
+                Diag.Polygon2("a", 0, 0, 1, 0, 1, 1),
+                Diag.Polygon2("b", 5, 0, 6, 0, 6, 1),
+                Diag.Polygon2("c", 9, 0, 10, 0, 10, 1)
+            );
 
             DiagnosticReport report = Diag.Run(scene, DiagnosticChecks.Gap);
 
@@ -495,7 +635,11 @@ namespace GeometryHelper.Viewer.Tests
         [InlineData(12.0, 1.0, 10.0)]
         [InlineData(13.0, 1.0, 1.0)]
         [InlineData(1.0, 0.0, 1.0)]
-        public void TheScaleOfTheMagnifier_IsThePowerOfTenThatBringsTheGapNearestToFortyPixels(double distance, double pixelSize, double expected)
+        public void TheScaleOfTheMagnifier_IsThePowerOfTenThatBringsTheGapNearestToFortyPixels(
+            double distance,
+            double pixelSize,
+            double expected
+        )
         {
             Assert.Equal(expected, GapMagnifier.ChooseScale(distance, pixelSize));
         }
@@ -551,7 +695,14 @@ namespace GeometryHelper.Viewer.Tests
             Primitives primitives = Primitives.Build(scene);
             var options = new DiagnosticOptions { Checks = DiagnosticChecks.Spheres, MaxSpheres = 20 };
 
-            DiagnosticReport report = SceneDiagnostics.Run(scene, primitives, null, null, options, CancellationToken.None);
+            DiagnosticReport report = SceneDiagnostics.Run(
+                scene,
+                primitives,
+                null,
+                null,
+                options,
+                CancellationToken.None
+            );
 
             // 3 + 10 x 4 = 43 vertices; the first 20, in item order, are drawn as three circles each.
             Assert.Equal(11, report.Findings.Count);
@@ -566,16 +717,34 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ThePieces_AreColouredOneByOneWithTheirNumberAndAreaInTheOrderOfTheScene()
         {
-            SceneItem one = Diag.Raw("GeoPolygon2", "{\"points\":" + Diag.Pts2(0, 0, 1, 0, 1, 1, 0, 1) + "}", "p1", "pieces");
-            SceneItem two = Diag.Raw("GeoPolygon2", "{\"points\":" + Diag.Pts2(5, 0, 7, 0, 7, 2, 5, 2) + "}", "p2", "pieces");
-            SceneItem three = Diag.Raw("GeoPolygon2", "{\"points\":" + Diag.Pts2(10, 0, 13, 0, 13, 3, 10, 3) + "}", "p3", "pieces");
+            SceneItem one = Diag.Raw(
+                "GeoPolygon2",
+                "{\"points\":" + Diag.Pts2(0, 0, 1, 0, 1, 1, 0, 1) + "}",
+                "p1",
+                "pieces"
+            );
+            SceneItem two = Diag.Raw(
+                "GeoPolygon2",
+                "{\"points\":" + Diag.Pts2(5, 0, 7, 0, 7, 2, 5, 2) + "}",
+                "p2",
+                "pieces"
+            );
+            SceneItem three = Diag.Raw(
+                "GeoPolygon2",
+                "{\"points\":" + Diag.Pts2(10, 0, 13, 0, 13, 3, 10, 3) + "}",
+                "p3",
+                "pieces"
+            );
 
             DiagnosticReport report = Diag.Run(Diag.SceneOf(one, two, three), DiagnosticChecks.Pieces);
 
             Assert.Equal(new[] { 1.0, 4.0, 9.0 }, report.Findings.Select(f => f.Size).ToArray());
             Assert.Equal(new[] { "p1", "p2", "p3" }, report.Findings.Select(f => f.ItemName).ToArray());
             Assert.Equal(3, report.Overlay.Strokes.Select(s => s.Color).Distinct().Count());
-            Assert.Equal(new[] { "#1  area 1", "#2  area 4", "#3  area 9" }, report.Overlay.Labels.Select(l => l.Text).ToArray());
+            Assert.Equal(
+                new[] { "#1  area 1", "#2  area 4", "#3  area 9" },
+                report.Overlay.Labels.Select(l => l.Text).ToArray()
+            );
             Assert.All(report.Findings, f => Assert.False(f.IsFault));
         }
 
@@ -599,10 +768,20 @@ namespace GeometryHelper.Viewer.Tests
         public void TheOrderOfTheItemsInTheScene_DoesNotChangeWhatEachItemFinds()
         {
             SceneItem[] items = MixedScene().Items.ToArray();
-            var reversed = items.AsEnumerable().Reverse().Select(i => Diag.Raw(i.Kind, i.Data.GetRawText(), i.Name)).ToArray();
+            var reversed = items
+                .AsEnumerable()
+                .Reverse()
+                .Select(i => Diag.Raw(i.Kind, i.Data.GetRawText(), i.Name))
+                .ToArray();
 
-            var forward = Diag.Run(Diag.SceneOf(items.Select(i => Diag.Raw(i.Kind, i.Data.GetRawText(), i.Name)).ToArray()), DiagnosticChecks.All & ~DiagnosticChecks.Gap & ~DiagnosticChecks.Pieces & ~DiagnosticChecks.Clash);
-            var backward = Diag.Run(Diag.SceneOf(reversed), DiagnosticChecks.All & ~DiagnosticChecks.Gap & ~DiagnosticChecks.Pieces & ~DiagnosticChecks.Clash);
+            var forward = Diag.Run(
+                Diag.SceneOf(items.Select(i => Diag.Raw(i.Kind, i.Data.GetRawText(), i.Name)).ToArray()),
+                DiagnosticChecks.All & ~DiagnosticChecks.Gap & ~DiagnosticChecks.Pieces & ~DiagnosticChecks.Clash
+            );
+            var backward = Diag.Run(
+                Diag.SceneOf(reversed),
+                DiagnosticChecks.All & ~DiagnosticChecks.Gap & ~DiagnosticChecks.Pieces & ~DiagnosticChecks.Clash
+            );
 
             Assert.Equal(PerItem(forward), PerItem(backward));
         }
@@ -628,8 +807,25 @@ namespace GeometryHelper.Viewer.Tests
                         rotated[2 * i + 1] = xy[2 * ((i + shift) % n) + 1];
                     }
 
-                    DiagnosticReport report = Diag.Run(Diag.SceneOf(Diag.Polygon2("loop", rotated)), DiagnosticChecks.Crossings | DiagnosticChecks.Needles | DiagnosticChecks.Duplicates | DiagnosticChecks.Slivers);
-                    reports.Add(string.Join(";", report.Findings.Select(f => f.Kind + "@" + f.At + "/" + f.Size.ToString("R", System.Globalization.CultureInfo.InvariantCulture))));
+                    DiagnosticReport report = Diag.Run(
+                        Diag.SceneOf(Diag.Polygon2("loop", rotated)),
+                        DiagnosticChecks.Crossings
+                            | DiagnosticChecks.Needles
+                            | DiagnosticChecks.Duplicates
+                            | DiagnosticChecks.Slivers
+                    );
+                    reports.Add(
+                        string.Join(
+                            ";",
+                            report.Findings.Select(f =>
+                                f.Kind
+                                + "@"
+                                + f.At
+                                + "/"
+                                + f.Size.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                            )
+                        )
+                    );
                 }
 
                 Assert.Single(reports.Distinct());
@@ -649,7 +845,18 @@ namespace GeometryHelper.Viewer.Tests
                     GeoSolid3 turned = new GeoSolid3(open.Faces.Skip(shift).Concat(open.Faces.Take(shift)));
                     Scene scene = new SceneWriter().Add(turned, name: "box").Scene;
                     DiagnosticReport report = Diag.Run(scene, Edges, library);
-                    reports.Add(string.Join(";", report.Findings.Select(f => f.Kind + "@" + f.At + "/" + f.Size.ToString("R", System.Globalization.CultureInfo.InvariantCulture))));
+                    reports.Add(
+                        string.Join(
+                            ";",
+                            report.Findings.Select(f =>
+                                f.Kind
+                                + "@"
+                                + f.At
+                                + "/"
+                                + f.Size.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                            )
+                        )
+                    );
                 }
             }
 
@@ -665,7 +872,16 @@ namespace GeometryHelper.Viewer.Tests
             {
                 source.Cancel();
 
-                Assert.Throws<OperationCanceledException>(() => SceneDiagnostics.Run(scene, primitives, null, null, new DiagnosticOptions { Checks = DiagnosticChecks.All }, source.Token));
+                Assert.Throws<OperationCanceledException>(() =>
+                    SceneDiagnostics.Run(
+                        scene,
+                        primitives,
+                        null,
+                        null,
+                        new DiagnosticOptions { Checks = DiagnosticChecks.All },
+                        source.Token
+                    )
+                );
             }
         }
 
@@ -674,8 +890,16 @@ namespace GeometryHelper.Viewer.Tests
         {
             Scene scene = MixedScene();
 
-            DiagnosticReport one = Diag.Run(scene, DiagnosticChecks.Duplicates | DiagnosticChecks.Needles | DiagnosticChecks.Crossings, true, 0);
-            DiagnosticReport all = Diag.Run(scene, DiagnosticChecks.Duplicates | DiagnosticChecks.Needles | DiagnosticChecks.Crossings);
+            DiagnosticReport one = Diag.Run(
+                scene,
+                DiagnosticChecks.Duplicates | DiagnosticChecks.Needles | DiagnosticChecks.Crossings,
+                true,
+                0
+            );
+            DiagnosticReport all = Diag.Run(
+                scene,
+                DiagnosticChecks.Duplicates | DiagnosticChecks.Needles | DiagnosticChecks.Crossings
+            );
 
             Assert.Equal(new[] { 0 }, one.Items.ToArray());
             Assert.Equal(Enumerable.Range(0, scene.Items.Count).ToArray(), all.Items.ToArray());
@@ -689,7 +913,10 @@ namespace GeometryHelper.Viewer.Tests
             Scene scene = new SceneWriter().Text(new GeoPoint3(1, 2, 3), "here").Scene;
             scene.Items.Add(Diag.Raw("GeoUnknown9", "{}", "mystery"));
 
-            DiagnosticReport report = Diag.Run(scene, DiagnosticChecks.All & ~DiagnosticChecks.Gap & ~DiagnosticChecks.Clash);
+            DiagnosticReport report = Diag.Run(
+                scene,
+                DiagnosticChecks.All & ~DiagnosticChecks.Gap & ~DiagnosticChecks.Clash
+            );
 
             Assert.Empty(report.Findings);
         }
@@ -724,7 +951,14 @@ namespace GeometryHelper.Viewer.Tests
             Scene scene = Diag.SceneOf(Diag.Polygon2("dense", xy.ToArray()));
             Primitives primitives = Primitives.Build(scene);
 
-            DiagnosticReport report = SceneDiagnostics.Run(scene, primitives, null, null, new DiagnosticOptions { Checks = DiagnosticChecks.Duplicates, MaxFindingsPerKind = 5 }, CancellationToken.None);
+            DiagnosticReport report = SceneDiagnostics.Run(
+                scene,
+                primitives,
+                null,
+                null,
+                new DiagnosticOptions { Checks = DiagnosticChecks.Duplicates, MaxFindingsPerKind = 5 },
+                CancellationToken.None
+            );
 
             Assert.Equal(5, Diag.Count(report, DiagnosticKind.DuplicateVertex));
             DiagnosticFinding note = Assert.Single(Diag.Of(report, DiagnosticKind.Note));
@@ -737,7 +971,10 @@ namespace GeometryHelper.Viewer.Tests
         {
             DiagnosticReport report = Diag.Run(MixedScene(), DiagnosticChecks.All);
 
-            Assert.Equal(Enumerable.Range(1, report.Findings.Count).ToArray(), report.Findings.Select(f => f.Number).ToArray());
+            Assert.Equal(
+                Enumerable.Range(1, report.Findings.Count).ToArray(),
+                report.Findings.Select(f => f.Number).ToArray()
+            );
             Assert.StartsWith("#1 ", report.Findings[0].ToString(), StringComparison.Ordinal);
         }
 
@@ -747,7 +984,9 @@ namespace GeometryHelper.Viewer.Tests
             DiagnosticReport report = Diag.Run(MixedScene(), DiagnosticChecks.All);
             double tol = new Scene().EqualPoint;
 
-            Assert.All(report.Findings.Where(f => f.Kind != DiagnosticKind.Note), f => Assert.True(f.Spot.Size.X >= 40.0 * tol - 1E-12, f.ToString()));
+            Assert.All(report.Findings.Where(f => f.Kind != DiagnosticKind.Note), f =>
+                Assert.True(f.Spot.Size.X >= 40.0 * tol - 1E-12, f.ToString())
+            );
         }
 
         #endregion
@@ -845,7 +1084,10 @@ namespace GeometryHelper.Viewer.Tests
             Sweep.Pairs(lo, hi, count, 0.25, (a, b) => found.Add((a, b)), CancellationToken.None);
 
             Assert.True(expected.Count > 20);
-            Assert.Equal(expected.OrderBy(p => p.Item1).ThenBy(p => p.Item2).ToList(), found.OrderBy(p => p.Item1).ThenBy(p => p.Item2).ToList());
+            Assert.Equal(
+                expected.OrderBy(p => p.Item1).ThenBy(p => p.Item2).ToList(),
+                found.OrderBy(p => p.Item1).ThenBy(p => p.Item2).ToList()
+            );
         }
 
         [Fact]
@@ -862,7 +1104,9 @@ namespace GeometryHelper.Viewer.Tests
 
             xy.Add(0.5);
             xy.Add(-10.0);
-            Scene scene = Diag.SceneOf(Diag.Raw("GeoPolyline2", "{\"points\":" + Diag.Pts2(xy.ToArray()) + "}", "zigzag"));
+            Scene scene = Diag.SceneOf(
+                Diag.Raw("GeoPolyline2", "{\"points\":" + Diag.Pts2(xy.ToArray()) + "}", "zigzag")
+            );
             var clock = System.Diagnostics.Stopwatch.StartNew();
 
             DiagnosticReport report = Diag.Run(scene, DiagnosticChecks.Crossings);
@@ -879,7 +1123,17 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ABowTieInSpace_CrossesAtItsExactPointToo()
         {
-            Scene scene = new SceneWriter().Add(new GeoPolygon3(new GeoPoint3(0, 0, 5), new GeoPoint3(3, 2, 5), new GeoPoint3(3, 0, 5), new GeoPoint3(0, 3, 5)), name: "bow tie 3D").Scene;
+            Scene scene = new SceneWriter()
+                .Add(
+                    new GeoPolygon3(
+                        new GeoPoint3(0, 0, 5),
+                        new GeoPoint3(3, 2, 5),
+                        new GeoPoint3(3, 0, 5),
+                        new GeoPoint3(0, 3, 5)
+                    ),
+                    name: "bow tie 3D"
+                )
+                .Scene;
 
             DiagnosticFinding crossing = Assert.Single(Diag.Run(scene, DiagnosticChecks.Crossings).Findings);
 
@@ -890,7 +1144,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheToleranceOfTheScene_SetsHowCloseTwoVerticesHaveToBeToBeADuplicate()
         {
-            SceneItem item = Diag.Raw("GeoPolygon2", "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 0.004, 10, 10, 0, 10) + "}", "four thousandths");
+            SceneItem item = Diag.Raw(
+                "GeoPolygon2",
+                "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 0.004, 10, 10, 0, 10) + "}",
+                "four thousandths"
+            );
             Scene fine = Diag.SceneOf(item);
             Scene coarse = Diag.SceneOf(item);
             coarse.EqualPoint = 0.01;
@@ -942,11 +1200,36 @@ namespace GeometryHelper.Viewer.Tests
                 }
             }
 
-            Scene scene = Diag.SceneOf(Diag.Raw("GeoMesh3", "{\"kind\":\"Convex\",\"points\":" + Diag.Pts3(points.ToArray()) + ",\"faces\":[" + string.Join(",", faces) + "]}", "grid"));
+            Scene scene = Diag.SceneOf(
+                Diag.Raw(
+                    "GeoMesh3",
+                    "{\"kind\":\"Convex\",\"points\":"
+                        + Diag.Pts3(points.ToArray())
+                        + ",\"faces\":["
+                        + string.Join(",", faces)
+                        + "]}",
+                    "grid"
+                )
+            );
             var clock = System.Diagnostics.Stopwatch.StartNew();
 
-            var options = new DiagnosticOptions { Checks = DiagnosticChecks.Edges | DiagnosticChecks.Duplicates | DiagnosticChecks.Slivers | DiagnosticChecks.Needles, MaxFindingsPerKind = 1000 };
-            DiagnosticReport report = SceneDiagnostics.Run(scene, Primitives.Build(scene), null, null, options, CancellationToken.None);
+            var options = new DiagnosticOptions
+            {
+                Checks =
+                    DiagnosticChecks.Edges
+                    | DiagnosticChecks.Duplicates
+                    | DiagnosticChecks.Slivers
+                    | DiagnosticChecks.Needles,
+                MaxFindingsPerKind = 1000,
+            };
+            DiagnosticReport report = SceneDiagnostics.Run(
+                scene,
+                Primitives.Build(scene),
+                null,
+                null,
+                options,
+                CancellationToken.None
+            );
 
             clock.Stop();
             Assert.Equal(4 * N, Diag.Count(report, DiagnosticKind.OpenEdge));
@@ -976,26 +1259,60 @@ namespace GeometryHelper.Viewer.Tests
 
         #region Helpers
 
-        private static Scene MixedScene()
-            => Diag.SceneOf(
+        private static Scene MixedScene() =>
+            Diag.SceneOf(
                 Diag.Polygon2("bow tie", 0, 0, 2, 2, 2, 0, 0, 2),
-                Diag.Raw("GeoPolygon2", "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 10, 5.01, 10, 5, 30, 4.99, 10, 0, 10) + "}", "spiked"),
-                Diag.Raw("GeoPolygon2", "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 0.0004, 10, 10, 0, 10) + "}", "doubled"),
+                Diag.Raw(
+                    "GeoPolygon2",
+                    "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 10, 5.01, 10, 5, 30, 4.99, 10, 0, 10) + "}",
+                    "spiked"
+                ),
+                Diag.Raw(
+                    "GeoPolygon2",
+                    "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 0.0004, 10, 10, 0, 10) + "}",
+                    "doubled"
+                ),
                 Diag.Raw("GeoTriangle2", "{\"points\":" + Diag.Pts2(0, 0, 100, 0, 50, 0.0005) + "}", "sliver"),
                 new SceneWriter().Add(Diag.OpenBox(), name: "lidless").Scene.Items[0],
                 new SceneWriter().Add(Diag.FinnedBox(), name: "finned").Scene.Items[0],
                 new SceneWriter().Add(Diag.TurnedBox(), name: "turned").Scene.Items[0],
-                new SceneWriter().Add(SampleShapes.Box(30, 20, 10, false), name: "box").Scene.Items[0]);
+                new SceneWriter().Add(SampleShapes.Box(30, 20, 10, false), name: "box").Scene.Items[0]
+            );
 
-        private static string Dump(DiagnosticReport report)
-            => string.Join("\n", report.Findings.Select(f => f.Number + "|" + f + "|" + f.At + "|" + f.Size.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "|" + f.Spot));
+        private static string Dump(DiagnosticReport report) =>
+            string.Join(
+                "\n",
+                report.Findings.Select(f =>
+                    f.Number
+                    + "|"
+                    + f
+                    + "|"
+                    + f.At
+                    + "|"
+                    + f.Size.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                    + "|"
+                    + f.Spot
+                )
+            );
 
         /// <summary>
         /// What each item found, by the name of the item, without the numbers that depend on the order of the scene.
         /// </summary>
-        private static List<string> PerItem(DiagnosticReport report)
-            => report.Findings
-                .Select(f => f.ItemName + "|" + f.Check + "|" + f.Kind + "|" + f.Message + "|" + f.At + "|" + f.Size.ToString("R", System.Globalization.CultureInfo.InvariantCulture))
+        private static List<string> PerItem(DiagnosticReport report) =>
+            report
+                .Findings.Select(f =>
+                    f.ItemName
+                    + "|"
+                    + f.Check
+                    + "|"
+                    + f.Kind
+                    + "|"
+                    + f.Message
+                    + "|"
+                    + f.At
+                    + "|"
+                    + f.Size.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                )
                 .OrderBy(s => s, StringComparer.Ordinal)
                 .ToList();
 

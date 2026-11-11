@@ -41,15 +41,18 @@ namespace GeometryHelper.UnitTest.Solid
                 double y = (state >> 8) % 10001 / 100.0;
                 state = state * 1664525u + 1013904223u;
                 uint side = (state >> 8) % 4;
-                double z = side == 0 ? 0.0 : side == 3 ? thickness / 2 : thickness;
+                double z =
+                    side == 0 ? 0.0
+                    : side == 3 ? thickness / 2
+                    : thickness;
                 points.Add(new GeoPoint3(500 + x, 300 + y, 40 + z));
             }
 
             return points;
         }
 
-        private static double Outside(GeoSolid3 hull, GeoPoint3 point)
-            => hull.Contains(point, Default) ? 0.0 : hull.DistanceTo(point, Default);
+        private static double Outside(GeoSolid3 hull, GeoPoint3 point) =>
+            hull.Contains(point, Default) ? 0.0 : hull.DistanceTo(point, Default);
 
         private static double Outside(GeoObb3 box, GeoPoint3 point)
         {
@@ -81,7 +84,10 @@ namespace GeometryHelper.UnitTest.Solid
 
                 foreach (GeoPoint3 point in points)
                 {
-                    Assert.True(Outside(hull, point) <= Default.EqualPoint, $"seed {seed}: {point} {Outside(hull, point):R} outside");
+                    Assert.True(
+                        Outside(hull, point) <= Default.EqualPoint,
+                        $"seed {seed}: {point} {Outside(hull, point):R} outside"
+                    );
                 }
             }
         }
@@ -101,7 +107,10 @@ namespace GeometryHelper.UnitTest.Solid
 
                 foreach (GeoPoint3 point in points)
                 {
-                    Assert.True(Outside(hull, point) <= 2.0 * Default.EqualPoint, $"seed {seed}: {point} {Outside(hull, point):R} outside");
+                    Assert.True(
+                        Outside(hull, point) <= 2.0 * Default.EqualPoint,
+                        $"seed {seed}: {point} {Outside(hull, point):R} outside"
+                    );
                 }
             }
         }
@@ -121,7 +130,10 @@ namespace GeometryHelper.UnitTest.Solid
 
                 foreach (GeoPoint3 point in points)
                 {
-                    Assert.True(Outside(box, point) <= Default.EqualPoint, $"seed {seed}: {point} {Outside(box, point):R} outside");
+                    Assert.True(
+                        Outside(box, point) <= Default.EqualPoint,
+                        $"seed {seed}: {point} {Outside(box, point):R} outside"
+                    );
                 }
             }
         }
@@ -152,7 +164,10 @@ namespace GeometryHelper.UnitTest.Solid
 
                 foreach (GeoPoint3 point in points)
                 {
-                    Assert.True(Outside(hull, point) <= Default.EqualPoint, $"seed {seed}: {point} {Outside(hull, point):R} outside");
+                    Assert.True(
+                        Outside(hull, point) <= Default.EqualPoint,
+                        $"seed {seed}: {point} {Outside(hull, point):R} outside"
+                    );
                 }
             }
         }

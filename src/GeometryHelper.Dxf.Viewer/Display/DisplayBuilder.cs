@@ -24,12 +24,20 @@ namespace GeometryHelper.Dxf.Viewer
 
         private readonly DxfDatabase _database;
         private readonly CadDocument _document;
-        private readonly Dictionary<string, LayerState> _layers = new Dictionary<string, LayerState>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, LayerState> _layers = new Dictionary<string, LayerState>(
+            StringComparer.OrdinalIgnoreCase
+        );
 
         // A layer of a drawing referenced as drawn: what the drawing showing it changed, the rest its own; made once, looked up only.
-        private readonly Dictionary<string, LayerState> _merged = new Dictionary<string, LayerState>(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, double[]> _dashes = new Dictionary<string, double[]>(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, TextFont> _fonts = new Dictionary<string, TextFont>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, LayerState> _merged = new Dictionary<string, LayerState>(
+            StringComparer.OrdinalIgnoreCase
+        );
+        private readonly Dictionary<string, double[]> _dashes = new Dictionary<string, double[]>(
+            StringComparer.OrdinalIgnoreCase
+        );
+        private readonly Dictionary<string, TextFont> _fonts = new Dictionary<string, TextFont>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private readonly double _ltScale;
         private readonly int _pdmode;
         private readonly double _pdsize;
@@ -41,7 +49,9 @@ namespace GeometryHelper.Dxf.Viewer
         private DisplayList2 _modelCache;
 
         /// <summary>The entities of each block met in the <see cref="Build"/> running in the order they are drawn, by handle; looked up only, never listed.</summary>
-        private readonly Dictionary<string, BlockContent> _orders = new Dictionary<string, BlockContent>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, BlockContent> _orders = new Dictionary<string, BlockContent>(
+            StringComparer.OrdinalIgnoreCase
+        );
 
         /// <summary>The styles of no dashes made, one for each colour and weight; looked up only, never listed.</summary>
         private readonly Dictionary<PlainStyle, DisplayStyle> _plainStyles = new Dictionary<PlainStyle, DisplayStyle>();
@@ -63,7 +73,9 @@ namespace GeometryHelper.Dxf.Viewer
         internal System.Threading.CancellationToken Cancellation { get; set; }
 
         /// <summary>The builders of the drawings external references show, by block name and file: looked up only, never listed.</summary>
-        private readonly Dictionary<string, DisplayBuilder> _referenced = new Dictionary<string, DisplayBuilder>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, DisplayBuilder> _referenced = new Dictionary<string, DisplayBuilder>(
+            StringComparer.OrdinalIgnoreCase
+        );
 
         /// <summary>The builder of the drawing that references this one; null for the document's own drawing.</summary>
         private readonly DisplayBuilder _host;
@@ -84,12 +96,16 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly bool _visretain;
 
         public DisplayBuilder(DxfDatabase database, CadDocument document = null)
-            : this(database, document, null, null, null)
-        {
-        }
+            : this(database, document, null, null, null) { }
 
         /// <summary>Makes the builder of a drawing an external reference shows, its layers named after the reference.</summary>
-        private DisplayBuilder(DxfDatabase database, CadDocument document, DisplayBuilder host, string prefix, string folder)
+        private DisplayBuilder(
+            DxfDatabase database,
+            CadDocument document,
+            DisplayBuilder host,
+            string prefix,
+            string folder
+        )
         {
             _database = database;
             _document = document;
@@ -138,7 +154,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             try
             {
-                if (database.NamedObjectsDictionary?.Contains("ACAD_IMAGE_VARS") == true && database.NamedObjectsDictionary.GetAt("ACAD_IMAGE_VARS") is DxfRasterVariables variables)
+                if (
+                    database.NamedObjectsDictionary?.Contains("ACAD_IMAGE_VARS") == true
+                    && database.NamedObjectsDictionary.GetAt("ACAD_IMAGE_VARS") is DxfRasterVariables variables
+                )
                 {
                     _imageFrames = variables.ImageFrame != DxfFrameSetting.ImageFrameOff;
                 }
@@ -229,7 +248,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// Draws entities that are in no space, as a command's preview makes them before it adds one: each as it would be drawn
         /// once appended to the space, in the order given; one that cannot be drawn gives nothing.
         /// </summary>
-        internal IReadOnlyList<DisplayItem2> BuildLoose(IEnumerable<DxfEntity> entities) => BuildLoose(entities, Affine2.Identity);
+        internal IReadOnlyList<DisplayItem2> BuildLoose(IEnumerable<DxfEntity> entities) =>
+            BuildLoose(entities, Affine2.Identity);
 
         /// <summary>Draws entities as <see cref="BuildLoose(IEnumerable{DxfEntity})"/> does, each moved by a transformation, as the objects of a paste are drawn where the cursor would put them.</summary>
         internal IReadOnlyList<DisplayItem2> BuildLoose(IEnumerable<DxfEntity> entities, Affine2 under)
@@ -262,7 +282,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// view for points of a relative size or another font folder, or holds two entities of one handle out of their order,
         /// every entity is drawn anew.
         /// </summary>
-        public DisplayList2 Patch(DxfBlockTableRecord space, bool isModel, DisplayList2 older, ISet<string> handles, ulong layers)
+        public DisplayList2 Patch(
+            DxfBlockTableRecord space,
+            bool isModel,
+            DisplayList2 older,
+            ISet<string> handles,
+            ulong layers
+        )
         {
             // A point of a relative size takes the view as it stands when its space is drawn, as AutoCAD's at a regeneration.
             if (_pdmode != 0 && _pdsize <= 0.0)
@@ -272,7 +298,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             string fontFolder = _document?.FontFolder;
 
-            if (older != null && (older.PointViewHeight != _pointViewHeight || !string.Equals(older.FontFolder, fontFolder, StringComparison.Ordinal)))
+            if (
+                older != null
+                && (
+                    older.PointViewHeight != _pointViewHeight
+                    || !string.Equals(older.FontFolder, fontFolder, StringComparison.Ordinal)
+                )
+            )
             {
                 older = null;
             }
@@ -291,7 +323,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             // The entities the Block Editor's visibility state hides are not drawn, nor picked; those it shows are, though the
             // block keeps them invisible as its first state hides them.
-            HashSet<string> shown = null, hidden = null;
+            HashSet<string> shown = null,
+                hidden = null;
             _document?.StateSetsOf(space, out shown, out hidden);
 
             try
@@ -320,7 +353,10 @@ namespace GeometryHelper.Dxf.Viewer
                         // are walked along with them, and looked up by handle only once the two part.
                         int found = -1;
 
-                        if (next < runs.Count && string.Equals(runs[next].Handle, handle, StringComparison.OrdinalIgnoreCase))
+                        if (
+                            next < runs.Count
+                            && string.Equals(runs[next].Handle, handle, StringComparison.OrdinalIgnoreCase)
+                        )
                         {
                             found = next;
                         }
@@ -345,7 +381,11 @@ namespace GeometryHelper.Dxf.Viewer
                             next = found + 1;
                             DisplayRun run = runs[found];
 
-                            if ((run.Layers & layers) == 0 && (handles == null || !handles.Contains(handle)) && !Reads(run, keys))
+                            if (
+                                (run.Layers & layers) == 0
+                                && (handles == null || !handles.Contains(handle))
+                                && !Reads(run, keys)
+                            )
                             {
                                 list.CopyRun(older, run);
                                 continue;
@@ -534,7 +574,8 @@ namespace GeometryHelper.Dxf.Viewer
         {
             try
             {
-                return block.IsAnonymous || (block.Name != null && block.Name.StartsWith("*", StringComparison.Ordinal));
+                return block.IsAnonymous
+                    || (block.Name != null && block.Name.StartsWith("*", StringComparison.Ordinal));
             }
             catch (Exception)
             {
@@ -612,8 +653,11 @@ namespace GeometryHelper.Dxf.Viewer
             public int? Overrides { get; }
 
             /// <summary>Whether an entity on this layer is drawn as on another: both shown or both hidden, of one colour, lineweight and linetype.</summary>
-            public bool DrawsAs(LayerState other)
-                => Visible == other.Visible && Rgb == other.Rgb && LineWeight.Equals(other.LineWeight) && string.Equals(Linetype, other.Linetype, StringComparison.OrdinalIgnoreCase);
+            public bool DrawsAs(LayerState other) =>
+                Visible == other.Visible
+                && Rgb == other.Rgb
+                && LineWeight.Equals(other.LineWeight)
+                && string.Equals(Linetype, other.Linetype, StringComparison.OrdinalIgnoreCase);
         }
 
         private sealed class Frame
@@ -640,15 +684,16 @@ namespace GeometryHelper.Dxf.Viewer
 
             public int Depth { get; set; }
 
-            public Frame Child(Affine2 matrix) => new Frame(matrix)
-            {
-                RootHandle = RootHandle,
-                BlockLayer = BlockLayer,
-                BlockRgb = BlockRgb,
-                BlockLineWeight = BlockLineWeight,
-                BlockLinetype = BlockLinetype,
-                Depth = Depth + 1,
-            };
+            public Frame Child(Affine2 matrix) =>
+                new Frame(matrix)
+                {
+                    RootHandle = RootHandle,
+                    BlockLayer = BlockLayer,
+                    BlockRgb = BlockRgb,
+                    BlockLineWeight = BlockLineWeight,
+                    BlockLinetype = BlockLinetype,
+                    Depth = Depth + 1,
+                };
         }
 
         private static int SafeRgb(DxfColor color)
@@ -708,7 +753,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             string linetype = entity.Linetype;
 
-            if (string.IsNullOrEmpty(linetype) || string.Equals(linetype, "ByLayer", StringComparison.OrdinalIgnoreCase))
+            if (
+                string.IsNullOrEmpty(linetype) || string.Equals(linetype, "ByLayer", StringComparison.OrdinalIgnoreCase)
+            )
             {
                 linetype = layer != null ? layer.Linetype : "Continuous";
             }
@@ -718,7 +765,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             // The entity's own linetype scale is read only for a linetype that has dashes to scale.
-            double[] dashes = IsContinuous(linetype) ? null : DashesOf(linetype, entity.LinetypeScale * frame.Matrix.Scale);
+            double[] dashes = IsContinuous(linetype)
+                ? null
+                : DashesOf(linetype, entity.LinetypeScale * frame.Matrix.Scale);
 
             if (dashes != null)
             {
@@ -757,7 +806,8 @@ namespace GeometryHelper.Dxf.Viewer
             public override int GetHashCode() => (_rgb * 397) ^ _weight.GetHashCode();
         }
 
-        private static bool IsContinuous(string linetype) => string.IsNullOrEmpty(linetype) || string.Equals(linetype, "Continuous", StringComparison.OrdinalIgnoreCase);
+        private static bool IsContinuous(string linetype) =>
+            string.IsNullOrEmpty(linetype) || string.Equals(linetype, "Continuous", StringComparison.OrdinalIgnoreCase);
 
         private double[] DashesOf(string linetype, double scale)
         {
@@ -828,11 +878,17 @@ namespace GeometryHelper.Dxf.Viewer
 
                 try
                 {
-                    DxfTextStyleTableRecord record = _database.TextStyleTable[string.IsNullOrEmpty(styleName) ? "Standard" : styleName];
+                    DxfTextStyleTableRecord record = _database.TextStyleTable[
+                        string.IsNullOrEmpty(styleName) ? "Standard" : styleName
+                    ];
 
                     if (record != null)
                     {
-                        font = new TextFont(Resolve(record.FileName, record.BigFontFileName, record.Font.TypeFace), record.ObliquingAngle, record.XScale);
+                        font = new TextFont(
+                            Resolve(record.FileName, record.BigFontFileName, record.Font.TypeFace),
+                            record.ObliquingAngle,
+                            record.XScale
+                        );
                     }
                 }
                 catch (Exception)
@@ -878,7 +934,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The face of a font as the document's fonts find it, a font not found said once on its <see cref="CadDocument.FontMissing"/>.</summary>
         private CadFontFace Resolve(string fileName, string bigFontFileName, string typeface)
         {
-            CadFontFace face = (_document?.Fonts ?? FontsOff).Resolve(fileName, bigFontFileName, typeface, _document?.FontFolder, out string report);
+            CadFontFace face = (_document?.Fonts ?? FontsOff).Resolve(
+                fileName,
+                bigFontFileName,
+                typeface,
+                _document?.FontFolder,
+                out string report
+            );
 
             if (report != null)
             {
@@ -968,31 +1030,40 @@ namespace GeometryHelper.Dxf.Viewer
                     // definition, which has no ATTRIB, shows its value.
                     return;
                 case DxfDBText text:
+                {
+                    int before = list.Count;
+                    DrawText(text, frame, list, style, handle, layerName);
+
+                    // A TEXT of the space and an ATTRIB shown give the snap Insertion the point they are placed by.
+                    if (
+                        (text is DxfAttributeReference || (frame.RootHandle == null && forcedHandle == null))
+                        && list.Count > before
+                        && list.Items[list.Count - 1] is DisplayText2 drawn
+                    )
                     {
-                        int before = list.Count;
-                        DrawText(text, frame, list, style, handle, layerName);
-
-                        // A TEXT of the space and an ATTRIB shown give the snap Insertion the point they are placed by.
-                        if ((text is DxfAttributeReference || (frame.RootHandle == null && forcedHandle == null)) && list.Count > before && list.Items[list.Count - 1] is DisplayText2 drawn)
-                        {
-                            list.AddInsertionPoint(handle, drawn.X, drawn.Y);
-                        }
-
-                        return;
+                        list.AddInsertionPoint(handle, drawn.X, drawn.Y);
                     }
+
+                    return;
+                }
 
                 case DxfMText mtext:
+                {
+                    int before = list.Count;
+                    DrawMText(mtext, frame, list, style, handle, layerName);
+
+                    if (
+                        frame.RootHandle == null
+                        && forcedHandle == null
+                        && list.Count > before
+                        && list.Items[list.Count - 1] is DisplayText2 drawn
+                    )
                     {
-                        int before = list.Count;
-                        DrawMText(mtext, frame, list, style, handle, layerName);
-
-                        if (frame.RootHandle == null && forcedHandle == null && list.Count > before && list.Items[list.Count - 1] is DisplayText2 drawn)
-                        {
-                            list.AddInsertionPoint(handle, drawn.X, drawn.Y);
-                        }
-
-                        return;
+                        list.AddInsertionPoint(handle, drawn.X, drawn.Y);
                     }
+
+                    return;
+                }
                 case DxfHatch hatch:
                     DrawHatch(hatch, frame, list, style, handle, layerName);
                     return;
@@ -1004,15 +1075,25 @@ namespace GeometryHelper.Dxf.Viewer
 
                     return;
                 case DxfTable table:
-                    {
-                        // A table is drawn by the block AutoCAD drew it with, placed at its point: the block's entities stand turned
-                        // along the table's direction already, as AutoCAD draws them and TransformBy carries them.
-                        GeoPoint3 at = table.Position;
-                        DrawBlock(table.BlockTableRecord, Affine2.Translation(at.X, at.Y), table, frame, list, handle, layerName, style);
-                        return;
-                    }
+                {
+                    // A table is drawn by the block AutoCAD drew it with, placed at its point: the block's entities stand turned
+                    // along the table's direction already, as AutoCAD draws them and TransformBy carries them.
+                    GeoPoint3 at = table.Position;
+                    DrawBlock(
+                        table.BlockTableRecord,
+                        Affine2.Translation(at.X, at.Y),
+                        table,
+                        frame,
+                        list,
+                        handle,
+                        layerName,
+                        style
+                    );
+                    return;
+                }
 
-                case DxfLeader leader when ReadAnnotation(leader) && TryExplode(leader, out IReadOnlyList<DxfEntity> parts):
+                case DxfLeader leader
+                    when ReadAnnotation(leader) && TryExplode(leader, out IReadOnlyList<DxfEntity> parts):
                     // A leader is drawn as AutoCAD breaks it: its arrowhead, then its line or spline.
                     foreach (DxfEntity part in parts)
                     {
@@ -1077,7 +1158,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private void DrawInsert(DxfBlockReference reference, Frame frame, DisplayList2 list, string handle, string layerName, DisplayStyle style)
+        private void DrawInsert(
+            DxfBlockReference reference,
+            Frame frame,
+            DisplayList2 list,
+            string handle,
+            string layerName,
+            DisplayStyle style
+        )
         {
             DxfBlockTableRecord block = reference.BlockTableRecord;
 
@@ -1087,7 +1175,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoTransform3 transform = reference.BlockTransform;
-            Affine2 own = new Affine2(transform[0, 0], transform[1, 0], transform[0, 1], transform[1, 1], transform[0, 3], transform[1, 3]);
+            Affine2 own = new Affine2(
+                transform[0, 0],
+                transform[1, 0],
+                transform[0, 1],
+                transform[1, 1],
+                transform[0, 3],
+                transform[1, 3]
+            );
 
             if (block.IsFromExternalReference)
             {
@@ -1133,7 +1228,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// one. Its own references are followed, but not its overlays, nor a drawing being drawn already. One unloaded shows
         /// nothing; one not found or not read shows its path at the insertion point, as AutoCAD shows it.
         /// </summary>
-        private void DrawXref(DxfBlockReference reference, DxfBlockTableRecord block, Affine2 own, Frame frame, DisplayList2 list, string handle, string layerName, DisplayStyle style)
+        private void DrawXref(
+            DxfBlockReference reference,
+            DxfBlockTableRecord block,
+            Affine2 own,
+            Frame frame,
+            DisplayList2 list,
+            string handle,
+            string layerName,
+            DisplayStyle style
+        )
         {
             if (_document == null || (_host != null && block.IsFromOverlayReference))
             {
@@ -1164,7 +1268,13 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (!_referenced.TryGetValue(key, out DisplayBuilder builder))
                 {
-                    builder = new DisplayBuilder(content.Database, _document, this, block.Name + "|", System.IO.Path.GetDirectoryName(content.FullPath));
+                    builder = new DisplayBuilder(
+                        content.Database,
+                        _document,
+                        this,
+                        block.Name + "|",
+                        System.IO.Path.GetDirectoryName(content.FullPath)
+                    );
                     _referenced[key] = builder;
                 }
 
@@ -1198,7 +1308,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The model space of a drawing referenced, drawn into the list of the drawing showing it under a frame.</summary>
         private void DrawReferenced(Frame frame, DisplayList2 list)
         {
-            foreach (DxfEntity entity in (IEnumerable<DxfEntity>)ContentOf(_database.ModelSpace)?.Entities ?? _database.ModelSpace)
+            foreach (
+                DxfEntity entity in (IEnumerable<DxfEntity>)ContentOf(_database.ModelSpace)?.Entities
+                    ?? _database.ModelSpace
+            )
             {
                 try
                 {
@@ -1212,7 +1325,16 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The path of an external reference not found, written at its insertion point in the drawing's text height.</summary>
-        private void DrawMissing(string path, DxfBlockReference reference, Affine2 own, Frame frame, DisplayList2 list, string handle, string layerName, DisplayStyle style)
+        private void DrawMissing(
+            string path,
+            DxfBlockReference reference,
+            Affine2 own,
+            Frame frame,
+            DisplayList2 list,
+            string handle,
+            string layerName,
+            DisplayStyle style
+        )
         {
             double height = 2.5;
 
@@ -1227,7 +1349,24 @@ namespace GeometryHelper.Dxf.Viewer
 
             GeoPoint3 at = reference.Position;
             Affine2 m = frame.Matrix;
-            list.Add(Text(FaceOf(null), path, m.X(at.X, at.Y), m.Y(at.X, at.Y), height * own.Scale * m.Scale, own.Rotation + m.Rotation, 1.0, 0, 0, style, handle, layerName, 0.0, false));
+            list.Add(
+                Text(
+                    FaceOf(null),
+                    path,
+                    m.X(at.X, at.Y),
+                    m.Y(at.X, at.Y),
+                    height * own.Scale * m.Scale,
+                    own.Rotation + m.Rotation,
+                    1.0,
+                    0,
+                    0,
+                    style,
+                    handle,
+                    layerName,
+                    0.0,
+                    false
+                )
+            );
         }
 
         /// <summary>
@@ -1236,7 +1375,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// as its frame alone, whatever IMAGEFRAME says; one not found has its file's name written in its corner, as AutoCAD
         /// shows it.
         /// </summary>
-        private void DrawImage(DxfRasterImage image, Frame frame, DisplayList2 list, DisplayStyle style, string handle, string layerName)
+        private void DrawImage(
+            DxfRasterImage image,
+            Frame frame,
+            DisplayList2 list,
+            DisplayStyle style,
+            string handle,
+            string layerName
+        )
         {
             image.GetOrientation(out GeoPoint3 origin, out GeoVector3 u, out GeoVector3 v);
             Affine2 m = frame.Matrix;
@@ -1272,7 +1418,21 @@ namespace GeometryHelper.Dxf.Viewer
                 found = loaded ? _document.Xrefs.Locate(saved, Folder) : null;
             }
 
-            var picture = new DisplayImage2(x, y, ux, uy, vx, vy, ring == null ? null : new[] { ring }, ring != null && image.IsClipInverted, found, saved, style, handle, layerName)
+            var picture = new DisplayImage2(
+                x,
+                y,
+                ux,
+                uy,
+                vx,
+                vy,
+                ring == null ? null : new[] { ring },
+                ring != null && image.IsClipInverted,
+                found,
+                saved,
+                style,
+                handle,
+                layerName
+            )
             {
                 IsTransparent = image.ImageTransparency,
                 Brightness = image.Brightness,
@@ -1305,7 +1465,24 @@ namespace GeometryHelper.Dxf.Viewer
                     double ay = uy / width;
                     double bx = vx / height;
                     double by = vy / height;
-                    list.Add(Text(FaceOf(null), saved, x + (ax + bx) * size / 2.0, y + (ay + by) * size / 2.0, size, Math.Atan2(uy, ux), 1.0, 0, 0, style, handle, layerName, 0.0, false));
+                    list.Add(
+                        Text(
+                            FaceOf(null),
+                            saved,
+                            x + (ax + bx) * size / 2.0,
+                            y + (ay + by) * size / 2.0,
+                            size,
+                            Math.Atan2(uy, ux),
+                            1.0,
+                            0,
+                            0,
+                            style,
+                            handle,
+                            layerName,
+                            0.0,
+                            false
+                        )
+                    );
                 }
             }
         }
@@ -1333,7 +1510,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// space of the INSERT (its own place, turn and scale are in the ATTRIB already), under the frame the INSERT is in,
         /// picked as the INSERT, ByBlock taking the INSERT's look; an invisible one left out. A MINSERT shows them once.
         /// </summary>
-        private void DrawAttributes(DxfBlockReference reference, Frame frame, DisplayList2 list, string handle, string layerName, DisplayStyle style)
+        private void DrawAttributes(
+            DxfBlockReference reference,
+            Frame frame,
+            DisplayList2 list,
+            string handle,
+            string layerName,
+            DisplayStyle style
+        )
         {
             Frame inner = frame.Child(frame.Matrix);
             inner.RootHandle = handle;
@@ -1357,7 +1541,16 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private void DrawBlock(DxfBlockTableRecord block, Affine2 placement, DxfEntity owner, Frame frame, DisplayList2 list, string handle, string layerName, DisplayStyle style)
+        private void DrawBlock(
+            DxfBlockTableRecord block,
+            Affine2 placement,
+            DxfEntity owner,
+            Frame frame,
+            DisplayList2 list,
+            string handle,
+            string layerName,
+            DisplayStyle style
+        )
         {
             if (block == null)
             {
@@ -1422,9 +1615,22 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private void DrawViewport(DxfViewport viewport, Frame frame, DisplayList2 list, DisplayStyle style, string handle, string layerName)
+        private void DrawViewport(
+            DxfViewport viewport,
+            Frame frame,
+            DisplayList2 list,
+            DisplayStyle style,
+            string handle,
+            string layerName
+        )
         {
-            if (viewport.Number <= 1 || !viewport.On || _modelCache == null || viewport.Height <= 0.0 || viewport.ViewHeight <= 0.0)
+            if (
+                viewport.Number <= 1
+                || !viewport.On
+                || _modelCache == null
+                || viewport.Height <= 0.0
+                || viewport.ViewHeight <= 0.0
+            )
             {
                 return;
             }
@@ -1440,7 +1646,23 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint3 center = viewport.CenterPoint;
             GeoPoint2 view = CadViewports.FromView(viewport, viewport.ViewCenter);
             double twist = viewport.TwistAngle;
-            list.Add(new DisplayViewport2(center.X, center.Y, viewport.Width, viewport.Height, view.X, view.Y, scale, twist, ModelSeenThrough(viewport), frozen, style, handle, layerName));
+            list.Add(
+                new DisplayViewport2(
+                    center.X,
+                    center.Y,
+                    viewport.Width,
+                    viewport.Height,
+                    view.X,
+                    view.Y,
+                    scale,
+                    twist,
+                    ModelSeenThrough(viewport),
+                    frozen,
+                    style,
+                    handle,
+                    layerName
+                )
+            );
         }
 
         /// <summary>
@@ -1476,7 +1698,14 @@ namespace GeometryHelper.Dxf.Viewer
             return inner.Build(_database.ModelSpace, false);
         }
 
-        private void DrawText(DxfDBText text, Frame frame, DisplayList2 list, DisplayStyle style, string handle, string layerName)
+        private void DrawText(
+            DxfDBText text,
+            Frame frame,
+            DisplayList2 list,
+            DisplayStyle style,
+            string handle,
+            string layerName
+        )
         {
             string value = CleanText(text.TextString);
 
@@ -1523,7 +1752,24 @@ namespace GeometryHelper.Dxf.Viewer
 
             Affine2 m = frame.Matrix;
             double turn = Orient(m, text.Rotation, text.IsMirroredInX, text.IsMirroredInY, out bool backward);
-            list.Add(Text(FaceOf(text.TextStyleName), value, m.X(at.X, at.Y), m.Y(at.X, at.Y), text.Height * m.Scale, turn, text.WidthFactor, horizontal, vertical, style, handle, layerName, text.Oblique, backward));
+            list.Add(
+                Text(
+                    FaceOf(text.TextStyleName),
+                    value,
+                    m.X(at.X, at.Y),
+                    m.Y(at.X, at.Y),
+                    text.Height * m.Scale,
+                    turn,
+                    text.WidthFactor,
+                    horizontal,
+                    vertical,
+                    style,
+                    handle,
+                    layerName,
+                    text.Oblique,
+                    backward
+                )
+            );
         }
 
         /// <summary>
@@ -1539,7 +1785,22 @@ namespace GeometryHelper.Dxf.Viewer
                 return 0.0;
             }
 
-            return Text(FaceOf(text.TextStyleName), value, 0.0, 0.0, text.Height, 0.0, text.WidthFactor, 0, 0, null, null, null, text.Oblique, false).EstimatedWidth;
+            return Text(
+                FaceOf(text.TextStyleName),
+                value,
+                0.0,
+                0.0,
+                text.Height,
+                0.0,
+                text.WidthFactor,
+                0,
+                0,
+                null,
+                null,
+                null,
+                text.Oblique,
+                false
+            ).EstimatedWidth;
         }
 
         /// <summary>
@@ -1547,20 +1808,89 @@ namespace GeometryHelper.Dxf.Viewer
         /// (<see cref="ShxText"/>), its width that of their advances and its frame reaching down to the font's depth below the
         /// baseline, by which a text aligned at its bottom stands, as AutoCAD stands one.
         /// </summary>
-        private static DisplayText2 Text(CadFontFace face, string value, double x, double y, double height, double rotation, double widthFactor, int horizontal, int vertical, DisplayStyle style, string handle, string layerName, double oblique, bool backward)
+        private static DisplayText2 Text(
+            CadFontFace face,
+            string value,
+            double x,
+            double y,
+            double height,
+            double rotation,
+            double widthFactor,
+            int horizontal,
+            int vertical,
+            DisplayStyle style,
+            string handle,
+            string layerName,
+            double oblique,
+            bool backward
+        )
         {
             if (face.Shx == null)
             {
-                return new DisplayText2(value, x, y, height, rotation, widthFactor, horizontal, vertical, style, handle, layerName, face.Name, oblique, backward);
+                return new DisplayText2(
+                    value,
+                    x,
+                    y,
+                    height,
+                    rotation,
+                    widthFactor,
+                    horizontal,
+                    vertical,
+                    style,
+                    handle,
+                    layerName,
+                    face.Name,
+                    oblique,
+                    backward
+                );
             }
 
             double factor = widthFactor <= 0.0 ? 1.0 : widthFactor;
             double descent = height * face.Shx.Below / face.Shx.Above;
-            List<double[]> strokes = ShxText.Strokes(face, value, x, y, height, rotation, factor, horizontal, vertical, oblique, backward, descent, out double width);
-            return new DisplayText2(value, x, y, height, rotation, factor, horizontal, vertical, style, handle, layerName, face.Name, oblique, backward, strokes, width, descent);
+            List<double[]> strokes = ShxText.Strokes(
+                face,
+                value,
+                x,
+                y,
+                height,
+                rotation,
+                factor,
+                horizontal,
+                vertical,
+                oblique,
+                backward,
+                descent,
+                out double width
+            );
+            return new DisplayText2(
+                value,
+                x,
+                y,
+                height,
+                rotation,
+                factor,
+                horizontal,
+                vertical,
+                style,
+                handle,
+                layerName,
+                face.Name,
+                oblique,
+                backward,
+                strokes,
+                width,
+                descent
+            );
         }
 
-        private void DrawMText(DxfMText text, Frame frame, DisplayList2 list, DisplayStyle style, string handle, string layerName)
+        private void DrawMText(
+            DxfMText text,
+            Frame frame,
+            DisplayList2 list,
+            DisplayStyle style,
+            string handle,
+            string layerName
+        )
         {
             string value = CleanText(text.Text);
 
@@ -1571,8 +1901,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             GeoPoint3 at = text.Location;
             int attach = (int)text.Attachment;
-            int horizontal = attach == 2 || attach == 5 || attach == 8 ? 1 : attach == 3 || attach == 6 || attach == 9 ? 2 : 0;
-            int vertical = attach <= 3 ? 3 : attach <= 6 ? 2 : 1;
+            int horizontal =
+                attach == 2 || attach == 5 || attach == 8 ? 1
+                : attach == 3 || attach == 6 || attach == 9 ? 2
+                : 0;
+            int vertical =
+                attach <= 3 ? 3
+                : attach <= 6 ? 2
+                : 1;
             GeoVector3 direction = text.Direction;
             double rotation = Math.Atan2(direction.Y, direction.X);
             Affine2 m = frame.Matrix;
@@ -1581,7 +1917,22 @@ namespace GeometryHelper.Dxf.Viewer
 
             // The text keeps its words, height and attachment as one text has them, for what reads it; it is drawn by its parts,
             // the words laid out as AutoCAD lays them.
-            var whole = new DisplayText2(value, m.X(at.X, at.Y), m.Y(at.X, at.Y), text.TextHeight * m.Scale, turn, WidthOf(text.Contents, WidthFactorOf(text.TextStyleName)), horizontal, vertical, style, handle, layerName, face.Name, ObliqueOf(text.TextStyleName), backward);
+            var whole = new DisplayText2(
+                value,
+                m.X(at.X, at.Y),
+                m.Y(at.X, at.Y),
+                text.TextHeight * m.Scale,
+                turn,
+                WidthOf(text.Contents, WidthFactorOf(text.TextStyleName)),
+                horizontal,
+                vertical,
+                style,
+                handle,
+                layerName,
+                face.Name,
+                ObliqueOf(text.TextStyleName),
+                backward
+            );
             CadMTextLayout layout = LayoutOf(text);
             whole.SetMeasure(layout.ActualWidth * m.Scale, 0.0);
             whole.SetParts(MTextParts(text, layout, frame, style, handle, layerName));
@@ -1681,7 +2032,16 @@ namespace GeometryHelper.Dxf.Viewer
                 string number = contents.Substring(i + 2, end - i - 2);
                 bool times = number.EndsWith("x", StringComparison.OrdinalIgnoreCase);
 
-                if (code == 'W' && double.TryParse(times ? number.Substring(0, number.Length - 1) : number, NumberStyles.Float, CultureInfo.InvariantCulture, out double read) && read > 0.0)
+                if (
+                    code == 'W'
+                    && double.TryParse(
+                        times ? number.Substring(0, number.Length - 1) : number,
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out double read
+                    )
+                    && read > 0.0
+                )
                 {
                     factor = times ? factor * read : read;
                 }
@@ -1730,7 +2090,14 @@ namespace GeometryHelper.Dxf.Viewer
             return turn > Math.PI ? turn - 2.0 * Math.PI : turn;
         }
 
-        private void DrawHatch(DxfHatch hatch, Frame frame, DisplayList2 list, DisplayStyle style, string handle, string layerName)
+        private void DrawHatch(
+            DxfHatch hatch,
+            Frame frame,
+            DisplayList2 list,
+            DisplayStyle style,
+            string handle,
+            string layerName
+        )
         {
             var rings = new List<double[]>();
             int loops = hatch.NumberOfLoops;
@@ -1778,7 +2145,9 @@ namespace GeometryHelper.Dxf.Viewer
                     mid = style.Rgb;
                 }
 
-                list.Add(new DisplayFill2(rings, false, new DisplayStyle(mid, style.LineWeight, null), handle, layerName));
+                list.Add(
+                    new DisplayFill2(rings, false, new DisplayStyle(mid, style.LineWeight, null), handle, layerName)
+                );
                 return;
             }
 
@@ -1793,7 +2162,12 @@ namespace GeometryHelper.Dxf.Viewer
             if (lines != null)
             {
                 // The pattern's own dashes are in its lines; the hatch's linetype is not laid over them, as AutoCAD lays none.
-                list.Add(new DisplaySegments2(lines, new DisplayStyle(style.Rgb, style.LineWeight, null), handle, layerName) { Rings = rings });
+                list.Add(
+                    new DisplaySegments2(lines, new DisplayStyle(style.Rgb, style.LineWeight, null), handle, layerName)
+                    {
+                        Rings = rings,
+                    }
+                );
                 return;
             }
 
@@ -1829,8 +2203,24 @@ namespace GeometryHelper.Dxf.Viewer
             for (int i = 0; i < lines.Count; i++)
             {
                 GeoLine2 line = lines[i];
-                Place(pattern.Ecs, m, line.StartPoint.X, line.StartPoint.Y, pattern.Elevation, out xy[4 * i], out xy[4 * i + 1]);
-                Place(pattern.Ecs, m, line.EndPoint.X, line.EndPoint.Y, pattern.Elevation, out xy[4 * i + 2], out xy[4 * i + 3]);
+                Place(
+                    pattern.Ecs,
+                    m,
+                    line.StartPoint.X,
+                    line.StartPoint.Y,
+                    pattern.Elevation,
+                    out xy[4 * i],
+                    out xy[4 * i + 1]
+                );
+                Place(
+                    pattern.Ecs,
+                    m,
+                    line.EndPoint.X,
+                    line.EndPoint.Y,
+                    pattern.Elevation,
+                    out xy[4 * i + 2],
+                    out xy[4 * i + 3]
+                );
             }
 
             return xy;
@@ -1862,7 +2252,10 @@ namespace GeometryHelper.Dxf.Viewer
                 for (int i = 0; i < definitions; i++)
                 {
                     DxfPatternDefinition definition = hatch.GetPatternDefinitionAt(i);
-                    double spacing = Math.Abs(Math.Cos(definition.Angle) * definition.OffsetY - Math.Sin(definition.Angle) * definition.OffsetX);
+                    double spacing = Math.Abs(
+                        Math.Cos(definition.Angle) * definition.OffsetY
+                            - Math.Sin(definition.Angle) * definition.OffsetX
+                    );
 
                     if (spacing <= diagonal * 1E-9)
                     {
@@ -1881,7 +2274,10 @@ namespace GeometryHelper.Dxf.Viewer
                             period += Math.Abs(dash);
                         }
 
-                        perLine = period <= diagonal * 1E-9 ? double.PositiveInfinity : (diagonal / period + 1.0) * dashes.Count;
+                        perLine =
+                            period <= diagonal * 1E-9
+                                ? double.PositiveInfinity
+                                : (diagonal / period + 1.0) * dashes.Count;
                     }
 
                     estimate += (diagonal / spacing + 1.0) * perLine;
@@ -1925,7 +2321,15 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A point of an entity's own system taken to the world and then into the drawing.</summary>
-        private static void Place(GeoTransform3 ecs, Affine2 m, double x, double y, double z, out double px, out double py)
+        private static void Place(
+            GeoTransform3 ecs,
+            Affine2 m,
+            double x,
+            double y,
+            double z,
+            out double px,
+            out double py
+        )
         {
             double wx = ecs[0, 0] * x + ecs[0, 1] * y + ecs[0, 2] * z + ecs[0, 3];
             double wy = ecs[1, 0] * x + ecs[1, 1] * y + ecs[1, 2] * z + ecs[1, 3];

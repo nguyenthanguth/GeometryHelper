@@ -68,9 +68,14 @@ namespace GeometryHelper.Viewer
             }
 
             var text = new StringBuilder();
-            string title = string.Join("', '", items.Select(pair => pair.Key.Title ?? string.Empty).Distinct(StringComparer.Ordinal));
+            string title = string.Join(
+                "', '",
+                items.Select(pair => pair.Key.Title ?? string.Empty).Distinct(StringComparer.Ordinal)
+            );
             text.Append("// Written by the GeometryHelper viewer from the scene '").Append(title).Append("'.\n");
-            text.Append("// Every number is the value the library gave at the tolerance below; the expected values are yours to fill in, which is what makes the tests red.\n");
+            text.Append(
+                "// Every number is the value the library gave at the tolerance below; the expected values are yours to fill in, which is what makes the tests red.\n"
+            );
             text.Append("using System.Collections.Generic;\n");
             text.Append("using System.Linq;\n");
             text.Append("using GeometryHelper.Geometry;\n");
@@ -88,13 +93,23 @@ namespace GeometryHelper.Viewer
 
                 if (item == null || item.Kind == SceneKinds.Text || !SceneKinds.IsKnown(item.Kind))
                 {
-                    left.Add((item?.Name ?? "?") + " (" + (item?.Kind ?? "null") + "): the viewer has no library shape for it");
+                    left.Add(
+                        (item?.Name ?? "?")
+                            + " ("
+                            + (item?.Kind ?? "null")
+                            + "): the viewer has no library shape for it"
+                    );
                     continue;
                 }
 
                 if (written >= MaxItems)
                 {
-                    left.Add((item.Name ?? item.Kind) + ": more than " + MaxItems.ToString(CultureInfo.InvariantCulture) + " items");
+                    left.Add(
+                        (item.Name ?? item.Kind)
+                            + ": more than "
+                            + MaxItems.ToString(CultureInfo.InvariantCulture)
+                            + " items"
+                    );
                     continue;
                 }
 
@@ -109,7 +124,9 @@ namespace GeometryHelper.Viewer
 
             foreach (string line in left)
             {
-                text.Append("\n        // Not written: ").Append(line.Replace("\r", " ").Replace("\n", " ")).Append('\n');
+                text.Append("\n        // Not written: ")
+                    .Append(line.Replace("\r", " ").Replace("\n", " "))
+                    .Append('\n');
             }
 
             text.Append("    }\n}\n");
@@ -131,10 +148,28 @@ namespace GeometryHelper.Viewer
 
             text.Append("        [Fact]\n");
             text.Append("        public void ").Append(method).Append("()\n        {\n");
-            text.Append("            // ").Append(item.Kind).Append(" '").Append((item.Name ?? string.Empty).Replace("\r", " ").Replace("\n", " ")).Append("' on layer '").Append((item.Layer ?? string.Empty).Replace("\r", " ").Replace("\n", " ")).Append("'.\n");
-            text.Append("            var tolerance = new Tolerance(").Append(D(t.EqualPoint)).Append(", ").Append(D(t.EqualVector)).Append(", ").Append(D(t.EqualAngleRad)).Append(", ").Append(D(t.EqualPlanar)).Append(");\n\n");
+            text.Append("            // ")
+                .Append(item.Kind)
+                .Append(" '")
+                .Append((item.Name ?? string.Empty).Replace("\r", " ").Replace("\n", " "))
+                .Append("' on layer '")
+                .Append((item.Layer ?? string.Empty).Replace("\r", " ").Replace("\n", " "))
+                .Append("'.\n");
+            text.Append("            var tolerance = new Tolerance(")
+                .Append(D(t.EqualPoint))
+                .Append(", ")
+                .Append(D(t.EqualVector))
+                .Append(", ")
+                .Append(D(t.EqualAngleRad))
+                .Append(", ")
+                .Append(D(t.EqualPlanar))
+                .Append(");\n\n");
             text.Append("            using (Tolerance.Use(tolerance))\n            {\n");
-            text.Append("                var ").Append(variable).Append(" = ").Append(Expression(item, 16)).Append(";\n");
+            text.Append("                var ")
+                .Append(variable)
+                .Append(" = ")
+                .Append(Expression(item, 16))
+                .Append(";\n");
 
             IReadOnlyList<KeyValuePair<string, string>> numbers;
             string measuredBy = "the viewer";
@@ -147,12 +182,16 @@ namespace GeometryHelper.Viewer
 
                 if (item.Properties.TryGetValue(RunnerMeasures.Prefix + "error", out string error))
                 {
-                    text.Append("\n                // That build could not measure the shape: ").Append(error.Replace("\r", " ").Replace("\n", " ")).Append('\n');
+                    text.Append("\n                // That build could not measure the shape: ")
+                        .Append(error.Replace("\r", " ").Replace("\n", " "))
+                        .Append('\n');
                 }
 
                 if (item.Properties.TryGetValue(RunnerMeasures.Prefix + "note", out string note))
                 {
-                    text.Append("\n                // ").Append(note.Replace("\r", " ").Replace("\n", " ")).Append('\n');
+                    text.Append("\n                // ")
+                        .Append(note.Replace("\r", " ").Replace("\n", " "))
+                        .Append('\n');
                 }
             }
             else
@@ -163,7 +202,11 @@ namespace GeometryHelper.Viewer
                 }
                 catch (Exception e) when (e is ArgumentException || e is InvalidOperationException)
                 {
-                    text.Append("\n                // The library refused the shape at this tolerance and at 1E-12 when it was measured: ").Append(e.Message.Replace("\r", " ").Replace("\n", " ")).Append('\n');
+                    text.Append(
+                            "\n                // The library refused the shape at this tolerance and at 1E-12 when it was measured: "
+                        )
+                        .Append(e.Message.Replace("\r", " ").Replace("\n", " "))
+                        .Append('\n');
                     numbers = new KeyValuePair<string, string>[0];
                 }
             }
@@ -191,25 +234,43 @@ namespace GeometryHelper.Viewer
                     string access = variable + "." + member;
 
                     text.Append('\n');
-                    text.Append("                // TODO: the expected ").Append(label.ToLowerInvariant()).Append("; ").Append(measuredBy).Append(" measured ").Append(number.Value).Append(".\n");
+                    text.Append("                // TODO: the expected ")
+                        .Append(label.ToLowerInvariant())
+                        .Append("; ")
+                        .Append(measuredBy)
+                        .Append(" measured ")
+                        .Append(number.Value)
+                        .Append(".\n");
 
                     if (count)
                     {
                         text.Append("                int ").Append(expected).Append(" = -1;\n");
-                        text.Append("                Assert.Equal(").Append(expected).Append(", ").Append(access).Append(");\n");
+                        text.Append("                Assert.Equal(")
+                            .Append(expected)
+                            .Append(", ")
+                            .Append(access)
+                            .Append(");\n");
                     }
                     else
                     {
                         text.Append("                double ").Append(expected).Append(" = double.NaN;\n");
-                        text.Append("                Assert.Equal(").Append(expected).Append(", ").Append(access).Append(", tolerance.EqualPoint);\n");
+                        text.Append("                Assert.Equal(")
+                            .Append(expected)
+                            .Append(", ")
+                            .Append(access)
+                            .Append(", tolerance.EqualPoint);\n");
                     }
                 }
             }
 
             if (!any)
             {
-                text.Append("\n                // TODO: this shape has no number to assert; call the member under test on it and assert what it gives.\n");
-                text.Append("                Assert.Fail(\"TODO: write what ").Append(variable).Append(" should give.\");\n");
+                text.Append(
+                    "\n                // TODO: this shape has no number to assert; call the member under test on it and assert what it gives.\n"
+                );
+                text.Append("                Assert.Fail(\"TODO: write what ")
+                    .Append(variable)
+                    .Append(" should give.\");\n");
             }
 
             text.Append("            }\n        }\n");
@@ -222,7 +283,16 @@ namespace GeometryHelper.Viewer
         {
             var numbers = new List<KeyValuePair<string, string>>();
 
-            foreach (string[] pair in new[] { new[] { "vertices", "Vertices" }, new[] { "length", "Length" }, new[] { "area", "Area" }, new[] { "volume", "Volume" }, new[] { "surfaceArea", "Surface area" } })
+            foreach (
+                string[] pair in new[]
+                {
+                    new[] { "vertices", "Vertices" },
+                    new[] { "length", "Length" },
+                    new[] { "area", "Area" },
+                    new[] { "volume", "Volume" },
+                    new[] { "surfaceArea", "Surface area" },
+                }
+            )
             {
                 if (item.Properties.TryGetValue(RunnerMeasures.Prefix + pair[0], out string value))
                 {
@@ -256,8 +326,20 @@ namespace GeometryHelper.Viewer
                 ["GeoArc3"] = new[] { "Radius=Radius", "Length=Length" },
                 ["GeoCircle2"] = new[] { "Radius=Radius", "Length=Length", "Area=Area" },
                 ["GeoCircle3"] = new[] { "Radius=Radius", "Length=Length", "Area=Area" },
-                ["GeoEllipse2"] = new[] { "Major radius=MajorRadius", "Minor radius=MinorRadius", "Length=Length", "Area=Area" },
-                ["GeoEllipse3"] = new[] { "Major radius=MajorRadius", "Minor radius=MinorRadius", "Length=Length", "Area=Area" },
+                ["GeoEllipse2"] = new[]
+                {
+                    "Major radius=MajorRadius",
+                    "Minor radius=MinorRadius",
+                    "Length=Length",
+                    "Area=Area",
+                },
+                ["GeoEllipse3"] = new[]
+                {
+                    "Major radius=MajorRadius",
+                    "Minor radius=MinorRadius",
+                    "Length=Length",
+                    "Area=Area",
+                },
                 ["GeoRectangle2"] = new[] { "Width=Width", "Height=Height", "Area=Area" },
                 ["GeoTriangle2"] = new[] { "Length=Length", "Area=Area" },
                 ["GeoTriangle3"] = new[] { "Length=Perimeter", "Area=Area" },
@@ -402,7 +484,14 @@ namespace GeometryHelper.Viewer
             }
 
             string pad = new string(' ', indent + 4);
-            return "new " + type + "[]\n" + new string(' ', indent) + "{\n" + string.Join(string.Empty, elements.Select(e => pad + e + ",\n")) + new string(' ', indent) + "}";
+            return "new "
+                + type
+                + "[]\n"
+                + new string(' ', indent)
+                + "{\n"
+                + string.Join(string.Empty, elements.Select(e => pad + e + ",\n"))
+                + new string(' ', indent)
+                + "}";
         }
 
         /// <summary>
@@ -416,7 +505,14 @@ namespace GeometryHelper.Viewer
             }
 
             string pad = new string(' ', indent + 4);
-            return "new List<" + type + ">\n" + new string(' ', indent) + "{\n" + string.Join(string.Empty, elements.Select(e => pad + e + ",\n")) + new string(' ', indent) + "}";
+            return "new List<"
+                + type
+                + ">\n"
+                + new string(' ', indent)
+                + "{\n"
+                + string.Join(string.Empty, elements.Select(e => pad + e + ",\n"))
+                + new string(' ', indent)
+                + "}";
         }
 
         private static string Numbers(double[] values) => "new[] { " + string.Join(", ", values.Select(D)) + " }";
@@ -434,24 +530,58 @@ namespace GeometryHelper.Viewer
 
             switch (item.Kind)
             {
-                case "GeoPoint2": return P2(DataJson.Point(d, 2));
-                case "GeoPoint3": return P3(DataJson.Point(d, 3));
-                case "GeoLine2": return "new GeoLine2(" + P2(DataJson.Point(d, "a", 2)) + ", " + P2(DataJson.Point(d, "b", 2)) + ")";
-                case "GeoLine3": return "new GeoLine3(" + P3(DataJson.Point(d, "a", 3)) + ", " + P3(DataJson.Point(d, "b", 3)) + ")";
-                case "GeoRay2": return "new GeoRay2(" + P2(DataJson.Point(d, "a", 2)) + ", " + V2(DataJson.Point(d, "b", 2)) + ")";
-                case "GeoRay3": return "new GeoRay3(" + P3(DataJson.Point(d, "a", 3)) + ", " + V3(DataJson.Point(d, "b", 3)) + ")";
-                case "GeoXLine2": return "new GeoXLine2(" + P2(DataJson.Point(d, "a", 2)) + ", " + V2(DataJson.Point(d, "b", 2)) + ")";
-                case "GeoXLine3": return "new GeoXLine3(" + P3(DataJson.Point(d, "a", 3)) + ", " + V3(DataJson.Point(d, "b", 3)) + ")";
-                case "GeoPolyline2": return "new GeoPolyline2(" + Array("GeoPoint2", DataJson.Points(d, "points", 2).Select(P2).ToList(), indent) + ")";
-                case "GeoPolygon2": return "new GeoPolygon2(" + Array("GeoPoint2", DataJson.Points(d, "points", 2).Select(P2).ToList(), indent) + ")";
-                case "GeoPolyline3": return "new GeoPolyline3(" + Array("GeoPoint3", DataJson.Points(d, "points", 3).Select(P3).ToList(), indent) + ")";
-                case "GeoPolygon3": return "new GeoPolygon3(" + Array("GeoPoint3", DataJson.Points(d, "points", 3).Select(P3).ToList(), indent) + ")";
+                case "GeoPoint2":
+                    return P2(DataJson.Point(d, 2));
+                case "GeoPoint3":
+                    return P3(DataJson.Point(d, 3));
+                case "GeoLine2":
+                    return "new GeoLine2(" + P2(DataJson.Point(d, "a", 2)) + ", " + P2(DataJson.Point(d, "b", 2)) + ")";
+                case "GeoLine3":
+                    return "new GeoLine3(" + P3(DataJson.Point(d, "a", 3)) + ", " + P3(DataJson.Point(d, "b", 3)) + ")";
+                case "GeoRay2":
+                    return "new GeoRay2(" + P2(DataJson.Point(d, "a", 2)) + ", " + V2(DataJson.Point(d, "b", 2)) + ")";
+                case "GeoRay3":
+                    return "new GeoRay3(" + P3(DataJson.Point(d, "a", 3)) + ", " + V3(DataJson.Point(d, "b", 3)) + ")";
+                case "GeoXLine2":
+                    return "new GeoXLine2("
+                        + P2(DataJson.Point(d, "a", 2))
+                        + ", "
+                        + V2(DataJson.Point(d, "b", 2))
+                        + ")";
+                case "GeoXLine3":
+                    return "new GeoXLine3("
+                        + P3(DataJson.Point(d, "a", 3))
+                        + ", "
+                        + V3(DataJson.Point(d, "b", 3))
+                        + ")";
+                case "GeoPolyline2":
+                    return "new GeoPolyline2("
+                        + Array("GeoPoint2", DataJson.Points(d, "points", 2).Select(P2).ToList(), indent)
+                        + ")";
+                case "GeoPolygon2":
+                    return "new GeoPolygon2("
+                        + Array("GeoPoint2", DataJson.Points(d, "points", 2).Select(P2).ToList(), indent)
+                        + ")";
+                case "GeoPolyline3":
+                    return "new GeoPolyline3("
+                        + Array("GeoPoint3", DataJson.Points(d, "points", 3).Select(P3).ToList(), indent)
+                        + ")";
+                case "GeoPolygon3":
+                    return "new GeoPolygon3("
+                        + Array("GeoPoint3", DataJson.Points(d, "points", 3).Select(P3).ToList(), indent)
+                        + ")";
 
                 case "GeoPolylineArc2":
                 case "GeoPolygonArc2":
                 {
                     Vec3[] points = DataJson.Points(d, "points", 2);
-                    return "new " + item.Kind + "(" + Array("GeoPoint2", points.Select(P2).ToList(), indent) + ", " + Numbers(DataJson.Bulges(d, points.Length)) + ")";
+                    return "new "
+                        + item.Kind
+                        + "("
+                        + Array("GeoPoint2", points.Select(P2).ToList(), indent)
+                        + ", "
+                        + Numbers(DataJson.Bulges(d, points.Length))
+                        + ")";
                 }
 
                 case "GeoPolylineArc3":
@@ -459,51 +589,132 @@ namespace GeometryHelper.Viewer
                 {
                     Vec3[] points = DataJson.Points(d, "points", 3);
                     var normals = new List<string>();
-                    Vec3[] given = DataJson.TryGet(d, "normals", out JsonElement list) ? DataJson.Points(list, 3) : new Vec3[0];
+                    Vec3[] given = DataJson.TryGet(d, "normals", out JsonElement list)
+                        ? DataJson.Points(list, 3)
+                        : new Vec3[0];
 
                     for (int i = 0; i < points.Length; i++)
                     {
                         normals.Add(i < given.Length ? V3(given[i]) : "default(GeoVector3)");
                     }
 
-                    return "new " + item.Kind + "(" + Array("GeoPoint3", points.Select(P3).ToList(), indent) + ", " + Numbers(DataJson.Bulges(d, points.Length)) + ", " + Array("GeoVector3", normals, indent) + ")";
+                    return "new "
+                        + item.Kind
+                        + "("
+                        + Array("GeoPoint3", points.Select(P3).ToList(), indent)
+                        + ", "
+                        + Numbers(DataJson.Bulges(d, points.Length))
+                        + ", "
+                        + Array("GeoVector3", normals, indent)
+                        + ")";
                 }
 
                 case "GeoArc2":
                 {
                     double sweep = DataJson.Number(d, "sweep");
                     double start = DataJson.Number(d, "start");
-                    return "new GeoArc2(" + P2(DataJson.Point(d, "center", 2)) + ", " + D(DataJson.Number(d, "radius")) + ", " + D(start) + ", " + D(start + sweep) + ", " + (sweep < 0.0 ? "true" : "false") + ")";
+                    return "new GeoArc2("
+                        + P2(DataJson.Point(d, "center", 2))
+                        + ", "
+                        + D(DataJson.Number(d, "radius"))
+                        + ", "
+                        + D(start)
+                        + ", "
+                        + D(start + sweep)
+                        + ", "
+                        + (sweep < 0.0 ? "true" : "false")
+                        + ")";
                 }
 
                 case "GeoArc3":
                 {
                     double sweep = DataJson.Number(d, "sweep");
                     double start = DataJson.Number(d, "start");
-                    return "new GeoArc3(" + P3(DataJson.Point(d, "center", 3)) + ", " + V3(DataJson.Point(d, "normal", 3)) + ", " + D(DataJson.Number(d, "radius")) + ", " + D(start) + ", " + D(start + sweep) + ", " + (sweep < 0.0 ? "true" : "false") + ")";
+                    return "new GeoArc3("
+                        + P3(DataJson.Point(d, "center", 3))
+                        + ", "
+                        + V3(DataJson.Point(d, "normal", 3))
+                        + ", "
+                        + D(DataJson.Number(d, "radius"))
+                        + ", "
+                        + D(start)
+                        + ", "
+                        + D(start + sweep)
+                        + ", "
+                        + (sweep < 0.0 ? "true" : "false")
+                        + ")";
                 }
 
-                case "GeoCircle2": return "new GeoCircle2(" + P2(DataJson.Point(d, "center", 2)) + ", " + D(DataJson.Number(d, "radius")) + ")";
-                case "GeoCircle3": return "new GeoCircle3(" + P3(DataJson.Point(d, "center", 3)) + ", " + V3(DataJson.Point(d, "normal", 3)) + ", " + D(DataJson.Number(d, "radius")) + ")";
+                case "GeoCircle2":
+                    return "new GeoCircle2("
+                        + P2(DataJson.Point(d, "center", 2))
+                        + ", "
+                        + D(DataJson.Number(d, "radius"))
+                        + ")";
+                case "GeoCircle3":
+                    return "new GeoCircle3("
+                        + P3(DataJson.Point(d, "center", 3))
+                        + ", "
+                        + V3(DataJson.Point(d, "normal", 3))
+                        + ", "
+                        + D(DataJson.Number(d, "radius"))
+                        + ")";
 
                 case "GeoEllipse2":
-                    return "new GeoEllipse2(" + P2(DataJson.Point(d, "center", 2)) + ", " + V2(DataJson.Point(d, "majorAxis", 2)) + ", " + D(DataJson.Number(d, "majorRadius")) + ", " + D(DataJson.Number(d, "minorRadius")) + ")";
+                    return "new GeoEllipse2("
+                        + P2(DataJson.Point(d, "center", 2))
+                        + ", "
+                        + V2(DataJson.Point(d, "majorAxis", 2))
+                        + ", "
+                        + D(DataJson.Number(d, "majorRadius"))
+                        + ", "
+                        + D(DataJson.Number(d, "minorRadius"))
+                        + ")";
 
                 case "GeoEllipse3":
-                    return "new GeoEllipse3(" + P3(DataJson.Point(d, "center", 3)) + ", " + V3(DataJson.Point(d, "normal", 3)) + ", " + V3(DataJson.Point(d, "majorAxis", 3)) + ", " + D(DataJson.Number(d, "majorRadius")) + ", " + D(DataJson.Number(d, "minorRadius")) + ")";
+                    return "new GeoEllipse3("
+                        + P3(DataJson.Point(d, "center", 3))
+                        + ", "
+                        + V3(DataJson.Point(d, "normal", 3))
+                        + ", "
+                        + V3(DataJson.Point(d, "majorAxis", 3))
+                        + ", "
+                        + D(DataJson.Number(d, "majorRadius"))
+                        + ", "
+                        + D(DataJson.Number(d, "minorRadius"))
+                        + ")";
 
                 case "GeoSpline2":
                 case "GeoSpline3":
                 {
                     bool space = item.Kind == "GeoSpline3";
                     double[] weights = DataJson.Weights(d);
-                    List<string> points = DataJson.Points(d, "points", space ? 3 : 2).Select(space ? (Func<Vec3, string>)P3 : P2).ToList();
-                    return "new " + item.Kind + "(" + DataJson.Degree(d).ToString(CultureInfo.InvariantCulture) + ", " + Array(space ? "GeoPoint3" : "GeoPoint2", points, indent) + ", "
-                        + Numbers(DataJson.Numbers(DataJson.Get(d, "knots"))) + (weights != null ? ", " + Numbers(weights) : string.Empty) + ")";
+                    List<string> points = DataJson
+                        .Points(d, "points", space ? 3 : 2)
+                        .Select(space ? (Func<Vec3, string>)P3 : P2)
+                        .ToList();
+                    return "new "
+                        + item.Kind
+                        + "("
+                        + DataJson.Degree(d).ToString(CultureInfo.InvariantCulture)
+                        + ", "
+                        + Array(space ? "GeoPoint3" : "GeoPoint2", points, indent)
+                        + ", "
+                        + Numbers(DataJson.Numbers(DataJson.Get(d, "knots")))
+                        + (weights != null ? ", " + Numbers(weights) : string.Empty)
+                        + ")";
                 }
 
                 case "GeoRectangle2":
-                    return "new GeoRectangle2(" + P2(DataJson.Point(d, "center", 2)) + ", " + D(DataJson.Number(d, "width")) + ", " + D(DataJson.Number(d, "height")) + ", " + D(DataJson.Number(d, "angle")) + ")";
+                    return "new GeoRectangle2("
+                        + P2(DataJson.Point(d, "center", 2))
+                        + ", "
+                        + D(DataJson.Number(d, "width"))
+                        + ", "
+                        + D(DataJson.Number(d, "height"))
+                        + ", "
+                        + D(DataJson.Number(d, "angle"))
+                        + ")";
 
                 case "GeoTriangle2":
                 {
@@ -527,30 +738,68 @@ namespace GeometryHelper.Viewer
                 case "GeoMesh2":
                 {
                     Vec3[] points = DataJson.Points(d, "points", 2);
-                    var faces = GeometryDecoder.Faces(d).Select(face => "new GeoPolygon2(" + Array("GeoPoint2", face.Select(i => P2(points[i])).ToList(), indent + 4) + ")").ToList();
+                    var faces = GeometryDecoder
+                        .Faces(d)
+                        .Select(face =>
+                            "new GeoPolygon2("
+                            + Array("GeoPoint2", face.Select(i => P2(points[i])).ToList(), indent + 4)
+                            + ")"
+                        )
+                        .ToList();
                     return Array("GeoPolygon2", faces, indent);
                 }
 
                 case "GeoMesh3":
                 {
                     Vec3[] points = DataJson.Points(d, "points", 3);
-                    var faces = GeometryDecoder.Faces(d).Select(face => "new GeoPolygon3(" + Array("GeoPoint3", face.Select(i => P3(points[i])).ToList(), indent + 4) + ")").ToList();
+                    var faces = GeometryDecoder
+                        .Faces(d)
+                        .Select(face =>
+                            "new GeoPolygon3("
+                            + Array("GeoPoint3", face.Select(i => P3(points[i])).ToList(), indent + 4)
+                            + ")"
+                        )
+                        .ToList();
                     return Array("GeoPolygon3", faces, indent);
                 }
 
                 case "GeoAabb3":
                     return DataJson.TryGet(d, "empty", out JsonElement empty) && empty.ValueKind == JsonValueKind.True
                         ? "GeoAabb3.Empty"
-                        : "new GeoAabb3(" + P3(DataJson.Point(d, "min", 3)) + ", " + P3(DataJson.Point(d, "max", 3)) + ")";
+                        : "new GeoAabb3("
+                            + P3(DataJson.Point(d, "min", 3))
+                            + ", "
+                            + P3(DataJson.Point(d, "max", 3))
+                            + ")";
 
                 case "GeoObb3":
-                    return "new GeoObb3(" + P3(DataJson.Point(d, "center", 3)) + ", " + D(DataJson.Number(d, "sizeX")) + ", " + D(DataJson.Number(d, "sizeY")) + ", " + D(DataJson.Number(d, "sizeZ")) + ", " + V3(DataJson.Point(d, "axisX", 3)) + ", " + V3(DataJson.Point(d, "axisY", 3)) + ")";
+                    return "new GeoObb3("
+                        + P3(DataJson.Point(d, "center", 3))
+                        + ", "
+                        + D(DataJson.Number(d, "sizeX"))
+                        + ", "
+                        + D(DataJson.Number(d, "sizeY"))
+                        + ", "
+                        + D(DataJson.Number(d, "sizeZ"))
+                        + ", "
+                        + V3(DataJson.Point(d, "axisX", 3))
+                        + ", "
+                        + V3(DataJson.Point(d, "axisY", 3))
+                        + ")";
 
                 case "GeoSphere3":
-                    return "new GeoSphere3(" + P3(DataJson.Point(d, "center", 3)) + ", " + D(DataJson.Number(d, "radius")) + ")";
+                    return "new GeoSphere3("
+                        + P3(DataJson.Point(d, "center", 3))
+                        + ", "
+                        + D(DataJson.Number(d, "radius"))
+                        + ")";
 
                 case "GeoPlane3":
-                    return "new GeoPlane3(" + P3(DataJson.Point(d, "origin", 3)) + ", " + V3(DataJson.Point(d, "normal", 3)) + ")";
+                    return "new GeoPlane3("
+                        + P3(DataJson.Point(d, "origin", 3))
+                        + ", "
+                        + V3(DataJson.Point(d, "normal", 3))
+                        + ")";
 
                 default:
                     throw new NotSupportedException("A " + item.Kind + " has no library shape to write in code.");
@@ -563,17 +812,38 @@ namespace GeometryHelper.Viewer
             string point = space ? "GeoPoint3" : "GeoPoint2";
             int dimension = space ? 3 : 2;
 
-            string Loop(JsonElement loop) => "new " + polygon + "(" + Array(point, DataJson.Points(loop, dimension).Select(space ? (Func<Vec3, string>)P3 : P2).ToList(), indent + 4) + ")";
+            string Loop(JsonElement loop) =>
+                "new "
+                + polygon
+                + "("
+                + Array(
+                    point,
+                    DataJson.Points(loop, dimension).Select(space ? (Func<Vec3, string>)P3 : P2).ToList(),
+                    indent + 4
+                )
+                + ")";
 
             var holes = DataJson.List(d, "holes").Select(Loop).ToList();
-            return "new " + (space ? "GeoFace3" : "GeoFace2") + "(" + Loop(DataJson.Get(d, "outer")) + ", " + ListOf(polygon, holes, indent + 4) + ")";
+            return "new "
+                + (space ? "GeoFace3" : "GeoFace2")
+                + "("
+                + Loop(DataJson.Get(d, "outer"))
+                + ", "
+                + ListOf(polygon, holes, indent + 4)
+                + ")";
         }
 
         private static string Solid(JsonElement d, int indent)
         {
             var faces = DataJson.List(d, "faces").Select(face => Face(face, true, indent + 8)).ToList();
-            var openings = DataJson.TryGet(d, "openings", out JsonElement list) ? list.EnumerateArray().Select(o => Solid(o, indent + 8)).ToList() : new List<string>();
-            return "new GeoSolid3(" + ListOf("GeoFace3", faces, indent + 4) + ", " + ListOf("GeoSolid3", openings, indent + 4) + ")";
+            var openings = DataJson.TryGet(d, "openings", out JsonElement list)
+                ? list.EnumerateArray().Select(o => Solid(o, indent + 8)).ToList()
+                : new List<string>();
+            return "new GeoSolid3("
+                + ListOf("GeoFace3", faces, indent + 4)
+                + ", "
+                + ListOf("GeoSolid3", openings, indent + 4)
+                + ")";
         }
 
         #endregion

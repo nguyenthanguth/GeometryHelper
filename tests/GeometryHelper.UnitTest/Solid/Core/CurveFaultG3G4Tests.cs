@@ -17,7 +17,8 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static readonly Tolerance Hundredth = new Tolerance(0.01, 1E-5, 1E-5, 0.01);
 
-        private static double Off(GeoEllipse3 ellipse, GeoPoint3 place) => ellipse.GetClosestPointOnBoundary(place).DistanceTo(place);
+        private static double Off(GeoEllipse3 ellipse, GeoPoint3 place) =>
+            ellipse.GetClosestPointOnBoundary(place).DistanceTo(place);
 
         /// <summary>
         /// An ellipse 100.0009 by 99.9995 about the centre of the circle of radius 100 in the plan, its major axis towards
@@ -46,21 +47,29 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoVector3(0, 0, 1),
                 new GeoVector3(0.5080256669908793, -0.8613419307559992, 0),
                 30080.20931392918,
-                18333.345100170103);
+                18333.345100170103
+            );
             var needle = new GeoEllipse3(
                 new GeoPoint3(-56660.75035476632, 14172.498393310634, 9659.115329538632),
                 new GeoVector3(-0.47785274661964566, -0.2381165956678904, 0.8455514410227181),
                 new GeoVector3(0.755978024025799, 0.37875509709921573, 0.5338930638352706),
                 2.7820692128883997,
-                0.0027703695027531347);
+                0.0027703695027531347
+            );
 
             GeoPoint3[] first = huge.GetIntersections(needle, Thousandth);
             GeoPoint3[] second = needle.GetIntersections(huge, Thousandth);
 
             Assert.Equal(2, first.Length);
-            Assert.Contains(first, place => place.DistanceTo(new GeoPoint3(-56662.59833, 14171.57106, 9657.80981)) <= 1E-4);
-            Assert.Contains(first, place => place.DistanceTo(new GeoPoint3(-56662.59951, 14171.57342, 9657.80981)) <= 1E-4);
-            Assert.All(first, place => Assert.InRange(Math.Max(Off(huge, place), Off(needle, place)), 0.0, Thousandth.EqualPoint));
+            Assert.Contains(first, place =>
+                place.DistanceTo(new GeoPoint3(-56662.59833, 14171.57106, 9657.80981)) <= 1E-4
+            );
+            Assert.Contains(first, place =>
+                place.DistanceTo(new GeoPoint3(-56662.59951, 14171.57342, 9657.80981)) <= 1E-4
+            );
+            Assert.All(first, place =>
+                Assert.InRange(Math.Max(Off(huge, place), Off(needle, place)), 0.0, Thousandth.EqualPoint)
+            );
             Assert.Equal(first[1], second[0]);
             Assert.Equal(first[0], second[1]);
         }
@@ -133,21 +142,29 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoVector3(-0.8535056798574471, -0.15916194046684468, 0.4961809459843311),
                 new GeoVector3(-0.519751619805289, 0.32807057669035616, -0.7888142686461976),
                 21.253666516442145,
-                0.9302766323877225);
+                0.9302766323877225
+            );
             var rim = new GeoEllipse3(
                 new GeoPoint3(-4226.764012418236, 8993.86951596434, -10304.046397387096),
                 new GeoVector3(0.6945234045236949, -0.5268098059587566, 0.49000884575129183),
                 new GeoVector3(0.6856215238933573, 0.6910615389307593, -0.22881668511015787),
                 5.259294101756426,
-                3.593496663943271);
+                3.593496663943271
+            );
 
             GeoPoint3[] first = narrow.GetIntersections(rim, Hundredth);
             GeoPoint3[] second = rim.GetIntersections(narrow, Hundredth);
 
             Assert.Equal(2, first.Length);
-            Assert.Contains(first, place => place.DistanceTo(new GeoPoint3(-4230.4107, 8991.1307, -10301.8235)) <= 0.01);
-            Assert.Contains(first, place => place.DistanceTo(new GeoPoint3(-4230.4227, 8991.0863, -10301.8583)) <= 0.01);
-            Assert.All(first, place => Assert.InRange(Math.Max(Off(narrow, place), Off(rim, place)), 0.0, Hundredth.EqualPoint));
+            Assert.Contains(first, place =>
+                place.DistanceTo(new GeoPoint3(-4230.4107, 8991.1307, -10301.8235)) <= 0.01
+            );
+            Assert.Contains(first, place =>
+                place.DistanceTo(new GeoPoint3(-4230.4227, 8991.0863, -10301.8583)) <= 0.01
+            );
+            Assert.All(first, place =>
+                Assert.InRange(Math.Max(Off(narrow, place), Off(rim, place)), 0.0, Hundredth.EqualPoint)
+            );
             Assert.Equal(2, second.Length);
             Assert.Contains(second, place => place.Equals(first[0]));
             Assert.Contains(second, place => place.Equals(first[1]));
@@ -165,13 +182,15 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoVector3(-0.17011324961544955, -0.9845678765818896, -0.0410801498086472),
                 new GeoVector3(0.894257413589406, -0.1717533619040553, 0.41328496333043696),
                 21.87594796641295,
-                0.908454967542619);
+                0.908454967542619
+            );
             var rim = new GeoEllipse3(
                 new GeoPoint3(-42.1902147746862, 2114.6410212566825, 7214.014290213758),
                 new GeoVector3(-0.24505633413802438, -0.967315666142056, -0.06517511131546705),
                 new GeoVector3(0.04426300266663882, 0.05599202064159013, -0.9974495878085292),
                 36.66079772208999,
-                30.949647423011815);
+                30.949647423011815
+            );
 
             GeoPoint3[] first = rim.GetIntersections(narrow, Hundredth);
             GeoPoint3[] second = narrow.GetIntersections(rim, Hundredth);
@@ -179,7 +198,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(2, first.Length);
             Assert.Contains(first, place => place.DistanceTo(new GeoPoint3(-14.1228, 2106.7257, 7225.9740)) <= 1E-3);
             Assert.Contains(first, place => place.DistanceTo(new GeoPoint3(-14.1394, 2106.7263, 7226.0277)) <= 1E-3);
-            Assert.All(first, place => Assert.InRange(Math.Max(Off(narrow, place), Off(rim, place)), 0.0, Hundredth.EqualPoint));
+            Assert.All(first, place =>
+                Assert.InRange(Math.Max(Off(narrow, place), Off(rim, place)), 0.0, Hundredth.EqualPoint)
+            );
             Assert.Equal(2, second.Length);
             Assert.Contains(second, place => place.Equals(first[0]));
             Assert.Contains(second, place => place.Equals(first[1]));
@@ -197,13 +218,15 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoVector3(0, 0, 1),
                 new GeoVector3(-0.9989662412109681, -0.0454582107086272, 0),
                 23.45998725549317,
-                1.3790586216437397);
+                1.3790586216437397
+            );
             var rim = new GeoEllipse3(
                 new GeoPoint3(-6721.345618352533, -2427.4723542966935, 6645.565925897813),
                 new GeoVector3(-0.709544231034093, 0.0634433656492966, -0.7017990620977825),
                 new GeoVector3(0.6102671818446129, 0.5532631701298678, -0.5669866235999605),
                 10336.847674907878,
-                7088.311734136534);
+                7088.311734136534
+            );
 
             GeoPoint3[] first = rim.GetIntersections(narrow, Hundredth);
             GeoPoint3[] second = narrow.GetIntersections(rim, Hundredth);
@@ -211,7 +234,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(2, first.Length);
             Assert.Contains(first, place => place.DistanceTo(new GeoPoint3(34.1146, 8.2377, 35.7421)) <= 1E-3);
             Assert.Contains(first, place => place.DistanceTo(new GeoPoint3(34.1206, 8.3130, 35.7425)) <= 1E-3);
-            Assert.All(first, place => Assert.InRange(Math.Max(Off(narrow, place), Off(rim, place)), 0.0, Hundredth.EqualPoint));
+            Assert.All(first, place =>
+                Assert.InRange(Math.Max(Off(narrow, place), Off(rim, place)), 0.0, Hundredth.EqualPoint)
+            );
             Assert.Equal(2, second.Length);
             Assert.Contains(second, place => place.Equals(first[0]));
             Assert.Contains(second, place => place.Equals(first[1]));
@@ -224,7 +249,13 @@ namespace GeometryHelper.UnitTest.Solid
             // ellipse 100.0007 by 99.9995 about its centre, its axis turned a quarter. Told a circle only by radii exactly one,
             // the first crossed the second at four places; read as the circle it draws, the two cross nowhere, as the circle
             // read by FromCircle does.
-            var circle = new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, GeoVector3.XAxis, 100.0, 99.99999999999999);
+            var circle = new GeoEllipse3(
+                GeoPoint3.Origin,
+                GeoVector3.ZAxis,
+                GeoVector3.XAxis,
+                100.0,
+                99.99999999999999
+            );
             var ellipse = new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, GeoVector3.YAxis, 100.0007, 99.9995);
 
             Assert.Empty(circle.GetIntersections(ellipse, Thousandth));
@@ -245,20 +276,24 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoVector3(0.06711405790543741, 0.264315066582733, -0.9620983571386197),
                 new GeoVector3(-0.31176824335149117, 0.9215437635723144, 0.2314252671133811),
                 1.0497778417408365,
-                1.048396117137604);
+                1.048396117137604
+            );
             var other = new GeoEllipse3(
                 new GeoPoint3(7326.410914457596, -8618.711325628083, 6026.8656704699915),
                 new GeoVector3(0.06677353255933914, 0.2640737324852595, -0.9621883179299417),
                 new GeoVector3(-0.9974439645003124, -0.0069140136622864844, -0.07111774811520252),
                 1.0493615053679153,
-                1.0490306611782552);
+                1.0490306611782552
+            );
 
             GeoPoint3[] first = one.GetIntersections(other, Thousandth);
 
             Assert.Equal(4, first.Length);
             Assert.Contains(first, place => place.DistanceTo(new GeoPoint3(7327.1889, -8619.4022, 6026.7301)) <= 1E-4);
             Assert.Contains(first, place => place.DistanceTo(new GeoPoint3(7325.4856, -8618.2216, 6026.9357)) <= 1E-4);
-            Assert.All(first, place => Assert.InRange(Math.Max(Off(one, place), Off(other, place)), 0.0, Thousandth.EqualPoint));
+            Assert.All(first, place =>
+                Assert.InRange(Math.Max(Off(one, place), Off(other, place)), 0.0, Thousandth.EqualPoint)
+            );
             Assert.Equal(first.Length, other.GetIntersections(one, Thousandth).Length);
             Assert.True(one.CollidesWith(other, Thousandth));
         }

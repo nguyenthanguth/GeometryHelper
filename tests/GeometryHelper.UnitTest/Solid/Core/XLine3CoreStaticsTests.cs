@@ -96,7 +96,13 @@ namespace GeometryHelper.UnitTest.Solid
             double radius = 1E6;
             double half = 5E-5;
             var center = P(0, -radius, 0);
-            GeoArc3 arc = ArcFrom(center, GeoVector3.ZAxis, radius, P(radius * Math.Sin(half), radius * Math.Cos(half) - radius, 0), 2 * half);
+            GeoArc3 arc = ArcFrom(
+                center,
+                GeoVector3.ZAxis,
+                radius,
+                P(radius * Math.Sin(half), radius * Math.Cos(half) - radius, 0),
+                2 * half
+            );
             var line = X(-80, 0, 0, 1, 0, 0);
             GeoLine3 cut = XLine3.CutPast(line, arc, Strict);
 
@@ -134,7 +140,11 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // Both ends of the segment at x = 50 are 50 along the line from the origin along X: the cut is from 49 to 51.
             AssertEnds(XLine3.CutPast(X(0, 0, 0, 1, 0, 0), Segment(), Strict), P(49, 0, 0), P(51, 0, 0));
-            AssertEnds(XLine3.CutPast(X(0, 0, 0, 1, 0, 0), new GeoLine3(P(20, 5, 5), P(80, 5, 5)), Strict), P(19, 0, 0), P(81, 0, 0));
+            AssertEnds(
+                XLine3.CutPast(X(0, 0, 0, 1, 0, 0), new GeoLine3(P(20, 5, 5), P(80, 5, 5)), Strict),
+                P(19, 0, 0),
+                P(81, 0, 0)
+            );
         }
 
         [Fact]
@@ -207,15 +217,32 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < 2000; i++)
             {
-                var a = new GeoXLine3(P(random.NextDouble() * 200 - 100, random.NextDouble() * 200 - 100, random.NextDouble() * 200 - 100), V(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5));
-                var b = new GeoXLine3(P(random.NextDouble() * 200 - 100, random.NextDouble() * 200 - 100, random.NextDouble() * 200 - 100), V(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5));
+                var a = new GeoXLine3(
+                    P(
+                        random.NextDouble() * 200 - 100,
+                        random.NextDouble() * 200 - 100,
+                        random.NextDouble() * 200 - 100
+                    ),
+                    V(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5)
+                );
+                var b = new GeoXLine3(
+                    P(
+                        random.NextDouble() * 200 - 100,
+                        random.NextDouble() * 200 - 100,
+                        random.NextDouble() * 200 - 100
+                    ),
+                    V(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5)
+                );
 
                 Assert.True(XLine3.TryBridge(a, b, Strict, out double aFirst, out double aSecond, out double aGap));
                 Assert.True(XLine3.TryBridge(b, a, Strict, out double bFirst, out double bSecond, out double bGap));
                 Assert.Equal(aGap, bGap);
                 Assert.Equal(aFirst, bSecond);
                 Assert.Equal(aSecond, bFirst);
-                Assert.Equal(a.TryIntersectWith(b, out GeoPoint3[] one, Strict), b.TryIntersectWith(a, out GeoPoint3[] other, Strict));
+                Assert.Equal(
+                    a.TryIntersectWith(b, out GeoPoint3[] one, Strict),
+                    b.TryIntersectWith(a, out GeoPoint3[] other, Strict)
+                );
                 Assert.Equal(one, other);
 
                 GeoLine3 forward = a.GetShortestLineTo(b, Strict);
@@ -284,8 +311,14 @@ namespace GeometryHelper.UnitTest.Solid
                 double tolerance = Math.Pow(10, -9 + 7 * random.NextDouble());
                 double sine = Math.Pow(10, -16 + 8 * random.NextDouble());
                 double scale = Math.Pow(10, 3 + 10 * random.NextDouble());
-                var a = new GeoXLine3(P(scale * random.NextDouble(), scale * random.NextDouble(), scale * random.NextDouble()), GeoVector3.XAxis);
-                var b = new GeoXLine3(P(scale * random.NextDouble(), scale * random.NextDouble(), scale * random.NextDouble()), new GeoVector3(1, sine * (random.Next(2) == 0 ? 1 : -1), sine * (random.Next(2) == 0 ? 1 : -1)));
+                var a = new GeoXLine3(
+                    P(scale * random.NextDouble(), scale * random.NextDouble(), scale * random.NextDouble()),
+                    GeoVector3.XAxis
+                );
+                var b = new GeoXLine3(
+                    P(scale * random.NextDouble(), scale * random.NextDouble(), scale * random.NextDouble()),
+                    new GeoVector3(1, sine * (random.Next(2) == 0 ? 1 : -1), sine * (random.Next(2) == 0 ? 1 : -1))
+                );
                 var t = new Tolerance(tolerance, 1E-5);
 
                 if (a.DistanceTo(b, t) != b.DistanceTo(a, t) || a.CollidesWith(b, t) != b.CollidesWith(a, t))
@@ -303,12 +336,23 @@ namespace GeometryHelper.UnitTest.Solid
             var along = X(0, 0, 0, 1, 0, 0);
 
             // The ray from (50, 30, 40) along -Y reaches y = 0 after 30; along +Y it never does.
-            Assert.True(XLine3.TryBridge(along, new GeoRay3(P(50, 30, 40), V(0, -1, 0)), Strict, out double onLine, out double onRay, out double gap));
+            Assert.True(
+                XLine3.TryBridge(
+                    along,
+                    new GeoRay3(P(50, 30, 40), V(0, -1, 0)),
+                    Strict,
+                    out double onLine,
+                    out double onRay,
+                    out double gap
+                )
+            );
             Assert.Equal(50.0, onLine, 12);
             Assert.Equal(30.0, onRay, 12);
             Assert.Equal(40.0, gap, 12);
 
-            Assert.True(XLine3.TryBridge(along, new GeoRay3(P(50, 30, 40), V(0, 1, 0)), Strict, out _, out double behind, out _));
+            Assert.True(
+                XLine3.TryBridge(along, new GeoRay3(P(50, 30, 40), V(0, 1, 0)), Strict, out _, out double behind, out _)
+            );
             Assert.Equal(-30.0, behind, 12);
             Assert.Equal(50.0, along.DistanceTo(new GeoRay3(P(50, 30, 40), V(0, 1, 0)), Strict), 12);
             Assert.Equal(40.0, along.DistanceTo(new GeoRay3(P(50, 30, 40), V(0, -1, 0)), Strict), 12);

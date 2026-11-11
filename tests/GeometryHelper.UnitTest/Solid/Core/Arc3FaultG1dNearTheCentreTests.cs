@@ -19,7 +19,8 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly GeoPoint3 Centre = new GeoPoint3(1000, -2000, 500);
 
-        private static Tolerance At(double equalPoint) => new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
+        private static Tolerance At(double equalPoint) =>
+            new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
 
         private static GeoArc3 HalfCircle(double radius, double degrees)
         {
@@ -34,8 +35,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoVector3 toStart = arc.Center.GetVectorTo(arc.StartPoint).Normalize();
             GeoVector3 toMiddle = arc.Center.GetVectorTo(arc.MidPoint).Normalize();
 
-            return arc.Center
-                .Add(toStart.Multiply(fromCentre * Math.Cos(angle)))
+            return arc
+                .Center.Add(toStart.Multiply(fromCentre * Math.Cos(angle)))
                 .Add(toMiddle.Multiply(fromCentre * Math.Sin(angle)))
                 .Add(arc.Normal.Multiply(height));
         }
@@ -45,7 +46,10 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(1E-3, 30.0)]
         [InlineData(1E-2, 0.0)]
         [InlineData(1E-2, 30.0)]
-        public void APointNearTheCentreOfAnArcAsLargeAsTheTolerance_IsTheExactDistanceFromIt(double equalPoint, double degrees)
+        public void APointNearTheCentreOfAnArcAsLargeAsTheTolerance_IsTheExactDistanceFromIt(
+            double equalPoint,
+            double degrees
+        )
         {
             // At a tolerance of 0.001, the half circle of radius 0.001 and the point 0.0007 from its centre under its middle:
             // 0.0003 from it, and on it. Carried to the start it stood 0.00122 away and was off. Raised by 0.0004 it is 0.0005
@@ -79,7 +83,10 @@ namespace GeometryHelper.UnitTest.Solid
                 GeoPoint3 moved = Around(arc, angle, 0.71E-3, 0.0);
 
                 Assert.InRange(arc.DistanceTo(moved, t), 0.29E-3 - 1E-11, 0.29E-3 + 1E-11);
-                Assert.True(arc.DistanceTo(moved, t) <= onArc.DistanceTo(moved) + 1E-11, $"moved from {degrees} degrees");
+                Assert.True(
+                    arc.DistanceTo(moved, t) <= onArc.DistanceTo(moved) + 1E-11,
+                    $"moved from {degrees} degrees"
+                );
             }
         }
 
@@ -108,14 +115,22 @@ namespace GeometryHelper.UnitTest.Solid
         [Theory]
         [InlineData(49.9992, 0.0)]
         [InlineData(49.99, 0.0091)]
-        public void TheShortestLineFromABallCentredNearTheCentreOfAnArc_IsAsLongAsTheDistanceAndLandsAtTheContact(double radius, double expected)
+        public void TheShortestLineFromABallCentredNearTheCentreOfAnArc_IsAsLongAsTheDistanceAndLandsAtTheContact(
+            double radius,
+            double expected
+        )
         {
             // The lower half of the circle of radius 50 about the origin and a ball about (0.0009, 0, 0), at a tolerance of a
             // thousandth. The arc's end (50, 0, 0) is 49.9991 from the centre of the ball, so the ball of radius 49.9992 meets
             // it and the one of radius 49.99 is 0.0091 short. The line was drawn to the arc's start (-50, 0, 0) instead: a
             // point outside the first ball, and a line 0.0109 long from the second.
             Tolerance t = At(1E-3);
-            GeoArc3 arc = GeoArc3.FromThreePoints(new GeoPoint3(-50, 0, 0), new GeoPoint3(0, -50, 0), new GeoPoint3(50, 0, 0), t);
+            GeoArc3 arc = GeoArc3.FromThreePoints(
+                new GeoPoint3(-50, 0, 0),
+                new GeoPoint3(0, -50, 0),
+                new GeoPoint3(50, 0, 0),
+                t
+            );
             var ball = new GeoSphere3(new GeoPoint3(0.0009, 0, 0), radius);
 
             double distance = ball.DistanceTo(arc, t);

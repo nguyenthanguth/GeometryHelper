@@ -68,7 +68,12 @@ namespace GeometryHelper.Dxf.Viewer
                 case CadSnapKind.GeometricCenter:
                     return new[] { Circle(h), new CadMarkerStroke(Ring(1.2), true, filled: true) };
                 case CadSnapKind.Node:
-                    return new[] { Circle(h), Chain(false, -h * 0.7, -h * 0.7, h * 0.7, h * 0.7), Chain(false, -h * 0.7, h * 0.7, h * 0.7, -h * 0.7) };
+                    return new[]
+                    {
+                        Circle(h),
+                        Chain(false, -h * 0.7, -h * 0.7, h * 0.7, h * 0.7),
+                        Chain(false, -h * 0.7, h * 0.7, h * 0.7, -h * 0.7),
+                    };
                 case CadSnapKind.Quadrant:
                     return new[] { Chain(true, 0, -h, h, 0, 0, h, -h, 0) };
                 case CadSnapKind.Intersection:
@@ -76,7 +81,8 @@ namespace GeometryHelper.Dxf.Viewer
                 case CadSnapKind.Extension:
                     return new[]
                     {
-                        Chain(false, -h * 0.6, -h * 0.6, h * 0.6, h * 0.6), Chain(false, -h * 0.6, h * 0.6, h * 0.6, -h * 0.6),
+                        Chain(false, -h * 0.6, -h * 0.6, h * 0.6, h * 0.6),
+                        Chain(false, -h * 0.6, h * 0.6, h * 0.6, -h * 0.6),
                         new CadMarkerStroke(Points(-2.0 * h, 0, 2.0 * h, 0), false, dotted: true),
                     };
                 case CadSnapKind.Insertion:
@@ -90,15 +96,27 @@ namespace GeometryHelper.Dxf.Viewer
                 case CadSnapKind.ApparentIntersection:
                     return new[] { Square(-h, -h, h, h), Chain(false, -h, -h, h, h), Chain(false, -h, h, h, -h) };
                 case CadSnapKind.Parallel:
-                    return new[] { Chain(false, -h, h * 0.6, -h * 0.1, -h * 0.6), Chain(false, h * 0.1, h * 0.6, h, -h * 0.6) };
+                    return new[]
+                    {
+                        Chain(false, -h, h * 0.6, -h * 0.1, -h * 0.6),
+                        Chain(false, h * 0.1, h * 0.6, h, -h * 0.6),
+                    };
                 case CadSnapKind.ExtendedApparentIntersection:
                     return new[]
                     {
-                        Square(-h, -h, h, h), Chain(false, -h, -h, h, h), Chain(false, -h, h, h, -h),
-                        Dot(-3.0, h + 2.5), Dot(0.0, h + 2.5), Dot(3.0, h + 2.5),
+                        Square(-h, -h, h, h),
+                        Chain(false, -h, -h, h, h),
+                        Chain(false, -h, h, h, -h),
+                        Dot(-3.0, h + 2.5),
+                        Dot(0.0, h + 2.5),
+                        Dot(3.0, h + 2.5),
                     };
                 case CadSnapKind.Tracking:
-                    return new[] { Chain(false, -h * 0.5, -h * 0.5, h * 0.5, h * 0.5), Chain(false, -h * 0.5, h * 0.5, h * 0.5, -h * 0.5) };
+                    return new[]
+                    {
+                        Chain(false, -h * 0.5, -h * 0.5, h * 0.5, h * 0.5),
+                        Chain(false, -h * 0.5, h * 0.5, h * 0.5, -h * 0.5),
+                    };
                 default:
                     return Array.Empty<CadMarkerStroke>();
             }
@@ -134,11 +152,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>The colour.</returns>
         public static int ColorOn(int background)
         {
-            double luminance = (0.299 * ((background >> 16) & 0xFF) + 0.587 * ((background >> 8) & 0xFF) + 0.114 * (background & 0xFF)) / 255.0;
+            double luminance =
+                (0.299 * ((background >> 16) & 0xFF) + 0.587 * ((background >> 8) & 0xFF) + 0.114 * (background & 0xFF))
+                / 255.0;
             return luminance > 0.5 ? 0x1A1A1A : 0xFFFF00;
         }
 
-        private static CadMarkerStroke Square(double x0, double y0, double x1, double y1) => Chain(true, x0, y0, x1, y0, x1, y1, x0, y1);
+        private static CadMarkerStroke Square(double x0, double y0, double x1, double y1) =>
+            Chain(true, x0, y0, x1, y0, x1, y1, x0, y1);
 
         private static CadMarkerStroke Circle(double radius) => new CadMarkerStroke(Ring(radius), true);
 
@@ -154,7 +175,8 @@ namespace GeometryHelper.Dxf.Viewer
             return new CadMarkerStroke(ring, true, filled: true);
         }
 
-        private static CadMarkerStroke Chain(bool closed, params double[] xy) => new CadMarkerStroke(Points(xy), closed);
+        private static CadMarkerStroke Chain(bool closed, params double[] xy) =>
+            new CadMarkerStroke(Points(xy), closed);
 
         private static GeoPoint2[] Points(params double[] xy)
         {

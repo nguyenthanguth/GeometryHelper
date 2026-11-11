@@ -60,7 +60,9 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                ChangeDimensions(c, only, "Jog", "Remove", d => d.XData = new[] { new DxfTypedValue(1001, JogApplication) });
+                ChangeDimensions(c, only, "Jog", "Remove", d =>
+                    d.XData = new[] { new DxfTypedValue(1001, JogApplication) }
+                );
                 yield break;
             }
 
@@ -83,16 +85,18 @@ namespace GeometryHelper.Dxf.Viewer
             LinearPoints(dimension, out GeoPoint2 q1, out GeoPoint2 q2);
             GeoVector2 along = (q2 - q1) / (q2 - q1).Length;
             GeoPoint2 on = Foot(at, q1, along, 0.0);
-            ChangeDimensions(c, only, "Jog", Values(on.X, on.Y), d => d.XData = new[]
-            {
-                new DxfTypedValue(1001, JogApplication),
-                new DxfTypedValue(1070, "387"),
-                new DxfTypedValue(1070, "3"),
-                new DxfTypedValue(1070, "389"),
-                new DxfTypedValue(1010, on.X.ToString("R", CultureInfo.InvariantCulture)),
-                new DxfTypedValue(1020, on.Y.ToString("R", CultureInfo.InvariantCulture)),
-                new DxfTypedValue(1030, d.Elevation.ToString("R", CultureInfo.InvariantCulture)),
-            });
+            ChangeDimensions(c, only, "Jog", Values(on.X, on.Y), d =>
+                d.XData = new[]
+                {
+                    new DxfTypedValue(1001, JogApplication),
+                    new DxfTypedValue(1070, "387"),
+                    new DxfTypedValue(1070, "3"),
+                    new DxfTypedValue(1070, "389"),
+                    new DxfTypedValue(1010, on.X.ToString("R", CultureInfo.InvariantCulture)),
+                    new DxfTypedValue(1020, on.Y.ToString("R", CultureInfo.InvariantCulture)),
+                    new DxfTypedValue(1030, d.Elevation.ToString("R", CultureInfo.InvariantCulture)),
+                }
+            );
         }
 
         /// <summary>Where a linear dimension's extension lines meet its line: its first, and its second.</summary>
@@ -180,9 +184,26 @@ namespace GeometryHelper.Dxf.Viewer
                     on = stored[i + 1].Value.Trim() != "0";
                 }
 
-                if (on && stored[i].TypeCode == 1070 && stored[i].Value.Trim() == "389" && i + 3 < stored.Count && stored[i + 1].TypeCode == 1010 && stored[i + 2].TypeCode == 1020
-                    && double.TryParse(stored[i + 1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double x)
-                    && double.TryParse(stored[i + 2].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double y))
+                if (
+                    on
+                    && stored[i].TypeCode == 1070
+                    && stored[i].Value.Trim() == "389"
+                    && i + 3 < stored.Count
+                    && stored[i + 1].TypeCode == 1010
+                    && stored[i + 2].TypeCode == 1020
+                    && double.TryParse(
+                        stored[i + 1].Value,
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out double x
+                    )
+                    && double.TryParse(
+                        stored[i + 2].Value,
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out double y
+                    )
+                )
                 {
                     return new GeoPoint2(x, y);
                 }
@@ -207,8 +228,18 @@ namespace GeometryHelper.Dxf.Viewer
 
                     for (int i = 0; stored != null && i + 1 < stored.Count; i++)
                     {
-                        if (stored[i].TypeCode == 1070 && stored[i].Value.Trim() == "388" && stored[i + 1].TypeCode == 1040
-                            && double.TryParse(stored[i + 1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && value > 0.0)
+                        if (
+                            stored[i].TypeCode == 1070
+                            && stored[i].Value.Trim() == "388"
+                            && stored[i + 1].TypeCode == 1040
+                            && double.TryParse(
+                                stored[i + 1].Value,
+                                NumberStyles.Float,
+                                CultureInfo.InvariantCulture,
+                                out double value
+                            )
+                            && value > 0.0
+                        )
                         {
                             factor = value;
                         }

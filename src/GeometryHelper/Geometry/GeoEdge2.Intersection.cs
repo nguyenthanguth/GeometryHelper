@@ -73,8 +73,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets every point where this edge crosses a circle, within a tolerance.
         /// </summary>
-        public GeoPoint2[] GetIntersections(GeoCircle2 circle, Tolerance tolerance)
-            => IsArc ? ToArc().GetIntersections(circle, tolerance) : ToLine().GetIntersections(circle, tolerance);
+        public GeoPoint2[] GetIntersections(GeoCircle2 circle, Tolerance tolerance) =>
+            IsArc ? ToArc().GetIntersections(circle, tolerance) : ToLine().GetIntersections(circle, tolerance);
 
         /// <summary>
         /// Gets every point where this edge crosses a face.
@@ -84,8 +84,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets every point where this edge crosses a face, within a tolerance.
         /// </summary>
-        public GeoPoint2[] GetIntersections(GeoFace2 face, Tolerance tolerance)
-            => IsArc ? ToArc().GetIntersections(face, tolerance) : ToLine().GetIntersections(face, tolerance);
+        public GeoPoint2[] GetIntersections(GeoFace2 face, Tolerance tolerance) =>
+            IsArc ? ToArc().GetIntersections(face, tolerance) : ToLine().GetIntersections(face, tolerance);
 
         /// <summary>
         /// Gets every point where this edge crosses a polygon.
@@ -95,8 +95,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets every point where this edge crosses a polygon, within a tolerance.
         /// </summary>
-        public GeoPoint2[] GetIntersections(GeoPolygon2 poly, Tolerance tolerance)
-            => IsArc ? ToArc().GetIntersections(poly, tolerance) : ToLine().GetIntersections(poly, tolerance);
+        public GeoPoint2[] GetIntersections(GeoPolygon2 poly, Tolerance tolerance) =>
+            IsArc ? ToArc().GetIntersections(poly, tolerance) : ToLine().GetIntersections(poly, tolerance);
 
         /// <summary>
         /// Gets every point where this edge crosses a curved loop.
@@ -106,8 +106,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets every point where this edge crosses a curved loop, within a tolerance.
         /// </summary>
-        public GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, Tolerance tolerance)
-            => IsArc ? ToArc().GetIntersections(loop, tolerance) : ToLine().GetIntersections(loop, tolerance);
+        public GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            IsArc ? ToArc().GetIntersections(loop, tolerance) : ToLine().GetIntersections(loop, tolerance);
 
         /// <summary>
         /// Gets every point where this edge crosses a polyline.
@@ -117,8 +117,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets every point where this edge crosses a polyline, within a tolerance.
         /// </summary>
-        public GeoPoint2[] GetIntersections(GeoPolyline2 polyline, Tolerance tolerance)
-            => IsArc ? ToArc().GetIntersections(polyline, tolerance) : ToLine().GetIntersections(polyline, tolerance);
+        public GeoPoint2[] GetIntersections(GeoPolyline2 polyline, Tolerance tolerance) =>
+            IsArc ? ToArc().GetIntersections(polyline, tolerance) : ToLine().GetIntersections(polyline, tolerance);
 
         /// <summary>
         /// Gets every point where this edge crosses a curved chain.
@@ -128,8 +128,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets every point where this edge crosses a curved chain, within a tolerance.
         /// </summary>
-        public GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, Tolerance tolerance)
-            => IsArc ? ToArc().GetIntersections(chain, tolerance) : ToLine().GetIntersections(chain, tolerance);
+        public GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            IsArc ? ToArc().GetIntersections(chain, tolerance) : ToLine().GetIntersections(chain, tolerance);
 
         /// <summary>
         /// Gets every point where this edge crosses a rectangle.
@@ -139,52 +139,64 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets every point where this edge crosses a rectangle, within a tolerance.
         /// </summary>
-        public GeoPoint2[] GetIntersections(GeoRectangle2 rect, Tolerance tolerance)
-            => IsArc ? ToArc().GetIntersections(rect, tolerance) : ToLine().GetIntersections(rect, tolerance);
+        public GeoPoint2[] GetIntersections(GeoRectangle2 rect, Tolerance tolerance) =>
+            IsArc ? ToArc().GetIntersections(rect, tolerance) : ToLine().GetIntersections(rect, tolerance);
 
         /// <summary>
         /// Tries to find where this edge crosses an arc.
         /// </summary>
-        public bool TryIntersectWith(GeoArc2 arc, out GeoPoint2[] intersections) => TryIntersectWith(arc, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoArc2 arc, out GeoPoint2[] intersections) =>
+            TryIntersectWith(arc, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this edge crosses an arc, within a tolerance.
         /// </summary>
-        public bool TryIntersectWith(GeoArc2 arc, out GeoPoint2[] intersections, Tolerance tolerance)
-            => IsArc ? ToArc().TryIntersectWith(arc, out intersections, tolerance) : ToLine().TryIntersectWith(arc, out intersections, tolerance);
+        public bool TryIntersectWith(GeoArc2 arc, out GeoPoint2[] intersections, Tolerance tolerance) =>
+            IsArc
+                ? ToArc().TryIntersectWith(arc, out intersections, tolerance)
+                : ToLine().TryIntersectWith(arc, out intersections, tolerance);
 
         /// <summary>
         /// Tries to find where this edge crosses a circle.
         /// </summary>
-        public bool TryIntersectWith(GeoCircle2 circle, out GeoPoint2[] intersections) => TryIntersectWith(circle, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoCircle2 circle, out GeoPoint2[] intersections) =>
+            TryIntersectWith(circle, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this edge crosses a circle, within a tolerance.
         /// </summary>
-        public bool TryIntersectWith(GeoCircle2 circle, out GeoPoint2[] intersections, Tolerance tolerance)
-            => IsArc ? ToArc().TryIntersectWith(circle, out intersections, tolerance) : ToLine().TryIntersectWith(circle, out intersections, tolerance);
+        public bool TryIntersectWith(GeoCircle2 circle, out GeoPoint2[] intersections, Tolerance tolerance) =>
+            IsArc
+                ? ToArc().TryIntersectWith(circle, out intersections, tolerance)
+                : ToLine().TryIntersectWith(circle, out intersections, tolerance);
 
         /// <summary>
         /// Tries to find where this edge crosses a curved loop.
         /// </summary>
-        public bool TryIntersectWith(GeoPolygonArc2 loop, out GeoPoint2[] intersections) => TryIntersectWith(loop, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoPolygonArc2 loop, out GeoPoint2[] intersections) =>
+            TryIntersectWith(loop, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this edge crosses a curved loop, within a tolerance.
         /// </summary>
-        public bool TryIntersectWith(GeoPolygonArc2 loop, out GeoPoint2[] intersections, Tolerance tolerance)
-            => IsArc ? ToArc().TryIntersectWith(loop, out intersections, tolerance) : ToLine().TryIntersectWith(loop, out intersections, tolerance);
+        public bool TryIntersectWith(GeoPolygonArc2 loop, out GeoPoint2[] intersections, Tolerance tolerance) =>
+            IsArc
+                ? ToArc().TryIntersectWith(loop, out intersections, tolerance)
+                : ToLine().TryIntersectWith(loop, out intersections, tolerance);
 
         /// <summary>
         /// Tries to find where this edge crosses a curved chain.
         /// </summary>
-        public bool TryIntersectWith(GeoPolylineArc2 chain, out GeoPoint2[] intersections) => TryIntersectWith(chain, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoPolylineArc2 chain, out GeoPoint2[] intersections) =>
+            TryIntersectWith(chain, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this edge crosses a curved chain, within a tolerance.
         /// </summary>
-        public bool TryIntersectWith(GeoPolylineArc2 chain, out GeoPoint2[] intersections, Tolerance tolerance)
-            => IsArc ? ToArc().TryIntersectWith(chain, out intersections, tolerance) : ToLine().TryIntersectWith(chain, out intersections, tolerance);
+        public bool TryIntersectWith(GeoPolylineArc2 chain, out GeoPoint2[] intersections, Tolerance tolerance) =>
+            IsArc
+                ? ToArc().TryIntersectWith(chain, out intersections, tolerance)
+                : ToLine().TryIntersectWith(chain, out intersections, tolerance);
 
         #region Triangles
 
@@ -196,7 +208,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets every point where this edge meets the edges of a triangle, within a tolerance.
         /// </summary>
-        public GeoPoint2[] GetIntersections(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.GetIntersections(triangle, this, tolerance);
+        public GeoPoint2[] GetIntersections(GeoTriangle2 triangle, Tolerance tolerance) =>
+            Triangle2.GetIntersections(triangle, this, tolerance);
 
         #endregion
 
@@ -205,44 +218,48 @@ namespace GeometryHelper.Geometry
         /// <see cref="GeoFace2.TryIntersectWith(GeoEdge2, out GeoPoint2[])"/>.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public bool TryIntersectWith(GeoFace2 face, out GeoPoint2[] intersections)
-            => (face ?? throw new ArgumentNullException(nameof(face))).TryIntersectWith(this, out intersections);
+        public bool TryIntersectWith(GeoFace2 face, out GeoPoint2[] intersections) =>
+            (face ?? throw new ArgumentNullException(nameof(face))).TryIntersectWith(this, out intersections);
 
         /// <summary>
         /// Tries to find where this edge meets a face, within a tolerance: the same answer, and the same points in the
         /// same order, as <see cref="GeoFace2.TryIntersectWith(GeoEdge2, out GeoPoint2[], Tolerance)"/>.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public bool TryIntersectWith(GeoFace2 face, out GeoPoint2[] intersections, Tolerance tolerance)
-            => (face ?? throw new ArgumentNullException(nameof(face))).TryIntersectWith(this, out intersections, tolerance);
+        public bool TryIntersectWith(GeoFace2 face, out GeoPoint2[] intersections, Tolerance tolerance) =>
+            (face ?? throw new ArgumentNullException(nameof(face))).TryIntersectWith(
+                this,
+                out intersections,
+                tolerance
+            );
 
         /// <summary>
         /// Tries to find where this edge meets a rectangle: the same answer, and the same points in the same order, as
         /// <see cref="GeoRectangle2.TryIntersectWith(GeoEdge2, out GeoPoint2[])"/>.
         /// </summary>
-        public bool TryIntersectWith(GeoRectangle2 rect, out GeoPoint2[] intersections)
-            => rect.TryIntersectWith(this, out intersections);
+        public bool TryIntersectWith(GeoRectangle2 rect, out GeoPoint2[] intersections) =>
+            rect.TryIntersectWith(this, out intersections);
 
         /// <summary>
         /// Tries to find where this edge meets a rectangle, within a tolerance: the same answer, and the same points in
         /// the same order, as <see cref="GeoRectangle2.TryIntersectWith(GeoEdge2, out GeoPoint2[], Tolerance)"/>.
         /// </summary>
-        public bool TryIntersectWith(GeoRectangle2 rect, out GeoPoint2[] intersections, Tolerance tolerance)
-            => rect.TryIntersectWith(this, out intersections, tolerance);
+        public bool TryIntersectWith(GeoRectangle2 rect, out GeoPoint2[] intersections, Tolerance tolerance) =>
+            rect.TryIntersectWith(this, out intersections, tolerance);
 
         /// <summary>
         /// Tries to find where this edge meets a triangle: the same answer, and the same points in the same order, as
         /// <see cref="GeoTriangle2.TryIntersectWith(GeoEdge2, out GeoPoint2[])"/>.
         /// </summary>
-        public bool TryIntersectWith(GeoTriangle2 triangle, out GeoPoint2[] intersections)
-            => triangle.TryIntersectWith(this, out intersections);
+        public bool TryIntersectWith(GeoTriangle2 triangle, out GeoPoint2[] intersections) =>
+            triangle.TryIntersectWith(this, out intersections);
 
         /// <summary>
         /// Tries to find where this edge meets a triangle, within a tolerance: the same answer, and the same points in
         /// the same order, as <see cref="GeoTriangle2.TryIntersectWith(GeoEdge2, out GeoPoint2[], Tolerance)"/>.
         /// </summary>
-        public bool TryIntersectWith(GeoTriangle2 triangle, out GeoPoint2[] intersections, Tolerance tolerance)
-            => triangle.TryIntersectWith(this, out intersections, tolerance);
+        public bool TryIntersectWith(GeoTriangle2 triangle, out GeoPoint2[] intersections, Tolerance tolerance) =>
+            triangle.TryIntersectWith(this, out intersections, tolerance);
 
         #region Rays
 

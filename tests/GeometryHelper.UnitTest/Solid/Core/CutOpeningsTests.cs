@@ -22,12 +22,13 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Loose = new Tolerance(1E-7, 1E-7);
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
         /// <summary>A 100 x 100 x 20 plate with a 20 x 20 bolt hole drawn overshooting both faces, as a
         /// through-hole usually is.</summary>
-        private static GeoSolid3 Plate() => Box(0, 0, 0, 100, 100, 20).WithOpenings(new[] { Box(40, 40, -1, 60, 60, 21) });
+        private static GeoSolid3 Plate() =>
+            Box(0, 0, 0, 100, 100, 20).WithOpenings(new[] { Box(40, 40, -1, 60, 60, 21) });
 
         [Fact]
         public void APlateWithABoltHoleComesBackAsTheMaterialAlone()
@@ -60,11 +61,17 @@ namespace GeometryHelper.UnitTest.Solid
             // And it answers every point exactly as the body with the opening did.
             GeoSolid3 plate = Plate();
 
-            foreach (GeoPoint3 point in new[]
-                     {
-                         new GeoPoint3(50, 50, 10), new GeoPoint3(20, 20, 10), new GeoPoint3(40, 50, 10),
-                         new GeoPoint3(50, 50, 20), new GeoPoint3(10, 10, 20), new GeoPoint3(500, 0, 0),
-                     })
+            foreach (
+                GeoPoint3 point in new[]
+                {
+                    new GeoPoint3(50, 50, 10),
+                    new GeoPoint3(20, 20, 10),
+                    new GeoPoint3(40, 50, 10),
+                    new GeoPoint3(50, 50, 20),
+                    new GeoPoint3(10, 10, 20),
+                    new GeoPoint3(500, 0, 0),
+                }
+            )
             {
                 Assert.Equal(plate.Locate(point), material.Locate(point));
             }
@@ -89,7 +96,11 @@ namespace GeometryHelper.UnitTest.Solid
             // A body without openings meshes the same either way.
             GeoSolid3 solidBlock = Box(0, 0, 0, 100, 100, 20);
 
-            Assert.Equal(solidBlock.Triangulate().Sum(t => t.Area), solidBlock.TriangulateSurface().Sum(t => t.Area), 9);
+            Assert.Equal(
+                solidBlock.Triangulate().Sum(t => t.Area),
+                solidBlock.TriangulateSurface().Sum(t => t.Area),
+                9
+            );
         }
 
         [Fact]
@@ -116,9 +127,7 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // Twenty holes in a row along a long plate. Sliced by every hole's planes across the whole plate
             // this would be a grid; cut locally it grows with the number of holes.
-            var holes = Enumerable.Range(0, 20)
-                .Select(i => Box(20 + i * 50, 40, -1, 40 + i * 50, 60, 21))
-                .ToArray();
+            var holes = Enumerable.Range(0, 20).Select(i => Box(20 + i * 50, 40, -1, 40 + i * 50, 60, 21)).ToArray();
 
             GeoSolid3 plate = Box(0, 0, 0, 1020, 100, 20).WithOpenings(holes);
 
@@ -137,11 +146,8 @@ namespace GeometryHelper.UnitTest.Solid
         public void TwoOpeningsThatOverlapAreOneRegionOfNoMaterial()
         {
             // Two holes overlapping each other: taking each off whole would count the overlap twice, the cut does not.
-            GeoSolid3 plate = Box(0, 0, 0, 100, 100, 20).WithOpenings(new[]
-            {
-                Box(30, 40, -1, 60, 60, 21),
-                Box(50, 40, -1, 80, 60, 21),
-            });
+            GeoSolid3 plate = Box(0, 0, 0, 100, 100, 20)
+                .WithOpenings(new[] { Box(30, 40, -1, 60, 60, 21), Box(50, 40, -1, 80, 60, 21) });
 
             Assert.True(plate.TryCutOpenings(out GeoSolid3 material));
 
@@ -198,10 +204,20 @@ namespace GeometryHelper.UnitTest.Solid
             try
             {
                 GeoSolid3 sliver = GeometryHelper.UnitTest.Meshing.CellTests.OpeningSliver();
-                var plan = new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(65, 0, 0), new GeoPoint3(65, 62, 0), new GeoPoint3(40, 62, 0), new GeoPoint3(40, 142, 0), new GeoPoint3(0, 142, 0) };
+                var plan = new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(65, 0, 0),
+                    new GeoPoint3(65, 62, 0),
+                    new GeoPoint3(40, 62, 0),
+                    new GeoPoint3(40, 142, 0),
+                    new GeoPoint3(0, 142, 0),
+                };
                 GeoSolid3 ell = GeoSolid3.Extrude(new GeoPolygon3(plan), new GeoVector3(0, 0, 1777), Tolerance.Default);
 
-                Assert.True(ell.WithOpenings(new[] { sliver }).TryCutOpenings(out GeoSolid3 material, Tolerance.Default));
+                Assert.True(
+                    ell.WithOpenings(new[] { sliver }).TryCutOpenings(out GeoSolid3 material, Tolerance.Default)
+                );
                 Assert.Empty(warnings);
 
                 // Most of the sliver is outside the L: what of it is inside, under a twentieth of a cubic millimetre, is gone.

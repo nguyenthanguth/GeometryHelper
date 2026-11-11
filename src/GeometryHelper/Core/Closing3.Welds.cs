@@ -62,7 +62,14 @@ namespace GeometryHelper.Core
         /// longer than it open, which bounds no hole and is a gap of no width.
         /// </para>
         /// </remarks>
-        private static bool TryWeldGaps(Work work, ref List<GeoFace3> faces, ref List<int> origins, ref List<Rim> rims, out GeoSolid3 closed, out SolidClosing3 report)
+        private static bool TryWeldGaps(
+            Work work,
+            ref List<GeoFace3> faces,
+            ref List<int> origins,
+            ref List<Rim> rims,
+            out GeoSolid3 closed,
+            out SolidClosing3 report
+        )
         {
             closed = null;
             report = null;
@@ -106,7 +113,13 @@ namespace GeometryHelper.Core
                         TurnAgain(work, welded.Again);
                         work.Repairs.AddRange(welded.Repairs);
                         closed = welded.Body;
-                        report = new SolidClosing3(work.Repairs.ToArray(), work.AddedArea, VolumeChange(work.Solid, closed), ClosingFailure.None, null);
+                        report = new SolidClosing3(
+                            work.Repairs.ToArray(),
+                            work.AddedArea,
+                            VolumeChange(work.Solid, closed),
+                            ClosingFailure.None,
+                            null
+                        );
                         return true;
                     }
 
@@ -232,7 +245,15 @@ namespace GeometryHelper.Core
         /// nothing new, and the next would not either: a sphere of six thousand faces each on copies of its own corners, too
         /// far apart for the reach, was welded three times over at it for nothing.
         /// </remarks>
-        private static Welded WeldWithin(Work work, List<GeoFace3> faces, List<int> origins, List<Rim> rims, List<GeoPoint3> ends, double reach, bool onEdges)
+        private static Welded WeldWithin(
+            Work work,
+            List<GeoFace3> faces,
+            List<int> origins,
+            List<Rim> rims,
+            List<GeoPoint3> ends,
+            double reach,
+            bool onEdges
+        )
         {
             var open = new HashSet<GeoPoint3>(ends);
             List<GeoPoint3> taken = ends;
@@ -337,7 +358,15 @@ namespace GeometryHelper.Core
         /// that closes nothing costs what its faces cost, not what the body does.
         /// </para>
         /// </remarks>
-        private static Welded WeldOnce(Work work, List<GeoFace3> faces, List<int> origins, List<Rim> rims, List<GeoPoint3> ends, double reach, bool onEdges)
+        private static Welded WeldOnce(
+            Work work,
+            List<GeoFace3> faces,
+            List<int> origins,
+            List<Rim> rims,
+            List<GeoPoint3> ends,
+            double reach,
+            bool onEdges
+        )
         {
             Tolerance tolerance = work.Tolerance;
             double within = reach * (1.0 + Hair);
@@ -349,7 +378,10 @@ namespace GeometryHelper.Core
             for (int f = 0; f < faces.Count; f++)
             {
                 GeoFace3 face = faces[f];
-                rings[f] = new List<List<int>>(1 + face.Holes.Count) { Weld3.Positions(face.Boundary, index, points, corners) };
+                rings[f] = new List<List<int>>(1 + face.Holes.Count)
+                {
+                    Weld3.Positions(face.Boundary, index, points, corners),
+                };
 
                 foreach (GeoPolygon3 hole in face.Holes)
                 {
@@ -375,7 +407,15 @@ namespace GeometryHelper.Core
                 return null;
             }
 
-            int[] target = Weldings(points, FacesOfCorners(rings, weldable), Bends(faces, rings, weldable), within, weldable, rings, OpenEdgesOf(rims, index));
+            int[] target = Weldings(
+                points,
+                FacesOfCorners(rings, weldable),
+                Bends(faces, rings, weldable),
+                within,
+                weldable,
+                rings,
+                OpenEdgesOf(rims, index)
+            );
             CollapseAll(rings, target);
 
             // The welds as they were made, before any corner is put on an edge.
@@ -442,7 +482,12 @@ namespace GeometryHelper.Core
 
             // A crossing is an edge reaching through a face by more than the widest gap: within it, the faces round corners
             // not welded yet stand through each other as far as the copies of a corner stand apart.
-            var deep = new Tolerance(tolerance.EqualPoint, tolerance.EqualVector, tolerance.EqualAngleRad, Math.Max(tolerance.EqualPlanar, work.Options.MaxGap));
+            var deep = new Tolerance(
+                tolerance.EqualPoint,
+                tolerance.EqualVector,
+                tolerance.EqualAngleRad,
+                Math.Max(tolerance.EqualPlanar, work.Options.MaxGap)
+            );
 
             // A face built again lying back to back with another is a skin of no thickness: a face folded under the one beside
             // it, where a corner of that one was threaded through it. One crossing another closes a gap through what stands
@@ -457,7 +502,17 @@ namespace GeometryHelper.Core
                 return null;
             }
 
-            List<Rim> left = OpenEdgesAfter(built, fresh, changed, rims, tolerance, work.Options.MaxGap, out GeoPoint3 fin, out List<Stretch> stretches, out List<int> localOf);
+            List<Rim> left = OpenEdgesAfter(
+                built,
+                fresh,
+                changed,
+                rims,
+                tolerance,
+                work.Options.MaxGap,
+                out GeoPoint3 fin,
+                out List<Stretch> stretches,
+                out List<int> localOf
+            );
 
             if (left == null)
             {
@@ -501,7 +556,17 @@ namespace GeometryHelper.Core
         /// on its own, so that faces changed in many places, as copies of corners all over a sphere, are read where they
         /// changed and not across the box round them all (see <see cref="FaceBoxes"/>).
         /// </remarks>
-        private static List<Rim> OpenEdgesAfter(List<GeoFace3> built, List<bool> fresh, List<GeoAabb3> changed, List<Rim> before, Tolerance tolerance, double maxGap, out GeoPoint3 fin, out List<Stretch> stretches, out List<int> localOf)
+        private static List<Rim> OpenEdgesAfter(
+            List<GeoFace3> built,
+            List<bool> fresh,
+            List<GeoAabb3> changed,
+            List<Rim> before,
+            Tolerance tolerance,
+            double maxGap,
+            out GeoPoint3 fin,
+            out List<Stretch> stretches,
+            out List<int> localOf
+        )
         {
             var filed = new FaceBoxes(changed.ToArray(), null, tolerance);
             var near = new List<int>();
@@ -572,7 +637,13 @@ namespace GeometryHelper.Core
         /// <param name="point">The point.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="near">A list to work in.</param>
-        private static bool Holds(FaceBoxes filed, List<GeoAabb3> boxes, GeoPoint3 point, Tolerance tolerance, List<int> near)
+        private static bool Holds(
+            FaceBoxes filed,
+            List<GeoAabb3> boxes,
+            GeoPoint3 point,
+            Tolerance tolerance,
+            List<int> near
+        )
         {
             filed.Meeting(new GeoAabb3(point, point), near);
 
@@ -670,7 +741,15 @@ namespace GeometryHelper.Core
         /// <param name="movable">For each position, whether it may move.</param>
         /// <param name="rings">The rings of each face, by position.</param>
         /// <param name="openEdges">The edges of the faces that read open, by the keys of their two positions; see <see cref="EdgeKey"/>.</param>
-        private static int[] Weldings(List<GeoPoint3> points, List<int>[] faces, List<GeoVector3>[] bends, double reach, bool[] movable, List<List<int>>[] rings, HashSet<long> openEdges)
+        private static int[] Weldings(
+            List<GeoPoint3> points,
+            List<int>[] faces,
+            List<GeoVector3>[] bends,
+            double reach,
+            bool[] movable,
+            List<List<int>>[] rings,
+            HashSet<long> openEdges
+        )
         {
             int count = points.Count;
             var to = new int[count];
@@ -711,7 +790,9 @@ namespace GeometryHelper.Core
             foreach (int a in ids)
             {
                 GeoPoint3 p = points[a];
-                long x = CellOf(p.X, reach), y = CellOf(p.Y, reach), z = CellOf(p.Z, reach);
+                long x = CellOf(p.X, reach),
+                    y = CellOf(p.Y, reach),
+                    z = CellOf(p.Z, reach);
 
                 for (long dx = -1; dx <= 1; dx++)
                 {
@@ -738,18 +819,20 @@ namespace GeometryHelper.Core
                 }
             }
 
-            pairs.Sort((p, q) =>
-            {
-                int bySquared = p.Squared.CompareTo(q.Squared);
-
-                if (bySquared != 0)
+            pairs.Sort(
+                (p, q) =>
                 {
-                    return bySquared;
-                }
+                    int bySquared = p.Squared.CompareTo(q.Squared);
 
-                int byA = p.A.CompareTo(q.A);
-                return byA != 0 ? byA : p.B.CompareTo(q.B);
-            });
+                    if (bySquared != 0)
+                    {
+                        return bySquared;
+                    }
+
+                    int byA = p.A.CompareTo(q.A);
+                    return byA != 0 ? byA : p.B.CompareTo(q.B);
+                }
+            );
 
             // The faces of the corners of each group, by its root.
             var faceSets = new Dictionary<int, HashSet<int>>();
@@ -870,7 +953,15 @@ namespace GeometryHelper.Core
         /// cap of a thousand corners, its triangle at a corner a sliver, gave way to the sides 0.06 wide beside it and was
         /// tilted out of flat, where weighed by its area it stays, and the sides bend.
         /// </remarks>
-        private static void Weigh(int candidate, List<int> group, List<GeoPoint3> points, List<GeoVector3>[] corners, double reachSquared, out int taken, out double moved)
+        private static void Weigh(
+            int candidate,
+            List<int> group,
+            List<GeoPoint3> points,
+            List<GeoVector3>[] corners,
+            double reachSquared,
+            out int taken,
+            out double moved
+        )
         {
             taken = 0;
             moved = 0.0;
@@ -946,7 +1037,12 @@ namespace GeometryHelper.Core
 
             foreach (Rim rim in rims)
             {
-                if (!rim.IsFin && index.TryGetValue(rim.EdgeStart, out int start) && index.TryGetValue(rim.EdgeEnd, out int end) && start != end)
+                if (
+                    !rim.IsFin
+                    && index.TryGetValue(rim.EdgeStart, out int start)
+                    && index.TryGetValue(rim.EdgeEnd, out int end)
+                    && start != end
+                )
                 {
                     open.Add(EdgeKey(start, end));
                 }
@@ -974,7 +1070,15 @@ namespace GeometryHelper.Core
         /// and a copy of it 0.003 off, or the top and bottom spanning a crack through the front by an edge as long as the crack
         /// is wide, close where the two are made one, and the face keeps its shape.
         /// </remarks>
-        private static bool MayShareFaces(HashSet<int> fa, HashSet<int> fb, int ra, int rb, int[] parent, List<List<int>>[] rings, HashSet<long> openEdges)
+        private static bool MayShareFaces(
+            HashSet<int> fa,
+            HashSet<int> fb,
+            int ra,
+            int rb,
+            int[] parent,
+            List<List<int>>[] rings,
+            HashSet<long> openEdges
+        )
         {
             foreach (int f in fa)
             {
@@ -1046,7 +1150,8 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < count; i++)
             {
-                int p = roots[i], q = roots[(i + 1) % count];
+                int p = roots[i],
+                    q = roots[(i + 1) % count];
 
                 if ((p == ra && q == rb) || (p == rb && q == ra))
                 {
@@ -1095,7 +1200,9 @@ namespace GeometryHelper.Core
         /// <param name="b">The other.</param>
         private static double SquaredDistance(GeoPoint3 a, GeoPoint3 b)
         {
-            double dx = a.X - b.X, dy = a.Y - b.Y, dz = a.Z - b.Z;
+            double dx = a.X - b.X,
+                dy = a.Y - b.Y,
+                dz = a.Z - b.Z;
             return dx * dx + dy * dy + dz * dz;
         }
 
@@ -1201,7 +1308,10 @@ namespace GeometryHelper.Core
 
             IEnumerable<GeoPoint3> boundary = Weld3.Corners(faceRings[0], points);
 
-            if (LiesFlat(boundary, holes, pieces.EqualPlanar) && TryOneFace(boundary, holes, LoopAssembly.ForFacePieces(pieces), out GeoFace3 face))
+            if (
+                LiesFlat(boundary, holes, pieces.EqualPlanar)
+                && TryOneFace(boundary, holes, LoopAssembly.ForFacePieces(pieces), out GeoFace3 face)
+            )
             {
                 return new[] { face };
             }
@@ -1281,7 +1391,12 @@ namespace GeometryHelper.Core
         /// <param name="holes">The corners of each hole.</param>
         /// <param name="build">The tolerance.</param>
         /// <param name="face">The face; null when the method returns false.</param>
-        private static bool TryOneFace(IEnumerable<GeoPoint3> boundary, List<IEnumerable<GeoPoint3>> holes, Tolerance build, out GeoFace3 face)
+        private static bool TryOneFace(
+            IEnumerable<GeoPoint3> boundary,
+            List<IEnumerable<GeoPoint3>> holes,
+            Tolerance build,
+            out GeoFace3 face
+        )
         {
             try
             {
@@ -1333,7 +1448,15 @@ namespace GeometryHelper.Core
         /// in the plane of the edge's face, which stays flat, and where the crack is twisted between the two, which bends.
         /// </para>
         /// </remarks>
-        private static bool[] PutCornersOnOpenEdges(List<List<int>>[] rings, List<GeoPoint3> points, double reach, bool[] open, List<GeoFace3> faces, Tolerance tolerance, List<SolidRepair3> repairs)
+        private static bool[] PutCornersOnOpenEdges(
+            List<List<int>>[] rings,
+            List<GeoPoint3> points,
+            double reach,
+            bool[] open,
+            List<GeoFace3> faces,
+            Tolerance tolerance,
+            List<SolidRepair3> repairs
+        )
         {
             var cornered = new bool[rings.Length];
             var counts = new Dictionary<long, int>(EdgeKeys.Instance);
@@ -1411,7 +1534,8 @@ namespace GeometryHelper.Core
                     {
                         int from = ring[i];
                         int next = ring[(i + 1) % ring.Count];
-                        bool unpaired = counts[EdgeKey(from, next)] % 2 != 0 && marked.Contains(from) && marked.Contains(next);
+                        bool unpaired =
+                            counts[EdgeKey(from, next)] % 2 != 0 && marked.Contains(from) && marked.Contains(next);
                         List<int> on = unpaired ? CornersOnEdge(points, from, next, sorted, reach) : null;
 
                         if (on == null)
@@ -1474,14 +1598,22 @@ namespace GeometryHelper.Core
                 foreach (int corner in on)
                 {
                     GeoPoint3 foot = NearestOnSegment(start, end, points[corner]);
-                    bool moved = edgesOf[corner] == 1 && LiesInPlanesOf(start, end, facesOf[corner], faces, planes, tolerance.EqualPlanar);
+                    bool moved =
+                        edgesOf[corner] == 1
+                        && LiesInPlanesOf(start, end, facesOf[corner], faces, planes, tolerance.EqualPlanar);
 
                     if (moved)
                     {
                         moveTo[corner] = foot;
                     }
 
-                    repairs.Add(new SolidRepair3(SolidRepairKind.SplitEdge, moved ? foot : points[corner], points[corner].DistanceTo(foot)));
+                    repairs.Add(
+                        new SolidRepair3(
+                            SolidRepairKind.SplitEdge,
+                            moved ? foot : points[corner],
+                            points[corner].DistanceTo(foot)
+                        )
+                    );
                 }
             }
 
@@ -1529,7 +1661,14 @@ namespace GeometryHelper.Core
         /// <param name="faces">Every face, by index.</param>
         /// <param name="planes">The planes of the faces asked about so far, by index, added to here.</param>
         /// <param name="planar">The planar tolerance.</param>
-        private static bool LiesInPlanesOf(GeoPoint3 start, GeoPoint3 end, List<int> of, List<GeoFace3> faces, Dictionary<int, GeoPlane3> planes, double planar)
+        private static bool LiesInPlanesOf(
+            GeoPoint3 start,
+            GeoPoint3 end,
+            List<int> of,
+            List<GeoFace3> faces,
+            Dictionary<int, GeoPlane3> planes,
+            double planar
+        )
         {
             foreach (int f in of)
             {
@@ -1569,8 +1708,12 @@ namespace GeometryHelper.Core
         /// and a middle lying on a face lies in its box, so each face new is set only against those whose boxes meet its own
         /// (see <see cref="FaceBoxes"/>): a sphere of six thousand faces each built again is not six thousand times read.
         /// </remarks>
-        private static bool HasSkin(IReadOnlyList<GeoFace3> faces, IReadOnlyList<bool> fresh, Tolerance tolerance, out GeoPoint3 at)
-            => HasSkinOrCrossing(faces, fresh, null, tolerance, tolerance, out _, out at);
+        private static bool HasSkin(
+            IReadOnlyList<GeoFace3> faces,
+            IReadOnlyList<bool> fresh,
+            Tolerance tolerance,
+            out GeoPoint3 at
+        ) => HasSkinOrCrossing(faces, fresh, null, tolerance, tolerance, out _, out at);
 
         /// <summary>
         /// Finds a face new to a body lying back to back with another, or another with it, as <see cref="HasSkin"/> does;
@@ -1607,7 +1750,15 @@ namespace GeometryHelper.Core
         /// welding nothing through anything, are tried as they were.
         /// </para>
         /// </remarks>
-        private static bool HasSkinOrCrossing(IReadOnlyList<GeoFace3> faces, IReadOnlyList<bool> fresh, IReadOnlyList<GeoFace3> before, Tolerance tolerance, Tolerance deep, out bool crossed, out GeoPoint3 at)
+        private static bool HasSkinOrCrossing(
+            IReadOnlyList<GeoFace3> faces,
+            IReadOnlyList<bool> fresh,
+            IReadOnlyList<GeoFace3> before,
+            Tolerance tolerance,
+            Tolerance deep,
+            out bool crossed,
+            out GeoPoint3 at
+        )
         {
             int count = faces.Count;
             var boxes = new GeoAabb3[count];
@@ -1651,14 +1802,21 @@ namespace GeometryHelper.Core
 
                     if (normal.DotProduct(faces[g].Normal) < Facing)
                     {
-                        if (boxes[g].Contains(MiddleOf(f), tolerance) && faces[g].Locate(MiddleOf(f), tolerance) != PointLocation.OutSide)
+                        if (
+                            boxes[g].Contains(MiddleOf(f), tolerance)
+                            && faces[g].Locate(MiddleOf(f), tolerance) != PointLocation.OutSide
+                        )
                         {
                             at = MiddleOf(f);
                             return true;
                         }
 
                         // A pair of two new faces is looked at from each.
-                        if (!fresh[g] && boxes[f].Contains(MiddleOf(g), tolerance) && faces[f].Locate(MiddleOf(g), tolerance) != PointLocation.OutSide)
+                        if (
+                            !fresh[g]
+                            && boxes[f].Contains(MiddleOf(g), tolerance)
+                            && faces[f].Locate(MiddleOf(g), tolerance) != PointLocation.OutSide
+                        )
                         {
                             at = MiddleOf(g);
                             return true;
@@ -1668,8 +1826,13 @@ namespace GeometryHelper.Core
                     // A pair of two new faces is set against crossing once, from the first of them; and a pair crossing as
                     // the faces they were built from did is the body's own. Two faces crossing each stand across the other's
                     // plane, and the one of fewer corners is read first: a wall against a cap of a thousand corners.
-                    if (before != null && !(fresh[g] && g < f) && FewerCornersAcross(faces[g], faces[f], deep)
-                        && Crosses(faces[g], faces[f], deep, out GeoPoint3 crossing) && !Crosses(before[g], before[f], deep, out _))
+                    if (
+                        before != null
+                        && !(fresh[g] && g < f)
+                        && FewerCornersAcross(faces[g], faces[f], deep)
+                        && Crosses(faces[g], faces[f], deep, out GeoPoint3 crossing)
+                        && !Crosses(before[g], before[f], deep, out _)
+                    )
                     {
                         crossed = true;
                         at = crossing;
@@ -1689,8 +1852,10 @@ namespace GeometryHelper.Core
         /// <param name="one">The one face.</param>
         /// <param name="other">The other.</param>
         /// <param name="tolerance">The tolerance.</param>
-        private static bool FewerCornersAcross(GeoFace3 one, GeoFace3 other, Tolerance tolerance)
-            => one.Boundary.VertexCount <= other.Boundary.VertexCount ? StandsAcross(one, other, tolerance) : StandsAcross(other, one, tolerance);
+        private static bool FewerCornersAcross(GeoFace3 one, GeoFace3 other, Tolerance tolerance) =>
+            one.Boundary.VertexCount <= other.Boundary.VertexCount
+                ? StandsAcross(one, other, tolerance)
+                : StandsAcross(other, one, tolerance);
 
         /// <summary>
         /// The corners among those given that stand within a reach of an edge, between its ends, in order from its start, the
@@ -1722,11 +1887,15 @@ namespace GeometryHelper.Core
 
             // Along the axis the edge spreads least along, the fewest corners lie within its box.
             double[] spread = { Math.Abs(along.X), Math.Abs(along.Y), Math.Abs(along.Z) };
-            int axis = spread[0] <= spread[1] && spread[0] <= spread[2] ? 0 : spread[1] <= spread[2] ? 1 : 2;
+            int axis =
+                spread[0] <= spread[1] && spread[0] <= spread[2] ? 0
+                : spread[1] <= spread[2] ? 1
+                : 2;
             double low = Math.Min(Coordinate(start, axis), Coordinate(end, axis)) - reach;
             double high = Math.Max(Coordinate(start, axis), Coordinate(end, axis)) + reach;
             int[] candidates = sorted[axis];
-            int first = 0, last = candidates.Length;
+            int first = 0,
+                last = candidates.Length;
 
             while (first < last)
             {
@@ -1773,11 +1942,13 @@ namespace GeometryHelper.Core
                 return null;
             }
 
-            on.Sort((p, q) =>
-            {
-                int byAt = p.At.CompareTo(q.At);
-                return byAt != 0 ? byAt : p.Id.CompareTo(q.Id);
-            });
+            on.Sort(
+                (p, q) =>
+                {
+                    int byAt = p.At.CompareTo(q.At);
+                    return byAt != 0 ? byAt : p.Id.CompareTo(q.Id);
+                }
+            );
 
             var ids = new List<int>(on.Count);
 
@@ -1826,7 +1997,9 @@ namespace GeometryHelper.Core
             for (int i = 0; i < points.Count; i++)
             {
                 GeoPoint3 point = points[i];
-                long x = CellOf(point.X, reach), y = CellOf(point.Y, reach), z = CellOf(point.Z, reach);
+                long x = CellOf(point.X, reach),
+                    y = CellOf(point.Y, reach),
+                    z = CellOf(point.Z, reach);
 
                 for (long dx = -1; dx <= 1 && !near[i]; dx++)
                 {
@@ -2007,7 +2180,16 @@ namespace GeometryHelper.Core
             /// <param name="rims">The edges it leaves open; none where it is valid.</param>
             /// <param name="gaps">How many of them are sides of gaps.</param>
             /// <param name="again">The faces given whose faces the reach turned over again, by index, in order.</param>
-            internal Welded(List<GeoFace3> faces, List<int> origins, List<SolidRepair3> repairs, GeoSolid3 body, bool valid, List<Rim> rims, int gaps, List<int> again)
+            internal Welded(
+                List<GeoFace3> faces,
+                List<int> origins,
+                List<SolidRepair3> repairs,
+                GeoSolid3 body,
+                bool valid,
+                List<Rim> rims,
+                int gaps,
+                List<int> again
+            )
             {
                 Again = again;
                 Faces = faces;

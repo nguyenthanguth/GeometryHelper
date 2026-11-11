@@ -21,23 +21,27 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A straight run along X at y = z = 5, from x = -10 to x = 60, seventy units long.
         /// </summary>
-        private static GeoPolyline3 Chain() =>
-            new GeoPolyline3(new GeoPoint3(-10, 5, 5), new GeoPoint3(60, 5, 5));
+        private static GeoPolyline3 Chain() => new GeoPolyline3(new GeoPoint3(-10, 5, 5), new GeoPoint3(60, 5, 5));
 
-        private static GeoLine3 Segment() =>
-            new GeoLine3(new GeoPoint3(-10, 5, 5), new GeoPoint3(60, 5, 5));
+        private static GeoLine3 Segment() => new GeoLine3(new GeoPoint3(-10, 5, 5), new GeoPoint3(60, 5, 5));
 
         private static double TotalLength(GeoPolyline3[] pieces)
         {
             double total = 0.0;
-            foreach (GeoPolyline3 piece in pieces) { total += piece.Length; }
+            foreach (GeoPolyline3 piece in pieces)
+            {
+                total += piece.Length;
+            }
             return total;
         }
 
         private static double TotalLength(GeoLine3[] pieces)
         {
             double total = 0.0;
-            foreach (GeoLine3 piece in pieces) { total += piece.Length; }
+            foreach (GeoLine3 piece in pieces)
+            {
+                total += piece.Length;
+            }
             return total;
         }
 
@@ -121,7 +125,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TwoBoxesApart_GiveOnePieceInsideEach()
         {
-            Assert.True(Chain().TrySplitBy(new[] { Obb(0, 10), Obb(20, 30) }, out GeoPolyline3[] inside, out GeoPolyline3[] outside));
+            Assert.True(
+                Chain()
+                    .TrySplitBy(
+                        new[] { Obb(0, 10), Obb(20, 30) },
+                        out GeoPolyline3[] inside,
+                        out GeoPolyline3[] outside
+                    )
+            );
 
             Assert.Equal(2, inside.Length);
             Assert.Equal(3, outside.Length);
@@ -133,7 +144,10 @@ namespace GeometryHelper.UnitTest.Solid
         public void TwoBoxesOverlapping_GiveOneUnbrokenPiece()
         {
             // 0..10 and 5..20 share 5..10; their union is 0..20 and nothing separates it.
-            Assert.True(Chain().TrySplitBy(new[] { Obb(0, 10), Obb(5, 20) }, out GeoPolyline3[] inside, out GeoPolyline3[] outside));
+            Assert.True(
+                Chain()
+                    .TrySplitBy(new[] { Obb(0, 10), Obb(5, 20) }, out GeoPolyline3[] inside, out GeoPolyline3[] outside)
+            );
 
             Assert.Single(inside);
             Assert.Equal(20.0, inside[0].Length, 9);
@@ -143,7 +157,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TwoBoxesMeetingFaceToFace_LeaveNoCutBetweenThem()
         {
-            Assert.True(Chain().TrySplitBy(new[] { Obb(0, 10), Obb(10, 25) }, out GeoPolyline3[] inside, out GeoPolyline3[] outside));
+            Assert.True(
+                Chain()
+                    .TrySplitBy(
+                        new[] { Obb(0, 10), Obb(10, 25) },
+                        out GeoPolyline3[] inside,
+                        out GeoPolyline3[] outside
+                    )
+            );
 
             Assert.Single(inside);
             Assert.Equal(25.0, inside[0].Length, 9);
@@ -156,8 +177,13 @@ namespace GeometryHelper.UnitTest.Solid
             // Turned forty-five degrees about Z, centred on the run at x = 5. Its half-diagonal across the
             // XY plane is what the chain meets, so the stretch inside is the full width of the diagonal.
             GeoObb3 turned = new GeoObb3(
-                new GeoPoint3(5, 5, 5), 10, 10, 10,
-                new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 0));
+                new GeoPoint3(5, 5, 5),
+                10,
+                10,
+                10,
+                new GeoVector3(1, 1, 0),
+                new GeoVector3(-1, 1, 0)
+            );
 
             Assert.True(Chain().TrySplitBy(new[] { turned }, out GeoPolyline3[] inside, out GeoPolyline3[] outside));
 
@@ -210,7 +236,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoAabb3 box = Aabb(0, 10);
 
             bool dense = Chain().TrySplitBy(new[] { box }, out GeoPolyline3[] denseIn, out _);
-            bool sparse = Chain().TrySplitBy(new[] { GeoAabb3.Empty, box, GeoAabb3.Empty }, out GeoPolyline3[] sparseIn, out _);
+            bool sparse = Chain()
+                .TrySplitBy(new[] { GeoAabb3.Empty, box, GeoAabb3.Empty }, out GeoPolyline3[] sparseIn, out _);
 
             Assert.Equal(dense, sparse);
             Assert.Equal(denseIn.Length, sparseIn.Length);
@@ -220,7 +247,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AnArrayOfNothingButEmptyBoxes_CutsNothing()
         {
-            Assert.False(Chain().TrySplitBy(new[] { GeoAabb3.Empty, GeoAabb3.Empty }, out GeoPolyline3[] inside, out GeoPolyline3[] outside));
+            Assert.False(
+                Chain()
+                    .TrySplitBy(
+                        new[] { GeoAabb3.Empty, GeoAabb3.Empty },
+                        out GeoPolyline3[] inside,
+                        out GeoPolyline3[] outside
+                    )
+            );
 
             Assert.Empty(inside);
             Assert.Single(outside);
@@ -230,26 +264,42 @@ namespace GeometryHelper.UnitTest.Solid
         public void ANullArray_IsRefused()
         {
             Assert.Throws<ArgumentNullException>(() =>
-                Chain().TrySplitBy((GeoObb3[])null, out GeoPolyline3[] _, out GeoPolyline3[] _));
+                Chain().TrySplitBy((GeoObb3[])null, out GeoPolyline3[] _, out GeoPolyline3[] _)
+            );
 
             Assert.Throws<ArgumentNullException>(() =>
-                Chain().TrySplitBy((GeoAabb3[])null, out GeoPolyline3[] _, out GeoPolyline3[] _));
+                Chain().TrySplitBy((GeoAabb3[])null, out GeoPolyline3[] _, out GeoPolyline3[] _)
+            );
 
             Assert.Throws<ArgumentNullException>(() =>
-                Segment().TrySplitBy((GeoObb3[])null, out GeoLine3[] _, out GeoLine3[] _));
+                Segment().TrySplitBy((GeoObb3[])null, out GeoLine3[] _, out GeoLine3[] _)
+            );
 
             Assert.Throws<ArgumentNullException>(() =>
-                Segment().TrySplitBy((GeoAabb3[])null, out GeoLine3[] _, out GeoLine3[] _));
+                Segment().TrySplitBy((GeoAabb3[])null, out GeoLine3[] _, out GeoLine3[] _)
+            );
         }
 
         [Fact]
         public void ANullSubject_IsRefused()
         {
             Assert.Throws<ArgumentNullException>(() =>
-                Splition3.TrySplitBy((GeoPolyline3)null, new[] { Obb(0, 10) }, out GeoPolyline3[] _, out GeoPolyline3[] _));
+                Splition3.TrySplitBy(
+                    (GeoPolyline3)null,
+                    new[] { Obb(0, 10) },
+                    out GeoPolyline3[] _,
+                    out GeoPolyline3[] _
+                )
+            );
 
             Assert.Throws<ArgumentNullException>(() =>
-                Splition3.TrySplitBy((GeoPolyline3)null, new[] { Aabb(0, 10) }, out GeoPolyline3[] _, out GeoPolyline3[] _));
+                Splition3.TrySplitBy(
+                    (GeoPolyline3)null,
+                    new[] { Aabb(0, 10) },
+                    out GeoPolyline3[] _,
+                    out GeoPolyline3[] _
+                )
+            );
         }
 
         [Fact]
@@ -258,7 +308,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoAabb3[] elsewhere =
             {
                 new GeoAabb3(new GeoPoint3(0, 100, 0), new GeoPoint3(10, 110, 10)),
-                new GeoAabb3(new GeoPoint3(20, 100, 0), new GeoPoint3(30, 110, 10))
+                new GeoAabb3(new GeoPoint3(20, 100, 0), new GeoPoint3(30, 110, 10)),
             };
 
             Assert.False(Chain().TrySplitBy(elsewhere, out GeoPolyline3[] inside, out GeoPolyline3[] outside));
@@ -281,7 +331,7 @@ namespace GeometryHelper.UnitTest.Solid
                 new[] { Aabb(0, 10), Aabb(5, 20) },
                 new[] { Aabb(0, 10), Aabb(10, 25) },
                 new[] { GeoAabb3.Empty },
-                new GeoAabb3[0]
+                new GeoAabb3[0],
             };
 
             foreach (GeoAabb3[] cutters in arrangements)
@@ -314,7 +364,10 @@ namespace GeometryHelper.UnitTest.Solid
             // Turns the corner inside the box, so the piece inside spans two edges of the chain: five
             // units along X to the corner, then five more up Z to the top of the box.
             GeoPolyline3 bent = new GeoPolyline3(
-                new GeoPoint3(-10, 5, 5), new GeoPoint3(5, 5, 5), new GeoPoint3(5, 5, 40));
+                new GeoPoint3(-10, 5, 5),
+                new GeoPoint3(5, 5, 5),
+                new GeoPoint3(5, 5, 40)
+            );
 
             Assert.True(bent.TrySplitBy(new[] { Obb(0, 10) }, out GeoPolyline3[] inside, out GeoPolyline3[] outside));
 

@@ -14,11 +14,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     {
         /// <summary>Identifies the <see cref="Steps"/> property.</summary>
         public static readonly DependencyProperty StepsProperty = DependencyProperty.Register(
-            nameof(Steps), typeof(string), typeof(RibbonStrip), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsMeasure, (d, e) => ((RibbonStrip)d)._steps = Parse((string)e.NewValue)));
+            nameof(Steps),
+            typeof(string),
+            typeof(RibbonStrip),
+            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsMeasure, (d, e) =>
+                ((RibbonStrip)d)._steps = Parse((string)e.NewValue)
+            )
+        );
 
         // The widths of each panel at each size, measured at the strip's present width; looked up, never enumerated.
         private readonly Dictionary<RibbonPanel, double[]> _widths = new Dictionary<RibbonPanel, double[]>();
-        private IReadOnlyList<KeyValuePair<string, RibbonPanelSize>> _steps = Array.Empty<KeyValuePair<string, RibbonPanelSize>>();
+        private IReadOnlyList<KeyValuePair<string, RibbonPanelSize>> _steps = Array.Empty<
+            KeyValuePair<string, RibbonPanelSize>
+        >();
         private double _lastWidth = double.NaN;
         private double _lastHeight = double.NaN;
 
@@ -84,7 +92,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 taken = k;
 
-                if (double.IsPositiveInfinity(availableSize.Width) || Total(panels, sizes, child) <= availableSize.Width + 0.01)
+                if (
+                    double.IsPositiveInfinity(availableSize.Width)
+                    || Total(panels, sizes, child) <= availableSize.Width + 0.01
+                )
                 {
                     break;
                 }
@@ -152,7 +163,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 if (colon <= 0 || !Enum.TryParse(step.Substring(colon + 1).Trim(), true, out RibbonPanelSize size))
                 {
-                    throw new FormatException("A step of a ribbon strip is a panel's title and a size, as \"View:Collapsed\": " + step.Trim());
+                    throw new FormatException(
+                        "A step of a ribbon strip is a panel's title and a size, as \"View:Collapsed\": " + step.Trim()
+                    );
                 }
 
                 parsed.Add(new KeyValuePair<string, RibbonPanelSize>(step.Substring(0, colon).Trim(), size));

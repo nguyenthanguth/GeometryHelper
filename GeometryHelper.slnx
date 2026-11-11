@@ -1,36 +1,42 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/GeometryHelper/GeometryHelper.csproj" />
-    <Project Path="src/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj" />
-    <Project Path="src/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj" />
-    <Project Path="src/GeometryHelper.IfcConvert/GeometryHelper.IfcConvert.csproj" />
-    <Project Path="src/GeometryHelper.Dxf.Viewer/GeometryHelper.Dxf.Viewer.csproj" />
-    <Project Path="src/GeometryHelper.Dxf.Viewer.Wpf/GeometryHelper.Dxf.Viewer.Wpf.csproj" />
-    <Project Path="src/GeometryHelper.Drawing/GeometryHelper.Drawing.csproj" />
-    <Project Path="src/GeometryHelper.Drawing.Wpf/GeometryHelper.Drawing.Wpf.csproj" />
-    <Project Path="src/GeometryHelper.Drawing.App/GeometryHelper.Drawing.App.csproj" />
-    <Project Path="src/GeometryHelper.Dxf.App/GeometryHelper.Dxf.App.csproj" />
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/GeometryHelper.UnitTest/GeometryHelper.UnitTest.csproj" />
-    <Project Path="tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj" />
-    <Project Path="tests/GeometryHelper.IfcConvert.UnitTest/GeometryHelper.IfcConvert.UnitTest.csproj" />
-    <Project Path="tests/GeometryHelper.Dxf.Viewer.UnitTest/GeometryHelper.Dxf.Viewer.UnitTest.csproj" />
-    <Project Path="tests/GeometryHelper.Drawing.UnitTest/GeometryHelper.Drawing.UnitTest.csproj" />
-    <Project Path="tests/GeometryHelper.Dxf.Viewer.Wpf.UnitTest/GeometryHelper.Dxf.Viewer.Wpf.UnitTest.csproj" />
-    <Project Path="tests/GeometryHelper.Drawing.Wpf.UnitTest/GeometryHelper.Drawing.Wpf.UnitTest.csproj" />
-    <Project Path="tests/GeometryHelper.Dxf.Viewer.Plugins.UnitTest/GeometryHelper.Dxf.Viewer.Plugins.UnitTest.csproj" />
-    <Project Path="tests/GeometryHelper.Dxf.Viewer.Plugins.Net8Runner/GeometryHelper.Dxf.Viewer.Plugins.Net8Runner.csproj" />
-    <Project Path="tests/GeometryHelper.Dxf.Viewer.SamplePlugin/GeometryHelper.Dxf.Viewer.SamplePlugin.csproj" />
-    <Project Path="tests/GeometryHelper.Drawing.SamplePlugin/GeometryHelper.Drawing.SamplePlugin.csproj" />
-  </Folder>
-  <Folder Name="/benchmarks/">
-    <Project Path="benchmarks/GeometryHelper.Benchmarks/GeometryHelper.Benchmarks.csproj" />
-  </Folder>
-  <Folder Name="/examples/">
-    <Project Path="examples/GeometryConsoleTest/GeometryConsoleTest.csproj" Id="ce90d08f-2fb4-4504-985a-dfbda2ec6d49" />
-    <Project Path="examples/GeometryHelper.ArrangeAlgorithms.CadTest/GeometryHelper.ArrangeAlgorithms.CadTest.csproj" />
-    <Project Path="examples/GeometryHelper.ArrangeAlgorithms.TeklaTest/GeometryHelper.ArrangeAlgorithms.TeklaTest.csproj" Id="39dca74c-af65-4caa-96c6-716e221631ca" />
-    <Project Path="examples/Tekla2025Test/Tekla2025Test.csproj" Id="1067b19d-8718-4212-99fb-afcd6e796d6f" />
-  </Folder>
+    <Folder Name="/src/">
+        <Project Path="src/GeometryHelper/GeometryHelper.csproj" />
+        <Project Path="src/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj" />
+        <Project Path="src/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj" />
+        <Project Path="src/GeometryHelper.IfcConvert/GeometryHelper.IfcConvert.csproj" />
+        <Project Path="src/GeometryHelper.Dxf.Viewer/GeometryHelper.Dxf.Viewer.csproj" />
+        <Project Path="src/GeometryHelper.Dxf.Viewer.Wpf/GeometryHelper.Dxf.Viewer.Wpf.csproj" />
+        <Project Path="src/GeometryHelper.Drawing/GeometryHelper.Drawing.csproj" />
+        <Project Path="src/GeometryHelper.Drawing.Wpf/GeometryHelper.Drawing.Wpf.csproj" />
+        <Project Path="src/GeometryHelper.Drawing.App/GeometryHelper.Drawing.App.csproj" />
+        <Project Path="src/GeometryHelper.Dxf.App/GeometryHelper.Dxf.App.csproj" />
+    </Folder>
+    <Folder Name="/tests/">
+        <Project Path="tests/GeometryHelper.UnitTest/GeometryHelper.UnitTest.csproj" />
+        <Project Path="tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj" />
+        <Project Path="tests/GeometryHelper.IfcConvert.UnitTest/GeometryHelper.IfcConvert.UnitTest.csproj" />
+        <Project Path="tests/GeometryHelper.Dxf.Viewer.UnitTest/GeometryHelper.Dxf.Viewer.UnitTest.csproj" />
+        <Project Path="tests/GeometryHelper.Drawing.UnitTest/GeometryHelper.Drawing.UnitTest.csproj" />
+        <Project Path="tests/GeometryHelper.Dxf.Viewer.Wpf.UnitTest/GeometryHelper.Dxf.Viewer.Wpf.UnitTest.csproj" />
+        <Project Path="tests/GeometryHelper.Drawing.Wpf.UnitTest/GeometryHelper.Drawing.Wpf.UnitTest.csproj" />
+        <Project Path="tests/GeometryHelper.Dxf.Viewer.Plugins.UnitTest/GeometryHelper.Dxf.Viewer.Plugins.UnitTest.csproj" />
+        <Project Path="tests/GeometryHelper.Dxf.Viewer.Plugins.Net8Runner/GeometryHelper.Dxf.Viewer.Plugins.Net8Runner.csproj" />
+        <Project Path="tests/GeometryHelper.Dxf.Viewer.SamplePlugin/GeometryHelper.Dxf.Viewer.SamplePlugin.csproj" />
+        <Project Path="tests/GeometryHelper.Drawing.SamplePlugin/GeometryHelper.Drawing.SamplePlugin.csproj" />
+    </Folder>
+    <Folder Name="/benchmarks/">
+        <Project Path="benchmarks/GeometryHelper.Benchmarks/GeometryHelper.Benchmarks.csproj" />
+    </Folder>
+    <Folder Name="/examples/">
+        <Project
+            Path="examples/GeometryConsoleTest/GeometryConsoleTest.csproj"
+            Id="ce90d08f-2fb4-4504-985a-dfbda2ec6d49"
+        />
+        <Project Path="examples/GeometryHelper.ArrangeAlgorithms.CadTest/GeometryHelper.ArrangeAlgorithms.CadTest.csproj" />
+        <Project
+            Path="examples/GeometryHelper.ArrangeAlgorithms.TeklaTest/GeometryHelper.ArrangeAlgorithms.TeklaTest.csproj"
+            Id="39dca74c-af65-4caa-96c6-716e221631ca"
+        />
+        <Project Path="examples/Tekla2025Test/Tekla2025Test.csproj" Id="1067b19d-8718-4212-99fb-afcd6e796d6f" />
+    </Folder>
 </Solution>

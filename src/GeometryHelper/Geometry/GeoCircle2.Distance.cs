@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -38,7 +38,8 @@ namespace GeometryHelper.Geometry
         /// The distance out to the circumference, measured exactly, negative when the point lies inside the circle
         /// and nought when the tolerance given calls it on the circumference.
         /// </returns>
-        public double SignedDistanceTo(GeoPoint2 point, Tolerance tolerance) => Distance2.SignedDistanceTo(this, point, tolerance);
+        public double SignedDistanceTo(GeoPoint2 point, Tolerance tolerance) =>
+            Distance2.SignedDistanceTo(this, point, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this circle to an arc.
@@ -62,7 +63,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this circle to a curved loop, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => Distance2.DistanceTo(loop, this, tolerance);
+        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Distance2.DistanceTo(loop, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this circle to a curved chain.
@@ -74,7 +76,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this circle to a curved chain, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) => Distance2.DistanceTo(chain, this, tolerance);
+        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Distance2.DistanceTo(chain, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest boundary distance from this circle to a line segment.

@@ -68,7 +68,10 @@ namespace GeometryHelper.Core
         {
             if (!TryOf(points, out GeoSolid3 hull, tolerance))
             {
-                throw new ArgumentException("The points span no volume: there are fewer than four, or all lie in one plane.", nameof(points));
+                throw new ArgumentException(
+                    "The points span no volume: there are fewer than four, or all lie in one plane.",
+                    nameof(points)
+                );
             }
 
             return hull;
@@ -77,7 +80,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to get the convex hull of some points, using the default tolerance.
         /// </summary>
-        public static bool TryOf(IEnumerable<GeoPoint3> points, out GeoSolid3 hull) => TryOf(points, out hull, Tolerance.Global);
+        public static bool TryOf(IEnumerable<GeoPoint3> points, out GeoSolid3 hull) =>
+            TryOf(points, out hull, Tolerance.Global);
 
         /// <summary>
         /// Tries to get the convex hull of some points, within a tolerance.
@@ -113,7 +117,8 @@ namespace GeometryHelper.Core
             GeoPoint3 inside = new GeoPoint3(
                 (p[i0].X + p[i1].X + p[i2].X + p[i3].X) / 4,
                 (p[i0].Y + p[i1].Y + p[i2].Y + p[i3].Y) / 4,
-                (p[i0].Z + p[i1].Z + p[i2].Z + p[i3].Z) / 4);
+                (p[i0].Z + p[i1].Z + p[i2].Z + p[i3].Z) / 4
+            );
 
             AddOutward(faces, owners, p, i0, i1, i2, inside);
             AddOutward(faces, owners, p, i0, i1, i3, inside);
@@ -123,7 +128,8 @@ namespace GeometryHelper.Core
             var visible = new List<int>();
             var seen = new HashSet<int>();
             var next = new Dictionary<int, int>();
-            int taken = 4, standing = 4;
+            int taken = 4,
+                standing = 4;
             bool broken = false;
             double rounding = Rounding(p);
             var below = new bool[p.Count];
@@ -261,7 +267,13 @@ namespace GeometryHelper.Core
             for (int step = 0; step < 3 && !HoldsWithin(hull, p, depth, eps); step++)
             {
                 double planar = Boolean3.ForWork(tolerance).EqualPlanar * (step == 0 ? 0.1 : 0.01);
-                hull = step < 2 ? Merge3.CoplanarFaces(triangles, new Tolerance(eps, tolerance.EqualVector, tolerance.EqualAngleRad, planar)) : triangles;
+                hull =
+                    step < 2
+                        ? Merge3.CoplanarFaces(
+                            triangles,
+                            new Tolerance(eps, tolerance.EqualVector, tolerance.EqualAngleRad, planar)
+                        )
+                        : triangles;
             }
 
             return true;
@@ -350,7 +362,9 @@ namespace GeometryHelper.Core
         {
             int at = 6 * face;
 
-            return planes[at] * (point.X - planes[at + 3]) + planes[at + 1] * (point.Y - planes[at + 4]) + planes[at + 2] * (point.Z - planes[at + 5]);
+            return planes[at] * (point.X - planes[at + 3])
+                + planes[at + 1] * (point.Y - planes[at + 4])
+                + planes[at + 2] * (point.Z - planes[at + 5]);
         }
 
         /// <summary>
@@ -372,7 +386,9 @@ namespace GeometryHelper.Core
                 next[from] = to;
             }
 
-            int start = horizon[0].Item1, at = start, steps = 0;
+            int start = horizon[0].Item1,
+                at = start,
+                steps = 0;
 
             do
             {
@@ -380,8 +396,7 @@ namespace GeometryHelper.Core
                 {
                     return false;
                 }
-            }
-            while (at != start);
+            } while (at != start);
 
             return steps == horizon.Count;
         }
@@ -407,7 +422,15 @@ namespace GeometryHelper.Core
 
                 if (twice.Length > 0.0)
                 {
-                    triangles.Add(new GeoFace3(GeoPolygon3.FromValidated(new[] { p[face.A], p[face.B], p[face.C] }, face.Normal, 0.5 * twice.Length)));
+                    triangles.Add(
+                        new GeoFace3(
+                            GeoPolygon3.FromValidated(
+                                new[] { p[face.A], p[face.B], p[face.C] },
+                                face.Normal,
+                                0.5 * twice.Length
+                            )
+                        )
+                    );
                 }
             }
 
@@ -461,7 +484,14 @@ namespace GeometryHelper.Core
         /// <param name="below">For each point left out, whether it stood below every plane of the hull it was asked of.</param>
         /// <param name="eps">The point tolerance.</param>
         /// <param name="rounding">As much as rounding can put a point above a plane it lies in.</param>
-        private static bool HoldsEveryPoint(List<Face> faces, Dictionary<long, int> owners, List<GeoPoint3> p, bool[] below, double eps, double rounding)
+        private static bool HoldsEveryPoint(
+            List<Face> faces,
+            Dictionary<long, int> owners,
+            List<GeoPoint3> p,
+            bool[] below,
+            double eps,
+            double rounding
+        )
         {
             var alive = new List<int>();
             var isCorner = new bool[p.Count];
@@ -483,8 +513,12 @@ namespace GeometryHelper.Core
 
                 foreach ((int a, int b) in new[] { (face.A, face.B), (face.B, face.C), (face.C, face.A) })
                 {
-                    if (!owners.TryGetValue(Key(a, b), out int own) || own != f
-                        || !owners.TryGetValue(Key(b, a), out int twin) || !faces[twin].Alive)
+                    if (
+                        !owners.TryGetValue(Key(a, b), out int own)
+                        || own != f
+                        || !owners.TryGetValue(Key(b, a), out int twin)
+                        || !faces[twin].Alive
+                    )
                     {
                         return false;
                     }
@@ -532,7 +566,11 @@ namespace GeometryHelper.Core
                         return false;
                     }
                 }
-                else if (IsAbove(planes, p[k], -eps) ? !IsNear(faces, alive, p, p[k], eps, double.NegativeInfinity) : !(Math.Abs(Winding(faces, alive, p, p[k]) - 1.0) < 0.5))
+                else if (
+                    IsAbove(planes, p[k], -eps)
+                        ? !IsNear(faces, alive, p, p[k], eps, double.NegativeInfinity)
+                        : !(Math.Abs(Winding(faces, alive, p, p[k]) - 1.0) < 0.5)
+                )
                 {
                     return false;
                 }
@@ -551,16 +589,32 @@ namespace GeometryHelper.Core
         /// thousandth thick so folded held them all within the tolerance of its triangles, and 9.57 cubic millimetres for
         /// 6.72.
         /// </remarks>
-        private static bool FoldsBack(List<Face> faces, List<int> alive, Dictionary<long, int> owners, List<GeoPoint3> p, double rounding)
+        private static bool FoldsBack(
+            List<Face> faces,
+            List<int> alive,
+            Dictionary<long, int> owners,
+            List<GeoPoint3> p,
+            double rounding
+        )
         {
             foreach (int f in alive)
             {
                 Face face = faces[f];
 
-                foreach ((int a, int b, int c) in new[] { (face.A, face.B, face.C), (face.B, face.C, face.A), (face.C, face.A, face.B) })
+                foreach (
+                    (int a, int b, int c) in new[]
+                    {
+                        (face.A, face.B, face.C),
+                        (face.B, face.C, face.A),
+                        (face.C, face.A, face.B),
+                    }
+                )
                 {
                     Face twin = faces[owners[Key(b, a)]];
-                    int beyond = twin.A != a && twin.A != b ? twin.A : twin.B != a && twin.B != b ? twin.B : twin.C;
+                    int beyond =
+                        twin.A != a && twin.A != b ? twin.A
+                        : twin.B != a && twin.B != b ? twin.B
+                        : twin.C;
                     GeoVector3 along = p[a].GetVectorTo(p[b]);
                     double own = face.Normal.DotProduct(along.CrossProduct(p[a].GetVectorTo(p[c])));
                     double other = face.Normal.DotProduct(along.CrossProduct(p[a].GetVectorTo(p[beyond])));
@@ -586,14 +640,24 @@ namespace GeometryHelper.Core
             foreach (int f in alive)
             {
                 Face face = faces[f];
-                double ax = p[face.A].X - point.X, ay = p[face.A].Y - point.Y, az = p[face.A].Z - point.Z;
-                double bx = p[face.B].X - point.X, by = p[face.B].Y - point.Y, bz = p[face.B].Z - point.Z;
-                double cx = p[face.C].X - point.X, cy = p[face.C].Y - point.Y, cz = p[face.C].Z - point.Z;
+                double ax = p[face.A].X - point.X,
+                    ay = p[face.A].Y - point.Y,
+                    az = p[face.A].Z - point.Z;
+                double bx = p[face.B].X - point.X,
+                    by = p[face.B].Y - point.Y,
+                    bz = p[face.B].Z - point.Z;
+                double cx = p[face.C].X - point.X,
+                    cy = p[face.C].Y - point.Y,
+                    cz = p[face.C].Z - point.Z;
                 double la = Math.Sqrt(ax * ax + ay * ay + az * az);
                 double lb = Math.Sqrt(bx * bx + by * by + bz * bz);
                 double lc = Math.Sqrt(cx * cx + cy * cy + cz * cz);
                 double triple = ax * (by * cz - bz * cy) + ay * (bz * cx - bx * cz) + az * (bx * cy - by * cx);
-                double below = la * lb * lc + (ax * bx + ay * by + az * bz) * lc + (ax * cx + ay * cy + az * cz) * lb + (bx * cx + by * cy + bz * cz) * la;
+                double below =
+                    la * lb * lc
+                    + (ax * bx + ay * by + az * bz) * lc
+                    + (ax * cx + ay * cy + az * cz) * lb
+                    + (bx * cx + by * cy + bz * cz) * la;
 
                 // Van Oosterom and Strackee: the solid angle of a triangle is twice this.
                 sum += 2.0 * Math.Atan2(triple, below);
@@ -644,14 +708,25 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// A point outside a convex body is nearest it on a face it stands outside of.
         /// </remarks>
-        private static bool IsNear(List<Face> faces, List<int> alive, List<GeoPoint3> p, GeoPoint3 point, double distance, double height)
+        private static bool IsNear(
+            List<Face> faces,
+            List<int> alive,
+            List<GeoPoint3> p,
+            GeoPoint3 point,
+            double distance,
+            double height
+        )
         {
             foreach (int f in alive)
             {
                 Face face = faces[f];
 
-                if (Height(face, point) > height
-                    && Projection3.ProjectToTriangle(new GeoTriangle3(p[face.A], p[face.B], p[face.C]), point).DistanceTo(point) <= distance)
+                if (
+                    Height(face, point) > height
+                    && Projection3
+                        .ProjectToTriangle(new GeoTriangle3(p[face.A], p[face.B], p[face.C]), point)
+                        .DistanceTo(point) <= distance
+                )
                 {
                     return true;
                 }
@@ -698,15 +773,22 @@ namespace GeometryHelper.Core
 
             for (int k = 1; k < p.Count; k++)
             {
-                if (p[k].X < p[extremes[0]].X) extremes[0] = k;
-                if (p[k].X > p[extremes[1]].X) extremes[1] = k;
-                if (p[k].Y < p[extremes[2]].Y) extremes[2] = k;
-                if (p[k].Y > p[extremes[3]].Y) extremes[3] = k;
-                if (p[k].Z < p[extremes[4]].Z) extremes[4] = k;
-                if (p[k].Z > p[extremes[5]].Z) extremes[5] = k;
+                if (p[k].X < p[extremes[0]].X)
+                    extremes[0] = k;
+                if (p[k].X > p[extremes[1]].X)
+                    extremes[1] = k;
+                if (p[k].Y < p[extremes[2]].Y)
+                    extremes[2] = k;
+                if (p[k].Y > p[extremes[3]].Y)
+                    extremes[3] = k;
+                if (p[k].Z < p[extremes[4]].Z)
+                    extremes[4] = k;
+                if (p[k].Z > p[extremes[5]].Z)
+                    extremes[5] = k;
             }
 
-            int i0 = extremes[0], i1 = extremes[0];
+            int i0 = extremes[0],
+                i1 = extremes[0];
             double widest = -1.0;
 
             for (int s = 0; s < 6; s++)
@@ -726,13 +808,19 @@ namespace GeometryHelper.Core
 
             GeoPoint3 a = p[i0];
             GeoVector3 along = a.GetVectorTo(p[i1]);
-            int i2 = Farthest(p, k => along.CrossProduct(a.GetVectorTo(p[k])).Length / Math.Max(along.Length, double.Epsilon));
+            int i2 = Farthest(p, k =>
+                along.CrossProduct(a.GetVectorTo(p[k])).Length / Math.Max(along.Length, double.Epsilon)
+            );
             GeoVector3 normal = along.CrossProduct(a.GetVectorTo(p[i2]));
-            int i3 = Farthest(p, k => Math.Abs(normal.DotProduct(a.GetVectorTo(p[k]))) / Math.Max(normal.Length, double.Epsilon));
+            int i3 = Farthest(p, k =>
+                Math.Abs(normal.DotProduct(a.GetVectorTo(p[k]))) / Math.Max(normal.Length, double.Epsilon)
+            );
 
-            if (!(along.Length > eps)
+            if (
+                !(along.Length > eps)
                 || !(along.CrossProduct(a.GetVectorTo(p[i2])).Length / along.Length > eps)
-                || !(Math.Abs(normal.DotProduct(a.GetVectorTo(p[i3]))) / normal.Length > eps))
+                || !(Math.Abs(normal.DotProduct(a.GetVectorTo(p[i3]))) / normal.Length > eps)
+            )
             {
                 faces = null;
                 return false;
@@ -750,7 +838,8 @@ namespace GeometryHelper.Core
             var start = new GeoPoint3(
                 (p[i0].X + p[i1].X + p[i2].X + p[i3].X) / 4,
                 (p[i0].Y + p[i1].Y + p[i2].Y + p[i3].Y) / 4,
-                (p[i0].Z + p[i1].Z + p[i2].Z + p[i3].Z) / 4);
+                (p[i0].Z + p[i1].Z + p[i2].Z + p[i3].Z) / 4
+            );
             var byNormal = new FacesByNormal(p.Count, start, Rounding(p), true);
             var candidates = new List<int>();
 
@@ -775,7 +864,10 @@ namespace GeometryHelper.Core
                     {
                         visible.Add(f);
                         seen.Add(f);
-                        GeoPoint3 foot = Projection3.ProjectToTriangle(new GeoTriangle3(p[face.A], p[face.B], p[face.C]), p[k]);
+                        GeoPoint3 foot = Projection3.ProjectToTriangle(
+                            new GeoTriangle3(p[face.A], p[face.B], p[face.C]),
+                            p[k]
+                        );
                         nearest = Math.Min(nearest, foot.DistanceTo(p[k]));
                     }
                 }
@@ -837,7 +929,15 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Adds a face on three points wound so that a fourth stands inside it, exactly.
         /// </summary>
-        private static void AddFacingAway(List<Face> faces, Dictionary<long, int> owners, List<GeoPoint3> p, int a, int b, int c, int inside)
+        private static void AddFacingAway(
+            List<Face> faces,
+            Dictionary<long, int> owners,
+            List<GeoPoint3> p,
+            int a,
+            int b,
+            int c,
+            int inside
+        )
         {
             if (Orientation(p[a], p[b], p[c], p[inside]) > 0)
             {
@@ -865,12 +965,19 @@ namespace GeometryHelper.Core
         /// </remarks>
         private static int Orientation(GeoPoint3 a, GeoPoint3 b, GeoPoint3 c, GeoPoint3 d)
         {
-            double ux = b.X - a.X, uy = b.Y - a.Y, uz = b.Z - a.Z;
-            double vx = c.X - a.X, vy = c.Y - a.Y, vz = c.Z - a.Z;
-            double wx = d.X - a.X, wy = d.Y - a.Y, wz = d.Z - a.Z;
+            double ux = b.X - a.X,
+                uy = b.Y - a.Y,
+                uz = b.Z - a.Z;
+            double vx = c.X - a.X,
+                vy = c.Y - a.Y,
+                vz = c.Z - a.Z;
+            double wx = d.X - a.X,
+                wy = d.Y - a.Y,
+                wz = d.Z - a.Z;
 
             double det = wx * (uy * vz - uz * vy) + wy * (uz * vx - ux * vz) + wz * (ux * vy - uy * vx);
-            double size = Math.Abs(wx) * (Math.Abs(uy * vz) + Math.Abs(uz * vy))
+            double size =
+                Math.Abs(wx) * (Math.Abs(uy * vz) + Math.Abs(uz * vy))
                 + Math.Abs(wy) * (Math.Abs(uz * vx) + Math.Abs(ux * vz))
                 + Math.Abs(wz) * (Math.Abs(ux * vy) + Math.Abs(uy * vx));
 
@@ -930,9 +1037,15 @@ namespace GeometryHelper.Core
                 whole[i] = mantissas[i] == 0 ? BigInteger.Zero : new BigInteger(mantissas[i]) << (exponents[i] - least);
             }
 
-            BigInteger ux = whole[3] - whole[0], uy = whole[4] - whole[1], uz = whole[5] - whole[2];
-            BigInteger vx = whole[6] - whole[0], vy = whole[7] - whole[1], vz = whole[8] - whole[2];
-            BigInteger wx = whole[9] - whole[0], wy = whole[10] - whole[1], wz = whole[11] - whole[2];
+            BigInteger ux = whole[3] - whole[0],
+                uy = whole[4] - whole[1],
+                uz = whole[5] - whole[2];
+            BigInteger vx = whole[6] - whole[0],
+                vy = whole[7] - whole[1],
+                vz = whole[8] - whole[2];
+            BigInteger wx = whole[9] - whole[0],
+                wy = whole[10] - whole[1],
+                wz = whole[11] - whole[2];
 
             return (wx * (uy * vz - uz * vy) + wy * (uz * vx - ux * vz) + wz * (ux * vy - uy * vx)).Sign;
         }
@@ -943,7 +1056,10 @@ namespace GeometryHelper.Core
 
             for (int k = 1; k < p.Count; k++)
             {
-                if (p[k].X < p[i0].X || (p[k].X == p[i0].X && (p[k].Y < p[i0].Y || (p[k].Y == p[i0].Y && p[k].Z < p[i0].Z))))
+                if (
+                    p[k].X < p[i0].X
+                    || (p[k].X == p[i0].X && (p[k].Y < p[i0].Y || (p[k].Y == p[i0].Y && p[k].Z < p[i0].Z)))
+                )
                 {
                     i0 = k;
                 }
@@ -952,13 +1068,18 @@ namespace GeometryHelper.Core
             GeoPoint3 a = p[i0];
             i1 = Farthest(p, k => a.DistanceTo(p[k]));
             GeoVector3 along = a.GetVectorTo(p[i1]);
-            int first = i0, second = i1;
+            int first = i0,
+                second = i1;
 
-            i2 = Farthest(p, k => along.CrossProduct(a.GetVectorTo(p[k])).Length / Math.Max(along.Length, double.Epsilon));
+            i2 = Farthest(p, k =>
+                along.CrossProduct(a.GetVectorTo(p[k])).Length / Math.Max(along.Length, double.Epsilon)
+            );
             GeoVector3 normal = along.CrossProduct(a.GetVectorTo(p[i2]));
             int third = i2;
 
-            i3 = Farthest(p, k => Math.Abs(normal.DotProduct(a.GetVectorTo(p[k]))) / Math.Max(normal.Length, double.Epsilon));
+            i3 = Farthest(p, k =>
+                Math.Abs(normal.DotProduct(a.GetVectorTo(p[k]))) / Math.Max(normal.Length, double.Epsilon)
+            );
 
             return p[first].DistanceTo(p[second]) > eps
                 && along.CrossProduct(a.GetVectorTo(p[third])).Length / along.Length > eps
@@ -985,7 +1106,15 @@ namespace GeometryHelper.Core
             return best;
         }
 
-        private static void AddOutward(List<Face> faces, Dictionary<long, int> owners, List<GeoPoint3> p, int a, int b, int c, GeoPoint3 inside)
+        private static void AddOutward(
+            List<Face> faces,
+            Dictionary<long, int> owners,
+            List<GeoPoint3> p,
+            int a,
+            int b,
+            int c,
+            GeoPoint3 inside
+        )
         {
             GeoVector3 normal = p[a].GetVectorTo(p[b]).CrossProduct(p[a].GetVectorTo(p[c]));
 
@@ -1005,15 +1134,17 @@ namespace GeometryHelper.Core
             double length = normal.Length;
             GeoVector3 unit = length > 0.0 ? normal.Multiply(1.0 / length) : normal;
 
-            faces.Add(new Face
-            {
-                A = a,
-                B = b,
-                C = c,
-                Normal = unit,
-                Offset = unit.DotProduct(new GeoVector3(p[a].X, p[a].Y, p[a].Z)),
-                Alive = true,
-            });
+            faces.Add(
+                new Face
+                {
+                    A = a,
+                    B = b,
+                    C = c,
+                    Normal = unit,
+                    Offset = unit.DotProduct(new GeoVector3(p[a].X, p[a].Y, p[a].Z)),
+                    Alive = true,
+                }
+            );
 
             int index = faces.Count - 1;
             owners[Key(a, b)] = index;
@@ -1021,8 +1152,8 @@ namespace GeometryHelper.Core
             owners[Key(c, a)] = index;
         }
 
-        private static double Height(Face face, GeoPoint3 point)
-            => face.Normal.DotProduct(new GeoVector3(point.X, point.Y, point.Z)) - face.Offset;
+        private static double Height(Face face, GeoPoint3 point) =>
+            face.Normal.DotProduct(new GeoVector3(point.X, point.Y, point.Z)) - face.Offset;
 
         private static long Key(int from, int to) => ((long)from << 32) | (uint)to;
 
@@ -1086,7 +1217,13 @@ namespace GeometryHelper.Core
             /// false, and every face to be read, while they are few. The cells are laid out the first time they are read, and
             /// faces added since the last time are filed first.
             /// </summary>
-            internal bool TryGather(List<Face> faces, List<GeoPoint3> p, GeoPoint3 point, double height, List<int> found)
+            internal bool TryGather(
+                List<Face> faces,
+                List<GeoPoint3> p,
+                GeoPoint3 point,
+                double height,
+                List<int> found
+            )
             {
                 found.Clear();
 
@@ -1105,7 +1242,9 @@ namespace GeometryHelper.Core
                     File(faces[f], p);
                 }
 
-                double wx = point.X - _inside.X, wy = point.Y - _inside.Y, wz = point.Z - _inside.Z;
+                double wx = point.X - _inside.X,
+                    wy = point.Y - _inside.Y,
+                    wz = point.Z - _inside.Z;
                 double length = Math.Sqrt(wx * wx + wy * wy + wz * wz);
                 int last = _cells.Length - 1;
 
@@ -1155,12 +1294,22 @@ namespace GeometryHelper.Core
                         {
                             // The cone round the middle of the cell holds its four corners, and so the whole of it.
                             int c = (face * _side + i) * _side + j;
-                            double s0 = -1.0 + 2.0 * i / _side, s1 = -1.0 + 2.0 * (i + 1) / _side;
-                            double t0 = -1.0 + 2.0 * j / _side, t1 = -1.0 + 2.0 * (j + 1) / _side;
+                            double s0 = -1.0 + 2.0 * i / _side,
+                                s1 = -1.0 + 2.0 * (i + 1) / _side;
+                            double t0 = -1.0 + 2.0 * j / _side,
+                                t1 = -1.0 + 2.0 * (j + 1) / _side;
                             GeoVector3 axis = Direction(face, 0.5 * (s0 + s1), 0.5 * (t0 + t1));
                             double cos = 1.0;
 
-                            foreach (GeoVector3 corner in new[] { Direction(face, s0, t0), Direction(face, s1, t0), Direction(face, s0, t1), Direction(face, s1, t1) })
+                            foreach (
+                                GeoVector3 corner in new[]
+                                {
+                                    Direction(face, s0, t0),
+                                    Direction(face, s1, t0),
+                                    Direction(face, s0, t1),
+                                    Direction(face, s1, t1),
+                                }
+                            )
                             {
                                 cos = Math.Min(cos, axis.DotProduct(corner));
                             }
@@ -1185,7 +1334,10 @@ namespace GeometryHelper.Core
                     return length == 0.0 ? 0.0 : double.NaN;
                 }
 
-                double along = Math.Max(-1.0, Math.Min(1.0, (_axes[3 * c] * wx + _axes[3 * c + 1] * wy + _axes[3 * c + 2] * wz) / length));
+                double along = Math.Max(
+                    -1.0,
+                    Math.Min(1.0, (_axes[3 * c] * wx + _axes[3 * c + 1] * wy + _axes[3 * c + 2] * wz) / length)
+                );
 
                 if (along >= _cos[c])
                 {
@@ -1242,7 +1394,10 @@ namespace GeometryHelper.Core
                 GeoVector3 n = face.Normal;
                 double spread = _exact ? Spread(p[face.A], p[face.B], p[face.C]) : 0.0;
                 GeoPoint3 a = p[face.A];
-                double lowest = face.Offset - n.DotProduct(new GeoVector3(_inside.X, _inside.Y, _inside.Z)) - spread * a.DistanceTo(_inside);
+                double lowest =
+                    face.Offset
+                    - n.DotProduct(new GeoVector3(_inside.X, _inside.Y, _inside.Z))
+                    - spread * a.DistanceTo(_inside);
                 int c = double.IsNaN(lowest) || double.IsInfinity(lowest) ? _cells.Length - 1 : CellOf(n, spread);
 
                 _faceLowest.Add(lowest);
@@ -1263,9 +1418,13 @@ namespace GeometryHelper.Core
             /// </summary>
             private int CellOf(GeoVector3 n, double spread)
             {
-                double ax = Math.Abs(n.X), ay = Math.Abs(n.Y), az = Math.Abs(n.Z);
+                double ax = Math.Abs(n.X),
+                    ay = Math.Abs(n.Y),
+                    az = Math.Abs(n.Z);
                 int face;
-                double most, s, t;
+                double most,
+                    s,
+                    t;
 
                 if (ax >= ay && ax >= az)
                 {
@@ -1305,7 +1464,10 @@ namespace GeometryHelper.Core
             private static GeoVector3 Direction(int face, double s, double t)
             {
                 double sign = face % 2 == 0 ? 1.0 : -1.0;
-                GeoVector3 d = face < 2 ? new GeoVector3(sign, s, t) : face < 4 ? new GeoVector3(t, sign, s) : new GeoVector3(s, t, sign);
+                GeoVector3 d =
+                    face < 2 ? new GeoVector3(sign, s, t)
+                    : face < 4 ? new GeoVector3(t, sign, s)
+                    : new GeoVector3(s, t, sign);
                 return d.Multiply(1.0 / d.Length);
             }
 
@@ -1325,11 +1487,18 @@ namespace GeometryHelper.Core
             /// </summary>
             private static double Spread(GeoPoint3 a, GeoPoint3 b, GeoPoint3 c)
             {
-                double ux = b.X - a.X, uy = b.Y - a.Y, uz = b.Z - a.Z;
-                double vx = c.X - a.X, vy = c.Y - a.Y, vz = c.Z - a.Z;
-                double nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+                double ux = b.X - a.X,
+                    uy = b.Y - a.Y,
+                    uz = b.Z - a.Z;
+                double vx = c.X - a.X,
+                    vy = c.Y - a.Y,
+                    vz = c.Z - a.Z;
+                double nx = uy * vz - uz * vy,
+                    ny = uz * vx - ux * vz,
+                    nz = ux * vy - uy * vx;
                 double length = Math.Sqrt(nx * nx + ny * ny + nz * nz);
-                double error = 4E-15 * (Math.Abs(ux) + Math.Abs(uy) + Math.Abs(uz)) * (Math.Abs(vx) + Math.Abs(vy) + Math.Abs(vz));
+                double error =
+                    4E-15 * (Math.Abs(ux) + Math.Abs(uy) + Math.Abs(uz)) * (Math.Abs(vx) + Math.Abs(vy) + Math.Abs(vz));
 
                 return error < 0.25 * length ? 4.0 * error / length + 1E-14 : double.PositiveInfinity;
             }

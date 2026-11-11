@@ -15,8 +15,8 @@ namespace GeometryHelper.UnitTest.Meshing
         /// <summary>
         /// Flat shapes whose holes stood a hair off the plane, whose points in a hole the face once said were inside it.
         /// </summary>
-        public static IEnumerable<object[]> PlanarSeedsThatFailed()
-            => new[] { 2012653, 2026925, 2042229 }.Select(s => new object[] { s });
+        public static IEnumerable<object[]> PlanarSeedsThatFailed() =>
+            new[] { 2012653, 2026925, 2042229 }.Select(s => new object[] { s });
 
         /// <summary>
         /// Bodies whose cutting once went wrong: a cut between the arms of a piece refused (1000015 to 1000297), volume lost
@@ -27,12 +27,35 @@ namespace GeometryHelper.UnitTest.Meshing
         /// smaller than a square of the tolerance between edges that cancel (51003689), and an edge two faces share within the
         /// tolerance, crossed at a slant on copies of it 0.0112 apart (204002279).
         /// </summary>
-        public static IEnumerable<object[]> CellSeedsThatFailed()
-            => new[]
+        public static IEnumerable<object[]> CellSeedsThatFailed() =>
+            new[]
             {
-                1000015, 1000061, 1000065, 1000086, 1000103, 1000132, 1000172, 1000193, 1000220, 1000230, 1000280, 1000297,
-                2003059, 2005903, 2011745, 2014595, 2016607, 4015293, 4017446, 4017907, 5015694, 9015982, 13001387,
-                32019733, 51003689, 204002279,
+                1000015,
+                1000061,
+                1000065,
+                1000086,
+                1000103,
+                1000132,
+                1000172,
+                1000193,
+                1000220,
+                1000230,
+                1000280,
+                1000297,
+                2003059,
+                2005903,
+                2011745,
+                2014595,
+                2016607,
+                4015293,
+                4017446,
+                4017907,
+                5015694,
+                9015982,
+                13001387,
+                32019733,
+                51003689,
+                204002279,
             }.Select(s => new object[] { s });
 
         /// <summary>
@@ -43,8 +66,10 @@ namespace GeometryHelper.UnitTest.Meshing
         /// (81002414, 81003923), and a plate 0.035 thick whose point 0.013 in from a cell's side no ray could place
         /// (101012761).
         /// </summary>
-        public static IEnumerable<object[]> BoxSeedsThatFailed()
-            => new[] { 61000640, 61002179, 61002363, 61002673, 81002414, 81003923, 101012761 }.Select(s => new object[] { s });
+        public static IEnumerable<object[]> BoxSeedsThatFailed() =>
+            new[] { 61000640, 61002179, 61002363, 61002673, 81002414, 81003923, 101012761 }.Select(s =>
+                new object[] { s }
+            );
 
         /// <summary>
         /// Thin parts that once came apart: a piece of a column with a ledge, a hair out of flat, refused once cut
@@ -53,16 +78,16 @@ namespace GeometryHelper.UnitTest.Meshing
         /// between them narrowed to nothing: cut across twice, the strip was left out of a cell by a sliver 102.8 long, and
         /// the cell was open (83009660).
         /// </summary>
-        public static IEnumerable<object[]> ThinSeedsThatFailed()
-            => new[] { 62005190, 64006778, 83009660 }.Select(s => new object[] { s });
+        public static IEnumerable<object[]> ThinSeedsThatFailed() =>
+            new[] { 62005190, 64006778, 83009660 }.Select(s => new object[] { s });
 
         /// <summary>
         /// Loops with arcs whose check once came apart: two arcs bulging in at a sharp corner cross and close off a lobe
         /// wound the other way, which the mesh covers and the shoelace sum of the ring took away (71000268), and a plane
         /// turned about an axis longer than a thousandth but too short for the rotation to turn about (72000658).
         /// </summary>
-        public static IEnumerable<object[]> ArcSeedsThatFailed()
-            => new[] { 71000268, 72000658 }.Select(s => new object[] { s });
+        public static IEnumerable<object[]> ArcSeedsThatFailed() =>
+            new[] { 71000268, 72000658 }.Select(s => new object[] { s });
 
         public static IEnumerable<object[]> PlanarRun() => Enumerable.Range(1, 400).Select(s => new object[] { s });
 

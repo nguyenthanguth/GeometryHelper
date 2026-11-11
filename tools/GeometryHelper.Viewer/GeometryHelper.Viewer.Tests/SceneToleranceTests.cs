@@ -10,8 +10,18 @@ namespace GeometryHelper.Viewer.Tests
     {
         private static readonly Tolerance Fine = new Tolerance(1E-3, 1E-5, Math.PI / 180.0, 1E-2);
 
-        private static GeoFace3 FaceFiveThousandthsOffFlat()
-            => new GeoFace3(new GeoPolygon3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0.005), new GeoPoint3(0, 100, 0) }));
+        private static GeoFace3 FaceFiveThousandthsOffFlat() =>
+            new GeoFace3(
+                new GeoPolygon3(
+                    new[]
+                    {
+                        new GeoPoint3(0, 0, 0),
+                        new GeoPoint3(100, 0, 0),
+                        new GeoPoint3(100, 100, 0.005),
+                        new GeoPoint3(0, 100, 0),
+                    }
+                )
+            );
 
         [Fact]
         public void AWriterRecordsAllFourThresholdsOfTheToleranceInForceWhereItIsMade()
@@ -57,7 +67,7 @@ namespace GeometryHelper.Viewer.Tests
 
             using (Tolerance.Use(Fine))
             {
-                writer = new SceneWriter().Add(FaceFiveThousandthsOffFlat()) ;
+                writer = new SceneWriter().Add(FaceFiveThousandthsOffFlat());
             }
 
             Primitives primitives = Primitives.Build(writer.Scene);
@@ -66,9 +76,17 @@ namespace GeometryHelper.Viewer.Tests
             Assert.True(primitives.Items[0].Triangles.Count > 0);
 
             // At the default planar tolerance of 1E-3 the library would not take it: that is what happened without the scene's own.
-            Assert.Throws<ArgumentException>(() => { using (Tolerance.Use(Tolerance.Default)) { writer.Scene.Items[0].ToGeometry(); } });
+            Assert.Throws<ArgumentException>(() =>
+            {
+                using (Tolerance.Use(Tolerance.Default))
+                {
+                    writer.Scene.Items[0].ToGeometry();
+                }
+            });
 
-            var numbers = ItemMeasures.Describe(writer.Scene.Items[0], writer.Scene, primitives.Items[0]).ToDictionary(p => p.Key, p => p.Value);
+            var numbers = ItemMeasures
+                .Describe(writer.Scene.Items[0], writer.Scene, primitives.Items[0])
+                .ToDictionary(p => p.Key, p => p.Value);
             Assert.DoesNotContain("Library", numbers.Keys);
             Assert.Contains("Area", numbers.Keys);
         }
@@ -76,7 +94,12 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public async System.Threading.Tasks.Task ATolSetInAScript_WritesAllFourThresholds()
         {
-            var result = await Scripting.ScriptHost.RunAsync("Tol = new Tolerance(1E-3, 1E-5, Math.PI / 180, 1E-2);\nShow(new GeoFace3(new GeoPolygon3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0.005), new GeoPoint3(0, 100, 0) })));", null, null, System.Threading.CancellationToken.None);
+            var result = await Scripting.ScriptHost.RunAsync(
+                "Tol = new Tolerance(1E-3, 1E-5, Math.PI / 180, 1E-2);\nShow(new GeoFace3(new GeoPolygon3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0.005), new GeoPoint3(0, 100, 0) })));",
+                null,
+                null,
+                System.Threading.CancellationToken.None
+            );
 
             Assert.True(result.Succeeded, string.Join("\n", result.Errors));
             Assert.Equal(1E-2, result.Scene.EqualPlanar);
@@ -90,10 +113,17 @@ namespace GeometryHelper.Viewer.Tests
         public void AShapeRefusedAtTheSceneToleranceButNotAt1E12_IsRebuiltThereAndSaysSo()
         {
             // A triangle 0.0004 across is no polygon at 1E-3, and an exact one at 1E-12.
-            const string json = "{\"items\":[{\"name\":\"tiny\",\"layer\":\"l\",\"kind\":\"GeoPolygon3\",\"data\":{\"points\":[[0,0,0],[0.0004,0,0],[0,0.0004,0]]}}]}";
+            const string json =
+                "{\"items\":[{\"name\":\"tiny\",\"layer\":\"l\",\"kind\":\"GeoPolygon3\",\"data\":{\"points\":[[0,0,0],[0.0004,0,0],[0,0.0004,0]]}}]}";
             Scene scene = SceneReader.ReadJson(json);
 
-            Assert.Throws<ArgumentException>(() => { using (Tolerance.Use(scene.Tolerance)) { scene.Items[0].ToGeometry(); } });
+            Assert.Throws<ArgumentException>(() =>
+            {
+                using (Tolerance.Use(scene.Tolerance))
+                {
+                    scene.Items[0].ToGeometry();
+                }
+            });
 
             object shape = scene.Rebuild(scene.Items[0], out string note);
 
@@ -102,18 +132,23 @@ namespace GeometryHelper.Viewer.Tests
 
             Primitives primitives = Primitives.Build(scene);
             var numbers = ItemMeasures.Describe(scene.Items[0], scene, primitives.Items[0]);
-            Assert.Contains(numbers, p => p.Key == "Library" && p.Value.StartsWith("rebuilt and measured at 1E-12", StringComparison.Ordinal));
+            Assert.Contains(numbers, p =>
+                p.Key == "Library" && p.Value.StartsWith("rebuilt and measured at 1E-12", StringComparison.Ordinal)
+            );
             Assert.Contains(numbers, p => p.Key == "Area");
         }
 
         [Fact]
         public void AShapeRefusedAtBothTolerances_StillShowsItsVertexCountAndItsDrawnBounds()
         {
-            const string json = "{\"items\":[{\"name\":\"two\",\"layer\":\"l\",\"kind\":\"GeoPolygon2\",\"data\":{\"points\":[[1,2],[11,2]]}}]}";
+            const string json =
+                "{\"items\":[{\"name\":\"two\",\"layer\":\"l\",\"kind\":\"GeoPolygon2\",\"data\":{\"points\":[[1,2],[11,2]]}}]}";
             Scene scene = SceneReader.ReadJson(json);
             Primitives primitives = Primitives.Build(scene);
 
-            var numbers = ItemMeasures.Describe(scene.Items[0], scene, primitives.Items[0]).ToDictionary(p => p.Key, p => p.Value);
+            var numbers = ItemMeasures
+                .Describe(scene.Items[0], scene, primitives.Items[0])
+                .ToDictionary(p => p.Key, p => p.Value);
 
             Assert.StartsWith("cannot rebuild the shape, even at 1E-12", numbers["Library"], StringComparison.Ordinal);
             Assert.Equal("2", numbers["Vertices (raw)"]);
@@ -139,7 +174,13 @@ namespace GeometryHelper.Viewer.Tests
 
             using (Tolerance.Use(new Tolerance(1E-5, 1E-7)))
             {
-                square = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100.0004, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+                square = new GeoPolygon2(
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(100, 0),
+                    new GeoPoint2(100.0004, 0),
+                    new GeoPoint2(100, 100),
+                    new GeoPoint2(0, 100)
+                );
             }
 
             Assert.Equal(5, square.VertexCount);
@@ -162,16 +203,27 @@ namespace GeometryHelper.Viewer.Tests
 
             using (Tolerance.Use(new Tolerance(1E-5, 1E-7)))
             {
-                writer = new SceneWriter().Add(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100.0004, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100)));
+                writer = new SceneWriter().Add(
+                    new GeoPolygon2(
+                        new GeoPoint2(0, 0),
+                        new GeoPoint2(100, 0),
+                        new GeoPoint2(100.0004, 0),
+                        new GeoPoint2(100, 100),
+                        new GeoPoint2(0, 100)
+                    )
+                );
             }
 
             Primitives primitives = Primitives.Build(writer.Scene);
-            var numbers = ItemMeasures.Describe(writer.Scene.Items[0], writer.Scene, primitives.Items[0]).ToDictionary(p => p.Key, p => p.Value);
+            var numbers = ItemMeasures
+                .Describe(writer.Scene.Items[0], writer.Scene, primitives.Items[0])
+                .ToDictionary(p => p.Key, p => p.Value);
 
             Assert.Equal("5", numbers["Vertices"]);
             Assert.DoesNotContain("Warning", numbers.Keys);
             Assert.DoesNotContain("Library", numbers.Keys);
         }
+
         [Theory]
         [InlineData("-1")]
         [InlineData("\"NaN\"")]
@@ -188,7 +240,12 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public async System.Threading.Tasks.Task ASceneAtAToleranceOfNought_SavesAndReopens()
         {
-            var result = await Scripting.ScriptHost.RunAsync("Tol = new Tolerance(0, 0);\nShow(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10)));", null, null, System.Threading.CancellationToken.None);
+            var result = await Scripting.ScriptHost.RunAsync(
+                "Tol = new Tolerance(0, 0);\nShow(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10)));",
+                null,
+                null,
+                System.Threading.CancellationToken.None
+            );
             Assert.True(result.Succeeded, string.Join("\n", result.Errors));
             Assert.Equal(0.0, result.Scene.EqualPoint);
 
@@ -217,7 +274,9 @@ namespace GeometryHelper.Viewer.Tests
         }
 
         [Theory]
-        [InlineData("{\"items\":[{\"kind\":\"GeoMesh2\",\"data\":{\"points\":[[0,0],[1,0],[0,1]],\"faces\":[[0,1,2.5]]}}]}")]
+        [InlineData(
+            "{\"items\":[{\"kind\":\"GeoMesh2\",\"data\":{\"points\":[[0,0],[1,0],[0,1]],\"faces\":[[0,1,2.5]]}}]}"
+        )]
         [InlineData("{\"items\":[{\"kind\":\"GeoPolyline2\",\"data\":{\"points\":[[0,0],[1e400,0]]}}]}")]
         [InlineData("{\"items\":[{\"kind\":\"GeoPolyline2\",\"data\":7}]}")]
         [InlineData("{\"items\":[{\"kind\":\"GeoFace3\",\"data\":{\"outer\":5,\"holes\":[]}}]}")]

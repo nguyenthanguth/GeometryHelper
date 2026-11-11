@@ -19,8 +19,10 @@ namespace GeometryHelper.Viewer.Tests
     /// </summary>
     public class GitBuildsTests : IDisposable
     {
-        private const string Project = "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    <TargetFramework>netstandard2.0</TargetFramework>\n    <AssemblyName>GeometryHelper</AssemblyName>\n  </PropertyGroup>\n</Project>\n";
-        private const string RootProps = "<Project>\n  <PropertyGroup>\n    <AssemblyVersion>7.7.7.0</AssemblyVersion>\n  </PropertyGroup>\n</Project>\n";
+        private const string Project =
+            "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    <TargetFramework>netstandard2.0</TargetFramework>\n    <AssemblyName>GeometryHelper</AssemblyName>\n  </PropertyGroup>\n</Project>\n";
+        private const string RootProps =
+            "<Project>\n  <PropertyGroup>\n    <AssemblyVersion>7.7.7.0</AssemblyVersion>\n  </PropertyGroup>\n</Project>\n";
 
         private readonly TempFolder _root = new TempFolder("ghviewer-git");
         private readonly string _repository;
@@ -30,16 +32,30 @@ namespace GeometryHelper.Viewer.Tests
         {
             _repository = _root.Combine("repo");
             Directory.CreateDirectory(_repository);
-            _environment = new CompareEnvironment { CacheRoot = _root.Combine("cache"), BuildTimeout = TimeSpan.FromMinutes(5) };
+            _environment = new CompareEnvironment
+            {
+                CacheRoot = _root.Combine("cache"),
+                BuildTimeout = TimeSpan.FromMinutes(5),
+            };
         }
 
         public void Dispose() => _root.Dispose();
 
-        private string[] BuildEntries() => Directory.Exists(_environment.BuildsFolder) ? Directory.GetFileSystemEntries(_environment.BuildsFolder) : new string[0];
+        private string[] BuildEntries() =>
+            Directory.Exists(_environment.BuildsFolder)
+                ? Directory.GetFileSystemEntries(_environment.BuildsFolder)
+                : new string[0];
 
         private static string Git(string folder, params string[] arguments)
         {
-            var info = new ProcessStartInfo("git") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = folder };
+            var info = new ProcessStartInfo("git")
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                WorkingDirectory = folder,
+            };
             info.ArgumentList.Add("-C");
             info.ArgumentList.Add(folder);
 
@@ -63,7 +79,13 @@ namespace GeometryHelper.Viewer.Tests
             Directory.CreateDirectory(Path.Combine(_repository, "src", "GeometryHelper"));
             File.WriteAllText(Path.Combine(_repository, "Directory.Build.props"), RootProps);
             File.WriteAllText(Path.Combine(_repository, "src", "GeometryHelper", "GeometryHelper.csproj"), Project);
-            File.WriteAllText(Path.Combine(_repository, "src", "GeometryHelper", "Marker.cs"), "public static class Marker { public const int Value = " + value + (breakIt ? " this is not C#" : string.Empty) + "; }\n");
+            File.WriteAllText(
+                Path.Combine(_repository, "src", "GeometryHelper", "Marker.cs"),
+                "public static class Marker { public const int Value = "
+                    + value
+                    + (breakIt ? " this is not C#" : string.Empty)
+                    + "; }\n"
+            );
 
             if (!Directory.Exists(Path.Combine(_repository, ".git")))
             {
@@ -117,8 +139,20 @@ namespace GeometryHelper.Viewer.Tests
             string second = Commit("two", 2);
             var log = new List<string>();
 
-            string dll1 = await GitBuilds.EnsureBuiltAsync(_environment, _repository, first.Substring(0, 8), log.Add, CancellationToken.None);
-            string dll2 = await GitBuilds.EnsureBuiltAsync(_environment, _repository, "HEAD", log.Add, CancellationToken.None);
+            string dll1 = await GitBuilds.EnsureBuiltAsync(
+                _environment,
+                _repository,
+                first.Substring(0, 8),
+                log.Add,
+                CancellationToken.None
+            );
+            string dll2 = await GitBuilds.EnsureBuiltAsync(
+                _environment,
+                _repository,
+                "HEAD",
+                log.Add,
+                CancellationToken.None
+            );
 
             Assert.Equal(first, Path.GetFileName(Path.GetDirectoryName(dll1)));
             Assert.Equal(second, Path.GetFileName(Path.GetDirectoryName(dll2)));
@@ -127,7 +161,13 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Equal(new Version(7, 7, 7, 0), version1);
             Assert.Equal(version1, version2);
             Assert.NotEqual(Sha(dll1), Sha(dll2));
-            Assert.Equal(new[] { "GeometryHelper.dll", "ready" }, Directory.GetFiles(Path.GetDirectoryName(dll1)).Select(Path.GetFileName).OrderBy(n => n, StringComparer.Ordinal));
+            Assert.Equal(
+                new[] { "GeometryHelper.dll", "ready" },
+                Directory
+                    .GetFiles(Path.GetDirectoryName(dll1))
+                    .Select(Path.GetFileName)
+                    .OrderBy(n => n, StringComparer.Ordinal)
+            );
             Assert.Equal(2, Directory.GetDirectories(_environment.BuildsFolder).Length);
             Assert.Contains(log, line => line.StartsWith("building ", StringComparison.Ordinal));
         }
@@ -141,11 +181,29 @@ namespace GeometryHelper.Viewer.Tests
             Commit("two", 2);
             var log = new List<string>();
 
-            string byTag = await GitBuilds.EnsureBuiltAsync(_environment, _repository, "v1", log.Add, CancellationToken.None);
+            string byTag = await GitBuilds.EnsureBuiltAsync(
+                _environment,
+                _repository,
+                "v1",
+                log.Add,
+                CancellationToken.None
+            );
             DateTime written = File.GetLastWriteTimeUtc(byTag);
             log.Clear();
-            string byHash = await GitBuilds.EnsureBuiltAsync(_environment, _repository, first.Substring(0, 7), log.Add, CancellationToken.None);
-            string byBranch = await GitBuilds.EnsureBuiltAsync(_environment, _repository, "side", log.Add, CancellationToken.None);
+            string byHash = await GitBuilds.EnsureBuiltAsync(
+                _environment,
+                _repository,
+                first.Substring(0, 7),
+                log.Add,
+                CancellationToken.None
+            );
+            string byBranch = await GitBuilds.EnsureBuiltAsync(
+                _environment,
+                _repository,
+                "side",
+                log.Add,
+                CancellationToken.None
+            );
 
             Assert.Equal(byTag, byHash);
             Assert.Equal(byTag, byBranch);
@@ -160,19 +218,31 @@ namespace GeometryHelper.Viewer.Tests
             Commit("one", 1);
             string head = Commit("two", 2);
             File.WriteAllText(Path.Combine(_repository, "untracked.txt"), "left alone\n");
-            File.AppendAllText(Path.Combine(_repository, "src", "GeometryHelper", "Marker.cs"), "// an uncommitted edit\n");
-            string Snapshot() => string.Join(
-                "\n--\n",
-                Git(_repository, "rev-parse", "HEAD"),
-                Git(_repository, "status", "--porcelain"),
-                Git(_repository, "branch", "--list"),
-                Git(_repository, "worktree", "list"),
-                Git(_repository, "stash", "list"),
-                Git(_repository, "for-each-ref"),
-                Sha(Path.Combine(_repository, ".git", "index")),
-                Sha(Path.Combine(_repository, "src", "GeometryHelper", "Marker.cs")),
-                File.ReadAllText(Path.Combine(_repository, "untracked.txt")),
-                string.Join(",", Directory.GetFileSystemEntries(Path.Combine(_repository, ".git")).Select(Path.GetFileName).OrderBy(n => n, StringComparer.Ordinal).Where(n => n != "objects")));
+            File.AppendAllText(
+                Path.Combine(_repository, "src", "GeometryHelper", "Marker.cs"),
+                "// an uncommitted edit\n"
+            );
+            string Snapshot() =>
+                string.Join(
+                    "\n--\n",
+                    Git(_repository, "rev-parse", "HEAD"),
+                    Git(_repository, "status", "--porcelain"),
+                    Git(_repository, "branch", "--list"),
+                    Git(_repository, "worktree", "list"),
+                    Git(_repository, "stash", "list"),
+                    Git(_repository, "for-each-ref"),
+                    Sha(Path.Combine(_repository, ".git", "index")),
+                    Sha(Path.Combine(_repository, "src", "GeometryHelper", "Marker.cs")),
+                    File.ReadAllText(Path.Combine(_repository, "untracked.txt")),
+                    string.Join(
+                        ",",
+                        Directory
+                            .GetFileSystemEntries(Path.Combine(_repository, ".git"))
+                            .Select(Path.GetFileName)
+                            .OrderBy(n => n, StringComparer.Ordinal)
+                            .Where(n => n != "objects")
+                    )
+                );
 
             string before = Snapshot();
 
@@ -189,7 +259,9 @@ namespace GeometryHelper.Viewer.Tests
         {
             Commit("one", 1);
 
-            InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() => GitBuilds.EnsureBuiltAsync(_environment, _repository, "nope1234", null, CancellationToken.None));
+            InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                GitBuilds.EnsureBuiltAsync(_environment, _repository, "nope1234", null, CancellationToken.None)
+            );
 
             Assert.Contains("has no commit 'nope1234'", error.Message, StringComparison.Ordinal);
         }
@@ -200,7 +272,9 @@ namespace GeometryHelper.Viewer.Tests
             string plain = _root.Combine("plain");
             Directory.CreateDirectory(plain);
 
-            InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() => GitBuilds.EnsureBuiltAsync(_environment, plain, "HEAD", null, CancellationToken.None));
+            InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                GitBuilds.EnsureBuiltAsync(_environment, plain, "HEAD", null, CancellationToken.None)
+            );
 
             Assert.Contains("has no commit 'HEAD'", error.Message, StringComparison.Ordinal);
         }
@@ -217,7 +291,9 @@ namespace GeometryHelper.Viewer.Tests
             Git(_repository, "add", "-A");
             Git(_repository, "commit", "-q", "-m", "readme");
 
-            InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() => GitBuilds.EnsureBuiltAsync(_environment, _repository, "HEAD", null, CancellationToken.None));
+            InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                GitBuilds.EnsureBuiltAsync(_environment, _repository, "HEAD", null, CancellationToken.None)
+            );
 
             Assert.Contains("has no " + GitBuilds.Project, error.Message, StringComparison.Ordinal);
             Assert.Empty(BuildEntries());
@@ -228,7 +304,9 @@ namespace GeometryHelper.Viewer.Tests
         {
             Commit("broken", 1, true);
 
-            InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() => GitBuilds.EnsureBuiltAsync(_environment, _repository, "HEAD", null, CancellationToken.None));
+            InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                GitBuilds.EnsureBuiltAsync(_environment, _repository, "HEAD", null, CancellationToken.None)
+            );
 
             Assert.Contains("failed", error.Message, StringComparison.Ordinal);
             Assert.Contains("error CS", error.Message, StringComparison.Ordinal);
@@ -244,7 +322,9 @@ namespace GeometryHelper.Viewer.Tests
             {
                 cancel.CancelAfter(TimeSpan.FromMilliseconds(300));
 
-                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => GitBuilds.EnsureBuiltAsync(_environment, _repository, "HEAD", null, cancel.Token));
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                    GitBuilds.EnsureBuiltAsync(_environment, _repository, "HEAD", null, cancel.Token)
+                );
             }
 
             Assert.Empty(BuildEntries());
@@ -255,7 +335,10 @@ namespace GeometryHelper.Viewer.Tests
         {
             string head = Commit("one", 1);
 
-            Assert.Equal(head, await GitBuilds.ResolveAsync(_environment, _repository, head.Substring(0, 6), CancellationToken.None));
+            Assert.Equal(
+                head,
+                await GitBuilds.ResolveAsync(_environment, _repository, head.Substring(0, 6), CancellationToken.None)
+            );
             Assert.Equal(head, await GitBuilds.ResolveAsync(_environment, _repository, "main", CancellationToken.None));
         }
     }

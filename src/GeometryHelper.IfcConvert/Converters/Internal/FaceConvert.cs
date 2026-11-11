@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper;
+using GeometryHelper.Geometry;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Core.Internal;
-using GeometryHelper.Geometry;
 using Xbim.Common.Geometry;
 using Xbim.Ifc4;
 using Xbim.Ifc4.Interfaces;
@@ -28,8 +28,12 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <param name="faces">The converted faces when the method returns true.</param>
         /// <param name="warnings">Receives a message for every problem met, or null to ignore them.</param>
         /// <returns>true if at least one valid face was converted; otherwise false.</returns>
-        public static bool TryReadFaces(this IXbimFace face, IfcConvertOptions options, out List<GeoFace3> faces,
-            ICollection<string> warnings = null)
+        public static bool TryReadFaces(
+            this IXbimFace face,
+            IfcConvertOptions options,
+            out List<GeoFace3> faces,
+            ICollection<string> warnings = null
+        )
         {
             if (face == null)
             {
@@ -96,12 +100,13 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             }
 
             List<GeoPoint3> boundary = face.OuterBound.Points.Select(p => p.ToGeoPoint3(scale)).ToList();
-            List<List<GeoPoint3>> holes = face.InnerBounds == null
-                ? new List<List<GeoPoint3>>()
-                : face.InnerBounds
-                    .Where(wire => wire != null)
-                    .Select(wire => wire.Points.Select(p => p.ToGeoPoint3(scale)).ToList())
-                    .ToList();
+            List<List<GeoPoint3>> holes =
+                face.InnerBounds == null
+                    ? new List<List<GeoPoint3>>()
+                    : face
+                        .InnerBounds.Where(wire => wire != null)
+                        .Select(wire => wire.Points.Select(p => p.ToGeoPoint3(scale)).ToList())
+                        .ToList();
 
             result.AddRange(GeoFace3.FromLoops(boundary, holes, tolerance));
             return result.Count > 0;
@@ -110,13 +115,24 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <summary>
         /// Reads the boundary of a face alone, its holes dropped, for a face whose loops could not be read whole.
         /// </summary>
-        private static bool TryReadBoundary(IXbimFace face, Tolerance tolerance, double scale, out GeoFace3 result,
-            ICollection<string> warnings)
+        private static bool TryReadBoundary(
+            IXbimFace face,
+            Tolerance tolerance,
+            double scale,
+            out GeoFace3 result,
+            ICollection<string> warnings
+        )
         {
             result = null;
 
-            if (face.OuterBound == null ||
-                !TryCreatePolygon(face.OuterBound.Points.Select(p => p.ToGeoPoint3(scale)), tolerance, out GeoPolygon3 boundary))
+            if (
+                face.OuterBound == null
+                || !TryCreatePolygon(
+                    face.OuterBound.Points.Select(p => p.ToGeoPoint3(scale)),
+                    tolerance,
+                    out GeoPolygon3 boundary
+                )
+            )
             {
                 return false;
             }
@@ -125,7 +141,9 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
             if (holes > 0)
             {
-                warnings?.Add($"A face's {holes} hole(s) could not be kept and were dropped; the volume includes them.");
+                warnings?.Add(
+                    $"A face's {holes} hole(s) could not be kept and were dropped; the volume includes them."
+                );
             }
 
             result = new GeoFace3(boundary);
@@ -138,7 +156,11 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             return resultFaces.Count > 0;
         }
 
-        private static bool TryCreatePolygon(IEnumerable<GeoPoint3> points, Tolerance tolerance, out GeoPolygon3 polygon)
+        private static bool TryCreatePolygon(
+            IEnumerable<GeoPoint3> points,
+            Tolerance tolerance,
+            out GeoPolygon3 polygon
+        )
         {
             polygon = null;
             try

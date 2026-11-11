@@ -26,7 +26,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static GeoPoint3 P3(double x, double y, double z) => new GeoPoint3(x, y, z);
 
-        private static string G(int code, string value) => code.ToString(CultureInfo.InvariantCulture).PadLeft(3) + "\n" + value + "\n";
+        private static string G(int code, string value) =>
+            code.ToString(CultureInfo.InvariantCulture).PadLeft(3) + "\n" + value + "\n";
 
         private static string G(int code, double value) => G(code, value.ToString("R", CultureInfo.InvariantCulture));
 
@@ -35,7 +36,10 @@ namespace GeometryHelper.UnitTest.Dxf
         // The cells (1, 0) Mark of the table F6, before its value, and the R2007 drawing of the same text.
         private const string MarkCell = "145\n0.0\n 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n";
 
-        internal static readonly string R2007 = DxfDimensionDrawings.R2018.Replace("$ACADVER\n  1\nAC1032\n", "$ACADVER\n  1\nAC1021\n");
+        internal static readonly string R2007 = DxfDimensionDrawings.R2018.Replace(
+            "$ACADVER\n  1\nAC1032\n",
+            "$ACADVER\n  1\nAC1021\n"
+        );
 
         /// <summary>
         /// A cell of a TABLECONTENT as AutoCAD 2021 wrote its cells of no content in 73-autocad-linked-r2018.dxf: its state,
@@ -45,21 +49,71 @@ namespace GeometryHelper.UnitTest.Dxf
         private static string ContentCell(int state, string link, string field = null)
         {
             var text = new StringBuilder();
-            text.Append(G(300, "CELL")).Append(G(1, "LINKEDTABLEDATACELL_BEGIN")).Append(G(90, state.ToString(CultureInfo.InvariantCulture)))
-                .Append(G(300, string.Empty)).Append(G(91, "0")).Append(G(301, "CUSTOMDATA")).Append(G(1, "DATAMAP_BEGIN")).Append(G(90, "1"))
-                .Append(G(300, "ACAD_ROUNDTRIP_2008_CELL_CHECKSUM")).Append(G(301, "DATAMAP_VALUE")).Append(G(93, "2")).Append(G(90, "2"))
-                .Append(G(140, "0.0")).Append(G(94, "0")).Append(G(300, string.Empty)).Append(G(302, string.Empty)).Append(G(304, "ACVALUE_END"))
+            text.Append(G(300, "CELL"))
+                .Append(G(1, "LINKEDTABLEDATACELL_BEGIN"))
+                .Append(G(90, state.ToString(CultureInfo.InvariantCulture)))
+                .Append(G(300, string.Empty))
+                .Append(G(91, "0"))
+                .Append(G(301, "CUSTOMDATA"))
+                .Append(G(1, "DATAMAP_BEGIN"))
+                .Append(G(90, "1"))
+                .Append(G(300, "ACAD_ROUNDTRIP_2008_CELL_CHECKSUM"))
+                .Append(G(301, "DATAMAP_VALUE"))
+                .Append(G(93, "2"))
+                .Append(G(90, "2"))
+                .Append(G(140, "0.0"))
+                .Append(G(94, "0"))
+                .Append(G(300, string.Empty))
+                .Append(G(302, string.Empty))
+                .Append(G(304, "ACVALUE_END"))
                 .Append(G(309, "DATAMAP_END"));
             text.Append(link == null ? G(92, "0") : G(92, "1") + G(340, link) + G(93, "1") + G(94, "1") + G(96, "1"));
-            text.Append(field == null ? G(95, "0") : G(95, "1") + G(302, "CONTENT") + G(1, "CELLCONTENT_BEGIN") + G(90, "2") + G(340, field) + G(91, "0")
-                + G(309, "CELLCONTENT_END") + G(1, "FORMATTEDCELLCONTENT_BEGIN") + G(170, "0") + G(309, "FORMATTEDCELLCONTENT_END"));
-            text.Append(G(309, "LINKEDTABLEDATACELL_END")).Append(G(1, "FORMATTEDTABLEDATACELL_BEGIN")).Append(G(300, "CELLTABLEFORMAT"))
-                .Append(G(1, "TABLEFORMAT_BEGIN")).Append(G(90, "1")).Append(G(170, "1")).Append(G(91, "0")).Append(G(92, "0")).Append(G(62, "257"))
-                .Append(G(93, "1")).Append(G(300, "CONTENTFORMAT")).Append(G(1, "CONTENTFORMAT_BEGIN")).Append(G(90, "0")).Append(G(91, "0"))
-                .Append(G(92, "512")).Append(G(93, "0")).Append(G(300, string.Empty)).Append(G(40, "0.0")).Append(G(140, "1.0")).Append(G(94, "1"))
-                .Append(G(62, "0")).Append(G(340, "0")).Append(G(144, "0.18")).Append(G(309, "CONTENTFORMAT_END")).Append(G(171, "0")).Append(G(94, "0"))
-                .Append(G(309, "TABLEFORMAT_END")).Append(G(309, "FORMATTEDTABLEDATACELL_END")).Append(G(1, "TABLECELL_BEGIN")).Append(G(90, "0"))
-                .Append(G(91, "0")).Append(G(309, "TABLECELL_END"));
+            text.Append(
+                field == null
+                    ? G(95, "0")
+                    : G(95, "1")
+                        + G(302, "CONTENT")
+                        + G(1, "CELLCONTENT_BEGIN")
+                        + G(90, "2")
+                        + G(340, field)
+                        + G(91, "0")
+                        + G(309, "CELLCONTENT_END")
+                        + G(1, "FORMATTEDCELLCONTENT_BEGIN")
+                        + G(170, "0")
+                        + G(309, "FORMATTEDCELLCONTENT_END")
+            );
+            text.Append(G(309, "LINKEDTABLEDATACELL_END"))
+                .Append(G(1, "FORMATTEDTABLEDATACELL_BEGIN"))
+                .Append(G(300, "CELLTABLEFORMAT"))
+                .Append(G(1, "TABLEFORMAT_BEGIN"))
+                .Append(G(90, "1"))
+                .Append(G(170, "1"))
+                .Append(G(91, "0"))
+                .Append(G(92, "0"))
+                .Append(G(62, "257"))
+                .Append(G(93, "1"))
+                .Append(G(300, "CONTENTFORMAT"))
+                .Append(G(1, "CONTENTFORMAT_BEGIN"))
+                .Append(G(90, "0"))
+                .Append(G(91, "0"))
+                .Append(G(92, "512"))
+                .Append(G(93, "0"))
+                .Append(G(300, string.Empty))
+                .Append(G(40, "0.0"))
+                .Append(G(140, "1.0"))
+                .Append(G(94, "1"))
+                .Append(G(62, "0"))
+                .Append(G(340, "0"))
+                .Append(G(144, "0.18"))
+                .Append(G(309, "CONTENTFORMAT_END"))
+                .Append(G(171, "0"))
+                .Append(G(94, "0"))
+                .Append(G(309, "TABLEFORMAT_END"))
+                .Append(G(309, "FORMATTEDTABLEDATACELL_END"))
+                .Append(G(1, "TABLECELL_BEGIN"))
+                .Append(G(90, "0"))
+                .Append(G(91, "0"))
+                .Append(G(309, "TABLECELL_END"));
             return text.ToString();
         }
 
@@ -71,16 +125,36 @@ namespace GeometryHelper.UnitTest.Dxf
         internal static string TableContent(int rows, int linkedRow, int linkedColumn, string field = null)
         {
             var text = new StringBuilder();
-            text.Append(G(0, "TABLECONTENT")).Append(G(5, "B03")).Append(G(330, "B02")).Append(G(100, "AcDbLinkedData")).Append(G(1, string.Empty))
-                .Append(G(300, string.Empty)).Append(G(100, "AcDbLinkedTableData")).Append(G(90, "2"));
+            text.Append(G(0, "TABLECONTENT"))
+                .Append(G(5, "B03"))
+                .Append(G(330, "B02"))
+                .Append(G(100, "AcDbLinkedData"))
+                .Append(G(1, string.Empty))
+                .Append(G(300, string.Empty))
+                .Append(G(100, "AcDbLinkedTableData"))
+                .Append(G(90, "2"));
 
             foreach (string width in new[] { "40.0", "30.0" })
             {
-                text.Append(G(300, "COLUMN")).Append(G(1, "LINKEDTABLEDATACOLUMN_BEGIN")).Append(G(300, string.Empty)).Append(G(91, "0"))
-                    .Append(G(301, "CUSTOMDATA")).Append(G(1, "DATAMAP_BEGIN")).Append(G(90, "0")).Append(G(309, "DATAMAP_END"))
-                    .Append(G(309, "LINKEDTABLEDATACOLUMN_END")).Append(G(1, "FORMATTEDTABLEDATACOLUMN_BEGIN")).Append(G(300, "COLUMNTABLEFORMAT"))
-                    .Append(G(1, "TABLEFORMAT_BEGIN")).Append(G(90, "3")).Append(G(170, "0")).Append(G(309, "TABLEFORMAT_END"))
-                    .Append(G(309, "FORMATTEDTABLEDATACOLUMN_END")).Append(G(1, "TABLECOLUMN_BEGIN")).Append(G(90, "0")).Append(G(40, width))
+                text.Append(G(300, "COLUMN"))
+                    .Append(G(1, "LINKEDTABLEDATACOLUMN_BEGIN"))
+                    .Append(G(300, string.Empty))
+                    .Append(G(91, "0"))
+                    .Append(G(301, "CUSTOMDATA"))
+                    .Append(G(1, "DATAMAP_BEGIN"))
+                    .Append(G(90, "0"))
+                    .Append(G(309, "DATAMAP_END"))
+                    .Append(G(309, "LINKEDTABLEDATACOLUMN_END"))
+                    .Append(G(1, "FORMATTEDTABLEDATACOLUMN_BEGIN"))
+                    .Append(G(300, "COLUMNTABLEFORMAT"))
+                    .Append(G(1, "TABLEFORMAT_BEGIN"))
+                    .Append(G(90, "3"))
+                    .Append(G(170, "0"))
+                    .Append(G(309, "TABLEFORMAT_END"))
+                    .Append(G(309, "FORMATTEDTABLEDATACOLUMN_END"))
+                    .Append(G(1, "TABLECOLUMN_BEGIN"))
+                    .Append(G(90, "0"))
+                    .Append(G(40, width))
                     .Append(G(309, "TABLECOLUMN_END"));
             }
 
@@ -93,19 +167,44 @@ namespace GeometryHelper.UnitTest.Dxf
                 for (int column = 0; column < 2; column++)
                 {
                     bool linked = row == linkedRow && column == linkedColumn;
-                    text.Append(ContentCell(linked ? (field == null ? 4 : 76) : 0, linked ? "B06" : null, linked ? field : null));
+                    text.Append(
+                        ContentCell(linked ? (field == null ? 4 : 76) : 0, linked ? "B06" : null, linked ? field : null)
+                    );
                 }
 
-                text.Append(G(91, "0")).Append(G(301, "CUSTOMDATA")).Append(G(1, "DATAMAP_BEGIN")).Append(G(90, "0")).Append(G(309, "DATAMAP_END"))
-                    .Append(G(309, "LINKEDTABLEDATAROW_END")).Append(G(1, "FORMATTEDTABLEDATAROW_BEGIN")).Append(G(300, "ROWTABLEFORMAT"))
-                    .Append(G(1, "TABLEFORMAT_BEGIN")).Append(G(90, "2")).Append(G(170, "0")).Append(G(309, "TABLEFORMAT_END"))
-                    .Append(G(309, "FORMATTEDTABLEDATAROW_END")).Append(G(1, "TABLEROW_BEGIN")).Append(G(90, (row + 1).ToString(CultureInfo.InvariantCulture)))
-                    .Append(G(40, row == 0 ? "10.0" : "8.0")).Append(G(309, "TABLEROW_END"));
+                text.Append(G(91, "0"))
+                    .Append(G(301, "CUSTOMDATA"))
+                    .Append(G(1, "DATAMAP_BEGIN"))
+                    .Append(G(90, "0"))
+                    .Append(G(309, "DATAMAP_END"))
+                    .Append(G(309, "LINKEDTABLEDATAROW_END"))
+                    .Append(G(1, "FORMATTEDTABLEDATAROW_BEGIN"))
+                    .Append(G(300, "ROWTABLEFORMAT"))
+                    .Append(G(1, "TABLEFORMAT_BEGIN"))
+                    .Append(G(90, "2"))
+                    .Append(G(170, "0"))
+                    .Append(G(309, "TABLEFORMAT_END"))
+                    .Append(G(309, "FORMATTEDTABLEDATAROW_END"))
+                    .Append(G(1, "TABLEROW_BEGIN"))
+                    .Append(G(90, (row + 1).ToString(CultureInfo.InvariantCulture)))
+                    .Append(G(40, row == 0 ? "10.0" : "8.0"))
+                    .Append(G(309, "TABLEROW_END"));
             }
 
-            text.Append(G(92, "0")).Append(G(100, "AcDbFormattedTableData")).Append(G(300, "TABLEFORMAT")).Append(G(1, "TABLEFORMAT_BEGIN"))
-                .Append(G(90, "4")).Append(G(170, "0")).Append(G(309, "TABLEFORMAT_END")).Append(G(90, "1")).Append(G(91, "0")).Append(G(92, "0"))
-                .Append(G(93, "0")).Append(G(94, "1")).Append(G(100, "AcDbTableContent")).Append(G(340, "126"));
+            text.Append(G(92, "0"))
+                .Append(G(100, "AcDbFormattedTableData"))
+                .Append(G(300, "TABLEFORMAT"))
+                .Append(G(1, "TABLEFORMAT_BEGIN"))
+                .Append(G(90, "4"))
+                .Append(G(170, "0"))
+                .Append(G(309, "TABLEFORMAT_END"))
+                .Append(G(90, "1"))
+                .Append(G(91, "0"))
+                .Append(G(92, "0"))
+                .Append(G(93, "0"))
+                .Append(G(94, "1"))
+                .Append(G(100, "AcDbTableContent"))
+                .Append(G(340, "126"));
             return text.ToString();
         }
 
@@ -121,41 +220,168 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             string text = version
                 .Replace("$HANDSEED\n  5\n10A\n", "$HANDSEED\n  5\nB10\n")
-                .Replace("  0\nACAD_TABLE\n  5\nF6\n330\n17\n", "  0\nACAD_TABLE\n  5\nF6\n102\n{ACAD_XDICTIONARY\n360\nB01\n102\n}\n330\n17\n")
-                .Replace("  3\nEZDXF_META\n350\n2D\n", "  3\nACAD_DATALINK\n350\nB05\n  3\nACDB_RECOMPOSE_DATA\n350\nB0A\n  3\nEZDXF_META\n350\n2D\n");
+                .Replace(
+                    "  0\nACAD_TABLE\n  5\nF6\n330\n17\n",
+                    "  0\nACAD_TABLE\n  5\nF6\n102\n{ACAD_XDICTIONARY\n360\nB01\n102\n}\n330\n17\n"
+                )
+                .Replace(
+                    "  3\nEZDXF_META\n350\n2D\n",
+                    "  3\nACAD_DATALINK\n350\nB05\n  3\nACDB_RECOMPOSE_DATA\n350\nB0A\n  3\nEZDXF_META\n350\n2D\n"
+                );
             var objects = new StringBuilder();
 
             // ACDB_RECOMPOSE_DATA listing the table and its style, as AutoCAD's 18D: without it AutoCAD reads no TABLECONTENT (D28b).
-            objects.Append(G(0, "XRECORD")).Append(G(5, "B0A")).Append(G(102, "{ACAD_REACTORS")).Append(G(330, "A")).Append(G(102, "}")).Append(G(330, "A"))
-                .Append(G(100, "AcDbXrecord")).Append(G(280, "1")).Append(G(90, "1")).Append(G(330, "F6")).Append(G(330, "126"));
-            objects.Append(G(0, "DICTIONARY")).Append(G(5, "B01")).Append(G(330, "F6")).Append(G(100, "AcDbDictionary")).Append(G(280, "1")).Append(G(281, "1"))
-                .Append(G(3, "ACAD_XREC_ROUNDTRIP")).Append(G(360, "B02"));
-            objects.Append(G(0, "XRECORD")).Append(G(5, "B02")).Append(G(102, "{ACAD_REACTORS")).Append(G(330, "B01")).Append(G(102, "}")).Append(G(330, "B01"))
-                .Append(G(100, "AcDbXrecord")).Append(G(280, "1")).Append(G(102, "ACAD_ROUNDTRIP_2008_TABLE_ENTITY")).Append(G(360, "B03")).Append(G(70, "2"))
-                .Append(G(90, "1")).Append(G(10, "0.0")).Append(G(20, "0.0")).Append(G(30, "0.0")).Append(G(90, "0")).Append(G(90, "2")).Append(G(361, "B04"));
+            objects
+                .Append(G(0, "XRECORD"))
+                .Append(G(5, "B0A"))
+                .Append(G(102, "{ACAD_REACTORS"))
+                .Append(G(330, "A"))
+                .Append(G(102, "}"))
+                .Append(G(330, "A"))
+                .Append(G(100, "AcDbXrecord"))
+                .Append(G(280, "1"))
+                .Append(G(90, "1"))
+                .Append(G(330, "F6"))
+                .Append(G(330, "126"));
+            objects
+                .Append(G(0, "DICTIONARY"))
+                .Append(G(5, "B01"))
+                .Append(G(330, "F6"))
+                .Append(G(100, "AcDbDictionary"))
+                .Append(G(280, "1"))
+                .Append(G(281, "1"))
+                .Append(G(3, "ACAD_XREC_ROUNDTRIP"))
+                .Append(G(360, "B02"));
+            objects
+                .Append(G(0, "XRECORD"))
+                .Append(G(5, "B02"))
+                .Append(G(102, "{ACAD_REACTORS"))
+                .Append(G(330, "B01"))
+                .Append(G(102, "}"))
+                .Append(G(330, "B01"))
+                .Append(G(100, "AcDbXrecord"))
+                .Append(G(280, "1"))
+                .Append(G(102, "ACAD_ROUNDTRIP_2008_TABLE_ENTITY"))
+                .Append(G(360, "B03"))
+                .Append(G(70, "2"))
+                .Append(G(90, "1"))
+                .Append(G(10, "0.0"))
+                .Append(G(20, "0.0"))
+                .Append(G(30, "0.0"))
+                .Append(G(90, "0"))
+                .Append(G(90, "2"))
+                .Append(G(361, "B04"));
             objects.Append(TableContent(rows, 1, 0, formula ? "B07" : null));
 
             if (formula)
             {
                 // The fields of AutoCAD's 195 and 196: a field of text holding the expression, owned by the TABLECONTENT.
-                objects.Append(G(0, "FIELD")).Append(G(5, "B07")).Append(G(330, "B03")).Append(G(100, "AcDbField")).Append(G(1, "_text")).Append(G(2, "%<\\_FldIdx 0>%"))
-                    .Append(G(90, "1")).Append(G(360, "B08")).Append(G(97, "0")).Append(G(91, "63")).Append(G(92, "0")).Append(G(94, "13")).Append(G(95, "2")).Append(G(96, "0"))
-                    .Append(G(300, string.Empty)).Append(G(93, "0")).Append(G(7, "ACFD_FIELD_VALUE")).Append(G(93, "3")).Append(G(90, "0")).Append(G(94, "0"))
-                    .Append(G(300, string.Empty)).Append(G(302, string.Empty)).Append(G(304, "ACVALUE_END")).Append(G(301, string.Empty)).Append(G(98, "0"));
-                objects.Append(G(0, "FIELD")).Append(G(5, "B08")).Append(G(330, "B07")).Append(G(100, "AcDbField")).Append(G(1, "AcExpr")).Append(G(2, "\\AcExpr (1+2)"))
-                    .Append(G(90, "0")).Append(G(97, "0")).Append(G(91, "63")).Append(G(92, "0")).Append(G(94, "27")).Append(G(95, "2")).Append(G(96, "0"))
-                    .Append(G(300, string.Empty)).Append(G(93, "0")).Append(G(7, "ACFD_FIELD_VALUE")).Append(G(93, "0")).Append(G(90, "1")).Append(G(91, "3")).Append(G(94, "0"))
-                    .Append(G(300, string.Empty)).Append(G(302, string.Empty)).Append(G(304, "ACVALUE_END")).Append(G(301, string.Empty)).Append(G(98, "1"));
-                text = text.Replace(MarkCell, "145\n0.0\n344\nB09\n 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n");
+                objects
+                    .Append(G(0, "FIELD"))
+                    .Append(G(5, "B07"))
+                    .Append(G(330, "B03"))
+                    .Append(G(100, "AcDbField"))
+                    .Append(G(1, "_text"))
+                    .Append(G(2, "%<\\_FldIdx 0>%"))
+                    .Append(G(90, "1"))
+                    .Append(G(360, "B08"))
+                    .Append(G(97, "0"))
+                    .Append(G(91, "63"))
+                    .Append(G(92, "0"))
+                    .Append(G(94, "13"))
+                    .Append(G(95, "2"))
+                    .Append(G(96, "0"))
+                    .Append(G(300, string.Empty))
+                    .Append(G(93, "0"))
+                    .Append(G(7, "ACFD_FIELD_VALUE"))
+                    .Append(G(93, "3"))
+                    .Append(G(90, "0"))
+                    .Append(G(94, "0"))
+                    .Append(G(300, string.Empty))
+                    .Append(G(302, string.Empty))
+                    .Append(G(304, "ACVALUE_END"))
+                    .Append(G(301, string.Empty))
+                    .Append(G(98, "0"));
+                objects
+                    .Append(G(0, "FIELD"))
+                    .Append(G(5, "B08"))
+                    .Append(G(330, "B07"))
+                    .Append(G(100, "AcDbField"))
+                    .Append(G(1, "AcExpr"))
+                    .Append(G(2, "\\AcExpr (1+2)"))
+                    .Append(G(90, "0"))
+                    .Append(G(97, "0"))
+                    .Append(G(91, "63"))
+                    .Append(G(92, "0"))
+                    .Append(G(94, "27"))
+                    .Append(G(95, "2"))
+                    .Append(G(96, "0"))
+                    .Append(G(300, string.Empty))
+                    .Append(G(93, "0"))
+                    .Append(G(7, "ACFD_FIELD_VALUE"))
+                    .Append(G(93, "0"))
+                    .Append(G(90, "1"))
+                    .Append(G(91, "3"))
+                    .Append(G(94, "0"))
+                    .Append(G(300, string.Empty))
+                    .Append(G(302, string.Empty))
+                    .Append(G(304, "ACVALUE_END"))
+                    .Append(G(301, string.Empty))
+                    .Append(G(98, "1"));
+                text = text.Replace(
+                    MarkCell,
+                    "145\n0.0\n344\nB09\n 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n"
+                );
             }
-            objects.Append(G(0, "TABLEGEOMETRY")).Append(G(5, "B04")).Append(G(330, "B02")).Append(G(100, "AcDbTableGeometry")).Append(G(90, "3")).Append(G(91, "2")).Append(G(92, "0"));
-            objects.Append(G(0, "DICTIONARY")).Append(G(5, "B05")).Append(G(330, "A")).Append(G(100, "AcDbDictionary")).Append(G(281, "1")).Append(G(3, "GH_PARTS")).Append(G(350, "B06"));
-            objects.Append(G(0, "DATALINK")).Append(G(5, "B06")).Append(G(102, "{ACAD_REACTORS")).Append(G(330, "B05")).Append(G(102, "}")).Append(G(330, "B05"))
-                .Append(G(100, "AcDbDataLink")).Append(G(1, "AcExcel")).Append(G(300, string.Empty)).Append(G(301, string.Empty)).Append(G(302, "73-parts.csv"))
-                .Append(G(90, "2")).Append(G(91, "0")).Append(G(92, "0")).Append(G(170, "1900")).Append(G(171, "1")).Append(G(172, "0")).Append(G(173, "0"))
-                .Append(G(174, "0")).Append(G(175, "0")).Append(G(176, "0")).Append(G(177, "0")).Append(G(93, "654")).Append(G(304, string.Empty))
-                .Append(G(94, "2")).Append(G(330, "F6")).Append(G(330, "B03")).Append(G(360, "0")).Append(G(305, "CUSTOMDATA")).Append(G(1, "DATAMAP_BEGIN"))
-                .Append(G(90, "0")).Append(G(309, "DATAMAP_END"));
+            objects
+                .Append(G(0, "TABLEGEOMETRY"))
+                .Append(G(5, "B04"))
+                .Append(G(330, "B02"))
+                .Append(G(100, "AcDbTableGeometry"))
+                .Append(G(90, "3"))
+                .Append(G(91, "2"))
+                .Append(G(92, "0"));
+            objects
+                .Append(G(0, "DICTIONARY"))
+                .Append(G(5, "B05"))
+                .Append(G(330, "A"))
+                .Append(G(100, "AcDbDictionary"))
+                .Append(G(281, "1"))
+                .Append(G(3, "GH_PARTS"))
+                .Append(G(350, "B06"));
+            objects
+                .Append(G(0, "DATALINK"))
+                .Append(G(5, "B06"))
+                .Append(G(102, "{ACAD_REACTORS"))
+                .Append(G(330, "B05"))
+                .Append(G(102, "}"))
+                .Append(G(330, "B05"))
+                .Append(G(100, "AcDbDataLink"))
+                .Append(G(1, "AcExcel"))
+                .Append(G(300, string.Empty))
+                .Append(G(301, string.Empty))
+                .Append(G(302, "73-parts.csv"))
+                .Append(G(90, "2"))
+                .Append(G(91, "0"))
+                .Append(G(92, "0"))
+                .Append(G(170, "1900"))
+                .Append(G(171, "1"))
+                .Append(G(172, "0"))
+                .Append(G(173, "0"))
+                .Append(G(174, "0"))
+                .Append(G(175, "0"))
+                .Append(G(176, "0"))
+                .Append(G(177, "0"))
+                .Append(G(93, "654"))
+                .Append(G(304, string.Empty))
+                .Append(G(94, "2"))
+                .Append(G(330, "F6"))
+                .Append(G(330, "B03"))
+                .Append(G(360, "0"))
+                .Append(G(305, "CUSTOMDATA"))
+                .Append(G(1, "DATAMAP_BEGIN"))
+                .Append(G(90, "0"))
+                .Append(G(309, "DATAMAP_END"));
             return text.Replace("  0\nENDSEC\n  0\nEOF\n", objects + "  0\nENDSEC\n  0\nEOF\n");
         }
 
@@ -207,7 +433,11 @@ namespace GeometryHelper.UnitTest.Dxf
             string saved = db.ToText();
             Assert.Equal(Record(text, "F6"), Record(saved, "F6"));
             Assert.Equal(TableContent(3, -1, -1), Record(saved, "B03"));
-            Assert.Contains(G(304, string.Empty) + G(94, "0") + G(360, "0") + G(305, "CUSTOMDATA"), Record(saved, "B06"), StringComparison.Ordinal);
+            Assert.Contains(
+                G(304, string.Empty) + G(94, "0") + G(360, "0") + G(305, "CUSTOMDATA"),
+                Record(saved, "B06"),
+                StringComparison.Ordinal
+            );
             Assert.False(link.IsErased);
             Assert.Equal(1, db.DataLinkDictionary.Count);
             Assert.Empty(table.GetDataLink());
@@ -235,7 +465,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 string record = Record(db.ToText(), "F6");
                 int at = record.IndexOf("145\n0.0\n344\n", StringComparison.Ordinal);
                 Assert.True(at >= 0, record);
-                Assert.Contains("\n 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n", record.Substring(at), StringComparison.Ordinal);
+                Assert.Contains(
+                    "\n 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n",
+                    record.Substring(at),
+                    StringComparison.Ordinal
+                );
                 Assert.Equal("=1+2", Table(DxfDatabase.Parse(db.ToText())).GetFormula(1, 0, 0));
             }
         }
@@ -305,12 +539,37 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(110.0, mtext.Width);
             Assert.Contains("\n 41\n50\n", Record(db.ToText(), "73"), StringComparison.Ordinal);
             Assert.Equal(
-                new[] { "1001 ACAD", "1000 ACAD_MTEXT_COLUMN_INFO_BEGIN", "1070 75", "1070 1", "1070 79", "1070 0", "1070 76", "1070 2", "1070 78", "1070 0", "1070 48", "1040 50", "1070 49", "1040 10", "1000 ACAD_MTEXT_COLUMN_INFO_END" },
-                ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73").GetXDataForApplication("ACAD").Select(g => g.TypeCode + " " + g.Value));
+                new[]
+                {
+                    "1001 ACAD",
+                    "1000 ACAD_MTEXT_COLUMN_INFO_BEGIN",
+                    "1070 75",
+                    "1070 1",
+                    "1070 79",
+                    "1070 0",
+                    "1070 76",
+                    "1070 2",
+                    "1070 78",
+                    "1070 0",
+                    "1070 48",
+                    "1040 50",
+                    "1070 49",
+                    "1040 10",
+                    "1000 ACAD_MTEXT_COLUMN_INFO_END",
+                },
+                ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73")
+                    .GetXDataForApplication("ACAD")
+                    .Select(g => g.TypeCode + " " + g.Value)
+            );
 
             // A height above nought is written, as AutoCAD writes one.
             mtext.Height = 30.0;
-            Assert.Contains("1000 ACAD_MTEXT_DEFINED_HEIGHT_BEGIN", ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73").GetXDataForApplication("ACAD").Select(g => g.TypeCode + " " + g.Value));
+            Assert.Contains(
+                "1000 ACAD_MTEXT_DEFINED_HEIGHT_BEGIN",
+                ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73")
+                    .GetXDataForApplication("ACAD")
+                    .Select(g => g.TypeCode + " " + g.Value)
+            );
             Assert.Equal(30.0, ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73").Height);
         }
 
@@ -329,8 +588,34 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfMText again = ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73");
             Assert.Equal(
-                new[] { "1001 ACAD", "1000 ACAD_MTEXT_COLUMN_INFO_BEGIN", "1070 75", "1070 2", "1070 79", "1070 0", "1070 76", "1070 2", "1070 78", "1070 0", "1070 48", "1040 50", "1070 49", "1040 10", "1070 50", "1070 2", "1040 15", "1040 25", "1000 ACAD_MTEXT_COLUMN_INFO_END", "1000 ACAD_MTEXT_DEFINED_HEIGHT_BEGIN", "1070 46", "1040 15", "1000 ACAD_MTEXT_DEFINED_HEIGHT_END" },
-                again.GetXDataForApplication("ACAD").Select(g => g.TypeCode + " " + g.Value));
+                new[]
+                {
+                    "1001 ACAD",
+                    "1000 ACAD_MTEXT_COLUMN_INFO_BEGIN",
+                    "1070 75",
+                    "1070 2",
+                    "1070 79",
+                    "1070 0",
+                    "1070 76",
+                    "1070 2",
+                    "1070 78",
+                    "1070 0",
+                    "1070 48",
+                    "1040 50",
+                    "1070 49",
+                    "1040 10",
+                    "1070 50",
+                    "1070 2",
+                    "1040 15",
+                    "1040 25",
+                    "1000 ACAD_MTEXT_COLUMN_INFO_END",
+                    "1000 ACAD_MTEXT_DEFINED_HEIGHT_BEGIN",
+                    "1070 46",
+                    "1040 15",
+                    "1000 ACAD_MTEXT_DEFINED_HEIGHT_END",
+                },
+                again.GetXDataForApplication("ACAD").Select(g => g.TypeCode + " " + g.Value)
+            );
             Assert.Equal(110.0, again.Width);
             Assert.Equal(new[] { 15.0, 25.0 }, new[] { again.GetColumnHeight(0), again.GetColumnHeight(1) });
             Assert.Equal(0.0, again.Height);
@@ -341,17 +626,32 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // Point 10: AutoCAD 2021 read the columns 40 wide 10 apart copied into R2018 as 140 wide; into R2007 its 41 is a
             // column's, and it is read as 140 wide too, as AutoCAD read its columns of R2007 (D18, 09e).
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1021"), DxfFileEzdxfDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1021"),
+                    DxfFileEzdxfDrawings.R2018,
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                var made = new DxfMText { Contents = "a\\Nb\\Nc", Location = P3(1, 2, 0), Width = 40.0 };
+                var made = new DxfMText
+                {
+                    Contents = "a\\Nb\\Nc",
+                    Location = P3(1, 2, 0),
+                    Width = 40.0,
+                };
                 made.SetStaticColumns(40.0, 10.0, 3);
 
                 db.ModelSpace.AppendEntity(made);
 
                 DxfMText again = ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), made.Handle);
                 Assert.Equal(140.0, again.Width);
-                Assert.Contains(text == DxfFileEzdxfDrawings.R2018 ? "\n 41\n140\n" : "\n 41\n40\n", Record(db.ToText(), made.Handle), StringComparison.Ordinal);
+                Assert.Contains(
+                    text == DxfFileEzdxfDrawings.R2018 ? "\n 41\n140\n" : "\n 41\n40\n",
+                    Record(db.ToText(), made.Handle),
+                    StringComparison.Ordinal
+                );
                 Assert.Equal(40.0, again.ColumnWidth);
             }
         }
@@ -436,7 +736,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.True(boxes[k][0].IsEqualTo(box.Min, Tol), box.Min.ToString());
                 Assert.True(boxes[k][1].IsEqualTo(box.Max, Tol), box.Max.ToString());
                 Assert.Throws<InvalidOperationException>(() => grids[k].GeometryExtentsBestFit());
-                Assert.Throws<InvalidOperationException>(() => grids[k].GeometryExtentsBestFit(GeoTransform3.Translation(new GeoVector3(0, 0, 1))));
+                Assert.Throws<InvalidOperationException>(() =>
+                    grids[k].GeometryExtentsBestFit(GeoTransform3.Translation(new GeoVector3(0, 0, 1)))
+                );
             }
 
             // The extents of model space still take in all six cells: (23, 11) the far corner of the last.
@@ -461,14 +763,34 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2018);
             string saver = db.GetHeader("$LASTSAVEDBY")[0].Value;
 
-            db.SummaryInfo = new DxfDatabaseSummaryInfoBuilder(db.SummaryInfo) { Title = "Plate B-13" }.ToDatabaseSummaryInfo();
+            db.SummaryInfo = new DxfDatabaseSummaryInfoBuilder(db.SummaryInfo)
+            {
+                Title = "Plate B-13",
+            }.ToDatabaseSummaryInfo();
 
             string text = db.ToText();
-            string[] names = text.Split('\n').Select(l => l.TrimEnd('\r')).Where(l => l.StartsWith("$", StringComparison.Ordinal)).ToArray();
+            string[] names = text.Split('\n')
+                .Select(l => l.TrimEnd('\r'))
+                .Where(l => l.StartsWith("$", StringComparison.Ordinal))
+                .ToArray();
             int at = Array.IndexOf(names, "$DWGCODEPAGE");
             Assert.Equal(
-                new[] { "$TITLE", "$SUBJECT", "$AUTHOR", "$KEYWORDS", "$COMMENTS", "$LASTSAVEDBY", "$REVISIONNUMBER", "$CUSTOMPROPERTYTAG", "$CUSTOMPROPERTY", "$CUSTOMPROPERTYTAG", "$CUSTOMPROPERTY" },
-                names.Skip(at + 1).Take(11));
+                new[]
+                {
+                    "$TITLE",
+                    "$SUBJECT",
+                    "$AUTHOR",
+                    "$KEYWORDS",
+                    "$COMMENTS",
+                    "$LASTSAVEDBY",
+                    "$REVISIONNUMBER",
+                    "$CUSTOMPROPERTYTAG",
+                    "$CUSTOMPROPERTY",
+                    "$CUSTOMPROPERTYTAG",
+                    "$CUSTOMPROPERTY",
+                },
+                names.Skip(at + 1).Take(11)
+            );
             Assert.Equal(1, names.Count(n => n == "$LASTSAVEDBY"));
             Assert.Equal(saver, DxfDatabase.Parse(text).GetHeader("$LASTSAVEDBY")[0].Value);
             Assert.Equal("Plate B-13", DxfDatabase.Parse(text).SummaryInfo.Title);
@@ -486,11 +808,28 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             var points = new[]
             {
-                P3(0.0000000000000016, 0.0, 0.0), P3(4.762265129346506, -9.875169480547258, 0.0), P3(44.57965357801522, -10.52612047361797, 0.0),
-                P3(60.52497076467426, 41.58068210387638, 0.0), P3(8.562414603983974, 34.00936527765936, 0.0), P3(-3.205697822100078, 6.647426893891476, 0.0),
+                P3(0.0000000000000016, 0.0, 0.0),
+                P3(4.762265129346506, -9.875169480547258, 0.0),
+                P3(44.57965357801522, -10.52612047361797, 0.0),
+                P3(60.52497076467426, 41.58068210387638, 0.0),
+                P3(8.562414603983974, 34.00936527765936, 0.0),
+                P3(-3.205697822100078, 6.647426893891476, 0.0),
                 P3(0.0000000000000016, 0.0, 0.0),
             };
-            var knots = new[] { 0.0, 0.0, 0.0, 0.0, 40.0, 71.62277660168379, 111.9340653431765, 138.859889378849, 138.859889378849, 138.859889378849, 138.859889378849 };
+            var knots = new[]
+            {
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                40.0,
+                71.62277660168379,
+                111.9340653431765,
+                138.859889378849,
+                138.859889378849,
+                138.859889378849,
+                138.859889378849,
+            };
             return new DxfSpline(3, false, true, true, points, knots, null, 0.0000000001, 0.000000001);
         }
 
@@ -502,10 +841,23 @@ namespace GeometryHelper.UnitTest.Dxf
         private static DxfSpline Fitted(double[] knots, GeoPoint3[] points)
         {
             var record = new StringBuilder();
-            record.Append(G(0, "SPLINE")).Append(G(5, "F00")).Append(G(330, "17")).Append(G(100, "AcDbEntity")).Append(G(8, "0")).Append(G(100, "AcDbSpline"))
-                .Append(G(210, "0.0")).Append(G(220, "0.0")).Append(G(230, "1.0")).Append(G(70, "3115")).Append(G(71, "3"))
-                .Append(G(72, knots.Length.ToString(CultureInfo.InvariantCulture))).Append(G(73, points.Length.ToString(CultureInfo.InvariantCulture)))
-                .Append(G(74, "0")).Append(G(42, "0.000000001")).Append(G(43, "0.0000000001"));
+            record
+                .Append(G(0, "SPLINE"))
+                .Append(G(5, "F00"))
+                .Append(G(330, "17"))
+                .Append(G(100, "AcDbEntity"))
+                .Append(G(8, "0"))
+                .Append(G(100, "AcDbSpline"))
+                .Append(G(210, "0.0"))
+                .Append(G(220, "0.0"))
+                .Append(G(230, "1.0"))
+                .Append(G(70, "3115"))
+                .Append(G(71, "3"))
+                .Append(G(72, knots.Length.ToString(CultureInfo.InvariantCulture)))
+                .Append(G(73, points.Length.ToString(CultureInfo.InvariantCulture)))
+                .Append(G(74, "0"))
+                .Append(G(42, "0.000000001"))
+                .Append(G(43, "0.0000000001"));
 
             foreach (double knot in knots)
             {
@@ -517,27 +869,84 @@ namespace GeometryHelper.UnitTest.Dxf
                 record.Append(G(10, point.X)).Append(G(20, point.Y)).Append(G(30, point.Z));
             }
 
-            string text = DxfFileEzdxfDrawings.R2018.Replace("\r\n", "\n").Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nF01\n")
-                .Replace("  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n", record + "  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n");
+            string text = DxfFileEzdxfDrawings
+                .R2018.Replace("\r\n", "\n")
+                .Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nF01\n")
+                .Replace(
+                    "  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n",
+                    record + "  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n"
+                );
             return ByHandle<DxfSpline>(DxfDatabase.Parse(text), "F00");
         }
 
         /// <summary>The closed cubic (g) of 17n as AutoCAD 2021 fitted it in v7: the control points and knots of <see cref="G17"/>, saved 70 3115.</summary>
-        internal static DxfSpline FittedG() => Fitted(
-            new[] { 0.0, 0.0, 0.0, 0.0, 40.0, 71.62277660168379, 111.9340653431765, 138.859889378849, 138.859889378849, 138.859889378849, 138.859889378849 },
-            Enumerable.Range(0, 7).Select(i => G17().GetControlPointAt(i)).ToArray());
+        internal static DxfSpline FittedG() =>
+            Fitted(
+                new[]
+                {
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    40.0,
+                    71.62277660168379,
+                    111.9340653431765,
+                    138.859889378849,
+                    138.859889378849,
+                    138.859889378849,
+                    138.859889378849,
+                },
+                Enumerable.Range(0, 7).Select(i => G17().GetControlPointAt(i)).ToArray()
+            );
 
         // The closed cubic through (0, 0), (30, 0), (30, 15) and (20, 15), its knots 0, 30, 45, 55 and 80, the knot 30 halfway
         // between the quarters 20 and 40 (v8-17f-autocad-knot-halfway.dxf).
-        private static DxfSpline Halfway() => Fitted(
-            new[] { 0.0, 0, 0, 0, 30, 45, 55, 80, 80, 80, 80 },
-            new[] { P3(0.0000000000000007, -0.0000000000000004, 0), P3(1.9696772796188, -6.041152263374485, 0), P3(33.61425167857916, -10.88065843621399, 0), P3(33.34423507327991, 17.56241426611796, 0), P3(14.65605371453325, 14.81893004115226, 0), P3(-1.641397733015665, 5.03429355281207, 0), P3(0.0000000000000007, -0.0000000000000004, 0) });
+        private static DxfSpline Halfway() =>
+            Fitted(
+                new[] { 0.0, 0, 0, 0, 30, 45, 55, 80, 80, 80, 80 },
+                new[]
+                {
+                    P3(0.0000000000000007, -0.0000000000000004, 0),
+                    P3(1.9696772796188, -6.041152263374485, 0),
+                    P3(33.61425167857916, -10.88065843621399, 0),
+                    P3(33.34423507327991, 17.56241426611796, 0),
+                    P3(14.65605371453325, 14.81893004115226, 0),
+                    P3(-1.641397733015665, 5.03429355281207, 0),
+                    P3(0.0000000000000007, -0.0000000000000004, 0),
+                }
+            );
 
         // The closed cubic through (0, 0), (40, 0), (40.5, 0.5), (50, 30) and (10, 25), its knots 40 and 40.71 nearer each
         // other than a quarter of the range (v8-17f-autocad-near-knots.dxf).
-        private static DxfSpline Near() => Fitted(
-            new[] { 0.0, 0, 0, 0, 40, 40.70710678118654, 71.69904121581001, 112.0103299573027, 138.9361539929752, 138.9361539929752, 138.9361539929752, 138.9361539929752 },
-            new[] { P3(0.0000000000000004, 0.0000000000000022, 0), P3(5.581908864552045, -9.637933498405571, 0), P3(30.82057656148167, -9.244936922688699, 0), P3(47.57923142560183, 7.619549683548036, 0), P3(61.79166624560641, 41.95179922457442, 0), P3(8.605513742194279, 34.03076806443996, 0), P3(-3.757437396752223, 6.487732536139555, 0), P3(0.0000000000000004, 0.0000000000000022, 0) });
+        private static DxfSpline Near() =>
+            Fitted(
+                new[]
+                {
+                    0.0,
+                    0,
+                    0,
+                    0,
+                    40,
+                    40.70710678118654,
+                    71.69904121581001,
+                    112.0103299573027,
+                    138.9361539929752,
+                    138.9361539929752,
+                    138.9361539929752,
+                    138.9361539929752,
+                },
+                new[]
+                {
+                    P3(0.0000000000000004, 0.0000000000000022, 0),
+                    P3(5.581908864552045, -9.637933498405571, 0),
+                    P3(30.82057656148167, -9.244936922688699, 0),
+                    P3(47.57923142560183, 7.619549683548036, 0),
+                    P3(61.79166624560641, 41.95179922457442, 0),
+                    P3(8.605513742194279, 34.03076806443996, 0),
+                    P3(-3.757437396752223, 6.487732536139555, 0),
+                    P3(0.0000000000000004, 0.0000000000000022, 0),
+                }
+            );
 
         /// <summary>Checks a polyline of a spline: its vertices, closed, at the parameters AutoCAD 2021's stood at.</summary>
         internal static void AtParameters(DxfSpline spline, int precision, double[] parameters)
@@ -551,7 +960,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 for (int i = 0; i < parameters.Length; i++)
                 {
                     GeoPoint3 wanted = spline.GetPointAtParameter(parameters[i]);
-                    Assert.True(new GeoPoint2(wanted.X, wanted.Y).IsEqualTo(polyline.GetPoint2dAt(i), Tight), "at " + precision + ", vertex " + i + ": " + polyline.GetPoint2dAt(i) + " for " + wanted);
+                    Assert.True(
+                        new GeoPoint2(wanted.X, wanted.Y).IsEqualTo(polyline.GetPoint2dAt(i), Tight),
+                        "at " + precision + ", vertex " + i + ": " + polyline.GetPoint2dAt(i) + " for " + wanted
+                    );
                 }
             }
         }
@@ -564,15 +976,35 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.False(spline.HasFitData);
             var lines = Assert.IsType<DxfPolyline>(spline.ToPolylineWithPrecision(0, false, true));
             var arcs = Assert.IsType<DxfPolyline>(spline.ToPolylineWithPrecision(0, true, true));
-            GeoPoint2[] wanted = { new GeoPoint2(0, 0), new GeoPoint2(34.424781683703785, -3.5056497866629588), new GeoPoint2(50.862106256808033, 28.401362515909977), new GeoPoint2(18.149698545928722, 30.492839988707654), new GeoPoint2(0, 0) };
-            double[] bulges = { 0.41791605272607152, 0.39799678903684749, 0.4353614073572229, 0.40586110215633231, 0.0 };
+            GeoPoint2[] wanted =
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(34.424781683703785, -3.5056497866629588),
+                new GeoPoint2(50.862106256808033, 28.401362515909977),
+                new GeoPoint2(18.149698545928722, 30.492839988707654),
+                new GeoPoint2(0, 0),
+            };
+            double[] bulges =
+            {
+                0.41791605272607152,
+                0.39799678903684749,
+                0.4353614073572229,
+                0.40586110215633231,
+                0.0,
+            };
 
             Assert.Equal(5, lines.NumberOfVertices);
 
             for (int i = 0; i < wanted.Length; i++)
             {
-                Assert.True(wanted[i].IsEqualTo(lines.GetPoint2dAt(i), Tight), "vertex " + i + ": " + lines.GetPoint2dAt(i));
-                Assert.True(wanted[i].IsEqualTo(arcs.GetPoint2dAt(i), Tight), "vertex " + i + ": " + arcs.GetPoint2dAt(i));
+                Assert.True(
+                    wanted[i].IsEqualTo(lines.GetPoint2dAt(i), Tight),
+                    "vertex " + i + ": " + lines.GetPoint2dAt(i)
+                );
+                Assert.True(
+                    wanted[i].IsEqualTo(arcs.GetPoint2dAt(i), Tight),
+                    "vertex " + i + ": " + arcs.GetPoint2dAt(i)
+                );
                 Assert.Equal(bulges[i], arcs.GetBulgeAt(i), 12);
             }
 
@@ -589,7 +1021,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             foreach (KeyValuePair<int, GeoPoint2> vertex in tens)
             {
-                Assert.True(vertex.Value.IsEqualTo(ten.GetPoint2dAt(vertex.Key), Tight), "vertex " + vertex.Key + ": " + ten.GetPoint2dAt(vertex.Key));
+                Assert.True(
+                    vertex.Value.IsEqualTo(ten.GetPoint2dAt(vertex.Key), Tight),
+                    "vertex " + vertex.Key + ": " + ten.GetPoint2dAt(vertex.Key)
+                );
             }
         }
 
@@ -602,12 +1037,67 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(spline.HasFitData);
 
             AtParameters(spline, 0, new[] { 0.0, 20, 45, 55, 80 });
-            AtParameters(spline, 10, new[]
-            {
-                0.0, 1.25, 2.5, 3.75, 5, 6.25, 7.5, 8.75, 10, 12.5, 15, 17.5, 20, 21.25, 22.5, 23.75, 25, 26.25, 27.5, 28.75, 30, 31.25, 32.5,
-                33.75, 35, 36.25, 37.5, 38.75, 40, 41.25, 42.5, 43.75, 45, 46.25, 47.5, 48.75, 50, 51.25, 52.5, 55, 57.5, 60, 62.5, 65, 67.5,
-                70, 71.25, 72.5, 73.75, 75, 76.25, 77.5, 78.75, 80,
-            });
+            AtParameters(
+                spline,
+                10,
+                new[]
+                {
+                    0.0,
+                    1.25,
+                    2.5,
+                    3.75,
+                    5,
+                    6.25,
+                    7.5,
+                    8.75,
+                    10,
+                    12.5,
+                    15,
+                    17.5,
+                    20,
+                    21.25,
+                    22.5,
+                    23.75,
+                    25,
+                    26.25,
+                    27.5,
+                    28.75,
+                    30,
+                    31.25,
+                    32.5,
+                    33.75,
+                    35,
+                    36.25,
+                    37.5,
+                    38.75,
+                    40,
+                    41.25,
+                    42.5,
+                    43.75,
+                    45,
+                    46.25,
+                    47.5,
+                    48.75,
+                    50,
+                    51.25,
+                    52.5,
+                    55,
+                    57.5,
+                    60,
+                    62.5,
+                    65,
+                    67.5,
+                    70,
+                    71.25,
+                    72.5,
+                    73.75,
+                    75,
+                    76.25,
+                    77.5,
+                    78.75,
+                    80,
+                }
+            );
         }
 
         [Fact]
@@ -616,19 +1106,69 @@ namespace GeometryHelper.UnitTest.Dxf
             // Plugin v8, 17f (NEAR): at 0 the knot 40.71 stood in the place of the quarter 34.73, where the knot 40 would.
             DxfSpline spline = Near();
 
-            AtParameters(spline, 0, new[] { 0.0, 40.707106781186546, 71.699041215810013, 112.01032995730276, 138.93615399297528 });
-            AtParameters(spline, 10, new[]
-            {
-                0.0, 2.1708774061402325, 4.3417548122804792, 6.5126322184207144, 8.6835096245609549, 10.854387030701195, 13.025264436841431,
-                17.36701924912191, 21.708774061402394, 26.050528873682868, 30.392283685963349, 32.563161092103584, 34.734038498243827,
-                36.904915904384048, 40, 40.707106781186546, 43.417548122804774, 47.759302935085252, 52.101057747365729, 56.442812559646214,
-                60.784567371926684, 62.955444778066926, 65.126322184207169, 67.2971995903474, 69.468076996487639, 71.699041215810013,
-                73.809831808768109, 75.980709214908359, 78.151586621048608, 80.322464027188829, 82.493341433329078, 84.6642188394693,
-                86.835096245609577, 89.0059736517498, 91.176851057890019, 95.518605870170489, 99.860360682450988, 104.20211549473146,
-                108.54387030701193, 112.01032995730276, 117.2273799315729, 119.39825733771313, 121.56913474385337, 123.74001214999362,
-                125.91088955613385, 128.08176696227406, 130.25264436841434, 132.42352177455456, 134.59439918069478, 136.76527658683506,
-                138.93615399297528,
-            });
+            AtParameters(
+                spline,
+                0,
+                new[] { 0.0, 40.707106781186546, 71.699041215810013, 112.01032995730276, 138.93615399297528 }
+            );
+            AtParameters(
+                spline,
+                10,
+                new[]
+                {
+                    0.0,
+                    2.1708774061402325,
+                    4.3417548122804792,
+                    6.5126322184207144,
+                    8.6835096245609549,
+                    10.854387030701195,
+                    13.025264436841431,
+                    17.36701924912191,
+                    21.708774061402394,
+                    26.050528873682868,
+                    30.392283685963349,
+                    32.563161092103584,
+                    34.734038498243827,
+                    36.904915904384048,
+                    40,
+                    40.707106781186546,
+                    43.417548122804774,
+                    47.759302935085252,
+                    52.101057747365729,
+                    56.442812559646214,
+                    60.784567371926684,
+                    62.955444778066926,
+                    65.126322184207169,
+                    67.2971995903474,
+                    69.468076996487639,
+                    71.699041215810013,
+                    73.809831808768109,
+                    75.980709214908359,
+                    78.151586621048608,
+                    80.322464027188829,
+                    82.493341433329078,
+                    84.6642188394693,
+                    86.835096245609577,
+                    89.0059736517498,
+                    91.176851057890019,
+                    95.518605870170489,
+                    99.860360682450988,
+                    104.20211549473146,
+                    108.54387030701193,
+                    112.01032995730276,
+                    117.2273799315729,
+                    119.39825733771313,
+                    121.56913474385337,
+                    123.74001214999362,
+                    125.91088955613385,
+                    128.08176696227406,
+                    130.25264436841434,
+                    132.42352177455456,
+                    134.59439918069478,
+                    136.76527658683506,
+                    138.93615399297528,
+                }
+            );
         }
 
         #endregion

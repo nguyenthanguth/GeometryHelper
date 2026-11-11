@@ -15,7 +15,14 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     public sealed class DxfBlockLookupInput
     {
-        private DxfBlockLookupInput(DxfBlockTableRecord block, int node, string name, string connection, DxfBlockParameterValueSet valueSet, bool isAngle = false)
+        private DxfBlockLookupInput(
+            DxfBlockTableRecord block,
+            int node,
+            string name,
+            string connection,
+            DxfBlockParameterValueSet valueSet,
+            bool isAngle = false
+        )
         {
             Block = block;
             Node = node;
@@ -57,7 +64,13 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(parameter));
             }
 
-            return new DxfBlockLookupInput(parameter.Block, parameter.Node, parameter.Name, "UpdatedDistance", parameter.ValueSet);
+            return new DxfBlockLookupInput(
+                parameter.Block,
+                parameter.Node,
+                parameter.Name,
+                "UpdatedDistance",
+                parameter.ValueSet
+            );
         }
 
         /// <summary>Makes the column of the x of a point parameter, its connection UpdatedX as AutoCAD writes it: each row gives the x.</summary>
@@ -103,7 +116,13 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(parameter));
             }
 
-            return new DxfBlockLookupInput(parameter.Block, parameter.Node, parameter.XName, "UpdatedDistanceX", parameter.XValueSet);
+            return new DxfBlockLookupInput(
+                parameter.Block,
+                parameter.Node,
+                parameter.XName,
+                "UpdatedDistanceX",
+                parameter.XValueSet
+            );
         }
 
         /// <summary>
@@ -120,7 +139,13 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(parameter));
             }
 
-            return new DxfBlockLookupInput(parameter.Block, parameter.Node, parameter.YName, "UpdatedDistanceY", parameter.YValueSet);
+            return new DxfBlockLookupInput(
+                parameter.Block,
+                parameter.Node,
+                parameter.YName,
+                "UpdatedDistanceY",
+                parameter.YValueSet
+            );
         }
 
         /// <summary>
@@ -137,7 +162,13 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(parameter));
             }
 
-            return new DxfBlockLookupInput(parameter.Block, parameter.Node, parameter.DistanceName, "UpdatedDistance", parameter.DistanceValueSet);
+            return new DxfBlockLookupInput(
+                parameter.Block,
+                parameter.Node,
+                parameter.DistanceName,
+                "UpdatedDistance",
+                parameter.DistanceValueSet
+            );
         }
 
         /// <summary>
@@ -154,7 +185,14 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(parameter));
             }
 
-            return new DxfBlockLookupInput(parameter.Block, parameter.Node, parameter.AngleName, "UpdatedAngle", parameter.AngleValueSet, true);
+            return new DxfBlockLookupInput(
+                parameter.Block,
+                parameter.Node,
+                parameter.AngleName,
+                "UpdatedAngle",
+                parameter.AngleValueSet,
+                true
+            );
         }
 
         /// <summary>
@@ -171,7 +209,14 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(parameter));
             }
 
-            return new DxfBlockLookupInput(parameter.Block, parameter.Node, parameter.Name, "UpdatedAngle", parameter.ValueSet, true);
+            return new DxfBlockLookupInput(
+                parameter.Block,
+                parameter.Node,
+                parameter.Name,
+                "UpdatedAngle",
+                parameter.ValueSet,
+                true
+            );
         }
     }
 }

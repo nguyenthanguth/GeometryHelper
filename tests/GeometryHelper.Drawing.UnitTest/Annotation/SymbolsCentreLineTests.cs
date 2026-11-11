@@ -13,8 +13,11 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
 {
     public class SymbolsCentreLineTests
     {
-        private static IReadOnlyList<DrawingCentreLine> Find(DrawingObject[] objects, GeoCoordinateSystem3 frame, double scale)
-            => DrawingCentreLine.Find(Project(objects, frame), objects, new SymbolSettings(), scale, Tol);
+        private static IReadOnlyList<DrawingCentreLine> Find(
+            DrawingObject[] objects,
+            GeoCoordinateSystem3 frame,
+            double scale
+        ) => DrawingCentreLine.Find(Project(objects, frame), objects, new SymbolSettings(), scale, Tol);
 
         private static void IsLine(DrawingCentreLine line, double x0, double y0, double x1, double y1)
         {
@@ -43,7 +46,13 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         public void AHoleOnItsOwnGetsACrossAndTheExtensionFollowsTheSettings()
         {
             DrawingObject[] objects = { Bar(300, 100, P(80, 40)) };
-            IReadOnlyList<DrawingCentreLine> lines = DrawingCentreLine.Find(Project(objects, Top), objects, new SymbolSettings { CentreLineExtension = 2 }, 10, Tol);
+            IReadOnlyList<DrawingCentreLine> lines = DrawingCentreLine.Find(
+                Project(objects, Top),
+                objects,
+                new SymbolSettings { CentreLineExtension = 2 },
+                10,
+                Tol
+            );
 
             Assert.Equal(2, lines.Count);
             IsLine(lines[0], 80 - 11 - 20, 40, 80 + 11 + 20, 40);
@@ -93,8 +102,15 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         public void TheSameObjectsInAnotherOrderGiveTheSameLines()
         {
             DrawingObject[] objects = Objects(TestBodies.TC5());
-            string first = string.Join("\n", Find(objects, Top, 10).Select(l => l.Id + " " + l.Line + " " + string.Join(",", l.ObjectIds)));
-            string again = string.Join("\n", Find(objects.Reverse().ToArray(), Top, 10).Select(l => l.Id + " " + l.Line + " " + string.Join(",", l.ObjectIds)));
+            string first = string.Join(
+                "\n",
+                Find(objects, Top, 10).Select(l => l.Id + " " + l.Line + " " + string.Join(",", l.ObjectIds))
+            );
+            string again = string.Join(
+                "\n",
+                Find(objects.Reverse().ToArray(), Top, 10)
+                    .Select(l => l.Id + " " + l.Line + " " + string.Join(",", l.ObjectIds))
+            );
 
             Assert.Equal(first, again);
         }
@@ -105,9 +121,13 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             DrawingObject[] objects = Objects(TestBodies.TC1());
             ProjectedView2 view = Project(objects, Top);
 
-            Assert.Throws<ArgumentNullException>(() => DrawingCentreLine.Find(null, objects, new SymbolSettings(), 1, Tol));
+            Assert.Throws<ArgumentNullException>(() =>
+                DrawingCentreLine.Find(null, objects, new SymbolSettings(), 1, Tol)
+            );
             Assert.Throws<ArgumentNullException>(() => DrawingCentreLine.Find(view, objects, null, 1, Tol));
-            Assert.Throws<ArgumentOutOfRangeException>(() => DrawingCentreLine.Find(view, objects, new SymbolSettings(), -1, Tol));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                DrawingCentreLine.Find(view, objects, new SymbolSettings(), -1, Tol)
+            );
             Assert.Throws<ArgumentOutOfRangeException>(() => new SymbolSettings { CentreLineExtension = 0 });
         }
     }

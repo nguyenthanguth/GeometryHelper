@@ -32,8 +32,14 @@ namespace GeometryHelper.UnitTest.Plane
                 for (int k = 0; k < perQuarter; k++)
                 {
                     double t = (double)k / perQuarter;
-                    double x = 500.0 * (1.0 - t * t) / (1.0 + t * t), y = 500.0 * 2.0 * t / (1.0 + t * t);
-                    corners.Add(quarter == 0 ? new GeoPoint2(x, y) : quarter == 1 ? new GeoPoint2(-y, x) : quarter == 2 ? new GeoPoint2(-x, -y) : new GeoPoint2(y, -x));
+                    double x = 500.0 * (1.0 - t * t) / (1.0 + t * t),
+                        y = 500.0 * 2.0 * t / (1.0 + t * t);
+                    corners.Add(
+                        quarter == 0 ? new GeoPoint2(x, y)
+                        : quarter == 1 ? new GeoPoint2(-y, x)
+                        : quarter == 2 ? new GeoPoint2(-x, -y)
+                        : new GeoPoint2(y, -x)
+                    );
                 }
             }
 

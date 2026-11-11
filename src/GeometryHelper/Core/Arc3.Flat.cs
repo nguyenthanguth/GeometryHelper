@@ -31,7 +31,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the points where an arc cuts a run of edges.
         /// </summary>
-        private static void AddCrossingsOfEdges(List<GeoPoint3> found, GeoArc3 arc, IEnumerable<GeoLine3> edges, Tolerance tolerance)
+        private static void AddCrossingsOfEdges(
+            List<GeoPoint3> found,
+            GeoArc3 arc,
+            IEnumerable<GeoLine3> edges,
+            Tolerance tolerance
+        )
         {
             foreach (GeoLine3 edge in edges)
             {
@@ -46,7 +51,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the points of the arc that a flat region holds, where the arc does not lie in its plane.
         /// </summary>
-        private static List<GeoPoint3> PiercingPoints(GeoArc3 arc, GeoPlane3 plane, Func<GeoPoint3, bool> holds, Tolerance tolerance)
+        private static List<GeoPoint3> PiercingPoints(
+            GeoArc3 arc,
+            GeoPlane3 plane,
+            Func<GeoPoint3, bool> holds,
+            Tolerance tolerance
+        )
         {
             var found = new List<GeoPoint3>();
 
@@ -71,7 +81,13 @@ namespace GeometryHelper.Core
         /// <param name="region">The region, read for the gap.</param>
         /// <param name="box">The box of the region.</param>
         /// <param name="tolerance">The tolerance.</param>
-        private static GeoPoint3[] WhereTouching(GeoArc3 arc, List<GeoPoint3> found, Gap3.Region region, GeoAabb3 box, Tolerance tolerance)
+        private static GeoPoint3[] WhereTouching(
+            GeoArc3 arc,
+            List<GeoPoint3> found,
+            Gap3.Region region,
+            GeoAabb3 box,
+            Tolerance tolerance
+        )
         {
             foreach (GeoPoint3 point in found)
             {
@@ -83,7 +99,8 @@ namespace GeometryHelper.Core
 
             Gap3.Curve curve = Gap3.Curve.Of(arc);
 
-            bool touches = curve.Box.DistanceTo(box) <= Collision3.Reach(tolerance)
+            bool touches =
+                curve.Box.DistanceTo(box) <= Collision3.Reach(tolerance)
                 && curve.GapToRegion(region, tolerance.EqualPoint) <= tolerance.EqualPoint;
 
             return touches ? found.ToArray() : new GeoPoint3[0];
@@ -99,18 +116,29 @@ namespace GeometryHelper.Core
         /// <param name="region">The region, read for the gap.</param>
         /// <param name="box">The box of the region.</param>
         /// <param name="tolerance">The tolerance.</param>
-        private static GeoPoint3[] TouchAlone(GeoArc3 arc, GeoPlane3? plane, Gap3.Region region, GeoAabb3 box, Tolerance tolerance)
+        private static GeoPoint3[] TouchAlone(
+            GeoArc3 arc,
+            GeoPlane3? plane,
+            Gap3.Region region,
+            GeoAabb3 box,
+            Tolerance tolerance
+        )
         {
             Gap3.Curve curve = Gap3.Curve.Of(arc);
 
-            if (curve.Box.DistanceTo(box) > Collision3.Reach(tolerance) || curve.GapToRegion(region, tolerance.EqualPoint) > tolerance.EqualPoint)
+            if (
+                curve.Box.DistanceTo(box) > Collision3.Reach(tolerance)
+                || curve.GapToRegion(region, tolerance.EqualPoint) > tolerance.EqualPoint
+            )
             {
                 return new GeoPoint3[0];
             }
 
             GeoPoint3 nearest = curve.NearestToRegion(region);
 
-            return plane.HasValue && LiesLevelOver(arc, plane.Value, region, nearest, tolerance) ? new GeoPoint3[0] : new[] { nearest };
+            return plane.HasValue && LiesLevelOver(arc, plane.Value, region, nearest, tolerance)
+                ? new GeoPoint3[0]
+                : new[] { nearest };
         }
 
         /// <summary>
@@ -118,8 +146,8 @@ namespace GeometryHelper.Core
         /// its centre than its radius, so a box further than that and the reach of the tolerance from the centre holds nothing
         /// it touches. It spares a shape plainly clear of the arc the reading of the arc for its gap.
         /// </summary>
-        internal static bool MayTouch(GeoArc3 arc, GeoAabb3 box, Tolerance tolerance)
-            => !(box.DistanceTo(arc.Center) - arc.Radius > Collision3.Reach(tolerance));
+        internal static bool MayTouch(GeoArc3 arc, GeoAabb3 box, Tolerance tolerance) =>
+            !(box.DistanceTo(arc.Center) - arc.Radius > Collision3.Reach(tolerance));
 
         /// <summary>
         /// Determines whether an arc lies level over a region where it comes nearest it: in the region's plane, as
@@ -127,8 +155,13 @@ namespace GeometryHelper.Core
         /// nearest point standing over the material. Tilted further, an arc of radius 300 tilted 9E-6 rises 0.0027 off the
         /// plane round its circle, and touches the material where it dips nearest it.
         /// </summary>
-        internal static bool LiesLevelOver(GeoArc3 arc, GeoPlane3 plane, Gap3.Region region, GeoPoint3 nearest, Tolerance tolerance)
-            => IsCoplanar(arc, plane, tolerance) && region.Holds(nearest);
+        internal static bool LiesLevelOver(
+            GeoArc3 arc,
+            GeoPlane3 plane,
+            Gap3.Region region,
+            GeoPoint3 nearest,
+            Tolerance tolerance
+        ) => IsCoplanar(arc, plane, tolerance) && region.Holds(nearest);
 
         #endregion
 
@@ -137,8 +170,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where an arc crosses a triangle.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoTriangle3 triangle)
-            => GetIntersections(arc, triangle, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoTriangle3 triangle) =>
+            GetIntersections(arc, triangle, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where an arc crosses a triangle, within a tolerance.
@@ -177,18 +210,30 @@ namespace GeometryHelper.Core
                     return WhereTouching(arc, found, Gap3.Region.Of(triangle), triangle.GetAabb(), tolerance);
                 }
 
-                return MayTouch(arc, triangle.GetAabb(), tolerance) ? TouchAlone(arc, null, Gap3.Region.Of(triangle), triangle.GetAabb(), tolerance) : found.ToArray();
+                return MayTouch(arc, triangle.GetAabb(), tolerance)
+                    ? TouchAlone(arc, null, Gap3.Region.Of(triangle), triangle.GetAabb(), tolerance)
+                    : found.ToArray();
             }
 
             if (!IsCoplanar(arc, triangle.GetPlane(), tolerance))
             {
-                found = PiercingPoints(arc, triangle.GetPlane(), point => Containment3.Contains(triangle, point, tolerance), tolerance);
+                found = PiercingPoints(
+                    arc,
+                    triangle.GetPlane(),
+                    point => Containment3.Contains(triangle, point, tolerance),
+                    tolerance
+                );
             }
             else
             {
                 found = new List<GeoPoint3>();
 
-                AddCrossingsOfEdges(found, arc, new[] { triangle.GetEdgeAt(0), triangle.GetEdgeAt(1), triangle.GetEdgeAt(2) }, tolerance);
+                AddCrossingsOfEdges(
+                    found,
+                    arc,
+                    new[] { triangle.GetEdgeAt(0), triangle.GetEdgeAt(1), triangle.GetEdgeAt(2) },
+                    tolerance
+                );
             }
 
             if (found.Count > 0)
@@ -196,13 +241,16 @@ namespace GeometryHelper.Core
                 return WhereTouching(arc, found, Gap3.Region.Of(triangle), triangle.GetAabb(), tolerance);
             }
 
-            return MayTouch(arc, triangle.GetAabb(), tolerance) ? TouchAlone(arc, triangle.GetPlane(), Gap3.Region.Of(triangle), triangle.GetAabb(), tolerance) : found.ToArray();
+            return MayTouch(arc, triangle.GetAabb(), tolerance)
+                ? TouchAlone(arc, triangle.GetPlane(), Gap3.Region.Of(triangle), triangle.GetAabb(), tolerance)
+                : found.ToArray();
         }
 
         /// <summary>
         /// Determines whether an arc touches a triangle.
         /// </summary>
-        public static bool CollidesWith(GeoArc3 arc, GeoTriangle3 triangle) => CollidesWith(arc, triangle, Tolerance.Global);
+        public static bool CollidesWith(GeoArc3 arc, GeoTriangle3 triangle) =>
+            CollidesWith(arc, triangle, Tolerance.Global);
 
         /// <summary>
         /// Determines whether an arc touches a triangle, within a tolerance.
@@ -227,8 +275,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where an arc crosses a triangle.
         /// </summary>
-        public static bool TryIntersectWith(GeoArc3 arc, GeoTriangle3 triangle, out GeoPoint3[] intersections)
-            => TryIntersectWith(arc, triangle, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoArc3 arc, GeoTriangle3 triangle, out GeoPoint3[] intersections) =>
+            TryIntersectWith(arc, triangle, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where an arc crosses a triangle, within a tolerance.
@@ -237,7 +285,12 @@ namespace GeometryHelper.Core
         /// <param name="triangle">The triangle.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool TryIntersectWith(GeoArc3 arc, GeoTriangle3 triangle, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoArc3 arc,
+            GeoTriangle3 triangle,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(arc, triangle, tolerance);
 
@@ -251,8 +304,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where an arc crosses a polygon.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoPolygon3 polygon)
-            => GetIntersections(arc, polygon, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoPolygon3 polygon) =>
+            GetIntersections(arc, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where an arc crosses a polygon, within a tolerance.
@@ -284,7 +337,9 @@ namespace GeometryHelper.Core
                 return WhereTouching(arc, found, Gap3.Region.Of(polygon), polygon.GetAabb(), tolerance);
             }
 
-            return MayTouch(arc, polygon.GetAabb(), tolerance) ? TouchAlone(arc, polygon.GetPlane(), Gap3.Region.Of(polygon), polygon.GetAabb(), tolerance) : found.ToArray();
+            return MayTouch(arc, polygon.GetAabb(), tolerance)
+                ? TouchAlone(arc, polygon.GetPlane(), Gap3.Region.Of(polygon), polygon.GetAabb(), tolerance)
+                : found.ToArray();
         }
 
         /// <summary>
@@ -295,7 +350,12 @@ namespace GeometryHelper.Core
         {
             if (!IsCoplanar(arc, polygon.GetPlane(), tolerance))
             {
-                return PiercingPoints(arc, polygon.GetPlane(), point => Containment3.Contains(polygon, point, tolerance), tolerance);
+                return PiercingPoints(
+                    arc,
+                    polygon.GetPlane(),
+                    point => Containment3.Contains(polygon, point, tolerance),
+                    tolerance
+                );
             }
 
             var found = new List<GeoPoint3>();
@@ -308,7 +368,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether an arc touches a polygon.
         /// </summary>
-        public static bool CollidesWith(GeoArc3 arc, GeoPolygon3 polygon) => CollidesWith(arc, polygon, Tolerance.Global);
+        public static bool CollidesWith(GeoArc3 arc, GeoPolygon3 polygon) =>
+            CollidesWith(arc, polygon, Tolerance.Global);
 
         /// <summary>
         /// Determines whether an arc touches a polygon, within a tolerance.
@@ -337,8 +398,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where an arc crosses a polygon.
         /// </summary>
-        public static bool TryIntersectWith(GeoArc3 arc, GeoPolygon3 polygon, out GeoPoint3[] intersections)
-            => TryIntersectWith(arc, polygon, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoArc3 arc, GeoPolygon3 polygon, out GeoPoint3[] intersections) =>
+            TryIntersectWith(arc, polygon, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where an arc crosses a polygon, within a tolerance.
@@ -347,7 +408,12 @@ namespace GeometryHelper.Core
         /// <param name="polygon">The polygon.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool TryIntersectWith(GeoArc3 arc, GeoPolygon3 polygon, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoArc3 arc,
+            GeoPolygon3 polygon,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(arc, polygon, tolerance);
 
@@ -361,7 +427,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where an arc crosses a face.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoFace3 face) => GetIntersections(arc, face, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoFace3 face) =>
+            GetIntersections(arc, face, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where an arc crosses a face, within a tolerance.
@@ -411,7 +478,9 @@ namespace GeometryHelper.Core
 
             List<GeoPoint3> found = CrossingsOf(arc, face, tolerance);
 
-            return found.Count == 0 ? found.ToArray() : WhereTouching(arc, found, Gap3.Region.Of(face), face.GetAabb(), tolerance);
+            return found.Count == 0
+                ? found.ToArray()
+                : WhereTouching(arc, found, Gap3.Region.Of(face), face.GetAabb(), tolerance);
         }
 
         /// <summary>
@@ -422,7 +491,12 @@ namespace GeometryHelper.Core
         {
             if (!IsCoplanar(arc, face.GetPlane(), tolerance))
             {
-                return PiercingPoints(arc, face.GetPlane(), point => Containment3.Contains(face, point, tolerance), tolerance);
+                return PiercingPoints(
+                    arc,
+                    face.GetPlane(),
+                    point => Containment3.Contains(face, point, tolerance),
+                    tolerance
+                );
             }
 
             var found = new List<GeoPoint3>();
@@ -470,8 +544,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where an arc crosses a face.
         /// </summary>
-        public static bool TryIntersectWith(GeoArc3 arc, GeoFace3 face, out GeoPoint3[] intersections)
-            => TryIntersectWith(arc, face, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoArc3 arc, GeoFace3 face, out GeoPoint3[] intersections) =>
+            TryIntersectWith(arc, face, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where an arc crosses a face, within a tolerance.
@@ -480,7 +554,12 @@ namespace GeometryHelper.Core
         /// <param name="face">The face.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool TryIntersectWith(GeoArc3 arc, GeoFace3 face, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoArc3 arc,
+            GeoFace3 face,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(arc, face, tolerance);
 
@@ -494,8 +573,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a circle crosses a triangle.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoCircle3 circle, GeoTriangle3 triangle)
-            => GetIntersections(AsArc(circle), triangle);
+        public static GeoPoint3[] GetIntersections(GeoCircle3 circle, GeoTriangle3 triangle) =>
+            GetIntersections(AsArc(circle), triangle);
 
         /// <summary>
         /// Gets every point where a circle crosses a triangle, within a tolerance.
@@ -503,13 +582,14 @@ namespace GeometryHelper.Core
         /// <param name="circle">The circle.</param>
         /// <param name="triangle">The triangle.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static GeoPoint3[] GetIntersections(GeoCircle3 circle, GeoTriangle3 triangle, Tolerance tolerance)
-            => GetIntersections(AsArc(circle), triangle, tolerance);
+        public static GeoPoint3[] GetIntersections(GeoCircle3 circle, GeoTriangle3 triangle, Tolerance tolerance) =>
+            GetIntersections(AsArc(circle), triangle, tolerance);
 
         /// <summary>
         /// Determines whether a circle touches a triangle.
         /// </summary>
-        public static bool CollidesWith(GeoCircle3 circle, GeoTriangle3 triangle) => CollidesWith(AsArc(circle), triangle);
+        public static bool CollidesWith(GeoCircle3 circle, GeoTriangle3 triangle) =>
+            CollidesWith(AsArc(circle), triangle);
 
         /// <summary>
         /// Determines whether a circle touches a triangle, within a tolerance.
@@ -517,14 +597,14 @@ namespace GeometryHelper.Core
         /// <param name="circle">The circle.</param>
         /// <param name="triangle">The triangle.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool CollidesWith(GeoCircle3 circle, GeoTriangle3 triangle, Tolerance tolerance)
-            => CollidesWith(AsArc(circle), triangle, tolerance);
+        public static bool CollidesWith(GeoCircle3 circle, GeoTriangle3 triangle, Tolerance tolerance) =>
+            CollidesWith(AsArc(circle), triangle, tolerance);
 
         /// <summary>
         /// Tries to find where a circle crosses a triangle.
         /// </summary>
-        public static bool TryIntersectWith(GeoCircle3 circle, GeoTriangle3 triangle, out GeoPoint3[] intersections)
-            => TryIntersectWith(AsArc(circle), triangle, out intersections);
+        public static bool TryIntersectWith(GeoCircle3 circle, GeoTriangle3 triangle, out GeoPoint3[] intersections) =>
+            TryIntersectWith(AsArc(circle), triangle, out intersections);
 
         /// <summary>
         /// Tries to find where a circle crosses a triangle, within a tolerance.
@@ -533,14 +613,18 @@ namespace GeometryHelper.Core
         /// <param name="triangle">The triangle.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool TryIntersectWith(GeoCircle3 circle, GeoTriangle3 triangle, out GeoPoint3[] intersections, Tolerance tolerance)
-            => TryIntersectWith(AsArc(circle), triangle, out intersections, tolerance);
+        public static bool TryIntersectWith(
+            GeoCircle3 circle,
+            GeoTriangle3 triangle,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        ) => TryIntersectWith(AsArc(circle), triangle, out intersections, tolerance);
 
         /// <summary>
         /// Gets every point where a circle crosses a polygon.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoCircle3 circle, GeoPolygon3 polygon)
-            => GetIntersections(AsArc(circle), polygon);
+        public static GeoPoint3[] GetIntersections(GeoCircle3 circle, GeoPolygon3 polygon) =>
+            GetIntersections(AsArc(circle), polygon);
 
         /// <summary>
         /// Gets every point where a circle crosses a polygon, within a tolerance.
@@ -548,8 +632,8 @@ namespace GeometryHelper.Core
         /// <param name="circle">The circle.</param>
         /// <param name="polygon">The polygon.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static GeoPoint3[] GetIntersections(GeoCircle3 circle, GeoPolygon3 polygon, Tolerance tolerance)
-            => GetIntersections(AsArc(circle), polygon, tolerance);
+        public static GeoPoint3[] GetIntersections(GeoCircle3 circle, GeoPolygon3 polygon, Tolerance tolerance) =>
+            GetIntersections(AsArc(circle), polygon, tolerance);
 
         /// <summary>
         /// Determines whether a circle touches a polygon.
@@ -562,14 +646,14 @@ namespace GeometryHelper.Core
         /// <param name="circle">The circle.</param>
         /// <param name="polygon">The polygon.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool CollidesWith(GeoCircle3 circle, GeoPolygon3 polygon, Tolerance tolerance)
-            => CollidesWith(AsArc(circle), polygon, tolerance);
+        public static bool CollidesWith(GeoCircle3 circle, GeoPolygon3 polygon, Tolerance tolerance) =>
+            CollidesWith(AsArc(circle), polygon, tolerance);
 
         /// <summary>
         /// Tries to find where a circle crosses a polygon.
         /// </summary>
-        public static bool TryIntersectWith(GeoCircle3 circle, GeoPolygon3 polygon, out GeoPoint3[] intersections)
-            => TryIntersectWith(AsArc(circle), polygon, out intersections);
+        public static bool TryIntersectWith(GeoCircle3 circle, GeoPolygon3 polygon, out GeoPoint3[] intersections) =>
+            TryIntersectWith(AsArc(circle), polygon, out intersections);
 
         /// <summary>
         /// Tries to find where a circle crosses a polygon, within a tolerance.
@@ -578,13 +662,18 @@ namespace GeometryHelper.Core
         /// <param name="polygon">The polygon.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool TryIntersectWith(GeoCircle3 circle, GeoPolygon3 polygon, out GeoPoint3[] intersections, Tolerance tolerance)
-            => TryIntersectWith(AsArc(circle), polygon, out intersections, tolerance);
+        public static bool TryIntersectWith(
+            GeoCircle3 circle,
+            GeoPolygon3 polygon,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        ) => TryIntersectWith(AsArc(circle), polygon, out intersections, tolerance);
 
         /// <summary>
         /// Gets every point where a circle crosses a face.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoCircle3 circle, GeoFace3 face) => GetIntersections(AsArc(circle), face);
+        public static GeoPoint3[] GetIntersections(GeoCircle3 circle, GeoFace3 face) =>
+            GetIntersections(AsArc(circle), face);
 
         /// <summary>
         /// Gets every point where a circle crosses a face, within a tolerance.
@@ -592,8 +681,8 @@ namespace GeometryHelper.Core
         /// <param name="circle">The circle.</param>
         /// <param name="face">The face.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static GeoPoint3[] GetIntersections(GeoCircle3 circle, GeoFace3 face, Tolerance tolerance)
-            => GetIntersections(AsArc(circle), face, tolerance);
+        public static GeoPoint3[] GetIntersections(GeoCircle3 circle, GeoFace3 face, Tolerance tolerance) =>
+            GetIntersections(AsArc(circle), face, tolerance);
 
         /// <summary>
         /// Determines whether a circle touches a face.
@@ -606,14 +695,14 @@ namespace GeometryHelper.Core
         /// <param name="circle">The circle.</param>
         /// <param name="face">The face.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool CollidesWith(GeoCircle3 circle, GeoFace3 face, Tolerance tolerance)
-            => CollidesWith(AsArc(circle), face, tolerance);
+        public static bool CollidesWith(GeoCircle3 circle, GeoFace3 face, Tolerance tolerance) =>
+            CollidesWith(AsArc(circle), face, tolerance);
 
         /// <summary>
         /// Tries to find where a circle crosses a face.
         /// </summary>
-        public static bool TryIntersectWith(GeoCircle3 circle, GeoFace3 face, out GeoPoint3[] intersections)
-            => TryIntersectWith(AsArc(circle), face, out intersections);
+        public static bool TryIntersectWith(GeoCircle3 circle, GeoFace3 face, out GeoPoint3[] intersections) =>
+            TryIntersectWith(AsArc(circle), face, out intersections);
 
         /// <summary>
         /// Tries to find where a circle crosses a face, within a tolerance.
@@ -622,8 +711,12 @@ namespace GeometryHelper.Core
         /// <param name="face">The face.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool TryIntersectWith(GeoCircle3 circle, GeoFace3 face, out GeoPoint3[] intersections, Tolerance tolerance)
-            => TryIntersectWith(AsArc(circle), face, out intersections, tolerance);
+        public static bool TryIntersectWith(
+            GeoCircle3 circle,
+            GeoFace3 face,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        ) => TryIntersectWith(AsArc(circle), face, out intersections, tolerance);
 
         #endregion
     }

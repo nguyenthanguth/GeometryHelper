@@ -48,12 +48,22 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.False(block.HasAttributeDefinitions);
             }
 
-            plain.AppendEntity(new DxfAttributeDefinition(new GeoPoint3(-2, -1, 0), "?", "MARK", "Mark", null) { Height = 2.5 });
-            constant.AppendEntity(new DxfAttributeDefinition(new GeoPoint3(-2, -1, 0), "C", "MARK", "Mark", null) { Height = 2.5, Constant = true });
+            plain.AppendEntity(
+                new DxfAttributeDefinition(new GeoPoint3(-2, -1, 0), "?", "MARK", "Mark", null) { Height = 2.5 }
+            );
+            constant.AppendEntity(
+                new DxfAttributeDefinition(new GeoPoint3(-2, -1, 0), "C", "MARK", "Mark", null)
+                {
+                    Height = 2.5,
+                    Constant = true,
+                }
+            );
             var gone = new DxfAttributeDefinition(new GeoPoint3(-2, -1, 0), "?", "MARK", "Mark", null) { Height = 2.5 };
             erased.AppendEntity(gone);
             gone.Erase();
-            db.ModelSpace.AppendEntity(new DxfAttributeDefinition(new GeoPoint3(50, 0, 0), "?", "LOOSE", "Loose", null) { Height = 2.5 });
+            db.ModelSpace.AppendEntity(
+                new DxfAttributeDefinition(new GeoPoint3(50, 0, 0), "?", "LOOSE", "Loose", null) { Height = 2.5 }
+            );
 
             Assert.True(plain.HasAttributeDefinitions);
             Assert.True(constant.HasAttributeDefinitions);
@@ -93,9 +103,15 @@ namespace GeometryHelper.UnitTest.Dxf
             // AutoCAD 2021 saved 26-e as R2000 (v8-26-e-autocad-r2000.dxf) with ten custom properties in 300 to 309, the count
             // 90 12 after the base of the hyperlinks, then P8=v8 and P9=v9 each in a group 300; read again by DxfIn (P4b, GHP4BA)
             // its SummaryInfo gave all twelve.
-            string ten = string.Concat(Enumerable.Range(0, 8).Select(i => (302 + i).ToString(CultureInfo.InvariantCulture) + "\n" + Name(i) + "=" + Value(i) + "\n"));
-            string text = DxfObjectsEzdxfDrawings.R2000
-                .Replace(EmptyEight, ten)
+            string ten = string.Concat(
+                Enumerable
+                    .Range(0, 8)
+                    .Select(i =>
+                        (302 + i).ToString(CultureInfo.InvariantCulture) + "\n" + Name(i) + "=" + Value(i) + "\n"
+                    )
+            );
+            string text = DxfObjectsEzdxfDrawings
+                .R2000.Replace(EmptyEight, ten)
                 .Replace(CountOfNone, "  1\nhttps://example.com/\n 90\n12\n300\nP8=v8\n300\nP9=v9\n");
             Assert.Contains("300\nP9=v9\n  0\n", text, StringComparison.Ordinal);
 
@@ -123,7 +139,11 @@ namespace GeometryHelper.UnitTest.Dxf
             string record = Record(db.ToText());
             Assert.Contains("300\nProject=Grid A\n301\nPhase=2\n302\nP0=v0\n", record, StringComparison.Ordinal);
             Assert.Contains("309\nP7=v7\n 40\n0.125\n", record, StringComparison.Ordinal);
-            Assert.EndsWith("  1\nhttps://example.com/\n 90\n12\n300\nP8=v8\n300\nP9=v9\n", record, StringComparison.Ordinal);
+            Assert.EndsWith(
+                "  1\nhttps://example.com/\n 90\n12\n300\nP8=v8\n300\nP9=v9\n",
+                record,
+                StringComparison.Ordinal
+            );
             DxfDatabaseSummaryInfo read = DxfDatabase.Parse(db.ToText()).SummaryInfo;
             Assert.Equal(12, read.CustomProperties.Count);
             Assert.Equal("P9=v9", read.CustomProperties[11].Key + "=" + read.CustomProperties[11].Value);

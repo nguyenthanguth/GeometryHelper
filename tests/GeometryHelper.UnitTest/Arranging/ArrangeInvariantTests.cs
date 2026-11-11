@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using GeometryHelper.Arranging;
 using GeometryHelper;
+using GeometryHelper.Arranging;
 using GeometryHelper.Core;
 using GeometryHelper.Geometry;
 using Xunit;
@@ -33,11 +33,14 @@ namespace GeometryHelper.UnitTest.Arranging
             {
                 double cx = rng.Next(-200, 201);
                 double cy = rng.Next(-200, 201);
-                blocks.Add(new GeoPolygon2(
-                    new GeoPoint2(cx, cy),
-                    new GeoPoint2(cx + 80, cy),
-                    new GeoPoint2(cx + 80, cy + 60),
-                    new GeoPoint2(cx, cy + 60)));
+                blocks.Add(
+                    new GeoPolygon2(
+                        new GeoPoint2(cx, cy),
+                        new GeoPoint2(cx + 80, cy),
+                        new GeoPoint2(cx + 80, cy + 60),
+                        new GeoPoint2(cx, cy + 60)
+                    )
+                );
             }
 
             for (int i = 0; i < count; i++)
@@ -47,14 +50,16 @@ namespace GeometryHelper.UnitTest.Arranging
                 double x = i * 45 - 100;
                 double y = rng.Next(-30, 31);
 
-                scene.Add(new ArrangeItem
-                {
-                    Box = new GeoRectangle2(new GeoPoint2(x, y + 60), 90, 30),
-                    Leader = new GeoLine2(new GeoPoint2(x - 40, y), new GeoPoint2(x + 40, y)),
-                    Offset = 25,
-                    BlockPolygons = blocks,
-                    BlockLines = new List<GeoLine2>()
-                });
+                scene.Add(
+                    new ArrangeItem
+                    {
+                        Box = new GeoRectangle2(new GeoPoint2(x, y + 60), 90, 30),
+                        Leader = new GeoLine2(new GeoPoint2(x - 40, y), new GeoPoint2(x + 40, y)),
+                        Offset = 25,
+                        BlockPolygons = blocks,
+                        BlockLines = new List<GeoLine2>(),
+                    }
+                );
             }
 
             return scene;
@@ -92,7 +97,8 @@ namespace GeometryHelper.UnitTest.Arranging
         public void ALabelReportedAsPlacedSitsSomewhereEmpty()
         {
             Random rng = new Random(1123);
-            int placed = 0, unplaced = 0;
+            int placed = 0,
+                unplaced = 0;
 
             for (int t = 0; t < 12; t++)
             {
@@ -105,21 +111,29 @@ namespace GeometryHelper.UnitTest.Arranging
                 {
                     GeoRectangle2 box = scene[i].Box.Translate(results[i].Translation);
 
-                    if (!results[i].Placed) { unplaced++; continue; }
+                    if (!results[i].Placed)
+                    {
+                        unplaced++;
+                        continue;
+                    }
 
                     placed++;
 
                     // Nothing the label was told to avoid may be where it ended up.
                     foreach (GeoPolygon2 block in scene[i].BlockPolygons)
                     {
-                        Assert.False(Collision2.CollidesWith(box, block, Tol),
-                                     $"label {i} reported placed but sits on a block");
+                        Assert.False(
+                            Collision2.CollidesWith(box, block, Tol),
+                            $"label {i} reported placed but sits on a block"
+                        );
                     }
 
                     foreach (GeoRectangle2 neighbour in settled)
                     {
-                        Assert.False(Collision2.CollidesWith(box, neighbour, Tol),
-                                     $"label {i} reported placed but overlaps another placed label");
+                        Assert.False(
+                            Collision2.CollidesWith(box, neighbour, Tol),
+                            $"label {i} reported placed but overlaps another placed label"
+                        );
                     }
 
                     settled.Add(box);
@@ -140,7 +154,8 @@ namespace GeometryHelper.UnitTest.Arranging
                 new GeoPoint2(-5000, -5000),
                 new GeoPoint2(5000, -5000),
                 new GeoPoint2(5000, 5000),
-                new GeoPoint2(-5000, 5000));
+                new GeoPoint2(-5000, 5000)
+            );
 
             var trapped = new List<ArrangeItem>
             {
@@ -150,15 +165,14 @@ namespace GeometryHelper.UnitTest.Arranging
                     Leader = new GeoLine2(new GeoPoint2(-40, 0), new GeoPoint2(40, 0)),
                     Offset = 25,
                     BlockPolygons = new List<GeoPolygon2> { wall },
-                    BlockLines = new List<GeoLine2>()
-                }
+                    BlockLines = new List<GeoLine2>(),
+                },
             };
 
             ArrangeResult[] results = Arranger.Run(trapped, new ArrangeOptions());
 
             Assert.Single(results);
-            Assert.False(results[0].Placed,
-                         "claimed to place a label on a sheet that is entirely blocked");
+            Assert.False(results[0].Placed, "claimed to place a label on a sheet that is entirely blocked");
         }
 
         [Fact]
@@ -178,8 +192,10 @@ namespace GeometryHelper.UnitTest.Arranging
 
             for (int i = 0; i < a.Length; i++)
             {
-                Assert.True(a[i].Translation.IsEqualTo(b[i].Translation, Tol) && a[i].Placed == b[i].Placed,
-                            $"the same scene arranged twice gave {a[i]} then {b[i]}");
+                Assert.True(
+                    a[i].Translation.IsEqualTo(b[i].Translation, Tol) && a[i].Placed == b[i].Placed,
+                    $"the same scene arranged twice gave {a[i]} then {b[i]}"
+                );
             }
         }
 
@@ -194,8 +210,8 @@ namespace GeometryHelper.UnitTest.Arranging
                     Leader = new GeoLine2(new GeoPoint2(-40, 0), new GeoPoint2(40, 0)),
                     Offset = 25,
                     BlockPolygons = new List<GeoPolygon2>(),
-                    BlockLines = new List<GeoLine2>()
-                }
+                    BlockLines = new List<GeoLine2>(),
+                },
             };
 
             ArrangeResult[] results = Arranger.Run(alone, new ArrangeOptions());

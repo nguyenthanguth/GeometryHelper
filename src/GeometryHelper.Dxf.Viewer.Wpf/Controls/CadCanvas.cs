@@ -21,9 +21,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="x">The X of the drawing point.</param>
         /// <param name="y">The Y of the drawing point.</param>
         public CadCursorEventArgs(double x, double y)
-            : this(x, y, x, y)
-        {
-        }
+            : this(x, y, x, y) { }
 
         /// <summary>Makes the arguments of a cursor whose rubber band ends elsewhere, as at a snap.</summary>
         /// <param name="x">The X of the drawing point.</param>
@@ -114,43 +112,83 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     {
         /// <summary>Identifies the <see cref="Document"/> property.</summary>
         public static readonly DependencyProperty DocumentProperty = DependencyProperty.Register(
-            nameof(Document), typeof(CadDocument), typeof(CadCanvas), new PropertyMetadata(null, OnDocumentChanged));
+            nameof(Document),
+            typeof(CadDocument),
+            typeof(CadCanvas),
+            new PropertyMetadata(null, OnDocumentChanged)
+        );
 
         /// <summary>Identifies the <see cref="Space"/> property.</summary>
         public static readonly DependencyProperty SpaceProperty = DependencyProperty.Register(
-            nameof(Space), typeof(CadSpace), typeof(CadCanvas), new PropertyMetadata(null, OnSceneChanged));
+            nameof(Space),
+            typeof(CadSpace),
+            typeof(CadCanvas),
+            new PropertyMetadata(null, OnSceneChanged)
+        );
 
         /// <summary>Identifies the <see cref="View"/> property.</summary>
         public static readonly DependencyProperty ViewProperty = DependencyProperty.Register(
-            nameof(View), typeof(CadView), typeof(CadCanvas), new PropertyMetadata(null, OnSceneChanged));
+            nameof(View),
+            typeof(CadView),
+            typeof(CadCanvas),
+            new PropertyMetadata(null, OnSceneChanged)
+        );
 
         /// <summary>Identifies the <see cref="Revision"/> property.</summary>
         public static readonly DependencyProperty RevisionProperty = DependencyProperty.Register(
-            nameof(Revision), typeof(int), typeof(CadCanvas), new PropertyMetadata(0, OnSceneChanged));
+            nameof(Revision),
+            typeof(int),
+            typeof(CadCanvas),
+            new PropertyMetadata(0, OnSceneChanged)
+        );
 
         /// <summary>Identifies the <see cref="Session"/> property.</summary>
         public static readonly DependencyProperty SessionProperty = DependencyProperty.Register(
-            nameof(Session), typeof(CadCommandSession), typeof(CadCanvas), new PropertyMetadata(null, OnSessionChanged));
+            nameof(Session),
+            typeof(CadCommandSession),
+            typeof(CadCanvas),
+            new PropertyMetadata(null, OnSessionChanged)
+        );
 
         /// <summary>Identifies the <see cref="Snap"/> property.</summary>
         public static readonly DependencyProperty SnapProperty = DependencyProperty.Register(
-            nameof(Snap), typeof(ObjectSnap), typeof(CadCanvas), new PropertyMetadata(null));
+            nameof(Snap),
+            typeof(ObjectSnap),
+            typeof(CadCanvas),
+            new PropertyMetadata(null)
+        );
 
         /// <summary>Identifies the <see cref="ShowGrid"/> property.</summary>
         public static readonly DependencyProperty ShowGridProperty = DependencyProperty.Register(
-            nameof(ShowGrid), typeof(bool), typeof(CadCanvas), new PropertyMetadata(false, OnSceneChanged));
+            nameof(ShowGrid),
+            typeof(bool),
+            typeof(CadCanvas),
+            new PropertyMetadata(false, OnSceneChanged)
+        );
 
         /// <summary>Identifies the <see cref="GridSpacing"/> property.</summary>
         public static readonly DependencyProperty GridSpacingProperty = DependencyProperty.Register(
-            nameof(GridSpacing), typeof(double), typeof(CadCanvas), new PropertyMetadata(10.0, OnSceneChanged));
+            nameof(GridSpacing),
+            typeof(double),
+            typeof(CadCanvas),
+            new PropertyMetadata(10.0, OnSceneChanged)
+        );
 
         /// <summary>Identifies the <see cref="GridSpacingY"/> property.</summary>
         public static readonly DependencyProperty GridSpacingYProperty = DependencyProperty.Register(
-            nameof(GridSpacingY), typeof(double), typeof(CadCanvas), new PropertyMetadata(10.0, OnSceneChanged));
+            nameof(GridSpacingY),
+            typeof(double),
+            typeof(CadCanvas),
+            new PropertyMetadata(10.0, OnSceneChanged)
+        );
 
         /// <summary>Identifies the <see cref="DynamicInput"/> property.</summary>
         public static readonly DependencyProperty DynamicInputProperty = DependencyProperty.Register(
-            nameof(DynamicInput), typeof(bool), typeof(CadCanvas), new PropertyMetadata(false, (d, e) => ((CadCanvas)d).InvalidateVisual()));
+            nameof(DynamicInput),
+            typeof(bool),
+            typeof(CadCanvas),
+            new PropertyMetadata(false, (d, e) => ((CadCanvas)d).InvalidateVisual())
+        );
 
         private const double GridPixels = 6.0;
         private const double DragPixels = 4.0;
@@ -167,7 +205,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly Brush WindowFill = Frozen(new SolidColorBrush(Color.FromArgb(26, 0x3D, 0x9B, 0xFF)));
         private static readonly Brush CrossingFill = Frozen(new SolidColorBrush(Color.FromArgb(26, 0x3F, 0xB9, 0x50)));
         private static readonly Pen WindowPen = Frozen(new Pen(Solid(0x3D9BFF), 1.0));
-        private static readonly Pen CrossingPen = Frozen(new Pen(Solid(0x3FB950), 1.0) { DashStyle = new DashStyle(new[] { 4.0, 3.0 }, 0.0) });
+        private static readonly Pen CrossingPen = Frozen(
+            new Pen(Solid(0x3FB950), 1.0) { DashStyle = new DashStyle(new[] { 4.0, 3.0 }, 0.0) }
+        );
         private static readonly Brush DefaultGripBrush = Solid(0x3D9BFF);
         private static readonly Brush HotGripBrush = Solid(0xF85149);
 
@@ -177,7 +217,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly Brush GripTipFill = Solid(0x262B33);
         private static readonly Pen GripTipEdge = Frozen(new Pen(Solid(0x3A414C), 1.0));
         private static readonly Brush GripTipInk = Solid(0xC9D1DB);
-        private static readonly Typeface GripTipFace = new Typeface(new FontFamily("JetBrains Mono, Consolas"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+        private static readonly Typeface GripTipFace = new Typeface(
+            new FontFamily("JetBrains Mono, Consolas"),
+            FontStyles.Normal,
+            FontWeights.Normal,
+            FontStretches.Normal
+        );
         private static readonly Brush CellFill = Frozen(new SolidColorBrush(Color.FromArgb(46, 0x3D, 0x9B, 0xFF)));
         private static readonly Pen CellPen = Frozen(new Pen(Solid(0x3D9BFF), 3.0));
         private static readonly Brush CellBrush = Solid(0x3D9BFF);
@@ -185,12 +230,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly Brush BandHot = Frozen(new SolidColorBrush(Color.FromArgb(153, 0xD2, 0x99, 0x22)));
         private static readonly Pen CrossPenLight = Frozen(new Pen(Solid(0xE6E9ED), 1.0));
         private static readonly Pen CrossPenDark = Frozen(new Pen(Solid(0x1A1A1A), 1.0));
-        private static readonly Pen GhostPen = Frozen(new Pen(Solid(0x3D9BFF), 1.2) { DashStyle = new DashStyle(new[] { 6.0, 3.0 }, 0.0) });
-        private static readonly Pen RubberPen =Frozen(new Pen(Solid(0x3D9BFF), 1.0) { DashStyle = new DashStyle(new[] { 4.0, 3.0 }, 0.0) });
+        private static readonly Pen GhostPen = Frozen(
+            new Pen(Solid(0x3D9BFF), 1.2) { DashStyle = new DashStyle(new[] { 6.0, 3.0 }, 0.0) }
+        );
+        private static readonly Pen RubberPen = Frozen(
+            new Pen(Solid(0x3D9BFF), 1.0) { DashStyle = new DashStyle(new[] { 4.0, 3.0 }, 0.0) }
+        );
         private static readonly Pen DarkMarkerPen = Frozen(new Pen(Solid(0xFFFF00), CadSnapMarker.LineWidth));
         private static readonly Pen LightMarkerPen = Frozen(new Pen(Solid(0x1A1A1A), CadSnapMarker.LineWidth));
-        private static readonly Pen DarkDottedPen = Frozen(new Pen(Solid(0xFFFF00), 1.0) { DashStyle = new DashStyle(new[] { 1.0, 2.0 }, 0.0) });
-        private static readonly Pen LightDottedPen = Frozen(new Pen(Solid(0x1A1A1A), 1.0) { DashStyle = new DashStyle(new[] { 1.0, 2.0 }, 0.0) });
+        private static readonly Pen DarkDottedPen = Frozen(
+            new Pen(Solid(0xFFFF00), 1.0) { DashStyle = new DashStyle(new[] { 1.0, 2.0 }, 0.0) }
+        );
+        private static readonly Pen LightDottedPen = Frozen(
+            new Pen(Solid(0x1A1A1A), 1.0) { DashStyle = new DashStyle(new[] { 1.0, 2.0 }, 0.0) }
+        );
         private static readonly Pen BasePen = Frozen(new Pen(Solid(0x3FB950), 2.0));
         private static readonly Pen ActiveFrameLight = Frozen(new Pen(Solid(0xE6E9ED), 3.0));
         private static readonly Pen ActiveFrameDark = Frozen(new Pen(Solid(0x1A1A1A), 3.0));
@@ -198,8 +251,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly Pen TipPen = Frozen(new Pen(Solid(0x3A414C), 1.0));
         private static readonly Brush TipInk = Solid(0xE6E9ED);
         private static readonly Brush TagInk = Solid(0x0B1220);
-        private static readonly Typeface TipFace = new Typeface(new FontFamily("Inter, Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
-        private static readonly Typeface TagFace = new Typeface(new FontFamily("Inter, Segoe UI"), FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
+        private static readonly Typeface TipFace = new Typeface(
+            new FontFamily("Inter, Segoe UI"),
+            FontStyles.Normal,
+            FontWeights.Normal,
+            FontStretches.Normal
+        );
+        private static readonly Typeface TagFace = new Typeface(
+            new FontFamily("Inter, Segoe UI"),
+            FontStyles.Normal,
+            FontWeights.SemiBold,
+            FontStretches.Normal
+        );
 
         private readonly SkiaCanvasRenderer _renderer = new SkiaCanvasRenderer();
         private readonly List<GripAt> _grips = new List<GripAt>();
@@ -406,13 +469,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 // AUTOSNAP 2 off leaves out the name of an object snap, and 32 off the tip where ortho, polar or tracking hold the cursor.
                 ObjectSnap snap = Snap;
-                bool tracked = _snapped != null && (_snapped.Kind == CadSnapKind.Ortho || _snapped.Kind == CadSnapKind.Polar || _snapped.Kind == CadSnapKind.Tracking || _snapped.Tracks.Count > 0);
+                bool tracked =
+                    _snapped != null
+                    && (
+                        _snapped.Kind == CadSnapKind.Ortho
+                        || _snapped.Kind == CadSnapKind.Polar
+                        || _snapped.Kind == CadSnapKind.Tracking
+                        || _snapped.Tracks.Count > 0
+                    );
                 bool shown = snap == null || (tracked ? snap.ShowsTrackingTip : snap.ShowsSnapTip);
 
                 if (DynamicInput)
                 {
                     CadSnapKind kind = _snapped?.Kind ?? CadSnapKind.None;
-                    return !shown || kind == CadSnapKind.None || kind == CadSnapKind.Grid || kind == CadSnapKind.Ortho || kind == CadSnapKind.Polar ? string.Empty : CadSnapMarker.NameOf(kind);
+                    return
+                        !shown
+                        || kind == CadSnapKind.None
+                        || kind == CadSnapKind.Grid
+                        || kind == CadSnapKind.Ortho
+                        || kind == CadSnapKind.Polar
+                        ? string.Empty
+                        : CadSnapMarker.NameOf(kind);
                 }
 
                 if (tracked && !shown)
@@ -420,13 +497,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return string.Empty;
                 }
 
-                return TipText(shown ? _snapped : null, Session.Prompt.BasePoint, _snapped?.Point ?? _cursor.Value, Session);
+                return TipText(
+                    shown ? _snapped : null,
+                    Session.Prompt.BasePoint,
+                    _snapped?.Point ?? _cursor.Value,
+                    Session
+                );
             }
         }
 
         /// <summary>Whether a snap is an object snap, whose marker the magnet holds the cursor on: not the grid, ortho, polar or a tracking line.</summary>
-        private static bool IsObjectSnap(CadSnapKind kind)
-            => kind != CadSnapKind.None && kind != CadSnapKind.Grid && kind != CadSnapKind.Ortho && kind != CadSnapKind.Polar && kind != CadSnapKind.Tracking;
+        private static bool IsObjectSnap(CadSnapKind kind) =>
+            kind != CadSnapKind.None
+            && kind != CadSnapKind.Grid
+            && kind != CadSnapKind.Ortho
+            && kind != CadSnapKind.Polar
+            && kind != CadSnapKind.Tracking;
 
         /// <summary>Gets or sets the spacing of the grid across, in drawing units; 10 by default, as the snap grid.</summary>
         public double GridSpacing
@@ -608,7 +694,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // With no window there is no render pass to copy a drawn bitmap to the screen's side, so a screenshot or a test
             // would see the bitmap as first drawn: there each drawing takes a bitmap of its own.
-            bool fresh = _bitmap == null || _bitmap.PixelWidth != width || _bitmap.PixelHeight != height || PresentationSource.FromVisual(this) == null;
+            bool fresh =
+                _bitmap == null
+                || _bitmap.PixelWidth != width
+                || _bitmap.PixelHeight != height
+                || PresentationSource.FromVisual(this) == null;
 
             if (fresh)
             {
@@ -649,7 +739,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         Copy(_marked ?? _scene, info, _bitmap.BackBuffer, _bitmap.BackBufferStride);
                         string hover = Options.Hover;
 
-                        if (hover != null && !(Options.Selected is ICollection<string> marked && marked.Contains(hover)))
+                        if (
+                            hover != null
+                            && !(Options.Selected is ICollection<string> marked && marked.Contains(hover))
+                        )
                         {
                             Highlight(surface.Canvas, document, new[] { hover }, true);
                         }
@@ -686,13 +779,39 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             var o = Options;
             DisplayBox paper = space.PaperBounds;
             CadUcs ucs = document.Ucs.WorkingOf(space);
-            string numbers = string.Join("|", new object[]
-            {
-                view.CenterX, view.CenterY, view.PixelsPerUnit, view.Width, view.Height, info.Width, info.Height, scale,
-                o.Background, o.Paper, o.BlockEditorBackground, o.ShowLineWeights, o.FontName, o.VisibleLineColor, o.HiddenLineColor, o.HiddenLayerName,
-                ShowGrid, GridSpacing, GridSpacingY, paper.MinX, paper.MinY, paper.MaxX, paper.MaxY, ucs.Origin.X, ucs.Origin.Y, ucs.Angle,
-                CadImageCache.Version,
-            }.Select(v => Convert.ToString(v, CultureInfo.InvariantCulture)));
+            string numbers = string.Join(
+                "|",
+                new object[]
+                {
+                    view.CenterX,
+                    view.CenterY,
+                    view.PixelsPerUnit,
+                    view.Width,
+                    view.Height,
+                    info.Width,
+                    info.Height,
+                    scale,
+                    o.Background,
+                    o.Paper,
+                    o.BlockEditorBackground,
+                    o.ShowLineWeights,
+                    o.FontName,
+                    o.VisibleLineColor,
+                    o.HiddenLineColor,
+                    o.HiddenLayerName,
+                    ShowGrid,
+                    GridSpacing,
+                    GridSpacingY,
+                    paper.MinX,
+                    paper.MinY,
+                    paper.MaxX,
+                    paper.MaxY,
+                    ucs.Origin.X,
+                    ucs.Origin.Y,
+                    ucs.Angle,
+                    CadImageCache.Version,
+                }.Select(v => Convert.ToString(v, CultureInfo.InvariantCulture))
+            );
             var key = new SceneKey(document.GetDisplay(space), numbers);
 
             if (_scene != null && _scene.Width == info.Width && _scene.Height == info.Height && key.Same(_sceneKey))
@@ -725,9 +844,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void DrawMarked(CadDocument document, CadSpace space, CadView view, SKImageInfo info)
         {
             CadCommandSession session = Session;
-            string marking = string.Join("|", Options.SelectionColor, Options.ShowLineWeights, IsRunning, document.Selection.Count, session?.Gathering.Count ?? 0);
+            string marking = string.Join(
+                "|",
+                Options.SelectionColor,
+                Options.ShowLineWeights,
+                IsRunning,
+                document.Selection.Count,
+                session?.Gathering.Count ?? 0
+            );
 
-            if (!_markedDirty && marking == _marking && (_marked == null || (_marked.Width == info.Width && _marked.Height == info.Height)))
+            if (
+                !_markedDirty
+                && marking == _marking
+                && (_marked == null || (_marked.Width == info.Width && _marked.Height == info.Height))
+            )
             {
                 return;
             }
@@ -788,7 +918,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             double[] shown = _shown;
 
-            if (view == null || shown == null || (shown[0] == view.CenterX && shown[1] == view.CenterY && shown[2] == view.PixelsPerUnit && shown[3] == view.Width && shown[4] == view.Height))
+            if (
+                view == null
+                || shown == null
+                || (
+                    shown[0] == view.CenterX
+                    && shown[1] == view.CenterY
+                    && shown[2] == view.PixelsPerUnit
+                    && shown[3] == view.Width
+                    && shown[4] == view.Height
+                )
+            )
             {
                 return null;
             }
@@ -808,7 +948,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (_settle == null)
             {
-                _settle = new DispatcherTimer(DispatcherPriority.Render, Dispatcher) { Interval = TimeSpan.FromMilliseconds(SettleMilliseconds) };
+                _settle = new DispatcherTimer(DispatcherPriority.Render, Dispatcher)
+                {
+                    Interval = TimeSpan.FromMilliseconds(SettleMilliseconds),
+                };
                 _settle.Tick += (s, e) =>
                 {
                     _settle.Stop();
@@ -893,7 +1036,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             var whole = new Rect(0, 0, ActualWidth, ActualHeight);
             int rgb = Space != null && Space.IsBlockEditor ? Options.BlockEditorBackground : Options.Background;
-            drawingContext.DrawRectangle(new SolidColorBrush(Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb)), null, whole);
+            drawingContext.DrawRectangle(
+                new SolidColorBrush(Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb)),
+                null,
+                whole
+            );
             double scale = PixelScale;
 
             CadView view = View;
@@ -907,7 +1054,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     drawingContext.PushTransform(moved);
                 }
 
-                drawingContext.DrawImage(_bitmap, new Rect(0, 0, _bitmap.PixelWidth / scale, _bitmap.PixelHeight / scale));
+                drawingContext.DrawImage(
+                    _bitmap,
+                    new Rect(0, 0, _bitmap.PixelWidth / scale, _bitmap.PixelHeight / scale)
+                );
 
                 if (moved != null)
                 {
@@ -941,7 +1091,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 Point a = BoxCorner();
                 bool crossing = _boxTo.X < a.X;
-                drawingContext.DrawRectangle(crossing ? CrossingFill : WindowFill, crossing ? CrossingPen : WindowPen, new Rect(a, _boxTo));
+                drawingContext.DrawRectangle(
+                    crossing ? CrossingFill : WindowFill,
+                    crossing ? CrossingPen : WindowPen,
+                    new Rect(a, _boxTo)
+                );
             }
         }
 
@@ -1019,13 +1173,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _swallowUp = true;
                 e.Handled = true;
             }
-            else if (e.ChangedButton == MouseButton.Left && e.ClickCount == 2 && !IsRunning && CellDoubleClicked != null && InsideCell(p) && CellDoubleClicked(DrawingAt(p)))
+            else if (
+                e.ChangedButton == MouseButton.Left
+                && e.ClickCount == 2
+                && !IsRunning
+                && CellDoubleClicked != null
+                && InsideCell(p)
+                && CellDoubleClicked(DrawingAt(p))
+            )
             {
                 CancelGesture();
                 _swallowUp = true;
                 e.Handled = true;
             }
-            else if (e.ChangedButton == MouseButton.Left && e.ClickCount == 2 && !IsRunning && ObjectDoubleClicked != null && ObjectAt(p) is string handle)
+            else if (
+                e.ChangedButton == MouseButton.Left
+                && e.ClickCount == 2
+                && !IsRunning
+                && ObjectDoubleClicked != null
+                && ObjectAt(p) is string handle
+            )
             {
                 CancelGesture();
                 ObjectDoubleClicked(this, new CadObjectEventArgs(handle));
@@ -1060,7 +1227,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     var grip = new KeyValuePair<string, int>(_grips[_hotGrip].Handle, _grips[_hotGrip].Grip.Index);
                     CadGripKind kind = _grips[_hotGrip].Grip.Kind;
 
-                    if ((Keyboard.Modifiers & ModifierKeys.Shift) == 0 && (kind == CadGripKind.CustomFlip || kind == CadGripKind.CustomList))
+                    if (
+                        (Keyboard.Modifiers & ModifierKeys.Shift) == 0
+                        && (kind == CadGripKind.CustomFlip || kind == CadGripKind.CustomList)
+                    )
                     {
                         // A dynamic block's flip grip flips it and a visibility or lookup grip lists its values, as AutoCAD's.
                         _hot.Clear();
@@ -1223,7 +1393,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 e.Handled = true;
             }
-            else if (e.ChangedButton == MouseButton.Right && (Keyboard.Modifiers & ModifierKeys.Shift) != 0 && CadPicking.WantsPoint(Session))
+            else if (
+                e.ChangedButton == MouseButton.Right
+                && (Keyboard.Modifiers & ModifierKeys.Shift) != 0
+                && CadPicking.WantsPoint(Session)
+            )
             {
                 // Shift+right-click while a point is asked: the object snap menu, as AutoCAD's, its choice for that point alone.
                 SnapMenuRequested?.Invoke(this, EventArgs.Empty);
@@ -1314,7 +1488,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private Point PositionOf(MouseEventArgs e) => Pointer != null ? Pointer(e) : e.GetPosition(this);
 
-        private static SolidColorBrush Solid(int rgb) => Frozen(new SolidColorBrush(Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb)));
+        private static SolidColorBrush Solid(int rgb) =>
+            Frozen(new SolidColorBrush(Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb)));
 
         private static T Frozen<T>(T freezable)
             where T : Freezable
@@ -1375,7 +1550,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CadImageJob job = e.Image;
             CadView view = View;
 
-            if (e.Name != "IMAGEOUT" || job?.FileName == null || view == null || Document == null || e.Document != Document)
+            if (
+                e.Name != "IMAGEOUT"
+                || job?.FileName == null
+                || view == null
+                || Document == null
+                || e.Document != Document
+            )
             {
                 return;
             }
@@ -1394,7 +1575,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     File.WriteAllBytes(job.FileName, CadRasterWriter.Encode(picture, job.Format));
                 }
             }
-            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException || exception is NotSupportedException)
+            catch (Exception exception)
+                when (exception is IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is ArgumentException
+                    || exception is NotSupportedException
+                )
             {
                 GeometryHelperLog.Warn("CadCanvas: the image " + job.FileName + " was not written.", exception);
                 ((CadCommandSession)sender).Write("The image was not written: " + exception.Message);
@@ -1460,9 +1646,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             int width = picture.Width;
             int height = picture.Height;
             int stride = picture.RowBytes / 4;
-            int rgb = (Space != null && Space.IsBlockEditor ? Options.BlockEditorBackground : Options.Background) & 0xFFFFFF;
+            int rgb =
+                (Space != null && Space.IsBlockEditor ? Options.BlockEditorBackground : Options.Background) & 0xFFFFFF;
             int background = unchecked((int)0xFF000000) | rgb;
-            int Lighter(double share) => unchecked((int)0xFF000000) | (Lift((rgb >> 16) & 0xFF, share) << 16) | (Lift((rgb >> 8) & 0xFF, share) << 8) | Lift(rgb & 0xFF, share);
+            int Lighter(double share) =>
+                unchecked((int)0xFF000000)
+                | (Lift((rgb >> 16) & 0xFF, share) << 16)
+                | (Lift((rgb >> 8) & 0xFF, share) << 8)
+                | Lift(rgb & 0xFF, share);
             int minor = Lighter(0.08);
             int major = Lighter(0.18);
             var pixels = new int[stride * height];
@@ -1513,7 +1704,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// The grid of a UCS other than the world's, as AutoCAD draws it: its lines along the axes of the UCS and through its
         /// origin, each pixel of the background within half a pixel of one taken, every fifth from the origin the stronger.
         /// </summary>
-        private static void DrawUcsGrid(int[] pixels, int width, int height, int stride, CadView view, double step, double stepY, CadUcs ucs, int background, int minor, int major)
+        private static void DrawUcsGrid(
+            int[] pixels,
+            int width,
+            int height,
+            int stride,
+            CadView view,
+            double step,
+            double stepY,
+            CadUcs ucs,
+            int background,
+            int minor,
+            int major
+        )
         {
             // The UCS coordinates of a pixel, in steps of the grid, are linear in its column and row: those of the corner and
             // the steps across and down.
@@ -1549,7 +1752,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     if (onU || onV)
                     {
-                        bool strong = (onU && Math.Abs(Math.IEEERemainder(ku, 5.0)) < 0.5) || (onV && Math.Abs(Math.IEEERemainder(kv, 5.0)) < 0.5);
+                        bool strong =
+                            (onU && Math.Abs(Math.IEEERemainder(ku, 5.0)) < 0.5)
+                            || (onV && Math.Abs(Math.IEEERemainder(kv, 5.0)) < 0.5);
                         pixels[at] = strong ? major : minor;
                     }
                 }
@@ -1579,19 +1784,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             double scale = PixelScale;
             view.ScreenToDrawing(p.X * scale, p.Y * scale, out double x, out double y);
-            IReadOnlyList<string> picked = document.GetPickIndex(WorkSpace).Pick(x, y, PickboxPixels * scale / view.PixelsPerUnit);
+            IReadOnlyList<string> picked = document
+                .GetPickIndex(WorkSpace)
+                .Pick(x, y, PickboxPixels * scale / view.PixelsPerUnit);
 
-            if (picked.Count == 0 || !(document.FindEntity(picked[0]) is DxfBlockReference insert) || insert.AttributeCollection.Count == 0)
+            if (
+                picked.Count == 0
+                || !(document.FindEntity(picked[0]) is DxfBlockReference insert)
+                || insert.AttributeCollection.Count == 0
+            )
             {
                 return false;
             }
 
             CancelGesture();
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                session.Start("EATTEDIT");
-                session.FeedSelection(new[] { insert.Handle });
-            }));
+            Dispatcher.BeginInvoke(
+                new Action(() =>
+                {
+                    session.Start("EATTEDIT");
+                    session.FeedSelection(new[] { insert.Handle });
+                })
+            );
             return true;
         }
 
@@ -1609,7 +1822,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             double scale = PixelScale;
             view.ScreenToDrawing(p.X * scale, p.Y * scale, out double x, out double y);
-            IReadOnlyList<string> found = document.GetPickIndex(WorkSpace).Pick(x, y, PickboxPixels * scale / view.PixelsPerUnit);
+            IReadOnlyList<string> found = document
+                .GetPickIndex(WorkSpace)
+                .Pick(x, y, PickboxPixels * scale / view.PixelsPerUnit);
             return found.Count > 0 ? found[0] : null;
         }
 
@@ -1801,7 +2016,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         case DisplaySegments2 segments:
                             for (int i = 0; i + 3 < segments.Xy.Count; i += 4)
                             {
-                                Trace(context, view, scale, new[] { segments.Xy[i], segments.Xy[i + 1], segments.Xy[i + 2], segments.Xy[i + 3] }, Affine2.Identity, false);
+                                Trace(
+                                    context,
+                                    view,
+                                    scale,
+                                    new[]
+                                    {
+                                        segments.Xy[i],
+                                        segments.Xy[i + 1],
+                                        segments.Xy[i + 2],
+                                        segments.Xy[i + 3],
+                                    },
+                                    Affine2.Identity,
+                                    false
+                                );
                             }
 
                             break;
@@ -1835,7 +2063,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                             if (!box.IsEmpty)
                             {
-                                Trace(context, view, scale, new[] { box.MinX, box.MinY, box.MaxX, box.MinY, box.MaxX, box.MaxY, box.MinX, box.MaxY, box.MinX, box.MinY }, Affine2.Identity, false);
+                                Trace(
+                                    context,
+                                    view,
+                                    scale,
+                                    new[]
+                                    {
+                                        box.MinX,
+                                        box.MinY,
+                                        box.MaxX,
+                                        box.MinY,
+                                        box.MaxX,
+                                        box.MaxY,
+                                        box.MinX,
+                                        box.MaxY,
+                                        box.MinX,
+                                        box.MinY,
+                                    },
+                                    Affine2.Identity,
+                                    false
+                                );
                             }
 
                             break;
@@ -1853,7 +2100,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     if (preview.Fades)
                     {
                         // A piece about to be cut away: the object drawn there blanked out, and the piece drawn a third of its colour.
-                        var blank = new SolidColorBrush(Color.FromRgb((byte)(background >> 16), (byte)(background >> 8), (byte)background));
+                        var blank = new SolidColorBrush(
+                            Color.FromRgb((byte)(background >> 16), (byte)(background >> 8), (byte)background)
+                        );
                         blank.Freeze();
                         var cover = new Pen(blank, 3.0);
                         cover.Freeze();
@@ -1861,7 +2110,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         shade = Blend(rgb, background, 1.0 / 3.0);
                     }
 
-                    var brush = new SolidColorBrush(Color.FromRgb((byte)(shade >> 16), (byte)(shade >> 8), (byte)shade));
+                    var brush = new SolidColorBrush(
+                        Color.FromRgb((byte)(shade >> 16), (byte)(shade >> 8), (byte)shade)
+                    );
                     brush.Freeze();
                     dc.DrawGeometry(brush, null, fills[rgb]);
                     var pen = new Pen(brush, 1.0);
@@ -1874,7 +2125,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>A run of X and Y in drawing units, under a transformation, added to a figure as one line, or one ring where it is filled.</summary>
-        private void Trace(StreamGeometryContext context, CadView view, double scale, double[] xy, Affine2 m, bool filled)
+        private void Trace(
+            StreamGeometryContext context,
+            CadView view,
+            double scale,
+            double[] xy,
+            Affine2 m,
+            bool filled
+        )
         {
             for (int i = 0; i + 1 < xy.Length; i += 2)
             {
@@ -1894,7 +2152,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The colour a preview draws an item in: its own, white turned black on a light background and black white on a dark one, as the drawing shows colour 7.</summary>
         private static int PreviewColor(int rgb, int background)
         {
-            double Luminance(int c) => (0.2126 * ((c >> 16) & 0xFF) + 0.7152 * ((c >> 8) & 0xFF) + 0.0722 * (c & 0xFF)) / 255.0;
+            double Luminance(int c) =>
+                (0.2126 * ((c >> 16) & 0xFF) + 0.7152 * ((c >> 8) & 0xFF) + 0.0722 * (c & 0xFF)) / 255.0;
 
             if (Luminance(background) > 0.6 && Luminance(rgb) >= 0.98)
             {
@@ -1907,7 +2166,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>A colour mixed into the background, its own share of it given: a third of white on black is a dark grey.</summary>
         private static int Blend(int rgb, int background, double share)
         {
-            int Channel(int shift) => (int)Math.Round(share * ((rgb >> shift) & 0xFF) + (1.0 - share) * ((background >> shift) & 0xFF));
+            int Channel(int shift) =>
+                (int)Math.Round(share * ((rgb >> shift) & 0xFF) + (1.0 - share) * ((background >> shift) & 0xFF));
             return (Channel(16) << 16) | (Channel(8) << 8) | Channel(0);
         }
 
@@ -1947,11 +2207,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // At a point prompt the snap is found first, so that what follows the cursor, the fields of dynamic input and a
             // distance typed along the band, measures to the point the rubber band ends at: snapped, ortho or polar.
-            bool pointing = CadPicking.WantsPoint(session) && !session.Prompt.Tracks && !_panFrom.HasValue && !_boxFrom.HasValue && (Through == null || InsideFrame(Through, p));
+            bool pointing =
+                CadPicking.WantsPoint(session)
+                && !session.Prompt.Tracks
+                && !_panFrom.HasValue
+                && !_boxFrom.HasValue
+                && (Through == null || InsideFrame(Through, p));
 
             if (pointing)
             {
-                _snapped = CadPicking.Snap(document, WorkSpace, Snap, cursor, aperture, session.Prompt.BasePoint, session.Prompt.SnapFrom);
+                _snapped = CadPicking.Snap(
+                    document,
+                    WorkSpace,
+                    Snap,
+                    cursor,
+                    aperture,
+                    session.Prompt.BasePoint,
+                    session.Prompt.SnapFrom
+                );
             }
 
             GeoPoint2 band = pointing ? BandEnd(cursor) : cursor;
@@ -2040,7 +2313,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 if (!pointing)
                 {
-                    _snapped = CadPicking.Snap(document, WorkSpace, Snap, cursor, aperture, session.Prompt.BasePoint, session.Prompt.SnapFrom);
+                    _snapped = CadPicking.Snap(
+                        document,
+                        WorkSpace,
+                        Snap,
+                        cursor,
+                        aperture,
+                        session.Prompt.BasePoint,
+                        session.Prompt.SnapFrom
+                    );
                 }
 
                 SetHover(null);
@@ -2089,14 +2370,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _rest?.Stop();
             _restAt = null;
 
-            if (snap == null || !(snap.Tracking || ((snap.Override ?? (snap.IsOn ? snap.Modes : CadSnapModes.None)) & (CadSnapModes.Extension | CadSnapModes.Parallel)) != 0))
+            if (
+                snap == null
+                || !(
+                    snap.Tracking
+                    || (
+                        (snap.Override ?? (snap.IsOn ? snap.Modes : CadSnapModes.None))
+                        & (CadSnapModes.Extension | CadSnapModes.Parallel)
+                    ) != 0
+                )
+            )
             {
                 return;
             }
 
             if (_rest == null)
             {
-                _rest = new DispatcherTimer(DispatcherPriority.Input, Dispatcher) { Interval = TimeSpan.FromMilliseconds(RestMilliseconds) };
+                _rest = new DispatcherTimer(DispatcherPriority.Input, Dispatcher)
+                {
+                    Interval = TimeSpan.FromMilliseconds(RestMilliseconds),
+                };
                 _rest.Tick += (s, e) => AcquireAtRest();
             }
 
@@ -2135,7 +2428,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
-            _snapped = CadPicking.Snap(document, WorkSpace, Snap, at, _restAperture, session.Prompt.BasePoint, session.Prompt.SnapFrom);
+            _snapped = CadPicking.Snap(
+                document,
+                WorkSpace,
+                Snap,
+                at,
+                _restAperture,
+                session.Prompt.BasePoint,
+                session.Prompt.SnapFrom
+            );
             InvalidateVisual();
             return true;
         }
@@ -2161,7 +2462,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             double scale = PixelScale;
             view.ScreenToDrawing(p.X * scale, p.Y * scale, out double x, out double y);
-            double aperture = (CadPicking.WantsPoint(Session) ? AperturePixels : PickboxPixels) * scale / view.PixelsPerUnit;
+            double aperture =
+                (CadPicking.WantsPoint(Session) ? AperturePixels : PickboxPixels) * scale / view.PixelsPerUnit;
             var at = new GeoPoint2(x, y);
 
             // A click inside a cell of a table, away from its lines, selects the cell, as AutoCAD's.
@@ -2198,11 +2500,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // A field of dynamic input that holds a number gives the point, the click its direction or its distance.
             bool control = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
-            GeoPoint2? fields = HeldAt != null && CadPicking.WantsPoint(Session)
-                ? HeldAt(CadPicking.Snap(document, WorkSpace, Snap, at, aperture, Session.Prompt.BasePoint, Session.Prompt.SnapFrom)?.Point ?? at, true)
-                : null;
+            GeoPoint2? fields =
+                HeldAt != null && CadPicking.WantsPoint(Session)
+                    ? HeldAt(
+                        CadPicking
+                            .Snap(
+                                document,
+                                WorkSpace,
+                                Snap,
+                                at,
+                                aperture,
+                                Session.Prompt.BasePoint,
+                                Session.Prompt.SnapFrom
+                            )
+                            ?.Point
+                            ?? at,
+                        true
+                    )
+                    : null;
 
-            if (fields.HasValue ? Session.Feed(fields.Value, false, control) : CadPicking.Click(document, WorkSpace, Session, Snap, at, aperture, shift, control))
+            if (
+                fields.HasValue
+                    ? Session.Feed(fields.Value, false, control)
+                    : CadPicking.Click(document, WorkSpace, Session, Snap, at, aperture, shift, control)
+            )
             {
                 SelectionChanged?.Invoke(this, EventArgs.Empty);
             }
@@ -2223,11 +2544,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 string chosen = handle;
                 items.Add(new CadMenuItemViewModel(CadPicking.CycleLabel(document, handle), () =>
-                {
-                    CadPicking.Choose(document, Session, chosen, shift);
-                    SelectionChanged?.Invoke(this, EventArgs.Empty);
-                    InvalidateVisual();
-                }));
+                    {
+                        CadPicking.Choose(document, Session, chosen, shift);
+                        SelectionChanged?.Invoke(this, EventArgs.Empty);
+                        InvalidateVisual();
+                    }));
             }
 
             System.Windows.Controls.ContextMenu menu = CadMenus.Make(items);
@@ -2261,7 +2582,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 view.ScreenToDrawing(b.X * scale, a.Y * scale, out double x2, out double y2);
                 view.ScreenToDrawing(a.X * scale, b.Y * scale, out double x3, out double y3);
-                var ring = new List<GeoPoint2> { new GeoPoint2(x0, y0), new GeoPoint2(x2, y2), new GeoPoint2(x1, y1), new GeoPoint2(x3, y3) };
+                var ring = new List<GeoPoint2>
+                {
+                    new GeoPoint2(x0, y0),
+                    new GeoPoint2(x2, y2),
+                    new GeoPoint2(x1, y1),
+                    new GeoPoint2(x3, y3),
+                };
 
                 if (CadPicking.SignedArea(ring) > 0.0 != b.X < a.X)
                 {
@@ -2316,7 +2643,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get
             {
                 CadDocument document = Document;
-                return document != null && Space != null && !Space.IsModel && ReferenceEquals(Space, document.CurrentSpace) ? document.ActiveViewport : null;
+                return
+                    document != null && Space != null && !Space.IsModel && ReferenceEquals(Space, document.CurrentSpace)
+                    ? document.ActiveViewport
+                    : null;
             }
         }
 
@@ -2384,7 +2714,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             CadDocument document = Document;
 
-            if (document == null || Space == null || Space.IsModel || View == null || !ReferenceEquals(Space, document.CurrentSpace))
+            if (
+                document == null
+                || Space == null
+                || Space.IsModel
+                || View == null
+                || !ReferenceEquals(Space, document.CurrentSpace)
+            )
             {
                 return false;
             }
@@ -2519,7 +2855,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             int rgb = Options.Paper;
-            double luminance = (0.2126 * ((rgb >> 16) & 0xFF) + 0.7152 * ((rgb >> 8) & 0xFF) + 0.0722 * (rgb & 0xFF)) / 255.0;
+            double luminance =
+                (0.2126 * ((rgb >> 16) & 0xFF) + 0.7152 * ((rgb >> 8) & 0xFF) + 0.0722 * (rgb & 0xFF)) / 255.0;
             dc.DrawRectangle(null, luminance < 0.5 ? ActiveFrameLight : ActiveFrameDark, FrameOnScreen(through));
         }
 
@@ -2527,7 +2864,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Draws entities highlighted over a picture: through a viewport those of model space, inside its frame alone. Given the
         /// picture's pixels, many are drawn by several threads (<see cref="SkiaCanvasRenderer.RenderHighlight"/>).
         /// </summary>
-        private void Highlight(SKCanvas canvas, CadDocument document, IReadOnlyCollection<string> handles, bool hover, SKPixmap pixels = null)
+        private void Highlight(
+            SKCanvas canvas,
+            CadDocument document,
+            IReadOnlyCollection<string> handles,
+            bool hover,
+            SKPixmap pixels = null
+        )
         {
             DxfViewport through = Through;
 
@@ -2540,7 +2883,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Rect frame = FrameOnScreen(through);
             double scale = PixelScale;
             canvas.Save();
-            canvas.ClipRect(new SKRect((float)(frame.Left * scale), (float)(frame.Top * scale), (float)(frame.Right * scale), (float)(frame.Bottom * scale)));
+            canvas.ClipRect(
+                new SKRect(
+                    (float)(frame.Left * scale),
+                    (float)(frame.Top * scale),
+                    (float)(frame.Right * scale),
+                    (float)(frame.Bottom * scale)
+                )
+            );
             _renderer.RenderHighlight(canvas, document, document.ModelSpace, WorkView, Options, handles, hover);
             canvas.Restore();
         }
@@ -2553,7 +2903,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CadDocument document = Document;
 
             // A grip edit keeps the grips shown, its hot grips among them, as AutoCAD's.
-            if (document == null || WorkSpace == null || (IsRunning && !Session.IsGripEditing) || document.Selection.Count == 0)
+            if (
+                document == null
+                || WorkSpace == null
+                || (IsRunning && !Session.IsGripEditing)
+                || document.Selection.Count == 0
+            )
             {
                 _hotGrip = -1;
                 _gripTip = null;
@@ -2692,8 +3047,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case CadSelectionBandKind.Window:
                 case CadSelectionBandKind.Crossing:
                 case CadSelectionBandKind.Box:
-                    crossing = band.Kind == CadSelectionBandKind.Crossing || (band.Kind == CadSelectionBandKind.Box && cursor.X < first.X);
-                    dc.DrawRectangle(crossing ? CrossingFill : WindowFill, crossing ? CrossingPen : WindowPen, new Rect(ToScreen(view, first, scale), ToScreen(view, cursor, scale)));
+                    crossing =
+                        band.Kind == CadSelectionBandKind.Crossing
+                        || (band.Kind == CadSelectionBandKind.Box && cursor.X < first.X);
+                    dc.DrawRectangle(
+                        crossing ? CrossingFill : WindowFill,
+                        crossing ? CrossingPen : WindowPen,
+                        new Rect(ToScreen(view, first, scale), ToScreen(view, cursor, scale))
+                    );
                     return;
             }
 
@@ -2714,7 +3075,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             geometry.Freeze();
-            dc.DrawGeometry(closed ? (crossing ? CrossingFill : WindowFill) : null, crossing ? CrossingPen : WindowPen, geometry);
+            dc.DrawGeometry(
+                closed ? (crossing ? CrossingFill : WindowFill) : null,
+                crossing ? CrossingPen : WindowPen,
+                geometry
+            );
         }
 
         /// <summary>
@@ -2723,13 +3088,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         private void DrawCrosshair(DrawingContext dc)
         {
-            if (_crosshairPercent <= 0.0 || !_mouse.HasValue || _panFrom.HasValue || (Through is DxfViewport through && !InsideFrame(through, _mouse.Value)))
+            if (
+                _crosshairPercent <= 0.0
+                || !_mouse.HasValue
+                || _panFrom.HasValue
+                || (Through is DxfViewport through && !InsideFrame(through, _mouse.Value))
+            )
             {
                 return;
             }
 
             int rgb = Space != null ? Options.BackgroundOf(Space) : Options.Background;
-            double luminance = (0.2126 * ((rgb >> 16) & 0xFF) + 0.7152 * ((rgb >> 8) & 0xFF) + 0.0722 * (rgb & 0xFF)) / 255.0;
+            double luminance =
+                (0.2126 * ((rgb >> 16) & 0xFF) + 0.7152 * ((rgb >> 8) & 0xFF) + 0.0722 * (rgb & 0xFF)) / 255.0;
             Pen pen = luminance < 0.5 ? CrossPenLight : CrossPenDark;
             Point at = _mouse.Value;
             double half = _crosshairPercent / 100.0 * Math.Max(ActualWidth, ActualHeight) / 2.0;
@@ -2790,7 +3161,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // The box the arms and their letters take about the corner.
             var yArm = new Vector(xArm.Y, -xArm.X);
-            Vector[] reach = { new Vector(0.0, 0.0), xArm * (UcsIconArm + UcsIconLetter), yArm * (UcsIconArm + UcsIconLetter), (xArm + yArm) * UcsIconArm };
+            Vector[] reach =
+            {
+                new Vector(0.0, 0.0),
+                xArm * (UcsIconArm + UcsIconLetter),
+                yArm * (UcsIconArm + UcsIconLetter),
+                (xArm + yArm) * UcsIconArm,
+            };
             double minX = reach.Min(v => v.X) - UcsIconLetter / 2.0;
             double maxX = reach.Max(v => v.X) + UcsIconLetter / 2.0;
             double minY = reach.Min(v => v.Y) - UcsIconLetter / 2.0;
@@ -2802,10 +3179,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (document.Ucs.IconAtOrigin || editor != null)
             {
-                GeoPoint2 at = editor != null ? new GeoPoint2(editor.BasePoint.X, editor.BasePoint.Y) : new GeoPoint2(ucs.Origin.X, ucs.Origin.Y);
+                GeoPoint2 at =
+                    editor != null
+                        ? new GeoPoint2(editor.BasePoint.X, editor.BasePoint.Y)
+                        : new GeoPoint2(ucs.Origin.X, ucs.Origin.Y);
                 Point origin = ToScreen(view, at, PixelScale);
 
-                if (origin.X + minX >= UcsIconMargin && origin.X + maxX <= ActualWidth - UcsIconMargin && origin.Y + minY >= UcsIconMargin && origin.Y + maxY <= ActualHeight - UcsIconMargin)
+                if (
+                    origin.X + minX >= UcsIconMargin
+                    && origin.X + maxX <= ActualWidth - UcsIconMargin
+                    && origin.Y + minY >= UcsIconMargin
+                    && origin.Y + maxY <= ActualHeight - UcsIconMargin
+                )
                 {
                     corner = origin;
                     atOrigin = true;
@@ -2830,7 +3215,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             int rgb = Options.BackgroundOf(Space);
-            double luminance = (0.2126 * ((rgb >> 16) & 0xFF) + 0.7152 * ((rgb >> 8) & 0xFF) + 0.0722 * (rgb & 0xFF)) / 255.0;
+            double luminance =
+                (0.2126 * ((rgb >> 16) & 0xFF) + 0.7152 * ((rgb >> 8) & 0xFF) + 0.0722 * (rgb & 0xFF)) / 255.0;
             Brush ink = luminance < 0.5 ? Brushes.White : Brushes.Black;
             var pen = new Pen(ink, 1.5);
             pen.Freeze();
@@ -2853,7 +3239,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 head.Freeze();
                 dc.DrawGeometry(ink, null, head);
-                var letter = new FormattedText(arm == xArm ? "X" : "Y", CultureInfo.InvariantCulture, FlowDirection.LeftToRight, TagFace, 11.0, ink, dip);
+                var letter = new FormattedText(
+                    arm == xArm ? "X" : "Y",
+                    CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight,
+                    TagFace,
+                    11.0,
+                    ink,
+                    dip
+                );
                 Point at = corner + arm * (UcsIconArm + UcsIconLetter / 2.0 + 2.0);
                 dc.DrawText(letter, new Point(at.X - letter.Width / 2.0, at.Y - letter.Height / 2.0));
             }
@@ -2881,7 +3275,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (Document.Ucs.WorkingOf(WorkSpace).IsWorld)
             {
-                var w = new FormattedText("W", CultureInfo.InvariantCulture, FlowDirection.LeftToRight, TagFace, 10.0, ink, dip);
+                var w = new FormattedText(
+                    "W",
+                    CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight,
+                    TagFace,
+                    10.0,
+                    ink,
+                    dip
+                );
                 Point at = corner + yArm * 20.0 + xArm * 10.0;
                 dc.DrawText(w, new Point(at.X - w.Width / 2.0, at.Y - w.Height / 2.0));
             }
@@ -2907,8 +3309,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             for (int k = 0; k < 4; k++)
             {
-                Point a = range[k], b = range[(k + 1) % 4];
-                dc.DrawRectangle(CellBrush, null, new Rect((a.X + b.X) / 2.0 - half, (a.Y + b.Y) / 2.0 - half, GripSize, GripSize));
+                Point a = range[k],
+                    b = range[(k + 1) % 4];
+                dc.DrawRectangle(
+                    CellBrush,
+                    null,
+                    new Rect((a.X + b.X) / 2.0 - half, (a.Y + b.Y) / 2.0 - half, GripSize, GripSize)
+                );
             }
 
             // The bands of column letters over the table and row numbers left of it, the range's part in amber.
@@ -2926,8 +3333,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             dc.DrawGeometry(BandFill, null, Polygon(new[] { table[0] + left, table[0], table[3], table[3] + left }));
             // A corner of the range carried onto the table's top (or left) edge.
             Point Along(Point p, Vector axis) => table[0] + axis * ((p - table[0]) * axis / axis.LengthSquared);
-            Point c0 = Along(range[0], across), c1 = Along(range[1], across);
-            Point w0 = Along(range[0], down), w3 = Along(range[3], down);
+            Point c0 = Along(range[0], across),
+                c1 = Along(range[1], across);
+            Point w0 = Along(range[0], down),
+                w3 = Along(range[3], down);
             dc.DrawGeometry(BandHot, null, Polygon(new[] { c0 + up, c1 + up, c1, c0 }));
             dc.DrawGeometry(BandHot, null, Polygon(new[] { w0 + left, w0, w3, w3 + left }));
         }
@@ -2950,9 +3359,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
-            foreach (GeoPoint2 near in new[] { new GeoPoint2(at.X - aperture, at.Y), new GeoPoint2(at.X + aperture, at.Y), new GeoPoint2(at.X, at.Y - aperture), new GeoPoint2(at.X, at.Y + aperture) })
+            foreach (
+                GeoPoint2 near in new[]
+                {
+                    new GeoPoint2(at.X - aperture, at.Y),
+                    new GeoPoint2(at.X + aperture, at.Y),
+                    new GeoPoint2(at.X, at.Y - aperture),
+                    new GeoPoint2(at.X, at.Y + aperture),
+                }
+            )
             {
-                if (!CadTableEditor.TryCellAt(WorkSpace, near, out string other, out int r, out int c) || other != handle || r != row || c != column)
+                if (
+                    !CadTableEditor.TryCellAt(WorkSpace, near, out string other, out int r, out int c)
+                    || other != handle
+                    || r != row
+                    || c != column
+                )
                 {
                     return false;
                 }
@@ -2982,7 +3404,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             for (int i = 0; i < _grips.Count; i++)
             {
                 Point at = ToScreen(view, _grips[i].Grip.Point, scale);
-                bool hot = i == _hotGrip || _hot.Contains(new KeyValuePair<string, int>(_grips[i].Handle, _grips[i].Grip.Index));
+                bool hot =
+                    i == _hotGrip
+                    || _hot.Contains(new KeyValuePair<string, int>(_grips[i].Handle, _grips[i].Grip.Index));
 
                 if (_grips[i].Grip.Custom != null)
                 {
@@ -2990,7 +3414,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     continue;
                 }
 
-                dc.DrawRectangle(hot ? HotGripBrush : GripBrush, null, new Rect(at.X - half, at.Y - half, GripSize, GripSize));
+                dc.DrawRectangle(
+                    hot ? HotGripBrush : GripBrush,
+                    null,
+                    new Rect(at.X - half, at.Y - half, GripSize, GripSize)
+                );
             }
 
             // The tip of a custom grip hovered, beside it, as the design shows: the values it drives and the steps they snap to.
@@ -2998,7 +3426,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 Point at = ToScreen(view, _grips[_hotGrip].Grip.Point, scale);
                 double dip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-                var text = new FormattedText(_gripTip, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, GripTipFace, 11.0, GripTipInk, dip);
+                var text = new FormattedText(
+                    _gripTip,
+                    CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight,
+                    GripTipFace,
+                    11.0,
+                    GripTipInk,
+                    dip
+                );
                 var box = new Rect(at.X + 14.0, at.Y + 10.0, text.Width + 16.0, text.Height + 6.0);
 
                 // Kept on the canvas: to the left of the grip where it would run off the right.
@@ -3026,7 +3462,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             try
             {
-                IReadOnlyList<DxfDynamicBlockReferenceProperty> properties = insert.DynamicBlockReferencePropertyCollection;
+                IReadOnlyList<DxfDynamicBlockReferenceProperty> properties =
+                    insert.DynamicBlockReferencePropertyCollection;
                 var parts = new List<string>();
                 string snaps = null;
 
@@ -3044,13 +3481,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     if (snaps == null && allowed.Length > 0 && allowed[0] is double)
                     {
-                        snaps = " · snaps " + string.Join(" / ", allowed.Select(v => ((double)v).ToString("0.##", CultureInfo.InvariantCulture)));
+                        snaps =
+                            " · snaps "
+                            + string.Join(
+                                " / ",
+                                allowed.Select(v => ((double)v).ToString("0.##", CultureInfo.InvariantCulture))
+                            );
                     }
                 }
 
                 return parts.Count == 0 ? null : string.Join(", ", parts) + snaps;
             }
-            catch (Exception exception) when (exception is NotSupportedException || exception is InvalidOperationException || exception is FormatException)
+            catch (Exception exception)
+                when (exception is NotSupportedException
+                    || exception is InvalidOperationException
+                    || exception is FormatException
+                )
             {
                 return null;
             }
@@ -3082,7 +3528,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double k = GripSize / 12.0 * 1.25;
 
             // The way the arrow points on the screen: the grip's direction carried by the view, the screen's y down.
-            Point ahead = ToScreen(view, new GeoPoint2(grip.Point.X + grip.Direction.X, grip.Point.Y + grip.Direction.Y), scale);
+            Point ahead = ToScreen(
+                view,
+                new GeoPoint2(grip.Point.X + grip.Direction.X, grip.Point.Y + grip.Direction.Y),
+                scale
+            );
             double angle = Math.Atan2(ahead.Y - at.Y, ahead.X - at.X);
 
             switch (grip.Kind)
@@ -3091,7 +3541,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     dc.DrawGeometry(fill, CustomGripEdge, Polygon(Shape(at, angle, k, -6, -7, 8, 0, -6, 7)));
                     break;
                 case CadGripKind.CustomFlip:
-                    dc.DrawGeometry(fill, CustomGripEdge, Polygon(Shape(at, angle, k, -9, -3, 0, -3, 0, -8, 9, 0, 0, 8, 0, 3, -9, 3)));
+                    dc.DrawGeometry(
+                        fill,
+                        CustomGripEdge,
+                        Polygon(Shape(at, angle, k, -9, -3, 0, -3, 0, -8, 9, 0, 0, 8, 0, 3, -9, 3))
+                    );
                     break;
                 case CadGripKind.CustomList:
                     dc.DrawGeometry(fill, CustomGripEdge, Polygon(Shape(at, 0.0, k, -8, -5, 8, -5, 0, 6)));
@@ -3100,7 +3554,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     dc.DrawEllipse(fill, CustomGripEdge, at, 6.0 * k, 6.0 * k);
                     break;
                 default:
-                    dc.DrawRectangle(fill, CustomGripEdge, new Rect(at.X - 6.0 * k, at.Y - 6.0 * k, 12.0 * k, 12.0 * k));
+                    dc.DrawRectangle(
+                        fill,
+                        CustomGripEdge,
+                        new Rect(at.X - 6.0 * k, at.Y - 6.0 * k, 12.0 * k, 12.0 * k)
+                    );
                     break;
             }
         }
@@ -3108,12 +3566,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The corners of a shape given as x, y pairs on the design's grid, scaled, turned by an angle on the screen and put at a point.</summary>
         private static Point[] Shape(Point at, double angle, double k, params double[] xy)
         {
-            double cos = Math.Cos(angle), sin = Math.Sin(angle);
+            double cos = Math.Cos(angle),
+                sin = Math.Sin(angle);
             var points = new Point[xy.Length / 2];
 
             for (int i = 0; i < points.Length; i++)
             {
-                double x = xy[2 * i] * k, y = xy[2 * i + 1] * k;
+                double x = xy[2 * i] * k,
+                    y = xy[2 * i + 1] * k;
                 points[i] = new Point(at.X + x * cos - y * sin, at.Y + x * sin + y * cos);
             }
 
@@ -3127,7 +3587,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             foreach (ViewportTag tag in _tags)
             {
                 Point corner = ToScreen(view, new GeoPoint2(tag.Frame.MinX, tag.Frame.MaxY), scale);
-                var text = new FormattedText(tag.Text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, TagFace, 9.0, TagInk, dip);
+                var text = new FormattedText(
+                    tag.Text,
+                    CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight,
+                    TagFace,
+                    9.0,
+                    TagInk,
+                    dip
+                );
                 var box = new Rect(corner.X, corner.Y - 20.0, text.Width + 12.0, 16.0);
                 dc.DrawRoundedRectangle(GripBrush, null, box, 2.0, 2.0);
                 dc.DrawText(text, new Point(box.X + 6.0, box.Y + (16.0 - text.Height) / 2.0));
@@ -3138,7 +3606,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Where the rubber band ends with the cursor at a point: at the snap found, an object snap, ortho or polar; at the cursor
         /// with no snap, or without the magnet (AUTOSNAP 4) while an object snap is shown.
         /// </summary>
-        private GeoPoint2 BandEnd(GeoPoint2 cursor) => _snapped != null && (Snap == null || Snap.Magnet || !IsObjectSnap(_snapped.Kind)) ? _snapped.Point : cursor;
+        private GeoPoint2 BandEnd(GeoPoint2 cursor) =>
+            _snapped != null && (Snap == null || Snap.Magnet || !IsObjectSnap(_snapped.Kind)) ? _snapped.Point : cursor;
 
         /// <summary>While a point prompt waits: the base point, the rubber band to the snapped cursor, the snap's marker and its tip.</summary>
         private void DrawPrompt(DrawingContext dc, CadView view, double scale)
@@ -3155,7 +3624,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // A prompt for objects previews what the object under the cursor would give, as FILLET its arc; a prompt for a
             // keyword what Enter would, as -ARRAY's copies while it asks whether to rotate them.
-            if ((CadPicking.WantsObjects(session) || session?.Prompt?.Kind == CadPromptKind.Keyword) && _cursor.HasValue)
+            if (
+                (CadPicking.WantsObjects(session) || session?.Prompt?.Kind == CadPromptKind.Keyword) && _cursor.HasValue
+            )
             {
                 DrawPreview(dc, view, scale, _cursor.Value);
                 return;
@@ -3199,7 +3670,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (tip.Length > 0)
             {
-                var text = new FormattedText(tip, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, TipFace, 10.0, TipInk, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+                var text = new FormattedText(
+                    tip,
+                    CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight,
+                    TipFace,
+                    10.0,
+                    TipInk,
+                    VisualTreeHelper.GetDpi(this).PixelsPerDip
+                );
                 double w = text.Width + 16.0;
 
                 // Beside the cursor, below and to the right; turned to the other side where the canvas ends. With the box of
@@ -3269,7 +3748,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>The tip by the cursor, as AutoCAD's dynamic input: the snap's name, the distance and the angle from the base point, the angle counted as the drawing counts angles (from the X axis of the UCS turned by ANGBASE, clockwise with ANGDIR 1).</summary>
-        private static string TipText(CadSnapResult snapped, GeoPoint2? basePoint, GeoPoint2 target, CadCommandSession session)
+        private static string TipText(
+            CadSnapResult snapped,
+            GeoPoint2? basePoint,
+            GeoPoint2 target,
+            CadCommandSession session
+        )
         {
             string kind = snapped == null ? string.Empty : CadSnapMarker.NameOf(snapped.Kind);
 
@@ -3280,7 +3764,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             GeoVector2 way = session.Ucs.ToUcs(target - basePoint.Value);
             double degrees = session.CountAngle(Math.Atan2(way.Y, way.X)) * 180.0 / Math.PI;
-            string measured = way.Length.ToString("0.0", CultureInfo.InvariantCulture) + " < " + degrees.ToString("0", CultureInfo.InvariantCulture) + "°";
+            string measured =
+                way.Length.ToString("0.0", CultureInfo.InvariantCulture)
+                + " < "
+                + degrees.ToString("0", CultureInfo.InvariantCulture)
+                + "°";
             return kind.Length == 0 ? measured : kind + " · " + measured;
         }
 
@@ -3303,11 +3791,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             foreach (CadMarkerStroke stroke in CadSnapMarker.Strokes(kind))
             {
-                var figure = new PathFigure { StartPoint = new Point(p.X + stroke.Points[0].X, p.Y + stroke.Points[0].Y), IsClosed = stroke.IsClosed, IsFilled = stroke.IsFilled };
+                var figure = new PathFigure
+                {
+                    StartPoint = new Point(p.X + stroke.Points[0].X, p.Y + stroke.Points[0].Y),
+                    IsClosed = stroke.IsClosed,
+                    IsFilled = stroke.IsFilled,
+                };
 
                 for (int i = 1; i < stroke.Points.Count; i++)
                 {
-                    figure.Segments.Add(new LineSegment(new Point(p.X + stroke.Points[i].X, p.Y + stroke.Points[i].Y), true));
+                    figure.Segments.Add(
+                        new LineSegment(new Point(p.X + stroke.Points[i].X, p.Y + stroke.Points[i].Y), true)
+                    );
                 }
 
                 var geometry = new PathGeometry(new[] { figure });
@@ -3373,7 +3868,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _numbers = numbers;
             }
 
-            public bool Same(SceneKey other) => other != null && ReferenceEquals(_list, other._list) && string.Equals(_numbers, other._numbers, StringComparison.Ordinal);
+            public bool Same(SceneKey other) =>
+                other != null
+                && ReferenceEquals(_list, other._list)
+                && string.Equals(_numbers, other._numbers, StringComparison.Ordinal);
         }
 
         /// <summary>A grip of a selected entity.</summary>

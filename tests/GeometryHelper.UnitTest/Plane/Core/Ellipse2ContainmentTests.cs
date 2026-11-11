@@ -26,7 +26,14 @@ namespace GeometryHelper.UnitTest.Plane
         {
             GeoEllipse2 ellipse = Ellipse2Oracle.Tilted();
 
-            foreach (GeoPoint2 point in new[] { ellipse.Center, Ellipse2Oracle.FromFrame(ellipse, 200, 50), Ellipse2Oracle.FromFrame(ellipse, -20, -90) })
+            foreach (
+                GeoPoint2 point in new[]
+                {
+                    ellipse.Center,
+                    Ellipse2Oracle.FromFrame(ellipse, 200, 50),
+                    Ellipse2Oracle.FromFrame(ellipse, -20, -90),
+                }
+            )
             {
                 Assert.Equal(PointLocation.Inside, ellipse.Locate(point, Tol));
                 Assert.True(ellipse.Contains(point, Tol));
@@ -189,7 +196,11 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.True(right.IsEqualTo(Ellipse2Oracle.FromFrame(ellipse, 112.5, 92.70248108869579), Tight));
             Assert.True(left.IsEqualTo(Ellipse2Oracle.FromFrame(ellipse, -112.5, 92.70248108869579), Tight));
-            Assert.Equal(Math.Acos(112.5 / 300), ellipse.GetAngleAtPoint(Ellipse2Oracle.FromFrame(ellipse, 100, 0)), 1E-12);
+            Assert.Equal(
+                Math.Acos(112.5 / 300),
+                ellipse.GetAngleAtPoint(Ellipse2Oracle.FromFrame(ellipse, 100, 0)),
+                1E-12
+            );
         }
 
         [Fact]
@@ -199,8 +210,18 @@ namespace GeometryHelper.UnitTest.Plane
             // lower one. Tilted, so the frame is not the drawing's.
             GeoEllipse2 ellipse = Ellipse2Oracle.Tilted();
 
-            Ellipse2Oracle.ToFrame(ellipse, ellipse.GetClosestPointOnBoundary(Ellipse2Oracle.FromFrame(ellipse, 100, 0.01)), out double xUp, out double yUp);
-            Ellipse2Oracle.ToFrame(ellipse, ellipse.GetClosestPointOnBoundary(Ellipse2Oracle.FromFrame(ellipse, 100, -0.01)), out double xDown, out double yDown);
+            Ellipse2Oracle.ToFrame(
+                ellipse,
+                ellipse.GetClosestPointOnBoundary(Ellipse2Oracle.FromFrame(ellipse, 100, 0.01)),
+                out double xUp,
+                out double yUp
+            );
+            Ellipse2Oracle.ToFrame(
+                ellipse,
+                ellipse.GetClosestPointOnBoundary(Ellipse2Oracle.FromFrame(ellipse, 100, -0.01)),
+                out double xDown,
+                out double yDown
+            );
 
             Assert.InRange(yUp, 92.0, 93.5);
             Assert.InRange(yDown, -93.5, -92.0);
@@ -213,9 +234,21 @@ namespace GeometryHelper.UnitTest.Plane
             // 290 from the centre is past 266.7, inside; 400 is outside. Both are nearest the end at 300, 10 and 100 away.
             GeoEllipse2 ellipse = Ellipse2Oracle.Upright(300, 100);
 
-            Assert.True(ellipse.GetClosestPointOnBoundary(Ellipse2Oracle.FromFrame(ellipse, 290, 0)).IsEqualTo(Ellipse2Oracle.FromFrame(ellipse, 300, 0), Tight));
-            Assert.True(ellipse.GetClosestPointOnBoundary(Ellipse2Oracle.FromFrame(ellipse, 400, 0)).IsEqualTo(Ellipse2Oracle.FromFrame(ellipse, 300, 0), Tight));
-            Assert.True(ellipse.GetClosestPointOnBoundary(Ellipse2Oracle.FromFrame(ellipse, -290, 0)).IsEqualTo(Ellipse2Oracle.FromFrame(ellipse, -300, 0), Tight));
+            Assert.True(
+                ellipse
+                    .GetClosestPointOnBoundary(Ellipse2Oracle.FromFrame(ellipse, 290, 0))
+                    .IsEqualTo(Ellipse2Oracle.FromFrame(ellipse, 300, 0), Tight)
+            );
+            Assert.True(
+                ellipse
+                    .GetClosestPointOnBoundary(Ellipse2Oracle.FromFrame(ellipse, 400, 0))
+                    .IsEqualTo(Ellipse2Oracle.FromFrame(ellipse, 300, 0), Tight)
+            );
+            Assert.True(
+                ellipse
+                    .GetClosestPointOnBoundary(Ellipse2Oracle.FromFrame(ellipse, -290, 0))
+                    .IsEqualTo(Ellipse2Oracle.FromFrame(ellipse, -300, 0), Tight)
+            );
             Assert.Equal(0.0, ellipse.GetAngleAtPoint(Ellipse2Oracle.FromFrame(ellipse, 400, 0)), 1E-12);
             Assert.Equal(Math.PI, ellipse.GetAngleAtPoint(Ellipse2Oracle.FromFrame(ellipse, -290, 0)), 1E-12);
         }
@@ -226,9 +259,21 @@ namespace GeometryHelper.UnitTest.Plane
             // (0, 50) inside and (0, -250) outside: 50 from (0, 100) and 150 from (0, -100).
             GeoEllipse2 ellipse = Ellipse2Oracle.Upright(300, 100);
 
-            Assert.True(ellipse.GetClosestPointOnBoundary(Ellipse2Oracle.FromFrame(ellipse, 0, 50)).IsEqualTo(Ellipse2Oracle.FromFrame(ellipse, 0, 100), Tight));
-            Assert.True(ellipse.GetClosestPointOnBoundary(Ellipse2Oracle.FromFrame(ellipse, 0, -50)).IsEqualTo(Ellipse2Oracle.FromFrame(ellipse, 0, -100), Tight));
-            Assert.True(ellipse.GetClosestPointOnBoundary(Ellipse2Oracle.FromFrame(ellipse, 0, -250)).IsEqualTo(Ellipse2Oracle.FromFrame(ellipse, 0, -100), Tight));
+            Assert.True(
+                ellipse
+                    .GetClosestPointOnBoundary(Ellipse2Oracle.FromFrame(ellipse, 0, 50))
+                    .IsEqualTo(Ellipse2Oracle.FromFrame(ellipse, 0, 100), Tight)
+            );
+            Assert.True(
+                ellipse
+                    .GetClosestPointOnBoundary(Ellipse2Oracle.FromFrame(ellipse, 0, -50))
+                    .IsEqualTo(Ellipse2Oracle.FromFrame(ellipse, 0, -100), Tight)
+            );
+            Assert.True(
+                ellipse
+                    .GetClosestPointOnBoundary(Ellipse2Oracle.FromFrame(ellipse, 0, -250))
+                    .IsEqualTo(Ellipse2Oracle.FromFrame(ellipse, 0, -100), Tight)
+            );
             Assert.Equal(3 * Math.PI / 2, ellipse.GetAngleAtPoint(Ellipse2Oracle.FromFrame(ellipse, 0, -250)), 1E-12);
         }
 
@@ -244,7 +289,12 @@ namespace GeometryHelper.UnitTest.Plane
             // the point tolerance. 60 points from a fixed seed, inside and outside, in all four quadrants, up to twice
             // the radii from the centre. The point found lies on the rim, is the one its angle names, and is as near as
             // the nearest of 65 536 rim points refined by golden section, to 1E-9.
-            var ellipse = new GeoEllipse2(new GeoPoint2(-35, 60), new GeoVector2(Math.Cos(2.5), Math.Sin(2.5)), majorRadius, minorRadius);
+            var ellipse = new GeoEllipse2(
+                new GeoPoint2(-35, 60),
+                new GeoVector2(Math.Cos(2.5), Math.Sin(2.5)),
+                majorRadius,
+                minorRadius
+            );
             var random = new Random(20261006);
 
             for (int i = 0; i < 60; i++)
@@ -256,7 +306,11 @@ namespace GeometryHelper.UnitTest.Plane
                 GeoPoint2 closest = ellipse.GetClosestPointOnBoundary(point);
 
                 Assert.InRange(Ellipse2Oracle.GapToRim(ellipse, closest), 0.0, 1E-9);
-                Assert.Equal(Ellipse2Oracle.ClosestDistance(majorRadius, minorRadius, x, y), point.DistanceTo(closest), 1E-9);
+                Assert.Equal(
+                    Ellipse2Oracle.ClosestDistance(majorRadius, minorRadius, x, y),
+                    point.DistanceTo(closest),
+                    1E-9
+                );
                 Assert.True(ellipse.GetPointAtAngle(ellipse.GetAngleAtPoint(point)).IsEqualTo(closest, Tight));
             }
         }
@@ -265,7 +319,13 @@ namespace GeometryHelper.UnitTest.Plane
         public void ARimPointIsItsOwnClosestPointAndGivesBackItsAngle()
         {
             // All round, on a 300 by 100 and on a 1 000 by 1, whose ends have a radius of curvature of a thousandth.
-            foreach (GeoEllipse2 ellipse in new[] { Ellipse2Oracle.Tilted(), new GeoEllipse2(new GeoPoint2(5, 5), new GeoVector2(-1, 2), 1000, 1) })
+            foreach (
+                GeoEllipse2 ellipse in new[]
+                {
+                    Ellipse2Oracle.Tilted(),
+                    new GeoEllipse2(new GeoPoint2(5, 5), new GeoVector2(-1, 2), 1000, 1),
+                }
+            )
             {
                 for (int k = 0; k < 64; k++)
                 {
@@ -304,7 +364,11 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 var point = new GeoPoint2(12 + random.NextDouble() * 1000 - 500, -7 + random.NextDouble() * 1000 - 500);
 
-                Assert.True(ellipse.GetClosestPointOnBoundary(point).IsEqualTo(circle.GetClosestPointOnBoundary(point), new Tolerance(250 * 1E-12, 1E-12)));
+                Assert.True(
+                    ellipse
+                        .GetClosestPointOnBoundary(point)
+                        .IsEqualTo(circle.GetClosestPointOnBoundary(point), new Tolerance(250 * 1E-12, 1E-12))
+                );
 
                 double expected = circle.GetParameterAtPoint(point) * 2.0 * Math.PI - axis;
                 if (expected < 0.0)

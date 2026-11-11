@@ -30,7 +30,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     {
                         var model = new MainViewModel();
                         model.Open(folder.Write("room.dxf", TestFiles.Room(out string bottom, out string column)));
-                        var canvas = new CadCanvas { Document = model.Document, Space = model.Space, View = model.View, Session = model.Session, Snap = model.Snap };
+                        var canvas = new CadCanvas
+                        {
+                            Document = model.Document,
+                            Space = model.Space,
+                            View = model.View,
+                            Session = model.Session,
+                            Snap = model.Snap,
+                        };
                         canvas.PixelSizeChanged += (s, e) => model.SetCanvasSize(canvas.PixelWidth, canvas.PixelHeight);
                         canvas.Measure(new Size(Width, Height));
                         canvas.Arrange(new Rect(0, 0, Width, Height));
@@ -56,7 +63,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             return new Point(px, py);
         }
 
-        internal static void Mouse(CadCanvas canvas, RoutedEvent routed, Point at, MouseButton button = MouseButton.Left, int delta = 0)
+        internal static void Mouse(
+            CadCanvas canvas,
+            RoutedEvent routed,
+            Point at,
+            MouseButton button = MouseButton.Left,
+            int delta = 0
+        )
         {
             canvas.Pointer = _ => at;
             MouseEventArgs args;
@@ -97,108 +110,118 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         [Fact]
         public void TheWheelZoomsAboutTheCursorAndTheMiddleButtonPans()
         {
-            OnCanvas((model, canvas, bottom, column) =>
-            {
-                CadView view = canvas.View;
-                double zoom = view.PixelsPerUnit;
-                view.ScreenToDrawing(300, 200, out double x, out double y);
+            OnCanvas(
+                (model, canvas, bottom, column) =>
+                {
+                    CadView view = canvas.View;
+                    double zoom = view.PixelsPerUnit;
+                    view.ScreenToDrawing(300, 200, out double x, out double y);
 
-                Mouse(canvas, UIElement.MouseWheelEvent, new Point(300, 200), delta: 120);
+                    Mouse(canvas, UIElement.MouseWheelEvent, new Point(300, 200), delta: 120);
 
-                Assert.Equal(zoom * 1.2, view.PixelsPerUnit, 12);
-                view.ScreenToDrawing(300, 200, out double x1, out double y1);
-                Assert.Equal(x, x1, 6);
-                Assert.Equal(y, y1, 6);
+                    Assert.Equal(zoom * 1.2, view.PixelsPerUnit, 12);
+                    view.ScreenToDrawing(300, 200, out double x1, out double y1);
+                    Assert.Equal(x, x1, 6);
+                    Assert.Equal(y, y1, 6);
 
-                Point before = At(canvas, 1000, 1000);
-                Drag(canvas, new Point(100, 100), new Point(150, 130), MouseButton.Middle);
-                Point after = At(canvas, 1000, 1000);
+                    Point before = At(canvas, 1000, 1000);
+                    Drag(canvas, new Point(100, 100), new Point(150, 130), MouseButton.Middle);
+                    Point after = At(canvas, 1000, 1000);
 
-                Assert.Equal(before.X + 50, after.X, 6);
-                Assert.Equal(before.Y + 30, after.Y, 6);
-            });
+                    Assert.Equal(before.X + 50, after.X, 6);
+                    Assert.Equal(before.Y + 30, after.Y, 6);
+                }
+            );
         }
 
         [Fact]
         public void AClickPicksTheLineItsGripsShowAndDraggingAnEndGripMovesThatEnd()
         {
-            OnCanvas((model, canvas, bottom, column) =>
-            {
-                Click(canvas, At(canvas, 1000, 0));
+            OnCanvas(
+                (model, canvas, bottom, column) =>
+                {
+                    Click(canvas, At(canvas, 1000, 0));
 
-                Assert.Equal(new[] { bottom }, model.Document.Selection.Handles);
-                Assert.Equal("Line (1)", model.SelectionLabel);
+                    Assert.Equal(new[] { bottom }, model.Document.Selection.Handles);
+                    Assert.Equal("Line (1)", model.SelectionLabel);
 
-                canvas.RenderNow();
+                    canvas.RenderNow();
 
-                // A line has its two ends and its middle.
-                Assert.Equal(3, canvas.GripCount);
+                    // A line has its two ends and its middle.
+                    Assert.Equal(3, canvas.GripCount);
 
-                Drag(canvas, At(canvas, 0, 0), At(canvas, 0, -500));
+                    Drag(canvas, At(canvas, 0, 0), At(canvas, 0, -500));
 
-                var line = (DxfLine)model.Document.FindEntity(bottom);
-                Assert.Equal(0.0, line.StartPoint.X, 9);
-                Assert.Equal(-500.0, line.StartPoint.Y, 9);
-                Assert.Equal(4000.0, line.EndPoint.X, 9);
-                Assert.True(model.HasUnsavedChanges);
-            });
+                    var line = (DxfLine)model.Document.FindEntity(bottom);
+                    Assert.Equal(0.0, line.StartPoint.X, 9);
+                    Assert.Equal(-500.0, line.StartPoint.Y, 9);
+                    Assert.Equal(4000.0, line.EndPoint.X, 9);
+                    Assert.True(model.HasUnsavedChanges);
+                }
+            );
         }
 
         [Fact]
         public void ABoxDraggedRightToLeftIsACrossingThatTakesWhatItTouches()
         {
-            OnCanvas((model, canvas, bottom, column) =>
-            {
-                // A box is dragged only with Select by dragging on, as AutoCAD's PICKDRAG 1; off, it is clicked at both corners.
-                canvas.SelectByDragging = true;
-                Drag(canvas, At(canvas, 2150, 1450), At(canvas, 1950, 1550));
+            OnCanvas(
+                (model, canvas, bottom, column) =>
+                {
+                    // A box is dragged only with Select by dragging on, as AutoCAD's PICKDRAG 1; off, it is clicked at both corners.
+                    canvas.SelectByDragging = true;
+                    Drag(canvas, At(canvas, 2150, 1450), At(canvas, 1950, 1550));
 
-                Assert.Equal(new[] { column }, model.Document.Selection.Handles);
+                    Assert.Equal(new[] { column }, model.Document.Selection.Handles);
 
-                // The same box left to right is a window: the circle is not wholly inside it.
-                model.ClearSelection();
-                Drag(canvas, At(canvas, 1950, 1450), At(canvas, 2150, 1550));
+                    // The same box left to right is a window: the circle is not wholly inside it.
+                    model.ClearSelection();
+                    Drag(canvas, At(canvas, 1950, 1450), At(canvas, 2150, 1550));
 
-                Assert.Empty(model.Document.Selection.Handles);
-            });
+                    Assert.Empty(model.Document.Selection.Handles);
+                }
+            );
         }
 
         [Fact]
         public void MoveIsAnsweredByClicksOnTheCanvasTheBaseSnappedToTheLinesEnd()
         {
-            OnCanvas((model, canvas, bottom, column) =>
-            {
-                Click(canvas, At(canvas, 1000, 0));
-                model.StartCommand("MOVE");
+            OnCanvas(
+                (model, canvas, bottom, column) =>
+                {
+                    Click(canvas, At(canvas, 1000, 0));
+                    model.StartCommand("MOVE");
 
-                Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 8, 6));
+                    Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 8, 6));
 
-                Assert.Equal(CadSnapKind.Endpoint, canvas.CurrentSnap.Kind);
+                    Assert.Equal(CadSnapKind.Endpoint, canvas.CurrentSnap.Kind);
 
-                Click(canvas, At(canvas, 8, 6));
-                Click(canvas, At(canvas, 0, 1000));
+                    Click(canvas, At(canvas, 8, 6));
+                    Click(canvas, At(canvas, 0, 1000));
 
-                var line = (DxfLine)model.Document.FindEntity(bottom);
-                Assert.Equal(1000.0, line.StartPoint.Y, 9);
-                Assert.False(model.IsCommandRunning);
-            });
+                    var line = (DxfLine)model.Document.FindEntity(bottom);
+                    Assert.Equal(1000.0, line.StartPoint.Y, 9);
+                    Assert.False(model.IsCommandRunning);
+                }
+            );
         }
 
         [Fact]
         public void ARightClickIsEnterAndEndsALine()
         {
-            OnCanvas((model, canvas, bottom, column) =>
-            {
-                int before = model.Document.Database.ModelSpace.Cast<DxfEntity>().Count();
-                model.StartCommand("LINE");
+            OnCanvas(
+                (model, canvas, bottom, column) =>
+                {
+                    int before = model.Document.Database.ModelSpace.Cast<DxfEntity>().Count();
+                    model.StartCommand("LINE");
 
-                Click(canvas, At(canvas, 500, 500));
-                Click(canvas, At(canvas, 800, 900));
-                Click(canvas, At(canvas, 800, 900), MouseButton.Right);
+                    Click(canvas, At(canvas, 500, 500));
+                    Click(canvas, At(canvas, 800, 900));
+                    Click(canvas, At(canvas, 800, 900), MouseButton.Right);
 
-                Assert.False(model.IsCommandRunning);
-                Assert.Equal(before + 1, model.Document.Database.ModelSpace.Cast<DxfEntity>().Count());
-            });
+                    Assert.False(model.IsCommandRunning);
+                    Assert.Equal(before + 1, model.Document.Database.ModelSpace.Cast<DxfEntity>().Count());
+                }
+            );
         }
     }
 }

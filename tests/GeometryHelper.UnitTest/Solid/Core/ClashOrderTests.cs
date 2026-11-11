@@ -17,8 +17,8 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Tolerance = Tolerance.Default;
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
         private static GeoSolid3 Turned(GeoSolid3 solid, Random rng)
         {
@@ -31,14 +31,25 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>A slab at the given corner, plain, with a hole through it, or an L; most of them turned about a slant axis.</summary>
         private static GeoSolid3 Part(Random rng, double x, double y, double z, int shape)
         {
-            double width = rng.Next(2, 12) * 10, depth = rng.Next(2, 12) * 10, height = rng.Next(1, 6) * 10;
+            double width = rng.Next(2, 12) * 10,
+                depth = rng.Next(2, 12) * 10,
+                height = rng.Next(1, 6) * 10;
             GeoSolid3 part = Box(x, y, z, x + width, y + depth, z + height);
 
             if (shape == 1)
             {
-                part = part.WithOpenings(new[] { Box(x + width * 0.3, y + depth * 0.3, z - 1, x + width * 0.6, y + depth * 0.6, z + height + 1) });
+                part = part.WithOpenings(
+                    new[]
+                    {
+                        Box(x + width * 0.3, y + depth * 0.3, z - 1, x + width * 0.6, y + depth * 0.6, z + height + 1),
+                    }
+                );
             }
-            else if (shape == 2 && Box(x, y, z, x + width, y + depth * 0.4, z + height).TryUnion(Box(x, y, z, x + width * 0.4, y + depth, z + height), out GeoSolid3 l))
+            else if (
+                shape == 2
+                && Box(x, y, z, x + width, y + depth * 0.4, z + height)
+                    .TryUnion(Box(x, y, z, x + width * 0.4, y + depth, z + height), out GeoSolid3 l)
+            )
             {
                 part = l;
             }
@@ -58,8 +69,14 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(Bits(x.Location), Bits(y.Location));
             Assert.Equal(x.Overlaps.Count, y.Overlaps.Count);
             Assert.Equal(Corners(x.Overlaps.SelectMany(o => o.Faces)), Corners(y.Overlaps.SelectMany(o => o.Faces)));
-            Assert.Equal(x.Overlaps.Select(o => Corners(o.Faces)).OrderBy(c => string.Join(";", c), StringComparer.Ordinal).Select(c => string.Join(";", c)),
-                y.Overlaps.Select(o => Corners(o.Faces)).OrderBy(c => string.Join(";", c), StringComparer.Ordinal).Select(c => string.Join(";", c)));
+            Assert.Equal(
+                x.Overlaps.Select(o => Corners(o.Faces))
+                    .OrderBy(c => string.Join(";", c), StringComparer.Ordinal)
+                    .Select(c => string.Join(";", c)),
+                y.Overlaps.Select(o => Corners(o.Faces))
+                    .OrderBy(c => string.Join(";", c), StringComparer.Ordinal)
+                    .Select(c => string.Join(";", c))
+            );
         }
 
         /// <summary>The corners of the faces, as the bits of their coordinates, in order of those bits: what a loop is made of, whatever corner it starts at and whichever way it winds.</summary>
@@ -84,7 +101,8 @@ namespace GeometryHelper.UnitTest.Solid
         public void ThreeHundredAndSixtyRandomPairs_GiveTheSameVolumeDepthAndPlaceEitherWayRound()
         {
             var rng = new Random(359);
-            int pairs = 0, hard = 0;
+            int pairs = 0,
+                hard = 0;
 
             while (pairs < 360)
             {
@@ -146,7 +164,11 @@ namespace GeometryHelper.UnitTest.Solid
                 double height = rng.Next(1, 6) * 10;
                 GeoSolid3 a = Box(0, 0, 0, 40, 30, height);
                 GeoSolid3 b = Box(40, rng.Next(0, 20), 0, 70, 30 + rng.Next(0, 20), height + rng.Next(0, 3) * 5);
-                GeoTransform3 turn = GeoTransform3.RotationAxis(new GeoPoint3(10, 5, 5), new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() + 0.2), rng.NextDouble() * 3.0);
+                GeoTransform3 turn = GeoTransform3.RotationAxis(
+                    new GeoPoint3(10, 5, 5),
+                    new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() + 0.2),
+                    rng.NextDouble() * 3.0
+                );
                 a = a.TransformBy(turn);
                 b = b.TransformBy(turn);
 
@@ -179,8 +201,12 @@ namespace GeometryHelper.UnitTest.Solid
             var fine = new GeoPreparedSolid3(notched, new Tolerance(1E-3, 1E-5, 1E-3, 1E-3));
             var coarse = new GeoPreparedSolid3(notched, new Tolerance(1E-2, 1E-5, 1E-2, 1E-2));
 
-            ClashResult fineFirst = Assert.Single(Clash3.Find(new[] { fine }, new[] { coarse }, ClashOptions.Default, Tolerance));
-            ClashResult coarseFirst = Assert.Single(Clash3.Find(new[] { coarse }, new[] { fine }, ClashOptions.Default, Tolerance));
+            ClashResult fineFirst = Assert.Single(
+                Clash3.Find(new[] { fine }, new[] { coarse }, ClashOptions.Default, Tolerance)
+            );
+            ClashResult coarseFirst = Assert.Single(
+                Clash3.Find(new[] { coarse }, new[] { fine }, ClashOptions.Default, Tolerance)
+            );
 
             SameHard(fineFirst, coarseFirst);
         }
@@ -194,7 +220,17 @@ namespace GeometryHelper.UnitTest.Solid
             for (int k = 0; k < 40; k++)
             {
                 GeoSolid3 a = Turned(Box(0, 0, 0, 30, 20, 10), rng);
-                GeoSolid3 b = Turned(Box(rng.Next(35, 45), rng.Next(-5, 5), rng.Next(-3, 3), rng.Next(60, 70), rng.Next(20, 30), rng.Next(10, 20)), rng);
+                GeoSolid3 b = Turned(
+                    Box(
+                        rng.Next(35, 45),
+                        rng.Next(-5, 5),
+                        rng.Next(-3, 3),
+                        rng.Next(60, 70),
+                        rng.Next(20, 30),
+                        rng.Next(10, 20)
+                    ),
+                    rng
+                );
                 var options = new ClashOptions(clearance: 25.0);
 
                 ClashResult[] ab = Clash3.Find(new[] { a }, new[] { b }, options, Tolerance);

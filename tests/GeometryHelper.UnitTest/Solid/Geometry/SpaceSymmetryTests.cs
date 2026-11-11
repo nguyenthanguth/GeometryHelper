@@ -20,20 +20,30 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A triangle in the plane x = 200, a hundred clear of the cube.
         /// </summary>
-        private static GeoTriangle3 Beyond() => new GeoTriangle3(
-            new GeoPoint3(200, 0, 0), new GeoPoint3(200, 100, 0), new GeoPoint3(200, 0, 100));
+        private static GeoTriangle3 Beyond() =>
+            new GeoTriangle3(new GeoPoint3(200, 0, 0), new GeoPoint3(200, 100, 0), new GeoPoint3(200, 0, 100));
 
         /// <summary>
         /// A hundred plate in the plane z = 0 with a twenty-wide hole in the middle.
         /// </summary>
-        private static GeoFace3 Pierced() => new GeoFace3(
-            new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0)),
-            new[]
-            {
+        private static GeoFace3 Pierced() =>
+            new GeoFace3(
                 new GeoPolygon3(
-                    new GeoPoint3(40, 40, 0), new GeoPoint3(60, 40, 0), new GeoPoint3(60, 60, 0), new GeoPoint3(40, 60, 0))
-            });
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    new GeoPoint3(100, 100, 0),
+                    new GeoPoint3(0, 100, 0)
+                ),
+                new[]
+                {
+                    new GeoPolygon3(
+                        new GeoPoint3(40, 40, 0),
+                        new GeoPoint3(60, 40, 0),
+                        new GeoPoint3(60, 60, 0),
+                        new GeoPoint3(40, 60, 0)
+                    ),
+                }
+            );
 
         [Fact]
         public void ATriangleCanNowBeAskedHowFarOffTheOtherShapesAre()
@@ -59,9 +69,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             // And against another triangle, which it could not be asked either.
             var over = new GeoTriangle3(
-                new GeoPoint3(0, 0, 200), new GeoPoint3(100, 0, 200), new GeoPoint3(0, 100, 200));
-            var flat = new GeoTriangle3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
+                new GeoPoint3(0, 0, 200),
+                new GeoPoint3(100, 0, 200),
+                new GeoPoint3(0, 100, 200)
+            );
+            var flat = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
 
             Assert.Equal(200.0, flat.DistanceTo(over), 6);
             Assert.Equal(over.DistanceTo(flat), flat.DistanceTo(over), 9);
@@ -78,7 +90,11 @@ namespace GeometryHelper.UnitTest.Solid
             var chain = new GeoPolyline3(new GeoPoint3(300, 0, 0), new GeoPoint3(300, 100, 0));
             var farChain = new GeoPolyline3(new GeoPoint3(500, 0, 0), new GeoPoint3(500, 100, 0));
             var polygon = new GeoPolygon3(
-                new GeoPoint3(300, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 100, 0), new GeoPoint3(300, 100, 0));
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(400, 100, 0),
+                new GeoPoint3(300, 100, 0)
+            );
             var ray = new GeoRay3(new GeoPoint3(300, 50, 50), new GeoVector3(1, 0, 0));
             var line = new GeoLine3(new GeoPoint3(0, 50, 0), new GeoPoint3(50, 50, 0));
 
@@ -119,10 +135,13 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ASegmentOrRayTouchingAFlatShapeIsNowACollisionInItsOwnRight()
         {
-            var flat = new GeoTriangle3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
+            var flat = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
             var polygon = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 100, 0),
+                new GeoPoint3(0, 100, 0)
+            );
 
             var through = new GeoLine3(new GeoPoint3(20, 10, -50), new GeoPoint3(20, 10, 50));
             var beside = new GeoLine3(new GeoPoint3(500, 500, -50), new GeoPoint3(500, 500, 50));
@@ -246,7 +265,11 @@ namespace GeometryHelper.UnitTest.Solid
             var ray = new GeoRay3(new GeoPoint3(300, 50, 50), new GeoVector3(1, 0, 0));
             var chain = new GeoPolyline3(new GeoPoint3(400, 0, 0), new GeoPoint3(400, 100, 0));
             var polygon = new GeoPolygon3(
-                new GeoPoint3(300, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 100, 0), new GeoPoint3(300, 100, 0));
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(400, 100, 0),
+                new GeoPoint3(300, 100, 0)
+            );
             var plane = new GeoPlane3(new GeoPoint3(0, 0, 300), new GeoVector3(0, 0, 1));
             var point = new GeoPoint3(50, 50, 50);
 

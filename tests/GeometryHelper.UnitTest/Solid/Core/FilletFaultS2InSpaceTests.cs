@@ -23,8 +23,12 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AHairpinBentAtATenthWhoseTurningLegIsATenthLong_DoesNotThrowAndKeepsItsEnds()
         {
-            var bar = new GeoPolyline3(P(6.320937493034144, 7.6613264287176186, 0), P(6.9788313128993886, 17.639661746884826, 0),
-                P(6.8790479597177168, 17.64624068508348, 0), P(6.2211541398524721, 7.6679053669162709, 0));
+            var bar = new GeoPolyline3(
+                P(6.320937493034144, 7.6613264287176186, 0),
+                P(6.9788313128993886, 17.639661746884826, 0),
+                P(6.8790479597177168, 17.64624068508348, 0),
+                P(6.2211541398524721, 7.6679053669162709, 0)
+            );
 
             GeoPolylineArc3 bent = Corner3.Fillet(bar, new[] { 0.0001, 2.0, 0.002, 0.0 }, Tenth);
 

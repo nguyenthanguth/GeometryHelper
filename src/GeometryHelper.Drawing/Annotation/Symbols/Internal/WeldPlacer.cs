@@ -31,14 +31,28 @@ namespace GeometryHelper.Drawing.Annotation
         /// The ways round a weld a knee is tried, in turn at each offset: up and right, up and left, down and right, down and
         /// left; a knee left of its weld has its reference line run to the left, so that the arrow leaves the line's end.
         /// </summary>
-        private static readonly (int X, int Y, bool Leftward)[] Ways = { (1, 1, false), (-1, 1, true), (1, -1, false), (-1, -1, true) };
+        private static readonly (int X, int Y, bool Leftward)[] Ways =
+        {
+            (1, 1, false),
+            (-1, 1, true),
+            (1, -1, false),
+            (-1, -1, true),
+        };
 
         /// <summary>
         /// Places the symbols in the order given: each at the first place clear of everything within <see cref="Near"/> and
         /// clear of the view's lines too, else at the first place clear of everything, else where the rule put it, named in
         /// the list of those stuck.
         /// </summary>
-        internal static List<WeldSymbol> Place(List<WeldSymbol> ruled, ProjectedView2 view, List<DrawingDimension> dimensions, List<GeoRectangle2> boxes, List<GeoLine2> lines, Tolerance tolerance, out List<string> stuck)
+        internal static List<WeldSymbol> Place(
+            List<WeldSymbol> ruled,
+            ProjectedView2 view,
+            List<DrawingDimension> dimensions,
+            List<GeoRectangle2> boxes,
+            List<GeoLine2> lines,
+            Tolerance tolerance,
+            out List<string> stuck
+        )
         {
             double tol = tolerance.EqualPoint;
             var placed = new List<WeldSymbol>(ruled.Count);
@@ -62,7 +76,15 @@ namespace GeometryHelper.Drawing.Annotation
         }
 
         /// <summary>The first place of a symbol clear of everything and of the view's lines near its weld; else the first clear of everything; else null.</summary>
-        private static WeldSymbol Search(WeldSymbol symbol, List<WeldSymbol> placed, List<DrawingDimension> dimensions, List<GeoRectangle2> boxes, List<GeoLine2> lines, List<GeoLine2> viewLines, double tol)
+        private static WeldSymbol Search(
+            WeldSymbol symbol,
+            List<WeldSymbol> placed,
+            List<DrawingDimension> dimensions,
+            List<GeoRectangle2> boxes,
+            List<GeoLine2> lines,
+            List<GeoLine2> viewLines,
+            double tol
+        )
         {
             double half = 0.5 * symbol.TextHeight;
             WeldSymbol fallback = null;
@@ -110,21 +132,43 @@ namespace GeometryHelper.Drawing.Annotation
         /// Whether a symbol, its box with 0.4 of the text's height round it, is clear of the dimensions, the boxes and
         /// lines kept clear of, and the symbols placed before, and its arrow crosses no text, box or symbol.
         /// </summary>
-        private static bool Clear(WeldSymbol symbol, List<WeldSymbol> placed, List<DrawingDimension> dimensions, List<GeoRectangle2> boxes, List<GeoLine2> lines, double tol)
+        private static bool Clear(
+            WeldSymbol symbol,
+            List<WeldSymbol> placed,
+            List<DrawingDimension> dimensions,
+            List<GeoRectangle2> boxes,
+            List<GeoLine2> lines,
+            double tol
+        )
         {
             GeoRectangle2 bounds = symbol.Bounds;
             double margin = 0.8 * symbol.TextHeight;
             var room = new GeoRectangle2(bounds.Center, bounds.Width + margin, bounds.Height + margin);
 
-            if (DimensionClash(symbol, room, dimensions, tol, null)
-                || Marker.SymbolClash(symbol.Id, room, symbol.Knee, symbol.ArrowTip, boxes, lines, tol, null))
+            if (
+                DimensionClash(symbol, room, dimensions, tol, null)
+                || Marker.SymbolClash(symbol.Id, room, symbol.Knee, symbol.ArrowTip, boxes, lines, tol, null)
+            )
             {
                 return false;
             }
 
             foreach (WeldSymbol other in placed)
             {
-                if (Marker.MarkClash(symbol.Id, room, symbol.Knee, symbol.ArrowTip, other.Id, other.Bounds, other.Knee, other.ArrowTip, tol, null))
+                if (
+                    Marker.MarkClash(
+                        symbol.Id,
+                        room,
+                        symbol.Knee,
+                        symbol.ArrowTip,
+                        other.Id,
+                        other.Bounds,
+                        other.Knee,
+                        other.ArrowTip,
+                        tol,
+                        null
+                    )
+                )
                 {
                     return false;
                 }
@@ -139,7 +183,13 @@ namespace GeometryHelper.Drawing.Annotation
         /// whether there was one. A dimension line shorter than two arrows is taken run on by an arrow at each end, as it is
         /// drawn with its arrows outside, and each arrow as the box round it.
         /// </summary>
-        internal static bool DimensionClash(WeldSymbol symbol, GeoRectangle2 box, List<DrawingDimension> dimensions, double tol, List<string> found)
+        internal static bool DimensionClash(
+            WeldSymbol symbol,
+            GeoRectangle2 box,
+            List<DrawingDimension> dimensions,
+            double tol,
+            List<string> found
+        )
         {
             bool any = false;
 
@@ -220,12 +270,14 @@ namespace GeometryHelper.Drawing.Annotation
             }
 
             // Whole numbers, and no two alike, so the order is a full one.
-            offsets.Sort((a, b) =>
-            {
-                int c = (a.Across * a.Across + a.Up * a.Up).CompareTo(b.Across * b.Across + b.Up * b.Up);
-                c = c != 0 ? c : a.Up.CompareTo(b.Up);
-                return c != 0 ? c : a.Across.CompareTo(b.Across);
-            });
+            offsets.Sort(
+                (a, b) =>
+                {
+                    int c = (a.Across * a.Across + a.Up * a.Up).CompareTo(b.Across * b.Across + b.Up * b.Up);
+                    c = c != 0 ? c : a.Up.CompareTo(b.Up);
+                    return c != 0 ? c : a.Across.CompareTo(b.Across);
+                }
+            );
 
             return offsets.ToArray();
         }

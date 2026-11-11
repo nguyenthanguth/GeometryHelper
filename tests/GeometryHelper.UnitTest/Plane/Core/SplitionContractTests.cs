@@ -48,9 +48,9 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var points = new[]
             {
-                new GeoPoint2(3, 0),      // on the segment
-                new GeoPoint2(7, 3),      // off it, dropped
-                new GeoPoint2(8, 0)       // on the segment
+                new GeoPoint2(3, 0), // on the segment
+                new GeoPoint2(7, 3), // off it, dropped
+                new GeoPoint2(8, 0), // on the segment
             };
 
             Assert.True(Segment().TrySplitBy(points, out GeoLine2[] pieces, Tol));
@@ -80,7 +80,11 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var missing = new GeoLine2(new GeoPoint2(50, -5), new GeoPoint2(50, 5));
             var farAway = new GeoPolygon2(
-                new GeoPoint2(50, 50), new GeoPoint2(60, 50), new GeoPoint2(60, 60), new GeoPoint2(50, 60));
+                new GeoPoint2(50, 50),
+                new GeoPoint2(60, 50),
+                new GeoPoint2(60, 60),
+                new GeoPoint2(50, 60)
+            );
 
             // A caller who ignores the bool and iterates the result must not hit a null array on one
             // overload and a usable one on its neighbours.
@@ -116,8 +120,18 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // Two squares meeting at x = 2. The crossing there separates nothing, so the inside run is a
             // single straight stretch from 0 to 4 and the junction is an artefact of the cut.
-            var poly1 = new GeoPolygon2(new GeoPoint2(0, -1), new GeoPoint2(2, -1), new GeoPoint2(2, 1), new GeoPoint2(0, 1));
-            var poly2 = new GeoPolygon2(new GeoPoint2(2, -1), new GeoPoint2(4, -1), new GeoPoint2(4, 1), new GeoPoint2(2, 1));
+            var poly1 = new GeoPolygon2(
+                new GeoPoint2(0, -1),
+                new GeoPoint2(2, -1),
+                new GeoPoint2(2, 1),
+                new GeoPoint2(0, 1)
+            );
+            var poly2 = new GeoPolygon2(
+                new GeoPoint2(2, -1),
+                new GeoPoint2(4, -1),
+                new GeoPoint2(4, 1),
+                new GeoPoint2(2, 1)
+            );
             var cutters = new[] { poly1, poly2 };
 
             var asLine = new GeoLine2(new GeoPoint2(-5, 0), new GeoPoint2(15, 0));
@@ -146,7 +160,11 @@ namespace GeometryHelper.UnitTest.Plane
             // subject and has to survive.
             var path = new GeoPolyline2(new GeoPoint2(0, 10), new GeoPoint2(5, 5), new GeoPoint2(10, 10));
             var square = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 5), new GeoPoint2(0, 5));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 5),
+                new GeoPoint2(0, 5)
+            );
 
             path.TrySplitBy(new[] { square }, out GeoPolyline2[] inside, out GeoPolyline2[] outside, Tol);
 
@@ -169,7 +187,11 @@ namespace GeometryHelper.UnitTest.Plane
             // is the whole point of reassembling through the trusted one instead.
             var path = new GeoPolyline2(new GeoPoint2(0, 3), new GeoPoint2(2, 1), new GeoPoint2(4, 3));
             var square = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 1), new GeoPoint2(0, 1));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 1),
+                new GeoPoint2(0, 1)
+            );
 
             Tolerance saved = Tolerance.Global;
             try
@@ -199,7 +221,11 @@ namespace GeometryHelper.UnitTest.Plane
             // different code, so the rule has to be pinned on both. A part lying on the boundary is
             // inside, matching Containment2.Contains.
             var square = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
             var alongEdge = new GeoLine2(new GeoPoint2(2, 0), new GeoPoint2(8, 0));
             var pathAlongEdge = new GeoPolyline2(new GeoPoint2(2, 0), new GeoPoint2(8, 0));
 
@@ -216,6 +242,5 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Single(pathIn);
             Assert.Empty(pathOut);
         }
-
     }
 }

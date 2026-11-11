@@ -30,7 +30,13 @@ namespace GeometryHelper.UnitTest.Plane
         /// Checks that a filleted corner between two segments is the arc of the radius on the inside of the turn, worked
         /// out here from the turn alone: the touching points stand r tan(turn / 2) back from the corner along each piece.
         /// </summary>
-        private static void AssertRoundedInside(GeoPolylineArc2 filleted, GeoPoint2 start, GeoPoint2 corner, GeoPoint2 end, double radius)
+        private static void AssertRoundedInside(
+            GeoPolylineArc2 filleted,
+            GeoPoint2 start,
+            GeoPoint2 corner,
+            GeoPoint2 end,
+            double radius
+        )
         {
             GeoVector2 back = corner.GetVectorTo(start) * (1.0 / corner.DistanceTo(start));
             GeoVector2 on = corner.GetVectorTo(end) * (1.0 / corner.DistanceTo(end));
@@ -87,7 +93,11 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(120.0, 0.0015, -1.0)]
         [InlineData(150.0, 0.0035, -1.0)]
         [InlineData(175.0, 0.02, -1.0)]
-        public void ASharpCornerWithASmallRadius_IsRoundedInsideTheCornerWhicheverWayItTurns(double turnDegrees, double radius, double way)
+        public void ASharpCornerWithASmallRadius_IsRoundedInsideTheCornerWhicheverWayItTurns(
+            double turnDegrees,
+            double radius,
+            double way
+        )
         {
             // Each radius is the one at which r cot(turn / 2), how far past the corner the circle outside it touches,
             // is just within the tolerance of a thousandth.
@@ -97,7 +107,11 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPoint2 corner = P(0, 0);
             GeoPoint2 end = P(10.0 * Math.Cos(turn), way * 10.0 * Math.Sin(turn));
 
-            GeoPolylineArc2 filleted = Corner2.Fillet(new GeoPolyline2(new[] { start, corner, end }), radius, Thousandth);
+            GeoPolylineArc2 filleted = Corner2.Fillet(
+                new GeoPolyline2(new[] { start, corner, end }),
+                radius,
+                Thousandth
+            );
 
             AssertRoundedInside(filleted, start, corner, end, radius);
         }
@@ -112,14 +126,21 @@ namespace GeometryHelper.UnitTest.Plane
             double heading = 20.0 * Math.PI / 180.0;
 
             var chain = new GeoPolylineArc2(
-                new[] { P(-10.0 * Math.Sin(Math.PI / 3.0), 10.0 - 10.0 * Math.Cos(Math.PI / 3.0)), P(0, 0), P(10.0 * Math.Cos(heading), 10.0 * Math.Sin(heading)) },
-                new[] { Math.Tan(Math.PI / 12.0), 0.0, 0.0 });
+                new[]
+                {
+                    P(-10.0 * Math.Sin(Math.PI / 3.0), 10.0 - 10.0 * Math.Cos(Math.PI / 3.0)),
+                    P(0, 0),
+                    P(10.0 * Math.Cos(heading), 10.0 * Math.Sin(heading)),
+                },
+                new[] { Math.Tan(Math.PI / 12.0), 0.0, 0.0 }
+            );
 
             GeoVector2 along = new GeoVector2(Math.Cos(heading), Math.Sin(heading));
             GeoVector2 left = new GeoVector2(-Math.Sin(heading), Math.Cos(heading));
 
             // C = s along + r left, with |C - (0, 10)| = 10 - r: a quadratic in s, the smaller root.
-            double bx = radius * left.X, by = radius * left.Y - 10.0;
+            double bx = radius * left.X,
+                by = radius * left.Y - 10.0;
             double b = 2.0 * (bx * along.X + by * along.Y);
             double c = bx * bx + by * by - (10.0 - radius) * (10.0 - radius);
             double s = (-b - Math.Sqrt(b * b - 4.0 * c)) / 2.0;
@@ -147,7 +168,17 @@ namespace GeometryHelper.UnitTest.Plane
 
             GeoPolygonArc2 filleted = Corner2.Fillet(rectangle, 10.0, Thousandth);
 
-            GeoPoint2[] expected = { P(10, 0), P(90, 0), P(100, 10), P(100, 40), P(90, 50), P(10, 50), P(0, 40), P(0, 10) };
+            GeoPoint2[] expected =
+            {
+                P(10, 0),
+                P(90, 0),
+                P(100, 10),
+                P(100, 40),
+                P(90, 50),
+                P(10, 50),
+                P(0, 40),
+                P(0, 10),
+            };
 
             Assert.Equal(8, filleted.EdgeCount);
 
@@ -178,8 +209,14 @@ namespace GeometryHelper.UnitTest.Plane
             // 157.8°. A circle of radius 50 inside the tip would have to lie within the arc of radius 25.2 or hold it,
             // and neither circle reaches the other arc.
             var loop = new GeoPolygonArc2(
-                new[] { P(9.2911688258509972, 13.885425084948732), P(26.559591085572215, 35.32124339032994), P(-12.041087552911952, 42.571371335686365) },
-                new[] { 0.0, -0.48, -0.12 });
+                new[]
+                {
+                    P(9.2911688258509972, 13.885425084948732),
+                    P(26.559591085572215, 35.32124339032994),
+                    P(-12.041087552911952, 42.571371335686365),
+                },
+                new[] { 0.0, -0.48, -0.12 }
+            );
 
             Assert.False(Corner2.TryFilletAt(loop, 2, 50.0, out GeoPolygonArc2 one, Thousandth));
             Assert.Same(loop, one);

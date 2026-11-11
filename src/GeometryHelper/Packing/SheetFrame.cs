@@ -47,7 +47,8 @@ namespace GeometryHelper.Packing
         /// </summary>
         /// <param name="other">The frame to compare with.</param>
         /// <returns>true if the two are the same; otherwise, false.</returns>
-        public bool Equals(SheetFrame other) => Index == other.Index && Bounds.Equals(other.Bounds) && UsableArea.Equals(other.UsableArea);
+        public bool Equals(SheetFrame other) =>
+            Index == other.Index && Bounds.Equals(other.Bounds) && UsableArea.Equals(other.UsableArea);
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is SheetFrame other && Equals(other);
@@ -81,8 +82,15 @@ namespace GeometryHelper.Packing
         public override string ToString()
         {
             GeoPoint2 corner = Bounds.LowerLeft;
-            return string.Format(CultureInfo.InvariantCulture, "SheetFrame[{0}, at ({1:0.###}, {2:0.###}), {3:0.###} x {4:0.###}]",
-                Index, corner.X, corner.Y, Bounds.Width, Bounds.Height);
+            return string.Format(
+                CultureInfo.InvariantCulture,
+                "SheetFrame[{0}, at ({1:0.###}, {2:0.###}), {3:0.###} x {4:0.###}]",
+                Index,
+                corner.X,
+                corner.Y,
+                Bounds.Width,
+                Bounds.Height
+            );
         }
     }
 }

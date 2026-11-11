@@ -13,17 +13,19 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     public class SolidValidationTests
     {
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
         private static GeoFace3 Face(params GeoPoint3[] corners) => new GeoFace3(new GeoPolygon3(corners));
 
         private static readonly Tolerance Fine = new Tolerance(1E-4, 1E-6, Tolerance.DefaultEqualAngleRad, 1E-4);
 
         /// <summary>A face keeping corners closer than the default tolerance, which its polygon would make one.</summary>
-        private static GeoFace3 FineFace(params GeoPoint3[] corners) => new GeoFace3(new GeoPolygon3(corners, Fine), null, Fine);
+        private static GeoFace3 FineFace(params GeoPoint3[] corners) =>
+            new GeoFace3(new GeoPolygon3(corners, Fine), null, Fine);
 
-        private static IEnumerable<SolidIssue3> Of(SolidValidation3 check, SolidIssueKind kind) => check.Issues.Where(i => i.Kind == kind);
+        private static IEnumerable<SolidIssue3> Of(SolidValidation3 check, SolidIssueKind kind) =>
+            check.Issues.Where(i => i.Kind == kind);
 
         [Fact]
         public void ABox_IsValid_WithNothingToReport()
@@ -126,10 +128,17 @@ namespace GeometryHelper.UnitTest.Solid
             // A box whose front face is two, side by side: the top's front edge runs beside both of theirs.
             var p = new[]
             {
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0),
-                new GeoPoint3(0, 0, 10), new GeoPoint3(10, 0, 10), new GeoPoint3(10, 10, 10), new GeoPoint3(0, 10, 10),
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0),
+                new GeoPoint3(0, 0, 10),
+                new GeoPoint3(10, 0, 10),
+                new GeoPoint3(10, 10, 10),
+                new GeoPoint3(0, 10, 10),
             };
-            GeoPoint3 bottomMiddle = new GeoPoint3(4, 0, 0), topMiddle = new GeoPoint3(4, 0, 10);
+            GeoPoint3 bottomMiddle = new GeoPoint3(4, 0, 0),
+                topMiddle = new GeoPoint3(4, 0, 10);
             var faces = new[]
             {
                 Face(p[0], p[3], p[2], p[1], bottomMiddle),
@@ -176,13 +185,50 @@ namespace GeometryHelper.UnitTest.Solid
             const double c = 0.0004;
             var faces = new[]
             {
-                FineFace(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 10, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(10, 0, 0)),
-                FineFace(new GeoPoint3(0, 0, 10), new GeoPoint3(10 - c, 0, 10), new GeoPoint3(10 - c, 10, 10), new GeoPoint3(0, 10, 10)),
-                FineFace(new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(10, 10, 10 - c), new GeoPoint3(10, 0, 10 - c)),
-                FineFace(new GeoPoint3(10 - c, 0, 10), new GeoPoint3(10, 0, 10 - c), new GeoPoint3(10, 10, 10 - c), new GeoPoint3(10 - c, 10, 10)),
-                FineFace(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 0, 10 - c), new GeoPoint3(10 - c, 0, 10), new GeoPoint3(0, 0, 10)),
-                FineFace(new GeoPoint3(0, 10, 0), new GeoPoint3(0, 10, 10), new GeoPoint3(10 - c, 10, 10), new GeoPoint3(10, 10, 10 - c), new GeoPoint3(10, 10, 0)),
-                FineFace(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, 10), new GeoPoint3(0, 10, 10), new GeoPoint3(0, 10, 0)),
+                FineFace(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(0, 10, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(10, 0, 0)
+                ),
+                FineFace(
+                    new GeoPoint3(0, 0, 10),
+                    new GeoPoint3(10 - c, 0, 10),
+                    new GeoPoint3(10 - c, 10, 10),
+                    new GeoPoint3(0, 10, 10)
+                ),
+                FineFace(
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(10, 10, 10 - c),
+                    new GeoPoint3(10, 0, 10 - c)
+                ),
+                FineFace(
+                    new GeoPoint3(10 - c, 0, 10),
+                    new GeoPoint3(10, 0, 10 - c),
+                    new GeoPoint3(10, 10, 10 - c),
+                    new GeoPoint3(10 - c, 10, 10)
+                ),
+                FineFace(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 0, 10 - c),
+                    new GeoPoint3(10 - c, 0, 10),
+                    new GeoPoint3(0, 0, 10)
+                ),
+                FineFace(
+                    new GeoPoint3(0, 10, 0),
+                    new GeoPoint3(0, 10, 10),
+                    new GeoPoint3(10 - c, 10, 10),
+                    new GeoPoint3(10, 10, 10 - c),
+                    new GeoPoint3(10, 10, 0)
+                ),
+                FineFace(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(0, 0, 10),
+                    new GeoPoint3(0, 10, 10),
+                    new GeoPoint3(0, 10, 0)
+                ),
             };
             var chamfered = new GeoSolid3(faces);
 
@@ -197,7 +243,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             // Its two ends, and the corner of each end of the box they meet.
             Assert.Equal(4, Of(check, SolidIssueKind.ShortEdge).Count());
-            Assert.All(Of(check, SolidIssueKind.ShortEdge), edge => Assert.Equal(c * System.Math.Sqrt(2.0), edge.Size, 9));
+            Assert.All(Of(check, SolidIssueKind.ShortEdge), edge =>
+                Assert.Equal(c * System.Math.Sqrt(2.0), edge.Size, 9)
+            );
 
             // Within the tolerance the chamfer is a line, which the top, the side and both its own long edges lie along.
             SolidIssue3 line = Assert.Single(check.Issues, i => i.Kind == SolidIssueKind.NonManifoldEdge);
@@ -217,12 +265,48 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPoint3 raised = new GeoPoint3(10, 10, 10.04);
             var faces = new[]
             {
-                Face(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 10, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(10, 0, 0)),
-                new GeoFace3(new GeoPolygon3(new[] { new GeoPoint3(0, 0, 10), new GeoPoint3(10, 0, 10), raised, new GeoPoint3(0, 10, 10) }, loose), null, loose),
-                new GeoFace3(new GeoPolygon3(new[] { new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), raised, new GeoPoint3(10, 0, 10) }, loose), null, loose),
-                new GeoFace3(new GeoPolygon3(new[] { new GeoPoint3(0, 10, 0), new GeoPoint3(0, 10, 10), raised, new GeoPoint3(10, 10, 0) }, loose), null, loose),
-                Face(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 0, 10), new GeoPoint3(0, 0, 10)),
-                Face(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, 10), new GeoPoint3(0, 10, 10), new GeoPoint3(0, 10, 0)),
+                Face(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(0, 10, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(10, 0, 0)
+                ),
+                new GeoFace3(
+                    new GeoPolygon3(
+                        new[] { new GeoPoint3(0, 0, 10), new GeoPoint3(10, 0, 10), raised, new GeoPoint3(0, 10, 10) },
+                        loose
+                    ),
+                    null,
+                    loose
+                ),
+                new GeoFace3(
+                    new GeoPolygon3(
+                        new[] { new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), raised, new GeoPoint3(10, 0, 10) },
+                        loose
+                    ),
+                    null,
+                    loose
+                ),
+                new GeoFace3(
+                    new GeoPolygon3(
+                        new[] { new GeoPoint3(0, 10, 0), new GeoPoint3(0, 10, 10), raised, new GeoPoint3(10, 10, 0) },
+                        loose
+                    ),
+                    null,
+                    loose
+                ),
+                Face(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 0, 10),
+                    new GeoPoint3(0, 0, 10)
+                ),
+                Face(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(0, 0, 10),
+                    new GeoPoint3(0, 10, 10),
+                    new GeoPoint3(0, 10, 0)
+                ),
             };
 
             SolidValidation3 check = new GeoSolid3(faces).Validate();
@@ -242,7 +326,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.StartsWith("SolidValidation3[not valid, volume ", check.ToString());
             Assert.EndsWith("; OpenEdge 4]", check.ToString());
-            Assert.Matches(@"^SolidIssue3\[OpenEdge 10 long at \(.+\), face \d; [01] one way, [01] the other\]$", check.Issues[0].ToString());
+            Assert.Matches(
+                @"^SolidIssue3\[OpenEdge 10 long at \(.+\), face \d; [01] one way, [01] the other\]$",
+                check.Issues[0].ToString()
+            );
         }
     }
 }

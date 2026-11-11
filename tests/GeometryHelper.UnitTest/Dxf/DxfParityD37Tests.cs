@@ -23,13 +23,18 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static readonly DxfTypedValue[] AnnotativeXData =
         {
-            new DxfTypedValue(1001, "AcadAnnotative"), new DxfTypedValue(1000, "AnnotativeData"), new DxfTypedValue(1002, "{"),
-            new DxfTypedValue(1070, "1"), new DxfTypedValue(1070, "1"), new DxfTypedValue(1002, "}"),
+            new DxfTypedValue(1001, "AcadAnnotative"),
+            new DxfTypedValue(1000, "AnnotativeData"),
+            new DxfTypedValue(1002, "{"),
+            new DxfTypedValue(1070, "1"),
+            new DxfTypedValue(1070, "1"),
+            new DxfTypedValue(1002, "}"),
         };
 
         private static GeoPoint3 P(double x, double y) => new GeoPoint3(x, y, 0);
 
-        private static void Near(GeoPoint3 expected, GeoPoint3 actual) => Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
+        private static void Near(GeoPoint3 expected, GeoPoint3 actual) =>
+            Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
 
         // ---- multileaders, on GHD37's Standard of words 4 high, arrows 4, a gap of 2 and doglegs of 8 -----------------------------
 
@@ -55,7 +60,12 @@ namespace GeometryHelper.UnitTest.Dxf
             }
             else
             {
-                mleader.MText = new DxfMText { Contents = "ABC", Location = P(100, 50), TextHeight = 4.0 };
+                mleader.MText = new DxfMText
+                {
+                    Contents = "ABC",
+                    Location = P(100, 50),
+                    TextHeight = 4.0,
+                };
             }
 
             foreach (GeoPoint3 point in points)
@@ -77,19 +87,32 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             List<DxfTypedValue> tail = Tail(mleader);
             int end = tail.FindIndex(g => g.TypeCode == 301);
-            return int.Parse(tail.Skip(end + 1).First(g => g.TypeCode == 90).Value.Trim(), CultureInfo.InvariantCulture);
+            return int.Parse(
+                tail.Skip(end + 1).First(g => g.TypeCode == 90).Value.Trim(),
+                CultureInfo.InvariantCulture
+            );
         }
 
         /// <summary>The groups of a leader of the context data, its LEADER{ section, counted from nought, as "code value" texts.</summary>
         private static List<string> Leader(DxfEntity entity, int leader)
         {
             List<DxfTypedValue> tail = Tail(entity);
-            int start = Enumerable.Range(0, tail.Count).Where(i => tail[i].Value.Trim() == "LEADER{").Skip(leader).First();
-            return tail.Skip(start + 1).TakeWhile(g => g.TypeCode != 303).Select(g => g.TypeCode.ToString(CultureInfo.InvariantCulture) + " " + g.Value.Trim()).ToList();
+            int start = Enumerable
+                .Range(0, tail.Count)
+                .Where(i => tail[i].Value.Trim() == "LEADER{")
+                .Skip(leader)
+                .First();
+            return tail.Skip(start + 1)
+                .TakeWhile(g => g.TypeCode != 303)
+                .Select(g => g.TypeCode.ToString(CultureInfo.InvariantCulture) + " " + g.Value.Trim())
+                .ToList();
         }
 
-        private static double Number(List<string> groups, string code)
-            => double.Parse(groups.First(g => g.StartsWith(code + " ", StringComparison.Ordinal)).Substring(code.Length + 1), CultureInfo.InvariantCulture);
+        private static double Number(List<string> groups, string code) =>
+            double.Parse(
+                groups.First(g => g.StartsWith(code + " ", StringComparison.Ordinal)).Substring(code.Length + 1),
+                CultureInfo.InvariantCulture
+            );
 
         /// <summary>The point a leader's dogleg starts at, as written (its 10, 20 and 30).</summary>
         private static GeoPoint3 LeaderPoint(DxfEntity entity, int leader)
@@ -103,7 +126,10 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             List<string> groups = Leader(entity, leader);
             int line = groups.FindIndex(g => g == "304 LEADER_LINE{");
-            return groups.Skip(line + 1).TakeWhile(g => g != "305 }").Count(g => g.StartsWith("10 ", StringComparison.Ordinal));
+            return groups
+                .Skip(line + 1)
+                .TakeWhile(g => g != "305 }")
+                .Count(g => g.StartsWith("10 ", StringComparison.Ordinal));
         }
 
         private static List<DxfLine> Lines(DxfMLeader mleader) => mleader.Explode().OfType<DxfLine>().ToList();
@@ -129,18 +155,42 @@ namespace GeometryHelper.UnitTest.Dxf
 
             switch (how)
             {
-                case "scale2": mleader.TransformBy(GeoTransform3.Scaling(2.0)); break;
-                case "scale05": mleader.TransformBy(GeoTransform3.Scaling(0.5)); break;
-                case "scale2-about": mleader.TransformBy(GeoTransform3.Scaling(P(100, 50), 2.0)); break;
-                case "rotscale": mleader.TransformBy(turn * GeoTransform3.Scaling(3.0)); break;
-                case "mirrorscale": mleader.TransformBy(MirrorXY * GeoTransform3.Scaling(2.0)); break;
-                case "scale2-back": mleader.TransformBy(GeoTransform3.Scaling(2.0)); mleader.TransformBy(GeoTransform3.Scaling(0.5)); break;
-                case "scale1": mleader.TransformBy(GeoTransform3.Scaling(1.0)); break;
-                case "identity": mleader.TransformBy(GeoTransform3.Identity); break;
-                case "move": mleader.TransformBy(GeoTransform3.Translation(new GeoVector3(10, 20, 0))); break;
-                case "rot30": mleader.TransformBy(turn); break;
-                case "mirrorxy": mleader.TransformBy(MirrorXY); break;
-                default: throw new ArgumentException(how);
+                case "scale2":
+                    mleader.TransformBy(GeoTransform3.Scaling(2.0));
+                    break;
+                case "scale05":
+                    mleader.TransformBy(GeoTransform3.Scaling(0.5));
+                    break;
+                case "scale2-about":
+                    mleader.TransformBy(GeoTransform3.Scaling(P(100, 50), 2.0));
+                    break;
+                case "rotscale":
+                    mleader.TransformBy(turn * GeoTransform3.Scaling(3.0));
+                    break;
+                case "mirrorscale":
+                    mleader.TransformBy(MirrorXY * GeoTransform3.Scaling(2.0));
+                    break;
+                case "scale2-back":
+                    mleader.TransformBy(GeoTransform3.Scaling(2.0));
+                    mleader.TransformBy(GeoTransform3.Scaling(0.5));
+                    break;
+                case "scale1":
+                    mleader.TransformBy(GeoTransform3.Scaling(1.0));
+                    break;
+                case "identity":
+                    mleader.TransformBy(GeoTransform3.Identity);
+                    break;
+                case "move":
+                    mleader.TransformBy(GeoTransform3.Translation(new GeoVector3(10, 20, 0)));
+                    break;
+                case "rot30":
+                    mleader.TransformBy(turn);
+                    break;
+                case "mirrorxy":
+                    mleader.TransformBy(MirrorXY);
+                    break;
+                default:
+                    throw new ArgumentException(how);
             }
         }
 
@@ -184,7 +234,12 @@ namespace GeometryHelper.UnitTest.Dxf
         [Theory]
         [InlineData("words", 90, 48, 98)]
         [InlineData("block", 82, 55, 90)]
-        public void RemoveFirstVertex_TakesALineOfTwoDownToItsLanding_AsAutoCadDoes(string content, double x, double y, double end)
+        public void RemoveFirstVertex_TakesALineOfTwoDownToItsLanding_AsAutoCadDoes(
+            string content,
+            double x,
+            double y,
+            double end
+        )
         {
             // AutoCAD 2021: RemoveFirstVertex of the line from (0, 0) left it the one vertex where its dogleg starts, (90, 48)
             // beside the words, (82, 55) beside the box; written a LEADER_LINE of no vertex of its own, its leader landed there,
@@ -225,7 +280,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal(1, mleader.VerticesCount(line));
             Near(P(-20, 80), mleader.GetFirstVertex(line));
-            Assert.Contains(Lines(mleader), d => d.StartPoint.IsEqualTo(P(-20, 80), Close) && d.EndPoint.IsEqualTo(P(-12, 80), Close));
+            Assert.Contains(Lines(mleader), d =>
+                d.StartPoint.IsEqualTo(P(-20, 80), Close) && d.EndPoint.IsEqualTo(P(-12, 80), Close)
+            );
         }
 
         [Fact]
@@ -412,8 +469,18 @@ namespace GeometryHelper.UnitTest.Dxf
 
         // ---- contexts held by entities never annotative --------------------------------------------------------------------------
 
-        private static string Scale(string handle, string name, string paper, string drawing, string unit)
-            => "  0\nSCALE\n  5\n" + handle + "\n102\n{ACAD_REACTORS\n330\n14\n102\n}\n330\n14\n100\nAcDbScale\n 70\n0\n300\n" + name + "\n140\n" + paper + "\n141\n" + drawing + "\n290\n" + unit + "\n";
+        private static string Scale(string handle, string name, string paper, string drawing, string unit) =>
+            "  0\nSCALE\n  5\n"
+            + handle
+            + "\n102\n{ACAD_REACTORS\n330\n14\n102\n}\n330\n14\n100\nAcDbScale\n 70\n0\n300\n"
+            + name
+            + "\n140\n"
+            + paper
+            + "\n141\n"
+            + drawing
+            + "\n290\n"
+            + unit
+            + "\n";
 
         /// <summary>
         /// The ezdxf drawing with the scales 1:1 (F0) and 1:2 (F1), its TEXT 64 annotative and holding two contexts of a TEXT, at
@@ -425,8 +492,12 @@ namespace GeometryHelper.UnitTest.Dxf
             string text = DxfFileEzdxfDrawings.R2018;
             Assert.Contains(ScaleList, text, StringComparison.Ordinal);
             int end = text.LastIndexOf("  0\nENDSEC\n", StringComparison.Ordinal);
-            text = (text.Substring(0, end) + Scale("F0", "1:1", "1", "1", "1") + Scale("F1", "1:2", "1", "2", "0") + text.Substring(end))
-                .Replace(ScaleList, ScaleList + "  3\nA0\n350\nF0\n  3\nA1\n350\nF1\n");
+            text = (
+                text.Substring(0, end)
+                + Scale("F0", "1:1", "1", "1", "1")
+                + Scale("F1", "1:2", "1", "2", "0")
+                + text.Substring(end)
+            ).Replace(ScaleList, ScaleList + "  3\nA0\n350\nF0\n  3\nA1\n350\nF1\n");
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfEntity grid = ByHandle<DxfEntity>(db, "64");
             grid.XData = AnnotativeXData;
@@ -443,8 +514,19 @@ namespace GeometryHelper.UnitTest.Dxf
 
             for (int i = 0; i < 2; i++)
             {
-                records += "  0\n" + TextContext + "\n  5\n" + handles[i] + "\n102\n{ACAD_REACTORS\n330\n" + scales.Handle + "\n102\n}\n330\n" + scales.Handle
-                    + "\n100\nAcDbObjectContextData\n 70\n4\n290\n" + (i == 1 ? "1" : "0") + "\n100\nAcDbAnnotScaleObjectContextData\n340\n" + scaleOf[i]
+                records +=
+                    "  0\n"
+                    + TextContext
+                    + "\n  5\n"
+                    + handles[i]
+                    + "\n102\n{ACAD_REACTORS\n330\n"
+                    + scales.Handle
+                    + "\n102\n}\n330\n"
+                    + scales.Handle
+                    + "\n100\nAcDbObjectContextData\n 70\n4\n290\n"
+                    + (i == 1 ? "1" : "0")
+                    + "\n100\nAcDbAnnotScaleObjectContextData\n340\n"
+                    + scaleOf[i]
                     + "\n 70\n0\n 50\n0.0\n 10\n11.0\n 20\n12.0\n 11\n0.0\n 21\n0.0\n";
                 entries += "  3\n*A" + (i + 1).ToString(CultureInfo.InvariantCulture) + "\n350\n" + handles[i] + "\n";
             }
@@ -455,12 +537,32 @@ namespace GeometryHelper.UnitTest.Dxf
             return DxfDatabase.Parse(text.Replace(record, record + entries));
         }
 
-        private static string[] ShownAt(DxfDatabase db, DxfDBObject o)
-            => db.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES").Where(s => o.HasContext(s)).Select(s => s.Name).OrderBy(s => s, StringComparer.Ordinal).ToArray();
+        private static string[] ShownAt(DxfDatabase db, DxfDBObject o) =>
+            db
+                .ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES")
+                .Where(s => o.HasContext(s))
+                .Select(s => s.Name)
+                .OrderBy(s => s, StringComparer.Ordinal)
+                .ToArray();
 
         public static IEnumerable<object[]> NeverAnnotative()
         {
-            foreach (string kind in new[] { "LINE", "CIRCLE", "ARC", "POINT", "ELLIPSE", "XLINE", "RAY", "SOLID", "3DFACE", "LWPOLYLINE", "SPLINE" })
+            foreach (
+                string kind in new[]
+                {
+                    "LINE",
+                    "CIRCLE",
+                    "ARC",
+                    "POINT",
+                    "ELLIPSE",
+                    "XLINE",
+                    "RAY",
+                    "SOLID",
+                    "3DFACE",
+                    "LWPOLYLINE",
+                    "SPLINE",
+                }
+            )
             {
                 yield return new object[] { kind };
             }
@@ -470,22 +572,50 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             switch (kind)
             {
-                case "LINE": return new DxfLine(P(0, 0), P(20, 0));
-                case "CIRCLE": return new DxfCircle(P(5, 5), new GeoVector3(0, 0, 1), 3.0);
-                case "ARC": return new DxfArc(P(5, 5), 3.0, 0.0, Math.PI / 2.0);
-                case "POINT": return new DxfDBPoint(P(5, 5));
-                case "ELLIPSE": return new DxfEllipse(P(5, 5), new GeoVector3(0, 0, 1), new GeoVector3(4, 0, 0), 0.5, 0.0, 2.0 * Math.PI);
-                case "XLINE": return new DxfXline();
-                case "RAY": return new DxfRay();
-                case "SOLID": return new DxfSolid(P(0, 0), P(4, 0), P(0, 4), P(4, 4));
-                case "3DFACE": return new DxfFace(P(0, 0), P(4, 0), P(4, 4), P(0, 4), true, true, true, true);
+                case "LINE":
+                    return new DxfLine(P(0, 0), P(20, 0));
+                case "CIRCLE":
+                    return new DxfCircle(P(5, 5), new GeoVector3(0, 0, 1), 3.0);
+                case "ARC":
+                    return new DxfArc(P(5, 5), 3.0, 0.0, Math.PI / 2.0);
+                case "POINT":
+                    return new DxfDBPoint(P(5, 5));
+                case "ELLIPSE":
+                    return new DxfEllipse(
+                        P(5, 5),
+                        new GeoVector3(0, 0, 1),
+                        new GeoVector3(4, 0, 0),
+                        0.5,
+                        0.0,
+                        2.0 * Math.PI
+                    );
+                case "XLINE":
+                    return new DxfXline();
+                case "RAY":
+                    return new DxfRay();
+                case "SOLID":
+                    return new DxfSolid(P(0, 0), P(4, 0), P(0, 4), P(4, 4));
+                case "3DFACE":
+                    return new DxfFace(P(0, 0), P(4, 0), P(4, 4), P(0, 4), true, true, true, true);
                 case "LWPOLYLINE":
                     var polyline = new DxfPolyline();
                     polyline.AddVertexAt(0, new GeoPoint2(0, 0), 0.0, 0.0, 0.0);
                     polyline.AddVertexAt(1, new GeoPoint2(10, 5), 0.0, 0.0, 0.0);
                     return polyline;
-                case "SPLINE": return new DxfSpline(3, false, false, false, new[] { P(0, 0), P(5, 5), P(10, 0), P(15, 5) }, new[] { 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0 }, new double[0], 0.0, 0.0);
-                default: throw new ArgumentException(kind);
+                case "SPLINE":
+                    return new DxfSpline(
+                        3,
+                        false,
+                        false,
+                        false,
+                        new[] { P(0, 0), P(5, 5), P(10, 0), P(15, 5) },
+                        new[] { 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0 },
+                        new double[0],
+                        0.0,
+                        0.0
+                    );
+                default:
+                    throw new ArgumentException(kind);
             }
         }
 

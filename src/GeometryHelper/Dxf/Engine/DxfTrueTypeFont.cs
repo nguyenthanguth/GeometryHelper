@@ -124,14 +124,16 @@ namespace GeometryHelper.Dxf
 
             int count = U16(bytes, at + 4);
 
-            if (!Within(bytes, at + 12, count * 16)
+            if (
+                !Within(bytes, at + 12, count * 16)
                 || !Table(bytes, at, count, "head", 54, out int head, out _)
                 || !Table(bytes, at, count, "hhea", 36, out int hhea, out _)
                 || !Table(bytes, at, count, "maxp", 6, out int maxp, out _)
                 || !Table(bytes, at, count, "hmtx", 4, out int hmtx, out int hmtxLength)
                 || !Table(bytes, at, count, "cmap", 4, out int cmap, out int cmapLength)
                 || !Table(bytes, at, count, "loca", 2, out int loca, out int locaLength)
-                || !Table(bytes, at, count, "glyf", 0, out int glyf, out int glyfLength))
+                || !Table(bytes, at, count, "glyf", 0, out int glyf, out int glyfLength)
+            )
             {
                 return null;
             }
@@ -140,7 +142,13 @@ namespace GeometryHelper.Dxf
             int advances = U16(bytes, hhea + 34);
             int letters = U16(bytes, maxp + 4);
 
-            if ((form != 0 && form != 1) || advances == 0 || advances * 4L > hmtxLength || letters == 0 || (letters + 1L) * (form == 1 ? 4 : 2) > locaLength)
+            if (
+                (form != 0 && form != 1)
+                || advances == 0
+                || advances * 4L > hmtxLength
+                || letters == 0
+                || (letters + 1L) * (form == 1 ? 4 : 2) > locaLength
+            )
             {
                 return null;
             }
@@ -156,7 +164,9 @@ namespace GeometryHelper.Dxf
                 GlyfEnd = glyf + glyfLength,
                 MapEnd = cmap + cmapLength,
                 Descent = Table(bytes, at, count, "OS/2", 78, out int os2, out _) ? U16(bytes, os2 + 76) : double.NaN,
-                Families = Table(bytes, at, count, "name", 6, out int name, out int nameLength) ? Families(bytes, name, nameLength) : new string[0],
+                Families = Table(bytes, at, count, "name", 6, out int name, out int nameLength)
+                    ? Families(bytes, name, nameLength)
+                    : new string[0],
                 Style = U16(bytes, head + 44),
                 Collection = U32(bytes, 0) == OfCollection,
             };
@@ -225,7 +235,11 @@ namespace GeometryHelper.Dxf
             int wide = Math.Max(1, xMax - xMin);
             int high = Math.Max(1, yMax - yMin);
             double bottom = Math.Min(0, yMax - high);
-            return new Glyph(advance, new double[] { xMin, xMin + wide }, new double[] { bottom, Math.Max(0.0, bottom + high) });
+            return new Glyph(
+                advance,
+                new double[] { xMin, xMin + wide },
+                new double[] { bottom, Math.Max(0.0, bottom + high) }
+            );
         }
 
         /// <summary>The box of the glyf header of the letter of an index; false where it has no outline, its header runs past the table, or its box is turned inside out.</summary>
@@ -293,7 +307,9 @@ namespace GeometryHelper.Dxf
             int twice = U16(_bytes, _map + 6);
             int segments = twice / 2;
             int ends = _map + 14;
-            int first = 0, last = segments - 1, found = -1;
+            int first = 0,
+                last = segments - 1,
+                found = -1;
 
             while (first <= last)
             {
@@ -356,7 +372,12 @@ namespace GeometryHelper.Dxf
                 int size = U16(bytes, record + 8);
                 long at = strings + U16(bytes, record + 10);
 
-                if (U16(bytes, record) != 3 || U16(bytes, record + 6) != 1 || size % 2 != 0 || at + size > name + (long)length)
+                if (
+                    U16(bytes, record) != 3
+                    || U16(bytes, record + 6) != 1
+                    || size % 2 != 0
+                    || at + size > name + (long)length
+                )
                 {
                     continue;
                 }
@@ -397,7 +418,11 @@ namespace GeometryHelper.Dxf
 
                 int at = cmap + (int)offset;
                 int format = U16(bytes, at);
-                int rank = encoding == 10 && format == 12 ? 3 : encoding == 1 && format == 4 ? 2 : encoding == 0 && format == 4 ? 1 : 0;
+                int rank =
+                    encoding == 10 && format == 12 ? 3
+                    : encoding == 1 && format == 4 ? 2
+                    : encoding == 0 && format == 4 ? 1
+                    : 0;
 
                 if (rank <= best || !Whole(bytes, at, format, cmap + length))
                 {
@@ -474,11 +499,15 @@ namespace GeometryHelper.Dxf
         private static bool Within(byte[] bytes, long at, long length) => at >= 0 && at + length <= bytes.Length;
 
         // Big-endian reads, nought past the end of the file, so that no read of a font cut short throws.
-        private static int U16(byte[] bytes, int at) => at >= 0 && at + 2 <= bytes.Length ? (bytes[at] << 8) | bytes[at + 1] : 0;
+        private static int U16(byte[] bytes, int at) =>
+            at >= 0 && at + 2 <= bytes.Length ? (bytes[at] << 8) | bytes[at + 1] : 0;
 
         private static int S16(byte[] bytes, int at) => (short)U16(bytes, at);
 
-        private static long U32(byte[] bytes, int at) => at >= 0 && at + 4 <= bytes.Length ? ((long)bytes[at] << 24) | ((long)bytes[at + 1] << 16) | ((long)bytes[at + 2] << 8) | bytes[at + 3] : 0;
+        private static long U32(byte[] bytes, int at) =>
+            at >= 0 && at + 4 <= bytes.Length
+                ? ((long)bytes[at] << 24) | ((long)bytes[at + 1] << 16) | ((long)bytes[at + 2] << 8) | bytes[at + 3]
+                : 0;
 
         /// <summary>What the tables of a face give the font, gathered as they are read.</summary>
         private sealed class Tables

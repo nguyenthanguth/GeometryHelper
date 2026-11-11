@@ -23,7 +23,10 @@ namespace GeometryHelper.UnitTest.Plane
         public void AHalfCircleAfterARepeatedVertex_IsKept()
         {
             // (10.0004, 0) repeats (10, 0) four ten-thousandths on; the edge from it to (20, 0) is the half circle.
-            var chain = new GeoPolylineArc2(new[] { P(0, 0), P(10, 0), P(10.0004, 0), P(20, 0) }, new[] { 0.0, 0.0, 1.0 });
+            var chain = new GeoPolylineArc2(
+                new[] { P(0, 0), P(10, 0), P(10.0004, 0), P(20, 0) },
+                new[] { 0.0, 0.0, 1.0 }
+            );
 
             Assert.Equal(3, chain.VertexCount);
             Assert.Equal(0.0, chain.GetEdgeAt(0).Bulge);
@@ -36,7 +39,10 @@ namespace GeometryHelper.UnitTest.Plane
             // The half circle from (10, 0) to (20, 0) bulging 1 bows to the right of its way, down, to (15, -5). The
             // segment from (15.0002, -4.9998) to (15.0002, -6) runs down through it at y = -5. On 2755f30 the chord was
             // left instead, 4.9998 above the segment's start.
-            var chain = new GeoPolylineArc2(new[] { P(0, 0), P(10, 0), P(10.0004, 0), P(20, 0) }, new[] { 0.0, 0.0, 1.0 });
+            var chain = new GeoPolylineArc2(
+                new[] { P(0, 0), P(10, 0), P(10.0004, 0), P(20, 0) },
+                new[] { 0.0, 0.0, 1.0 }
+            );
             var segment = new GeoLine2(P(15.0002, -4.9998), P(15.0002, -6));
 
             Assert.True(chain.CollidesWith(segment, Thousandth));
@@ -50,7 +56,10 @@ namespace GeometryHelper.UnitTest.Plane
             // The bulge 1 is on the edge of four ten-thousandths that vanishes; the edge from (10.0004, 0) to (20, 0) is
             // straight, so the chain stays on the X axis and the segment from (15, -4.9) to (15, -6) is 4.9 below it. On
             // 2755f30 the bulge moved onto the long edge, a half circle down to (15, -5), which the segment crossed.
-            var chain = new GeoPolylineArc2(new[] { P(0, 0), P(10, 0), P(10.0004, 0), P(20, 0) }, new[] { 0.0, 1.0, 0.0 });
+            var chain = new GeoPolylineArc2(
+                new[] { P(0, 0), P(10, 0), P(10.0004, 0), P(20, 0) },
+                new[] { 0.0, 1.0, 0.0 }
+            );
             var segment = new GeoLine2(P(15, -4.9), P(15, -6));
 
             Assert.Equal(0.0, chain.GetEdgeAt(1).Bulge);
@@ -79,7 +88,8 @@ namespace GeometryHelper.UnitTest.Plane
             // to (20, 0) bulges 1, a half circle of radius 5 bowing out below the square: area 400 + 25 pi / 2.
             var loop = new GeoPolygonArc2(
                 new[] { P(0, 0), P(10, 0), P(10.0004, 0), P(20, 0), P(20, 20), P(0, 20) },
-                new[] { 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 });
+                new[] { 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 }
+            );
 
             Assert.Equal(5, loop.VertexCount);
             Assert.Equal(1.0, loop.GetEdgeAt(1).Bulge);
@@ -93,7 +103,8 @@ namespace GeometryHelper.UnitTest.Plane
             // out below the square: area 100 + 25 pi / 2. On 2755f30 the bottom was straight, area 100.
             var loop = new GeoPolygonArc2(
                 new[] { P(0, 0), P(0.0004, 0), P(10, 0), P(10, 10), P(0, 10) },
-                new[] { 0.0, 1.0, 0.0, 0.0, 0.0 });
+                new[] { 0.0, 1.0, 0.0, 0.0, 0.0 }
+            );
 
             Assert.Equal(4, loop.VertexCount);
             Assert.Equal(1.0, loop.GetEdgeAt(0).Bulge);
@@ -130,7 +141,10 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // A guard: the dedupe itself stays. Four ten-thousandths is within the default point tolerance of a
             // thousandth, so the chain has three vertices, though the tolerance passed to a query is 1E-4.
-            var chain = new GeoPolylineArc2(new[] { P(0, 0), P(10, 0), P(10.0004, 0), P(20, 0) }, new[] { 0.0, 0.0, 0.0 });
+            var chain = new GeoPolylineArc2(
+                new[] { P(0, 0), P(10, 0), P(10.0004, 0), P(20, 0) },
+                new[] { 0.0, 0.0, 0.0 }
+            );
 
             Assert.Equal(3, chain.VertexCount);
             Assert.Equal(P(10, 0), chain.Vertices[1]);
@@ -141,7 +155,10 @@ namespace GeometryHelper.UnitTest.Plane
         public void AChainWithNoRepeat_KeepsEveryBulgeWhereItWasGiven()
         {
             // A guard: nothing dropped, nothing moved.
-            var chain = new GeoPolylineArc2(new[] { P(0, 0), P(10, 0), P(10.01, 0), P(20, 0) }, new[] { 0.5, 0.0, 1.0 });
+            var chain = new GeoPolylineArc2(
+                new[] { P(0, 0), P(10, 0), P(10.01, 0), P(20, 0) },
+                new[] { 0.5, 0.0, 1.0 }
+            );
 
             Assert.Equal(4, chain.VertexCount);
             Assert.Equal(0.5, chain.GetEdgeAt(0).Bulge);

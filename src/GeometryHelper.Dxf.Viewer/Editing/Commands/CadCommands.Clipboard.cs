@@ -23,17 +23,23 @@ namespace GeometryHelper.Dxf.Viewer
     /// </remarks>
     internal static partial class CadCommands
     {
-        private static readonly ConditionalWeakTable<CadDocument, string> Sources = new ConditionalWeakTable<CadDocument, string>();
+        private static readonly ConditionalWeakTable<CadDocument, string> Sources =
+            new ConditionalWeakTable<CadDocument, string>();
 
         /// <summary>What tells a document open from any other on the clipboard: made once for it while it is open.</summary>
-        internal static string SourceOf(CadDocument document) => Sources.GetValue(document, d => Guid.NewGuid().ToString("N"));
+        internal static string SourceOf(CadDocument document) =>
+            Sources.GetValue(document, d => Guid.NewGuid().ToString("N"));
 
         /// <summary>
         /// The objects of a drawing copied as the clipboard holds them: a DXF of the drawing's version with copies of them and
         /// what they need, its base point the point given or the lower left corner of their extents, and the words of the
         /// TEXTs and MTEXTs among them as plain text, one a line.
         /// </summary>
-        internal static CadClipboardData CopyToClipboard(CadDocument document, IReadOnlyList<string> handles, GeoPoint2? basePoint)
+        internal static CadClipboardData CopyToClipboard(
+            CadDocument document,
+            IReadOnlyList<string> handles,
+            GeoPoint2? basePoint
+        )
         {
             var entities = new List<DxfEntity>();
             var words = new List<string>();
@@ -79,7 +85,14 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 corner = basePoint ?? (box.IsEmpty ? GeoPoint2.Origin : new GeoPoint2(box.Min.X, box.Min.Y));
             fragment.Insbase = new GeoPoint3(corner.X, corner.Y, 0.0);
             string plain = words.Count == 0 ? null : string.Join("\r\n", words);
-            return new CadClipboardData(fragment.ToText(), plain, SourceOf(document), document.Title, document.WorkingSpace.Name, entities.Count);
+            return new CadClipboardData(
+                fragment.ToText(),
+                plain,
+                SourceOf(document),
+                document.Title,
+                document.WorkingSpace.Name,
+                entities.Count
+            );
         }
 
         private static IEnumerable<CadPrompt> CopyClip(CadCommandContext c) => Copying(c, false, false);
@@ -128,7 +141,10 @@ namespace GeometryHelper.Dxf.Viewer
             }
             catch (Exception exception) when (!(exception is OutOfMemoryException))
             {
-                GeometryHelperLog.Warn("CadCommands: " + c.Command.Name + " could not put the objects on the Clipboard.", exception);
+                GeometryHelperLog.Warn(
+                    "CadCommands: " + c.Command.Name + " could not put the objects on the Clipboard.",
+                    exception
+                );
                 c.Write("The objects could not be copied to the Clipboard: " + exception.Message);
                 yield break;
             }
@@ -155,7 +171,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!asked.Handled)
             {
-                c.Write("PASTESPEC is shown by the window: PASTECLIP, PASTEBLOCK and PASTEORIG paste from the command line.");
+                c.Write(
+                    "PASTESPEC is shown by the window: PASTECLIP, PASTEBLOCK and PASTEORIG paste from the command line."
+                );
                 yield break;
             }
 
@@ -263,7 +281,13 @@ namespace GeometryHelper.Dxf.Viewer
             else
             {
                 // The objects follow the cursor by their base point, as they are put at the point picked.
-                yield return CadPrompt.ForPoint("Specify insertion point").Previewing(CadPreview.Bringing(c, fragment, input => Affine2.Translation(input.Point.X - basePoint.X, input.Point.Y - basePoint.Y)));
+                yield return CadPrompt
+                    .ForPoint("Specify insertion point")
+                    .Previewing(
+                        CadPreview.Bringing(c, fragment, input =>
+                            Affine2.Translation(input.Point.X - basePoint.X, input.Point.Y - basePoint.Y)
+                        )
+                    );
 
                 if (!c.Input.IsPoint)
                 {
@@ -287,7 +311,10 @@ namespace GeometryHelper.Dxf.Viewer
             var move = new GeoVector3(at.X - basePoint.X, at.Y - basePoint.Y, 0.0);
             c.Apply(null, s =>
             {
-                IReadOnlyList<DxfEntity> copies = fragment.WblockCloneObjects(new List<DxfEntity>(fragment.ModelSpace), c.Space.Block);
+                IReadOnlyList<DxfEntity> copies = fragment.WblockCloneObjects(
+                    new List<DxfEntity>(fragment.ModelSpace),
+                    c.Space.Block
+                );
                 GeoTransform3 transform = move.X == 0.0 && move.Y == 0.0 ? null : GeoTransform3.Translation(move);
 
                 foreach (DxfEntity copy in copies)
@@ -313,7 +340,8 @@ namespace GeometryHelper.Dxf.Viewer
         {
             string style = TextStyle(c);
             DxfTextStyleTableRecord record = StyleRecord(c, style);
-            double height = record != null && record.TextSize > 0.0 ? record.TextSize : c.Remembered("text.height", TextSize(c));
+            double height =
+                record != null && record.TextSize > 0.0 ? record.TextSize : c.Remembered("text.height", TextSize(c));
             string words = MTextOfPlain(text);
 
             DxfEntity Made(GeoPoint2 at)
@@ -323,7 +351,14 @@ namespace GeometryHelper.Dxf.Viewer
                     return null;
                 }
 
-                var mtext = new DxfMText { Location = P3(at), TextHeight = height, Width = 0.0, Attachment = DxfAttachmentPoint.TopLeft, Contents = words };
+                var mtext = new DxfMText
+                {
+                    Location = P3(at),
+                    TextHeight = height,
+                    Width = 0.0,
+                    Attachment = DxfAttachmentPoint.TopLeft,
+                    Contents = words,
+                };
 
                 if (style != null)
                 {
@@ -333,7 +368,9 @@ namespace GeometryHelper.Dxf.Viewer
                 return Current(c, mtext);
             }
 
-            yield return CadPrompt.ForPoint("Specify insertion point").Previewing(CadPreview.MakingOne(c, input => Made(input.Point)));
+            yield return CadPrompt
+                .ForPoint("Specify insertion point")
+                .Previewing(CadPreview.MakingOne(c, input => Made(input.Point)));
 
             if (!c.Input.IsPoint)
             {

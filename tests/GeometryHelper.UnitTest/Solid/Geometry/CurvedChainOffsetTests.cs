@@ -22,8 +22,8 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly Tolerance Loose = new Tolerance(1E-7, 1E-7);
 
         /// <summary>A bar in z = 0: along x to (400, 0), then up to (400, 200), with a fifty radius at the bend.</summary>
-        private static GeoPolylineArc3 Bar() => new GeoPolyline3(
-            new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0)).Fillet(50.0);
+        private static GeoPolylineArc3 Bar() =>
+            new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0)).Fillet(50.0);
 
         [Fact]
         public void ABarMovedToAnotherCoverKeepsItsBendsAndMovesTheirRadii()
@@ -71,8 +71,7 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AChainHoldingNoArcGivesExactlyWhatTheStraightVersionGives()
         {
-            var setOut = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0));
+            var setOut = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0));
             var asChain = new GeoPolylineArc3(setOut);
 
             foreach (double distance in new[] { 30.0, -30.0, 5.0 })
@@ -117,8 +116,11 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // A bar bent out of plane: the second bend leaves z = 0.
             GeoPolylineArc3 crooked = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 400, 0), new GeoPoint3(400, 400, 400))
-                .Fillet(50.0);
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(400, 400, 0),
+                new GeoPoint3(400, 400, 400)
+            ).Fillet(50.0);
 
             Assert.False(crooked.IsPlanar(Loose));
             Assert.Throws<ArgumentException>(() => crooked.OffsetInPlane(30.0, GeoVector3.ZAxis));
@@ -170,18 +172,25 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(
                 bar.OffsetInPlane(30.0, GeoVector3.ZAxis).Length,
-                bar.OffsetInPlane(30.0, GeoVector3.ZAxis, global).Length);
+                bar.OffsetInPlane(30.0, GeoVector3.ZAxis, global).Length
+            );
             Assert.Equal(
                 bar.OffsetInPlane(30.0, GeoVector3.ZAxis)[0].Length,
-                bar.OffsetInPlane(30.0, GeoVector3.ZAxis, OffsetJoin.Round, global)[0].Length, 6);
+                bar.OffsetInPlane(30.0, GeoVector3.ZAxis, OffsetJoin.Round, global)[0].Length,
+                6
+            );
             Assert.Equal(
                 bar.OffsetInPlane(30.0, GeoVector3.ZAxis, OffsetOptions.Default)[0].Length,
-                bar.OffsetInPlane(30.0, GeoVector3.ZAxis, OffsetOptions.Default, global)[0].Length, 6);
+                bar.OffsetInPlane(30.0, GeoVector3.ZAxis, OffsetOptions.Default, global)[0].Length,
+                6
+            );
 
             // Nought moves nothing, and the chain comes back as it was.
             Assert.Equal(bar.Length, bar.OffsetInPlane(0.0, GeoVector3.ZAxis)[0].Length, 9);
 
-            Assert.Throws<ArgumentNullException>(() => Offset3.OffsetInPlane((GeoPolylineArc3)null, 10.0, GeoVector3.ZAxis));
+            Assert.Throws<ArgumentNullException>(() =>
+                Offset3.OffsetInPlane((GeoPolylineArc3)null, 10.0, GeoVector3.ZAxis)
+            );
             Assert.Throws<ArgumentNullException>(() => bar.OffsetInPlane(10.0, GeoVector3.ZAxis, (OffsetOptions)null));
             Assert.Throws<ArgumentOutOfRangeException>(() => bar.OffsetInPlane(double.NaN, GeoVector3.ZAxis));
         }

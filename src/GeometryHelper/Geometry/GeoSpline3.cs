@@ -56,10 +56,17 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the control points or the knots are null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 1 to 10, a weight is not a positive number, or the largest weight is more than 1E12 times the smallest.</exception>
         /// <exception cref="ArgumentException">Thrown when there are too few control points, a point or a knot is not a finite number, the knots are the wrong number or not clamped, or the control points are all one point.</exception>
-        public GeoSpline3(int degree, IEnumerable<GeoPoint3> controlPoints, IEnumerable<double> knots, IEnumerable<double> weights = null)
+        public GeoSpline3(
+            int degree,
+            IEnumerable<GeoPoint3> controlPoints,
+            IEnumerable<double> knots,
+            IEnumerable<double> weights = null
+        )
         {
-            if (controlPoints == null) throw new ArgumentNullException(nameof(controlPoints));
-            if (knots == null) throw new ArgumentNullException(nameof(knots));
+            if (controlPoints == null)
+                throw new ArgumentNullException(nameof(controlPoints));
+            if (knots == null)
+                throw new ArgumentNullException(nameof(knots));
 
             double[] flat = Flatten(controlPoints);
             double[] knotArray = new List<double>(knots).ToArray();
@@ -135,7 +142,8 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentException">Thrown when there are too few control points, or they are all one point.</exception>
         public static GeoSpline3 FromControlPoints(int degree, IEnumerable<GeoPoint3> controlPoints)
         {
-            if (controlPoints == null) throw new ArgumentNullException(nameof(controlPoints));
+            if (controlPoints == null)
+                throw new ArgumentNullException(nameof(controlPoints));
 
             double[] flat = Flatten(controlPoints);
             bool enough = degree >= 1 && degree <= NurbsCurve.MostDegree && flat.Length / 3 >= degree + 1;
@@ -171,7 +179,8 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the points are null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 1 to 10.</exception>
         /// <exception cref="ArgumentException">Thrown when a point is not a finite point, or there are fewer than degree + 1 distinct points.</exception>
-        public static GeoSpline3 Interpolate(IEnumerable<GeoPoint3> fitPoints, int degree = 3) => Interpolate(fitPoints, degree, Tolerance.Global);
+        public static GeoSpline3 Interpolate(IEnumerable<GeoPoint3> fitPoints, int degree = 3) =>
+            Interpolate(fitPoints, degree, Tolerance.Global);
 
         /// <summary>
         /// Builds the spline that passes through a list of fit points, within a tolerance that decides which neighbouring fit
@@ -196,7 +205,16 @@ namespace GeometryHelper.Geometry
 
             if (fit.Length / 3 < degree + 1)
             {
-                throw new ArgumentException("A spline of degree " + degree + " passes through at least " + (degree + 1) + " distinct fit points; " + fit.Length / 3 + " were given.", nameof(fitPoints));
+                throw new ArgumentException(
+                    "A spline of degree "
+                        + degree
+                        + " passes through at least "
+                        + (degree + 1)
+                        + " distinct fit points; "
+                        + fit.Length / 3
+                        + " were given.",
+                    nameof(fitPoints)
+                );
             }
 
             return new GeoSpline3(NurbsCurve.Interpolate(3, fit, degree, null, null));
@@ -221,8 +239,12 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the points are null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 2 to 10.</exception>
         /// <exception cref="ArgumentException">Thrown when a point or a tangent is not finite, a tangent has no length, or there are too few distinct points for the degree.</exception>
-        public static GeoSpline3 Interpolate(IEnumerable<GeoPoint3> fitPoints, GeoVector3 startTangent, GeoVector3 endTangent, int degree = 3)
-            => Interpolate(fitPoints, startTangent, endTangent, degree, Tolerance.Global);
+        public static GeoSpline3 Interpolate(
+            IEnumerable<GeoPoint3> fitPoints,
+            GeoVector3 startTangent,
+            GeoVector3 endTangent,
+            int degree = 3
+        ) => Interpolate(fitPoints, startTangent, endTangent, degree, Tolerance.Global);
 
         /// <summary>
         /// Builds the spline that passes through a list of fit points and leaves the first and arrives at the last in given
@@ -238,11 +260,21 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the points are null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 2 to 10.</exception>
         /// <exception cref="ArgumentException">Thrown when a point or a tangent is not finite, a tangent has no length, or there are too few distinct points for the degree.</exception>
-        public static GeoSpline3 Interpolate(IEnumerable<GeoPoint3> fitPoints, GeoVector3 startTangent, GeoVector3 endTangent, int degree, Tolerance tolerance)
+        public static GeoSpline3 Interpolate(
+            IEnumerable<GeoPoint3> fitPoints,
+            GeoVector3 startTangent,
+            GeoVector3 endTangent,
+            int degree,
+            Tolerance tolerance
+        )
         {
             if (degree < 2 || degree > NurbsCurve.MostDegree)
             {
-                throw new ArgumentOutOfRangeException(nameof(degree), degree, "A spline with a tangent at each end has a degree from 2 to " + NurbsCurve.MostDegree + ".");
+                throw new ArgumentOutOfRangeException(
+                    nameof(degree),
+                    degree,
+                    "A spline with a tangent at each end has a degree from 2 to " + NurbsCurve.MostDegree + "."
+                );
             }
 
             double[] fit = DistinctFit(fitPoints, degree, tolerance);
@@ -251,7 +283,16 @@ namespace GeometryHelper.Geometry
 
             if (fit.Length / 3 < 2 || degree > fit.Length / 3 + 1)
             {
-                throw new ArgumentException("A spline of degree " + degree + " with a tangent at each end passes through at least " + Math.Max(2, degree - 1) + " distinct fit points; " + fit.Length / 3 + " were given.", nameof(fitPoints));
+                throw new ArgumentException(
+                    "A spline of degree "
+                        + degree
+                        + " with a tangent at each end passes through at least "
+                        + Math.Max(2, degree - 1)
+                        + " distinct fit points; "
+                        + fit.Length / 3
+                        + " were given.",
+                    nameof(fitPoints)
+                );
             }
 
             return new GeoSpline3(NurbsCurve.Interpolate(3, fit, degree, start, end));
@@ -271,11 +312,16 @@ namespace GeometryHelper.Geometry
 
         private static double[] DistinctFit(IEnumerable<GeoPoint3> fitPoints, int degree, Tolerance tolerance)
         {
-            if (fitPoints == null) throw new ArgumentNullException(nameof(fitPoints));
+            if (fitPoints == null)
+                throw new ArgumentNullException(nameof(fitPoints));
 
             if (degree < 1 || degree > NurbsCurve.MostDegree)
             {
-                throw new ArgumentOutOfRangeException(nameof(degree), degree, "The degree of a spline is from 1 to " + NurbsCurve.MostDegree + ".");
+                throw new ArgumentOutOfRangeException(
+                    nameof(degree),
+                    degree,
+                    "The degree of a spline is from 1 to " + NurbsCurve.MostDegree + "."
+                );
             }
 
             var kept = new List<GeoPoint3>();
@@ -310,7 +356,8 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static GeoSpline3 FromPolyline(GeoPolyline3 polyline)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return new GeoSpline3(NurbsCurve.FromChain(3, Flatten(polyline.Vertices)));
         }
@@ -374,7 +421,8 @@ namespace GeometryHelper.Geometry
         /// Every point of the curve is at the radius from the centre to rounding, in the plane of the circle, and its
         /// length is 2 pi times the radius to a relative 1E-12.
         /// </remarks>
-        public static GeoSpline3 FromCircle(GeoCircle3 circle) => FromArc(new GeoArc3(circle.Center, circle.Normal, circle.Radius, 0.0, 0.0));
+        public static GeoSpline3 FromCircle(GeoCircle3 circle) =>
+            FromArc(new GeoArc3(circle.Center, circle.Normal, circle.Radius, 0.0, 0.0));
 
         #endregion
 
@@ -528,7 +576,11 @@ namespace GeometryHelper.Geometry
 
             if (order < 1 || order > NurbsCurve.MostDegree)
             {
-                throw new ArgumentOutOfRangeException(nameof(order), order, "The order of a derivative is from 1 to " + NurbsCurve.MostDegree + ".");
+                throw new ArgumentOutOfRangeException(
+                    nameof(order),
+                    order,
+                    "The order of a derivative is from 1 to " + NurbsCurve.MostDegree + "."
+                );
             }
 
             double[] row = _curve.Derivatives(knot, order)[order];
@@ -607,7 +659,9 @@ namespace GeometryHelper.Geometry
 
             if (!(speed > _curve.StillSpeed))
             {
-                throw new InvalidOperationException("The spline stands still at that knot value, where it has no curvature.");
+                throw new InvalidOperationException(
+                    "The spline stands still at that knot value, where it has no curvature."
+                );
             }
 
             return velocity.CrossProduct(acceleration).Length / (speed * speed * speed);
@@ -690,14 +744,24 @@ namespace GeometryHelper.Geometry
         {
             if (!(parameter > 0.0 && parameter < 1.0))
             {
-                throw new ArgumentOutOfRangeException(nameof(parameter), parameter, "A spline is cut inside its domain, above 0 and below 1.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(parameter),
+                    parameter,
+                    "A spline is cut inside its domain, above 0 and below 1."
+                );
             }
 
             double knot = _curve.KnotAtParameter(parameter);
 
             if (!(knot > _curve.Start && knot < _curve.End))
             {
-                throw new ArgumentOutOfRangeException(nameof(parameter), parameter, "A spline is cut inside its domain, and this share comes to the knot value of an end, " + knot.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + ".");
+                throw new ArgumentOutOfRangeException(
+                    nameof(parameter),
+                    parameter,
+                    "A spline is cut inside its domain, and this share comes to the knot value of an end, "
+                        + knot.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
 
             return Cut(knot, nameof(parameter));
@@ -722,14 +786,23 @@ namespace GeometryHelper.Geometry
         {
             if (!(knot > _curve.Start && knot < _curve.End))
             {
-                throw new ArgumentOutOfRangeException(name, knot, "A spline is cut inside its domain, above its first knot and below its last.");
+                throw new ArgumentOutOfRangeException(
+                    name,
+                    knot,
+                    "A spline is cut inside its domain, above its first knot and below its last."
+                );
             }
 
             _curve.Split(knot, out NurbsCurve first, out NurbsCurve second);
 
             if (NurbsCurve.AllTheSame(first.Points, 3) || NurbsCurve.AllTheSame(second.Points, 3))
             {
-                throw new ArgumentException("The spline stands still where it is cut, at the knot value " + knot.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + ", and a part of it would be one point.", name);
+                throw new ArgumentException(
+                    "The spline stands still where it is cut, at the knot value "
+                        + knot.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                        + ", and a part of it would be one point.",
+                    name
+                );
             }
 
             return new[] { new GeoSpline3(first), new GeoSpline3(second) };
@@ -790,7 +863,8 @@ namespace GeometryHelper.Geometry
         /// <exception cref="InvalidOperationException">Thrown when the transformation carries every control point to one point.</exception>
         public GeoSpline3 TransformBy(GeoTransform3 transform)
         {
-            if (transform == null) throw new ArgumentNullException(nameof(transform));
+            if (transform == null)
+                throw new ArgumentNullException(nameof(transform));
 
             var moved = new double[_curve.Points.Length];
 
@@ -885,7 +959,12 @@ namespace GeometryHelper.Geometry
 
             foreach (GeoPoint3 point in points)
             {
-                if (kept.Count == 0 || point.X != kept[kept.Count - 1].X || point.Y != kept[kept.Count - 1].Y || point.Z != kept[kept.Count - 1].Z)
+                if (
+                    kept.Count == 0
+                    || point.X != kept[kept.Count - 1].X
+                    || point.Y != kept[kept.Count - 1].Y
+                    || point.Z != kept[kept.Count - 1].Z
+                )
                 {
                     kept.Add(point);
                 }
@@ -893,7 +972,9 @@ namespace GeometryHelper.Geometry
 
             if (kept.Count < 2)
             {
-                throw new ArgumentException("Every corner the spline is cut at is one point: a spline that stands still, or a closed one that the chord tolerance leaves cut at its ends alone.");
+                throw new ArgumentException(
+                    "Every corner the spline is cut at is one point: a spline that stands still, or a closed one that the chord tolerance leaves cut at its ends alone."
+                );
             }
 
             return new GeoPolyline3(kept.ToArray(), true);
@@ -968,7 +1049,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether two splines hold exactly the same degree, control points, weights and knots.
         /// </summary>
-        public static bool operator ==(GeoSpline3 left, GeoSpline3 right) => left is null ? right is null : left.Equals(right);
+        public static bool operator ==(GeoSpline3 left, GeoSpline3 right) =>
+            left is null ? right is null : left.Equals(right);
 
         /// <summary>
         /// Determines whether two splines hold different degrees, control points, weights or knots.

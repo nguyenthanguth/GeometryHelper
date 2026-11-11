@@ -61,21 +61,40 @@ namespace GeometryHelper.UnitTest.Takeoff
             }
 
             /// <summary>Whether the material holds a point: inside the box and inside none of its openings.</summary>
-            internal bool Holds(double x, double y, double z)
-                => Inside(this, x, y, z) && !Openings.Any(opening => Inside(opening, x, y, z));
+            internal bool Holds(double x, double y, double z) =>
+                Inside(this, x, y, z) && !Openings.Any(opening => Inside(opening, x, y, z));
 
             public override string ToString()
             {
-                string text = string.Format(CultureInfo.InvariantCulture, "[{0} {1} {2} - {3} {4} {5}]", Min[0], Min[1], Min[2], Max[0], Max[1], Max[2]);
+                string text = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "[{0} {1} {2} - {3} {4} {5}]",
+                    Min[0],
+                    Min[1],
+                    Min[2],
+                    Max[0],
+                    Max[1],
+                    Max[2]
+                );
                 return Openings.Count == 0 ? text : text + " less " + string.Join(", ", Openings);
             }
 
-            private static GeoSolid3 Outline(Box box)
-                => new GeoAabb3(new GeoPoint3(box.Min[0], box.Min[1], box.Min[2]), new GeoPoint3(box.Max[0], box.Max[1], box.Max[2])).ToObb().ToSolid();
+            private static GeoSolid3 Outline(Box box) =>
+                new GeoAabb3(
+                    new GeoPoint3(box.Min[0], box.Min[1], box.Min[2]),
+                    new GeoPoint3(box.Max[0], box.Max[1], box.Max[2])
+                )
+                    .ToObb()
+                    .ToSolid();
 
             // Strictly inside: the oracle only asks at the middle of a cell, which never lies on a face.
-            private static bool Inside(Box box, double x, double y, double z)
-                => box.Min[0] < x && x < box.Max[0] && box.Min[1] < y && y < box.Max[1] && box.Min[2] < z && z < box.Max[2];
+            private static bool Inside(Box box, double x, double y, double z) =>
+                box.Min[0] < x
+                && x < box.Max[0]
+                && box.Min[1] < y
+                && y < box.Max[1]
+                && box.Min[2] < z
+                && z < box.Max[2];
         }
 
         /// <summary>
@@ -85,7 +104,12 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// </summary>
         internal sealed class BoxSet
         {
-            internal BoxSet(IReadOnlyList<Box> boxes, IReadOnlyList<int> priorities, IReadOnlyList<int> sameInstanceAs = null, IReadOnlyList<int?> ids = null)
+            internal BoxSet(
+                IReadOnlyList<Box> boxes,
+                IReadOnlyList<int> priorities,
+                IReadOnlyList<int> sameInstanceAs = null,
+                IReadOnlyList<int?> ids = null
+            )
             {
                 Boxes = boxes;
                 Priorities = priorities;
@@ -117,7 +141,9 @@ namespace GeometryHelper.UnitTest.Takeoff
 
                     solids[i] = SameInstanceAs[i] >= 0 ? solids[SameInstanceAs[i]] : Boxes[i].ToSolid();
                     string name = "#" + i.ToString(CultureInfo.InvariantCulture);
-                    items[i] = Ids[i].HasValue ? new VolumeItem(solids[i], name, Priorities[i], Ids[i].Value) : new VolumeItem(solids[i], name, Priorities[i]);
+                    items[i] = Ids[i].HasValue
+                        ? new VolumeItem(solids[i], name, Priorities[i], Ids[i].Value)
+                        : new VolumeItem(solids[i], name, Priorities[i]);
                 }
 
                 return items;
@@ -128,7 +154,15 @@ namespace GeometryHelper.UnitTest.Takeoff
                 var text = new StringBuilder();
                 for (int i = 0; i < Boxes.Count; i++)
                 {
-                    text.AppendFormat(CultureInfo.InvariantCulture, "  #{0} priority {1}{2}{3}: {4}\n", i, Priorities[i], Ids[i].HasValue ? " id " + Ids[i].Value.ToString(CultureInfo.InvariantCulture) : "", SameInstanceAs[i] >= 0 ? " (the solid of #" + SameInstanceAs[i] + ")" : "", Boxes[i]?.ToString() ?? "null");
+                    text.AppendFormat(
+                        CultureInfo.InvariantCulture,
+                        "  #{0} priority {1}{2}{3}: {4}\n",
+                        i,
+                        Priorities[i],
+                        Ids[i].HasValue ? " id " + Ids[i].Value.ToString(CultureInfo.InvariantCulture) : "",
+                        SameInstanceAs[i] >= 0 ? " (the solid of #" + SameInstanceAs[i] + ")" : "",
+                        Boxes[i]?.ToString() ?? "null"
+                    );
                 }
 
                 return text.ToString();
@@ -248,14 +282,16 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// shared block and the beam the rest of what lies over it, 3 000 by 400 by 200 less the block, 216 000 000, and
         /// keeps 1 800 000 000 less 240 000 000, 1 560 000 000. The union is 2 112 000 000.
         /// </remarks>
-        internal static BoxSet Joint() => new BoxSet(
-            new[]
-            {
-                new Box(-1000, -1000, 800, 2000, 2000, 1000),
-                new Box(-1000, 0, 600, 2000, 400, 1000),
-                new Box(0, 0, 0, 300, 400, 1000),
-            },
-            new[] { 1, 2, 3 });
+        internal static BoxSet Joint() =>
+            new BoxSet(
+                new[]
+                {
+                    new Box(-1000, -1000, 800, 2000, 2000, 1000),
+                    new Box(-1000, 0, 600, 2000, 400, 1000),
+                    new Box(0, 0, 0, 300, 400, 1000),
+                },
+                new[] { 1, 2, 3 }
+            );
 
         /// <summary>
         /// Four cubes 1 000 across, of one priority, laid 800 apart in a square so that each pair beside each other shares
@@ -267,54 +303,69 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// taken. The fourth gives the first the post, 40 000 000, and the second and the third 160 000 000 each, keeping
         /// 640 000 000. The union is the square 1 800 across, 3 240 000 000.
         /// </remarks>
-        internal static BoxSet FourAtACorner() => new BoxSet(
-            new[]
-            {
-                new Box(0, 0, 0, 1000, 1000, 1000),
-                new Box(800, 0, 0, 1800, 1000, 1000),
-                new Box(0, 800, 0, 1000, 1800, 1000),
-                new Box(800, 800, 0, 1800, 1800, 1000),
-            },
-            new[] { 0, 0, 0, 0 });
+        internal static BoxSet FourAtACorner() =>
+            new BoxSet(
+                new[]
+                {
+                    new Box(0, 0, 0, 1000, 1000, 1000),
+                    new Box(800, 0, 0, 1800, 1000, 1000),
+                    new Box(0, 800, 0, 1000, 1800, 1000),
+                    new Box(800, 800, 0, 1800, 1800, 1000),
+                },
+                new[] { 0, 0, 0, 0 }
+            );
 
         /// <summary>
         /// Three copies of a block 1 000 by 500 by 300, 150 000 000, of one priority, each a solid of its own.
         /// </summary>
-        internal static BoxSet ThreeCopies() => new BoxSet(
-            new[] { new Box(0, 0, 0, 1000, 500, 300), new Box(0, 0, 0, 1000, 500, 300), new Box(0, 0, 0, 1000, 500, 300) },
-            new[] { 0, 0, 0 });
+        internal static BoxSet ThreeCopies() =>
+            new BoxSet(
+                new[]
+                {
+                    new Box(0, 0, 0, 1000, 500, 300),
+                    new Box(0, 0, 0, 1000, 500, 300),
+                    new Box(0, 0, 0, 1000, 500, 300),
+                },
+                new[] { 0, 0, 0 }
+            );
 
         /// <summary>
         /// A block 300 across, 27 000 000, held wholly inside a cube 1 000 across clear of its faces, the block listed
         /// first; the priorities as given.
         /// </summary>
-        internal static BoxSet BlockInACube(int blockPriority, int cubePriority) => new BoxSet(
-            new[] { new Box(200, 300, 400, 500, 600, 700), new Box(0, 0, 0, 1000, 1000, 1000) },
-            new[] { blockPriority, cubePriority });
+        internal static BoxSet BlockInACube(int blockPriority, int cubePriority) =>
+            new BoxSet(
+                new[] { new Box(200, 300, 400, 500, 600, 700), new Box(0, 0, 0, 1000, 1000, 1000) },
+                new[] { blockPriority, cubePriority }
+            );
 
         /// <summary>
         /// A cube 1 000 across with four more about it touching it only: one flush against its face at x = 1 000, one
         /// along its edge at x = y = 1 000, one at its corner, and a post 400 by 400 standing on its top; all of one
         /// priority, the cube first.
         /// </summary>
-        internal static BoxSet Touching() => new BoxSet(
-            new[]
-            {
-                new Box(0, 0, 0, 1000, 1000, 1000),
-                new Box(1000, 0, 0, 2000, 1000, 1000),
-                new Box(1000, 1000, 0, 2000, 2000, 1000),
-                new Box(1000, 1000, 1000, 2000, 2000, 2000),
-                new Box(200, 200, 1000, 600, 600, 1400),
-            },
-            new[] { 0, 0, 0, 0, 0 });
+        internal static BoxSet Touching() =>
+            new BoxSet(
+                new[]
+                {
+                    new Box(0, 0, 0, 1000, 1000, 1000),
+                    new Box(1000, 0, 0, 2000, 1000, 1000),
+                    new Box(1000, 1000, 0, 2000, 2000, 1000),
+                    new Box(1000, 1000, 1000, 2000, 2000, 2000),
+                    new Box(200, 200, 1000, 600, 600, 1400),
+                },
+                new[] { 0, 0, 0, 0, 0 }
+            );
 
         /// <summary>
         /// Two cubes 1 000 across, the second moved 500 along x, so that they share half of each, 500 000 000; the
         /// priorities as given.
         /// </summary>
-        internal static BoxSet HalfOverlap(int firstPriority, int secondPriority) => new BoxSet(
-            new[] { new Box(0, 0, 0, 1000, 1000, 1000), new Box(500, 0, 0, 1500, 1000, 1000) },
-            new[] { firstPriority, secondPriority });
+        internal static BoxSet HalfOverlap(int firstPriority, int secondPriority) =>
+            new BoxSet(
+                new[] { new Box(0, 0, 0, 1000, 1000, 1000), new Box(500, 0, 0, 1500, 1000, 1000) },
+                new[] { firstPriority, secondPriority }
+            );
 
         /// <summary>
         /// The two cubes of <see cref="HalfOverlap"/>, the first of priority <see cref="int.MinValue"/> and the second of
@@ -325,9 +376,16 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// 1 000, 125 000 000, and keeps 375 000 000. The first gives the second 500 000 000 and the post the other
         /// 125 000 000 it holds of it, keeping 375 000 000. The union is 1 750 000 000.
         /// </remarks>
-        internal static BoxSet ExtremePriorities() => new BoxSet(
-            new[] { new Box(0, 0, 0, 1000, 1000, 1000), new Box(500, 0, 0, 1500, 1000, 1000), new Box(250, 250, -500, 750, 750, 1500) },
-            new[] { int.MinValue, int.MaxValue, 0 });
+        internal static BoxSet ExtremePriorities() =>
+            new BoxSet(
+                new[]
+                {
+                    new Box(0, 0, 0, 1000, 1000, 1000),
+                    new Box(500, 0, 0, 1500, 1000, 1000),
+                    new Box(250, 250, -500, 750, 750, 1500),
+                },
+                new[] { int.MinValue, int.MaxValue, 0 }
+            );
 
         /// <summary>
         /// A slab 3 000 by 3 000 by 200, priority 0, with a duct 600 by 600 through it running 100 past both faces, and a
@@ -338,13 +396,15 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// of the slab, 32 000 000, of which 200 by 200 by 200, 8 000 000, is in the duct: the slab gives it 24 000 000 and
         /// keeps 1 704 000 000. The column keeps all of itself, 320 000 000.
         /// </remarks>
-        internal static BoxSet ColumnThroughADuct() => new BoxSet(
-            new[]
-            {
-                new Box(0, 0, 0, 3000, 3000, 200, new Box(1000, 1000, -100, 1600, 1600, 300)),
-                new Box(1400, 1400, -1000, 1800, 1800, 1000),
-            },
-            new[] { 0, 3 });
+        internal static BoxSet ColumnThroughADuct() =>
+            new BoxSet(
+                new[]
+                {
+                    new Box(0, 0, 0, 3000, 3000, 200, new Box(1000, 1000, -100, 1600, 1600, 300)),
+                    new Box(1400, 1400, -1000, 1800, 1800, 1000),
+                },
+                new[] { 0, 3 }
+            );
 
         /// <summary>
         /// A hollow column, 400 by 400 by 2 000 with a duct 200 by 200 through its length running 100 past both ends,
@@ -355,26 +415,30 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// 1 152 000 000 it takes 120 000 by 200, 24 000 000; the slab keeps the 8 000 000 inside the duct, and
         /// 1 128 000 000 in all. The union is 1 368 000 000.
         /// </remarks>
-        internal static BoxSet HollowColumnThroughASlab() => new BoxSet(
-            new[]
-            {
-                new Box(-1000, -1000, 0, 1400, 1400, 200),
-                new Box(0, 0, -1000, 400, 400, 1000, new Box(100, 100, -1100, 300, 300, 1100)),
-            },
-            new[] { 0, 3 });
+        internal static BoxSet HollowColumnThroughASlab() =>
+            new BoxSet(
+                new[]
+                {
+                    new Box(-1000, -1000, 0, 1400, 1400, 200),
+                    new Box(0, 0, -1000, 400, 400, 1000, new Box(100, 100, -1100, 300, 300, 1100)),
+                },
+                new[] { 0, 3 }
+            );
 
         /// <summary>
         /// A cube 1 000 across with a corner notch 500 by 500 cut through its height, priority 0, and a block filling the
         /// notch flush, priority 1: their boxes overlap by 500 by 500 by 1 000, their material not at all.
         /// </summary>
         /// <remarks>The notched cube holds 750 000 000, the block 250 000 000.</remarks>
-        internal static BoxSet BlockInANotch() => new BoxSet(
-            new[]
-            {
-                new Box(0, 0, 0, 1000, 1000, 1000, new Box(500, 500, -100, 1100, 1100, 1100)),
-                new Box(500, 500, 0, 1000, 1000, 1000),
-            },
-            new[] { 0, 1 });
+        internal static BoxSet BlockInANotch() =>
+            new BoxSet(
+                new[]
+                {
+                    new Box(0, 0, 0, 1000, 1000, 1000, new Box(500, 500, -100, 1100, 1100, 1100)),
+                    new Box(500, 500, 0, 1000, 1000, 1000),
+                },
+                new[] { 0, 1 }
+            );
 
         /// <summary>
         /// Two copies of a block 100 by 200 by 300, 6 000 000, of priority 0, and a bar 400 by 100 by 100 of priority 1
@@ -385,9 +449,16 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// copy the 5 000 000 left, keeping nothing. Taken off by hand at the pin, as the spec takes it, the later copy's
         /// two deductions come to 9.3E-10 more than its gross, a part in 10^16: its net clamps to nought on rounding.
         /// </remarks>
-        internal static BoxSet CopiesWithABarThrough() => new BoxSet(
-            new[] { new Box(0, 0, 0, 100, 200, 300), new Box(0, 0, 0, 100, 200, 300), new Box(0, 0, 100, 400, 100, 200) },
-            new[] { 0, 0, 1 });
+        internal static BoxSet CopiesWithABarThrough() =>
+            new BoxSet(
+                new[]
+                {
+                    new Box(0, 0, 0, 100, 200, 300),
+                    new Box(0, 0, 0, 100, 200, 300),
+                    new Box(0, 0, 100, 400, 100, 200),
+                },
+                new[] { 0, 0, 1 }
+            );
 
         #endregion
 
@@ -397,7 +468,14 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// A box sizeX by sizeY by sizeZ about a centre, its local x axis turned by the given angle about z from the world's
         /// and then leant by the given angle about that axis, so that its long side, along local z, leans away from upright.
         /// </summary>
-        internal static GeoSolid3 TurnedBox(GeoPoint3 centre, double sizeX, double sizeY, double sizeZ, double turnRad, double leanRad)
+        internal static GeoSolid3 TurnedBox(
+            GeoPoint3 centre,
+            double sizeX,
+            double sizeY,
+            double sizeZ,
+            double turnRad,
+            double leanRad
+        )
         {
             var axisX = new GeoVector3(Math.Cos(turnRad), Math.Sin(turnRad), 0);
             var across = new GeoVector3(-Math.Sin(turnRad), Math.Cos(turnRad), 0);
@@ -439,11 +517,20 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// z = above(x, y), each given as (a, b, c) for a + b x + c y: its sides upright, its top and bottom leaning as the
         /// planes do.
         /// </summary>
-        internal static GeoSolid3 BlockBetweenPlanes(double x0, double y0, double x1, double y1, (double A, double B, double C) below, (double A, double B, double C) above)
+        internal static GeoSolid3 BlockBetweenPlanes(
+            double x0,
+            double y0,
+            double x1,
+            double y1,
+            (double A, double B, double C) below,
+            (double A, double B, double C) above
+        )
         {
             double[][] plan = { new[] { x0, y0 }, new[] { x1, y0 }, new[] { x1, y1 }, new[] { x0, y1 } };
-            GeoPoint3 Low(int k) => new GeoPoint3(plan[k][0], plan[k][1], below.A + below.B * plan[k][0] + below.C * plan[k][1]);
-            GeoPoint3 High(int k) => new GeoPoint3(plan[k][0], plan[k][1], above.A + above.B * plan[k][0] + above.C * plan[k][1]);
+            GeoPoint3 Low(int k) =>
+                new GeoPoint3(plan[k][0], plan[k][1], below.A + below.B * plan[k][0] + below.C * plan[k][1]);
+            GeoPoint3 High(int k) =>
+                new GeoPoint3(plan[k][0], plan[k][1], above.A + above.B * plan[k][0] + above.C * plan[k][1]);
             var faces = new List<GeoFace3>
             {
                 new GeoFace3(new GeoPolygon3(new[] { Low(0), Low(3), Low(2), Low(1) }, Tolerance.Default)),
@@ -453,7 +540,9 @@ namespace GeometryHelper.UnitTest.Takeoff
             for (int k = 0; k < 4; k++)
             {
                 int next = (k + 1) % 4;
-                faces.Add(new GeoFace3(new GeoPolygon3(new[] { Low(k), Low(next), High(next), High(k) }, Tolerance.Default)));
+                faces.Add(
+                    new GeoFace3(new GeoPolygon3(new[] { Low(k), Low(next), High(next), High(k) }, Tolerance.Default))
+                );
             }
 
             return new GeoSolid3(faces);
@@ -465,7 +554,10 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// </summary>
         internal static GeoSolid3 Wedge(double length, double height, double width)
         {
-            var triangle = new GeoPolygon3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(length, 0, 0), new GeoPoint3(0, 0, height) }, Tolerance.Default);
+            var triangle = new GeoPolygon3(
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(length, 0, 0), new GeoPoint3(0, 0, height) },
+                Tolerance.Default
+            );
             return GeoSolid3.Extrude(triangle, new GeoVector3(0, width, 0), Tolerance.Default);
         }
 
@@ -485,7 +577,17 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// </remarks>
         internal sealed class CurvedBand
         {
-            internal CurvedBand(double inner, double outer, double fromRad, double toRad, int chords, double bottom, double top, double rise, double wobble = 0.0)
+            internal CurvedBand(
+                double inner,
+                double outer,
+                double fromRad,
+                double toRad,
+                int chords,
+                double bottom,
+                double top,
+                double rise,
+                double wobble = 0.0
+            )
             {
                 Wobble = wobble;
                 Inner = inner;
@@ -523,8 +625,15 @@ namespace GeometryHelper.UnitTest.Takeoff
             {
                 var faces = new List<GeoFace3>();
 
-                void Add(double[] a, double[] b, double[] c)
-                    => faces.Add(new GeoFace3(new GeoPolygon3(new[] { a, b, c }.Select(p => new GeoPoint3(p[0], p[1], p[2])), Tolerance.Default)));
+                void Add(double[] a, double[] b, double[] c) =>
+                    faces.Add(
+                        new GeoFace3(
+                            new GeoPolygon3(
+                                new[] { a, b, c }.Select(p => new GeoPoint3(p[0], p[1], p[2])),
+                                Tolerance.Default
+                            )
+                        )
+                    );
 
                 void Quad(double[] a, double[] b, double[] c, double[] d)
                 {
@@ -534,14 +643,39 @@ namespace GeometryHelper.UnitTest.Takeoff
 
                 for (int k = 0; k < Chords; k++)
                 {
-                    Quad(Corner(false, k, Top), Corner(false, k + 1, Top), Corner(true, k + 1, Top), Corner(true, k, Top));
-                    Quad(Corner(false, k, Bottom), Corner(true, k, Bottom), Corner(true, k + 1, Bottom), Corner(false, k + 1, Bottom));
-                    Quad(Corner(false, k, Bottom), Corner(false, k + 1, Bottom), Corner(false, k + 1, Top), Corner(false, k, Top));
-                    Quad(Corner(true, k, Bottom), Corner(true, k, Top), Corner(true, k + 1, Top), Corner(true, k + 1, Bottom));
+                    Quad(
+                        Corner(false, k, Top),
+                        Corner(false, k + 1, Top),
+                        Corner(true, k + 1, Top),
+                        Corner(true, k, Top)
+                    );
+                    Quad(
+                        Corner(false, k, Bottom),
+                        Corner(true, k, Bottom),
+                        Corner(true, k + 1, Bottom),
+                        Corner(false, k + 1, Bottom)
+                    );
+                    Quad(
+                        Corner(false, k, Bottom),
+                        Corner(false, k + 1, Bottom),
+                        Corner(false, k + 1, Top),
+                        Corner(false, k, Top)
+                    );
+                    Quad(
+                        Corner(true, k, Bottom),
+                        Corner(true, k, Top),
+                        Corner(true, k + 1, Top),
+                        Corner(true, k + 1, Bottom)
+                    );
                 }
 
                 Quad(Corner(true, 0, Bottom), Corner(false, 0, Bottom), Corner(false, 0, Top), Corner(true, 0, Top));
-                Quad(Corner(false, Chords, Bottom), Corner(true, Chords, Bottom), Corner(true, Chords, Top), Corner(false, Chords, Top));
+                Quad(
+                    Corner(false, Chords, Bottom),
+                    Corner(true, Chords, Bottom),
+                    Corner(true, Chords, Top),
+                    Corner(false, Chords, Top)
+                );
                 return new GeoSolid3(faces).TurnOutwards();
             }
 
@@ -593,12 +727,25 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// to slicing, so the boolean is tried and fails. Built in more chords, the same two have many more.
         /// </para>
         /// </remarks>
-        internal static (CurvedBand Wall, CurvedBand Girder) CurvedWallAndGirder(int wallChords = 9, int girderChords = 8)
+        internal static (CurvedBand Wall, CurvedBand Girder) CurvedWallAndGirder(
+            int wallChords = 9,
+            int girderChords = 8
+        )
         {
             const double radius = 5600.0;
-            double span = 17.0 * Math.PI / 180.0, inset = 20.0 / radius;
+            double span = 17.0 * Math.PI / 180.0,
+                inset = 20.0 / radius;
             var wall = new CurvedBand(radius, radius + 300.0, 0.0, span, wallChords, 0.0, 3600.0, 1.2);
-            var girder = new CurvedBand(radius + 0.175, radius + 500.175, inset, span - inset, girderChords, 3600.0 - 0.7 - 900.0, 3600.0 - 0.7, 3.0);
+            var girder = new CurvedBand(
+                radius + 0.175,
+                radius + 500.175,
+                inset,
+                span - inset,
+                girderChords,
+                3600.0 - 0.7 - 900.0,
+                3600.0 - 0.7,
+                3.0
+            );
             return (wall, girder);
         }
 
@@ -613,12 +760,23 @@ namespace GeometryHelper.UnitTest.Takeoff
             const double radius = 5600.0;
             double span = 17.0 * Math.PI / 180.0;
             var wall = new CurvedBand(radius, radius + 300.0, 0.0, span, 90, 0.0, 3600.0, 0.0);
-            var girder = new CurvedBand(radius + gap, radius + 500.0, 0.0, span, 90, 3600.0 - 0.5 - 900.0, 3600.0 - 0.5, 0.0, wobble);
+            var girder = new CurvedBand(
+                radius + gap,
+                radius + 500.0,
+                0.0,
+                span,
+                90,
+                3600.0 - 0.5 - 900.0,
+                3600.0 - 0.5,
+                0.0,
+                wobble
+            );
             return (wall, girder);
         }
 
         /// <summary>The area two convex polygons in plan share, each given by its corners in turn.</summary>
-        internal static double PlanOverlap(IReadOnlyList<double[]> a, IReadOnlyList<double[]> b) => Math.Abs(Area(ClipToConvex(a.ToList(), b)));
+        internal static double PlanOverlap(IReadOnlyList<double[]> a, IReadOnlyList<double[]> b) =>
+            Math.Abs(Area(ClipToConvex(a.ToList(), b)));
 
         /// <summary>
         /// A column 1 000 by 400 by 4 000 standing across the middle of the curved wall and girder, its long side of plan
@@ -627,10 +785,22 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// </summary>
         internal static (GeoSolid3 Solid, double[][] Plan) ColumnAcrossTheCurve()
         {
-            double angle = 17.0 * Math.PI / 360.0, middle = 5750.0;
-            double ux = Math.Cos(angle), uy = Math.Sin(angle), vx = -uy, vy = ux;
-            double cx = middle * ux, cy = middle * uy;
-            GeoSolid3 solid = new GeoObb3(new GeoPoint3(cx, cy, 1800.0), 1000.0, 400.0, 4000.0, new GeoVector3(ux, uy, 0.0), new GeoVector3(vx, vy, 0.0)).ToSolid();
+            double angle = 17.0 * Math.PI / 360.0,
+                middle = 5750.0;
+            double ux = Math.Cos(angle),
+                uy = Math.Sin(angle),
+                vx = -uy,
+                vy = ux;
+            double cx = middle * ux,
+                cy = middle * uy;
+            GeoSolid3 solid = new GeoObb3(
+                new GeoPoint3(cx, cy, 1800.0),
+                1000.0,
+                400.0,
+                4000.0,
+                new GeoVector3(ux, uy, 0.0),
+                new GeoVector3(vx, vy, 0.0)
+            ).ToSolid();
             double[][] plan =
             {
                 new[] { cx - 500.0 * ux - 200.0 * vx, cy - 500.0 * uy - 200.0 * vy },
@@ -668,7 +838,8 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// </remarks>
         internal static double CurvedOverlap(CurvedBand lower, CurvedBand upper, IReadOnlyList<double[]> within = null)
         {
-            double area = 0.0, above = 0.0;
+            double area = 0.0,
+                above = 0.0;
             foreach (double[][] low in lower.TopTriangles())
             {
                 Func<double[], double> lowTop = PlaneOver(low);
@@ -694,9 +865,15 @@ namespace GeometryHelper.UnitTest.Takeoff
         // The height over (x, y) of the plane through a triangle's three corners.
         private static Func<double[], double> PlaneOver(double[][] t)
         {
-            double ux = t[1][0] - t[0][0], uy = t[1][1] - t[0][1], uz = t[1][2] - t[0][2];
-            double vx = t[2][0] - t[0][0], vy = t[2][1] - t[0][1], vz = t[2][2] - t[0][2];
-            double nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+            double ux = t[1][0] - t[0][0],
+                uy = t[1][1] - t[0][1],
+                uz = t[1][2] - t[0][2];
+            double vx = t[2][0] - t[0][0],
+                vy = t[2][1] - t[0][1],
+                vz = t[2][2] - t[0][2];
+            double nx = uy * vz - uz * vy,
+                ny = uz * vx - ux * vz,
+                nz = ux * vy - uy * vx;
             return p => t[0][2] - (nx * (p[0] - t[0][0]) + ny * (p[1] - t[0][1])) / nz;
         }
 
@@ -706,7 +883,8 @@ namespace GeometryHelper.UnitTest.Takeoff
             double twice = 0.0;
             for (int k = 0; k < polygon.Count; k++)
             {
-                double[] a = polygon[k], b = polygon[(k + 1) % polygon.Count];
+                double[] a = polygon[k],
+                    b = polygon[(k + 1) % polygon.Count];
                 twice += a[0] * b[1] - a[1] * b[0];
             }
 
@@ -719,8 +897,10 @@ namespace GeometryHelper.UnitTest.Takeoff
             var kept = new List<double[]>();
             for (int k = 0; k < polygon.Count; k++)
             {
-                double[] p = polygon[k], q = polygon[(k + 1) % polygon.Count];
-                double fp = f(p), fq = f(q);
+                double[] p = polygon[k],
+                    q = polygon[(k + 1) % polygon.Count];
+                double fp = f(p),
+                    fq = f(q);
                 if (fp >= 0.0)
                 {
                     kept.Add(p);
@@ -747,8 +927,11 @@ namespace GeometryHelper.UnitTest.Takeoff
             double turn = Math.Sign(Area(clip));
             for (int e = 0; e < clip.Count && polygon.Count > 0; e++)
             {
-                double[] a = clip[e], b = clip[(e + 1) % clip.Count];
-                polygon = KeepWhere(polygon, p => turn * ((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])));
+                double[] a = clip[e],
+                    b = clip[(e + 1) % clip.Count];
+                polygon = KeepWhere(polygon, p =>
+                    turn * ((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]))
+                );
             }
 
             return polygon;
@@ -768,10 +951,12 @@ namespace GeometryHelper.UnitTest.Takeoff
                 return 0.0;
             }
 
-            double sx = 0.0, sy = 0.0;
+            double sx = 0.0,
+                sy = 0.0;
             for (int k = 0; k < polygon.Count; k++)
             {
-                double[] a = polygon[k], b = polygon[(k + 1) % polygon.Count];
+                double[] a = polygon[k],
+                    b = polygon[(k + 1) % polygon.Count];
                 double cross = a[0] * b[1] - b[0] * a[1];
                 sx += (a[0] + b[0]) * cross;
                 sy += (a[1] + b[1]) * cross;
@@ -810,15 +995,21 @@ namespace GeometryHelper.UnitTest.Takeoff
             internal double Union { get; private set; }
 
             /// <summary>What box i gives up, (keeper, volume), the keepers in rank order and none that takes nothing.</summary>
-            internal IReadOnlyList<(int By, double Volume)> Deductions(int i)
-                => Ranked.Where(k => Taken[i, k] > 0.0).Select(k => (k, Taken[i, k])).ToList();
+            internal IReadOnlyList<(int By, double Volume)> Deductions(int i) =>
+                Ranked.Where(k => Taken[i, k] > 0.0).Select(k => (k, Taken[i, k])).ToList();
 
             internal static Oracle Of(BoxSet set)
             {
                 int count = set.Boxes.Count;
                 var oracle = new Oracle(count);
-                oracle.Ranked = Enumerable.Range(0, count).Where(i => set.Boxes[i] != null)
-                    .OrderByDescending(i => set.Priorities[i]).ThenByDescending(i => set.Ids[i].HasValue).ThenByDescending(i => set.Ids[i] ?? 0).ThenBy(i => i).ToArray();
+                oracle.Ranked = Enumerable
+                    .Range(0, count)
+                    .Where(i => set.Boxes[i] != null)
+                    .OrderByDescending(i => set.Priorities[i])
+                    .ThenByDescending(i => set.Ids[i].HasValue)
+                    .ThenByDescending(i => set.Ids[i] ?? 0)
+                    .ThenBy(i => i)
+                    .ToArray();
 
                 double[][] cuts = Enumerable.Range(0, 3).Select(axis => Coordinates(set.Boxes, axis)).ToArray();
 
@@ -831,7 +1022,10 @@ namespace GeometryHelper.UnitTest.Takeoff
                             double x = (cuts[0][ix] + cuts[0][ix + 1]) / 2.0;
                             double y = (cuts[1][iy] + cuts[1][iy + 1]) / 2.0;
                             double z = (cuts[2][iz] + cuts[2][iz + 1]) / 2.0;
-                            double volume = (cuts[0][ix + 1] - cuts[0][ix]) * (cuts[1][iy + 1] - cuts[1][iy]) * (cuts[2][iz + 1] - cuts[2][iz]);
+                            double volume =
+                                (cuts[0][ix + 1] - cuts[0][ix])
+                                * (cuts[1][iy + 1] - cuts[1][iy])
+                                * (cuts[2][iz + 1] - cuts[2][iz]);
 
                             int owner = -1;
                             foreach (int i in oracle.Ranked)
@@ -888,7 +1082,13 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// </summary>
         internal sealed class SliceSet
         {
-            internal SliceSet(Box subject, IReadOnlyList<Box> within, IReadOnlyList<Box> outside, IReadOnlyList<bool> withinIsSubject = null, IReadOnlyList<bool> outsideIsSubject = null)
+            internal SliceSet(
+                Box subject,
+                IReadOnlyList<Box> within,
+                IReadOnlyList<Box> outside,
+                IReadOnlyList<bool> withinIsSubject = null,
+                IReadOnlyList<bool> outsideIsSubject = null
+            )
             {
                 Subject = subject;
                 Within = within;
@@ -912,7 +1112,9 @@ namespace GeometryHelper.UnitTest.Takeoff
             {
                 GeoSolid3 subject = Subject.ToSolid();
                 GeoSolid3[] within = Within.Select((box, i) => WithinIsSubject[i] ? subject : box.ToSolid()).ToArray();
-                GeoSolid3[] outside = Outside.Select((box, i) => OutsideIsSubject[i] ? subject : box.ToSolid()).ToArray();
+                GeoSolid3[] outside = Outside
+                    .Select((box, i) => OutsideIsSubject[i] ? subject : box.ToSolid())
+                    .ToArray();
                 return (subject, within, outside);
             }
 
@@ -923,7 +1125,10 @@ namespace GeometryHelper.UnitTest.Takeoff
             internal double Oracle()
             {
                 Box[] all = new[] { Subject }.Concat(Within).Concat(Outside).ToArray();
-                double[][] cuts = Enumerable.Range(0, 3).Select(axis => VolumeTakeoffTestKit.Oracle.Coordinates(all, axis)).ToArray();
+                double[][] cuts = Enumerable
+                    .Range(0, 3)
+                    .Select(axis => VolumeTakeoffTestKit.Oracle.Coordinates(all, axis))
+                    .ToArray();
                 double volume = 0.0;
 
                 for (int ix = 0; ix + 1 < cuts[0].Length; ix++)
@@ -936,9 +1141,16 @@ namespace GeometryHelper.UnitTest.Takeoff
                             double y = (cuts[1][iy] + cuts[1][iy + 1]) / 2.0;
                             double z = (cuts[2][iz] + cuts[2][iz + 1]) / 2.0;
 
-                            if (Subject.Holds(x, y, z) && Within.Any(box => box.Holds(x, y, z)) && !Outside.Any(box => box.Holds(x, y, z)))
+                            if (
+                                Subject.Holds(x, y, z)
+                                && Within.Any(box => box.Holds(x, y, z))
+                                && !Outside.Any(box => box.Holds(x, y, z))
+                            )
                             {
-                                volume += (cuts[0][ix + 1] - cuts[0][ix]) * (cuts[1][iy + 1] - cuts[1][iy]) * (cuts[2][iz + 1] - cuts[2][iz]);
+                                volume +=
+                                    (cuts[0][ix + 1] - cuts[0][ix])
+                                    * (cuts[1][iy + 1] - cuts[1][iy])
+                                    * (cuts[2][iz + 1] - cuts[2][iz]);
                             }
                         }
                     }
@@ -951,7 +1163,10 @@ namespace GeometryHelper.UnitTest.Takeoff
             /// The volume of the subject's outline, openings and all: the scale an error is measured against, which an
             /// opening taking the subject whole, flush, cannot bring to nought.
             /// </summary>
-            internal double SubjectOutline() => (Subject.Max[0] - Subject.Min[0]) * (Subject.Max[1] - Subject.Min[1]) * (Subject.Max[2] - Subject.Min[2]);
+            internal double SubjectOutline() =>
+                (Subject.Max[0] - Subject.Min[0])
+                * (Subject.Max[1] - Subject.Min[1])
+                * (Subject.Max[2] - Subject.Min[2]);
 
             public override string ToString()
             {
@@ -959,12 +1174,22 @@ namespace GeometryHelper.UnitTest.Takeoff
                 text.AppendFormat(CultureInfo.InvariantCulture, "  subject {0}\n", Subject);
                 for (int i = 0; i < Within.Count; i++)
                 {
-                    text.AppendFormat(CultureInfo.InvariantCulture, "  within {0}{1}\n", Within[i], WithinIsSubject[i] ? " (the subject's solid)" : "");
+                    text.AppendFormat(
+                        CultureInfo.InvariantCulture,
+                        "  within {0}{1}\n",
+                        Within[i],
+                        WithinIsSubject[i] ? " (the subject's solid)" : ""
+                    );
                 }
 
                 for (int i = 0; i < Outside.Count; i++)
                 {
-                    text.AppendFormat(CultureInfo.InvariantCulture, "  outside {0}{1}\n", Outside[i], OutsideIsSubject[i] ? " (the subject's solid)" : "");
+                    text.AppendFormat(
+                        CultureInfo.InvariantCulture,
+                        "  outside {0}{1}\n",
+                        Outside[i],
+                        OutsideIsSubject[i] ? " (the subject's solid)" : ""
+                    );
                 }
 
                 return text.ToString();
@@ -986,7 +1211,13 @@ namespace GeometryHelper.UnitTest.Takeoff
             var withinIsSubject = new List<bool>();
             var outsideIsSubject = new List<bool>();
 
-            foreach ((List<Box> boxes, List<bool> isSubject) in new[] { (within, withinIsSubject), (outside, outsideIsSubject) })
+            foreach (
+                (List<Box> boxes, List<bool> isSubject) in new[]
+                {
+                    (within, withinIsSubject),
+                    (outside, outsideIsSubject),
+                }
+            )
             {
                 int count = random.Next(0, 5);
                 for (int i = 0; i < count; i++)
@@ -1032,7 +1263,15 @@ namespace GeometryHelper.UnitTest.Takeoff
                 high[axis] = min[axis] + 50.0 * b;
             }
 
-            return new Box(min[0], min[1], min[2], max[0], max[1], max[2], new Box(low[0], low[1], low[2], high[0], high[1], high[2]));
+            return new Box(
+                min[0],
+                min[1],
+                min[2],
+                max[0],
+                max[1],
+                max[2],
+                new Box(low[0], low[1], low[2], high[0], high[1], high[2])
+            );
         }
 
         #endregion
@@ -1051,7 +1290,11 @@ namespace GeometryHelper.UnitTest.Takeoff
         /// deductions may come to a rounding more than its gross, and a clamp within the point tolerance times its area is
         /// no issue.
         /// </remarks>
-        internal static List<string> Disagreements(VolumeItem[] items, IReadOnlyList<VolumeTakeoffResult> results, Oracle oracle)
+        internal static List<string> Disagreements(
+            VolumeItem[] items,
+            IReadOnlyList<VolumeTakeoffResult> results,
+            Oracle oracle
+        )
         {
             var wrong = new List<string>();
             if (results.Count != items.Length)
@@ -1084,7 +1327,13 @@ namespace GeometryHelper.UnitTest.Takeoff
                 {
                     for (int d = 0; d < expected.Count; d++)
                     {
-                        Near(wrong, $"#{i} deduction by #{expected[d].By}", expected[d].Volume, result.Deductions[d].Volume, scale);
+                        Near(
+                            wrong,
+                            $"#{i} deduction by #{expected[d].By}",
+                            expected[d].Volume,
+                            result.Deductions[d].Volume,
+                            scale
+                        );
                     }
                 }
 
@@ -1123,7 +1372,10 @@ namespace GeometryHelper.UnitTest.Takeoff
         }
 
         /// <summary>Every way two runs differ, field by field and bit for bit; empty when they are the same.</summary>
-        internal static List<string> Differences(IReadOnlyList<VolumeTakeoffResult> a, IReadOnlyList<VolumeTakeoffResult> b)
+        internal static List<string> Differences(
+            IReadOnlyList<VolumeTakeoffResult> a,
+            IReadOnlyList<VolumeTakeoffResult> b
+        )
         {
             var differ = new List<string>();
             if (a.Count != b.Count)
@@ -1134,13 +1386,25 @@ namespace GeometryHelper.UnitTest.Takeoff
 
             for (int i = 0; i < a.Count; i++)
             {
-                if (!BitEqual(a[i].GrossVolume, b[i].GrossVolume) || !BitEqual(a[i].DeductedVolume, b[i].DeductedVolume) || !BitEqual(a[i].NetVolume, b[i].NetVolume))
+                if (
+                    !BitEqual(a[i].GrossVolume, b[i].GrossVolume)
+                    || !BitEqual(a[i].DeductedVolume, b[i].DeductedVolume)
+                    || !BitEqual(a[i].NetVolume, b[i].NetVolume)
+                )
                 {
-                    differ.Add($"#{i}: gross/deducted/net {a[i].GrossVolume:R}/{a[i].DeductedVolume:R}/{a[i].NetVolume:R} against {b[i].GrossVolume:R}/{b[i].DeductedVolume:R}/{b[i].NetVolume:R}");
+                    differ.Add(
+                        $"#{i}: gross/deducted/net {a[i].GrossVolume:R}/{a[i].DeductedVolume:R}/{a[i].NetVolume:R} against {b[i].GrossVolume:R}/{b[i].DeductedVolume:R}/{b[i].NetVolume:R}"
+                    );
                 }
 
-                string da = string.Join(" ", a[i].Deductions.Select(d => d.ByIndex + ":" + d.Volume.ToString("R", CultureInfo.InvariantCulture)));
-                string db = string.Join(" ", b[i].Deductions.Select(d => d.ByIndex + ":" + d.Volume.ToString("R", CultureInfo.InvariantCulture)));
+                string da = string.Join(
+                    " ",
+                    a[i].Deductions.Select(d => d.ByIndex + ":" + d.Volume.ToString("R", CultureInfo.InvariantCulture))
+                );
+                string db = string.Join(
+                    " ",
+                    b[i].Deductions.Select(d => d.ByIndex + ":" + d.Volume.ToString("R", CultureInfo.InvariantCulture))
+                );
                 if (da != db)
                 {
                     differ.Add($"#{i}: deductions [{da}] against [{db}]");
@@ -1148,7 +1412,9 @@ namespace GeometryHelper.UnitTest.Takeoff
 
                 if (!a[i].Issues.SequenceEqual(b[i].Issues) || a[i].IsExact != b[i].IsExact)
                 {
-                    differ.Add($"#{i}: issues [{string.Join(" / ", a[i].Issues)}] against [{string.Join(" / ", b[i].Issues)}]");
+                    differ.Add(
+                        $"#{i}: issues [{string.Join(" / ", a[i].Issues)}] against [{string.Join(" / ", b[i].Issues)}]"
+                    );
                 }
             }
 
@@ -1159,11 +1425,21 @@ namespace GeometryHelper.UnitTest.Takeoff
         {
             if (!(Math.Abs(actual - expected) <= within))
             {
-                wrong.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1:R}, the oracle's {2:R}, off by {3:G3}", what, actual, expected, actual - expected));
+                wrong.Add(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "{0}: {1:R}, the oracle's {2:R}, off by {3:G3}",
+                        what,
+                        actual,
+                        expected,
+                        actual - expected
+                    )
+                );
             }
         }
 
-        private static bool BitEqual(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
+        private static bool BitEqual(double a, double b) =>
+            BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
 
         #endregion
     }

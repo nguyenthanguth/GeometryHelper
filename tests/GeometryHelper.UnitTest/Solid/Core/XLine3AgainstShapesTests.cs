@@ -4,8 +4,8 @@ using System.Linq;
 using GeometryHelper;
 using GeometryHelper.Geometry;
 using Xunit;
-using static GeometryHelper.UnitTest.Solid.XLine3Shapes;
 using static GeometryHelper.UnitTest.Solid.XLine3Probe;
+using static GeometryHelper.UnitTest.Solid.XLine3Shapes;
 
 namespace GeometryHelper.UnitTest.Solid
 {
@@ -68,11 +68,23 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static void AssertSameSet(GeoPoint3[] expected, GeoPoint3[] actual, string what)
         {
-            Assert.True(expected.Length == actual.Length, what + ": " + actual.Length + " crossings, " + expected.Length + " expected: " + string.Join(" ", actual));
+            Assert.True(
+                expected.Length == actual.Length,
+                what
+                    + ": "
+                    + actual.Length
+                    + " crossings, "
+                    + expected.Length
+                    + " expected: "
+                    + string.Join(" ", actual)
+            );
 
             foreach (GeoPoint3 point in expected)
             {
-                Assert.True(actual.Any(p => p.DistanceTo(point) <= 1E-6), what + ": no crossing at " + point + " among " + string.Join(" ", actual));
+                Assert.True(
+                    actual.Any(p => p.DistanceTo(point) <= 1E-6),
+                    what + ": no crossing at " + point + " among " + string.Join(" ", actual)
+                );
             }
         }
 
@@ -91,7 +103,10 @@ namespace GeometryHelper.UnitTest.Solid
                     continue;
                 }
 
-                Assert.True(Answers(line, query, shape) == Answers(shape, query, line), name + " " + query + " is one-sided");
+                Assert.True(
+                    Answers(line, query, shape) == Answers(shape, query, line),
+                    name + " " + query + " is one-sided"
+                );
             }
 
             Assert.True(hasTry == HasTry(shape, line), name + " TryIntersectWith is one-sided");
@@ -165,15 +180,26 @@ namespace GeometryHelper.UnitTest.Solid
 
                 Assert.InRange(leaving.Length, least, distance + 1E-9 + slack);
                 Assert.InRange(landing.Length, least, distance + 1E-9 + slack);
-                Assert.True(OnTheLine(line, leaving.StartPoint), name + ": the shortest line leaving the line starts off it at " + leaving.StartPoint);
-                Assert.True(OnTheLine(line, landing.EndPoint), name + ": the shortest line landing on the line ends off it at " + landing.EndPoint);
+                Assert.True(
+                    OnTheLine(line, leaving.StartPoint),
+                    name + ": the shortest line leaving the line starts off it at " + leaving.StartPoint
+                );
+                Assert.True(
+                    OnTheLine(line, landing.EndPoint),
+                    name + ": the shortest line landing on the line ends off it at " + landing.EndPoint
+                );
                 Assert.Equal(leaving, landing.Reverse());
                 Assert.Equal(Shortest(line, shape, Tolerance.Global), Shortest(line, shape));
                 Assert.Equal(Shortest(shape, line, Tolerance.Global), Shortest(shape, line));
             }
         }
 
-        private static void Add(Dictionary<string, Action> checks, string shapeName, object shape, params (string label, GeoXLine3 line, double distance, GeoPoint3[] crossings)[] cases)
+        private static void Add(
+            Dictionary<string, Action> checks,
+            string shapeName,
+            object shape,
+            params (string label, GeoXLine3 line, double distance, GeoPoint3[] crossings)[] cases
+        )
         {
             foreach (var c in cases)
             {
@@ -245,128 +271,199 @@ namespace GeometryHelper.UnitTest.Solid
 
             Add(checks, "Polygon3", Square(), flat);
 
-            Add(checks, "Triangle3", Triangle(),
+            Add(
+                checks,
+                "Triangle3",
+                Triangle(),
                 ("piercing it", X(20, 20, 10, 0, 0, -1), 0, Pts(20, 20, 0)),
                 ("in its plane, beside", X(-50, -30, 0, 1, 0, 0), 30, Pts()),
                 ("in its plane, beside the hypotenuse", X(100, 100, 0, -1, 1, 0), 100 / Math.Sqrt(2), Pts()),
                 ("in its plane, through", X(-50, 20, 0, 1, 0, 0), 0, Pts()),
                 ("touching a corner", X(100, 0, 0, 1, 1, 0), 0, null),
                 ("piercing it from a million up", X(20, 20, 1E6, 0, 0, -1), 0, Pts(20, 20, 0)),
-                ("ten above, running along it", X(-50, 20, 10, 1, 0, 0), 10, Pts()));
+                ("ten above, running along it", X(-50, 20, 10, 1, 0, 0), 10, Pts())
+            );
 
             // The square with the square from (30, 30) to (70, 70) cut out of it.
-            Add(checks, "Face3", Plate(),
+            Add(
+                checks,
+                "Face3",
+                Plate(),
                 ("through the hole, upright", X(50, 50, 10, 0, 0, 1), 20, Pts()),
                 ("piercing the material", X(20, 20, 10, 0, 0, 1), 0, Pts(20, 20, 0)),
                 ("beside", X(150, 50, 10, 0, 0, 1), 50, Pts()),
                 ("in its plane, through the hole", X(-50, 50, 0, 1, 0, 0), 0, Pts()),
-                ("piercing the material from a million up", X(20, 20, 1E6, 0, 0, -1), 0, Pts(20, 20, 0)));
+                ("piercing the material from a million up", X(20, 20, 1E6, 0, 0, -1), 0, Pts(20, 20, 0))
+            );
 
-            Add(checks, "Plane3", Floor(),
+            Add(
+                checks,
+                "Plane3",
+                Floor(),
                 ("crossing, slanted", X(0, 0, 10, 1, 0, -1), 0, Pts(10, 0, 0)),
                 ("crossing, upright", X(5, 5, 10, 0, 0, 1), 0, Pts(5, 5, 0)),
                 ("running along it, seven above", X(0, 0, 7, 1, 0, 0), 7, Pts()),
                 ("lying in it", X(0, 0, 0, 1, 0, 0), 0, Pts()),
                 ("half a thousandth above", X(0, 0, 0.0005, 1, 0, 0), 0, Pts()),
                 ("two thousandths above", X(0, 0, 0.002, 1, 0, 0), 0.002, Pts()),
-                ("a ten-thousandth of a radian off level", X(0, 0, 7, 1, 0, -0.0001), 0, Pts(70000, 0, 0)));
+                ("a ten-thousandth of a radian off level", X(0, 0, 7, 1, 0, -0.0001), 0, Pts(70000, 0, 0))
+            );
 
-            Add(checks, "Circle3", Circle(),
+            Add(
+                checks,
+                "Circle3",
+                Circle(),
                 ("through, in its plane", X(-100, 30, 0, 1, 0, 0), 0, Pts(-40, 30, 0, 40, 30, 0)),
                 ("beside, in its plane", X(-100, 80, 0, 1, 0, 0), 30, Pts()),
                 ("tangent", X(-100, 50, 0, 1, 0, 0), 0, null),
                 ("through the middle of the disc", X(0, 0, -10, 0, 0, 1), 50, Pts()),
                 ("piercing the rim", X(50, 0, -10, 0, 0, 1), 0, Pts(50, 0, 0)),
                 ("four tenths above the rim", X(-100, 50.4, 0, 1, 0, 0), 0.4, Pts()),
-                ("starting half a million along", X(5E5, 0, 0, -1, 0, 0), 0, Pts(50, 0, 0, -50, 0, 0)));
+                ("starting half a million along", X(5E5, 0, 0, -1, 0, 0), 0, Pts(50, 0, 0, -50, 0, 0))
+            );
 
-            Add(checks, "Arc3", Arc(),
+            Add(
+                checks,
+                "Arc3",
+                Arc(),
                 ("through, in its plane", X(-100, 30, 0, 1, 0, 0), 0, Pts(-40, 30, 0, 40, 30, 0)),
                 ("below it, in its plane", X(-100, -30, 0, 1, 0, 0), 30, Pts()),
                 ("piercing it at the top", X(0, 50, -10, 0, 0, 1), 0, Pts(0, 50, 0)),
-                ("piercing the half of the circle it does not have", X(0, -50, -10, 0, 0, 1), 50 * Math.Sqrt(2), Pts()));
+                ("piercing the half of the circle it does not have", X(0, -50, -10, 0, 0, 1), 50 * Math.Sqrt(2), Pts())
+            );
 
-            Add(checks, "Ellipse3", Oval(),
+            Add(
+                checks,
+                "Ellipse3",
+                Oval(),
                 ("through, in its plane", X(-150, 30, 0, 1, 0, 0), 0, Pts(-80, 30, 0, 80, 30, 0)),
                 ("beside, in its plane", X(-150, 80, 0, 1, 0, 0), 30, Pts()),
                 ("piercing the rim at an end of the long axis", X(100, 0, -5, 0, 0, 1), 0, Pts(100, 0, 0)),
-                ("through the middle of the disc", X(0, 0, -10, 0, 0, 1), 50, Pts()));
+                ("through the middle of the disc", X(0, 0, -10, 0, 0, 1), 50, Pts())
+            );
 
-            Add(checks, "Polyline3", Ell(),
+            Add(
+                checks,
+                "Polyline3",
+                Ell(),
                 ("piercing the bottom", X(50, 0, -10, 0, 0, 1), 0, Pts(50, 0, 0)),
                 ("piercing the upright", X(100, 50, -10, 0, 0, 1), 0, Pts(100, 50, 0)),
                 ("beside the bottom, in its plane", X(-50, -30, 0, 1, 0, 0), 30, Pts()),
                 ("skew, ten over the bottom", X(50, -200, 10, 0, 1, 0), 10, Pts()),
-                ("piercing the bottom from a million up", X(50, 0, 1E6, 0, 0, -1), 0, Pts(50, 0, 0)));
+                ("piercing the bottom from a million up", X(50, 0, 1E6, 0, 0, -1), 0, Pts(50, 0, 0))
+            );
 
-            Add(checks, "PolylineArc3", Hook(),
+            Add(
+                checks,
+                "PolylineArc3",
+                Hook(),
                 ("piercing the bow", X(150, 50, -10, 0, 0, 1), 0, Pts(150, 50, 0)),
-                ("across the bow, in its plane", X(125, -200, 0, 0, 1, 0), 0, Pts(125, 50 - Math.Sqrt(1875), 0, 125, 50 + Math.Sqrt(1875), 0)),
+                (
+                    "across the bow, in its plane",
+                    X(125, -200, 0, 0, 1, 0),
+                    0,
+                    Pts(125, 50 - Math.Sqrt(1875), 0, 125, 50 + Math.Sqrt(1875), 0)
+                ),
                 ("beside the bow, in its plane", X(200, -200, 0, 0, 1, 0), 50, Pts()),
-                ("below, in its plane", X(-50, -30, 0, 1, 0, 0), 30, Pts()));
+                ("below, in its plane", X(-50, -30, 0, 1, 0, 0), 30, Pts())
+            );
 
-            Add(checks, "PolygonArc3", Slot(),
+            Add(
+                checks,
+                "PolygonArc3",
+                Slot(),
                 ("through the round ends, in its plane", X(-300, 25, 0, 1, 0, 0), 0, Pts(-25, 25, 0, 225, 25, 0)),
                 ("across the middle, in its plane", X(100, -200, 0, 0, 1, 0), 0, Pts(100, 0, 0, 100, 50, 0)),
                 ("above, in its plane", X(-300, 80, 0, 1, 0, 0), 30, Pts()),
-                ("piercing the side", X(100, 0, -10, 0, 0, 1), 0, Pts(100, 0, 0)));
+                ("piercing the side", X(100, 0, -10, 0, 0, 1), 0, Pts(100, 0, 0))
+            );
 
             var segment = Segment();
 
-            Add(checks, "Line3", segment,
+            Add(
+                checks,
+                "Line3",
+                segment,
                 ("across", X(0, 0, 0, 1, 0, 0), 0, Pts(50, 0, 0)),
                 ("skew, twenty over it", X(0, 0, 20, 1, 0, 0), 20, Pts()),
                 ("past its end", X(0, 20, 0, 1, 0, 0), 10, Pts()),
                 ("touching an end", X(0, 10, 0, 1, 0, 0), 0, null),
                 ("along it", X(50, -300, 0, 0, 1, 0), 0, Pts()),
-                ("beside it", X(60, -300, 0, 0, 1, 0), 10, Pts()));
+                ("beside it", X(60, -300, 0, 0, 1, 0), 10, Pts())
+            );
 
-            Add(checks, "Edge3: straight", new GeoEdge3(P(50, -10, 0), P(50, 10, 0)),
+            Add(
+                checks,
+                "Edge3: straight",
+                new GeoEdge3(P(50, -10, 0), P(50, 10, 0)),
                 ("across", X(0, 0, 0, 1, 0, 0), 0, Pts(50, 0, 0)),
                 ("past its end", X(0, 20, 0, 1, 0, 0), 10, Pts()),
-                ("beside it", X(60, -300, 0, 0, 1, 0), 10, Pts()));
+                ("beside it", X(60, -300, 0, 0, 1, 0), 10, Pts())
+            );
 
-            Add(checks, "Edge3: curved", new GeoEdge3(Arc()),
+            Add(
+                checks,
+                "Edge3: curved",
+                new GeoEdge3(Arc()),
                 ("through, in its plane", X(-100, 30, 0, 1, 0, 0), 0, Pts(-40, 30, 0, 40, 30, 0)),
-                ("below it, in its plane", X(-100, -30, 0, 1, 0, 0), 30, Pts()));
+                ("below it, in its plane", X(-100, -30, 0, 1, 0, 0), 30, Pts())
+            );
 
-            Add(checks, "Ray3: standing over the line", new GeoRay3(P(50, 30, 40), V(0, 1, 0)),
+            Add(
+                checks,
+                "Ray3: standing over the line",
+                new GeoRay3(P(50, 30, 40), V(0, 1, 0)),
                 ("the ray runs away", X(0, 0, 0, 1, 0, 0), 50, Pts()),
-                ("the line turned round", X(500, 0, 0, -1, 0, 0), 50, Pts()));
+                ("the line turned round", X(500, 0, 0, -1, 0, 0), 50, Pts())
+            );
 
-            Add(checks, "Ray3: running towards the line", new GeoRay3(P(50, 30, 40), V(0, -1, 0)),
-                ("reaching the common perpendicular", X(0, 0, 0, 1, 0, 0), 40, Pts()));
+            Add(
+                checks,
+                "Ray3: running towards the line",
+                new GeoRay3(P(50, 30, 40), V(0, -1, 0)),
+                ("reaching the common perpendicular", X(0, 0, 0, 1, 0, 0), 40, Pts())
+            );
 
-            Add(checks, "Ray3: running down", new GeoRay3(P(50, 30, 0), V(0, -1, 0)),
-                ("crossing", X(0, 0, 0, 1, 0, 0), 0, Pts(50, 0, 0)));
+            Add(
+                checks,
+                "Ray3: running down",
+                new GeoRay3(P(50, 30, 0), V(0, -1, 0)),
+                ("crossing", X(0, 0, 0, 1, 0, 0), 0, Pts(50, 0, 0))
+            );
 
-            Add(checks, "Ray3: along the line", new GeoRay3(P(100, 0, 0), V(1, 0, 0)),
+            Add(
+                checks,
+                "Ray3: along the line",
+                new GeoRay3(P(100, 0, 0), V(1, 0, 0)),
                 ("on it", X(0, 0, 0, 1, 0, 0), 0, Pts()),
-                ("on it, turned round", X(0, 0, 0, -1, 0, 0), 0, Pts()));
+                ("on it, turned round", X(0, 0, 0, -1, 0, 0), 0, Pts())
+            );
 
-            Add(checks, "Ray3: beside the line", new GeoRay3(P(100, 30, 0), V(1, 0, 0)),
-                ("parallel", X(0, 0, 0, 1, 0, 0), 30, Pts()));
+            Add(
+                checks,
+                "Ray3: beside the line",
+                new GeoRay3(P(100, 30, 0), V(1, 0, 0)),
+                ("parallel", X(0, 0, 0, 1, 0, 0), 30, Pts())
+            );
 
-            Add(checks, "XLine3", X(0, 30, 0, -1, 0, 0),
-                ("parallel, apart", X(0, 0, 0, 1, 0, 0), 30, Pts()));
+            Add(checks, "XLine3", X(0, 30, 0, -1, 0, 0), ("parallel, apart", X(0, 0, 0, 1, 0, 0), 30, Pts()));
 
-            Add(checks, "XLine3: skew", X(0, 0, 30, 0, 1, 0),
-                ("thirty over it", X(0, 0, 0, 1, 0, 0), 30, Pts()));
+            Add(checks, "XLine3: skew", X(0, 0, 30, 0, 1, 0), ("thirty over it", X(0, 0, 0, 1, 0, 0), 30, Pts()));
 
-            Add(checks, "XLine3: across", X(50, -50, 0, 0, 1, 0),
-                ("crossing", X(0, 0, 0, 1, 0, 0), 0, Pts(50, 0, 0)));
+            Add(checks, "XLine3: across", X(50, -50, 0, 0, 1, 0), ("crossing", X(0, 0, 0, 1, 0, 0), 0, Pts(50, 0, 0)));
 
-            Add(checks, "XLine3: the same line", X(500, 0, 0, -1, 0, 0),
-                ("the line turned round", X(0, 0, 0, 1, 0, 0), 0, Pts()));
+            Add(
+                checks,
+                "XLine3: the same line",
+                X(500, 0, 0, -1, 0, 0),
+                ("the line turned round", X(0, 0, 0, 1, 0, 0), 0, Pts())
+            );
 
-            Add(checks, "Point3: off the line, ahead", P(50, 40, 30),
-                ("ahead", X(0, 0, 0, 1, 0, 0), 50, null));
+            Add(checks, "Point3: off the line, ahead", P(50, 40, 30), ("ahead", X(0, 0, 0, 1, 0, 0), 50, null));
 
-            Add(checks, "Point3: behind the origin", P(-30, 40, 30),
-                ("behind", X(0, 0, 0, 1, 0, 0), 50, null));
+            Add(checks, "Point3: behind the origin", P(-30, 40, 30), ("behind", X(0, 0, 0, 1, 0, 0), 50, null));
 
-            Add(checks, "Point3: on the line", P(7, 0, 0),
-                ("on it", X(0, 0, 0, 1, 0, 0), 0, null));
+            Add(checks, "Point3: on the line", P(7, 0, 0), ("on it", X(0, 0, 0, 1, 0, 0), 0, null));
 
             return checks;
         }

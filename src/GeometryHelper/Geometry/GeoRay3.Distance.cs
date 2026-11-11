@@ -52,7 +52,8 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from this ray to a triangle, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) => Distance3.DistanceTo(this, triangle, tolerance);
+        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Distance3.DistanceTo(this, triangle, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between this ray and a face: the answer of
@@ -104,7 +105,8 @@ namespace GeometryHelper.Geometry
         /// into it and is nought away.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) => Distance3.DistanceTo(this, polygon, tolerance);
+        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Distance3.DistanceTo(this, polygon, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between this ray and a plane: the answer of
@@ -175,7 +177,8 @@ namespace GeometryHelper.Geometry
         /// The ray from (60, 50, 30) pointing straight up is 50 from the chain (0, 0, 0), (100, 0, 0), (100, 100, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(polyline, this, tolerance);
+        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Distance3.DistanceTo(polyline, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between this ray and an oriented box: the answer of

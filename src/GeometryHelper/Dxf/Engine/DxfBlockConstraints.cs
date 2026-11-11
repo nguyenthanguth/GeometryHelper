@@ -31,7 +31,9 @@ namespace GeometryHelper.Dxf
         private readonly List<Node> _shapes = new List<Node>();
         private readonly List<Rule> _rules = new List<Rule>();
         private readonly List<Variable> _variables = new List<Variable>();
-        private readonly Dictionary<string, Rule> _parameters = new Dictionary<string, Rule>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, Rule> _parameters = new Dictionary<string, Rule>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private readonly List<double> _start = new List<double>();
         private DxfFile _file;
         private string _block;
@@ -54,14 +56,19 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            var constraints = new DxfBlockConstraints { _file = network.Item.File, _block = block.Name, _network = network.Item };
+            var constraints = new DxfBlockConstraints
+            {
+                _file = network.Item.File,
+                _block = block.Name,
+                _network = network.Item,
+            };
             constraints.Read(network.Item);
             return constraints;
         }
 
         /// <summary>The dimensional constraint a constraint parameter of the block's graph drives, by the parameter's handle; null where none does.</summary>
-        internal Dimension DimensionOf(string parameter)
-            => _parameters.TryGetValue(parameter ?? string.Empty, out Rule rule) ? rule.Dimension : null;
+        internal Dimension DimensionOf(string parameter) =>
+            _parameters.TryGetValue(parameter ?? string.Empty, out Rule rule) ? rule.Dimension : null;
 
         private void Read(DxfItem network)
         {
@@ -110,7 +117,12 @@ namespace GeometryHelper.Dxf
         {
             if (Refusal == null)
             {
-                Refusal = "The constraints of the block " + _block + " hold " + why + ", which the library does not work out.";
+                Refusal =
+                    "The constraints of the block "
+                    + _block
+                    + " hold "
+                    + why
+                    + ", which the library does not work out.";
             }
         }
 
@@ -139,7 +151,15 @@ namespace GeometryHelper.Dxf
             List<double[]> plane = Points(head.GetRange(0, first < 0 ? head.Count : first));
 
             // The group's work plane: its origin and its axes, the block's own as every sample has it.
-            if (plane.Count < 3 || !Same(plane[0], 0, 0) || !Same(plane[1], 1, 0) || !Same(plane[2], 0, 1) || plane[0][2] != 0.0 || plane[1][2] != 0.0 || plane[2][2] != 0.0)
+            if (
+                plane.Count < 3
+                || !Same(plane[0], 0, 0)
+                || !Same(plane[1], 1, 0)
+                || !Same(plane[2], 0, 1)
+                || plane[0][2] != 0.0
+                || plane[1][2] != 0.0
+                || plane[2][2] != 0.0
+            )
             {
                 Refuse("a group off the block's own plane");
                 return;
@@ -156,18 +176,31 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            for (int i = read.Count > 0 ? -1 : first; i >= 0 && i < head.Count;)
+            for (int i = read.Count > 0 ? -1 : first; i >= 0 && i < head.Count; )
             {
                 int next = head.FindIndex(i + 1, g => g.TypeCode == 1);
                 List<DxfTypedValue> tail = head.GetRange(i + 1, (next < 0 ? head.Count : next) - i - 1);
 
-                if (tail.Count < 4 || tail[0].TypeCode != 330 || !Whole(tail[1], out int id) || !Whole(tail[3], out int count) || count < 0 || tail.Count < 4 + count)
+                if (
+                    tail.Count < 4
+                    || tail[0].TypeCode != 330
+                    || !Whole(tail[1], out int id)
+                    || !Whole(tail[3], out int count)
+                    || count < 0
+                    || tail.Count < 4 + count
+                )
                 {
                     Refuse("a node it cannot read");
                     return;
                 }
 
-                var node = new Node { Class = head[i].Value?.Trim() ?? string.Empty, Key = group.Handle + ":" + id.ToString(CultureInfo.InvariantCulture), Group = group, DataAt = marker + 1 + i + 5 + count };
+                var node = new Node
+                {
+                    Class = head[i].Value?.Trim() ?? string.Empty,
+                    Key = group.Handle + ":" + id.ToString(CultureInfo.InvariantCulture),
+                    Group = group,
+                    DataAt = marker + 1 + i + 5 + count,
+                };
 
                 for (int k = 0; k < count; k++)
                 {
@@ -175,7 +208,9 @@ namespace GeometryHelper.Dxf
                 }
 
                 _nodes[node.Key] = node;
-                read.Add(new KeyValuePair<Node, List<DxfTypedValue>>(node, tail.GetRange(4 + count, tail.Count - 4 - count)));
+                read.Add(
+                    new KeyValuePair<Node, List<DxfTypedValue>>(node, tail.GetRange(4 + count, tail.Count - 4 - count))
+                );
                 i = next;
             }
 
@@ -186,7 +221,14 @@ namespace GeometryHelper.Dxf
 
                 foreach (int link in node.LinkIds)
                 {
-                    node.Links.Add(_nodes.TryGetValue(group.Handle + ":" + link.ToString(CultureInfo.InvariantCulture), out Node linked) ? linked : null);
+                    node.Links.Add(
+                        _nodes.TryGetValue(
+                            group.Handle + ":" + link.ToString(CultureInfo.InvariantCulture),
+                            out Node linked
+                        )
+                            ? linked
+                            : null
+                    );
                 }
 
                 if (node.Class.StartsWith("AcConstrained", StringComparison.Ordinal))
@@ -195,7 +237,15 @@ namespace GeometryHelper.Dxf
                 }
                 else
                 {
-                    _rules.Add(new Rule { Class = node.Class, Links = node.Links, Rest = rest, Group = group.Handle });
+                    _rules.Add(
+                        new Rule
+                        {
+                            Class = node.Class,
+                            Links = node.Links,
+                            Rest = rest,
+                            Group = group.Handle,
+                        }
+                    );
                 }
             }
         }
@@ -205,12 +255,23 @@ namespace GeometryHelper.Dxf
         /// list's order, as <see cref="ReadGroup"/> says; false where they cannot be read so. The place of each node's groups
         /// of its class is kept counted in the group's record, from the offset given.
         /// </summary>
-        private bool ReadListed(DxfItem group, List<DxfTypedValue> head, int from, int offset, List<KeyValuePair<Node, List<DxfTypedValue>>> read)
+        private bool ReadListed(
+            DxfItem group,
+            List<DxfTypedValue> head,
+            int from,
+            int offset,
+            List<KeyValuePair<Node, List<DxfTypedValue>>> read
+        )
         {
             var listed = new List<KeyValuePair<int, string>>();
             int at = from;
 
-            while (at + 1 < head.Count && head[at].TypeCode == 1 && head[at + 1].TypeCode == 90 && Whole(head[at + 1], out int id))
+            while (
+                at + 1 < head.Count
+                && head[at].TypeCode == 1
+                && head[at + 1].TypeCode == 90
+                && Whole(head[at + 1], out int id)
+            )
             {
                 listed.Add(new KeyValuePair<int, string>(id, head[at].Value?.Trim() ?? string.Empty));
                 at += 2;
@@ -244,7 +305,13 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                var node = new Node { Class = listed[k].Value, Key = group.Handle + ":" + listed[k].Key.ToString(CultureInfo.InvariantCulture), Group = group, DataAt = offset + data };
+                var node = new Node
+                {
+                    Class = listed[k].Value,
+                    Key = group.Handle + ":" + listed[k].Key.ToString(CultureInfo.InvariantCulture),
+                    Group = group,
+                    DataAt = offset + data,
+                };
 
                 for (int i = 0; i < count; i++)
                 {
@@ -264,7 +331,16 @@ namespace GeometryHelper.Dxf
         {
             count = 0;
 
-            if (at + 1 >= head.Count || head[at].TypeCode != 90 || head[at + 1].TypeCode != 90 || !Whole(head[at], out int said) || said != id || !Whole(head[at + 1], out count) || count < 0 || at + 2 + count >= head.Count)
+            if (
+                at + 1 >= head.Count
+                || head[at].TypeCode != 90
+                || head[at + 1].TypeCode != 90
+                || !Whole(head[at], out int said)
+                || said != id
+                || !Whole(head[at + 1], out count)
+                || count < 0
+                || at + 2 + count >= head.Count
+            )
             {
                 return false;
             }
@@ -284,7 +360,8 @@ namespace GeometryHelper.Dxf
         private void Shape(Node node, List<DxfTypedValue> rest, string group)
         {
             List<double[]> points = Points(rest);
-            List<double> reals = rest.FindAll(g => g.TypeCode == 40).ConvertAll(g => DxfDynamicProperties.Number(g.Value, out double v) ? v : double.NaN);
+            List<double> reals = rest.FindAll(g => g.TypeCode == 40)
+                .ConvertAll(g => DxfDynamicProperties.Number(g.Value, out double v) ? v : double.NaN);
             node.Dependency = rest.Count > 0 && rest[0].TypeCode == 330 ? rest[0].Value?.Trim() : null;
 
             switch (node.Class)
@@ -306,7 +383,14 @@ namespace GeometryHelper.Dxf
 
                     node.Kind = Kind.Arc;
                     double[] c = points[0];
-                    Unknowns(node, c[0], c[1], reals[0], Math.Atan2(points[3][1] - c[1], points[3][0] - c[0]), Math.Atan2(points[4][1] - c[1], points[4][0] - c[0]));
+                    Unknowns(
+                        node,
+                        c[0],
+                        c[1],
+                        reals[0],
+                        Math.Atan2(points[3][1] - c[1], points[3][0] - c[0]),
+                        Math.Atan2(points[4][1] - c[1], points[4][0] - c[0])
+                    );
                     return;
                 case "AcConstrainedCircle":
                     if (points.Count < 3 || reals.Count < 1 || !Same(points[1], 0, 0) || points[1][2] <= 0.0)
@@ -329,16 +413,31 @@ namespace GeometryHelper.Dxf
                 case "AcConstrained2PointsConstructionLine":
                     // A line of no entity, through its point along its direction, as the Hex Head Bolt's lines through the
                     // centres and the ends of its fillets: two points of it are its unknowns.
-                    if (points.Count < 2 || node.Dependency != "0" || !(Math.Abs(points[1][0]) + Math.Abs(points[1][1]) > 0.0))
+                    if (
+                        points.Count < 2
+                        || node.Dependency != "0"
+                        || !(Math.Abs(points[1][0]) + Math.Abs(points[1][1]) > 0.0)
+                    )
                     {
                         break;
                     }
 
                     node.Kind = Kind.Construction;
-                    Unknowns(node, points[0][0], points[0][1], points[0][0] + points[1][0], points[0][1] + points[1][1]);
+                    Unknowns(
+                        node,
+                        points[0][0],
+                        points[0][1],
+                        points[0][0] + points[1][0],
+                        points[0][1] + points[1][1]
+                    );
                     return;
                 case "AcConstrainedImplicitPoint":
-                    if (rest.Count < 5 || !Whole(rest[2], out int type) || !Whole(rest[4], out int owner) || !_nodes.TryGetValue(group + ":" + owner.ToString(CultureInfo.InvariantCulture), out Node of))
+                    if (
+                        rest.Count < 5
+                        || !Whole(rest[2], out int type)
+                        || !Whole(rest[4], out int owner)
+                        || !_nodes.TryGetValue(group + ":" + owner.ToString(CultureInfo.InvariantCulture), out Node of)
+                    )
                     {
                         break;
                     }
@@ -383,7 +482,9 @@ namespace GeometryHelper.Dxf
             switch (rule.Class)
             {
                 case "AcPointCurveConstraint":
-                    ok = Is(a, Kind.Point) && (Is(b, Kind.Line) || Is(b, Kind.Construction) || Is(b, Kind.Arc) || Is(b, Kind.Circle));
+                    ok =
+                        Is(a, Kind.Point)
+                        && (Is(b, Kind.Line) || Is(b, Kind.Construction) || Is(b, Kind.Arc) || Is(b, Kind.Circle));
                     break;
                 case "AcPointCoincidenceConstraint":
                     ok = Is(a, Kind.Point) && Is(b, Kind.Point);
@@ -395,7 +496,15 @@ namespace GeometryHelper.Dxf
                     ok = Is(a, Kind.Line) && Is(b, Kind.Line);
                     break;
                 case "AcHorizontalConstraint":
-                    rule.Datum = rule.Rest.Count > 3 && Whole(rule.Rest[3], out int datum) && _nodes.TryGetValue(rule.Group + ":" + datum.ToString(CultureInfo.InvariantCulture), out Node line) ? line : null;
+                    rule.Datum =
+                        rule.Rest.Count > 3
+                        && Whole(rule.Rest[3], out int datum)
+                        && _nodes.TryGetValue(
+                            rule.Group + ":" + datum.ToString(CultureInfo.InvariantCulture),
+                            out Node line
+                        )
+                            ? line
+                            : null;
                     ok = rule.Links.Count == 1 && Is(a, Kind.Line) && Is(rule.Datum, Kind.Datum);
                     break;
                 case "AcEqualRadiusConstraint":
@@ -411,7 +520,10 @@ namespace GeometryHelper.Dxf
                     ok = rule.Links.Count > 0 && rule.Links.TrueForAll(n => Is(n, Kind.Point));
                     break;
                 case "AcTangentConstraint":
-                    ok = (Is(a, Kind.Line) || Is(a, Kind.Arc) || Is(a, Kind.Circle)) && (Is(b, Kind.Line) || Is(b, Kind.Arc) || Is(b, Kind.Circle)) && !(Is(a, Kind.Line) && Is(b, Kind.Line));
+                    ok =
+                        (Is(a, Kind.Line) || Is(a, Kind.Arc) || Is(a, Kind.Circle))
+                        && (Is(b, Kind.Line) || Is(b, Kind.Arc) || Is(b, Kind.Circle))
+                        && !(Is(a, Kind.Line) && Is(b, Kind.Line));
                     break;
                 case "AcDistanceConstraint":
                     ok = Is(a, Kind.Point) && Is(b, Kind.Point) && Dimensional(rule, true);
@@ -420,10 +532,17 @@ namespace GeometryHelper.Dxf
                     ok = Is(a, Kind.Line) && Is(b, Kind.Line) && Dimensional(rule, false);
                     break;
                 case "Ac3PointAngleConstraint":
-                    ok = rule.Links.Count == 3 && rule.Links.TrueForAll(n => Is(n, Kind.Point)) && Dimensional(rule, false);
+                    ok =
+                        rule.Links.Count == 3
+                        && rule.Links.TrueForAll(n => Is(n, Kind.Point))
+                        && Dimensional(rule, false);
                     break;
                 case "AcRadiusDiameterConstraint":
-                    ok = rule.Links.Count == 1 && (Is(a, Kind.Arc) || Is(a, Kind.Circle)) && Dimensional(rule, false) && Flag(rule, 280) == 0;
+                    ok =
+                        rule.Links.Count == 1
+                        && (Is(a, Kind.Arc) || Is(a, Kind.Circle))
+                        && Dimensional(rule, false)
+                        && Flag(rule, 280) == 0;
                     break;
                 default:
                     Refuse("an " + rule.Class);
@@ -451,7 +570,12 @@ namespace GeometryHelper.Dxf
             }
 
             DxfItem value = _file.ObjectItem(handles[0].Value);
-            string held = value == null ? null : DxfDynamicProperties.Text(DxfDynamicProperties.Section(value.Groups, "AcDbAssocDependency"), 330)?.Trim();
+            string held =
+                value == null
+                    ? null
+                    : DxfDynamicProperties
+                        .Text(DxfDynamicProperties.Section(value.Groups, "AcDbAssocDependency"), 330)
+                        ?.Trim();
             rule.Variable = _variables.Find(v => string.Equals(v.Handle, held, StringComparison.OrdinalIgnoreCase));
 
             if (rule.Variable == null || !(rule.Variable.Value is double))
@@ -463,7 +587,12 @@ namespace GeometryHelper.Dxf
             {
                 List<double[]> along = Points(rule.Rest);
 
-                if (Flag(rule, 280) != 1 || along.Count != 1 || Math.Abs(Math.Sqrt(along[0][0] * along[0][0] + along[0][1] * along[0][1]) - 1.0) > 1E-9 || along[0][2] != 0.0)
+                if (
+                    Flag(rule, 280) != 1
+                    || along.Count != 1
+                    || Math.Abs(Math.Sqrt(along[0][0] * along[0][0] + along[0][1] * along[0][1]) - 1.0) > 1E-9
+                    || along[0][2] != 0.0
+                )
                 {
                     return false;
                 }
@@ -472,9 +601,19 @@ namespace GeometryHelper.Dxf
             }
 
             DxfItem tie = _file.ObjectItem(handles[1].Value);
-            string driver = tie == null ? null : DxfDynamicProperties.Text(DxfDynamicProperties.Section(tie.Groups, "AcDbAssocDependency"), 330)?.Trim();
+            string driver =
+                tie == null
+                    ? null
+                    : DxfDynamicProperties
+                        .Text(DxfDynamicProperties.Section(tie.Groups, "AcDbAssocDependency"), 330)
+                        ?.Trim();
 
-            if (driver != null && _file.ObjectItem(driver) is DxfItem parameter && parameter.Type.StartsWith("BLOCK", StringComparison.Ordinal) && parameter.Type.EndsWith("CONSTRAINTPARAMETER", StringComparison.Ordinal))
+            if (
+                driver != null
+                && _file.ObjectItem(driver) is DxfItem parameter
+                && parameter.Type.StartsWith("BLOCK", StringComparison.Ordinal)
+                && parameter.Type.EndsWith("CONSTRAINTPARAMETER", StringComparison.Ordinal)
+            )
             {
                 rule.Dimension = new Dimension(_rules.IndexOf(rule), rule.Variable.Name);
                 _parameters[parameter.Handle] = rule;
@@ -483,8 +622,8 @@ namespace GeometryHelper.Dxf
             return true;
         }
 
-        private static int Flag(Rule rule, int code)
-            => rule.Rest.Find(g => g.TypeCode == code) is DxfTypedValue g && Whole(g, out int flag) ? flag : -1;
+        private static int Flag(Rule rule, int code) =>
+            rule.Rest.Find(g => g.TypeCode == code) is DxfTypedValue g && Whole(g, out int flag) ? flag : -1;
 
         private static bool Is(Node node, Kind kind) => node != null && node.Kind == kind;
 
@@ -519,7 +658,9 @@ namespace GeometryHelper.Dxf
                 throw new NotSupportedException(Refusal);
             }
 
-            Dictionary<string, double> before = Values(new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase));
+            Dictionary<string, double> before = Values(
+                new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
+            );
             Dictionary<string, double> after = Values(given);
             bool changed = false;
 
@@ -543,12 +684,21 @@ namespace GeometryHelper.Dxf
             // linear parameter keeps its own: AutoCAD 2021 kept its Door Elevation's left side at a new Width (plugin D27b).
             foreach (Rule rule in _rules)
             {
-                if (rule.Dimension != null && rule.Class == "AcDistanceConstraint" && bases != null && bases.TryGetValue(rule.Variable.Name, out GeoPoint3 basePoint)
-                    && !Near(before[rule.Variable.Name], after[rule.Variable.Name]))
+                if (
+                    rule.Dimension != null
+                    && rule.Class == "AcDistanceConstraint"
+                    && bases != null
+                    && bases.TryGetValue(rule.Variable.Name, out GeoPoint3 basePoint)
+                    && !Near(before[rule.Variable.Name], after[rule.Variable.Name])
+                )
                 {
                     double[] p = Point(rule.Links[0], start);
                     double[] q = Point(rule.Links[1], start);
-                    Node at = Math.Abs(p[0] - basePoint.X) + Math.Abs(p[1] - basePoint.Y) <= Math.Abs(q[0] - basePoint.X) + Math.Abs(q[1] - basePoint.Y) ? rule.Links[0] : rule.Links[1];
+                    Node at =
+                        Math.Abs(p[0] - basePoint.X) + Math.Abs(p[1] - basePoint.Y)
+                        <= Math.Abs(q[0] - basePoint.X) + Math.Abs(q[1] - basePoint.Y)
+                            ? rule.Links[0]
+                            : rule.Links[1];
                     double[] own = Point(at, start);
                     double[] along = rule.Along;
                     kept.Add(x => Dot(Minus(Point(at, x), own), along));
@@ -613,17 +763,33 @@ namespace GeometryHelper.Dxf
 
             if (solved == null)
             {
-                throw new NotSupportedException(freed
-                    ? "The constraints of the block " + _block + " cannot be met at these values without moving geometry they leave free other than as AutoCAD 2021 moved it (each parameter's base point kept, the rest held, radii and the ends of arcs first): the library does not set them."
-                    : "The constraints of the block " + _block + " cannot be met at these values.");
+                throw new NotSupportedException(
+                    freed
+                        ? "The constraints of the block "
+                            + _block
+                            + " cannot be met at these values without moving geometry they leave free other than as AutoCAD 2021 moved it (each parameter's base point kept, the rest held, radii and the ends of arcs first): the library does not set them."
+                        : "The constraints of the block " + _block + " cannot be met at these values."
+                );
             }
 
             foreach (Node shape in _shapes)
             {
-                if (((shape.Kind == Kind.Line || shape.Kind == Kind.Construction) && !(Math.Abs(solved[shape.At + 2] - solved[shape.At]) + Math.Abs(solved[shape.At + 3] - solved[shape.At + 1]) > 0.0))
-                    || ((shape.Kind == Kind.Arc || shape.Kind == Kind.Circle) && !(solved[shape.At + 2] > 0.0)))
+                if (
+                    (
+                        (shape.Kind == Kind.Line || shape.Kind == Kind.Construction)
+                        && !(
+                            Math.Abs(solved[shape.At + 2] - solved[shape.At])
+                                + Math.Abs(solved[shape.At + 3] - solved[shape.At + 1])
+                            > 0.0
+                        )
+                    ) || ((shape.Kind == Kind.Arc || shape.Kind == Kind.Circle) && !(solved[shape.At + 2] > 0.0))
+                )
                 {
-                    throw new NotSupportedException("The constraints of the block " + _block + " at these values take a line to a point or an arc to no radius.");
+                    throw new NotSupportedException(
+                        "The constraints of the block "
+                            + _block
+                            + " at these values take a line to a point or an arc to no radius."
+                    );
                 }
             }
 
@@ -636,7 +802,15 @@ namespace GeometryHelper.Dxf
         /// those given at the block's own geometry is read from those given by the list of the equations given, where made
         /// before, and put there where not; a stage that holds nothing more reads the one before's.
         /// </summary>
-        private double[] Attempt(double[] start, Dictionary<string, double> before, Dictionary<string, double> after, List<Func<double[], double>> extra, bool staged, Dictionary<List<Func<double[], double>>, Decomposition> decomposed, out bool freed)
+        private double[] Attempt(
+            double[] start,
+            Dictionary<string, double> before,
+            Dictionary<string, double> after,
+            List<Func<double[], double>> extra,
+            bool staged,
+            Dictionary<List<Func<double[], double>>, Decomposition> decomposed,
+            out bool freed
+        )
         {
             List<Func<double[], double>> residuals = Residuals(start, before, after);
             residuals.AddRange(extra);
@@ -651,11 +825,19 @@ namespace GeometryHelper.Dxf
 
             foreach (Node shape in _shapes)
             {
-                int count = shape.Kind == Kind.Arc ? 5 : shape.Kind == Kind.Circle ? 3 : 4;
+                int count =
+                    shape.Kind == Kind.Arc ? 5
+                    : shape.Kind == Kind.Circle ? 3
+                    : 4;
 
                 for (int k = 0; k < count; k++)
                 {
-                    stage[shape.At + k] = shape.Kind == Kind.Construction ? -1 : !staged ? 0 : k == 2 && shape.Kind != Kind.Line ? 0 : k >= 3 && shape.Kind == Kind.Arc ? 1 : 2;
+                    stage[shape.At + k] =
+                        shape.Kind == Kind.Construction ? -1
+                        : !staged ? 0
+                        : k == 2 && shape.Kind != Kind.Line ? 0
+                        : k >= 3 && shape.Kind == Kind.Arc ? 1
+                        : 2;
                 }
             }
 
@@ -713,7 +895,10 @@ namespace GeometryHelper.Dxf
         /// The values of the numeric variables: those given, the others the network's, an expression worked out where a
         /// variable has one; whether each is whole put in the dictionary given, where one is.
         /// </summary>
-        private Dictionary<string, double> Values(IDictionary<string, double> given, Dictionary<string, bool> wholes = null)
+        private Dictionary<string, double> Values(
+            IDictionary<string, double> given,
+            Dictionary<string, bool> wholes = null
+        )
         {
             var values = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
             wholes = wholes ?? new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
@@ -740,7 +925,14 @@ namespace GeometryHelper.Dxf
             return values;
         }
 
-        private double Value(Variable variable, IDictionary<string, double> given, Dictionary<string, double> values, Dictionary<string, bool> wholes, HashSet<string> worked, int depth)
+        private double Value(
+            Variable variable,
+            IDictionary<string, double> given,
+            Dictionary<string, double> values,
+            Dictionary<string, bool> wholes,
+            HashSet<string> worked,
+            int depth
+        )
         {
             if (given.TryGetValue(variable.Name, out double set))
             {
@@ -755,20 +947,37 @@ namespace GeometryHelper.Dxf
 
             if (depth > _variables.Count)
             {
-                throw new NotSupportedException("The variable " + variable.Name + " of the block " + _block + " is worked out from itself.");
+                throw new NotSupportedException(
+                    "The variable " + variable.Name + " of the block " + _block + " is worked out from itself."
+                );
             }
 
-            double result = DxfConstraintExpression.Evaluate(variable.Expression, name =>
-            {
-                Variable used = _variables.Find(v => string.Equals(v.Name, name, StringComparison.OrdinalIgnoreCase));
-
-                if (used == null || !(used.Value is double))
+            double result = DxfConstraintExpression.Evaluate(
+                variable.Expression,
+                name =>
                 {
-                    throw new NotSupportedException("The expression " + variable.Expression + " of the block " + _block + " names " + name + ", no variable of a number of it.");
-                }
+                    Variable used = _variables.Find(v =>
+                        string.Equals(v.Name, name, StringComparison.OrdinalIgnoreCase)
+                    );
 
-                return Value(used, given, values, wholes, worked, depth + 1);
-            }, name => wholes.TryGetValue(name, out bool whole) && whole, out bool isWhole);
+                    if (used == null || !(used.Value is double))
+                    {
+                        throw new NotSupportedException(
+                            "The expression "
+                                + variable.Expression
+                                + " of the block "
+                                + _block
+                                + " names "
+                                + name
+                                + ", no variable of a number of it."
+                        );
+                    }
+
+                    return Value(used, given, values, wholes, worked, depth + 1);
+                },
+                name => wholes.TryGetValue(name, out bool whole) && whole,
+                out bool isWhole
+            );
 
             worked.Add(variable.Name);
             wholes[variable.Name] = isWhole;
@@ -780,7 +989,11 @@ namespace GeometryHelper.Dxf
         /// each takes (a distance along its direction, the side of a line an arc touches, how an angle is read) from the
         /// block's own geometry at the values before.
         /// </summary>
-        private List<Func<double[], double>> Residuals(double[] start, Dictionary<string, double> before, Dictionary<string, double> after)
+        private List<Func<double[], double>> Residuals(
+            double[] start,
+            Dictionary<string, double> before,
+            Dictionary<string, double> after
+        )
         {
             var residuals = new List<Func<double[], double>>();
 
@@ -872,8 +1085,15 @@ namespace GeometryHelper.Dxf
                         residuals.Add(x => x[a.At + 2] - radius);
                         break;
                     case "AcAngleConstraint":
-                        Func<double, double> read = Reading(Angle(a, b, start), before[rule.Variable.Name] * Math.PI / 180.0)
-                            ?? throw new NotSupportedException("An angle constraint of the block " + _block + " measures its lines in a way the library does not read.");
+                        Func<double, double> read = Reading(
+                            Angle(a, b, start),
+                            before[rule.Variable.Name] * Math.PI / 180.0
+                        )
+                            ?? throw new NotSupportedException(
+                                "An angle constraint of the block "
+                                    + _block
+                                    + " measures its lines in a way the library does not read."
+                            );
                         double angle = after[rule.Variable.Name] * Math.PI / 180.0;
                         residuals.Add(x => read(Angle(a, b, x)) - angle);
                         break;
@@ -881,8 +1101,15 @@ namespace GeometryHelper.Dxf
                         // The angle at the first point from the second to the third, as the Hex Head Bolt holds each fillet's
                         // sweep at its centre from its start to its end.
                         Node c = rule.Links[2];
-                        Func<double, double> reads = Reading(Angle(a, b, c, start), before[rule.Variable.Name] * Math.PI / 180.0)
-                            ?? throw new NotSupportedException("An angle constraint of the block " + _block + " measures its points in a way the library does not read.");
+                        Func<double, double> reads = Reading(
+                            Angle(a, b, c, start),
+                            before[rule.Variable.Name] * Math.PI / 180.0
+                        )
+                            ?? throw new NotSupportedException(
+                                "An angle constraint of the block "
+                                    + _block
+                                    + " measures its points in a way the library does not read."
+                            );
                         double turned = after[rule.Variable.Name] * Math.PI / 180.0;
                         residuals.Add(x => reads(Angle(a, b, c, x)) - turned);
                         break;
@@ -914,7 +1141,9 @@ namespace GeometryHelper.Dxf
             }
 
             double apart = Length(Centre(a, start), Centre(b, start));
-            bool outside = Math.Abs(apart - (start[a.At + 2] + start[b.At + 2])) <= Math.Abs(apart - Math.Abs(start[a.At + 2] - start[b.At + 2]));
+            bool outside =
+                Math.Abs(apart - (start[a.At + 2] + start[b.At + 2]))
+                <= Math.Abs(apart - Math.Abs(start[a.At + 2] - start[b.At + 2]));
 
             if (outside)
             {
@@ -932,7 +1161,14 @@ namespace GeometryHelper.Dxf
         {
             var readings = new Func<double, double>[]
             {
-                t => t, t => -t, t => Math.PI - t, t => t - Math.PI, t => Math.PI + t, t => -Math.PI - t, t => t + Turn, t => Turn - t,
+                t => t,
+                t => -t,
+                t => Math.PI - t,
+                t => t - Math.PI,
+                t => Math.PI + t,
+                t => -Math.PI - t,
+                t => t + Turn,
+                t => Turn - t,
             };
 
             foreach (Func<double, double> reading in readings)
@@ -1104,7 +1340,9 @@ namespace GeometryHelper.Dxf
                     for (int q = p + 1; q < n; q++)
                     {
                         double[] aq = a[q];
-                        double alpha = 0.0, beta = 0.0, gamma = 0.0;
+                        double alpha = 0.0,
+                            beta = 0.0,
+                            gamma = 0.0;
 
                         for (int i = 0; i < m; i++)
                         {
@@ -1225,8 +1463,10 @@ namespace GeometryHelper.Dxf
 
         private static double[] Centre(Node round, double[] x) => new[] { x[round.At], x[round.At + 1] };
 
-        private static double[] Direction(Node line, double[] x)
-            => line.Kind == Kind.Datum ? line.Datum : new[] { x[line.At + 2] - x[line.At], x[line.At + 3] - x[line.At + 1] };
+        private static double[] Direction(Node line, double[] x) =>
+            line.Kind == Kind.Datum
+                ? line.Datum
+                : new[] { x[line.At + 2] - x[line.At], x[line.At + 3] - x[line.At + 1] };
 
         /// <summary>How far a point stands off a line, to its left positive.</summary>
         private static double Across(Node line, double[] point, double[] x)
@@ -1249,8 +1489,8 @@ namespace GeometryHelper.Dxf
 
         private static bool Same(double[] point, double x, double y) => point[0] == x && point[1] == y;
 
-        private static bool Whole(DxfTypedValue group, out int value)
-            => int.TryParse(group.Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+        private static bool Whole(DxfTypedValue group, out int value) =>
+            int.TryParse(group.Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
 
         /// <summary>The points of groups in order: each a 10 or an 11 with the 20 or 21 and the 30 or 31 after it.</summary>
         private static List<double[]> Points(List<DxfTypedValue> groups)
@@ -1261,8 +1501,14 @@ namespace GeometryHelper.Dxf
             {
                 int code = groups[i].TypeCode;
 
-                if ((code == 10 || code == 11) && groups[i + 1].TypeCode == code + 10 && groups[i + 2].TypeCode == code + 20
-                    && DxfDynamicProperties.Number(groups[i].Value, out double x) && DxfDynamicProperties.Number(groups[i + 1].Value, out double y) && DxfDynamicProperties.Number(groups[i + 2].Value, out double z))
+                if (
+                    (code == 10 || code == 11)
+                    && groups[i + 1].TypeCode == code + 10
+                    && groups[i + 2].TypeCode == code + 20
+                    && DxfDynamicProperties.Number(groups[i].Value, out double x)
+                    && DxfDynamicProperties.Number(groups[i + 1].Value, out double y)
+                    && DxfDynamicProperties.Number(groups[i + 2].Value, out double z)
+                )
                 {
                     points.Add(new[] { x, y, z });
                     i += 2;
@@ -1363,7 +1609,10 @@ namespace GeometryHelper.Dxf
 
                 object value = null;
 
-                if ((held[5].TypeCode == 40 || held[5].TypeCode == 90) && DxfDynamicProperties.Number(held[5].Value, out double number))
+                if (
+                    (held[5].TypeCode == 40 || held[5].TypeCode == 90)
+                    && DxfDynamicProperties.Number(held[5].Value, out double number)
+                )
                 {
                     value = number;
                 }
@@ -1375,8 +1624,12 @@ namespace GeometryHelper.Dxf
                 string expression = (held[2].Value ?? string.Empty).Trim();
                 return new Variable
                 {
-                    Handle = item.Handle, Name = DxfReader.NameOf(held[1].Value ?? string.Empty), Expression = expression, Value = value,
-                    Worked = expression.Length > 0 && !Numbers.TryRead(expression, out _), IsWhole = held[5].TypeCode == 90,
+                    Handle = item.Handle,
+                    Name = DxfReader.NameOf(held[1].Value ?? string.Empty),
+                    Expression = expression,
+                    Value = value,
+                    Worked = expression.Length > 0 && !Numbers.TryRead(expression, out _),
+                    IsWhole = held[5].TypeCode == 90,
                 };
             }
         }
@@ -1401,7 +1654,14 @@ namespace GeometryHelper.Dxf
         /// of a distance the constraint's two points, in the order the parameter's own are; of a radius the centre and the point
         /// of the arc the parameter's own end shows the way to.
         /// </summary>
-        internal void Places(Dimension dimension, Solution solution, GeoPoint3 ownBase, GeoPoint3 ownEnd, out GeoPoint3 basePoint, out GeoPoint3 endPoint)
+        internal void Places(
+            Dimension dimension,
+            Solution solution,
+            GeoPoint3 ownBase,
+            GeoPoint3 ownEnd,
+            out GeoPoint3 basePoint,
+            out GeoPoint3 endPoint
+        )
         {
             Rule rule = _rules[dimension.Index];
             double[] start = _start.ToArray();
@@ -1410,18 +1670,24 @@ namespace GeometryHelper.Dxf
 
             if (rule.Class == "AcRadiusDiameterConstraint")
             {
-                double dx = ownEnd.X - ownBase.X, dy = ownEnd.Y - ownBase.Y;
+                double dx = ownEnd.X - ownBase.X,
+                    dy = ownEnd.Y - ownBase.Y;
                 double length = Math.Sqrt(dx * dx + dy * dy);
                 double r = x[a.At + 2];
                 basePoint = new GeoPoint3(x[a.At], x[a.At + 1], ownBase.Z);
-                endPoint = length > 0.0 ? new GeoPoint3(x[a.At] + dx / length * r, x[a.At + 1] + dy / length * r, ownEnd.Z) : new GeoPoint3(x[a.At] + r, x[a.At + 1], ownEnd.Z);
+                endPoint =
+                    length > 0.0
+                        ? new GeoPoint3(x[a.At] + dx / length * r, x[a.At + 1] + dy / length * r, ownEnd.Z)
+                        : new GeoPoint3(x[a.At] + r, x[a.At + 1], ownEnd.Z);
                 return;
             }
 
             Node b = rule.Links[1];
             double[] first = Point(a, start);
             double[] second = Point(b, start);
-            bool turned = Math.Abs(first[0] - ownBase.X) + Math.Abs(first[1] - ownBase.Y) > Math.Abs(second[0] - ownBase.X) + Math.Abs(second[1] - ownBase.Y);
+            bool turned =
+                Math.Abs(first[0] - ownBase.X) + Math.Abs(first[1] - ownBase.Y)
+                > Math.Abs(second[0] - ownBase.X) + Math.Abs(second[1] - ownBase.Y);
             double[] p = Point(turned ? b : a, x);
             double[] q = Point(turned ? a : b, x);
             basePoint = new GeoPoint3(p[0], p[1], ownBase.Z);
@@ -1448,7 +1714,10 @@ namespace GeometryHelper.Dxf
             /// copies, the ties are checked and nothing is written.
             /// </summary>
             /// <exception cref="NotSupportedException">Thrown when a node is tied to an entity or a part of one the library does not write.</exception>
-            internal void Write(IReadOnlyDictionary<string, DxfEntity> sources, IReadOnlyDictionary<string, DxfEntity> copies)
+            internal void Write(
+                IReadOnlyDictionary<string, DxfEntity> sources,
+                IReadOnlyDictionary<string, DxfEntity> copies
+            )
             {
                 double[] x = Unknowns;
                 double[] start = _owner._start.ToArray();
@@ -1462,17 +1731,33 @@ namespace GeometryHelper.Dxf
                     }
 
                     DxfItem dependency = shape.Dependency == null ? null : _owner._file.ObjectItem(shape.Dependency);
-                    List<DxfTypedValue> held = dependency == null ? null : DxfDynamicProperties.Section(dependency.Groups, "AcDbAssocDependency");
+                    List<DxfTypedValue> held =
+                        dependency == null
+                            ? null
+                            : DxfDynamicProperties.Section(dependency.Groups, "AcDbAssocDependency");
                     string handle = held == null ? null : DxfDynamicProperties.Text(held, 330)?.Trim();
                     DxfEntity source = null;
                     DxfEntity copy = null;
 
-                    if (dependency == null || dependency.Type != "ACDBASSOCGEOMDEPENDENCY" || handle == null || !sources.TryGetValue(handle, out source) || (writing ? !copies.TryGetValue(handle, out copy) : (copy = source) == null))
+                    if (
+                        dependency == null
+                        || dependency.Type != "ACDBASSOCGEOMDEPENDENCY"
+                        || handle == null
+                        || !sources.TryGetValue(handle, out source)
+                        || (writing ? !copies.TryGetValue(handle, out copy) : (copy = source) == null)
+                    )
                     {
-                        throw new NotSupportedException("A geometry of the constraints of the block " + _owner._block + " is tied to no entity of it.");
+                        throw new NotSupportedException(
+                            "A geometry of the constraints of the block "
+                                + _owner._block
+                                + " is tied to no entity of it."
+                        );
                     }
 
-                    List<DxfTypedValue> part = DxfDynamicProperties.Section(dependency.Groups, "AcDbAssocGeomDependency");
+                    List<DxfTypedValue> part = DxfDynamicProperties.Section(
+                        dependency.Groups,
+                        "AcDbAssocGeomDependency"
+                    );
                     int named = part.FindIndex(g => g.TypeCode == 1);
                     string kind = named < 0 ? null : part[named].Value?.Trim();
                     int at = shape.At;
@@ -1481,21 +1766,45 @@ namespace GeometryHelper.Dxf
                     {
                         Place(shape, copy, x, writing);
                     }
-                    else if (kind == "AcDbAssocEdgePersSubentId" && named + 3 < part.Count && copy is DxfPolyline polyline && source is DxfPolyline own
-                        && Whole(part[named + 2], out int from) && Whole(part[named + 3], out int to))
+                    else if (
+                        kind == "AcDbAssocEdgePersSubentId"
+                        && named + 3 < part.Count
+                        && copy is DxfPolyline polyline
+                        && source is DxfPolyline own
+                        && Whole(part[named + 2], out int from)
+                        && Whole(part[named + 3], out int to)
+                    )
                     {
-                        List<int> ids = DxfDynamicProperties.Section(own.Item.Groups, "AcDbPolyline").FindAll(g => g.TypeCode == 91).ConvertAll(g => Whole(g, out int id) ? id : int.MinValue);
+                        List<int> ids = DxfDynamicProperties
+                            .Section(own.Item.Groups, "AcDbPolyline")
+                            .FindAll(g => g.TypeCode == 91)
+                            .ConvertAll(g => Whole(g, out int id) ? id : int.MinValue);
                         int i = ids.IndexOf(from);
                         int j = ids.IndexOf(to);
 
-                        if (i < 0 || j < 0 || ids.Count != polyline.NumberOfVertices || !(own.Normal.Z > 0.0) || own.Normal.X != 0.0 || own.Normal.Y != 0.0)
+                        if (
+                            i < 0
+                            || j < 0
+                            || ids.Count != polyline.NumberOfVertices
+                            || !(own.Normal.Z > 0.0)
+                            || own.Normal.X != 0.0
+                            || own.Normal.Y != 0.0
+                        )
                         {
-                            throw new NotSupportedException("An edge of a polyline of the constraints of the block " + _owner._block + " cannot be found, or the polyline is off the block's plane.");
+                            throw new NotSupportedException(
+                                "An edge of a polyline of the constraints of the block "
+                                    + _owner._block
+                                    + " cannot be found, or the polyline is off the block's plane."
+                            );
                         }
 
                         if (shape.Kind == Kind.Circle)
                         {
-                            throw new NotSupportedException("A circle of the constraints of the block " + _owner._block + " is tied to an edge of a polyline.");
+                            throw new NotSupportedException(
+                                "A circle of the constraints of the block "
+                                    + _owner._block
+                                    + " is tied to an edge of a polyline."
+                            );
                         }
 
                         if (!writing)
@@ -1516,7 +1825,9 @@ namespace GeometryHelper.Dxf
                             GeoPoint2 vertex = own.GetPoint2dAt(i);
                             double[] begins = Point(new Node { Owner = shape, PointType = 0 }, start);
                             double[] ends = Point(new Node { Owner = shape, PointType = 1 }, start);
-                            bool forward = Math.Abs(begins[0] - vertex.X) + Math.Abs(begins[1] - vertex.Y) <= Math.Abs(ends[0] - vertex.X) + Math.Abs(ends[1] - vertex.Y);
+                            bool forward =
+                                Math.Abs(begins[0] - vertex.X) + Math.Abs(begins[1] - vertex.Y)
+                                <= Math.Abs(ends[0] - vertex.X) + Math.Abs(ends[1] - vertex.Y);
                             double[] s = Point(new Node { Owner = shape, PointType = 0 }, x);
                             double[] e = Point(new Node { Owner = shape, PointType = 1 }, x);
                             double sweep = Normal(x[at + 4] - x[at + 3]);
@@ -1527,7 +1838,11 @@ namespace GeometryHelper.Dxf
                     }
                     else
                     {
-                        throw new NotSupportedException("A geometry of the constraints of the block " + _owner._block + " is tied to a part of an entity the library does not write.");
+                        throw new NotSupportedException(
+                            "A geometry of the constraints of the block "
+                                + _owner._block
+                                + " is tied to a part of an entity the library does not write."
+                        );
                     }
                 }
             }
@@ -1544,7 +1859,13 @@ namespace GeometryHelper.Dxf
                         line.EndPoint = new GeoPoint3(x[at + 2], x[at + 3], line.EndPoint.Z);
                     }
                 }
-                else if (shape.Kind == Kind.Arc && copy is DxfArc arc && arc.Normal.Z > 0.0 && arc.Normal.X == 0.0 && arc.Normal.Y == 0.0)
+                else if (
+                    shape.Kind == Kind.Arc
+                    && copy is DxfArc arc
+                    && arc.Normal.Z > 0.0
+                    && arc.Normal.X == 0.0
+                    && arc.Normal.Y == 0.0
+                )
                 {
                     if (writing)
                     {
@@ -1554,7 +1875,13 @@ namespace GeometryHelper.Dxf
                         arc.EndAngle = Normal(x[at + 4]);
                     }
                 }
-                else if (shape.Kind == Kind.Circle && copy is DxfCircle circle && circle.Normal.Z > 0.0 && circle.Normal.X == 0.0 && circle.Normal.Y == 0.0)
+                else if (
+                    shape.Kind == Kind.Circle
+                    && copy is DxfCircle circle
+                    && circle.Normal.Z > 0.0
+                    && circle.Normal.X == 0.0
+                    && circle.Normal.Y == 0.0
+                )
                 {
                     if (writing)
                     {
@@ -1564,7 +1891,13 @@ namespace GeometryHelper.Dxf
                 }
                 else
                 {
-                    throw new NotSupportedException("A geometry of the constraints of the block " + _owner._block + " is tied to a " + copy.GetType().Name + " the library does not write so, or one off the block's plane.");
+                    throw new NotSupportedException(
+                        "A geometry of the constraints of the block "
+                            + _owner._block
+                            + " is tied to a "
+                            + copy.GetType().Name
+                            + " the library does not write so, or one off the block's plane."
+                    );
                 }
             }
 

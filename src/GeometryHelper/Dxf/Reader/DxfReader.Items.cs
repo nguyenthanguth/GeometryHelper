@@ -28,9 +28,27 @@ namespace GeometryHelper.Dxf
         /// (null); with arcs, its bulges all nought where it has none, where <paramref name="arcs"/> is set. Where the reader
         /// reads no shape, <paramref name="why"/> is its reason, as the log gives it: "of no length" for a LINE of none.
         /// </summary>
-        internal static List<object> ShapesOf(Record record, Tolerance tolerance, bool planAs2D, bool? loop, bool arcs, out string why)
+        internal static List<object> ShapesOf(
+            Record record,
+            Tolerance tolerance,
+            bool planAs2D,
+            bool? loop,
+            bool arcs,
+            out string why
+        )
         {
-            var reading = new Reading(new DxfReadOptions { Tolerance = tolerance, KeepGroups = false, PlanAs2D = planAs2D }) { LoopAsked = loop, ArcsAsked = arcs };
+            var reading = new Reading(
+                new DxfReadOptions
+                {
+                    Tolerance = tolerance,
+                    KeepGroups = false,
+                    PlanAs2D = planAs2D,
+                }
+            )
+            {
+                LoopAsked = loop,
+                ArcsAsked = arcs,
+            };
             reading.One(record);
             why = reading.Why();
             return reading.Shapes();
@@ -50,8 +68,8 @@ namespace GeometryHelper.Dxf
         /// An INSERT as it stands in the file, for <see cref="DxfFile"/>; null where a number of it is not a finite number, as
         /// the reader leaves such an INSERT out.
         /// </summary>
-        internal static DxfInsert InsertOf(Record insert, Func<Placing> placed)
-            => new Reading(new DxfReadOptions { KeepGroups = false }).Insert(insert, placed);
+        internal static DxfInsert InsertOf(Record insert, Func<Placing> placed) =>
+            new Reading(new DxfReadOptions { KeepGroups = false }).Insert(insert, placed);
 
         /// <summary>
         /// The base point and flags of a BLOCK record as the reader reads them: the point (10, 20, 30), the origin where a
@@ -98,7 +116,12 @@ namespace GeometryHelper.Dxf
         {
             private readonly Reading _file;
 
-            internal Placer(IEnumerable<Record> layers, IEnumerable<string> drawingLayers, IEnumerable<IEnumerable<Record>> blockSections, Tolerance tolerance)
+            internal Placer(
+                IEnumerable<Record> layers,
+                IEnumerable<string> drawingLayers,
+                IEnumerable<IEnumerable<Record>> blockSections,
+                Tolerance tolerance
+            )
             {
                 _file = new Reading(new DxfReadOptions { Tolerance = tolerance });
                 _file.TakeBlocks(layers, drawingLayers, blockSections);
@@ -126,7 +149,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The name of a BLOCK record, as the reader names the block.</summary>
-        internal static string BlockNameOf(Record block) => Decode((block.Text(2) ?? block.Text(3) ?? string.Empty).Trim());
+        internal static string BlockNameOf(Record block) =>
+            Decode((block.Text(2) ?? block.Text(3) ?? string.Empty).Trim());
 
         private sealed partial class Reading
         {
@@ -200,7 +224,8 @@ namespace GeometryHelper.Dxf
                         r.Int(71, 1),
                         r.Real(44, 0.0),
                         r.Real(45, 0.0),
-                        placed);
+                        placed
+                    );
                 }
                 catch (NotFinite)
                 {
@@ -237,7 +262,11 @@ namespace GeometryHelper.Dxf
             /// Takes the layer table, the layers of the entities of the drawing in their order, and the blocks of a file, each
             /// section of blocks ending the block open in it, as its ENDSEC does.
             /// </summary>
-            internal void TakeBlocks(IEnumerable<Record> layers, IEnumerable<string> drawingLayers, IEnumerable<IEnumerable<Record>> blockSections)
+            internal void TakeBlocks(
+                IEnumerable<Record> layers,
+                IEnumerable<string> drawingLayers,
+                IEnumerable<IEnumerable<Record>> blockSections
+            )
             {
                 foreach (Record layer in layers)
                 {
@@ -261,7 +290,8 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>Places one INSERT in a reading of its own that shares this one's blocks, with a bound of its own.</summary>
-            internal Placing PlaceAlone(Record insert, string ownerBlock) => new Reading(this, new Budget(_budget.Most)).PlaceOne(insert, ownerBlock);
+            internal Placing PlaceAlone(Record insert, string ownerBlock) =>
+                new Reading(this, new Budget(_budget.Most)).PlaceOne(insert, ownerBlock);
 
             private Placing PlaceOne(Record insert, string ownerBlock)
             {
@@ -281,7 +311,10 @@ namespace GeometryHelper.Dxf
 
                     foreach (KeyValuePair<string, int> reason in type.Value)
                     {
-                        why.Append(why.Length == 0 ? string.Empty : ", ").Append(Number(reason.Value)).Append(' ').Append(reason.Key);
+                        why.Append(why.Length == 0 ? string.Empty : ", ")
+                            .Append(Number(reason.Value))
+                            .Append(' ')
+                            .Append(reason.Key);
                     }
 
                     _warnings.Add(Number(_skipped[type.Key]) + " " + type.Key + " not placed: " + why + ".");

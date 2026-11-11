@@ -19,7 +19,11 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gives the tree as a line for debugging: how many filters are nested in its root.</summary>
         /// <returns>The line, such as <c>All, 2 filters</c>.</returns>
-        public override string ToString() => Root.Name + ", " + Root.NestedFilters.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " filters";
+        public override string ToString() =>
+            Root.Name
+            + ", "
+            + Root.NestedFilters.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + " filters";
     }
 
     /// <summary>
@@ -72,10 +76,12 @@ namespace GeometryHelper.Dxf
         public bool AllowRename => !DynamicallyGenerated;
 
         /// <summary>Nests a filter in this one, last: one the drawing keeps, or one AutoCAD makes.</summary>
-        internal void Nest(string name, bool dynamicallyGenerated = false) => _nested.Add(new DxfLayerFilter(name, this, dynamicallyGenerated));
+        internal void Nest(string name, bool dynamicallyGenerated = false) =>
+            _nested.Add(new DxfLayerFilter(name, this, dynamicallyGenerated));
 
         /// <summary>Whether a filter of a name, letters of either case the same, is nested in this one.</summary>
-        internal bool Nests(string name) => _nested.Exists(f => string.Equals(f.Name, name, System.StringComparison.OrdinalIgnoreCase));
+        internal bool Nests(string name) =>
+            _nested.Exists(f => string.Equals(f.Name, name, System.StringComparison.OrdinalIgnoreCase));
 
         /// <summary>Gives the filter as a line for debugging: its name.</summary>
         /// <returns>The line, such as <c>Steel</c>.</returns>

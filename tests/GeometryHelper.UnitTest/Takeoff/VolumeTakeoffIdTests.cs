@@ -35,7 +35,12 @@ namespace GeometryHelper.UnitTest.Takeoff
             return results;
         }
 
-        private static void AssertTaken(VolumeTakeoffResult result, double gross, double net, params (int By, double Volume)[] deductions)
+        private static void AssertTaken(
+            VolumeTakeoffResult result,
+            double gross,
+            double net,
+            params (int By, double Volume)[] deductions
+        )
         {
             double within = Relative * gross;
             Assert.Equal(gross, result.GrossVolume, within);
@@ -56,7 +61,11 @@ namespace GeometryHelper.UnitTest.Takeoff
             // with id 7, listed second or first. By the list alone the first would keep it both times.
             BoxSet forward = HalfOverlap(1, 1);
             forward = new BoxSet(forward.Boxes, forward.Priorities, ids: new int?[] { 7, 9 });
-            BoxSet backward = new BoxSet(forward.Boxes.Reverse().ToArray(), forward.Priorities, ids: new int?[] { 9, 7 });
+            BoxSet backward = new BoxSet(
+                forward.Boxes.Reverse().ToArray(),
+                forward.Priorities,
+                ids: new int?[] { 9, 7 }
+            );
 
             IReadOnlyList<VolumeTakeoffResult> first = RunChecked(forward);
             AssertTaken(first[0], 1E9, 5E8, (1, 5E8));
@@ -188,7 +197,10 @@ namespace GeometryHelper.UnitTest.Takeoff
         [Fact]
         public void TheConstructorOfFourArguments_ThrowsForANullSolid_NamingIt()
         {
-            Assert.Equal("solid", Assert.Throws<ArgumentNullException>(() => new VolumeItem(null, "slab", 3, 7)).ParamName);
+            Assert.Equal(
+                "solid",
+                Assert.Throws<ArgumentNullException>(() => new VolumeItem(null, "slab", 3, 7)).ParamName
+            );
         }
 
         #endregion

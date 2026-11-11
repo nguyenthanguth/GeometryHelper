@@ -21,9 +21,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             var second = new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0)) { Layer = "WALLS" };
             db.ModelSpace.AppendEntity(first);
             db.ModelSpace.AppendEntity(second);
-            db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 100, 0), new GeoPoint3(100, 100, 0)) { Layer = "DOORS" });
-            db.ModelSpace.AppendEntity(new DxfDBText { TextString = "M20 x 60", Height = 2.5, Position = new GeoPoint3(0, 200, 0) });
-            db.ModelSpace.AppendEntity(new DxfMText { Contents = "{\\fArial|b1;Bolts M20}", Location = new GeoPoint3(0, 300, 0), TextHeight = 2.5 });
+            db.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(0, 100, 0), new GeoPoint3(100, 100, 0)) { Layer = "DOORS" }
+            );
+            db.ModelSpace.AppendEntity(
+                new DxfDBText
+                {
+                    TextString = "M20 x 60",
+                    Height = 2.5,
+                    Position = new GeoPoint3(0, 200, 0),
+                }
+            );
+            db.ModelSpace.AppendEntity(
+                new DxfMText
+                {
+                    Contents = "{\\fArial|b1;Bolts M20}",
+                    Location = new GeoPoint3(0, 300, 0),
+                    TextHeight = 2.5,
+                }
+            );
             db.NamedObjectsDictionary.SetAt("ACAD_GROUP", new DxfDBDictionary());
             var group = new DxfGroup("Walls", true);
             db.GroupDictionary.SetAt("WALLPAIR", group);
@@ -91,7 +107,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 Assert.Equal("2 match(es) replaced.", model.History.Last());
                 Assert.Equal("FIND", model.Document.NextUndo.Name);
-                Assert.Equal("{\\fArial|b1;Bolts M24}", model.Document.ModelSpace.Block.OfType<DxfMText>().Single().Contents);
+                Assert.Equal(
+                    "{\\fArial|b1;Bolts M24}",
+                    model.Document.ModelSpace.Block.OfType<DxfMText>().Single().Contents
+                );
                 Assert.True(model.Document.Undo());
                 Assert.Equal("M20 x 60", model.Document.ModelSpace.Block.OfType<DxfDBText>().Single().TextString);
             }
@@ -154,7 +173,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             var at = new GeoPoint2(50, 50);
 
             // Two lines cross at the pick: the list holds both, the one drawn on top first, with their layers; one object alone is no list.
-            Assert.Equal(new[] { up.Handle, across.Handle }, CadPicking.Overlapping(document, document.ModelSpace, null, at, 1.0));
+            Assert.Equal(
+                new[] { up.Handle, across.Handle },
+                CadPicking.Overlapping(document, document.ModelSpace, null, at, 1.0)
+            );
             Assert.Equal("Line · WALLS", CadPicking.CycleLabel(document, across.Handle));
             Assert.Empty(CadPicking.Overlapping(document, document.ModelSpace, null, new GeoPoint2(510, 500), 1.0));
             Assert.True(CadPicking.Choose(document, null, up.Handle, false));

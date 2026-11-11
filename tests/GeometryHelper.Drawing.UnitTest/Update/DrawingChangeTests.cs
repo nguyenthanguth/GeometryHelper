@@ -21,19 +21,32 @@ namespace GeometryHelper.Drawing.UnitTest.Update
     {
         private const string MarkId = "V-FRONT/M-TC2-endplate";
 
-        private static DxfMText MarkText(DxfDatabase database) => Tagged(database.ModelSpace.Cast<DxfEntity>(), MarkId).OfType<DxfMText>().Single();
+        private static DxfMText MarkText(DxfDatabase database) =>
+            Tagged(database.ModelSpace.Cast<DxfEntity>(), MarkId).OfType<DxfMText>().Single();
 
         [Fact]
         public void MadeAgainOnAnA2WithoutItsTopViewTheDrawingKeepsItsHandEditsAndWhatWasDrawnByHand()
         {
             Drawing drawing = DrawingBuilder.Build(TC2(), AssemblyOnA3(), Tol);
             CadDocument document = drawing.OpenInPresenter();
-            Assert.True(document.Owners.TryApply(document, new CadEdit(MarkText(document.Database).Handle, CadEditKind.Move, newValue: "0,60")));
+            Assert.True(
+                document.Owners.TryApply(
+                    document,
+                    new CadEdit(MarkText(document.Database).Handle, CadEditKind.Move, newValue: "0,60")
+                )
+            );
             DxfDimension top = Dimension(document.Database, "V-TOP/D-Overall-X-1");
-            Assert.True(document.Owners.TryApply(document, new CadEdit(top.Handle, CadEditKind.Property, "Text override", string.Empty, "<> (top)")));
+            Assert.True(
+                document.Owners.TryApply(
+                    document,
+                    new CadEdit(top.Handle, CadEditKind.Property, "Text override", string.Empty, "<> (top)")
+                )
+            );
             CadSpace sheet = document.Spaces.Single(s => s.Name == DrawingDxfWriter.LayoutName);
             DxfLine byHand = null;
-            document.ApplyEdit("LINE", null, scope => byHand = scope.Append(sheet, new DxfLine(new GeoPoint3(20, 100, 0), new GeoPoint3(120, 100, 0))));
+            document.ApplyEdit("LINE", null, scope =>
+                byHand = scope.Append(sheet, new DxfLine(new GeoPoint3(20, 100, 0), new GeoPoint3(120, 100, 0)))
+            );
 
             DrawingSettings settings = drawing.Settings;
             settings.Sheet.Size = PaperSize.A2;
@@ -100,7 +113,9 @@ namespace GeometryHelper.Drawing.UnitTest.Update
             PreparedUpdate isometric = drawing.Prepare(TC2(), withIsometric);
 
             drawing.Apply(back);
-            InvalidOperationException refused = Assert.Throws<InvalidOperationException>(() => drawing.Apply(isometric));
+            InvalidOperationException refused = Assert.Throws<InvalidOperationException>(() =>
+                drawing.Apply(isometric)
+            );
 
             Assert.StartsWith("The drawing was made again while this update was prepared", refused.Message);
             Assert.False(isometric.IsApplied);
@@ -165,7 +180,10 @@ namespace GeometryHelper.Drawing.UnitTest.Update
             double scale = drawing.Views.Single(v => v.Id == "V-FRONT").Scale;
             drawing.AddDetail("C", "V-FRONT", new GeoRectangle2(2800, -200, 300, 400), scale / 2);
 
-            Assert.Equal(new[] { "V-FRONT", "V-TOP", "V-RIGHT", "V-BACK", "V-SECTION-B", "V-DETAIL-C" }, drawing.Views.Select(v => v.Id));
+            Assert.Equal(
+                new[] { "V-FRONT", "V-TOP", "V-RIGHT", "V-BACK", "V-SECTION-B", "V-DETAIL-C" },
+                drawing.Views.Select(v => v.Id)
+            );
 
             // The section looks along the beam towards its far end, its plane at 1 000, and is marked B in the front view.
             DrawingView section = drawing.Views.Single(v => v.Id == "V-SECTION-B");
@@ -182,7 +200,9 @@ namespace GeometryHelper.Drawing.UnitTest.Update
             Assert.Equal(drawing.Views[0].Scale / 2, detail.Scale, 9);
             Assert.Equal("C", Assert.Single(drawing.Views[0].DetailMarks).Letter);
 
-            Assert.Throws<ArgumentException>(() => drawing.AddSection("B", "V-FRONT", new GeoLine2(500, -200, 500, 200), 100));
+            Assert.Throws<ArgumentException>(() =>
+                drawing.AddSection("B", "V-FRONT", new GeoLine2(500, -200, 500, 200), 100)
+            );
             Assert.Throws<ArgumentException>(() => drawing.AddView(ViewKind.Section));
         }
 
@@ -192,7 +212,9 @@ namespace GeometryHelper.Drawing.UnitTest.Update
             DrawingSettings settings = AssemblyOnA3();
             settings.Views.DimensionedViews.Add("V-RIGHT");
             settings.Views.MarkedViews.Add("V-TOP");
-            settings.Views.Sections.Add(new SectionViewRequest("B", ViewKind.Front, new GeoLine2(1000, -200, 1000, 200), 100));
+            settings.Views.Sections.Add(
+                new SectionViewRequest("B", ViewKind.Front, new GeoLine2(1000, -200, 1000, 200), 100)
+            );
             Drawing drawing = DrawingBuilder.Build(TC2(), settings, Tol);
 
             string path = Path.Combine(Folder(), "tc2-settings-by-view.dxf");

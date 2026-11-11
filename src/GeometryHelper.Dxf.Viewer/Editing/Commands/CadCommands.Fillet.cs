@@ -20,11 +20,16 @@ namespace GeometryHelper.Dxf.Viewer
             var marks = new List<CadGroupMark>();
 
             bool trim = c.Remembered("trimmode", 1.0) != 0.0;
-            c.Write("Current settings: Mode = " + (trim ? "TRIM" : "NOTRIM") + ", Radius = " + Length(c.Database.Filletrad));
+            c.Write(
+                "Current settings: Mode = " + (trim ? "TRIM" : "NOTRIM") + ", Radius = " + Length(c.Database.Filletrad)
+            );
 
             while (true)
             {
-                yield return CadPrompt.ForEntity("Select first object", new[] { "Undo", "Polyline", "Radius", "Trim", "Multiple" });
+                yield return CadPrompt.ForEntity(
+                    "Select first object",
+                    new[] { "Undo", "Polyline", "Radius", "Trim", "Multiple" }
+                );
 
                 if (c.Input.Is("Undo"))
                 {
@@ -105,8 +110,24 @@ namespace GeometryHelper.Dxf.Viewer
 
                 while (true)
                 {
-                    yield return CadPrompt.ForEntity("Select second object or shift-select to apply corner", new[] { "Radius" })
-                        .Previewing(CadPreview.Making(c, input => Cornered(c, input, true, (second, pick, preview) => Round(c, first, firstPick, second, pick, c.Database.Filletrad, c.Remembered("trimmode", 1.0) != 0.0, preview))));
+                    yield return CadPrompt
+                        .ForEntity("Select second object or shift-select to apply corner", new[] { "Radius" })
+                        .Previewing(
+                            CadPreview.Making(c, input =>
+                                Cornered(c, input, true, (second, pick, preview) =>
+                                    Round(
+                                        c,
+                                        first,
+                                        firstPick,
+                                        second,
+                                        pick,
+                                        c.Database.Filletrad,
+                                        c.Remembered("trimmode", 1.0) != 0.0,
+                                        preview
+                                    )
+                                )
+                            )
+                        );
 
                     if (c.Input.Is("Radius"))
                     {
@@ -131,7 +152,17 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (Cornerable(c, second, true))
                 {
-                    Marked(c, marks, () => Round(c, first, firstPick, second, secondPick, c.Database.Filletrad, c.Remembered("trimmode", 1.0) != 0.0));
+                    Marked(c, marks, () =>
+                        Round(
+                            c,
+                            first,
+                            firstPick,
+                            second,
+                            secondPick,
+                            c.Database.Filletrad,
+                            c.Remembered("trimmode", 1.0) != 0.0
+                        )
+                    );
                 }
 
                 if (!multiple)
@@ -148,13 +179,26 @@ namespace GeometryHelper.Dxf.Viewer
 
             bool trim = c.Remembered("trimmode", 1.0) != 0.0;
             bool byAngle = ChamferByAngle(c);
-            c.Write("(" + (trim ? "TRIM" : "NOTRIM") + " mode) Current chamfer " + (byAngle
-                ? "Length = " + Length(c.Database.Chamferc) + ", Angle = " + Number(c.Database.Chamferd * 180.0 / Math.PI)
-                : "Dist1 = " + Length(c.Database.Chamfera) + ", Dist2 = " + Length(c.Database.Chamferb)));
+            c.Write(
+                "("
+                    + (trim ? "TRIM" : "NOTRIM")
+                    + " mode) Current chamfer "
+                    + (
+                        byAngle
+                            ? "Length = "
+                                + Length(c.Database.Chamferc)
+                                + ", Angle = "
+                                + Number(c.Database.Chamferd * 180.0 / Math.PI)
+                            : "Dist1 = " + Length(c.Database.Chamfera) + ", Dist2 = " + Length(c.Database.Chamferb)
+                    )
+            );
 
             while (true)
             {
-                yield return CadPrompt.ForEntity("Select first line", new[] { "Undo", "Polyline", "Distance", "Angle", "Trim", "mEthod", "Multiple" });
+                yield return CadPrompt.ForEntity(
+                    "Select first line",
+                    new[] { "Undo", "Polyline", "Distance", "Angle", "Trim", "mEthod", "Multiple" }
+                );
 
                 if (c.Input.Is("Undo"))
                 {
@@ -210,7 +254,9 @@ namespace GeometryHelper.Dxf.Viewer
                     if (c.Input.Kind == CadInputKind.Selection)
                     {
                         ChamferDistances(c, out double d1, out double d2, out double angle);
-                        Marked(c, marks, () => AllCorners(c, c.Input.Handles[0], false, d1, double.IsNaN(angle) ? d2 : -angle));
+                        Marked(c, marks, () =>
+                            AllCorners(c, c.Input.Handles[0], false, d1, double.IsNaN(angle) ? d2 : -angle)
+                        );
                     }
 
                     if (multiple)
@@ -236,12 +282,27 @@ namespace GeometryHelper.Dxf.Viewer
 
                 while (true)
                 {
-                    yield return CadPrompt.ForEntity("Select second line or shift-select to apply corner", new[] { "Distance", "Angle", "Method" })
+                    yield return CadPrompt
+                        .ForEntity(
+                            "Select second line or shift-select to apply corner",
+                            new[] { "Distance", "Angle", "Method" }
+                        )
                         .Previewing(CadPreview.Making(c, input => Cornered(c, input, false, (second, pick, preview) =>
-                        {
-                            ChamferDistances(c, out double d1, out double d2, out double angle);
-                            return Cut(c, first, firstPick, second, pick, d1, d2, angle, c.Remembered("trimmode", 1.0) != 0.0, preview);
-                        })));
+                                {
+                                    ChamferDistances(c, out double d1, out double d2, out double angle);
+                                    return Cut(
+                                        c,
+                                        first,
+                                        firstPick,
+                                        second,
+                                        pick,
+                                        d1,
+                                        d2,
+                                        angle,
+                                        c.Remembered("trimmode", 1.0) != 0.0,
+                                        preview
+                                    );
+                                })));
 
                     if (c.Input.Is("Distance") || c.Input.Is("Angle") || c.Input.Is("Method"))
                     {
@@ -267,7 +328,19 @@ namespace GeometryHelper.Dxf.Viewer
                 if (Cornerable(c, second, false))
                 {
                     ChamferDistances(c, out double d1, out double d2, out double angle);
-                    Marked(c, marks, () => Cut(c, first, firstPick, second, secondPick, d1, d2, angle, c.Remembered("trimmode", 1.0) != 0.0));
+                    Marked(c, marks, () =>
+                        Cut(
+                            c,
+                            first,
+                            firstPick,
+                            second,
+                            secondPick,
+                            d1,
+                            d2,
+                            angle,
+                            c.Remembered("trimmode", 1.0) != 0.0
+                        )
+                    );
                 }
 
                 if (!multiple)
@@ -281,7 +354,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// What FILLET or CHAMFER would make of the object under the cursor taken as the second: the copies of the objects it
         /// trims and its arc or line, as AutoCAD 2021 previews them; null where the object cannot be taken or nothing is made.
         /// </summary>
-        private static IEnumerable<DxfEntity> Cornered(CadCommandContext c, CadInput input, bool fillet, Func<string, GeoPoint2, List<DxfEntity>, bool> pick)
+        private static IEnumerable<DxfEntity> Cornered(
+            CadCommandContext c,
+            CadInput input,
+            bool fillet,
+            Func<string, GeoPoint2, List<DxfEntity>, bool> pick
+        )
         {
             if (input.Kind != CadInputKind.Selection || !Cornerable(c, input.Handles[0], fillet))
             {
@@ -326,7 +404,11 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> AskTrim(CadCommandContext c)
         {
             bool trim = c.Remembered("trimmode", 1.0) != 0.0;
-            yield return CadPrompt.ForKeyword("Enter Trim mode option", new[] { "Trim", "No trim" }, trim ? "Trim" : "No trim");
+            yield return CadPrompt.ForKeyword(
+                "Enter Trim mode option",
+                new[] { "Trim", "No trim" },
+                trim ? "Trim" : "No trim"
+            );
 
             if (c.Input.Kind == CadInputKind.Keyword)
             {
@@ -339,7 +421,12 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (string.Equals(option, "Distance", StringComparison.Ordinal))
             {
-                yield return CadPrompt.ForDistance("Specify first chamfer distance", null, null, Length(c.Database.Chamfera));
+                yield return CadPrompt.ForDistance(
+                    "Specify first chamfer distance",
+                    null,
+                    null,
+                    Length(c.Database.Chamfera)
+                );
                 double first = c.Input.Kind == CadInputKind.Number ? c.Input.Number : c.Database.Chamfera;
 
                 if (first < 0.0)
@@ -363,7 +450,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (string.Equals(option, "Angle", StringComparison.Ordinal))
             {
-                yield return CadPrompt.ForDistance("Specify chamfer length on the first line", null, null, Length(c.Database.Chamferc));
+                yield return CadPrompt.ForDistance(
+                    "Specify chamfer length on the first line",
+                    null,
+                    null,
+                    Length(c.Database.Chamferc)
+                );
                 double length = c.Input.Kind == CadInputKind.Number ? c.Input.Number : c.Database.Chamferc;
 
                 if (length < 0.0)
@@ -372,7 +464,14 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                yield return CadPrompt.ForAngle("Specify chamfer angle from the first line", null, null, Number(c.Database.Chamferd * 180.0 / Math.PI)).Turning();
+                yield return CadPrompt
+                    .ForAngle(
+                        "Specify chamfer angle from the first line",
+                        null,
+                        null,
+                        Number(c.Database.Chamferd * 180.0 / Math.PI)
+                    )
+                    .Turning();
                 double angle = c.Input.Kind == CadInputKind.Number ? c.Input.Number : c.Database.Chamferd;
                 SetHeader(c, "$CHAMFERC", c.Database.Chamferc, length, d => d.Chamferc = length);
                 SetHeader(c, "$CHAMFERD", c.Database.Chamferd, angle, d => d.Chamferd = angle);
@@ -380,7 +479,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else
             {
-                yield return CadPrompt.ForKeyword("Enter trim method", new[] { "Distance", "Angle" }, ChamferByAngle(c) ? "Angle" : "Distance");
+                yield return CadPrompt.ForKeyword(
+                    "Enter trim method",
+                    new[] { "Distance", "Angle" },
+                    ChamferByAngle(c) ? "Angle" : "Distance"
+                );
 
                 if (c.Input.Kind == CadInputKind.Keyword)
                 {
@@ -404,8 +507,13 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string value = byAngle ? "1" : "0";
-            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$CHAMMODE", byAngle ? "0" : "1", value) },
-                s => s.Database.SetHeader("$CHAMMODE", new DxfTypedValue(70, value)));
+            c.Apply(
+                new[]
+                {
+                    new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$CHAMMODE", byAngle ? "0" : "1", value),
+                },
+                s => s.Database.SetHeader("$CHAMMODE", new DxfTypedValue(70, value))
+            );
         }
 
         /// <summary>The chamfer's distances as the method says: two distances, or a length and an angle (NaN for none).</summary>
@@ -426,14 +534,26 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Writes a variable of the header as one edit of the command, where it changes.</summary>
-        private static void SetHeader(CadCommandContext c, string name, double before, double after, Action<DxfDatabase> set)
+        private static void SetHeader(
+            CadCommandContext c,
+            string name,
+            double before,
+            double after,
+            Action<DxfDatabase> set
+        )
         {
             if (before.Equals(after))
             {
                 return;
             }
 
-            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, name, Values(before), Values(after)) }, s => set(s.Database));
+            c.Apply(
+                new[]
+                {
+                    new CadEditRecord(CadEditRecordKind.SettingChanged, null, name, Values(before), Values(after)),
+                },
+                s => set(s.Database)
+            );
         }
 
         /// <summary>
@@ -443,7 +563,8 @@ namespace GeometryHelper.Dxf.Viewer
         private static bool Cornerable(CadCommandContext c, string handle, bool fillet)
         {
             DxfEntity entity = c.Document.FindEntity(handle);
-            bool kind = entity is DxfLine || entity is DxfPolyline || (fillet && (entity is DxfArc || entity is DxfCircle));
+            bool kind =
+                entity is DxfLine || entity is DxfPolyline || (fillet && (entity is DxfArc || entity is DxfCircle));
 
             if (!kind)
             {
@@ -465,7 +586,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (c.Document.Owners.GetEditRule(entity) != CadEditRule.Free)
             {
-                c.Write("This " + CadOwnerEditGate.Describe(entity) + " belongs to the model and cannot be " + (fillet ? "filleted" : "chamfered") + " here.");
+                c.Write(
+                    "This "
+                        + CadOwnerEditGate.Describe(entity)
+                        + " belongs to the model and cannot be "
+                        + (fillet ? "filleted" : "chamfered")
+                        + " here."
+                );
                 return false;
             }
 
@@ -493,14 +620,35 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>One FILLET pick: the two objects rounded by an arc of the radius, or run to a corner where it is nought.</summary>
-        private static bool Round(CadCommandContext c, string first, GeoPoint2 firstPick, string second, GeoPoint2 secondPick, double radius, bool trim, List<DxfEntity> preview = null)
+        private static bool Round(
+            CadCommandContext c,
+            string first,
+            GeoPoint2 firstPick,
+            string second,
+            GeoPoint2 secondPick,
+            double radius,
+            bool trim,
+            List<DxfEntity> preview = null
+        )
         {
             DxfEntity a = c.Document.FindEntity(first);
             DxfEntity b = c.Document.FindEntity(second);
 
             if (a is DxfPolyline || b is DxfPolyline)
             {
-                return PolylineCorner(c, first, firstPick, second, secondPick, true, radius, 0.0, double.NaN, trim, preview);
+                return PolylineCorner(
+                    c,
+                    first,
+                    firstPick,
+                    second,
+                    secondPick,
+                    true,
+                    radius,
+                    0.0,
+                    double.NaN,
+                    trim,
+                    preview
+                );
             }
 
             if (string.Equals(first, second, StringComparison.OrdinalIgnoreCase))
@@ -516,7 +664,20 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (a is DxfLine lineA && b is DxfLine lineB)
             {
-                if (!LineCorner(c, lineA, firstPick, lineB, secondPick, radius, out GeoPoint2 corner, out GeoVector2 u1, out GeoVector2 u2, out bool parallel))
+                if (
+                    !LineCorner(
+                        c,
+                        lineA,
+                        firstPick,
+                        lineB,
+                        secondPick,
+                        radius,
+                        out GeoPoint2 corner,
+                        out GeoVector2 u1,
+                        out GeoVector2 u2,
+                        out bool parallel
+                    )
+                )
                 {
                     if (parallel)
                     {
@@ -547,7 +708,9 @@ namespace GeometryHelper.Dxf.Viewer
                 Shape one = Shape.Of(a);
                 Shape two = Shape.Of(b);
 
-                if (!Tangent(one, firstPick, two, secondPick, radius, c.Session.Tolerance, out centre, out from, out to))
+                if (
+                    !Tangent(one, firstPick, two, secondPick, radius, c.Session.Tolerance, out centre, out from, out to)
+                )
                 {
                     c.Write(radius > 0.0 ? "Radius is too large." : "The objects do not meet.");
                     return false;
@@ -585,7 +748,10 @@ namespace GeometryHelper.Dxf.Viewer
                     end = swap;
                 }
 
-                round = Current(c, new DxfArc(new GeoPoint3(centre.X, centre.Y, Height(a)), radius, Turn(start), Turn(end)));
+                round = Current(
+                    c,
+                    new DxfArc(new GeoPoint3(centre.X, centre.Y, Height(a)), radius, Turn(start), Turn(end))
+                );
                 SameLayer(round, a, b);
             }
             else if (!trim)
@@ -597,14 +763,37 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>One CHAMFER pick of two lines: a line cut across the corner at the distances, or the corner where both are nought.</summary>
-        private static bool Cut(CadCommandContext c, string first, GeoPoint2 firstPick, string second, GeoPoint2 secondPick, double d1, double d2, double angle, bool trim, List<DxfEntity> preview = null)
+        private static bool Cut(
+            CadCommandContext c,
+            string first,
+            GeoPoint2 firstPick,
+            string second,
+            GeoPoint2 secondPick,
+            double d1,
+            double d2,
+            double angle,
+            bool trim,
+            List<DxfEntity> preview = null
+        )
         {
             DxfEntity a = c.Document.FindEntity(first);
             DxfEntity b = c.Document.FindEntity(second);
 
             if (a is DxfPolyline || b is DxfPolyline)
             {
-                return PolylineCorner(c, first, firstPick, second, secondPick, false, 0.0, d1, double.IsNaN(angle) ? d2 : -angle, trim, preview);
+                return PolylineCorner(
+                    c,
+                    first,
+                    firstPick,
+                    second,
+                    secondPick,
+                    false,
+                    0.0,
+                    d1,
+                    double.IsNaN(angle) ? d2 : -angle,
+                    trim,
+                    preview
+                );
             }
 
             if (string.Equals(first, second, StringComparison.OrdinalIgnoreCase))
@@ -616,7 +805,20 @@ namespace GeometryHelper.Dxf.Viewer
             var lineA = (DxfLine)a;
             var lineB = (DxfLine)b;
 
-            if (!LineCorner(c, lineA, firstPick, lineB, secondPick, 0.0, out GeoPoint2 corner, out GeoVector2 u1, out GeoVector2 u2, out bool parallel))
+            if (
+                !LineCorner(
+                    c,
+                    lineA,
+                    firstPick,
+                    lineB,
+                    secondPick,
+                    0.0,
+                    out GeoPoint2 corner,
+                    out GeoVector2 u1,
+                    out GeoVector2 u2,
+                    out bool parallel
+                )
+            )
             {
                 if (parallel)
                 {
@@ -656,7 +858,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             if ((to - from).Length > c.Session.Tolerance.EqualPoint)
             {
-                cut = Current(c, new DxfLine(new GeoPoint3(from.X, from.Y, Height(a)), new GeoPoint3(to.X, to.Y, Height(a))));
+                cut = Current(
+                    c,
+                    new DxfLine(new GeoPoint3(from.X, from.Y, Height(a)), new GeoPoint3(to.X, to.Y, Height(a)))
+                );
                 SameLayer(cut, a, b);
             }
             else if (!trim)
@@ -679,12 +884,26 @@ namespace GeometryHelper.Dxf.Viewer
         /// The corner of two lines that are not parallel and the way from it along each to the part picked: the side of the
         /// corner its pick lies on, or the far end where the pick is at the corner.
         /// </summary>
-        private static bool LineCorner(CadCommandContext c, DxfLine a, GeoPoint2 pickA, DxfLine b, GeoPoint2 pickB, double radius, out GeoPoint2 corner, out GeoVector2 u1, out GeoVector2 u2, out bool parallel)
+        private static bool LineCorner(
+            CadCommandContext c,
+            DxfLine a,
+            GeoPoint2 pickA,
+            DxfLine b,
+            GeoPoint2 pickB,
+            double radius,
+            out GeoPoint2 corner,
+            out GeoVector2 u1,
+            out GeoVector2 u2,
+            out bool parallel
+        )
         {
             corner = default;
             u1 = default;
             u2 = default;
-            GeoPoint2 a0 = P2(a.StartPoint), a1 = P2(a.EndPoint), b0 = P2(b.StartPoint), b1 = P2(b.EndPoint);
+            GeoPoint2 a0 = P2(a.StartPoint),
+                a1 = P2(a.EndPoint),
+                b0 = P2(b.StartPoint),
+                b1 = P2(b.EndPoint);
             GeoVector2 da = a1 - a0;
             GeoVector2 db = b1 - b0;
 
@@ -714,7 +933,13 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The way from a corner along a line to the part of it picked.</summary>
-        private static GeoVector2 Toward(GeoPoint2 corner, GeoVector2 along, GeoPoint2 pick, GeoPoint2 start, GeoPoint2 end)
+        private static GeoVector2 Toward(
+            GeoPoint2 corner,
+            GeoVector2 along,
+            GeoPoint2 pick,
+            GeoPoint2 start,
+            GeoPoint2 end
+        )
         {
             double side = (pick - corner).X * along.X + (pick - corner).Y * along.Y;
 
@@ -738,9 +963,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// Two parallel lines joined by a half circle as AutoCAD joins them, whatever the radius: at the end of the first line
         /// nearer its pick, the second run on or cut back to stand across from it.
         /// </summary>
-        private static bool ParallelFillet(CadCommandContext c, DxfLine a, GeoPoint2 pickA, DxfLine b, bool trim, List<DxfEntity> preview)
+        private static bool ParallelFillet(
+            CadCommandContext c,
+            DxfLine a,
+            GeoPoint2 pickA,
+            DxfLine b,
+            bool trim,
+            List<DxfEntity> preview
+        )
         {
-            GeoPoint2 a0 = P2(a.StartPoint), a1 = P2(a.EndPoint), b0 = P2(b.StartPoint), b1 = P2(b.EndPoint);
+            GeoPoint2 a0 = P2(a.StartPoint),
+                a1 = P2(a.EndPoint),
+                b0 = P2(b.StartPoint),
+                b1 = P2(b.EndPoint);
             GeoVector2 da = (a1 - a0) / (a1 - a0).Length;
             GeoVector2 db = (b1 - b0) / (b1 - b0).Length;
             double width = Math.Abs((b0 - a0).X * da.Y - (b0 - a0).Y * da.X);
@@ -767,7 +1002,10 @@ namespace GeometryHelper.Dxf.Viewer
                 finish = swap;
             }
 
-            DxfArc round = Current(c, new DxfArc(new GeoPoint3(centre.X, centre.Y, a.StartPoint.Z), width / 2.0, Turn(start), Turn(finish)));
+            DxfArc round = Current(
+                c,
+                new DxfArc(new GeoPoint3(centre.X, centre.Y, a.StartPoint.Z), width / 2.0, Turn(start), Turn(finish))
+            );
             SameLayer(round, a, b);
             var ends = new List<Trimmed>();
 
@@ -785,7 +1023,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// where the shapes moved the radius either way cross, the one whose points of touching lie nearest the picks; at a
         /// radius of nought, the crossing of the shapes nearest them.
         /// </summary>
-        private static bool Tangent(Shape one, GeoPoint2 pickOne, Shape two, GeoPoint2 pickTwo, double radius, Tolerance tolerance, out GeoPoint2 centre, out GeoPoint2 from, out GeoPoint2 to)
+        private static bool Tangent(
+            Shape one,
+            GeoPoint2 pickOne,
+            Shape two,
+            GeoPoint2 pickTwo,
+            double radius,
+            Tolerance tolerance,
+            out GeoPoint2 centre,
+            out GeoPoint2 from,
+            out GeoPoint2 to
+        )
         {
             centre = default;
             from = default;
@@ -808,14 +1056,23 @@ namespace GeometryHelper.Dxf.Viewer
 
                     foreach (GeoPoint2 at in moved1.Crossings(moved2, tolerance))
                     {
-                        if (!one.TryFoot(at, tolerance, out GeoPoint2 f1) || !two.TryFoot(at, tolerance, out GeoPoint2 f2))
+                        if (
+                            !one.TryFoot(at, tolerance, out GeoPoint2 f1)
+                            || !two.TryFoot(at, tolerance, out GeoPoint2 f2)
+                        )
                         {
                             continue;
                         }
 
                         double score = (f1 - pickOne).Length + (f2 - pickTwo).Length;
 
-                        if (score < best - 1E-12 || (Math.Abs(score - best) <= 1E-12 && (at.X < centre.X || (at.X == centre.X && at.Y < centre.Y))))
+                        if (
+                            score < best - 1E-12
+                            || (
+                                Math.Abs(score - best) <= 1E-12
+                                && (at.X < centre.X || (at.X == centre.X && at.Y < centre.Y))
+                            )
+                        )
                         {
                             best = score;
                             centre = at;
@@ -897,10 +1154,14 @@ namespace GeometryHelper.Dxf.Viewer
         {
             switch (entity)
             {
-                case DxfLine line: return line.StartPoint.Z;
-                case DxfArc arc: return arc.Center.Z;
-                case DxfCircle circle: return circle.Center.Z;
-                default: return 0.0;
+                case DxfLine line:
+                    return line.StartPoint.Z;
+                case DxfArc arc:
+                    return arc.Center.Z;
+                case DxfCircle circle:
+                    return circle.Center.Z;
+                default:
+                    return 0.0;
             }
         }
 
@@ -917,11 +1178,30 @@ namespace GeometryHelper.Dxf.Viewer
         /// FILLET or CHAMFER of two straight segments of one polyline that meet at a vertex: the vertex cut back along both and an
         /// arc segment or a straight one put between, or, with No trim, an arc or a line drawn apart from the polyline.
         /// </summary>
-        private static bool PolylineCorner(CadCommandContext c, string first, GeoPoint2 firstPick, string second, GeoPoint2 secondPick, bool fillet, double radius, double d1, double d2, bool trim, List<DxfEntity> preview)
+        private static bool PolylineCorner(
+            CadCommandContext c,
+            string first,
+            GeoPoint2 firstPick,
+            string second,
+            GeoPoint2 secondPick,
+            bool fillet,
+            double radius,
+            double d1,
+            double d2,
+            bool trim,
+            List<DxfEntity> preview
+        )
         {
-            if (!string.Equals(first, second, StringComparison.OrdinalIgnoreCase) || !(c.Document.FindEntity(first) is DxfPolyline polyline))
+            if (
+                !string.Equals(first, second, StringComparison.OrdinalIgnoreCase)
+                || !(c.Document.FindEntity(first) is DxfPolyline polyline)
+            )
             {
-                c.Write("A polyline segment is " + (fillet ? "filleted" : "chamfered") + " here only with a segment of the same polyline next to it.");
+                c.Write(
+                    "A polyline segment is "
+                        + (fillet ? "filleted" : "chamfered")
+                        + " here only with a segment of the same polyline next to it."
+                );
                 return false;
             }
 
@@ -941,13 +1221,24 @@ namespace GeometryHelper.Dxf.Viewer
                 vertex = i;
             }
 
-            if (vertex < 0 || !Corner(polyline, vertex, fillet, radius, d1, d2, out PolyCorner corner) || corner.Straight)
+            if (
+                vertex < 0
+                || !Corner(polyline, vertex, fillet, radius, d1, d2, out PolyCorner corner)
+                || corner.Straight
+            )
             {
-                c.Write("Only two straight segments of a polyline next to each other are " + (fillet ? "filleted" : "chamfered") + " here.");
+                c.Write(
+                    "Only two straight segments of a polyline next to each other are "
+                        + (fillet ? "filleted" : "chamfered")
+                        + " here."
+                );
                 return false;
             }
 
-            if (corner.Along1 > corner.Length1 + c.Session.Tolerance.EqualPoint || corner.Along2 > corner.Length2 + c.Session.Tolerance.EqualPoint)
+            if (
+                corner.Along1 > corner.Length1 + c.Session.Tolerance.EqualPoint
+                || corner.Along2 > corner.Length2 + c.Session.Tolerance.EqualPoint
+            )
             {
                 c.Write(fillet ? "Radius is too large." : "Distance is too large.");
                 return false;
@@ -976,10 +1267,13 @@ namespace GeometryHelper.Dxf.Viewer
                 return true;
             }
 
-            CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, c.Command.Name) }, s =>
-            {
-                corner.Apply((DxfPolyline)s.Document.FindEntity(handle));
-            });
+            CadEditResult result = c.Apply(
+                new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, c.Command.Name) },
+                s =>
+                {
+                    corner.Apply((DxfPolyline)s.Document.FindEntity(handle));
+                }
+            );
 
             return result.Succeeded;
         }
@@ -1036,7 +1330,10 @@ namespace GeometryHelper.Dxf.Viewer
                 int before = (k - 1 + count) % count;
                 int after = (k + 1) % count;
 
-                if (corner.Along1 > corner.Length1 - cutOut[before] + slack || corner.Along2 > corner.Length2 - cutIn[after] + slack)
+                if (
+                    corner.Along1 > corner.Length1 - cutOut[before] + slack
+                    || corner.Along2 > corner.Length2 - cutIn[after] + slack
+                )
                 {
                     tooShort++;
                     continue;
@@ -1048,11 +1345,17 @@ namespace GeometryHelper.Dxf.Viewer
                 done++;
             }
 
-            c.Write(done.ToString(CultureInfo.InvariantCulture) + (done == 1 ? " line was " : " lines were ") + (fillet ? "filleted" : "chamfered"));
+            c.Write(
+                done.ToString(CultureInfo.InvariantCulture)
+                    + (done == 1 ? " line was " : " lines were ")
+                    + (fillet ? "filleted" : "chamfered")
+            );
 
             if (tooShort > 0)
             {
-                c.Write(tooShort.ToString(CultureInfo.InvariantCulture) + (tooShort == 1 ? " was" : " were") + " too short");
+                c.Write(
+                    tooShort.ToString(CultureInfo.InvariantCulture) + (tooShort == 1 ? " was" : " were") + " too short"
+                );
             }
 
             if (corners.Count == 0)
@@ -1060,16 +1363,19 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, c.Command.Name) }, s =>
-            {
-                var target = (DxfPolyline)s.Document.FindEntity(handle);
-
-                // The corners from the last back, so that a vertex put in does not move the index of one still to do.
-                for (int n = corners.Count - 1; n >= 0; n--)
+            CadEditResult result = c.Apply(
+                new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, c.Command.Name) },
+                s =>
                 {
-                    corners[n].Apply(target);
+                    var target = (DxfPolyline)s.Document.FindEntity(handle);
+
+                    // The corners from the last back, so that a vertex put in does not move the index of one still to do.
+                    for (int n = corners.Count - 1; n >= 0; n--)
+                    {
+                        corners[n].Apply(target);
+                    }
                 }
-            });
+            );
 
             return result.Succeeded;
         }
@@ -1079,7 +1385,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// segment coming in and the one going out, by the fillet's tangent length or the chamfer's distances; a chamfer's
         /// second distance below nought is the angle from the first line.
         /// </summary>
-        private static bool Corner(DxfPolyline polyline, int vertex, bool fillet, double radius, double d1, double d2, out PolyCorner corner)
+        private static bool Corner(
+            DxfPolyline polyline,
+            int vertex,
+            bool fillet,
+            double radius,
+            double d1,
+            double d2,
+            out PolyCorner corner
+        )
         {
             corner = null;
             int count = polyline.NumberOfVertices;
@@ -1105,7 +1419,16 @@ namespace GeometryHelper.Dxf.Viewer
             GeoVector2 u1 = (p - v) / length1;
             GeoVector2 u2 = (n - v) / length2;
             double between = Math.Acos(Math.Max(-1.0, Math.Min(1.0, Dot(u1, u2))));
-            var made = new PolyCorner { Vertex = vertex, Length1 = length1, Length2 = length2, Corner = v, U1 = u1, U2 = u2, Fillet = fillet };
+            var made = new PolyCorner
+            {
+                Vertex = vertex,
+                Length1 = length1,
+                Length2 = length2,
+                Corner = v,
+                U1 = u1,
+                U2 = u2,
+                Fillet = fillet,
+            };
 
             if (between >= Math.PI - Tolerance.Default.EqualAngleRad)
             {
@@ -1198,9 +1521,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             /// <summary>A point of the plane of a polyline of the plan in the world: the plane's x is the world's -x where its normal points down.</summary>
-            private static GeoPoint2 World(DxfPolyline polyline, GeoPoint2 point) => polyline.Normal.Z < 0.0 ? new GeoPoint2(-point.X, point.Y) : point;
+            private static GeoPoint2 World(DxfPolyline polyline, GeoPoint2 point) =>
+                polyline.Normal.Z < 0.0 ? new GeoPoint2(-point.X, point.Y) : point;
 
-            private static double Z(DxfPolyline polyline) => polyline.Normal.Z < 0.0 ? -polyline.Elevation : polyline.Elevation;
+            private static double Z(DxfPolyline polyline) =>
+                polyline.Normal.Z < 0.0 ? -polyline.Elevation : polyline.Elevation;
         }
 
         /// <summary>A change of one object a fillet or a chamfer trims: a line's end moved, or an arc's angles set.</summary>
@@ -1293,7 +1618,12 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     case DxfLine line:
                         GeoVector2 way = P2(line.EndPoint) - P2(line.StartPoint);
-                        return new Shape { _isLine = true, _point = P2(line.StartPoint), _way = way / way.Length };
+                        return new Shape
+                        {
+                            _isLine = true,
+                            _point = P2(line.StartPoint),
+                            _way = way / way.Length,
+                        };
                     case DxfArc arc:
                         bool down = arc.Normal.Z < 0.0;
                         return new Shape
@@ -1315,7 +1645,12 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 if (_isLine)
                 {
-                    return new Shape { _isLine = true, _point = _point + new GeoVector2(-_way.Y, _way.X) * distance, _way = _way };
+                    return new Shape
+                    {
+                        _isLine = true,
+                        _point = _point + new GeoVector2(-_way.Y, _way.X) * distance,
+                        _way = _way,
+                    };
                 }
 
                 double radius = _radius + distance;
@@ -1388,7 +1723,11 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoVector2 between = other._point - _point;
                 double d = between.Length;
 
-                if (d <= tolerance.EqualPoint || d > _radius + other._radius + tolerance.EqualPoint || d < Math.Abs(_radius - other._radius) - tolerance.EqualPoint)
+                if (
+                    d <= tolerance.EqualPoint
+                    || d > _radius + other._radius + tolerance.EqualPoint
+                    || d < Math.Abs(_radius - other._radius) - tolerance.EqualPoint
+                )
                 {
                     return found;
                 }
@@ -1427,7 +1766,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (way.Length <= tolerance.EqualPoint)
                     {
-                        way = ((P2(line.StartPoint) - at).Length >= (P2(line.EndPoint) - at).Length ? P2(line.StartPoint) : P2(line.EndPoint)) - at;
+                        way =
+                            (
+                                (P2(line.StartPoint) - at).Length >= (P2(line.EndPoint) - at).Length
+                                    ? P2(line.StartPoint)
+                                    : P2(line.EndPoint)
+                            ) - at;
                     }
 
                     way /= Math.Max(way.Length, 1E-300);

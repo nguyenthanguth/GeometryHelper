@@ -22,18 +22,47 @@ namespace GeometryHelper.Viewer.Tests
         {
             GeoSolid3 box = SampleShapes.Box(30.0, 20.0, 10.0, true);
             var face = (GeoFace2)SampleShapes.Make("GeoFace2", 3);
-            var loop = new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) }, new[] { 0.0, 0.5, 0.0, 0.3 });
-            var chain = new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(200, 40) }, new[] { 0.4, -0.2, 0.0 });
+            var loop = new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
+                new[] { 0.0, 0.5, 0.0, 0.3 }
+            );
+            var chain = new GeoPolylineArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(200, 40) },
+                new[] { 0.4, -0.2, 0.0 }
+            );
 
             return new Dictionary<string, string>
             {
-                ["obj"] = new ObjWriter().Add(box, Tol, "box").Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 2, 3)), "line").Add(new GeoPoint3(1, 1, 1), "dot").ToString(),
-                ["dxf"] = new DxfWriter().Add(box, Tol, "a").Add(face, "b").Add(loop, "c").Add(chain, "c").Add(new GeoCircle2(new GeoPoint2(1, 2), 3), "d")
-                    .Add(new GeoArc2(new GeoPoint2(0, 0), 10, 0.5, 2.0), "d").Add(new GeoEllipse2(new GeoPoint2(0, 0), new GeoVector2(1, 0), 20, 10), "d")
-                    .Add((GeoPolyline3)SampleShapes.Make("GeoPolyline3", 1), "e").ToString(),
-                ["wkt"] = string.Join("\n", Wkt.Write(box), Wkt.Write(face), Wkt.Write(new GeoPoint3(1, 2, 3)), Wkt.Write(new[] { new GeoPoint2(1, 2), new GeoPoint2(3, 4) })),
-                ["svg"] = new SvgWriter().Add(face, "black", "#cccccc").Add(loop).Add(chain).Add(new GeoCircle2(new GeoPoint2(1, 2), 3)).Add(new GeoEllipse2(new GeoPoint2(0, 0), new GeoVector2(1, 0), 20, 10))
-                    .Text(new GeoPoint2(1, 1), "x").ToString(),
+                ["obj"] = new ObjWriter()
+                    .Add(box, Tol, "box")
+                    .Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 2, 3)), "line")
+                    .Add(new GeoPoint3(1, 1, 1), "dot")
+                    .ToString(),
+                ["dxf"] = new DxfWriter()
+                    .Add(box, Tol, "a")
+                    .Add(face, "b")
+                    .Add(loop, "c")
+                    .Add(chain, "c")
+                    .Add(new GeoCircle2(new GeoPoint2(1, 2), 3), "d")
+                    .Add(new GeoArc2(new GeoPoint2(0, 0), 10, 0.5, 2.0), "d")
+                    .Add(new GeoEllipse2(new GeoPoint2(0, 0), new GeoVector2(1, 0), 20, 10), "d")
+                    .Add((GeoPolyline3)SampleShapes.Make("GeoPolyline3", 1), "e")
+                    .ToString(),
+                ["wkt"] = string.Join(
+                    "\n",
+                    Wkt.Write(box),
+                    Wkt.Write(face),
+                    Wkt.Write(new GeoPoint3(1, 2, 3)),
+                    Wkt.Write(new[] { new GeoPoint2(1, 2), new GeoPoint2(3, 4) })
+                ),
+                ["svg"] = new SvgWriter()
+                    .Add(face, "black", "#cccccc")
+                    .Add(loop)
+                    .Add(chain)
+                    .Add(new GeoCircle2(new GeoPoint2(1, 2), 3))
+                    .Add(new GeoEllipse2(new GeoPoint2(0, 0), new GeoVector2(1, 0), 20, 10))
+                    .Text(new GeoPoint2(1, 1), "x")
+                    .ToString(),
             };
         }
 
@@ -53,7 +82,14 @@ namespace GeometryHelper.Viewer.Tests
             }
             catch (Exception e)
             {
-                return format + ": " + e.GetType().Name + ": " + e.Message + " on '" + (text.Length > 120 ? text.Substring(0, 120) : text).Replace("\n", "\\n") + "'";
+                return format
+                    + ": "
+                    + e.GetType().Name
+                    + ": "
+                    + e.Message
+                    + " on '"
+                    + (text.Length > 120 ? text.Substring(0, 120) : text).Replace("\n", "\\n")
+                    + "'";
             }
         }
 
@@ -153,16 +189,82 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void HostileNumbers_AreRefusedOrKept_NeverCrashAReader()
         {
-            string[] numbers = { "1E999", "-1E999", "1E300", "-1E300", "NaN", "Infinity", "2147483648", "-2147483648", "99999999999999999999", "1e", ".", "-", "0x10", "1,5", "" };
+            string[] numbers =
+            {
+                "1E999",
+                "-1E999",
+                "1E300",
+                "-1E300",
+                "NaN",
+                "Infinity",
+                "2147483648",
+                "-2147483648",
+                "99999999999999999999",
+                "1e",
+                ".",
+                "-",
+                "0x10",
+                "1,5",
+                "",
+            };
             var failures = new List<string>();
 
             foreach (string n in numbers)
             {
                 failures.Add(Try("v " + n + " 0 0\nf 1 " + n + " 3\np " + n + "\n", "obj"));
                 failures.Add(Try("POINT (" + n + " 1)\nPOLYGON ((0 0, 1 " + n + ", 2 2, 0 0))", "wkt"));
-                failures.Add(Try("0\nSECTION\n2\nENTITIES\n0\nLWPOLYLINE\n10\n" + n + "\n20\n1\n42\n" + n + "\n10\n3\n20\n4\n0\nCIRCLE\n10\n" + n + "\n20\n1\n40\n" + n + "\n0\nPOLYLINE\n70\n64\n71\n" + n + "\n72\n" + n
-                    + "\n0\nVERTEX\n70\n128\n71\n" + n + "\n0\nVERTEX\n70\n16\n71\n" + n + "\n72\n" + n + "\n0\nARC\n10\n1\n20\n1\n40\n1\n50\n" + n + "\n51\n" + n + "\n210\n" + n + "\n220\n0\n230\n1\n0\nLAYER\n62\n" + n + "\n420\n" + n + "\n0\nENDSEC\n0\nEOF\n", "dxf"));
-                failures.Add(Try("<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M " + n + " 0 A " + n + " " + n + " 0 1 1 5 5 L " + n + " 1 Z\" stroke=\"rgb(" + n + ",1,2)\"/><circle cx=\"" + n + "\" cy=\"1\" r=\"2\" stroke=\"red\"/></svg>", "svg"));
+                failures.Add(
+                    Try(
+                        "0\nSECTION\n2\nENTITIES\n0\nLWPOLYLINE\n10\n"
+                            + n
+                            + "\n20\n1\n42\n"
+                            + n
+                            + "\n10\n3\n20\n4\n0\nCIRCLE\n10\n"
+                            + n
+                            + "\n20\n1\n40\n"
+                            + n
+                            + "\n0\nPOLYLINE\n70\n64\n71\n"
+                            + n
+                            + "\n72\n"
+                            + n
+                            + "\n0\nVERTEX\n70\n128\n71\n"
+                            + n
+                            + "\n0\nVERTEX\n70\n16\n71\n"
+                            + n
+                            + "\n72\n"
+                            + n
+                            + "\n0\nARC\n10\n1\n20\n1\n40\n1\n50\n"
+                            + n
+                            + "\n51\n"
+                            + n
+                            + "\n210\n"
+                            + n
+                            + "\n220\n0\n230\n1\n0\nLAYER\n62\n"
+                            + n
+                            + "\n420\n"
+                            + n
+                            + "\n0\nENDSEC\n0\nEOF\n",
+                        "dxf"
+                    )
+                );
+                failures.Add(
+                    Try(
+                        "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M "
+                            + n
+                            + " 0 A "
+                            + n
+                            + " "
+                            + n
+                            + " 0 1 1 5 5 L "
+                            + n
+                            + " 1 Z\" stroke=\"rgb("
+                            + n
+                            + ",1,2)\"/><circle cx=\""
+                            + n
+                            + "\" cy=\"1\" r=\"2\" stroke=\"red\"/></svg>",
+                        "svg"
+                    )
+                );
             }
 
             Assert.DoesNotContain(failures, f => f != null);
@@ -193,11 +295,18 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AHugeDeclaredMesh_WithFewVertices_IsRefusedAtOnce()
         {
-            string text = "0\nSECTION\n2\nENTITIES\n0\nPOLYLINE\n70\n16\n71\n100000\n72\n100000\n0\nVERTEX\n10\n0\n20\n0\n0\nSEQEND\n0\nENDSEC\n0\nEOF\n";
+            string text =
+                "0\nSECTION\n2\nENTITIES\n0\nPOLYLINE\n70\n16\n71\n100000\n72\n100000\n0\nVERTEX\n10\n0\n20\n0\n0\nSEQEND\n0\nENDSEC\n0\nEOF\n";
             Scene scene = SceneImport.ReadText(text, "dxf");
 
             Assert.Empty(scene.Items);
-            Assert.Equal(new[] { "DXF: 1 POLYLINE entity(ies) are not read, as the library's DxfReader counts them; a warning above gives the reason where it has one" }, scene.LoadWarnings.ToArray());
+            Assert.Equal(
+                new[]
+                {
+                    "DXF: 1 POLYLINE entity(ies) are not read, as the library's DxfReader counts them; a warning above gives the reason where it has one",
+                },
+                scene.LoadWarnings.ToArray()
+            );
         }
     }
 }

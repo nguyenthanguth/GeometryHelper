@@ -106,7 +106,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this infinite line to a triangle, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) => Distance3.DistanceTo(this, triangle, tolerance);
+        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Distance3.DistanceTo(this, triangle, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this infinite line to a polygon, using the default tolerance.
@@ -124,7 +125,8 @@ namespace GeometryHelper.Geometry
         /// floor and is nought from it, and the one through (150, 50, 10) along Z is 50 from it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) => Distance3.DistanceTo(this, polygon, tolerance);
+        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Distance3.DistanceTo(this, polygon, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this infinite line to a face, using the default tolerance.
@@ -198,6 +200,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(polyline, this, tolerance);
+        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Distance3.DistanceTo(polyline, this, tolerance);
     }
 }

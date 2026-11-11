@@ -60,7 +60,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             for (int k = 0; k < 33; k++)
             {
-                Assert.Equal(3.0, Math.Sqrt(Math.Pow(circle[2 * k] - 3.0, 2) + Math.Pow(circle[(2 * k) + 1] - 3.0, 2)), 9);
+                Assert.Equal(
+                    3.0,
+                    Math.Sqrt(Math.Pow(circle[2 * k] - 3.0, 2) + Math.Pow(circle[(2 * k) + 1] - 3.0, 2)),
+                    9
+                );
             }
 
             Assert.Equal(9.0, o.Advance, 9);
@@ -150,7 +154,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.Null(ShxFont.Read(null));
             Assert.Null(ShxFont.Read(new byte[] { 1, 2, 3 }));
-            Assert.Null(ShxFont.Read(System.Text.Encoding.ASCII.GetBytes("AutoCAD-86 unifont 9.9\r\n\x1A\0\0\0\0\0\0")));
+            Assert.Null(
+                ShxFont.Read(System.Text.Encoding.ASCII.GetBytes("AutoCAD-86 unifont 9.9\r\n\x1A\0\0\0\0\0\0"))
+            );
             Assert.Null(ShxFont.Read(whole.Take(30).ToArray()));
             Assert.Null(ShxFont.Read(ShxFiles.Shapes().Take(40).ToArray()));
             Assert.Null(ShxFont.Read(ShxFiles.Big().Take(40).ToArray()));
@@ -187,15 +193,24 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
         private static DxfDBText Text(string words, double height, Action<DxfDBText> more = null)
         {
-            var text = new DxfDBText { TextString = words, Position = new GeoPoint3(0, 0, 0), Height = height };
+            var text = new DxfDBText
+            {
+                TextString = words,
+                Position = new GeoPoint3(0, 0, 0),
+                Height = height,
+            };
             more?.Invoke(text);
             return text;
         }
 
-        private static DisplayText2 Shown(CadDocument document) => document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>().Single();
+        private static DisplayText2 Shown(CadDocument document) =>
+            document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>().Single();
 
-        private CadFonts Fonts(string replacement = null, IEnumerable<KeyValuePair<string, string>> substitutions = null, Func<string, bool> families = null)
-            => new CadFonts(new[] { _folder.FullPath }, replacement, substitutions, families ?? (f => f == "Arial"));
+        private CadFonts Fonts(
+            string replacement = null,
+            IEnumerable<KeyValuePair<string, string>> substitutions = null,
+            Func<string, bool> families = null
+        ) => new CadFonts(new[] { _folder.FullPath }, replacement, substitutions, families ?? (f => f == "Arial"));
 
         [Fact]
         public void ATextOfAStyleOfAnShxFontFoundIsDrawnAsTheStrokesOfItsLettersScaledToItsHeight()
@@ -225,10 +240,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             _folder.Write("test.shx", ShxFiles.Unifont());
             CadDocument document = Drawing("test.shx", null, Text("I", 5.0, t =>
-            {
-                t.WidthFactor = 2.0;
-                t.Oblique = Math.PI / 4.0;
-            }));
+                {
+                    t.WidthFactor = 2.0;
+                    t.Oblique = Math.PI / 4.0;
+                }));
             document.Fonts = Fonts();
 
             DisplayText2 shown = Shown(document);
@@ -259,10 +274,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             _folder.Write("test.shx", ShxFiles.Unifont());
             CadDocument document = Drawing("test.shx", null, Text("II", 5.0, t =>
-            {
-                t.HorizontalMode = DxfTextHorizontalMode.TextCenter;
-                t.AlignmentPoint = new GeoPoint3(10, 0, 0);
-            }));
+                {
+                    t.HorizontalMode = DxfTextHorizontalMode.TextCenter;
+                    t.AlignmentPoint = new GeoPoint3(10, 0, 0);
+                }));
             document.Fonts = Fonts();
 
             DisplayText2 shown = Shown(document);
@@ -283,7 +298,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 t.HorizontalMode = DxfTextHorizontalMode.TextRight;
                 t.AlignmentPoint = new GeoPoint3(10, 0, 0);
             };
-            var lines = new DxfMText { Contents = @"II \PI", Location = new GeoPoint3(10, 0, 0), TextHeight = 5.0, Attachment = DxfAttachmentPoint.TopRight };
+            var lines = new DxfMText
+            {
+                Contents = @"II \PI",
+                Location = new GeoPoint3(10, 0, 0),
+                TextHeight = 5.0,
+                Attachment = DxfAttachmentPoint.TopRight,
+            };
             CadDocument inked = Drawing("test.shx", null, Text("II", 5.0, right));
             CadDocument spaced = Drawing("test.shx", null, lines);
             inked.Fonts = Fonts();
@@ -323,7 +344,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             _folder.Write("test.shx", ShxFiles.Unifont());
             _folder.Write("gbcbig.shx", ShxFiles.Big());
-            CadDocument document = Drawing("test.shx", d => d.TextStyleTable["GH_SHX"].BigFontFileName = "gbcbig.shx", Text("I中", 4.0));
+            CadDocument document = Drawing(
+                "test.shx",
+                d => d.TextStyleTable["GH_SHX"].BigFontFileName = "gbcbig.shx",
+                Text("I中", 4.0)
+            );
             document.Fonts = Fonts();
 
             DisplayText2 shown = Shown(document);
@@ -339,8 +364,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void AnMTextsFontCodeBeforeItsWordsIsHonoured()
         {
             _folder.Write("test.shx", ShxFiles.Unifont());
-            var mtext = new DxfMText { Contents = @"{\Ftest|c0;I}", Location = new GeoPoint3(0, 0, 0), TextHeight = 5.0 };
-            CadDocument document = Drawing("arial.ttf", d => d.TextStyleTable["GH_SHX"].Font = new DxfFontDescriptor("Arial", false, false, 0, 34), mtext);
+            var mtext = new DxfMText
+            {
+                Contents = @"{\Ftest|c0;I}",
+                Location = new GeoPoint3(0, 0, 0),
+                TextHeight = 5.0,
+            };
+            CadDocument document = Drawing(
+                "arial.ttf",
+                d => d.TextStyleTable["GH_SHX"].Font = new DxfFontDescriptor("Arial", false, false, 0, 34),
+                mtext
+            );
             document.Fonts = Fonts();
 
             DisplayText2 shown = Shown(document);
@@ -355,12 +389,23 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void TheCanvasDrawsTheStrokesOfAnShxTextAndNothingBetweenThem()
         {
             _folder.Write("test.shx", ShxFiles.Unifont());
-            CadDocument document = Drawing("test.shx", null, Text("II", 100.0, t => t.Position = new GeoPoint3(20, 20, 0)));
+            CadDocument document = Drawing(
+                "test.shx",
+                null,
+                Text("II", 100.0, t => t.Position = new GeoPoint3(20, 20, 0))
+            );
             document.Fonts = Fonts();
             var view = new CadView(200, 150);
             view.ZoomTo(new DisplayBox(0, 0, 200, 150), 0.0);
 
-            using (var bitmap = new SkiaSharp.SKBitmap(200, 150, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Premul))
+            using (
+                var bitmap = new SkiaSharp.SKBitmap(
+                    200,
+                    150,
+                    SkiaSharp.SKColorType.Rgba8888,
+                    SkiaSharp.SKAlphaType.Premul
+                )
+            )
             {
                 using (var canvas = new SkiaSharp.SKCanvas(bitmap))
                 using (var renderer = new Wpf.SkiaCanvasRenderer())
@@ -370,7 +415,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
                 // Ten units to the font's unit: the two lines up at x 30 and 70, from y 20 to 120 of the drawing, rows 130 to
                 // 30 on the screen; the gap between them and the space above dark.
-                Func<int, int, bool> lit = (x, y) => Enumerable.Range(x - 1, 3).Any(c => bitmap.GetPixel(c, y).Red > 60);
+                Func<int, int, bool> lit = (x, y) =>
+                    Enumerable.Range(x - 1, 3).Any(c => bitmap.GetPixel(c, y).Red > 60);
                 Assert.True(lit(30, 80));
                 Assert.True(lit(70, 80));
                 Assert.False(lit(50, 80));
@@ -391,10 +437,22 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 second.Write("two.shx", ShxFiles.Unifont());
                 var fonts = new CadFonts(new[] { _folder.FullPath, second.FullPath }, null, null);
 
-                Assert.Equal(Path.Combine(_folder.FullPath, "one.shx"), fonts.Locate("ONE.SHX", null), StringComparer.OrdinalIgnoreCase);
-                Assert.Equal(Path.Combine(second.FullPath, "two.shx"), fonts.Locate("two", null), StringComparer.OrdinalIgnoreCase);
+                Assert.Equal(
+                    Path.Combine(_folder.FullPath, "one.shx"),
+                    fonts.Locate("ONE.SHX", null),
+                    StringComparer.OrdinalIgnoreCase
+                );
+                Assert.Equal(
+                    Path.Combine(second.FullPath, "two.shx"),
+                    fonts.Locate("two", null),
+                    StringComparer.OrdinalIgnoreCase
+                );
                 drawing.Write("one.shx", ShxFiles.Unifont());
-                Assert.Equal(Path.Combine(drawing.FullPath, "one.shx"), new CadFonts(fonts.Folders, null, null).Locate("one", drawing.FullPath), StringComparer.OrdinalIgnoreCase);
+                Assert.Equal(
+                    Path.Combine(drawing.FullPath, "one.shx"),
+                    new CadFonts(fonts.Folders, null, null).Locate("one", drawing.FullPath),
+                    StringComparer.OrdinalIgnoreCase
+                );
                 Assert.Null(fonts.Locate("three.shx", drawing.FullPath));
             }
         }
@@ -444,7 +502,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.Equal("romans.shx", shown.FontName);
             Assert.Null(shown.Strokes);
-            Assert.Equal(new[] { "Missing SHX files: romans.shx drawn in the drawing font; txt drawn in the drawing font." }, said);
+            Assert.Equal(
+                new[] { "Missing SHX files: romans.shx drawn in the drawing font; txt drawn in the drawing font." },
+                said
+            );
         }
 
         [Fact]
@@ -461,8 +522,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ATypefaceTheCanvasHasIsDrawnByIt_OneItHasNotByTheReplacement()
         {
-            CadDocument arial = Drawing("arial.ttf", d => d.TextStyleTable["GH_SHX"].Font = new DxfFontDescriptor("Arial", false, false, 0, 34), Text("I", 5.0));
-            CadDocument missing = Drawing("nofont.ttf", d => d.TextStyleTable["GH_SHX"].Font = new DxfFontDescriptor("No Such Face", false, false, 0, 34), Text("I", 5.0));
+            CadDocument arial = Drawing(
+                "arial.ttf",
+                d => d.TextStyleTable["GH_SHX"].Font = new DxfFontDescriptor("Arial", false, false, 0, 34),
+                Text("I", 5.0)
+            );
+            CadDocument missing = Drawing(
+                "nofont.ttf",
+                d => d.TextStyleTable["GH_SHX"].Font = new DxfFontDescriptor("No Such Face", false, false, 0, 34),
+                Text("I", 5.0)
+            );
             var said = new List<string>();
             arial.FontMissing += (s, e) => said.Add(e.Message);
             missing.FontMissing += (s, e) => said.Add(e.Message);
@@ -473,7 +542,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Null(Shown(arial).Strokes);
             Assert.Equal("Arial", Shown(missing).FontName);
             // The typeface is no SHX file: said on its own, after the list of the Standard style's txt.
-            Assert.Equal(new[] { "Missing SHX files: txt drawn in Arial.", "Font No Such Face not found: using Arial." }, said);
+            Assert.Equal(
+                new[] { "Missing SHX files: txt drawn in Arial.", "Font No Such Face not found: using Arial." },
+                said
+            );
         }
 
         [Fact]
@@ -515,7 +587,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
                 Assert.Equal(path, fonts.Locate(path, null), StringComparer.OrdinalIgnoreCase);
                 Assert.Null(fonts.Locate("mine.shx", null));
-                Assert.Equal(Path.Combine(_folder.FullPath, "bare.shx"), fonts.Locate("bare", null), StringComparer.OrdinalIgnoreCase);
+                Assert.Equal(
+                    Path.Combine(_folder.FullPath, "bare.shx"),
+                    fonts.Locate("bare", null),
+                    StringComparer.OrdinalIgnoreCase
+                );
             }
         }
 
@@ -523,7 +599,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void TheFontsStartWithNoFolder_NoneOfAutodesk()
         {
             Assert.Empty(CadFonts.DefaultFolders);
-            Assert.DoesNotContain(CadFonts.DefaultFolders, f => f.IndexOf("Autodesk", StringComparison.OrdinalIgnoreCase) >= 0);
+            Assert.DoesNotContain(CadFonts.DefaultFolders, f =>
+                f.IndexOf("Autodesk", StringComparison.OrdinalIgnoreCase) >= 0
+            );
         }
 
         // ---- The built-in font
@@ -554,7 +632,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             // Hershey's Roman Simplex: capitals 21 above the baseline, descenders 7 below, as romans.shx; ABC123 is 18 + 21 + 21
             // + 20 + 20 + 20 = 120 units wide, 5.7 heights, inked from the baseline to the capitals' top.
-            _output.WriteLine("ABC123: " + advance + " units, " + (advance / font.Above).ToString("0.000") + " heights wide, ink " + bottom + " to " + top);
+            _output.WriteLine(
+                "ABC123: "
+                    + advance
+                    + " units, "
+                    + (advance / font.Above).ToString("0.000")
+                    + " heights wide, ink "
+                    + bottom
+                    + " to "
+                    + top
+            );
             Assert.Equal(ShxFontKind.Unifont, font.Kind);
             Assert.Equal(98, font.Count);
             Assert.Equal(21.0, font.Above);
@@ -571,7 +658,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ATextInTheBuiltInFontHasItsCapitalsAsHighAsTheText()
         {
-            CadDocument document = Drawing(CadFonts.BuiltInName, null, Text("ABC123", 2.5, t => t.Position = new GeoPoint3(10, 20, 0)));
+            CadDocument document = Drawing(
+                CadFonts.BuiltInName,
+                null,
+                Text("ABC123", 2.5, t => t.Position = new GeoPoint3(10, 20, 0))
+            );
             var said = new List<string>();
             document.FontMissing += (s, e) => said.Add(e.Message);
             document.Fonts = new CadFonts(new[] { _folder.FullPath }, null, null);
@@ -603,8 +694,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             document.GetDisplay(document.ModelSpace);
 
             Assert.All(shown, t => Assert.Equal(CadFonts.BuiltInName, t.FontName));
-            Assert.All(shown, t => Assert.Equal(5.0, t.Strokes.SelectMany(s => s.Where((v, k) => k % 2 == 1)).Max(), 9));
-            Assert.Equal(new[] { "Missing SHX files: romans.shx drawn in GeometryHelper Simplex; txt drawn in GeometryHelper Simplex." }, said);
+            Assert.All(shown, t =>
+                Assert.Equal(5.0, t.Strokes.SelectMany(s => s.Where((v, k) => k % 2 == 1)).Max(), 9)
+            );
+            Assert.Equal(
+                new[]
+                {
+                    "Missing SHX files: romans.shx drawn in GeometryHelper Simplex; txt drawn in GeometryHelper Simplex.",
+                },
+                said
+            );
         }
 
         // ---- AutoCAD's ways with SHX fonts: FONTALT, FONTMAP, big fonts and the list of missing files
@@ -627,7 +726,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(2, Shown(halved).Strokes.Count);
             Point(2.6, 4, Shown(halved).Strokes[1], 1);
             Assert.Single(Shown(plain).Strokes);
-            Assert.Equal(new[] { "Missing SHX files: nobig.shx (big font) drawn in gbcbig.shx; txt drawn in test.shx.", "Missing SHX files: nobig.shx (big font) drawn as question marks; txt drawn in test.shx." }, said);
+            Assert.Equal(
+                new[]
+                {
+                    "Missing SHX files: nobig.shx (big font) drawn in gbcbig.shx; txt drawn in test.shx.",
+                    "Missing SHX files: nobig.shx (big font) drawn as question marks; txt drawn in test.shx.",
+                },
+                said
+            );
         }
 
         [Fact]
@@ -655,8 +761,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             _folder.Write("test.shx", ShxFiles.Unifont());
             // A second style, used by no text, names isocp.shx: AutoCAD lists the fonts of every style, drawn or not. An MTEXT's
             // \Fisocp after the list is the same font, not said again.
-            var mtext = new DxfMText { Contents = @"{\Fisocp|c0;I}", Location = new GeoPoint3(0, 20, 0), TextHeight = 5.0 };
-            CadDocument document = Drawing("romans.shx", d => d.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "GH_ISO", FileName = "isocp.shx" }), Text("I", 5.0), mtext);
+            var mtext = new DxfMText
+            {
+                Contents = @"{\Fisocp|c0;I}",
+                Location = new GeoPoint3(0, 20, 0),
+                TextHeight = 5.0,
+            };
+            CadDocument document = Drawing(
+                "romans.shx",
+                d => d.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "GH_ISO", FileName = "isocp.shx" }),
+                Text("I", 5.0),
+                mtext
+            );
             var said = new List<string>();
             document.FontMissing += (s, e) => said.Add(e.Message);
             document.Fonts = Fonts(CadFonts.BuiltInName);
@@ -665,13 +781,22 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             document.Regen();
             document.GetDisplay(document.ModelSpace);
 
-            Assert.Contains("isocp.shx drawn in GeometryHelper Simplex; romans.shx drawn in GeometryHelper Simplex", Assert.Single(said));
-            Assert.Equal(new[] { "isocp.shx", "romans.shx" }, document.FindMissingFonts().Select(f => f.Name).Where(n => n != "txt"));
+            Assert.Contains(
+                "isocp.shx drawn in GeometryHelper Simplex; romans.shx drawn in GeometryHelper Simplex",
+                Assert.Single(said)
+            );
+            Assert.Equal(
+                new[] { "isocp.shx", "romans.shx" },
+                document.FindMissingFonts().Select(f => f.Name).Where(n => n != "txt")
+            );
 
             document.Fonts = document.Fonts.WithSubstitution("romans.shx", "test.shx");
 
             Assert.DoesNotContain(document.FindMissingFonts(), f => f.Name == "romans.shx");
-            Assert.Equal("test.shx", document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>().First().FontName);
+            Assert.Equal(
+                "test.shx",
+                document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>().First().FontName
+            );
         }
     }
 }

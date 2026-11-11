@@ -5,8 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using GeometryHelper.Dwg;
-using GeometryHelper.Enums;
 using GeometryHelper.Dxf;
+using GeometryHelper.Enums;
 using Xunit;
 
 namespace GeometryHelper.UnitTest.Dwg
@@ -18,7 +18,8 @@ namespace GeometryHelper.UnitTest.Dwg
     /// </summary>
     public class DwgReaderRobustnessTests : IDisposable
     {
-        private readonly List<(GeometryHelperLogLevel Level, string Message)> _written = new List<(GeometryHelperLogLevel Level, string Message)>();
+        private readonly List<(GeometryHelperLogLevel Level, string Message)> _written =
+            new List<(GeometryHelperLogLevel Level, string Message)>();
 
         public DwgReaderRobustnessTests()
         {
@@ -182,7 +183,12 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.Equal(2, database.ModelSpace.OfType<DxfArc>().Count());
             Assert.Equal(before - 1, database.ModelSpace.Count());
 
-            string warning = Assert.Single(_written, line => line.Level == GeometryHelperLogLevel.Warn && line.Message.StartsWith("DwgReader:", StringComparison.Ordinal)).Message;
+            string warning = Assert
+                .Single(_written, line =>
+                    line.Level == GeometryHelperLogLevel.Warn
+                    && line.Message.StartsWith("DwgReader:", StringComparison.Ordinal)
+                )
+                .Message;
             Assert.Contains("1 broken", warning);
             Assert.Contains("check sum", warning);
         }
@@ -191,7 +197,11 @@ namespace GeometryHelper.UnitTest.Dwg
         private static long OffsetOf(byte[] file, string name)
         {
             DwgContainer container = DwgContainer.Read(file);
-            var reader = new DwgObjectReader(container.Objects, DwgClass.ReadAll(container.Classes, container.Version), container.Version);
+            var reader = new DwgObjectReader(
+                container.Objects,
+                DwgClass.ReadAll(container.Classes, container.Version),
+                container.Version
+            );
 
             foreach (KeyValuePair<ulong, long> entry in container.ObjectMap)
             {
@@ -250,7 +260,10 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("solids_AC1015", 53)]
         [InlineData("meshes_AC1015", 54)]
         [InlineData("table_AC1015", 55)]
-        public void BytesChangedInsideObjects_UnderARightCheckSum_AreRefusedOrRead_NeverAnythingElse(string name, int seed)
+        public void BytesChangedInsideObjects_UnderARightCheckSum_AreRefusedOrRead_NeverAnythingElse(
+            string name,
+            int seed
+        )
         {
             // With its check sum repaired a changed object reaches its decoder, which has to stand whatever it is given.
             byte[] file = DwgAnswerKey.Dwg(name);
@@ -266,7 +279,8 @@ namespace GeometryHelper.UnitTest.Dwg
                 {
                     long offset = map[random.Next(map.Count)].Value;
                     long at = offset + 2 + random.Next(SizeOfObject(file, offset));
-                    changed[at] = random.Next(3) == 0 ? (byte)random.Next(256) : (byte)(changed[at] ^ (1 << random.Next(8)));
+                    changed[at] =
+                        random.Next(3) == 0 ? (byte)random.Next(256) : (byte)(changed[at] ^ (1 << random.Next(8)));
                     places.Add(at);
                     RepairCheckSum(changed, offset);
                 }
@@ -295,7 +309,8 @@ namespace GeometryHelper.UnitTest.Dwg
                 for (int i = 1 + random.Next(4); i > 0; i--)
                 {
                     int at = random.Next(changed.Length);
-                    changed[at] = random.Next(3) == 0 ? (byte)random.Next(256) : (byte)(changed[at] ^ (1 << random.Next(8)));
+                    changed[at] =
+                        random.Next(3) == 0 ? (byte)random.Next(256) : (byte)(changed[at] ^ (1 << random.Next(8)));
                     places.Add(at);
                 }
 
@@ -340,7 +355,10 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("meshes_AC1032", 47)]
         [InlineData("table_AC1018", 48)]
         [InlineData("table_AC1021", 49)]
-        public void BytesChangedInsideTheObjectsOfALaterVersion_UnderARightCheckSum_AreLeftOutOrRead_NeverAnythingElse(string name, int seed)
+        public void BytesChangedInsideTheObjectsOfALaterVersion_UnderARightCheckSum_AreLeftOutOrRead_NeverAnythingElse(
+            string name,
+            int seed
+        )
         {
             // The pages carry their own sums, so the changes are made in the decompressed objects, each object's own check
             // sum repaired; every decoder of the later versions then sees bytes it has to stand. Only a FormatException may
@@ -360,7 +378,8 @@ namespace GeometryHelper.UnitTest.Dwg
                     long offset = map[random.Next(map.Count)].Value;
                     long[] data = DataOf(objects, offset, container.Version);
                     long at = data[0] + random.Next((int)data[1]);
-                    objects[at] = random.Next(3) == 0 ? (byte)random.Next(256) : (byte)(objects[at] ^ (1 << random.Next(8)));
+                    objects[at] =
+                        random.Next(3) == 0 ? (byte)random.Next(256) : (byte)(objects[at] ^ (1 << random.Next(8)));
                     places.Add(at);
                     int crc = DwgCrc.Of(objects, offset, data[0] - offset + data[1], DwgCrc.Seed);
                     objects[data[0] + data[1]] = (byte)crc;
@@ -379,7 +398,11 @@ namespace GeometryHelper.UnitTest.Dwg
             // one broken object, not a broken file.
             byte[] file = DwgAnswerKey.Dwg("curves_AC1021");
             DwgContainer container = DwgContainer.Read(file);
-            var reader = new DwgObjectReader(container.Objects, DwgClass.ReadAll(container.Classes, container.Version), container.Version);
+            var reader = new DwgObjectReader(
+                container.Objects,
+                DwgClass.ReadAll(container.Classes, container.Version),
+                container.Version
+            );
             KeyValuePair<ulong, long> spline = Assert.Single(container.ObjectMap, entry => entry.Value == 7261);
             Assert.Equal("SPLINE", reader.Read(spline.Key, spline.Value).Name);
 
@@ -392,9 +415,16 @@ namespace GeometryHelper.UnitTest.Dwg
 
             DxfDatabase database = DxfDatabase.Open(new MemoryStream(DwgTranscoder.ToDxf(container), false));
 
-            Assert.DoesNotContain(database.ModelSpace.OfType<DxfSpline>(), one => one.Handle == spline.Key.ToString("X", System.Globalization.CultureInfo.InvariantCulture));
+            Assert.DoesNotContain(database.ModelSpace.OfType<DxfSpline>(), one =>
+                one.Handle == spline.Key.ToString("X", System.Globalization.CultureInfo.InvariantCulture)
+            );
             Assert.NotEmpty(database.ModelSpace.OfType<DxfLine>());
-            string warning = Assert.Single(_written, line => line.Level == GeometryHelperLogLevel.Warn && line.Message.StartsWith("DwgReader:", StringComparison.Ordinal)).Message;
+            string warning = Assert
+                .Single(_written, line =>
+                    line.Level == GeometryHelperLogLevel.Warn
+                    && line.Message.StartsWith("DwgReader:", StringComparison.Ordinal)
+                )
+                .Message;
             Assert.Contains("1 broken", warning);
         }
 
@@ -410,9 +440,7 @@ namespace GeometryHelper.UnitTest.Dwg
                 {
                     DxfReader.Read(new MemoryStream(DwgTranscoder.ToDxf(container), false));
                 }
-                catch (FormatException)
-                {
-                }
+                catch (FormatException) { }
             });
 
             try

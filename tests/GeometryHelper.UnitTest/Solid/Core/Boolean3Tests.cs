@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -13,8 +13,7 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     public class Boolean3Tests
     {
-        private static GeoSolid3 Box(GeoPoint3 min, GeoPoint3 max) =>
-            new GeoAabb3(min, max).ToObb().ToSolid();
+        private static GeoSolid3 Box(GeoPoint3 min, GeoPoint3 max) => new GeoAabb3(min, max).ToObb().ToSolid();
 
         /// <summary>
         /// A 10 cube at the origin, volume 1000.
@@ -49,7 +48,9 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoSolid3 cube = Cube();
 
-            Assert.True(cube.TryIntersect(Box(new GeoPoint3(-5, -5, -5), new GeoPoint3(15, 15, 15)), out GeoSolid3 shared));
+            Assert.True(
+                cube.TryIntersect(Box(new GeoPoint3(-5, -5, -5), new GeoPoint3(15, 15, 15)), out GeoSolid3 shared)
+            );
 
             Assert.Equal(cube.GetVolume(), shared.GetVolume(), 4);
         }
@@ -72,10 +73,14 @@ namespace GeometryHelper.UnitTest.Solid
         public void ABentBarCrossingAPlateSharesItsSectionTimesTheThickness()
         {
             GeoPolylineArc3 centreLine = new GeoPolyline3(
-                new GeoPoint3(800, 60, 450), new GeoPoint3(800, 60, 200), new GeoPoint3(800, 400, 200)).Fillet(40);
+                new GeoPoint3(800, 60, 450),
+                new GeoPoint3(800, 60, 200),
+                new GeoPoint3(800, 400, 200)
+            ).Fillet(40);
             GeoSolid3 bar = GeoSolid3.Pipe(centreLine, 8, 0.1);
             GeoSolid3 plate = Box(new GeoPoint3(0, -100, 285), new GeoPoint3(2000, 100, 300));
-            double section = GeoSolid3.Pipe(new GeoPolyline3(GeoPoint3.Origin, new GeoPoint3(0, 0, 100)), 8, 0.1).GetVolume() / 100;
+            double section =
+                GeoSolid3.Pipe(new GeoPolyline3(GeoPoint3.Origin, new GeoPoint3(0, 0, 100)), 8, 0.1).GetVolume() / 100;
 
             Assert.True(bar.TryIntersect(plate, out GeoSolid3 shared));
 
@@ -92,8 +97,12 @@ namespace GeometryHelper.UnitTest.Solid
         public void AStirrupWhollyInsideABeamIsSharedWhole()
         {
             GeoPolylineArc3 centreLine = new GeoPolyline3(
-                new GeoPoint3(500, 40, 40), new GeoPoint3(500, 260, 40), new GeoPoint3(500, 260, 460),
-                new GeoPoint3(500, 40, 460), new GeoPoint3(500, 40, 60)).Fillet(20);
+                new GeoPoint3(500, 40, 40),
+                new GeoPoint3(500, 260, 40),
+                new GeoPoint3(500, 260, 460),
+                new GeoPoint3(500, 40, 460),
+                new GeoPoint3(500, 40, 60)
+            ).Fillet(20);
             GeoSolid3 stirrup = GeoSolid3.Pipe(centreLine, 5, 0.1);
             GeoSolid3 beam = Box(GeoPoint3.Origin, new GeoPoint3(3000, 300, 500));
 
@@ -164,7 +173,9 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoSolid3 cube = Cube();
 
-            Assert.True(cube.TrySubtract(Box(new GeoPoint3(50, 50, 50), new GeoPoint3(60, 60, 60)), out GeoSolid3 left));
+            Assert.True(
+                cube.TrySubtract(Box(new GeoPoint3(50, 50, 50), new GeoPoint3(60, 60, 60)), out GeoSolid3 left)
+            );
 
             Assert.Equal(cube.GetVolume(), left.GetVolume(), 6);
         }
@@ -259,8 +270,13 @@ namespace GeometryHelper.UnitTest.Solid
         public void ARotatedToolCutsJustAsWell()
         {
             GeoObb3 turned = new GeoObb3(
-                new GeoPoint3(5, 5, 5), 4, 4, 40,
-                new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 0));
+                new GeoPoint3(5, 5, 5),
+                4,
+                4,
+                40,
+                new GeoVector3(1, 1, 0),
+                new GeoVector3(-1, 1, 0)
+            );
 
             Assert.True(Cube().TrySubtract(turned.ToSolid(), out GeoSolid3 pierced));
 
@@ -273,15 +289,18 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AConcaveSubjectSurvivesTheOperation()
         {
-            GeoSolid3 lShape = MakePrism(new[]
-            {
-                new GeoPoint3(0, 0, 0),
-                new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 4, 0),
-                new GeoPoint3(4, 4, 0),
-                new GeoPoint3(4, 10, 0),
-                new GeoPoint3(0, 10, 0)
-            }, 6.0);
+            GeoSolid3 lShape = MakePrism(
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 4, 0),
+                    new GeoPoint3(4, 4, 0),
+                    new GeoPoint3(4, 10, 0),
+                    new GeoPoint3(0, 10, 0),
+                },
+                6.0
+            );
 
             // A bar through the foot of the L.
             GeoSolid3 bar = Box(new GeoPoint3(6, 1, -5), new GeoPoint3(8, 3, 11));

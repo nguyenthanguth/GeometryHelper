@@ -35,10 +35,12 @@ namespace GeometryHelper.UnitTest.Solid
         /// A quarter turn of a hundred radius about the origin, sweeping the first quadrant of z = 0 from
         /// (100, 0, 0) round to (0, 100, 0).
         /// </summary>
-        private static GeoArc3 Quarter() => GeoArc3.FromThreePoints(
-            new GeoPoint3(100, 0, 0),
-            new GeoPoint3(100 * Math.Sqrt(0.5), 100 * Math.Sqrt(0.5), 0),
-            new GeoPoint3(0, 100, 0));
+        private static GeoArc3 Quarter() =>
+            GeoArc3.FromThreePoints(
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100 * Math.Sqrt(0.5), 100 * Math.Sqrt(0.5), 0),
+                new GeoPoint3(0, 100, 0)
+            );
 
         /// <summary>
         /// The reach of the circle at x = 50, which is where most of the crossings below land.
@@ -60,8 +62,10 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 // A vertex of the chain sitting on the plane belongs to the two chords that meet there, and
                 // both report it, so the same place has to be counted once.
-                if (Intersection3.TryIntersectWith(chord, plane, out GeoPoint3 hit)
-                    && !found.Any(already => already.IsEqualTo(hit, Loose)))
+                if (
+                    Intersection3.TryIntersectWith(chord, plane, out GeoPoint3 hit)
+                    && !found.Any(already => already.IsEqualTo(hit, Loose))
+                )
                 {
                     found.Add(hit);
                 }
@@ -76,8 +80,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             foreach (GeoPoint3 point in exact)
             {
-                Assert.True(sampled.Any(near => near.DistanceTo(point) <= slack),
-                    $"{point} is nowhere near any sampled crossing");
+                Assert.True(
+                    sampled.Any(near => near.DistanceTo(point) <= slack),
+                    $"{point} is nowhere near any sampled crossing"
+                );
             }
         }
 
@@ -113,13 +119,18 @@ namespace GeometryHelper.UnitTest.Solid
 
             // x = 100 touches the circle at exactly one point, an end of the arc. Rounding puts the
             // discriminant either side of nought here, so this is the case the tolerance has to catch.
-            GeoPoint3[] touching = Arc3.GetIntersections(arc, new GeoPlane3(new GeoPoint3(100, 0, 0), new GeoVector3(1, 0, 0)));
+            GeoPoint3[] touching = Arc3.GetIntersections(
+                arc,
+                new GeoPlane3(new GeoPoint3(100, 0, 0), new GeoVector3(1, 0, 0))
+            );
 
             Assert.Single(touching);
             Assert.True(touching[0].IsEqualTo(new GeoPoint3(100, 0, 0), Loose), touching[0].ToString());
 
             // And a hair beyond it touches nothing.
-            Assert.Empty(Arc3.GetIntersections(arc, new GeoPlane3(new GeoPoint3(100.01, 0, 0), new GeoVector3(1, 0, 0))));
+            Assert.Empty(
+                Arc3.GetIntersections(arc, new GeoPlane3(new GeoPoint3(100.01, 0, 0), new GeoVector3(1, 0, 0)))
+            );
         }
 
         [Fact]
@@ -152,10 +163,14 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(crossings[0].IsEqualTo(new GeoPoint3(50, Reach(), 0), Loose));
 
             // The same line cut short so that neither crossing falls on it.
-            Assert.Empty(Arc3.GetIntersections(arc, new GeoLine3(new GeoPoint3(50, -200, 0), new GeoPoint3(50, -100, 0))));
+            Assert.Empty(
+                Arc3.GetIntersections(arc, new GeoLine3(new GeoPoint3(50, -200, 0), new GeoPoint3(50, -100, 0)))
+            );
 
             // Out of the arc's plane: it pierces z = 0 at an end of the arc.
-            Assert.Single(Arc3.GetIntersections(arc, new GeoLine3(new GeoPoint3(100, 0, -50), new GeoPoint3(100, 0, 50))));
+            Assert.Single(
+                Arc3.GetIntersections(arc, new GeoLine3(new GeoPoint3(100, 0, -50), new GeoPoint3(100, 0, 50)))
+            );
 
             // Through the centre, which lies on no circle.
             Assert.Empty(Arc3.GetIntersections(arc, new GeoLine3(new GeoPoint3(0, 0, -50), new GeoPoint3(0, 0, 50))));
@@ -195,7 +210,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Single(Arc3.GetIntersections(quarter, half));
             Assert.Equal(2, Arc3.GetIntersections(whole, half).Length);
 
-            double[] ys = Arc3.GetIntersections(whole, half).Select(point => Math.Round(point.Y, 6)).OrderBy(y => y).ToArray();
+            double[] ys = Arc3.GetIntersections(whole, half)
+                .Select(point => Math.Round(point.Y, 6))
+                .OrderBy(y => y)
+                .ToArray();
 
             Assert.Equal(new[] { -Math.Round(Reach(), 6), Math.Round(Reach(), 6) }, ys);
 
@@ -237,8 +255,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             arc.GetPlane().GetAxes(out GeoVector3 uAxis, out _);
 
-            Assert.True(arc.StartPoint.IsEqualTo(GeoPoint3.Origin.Add(uAxis.Multiply(100.0)), Loose),
-                $"angle nought is at {arc.StartPoint}, the frame's first axis is {uAxis}");
+            Assert.True(
+                arc.StartPoint.IsEqualTo(GeoPoint3.Origin.Add(uAxis.Multiply(100.0)), Loose),
+                $"angle nought is at {arc.StartPoint}, the frame's first axis is {uAxis}"
+            );
 
             // And for z = 0 that axis is not the x axis, which is the whole of the surprise.
             Assert.False(arc.StartPoint.IsEqualTo(new GeoPoint3(100, 0, 0), Loose));
@@ -271,7 +291,13 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Single(onRay);
 
             // Nothing crossed leaves an empty array rather than null.
-            Assert.False(Arc3.TryIntersectWith(arc, new GeoPlane3(new GeoPoint3(500, 0, 0), new GeoVector3(1, 0, 0)), out GeoPoint3[] none));
+            Assert.False(
+                Arc3.TryIntersectWith(
+                    arc,
+                    new GeoPlane3(new GeoPoint3(500, 0, 0), new GeoVector3(1, 0, 0)),
+                    out GeoPoint3[] none
+                )
+            );
             Assert.Empty(none);
         }
 

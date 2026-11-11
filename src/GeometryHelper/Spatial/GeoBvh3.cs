@@ -160,7 +160,7 @@ namespace GeometryHelper.Spatial
                 Start = start,
                 Count = count,
                 Left = -1,
-                Right = -1
+                Right = -1,
             };
 
             if (count > LeafSize)
@@ -262,9 +262,12 @@ namespace GeometryHelper.Spatial
         {
             switch (axis)
             {
-                case 0: return point.X;
-                case 1: return point.Y;
-                default: return point.Z;
+                case 0:
+                    return point.X;
+                case 1:
+                    return point.Y;
+                default:
+                    return point.Z;
             }
         }
 
@@ -322,7 +325,16 @@ namespace GeometryHelper.Spatial
                 {
                     for (int i = node.Start; i < node.Start + node.Count; i++)
                     {
-                        if (Intersection3.TryCrossTriangle(cast, _triangles[_order[i]], out GeoPoint3 hit, tolerance, holding, false))
+                        if (
+                            Intersection3.TryCrossTriangle(
+                                cast,
+                                _triangles[_order[i]],
+                                out GeoPoint3 hit,
+                                tolerance,
+                                holding,
+                                false
+                            )
+                        )
                         {
                             hits.Add(hit);
                         }
@@ -373,7 +385,9 @@ namespace GeometryHelper.Spatial
 
             // Below the rounding of the coordinates a triangle holds a crossing within it, as it holds a ray's, and a line whose
             // origin stands further off than the mesh is large is cut past each triangle from a diagonal short of the mesh.
-            GeoPoint3 near = Intersection3.CastNear(new GeoRay3(xline.Origin, xline.Direction.Negate(), true), Bounds).Origin;
+            GeoPoint3 near = Intersection3
+                .CastNear(new GeoRay3(xline.Origin, xline.Direction.Negate(), true), Bounds)
+                .Origin;
             near = Intersection3.CastNear(new GeoRay3(near, xline.Direction, true), Bounds).Origin;
             Tolerance holding = Intersection3.Holding(Intersection3.Rounding(Bounds, near), tolerance);
             bool below = !holding.Equals(tolerance);
@@ -396,7 +410,16 @@ namespace GeometryHelper.Spatial
                     {
                         GeoTriangle3 triangle = _triangles[_order[i]];
 
-                        if (Intersection3.TryIntersectWith(XLine3.CutPast(cast, triangle, tolerance), triangle, out GeoPoint3 hit, tolerance, holding, below))
+                        if (
+                            Intersection3.TryIntersectWith(
+                                XLine3.CutPast(cast, triangle, tolerance),
+                                triangle,
+                                out GeoPoint3 hit,
+                                tolerance,
+                                holding,
+                                below
+                            )
+                        )
                         {
                             hits.Add(hit);
                         }
@@ -461,9 +484,11 @@ namespace GeometryHelper.Spatial
                             continue;
                         }
 
-                        if (new GeoLine3(triangle.A, triangle.B).DistanceTo(hit) <= rim ||
-                            new GeoLine3(triangle.B, triangle.C).DistanceTo(hit) <= rim ||
-                            new GeoLine3(triangle.C, triangle.A).DistanceTo(hit) <= rim)
+                        if (
+                            new GeoLine3(triangle.A, triangle.B).DistanceTo(hit) <= rim
+                            || new GeoLine3(triangle.B, triangle.C).DistanceTo(hit) <= rim
+                            || new GeoLine3(triangle.C, triangle.A).DistanceTo(hit) <= rim
+                        )
                         {
                             crossings = 0;
                             return false;
@@ -598,7 +623,10 @@ namespace GeometryHelper.Spatial
                         int t = _order[i];
                         GeoAabb3 bounds = _triangleBounds[t];
 
-                        if (!Apart(from, to, step, bounds, reach, within, size) && !Apart(from, step, _triangles[t], Wider(reach, size, bounds)))
+                        if (
+                            !Apart(from, to, step, bounds, reach, within, size)
+                            && !Apart(from, step, _triangles[t], Wider(reach, size, bounds))
+                        )
                         {
                             near.Add(_triangles[t]);
                         }
@@ -617,7 +645,8 @@ namespace GeometryHelper.Spatial
         /// <summary>
         /// Gets the largest coordinate of a point, read without its sign.
         /// </summary>
-        private static double Largest(GeoPoint3 point) => Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z)));
+        private static double Largest(GeoPoint3 point) =>
+            Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z)));
 
         /// <summary>
         /// Gets a reach read a rounding wide for a distance taken across a direction from a segment to a box, or to a triangle in
@@ -628,8 +657,8 @@ namespace GeometryHelper.Spatial
         /// <param name="reach">The reach.</param>
         /// <param name="size">The largest coordinate of the segment.</param>
         /// <param name="box">The box, or the box of the triangle.</param>
-        private static double Wider(double reach, double size, GeoAabb3 box)
-            => reach + 1E-12 * (1.0 + Math.Max(size, Math.Max(Largest(box.Min), Largest(box.Max))));
+        private static double Wider(double reach, double size, GeoAabb3 box) =>
+            reach + 1E-12 * (1.0 + Math.Max(size, Math.Max(Largest(box.Min), Largest(box.Max))));
 
         /// <summary>
         /// Determines whether a segment stands further from a box than a reach: its own box further than the reach, as before,
@@ -637,8 +666,18 @@ namespace GeometryHelper.Spatial
         /// within the reach of the box, as before, or the two further apart than the reach read wider by the box's coordinates
         /// across a direction square to an axis and the segment.
         /// </summary>
-        private static bool Apart(GeoPoint3 from, GeoPoint3 to, GeoVector3 step, GeoAabb3 box, double reach, double within, double size)
-            => Gap3.BoxGap(from, to, box) > reach || !LineEntersBox(from, step, box, within, 0.0, 1.0) || ApartAcross(from, step, box, Wider(reach, size, box));
+        private static bool Apart(
+            GeoPoint3 from,
+            GeoPoint3 to,
+            GeoVector3 step,
+            GeoAabb3 box,
+            double reach,
+            double within,
+            double size
+        ) =>
+            Gap3.BoxGap(from, to, box) > reach
+            || !LineEntersBox(from, step, box, within, 0.0, 1.0)
+            || ApartAcross(from, step, box, Wider(reach, size, box));
 
         /// <summary>
         /// Determines whether a segment and a box stand further apart than a distance across one of the three directions square
@@ -660,9 +699,24 @@ namespace GeometryHelper.Spatial
             double halfZ = (box.Max.Z - box.Min.Z) * 0.5;
 
             // Square to X and to the segment is (0, -step.Z, step.Y), and so on round the axes.
-            return Beyond(z * step.Y - y * step.Z, halfY * Math.Abs(step.Z) + halfZ * Math.Abs(step.Y), step.Y * step.Y + step.Z * step.Z, within)
-                || Beyond(x * step.Z - z * step.X, halfZ * Math.Abs(step.X) + halfX * Math.Abs(step.Z), step.Z * step.Z + step.X * step.X, within)
-                || Beyond(y * step.X - x * step.Y, halfX * Math.Abs(step.Y) + halfY * Math.Abs(step.X), step.X * step.X + step.Y * step.Y, within);
+            return Beyond(
+                    z * step.Y - y * step.Z,
+                    halfY * Math.Abs(step.Z) + halfZ * Math.Abs(step.Y),
+                    step.Y * step.Y + step.Z * step.Z,
+                    within
+                )
+                || Beyond(
+                    x * step.Z - z * step.X,
+                    halfZ * Math.Abs(step.X) + halfX * Math.Abs(step.Z),
+                    step.Z * step.Z + step.X * step.X,
+                    within
+                )
+                || Beyond(
+                    y * step.X - x * step.Y,
+                    halfX * Math.Abs(step.Y) + halfY * Math.Abs(step.X),
+                    step.X * step.X + step.Y * step.Y,
+                    within
+                );
         }
 
         /// <summary>
@@ -692,7 +746,14 @@ namespace GeometryHelper.Spatial
         /// Determines whether a segment from the origin along a step and a triangle, its corners given from the start of the
         /// segment, stand further apart than a distance across a direction: any direction will do, of any length but nought.
         /// </summary>
-        private static bool Apart(GeoVector3 across, GeoVector3 step, GeoVector3 a, GeoVector3 b, GeoVector3 c, double within)
+        private static bool Apart(
+            GeoVector3 across,
+            GeoVector3 step,
+            GeoVector3 a,
+            GeoVector3 b,
+            GeoVector3 c,
+            double within
+        )
         {
             double along = across.DotProduct(step);
             double atA = across.DotProduct(a);
@@ -724,7 +785,8 @@ namespace GeometryHelper.Spatial
         /// <summary>
         /// Calculates the shortest distance from the mesh to a point, within a tolerance.
         /// </summary>
-        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => GetClosestPoint(point, tolerance).DistanceTo(point);
+        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) =>
+            GetClosestPoint(point, tolerance).DistanceTo(point);
 
         /// <summary>
         /// Calculates the shortest distance between this mesh and another, using the default tolerance.
@@ -850,7 +912,10 @@ namespace GeometryHelper.Spatial
                 // nearer: this passes over what the box of the segment cannot, the branches beside a long slanting run.
                 double within = Wider(Math.Max(nearest, crossing), size, node.Bounds);
 
-                if (!LineEntersBox(from, step, node.Bounds, within, 0.0, 1.0) || ApartAcross(from, step, node.Bounds, within))
+                if (
+                    !LineEntersBox(from, step, node.Bounds, within, 0.0, 1.0)
+                    || ApartAcross(from, step, node.Bounds, within)
+                )
                 {
                     continue;
                 }
@@ -861,7 +926,15 @@ namespace GeometryHelper.Spatial
                     {
                         int t = _order[i];
 
-                        if (!(_triangleBounds[t].DistanceTo(box) < nearest) || Apart(from, step, _triangles[t], Wider(Math.Max(nearest, crossing), size, _triangleBounds[t])))
+                        if (
+                            !(_triangleBounds[t].DistanceTo(box) < nearest)
+                            || Apart(
+                                from,
+                                step,
+                                _triangles[t],
+                                Wider(Math.Max(nearest, crossing), size, _triangleBounds[t])
+                            )
+                        )
                         {
                             continue;
                         }
@@ -966,7 +1039,12 @@ namespace GeometryHelper.Spatial
 
                             if (line)
                             {
-                                GeoLine3 candidate = Projection3.Closest(_triangles[a], other._triangles[b], tolerance, tolerance);
+                                GeoLine3 candidate = Projection3.Closest(
+                                    _triangles[a],
+                                    other._triangles[b],
+                                    tolerance,
+                                    tolerance
+                                );
                                 double length = candidate.Length;
 
                                 if (length < nearest)
@@ -977,7 +1055,11 @@ namespace GeometryHelper.Spatial
                             }
                             else
                             {
-                                double distance = Distance3.DistanceToWithinBand(_triangles[a], other._triangles[b], tolerance);
+                                double distance = Distance3.DistanceToWithinBand(
+                                    _triangles[a],
+                                    other._triangles[b],
+                                    tolerance
+                                );
 
                                 if (distance < nearest)
                                 {
@@ -996,7 +1078,8 @@ namespace GeometryHelper.Spatial
                 }
 
                 // Splitting the larger side keeps the two descending at a similar rate.
-                NodePair first, second;
+                NodePair first,
+                    second;
 
                 if (rightIsLeaf || (!leftIsLeaf && left.Count >= right.Count))
                 {
@@ -1005,8 +1088,16 @@ namespace GeometryHelper.Spatial
                 }
                 else
                 {
-                    first = new NodePair(pair.Left, right.Left, left.Bounds.DistanceTo(other._nodes[right.Left].Bounds));
-                    second = new NodePair(pair.Left, right.Right, left.Bounds.DistanceTo(other._nodes[right.Right].Bounds));
+                    first = new NodePair(
+                        pair.Left,
+                        right.Left,
+                        left.Bounds.DistanceTo(other._nodes[right.Left].Bounds)
+                    );
+                    second = new NodePair(
+                        pair.Left,
+                        right.Right,
+                        left.Bounds.DistanceTo(other._nodes[right.Right].Bounds)
+                    );
                 }
 
                 // The nearer pair goes on top of the stack, so that it is opened next.
@@ -1036,9 +1127,12 @@ namespace GeometryHelper.Spatial
         /// </summary>
         private static bool Near(GeoAabb3 first, GeoAabb3 second, double reach)
         {
-            return first.Min.X - reach <= second.Max.X && second.Min.X - reach <= first.Max.X
-                && first.Min.Y - reach <= second.Max.Y && second.Min.Y - reach <= first.Max.Y
-                && first.Min.Z - reach <= second.Max.Z && second.Min.Z - reach <= first.Max.Z;
+            return first.Min.X - reach <= second.Max.X
+                && second.Min.X - reach <= first.Max.X
+                && first.Min.Y - reach <= second.Max.Y
+                && second.Min.Y - reach <= first.Max.Y
+                && first.Min.Z - reach <= second.Max.Z
+                && second.Min.Z - reach <= first.Max.Z;
         }
 
         /// <summary>
@@ -1225,15 +1319,22 @@ namespace GeometryHelper.Spatial
         /// the box's height 0.04 behind its origin, which a slack along the ray of a thousandth does not reach, though
         /// its origin is within the tolerance of the face.
         /// </remarks>
-        private static bool RayEntersBox(GeoRay3 ray, GeoAabb3 box, double grow)
-            => LineEntersBox(ray.Origin, ray.Direction, box, grow, 0.0);
+        private static bool RayEntersBox(GeoRay3 ray, GeoAabb3 box, double grow) =>
+            LineEntersBox(ray.Origin, ray.Direction, box, grow, 0.0);
 
         /// <summary>
         /// Checks whether a line from a point along a direction enters a box grown by a distance on every side, at any
         /// distance along it from <paramref name="lowest"/> on: nought for a ray, minus infinity for a line without ends; and
         /// no further than <paramref name="highest"/>, a segment read from its start along the step to its end reaching 1.
         /// </summary>
-        private static bool LineEntersBox(GeoPoint3 start, GeoVector3 direction, GeoAabb3 box, double grow, double lowest, double highest = double.MaxValue)
+        private static bool LineEntersBox(
+            GeoPoint3 start,
+            GeoVector3 direction,
+            GeoAabb3 box,
+            double grow,
+            double lowest,
+            double highest = double.MaxValue
+        )
         {
             if (box.IsEmpty)
             {
@@ -1288,6 +1389,7 @@ namespace GeometryHelper.Spatial
         /// Returns a string that represents the current hierarchy.
         /// </summary>
         public override string ToString() => $"Bvh3(Triangles: {TriangleCount}, Nodes: {_rootCount})";
+
         /// <summary>
         /// Creates a hierarchy over the surface of a face.
         /// </summary>
@@ -1315,6 +1417,5 @@ namespace GeometryHelper.Spatial
 
             return new GeoBvh3(face.TriangulateSurface(tolerance));
         }
-
     }
 }

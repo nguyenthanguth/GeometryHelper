@@ -17,18 +17,29 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfD10Tests
     {
-        private const string Head = "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1009\n  0\nENDSEC\n  0\nSECTION\n  2\nBLOCKS\n";
+        private const string Head =
+            "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1009\n  0\nENDSEC\n  0\nSECTION\n  2\nBLOCKS\n";
         private const string Line = "  0\nLINE\n  8\n0\n 10\n0\n 20\n0\n 30\n0\n 11\n1\n 21\n0\n 31\n0\n";
 
         private static string Insert(string name) => "  0\nINSERT\n  8\n0\n  2\n" + name + "\n 10\n0\n 20\n0\n 30\n0\n";
 
         // A block of a name AutoCAD gives itself, *U1, flagged anonymous (70 of 1).
-        private static string Block(string name, string entities) => "  0\nBLOCK\n  8\n0\n  2\n" + name + "\n 70\n" + (name.StartsWith("*", StringComparison.Ordinal) ? "1" : "0") + "\n 10\n0\n 20\n0\n 30\n0\n" + entities + "  0\nENDBLK\n  8\n0\n";
+        private static string Block(string name, string entities) =>
+            "  0\nBLOCK\n  8\n0\n  2\n"
+            + name
+            + "\n 70\n"
+            + (name.StartsWith("*", StringComparison.Ordinal) ? "1" : "0")
+            + "\n 10\n0\n 20\n0\n 30\n0\n"
+            + entities
+            + "  0\nENDBLK\n  8\n0\n";
 
-        private static string Drawing(string blocks, string entities) => Head + blocks + "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n" + entities + "  0\nENDSEC\n  0\nEOF\n";
+        private static string Drawing(string blocks, string entities) =>
+            Head + blocks + "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n" + entities + "  0\nENDSEC\n  0\nEOF\n";
 
-        private static IEnumerable<string> RoundWarnings(DxfDatabase db)
-            => DxfReader.Parse(db.ToText(), new DxfReadOptions { Tolerance = Tolerance.Default }).Warnings.Where(w => w.Contains("without end"));
+        private static IEnumerable<string> RoundWarnings(DxfDatabase db) =>
+            DxfReader
+                .Parse(db.ToText(), new DxfReadOptions { Tolerance = Tolerance.Default })
+                .Warnings.Where(w => w.Contains("without end"));
 
         /// <summary>The messages logged while an action runs, every level.</summary>
         private static List<string> Logged(Action action)
@@ -61,7 +72,9 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase other = DxfDatabase.Parse(Drawing(Block("A", Line) + Block("M", Insert("P")), Insert("A")));
             string before = db.ToText();
 
-            ArgumentException refused = Assert.Throws<ArgumentException>(() => db.Insert(GeoTransform3.Identity, other, true));
+            ArgumentException refused = Assert.Throws<ArgumentException>(() =>
+                db.Insert(GeoTransform3.Identity, other, true)
+            );
 
             Assert.Contains("insert itself", refused.Message, StringComparison.Ordinal);
             Assert.Equal(before, db.ToText());
@@ -69,7 +82,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.False(db.BlockTable.Has("M"));
 
             // Moved, the same.
-            Assert.Throws<ArgumentException>(() => db.Insert(GeoTransform3.Translation(new GeoVector3(100, 0, 0)), other, true));
+            Assert.Throws<ArgumentException>(() =>
+                db.Insert(GeoTransform3.Translation(new GeoVector3(100, 0, 0)), other, true)
+            );
             Assert.Equal(before, db.ToText());
         }
 
@@ -105,8 +120,15 @@ namespace GeometryHelper.UnitTest.Dxf
             // together, the INSERT of *U1 brought its block as *U3, which Q's INSERT then placed: Q, *U3, P, Q without end,
             // found only once *U3 was written, and the set refused half written. *U1 comes as *U4 now, and Q's INSERT of
             // *U3 places nothing, as it placed nothing where it came from.
-            DxfDatabase db = DxfDatabase.Parse(Drawing(Block("*U1", Line) + Block("*U2", Line) + Block("P", Line + Insert("Q")), string.Empty));
-            DxfDatabase source = DxfDatabase.Parse(Drawing(Block("P", Line) + Block("*U1", Insert("P")) + Block("Q", Line + Insert("*U3")), Insert("*U1") + Insert("Q")));
+            DxfDatabase db = DxfDatabase.Parse(
+                Drawing(Block("*U1", Line) + Block("*U2", Line) + Block("P", Line + Insert("Q")), string.Empty)
+            );
+            DxfDatabase source = DxfDatabase.Parse(
+                Drawing(
+                    Block("P", Line) + Block("*U1", Insert("P")) + Block("Q", Line + Insert("*U3")),
+                    Insert("*U1") + Insert("Q")
+                )
+            );
 
             IReadOnlyList<DxfEntity> copies = source.WblockCloneObjects(source.ModelSpace.ToList(), db.ModelSpace);
 
@@ -125,7 +147,9 @@ namespace GeometryHelper.UnitTest.Dxf
             // holds an INSERT of *U3, a block it has not. Inserted whole, *U1 came as *U3, which the copy of *U5's INSERT then
             // placed, where it placed nothing; *U1 takes another name now, and that INSERT places nothing still.
             DxfDatabase db = DxfDatabase.Parse(Drawing(Block("*U1", Line) + Block("*U2", Line), string.Empty));
-            DxfDatabase source = DxfDatabase.Parse(Drawing(Block("*U1", Line) + Block("*U5", Line + Insert("*U3")), Insert("*U1") + Insert("*U5")));
+            DxfDatabase source = DxfDatabase.Parse(
+                Drawing(Block("*U1", Line) + Block("*U5", Line + Insert("*U3")), Insert("*U1") + Insert("*U5"))
+            );
 
             db.Insert(GeoTransform3.Identity, source, true);
 
@@ -146,7 +170,11 @@ namespace GeometryHelper.UnitTest.Dxf
             // DIMENSION then drew by it; it comes as *D10.
             string r12 = DxfDimensionDrawings.R12;
             int block = r12.IndexOf("  0\nBLOCK\n  5\n56\n  8\n0\n  2\n*D1\n", StringComparison.Ordinal);
-            int end = r12.IndexOf("  0\n", r12.IndexOf("  0\nENDBLK\n", block, StringComparison.Ordinal) + 1, StringComparison.Ordinal);
+            int end = r12.IndexOf(
+                "  0\n",
+                r12.IndexOf("  0\nENDBLK\n", block, StringComparison.Ordinal) + 1,
+                StringComparison.Ordinal
+            );
             string without = r12.Remove(block, end - block);
             DxfDatabase db = DxfDatabase.Parse(without);
             Assert.False(db.BlockTable.Has("*D1"));
@@ -177,13 +205,26 @@ namespace GeometryHelper.UnitTest.Dxf
             // so has this drawing not; P this drawing has. Both INSERTs copied together bring M and N with the INSERTs as
             // they were, and one Debug line says so for the whole set: three INSERTs, of Z and K, none of which places a block.
             DxfDatabase db = DxfDatabase.Parse(Drawing(Block("P", Line), string.Empty));
-            DxfDatabase source = DxfDatabase.Parse(Drawing(Block("P", Line) + Block("M", Line + Insert("Z") + Insert("P")) + Block("N", Insert("Z") + Insert("K")), Insert("M") + Insert("N")));
+            DxfDatabase source = DxfDatabase.Parse(
+                Drawing(
+                    Block("P", Line)
+                        + Block("M", Line + Insert("Z") + Insert("P"))
+                        + Block("N", Insert("Z") + Insert("K")),
+                    Insert("M") + Insert("N")
+                )
+            );
 
             List<string> logged = Logged(() => source.WblockCloneObjects(source.ModelSpace.ToList(), db.ModelSpace));
 
             DxfDatabase read = DxfDatabase.Parse(db.ToText());
-            Assert.Equal(new[] { "Z", "P" }, read.BlockTable["M"].OfType<DxfBlockReference>().Select(r => r.Name).ToArray());
-            Assert.Equal(new[] { "Z", "K" }, read.BlockTable["N"].OfType<DxfBlockReference>().Select(r => r.Name).ToArray());
+            Assert.Equal(
+                new[] { "Z", "P" },
+                read.BlockTable["M"].OfType<DxfBlockReference>().Select(r => r.Name).ToArray()
+            );
+            Assert.Equal(
+                new[] { "Z", "K" },
+                read.BlockTable["N"].OfType<DxfBlockReference>().Select(r => r.Name).ToArray()
+            );
             string said = Assert.Single(logged, m => m.Contains("block their drawing has not"));
             Assert.StartsWith("Debug ", said, StringComparison.Ordinal);
             Assert.Contains("3 INSERTs", said, StringComparison.Ordinal);
@@ -191,9 +232,14 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // An INSERT copied alone says it once too; a copy that brings no such INSERT says nothing of it.
             DxfDatabase alone = DxfDatabase.Parse(Drawing(Block("P", Line), string.Empty));
-            Assert.Single(Logged(() => alone.ModelSpace.AppendEntity(source.ModelSpace.First().Clone())), m => m.Contains("block their drawing has not"));
+            Assert.Single(Logged(() => alone.ModelSpace.AppendEntity(source.ModelSpace.First().Clone())), m =>
+                m.Contains("block their drawing has not")
+            );
             DxfDatabase clean = DxfDatabase.Parse(Drawing(Block("A", Line), Insert("A")));
-            Assert.DoesNotContain(Logged(() => clean.WblockCloneObjects(clean.ModelSpace.ToList(), alone.ModelSpace)), m => m.Contains("block their drawing has not"));
+            Assert.DoesNotContain(
+                Logged(() => clean.WblockCloneObjects(clean.ModelSpace.ToList(), alone.ModelSpace)),
+                m => m.Contains("block their drawing has not")
+            );
         }
 
         /// <summary>
@@ -208,18 +254,24 @@ namespace GeometryHelper.UnitTest.Dxf
         private static string TiedToTheTable()
         {
             const string Mark = " 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n";
-            return DxfDimensionDrawings.R2018
-                .Replace("$HANDSEED\n  5\n10A\n", "$HANDSEED\n  5\nA06\n")
-                .Replace("  0\nACAD_TABLE\n  5\nF6\n330\n17\n", "  0\nACAD_TABLE\n  5\nF6\n102\n{ACAD_XDICTIONARY\n360\nA04\n102\n}\n330\n17\n")
+            return DxfDimensionDrawings
+                .R2018.Replace("$HANDSEED\n  5\n10A\n", "$HANDSEED\n  5\nA06\n")
+                .Replace(
+                    "  0\nACAD_TABLE\n  5\nF6\n330\n17\n",
+                    "  0\nACAD_TABLE\n  5\nF6\n102\n{ACAD_XDICTIONARY\n360\nA04\n102\n}\n330\n17\n"
+                )
                 .Replace(Mark, Mark.Replace(" 92\n0\n", " 92\n1\n340\nA01\n 93\n2\n 94\n2\n 96\n0\n"))
                 .Replace("  3\nEZDXF_META\n350\n2D\n", "  3\nACAD_DATALINK\n350\nA00\n  3\nEZDXF_META\n350\n2D\n")
-                .Replace("  0\nENDSEC\n  0\nEOF\n", "  0\nDICTIONARY\n  5\nA00\n330\nA\n100\nAcDbDictionary\n281\n1\n  3\nParts\n350\nA01\n"
-                    + "  0\nDATALINK\n  5\nA01\n102\n{ACAD_REACTORS\n330\nA00\n102\n}\n330\nA00\n100\nAcDbDataLink\n  1\nAcExcel\n300\nBill of parts\n301\n\n302\nparts.csv\n"
-                    + " 90\n2\n 91\n0\n 92\n0\n170\n1900\n171\n1\n172\n0\n173\n0\n174\n0\n175\n0\n176\n0\n177\n0\n 93\n654\n304\n\n"
-                    + " 94\n3\n330\nF6\n330\nA05\n330\n2D\n360\n0\n305\nCUSTOMDATA\n  1\nDATAMAP_BEGIN\n 90\n0\n309\nDATAMAP_END\n"
-                    + "  0\nDICTIONARY\n  5\nA04\n330\nF6\n100\nAcDbDictionary\n280\n1\n281\n1\n  3\nACAD_XREC_ROUNDTRIP\n360\nA05\n"
-                    + "  0\nXRECORD\n  5\nA05\n102\n{ACAD_REACTORS\n330\nA04\n102\n}\n330\nA04\n100\nAcDbXrecord\n280\n1\n102\nACAD_ROUNDTRIP_2008_TABLE_ENTITY\n 90\n0\n"
-                    + "  0\nENDSEC\n  0\nEOF\n");
+                .Replace(
+                    "  0\nENDSEC\n  0\nEOF\n",
+                    "  0\nDICTIONARY\n  5\nA00\n330\nA\n100\nAcDbDictionary\n281\n1\n  3\nParts\n350\nA01\n"
+                        + "  0\nDATALINK\n  5\nA01\n102\n{ACAD_REACTORS\n330\nA00\n102\n}\n330\nA00\n100\nAcDbDataLink\n  1\nAcExcel\n300\nBill of parts\n301\n\n302\nparts.csv\n"
+                        + " 90\n2\n 91\n0\n 92\n0\n170\n1900\n171\n1\n172\n0\n173\n0\n174\n0\n175\n0\n176\n0\n177\n0\n 93\n654\n304\n\n"
+                        + " 94\n3\n330\nF6\n330\nA05\n330\n2D\n360\n0\n305\nCUSTOMDATA\n  1\nDATAMAP_BEGIN\n 90\n0\n309\nDATAMAP_END\n"
+                        + "  0\nDICTIONARY\n  5\nA04\n330\nF6\n100\nAcDbDictionary\n280\n1\n281\n1\n  3\nACAD_XREC_ROUNDTRIP\n360\nA05\n"
+                        + "  0\nXRECORD\n  5\nA05\n102\n{ACAD_REACTORS\n330\nA04\n102\n}\n330\nA04\n100\nAcDbXrecord\n280\n1\n102\nACAD_ROUNDTRIP_2008_TABLE_ENTITY\n 90\n0\n"
+                        + "  0\nENDSEC\n  0\nEOF\n"
+                );
         }
 
         /// <summary>The groups of the DATALINK of a drawing saved, from its count of the objects it is tied to (94) to its end.</summary>
@@ -240,13 +292,19 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(TiedToTheTable());
             DxfTable table = db.ModelSpace.OfType<DxfTable>().First();
             Assert.Equal("Parts", table.GetDataLink(1, 0).Name);
-            Assert.Equal(" 94\n3\n330\nF6\n330\nA05\n330\n2D\n360\n0\n305\nCUSTOMDATA\n  1\nDATAMAP_BEGIN\n 90\n0\n309\nDATAMAP_END\n", TiesOf(db.ToText()));
+            Assert.Equal(
+                " 94\n3\n330\nF6\n330\nA05\n330\n2D\n360\n0\n305\nCUSTOMDATA\n  1\nDATAMAP_BEGIN\n 90\n0\n309\nDATAMAP_END\n",
+                TiesOf(db.ToText())
+            );
 
             table.RemoveDataLink();
 
             string saved = db.ToText();
             Assert.Null(table.GetDataLink(1, 0));
-            Assert.Equal(" 94\n1\n330\n2D\n360\n0\n305\nCUSTOMDATA\n  1\nDATAMAP_BEGIN\n 90\n0\n309\nDATAMAP_END\n", TiesOf(saved));
+            Assert.Equal(
+                " 94\n1\n330\n2D\n360\n0\n305\nCUSTOMDATA\n  1\nDATAMAP_BEGIN\n 90\n0\n309\nDATAMAP_END\n",
+                TiesOf(saved)
+            );
             Assert.Equal("Parts", db.DataLinkDictionary.Cast<DxfDBDictionaryEntry>().Single().Key);
 
             // Taken away by a cell of its range, the same.

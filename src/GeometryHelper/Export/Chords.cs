@@ -24,8 +24,12 @@ namespace GeometryHelper.Export
         internal const int Most = Tessellation.MostSegments;
 
         /// <summary>Refuses a chord tolerance that is not a finite number above nought.</summary>
-        internal static void Require(double chordTolerance)
-            => Guard.Positive(chordTolerance, nameof(chordTolerance), "A chord tolerance has to be a finite number above nought.");
+        internal static void Require(double chordTolerance) =>
+            Guard.Positive(
+                chordTolerance,
+                nameof(chordTolerance),
+                "A chord tolerance has to be a finite number above nought."
+            );
 
         /// <summary>Refuses a ray with no direction, as a <c>default</c> one has.</summary>
         internal static void Require(GeoRay2 ray)
@@ -75,7 +79,11 @@ namespace GeometryHelper.Export
         internal static GeoLine2 Segment(GeoXLine2 xline, double length)
         {
             Require(xline);
-            Guard.NonNegative(length, nameof(length), "A line without ends is drawn for a length that is a number, nought or more.");
+            Guard.NonNegative(
+                length,
+                nameof(length),
+                "A line without ends is drawn for a length that is a number, nought or more."
+            );
             return xline.ToLine(-length * 0.5, length * 0.5);
         }
 
@@ -83,17 +91,21 @@ namespace GeometryHelper.Export
         internal static GeoLine3 Segment(GeoXLine3 xline, double length)
         {
             Require(xline);
-            Guard.NonNegative(length, nameof(length), "A line without ends is drawn for a length that is a number, nought or more.");
+            Guard.NonNegative(
+                length,
+                nameof(length),
+                "A line without ends is drawn for a length that is a number, nought or more."
+            );
             return xline.ToLine(-length * 0.5, length * 0.5);
         }
 
         /// <summary>The chords of an arc, from its start to its end, both exactly.</summary>
-        internal static List<GeoPoint3> Of(GeoArc3 arc, double chordTolerance)
-            => Along(arc, ForArc(arc.Radius, Math.Abs(arc.SweptAngle), chordTolerance, 1));
+        internal static List<GeoPoint3> Of(GeoArc3 arc, double chordTolerance) =>
+            Along(arc, ForArc(arc.Radius, Math.Abs(arc.SweptAngle), chordTolerance, 1));
 
         /// <summary>The chords of an arc, from its start to its end, both exactly.</summary>
-        internal static List<GeoPoint2> Of(GeoArc2 arc, double chordTolerance)
-            => Along(arc, ForArc(arc.Radius, Math.Abs(arc.SweptAngle), chordTolerance, 1));
+        internal static List<GeoPoint2> Of(GeoArc2 arc, double chordTolerance) =>
+            Along(arc, ForArc(arc.Radius, Math.Abs(arc.SweptAngle), chordTolerance, 1));
 
         /// <summary>The chords of a circle all the way round, the first point repeated at the end.</summary>
         internal static List<GeoPoint3> Of(GeoCircle3 circle, double chordTolerance)
@@ -327,8 +339,12 @@ namespace GeometryHelper.Export
         /// Whether an arc's circle can be placed: a radius, a sweep and a centre that are numbers. The arc of a bulge of 1E-200
         /// has a radius of 1E202 and a centre that is not one.
         /// </summary>
-        private static bool Placed(double radius, double sweep, double x, double y, double z)
-            => Guard.IsFinite(radius) && Guard.IsFinite(sweep) && Guard.IsFinite(x) && Guard.IsFinite(y) && Guard.IsFinite(z);
+        private static bool Placed(double radius, double sweep, double x, double y, double z) =>
+            Guard.IsFinite(radius)
+            && Guard.IsFinite(sweep)
+            && Guard.IsFinite(x)
+            && Guard.IsFinite(y)
+            && Guard.IsFinite(z);
 
         private static List<GeoPoint3> Along(GeoArc3 arc, int count)
         {
@@ -359,8 +375,9 @@ namespace GeometryHelper.Export
         /// some of them: its shortest are at the ends of the major axis, where the rim bends most, as long as the root of eight
         /// times the radius of that bend and the tolerance.
         /// </summary>
-        private static bool Fine(double majorRadius, double minorRadius, double chordTolerance)
-            => 2.0 * Math.Sqrt(2.0 * (minorRadius * minorRadius / majorRadius) * chordTolerance) < 10.0 * Tolerance.Global.EqualPoint;
+        private static bool Fine(double majorRadius, double minorRadius, double chordTolerance) =>
+            2.0 * Math.Sqrt(2.0 * (minorRadius * minorRadius / majorRadius) * chordTolerance)
+            < 10.0 * Tolerance.Global.EqualPoint;
 
         /// <summary>
         /// How many chords a circular arc is cut into so that none strays further than the tolerance: its sweep over the

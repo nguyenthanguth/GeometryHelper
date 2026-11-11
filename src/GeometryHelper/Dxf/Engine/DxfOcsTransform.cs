@@ -91,7 +91,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A direction of the old system in the new.</summary>
-        internal GeoVector3 TransformDirection(GeoVector3 direction) => _new.FromWorld(_m.Transform(_old.ToWorld(direction)));
+        internal GeoVector3 TransformDirection(GeoVector3 direction) =>
+            _new.FromWorld(_m.Transform(_old.ToWorld(direction)));
 
         /// <summary>The length a direction of the old system has once transformed.</summary>
         internal double TransformLength(GeoVector3 direction) => _m.Transform(_old.ToWorld(direction)).Length;
@@ -105,7 +106,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A thickness along the old extrusion, as one along the new.</summary>
-        internal double TransformThickness(double thickness) => TransformDirection(new GeoVector3(0.0, 0.0, thickness)).Z;
+        internal double TransformThickness(double thickness) =>
+            TransformDirection(new GeoVector3(0.0, 0.0, thickness)).Z;
 
         /// <summary>A point of the old system in the new, as <see cref="TransformVertex"/> gives it.</summary>
         internal GeoPoint3 Vertex(GeoPoint3 point) => TransformVertex(point);
@@ -123,7 +125,10 @@ namespace GeometryHelper.Dxf
                 return 0.0;
             }
 
-            return Math.Max(TransformLength(new GeoVector3(size, 0.0, 0.0)), TransformLength(new GeoVector3(0.0, size, 0.0)));
+            return Math.Max(
+                TransformLength(new GeoVector3(size, 0.0, 0.0)),
+                TransformLength(new GeoVector3(0.0, size, 0.0))
+            );
         }
 
         /// <summary>Whether a transformation is the identity, to the bit: one that leaves a record as it is.</summary>
@@ -188,7 +193,8 @@ namespace GeometryHelper.Dxf
         /// <summary>A direction of unit length, as ezdxf makes one: multiplied by one over its length.</summary>
         internal static GeoVector3 Normalized(GeoVector3 v) => v.Multiply(1.0 / v.Length);
 
-        internal static GeoVector3 Cross(GeoVector3 a, GeoVector3 b) => new GeoVector3(a.Y * b.Z - a.Z * b.Y, a.Z * b.X - a.X * b.Z, a.X * b.Y - a.Y * b.X);
+        internal static GeoVector3 Cross(GeoVector3 a, GeoVector3 b) =>
+            new GeoVector3(a.Y * b.Z - a.Z * b.Y, a.Z * b.X - a.X * b.Z, a.X * b.Y - a.Y * b.X);
 
         /// <summary>The axes of the system of an extrusion by the arbitrary axis algorithm, as ezdxf's <c>OCS</c> makes them.</summary>
         internal sealed class Axes
@@ -218,11 +224,17 @@ namespace GeometryHelper.Dxf
 
             internal GeoVector3 Z { get; }
 
-            internal GeoVector3 ToWorld(GeoVector3 v)
-                => _world ? v : new GeoVector3(X.X * v.X + Y.X * v.Y + Z.X * v.Z, X.Y * v.X + Y.Y * v.Y + Z.Y * v.Z, X.Z * v.X + Y.Z * v.Y + Z.Z * v.Z);
+            internal GeoVector3 ToWorld(GeoVector3 v) =>
+                _world
+                    ? v
+                    : new GeoVector3(
+                        X.X * v.X + Y.X * v.Y + Z.X * v.Z,
+                        X.Y * v.X + Y.Y * v.Y + Z.Y * v.Z,
+                        X.Z * v.X + Y.Z * v.Y + Z.Z * v.Z
+                    );
 
-            internal GeoVector3 FromWorld(GeoVector3 v)
-                => _world ? v : new GeoVector3(X.DotProduct(v), Y.DotProduct(v), Z.DotProduct(v));
+            internal GeoVector3 FromWorld(GeoVector3 v) =>
+                _world ? v : new GeoVector3(X.DotProduct(v), Y.DotProduct(v), Z.DotProduct(v));
         }
     }
 }

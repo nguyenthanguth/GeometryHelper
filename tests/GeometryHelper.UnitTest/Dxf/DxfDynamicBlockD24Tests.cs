@@ -47,16 +47,25 @@ namespace GeometryHelper.UnitTest.Dxf
         private static DxfDatabase Stretched(DxfBlockParameterValueSet set)
         {
             DxfDatabase db = Panel(out DxfBlockTableRecord block, out DxfLine[] lines);
-            DxfBlockLinearParameter width = block.AddLinearParameter("Width", "Overall width of the panel", new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, set);
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                "Overall width of the panel",
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                set
+            );
             block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), lines.Take(3));
             return db;
         }
 
         private static DxfDatabase Reopened(DxfDatabase db) => DxfDatabase.Parse(db.ToText());
 
-        private static DxfBlockReference TheInsert(DxfDatabase db) => db.ModelSpace.OfType<DxfBlockReference>().Single(r => r.Name == "GH_PANEL");
+        private static DxfBlockReference TheInsert(DxfDatabase db) =>
+            db.ModelSpace.OfType<DxfBlockReference>().Single(r => r.Name == "GH_PANEL");
 
-        private static DxfDBObject GraphOf(DxfDatabase db) => db.BlockTable["GH_PANEL"].ExtensionDictionary.GetAt("ACAD_ENHANCEDBLOCK");
+        private static DxfDBObject GraphOf(DxfDatabase db) =>
+            db.BlockTable["GH_PANEL"].ExtensionDictionary.GetAt("ACAD_ENHANCEDBLOCK");
 
         /// <summary>The groups of the graph's record after its subclass marker.</summary>
         private static List<DxfTypedValue> GraphGroups(DxfDatabase db)
@@ -70,7 +79,10 @@ namespace GeometryHelper.UnitTest.Dxf
         private static List<DxfItem> Nodes(DxfDatabase db)
         {
             DxfDBObject graph = GraphOf(db);
-            return GraphGroups(db).Where(g => g.TypeCode == 360).Select(g => graph.Item.File.ObjectItem(g.Value)).ToList();
+            return GraphGroups(db)
+                .Where(g => g.TypeCode == 360)
+                .Select(g => graph.Item.File.ObjectItem(g.Value))
+                .ToList();
         }
 
         private static string TypeOf(DxfItem node) => node.Type;
@@ -129,9 +141,13 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AListIsWrittenUnderTheFlags8_FromTheLeastUp_AndGivenBackAsTheAllowedValues()
         {
-            DxfDatabase db = Reopened(Stretched(DxfBlockParameterValueSet.List(new[] { 300.0, 50, 100, 150, 200, 250, 100.0004 })));
+            DxfDatabase db = Reopened(
+                Stretched(DxfBlockParameterValueSet.List(new[] { 300.0, 50, 100, 150, 200, 250, 100.0004 }))
+            );
 
-            DxfDynamicBlockReferenceProperty width = Assert.Single(TheInsert(db).DynamicBlockReferencePropertyCollection);
+            DxfDynamicBlockReferenceProperty width = Assert.Single(
+                TheInsert(db).DynamicBlockReferencePropertyCollection
+            );
             Assert.Equal(new object[] { 50.0, 100.0, 150.0, 200.0, 250.0, 300.0 }, width.GetAllowedValues());
             Assert.Equal(new[] { "8" }, Of(Nodes(db)[0], "AcDbBlockLinearParameter", 96));
             Assert.Equal(new[] { "6" }, Of(Nodes(db)[0], "AcDbBlockLinearParameter", 175));
@@ -155,25 +171,267 @@ namespace GeometryHelper.UnitTest.Dxf
             // handles (360) are its own.
             int[] autocad =
             {
-                96, 8, 97, 8,
-                91, 0, 93, 32, 95, 1, 92, 2, 92, 5, 92, 0, 92, 6,
-                91, 1, 93, 32, 95, 2, 92, -1, 92, -1, 92, 2, 92, 2,
-                91, 2, 93, 32, 95, 3, 92, 0, 92, 0, 92, -1, 92, -1,
-                91, 3, 93, 32, 95, 4, 92, 1, 92, 1, 92, -1, 92, -1,
-                91, 4, 93, 32, 95, 5, 92, -1, 92, -1, 92, 5, 92, 5,
-                91, 5, 93, 32, 95, 6, 92, 3, 92, 3, 92, -1, 92, -1,
-                91, 6, 93, 32, 95, 7, 92, 4, 92, 4, 92, -1, 92, -1,
-                91, 7, 93, 32, 95, 8, 92, 6, 92, 6, 92, -1, 92, -1,
-                92, 0, 93, 0, 94, 1, 91, 0, 91, 2, 92, -1, 92, -1, 92, -1, 92, 1, 92, -1,
-                92, 1, 93, 0, 94, 1, 91, 0, 91, 3, 92, -1, 92, -1, 92, 0, 92, 3, 92, -1,
-                92, 2, 93, 0, 94, 2, 91, 1, 91, 0, 92, -1, 92, 5, 92, -1, 92, -1, 92, -1,
-                92, 3, 93, 0, 94, 1, 91, 0, 91, 5, 92, -1, 92, -1, 92, 1, 92, 4, 92, -1,
-                92, 4, 93, 0, 94, 1, 91, 0, 91, 6, 92, -1, 92, -1, 92, 3, 92, 6, 92, -1,
-                92, 5, 93, 0, 94, 2, 91, 4, 91, 0, 92, 2, 92, -1, 92, -1, 92, -1, 92, -1,
-                92, 6, 93, 0, 94, 2, 91, 0, 91, 7, 92, -1, 92, -1, 92, 4, 92, -1, 92, -1,
+                96,
+                8,
+                97,
+                8,
+                91,
+                0,
+                93,
+                32,
+                95,
+                1,
+                92,
+                2,
+                92,
+                5,
+                92,
+                0,
+                92,
+                6,
+                91,
+                1,
+                93,
+                32,
+                95,
+                2,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                2,
+                92,
+                2,
+                91,
+                2,
+                93,
+                32,
+                95,
+                3,
+                92,
+                0,
+                92,
+                0,
+                92,
+                -1,
+                92,
+                -1,
+                91,
+                3,
+                93,
+                32,
+                95,
+                4,
+                92,
+                1,
+                92,
+                1,
+                92,
+                -1,
+                92,
+                -1,
+                91,
+                4,
+                93,
+                32,
+                95,
+                5,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                5,
+                92,
+                5,
+                91,
+                5,
+                93,
+                32,
+                95,
+                6,
+                92,
+                3,
+                92,
+                3,
+                92,
+                -1,
+                92,
+                -1,
+                91,
+                6,
+                93,
+                32,
+                95,
+                7,
+                92,
+                4,
+                92,
+                4,
+                92,
+                -1,
+                92,
+                -1,
+                91,
+                7,
+                93,
+                32,
+                95,
+                8,
+                92,
+                6,
+                92,
+                6,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                0,
+                93,
+                0,
+                94,
+                1,
+                91,
+                0,
+                91,
+                2,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                1,
+                92,
+                -1,
+                92,
+                1,
+                93,
+                0,
+                94,
+                1,
+                91,
+                0,
+                91,
+                3,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                0,
+                92,
+                3,
+                92,
+                -1,
+                92,
+                2,
+                93,
+                0,
+                94,
+                2,
+                91,
+                1,
+                91,
+                0,
+                92,
+                -1,
+                92,
+                5,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                3,
+                93,
+                0,
+                94,
+                1,
+                91,
+                0,
+                91,
+                5,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                1,
+                92,
+                4,
+                92,
+                -1,
+                92,
+                4,
+                93,
+                0,
+                94,
+                1,
+                91,
+                0,
+                91,
+                6,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                3,
+                92,
+                6,
+                92,
+                -1,
+                92,
+                5,
+                93,
+                0,
+                94,
+                2,
+                91,
+                4,
+                91,
+                0,
+                92,
+                2,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                6,
+                93,
+                0,
+                94,
+                2,
+                91,
+                0,
+                91,
+                7,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                4,
+                92,
+                -1,
+                92,
+                -1,
             };
 
-            List<DxfTypedValue> groups = GraphGroups(Reopened(Stretched(DxfBlockParameterValueSet.Increments(50, 300, 10))));
+            List<DxfTypedValue> groups = GraphGroups(
+                Reopened(Stretched(DxfBlockParameterValueSet.Increments(50, 300, 10)))
+            );
             var numbers = new List<int>();
 
             foreach (DxfTypedValue group in groups.Where(g => g.TypeCode != 360))
@@ -184,15 +442,33 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal(autocad, numbers);
             Assert.Equal(
-                new[] { "BLOCKLINEARPARAMETER", "BLOCKLINEARGRIP", "BLOCKGRIPLOCATIONCOMPONENT", "BLOCKGRIPLOCATIONCOMPONENT", "BLOCKLINEARGRIP", "BLOCKGRIPLOCATIONCOMPONENT", "BLOCKGRIPLOCATIONCOMPONENT", "BLOCKSTRETCHACTION" },
-                Nodes(Reopened(Stretched(null))).Select(TypeOf));
+                new[]
+                {
+                    "BLOCKLINEARPARAMETER",
+                    "BLOCKLINEARGRIP",
+                    "BLOCKGRIPLOCATIONCOMPONENT",
+                    "BLOCKGRIPLOCATIONCOMPONENT",
+                    "BLOCKLINEARGRIP",
+                    "BLOCKGRIPLOCATIONCOMPONENT",
+                    "BLOCKGRIPLOCATIONCOMPONENT",
+                    "BLOCKSTRETCHACTION",
+                },
+                Nodes(Reopened(Stretched(null))).Select(TypeOf)
+            );
         }
 
         [Fact]
         public void TheStretchHoldsThePointsInsideItsFrame_TheRightEdgeWholeAndTheRightEndsOfTheBottomAndTop()
         {
             DxfDatabase db = Panel(out DxfBlockTableRecord block, out DxfLine[] lines);
-            DxfBlockLinearParameter width = block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                null
+            );
 
             // The corners given the other way round are written the least first; the left edge has no point in the frame and
             // is refused, so it is not given.
@@ -200,12 +476,18 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfItem action = Nodes(Reopened(db))[7];
 
             Assert.Equal("BLOCKSTRETCHACTION", TypeOf(action));
-            Assert.Equal(new[] { lines[0].Handle, lines[1].Handle, lines[2].Handle }, Of(action, "AcDbBlockAction", 330));
+            Assert.Equal(
+                new[] { lines[0].Handle, lines[1].Handle, lines[2].Handle },
+                Of(action, "AcDbBlockAction", 330)
+            );
             Assert.Equal(new[] { "1" }, Of(action, "AcDbBlockStretchAction", 92));
             Assert.Equal(new[] { "EndXDelta" }, Of(action, "AcDbBlockStretchAction", 301));
             Assert.Equal(new[] { "90", "110" }, Of(action, "AcDbBlockStretchAction", 1011));
             Assert.Equal(new[] { "-10", "60" }, Of(action, "AcDbBlockStretchAction", 1021));
-            Assert.Equal(new[] { lines[0].Handle, lines[1].Handle, lines[2].Handle }, Of(action, "AcDbBlockStretchAction", 331));
+            Assert.Equal(
+                new[] { lines[0].Handle, lines[1].Handle, lines[2].Handle },
+                Of(action, "AcDbBlockStretchAction", 331)
+            );
             Assert.Equal(new[] { "2", "1", "1" }, Of(action, "AcDbBlockStretchAction", 74));
             Assert.Equal(new[] { "0", "1", "1", "1" }, Of(action, "AcDbBlockStretchAction", 94));
         }
@@ -224,7 +506,14 @@ namespace GeometryHelper.UnitTest.Dxf
             outline.Closed = true;
             block.AppendEntity(outline);
 
-            DxfBlockLinearParameter width = block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                null
+            );
             block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new DxfEntity[] { outline });
 
             DxfItem action = Nodes(Reopened(db))[7];
@@ -236,13 +525,34 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TwoParametersEachWithAStretch_GiveTwoPropertiesInTheirOrder_AndNamesAsAutoCadNumbersThem()
         {
             DxfDatabase db = Panel(out DxfBlockTableRecord block, out DxfLine[] lines);
-            DxfBlockLinearParameter width = block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, DxfBlockParameterValueSet.Increments(50, 300, 10));
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                DxfBlockParameterValueSet.Increments(50, 300, 10)
+            );
             block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), lines.Take(3));
-            DxfBlockLinearParameter height = block.AddLinearParameter("Height", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0), 20, DxfBlockParameterValueSet.List(new[] { 50.0, 80 }));
-            block.AddStretchAction(height, new GeoPoint2(-10, 40), new GeoPoint2(110, 60), new[] { lines[0], lines[2], lines[3] });
+            DxfBlockLinearParameter height = block.AddLinearParameter(
+                "Height",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(0, 50, 0),
+                20,
+                DxfBlockParameterValueSet.List(new[] { 50.0, 80 })
+            );
+            block.AddStretchAction(
+                height,
+                new GeoPoint2(-10, 40),
+                new GeoPoint2(110, 60),
+                new[] { lines[0], lines[2], lines[3] }
+            );
 
             DxfDatabase back = Reopened(db);
-            IReadOnlyList<DxfDynamicBlockReferenceProperty> properties = TheInsert(back).DynamicBlockReferencePropertyCollection;
+            IReadOnlyList<DxfDynamicBlockReferenceProperty> properties = TheInsert(
+                back
+            ).DynamicBlockReferencePropertyCollection;
             Assert.Equal(new[] { "Width", "Height" }, properties.Select(p => p.PropertyName));
             Assert.Equal(100.0, (double)properties[0].Value, Close);
             Assert.Equal(50.0, (double)properties[1].Value, Close);
@@ -250,8 +560,16 @@ namespace GeometryHelper.UnitTest.Dxf
 
             List<DxfItem> nodes = Nodes(back);
             Assert.Equal(16, nodes.Count);
-            Assert.Equal(new[] { "Linear", "Stretch", "Linear1", "Stretch1" }, nodes.Where(n => TypeOf(n) == "BLOCKLINEARPARAMETER" || TypeOf(n) == "BLOCKSTRETCHACTION").Select(n => Of(n, "AcDbBlockElement", 300).Single()));
-            Assert.Equal(Enumerable.Range(1, 16).Select(i => i.ToString(CultureInfo.InvariantCulture)), nodes.Select(n => Of(n, "AcDbEvalExpr", 90).Single()));
+            Assert.Equal(
+                new[] { "Linear", "Stretch", "Linear1", "Stretch1" },
+                nodes
+                    .Where(n => TypeOf(n) == "BLOCKLINEARPARAMETER" || TypeOf(n) == "BLOCKSTRETCHACTION")
+                    .Select(n => Of(n, "AcDbBlockElement", 300).Single())
+            );
+            Assert.Equal(
+                Enumerable.Range(1, 16).Select(i => i.ToString(CultureInfo.InvariantCulture)),
+                nodes.Select(n => Of(n, "AcDbEvalExpr", 90).Single())
+            );
 
             // The second stretch follows the second parameter (node 9): the right edge's top, the top whole, the left edge's top.
             DxfItem second = nodes[15];
@@ -285,9 +603,23 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(block.ExtensionDictionary.Contains("AcDbDynamicBlockRoundTripPurgePreventer"));
             string text = db.ToText();
 
-            foreach (string type in new[] { "ACAD_EVALUATION_GRAPH", "BLOCKLINEARPARAMETER", "BLOCKLINEARGRIP", "BLOCKGRIPLOCATIONCOMPONENT", "BLOCKSTRETCHACTION", "ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION" })
+            foreach (
+                string type in new[]
+                {
+                    "ACAD_EVALUATION_GRAPH",
+                    "BLOCKLINEARPARAMETER",
+                    "BLOCKLINEARGRIP",
+                    "BLOCKGRIPLOCATIONCOMPONENT",
+                    "BLOCKSTRETCHACTION",
+                    "ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION",
+                }
+            )
             {
-                Assert.Contains("  0\nCLASS\n  1\n" + type + "\n", text.Replace("\r\n", "\n"), StringComparison.Ordinal);
+                Assert.Contains(
+                    "  0\nCLASS\n  1\n" + type + "\n",
+                    text.Replace("\r\n", "\n"),
+                    StringComparison.Ordinal
+                );
             }
         }
 
@@ -298,7 +630,11 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase again = DxfDatabase.Parse(once);
 
             Assert.Equal(once, again.ToText());
-            Assert.Equal(100.0, (double)Assert.Single(TheInsert(again).DynamicBlockReferencePropertyCollection).Value, Close);
+            Assert.Equal(
+                100.0,
+                (double)Assert.Single(TheInsert(again).DynamicBlockReferencePropertyCollection).Value,
+                Close
+            );
         }
 
         [Fact]
@@ -307,36 +643,125 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Panel(out DxfBlockTableRecord block, out DxfLine[] lines);
             string before = db.ToText();
 
-            Assert.Throws<ArgumentException>(() => block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0.0005, 0, 0), -20, null));
-            Assert.Throws<ArgumentException>(() => block.AddLinearParameter(" ", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null));
-            Assert.Throws<ArgumentException>(() => block.AddLinearParameter("Width", "two\nlines", new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null));
-            Assert.Throws<ArgumentException>(() => block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, DxfBlockParameterValueSet.List(new[] { 50.0, 150 })));
-            Assert.Throws<ArgumentException>(() => block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, DxfBlockParameterValueSet.Increments(55, 300, 10)));
-            Assert.Throws<ArgumentException>(() => block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, DxfBlockParameterValueSet.Increments(150, 300, 10)));
-            Assert.Throws<ArgumentOutOfRangeException>(() => block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), double.NaN, null));
-            Assert.Throws<InvalidOperationException>(() => db.ModelSpace.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null));
+            Assert.Throws<ArgumentException>(() =>
+                block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0.0005, 0, 0), -20, null)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                block.AddLinearParameter(" ", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                block.AddLinearParameter(
+                    "Width",
+                    "two\nlines",
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    -20,
+                    null
+                )
+            );
+            Assert.Throws<ArgumentException>(() =>
+                block.AddLinearParameter(
+                    "Width",
+                    null,
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    -20,
+                    DxfBlockParameterValueSet.List(new[] { 50.0, 150 })
+                )
+            );
+            Assert.Throws<ArgumentException>(() =>
+                block.AddLinearParameter(
+                    "Width",
+                    null,
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    -20,
+                    DxfBlockParameterValueSet.Increments(55, 300, 10)
+                )
+            );
+            Assert.Throws<ArgumentException>(() =>
+                block.AddLinearParameter(
+                    "Width",
+                    null,
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    -20,
+                    DxfBlockParameterValueSet.Increments(150, 300, 10)
+                )
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                block.AddLinearParameter(
+                    "Width",
+                    null,
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    double.NaN,
+                    null
+                )
+            );
+            Assert.Throws<InvalidOperationException>(() =>
+                db.ModelSpace.AddLinearParameter(
+                    "Width",
+                    null,
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    -20,
+                    null
+                )
+            );
             Assert.Equal(before, db.ToText());
 
-            DxfBlockLinearParameter width = block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                null
+            );
             string written = db.ToText();
-            var circle = new DxfEllipse(new GeoPoint3(100, 25, 0), new GeoVector3(0, 0, 1), new GeoVector3(5, 0, 0), 0.5, 0, 2 * Math.PI);
+            var circle = new DxfEllipse(
+                new GeoPoint3(100, 25, 0),
+                new GeoVector3(0, 0, 1),
+                new GeoVector3(5, 0, 0),
+                0.5,
+                0,
+                2 * Math.PI
+            );
             block.AppendEntity(circle);
             var stray = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
             db.ModelSpace.AppendEntity(stray);
             written = db.ToText();
 
-            Assert.Throws<ArgumentException>(() => block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), lines));
-            Assert.Throws<ArgumentException>(() => block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new DxfEntity[] { lines[0], circle }));
-            Assert.Throws<ArgumentException>(() => block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new DxfEntity[] { stray }));
-            Assert.Throws<ArgumentException>(() => block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(90.0005, 60), lines.Take(1)));
-            Assert.Throws<ArgumentException>(() => block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new DxfEntity[0]));
+            Assert.Throws<ArgumentException>(() =>
+                block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), lines)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                block.AddStretchAction(
+                    width,
+                    new GeoPoint2(90, -10),
+                    new GeoPoint2(110, 60),
+                    new DxfEntity[] { lines[0], circle }
+                )
+            );
+            Assert.Throws<ArgumentException>(() =>
+                block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new DxfEntity[] { stray })
+            );
+            Assert.Throws<ArgumentException>(() =>
+                block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(90.0005, 60), lines.Take(1))
+            );
+            Assert.Throws<ArgumentException>(() =>
+                block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new DxfEntity[0])
+            );
             Assert.Equal(written, db.ToText());
 
             DxfDatabase r2000 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
             var old = new DxfBlockTableRecord { Name = "OLD", Origin = new GeoPoint3(0, 0, 0) };
             r2000.BlockTable.Add(old);
             old.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)));
-            Assert.Throws<InvalidOperationException>(() => old.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null));
+            Assert.Throws<InvalidOperationException>(() =>
+                old.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null)
+            );
         }
 
         [Fact]
@@ -345,7 +770,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<ArgumentOutOfRangeException>(() => DxfBlockParameterValueSet.Increments(-1, 300, 10));
             Assert.Throws<ArgumentOutOfRangeException>(() => DxfBlockParameterValueSet.Increments(300, 300, 10));
             Assert.Throws<ArgumentOutOfRangeException>(() => DxfBlockParameterValueSet.Increments(50, 300, 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => DxfBlockParameterValueSet.List(new[] { 50.0, double.NaN }));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                DxfBlockParameterValueSet.List(new[] { 50.0, double.NaN })
+            );
             Assert.Throws<ArgumentException>(() => DxfBlockParameterValueSet.List(new double[0]));
             Assert.Throws<ArgumentNullException>(() => DxfBlockParameterValueSet.List(null));
         }

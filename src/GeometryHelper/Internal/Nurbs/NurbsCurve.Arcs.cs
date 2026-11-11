@@ -9,7 +9,8 @@ namespace GeometryHelper.Internal.Nurbs
     internal struct PieceArc
     {
         /// <summary>The centre.</summary>
-        internal double Cx, Cy;
+        internal double Cx,
+            Cy;
 
         /// <summary>The radius, above nought.</summary>
         internal double Radius;
@@ -128,11 +129,19 @@ namespace GeometryHelper.Internal.Nurbs
             double chord = Math.Sqrt((x2 - x0) * (x2 - x0) + (y2 - y0) * (y2 - y0));
             double side = 0.5 * (first + second);
             double middle = w1 / Math.Sqrt(w0 * w2);
-            double size = Math.Max(Math.Max(Math.Max(Math.Abs(x0), Math.Abs(y0)), Math.Max(Math.Abs(x1), Math.Abs(y1))), Math.Max(Math.Abs(x2), Math.Abs(y2)));
+            double size = Math.Max(
+                Math.Max(Math.Max(Math.Abs(x0), Math.Abs(y0)), Math.Max(Math.Abs(x1), Math.Abs(y1))),
+                Math.Max(Math.Abs(x2), Math.Abs(y2))
+            );
             double rounding = 1E-12 * (size + side);
 
             // Isosceles, turning by less than half a turn, and weighted as the arc of that turn is.
-            if (!(chord > rounding) || !(middle < 1.0) || !(Math.Abs(first - second) <= rounding) || !(Math.Abs(2.0 * side * middle - chord) <= rounding))
+            if (
+                !(chord > rounding)
+                || !(middle < 1.0)
+                || !(Math.Abs(first - second) <= rounding)
+                || !(Math.Abs(2.0 * side * middle - chord) <= rounding)
+            )
             {
                 return false;
             }
@@ -153,7 +162,12 @@ namespace GeometryHelper.Internal.Nurbs
             double reach = side * side / toMiddle;
             double cx = x1 + dx * reach;
             double cy = y1 + dy * reach;
-            double radius = 0.5 * (Math.Sqrt((x0 - cx) * (x0 - cx) + (y0 - cy) * (y0 - cy)) + Math.Sqrt((x2 - cx) * (x2 - cx) + (y2 - cy) * (y2 - cy)));
+            double radius =
+                0.5
+                * (
+                    Math.Sqrt((x0 - cx) * (x0 - cx) + (y0 - cy) * (y0 - cy))
+                    + Math.Sqrt((x2 - cx) * (x2 - cx) + (y2 - cy) * (y2 - cy))
+                );
             double sx = x0 - cx;
             double sy = y0 - cy;
             double ex = x2 - cx;
@@ -163,7 +177,10 @@ namespace GeometryHelper.Internal.Nurbs
             // arc is made from its centre, and how far the piece is seen to miss being isosceles and weighted as an arc, carried to the
             // centre by the square of the radius over the chord: the distance from the middle control point to the chord, which the centre
             // is read from, is that small beside the radius.
-            double off = Math.Max(4.4E-16 * Math.Max(size, radius), Math.Max(Math.Abs(first - second), Math.Abs(2.0 * side * middle - chord)));
+            double off = Math.Max(
+                4.4E-16 * Math.Max(size, radius),
+                Math.Max(Math.Abs(first - second), Math.Abs(2.0 * side * middle - chord))
+            );
 
             arc.Cx = cx;
             arc.Cy = cy;

@@ -47,7 +47,10 @@ namespace GeometryHelper.Geometry
         {
             if (!direction.TryGetNormal(out GeoVector2 unit))
             {
-                throw new ArgumentException("An infinite line needs a direction of non-zero length.", nameof(direction));
+                throw new ArgumentException(
+                    "An infinite line needs a direction of non-zero length.",
+                    nameof(direction)
+                );
             }
 
             Origin = origin;
@@ -61,9 +64,7 @@ namespace GeometryHelper.Geometry
         /// <param name="through">Another point on the line; the direction runs from the first to this one.</param>
         /// <exception cref="ArgumentException">Thrown when the two points coincide.</exception>
         public GeoXLine2(GeoPoint2 origin, GeoPoint2 through)
-            : this(origin, origin.GetVectorTo(through))
-        {
-        }
+            : this(origin, origin.GetVectorTo(through)) { }
 
         /// <summary>
         /// Initializes a line from a direction that is already normalized.
@@ -267,8 +268,10 @@ namespace GeometryHelper.Geometry
             near = double.NegativeInfinity;
             far = double.PositiveInfinity;
 
-            if (!Slab(start0, speed0, rect.Width / 2.0 + margin, ref near, ref far)
-                || !Slab(start1, speed1, rect.Height / 2.0 + margin, ref near, ref far))
+            if (
+                !Slab(start0, speed0, rect.Width / 2.0 + margin, ref near, ref far)
+                || !Slab(start1, speed1, rect.Height / 2.0 + margin, ref near, ref far)
+            )
             {
                 return false;
             }
@@ -306,7 +309,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Square to the line through the origin along X, the line through (30, 40) runs along Y from (30, 40).
         /// </remarks>
-        public GeoXLine2 GetPerpendicular(GeoPoint2 point) => new GeoXLine2(point, Direction.GetPerpendicularVector(), true);
+        public GeoXLine2 GetPerpendicular(GeoPoint2 point) =>
+            new GeoXLine2(point, Direction.GetPerpendicularVector(), true);
 
         /// <summary>
         /// Gets the line parallel to this one at a distance, to its left.
@@ -338,7 +342,8 @@ namespace GeometryHelper.Geometry
         /// Of the line through the origin along X, the points (100, 0) and (-1, 0) are on it, and the point (5, 0.002) is not
         /// at a tolerance of a thousandth.
         /// </remarks>
-        public bool IsPointOn(GeoPoint2 point, Tolerance tolerance) => DistanceTo(point, tolerance) <= tolerance.EqualPoint;
+        public bool IsPointOn(GeoPoint2 point, Tolerance tolerance) =>
+            DistanceTo(point, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Says where a point lies with respect to this line.
@@ -356,7 +361,8 @@ namespace GeometryHelper.Geometry
         /// <param name="point">The point.</param>
         /// <param name="tolerance">The tolerance that decides what counts as on it.</param>
         /// <returns><c>OnSide</c> when the point is on the line; otherwise, <c>OutSide</c>.</returns>
-        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) => IsPointOn(point, tolerance) ? PointLocation.OnSide : PointLocation.OutSide;
+        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) =>
+            IsPointOn(point, tolerance) ? PointLocation.OnSide : PointLocation.OutSide;
 
         /// <summary>
         /// Says which side of this line a point lies on, using the default tolerance.

@@ -51,7 +51,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>A double click on a style modifies it, as the foot of the dialog says.</summary>
         private void OnStyleDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            if (e.ChangedButton == MouseButton.Left && Model.SelectedStyle != null && Model.ModifyCommand.CanExecute(null))
+            if (
+                e.ChangedButton == MouseButton.Left
+                && Model.SelectedStyle != null
+                && Model.ModifyCommand.CanExecute(null)
+            )
             {
                 Model.ModifyCommand.Execute(null);
             }

@@ -33,8 +33,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Joins two shapes lying in one plane.
         /// </summary>
-        public static GeoFace3[] Union(GeoPolygon3 first, GeoPolygon3 second)
-            => Union(first, second, Tolerance.Global);
+        public static GeoFace3[] Union(GeoPolygon3 first, GeoPolygon3 second) => Union(first, second, Tolerance.Global);
 
         /// <summary>
         /// Joins two shapes lying in one plane, within a tolerance.
@@ -57,8 +56,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Joins two shapes lying in one plane.
         /// </summary>
-        public static GeoFace3[] Union(GeoPolygon3 first, GeoFace3 second)
-            => Union(first, second, Tolerance.Global);
+        public static GeoFace3[] Union(GeoPolygon3 first, GeoFace3 second) => Union(first, second, Tolerance.Global);
 
         /// <summary>
         /// Joins two shapes lying in one plane, within a tolerance.
@@ -81,8 +79,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Joins two shapes lying in one plane.
         /// </summary>
-        public static GeoFace3[] Union(GeoFace3 first, GeoPolygon3 second)
-            => Union(first, second, Tolerance.Global);
+        public static GeoFace3[] Union(GeoFace3 first, GeoPolygon3 second) => Union(first, second, Tolerance.Global);
 
         /// <summary>
         /// Joins two shapes lying in one plane, within a tolerance.
@@ -105,8 +102,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Joins two shapes lying in one plane.
         /// </summary>
-        public static GeoFace3[] Union(GeoFace3 first, GeoFace3 second)
-            => Union(first, second, Tolerance.Global);
+        public static GeoFace3[] Union(GeoFace3 first, GeoFace3 second) => Union(first, second, Tolerance.Global);
 
         /// <summary>
         /// Joins two shapes lying in one plane, within a tolerance.
@@ -129,8 +125,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Keeps what two shapes lying in one plane both cover.
         /// </summary>
-        public static GeoFace3[] Intersect(GeoPolygon3 first, GeoPolygon3 second)
-            => Intersect(first, second, Tolerance.Global);
+        public static GeoFace3[] Intersect(GeoPolygon3 first, GeoPolygon3 second) =>
+            Intersect(first, second, Tolerance.Global);
 
         /// <summary>
         /// Keeps what two shapes lying in one plane both cover, within a tolerance.
@@ -153,8 +149,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Keeps what two shapes lying in one plane both cover.
         /// </summary>
-        public static GeoFace3[] Intersect(GeoPolygon3 first, GeoFace3 second)
-            => Intersect(first, second, Tolerance.Global);
+        public static GeoFace3[] Intersect(GeoPolygon3 first, GeoFace3 second) =>
+            Intersect(first, second, Tolerance.Global);
 
         /// <summary>
         /// Keeps what two shapes lying in one plane both cover, within a tolerance.
@@ -177,8 +173,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Keeps what two shapes lying in one plane both cover.
         /// </summary>
-        public static GeoFace3[] Intersect(GeoFace3 first, GeoPolygon3 second)
-            => Intersect(first, second, Tolerance.Global);
+        public static GeoFace3[] Intersect(GeoFace3 first, GeoPolygon3 second) =>
+            Intersect(first, second, Tolerance.Global);
 
         /// <summary>
         /// Keeps what two shapes lying in one plane both cover, within a tolerance.
@@ -201,8 +197,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Keeps what two shapes lying in one plane both cover.
         /// </summary>
-        public static GeoFace3[] Intersect(GeoFace3 first, GeoFace3 second)
-            => Intersect(first, second, Tolerance.Global);
+        public static GeoFace3[] Intersect(GeoFace3 first, GeoFace3 second) =>
+            Intersect(first, second, Tolerance.Global);
 
         /// <summary>
         /// Keeps what two shapes lying in one plane both cover, within a tolerance.
@@ -225,8 +221,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Takes one shape out of another lying in the same plane.
         /// </summary>
-        public static GeoFace3[] Subtract(GeoPolygon3 first, GeoPolygon3 tool)
-            => Subtract(first, tool, Tolerance.Global);
+        public static GeoFace3[] Subtract(GeoPolygon3 first, GeoPolygon3 tool) =>
+            Subtract(first, tool, Tolerance.Global);
 
         /// <summary>
         /// Takes one shape out of another lying in the same plane, within a tolerance.
@@ -249,8 +245,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Takes one shape out of another lying in the same plane.
         /// </summary>
-        public static GeoFace3[] Subtract(GeoPolygon3 first, GeoFace3 tool)
-            => Subtract(first, tool, Tolerance.Global);
+        public static GeoFace3[] Subtract(GeoPolygon3 first, GeoFace3 tool) => Subtract(first, tool, Tolerance.Global);
 
         /// <summary>
         /// Takes one shape out of another lying in the same plane, within a tolerance.
@@ -273,8 +268,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Takes one shape out of another lying in the same plane.
         /// </summary>
-        public static GeoFace3[] Subtract(GeoFace3 first, GeoPolygon3 tool)
-            => Subtract(first, tool, Tolerance.Global);
+        public static GeoFace3[] Subtract(GeoFace3 first, GeoPolygon3 tool) => Subtract(first, tool, Tolerance.Global);
 
         /// <summary>
         /// Takes one shape out of another lying in the same plane, within a tolerance.
@@ -297,8 +291,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Takes one shape out of another lying in the same plane.
         /// </summary>
-        public static GeoFace3[] Subtract(GeoFace3 first, GeoFace3 tool)
-            => Subtract(first, tool, Tolerance.Global);
+        public static GeoFace3[] Subtract(GeoFace3 first, GeoFace3 tool) => Subtract(first, tool, Tolerance.Global);
 
         /// <summary>
         /// Takes one shape out of another lying in the same plane, within a tolerance.
@@ -321,8 +314,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Keeps what two shapes lying in one plane cover between them but do not share.
         /// </summary>
-        public static GeoFace3[] Xor(GeoPolygon3 first, GeoPolygon3 second)
-            => Xor(first, second, Tolerance.Global);
+        public static GeoFace3[] Xor(GeoPolygon3 first, GeoPolygon3 second) => Xor(first, second, Tolerance.Global);
 
         /// <summary>
         /// Keeps what two shapes lying in one plane cover between them but do not share, within a tolerance.
@@ -345,8 +337,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Keeps what two shapes lying in one plane cover between them but do not share.
         /// </summary>
-        public static GeoFace3[] Xor(GeoPolygon3 first, GeoFace3 second)
-            => Xor(first, second, Tolerance.Global);
+        public static GeoFace3[] Xor(GeoPolygon3 first, GeoFace3 second) => Xor(first, second, Tolerance.Global);
 
         /// <summary>
         /// Keeps what two shapes lying in one plane cover between them but do not share, within a tolerance.
@@ -369,8 +360,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Keeps what two shapes lying in one plane cover between them but do not share.
         /// </summary>
-        public static GeoFace3[] Xor(GeoFace3 first, GeoPolygon3 second)
-            => Xor(first, second, Tolerance.Global);
+        public static GeoFace3[] Xor(GeoFace3 first, GeoPolygon3 second) => Xor(first, second, Tolerance.Global);
 
         /// <summary>
         /// Keeps what two shapes lying in one plane cover between them but do not share, within a tolerance.
@@ -393,8 +383,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Keeps what two shapes lying in one plane cover between them but do not share.
         /// </summary>
-        public static GeoFace3[] Xor(GeoFace3 first, GeoFace3 second)
-            => Xor(first, second, Tolerance.Global);
+        public static GeoFace3[] Xor(GeoFace3 first, GeoFace3 second) => Xor(first, second, Tolerance.Global);
 
         /// <summary>
         /// Keeps what two shapes lying in one plane cover between them but do not share, within a tolerance.
@@ -479,22 +468,22 @@ namespace GeometryHelper.Core
         /// are one within the tolerance, so the long face laid out in the small one's plane takes away what it should, and
         /// what is left of the small face stays where it was.
         /// </remarks>
-        internal static GeoFace3[] SubtractLaidOut(GeoFace3 face, GeoFace3 tool, Tolerance tolerance)
-            => Combine(Combination.Subtract, PlanarMap.FrameOf(face), face, tool, tolerance);
+        internal static GeoFace3[] SubtractLaidOut(GeoFace3 face, GeoFace3 tool, Tolerance tolerance) =>
+            Combine(Combination.Subtract, PlanarMap.FrameOf(face), face, tool, tolerance);
 
         /// <summary>
         /// Takes one face from another lying back to back with it, as <see cref="SubtractLaidOut"/> does, both laid out
         /// within the tolerance of the work rather than the global one; for the strips <see cref="CancelStrips"/> reads.
         /// </summary>
-        private static GeoFace3[] SubtractLaidOutFinely(GeoFace3 face, GeoFace3 tool, Tolerance tolerance)
-            => Combine(Combination.Subtract, PlanarMap.FrameOf(face), face, tool, tolerance, true);
+        private static GeoFace3[] SubtractLaidOutFinely(GeoFace3 face, GeoFace3 tool, Tolerance tolerance) =>
+            Combine(Combination.Subtract, PlanarMap.FrameOf(face), face, tool, tolerance, true);
 
         /// <summary>
         /// Keeps what two faces lying back to back share, in the plane of the first, both laid out within the tolerance of the
         /// work rather than the global one; for the strips <see cref="CancelStrips"/> reads.
         /// </summary>
-        private static GeoFace3[] IntersectLaidOutFinely(GeoFace3 face, GeoFace3 other, Tolerance tolerance)
-            => Combine(Combination.Intersect, PlanarMap.FrameOf(face), face, other, tolerance, true);
+        private static GeoFace3[] IntersectLaidOutFinely(GeoFace3 face, GeoFace3 other, Tolerance tolerance) =>
+            Combine(Combination.Intersect, PlanarMap.FrameOf(face), face, other, tolerance, true);
 
         /// <summary>
         /// Whether a face laid out in its own plane within the global tolerance leaves nothing with an area (see
@@ -516,7 +505,8 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentException(
                     "The two shapes lie in different planes, so there is no plane to work in. Bring them into one plane first.",
-                    name);
+                    name
+                );
             }
 
             return PlanarMap.FrameOf(first);
@@ -544,14 +534,24 @@ namespace GeometryHelper.Core
         /// was, it threw, and took with it the union or difference of two bodies whose gluing compared such a
         /// sliver with the face lying against it.
         /// </remarks>
-        private static GeoFace3[] Combine(Combination combination, GeoCoordinateSystem3 frame, GeoFace3 first, GeoFace3 second, Tolerance tolerance, bool finely = false)
+        private static GeoFace3[] Combine(
+            Combination combination,
+            GeoCoordinateSystem3 frame,
+            GeoFace3 first,
+            GeoFace3 second,
+            Tolerance tolerance,
+            bool finely = false
+        )
         {
             GeoFace2 one = finely ? FlattenFinely(frame, first, tolerance) : Flatten(frame, first);
             GeoFace2 other = finely ? FlattenFinely(frame, second, tolerance) : Flatten(frame, second);
 
             if (one == null || other == null)
             {
-                if (combination == Combination.Intersect || one == null && (other == null || combination == Combination.Subtract))
+                if (
+                    combination == Combination.Intersect
+                    || one == null && (other == null || combination == Combination.Subtract)
+                )
                 {
                     return new GeoFace3[0];
                 }

@@ -1,9 +1,16 @@
-<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.OrderGroupWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Order Group" Width="480" Height="500" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" Background="#262B33">
-
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.OrderGroupWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Order Group"
+    Width="480"
+    Height="500"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
     <!--
     Order Group (design OrderGroup), from Re-Order… of Object Grouping: the Group Name list, the description, the three boxes
     with the ranges the group's size allows, Re-Order, Highlight < and Reverse Order, and the note on what they do.
@@ -21,43 +28,94 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
-            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
-            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
         <DockPanel>
-            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
                     <TextBlock Text="Order Group" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>
 
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Click="OnCancel" IsCancel="True" />
-                    <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Click="OnOk" IsDefault="True" />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Cancel"
+                        Padding="14,5"
+                        Margin="0,0,8,0"
+                        Click="OnCancel"
+                        IsCancel="True"
+                    />
+                    <Button
+                        Style="{StaticResource StylePrimaryButton}"
+                        Content="OK"
+                        Padding="14,5"
+                        Click="OnOk"
+                        IsDefault="True"
+                    />
                 </StackPanel>
             </Border>
 
             <StackPanel Margin="16,12">
                 <TextBlock Text="Group Name" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,4" />
-                <ListBox Height="110" ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup, Mode=TwoWay}" AutomationProperties.Name="Group Name"
-                         Background="{StaticResource GhInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" Padding="0"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox
+                    Height="110"
+                    ItemsSource="{Binding Groups}"
+                    SelectedItem="{Binding SelectedGroup, Mode=TwoWay}"
+                    AutomationProperties.Name="Group Name"
+                    Background="{StaticResource GhInput}"
+                    BorderBrush="{StaticResource GhBorder}"
+                    BorderThickness="1"
+                    Padding="0"
+                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                >
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem">
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="ListBoxItem">
                                         <Border x:Name="Row" Background="Transparent" Padding="10,3">
-                                            <ContentPresenter TextElement.FontFamily="{StaticResource GhMonoFont}" TextElement.Foreground="{StaticResource GhText}" />
+                                            <ContentPresenter
+                                                TextElement.FontFamily="{StaticResource GhMonoFont}"
+                                                TextElement.Foreground="{StaticResource GhText}"
+                                            />
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="Row" Property="Background" Value="{StaticResource GhHover}" />
+                                                <Setter
+                                                    TargetName="Row"
+                                                    Property="Background"
+                                                    Value="{StaticResource GhHover}"
+                                                />
                                             </Trigger>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
+                                                <Setter
+                                                    TargetName="Row"
+                                                    Property="Background"
+                                                    Value="{StaticResource GhSelected}"
+                                                />
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -72,9 +130,24 @@
                         <ColumnDefinition Width="90" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="Description:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
-                    <Border Grid.Column="1" Background="{StaticResource GhHeader}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="2" Padding="6,3">
-                        <TextBlock Text="{Binding Description}" Foreground="{StaticResource GhIcon}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock
+                        Text="Description:"
+                        Foreground="{StaticResource GhTextMuted}"
+                        VerticalAlignment="Center"
+                    />
+                    <Border
+                        Grid.Column="1"
+                        Background="{StaticResource GhHeader}"
+                        BorderBrush="{StaticResource GhBorder}"
+                        BorderThickness="1"
+                        CornerRadius="2"
+                        Padding="6,3"
+                    >
+                        <TextBlock
+                            Text="{Binding Description}"
+                            Foreground="{StaticResource GhIcon}"
+                            TextTrimming="CharacterEllipsis"
+                        />
                     </Border>
                 </Grid>
 
@@ -89,20 +162,72 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Text="{Binding RemoveFromLabel}" VerticalAlignment="Center" />
-                    <TextBox Grid.Column="1" Style="{StaticResource BlockNumber}" Margin="8,0,0,8" Text="{Binding RemoveFrom, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Remove from position" />
-                    <TextBlock Grid.Row="1" Text="{Binding NewPositionLabel}" VerticalAlignment="Center" Margin="0,0,0,8" />
-                    <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource BlockNumber}" Margin="8,0,0,8" Text="{Binding NewPosition, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Enter new position number for the object" />
+                    <TextBox
+                        Grid.Column="1"
+                        Style="{StaticResource BlockNumber}"
+                        Margin="8,0,0,8"
+                        Text="{Binding RemoveFrom, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        AutomationProperties.Name="Remove from position"
+                    />
+                    <TextBlock
+                        Grid.Row="1"
+                        Text="{Binding NewPositionLabel}"
+                        VerticalAlignment="Center"
+                        Margin="0,0,0,8"
+                    />
+                    <TextBox
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Style="{StaticResource BlockNumber}"
+                        Margin="8,0,0,8"
+                        Text="{Binding NewPosition, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        AutomationProperties.Name="Enter new position number for the object"
+                    />
                     <TextBlock Grid.Row="2" Text="{Binding CountLabel}" VerticalAlignment="Center" />
-                    <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource BlockNumber}" Margin="8,0,0,0" Text="{Binding Count, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Number of objects" />
+                    <TextBox
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        Style="{StaticResource BlockNumber}"
+                        Margin="8,0,0,0"
+                        Text="{Binding Count, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        AutomationProperties.Name="Number of objects"
+                    />
                 </Grid>
 
                 <UniformGrid Columns="3" Margin="0,10,0,0">
-                    <Button Style="{StaticResource OrderButton}" Content="Re-Order" Margin="0,0,4,0" Click="OnReorder" />
-                    <Button Style="{StaticResource OrderButton}" Content="Highlight &lt;" Margin="4,0" Click="OnHighlight" />
-                    <Button Style="{StaticResource OrderButton}" Content="Reverse Order" Margin="4,0,0,0" Click="OnReverse" />
+                    <Button
+                        Style="{StaticResource OrderButton}"
+                        Content="Re-Order"
+                        Margin="0,0,4,0"
+                        Click="OnReorder"
+                    />
+                    <Button
+                        Style="{StaticResource OrderButton}"
+                        Content="Highlight &lt;"
+                        Margin="4,0"
+                        Click="OnHighlight"
+                    />
+                    <Button
+                        Style="{StaticResource OrderButton}"
+                        Content="Reverse Order"
+                        Margin="4,0,0,0"
+                        Click="OnReverse"
+                    />
                 </UniformGrid>
-                <TextBlock Margin="0,8,0,0" Foreground="{StaticResource GhError}" TextWrapping="Wrap" Text="{Binding Message}" />
-                <TextBlock Margin="0,2,0,0" Foreground="{StaticResource GhTextMuted}" FontSize="11" LineHeight="15" TextWrapping="Wrap" Text="{Binding Summary}" />
+                <TextBlock
+                    Margin="0,8,0,0"
+                    Foreground="{StaticResource GhError}"
+                    TextWrapping="Wrap"
+                    Text="{Binding Message}"
+                />
+                <TextBlock
+                    Margin="0,2,0,0"
+                    Foreground="{StaticResource GhTextMuted}"
+                    FontSize="11"
+                    LineHeight="15"
+                    TextWrapping="Wrap"
+                    Text="{Binding Summary}"
+                />
             </StackPanel>
         </DockPanel>
     </Border>

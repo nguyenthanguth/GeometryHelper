@@ -64,7 +64,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnOk(object sender, RoutedEventArgs e)
         {
-            if (File.Exists(Model.FileName) && MessageBox.Show(this, Model.FileName + " already exists. Do you want to replace it?", "Write Block", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+            if (
+                File.Exists(Model.FileName)
+                && MessageBox.Show(
+                    this,
+                    Model.FileName + " already exists. Do you want to replace it?",
+                    "Write Block",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning
+                ) != MessageBoxResult.Yes
+            )
             {
                 return;
             }

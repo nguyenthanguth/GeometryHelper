@@ -45,7 +45,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             foreach (KeyValuePair<int, byte[]> letter in letters.OrderBy(l => l.Key))
             {
-                byte[] record = new byte[] { 0 }.Concat(letter.Value).ToArray();
+                byte[] record = new byte[] { 0 }
+                    .Concat(letter.Value)
+                    .ToArray();
                 bytes.AddRange(BitConverter.GetBytes((ushort)letter.Key));
                 bytes.AddRange(BitConverter.GetBytes((ushort)record.Length));
                 bytes.AddRange(record);
@@ -75,11 +77,14 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static GeoPoint3 P(double x, double y, double z = 0) => new GeoPoint3(x, y, z);
 
-        private static void Is(GeoPoint3 expected, GeoPoint3 actual) => Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
+        private static void Is(GeoPoint3 expected, GeoPoint3 actual) =>
+            Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
 
-        private static void Is(GeoVector3 expected, GeoVector3 actual) => Assert.True(expected.Subtract(actual).Length <= 1E-9, "expected " + expected + ", got " + actual);
+        private static void Is(GeoVector3 expected, GeoVector3 actual) =>
+            Assert.True(expected.Subtract(actual).Length <= 1E-9, "expected " + expected + ", got " + actual);
 
-        private static GeoTransform3 Mirror(double x, double y, double z) => GeoTransform3.Mirror(new GeoPlane3(P(0, 0), new GeoVector3(x, y, z)));
+        private static GeoTransform3 Mirror(double x, double y, double z) =>
+            GeoTransform3.Mirror(new GeoPlane3(P(0, 0), new GeoVector3(x, y, z)));
 
         /// <summary>A drawing of a Standard multileader style, its fonts looked for in the folder given (none where null).</summary>
         private static DxfDatabase Leaders(string folder)
@@ -107,10 +112,24 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>An <see cref="Empty"/> multileader given words 4 high at (100, 50), held and turned as given, then its lines from the points given.</summary>
-        private static DxfMLeader Given(DxfDatabase db, string words, int attachment, DxfAttachmentPoint held, double rotation, params GeoPoint3[] from)
+        private static DxfMLeader Given(
+            DxfDatabase db,
+            string words,
+            int attachment,
+            DxfAttachmentPoint held,
+            double rotation,
+            params GeoPoint3[] from
+        )
         {
             DxfMLeader mleader = Empty(db, attachment);
-            mleader.MText = new DxfMText { Contents = words, Location = P(100, 50), TextHeight = 4.0, Attachment = held, Rotation = rotation };
+            mleader.MText = new DxfMText
+            {
+                Contents = words,
+                Location = P(100, 50),
+                TextHeight = 4.0,
+                Attachment = held,
+                Rotation = rotation,
+            };
 
             foreach (GeoPoint3 point in from)
             {
@@ -120,7 +139,8 @@ namespace GeometryHelper.UnitTest.Dxf
             return mleader;
         }
 
-        private static DxfMLeader Given(DxfDatabase db, string words, params GeoPoint3[] from) => Given(db, words, 1, DxfAttachmentPoint.TopLeft, 0.0, from);
+        private static DxfMLeader Given(DxfDatabase db, string words, params GeoPoint3[] from) =>
+            Given(db, words, 1, DxfAttachmentPoint.TopLeft, 0.0, from);
 
         private static List<DxfTypedValue> Tail(DxfEntity entity) => entity.Item.File.TailOf(entity.Item, 0);
 
@@ -208,7 +228,15 @@ namespace GeometryHelper.UnitTest.Dxf
             Is(P(150, 80), anew.TextLocation);
 
             // Given in no drawing, then added; a leader from the left still ends its dogleg there.
-            var memory = new DxfMLeader { MText = new DxfMText { Contents = "ABC", Location = P(100, 50), TextHeight = 4.0 } };
+            var memory = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = "ABC",
+                    Location = P(100, 50),
+                    TextHeight = 4.0,
+                },
+            };
             db.ModelSpace.AppendEntity(memory);
             Is(P(98, 48), BasePoint(memory));
             memory.AddLeaderLine(P(0, 0));
@@ -235,7 +263,15 @@ namespace GeometryHelper.UnitTest.Dxf
                 Is(P(98, 48), BasePoint(right));
 
                 // Given in no drawing, the base point is put again by the fonts as the multileader is added.
-                var memory = new DxfMLeader { MText = new DxfMText { Contents = "Ag", Location = P(100, 50), TextHeight = 4.0 } };
+                var memory = new DxfMLeader
+                {
+                    MText = new DxfMText
+                    {
+                        Contents = "Ag",
+                        Location = P(100, 50),
+                        TextHeight = 4.0,
+                    },
+                };
                 db.ModelSpace.AppendEntity(memory);
                 Is(P(98, 50 - (8.0 / 3)), BasePoint(memory));
             });
@@ -260,7 +296,13 @@ namespace GeometryHelper.UnitTest.Dxf
             Is(P(100, 50), half.TextLocation);
 
             DxfMLeader backward = Empty(db);
-            backward.MText = new DxfMText { Contents = "ABC", Location = P(100, 50), TextHeight = 4.0, Direction = new GeoVector3(-1, 0, 0) };
+            backward.MText = new DxfMText
+            {
+                Contents = "ABC",
+                Location = P(100, 50),
+                TextHeight = 4.0,
+                Direction = new GeoVector3(-1, 0, 0),
+            };
             Is(new GeoVector3(-1, 0, 0), Axis(backward, 111));
             Is(P(102, 52), BasePoint(backward));
 
@@ -346,7 +388,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfMLeader tilted = Given(db, "ABC", P(0, 0));
                 tilted.TransformBy(Mirror(0.6, 0.1, 0.8));
                 Is(P(23.24752475247525, 33.207920792079207, -102.3366336633663), tilted.TextLocation);
-                Is(new GeoVector3(0.28712871287128722, -0.11881188118811883, -0.95049504950495045), tilted.MText.Direction);
+                Is(
+                    new GeoVector3(0.28712871287128722, -0.11881188118811883, -0.95049504950495045),
+                    tilted.MText.Direction
+                );
 
                 // Turned in code first, the way kept is the one nearer the turn they had: a quarter turn mirrored across XY runs
                 // up y still, facing down (q-rot90-xy-L); half round, it runs along x (r-rot180-mxy-L).
@@ -466,9 +511,22 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase old = DxfDatabase.Parse(text);
             var mleader = new DxfMLeader();
             old.ModelSpace.AppendEntity(mleader);
-            mleader.MText = new DxfMText { Contents = "ABC", Location = P(100, 50), TextHeight = 4.0 };
+            mleader.MText = new DxfMText
+            {
+                Contents = "ABC",
+                Location = P(100, 50),
+                TextHeight = 4.0,
+            };
             Assert.Null(Own(mleader, 295));
-            Assert.Null(Own(DxfDatabase.Parse(old.ToText()).ModelSpace.OfType<DxfMLeader>().Single(m => m.Handle == mleader.Handle), 295));
+            Assert.Null(
+                Own(
+                    DxfDatabase
+                        .Parse(old.ToText())
+                        .ModelSpace.OfType<DxfMLeader>()
+                        .Single(m => m.Handle == mleader.Handle),
+                    295
+                )
+            );
 
             var now = new DxfMLeader();
             Leaders(null).ModelSpace.AppendEntity(now);
@@ -515,7 +573,12 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Leaders(null);
             DxfMLeader left = Empty(db);
             left.AddLeaderLine(P(0, 0));
-            left.MText = new DxfMText { Contents = "ABC", Location = P(100, 50), TextHeight = 4.0 };
+            left.MText = new DxfMText
+            {
+                Contents = "ABC",
+                Location = P(100, 50),
+                TextHeight = 4.0,
+            };
             Is(P(10, 2), left.TextLocation);
             Is(P(8, 0), BasePoint(left));
 
@@ -524,7 +587,12 @@ namespace GeometryHelper.UnitTest.Dxf
             {
                 DxfMLeader right = Empty(Leaders(folder));
                 right.AddLeaderLine(P(250, 0));
-                right.MText = new DxfMText { Contents = "ABC", Location = P(100, 50), TextHeight = 4.0 };
+                right.MText = new DxfMText
+                {
+                    Contents = "ABC",
+                    Location = P(100, 50),
+                    TextHeight = 4.0,
+                };
                 Is(P(229.33333333333334, 2), right.TextLocation);
                 Is(P(227.33333333333334, 0), BasePoint(right));
             });
@@ -543,7 +611,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Is(P(98, 48), BasePoint(scaled));
 
             DxfMLeader attached = Given(db, "ABC");
-            attached.SetTextAttachmentType(DxfTextAttachmentType.AttachmentBottomLine, DxfLeaderDirectionType.LeftLeader);
+            attached.SetTextAttachmentType(
+                DxfTextAttachmentType.AttachmentBottomLine,
+                DxfLeaderDirectionType.LeftLeader
+            );
             Is(P(100, 52.8), attached.TextLocation);
             Is(P(98, 48), BasePoint(attached));
 
@@ -560,7 +631,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 // AutoCAD 2021 (D38b r-rot180-att4-L): turned half round and met on the right of their plane, the left set to the
                 // bottom line moves the base point to (102, 54.8), the words kept.
                 DxfMLeader turned = Given(Leaders(folder), "ABC", 1, DxfAttachmentPoint.TopLeft, Math.PI, P(0, 0));
-                turned.SetTextAttachmentType(DxfTextAttachmentType.AttachmentBottomLine, DxfLeaderDirectionType.LeftLeader);
+                turned.SetTextAttachmentType(
+                    DxfTextAttachmentType.AttachmentBottomLine,
+                    DxfLeaderDirectionType.LeftLeader
+                );
                 Is(P(100, 50), turned.TextLocation);
                 Is(P(102, 54.8), BasePoint(turned));
             });

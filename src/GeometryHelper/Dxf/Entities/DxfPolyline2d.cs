@@ -29,10 +29,14 @@ namespace GeometryHelper.Dxf
     public sealed class DxfPolyline2d : DxfCurve, IEnumerable<DxfVertex2d>
     {
         // The groups of AcDb2dPolyline in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 66, 10, 20, 30, 39, 70, 40, 41, 71, 72, 73, 74, 75, 210, 220, 230 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 66, 10, 20, 30, 39, 70, 40, 41, 71, 72, 73, 74, 75, 210, 220, 230 }
+        );
 
         // The groups of a vertex in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> VertexOrder = Array.AsReadOnly(new[] { 100, 100, 10, 20, 30, 40, 41, 42, 70, 50, 71, 72, 73, 74, 91 });
+        private static readonly IReadOnlyList<int> VertexOrder = Array.AsReadOnly(
+            new[] { 100, 100, 10, 20, 30, 40, 41, 42, 70, 50, 71, 72, 73, 74, 91 }
+        );
 
         private static readonly GeoPoint3 Origin = new GeoPoint3(0.0, 0.0, 0.0);
 
@@ -40,7 +44,12 @@ namespace GeometryHelper.Dxf
         public DxfPolyline2d()
             : base("POLYLINE", Head(0.0, false, 0.0, 0.0))
         {
-            SetFollowers(new[] { new KeyValuePair<string, KeyValuePair<int, string>[]>("SEQEND", new KeyValuePair<int, string>[0]) });
+            SetFollowers(
+                new[]
+                {
+                    new KeyValuePair<string, KeyValuePair<int, string>[]>("SEQEND", new KeyValuePair<int, string>[0]),
+                }
+            );
         }
 
         /// <summary>
@@ -58,7 +67,15 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when a coordinate is not finite, or the bulges are not one to each vertex.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a number is not finite, or a width is below nought.</exception>
         /// <exception cref="NotSupportedException">Thrown for a type other than <see cref="DxfPoly2dType.SimplePoly"/>: make the polyline straight and fit it with <see cref="ConvertToPolyType"/>.</exception>
-        public DxfPolyline2d(DxfPoly2dType type, IEnumerable<GeoPoint3> vertices, double elevation, bool closed, double startWidth, double endWidth, IEnumerable<double> bulges)
+        public DxfPolyline2d(
+            DxfPoly2dType type,
+            IEnumerable<GeoPoint3> vertices,
+            double elevation,
+            bool closed,
+            double startWidth,
+            double endWidth,
+            IEnumerable<double> bulges
+        )
             : base("POLYLINE", Head(elevation, closed, startWidth, endWidth))
         {
             if (vertices == null)
@@ -68,7 +85,9 @@ namespace GeometryHelper.Dxf
 
             if (type != DxfPoly2dType.SimplePoly)
             {
-                throw new NotSupportedException("A polyline is made in code straight: make it of SimplePoly and fit it with ConvertToPolyType.");
+                throw new NotSupportedException(
+                    "A polyline is made in code straight: make it of SimplePoly and fit it with ConvertToPolyType."
+                );
             }
 
             var points = new List<GeoPoint3>(vertices);
@@ -76,10 +95,22 @@ namespace GeometryHelper.Dxf
 
             if (bulge != null && bulge.Count != points.Count)
             {
-                throw new ArgumentException("The bulges are one to each vertex: " + bulge.Count.ToString(CultureInfo.InvariantCulture) + " for " + points.Count.ToString(CultureInfo.InvariantCulture) + ".", nameof(bulges));
+                throw new ArgumentException(
+                    "The bulges are one to each vertex: "
+                        + bulge.Count.ToString(CultureInfo.InvariantCulture)
+                        + " for "
+                        + points.Count.ToString(CultureInfo.InvariantCulture)
+                        + ".",
+                    nameof(bulges)
+                );
             }
 
-            SetFollowers(new[] { new KeyValuePair<string, KeyValuePair<int, string>[]>("SEQEND", new KeyValuePair<int, string>[0]) });
+            SetFollowers(
+                new[]
+                {
+                    new KeyValuePair<string, KeyValuePair<int, string>[]>("SEQEND", new KeyValuePair<int, string>[0]),
+                }
+            );
 
             for (int i = 0; i < points.Count; i++)
             {
@@ -89,9 +120,7 @@ namespace GeometryHelper.Dxf
         }
 
         private DxfPolyline2d(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         #region The polyline
 
@@ -124,7 +153,6 @@ namespace GeometryHelper.Dxf
                 List<KeyValuePair<int, IReadOnlyList<DxfTypedValue>>> vertices = DxfFollowers.Vertices(Item);
                 return vertices.Count > 0 ? DxfFollowers.Point(vertices[0].Value, 10, Origin).Z : 0.0;
             }
-
             set
             {
                 Guard.Finite(value, nameof(value), "An elevation has to be a finite number.");
@@ -171,7 +199,6 @@ namespace GeometryHelper.Dxf
         public double DefaultStartWidth
         {
             get => GetDouble(40, 0.0);
-
             set
             {
                 Guard.NonNegative(value, nameof(value), "A width has to be a finite number, nought or more.");
@@ -185,7 +212,6 @@ namespace GeometryHelper.Dxf
         public double DefaultEndWidth
         {
             get => GetDouble(41, 0.0);
-
             set
             {
                 Guard.NonNegative(value, nameof(value), "A width has to be a finite number, nought or more.");
@@ -215,7 +241,10 @@ namespace GeometryHelper.Dxf
 
                 foreach (KeyValuePair<int, IReadOnlyList<DxfTypedValue>> vertex in vertices)
                 {
-                    if (!Same(DxfFollowers.Number(vertex.Value, 40, 0.0), width) || !Same(DxfFollowers.Number(vertex.Value, 41, 0.0), width))
+                    if (
+                        !Same(DxfFollowers.Number(vertex.Value, 40, 0.0), width)
+                        || !Same(DxfFollowers.Number(vertex.Value, 41, 0.0), width)
+                    )
                     {
                         return 0.0;
                     }
@@ -223,7 +252,6 @@ namespace GeometryHelper.Dxf
 
                 return width;
             }
-
             set
             {
                 Guard.NonNegative(value, nameof(value), "A width has to be a finite number, nought or more.");
@@ -237,9 +265,15 @@ namespace GeometryHelper.Dxf
 
                 foreach (KeyValuePair<int, IReadOnlyList<DxfTypedValue>> vertex in DxfFollowers.Vertices(Item))
                 {
-                    records.Add(new KeyValuePair<int, KeyValuePair<int, string>[]>(vertex.Key, Join(
-                        DxfFollowers.NumberChange(vertex.Value, 40, value, 0.0, true),
-                        DxfFollowers.NumberChange(vertex.Value, 41, value, 0.0, true))));
+                    records.Add(
+                        new KeyValuePair<int, KeyValuePair<int, string>[]>(
+                            vertex.Key,
+                            Join(
+                                DxfFollowers.NumberChange(vertex.Value, 40, value, 0.0, true),
+                                DxfFollowers.NumberChange(vertex.Value, 41, value, 0.0, true)
+                            )
+                        )
+                    );
                 }
 
                 SetGroupsAtMany(records, VertexOrder);
@@ -268,7 +302,6 @@ namespace GeometryHelper.Dxf
 
                 return (flags & 2) != 0 ? DxfPoly2dType.FitCurvePoly : DxfPoly2dType.SimplePoly;
             }
-
             set
             {
                 if (value != PolyType)
@@ -305,7 +338,11 @@ namespace GeometryHelper.Dxf
                     break;
 
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(newVal), newVal, "A polyline of the plane is simple, fitted with a curve, or with a quadratic or cubic spline.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(newVal),
+                        newVal,
+                        "A polyline of the plane is simple, fitted with a curve, or with a quadratic or cubic spline."
+                    );
             }
         }
 
@@ -340,7 +377,11 @@ namespace GeometryHelper.Dxf
             {
                 GeoPoint3 at = DxfFollowers.Point(vertex.Value, 10, Origin);
                 points.Add(new GeoPoint2(at.X, at.Y));
-                given.Add((DxfFollowers.Whole(vertex.Value, 70, 0) & 2) != 0 ? DxfFollowers.Number(vertex.Value, 50, 0.0) * Math.PI / 180.0 : (double?)null);
+                given.Add(
+                    (DxfFollowers.Whole(vertex.Value, 70, 0) & 2) != 0
+                        ? DxfFollowers.Number(vertex.Value, 50, 0.0) * Math.PI / 180.0
+                        : (double?)null
+                );
             }
 
             List<GeoVector2> tangents = DxfPolylineFit.Tangents(points, given, closed);
@@ -354,9 +395,24 @@ namespace GeometryHelper.Dxf
                 int j = (i + 1) % points.Count;
                 IReadOnlyList<DxfTypedValue> own = vertices[i].Value;
 
-                if (!DxfPolylineFit.Biarc(points[i], tangents[i], points[j], tangents[j], out GeoPoint2 joint, out double first, out double second))
+                if (
+                    !DxfPolylineFit.Biarc(
+                        points[i],
+                        tangents[i],
+                        points[j],
+                        tangents[j],
+                        out GeoPoint2 joint,
+                        out double first,
+                        out double second
+                    )
+                )
                 {
-                    changes.Add(new KeyValuePair<int, KeyValuePair<int, string>[]>(vertices[i].Key, DxfFollowers.NumberChange(own, 42, 0.0, 0.0, true)));
+                    changes.Add(
+                        new KeyValuePair<int, KeyValuePair<int, string>[]>(
+                            vertices[i].Key,
+                            DxfFollowers.NumberChange(own, 42, 0.0, 0.0, true)
+                        )
+                    );
                     continue;
                 }
 
@@ -374,14 +430,23 @@ namespace GeometryHelper.Dxf
 
                 changes.Add(new KeyValuePair<int, KeyValuePair<int, string>[]>(vertices[i].Key, change.ToArray()));
                 // The added vertex holds the direction (group 50) of the vertex before it, as AutoCAD 2021 writes it, not its flag 2.
-                var extra = new DxfVertex2d(new GeoPoint3(joint.X, joint.Y, elevation), second, start != end ? middle : start, end, DxfFollowers.Number(own, 50, 0.0) * Math.PI / 180.0);
+                var extra = new DxfVertex2d(
+                    new GeoPoint3(joint.X, joint.Y, elevation),
+                    second,
+                    start != end ? middle : start,
+                    end,
+                    DxfFollowers.Number(own, 50, 0.0) * Math.PI / 180.0
+                );
                 extra.SetFlags(1);
                 added.Add(new KeyValuePair<int, DxfVertex2d>(vertices[i].Key, extra));
             }
 
             SetGroupsAtMany(changes, VertexOrder);
             InsertAfter(added);
-            SetGroups(new KeyValuePair<int, string>(70, ((GetInt(70, 0) & ~4) | 2).ToString(CultureInfo.InvariantCulture)), new KeyValuePair<int, string>(75, null));
+            SetGroups(
+                new KeyValuePair<int, string>(70, ((GetInt(70, 0) & ~4) | 2).ToString(CultureInfo.InvariantCulture)),
+                new KeyValuePair<int, string>(75, null)
+            );
         }
 
         /// <summary>The length of a segment from one point to another of a bulge: its chord where it is straight, else its arc's.</summary>
@@ -401,7 +466,10 @@ namespace GeometryHelper.Dxf
         public void SplineFit()
         {
             int type = DxfPolylineFit.Header(Item, "$SPLINETYPE", 6);
-            SplineFit(type == 5 ? DxfPoly2dType.QuadSplinePoly : DxfPoly2dType.CubicSplinePoly, DxfPolylineFit.Header(Item, "$SPLINESEGS", 8));
+            SplineFit(
+                type == 5 ? DxfPoly2dType.QuadSplinePoly : DxfPoly2dType.CubicSplinePoly,
+                DxfPolylineFit.Header(Item, "$SPLINESEGS", 8)
+            );
         }
 
         /// <summary>
@@ -424,12 +492,20 @@ namespace GeometryHelper.Dxf
         {
             if (value != DxfPoly2dType.QuadSplinePoly && value != DxfPoly2dType.CubicSplinePoly)
             {
-                throw new ArgumentOutOfRangeException(nameof(value), value, "A polyline is fitted with a quadratic or a cubic spline.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    "A polyline is fitted with a quadratic or a cubic spline."
+                );
             }
 
             if (segments == 0 || segments == int.MinValue)
             {
-                throw new ArgumentOutOfRangeException(nameof(segments), segments, "A spline-fitted polyline has some segments to each span.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(segments),
+                    segments,
+                    "A spline-fitted polyline has some segments to each span."
+                );
             }
 
             Straighten();
@@ -444,10 +520,21 @@ namespace GeometryHelper.Dxf
             {
                 GeoPoint3 at = DxfFollowers.Point(vertex.Value, 10, Origin);
                 frame.Add(new GeoPoint3(at.X, at.Y, elevation));
-                changes.Add(new KeyValuePair<int, KeyValuePair<int, string>[]>(vertex.Key, DxfFollowers.WholeChange(vertex.Value, 70, DxfFollowers.Whole(vertex.Value, 70, 0) | 16, 0)));
+                changes.Add(
+                    new KeyValuePair<int, KeyValuePair<int, string>[]>(
+                        vertex.Key,
+                        DxfFollowers.WholeChange(vertex.Value, 70, DxfFollowers.Whole(vertex.Value, 70, 0) | 16, 0)
+                    )
+                );
             }
 
-            DxfNurbs spline = DxfPolylineFit.Spline(frame, value == DxfPoly2dType.QuadSplinePoly ? 2 : 3, closed, out double start, out double end);
+            DxfNurbs spline = DxfPolylineFit.Spline(
+                frame,
+                value == DxfPoly2dType.QuadSplinePoly ? 2 : 3,
+                closed,
+                out double start,
+                out double end
+            );
             List<double> steps = DxfPolylineFit.Steps(start, end, Math.Abs(segments), closed);
             double startWidth = DxfFollowers.Number(vertices[0].Value, 40, DefaultStartWidth);
             double endWidth = DxfFollowers.Number(vertices[vertices.Count - 1].Value, 41, DefaultEndWidth);
@@ -484,7 +571,10 @@ namespace GeometryHelper.Dxf
                 InsertFollowerAt(place++, vertex);
             }
 
-            SetGroups(new KeyValuePair<int, string>(70, ((GetInt(70, 0) & ~2) | 4).ToString(CultureInfo.InvariantCulture)), new KeyValuePair<int, string>(75, value == DxfPoly2dType.QuadSplinePoly ? "5" : "6"));
+            SetGroups(
+                new KeyValuePair<int, string>(70, ((GetInt(70, 0) & ~2) | 4).ToString(CultureInfo.InvariantCulture)),
+                new KeyValuePair<int, string>(75, value == DxfPoly2dType.QuadSplinePoly ? "5" : "6")
+            );
         }
 
         /// <summary>
@@ -609,7 +699,8 @@ namespace GeometryHelper.Dxf
             var frame = new List<KeyValuePair<int, KeyValuePair<int, string>[]>>();
             var made = new List<int>();
             bool fitted = (GetInt(70, 0) & 6) != 0;
-            bool curved = (GetInt(70, 0) & 2) != 0 || vertices.Exists(v => (DxfFollowers.Whole(v.Value, 70, 0) & 1) != 0);
+            bool curved =
+                (GetInt(70, 0) & 2) != 0 || vertices.Exists(v => (DxfFollowers.Whole(v.Value, 70, 0) & 1) != 0);
 
             foreach (KeyValuePair<int, IReadOnlyList<DxfTypedValue>> vertex in vertices)
             {
@@ -622,9 +713,17 @@ namespace GeometryHelper.Dxf
                 }
                 else if ((flags & 16) != 0 || (curved && DxfFollowers.Text(vertex.Value, 42) != null))
                 {
-                    frame.Add(new KeyValuePair<int, KeyValuePair<int, string>[]>(vertex.Key, Join(
-                        DxfFollowers.WholeChange(vertex.Value, 70, flags & ~16, 0),
-                        curved ? DxfFollowers.NumberChange(vertex.Value, 42, 0.0, 0.0, true) : new KeyValuePair<int, string>[0])));
+                    frame.Add(
+                        new KeyValuePair<int, KeyValuePair<int, string>[]>(
+                            vertex.Key,
+                            Join(
+                                DxfFollowers.WholeChange(vertex.Value, 70, flags & ~16, 0),
+                                curved
+                                    ? DxfFollowers.NumberChange(vertex.Value, 42, 0.0, 0.0, true)
+                                    : new KeyValuePair<int, string>[0]
+                            )
+                        )
+                    );
                 }
             }
 
@@ -637,7 +736,10 @@ namespace GeometryHelper.Dxf
 
             Item.File.RemoveFollowers(Item, made);
 
-            SetGroups(new KeyValuePair<int, string>(70, (GetInt(70, 0) & ~6).ToString(CultureInfo.InvariantCulture)), new KeyValuePair<int, string>(75, null));
+            SetGroups(
+                new KeyValuePair<int, string>(70, (GetInt(70, 0) & ~6).ToString(CultureInfo.InvariantCulture)),
+                new KeyValuePair<int, string>(75, null)
+            );
         }
 
         #endregion
@@ -778,12 +880,18 @@ namespace GeometryHelper.Dxf
                 double bulge = leaves == null ? 0.0 : -DxfFollowers.Number(leaves, 42, 0.0);
                 double start = leaves == null ? 0.0 : DxfFollowers.Number(leaves, 41, 0.0);
                 double end = leaves == null ? 0.0 : DxfFollowers.Number(leaves, 40, 0.0);
-                records.Add(new KeyValuePair<int, KeyValuePair<int, string>[]>(vertices[j].Key, Join(
-                    DxfFollowers.PointChanges(own, 10, DxfFollowers.Point(source, 10, Origin), Origin, 3),
-                    DxfFollowers.NumberChange(own, 42, bulge, 0.0, true),
-                    DxfFollowers.NumberChange(own, 40, start, 0.0, true),
-                    DxfFollowers.NumberChange(own, 41, end, 0.0, true),
-                    DxfFollowers.WholeChange(own, 70, DxfFollowers.Whole(source, 70, 0), 0))));
+                records.Add(
+                    new KeyValuePair<int, KeyValuePair<int, string>[]>(
+                        vertices[j].Key,
+                        Join(
+                            DxfFollowers.PointChanges(own, 10, DxfFollowers.Point(source, 10, Origin), Origin, 3),
+                            DxfFollowers.NumberChange(own, 42, bulge, 0.0, true),
+                            DxfFollowers.NumberChange(own, 40, start, 0.0, true),
+                            DxfFollowers.NumberChange(own, 41, end, 0.0, true),
+                            DxfFollowers.WholeChange(own, 70, DxfFollowers.Whole(source, 70, 0), 0)
+                        )
+                    )
+                );
             }
 
             SetGroupsAtMany(records, VertexOrder);
@@ -817,7 +925,10 @@ namespace GeometryHelper.Dxf
 
             if (!ocs.ScaleUniform && vertices.Exists(v => DxfFollowers.Number(v.Value, 42, 0.0) != 0.0))
             {
-                throw new ArgumentException("A polyline with arcs is scaled the same along every direction of its plane, or its arcs would be ellipses.", nameof(transform));
+                throw new ArgumentException(
+                    "A polyline with arcs is scaled the same along every direction of its plane, or its arcs would be ellipses.",
+                    nameof(transform)
+                );
             }
 
             bool elevated = GetString(10) != null || GetString(20) != null || GetString(30) != null;
@@ -836,13 +947,23 @@ namespace GeometryHelper.Dxf
                     first = moved.Z;
                 }
 
-                var changes = new List<KeyValuePair<int, string>>(DxfFollowers.PointChanges(vertex, 10, moved, Origin, 3));
+                var changes = new List<KeyValuePair<int, string>>(
+                    DxfFollowers.PointChanges(vertex, 10, moved, Origin, 3)
+                );
 
                 foreach (int code in new[] { 40, 41 })
                 {
                     if (DxfFollowers.Text(vertex, code) != null)
                     {
-                        changes.AddRange(DxfFollowers.NumberChange(vertex, code, ocs.Width(DxfFollowers.Number(vertex, code, 0.0)), 0.0, false));
+                        changes.AddRange(
+                            DxfFollowers.NumberChange(
+                                vertex,
+                                code,
+                                ocs.Width(DxfFollowers.Number(vertex, code, 0.0)),
+                                0.0,
+                                false
+                            )
+                        );
                     }
                 }
 
@@ -892,7 +1013,14 @@ namespace GeometryHelper.Dxf
             Two(v.Count);
             double end = chain.EndParam;
             bool closed = Closed;
-            List<double> cuts = DxfCurveTools.Cuts(parameters, 0.0, end, closed, (a, b) => chain.DistanceAt(b) - chain.DistanceAt(a), x => Within(x, end, nameof(parameters)));
+            List<double> cuts = DxfCurveTools.Cuts(
+                parameters,
+                0.0,
+                end,
+                closed,
+                (a, b) => chain.DistanceAt(b) - chain.DistanceAt(a),
+                x => Within(x, end, nameof(parameters))
+            );
             List<List<DxfPolyVertex>> pieces = DxfPolylineEdit.Split(v, closed, cuts);
 
             if (pieces.Count == 0)
@@ -928,7 +1056,9 @@ namespace GeometryHelper.Dxf
             Two(v.Count);
             var result = new List<DxfCurve>();
 
-            foreach (KeyValuePair<List<DxfPolyVertex>, bool> one in DxfPolylineEdit.Offset(v, Closed, offsetDist, Elevation))
+            foreach (
+                KeyValuePair<List<DxfPolyVertex>, bool> one in DxfPolylineEdit.Offset(v, Closed, offsetDist, Elevation)
+            )
             {
                 result.Add(Made(one.Key, one.Value));
             }
@@ -947,13 +1077,25 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when the normal is not along the polyline's within the vector tolerance.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the polyline has fewer than two vertices drawn.</exception>
-        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(GeoVector3 planeNormal, double offsetDist)
+        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(
+            GeoVector3 planeNormal,
+            double offsetDist
+        )
         {
             GeoVector3 normal = Normal;
 
-            if (!planeNormal.IsValid || planeNormal.IsZeroLength(Tolerance.Default) || !planeNormal.IsParallelTo(normal, Tolerance.Default))
+            if (
+                !planeNormal.IsValid
+                || planeNormal.IsZeroLength(Tolerance.Default)
+                || !planeNormal.IsParallelTo(normal, Tolerance.Default)
+            )
             {
-                throw new ArgumentException("A polyline is offset in its own plane: the normal " + planeNormal + " is not along the polyline's.", nameof(planeNormal));
+                throw new ArgumentException(
+                    "A polyline is offset in its own plane: the normal "
+                        + planeNormal
+                        + " is not along the polyline's.",
+                    nameof(planeNormal)
+                );
             }
 
             return GetOffsetCurves(planeNormal.DotProduct(normal) < 0.0 ? -offsetDist : offsetDist);
@@ -977,7 +1119,11 @@ namespace GeometryHelper.Dxf
 
             if (newParameter >= 0.0 && newParameter <= v.Count - 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(newParameter), newParameter, "The parameter lies on the polyline: one past an end extends it.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(newParameter),
+                    newParameter,
+                    "The parameter lies on the polyline: one past an end extends it."
+                );
             }
 
             DxfPolylineEdit.Extend(v, newParameter, nameof(newParameter));
@@ -999,11 +1145,17 @@ namespace GeometryHelper.Dxf
             List<DxfPolyVertex> v = Model(out List<int> records);
             Open(v.Count);
             GeoPoint3 local = WorldToOcs(Normal, toPoint);
-            double share = Math.Abs(local.Z - Elevation) <= Tolerance.Default.EqualPoint ? DxfPolylineEdit.ShareOf(v, extendStart, local.X, local.Y, 0.0, true) : double.NaN;
+            double share =
+                Math.Abs(local.Z - Elevation) <= Tolerance.Default.EqualPoint
+                    ? DxfPolylineEdit.ShareOf(v, extendStart, local.X, local.Y, 0.0, true)
+                    : double.NaN;
 
             if (double.IsNaN(share))
             {
-                throw new ArgumentException("The point " + toPoint + " is not on the polyline's end segment run on.", nameof(toPoint));
+                throw new ArgumentException(
+                    "The point " + toPoint + " is not on the polyline's end segment run on.",
+                    nameof(toPoint)
+                );
             }
 
             DxfPolylineEdit.Beyond(share, extendStart, toPoint, nameof(toPoint));
@@ -1028,7 +1180,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The chain, in world coordinates.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the polyline has an arc, has fewer than two vertices apart, a
         /// number of its record is not finite, or it is erased.</exception>
-        public GeoPolyline3 ToGeoPolyline3() => Chained<GeoPolyline3>(nameof(ToGeoPolyline3), false, Tolerance.Default, false, false);
+        public GeoPolyline3 ToGeoPolyline3() =>
+            Chained<GeoPolyline3>(nameof(ToGeoPolyline3), false, Tolerance.Default, false, false);
 
         /// <summary>
         /// Gets the polyline as a chain with arcs in the world, bulge for bulge, of the vertices <see cref="ToGeoPolyline3"/>
@@ -1039,7 +1192,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The chain, in world coordinates.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the polyline has fewer than two vertices apart, a number of its
         /// record is not finite, or it is erased.</exception>
-        public GeoPolylineArc3 ToGeoPolylineArc3() => Chained<GeoPolylineArc3>(nameof(ToGeoPolylineArc3), false, Tolerance.Default, false, true);
+        public GeoPolylineArc3 ToGeoPolylineArc3() =>
+            Chained<GeoPolylineArc3>(nameof(ToGeoPolylineArc3), false, Tolerance.Default, false, true);
 
         /// <summary>
         /// Gets the polyline as a loop of straight edges in the world, of the vertices <see cref="ToGeoPolyline3"/> reads: closed
@@ -1051,7 +1205,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The loop, in world coordinates.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the polyline has an arc, encloses no area within the default
         /// tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoPolygon3 ToGeoPolygon3() => Chained<GeoPolygon3>(nameof(ToGeoPolygon3), false, Tolerance.Default, true, false);
+        public GeoPolygon3 ToGeoPolygon3() =>
+            Chained<GeoPolygon3>(nameof(ToGeoPolygon3), false, Tolerance.Default, true, false);
 
         /// <summary>
         /// Gets the polyline as a loop with arcs in the world, bulge for bulge, of the vertices <see cref="ToGeoPolyline3"/>
@@ -1063,7 +1218,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The loop, in world coordinates.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the polyline encloses no area within the default tolerance, a
         /// number of its record is not finite, or it is erased.</exception>
-        public GeoPolygonArc3 ToGeoPolygonArc3() => Chained<GeoPolygonArc3>(nameof(ToGeoPolygonArc3), false, Tolerance.Default, true, true);
+        public GeoPolygonArc3 ToGeoPolygonArc3() =>
+            Chained<GeoPolygonArc3>(nameof(ToGeoPolygonArc3), false, Tolerance.Default, true, true);
 
         /// <summary>
         /// Gets the polyline as a chain of straight segments of the plane, as <see cref="ToGeoPolyline3"/> reads it, where it
@@ -1085,7 +1241,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The chain in the plane.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the polyline does not lie on the floor, has an arc, has fewer
         /// than two vertices apart within the point tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoPolyline2 ToGeoPolyline2(Tolerance tolerance) => Chained<GeoPolyline2>(nameof(ToGeoPolyline2), true, tolerance, false, false);
+        public GeoPolyline2 ToGeoPolyline2(Tolerance tolerance) =>
+            Chained<GeoPolyline2>(nameof(ToGeoPolyline2), true, tolerance, false, false);
 
         /// <summary>
         /// Gets the polyline as a chain with arcs of the plane, as <see cref="ToGeoPolylineArc3"/> reads it, where it lies on the
@@ -1104,7 +1261,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The chain in the plane.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the polyline does not lie on the floor, has fewer than two
         /// vertices apart within the point tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoPolylineArc2 ToGeoPolylineArc2(Tolerance tolerance) => Chained<GeoPolylineArc2>(nameof(ToGeoPolylineArc2), true, tolerance, false, true);
+        public GeoPolylineArc2 ToGeoPolylineArc2(Tolerance tolerance) =>
+            Chained<GeoPolylineArc2>(nameof(ToGeoPolylineArc2), true, tolerance, false, true);
 
         /// <summary>
         /// Gets the polyline as a loop of straight edges of the plane, as <see cref="ToGeoPolygon3"/> reads it, where it lies on
@@ -1124,7 +1282,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The loop in the plane.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the polyline does not lie on the floor, has an arc, encloses no
         /// area within the tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoPolygon2 ToGeoPolygon2(Tolerance tolerance) => Chained<GeoPolygon2>(nameof(ToGeoPolygon2), true, tolerance, true, false);
+        public GeoPolygon2 ToGeoPolygon2(Tolerance tolerance) =>
+            Chained<GeoPolygon2>(nameof(ToGeoPolygon2), true, tolerance, true, false);
 
         /// <summary>
         /// Gets the polyline as a loop with arcs of the plane, as <see cref="ToGeoPolygonArc3"/> reads it, where it lies on the
@@ -1143,7 +1302,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The loop in the plane.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the polyline does not lie on the floor, encloses no area within
         /// the tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoPolygonArc2 ToGeoPolygonArc2(Tolerance tolerance) => Chained<GeoPolygonArc2>(nameof(ToGeoPolygonArc2), true, tolerance, true, true);
+        public GeoPolygonArc2 ToGeoPolygonArc2(Tolerance tolerance) =>
+            Chained<GeoPolygonArc2>(nameof(ToGeoPolygonArc2), true, tolerance, true, true);
 
         /// <summary>
         /// Gives the polyline the vertices and bulges of a chain or loop, as AutoCAD's <c>SetFromGeCurve</c>, written as
@@ -1228,8 +1388,19 @@ namespace GeometryHelper.Dxf
                 }
 
                 GeoPoint3 at = DxfFollowers.Point(vertex.Value, 10, Origin);
-                bool widths = DxfFollowers.Text(vertex.Value, 40) != null || DxfFollowers.Text(vertex.Value, 41) != null;
-                model.Add(new DxfPolyVertex(at.X, at.Y, elevation, DxfFollowers.Number(vertex.Value, 42, 0.0), DxfFollowers.Number(vertex.Value, 40, startWidth), DxfFollowers.Number(vertex.Value, 41, endWidth), widths));
+                bool widths =
+                    DxfFollowers.Text(vertex.Value, 40) != null || DxfFollowers.Text(vertex.Value, 41) != null;
+                model.Add(
+                    new DxfPolyVertex(
+                        at.X,
+                        at.Y,
+                        elevation,
+                        DxfFollowers.Number(vertex.Value, 42, 0.0),
+                        DxfFollowers.Number(vertex.Value, 40, startWidth),
+                        DxfFollowers.Number(vertex.Value, 41, endWidth),
+                        widths
+                    )
+                );
                 records.Add(vertex.Key);
             }
 
@@ -1243,7 +1414,13 @@ namespace GeometryHelper.Dxf
         private DxfPolyline2d Made(List<DxfPolyVertex> model, bool closed)
         {
             var copy = (DxfPolyline2d)Copy();
-            copy.SetGroups(new KeyValuePair<int, string>(70, ((GetInt(70, 0) & ~7) | (closed ? 1 : 0)).ToString(CultureInfo.InvariantCulture)), new KeyValuePair<int, string>(75, null));
+            copy.SetGroups(
+                new KeyValuePair<int, string>(
+                    70,
+                    ((GetInt(70, 0) & ~7) | (closed ? 1 : 0)).ToString(CultureInfo.InvariantCulture)
+                ),
+                new KeyValuePair<int, string>(75, null)
+            );
             copy.SetFollowers(Records(model));
             return copy;
         }
@@ -1310,7 +1487,9 @@ namespace GeometryHelper.Dxf
                 IReadOnlyList<DxfTypedValue> groups = own[records[i]];
                 double startWidth = DxfFollowers.Number(groups, 40, DefaultStartWidth);
                 double endWidth = DxfFollowers.Number(groups, 41, DefaultEndWidth);
-                var change = new List<KeyValuePair<int, string>>(DxfFollowers.PointChanges(groups, 10, new GeoPoint3(q.X, q.Y, 0.0), Origin, 2));
+                var change = new List<KeyValuePair<int, string>>(
+                    DxfFollowers.PointChanges(groups, 10, new GeoPoint3(q.X, q.Y, 0.0), Origin, 2)
+                );
                 change.AddRange(DxfFollowers.NumberChange(groups, 42, q.Bulge, 0.0, true));
 
                 if (!Same(q.StartWidth, startWidth) || !Same(q.EndWidth, endWidth))
@@ -1330,12 +1509,22 @@ namespace GeometryHelper.Dxf
         /// closure and linetype generation, straight; its vertex records written anew, as a polyline converted from a
         /// <see cref="DxfPolyline"/> takes them.
         /// </summary>
-        internal void Take(List<DxfPolyVertex> vertices, bool closed, GeoVector3 normal, double elevation, double thickness, bool generation)
+        internal void Take(
+            List<DxfPolyVertex> vertices,
+            bool closed,
+            GeoVector3 normal,
+            double elevation,
+            double thickness,
+            bool generation
+        )
         {
             SetGroups(Join(NormalGroups(normal), PointGroups(10, new GeoPoint3(0.0, 0.0, elevation), Origin)));
             SetThickness(thickness);
             int flags = (GetInt(70, 0) & ~(1 | 2 | 4 | 128)) | (closed ? 1 : 0) | (generation ? 128 : 0);
-            SetGroups(new KeyValuePair<int, string>(70, flags.ToString(CultureInfo.InvariantCulture)), new KeyValuePair<int, string>(75, null));
+            SetGroups(
+                new KeyValuePair<int, string>(70, flags.ToString(CultureInfo.InvariantCulture)),
+                new KeyValuePair<int, string>(75, null)
+            );
             var model = new List<DxfPolyVertex>(vertices.Count);
 
             foreach (DxfPolyVertex vertex in vertices)
@@ -1354,7 +1543,14 @@ namespace GeometryHelper.Dxf
         /// flags and its normal where it is not (0, 0, 1); then its vertices and its SEQEND; for a polyline converted to take its
         /// place.
         /// </summary>
-        internal static List<KeyValuePair<string, List<DxfTypedValue>>> Records(List<DxfPolyVertex> model, bool closed, GeoVector3 normal, double elevation, double thickness, bool generation)
+        internal static List<KeyValuePair<string, List<DxfTypedValue>>> Records(
+            List<DxfPolyVertex> model,
+            bool closed,
+            GeoVector3 normal,
+            double elevation,
+            double thickness,
+            bool generation
+        )
         {
             var head = new List<DxfTypedValue>
             {
@@ -1370,7 +1566,12 @@ namespace GeometryHelper.Dxf
                 head.Add(new DxfTypedValue(39, Numbers.Exact(thickness + 0.0)));
             }
 
-            head.Add(new DxfTypedValue(70, ((closed ? 1 : 0) | (generation ? 128 : 0)).ToString(CultureInfo.InvariantCulture)));
+            head.Add(
+                new DxfTypedValue(
+                    70,
+                    ((closed ? 1 : 0) | (generation ? 128 : 0)).ToString(CultureInfo.InvariantCulture)
+                )
+            );
 
             if (!(normal.X == 0.0 && normal.Y == 0.0 && normal.Z == 1.0))
             {
@@ -1379,7 +1580,10 @@ namespace GeometryHelper.Dxf
                 head.Add(new DxfTypedValue(230, Numbers.Exact(normal.Z + 0.0)));
             }
 
-            var records = new List<KeyValuePair<string, List<DxfTypedValue>>> { new KeyValuePair<string, List<DxfTypedValue>>("POLYLINE", head) };
+            var records = new List<KeyValuePair<string, List<DxfTypedValue>>>
+            {
+                new KeyValuePair<string, List<DxfTypedValue>>("POLYLINE", head),
+            };
             var flat = new List<DxfPolyVertex>(model.Count);
 
             foreach (DxfPolyVertex vertex in model)
@@ -1419,7 +1623,9 @@ namespace GeometryHelper.Dxf
         {
             if (count < 2)
             {
-                throw new InvalidOperationException("A polyline is fitted on two vertices at least, three for a closed one, and this one has too few.");
+                throw new InvalidOperationException(
+                    "A polyline is fitted on two vertices at least, three for a closed one, and this one has too few."
+                );
             }
         }
 
@@ -1428,7 +1634,9 @@ namespace GeometryHelper.Dxf
         {
             if (count < 2)
             {
-                throw new InvalidOperationException("A polyline of " + count.ToString(CultureInfo.InvariantCulture) + " vertices drawn has no segment.");
+                throw new InvalidOperationException(
+                    "A polyline of " + count.ToString(CultureInfo.InvariantCulture) + " vertices drawn has no segment."
+                );
             }
         }
 
@@ -1444,7 +1652,9 @@ namespace GeometryHelper.Dxf
 
             if (PolyType != DxfPoly2dType.SimplePoly)
             {
-                throw new InvalidOperationException("A fitted polyline is drawn through vertices the fitting made: straighten it to extend it.");
+                throw new InvalidOperationException(
+                    "A fitted polyline is drawn through vertices the fitting made: straighten it to extend it."
+                );
             }
         }
 
@@ -1473,18 +1683,30 @@ namespace GeometryHelper.Dxf
         }
 
         [DxfType("POLYLINE")]
-        internal static DxfEntity Create(DxfItem item)
-            => (Flags(item) & (8 | 16 | 64)) == 0 ? new DxfPolyline2d(item) : null;
+        internal static DxfEntity Create(DxfItem item) =>
+            (Flags(item) & (8 | 16 | 64)) == 0 ? new DxfPolyline2d(item) : null;
 
         /// <inheritdoc/>
         private protected override IReadOnlyList<int> GroupOrder => Order;
 
         /// <summary>The flags (group 70) of a POLYLINE record, nought where it gives none.</summary>
-        internal static int Flags(DxfItem item)
-            => int.TryParse(item.File.ValueOf(item, 70)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags) ? flags : 0;
+        internal static int Flags(DxfItem item) =>
+            int.TryParse(
+                item.File.ValueOf(item, 70)?.Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int flags
+            )
+                ? flags
+                : 0;
 
         /// <summary>The groups of a POLYLINE of the plane made in code: its marker, the flag that vertices follow, its point at the elevation, its flags and widths.</summary>
-        private static IEnumerable<DxfTypedValue> Head(double elevation, bool closed, double startWidth, double endWidth)
+        private static IEnumerable<DxfTypedValue> Head(
+            double elevation,
+            bool closed,
+            double startWidth,
+            double endWidth
+        )
         {
             Guard.Finite(elevation, nameof(elevation), "An elevation has to be a finite number.");
             Guard.NonNegative(startWidth, nameof(startWidth), "A width has to be a finite number, nought or more.");
@@ -1543,7 +1765,9 @@ namespace GeometryHelper.Dxf
         {
             if (vertex.Polyline != null || vertex.IsResident || vertex.IsErased)
             {
-                throw new InvalidOperationException("The vertex is of a polyline already: append a vertex made in code.");
+                throw new InvalidOperationException(
+                    "The vertex is of a polyline already: append a vertex made in code."
+                );
             }
 
             vertex.AtElevation(Elevation);
@@ -1571,8 +1795,10 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The group that sets a number of the head, none where it is the one read.</summary>
-        private KeyValuePair<int, string>[] NumberGroups(int code, double value, double fallback)
-            => Same(value, GetDouble(code, fallback)) ? new KeyValuePair<int, string>[0] : new[] { new KeyValuePair<int, string>(code, Numbers.Exact(value + 0.0)) };
+        private KeyValuePair<int, string>[] NumberGroups(int code, double value, double fallback) =>
+            Same(value, GetDouble(code, fallback))
+                ? new KeyValuePair<int, string>[0]
+                : new[] { new KeyValuePair<int, string>(code, Numbers.Exact(value + 0.0)) };
 
         private static double ParameterOn(DxfBulgeChain chain, GeoPoint3 point)
         {

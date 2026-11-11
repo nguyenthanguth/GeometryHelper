@@ -59,7 +59,9 @@ namespace GeometryHelper.UnitTest.Solid
 
         private struct Whole3
         {
-            internal BigInteger X, Y, Z;
+            internal BigInteger X,
+                Y,
+                Z;
 
             internal Whole3(double x, double y, double z)
             {
@@ -147,9 +149,22 @@ namespace GeometryHelper.UnitTest.Solid
             for (int i = 0; i < 6000; i++)
             {
                 double angle = Math.Pow(10, -12 + 11.7 * random.NextDouble());
-                var normal = new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5);
-                var plane = new GeoPlane3(new GeoPoint3(scale * random.NextDouble(), scale * random.NextDouble(), scale * random.NextDouble()), normal);
-                GeoVector3 axis = plane.Normal.CrossProduct(new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5));
+                var normal = new GeoVector3(
+                    random.NextDouble() - 0.5,
+                    random.NextDouble() - 0.5,
+                    random.NextDouble() - 0.5
+                );
+                var plane = new GeoPlane3(
+                    new GeoPoint3(
+                        scale * random.NextDouble(),
+                        scale * random.NextDouble(),
+                        scale * random.NextDouble()
+                    ),
+                    normal
+                );
+                GeoVector3 axis = plane.Normal.CrossProduct(
+                    new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5)
+                );
 
                 if (axis.Length < 1E-3)
                 {
@@ -159,12 +174,21 @@ namespace GeometryHelper.UnitTest.Solid
                 // A direction a given angle off the plane: square to the normal, then turned the angle towards it.
                 GeoVector3 flat = axis.Divide(axis.Length);
                 GeoVector3 direction = flat.Multiply(Math.Cos(angle)).Add(plane.Normal.Multiply(Math.Sin(angle)));
-                var line = new GeoXLine3(new GeoPoint3(plane.Origin.X + (random.NextDouble() - 0.5) * 20, plane.Origin.Y + (random.NextDouble() - 0.5) * 20, plane.Origin.Z + (random.NextDouble() - 0.5) * 20), direction);
+                var line = new GeoXLine3(
+                    new GeoPoint3(
+                        plane.Origin.X + (random.NextDouble() - 0.5) * 20,
+                        plane.Origin.Y + (random.NextDouble() - 0.5) * 20,
+                        plane.Origin.Z + (random.NextDouble() - 0.5) * 20
+                    ),
+                    direction
+                );
 
                 // The exact distance along: the height of the plane's origin over the line's, per the climb, the origins' difference taken exactly.
                 Whole3 n = new Whole3(plane.Normal.X, plane.Normal.Y, plane.Normal.Z);
                 Whole3 d = new Whole3(line.Direction.X, line.Direction.Y, line.Direction.Z);
-                Whole3 r = new Whole3(plane.Origin.X, plane.Origin.Y, plane.Origin.Z) - new Whole3(line.Origin.X, line.Origin.Y, line.Origin.Z);
+                Whole3 r =
+                    new Whole3(plane.Origin.X, plane.Origin.Y, plane.Origin.Z)
+                    - new Whole3(line.Origin.X, line.Origin.Y, line.Origin.Z);
                 BigInteger climb = d.Dot(n);
 
                 if (climb.IsZero)
@@ -174,10 +198,22 @@ namespace GeometryHelper.UnitTest.Solid
 
                 double expected = (double)((r.Dot(n) << 128) / climb) / Math.Pow(2.0, 128);
                 double sine = Math.Abs((double)((climb << 128) / (BigInteger.One << (2 * Shift))) / Math.Pow(2.0, 128));
-                double coordinate = new[] { line.Origin.X, line.Origin.Y, line.Origin.Z, plane.Origin.X, plane.Origin.Y, plane.Origin.Z }.Max(Math.Abs);
+                double coordinate = new[]
+                {
+                    line.Origin.X,
+                    line.Origin.Y,
+                    line.Origin.Z,
+                    plane.Origin.X,
+                    plane.Origin.Y,
+                    plane.Origin.Z,
+                }.Max(Math.Abs);
                 double ratio = (Math.Abs(expected) + coordinate) * 2.2204460492503131E-16 / Strict.EqualPoint;
 
-                if (sine <= 1E-15 || (sine <= 1E-9 && ratio > 0.5) || Math.Abs(sine) <= 1E-12 && Math.Abs(plane.SignedDistanceTo(line.Origin)) <= Strict.EqualPlanar)
+                if (
+                    sine <= 1E-15
+                    || (sine <= 1E-9 && ratio > 0.5)
+                    || Math.Abs(sine) <= 1E-12 && Math.Abs(plane.SignedDistanceTo(line.Origin)) <= Strict.EqualPlanar
+                )
                 {
                     continue;
                 }
@@ -185,36 +221,76 @@ namespace GeometryHelper.UnitTest.Solid
                 asked++;
 
                 bool crosses = XLine3Probe_TryCross(line, plane, out double along);
-                double slack = Math.Max(1E-9, 1E-9 * Math.Abs(expected)) + 16 * scale * 2.2204460492503131E-16 / Math.Max(sine, 1E-300);
+                double slack =
+                    Math.Max(1E-9, 1E-9 * Math.Abs(expected))
+                    + 16 * scale * 2.2204460492503131E-16 / Math.Max(sine, 1E-300);
 
                 if (!crosses || Math.Abs(along - expected) > slack)
                 {
-                    failures.Add("sine " + sine + ": along " + along + " (" + crosses + ") against " + expected + "\n   " + line + "\n   " + plane);
+                    failures.Add(
+                        "sine "
+                            + sine
+                            + ": along "
+                            + along
+                            + " ("
+                            + crosses
+                            + ") against "
+                            + expected
+                            + "\n   "
+                            + line
+                            + "\n   "
+                            + plane
+                    );
                 }
             }
 
-            Assert.True(failures.Count == 0, failures.Count + " pairs went wrong:\n" + string.Join("\n", failures.Take(6)));
+            Assert.True(
+                failures.Count == 0,
+                failures.Count + " pairs went wrong:\n" + string.Join("\n", failures.Take(6))
+            );
             Assert.True(asked > 3000, asked + " pairs were asked: the run is too thin");
         }
 
-        private static bool XLine3Probe_TryCross(GeoXLine3 line, GeoPlane3 plane, out double along)
-            => GeometryHelper.Core.XLine3.TryCrossPlane(line, plane, Strict, out along);
+        private static bool XLine3Probe_TryCross(GeoXLine3 line, GeoPlane3 plane, out double along) =>
+            GeometryHelper.Core.XLine3.TryCrossPlane(line, plane, Strict, out along);
 
         [Fact]
         public void TheExactOracleItself_GivesThirtyForTheSkewLinesAndFiveForTheDirectionsOffAMicroradian()
         {
-            Assert.Equal(30.0, ExactGap(new GeoXLine3(new GeoPoint3(0, 0, 0), GeoVector3.XAxis), new GeoXLine3(new GeoPoint3(7, 3, 30), GeoVector3.YAxis), out double sine), 12);
+            Assert.Equal(
+                30.0,
+                ExactGap(
+                    new GeoXLine3(new GeoPoint3(0, 0, 0), GeoVector3.XAxis),
+                    new GeoXLine3(new GeoPoint3(7, 3, 30), GeoVector3.YAxis),
+                    out double sine
+                ),
+                12
+            );
             Assert.Equal(1.0, sine, 12);
-            Assert.Equal(5.0, ExactGap(new GeoXLine3(new GeoPoint3(0, 0, 0), GeoVector3.XAxis), new GeoXLine3(new GeoPoint3(0, 0, 5), new GeoVector3(1, 1E-9, 0)), out double tiny), 12);
+            Assert.Equal(
+                5.0,
+                ExactGap(
+                    new GeoXLine3(new GeoPoint3(0, 0, 0), GeoVector3.XAxis),
+                    new GeoXLine3(new GeoPoint3(0, 0, 5), new GeoVector3(1, 1E-9, 0)),
+                    out double tiny
+                ),
+                12
+            );
             Assert.Equal(1E-9, tiny, 15);
-            Assert.Equal(5.0, ExactOriginGap(new GeoXLine3(new GeoPoint3(0, 0, 0), GeoVector3.XAxis), new GeoPoint3(40, 3, 4)), 12);
+            Assert.Equal(
+                5.0,
+                ExactOriginGap(new GeoXLine3(new GeoPoint3(0, 0, 0), GeoVector3.XAxis), new GeoPoint3(40, 3, 4)),
+                12
+            );
         }
 
         [Theory]
         [InlineData(1E3)]
         [InlineData(1E5)]
         [InlineData(1E7)]
-        public void TwoLinesOfAnyAngle_AreAsFarApartAsTheirExactGap_OrAsTheNearerOriginWhereTheyAreParallelByRounding(double scale)
+        public void TwoLinesOfAnyAngle_AreAsFarApartAsTheirExactGap_OrAsTheNearerOriginWhereTheyAreParallelByRounding(
+            double scale
+        )
         {
             var random = new Random(1989 + (int)Math.Log10(scale));
             var failures = new List<string>();
@@ -225,18 +301,36 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 double angle = Math.Pow(10, -13 + 12.7 * random.NextDouble());
                 var d = new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5);
-                var a = new GeoXLine3(new GeoPoint3(scale * random.NextDouble(), scale * random.NextDouble(), scale * random.NextDouble()), d);
+                var a = new GeoXLine3(
+                    new GeoPoint3(
+                        scale * random.NextDouble(),
+                        scale * random.NextDouble(),
+                        scale * random.NextDouble()
+                    ),
+                    d
+                );
 
                 // The second line tilted from the first by the angle, about an axis square to it, and its origin anywhere within a scale of it.
-                GeoVector3 axis = a.Direction.CrossProduct(new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5));
+                GeoVector3 axis = a.Direction.CrossProduct(
+                    new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5)
+                );
 
                 if (axis.Length < 1E-3)
                 {
                     continue;
                 }
 
-                GeoVector3 tilted = a.Direction.Multiply(Math.Cos(angle)).Add(axis.Divide(axis.Length).Multiply(Math.Sin(angle)));
-                var b = new GeoXLine3(new GeoPoint3(a.Origin.X + (random.NextDouble() - 0.5) * 100, a.Origin.Y + (random.NextDouble() - 0.5) * 100, a.Origin.Z + (random.NextDouble() - 0.5) * 100), tilted);
+                GeoVector3 tilted = a
+                    .Direction.Multiply(Math.Cos(angle))
+                    .Add(axis.Divide(axis.Length).Multiply(Math.Sin(angle)));
+                var b = new GeoXLine3(
+                    new GeoPoint3(
+                        a.Origin.X + (random.NextDouble() - 0.5) * 100,
+                        a.Origin.Y + (random.NextDouble() - 0.5) * 100,
+                        a.Origin.Z + (random.NextDouble() - 0.5) * 100
+                    ),
+                    tilted
+                );
 
                 double gap = ExactGap(a, b, out double sine);
 
@@ -249,7 +343,15 @@ namespace GeometryHelper.UnitTest.Solid
                 // reach to be: that, plus the largest coordinate of the two origins.
                 ExactAlong(a, b, out double alongFirst, out double alongSecond);
 
-                double coordinate = new[] { a.Origin.X, a.Origin.Y, a.Origin.Z, b.Origin.X, b.Origin.Y, b.Origin.Z }.Max(Math.Abs);
+                double coordinate = new[]
+                {
+                    a.Origin.X,
+                    a.Origin.Y,
+                    a.Origin.Z,
+                    b.Origin.X,
+                    b.Origin.Y,
+                    b.Origin.Z,
+                }.Max(Math.Abs);
                 double reach = Math.Max(Math.Abs(alongFirst), Math.Abs(alongSecond)) + coordinate;
                 double ratio = reach * 2.2204460492503131E-16 / Strict.EqualPoint;
 
@@ -267,31 +369,78 @@ namespace GeometryHelper.UnitTest.Solid
 
                 double fromA = a.DistanceTo(b, Strict);
                 double fromB = b.DistanceTo(a, Strict);
-                double slack = sine > 1E-6 ? 1E-9 * (1 + scale * 1E-3) : Math.Max(1E-9, 8 * reach * 2.2204460492503131E-16);
+                double slack =
+                    sine > 1E-6 ? 1E-9 * (1 + scale * 1E-3) : Math.Max(1E-9, 8 * reach * 2.2204460492503131E-16);
 
                 // Where the lines have a common perpendicular the library places, its feet are the exact ones to the offset over the
                 // sine, and the shortest line between the two is as long as the distance to what a double can place them to.
                 if (placeable)
                 {
                     bool bridged = XLine3.TryBridge(a, b, Strict, out double footA, out double footB, out _);
-                    double footSlack = 1E-9 * (Math.Abs(alongFirst) + 1.0) + 256 * 2.2204460492503131E-16 * 100.0 / sine;
+                    double footSlack =
+                        1E-9 * (Math.Abs(alongFirst) + 1.0) + 256 * 2.2204460492503131E-16 * 100.0 / sine;
                     double shortest = a.GetShortestLineTo(b, Strict).Length;
 
-                    if (!bridged || Math.Abs(footA - alongFirst) > footSlack || Math.Abs(footB - alongSecond) > footSlack
-                        || Math.Abs(shortest - expected) > slack + 8 * reach * 2.2204460492503131E-16)
+                    if (
+                        !bridged
+                        || Math.Abs(footA - alongFirst) > footSlack
+                        || Math.Abs(footB - alongSecond) > footSlack
+                        || Math.Abs(shortest - expected) > slack + 8 * reach * 2.2204460492503131E-16
+                    )
                     {
-                        failures.Add("sine " + sine + " scale " + scale + ": feet " + footA + ", " + footB + " against " + alongFirst + ", " + alongSecond + ", shortest " + shortest + " against " + expected);
+                        failures.Add(
+                            "sine "
+                                + sine
+                                + " scale "
+                                + scale
+                                + ": feet "
+                                + footA
+                                + ", "
+                                + footB
+                                + " against "
+                                + alongFirst
+                                + ", "
+                                + alongSecond
+                                + ", shortest "
+                                + shortest
+                                + " against "
+                                + expected
+                        );
                     }
                 }
 
                 if (fromA != fromB || Math.Abs(fromA - expected) > slack)
                 {
-                    failures.Add("sine " + sine + " scale " + scale + ": " + fromA + " (" + fromB + ") against " + expected + "\n   " + a + "\n   " + b);
+                    failures.Add(
+                        "sine "
+                            + sine
+                            + " scale "
+                            + scale
+                            + ": "
+                            + fromA
+                            + " ("
+                            + fromB
+                            + ") against "
+                            + expected
+                            + "\n   "
+                            + a
+                            + "\n   "
+                            + b
+                    );
                 }
             }
 
-            Assert.True(failures.Count == 0, failures.Count + " pairs went wrong:\n" + string.Join("\n", failures.Take(6)));
-            Assert.True(common > 1000 && parallel > 100, common + " pairs at a real angle and " + parallel + " parallel by rounding were asked: the run is too thin");
+            Assert.True(
+                failures.Count == 0,
+                failures.Count + " pairs went wrong:\n" + string.Join("\n", failures.Take(6))
+            );
+            Assert.True(
+                common > 1000 && parallel > 100,
+                common
+                    + " pairs at a real angle and "
+                    + parallel
+                    + " parallel by rounding were asked: the run is too thin"
+            );
         }
     }
 }

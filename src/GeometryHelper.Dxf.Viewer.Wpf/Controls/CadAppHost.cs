@@ -85,7 +85,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the line written to the error output when the arguments of <c>--screenshot</c> do not read: the options the
         /// presenter knows, after the name of the program.
         /// </summary>
-        protected virtual string Usage => "Usage: " + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app") + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
+        protected virtual string Usage =>
+            "Usage: "
+            + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app")
+            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
@@ -138,7 +141,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
                 catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
                 {
-                    GeometryHelperLog.Warn("Program: the settings could not be saved after the object snaps changed.", ex);
+                    GeometryHelperLog.Warn(
+                        "Program: the settings could not be saved after the object snaps changed.",
+                        ex
+                    );
                 }
             };
 
@@ -159,7 +165,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             var plugins = new CadPluginManager(
                 new CadPluginAssemblyLoader(),
                 Path.Combine(PluginFolder, "Plugins"),
-                Path.Combine(PluginFolder, "plugins.json"));
+                Path.Combine(PluginFolder, "plugins.json")
+            );
             plugins.ConfirmUntrusted = path => CadQuestionWindow.ConfirmUntrustedPlugin(window, path);
 
             // A host's plugins of its own are found by the same manager, before the plugins of the start are loaded.
@@ -194,18 +201,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// The workspace of the window shown, over which the host shows its dialogs; null in screenshot mode, where no window
         /// is shown and a dialog asked for is drawn instead (see <see cref="TryCreateDialog"/>).
         /// </param>
-        protected virtual void Attach(MainViewModel model, CadWorkspace workspace)
-        {
-        }
+        protected virtual void Attach(MainViewModel model, CadWorkspace workspace) { }
 
         /// <summary>
         /// Gives the plugin manager to a host's own plugins before any plugin is loaded, as the model drawing finds its drawing
         /// plugins through it. Nothing by default. In screenshot mode it is called only for <c>--plugin</c> or a plugin dialog.
         /// </summary>
         /// <param name="plugins">The plugin manager of the app.</param>
-        protected virtual void AttachPlugins(CadPluginManager plugins)
-        {
-        }
+        protected virtual void AttachPlugins(CadPluginManager plugins) { }
 
         /// <summary>
         /// Reads an option of a host's own off the screenshot's command line, as <c>--new-drawing "Test bodies" Assembly</c>.
@@ -240,7 +243,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="window">The dialog's window.</param>
         /// <param name="root">The content of the window that is drawn.</param>
         /// <returns>False when there is no such dialog, the reason written to the error output.</returns>
-        protected virtual bool TryCreateDialog(MainViewModel model, string dialogName, out Window window, out FrameworkElement root)
+        protected virtual bool TryCreateDialog(
+            MainViewModel model,
+            string dialogName,
+            out Window window,
+            out FrameworkElement root
+        )
         {
             Console.Error.WriteLine("--dialog " + dialogName + ": no such dialog.");
             window = null;
@@ -295,7 +303,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
                 else if (string.Equals(arg, "--select", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
                 {
-                    select.AddRange(args[++i].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(h => h.Trim()));
+                    select.AddRange(
+                        args[++i].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(h => h.Trim())
+                    );
                 }
                 else if (string.Equals(arg, "--run", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
                 {
@@ -311,7 +321,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
                 else if (string.Equals(arg, "--toggle", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
                 {
-                    toggles.AddRange(args[++i].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim().ToUpperInvariant()));
+                    toggles.AddRange(
+                        args[++i]
+                            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(t => t.Trim().ToUpperInvariant())
+                    );
                 }
                 else if (string.Equals(arg, "--layers", StringComparison.OrdinalIgnoreCase))
                 {
@@ -333,9 +347,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     recent = args[++i];
                 }
-                else if (ReadOption(args, ref i))
-                {
-                }
+                else if (ReadOption(args, ref i)) { }
                 else if (output == null)
                 {
                     output = arg;
@@ -353,7 +365,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             _ = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-            SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
+            SynchronizationContext.SetSynchronizationContext(
+                new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher)
+            );
             var model = new MainViewModel();
 
             // A host's parts, its dialogs not hooked: a dialog asked for is drawn below, not shown.
@@ -361,10 +375,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             model.StubDialogs();
 
             // Command plugins, kept in a folder of this run under the temporary folder, every file trusted.
-            if (pluginPath != null || (dialogName ?? string.Empty).StartsWith("plugin", StringComparison.OrdinalIgnoreCase))
+            if (
+                pluginPath != null
+                || (dialogName ?? string.Empty).StartsWith("plugin", StringComparison.OrdinalIgnoreCase)
+            )
             {
-                string pluginRoot = Path.Combine(Path.GetTempPath(), "GeometryHelper", "ScreenshotPlugins", Process.GetCurrentProcess().Id.ToString(CultureInfo.InvariantCulture));
-                var plugins = new CadPluginManager(new CadPluginAssemblyLoader(), Path.Combine(pluginRoot, "plugins"), Path.Combine(pluginRoot, "plugins.json"), Path.Combine(pluginRoot, "copies"))
+                string pluginRoot = Path.Combine(
+                    Path.GetTempPath(),
+                    "GeometryHelper",
+                    "ScreenshotPlugins",
+                    Process.GetCurrentProcess().Id.ToString(CultureInfo.InvariantCulture)
+                );
+                var plugins = new CadPluginManager(
+                    new CadPluginAssemblyLoader(),
+                    Path.Combine(pluginRoot, "plugins"),
+                    Path.Combine(pluginRoot, "plugins.json"),
+                    Path.Combine(pluginRoot, "copies")
+                )
                 {
                     ConfirmUntrusted = path => true,
                 };
@@ -383,7 +410,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return 2;
             }
 
-            foreach (StatusToggleViewModel toggle in model.Toggles.Concat(new[] { model.DynamicInput }).Where(t => toggles.Contains(t.Name)))
+            foreach (
+                StatusToggleViewModel toggle in model
+                    .Toggles.Concat(new[] { model.DynamicInput })
+                    .Where(t => toggles.Contains(t.Name))
+            )
             {
                 toggle.IsOn = !toggle.IsOn;
             }
@@ -396,7 +427,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (spaceName != null)
             {
-                CadSpace space = model.Document?.Spaces.FirstOrDefault(s => string.Equals(s.Name, spaceName, StringComparison.OrdinalIgnoreCase));
+                CadSpace space = model.Document?.Spaces.FirstOrDefault(s =>
+                    string.Equals(s.Name, spaceName, StringComparison.OrdinalIgnoreCase)
+                );
 
                 if (space == null)
                 {
@@ -437,7 +470,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             else if (string.Equals(dialogName, "save-changes", StringComparison.OrdinalIgnoreCase))
             {
                 // The question CLOSE asks of a drawing with changes not saved.
-                var question = CadQuestionWindow.ForSave(new[] { SaveChangesDocument ?? CadDocument.From(new DxfDatabase("AC1027"), "plan-level2.dxf") });
+                var question = CadQuestionWindow.ForSave(
+                    new[] { SaveChangesDocument ?? CadDocument.From(new DxfDatabase("AC1027"), "plan-level2.dxf") }
+                );
                 root = question.Body;
                 window = question;
                 width = (int)question.Width;
@@ -452,12 +487,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 width = (int)question.Width;
                 height = MeasuredHeight(root, width);
             }
-            else if (string.Equals(dialogName, "color", StringComparison.OrdinalIgnoreCase) || (dialogName ?? string.Empty).StartsWith("truecolor", StringComparison.OrdinalIgnoreCase))
+            else if (
+                string.Equals(dialogName, "color", StringComparison.OrdinalIgnoreCase)
+                || (dialogName ?? string.Empty).StartsWith("truecolor", StringComparison.OrdinalIgnoreCase)
+            )
             {
                 // Select Color on index 30, as the Layer manager shows it for a layer's colour cell; truecolor-rgb on the RGB model.
-                var dialog = new SelectColorWindow(new SelectColorViewModel(DxfColor.FromColorIndex(DxfColorMethod.ByAci, 30), true));
+                var dialog = new SelectColorWindow(
+                    new SelectColorViewModel(DxfColor.FromColorIndex(DxfColorMethod.ByAci, 30), true)
+                );
                 dialog.Model.IsTrueColorTab = dialogName.StartsWith("truecolor", StringComparison.OrdinalIgnoreCase);
-                dialog.Model.ColorModel = string.Equals(dialogName, "truecolor-rgb", StringComparison.OrdinalIgnoreCase) ? "RGB" : "HSL";
+                dialog.Model.ColorModel = string.Equals(dialogName, "truecolor-rgb", StringComparison.OrdinalIgnoreCase)
+                    ? "RGB"
+                    : "HSL";
                 root = dialog.Body;
                 window = dialog;
                 width = (int)dialog.Width;
@@ -467,17 +509,35 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 // Drafting Settings on a tab, as DSETTINGS shows it: --dialog dsettings, or --dialog "dsettings:Snap and Grid".
                 int colon = dialogName.IndexOf(':');
-                var dialog = new DraftingSettingsWindow(model.CreateDraftingSettings(colon < 0 ? null : dialogName.Substring(colon + 1)));
+                var dialog = new DraftingSettingsWindow(
+                    model.CreateDraftingSettings(colon < 0 ? null : dialogName.Substring(colon + 1))
+                );
                 root = dialog.Body;
                 window = dialog;
                 width = (int)dialog.Width;
                 height = (int)dialog.Height;
             }
-            else if (dialogName != null && model.Document != null && (dialogName.StartsWith("plot:", StringComparison.OrdinalIgnoreCase) || string.Equals(dialogName, "plot-custom", StringComparison.OrdinalIgnoreCase)))
+            else if (
+                dialogName != null
+                && model.Document != null
+                && (
+                    dialogName.StartsWith("plot:", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(dialogName, "plot-custom", StringComparison.OrdinalIgnoreCase)
+                )
+            )
             {
                 // PLOT's dialog on a raster device, --dialog plot:png or plot:jpg, and its Custom Image Size, --dialog plot-custom.
-                var job = new CadPlotJob(model.Space, CadPlotSettings.Read(model.Document, model.Space), DisplayBox.Empty, null);
-                job.Settings.UseDevice(dialogName.EndsWith("jpg", StringComparison.OrdinalIgnoreCase) ? CadPlotSettings.JpgDevice : CadPlotSettings.PngDevice);
+                var job = new CadPlotJob(
+                    model.Space,
+                    CadPlotSettings.Read(model.Document, model.Space),
+                    DisplayBox.Empty,
+                    null
+                );
+                job.Settings.UseDevice(
+                    dialogName.EndsWith("jpg", StringComparison.OrdinalIgnoreCase)
+                        ? CadPlotSettings.JpgDevice
+                        : CadPlotSettings.PngDevice
+                );
                 job.Settings.Area = CadPlotArea.Extents;
                 var plot = new PlotDialogViewModel(model.Document, job, false, null, model.Settings.CustomPixelSizes);
 
@@ -495,7 +555,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 width = (int)window.Width;
                 height = (int)window.Height;
             }
-            else if (dialogName != null && dialogName.EndsWith("-menu", StringComparison.OrdinalIgnoreCase) && !dialogName.StartsWith("app-menu", StringComparison.OrdinalIgnoreCase))
+            else if (
+                dialogName != null
+                && dialogName.EndsWith("-menu", StringComparison.OrdinalIgnoreCase)
+                && !dialogName.StartsWith("app-menu", StringComparison.OrdinalIgnoreCase)
+            )
             {
                 // A menu of the window, drawn as it opens: the lines of --run typed first, for the menu of a point prompt.
                 // Each part is one line of the command line; an empty part is Enter.
@@ -512,18 +576,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     model.SelectFileRow(row);
                 }
 
-                IReadOnlyList<CadMenuItemViewModel> items = string.Equals(dialogName, "osnap-menu", StringComparison.OrdinalIgnoreCase) ? model.OsnapMenu()
-                    : string.Equals(dialogName, "snap-menu", StringComparison.OrdinalIgnoreCase) ? model.SnapOverrideMenu()
-                    : string.Equals(dialogName, "drawings-menu", StringComparison.OrdinalIgnoreCase) ? model.FileRowMenu(row)
-                    : string.Equals(dialogName, "cmdline-menu", StringComparison.OrdinalIgnoreCase) ? model.CommandLineMenu()
-                    : string.Equals(dialogName, "recent-commands-menu", StringComparison.OrdinalIgnoreCase) ? model.CommandLineMenu()[0].Items
-                    : string.Equals(dialogName, "input-settings-menu", StringComparison.OrdinalIgnoreCase) ? model.CommandLineMenu()[1].Items
+                IReadOnlyList<CadMenuItemViewModel> items =
+                    string.Equals(dialogName, "osnap-menu", StringComparison.OrdinalIgnoreCase) ? model.OsnapMenu()
+                    : string.Equals(dialogName, "snap-menu", StringComparison.OrdinalIgnoreCase)
+                        ? model.SnapOverrideMenu()
+                    : string.Equals(dialogName, "drawings-menu", StringComparison.OrdinalIgnoreCase)
+                        ? model.FileRowMenu(row)
+                    : string.Equals(dialogName, "cmdline-menu", StringComparison.OrdinalIgnoreCase)
+                        ? model.CommandLineMenu()
+                    : string.Equals(dialogName, "recent-commands-menu", StringComparison.OrdinalIgnoreCase)
+                        ? model.CommandLineMenu()[0].Items
+                    : string.Equals(dialogName, "input-settings-menu", StringComparison.OrdinalIgnoreCase)
+                        ? model.CommandLineMenu()[1].Items
                     : string.Equals(dialogName, "scale-menu", StringComparison.OrdinalIgnoreCase) ? model.ScaleMenu()
                     : Array.Empty<CadMenuItemViewModel>();
 
                 if (items.Count == 0)
                 {
-                    Console.Error.WriteLine("--dialog " + dialogName + ": no such menu, or nothing to show: snap-menu needs a point asked (--run \"LINE\"), drawings-menu a drawing, scale-menu a scale shown.");
+                    Console.Error.WriteLine(
+                        "--dialog "
+                            + dialogName
+                            + ": no such menu, or nothing to show: snap-menu needs a point asked (--run \"LINE\"), drawings-menu a drawing, scale-menu a scale shown."
+                    );
                     return 2;
                 }
 
@@ -543,11 +617,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     var database = new DxfDatabase("AC1027");
                     database.TextStyleTable["Standard"].FileName = CadFonts.BuiltInName + ".shx";
-                    database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "HZ", FileName = CadFonts.BuiltInName + ".shx", BigFontFileName = "hztxt.shx" });
-                    database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "Notes-CN", FileName = CadFonts.BuiltInName + ".shx", BigFontFileName = "hztxt.shx" });
+                    database.TextStyleTable.Add(
+                        new DxfTextStyleTableRecord
+                        {
+                            Name = "HZ",
+                            FileName = CadFonts.BuiltInName + ".shx",
+                            BigFontFileName = "hztxt.shx",
+                        }
+                    );
+                    database.TextStyleTable.Add(
+                        new DxfTextStyleTableRecord
+                        {
+                            Name = "Notes-CN",
+                            FileName = CadFonts.BuiltInName + ".shx",
+                            BigFontFileName = "hztxt.shx",
+                        }
+                    );
                     database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "Dims", FileName = "romand.shx" });
-                    database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "TITLE", FileName = "romand.shx" });
-                    database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "TSSD_Note", FileName = "tssdeng.shx" });
+                    database.TextStyleTable.Add(
+                        new DxfTextStyleTableRecord { Name = "TITLE", FileName = "romand.shx" }
+                    );
+                    database.TextStyleTable.Add(
+                        new DxfTextStyleTableRecord { Name = "TSSD_Note", FileName = "tssdeng.shx" }
+                    );
                     document = CadDocument.From(database, "plan-level2.dxf");
                     document.Fonts = new GlobalSettings().ToFonts();
                     missing = document.FindMissingFonts();
@@ -569,7 +661,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 run = null;
-                var dialog = new PointStyleWindow(model.CreatePointStyle() ?? new PointStyleViewModel(CadDocument.From(new DxfDatabase("AC1027"), "plan-level2.dxf")));
+                var dialog = new PointStyleWindow(
+                    model.CreatePointStyle()
+                        ?? new PointStyleViewModel(CadDocument.From(new DxfDatabase("AC1027"), "plan-level2.dxf"))
+                );
                 root = dialog.Body;
                 window = dialog;
                 width = (int)dialog.Width;
@@ -579,13 +674,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 // Paste Special for what the lines of --run copied, or for twelve objects of plan-level2.dxf, as the design has
                 // it, where they copied none; Drawing entities as a block chosen, as the design shows.
-                foreach (string line in (run ?? string.Empty).Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
+                foreach (
+                    string line in (run ?? string.Empty).Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+                )
                 {
                     model.Execute(line);
                 }
 
                 run = null;
-                CadClipboardData data = model.Clipboard.GetData() ?? new CadClipboardData("  0\nEOF\n", null, null, "plan-level2.dxf", "Model", 12);
+                CadClipboardData data = model.Clipboard.GetData()
+                    ?? new CadClipboardData("  0\nEOF\n", null, null, "plan-level2.dxf", "Model", 12);
                 var dialog = new PasteSpecialWindow(new PasteSpecialViewModel(data));
                 dialog.Model.Selected = dialog.Model.Formats[1];
                 root = dialog.Body;
@@ -626,7 +724,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 if (colon > 0)
                 {
-                    menu.ShownItem = menu.Items.FirstOrDefault(m => string.Equals(m.Key, dialogName.Substring(colon + 1), StringComparison.OrdinalIgnoreCase));
+                    menu.ShownItem = menu.Items.FirstOrDefault(m =>
+                        string.Equals(m.Key, dialogName.Substring(colon + 1), StringComparison.OrdinalIgnoreCase)
+                    );
                 }
 
                 root = new AppMenuView { DataContext = menu };
@@ -672,15 +772,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 if (string.Equals(dialogName, "plugin-untrusted", StringComparison.OrdinalIgnoreCase))
                 {
-                    var question = new CadQuestionWindow("Load a plugin from a folder that is not trusted?",
+                    var question = new CadQuestionWindow(
+                        "Load a plugin from a folder that is not trusted?",
                         "Loading a plugin runs its code with your rights. Load it only if you know where it comes from; to stop being asked, add its folder to the trusted folders in the Plugin manager.",
-                        pluginPath ?? @"D:\Dev\CircleTools\bin\Debug\CircleTools.dll", "Load", "Don't load");
+                        pluginPath ?? @"D:\Dev\CircleTools\bin\Debug\CircleTools.dll",
+                        "Load",
+                        "Don't load"
+                    );
                     root = question.Body;
                     window = question;
                     width = (int)question.Width;
                     height = MeasuredHeight(root, width);
                 }
-                else if (string.Equals(dialogName, "plugin-settings", StringComparison.OrdinalIgnoreCase) && manager?.CreateSettings() is PluginSettingsViewModel settings)
+                else if (
+                    string.Equals(dialogName, "plugin-settings", StringComparison.OrdinalIgnoreCase)
+                    && manager?.CreateSettings() is PluginSettingsViewModel settings
+                )
                 {
                     var dialog = new PluginSettingsWindow(settings);
                     root = dialog.Body;
@@ -725,7 +832,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             window.Content = null;
-            object context = layers ? (object)((LayerManagerWindow)window).Model : dialogName != null ? window.DataContext : model;
+            object context =
+                layers ? (object)((LayerManagerWindow)window).Model
+                : dialogName != null ? window.DataContext
+                : model;
             root.DataContext = context;
 
             // A dialog sized to its content is measured again out of its window, its rows bound now.
@@ -738,12 +848,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (tab != null)
             {
-                model.SelectedTab = string.Equals(tab, "Plugins", StringComparison.OrdinalIgnoreCase) ? model.PluginsTab
+                model.SelectedTab =
+                    string.Equals(tab, "Plugins", StringComparison.OrdinalIgnoreCase) ? model.PluginsTab
                     : string.Equals(tab, "Settings", StringComparison.OrdinalIgnoreCase) ? model.SettingsTab
                     : string.Equals(tab, "Insert", StringComparison.OrdinalIgnoreCase) ? model.InsertTab
                     : string.Equals(tab, "Annotate", StringComparison.OrdinalIgnoreCase) ? model.AnnotateTab
                     : string.Equals(tab, "View", StringComparison.OrdinalIgnoreCase) ? model.ViewTab
-                    : model.Extensions.FirstOrDefault(e => string.Equals(e.TabHeader, tab, StringComparison.OrdinalIgnoreCase));
+                    : model.Extensions.FirstOrDefault(e =>
+                        string.Equals(e.TabHeader, tab, StringComparison.OrdinalIgnoreCase)
+                    );
                 Layout(root, width, height);
             }
 
@@ -822,13 +935,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// gradient), hatch-user (on lines of the user's, doubled), hatch-solid (on a solid fill) and hatch-file (a .pat file of
         /// the user's chosen, a pattern of it shown). False for any other name.
         /// </summary>
-        private static bool LinetypeOrHatchDialog(MainViewModel model, string dialogName, ref string run, out Window window, out FrameworkElement root)
+        private static bool LinetypeOrHatchDialog(
+            MainViewModel model,
+            string dialogName,
+            ref string run,
+            out Window window,
+            out FrameworkElement root
+        )
         {
             window = null;
             root = null;
             string name = (dialogName ?? string.Empty).ToLowerInvariant();
 
-            if (name != "linetype" && name != "linetype-load" && name != "select-linetype" && !name.StartsWith("hatch", StringComparison.Ordinal))
+            if (
+                name != "linetype"
+                && name != "linetype-load"
+                && name != "select-linetype"
+                && !name.StartsWith("hatch", StringComparison.Ordinal)
+            )
             {
                 return false;
             }
@@ -844,7 +968,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 case "linetype":
                     LinetypeManagerViewModel manager = model.CreateLinetypeManager();
-                    manager.Add(CadLinetypeFile.BuiltIn.Where(l => l.Name == "DASHDOT" || l.Name == "GAS_LINE"), CadLinetypeFile.BuiltInName);
+                    manager.Add(
+                        CadLinetypeFile.BuiltIn.Where(l => l.Name == "DASHDOT" || l.Name == "GAS_LINE"),
+                        CadLinetypeFile.BuiltInName
+                    );
                     manager.SelectedRow = manager.Rows.FirstOrDefault(r => r.Name == "DASHDOT");
                     manager.ShowDetails = true;
                     var managerWindow = new LinetypeManagerWindow(manager);
@@ -871,7 +998,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 default:
                     CadHatchSettings settings = model.Document.HatchSettings.Clone();
-                    settings.Type = name == "hatch-gradient" ? CadHatchType.Gradient : name == "hatch-user" ? CadHatchType.UserDefined : name == "hatch-solid" ? CadHatchType.Solid : settings.Type;
+                    settings.Type =
+                        name == "hatch-gradient" ? CadHatchType.Gradient
+                        : name == "hatch-user" ? CadHatchType.UserDefined
+                        : name == "hatch-solid" ? CadHatchType.Solid
+                        : settings.Type;
                     settings.Double = name == "hatch-user";
                     settings.Spacing = 2.0;
                     settings.Angle = name == "hatch-user" ? 30.0 : settings.Angle;
@@ -883,9 +1014,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         string folder = Path.Combine(Path.GetTempPath(), "GeometryHelper", "ScreenshotPatterns");
                         Directory.CreateDirectory(folder);
                         string pat = Path.Combine(folder, "steel-works.pat");
-                        File.WriteAllText(pat, "*GRATING-30,Grating at 30 degrees\n30, 0,0, 0,5\n120, 0,0, 0,5\n*CHEQUER,Chequer plate\n45, 0,0, 0,6, 3,-3\n135, 0,0, 0,6, 3,-3\n"
-                            + "*MESH-50,Mesh 50\n0, 0,0, 0,50\n90, 0,0, 0,50\n*BOLTS,Bolt pattern\n0, 0,0, 10,10, 0,-10\n*FLOOR-PL,Floor plate\n60, 0,0, 0,8, 4,-4\n"
-                            + "*ANSI31,Not the built-in one\n45, 0,0, 0,1\n*WELD,Weld\n45, 0,0, 0,2, 1,-1\n");
+                        File.WriteAllText(
+                            pat,
+                            "*GRATING-30,Grating at 30 degrees\n30, 0,0, 0,5\n120, 0,0, 0,5\n*CHEQUER,Chequer plate\n45, 0,0, 0,6, 3,-3\n135, 0,0, 0,6, 3,-3\n"
+                                + "*MESH-50,Mesh 50\n0, 0,0, 0,50\n90, 0,0, 0,50\n*BOLTS,Bolt pattern\n0, 0,0, 10,10, 0,-10\n*FLOOR-PL,Floor plate\n60, 0,0, 0,8, 4,-4\n"
+                                + "*ANSI31,Not the built-in one\n45, 0,0, 0,1\n*WELD,Weld\n45, 0,0, 0,2, 1,-1\n"
+                        );
                         hatch.PatternFile = pat;
                         hatch.Pattern = hatch.Patterns.First(p => p.Name == "GRATING-30");
                     }
@@ -930,7 +1064,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Whether a --dialog names Global settings: options, or settings: and one of its categories, given back.</summary>
         private static bool GlobalCategory(string dialogName, out string category)
         {
-            string[] categories = { "Appearance", "Canvas and cursor", "Drawing defaults", "Units and rounding", "Layers, colours and lines", "Text and fonts", "Fonts", "Data sources", "Shortcuts", "Save and export" };
+            string[] categories =
+            {
+                "Appearance",
+                "Canvas and cursor",
+                "Drawing defaults",
+                "Units and rounding",
+                "Layers, colours and lines",
+                "Text and fonts",
+                "Fonts",
+                "Data sources",
+                "Shortcuts",
+                "Save and export",
+            };
             category = null;
 
             if (string.Equals(dialogName, "options", StringComparison.OrdinalIgnoreCase))
@@ -943,7 +1089,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
-            category = categories.FirstOrDefault(c => string.Equals(c, dialogName.Substring("settings:".Length), StringComparison.OrdinalIgnoreCase));
+            category = categories.FirstOrDefault(c =>
+                string.Equals(c, dialogName.Substring("settings:".Length), StringComparison.OrdinalIgnoreCase)
+            );
             return category != null;
         }
 
@@ -955,14 +1103,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <c>bsaveas[:Name]</c> (the same window titled Save Block As) and <c>bclose[:Name]</c> (BCLOSE's question about the
         /// block open, else the name given).
         /// </summary>
-        private static bool BlockDialog(MainViewModel model, string dialogName, ref string run, out Window window, out FrameworkElement root)
+        private static bool BlockDialog(
+            MainViewModel model,
+            string dialogName,
+            ref string run,
+            out Window window,
+            out FrameworkElement root
+        )
         {
             window = null;
             root = null;
             string[] parts = (dialogName ?? string.Empty).Split(':');
             string kind = parts[0].ToLowerInvariant();
 
-            if (kind != "block" && kind != "insert" && kind != "wblock" && kind != "attdef" && kind != "eattedit" && kind != "bedit" && kind != "bsaveas" && kind != "bclose")
+            if (
+                kind != "block"
+                && kind != "insert"
+                && kind != "wblock"
+                && kind != "attdef"
+                && kind != "eattedit"
+                && kind != "bedit"
+                && kind != "bsaveas"
+                && kind != "bclose"
+            )
             {
                 return false;
             }
@@ -979,16 +1142,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             switch (kind)
             {
                 case "block":
-                    var block = new BlockDefinitionWindow(new BlockDefinitionViewModel(new CadBlockDefinitionRequest(document)
-                    {
-                        Objects = selected,
-                        BasePoint = new GeometryHelper.Geometry.GeoPoint3(1200, 800, 0),
-                        Description = "Grid bubble, 10 mm circle, letter as attribute GRID.",
-                    }) { Name = "GRID_BUBBLE" });
+                    var block = new BlockDefinitionWindow(
+                        new BlockDefinitionViewModel(
+                            new CadBlockDefinitionRequest(document)
+                            {
+                                Objects = selected,
+                                BasePoint = new GeometryHelper.Geometry.GeoPoint3(1200, 800, 0),
+                                Description = "Grid bubble, 10 mm circle, letter as attribute GRID.",
+                            }
+                        )
+                        {
+                            Name = "GRID_BUBBLE",
+                        }
+                    );
                     (window, root) = (block, block.Body);
                     return true;
                 case "insert":
-                    var palette = new BlocksPaletteWindow(new BlocksPaletteViewModel(new CadInsertRequest(document) { Repeat = true }, model.RecentBlocks));
+                    var palette = new BlocksPaletteWindow(
+                        new BlocksPaletteViewModel(new CadInsertRequest(document) { Repeat = true }, model.RecentBlocks)
+                    );
 
                     if (palette.Model.Tiles.Count > 0)
                     {
@@ -998,39 +1170,71 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     (window, root) = (palette, palette.Body);
                     return true;
                 case "wblock":
-                    var write = new WriteBlockWindow(new WriteBlockViewModel(new CadWriteBlockRequest(document) { FileName = @"D:\Plans\Workshop A\blocks\new block.dxf" }));
+                    var write = new WriteBlockWindow(
+                        new WriteBlockViewModel(
+                            new CadWriteBlockRequest(document)
+                            {
+                                FileName = @"D:\Plans\Workshop A\blocks\new block.dxf",
+                            }
+                        )
+                    );
                     (window, root) = (write, write.Body);
                     return true;
                 case "attdef":
-                    var attdef = new AttributeDefinitionWindow(new AttributeDefinitionViewModel(new CadAttributeDefinitionRequest(document, null, 3.5)
-                    {
-                        Tag = "GRID",
-                        Prompt = "Grid letter",
-                        Default = "A",
-                        Justification = DxfAttachmentPoint.MiddleCenter,
-                    }));
+                    var attdef = new AttributeDefinitionWindow(
+                        new AttributeDefinitionViewModel(
+                            new CadAttributeDefinitionRequest(document, null, 3.5)
+                            {
+                                Tag = "GRID",
+                                Prompt = "Grid letter",
+                                Default = "A",
+                                Justification = DxfAttachmentPoint.MiddleCenter,
+                            }
+                        )
+                    );
                     (window, root) = (attdef, attdef.Body);
                     return true;
                 case "bedit":
                 case "bsaveas":
                     // Edit Block Definition on the block named after the colon, else the first of the drawing's; Save Block As empty.
-                    string offered = parts.Length > 1 ? parts[1] : CadBlocks.Named(document.Database).Select(b => b.Name).FirstOrDefault() ?? CadBlockEditor.CurrentDrawing;
-                    var edit = new BlockEditWindow(new BlockEditViewModel(kind == "bedit"
-                        ? new CadBlockEditRequest(document, "Edit Block Definition", offered)
-                        : new CadBlockEditRequest(document, "Save Block As", parts.Length > 1 ? parts[1] : string.Empty)));
+                    string offered =
+                        parts.Length > 1
+                            ? parts[1]
+                            : CadBlocks.Named(document.Database).Select(b => b.Name).FirstOrDefault()
+                                ?? CadBlockEditor.CurrentDrawing;
+                    var edit = new BlockEditWindow(
+                        new BlockEditViewModel(
+                            kind == "bedit"
+                                ? new CadBlockEditRequest(document, "Edit Block Definition", offered)
+                                : new CadBlockEditRequest(
+                                    document,
+                                    "Save Block As",
+                                    parts.Length > 1 ? parts[1] : string.Empty
+                                )
+                        )
+                    );
                     (window, root) = (edit, edit.Body);
                     return true;
                 case "bclose":
-                    var close = new BlockCloseWindow(document.BlockEditor?.Name ?? (parts.Length > 1 ? parts[1] : "DOOR_900"));
+                    var close = new BlockCloseWindow(
+                        document.BlockEditor?.Name ?? (parts.Length > 1 ? parts[1] : "DOOR_900")
+                    );
                     (window, root) = (close, close.Body);
                     return true;
                 default:
-                    string insert = document.ModelSpace.Block.OfType<DxfBlockReference>().Where(r => r.AttributeCollection.Count > 0).Select(r => r.Handle).FirstOrDefault();
-                    CadAttributeEditRequest request = insert == null ? null : CadAttributeEditRequest.Of(document, insert);
+                    string insert = document
+                        .ModelSpace.Block.OfType<DxfBlockReference>()
+                        .Where(r => r.AttributeCollection.Count > 0)
+                        .Select(r => r.Handle)
+                        .FirstOrDefault();
+                    CadAttributeEditRequest request =
+                        insert == null ? null : CadAttributeEditRequest.Of(document, insert);
 
                     if (request == null)
                     {
-                        Console.Error.WriteLine("--dialog eattedit: the drawing has no INSERT with attributes (--run \"-INSERT;...\").");
+                        Console.Error.WriteLine(
+                            "--dialog eattedit: the drawing has no INSERT with attributes (--run \"-INSERT;...\")."
+                        );
                         return false;
                     }
 
@@ -1052,16 +1256,36 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <c>xref</c> and <c>xref-tree</c> (the External References palette in its list or tree view, the last nested
         /// reference chosen).
         /// </summary>
-        private static bool ManagerDialog(MainViewModel model, string dialogName, ref string run, out Window window, out FrameworkElement root)
+        private static bool ManagerDialog(
+            MainViewModel model,
+            string dialogName,
+            ref string run,
+            out Window window,
+            out FrameworkElement root
+        )
         {
             window = null;
             root = null;
             string[] parts = (dialogName ?? string.Empty).Split(':');
             string kind = parts[0].ToLowerInvariant();
 
-            if (kind != "battman" && kind != "battman-edit" && kind != "battman-settings" && kind != "attdia" && kind != "purge" && kind != "purge-nonpurgeable"
-                && kind != "classicgroup" && kind != "group-order" && kind != "layerstate" && kind != "view" && kind != "newview" && kind != "units" && kind != "units-direction"
-                && kind != "xref" && kind != "xref-tree")
+            if (
+                kind != "battman"
+                && kind != "battman-edit"
+                && kind != "battman-settings"
+                && kind != "attdia"
+                && kind != "purge"
+                && kind != "purge-nonpurgeable"
+                && kind != "classicgroup"
+                && kind != "group-order"
+                && kind != "layerstate"
+                && kind != "view"
+                && kind != "newview"
+                && kind != "units"
+                && kind != "units-direction"
+                && kind != "xref"
+                && kind != "xref-tree"
+            )
             {
                 return false;
             }
@@ -1080,7 +1304,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "battman":
                 case "battman-edit":
                 case "battman-settings":
-                    model.ShowBlockAttributeManager = dialog => { shown = dialog; return true; };
+                    model.ShowBlockAttributeManager = dialog =>
+                    {
+                        shown = dialog;
+                        return true;
+                    };
                     model.Execute("BATTMAN");
                     model.ShowBlockAttributeManager = null;
 
@@ -1097,19 +1325,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     }
                     else if (kind == "battman-edit")
                     {
-                        var edit = new EditAttributeWindow(new EditAttributeViewModel(document, manager.Block, manager.Request.Rows[0]));
+                        var edit = new EditAttributeWindow(
+                            new EditAttributeViewModel(document, manager.Block, manager.Request.Rows[0])
+                        );
                         edit.ShowTab(parts.Length > 1 ? parts[1] : "Attribute");
                         (window, root) = (edit, edit.Body);
                     }
                     else
                     {
-                        var settings = new AttributeManagerSettingsWindow(new AttributeManagerSettingsViewModel(manager.Request.Settings));
+                        var settings = new AttributeManagerSettingsWindow(
+                            new AttributeManagerSettingsViewModel(manager.Request.Settings)
+                        );
                         (window, root) = (settings, settings.Body);
                     }
 
                     return true;
                 case "attdia":
-                    string block = CadBlocks.Named(document.Database).Where(b => b.OfType<DxfAttributeDefinition>().Any(d => !d.Constant)).Select(b => b.Name).FirstOrDefault();
+                    string block = CadBlocks
+                        .Named(document.Database)
+                        .Where(b => b.OfType<DxfAttributeDefinition>().Any(d => !d.Constant))
+                        .Select(b => b.Name)
+                        .FirstOrDefault();
 
                     if (block == null)
                     {
@@ -1117,9 +1353,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         return false;
                     }
 
-                    model.ShowEditAttributes = dialog => { shown = dialog; return true; };
+                    model.ShowEditAttributes = dialog =>
+                    {
+                        shown = dialog;
+                        return true;
+                    };
 
-                    foreach (string line in new[] { "ATTDIA", "1", "-INSERT", block, "0,0", string.Empty, string.Empty, string.Empty })
+                    foreach (
+                        string line in new[]
+                        {
+                            "ATTDIA",
+                            "1",
+                            "-INSERT",
+                            block,
+                            "0,0",
+                            string.Empty,
+                            string.Empty,
+                            string.Empty,
+                        }
+                    )
                     {
                         model.Execute(line);
                     }
@@ -1130,7 +1382,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return true;
                 case "purge":
                 case "purge-nonpurgeable":
-                    model.ShowPurge = dialog => { shown = dialog; return true; };
+                    model.ShowPurge = dialog =>
+                    {
+                        shown = dialog;
+                        return true;
+                    };
                     model.Execute("PURGE");
                     model.ShowPurge = null;
                     var purge = (PurgeViewModel)shown;
@@ -1143,7 +1399,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         if (layers != null)
                         {
                             layers.IsExpanded = true;
-                            purge.Selected = layers.Children.FirstOrDefault(n => string.Equals(n.Name, document.Database.Clayer, StringComparison.OrdinalIgnoreCase)) ?? layers.Children.FirstOrDefault();
+                            purge.Selected = layers.Children.FirstOrDefault(n =>
+                                string.Equals(n.Name, document.Database.Clayer, StringComparison.OrdinalIgnoreCase)
+                            ) ?? layers.Children.FirstOrDefault();
                         }
                     }
 
@@ -1162,7 +1420,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     (window, root) = (referencesWindow, referencesWindow.Root);
                     return true;
                 case "layerstate":
-                    model.ShowLayerStates = dialog => { shown = dialog; return true; };
+                    model.ShowLayerStates = dialog =>
+                    {
+                        shown = dialog;
+                        return true;
+                    };
                     model.Execute("LAYERSTATE");
                     model.ShowLayerStates = null;
                     var states = (LayerStatesViewModel)shown;
@@ -1172,7 +1434,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return true;
                 case "view":
                 case "newview":
-                    model.ShowViewManager = dialog => { shown = dialog; return true; };
+                    model.ShowViewManager = dialog =>
+                    {
+                        shown = dialog;
+                        return true;
+                    };
                     model.Execute("VIEW");
                     model.ShowViewManager = null;
                     var views = (ViewManagerViewModel)shown;
@@ -1185,14 +1451,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     }
                     else
                     {
-                        var newView = new NewViewWindow(new NewViewViewModel(views.Request) { ViewName = "Stair core" });
+                        var newView = new NewViewWindow(
+                            new NewViewViewModel(views.Request) { ViewName = "Stair core" }
+                        );
                         (window, root) = (newView, newView.Body);
                     }
 
                     return true;
                 case "units":
                 case "units-direction":
-                    model.ShowDrawingUnits = dialog => { shown = dialog; return true; };
+                    model.ShowDrawingUnits = dialog =>
+                    {
+                        shown = dialog;
+                        return true;
+                    };
                     model.Execute("UNITS");
                     model.ShowDrawingUnits = null;
                     var units = (DrawingUnitsViewModel)shown;
@@ -1210,7 +1482,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     return true;
                 default:
-                    model.ShowGroupManager = dialog => { shown = dialog; return true; };
+                    model.ShowGroupManager = dialog =>
+                    {
+                        shown = dialog;
+                        return true;
+                    };
                     model.Execute("CLASSICGROUP");
                     model.ShowGroupManager = null;
                     var groups = (GroupManagerViewModel)shown;
@@ -1239,15 +1515,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// (the Multileader Style Manager) and <c>mleaderstyle-modify[:Tab]</c> of the current style; <c>matchprop</c>, the
         /// Property Settings dialog of the first object selected, else the first of the space shown.
         /// </summary>
-        private static bool StyleDialog(MainViewModel model, string dialogName, ref string run, out Window window, out FrameworkElement root)
+        private static bool StyleDialog(
+            MainViewModel model,
+            string dialogName,
+            ref string run,
+            out Window window,
+            out FrameworkElement root
+        )
         {
             window = null;
             root = null;
             string[] parts = (dialogName ?? string.Empty).Split(':');
             string kind = parts[0].ToLowerInvariant();
-            kind = kind == "textstyle" ? "style" : kind == "dimstyle-edit" ? "dimstyle-modify" : kind;
+            kind =
+                kind == "textstyle" ? "style"
+                : kind == "dimstyle-edit" ? "dimstyle-modify"
+                : kind;
 
-            if (kind != "style" && kind != "style-new" && !kind.StartsWith("dimstyle", StringComparison.Ordinal) && kind != "mleaderstyle" && kind != "mleaderstyle-modify" && kind != "matchprop")
+            if (
+                kind != "style"
+                && kind != "style-new"
+                && !kind.StartsWith("dimstyle", StringComparison.Ordinal)
+                && kind != "mleaderstyle"
+                && kind != "mleaderstyle-modify"
+                && kind != "matchprop"
+            )
             {
                 return false;
             }
@@ -1276,7 +1568,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     if (parts.Length > 1)
                     {
-                        modify.Tab = modify.Tabs.FirstOrDefault(t => string.Equals(t, parts[1], StringComparison.OrdinalIgnoreCase)) ?? modify.Tab;
+                        modify.Tab = modify.Tabs.FirstOrDefault(t =>
+                            string.Equals(t, parts[1], StringComparison.OrdinalIgnoreCase)
+                        ) ?? modify.Tab;
                     }
 
                     var change = new MLeaderStyleEditWindow(modify);
@@ -1284,8 +1578,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return true;
                 case "matchprop":
                     // The source is the first object selected (--select), else the first of the space shown.
-                    string source = model.Document.Selection.Handles.FirstOrDefault() ?? model.Document.CurrentSpace.Block.Cast<DxfEntity>().FirstOrDefault()?.Handle;
-                    var settings = new MatchPropSettingsWindow(new MatchPropSettingsViewModel(CadMatchProperties.All, model.Document, source));
+                    string source = model.Document.Selection.Handles.FirstOrDefault()
+                        ?? model.Document.CurrentSpace.Block.Cast<DxfEntity>().FirstOrDefault()?.Handle;
+                    var settings = new MatchPropSettingsWindow(
+                        new MatchPropSettingsViewModel(CadMatchProperties.All, model.Document, source)
+                    );
                     (window, root) = (settings, settings.Body);
                     return true;
             }
@@ -1308,16 +1605,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return true;
                 case "dimstyle-new":
                     string start = manager.SelectedStyle?.Name;
-                    var ask = new StyleNameWindow(new StyleNameViewModel("Create New Dimension Style", "Copy of " + start, null, manager.Styles.Select(s => s.Name).ToList(), start));
+                    var ask = new StyleNameWindow(
+                        new StyleNameViewModel(
+                            "Create New Dimension Style",
+                            "Copy of " + start,
+                            null,
+                            manager.Styles.Select(s => s.Name).ToList(),
+                            start
+                        )
+                    );
                     (window, root) = (ask, ask.Body);
                     return true;
                 case "dimstyle-modify":
                 case "dimstyle-override":
-                    DimStyleEditViewModel editor = kind == "dimstyle-modify" ? manager.CreateModify() : manager.CreateOverride();
+                    DimStyleEditViewModel editor =
+                        kind == "dimstyle-modify" ? manager.CreateModify() : manager.CreateOverride();
 
                     if (parts.Length > 1)
                     {
-                        editor.Tab = editor.Tabs.FirstOrDefault(t => string.Equals(t, parts[1], StringComparison.OrdinalIgnoreCase)) ?? editor.Tab;
+                        editor.Tab = editor.Tabs.FirstOrDefault(t =>
+                            string.Equals(t, parts[1], StringComparison.OrdinalIgnoreCase)
+                        ) ?? editor.Tab;
                     }
 
                     var edit = new DimStyleEditWindow(editor);

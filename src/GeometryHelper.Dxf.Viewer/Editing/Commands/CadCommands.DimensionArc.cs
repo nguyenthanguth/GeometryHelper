@@ -38,7 +38,10 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            if (!(c.Document.FindEntity(c.Input.Handles[0]) is DxfArc arc) || !(arc.Radius > c.Session.Tolerance.EqualPoint))
+            if (
+                !(c.Document.FindEntity(c.Input.Handles[0]) is DxfArc arc)
+                || !(arc.Radius > c.Session.Tolerance.EqualPoint)
+            )
             {
                 c.Write("Object selected is not an arc or polyline arc segment.");
                 yield break;
@@ -144,7 +147,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// words given or the measurement, turned where <paramref name="textAngle"/> says. A point outside the sector of the
         /// sweep dimensions the rest of the circle, as AutoCAD 2021 does.
         /// </summary>
-        private static void MakeArcLength(CadCommandContext c, DxfDimStyleTableRecord style, GeoPoint2 center, double radius, double start, double sweep, GeoPoint2 location, string text, double? textAngle, bool partial, bool leader)
+        private static void MakeArcLength(
+            CadCommandContext c,
+            DxfDimStyleTableRecord style,
+            GeoPoint2 center,
+            double radius,
+            double start,
+            double sweep,
+            GeoPoint2 location,
+            string text,
+            double? textAngle,
+            bool partial,
+            bool leader
+        )
         {
             double toward = Turned(Math.Atan2(location.Y - center.Y, location.X - center.X) - start);
 
@@ -173,7 +188,21 @@ namespace GeometryHelper.Dxf.Viewer
             string words = Words(style, made, radius * sweep, text, string.Empty);
             c.Write("Dimension text = " + words);
             double textHeight = TextHeight(c, style);
-            List<DxfEntity> picture = ArcLength(style, Dimscale(c), textHeight, center, radius, start, sweep, distance, words, style.Dimarcsym, textAngle, leader, out bool led);
+            List<DxfEntity> picture = ArcLength(
+                style,
+                Dimscale(c),
+                textHeight,
+                center,
+                radius,
+                start,
+                sweep,
+                distance,
+                words,
+                style.Dimarcsym,
+                textAngle,
+                leader,
+                out bool led
+            );
 
             if (picture == null)
             {
@@ -207,7 +236,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// of the arc (the bisector), and a dimension nearer the centre than the arc has an arc as big as the arc measured, moved
         /// in along the bisector; from 90 degrees up they run from the centre, the dimension's arc about the same centre.
         /// </summary>
-        private static bool ArcLengthPlace(GeoPoint2 center, double radius, double start, double sweep, double distance, out GeoPoint2 arcPoint)
+        private static bool ArcLengthPlace(
+            GeoPoint2 center,
+            double radius,
+            double start,
+            double sweep,
+            double distance,
+            out GeoPoint2 arcPoint
+        )
         {
             bool radial = sweep >= RadialFrom;
             GeoVector2 bisector = Heading(start + sweep / 2.0);
@@ -249,10 +285,34 @@ namespace GeometryHelper.Dxf.Viewer
         /// their middle at 0.8 t up and 1.1 t up over it. An arc of 30 from 20 to 60 degrees dimensioned 40 out has its words
         /// "21" 41.88 out at 40 degrees, the symbol before them, its extension lines from 0.625 off the arc along 40 degrees.
         /// </remarks>
-        internal static List<DxfEntity> ArcLength(DxfDimStyleTableRecord style, double dimscale, double textHeight, GeoPoint2 center, double radius, double start, double sweep, double distance, string words, int symbol, double? textAngle, bool leader, out bool led)
+        internal static List<DxfEntity> ArcLength(
+            DxfDimStyleTableRecord style,
+            double dimscale,
+            double textHeight,
+            GeoPoint2 center,
+            double radius,
+            double start,
+            double sweep,
+            double distance,
+            string words,
+            int symbol,
+            double? textAngle,
+            bool leader,
+            out bool led
+        )
         {
             led = false;
-            Sizes(style, dimscale, textHeight, out double scale, out _, out double height, out _, out double offset, out double beyond);
+            Sizes(
+                style,
+                dimscale,
+                textHeight,
+                out double scale,
+                out _,
+                out double height,
+                out _,
+                out double offset,
+                out double beyond
+            );
             bool radial = ArcLengthPlace(center, radius, start, sweep, distance, out _);
             GeoVector2 bisector = Heading(start + sweep / 2.0);
             GeoPoint2 middle = radial || distance >= radius ? center : center + bisector * (distance - radius);
@@ -262,7 +322,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             for (int i = 0; i < 2; i++)
             {
-                tips[i] = radial ? center + Heading(i == 0 ? start : start + sweep) * size : AlongTo(ends[i], bisector, middle, size);
+                tips[i] = radial
+                    ? center + Heading(i == 0 ? start : start + sweep) * size
+                    : AlongTo(ends[i], bisector, middle, size);
             }
 
             double from = Math.Atan2(tips[0].Y - middle.Y, tips[0].X - middle.X);
@@ -273,7 +335,21 @@ namespace GeometryHelper.Dxf.Viewer
             double[] near = { radial ? radius : size, radial ? radius : size };
             // Below 90 degrees the extension lines run along the bisector, drawn below; the angle's own are left out.
             double[] far = radial ? (double[])near.Clone() : new[] { double.PositiveInfinity, double.PositiveInfinity };
-            List<DxfEntity> picture = Angular(style, dimscale, textHeight, middle, size, from, turn, near, far, words, null, before, textAngle);
+            List<DxfEntity> picture = Angular(
+                style,
+                dimscale,
+                textHeight,
+                middle,
+                size,
+                from,
+                turn,
+                near,
+                far,
+                words,
+                null,
+                before,
+                textAngle
+            );
 
             if (picture == null)
             {
@@ -292,7 +368,13 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (!suppressed[i] && length + beyond > offset)
                 {
-                    picture.Add(Lined(new DxfLine(P3(ends[i] + way * offset), P3(tips[i] + way * beyond)), style.Dimclre, style.Dimlwe));
+                    picture.Add(
+                        Lined(
+                            new DxfLine(P3(ends[i] + way * offset), P3(tips[i] + way * beyond)),
+                            style.Dimclre,
+                            style.Dimlwe
+                        )
+                    );
                 }
             }
 
@@ -304,9 +386,20 @@ namespace GeometryHelper.Dxf.Viewer
                 var y = new GeoVector2(-x.Y, x.X);
                 double width = WordsWidth(style, words, height, out _);
                 GeoPoint2 at = P2(text.Location);
-                DxfArc mark = symbol == 0
-                    ? new DxfArc(P3(at - x * (width / 2.0 + tall) - y * (0.4 * tall)), 0.8 * tall, Turned(text.Rotation), Turned(text.Rotation + Math.PI))
-                    : new DxfArc(P3(at + y * (0.0125 * tall)), 1.0875 * tall, Turned(text.Rotation + Math.Atan2(0.7875, 0.75)), Turned(text.Rotation + Math.PI - Math.Atan2(0.7875, 0.75)));
+                DxfArc mark =
+                    symbol == 0
+                        ? new DxfArc(
+                            P3(at - x * (width / 2.0 + tall) - y * (0.4 * tall)),
+                            0.8 * tall,
+                            Turned(text.Rotation),
+                            Turned(text.Rotation + Math.PI)
+                        )
+                        : new DxfArc(
+                            P3(at + y * (0.0125 * tall)),
+                            1.0875 * tall,
+                            Turned(text.Rotation + Math.Atan2(0.7875, 0.75)),
+                            Turned(text.Rotation + Math.PI - Math.Atan2(0.7875, 0.75))
+                        );
                 Picture(mark);
 
                 if (style.Dimclrt != null && !style.Dimclrt.IsByBlock)
@@ -335,7 +428,11 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The picture of an arc length dimension of the drawing from its points; null where they give no arc.</summary>
-        private static List<DxfEntity> ArcLengthPicture(DxfArcDimension dimension, DxfDimStyleTableRecord style, double textHeight)
+        private static List<DxfEntity> ArcLengthPicture(
+            DxfArcDimension dimension,
+            DxfDimStyleTableRecord style,
+            double textHeight
+        )
         {
             GeoPoint2 center = P2(dimension.CenterPoint);
             GeoPoint2 first = P2(dimension.XLine1Point);
@@ -384,7 +481,21 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             double? turned = dimension.TextRotation != 0.0 ? dimension.TextRotation : (double?)null;
-            return ArcLength(style, style.Dimscale, textHeight, center, radius, start, sweep, distance, Formatted(dimension, radius * sweep, string.Empty), symbol, turned, dimension.HasLeader, out _);
+            return ArcLength(
+                style,
+                style.Dimscale,
+                textHeight,
+                center,
+                radius,
+                start,
+                sweep,
+                distance,
+                Formatted(dimension, radius * sweep, string.Empty),
+                symbol,
+                turned,
+                dimension.HasLeader,
+                out _
+            );
         }
     }
 }

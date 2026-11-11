@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -73,7 +73,8 @@ namespace GeometryHelper.Geometry
         /// The distance out to the nearest edge, measured exactly, negative when the point lies inside the polygon
         /// and nought when the tolerance given calls it on its outline.
         /// </returns>
-        public double SignedDistanceTo(GeoPoint2 point, Tolerance tolerance) => Distance2.SignedDistanceTo(this, point, tolerance);
+        public double SignedDistanceTo(GeoPoint2 point, Tolerance tolerance) =>
+            Distance2.SignedDistanceTo(this, point, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this polygon to an arc.
@@ -97,7 +98,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this polygon to a curved loop, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => Distance2.DistanceTo(loop, this, tolerance);
+        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Distance2.DistanceTo(loop, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this polygon to a curved chain.
@@ -109,7 +111,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this polygon to a curved chain, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) => Distance2.DistanceTo(chain, this, tolerance);
+        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Distance2.DistanceTo(chain, this, tolerance);
 
         /// <summary>
         /// Gets the distance from this polygon to an edge.

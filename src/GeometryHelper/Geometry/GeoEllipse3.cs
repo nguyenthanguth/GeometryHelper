@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -96,13 +96,22 @@ namespace GeometryHelper.Geometry
         /// Thrown when a radius is not a positive number, or the minor radius is larger than the major one. The two are not
         /// swapped: an ellipse longer across than along is given by an axis a quarter turned.
         /// </exception>
-        public GeoEllipse3(GeoPoint3 center, GeoVector3 normal, GeoVector3 majorAxis, double majorRadius, double minorRadius)
+        public GeoEllipse3(
+            GeoPoint3 center,
+            GeoVector3 normal,
+            GeoVector3 majorAxis,
+            double majorRadius,
+            double minorRadius
+        )
         {
             double normalLength = normal.Length;
 
             if (!(normalLength > 0.0) || double.IsInfinity(normalLength))
             {
-                throw new ArgumentException("An ellipse needs a normal: a finite vector of some length.", nameof(normal));
+                throw new ArgumentException(
+                    "An ellipse needs a normal: a finite vector of some length.",
+                    nameof(normal)
+                );
             }
 
             GeoVector3 unit = new GeoVector3(normal.X / normalLength, normal.Y / normalLength, normal.Z / normalLength);
@@ -110,7 +119,10 @@ namespace GeometryHelper.Geometry
 
             if (!(axisLength > 0.0) || double.IsInfinity(axisLength))
             {
-                throw new ArgumentException("The major axis needs a direction: a finite vector of some length.", nameof(majorAxis));
+                throw new ArgumentException(
+                    "The major axis needs a direction: a finite vector of some length.",
+                    nameof(majorAxis)
+                );
             }
 
             GeoVector3 inPlane = majorAxis.Subtract(unit.Multiply(majorAxis.DotProduct(unit)));
@@ -118,7 +130,10 @@ namespace GeometryHelper.Geometry
 
             if (!(left > 1E-12 * axisLength))
             {
-                throw new ArgumentException("The major axis runs along the normal, so it gives no direction in the plane.", nameof(majorAxis));
+                throw new ArgumentException(
+                    "The major axis runs along the normal, so it gives no direction in the plane.",
+                    nameof(majorAxis)
+                );
             }
 
             Guard.Positive(majorRadius, nameof(majorRadius), "A radius has to be a positive number.");
@@ -126,7 +141,11 @@ namespace GeometryHelper.Geometry
 
             if (minorRadius > majorRadius)
             {
-                throw new ArgumentOutOfRangeException(nameof(minorRadius), minorRadius, "The minor radius cannot be larger than the major one.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(minorRadius),
+                    minorRadius,
+                    "The minor radius cannot be larger than the major one."
+                );
             }
 
             Center = center;
@@ -139,7 +158,14 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Initializes an ellipse from values already checked, the normal and the axis already of unit length and square.
         /// </summary>
-        internal GeoEllipse3(GeoPoint3 center, GeoVector3 unitNormal, GeoVector3 unitAxis, double majorRadius, double minorRadius, bool trusted)
+        internal GeoEllipse3(
+            GeoPoint3 center,
+            GeoVector3 unitNormal,
+            GeoVector3 unitAxis,
+            double majorRadius,
+            double minorRadius,
+            bool trusted
+        )
         {
             Center = center;
             Normal = unitNormal;
@@ -232,7 +258,8 @@ namespace GeometryHelper.Geometry
         /// Gets the normalized parameter of the point of the rim nearest a point, within a tolerance: a point whose foot lies
         /// within the vector tolerance of the centre is read at the centre, which gives 0.25.
         /// </summary>
-        public double GetParameterAtPoint(GeoPoint3 point, Tolerance tolerance) => Ellipse3.GetParameterAtPoint(this, point, tolerance);
+        public double GetParameterAtPoint(GeoPoint3 point, Tolerance tolerance) =>
+            Ellipse3.GetParameterAtPoint(this, point, tolerance);
 
         /// <summary>
         /// Gets the point at a true length along the rim from the end of the major axis; the length wraps.
@@ -249,7 +276,8 @@ namespace GeometryHelper.Geometry
         /// a tolerance: a point whose foot lies within the vector tolerance of the centre is read at the centre, which gives a
         /// quarter of the perimeter.
         /// </summary>
-        public double GetDistanceAtPoint(GeoPoint3 point, Tolerance tolerance) => Ellipse3.GetDistanceAtPoint(this, point, tolerance);
+        public double GetDistanceAtPoint(GeoPoint3 point, Tolerance tolerance) =>
+            Ellipse3.GetDistanceAtPoint(this, point, tolerance);
 
         /// <summary>
         /// Gets the true length along the rim from the end of the major axis to a normalized parameter, which wraps as a
@@ -370,7 +398,8 @@ namespace GeometryHelper.Geometry
         /// <param name="chordTolerance">The largest gap allowed between an edge and the rim, in drawing units. Zero picks the automatic share of the minor radius.</param>
         /// <returns>A polygon inscribed in the ellipse.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 corners.</exception>
-        public GeoPolygon3 ToPolygonByChordTolerance(double chordTolerance) => Ellipse3.ToPolygonByChordTolerance(this, chordTolerance);
+        public GeoPolygon3 ToPolygonByChordTolerance(double chordTolerance) =>
+            Ellipse3.ToPolygonByChordTolerance(this, chordTolerance);
 
         /// <summary>
         /// Approximates the rim as a polygon whose corners are evenly spread along it, no two further apart along the rim
@@ -405,7 +434,8 @@ namespace GeometryHelper.Geometry
         /// <param name="chordTolerance">The largest gap allowed between a piece and the rim, in drawing units. Zero picks the automatic share of the minor radius.</param>
         /// <returns>A chain with its first point repeated at the end.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 corners.</exception>
-        public GeoPolyline3 ToPolylineByChordTolerance(double chordTolerance) => Ellipse3.ToPolylineByChordTolerance(this, chordTolerance);
+        public GeoPolyline3 ToPolylineByChordTolerance(double chordTolerance) =>
+            Ellipse3.ToPolylineByChordTolerance(this, chordTolerance);
 
         /// <summary>
         /// Approximates the rim as a chain whose points are no further apart along it than a spacing.
@@ -430,7 +460,8 @@ namespace GeometryHelper.Geometry
         /// <param name="kind">The kind of faces.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
         /// <exception cref="ArgumentException">Thrown for <see cref="Meshing.MeshKind.Grid"/>, which needs the size of its cells.</exception>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshKind kind) => Meshing.Mesh3.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Meshing.MeshPlacement3.World, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshKind kind) =>
+            Meshing.Mesh3.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Meshing.MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks the disc into faces as the options say, its grid level, with the second axis up the slope, using the
@@ -438,7 +469,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="options">How to break it up.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options) => Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options) =>
+            Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks the disc into faces as the options say, its grid level, with the second axis up the slope, within a
@@ -447,7 +479,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How to break it up.</param>
         /// <param name="tolerance">The tolerance the shape is read within: which of its rings touch, what has no area, and for a grid which cells are whole.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) => Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, tolerance);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) =>
+            Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Breaks the disc into faces as the options say, its grid standing as the placement says, using the default
@@ -456,7 +489,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How to break it up.</param>
         /// <param name="placement">Which way the grid or the strips run in the plane, and where a cell starts.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement) => Meshing.Mesh3.ToMesh(this, options, placement, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement) =>
+            Meshing.Mesh3.ToMesh(this, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Breaks the disc into faces as the options say, its grid standing as the placement says, within a tolerance:
@@ -476,7 +510,11 @@ namespace GeometryHelper.Geometry
         /// The rim is flattened by the options' chord tolerance first, as <see cref="GeoEllipse2.ToPolygonByChordTolerance(double)"/>
         /// flattens it, and the triangles fanned from the centre. The mesh's normal is the ellipse's.
         /// </remarks>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement, Tolerance tolerance) => Meshing.Mesh3.ToMesh(this, options, placement, tolerance);
+        public Meshing.GeoMesh3 ToMesh(
+            Meshing.MeshOptions options,
+            Meshing.MeshPlacement3 placement,
+            Tolerance tolerance
+        ) => Meshing.Mesh3.ToMesh(this, options, placement, tolerance);
 
         #endregion
 
@@ -551,16 +589,22 @@ namespace GeometryHelper.Geometry
         /// of a <c>Try</c> method holds when the method said false — is not: it has no radii, no normal and no axis, and
         /// answers questions without complaint all the same.
         /// </remarks>
-        public bool IsValid => Center.IsValid
-            && MinorRadius > 0.0 && Guard.IsFinite(MajorRadius) && MajorRadius >= MinorRadius
-            && Normal.IsValid && Guard.IsUnit(Normal)
-            && MajorAxis.IsValid && Guard.IsUnit(MajorAxis)
+        public bool IsValid =>
+            Center.IsValid
+            && MinorRadius > 0.0
+            && Guard.IsFinite(MajorRadius)
+            && MajorRadius >= MinorRadius
+            && Normal.IsValid
+            && Guard.IsUnit(Normal)
+            && MajorAxis.IsValid
+            && Guard.IsUnit(MajorAxis)
             && Math.Abs(Normal.DotProduct(MajorAxis)) <= 1E-9;
 
         /// <summary>
         /// Returns the string representation of the ellipse.
         /// </summary>
-        public override string ToString() => $"GeoEllipse3[Center:{Center}, Normal:{Normal}, MajorAxis:{MajorAxis}, MajorRadius:{MajorRadius:0.###}, MinorRadius:{MinorRadius:0.###}]";
+        public override string ToString() =>
+            $"GeoEllipse3[Center:{Center}, Normal:{Normal}, MajorAxis:{MajorAxis}, MajorRadius:{MajorRadius:0.###}, MinorRadius:{MinorRadius:0.###}]";
 
         #endregion
     }

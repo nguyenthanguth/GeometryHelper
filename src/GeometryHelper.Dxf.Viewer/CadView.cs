@@ -51,12 +51,26 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 if (Twist == 0.0)
                 {
-                    return new Affine2(PixelsPerUnit, 0.0, 0.0, -PixelsPerUnit, Width / 2.0 - CenterX * PixelsPerUnit, Height / 2.0 + CenterY * PixelsPerUnit);
+                    return new Affine2(
+                        PixelsPerUnit,
+                        0.0,
+                        0.0,
+                        -PixelsPerUnit,
+                        Width / 2.0 - CenterX * PixelsPerUnit,
+                        Height / 2.0 + CenterY * PixelsPerUnit
+                    );
                 }
 
                 double cos = Math.Cos(Twist) * PixelsPerUnit;
                 double sin = Math.Sin(Twist) * PixelsPerUnit;
-                return new Affine2(cos, -sin, -sin, -cos, Width / 2.0 - cos * CenterX + sin * CenterY, Height / 2.0 + sin * CenterX + cos * CenterY);
+                return new Affine2(
+                    cos,
+                    -sin,
+                    -sin,
+                    -cos,
+                    Width / 2.0 - cos * CenterX + sin * CenterY,
+                    Height / 2.0 + sin * CenterX + cos * CenterY
+                );
             }
         }
 
@@ -98,7 +112,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="y">The Y of the drawing point.</param>
         public void ScreenToDrawing(double px, double py, out double x, out double y)
         {
-            Unturn((px - Width / 2.0) / PixelsPerUnit, -(py - Height / 2.0) / PixelsPerUnit, out double dx, out double dy);
+            Unturn(
+                (px - Width / 2.0) / PixelsPerUnit,
+                -(py - Height / 2.0) / PixelsPerUnit,
+                out double dx,
+                out double dy
+            );
             x = CenterX + dx;
             y = CenterY + dy;
         }
@@ -144,7 +163,12 @@ namespace GeometryHelper.Dxf.Viewer
         {
             ScreenToDrawing(px, py, out double x, out double y);
             PixelsPerUnit = Math.Max(MinZoom, Math.Min(MaxZoom, PixelsPerUnit * factor));
-            Unturn((px - Width / 2.0) / PixelsPerUnit, -(py - Height / 2.0) / PixelsPerUnit, out double dx, out double dy);
+            Unturn(
+                (px - Width / 2.0) / PixelsPerUnit,
+                -(py - Height / 2.0) / PixelsPerUnit,
+                out double dx,
+                out double dy
+            );
             CenterX = x - dx;
             CenterY = y - dy;
         }

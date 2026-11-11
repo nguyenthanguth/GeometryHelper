@@ -24,7 +24,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Theory]
         [InlineData(1.0)]
         [InlineData(0.0)]
-        public void ARayStartingFiveHundredthsOutsideAUTurnedAboutInSpace_DoesNotCollideWithItFiftyMillionOutAsAtTheOrigin(double far)
+        public void ARayStartingFiveHundredthsOutsideAUTurnedAboutInSpace_DoesNotCollideWithItFiftyMillionOutAsAtTheOrigin(
+            double far
+        )
         {
             // The origin stands 0.0516 inside the gap of the U, off its inner wall, past the tolerance of five hundredths.
             var tolerance = new Tolerance(0.05, 1E-5, Math.PI / 180, 0.05);
@@ -32,7 +34,17 @@ namespace GeometryHelper.UnitTest.Solid
             var u = new GeoVector3(-0.4914452572907459, -0.8688336114330585, 0.060080901546344344);
             var n = new GeoVector3(-0.8703774655684305, 0.49238416531412854, 0.0009493042633146856);
             GeoVector3 v = n.CrossProduct(u);
-            double[][] profile = { new[] { 0.0, 0 }, new[] { 100.0, 0 }, new[] { 100.0, 100 }, new[] { 80.0, 100 }, new[] { 80.0, 20 }, new[] { 20.0, 20 }, new[] { 20.0, 100 }, new[] { 0.0, 100 } };
+            double[][] profile =
+            {
+                new[] { 0.0, 0 },
+                new[] { 100.0, 0 },
+                new[] { 100.0, 100 },
+                new[] { 80.0, 100 },
+                new[] { 80.0, 20 },
+                new[] { 20.0, 20 },
+                new[] { 20.0, 100 },
+                new[] { 0.0, 100 },
+            };
             var corners = new GeoPoint3[profile.Length];
 
             for (int i = 0; i < profile.Length; i++)
@@ -41,7 +53,9 @@ namespace GeometryHelper.UnitTest.Solid
             }
 
             GeoSolid3 body = GeoSolid3.Extrude(new GeoPolygon3(corners), v.Multiply(100), tolerance);
-            GeoPoint3 start = c.Add(u.Multiply(79.94838496076333)).Add(n.Multiply(20.077697498992876)).Add(v.Multiply(11.935216024022186));
+            GeoPoint3 start = c.Add(u.Multiply(79.94838496076333))
+                .Add(n.Multiply(20.077697498992876))
+                .Add(v.Multiply(11.935216024022186));
             var ray = new GeoRay3(start, new GeoVector3(-0.2741142077055374, 0.9300847396931561, -0.24454811003947585));
 
             Assert.False(ray.CollidesWith(body, tolerance));
@@ -57,9 +71,20 @@ namespace GeometryHelper.UnitTest.Solid
             axis = new GeoVector3(1, 2, 3).Multiply(1 / Math.Sqrt(14));
             var side = new GeoVector3(3, 0, -1).Multiply(1 / Math.Sqrt(10));
             var foot = new GeoPoint3(31234567.25 * far, -42345678.5 * far, 12345678.75 * far);
-            var rectangle = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(30, 0), new GeoPoint2(30, 100), new GeoPoint2(0, 100));
+            var rectangle = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(30, 0),
+                new GeoPoint2(30, 100),
+                new GeoPoint2(0, 100)
+            );
 
-            return GeoSolid3.Revolve(rectangle, new GeoCoordinateSystem3(foot, side, axis), 2 * Math.PI, 0.5, Tolerance.Default);
+            return GeoSolid3.Revolve(
+                rectangle,
+                new GeoCoordinateSystem3(foot, side, axis),
+                2 * Math.PI,
+                0.5,
+                Tolerance.Default
+            );
         }
 
         /// <summary>Gets the middle of a face, by the mean of its corners, and its normal turned away from the axis.</summary>
@@ -74,7 +99,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoPoint3 middle = foot.Add(sum.Multiply(1.0 / face.Boundary.Vertices.Count));
             GeoVector3 normal = face.GetPlane().Normal;
-            GeoVector3 away = foot.GetVectorTo(middle).Subtract(axis.Multiply(foot.GetVectorTo(middle).DotProduct(axis)));
+            GeoVector3 away = foot.GetVectorTo(middle)
+                .Subtract(axis.Multiply(foot.GetVectorTo(middle).DotProduct(axis)));
 
             outward = away.DotProduct(normal) > 0 ? normal : normal.Multiply(-1);
             return middle;
@@ -83,7 +109,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Theory]
         [InlineData(1.0)]
         [InlineData(0.0)]
-        public void ARayRunningAlongACylinderFiveHundredthsOffASideFacet_DoesNotCollideWithItFiftyMillionOutAsAtTheOrigin(double far)
+        public void ARayRunningAlongACylinderFiveHundredthsOffASideFacet_DoesNotCollideWithItFiftyMillionOutAsAtTheOrigin(
+            double far
+        )
         {
             GeoSolid3 body = Cylinder(far, out GeoVector3 axis);
             var foot = new GeoPoint3(31234567.25 * far, -42345678.5 * far, 12345678.75 * far);
@@ -101,8 +129,14 @@ namespace GeometryHelper.UnitTest.Solid
                 facets++;
 
                 // Five hundredths off, past the tolerance of a hundredth, it misses; five thousandths off, within it, it touches.
-                Assert.False(new GeoRay3(middle.Add(outward.Multiply(0.05)), axis).CollidesWith(body, Hundredth), $"0.05 off the facet {facets}");
-                Assert.True(new GeoRay3(middle.Add(outward.Multiply(0.005)), axis).CollidesWith(body, Hundredth), $"0.005 off the facet {facets}");
+                Assert.False(
+                    new GeoRay3(middle.Add(outward.Multiply(0.05)), axis).CollidesWith(body, Hundredth),
+                    $"0.05 off the facet {facets}"
+                );
+                Assert.True(
+                    new GeoRay3(middle.Add(outward.Multiply(0.005)), axis).CollidesWith(body, Hundredth),
+                    $"0.005 off the facet {facets}"
+                );
             }
 
             Assert.Equal(18, facets);
@@ -138,15 +172,20 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         /// <summary>A box 100 by 80 by 50 square to the axes, its lowest corner at (at, at, at).</summary>
-        private static GeoSolid3 BoxAt(double at) => new GeoObb3(new GeoPoint3(at + 50, at + 40, at + 25), 100, 80, 50).ToSolid();
+        private static GeoSolid3 BoxAt(double at) =>
+            new GeoObb3(new GeoPoint3(at + 50, at + 40, at + 25), 100, 80, 50).ToSolid();
 
         /// <summary>The middle of the top of <see cref="BoxAt"/>, lifted by a height.</summary>
-        private static GeoPoint3 OverTheTop(double at, double height) => new GeoPoint3(at + 50, at + 40, at + 50 + height);
+        private static GeoPoint3 OverTheTop(double at, double height) =>
+            new GeoPoint3(at + 50, at + 40, at + 50 + height);
 
         [Theory]
         [InlineData(5E7, 2.235E-8)]
         [InlineData(5E8, 5E-7)]
-        public void ARayFromWithinTheRoundingOverABoxFarOutAndPointingAway_IsGivenAPointAsItCollides(double at, double height)
+        public void ARayFromWithinTheRoundingOverABoxFarOutAndPointingAway_IsGivenAPointAsItCollides(
+            double at,
+            double height
+        )
         {
             // At a tolerance of nought, 2.2E-8 over the top 5E7 out and 4.8E-7 over it 5E8 out are within the 1E-15 of the
             // largest coordinate the body holds a point to: the ray collides, and was given nothing, its box read to a billionth.
@@ -199,7 +238,12 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(double.NaN, infinite.DistanceTo(BoxAt(5E7), Tolerance.Default));
             Assert.True(new GeoLine3(infinite, new GeoPoint3(50, 40, 25)).CollidesWith(box, Tolerance.Default));
             Assert.Equal(double.NaN, new GeoSphere3(infinite, 1).DistanceTo(box, Tolerance.Default));
-            Assert.False(new GeoRay3(new GeoPoint3(double.NaN, 10, 10), new GeoVector3(-1, 0, 0)).CollidesWith(box, Tolerance.Default));
+            Assert.False(
+                new GeoRay3(new GeoPoint3(double.NaN, 10, 10), new GeoVector3(-1, 0, 0)).CollidesWith(
+                    box,
+                    Tolerance.Default
+                )
+            );
         }
     }
 }

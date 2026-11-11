@@ -16,7 +16,8 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// The beam uncut: 35 604 890 mm3. The geometry engine, cutting the openings on the exact B-rep, leaves 25 137 804.
         /// </summary>
-        internal const string Beam = @"
+        internal const string Beam =
+            @"
             208117.6422418674 631942.08119396737 -21680 208117.72831322643 631447.56884596345 -21680 208557.72830656162 631447.6454292835 -21680 208557.64223520263 631942.15777728742 -21680
             208117.6422418674 631942.08119396737 -21745 208117.72831322643 631447.56884596345 -21745 208117.72831322643 631447.56884596345 -21680 208117.6422418674 631942.08119396737 -21680
             208557.72830656162 631447.6454292835 -21680 208117.72831322643 631447.56884596345 -21680 208117.72831322643 631447.56884596345 -21745 208317.72831019698 631447.60365656344 -21745 208317.72831019698 631447.60365656344 -22115 208117.72831322643 631447.56884596345 -22115 208117.72831322643 631447.56884596345 -22180 208557.72830656162 631447.6454292835 -22180 208557.72830656162 631447.6454292835 -22115 208357.72830959107 631447.61061868351 -22115 208357.72830959107 631447.61061868351 -21745 208557.72830656162 631447.6454292835 -21745
@@ -200,7 +201,12 @@ namespace GeometryHelper.UnitTest.Solid
         /// </summary>
         internal static GeoSolid3 Read(string text)
         {
-            var tolerance = new Tolerance(Tolerance.DefaultEqualPoint, Tolerance.DefaultEqualPoint * Tolerance.DefaultEqualPoint, Tolerance.DefaultEqualAngleRad, Tolerance.DefaultEqualPlanar);
+            var tolerance = new Tolerance(
+                Tolerance.DefaultEqualPoint,
+                Tolerance.DefaultEqualPoint * Tolerance.DefaultEqualPoint,
+                Tolerance.DefaultEqualAngleRad,
+                Tolerance.DefaultEqualPlanar
+            );
             var faces = new List<GeoFace3>();
 
             foreach (string line in text.Split(new[] { (char)13, (char)10 }, StringSplitOptions.RemoveEmptyEntries))
@@ -210,7 +216,9 @@ namespace GeometryHelper.UnitTest.Solid
                     continue;
                 }
 
-                GeoPolygon3[] loops = line.Split('|').Select(ring => new GeoPolygon3(Corners(ring), tolerance)).ToArray();
+                GeoPolygon3[] loops = line.Split('|')
+                    .Select(ring => new GeoPolygon3(Corners(ring), tolerance))
+                    .ToArray();
                 faces.Add(new GeoFace3(loops[0], loops.Skip(1), tolerance));
             }
 

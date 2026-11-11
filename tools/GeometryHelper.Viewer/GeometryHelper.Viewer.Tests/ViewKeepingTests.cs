@@ -12,7 +12,15 @@ namespace GeometryHelper.Viewer.Tests
     /// </summary>
     public class ViewKeepingTests
     {
-        private static SavedView View(string name, double x = 1.0) => new SavedView(name, new Vec3(x, -60.1, 30.7), new Vec3(x, 0.1, 0.3), new Vec3(0, 0, 1), name.StartsWith("o", StringComparison.Ordinal), 20.123456789012345);
+        private static SavedView View(string name, double x = 1.0) =>
+            new SavedView(
+                name,
+                new Vec3(x, -60.1, 30.7),
+                new Vec3(x, 0.1, 0.3),
+                new Vec3(0, 0, 1),
+                name.StartsWith("o", StringComparison.Ordinal),
+                20.123456789012345
+            );
 
         [Fact]
         public void TheFileOfAScript_IsBesideItAndNamedForIt()
@@ -106,7 +114,10 @@ namespace GeometryHelper.Viewer.Tests
                 Assert.Equal(cut, File.ReadAllText(path));
                 Assert.Contains(warnings, w => w.Contains("could not be read"));
                 Assert.Contains(warnings, w => w.Contains("was left as it is") && w.Contains("'c'"));
-                Assert.Equal(new[] { Path.GetFileName(path) }, Directory.GetFiles(folder.Path).Select(Path.GetFileName));
+                Assert.Equal(
+                    new[] { Path.GetFileName(path) },
+                    Directory.GetFiles(folder.Path).Select(Path.GetFileName)
+                );
             }
         }
 
@@ -133,8 +144,14 @@ namespace GeometryHelper.Viewer.Tests
 
                 Assert.True(SavedViewsFile.Keep(path, View("c"), new List<string>()));
 
-                Assert.Equal(new[] { "a", "b", "c" }, SavedViewsFile.Read(path, new List<string>()).Select(v => v.Name));
-                Assert.Equal(new[] { Path.GetFileName(path) }, Directory.GetFiles(folder.Path).Select(Path.GetFileName));
+                Assert.Equal(
+                    new[] { "a", "b", "c" },
+                    SavedViewsFile.Read(path, new List<string>()).Select(v => v.Name)
+                );
+                Assert.Equal(
+                    new[] { Path.GetFileName(path) },
+                    Directory.GetFiles(folder.Path).Select(Path.GetFileName)
+                );
             }
         }
 
@@ -144,7 +161,10 @@ namespace GeometryHelper.Viewer.Tests
             using (var folder = new TempFolder())
             {
                 string path = folder.Combine("s.csx.views.json");
-                File.WriteAllText(path, "{\"views\":[{\"name\":\"\",\"eye\":[0,0,1],\"target\":[0,0,0],\"up\":[0,1,0]},{\"name\":\"ok\",\"eye\":[0,0,1],\"target\":[0,0,0],\"up\":[0,1,0]}]}");
+                File.WriteAllText(
+                    path,
+                    "{\"views\":[{\"name\":\"\",\"eye\":[0,0,1],\"target\":[0,0,0],\"up\":[0,1,0]},{\"name\":\"ok\",\"eye\":[0,0,1],\"target\":[0,0,0],\"up\":[0,1,0]}]}"
+                );
                 var warnings = new List<string>();
 
                 List<SavedView> views = SavedViewsFile.Read(path, warnings);

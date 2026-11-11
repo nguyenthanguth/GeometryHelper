@@ -109,7 +109,11 @@ namespace GeometryHelper.Dwg
             {
                 return DwgTranscoder.ToDxf(file);
             }
-            catch (Exception fault) when (!(fault is FormatException) && !(fault is NotSupportedException) && !(fault is OutOfMemoryException))
+            catch (Exception fault)
+                when (!(fault is FormatException)
+                    && !(fault is NotSupportedException)
+                    && !(fault is OutOfMemoryException)
+                )
             {
                 // The decoders check what they read, and this is the net under them: whatever broken data still leads
                 // them astray is reported as what it is, a broken file.

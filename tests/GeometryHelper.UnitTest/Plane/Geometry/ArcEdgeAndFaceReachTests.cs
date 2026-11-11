@@ -31,20 +31,35 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>
         /// A square two hundred off to the right, well clear of that arc.
         /// </summary>
-        private static GeoPolygon2 Clear() => new GeoPolygon2(
-            new GeoPoint2(300, -50), new GeoPoint2(400, -50), new GeoPoint2(400, 50), new GeoPoint2(300, 50));
+        private static GeoPolygon2 Clear() =>
+            new GeoPolygon2(
+                new GeoPoint2(300, -50),
+                new GeoPoint2(400, -50),
+                new GeoPoint2(400, 50),
+                new GeoPoint2(300, 50)
+            );
 
         /// <summary>
         /// Two hundred square with a forty-wide hole in the middle of it.
         /// </summary>
-        private static GeoFace2 Pierced() => new GeoFace2(
-            new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200)),
-            new[]
-            {
+        private static GeoFace2 Pierced() =>
+            new GeoFace2(
                 new GeoPolygon2(
-                    new GeoPoint2(80, 80), new GeoPoint2(120, 80), new GeoPoint2(120, 120), new GeoPoint2(80, 120))
-            });
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(200, 0),
+                    new GeoPoint2(200, 200),
+                    new GeoPoint2(0, 200)
+                ),
+                new[]
+                {
+                    new GeoPolygon2(
+                        new GeoPoint2(80, 80),
+                        new GeoPoint2(120, 80),
+                        new GeoPoint2(120, 120),
+                        new GeoPoint2(80, 120)
+                    ),
+                }
+            );
 
         [Fact]
         public void AnArcNowMeasuresAgainstEveryShapeItCouldNotReach()
@@ -64,11 +79,15 @@ namespace GeometryHelper.UnitTest.Plane
 
             // And the joining segment leaves the arc and lands on the other shape, so its length is that
             // same distance and its start is a point of the arc.
-            foreach (GeoLine2 join in new[]
-                     {
-                         arc.GetShortestLineTo(square), arc.GetShortestLineTo(rect),
-                         arc.GetShortestLineTo(chain), arc.GetShortestLineTo(circle),
-                     })
+            foreach (
+                GeoLine2 join in new[]
+                {
+                    arc.GetShortestLineTo(square),
+                    arc.GetShortestLineTo(rect),
+                    arc.GetShortestLineTo(chain),
+                    arc.GetShortestLineTo(circle),
+                }
+            )
             {
                 Assert.True(join.StartPoint.IsEqualTo(new GeoPoint2(100, 0), Loose), join.StartPoint.ToString());
             }
@@ -91,23 +110,30 @@ namespace GeometryHelper.UnitTest.Plane
 
             // A square holding the start of the arc: the arc leaves it through the top edge, and nowhere else.
             var over = new GeoPolygon2(
-                new GeoPoint2(50, -50), new GeoPoint2(150, -50), new GeoPoint2(150, 50), new GeoPoint2(50, 50));
+                new GeoPoint2(50, -50),
+                new GeoPoint2(150, -50),
+                new GeoPoint2(150, 50),
+                new GeoPoint2(50, 50)
+            );
 
             Assert.True(arc.CollidesWith(over));
 
             GeoPoint2[] crossings = arc.GetIntersections(over);
 
             Assert.Single(crossings);
-            Assert.True(crossings[0].IsEqualTo(new GeoPoint2(Math.Sqrt(100 * 100 - 50 * 50), 50), Loose),
-                crossings[0].ToString());
+            Assert.True(
+                crossings[0].IsEqualTo(new GeoPoint2(Math.Sqrt(100 * 100 - 50 * 50), 50), Loose),
+                crossings[0].ToString()
+            );
 
             // An arc of another circle that genuinely cuts across it.
             var cutting = new GeoArc2(new GeoPoint2(100, 0), 100, Math.PI / 2, Math.PI);
 
             Assert.True(arc.CollidesWith(cutting));
             Assert.Single(arc.GetIntersections(cutting));
-            Assert.True(arc.GetIntersections(cutting)[0]
-                .IsEqualTo(new GeoPoint2(50, Math.Sqrt(100 * 100 - 50 * 50)), Loose));
+            Assert.True(
+                arc.GetIntersections(cutting)[0].IsEqualTo(new GeoPoint2(50, Math.Sqrt(100 * 100 - 50 * 50)), Loose)
+            );
 
             // Two arcs of one circle cross nowhere, because circles lying on each other meet along their
             // length and not at points; sharing an end still counts as touching, and a gap still does not.
@@ -142,7 +168,11 @@ namespace GeometryHelper.UnitTest.Plane
             // A closed shape holding the edge whole counts as touching, which is what it counts as for the
             // segment or the arc the edge is read as.
             var around = new GeoPolygon2(
-                new GeoPoint2(-500, -500), new GeoPoint2(500, -500), new GeoPoint2(500, 500), new GeoPoint2(-500, 500));
+                new GeoPoint2(-500, -500),
+                new GeoPoint2(500, -500),
+                new GeoPoint2(500, 500),
+                new GeoPoint2(-500, 500)
+            );
 
             Assert.True(straight.CollidesWith(around));
             Assert.True(curved.CollidesWith(around));
@@ -188,9 +218,17 @@ namespace GeometryHelper.UnitTest.Plane
 
             // The same told apart for a polygon.
             var ring = new GeoPolygon2(
-                new GeoPoint2(40, 40), new GeoPoint2(160, 40), new GeoPoint2(160, 160), new GeoPoint2(40, 160));
+                new GeoPoint2(40, 40),
+                new GeoPoint2(160, 40),
+                new GeoPoint2(160, 160),
+                new GeoPoint2(40, 160)
+            );
             var speck = new GeoPolygon2(
-                new GeoPoint2(95, 95), new GeoPoint2(105, 95), new GeoPoint2(105, 105), new GeoPoint2(95, 105));
+                new GeoPoint2(95, 95),
+                new GeoPoint2(105, 95),
+                new GeoPoint2(105, 105),
+                new GeoPoint2(95, 105)
+            );
 
             Assert.True(face.CollidesWith(ring));
             Assert.False(face.CollidesWith(speck));
@@ -202,10 +240,7 @@ namespace GeometryHelper.UnitTest.Plane
             GeoFace2 face = Pierced();
             var right = new GeoLine2(new GeoPoint2(-50, 100), new GeoPoint2(250, 100));
 
-            double[] crossings = face.GetIntersections(right)
-                .Select(point => point.X)
-                .OrderBy(x => x)
-                .ToArray();
+            double[] crossings = face.GetIntersections(right).Select(point => point.X).OrderBy(x => x).ToArray();
 
             Assert.Equal(4, crossings.Length);
             Assert.Equal(new[] { 0.0, 80.0, 120.0, 200.0 }, crossings.Select(x => Math.Round(x, 6)));
@@ -270,8 +305,10 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(face.CollidesWith(circle), face.CollidesWith(circle, global));
             Assert.Equal(face.GetIntersections(probe).Length, face.GetIntersections(probe, global).Length);
             Assert.True(face.GetShortestLineTo(probe).IsEqualTo(face.GetShortestLineTo(probe, global), Loose));
-            Assert.True(face.GetShortestLineTo(new GeoPoint2(100, 100))
-                .IsEqualTo(face.GetShortestLineTo(new GeoPoint2(100, 100), global), Loose));
+            Assert.True(
+                face.GetShortestLineTo(new GeoPoint2(100, 100))
+                    .IsEqualTo(face.GetShortestLineTo(new GeoPoint2(100, 100), global), Loose)
+            );
         }
 
         [Fact]

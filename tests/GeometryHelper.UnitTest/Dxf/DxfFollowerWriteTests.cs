@@ -109,7 +109,13 @@ namespace GeometryHelper.UnitTest.Dxf
                 polyline.AddVertexAt(i, new GeoPoint2(i, 0), 0, 0, 0);
             }
 
-            polyline.XData = new[] { new DxfTypedValue(1001, "GHPROBE"), new DxfTypedValue(1011, "1"), new DxfTypedValue(1021, "2"), new DxfTypedValue(1031, "0") };
+            polyline.XData = new[]
+            {
+                new DxfTypedValue(1001, "GHPROBE"),
+                new DxfTypedValue(1011, "1"),
+                new DxfTypedValue(1021, "2"),
+                new DxfTypedValue(1031, "0"),
+            };
             Assert.Equal(new GeoPoint2(3, 0), polyline.GetPoint2dAt(3));
 
             polyline.TransformBy(GeoTransform3.Translation(new GeoVector3(10, 0, 0)));
@@ -129,12 +135,22 @@ namespace GeometryHelper.UnitTest.Dxf
         public void APointOfAPolyfaceMeshNoFaceNames_ErasedFirst_LeavesTheExtentsToTheFaces()
         {
             // The far point (500, 500, 0) is first, the square of side 10 its face (2, 3, 4, 5); erased, the face is (1, 2, 3, 4).
-            DxfDatabase db = DxfDatabase.Parse(new DxfWriter().Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))).ToString());
+            DxfDatabase db = DxfDatabase.Parse(
+                new DxfWriter().Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))).ToString()
+            );
             var mesh = new DxfPolyFaceMesh();
             db.ModelSpace.AppendEntity(mesh);
             mesh.AppendVertex(new DxfPolyFaceMeshVertex(new GeoPoint3(500, 500, 0)));
 
-            foreach (GeoPoint3 corner in new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0) })
+            foreach (
+                GeoPoint3 corner in new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(0, 10, 0),
+                }
+            )
             {
                 mesh.AppendVertex(new DxfPolyFaceMeshVertex(corner));
             }
@@ -145,7 +161,10 @@ namespace GeometryHelper.UnitTest.Dxf
             mesh.OfType<DxfPolyFaceMeshVertex>().First().Erase();
 
             DxfFaceRecord face = mesh.OfType<DxfFaceRecord>().Single();
-            Assert.Equal(new short[] { 1, 2, 3, 4 }, new short[] { face.GetVertexAt(0), face.GetVertexAt(1), face.GetVertexAt(2), face.GetVertexAt(3) });
+            Assert.Equal(
+                new short[] { 1, 2, 3, 4 },
+                new short[] { face.GetVertexAt(0), face.GetVertexAt(1), face.GetVertexAt(2), face.GetVertexAt(3) }
+            );
             Assert.Equal(4, mesh.NumVertices);
             Assert.Equal(new GeoPoint3(10, 10, 0), db.Extmax);
         }
@@ -153,7 +172,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void PointsOfAPolyfaceMeshErasedOneAtATime_RenumberTheFaces_ThoseWrittenBetweenAmongThem()
         {
-            DxfDatabase db = DxfDatabase.Parse(new DxfWriter().Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))).ToString());
+            DxfDatabase db = DxfDatabase.Parse(
+                new DxfWriter().Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))).ToString()
+            );
             var mesh = new DxfPolyFaceMesh();
             db.ModelSpace.AppendEntity(mesh);
 
@@ -192,7 +213,11 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(DxfReaderRoundTripTests.OneOfEach().ToString());
             db.ModelSpace.AppendEntity(made);
             string text = db.ToText();
-            int second = text.IndexOf(" 10\n10\n", text.IndexOf("AcDbPolyline", System.StringComparison.Ordinal), System.StringComparison.Ordinal);
+            int second = text.IndexOf(
+                " 10\n10\n",
+                text.IndexOf("AcDbPolyline", System.StringComparison.Ordinal),
+                System.StringComparison.Ordinal
+            );
             text = (text.Substring(0, second) + "999\nfrom a hand\n" + text.Substring(second)).Replace("\n", "\r\n");
             db = DxfDatabase.Parse(text);
             DxfPolyline polyline = ByHandle<DxfPolyline>(db, made.Handle);
@@ -202,7 +227,10 @@ namespace GeometryHelper.UnitTest.Dxf
             polyline.RemoveVertexAt(0);
 
             DxfPolyline again = ByHandle<DxfPolyline>(DxfDatabase.Parse(db.ToText()), made.Handle);
-            Assert.Equal(new[] { new GeoPoint2(5, 5), new GeoPoint2(10, 0), new GeoPoint2(20, 9) }, Enumerable.Range(0, again.NumberOfVertices).Select(again.GetPoint2dAt).ToArray());
+            Assert.Equal(
+                new[] { new GeoPoint2(5, 5), new GeoPoint2(10, 0), new GeoPoint2(20, 9) },
+                Enumerable.Range(0, again.NumberOfVertices).Select(again.GetPoint2dAt).ToArray()
+            );
         }
     }
 }

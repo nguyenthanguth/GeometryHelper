@@ -25,7 +25,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheDefaultKeymap_BindsNoGestureTwice()
         {
-            List<string> gestures = Keymap.Default().Bindings.SelectMany(b => b.Gestures).Select(g => g.ToString()).ToList();
+            List<string> gestures = Keymap
+                .Default()
+                .Bindings.SelectMany(b => b.Gestures)
+                .Select(g => g.ToString())
+                .ToList();
 
             Assert.Equal(gestures.Count, gestures.Distinct(StringComparer.Ordinal).Count());
         }
@@ -115,15 +119,33 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AKeymapThatBindsOneGestureTwice_IsRefused()
         {
-            const string twoActions = "{\"bindings\":[{\"action\":\"Pan\",\"gestures\":[\"Ctrl+P\"]},{\"action\":\"TogglePlan\",\"gestures\":[\"ctrl+p\"]}]}";
+            const string twoActions =
+                "{\"bindings\":[{\"action\":\"Pan\",\"gestures\":[\"Ctrl+P\"]},{\"action\":\"TogglePlan\",\"gestures\":[\"ctrl+p\"]}]}";
             const string oneAction = "{\"bindings\":[{\"action\":\"Pan\",\"gestures\":[\"Ctrl+P\",\"Ctrl+P\"]}]}";
-            const string actionTwice = "{\"bindings\":[{\"action\":\"Pan\",\"gestures\":[\"F1\"]},{\"action\":\"Pan\",\"gestures\":[\"F2\"]}]}";
+            const string actionTwice =
+                "{\"bindings\":[{\"action\":\"Pan\",\"gestures\":[\"F1\"]},{\"action\":\"Pan\",\"gestures\":[\"F2\"]}]}";
             const string unknown = "{\"bindings\":[{\"action\":\"Levitate\",\"gestures\":[\"F1\"]}]}";
 
-            Assert.Contains("both", Assert.Throws<FormatException>(() => Keymap.Parse(twoActions)).Message, StringComparison.Ordinal);
-            Assert.Contains("twice", Assert.Throws<FormatException>(() => Keymap.Parse(oneAction)).Message, StringComparison.Ordinal);
-            Assert.Contains("bound twice", Assert.Throws<FormatException>(() => Keymap.Parse(actionTwice)).Message, StringComparison.Ordinal);
-            Assert.Contains("Levitate", Assert.Throws<FormatException>(() => Keymap.Parse(unknown)).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "both",
+                Assert.Throws<FormatException>(() => Keymap.Parse(twoActions)).Message,
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "twice",
+                Assert.Throws<FormatException>(() => Keymap.Parse(oneAction)).Message,
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "bound twice",
+                Assert.Throws<FormatException>(() => Keymap.Parse(actionTwice)).Message,
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "Levitate",
+                Assert.Throws<FormatException>(() => Keymap.Parse(unknown)).Message,
+                StringComparison.Ordinal
+            );
             Assert.Throws<FormatException>(() => Keymap.Parse("[]"));
         }
 
@@ -166,7 +188,11 @@ namespace GeometryHelper.Viewer.Tests
 
                 Assert.Contains("Pretzel", problem, StringComparison.Ordinal);
                 Assert.Equal("Pan", keymap.ActionFor(Gesture.Parse("MiddleDrag")));
-                Assert.Null(Keymap.Load(Path.Combine(Path.GetTempPath(), "no-such-keymap.json"), out string none).ActionFor(Gesture.Parse("Ctrl+Pretzel".Replace("Pretzel", "Z"))));
+                Assert.Null(
+                    Keymap
+                        .Load(Path.Combine(Path.GetTempPath(), "no-such-keymap.json"), out string none)
+                        .ActionFor(Gesture.Parse("Ctrl+Pretzel".Replace("Pretzel", "Z")))
+                );
                 Assert.Null(none);
             }
             finally

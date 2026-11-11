@@ -60,13 +60,25 @@ namespace GeometryHelper.Viewer.Tests
         /// </summary>
         internal static void SameBits(IReadOnlyList<double> expected, IReadOnlyList<double> actual, string what = "")
         {
-            Assert.True(expected.Count == actual.Count, what + ": " + expected.Count + " numbers expected, " + actual.Count + " found");
+            Assert.True(
+                expected.Count == actual.Count,
+                what + ": " + expected.Count + " numbers expected, " + actual.Count + " found"
+            );
 
             for (int i = 0; i < expected.Count; i++)
             {
                 if (BitConverter.DoubleToInt64Bits(expected[i]) != BitConverter.DoubleToInt64Bits(actual[i]))
                 {
-                    Assert.Fail(what + ": number " + i + " is " + actual[i].ToString("R") + " where " + expected[i].ToString("R") + " was written");
+                    Assert.Fail(
+                        what
+                            + ": number "
+                            + i
+                            + " is "
+                            + actual[i].ToString("R")
+                            + " where "
+                            + expected[i].ToString("R")
+                            + " was written"
+                    );
                 }
             }
         }
@@ -74,9 +86,17 @@ namespace GeometryHelper.Viewer.Tests
         /// <summary>
         /// Asserts that two lists of numbers agree to a precision, relative to the larger of the two and one.
         /// </summary>
-        internal static void Near(IReadOnlyList<double> expected, IReadOnlyList<double> actual, double relative, string what = "")
+        internal static void Near(
+            IReadOnlyList<double> expected,
+            IReadOnlyList<double> actual,
+            double relative,
+            string what = ""
+        )
         {
-            Assert.True(expected.Count == actual.Count, what + ": " + expected.Count + " numbers expected, " + actual.Count + " found");
+            Assert.True(
+                expected.Count == actual.Count,
+                what + ": " + expected.Count + " numbers expected, " + actual.Count + " found"
+            );
 
             for (int i = 0; i < expected.Count; i++)
             {
@@ -84,7 +104,18 @@ namespace GeometryHelper.Viewer.Tests
 
                 if (Math.Abs(expected[i] - actual[i]) > relative * scale)
                 {
-                    Assert.Fail(what + ": number " + i + " is " + actual[i].ToString("R") + " where " + expected[i].ToString("R") + " was written (allowed " + relative + ")");
+                    Assert.Fail(
+                        what
+                            + ": number "
+                            + i
+                            + " is "
+                            + actual[i].ToString("R")
+                            + " where "
+                            + expected[i].ToString("R")
+                            + " was written (allowed "
+                            + relative
+                            + ")"
+                    );
                 }
             }
         }
@@ -115,8 +146,8 @@ namespace GeometryHelper.Viewer.Tests
         /// <summary>
         /// The corners of a face as a text of their bits, so that two faces are the same when their corners are the same to the bit and in the same order.
         /// </summary>
-        internal static string Key(IEnumerable<Vec3> corners)
-            => string.Join("|", corners.Select(c => Bits(c.X) + "," + Bits(c.Y) + "," + Bits(c.Z)));
+        internal static string Key(IEnumerable<Vec3> corners) =>
+            string.Join("|", corners.Select(c => Bits(c.X) + "," + Bits(c.Y) + "," + Bits(c.Z)));
 
         internal static string Key(params Vec3[] corners) => Key((IEnumerable<Vec3>)corners);
 
@@ -126,22 +157,30 @@ namespace GeometryHelper.Viewer.Tests
 
         private static string Bits(double v) => BitConverter.DoubleToInt64Bits(v + 0.0).ToString("X");
 
-        internal static List<string> Keys(IEnumerable<GeoTriangle3> triangles) => triangles.Select(t => Key(t.A, t.B, t.C)).ToList();
+        internal static List<string> Keys(IEnumerable<GeoTriangle3> triangles) =>
+            triangles.Select(t => Key(t.A, t.B, t.C)).ToList();
 
-        internal static List<string> Keys(SceneItem mesh) => MeshFaces(mesh).Select(face => Key((IEnumerable<Vec3>)face)).ToList();
+        internal static List<string> Keys(SceneItem mesh) =>
+            MeshFaces(mesh).Select(face => Key((IEnumerable<Vec3>)face)).ToList();
 
-        internal static double Distance(Vec3 a, GeoPoint3 b)
-            => Math.Sqrt(((a.X - b.X) * (a.X - b.X)) + ((a.Y - b.Y) * (a.Y - b.Y)) + ((a.Z - b.Z) * (a.Z - b.Z)));
+        internal static double Distance(Vec3 a, GeoPoint3 b) =>
+            Math.Sqrt(((a.X - b.X) * (a.X - b.X)) + ((a.Y - b.Y) * (a.Y - b.Y)) + ((a.Z - b.Z) * (a.Z - b.Z)));
 
         /// <summary>
         /// Asserts that every point lies on the circle round a centre in the plane of a normal, to a billionth of the radius.
         /// </summary>
-        internal static void AssertOnCircle(IEnumerable<Vec3> points, GeoPoint3 centre, GeoVector3 normal, double radius)
+        internal static void AssertOnCircle(
+            IEnumerable<Vec3> points,
+            GeoPoint3 centre,
+            GeoVector3 normal,
+            double radius
+        )
         {
             foreach (Vec3 p in points)
             {
                 Assert.InRange(Distance(p, centre) / radius, 1.0 - 1E-9, 1.0 + 1E-9);
-                double offPlane = ((p.X - centre.X) * normal.X) + ((p.Y - centre.Y) * normal.Y) + ((p.Z - centre.Z) * normal.Z);
+                double offPlane =
+                    ((p.X - centre.X) * normal.X) + ((p.Y - centre.Y) * normal.Y) + ((p.Z - centre.Z) * normal.Z);
                 Assert.InRange(Math.Abs(offPlane) / radius, 0.0, 1E-9);
             }
         }

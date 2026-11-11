@@ -1,9 +1,16 @@
-<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.NewViewWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="New View / Shot Properties" Width="560" Height="620" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" Background="#262B33">
-
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.NewViewWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="New View / Shot Properties"
+    Width="560"
+    Height="620"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -12,21 +19,58 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
-            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
-            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
         <DockPanel>
-            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
-                    <TextBlock Text="New View / Shot Properties" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock
+                        Text="New View / Shot Properties"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"
+                    />
                 </DockPanel>
             </Border>
 
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Click="OnCancel" IsCancel="True" />
-                    <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Click="OnOk" IsDefault="True" />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Cancel"
+                        Padding="14,5"
+                        Margin="0,0,8,0"
+                        Click="OnCancel"
+                        IsCancel="True"
+                    />
+                    <Button
+                        Style="{StaticResource StylePrimaryButton}"
+                        Content="OK"
+                        Padding="14,5"
+                        Click="OnOk"
+                        IsDefault="True"
+                    />
                 </StackPanel>
             </Border>
 
@@ -40,25 +84,76 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <TextBlock Text="View name:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" Margin="0,0,0,8" />
-                <TextBox Grid.Column="1" Style="{StaticResource BlockBox}" BorderBrush="{StaticResource GhAccent}" Margin="0,0,0,8" Text="{Binding ViewName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="View name" />
-                <TextBlock Grid.Row="1" Text="View category:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" Margin="0,0,0,8" />
-                <ComboBox Grid.Row="1" Grid.Column="1" Style="{StaticResource GhComboBox}" SelectedIndex="0" Margin="0,0,0,8" AutomationProperties.Name="View category">
+                <TextBlock
+                    Text="View name:"
+                    Foreground="{StaticResource GhTextMuted}"
+                    VerticalAlignment="Center"
+                    Margin="0,0,0,8"
+                />
+                <TextBox
+                    Grid.Column="1"
+                    Style="{StaticResource BlockBox}"
+                    BorderBrush="{StaticResource GhAccent}"
+                    Margin="0,0,0,8"
+                    Text="{Binding ViewName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    AutomationProperties.Name="View name"
+                />
+                <TextBlock
+                    Grid.Row="1"
+                    Text="View category:"
+                    Foreground="{StaticResource GhTextMuted}"
+                    VerticalAlignment="Center"
+                    Margin="0,0,0,8"
+                />
+                <ComboBox
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Style="{StaticResource GhComboBox}"
+                    SelectedIndex="0"
+                    Margin="0,0,0,8"
+                    AutomationProperties.Name="View category"
+                >
                     <ComboBoxItem Content="&lt;None&gt;" />
                 </ComboBox>
-                <TextBlock Grid.Row="2" Text="View type:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
-                <ComboBox Grid.Row="2" Grid.Column="1" Style="{StaticResource GhComboBox}" SelectedIndex="0" IsEnabled="False" AutomationProperties.Name="View type">
+                <TextBlock
+                    Grid.Row="2"
+                    Text="View type:"
+                    Foreground="{StaticResource GhTextMuted}"
+                    VerticalAlignment="Center"
+                />
+                <ComboBox
+                    Grid.Row="2"
+                    Grid.Column="1"
+                    Style="{StaticResource GhComboBox}"
+                    SelectedIndex="0"
+                    IsEnabled="False"
+                    AutomationProperties.Name="View type"
+                >
                     <ComboBoxItem Content="Still" />
                 </ComboBox>
             </Grid>
 
-            <Border DockPanel.Dock="Top" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,0,0,1" Margin="16,0">
+            <Border
+                DockPanel.Dock="Top"
+                BorderBrush="{StaticResource GhBorder}"
+                BorderThickness="0,0,0,1"
+                Margin="16,0"
+            >
                 <StackPanel Orientation="Horizontal">
-                    <Border Background="{StaticResource GhSelected}" CornerRadius="4,4,0,0" Padding="11,6" Margin="0,0,2,0">
+                    <Border
+                        Background="{StaticResource GhSelected}"
+                        CornerRadius="4,4,0,0"
+                        Padding="11,6"
+                        Margin="0,0,2,0"
+                    >
                         <TextBlock Text="View Properties" FontWeight="Medium" />
                     </Border>
                     <Border Padding="11,6">
-                        <TextBlock Text="Shot Properties" FontWeight="Medium" Foreground="{StaticResource GhTextMuted}" />
+                        <TextBlock
+                            Text="Shot Properties"
+                            FontWeight="Medium"
+                            Foreground="{StaticResource GhTextMuted}"
+                        />
                     </Border>
                 </StackPanel>
             </Border>
@@ -66,13 +161,43 @@
             <StackPanel Margin="16,10">
                 <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Boundary" Margin="0">
                     <StackPanel>
-                        <RadioButton Style="{StaticResource BlockRadio}" GroupName="Boundary" Content="Current display" IsChecked="{Binding CurrentDisplay, Mode=TwoWay}" Margin="0,0,0,6" />
+                        <RadioButton
+                            Style="{StaticResource BlockRadio}"
+                            GroupName="Boundary"
+                            Content="Current display"
+                            IsChecked="{Binding CurrentDisplay, Mode=TwoWay}"
+                            Margin="0,0,0,6"
+                        />
                         <StackPanel Orientation="Horizontal">
-                            <RadioButton Style="{StaticResource BlockRadio}" GroupName="Boundary" Content="Define window" IsChecked="{Binding DefineWindow, Mode=TwoWay}" VerticalAlignment="Center" />
-                            <Button Style="{StaticResource BlockPickButton}" Margin="6,0,0,0" Click="OnPick" ToolTip="Define view window" AutomationProperties.Name="Define view window">
-                                <Path Data="M4 4h16v16H4zM4 4l5 5" Stroke="{StaticResource GhText}" StrokeThickness="1.6" Width="14" Height="14" Stretch="Uniform" />
+                            <RadioButton
+                                Style="{StaticResource BlockRadio}"
+                                GroupName="Boundary"
+                                Content="Define window"
+                                IsChecked="{Binding DefineWindow, Mode=TwoWay}"
+                                VerticalAlignment="Center"
+                            />
+                            <Button
+                                Style="{StaticResource BlockPickButton}"
+                                Margin="6,0,0,0"
+                                Click="OnPick"
+                                ToolTip="Define view window"
+                                AutomationProperties.Name="Define view window"
+                            >
+                                <Path
+                                    Data="M4 4h16v16H4zM4 4l5 5"
+                                    Stroke="{StaticResource GhText}"
+                                    StrokeThickness="1.6"
+                                    Width="14"
+                                    Height="14"
+                                    Stretch="Uniform"
+                                />
                             </Button>
-                            <TextBlock Text="{Binding WindowText}" Foreground="{StaticResource GhOk}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                            <TextBlock
+                                Text="{Binding WindowText}"
+                                Foreground="{StaticResource GhOk}"
+                                VerticalAlignment="Center"
+                                Margin="8,0,0,0"
+                            />
                         </StackPanel>
                     </StackPanel>
                 </HeaderedContentControl>
@@ -89,17 +214,62 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <CheckBox Grid.Column="1" Style="{StaticResource StyleCheck}" Content="Save layer snapshot with view" IsChecked="{Binding SaveLayerSnapshot, Mode=TwoWay}" Margin="0,0,0,8" />
-                        <TextBlock Grid.Row="1" Text="UCS:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" Margin="0,0,0,8" />
-                        <ComboBox Grid.Row="1" Grid.Column="1" Style="{StaticResource GhComboBox}" SelectedIndex="0" Margin="0,0,0,8" AutomationProperties.Name="UCS">
+                        <CheckBox
+                            Grid.Column="1"
+                            Style="{StaticResource StyleCheck}"
+                            Content="Save layer snapshot with view"
+                            IsChecked="{Binding SaveLayerSnapshot, Mode=TwoWay}"
+                            Margin="0,0,0,8"
+                        />
+                        <TextBlock
+                            Grid.Row="1"
+                            Text="UCS:"
+                            Foreground="{StaticResource GhTextMuted}"
+                            VerticalAlignment="Center"
+                            Margin="0,0,0,8"
+                        />
+                        <ComboBox
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Style="{StaticResource GhComboBox}"
+                            SelectedIndex="0"
+                            Margin="0,0,0,8"
+                            AutomationProperties.Name="UCS"
+                        >
                             <ComboBoxItem Content="World" />
                         </ComboBox>
-                        <TextBlock Grid.Row="2" Text="Live section:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" Margin="0,0,0,8" />
-                        <ComboBox Grid.Row="2" Grid.Column="1" Style="{StaticResource GhComboBox}" SelectedIndex="0" IsEnabled="False" Margin="0,0,0,8" AutomationProperties.Name="Live section">
+                        <TextBlock
+                            Grid.Row="2"
+                            Text="Live section:"
+                            Foreground="{StaticResource GhTextMuted}"
+                            VerticalAlignment="Center"
+                            Margin="0,0,0,8"
+                        />
+                        <ComboBox
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Style="{StaticResource GhComboBox}"
+                            SelectedIndex="0"
+                            IsEnabled="False"
+                            Margin="0,0,0,8"
+                            AutomationProperties.Name="Live section"
+                        >
                             <ComboBoxItem Content="&lt;None&gt;" />
                         </ComboBox>
-                        <TextBlock Grid.Row="3" Text="Visual style:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
-                        <ComboBox Grid.Row="3" Grid.Column="1" Style="{StaticResource GhComboBox}" SelectedIndex="0" IsEnabled="False" AutomationProperties.Name="Visual style">
+                        <TextBlock
+                            Grid.Row="3"
+                            Text="Visual style:"
+                            Foreground="{StaticResource GhTextMuted}"
+                            VerticalAlignment="Center"
+                        />
+                        <ComboBox
+                            Grid.Row="3"
+                            Grid.Column="1"
+                            Style="{StaticResource GhComboBox}"
+                            SelectedIndex="0"
+                            IsEnabled="False"
+                            AutomationProperties.Name="Visual style"
+                        >
                             <ComboBoxItem Content="2D Wireframe" />
                         </ComboBox>
                     </Grid>
@@ -107,14 +277,31 @@
 
                 <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Background" Margin="0,10,0,0">
                     <StackPanel>
-                        <ComboBox Style="{StaticResource GhComboBox}" Width="200" HorizontalAlignment="Left" SelectedIndex="0" IsEnabled="False" Margin="0,0,0,6" AutomationProperties.Name="Background">
+                        <ComboBox
+                            Style="{StaticResource GhComboBox}"
+                            Width="200"
+                            HorizontalAlignment="Left"
+                            SelectedIndex="0"
+                            IsEnabled="False"
+                            Margin="0,0,0,6"
+                            AutomationProperties.Name="Background"
+                        >
                             <ComboBoxItem Content="Default" />
                         </ComboBox>
-                        <CheckBox Style="{StaticResource StyleCheck}" Content="Save sun properties with view" IsEnabled="False" />
+                        <CheckBox
+                            Style="{StaticResource StyleCheck}"
+                            Content="Save sun properties with view"
+                            IsEnabled="False"
+                        />
                     </StackPanel>
                 </HeaderedContentControl>
 
-                <TextBlock Margin="0,6,0,0" Foreground="{StaticResource GhError}" TextWrapping="Wrap" Text="{Binding Message}">
+                <TextBlock
+                    Margin="0,6,0,0"
+                    Foreground="{StaticResource GhError}"
+                    TextWrapping="Wrap"
+                    Text="{Binding Message}"
+                >
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
                             <Style.Triggers>
@@ -125,8 +312,12 @@
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
-                <TextBlock Margin="0,6,0,0" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap"
-                           Text="Define window hides the dialog and asks &quot;Specify first corner:&quot; then &quot;Specify opposite corner:&quot; on the command line. Shot Properties, live section, visual style and background are 3D and stay greyed. The name must be new; a used name asks to redefine the view." />
+                <TextBlock
+                    Margin="0,6,0,0"
+                    Foreground="{StaticResource GhTextMuted}"
+                    TextWrapping="Wrap"
+                    Text="Define window hides the dialog and asks &quot;Specify first corner:&quot; then &quot;Specify opposite corner:&quot; on the command line. Shot Properties, live section, visual style and background are 3D and stay greyed. The name must be new; a used name asks to redefine the view."
+                />
             </StackPanel>
         </DockPanel>
     </Border>

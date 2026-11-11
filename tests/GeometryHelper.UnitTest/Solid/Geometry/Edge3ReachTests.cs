@@ -24,8 +24,7 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A straight leg running through the cube along y = z = 50.
         /// </summary>
-        private static GeoEdge3 Straight() =>
-            new GeoEdge3(new GeoPoint3(-50, 50, 50), new GeoPoint3(150, 50, 50));
+        private static GeoEdge3 Straight() => new GeoEdge3(new GeoPoint3(-50, 50, 50), new GeoPoint3(150, 50, 50));
 
         /// <summary>
         /// The same chord bowed into a half turn in the plane z = 50, so it leaves the chord entirely.
@@ -43,8 +42,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoObb3 box = crate.ToObb();
             GeoSolid3 cube = box.ToSolid();
             var plane = new GeoPlane3(new GeoPoint3(50, 0, 0), new GeoVector3(1, 0, 0));
-            var flat = new GeoTriangle3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
+            var flat = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
 
             Assert.False(straight.IsArc);
             Assert.True(bent.IsArc);
@@ -104,7 +102,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.NotEqual(
                 string.Join(";", Array.ConvertAll(alongChord, point => point.ToString())),
-                string.Join(";", Array.ConvertAll(alongArc, point => point.ToString())));
+                string.Join(";", Array.ConvertAll(alongArc, point => point.ToString()))
+            );
 
             // And every crossing the bend reports really is on the bend.
             Assert.All(alongArc, point => Assert.True(bent.ToArc().IsPointOn(point, Loose), point.ToString()));
@@ -120,10 +119,13 @@ namespace GeometryHelper.UnitTest.Solid
             GeoObb3 box = crate.ToObb();
             GeoSolid3 cube = box.ToSolid();
             var plane = new GeoPlane3(new GeoPoint3(50, 0, 0), new GeoVector3(1, 0, 0));
-            var flat = new GeoTriangle3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
+            var flat = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
             var polygon = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 100, 0),
+                new GeoPoint3(0, 100, 0)
+            );
             var face = new GeoFace3(polygon);
 
             foreach (GeoEdge3 edge in new[] { straight, bent })
@@ -155,7 +157,10 @@ namespace GeometryHelper.UnitTest.Solid
             // An arc in a plane square to the bend's, through the point the bend arches to.
             GeoPoint3 apex = bent.ToArc().MidPoint;
             var arc = GeoArc3.FromThreePoints(
-                apex.Add(new GeoVector3(0, -100, 0)), apex, apex.Add(new GeoVector3(0, 0, 100)));
+                apex.Add(new GeoVector3(0, -100, 0)),
+                apex,
+                apex.Add(new GeoVector3(0, 0, 100))
+            );
 
             Assert.Equal(bent.GetIntersections(ring).Length, ring.GetIntersections(bent).Length);
             Assert.Equal(bent.CollidesWith(ring), ring.CollidesWith(bent));
@@ -167,7 +172,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(
                 bent.TryIntersectWith(ring, out GeoPoint3[] a),
-                ring.TryIntersectWith(bent, out GeoPoint3[] b));
+                ring.TryIntersectWith(bent, out GeoPoint3[] b)
+            );
             Assert.Equal(a.Length, b.Length);
         }
 

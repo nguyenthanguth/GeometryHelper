@@ -25,10 +25,15 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A frame tilted out of every axis, its origin away from the world's.
         /// </summary>
-        private static GeoCoordinateSystem3 Tilted() => new GeoCoordinateSystem3(
-            new GeoPoint3(120, -40, 75), new GeoVector3(0.6, 0.8, 0.0), new GeoVector3(-0.48, 0.36, 0.8));
+        private static GeoCoordinateSystem3 Tilted() =>
+            new GeoCoordinateSystem3(
+                new GeoPoint3(120, -40, 75),
+                new GeoVector3(0.6, 0.8, 0.0),
+                new GeoVector3(-0.48, 0.36, 0.8)
+            );
 
-        private static GeoPoint3 In(GeoCoordinateSystem3 frame, double x, double y) => frame.ToGlobal(new GeoPoint3(x, y, 0));
+        private static GeoPoint3 In(GeoCoordinateSystem3 frame, double x, double y) =>
+            frame.ToGlobal(new GeoPoint3(x, y, 0));
 
         [Theory]
         [InlineData(0.002)]
@@ -49,7 +54,13 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(3, bent.EdgeCount);
             Assert.True(bent.GetEdgeAt(1).IsArc);
             Assert.True(bent.GetEdgeAt(0).EndPoint.IsEqualTo(In(frame, 10.0 - reach, 0), Tight));
-            Assert.True(bent.GetEdgeAt(2).StartPoint.IsEqualTo(In(frame, 10.0 - 7.0 * reach / Math.Sqrt(74.0), 5.0 * reach / Math.Sqrt(74.0)), Tight));
+            Assert.True(
+                bent.GetEdgeAt(2)
+                    .StartPoint.IsEqualTo(
+                        In(frame, 10.0 - 7.0 * reach / Math.Sqrt(74.0), 5.0 * reach / Math.Sqrt(74.0)),
+                        Tight
+                    )
+            );
 
             // Read through the bulge: an arc this small is below the global tolerance, which its own reading uses.
             Assert.Equal(turn, 4.0 * Math.Atan(Math.Abs(bent.GetEdgeAt(1).Bulge)), 9);
@@ -97,9 +108,13 @@ namespace GeometryHelper.UnitTest.Solid
 
             double bulge = Math.Tan(181.0 * Math.PI / 180.0 / 4.0);
 
-            var slot = new GeoPolygonArc3(frame, new GeoPolygonArc2(
-                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 40), new GeoPoint2(0, 40) },
-                new[] { 0.0, bulge, 0.0, bulge }));
+            var slot = new GeoPolygonArc3(
+                frame,
+                new GeoPolygonArc2(
+                    new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 40), new GeoPoint2(0, 40) },
+                    new[] { 0.0, bulge, 0.0, bulge }
+                )
+            );
 
             GeoPolygonArc3 filleted = slot.Fillet(10.0, Thousandth);
 

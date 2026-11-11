@@ -28,8 +28,13 @@ namespace GeometryHelper.Dxf
         private const string NumberCharacters = "0123456789+-.eE";
 
         private readonly string[] _folders;
-        private readonly Dictionary<string, string> _paths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, Dictionary<string, List<double[]>>> _files = new Dictionary<string, Dictionary<string, List<double[]>>>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _paths = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase
+        );
+        private readonly Dictionary<string, Dictionary<string, List<double[]>>> _files = new Dictionary<
+            string,
+            Dictionary<string, List<double[]>>
+        >(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _said = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly object _lock = new object();
 
@@ -74,7 +79,15 @@ namespace GeometryHelper.Dxf
 
                     if (lines == null)
                     {
-                        Say(name + "|" + file, "DxfDatabase: the pattern " + name + " of " + _paths[file] + " has a line of fewer than five numbers, of more than six dashes or of a number that cannot be read, or no line, which AutoCAD refuses; the HATCH holds no lines of it.", true);
+                        Say(
+                            name + "|" + file,
+                            "DxfDatabase: the pattern "
+                                + name
+                                + " of "
+                                + _paths[file]
+                                + " has a line of fewer than five numbers, of more than six dashes or of a number that cannot be read, or no line, which AutoCAD refuses; the HATCH holds no lines of it.",
+                            true
+                        );
                         return null;
                     }
 
@@ -89,7 +102,17 @@ namespace GeometryHelper.Dxf
                     return copy;
                 }
 
-                Say(name + "|" + main, "DxfDatabase: the pattern " + name + " is in neither " + main + " nor " + (own ?? "a file of its name") + " in the folders of PatternSearchPath; the HATCH holds no lines of it, for AutoCAD to draw it from its own file.", false);
+                Say(
+                    name + "|" + main,
+                    "DxfDatabase: the pattern "
+                        + name
+                        + " is in neither "
+                        + main
+                        + " nor "
+                        + (own ?? "a file of its name")
+                        + " in the folders of PatternSearchPath; the HATCH holds no lines of it, for AutoCAD to draw it from its own file.",
+                    false
+                );
                 return null;
             }
         }
@@ -128,9 +151,23 @@ namespace GeometryHelper.Dxf
                 {
                     patterns = Read(File.ReadAllBytes(path));
                 }
-                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is System.Security.SecurityException || e is NotSupportedException || e is OutOfMemoryException)
+                catch (Exception e)
+                    when (e is IOException
+                        || e is UnauthorizedAccessException
+                        || e is System.Security.SecurityException
+                        || e is NotSupportedException
+                        || e is OutOfMemoryException
+                    )
                 {
-                    Say(path, "DxfDatabase: the pattern file " + path + " could not be read (" + e.Message + "); its patterns are not drawn.", true);
+                    Say(
+                        path,
+                        "DxfDatabase: the pattern file "
+                            + path
+                            + " could not be read ("
+                            + e.Message
+                            + "); its patterns are not drawn.",
+                        true
+                    );
                     patterns = null;
                 }
 
@@ -154,7 +191,13 @@ namespace GeometryHelper.Dxf
                         return path;
                     }
                 }
-                catch (Exception e) when (e is ArgumentException || e is NotSupportedException || e is IOException || e is UnauthorizedAccessException || e is System.Security.SecurityException)
+                catch (Exception e)
+                    when (e is ArgumentException
+                        || e is NotSupportedException
+                        || e is IOException
+                        || e is UnauthorizedAccessException
+                        || e is System.Security.SecurityException
+                    )
                 {
                     continue;
                 }
@@ -248,7 +291,12 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A pattern read, kept where it is the first of its name: its lines, or null where it is refused or has none.</summary>
-        private static void Keep(Dictionary<string, List<double[]>> patterns, string name, List<double[]> lines, bool broken)
+        private static void Keep(
+            Dictionary<string, List<double[]>> patterns,
+            string name,
+            List<double[]> lines,
+            bool broken
+        )
         {
             if (name != null && !patterns.ContainsKey(name))
             {
@@ -283,8 +331,17 @@ namespace GeometryHelper.Dxf
                     end++;
                 }
 
-                if (end == 0 || (end < field.Length && field[end] != ' ' && field[end] != '\t')
-                    || !double.TryParse(field.Substring(0, end), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) || !Guard.IsFinite(value))
+                if (
+                    end == 0
+                    || (end < field.Length && field[end] != ' ' && field[end] != '\t')
+                    || !double.TryParse(
+                        field.Substring(0, end),
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out double value
+                    )
+                    || !Guard.IsFinite(value)
+                )
                 {
                     return null;
                 }

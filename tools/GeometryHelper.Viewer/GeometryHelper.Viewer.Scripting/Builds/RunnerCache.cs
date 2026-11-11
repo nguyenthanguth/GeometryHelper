@@ -33,7 +33,14 @@ namespace GeometryHelper.Viewer.Builds
             }
 
             using (SHA256 hash = SHA256.Create())
-            using (FileStream stream = new FileStream(dll, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            using (
+                FileStream stream = new FileStream(
+                    dll,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.ReadWrite | FileShare.Delete
+                )
+            )
             {
                 return Hex(hash.ComputeHash(stream));
             }
@@ -66,7 +73,8 @@ namespace GeometryHelper.Viewer.Builds
         /// <exception cref="ArgumentNullException">Thrown when an argument is null.</exception>
         /// <exception cref="DirectoryNotFoundException">Thrown when the runner folder of the environment does not exist.</exception>
         /// <exception cref="IOException">Thrown when a file cannot be read or copied.</exception>
-        public static string Prepare(CompareEnvironment environment, string dll, Action<string> log) => Prepare(environment, dll, log, out _);
+        public static string Prepare(CompareEnvironment environment, string dll, Action<string> log) =>
+            Prepare(environment, dll, log, out _);
 
         /// <summary>
         /// Makes the copy of the runner for a library if there is none, and says where it is and what the library's key is. The DLL is copied once, first, into a
@@ -100,7 +108,10 @@ namespace GeometryHelper.Viewer.Builds
             }
 
             Directory.CreateDirectory(environment.RunnersFolder);
-            string stage = Path.Combine(environment.RunnersFolder, ".stage-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+            string stage = Path.Combine(
+                environment.RunnersFolder,
+                ".stage-" + Guid.NewGuid().ToString("N").Substring(0, 8)
+            );
 
             try
             {
@@ -152,7 +163,14 @@ namespace GeometryHelper.Viewer.Builds
                 }
 
                 CacheTrimmer.Touch(Path.Combine(folder, ReadyFile));
-                CacheTrimmer.Trim(environment.CacheRoot, environment.RunnersFolder, ReadyFile, environment.CacheKeep, folder, environment.CacheProtection);
+                CacheTrimmer.Trim(
+                    environment.CacheRoot,
+                    environment.RunnersFolder,
+                    ReadyFile,
+                    environment.CacheKeep,
+                    folder,
+                    environment.CacheProtection
+                );
                 return folder;
             }
             finally
@@ -168,7 +186,9 @@ namespace GeometryHelper.Viewer.Builds
             try
             {
                 string marker = Path.Combine(folder, ReadyFile);
-                return File.Exists(marker) && File.ReadAllText(marker, Encoding.UTF8) == runnerKey && File.Exists(Path.Combine(folder, "GeometryHelper.dll"));
+                return File.Exists(marker)
+                    && File.ReadAllText(marker, Encoding.UTF8) == runnerKey
+                    && File.Exists(Path.Combine(folder, "GeometryHelper.dll"));
             }
             catch (IOException)
             {
@@ -183,13 +203,20 @@ namespace GeometryHelper.Viewer.Builds
         {
             using (SHA256 hash = SHA256.Create())
             {
-                foreach (string file in Directory.GetFiles(folder, "*", SearchOption.AllDirectories).OrderBy(f => f, StringComparer.Ordinal))
+                foreach (
+                    string file in Directory
+                        .GetFiles(folder, "*", SearchOption.AllDirectories)
+                        .OrderBy(f => f, StringComparer.Ordinal)
+                )
                 {
                     string relative = file.Substring(folder.Length).TrimStart(Path.DirectorySeparatorChar);
 
                     // The library the viewer was built with is not part of the runner: every copy has its own put over it.
-                    if (string.Equals(relative, "GeometryHelper.dll", StringComparison.OrdinalIgnoreCase) || string.Equals(relative, "GeometryHelper.pdb", StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(relative, "GeometryHelper.xml", StringComparison.OrdinalIgnoreCase))
+                    if (
+                        string.Equals(relative, "GeometryHelper.dll", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(relative, "GeometryHelper.pdb", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(relative, "GeometryHelper.xml", StringComparison.OrdinalIgnoreCase)
+                    )
                     {
                         continue;
                     }
@@ -235,7 +262,8 @@ namespace GeometryHelper.Viewer.Builds
             }
         }
 
-        private static string Hex(byte[] bytes) => string.Concat(bytes.Select(b => b.ToString("x2", CultureInfo.InvariantCulture)));
+        private static string Hex(byte[] bytes) =>
+            string.Concat(bytes.Select(b => b.ToString("x2", CultureInfo.InvariantCulture)));
 
         /// <summary>
         /// A lock that every process of the viewer shares, by name, for work that must not be done twice at once.
@@ -253,7 +281,9 @@ namespace GeometryHelper.Viewer.Builds
                     if (!_mutex.WaitOne(TimeSpan.FromSeconds(120)))
                     {
                         _mutex.Dispose();
-                        throw new IOException("Another run has been making the runner copy '" + name + "' for more than two minutes.");
+                        throw new IOException(
+                            "Another run has been making the runner copy '" + name + "' for more than two minutes."
+                        );
                     }
                 }
                 catch (AbandonedMutexException)

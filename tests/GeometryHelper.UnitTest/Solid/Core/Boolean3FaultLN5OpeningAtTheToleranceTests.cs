@@ -29,7 +29,8 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>The body less what it holds of a cube 0.1 across at the corner, the corner cut away to the faces.</summary>
         private const double Merged = 240000.0 - 0.101 * 0.101 * 0.101;
 
-        private static GeoSolid3 Opening(double off) => new GeoObb3(new GeoPoint3(off + 0.05, off + 0.05, off + 0.05), 0.1, 0.1, 0.1).ToSolid();
+        private static GeoSolid3 Opening(double off) =>
+            new GeoObb3(new GeoPoint3(off + 0.05, off + 0.05, off + 0.05), 0.1, 0.1, 0.1).ToSolid();
 
         [Theory]
         [InlineData(1E-3)]
@@ -48,7 +49,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(validation.IsValid);
 
             double volume = material.GetVolume(Default);
-            Assert.True(Math.Abs(volume - Merged) < 1E-9 || Math.Abs(volume - (240000.0 - 0.001)) < 1E-9, volume.ToString("R"));
+            Assert.True(
+                Math.Abs(volume - Merged) < 1E-9 || Math.Abs(volume - (240000.0 - 0.001)) < 1E-9,
+                volume.ToString("R")
+            );
             Assert.Equal(volume, again.GetVolume(Default));
         }
 
@@ -69,18 +73,31 @@ namespace GeometryHelper.UnitTest.Solid
                         double off = 1E-3 * (1 + k * 1E-12);
                         double size = 0.3 + 0.4 * ((index++ * 7) % 11);
                         GeoPoint3 low = new GeoPoint3(off, near >= 2 ? off : 20, near >= 3 ? off : 15);
-                        GeoSolid3 opening = new GeoObb3(new GeoPoint3(low.X + size / 2, low.Y + size / 2, low.Z + size / 2), size, size, size).ToSolid();
+                        GeoSolid3 opening = new GeoObb3(
+                            new GeoPoint3(low.X + size / 2, low.Y + size / 2, low.Z + size / 2),
+                            size,
+                            size,
+                            size
+                        ).ToSolid();
                         GeoSolid3 body = Body;
 
                         if (angle != 0.0)
                         {
-                            GeoTransform3 turn = GeoTransform3.RotationAxis(GeoPoint3.Origin, new GeoVector3(0.3, 0.5, 0.8).Normalize(), angle);
+                            GeoTransform3 turn = GeoTransform3.RotationAxis(
+                                GeoPoint3.Origin,
+                                new GeoVector3(0.3, 0.5, 0.8).Normalize(),
+                                angle
+                            );
                             body = body.TransformBy(turn);
                             opening = opening.TransformBy(turn);
                         }
 
-                        if (!new GeoSolid3(body.Faces, new[] { opening }).TryCutOpenings(out GeoSolid3 material, Default)
-                            || !material.Validate(Default).IsClosed)
+                        if (
+                            !new GeoSolid3(body.Faces, new[] { opening }).TryCutOpenings(
+                                out GeoSolid3 material,
+                                Default
+                            ) || !material.Validate(Default).IsClosed
+                        )
                         {
                             open.Add($"near {near}, turned {angle}, off {off:R}, size {size:R}");
                         }

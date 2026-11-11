@@ -29,7 +29,10 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             const string Head = " 93\n0\n 94\n0\n 95\n0\n 96\n0\n141\n10.0\n";
             Assert.Contains(Head, DxfDimensionDrawings.R2018, StringComparison.Ordinal);
-            return DxfDimensionDrawings.R2018.Replace(Head, " 93\n6886016\n 94\n0\n 95\n0\n 96\n0\n  7\nGH_TXT\n140\n9.0\n170\n1\n 63\n3\n 64\n1\n140\n9.0\n283\n0\n141\n10.0\n");
+            return DxfDimensionDrawings.R2018.Replace(
+                Head,
+                " 93\n6886016\n 94\n0\n 95\n0\n 96\n0\n  7\nGH_TXT\n140\n9.0\n170\n1\n 63\n3\n 64\n1\n140\n9.0\n283\n0\n141\n10.0\n"
+            );
         }
 
         #region The kinds of rows
@@ -47,7 +50,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(one.IsHeaderSuppressed);
             Assert.Contains(" 93\n2\n", Record(db.ToText(), "F6"), StringComparison.Ordinal);
 
-            foreach (Action<DxfTable> grow in new Action<DxfTable>[] { t => t.SetSize(3, 2), t => t.InsertRows(1, 9.0, 2) })
+            foreach (
+                Action<DxfTable> grow in new Action<DxfTable>[] { t => t.SetSize(3, 2), t => t.InsertRows(1, 9.0, 2) }
+            )
             {
                 DxfDatabase grown = DxfDatabase.Parse(db.ToText());
                 grow(Table(grown));
@@ -107,7 +112,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // D28e x12, x14: a row put in before the title left it and the header out, its TABLECONTENT keeping each row's style
             // (3, 1, 2, 3); the new row taken out again, AutoCAD read the title and the header shown (93 0, no 280 nor 281).
-            DxfDatabase linked = DxfDatabase.Parse(DxfAutoCadChecksD16Tests.LinkedByAutoCad(DxfDimensionDrawings.R2018));
+            DxfDatabase linked = DxfDatabase.Parse(
+                DxfAutoCadChecksD16Tests.LinkedByAutoCad(DxfDimensionDrawings.R2018)
+            );
             Table(linked).InsertRows(0, 9.0, 1);
             Assert.True(Reread(linked).IsTitleSuppressed);
             Table(linked).DeleteRows(0, 1);
@@ -250,7 +257,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfDatabase old = DxfDatabase.Parse(DxfDimensionDrawings.R2000);
             Table(old).SetValue(2, 0, 1.0 / 3.0);
-            Assert.Equal(1.0 / 3.0, double.Parse(Reread(old).TextString(2, 0), System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                1.0 / 3.0,
+                double.Parse(Reread(old).TextString(2, 0), System.Globalization.CultureInfo.InvariantCulture)
+            );
         }
 
         #endregion
@@ -291,7 +301,11 @@ namespace GeometryHelper.UnitTest.Dxf
             // put in after the last cell, as none.
             DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
             Table(db).SetGridColor(Aci(1), DxfGridLineType.AllGridLines, DxfRowType.DataRow);
-            Assert.Contains(" 94\n258048\n 95\n0\n 96\n0\n 64\n1\n 65\n1\n 66\n1\n 63\n1\n 68\n1\n 69\n1\n141\n", Record(db.ToText(), "F6"), StringComparison.Ordinal);
+            Assert.Contains(
+                " 94\n258048\n 95\n0\n 96\n0\n 64\n1\n 65\n1\n 66\n1\n 63\n1\n 68\n1\n 69\n1\n141\n",
+                Record(db.ToText(), "F6"),
+                StringComparison.Ordinal
+            );
             Assert.Equal(1, Reread(db).GridColor(DxfGridLineType.HorizontalInside, DxfRowType.DataRow).ColorIndex);
         }
 

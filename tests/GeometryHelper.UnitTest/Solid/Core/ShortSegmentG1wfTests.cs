@@ -24,20 +24,48 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class ShortSegmentG1wfTests
     {
-        private static readonly Tolerance Billionth = new Tolerance(1E-9, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-9);
+        private static readonly Tolerance Billionth = new Tolerance(
+            1E-9,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-9
+        );
 
-        private static readonly Tolerance TenMillionth = new Tolerance(1E-7, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-7);
+        private static readonly Tolerance TenMillionth = new Tolerance(
+            1E-7,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-7
+        );
 
-        private static readonly Tolerance Thousandth = new Tolerance(1E-3, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-3);
+        private static readonly Tolerance Thousandth = new Tolerance(
+            1E-3,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-3
+        );
 
-        private static readonly Tolerance Hundredth = new Tolerance(1E-2, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-2);
+        private static readonly Tolerance Hundredth = new Tolerance(
+            1E-2,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-2
+        );
 
-        private static GeoLine3 Through(double x, double y) => new GeoLine3(new GeoPoint3(x, y, 0.0004), new GeoPoint3(x, y, -0.0005));
+        private static GeoLine3 Through(double x, double y) =>
+            new GeoLine3(new GeoPoint3(x, y, 0.0004), new GeoPoint3(x, y, -0.0005));
 
-        private static GeoLine3 Tiny(double x, double y) => new GeoLine3(new GeoPoint3(x, y, 0.000004), new GeoPoint3(x, y, -0.000004));
+        private static GeoLine3 Tiny(double x, double y) =>
+            new GeoLine3(new GeoPoint3(x, y, 0.000004), new GeoPoint3(x, y, -0.000004));
 
-        private static GeoPoint3[] Corners()
-            => new[] { new GeoPoint3(-7, -7, 0), new GeoPoint3(0, 0, 0), new GeoPoint3(0.008, 0, 0), new GeoPoint3(7, -7, 0) };
+        private static GeoPoint3[] Corners() =>
+            new[]
+            {
+                new GeoPoint3(-7, -7, 0),
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(0.008, 0, 0),
+                new GeoPoint3(7, -7, 0),
+            };
 
         private static void AssertAt(double x, double y, double z, GeoPoint3 actual)
         {
@@ -80,7 +108,13 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AStubShorterThanTheVectorTolerance_CrossingTheRimOfAnEllipse_MeetsItWhereItCrosses()
         {
-            var ellipse = new GeoEllipse3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), new GeoVector3(1, 0, 0), 6, 4);
+            var ellipse = new GeoEllipse3(
+                new GeoPoint3(0, 0, 0),
+                new GeoVector3(0, 0, 1),
+                new GeoVector3(1, 0, 0),
+                6,
+                4
+            );
 
             AssertAt(6, 0, 0, Assert.Single(ellipse.GetIntersections(Tiny(6, 0), Thousandth)));
             AssertAt(6, 0, 0, Assert.Single(ellipse.GetIntersections(Tiny(6, 0), TenMillionth)));
@@ -89,21 +123,59 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AChainEndingWithinTheToleranceOfAShape_OnItsShortLastSide_TouchesIt()
         {
-            var chain = new GeoPolylineArc3(new[] { new GeoPoint3(-7, -7, 0), new GeoPoint3(0, 0, 0), new GeoPoint3(0.008, 0, 0) });
+            var chain = new GeoPolylineArc3(
+                new[] { new GeoPoint3(-7, -7, 0), new GeoPoint3(0, 0, 0), new GeoPoint3(0.008, 0, 0) }
+            );
             var square = new GeoPolygon3(
-                new GeoPoint3(0.017, -5, -5), new GeoPoint3(0.017, 5, -5), new GeoPoint3(0.017, 5, 5), new GeoPoint3(0.017, -5, 5));
+                new GeoPoint3(0.017, -5, -5),
+                new GeoPoint3(0.017, 5, -5),
+                new GeoPoint3(0.017, 5, 5),
+                new GeoPoint3(0.017, -5, 5)
+            );
             var box = new GeoObb3(new GeoPoint3(5.017, 0, 0), 10, 10, 10);
 
-            Assert.True(chain.CollidesWith(new GeoTriangle3(new GeoPoint3(0.017, -5, -5), new GeoPoint3(0.017, 5, -5), new GeoPoint3(0.017, 0, 5)), Hundredth));
+            Assert.True(
+                chain.CollidesWith(
+                    new GeoTriangle3(
+                        new GeoPoint3(0.017, -5, -5),
+                        new GeoPoint3(0.017, 5, -5),
+                        new GeoPoint3(0.017, 0, 5)
+                    ),
+                    Hundredth
+                )
+            );
             Assert.True(chain.CollidesWith(square, Hundredth));
             Assert.True(chain.CollidesWith(new GeoFace3(square), Hundredth));
             Assert.True(chain.CollidesWith(box, Hundredth));
             Assert.True(chain.CollidesWith(box.ToSolid(), Hundredth));
-            Assert.True(chain.CollidesWith(new GeoLine3(new GeoPoint3(0.017, 0, -5), new GeoPoint3(0.017, 0, 5)), Hundredth));
-            Assert.True(chain.CollidesWith(new GeoRay3(new GeoPoint3(0.017, 0, -5), new GeoVector3(0, 0, 1)), Hundredth));
-            Assert.True(chain.CollidesWith(GeoArc3.FromThreePoints(new GeoPoint3(3.017, 0, -4), new GeoPoint3(0.017, 0, 0), new GeoPoint3(3.017, 0, 4), Hundredth), Hundredth));
-            Assert.True(chain.CollidesWith(new GeoCircle3(new GeoPoint3(5.017, 0, 0), new GeoVector3(0, 1, 0), 5), Hundredth));
-            Assert.True(chain.CollidesWith(new GeoPolylineArc3(new[] { new GeoPoint3(0.017, 0, -5), new GeoPoint3(0.017, 0, 5), new GeoPoint3(3, 3, 5) }), Hundredth));
+            Assert.True(
+                chain.CollidesWith(new GeoLine3(new GeoPoint3(0.017, 0, -5), new GeoPoint3(0.017, 0, 5)), Hundredth)
+            );
+            Assert.True(
+                chain.CollidesWith(new GeoRay3(new GeoPoint3(0.017, 0, -5), new GeoVector3(0, 0, 1)), Hundredth)
+            );
+            Assert.True(
+                chain.CollidesWith(
+                    GeoArc3.FromThreePoints(
+                        new GeoPoint3(3.017, 0, -4),
+                        new GeoPoint3(0.017, 0, 0),
+                        new GeoPoint3(3.017, 0, 4),
+                        Hundredth
+                    ),
+                    Hundredth
+                )
+            );
+            Assert.True(
+                chain.CollidesWith(new GeoCircle3(new GeoPoint3(5.017, 0, 0), new GeoVector3(0, 1, 0), 5), Hundredth)
+            );
+            Assert.True(
+                chain.CollidesWith(
+                    new GeoPolylineArc3(
+                        new[] { new GeoPoint3(0.017, 0, -5), new GeoPoint3(0.017, 0, 5), new GeoPoint3(3, 3, 5) }
+                    ),
+                    Hundredth
+                )
+            );
         }
 
         [Fact]
@@ -136,11 +208,19 @@ namespace GeometryHelper.UnitTest.Solid
         public void APolylineBesideTheShortSideOfAPolygon_IsJoinedToTheSideAsItIs()
         {
             var polygon = new GeoPolygon3(Corners());
-            var polyline = new GeoPolyline3(new GeoPoint3(0.006, 0.02, -5), new GeoPoint3(0.006, 0.02, 5), new GeoPoint3(3, 3, 5));
+            var polyline = new GeoPolyline3(
+                new GeoPoint3(0.006, 0.02, -5),
+                new GeoPoint3(0.006, 0.02, 5),
+                new GeoPoint3(3, 3, 5)
+            );
 
             Assert.Equal(0.02, polyline.GetShortestLineTo(polygon, Hundredth).Length, 12);
             Assert.Equal(0.02, polygon.GetShortestLineTo(polyline, Hundredth).Length, 12);
-            Assert.Equal(polyline.DistanceTo(polygon, Hundredth), polyline.GetShortestLineTo(polygon, Hundredth).Length, 12);
+            Assert.Equal(
+                polyline.DistanceTo(polygon, Hundredth),
+                polyline.GetShortestLineTo(polygon, Hundredth).Length,
+                12
+            );
         }
     }
 }

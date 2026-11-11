@@ -49,9 +49,7 @@ namespace GeometryHelper.Geometry
         /// <param name="through">A point the ray passes through.</param>
         /// <exception cref="ArgumentException">Thrown when the two points coincide.</exception>
         public GeoRay2(GeoPoint2 origin, GeoPoint2 through)
-            : this(origin, origin.GetVectorTo(through))
-        {
-        }
+            : this(origin, origin.GetVectorTo(through)) { }
 
         /// <summary>
         /// Initializes a ray from a direction that is already normalized.
@@ -144,7 +142,11 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is negative, NaN or infinite.</exception>
         public GeoLine2 ToLine(double distance)
         {
-            Guard.NonNegative(distance, nameof(distance), "A ray is sampled forwards, over a distance that is a number.");
+            Guard.NonNegative(
+                distance,
+                nameof(distance),
+                "A ray is sampled forwards, over a distance that is a number."
+            );
 
             return new GeoLine2(Origin, GetPointAtDistance(distance));
         }
@@ -217,7 +219,8 @@ namespace GeometryHelper.Geometry
         /// <param name="point">The point.</param>
         /// <param name="tolerance">The tolerance that decides what counts as on it.</param>
         /// <returns><c>OnSide</c> when the point is on the ray; otherwise, <c>OutSide</c>.</returns>
-        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) => Containment2.Locate(this, point, tolerance);
+        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) =>
+            Containment2.Locate(this, point, tolerance);
 
         #endregion
 

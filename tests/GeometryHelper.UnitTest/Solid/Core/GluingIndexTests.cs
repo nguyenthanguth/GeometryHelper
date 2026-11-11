@@ -19,8 +19,8 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Tol = Tolerance.Global;
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
         /// <summary>
         /// The cells of a body cut the way its openings are cut in: every face plane of a few cutters splits the
@@ -34,7 +34,13 @@ namespace GeometryHelper.UnitTest.Solid
 
             if (rng.NextDouble() < 0.5)
             {
-                body = body.TransformBy(GeoTransform3.RotationAxis(new GeoPoint3(100, 75, 20), new GeoVector3(rng.NextDouble(), rng.NextDouble(), 1), rng.NextDouble()));
+                body = body.TransformBy(
+                    GeoTransform3.RotationAxis(
+                        new GeoPoint3(100, 75, 20),
+                        new GeoVector3(rng.NextDouble(), rng.NextDouble(), 1),
+                        rng.NextDouble()
+                    )
+                );
             }
 
             GeoPoint3 centre = body.GetAabb().Center;
@@ -44,9 +50,22 @@ namespace GeometryHelper.UnitTest.Solid
             for (int c = 0; c < cutters; c++)
             {
                 var at = new GeoPoint3(centre.X + rng.Next(-70, 71), centre.Y + rng.Next(-50, 51), centre.Z);
-                GeoSolid3 cutter = rng.NextDouble() < 0.5
-                    ? GeoSolid3.Cylinder(at.Add(new GeoVector3(0, 0, -60)), at.Add(new GeoVector3(rng.Next(-10, 11), rng.Next(-10, 11), 60)), rng.Next(5, 20), 8 + 2 * rng.Next(0, 5))
-                    : Box(at.X - rng.Next(5, 30), at.Y - rng.Next(5, 30), at.Z - 60, at.X + rng.Next(5, 30), at.Y + rng.Next(5, 30), at.Z + 60);
+                GeoSolid3 cutter =
+                    rng.NextDouble() < 0.5
+                        ? GeoSolid3.Cylinder(
+                            at.Add(new GeoVector3(0, 0, -60)),
+                            at.Add(new GeoVector3(rng.Next(-10, 11), rng.Next(-10, 11), 60)),
+                            rng.Next(5, 20),
+                            8 + 2 * rng.Next(0, 5)
+                        )
+                        : Box(
+                            at.X - rng.Next(5, 30),
+                            at.Y - rng.Next(5, 30),
+                            at.Z - 60,
+                            at.X + rng.Next(5, 30),
+                            at.Y + rng.Next(5, 30),
+                            at.Z + 60
+                        );
 
                 GeoAabb3 reach = cutter.GetAabb();
 
@@ -56,7 +75,10 @@ namespace GeometryHelper.UnitTest.Solid
 
                     foreach (GeoSolid3 cell in cells)
                     {
-                        if (cell.GetAabb().CollidesWith(reach, Tol) && Splition3.TrySplitBy(cell, plane, out GeoSolid3 above, out GeoSolid3 below, Tol))
+                        if (
+                            cell.GetAabb().CollidesWith(reach, Tol)
+                            && Splition3.TrySplitBy(cell, plane, out GeoSolid3 above, out GeoSolid3 below, Tol)
+                        )
                         {
                             divided.Add(above);
                             divided.Add(below);
@@ -127,10 +149,12 @@ namespace GeometryHelper.UnitTest.Solid
 
                 for (int j = i + 1; j < count; j++)
                 {
-                    if (normals[i].DotProduct(normals[j]) >= 0.0
+                    if (
+                        normals[i].DotProduct(normals[j]) >= 0.0
                         || !boxes[i].CollidesWith(boxes[j], Tol)
                         || !Boolean3.LiesIn(plane, faces[j], Tol)
-                        || Boolean3.Intersect(faces[i], faces[j], Tol).Sum(f => f.Area) <= speck)
+                        || Boolean3.Intersect(faces[i], faces[j], Tol).Sum(f => f.Area) <= speck
+                    )
                     {
                         continue;
                     }
@@ -229,8 +253,10 @@ namespace GeometryHelper.UnitTest.Solid
                         continue;
                     }
 
-                    if (edges[i].StartPoint.IsEqualTo(edges[j].EndPoint, Tol) &&
-                        edges[i].EndPoint.IsEqualTo(edges[j].StartPoint, Tol))
+                    if (
+                        edges[i].StartPoint.IsEqualTo(edges[j].EndPoint, Tol)
+                        && edges[i].EndPoint.IsEqualTo(edges[j].StartPoint, Tol)
+                    )
                     {
                         dropped[i] = true;
                         dropped[j] = true;
@@ -256,12 +282,18 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int k = 0; k < expected.Count; k++)
             {
-                Assert.True(expected[k].Boundary.Vertices.SequenceEqual(actual[k].Boundary.Vertices), $"{where}: face {k} differs");
+                Assert.True(
+                    expected[k].Boundary.Vertices.SequenceEqual(actual[k].Boundary.Vertices),
+                    $"{where}: face {k} differs"
+                );
                 Assert.Equal(expected[k].Holes.Count, actual[k].Holes.Count);
 
                 for (int h = 0; h < expected[k].Holes.Count; h++)
                 {
-                    Assert.True(expected[k].Holes[h].Vertices.SequenceEqual(actual[k].Holes[h].Vertices), $"{where}: face {k}, hole {h} differs");
+                    Assert.True(
+                        expected[k].Holes[h].Vertices.SequenceEqual(actual[k].Holes[h].Vertices),
+                        $"{where}: face {k}, hole {h} differs"
+                    );
                 }
             }
         }
@@ -272,7 +304,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int k = 0; k < expected.Count; k++)
             {
-                Assert.True(expected[k].StartPoint.Equals(actual[k].StartPoint) && expected[k].EndPoint.Equals(actual[k].EndPoint), $"{where}: edge {k} differs");
+                Assert.True(
+                    expected[k].StartPoint.Equals(actual[k].StartPoint)
+                        && expected[k].EndPoint.Equals(actual[k].EndPoint),
+                    $"{where}: edge {k} differs"
+                );
             }
         }
 
@@ -322,7 +358,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void GluingTheCellsOfCutBodiesGivesWhatComparingEveryPairGave()
         {
-            int walls = 0, backToBack = 0, groups = 0;
+            int walls = 0,
+                backToBack = 0,
+                groups = 0;
 
             for (int seed = 0; seed < 12; seed++)
             {
@@ -376,7 +414,9 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 // Turned into a general direction in space, so that no axis lines the edges up.
                 GeoTransform3 turn = GeoTransform3.RotationAxis(GeoPoint3.Origin, new GeoVector3(0.3, -0.7, 0.64), 0.9);
-                List<GeoLine3> edges = Strips(rng).Select(e => new GeoLine3(e.StartPoint.TransformBy(turn), e.EndPoint.TransformBy(turn))).ToList();
+                List<GeoLine3> edges = Strips(rng)
+                    .Select(e => new GeoLine3(e.StartPoint.TransformBy(turn), e.EndPoint.TransformBy(turn)))
+                    .ToList();
 
                 var expected = new List<GeoLine3>(edges);
                 var actual = new List<GeoLine3>(edges);
@@ -402,8 +442,13 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int round = 0; round < 40; round++)
             {
-                GeoPoint3 Square(GeoPoint3 p) => axis == 0 ? new GeoPoint3(p.Z + 500, p.X, p.Y) : axis == 1 ? new GeoPoint3(p.X, p.Z + 500, p.Y) : new GeoPoint3(p.X, p.Y, p.Z + 500);
-                List<GeoLine3> edges = Strips(rng).Select(e => new GeoLine3(Square(e.StartPoint), Square(e.EndPoint))).ToList();
+                GeoPoint3 Square(GeoPoint3 p) =>
+                    axis == 0 ? new GeoPoint3(p.Z + 500, p.X, p.Y)
+                    : axis == 1 ? new GeoPoint3(p.X, p.Z + 500, p.Y)
+                    : new GeoPoint3(p.X, p.Y, p.Z + 500);
+                List<GeoLine3> edges = Strips(rng)
+                    .Select(e => new GeoLine3(Square(e.StartPoint), Square(e.EndPoint)))
+                    .ToList();
 
                 var expected = new List<GeoLine3>(edges);
                 var actual = new List<GeoLine3>(edges);
@@ -425,8 +470,14 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < sides; i++)
             {
-                double a0 = 2 * Math.PI * i / sides, a1 = 2 * Math.PI * (i + 1) / sides;
-                edges.Add(new GeoLine3(new GeoPoint3(5000, 600 * Math.Cos(a0), 600 * Math.Sin(a0)), new GeoPoint3(5000, 600 * Math.Cos(a1), 600 * Math.Sin(a1))));
+                double a0 = 2 * Math.PI * i / sides,
+                    a1 = 2 * Math.PI * (i + 1) / sides;
+                edges.Add(
+                    new GeoLine3(
+                        new GeoPoint3(5000, 600 * Math.Cos(a0), 600 * Math.Sin(a0)),
+                        new GeoPoint3(5000, 600 * Math.Cos(a1), 600 * Math.Sin(a1))
+                    )
+                );
             }
 
             var watch = Stopwatch.StartNew();
@@ -474,7 +525,11 @@ namespace GeometryHelper.UnitTest.Solid
 
                 if (!shared || !nudges.TryGetValue((cx, cy), out nudge))
                 {
-                    nudge = new GeoVector3((rng.NextDouble() - 0.5) * scale, (rng.NextDouble() - 0.5) * scale, (rng.NextDouble() - 0.5) * scale);
+                    nudge = new GeoVector3(
+                        (rng.NextDouble() - 0.5) * scale,
+                        (rng.NextDouble() - 0.5) * scale,
+                        (rng.NextDouble() - 0.5) * scale
+                    );
                     nudges[(cx, cy)] = nudge;
                 }
 
@@ -485,7 +540,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             foreach (var r in rectangles)
             {
-                GeoPoint3 a = Corner(r.X0, r.Y0), b = Corner(r.X1, r.Y0), c = Corner(r.X1, r.Y1), d = Corner(r.X0, r.Y1);
+                GeoPoint3 a = Corner(r.X0, r.Y0),
+                    b = Corner(r.X1, r.Y0),
+                    c = Corner(r.X1, r.Y1),
+                    d = Corner(r.X0, r.Y1);
                 edges.Add(new GeoLine3(a, b));
                 edges.Add(new GeoLine3(b, c));
                 edges.Add(new GeoLine3(c, d));
@@ -520,7 +578,14 @@ namespace GeometryHelper.UnitTest.Solid
                     }
 
                     centres.Add(c);
-                    holes.Add(GeoSolid3.Cylinder(c.Add(new GeoVector3(0, 0, -30)), c.Add(new GeoVector3(0, 0, 20)), radius, 12));
+                    holes.Add(
+                        GeoSolid3.Cylinder(
+                            c.Add(new GeoVector3(0, 0, -30)),
+                            c.Add(new GeoVector3(0, 0, 20)),
+                            radius,
+                            12
+                        )
+                    );
                 }
 
                 GeoSolid3 plate = Box(-250, -250, -20, 250, 250, 0).WithOpenings(holes);

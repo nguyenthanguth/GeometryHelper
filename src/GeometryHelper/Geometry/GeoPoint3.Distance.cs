@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -113,7 +113,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the signed distance from this point to the surface of a axis-aligned box, negative inside it, within a tolerance.
         /// </summary>
-        public double SignedDistanceTo(GeoAabb3 box, Tolerance tolerance) => Distance3.SignedDistanceTo(box, this, tolerance);
+        public double SignedDistanceTo(GeoAabb3 box, Tolerance tolerance) =>
+            Distance3.SignedDistanceTo(box, this, tolerance);
 
         /// <summary>
         /// Gets the signed distance from this point to the surface of a oriented box, negative inside it, using the default tolerance.
@@ -123,7 +124,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the signed distance from this point to the surface of a oriented box, negative inside it, within a tolerance.
         /// </summary>
-        public double SignedDistanceTo(GeoObb3 box, Tolerance tolerance) => Distance3.SignedDistanceTo(box, this, tolerance);
+        public double SignedDistanceTo(GeoObb3 box, Tolerance tolerance) =>
+            Distance3.SignedDistanceTo(box, this, tolerance);
 
         /// <summary>
         /// Gets the signed distance from this point to the surface of a solid, negative inside it, using the default tolerance.
@@ -133,7 +135,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the signed distance from this point to the surface of a solid, negative inside it, within a tolerance.
         /// </summary>
-        public double SignedDistanceTo(GeoSolid3 solid, Tolerance tolerance) => Distance3.SignedDistanceTo(solid, this, tolerance);
+        public double SignedDistanceTo(GeoSolid3 solid, Tolerance tolerance) =>
+            Distance3.SignedDistanceTo(solid, this, tolerance);
 
         /// <summary>
         /// Gets the distance from this point to an arc: the same answer as <see cref="GeoArc3.DistanceTo(GeoPoint3)"/>.
@@ -168,8 +171,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public double DistanceTo(GeoPolygonArc3 loop)
-            => (loop ?? throw new ArgumentNullException(nameof(loop))).DistanceTo(this);
+        public double DistanceTo(GeoPolygonArc3 loop) =>
+            (loop ?? throw new ArgumentNullException(nameof(loop))).DistanceTo(this);
 
         /// <summary>
         /// Gets the distance from this point to a curved loop, within a tolerance: the same answer as
@@ -177,8 +180,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public double DistanceTo(GeoPolygonArc3 loop, Tolerance tolerance)
-            => (loop ?? throw new ArgumentNullException(nameof(loop))).DistanceTo(this, tolerance);
+        public double DistanceTo(GeoPolygonArc3 loop, Tolerance tolerance) =>
+            (loop ?? throw new ArgumentNullException(nameof(loop))).DistanceTo(this, tolerance);
 
         /// <summary>
         /// Gets the distance from this point to a curved chain: the same answer as
@@ -186,8 +189,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public double DistanceTo(GeoPolylineArc3 chain)
-            => (chain ?? throw new ArgumentNullException(nameof(chain))).DistanceTo(this);
+        public double DistanceTo(GeoPolylineArc3 chain) =>
+            (chain ?? throw new ArgumentNullException(nameof(chain))).DistanceTo(this);
 
         /// <summary>
         /// Gets the distance from this point to a curved chain, within a tolerance: the same answer as
@@ -195,7 +198,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public double DistanceTo(GeoPolylineArc3 chain, Tolerance tolerance)
-            => (chain ?? throw new ArgumentNullException(nameof(chain))).DistanceTo(this, tolerance);
+        public double DistanceTo(GeoPolylineArc3 chain, Tolerance tolerance) =>
+            (chain ?? throw new ArgumentNullException(nameof(chain))).DistanceTo(this, tolerance);
     }
 }

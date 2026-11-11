@@ -51,7 +51,10 @@ namespace GeometryHelper.Internal
 
             if (double.IsNaN(chordTolerance) || chordTolerance < 0.0)
             {
-                throw new ArgumentOutOfRangeException(nameof(chordTolerance), "The chord tolerance must be zero (automatic) or a positive distance.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(chordTolerance),
+                    "The chord tolerance must be zero (automatic) or a positive distance."
+                );
             }
 
             return Clamp(sweptAngle, PerSegmentAngle(radius, chordTolerance));
@@ -120,12 +123,16 @@ namespace GeometryHelper.Internal
         /// <summary>
         /// Gets the refusal of a chord tolerance that needs more than <see cref="MostSegments"/> pieces for one curve.
         /// </summary>
-        public static ArgumentOutOfRangeException TooMany(double chordTolerance)
-            => new ArgumentOutOfRangeException(
+        public static ArgumentOutOfRangeException TooMany(double chordTolerance) =>
+            new ArgumentOutOfRangeException(
                 nameof(chordTolerance),
                 chordTolerance,
-                "A chord tolerance of " + chordTolerance.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
-                + " would cut the curve into more than " + MostSegments + " chords; ask for a larger one.");
+                "A chord tolerance of "
+                    + chordTolerance.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                    + " would cut the curve into more than "
+                    + MostSegments
+                    + " chords; ask for a larger one."
+            );
 
         private static double PerSegmentAngle(double radius, double chordTolerance)
         {
@@ -173,7 +180,8 @@ namespace GeometryHelper.Internal
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(segmentCount),
-                    minimum == 1 ? "A curve needs at least 1 piece." : $"A polygon needs at least {minimum} edges.");
+                    minimum == 1 ? "A curve needs at least 1 piece." : $"A polygon needs at least {minimum} edges."
+                );
             }
         }
 

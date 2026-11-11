@@ -81,10 +81,17 @@ namespace GeometryHelper.Benchmarks.Scenarios
             for (int i = 0; i < Squares; i++)
             {
                 double x = 10.0 * i;
-                squares.Add(new GeoPolygon2(new List<GeoPoint2>
-                {
-                    new GeoPoint2(x, 0.0), new GeoPoint2(x + 10.0, 0.0), new GeoPoint2(x + 10.0, 10.0), new GeoPoint2(x, 10.0),
-                }));
+                squares.Add(
+                    new GeoPolygon2(
+                        new List<GeoPoint2>
+                        {
+                            new GeoPoint2(x, 0.0),
+                            new GeoPoint2(x + 10.0, 0.0),
+                            new GeoPoint2(x + 10.0, 10.0),
+                            new GeoPoint2(x, 10.0),
+                        }
+                    )
+                );
             }
 
             return Fixture.Of(() => Boolean2.Union(squares, Within), Sign, Describe, null);
@@ -152,10 +159,16 @@ namespace GeometryHelper.Benchmarks.Scenarios
             }
         }
 
-        private static string Describe(GeoPolygon2[] polygons)
-            => Report.Count(polygons.Length) + " polygons of " + Report.Count(polygons.Sum(p => (long)p.Vertices.Count)) + " corners";
+        private static string Describe(GeoPolygon2[] polygons) =>
+            Report.Count(polygons.Length)
+            + " polygons of "
+            + Report.Count(polygons.Sum(p => (long)p.Vertices.Count))
+            + " corners";
 
-        private static string Describe(GeoFace2[] faces)
-            => Report.Count(faces.Length) + " faces of " + Report.Count(faces.Sum(f => (long)f.Boundary.Vertices.Count + f.Holes.Sum(h => h.Vertices.Count))) + " corners";
+        private static string Describe(GeoFace2[] faces) =>
+            Report.Count(faces.Length)
+            + " faces of "
+            + Report.Count(faces.Sum(f => (long)f.Boundary.Vertices.Count + f.Holes.Sum(h => h.Vertices.Count)))
+            + " corners";
     }
 }

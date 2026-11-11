@@ -12,7 +12,8 @@ namespace GeometryHelper.UnitTest.Plane
     /// </summary>
     public class ArcCentrePointTests
     {
-        private static Tolerance At(double equalPoint) => new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
+        private static Tolerance At(double equalPoint) =>
+            new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
 
         /// <summary>The lower half of the circle of radius 50 about the origin, from (-50, 0) to (50, 0) through (0, -50).</summary>
         private static GeoArc2 Lower() => new GeoArc2(new GeoPoint2(0, 0), 50, Math.PI, 2 * Math.PI);
@@ -26,7 +27,10 @@ namespace GeometryHelper.UnitTest.Plane
             var point = new GeoPoint2(0, -0.0009);
             GeoArc2 arc = Lower();
             var edge = new GeoEdge2(arc);
-            var chain = new GeoPolylineArc2(new[] { new GeoPoint2(-60, 0), new GeoPoint2(-50, 0), new GeoPoint2(50, 0) }, new[] { 0.0, 1.0, 0.0 });
+            var chain = new GeoPolylineArc2(
+                new[] { new GeoPoint2(-60, 0), new GeoPoint2(-50, 0), new GeoPoint2(50, 0) },
+                new[] { 0.0, 1.0, 0.0 }
+            );
 
             Assert.InRange(arc.DistanceTo(point, t), 49.9991 - 1E-9, 49.9991 + 1E-9);
             Assert.InRange(edge.DistanceTo(point, t), 49.9991 - 1E-9, 49.9991 + 1E-9);
@@ -47,8 +51,15 @@ namespace GeometryHelper.UnitTest.Plane
             Tolerance t = At(1E-3);
             var point = new GeoPoint2(0, 0.0009);
             var loop = new GeoPolygonArc2(
-                new[] { new GeoPoint2(50, 0), new GeoPoint2(-50, 0), new GeoPoint2(-50, 1000), new GeoPoint2(50, 1000) },
-                new[] { 1.0, 0.0, 0.0, 0.0 });
+                new[]
+                {
+                    new GeoPoint2(50, 0),
+                    new GeoPoint2(-50, 0),
+                    new GeoPoint2(-50, 1000),
+                    new GeoPoint2(50, 1000),
+                },
+                new[] { 1.0, 0.0, 0.0, 0.0 }
+            );
 
             Assert.InRange(loop.DistanceTo(point, t), 49.9991 - 1E-9, 49.9991 + 1E-9);
             Assert.InRange(Math.Abs(loop.SignedDistanceTo(point, t)), 49.9991 - 1E-9, 49.9991 + 1E-9);
@@ -66,7 +77,10 @@ namespace GeometryHelper.UnitTest.Plane
             var centre = new GeoPoint2(0, 0);
             GeoArc2 arc = Lower();
             var edge = new GeoEdge2(arc);
-            var chain = new GeoPolylineArc2(new[] { new GeoPoint2(-60, 0), new GeoPoint2(-50, 0), new GeoPoint2(50, 0) }, new[] { 0.0, 1.0, 0.0 });
+            var chain = new GeoPolylineArc2(
+                new[] { new GeoPoint2(-60, 0), new GeoPoint2(-50, 0), new GeoPoint2(50, 0) },
+                new[] { 0.0, 1.0, 0.0 }
+            );
 
             Assert.Equal(50.0, arc.DistanceTo(centre, t), 9);
             Assert.Equal(50.0, edge.DistanceTo(centre, t), 9);
@@ -82,7 +96,10 @@ namespace GeometryHelper.UnitTest.Plane
             var point = new GeoPoint2(0, -0.0003);
             var arc = new GeoArc2(new GeoPoint2(0, 0), 0.0012, Math.PI, 2 * Math.PI);
             var edge = new GeoEdge2(arc);
-            var chain = new GeoPolylineArc2(new[] { new GeoPoint2(-0.0012, 0), new GeoPoint2(0.0012, 0) }, new[] { 1.0, 0.0 });
+            var chain = new GeoPolylineArc2(
+                new[] { new GeoPoint2(-0.0012, 0), new GeoPoint2(0.0012, 0) },
+                new[] { 1.0, 0.0 }
+            );
 
             Assert.InRange(arc.DistanceTo(point, t), 0.0009 - 1E-12, 0.0009 + 1E-12);
             Assert.InRange(edge.DistanceTo(point, t), 0.0009 - 1E-12, 0.0009 + 1E-12);

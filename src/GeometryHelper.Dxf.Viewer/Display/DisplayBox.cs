@@ -6,7 +6,13 @@ namespace GeometryHelper.Dxf.Viewer
     public readonly struct DisplayBox
     {
         /// <summary>Gets the box that holds nothing: its minimum is above its maximum, so the first point added makes it that point.</summary>
-        public static DisplayBox Empty => new DisplayBox(double.PositiveInfinity, double.PositiveInfinity, double.NegativeInfinity, double.NegativeInfinity);
+        public static DisplayBox Empty =>
+            new DisplayBox(
+                double.PositiveInfinity,
+                double.PositiveInfinity,
+                double.NegativeInfinity,
+                double.NegativeInfinity
+            );
 
         /// <summary>Makes a box from its corners.</summary>
         /// <param name="minX">The least X.</param>
@@ -46,8 +52,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="x">The X of the point.</param>
         /// <param name="y">The Y of the point.</param>
         /// <returns>The grown box.</returns>
-        public DisplayBox Add(double x, double y)
-            => new DisplayBox(Math.Min(MinX, x), Math.Min(MinY, y), Math.Max(MaxX, x), Math.Max(MaxY, y));
+        public DisplayBox Add(double x, double y) =>
+            new DisplayBox(Math.Min(MinX, x), Math.Min(MinY, y), Math.Max(MaxX, x), Math.Max(MaxY, y));
 
         /// <summary>Gets the box grown to hold another box.</summary>
         /// <param name="other">The other box; an empty one changes nothing.</param>
@@ -59,23 +65,43 @@ namespace GeometryHelper.Dxf.Viewer
                 return this;
             }
 
-            return IsEmpty ? other : new DisplayBox(Math.Min(MinX, other.MinX), Math.Min(MinY, other.MinY), Math.Max(MaxX, other.MaxX), Math.Max(MaxY, other.MaxY));
+            return IsEmpty
+                ? other
+                : new DisplayBox(
+                    Math.Min(MinX, other.MinX),
+                    Math.Min(MinY, other.MinY),
+                    Math.Max(MaxX, other.MaxX),
+                    Math.Max(MaxY, other.MaxY)
+                );
         }
 
         /// <summary>Gets the box grown by a margin on every side.</summary>
         /// <param name="margin">The margin.</param>
         /// <returns>The grown box.</returns>
-        public DisplayBox Inflate(double margin) => IsEmpty ? this : new DisplayBox(MinX - margin, MinY - margin, MaxX + margin, MaxY + margin);
+        public DisplayBox Inflate(double margin) =>
+            IsEmpty ? this : new DisplayBox(MinX - margin, MinY - margin, MaxX + margin, MaxY + margin);
 
         /// <summary>Gets whether this box and another share a point.</summary>
         /// <param name="other">The other box.</param>
         /// <returns>True when they touch or overlap.</returns>
-        public bool Intersects(DisplayBox other) => !IsEmpty && !other.IsEmpty && MinX <= other.MaxX && MaxX >= other.MinX && MinY <= other.MaxY && MaxY >= other.MinY;
+        public bool Intersects(DisplayBox other) =>
+            !IsEmpty
+            && !other.IsEmpty
+            && MinX <= other.MaxX
+            && MaxX >= other.MinX
+            && MinY <= other.MaxY
+            && MaxY >= other.MinY;
 
         /// <summary>Gets whether this box holds another wholly.</summary>
         /// <param name="other">The other box.</param>
         /// <returns>True when the other lies inside.</returns>
-        public bool Contains(DisplayBox other) => !IsEmpty && !other.IsEmpty && MinX <= other.MinX && MaxX >= other.MaxX && MinY <= other.MinY && MaxY >= other.MaxY;
+        public bool Contains(DisplayBox other) =>
+            !IsEmpty
+            && !other.IsEmpty
+            && MinX <= other.MinX
+            && MaxX >= other.MaxX
+            && MinY <= other.MinY
+            && MaxY >= other.MaxY;
 
         /// <summary>Gets whether this box holds a point.</summary>
         /// <param name="x">The X of the point.</param>

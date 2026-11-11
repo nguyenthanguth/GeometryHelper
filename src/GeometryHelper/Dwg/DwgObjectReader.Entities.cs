@@ -205,8 +205,19 @@ namespace GeometryHelper.Dwg
                 endGiven = end.IsValid && end.Length > 0.0;
                 flags |= 1024 | 32;
 
-                if (fitPoints.Count >= 2 && Finite(fitPoints) && DxfNurbsEdit.InterpolateCubic(fitPoints, startGiven ? start : default(GeoVector3),
-                    endGiven ? end : default(GeoVector3), parameterization, out List<GeoPoint3> kept, out List<double> fitted, out List<GeoPoint3> points))
+                if (
+                    fitPoints.Count >= 2
+                    && Finite(fitPoints)
+                    && DxfNurbsEdit.InterpolateCubic(
+                        fitPoints,
+                        startGiven ? start : default(GeoVector3),
+                        endGiven ? end : default(GeoVector3),
+                        parameterization,
+                        out List<GeoPoint3> kept,
+                        out List<double> fitted,
+                        out List<GeoPoint3> points
+                    )
+                )
                 {
                     fitPoints = kept;
                     knotValues = fitted;
@@ -834,7 +845,12 @@ namespace GeometryHelper.Dwg
             _object.Add(66, 1);
             _object.AddPoint(10, new[] { 0.0, 0.0, 0.0 });
             _object.Add(70, 8 | (closed & 1) | ((spline & 3) != 0 ? 4 : 0));
-            AddNonZero(75, (spline & 1) != 0 ? 5 : (spline & 2) != 0 ? 6 : 0);
+            AddNonZero(
+                75,
+                (spline & 1) != 0 ? 5
+                    : (spline & 2) != 0 ? 6
+                    : 0
+            );
         }
 
         private void ReadPolygonMesh()
@@ -1953,7 +1969,9 @@ namespace GeometryHelper.Dwg
 
                     if (definitions < 0 || definitions > _data.Remaining)
                     {
-                        throw new FormatException("The table cell names more attribute definitions than it has room for.");
+                        throw new FormatException(
+                            "The table cell names more attribute definitions than it has room for."
+                        );
                     }
 
                     content.Add(new DwgGroup(179, definitions));
@@ -2050,10 +2068,19 @@ namespace GeometryHelper.Dwg
                         }
 
                         byte[] utf16 = _data.Bytes(length);
-                        groups.Add(new DwgGroup(1, System.Text.Encoding.UTF8.GetBytes(System.Text.Encoding.Unicode.GetString(utf16, 0, length - 2))));
+                        groups.Add(
+                            new DwgGroup(
+                                1,
+                                System.Text.Encoding.UTF8.GetBytes(
+                                    System.Text.Encoding.Unicode.GetString(utf16, 0, length - 2)
+                                )
+                            )
+                        );
                         break;
                     default:
-                        throw new FormatException("The table cell has a value of the kind " + type + ", which is not read.");
+                        throw new FormatException(
+                            "The table cell has a value of the kind " + type + ", which is not read."
+                        );
                 }
             }
 
@@ -2076,11 +2103,21 @@ namespace GeometryHelper.Dwg
 
             switch (kind)
             {
-                case 'S': groups.Add(new DwgGroup(code, _data.BitShort())); break;
-                case 'B': groups.Add(new DwgGroup(code, _data.Bit() ? 1 : 0)); break;
-                case 'C': groups.Add(new DwgGroup(code, ReadColour(true).Index)); break;
-                case 'H': groups.Add(new DwgGroup(code, H())); break;
-                default: groups.Add(new DwgGroup(code, _data.BitDouble())); break;
+                case 'S':
+                    groups.Add(new DwgGroup(code, _data.BitShort()));
+                    break;
+                case 'B':
+                    groups.Add(new DwgGroup(code, _data.Bit() ? 1 : 0));
+                    break;
+                case 'C':
+                    groups.Add(new DwgGroup(code, ReadColour(true).Index));
+                    break;
+                case 'H':
+                    groups.Add(new DwgGroup(code, H()));
+                    break;
+                default:
+                    groups.Add(new DwgGroup(code, _data.BitDouble()));
+                    break;
             }
         }
 
@@ -2124,7 +2161,10 @@ namespace GeometryHelper.Dwg
 
             for (int i = 0; i < 18; i++)
             {
-                int code = kind == 0 ? colourCodes[i % 6] : kind == 1 ? 274 + (i % 6) : 284 + (i % 6);
+                int code =
+                    kind == 0 ? colourCodes[i % 6]
+                    : kind == 1 ? 274 + (i % 6)
+                    : 284 + (i % 6);
                 ReadFlagged(groups, flags, 1 << i, code, kind == 0 ? 'C' : 'S');
             }
 

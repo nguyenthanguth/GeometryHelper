@@ -24,8 +24,15 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static GeoObb3 Void(double thickness) => new GeoObb3(new GeoPoint3(3, 4, 5), 40, 30, thickness);
 
-        private static GeoObb3 TurnedVoid(double thickness)
-            => new GeoObb3(new GeoPoint3(3, 4, 5), 40, 30, thickness, new GeoVector3(1, 0.3, 0.2), new GeoVector3(-0.2, 1, 0.1));
+        private static GeoObb3 TurnedVoid(double thickness) =>
+            new GeoObb3(
+                new GeoPoint3(3, 4, 5),
+                40,
+                30,
+                thickness,
+                new GeoVector3(1, 0.3, 0.2),
+                new GeoVector3(-0.2, 1, 0.1)
+            );
 
         [Theory]
         [InlineData(0.0011)]

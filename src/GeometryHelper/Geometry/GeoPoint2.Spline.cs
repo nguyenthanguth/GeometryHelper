@@ -28,7 +28,8 @@ namespace GeometryHelper.Geometry
         /// Gets the point of a spline nearest this point.
         /// </summary>
         /// <exception cref="System.ArgumentNullException">Thrown when the spline is null.</exception>
-        public GeoPoint2 GetClosestPointOnBoundary(GeoSpline2 spline) => Require(spline).GetClosestPointOnBoundary(this);
+        public GeoPoint2 GetClosestPointOnBoundary(GeoSpline2 spline) =>
+            Require(spline).GetClosestPointOnBoundary(this);
 
         /// <summary>
         /// Gets the shortest segment leaving this point and landing on a spline, using the default tolerance.
@@ -40,7 +41,8 @@ namespace GeometryHelper.Geometry
         /// Gets the shortest segment leaving this point and landing on a spline, within a tolerance.
         /// </summary>
         /// <exception cref="System.ArgumentNullException">Thrown when the spline is null.</exception>
-        public GeoLine2 GetShortestLineTo(GeoSpline2 spline, Tolerance tolerance) => Require(spline).GetShortestLineTo(this, tolerance).Reverse();
+        public GeoLine2 GetShortestLineTo(GeoSpline2 spline, Tolerance tolerance) =>
+            Require(spline).GetShortestLineTo(this, tolerance).Reverse();
 
         /// <summary>
         /// Determines whether this point lies on a spline, within the default tolerance.
@@ -54,7 +56,8 @@ namespace GeometryHelper.Geometry
         /// <exception cref="System.ArgumentNullException">Thrown when the spline is null.</exception>
         public bool IsPointOn(GeoSpline2 spline, Tolerance tolerance) => Require(spline).IsPointOn(this, tolerance);
 
-        private static GeoSpline2 Require(GeoSpline2 spline) => spline ?? throw new System.ArgumentNullException(nameof(spline));
+        private static GeoSpline2 Require(GeoSpline2 spline) =>
+            spline ?? throw new System.ArgumentNullException(nameof(spline));
 
         #endregion
     }

@@ -25,7 +25,9 @@ namespace GeometryHelper.IfcConvert.Core.Internal
 
         public IReadOnlyDictionary<string, IfcPropertySet> Read(IIfcProduct product)
         {
-            Dictionary<string, List<IfcPropertyValue>> sets = new Dictionary<string, List<IfcPropertyValue>>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, List<IfcPropertyValue>> sets = new Dictionary<string, List<IfcPropertyValue>>(
+                StringComparer.OrdinalIgnoreCase
+            );
 
             if (product == null)
             {
@@ -34,7 +36,10 @@ namespace GeometryHelper.IfcConvert.Core.Internal
 
             foreach (IIfcRelDefinesByType typeRel in product.IsTypedBy ?? Enumerable.Empty<IIfcRelDefinesByType>())
             {
-                foreach (IIfcPropertySetDefinition definition in typeRel?.RelatingType?.HasPropertySets ?? Enumerable.Empty<IIfcPropertySetDefinition>())
+                foreach (
+                    IIfcPropertySetDefinition definition in typeRel?.RelatingType?.HasPropertySets
+                        ?? Enumerable.Empty<IIfcPropertySetDefinition>()
+                )
                 {
                     AddDefinition(definition, sets);
                 }
@@ -48,7 +53,9 @@ namespace GeometryHelper.IfcConvert.Core.Internal
                 }
             }
 
-            Dictionary<string, IfcPropertySet> result = new Dictionary<string, IfcPropertySet>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, IfcPropertySet> result = new Dictionary<string, IfcPropertySet>(
+                StringComparer.OrdinalIgnoreCase
+            );
             foreach (KeyValuePair<string, List<IfcPropertyValue>> set in sets)
             {
                 result[set.Key] = new IfcPropertySet(set.Key, set.Value);
@@ -73,7 +80,10 @@ namespace GeometryHelper.IfcConvert.Core.Internal
             return Enumerable.Empty<IIfcPropertySetDefinition>();
         }
 
-        private void AddDefinition(IIfcPropertySetDefinition definition, Dictionary<string, List<IfcPropertyValue>> sets)
+        private void AddDefinition(
+            IIfcPropertySetDefinition definition,
+            Dictionary<string, List<IfcPropertyValue>> sets
+        )
         {
             string name = definition?.Name?.ToString();
             if (string.IsNullOrEmpty(name))
@@ -124,25 +134,46 @@ namespace GeometryHelper.IfcConvert.Core.Internal
                     }
 
                     string measure = single.NominalValue.GetType().Name;
-                    yield return new IfcPropertyValue(name, single.NominalValue.Value, measure, UnitFor(single.Unit, measure));
+                    yield return new IfcPropertyValue(
+                        name,
+                        single.NominalValue.Value,
+                        measure,
+                        UnitFor(single.Unit, measure)
+                    );
                     yield break;
 
                 case IIfcPropertyEnumeratedValue enumerated:
-                    string enumValue = string.Join(", ", enumerated.EnumerationValues.Select(v => v?.Value?.ToString() ?? string.Empty));
+                    string enumValue = string.Join(
+                        ", ",
+                        enumerated.EnumerationValues.Select(v => v?.Value?.ToString() ?? string.Empty)
+                    );
                     yield return new IfcPropertyValue(name, enumValue, "IfcLabel", string.Empty);
                     yield break;
 
                 case IIfcPropertyListValue list:
-                    string listValue = string.Join(", ", list.ListValues.Select(v => v?.Value?.ToString() ?? string.Empty));
+                    string listValue = string.Join(
+                        ", ",
+                        list.ListValues.Select(v => v?.Value?.ToString() ?? string.Empty)
+                    );
                     string listMeasure = list.ListValues.FirstOrDefault()?.GetType().Name;
-                    yield return new IfcPropertyValue(name, listValue, "IfcPropertyListValue", UnitFor(list.Unit, listMeasure));
+                    yield return new IfcPropertyValue(
+                        name,
+                        listValue,
+                        "IfcPropertyListValue",
+                        UnitFor(list.Unit, listMeasure)
+                    );
                     yield break;
 
                 case IIfcPropertyBoundedValue bounded:
                     string lower = bounded.LowerBoundValue?.Value?.ToString() ?? string.Empty;
                     string upper = bounded.UpperBoundValue?.Value?.ToString() ?? string.Empty;
                     string boundMeasure = (bounded.LowerBoundValue ?? bounded.UpperBoundValue)?.GetType().Name;
-                    yield return new IfcPropertyValue(name, lower + ".." + upper, "IfcPropertyBoundedValue", UnitFor(bounded.Unit, boundMeasure));
+                    yield return new IfcPropertyValue(
+                        name,
+                        lower + ".." + upper,
+                        "IfcPropertyBoundedValue",
+                        UnitFor(bounded.Unit, boundMeasure)
+                    );
                     yield break;
 
                 case IIfcComplexProperty complex:
@@ -177,15 +208,40 @@ namespace GeometryHelper.IfcConvert.Core.Internal
             switch (quantity)
             {
                 case IIfcQuantityLength length:
-                    return new IfcPropertyValue(name, (double)length.LengthValue, "IfcQuantityLength", UnitFor(own, "LENGTHUNIT"));
+                    return new IfcPropertyValue(
+                        name,
+                        (double)length.LengthValue,
+                        "IfcQuantityLength",
+                        UnitFor(own, "LENGTHUNIT")
+                    );
                 case IIfcQuantityArea area:
-                    return new IfcPropertyValue(name, (double)area.AreaValue, "IfcQuantityArea", UnitFor(own, "AREAUNIT"));
+                    return new IfcPropertyValue(
+                        name,
+                        (double)area.AreaValue,
+                        "IfcQuantityArea",
+                        UnitFor(own, "AREAUNIT")
+                    );
                 case IIfcQuantityVolume volume:
-                    return new IfcPropertyValue(name, (double)volume.VolumeValue, "IfcQuantityVolume", UnitFor(own, "VOLUMEUNIT"));
+                    return new IfcPropertyValue(
+                        name,
+                        (double)volume.VolumeValue,
+                        "IfcQuantityVolume",
+                        UnitFor(own, "VOLUMEUNIT")
+                    );
                 case IIfcQuantityWeight weight:
-                    return new IfcPropertyValue(name, (double)weight.WeightValue, "IfcQuantityWeight", UnitFor(own, "MASSUNIT"));
+                    return new IfcPropertyValue(
+                        name,
+                        (double)weight.WeightValue,
+                        "IfcQuantityWeight",
+                        UnitFor(own, "MASSUNIT")
+                    );
                 case IIfcQuantityTime time:
-                    return new IfcPropertyValue(name, (double)time.TimeValue, "IfcQuantityTime", UnitFor(own, "TIMEUNIT"));
+                    return new IfcPropertyValue(
+                        name,
+                        (double)time.TimeValue,
+                        "IfcQuantityTime",
+                        UnitFor(own, "TIMEUNIT")
+                    );
                 case IIfcQuantityCount count:
                     return new IfcPropertyValue(name, (double)count.CountValue, "IfcQuantityCount", string.Empty);
                 default:

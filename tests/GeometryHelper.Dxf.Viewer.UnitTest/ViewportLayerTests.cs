@@ -35,11 +35,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
         private static DxfLayerTableRecord Dim(CadDocument document) => document.Database.LayerTable["DIM"];
 
-        private static bool FrozenIn(CadDocument document, string viewport) => Entity<DxfViewport>(document, viewport).IsLayerFrozenInViewport(Dim(document));
+        private static bool FrozenIn(CadDocument document, string viewport) =>
+            Entity<DxfViewport>(document, viewport).IsLayerFrozenInViewport(Dim(document));
 
         /// <summary>The viewport the layout's display list draws for a viewport entity.</summary>
-        private static DisplayViewport2 Drawn(CadDocument document, string viewport)
-            => document.GetDisplay(document.Spaces[1]).Items.OfType<DisplayViewport2>().Single(v => v.Handle == viewport);
+        private static DisplayViewport2 Drawn(CadDocument document, string viewport) =>
+            document.GetDisplay(document.Spaces[1]).Items.OfType<DisplayViewport2>().Single(v => v.Handle == viewport);
 
         [Fact]
         public void AFreezeInTheViewportWorkedThrough_HidesTheLayerThereOnly_AndIsOneUndoStep()
@@ -48,7 +49,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(document.EnterViewport(first));
             Assert.Equal(first, CadViewportLayerEditor.TargetViewport(document).Handle);
 
-            CadEditResult result = CadViewportLayerEditor.SetFrozen(document, new[] { CadViewportLayerEditor.TargetViewport(document).Handle }, new[] { "dim" }, true);
+            CadEditResult result = CadViewportLayerEditor.SetFrozen(
+                document,
+                new[] { CadViewportLayerEditor.TargetViewport(document).Handle },
+                new[] { "dim" },
+                true
+            );
 
             Assert.True(result.Succeeded);
             Assert.True(FrozenIn(document, first));
@@ -123,8 +129,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = TwoViewports(out _, out string first, out string second);
             string line = All<DxfLine>(document.ModelSpace).Single().Handle;
 
-            Assert.True(CadViewportLayerEditor.SetColor(document, first, "DIM", DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1)).Succeeded);
-            Assert.True(CadViewportLayerEditor.SetLineWeight(document, first, "DIM", DxfLineWeight.LineWeight050).Succeeded);
+            Assert.True(
+                CadViewportLayerEditor
+                    .SetColor(document, first, "DIM", DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1))
+                    .Succeeded
+            );
+            Assert.True(
+                CadViewportLayerEditor.SetLineWeight(document, first, "DIM", DxfLineWeight.LineWeight050).Succeeded
+            );
 
             DxfLayerViewportProperties look = Dim(document).GetViewportOverrides(Entity<DxfViewport>(document, first));
             Assert.Equal(1, look.Color.ColorIndex);
@@ -165,7 +177,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.False(FrozenIn(document, first));
             Assert.True(FrozenIn(document, second));
-            Assert.Contains("Layers currently frozen in viewport " + Entity<DxfViewport>(document, first).Number + ":", session.History);
+            Assert.Contains(
+                "Layers currently frozen in viewport " + Entity<DxfViewport>(document, first).Number + ":",
+                session.History
+            );
             Assert.Equal("VPLAYER", document.NextUndo.Name);
             Assert.True(document.Undo());
             Assert.False(FrozenIn(document, first) || FrozenIn(document, second));
@@ -175,7 +190,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(FrozenIn(document, first) && FrozenIn(document, second));
 
             Run(session, "VPLAYER", "N", "TITLE,NOTES", Enter);
-            Assert.True(Entity<DxfViewport>(document, second).IsLayerFrozenInViewport(document.Database.LayerTable["NOTES"]));
+            Assert.True(
+                Entity<DxfViewport>(document, second).IsLayerFrozenInViewport(document.Database.LayerTable["NOTES"])
+            );
 
             Run(session, "VPLAYER", "F", "NOSUCH", Enter);
             Assert.Contains("No matching layer names found for \"NOSUCH\".", session.History);

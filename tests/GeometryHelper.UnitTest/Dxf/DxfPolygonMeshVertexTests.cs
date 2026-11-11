@@ -17,7 +17,15 @@ namespace GeometryHelper.UnitTest.Dxf
             mesh.MSize = 2;
             mesh.NSize = 2;
 
-            foreach (GeoPoint3 p in new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0), new GeoPoint3(0, 1, 0), new GeoPoint3(1, 1, 0) })
+            foreach (
+                GeoPoint3 p in new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(1, 0, 0),
+                    new GeoPoint3(0, 1, 0),
+                    new GeoPoint3(1, 1, 0),
+                }
+            )
             {
                 mesh.AppendVertex(new DxfPolygonMeshVertex(p));
             }

@@ -27,8 +27,15 @@ namespace GeometryHelper.UnitTest.Dxf
         /// </summary>
         private static string Styled(string dataHeight, string horizontal, string vertical)
         {
-            string style = "  0\nTABLESTYLE\n  5\n200\n330\n15\n100\nAcDbTableStyle\n280\n0\n  3\nParts\n 70\n0\n 71\n0\n 40\n" + horizontal + "\n 41\n" + vertical + "\n280\n0\n281\n0\n"
-                + "  7\nStandard\n140\n" + dataHeight + "\n170\n2\n 62\n0\n 63\n7\n283\n0\n 90\n512\n 91\n0\n"
+            string style =
+                "  0\nTABLESTYLE\n  5\n200\n330\n15\n100\nAcDbTableStyle\n280\n0\n  3\nParts\n 70\n0\n 71\n0\n 40\n"
+                + horizontal
+                + "\n 41\n"
+                + vertical
+                + "\n280\n0\n281\n0\n"
+                + "  7\nStandard\n140\n"
+                + dataHeight
+                + "\n170\n2\n 62\n0\n 63\n7\n283\n0\n 90\n512\n 91\n0\n"
                 + "  7\nStandard\n140\n6.0\n170\n5\n 62\n0\n 63\n7\n283\n0\n 90\n512\n 91\n0\n"
                 + "  7\nStandard\n140\n4.5\n170\n5\n 62\n0\n 63\n7\n283\n0\n 90\n512\n 91\n0\n";
             string text = DxfDimensionDrawings.R2018.Replace("\r\n", "\n");
@@ -49,7 +56,10 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             const string Head = " 93\n0\n 94\n0\n 95\n0\n 96\n0\n141\n10.0\n";
             Assert.Contains(Head, DxfDimensionDrawings.R2018, StringComparison.Ordinal);
-            return DxfDimensionDrawings.R2018.Replace(Head, " 93\n6886016\n 94\n0\n 95\n0\n 96\n0\n  7\nGH_TXT\n140\n9.0\n170\n1\n 63\n3\n 64\n1\n140\n9.0\n283\n0\n141\n10.0\n");
+            return DxfDimensionDrawings.R2018.Replace(
+                Head,
+                " 93\n6886016\n 94\n0\n 95\n0\n 96\n0\n  7\nGH_TXT\n140\n9.0\n170\n1\n 63\n3\n 64\n1\n140\n9.0\n283\n0\n141\n10.0\n"
+            );
         }
 
         /// <summary>The table of the R2018 drawing with the lines AutoCAD 2021's D28d g0 set: the title's top red, the line under it yellow at Mark and green at Qty.</summary>
@@ -73,7 +83,14 @@ namespace GeometryHelper.UnitTest.Dxf
             // (91 0, 93 7, 90 0), each under the title's top line, and the line under it the title's bottom (yellow, where Qty's
             // top was green) across every column, the new ones too. The library grew the title, (0, 1) still of an empty text
             // and the line under Qty green.
-            foreach (Action<DxfTable> put in new Action<DxfTable>[] { t => t.InsertColumns(2, 20.0, 1), t => t.SetSize(3, 3), t => t.InsertColumnsAndInherit(2, 1, 1) })
+            foreach (
+                Action<DxfTable> put in new Action<DxfTable>[]
+                {
+                    t => t.InsertColumns(2, 20.0, 1),
+                    t => t.SetSize(3, 3),
+                    t => t.InsertColumnsAndInherit(2, 1, 1),
+                }
+            )
             {
                 DxfDatabase db = Lines();
                 put(Table(db));
@@ -154,7 +171,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(8.0, Reread(margin).RowHeight(3));
 
             const string Head = " 93\n0\n 94\n0\n 95\n0\n 96\n0\n141\n10.0\n";
-            DxfDatabase own = DxfDatabase.Parse(DxfDimensionDrawings.R2018.Replace(Head, " 93\n16\n 94\n0\n 95\n0\n 96\n0\n 41\n3.0\n141\n10.0\n"));
+            DxfDatabase own = DxfDatabase.Parse(
+                DxfDimensionDrawings.R2018.Replace(Head, " 93\n16\n 94\n0\n 95\n0\n 96\n0\n 41\n3.0\n141\n10.0\n")
+            );
             Table(own).SetSize(4, 2);
             Assert.Equal(12.0, Reread(own).RowHeight(3));
 
@@ -201,7 +220,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // D28d r5: the title left out, InsertRows(0) left the header out, its cells given the header's look.
             const string Head = " 93\n0\n 94\n0\n 95\n0\n 96\n0\n141\n10.0\n";
-            DxfDatabase untitled = DxfDatabase.Parse(DxfDimensionDrawings.R2018.Replace(Head, " 93\n1\n 94\n0\n 95\n0\n 96\n0\n280\n1\n141\n10.0\n"));
+            DxfDatabase untitled = DxfDatabase.Parse(
+                DxfDimensionDrawings.R2018.Replace(Head, " 93\n1\n 94\n0\n 95\n0\n 96\n0\n280\n1\n141\n10.0\n")
+            );
             Table(untitled).InsertRows(0, 9.0, 1);
             DxfTable third = Reread(untitled);
             Assert.True(third.IsHeaderSuppressed);
@@ -227,7 +248,12 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal("GH_TXT", read.TextStyle(3, 0).Name);
                 Assert.Equal(1, read.ContentColor(3, 1).ColorIndex);
                 Assert.Equal(DxfCellAlignment.TopLeft, read.Alignment(3, 0));
-                Assert.DoesNotContain("GH_TXT", Record(db.ToText(), "F6").Substring(0, Record(db.ToText(), "F6").IndexOf("171\n", StringComparison.Ordinal)), StringComparison.Ordinal);
+                Assert.DoesNotContain(
+                    "GH_TXT",
+                    Record(db.ToText(), "F6")
+                        .Substring(0, Record(db.ToText(), "F6").IndexOf("171\n", StringComparison.Ordinal)),
+                    StringComparison.Ordinal
+                );
             }
 
             DxfDatabase header = DxfDatabase.Parse(RowLooks());
@@ -240,7 +266,12 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfDatabase after = DxfDatabase.Parse(RowLooks());
             Table(after).InsertRows(3, 9.0, 1);
-            Assert.Contains("GH_TXT", Record(after.ToText(), "F6").Substring(0, Record(after.ToText(), "F6").IndexOf("171\n", StringComparison.Ordinal)), StringComparison.Ordinal);
+            Assert.Contains(
+                "GH_TXT",
+                Record(after.ToText(), "F6")
+                    .Substring(0, Record(after.ToText(), "F6").IndexOf("171\n", StringComparison.Ordinal)),
+                StringComparison.Ordinal
+            );
             Assert.Null(Reread(after).TextHeight(2, 0));
         }
 
@@ -321,7 +352,12 @@ namespace GeometryHelper.UnitTest.Dxf
             // A drawing of inches of no table style, AutoCAD's Standard of inches, 0.06.
             const string Metric = "$MEASUREMENT\n 70\n1\n";
             Assert.Contains(Metric, DxfDimensionDrawings.R2018, StringComparison.Ordinal);
-            Assert.Equal(0.06, Table(DxfDatabase.Parse(DxfDimensionDrawings.R2018.Replace(Metric, "$MEASUREMENT\n 70\n0\n"))).HorizontalCellMargin);
+            Assert.Equal(
+                0.06,
+                Table(
+                    DxfDatabase.Parse(DxfDimensionDrawings.R2018.Replace(Metric, "$MEASUREMENT\n 70\n0\n"))
+                ).HorizontalCellMargin
+            );
         }
 
         #endregion

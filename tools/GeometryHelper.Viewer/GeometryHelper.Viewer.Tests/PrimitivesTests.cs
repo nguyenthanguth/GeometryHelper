@@ -17,8 +17,8 @@ namespace GeometryHelper.Viewer.Tests
             return Assert.Single(primitives.Items);
         }
 
-        private static double TriangleArea(IEnumerable<DrawTriangle> triangles)
-            => triangles.Sum(t => Vec3.Cross(t.B - t.A, t.C - t.A).Length * 0.5);
+        private static double TriangleArea(IEnumerable<DrawTriangle> triangles) =>
+            triangles.Sum(t => Vec3.Cross(t.B - t.A, t.C - t.A).Length * 0.5);
 
         [Theory]
         [MemberData(nameof(Kinds))]
@@ -29,15 +29,21 @@ namespace GeometryHelper.Viewer.Tests
             Assert.True(item.Points.Count + item.Polylines.Count + item.Triangles.Count > 0, kind + " draws nothing");
             Assert.False(item.Bounds.IsEmpty);
 
-            var everything = item.Points
-                .Concat(item.Polylines.SelectMany(l => l.Points))
+            var everything = item
+                .Points.Concat(item.Polylines.SelectMany(l => l.Points))
                 .Concat(item.Triangles.SelectMany(t => new[] { t.A, t.B, t.C }))
                 .ToList();
 
             Assert.All(everything, p => Assert.True(p.IsFinite));
 
             // A ray, a line without ends and a plane are drawn out to the edge of the scene, and count for their origin only.
-            if (kind != "GeoRay2" && kind != "GeoRay3" && kind != "GeoXLine2" && kind != "GeoXLine3" && kind != "GeoPlane3")
+            if (
+                kind != "GeoRay2"
+                && kind != "GeoRay3"
+                && kind != "GeoXLine2"
+                && kind != "GeoXLine3"
+                && kind != "GeoPlane3"
+            )
             {
                 Assert.All(everything, p =>
                 {
@@ -103,7 +109,9 @@ namespace GeometryHelper.Viewer.Tests
             DrawPolyline ring = Assert.Single(item.Polylines);
             Assert.True(ring.Closed);
             Assert.InRange(ring.Points.Length, 1570, 1572);
-            Assert.All(ring.Points, p => Assert.Equal(50.0, Math.Sqrt((p.X - 10) * (p.X - 10) + (p.Y - 20) * (p.Y - 20)), 9));
+            Assert.All(ring.Points, p =>
+                Assert.Equal(50.0, Math.Sqrt((p.X - 10) * (p.X - 10) + (p.Y - 20) * (p.Y - 20)), 9)
+            );
         }
 
         [Fact]
@@ -124,11 +132,24 @@ namespace GeometryHelper.Viewer.Tests
             {
                 foreach (bool clockwise in new[] { false, true })
                 {
-                    var arc = new GeoArc3(new GeoPoint3(10, -20, 30), new GeoVector3(1, 2, 3).Normalize(), 75.0, 0.7, end, clockwise);
+                    var arc = new GeoArc3(
+                        new GeoPoint3(10, -20, 30),
+                        new GeoVector3(1, 2, 3).Normalize(),
+                        75.0,
+                        0.7,
+                        end,
+                        clockwise
+                    );
                     DrawPolyline line = Assert.Single(Draw(arc).Polylines);
 
-                    Assert.True(Distance(line.Points[0], arc.StartPoint) < 1E-9, "start, end " + end + " clockwise " + clockwise);
-                    Assert.True(Distance(line.Points[line.Points.Length - 1], arc.EndPoint) < 1E-9, "end, end " + end + " clockwise " + clockwise);
+                    Assert.True(
+                        Distance(line.Points[0], arc.StartPoint) < 1E-9,
+                        "start, end " + end + " clockwise " + clockwise
+                    );
+                    Assert.True(
+                        Distance(line.Points[line.Points.Length - 1], arc.EndPoint) < 1E-9,
+                        "end, end " + end + " clockwise " + clockwise
+                    );
                     Assert.True(line.Points.Length >= 3);
                 }
             }
@@ -137,8 +158,16 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void APositiveBulge_BowsToTheRightOfTheEdge_AndANegativeOneToTheLeft()
         {
-            DrawPolyline positive = Assert.Single(Draw(new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0) }, new[] { 1.0, 0.0 })).Polylines);
-            DrawPolyline negative = Assert.Single(Draw(new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0) }, new[] { -1.0, 0.0 })).Polylines);
+            DrawPolyline positive = Assert.Single(
+                Draw(
+                    new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0) }, new[] { 1.0, 0.0 })
+                ).Polylines
+            );
+            DrawPolyline negative = Assert.Single(
+                Draw(
+                    new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0) }, new[] { -1.0, 0.0 })
+                ).Polylines
+            );
 
             // A bulge of 1 is a half circle of radius 5 about (5, 0).
             Assert.True(positive.Points.Length >= 91);
@@ -152,7 +181,14 @@ namespace GeometryHelper.Viewer.Tests
         {
             // Three quarters of a circle of radius 5 through (0,0) and (7.07, 0): tan(270 / 4 degrees) = 2.414.
             double chord = 5.0 * Math.Sqrt(2.0);
-            DrawPolyline line = Assert.Single(Draw(new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(chord, 0) }, new[] { Math.Tan(270.0 * Math.PI / 180.0 / 4.0), 0.0 })).Polylines);
+            DrawPolyline line = Assert.Single(
+                Draw(
+                    new GeoPolylineArc2(
+                        new[] { new GeoPoint2(0, 0), new GeoPoint2(chord, 0) },
+                        new[] { Math.Tan(270.0 * Math.PI / 180.0 / 4.0), 0.0 }
+                    )
+                ).Polylines
+            );
 
             Vec3 centre = new Vec3(chord / 2.0, -chord / 2.0, 0.0);
             Assert.All(line.Points, p => Assert.Equal(5.0, Distance(p, centre), 9));
@@ -162,7 +198,11 @@ namespace GeometryHelper.Viewer.Tests
         public void AnArcInSpaceChainAndALoop_BowByTheirNormals()
         {
             var up = new GeoVector3(0, 0, 1);
-            var chain = new GeoPolylineArc3(new[] { new GeoPoint3(0, 0, 5), new GeoPoint3(10, 0, 5) }, new[] { 1.0, 0.0 }, new[] { up, default(GeoVector3) });
+            var chain = new GeoPolylineArc3(
+                new[] { new GeoPoint3(0, 0, 5), new GeoPoint3(10, 0, 5) },
+                new[] { 1.0, 0.0 },
+                new[] { up, default(GeoVector3) }
+            );
             DrawPolyline line = Assert.Single(Draw(chain).Polylines);
 
             Assert.True(line.Points.Length >= 91);
@@ -216,7 +256,9 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AMeshOfAnLShape_DrawsTheTwoThousandSquareUnitsItCovers()
         {
-            var mesh = new GeoPolygon3(SampleShapes.LShape().Select(p => new GeoPoint3(p.X, p.Y, 7.5))).ToMesh(Meshing.MeshKind.Convex);
+            var mesh = new GeoPolygon3(SampleShapes.LShape().Select(p => new GeoPoint3(p.X, p.Y, 7.5))).ToMesh(
+                Meshing.MeshKind.Convex
+            );
             ItemPrimitives item = Draw(mesh);
 
             Assert.Equal(2000.0, TriangleArea(item.Triangles), 6);
@@ -227,13 +269,24 @@ namespace GeometryHelper.Viewer.Tests
         public void ABoxAndAnOrientedBox_DrawTwelveEdgesAndTwelveTriangles()
         {
             ItemPrimitives aabb = Draw(new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(30, 20, 10)));
-            ItemPrimitives obb = Draw(new GeoObb3(new GeoPoint3(0, 0, 0), 30, 20, 10, new GeoVector3(1, 1, 0).Normalize(), new GeoVector3(-1, 1, 0).Normalize()));
+            ItemPrimitives obb = Draw(
+                new GeoObb3(
+                    new GeoPoint3(0, 0, 0),
+                    30,
+                    20,
+                    10,
+                    new GeoVector3(1, 1, 0).Normalize(),
+                    new GeoVector3(-1, 1, 0).Normalize()
+                )
+            );
 
             Assert.Equal(12, aabb.Triangles.Count);
             Assert.Equal(6, aabb.Polylines.Count);
             Assert.Equal(2200.0, TriangleArea(aabb.Triangles), 6);
             Assert.Equal(2200.0, TriangleArea(obb.Triangles), 6);
-            Assert.All(aabb.Triangles, t => Assert.True(Vec3.Dot(t.Normal, (t.A + t.B + t.C) * (1.0 / 3.0) - new Vec3(15, 10, 5)) > 0.0));
+            Assert.All(aabb.Triangles, t =>
+                Assert.True(Vec3.Dot(t.Normal, (t.A + t.B + t.C) * (1.0 / 3.0) - new Vec3(15, 10, 5)) > 0.0)
+            );
         }
 
         [Fact]
@@ -261,7 +314,8 @@ namespace GeometryHelper.Viewer.Tests
         public void AShapeTheLibraryRefuses_StillDrawsItsOutlineAndIsWarnedOf()
         {
             // A polygon of two points is no polygon to the library, but the numbers are there to draw.
-            const string json = "{\"items\":[{\"name\":\"thin\",\"layer\":\"l\",\"kind\":\"GeoPolygon2\",\"data\":{\"points\":[[0,0],[10,0]]}}]}";
+            const string json =
+                "{\"items\":[{\"name\":\"thin\",\"layer\":\"l\",\"kind\":\"GeoPolygon2\",\"data\":{\"points\":[[0,0],[10,0]]}}]}";
             Scene scene = SceneReader.Read(json);
 
             Assert.Throws<ArgumentException>(() => scene.Items[0].ToGeometry());
@@ -270,14 +324,21 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Single(primitives.Items[0].Polylines);
             Assert.Empty(primitives.Warnings);
 
-            IReadOnlyList<KeyValuePair<string, string>> numbers = ItemMeasures.Describe(scene.Items[0], scene, primitives.Items[0]);
-            Assert.Contains(numbers, pair => pair.Key == "Library" && pair.Value.StartsWith("cannot rebuild", StringComparison.Ordinal));
+            IReadOnlyList<KeyValuePair<string, string>> numbers = ItemMeasures.Describe(
+                scene.Items[0],
+                scene,
+                primitives.Items[0]
+            );
+            Assert.Contains(numbers, pair =>
+                pair.Key == "Library" && pair.Value.StartsWith("cannot rebuild", StringComparison.Ordinal)
+            );
         }
 
         [Fact]
         public void AFaceOffItsPlane_KeepsItsOutlineAndWarnsWhereTheSurfaceCannotBeCut()
         {
-            const string json = "{\"items\":[{\"name\":\"bent\",\"layer\":\"l\",\"kind\":\"GeoFace3\",\"data\":{\"outer\":[[0,0,0],[10,0,0],[10,10,5],[0,10,0]],\"holes\":[]}}]}";
+            const string json =
+                "{\"items\":[{\"name\":\"bent\",\"layer\":\"l\",\"kind\":\"GeoFace3\",\"data\":{\"outer\":[[0,0,0],[10,0,0],[10,10,5],[0,10,0]],\"holes\":[]}}]}";
             Primitives primitives = Primitives.Build(SceneReader.Read(json));
 
             Assert.Single(primitives.Items[0].Polylines);
@@ -289,7 +350,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheItemsOfThePrimitives_FollowTheItemsOfTheScene()
         {
-            Scene scene = new SceneWriter().Add(new GeoPoint2(0, 0)).Add(new GeoLine2(0, 0, 3, 4)).Add(new GeoCircle2(new GeoPoint2(0, 0), 1)).Scene;
+            Scene scene = new SceneWriter()
+                .Add(new GeoPoint2(0, 0))
+                .Add(new GeoLine2(0, 0, 3, 4))
+                .Add(new GeoCircle2(new GeoPoint2(0, 0), 1))
+                .Scene;
             Primitives primitives = Primitives.Build(scene);
 
             Assert.Equal(new[] { 0, 1, 2 }, primitives.Items.Select(i => i.ItemIndex));

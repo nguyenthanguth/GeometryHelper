@@ -74,7 +74,11 @@ namespace GeometryHelper.Viewer
             new KeymapAction("Select", "Select the item under the cursor, replacing the selection.", true),
             new KeymapAction("SelectAdd", "Add the item under the cursor to the selection.", true),
             new KeymapAction("SelectToggle", "Toggle the item under the cursor in the selection.", true),
-            new KeymapAction("BoxSelect", "Select by a window dragged left to right, or a crossing dragged right to left.", true),
+            new KeymapAction(
+                "BoxSelect",
+                "Select by a window dragged left to right, or a crossing dragged right to left.",
+                true
+            ),
             new KeymapAction("Cancel", "Clear the selection, and stop a script that is running.", true),
             new KeymapAction("HideSelected", "Hide the selected items.", true),
             new KeymapAction("ShowAll", "Show every item again.", true),
@@ -97,18 +101,38 @@ namespace GeometryHelper.Viewer
             new KeymapAction("CompareLeft", "In a comparison, show the left side and what both sides share.", true),
             new KeymapAction("CompareRight", "In a comparison, show the right side and what both sides share.", true),
             new KeymapAction("CompareBoth", "In a comparison, show both sides over each other.", true),
-            new KeymapAction("ExportTest", "Write a test skeleton for the selected items to the clipboard and a file.", true),
+            new KeymapAction(
+                "ExportTest",
+                "Write a test skeleton for the selected items to the clipboard and a file.",
+                true
+            ),
             new KeymapAction("ViewLayout1", "Show one view.", true),
             new KeymapAction("ViewLayout2", "Show two views side by side.", true),
             new KeymapAction("ViewLayout4", "Show four views: the plan, the front, the right and the iso.", true),
-            new KeymapAction("LinkViews", "Link the active view to the other linked views, so that they zoom and pan together, or unlink it.", true),
-            new KeymapAction("WorkPlaneThreePoints", "Set the work plane by three picked points: the origin, a point along x, a point in the plane.", true),
+            new KeymapAction(
+                "LinkViews",
+                "Link the active view to the other linked views, so that they zoom and pan together, or unlink it.",
+                true
+            ),
+            new KeymapAction(
+                "WorkPlaneThreePoints",
+                "Set the work plane by three picked points: the origin, a point along x, a point in the plane.",
+                true
+            ),
             new KeymapAction("WorkPlaneFromFace", "Set the work plane on a picked face.", true),
             new KeymapAction("WorkPlaneFromView", "Set the work plane on the active view.", true),
             new KeymapAction("WorkPlaneGlobal", "Go back to the global work plane, z = 0.", true),
-            new KeymapAction("ClipAddView", "Add a clip plane through a picked point, square to the view; what is nearer the eye is cut away.", true),
+            new KeymapAction(
+                "ClipAddView",
+                "Add a clip plane through a picked point, square to the view; what is nearer the eye is cut away.",
+                true
+            ),
             new KeymapAction("ClipAddFace", "Add a clip plane on a picked face.", true),
-            new KeymapAction("ClipBox", "Clip to a box round the selection, or round the visible items where none is selected.", true),
+            new KeymapAction(
+                "ClipBox",
+                "Clip to a box round the selection, or round the visible items where none is selected.",
+                true
+            ),
             new KeymapAction("ClipFlip", "Turn the selected clip plane over, or the last one added.", true),
             new KeymapAction("ClipClear", "Take every clip plane away.", true),
             new KeymapAction("ToggleClipPane", "Show or hide the clip planes pane.", true),
@@ -123,7 +147,8 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Gets whether a name is an action.
         /// </summary>
-        public static bool IsKnown(string name) => _all.Any(action => string.Equals(action.Name, name, StringComparison.Ordinal));
+        public static bool IsKnown(string name) =>
+            _all.Any(action => string.Equals(action.Name, name, StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -223,7 +248,10 @@ namespace GeometryHelper.Viewer
 
             try
             {
-                document = JsonDocument.Parse(json, new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip });
+                document = JsonDocument.Parse(
+                    json,
+                    new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip }
+                );
             }
             catch (JsonException e)
             {
@@ -232,9 +260,11 @@ namespace GeometryHelper.Viewer
 
             using (document)
             {
-                if (document.RootElement.ValueKind != JsonValueKind.Object
+                if (
+                    document.RootElement.ValueKind != JsonValueKind.Object
                     || !document.RootElement.TryGetProperty("bindings", out JsonElement list)
-                    || list.ValueKind != JsonValueKind.Array)
+                    || list.ValueKind != JsonValueKind.Array
+                )
                 {
                     throw new FormatException("A keymap is an object with a \"bindings\" list.");
                 }
@@ -245,9 +275,12 @@ namespace GeometryHelper.Viewer
 
                 foreach (JsonElement element in list.EnumerateArray())
                 {
-                    string action = element.ValueKind == JsonValueKind.Object && element.TryGetProperty("action", out JsonElement name) && name.ValueKind == JsonValueKind.String
-                        ? name.GetString()
-                        : null;
+                    string action =
+                        element.ValueKind == JsonValueKind.Object
+                        && element.TryGetProperty("action", out JsonElement name)
+                        && name.ValueKind == JsonValueKind.String
+                            ? name.GetString()
+                            : null;
 
                     if (action == null)
                     {
@@ -261,10 +294,15 @@ namespace GeometryHelper.Viewer
 
                     if (!seenActions.Add(action))
                     {
-                        throw new FormatException("The action '" + action + "' is bound twice; list all its gestures in one binding.");
+                        throw new FormatException(
+                            "The action '" + action + "' is bound twice; list all its gestures in one binding."
+                        );
                     }
 
-                    if (!element.TryGetProperty("gestures", out JsonElement gestureList) || gestureList.ValueKind != JsonValueKind.Array)
+                    if (
+                        !element.TryGetProperty("gestures", out JsonElement gestureList)
+                        || gestureList.ValueKind != JsonValueKind.Array
+                    )
                     {
                         throw new FormatException("The binding of '" + action + "' needs a list of \"gestures\".");
                     }
@@ -283,7 +321,16 @@ namespace GeometryHelper.Viewer
 
                         if (owner.TryGetValue(key, out string other))
                         {
-                            throw new FormatException("The gesture '" + key + "' is bound to " + (other == action ? "'" + action + "' twice." : "both '" + other + "' and '" + action + "'."));
+                            throw new FormatException(
+                                "The gesture '"
+                                    + key
+                                    + "' is bound to "
+                                    + (
+                                        other == action
+                                            ? "'" + action + "' twice."
+                                            : "both '" + other + "' and '" + action + "'."
+                                    )
+                            );
                         }
 
                         owner[key] = action;
@@ -320,13 +367,21 @@ namespace GeometryHelper.Viewer
             try
             {
                 Keymap user = Parse(File.ReadAllText(userPath, Encoding.UTF8));
-                var taken = new HashSet<string>(user.Bindings.SelectMany(b => b.Gestures).Select(g => g.ToString()), StringComparer.Ordinal);
+                var taken = new HashSet<string>(
+                    user.Bindings.SelectMany(b => b.Gestures).Select(g => g.ToString()),
+                    StringComparer.Ordinal
+                );
                 var listed = new HashSet<string>(user.Bindings.Select(b => b.Action), StringComparer.Ordinal);
                 var merged = new List<KeyBinding>(user.Bindings);
 
                 foreach (KeyBinding binding in shipped.Bindings.Where(b => !listed.Contains(b.Action)))
                 {
-                    merged.Add(new KeyBinding(binding.Action, binding.Gestures.Where(g => !taken.Contains(g.ToString())).ToList()));
+                    merged.Add(
+                        new KeyBinding(
+                            binding.Action,
+                            binding.Gestures.Where(g => !taken.Contains(g.ToString())).ToList()
+                        )
+                    );
                 }
 
                 return new Keymap(merged);
@@ -343,14 +398,18 @@ namespace GeometryHelper.Viewer
         /// </summary>
         /// <param name="gesture">The gesture.</param>
         /// <returns>The name of the action, or null when nothing is bound to the gesture.</returns>
-        public string ActionFor(Gesture gesture) => gesture != null && _actionOf.TryGetValue(gesture.ToString(), out string action) ? action : null;
+        public string ActionFor(Gesture gesture) =>
+            gesture != null && _actionOf.TryGetValue(gesture.ToString(), out string action) ? action : null;
 
         /// <summary>
         /// Gets the gestures that do an action.
         /// </summary>
         /// <param name="action">The name of the action.</param>
         /// <returns>The gestures; none for an action with none.</returns>
-        public IReadOnlyList<Gesture> GesturesOf(string action)
-            => Bindings.Where(b => string.Equals(b.Action, action, StringComparison.Ordinal)).SelectMany(b => b.Gestures).ToList();
+        public IReadOnlyList<Gesture> GesturesOf(string action) =>
+            Bindings
+                .Where(b => string.Equals(b.Action, action, StringComparison.Ordinal))
+                .SelectMany(b => b.Gestures)
+                .ToList();
     }
 }

@@ -91,7 +91,19 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfPolyline2d polyline = ByHandle<DxfPolyline2d>(db, "49");
             DxfVertex2d vertex = polyline.ElementAt(1);
 
-            vertex.TransformBy(GeoTransform3.Identity.Multiply(new GeoTransform3(new double[,] { { 1, 0, 0, 2 }, { 0, 1, 0, 3 }, { 0, 0, 1, 4 }, { 0, 0, 0, 1 } })));
+            vertex.TransformBy(
+                GeoTransform3.Identity.Multiply(
+                    new GeoTransform3(
+                        new double[,]
+                        {
+                            { 1, 0, 0, 2 },
+                            { 0, 1, 0, 3 },
+                            { 0, 0, 1, 4 },
+                            { 0, 0, 0, 1 },
+                        }
+                    )
+                )
+            );
 
             Assert.Equal(Bits(new GeoPoint3(7, 3, 0)), Bits(vertex.Position));
         }

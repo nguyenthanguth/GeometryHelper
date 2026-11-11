@@ -44,8 +44,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the length is not a finite number.</exception>
         public CadLinetypeElement(double length)
             : this(length, CadLinetypeElementKind.Dash, null, null, 1.0, 0.0, CadLinetypeRotation.Relative, 0.0, 0.0)
-        {
-        }
+        { }
 
         /// <summary>Makes an element carrying a text or a shape.</summary>
         /// <param name="length">Above nought a dash, below a gap, nought a dot.</param>
@@ -59,7 +58,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="y">The offset across it (Y).</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a number is not finite.</exception>
         /// <exception cref="ArgumentException">Thrown when a text or shape is given no value or style.</exception>
-        public CadLinetypeElement(double length, CadLinetypeElementKind kind, string value, string style, double scale, double rotation, CadLinetypeRotation rotationKind, double x, double y)
+        public CadLinetypeElement(
+            double length,
+            CadLinetypeElementKind kind,
+            string value,
+            string style,
+            double scale,
+            double rotation,
+            CadLinetypeRotation rotationKind,
+            double x,
+            double y
+        )
         {
             CadLinetypeFile.Finite(length, nameof(length));
             CadLinetypeFile.Finite(scale, nameof(scale));
@@ -67,9 +76,15 @@ namespace GeometryHelper.Dxf.Viewer
             CadLinetypeFile.Finite(x, nameof(x));
             CadLinetypeFile.Finite(y, nameof(y));
 
-            if (kind != CadLinetypeElementKind.Dash && (string.IsNullOrEmpty(value) || string.IsNullOrWhiteSpace(style)))
+            if (
+                kind != CadLinetypeElementKind.Dash
+                && (string.IsNullOrEmpty(value) || string.IsNullOrWhiteSpace(style))
+            )
             {
-                throw new ArgumentException("A text or a shape names what it draws and its style or file of shapes.", nameof(value));
+                throw new ArgumentException(
+                    "A text or a shape names what it draws and its style or file of shapes.",
+                    nameof(value)
+                );
             }
 
             Length = length;
@@ -122,9 +137,26 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string value = Kind == CadLinetypeElementKind.Text ? "\"" + Value + "\"" : Value;
-            char turn = RotationKind == CadLinetypeRotation.Absolute ? 'A' : RotationKind == CadLinetypeRotation.Upright ? 'U' : 'R';
-            return length + ",[" + value + "," + Style + ",S=" + CadLinetypeFile.Number(Scale) + "," + turn + "=" + CadLinetypeFile.Number(Rotation)
-                + ",X=" + CadLinetypeFile.Number(X) + ",Y=" + CadLinetypeFile.Number(Y) + "]";
+            char turn =
+                RotationKind == CadLinetypeRotation.Absolute ? 'A'
+                : RotationKind == CadLinetypeRotation.Upright ? 'U'
+                : 'R';
+            return length
+                + ",["
+                + value
+                + ","
+                + Style
+                + ",S="
+                + CadLinetypeFile.Number(Scale)
+                + ","
+                + turn
+                + "="
+                + CadLinetypeFile.Number(Rotation)
+                + ",X="
+                + CadLinetypeFile.Number(X)
+                + ",Y="
+                + CadLinetypeFile.Number(Y)
+                + "]";
         }
     }
 
@@ -157,7 +189,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (list.Count == 0 || list.Contains(null))
             {
-                throw new ArgumentException("A linetype's pattern has at least one element, none of them null.", nameof(elements));
+                throw new ArgumentException(
+                    "A linetype's pattern has at least one element, none of them null.",
+                    nameof(elements)
+                );
             }
 
             Name = name.Trim();
@@ -236,9 +271,11 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets the two lines the file writes the linetype in, parted by a line feed: <c>*DASHED,Dashed __ __ __</c> and <c>A,6,-1.5</c>.</summary>
         /// <returns>The text.</returns>
-        public override string ToString() => "*" + Name + (Description.Length > 0 ? "," + Description : string.Empty) + "\n" + PatternText;
+        public override string ToString() =>
+            "*" + Name + (Description.Length > 0 ? "," + Description : string.Empty) + "\n" + PatternText;
 
-        internal static CadLinetypeDefinition Faulty(string name, string description, string fault) => new CadLinetypeDefinition(name, description, fault);
+        internal static CadLinetypeDefinition Faulty(string name, string description, string fault) =>
+            new CadLinetypeDefinition(name, description, fault);
     }
 
     /// <summary>
@@ -259,115 +296,117 @@ namespace GeometryHelper.Dxf.Viewer
         /// pen draws a dot of half its width.
         /// </summary>
         private const string Own =
-            "*DASHED,Dashed __ __ __ __ __ __ __\n" +
-            "A,6,-1.5\n" +
-            "*DASHED2,Dashed, half size\n" +
-            "A,3,-0.75\n" +
-            "*DASHEDX2,Dashed, double size\n" +
-            "A,12,-3\n" +
-            "*HIDDEN,Hidden _ _ _ _ _ _ _ _ _ _ _\n" +
-            "A,3,-1.5\n" +
-            "*HIDDEN2,Hidden, half size\n" +
-            "A,1.5,-0.75\n" +
-            "*HIDDENX2,Hidden, double size\n" +
-            "A,6,-3\n" +
-            "*CENTER,Center ____ _ ____ _ ____ _\n" +
-            "A,12,-1.5,3,-1.5\n" +
-            "*CENTER2,Center, half size\n" +
-            "A,6,-0.75,1.5,-0.75\n" +
-            "*CENTERX2,Center, double size\n" +
-            "A,24,-3,6,-3\n" +
-            "*PHANTOM,Phantom ____ _ _ ____ _ _ ____\n" +
-            "A,12,-1.5,3,-1.5,3,-1.5\n" +
-            "*PHANTOM2,Phantom, half size\n" +
-            "A,6,-0.75,1.5,-0.75,1.5,-0.75\n" +
-            "*PHANTOMX2,Phantom, double size\n" +
-            "A,24,-3,6,-3,6,-3\n" +
-            "*DOT,Dot . . . . . . . . . . . . .\n" +
-            "A,0,-1.5\n" +
-            "*DOT2,Dot, half size\n" +
-            "A,0,-0.75\n" +
-            "*DOTX2,Dot, double size\n" +
-            "A,0,-3\n" +
-            "*DASHDOT,Dash dot __ . __ . __ . __\n" +
-            "A,6,-1.5,0,-1.5\n" +
-            "*DASHDOT2,Dash dot, half size\n" +
-            "A,3,-0.75,0,-0.75\n" +
-            "*DASHDOTX2,Dash dot, double size\n" +
-            "A,12,-3,0,-3\n" +
-            "*DIVIDE,Divide __ . . __ . . __ . .\n" +
-            "A,6,-1.5,0,-1.5,0,-1.5\n" +
-            "*DIVIDE2,Divide, half size\n" +
-            "A,3,-0.75,0,-0.75,0,-0.75\n" +
-            "*DIVIDEX2,Divide, double size\n" +
-            "A,12,-3,0,-3,0,-3\n" +
-            "*BORDER,Border __ __ . __ __ . __ __ .\n" +
-            "A,6,-1.5,6,-1.5,0,-1.5\n" +
-            "*BORDER2,Border, half size\n" +
-            "A,3,-0.75,3,-0.75,0,-0.75\n" +
-            "*BORDERX2,Border, double size\n" +
-            "A,12,-3,12,-3,0,-3\n" +
-
+            "*DASHED,Dashed __ __ __ __ __ __ __\n"
+            + "A,6,-1.5\n"
+            + "*DASHED2,Dashed, half size\n"
+            + "A,3,-0.75\n"
+            + "*DASHEDX2,Dashed, double size\n"
+            + "A,12,-3\n"
+            + "*HIDDEN,Hidden _ _ _ _ _ _ _ _ _ _ _\n"
+            + "A,3,-1.5\n"
+            + "*HIDDEN2,Hidden, half size\n"
+            + "A,1.5,-0.75\n"
+            + "*HIDDENX2,Hidden, double size\n"
+            + "A,6,-3\n"
+            + "*CENTER,Center ____ _ ____ _ ____ _\n"
+            + "A,12,-1.5,3,-1.5\n"
+            + "*CENTER2,Center, half size\n"
+            + "A,6,-0.75,1.5,-0.75\n"
+            + "*CENTERX2,Center, double size\n"
+            + "A,24,-3,6,-3\n"
+            + "*PHANTOM,Phantom ____ _ _ ____ _ _ ____\n"
+            + "A,12,-1.5,3,-1.5,3,-1.5\n"
+            + "*PHANTOM2,Phantom, half size\n"
+            + "A,6,-0.75,1.5,-0.75,1.5,-0.75\n"
+            + "*PHANTOMX2,Phantom, double size\n"
+            + "A,24,-3,6,-3,6,-3\n"
+            + "*DOT,Dot . . . . . . . . . . . . .\n"
+            + "A,0,-1.5\n"
+            + "*DOT2,Dot, half size\n"
+            + "A,0,-0.75\n"
+            + "*DOTX2,Dot, double size\n"
+            + "A,0,-3\n"
+            + "*DASHDOT,Dash dot __ . __ . __ . __\n"
+            + "A,6,-1.5,0,-1.5\n"
+            + "*DASHDOT2,Dash dot, half size\n"
+            + "A,3,-0.75,0,-0.75\n"
+            + "*DASHDOTX2,Dash dot, double size\n"
+            + "A,12,-3,0,-3\n"
+            + "*DIVIDE,Divide __ . . __ . . __ . .\n"
+            + "A,6,-1.5,0,-1.5,0,-1.5\n"
+            + "*DIVIDE2,Divide, half size\n"
+            + "A,3,-0.75,0,-0.75,0,-0.75\n"
+            + "*DIVIDEX2,Divide, double size\n"
+            + "A,12,-3,0,-3,0,-3\n"
+            + "*BORDER,Border __ __ . __ __ . __ __ .\n"
+            + "A,6,-1.5,6,-1.5,0,-1.5\n"
+            + "*BORDER2,Border, half size\n"
+            + "A,3,-0.75,3,-0.75,0,-0.75\n"
+            + "*BORDERX2,Border, double size\n"
+            + "A,12,-3,12,-3,0,-3\n"
+            +
             // ISO 128-20 for a pen of 1.0 mm (W100); the type's number in ISO 128-2 is the one in the name.
             // 02 dashed: a dash and a gap.
-            "*ACAD_ISO02W100,ISO 02 dashed, pen 1.0 mm\n" +
-            "A,12,-3\n" +
-
+            "*ACAD_ISO02W100,ISO 02 dashed, pen 1.0 mm\n"
+            + "A,12,-3\n"
+            +
             // 03 dashed spaced: a dash and a space.
-            "*ACAD_ISO03W100,ISO 03 dashed spaced, pen 1.0 mm\n" +
-            "A,12,-18\n" +
-
+            "*ACAD_ISO03W100,ISO 03 dashed spaced, pen 1.0 mm\n"
+            + "A,12,-18\n"
+            +
             // 04 long-dashed dotted: a long dash, a dot.
-            "*ACAD_ISO04W100,ISO 04 long dash dot, pen 1.0 mm\n" +
-            "A,24,-3,0,-3\n" +
-
+            "*ACAD_ISO04W100,ISO 04 long dash dot, pen 1.0 mm\n"
+            + "A,24,-3,0,-3\n"
+            +
             // 05 long-dashed double-dotted: a long dash, two dots.
-            "*ACAD_ISO05W100,ISO 05 long dash two dots, pen 1.0 mm\n" +
-            "A,24,-3,0,-3,0,-3\n" +
-
+            "*ACAD_ISO05W100,ISO 05 long dash two dots, pen 1.0 mm\n"
+            + "A,24,-3,0,-3,0,-3\n"
+            +
             // 06 long-dashed triplicate-dotted: a long dash, three dots.
-            "*ACAD_ISO06W100,ISO 06 long dash three dots, pen 1.0 mm\n" +
-            "A,24,-3,0,-3,0,-3,0,-3\n" +
-
+            "*ACAD_ISO06W100,ISO 06 long dash three dots, pen 1.0 mm\n"
+            + "A,24,-3,0,-3,0,-3,0,-3\n"
+            +
             // 07 dotted: a dot and a gap.
-            "*ACAD_ISO07W100,ISO 07 dotted, pen 1.0 mm\n" +
-            "A,0,-3\n" +
-
+            "*ACAD_ISO07W100,ISO 07 dotted, pen 1.0 mm\n"
+            + "A,0,-3\n"
+            +
             // 08 long-dashed short-dashed: a long dash, a short dash.
-            "*ACAD_ISO08W100,ISO 08 long dash short dash, pen 1.0 mm\n" +
-            "A,24,-3,6,-3\n" +
-
+            "*ACAD_ISO08W100,ISO 08 long dash short dash, pen 1.0 mm\n"
+            + "A,24,-3,6,-3\n"
+            +
             // 09 long-dashed double-short-dashed: a long dash, two short dashes.
-            "*ACAD_ISO09W100,ISO 09 long dash two short dashes, pen 1.0 mm\n" +
-            "A,24,-3,6,-3,6,-3\n" +
-
+            "*ACAD_ISO09W100,ISO 09 long dash two short dashes, pen 1.0 mm\n"
+            + "A,24,-3,6,-3,6,-3\n"
+            +
             // 10 dashed dotted: a dash, a dot.
-            "*ACAD_ISO10W100,ISO 10 dash dot, pen 1.0 mm\n" +
-            "A,12,-3,0,-3\n" +
-
+            "*ACAD_ISO10W100,ISO 10 dash dot, pen 1.0 mm\n"
+            + "A,12,-3,0,-3\n"
+            +
             // 11 double-dashed dotted: two dashes, a dot.
-            "*ACAD_ISO11W100,ISO 11 two dashes dot, pen 1.0 mm\n" +
-            "A,12,-3,12,-3,0,-3\n" +
-
+            "*ACAD_ISO11W100,ISO 11 two dashes dot, pen 1.0 mm\n"
+            + "A,12,-3,12,-3,0,-3\n"
+            +
             // 12 dashed double-dotted: a dash, two dots.
-            "*ACAD_ISO12W100,ISO 12 dash two dots, pen 1.0 mm\n" +
-            "A,12,-3,0,-3,0,-3\n" +
-
+            "*ACAD_ISO12W100,ISO 12 dash two dots, pen 1.0 mm\n"
+            + "A,12,-3,0,-3,0,-3\n"
+            +
             // 13 double-dashed double-dotted: two dashes, two dots.
-            "*ACAD_ISO13W100,ISO 13 two dashes two dots, pen 1.0 mm\n" +
-            "A,12,-3,12,-3,0,-3,0,-3\n" +
-
+            "*ACAD_ISO13W100,ISO 13 two dashes two dots, pen 1.0 mm\n"
+            + "A,12,-3,12,-3,0,-3,0,-3\n"
+            +
             // 14 dashed triplicate-dotted: a dash, three dots.
-            "*ACAD_ISO14W100,ISO 14 dash three dots, pen 1.0 mm\n" +
-            "A,12,-3,0,-3,0,-3,0,-3\n" +
-
+            "*ACAD_ISO14W100,ISO 14 dash three dots, pen 1.0 mm\n"
+            + "A,12,-3,0,-3,0,-3,0,-3\n"
+            +
             // 15 double-dashed triplicate-dotted: two dashes, three dots.
-            "*ACAD_ISO15W100,ISO 15 two dashes three dots, pen 1.0 mm\n" +
-            "A,12,-3,12,-3,0,-3,0,-3,0,-3\n" +
-            "*GAS_LINE,Gas line ----GAS----GAS----GAS----\n" +
-            "A,6,-2.4,[\"GAS\",STANDARD,S=1.2,R=0.0,X=-1.2,Y=-0.6],-3\n";
+            "*ACAD_ISO15W100,ISO 15 two dashes three dots, pen 1.0 mm\n"
+            + "A,12,-3,12,-3,0,-3,0,-3,0,-3\n"
+            + "*GAS_LINE,Gas line ----GAS----GAS----GAS----\n"
+            + "A,6,-2.4,[\"GAS\",STANDARD,S=1.2,R=0.0,X=-1.2,Y=-0.6],-3\n";
 
-        private static readonly Lazy<IReadOnlyList<CadLinetypeDefinition>> Mine = new Lazy<IReadOnlyList<CadLinetypeDefinition>>(() => Parse(Own));
+        private static readonly Lazy<IReadOnlyList<CadLinetypeDefinition>> Mine = new Lazy<
+            IReadOnlyList<CadLinetypeDefinition>
+        >(() => Parse(Own));
 
         /// <summary>
         /// Gets the presenter's own 39 linetypes, in millimetres: DASHED, HIDDEN, CENTER, PHANTOM, DOT, DASHDOT, DIVIDE and BORDER,
@@ -408,7 +447,9 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     if (name != null)
                     {
-                        linetypes.Add(CadLinetypeDefinition.Faulty(name, description, "The linetype " + name + " has no pattern."));
+                        linetypes.Add(
+                            CadLinetypeDefinition.Faulty(name, description, "The linetype " + name + " has no pattern.")
+                        );
                     }
 
                     int comma = line.IndexOf(',');
@@ -428,7 +469,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (name != null)
             {
-                linetypes.Add(CadLinetypeDefinition.Faulty(name, description, "The linetype " + name + " has no pattern."));
+                linetypes.Add(
+                    CadLinetypeDefinition.Faulty(name, description, "The linetype " + name + " has no pattern.")
+                );
             }
 
             return linetypes.AsReadOnly();
@@ -457,7 +500,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             string line = pattern.Trim();
 
-            if (!line.StartsWith("A,", StringComparison.OrdinalIgnoreCase) && !line.StartsWith("A ", StringComparison.OrdinalIgnoreCase))
+            if (
+                !line.StartsWith("A,", StringComparison.OrdinalIgnoreCase)
+                && !line.StartsWith("A ", StringComparison.OrdinalIgnoreCase)
+            )
             {
                 line = "A," + line;
             }
@@ -473,7 +519,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>The linetypes.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
         /// <exception cref="IOException">Thrown when the file cannot be read.</exception>
-        public static IReadOnlyList<CadLinetypeDefinition> Read(string path) => Parse(ReadText(path ?? throw new ArgumentNullException(nameof(path))));
+        public static IReadOnlyList<CadLinetypeDefinition> Read(string path) =>
+            Parse(ReadText(path ?? throw new ArgumentNullException(nameof(path))));
 
         /// <summary>The text of a file of support: UTF-8 where its bytes are, else Latin-1.</summary>
         internal static string ReadText(string path)
@@ -495,7 +542,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (double.IsNaN(value) || double.IsInfinity(value))
             {
-                throw new ArgumentOutOfRangeException(name, value, "A length, scale, rotation or offset has to be a finite number.");
+                throw new ArgumentOutOfRangeException(
+                    name,
+                    value,
+                    "A length, scale, rotation or offset has to be a finite number."
+                );
             }
         }
 
@@ -507,7 +558,10 @@ namespace GeometryHelper.Dxf.Viewer
         {
             List<string> fields = Fields(line, out string fault);
 
-            if (fault == null && (fields.Count < 2 || !string.Equals(fields[0].Trim(), "A", StringComparison.OrdinalIgnoreCase)))
+            if (
+                fault == null
+                && (fields.Count < 2 || !string.Equals(fields[0].Trim(), "A", StringComparison.OrdinalIgnoreCase))
+            )
             {
                 fault = "The pattern of " + name + " does not start with the alignment A.";
             }
@@ -552,10 +606,17 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (fault == null && elements.Count > 12)
             {
-                fault = "The pattern of " + name + " has " + elements.Count.ToString(CultureInfo.InvariantCulture) + " elements, and AutoCAD takes 12 at most.";
+                fault =
+                    "The pattern of "
+                    + name
+                    + " has "
+                    + elements.Count.ToString(CultureInfo.InvariantCulture)
+                    + " elements, and AutoCAD takes 12 at most.";
             }
 
-            return fault != null ? CadLinetypeDefinition.Faulty(name, description, fault) : new CadLinetypeDefinition(name, description, elements);
+            return fault != null
+                ? CadLinetypeDefinition.Faulty(name, description, fault)
+                : new CadLinetypeDefinition(name, description, elements);
         }
 
         /// <summary>The fields of a pattern line parted at its commas, a part in brackets one field with its brackets, a comma in quotes kept.</summary>
@@ -611,7 +672,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (fault != null || parts.Count < 2)
             {
-                fault = fault ?? "A text or shape in brackets names what it draws and its style or file: " + field + ".";
+                fault = fault
+                    ?? "A text or shape in brackets names what it draws and its style or file: " + field + ".";
                 return null;
             }
 
@@ -647,7 +709,10 @@ namespace GeometryHelper.Dxf.Viewer
                     case "R":
                     case "A":
                     case "U":
-                        turn = key == "A" ? CadLinetypeRotation.Absolute : key == "U" ? CadLinetypeRotation.Upright : CadLinetypeRotation.Relative;
+                        turn =
+                            key == "A" ? CadLinetypeRotation.Absolute
+                            : key == "U" ? CadLinetypeRotation.Upright
+                            : CadLinetypeRotation.Relative;
                         read = TryAngle(number, out rotation);
                         break;
                     default:
@@ -657,7 +722,10 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (!read)
                 {
-                    fault = "A text or shape in brackets has \"" + part + "\", which is not S=, R=, A=, U=, X= or Y= and a number.";
+                    fault =
+                        "A text or shape in brackets has \""
+                        + part
+                        + "\", which is not S=, R=, A=, U=, X= or Y= and a number.";
                     return null;
                 }
             }
@@ -668,7 +736,17 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            return new CadLinetypeElement(length, text ? CadLinetypeElementKind.Text : CadLinetypeElementKind.Shape, value, style, scale, rotation, turn, x, y);
+            return new CadLinetypeElement(
+                length,
+                text ? CadLinetypeElementKind.Text : CadLinetypeElementKind.Shape,
+                value,
+                style,
+                scale,
+                rotation,
+                turn,
+                x,
+                y
+            );
         }
 
         /// <summary>An angle in degrees: as written or with d after it, from radians with r, from grads with g.</summary>
@@ -681,7 +759,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (last == 'd' || last == 'r' || last == 'g')
             {
-                factor = last == 'r' ? 180.0 / Math.PI : last == 'g' ? 0.9 : 1.0;
+                factor =
+                    last == 'r' ? 180.0 / Math.PI
+                    : last == 'g' ? 0.9
+                    : 1.0;
                 number = number.Substring(0, number.Length - 1);
             }
 
@@ -694,7 +775,9 @@ namespace GeometryHelper.Dxf.Viewer
             return true;
         }
 
-        private static bool TryNumber(string text, out double value)
-            => double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value) && !double.IsNaN(value) && !double.IsInfinity(value);
+        private static bool TryNumber(string text, out double value) =>
+            double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+            && !double.IsNaN(value)
+            && !double.IsInfinity(value);
     }
 }

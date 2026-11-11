@@ -17,12 +17,18 @@ namespace GeometryHelper.UnitTest.Solid.Core
     {
         private static readonly Tolerance Wide = new Tolerance(0.05, 0.01, Tolerance.DefaultEqualAngleRad, 0.05);
 
-        private static readonly Tolerance Pieces = new Tolerance(0.01, 0.01 * 0.01 * 0.125, Tolerance.DefaultEqualAngleRad, 0.01);
+        private static readonly Tolerance Pieces = new Tolerance(
+            0.01,
+            0.01 * 0.01 * 0.125,
+            Tolerance.DefaultEqualAngleRad,
+            0.01
+        );
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
-        private static GeoFace3 Face(Tolerance tolerance, params GeoPoint3[] corners) => new GeoFace3(new GeoPolygon3(corners, tolerance), null, tolerance);
+        private static GeoFace3 Face(Tolerance tolerance, params GeoPoint3[] corners) =>
+            new GeoFace3(new GeoPolygon3(corners, tolerance), null, tolerance);
 
         /// <summary>
         /// A slab 20 000 by 10 000 by 300 with a notch 2 000..6 200 along x, from its front to y = 5 000, the top's two
@@ -30,8 +36,19 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// </summary>
         private static GeoSolid3 NotchedSlab(double off)
         {
-            const double h = 300, back = 5000;
-            var bottom = new[] { (0.0, 0.0), (2000.0, 0.0), (2000.0, back), (6200.0, back), (6200.0, 0.0), (20000.0, 0.0), (20000.0, 10000.0), (0.0, 10000.0) };
+            const double h = 300,
+                back = 5000;
+            var bottom = new[]
+            {
+                (0.0, 0.0),
+                (2000.0, 0.0),
+                (2000.0, back),
+                (6200.0, back),
+                (6200.0, 0.0),
+                (20000.0, 0.0),
+                (20000.0, 10000.0),
+                (0.0, 10000.0),
+            };
             var top = bottom.Select(p => p.Item2 == back ? (p.Item1, back - off) : p).ToArray();
             var faces = new List<GeoFace3>
             {
@@ -42,9 +59,15 @@ namespace GeometryHelper.UnitTest.Solid.Core
             for (int i = 0; i < bottom.Length; i++)
             {
                 int j = (i + 1) % bottom.Length;
-                faces.Add(Face(Pieces,
-                    new GeoPoint3(bottom[i].Item1, bottom[i].Item2, 0), new GeoPoint3(bottom[j].Item1, bottom[j].Item2, 0),
-                    new GeoPoint3(top[j].Item1, top[j].Item2, h), new GeoPoint3(top[i].Item1, top[i].Item2, h)));
+                faces.Add(
+                    Face(
+                        Pieces,
+                        new GeoPoint3(bottom[i].Item1, bottom[i].Item2, 0),
+                        new GeoPoint3(bottom[j].Item1, bottom[j].Item2, 0),
+                        new GeoPoint3(top[j].Item1, top[j].Item2, h),
+                        new GeoPoint3(top[i].Item1, top[i].Item2, h)
+                    )
+                );
             }
 
             return new GeoSolid3(faces);
@@ -64,8 +87,17 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             for (int i = 0; i < plan.Length; i++)
             {
-                (double X, double Y) a = plan[i], b = plan[(i + 1) % plan.Length];
-                faces.Add(Face(exact, new GeoPoint3(a.X, a.Y, z0), new GeoPoint3(b.X, b.Y, z0), new GeoPoint3(b.X, b.Y, z1), new GeoPoint3(a.X, a.Y, z1)));
+                (double X, double Y) a = plan[i],
+                    b = plan[(i + 1) % plan.Length];
+                faces.Add(
+                    Face(
+                        exact,
+                        new GeoPoint3(a.X, a.Y, z0),
+                        new GeoPoint3(b.X, b.Y, z0),
+                        new GeoPoint3(b.X, b.Y, z1),
+                        new GeoPoint3(a.X, a.Y, z1)
+                    )
+                );
             }
 
             return new GeoSolid3(faces);
@@ -96,7 +128,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
                 Assert.True(left.TrySubtract(block, out GeoSolid3 rest, tolerance, out BooleanOutcome outcome));
                 Assert.Equal(BooleanOutcome.Made, outcome);
                 Assert.True(rest.IsClosed(tolerance), rest.Validate(tolerance).ToString());
-                Assert.DoesNotContain(rest.Validate(tolerance).Issues, issue => issue.Kind == SolidIssueKind.NotFlatFace);
+                Assert.DoesNotContain(rest.Validate(tolerance).Issues, issue =>
+                    issue.Kind == SolidIssueKind.NotFlatFace
+                );
                 left = rest;
             }
 
@@ -138,7 +172,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // nothing; the sides' corner moved to it would tilt the side at y = 10.
             var faces = new List<GeoFace3>(Box(0, 0, 0, 10, 10, 10).Faces.Where(face => face.Normal.Z < 0.5))
             {
-                Face(Pieces, new GeoPoint3(0, 0, 10), new GeoPoint3(10, 0, 10), new GeoPoint3(10, 10.02, 10), new GeoPoint3(0, 10, 10)),
+                Face(
+                    Pieces,
+                    new GeoPoint3(0, 0, 10),
+                    new GeoPoint3(10, 0, 10),
+                    new GeoPoint3(10, 10.02, 10),
+                    new GeoPoint3(0, 10, 10)
+                ),
             };
             var box = new GeoSolid3(faces);
 
@@ -149,7 +189,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             Assert.True(sealedBox.IsClosed(new Tolerance(1E-9, 1E-9, Tolerance.DefaultEqualAngleRad, 1E-9)));
             Assert.Equal(1000.0, sealedBox.GetVolume(), 9);
-            Assert.Contains(sealedBox.Faces, face => face.Normal.Z > 0.5 && face.Boundary.Vertices.Contains(new GeoPoint3(10, 10, 10)));
+            Assert.Contains(sealedBox.Faces, face =>
+                face.Normal.Z > 0.5 && face.Boundary.Vertices.Contains(new GeoPoint3(10, 10, 10))
+            );
         }
 
         [Fact]
@@ -157,7 +199,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // A box whose front is two faces side by side, the corner between them at the top 0.02 in front of the top's edge.
             var loose = new Tolerance(0.05, 0.01, Tolerance.DefaultEqualAngleRad, 0.05);
-            GeoPoint3 bottomMiddle = new GeoPoint3(4, 0, 0), topMiddle = new GeoPoint3(4, -0.02, 10);
+            GeoPoint3 bottomMiddle = new GeoPoint3(4, 0, 0),
+                topMiddle = new GeoPoint3(4, -0.02, 10);
             var faces = new List<GeoFace3>(Box(0, 0, 0, 10, 10, 10).Faces.Where(face => face.Normal.Y > -0.5))
             {
                 Face(loose, new GeoPoint3(0, 0, 0), bottomMiddle, topMiddle, new GeoPoint3(0, 0, 10)),
@@ -172,7 +215,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             Assert.True(sealedBox.IsClosed(new Tolerance(1E-9, 1E-9, Tolerance.DefaultEqualAngleRad, 1E-9)));
             Assert.Contains(sealedBox.Faces, face => face.Normal.Z > 0.5 && face.Boundary.Vertices.Contains(topMiddle));
-            Assert.Contains(sealedBox.Faces, face => face.Normal.Z < -0.5 && face.Boundary.Vertices.Contains(bottomMiddle));
+            Assert.Contains(sealedBox.Faces, face =>
+                face.Normal.Z < -0.5 && face.Boundary.Vertices.Contains(bottomMiddle)
+            );
 
             // And the front bulges by the corner: a third of the front's triangle under it times 0.02, as the faces read it.
             Assert.InRange(sealedBox.GetVolume(), 1000.0, 1000.5);
@@ -188,13 +233,57 @@ namespace GeometryHelper.UnitTest.Solid.Core
             GeoPoint3 topBend = new GeoPoint3(10018, 0.5 * 18 / 10000, h);
             var faces = new List<GeoFace3>
             {
-                Face(Pieces, new GeoPoint3(0, 1000, 0), new GeoPoint3(20000, 1000, 0), new GeoPoint3(20000, 0.5, 0), new GeoPoint3(10000, 0, 0), new GeoPoint3(0, 0, 0)),
-                Face(Pieces, new GeoPoint3(0, 0, h), topBend, new GeoPoint3(20000, 0.5, h), new GeoPoint3(20000, 1000, h), new GeoPoint3(0, 1000, h)),
-                Face(Pieces, new GeoPoint3(0, 0, 0), new GeoPoint3(10000, 0, 0), new GeoPoint3(10000, 0, h), new GeoPoint3(0, 0, h)),
-                Face(Pieces, new GeoPoint3(10000, 0, 0), new GeoPoint3(20000, 0.5, 0), new GeoPoint3(20000, 0.5, h), new GeoPoint3(10000, 0, h)),
-                Face(Pieces, new GeoPoint3(20000, 0.5, 0), new GeoPoint3(20000, 1000, 0), new GeoPoint3(20000, 1000, h), new GeoPoint3(20000, 0.5, h)),
-                Face(Pieces, new GeoPoint3(20000, 1000, 0), new GeoPoint3(0, 1000, 0), new GeoPoint3(0, 1000, h), new GeoPoint3(20000, 1000, h)),
-                Face(Pieces, new GeoPoint3(0, 1000, 0), new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, h), new GeoPoint3(0, 1000, h)),
+                Face(
+                    Pieces,
+                    new GeoPoint3(0, 1000, 0),
+                    new GeoPoint3(20000, 1000, 0),
+                    new GeoPoint3(20000, 0.5, 0),
+                    new GeoPoint3(10000, 0, 0),
+                    new GeoPoint3(0, 0, 0)
+                ),
+                Face(
+                    Pieces,
+                    new GeoPoint3(0, 0, h),
+                    topBend,
+                    new GeoPoint3(20000, 0.5, h),
+                    new GeoPoint3(20000, 1000, h),
+                    new GeoPoint3(0, 1000, h)
+                ),
+                Face(
+                    Pieces,
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10000, 0, 0),
+                    new GeoPoint3(10000, 0, h),
+                    new GeoPoint3(0, 0, h)
+                ),
+                Face(
+                    Pieces,
+                    new GeoPoint3(10000, 0, 0),
+                    new GeoPoint3(20000, 0.5, 0),
+                    new GeoPoint3(20000, 0.5, h),
+                    new GeoPoint3(10000, 0, h)
+                ),
+                Face(
+                    Pieces,
+                    new GeoPoint3(20000, 0.5, 0),
+                    new GeoPoint3(20000, 1000, 0),
+                    new GeoPoint3(20000, 1000, h),
+                    new GeoPoint3(20000, 0.5, h)
+                ),
+                Face(
+                    Pieces,
+                    new GeoPoint3(20000, 1000, 0),
+                    new GeoPoint3(0, 1000, 0),
+                    new GeoPoint3(0, 1000, h),
+                    new GeoPoint3(20000, 1000, h)
+                ),
+                Face(
+                    Pieces,
+                    new GeoPoint3(0, 1000, 0),
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(0, 0, h),
+                    new GeoPoint3(0, 1000, h)
+                ),
             };
             var prism = new GeoSolid3(faces);
 
@@ -223,7 +312,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // not within a ten-thousandth.
             var faces = new List<GeoFace3>(box.Faces.Where(face => face.Normal.Z < 0.5))
             {
-                Face(Pieces, new GeoPoint3(0, 0, 10), new GeoPoint3(10, 0, 10), new GeoPoint3(10, 10.0005, 10), new GeoPoint3(0, 10, 10)),
+                Face(
+                    Pieces,
+                    new GeoPoint3(0, 0, 10),
+                    new GeoPoint3(10, 0, 10),
+                    new GeoPoint3(10, 10.0005, 10),
+                    new GeoPoint3(0, 10, 10)
+                ),
             };
             var nearly = new GeoSolid3(faces);
 

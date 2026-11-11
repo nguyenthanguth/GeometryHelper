@@ -25,7 +25,13 @@ namespace GeometryHelper.Drawing
         /// <exception cref="ArgumentNullException">Thrown when the object id is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the object id is empty.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the kind is not one of <see cref="CadEditKind"/>.</exception>
-        public DrawingEdit(string objectId, CadEditKind kind, string property = null, string oldValue = null, string newValue = null)
+        public DrawingEdit(
+            string objectId,
+            CadEditKind kind,
+            string property = null,
+            string oldValue = null,
+            string newValue = null
+        )
         {
             if (objectId == null)
             {
@@ -67,13 +73,13 @@ namespace GeometryHelper.Drawing
         /// <summary>Whether this edit is the same as another, field by field, character by character.</summary>
         /// <param name="other">The other edit.</param>
         /// <returns>Whether they are the same.</returns>
-        public bool Equals(DrawingEdit other)
-            => other != null
-               && Kind == other.Kind
-               && string.Equals(ObjectId, other.ObjectId, StringComparison.Ordinal)
-               && string.Equals(Property, other.Property, StringComparison.Ordinal)
-               && string.Equals(OldValue, other.OldValue, StringComparison.Ordinal)
-               && string.Equals(NewValue, other.NewValue, StringComparison.Ordinal);
+        public bool Equals(DrawingEdit other) =>
+            other != null
+            && Kind == other.Kind
+            && string.Equals(ObjectId, other.ObjectId, StringComparison.Ordinal)
+            && string.Equals(Property, other.Property, StringComparison.Ordinal)
+            && string.Equals(OldValue, other.OldValue, StringComparison.Ordinal)
+            && string.Equals(NewValue, other.NewValue, StringComparison.Ordinal);
 
         /// <summary>Whether an object is an edit the same as this one.</summary>
         /// <param name="obj">The object.</param>
@@ -96,6 +102,14 @@ namespace GeometryHelper.Drawing
 
         /// <summary>Gives the edit as a line for debugging.</summary>
         /// <returns>The line, such as <c>M-3 Move: (none) -&gt; 40,0</c>.</returns>
-        public override string ToString() => ObjectId + " " + Kind + (Property == null ? string.Empty : " " + Property) + ": " + (OldValue ?? "(none)") + " -> " + (NewValue ?? "(none)");
+        public override string ToString() =>
+            ObjectId
+            + " "
+            + Kind
+            + (Property == null ? string.Empty : " " + Property)
+            + ": "
+            + (OldValue ?? "(none)")
+            + " -> "
+            + (NewValue ?? "(none)");
     }
 }

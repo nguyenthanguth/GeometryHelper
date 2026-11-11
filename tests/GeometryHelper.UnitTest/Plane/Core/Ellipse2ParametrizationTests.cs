@@ -52,7 +52,9 @@ namespace GeometryHelper.UnitTest.Plane
 
             foreach (double p in new[] { 0.0, 0.1, 0.37, 0.5, 0.93 })
             {
-                Assert.True(ellipse.GetPointAtParameter(p).IsEqualTo(Ellipse2Oracle.Rim(ellipse, 2 * Math.PI * p), Tight));
+                Assert.True(
+                    ellipse.GetPointAtParameter(p).IsEqualTo(Ellipse2Oracle.Rim(ellipse, 2 * Math.PI * p), Tight)
+                );
             }
         }
 
@@ -80,7 +82,11 @@ namespace GeometryHelper.UnitTest.Plane
 
             foreach (double p in new[] { 0.01, 0.2, 0.45, 0.6, 0.83, 0.99 })
             {
-                Assert.Equal(Ellipse2Oracle.ArcLength(300, 100, 0, 2 * Math.PI * p), ellipse.GetDistanceAtParameter(p), 1E-12 * length);
+                Assert.Equal(
+                    Ellipse2Oracle.ArcLength(300, 100, 0, 2 * Math.PI * p),
+                    ellipse.GetDistanceAtParameter(p),
+                    1E-12 * length
+                );
             }
         }
 
@@ -136,14 +142,22 @@ namespace GeometryHelper.UnitTest.Plane
 
                 Assert.Equal(Ellipse2Oracle.ArcLength(1000, minorRadius, 0, 2 * Math.PI * p), distance, 1E-12 * length);
                 Assert.Equal(p, ellipse.GetParameterAtDistance(distance), 1E-12);
-                Assert.True(ellipse.GetPointAtDistance(distance).IsEqualTo(ellipse.GetPointAtParameter(p), new Tolerance(1E-12 * length, 1E-12)));
+                Assert.True(
+                    ellipse
+                        .GetPointAtDistance(distance)
+                        .IsEqualTo(ellipse.GetPointAtParameter(p), new Tolerance(1E-12 * length, 1E-12))
+                );
             }
 
             for (int k = 1; k < 13; k++)
             {
                 double distance = k * length / 13.1;
 
-                Assert.Equal(distance, ellipse.GetDistanceAtParameter(ellipse.GetParameterAtDistance(distance)), 1E-12 * length);
+                Assert.Equal(
+                    distance,
+                    ellipse.GetDistanceAtParameter(ellipse.GetParameterAtDistance(distance)),
+                    1E-12 * length
+                );
             }
         }
 
@@ -163,7 +177,9 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(1.3, ellipse.GetParameterAtDistance(length + threeTenths), 1E-12);
             Assert.Equal(-0.1, ellipse.GetParameterAtDistance(-tenth), 1E-12);
 
-            Assert.True(ellipse.GetPointAtDistance(length + threeTenths).IsEqualTo(ellipse.GetPointAtParameter(0.3), Tight));
+            Assert.True(
+                ellipse.GetPointAtDistance(length + threeTenths).IsEqualTo(ellipse.GetPointAtParameter(0.3), Tight)
+            );
             Assert.True(ellipse.GetPointAtDistance(-tenth).IsEqualTo(ellipse.GetPointAtParameter(0.9), Tight));
         }
 
@@ -176,7 +192,11 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPoint2 point = Ellipse2Oracle.OffRim(ellipse, 2.2, 20);
 
             Assert.Equal(2.2 / (2 * Math.PI), ellipse.GetParameterAtPoint(point), 1E-12);
-            Assert.Equal(Ellipse2Oracle.ArcLength(300, 100, 0, 2.2), ellipse.GetDistanceAtPoint(point), 1E-12 * ellipse.Length);
+            Assert.Equal(
+                Ellipse2Oracle.ArcLength(300, 100, 0, 2.2),
+                ellipse.GetDistanceAtPoint(point),
+                1E-12 * ellipse.Length
+            );
         }
 
         [Fact]
@@ -186,7 +206,11 @@ namespace GeometryHelper.UnitTest.Plane
             // -0.0016; the end itself is nought, never one. The ellipse is upright, so the end's v is exactly nought.
             GeoEllipse2 ellipse = Ellipse2Oracle.Upright(300, 100);
 
-            Assert.Equal(1 - 0.01 / (2 * Math.PI), ellipse.GetParameterAtPoint(Ellipse2Oracle.Rim(ellipse, -0.01)), 1E-12);
+            Assert.Equal(
+                1 - 0.01 / (2 * Math.PI),
+                ellipse.GetParameterAtPoint(Ellipse2Oracle.Rim(ellipse, -0.01)),
+                1E-12
+            );
             Assert.Equal(0.0, ellipse.GetParameterAtPoint(Ellipse2Oracle.FromFrame(ellipse, 300, 0)));
             Assert.Equal(0.0, ellipse.GetDistanceAtPoint(Ellipse2Oracle.FromFrame(ellipse, 300, 0)));
         }
@@ -207,8 +231,16 @@ namespace GeometryHelper.UnitTest.Plane
             foreach (double p in new[] { 0.0, 0.05, 0.25, 0.4, 0.5, 0.77, 0.95 })
             {
                 Assert.True(ellipse.GetPointAtParameter(p).IsEqualTo(circle.GetPointAtParameter(p + shift), near));
-                Assert.Equal(circle.GetDistanceAtParameter(p), ellipse.GetDistanceAtParameter(p), 1E-12 * circle.Length);
-                Assert.Equal(circle.GetParameterAtDistance(p * circle.Length), ellipse.GetParameterAtDistance(p * circle.Length), 1E-12);
+                Assert.Equal(
+                    circle.GetDistanceAtParameter(p),
+                    ellipse.GetDistanceAtParameter(p),
+                    1E-12 * circle.Length
+                );
+                Assert.Equal(
+                    circle.GetParameterAtDistance(p * circle.Length),
+                    ellipse.GetParameterAtDistance(p * circle.Length),
+                    1E-12
+                );
             }
 
             // A point off the rim, a third of a turn round from the axis, 40 outside it.

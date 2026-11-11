@@ -40,21 +40,27 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return Session(document);
         }
 
-        private static DxfDimension Made(CadCommandSession session) => session.Document.ModelSpace.Block.OfType<DxfDimension>().Last();
+        private static DxfDimension Made(CadCommandSession session) =>
+            session.Document.ModelSpace.Block.OfType<DxfDimension>().Last();
 
         private static DxfMText Words(DxfDimension dimension) => dimension.DimBlock.OfType<DxfMText>().Single();
 
         /// <summary>The lines of a picture on the level y, its dimension line, ordered from the left.</summary>
-        private static List<DxfLine> OnLevel(DxfDimension dimension, double y)
-            => dimension.DimBlock.OfType<DxfLine>().Where(l => !l.IsErased && Math.Abs(l.StartPoint.Y - y) < 1E-9 && Math.Abs(l.EndPoint.Y - y) < 1E-9)
-                .OrderBy(l => Math.Min(l.StartPoint.X, l.EndPoint.X)).ToList();
+        private static List<DxfLine> OnLevel(DxfDimension dimension, double y) =>
+            dimension
+                .DimBlock.OfType<DxfLine>()
+                .Where(l => !l.IsErased && Math.Abs(l.StartPoint.Y - y) < 1E-9 && Math.Abs(l.EndPoint.Y - y) < 1E-9)
+                .OrderBy(l => Math.Min(l.StartPoint.X, l.EndPoint.X))
+                .ToList();
 
         private static double Left(DxfLine line) => Math.Min(line.StartPoint.X, line.EndPoint.X);
 
         private static double Right(DxfLine line) => Math.Max(line.StartPoint.X, line.EndPoint.X);
 
-        private static IEnumerable<double> SolidXs(DxfDimension dimension)
-            => dimension.DimBlock.OfType<DxfSolid>().SelectMany(s => new[] { s.GetPointAt(0).X, s.GetPointAt(1).X, s.GetPointAt(2).X });
+        private static IEnumerable<double> SolidXs(DxfDimension dimension) =>
+            dimension
+                .DimBlock.OfType<DxfSolid>()
+                .SelectMany(s => new[] { s.GetPointAt(0).X, s.GetPointAt(1).X, s.GetPointAt(2).X });
 
         [Fact]
         public void WithDimtad0_TheWordsStandOnTheLine_AndTheLineIsBrokenAboutThemByTheGap()
@@ -138,9 +144,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(Math.PI / 2.0, words.Rotation, 9);
             Assert.Equal(-Lift, words.Location.X, 9);
             Assert.True(words.Location.Y < -30 - 1.25);
-            List<DxfLine> upright = dimension.DimBlock.OfType<DxfLine>().Where(l => Math.Abs(l.StartPoint.X - l.EndPoint.X) < 1E-9).OrderBy(l => l.StartPoint.X).ToList();
+            List<DxfLine> upright = dimension
+                .DimBlock.OfType<DxfLine>()
+                .Where(l => Math.Abs(l.StartPoint.X - l.EndPoint.X) < 1E-9)
+                .OrderBy(l => l.StartPoint.X)
+                .ToList();
             Assert.Equal(2, upright.Count);
-            Assert.True(Math.Abs(upright[0].EndPoint.Y - upright[0].StartPoint.Y) > Math.Abs(upright[1].EndPoint.Y - upright[1].StartPoint.Y) + 1.0);
+            Assert.True(
+                Math.Abs(upright[0].EndPoint.Y - upright[0].StartPoint.Y)
+                    > Math.Abs(upright[1].EndPoint.Y - upright[1].StartPoint.Y) + 1.0
+            );
 
             session = Metric(s => s.Dimjust = 4);
             Run(session, "DLI", P(0, 0), P(100, 0), P(50, -30));
@@ -150,7 +163,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void WhereOnlyTheWordsFit_Dimatfit3PutsTheArrowheadsOutside_AndDimtoflSaysWhetherTheLineIsDrawnBetween()
         {
-            CadCommandSession session = Metric(s => { s.Dimtad = 0; s.Dimtofl = false; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimtofl = false;
+            });
             Run(session, "DLI", P(0, 0), P(5, 0), P(2.5, -30));
             DxfDimension dimension = Made(session);
 
@@ -162,7 +179,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(-Arrow, Right(line[0]), 9);
             Assert.Equal(5 + Arrow, Left(line[1]), 9);
 
-            session = Metric(s => { s.Dimtad = 0; s.Dimtofl = true; });
+            session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimtofl = true;
+            });
             Run(session, "DLI", P(0, 0), P(5, 0), P(2.5, -30));
             Assert.Contains(OnLevel(Made(session), -30), l => Math.Abs(Left(l)) < 1E-9);
         }
@@ -170,7 +191,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void WhereNeitherFits_Dimatfit0MovesBothOutside_PastTheSecondExtensionLine_TheLineRunOnToTheWords()
         {
-            CadCommandSession session = Metric(s => { s.Dimtad = 1; s.Dimatfit = 0; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimtad = 1;
+                s.Dimatfit = 0;
+            });
             Run(session, "DLI", P(0, 0), P(5, 0), P(2.5, -30));
             DxfDimension dimension = Made(session);
 
@@ -178,19 +203,29 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(words.Location.X > 5 + 2 * Arrow);
             Assert.Equal(-30 + Lift, words.Location.Y, 9);
             Assert.All(SolidXs(dimension), x => Assert.True(x <= 1E-9 || x >= 5 - 1E-9));
-            Assert.Contains(OnLevel(dimension, -30), l => Math.Abs(Left(l) - (5 + Arrow)) < 1E-9 && Right(l) > words.Location.X);
+            Assert.Contains(OnLevel(dimension, -30), l =>
+                Math.Abs(Left(l) - (5 + Arrow)) < 1E-9 && Right(l) > words.Location.X
+            );
         }
 
         [Fact]
         public void Dimatfit1MovesTheArrowheadsFirst_And2TheWordsFirst()
         {
-            CadCommandSession session = Metric(s => { s.Dimtad = 0; s.Dimatfit = 1; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimatfit = 1;
+            });
             Run(session, "DLI", P(0, 0), P(7, 0), P(3.5, -30));
             DxfDimension arrowsFirst = Made(session);
             Assert.Equal(3.5, Words(arrowsFirst).Location.X, 9);
             Assert.All(SolidXs(arrowsFirst), x => Assert.True(x <= 1E-9 || x >= 7 - 1E-9));
 
-            session = Metric(s => { s.Dimtad = 0; s.Dimatfit = 2; });
+            session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimatfit = 2;
+            });
             Run(session, "DLI", P(0, 0), P(7, 0), P(3.5, -30));
             DxfDimension wordsFirst = Made(session);
             Assert.True(Words(wordsFirst).Location.X > 7);
@@ -200,13 +235,23 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void Dimtix_KeepsTheWordsInside_AndDimsoxdThenLeavesOutArrowheadsThatDoNotFit()
         {
-            CadCommandSession session = Metric(s => { s.Dimtad = 0; s.Dimatfit = 0; s.Dimtix = true; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimatfit = 0;
+                s.Dimtix = true;
+            });
             Run(session, "DLI", P(0, 0), P(2, 0), P(1, -30));
             DxfDimension dimension = Made(session);
             Near(new GeoPoint3(1, -30, 0), Words(dimension).Location);
             Assert.Equal(2, dimension.DimBlock.OfType<DxfSolid>().Count());
 
-            session = Metric(s => { s.Dimtad = 0; s.Dimtix = true; s.Dimsoxd = true; });
+            session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimtix = true;
+                s.Dimsoxd = true;
+            });
             Run(session, "DLI", P(0, 0), P(2, 0), P(1, -30));
             Assert.Empty(Made(session).DimBlock.OfType<DxfSolid>());
         }
@@ -214,7 +259,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void Dimtih_KeepsWordsInsideLevel_OnASlantingLine_WhereTheyStandOnIt()
         {
-            CadCommandSession session = Metric(s => { s.Dimtad = 1; s.Dimtih = true; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimtad = 1;
+                s.Dimtih = true;
+            });
             Run(session, "DAL", P(0, 0), P(60, 60), P(-20, 20));
             DxfDimension dimension = Made(session);
             DxfMText words = Words(dimension);
@@ -229,11 +278,19 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void Dimtoh_KeepsWordsOutsideLevel()
         {
-            CadCommandSession session = Metric(s => { s.Dimatfit = 0; s.Dimtoh = true; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimatfit = 0;
+                s.Dimtoh = true;
+            });
             Run(session, "DAL", P(0, 0), P(3, 3), P(-20, 20));
             Assert.Equal(0.0, Words(Made(session)).Rotation, 12);
 
-            session = Metric(s => { s.Dimatfit = 0; s.Dimtoh = false; });
+            session = Metric(s =>
+            {
+                s.Dimatfit = 0;
+                s.Dimtoh = false;
+            });
             Run(session, "DAL", P(0, 0), P(3, 3), P(-20, 20));
             Assert.Equal(Math.PI / 4.0, Words(Made(session)).Rotation, 9);
         }
@@ -241,7 +298,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void Dimatfit3_KeepsTheArrowheadsInsideWhereTheyFit_AndMovesTheWordsOut()
         {
-            CadCommandSession session = Metric(s => { s.Dimtad = 0; s.Dimatfit = 3; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimatfit = 3;
+            });
             Run(session, "DLI", P(0, 0), P(7, 0), P(3.5, -30));
             DxfDimension dimension = Made(session);
 
@@ -252,21 +313,35 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void WordsForcedInsideThatDoNotFit_LeaveTheLineWhole()
         {
-            CadCommandSession session = Metric(s => { s.Dimtad = 0; s.Dimtix = true; s.Dimtofl = true; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimtix = true;
+                s.Dimtofl = true;
+            });
             Run(session, "DLI", P(0, 0), P(2, 0), P(1, -30));
 
-            Assert.Contains(OnLevel(Made(session), -30), l => Math.Abs(Left(l)) < 1E-9 && Math.Abs(Right(l) - 2) < 1E-9);
+            Assert.Contains(OnLevel(Made(session), -30), l =>
+                Math.Abs(Left(l)) < 1E-9 && Math.Abs(Right(l) - 2) < 1E-9
+            );
         }
 
         [Fact]
         public void WordsKeptLevelOutsideASlantingLine_StandOnALevelLanding()
         {
-            CadCommandSession session = Metric(s => { s.Dimtad = 1; s.Dimatfit = 0; s.Dimtoh = true; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimtad = 1;
+                s.Dimatfit = 0;
+                s.Dimtoh = true;
+            });
             Run(session, "DAL", P(0, 0), P(3, 3), P(-20, 20));
             DxfDimension dimension = Made(session);
             DxfMText words = Words(dimension);
 
-            DxfLine landing = Assert.Single(dimension.DimBlock.OfType<DxfLine>(), l => l.Layer != "Defpoints" && Math.Abs(l.StartPoint.Y - l.EndPoint.Y) < 1E-9);
+            DxfLine landing = Assert.Single(dimension.DimBlock.OfType<DxfLine>(), l =>
+                l.Layer != "Defpoints" && Math.Abs(l.StartPoint.Y - l.EndPoint.Y) < 1E-9
+            );
             Assert.Equal(Lift, words.Location.Y - landing.StartPoint.Y, 9);
             Assert.Equal(Gap, (words.Location.X - Left(landing)) - (Right(landing) - words.Location.X), 9);
             Assert.True(words.Location.X > Left(landing) && words.Location.X < Right(landing));
@@ -275,15 +350,27 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void Dimjust1OnAShortLine_PutsTheWordsInTheMiddle_And3WithDimtad0_OnTheExtensionLine()
         {
-            CadCommandSession session = Metric(s => { s.Dimtad = 1; s.Dimjust = 1; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimtad = 1;
+                s.Dimjust = 1;
+            });
             Run(session, "DLI", P(0, 0), P(10, 0), P(5, -30));
             Assert.Equal(5, Words(Made(session)).Location.X, 9);
 
-            session = Metric(s => { s.Dimtad = 0; s.Dimjust = 3; });
+            session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimjust = 3;
+            });
             Run(session, "DLI", P(0, 0), P(100, 0), P(50, -30));
             DxfDimension dimension = Made(session);
             Assert.Equal(0, Words(dimension).Location.X, 9);
-            Assert.Contains(dimension.DimBlock.OfType<DxfLine>(), l => Math.Abs(l.StartPoint.X) < 1E-9 && Math.Abs(l.EndPoint.X) < 1E-9 && Math.Abs(l.EndPoint.Y - (-30 - 1.25)) < 1E-9);
+            Assert.Contains(dimension.DimBlock.OfType<DxfLine>(), l =>
+                Math.Abs(l.StartPoint.X) < 1E-9
+                && Math.Abs(l.EndPoint.X) < 1E-9
+                && Math.Abs(l.EndPoint.Y - (-30 - 1.25)) < 1E-9
+            );
         }
 
         [Fact]
@@ -299,7 +386,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(1.0, document.Database.DimStyleTable["Standard"].Dimscale);
             Assert.Equal(10.0, dimension.Dimscale);
             Assert.Equal(Height * 10.0, Words(dimension).TextHeight, 9);
-            Assert.Equal(new[] { 0.0, Arrow * 10.0, 300.0 - Arrow * 10.0, 300.0 }, SolidXs(dimension).Select(x => Math.Round(x, 9)).Distinct().OrderBy(x => x));
+            Assert.Equal(
+                new[] { 0.0, Arrow * 10.0, 300.0 - Arrow * 10.0, 300.0 },
+                SolidXs(dimension).Select(x => Math.Round(x, 9)).Distinct().OrderBy(x => x)
+            );
             AssertReopens(document);
 
             // DIMBASELINE puts the next line DIMDLI times the current DIMSCALE further out.
@@ -337,9 +427,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(2, OnLevel(dimension, -30).Count);
         }
 
-        private static bool HasLine(DxfDimension dimension, GeoPoint2 a, GeoPoint2 b)
-            => dimension.DimBlock.OfType<DxfLine>().Any(l => !l.IsErased
-                && ((Same(l.StartPoint, a) && Same(l.EndPoint, b)) || (Same(l.StartPoint, b) && Same(l.EndPoint, a))));
+        private static bool HasLine(DxfDimension dimension, GeoPoint2 a, GeoPoint2 b) =>
+            dimension
+                .DimBlock.OfType<DxfLine>()
+                .Any(l =>
+                    !l.IsErased
+                    && (
+                        (Same(l.StartPoint, a) && Same(l.EndPoint, b)) || (Same(l.StartPoint, b) && Same(l.EndPoint, a))
+                    )
+                );
 
         private static bool Same(GeoPoint3 p, GeoPoint2 q) => Math.Abs(p.X - q.X) < 1E-6 && Math.Abs(p.Y - q.Y) < 1E-6;
 
@@ -348,7 +444,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             // AutoCAD 2021: a dimension of 4 with its line 20 below, its words "4" moved out under DIMTMOVE 2, has them 1.25 +
             // 0.9375 + 1.25 + 2.5 = 5.9375 below the middle of the line, on the side away from the points; no line runs on.
-            CadCommandSession session = Metric(s => { s.Dimatfit = 0; s.Dimtmove = 2; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimatfit = 0;
+                s.Dimtmove = 2;
+            });
             Run(session, "DLI", P(0, 0), P(4, 0), P(2, -20));
             DxfDimension dimension = Made(session);
             Near(new GeoPoint3(2, -25.9375, 0), Words(dimension).Location);
@@ -356,7 +456,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             // Under DIMTMOVE 1 a leader from the middle of the line to a third as far along again, 1.78125, and a landing as wide
             // as the words and a gap each side, the words above it; the line between the extension lines drawn twice.
-            session = Metric(s => { s.Dimatfit = 0; s.Dimtmove = 1; });
+            session = Metric(s =>
+            {
+                s.Dimatfit = 0;
+                s.Dimtmove = 1;
+            });
             Run(session, "DLI", P(0, 0), P(4, 0), P(2, -20));
             dimension = Made(session);
             Assert.True(HasLine(dimension, P(2, -20), P(3.78125, -25.9375)));

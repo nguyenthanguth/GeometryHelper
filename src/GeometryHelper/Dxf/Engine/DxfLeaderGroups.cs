@@ -11,23 +11,29 @@ namespace GeometryHelper.Dxf
     internal static class DxfLeaderGroups
     {
         /// <summary>A group of a code and a text.</summary>
-        internal static KeyValuePair<int, string> G(int code, string value) => new KeyValuePair<int, string>(code, value);
+        internal static KeyValuePair<int, string> G(int code, string value) =>
+            new KeyValuePair<int, string>(code, value);
 
         /// <summary>A group of a code and a number, written as the writer writes one.</summary>
-        internal static KeyValuePair<int, string> G(int code, double value) => new KeyValuePair<int, string>(code, Real(value));
+        internal static KeyValuePair<int, string> G(int code, double value) =>
+            new KeyValuePair<int, string>(code, Real(value));
 
         /// <summary>A group of a code and a whole number.</summary>
-        internal static KeyValuePair<int, string> G(int code, int value) => new KeyValuePair<int, string>(code, value.ToString(CultureInfo.InvariantCulture));
+        internal static KeyValuePair<int, string> G(int code, int value) =>
+            new KeyValuePair<int, string>(code, value.ToString(CultureInfo.InvariantCulture));
 
         /// <summary>A number as the writer writes it, a negative nought as nought.</summary>
         internal static string Real(double value) => Numbers.Exact(value + 0.0);
 
         /// <summary>The number of a text, as the reader reads one; the fallback where it is none, or not finite.</summary>
-        internal static double Num(string text, double fallback) => Numbers.TryRead(text, out double value) && Guard.IsFinite(value) ? value : fallback;
+        internal static double Num(string text, double fallback) =>
+            Numbers.TryRead(text, out double value) && Guard.IsFinite(value) ? value : fallback;
 
         /// <summary>The whole number of a text; the fallback where it is none.</summary>
-        internal static int Whole(string text, int fallback)
-            => int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+        internal static int Whole(string text, int fallback) =>
+            int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : fallback;
 
         /// <summary>The text of the first group of a code in a run, from an index; null where there is none.</summary>
         internal static string Text(IReadOnlyList<KeyValuePair<int, string>> run, int code, int from = 0)
@@ -57,7 +63,10 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The codes a run and the own groups it replaces hold, the subclass marker aside: those a rewriting of the run replaces.</summary>
-        internal static HashSet<int> Codes(IReadOnlyList<DxfTypedValue> own, IReadOnlyList<KeyValuePair<int, string>> run)
+        internal static HashSet<int> Codes(
+            IReadOnlyList<DxfTypedValue> own,
+            IReadOnlyList<KeyValuePair<int, string>> run
+        )
         {
             var codes = new HashSet<int>();
 

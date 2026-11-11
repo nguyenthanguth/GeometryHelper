@@ -38,7 +38,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the distance from a circle to a point, negative for a point inside it.
         /// </summary>
-        public static double SignedDistanceTo(GeoCircle2 circle, GeoPoint2 point) => SignedDistanceTo(circle, point, Tolerance.Global);
+        public static double SignedDistanceTo(GeoCircle2 circle, GeoPoint2 point) =>
+            SignedDistanceTo(circle, point, Tolerance.Global);
 
         /// <summary>
         /// Calculates the distance from a circle to a point, negative for a point inside it, within a tolerance.
@@ -51,13 +52,15 @@ namespace GeometryHelper.Core
         {
             return Signed(
                 point.DistanceTo(Projection2.ProjectToCircle(circle, point, tolerance)),
-                Containment2.Locate(circle, point, tolerance));
+                Containment2.Locate(circle, point, tolerance)
+            );
         }
 
         /// <summary>
         /// Calculates the distance from a rectangle to a point, negative for a point inside it.
         /// </summary>
-        public static double SignedDistanceTo(GeoRectangle2 rect, GeoPoint2 point) => SignedDistanceTo(rect, point, Tolerance.Global);
+        public static double SignedDistanceTo(GeoRectangle2 rect, GeoPoint2 point) =>
+            SignedDistanceTo(rect, point, Tolerance.Global);
 
         /// <summary>
         /// Calculates the distance from a rectangle to a point, negative for a point inside it, within a tolerance.
@@ -67,13 +70,15 @@ namespace GeometryHelper.Core
         {
             return Signed(
                 point.DistanceTo(Projection2.ProjectToRectangle(rect, point)),
-                Containment2.Locate(rect, point, tolerance));
+                Containment2.Locate(rect, point, tolerance)
+            );
         }
 
         /// <summary>
         /// Calculates the distance from a polygon to a point, negative for a point inside it.
         /// </summary>
-        public static double SignedDistanceTo(GeoPolygon2 poly, GeoPoint2 point) => SignedDistanceTo(poly, point, Tolerance.Global);
+        public static double SignedDistanceTo(GeoPolygon2 poly, GeoPoint2 point) =>
+            SignedDistanceTo(poly, point, Tolerance.Global);
 
         /// <summary>
         /// Calculates the distance from a polygon to a point, negative for a point inside it, within a tolerance.
@@ -85,17 +90,20 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static double SignedDistanceTo(GeoPolygon2 poly, GeoPoint2 point, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             return Signed(
                 point.DistanceTo(Projection2.ProjectToPolygon(poly, point, Exactly)),
-                Containment2.Locate(poly, point, tolerance));
+                Containment2.Locate(poly, point, tolerance)
+            );
         }
 
         /// <summary>
         /// Calculates the distance from a loop that may curve to a point, negative for a point inside it.
         /// </summary>
-        public static double SignedDistanceTo(GeoPolygonArc2 loop, GeoPoint2 point) => SignedDistanceTo(loop, point, Tolerance.Global);
+        public static double SignedDistanceTo(GeoPolygonArc2 loop, GeoPoint2 point) =>
+            SignedDistanceTo(loop, point, Tolerance.Global);
 
         /// <summary>
         /// Calculates the distance from a loop that may curve to a point, negative for a point inside it, within a tolerance.
@@ -103,11 +111,13 @@ namespace GeometryHelper.Core
         /// <returns>The distance out to the nearest edge, measured on the arcs, negative when the point lies within the loop.</returns>
         public static double SignedDistanceTo(GeoPolygonArc2 loop, GeoPoint2 point, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return Signed(
                 ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), point),
-                Containment2.Locate(loop, point, tolerance));
+                Containment2.Locate(loop, point, tolerance)
+            );
         }
 
         /// <summary>
@@ -132,7 +142,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static double DistanceTo(GeoFace2 face, GeoPoint2 point, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             if (Containment2.Contains(face, point, Exactly))
             {
@@ -145,7 +156,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the distance from a face to a point, negative for a point on the material.
         /// </summary>
-        public static double SignedDistanceTo(GeoFace2 face, GeoPoint2 point) => SignedDistanceTo(face, point, Tolerance.Global);
+        public static double SignedDistanceTo(GeoFace2 face, GeoPoint2 point) =>
+            SignedDistanceTo(face, point, Tolerance.Global);
 
         /// <summary>
         /// Calculates the distance from a face to a point, negative for a point on the material, within a tolerance.
@@ -157,7 +169,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static double SignedDistanceTo(GeoFace2 face, GeoPoint2 point, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             return Signed(Reach(face, point), Containment2.Locate(face, point, tolerance));
         }

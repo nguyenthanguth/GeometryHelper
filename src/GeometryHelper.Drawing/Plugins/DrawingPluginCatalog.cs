@@ -27,14 +27,13 @@ namespace GeometryHelper.Drawing.Plugins
     public sealed class DrawingPluginCatalog
     {
         private readonly List<DrawingPlugin> _added = new List<DrawingPlugin>();
-        private readonly List<KeyValuePair<IReadOnlyList<Assembly>, List<DrawingPlugin>>> _loaded = new List<KeyValuePair<IReadOnlyList<Assembly>, List<DrawingPlugin>>>();
+        private readonly List<KeyValuePair<IReadOnlyList<Assembly>, List<DrawingPlugin>>> _loaded =
+            new List<KeyValuePair<IReadOnlyList<Assembly>, List<DrawingPlugin>>>();
         private readonly CadPluginManager _manager;
         private readonly object _gate = new object();
 
         /// <summary>Makes a catalog of the plugins added in code only.</summary>
-        public DrawingPluginCatalog()
-        {
-        }
+        public DrawingPluginCatalog() { }
 
         /// <summary>Makes a catalog of the plugins added in code and those a plugin manager loads, now and later.</summary>
         /// <param name="manager">The manager; it finds the drawing plugins of what it loads through this catalog from now on.</param>
@@ -46,7 +45,9 @@ namespace GeometryHelper.Drawing.Plugins
 
             if (manager.DrawingPluginFinder != null)
             {
-                throw new InvalidOperationException("The plugin manager finds drawing plugins for another catalog already.");
+                throw new InvalidOperationException(
+                    "The plugin manager finds drawing plugins for another catalog already."
+                );
             }
 
             manager.DrawingPluginFinder = Read;
@@ -73,11 +74,18 @@ namespace GeometryHelper.Drawing.Plugins
                     }
                 }
 
-                all.Sort((a, b) =>
-                {
-                    int order = StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name);
-                    return order != 0 ? order : string.CompareOrdinal(a.GetType().AssemblyQualifiedName, b.GetType().AssemblyQualifiedName);
-                });
+                all.Sort(
+                    (a, b) =>
+                    {
+                        int order = StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name);
+                        return order != 0
+                            ? order
+                            : string.CompareOrdinal(
+                                a.GetType().AssemblyQualifiedName,
+                                b.GetType().AssemblyQualifiedName
+                            );
+                    }
+                );
                 return all;
             }
         }
@@ -130,9 +138,22 @@ namespace GeometryHelper.Drawing.Plugins
             // A plugin reloaded is unloaded first: its old build leaves the catalog before its name is judged taken.
             Prune();
 
-            if (manifest != null && manifest.MinimumApiVersion > DrawingPlugin.ApiVersion && string.Equals(manifest.Kind, CadPluginManifest.DrawingKind, StringComparison.Ordinal))
+            if (
+                manifest != null
+                && manifest.MinimumApiVersion > DrawingPlugin.ApiVersion
+                && string.Equals(manifest.Kind, CadPluginManifest.DrawingKind, StringComparison.Ordinal)
+            )
             {
-                throw new CadPluginException(name, "The plugin " + name + " needs version " + manifest.MinimumApiVersion + " of the drawing plugin API, and this library has " + DrawingPlugin.ApiVersion + ".");
+                throw new CadPluginException(
+                    name,
+                    "The plugin "
+                        + name
+                        + " needs version "
+                        + manifest.MinimumApiVersion
+                        + " of the drawing plugin API, and this library has "
+                        + DrawingPlugin.ApiVersion
+                        + "."
+                );
             }
 
             var types = new List<Type>();
@@ -141,7 +162,11 @@ namespace GeometryHelper.Drawing.Plugins
             {
                 foreach (Type type in assembly.GetExportedTypes())
                 {
-                    if (!type.IsAbstract && typeof(DrawingPlugin).IsAssignableFrom(type) && type.GetConstructor(Type.EmptyTypes) != null)
+                    if (
+                        !type.IsAbstract
+                        && typeof(DrawingPlugin).IsAssignableFrom(type)
+                        && type.GetConstructor(Type.EmptyTypes) != null
+                    )
                     {
                         types.Add(type);
                     }
@@ -162,8 +187,15 @@ namespace GeometryHelper.Drawing.Plugins
                 }
                 catch (Exception exception)
                 {
-                    Exception cause = exception is TargetInvocationException invocation && invocation.InnerException != null ? invocation.InnerException : exception;
-                    throw new CadPluginException(name, "The drawing plugin " + type.FullName + " could not be made: " + cause.Message, cause);
+                    Exception cause =
+                        exception is TargetInvocationException invocation && invocation.InnerException != null
+                            ? invocation.InnerException
+                            : exception;
+                    throw new CadPluginException(
+                        name,
+                        "The drawing plugin " + type.FullName + " could not be made: " + cause.Message,
+                        cause
+                    );
                 }
 
                 string refusal = Refusal(plugin, found);
@@ -198,7 +230,13 @@ namespace GeometryHelper.Drawing.Plugins
 
             if (plugin.RequiredApiVersion > DrawingPlugin.ApiVersion)
             {
-                return "The drawing plugin " + plugin.Name + " needs version " + plugin.RequiredApiVersion + " of the drawing plugin API, and this library has " + DrawingPlugin.ApiVersion + ".";
+                return "The drawing plugin "
+                    + plugin.Name
+                    + " needs version "
+                    + plugin.RequiredApiVersion
+                    + " of the drawing plugin API, and this library has "
+                    + DrawingPlugin.ApiVersion
+                    + ".";
             }
 
             var taken = new List<DrawingPlugin>(Plugins);

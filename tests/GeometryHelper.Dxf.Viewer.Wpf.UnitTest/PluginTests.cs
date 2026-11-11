@@ -21,11 +21,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
         public PluginTests()
         {
-            _manager = new CadPluginManager(new CadPluginAssemblyLoader(), Path.Combine(_folder.FullPath, "plugins"), Path.Combine(_folder.FullPath, "plugins.json"), Path.Combine(_folder.FullPath, "copies"));
+            _manager = new CadPluginManager(
+                new CadPluginAssemblyLoader(),
+                Path.Combine(_folder.FullPath, "plugins"),
+                Path.Combine(_folder.FullPath, "plugins.json"),
+                Path.Combine(_folder.FullPath, "copies")
+            );
             string dev = Path.Combine(_folder.FullPath, "dev");
             Directory.CreateDirectory(dev);
             _sample = Path.Combine(dev, SampleName + ".dll");
-            File.Copy(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SamplePlugin", SampleName + ".dll"), _sample, true);
+            File.Copy(
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SamplePlugin", SampleName + ".dll"),
+                _sample,
+                true
+            );
             _manager.AddTrustedFolder(dev);
         }
 
@@ -58,7 +67,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Same(model.PluginRibbon, model.PluginsTab.TabContent);
             model.PluginRibbon.RunCommand.Execute(button);
             Assert.StartsWith("Select objects", model.Prompt);
-            model.Session.FeedSelection(model.Document.Database.ModelSpace.Cast<DxfEntity>().Select(e => e.Handle).ToList());
+            model.Session.FeedSelection(
+                model.Document.Database.ModelSpace.Cast<DxfEntity>().Select(e => e.Handle).ToList()
+            );
             model.Enter();
             Assert.StartsWith("Start at", model.Prompt);
             model.Execute("7");
@@ -145,7 +156,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Contains(manager.TrustedFolders, f => f.EndsWith("company", StringComparison.OrdinalIgnoreCase));
                 manager.SelectedFolder = manager.TrustedFolders.Last();
                 manager.RemoveFolderCommand.Execute(null);
-                Assert.DoesNotContain(manager.TrustedFolders, f => f.EndsWith("company", StringComparison.OrdinalIgnoreCase));
+                Assert.DoesNotContain(manager.TrustedFolders, f =>
+                    f.EndsWith("company", StringComparison.OrdinalIgnoreCase)
+                );
                 manager.SelectedFolder = manager.TrustedFolders[0];
                 Assert.False(manager.RemoveFolderCommand.CanExecute(null));
             }
@@ -154,8 +167,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         [Fact]
         public void ADrawingPluginIsRefusedWithTheManagersReason()
         {
-            File.WriteAllText(Path.Combine(Path.GetDirectoryName(_sample), "plugin.json"),
-                "{ \"id\": \"bolt-dims\", \"name\": \"Bolt dimensions\", \"version\": \"1.2.0\", \"author\": \"GeometryHelper\", \"kind\": \"drawing\", \"minimumApiVersion\": \"1.0\", \"commands\": [ \"BOLTDIM\" ] }");
+            File.WriteAllText(
+                Path.Combine(Path.GetDirectoryName(_sample), "plugin.json"),
+                "{ \"id\": \"bolt-dims\", \"name\": \"Bolt dimensions\", \"version\": \"1.2.0\", \"author\": \"GeometryHelper\", \"kind\": \"drawing\", \"minimumApiVersion\": \"1.0\", \"commands\": [ \"BOLTDIM\" ] }"
+            );
 
             using (var manager = new PluginManagerViewModel(_manager))
             {
@@ -163,7 +178,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 Assert.False(result.Succeeded);
                 Assert.True(manager.MessageFailed);
-                Assert.Contains("is of the kind \"drawing\", and this presenter loads command plugins only", manager.Message);
+                Assert.Contains(
+                    "is of the kind \"drawing\", and this presenter loads command plugins only",
+                    manager.Message
+                );
             }
         }
 
@@ -183,12 +201,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 height.Value = "0.05";
 
                 Assert.True(height.HasError);
-                Assert.Equal(2.5, (double)_manager.Plugins.Single().Plugin.Settings.Single(s => s.Label == "Text height").Value);
+                Assert.Equal(
+                    2.5,
+                    (double)_manager.Plugins.Single().Plugin.Settings.Single(s => s.Label == "Text height").Value
+                );
 
                 height.Value = "5";
 
                 Assert.False(height.HasError);
-                Assert.Equal(5.0, (double)_manager.Plugins.Single().Plugin.Settings.Single(s => s.Label == "Text height").Value);
+                Assert.Equal(
+                    5.0,
+                    (double)_manager.Plugins.Single().Plugin.Settings.Single(s => s.Label == "Text height").Value
+                );
                 Assert.True(settings.Rows.Single(r => r.Label == "Layer").IsText);
             }
         }
@@ -221,7 +245,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         root.Measure(new System.Windows.Size(900, 700));
                         root.Arrange(new System.Windows.Rect(0, 0, 900, 700));
                         root.UpdateLayout();
-                        managerRows = FindAll<System.Windows.Controls.ListBoxItem>(root).Count(i => i.DataContext is PluginRowViewModel);
+                        managerRows = FindAll<System.Windows.Controls.ListBoxItem>(root)
+                            .Count(i => i.DataContext is PluginRowViewModel);
                         window.Close();
                     }
                 }
@@ -268,7 +293,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             return CadDocument.From(database, "circles.dxf");
         }
 
-        private static System.Collections.Generic.List<DxfDBText> Texts(MainViewModel model)
-            => model.Document.Database.ModelSpace.Cast<DxfEntity>().OfType<DxfDBText>().Where(t => !t.IsErased).ToList();
+        private static System.Collections.Generic.List<DxfDBText> Texts(MainViewModel model) =>
+            model.Document.Database.ModelSpace.Cast<DxfEntity>().OfType<DxfDBText>().Where(t => !t.IsErased).ToList();
     }
 }

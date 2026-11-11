@@ -154,7 +154,10 @@ namespace GeometryHelper.Viewer.Views
                 Positions = new Vector3Collection { new Vector3(f.X, f.Y, f.Z) },
                 Indices = new IntCollection { 0 },
             };
-            _snapMarker.Figure = kind == SnapKinds.Centre || kind == SnapKinds.Nearest ? PointFigure.Ellipse : kind == SnapKinds.Mid || kind == SnapKinds.Intersection ? PointFigure.Cross : PointFigure.Rect;
+            _snapMarker.Figure =
+                kind == SnapKinds.Centre || kind == SnapKinds.Nearest ? PointFigure.Ellipse
+                : kind == SnapKinds.Mid || kind == SnapKinds.Intersection ? PointFigure.Cross
+                : PointFigure.Rect;
             _snapMarker.Visibility = Visibility.Visible;
         }
 
@@ -187,14 +190,25 @@ namespace GeometryHelper.Viewer.Views
             if (_marker.HasValue)
             {
                 // A cross, which hides little of what it marks: the tolerance spheres and the vertices under it stay in sight.
-                Points(new[] { _marker.Value }, ParseColor(DiagnosticColors.Marker, DimensionColor), PointFigure.Cross, 40.0, Rel);
+                Points(
+                    new[] { _marker.Value },
+                    ParseColor(DiagnosticColors.Marker, DimensionColor),
+                    PointFigure.Cross,
+                    40.0,
+                    Rel
+                );
             }
 
             var clipLabels = new List<DrawLabel>();
             DrawWorkPlane(Rel);
             DrawClipPlanes(clipLabels, Rel);
 
-            var labels = _drawings.SelectMany(d => d.Labels).Concat(_diagnostics?.Labels ?? new List<DrawLabel>()).Concat(_lens?.Labels ?? new List<DrawLabel>()).Concat(clipLabels).ToList();
+            var labels = _drawings
+                .SelectMany(d => d.Labels)
+                .Concat(_diagnostics?.Labels ?? new List<DrawLabel>())
+                .Concat(_lens?.Labels ?? new List<DrawLabel>())
+                .Concat(clipLabels)
+                .ToList();
 
             if (labels.Count > 0)
             {
@@ -202,15 +216,25 @@ namespace GeometryHelper.Viewer.Views
 
                 foreach (DrawLabel label in labels)
                 {
-                    text.TextInfo.Add(new TextInfo(label.Text, Rel(label.At))
-                    {
-                        Foreground = new Color4(TextColor.R / 255f, TextColor.G / 255f, TextColor.B / 255f, 1f),
-                        Background = new Color4(1f, 1f, 1f, 0.85f),
-                        Scale = (float)(LabelSize.Pixels(label.Height, 0.0) / SceneView.LabelFontPixels),
-                    });
+                    text.TextInfo.Add(
+                        new TextInfo(label.Text, Rel(label.At))
+                        {
+                            Foreground = new Color4(TextColor.R / 255f, TextColor.G / 255f, TextColor.B / 255f, 1f),
+                            Background = new Color4(1f, 1f, 1f, 0.85f),
+                            Scale = (float)(LabelSize.Pixels(label.Height, 0.0) / SceneView.LabelFontPixels),
+                        }
+                    );
                 }
 
-                Add(new BillboardTextModel3D { Geometry = text, FixedSize = true, IsHitTestVisible = false, DepthBias = InFront });
+                Add(
+                    new BillboardTextModel3D
+                    {
+                        Geometry = text,
+                        FixedSize = true,
+                        IsHitTestVisible = false,
+                        DepthBias = InFront,
+                    }
+                );
             }
 
             if (_centre.HasValue)
@@ -254,9 +278,24 @@ namespace GeometryHelper.Viewer.Views
             double length = Math.Max(1.0, scene.IsEmpty ? 100.0 : scene.Size.Length * 0.08);
             Vec3 o = _workPlane.Origin;
 
-            Lines(new[] { new DrawPolyline(new[] { o, o + _workPlane.XAxis * length }, false) }, Color.FromRgb(0xD0, 0x20, 0x20), 3.0, rel);
-            Lines(new[] { new DrawPolyline(new[] { o, o + _workPlane.YAxis * length }, false) }, Color.FromRgb(0x20, 0xA0, 0x20), 3.0, rel);
-            Lines(new[] { new DrawPolyline(new[] { o, o + _workPlane.ZAxis * (length * 0.6) }, false) }, Color.FromRgb(0x20, 0x40, 0xD0), 3.0, rel);
+            Lines(
+                new[] { new DrawPolyline(new[] { o, o + _workPlane.XAxis * length }, false) },
+                Color.FromRgb(0xD0, 0x20, 0x20),
+                3.0,
+                rel
+            );
+            Lines(
+                new[] { new DrawPolyline(new[] { o, o + _workPlane.YAxis * length }, false) },
+                Color.FromRgb(0x20, 0xA0, 0x20),
+                3.0,
+                rel
+            );
+            Lines(
+                new[] { new DrawPolyline(new[] { o, o + _workPlane.ZAxis * (length * 0.6) }, false) },
+                Color.FromRgb(0x20, 0x40, 0xD0),
+                3.0,
+                rel
+            );
             Points(new[] { o }, Color.FromRgb(0x20, 0x20, 0x20), PointFigure.Ellipse, 9.0, rel);
         }
 
@@ -284,12 +323,19 @@ namespace GeometryHelper.Viewer.Views
 
                 // A square larger than the scene is laid on the plane and cut to what the other planes leave, so that the six planes of a clip box are the six faces of the box, and to the box round the scene,
                 // so that it is the patch of the plane that the scene is in and lies inside the depth that every view draws.
-                List<Vec3> face = sceneBox.ClipPolygon(_clips.ClipPolygonExcept(new[] { handle - u - v, handle + u - v, handle + u + v, handle - u + v }, i));
+                List<Vec3> face = sceneBox.ClipPolygon(
+                    _clips.ClipPolygonExcept(
+                        new[] { handle - u - v, handle + u - v, handle + u + v, handle - u + v },
+                        i
+                    )
+                );
 
                 if (face.Count >= 3)
                 {
                     Lines(new[] { new DrawPolyline(face.ToArray(), true) }, color, selected ? 3.2 : 1.6, rel);
-                    labels.Add(new DrawLabel(face[0], (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture), 0.0));
+                    labels.Add(
+                        new DrawLabel(face[0], (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture), 0.0)
+                    );
                 }
 
                 if (selected)
@@ -312,14 +358,15 @@ namespace GeometryHelper.Viewer.Views
                         },
                         color,
                         3.2,
-                        rel);
+                        rel
+                    );
                     Points(new[] { handle }, color, PointFigure.Ellipse, 15.0, rel);
                 }
             }
         }
 
-        private static Color ParseColor(string text, Color fallback)
-            => SceneColor.TryParse(text, out byte r, out byte g, out byte b) ? Color.FromRgb(r, g, b) : fallback;
+        private static Color ParseColor(string text, Color fallback) =>
+            SceneColor.TryParse(text, out byte r, out byte g, out byte b) ? Color.FromRgb(r, g, b) : fallback;
 
         /// <summary>
         /// Draws the strokes and dots of a diagnostic overlay, one element to each colour and thickness so that the graphics card is given a few
@@ -332,14 +379,30 @@ namespace GeometryHelper.Viewer.Views
                 return;
             }
 
-            foreach (var group in overlay.Strokes.GroupBy(s => new { s.Color, s.Thickness }).OrderBy(g => g.Key.Color, StringComparer.Ordinal).ThenBy(g => g.Key.Thickness))
+            foreach (
+                var group in overlay
+                    .Strokes.GroupBy(s => new { s.Color, s.Thickness })
+                    .OrderBy(g => g.Key.Color, StringComparer.Ordinal)
+                    .ThenBy(g => g.Key.Thickness)
+            )
             {
                 Lines(group.Select(s => s.Line), ParseColor(group.Key.Color, DimensionColor), group.Key.Thickness, rel);
             }
 
-            foreach (var group in overlay.Dots.GroupBy(d => new { d.Color, d.Size }).OrderBy(g => g.Key.Color, StringComparer.Ordinal).ThenBy(g => g.Key.Size))
+            foreach (
+                var group in overlay
+                    .Dots.GroupBy(d => new { d.Color, d.Size })
+                    .OrderBy(g => g.Key.Color, StringComparer.Ordinal)
+                    .ThenBy(g => g.Key.Size)
+            )
             {
-                Points(group.Select(d => d.At), ParseColor(group.Key.Color, DimensionColor), PointFigure.Ellipse, group.Key.Size, rel);
+                Points(
+                    group.Select(d => d.At),
+                    ParseColor(group.Key.Color, DimensionColor),
+                    PointFigure.Ellipse,
+                    group.Key.Size,
+                    rel
+                );
             }
         }
 
@@ -378,18 +441,26 @@ namespace GeometryHelper.Viewer.Views
                 return;
             }
 
-            Add(new LineGeometryModel3D
-            {
-                Geometry = new LineGeometry3D { Positions = positions, Indices = indices },
-                Color = color,
-                Thickness = thickness,
-                Smoothness = 0,
-                IsHitTestVisible = false,
-                DepthBias = InFront,
-            });
+            Add(
+                new LineGeometryModel3D
+                {
+                    Geometry = new LineGeometry3D { Positions = positions, Indices = indices },
+                    Color = color,
+                    Thickness = thickness,
+                    Smoothness = 0,
+                    IsHitTestVisible = false,
+                    DepthBias = InFront,
+                }
+            );
         }
 
-        private void Points(IEnumerable<Vec3> points, Color color, PointFigure figure, double size, Func<Vec3, Vector3> rel)
+        private void Points(
+            IEnumerable<Vec3> points,
+            Color color,
+            PointFigure figure,
+            double size,
+            Func<Vec3, Vector3> rel
+        )
         {
             var positions = new Vector3Collection();
             var indices = new IntCollection();
@@ -405,15 +476,17 @@ namespace GeometryHelper.Viewer.Views
                 return;
             }
 
-            Add(new PointGeometryModel3D
-            {
-                Geometry = new PointGeometry3D { Positions = positions, Indices = indices },
-                Color = color,
-                Figure = figure,
-                Size = new Size(size, size),
-                IsHitTestVisible = false,
-                DepthBias = InFront,
-            });
+            Add(
+                new PointGeometryModel3D
+                {
+                    Geometry = new PointGeometry3D { Positions = positions, Indices = indices },
+                    Color = color,
+                    Figure = figure,
+                    Size = new Size(size, size),
+                    IsHitTestVisible = false,
+                    DepthBias = InFront,
+                }
+            );
         }
     }
 }

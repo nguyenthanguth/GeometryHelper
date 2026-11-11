@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper;
-using GeometryHelper.IfcConvert.Converters.Internal;
 using GeometryHelper.Geometry;
+using GeometryHelper.IfcConvert.Converters.Internal;
 using Xunit;
 
 namespace GeometryHelper.IfcConvert.UnitTest
@@ -14,15 +14,16 @@ namespace GeometryHelper.IfcConvert.UnitTest
             new GeoFace3(new GeoPolygon3(p.Select(v => new GeoPoint3(v.X, v.Y, v.Z)).ToList(), Tolerance.Global));
 
         // Unit cube, every face wound counter-clockwise seen from outside.
-        private static List<GeoFace3> OutwardCube() => new List<GeoFace3>
-        {
-            Quad((0, 0, 0), (0, 1, 0), (1, 1, 0), (1, 0, 0)), // bottom, -Z
-            Quad((0, 0, 1), (1, 0, 1), (1, 1, 1), (0, 1, 1)), // top, +Z
-            Quad((0, 0, 0), (1, 0, 0), (1, 0, 1), (0, 0, 1)), // front, -Y
-            Quad((0, 1, 0), (0, 1, 1), (1, 1, 1), (1, 1, 0)), // back, +Y
-            Quad((0, 0, 0), (0, 0, 1), (0, 1, 1), (0, 1, 0)), // left, -X
-            Quad((1, 0, 0), (1, 1, 0), (1, 1, 1), (1, 0, 1)), // right, +X
-        };
+        private static List<GeoFace3> OutwardCube() =>
+            new List<GeoFace3>
+            {
+                Quad((0, 0, 0), (0, 1, 0), (1, 1, 0), (1, 0, 0)), // bottom, -Z
+                Quad((0, 0, 1), (1, 0, 1), (1, 1, 1), (0, 1, 1)), // top, +Z
+                Quad((0, 0, 0), (1, 0, 0), (1, 0, 1), (0, 0, 1)), // front, -Y
+                Quad((0, 1, 0), (0, 1, 1), (1, 1, 1), (1, 1, 0)), // back, +Y
+                Quad((0, 0, 0), (0, 0, 1), (0, 1, 1), (0, 1, 0)), // left, -X
+                Quad((1, 0, 0), (1, 1, 0), (1, 1, 1), (1, 0, 1)), // right, +X
+            };
 
         [Fact]
         public void MixedOrientations_AreMadeConsistentAndOutward()
@@ -37,7 +38,11 @@ namespace GeometryHelper.IfcConvert.UnitTest
             Assert.Equal(1.0, solid.GetVolume(), 9);
             Assert.All(solid.Faces, f =>
             {
-                GeoPoint3 centre = new GeoPoint3(f.Boundary.Vertices.Average(v => v.X), f.Boundary.Vertices.Average(v => v.Y), f.Boundary.Vertices.Average(v => v.Z));
+                GeoPoint3 centre = new GeoPoint3(
+                    f.Boundary.Vertices.Average(v => v.X),
+                    f.Boundary.Vertices.Average(v => v.Y),
+                    f.Boundary.Vertices.Average(v => v.Z)
+                );
                 GeoVector3 outward = new GeoVector3(centre.X - 0.5, centre.Y - 0.5, centre.Z - 0.5);
                 Assert.True(f.Normal.DotProduct(outward) > 0.0, $"face at {centre} points inwards");
             });
@@ -53,7 +58,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
         }
 
         // 1 x 1 x 0.1 plate with a 0.4 x 0.4 square hole: purely planar, read face by face.
-        private static readonly string PlateWithSquareHole = IfcTestFile.CommonHeader() + @"
+        private static readonly string PlateWithSquareHole =
+            IfcTestFile.CommonHeader()
+            + @"
 #30=IFCCARTESIANPOINT((-0.5,-0.5));
 #31=IFCCARTESIANPOINT((0.5,-0.5));
 #32=IFCCARTESIANPOINT((0.5,0.5));

@@ -58,7 +58,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             foreach (KeyValuePair<int, byte[]> letter in letters.OrderBy(l => l.Key))
             {
-                byte[] record = new byte[] { 0 }.Concat(letter.Value).ToArray();
+                byte[] record = new byte[] { 0 }
+                    .Concat(letter.Value)
+                    .ToArray();
                 bytes.AddRange(BitConverter.GetBytes((ushort)letter.Key));
                 bytes.AddRange(BitConverter.GetBytes((ushort)record.Length));
                 bytes.AddRange(record);
@@ -98,18 +100,42 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>An MTEXT in model space 4 high at (10, 20), its words, width, attachment and line spacing given.</summary>
-        private static DxfMText Words(DxfDatabase db, string contents, double width = 0, DxfAttachmentPoint attachment = DxfAttachmentPoint.TopLeft, double factor = 1, DxfLineSpacingStyle spacing = DxfLineSpacingStyle.AtLeast)
+        private static DxfMText Words(
+            DxfDatabase db,
+            string contents,
+            double width = 0,
+            DxfAttachmentPoint attachment = DxfAttachmentPoint.TopLeft,
+            double factor = 1,
+            DxfLineSpacingStyle spacing = DxfLineSpacingStyle.AtLeast
+        )
         {
-            var mtext = new DxfMText { Contents = contents, TextHeight = 4, Width = width, Attachment = attachment, Location = P(10, 20), LineSpacingFactor = factor, LineSpacingStyle = spacing };
+            var mtext = new DxfMText
+            {
+                Contents = contents,
+                TextHeight = 4,
+                Width = width,
+                Attachment = attachment,
+                Location = P(10, 20),
+                LineSpacingFactor = factor,
+                LineSpacingStyle = spacing,
+            };
             db.ModelSpace.AppendEntity(mtext);
             return mtext;
         }
 
         private static GeoPoint3 P(double x, double y) => new GeoPoint3(x, y, 0);
 
-        private static void Is(double expected, double actual) => Assert.True(Math.Abs(expected - actual) <= Near, "expected " + expected.ToString("R", CultureInfo.InvariantCulture) + ", got " + actual.ToString("R", CultureInfo.InvariantCulture));
+        private static void Is(double expected, double actual) =>
+            Assert.True(
+                Math.Abs(expected - actual) <= Near,
+                "expected "
+                    + expected.ToString("R", CultureInfo.InvariantCulture)
+                    + ", got "
+                    + actual.ToString("R", CultureInfo.InvariantCulture)
+            );
 
-        private static void Is(GeoPoint3 expected, GeoPoint3 actual) => Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
+        private static void Is(GeoPoint3 expected, GeoPoint3 actual) =>
+            Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
 
         /// <summary>The TEXTs an MTEXT explodes to, each its words, the start of its baseline and its height.</summary>
         private static List<DxfDBText> Exploded(DxfMText mtext) => mtext.Explode().Cast<DxfDBText>().ToList();
@@ -152,8 +178,14 @@ namespace GeometryHelper.UnitTest.Dxf
                 // The spacing at least: a factor of 1.5 puts the second line 10 below the first; exactly, the MTEXT is the
                 // height, the spacing and a third of the height high, whatever its letters.
                 Is(14, Words(db, "ABC\\PDE", 0, DxfAttachmentPoint.TopLeft, 1.5).ActualHeight);
-                Is(12, Words(db, "ABC\\PDE", 0, DxfAttachmentPoint.TopLeft, 1, DxfLineSpacingStyle.Exactly).ActualHeight);
-                Is(5.333333333333333, Words(db, "ABC", 0, DxfAttachmentPoint.TopLeft, 1, DxfLineSpacingStyle.Exactly).ActualHeight);
+                Is(
+                    12,
+                    Words(db, "ABC\\PDE", 0, DxfAttachmentPoint.TopLeft, 1, DxfLineSpacingStyle.Exactly).ActualHeight
+                );
+                Is(
+                    5.333333333333333,
+                    Words(db, "ABC", 0, DxfAttachmentPoint.TopLeft, 1, DxfLineSpacingStyle.Exactly).ActualHeight
+                );
             });
         }
 
@@ -174,7 +206,14 @@ namespace GeometryHelper.UnitTest.Dxf
                 Text(texts[2], "DEF", 10, -8);
 
                 // Exactly: the MTEXT's own height spaces the lines.
-                DxfMText exactly = Words(db, "ABC\\P{\\H3x;ABC}\\PDEF", 0, DxfAttachmentPoint.TopLeft, 1, DxfLineSpacingStyle.Exactly);
+                DxfMText exactly = Words(
+                    db,
+                    "ABC\\P{\\H3x;ABC}\\PDEF",
+                    0,
+                    DxfAttachmentPoint.TopLeft,
+                    1,
+                    DxfLineSpacingStyle.Exactly
+                );
                 Is(18.666666666666664, exactly.ActualHeight);
                 texts = Exploded(exactly);
                 Text(texts[1], "ABC", 10, 9.3333333333333339, 12);
@@ -202,7 +241,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 // "AAA BBB" is inked 26.667 wide: at that width BBB moves down, a hair wider it stays (round GHF4B's sweep).
                 double inked = Words(db, "AAA BBB").ActualWidth;
                 Is(26.666666666666668, inked);
-                Assert.Equal(new[] { "AAA", "BBB", "CCC" }, Exploded(Words(db, "AAA BBB CCC", inked)).Select(t => t.TextString));
+                Assert.Equal(
+                    new[] { "AAA", "BBB", "CCC" },
+                    Exploded(Words(db, "AAA BBB CCC", inked)).Select(t => t.TextString)
+                );
                 DxfMText kept = Words(db, "AAA BBB CCC", 26.67);
                 Assert.Equal(new[] { "AAA BBB", "CCC" }, Exploded(kept).Select(t => t.TextString));
                 Is(26.666666666666668, kept.ActualWidth);
@@ -258,8 +300,14 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 // Round GHF4A and GHF4D: a line breaks before any of 中中中中中, but not before the full-width comma, which takes
                 // the letter before it down with it.
-                Assert.Equal(new[] { "中中中中", "中" }, Exploded(Words(db, "中中中中中", 15)).Select(t => t.TextString));
-                Assert.Equal(new[] { "中中中", "中，中" }, Exploded(Words(db, "中中中中，中", 15)).Select(t => t.TextString));
+                Assert.Equal(
+                    new[] { "中中中中", "中" },
+                    Exploded(Words(db, "中中中中中", 15)).Select(t => t.TextString)
+                );
+                Assert.Equal(
+                    new[] { "中中中", "中，中" },
+                    Exploded(Words(db, "中中中中，中", 15)).Select(t => t.TextString)
+                );
             });
         }
 

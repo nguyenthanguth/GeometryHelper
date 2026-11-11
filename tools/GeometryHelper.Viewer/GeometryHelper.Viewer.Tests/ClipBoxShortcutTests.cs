@@ -14,7 +14,12 @@ namespace GeometryHelper.Viewer.Tests
     {
         private static GeoSolid3 Box(double x, double y, double z, double size)
         {
-            var floor = new GeoPolygon3(new GeoPoint3(x, y, z), new GeoPoint3(x + size, y, z), new GeoPoint3(x + size, y + size, z), new GeoPoint3(x, y + size, z));
+            var floor = new GeoPolygon3(
+                new GeoPoint3(x, y, z),
+                new GeoPoint3(x + size, y, z),
+                new GeoPoint3(x + size, y + size, z),
+                new GeoPoint3(x, y + size, z)
+            );
             return GeoSolid3.Extrude(floor, new GeoVector3(0, 0, size));
         }
 
@@ -86,17 +91,35 @@ namespace GeometryHelper.Viewer.Tests
                 for (int k = 0; k < count; k++)
                 {
                     // Planes through the corners of the boxes, to the bit, and planes anywhere.
-                    Vec3 through = trial % 2 == 0
-                        ? new Vec3(random.Next(0, 8) * 12.0 - (random.Next(2) == 0 ? 2.0 : 0.0), random.Next(0, 6) * 12.0, random.Next(0, 3) * 5.0)
-                        : new Vec3(random.NextDouble() * 80.0, random.NextDouble() * 70.0, random.NextDouble() * 15.0);
-                    Vec3 normal = trial % 3 == 0 ? new Vec3(k == 0 ? 1.0 : 0.0, k == 1 ? 1.0 : 0.0, k == 2 ? -1.0 : 0.0) : new Vec3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5);
+                    Vec3 through =
+                        trial % 2 == 0
+                            ? new Vec3(
+                                random.Next(0, 8) * 12.0 - (random.Next(2) == 0 ? 2.0 : 0.0),
+                                random.Next(0, 6) * 12.0,
+                                random.Next(0, 3) * 5.0
+                            )
+                            : new Vec3(
+                                random.NextDouble() * 80.0,
+                                random.NextDouble() * 70.0,
+                                random.NextDouble() * 15.0
+                            );
+                    Vec3 normal =
+                        trial % 3 == 0
+                            ? new Vec3(k == 0 ? 1.0 : 0.0, k == 1 ? 1.0 : 0.0, k == 2 ? -1.0 : 0.0)
+                            : new Vec3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5);
 
                     if (normal.Length < 1E-3)
                     {
                         normal = new Vec3(1, 0, 0);
                     }
 
-                    planes.Add(new ClipPlane(through, normal.Normalized(), random.Next(4) == 0 ? random.NextDouble() * 4.0 - 2.0 : 0.0));
+                    planes.Add(
+                        new ClipPlane(
+                            through,
+                            normal.Normalized(),
+                            random.Next(4) == 0 ? random.NextDouble() * 4.0 - 2.0 : 0.0
+                        )
+                    );
                 }
 
                 ClipSet clips = new ClipSet(planes).ForScene(primitives.Bounds);
@@ -111,7 +134,12 @@ namespace GeometryHelper.Viewer.Tests
                     {
                         whole++;
                     }
-                    else if (fast.Triangles.Count == 0 && fast.Polylines.Count == 0 && fast.Points.Count == 0 && fast.Labels.Count == 0)
+                    else if (
+                        fast.Triangles.Count == 0
+                        && fast.Polylines.Count == 0
+                        && fast.Points.Count == 0
+                        && fast.Labels.Count == 0
+                    )
                     {
                         cutAway++;
                     }
@@ -143,7 +171,9 @@ namespace GeometryHelper.Viewer.Tests
         public void ABigItemCutOnEveryCore_IsTheSameAsItsPartsCutOneAfterAnother_ToTheBit()
         {
             // A cylinder of 20 000 sides has 80 000 triangles, more than are cut in pieces; its two halves are each under that, and are cut one core at a time.
-            var scene = new SceneWriter().Add(GeoSolid3.Cylinder(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, 100), 5000, 20000), name: "drum").Scene;
+            var scene = new SceneWriter()
+                .Add(GeoSolid3.Cylinder(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, 100), 5000, 20000), name: "drum")
+                .Scene;
             ItemPrimitives whole = Primitives.Build(scene).Items[0];
             Assert.True(whole.Triangles.Count > 50000, whole.Triangles.Count + " triangles");
 
@@ -152,7 +182,9 @@ namespace GeometryHelper.Viewer.Tests
             first.Triangles.AddRange(whole.Triangles.Take(whole.Triangles.Count / 2));
             second.Triangles.AddRange(whole.Triangles.Skip(whole.Triangles.Count / 2));
 
-            var clips = new ClipSet(new[] { new ClipPlane(new Vec3(1234.5, 0, 30), new Vec3(0.3, 0.4, 0.8).Normalized()) }).ForScene(whole.Bounds);
+            var clips = new ClipSet(
+                new[] { new ClipPlane(new Vec3(1234.5, 0, 30), new Vec3(0.3, 0.4, 0.8).Normalized()) }
+            ).ForScene(whole.Bounds);
             ItemPrimitives together = clips.Apply(whole);
             ItemPrimitives apart = clips.Apply(first);
             apart.Triangles.AddRange(clips.Apply(second).Triangles);
@@ -173,7 +205,9 @@ namespace GeometryHelper.Viewer.Tests
         public void APlaneThroughOneBoxOfAField_IsGivenTheOtherItemsAsTheyAre_AndOnlyThatBoxIsCopied()
         {
             Primitives primitives = Primitives.Build(FieldOfBoxes());
-            var clips = new ClipSet(new[] { new ClipPlane(new Vec3(5, 0, 0), new Vec3(1, 0, 0)) }).ForScene(primitives.Bounds);
+            var clips = new ClipSet(new[] { new ClipPlane(new Vec3(5, 0, 0), new Vec3(1, 0, 0)) }).ForScene(
+                primitives.Bounds
+            );
 
             Primitives cut = clips.Apply(primitives);
 
@@ -188,7 +222,10 @@ namespace GeometryHelper.Viewer.Tests
                 }
             }
 
-            Assert.True(copied < primitives.Items.Count - 20, copied + " of " + primitives.Items.Count + " items copied");
+            Assert.True(
+                copied < primitives.Items.Count - 20,
+                copied + " of " + primitives.Items.Count + " items copied"
+            );
         }
     }
 }

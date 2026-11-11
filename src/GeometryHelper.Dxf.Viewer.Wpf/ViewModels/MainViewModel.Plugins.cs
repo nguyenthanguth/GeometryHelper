@@ -74,7 +74,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 AttachPlugins(file.Session.Registry);
             }
 
-            IReadOnlyList<CadPluginResult> results = loadAtStart ? plugins.LoadAtStart() : Array.Empty<CadPluginResult>();
+            IReadOnlyList<CadPluginResult> results = loadAtStart
+                ? plugins.LoadAtStart()
+                : Array.Empty<CadPluginResult>();
 
             foreach (CadPluginResult result in results)
             {
@@ -89,12 +91,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Loads a command plugin from a .dll, a .ghplugin or a plugin's folder, as PLUGINLOAD does, and says what came of it.</summary>
         /// <param name="path">The path.</param>
         /// <returns>What came of it; null without a manager.</returns>
-        public CadPluginResult LoadPlugin(string path) => Report(_plugins == null || string.IsNullOrWhiteSpace(path) ? null : _plugins.Load(path));
+        public CadPluginResult LoadPlugin(string path) =>
+            Report(_plugins == null || string.IsNullOrWhiteSpace(path) ? null : _plugins.Load(path));
 
         /// <summary>Installs a .ghplugin package into the plugin folder and loads it, and says what came of it.</summary>
         /// <param name="path">The path of the package.</param>
         /// <returns>What came of it; null without a manager.</returns>
-        public CadPluginResult InstallPlugin(string path) => Report(_plugins == null || string.IsNullOrWhiteSpace(path) ? null : _plugins.Install(path));
+        public CadPluginResult InstallPlugin(string path) =>
+            Report(_plugins == null || string.IsNullOrWhiteSpace(path) ? null : _plugins.Install(path));
 
         /// <summary>Loads a plugin again from its file, as PLUGINRELOAD does, and says what came of it.</summary>
         /// <param name="name">The plugin's name.</param>
@@ -108,7 +112,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Makes the view model of the Plugin manager; null without a manager. Dispose it when the dialog closes.</summary>
         /// <returns>The view model.</returns>
-        public PluginManagerViewModel CreatePluginManager() => _plugins == null ? null : new PluginManagerViewModel(_plugins, Say);
+        public PluginManagerViewModel CreatePluginManager() =>
+            _plugins == null ? null : new PluginManagerViewModel(_plugins, Say);
 
         /// <summary>Asks the window for the file dialog of PLUGINLOAD.</summary>
         internal void RequestPluginLoad() => PluginLoadRequested?.Invoke(this, EventArgs.Empty);

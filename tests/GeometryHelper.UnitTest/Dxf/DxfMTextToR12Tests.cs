@@ -20,7 +20,13 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R12);
             int before = db.ModelSpace.Count();
-            var mtext = new DxfMText { Contents = "{\\fArial|b1;B-12}\\PM16", Location = new GeoPoint3(10, 20, 0), TextHeight = 2.5, Layer = "steel" };
+            var mtext = new DxfMText
+            {
+                Contents = "{\\fArial|b1;B-12}\\PM16",
+                Location = new GeoPoint3(10, 20, 0),
+                TextHeight = 2.5,
+                Layer = "steel",
+            };
 
             db.ModelSpace.AppendEntity(mtext);
 
@@ -40,7 +46,13 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R12);
             int before = db.ModelSpace.Count();
-            var mtext = new DxfMText { Contents = "one\\Ptwo", Location = new GeoPoint3(0, 0, 0), TextHeight = 3.0, Attachment = DxfAttachmentPoint.MiddleCenter };
+            var mtext = new DxfMText
+            {
+                Contents = "one\\Ptwo",
+                Location = new GeoPoint3(0, 0, 0),
+                TextHeight = 3.0,
+                Attachment = DxfAttachmentPoint.MiddleCenter,
+            };
 
             db.ModelSpace.AppendEntity(mtext);
 
@@ -60,8 +72,23 @@ namespace GeometryHelper.UnitTest.Dxf
             int before = db.ModelSpace.Count();
 
             // As ezdxf places them, a\P\Pb\P held at its bottom left 3 high: a at 10, b at 0.
-            db.ModelSpace.AppendEntity(new DxfMText { Contents = "a\\P\\Pb\\P", Location = new GeoPoint3(0, 0, 0), TextHeight = 3.0, Attachment = DxfAttachmentPoint.BottomLeft });
-            db.ModelSpace.AppendEntity(new DxfMText { Contents = "c1\\Nc2", Location = new GeoPoint3(0, 50, 0), TextHeight = 1.0 });
+            db.ModelSpace.AppendEntity(
+                new DxfMText
+                {
+                    Contents = "a\\P\\Pb\\P",
+                    Location = new GeoPoint3(0, 0, 0),
+                    TextHeight = 3.0,
+                    Attachment = DxfAttachmentPoint.BottomLeft,
+                }
+            );
+            db.ModelSpace.AppendEntity(
+                new DxfMText
+                {
+                    Contents = "c1\\Nc2",
+                    Location = new GeoPoint3(0, 50, 0),
+                    TextHeight = 1.0,
+                }
+            );
 
             DxfDBText[] texts = db.ModelSpace.Skip(before).Cast<DxfDBText>().ToArray();
             Assert.Equal(new[] { "a", "b", "c1", "c2" }, texts.Select(t => t.TextString));
@@ -94,7 +121,8 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase source = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
             DxfDatabase r12 = DxfDatabase.Parse(DxfDimensionDrawings.R12);
-            var copy = (DxfRotatedDimension)source.ModelSpace.OfType<DxfDimension>().Single(d => d.Handle == "61").Clone();
+            var copy = (DxfRotatedDimension)
+                source.ModelSpace.OfType<DxfDimension>().Single(d => d.Handle == "61").Clone();
 
             r12.ModelSpace.AppendEntity(copy);
 
@@ -107,8 +135,14 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(DxfTextHorizontalMode.TextCenter, text.HorizontalMode);
 
             // Held at its middle, turned by -26.57 degrees: the baseline half its height below the MTEXT's point, square to the text.
-            var along = new GeoVector3(Math.Cos(-26.56505117707799 * Math.PI / 180.0), Math.Sin(-26.56505117707799 * Math.PI / 180.0), 0.0);
-            GeoPoint3 expected = new GeoPoint3(44.47213595499957, -31.05572809000084, 0.0).Add(new GeoVector3(-along.Y, along.X, 0.0).Multiply(-0.5));
+            var along = new GeoVector3(
+                Math.Cos(-26.56505117707799 * Math.PI / 180.0),
+                Math.Sin(-26.56505117707799 * Math.PI / 180.0),
+                0.0
+            );
+            GeoPoint3 expected = new GeoPoint3(44.47213595499957, -31.05572809000084, 0.0).Add(
+                new GeoVector3(-along.Y, along.X, 0.0).Multiply(-0.5)
+            );
             Assert.True(expected.DistanceTo(text.AlignmentPoint) <= 1E-9, text.AlignmentPoint.ToString());
             Assert.Equal(along.Y, Math.Sin(text.Rotation), 9);
             Assert.Equal(source.BlockTable["*D2"].Count(), picture.Count());

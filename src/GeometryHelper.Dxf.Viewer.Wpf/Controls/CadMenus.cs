@@ -28,7 +28,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 throw new ArgumentNullException(nameof(items));
             }
 
-            _theme = _theme ?? new ResourceDictionary { Source = new Uri("pack://application:,,,/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml", UriKind.Absolute) };
+            _theme = _theme
+                ?? new ResourceDictionary
+                {
+                    Source = new Uri(
+                        "pack://application:,,,/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml",
+                        UriKind.Absolute
+                    ),
+                };
             var menu = new ContextMenu { Style = (Style)_theme["GhContextMenu"] };
             Fill(menu, items);
             return menu;
@@ -55,8 +62,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (item.Marker != CadSnapKind.None)
                 {
                     var row = new StackPanel { Orientation = Orientation.Horizontal };
-                    row.Children.Add(new Image { Source = MarkerImage(item.Marker), Width = 16, Height = 16, Margin = new Thickness(0, 0, 8, 0), Opacity = item.IsEnabled ? 1.0 : 0.45 });
-                    row.Children.Add(new TextBlock { Text = item.Header, VerticalAlignment = VerticalAlignment.Center });
+                    row.Children.Add(
+                        new Image
+                        {
+                            Source = MarkerImage(item.Marker),
+                            Width = 16,
+                            Height = 16,
+                            Margin = new Thickness(0, 0, 8, 0),
+                            Opacity = item.IsEnabled ? 1.0 : 0.45,
+                        }
+                    );
+                    row.Children.Add(
+                        new TextBlock { Text = item.Header, VerticalAlignment = VerticalAlignment.Center }
+                    );
                     header = row;
                 }
 
@@ -103,7 +121,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="parameter">Not used.</param>
         /// <param name="culture">Not used.</param>
         /// <returns>The picture, or null.</returns>
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value is CadSnapKind kind ? CadMenus.MarkerImage(kind) : null;
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+            value is CadSnapKind kind ? CadMenus.MarkerImage(kind) : null;
 
         /// <summary>Not supported: the kind is read, never written back.</summary>
         /// <param name="value">Not used.</param>
@@ -112,6 +131,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="culture">Not used.</param>
         /// <returns>Nothing; it throws.</returns>
         /// <exception cref="NotSupportedException">Always.</exception>
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+            throw new NotSupportedException();
     }
 }

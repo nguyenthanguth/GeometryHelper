@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GeometryHelper.Arranging;
 using GeometryHelper.Geometry;
 using Xunit;
-using GeometryHelper.Arranging;
 
 namespace GeometryHelper.UnitTest.Arranging
 {
@@ -12,11 +12,7 @@ namespace GeometryHelper.UnitTest.Arranging
         /// <summary>Shared configuration for tests below, small dimensions for easy manual calculation.</summary>
         private static ArrangeOptions GreedyOptions(int perpendicularLevels = 3)
         {
-            return new ArrangeOptions
-            {
-                RowGap = 5.0,
-                PerpendicularLevels = perpendicularLevels
-            };
+            return new ArrangeOptions { RowGap = 5.0, PerpendicularLevels = perpendicularLevels };
         }
 
         [Fact]
@@ -27,21 +23,17 @@ namespace GeometryHelper.UnitTest.Arranging
             {
                 Box = new GeoRectangle2(new GeoPoint2(5.0, 0.0), 20.0, 10.0),
                 Leader = leaderLine,
-                Offset = 5.0
+                Offset = 5.0,
             };
             var a2 = new ArrangeItem
             {
                 Box = new GeoRectangle2(new GeoPoint2(5.0, 0.0), 20.0, 10.0),
                 Leader = leaderLine,
-                Offset = 5.0
+                Offset = 5.0,
             };
 
             var list = new List<ArrangeItem> { a1, a2 };
-            var options = new ArrangeOptions
-            {
-                RowGap = 5.0,
-                PerpendicularLevels = 3
-            };
+            var options = new ArrangeOptions { RowGap = 5.0, PerpendicularLevels = 3 };
 
             ArrangeResult[] results = Arranger.Run(list, options);
 
@@ -73,18 +65,18 @@ namespace GeometryHelper.UnitTest.Arranging
                 Box = rect,
                 Leader = leaderLine,
                 Offset = 5.0,
-                BlockPolygons = new List<GeoPolygon2> { blockPoly }
+                BlockPolygons = new List<GeoPolygon2> { blockPoly },
             };
 
-            var options = new ArrangeOptions
-            {
-                RowGap = 5.0,
-                PerpendicularLevels = 2
-            };
+            var options = new ArrangeOptions { RowGap = 5.0, PerpendicularLevels = 2 };
 
             ArrangeResult result = Arranger.Run(new List<ArrangeItem> { arrange }, options)[0];
 
-            var moved = new GeoRectangle2(arrange.Box.Center + result.Translation, arrange.Box.Width, arrange.Box.Height);
+            var moved = new GeoRectangle2(
+                arrange.Box.Center + result.Translation,
+                arrange.Box.Width,
+                arrange.Box.Height
+            );
 
             Assert.True(moved.Center.Y < 0.0);
             Assert.False(blockPoly.CollidesWith(moved));
@@ -112,14 +104,10 @@ namespace GeometryHelper.UnitTest.Arranging
                 Box = rect,
                 Leader = leaderLine,
                 Offset = 5.0,
-                BlockPolygons = new List<GeoPolygon2> { blockPoly }
+                BlockPolygons = new List<GeoPolygon2> { blockPoly },
             };
 
-            var options = new ArrangeOptions
-            {
-                RowGap = 5.0,
-                PerpendicularLevels = 2
-            };
+            var options = new ArrangeOptions { RowGap = 5.0, PerpendicularLevels = 2 };
 
             ArrangeResult result = Arranger.Run(new List<ArrangeItem> { arrange }, options)[0];
 
@@ -143,7 +131,8 @@ namespace GeometryHelper.UnitTest.Arranging
                     new GeoPoint2(990.0, 0.0),
                     new GeoPoint2(1060.0, 0.0),
                     new GeoPoint2(1060.0, 30.0),
-                    new GeoPoint2(990.0, 30.0))
+                    new GeoPoint2(990.0, 30.0)
+                ),
             };
 
             ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { near, far }, GreedyOptions());
@@ -218,8 +207,18 @@ namespace GeometryHelper.UnitTest.Arranging
             var leader = new GeoLine2(0.0, 0.0, 40.0, 40.0);
             var box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0, Math.PI / 4.0);
 
-            var a = new ArrangeItem { Leader = leader, Box = box, Offset = 5.0 };
-            var b = new ArrangeItem { Leader = leader, Box = box, Offset = 5.0 };
+            var a = new ArrangeItem
+            {
+                Leader = leader,
+                Box = box,
+                Offset = 5.0,
+            };
+            var b = new ArrangeItem
+            {
+                Leader = leader,
+                Box = box,
+                Offset = 5.0,
+            };
 
             ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { a, b }, GreedyOptions());
 
@@ -236,11 +235,13 @@ namespace GeometryHelper.UnitTest.Arranging
         {
             // A common usage pattern is to assign the same blocked region to EVERY label. This only inflates
             // the obstacle list and must absolutely not change the arrangement result.
-            GeoPolygon2 Block() => new GeoPolygon2(
-                new GeoPoint2(-50.0, 0.0),
-                new GeoPoint2(50.0, 0.0),
-                new GeoPoint2(50.0, 30.0),
-                new GeoPoint2(-50.0, 30.0));
+            GeoPolygon2 Block() =>
+                new GeoPolygon2(
+                    new GeoPoint2(-50.0, 0.0),
+                    new GeoPoint2(50.0, 0.0),
+                    new GeoPoint2(50.0, 30.0),
+                    new GeoPoint2(-50.0, 30.0)
+                );
 
             ArrangeResult[] Solve(bool onEveryLabel)
             {
@@ -249,9 +250,8 @@ namespace GeometryHelper.UnitTest.Arranging
                 for (int i = 0; i < 4; i++)
                 {
                     var label = LabelOn(new GeoLine2(i * 15.0, 0.0, i * 15.0 + 40.0, 0.0));
-                    label.BlockPolygons = (onEveryLabel || i == 0)
-                        ? new List<GeoPolygon2> { block }
-                        : new List<GeoPolygon2>();
+                    label.BlockPolygons =
+                        (onEveryLabel || i == 0) ? new List<GeoPolygon2> { block } : new List<GeoPolygon2>();
                     labels.Add(label);
                 }
                 return Arranger.Run(labels, GreedyOptions());

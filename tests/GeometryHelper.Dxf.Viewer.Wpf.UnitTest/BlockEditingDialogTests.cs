@@ -23,7 +23,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             DxfDatabase database = CadTemplate.CreateMetric();
             database.ModelSpace.AppendEntity(new DxfCircle(new GeoPoint3(100, 100, 0), new GeoVector3(0, 0, 1), 10.0));
             database.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(100, 90, 0), new GeoPoint3(100, 70, 0)));
-            database.ModelSpace.AppendEntity(new DxfAttributeDefinition(new GeoPoint3(100, 100, 0), "A", "GRID", "Grid letter", null));
+            database.ModelSpace.AppendEntity(
+                new DxfAttributeDefinition(new GeoPoint3(100, 100, 0), "A", "GRID", "Grid letter", null)
+            );
             return database.ToText();
         }
 
@@ -49,7 +51,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             model.Execute("B");
         }
 
-        private static string Shown(MainViewModel model) => model.Document.ModelSpace.Block.OfType<DxfBlockReference>().Single().AttributeCollection.Single().TextString;
+        private static string Shown(MainViewModel model) =>
+            model
+                .Document.ModelSpace.Block.OfType<DxfBlockReference>()
+                .Single()
+                .AttributeCollection.Single()
+                .TextString;
 
         [Fact]
         public void TheEditorShowsAValueAsItIsTyped_ApplyKeepsItWithTheEditorOpen_AndCancelTakesBackWhatCameAfter()
@@ -142,7 +149,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         [Theory]
         [InlineData(true, 1)]
         [InlineData(false, 3)]
-        public void AnotherDrawingsBlockOfAUsedName_AsksWhetherToRedefine_AndTheAnswerDecides(bool redefine, int entities)
+        public void AnotherDrawingsBlockOfAUsedName_AsksWhetherToRedefine_AndTheAnswerDecides(
+            bool redefine,
+            int entities
+        )
         {
             using (var folder = new TestFolder())
             {

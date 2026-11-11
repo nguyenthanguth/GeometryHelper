@@ -22,7 +22,14 @@ namespace GeometryHelper.UnitTest.Common
     internal static class QuerySymmetry
     {
         /// <summary>The questions read from either side.</summary>
-        internal static readonly string[] Queries = { "DistanceTo", "CollidesWith", "GetIntersections", "TryIntersectWith", "GetShortestLineTo" };
+        internal static readonly string[] Queries =
+        {
+            "DistanceTo",
+            "CollidesWith",
+            "GetIntersections",
+            "TryIntersectWith",
+            "GetShortestLineTo",
+        };
 
         /// <summary>The point's three questions it answers some other way.</summary>
         private static readonly string[] NotAskedOfAPoint = { "CollidesWith", "GetIntersections", "TryIntersectWith" };
@@ -35,9 +42,13 @@ namespace GeometryHelper.UnitTest.Common
         /// </summary>
         internal static Type[] ShapeTypes(char dimension)
         {
-            return typeof(GeoPoint2).Assembly
-                .GetTypes()
-                .Where(t => t.IsPublic && t.Namespace == "GeometryHelper.Geometry" && t.Name.StartsWith("Geo", StringComparison.Ordinal))
+            return typeof(GeoPoint2)
+                .Assembly.GetTypes()
+                .Where(t =>
+                    t.IsPublic
+                    && t.Namespace == "GeometryHelper.Geometry"
+                    && t.Name.StartsWith("Geo", StringComparison.Ordinal)
+                )
                 .Where(t => t.Name[t.Name.Length - 1] == dimension)
                 .Where(t => !NotShapes.Contains(t.Name.Substring(3, t.Name.Length - 4)))
                 .OrderBy(t => t.Name, StringComparer.Ordinal)
@@ -51,7 +62,9 @@ namespace GeometryHelper.UnitTest.Common
         {
             return asked
                 .GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                .Any(m => m.Name == query && m.GetParameters().Length > 0 && m.GetParameters()[0].ParameterType == argument);
+                .Any(m =>
+                    m.Name == query && m.GetParameters().Length > 0 && m.GetParameters()[0].ParameterType == argument
+                );
         }
 
         /// <summary>
@@ -61,10 +74,12 @@ namespace GeometryHelper.UnitTest.Common
         {
             return asked
                 .GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                .Any(m => m.Name == query
+                .Any(m =>
+                    m.Name == query
                     && m.GetParameters().Length > 0
                     && m.GetParameters()[0].ParameterType == argument
-                    && m.GetParameters().Any(p => p.ParameterType == typeof(Tolerance)));
+                    && m.GetParameters().Any(p => p.ParameterType == typeof(Tolerance))
+                );
         }
 
         /// <summary>
@@ -89,11 +104,37 @@ namespace GeometryHelper.UnitTest.Common
 
                         if (!Answers(b, query, a))
                         {
-                            missing.Add(b.Name + "." + query + "(" + a.Name + ")  <- " + a.Name + "." + query + "(" + b.Name + ")");
+                            missing.Add(
+                                b.Name
+                                    + "."
+                                    + query
+                                    + "("
+                                    + a.Name
+                                    + ")  <- "
+                                    + a.Name
+                                    + "."
+                                    + query
+                                    + "("
+                                    + b.Name
+                                    + ")"
+                            );
                         }
                         else if (AnswersWithTolerance(a, query, b) && !AnswersWithTolerance(b, query, a))
                         {
-                            missing.Add(b.Name + "." + query + "(" + a.Name + ", Tolerance)  <- " + a.Name + "." + query + "(" + b.Name + ", Tolerance)");
+                            missing.Add(
+                                b.Name
+                                    + "."
+                                    + query
+                                    + "("
+                                    + a.Name
+                                    + ", Tolerance)  <- "
+                                    + a.Name
+                                    + "."
+                                    + query
+                                    + "("
+                                    + b.Name
+                                    + ", Tolerance)"
+                            );
                         }
                     }
                 }
@@ -153,8 +194,17 @@ namespace GeometryHelper.UnitTest.Common
         /// </summary>
         private static readonly Type[] StraightOrFlat3 =
         {
-            typeof(GeoAabb3), typeof(GeoFace3), typeof(GeoLine3), typeof(GeoObb3), typeof(GeoPlane3), typeof(GeoPoint3),
-            typeof(GeoPolygon3), typeof(GeoPolyline3), typeof(GeoRay3), typeof(GeoSolid3), typeof(GeoTriangle3)
+            typeof(GeoAabb3),
+            typeof(GeoFace3),
+            typeof(GeoLine3),
+            typeof(GeoObb3),
+            typeof(GeoPlane3),
+            typeof(GeoPoint3),
+            typeof(GeoPolygon3),
+            typeof(GeoPolyline3),
+            typeof(GeoRay3),
+            typeof(GeoSolid3),
+            typeof(GeoTriangle3),
         };
 
         /// <summary>
@@ -165,7 +215,7 @@ namespace GeometryHelper.UnitTest.Common
         {
             new[] { typeof(GeoEdge3), typeof(GeoPolyline3) },
             new[] { typeof(GeoEdge3), typeof(GeoPolylineArc3) },
-            new[] { typeof(GeoEdge3), typeof(GeoPolygonArc3) }
+            new[] { typeof(GeoEdge3), typeof(GeoPolygonArc3) },
         };
 
         /// <summary>
@@ -249,11 +299,14 @@ namespace GeometryHelper.UnitTest.Common
                 foreach (Type b in StraightOrFlat3)
                 {
                     bool plain = a.GetMethod("DistanceTo", new[] { b })?.ReturnType == typeof(double);
-                    bool within = a.GetMethod("DistanceTo", new[] { b, typeof(Tolerance) })?.ReturnType == typeof(double);
+                    bool within =
+                        a.GetMethod("DistanceTo", new[] { b, typeof(Tolerance) })?.ReturnType == typeof(double);
 
                     if (!plain && !within)
                     {
-                        missing.Add(a.Name + ".DistanceTo(" + b.Name + (WithoutDistanceWithin(a, b) ? ")" : "[, Tolerance])"));
+                        missing.Add(
+                            a.Name + ".DistanceTo(" + b.Name + (WithoutDistanceWithin(a, b) ? ")" : "[, Tolerance])")
+                        );
                     }
                     else if (!plain)
                     {
@@ -289,7 +342,7 @@ namespace GeometryHelper.UnitTest.Common
                 new[] { typeof(GeoLine3), typeof(GeoLine3) },
                 new[] { typeof(GeoLine3), typeof(GeoPlane3) },
                 new[] { typeof(GeoLine3), typeof(GeoRay3) },
-                new[] { typeof(GeoAabb3), typeof(GeoAabb3) }
+                new[] { typeof(GeoAabb3), typeof(GeoAabb3) },
             };
 
             return plainOnly.Any(p => (p[0] == asked && p[1] == argument) || (p[0] == argument && p[1] == asked));
@@ -331,9 +384,14 @@ namespace GeometryHelper.UnitTest.Common
         private static bool WithoutShortestLine(Type asked, Type argument)
         {
             return argument.Name.StartsWith("GeoEllipse", StringComparison.Ordinal)
-                || asked == typeof(GeoAabb3) || asked == typeof(GeoObb3)
-                || argument == typeof(GeoAabb3) || argument == typeof(GeoObb3)
-                || (asked == argument && (asked == typeof(GeoPlane3) || asked == typeof(GeoPoint3) || asked == typeof(GeoPoint2)));
+                || asked == typeof(GeoAabb3)
+                || asked == typeof(GeoObb3)
+                || argument == typeof(GeoAabb3)
+                || argument == typeof(GeoObb3)
+                || (
+                    asked == argument
+                    && (asked == typeof(GeoPlane3) || asked == typeof(GeoPoint3) || asked == typeof(GeoPoint2))
+                );
         }
 
         /// <summary>

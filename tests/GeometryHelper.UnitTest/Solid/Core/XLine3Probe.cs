@@ -35,11 +35,15 @@ namespace GeometryHelper.UnitTest.Solid
                 types.Add(typeof(Tolerance));
             }
 
-            MethodInfo method = owner.GetType().GetMethod(name, BindingFlags.Public | BindingFlags.Instance, null, types.ToArray(), null);
+            MethodInfo method = owner
+                .GetType()
+                .GetMethod(name, BindingFlags.Public | BindingFlags.Instance, null, types.ToArray(), null);
 
             if (method == null)
             {
-                throw new MissingMemberException(owner.GetType().Name + "." + name + "(" + string.Join(", ", types.Select(t => t.Name)) + ")");
+                throw new MissingMemberException(
+                    owner.GetType().Name + "." + name + "(" + string.Join(", ", types.Select(t => t.Name)) + ")"
+                );
             }
 
             return method;
@@ -48,55 +52,84 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>Whether <paramref name="owner"/> answers <paramref name="name"/> about <paramref name="arg"/>, in the form with a tolerance.</summary>
         internal static bool Answers(object owner, string name, object arg)
         {
-            return owner.GetType().GetMethods().Any(m => m.Name == name && m.GetParameters().Length > 0
-                && m.GetParameters()[0].ParameterType == arg.GetType()
-                && m.GetParameters().Any(p => p.ParameterType == typeof(Tolerance)));
+            return owner
+                .GetType()
+                .GetMethods()
+                .Any(m =>
+                    m.Name == name
+                    && m.GetParameters().Length > 0
+                    && m.GetParameters()[0].ParameterType == arg.GetType()
+                    && m.GetParameters().Any(p => p.ParameterType == typeof(Tolerance))
+                );
         }
 
-        internal static bool Collides(object a, object b, Tolerance? tolerance = null)
-            => (bool)Unwrap(() => tolerance.HasValue
-                ? Find(a, "CollidesWith", b, true).Invoke(a, new[] { b, tolerance.Value })
-                : Find(a, "CollidesWith", b, false).Invoke(a, new[] { b }));
+        internal static bool Collides(object a, object b, Tolerance? tolerance = null) =>
+            (bool)Unwrap(() =>
+                tolerance.HasValue
+                    ? Find(a, "CollidesWith", b, true).Invoke(a, new[] { b, tolerance.Value })
+                    : Find(a, "CollidesWith", b, false).Invoke(a, new[] { b })
+            );
 
-        internal static double Distance(object a, object b, Tolerance? tolerance = null)
-            => (double)Unwrap(() => tolerance.HasValue
-                ? Find(a, "DistanceTo", b, true).Invoke(a, new[] { b, tolerance.Value })
-                : Find(a, "DistanceTo", b, false).Invoke(a, new[] { b }));
+        internal static double Distance(object a, object b, Tolerance? tolerance = null) =>
+            (double)Unwrap(() =>
+                tolerance.HasValue
+                    ? Find(a, "DistanceTo", b, true).Invoke(a, new[] { b, tolerance.Value })
+                    : Find(a, "DistanceTo", b, false).Invoke(a, new[] { b })
+            );
 
-        internal static GeoPoint3[] Crossings(object a, object b, Tolerance? tolerance = null)
-            => (GeoPoint3[])Unwrap(() => tolerance.HasValue
-                ? Find(a, "GetIntersections", b, true).Invoke(a, new[] { b, tolerance.Value })
-                : Find(a, "GetIntersections", b, false).Invoke(a, new[] { b }));
+        internal static GeoPoint3[] Crossings(object a, object b, Tolerance? tolerance = null) =>
+            (GeoPoint3[])Unwrap(() =>
+                tolerance.HasValue
+                    ? Find(a, "GetIntersections", b, true).Invoke(a, new[] { b, tolerance.Value })
+                    : Find(a, "GetIntersections", b, false).Invoke(a, new[] { b })
+            );
 
-        internal static GeoLine3 Shortest(object a, object b, Tolerance? tolerance = null)
-            => (GeoLine3)Unwrap(() => tolerance.HasValue
-                ? Find(a, "GetShortestLineTo", b, true).Invoke(a, new[] { b, tolerance.Value })
-                : Find(a, "GetShortestLineTo", b, false).Invoke(a, new[] { b }));
+        internal static GeoLine3 Shortest(object a, object b, Tolerance? tolerance = null) =>
+            (GeoLine3)Unwrap(() =>
+                tolerance.HasValue
+                    ? Find(a, "GetShortestLineTo", b, true).Invoke(a, new[] { b, tolerance.Value })
+                    : Find(a, "GetShortestLineTo", b, false).Invoke(a, new[] { b })
+            );
 
         /// <summary>
         /// Asks <c>TryIntersectWith</c>: whether they meet and where, a single point wrapped as an array.
         /// </summary>
         internal static bool Try(object a, object b, out GeoPoint3[] points, Tolerance? tolerance = null)
         {
-            Type outType = a.GetType().GetMethods().Any(m => m.Name == "TryIntersectWith" && m.GetParameters().Length > 1
-                && m.GetParameters()[0].ParameterType == b.GetType() && m.GetParameters()[1].ParameterType == typeof(GeoPoint3).MakeByRefType())
+            Type outType = a.GetType()
+                .GetMethods()
+                .Any(m =>
+                    m.Name == "TryIntersectWith"
+                    && m.GetParameters().Length > 1
+                    && m.GetParameters()[0].ParameterType == b.GetType()
+                    && m.GetParameters()[1].ParameterType == typeof(GeoPoint3).MakeByRefType()
+                )
                 ? typeof(GeoPoint3)
                 : typeof(GeoPoint3[]);
 
             MethodInfo method = Find(a, "TryIntersectWith", b, tolerance.HasValue, outType);
-            object[] arguments = tolerance.HasValue ? new object[] { b, null, tolerance.Value } : new object[] { b, null };
+            object[] arguments = tolerance.HasValue
+                ? new object[] { b, null, tolerance.Value }
+                : new object[] { b, null };
             bool hit = (bool)Unwrap(() => method.Invoke(a, arguments));
 
-            points = outType == typeof(GeoPoint3)
-                ? (hit ? new[] { (GeoPoint3)arguments[1] } : new GeoPoint3[0])
-                : (GeoPoint3[])arguments[1];
+            points =
+                outType == typeof(GeoPoint3)
+                    ? (hit ? new[] { (GeoPoint3)arguments[1] } : new GeoPoint3[0])
+                    : (GeoPoint3[])arguments[1];
             return hit;
         }
 
         /// <summary>Whether <c>TryIntersectWith</c> exists for the pair, in either shape of its <c>out</c>.</summary>
         internal static bool HasTry(object a, object b)
         {
-            return a.GetType().GetMethods().Any(m => m.Name == "TryIntersectWith" && m.GetParameters().Length > 1 && m.GetParameters()[0].ParameterType == b.GetType());
+            return a.GetType()
+                .GetMethods()
+                .Any(m =>
+                    m.Name == "TryIntersectWith"
+                    && m.GetParameters().Length > 1
+                    && m.GetParameters()[0].ParameterType == b.GetType()
+                );
         }
 
         private static object Unwrap(Func<object> call)

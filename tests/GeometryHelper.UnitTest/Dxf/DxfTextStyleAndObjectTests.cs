@@ -33,8 +33,16 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Same(note, text.TextStyle);
             Assert.Same(note, mtext.TextStyle);
             string saved = db.ToText();
-            Assert.Contains("\n  7\nGH_Note\n", Records(saved).Single(r => HandleOf(r) == "64"), StringComparison.Ordinal);
-            Assert.Contains("\n  7\nGH_Note\n", Records(saved).Single(r => HandleOf(r) == "73"), StringComparison.Ordinal);
+            Assert.Contains(
+                "\n  7\nGH_Note\n",
+                Records(saved).Single(r => HandleOf(r) == "64"),
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "\n  7\nGH_Note\n",
+                Records(saved).Single(r => HandleOf(r) == "73"),
+                StringComparison.Ordinal
+            );
             DxfDatabase read = DxfDatabase.Parse(saved);
             Assert.Equal("GH_Note", read.BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single().TextStyleName);
             Assert.Equal("GH_Note", ByHandle<DxfMText>(read, "73").TextStyleName);
@@ -58,7 +66,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Throws<ArgumentException>(() => text.TextStyleName = "GH_NONE");
             Assert.Throws<ArgumentException>(() => text.TextStyle = theirs);
-            Assert.Throws<ArgumentException>(() => ByHandle<DxfMText>(db, "73").TextStyle = other.TextStyleTable["Standard"]);
+            Assert.Throws<ArgumentException>(() =>
+                ByHandle<DxfMText>(db, "73").TextStyle = other.TextStyleTable["Standard"]
+            );
             Assert.Throws<ArgumentException>(() => text.TextStyle = new DxfTextStyleTableRecord { Name = "Loose" });
             Assert.Throws<ArgumentNullException>(() => text.TextStyle = null);
             Assert.Throws<ArgumentNullException>(() => text.TextStyleName = null);
@@ -81,9 +91,14 @@ namespace GeometryHelper.UnitTest.Dxf
                 string before = db.ToText();
                 var text = new DxfDBText { TextString = "x", TextStyleName = "NOPE" };
                 var mtext = new DxfMText { Contents = "y", TextStyleName = "NOPE" };
-                var mark = new DxfAttributeReference(new GeoPoint3(10, 19, 0), "B-99", "MARK", null) { TextStyleName = "NOPE" };
+                var mark = new DxfAttributeReference(new GeoPoint3(10, 19, 0), "B-99", "MARK", null)
+                {
+                    TextStyleName = "NOPE",
+                };
                 var made = new DxfBlockReference(new GeoPoint3(10, 20, 0), db.BlockTable["BOLT"]);
-                made.AttributeCollection.AppendAttribute(new DxfAttributeReference(new GeoPoint3(10, 19, 0), "B-98", "MARK", null) { TextStyleName = "NOPE" });
+                made.AttributeCollection.AppendAttribute(
+                    new DxfAttributeReference(new GeoPoint3(10, 19, 0), "B-98", "MARK", null) { TextStyleName = "NOPE" }
+                );
 
                 // The same words whichever way it is added, the argument named that of the method called.
                 DxfBlockReference bolt = db.ModelSpace.OfType<DxfBlockReference>().First(b => b.Name == "BOLT");
@@ -103,7 +118,11 @@ namespace GeometryHelper.UnitTest.Dxf
         private static void Refused(string argument, Action adding)
         {
             ArgumentException refused = Assert.Throws<ArgumentException>(adding);
-            Assert.StartsWith("The text style NOPE is not in the file's text style table.", refused.Message, StringComparison.Ordinal);
+            Assert.StartsWith(
+                "The text style NOPE is not in the file's text style table.",
+                refused.Message,
+                StringComparison.Ordinal
+            );
             Assert.Equal(argument, refused.ParamName);
         }
 
@@ -113,7 +132,13 @@ namespace GeometryHelper.UnitTest.Dxf
             // As AutoCAD 2021 wrote the columns of 09-a (point 9): 41 of R2018 that of all the columns with their gutters; before
             // it, in R2007, as R2000 takes columns only with column MTEXTs linked, which are not made (09d), a column's, and the
             // MTEXT read as wide as all its columns, as AutoCAD read its columns of R2007 (D18, 09e).
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1021"), DxfFileEzdxfDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1021"),
+                    DxfFileEzdxfDrawings.R2018,
+                }
+            )
             {
                 bool r2018 = text == DxfFileEzdxfDrawings.R2018;
                 DxfDatabase db = DxfDatabase.Parse(text);
@@ -122,21 +147,33 @@ namespace GeometryHelper.UnitTest.Dxf
                 mtext.SetStaticColumns(12.5, 2.5, 3);
 
                 Assert.Equal(42.5, mtext.Width);
-                Assert.Contains(r2018 ? "\n 41\n42.5\n" : "\n 41\n12.5\n", Records(db.ToText()).Single(r => HandleOf(r) == "73"), StringComparison.Ordinal);
+                Assert.Contains(
+                    r2018 ? "\n 41\n42.5\n" : "\n 41\n12.5\n",
+                    Records(db.ToText()).Single(r => HandleOf(r) == "73"),
+                    StringComparison.Ordinal
+                );
                 DxfMText read = ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73");
                 Assert.Equal(42.5, read.Width);
                 Assert.Equal(12.5, read.ColumnWidth);
 
                 if (r2018)
                 {
-                    Assert.Contains("101\nEmbedded Object\n 70\n1\n 10\n1\n 20\n0\n 30\n0\n 11\n20\n 21\n40\n 31\n0\n 40\n42.5\n", Records(db.ToText()).Single(r => HandleOf(r) == "73"), StringComparison.Ordinal);
+                    Assert.Contains(
+                        "101\nEmbedded Object\n 70\n1\n 10\n1\n 20\n0\n 30\n0\n 11\n20\n 21\n40\n 31\n0\n 40\n42.5\n",
+                        Records(db.ToText()).Single(r => HandleOf(r) == "73"),
+                        StringComparison.Ordinal
+                    );
                 }
 
                 mtext.SetDynamicColumns(10.0, 2.0, true);
                 Assert.Equal(34.0, mtext.Width);
                 mtext.ColumnWidth = 8.0;
                 Assert.Equal(28.0, ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73").Width);
-                Assert.Contains(r2018 ? "\n 41\n28\n" : "\n 41\n8\n", Records(db.ToText()).Single(r => HandleOf(r) == "73"), StringComparison.Ordinal);
+                Assert.Contains(
+                    r2018 ? "\n 41\n28\n" : "\n 41\n8\n",
+                    Records(db.ToText()).Single(r => HandleOf(r) == "73"),
+                    StringComparison.Ordinal
+                );
             }
         }
 
@@ -151,7 +188,14 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Same(db.LayerTable, db.GetObject(db.LayerTable.Handle));
             Assert.Same(db.NamedObjectsDictionary, db.GetObject(db.NamedObjectsDictionary.Handle));
             Assert.IsType<DxfPolylineVertex3d>(db.GetObject("47"));
-            Assert.IsType<DxfAttributeReference>(db.GetObject(ByHandle<DxfBlockReference>(db, "65").AttributeCollection.Cast<DxfAttributeReference>().First().Handle));
+            Assert.IsType<DxfAttributeReference>(
+                db.GetObject(
+                    ByHandle<DxfBlockReference>(db, "65")
+                        .AttributeCollection.Cast<DxfAttributeReference>()
+                        .First()
+                        .Handle
+                )
+            );
 
             Assert.False(db.TryGetObject("FFFFF", out DxfDBObject none));
             Assert.Null(none);
@@ -179,7 +223,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Same(mark, db.GetObject(mark.Handle));
 
             // The table of applications has no class of the library, and is not found.
-            string applications = HandleOf(Records(db.ToText()).First(r => r.StartsWith("  0\nTABLE\n  2\nAPPID\n", StringComparison.Ordinal)));
+            string applications = HandleOf(
+                Records(db.ToText()).First(r => r.StartsWith("  0\nTABLE\n  2\nAPPID\n", StringComparison.Ordinal))
+            );
             Assert.False(db.TryGetObject(applications, out _));
         }
 

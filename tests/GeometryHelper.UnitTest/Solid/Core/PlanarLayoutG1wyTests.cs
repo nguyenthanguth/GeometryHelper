@@ -19,13 +19,19 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
-        private static readonly GeoCoordinateSystem3 World = new GeoCoordinateSystem3(new GeoPlane3(P(0, 0, 0), new GeoVector3(0, 0, 1)));
+        private static readonly GeoCoordinateSystem3 World = new GeoCoordinateSystem3(
+            new GeoPlane3(P(0, 0, 0), new GeoVector3(0, 0, 1))
+        );
 
         // A frame leaning every way, far from the origin.
-        private static readonly GeoCoordinateSystem3 Leaning = new GeoCoordinateSystem3(new GeoPlane3(P(312.5, -87.25, 40.125), new GeoVector3(0.3, -0.5, 0.8)));
+        private static readonly GeoCoordinateSystem3 Leaning = new GeoCoordinateSystem3(
+            new GeoPlane3(P(312.5, -87.25, 40.125), new GeoVector3(0.3, -0.5, 0.8))
+        );
 
         // A frame tilted 60 degrees to the plane of the world about its X axis.
-        private static readonly GeoCoordinateSystem3 Tilted = new GeoCoordinateSystem3(new GeoPlane3(P(5, -3, 7), new GeoVector3(0, Math.Sin(Math.PI / 3), Math.Cos(Math.PI / 3))));
+        private static readonly GeoCoordinateSystem3 Tilted = new GeoCoordinateSystem3(
+            new GeoPlane3(P(5, -3, 7), new GeoVector3(0, Math.Sin(Math.PI / 3), Math.Cos(Math.PI / 3)))
+        );
 
         // The square 10 by 10 with its corner at (0, 10) cut by 0.0005, built a thousand times larger and shrunk in the
         // plane side for side, then laid into the plane of the world.
@@ -125,7 +131,9 @@ namespace GeometryHelper.UnitTest.Solid
         {
             var triangle = new GeoPolygon3(new[] { P(0, 0, 0), P(10, 0, 0), P(5, 0, 8) }, Tolerance.Default);
             double tilt = 1E-4;
-            var nearlyEdgeOn = new GeoCoordinateSystem3(new GeoPlane3(P(3, 4, 5), new GeoVector3(0.6 * Math.Cos(tilt), Math.Sin(tilt), 0.8 * Math.Cos(tilt))));
+            var nearlyEdgeOn = new GeoCoordinateSystem3(
+                new GeoPlane3(P(3, 4, 5), new GeoVector3(0.6 * Math.Cos(tilt), Math.Sin(tilt), 0.8 * Math.Cos(tilt)))
+            );
 
             GeoPolygon2 flat = triangle.ProjectToPolygon2(nearlyEdgeOn);
 

@@ -8,7 +8,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
     public class PhysicalProductFilterTests
     {
         // A wall, an opening element and a space share the same 1 m3 body.
-        private static readonly string WallOpeningSpace = IfcTestFile.CommonHeader() + @"
+        private static readonly string WallOpeningSpace =
+            IfcTestFile.CommonHeader()
+            + @"
 #20=IFCRECTANGLEPROFILEDEF(.AREA.,$,#5,1.,0.5);
 #21=IFCEXTRUDEDAREASOLID(#20,#8,#9,2.);
 #22=IFCSHAPEREPRESENTATION(#11,'Body','SweptSolid',(#21));

@@ -13,14 +13,14 @@ namespace GeometryHelper.Dwg
         /// A colour (CMC) is a bit short before R2004 and a full colour from R2004.
         /// </summary>
         private const string DimStyleValues =
-            "TV 3;TV 4;BD 40 1;BD 41 0.18;BD 42 0.0625;BD 43 0.38;BD 44 0.18;BD 45 0;BD 46 0;BD 47 0;BD 48 0;" +
-            "BD 49 1 1021;BD 50 0.7853981633974483 1021;BS 69 0 1021;CMC 70 0 1021;" +
-            "B 71 0;B 72 0;B 73 1;B 74 1;B 75 0;B 76 0;BS 77 0;BS 78 0;BS 79 0;BS 90 0 1021;" +
-            "BD 140 0.18;BD 141 0.09;BD 142 0;BD 143 25.4;BD 144 1;BD 145 0;BD 146 1;BD 147 0.09;BD 148 0;" +
-            "B 170 0;BS 171 2;B 172 0;B 173 0;B 174 0;B 175 0;CMC 176 0;CMC 177 0;CMC 178 0;" +
-            "BS 179 0;BS 271 4;BS 272 4;BS 273 2;BS 274 2;BS 275 0;BS 276 0;BS 277 2;BS 278 46;BS 279 0;" +
-            "BS 280 0;B 281 0;B 282 0;BS 283 1;BS 284 0;BS 285 0;BS 286 0;B 288 0;BS 289 3;B 290 0 1021;" +
-            "B 294 0 1024;BD 0 0 1024;TV 0 0 1024;BD 0 0 1024;TV 0 0 1024;BS 371 -2;BS 372 -2";
+            "TV 3;TV 4;BD 40 1;BD 41 0.18;BD 42 0.0625;BD 43 0.38;BD 44 0.18;BD 45 0;BD 46 0;BD 47 0;BD 48 0;"
+            + "BD 49 1 1021;BD 50 0.7853981633974483 1021;BS 69 0 1021;CMC 70 0 1021;"
+            + "B 71 0;B 72 0;B 73 1;B 74 1;B 75 0;B 76 0;BS 77 0;BS 78 0;BS 79 0;BS 90 0 1021;"
+            + "BD 140 0.18;BD 141 0.09;BD 142 0;BD 143 25.4;BD 144 1;BD 145 0;BD 146 1;BD 147 0.09;BD 148 0;"
+            + "B 170 0;BS 171 2;B 172 0;B 173 0;B 174 0;B 175 0;CMC 176 0;CMC 177 0;CMC 178 0;"
+            + "BS 179 0;BS 271 4;BS 272 4;BS 273 2;BS 274 2;BS 275 0;BS 276 0;BS 277 2;BS 278 46;BS 279 0;"
+            + "BS 280 0;B 281 0;B 282 0;BS 283 1;BS 284 0;BS 285 0;BS 286 0;B 288 0;BS 289 3;B 290 0 1021;"
+            + "B 294 0 1024;BD 0 0 1024;TV 0 0 1024;BD 0 0 1024;TV 0 0 1024;BS 371 -2;BS 372 -2";
 
         /// <summary>The name and the flags every table record starts with; returns the flags of group 70.</summary>
         private int ReadRecordHead(string subclass)
@@ -183,7 +183,10 @@ namespace GeometryHelper.Dwg
             ulong material = R2007Plus ? H() : 0;
             ulong linetype = H();
             ulong visualStyle = R2013Plus ? H() : 0;
-            _object.Add(70, flags | ((values & 1) != 0 ? 1 : 0) | ((values & 4) != 0 ? 2 : 0) | ((values & 8) != 0 ? 4 : 0));
+            _object.Add(
+                70,
+                flags | ((values & 1) != 0 ? 1 : 0) | ((values & 4) != 0 ? 2 : 0) | ((values & 8) != 0 ? 4 : 0)
+            );
 
             // A layer that is off has its colour index negative.
             colour.Index = (values & 2) != 0 ? -Math.Abs(colour.Index) : colour.Index;
@@ -255,7 +258,10 @@ namespace GeometryHelper.Dwg
                 hasText |= (kinds[i][1] & 2) != 0;
             }
 
-            byte[] texts = !R2007Plus ? _data.Bytes(256) : hasText ? _data.Bytes(512) : new byte[0];
+            byte[] texts =
+                !R2007Plus ? _data.Bytes(256)
+                : hasText ? _data.Bytes(512)
+                : new byte[0];
             H();
             _object.Add(70, flags);
             _object.Add(3, description);
@@ -296,7 +302,12 @@ namespace GeometryHelper.Dwg
 
                     var text = new byte[to - from];
                     Array.Copy(texts, from, text, 0, text.Length);
-                    _object.Add(9, R2007Plus ? System.Text.Encoding.UTF8.GetBytes(System.Text.Encoding.Unicode.GetString(text)) : text);
+                    _object.Add(
+                        9,
+                        R2007Plus
+                            ? System.Text.Encoding.UTF8.GetBytes(System.Text.Encoding.Unicode.GetString(text))
+                            : text
+                    );
                 }
             }
         }
@@ -536,7 +547,10 @@ namespace GeometryHelper.Dwg
 
                         break;
                     default:
-                        int whole = parts[0] == "B" ? (_data.Bit() ? 1 : 0) : parts[0] == "CMC" ? ReadColour().Index : _data.BitShort();
+                        int whole =
+                            parts[0] == "B" ? (_data.Bit() ? 1 : 0)
+                            : parts[0] == "CMC" ? ReadColour().Index
+                            : _data.BitShort();
 
                         if (whole != int.Parse(parts[2], CultureInfo.InvariantCulture) && code != 0)
                         {

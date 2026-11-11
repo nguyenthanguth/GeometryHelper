@@ -31,7 +31,13 @@ namespace GeometryHelper.Drawing
         /// <param name="values">Its own values by name, in the order given; null for none. A value may be null.</param>
         /// <exception cref="ArgumentNullException">Thrown when the id or the kind is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the id or the kind is empty, or a value has a null name.</exception>
-        public DrawingElement(string id, string kind, string viewId = null, DrawingLinks links = null, IEnumerable<KeyValuePair<string, string>> values = null)
+        public DrawingElement(
+            string id,
+            string kind,
+            string viewId = null,
+            DrawingLinks links = null,
+            IEnumerable<KeyValuePair<string, string>> values = null
+        )
         {
             Id = DrawingRecordGroups.Named(id, nameof(id), "An element needs an id.");
             Kind = DrawingRecordGroups.Named(kind, nameof(kind), "An element needs a kind.");
@@ -58,13 +64,13 @@ namespace GeometryHelper.Drawing
         /// <summary>Whether this element is the same as another, field by field.</summary>
         /// <param name="other">The other element.</param>
         /// <returns>Whether they are the same.</returns>
-        public bool Equals(DrawingElement other)
-            => other != null
-               && string.Equals(Id, other.Id, StringComparison.Ordinal)
-               && string.Equals(Kind, other.Kind, StringComparison.Ordinal)
-               && string.Equals(ViewId, other.ViewId, StringComparison.Ordinal)
-               && Links.Equals(other.Links)
-               && DrawingRecordGroups.SameValues(_values, other._values);
+        public bool Equals(DrawingElement other) =>
+            other != null
+            && string.Equals(Id, other.Id, StringComparison.Ordinal)
+            && string.Equals(Kind, other.Kind, StringComparison.Ordinal)
+            && string.Equals(ViewId, other.ViewId, StringComparison.Ordinal)
+            && Links.Equals(other.Links)
+            && DrawingRecordGroups.SameValues(_values, other._values);
 
         /// <summary>Whether an object is an element the same as this one.</summary>
         /// <param name="obj">The object.</param>

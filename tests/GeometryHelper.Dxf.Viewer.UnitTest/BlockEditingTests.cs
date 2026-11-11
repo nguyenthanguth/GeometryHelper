@@ -32,7 +32,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return Run(session, inputs);
         }
 
-        private static string[] Handles(CadDocument document) => document.ModelSpace.Block.Select(e => e.Handle).ToArray();
+        private static string[] Handles(CadDocument document) =>
+            document.ModelSpace.Block.Select(e => e.Handle).ToArray();
 
         /// <summary>The block GB of the bubble with the attribute GRID centred on its circle, 3.5 high, base point (100, 70).</summary>
         private static CadDocument WithGridBubble()
@@ -50,7 +51,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(start, document.Database.ToText());
         }
 
-        private static string Value(CadDocument document) => Assert.Single(All<DxfBlockReference>(document.ModelSpace)).AttributeCollection.Single().TextString;
+        private static string Value(CadDocument document) =>
+            Assert.Single(All<DxfBlockReference>(document.ModelSpace)).AttributeCollection.Single().TextString;
 
         /// <summary>Answers the Enhanced Attribute Editor once, as the window would, with what the editor does while it is open.</summary>
         private static void WhileEditing(CadCommandSession session, Action<CadAttributeEditRequest> edit)
@@ -77,7 +79,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 r.Rows[0].Value = "D";
                 r.Preview();
                 Assert.Equal("D", Value(document));
-                Assert.Contains(document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>(), t => t.Text == "D");
+                Assert.Contains(document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>(), t =>
+                    t.Text == "D"
+                );
 
                 r.Apply();
                 r.Rows[0].Value = "E";
@@ -153,7 +157,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "90", Enter);
 
             Assert.False(session.IsRunning);
-            GeoPoint3 placed = Assert.Single(All<DxfBlockReference>(document.ModelSpace)).BlockTransform.Transform(new GeoPoint3(110, 100, 0));
+            GeoPoint3 placed = Assert
+                .Single(All<DxfBlockReference>(document.ModelSpace))
+                .BlockTransform.Transform(new GeoPoint3(110, 100, 0));
             Near(new GeoPoint3(dragged.X, dragged.Y, 0), placed);
         }
 
@@ -185,8 +191,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return document;
         }
 
-        private static DxfAttributeReference Attribute(CadDocument document, string tag)
-            => Assert.Single(All<DxfBlockReference>(document.ModelSpace)).AttributeCollection.Single(a => a.Tag == tag);
+        private static DxfAttributeReference Attribute(CadDocument document, string tag) =>
+            Assert.Single(All<DxfBlockReference>(document.ModelSpace)).AttributeCollection.Single(a => a.Tag == tag);
 
         [Fact]
         public void TypedAttEdit_TakesTheOneAttributeClicked_AndMarksItWhileItIsEdited()
@@ -220,7 +226,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             session = Start(document, "-ATE", Enter, Enter, Enter, Enter, P(16.5, 11.5), new[] { insert }, Enter);
             Assert.Contains("2 attributes selected.", session.History);
-            DxfAttributeReference first = Assert.Single(All<DxfBlockReference>(document.ModelSpace)).AttributeCollection[0];
+            DxfAttributeReference first = Assert
+                .Single(All<DxfBlockReference>(document.ModelSpace))
+                .AttributeCollection[0];
             GeoPoint3 held = first.Tag == "GRID" ? first.AlignmentPoint : first.Position;
             Near(new GeoPoint2(held.X, held.Y), session.Prompt.Mark.Value);
         }
@@ -232,7 +240,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string insert = Assert.Single(All<DxfBlockReference>(document.ModelSpace)).Handle;
 
             // The box from (-20, 25) to (20, 35) crosses the circle and GRID, centred on (0, 30), and not LEVEL, 10 to 13.5 high.
-            CadCommandSession session = Start(document, "-ATE", Enter, Enter, Enter, Enter, "C", P(-20, 25), P(20, 35), Enter);
+            CadCommandSession session = Start(
+                document,
+                "-ATE",
+                Enter,
+                Enter,
+                Enter,
+                Enter,
+                "C",
+                P(-20, 25),
+                P(20, 35),
+                Enter
+            );
             Assert.Contains("1 attributes selected.", session.History);
             Near(P(0, 30), session.Prompt.Mark.Value);
             Run(session, Esc);
@@ -275,14 +294,19 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Start(document, "-I", "GB", P(0, 0), Enter, Enter, Enter, "C");
             Start(document, "-I", "GB", P(200, 0), "2", Enter, Enter, "D");
             DxfBlockReference first = All<DxfBlockReference>(document.ModelSpace)[0];
-            first.AttributeCollection.AppendAttribute(new DxfAttributeReference(new GeoPoint3(0, 0, 0), "X", "OLD", null));
+            first.AttributeCollection.AppendAttribute(
+                new DxfAttributeReference(new GeoPoint3(0, 0, 0), "X", "OLD", null)
+            );
 
             var pair = new DxfBlockTableRecord { Name = "PAIR" };
             document.Database.BlockTable.Add(pair);
             var nested = new DxfBlockReference(new GeoPoint3(0, 0, 0), document.Database.BlockTable["GB"]);
             pair.AppendEntity(nested);
             var value = new DxfAttributeReference();
-            value.SetAttributeFromBlock(document.Database.BlockTable["GB"].OfType<DxfAttributeDefinition>().Single(), nested.BlockTransform);
+            value.SetAttributeFromBlock(
+                document.Database.BlockTable["GB"].OfType<DxfAttributeDefinition>().Single(),
+                nested.BlockTransform
+            );
             value.TextString = "E";
             nested.AttributeCollection.AppendAttribute(value);
 
@@ -365,7 +389,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, Enter);
             InLine(All<DxfBlockReference>(document.ModelSpace)[0], "C", 1.0);
 
-            Start(document, "-B", "PLAIN", P(0, 0), new[] { All<DxfBlockReference>(document.ModelSpace)[1].Handle }, Enter);
+            Start(
+                document,
+                "-B",
+                "PLAIN",
+                P(0, 0),
+                new[] { All<DxfBlockReference>(document.ModelSpace)[1].Handle },
+                Enter
+            );
             session = Start(document, "ATTSYNC", "N", "PLAIN");
             Assert.Contains("This block has no attribute definitions.", session.History);
         }
@@ -389,7 +420,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 Assert.IsType<DxfLine>(Assert.Single(kept.Database.BlockTable["GB"]));
 
                 CadDocument document = Bubble();
-                Start(document, "-B", "GB", P(0, 0), new[] { All<DxfLine>(document.ModelSpace).Single().Handle }, Enter);
+                Start(
+                    document,
+                    "-B",
+                    "GB",
+                    P(0, 0),
+                    new[] { All<DxfLine>(document.ModelSpace).Single().Handle },
+                    Enter
+                );
                 string start = document.Database.ToText();
                 session = Start(document, "-I", "GB=" + file, "Y", P(10, 20), Enter, Enter, Enter, "D");
 
@@ -420,7 +458,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 string file = Path.Combine(folder, "bubbles.dxf");
                 WithGridBubble().Database.Save(file);
                 CadDocument document = Bubble();
-                Start(document, "-B", "GB", P(0, 0), new[] { All<DxfLine>(document.ModelSpace).Single().Handle }, Enter);
+                Start(
+                    document,
+                    "-B",
+                    "GB",
+                    P(0, 0),
+                    new[] { All<DxfLine>(document.ModelSpace).Single().Handle },
+                    Enter
+                );
                 CadCommandSession session = Session(document);
                 string asked = null;
                 session.UiRequested += (sender, e) =>
@@ -447,7 +492,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 Assert.Equal("GB", asked);
                 Assert.False(session.IsRunning);
                 Assert.Equal(3, document.Database.BlockTable["GB"].Count);
-                Assert.Equal("D", Assert.Single(All<DxfBlockReference>(document.ModelSpace)).AttributeCollection.Single().TextString);
+                Assert.Equal(
+                    "D",
+                    Assert.Single(All<DxfBlockReference>(document.ModelSpace)).AttributeCollection.Single().TextString
+                );
             }
             finally
             {

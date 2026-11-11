@@ -21,7 +21,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 model.Execute(string.Empty);
             }
 
-            foreach (string line in new[] { "-GROUP", string.Empty, "STAIR_CORE", "Stair core walls and landing", "ALL", string.Empty })
+            foreach (
+                string line in new[]
+                {
+                    "-GROUP",
+                    string.Empty,
+                    "STAIR_CORE",
+                    "Stair core walls and landing",
+                    "ALL",
+                    string.Empty,
+                }
+            )
             {
                 model.Execute(line);
             }
@@ -37,7 +47,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             }
 
             GroupManagerViewModel shown = null;
-            model.ShowGroupManager = d => { shown = (GroupManagerViewModel)d; return true; };
+            model.ShowGroupManager = d =>
+            {
+                shown = (GroupManagerViewModel)d;
+                return true;
+            };
             model.Execute("CLASSICGROUP");
             shown.Selected = shown.Groups.First(g => g.Name == "STAIR_CORE");
             return shown;

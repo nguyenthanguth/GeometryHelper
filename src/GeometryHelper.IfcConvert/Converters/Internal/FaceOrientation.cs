@@ -28,7 +28,9 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             PointIndex index = new PointIndex(tolerance.EqualPoint);
 
             // Undirected edge -> (face, traversed from the lower to the higher vertex index)
-            Dictionary<long, List<(int Face, bool Forward)>> edges = new Dictionary<long, List<(int, bool)>>(EdgeKeys.Instance);
+            Dictionary<long, List<(int Face, bool Forward)>> edges = new Dictionary<long, List<(int, bool)>>(
+                EdgeKeys.Instance
+            );
             List<long>[] faceEdges = new List<long>[count];
 
             for (int f = 0; f < count; f++)
@@ -108,8 +110,14 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             return result;
         }
 
-        private static void AddRing(IReadOnlyList<GeoPoint3> ring, bool reverse, int face, PointIndex index,
-            Dictionary<long, List<(int, bool)>> edges, List<long> faceEdges)
+        private static void AddRing(
+            IReadOnlyList<GeoPoint3> ring,
+            bool reverse,
+            int face,
+            PointIndex index,
+            Dictionary<long, List<(int, bool)>> edges,
+            List<long> faceEdges
+        )
         {
             int n = ring.Count;
             for (int i = 0; i < n; i++)
@@ -151,7 +159,8 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// </summary>
         private sealed class PointIndex
         {
-            private readonly Dictionary<(long, long, long), List<int>> _cells = new Dictionary<(long, long, long), List<int>>();
+            private readonly Dictionary<(long, long, long), List<int>> _cells =
+                new Dictionary<(long, long, long), List<int>>();
             private readonly List<GeoPoint3> _points = new List<GeoPoint3>();
             private readonly double _tolerance;
             private readonly double _cellSize;
@@ -177,7 +186,9 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                         foreach (int candidate in candidates)
                         {
                             GeoPoint3 q = _points[candidate];
-                            double ddx = q.X - point.X, ddy = q.Y - point.Y, ddz = q.Z - point.Z;
+                            double ddx = q.X - point.X,
+                                ddy = q.Y - point.Y,
+                                ddz = q.Z - point.Z;
                             if (ddx * ddx + ddy * ddy + ddz * ddz <= _tolerance * _tolerance)
                             {
                                 return candidate;

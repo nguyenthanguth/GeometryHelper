@@ -168,11 +168,18 @@ namespace GeometryHelper.Core
             }
 
             int precision = ClipperRegion.GetPrecision(ClipperRegion.Extent(points, origin));
-            List<List<GeoPoint2>> region = ClipperRegion.RegionOf(new GeoFace2(boundary, holes), origin, precision, WithinRounding);
+            List<List<GeoPoint2>> region = ClipperRegion.RegionOf(
+                new GeoFace2(boundary, holes),
+                origin,
+                precision,
+                WithinRounding
+            );
 
             // A loop thinner than the tolerance, area over perimeter, is a seam at it, as the booleans read one, and is left
             // out as it was: the side of a slab 0.0008 thick has no triangle at a thousandth.
-            region.RemoveAll(loop => Math.Abs(LoopTools.SignedArea(loop)) <= 0.5 * tolerance.EqualPoint * LoopTools.Perimeter(loop));
+            region.RemoveAll(loop =>
+                Math.Abs(LoopTools.SignedArea(loop)) <= 0.5 * tolerance.EqualPoint * LoopTools.Perimeter(loop)
+            );
 
             List<List<GeoPoint2>> loops = ClipperRegion.ResolveOutline(region, Clipper.FillRule.Positive, precision);
 
@@ -211,7 +218,13 @@ namespace GeometryHelper.Core
                     ? corner
                     : frame.ToGlobal(new GeoPoint3(point.X + origin.X, point.Y + origin.Y, 0.0));
 
-                return new End { Line = lineOf[point.X], X = point.X, Y = point.Y, Point = at };
+                return new End
+                {
+                    Line = lineOf[point.X],
+                    X = point.X,
+                    Y = point.Y,
+                    Point = at,
+                };
             }
 
             var edges = new List<Edge>();
@@ -229,9 +242,23 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    edges.Add(a.Line < b.Line
-                        ? new Edge { Id = edges.Count, Left = a, Right = b, Winding = 1 }
-                        : new Edge { Id = edges.Count, Left = b, Right = a, Winding = -1 });
+                    edges.Add(
+                        a.Line < b.Line
+                            ? new Edge
+                            {
+                                Id = edges.Count,
+                                Left = a,
+                                Right = b,
+                                Winding = 1,
+                            }
+                            : new Edge
+                            {
+                                Id = edges.Count,
+                                Left = b,
+                                Right = a,
+                                Winding = -1,
+                            }
+                    );
                 }
             }
 
@@ -268,7 +295,15 @@ namespace GeometryHelper.Core
 
             void Close((Edge Lower, Edge Upper, double Start) piece, double end)
             {
-                pieces.Add(new[] { Lift(piece.Lower, piece.Start), Lift(piece.Lower, end), Lift(piece.Upper, end), Lift(piece.Upper, piece.Start) });
+                pieces.Add(
+                    new[]
+                    {
+                        Lift(piece.Lower, piece.Start),
+                        Lift(piece.Lower, end),
+                        Lift(piece.Upper, end),
+                        Lift(piece.Upper, piece.Start),
+                    }
+                );
             }
 
             for (int k = 0; k + 1 < lines.Count; k++)
@@ -332,7 +367,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Adds a triangle unless it has collapsed to nothing, as a piece pinched to a point at one end leaves one.
         /// </summary>
-        private static void Emit(List<GeoTriangle3> triangles, GeoPoint3 a, GeoPoint3 b, GeoPoint3 c, Tolerance tolerance)
+        private static void Emit(
+            List<GeoTriangle3> triangles,
+            GeoPoint3 a,
+            GeoPoint3 b,
+            GeoPoint3 c,
+            Tolerance tolerance
+        )
         {
             var triangle = new GeoTriangle3(a, b, c);
 

@@ -37,7 +37,8 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// Gets the sphere an item is: the item itself when it is an <c>IfcSphere</c>, the root of an <c>IfcCsgSolid</c> when that is one,
         /// otherwise null.
         /// </summary>
-        private static IIfcSphere SphereOf(IIfcRepresentationItem item) => item as IIfcSphere ?? (item as IIfcCsgSolid)?.TreeRootExpression as IIfcSphere;
+        private static IIfcSphere SphereOf(IIfcRepresentationItem item) =>
+            item as IIfcSphere ?? (item as IIfcCsgSolid)?.TreeRootExpression as IIfcSphere;
 
         /// <summary>
         /// Tries to read a representation item as a <see cref="GeoSphere3"/>, in the frame of the item.
@@ -47,8 +48,12 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <param name="options">Optional conversion options; <see cref="IfcConvertOptions.ScaleFactor"/> scales the centre and the radius.</param>
         /// <param name="warnings">Receives a message, prefixed with the item's entity label, for an <c>IfcSphere</c> that cannot be read; null to ignore it.</param>
         /// <returns><c>true</c> when the item is a sphere that could be read; <c>false</c> for any other item, with no message, or for a sphere the file gives no usable radius or position, with one.</returns>
-        public static bool TryToGeoSphere3(this IIfcRepresentationItem item, out GeoSphere3 result, IfcConvertOptions options = null,
-            ICollection<string> warnings = null)
+        public static bool TryToGeoSphere3(
+            this IIfcRepresentationItem item,
+            out GeoSphere3 result,
+            IfcConvertOptions options = null,
+            ICollection<string> warnings = null
+        )
         {
             IIfcSphere sphere = SphereOf(item);
 
@@ -61,7 +66,12 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             return TryRead(sphere, out result, options ?? new IfcConvertOptions(), warnings);
         }
 
-        private static bool TryRead(IIfcSphere sphere, out GeoSphere3 result, IfcConvertOptions options, ICollection<string> warnings)
+        private static bool TryRead(
+            IIfcSphere sphere,
+            out GeoSphere3 result,
+            IfcConvertOptions options,
+            ICollection<string> warnings
+        )
         {
             result = default(GeoSphere3);
             string itemName = $"#{sphere.EntityLabel} {IfcTypeNames.GetName(sphere)}";
@@ -120,13 +130,21 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
             if (tally.NotSpheres > 0)
             {
-                GeometryHelperLog.Debug($"{product.GlobalId} ({IfcTypeNames.GetName(product)}): {tally.NotSpheres} body item(s) are not a sphere and were left out.");
+                GeometryHelperLog.Debug(
+                    $"{product.GlobalId} ({IfcTypeNames.GetName(product)}): {tally.NotSpheres} body item(s) are not a sphere and were left out."
+                );
             }
 
             return spheres;
         }
 
-        private static void Collect(IIfcProduct product, IfcConvertOptions options, int depth, List<GeoSphere3> spheres, Tally tally)
+        private static void Collect(
+            IIfcProduct product,
+            IfcConvertOptions options,
+            int depth,
+            List<GeoSphere3> spheres,
+            Tally tally
+        )
         {
             if (product == null)
             {
@@ -136,7 +154,10 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             // As for solids, a product the options leave out costs nothing.
             string name = product.Name?.ToString();
 
-            if (ProductConvert.IsNameSkipped(name, options.SkipNames) || !ProductConvert.IsNameIncluded(name, options.OnlyNames))
+            if (
+                ProductConvert.IsNameSkipped(name, options.SkipNames)
+                || !ProductConvert.IsNameIncluded(name, options.OnlyNames)
+            )
             {
                 return;
             }
@@ -155,16 +176,26 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
                 // xBIM throws for placements it does not implement (IfcLinearPlacement, IfcGridPlacement).
-                GeometryHelperLog.Warn($"{product.GlobalId} ({IfcTypeNames.GetName(product)}): the placement cannot be evaluated; no ball was read.", ex);
+                GeometryHelperLog.Warn(
+                    $"{product.GlobalId} ({IfcTypeNames.GetName(product)}): the placement cannot be evaluated; no ball was read.",
+                    ex
+                );
                 return;
             }
 
             if (product.Representation != null)
             {
                 var own = new List<GeoSphere3>();
-                var outer = options.CoordinateSpace == CoordinateSpace.Local ? new List<GeoTransform3>() : new List<GeoTransform3> { placement };
+                var outer =
+                    options.CoordinateSpace == CoordinateSpace.Local
+                        ? new List<GeoTransform3>()
+                        : new List<GeoTransform3> { placement };
 
-                foreach (IIfcRepresentation representation in ProductConvert.SelectBodyRepresentations(product.Representation.Representations))
+                foreach (
+                    IIfcRepresentation representation in ProductConvert.SelectBodyRepresentations(
+                        product.Representation.Representations
+                    )
+                )
                 {
                     foreach (IIfcRepresentationItem item in representation.Items)
                     {
@@ -175,10 +206,18 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                     }
                 }
 
-                if (own.Count > 0 && options.ApplyVoids && product is IIfcElement element && element.HasOpenings != null && element.HasOpenings.Any())
+                if (
+                    own.Count > 0
+                    && options.ApplyVoids
+                    && product is IIfcElement element
+                    && element.HasOpenings != null
+                    && element.HasOpenings.Any()
+                )
                 {
                     // The openings are cut from the body, and a ball with a void in it is not a ball.
-                    GeometryHelperLog.Warn($"{product.GlobalId} ({IfcTypeNames.GetName(product)}): openings cut the element and ApplyVoids is set, so its {own.Count} ball(s) are not balls any more and are left out; read it with ApplyVoids off, or take its solid.");
+                    GeometryHelperLog.Warn(
+                        $"{product.GlobalId} ({IfcTypeNames.GetName(product)}): openings cut the element and ApplyVoids is set, so its {own.Count} ball(s) are not balls any more and are left out; read it with ApplyVoids off, or take its solid."
+                    );
                 }
                 else
                 {
@@ -196,7 +235,14 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// Reads the balls of an item of a product's body, through the mapped items it holds: the transformations of the mappings, then the
         /// <paramref name="outer"/> ones, innermost first, as <see cref="ProductConvert"/> composes them for solids.
         /// </summary>
-        private static void CollectItem(IIfcProduct product, IIfcRepresentationItem item, IfcConvertOptions options, List<GeoTransform3> outer, List<GeoSphere3> into, Tally tally)
+        private static void CollectItem(
+            IIfcProduct product,
+            IIfcRepresentationItem item,
+            IfcConvertOptions options,
+            List<GeoTransform3> outer,
+            List<GeoSphere3> into,
+            Tally tally
+        )
         {
             if (item is IIfcMappedItem mappedItem)
             {
@@ -213,7 +259,10 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                 }
                 catch (Exception ex) when (!(ex is OutOfMemoryException))
                 {
-                    GeometryHelperLog.Warn($"#{item.EntityLabel} {IfcTypeNames.GetName(item)} of {product.GlobalId}: the mapping cannot be evaluated; its balls were left out.", ex);
+                    GeometryHelperLog.Warn(
+                        $"#{item.EntityLabel} {IfcTypeNames.GetName(item)} of {product.GlobalId}: the mapping cannot be evaluated; its balls were left out.",
+                        ex
+                    );
                     return;
                 }
 
@@ -266,7 +315,10 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             catch (InvalidOperationException ex)
             {
                 // A ball stretched unevenly by a mapping or a placement is an ellipsoid.
-                GeometryHelperLog.Warn($"#{sphere.EntityLabel} {IfcTypeNames.GetName(sphere)} of {product.GlobalId}: it is stretched unevenly by its mapping or placement, which makes an ellipsoid of it; it is left out.", ex);
+                GeometryHelperLog.Warn(
+                    $"#{sphere.EntityLabel} {IfcTypeNames.GetName(sphere)} of {product.GlobalId}: it is stretched unevenly by its mapping or placement, which makes an ellipsoid of it; it is left out.",
+                    ex
+                );
             }
         }
 
@@ -274,16 +326,28 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// Reads the balls of the parts a product aggregates, as <see cref="ProductConvert"/> reads their solids: in global coordinates and, for
         /// local output, brought into the aggregating product's frame.
         /// </summary>
-        private static void CollectAggregatedParts(IIfcProduct product, IfcConvertOptions options, GeoTransform3 placement, int depth, List<GeoSphere3> spheres, Tally tally)
+        private static void CollectAggregatedParts(
+            IIfcProduct product,
+            IfcConvertOptions options,
+            GeoTransform3 placement,
+            int depth,
+            List<GeoSphere3> spheres,
+            Tally tally
+        )
         {
             IfcConvertOptions partOptions = options.Clone();
             partOptions.CoordinateSpace = CoordinateSpace.Global;
 
             GeoTransform3 globalToHost = null;
 
-            if (options.CoordinateSpace == CoordinateSpace.Local && !placement.TryGetInverse(out globalToHost, options.Tolerance))
+            if (
+                options.CoordinateSpace == CoordinateSpace.Local
+                && !placement.TryGetInverse(out globalToHost, options.Tolerance)
+            )
             {
-                GeometryHelperLog.Warn($"{product.GlobalId} ({IfcTypeNames.GetName(product)}): the placement cannot be inverted, so the balls of its aggregated parts could not be expressed in local coordinates.");
+                GeometryHelperLog.Warn(
+                    $"{product.GlobalId} ({IfcTypeNames.GetName(product)}): the placement cannot be inverted, so the balls of its aggregated parts could not be expressed in local coordinates."
+                );
                 return;
             }
 
@@ -302,7 +366,10 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                         }
                         catch (InvalidOperationException ex)
                         {
-                            GeometryHelperLog.Warn($"Part {part.GlobalId} of {product.GlobalId}: the placement of its host stretches a ball unevenly; it is left out.", ex);
+                            GeometryHelperLog.Warn(
+                                $"Part {part.GlobalId} of {product.GlobalId}: the placement of its host stretches a ball unevenly; it is left out.",
+                                ex
+                            );
                         }
                     }
                 }

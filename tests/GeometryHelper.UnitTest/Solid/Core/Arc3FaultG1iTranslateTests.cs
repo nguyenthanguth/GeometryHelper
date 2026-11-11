@@ -21,7 +21,12 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static readonly GeoVector3 By = new GeoVector3(10, 20, 30);
 
-        private static readonly Tolerance Tight = new Tolerance(1E-9, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-9);
+        private static readonly Tolerance Tight = new Tolerance(
+            1E-9,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-9
+        );
 
         private static GeoVector3 Tilted(double degrees)
         {
@@ -37,7 +42,10 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 GeoPoint3 expected = arc.GetPointAtParameter(eighth / 8.0).Add(By);
 
-                Assert.True(moved.GetPointAtParameter(eighth / 8.0).IsEqualTo(expected, Tight), $"{eighth} eighths along");
+                Assert.True(
+                    moved.GetPointAtParameter(eighth / 8.0).IsEqualTo(expected, Tight),
+                    $"{eighth} eighths along"
+                );
             }
         }
 

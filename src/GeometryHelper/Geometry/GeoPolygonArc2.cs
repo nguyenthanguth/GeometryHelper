@@ -37,9 +37,7 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the vertices are null.</exception>
         /// <exception cref="ArgumentException">Thrown when fewer than three distinct vertices are given.</exception>
         public GeoPolygonArc2(IEnumerable<GeoPoint2> vertices)
-            : this(vertices, null)
-        {
-        }
+            : this(vertices, null) { }
 
         /// <summary>
         /// Initializes a loop whose edges may be arcs.
@@ -59,9 +57,7 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the vertices are null.</exception>
         /// <exception cref="ArgumentException">Thrown when fewer than three distinct vertices are given.</exception>
         public GeoPolygonArc2(IEnumerable<GeoPoint2> vertices, IEnumerable<double> bulges)
-            : this(vertices, bulges, true, Tolerance.Global)
-        {
-        }
+            : this(vertices, bulges, true, Tolerance.Global) { }
 
         /// <summary>
         /// Initializes a loop whose edges may be arcs, saying what a last vertex repeating the first does to the
@@ -71,9 +67,15 @@ namespace GeometryHelper.Geometry
         /// <param name="bulges">The bulge of the edge leaving each vertex; null or short means the rest are straight.</param>
         /// <param name="repeatBendsClosingEdge">true to give a straight closing edge the bulge on the repeated vertex, as the public constructor does; false to let it keep its own.</param>
         /// <param name="tolerance">The tolerance whose point threshold says when a vertex is in the same place as the one before it.</param>
-        private GeoPolygonArc2(IEnumerable<GeoPoint2> vertices, IEnumerable<double> bulges, bool repeatBendsClosingEdge, Tolerance tolerance)
+        private GeoPolygonArc2(
+            IEnumerable<GeoPoint2> vertices,
+            IEnumerable<double> bulges,
+            bool repeatBendsClosingEdge,
+            Tolerance tolerance
+        )
         {
-            if (vertices == null) throw new ArgumentNullException(nameof(vertices));
+            if (vertices == null)
+                throw new ArgumentNullException(nameof(vertices));
 
             var kept = new List<GeoPoint2>();
             var keptBulges = new List<double>();
@@ -104,7 +106,8 @@ namespace GeometryHelper.Geometry
             {
                 if (repeatBendsClosingEdge)
                 {
-                    keptBulges[kept.Count - 2] = keptBulges[kept.Count - 2] != 0.0 ? keptBulges[kept.Count - 2] : keptBulges[kept.Count - 1];
+                    keptBulges[kept.Count - 2] =
+                        keptBulges[kept.Count - 2] != 0.0 ? keptBulges[kept.Count - 2] : keptBulges[kept.Count - 1];
                 }
 
                 kept.RemoveAt(kept.Count - 1);
@@ -141,8 +144,11 @@ namespace GeometryHelper.Geometry
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentException">Thrown when fewer than three distinct starts are given.</exception>
-        internal static GeoPolygonArc2 FromEdges(IEnumerable<GeoPoint2> starts, IEnumerable<double> bulges, Tolerance tolerance)
-            => new GeoPolygonArc2(starts, bulges, false, tolerance);
+        internal static GeoPolygonArc2 FromEdges(
+            IEnumerable<GeoPoint2> starts,
+            IEnumerable<double> bulges,
+            Tolerance tolerance
+        ) => new GeoPolygonArc2(starts, bulges, false, tolerance);
 
         /// <summary>
         /// Gives a loop of vertices already apart, three or more, and the bulge of each edge, checking nothing.
@@ -151,7 +157,8 @@ namespace GeometryHelper.Geometry
         /// For a reader that has cleaned the vertices within a tolerance of its own: the public constructor would clean
         /// them again within the global one. The arrays are kept, not copied.
         /// </remarks>
-        internal static GeoPolygonArc2 FromValidated(GeoPoint2[] vertices, double[] bulges) => new GeoPolygonArc2(vertices, bulges, trusted: true);
+        internal static GeoPolygonArc2 FromValidated(GeoPoint2[] vertices, double[] bulges) =>
+            new GeoPolygonArc2(vertices, bulges, trusted: true);
 
         private GeoPolygonArc2(GeoPoint2[] vertices, double[] bulges, bool trusted)
         {
@@ -174,7 +181,12 @@ namespace GeometryHelper.Geometry
         /// goes. The rectangle 100 by 50 filleted at radius 0.0005 at a millionth keeps its four arcs, where building within
         /// the global tolerance of a thousandth dropped them and left four corners 0.0625 square units short.
         /// </remarks>
-        internal static bool TryFromEdges(IReadOnlyList<GeoPoint2> starts, IReadOnlyList<double> bulges, Tolerance tolerance, out GeoPolygonArc2 loop)
+        internal static bool TryFromEdges(
+            IReadOnlyList<GeoPoint2> starts,
+            IReadOnlyList<double> bulges,
+            Tolerance tolerance,
+            out GeoPolygonArc2 loop
+        )
         {
             loop = null;
 
@@ -243,9 +255,7 @@ namespace GeometryHelper.Geometry
         /// <param name="polygon">The straight polygon to widen.</param>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public GeoPolygonArc2(GeoPolygon2 polygon)
-            : this((polygon ?? throw new ArgumentNullException(nameof(polygon))).Vertices, null)
-        {
-        }
+            : this((polygon ?? throw new ArgumentNullException(nameof(polygon))).Vertices, null) { }
 
         /// <summary>
         /// Gets the vertex at an index.
@@ -334,7 +344,9 @@ namespace GeometryHelper.Geometry
                     GeoPoint2 current = _vertices[i];
                     GeoPoint2 next = _vertices[i + 1];
 
-                    twice += (current.X - reference.X) * (next.Y - reference.Y) - (next.X - reference.X) * (current.Y - reference.Y);
+                    twice +=
+                        (current.X - reference.X) * (next.Y - reference.Y)
+                        - (next.X - reference.X) * (current.Y - reference.Y);
                 }
 
                 double area = twice * 0.5;
@@ -480,7 +492,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="chordTolerance">The largest gap allowed between a piece and the arc it replaces, in drawing units. Zero picks the automatic share of each radius.</param>
         /// <returns>The triangles covering the flattened loop, counter-clockwise; none when it encloses no area.</returns>
-        public GeoTriangle2[] TriangulateSurface(double chordTolerance) => TriangulateSurface(chordTolerance, Tolerance.Global);
+        public GeoTriangle2[] TriangulateSurface(double chordTolerance) =>
+            TriangulateSurface(chordTolerance, Tolerance.Global);
 
         /// <summary>
         /// Breaks the loop into triangles that each lie within it, each arc cut so that it strays no further than a chord
@@ -495,8 +508,8 @@ namespace GeometryHelper.Geometry
         /// them, by no more than the chord tolerance.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance is negative or not a number.</exception>
-        public GeoTriangle2[] TriangulateSurface(double chordTolerance, Tolerance tolerance)
-            => Triangulation2.Triangulate(new GeoFace2(Flatten(chordTolerance)), tolerance);
+        public GeoTriangle2[] TriangulateSurface(double chordTolerance, Tolerance tolerance) =>
+            Triangulation2.Triangulate(new GeoFace2(Flatten(chordTolerance)), tolerance);
 
         /// <summary>
         /// Breaks the loop into faces of a kind, using the default tolerance. A grid needs the size of its cells, which
@@ -505,14 +518,16 @@ namespace GeometryHelper.Geometry
         /// <param name="kind">The kind of faces.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
         /// <exception cref="ArgumentException">Thrown for <see cref="Meshing.MeshKind.Grid"/>, which needs the size of its cells.</exception>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshKind kind) => Meshing.Mesh2.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Tolerance.Global);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshKind kind) =>
+            Meshing.Mesh2.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Tolerance.Global);
 
         /// <summary>
         /// Breaks the loop into faces as the options say, using the default tolerance.
         /// </summary>
         /// <param name="options">How to break it up.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options) => Meshing.Mesh2.ToMesh(this, options, Tolerance.Global);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options) =>
+            Meshing.Mesh2.ToMesh(this, options, Tolerance.Global);
 
         /// <summary>
         /// Breaks the loop into faces as the options say, within a tolerance: triangles, the cells of a grid, strips or
@@ -529,7 +544,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Each arc is flattened first, by the options' chord tolerance, as <see cref="Flatten(double)"/> flattens it.
         /// </remarks>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) => Meshing.Mesh2.ToMesh(this, options, tolerance);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) =>
+            Meshing.Mesh2.ToMesh(this, options, tolerance);
 
         /// <summary>
         /// Gets the loop running the other way round.
@@ -661,7 +677,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Chamfers every corner that has room for it, within a tolerance.
         /// </summary>
-        public GeoPolygonArc2 Chamfer(double distance1, double distance2, Tolerance tolerance) => Corner2.Chamfer(this, distance1, distance2, tolerance);
+        public GeoPolygonArc2 Chamfer(double distance1, double distance2, Tolerance tolerance) =>
+            Corner2.Chamfer(this, distance1, distance2, tolerance);
 
         /// <summary>
         /// Rounds every corner that has room for it with an arc of a given radius.
@@ -768,6 +785,7 @@ namespace GeometryHelper.Geometry
         {
             return $"GeoPolygonArc2[{VertexCount} vertices, {EdgeCount} edges, Length:{Length:0.###}]";
         }
+
         #region Asking and measuring
 
         /// <summary>
@@ -783,12 +801,14 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance round the loop at a normalized parameter.
         /// </summary>
-        public double GetDistanceAtParameter(double parameter) => Parametrization2.GetDistanceAtParameter(this, parameter);
+        public double GetDistanceAtParameter(double parameter) =>
+            Parametrization2.GetDistanceAtParameter(this, parameter);
 
         /// <summary>
         /// Gets the normalized parameter at a distance round the loop.
         /// </summary>
-        public double GetParameterAtDistance(double distance) => Parametrization2.GetParameterAtDistance(this, distance);
+        public double GetParameterAtDistance(double distance) =>
+            Parametrization2.GetParameterAtDistance(this, distance);
 
         /// <summary>
         /// Gets the normalized parameter of the point of the loop nearest a point.
@@ -798,7 +818,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the normalized parameter of the point of the loop nearest a point, within a tolerance.
         /// </summary>
-        public double GetParameterAtPoint(GeoPoint2 point, Tolerance tolerance) => Parametrization2.GetParameterAtPoint(this, point, tolerance);
+        public double GetParameterAtPoint(GeoPoint2 point, Tolerance tolerance) =>
+            Parametrization2.GetParameterAtPoint(this, point, tolerance);
 
         /// <summary>
         /// Gets how far round the loop the point nearest a point lies.
@@ -812,7 +833,8 @@ namespace GeometryHelper.Geometry
         /// A straight side is the side it is however short: at a hundredth, the loop (0, 0), (10, 0), (10, 0.006), (0, 10) puts
         /// (10.03, 0.003) 10.003 round, beside the middle of its side 0.006 long, where it put it 10 round, at that side's start.
         /// </remarks>
-        public double GetDistanceAtPoint(GeoPoint2 point, Tolerance tolerance) => Parametrization2.GetDistanceAtPoint(this, point, tolerance);
+        public double GetDistanceAtPoint(GeoPoint2 point, Tolerance tolerance) =>
+            Parametrization2.GetDistanceAtPoint(this, point, tolerance);
 
         /// <summary>
         /// Determines whether a point lies on the loop.
@@ -832,7 +854,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Says where a point lies against the loop, within a tolerance.
         /// </summary>
-        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) => Containment2.Locate(this, point, tolerance);
+        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) =>
+            Containment2.Locate(this, point, tolerance);
 
         /// <summary>
         /// Determines whether the loop encloses a point, counting its boundary as inside.
@@ -890,7 +913,8 @@ namespace GeometryHelper.Geometry
 
                     // The centroid of a circular segment lies on the line from the centre through the
                     // middle of the arc, this far along it.
-                    double reach = 4.0 * arc.Radius * Math.Pow(Math.Sin(swept * 0.5), 3.0) / (3.0 * (swept - Math.Sin(swept)));
+                    double reach =
+                        4.0 * arc.Radius * Math.Pow(Math.Sin(swept * 0.5), 3.0) / (3.0 * (swept - Math.Sin(swept)));
 
                     // An arc of any radius points somewhere; read within the global vector tolerance, one of radius
                     // 1E-5 or less was left out of the sum.
@@ -906,9 +930,7 @@ namespace GeometryHelper.Geometry
                     weight += area;
                 }
 
-                return Math.Abs(weight) <= double.Epsilon
-                    ? straight.Centroid
-                    : new GeoPoint2(x / weight, y / weight);
+                return Math.Abs(weight) <= double.Epsilon ? straight.Centroid : new GeoPoint2(x / weight, y / weight);
             }
         }
 
@@ -947,7 +969,9 @@ namespace GeometryHelper.Geometry
                         }
 
                         // Neighbours are allowed to meet at the vertex they share, and nowhere else.
-                        if (!meeting.IsEqualTo(one.EndPoint, tolerance) && !meeting.IsEqualTo(one.StartPoint, tolerance))
+                        if (
+                            !meeting.IsEqualTo(one.EndPoint, tolerance) && !meeting.IsEqualTo(one.StartPoint, tolerance)
+                        )
                         {
                             return false;
                         }
@@ -961,27 +985,32 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Cuts the loop wherever it meets a straight segment.
         /// </summary>
-        public bool TrySplitBy(GeoLine2 cutter, out GeoPolylineArc2[] pieces) => Splition2.TrySplitBy(this, cutter, out pieces);
+        public bool TrySplitBy(GeoLine2 cutter, out GeoPolylineArc2[] pieces) =>
+            Splition2.TrySplitBy(this, cutter, out pieces);
 
         /// <summary>
         /// Cuts the loop wherever it meets a straight segment, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoLine2 cutter, out GeoPolylineArc2[] pieces, Tolerance tolerance) => Splition2.TrySplitBy(this, cutter, out pieces, tolerance);
+        public bool TrySplitBy(GeoLine2 cutter, out GeoPolylineArc2[] pieces, Tolerance tolerance) =>
+            Splition2.TrySplitBy(this, cutter, out pieces, tolerance);
 
         /// <summary>
         /// Cuts the loop wherever it meets a straight loop.
         /// </summary>
-        public bool TrySplitBy(GeoPolygon2 cutter, out GeoPolylineArc2[] pieces) => Splition2.TrySplitBy(this, cutter, out pieces);
+        public bool TrySplitBy(GeoPolygon2 cutter, out GeoPolylineArc2[] pieces) =>
+            Splition2.TrySplitBy(this, cutter, out pieces);
 
         /// <summary>
         /// Cuts the loop at distances round it.
         /// </summary>
-        public GeoPolylineArc2[] SplitAtDistances(IEnumerable<double> distances) => Splition2.SplitAtDistances(this, distances);
+        public GeoPolylineArc2[] SplitAtDistances(IEnumerable<double> distances) =>
+            Splition2.SplitAtDistances(this, distances);
 
         /// <summary>
         /// Cuts the loop at distances round it, within a tolerance.
         /// </summary>
-        public GeoPolylineArc2[] SplitAtDistances(IEnumerable<double> distances, Tolerance tolerance) => Splition2.SplitAtDistances(this, distances, tolerance);
+        public GeoPolylineArc2[] SplitAtDistances(IEnumerable<double> distances, Tolerance tolerance) =>
+            Splition2.SplitAtDistances(this, distances, tolerance);
 
         /// <summary>
         /// Gets the loop opened up into a chain, with its first vertex repeated at the end.
@@ -1007,7 +1036,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether two loops hold exactly the same vertices and bulges.
         /// </summary>
-        public static bool operator ==(GeoPolygonArc2 left, GeoPolygonArc2 right) => left is null ? right is null : left.Equals(right);
+        public static bool operator ==(GeoPolygonArc2 left, GeoPolygonArc2 right) =>
+            left is null ? right is null : left.Equals(right);
 
         /// <summary>
         /// Determines whether two loops hold different vertices or bulges.
@@ -1021,14 +1051,19 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Chamfers one corner of the loop, using the default tolerance.
         /// </summary>
-        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolygonArc2 result)
-            => Corner2.TryChamferAt(this, index, distance1, distance2, out result);
+        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolygonArc2 result) =>
+            Corner2.TryChamferAt(this, index, distance1, distance2, out result);
 
         /// <summary>
         /// Chamfers one corner of the loop, within a tolerance.
         /// </summary>
-        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolygonArc2 result, Tolerance tolerance)
-            => Corner2.TryChamferAt(this, index, distance1, distance2, out result, tolerance);
+        public bool TryChamferAt(
+            int index,
+            double distance1,
+            double distance2,
+            out GeoPolygonArc2 result,
+            Tolerance tolerance
+        ) => Corner2.TryChamferAt(this, index, distance1, distance2, out result, tolerance);
 
         /// <summary>
         /// Translates a loop by a vector.
@@ -1052,7 +1087,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Offsets the loop, within a tolerance.
         /// </summary>
-        public GeoPolygonArc2[] Offset(double distance, Tolerance tolerance) => Offset2.Offset(this, distance, tolerance);
+        public GeoPolygonArc2[] Offset(double distance, Tolerance tolerance) =>
+            Offset2.Offset(this, distance, tolerance);
 
         /// <summary>
         /// Offsets the loop, filling opened corners a given way.
@@ -1062,17 +1098,20 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Offsets the loop, filling opened corners a given way, within a tolerance.
         /// </summary>
-        public GeoPolygonArc2[] Offset(double distance, OffsetJoin join, Tolerance tolerance) => Offset2.Offset(this, distance, join, tolerance);
+        public GeoPolygonArc2[] Offset(double distance, OffsetJoin join, Tolerance tolerance) =>
+            Offset2.Offset(this, distance, join, tolerance);
 
         /// <summary>
         /// Offsets the loop, with options.
         /// </summary>
-        public GeoPolygonArc2[] Offset(double distance, OffsetOptions options) => Offset2.Offset(this, distance, options);
+        public GeoPolygonArc2[] Offset(double distance, OffsetOptions options) =>
+            Offset2.Offset(this, distance, options);
 
         /// <summary>
         /// Offsets the loop, with options, within a tolerance.
         /// </summary>
-        public GeoPolygonArc2[] Offset(double distance, OffsetOptions options, Tolerance tolerance) => Offset2.Offset(this, distance, options, tolerance);
+        public GeoPolygonArc2[] Offset(double distance, OffsetOptions options, Tolerance tolerance) =>
+            Offset2.Offset(this, distance, options, tolerance);
 
         /// <summary>
         /// Gets this loop and another together, with the arcs cut into straight pieces first.
@@ -1132,7 +1171,8 @@ namespace GeometryHelper.Geometry
         /// <param name="frame">The frame of the plane to lay it in.</param>
         /// <param name="chordTolerance">The largest gap allowed between a piece and the arc it replaces, in drawing units. Zero picks the automatic share of each radius.</param>
         /// <returns>The loop in space, straight throughout.</returns>
-        public GeoPolygon3 ToPolygon3(GeoCoordinateSystem3 frame, double chordTolerance) => Flatten(chordTolerance).ToPolygon3(frame);
+        public GeoPolygon3 ToPolygon3(GeoCoordinateSystem3 frame, double chordTolerance) =>
+            Flatten(chordTolerance).ToPolygon3(frame);
 
         /// <summary>
         /// Rounds the corners of the loop, each by its own radius.
@@ -1149,7 +1189,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Rounds the corners of the loop, each by its own radius, within a tolerance.
         /// </summary>
-        public GeoPolygonArc2 Fillet(IReadOnlyList<double> radii, Tolerance tolerance) => Corner2.Fillet(this, radii, tolerance);
+        public GeoPolygonArc2 Fillet(IReadOnlyList<double> radii, Tolerance tolerance) =>
+            Corner2.Fillet(this, radii, tolerance);
 
         /// <summary>
         /// Rounds one corner of the loop, using the default tolerance.
@@ -1158,14 +1199,14 @@ namespace GeometryHelper.Geometry
         /// <param name="radius">The radius of the arc to put there.</param>
         /// <param name="result">The filleted loop, or the loop unchanged when the method returns false.</param>
         /// <returns>true if the corner had room for the arc; otherwise, false.</returns>
-        public bool TryFilletAt(int index, double radius, out GeoPolygonArc2 result)
-            => Corner2.TryFilletAt(this, index, radius, out result);
+        public bool TryFilletAt(int index, double radius, out GeoPolygonArc2 result) =>
+            Corner2.TryFilletAt(this, index, radius, out result);
 
         /// <summary>
         /// Rounds one corner of the loop, within a tolerance.
         /// </summary>
-        public bool TryFilletAt(int index, double radius, out GeoPolygonArc2 result, Tolerance tolerance)
-            => Corner2.TryFilletAt(this, index, radius, out result, tolerance);
+        public bool TryFilletAt(int index, double radius, out GeoPolygonArc2 result, Tolerance tolerance) =>
+            Corner2.TryFilletAt(this, index, radius, out result, tolerance);
 
         /// <summary>
         /// Builds a spatial index over the edges of this loop, arcs and all, for asking it many questions.
@@ -1185,6 +1226,5 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         /// <returns>The hierarchy; it is a snapshot and holds no reference back to this shape.</returns>
         public Spatial.GeoBvh2 BuildIndex() => Spatial.GeoBvh2.FromPolygonArc(this);
-
     }
 }

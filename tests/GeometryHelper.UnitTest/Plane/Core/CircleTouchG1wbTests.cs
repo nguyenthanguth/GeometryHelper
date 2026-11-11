@@ -17,7 +17,12 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class CircleTouchG1wbTests
     {
-        private static readonly Tolerance Thousandth = new Tolerance(1E-3, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-3);
+        private static readonly Tolerance Thousandth = new Tolerance(
+            1E-3,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-3
+        );
 
         private static GeoCircle2 Circle50() => new GeoCircle2(new GeoPoint2(0, 0), 50);
 
@@ -76,7 +81,12 @@ namespace GeometryHelper.UnitTest.Plane
             var circle = new GeoCircle2(new GeoPoint2(0, 0), 0.001);
             var segment = new GeoLine2(new GeoPoint2(0.0009, 0.0019), new GeoPoint2(1, 0.0019));
             double gap = Math.Sqrt(0.0009 * 0.0009 + 0.0019 * 0.0019) - 0.001;
-            var square = new GeoPolygon2(new GeoPoint2(0.0009, 0.0019), new GeoPoint2(1, 0.0019), new GeoPoint2(1, 1), new GeoPoint2(0.0009, 1));
+            var square = new GeoPolygon2(
+                new GeoPoint2(0.0009, 0.0019),
+                new GeoPoint2(1, 0.0019),
+                new GeoPoint2(1, 1),
+                new GeoPoint2(0.0009, 1)
+            );
 
             Assert.Empty(circle.GetIntersections(segment, Thousandth));
             Assert.Empty(circle.GetIntersections(new GeoRay2(segment.StartPoint, new GeoVector2(1, 0)), Thousandth));
@@ -92,7 +102,10 @@ namespace GeometryHelper.UnitTest.Plane
             // The circle of radius 0.0012 about the origin: the segment crosses its rim at (-0.0012, 0) and stops 0.0008
             // short of it again, 0.0016 on; that end was a second meeting.
             var circle = new GeoCircle2(new GeoPoint2(0, 0), 0.0012);
-            GeoPoint2[] points = circle.GetIntersections(new GeoLine2(new GeoPoint2(-1, 0), new GeoPoint2(0.0004, 0)), Thousandth);
+            GeoPoint2[] points = circle.GetIntersections(
+                new GeoLine2(new GeoPoint2(-1, 0), new GeoPoint2(0.0004, 0)),
+                Thousandth
+            );
 
             Assert.Single(points);
             AssertAt(new GeoPoint2(-0.0012, 0), points[0]);
@@ -104,7 +117,10 @@ namespace GeometryHelper.UnitTest.Plane
             // The circle of radius 0.0014 about the origin: the segment from (-0.0007, 0) to (0.0008, 0) stops 0.0007 and
             // 0.0006 short of the rim; both ends were meetings, 0.0015 apart.
             var circle = new GeoCircle2(new GeoPoint2(0, 0), 0.0014);
-            GeoPoint2[] points = circle.GetIntersections(new GeoLine2(new GeoPoint2(-0.0007, 0), new GeoPoint2(0.0008, 0)), Thousandth);
+            GeoPoint2[] points = circle.GetIntersections(
+                new GeoLine2(new GeoPoint2(-0.0007, 0), new GeoPoint2(0.0008, 0)),
+                Thousandth
+            );
 
             Assert.Single(points);
             AssertAt(new GeoPoint2(0.0008, 0), points[0]);

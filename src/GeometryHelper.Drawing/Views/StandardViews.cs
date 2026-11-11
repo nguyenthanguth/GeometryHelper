@@ -46,7 +46,10 @@ namespace GeometryHelper.Drawing
         {
             if (!drawingFrame.IsValid)
             {
-                throw new ArgumentException("The frame has to have three unit axes square to each other.", nameof(drawingFrame));
+                throw new ArgumentException(
+                    "The frame has to have three unit axes square to each other.",
+                    nameof(drawingFrame)
+                );
             }
 
             GeoPoint3 origin = drawingFrame.Origin;
@@ -71,7 +74,10 @@ namespace GeometryHelper.Drawing
                 case ViewKind.Isometric:
                     return ViewFrame3.Along(origin, x.Add(y).Add(z).Normalize(), y);
                 default:
-                    throw new ArgumentException("A " + kind + " view has no frame of its own; make one with its direction.", nameof(kind));
+                    throw new ArgumentException(
+                        "A " + kind + " view has no frame of its own; make one with its direction.",
+                        nameof(kind)
+                    );
             }
         }
 
@@ -132,7 +138,10 @@ namespace GeometryHelper.Drawing
                     row = 0;
                     return;
                 default:
-                    throw new ArgumentException("A " + kind + " view has no place of its own round the front view.", nameof(kind));
+                    throw new ArgumentException(
+                        "A " + kind + " view has no place of its own round the front view.",
+                        nameof(kind)
+                    );
             }
         }
     }

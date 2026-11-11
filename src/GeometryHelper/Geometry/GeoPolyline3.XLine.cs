@@ -20,7 +20,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this polyline touches an infinite line, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoXLine3 xline, Tolerance tolerance) => Collision3.CollidesWith(this, xline, tolerance);
+        public bool CollidesWith(GeoXLine3 xline, Tolerance tolerance) =>
+            Collision3.CollidesWith(this, xline, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this polyline to an infinite line, using the default tolerance.
@@ -42,14 +43,16 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the points where this polyline crosses an infinite line, within a tolerance.
         /// </summary>
-        public GeoPoint3[] GetIntersections(GeoXLine3 xline, Tolerance tolerance) => Intersection3.GetIntersections(this, xline, tolerance);
+        public GeoPoint3[] GetIntersections(GeoXLine3 xline, Tolerance tolerance) =>
+            Intersection3.GetIntersections(this, xline, tolerance);
 
         /// <summary>
         /// Tries to find where this polyline crosses an infinite line, using the default tolerance.
         /// </summary>
         /// <param name="xline">The infinite line.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoXLine3 xline, out GeoPoint3[] intersections) => TryIntersectWith(xline, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoXLine3 xline, out GeoPoint3[] intersections) =>
+            TryIntersectWith(xline, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this polyline crosses an infinite line, within a tolerance.
@@ -57,7 +60,8 @@ namespace GeometryHelper.Geometry
         /// <param name="xline">The infinite line.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool TryIntersectWith(GeoXLine3 xline, out GeoPoint3[] intersections, Tolerance tolerance) => Intersection3.TryIntersectWith(this, xline, out intersections, tolerance);
+        public bool TryIntersectWith(GeoXLine3 xline, out GeoPoint3[] intersections, Tolerance tolerance) =>
+            Intersection3.TryIntersectWith(this, xline, out intersections, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this polyline and landing on an infinite line, using the default tolerance.
@@ -67,7 +71,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment leaving this polyline and landing on an infinite line, within a tolerance.
         /// </summary>
-        public GeoLine3 GetShortestLineTo(GeoXLine3 xline, Tolerance tolerance) => Projection3.GetShortestLineTo(xline, this, tolerance).Reverse();
+        public GeoLine3 GetShortestLineTo(GeoXLine3 xline, Tolerance tolerance) =>
+            Projection3.GetShortestLineTo(xline, this, tolerance).Reverse();
 
         #endregion
     }

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -23,7 +23,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void CollisionAgreesWithDistanceAndIsSymmetric()
         {
             Random rng = new Random(5511);
-            int cases = 0, touching = 0, apart = 0, disagree = 0, asymmetric = 0;
+            int cases = 0,
+                touching = 0,
+                apart = 0,
+                disagree = 0,
+                asymmetric = 0;
 
             for (int t = 0; t < 200; t++)
             {
@@ -40,20 +44,39 @@ namespace GeometryHelper.UnitTest.Solid
                 }
 
                 GeoSolid3 b;
-                try { b = Prism(moved.ToArray(), 4.0); }
-                catch (ArgumentException) { continue; }
+                try
+                {
+                    b = Prism(moved.ToArray(), 4.0);
+                }
+                catch (ArgumentException)
+                {
+                    continue;
+                }
 
                 cases++;
 
                 bool hit = Collision3.CollidesWith(a, b, Tol);
-                if (hit) { touching++; } else { apart++; }
+                if (hit)
+                {
+                    touching++;
+                }
+                else
+                {
+                    apart++;
+                }
 
                 // Asking the other way round must not change the answer.
-                if (Collision3.CollidesWith(b, a, Tol) != hit) { asymmetric++; }
+                if (Collision3.CollidesWith(b, a, Tol) != hit)
+                {
+                    asymmetric++;
+                }
 
                 // Two bodies touch exactly when the gap between them has closed.
                 bool near = Distance3.DistanceTo(a, b, Tol) <= Tol.EqualPoint;
-                if (near != hit) { disagree++; }
+                if (near != hit)
+                {
+                    disagree++;
+                }
             }
 
             Assert.True(cases > 120, $"only {cases} cases");
@@ -66,7 +89,10 @@ namespace GeometryHelper.UnitTest.Solid
         public void ContainmentAgreesAcrossTheWaysOfDescribingABox()
         {
             Random rng = new Random(6622);
-            int cases = 0, inside = 0, outside = 0, disagree = 0;
+            int cases = 0,
+                inside = 0,
+                outside = 0,
+                disagree = 0;
 
             for (int t = 0; t < 200; t++)
             {
@@ -84,7 +110,8 @@ namespace GeometryHelper.UnitTest.Solid
                     var probe = new GeoPoint3(
                         min.X - 1 + rng.Next((int)(max.X - min.X) + 3),
                         min.Y - 1 + rng.Next((int)(max.Y - min.Y) + 3),
-                        min.Z - 1 + rng.Next((int)(max.Z - min.Z) + 3));
+                        min.Z - 1 + rng.Next((int)(max.Z - min.Z) + 3)
+                    );
 
                     cases++;
 
@@ -92,10 +119,20 @@ namespace GeometryHelper.UnitTest.Solid
                     bool inObb = Containment3.Contains(obb, probe, Tol);
                     bool inSolid = Containment3.Contains(solid, probe, Tol);
 
-                    if (inBox) { inside++; } else { outside++; }
+                    if (inBox)
+                    {
+                        inside++;
+                    }
+                    else
+                    {
+                        outside++;
+                    }
 
                     // The same region described three ways must hold the same points.
-                    if (inBox != inObb || inObb != inSolid) { disagree++; }
+                    if (inBox != inObb || inObb != inSolid)
+                    {
+                        disagree++;
+                    }
                 }
             }
 
@@ -108,39 +145,66 @@ namespace GeometryHelper.UnitTest.Solid
         public void LocateAndContainsTellTheSameStory()
         {
             Random rng = new Random(7733);
-            int cases = 0, onSide = 0, disagree = 0, distanceDisagree = 0;
+            int cases = 0,
+                onSide = 0,
+                disagree = 0,
+                distanceDisagree = 0;
 
             for (int t = 0; t < 150; t++)
             {
                 GeoPoint3[] prof = Star(rng, 4 + rng.Next(5), true);
                 GeoSolid3 body;
                 GeoPolygon3 plate;
-                try { body = Prism(prof, 4.0); plate = new GeoPolygon3(prof); }
-                catch (ArgumentException) { continue; }
+                try
+                {
+                    body = Prism(prof, 4.0);
+                    plate = new GeoPolygon3(prof);
+                }
+                catch (ArgumentException)
+                {
+                    continue;
+                }
 
                 for (int q = 0; q < 6; q++)
                 {
                     // Half the probes are pulled onto the surface, so that the boundary case is covered.
-                    GeoPoint3 probe = q % 2 == 0
-                        ? new GeoPoint3(rng.Next(-10, 11), rng.Next(-10, 11), rng.Next(-3, 8))
-                        : Projection3.ProjectToSolid(body, new GeoPoint3(rng.Next(-10, 11), rng.Next(-10, 11), rng.Next(-3, 8)), Tol);
+                    GeoPoint3 probe =
+                        q % 2 == 0
+                            ? new GeoPoint3(rng.Next(-10, 11), rng.Next(-10, 11), rng.Next(-3, 8))
+                            : Projection3.ProjectToSolid(
+                                body,
+                                new GeoPoint3(rng.Next(-10, 11), rng.Next(-10, 11), rng.Next(-3, 8)),
+                                Tol
+                            );
 
                     cases++;
 
                     PointLocation where = Containment3.Locate(body, probe, Tol);
-                    if (where == PointLocation.OnSide) { onSide++; }
+                    if (where == PointLocation.OnSide)
+                    {
+                        onSide++;
+                    }
 
                     // Contains is Locate with the two inner answers merged.
-                    if (Containment3.Contains(body, probe, Tol) != (where != PointLocation.OutSide)) { disagree++; }
+                    if (Containment3.Contains(body, probe, Tol) != (where != PointLocation.OutSide))
+                    {
+                        disagree++;
+                    }
 
                     // A point the body holds is at no distance from it.
                     bool held = where != PointLocation.OutSide;
                     bool noGap = Distance3.DistanceTo(body, probe, Tol) <= Tol.EqualPoint;
-                    if (held != noGap) { distanceDisagree++; }
+                    if (held != noGap)
+                    {
+                        distanceDisagree++;
+                    }
 
                     // The same for the flat region, whose own boundary projection must sit on it.
                     GeoPoint3 onPlate = Projection3.ProjectToPolygonBoundary(plate, probe, Tol);
-                    if (Containment3.Locate(plate, onPlate, Tol) == PointLocation.OutSide) { disagree++; }
+                    if (Containment3.Locate(plate, onPlate, Tol) == PointLocation.OutSide)
+                    {
+                        disagree++;
+                    }
                 }
             }
 
@@ -154,45 +218,73 @@ namespace GeometryHelper.UnitTest.Solid
         public void AnIntersectionPointLiesOnBothShapes()
         {
             Random rng = new Random(8844);
-            int planeCases = 0, triangleCases = 0, offPlane = 0, offTriangle = 0, missedDistance = 0;
+            int planeCases = 0,
+                triangleCases = 0,
+                offPlane = 0,
+                offTriangle = 0,
+                missedDistance = 0;
 
             for (int t = 0; t < 400; t++)
             {
                 var line = new GeoLine3(
                     new GeoPoint3(rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10)),
-                    new GeoPoint3(rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10)));
+                    new GeoPoint3(rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10))
+                );
 
-                if (line.Length < 1E-6) { continue; }
+                if (line.Length < 1E-6)
+                {
+                    continue;
+                }
 
                 var plane = new GeoPlane3(
                     new GeoPoint3(rng.Next(-5, 6), rng.Next(-5, 6), rng.Next(-5, 6)),
-                    new GeoVector3(rng.Next(-3, 4) + 0.3, rng.Next(-3, 4) + 0.7, rng.Next(-3, 4) + 0.1));
+                    new GeoVector3(rng.Next(-3, 4) + 0.3, rng.Next(-3, 4) + 0.7, rng.Next(-3, 4) + 0.1)
+                );
 
                 if (Intersection3.TryIntersectWith(line, plane, out GeoPoint3 hit, Tol))
                 {
                     planeCases++;
 
                     // The point has to be on the segment and on the plane, or it is not their crossing.
-                    if (!Containment3.IsPointOn(line, hit, Tol)) { offPlane++; }
-                    if (Math.Abs(plane.SignedDistanceTo(hit)) > Tol.EqualPlanar) { offPlane++; }
+                    if (!Containment3.IsPointOn(line, hit, Tol))
+                    {
+                        offPlane++;
+                    }
+                    if (Math.Abs(plane.SignedDistanceTo(hit)) > Tol.EqualPlanar)
+                    {
+                        offPlane++;
+                    }
 
                     // Something crossing is something at no distance.
-                    if (Distance3.DistanceTo(plane, line) > Tol.EqualPoint) { missedDistance++; }
+                    if (Distance3.DistanceTo(plane, line) > Tol.EqualPoint)
+                    {
+                        missedDistance++;
+                    }
                 }
 
                 var triangle = new GeoTriangle3(
                     new GeoPoint3(rng.Next(-6, 7), rng.Next(-6, 7), 0),
                     new GeoPoint3(rng.Next(-6, 7), rng.Next(-6, 7), 0),
-                    new GeoPoint3(rng.Next(-6, 7), rng.Next(-6, 7), 2));
+                    new GeoPoint3(rng.Next(-6, 7), rng.Next(-6, 7), 2)
+                );
 
-                if (triangle.IsDegenerate(Tol)) { continue; }
+                if (triangle.IsDegenerate(Tol))
+                {
+                    continue;
+                }
 
                 if (Intersection3.TryIntersectWith(line, triangle, out GeoPoint3 spot, Tol))
                 {
                     triangleCases++;
 
-                    if (!Containment3.IsPointOn(line, spot, Tol)) { offTriangle++; }
-                    if (Distance3.DistanceTo(triangle, spot) > Tol.EqualPoint) { offTriangle++; }
+                    if (!Containment3.IsPointOn(line, spot, Tol))
+                    {
+                        offTriangle++;
+                    }
+                    if (Distance3.DistanceTo(triangle, spot) > Tol.EqualPoint)
+                    {
+                        offTriangle++;
+                    }
                 }
             }
 
@@ -207,16 +299,22 @@ namespace GeometryHelper.UnitTest.Solid
         public void TransformationsCompoundAndUndoThemselves()
         {
             Random rng = new Random(9955);
-            int cases = 0, roundTripBad = 0, composeBad = 0, rigidBad = 0, volumeBad = 0;
+            int cases = 0,
+                roundTripBad = 0,
+                composeBad = 0,
+                rigidBad = 0,
+                volumeBad = 0;
 
             for (int t = 0; t < 200; t++)
             {
                 GeoTransform3 move = GeoTransform3.Translation(
-                    new GeoVector3(rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10)));
+                    new GeoVector3(rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10))
+                );
 
                 GeoTransform3 turn = GeoTransform3.RotationAxis(
                     new GeoVector3(rng.Next(-3, 4) + 0.3, rng.Next(-3, 4) + 0.5, rng.Next(-3, 4) + 0.9),
-                    rng.NextDouble() * Math.PI * 2.0);
+                    rng.NextDouble() * Math.PI * 2.0
+                );
 
                 GeoTransform3 rigid = move * turn;
                 GeoTransform3 scale = GeoTransform3.Scaling(1 + rng.Next(1, 4), 1 + rng.Next(1, 4), 1 + rng.Next(1, 4));
@@ -230,7 +328,10 @@ namespace GeometryHelper.UnitTest.Solid
                 // Undoing a transformation must put the point back.
                 if (mixed.TryGetInverse(out GeoTransform3 undo))
                 {
-                    if (!undo.Transform(mixed.Transform(p)).IsEqualTo(p, Tol)) { roundTripBad++; }
+                    if (!undo.Transform(mixed.Transform(p)).IsEqualTo(p, Tol))
+                    {
+                        roundTripBad++;
+                    }
                 }
                 else
                 {
@@ -238,22 +339,37 @@ namespace GeometryHelper.UnitTest.Solid
                 }
 
                 // Applying two in a row is the same as applying the one they compose into.
-                if (!rigid.Transform(scale.Transform(p)).IsEqualTo(mixed.Transform(p), Tol)) { composeBad++; }
+                if (!rigid.Transform(scale.Transform(p)).IsEqualTo(mixed.Transform(p), Tol))
+                {
+                    composeBad++;
+                }
 
                 // A rigid motion moves everything without changing any distance.
                 double before = p.DistanceTo(q);
                 double after = rigid.Transform(p).DistanceTo(rigid.Transform(q));
-                if (Math.Abs(before - after) > 1E-6) { rigidBad++; }
+                if (Math.Abs(before - after) > 1E-6)
+                {
+                    rigidBad++;
+                }
 
                 // The determinant is exactly the factor volume is multiplied by.
                 GeoPoint3[] prof = Star(rng, 4 + rng.Next(4), true);
                 GeoSolid3 body;
-                try { body = Prism(prof, 4.0); }
-                catch (ArgumentException) { continue; }
+                try
+                {
+                    body = Prism(prof, 4.0);
+                }
+                catch (ArgumentException)
+                {
+                    continue;
+                }
 
                 double expected = body.GetVolume() * Math.Abs(mixed.GetDeterminant());
                 double actual = body.TransformBy(mixed).GetVolume();
-                if (Math.Abs(expected - actual) > 1E-6 * Math.Max(1.0, expected)) { volumeBad++; }
+                if (Math.Abs(expected - actual) > 1E-6 * Math.Max(1.0, expected))
+                {
+                    volumeBad++;
+                }
             }
 
             Assert.True(cases > 150, $"only {cases} cases");

@@ -1,6 +1,6 @@
 using System;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 

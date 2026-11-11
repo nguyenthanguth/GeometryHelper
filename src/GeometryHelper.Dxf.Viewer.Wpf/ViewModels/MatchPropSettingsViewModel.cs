@@ -11,7 +11,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     {
         private bool _isChecked;
 
-        internal MatchPropOptionViewModel(string name, CadMatchProperties property, bool isChecked, string value = null, int? swatchRgb = null)
+        internal MatchPropOptionViewModel(
+            string name,
+            CadMatchProperties property,
+            bool isChecked,
+            string value = null,
+            int? swatchRgb = null
+        )
         {
             Name = name;
             Property = property;
@@ -61,13 +67,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="settings">The settings: a box is checked where its property is among them.</param>
         /// <param name="document">The document of the source object; null for none, the values left empty.</param>
         /// <param name="source">The handle of the source object, whose values stand beside the basic properties; null for none.</param>
-        public MatchPropSettingsViewModel(CadMatchProperties settings, CadDocument document = null, string source = null)
+        public MatchPropSettingsViewModel(
+            CadMatchProperties settings,
+            CadDocument document = null,
+            string source = null
+        )
         {
             DxfEntity entity = document == null || source == null ? null : document.FindEntity(source);
             Dictionary<string, string> values = Values(document, entity, out string kind);
 
-            MatchPropOptionViewModel Box(string name, CadMatchProperties property, int? swatch = null)
-                => new MatchPropOptionViewModel(name, property, (settings & property) != 0, values.TryGetValue(name, out string value) ? value : null, swatch);
+            MatchPropOptionViewModel Box(string name, CadMatchProperties property, int? swatch = null) =>
+                new MatchPropOptionViewModel(
+                    name,
+                    property,
+                    (settings & property) != 0,
+                    values.TryGetValue(name, out string value) ? value : null,
+                    swatch
+                );
 
             Basic = new[]
             {
@@ -95,7 +111,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Box("Center object", CadMatchProperties.None),
             };
 
-            SourceText = (entity == null ? string.Empty : "Source: " + kind + " on layer " + (entity.Layer ?? "0") + ". ")
+            SourceText =
+                (entity == null ? string.Empty : "Source: " + kind + " on layer " + (entity.Layer ?? "0") + ". ")
                 + "The ticks are kept for the session (and the next MATCHPROP), as AutoCAD keeps them.";
         }
 
@@ -178,19 +195,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             switch (entity)
             {
-                case DxfLine line: return line.Thickness;
-                case DxfCircle circle: return circle.Thickness;
-                case DxfArc arc: return arc.Thickness;
-                case DxfPolyline polyline: return polyline.Thickness;
-                case DxfPolyline2d polyline: return polyline.Thickness;
-                case DxfDBText text: return text.Thickness;
-                case DxfDBPoint point: return point.Thickness;
-                case DxfSolid solid: return solid.Thickness;
-                default: return null;
+                case DxfLine line:
+                    return line.Thickness;
+                case DxfCircle circle:
+                    return circle.Thickness;
+                case DxfArc arc:
+                    return arc.Thickness;
+                case DxfPolyline polyline:
+                    return polyline.Thickness;
+                case DxfPolyline2d polyline:
+                    return polyline.Thickness;
+                case DxfDBText text:
+                    return text.Thickness;
+                case DxfDBPoint point:
+                    return point.Thickness;
+                case DxfSolid solid:
+                    return solid.Thickness;
+                default:
+                    return null;
             }
         }
 
-        private static int Swatch(DxfColor color) => color == null || color.IsByLayer || color.IsByBlock ? 0xFFFFFF : color.ColorValue & 0xFFFFFF;
+        private static int Swatch(DxfColor color) =>
+            color == null || color.IsByLayer || color.IsByBlock ? 0xFFFFFF : color.ColorValue & 0xFFFFFF;
 
         /// <summary>A transparency as the palette writes it: ByLayer, ByBlock, or a per cent from 0, solid, to 90.</summary>
         private static string TransparencyText(DxfTransparency transparency)
@@ -205,7 +232,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return "ByLayer";
             }
 
-            return ((int)Math.Round((255 - transparency.Alpha) * 100.0 / 255.0, MidpointRounding.AwayFromZero)).ToString(CultureInfo.InvariantCulture);
+            return (
+                (int)Math.Round((255 - transparency.Alpha) * 100.0 / 255.0, MidpointRounding.AwayFromZero)
+            ).ToString(CultureInfo.InvariantCulture);
         }
     }
 }

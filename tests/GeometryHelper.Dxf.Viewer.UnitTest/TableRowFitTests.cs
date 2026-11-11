@@ -44,7 +44,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return table;
         }
 
-        private static DxfMText Text(DxfTable table, string words) => table.BlockTableRecord.OfType<DxfMText>().Single(m => m.Contents == words);
+        private static DxfMText Text(DxfTable table, string words) =>
+            table.BlockTableRecord.OfType<DxfMText>().Single(m => m.Contents == words);
 
         [Fact]
         public void WrappedWords_GrowTheirRows_ToTheTallestCell_AsAutoCadLaysThemOut()
@@ -70,7 +71,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             document.Fonts = new CadFonts(null, CadFonts.BuiltInName, null);
 
             // The last cell typed, as the editor writes it: the table is laid out anew.
-            Assert.True(CadTableEditor.SetText(document, table.Handle, 2, 1, "HEA300 S355 with end plates both sides").Succeeded);
+            Assert.True(
+                CadTableEditor.SetText(document, table.Handle, 2, 1, "HEA300 S355 with end plates both sides").Succeeded
+            );
 
             // Each row the actual height of its tallest text and 1.5 above and below: the title's five lines of 6, the
             // header's three of 4.5 under Section and grade; a row of one-line words keeps its 9.
@@ -107,7 +110,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             table.SetTextString(2, 1, "HEA300 S355 with end plates both sides");
             CadDocument document = CadDocument.From(db);
             document.Fonts = new CadFonts(null, CadFonts.BuiltInName, null);
-            Assert.True(CadTableEditor.SetText(document, table.Handle, 3, 1, "one two three four five six seven eight nine ten eleven twelve").Succeeded);
+            Assert.True(
+                CadTableEditor
+                    .SetText(
+                        document,
+                        table.Handle,
+                        3,
+                        1,
+                        "one two three four five six seven eight nine ten eleven twelve"
+                    )
+                    .Succeeded
+            );
 
             table = (DxfTable)document.FindEntity(table.Handle);
             double[] autocad = { 20.0, 24.21429, 45.42857, 68.14286 };
@@ -130,7 +143,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             // AutoCAD 2021 set "with end" in ghsimplex 4.5 high on one line from a width of 27, its ActualWidth 27.
             DxfDatabase db = Drawing();
-            db.ModelSpace.AppendEntity(new DxfMText { Contents = "with end", TextHeight = 4.5, Width = width, Location = new GeoPoint3(0, 0, 0) });
+            db.ModelSpace.AppendEntity(
+                new DxfMText
+                {
+                    Contents = "with end",
+                    TextHeight = 4.5,
+                    Width = width,
+                    Location = new GeoPoint3(0, 0, 0),
+                }
+            );
             CadDocument document = CadDocument.From(db);
             document.Fonts = new CadFonts(null, CadFonts.BuiltInName, null);
 

@@ -28,19 +28,20 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         /// <summary>
         /// An L bar in millimetres, as Tekla holds it: two legs of three hundred meeting at a right angle.
         /// </summary>
-        private static List<TSG.Point> Elbow() => new List<TSG.Point>
-        {
-            new TSG.Point(0, 0, 0), new TSG.Point(300, 0, 0), new TSG.Point(300, 300, 0)
-        };
+        private static List<TSG.Point> Elbow() =>
+            new List<TSG.Point> { new TSG.Point(0, 0, 0), new TSG.Point(300, 0, 0), new TSG.Point(300, 300, 0) };
 
         /// <summary>
         /// A bar that turns twice, the second turn leaving the plane of the first.
         /// </summary>
-        private static List<TSG.Point> Stirrup() => new List<TSG.Point>
-        {
-            new TSG.Point(0, 0, 0), new TSG.Point(300, 0, 0),
-            new TSG.Point(300, 300, 0), new TSG.Point(300, 300, 300)
-        };
+        private static List<TSG.Point> Stirrup() =>
+            new List<TSG.Point>
+            {
+                new TSG.Point(0, 0, 0),
+                new TSG.Point(300, 0, 0),
+                new TSG.Point(300, 300, 0),
+                new TSG.Point(300, 300, 300),
+            };
 
         [Fact]
         public void ABarIsItsSetOutPointsWithATangentArcAtEveryBend()
@@ -121,10 +122,16 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             Assert.Equal(900.0, sharp.Length, 6);
 
             // A radius of nought leaves that bend square.
-            Assert.Equal(0, PointConvert.ToGeoPolylineArc3(Stirrup(), new[] { 0.0, 0.0 }).GetEdges().Count(edge => edge.IsArc));
+            Assert.Equal(
+                0,
+                PointConvert.ToGeoPolylineArc3(Stirrup(), new[] { 0.0, 0.0 }).GetEdges().Count(edge => edge.IsArc)
+            );
 
             // A radius with nowhere to fit is left square rather than forced.
-            Assert.Equal(0, PointConvert.ToGeoPolylineArc3(Elbow(), new[] { 5000.0 }).GetEdges().Count(edge => edge.IsArc));
+            Assert.Equal(
+                0,
+                PointConvert.ToGeoPolylineArc3(Elbow(), new[] { 5000.0 }).GetEdges().Count(edge => edge.IsArc)
+            );
 
             // Two bends wanting more of the leg between them than it is long: the greedy one gives way.
             GeoPolylineArc3 crowded = PointConvert.ToGeoPolylineArc3(Stirrup(), new[] { 280.0, 40.0 });
@@ -145,7 +152,9 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             Assert.Equal(fromShape.Length, fromPoints.Length, 6);
 
             // The tolerance forms answer the same, which matters because Tekla coordinates run large.
-            Assert.True(PolyLineConvert.ToGeoPolylineArc3(shape, new[] { 50.0 }, Tolerance.Global).IsEqualTo(fromShape, Loose));
+            Assert.True(
+                PolyLineConvert.ToGeoPolylineArc3(shape, new[] { 50.0 }, Tolerance.Global).IsEqualTo(fromShape, Loose)
+            );
         }
 
         [Fact]
@@ -157,7 +166,7 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             {
                 new TSG.Point(452300, -118700, 39500),
                 new TSG.Point(452600, -118700, 39500),
-                new TSG.Point(452600, -118400, 39500)
+                new TSG.Point(452600, -118400, 39500),
             };
 
             GeoPolylineArc3 bar = PointConvert.ToGeoPolylineArc3(far, new[] { 50.0 });
@@ -170,8 +179,12 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         [Fact]
         public void NothingIsAskedOfNothing()
         {
-            Assert.Throws<ArgumentNullException>(() => PointConvert.ToGeoPolylineArc3((IEnumerable<TSG.Point>)null, new[] { 50.0 }));
-            Assert.Throws<ArgumentNullException>(() => PolyLineConvert.ToGeoPolylineArc3((TSG.PolyLine)null, new[] { 50.0 }));
+            Assert.Throws<ArgumentNullException>(() =>
+                PointConvert.ToGeoPolylineArc3((IEnumerable<TSG.Point>)null, new[] { 50.0 })
+            );
+            Assert.Throws<ArgumentNullException>(() =>
+                PolyLineConvert.ToGeoPolylineArc3((TSG.PolyLine)null, new[] { 50.0 })
+            );
 
             // A point that is not there cannot be set out through.
             var holed = new List<TSG.Point> { new TSG.Point(0, 0, 0), null, new TSG.Point(300, 300, 0) };
@@ -179,8 +192,9 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             Assert.Throws<ArgumentException>(() => PointConvert.ToGeoPolylineArc3(holed, new[] { 50.0 }));
 
             // One point is no bar.
-            Assert.Throws<ArgumentException>(() => PointConvert.ToGeoPolylineArc3(
-                new List<TSG.Point> { new TSG.Point(0, 0, 0) }, new[] { 50.0 }));
+            Assert.Throws<ArgumentException>(() =>
+                PointConvert.ToGeoPolylineArc3(new List<TSG.Point> { new TSG.Point(0, 0, 0) }, new[] { 50.0 })
+            );
         }
 
         [Fact]

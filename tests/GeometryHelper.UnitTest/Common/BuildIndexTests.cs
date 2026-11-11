@@ -21,8 +21,8 @@ namespace GeometryHelper.UnitTest.Common
     {
         private static readonly Tolerance Loose = new Tolerance(1E-7, 1E-7);
 
-        private static GeoPolygon2 Plate() => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200));
+        private static GeoPolygon2 Plate() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200));
 
         [Fact]
         public void APlaneShapesIndexFindsWhatTheShapeFinds()
@@ -58,7 +58,11 @@ namespace GeometryHelper.UnitTest.Common
         public void AFacesIndexHoldsTheRimOfEveryHole()
         {
             var hole = new GeoPolygon2(
-                new GeoPoint2(80, 80), new GeoPoint2(120, 80), new GeoPoint2(120, 120), new GeoPoint2(80, 120));
+                new GeoPoint2(80, 80),
+                new GeoPoint2(120, 80),
+                new GeoPoint2(120, 120),
+                new GeoPoint2(80, 120)
+            );
             var face = new GeoFace2(Plate(), new[] { hole });
 
             GeoBvh2 index = face.BuildIndex();
@@ -121,12 +125,20 @@ namespace GeometryHelper.UnitTest.Common
         public void AFacesSurfaceIsIndexedFromTheSurfaceMeshAndNotTheFan()
         {
             var hole = new GeoPolygon3(
-                new GeoPoint3(80, 80, 0), new GeoPoint3(120, 80, 0), new GeoPoint3(120, 120, 0), new GeoPoint3(80, 120, 0));
+                new GeoPoint3(80, 80, 0),
+                new GeoPoint3(120, 80, 0),
+                new GeoPoint3(120, 120, 0),
+                new GeoPoint3(80, 120, 0)
+            );
             var face = new GeoFace3(
                 new GeoPolygon3(
-                    new GeoPoint3(0, 0, 0), new GeoPoint3(200, 0, 0),
-                    new GeoPoint3(200, 200, 0), new GeoPoint3(0, 200, 0)),
-                new[] { hole });
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(200, 0, 0),
+                    new GeoPoint3(200, 200, 0),
+                    new GeoPoint3(0, 200, 0)
+                ),
+                new[] { hole }
+            );
 
             GeoBvh3 index = face.BuildIndex();
 

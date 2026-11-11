@@ -34,10 +34,19 @@ namespace GeometryHelper.Viewer
         private readonly TextBox _script = new TextBox { MinWidth = 420 };
         private readonly TextBox _repository = new TextBox { MinWidth = 420 };
         private readonly TextBox _timeout = new TextBox { Width = 60 };
-        private readonly CheckBox _watch = new CheckBox { Content = "Run a side again when its DLL changes on disk", Margin = new Thickness(0, 6, 0, 0) };
+        private readonly CheckBox _watch = new CheckBox
+        {
+            Content = "Run a side again when its DLL changes on disk",
+            Margin = new Thickness(0, 6, 0, 0),
+        };
         private readonly SideBox _left = new SideBox("Left");
         private readonly SideBox _right = new SideBox("Right");
-        private readonly TextBlock _problem = new TextBlock { Foreground = System.Windows.Media.Brushes.Firebrick, Margin = new Thickness(0, 6, 0, 0), TextWrapping = TextWrapping.Wrap };
+        private readonly TextBlock _problem = new TextBlock
+        {
+            Foreground = System.Windows.Media.Brushes.Firebrick,
+            Margin = new Thickness(0, 6, 0, 0),
+            TextWrapping = TextWrapping.Wrap,
+        };
 
         internal CompareDialog(Window owner, CompareSetup start)
         {
@@ -57,10 +66,29 @@ namespace GeometryHelper.Viewer
             panel.Children.Add(_watch);
             panel.Children.Add(_problem);
 
-            var ok = new Button { Content = "Compare", IsDefault = true, Padding = new Thickness(18, 3, 18, 3), Margin = new Thickness(0, 0, 8, 0) };
-            var cancel = new Button { Content = "Cancel", IsCancel = true, Padding = new Thickness(18, 3, 18, 3) };
+            var ok = new Button
+            {
+                Content = "Compare",
+                IsDefault = true,
+                Padding = new Thickness(18, 3, 18, 3),
+                Margin = new Thickness(0, 0, 8, 0),
+            };
+            var cancel = new Button
+            {
+                Content = "Cancel",
+                IsCancel = true,
+                Padding = new Thickness(18, 3, 18, 3),
+            };
             ok.Click += (s, e) => Accept();
-            panel.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 10, 0, 0), Children = { ok, cancel } });
+            panel.Children.Add(
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Margin = new Thickness(0, 10, 0, 0),
+                    Children = { ok, cancel },
+                }
+            );
             Content = panel;
 
             _script.Text = start.Script ?? string.Empty;
@@ -76,7 +104,14 @@ namespace GeometryHelper.Viewer
         private static StackPanel Row(string label, params UIElement[] controls)
         {
             var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 0) };
-            row.Children.Add(new TextBlock { Text = label, Width = 170, VerticalAlignment = VerticalAlignment.Center });
+            row.Children.Add(
+                new TextBlock
+                {
+                    Text = label,
+                    Width = 170,
+                    VerticalAlignment = VerticalAlignment.Center,
+                }
+            );
 
             foreach (UIElement control in controls)
             {
@@ -128,7 +163,10 @@ namespace GeometryHelper.Viewer
                 return;
             }
 
-            if (!int.TryParse(_timeout.Text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int seconds) || seconds < 1)
+            if (
+                !int.TryParse(_timeout.Text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int seconds)
+                || seconds < 1
+            )
             {
                 _problem.Text = "The seconds a script may run must be a whole number of at least 1.";
                 return;
@@ -136,7 +174,10 @@ namespace GeometryHelper.Viewer
 
             string repository = _repository.Text.Trim();
 
-            if (!_left.TryRead(repository, out BuildSource left, out string problem) || !_right.TryRead(repository, out BuildSource right, out problem))
+            if (
+                !_left.TryRead(repository, out BuildSource left, out string problem)
+                || !_right.TryRead(repository, out BuildSource right, out problem)
+            )
             {
                 _problem.Text = problem;
                 return;

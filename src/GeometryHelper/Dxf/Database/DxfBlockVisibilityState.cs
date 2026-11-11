@@ -38,7 +38,10 @@ namespace GeometryHelper.Dxf
 
             if (name.Trim().Length == 0 || name.IndexOf('\r') >= 0 || name.IndexOf('\n') >= 0)
             {
-                throw new ArgumentException("A visibility state is named by a name of one line at least one letter long.", nameof(name));
+                throw new ArgumentException(
+                    "A visibility state is named by a name of one line at least one letter long.",
+                    nameof(name)
+                );
             }
 
             var kept = new List<DxfEntity>();

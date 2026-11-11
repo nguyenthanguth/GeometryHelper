@@ -88,7 +88,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ProjectToRectangle_InsideAndOutsideBothLandOnAnEdge()
         {
-            var rect = new GeoRectangle2(new GeoPoint2(0, 0), 20, 10, 0);   // X: [-10, 10], Y: [-5, 5]
+            var rect = new GeoRectangle2(new GeoPoint2(0, 0), 20, 10, 0); // X: [-10, 10], Y: [-5, 5]
 
             // Point inside is carried out to the nearest edge, not returned unchanged. At the centre the
             // horizontal edges are the nearer pair, five units away against ten.
@@ -144,13 +144,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ProjectToPolygon_EdgeAndVertices()
         {
-            var poly = new GeoPolygon2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10),
-                new GeoPoint2(0, 10)
-            });
+            var poly = new GeoPolygon2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10) }
+            );
 
             // Point outside bottom edge -> projects to edge
             var pEdge = Projection2.ProjectToPolygon(poly, new GeoPoint2(5, -5));
@@ -164,12 +160,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ProjectToPolyline_MultiSegmentsAndBends()
         {
-            var pl = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10)
-            });
+            var pl = new GeoPolyline2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10) });
 
             // Orthogonal to first segment
             var p1 = Projection2.ProjectToPolyline(pl, new GeoPoint2(5, 5));
@@ -224,7 +215,7 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         #endregion
-        
+
         #region Explicit Tolerance Overloads
 
         [Fact]
@@ -250,8 +241,11 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(Projection2.ProjectToCircle(circle, nearCenter).IsEqualTo(new GeoPoint2(10, 0)));
 
             // With a coarse tolerance the point counts as coincident with the center and falls back to angle 0.
-            Assert.True(Projection2.ProjectToCircle(circle, new GeoPoint2(0, 0.5), new Tolerance(1.0, 1.0))
-                .IsEqualTo(new GeoPoint2(10, 0)));
+            Assert.True(
+                Projection2
+                    .ProjectToCircle(circle, new GeoPoint2(0, 0.5), new Tolerance(1.0, 1.0))
+                    .IsEqualTo(new GeoPoint2(10, 0))
+            );
         }
 
         [Fact]
@@ -271,16 +265,28 @@ namespace GeometryHelper.UnitTest.Plane
             var circle = new GeoCircle2(new GeoPoint2(0, 0), 10);
             var rect = new GeoRectangle2(new GeoPoint2(0, 0), 20, 10, 0.3);
             var poly = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10), new GeoPoint2(0, 10));
-            var polyline = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
+            var polyline = new GeoPolyline2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
 
             // Both classes report a point on the boundary, so they agree everywhere. Probes mix interior,
             // exterior, and on-boundary positions.
             var probes = new[]
             {
-                new GeoPoint2(5, 5), new GeoPoint2(-20, 3), new GeoPoint2(0, 0),
-                new GeoPoint2(100, -100), new GeoPoint2(10, 0), new GeoPoint2(1, 1)
+                new GeoPoint2(5, 5),
+                new GeoPoint2(-20, 3),
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, -100),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(1, 1),
             };
 
             foreach (var p in probes)
@@ -290,7 +296,9 @@ namespace GeometryHelper.UnitTest.Plane
                 Assert.True(Projection2.ProjectToCircle(circle, p).IsEqualTo(circle.GetClosestPointOnBoundary(p)));
                 Assert.True(Projection2.ProjectToRectangle(rect, p).IsEqualTo(rect.GetClosestPointOnBoundary(p)));
                 Assert.True(Projection2.ProjectToPolygon(poly, p).IsEqualTo(poly.GetClosestPointOnBoundary(p)));
-                Assert.True(Projection2.ProjectToPolyline(polyline, p).IsEqualTo(polyline.GetClosestPointOnBoundary(p)));
+                Assert.True(
+                    Projection2.ProjectToPolyline(polyline, p).IsEqualTo(polyline.GetClosestPointOnBoundary(p))
+                );
 
                 Assert.True(p.GetClosestPointOnBoundary(line).IsEqualTo(line.GetClosestPointOnBoundary(p)));
                 Assert.True(p.GetClosestPointOnBoundary(circle).IsEqualTo(circle.GetClosestPointOnBoundary(p)));
@@ -335,7 +343,8 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoPoint2(-500.0, -2.0),
                 new GeoPoint2(500.0, 3.0),
                 new GeoPoint2(500.0, 40.0),
-                new GeoPoint2(-500.0, 40.0));
+                new GeoPoint2(-500.0, 40.0)
+            );
 
             var line = new GeoLine2(-400.0, 0.0, 400.0, 0.0);
 
@@ -448,7 +457,8 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoPoint2(3.5, -5.0),
                 new GeoPoint2(3.5, 5.0),
                 new GeoPoint2(3.0, 5.0),
-                new GeoPoint2(3.0, -5.0));
+                new GeoPoint2(3.0, -5.0)
+            );
 
             var tight = new Tolerance(1E-9, 1E-9, 1E-9);
             var loose = new Tolerance(3.0, 3.0, Math.PI / 180.0);
@@ -477,8 +487,10 @@ namespace GeometryHelper.UnitTest.Plane
 
                         // Sampling can only ever overstate the true minimum, so the analytic answer must
                         // not come out above it.
-                        Assert.True(seg.Length <= sampled + 1E-6,
-                            "kinds " + kindA + "/" + kindB + ": analytic " + seg.Length + " > sampled " + sampled);
+                        Assert.True(
+                            seg.Length <= sampled + 1E-6,
+                            "kinds " + kindA + "/" + kindB + ": analytic " + seg.Length + " > sampled " + sampled
+                        );
 
                         // The start point belongs to the first shape and the end point to the second.
                         Assert.True(seg.StartPoint.DistanceTo(ClosestPointOn(a, seg.StartPoint)) < 1E-7);
@@ -560,8 +572,20 @@ namespace GeometryHelper.UnitTest.Plane
             // What does get absorbed is the same absolute gap at either scale, because that is what the
             // tolerance actually measures.
             double within = Tolerance.Global.EqualPoint * 0.5;
-            Assert.Equal(0.0, Projection2.GetShortestLineTo(veryLong, new GeoLine2(100000.0 + within, -5.0, 100000.0 + within, 5.0)).Length, 9);
-            Assert.Equal(0.0, Projection2.GetShortestLineTo(shorter, new GeoLine2(10000.0 + within, -5.0, 10000.0 + within, 5.0)).Length, 9);
+            Assert.Equal(
+                0.0,
+                Projection2
+                    .GetShortestLineTo(veryLong, new GeoLine2(100000.0 + within, -5.0, 100000.0 + within, 5.0))
+                    .Length,
+                9
+            );
+            Assert.Equal(
+                0.0,
+                Projection2
+                    .GetShortestLineTo(shorter, new GeoLine2(10000.0 + within, -5.0, 10000.0 + within, 5.0))
+                    .Length,
+                9
+            );
         }
 
         #region Closest Segment Helpers
@@ -574,19 +598,26 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 return new GeoLine2(
                     new GeoPoint2(range(-Spread, Spread), range(-Spread, Spread)),
-                    new GeoPoint2(range(-Spread, Spread), range(-Spread, Spread)));
+                    new GeoPoint2(range(-Spread, Spread), range(-Spread, Spread))
+                );
             }
 
             if (kind == 1)
             {
-                return new GeoCircle2(new GeoPoint2(range(-Spread, Spread), range(-Spread, Spread)), range(1.0, Spread * 0.6));
+                return new GeoCircle2(
+                    new GeoPoint2(range(-Spread, Spread), range(-Spread, Spread)),
+                    range(1.0, Spread * 0.6)
+                );
             }
 
             if (kind == 2)
             {
                 return new GeoRectangle2(
                     new GeoPoint2(range(-Spread, Spread), range(-Spread, Spread)),
-                    range(1.0, Spread), range(1.0, Spread), range(0.0, Math.PI * 2.0));
+                    range(1.0, Spread),
+                    range(1.0, Spread),
+                    range(0.0, Math.PI * 2.0)
+                );
             }
 
             if (kind == 3)
@@ -623,24 +654,32 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static GeoPoint2 BoundaryPointAt(object shape, double parameter)
         {
-            if (shape is GeoLine2 line) return line.GetPointAtParameter(parameter);
+            if (shape is GeoLine2 line)
+                return line.GetPointAtParameter(parameter);
             if (shape is GeoCircle2 circle)
             {
                 return new GeoPoint2(
                     circle.Center.X + circle.Radius * Math.Cos(2.0 * Math.PI * parameter),
-                    circle.Center.Y + circle.Radius * Math.Sin(2.0 * Math.PI * parameter));
+                    circle.Center.Y + circle.Radius * Math.Sin(2.0 * Math.PI * parameter)
+                );
             }
-            if (shape is GeoRectangle2 rect) return Parametrization2.GetPointAtParameter(rect, parameter);
-            if (shape is GeoPolygon2 poly) return Parametrization2.GetPointAtParameter(poly, parameter);
+            if (shape is GeoRectangle2 rect)
+                return Parametrization2.GetPointAtParameter(rect, parameter);
+            if (shape is GeoPolygon2 poly)
+                return Parametrization2.GetPointAtParameter(poly, parameter);
             return Parametrization2.GetPointAtParameter((GeoPolyline2)shape, parameter);
         }
 
         private static GeoPoint2 ClosestPointOn(object shape, GeoPoint2 point)
         {
-            if (shape is GeoLine2 line) return Projection2.ProjectToLine(line, point);
-            if (shape is GeoCircle2 circle) return Projection2.ProjectToCircle(circle, point);
-            if (shape is GeoRectangle2 rect) return Projection2.ProjectToRectangle(rect, point);
-            if (shape is GeoPolygon2 poly) return Projection2.ProjectToPolygon(poly, point);
+            if (shape is GeoLine2 line)
+                return Projection2.ProjectToLine(line, point);
+            if (shape is GeoCircle2 circle)
+                return Projection2.ProjectToCircle(circle, point);
+            if (shape is GeoRectangle2 rect)
+                return Projection2.ProjectToRectangle(rect, point);
+            if (shape is GeoPolygon2 poly)
+                return Projection2.ProjectToPolygon(poly, point);
             return Projection2.ProjectToPolyline((GeoPolyline2)shape, point);
         }
 
@@ -667,45 +706,65 @@ namespace GeometryHelper.UnitTest.Plane
         {
             if (a is GeoLine2 la)
             {
-                if (b is GeoLine2 lb) return Projection2.GetShortestLineTo(la, lb);
-                if (b is GeoCircle2 cb) return Projection2.GetShortestLineTo(la, cb);
-                if (b is GeoRectangle2 rb) return Projection2.GetShortestLineTo(la, rb);
-                if (b is GeoPolygon2 gb) return Projection2.GetShortestLineTo(la, gb);
+                if (b is GeoLine2 lb)
+                    return Projection2.GetShortestLineTo(la, lb);
+                if (b is GeoCircle2 cb)
+                    return Projection2.GetShortestLineTo(la, cb);
+                if (b is GeoRectangle2 rb)
+                    return Projection2.GetShortestLineTo(la, rb);
+                if (b is GeoPolygon2 gb)
+                    return Projection2.GetShortestLineTo(la, gb);
                 return Projection2.GetShortestLineTo(la, (GeoPolyline2)b);
             }
 
             if (a is GeoCircle2 ca)
             {
-                if (b is GeoLine2 lb) return Projection2.GetShortestLineTo(ca, lb);
-                if (b is GeoCircle2 cb) return Projection2.GetShortestLineTo(ca, cb);
-                if (b is GeoRectangle2 rb) return Projection2.GetShortestLineTo(ca, rb);
-                if (b is GeoPolygon2 gb) return Projection2.GetShortestLineTo(ca, gb);
+                if (b is GeoLine2 lb)
+                    return Projection2.GetShortestLineTo(ca, lb);
+                if (b is GeoCircle2 cb)
+                    return Projection2.GetShortestLineTo(ca, cb);
+                if (b is GeoRectangle2 rb)
+                    return Projection2.GetShortestLineTo(ca, rb);
+                if (b is GeoPolygon2 gb)
+                    return Projection2.GetShortestLineTo(ca, gb);
                 return Projection2.GetShortestLineTo(ca, (GeoPolyline2)b);
             }
 
             if (a is GeoRectangle2 ra)
             {
-                if (b is GeoLine2 lb) return Projection2.GetShortestLineTo(ra, lb);
-                if (b is GeoCircle2 cb) return Projection2.GetShortestLineTo(ra, cb);
-                if (b is GeoRectangle2 rb) return Projection2.GetShortestLineTo(ra, rb);
-                if (b is GeoPolygon2 gb) return Projection2.GetShortestLineTo(ra, gb);
+                if (b is GeoLine2 lb)
+                    return Projection2.GetShortestLineTo(ra, lb);
+                if (b is GeoCircle2 cb)
+                    return Projection2.GetShortestLineTo(ra, cb);
+                if (b is GeoRectangle2 rb)
+                    return Projection2.GetShortestLineTo(ra, rb);
+                if (b is GeoPolygon2 gb)
+                    return Projection2.GetShortestLineTo(ra, gb);
                 return Projection2.GetShortestLineTo(ra, (GeoPolyline2)b);
             }
 
             if (a is GeoPolygon2 ga)
             {
-                if (b is GeoLine2 lb) return Projection2.GetShortestLineTo(ga, lb);
-                if (b is GeoCircle2 cb) return Projection2.GetShortestLineTo(ga, cb);
-                if (b is GeoRectangle2 rb) return Projection2.GetShortestLineTo(ga, rb);
-                if (b is GeoPolygon2 gb) return Projection2.GetShortestLineTo(ga, gb);
+                if (b is GeoLine2 lb)
+                    return Projection2.GetShortestLineTo(ga, lb);
+                if (b is GeoCircle2 cb)
+                    return Projection2.GetShortestLineTo(ga, cb);
+                if (b is GeoRectangle2 rb)
+                    return Projection2.GetShortestLineTo(ga, rb);
+                if (b is GeoPolygon2 gb)
+                    return Projection2.GetShortestLineTo(ga, gb);
                 return Projection2.GetShortestLineTo(ga, (GeoPolyline2)b);
             }
 
             var pa = (GeoPolyline2)a;
-            if (b is GeoLine2 l2) return Projection2.GetShortestLineTo(pa, l2);
-            if (b is GeoCircle2 c2) return Projection2.GetShortestLineTo(pa, c2);
-            if (b is GeoRectangle2 r2) return Projection2.GetShortestLineTo(pa, r2);
-            if (b is GeoPolygon2 g2) return Projection2.GetShortestLineTo(pa, g2);
+            if (b is GeoLine2 l2)
+                return Projection2.GetShortestLineTo(pa, l2);
+            if (b is GeoCircle2 c2)
+                return Projection2.GetShortestLineTo(pa, c2);
+            if (b is GeoRectangle2 r2)
+                return Projection2.GetShortestLineTo(pa, r2);
+            if (b is GeoPolygon2 g2)
+                return Projection2.GetShortestLineTo(pa, g2);
             return Projection2.GetShortestLineTo(pa, (GeoPolyline2)b);
         }
 

@@ -31,10 +31,16 @@ namespace GeometryHelper.Core
         /// Cuts a chain that may curve at distances along it, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain or the distances are null.</exception>
-        public static GeoPolylineArc2[] SplitAtDistances(GeoPolylineArc2 chain, IEnumerable<double> distances, Tolerance tolerance)
+        public static GeoPolylineArc2[] SplitAtDistances(
+            GeoPolylineArc2 chain,
+            IEnumerable<double> distances,
+            Tolerance tolerance
+        )
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (distances == null) throw new ArgumentNullException(nameof(distances));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (distances == null)
+                throw new ArgumentNullException(nameof(distances));
 
             List<List<GeoEdge2>> runs = ArcChain2.SplitAt(ArcChain2.EdgesOf(chain), distances, tolerance);
             var pieces = new GeoPolylineArc2[runs.Count];
@@ -67,10 +73,16 @@ namespace GeometryHelper.Core
         /// Cuts a loop that may curve at distances round it, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop or the distances are null.</exception>
-        public static GeoPolylineArc2[] SplitAtDistances(GeoPolygonArc2 loop, IEnumerable<double> distances, Tolerance tolerance)
+        public static GeoPolylineArc2[] SplitAtDistances(
+            GeoPolygonArc2 loop,
+            IEnumerable<double> distances,
+            Tolerance tolerance
+        )
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (distances == null) throw new ArgumentNullException(nameof(distances));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (distances == null)
+                throw new ArgumentNullException(nameof(distances));
 
             List<List<GeoEdge2>> runs = ArcChain2.SplitAt(ArcChain2.EdgesOf(loop), distances, tolerance);
 
@@ -104,7 +116,12 @@ namespace GeometryHelper.Core
         /// <param name="second">The piece from the cut to the end of the chain.</param>
         /// <returns>true when the chain was cut in two; false when the distance falls at an end or off it.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TrySplitAtDistance(GeoPolylineArc2 chain, double distance, out GeoPolylineArc2 first, out GeoPolylineArc2 second)
+        public static bool TrySplitAtDistance(
+            GeoPolylineArc2 chain,
+            double distance,
+            out GeoPolylineArc2 first,
+            out GeoPolylineArc2 second
+        )
         {
             return TrySplitAtDistance(chain, distance, out first, out second, Tolerance.Global);
         }
@@ -113,9 +130,16 @@ namespace GeometryHelper.Core
         /// Cuts a chain that may curve in two at a distance along it, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TrySplitAtDistance(GeoPolylineArc2 chain, double distance, out GeoPolylineArc2 first, out GeoPolylineArc2 second, Tolerance tolerance)
+        public static bool TrySplitAtDistance(
+            GeoPolylineArc2 chain,
+            double distance,
+            out GeoPolylineArc2 first,
+            out GeoPolylineArc2 second,
+            Tolerance tolerance
+        )
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             first = chain;
             second = chain;
@@ -136,7 +160,12 @@ namespace GeometryHelper.Core
         /// Cuts a chain that may curve in two at a point on it.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TrySplitBy(GeoPolylineArc2 chain, GeoPoint2 point, out GeoPolylineArc2 first, out GeoPolylineArc2 second)
+        public static bool TrySplitBy(
+            GeoPolylineArc2 chain,
+            GeoPoint2 point,
+            out GeoPolylineArc2 first,
+            out GeoPolylineArc2 second
+        )
         {
             return TrySplitBy(chain, point, out first, out second, Tolerance.Global);
         }
@@ -146,9 +175,16 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <returns>true when the chain was cut; false when the point is not on it, or is one of its ends.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TrySplitBy(GeoPolylineArc2 chain, GeoPoint2 point, out GeoPolylineArc2 first, out GeoPolylineArc2 second, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolylineArc2 chain,
+            GeoPoint2 point,
+            out GeoPolylineArc2 first,
+            out GeoPolylineArc2 second,
+            Tolerance tolerance
+        )
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             first = chain;
             second = chain;
@@ -158,7 +194,13 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            return TrySplitAtDistance(chain, Parametrization2.GetDistanceAtPoint(chain, point, tolerance), out first, out second, tolerance);
+            return TrySplitAtDistance(
+                chain,
+                Parametrization2.GetDistanceAtPoint(chain, point, tolerance),
+                out first,
+                out second,
+                tolerance
+            );
         }
 
         /// <summary>
@@ -175,7 +217,12 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <returns>true when the chain was cut anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TrySplitBy(GeoPolylineArc2 chain, GeoLine2 cutter, out GeoPolylineArc2[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolylineArc2 chain,
+            GeoLine2 cutter,
+            out GeoPolylineArc2[] pieces,
+            Tolerance tolerance
+        )
         {
             return TrySplitAt(chain, Intersection2.GetIntersections(chain, cutter, tolerance), out pieces, tolerance);
         }
@@ -193,7 +240,12 @@ namespace GeometryHelper.Core
         /// Cuts a chain that may curve wherever it meets an arc, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TrySplitBy(GeoPolylineArc2 chain, GeoArc2 cutter, out GeoPolylineArc2[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolylineArc2 chain,
+            GeoArc2 cutter,
+            out GeoPolylineArc2[] pieces,
+            Tolerance tolerance
+        )
         {
             return TrySplitAt(chain, Intersection2.GetIntersections(chain, cutter, tolerance), out pieces, tolerance);
         }
@@ -211,7 +263,12 @@ namespace GeometryHelper.Core
         /// Cuts a chain that may curve wherever it meets a straight loop, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain or the cutter is null.</exception>
-        public static bool TrySplitBy(GeoPolylineArc2 chain, GeoPolygon2 cutter, out GeoPolylineArc2[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolylineArc2 chain,
+            GeoPolygon2 cutter,
+            out GeoPolylineArc2[] pieces,
+            Tolerance tolerance
+        )
         {
             return TrySplitAt(chain, Intersection2.GetIntersections(chain, cutter, tolerance), out pieces, tolerance);
         }
@@ -229,7 +286,12 @@ namespace GeometryHelper.Core
         /// Cuts a chain that may curve wherever it meets a loop that may curve, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain or the cutter is null.</exception>
-        public static bool TrySplitBy(GeoPolylineArc2 chain, GeoPolygonArc2 cutter, out GeoPolylineArc2[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolylineArc2 chain,
+            GeoPolygonArc2 cutter,
+            out GeoPolylineArc2[] pieces,
+            Tolerance tolerance
+        )
         {
             return TrySplitAt(chain, Intersection2.GetIntersections(chain, cutter, tolerance), out pieces, tolerance);
         }
@@ -248,7 +310,12 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <returns>true when the loop was cut into two or more chains; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TrySplitBy(GeoPolygonArc2 loop, GeoLine2 cutter, out GeoPolylineArc2[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolygonArc2 loop,
+            GeoLine2 cutter,
+            out GeoPolylineArc2[] pieces,
+            Tolerance tolerance
+        )
         {
             return TrySplitAt(loop, Intersection2.GetIntersections(loop, cutter, tolerance), out pieces, tolerance);
         }
@@ -266,7 +333,12 @@ namespace GeometryHelper.Core
         /// Cuts a loop that may curve wherever it meets a straight loop, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop or the cutter is null.</exception>
-        public static bool TrySplitBy(GeoPolygonArc2 loop, GeoPolygon2 cutter, out GeoPolylineArc2[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolygonArc2 loop,
+            GeoPolygon2 cutter,
+            out GeoPolylineArc2[] pieces,
+            Tolerance tolerance
+        )
         {
             return TrySplitAt(loop, Intersection2.GetIntersections(loop, cutter, tolerance), out pieces, tolerance);
         }
@@ -285,9 +357,15 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>A point that is not on the chain is ignored rather than moved onto it.</remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain or the points are null.</exception>
-        public static bool TrySplitBy(GeoPolylineArc2 chain, GeoPoint2[] points, out GeoPolylineArc2[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolylineArc2 chain,
+            GeoPoint2[] points,
+            out GeoPolylineArc2[] pieces,
+            Tolerance tolerance
+        )
         {
-            if (points == null) throw new ArgumentNullException(nameof(points));
+            if (points == null)
+                throw new ArgumentNullException(nameof(points));
 
             return TrySplitAt(chain, points, out pieces, tolerance);
         }
@@ -295,9 +373,15 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Cuts a chain at the points of it that a set of points names, ignoring any that are not on it.
         /// </summary>
-        private static bool TrySplitAt(GeoPolylineArc2 chain, GeoPoint2[] points, out GeoPolylineArc2[] pieces, Tolerance tolerance)
+        private static bool TrySplitAt(
+            GeoPolylineArc2 chain,
+            GeoPoint2[] points,
+            out GeoPolylineArc2[] pieces,
+            Tolerance tolerance
+        )
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             pieces = new[] { chain };
 
@@ -330,9 +414,15 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Cuts a loop at the points of it that a set of points names, ignoring any that are not on it.
         /// </summary>
-        private static bool TrySplitAt(GeoPolygonArc2 loop, GeoPoint2[] points, out GeoPolylineArc2[] pieces, Tolerance tolerance)
+        private static bool TrySplitAt(
+            GeoPolygonArc2 loop,
+            GeoPoint2[] points,
+            out GeoPolylineArc2[] pieces,
+            Tolerance tolerance
+        )
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             pieces = new GeoPolylineArc2[0];
 

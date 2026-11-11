@@ -79,7 +79,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             }
         }
 
-        private static DxfEntity Only(DxfDatabase database) => Assert.Single(database.ModelSpace.Cast<DxfEntity>().ToList());
+        private static DxfEntity Only(DxfDatabase database) =>
+            Assert.Single(database.ModelSpace.Cast<DxfEntity>().ToList());
 
         [Theory]
         [InlineData("AC1015")]
@@ -185,7 +186,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             var move = new CadEdit(mark.Handle, CadEditKind.Move, newValue: "40,0");
 
             Assert.True(registry.TryApply(document, move));
-            Assert.False(registry.TryApply(document, new CadEdit(mark.Handle, CadEditKind.Rotate, newValue: "0,0,1.5707963267948966")));
+            Assert.False(
+                registry.TryApply(
+                    document,
+                    new CadEdit(mark.Handle, CadEditKind.Rotate, newValue: "0,0,1.5707963267948966")
+                )
+            );
             Assert.Same(move, Assert.Single(owner.Edits));
         }
 
@@ -199,7 +205,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             registry.Register(owner);
             CadDocument document = CadDocument.From(database);
 
-            Assert.False(registry.TryApply(document, new CadEdit(dimension.Handle, CadEditKind.Property, "Text override", "", "3000 (cut on site)")));
+            Assert.False(
+                registry.TryApply(
+                    document,
+                    new CadEdit(dimension.Handle, CadEditKind.Property, "Text override", "", "3000 (cut on site)")
+                )
+            );
             Assert.Equal("3000 (cut on site)", Assert.Single(owner.Edits).NewValue);
         }
 
@@ -298,13 +309,32 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             var database = new DxfDatabase("AC1027");
             DxfLine real = Line(database, 0);
-            real.XData = new[] { new DxfTypedValue(1001, CadOwnerTag.ApplicationName), new DxfTypedValue(1000, "Owner"), new DxfTypedValue(1040, "2.5") };
+            real.XData = new[]
+            {
+                new DxfTypedValue(1001, CadOwnerTag.ApplicationName),
+                new DxfTypedValue(1000, "Owner"),
+                new DxfTypedValue(1040, "2.5"),
+            };
             DxfLine broken = Line(database, 10);
-            broken.XData = new[] { new DxfTypedValue(1001, CadOwnerTag.ApplicationName), new DxfTypedValue(1000, "Owner"), new DxfTypedValue(1000, "D-%zz") };
+            broken.XData = new[]
+            {
+                new DxfTypedValue(1001, CadOwnerTag.ApplicationName),
+                new DxfTypedValue(1000, "Owner"),
+                new DxfTypedValue(1000, "D-%zz"),
+            };
             DxfLine alone = Line(database, 20);
-            alone.XData = new[] { new DxfTypedValue(1001, CadOwnerTag.ApplicationName), new DxfTypedValue(1000, "Owner") };
+            alone.XData = new[]
+            {
+                new DxfTypedValue(1001, CadOwnerTag.ApplicationName),
+                new DxfTypedValue(1000, "Owner"),
+            };
             DxfLine empty = Line(database, 30);
-            empty.XData = new[] { new DxfTypedValue(1001, CadOwnerTag.ApplicationName), new DxfTypedValue(1000, ""), new DxfTypedValue(1000, "D-1") };
+            empty.XData = new[]
+            {
+                new DxfTypedValue(1001, CadOwnerTag.ApplicationName),
+                new DxfTypedValue(1000, ""),
+                new DxfTypedValue(1000, "D-1"),
+            };
 
             Assert.False(CadOwnerTag.TryRead(real, out _));
             Assert.False(CadOwnerTag.TryRead(broken, out _));

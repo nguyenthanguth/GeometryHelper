@@ -27,21 +27,15 @@ namespace GeometryHelper.Dxf
 
         /// <summary>The object of a record of a file.</summary>
         private protected DxfCurve(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>A curve made in code from a shape, as <see cref="DxfEntity"/> makes one.</summary>
         private protected DxfCurve(object shape)
-            : base(shape)
-        {
-        }
+            : base(shape) { }
 
         /// <summary>A curve made in code from its groups, as <see cref="DxfEntity"/> makes one.</summary>
         private protected DxfCurve(string dxfName, IEnumerable<DxfTypedValue> groups)
-            : base(dxfName, groups)
-        {
-        }
+            : base(dxfName, groups) { }
 
         /// <summary>
         /// Gets or sets the parameter at the start of the curve, as AutoCAD's <c>StartParam</c>: nought unless the class says
@@ -95,7 +89,11 @@ namespace GeometryHelper.Dxf
             get
             {
                 object shape = GetGeCurve();
-                return shape is GeoCircle3 || shape is GeoEllipse3 || shape is GeoPolygon3 || shape is GeoPolygonArc3 || (shape is GeoSpline3 spline && spline.IsClosed(Tolerance.Default));
+                return shape is GeoCircle3
+                    || shape is GeoEllipse3
+                    || shape is GeoPolygon3
+                    || shape is GeoPolygonArc3
+                    || (shape is GeoSpline3 spline && spline.IsClosed(Tolerance.Default));
             }
         }
 
@@ -109,11 +107,16 @@ namespace GeometryHelper.Dxf
             {
                 switch (GetGeCurve())
                 {
-                    case GeoCircle3 circle: return circle.Area;
-                    case GeoEllipse3 ellipse: return ellipse.Area;
-                    case GeoPolygon3 polygon: return polygon.Area;
-                    case GeoPolygonArc3 polygon: return polygon.Area;
-                    default: return 0.0;
+                    case GeoCircle3 circle:
+                        return circle.Area;
+                    case GeoEllipse3 ellipse:
+                        return ellipse.Area;
+                    case GeoPolygon3 polygon:
+                        return polygon.Area;
+                    case GeoPolygonArc3 polygon:
+                        return polygon.Area;
+                    default:
+                        return 0.0;
                 }
             }
         }
@@ -175,18 +178,30 @@ namespace GeometryHelper.Dxf
 
             switch (curve)
             {
-                case GeoLine3 s: return s.GetDistanceAtPoint(point);
-                case GeoArc3 s: return s.GetDistanceAtPoint(point);
-                case GeoCircle3 s: return s.GetDistanceAtPoint(point);
-                case GeoEllipse3 s: return s.GetDistanceAtPoint(point);
-                case GeoSpline3 s: return s.GetDistanceAtPoint(point);
-                case GeoPolyline3 s: return s.GetDistanceAtPoint(point);
-                case GeoPolygon3 s: return s.GetDistanceAtPoint(point);
-                case GeoPolylineArc3 s: return s.GetDistanceAtPoint(point);
-                case GeoPolygonArc3 s: return s.GetDistanceAtPoint(point);
-                case GeoRay3 s: return s.GetDistanceAtPoint(point);
-                case GeoXLine3 s: return s.GetDistanceAtPoint(point);
-                default: throw NotACurve(curve);
+                case GeoLine3 s:
+                    return s.GetDistanceAtPoint(point);
+                case GeoArc3 s:
+                    return s.GetDistanceAtPoint(point);
+                case GeoCircle3 s:
+                    return s.GetDistanceAtPoint(point);
+                case GeoEllipse3 s:
+                    return s.GetDistanceAtPoint(point);
+                case GeoSpline3 s:
+                    return s.GetDistanceAtPoint(point);
+                case GeoPolyline3 s:
+                    return s.GetDistanceAtPoint(point);
+                case GeoPolygon3 s:
+                    return s.GetDistanceAtPoint(point);
+                case GeoPolylineArc3 s:
+                    return s.GetDistanceAtPoint(point);
+                case GeoPolygonArc3 s:
+                    return s.GetDistanceAtPoint(point);
+                case GeoRay3 s:
+                    return s.GetDistanceAtPoint(point);
+                case GeoXLine3 s:
+                    return s.GetDistanceAtPoint(point);
+                default:
+                    throw NotACurve(curve);
             }
         }
 
@@ -203,18 +218,30 @@ namespace GeometryHelper.Dxf
 
             switch (curve)
             {
-                case GeoLine3 s: return s.GetPointAtDistance(value);
-                case GeoArc3 s: return s.GetPointAtDistance(value);
-                case GeoCircle3 s: return s.GetPointAtDistance(value);
-                case GeoEllipse3 s: return s.GetPointAtDistance(value);
-                case GeoSpline3 s: return s.GetPointAtDistance(value);
-                case GeoPolyline3 s: return s.GetPointAtDistance(value);
-                case GeoPolygon3 s: return s.GetPointAtDistance(value);
-                case GeoPolylineArc3 s: return s.GetPointAtDistance(value);
-                case GeoPolygonArc3 s: return s.GetPointAtDistance(value);
-                case GeoRay3 s: return s.GetPointAtDistance(value);
-                case GeoXLine3 s: return s.GetPointAtDistance(value);
-                default: throw NotACurve(curve);
+                case GeoLine3 s:
+                    return s.GetPointAtDistance(value);
+                case GeoArc3 s:
+                    return s.GetPointAtDistance(value);
+                case GeoCircle3 s:
+                    return s.GetPointAtDistance(value);
+                case GeoEllipse3 s:
+                    return s.GetPointAtDistance(value);
+                case GeoSpline3 s:
+                    return s.GetPointAtDistance(value);
+                case GeoPolyline3 s:
+                    return s.GetPointAtDistance(value);
+                case GeoPolygon3 s:
+                    return s.GetPointAtDistance(value);
+                case GeoPolylineArc3 s:
+                    return s.GetPointAtDistance(value);
+                case GeoPolygonArc3 s:
+                    return s.GetPointAtDistance(value);
+                case GeoRay3 s:
+                    return s.GetPointAtDistance(value);
+                case GeoXLine3 s:
+                    return s.GetPointAtDistance(value);
+                default:
+                    throw NotACurve(curve);
             }
         }
 
@@ -271,7 +298,10 @@ namespace GeometryHelper.Dxf
         /// <param name="offsetDist">The distance, as the class says which side it runs to.</param>
         /// <returns>The curves.</returns>
         /// <exception cref="NotSupportedException">Thrown where the class does not offset.</exception>
-        public virtual IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(GeoVector3 planeNormal, double offsetDist) => throw NotHere("offset");
+        public virtual IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(
+            GeoVector3 planeNormal,
+            double offsetDist
+        ) => throw NotHere("offset");
 
         /// <summary>Turns the curve to run the other way, from its end to its start, as AutoCAD's <c>ReverseCurve</c>.</summary>
         /// <exception cref="NotSupportedException">Thrown where the class does not turn it.</exception>
@@ -292,7 +322,8 @@ namespace GeometryHelper.Dxf
         /// <param name="parameters">The parameters to cut at.</param>
         /// <returns>The pieces, in the order of the curve.</returns>
         /// <exception cref="NotSupportedException">Thrown where the class does not split.</exception>
-        public virtual IReadOnlyList<DxfCurve> GetSplitCurves(IReadOnlyList<double> parameters) => throw NotHere("splitting");
+        public virtual IReadOnlyList<DxfCurve> GetSplitCurves(IReadOnlyList<double> parameters) =>
+            throw NotHere("splitting");
 
         /// <summary>Gets the pieces the curve is cut into at points of it, as AutoCAD's <c>GetSplitCurves</c>: new entities in no file.</summary>
         /// <param name="points">The points to cut at, on the curve.</param>
@@ -340,8 +371,8 @@ namespace GeometryHelper.Dxf
         /// it: a loop where <paramref name="loop"/> is set, else a chain, and with arcs where <paramref name="arcs"/> is set;
         /// refused where it has arcs and a straight kind is asked for, or a loop is asked for and it is none.
         /// </summary>
-        private protected T Chained<T>(string method, bool plan, Tolerance tolerance, bool loop, bool arcs)
-            => ShapeAs<T>(method, plan, tolerance, loop, arcs, shape => ChainKind(shape, method, loop, arcs));
+        private protected T Chained<T>(string method, bool plan, Tolerance tolerance, bool loop, bool arcs) =>
+            ShapeAs<T>(method, plan, tolerance, loop, arcs, shape => ChainKind(shape, method, loop, arcs));
 
         /// <summary>
         /// The chain or loop a polyline of a plane is written from, as <see cref="DxfWriter"/> writes one as a polyline of its
@@ -379,15 +410,31 @@ namespace GeometryHelper.Dxf
                         break;
 
                     default:
-                        throw new ArgumentException(who + " takes a GeoPolyline2, GeoPolylineArc2, GeoPolygon2 or GeoPolygonArc2, or one of space in one plane, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
+                        throw new ArgumentException(
+                            who
+                                + " takes a GeoPolyline2, GeoPolylineArc2, GeoPolygon2 or GeoPolygonArc2, or one of space in one plane, and was given "
+                                + (geCurve == null ? "null" : "a " + geCurve.GetType().Name)
+                                + ".",
+                            nameof(geCurve)
+                        );
                 }
             }
             catch (ArgumentException e) when (e.ParamName != nameof(geCurve))
             {
-                throw new ArgumentException("The " + geCurve.GetType().Name + " is not one chain or loop within the default tolerance: " + e.Message, nameof(geCurve), e);
+                throw new ArgumentException(
+                    "The "
+                        + geCurve.GetType().Name
+                        + " is not one chain or loop within the default tolerance: "
+                        + e.Message,
+                    nameof(geCurve),
+                    e
+                );
             }
 
-            List<GeoEdge3> edges = chain is GeoPolylineArc3 open ? new List<GeoEdge3>(open.GetEdges()) : chain is GeoPolygonArc3 loop3 ? new List<GeoEdge3>(loop3.GetEdges()) : null;
+            List<GeoEdge3> edges =
+                chain is GeoPolylineArc3 open ? new List<GeoEdge3>(open.GetEdges())
+                : chain is GeoPolygonArc3 loop3 ? new List<GeoEdge3>(loop3.GetEdges())
+                : null;
 
             if (edges == null)
             {
@@ -401,9 +448,20 @@ namespace GeometryHelper.Dxf
 
             if (chain is GeoPolylineArc3 space && !space.TryGetPlane(out _, Tolerance.Default))
             {
-                throw new ArgumentException(OnOneLine(space)
-                    ? "The " + geCurve.GetType().Name + " has no plane of its own, and none the polyline can hold: its vertices are on one line, not in the plane of the polyline's normal " + normal + " within the default point tolerance."
-                    : "The " + geCurve.GetType().Name + " does not lie in one plane within the default tolerance, as " + who.ToLowerInvariant() + " has to: a DxfPolyline3d takes a straight chain of space.", nameof(geCurve));
+                throw new ArgumentException(
+                    OnOneLine(space)
+                        ? "The "
+                            + geCurve.GetType().Name
+                            + " has no plane of its own, and none the polyline can hold: its vertices are on one line, not in the plane of the polyline's normal "
+                            + normal
+                            + " within the default point tolerance."
+                        : "The "
+                            + geCurve.GetType().Name
+                            + " does not lie in one plane within the default tolerance, as "
+                            + who.ToLowerInvariant()
+                            + " has to: a DxfPolyline3d takes a straight chain of space.",
+                    nameof(geCurve)
+                );
             }
 
             return chain;
@@ -427,7 +485,17 @@ namespace GeometryHelper.Dxf
                     return false;
                 }
 
-                if (edge.IsArc && !Core.Arc3.LiesIn(plane, edge.StartPoint, edge.EndPoint, edge.Bulge, edge.Normal, Tolerance.Default))
+                if (
+                    edge.IsArc
+                    && !Core.Arc3.LiesIn(
+                        plane,
+                        edge.StartPoint,
+                        edge.EndPoint,
+                        edge.Bulge,
+                        edge.Normal,
+                        Tolerance.Default
+                    )
+                )
                 {
                     return false;
                 }
@@ -513,14 +581,34 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private string ChainKind(object shape, string method, bool loop, bool arcs)
         {
-            bool chain = shape is GeoPolyline2 || shape is GeoPolylineArc2 || shape is GeoPolyline3 || shape is GeoPolylineArc3;
+            bool chain =
+                shape is GeoPolyline2 || shape is GeoPolylineArc2 || shape is GeoPolyline3 || shape is GeoPolylineArc3;
 
-            if (!(loop && chain) && !arcs && (shape is GeoPolylineArc2 || shape is GeoPolygonArc2 || shape is GeoPolylineArc3 || shape is GeoPolygonArc3))
+            if (
+                !(loop && chain)
+                && !arcs
+                && (
+                    shape is GeoPolylineArc2
+                    || shape is GeoPolygonArc2
+                    || shape is GeoPolylineArc3
+                    || shape is GeoPolygonArc3
+                )
+            )
             {
-                return TypeAndHandle + " has arcs, which a " + method.Substring(2) + " cannot hold: " + method.Substring(0, method.Length - 1) + "Arc" + method.Substring(method.Length - 1) + " gives them, exactly.";
+                return TypeAndHandle
+                    + " has arcs, which a "
+                    + method.Substring(2)
+                    + " cannot hold: "
+                    + method.Substring(0, method.Length - 1)
+                    + "Arc"
+                    + method.Substring(method.Length - 1)
+                    + " gives them, exactly.";
             }
 
-            return TypeAndHandle + " encloses no area, or does not lie in one plane within the tolerance, so it is no loop: " + method.Replace("Polygon", "Polyline") + " gives it as a chain.";
+            return TypeAndHandle
+                + " encloses no area, or does not lie in one plane within the tolerance, so it is no loop: "
+                + method.Replace("Polygon", "Polyline")
+                + " gives it as a chain.";
         }
 
         /// <summary>
@@ -543,7 +631,10 @@ namespace GeometryHelper.Dxf
                 return curve;
             }
 
-            throw new ArgumentException("A " + geCurve.GetType().Name + " is not written as a curve of a class of the library's.", nameof(geCurve));
+            throw new ArgumentException(
+                "A " + geCurve.GetType().Name + " is not written as a curve of a class of the library's.",
+                nameof(geCurve)
+            );
         }
 
         /// <summary>
@@ -596,16 +687,43 @@ namespace GeometryHelper.Dxf
 
                 case DxfCircle circle:
                     closed = true;
-                    DxfCurveTools.Conic(circle.Center, circle.GetPointAtParameter, 0.0, circle.EndParam, true, points, weights, knots);
+                    DxfCurveTools.Conic(
+                        circle.Center,
+                        circle.GetPointAtParameter,
+                        0.0,
+                        circle.EndParam,
+                        true,
+                        points,
+                        weights,
+                        knots
+                    );
                     break;
 
                 case DxfArc arc:
-                    DxfCurveTools.Conic(arc.Center, arc.GetPointAtParameter, arc.StartParam, arc.EndParam, false, points, weights, knots);
+                    DxfCurveTools.Conic(
+                        arc.Center,
+                        arc.GetPointAtParameter,
+                        arc.StartParam,
+                        arc.EndParam,
+                        false,
+                        points,
+                        weights,
+                        knots
+                    );
                     break;
 
                 case DxfEllipse ellipse:
                     closed = ellipse.Closed;
-                    DxfCurveTools.Conic(ellipse.Center, ellipse.GetPointAtParameter, ellipse.StartParam, ellipse.EndParam, closed, points, weights, knots);
+                    DxfCurveTools.Conic(
+                        ellipse.Center,
+                        ellipse.GetPointAtParameter,
+                        ellipse.StartParam,
+                        ellipse.EndParam,
+                        closed,
+                        points,
+                        weights,
+                        knots
+                    );
                     break;
 
                 case DxfPolyline polyline:
@@ -616,7 +734,15 @@ namespace GeometryHelper.Dxf
                 case DxfPolyline2d polyline when frame && polyline.SplineFrame() is List<GeoPoint3> fitted:
                     // The B-spline on the frame it is fitted with, as AutoCAD 2021's Polyline2d.Spline gives it.
                     closed = polyline.Closed;
-                    degree = DxfPolylineFit.Spline(fitted, polyline.PolyType == DxfPoly2dType.QuadSplinePoly ? 2 : 3, closed, out List<GeoPoint3> control, out List<double> uniform, out _, out _);
+                    degree = DxfPolylineFit.Spline(
+                        fitted,
+                        polyline.PolyType == DxfPoly2dType.QuadSplinePoly ? 2 : 3,
+                        closed,
+                        out List<GeoPoint3> control,
+                        out List<double> uniform,
+                        out _,
+                        out _
+                    );
                     GeoVector3 normal = polyline.Normal;
 
                     foreach (GeoPoint3 p in control)
@@ -644,7 +770,17 @@ namespace GeometryHelper.Dxf
             }
 
             bool rational = weights.Exists(w => w != 1.0);
-            return new DxfSpline(degree, rational, closed, periodic, points, knots, rational ? weights : null, 1E-10, 1E-10);
+            return new DxfSpline(
+                degree,
+                rational,
+                closed,
+                periodic,
+                points,
+                knots,
+                rational ? weights : null,
+                1E-10,
+                1E-10
+            );
         }
 
         /// <summary>
@@ -674,16 +810,28 @@ namespace GeometryHelper.Dxf
 
             switch (result)
             {
-                case DxfPolyline p: along = p.NumberOfVertices < 2 ? 0.0 : p.Length; break;
-                case DxfPolyline2d p: along = p.Model(out _).Count < 2 ? 0.0 : p.Length; break;
-                case DxfPolyline3d p: along = p.Model(out _).Count < 2 ? 0.0 : p.Length; break;
-                case DxfSpline s: along = s.RunsFartherThan(Tolerance.Default.EqualPoint) ? double.PositiveInfinity : 0.0; break;
-                default: along = double.PositiveInfinity; break;
+                case DxfPolyline p:
+                    along = p.NumberOfVertices < 2 ? 0.0 : p.Length;
+                    break;
+                case DxfPolyline2d p:
+                    along = p.Model(out _).Count < 2 ? 0.0 : p.Length;
+                    break;
+                case DxfPolyline3d p:
+                    along = p.Model(out _).Count < 2 ? 0.0 : p.Length;
+                    break;
+                case DxfSpline s:
+                    along = s.RunsFartherThan(Tolerance.Default.EqualPoint) ? double.PositiveInfinity : 0.0;
+                    break;
+                default:
+                    along = double.PositiveInfinity;
+                    break;
             }
 
             if (!(along > Tolerance.Default.EqualPoint))
             {
-                throw new InvalidOperationException("The " + Item.Type + " runs along the direction and projects to a point.");
+                throw new InvalidOperationException(
+                    "The " + Item.Type + " runs along the direction and projects to a point."
+                );
             }
 
             return result;
@@ -697,7 +845,12 @@ namespace GeometryHelper.Dxf
 
             if (!projectionDirection.IsValid || !(length > 0.0) || double.IsInfinity(length))
             {
-                throw new ArgumentException("A curve is projected along a direction of finite numbers and some length: " + projectionDirection + " is not.", nameof(projectionDirection));
+                throw new ArgumentException(
+                    "A curve is projected along a direction of finite numbers and some length: "
+                        + projectionDirection
+                        + " is not.",
+                    nameof(projectionDirection)
+                );
             }
 
             GeoVector3 d = projectionDirection.Divide(length);
@@ -705,7 +858,10 @@ namespace GeometryHelper.Dxf
 
             if (!(Math.Abs(across) > Tolerance.Default.EqualVector))
             {
-                throw new ArgumentException("The direction " + projectionDirection + " runs along the plane, and projects nothing onto it.", nameof(projectionDirection));
+                throw new ArgumentException(
+                    "The direction " + projectionDirection + " runs along the plane, and projects nothing onto it.",
+                    nameof(projectionDirection)
+                );
             }
 
             GeoPoint3 o = planeToProjectOn.Origin;
@@ -715,7 +871,10 @@ namespace GeometryHelper.Dxf
 
             for (int r = 0; r < 3; r++)
             {
-                double dr = r == 0 ? d.X : r == 1 ? d.Y : d.Z;
+                double dr =
+                    r == 0 ? d.X
+                    : r == 1 ? d.Y
+                    : d.Z;
                 double[] nn = { n.X, n.Y, n.Z };
 
                 for (int c = 0; c < 3; c++)
@@ -764,13 +923,50 @@ namespace GeometryHelper.Dxf
                 }
 
                 case DxfCircle circle:
-                    return Conic(circle.Center, circle.Normal, circle.GetPointAtParameter(0.0), circle.GetPointAtParameter(Math.PI / 2.0), 0.0, 2.0 * Math.PI, true, n, Project, Along);
+                    return Conic(
+                        circle.Center,
+                        circle.Normal,
+                        circle.GetPointAtParameter(0.0),
+                        circle.GetPointAtParameter(Math.PI / 2.0),
+                        0.0,
+                        2.0 * Math.PI,
+                        true,
+                        n,
+                        Project,
+                        Along
+                    );
 
                 case DxfArc arc:
-                    return Conic(arc.Center, arc.Normal, arc.GetPointAtParameter(arc.StartParam), arc.GetPointAtParameter(arc.StartParam + Math.PI / 2.0 < arc.EndParam ? arc.StartParam + Math.PI / 2.0 : arc.StartParam), arc.StartParam, arc.EndParam, false, n, Project, Along);
+                    return Conic(
+                        arc.Center,
+                        arc.Normal,
+                        arc.GetPointAtParameter(arc.StartParam),
+                        arc.GetPointAtParameter(
+                            arc.StartParam + Math.PI / 2.0 < arc.EndParam
+                                ? arc.StartParam + Math.PI / 2.0
+                                : arc.StartParam
+                        ),
+                        arc.StartParam,
+                        arc.EndParam,
+                        false,
+                        n,
+                        Project,
+                        Along
+                    );
 
                 case DxfEllipse ellipse:
-                    return Conic(ellipse.Center, ellipse.Normal, ellipse.Center.Add(ellipse.MajorAxis), ellipse.Center.Add(ellipse.MinorAxis), ellipse.StartParam, ellipse.EndParam, ellipse.Closed, n, Project, Along);
+                    return Conic(
+                        ellipse.Center,
+                        ellipse.Normal,
+                        ellipse.Center.Add(ellipse.MajorAxis),
+                        ellipse.Center.Add(ellipse.MinorAxis),
+                        ellipse.StartParam,
+                        ellipse.EndParam,
+                        ellipse.Closed,
+                        n,
+                        Project,
+                        Along
+                    );
 
                 case DxfPolyline polyline:
                 {
@@ -778,9 +974,24 @@ namespace GeometryHelper.Dxf
 
                     if (normal.IsParallelTo(n, Tolerance.Default) || !polyline.HasBulges)
                     {
-                        List<DxfPolyVertex> vertices = Flat(polyline.Model(), normal, n, Project, out GeoVector3 to, out double elevation);
+                        List<DxfPolyVertex> vertices = Flat(
+                            polyline.Model(),
+                            normal,
+                            n,
+                            Project,
+                            out GeoVector3 to,
+                            out double elevation
+                        );
                         var copy = (DxfPolyline)Copy();
-                        copy.Take(vertices, polyline.Closed, to, elevation, polyline.Thickness, polyline.Plinegen, polyline.GetDouble(43, 0.0));
+                        copy.Take(
+                            vertices,
+                            polyline.Closed,
+                            to,
+                            elevation,
+                            polyline.Thickness,
+                            polyline.Plinegen,
+                            polyline.GetDouble(43, 0.0)
+                        );
                         return copy;
                     }
 
@@ -794,9 +1005,23 @@ namespace GeometryHelper.Dxf
 
                     if (normal.IsParallelTo(n, Tolerance.Default) || !model.Exists(q => q.Bulge != 0.0))
                     {
-                        List<DxfPolyVertex> vertices = Flat(model, normal, n, Project, out GeoVector3 to, out double elevation);
+                        List<DxfPolyVertex> vertices = Flat(
+                            model,
+                            normal,
+                            n,
+                            Project,
+                            out GeoVector3 to,
+                            out double elevation
+                        );
                         var copy = (DxfPolyline2d)Copy();
-                        copy.Take(vertices, polyline.Closed, to, elevation, polyline.Thickness, polyline.LinetypeGenerationOn);
+                        copy.Take(
+                            vertices,
+                            polyline.Closed,
+                            to,
+                            elevation,
+                            polyline.Thickness,
+                            polyline.LinetypeGenerationOn
+                        );
                         return copy;
                     }
 
@@ -821,7 +1046,15 @@ namespace GeometryHelper.Dxf
                         moved.Add(Project(point));
                     }
 
-                    copy.SetNurbsData(data.Degree, data.Rational, data.Closed, data.Periodic, moved, data.GetKnots(), data.GetWeights());
+                    copy.SetNurbsData(
+                        data.Degree,
+                        data.Rational,
+                        data.Closed,
+                        data.Periodic,
+                        moved,
+                        data.GetKnots(),
+                        data.GetWeights()
+                    );
 
                     if (copy.GetString(210) != null || copy.GetString(220) != null || copy.GetString(230) != null)
                     {
@@ -845,7 +1078,15 @@ namespace GeometryHelper.Dxf
                 points.Add(Project(point));
             }
 
-            shape.SetNurbsData(nurbs.Degree, nurbs.Rational, nurbs.Closed, nurbs.Periodic, points, nurbs.GetKnots(), nurbs.GetWeights());
+            shape.SetNurbsData(
+                nurbs.Degree,
+                nurbs.Rational,
+                nurbs.Closed,
+                nurbs.Periodic,
+                points,
+                nurbs.GetKnots(),
+                nurbs.GetWeights()
+            );
             shape.SetPropertiesFrom(this);
             result = shape;
             return result;
@@ -859,7 +1100,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The projected curve.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the curve projects to a point or, for a conic seen edge on, to a
         /// line, or has no shape the library reads.</exception>
-        public DxfCurve GetOrthoProjectedCurve(GeoPlane3 planeToProjectOn) => GetProjectedCurve(planeToProjectOn, planeToProjectOn.Normal);
+        public DxfCurve GetOrthoProjectedCurve(GeoPlane3 planeToProjectOn) =>
+            GetProjectedCurve(planeToProjectOn, planeToProjectOn.Normal);
 
         /// <summary>
         /// The control points, weights and knots of a polyline's spline: of degree 1 through its vertices where it has no arc,
@@ -867,7 +1109,14 @@ namespace GeometryHelper.Dxf
         /// each segment over one step of the parameter. The points are taken to the world through a normal (null for a 3D
         /// polyline's, in the world already).
         /// </summary>
-        private static int Chain(List<DxfPolyVertex> v, bool closed, GeoVector3? normal, List<GeoPoint3> points, List<double> weights, List<double> knots)
+        private static int Chain(
+            List<DxfPolyVertex> v,
+            bool closed,
+            GeoVector3? normal,
+            List<GeoPoint3> points,
+            List<double> weights,
+            List<double> knots
+        )
         {
             int segments = closed ? v.Count : v.Count - 1;
 
@@ -876,7 +1125,8 @@ namespace GeometryHelper.Dxf
                 throw new InvalidOperationException("A polyline of fewer than two vertices has no spline.");
             }
 
-            GeoPoint3 World(DxfPolyVertex q) => normal.HasValue ? OcsToWorld(normal.Value, new GeoPoint3(q.X, q.Y, q.Z)) : new GeoPoint3(q.X, q.Y, q.Z);
+            GeoPoint3 World(DxfPolyVertex q) =>
+                normal.HasValue ? OcsToWorld(normal.Value, new GeoPoint3(q.X, q.Y, q.Z)) : new GeoPoint3(q.X, q.Y, q.Z);
             bool arcs = false;
 
             for (int i = 0; i < segments; i++)
@@ -925,7 +1175,16 @@ namespace GeometryHelper.Dxf
                 var piece = new List<GeoPoint3>();
                 var pieceWeights = new List<double>();
                 var pieceKnots = new List<double>();
-                DxfCurveTools.Conic(World(new DxfPolyVertex(cx, cy, a.Z, 0.0, 0.0, 0.0, false)), psi => World(psi >= sweep ? b : DxfPolylineEdit.At(a, b, psi / sweep)), 0.0, sweep, false, piece, pieceWeights, pieceKnots);
+                DxfCurveTools.Conic(
+                    World(new DxfPolyVertex(cx, cy, a.Z, 0.0, 0.0, 0.0, false)),
+                    psi => World(psi >= sweep ? b : DxfPolylineEdit.At(a, b, psi / sweep)),
+                    0.0,
+                    sweep,
+                    false,
+                    piece,
+                    pieceWeights,
+                    pieceKnots
+                );
 
                 for (int k = 1; k < piece.Count; k++)
                 {
@@ -947,7 +1206,14 @@ namespace GeometryHelper.Dxf
         /// The vertices of a polyline of the plane projected onto a plane, in the system of the new normal: the plane's normal
         /// turned to the polyline's own side, so that the polyline keeps the way it runs as seen from it; and its elevation.
         /// </summary>
-        private static List<DxfPolyVertex> Flat(List<DxfPolyVertex> v, GeoVector3 normal, GeoVector3 n, Func<GeoPoint3, GeoPoint3> project, out GeoVector3 to, out double elevation)
+        private static List<DxfPolyVertex> Flat(
+            List<DxfPolyVertex> v,
+            GeoVector3 normal,
+            GeoVector3 n,
+            Func<GeoPoint3, GeoPoint3> project,
+            out GeoVector3 to,
+            out double elevation
+        )
         {
             to = n.DotProduct(normal) < 0.0 ? n.Negate() : n;
             var flat = new List<DxfPolyVertex>(v.Count);
@@ -978,7 +1244,18 @@ namespace GeometryHelper.Dxf
         /// ellipse its two conjugate semi-axes (from the centre to the points at the parameter nought and a quarter turn on)
         /// project to, its parameters turned by the angle at which the projected axes give the major one.
         /// </summary>
-        private DxfCurve Conic(GeoPoint3 centre, GeoVector3 normal, GeoPoint3 atZero, GeoPoint3 atQuarter, double start, double end, bool whole, GeoVector3 n, Func<GeoPoint3, GeoPoint3> project, Func<GeoVector3, GeoVector3> along)
+        private DxfCurve Conic(
+            GeoPoint3 centre,
+            GeoVector3 normal,
+            GeoPoint3 atZero,
+            GeoPoint3 atQuarter,
+            double start,
+            double end,
+            bool whole,
+            GeoVector3 n,
+            Func<GeoPoint3, GeoPoint3> project,
+            Func<GeoVector3, GeoVector3> along
+        )
         {
             GeoPoint3 moved = project(centre);
 
@@ -1021,7 +1298,11 @@ namespace GeometryHelper.Dxf
 
             if (!(minor.Length > Tolerance.Default.EqualPoint) || !(ratio >= MinRatio))
             {
-                throw new InvalidOperationException("The " + Item.Type + " is seen edge on along the direction, or so nearly that its minor axis is within the point tolerance or 1E-6 of its major one, and projects to a line, no curve of its kind.");
+                throw new InvalidOperationException(
+                    "The "
+                        + Item.Type
+                        + " is seen edge on along the direction, or so nearly that its minor axis is within the point tolerance or 1E-6 of its major one, and projects to a line, no curve of its kind."
+                );
             }
 
             // The ellipse lies in the plane projected onto, its normal turned to the side the conic runs counter-clockwise about.
@@ -1047,7 +1328,9 @@ namespace GeometryHelper.Dxf
         {
             if (start.IsEqualTo(end, Tolerance.Default))
             {
-                throw new InvalidOperationException("The " + Item.Type + " runs along the direction and projects to a point.");
+                throw new InvalidOperationException(
+                    "The " + Item.Type + " runs along the direction and projects to a point."
+                );
             }
         }
 
@@ -1056,7 +1339,9 @@ namespace GeometryHelper.Dxf
         {
             if (direction.IsZeroLength(Tolerance.Default))
             {
-                throw new InvalidOperationException("The " + Item.Type + " runs along the direction and projects to a point.");
+                throw new InvalidOperationException(
+                    "The " + Item.Type + " runs along the direction and projects to a point."
+                );
             }
         }
 
@@ -1067,7 +1352,9 @@ namespace GeometryHelper.Dxf
 
             if (curve == null)
             {
-                throw new InvalidOperationException("The " + Item.Type + " has no shape the library reads, as one of no length has none, to be walked.");
+                throw new InvalidOperationException(
+                    "The " + Item.Type + " has no shape the library reads, as one of no length has none, to be walked."
+                );
             }
 
             return curve;
@@ -1078,18 +1365,30 @@ namespace GeometryHelper.Dxf
         {
             switch (curve)
             {
-                case GeoLine3 s: return s.Length;
-                case GeoArc3 s: return s.Length;
-                case GeoCircle3 s: return s.Length;
-                case GeoEllipse3 s: return s.Length;
-                case GeoSpline3 s: return s.Length;
-                case GeoPolyline3 s: return s.Length;
-                case GeoPolygon3 s: return s.Length;
-                case GeoPolylineArc3 s: return s.Length;
-                case GeoPolygonArc3 s: return s.Length;
-                case GeoRay3 _: return double.PositiveInfinity;
-                case GeoXLine3 _: return double.PositiveInfinity;
-                default: throw NotACurve(curve);
+                case GeoLine3 s:
+                    return s.Length;
+                case GeoArc3 s:
+                    return s.Length;
+                case GeoCircle3 s:
+                    return s.Length;
+                case GeoEllipse3 s:
+                    return s.Length;
+                case GeoSpline3 s:
+                    return s.Length;
+                case GeoPolyline3 s:
+                    return s.Length;
+                case GeoPolygon3 s:
+                    return s.Length;
+                case GeoPolylineArc3 s:
+                    return s.Length;
+                case GeoPolygonArc3 s:
+                    return s.Length;
+                case GeoRay3 _:
+                    return double.PositiveInfinity;
+                case GeoXLine3 _:
+                    return double.PositiveInfinity;
+                default:
+                    throw NotACurve(curve);
             }
         }
 
@@ -1098,18 +1397,30 @@ namespace GeometryHelper.Dxf
         {
             switch (curve)
             {
-                case GeoLine3 s: return s.GetClosestPointOnBoundary(point);
-                case GeoArc3 s: return s.GetClosestPointOnBoundary(point);
-                case GeoCircle3 s: return s.GetClosestPointOnBoundary(point);
-                case GeoEllipse3 s: return s.GetClosestPointOnBoundary(point);
-                case GeoSpline3 s: return s.GetClosestPointOnBoundary(point);
-                case GeoPolyline3 s: return s.GetClosestPointOnBoundary(point);
-                case GeoPolygon3 s: return s.GetClosestPointOnBoundary(point);
-                case GeoPolylineArc3 s: return s.GetClosestPointOnBoundary(point);
-                case GeoPolygonArc3 s: return s.GetClosestPointOnBoundary(point);
-                case GeoRay3 s: return s.GetClosestPointOnBoundary(point);
-                case GeoXLine3 s: return s.GetClosestPointOnBoundary(point);
-                default: throw NotACurve(curve);
+                case GeoLine3 s:
+                    return s.GetClosestPointOnBoundary(point);
+                case GeoArc3 s:
+                    return s.GetClosestPointOnBoundary(point);
+                case GeoCircle3 s:
+                    return s.GetClosestPointOnBoundary(point);
+                case GeoEllipse3 s:
+                    return s.GetClosestPointOnBoundary(point);
+                case GeoSpline3 s:
+                    return s.GetClosestPointOnBoundary(point);
+                case GeoPolyline3 s:
+                    return s.GetClosestPointOnBoundary(point);
+                case GeoPolygon3 s:
+                    return s.GetClosestPointOnBoundary(point);
+                case GeoPolylineArc3 s:
+                    return s.GetClosestPointOnBoundary(point);
+                case GeoPolygonArc3 s:
+                    return s.GetClosestPointOnBoundary(point);
+                case GeoRay3 s:
+                    return s.GetClosestPointOnBoundary(point);
+                case GeoXLine3 s:
+                    return s.GetClosestPointOnBoundary(point);
+                default:
+                    throw NotACurve(curve);
             }
         }
 
@@ -1129,13 +1440,23 @@ namespace GeometryHelper.Dxf
 
             if (double.IsNaN(distance) || distance < -slack || distance > length + slack)
             {
-                throw new ArgumentOutOfRangeException(parameter, distance, "The value runs past the curve, which runs from nought to " + length.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + " along it.");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    distance,
+                    "The value runs past the curve, which runs from nought to "
+                        + length.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                        + " along it."
+                );
             }
         }
 
-        private static ArgumentException NotACurve(object curve)
-            => new ArgumentException("A " + (curve == null ? "null" : curve.GetType().Name) + " is not a curve the library walks.", nameof(curve));
+        private static ArgumentException NotACurve(object curve) =>
+            new ArgumentException(
+                "A " + (curve == null ? "null" : curve.GetType().Name) + " is not a curve the library walks.",
+                nameof(curve)
+            );
 
-        private NotSupportedException NotHere(string what) => new NotSupportedException("A " + GetType().Name + " has no " + what + " of the library's yet.");
+        private NotSupportedException NotHere(string what) =>
+            new NotSupportedException("A " + GetType().Name + " has no " + what + " of the library's yet.");
     }
 }

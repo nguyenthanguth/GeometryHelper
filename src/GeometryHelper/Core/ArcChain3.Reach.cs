@@ -24,7 +24,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gathers what each edge of a chain answers, naming each place once.
         /// </summary>
-        private static GeoPoint3[] Crossings(IEnumerable<GeoEdge3> edges, Func<GeoEdge3, GeoPoint3[]> of, Tolerance tolerance)
+        private static GeoPoint3[] Crossings(
+            IEnumerable<GeoEdge3> edges,
+            Func<GeoEdge3, GeoPoint3[]> of,
+            Tolerance tolerance
+        )
         {
             var found = new List<GeoPoint3>();
 

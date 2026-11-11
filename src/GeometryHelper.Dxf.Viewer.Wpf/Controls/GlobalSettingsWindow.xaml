@@ -1,10 +1,17 @@
-<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.GlobalSettingsWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
-        Title="Global settings" Width="840" Height="600" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" Background="#262B33">
-
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.GlobalSettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Global settings"
+    Width="840"
+    Height="600"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -47,7 +54,11 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="Track" Property="Background" Value="{StaticResource GhAccent}" />
+                                    <Setter
+                                        TargetName="Track"
+                                        Property="Background"
+                                        Value="{StaticResource GhAccent}"
+                                    />
                                     <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
@@ -77,19 +88,54 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding Label}" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0" />
-                        <Border Grid.Column="1" Style="{StaticResource Box}" Visibility="{Binding IsTyped, Converter={StaticResource Shown}}">
+                        <TextBlock
+                            Text="{Binding Label}"
+                            Foreground="{StaticResource GhTextMuted}"
+                            VerticalAlignment="Center"
+                            TextTrimming="CharacterEllipsis"
+                            Margin="0,0,8,0"
+                        />
+                        <Border
+                            Grid.Column="1"
+                            Style="{StaticResource Box}"
+                            Visibility="{Binding IsTyped, Converter={StaticResource Shown}}"
+                        >
                             <DockPanel>
-                                <TextBlock DockPanel.Dock="Right" Text="{Binding Unit}" Foreground="{StaticResource GhTextMuted}" Margin="6,0,0,0" VerticalAlignment="Center" />
-                                <TextBox Style="{StaticResource GhTextBox}" Text="{Binding Value, UpdateSourceTrigger=LostFocus}" />
+                                <TextBlock
+                                    DockPanel.Dock="Right"
+                                    Text="{Binding Unit}"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    Margin="6,0,0,0"
+                                    VerticalAlignment="Center"
+                                />
+                                <TextBox
+                                    Style="{StaticResource GhTextBox}"
+                                    Text="{Binding Value, UpdateSourceTrigger=LostFocus}"
+                                />
                             </DockPanel>
                         </Border>
-                        <Border Grid.Column="1" Style="{StaticResource Box}" Visibility="{Binding IsInfo, Converter={StaticResource Shown}}">
-                            <TextBlock Text="{Binding Value}" Foreground="{StaticResource GhTextMuted}" TextTrimming="CharacterEllipsis" />
+                        <Border
+                            Grid.Column="1"
+                            Style="{StaticResource Box}"
+                            Visibility="{Binding IsInfo, Converter={StaticResource Shown}}"
+                        >
+                            <TextBlock
+                                Text="{Binding Value}"
+                                Foreground="{StaticResource GhTextMuted}"
+                                TextTrimming="CharacterEllipsis"
+                            />
                         </Border>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Visibility="{Binding IsToggle, Converter={StaticResource Shown}}">
+                        <StackPanel
+                            Grid.Column="1"
+                            Orientation="Horizontal"
+                            Visibility="{Binding IsToggle, Converter={StaticResource Shown}}"
+                        >
                             <ToggleButton Style="{StaticResource Switch}" IsChecked="{Binding IsOn, Mode=TwoWay}" />
-                            <TextBlock Foreground="{StaticResource GhTextMuted}" Margin="8,0,0,0" VerticalAlignment="Center">
+                            <TextBlock
+                                Foreground="{StaticResource GhTextMuted}"
+                                Margin="8,0,0,0"
+                                VerticalAlignment="Center"
+                            >
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Text" Value="Off" />
@@ -102,20 +148,49 @@
                                 </TextBlock.Style>
                             </TextBlock>
                         </StackPanel>
-                        <ComboBox Grid.Column="1" Style="{StaticResource GhComboBox}" ItemsSource="{Binding Options}" SelectedItem="{Binding Value, Mode=TwoWay}"
-                                  Visibility="{Binding IsChoice, Converter={StaticResource Shown}}" />
+                        <ComboBox
+                            Grid.Column="1"
+                            Style="{StaticResource GhComboBox}"
+                            ItemsSource="{Binding Options}"
+                            SelectedItem="{Binding Value, Mode=TwoWay}"
+                            Visibility="{Binding IsChoice, Converter={StaticResource Shown}}"
+                        />
                         <DockPanel Grid.Column="1" Visibility="{Binding IsColour, Converter={StaticResource Shown}}">
-                            <ComboBox DockPanel.Dock="Right" Style="{StaticResource GhComboBox}" Width="128" Margin="6,0,0,0" ItemsSource="{Binding Options}"
-                                      SelectedItem="{Binding NamedColour, Mode=TwoWay}" ToolTip="A named colour" />
+                            <ComboBox
+                                DockPanel.Dock="Right"
+                                Style="{StaticResource GhComboBox}"
+                                Width="128"
+                                Margin="6,0,0,0"
+                                ItemsSource="{Binding Options}"
+                                SelectedItem="{Binding NamedColour, Mode=TwoWay}"
+                                ToolTip="A named colour"
+                            />
                             <Border Style="{StaticResource Box}">
                                 <DockPanel>
-                                    <Border DockPanel.Dock="Left" Width="14" Height="14" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" Margin="0,0,8,0"
-                                            Background="{Binding Rgb, Converter={StaticResource RgbBrush}}" VerticalAlignment="Center" />
-                                    <TextBox Style="{StaticResource GhTextBox}" Text="{Binding Value, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GhMonoFont}" />
+                                    <Border
+                                        DockPanel.Dock="Left"
+                                        Width="14"
+                                        Height="14"
+                                        BorderBrush="{StaticResource GhBorder}"
+                                        BorderThickness="1"
+                                        Margin="0,0,8,0"
+                                        Background="{Binding Rgb, Converter={StaticResource RgbBrush}}"
+                                        VerticalAlignment="Center"
+                                    />
+                                    <TextBox
+                                        Style="{StaticResource GhTextBox}"
+                                        Text="{Binding Value, UpdateSourceTrigger=LostFocus}"
+                                        FontFamily="{StaticResource GhMonoFont}"
+                                    />
                                 </DockPanel>
                             </Border>
                         </DockPanel>
-                        <ItemsControl Grid.Column="1" ItemsSource="{Binding Checks}" Focusable="False" Visibility="{Binding IsChecks, Converter={StaticResource Shown}}">
+                        <ItemsControl
+                            Grid.Column="1"
+                            ItemsSource="{Binding Checks}"
+                            Focusable="False"
+                            Visibility="{Binding IsChecks, Converter={StaticResource Shown}}"
+                        >
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <WrapPanel />
@@ -124,38 +199,102 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type local:GlobalSettingCheck}">
                                     <StackPanel Orientation="Horizontal" Margin="0,2,10,2">
-                                        <CheckBox Style="{StaticResource GhCheckBox}" IsChecked="{Binding IsOn, Mode=TwoWay}" VerticalAlignment="Center" />
+                                        <CheckBox
+                                            Style="{StaticResource GhCheckBox}"
+                                            IsChecked="{Binding IsOn, Mode=TwoWay}"
+                                            VerticalAlignment="Center"
+                                        />
                                         <TextBlock Text="{Binding Name}" Margin="4,0,0,0" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </Grid>
-                    <TextBlock Text="{Binding Error}" Foreground="{StaticResource GhError}" TextWrapping="Wrap" HorizontalAlignment="Right"
-                               Visibility="{Binding HasError, Converter={StaticResource Shown}}" />
+                    <TextBlock
+                        Text="{Binding Error}"
+                        Foreground="{StaticResource GhError}"
+                        TextWrapping="Wrap"
+                        HorizontalAlignment="Right"
+                        Visibility="{Binding HasError, Converter={StaticResource Shown}}"
+                    />
                 </StackPanel>
             </DataTemplate>
         </ResourceDictionary>
     </Window.Resources>
 
-    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="6"
-            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
-            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        CornerRadius="6"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
         <DockPanel>
-            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" CornerRadius="6,6,0,0" MouseLeftButtonDown="OnHeaderDown">
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                CornerRadius="6,6,0,0"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Command="{Binding CancelCommand}" ToolTip="Close" />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Command="{Binding CancelCommand}"
+                        ToolTip="Close"
+                    />
                     <TextBlock Text="Global settings" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>
 
-            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10" CornerRadius="0,0,6,6">
+            <Border
+                DockPanel.Dock="Bottom"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                CornerRadius="0,0,6,6"
+            >
                 <DockPanel>
-                    <Button DockPanel.Dock="Left" Style="{StaticResource Secondary}" Margin="0" Content="Reset to defaults" Command="{Binding ResetCommand}" />
-                    <Button DockPanel.Dock="Right" Style="{StaticResource Secondary}" Content="OK" Command="{Binding OkCommand}" />
-                    <Button DockPanel.Dock="Right" Style="{StaticResource Primary}" Content="Apply" Command="{Binding ApplyCommand}" />
-                    <Button DockPanel.Dock="Right" Style="{StaticResource Secondary}" Content="Cancel" Command="{Binding CancelCommand}" IsCancel="True" />
-                    <TextBlock Text="{Binding Notice}" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" TextAlignment="Right" TextTrimming="CharacterEllipsis" Margin="12,0,0,0" />
+                    <Button
+                        DockPanel.Dock="Left"
+                        Style="{StaticResource Secondary}"
+                        Margin="0"
+                        Content="Reset to defaults"
+                        Command="{Binding ResetCommand}"
+                    />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource Secondary}"
+                        Content="OK"
+                        Command="{Binding OkCommand}"
+                    />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource Primary}"
+                        Content="Apply"
+                        Command="{Binding ApplyCommand}"
+                    />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource Secondary}"
+                        Content="Cancel"
+                        Command="{Binding CancelCommand}"
+                        IsCancel="True"
+                    />
+                    <TextBlock
+                        Text="{Binding Notice}"
+                        Foreground="{StaticResource GhTextMuted}"
+                        VerticalAlignment="Center"
+                        TextAlignment="Right"
+                        TextTrimming="CharacterEllipsis"
+                        Margin="12,0,0,0"
+                    />
                 </DockPanel>
             </Border>
 
@@ -166,8 +305,14 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- The categories; those for drawings made from a model tagged MODEL. -->
-                <ListBox Background="{StaticResource GhBg}" BorderThickness="0" Padding="0,8" ItemsSource="{Binding Categories}"
-                         SelectedItem="{Binding SelectedCategory, Mode=TwoWay}" Foreground="{StaticResource GhTextMuted}">
+                <ListBox
+                    Background="{StaticResource GhBg}"
+                    BorderThickness="0"
+                    Padding="0,8"
+                    ItemsSource="{Binding Categories}"
+                    SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
+                    Foreground="{StaticResource GhTextMuted}"
+                >
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem">
                             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -176,17 +321,40 @@
                                     <ControlTemplate TargetType="ListBoxItem">
                                         <Border x:Name="Row" Background="Transparent" Padding="12,6">
                                             <StackPanel Orientation="Horizontal">
-                                                <TextBlock x:Name="Name" Text="{Binding Name}" Foreground="{StaticResource GhTextMuted}" />
-                                                <Border Background="{StaticResource GhSelected}" CornerRadius="3" Padding="5,0" Margin="6,0,0,0" VerticalAlignment="Center"
-                                                        Visibility="{Binding IsModel, Converter={StaticResource Shown}}">
-                                                    <TextBlock Text="MODEL" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource GhText}" />
+                                                <TextBlock
+                                                    x:Name="Name"
+                                                    Text="{Binding Name}"
+                                                    Foreground="{StaticResource GhTextMuted}"
+                                                />
+                                                <Border
+                                                    Background="{StaticResource GhSelected}"
+                                                    CornerRadius="3"
+                                                    Padding="5,0"
+                                                    Margin="6,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    Visibility="{Binding IsModel, Converter={StaticResource Shown}}"
+                                                >
+                                                    <TextBlock
+                                                        Text="MODEL"
+                                                        FontSize="9"
+                                                        FontWeight="SemiBold"
+                                                        Foreground="{StaticResource GhText}"
+                                                    />
                                                 </Border>
                                             </StackPanel>
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
-                                                <Setter TargetName="Name" Property="Foreground" Value="{StaticResource GhText}" />
+                                                <Setter
+                                                    TargetName="Row"
+                                                    Property="Background"
+                                                    Value="{StaticResource GhSelected}"
+                                                />
+                                                <Setter
+                                                    TargetName="Name"
+                                                    Property="Foreground"
+                                                    Value="{StaticResource GhText}"
+                                                />
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -198,24 +366,47 @@
 
                 <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Focusable="False">
                     <StackPanel Margin="16,12">
-                        <TextBlock Text="{Binding Intro}" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" Margin="0,0,0,4" />
+                        <TextBlock
+                            Text="{Binding Intro}"
+                            Foreground="{StaticResource GhTextMuted}"
+                            TextWrapping="Wrap"
+                            Margin="0,0,0,4"
+                        />
 
                         <ItemsControl ItemsSource="{Binding Sections}" Focusable="False">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type local:GlobalSettingSection}">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,8,0,2">
-                                            <local:IconView Size="12" StrokeThickness="2.5" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconChevron}" VerticalAlignment="Center" />
-                                            <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" Margin="6,0,0,0" />
+                                            <local:IconView
+                                                Size="12"
+                                                StrokeThickness="2.5"
+                                                Stroke="{StaticResource GhTextMuted}"
+                                                Data="{StaticResource GhIconChevron}"
+                                                VerticalAlignment="Center"
+                                            />
+                                            <TextBlock
+                                                Text="{Binding Title}"
+                                                FontSize="13"
+                                                FontWeight="SemiBold"
+                                                Margin="6,0,0,0"
+                                            />
                                         </StackPanel>
-                                        <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource SettingRow}" Focusable="False" />
+                                        <ItemsControl
+                                            ItemsSource="{Binding Rows}"
+                                            ItemTemplate="{StaticResource SettingRow}"
+                                            Focusable="False"
+                                        />
                                     </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
                         <!-- Layers, colours and lines: the default table of new drawings. -->
-                        <StackPanel Visibility="{Binding IsLayersPage, Converter={StaticResource Shown}}" Margin="0,8,0,0">
+                        <StackPanel
+                            Visibility="{Binding IsLayersPage, Converter={StaticResource Shown}}"
+                            Margin="0,8,0,0"
+                        >
                             <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4">
                                 <StackPanel>
                                     <Grid Background="{StaticResource GhHeader}">
@@ -236,7 +427,10 @@
                                     <ItemsControl ItemsSource="{Binding Layers}" Focusable="False">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type local:GlobalLayerRow}">
-                                                <Border BorderBrush="{StaticResource GhHeader}" BorderThickness="0,1,0,0">
+                                                <Border
+                                                    BorderBrush="{StaticResource GhHeader}"
+                                                    BorderThickness="0,1,0,0"
+                                                >
                                                     <Grid Margin="0,2">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="*" />
@@ -246,18 +440,65 @@
                                                             <ColumnDefinition Width="44" />
                                                             <ColumnDefinition Width="28" />
                                                         </Grid.ColumnDefinitions>
-                                                        <TextBox Style="{StaticResource GhTextBox}" Text="{Binding Name, UpdateSourceTrigger=LostFocus}" FontWeight="SemiBold" Margin="8,0" />
+                                                        <TextBox
+                                                            Style="{StaticResource GhTextBox}"
+                                                            Text="{Binding Name, UpdateSourceTrigger=LostFocus}"
+                                                            FontWeight="SemiBold"
+                                                            Margin="8,0"
+                                                        />
                                                         <DockPanel Grid.Column="1" Margin="8,0">
-                                                            <Border DockPanel.Dock="Left" Width="12" Height="12" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" Margin="0,0,6,0"
-                                                                    Background="{Binding Rgb, Converter={StaticResource RgbBrush}}" VerticalAlignment="Center" />
-                                                            <TextBox Style="{StaticResource GhTextBox}" Text="{Binding Colour, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GhMonoFont}" />
+                                                            <Border
+                                                                DockPanel.Dock="Left"
+                                                                Width="12"
+                                                                Height="12"
+                                                                BorderBrush="{StaticResource GhBorder}"
+                                                                BorderThickness="1"
+                                                                Margin="0,0,6,0"
+                                                                Background="{Binding Rgb, Converter={StaticResource RgbBrush}}"
+                                                                VerticalAlignment="Center"
+                                                            />
+                                                            <TextBox
+                                                                Style="{StaticResource GhTextBox}"
+                                                                Text="{Binding Colour, UpdateSourceTrigger=LostFocus}"
+                                                                FontFamily="{StaticResource GhMonoFont}"
+                                                            />
                                                         </DockPanel>
-                                                        <TextBox Grid.Column="2" Style="{StaticResource GhTextBox}" Text="{Binding Linetype, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GhMonoFont}" Margin="8,0" />
-                                                        <TextBox Grid.Column="3" Style="{StaticResource GhTextBox}" Text="{Binding LineWeight, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GhMonoFont}" Margin="8,0" />
-                                                        <CheckBox Grid.Column="4" Style="{StaticResource GhCheckBox}" IsChecked="{Binding Plot, Mode=TwoWay}" Margin="8,0" VerticalAlignment="Center" />
-                                                        <Button Grid.Column="5" Style="{StaticResource GhFlatButton}" Width="20" Height="20" ToolTip="Take the layer out"
-                                                                Command="{Binding DataContext.RemoveLayerCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
-                                                            <local:IconView Size="12" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}" />
+                                                        <TextBox
+                                                            Grid.Column="2"
+                                                            Style="{StaticResource GhTextBox}"
+                                                            Text="{Binding Linetype, UpdateSourceTrigger=LostFocus}"
+                                                            FontFamily="{StaticResource GhMonoFont}"
+                                                            Margin="8,0"
+                                                        />
+                                                        <TextBox
+                                                            Grid.Column="3"
+                                                            Style="{StaticResource GhTextBox}"
+                                                            Text="{Binding LineWeight, UpdateSourceTrigger=LostFocus}"
+                                                            FontFamily="{StaticResource GhMonoFont}"
+                                                            Margin="8,0"
+                                                        />
+                                                        <CheckBox
+                                                            Grid.Column="4"
+                                                            Style="{StaticResource GhCheckBox}"
+                                                            IsChecked="{Binding Plot, Mode=TwoWay}"
+                                                            Margin="8,0"
+                                                            VerticalAlignment="Center"
+                                                        />
+                                                        <Button
+                                                            Grid.Column="5"
+                                                            Style="{StaticResource GhFlatButton}"
+                                                            Width="20"
+                                                            Height="20"
+                                                            ToolTip="Take the layer out"
+                                                            Command="{Binding DataContext.RemoveLayerCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"
+                                                        >
+                                                            <local:IconView
+                                                                Size="12"
+                                                                StrokeThickness="2"
+                                                                Stroke="{StaticResource GhTextMuted}"
+                                                                Data="{StaticResource GhIconClose}"
+                                                            />
                                                         </Button>
                                                     </Grid>
                                                 </Border>
@@ -267,12 +508,20 @@
                                 </StackPanel>
                             </Border>
                             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                <Button Style="{StaticResource Secondary}" Margin="0" Content="Add layer" Command="{Binding AddLayerCommand}" />
+                                <Button
+                                    Style="{StaticResource Secondary}"
+                                    Margin="0"
+                                    Content="Add layer"
+                                    Command="{Binding AddLayerCommand}"
+                                />
                             </StackPanel>
                         </StackPanel>
 
                         <!-- Fonts: the folders fonts are looked for in, in order, and the fonts drawn in others. -->
-                        <StackPanel Visibility="{Binding IsFontsPage, Converter={StaticResource Shown}}" Margin="0,8,0,0">
+                        <StackPanel
+                            Visibility="{Binding IsFontsPage, Converter={StaticResource Shown}}"
+                            Margin="0,8,0,0"
+                        >
                             <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4">
                                 <StackPanel>
                                     <Grid Background="{StaticResource GhHeader}">
@@ -285,16 +534,36 @@
                                     <ItemsControl ItemsSource="{Binding FontFolders}" Focusable="False">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type local:FontFolderRow}">
-                                                <Border BorderBrush="{StaticResource GhHeader}" BorderThickness="0,1,0,0">
+                                                <Border
+                                                    BorderBrush="{StaticResource GhHeader}"
+                                                    BorderThickness="0,1,0,0"
+                                                >
                                                     <Grid Margin="0,2">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="*" />
                                                             <ColumnDefinition Width="28" />
                                                         </Grid.ColumnDefinitions>
-                                                        <TextBox Style="{StaticResource GhTextBox}" Text="{Binding Folder, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GhMonoFont}" Margin="8,0" />
-                                                        <Button Grid.Column="1" Style="{StaticResource GhFlatButton}" Width="20" Height="20" ToolTip="Take the folder out"
-                                                                Command="{Binding DataContext.RemoveFontFolderCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
-                                                            <local:IconView Size="12" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}" />
+                                                        <TextBox
+                                                            Style="{StaticResource GhTextBox}"
+                                                            Text="{Binding Folder, UpdateSourceTrigger=LostFocus}"
+                                                            FontFamily="{StaticResource GhMonoFont}"
+                                                            Margin="8,0"
+                                                        />
+                                                        <Button
+                                                            Grid.Column="1"
+                                                            Style="{StaticResource GhFlatButton}"
+                                                            Width="20"
+                                                            Height="20"
+                                                            ToolTip="Take the folder out"
+                                                            Command="{Binding DataContext.RemoveFontFolderCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"
+                                                        >
+                                                            <local:IconView
+                                                                Size="12"
+                                                                StrokeThickness="2"
+                                                                Stroke="{StaticResource GhTextMuted}"
+                                                                Data="{StaticResource GhIconClose}"
+                                                            />
                                                         </Button>
                                                     </Grid>
                                                 </Border>
@@ -304,9 +573,19 @@
                                 </StackPanel>
                             </Border>
                             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                <Button Style="{StaticResource Secondary}" Margin="0" Content="Add folder" Command="{Binding AddFontFolderCommand}" />
+                                <Button
+                                    Style="{StaticResource Secondary}"
+                                    Margin="0"
+                                    Content="Add folder"
+                                    Command="{Binding AddFontFolderCommand}"
+                                />
                             </StackPanel>
-                            <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Margin="0,12,0,0">
+                            <Border
+                                BorderBrush="{StaticResource GhBorder}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Margin="0,12,0,0"
+                            >
                                 <StackPanel>
                                     <Grid Background="{StaticResource GhHeader}">
                                         <Grid.ColumnDefinitions>
@@ -320,18 +599,44 @@
                                     <ItemsControl ItemsSource="{Binding FontSubstitutions}" Focusable="False">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type local:FontSubstitutionRow}">
-                                                <Border BorderBrush="{StaticResource GhHeader}" BorderThickness="0,1,0,0">
+                                                <Border
+                                                    BorderBrush="{StaticResource GhHeader}"
+                                                    BorderThickness="0,1,0,0"
+                                                >
                                                     <Grid Margin="0,2">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="*" />
                                                             <ColumnDefinition Width="*" />
                                                             <ColumnDefinition Width="28" />
                                                         </Grid.ColumnDefinitions>
-                                                        <TextBox Style="{StaticResource GhTextBox}" Text="{Binding Font, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GhMonoFont}" Margin="8,0" />
-                                                        <TextBox Grid.Column="1" Style="{StaticResource GhTextBox}" Text="{Binding DrawnIn, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GhMonoFont}" Margin="8,0" />
-                                                        <Button Grid.Column="2" Style="{StaticResource GhFlatButton}" Width="20" Height="20" ToolTip="Take the substitution out"
-                                                                Command="{Binding DataContext.RemoveFontSubstitutionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
-                                                            <local:IconView Size="12" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}" />
+                                                        <TextBox
+                                                            Style="{StaticResource GhTextBox}"
+                                                            Text="{Binding Font, UpdateSourceTrigger=LostFocus}"
+                                                            FontFamily="{StaticResource GhMonoFont}"
+                                                            Margin="8,0"
+                                                        />
+                                                        <TextBox
+                                                            Grid.Column="1"
+                                                            Style="{StaticResource GhTextBox}"
+                                                            Text="{Binding DrawnIn, UpdateSourceTrigger=LostFocus}"
+                                                            FontFamily="{StaticResource GhMonoFont}"
+                                                            Margin="8,0"
+                                                        />
+                                                        <Button
+                                                            Grid.Column="2"
+                                                            Style="{StaticResource GhFlatButton}"
+                                                            Width="20"
+                                                            Height="20"
+                                                            ToolTip="Take the substitution out"
+                                                            Command="{Binding DataContext.RemoveFontSubstitutionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"
+                                                        >
+                                                            <local:IconView
+                                                                Size="12"
+                                                                StrokeThickness="2"
+                                                                Stroke="{StaticResource GhTextMuted}"
+                                                                Data="{StaticResource GhIconClose}"
+                                                            />
                                                         </Button>
                                                     </Grid>
                                                 </Border>
@@ -341,28 +646,61 @@
                                 </StackPanel>
                             </Border>
                             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                <Button Style="{StaticResource Secondary}" Margin="0" Content="Add substitution" Command="{Binding AddFontSubstitutionCommand}" />
+                                <Button
+                                    Style="{StaticResource Secondary}"
+                                    Margin="0"
+                                    Content="Add substitution"
+                                    Command="{Binding AddFontSubstitutionCommand}"
+                                />
                             </StackPanel>
 
                             <!-- The support file search folders: where .lin and .pat files are looked for, after the drawing's folder. -->
-                            <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Margin="0,12,0,0">
+                            <Border
+                                BorderBrush="{StaticResource GhBorder}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Margin="0,12,0,0"
+                            >
                                 <StackPanel>
                                     <Grid Background="{StaticResource GhHeader}">
-                                        <TextBlock Style="{StaticResource Head}" Text="Support file search folders (linetypes .lin, hatch patterns .pat), in order" />
+                                        <TextBlock
+                                            Style="{StaticResource Head}"
+                                            Text="Support file search folders (linetypes .lin, hatch patterns .pat), in order"
+                                        />
                                     </Grid>
                                     <ItemsControl ItemsSource="{Binding SupportFolders}" Focusable="False">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type local:FontFolderRow}">
-                                                <Border BorderBrush="{StaticResource GhHeader}" BorderThickness="0,1,0,0">
+                                                <Border
+                                                    BorderBrush="{StaticResource GhHeader}"
+                                                    BorderThickness="0,1,0,0"
+                                                >
                                                     <Grid Margin="0,2">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="*" />
                                                             <ColumnDefinition Width="28" />
                                                         </Grid.ColumnDefinitions>
-                                                        <TextBox Style="{StaticResource GhTextBox}" Text="{Binding Folder, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GhMonoFont}" Margin="8,0" />
-                                                        <Button Grid.Column="1" Style="{StaticResource GhFlatButton}" Width="20" Height="20" ToolTip="Take the folder out"
-                                                                Command="{Binding DataContext.RemoveSupportFolderCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
-                                                            <local:IconView Size="12" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}" />
+                                                        <TextBox
+                                                            Style="{StaticResource GhTextBox}"
+                                                            Text="{Binding Folder, UpdateSourceTrigger=LostFocus}"
+                                                            FontFamily="{StaticResource GhMonoFont}"
+                                                            Margin="8,0"
+                                                        />
+                                                        <Button
+                                                            Grid.Column="1"
+                                                            Style="{StaticResource GhFlatButton}"
+                                                            Width="20"
+                                                            Height="20"
+                                                            ToolTip="Take the folder out"
+                                                            Command="{Binding DataContext.RemoveSupportFolderCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"
+                                                        >
+                                                            <local:IconView
+                                                                Size="12"
+                                                                StrokeThickness="2"
+                                                                Stroke="{StaticResource GhTextMuted}"
+                                                                Data="{StaticResource GhIconClose}"
+                                                            />
                                                         </Button>
                                                     </Grid>
                                                 </Border>
@@ -372,20 +710,48 @@
                                 </StackPanel>
                             </Border>
                             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                <Button Style="{StaticResource Secondary}" Margin="0" Content="Add folder" Command="{Binding AddSupportFolderCommand}" />
+                                <Button
+                                    Style="{StaticResource Secondary}"
+                                    Margin="0"
+                                    Content="Add folder"
+                                    Command="{Binding AddSupportFolderCommand}"
+                                />
                             </StackPanel>
                         </StackPanel>
 
                         <!-- Data sources: the model sources the host gives. -->
-                        <ItemsControl ItemsSource="{Binding Sources}" Focusable="False" Margin="0,10,0,0" Visibility="{Binding IsSourcesPage, Converter={StaticResource Shown}}">
+                        <ItemsControl
+                            ItemsSource="{Binding Sources}"
+                            Focusable="False"
+                            Margin="0,10,0,0"
+                            Visibility="{Binding IsSourcesPage, Converter={StaticResource Shown}}"
+                        >
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type local:CadSourceInfo}">
-                                    <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Padding="12,10" Margin="0,0,0,6">
+                                    <Border
+                                        BorderBrush="{StaticResource GhBorder}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="12,10"
+                                        Margin="0,0,0,6"
+                                    >
                                         <DockPanel>
-                                            <Ellipse x:Name="Dot" DockPanel.Dock="Left" Width="8" Height="8" Fill="#5B6573" Margin="0,0,10,0" VerticalAlignment="Center" />
+                                            <Ellipse
+                                                x:Name="Dot"
+                                                DockPanel.Dock="Left"
+                                                Width="8"
+                                                Height="8"
+                                                Fill="#5B6573"
+                                                Margin="0,0,10,0"
+                                                VerticalAlignment="Center"
+                                            />
                                             <StackPanel>
                                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                                                <TextBlock Text="{Binding Detail}" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" />
+                                                <TextBlock
+                                                    Text="{Binding Detail}"
+                                                    Foreground="{StaticResource GhTextMuted}"
+                                                    TextWrapping="Wrap"
+                                                />
                                             </StackPanel>
                                         </DockPanel>
                                     </Border>
@@ -399,13 +765,32 @@
                         </ItemsControl>
 
                         <!-- Shortcuts: a search, then the commands with their aliases and keys. -->
-                        <StackPanel Visibility="{Binding IsShortcutsPage, Converter={StaticResource Shown}}" Margin="0,8,0,0">
+                        <StackPanel
+                            Visibility="{Binding IsShortcutsPage, Converter={StaticResource Shown}}"
+                            Margin="0,8,0,0"
+                        >
                             <DockPanel Margin="0,0,0,8">
-                                <Button DockPanel.Dock="Right" Style="{StaticResource Secondary}" Content="Reset to AutoCAD defaults" Command="{Binding ResetShortcutsCommand}" />
+                                <Button
+                                    DockPanel.Dock="Right"
+                                    Style="{StaticResource Secondary}"
+                                    Content="Reset to AutoCAD defaults"
+                                    Command="{Binding ResetShortcutsCommand}"
+                                />
                                 <Border Background="{StaticResource GhInput}" CornerRadius="4" Padding="8,5">
                                     <DockPanel>
-                                        <local:IconView Size="14" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconSearch}" Margin="0,0,6,0" VerticalAlignment="Center" />
-                                        <TextBox Style="{StaticResource GhTextBox}" Tag="Search command, alias or key" Text="{Binding ShortcutSearch, UpdateSourceTrigger=PropertyChanged}" />
+                                        <local:IconView
+                                            Size="14"
+                                            StrokeThickness="2"
+                                            Stroke="{StaticResource GhTextMuted}"
+                                            Data="{StaticResource GhIconSearch}"
+                                            Margin="0,0,6,0"
+                                            VerticalAlignment="Center"
+                                        />
+                                        <TextBox
+                                            Style="{StaticResource GhTextBox}"
+                                            Tag="Search command, alias or key"
+                                            Text="{Binding ShortcutSearch, UpdateSourceTrigger=PropertyChanged}"
+                                        />
                                     </DockPanel>
                                 </Border>
                             </DockPanel>
@@ -423,10 +808,17 @@
                                         <TextBlock Grid.Column="2" Style="{StaticResource Head}" Text="Keys" />
                                         <TextBlock Grid.Column="3" Style="{StaticResource Head}" Text="Description" />
                                     </Grid>
-                                    <ItemsControl ItemsSource="{Binding Shortcuts}" Focusable="False" TextElement.FontFamily="{StaticResource GhMonoFont}">
+                                    <ItemsControl
+                                        ItemsSource="{Binding Shortcuts}"
+                                        Focusable="False"
+                                        TextElement.FontFamily="{StaticResource GhMonoFont}"
+                                    >
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type local:ShortcutRowViewModel}">
-                                                <Border BorderBrush="{StaticResource GhHeader}" BorderThickness="0,1,0,0">
+                                                <Border
+                                                    BorderBrush="{StaticResource GhHeader}"
+                                                    BorderThickness="0,1,0,0"
+                                                >
                                                     <Grid Margin="0,3">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="140" />
@@ -434,20 +826,59 @@
                                                             <ColumnDefinition Width="110" />
                                                             <ColumnDefinition Width="*" />
                                                         </Grid.ColumnDefinitions>
-                                                        <TextBlock Text="{Binding Command}" Margin="8,0" VerticalAlignment="Center" />
-                                                        <TextBox Grid.Column="1" Style="{StaticResource GhTextBox}" Text="{Binding Aliases, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GhMonoFont}" Margin="8,0" />
-                                                        <Border x:Name="KeyBox" Grid.Column="2" Background="{StaticResource GhInput}" CornerRadius="2" Padding="4,1" Margin="8,0" BorderThickness="1" BorderBrush="Transparent">
-                                                            <TextBox Style="{StaticResource GhTextBox}" Text="{Binding Keys, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GhMonoFont}" />
+                                                        <TextBlock
+                                                            Text="{Binding Command}"
+                                                            Margin="8,0"
+                                                            VerticalAlignment="Center"
+                                                        />
+                                                        <TextBox
+                                                            Grid.Column="1"
+                                                            Style="{StaticResource GhTextBox}"
+                                                            Text="{Binding Aliases, UpdateSourceTrigger=LostFocus}"
+                                                            FontFamily="{StaticResource GhMonoFont}"
+                                                            Margin="8,0"
+                                                        />
+                                                        <Border
+                                                            x:Name="KeyBox"
+                                                            Grid.Column="2"
+                                                            Background="{StaticResource GhInput}"
+                                                            CornerRadius="2"
+                                                            Padding="4,1"
+                                                            Margin="8,0"
+                                                            BorderThickness="1"
+                                                            BorderBrush="Transparent"
+                                                        >
+                                                            <TextBox
+                                                                Style="{StaticResource GhTextBox}"
+                                                                Text="{Binding Keys, UpdateSourceTrigger=LostFocus}"
+                                                                FontFamily="{StaticResource GhMonoFont}"
+                                                            />
                                                         </Border>
-                                                        <StackPanel Grid.Column="3" Margin="8,0" TextElement.FontFamily="{StaticResource GhFont}">
-                                                            <TextBlock Text="{Binding Description}" Foreground="{StaticResource GhTextMuted}" TextTrimming="CharacterEllipsis" />
-                                                            <TextBlock Text="{Binding Conflict}" Foreground="{StaticResource GhError}" Visibility="{Binding HasConflict, Converter={StaticResource Shown}}" />
+                                                        <StackPanel
+                                                            Grid.Column="3"
+                                                            Margin="8,0"
+                                                            TextElement.FontFamily="{StaticResource GhFont}"
+                                                        >
+                                                            <TextBlock
+                                                                Text="{Binding Description}"
+                                                                Foreground="{StaticResource GhTextMuted}"
+                                                                TextTrimming="CharacterEllipsis"
+                                                            />
+                                                            <TextBlock
+                                                                Text="{Binding Conflict}"
+                                                                Foreground="{StaticResource GhError}"
+                                                                Visibility="{Binding HasConflict, Converter={StaticResource Shown}}"
+                                                            />
                                                         </StackPanel>
                                                     </Grid>
                                                 </Border>
                                                 <DataTemplate.Triggers>
                                                     <DataTrigger Binding="{Binding HasConflict}" Value="True">
-                                                        <Setter TargetName="KeyBox" Property="BorderBrush" Value="{StaticResource GhError}" />
+                                                        <Setter
+                                                            TargetName="KeyBox"
+                                                            Property="BorderBrush"
+                                                            Value="{StaticResource GhError}"
+                                                        />
                                                     </DataTrigger>
                                                 </DataTemplate.Triggers>
                                             </DataTemplate>

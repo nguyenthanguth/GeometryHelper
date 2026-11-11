@@ -135,16 +135,25 @@ namespace GeometryHelper.UnitTest.Plane
             GeoArc2 arc = Quarter();
 
             // A line across the middle of the quarter: one crossing on the arc.
-            Assert.True(arc.TryIntersectWith(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(20, 20)), out GeoPoint2[] one));
+            Assert.True(
+                arc.TryIntersectWith(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(20, 20)), out GeoPoint2[] one)
+            );
             Assert.Single(one);
             Assert.True(one[0].IsEqualTo(arc.MidPoint, new Tolerance(1E-8, 1E-8)));
 
             // The same line carried on through the circle meets it twice, but only one of those is on the arc.
-            Assert.True(arc.TryIntersectWith(new GeoLine2(new GeoPoint2(-20, -20), new GeoPoint2(20, 20)), out GeoPoint2[] still));
+            Assert.True(
+                arc.TryIntersectWith(
+                    new GeoLine2(new GeoPoint2(-20, -20), new GeoPoint2(20, 20)),
+                    out GeoPoint2[] still
+                )
+            );
             Assert.Single(still);
 
             // A line meeting the circle only where the arc does not reach gives nothing.
-            Assert.False(arc.TryIntersectWith(new GeoLine2(new GeoPoint2(-20, -5), new GeoPoint2(-5, -20)), out GeoPoint2[] none));
+            Assert.False(
+                arc.TryIntersectWith(new GeoLine2(new GeoPoint2(-20, -5), new GeoPoint2(-5, -20)), out GeoPoint2[] none)
+            );
             Assert.Empty(none);
 
             // A line that misses the circle altogether gives nothing.

@@ -22,7 +22,8 @@ namespace GeometryHelper.UnitTest.Solid
             var two = new GeoCircle3(
                 new GeoPoint3(-37.51983770053826, -84.16675933830754, 0.0008827762221371645),
                 new GeoVector3(5.062732878271126E-07, -6.504263396403756E-07, 0.9999999999996604),
-                477.6240549877398);
+                477.6240549877398
+            );
 
             GeoPoint3[] first = one.GetIntersections(two, Thousandth);
             GeoPoint3[] second = two.GetIntersections(one, Thousandth);

@@ -6,16 +6,19 @@ using System.Linq;
 using System.Text;
 using GeometryHelper;
 using GeometryHelper.Enums;
+using GeometryHelper.Geometry;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Models;
-using GeometryHelper.Geometry;
 
 namespace GeometryConsoleTest
 {
     internal class Program
     {
         // IFC models from the project's TestFiles folder, copied next to the executable (see GeometryConsoleTest.csproj).
-        private static readonly string TestFilesFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TestFiles");
+        private static readonly string TestFilesFolder = Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory,
+            "TestFiles"
+        );
 
         static int Main(string[] args)
         {
@@ -23,9 +26,11 @@ namespace GeometryConsoleTest
 
             // An IFC file or a folder of IFC files can be passed on the command line; otherwise every file in TestFiles is used.
             string source = args.Length > 0 ? args[0] : TestFilesFolder;
-            string[] ifcFiles = Directory.Exists(source)
-                ? Directory.GetFiles(source, "*.ifc").OrderBy(f => f, StringComparer.OrdinalIgnoreCase).ToArray()
-                : File.Exists(source) ? new[] { source } : Array.Empty<string>();
+            string[] ifcFiles =
+                Directory.Exists(source)
+                    ? Directory.GetFiles(source, "*.ifc").OrderBy(f => f, StringComparer.OrdinalIgnoreCase).ToArray()
+                : File.Exists(source) ? new[] { source }
+                : Array.Empty<string>();
 
             if (ifcFiles.Length == 0)
             {
@@ -50,10 +55,14 @@ namespace GeometryConsoleTest
             // 1. Open IFC model (Zero xBIM dependency, pure GeometryHelper)
             using (var model = IfcStoreCache.Open(ifcFilePath))
             {
-                Console.WriteLine($"Schema: {model.SchemaVersion}, length unit: {model.OriginalLengthUnit}, products: {model.ProductCount}");
+                Console.WriteLine(
+                    $"Schema: {model.SchemaVersion}, length unit: {model.OriginalLengthUnit}, products: {model.ProductCount}"
+                );
                 if (model.DuplicateGlobalIds.Count > 0)
                 {
-                    Console.WriteLine($"Duplicate GlobalIds (only the first product of each is reachable): {string.Join(", ", model.DuplicateGlobalIds)}");
+                    Console.WriteLine(
+                        $"Duplicate GlobalIds (only the first product of each is reachable): {string.Join(", ", model.DuplicateGlobalIds)}"
+                    );
                 }
 
                 // Geometry is reported in metres whatever the model's length unit.
@@ -62,7 +71,11 @@ namespace GeometryConsoleTest
                 // 2. Query product catalog (super lightweight metadata, no geometry conversion)
                 IReadOnlyList<IfcProductMetadata> catalog = model.GetProductCatalog();
                 Console.WriteLine($"Total products in model: {catalog.Count}");
-                foreach (IGrouping<string, IfcProductMetadata> group in catalog.GroupBy(p => p.IfcType).OrderByDescending(g => g.Count()))
+                foreach (
+                    IGrouping<string, IfcProductMetadata> group in catalog
+                        .GroupBy(p => p.IfcType)
+                        .OrderByDescending(g => g.Count())
+                )
                 {
                     Console.WriteLine($"  {group.Key}: {group.Count()}");
                 }
@@ -138,7 +151,9 @@ namespace GeometryConsoleTest
                         IfcPropertyValue isExternal = model.GetProperty(product.GlobalId, commonPset, "IsExternal");
                         if (isExternal != null)
                         {
-                            Console.WriteLine($"  IsExternal ({commonPset}) = {isExternal.Value} ({isExternal.TypeName})");
+                            Console.WriteLine(
+                                $"  IsExternal ({commonPset}) = {isExternal.Value} ({isExternal.TypeName})"
+                            );
                         }
                     }
                 }
@@ -149,19 +164,25 @@ namespace GeometryConsoleTest
                 var optionsWithVoids = new IfcConvertOptions { TargetUnit = LengthUnit.Meters, ApplyVoids = true };
                 IReadOnlyList<GeoSolid3> wallSolids = model.GetSolidsByType("IfcWall", optionsWithVoids);
                 Console.WriteLine();
-                Console.WriteLine($"Converted {wallSolids.Count} wall solid(s) with openings cut: {wallSolids.Sum(s => s.GetVolume()):F4} m3");
+                Console.WriteLine(
+                    $"Converted {wallSolids.Count} wall solid(s) with openings cut: {wallSolids.Sum(s => s.GetVolume()):F4} m3"
+                );
 
                 if (firstSolidGuid != null)
                 {
                     // 7. Geometry cache: the first call for a set of options converts, the second is served from cache
-                    var optsLocal = new IfcConvertOptions { TargetUnit = LengthUnit.Meters, CoordinateSpace = CoordinateSpace.Local };
+                    var optsLocal = new IfcConvertOptions
+                    {
+                        TargetUnit = LengthUnit.Meters,
+                        CoordinateSpace = CoordinateSpace.Local,
+                    };
                     Stopwatch sw = Stopwatch.StartNew();
-                    GeoSolid3 localFirst = model.GetSolid(firstSolidGuid, optsLocal);    // First call: converts
+                    GeoSolid3 localFirst = model.GetSolid(firstSolidGuid, optsLocal); // First call: converts
                     sw.Stop();
                     Console.WriteLine($"\nFirst GetSolid ({firstSolidGuid}, Local): {sw.ElapsedMilliseconds}ms");
 
                     sw.Restart();
-                    GeoSolid3 localCached = model.GetSolid(firstSolidGuid, optsLocal);   // Second call: from cache
+                    GeoSolid3 localCached = model.GetSolid(firstSolidGuid, optsLocal); // Second call: from cache
                     sw.Stop();
                     Console.WriteLine($"Second GetSolid (cached): {sw.ElapsedMilliseconds}ms");
                     Console.WriteLine($"Same object reference: {ReferenceEquals(localFirst, localCached)}");
@@ -173,8 +194,10 @@ namespace GeometryConsoleTest
                 }
 
                 Console.WriteLine();
-                Console.WriteLine($"Summary: {catalog.Count} products, {withSolids} with solids ({totalVolume:F4} m3), " +
-                    $"{withWarnings} with warnings, {total.Elapsed.TotalSeconds:F1}s");
+                Console.WriteLine(
+                    $"Summary: {catalog.Count} products, {withSolids} with solids ({totalVolume:F4} m3), "
+                        + $"{withWarnings} with warnings, {total.Elapsed.TotalSeconds:F1}s"
+                );
             }
         }
     }

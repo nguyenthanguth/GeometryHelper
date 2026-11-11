@@ -193,8 +193,14 @@ namespace GeometryHelper.Dwg
             {
                 // A TEXT names its subclass twice; its vertical alignment is in the second.
                 int first = _record.Body.FindIndex(g => g.Key == 100 && g.Value.Trim() == "AcDbText");
-                int again = first < 0 ? -1 : _record.Body.FindIndex(first + 1, g => g.Key == 100 && g.Value.Trim() == "AcDbText");
-                second = again < 0 ? second : new DwgGroups(_record.Body.GetRange(again + 1, _record.Body.Count - again - 1), null);
+                int again =
+                    first < 0
+                        ? -1
+                        : _record.Body.FindIndex(first + 1, g => g.Key == 100 && g.Value.Trim() == "AcDbText");
+                second =
+                    again < 0
+                        ? second
+                        : new DwgGroups(_record.Body.GetRange(again + 1, _record.Body.Count - again - 1), null);
             }
 
             double[] insertion = text.Point(10);
@@ -206,8 +212,15 @@ namespace GeometryHelper.Dwg
             int generation = text.Int(71);
             int horizontal = text.Int(72);
             int vertical = second.Int(kind == 0 ? 73 : 74);
-            int flags = (insertion[2] == 0.0 ? 1 : 0) | (hasAlignment ? 0 : 2) | (oblique == 0.0 ? 4 : 0) | (rotation == 0.0 ? 8 : 0)
-                | (width == 1.0 ? 0x10 : 0) | (generation == 0 ? 0x20 : 0) | (horizontal == 0 ? 0x40 : 0) | (vertical == 0 ? 0x80 : 0);
+            int flags =
+                (insertion[2] == 0.0 ? 1 : 0)
+                | (hasAlignment ? 0 : 2)
+                | (oblique == 0.0 ? 4 : 0)
+                | (rotation == 0.0 ? 8 : 0)
+                | (width == 1.0 ? 0x10 : 0)
+                | (generation == 0 ? 0x20 : 0)
+                | (horizontal == 0 ? 0x40 : 0)
+                | (vertical == 0 ? 0x80 : 0);
             _data.RawChar(flags);
 
             if ((flags & 1) == 0)
@@ -456,7 +469,9 @@ namespace GeometryHelper.Dwg
         /// <summary>The written vertices or attributes of the record, in order.</summary>
         private List<DwgRecord> OwnedEntities()
         {
-            return _record.Owned == null ? new List<DwgRecord>() : _record.Owned.FindAll(entity => _written.Contains(entity.Handle));
+            return _record.Owned == null
+                ? new List<DwgRecord>()
+                : _record.Owned.FindAll(entity => _written.Contains(entity.Handle));
         }
 
         /// <summary>The handles of owned entities: before R2004 the first and the last, from R2004 each; then the SEQEND.</summary>
@@ -551,7 +566,11 @@ namespace GeometryHelper.Dwg
             DwgGroups polyline = _record.Of("AcDb3dPolyline");
             int flags = polyline.Int(70);
             int curve = polyline.Int(75);
-            _data.RawChar(curve == 5 ? 1 : curve == 6 ? 2 : 0);
+            _data.RawChar(
+                curve == 5 ? 1
+                : curve == 6 ? 2
+                : 0
+            );
             _data.RawChar(flags & 1);
             WriteOwnedCount();
             WriteOwnedHandles(OwnedEntities());
@@ -622,8 +641,15 @@ namespace GeometryHelper.Dwg
             double thickness = polyline.Double(39);
             double[] normal = polyline.Point(210, 0, 0, 1);
             int dxf = polyline.Int(70);
-            int flags = (width != 0.0 ? 4 : 0) | (elevation != 0.0 ? 8 : 0) | (thickness != 0.0 ? 2 : 0) | (IsDefaultExtrusion(normal) ? 0 : 1)
-                | (anyBulge ? 0x10 : 0) | (anyWidth ? 0x20 : 0) | ((dxf & 1) != 0 ? 0x200 : 0) | ((dxf & 128) != 0 ? 0x100 : 0);
+            int flags =
+                (width != 0.0 ? 4 : 0)
+                | (elevation != 0.0 ? 8 : 0)
+                | (thickness != 0.0 ? 2 : 0)
+                | (IsDefaultExtrusion(normal) ? 0 : 1)
+                | (anyBulge ? 0x10 : 0)
+                | (anyWidth ? 0x20 : 0)
+                | ((dxf & 1) != 0 ? 0x200 : 0)
+                | ((dxf & 128) != 0 ? 0x100 : 0);
             _data.BitShort(flags);
 
             if ((flags & 4) != 0)
@@ -691,9 +717,13 @@ namespace GeometryHelper.Dwg
         private void WriteDimension(int type)
         {
             DwgGroups dimension = _record.Of("AcDbDimension");
-            string subclass = type == 0x14 ? "AcDbOrdinateDimension" : type == 0x15 || type == 0x16 ? "AcDbAlignedDimension"
-                : type == 0x17 ? "AcDb3PointAngularDimension" : type == 0x18 ? "AcDb2LineAngularDimension"
-                : type == 0x19 ? "AcDbRadialDimension" : "AcDbDiametricDimension";
+            string subclass =
+                type == 0x14 ? "AcDbOrdinateDimension"
+                : type == 0x15 || type == 0x16 ? "AcDbAlignedDimension"
+                : type == 0x17 ? "AcDb3PointAngularDimension"
+                : type == 0x18 ? "AcDb2LineAngularDimension"
+                : type == 0x19 ? "AcDbRadialDimension"
+                : "AcDbDiametricDimension";
             DwgGroups kind = _record.Of(subclass);
             int flags = dimension.Int(70);
             double[] middle = dimension.Point(11);

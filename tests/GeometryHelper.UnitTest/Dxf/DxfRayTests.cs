@@ -19,21 +19,25 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
 
-        private static readonly GeoTransform3 Turn = new GeoTransform3(new[,]
-        {
-            { 0.7816391739070251, -0.4829292842142122, 0.3947397981737998, 10.0 },
-            { 0.5501172307043584, 0.8320301337746346, -0.07139249941787586, -5.0 },
-            { -0.29395787843858057, 0.27295633888831433, 0.9160150668873173, 2.5 },
-            { 0.0, 0.0, 0.0, 1.0 },
-        });
+        private static readonly GeoTransform3 Turn = new GeoTransform3(
+            new[,]
+            {
+                { 0.7816391739070251, -0.4829292842142122, 0.3947397981737998, 10.0 },
+                { 0.5501172307043584, 0.8320301337746346, -0.07139249941787586, -5.0 },
+                { -0.29395787843858057, 0.27295633888831433, 0.9160150668873173, 2.5 },
+                { 0.0, 0.0, 0.0, 1.0 },
+            }
+        );
 
-        private static readonly GeoTransform3 Shear = new GeoTransform3(new[,]
-        {
-            { 0.9210609940028851, -0.3894183423086505, 0.0, 1.0 },
-            { 0.778836684617301, 1.8421219880057702, 0.0, 2.0 },
-            { 0.0, 0.0, 1.0, 3.0 },
-            { 0.0, 0.0, 0.0, 1.0 },
-        });
+        private static readonly GeoTransform3 Shear = new GeoTransform3(
+            new[,]
+            {
+                { 0.9210609940028851, -0.3894183423086505, 0.0, 1.0 },
+                { 0.778836684617301, 1.8421219880057702, 0.0, 2.0 },
+                { 0.0, 0.0, 1.0, 3.0 },
+                { 0.0, 0.0, 0.0, 1.0 },
+            }
+        );
 
         [Fact]
         public void TheRayOfEzdxf_IsReadAsEzdxfReadsIt_ToTheBit()
@@ -155,7 +159,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(Bits(new GeoVector3(0, 1, 0)), Bits(again.UnitDir));
             }
 
-            Assert.Throws<ArgumentException>(() => DxfDatabase.Parse(DxfFileEzdxfDrawings.R12).ModelSpace.AppendEntity(new DxfRay()));
+            Assert.Throws<ArgumentException>(() =>
+                DxfDatabase.Parse(DxfFileEzdxfDrawings.R12).ModelSpace.AppendEntity(new DxfRay())
+            );
         }
 
         [Fact]
@@ -178,13 +184,24 @@ namespace GeometryHelper.UnitTest.Dxf
             // 4.620958672623072, 3) along (0.19879432835442837, 0.9800412312827006, 0).
             DxfRay turned = ByHandle<DxfRay>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000), "71");
             turned.TransformBy(Turn);
-            Assert.True(turned.BasePoint.DistanceTo(new GeoPoint3(10.298709889692812, -3.617852635521007, 2.4789984604497337)) <= 1E-12);
-            Assert.True(turned.UnitDir.Subtract(new GeoVector3(0.21121978860927365, 0.9773257740222108, -0.014850331031350753)).Length <= 1E-12);
+            Assert.True(
+                turned.BasePoint.DistanceTo(new GeoPoint3(10.298709889692812, -3.617852635521007, 2.4789984604497337))
+                    <= 1E-12
+            );
+            Assert.True(
+                turned
+                    .UnitDir.Subtract(new GeoVector3(0.21121978860927365, 0.9773257740222108, -0.014850331031350753))
+                    .Length <= 1E-12
+            );
 
             DxfRay sheared = ByHandle<DxfRay>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000), "71");
             sheared.TransformBy(Shear);
-            Assert.True(sheared.BasePoint.DistanceTo(new GeoPoint3(1.5316426516942345, 4.620958672623072, 3.0)) <= 1E-12);
-            Assert.True(sheared.UnitDir.Subtract(new GeoVector3(0.19879432835442837, 0.9800412312827006, 0.0)).Length <= 1E-12);
+            Assert.True(
+                sheared.BasePoint.DistanceTo(new GeoPoint3(1.5316426516942345, 4.620958672623072, 3.0)) <= 1E-12
+            );
+            Assert.True(
+                sheared.UnitDir.Subtract(new GeoVector3(0.19879432835442837, 0.9800412312827006, 0.0)).Length <= 1E-12
+            );
         }
     }
 }

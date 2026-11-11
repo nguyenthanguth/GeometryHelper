@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -49,7 +49,8 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from this polygon to a polyline, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(polyline, this, tolerance);
+        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Distance3.DistanceTo(polyline, this, tolerance);
 
         /// <summary>
         /// Gets the distance from this polygon to a solid, using the default tolerance.
@@ -117,7 +118,8 @@ namespace GeometryHelper.Geometry
         /// upright along y = 50 from z = 10 to 110 are 10 apart; one lying 0.0004 above it is 0.0004 away and touches it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public double DistanceTo(GeoPolygon3 other, Tolerance tolerance) => Distance3.DistanceTo(this, other, tolerance);
+        public double DistanceTo(GeoPolygon3 other, Tolerance tolerance) =>
+            Distance3.DistanceTo(this, other, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between this polygon and a ray: the answer of
@@ -165,7 +167,8 @@ namespace GeometryHelper.Geometry
         /// square 100 by 100 standing upright along y = 50 from z = 10 to 110 are 10 apart; standing from z = -50, the
         /// square crosses the triangle and is nought from it.
         /// </remarks>
-        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) => Distance3.DistanceTo(triangle, this, tolerance);
+        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Distance3.DistanceTo(triangle, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between this polygon and a plane: the answer of

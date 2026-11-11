@@ -57,7 +57,12 @@ namespace GeometryHelper.Dxf
         {
             if (!(record is DxfDimStyleTableRecord style))
             {
-                throw new ArgumentException("The dimension style table takes a DxfDimStyleTableRecord, and was given a " + record.GetType().Name + ".", "value");
+                throw new ArgumentException(
+                    "The dimension style table takes a DxfDimStyleTableRecord, and was given a "
+                        + record.GetType().Name
+                        + ".",
+                    "value"
+                );
             }
 
             style.AddTo(_file);
@@ -99,7 +104,10 @@ namespace GeometryHelper.Dxf
             {
                 for (int i = groups.List.Count - 1; i > count; i--)
                 {
-                    if (groups.List[i].Key == 340 && string.Equals(groups.List[i].Value.Trim(), handle, StringComparison.OrdinalIgnoreCase))
+                    if (
+                        groups.List[i].Key == 340
+                        && string.Equals(groups.List[i].Value.Trim(), handle, StringComparison.OrdinalIgnoreCase)
+                    )
                     {
                         groups.RemoveAt(i);
                     }

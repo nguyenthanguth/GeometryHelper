@@ -10,10 +10,12 @@ namespace GeometryHelper.Arranging
     {
         /// <summary>A polygon obstacle.</summary>
         Polygon,
+
         /// <summary>A line segment obstacle.</summary>
         Line,
+
         /// <summary>A rectangular obstacle.</summary>
-        Rectangle
+        Rectangle,
     }
 
     /// <summary>
@@ -23,12 +25,16 @@ namespace GeometryHelper.Arranging
     {
         /// <summary>Gets the type of the obstacle.</summary>
         internal ObstacleType Type { get; }
+
         /// <summary>Gets the polygon, when the type is <see cref="ObstacleType.Polygon"/>.</summary>
         internal GeoPolygon2 Polygon { get; }
+
         /// <summary>Gets the segment, when the type is <see cref="ObstacleType.Line"/>.</summary>
         internal GeoLine2 Line { get; }
+
         /// <summary>Gets the rectangle, when the type is <see cref="ObstacleType.Rectangle"/>.</summary>
         internal GeoRectangle2 Rectangle { get; }
+
         /// <summary>Gets the bounding box of the obstacle.</summary>
         internal Bounds Box { get; }
 
@@ -85,14 +91,16 @@ namespace GeometryHelper.Arranging
         internal static List<Obstacle> CollectStatic(IReadOnlyList<ArrangeItem> items)
         {
             var occupied = new List<Obstacle>();
-            if (items == null) return occupied;
+            if (items == null)
+                return occupied;
 
             var seenPolygons = new HashSet<GeoPolygon2>();
             var seenLines = new HashSet<GeoLine2>();
 
             foreach (ArrangeItem item in items)
             {
-                if (item == null) continue;
+                if (item == null)
+                    continue;
 
                 if (item.BlockPolygons != null)
                 {

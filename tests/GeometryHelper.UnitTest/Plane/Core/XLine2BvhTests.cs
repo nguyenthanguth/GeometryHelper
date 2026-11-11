@@ -35,14 +35,18 @@ namespace GeometryHelper.UnitTest.Plane
         private static GeoLine2 Cut(GeoXLine2 xline, GeoBvh2 index, Tolerance tolerance)
         {
             GeoVector2 unit = xline.Direction;
-            double[] along = index.Bounds.GetVertices().Select(c => (c.X - xline.Origin.X) * unit.X + (c.Y - xline.Origin.Y) * unit.Y).ToArray();
+            double[] along = index
+                .Bounds.GetVertices()
+                .Select(c => (c.X - xline.Origin.X) * unit.X + (c.Y - xline.Origin.Y) * unit.Y)
+                .ToArray();
             double margin = Math.Max(1.0, 100 * tolerance.EqualPoint);
             double from = along.Min() - margin;
             double to = along.Max() + margin;
 
             return new GeoLine2(
                 new GeoPoint2(xline.Origin.X + from * unit.X, xline.Origin.Y + from * unit.Y),
-                new GeoPoint2(xline.Origin.X + to * unit.X, xline.Origin.Y + to * unit.Y));
+                new GeoPoint2(xline.Origin.X + to * unit.X, xline.Origin.Y + to * unit.Y)
+            );
         }
 
         [Fact]
@@ -139,10 +143,19 @@ namespace GeometryHelper.UnitTest.Plane
             var across = new GeoXLine2(new GeoPoint2(-50, 50), GeoVector2.XAxis);
             var slant = new GeoXLine2(new GeoPoint2(20, -50), new GeoVector2(1, 1));
 
-            AssertSamePoints(Plate().GetIntersections(across, Strict), GeoBvh2.FromFace(Plate()).GetIntersections(across, Strict));
+            AssertSamePoints(
+                Plate().GetIntersections(across, Strict),
+                GeoBvh2.FromFace(Plate()).GetIntersections(across, Strict)
+            );
             Assert.Equal(4, GeoBvh2.FromFace(Plate()).GetIntersections(across, Strict).Length);
-            AssertSamePoints(Ell().GetIntersections(slant, Strict), GeoBvh2.FromPolyline(Ell()).GetIntersections(slant, Strict));
-            AssertSamePoints(Hook().GetIntersections(across, Strict), GeoBvh2.FromPolylineArc(Hook()).GetIntersections(across, Strict));
+            AssertSamePoints(
+                Ell().GetIntersections(slant, Strict),
+                GeoBvh2.FromPolyline(Ell()).GetIntersections(slant, Strict)
+            );
+            AssertSamePoints(
+                Hook().GetIntersections(across, Strict),
+                GeoBvh2.FromPolylineArc(Hook()).GetIntersections(across, Strict)
+            );
         }
 
         [Fact]
@@ -153,11 +166,18 @@ namespace GeometryHelper.UnitTest.Plane
             var xline = new GeoXLine2(new GeoPoint2(40, 0), GeoVector2.XAxis);
 
             AssertSamePoints(Square().GetIntersections(xline, Strict), index.GetIntersections(xline, Strict));
-            AssertSamePoints(index.GetIntersections(Cut(xline, index, Strict), Strict), index.GetIntersections(xline, Strict));
+            AssertSamePoints(
+                index.GetIntersections(Cut(xline, index, Strict), Strict),
+                index.GetIntersections(xline, Strict)
+            );
         }
 
         /// <summary>The plain scan: every edge asked the line, the points of one that lie within the tolerance of a kept one dropped.</summary>
-        private static GeoPoint2[] Scan(System.Collections.Generic.IEnumerable<GeoEdge2> edges, GeoXLine2 xline, Tolerance tolerance)
+        private static GeoPoint2[] Scan(
+            System.Collections.Generic.IEnumerable<GeoEdge2> edges,
+            GeoXLine2 xline,
+            Tolerance tolerance
+        )
         {
             var found = new System.Collections.Generic.List<GeoPoint2>();
 
@@ -181,8 +201,10 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPoint2[] found = new GeoBvh2(edges).GetIntersections(xline, Strict);
 
             Assert.True(
-                scanned.All(p => found.Any(q => q.DistanceTo(p) <= 1E-9)) && found.All(q => scanned.Any(p => p.DistanceTo(q) <= 1E-9)),
-                what + ": scan " + scanned.Length + ", index " + found.Length);
+                scanned.All(p => found.Any(q => q.DistanceTo(p) <= 1E-9))
+                    && found.All(q => scanned.Any(p => p.DistanceTo(q) <= 1E-9)),
+                what + ": scan " + scanned.Length + ", index " + found.Length
+            );
         }
 
         [Fact]
@@ -219,18 +241,32 @@ namespace GeometryHelper.UnitTest.Plane
 
                     // Both ends within 0.0015 of the line, so that how far they draw apart along the edge is near the point tolerance.
                     double offset = away ? random.NextDouble() * 300 - 150 : (random.NextDouble() - 0.5) * 0.003;
-                    double rise = away ? (random.NextDouble() - 0.5) * 100 : (random.NextDouble() - 0.5) * 0.003 - offset;
+                    double rise = away
+                        ? (random.NextDouble() - 0.5) * 100
+                        : (random.NextDouble() - 0.5) * 0.003 - offset;
                     var from = new GeoPoint2(x, height + offset);
                     var to = new GeoPoint2(x + length, height + offset + rise);
-                    edges.Add(random.Next(5) == 0 ? new GeoEdge2(from, to, random.NextDouble() * 0.02 - 0.01) : new GeoEdge2(from, to));
+                    edges.Add(
+                        random.Next(5) == 0
+                            ? new GeoEdge2(from, to, random.NextDouble() * 0.02 - 0.01)
+                            : new GeoEdge2(from, to)
+                    );
                 }
 
-                var xline = new GeoXLine2(new GeoPoint2(random.NextDouble() * 800 - 400, height + (random.NextDouble() - 0.5) * 0.002), new GeoVector2(1, (random.NextDouble() - 0.5) * 0.0005));
+                var xline = new GeoXLine2(
+                    new GeoPoint2(random.NextDouble() * 800 - 400, height + (random.NextDouble() - 0.5) * 0.002),
+                    new GeoVector2(1, (random.NextDouble() - 0.5) * 0.0005)
+                );
 
                 GeoPoint2[] scanned = Scan(edges, xline, Strict);
                 GeoPoint2[] found = new GeoBvh2(edges).GetIntersections(xline, Strict);
 
-                if (!(scanned.All(p => found.Any(q => q.DistanceTo(p) <= 1E-9)) && found.All(q => scanned.Any(p => p.DistanceTo(q) <= 1E-9))))
+                if (
+                    !(
+                        scanned.All(p => found.Any(q => q.DistanceTo(p) <= 1E-9))
+                        && found.All(q => scanned.Any(p => p.DistanceTo(q) <= 1E-9))
+                    )
+                )
                 {
                     differences++;
                 }
@@ -252,11 +288,20 @@ namespace GeometryHelper.UnitTest.Plane
                 for (int j = 0; j < 30; j++)
                 {
                     edges.Add(new GeoEdge2(new GeoPoint2(i * 10, j * 10), new GeoPoint2(i * 10 + 8, j * 10 + 1)));
-                    edges.Add(new GeoEdge2(new GeoPoint2(i * 10 + 8, j * 10 + 1), new GeoPoint2(i * 10 + 7, j * 10 + 8)));
+                    edges.Add(
+                        new GeoEdge2(new GeoPoint2(i * 10 + 8, j * 10 + 1), new GeoPoint2(i * 10 + 7, j * 10 + 8))
+                    );
                 }
             }
 
-            foreach (GeoXLine2 xline in new[] { new GeoXLine2(new GeoPoint2(0, 0), new GeoVector2(1, 1)), new GeoXLine2(new GeoPoint2(150.5, 3.3), new GeoVector2(1, 0.31)), new GeoXLine2(new GeoPoint2(3, 3), GeoVector2.YAxis) })
+            foreach (
+                GeoXLine2 xline in new[]
+                {
+                    new GeoXLine2(new GeoPoint2(0, 0), new GeoVector2(1, 1)),
+                    new GeoXLine2(new GeoPoint2(150.5, 3.3), new GeoVector2(1, 0.31)),
+                    new GeoXLine2(new GeoPoint2(3, 3), GeoVector2.YAxis),
+                }
+            )
             {
                 AssertSameAsScan(edges.ToArray(), xline, "grid");
             }
@@ -286,7 +331,13 @@ namespace GeometryHelper.UnitTest.Plane
         {
             GeoBvh2 index = GeoBvh2.FromPolygonArc(Cog(24, 100));
 
-            foreach (GeoXLine2 xline in new[] { new GeoXLine2(new GeoPoint2(3, -2), new GeoVector2(1, 2)), new GeoXLine2(new GeoPoint2(-300, 7), GeoVector2.XAxis) })
+            foreach (
+                GeoXLine2 xline in new[]
+                {
+                    new GeoXLine2(new GeoPoint2(3, -2), new GeoVector2(1, 2)),
+                    new GeoXLine2(new GeoPoint2(-300, 7), GeoVector2.XAxis),
+                }
+            )
             {
                 Assert.Equal(index.GetIntersections(xline, Tolerance.Global), index.GetIntersections(xline));
             }

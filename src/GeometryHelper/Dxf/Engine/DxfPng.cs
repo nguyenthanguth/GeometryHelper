@@ -46,7 +46,13 @@ namespace GeometryHelper.Dxf
             {
                 return Read(png, out why);
             }
-            catch (Exception e) when (e is InvalidDataException || e is IOException || e is IndexOutOfRangeException || e is ArgumentException || e is OverflowException)
+            catch (Exception e)
+                when (e is InvalidDataException
+                    || e is IOException
+                    || e is IndexOutOfRangeException
+                    || e is ArgumentException
+                    || e is OverflowException
+                )
             {
                 why = "its image data cannot be read (" + e.Message.TrimEnd('.') + ")";
                 return null;
@@ -57,16 +63,23 @@ namespace GeometryHelper.Dxf
         {
             why = null;
             int at = Signature.Length;
-            int width = 0, height = 0, depth = 0, colour = -1, interlace = 0;
+            int width = 0,
+                height = 0,
+                depth = 0,
+                colour = -1,
+                interlace = 0;
             byte[] palette = null;
             byte[] transparency = null;
-            int perMetreX = 0, perMetreY = 0;
+            int perMetreX = 0,
+                perMetreY = 0;
             var data = new MemoryStream();
 
             while (at + 8 <= png.Length)
             {
                 int length = BigEndian(png, at);
-                string type = new string(new[] { (char)png[at + 4], (char)png[at + 5], (char)png[at + 6], (char)png[at + 7] });
+                string type = new string(
+                    new[] { (char)png[at + 4], (char)png[at + 5], (char)png[at + 6], (char)png[at + 7] }
+                );
                 int start = at + 8;
 
                 if (length < 0 || start + (long)length + 4 > png.Length)
@@ -111,20 +124,45 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            int channels = colour == 0 ? 1 : colour == 2 ? 3 : colour == 3 ? 1 : colour == 4 ? 2 : colour == 6 ? 4 : 0;
-            bool depthTaken = colour == 0 ? depth == 1 || depth == 2 || depth == 4 || depth == 8 || depth == 16
+            int channels =
+                colour == 0 ? 1
+                : colour == 2 ? 3
+                : colour == 3 ? 1
+                : colour == 4 ? 2
+                : colour == 6 ? 4
+                : 0;
+            bool depthTaken =
+                colour == 0 ? depth == 1 || depth == 2 || depth == 4 || depth == 8 || depth == 16
                 : colour == 3 ? depth == 1 || depth == 2 || depth == 4 || depth == 8
                 : depth == 8 || depth == 16;
 
             if (channels == 0 || !depthTaken || width <= 0 || height <= 0 || interlace > 1)
             {
-                why = "its header gives " + width + " by " + height + " pixels of colour type " + colour + " and " + depth + " bits, interlace " + interlace + ", not a PNG's";
+                why =
+                    "its header gives "
+                    + width
+                    + " by "
+                    + height
+                    + " pixels of colour type "
+                    + colour
+                    + " and "
+                    + depth
+                    + " bits, interlace "
+                    + interlace
+                    + ", not a PNG's";
                 return null;
             }
 
             if ((long)width * height > MostPixels)
             {
-                why = "its " + width + " by " + height + " pixels are more than the " + MostPixels + " a picture is read of";
+                why =
+                    "its "
+                    + width
+                    + " by "
+                    + height
+                    + " pixels are more than the "
+                    + MostPixels
+                    + " a picture is read of";
                 return null;
             }
 
@@ -142,7 +180,19 @@ namespace GeometryHelper.Dxf
 
             if (interlace == 0)
             {
-                used = Pass(raw, used, width, height, bitsPerPixel, bytesPerPixel, (x, y, read) => Put(rgba, width, x, y, read), colour, depth, palette, transparency);
+                used = Pass(
+                    raw,
+                    used,
+                    width,
+                    height,
+                    bitsPerPixel,
+                    bytesPerPixel,
+                    (x, y, read) => Put(rgba, width, x, y, read),
+                    colour,
+                    depth,
+                    palette,
+                    transparency
+                );
             }
             else
             {
@@ -162,7 +212,19 @@ namespace GeometryHelper.Dxf
                     }
 
                     int pass = p;
-                    used = Pass(raw, used, w, h, bitsPerPixel, bytesPerPixel, (x, y, read) => Put(rgba, width, x0[pass] + x * dx[pass], y0[pass] + y * dy[pass], read), colour, depth, palette, transparency);
+                    used = Pass(
+                        raw,
+                        used,
+                        w,
+                        h,
+                        bitsPerPixel,
+                        bytesPerPixel,
+                        (x, y, read) => Put(rgba, width, x0[pass] + x * dx[pass], y0[pass] + y * dy[pass], read),
+                        colour,
+                        depth,
+                        palette,
+                        transparency
+                    );
                 }
             }
 
@@ -176,7 +238,19 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Unfilters and reads one image (or one pass of an interlaced one) of the raw data from <paramref name="at"/>; where the data ends, or -1 where it is short.</summary>
-        private static int Pass(byte[] raw, int at, int width, int height, int bitsPerPixel, int bytesPerPixel, Action<int, int, uint> put, int colour, int depth, byte[] palette, byte[] transparency)
+        private static int Pass(
+            byte[] raw,
+            int at,
+            int width,
+            int height,
+            int bitsPerPixel,
+            int bytesPerPixel,
+            Action<int, int, uint> put,
+            int colour,
+            int depth,
+            byte[] palette,
+            byte[] transparency
+        )
         {
             int stride = (int)(((long)width * bitsPerPixel + 7) / 8);
             var previous = new byte[stride];
@@ -230,8 +304,17 @@ namespace GeometryHelper.Dxf
                         break;
                     case 4:
                         int p = left + up - upLeft;
-                        int pa = Math.Abs(p - left), pb = Math.Abs(p - up), pc = Math.Abs(p - upLeft);
-                        line[i] = (byte)(line[i] + (pa <= pb && pa <= pc ? left : pb <= pc ? up : upLeft));
+                        int pa = Math.Abs(p - left),
+                            pb = Math.Abs(p - up),
+                            pc = Math.Abs(p - upLeft);
+                        line[i] = (byte)(
+                            line[i]
+                            + (
+                                pa <= pb && pa <= pc ? left
+                                : pb <= pc ? up
+                                : upLeft
+                            )
+                        );
                         break;
                     default:
                         throw new InvalidDataException("a line is of filter " + filter + ", which PNG has not");
@@ -261,7 +344,10 @@ namespace GeometryHelper.Dxf
 
             int Raw16(int index) => depth == 16 ? (line[2 * index] << 8) | line[2 * index + 1] : -1;
 
-            int r, g, b, a = 255;
+            int r,
+                g,
+                b,
+                a = 255;
 
             switch (colour)
             {
@@ -270,7 +356,10 @@ namespace GeometryHelper.Dxf
                     if (transparency != null && transparency.Length >= 2)
                     {
                         int key = (transparency[0] << 8) | transparency[1];
-                        int raw = depth == 16 ? Raw16(x) : depth == 8 ? line[x] : (int)((line[x * depth / 8] >> (8 - depth * (x % (8 / depth) + 1))) & ((1 << depth) - 1));
+                        int raw =
+                            depth == 16 ? Raw16(x)
+                            : depth == 8 ? line[x]
+                            : (int)((line[x * depth / 8] >> (8 - depth * (x % (8 / depth) + 1))) & ((1 << depth) - 1));
                         a = raw == key ? 0 : 255;
                     }
 
@@ -281,9 +370,12 @@ namespace GeometryHelper.Dxf
                     b = Sample(3 * x + 2);
                     if (transparency != null && transparency.Length >= 6)
                     {
-                        bool keyed = depth == 16
-                            ? Raw16(3 * x) == ((transparency[0] << 8) | transparency[1]) && Raw16(3 * x + 1) == ((transparency[2] << 8) | transparency[3]) && Raw16(3 * x + 2) == ((transparency[4] << 8) | transparency[5])
-                            : r == transparency[1] && g == transparency[3] && b == transparency[5];
+                        bool keyed =
+                            depth == 16
+                                ? Raw16(3 * x) == ((transparency[0] << 8) | transparency[1])
+                                    && Raw16(3 * x + 1) == ((transparency[2] << 8) | transparency[3])
+                                    && Raw16(3 * x + 2) == ((transparency[4] << 8) | transparency[5])
+                                : r == transparency[1] && g == transparency[3] && b == transparency[5];
                         a = keyed ? 0 : 255;
                     }
 
@@ -292,7 +384,9 @@ namespace GeometryHelper.Dxf
                     int index = Sample(x);
                     if (3 * index + 2 >= palette.Length)
                     {
-                        throw new InvalidDataException("a pixel names colour " + index + " of a palette of " + palette.Length / 3);
+                        throw new InvalidDataException(
+                            "a pixel names colour " + index + " of a palette of " + palette.Length / 3
+                        );
                     }
 
                     r = palette[3 * index];
@@ -378,7 +472,8 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        private static int BigEndian(byte[] b, int at) => (b[at] << 24) | (b[at + 1] << 16) | (b[at + 2] << 8) | b[at + 3];
+        private static int BigEndian(byte[] b, int at) =>
+            (b[at] << 24) | (b[at + 1] << 16) | (b[at + 2] << 8) | b[at + 3];
 
         private static byte[] Slice(byte[] b, int at, int length)
         {

@@ -25,7 +25,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a segment to a triangle.
         /// </summary>
-        public static GeoLine3 GetShortestLineTo(GeoLine3 line, GeoTriangle3 triangle) => GetShortestLineTo(line, triangle, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoLine3 line, GeoTriangle3 triangle) =>
+            GetShortestLineTo(line, triangle, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a segment to a triangle, within a tolerance.
@@ -47,7 +48,8 @@ namespace GeometryHelper.Core
                 return Stub3.Nearest(
                     line,
                     Closest(line, triangle, Stub3.AsItIs(line, tolerance), Stub3.AsItIs(line, tolerance)),
-                    new GeoLine3(line.StartPoint, ProjectToTriangle(triangle, line.StartPoint)));
+                    new GeoLine3(line.StartPoint, ProjectToTriangle(triangle, line.StartPoint))
+                );
             }
 
             return Closest(line, triangle, tolerance, Exactly);
@@ -57,7 +59,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a segment to a triangle by the search a side of a shape is joined by, the segment
         /// not read as one you give, a side no longer than the point tolerance read as its start: as the index of a body asks.
         /// </summary>
-        internal static GeoLine3 Closest(GeoLine3 line, GeoTriangle3 triangle, Tolerance tolerance) => Closest(line, triangle, tolerance, tolerance);
+        internal static GeoLine3 Closest(GeoLine3 line, GeoTriangle3 triangle, Tolerance tolerance) =>
+            Closest(line, triangle, tolerance, tolerance);
 
         /// <summary>
         /// Gets the shortest segment joining a segment to a triangle by the search a side of a shape is joined by, the segment
@@ -91,7 +94,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining two triangles.
         /// </summary>
-        public static GeoLine3 GetShortestLineTo(GeoTriangle3 first, GeoTriangle3 second) => GetShortestLineTo(first, second, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoTriangle3 first, GeoTriangle3 second) =>
+            GetShortestLineTo(first, second, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining two triangles, within a tolerance.
@@ -107,8 +111,8 @@ namespace GeometryHelper.Core
         /// the same set of candidates <see cref="Distance3.DistanceTo(GeoTriangle3, GeoTriangle3, Tolerance)"/>
         /// weighs. A side no longer than the point tolerance, of a sliver, is measured as the side it is.
         /// </remarks>
-        public static GeoLine3 GetShortestLineTo(GeoTriangle3 first, GeoTriangle3 second, Tolerance tolerance)
-            => Closest(first, second, tolerance, Exactly);
+        public static GeoLine3 GetShortestLineTo(GeoTriangle3 first, GeoTriangle3 second, Tolerance tolerance) =>
+            Closest(first, second, tolerance, Exactly);
 
         /// <summary>
         /// Gets the shortest segment joining two triangles, the crossings read within one tolerance and the sides joined
@@ -119,13 +123,17 @@ namespace GeometryHelper.Core
         {
             // Two triangles one of which lies clear to one side of the other's plane have no crossing to find, and
             // saying so costs three distances rather than six crossings looked for in vain.
-            bool apart = !first.IsDegenerate(tolerance) && !second.IsDegenerate(tolerance)
+            bool apart =
+                !first.IsDegenerate(tolerance)
+                && !second.IsDegenerate(tolerance)
                 && (Collision3.IsClearOf(first, second, tolerance) || Collision3.IsClearOf(second, first, tolerance));
 
             for (int i = 0; i < 3 && !apart; i++)
             {
-                if (Intersection3.TryCross(first.GetEdgeAt(i), second, out GeoPoint3 through, tolerance) ||
-                    Intersection3.TryCross(second.GetEdgeAt(i), first, out through, tolerance))
+                if (
+                    Intersection3.TryCross(first.GetEdgeAt(i), second, out GeoPoint3 through, tolerance)
+                    || Intersection3.TryCross(second.GetEdgeAt(i), first, out through, tolerance)
+                )
                 {
                     return new GeoLine3(through, through);
                 }
@@ -157,7 +165,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a solid to a point.
         /// </summary>
-        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoPoint3 point) => GetShortestLineTo(solid, point, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoPoint3 point) =>
+            GetShortestLineTo(solid, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a solid to a point, within a tolerance.
@@ -176,7 +185,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a solid to a segment.
         /// </summary>
-        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoLine3 line) => GetShortestLineTo(solid, line, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoLine3 line) =>
+            GetShortestLineTo(solid, line, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a solid to a segment, within a tolerance.
@@ -217,7 +227,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a solid to a triangle.
         /// </summary>
-        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoTriangle3 triangle) => GetShortestLineTo(solid, triangle, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoTriangle3 triangle) =>
+            GetShortestLineTo(solid, triangle, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a solid to a triangle, within a tolerance.
@@ -251,7 +262,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining two solids.
         /// </summary>
-        public static GeoLine3 GetShortestLineTo(GeoSolid3 first, GeoSolid3 second) => GetShortestLineTo(first, second, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoSolid3 first, GeoSolid3 second) =>
+            GetShortestLineTo(first, second, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining two solids, within a tolerance.
@@ -313,7 +325,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a solid to a polyline.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the solid or the polyline is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoPolyline3 polyline) => GetShortestLineTo(solid, polyline, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoPolyline3 polyline) =>
+            GetShortestLineTo(solid, polyline, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a solid to a polyline, within a tolerance.
@@ -358,7 +371,11 @@ namespace GeometryHelper.Core
                         return best;
                     }
 
-                    Consider(ref best, ref shortest, Closest(polyline.GetEdgeAt(j), faces[i], tolerance, Exactly).Reverse());
+                    Consider(
+                        ref best,
+                        ref shortest,
+                        Closest(polyline.GetEdgeAt(j), faces[i], tolerance, Exactly).Reverse()
+                    );
                 }
             }
 
@@ -369,7 +386,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a solid to a polygon.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the solid or the polygon is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoPolygon3 polygon) => GetShortestLineTo(solid, polygon, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoPolygon3 polygon) =>
+            GetShortestLineTo(solid, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a solid to a polygon, within a tolerance.
@@ -427,7 +445,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a solid to a plane.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the solid is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoPlane3 plane) => GetShortestLineTo(solid, plane, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoPlane3 plane) =>
+            GetShortestLineTo(solid, plane, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a solid to a plane, within a tolerance.
@@ -489,7 +508,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a ray to a line segment.
         /// </summary>
-        public static GeoLine3 GetShortestLineTo(GeoRay3 ray, GeoLine3 line) => GetShortestLineTo(ray, line, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoRay3 ray, GeoLine3 line) =>
+            GetShortestLineTo(ray, line, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a ray to a line segment, within a tolerance.
@@ -530,7 +550,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a ray to a segment by the search a side of a shape is joined by, the segment not
         /// read as one you give, and points projected onto it as it is, not within the global tolerance.
         /// </summary>
-        internal static GeoLine3 Closest(GeoRay3 ray, GeoLine3 line, Tolerance tolerance) => Closest(ray, line, tolerance, Exactly);
+        internal static GeoLine3 Closest(GeoRay3 ray, GeoLine3 line, Tolerance tolerance) =>
+            Closest(ray, line, tolerance, Exactly);
 
         /// <summary>
         /// Gets the shortest segment joining a ray to a segment by the search a side of a shape is joined by, the segment read
@@ -546,9 +567,10 @@ namespace GeometryHelper.Core
 
             GeoLine3 across = GetShortestLineTo(ray.ToLine(1.0), line, Enums.LineExtension.First, tolerance);
 
-            Consider(ref best, new GeoLine3(
-                ProjectToRay(ray, across.StartPoint),
-                ProjectToLine(line, across.EndPoint, onLine)));
+            Consider(
+                ref best,
+                new GeoLine3(ProjectToRay(ray, across.StartPoint), ProjectToLine(line, across.EndPoint, onLine))
+            );
 
             return best;
         }
@@ -556,7 +578,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a ray to a triangle.
         /// </summary>
-        public static GeoLine3 GetShortestLineTo(GeoRay3 ray, GeoTriangle3 triangle) => GetShortestLineTo(ray, triangle, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoRay3 ray, GeoTriangle3 triangle) =>
+            GetShortestLineTo(ray, triangle, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a ray to a triangle, within a tolerance.
@@ -582,7 +605,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a solid to a ray.
         /// </summary>
-        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoRay3 ray) => GetShortestLineTo(solid, ray, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoRay3 ray) =>
+            GetShortestLineTo(solid, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a solid to a ray, within a tolerance.

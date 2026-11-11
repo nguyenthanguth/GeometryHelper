@@ -58,7 +58,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Start(document, "CECOLOR", "10,20,30");
             Assert.False(session.IsRunning);
             Assert.True(document.Database.Cecolor.IsByLayer);
-            Assert.Equal("The drawing keeps the colour of new objects as an index: ByLayer, ByBlock or 1 to 255.", session.History.Last());
+            Assert.Equal(
+                "The drawing keeps the colour of new objects as an index: ByLayer, ByBlock or 1 to 255.",
+                session.History.Last()
+            );
 
             Run(session, "CECOLOR", "T");
             Assert.StartsWith("The drawing keeps the colour of new objects as an index", session.History.Last());

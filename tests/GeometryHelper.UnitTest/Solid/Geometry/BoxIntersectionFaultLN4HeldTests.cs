@@ -22,7 +22,10 @@ namespace GeometryHelper.UnitTest.Solid
 
         // Beside the edge along Z at the origin, 0.0009 off both faces at its start and 0.0004 off at its end, rising through
         // the bottom face's plane.
-        private static readonly GeoLine3 Beside = new GeoLine3(new GeoPoint3(-0.0009, -0.0009, -0.0004), new GeoPoint3(-0.0004, -0.0004, 0.0016));
+        private static readonly GeoLine3 Beside = new GeoLine3(
+            new GeoPoint3(-0.0009, -0.0009, -0.0004),
+            new GeoPoint3(-0.0004, -0.0004, 0.0016)
+        );
 
         [Fact]
         public void ACrossingReadBesideAnEdge_IsThePointOfTheSegmentNearestTheBox()
@@ -33,8 +36,18 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPoint3 hit = Assert.Single(Box.GetIntersections(Beside, Default));
 
             Assert.Equal(0.0, hit.DistanceTo(Beside.EndPoint), 12);
-            Assert.Equal(0.0, Assert.Single(Box.ToObb().GetIntersections(Beside, Default)).DistanceTo(Beside.EndPoint), 12);
-            Assert.Equal(0.0, Assert.Single(Box.GetIntersections(new GeoLine3(Beside.EndPoint, Beside.StartPoint), Default)).DistanceTo(Beside.EndPoint), 12);
+            Assert.Equal(
+                0.0,
+                Assert.Single(Box.ToObb().GetIntersections(Beside, Default)).DistanceTo(Beside.EndPoint),
+                12
+            );
+            Assert.Equal(
+                0.0,
+                Assert
+                    .Single(Box.GetIntersections(new GeoLine3(Beside.EndPoint, Beside.StartPoint), Default))
+                    .DistanceTo(Beside.EndPoint),
+                12
+            );
         }
 
         [Fact]

@@ -19,16 +19,24 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class Arc3FaultG1hNearPassTests
     {
-        private static Tolerance At(double equalPoint) => new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
+        private static Tolerance At(double equalPoint) =>
+            new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
 
-        private static GeoArc3 Quarter() => new GeoArc3(GeoPoint3.Origin, new GeoVector3(0, 0, 1), 0.0005, -0.75 * Math.PI, -0.25 * Math.PI);
+        private static GeoArc3 Quarter() =>
+            new GeoArc3(GeoPoint3.Origin, new GeoVector3(0, 0, 1), 0.0005, -0.75 * Math.PI, -0.25 * Math.PI);
 
         private static GeoEllipse3 Passing(double tilt)
         {
             var up = new GeoVector3(Math.Sin(tilt), 0, Math.Cos(tilt));
             var foot = new GeoPoint3(0.0005, 0, -4E-7);
 
-            return new GeoEllipse3(foot.Add(up), new GeoVector3(0, 1, 0).CrossProduct(up), new GeoVector3(0, 1, 0), 2, 1);
+            return new GeoEllipse3(
+                foot.Add(up),
+                new GeoVector3(0, 1, 0).CrossProduct(up),
+                new GeoVector3(0, 1, 0),
+                2,
+                1
+            );
         }
 
         [Theory]

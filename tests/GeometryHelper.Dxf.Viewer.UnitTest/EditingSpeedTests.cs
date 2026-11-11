@@ -37,10 +37,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             }
 
             var watch = Stopwatch.StartNew();
-            CadEditResult first = document.ApplyEdit("MOVE", new[] { new CadEditRecord(CadEditRecordKind.Transformed, handle) }, s => s.Document.FindEntity(handle).TransformBy(GeoTransform3.Translation(new GeoVector3(5, 0, 0))));
+            CadEditResult first = document.ApplyEdit(
+                "MOVE",
+                new[] { new CadEditRecord(CadEditRecordKind.Transformed, handle) },
+                s => s.Document.FindEntity(handle).TransformBy(GeoTransform3.Translation(new GeoVector3(5, 0, 0)))
+            );
             double firstEdit = watch.Elapsed.TotalMilliseconds;
             watch.Restart();
-            CadEditResult second = document.ApplyEdit("MOVE", new[] { new CadEditRecord(CadEditRecordKind.Transformed, handle) }, s => s.Document.FindEntity(handle).TransformBy(GeoTransform3.Translation(new GeoVector3(5, 0, 0))));
+            CadEditResult second = document.ApplyEdit(
+                "MOVE",
+                new[] { new CadEditRecord(CadEditRecordKind.Transformed, handle) },
+                s => s.Document.FindEntity(handle).TransformBy(GeoTransform3.Translation(new GeoVector3(5, 0, 0)))
+            );
             double edit = watch.Elapsed.TotalMilliseconds;
             watch.Restart();
             document.Undo();
@@ -50,7 +58,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             document.Redo();
             document.GetDisplay(document.ModelSpace);
             double redo = watch.Elapsed.TotalMilliseconds;
-            _output.WriteLine("first edit " + firstEdit.ToString("0") + " ms, edit " + edit.ToString("0") + " ms, undo " + undo.ToString("0") + " ms, redo " + redo.ToString("0") + " ms");
+            _output.WriteLine(
+                "first edit "
+                    + firstEdit.ToString("0")
+                    + " ms, edit "
+                    + edit.ToString("0")
+                    + " ms, undo "
+                    + undo.ToString("0")
+                    + " ms, redo "
+                    + redo.ToString("0")
+                    + " ms"
+            );
 
             Assert.True(first.Succeeded);
             Assert.True(second.Succeeded);

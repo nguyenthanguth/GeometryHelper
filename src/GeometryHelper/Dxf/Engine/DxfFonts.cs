@@ -29,10 +29,20 @@ namespace GeometryHelper.Dxf
         // The code page of each big font AutoCAD 2021 knows by its name (check F3), the letters of a text read in it to the
         // big font's numbers: 中 is D6D0 in gbcbig.shx (GBK), A4A4 in chineset.shx (Big5) and 9286 in extfont.shx (Shift-JIS).
         // AutoCAD reads a big font of another name, or one named with its folder, in none of them.
-        private static readonly Dictionary<string, int> BigPages = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        private static readonly Dictionary<string, int> BigPages = new Dictionary<string, int>(
+            StringComparer.OrdinalIgnoreCase
+        )
         {
-            { "bigfont", 932 }, { "extfont", 932 }, { "extfont2", 932 }, { "@extfont2", 932 }, { "gbcbig", 936 },
-            { "whgdtxt", 949 }, { "whgtxt", 949 }, { "whtgtxt", 949 }, { "whtmtxt", 949 }, { "chineset", 950 },
+            { "bigfont", 932 },
+            { "extfont", 932 },
+            { "extfont2", 932 },
+            { "@extfont2", 932 },
+            { "gbcbig", 936 },
+            { "whgdtxt", 949 },
+            { "whgtxt", 949 },
+            { "whtgtxt", 949 },
+            { "whtmtxt", 949 },
+            { "chineset", 950 },
         };
 
         // The byte of each ASCII letter, which is its own in every code page, read but never written.
@@ -41,8 +51,12 @@ namespace GeometryHelper.Dxf
         // The code pages of the big fonts, got once a set of the path, so that a page registered after one set is got at the next.
         private readonly Dictionary<int, Encoding> _pages = new Dictionary<int, Encoding>();
         private readonly string[] _folders;
-        private readonly Dictionary<string, string> _paths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, DxfFont> _fonts = new Dictionary<string, DxfFont>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _paths = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase
+        );
+        private readonly Dictionary<string, DxfFont> _fonts = new Dictionary<string, DxfFont>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private readonly HashSet<string> _said = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly object _lock = new object();
 
@@ -86,7 +100,13 @@ namespace GeometryHelper.Dxf
             {
                 lock (_lock)
                 {
-                    Say(style.FileName.Trim() + "|main", "DxfDatabase: the font " + style.FileName.Trim() + " is a big font, which a style draws beside its font and not as it; its texts are laid out as they are without fonts.", true);
+                    Say(
+                        style.FileName.Trim() + "|main",
+                        "DxfDatabase: the font "
+                            + style.FileName.Trim()
+                            + " is a big font, which a style draws beside its font and not as it; its texts are laid out as they are without fonts.",
+                        true
+                    );
                 }
 
                 return null;
@@ -100,21 +120,43 @@ namespace GeometryHelper.Dxf
 
             DxfFontDescriptor face = style.Font;
 
-            if (!trueType.IsSymbols && (face.TypeFace.Length == 0 ? !trueType.IsCollection : trueType.IsFace(face.TypeFace, face.Bold, face.Italic)))
+            if (
+                !trueType.IsSymbols
+                && (
+                    face.TypeFace.Length == 0
+                        ? !trueType.IsCollection
+                        : trueType.IsFace(face.TypeFace, face.Bold, face.Italic)
+                )
+            )
             {
                 return trueType;
             }
 
             string file = style.FileName.Trim();
-            string named = face.TypeFace + (face.Bold ? " bold" : string.Empty) + (face.Italic ? " italic" : string.Empty);
+            string named =
+                face.TypeFace + (face.Bold ? " bold" : string.Empty) + (face.Italic ? " italic" : string.Empty);
 
             lock (_lock)
             {
-                Say(file + "|" + named, trueType.IsSymbols
-                    ? "DxfDatabase: the font " + file + " is a font of symbols, some of whose letters AutoCAD 2021 draws from other fonts; its texts are laid out as they are without fonts."
-                    : face.TypeFace.Length == 0
-                    ? "DxfDatabase: a style names the collection " + file + " but no typeface, which AutoCAD does not load; its texts are laid out as they are without fonts."
-                    : "DxfDatabase: a style names the typeface " + named + ", which the font " + file + " (" + trueType.TypeFace + ") is not, and which AutoCAD draws it in; its texts are laid out as they are without fonts.", false);
+                Say(
+                    file + "|" + named,
+                    trueType.IsSymbols
+                            ? "DxfDatabase: the font "
+                                + file
+                                + " is a font of symbols, some of whose letters AutoCAD 2021 draws from other fonts; its texts are laid out as they are without fonts."
+                        : face.TypeFace.Length == 0
+                            ? "DxfDatabase: a style names the collection "
+                                + file
+                                + " but no typeface, which AutoCAD does not load; its texts are laid out as they are without fonts."
+                        : "DxfDatabase: a style names the typeface "
+                            + named
+                            + ", which the font "
+                            + file
+                            + " ("
+                            + trueType.TypeFace
+                            + ") is not, and which AutoCAD draws it in; its texts are laid out as they are without fonts.",
+                    false
+                );
             }
 
             return null;
@@ -136,7 +178,13 @@ namespace GeometryHelper.Dxf
                 {
                     lock (_lock)
                     {
-                        Say(name + "|big", "DxfDatabase: the big font " + name + " is no big font; its texts are laid out as they are without fonts where a letter is not their font's.", false);
+                        Say(
+                            name + "|big",
+                            "DxfDatabase: the big font "
+                                + name
+                                + " is no big font; its texts are laid out as they are without fonts where a letter is not their font's.",
+                            false
+                        );
                     }
                 }
 
@@ -144,7 +192,9 @@ namespace GeometryHelper.Dxf
             }
 
             Encoding page = null;
-            string bare = name.EndsWith(".shx", StringComparison.OrdinalIgnoreCase) ? name.Substring(0, name.Length - 4) : name;
+            string bare = name.EndsWith(".shx", StringComparison.OrdinalIgnoreCase)
+                ? name.Substring(0, name.Length - 4)
+                : name;
 
             if (name.IndexOfAny(new[] { '\\', '/', ':' }) < 0 && BigPages.TryGetValue(bare, out int number))
             {
@@ -155,7 +205,11 @@ namespace GeometryHelper.Dxf
                         try
                         {
                             // No best fit: a letter the page has not is none (check F3, the yen sign of chineset.shx drawn from txt.shx).
-                            page = Encoding.GetEncoding(number, new EncoderReplacementFallback(string.Empty), DecoderFallback.ReplacementFallback);
+                            page = Encoding.GetEncoding(
+                                number,
+                                new EncoderReplacementFallback(string.Empty),
+                                DecoderFallback.ReplacementFallback
+                            );
                         }
                         catch (Exception e) when (e is ArgumentException || e is NotSupportedException)
                         {
@@ -170,7 +224,15 @@ namespace GeometryHelper.Dxf
                 {
                     lock (_lock)
                     {
-                        Say(name + "|page", "DxfDatabase: the code page " + number.ToString(CultureInfo.InvariantCulture) + " of the big font " + name + " is not in the runtime (register CodePagesEncodingProvider); its texts are measured where every letter is of ASCII.", false);
+                        Say(
+                            name + "|page",
+                            "DxfDatabase: the code page "
+                                + number.ToString(CultureInfo.InvariantCulture)
+                                + " of the big font "
+                                + name
+                                + " is not in the runtime (register CodePagesEncodingProvider); its texts are measured where every letter is of ASCII.",
+                            false
+                        );
                     }
                 }
             }
@@ -243,7 +305,13 @@ namespace GeometryHelper.Dxf
 
             if (file.Length == 0 || !(IsShx(file) || IsTrueType(file)))
             {
-                Say(name, "DxfDatabase: the font " + (name.Length == 0 ? "of no name" : name) + " is not of an SHX or TrueType file (.shx, .ttf, .ttc, .otf), which are all the library measures; its texts are laid out as they are without fonts.", false);
+                Say(
+                    name,
+                    "DxfDatabase: the font "
+                        + (name.Length == 0 ? "of no name" : name)
+                        + " is not of an SHX or TrueType file (.shx, .ttf, .ttc, .otf), which are all the library measures; its texts are laid out as they are without fonts.",
+                    false
+                );
                 return null;
             }
 
@@ -258,13 +326,25 @@ namespace GeometryHelper.Dxf
                         return path;
                     }
                 }
-                catch (Exception e) when (e is ArgumentException || e is NotSupportedException || e is IOException || e is UnauthorizedAccessException || e is System.Security.SecurityException)
+                catch (Exception e)
+                    when (e is ArgumentException
+                        || e is NotSupportedException
+                        || e is IOException
+                        || e is UnauthorizedAccessException
+                        || e is System.Security.SecurityException
+                    )
                 {
                     continue;
                 }
             }
 
-            Say(name, "DxfDatabase: the font " + file + " is in none of the folders of FontSearchPath; its texts are laid out as they are without fonts.", false);
+            Say(
+                name,
+                "DxfDatabase: the font "
+                    + file
+                    + " is in none of the folders of FontSearchPath; its texts are laid out as they are without fonts.",
+                false
+            );
             return null;
         }
 
@@ -277,7 +357,9 @@ namespace GeometryHelper.Dxf
         {
             DxfFont font = null;
             bool shx = IsShx(path);
-            string why = shx ? "is no SHX font of shapes 1.0 or 1.1, unifont or big font, or is cut short" : "is no TrueType font of glyf outlines and a letter A, or is cut short";
+            string why = shx
+                ? "is no SHX font of shapes 1.0 or 1.1, unifont or big font, or is cut short"
+                : "is no TrueType font of glyf outlines and a letter A, or is cut short";
 
             try
             {
@@ -285,31 +367,50 @@ namespace GeometryHelper.Dxf
 
                 if (!shx && DxfTrueTypeFont.IsCff(bytes))
                 {
-                    Say(path, "DxfDatabase: the font " + path + " is of CFF outlines, whose ink the library does not read; its texts are laid out as they are without fonts.", false);
+                    Say(
+                        path,
+                        "DxfDatabase: the font "
+                            + path
+                            + " is of CFF outlines, whose ink the library does not read; its texts are laid out as they are without fonts.",
+                        false
+                    );
                     return null;
                 }
 
                 font = shx ? (DxfFont)DxfShxFont.Read(bytes) : DxfTrueTypeFont.Read(bytes);
             }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is System.Security.SecurityException || e is NotSupportedException || e is OutOfMemoryException)
+            catch (Exception e)
+                when (e is IOException
+                    || e is UnauthorizedAccessException
+                    || e is System.Security.SecurityException
+                    || e is NotSupportedException
+                    || e is OutOfMemoryException
+                )
             {
                 why = "could not be read (" + e.Message + ")";
             }
 
             if (font == null)
             {
-                Say(path, "DxfDatabase: the font " + path + " " + why + "; its texts are laid out as they are without fonts.", true);
+                Say(
+                    path,
+                    "DxfDatabase: the font " + path + " " + why + "; its texts are laid out as they are without fonts.",
+                    true
+                );
             }
 
             return font;
         }
 
-        private static bool IsShx(string file) => string.Equals(Path.GetExtension(file), ".shx", StringComparison.OrdinalIgnoreCase);
+        private static bool IsShx(string file) =>
+            string.Equals(Path.GetExtension(file), ".shx", StringComparison.OrdinalIgnoreCase);
 
         private static bool IsTrueType(string file)
         {
             string extension = Path.GetExtension(file);
-            return string.Equals(extension, ".ttf", StringComparison.OrdinalIgnoreCase) || string.Equals(extension, ".ttc", StringComparison.OrdinalIgnoreCase) || string.Equals(extension, ".otf", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(extension, ".ttf", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(extension, ".ttc", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(extension, ".otf", StringComparison.OrdinalIgnoreCase);
         }
 
         private void Say(string key, string message, bool warn)
@@ -375,7 +476,12 @@ namespace GeometryHelper.Dxf
                         number = code == '%' ? '%' : Sign(font, code);
                         i += 3;
                     }
-                    else if (i + 4 < words.Length && IsDigit(words[i + 2]) && IsDigit(words[i + 3]) && IsDigit(words[i + 4]))
+                    else if (
+                        i + 4 < words.Length
+                        && IsDigit(words[i + 2])
+                        && IsDigit(words[i + 3])
+                        && IsDigit(words[i + 4])
+                    )
                     {
                         number = ((words[i + 2] - '0') * 100) + ((words[i + 3] - '0') * 10) + (words[i + 4] - '0');
                         i += 5;
@@ -411,7 +517,16 @@ namespace GeometryHelper.Dxf
         /// the font after letters of the big font that puts its pen down where it starts is inked where they began too, as
         /// AutoCAD 2021 boxes a TEXT (check F3).
         /// </summary>
-        private static bool Drawn(DxfTextLine line, DxfFont font, Big big, List<int> numbers, List<Letter> drawn, double widthFactor, double height, bool text)
+        private static bool Drawn(
+            DxfTextLine line,
+            DxfFont font,
+            Big big,
+            List<int> numbers,
+            List<Letter> drawn,
+            double widthFactor,
+            double height,
+            bool text
+        )
         {
             bool afterBig = false;
             double began = 0.0;
@@ -421,7 +536,10 @@ namespace GeometryHelper.Dxf
             {
                 // An MTEXT's ideographic space is a space of its own (check F3: txt and extfont.shx U+3000 and 中 4 high 8.267
                 // wide, from the start of the line), which is not measured.
-                if ((!text && numbers[k] == 0x3000) || !Pick(font, big, numbers, k, out DxfFont from, out int number, out int taken))
+                if (
+                    (!text && numbers[k] == 0x3000)
+                    || !Pick(font, big, numbers, k, out DxfFont from, out int number, out int taken)
+                )
                 {
                     return false;
                 }
@@ -467,7 +585,15 @@ namespace GeometryHelper.Dxf
                 }
                 else
                 {
-                    line.Add(from, glyph, numbers[k + taken - 1], drawn[k].Width, drawn[k].Height, drawn[k].Track, drawn[k].Marks);
+                    line.Add(
+                        from,
+                        glyph,
+                        numbers[k + taken - 1],
+                        drawn[k].Width,
+                        drawn[k].Height,
+                        drawn[k].Track,
+                        drawn[k].Marks
+                    );
                 }
 
                 k += taken;
@@ -494,7 +620,15 @@ namespace GeometryHelper.Dxf
         /// Not measured: a letter beyond ASCII beside a big font of no code page or a font of shapes, and a byte that opens a
         /// letter of two before one of two bytes.
         /// </summary>
-        private static bool Pick(DxfFont font, Big big, List<int> numbers, int k, out DxfFont from, out int number, out int taken)
+        private static bool Pick(
+            DxfFont font,
+            Big big,
+            List<int> numbers,
+            int k,
+            out DxfFont from,
+            out int number,
+            out int taken
+        )
         {
             DxfShxFont bigFont = big.Font;
             int c = numbers[k];
@@ -619,7 +753,9 @@ namespace GeometryHelper.Dxf
         {
             // Words lined under or over are not measured for a multileader, which F4 did not check.
             List<Letter> letters = MTextLetters(font, big, contents, height);
-            return letters == null || letters.Exists(l => l.Number < 0 || (l.Marks & 3) != 0) ? null : Measure(font, big, letters, 0, letters.Count, height);
+            return letters == null || letters.Exists(l => l.Number < 0 || (l.Marks & 3) != 0)
+                ? null
+                : Measure(font, big, letters, 0, letters.Count, height);
         }
 
         /// <summary>
@@ -628,7 +764,15 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal struct Letter
         {
-            internal Letter(int number, double width, double height, double track = 1.0, int align = 0, int marks = 0, int tint = 0)
+            internal Letter(
+                int number,
+                double width,
+                double height,
+                double track = 1.0,
+                int align = 0,
+                int marks = 0,
+                int tint = 0
+            )
             {
                 Number = number;
                 Width = width;
@@ -693,7 +837,13 @@ namespace GeometryHelper.Dxf
 
             // A multibyte code beside a big font is drawn from another font (check F3: chineset.shx "\M+5D6D0" 4 high 4.335
             // wide, not its own 中), and is not measured.
-            if (drawn && (contents.IndexOf("\\M+", StringComparison.Ordinal) >= 0 || contents.IndexOf("\\m+", StringComparison.Ordinal) >= 0))
+            if (
+                drawn
+                && (
+                    contents.IndexOf("\\M+", StringComparison.Ordinal) >= 0
+                    || contents.IndexOf("\\m+", StringComparison.Ordinal) >= 0
+                )
+            )
             {
                 return null;
             }
@@ -717,7 +867,15 @@ namespace GeometryHelper.Dxf
 
                 // A change of the letters' width or height after a letter of TrueType is not measured: AutoCAD 2021 sets the
                 // letters after it on from the ink of those before (check F2), Arial "A\H2x;BC" 4 high 18.819 wide, not 18.810.
-                if ((c == '{' || c == '}' || (c == '\\' && i + 1 < words.Length && (words[i + 1] == 'W' || words[i + 1] == 'H'))) && letters.Count > 0 && font is DxfTrueTypeFont)
+                if (
+                    (
+                        c == '{'
+                        || c == '}'
+                        || (c == '\\' && i + 1 < words.Length && (words[i + 1] == 'W' || words[i + 1] == 'H'))
+                    )
+                    && letters.Count > 0
+                    && font is DxfTrueTypeFont
+                )
                 {
                     return null;
                 }
@@ -778,7 +936,16 @@ namespace GeometryHelper.Dxf
                         string value = end < 0 ? string.Empty : words.Substring(i + 2, end - i - 2).Trim();
                         bool times = code == 'H' && value.EndsWith("x", StringComparison.OrdinalIgnoreCase);
 
-                        if (!double.TryParse(times ? value.Substring(0, value.Length - 1) : value, NumberStyles.Float, CultureInfo.InvariantCulture, out double v) || !Guard.IsFinite(v) || !(v > 0.0 || (code == 'A' && v == 0.0)))
+                        if (
+                            !double.TryParse(
+                                times ? value.Substring(0, value.Length - 1) : value,
+                                NumberStyles.Float,
+                                CultureInfo.InvariantCulture,
+                                out double v
+                            )
+                            || !Guard.IsFinite(v)
+                            || !(v > 0.0 || (code == 'A' && v == 0.0))
+                        )
                         {
                             return null;
                         }
@@ -823,7 +990,10 @@ namespace GeometryHelper.Dxf
                     }
                     else if ("LlOoKk".IndexOf(code) >= 0)
                     {
-                        int mark = code == 'L' || code == 'l' ? 1 : code == 'O' || code == 'o' ? 2 : 4;
+                        int mark =
+                            code == 'L' || code == 'l' ? 1
+                            : code == 'O' || code == 'o' ? 2
+                            : 4;
                         marks = char.IsUpper(code) ? marks | mark : marks & ~mark;
                         i += 2;
                         continue;
@@ -857,7 +1027,14 @@ namespace GeometryHelper.Dxf
         /// The letters of an MTEXT from one place up to another measured as a line in a font, each from the font or the big
         /// font beside it as <see cref="MText"/> says; null where one is not measured. A new paragraph among them is not.
         /// </summary>
-        internal static DxfTextLine Measure(DxfFont font, Big big, List<Letter> letters, int from, int to, double height)
+        internal static DxfTextLine Measure(
+            DxfFont font,
+            Big big,
+            List<Letter> letters,
+            int from,
+            int to,
+            double height
+        )
         {
             var line = new DxfTextLine(font);
 
@@ -896,9 +1073,14 @@ namespace GeometryHelper.Dxf
 
             switch (code)
             {
-                case 'c': return font is DxfTrueTypeFont && font.GlyphOf(0x2205) == null ? 0xD8 : unicode ? 0x2205 : 129;
-                case 'd': return unicode ? 0xB0 : 127;
-                default: return unicode ? 0xB1 : 128;
+                case 'c':
+                    return font is DxfTrueTypeFont && font.GlyphOf(0x2205) == null ? 0xD8
+                        : unicode ? 0x2205
+                        : 129;
+                case 'd':
+                    return unicode ? 0xB0 : 127;
+                default:
+                    return unicode ? 0xB1 : 128;
             }
         }
 

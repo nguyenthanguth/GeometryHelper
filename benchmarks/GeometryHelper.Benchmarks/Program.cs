@@ -77,20 +77,29 @@ namespace GeometryHelper.Benchmarks
 
             if (unoptimised != null)
             {
-                return Refuse(unoptimised + " is built without optimisation, and its timings would mean nothing. Build with -c Release.");
+                return Refuse(
+                    unoptimised
+                        + " is built without optimisation, and its timings would mean nothing. Build with -c Release."
+                );
             }
 
             string root = FindRoot();
 
             if (root == null)
             {
-                return Refuse("The root of the repository, where GeometryHelper.slnx is, cannot be found above " + AppDomain.CurrentDomain.BaseDirectory + ".");
+                return Refuse(
+                    "The root of the repository, where GeometryHelper.slnx is, cannot be found above "
+                        + AppDomain.CurrentDomain.BaseDirectory
+                        + "."
+                );
             }
 
             output = output ?? Path.Combine(root, "artifacts", "benchmarks");
             string baselines = Path.Combine(root, "benchmarks", "baselines", ApprovedSignatures.FileName);
 
-            List<BenchmarkCase> cases = AllCases().Where(c => filter == null || c.Name.StartsWith(filter, StringComparison.Ordinal)).ToList();
+            List<BenchmarkCase> cases = AllCases()
+                .Where(c => filter == null || c.Name.StartsWith(filter, StringComparison.Ordinal))
+                .ToList();
 
             if (cases.Count == 0)
             {
@@ -105,8 +114,21 @@ namespace GeometryHelper.Benchmarks
             SortedDictionary<string, string> approved = ApprovedSignatures.Read(baselines);
             RunInfo info = RunInfo.Collect(root, profile);
 
-            Console.WriteLine("GeometryHelper benchmarks, " + profile.Name + " profile, " + cases.Count.ToString(CultureInfo.InvariantCulture) + " cases");
-            Console.WriteLine(info.GitSha + (info.GitDirty == true ? " with changes" : string.Empty) + ", " + info.Runtime + ", " + info.Architecture);
+            Console.WriteLine(
+                "GeometryHelper benchmarks, "
+                    + profile.Name
+                    + " profile, "
+                    + cases.Count.ToString(CultureInfo.InvariantCulture)
+                    + " cases"
+            );
+            Console.WriteLine(
+                info.GitSha
+                    + (info.GitDirty == true ? " with changes" : string.Empty)
+                    + ", "
+                    + info.Runtime
+                    + ", "
+                    + info.Architecture
+            );
             Console.WriteLine();
 
             var results = new List<CaseResult>();
@@ -122,7 +144,12 @@ namespace GeometryHelper.Benchmarks
                 Statistics s = result.Statistics;
                 Console.WriteLine(
                     "median {0,10:0.000} ms  p95 {1,10:0.000} ms  n {2,2}  {3}  {4}",
-                    s.Median, s.P95, s.Count, result.Signature.Substring(0, 12), Verdict(result, approve));
+                    s.Median,
+                    s.P95,
+                    s.Count,
+                    result.Signature.Substring(0, 12),
+                    Verdict(result, approve)
+                );
             }
 
             (string json, string markdown) = Report.Write(output, info, results, approve);
@@ -135,7 +162,9 @@ namespace GeometryHelper.Benchmarks
 
             foreach (CaseResult result in results.Where(r => !r.Deterministic))
             {
-                Console.WriteLine("NOT DETERMINISTIC: " + result.Case.Name + " signed differently from one run to another.");
+                Console.WriteLine(
+                    "NOT DETERMINISTIC: " + result.Case.Name + " signed differently from one run to another."
+                );
                 failed = true;
             }
 
@@ -143,12 +172,15 @@ namespace GeometryHelper.Benchmarks
             {
                 if (failed)
                 {
-                    Console.WriteLine("Nothing approved: a case that is not deterministic has no signature to approve.");
+                    Console.WriteLine(
+                        "Nothing approved: a case that is not deterministic has no signature to approve."
+                    );
                     return 1;
                 }
 
                 // A run of every case approves exactly those; a filtered run updates its own cases and keeps the rest.
-                SortedDictionary<string, string> written = filter == null ? new SortedDictionary<string, string>(StringComparer.Ordinal) : approved;
+                SortedDictionary<string, string> written =
+                    filter == null ? new SortedDictionary<string, string>(StringComparer.Ordinal) : approved;
 
                 foreach (CaseResult result in results)
                 {
@@ -156,16 +188,30 @@ namespace GeometryHelper.Benchmarks
                 }
 
                 ApprovedSignatures.Write(baselines, written, info.Provenance());
-                Console.WriteLine("Approved " + results.Count.ToString(CultureInfo.InvariantCulture) + " signatures into " + baselines);
+                Console.WriteLine(
+                    "Approved " + results.Count.ToString(CultureInfo.InvariantCulture) + " signatures into " + baselines
+                );
 
                 return 0;
             }
 
             foreach (CaseResult result in results.Where(r => r.Deterministic && !r.Matched))
             {
-                Console.WriteLine(result.Approved == null
-                    ? "NONE APPROVED: " + result.Case.Name + " signs " + result.Signature + ", and no signature is approved for it."
-                    : "MISMATCH: " + result.Case.Name + " signs " + result.Signature + ", approved " + result.Approved + ".");
+                Console.WriteLine(
+                    result.Approved == null
+                        ? "NONE APPROVED: "
+                            + result.Case.Name
+                            + " signs "
+                            + result.Signature
+                            + ", and no signature is approved for it."
+                        : "MISMATCH: "
+                            + result.Case.Name
+                            + " signs "
+                            + result.Signature
+                            + ", approved "
+                            + result.Approved
+                            + "."
+                );
                 failed = true;
             }
 
@@ -244,7 +290,11 @@ namespace GeometryHelper.Benchmarks
         /// </summary>
         private static string FindRoot()
         {
-            for (DirectoryInfo folder = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory); folder != null; folder = folder.Parent)
+            for (
+                DirectoryInfo folder = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
+                folder != null;
+                folder = folder.Parent
+            )
             {
                 if (File.Exists(Path.Combine(folder.FullName, "GeometryHelper.slnx")))
                 {

@@ -46,7 +46,8 @@ namespace GeometryHelper.TeklaConvert
         /// </summary>
         /// <param name="vectors">The sequence of Tekla vectors to convert.</param>
         /// <returns>A list of converted <see cref="GeoVector2"/>.</returns>
-        public static List<GeoVector2> ToGeoVector2(this IEnumerable<TSG.Vector> vectors) => vectors.Select(ToGeoVector2).ToList();
+        public static List<GeoVector2> ToGeoVector2(this IEnumerable<TSG.Vector> vectors) =>
+            vectors.Select(ToGeoVector2).ToList();
 
         /// <summary>
         /// Converts a Tekla vector to a GeometryHelper vector.
@@ -69,7 +70,8 @@ namespace GeometryHelper.TeklaConvert
         /// </summary>
         /// <param name="vectors">The sequence of Tekla vectors to convert.</param>
         /// <returns>A list of converted <see cref="GeoVector3"/>.</returns>
-        public static List<GeoVector3> ToGeoVector3(this IEnumerable<TSG.Vector> vectors) => vectors.Select(ToGeoVector3).ToList();
+        public static List<GeoVector3> ToGeoVector3(this IEnumerable<TSG.Vector> vectors) =>
+            vectors.Select(ToGeoVector3).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper 2D vector to a Tekla vector (with Z = 0).
@@ -83,7 +85,8 @@ namespace GeometryHelper.TeklaConvert
         /// </summary>
         /// <param name="vectors">The sequence of GeometryHelper 2D vectors to convert.</param>
         /// <returns>A list of converted Tekla <see cref="TSG.Vector"/>.</returns>
-        public static List<TSG.Vector> ToTeklaVector(this IEnumerable<GeoVector2> vectors) => vectors.Select(ToTeklaVector).ToList();
+        public static List<TSG.Vector> ToTeklaVector(this IEnumerable<GeoVector2> vectors) =>
+            vectors.Select(ToTeklaVector).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper vector to a Tekla vector.
@@ -97,6 +100,7 @@ namespace GeometryHelper.TeklaConvert
         /// </summary>
         /// <param name="vectors">The sequence of GeometryHelper vectors to convert.</param>
         /// <returns>A list of converted Tekla <see cref="TSG.Vector"/>.</returns>
-        public static List<TSG.Vector> ToTeklaVector(this IEnumerable<GeoVector3> vectors) => vectors.Select(ToTeklaVector).ToList();
+        public static List<TSG.Vector> ToTeklaVector(this IEnumerable<GeoVector3> vectors) =>
+            vectors.Select(ToTeklaVector).ToList();
     }
 }

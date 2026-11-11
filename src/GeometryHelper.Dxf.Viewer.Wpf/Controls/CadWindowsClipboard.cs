@@ -53,8 +53,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return;
                 }
 
-                string format = held.GetDataPresent(CadClipboardData.Format) ? held.GetData(CadClipboardData.Format) as string : null;
-                string text = held.GetDataPresent(DataFormats.UnicodeText) ? held.GetData(DataFormats.UnicodeText) as string : null;
+                string format = held.GetDataPresent(CadClipboardData.Format)
+                    ? held.GetData(CadClipboardData.Format) as string
+                    : null;
+                string text = held.GetDataPresent(DataFormats.UnicodeText)
+                    ? held.GetData(DataFormats.UnicodeText) as string
+                    : null;
                 read = CadClipboardData.FromFormat(format, string.IsNullOrEmpty(text) ? null : text);
             });
 
@@ -72,7 +76,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
                 catch (COMException exception) when (i < Tries)
                 {
-                    GeometryHelperLog.Debug("CadWindowsClipboard: the clipboard was busy (" + exception.Message + "), tried again.");
+                    GeometryHelperLog.Debug(
+                        "CadWindowsClipboard: the clipboard was busy (" + exception.Message + "), tried again."
+                    );
                     Thread.Sleep(20);
                 }
                 catch (COMException exception)

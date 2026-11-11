@@ -36,7 +36,8 @@ namespace GeometryHelper.Drawing
         /// Gets the kinds of view dimensioned by the rules of <see cref="DrawingSettings.Dimensions"/>: the front and top
         /// views and the sections by default. A detail and the isometric view are not dimensioned, whatever this holds.
         /// </summary>
-        public IList<ViewKind> Dimensioned { get; } = new List<ViewKind> { ViewKind.Front, ViewKind.Top, ViewKind.Section };
+        public IList<ViewKind> Dimensioned { get; } =
+            new List<ViewKind> { ViewKind.Front, ViewKind.Top, ViewKind.Section };
 
         /// <summary>
         /// Gets the ids of the views dimensioned whatever their kind, as <see cref="Drawing.ReDimension"/> adds them: V-RIGHT
@@ -73,7 +74,11 @@ namespace GeometryHelper.Drawing
             {
                 if (!(value >= 0.0))
                 {
-                    throw new ArgumentOutOfRangeException(nameof(SectionDepth), value, "A depth has to be nought or more.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(SectionDepth),
+                        value,
+                        "A depth has to be nought or more."
+                    );
                 }
 
                 _sectionDepth = value;
@@ -92,7 +97,11 @@ namespace GeometryHelper.Drawing
             {
                 if (!(value >= 0.0) || !(value <= Math.PI / 2.0))
                 {
-                    throw new ArgumentOutOfRangeException(nameof(SmoothAngleRad), value, "A smooth angle has to be a number from nought up to a right angle.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(SmoothAngleRad),
+                        value,
+                        "A smooth angle has to be a number from nought up to a right angle."
+                    );
                 }
 
                 _smoothAngleRad = value;
@@ -135,7 +144,11 @@ namespace GeometryHelper.Drawing
         {
             if (!(value >= 0.0) || double.IsInfinity(value))
             {
-                throw new ArgumentOutOfRangeException(name, value, "The value has to be a finite number of nought or more.");
+                throw new ArgumentOutOfRangeException(
+                    name,
+                    value,
+                    "The value has to be a finite number of nought or more."
+                );
             }
 
             return value;

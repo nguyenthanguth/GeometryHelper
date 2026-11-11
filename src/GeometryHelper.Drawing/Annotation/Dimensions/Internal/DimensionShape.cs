@@ -12,7 +12,16 @@ namespace GeometryHelper.Drawing.Annotation
     {
         private GeoRectangle2[] _arrowheads;
 
-        public DimensionShape(GeoLine2? line, GeoLine2[] extensions, double minX, double minY, double maxX, double maxY, double textRotation, double textHeight)
+        public DimensionShape(
+            GeoLine2? line,
+            GeoLine2[] extensions,
+            double minX,
+            double minY,
+            double maxX,
+            double maxY,
+            double textRotation,
+            double textHeight
+        )
         {
             Line = line;
             Extensions = extensions;
@@ -42,7 +51,13 @@ namespace GeometryHelper.Drawing.Annotation
         public double TextHeight { get; }
 
         /// <summary>The boxes round the arrowheads, as <see cref="DrawingDimension.ArrowheadsOf"/> gives them; none without a line.</summary>
-        public GeoRectangle2[] Arrowheads => _arrowheads ?? (_arrowheads = Line.HasValue ? DrawingDimension.ArrowheadsOf(Line.Value, TextHeight) : new GeoRectangle2[0]);
+        public GeoRectangle2[] Arrowheads =>
+            _arrowheads
+            ?? (
+                _arrowheads = Line.HasValue
+                    ? DrawingDimension.ArrowheadsOf(Line.Value, TextHeight)
+                    : new GeoRectangle2[0]
+            );
 
         /// <summary>Whether the text stands past an end of the dimension line, as a text too long for its line does.</summary>
         public bool TextOutside
@@ -55,13 +70,16 @@ namespace GeometryHelper.Drawing.Annotation
                 }
 
                 GeoLine2 line = Line.Value;
-                double dx = line.EndPoint.X - line.StartPoint.X, dy = line.EndPoint.Y - line.StartPoint.Y;
-                double at = (0.5 * (MinX + MaxX) - line.StartPoint.X) * dx + (0.5 * (MinY + MaxY) - line.StartPoint.Y) * dy;
+                double dx = line.EndPoint.X - line.StartPoint.X,
+                    dy = line.EndPoint.Y - line.StartPoint.Y;
+                double at =
+                    (0.5 * (MinX + MaxX) - line.StartPoint.X) * dx + (0.5 * (MinY + MaxY) - line.StartPoint.Y) * dy;
                 return at < 0.0 || at > dx * dx + dy * dy;
             }
         }
 
-        public GeoRectangle2 TextBox => new GeoRectangle2(new GeoPoint2(0.5 * (MinX + MaxX), 0.5 * (MinY + MaxY)), MaxX - MinX, MaxY - MinY);
+        public GeoRectangle2 TextBox =>
+            new GeoRectangle2(new GeoPoint2(0.5 * (MinX + MaxX), 0.5 * (MinY + MaxY)), MaxX - MinX, MaxY - MinY);
 
         public static DimensionShape Of(DrawingDimension dimension)
         {
@@ -81,7 +99,8 @@ namespace GeometryHelper.Drawing.Annotation
                 box.Center.X + 0.5 * box.Width,
                 box.Center.Y + 0.5 * box.Height,
                 dimension.TextRotation,
-                dimension.TextHeight);
+                dimension.TextHeight
+            );
         }
 
         /// <summary>
@@ -119,7 +138,10 @@ namespace GeometryHelper.Drawing.Annotation
                 }
             }
 
-            if (Math.Min(a.MaxX, b.MaxX) - Math.Max(a.MinX, b.MinX) > tol && Math.Min(a.MaxY, b.MaxY) - Math.Max(a.MinY, b.MinY) > tol)
+            if (
+                Math.Min(a.MaxX, b.MaxX) - Math.Max(a.MinX, b.MinX) > tol
+                && Math.Min(a.MaxY, b.MaxY) - Math.Max(a.MinY, b.MinY) > tol
+            )
             {
                 return "text over text";
             }
@@ -127,7 +149,10 @@ namespace GeometryHelper.Drawing.Annotation
             // The texts in the middle of two neighbouring dimension lines can be as close as a gap each; none comes closer.
             double clear = 0.25 * (a.TextHeight + b.TextHeight);
 
-            if (Math.Min(a.MaxX, b.MaxX) - Math.Max(a.MinX, b.MinX) + clear > tol && Math.Min(a.MaxY, b.MaxY) - Math.Max(a.MinY, b.MinY) + clear > tol)
+            if (
+                Math.Min(a.MaxX, b.MaxX) - Math.Max(a.MinX, b.MinX) + clear > tol
+                && Math.Min(a.MaxY, b.MaxY) - Math.Max(a.MinY, b.MinY) + clear > tol
+            )
             {
                 return "text against text";
             }
@@ -144,12 +169,22 @@ namespace GeometryHelper.Drawing.Annotation
 
             // A text put past the end of its own line does not stand by another dimension's line, where it would read as
             // that one's value.
-            if (a.TextOutside && Math.Abs(a.TextRotation - b.TextRotation) <= 1E-9 && b.Line.HasValue && CrossesBox(b.Line.Value, Grown(a, 0.5 * a.TextHeight), tol))
+            if (
+                a.TextOutside
+                && Math.Abs(a.TextRotation - b.TextRotation) <= 1E-9
+                && b.Line.HasValue
+                && CrossesBox(b.Line.Value, Grown(a, 0.5 * a.TextHeight), tol)
+            )
             {
                 return "text past its line by another dimension line";
             }
 
-            if (b.TextOutside && Math.Abs(a.TextRotation - b.TextRotation) <= 1E-9 && a.Line.HasValue && CrossesBox(a.Line.Value, Grown(b, 0.5 * b.TextHeight), tol))
+            if (
+                b.TextOutside
+                && Math.Abs(a.TextRotation - b.TextRotation) <= 1E-9
+                && a.Line.HasValue
+                && CrossesBox(a.Line.Value, Grown(b, 0.5 * b.TextHeight), tol)
+            )
             {
                 return "dimension line by a text past its own line";
             }
@@ -167,17 +202,31 @@ namespace GeometryHelper.Drawing.Annotation
             return null;
         }
 
-        private static DimensionShape Grown(DimensionShape text, double by)
-            => new DimensionShape(null, new GeoLine2[0], text.MinX - by, text.MinY - by, text.MaxX + by, text.MaxY + by, text.TextRotation, text.TextHeight);
+        private static DimensionShape Grown(DimensionShape text, double by) =>
+            new DimensionShape(
+                null,
+                new GeoLine2[0],
+                text.MinX - by,
+                text.MinY - by,
+                text.MaxX + by,
+                text.MaxY + by,
+                text.TextRotation,
+                text.TextHeight
+            );
 
         private static bool TextOverArrows(DimensionShape text, DimensionShape arrows, double tol)
         {
             foreach (GeoRectangle2 box in arrows.Arrowheads)
             {
-                double x0 = box.Center.X - 0.5 * box.Width, x1 = box.Center.X + 0.5 * box.Width;
-                double y0 = box.Center.Y - 0.5 * box.Height, y1 = box.Center.Y + 0.5 * box.Height;
+                double x0 = box.Center.X - 0.5 * box.Width,
+                    x1 = box.Center.X + 0.5 * box.Width;
+                double y0 = box.Center.Y - 0.5 * box.Height,
+                    y1 = box.Center.Y + 0.5 * box.Height;
 
-                if (Math.Min(text.MaxX, x1) - Math.Max(text.MinX, x0) > tol && Math.Min(text.MaxY, y1) - Math.Max(text.MinY, y0) > tol)
+                if (
+                    Math.Min(text.MaxX, x1) - Math.Max(text.MinX, x0) > tol
+                    && Math.Min(text.MaxY, y1) - Math.Max(text.MinY, y0) > tol
+                )
                 {
                     return true;
                 }
@@ -226,12 +275,22 @@ namespace GeometryHelper.Drawing.Annotation
         /// How two segments meet: 0 not at all; 1 at one point, at a distance along each from its start; 2 lying on one
         /// another for more than the tolerance.
         /// </summary>
-        private static int Meet(GeoLine2 p, GeoLine2 q, double tol, out double atP, out double atQ, out double lengthP, out double lengthQ)
+        private static int Meet(
+            GeoLine2 p,
+            GeoLine2 q,
+            double tol,
+            out double atP,
+            out double atQ,
+            out double lengthP,
+            out double lengthQ
+        )
         {
             atP = 0.0;
             atQ = 0.0;
-            double px = p.EndPoint.X - p.StartPoint.X, py = p.EndPoint.Y - p.StartPoint.Y;
-            double qx = q.EndPoint.X - q.StartPoint.X, qy = q.EndPoint.Y - q.StartPoint.Y;
+            double px = p.EndPoint.X - p.StartPoint.X,
+                py = p.EndPoint.Y - p.StartPoint.Y;
+            double qx = q.EndPoint.X - q.StartPoint.X,
+                qy = q.EndPoint.Y - q.StartPoint.Y;
             lengthP = Math.Sqrt(px * px + py * py);
             lengthQ = Math.Sqrt(qx * qx + qy * qy);
 
@@ -240,8 +299,12 @@ namespace GeometryHelper.Drawing.Annotation
                 return 0;
             }
 
-            double ux = px / lengthP, uy = py / lengthP, vx = qx / lengthQ, vy = qy / lengthQ;
-            double wx = q.StartPoint.X - p.StartPoint.X, wy = q.StartPoint.Y - p.StartPoint.Y;
+            double ux = px / lengthP,
+                uy = py / lengthP,
+                vx = qx / lengthQ,
+                vy = qy / lengthQ;
+            double wx = q.StartPoint.X - p.StartPoint.X,
+                wy = q.StartPoint.Y - p.StartPoint.Y;
             double cross = ux * vy - uy * vx;
 
             if (Math.Abs(cross) <= 1E-9)
@@ -266,18 +329,29 @@ namespace GeometryHelper.Drawing.Annotation
         /// <summary>Whether a segment runs through the box of a text, shrunk by the tolerance, for more than the tolerance.</summary>
         private static bool CrossesBox(GeoLine2 line, DimensionShape box, double tol)
         {
-            double x0 = box.MinX + tol, y0 = box.MinY + tol, x1 = box.MaxX - tol, y1 = box.MaxY - tol;
+            double x0 = box.MinX + tol,
+                y0 = box.MinY + tol,
+                x1 = box.MaxX - tol,
+                y1 = box.MaxY - tol;
 
             if (x0 >= x1 || y0 >= y1)
             {
                 return false;
             }
 
-            double sx = line.StartPoint.X, sy = line.StartPoint.Y;
-            double dx = line.EndPoint.X - sx, dy = line.EndPoint.Y - sy;
-            double t0 = 0.0, t1 = 1.0;
+            double sx = line.StartPoint.X,
+                sy = line.StartPoint.Y;
+            double dx = line.EndPoint.X - sx,
+                dy = line.EndPoint.Y - sy;
+            double t0 = 0.0,
+                t1 = 1.0;
 
-            if (!Clip(-dx, sx - x0, ref t0, ref t1) || !Clip(dx, x1 - sx, ref t0, ref t1) || !Clip(-dy, sy - y0, ref t0, ref t1) || !Clip(dy, y1 - sy, ref t0, ref t1))
+            if (
+                !Clip(-dx, sx - x0, ref t0, ref t1)
+                || !Clip(dx, x1 - sx, ref t0, ref t1)
+                || !Clip(-dy, sy - y0, ref t0, ref t1)
+                || !Clip(dy, y1 - sy, ref t0, ref t1)
+            )
             {
                 return false;
             }
@@ -337,7 +411,17 @@ namespace GeometryHelper.Drawing.Annotation
 
                     if (reason != null)
                     {
-                        found.Add(dimensions[i].Id + " " + reason + " of " + dimensions[j].Id + ": " + dimensions[i] + " / " + dimensions[j]);
+                        found.Add(
+                            dimensions[i].Id
+                                + " "
+                                + reason
+                                + " of "
+                                + dimensions[j].Id
+                                + ": "
+                                + dimensions[i]
+                                + " / "
+                                + dimensions[j]
+                        );
                     }
                 }
             }

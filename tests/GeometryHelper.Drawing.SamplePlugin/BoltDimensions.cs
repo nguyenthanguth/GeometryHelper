@@ -46,7 +46,15 @@ namespace GeometryHelper.Drawing.SamplePlugin
             settings.Cumulative = false;
             settings.Ordinate = false;
             settings.HolesByGroup = true;
-            context.AddDimensions(Annotator.Dimension(context.View.Lines, objects, context.View.Frame.CoordinateSystem, settings, context.Tolerance));
+            context.AddDimensions(
+                Annotator.Dimension(
+                    context.View.Lines,
+                    objects,
+                    context.View.Frame.CoordinateSystem,
+                    settings,
+                    context.Tolerance
+                )
+            );
         }
     }
 }

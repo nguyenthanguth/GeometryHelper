@@ -82,7 +82,24 @@ namespace GeometryHelper.UnitTest.Dwg
         [Fact]
         public void ModularCharsAndShorts_ReadBack_SignedAndNot()
         {
-            foreach (long value in new[] { 0L, 1L, 63L, 64L, 127L, 128L, 4610L, 112823273L, -1L, -63L, -64L, -1000L, -112823273L })
+            foreach (
+                long value in new[]
+                {
+                    0L,
+                    1L,
+                    63L,
+                    64L,
+                    127L,
+                    128L,
+                    4610L,
+                    112823273L,
+                    -1L,
+                    -63L,
+                    -64L,
+                    -1000L,
+                    -112823273L,
+                }
+            )
             {
                 Assert.Equal(value, RoundTrip(3, w => w.ModularChar(value), r => r.ModularChar()));
             }
@@ -146,7 +163,10 @@ namespace GeometryHelper.UnitTest.Dwg
 
             foreach (double value in new[] { 10.0, 10.000000001, 10.5, -3.25, 0.0, 12345.678 })
             {
-                Assert.Equal(value, RoundTrip(4, w => w.BitDoubleDefault(value, given), r => r.BitDoubleDefault(given)));
+                Assert.Equal(
+                    value,
+                    RoundTrip(4, w => w.BitDoubleDefault(value, given), r => r.BitDoubleDefault(given))
+                );
             }
 
             Assert.Equal(new byte[] { 0x00 }, Bytes(w => w.BitDoubleDefault(given, given)));
@@ -163,8 +183,14 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.Empty(RoundTrip(3, w => w.Text(new byte[0]), r => r.Text()));
 
             const string unicode = "Tiếng Việt 日本語";
-            Assert.Equal(unicode, Encoding.UTF8.GetString(RoundTrip(7, w => w.TextUnicode(unicode), r => r.TextUnicode())));
-            Assert.Equal(unicode, Encoding.UTF8.GetString(RoundTrip(1, w => w.TextUnicodeRaw(unicode), r => r.TextUnicodeRaw())));
+            Assert.Equal(
+                unicode,
+                Encoding.UTF8.GetString(RoundTrip(7, w => w.TextUnicode(unicode), r => r.TextUnicode()))
+            );
+            Assert.Equal(
+                unicode,
+                Encoding.UTF8.GetString(RoundTrip(1, w => w.TextUnicodeRaw(unicode), r => r.TextUnicodeRaw()))
+            );
             Assert.Empty(RoundTrip(0, w => w.TextUnicode(string.Empty), r => r.TextUnicode()));
         }
 
@@ -178,8 +204,14 @@ namespace GeometryHelper.UnitTest.Dwg
 
             Assert.Equal(0.0, RoundTrip(2, w => w.BitThickness(0.0), r => r.BitThickness()));
             Assert.Equal(2.5, RoundTrip(2, w => w.BitThickness(2.5), r => r.BitThickness()));
-            Assert.Equal(new[] { 0.0, 0.0, 1.0 }, RoundTrip(2, w => w.BitExtrusion(new[] { 0.0, 0.0, 1.0 }), r => r.BitExtrusion()));
-            Assert.Equal(new[] { 0.6, 0.0, 0.8 }, RoundTrip(2, w => w.BitExtrusion(new[] { 0.6, 0.0, 0.8 }), r => r.BitExtrusion()));
+            Assert.Equal(
+                new[] { 0.0, 0.0, 1.0 },
+                RoundTrip(2, w => w.BitExtrusion(new[] { 0.0, 0.0, 1.0 }), r => r.BitExtrusion())
+            );
+            Assert.Equal(
+                new[] { 0.6, 0.0, 0.8 },
+                RoundTrip(2, w => w.BitExtrusion(new[] { 0.6, 0.0, 0.8 }), r => r.BitExtrusion())
+            );
             Assert.Single(Bytes(w => w.BitExtrusion(new[] { 0.0, 0.0, 1.0 })));
         }
 

@@ -30,7 +30,8 @@ namespace GeometryHelper.Geometry
         /// it; the projection <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> keeps carrying it to the start,
         /// 0.00122 away. A straight edge shorter than the tolerance is read as its start point.
         /// </remarks>
-        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => point.DistanceTo(GetMeasuredPoint(point, tolerance));
+        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) =>
+            point.DistanceTo(GetMeasuredPoint(point, tolerance));
 
         /// <summary>
         /// Gets the point of the edge its distance to a point is measured to: on a bend the nearest point found at a tolerance
@@ -49,8 +50,8 @@ namespace GeometryHelper.Geometry
         /// found at a tolerance of nought, as <see cref="GetMeasuredPoint(GeoPoint3, Tolerance)"/> finds the point, and on a
         /// straight edge as <see cref="GetParameterAtPoint(GeoPoint3, Tolerance)"/> gives it.
         /// </summary>
-        internal double GetMeasuredParameter(GeoPoint3 point, Tolerance tolerance)
-            => IsArc ? ToArc().GetParameterAtPoint(point, Exactly) : GetParameterAtPoint(point, tolerance);
+        internal double GetMeasuredParameter(GeoPoint3 point, Tolerance tolerance) =>
+            IsArc ? ToArc().GetParameterAtPoint(point, Exactly) : GetParameterAtPoint(point, tolerance);
 
         /// <summary>
         /// The tolerance of nought, at which only a point exactly at the centre of a bend is carried to its start.

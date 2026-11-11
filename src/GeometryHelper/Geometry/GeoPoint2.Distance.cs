@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -83,7 +83,8 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from this point to a curved loop, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => Distance2.DistanceTo(loop, this, tolerance);
+        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Distance2.DistanceTo(loop, this, tolerance);
 
         /// <summary>
         /// Gets the distance from this point to a curved chain, using the default tolerance.
@@ -95,7 +96,8 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from this point to a curved chain, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) => Distance2.DistanceTo(chain, this, tolerance);
+        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Distance2.DistanceTo(chain, this, tolerance);
 
         /// <summary>
         /// Gets the signed distance from this point to the boundary of a circle, negative inside it, using the default tolerance.
@@ -113,7 +115,8 @@ namespace GeometryHelper.Geometry
         /// The distance out to the circumference, measured exactly, negative when the point lies inside the circle
         /// and nought when the tolerance given calls it on the circumference.
         /// </returns>
-        public double SignedDistanceTo(GeoCircle2 circle, Tolerance tolerance) => Distance2.SignedDistanceTo(circle, this, tolerance);
+        public double SignedDistanceTo(GeoCircle2 circle, Tolerance tolerance) =>
+            Distance2.SignedDistanceTo(circle, this, tolerance);
 
         /// <summary>
         /// Gets the signed distance from this point to the boundary of a rectangle, negative inside it, using the default tolerance.
@@ -131,7 +134,8 @@ namespace GeometryHelper.Geometry
         /// The distance out to the nearest side, measured exactly, negative when the point lies inside the rectangle
         /// and nought when the tolerance given calls it on a side.
         /// </returns>
-        public double SignedDistanceTo(GeoRectangle2 rect, Tolerance tolerance) => Distance2.SignedDistanceTo(rect, this, tolerance);
+        public double SignedDistanceTo(GeoRectangle2 rect, Tolerance tolerance) =>
+            Distance2.SignedDistanceTo(rect, this, tolerance);
 
         /// <summary>
         /// Gets the signed distance from this point to the boundary of a polygon, negative inside it, using the default tolerance.
@@ -149,7 +153,8 @@ namespace GeometryHelper.Geometry
         /// The distance out to the nearest edge, measured exactly, negative when the point lies inside the polygon
         /// and nought when the tolerance given calls it on its outline.
         /// </returns>
-        public double SignedDistanceTo(GeoPolygon2 poly, Tolerance tolerance) => Distance2.SignedDistanceTo(poly, this, tolerance);
+        public double SignedDistanceTo(GeoPolygon2 poly, Tolerance tolerance) =>
+            Distance2.SignedDistanceTo(poly, this, tolerance);
 
         /// <summary>
         /// Gets the signed distance from this point to the boundary of a curved loop, negative inside it, using the default tolerance.
@@ -167,7 +172,8 @@ namespace GeometryHelper.Geometry
         /// The distance out to the nearest edge, measured exactly on the arcs, negative when the point lies inside the
         /// loop and nought when the tolerance given calls it on its outline.
         /// </returns>
-        public double SignedDistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => Distance2.SignedDistanceTo(loop, this, tolerance);
+        public double SignedDistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Distance2.SignedDistanceTo(loop, this, tolerance);
 
         /// <summary>
         /// Gets the signed distance from this point to the boundary of a face, negative inside it, using the default tolerance.
@@ -185,7 +191,8 @@ namespace GeometryHelper.Geometry
         /// The distance out to the nearest edge, its outline or the rim of a hole, measured exactly, negative when the
         /// point lies on the material and nought when the tolerance given calls it on an edge.
         /// </returns>
-        public double SignedDistanceTo(GeoFace2 face, Tolerance tolerance) => Distance2.SignedDistanceTo(face, this, tolerance);
+        public double SignedDistanceTo(GeoFace2 face, Tolerance tolerance) =>
+            Distance2.SignedDistanceTo(face, this, tolerance);
 
         /// <summary>
         /// Gets the distance from this point to an edge.
@@ -194,10 +201,7 @@ namespace GeometryHelper.Geometry
         /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
         /// than the global point tolerance is read as its start point.
         /// </returns>
-        public double DistanceTo(GeoEdge2 edge)
-            => edge.IsArc
-                ? DistanceTo(edge.ToArc())
-                : DistanceTo(edge.ToLine());
+        public double DistanceTo(GeoEdge2 edge) => edge.IsArc ? DistanceTo(edge.ToArc()) : DistanceTo(edge.ToLine());
 
         /// <summary>
         /// Gets the distance from this point to an edge, within a tolerance: the same answer as
@@ -233,7 +237,8 @@ namespace GeometryHelper.Geometry
         /// The distance out to the nearest side, measured exactly, negative when the point lies inside the triangle
         /// and nought when the tolerance given calls it on a side.
         /// </returns>
-        public double SignedDistanceTo(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.SignedDistanceTo(triangle, this, tolerance);
+        public double SignedDistanceTo(GeoTriangle2 triangle, Tolerance tolerance) =>
+            Triangle2.SignedDistanceTo(triangle, this, tolerance);
 
         #endregion
 

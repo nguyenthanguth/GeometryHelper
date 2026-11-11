@@ -52,14 +52,19 @@ namespace GeometryHelper.UnitTest.Dxf
         private static byte[] Unifont(int above, int below, IDictionary<int, byte[]> letters)
         {
             var bytes = new List<byte>(Encoding.ASCII.GetBytes("AutoCAD-86 unifont 1.0\r\n\u001A"));
-            byte[] header = Encoding.ASCII.GetBytes("GH TEST").Concat(new byte[] { 0, (byte)above, (byte)below, 2, 0, 0, 0 }).ToArray();
+            byte[] header = Encoding
+                .ASCII.GetBytes("GH TEST")
+                .Concat(new byte[] { 0, (byte)above, (byte)below, 2, 0, 0, 0 })
+                .ToArray();
             bytes.AddRange(BitConverter.GetBytes((uint)(letters.Count + 1)));
             bytes.AddRange(BitConverter.GetBytes((ushort)header.Length));
             bytes.AddRange(header);
 
             foreach (KeyValuePair<int, byte[]> letter in letters.OrderBy(l => l.Key))
             {
-                byte[] record = new byte[] { 0 }.Concat(letter.Value).ToArray();
+                byte[] record = new byte[] { 0 }
+                    .Concat(letter.Value)
+                    .ToArray();
                 bytes.AddRange(BitConverter.GetBytes((ushort)letter.Key));
                 bytes.AddRange(BitConverter.GetBytes((ushort)record.Length));
                 bytes.AddRange(record);
@@ -73,9 +78,25 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             var records = new List<KeyValuePair<int, byte[]>>
             {
-                new KeyValuePair<int, byte[]>(0, Encoding.ASCII.GetBytes("GH SHAPES").Concat(new byte[] { 0, (byte)above, (byte)below, 0, 0 }).ToArray()),
+                new KeyValuePair<int, byte[]>(
+                    0,
+                    Encoding
+                        .ASCII.GetBytes("GH SHAPES")
+                        .Concat(new byte[] { 0, (byte)above, (byte)below, 0, 0 })
+                        .ToArray()
+                ),
             };
-            records.AddRange(letters.Where(l => l.Key < 256).OrderBy(l => l.Key).Select(l => new KeyValuePair<int, byte[]>(l.Key, new byte[] { 0 }.Concat(l.Value).ToArray())));
+            records.AddRange(
+                letters
+                    .Where(l => l.Key < 256)
+                    .OrderBy(l => l.Key)
+                    .Select(l => new KeyValuePair<int, byte[]>(
+                        l.Key,
+                        new byte[] { 0 }
+                            .Concat(l.Value)
+                            .ToArray()
+                    ))
+            );
             var bytes = new List<byte>(Encoding.ASCII.GetBytes("AutoCAD-86 shapes 1.0\r\n\u001A"));
             bytes.AddRange(BitConverter.GetBytes((ushort)0));
             bytes.AddRange(BitConverter.GetBytes((ushort)records.Max(r => r.Key)));
@@ -118,7 +139,8 @@ namespace GeometryHelper.UnitTest.Dxf
             }
         }
 
-        private static KeyValuePair<string, byte[]> F(string name, byte[] bytes) => new KeyValuePair<string, byte[]>(name, bytes);
+        private static KeyValuePair<string, byte[]> F(string name, byte[] bytes) =>
+            new KeyValuePair<string, byte[]>(name, bytes);
 
         /// <summary>A new drawing of R2018, its Standard of txt, its fonts looked for in the folder given.</summary>
         private static DxfDatabase Drawing(string folder)
@@ -130,11 +152,20 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static GeoPoint3 P(double x, double y) => new GeoPoint3(x, y, 0);
 
-        private static void Is(GeoPoint3 expected, GeoPoint3 actual) => Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
+        private static void Is(GeoPoint3 expected, GeoPoint3 actual) =>
+            Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
 
-        private static void Is(GeoVector3 expected, GeoVector3 actual) => Assert.True(expected.Subtract(actual).Length <= Near, "expected " + expected + ", got " + actual);
+        private static void Is(GeoVector3 expected, GeoVector3 actual) =>
+            Assert.True(expected.Subtract(actual).Length <= Near, "expected " + expected + ", got " + actual);
 
-        private static void Is(double expected, double actual) => Assert.True(Math.Abs(expected - actual) <= Near, "expected " + expected.ToString("R", CultureInfo.InvariantCulture) + ", got " + actual.ToString("R", CultureInfo.InvariantCulture));
+        private static void Is(double expected, double actual) =>
+            Assert.True(
+                Math.Abs(expected - actual) <= Near,
+                "expected "
+                    + expected.ToString("R", CultureInfo.InvariantCulture)
+                    + ", got "
+                    + actual.ToString("R", CultureInfo.InvariantCulture)
+            );
 
         /// <summary>The messages logged while an action runs, every level, each after its level.</summary>
         private static List<string> Logged(Action action)
@@ -159,9 +190,25 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>A TEXT in model space made in code, in the style Standard, 4 high, its modes and second point given.</summary>
-        private static DxfDBText Text(DxfDatabase db, string words, int horizontal, int vertical, GeoPoint3 second, double widthFactor = 1.0, double oblique = 0.0, string style = "Standard")
+        private static DxfDBText Text(
+            DxfDatabase db,
+            string words,
+            int horizontal,
+            int vertical,
+            GeoPoint3 second,
+            double widthFactor = 1.0,
+            double oblique = 0.0,
+            string style = "Standard"
+        )
         {
-            var text = new DxfDBText { TextString = words, Height = 4, WidthFactor = widthFactor, Oblique = oblique * Math.PI / 180.0, TextStyleName = style };
+            var text = new DxfDBText
+            {
+                TextString = words,
+                Height = 4,
+                WidthFactor = widthFactor,
+                Oblique = oblique * Math.PI / 180.0,
+                TextStyleName = style,
+            };
             text.HorizontalMode = (DxfTextHorizontalMode)horizontal;
             text.VerticalMode = (DxfTextVerticalMode)vertical;
             text.AlignmentPoint = second;
@@ -177,7 +224,12 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDBText text = Text(db, "ABC", 1, 0, P(100, 50));
             text.TextString = "AB";
             text.Height = 8;
-            var mtext = new DxfMText { Contents = "ABC", TextHeight = 4, Location = P(0, 0) };
+            var mtext = new DxfMText
+            {
+                Contents = "ABC",
+                TextHeight = 4,
+                Location = P(0, 0),
+            };
             db.ModelSpace.AppendEntity(mtext);
             Assert.Equal(0.0, mtext.ActualWidth);
             return db.ToText();
@@ -246,7 +298,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
                     Assert.Single(logged, m => m.StartsWith("Warn", StringComparison.Ordinal) && m.Contains("bad.shx"));
                 },
-                F("bad.shx", Encoding.ASCII.GetBytes("AutoCAD-86 unifont 1.0\r\n\u001A\u0001")));
+                F("bad.shx", Encoding.ASCII.GetBytes("AutoCAD-86 unifont 1.0\r\n\u001A\u0001"))
+            );
         }
 
         [Fact]
@@ -284,7 +337,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
         // ---- the codes of a shape, as AutoCAD reads them (check F1a) -------------------------------------------------------------
 
-        private static DxfShxFont.Glyph Shape(params byte[] codes) => DxfShxFont.Read(Unifont(6, 2, new Dictionary<int, byte[]> { { 'X', codes }, { 'A', Capital } })).GlyphOf('X');
+        private static DxfShxFont.Glyph Shape(params byte[] codes) =>
+            DxfShxFont
+                .Read(Unifont(6, 2, new Dictionary<int, byte[]> { { 'X', codes }, { 'A', Capital } }))
+                .GlyphOf('X');
 
         private static void Boxed(DxfShxFont.Glyph glyph, double left, double bottom, double right, double top)
         {
@@ -358,13 +414,24 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ShapesWithinEachOther_StopAtTheirDepth_AndAShapeOfNoFont_IsNoFont()
         {
-            var cycle = new Dictionary<int, byte[]> { { 'X', new byte[] { 7, 0, (byte)'Y', 0 } }, { 'Y', new byte[] { 7, 0, (byte)'X', 0 } } };
+            var cycle = new Dictionary<int, byte[]>
+            {
+                { 'X', new byte[] { 7, 0, (byte)'Y', 0 } },
+                { 'Y', new byte[] { 7, 0, (byte)'X', 0 } },
+            };
             DxfShxFont font = DxfShxFont.Read(Unifont(6, 2, cycle));
             Assert.False(font.GlyphOf('X').HasInk);
             Is(0, font.GlyphOf('X').Advance);
 
             // A file of shapes with no shape 0, as AutoCAD's ltypeshp.shx, has no height: no font of letters.
-            Assert.Null(DxfShxFont.Read(Encoding.ASCII.GetBytes("AutoCAD-86 shapes 1.0\r\n\u001A").Concat(new byte[] { 132, 0, 132, 0, 1, 0, 132, 0, 4, 0, (byte)'T', 0, 2, 0 }).ToArray()));
+            Assert.Null(
+                DxfShxFont.Read(
+                    Encoding
+                        .ASCII.GetBytes("AutoCAD-86 shapes 1.0\r\n\u001A")
+                        .Concat(new byte[] { 132, 0, 132, 0, 1, 0, 132, 0, 4, 0, (byte)'T', 0, 2, 0 })
+                        .ToArray()
+                )
+            );
             Assert.Null(DxfShxFont.Read(Encoding.ASCII.GetBytes("AutoCAD-86 bigfont 1.0\r\n\u001A")));
         }
 
@@ -380,10 +447,18 @@ namespace GeometryHelper.UnitTest.Dxf
                 // AutoCAD 2021, txt.shx "ABC" 4 high about the origin (text.tsv): its ink from 0 to 10.667 and 0 to 4.
                 var expected = new Dictionary<int[], GeoPoint3>
                 {
-                    { new[] { 1, 0 }, P(-5.333333333333333, 0) }, { new[] { 2, 0 }, P(-10.666666666666666, 0) }, { new[] { 4, 0 }, P(-5.333333333333333, -2) },
-                    { new[] { 0, 3 }, P(0, -4) }, { new[] { 1, 3 }, P(-5.333333333333333, -4) }, { new[] { 2, 3 }, P(-10.666666666666666, -4) },
-                    { new[] { 0, 2 }, P(0, -2) }, { new[] { 1, 2 }, P(-5.333333333333333, -2) }, { new[] { 2, 2 }, P(-10.666666666666666, -2) },
-                    { new[] { 0, 1 }, P(0, 1.3333333333333333) }, { new[] { 1, 1 }, P(-5.333333333333333, 1.3333333333333333) }, { new[] { 2, 1 }, P(-10.666666666666666, 1.3333333333333333) },
+                    { new[] { 1, 0 }, P(-5.333333333333333, 0) },
+                    { new[] { 2, 0 }, P(-10.666666666666666, 0) },
+                    { new[] { 4, 0 }, P(-5.333333333333333, -2) },
+                    { new[] { 0, 3 }, P(0, -4) },
+                    { new[] { 1, 3 }, P(-5.333333333333333, -4) },
+                    { new[] { 2, 3 }, P(-10.666666666666666, -4) },
+                    { new[] { 0, 2 }, P(0, -2) },
+                    { new[] { 1, 2 }, P(-5.333333333333333, -2) },
+                    { new[] { 2, 2 }, P(-10.666666666666666, -2) },
+                    { new[] { 0, 1 }, P(0, 1.3333333333333333) },
+                    { new[] { 1, 1 }, P(-5.333333333333333, 1.3333333333333333) },
+                    { new[] { 2, 1 }, P(-10.666666666666666, 1.3333333333333333) },
                 };
 
                 foreach (KeyValuePair<int[], GeoPoint3> mode in expected)
@@ -410,21 +485,36 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfDatabase db = Drawing(folder);
 
                 // AutoCAD 2021: "ABC" aligned on (0, 0) and (30, 0) is 11.25 high; fitted, 2.8125 wide; "A " aligned 15 high.
-                var aligned = new DxfDBText { TextString = "ABC", Height = 4, HorizontalMode = DxfTextHorizontalMode.TextAlign };
+                var aligned = new DxfDBText
+                {
+                    TextString = "ABC",
+                    Height = 4,
+                    HorizontalMode = DxfTextHorizontalMode.TextAlign,
+                };
                 aligned.Position = P(0, 0);
                 aligned.AlignmentPoint = P(30, 0);
                 db.ModelSpace.AppendEntity(aligned);
                 Is(11.25, aligned.Height);
                 Is(P(0, 0), aligned.Position);
 
-                var fitted = new DxfDBText { TextString = "ABC", Height = 4, HorizontalMode = DxfTextHorizontalMode.TextFit };
+                var fitted = new DxfDBText
+                {
+                    TextString = "ABC",
+                    Height = 4,
+                    HorizontalMode = DxfTextHorizontalMode.TextFit,
+                };
                 fitted.Position = P(0, 0);
                 fitted.AlignmentPoint = P(30, 0);
                 db.ModelSpace.AppendEntity(fitted);
                 Is(2.8125, fitted.WidthFactor);
                 Is(4, fitted.Height);
 
-                var spaced = new DxfDBText { TextString = "A ", Height = 4, HorizontalMode = DxfTextHorizontalMode.TextAlign };
+                var spaced = new DxfDBText
+                {
+                    TextString = "A ",
+                    Height = 4,
+                    HorizontalMode = DxfTextHorizontalMode.TextAlign,
+                };
                 spaced.Position = P(0, 0);
                 spaced.AlignmentPoint = P(30, 0);
                 db.ModelSpace.AppendEntity(spaced);
@@ -502,7 +592,8 @@ namespace GeometryHelper.UnitTest.Dxf
                     text.TextStyleName = "SHAPES";
                     Is(11 * 4.0 / 6.0, text.GeometricExtents.Max.X);
                 },
-                F("gh-shapes.shx", Shapes(6, 2, letters)));
+                F("gh-shapes.shx", Shapes(6, 2, letters))
+            );
         }
 
         // ---- MTEXT of one line (check F1a) ---------------------------------------------------------------------------------------
@@ -516,7 +607,13 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 DxfMText Words(string contents, double width = 0)
                 {
-                    var mtext = new DxfMText { Contents = contents, TextHeight = 4, Width = width, Location = P(0, 0) };
+                    var mtext = new DxfMText
+                    {
+                        Contents = contents,
+                        TextHeight = 4,
+                        Width = width,
+                        Location = P(0, 0),
+                    };
                     db.ModelSpace.AppendEntity(mtext);
                     return mtext;
                 }
@@ -545,9 +642,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
         // ---- multileaders: words met on the right (checks F1a, F1b, D31b) --------------------------------------------------------
 
-        private const string Right = "270 2|300 CONTEXT_DATA{|40 1.0|10 98.0|20 48.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 100.0|22 50.0|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 120.6666666666666|20 48.0|30 0.0|11 -1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 250.0|20 0.0|30 0.0|91 0|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 295936|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
+        private const string Right =
+            "270 2|300 CONTEXT_DATA{|40 1.0|10 98.0|20 48.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 100.0|22 50.0|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 120.6666666666666|20 48.0|30 0.0|11 -1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 250.0|20 0.0|30 0.0|91 0|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 295936|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
 
-        private const string Both = "270 2|300 CONTEXT_DATA{|40 1.0|10 98.0|20 48.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 100.0|22 50.0|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 90.0|20 48.0|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 0.0|20 0.0|30 0.0|91 0|305 }|271 0|303 }|302 LEADER{|290 1|291 1|10 120.6666666666666|20 48.0|30 0.0|11 -1.0|21 0.0|31 0.0|90 1|40 8.0|304 LEADER_LINE{|10 250.0|20 0.0|30 0.0|91 1|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 295936|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
+        private const string Both =
+            "270 2|300 CONTEXT_DATA{|40 1.0|10 98.0|20 48.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 100.0|22 50.0|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 90.0|20 48.0|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 0.0|20 0.0|30 0.0|91 0|305 }|271 0|303 }|302 LEADER{|290 1|291 1|10 120.6666666666666|20 48.0|30 0.0|11 -1.0|21 0.0|31 0.0|90 1|40 8.0|304 LEADER_LINE{|10 250.0|20 0.0|30 0.0|91 1|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 295936|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
 
         /// <summary>A drawing of a Standard multileader style, its fonts looked for in the folder given.</summary>
         private static DxfDatabase Leaders(string folder)
@@ -560,7 +659,15 @@ namespace GeometryHelper.UnitTest.Dxf
         /// <summary>A MULTILEADER of AutoCAD 2021's own record, as D31b's tests make one: its groups after AcDbMLeader those given, the drawing's own style and text style put in.</summary>
         private static DxfMLeader AutoCads(DxfDatabase db, string record)
         {
-            var made = new DxfMLeader { MText = new DxfMText { Contents = "X", Location = new GeoPoint3(0, 0, 0), TextHeight = 4.0 } };
+            var made = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = "X",
+                    Location = new GeoPoint3(0, 0, 0),
+                    TextHeight = 4.0,
+                },
+            };
             db.ModelSpace.AppendEntity(made);
             List<DxfTypedValue> tail = made.Item.File.TailOf(made.Item, 0);
             int marker = tail.FindIndex(g => g.TypeCode == 100 && g.Value.Trim() == "AcDbMLeader");
@@ -580,7 +687,10 @@ namespace GeometryHelper.UnitTest.Dxf
                     continue;
                 }
 
-                value = code == 340 && value == "67" ? style : (code == 340 || code == 343) && value == "55" ? text : value;
+                value =
+                    code == 340 && value == "67" ? style
+                    : (code == 340 || code == 343) && value == "55" ? text
+                    : value;
                 groups.Add(new KeyValuePair<int, string>(code, value));
             }
 
@@ -591,7 +701,15 @@ namespace GeometryHelper.UnitTest.Dxf
         /// <summary>A multileader made in code as F1a's plugin made AutoCAD's: words 4 high at (100, 50) on the Standard of a gap of 2 and doglegs of 8, a line added from the point given.</summary>
         private static DxfMLeader Made(DxfDatabase db, string words, GeoPoint3 from, int attachment = 1)
         {
-            var mleader = new DxfMLeader { MText = new DxfMText { Contents = words, Location = P(100, 50), TextHeight = 4.0 } };
+            var mleader = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = words,
+                    Location = P(100, 50),
+                    TextHeight = 4.0,
+                },
+            };
             db.ModelSpace.AppendEntity(mleader);
             mleader.LandingGap = 2;
             mleader.DoglegLength = 8;
@@ -634,12 +752,25 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 // AutoCAD 2021 (F1b, txt.shx): "Ag", its g 1.333 below the baseline, met 2.667 below its top at the middle of its top
                 // line, its middle and the middle of the bottom line; 5.333 at the bottom and under it; 0 at the top.
-                var below = new Dictionary<int, double> { { 0, 0 }, { 1, 8.0 / 3.0 }, { 2, 8.0 / 3.0 }, { 3, 8.0 / 3.0 }, { 4, 16.0 / 3.0 }, { 5, 16.0 / 3.0 }, { 6, 16.0 / 3.0 }, { 7, 16.0 / 3.0 } };
+                var below = new Dictionary<int, double>
+                {
+                    { 0, 0 },
+                    { 1, 8.0 / 3.0 },
+                    { 2, 8.0 / 3.0 },
+                    { 3, 8.0 / 3.0 },
+                    { 4, 16.0 / 3.0 },
+                    { 5, 16.0 / 3.0 },
+                    { 6, 16.0 / 3.0 },
+                    { 7, 16.0 / 3.0 },
+                };
 
                 foreach (KeyValuePair<int, double> attachment in below)
                 {
                     Is(P(90, 50 - attachment.Value), Made(db, "Ag", P(0, 0), attachment.Key).GetLastVertex(0));
-                    Is(P(116.66666666666667, 50 - attachment.Value), Made(db, "Ag", P(250, 0), attachment.Key).GetLastVertex(0));
+                    Is(
+                        P(116.66666666666667, 50 - attachment.Value),
+                        Made(db, "Ag", P(250, 0), attachment.Key).GetLastVertex(0)
+                    );
                 }
 
                 // "ABC" of no ink below, 2 at the middle of the top line, as with no fonts.
@@ -690,7 +821,13 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 // AutoCAD 2021 (F1b): "ABCDEF" given to words met on the right alone stand at (88, 50), "AB" at (104, 50); met on both
                 // sides they stay and the right leader lands anew, from (132.67, 48) and (116.67, 48).
-                foreach (KeyValuePair<string, double[]> anew in new Dictionary<string, double[]> { { "ABCDEF", new[] { 88, 132.66666666666666 } }, { "AB", new[] { 104, 116.66666666666667 } } })
+                foreach (
+                    KeyValuePair<string, double[]> anew in new Dictionary<string, double[]>
+                    {
+                        { "ABCDEF", new[] { 88, 132.66666666666666 } },
+                        { "AB", new[] { 104, 116.66666666666667 } },
+                    }
+                )
                 {
                     DxfMLeader right = AutoCads(db, Right);
                     DxfMText words = right.MText;
@@ -716,8 +853,12 @@ namespace GeometryHelper.UnitTest.Dxf
             InFolder(folder =>
             {
                 DxfDatabase db = Leaders(folder);
-                GeoTransform3 mirrorXY = GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1)));
-                GeoTransform3 mirrorYZ = GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0)));
+                GeoTransform3 mirrorXY = GeoTransform3.Mirror(
+                    new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1))
+                );
+                GeoTransform3 mirrorYZ = GeoTransform3.Mirror(
+                    new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0))
+                );
 
                 // AutoCAD 2021 (D31e e5-words-mirrorxy, e5-words-right-mirrorxy): across XY, "ABC" held at (110.67, 50, 0) facing
                 // down and running against x, the leaders kept.
@@ -756,19 +897,40 @@ namespace GeometryHelper.UnitTest.Dxf
                 db.BlockTable.Add(block);
                 var line = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 90, 0));
                 block.AppendEntity(line);
-                var left = new DxfAttributeDefinition(P(20, 60), "L1", "LEFT", "Left", null) { Height = 5, LockPositionInBlock = true };
+                var left = new DxfAttributeDefinition(P(20, 60), "L1", "LEFT", "Left", null)
+                {
+                    Height = 5,
+                    LockPositionInBlock = true,
+                };
                 block.AppendEntity(left);
-                var mid = new DxfAttributeDefinition(P(20, 40), "M1", "MID", "Mid", null) { Height = 5, LockPositionInBlock = true };
+                var mid = new DxfAttributeDefinition(P(20, 40), "M1", "MID", "Mid", null)
+                {
+                    Height = 5,
+                    LockPositionInBlock = true,
+                };
                 block.AppendEntity(mid);
                 mid.Justify = DxfAttachmentPoint.MiddleCenter;
                 mid.AlignmentPoint = P(20, 40);
-                var right = new DxfAttributeDefinition(P(20, 20), "Ag1", "RIGHT", "Right", null) { Height = 5, LockPositionInBlock = true };
+                var right = new DxfAttributeDefinition(P(20, 20), "Ag1", "RIGHT", "Right", null)
+                {
+                    Height = 5,
+                    LockPositionInBlock = true,
+                };
                 block.AppendEntity(right);
                 right.Justify = DxfAttachmentPoint.BaseRight;
                 right.AlignmentPoint = P(20, 20);
-                DxfBlockFlipParameter hand = block.AddFlipParameter("Hand", null, new GeoPoint3(45, 0, 0), new GeoPoint3(45, 50, 0));
+                DxfBlockFlipParameter hand = block.AddFlipParameter(
+                    "Hand",
+                    null,
+                    new GeoPoint3(45, 0, 0),
+                    new GeoPoint3(45, 50, 0)
+                );
                 block.AddFlipAction(hand, new DxfEntity[] { line, left, mid, right });
-                var insert = new DxfBlockReference(new GeoPoint3(500, 0, 0), block) { Rotation = Math.PI / 2, ScaleFactors = new GeoVector3(2, 2, 2) };
+                var insert = new DxfBlockReference(new GeoPoint3(500, 0, 0), block)
+                {
+                    Rotation = Math.PI / 2,
+                    ScaleFactors = new GeoVector3(2, 2, 2),
+                };
                 db.ModelSpace.AppendEntity(insert);
 
                 foreach (DxfAttributeDefinition definition in block.OfType<DxfAttributeDefinition>().ToList())
@@ -784,13 +946,17 @@ namespace GeometryHelper.UnitTest.Dxf
                 back.FontSearchPath = folder;
                 DxfBlockReference flipped = back.ModelSpace.OfType<DxfBlockReference>().Single();
                 flipped.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == "Hand").Value = (short)1;
-                Dictionary<string, DxfAttributeDefinition> shown = flipped.BlockTableRecord.OfType<DxfAttributeDefinition>().ToDictionary(d => d.Tag);
+                Dictionary<string, DxfAttributeDefinition> shown = flipped
+                    .BlockTableRecord.OfType<DxfAttributeDefinition>()
+                    .ToDictionary(d => d.Tag);
                 Is(P(63.333333333333336, 60), shown["LEFT"].Position);
                 Is(P(66.666666666666657, 37.5), shown["MID"].Position);
                 Is(P(69.999999999999986, 40), shown["MID"].AlignmentPoint);
                 Is(P(70, 20), shown["RIGHT"].Position);
                 Is(P(81.666666666666671, 20), shown["RIGHT"].AlignmentPoint);
-                Dictionary<string, DxfAttributeReference> attributes = flipped.AttributeCollection.Cast<DxfAttributeReference>().ToDictionary(a => a.Tag);
+                Dictionary<string, DxfAttributeReference> attributes = flipped
+                    .AttributeCollection.Cast<DxfAttributeReference>()
+                    .ToDictionary(a => a.Tag);
                 Is(P(380, 126.66666666666669), attributes["LEFT"].Position);
                 Is(P(460, 140), attributes["RIGHT"].Position);
             });
@@ -802,9 +968,18 @@ namespace GeometryHelper.UnitTest.Dxf
             var db = new DxfDatabase("AC1032");
             var block = new DxfBlockTableRecord { Name = "GH_FLIP", Origin = new GeoPoint3(0, 0, 0) };
             db.BlockTable.Add(block);
-            var definition = new DxfAttributeDefinition(P(20, 60), "L1", "LEFT", "Left", null) { Height = 5, LockPositionInBlock = true };
+            var definition = new DxfAttributeDefinition(P(20, 60), "L1", "LEFT", "Left", null)
+            {
+                Height = 5,
+                LockPositionInBlock = true,
+            };
             block.AppendEntity(definition);
-            DxfBlockFlipParameter hand = block.AddFlipParameter("Hand", null, new GeoPoint3(45, 0, 0), new GeoPoint3(45, 50, 0));
+            DxfBlockFlipParameter hand = block.AddFlipParameter(
+                "Hand",
+                null,
+                new GeoPoint3(45, 0, 0),
+                new GeoPoint3(45, 50, 0)
+            );
             Assert.Throws<ArgumentException>(() => block.AddFlipAction(hand, new DxfEntity[] { definition }));
         }
 
@@ -816,7 +991,13 @@ namespace GeometryHelper.UnitTest.Dxf
             InFolder(folder =>
             {
                 DxfDatabase db = Drawing(folder);
-                var words = new DxfMText { Contents = "ABC", TextHeight = 2.5, Attachment = DxfAttachmentPoint.MiddleLeft, Location = P(22, 10) };
+                var words = new DxfMText
+                {
+                    Contents = "ABC",
+                    TextHeight = 2.5,
+                    Attachment = DxfAttachmentPoint.MiddleLeft,
+                    Location = P(22, 10),
+                };
                 db.ModelSpace.AppendEntity(words);
                 var leader = new DxfLeader { HasArrowHead = true };
                 leader.AppendVertex(P(0, 0));
@@ -829,7 +1010,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 leader.Annotation = words;
 
                 // Of a hook (75 of 1), as AutoCAD 2021 writes the leader of words it lands at their side.
-                List<KeyValuePair<int, string>> groups = leader.Item.File.TailOf(leader.Item, 0).Select(g => new KeyValuePair<int, string>(g.TypeCode, g.TypeCode == 75 ? "1" : g.Value)).ToList();
+                List<KeyValuePair<int, string>> groups = leader
+                    .Item.File.TailOf(leader.Item, 0)
+                    .Select(g => new KeyValuePair<int, string>(g.TypeCode, g.TypeCode == 75 ? "1" : g.Value))
+                    .ToList();
                 leader.Item.File.ReplaceTail(leader.Item, 0, groups);
                 Assert.True(leader.HasHookLine);
 

@@ -106,7 +106,8 @@ namespace GeometryHelper.Core
         /// <returns>true if the point lies on the polygon boundary within tolerance; otherwise, false.</returns>
         public static bool IsPointOn(GeoPolygon2 poly, GeoPoint2 point, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             for (int i = 0; i < poly.EdgeCount; i++)
             {
@@ -138,7 +139,8 @@ namespace GeometryHelper.Core
         /// <returns>true if the point lies on the polyline within tolerance; otherwise, false.</returns>
         public static bool IsPointOn(GeoPolyline2 polyline, GeoPoint2 point, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
@@ -212,8 +214,10 @@ namespace GeometryHelper.Core
             double halfW = rect.Width * 0.5;
             double halfH = rect.Height * 0.5;
 
-            return localX >= -halfW - tolerance.EqualPoint && localX <= halfW + tolerance.EqualPoint &&
-                   localY >= -halfH - tolerance.EqualPoint && localY <= halfH + tolerance.EqualPoint;
+            return localX >= -halfW - tolerance.EqualPoint
+                && localX <= halfW + tolerance.EqualPoint
+                && localY >= -halfH - tolerance.EqualPoint
+                && localY <= halfH + tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -241,7 +245,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool Contains(GeoPolygon2 poly, GeoPoint2 point, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             // Check if point is on the polygon boundary first
             if (IsPointOn(poly, point, tolerance))
@@ -256,8 +261,10 @@ namespace GeometryHelper.Core
                 GeoPoint2 p1 = poly[i];
                 GeoPoint2 p2 = poly[j];
 
-                if (((p1.Y > point.Y) != (p2.Y > point.Y)) &&
-                    (point.X < (p2.X - p1.X) * (point.Y - p1.Y) / (p2.Y - p1.Y) + p1.X))
+                if (
+                    ((p1.Y > point.Y) != (p2.Y > point.Y))
+                    && (point.X < (p2.X - p1.X) * (point.Y - p1.Y) / (p2.Y - p1.Y) + p1.X)
+                )
                 {
                     inside = !inside;
                 }
@@ -356,8 +363,10 @@ namespace GeometryHelper.Core
             }
 
             // On one of the boundaries
-            if ((Math.Abs(distX) <= tolerance.EqualPoint && absY <= halfH + tolerance.EqualPoint) ||
-                (Math.Abs(distY) <= tolerance.EqualPoint && absX <= halfW + tolerance.EqualPoint))
+            if (
+                (Math.Abs(distX) <= tolerance.EqualPoint && absY <= halfH + tolerance.EqualPoint)
+                || (Math.Abs(distY) <= tolerance.EqualPoint && absX <= halfW + tolerance.EqualPoint)
+            )
             {
                 return PointLocation.OnSide;
             }
@@ -391,7 +400,8 @@ namespace GeometryHelper.Core
         /// <returns>PointLocation.Inside, PointLocation.OnSide, or PointLocation.OutSide.</returns>
         public static PointLocation Locate(GeoPolygon2 poly, GeoPoint2 point, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             // Check boundary first
             if (IsPointOn(poly, point, tolerance))
@@ -407,8 +417,10 @@ namespace GeometryHelper.Core
                 GeoPoint2 p1 = poly[i];
                 GeoPoint2 p2 = poly[j];
 
-                if (((p1.Y > point.Y) != (p2.Y > point.Y)) &&
-                    (point.X < (p2.X - p1.X) * (point.Y - p1.Y) / (p2.Y - p1.Y) + p1.X))
+                if (
+                    ((p1.Y > point.Y) != (p2.Y > point.Y))
+                    && (point.X < (p2.X - p1.X) * (point.Y - p1.Y) / (p2.Y - p1.Y) + p1.X)
+                )
                 {
                     inside = !inside;
                 }
@@ -440,11 +452,10 @@ namespace GeometryHelper.Core
         /// <returns>PointLocation.Inside, PointLocation.OnSide, or PointLocation.OutSide.</returns>
         public static PointLocation Locate(GeoPolyline2 polyline, GeoPoint2 point, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
-            return IsPointOn(polyline, point, tolerance)
-                ? PointLocation.OnSide
-                : PointLocation.OutSide;
+            return IsPointOn(polyline, point, tolerance) ? PointLocation.OnSide : PointLocation.OutSide;
         }
 
         /// <summary>
@@ -520,7 +531,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static PointLocation Locate(GeoFace2 face, GeoPoint2 point, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             PointLocation outer = Locate(face.Boundary, point, tolerance);
 
@@ -573,7 +585,8 @@ namespace GeometryHelper.Core
         /// <param name="triangle">The triangle.</param>
         /// <param name="point">The target point.</param>
         /// <returns>PointLocation.Inside, PointLocation.OnSide, or PointLocation.OutSide.</returns>
-        public static PointLocation Locate(GeoTriangle2 triangle, GeoPoint2 point) => Locate(triangle, point, Tolerance.Global);
+        public static PointLocation Locate(GeoTriangle2 triangle, GeoPoint2 point) =>
+            Locate(triangle, point, Tolerance.Global);
 
         /// <summary>
         /// Classifies the location of a point relative to a triangle within tolerance.
@@ -589,9 +602,11 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static PointLocation Locate(GeoTriangle2 triangle, GeoPoint2 point, Tolerance tolerance)
         {
-            if (IsPointOn(new GeoLine2(triangle.A, triangle.B), point, tolerance) ||
-                IsPointOn(new GeoLine2(triangle.B, triangle.C), point, tolerance) ||
-                IsPointOn(new GeoLine2(triangle.C, triangle.A), point, tolerance))
+            if (
+                IsPointOn(new GeoLine2(triangle.A, triangle.B), point, tolerance)
+                || IsPointOn(new GeoLine2(triangle.B, triangle.C), point, tolerance)
+                || IsPointOn(new GeoLine2(triangle.C, triangle.A), point, tolerance)
+            )
             {
                 return PointLocation.OnSide;
             }
@@ -607,19 +622,20 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a triangle contains a point using default tolerance (accepts points on the edges).
         /// </summary>
-        public static bool Contains(GeoTriangle2 triangle, GeoPoint2 point) => Contains(triangle, point, Tolerance.Global);
+        public static bool Contains(GeoTriangle2 triangle, GeoPoint2 point) =>
+            Contains(triangle, point, Tolerance.Global);
 
         /// <summary>
         /// Checks whether a triangle contains a point within tolerance (accepts points on the edges).
         /// </summary>
-        public static bool Contains(GeoTriangle2 triangle, GeoPoint2 point, Tolerance tolerance)
-            => Locate(triangle, point, tolerance) != PointLocation.OutSide;
+        public static bool Contains(GeoTriangle2 triangle, GeoPoint2 point, Tolerance tolerance) =>
+            Locate(triangle, point, tolerance) != PointLocation.OutSide;
 
         /// <summary>
         /// Twice the signed area of the corner a, b, point: positive when the point lies to the left of a to b.
         /// </summary>
-        private static double SideOf(GeoPoint2 a, GeoPoint2 b, GeoPoint2 point)
-            => (b.X - a.X) * (point.Y - a.Y) - (b.Y - a.Y) * (point.X - a.X);
+        private static double SideOf(GeoPoint2 a, GeoPoint2 b, GeoPoint2 point) =>
+            (b.X - a.X) * (point.Y - a.Y) - (b.Y - a.Y) * (point.X - a.X);
 
         #endregion
 
@@ -656,7 +672,8 @@ namespace GeometryHelper.Core
         /// </summary>
         public static bool Contains(GeoRectangle2 rect, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
                 if (!Contains(rect, polyline.GetEdgeAt(i), tolerance))
@@ -687,7 +704,8 @@ namespace GeometryHelper.Core
         /// <returns>true if the outer circle entirely contains the inner circle within tolerance; otherwise, false.</returns>
         public static bool Contains(GeoCircle2 circle, GeoCircle2 other, Tolerance tolerance)
         {
-            return Distance2.DistanceTo(circle.Center, other.Center) + other.Radius <= circle.Radius + tolerance.EqualPoint;
+            return Distance2.DistanceTo(circle.Center, other.Center) + other.Radius
+                <= circle.Radius + tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -727,7 +745,8 @@ namespace GeometryHelper.Core
         /// <returns>true if the polygon entirely contains the line segment; otherwise, false.</returns>
         public static bool Contains(GeoPolygon2 poly, GeoLine2 line, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             if (!Contains(poly, line.StartPoint, tolerance) || !Contains(poly, line.EndPoint, tolerance))
             {
@@ -743,7 +762,15 @@ namespace GeometryHelper.Core
             List<double> parameters = new List<double> { 0.0, 1.0 };
             for (int i = 0; i < poly.EdgeCount; i++)
             {
-                if (Intersection2.Crossing(line, poly.GetEdgeAt(i), Enums.LineExtension.None, out GeoPoint2 crossing, tolerance))
+                if (
+                    Intersection2.Crossing(
+                        line,
+                        poly.GetEdgeAt(i),
+                        Enums.LineExtension.None,
+                        out GeoPoint2 crossing,
+                        tolerance
+                    )
+                )
                 {
                     parameters.Add(Parametrization2.GetParameterAtPoint(line, crossing, tolerance));
                 }
@@ -783,8 +810,10 @@ namespace GeometryHelper.Core
         /// <returns>true if the polygon entirely contains the polyline; otherwise, false.</returns>
         public static bool Contains(GeoPolygon2 poly, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
@@ -824,7 +853,9 @@ namespace GeometryHelper.Core
 
             if (length <= tolerance.EqualPoint)
             {
-                throw new InvalidOperationException("A segment shorter than the tolerance has no direction, so it has no sides.");
+                throw new InvalidOperationException(
+                    "A segment shorter than the tolerance has no direction, so it has no sides."
+                );
             }
 
             // The cross product divided by the length is the distance off the line, signed by the side.
@@ -845,7 +876,8 @@ namespace GeometryHelper.Core
         /// Determines whether a point lies on a chain that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool IsPointOn(GeoPolylineArc2 chain, GeoPoint2 point) => IsPointOn(chain, point, Tolerance.Global);
+        public static bool IsPointOn(GeoPolylineArc2 chain, GeoPoint2 point) =>
+            IsPointOn(chain, point, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a point lies on a chain that may curve, within a tolerance.
@@ -853,7 +885,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool IsPointOn(GeoPolylineArc2 chain, GeoPoint2 point, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), point) <= tolerance.EqualPoint;
         }
@@ -870,7 +903,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool IsPointOn(GeoPolygonArc2 loop, GeoPoint2 point, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), point) <= tolerance.EqualPoint;
         }
@@ -883,7 +917,8 @@ namespace GeometryHelper.Core
         /// with <see cref="Locate(GeoPolyline2, GeoPoint2)"/>.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static PointLocation Locate(GeoPolylineArc2 chain, GeoPoint2 point) => Locate(chain, point, Tolerance.Global);
+        public static PointLocation Locate(GeoPolylineArc2 chain, GeoPoint2 point) =>
+            Locate(chain, point, Tolerance.Global);
 
         /// <summary>
         /// Says where a point lies against a chain that may curve, within a tolerance.
@@ -898,7 +933,8 @@ namespace GeometryHelper.Core
         /// Says where a point lies against a loop that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static PointLocation Locate(GeoPolygonArc2 loop, GeoPoint2 point) => Locate(loop, point, Tolerance.Global);
+        public static PointLocation Locate(GeoPolygonArc2 loop, GeoPoint2 point) =>
+            Locate(loop, point, Tolerance.Global);
 
         /// <summary>
         /// Says where a point lies against a loop that may curve, within a tolerance.
@@ -916,7 +952,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static PointLocation Locate(GeoPolygonArc2 loop, GeoPoint2 point, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             if (IsPointOn(loop, point, tolerance))
             {
@@ -942,6 +979,5 @@ namespace GeometryHelper.Core
         }
 
         #endregion
-
     }
 }

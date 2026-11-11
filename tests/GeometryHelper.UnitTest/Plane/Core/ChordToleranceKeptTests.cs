@@ -23,8 +23,8 @@ namespace GeometryHelper.UnitTest.Plane
         private static readonly Tolerance Thousandth = new Tolerance(1E-3, 1E-5);
 
         /// <summary>The rectangle 100 by 50 from the origin whose bottom bows 0.015 down: bulge 0.0003, radius 83 333.34.</summary>
-        private static GeoPolygonArc2 RectangleWithANearlyFlatBottom()
-            => Loop(new[] { P(0, 0), P(100, 0), P(100, 50), P(0, 50) }, 0.0003);
+        private static GeoPolygonArc2 RectangleWithANearlyFlatBottom() =>
+            Loop(new[] { P(0, 0), P(100, 0), P(100, 50), P(0, 50) }, 0.0003);
 
         /// <summary>How far inside the circle the middle of the worst chord of a run of points on it lies.</summary>
         private static double WorstSag(IReadOnlyList<GeoPoint2> points, GeoPoint2 center, double radius)
@@ -121,7 +121,10 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.InRange(flat.VertexCount - 2, 12418, 12420);
             Assert.True(flat[0].IsEqualTo(P(0, 0, 0), Thousandth));
             Assert.True(flat[1].IsEqualTo(P(10, 0, 0), Thousandth));
-            Assert.True(WorstSag(new List<GeoPoint3>(flat.Vertices).GetRange(1, flat.VertexCount - 1), center, 50000.0) <= 1E-4 + 1E-9);
+            Assert.True(
+                WorstSag(new List<GeoPoint3>(flat.Vertices).GetRange(1, flat.VertexCount - 1), center, 50000.0)
+                    <= 1E-4 + 1E-9
+            );
         }
 
         [Fact]
@@ -131,7 +134,14 @@ namespace GeometryHelper.UnitTest.Plane
             var loop = new GeoPolygonArc3(
                 new[] { P(0, 0, 7), P(100, 0, 7), P(100, 50, 7), P(0, 50, 7) },
                 new[] { 0.0003, 0.0, 0.0, 0.0 },
-                new[] { new GeoVector3(0, 0, 1), new GeoVector3(0, 0, 1), new GeoVector3(0, 0, 1), new GeoVector3(0, 0, 1) });
+                new[]
+                {
+                    new GeoVector3(0, 0, 1),
+                    new GeoVector3(0, 0, 1),
+                    new GeoVector3(0, 0, 1),
+                    new GeoVector3(0, 0, 1),
+                }
+            );
 
             GeoPolygon3 flat = loop.ToPolygon3(1E-4);
 
@@ -147,8 +157,16 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolylineArc2 chain = Chain(new[] { P(100, 0), P(0, 100) }, Math.Tan(Math.PI / 8.0));
 
             Assert.Equal(pieces + 1, chain.Flatten(0.05).VertexCount);
-            Assert.Equal(pieces + 1, new GeoArc2(P(0, 0), 100.0, 0.0, Math.PI / 2.0).ToPolylineByChordTolerance(0.05).VertexCount);
-            Assert.Equal(pieces + 1, new GeoArc3(P(0, 0, 0), new GeoVector3(0, 0, 1), 100.0, 0.0, Math.PI / 2.0).ToPolylineByChordTolerance(0.05).VertexCount);
+            Assert.Equal(
+                pieces + 1,
+                new GeoArc2(P(0, 0), 100.0, 0.0, Math.PI / 2.0).ToPolylineByChordTolerance(0.05).VertexCount
+            );
+            Assert.Equal(
+                pieces + 1,
+                new GeoArc3(P(0, 0, 0), new GeoVector3(0, 0, 1), 100.0, 0.0, Math.PI / 2.0)
+                    .ToPolylineByChordTolerance(0.05)
+                    .VertexCount
+            );
         }
 
         [Fact]

@@ -31,13 +31,39 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         }
 
         /// <summary>Projects, dimensions and marks a view with the default settings at a scale.</summary>
-        public static Marked Mark(IEnumerable<DrawingObject> objects, GeoCoordinateSystem3 frame, double scale, MarkSettings settings = null, MarkContent content = null, bool dimensions = true)
+        public static Marked Mark(
+            IEnumerable<DrawingObject> objects,
+            GeoCoordinateSystem3 frame,
+            double scale,
+            MarkSettings settings = null,
+            MarkContent content = null,
+            bool dimensions = true
+        )
         {
             DrawingObject[] list = objects.ToArray();
             ProjectedView2 view = AnnotationKit.Project(list, frame);
-            IReadOnlyList<DrawingDimension> made = dimensions ? Annotator.Dimension(view, list, frame, new DimensionSettings { Scale = scale }, Tol) : new DrawingDimension[0];
-            IReadOnlyList<DrawingMark> marks = Marker.Mark(view, list, frame, made, settings ?? new MarkSettings(), content ?? new MarkContent(), scale, Tol);
-            return new Marked { Objects = list, Frame = frame, View = view, Dimensions = made, Marks = marks, Scale = scale };
+            IReadOnlyList<DrawingDimension> made = dimensions
+                ? Annotator.Dimension(view, list, frame, new DimensionSettings { Scale = scale }, Tol)
+                : new DrawingDimension[0];
+            IReadOnlyList<DrawingMark> marks = Marker.Mark(
+                view,
+                list,
+                frame,
+                made,
+                settings ?? new MarkSettings(),
+                content ?? new MarkContent(),
+                scale,
+                Tol
+            );
+            return new Marked
+            {
+                Objects = list,
+                Frame = frame,
+                View = view,
+                Dimensions = made,
+                Marks = marks,
+                Scale = scale,
+            };
         }
 
         /// <summary>
@@ -51,7 +77,9 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             foreach (DrawingMark mark in marked.Marks)
             {
                 GeoPoint2 end = mark.Anchor;
-                ProjectedEdge2[] edges = marked.View.VisibleEdges.Where(e => e.ObjectIds.Contains(mark.ObjectId)).ToArray();
+                ProjectedEdge2[] edges = marked
+                    .View.VisibleEdges.Where(e => e.ObjectIds.Contains(mark.ObjectId))
+                    .ToArray();
                 bool onLine = edges.Any(e => Distance(e, end) <= Tol.EqualPoint);
                 bool inCircle = edges.Any(e => e.IsCircle && e.Arc.Center.DistanceTo(end) < e.Arc.Radius);
 
@@ -95,31 +123,51 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             }
 
             GeoLine2 line = d.DimensionLine.Value;
-            double length = line.Length, h = d.TextHeight;
-            double ux = (line.EndPoint.X - line.StartPoint.X) / length, uy = (line.EndPoint.Y - line.StartPoint.Y) / length;
+            double length = line.Length,
+                h = d.TextHeight;
+            double ux = (line.EndPoint.X - line.StartPoint.X) / length,
+                uy = (line.EndPoint.Y - line.StartPoint.Y) / length;
             double inward = length >= 2.0 * h ? 1.0 : -1.0;
 
             foreach ((GeoPoint2 tip, double sign) in new[] { (line.StartPoint, inward), (line.EndPoint, -inward) })
             {
                 var back = new GeoPoint2(tip.X + sign * ux * h, tip.Y + sign * uy * h);
-                boxes.Add((Math.Min(tip.X, back.X) - Math.Abs(uy) * h / 6, Math.Min(tip.Y, back.Y) - Math.Abs(ux) * h / 6,
-                    Math.Max(tip.X, back.X) + Math.Abs(uy) * h / 6, Math.Max(tip.Y, back.Y) + Math.Abs(ux) * h / 6));
+                boxes.Add(
+                    (
+                        Math.Min(tip.X, back.X) - Math.Abs(uy) * h / 6,
+                        Math.Min(tip.Y, back.Y) - Math.Abs(ux) * h / 6,
+                        Math.Max(tip.X, back.X) + Math.Abs(uy) * h / 6,
+                        Math.Max(tip.Y, back.Y) + Math.Abs(ux) * h / 6
+                    )
+                );
             }
 
             return boxes;
         }
 
         /// <summary>Whether a box square to the axes overlaps a box given by its least and most X and Y by more than the point tolerance both ways.</summary>
-        public static bool Overlaps(GeoRectangle2 box, (double MinX, double MinY, double MaxX, double MaxY) other)
-            => box.Center.X - box.Width / 2 < other.MaxX - Tol.EqualPoint && box.Center.X + box.Width / 2 > other.MinX + Tol.EqualPoint
-                && box.Center.Y - box.Height / 2 < other.MaxY - Tol.EqualPoint && box.Center.Y + box.Height / 2 > other.MinY + Tol.EqualPoint;
+        public static bool Overlaps(GeoRectangle2 box, (double MinX, double MinY, double MaxX, double MaxY) other) =>
+            box.Center.X - box.Width / 2 < other.MaxX - Tol.EqualPoint
+            && box.Center.X + box.Width / 2 > other.MinX + Tol.EqualPoint
+            && box.Center.Y - box.Height / 2 < other.MaxY - Tol.EqualPoint
+            && box.Center.Y + box.Height / 2 > other.MinY + Tol.EqualPoint;
 
         /// <summary>A mark as text, its numbers to the bit, for comparing two runs.</summary>
         public static string Signature(DrawingMark m)
         {
             string Bits(double v) => BitConverter.DoubleToInt64Bits(v).ToString("X16");
-            return m.Id + " " + m.Kind + " " + m.Text + " " + m.ObjectId + " " + Bits(m.TextBox.Center.X) + Bits(m.TextBox.Center.Y)
-                + " " + string.Join(",", m.Leader.Select(p => Bits(p.X) + Bits(p.Y)));
+            return m.Id
+                + " "
+                + m.Kind
+                + " "
+                + m.Text
+                + " "
+                + m.ObjectId
+                + " "
+                + Bits(m.TextBox.Center.X)
+                + Bits(m.TextBox.Center.Y)
+                + " "
+                + string.Join(",", m.Leader.Select(p => Bits(p.X) + Bits(p.Y)));
         }
 
         /// <summary>
@@ -130,7 +178,8 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         {
             CadDocument document = CadDocument.From(database, name + ".dxf");
             DisplayBox box = document.GetDisplay(document.ModelSpace).Bounds;
-            const int width = 1600, height = 1200;
+            const int width = 1600,
+                height = 1200;
             var cad = new CadView(width, height);
 
             if (!box.IsEmpty)
@@ -145,7 +194,13 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             using (var canvas = new SKCanvas(bitmap))
             using (var renderer = new SkiaCanvasRenderer())
             {
-                renderer.Render(canvas, document, document.ModelSpace, cad, new CanvasOptions { Background = 0xFFFFFF });
+                renderer.Render(
+                    canvas,
+                    document,
+                    document.ModelSpace,
+                    cad,
+                    new CanvasOptions { Background = 0xFFFFFF }
+                );
                 canvas.Flush();
 
                 using (SKImage image = SKImage.FromBitmap(bitmap))
@@ -161,7 +216,16 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         }
 
         /// <summary>A weld object: a small box at a point, its kind, side, size and length in its attributes.</summary>
-        public static DrawingObject Weld(string id, GeoPoint3 at, string type, string side, string size, string length, string parent = null, string secondary = null)
+        public static DrawingObject Weld(
+            string id,
+            GeoPoint3 at,
+            string type,
+            string side,
+            string size,
+            string length,
+            string parent = null,
+            string secondary = null
+        )
         {
             var attributes = new List<KeyValuePair<string, string>>();
 
@@ -178,7 +242,14 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             Add(WeldSymbol.SizeAttribute, size);
             Add(WeldSymbol.LengthAttribute, length);
             Add(WeldSymbol.SecondaryPartAttribute, secondary);
-            return new DrawingObject(id, DrawingObjectKind.Weld, Box(at.X - 5, at.Y - 5, at.Z - 5, at.X + 5, at.Y + 5, at.Z + 5), GeoCoordinateSystem3.Global, parentId: parent, attributes: attributes);
+            return new DrawingObject(
+                id,
+                DrawingObjectKind.Weld,
+                Box(at.X - 5, at.Y - 5, at.Z - 5, at.X + 5, at.Y + 5, at.Z + 5),
+                GeoCoordinateSystem3.Global,
+                parentId: parent,
+                attributes: attributes
+            );
         }
     }
 }

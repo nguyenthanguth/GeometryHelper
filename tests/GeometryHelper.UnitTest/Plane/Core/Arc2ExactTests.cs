@@ -23,8 +23,13 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>The same for the edge with a bulge of 1E-4, whose radius is 150 000: 4E-14 of that.</summary>
         private const double FlatAllowance = 6E-9;
 
-        private static GeoPolygon2 Box(double left, double bottom, double right, double top) => new GeoPolygon2(
-            new GeoPoint2(left, bottom), new GeoPoint2(right, bottom), new GeoPoint2(right, top), new GeoPoint2(left, top));
+        private static GeoPolygon2 Box(double left, double bottom, double right, double top) =>
+            new GeoPolygon2(
+                new GeoPoint2(left, bottom),
+                new GeoPoint2(right, bottom),
+                new GeoPoint2(right, top),
+                new GeoPoint2(left, top)
+            );
 
         /// <summary>The square 100 by 100 with a corner at the origin.</summary>
         private static GeoPolygon2 Square() => Box(0, 0, 100, 100);
@@ -33,11 +38,15 @@ namespace GeometryHelper.UnitTest.Plane
         private static GeoArc2 Dome() => new GeoArc2(new GeoPoint2(0, 0), 50, 0, Math.PI);
 
         /// <summary>The square with its right side bowed out by a bulge of 0.5: the side's middle stands at (125, 50).</summary>
-        private static GeoPolygonArc2 BowedLoop() => new GeoPolygonArc2(
-            new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) }, new[] { 0, 0.5, 0, 0 });
+        private static GeoPolygonArc2 BowedLoop() =>
+            new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
+                new[] { 0, 0.5, 0, 0 }
+            );
 
         /// <summary>That bowed side alone, as a chain: from (100, 0) to (100, 100) through (125, 50).</summary>
-        private static GeoPolylineArc2 BowedChain() => new GeoPolylineArc2(new[] { new GeoPoint2(100, 0), new GeoPoint2(100, 100) }, new[] { 0.5, 0 });
+        private static GeoPolylineArc2 BowedChain() =>
+            new GeoPolylineArc2(new[] { new GeoPoint2(100, 0), new GeoPoint2(100, 100) }, new[] { 0.5, 0 });
 
         private static Tolerance At(double equalPoint) => new Tolerance(equalPoint, Tolerance.DefaultEqualVector);
 
@@ -59,7 +68,11 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         /// <summary>Both ways round the distance is the gap, and both ways round they collide exactly where it is within the tolerance.</summary>
-        private static void AssertMeasured(Tolerance tolerance, (double Gap, double There, double Back, bool Collides, bool CollidesBack) m, double allowance = Allowance)
+        private static void AssertMeasured(
+            Tolerance tolerance,
+            (double Gap, double There, double Back, bool Collides, bool CollidesBack) m,
+            double allowance = Allowance
+        )
         {
             AssertGap(m.Gap, m.There, allowance);
             AssertGap(m.Gap, m.Back, allowance);
@@ -80,8 +93,13 @@ namespace GeometryHelper.UnitTest.Plane
 
         #region F3: an arc and a segment, two arcs
 
-        public static IEnumerable<object[]> SegmentOffTheDomeCases() => AtBothTolerances(
-            "segment above the top", "segment starting off the top", "segment starting off the end", "segment just inside the top");
+        public static IEnumerable<object[]> SegmentOffTheDomeCases() =>
+            AtBothTolerances(
+                "segment above the top",
+                "segment starting off the top",
+                "segment starting off the end",
+                "segment just inside the top"
+            );
 
         [Theory]
         [MemberData(nameof(SegmentOffTheDomeCases))]
@@ -122,7 +140,16 @@ namespace GeometryHelper.UnitTest.Plane
                     break;
             }
 
-            AssertMeasured(t, (gap, dome.DistanceTo(line, t), line.DistanceTo(dome, t), dome.CollidesWith(line, t), line.CollidesWith(dome, t)));
+            AssertMeasured(
+                t,
+                (
+                    gap,
+                    dome.DistanceTo(line, t),
+                    line.DistanceTo(dome, t),
+                    dome.CollidesWith(line, t),
+                    line.CollidesWith(dome, t)
+                )
+            );
         }
 
         [Theory]
@@ -152,11 +179,19 @@ namespace GeometryHelper.UnitTest.Plane
                 a = new GeoArc2(new GeoPoint2(0, 0), 50, 0.35, 2.6);
                 var start = new GeoPoint2(50 * Math.Cos(0.35), 50 * Math.Sin(0.35));
                 var back = new GeoVector2(Math.Sin(0.35), -Math.Cos(0.35));
-                b = new GeoArc2(new GeoPoint2(2 * start.X + g * back.X, 2 * start.Y + g * back.Y), 50, 0.35 + Math.PI, 2.6 + Math.PI);
+                b = new GeoArc2(
+                    new GeoPoint2(2 * start.X + g * back.X, 2 * start.Y + g * back.Y),
+                    50,
+                    0.35 + Math.PI,
+                    2.6 + Math.PI
+                );
                 gap = g;
             }
 
-            AssertMeasured(Tol, (gap, a.DistanceTo(b, Tol), b.DistanceTo(a, Tol), a.CollidesWith(b, Tol), b.CollidesWith(a, Tol)));
+            AssertMeasured(
+                Tol,
+                (gap, a.DistanceTo(b, Tol), b.DistanceTo(a, Tol), a.CollidesWith(b, Tol), b.CollidesWith(a, Tol))
+            );
         }
 
         #endregion
@@ -167,7 +202,10 @@ namespace GeometryHelper.UnitTest.Plane
 
         [Theory]
         [MemberData(nameof(CircleCases))]
-        public void AShapeStartingHalfAToleranceOffACircle_IsThatFarEitherWayRoundAndCollides(string kind, double equalPoint)
+        public void AShapeStartingHalfAToleranceOffACircle_IsThatFarEitherWayRoundAndCollides(
+            string kind,
+            double equalPoint
+        )
         {
             // The circle of radius 40 about the origin; the shape starts at (40 + h, 0) and runs out, away from it.
             Tolerance t = At(equalPoint);
@@ -181,21 +219,54 @@ namespace GeometryHelper.UnitTest.Plane
                 case "polyline":
                 {
                     var chain = new GeoPolyline2(start, new GeoPoint2(80, 0), new GeoPoint2(80, 30));
-                    AssertMeasured(t, (gap, Within(t, () => circle.DistanceTo(chain)), Within(t, () => chain.DistanceTo(circle)), circle.CollidesWith(chain, t), chain.CollidesWith(circle, t)));
+                    AssertMeasured(
+                        t,
+                        (
+                            gap,
+                            Within(t, () => circle.DistanceTo(chain)),
+                            Within(t, () => chain.DistanceTo(circle)),
+                            circle.CollidesWith(chain, t),
+                            chain.CollidesWith(circle, t)
+                        )
+                    );
                     break;
                 }
 
                 case "chain":
                 {
-                    var chain = new GeoPolylineArc2(new[] { start, new GeoPoint2(80, 0), new GeoPoint2(80, 30) }, new[] { 0, 0.3, 0 });
-                    AssertMeasured(t, (gap, circle.DistanceTo(chain, t), chain.DistanceTo(circle, t), circle.CollidesWith(chain, t), chain.CollidesWith(circle, t)));
+                    var chain = new GeoPolylineArc2(
+                        new[] { start, new GeoPoint2(80, 0), new GeoPoint2(80, 30) },
+                        new[] { 0, 0.3, 0 }
+                    );
+                    AssertMeasured(
+                        t,
+                        (
+                            gap,
+                            circle.DistanceTo(chain, t),
+                            chain.DistanceTo(circle, t),
+                            circle.CollidesWith(chain, t),
+                            chain.CollidesWith(circle, t)
+                        )
+                    );
                     break;
                 }
 
                 default:
                 {
-                    var loop = new GeoPolygonArc2(new[] { start, new GeoPoint2(80, -20), new GeoPoint2(80, 20) }, new[] { 0, 0.3, 0 });
-                    AssertMeasured(t, (gap, circle.DistanceTo(loop, t), loop.DistanceTo(circle, t), circle.CollidesWith(loop, t), loop.CollidesWith(circle, t)));
+                    var loop = new GeoPolygonArc2(
+                        new[] { start, new GeoPoint2(80, -20), new GeoPoint2(80, 20) },
+                        new[] { 0, 0.3, 0 }
+                    );
+                    AssertMeasured(
+                        t,
+                        (
+                            gap,
+                            circle.DistanceTo(loop, t),
+                            loop.DistanceTo(circle, t),
+                            circle.CollidesWith(loop, t),
+                            loop.CollidesWith(circle, t)
+                        )
+                    );
                     break;
                 }
             }
@@ -211,9 +282,17 @@ namespace GeometryHelper.UnitTest.Plane
             // Radius 50, centres 0.0005 apart: the circles cross at 0.350005 rad on the first arc, which starts at 0.35, and
             // at 0.349995 rad on the second, which ends at 0.35 (6.633 rad): 5E-6 rad, 0.00025, inside both. They meet.
             var a = new GeoArc2(new GeoPoint2(0, 0), 50, 0.35, 2.6);
-            var b = new GeoArc2(new GeoPoint2(-0.00017144890372772567, 0.0004696863564236895), 50, 4.383185307179587, 6.633185307179587);
+            var b = new GeoArc2(
+                new GeoPoint2(-0.00017144890372772567, 0.0004696863564236895),
+                50,
+                4.383185307179587,
+                6.633185307179587
+            );
 
-            AssertMeasured(Tol, (0.0, a.DistanceTo(b, Tol), b.DistanceTo(a, Tol), a.CollidesWith(b, Tol), b.CollidesWith(a, Tol)));
+            AssertMeasured(
+                Tol,
+                (0.0, a.DistanceTo(b, Tol), b.DistanceTo(a, Tol), a.CollidesWith(b, Tol), b.CollidesWith(a, Tol))
+            );
         }
 
         #endregion
@@ -236,7 +315,10 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData("chain", "polygon")]
         [InlineData("chain", "triangle")]
         [InlineData("chain", "rectangle")]
-        public void AStraightShapeStartingHalfAToleranceOffABow_IsThatFarEitherWayRoundAndCollides(string curve, string kind)
+        public void AStraightShapeStartingHalfAToleranceOffABow_IsThatFarEitherWayRoundAndCollides(
+            string curve,
+            string kind
+        )
         {
             Tolerance t = Tol;
             double x = BeyondTheBow(t);
@@ -253,45 +335,120 @@ namespace GeometryHelper.UnitTest.Plane
                 case "segment":
                 {
                     var line = new GeoLine2(start, new GeoPoint2(175, 50));
-                    AssertMeasured(t, isLoop
-                        ? (gap, loop.DistanceTo(line, t), line.DistanceTo(loop, t), loop.CollidesWith(line, t), line.CollidesWith(loop, t))
-                        : (gap, chain.DistanceTo(line, t), line.DistanceTo(chain, t), chain.CollidesWith(line, t), line.CollidesWith(chain, t)));
+                    AssertMeasured(
+                        t,
+                        isLoop
+                            ? (
+                                gap,
+                                loop.DistanceTo(line, t),
+                                line.DistanceTo(loop, t),
+                                loop.CollidesWith(line, t),
+                                line.CollidesWith(loop, t)
+                            )
+                            : (
+                                gap,
+                                chain.DistanceTo(line, t),
+                                line.DistanceTo(chain, t),
+                                chain.CollidesWith(line, t),
+                                line.CollidesWith(chain, t)
+                            )
+                    );
                     break;
                 }
 
                 case "ray":
                 {
                     var ray = new GeoRay2(start, GeoVector2.XAxis);
-                    AssertMeasured(t, isLoop
-                        ? (gap, loop.DistanceTo(ray, t), ray.DistanceTo(loop, t), loop.CollidesWith(ray, t), ray.CollidesWith(loop, t))
-                        : (gap, chain.DistanceTo(ray, t), ray.DistanceTo(chain, t), chain.CollidesWith(ray, t), ray.CollidesWith(chain, t)));
+                    AssertMeasured(
+                        t,
+                        isLoop
+                            ? (
+                                gap,
+                                loop.DistanceTo(ray, t),
+                                ray.DistanceTo(loop, t),
+                                loop.CollidesWith(ray, t),
+                                ray.CollidesWith(loop, t)
+                            )
+                            : (
+                                gap,
+                                chain.DistanceTo(ray, t),
+                                ray.DistanceTo(chain, t),
+                                chain.CollidesWith(ray, t),
+                                ray.CollidesWith(chain, t)
+                            )
+                    );
                     break;
                 }
 
                 case "polyline":
                 {
                     var other = new GeoPolyline2(start, new GeoPoint2(175, 50), upper);
-                    AssertMeasured(t, isLoop
-                        ? (gap, loop.DistanceTo(other, t), other.DistanceTo(loop, t), loop.CollidesWith(other, t), other.CollidesWith(loop, t))
-                        : (gap, chain.DistanceTo(other, t), other.DistanceTo(chain, t), chain.CollidesWith(other, t), other.CollidesWith(chain, t)));
+                    AssertMeasured(
+                        t,
+                        isLoop
+                            ? (
+                                gap,
+                                loop.DistanceTo(other, t),
+                                other.DistanceTo(loop, t),
+                                loop.CollidesWith(other, t),
+                                other.CollidesWith(loop, t)
+                            )
+                            : (
+                                gap,
+                                chain.DistanceTo(other, t),
+                                other.DistanceTo(chain, t),
+                                chain.CollidesWith(other, t),
+                                other.CollidesWith(chain, t)
+                            )
+                    );
                     break;
                 }
 
                 case "polygon":
                 {
                     var other = new GeoPolygon2(start, lower, upper);
-                    AssertMeasured(t, isLoop
-                        ? (gap, loop.DistanceTo(other, t), other.DistanceTo(loop, t), loop.CollidesWith(other, t), other.CollidesWith(loop, t))
-                        : (gap, chain.DistanceTo(other, t), other.DistanceTo(chain, t), chain.CollidesWith(other, t), other.CollidesWith(chain, t)));
+                    AssertMeasured(
+                        t,
+                        isLoop
+                            ? (
+                                gap,
+                                loop.DistanceTo(other, t),
+                                other.DistanceTo(loop, t),
+                                loop.CollidesWith(other, t),
+                                other.CollidesWith(loop, t)
+                            )
+                            : (
+                                gap,
+                                chain.DistanceTo(other, t),
+                                other.DistanceTo(chain, t),
+                                chain.CollidesWith(other, t),
+                                other.CollidesWith(chain, t)
+                            )
+                    );
                     break;
                 }
 
                 case "triangle":
                 {
                     var other = new GeoTriangle2(start, lower, upper);
-                    AssertMeasured(t, isLoop
-                        ? (gap, loop.DistanceTo(other, t), other.DistanceTo(loop, t), loop.CollidesWith(other, t), other.CollidesWith(loop, t))
-                        : (gap, chain.DistanceTo(other, t), other.DistanceTo(chain, t), chain.CollidesWith(other, t), other.CollidesWith(chain, t)));
+                    AssertMeasured(
+                        t,
+                        isLoop
+                            ? (
+                                gap,
+                                loop.DistanceTo(other, t),
+                                other.DistanceTo(loop, t),
+                                loop.CollidesWith(other, t),
+                                other.CollidesWith(loop, t)
+                            )
+                            : (
+                                gap,
+                                chain.DistanceTo(other, t),
+                                other.DistanceTo(chain, t),
+                                chain.CollidesWith(other, t),
+                                other.CollidesWith(chain, t)
+                            )
+                    );
                     break;
                 }
 
@@ -299,9 +456,24 @@ namespace GeometryHelper.UnitTest.Plane
                 {
                     // Its left side is x + 25 - 25, within a rounding of x.
                     var other = new GeoRectangle2(x, 40, 50, 20);
-                    AssertMeasured(t, isLoop
-                        ? (gap, loop.DistanceTo(other, t), other.DistanceTo(loop, t), loop.CollidesWith(other, t), other.CollidesWith(loop, t))
-                        : (gap, chain.DistanceTo(other, t), other.DistanceTo(chain, t), chain.CollidesWith(other, t), other.CollidesWith(chain, t)));
+                    AssertMeasured(
+                        t,
+                        isLoop
+                            ? (
+                                gap,
+                                loop.DistanceTo(other, t),
+                                other.DistanceTo(loop, t),
+                                loop.CollidesWith(other, t),
+                                other.CollidesWith(loop, t)
+                            )
+                            : (
+                                gap,
+                                chain.DistanceTo(other, t),
+                                other.DistanceTo(chain, t),
+                                chain.CollidesWith(other, t),
+                                other.CollidesWith(chain, t)
+                            )
+                    );
                     break;
                 }
             }
@@ -320,7 +492,10 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData("chain", "segment")]
         [InlineData("chain", "polyline")]
         [InlineData("chain", "ray")]
-        public void ACurvedShapeStartingHalfAToleranceOffAStraightOne_IsThatFarEitherWayRoundAndCollides(string curve, string target)
+        public void ACurvedShapeStartingHalfAToleranceOffAStraightOne_IsThatFarEitherWayRoundAndCollides(
+            string curve,
+            string target
+        )
         {
             // The curved shape starts at (100 + h, 50) and runs away from the side x = 100 that each target has, on an arc
             // bowing away too: through (150, 20) and (150, 80), its first edge to (150, 20) bulging -0.4, inward for the
@@ -340,45 +515,120 @@ namespace GeometryHelper.UnitTest.Plane
                 case "square":
                 {
                     GeoPolygon2 other = Square();
-                    AssertMeasured(t, isLoop
-                        ? (gap, loop.DistanceTo(other, t), other.DistanceTo(loop, t), loop.CollidesWith(other, t), other.CollidesWith(loop, t))
-                        : (gap, chain.DistanceTo(other, t), other.DistanceTo(chain, t), chain.CollidesWith(other, t), other.CollidesWith(chain, t)));
+                    AssertMeasured(
+                        t,
+                        isLoop
+                            ? (
+                                gap,
+                                loop.DistanceTo(other, t),
+                                other.DistanceTo(loop, t),
+                                loop.CollidesWith(other, t),
+                                other.CollidesWith(loop, t)
+                            )
+                            : (
+                                gap,
+                                chain.DistanceTo(other, t),
+                                other.DistanceTo(chain, t),
+                                chain.CollidesWith(other, t),
+                                other.CollidesWith(chain, t)
+                            )
+                    );
                     break;
                 }
 
                 case "rectangle":
                 {
                     var other = new GeoRectangle2(0, 0, 100, 100);
-                    AssertMeasured(t, isLoop
-                        ? (gap, loop.DistanceTo(other, t), other.DistanceTo(loop, t), loop.CollidesWith(other, t), other.CollidesWith(loop, t))
-                        : (gap, chain.DistanceTo(other, t), other.DistanceTo(chain, t), chain.CollidesWith(other, t), other.CollidesWith(chain, t)));
+                    AssertMeasured(
+                        t,
+                        isLoop
+                            ? (
+                                gap,
+                                loop.DistanceTo(other, t),
+                                other.DistanceTo(loop, t),
+                                loop.CollidesWith(other, t),
+                                other.CollidesWith(loop, t)
+                            )
+                            : (
+                                gap,
+                                chain.DistanceTo(other, t),
+                                other.DistanceTo(chain, t),
+                                chain.CollidesWith(other, t),
+                                other.CollidesWith(chain, t)
+                            )
+                    );
                     break;
                 }
 
                 case "triangle":
                 {
                     var other = new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100));
-                    AssertMeasured(t, isLoop
-                        ? (gap, loop.DistanceTo(other, t), other.DistanceTo(loop, t), loop.CollidesWith(other, t), other.CollidesWith(loop, t))
-                        : (gap, chain.DistanceTo(other, t), other.DistanceTo(chain, t), chain.CollidesWith(other, t), other.CollidesWith(chain, t)));
+                    AssertMeasured(
+                        t,
+                        isLoop
+                            ? (
+                                gap,
+                                loop.DistanceTo(other, t),
+                                other.DistanceTo(loop, t),
+                                loop.CollidesWith(other, t),
+                                other.CollidesWith(loop, t)
+                            )
+                            : (
+                                gap,
+                                chain.DistanceTo(other, t),
+                                other.DistanceTo(chain, t),
+                                chain.CollidesWith(other, t),
+                                other.CollidesWith(chain, t)
+                            )
+                    );
                     break;
                 }
 
                 case "segment":
                 {
                     var other = new GeoLine2(new GeoPoint2(100, 0), new GeoPoint2(100, 100));
-                    AssertMeasured(t, isLoop
-                        ? (gap, loop.DistanceTo(other, t), other.DistanceTo(loop, t), loop.CollidesWith(other, t), other.CollidesWith(loop, t))
-                        : (gap, chain.DistanceTo(other, t), other.DistanceTo(chain, t), chain.CollidesWith(other, t), other.CollidesWith(chain, t)));
+                    AssertMeasured(
+                        t,
+                        isLoop
+                            ? (
+                                gap,
+                                loop.DistanceTo(other, t),
+                                other.DistanceTo(loop, t),
+                                loop.CollidesWith(other, t),
+                                other.CollidesWith(loop, t)
+                            )
+                            : (
+                                gap,
+                                chain.DistanceTo(other, t),
+                                other.DistanceTo(chain, t),
+                                chain.CollidesWith(other, t),
+                                other.CollidesWith(chain, t)
+                            )
+                    );
                     break;
                 }
 
                 case "polyline":
                 {
                     var other = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100));
-                    AssertMeasured(t, isLoop
-                        ? (gap, loop.DistanceTo(other, t), other.DistanceTo(loop, t), loop.CollidesWith(other, t), other.CollidesWith(loop, t))
-                        : (gap, chain.DistanceTo(other, t), other.DistanceTo(chain, t), chain.CollidesWith(other, t), other.CollidesWith(chain, t)));
+                    AssertMeasured(
+                        t,
+                        isLoop
+                            ? (
+                                gap,
+                                loop.DistanceTo(other, t),
+                                other.DistanceTo(loop, t),
+                                loop.CollidesWith(other, t),
+                                other.CollidesWith(loop, t)
+                            )
+                            : (
+                                gap,
+                                chain.DistanceTo(other, t),
+                                other.DistanceTo(chain, t),
+                                chain.CollidesWith(other, t),
+                                other.CollidesWith(chain, t)
+                            )
+                    );
                     break;
                 }
 
@@ -386,9 +636,24 @@ namespace GeometryHelper.UnitTest.Plane
                 {
                     // Down the line x = 100 from (100, 100), for ever.
                     var other = new GeoRay2(new GeoPoint2(100, 100), new GeoVector2(0, -1));
-                    AssertMeasured(t, isLoop
-                        ? (gap, loop.DistanceTo(other, t), other.DistanceTo(loop, t), loop.CollidesWith(other, t), other.CollidesWith(loop, t))
-                        : (gap, chain.DistanceTo(other, t), other.DistanceTo(chain, t), chain.CollidesWith(other, t), other.CollidesWith(chain, t)));
+                    AssertMeasured(
+                        t,
+                        isLoop
+                            ? (
+                                gap,
+                                loop.DistanceTo(other, t),
+                                other.DistanceTo(loop, t),
+                                loop.CollidesWith(other, t),
+                                other.CollidesWith(loop, t)
+                            )
+                            : (
+                                gap,
+                                chain.DistanceTo(other, t),
+                                other.DistanceTo(chain, t),
+                                chain.CollidesWith(other, t),
+                                other.CollidesWith(chain, t)
+                            )
+                    );
                     break;
                 }
             }
@@ -415,14 +680,32 @@ namespace GeometryHelper.UnitTest.Plane
                 case "loop off the bowed loop":
                 {
                     var loop = new GeoPolygonArc2(new[] { start, lower, upper }, new[] { 0, 0.4, 0 });
-                    AssertMeasured(t, (gap, bowed.DistanceTo(loop, t), loop.DistanceTo(bowed, t), bowed.CollidesWith(loop, t), loop.CollidesWith(bowed, t)));
+                    AssertMeasured(
+                        t,
+                        (
+                            gap,
+                            bowed.DistanceTo(loop, t),
+                            loop.DistanceTo(bowed, t),
+                            bowed.CollidesWith(loop, t),
+                            loop.CollidesWith(bowed, t)
+                        )
+                    );
                     break;
                 }
 
                 case "chain off the bowed loop":
                 {
                     var chain = new GeoPolylineArc2(new[] { start, lower, upper }, new[] { -0.4, 0, 0 });
-                    AssertMeasured(t, (gap, bowed.DistanceTo(chain, t), chain.DistanceTo(bowed, t), bowed.CollidesWith(chain, t), chain.CollidesWith(bowed, t)));
+                    AssertMeasured(
+                        t,
+                        (
+                            gap,
+                            bowed.DistanceTo(chain, t),
+                            chain.DistanceTo(bowed, t),
+                            bowed.CollidesWith(chain, t),
+                            chain.CollidesWith(bowed, t)
+                        )
+                    );
                     break;
                 }
 
@@ -430,7 +713,16 @@ namespace GeometryHelper.UnitTest.Plane
                 {
                     GeoPolylineArc2 side = BowedChain();
                     var chain = new GeoPolylineArc2(new[] { start, lower, upper }, new[] { -0.4, 0, 0 });
-                    AssertMeasured(t, (gap, side.DistanceTo(chain, t), chain.DistanceTo(side, t), side.CollidesWith(chain, t), chain.CollidesWith(side, t)));
+                    AssertMeasured(
+                        t,
+                        (
+                            gap,
+                            side.DistanceTo(chain, t),
+                            chain.DistanceTo(side, t),
+                            side.CollidesWith(chain, t),
+                            chain.CollidesWith(side, t)
+                        )
+                    );
                     break;
                 }
 
@@ -439,7 +731,16 @@ namespace GeometryHelper.UnitTest.Plane
                     // Radius 50 about (x, 100), from straight below its centre round to its right: it leaves the start along X
                     // and curves up, away from the bow.
                     var arc = new GeoArc2(new GeoPoint2(x, 100), 50, -Math.PI / 2, 0);
-                    AssertMeasured(t, (gap, bowed.DistanceTo(arc, t), arc.DistanceTo(bowed, t), bowed.CollidesWith(arc, t), arc.CollidesWith(bowed, t)));
+                    AssertMeasured(
+                        t,
+                        (
+                            gap,
+                            bowed.DistanceTo(arc, t),
+                            arc.DistanceTo(bowed, t),
+                            bowed.CollidesWith(arc, t),
+                            arc.CollidesWith(bowed, t)
+                        )
+                    );
                     break;
                 }
             }
@@ -458,7 +759,16 @@ namespace GeometryHelper.UnitTest.Plane
             var circle = new GeoCircle2(new GeoPoint2(100 + d, 100 + d), 1E-4);
             double gap = d * Math.Sqrt(2) - 1E-4;
 
-            AssertMeasured(Tol, (gap, Within(Tol, () => circle.DistanceTo(rect)), Within(Tol, () => rect.DistanceTo(circle)), circle.CollidesWith(rect, Tol), rect.CollidesWith(circle, Tol)));
+            AssertMeasured(
+                Tol,
+                (
+                    gap,
+                    Within(Tol, () => circle.DistanceTo(rect)),
+                    Within(Tol, () => rect.DistanceTo(circle)),
+                    circle.CollidesWith(rect, Tol),
+                    rect.CollidesWith(circle, Tol)
+                )
+            );
         }
 
         [Theory]
@@ -474,12 +784,30 @@ namespace GeometryHelper.UnitTest.Plane
             if (kind == "rectangle")
             {
                 var rect = new GeoRectangle2(0, 0, 100, 100);
-                AssertMeasured(Tol, (gap, Within(Tol, () => circle.DistanceTo(rect)), Within(Tol, () => rect.DistanceTo(circle)), circle.CollidesWith(rect, Tol), rect.CollidesWith(circle, Tol)));
+                AssertMeasured(
+                    Tol,
+                    (
+                        gap,
+                        Within(Tol, () => circle.DistanceTo(rect)),
+                        Within(Tol, () => rect.DistanceTo(circle)),
+                        circle.CollidesWith(rect, Tol),
+                        rect.CollidesWith(circle, Tol)
+                    )
+                );
             }
             else
             {
                 GeoPolygon2 square = Square();
-                AssertMeasured(Tol, (gap, Within(Tol, () => circle.DistanceTo(square)), Within(Tol, () => square.DistanceTo(circle)), circle.CollidesWith(square, Tol), square.CollidesWith(circle, Tol)));
+                AssertMeasured(
+                    Tol,
+                    (
+                        gap,
+                        Within(Tol, () => circle.DistanceTo(square)),
+                        Within(Tol, () => square.DistanceTo(circle)),
+                        circle.CollidesWith(square, Tol),
+                        square.CollidesWith(circle, Tol)
+                    )
+                );
             }
         }
 
@@ -496,7 +824,16 @@ namespace GeometryHelper.UnitTest.Plane
                 : new GeoArc2(new GeoPoint2(x, 100), 50, -Math.PI / 2, 0);
             GeoPolygon2 square = Square();
 
-            AssertMeasured(Tol, (x - 100, square.DistanceTo(arc, Tol), arc.DistanceTo(square, Tol), square.CollidesWith(arc, Tol), arc.CollidesWith(square, Tol)));
+            AssertMeasured(
+                Tol,
+                (
+                    x - 100,
+                    square.DistanceTo(arc, Tol),
+                    arc.DistanceTo(square, Tol),
+                    square.CollidesWith(arc, Tol),
+                    arc.CollidesWith(square, Tol)
+                )
+            );
         }
 
         #endregion
@@ -522,12 +859,32 @@ namespace GeometryHelper.UnitTest.Plane
             if (kind == "segment")
             {
                 var line = new GeoLine2(start, new GeoPoint2(30, y - 50));
-                AssertMeasured(Tol, (gap, edge.DistanceTo(line, Tol), line.DistanceTo(edge, Tol), edge.CollidesWith(line, Tol), line.CollidesWith(edge, Tol)), allowance);
+                AssertMeasured(
+                    Tol,
+                    (
+                        gap,
+                        edge.DistanceTo(line, Tol),
+                        line.DistanceTo(edge, Tol),
+                        edge.CollidesWith(line, Tol),
+                        line.CollidesWith(edge, Tol)
+                    ),
+                    allowance
+                );
             }
             else
             {
                 var polygon = new GeoPolygon2(start, new GeoPoint2(0, y - 50), new GeoPoint2(60, y - 50));
-                AssertMeasured(Tol, (gap, Within(Tol, () => edge.DistanceTo(polygon)), Within(Tol, () => polygon.DistanceTo(edge)), edge.CollidesWith(polygon, Tol), polygon.CollidesWith(edge, Tol)), allowance);
+                AssertMeasured(
+                    Tol,
+                    (
+                        gap,
+                        Within(Tol, () => edge.DistanceTo(polygon)),
+                        Within(Tol, () => polygon.DistanceTo(edge)),
+                        edge.CollidesWith(polygon, Tol),
+                        polygon.CollidesWith(edge, Tol)
+                    ),
+                    allowance
+                );
             }
         }
 
@@ -543,7 +900,10 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData("circle holding a polyline", 0.0)]
         [InlineData("circle holding a curved loop", 0.0)]
         [InlineData("ray five tolerances beyond the bow", 0.005)]
-        public void ATangencyACrossingAWideGapOrAHold_ReadsAsItDidAndCollidesWithinTheTolerance(string kind, double expected)
+        public void ATangencyACrossingAWideGapOrAHold_ReadsAsItDidAndCollidesWithinTheTolerance(
+            string kind,
+            double expected
+        )
         {
             // A wide gap is 50.005 less 50 or 125.005 less 125, 0.005 to within 1E-14.
             Tolerance t = Tol;
@@ -555,42 +915,105 @@ namespace GeometryHelper.UnitTest.Plane
                 case "segment tangent to the top":
                 {
                     var line = new GeoLine2(new GeoPoint2(-10, 50), new GeoPoint2(10, 50));
-                    AssertMeasured(t, (expected, dome.DistanceTo(line, t), line.DistanceTo(dome, t), dome.CollidesWith(line, t), line.CollidesWith(dome, t)));
+                    AssertMeasured(
+                        t,
+                        (
+                            expected,
+                            dome.DistanceTo(line, t),
+                            line.DistanceTo(dome, t),
+                            dome.CollidesWith(line, t),
+                            line.CollidesWith(dome, t)
+                        )
+                    );
                     break;
                 }
 
                 case "segment crossing the arc":
                 {
                     var line = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(0, 100));
-                    AssertMeasured(t, (expected, dome.DistanceTo(line, t), line.DistanceTo(dome, t), dome.CollidesWith(line, t), line.CollidesWith(dome, t)));
+                    AssertMeasured(
+                        t,
+                        (
+                            expected,
+                            dome.DistanceTo(line, t),
+                            line.DistanceTo(dome, t),
+                            dome.CollidesWith(line, t),
+                            line.CollidesWith(dome, t)
+                        )
+                    );
                     break;
                 }
 
                 case "segment five tolerances above the top":
                 {
                     var line = new GeoLine2(new GeoPoint2(-10, 50.005), new GeoPoint2(10, 50.005));
-                    AssertMeasured(t, (expected, dome.DistanceTo(line, t), line.DistanceTo(dome, t), dome.CollidesWith(line, t), line.CollidesWith(dome, t)));
+                    AssertMeasured(
+                        t,
+                        (
+                            expected,
+                            dome.DistanceTo(line, t),
+                            line.DistanceTo(dome, t),
+                            dome.CollidesWith(line, t),
+                            line.CollidesWith(dome, t)
+                        )
+                    );
                     break;
                 }
 
                 case "arcs touching top to top":
                 {
                     var below = new GeoArc2(new GeoPoint2(0, 100), 50, Math.PI, 2 * Math.PI);
-                    AssertMeasured(t, (expected, dome.DistanceTo(below, t), below.DistanceTo(dome, t), dome.CollidesWith(below, t), below.CollidesWith(dome, t)));
+                    AssertMeasured(
+                        t,
+                        (
+                            expected,
+                            dome.DistanceTo(below, t),
+                            below.DistanceTo(dome, t),
+                            dome.CollidesWith(below, t),
+                            below.CollidesWith(dome, t)
+                        )
+                    );
                     break;
                 }
 
                 case "circle holding a polyline":
                 {
                     var inside = new GeoPolyline2(new GeoPoint2(-10, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 5));
-                    AssertMeasured(t, (expected, Within(t, () => circle.DistanceTo(inside)), Within(t, () => inside.DistanceTo(circle)), circle.CollidesWith(inside, t), inside.CollidesWith(circle, t)));
+                    AssertMeasured(
+                        t,
+                        (
+                            expected,
+                            Within(t, () => circle.DistanceTo(inside)),
+                            Within(t, () => inside.DistanceTo(circle)),
+                            circle.CollidesWith(inside, t),
+                            inside.CollidesWith(circle, t)
+                        )
+                    );
                     break;
                 }
 
                 case "circle holding a curved loop":
                 {
-                    var inside = new GeoPolygonArc2(new[] { new GeoPoint2(-10, -5), new GeoPoint2(10, -5), new GeoPoint2(10, 5), new GeoPoint2(-10, 5) }, new[] { 0, 0.5, 0, 0.5 });
-                    AssertMeasured(t, (expected, circle.DistanceTo(inside, t), inside.DistanceTo(circle, t), circle.CollidesWith(inside, t), inside.CollidesWith(circle, t)));
+                    var inside = new GeoPolygonArc2(
+                        new[]
+                        {
+                            new GeoPoint2(-10, -5),
+                            new GeoPoint2(10, -5),
+                            new GeoPoint2(10, 5),
+                            new GeoPoint2(-10, 5),
+                        },
+                        new[] { 0, 0.5, 0, 0.5 }
+                    );
+                    AssertMeasured(
+                        t,
+                        (
+                            expected,
+                            circle.DistanceTo(inside, t),
+                            inside.DistanceTo(circle, t),
+                            circle.CollidesWith(inside, t),
+                            inside.CollidesWith(circle, t)
+                        )
+                    );
                     break;
                 }
 
@@ -598,7 +1021,16 @@ namespace GeometryHelper.UnitTest.Plane
                 {
                     var ray = new GeoRay2(new GeoPoint2(125.005, 50), GeoVector2.XAxis);
                     GeoPolygonArc2 loop = BowedLoop();
-                    AssertMeasured(t, (expected, loop.DistanceTo(ray, t), ray.DistanceTo(loop, t), loop.CollidesWith(ray, t), ray.CollidesWith(loop, t)));
+                    AssertMeasured(
+                        t,
+                        (
+                            expected,
+                            loop.DistanceTo(ray, t),
+                            ray.DistanceTo(loop, t),
+                            loop.CollidesWith(ray, t),
+                            ray.CollidesWith(loop, t)
+                        )
+                    );
                     break;
                 }
             }

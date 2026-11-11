@@ -95,7 +95,6 @@ namespace GeometryHelper.Dxf
         public DxfCellAlignment? Alignment
         {
             get => Table.Alignment(Row, Column);
-
             set
             {
                 if (value.HasValue)
@@ -118,7 +117,6 @@ namespace GeometryHelper.Dxf
         public double? TextHeight
         {
             get => Table.TextHeight(Row, Column);
-
             set
             {
                 if (value.HasValue)
@@ -141,7 +139,6 @@ namespace GeometryHelper.Dxf
         public DxfTextStyleTableRecord TextStyle
         {
             get => Table.TextStyle(Row, Column);
-
             set
             {
                 if (value != null)
@@ -164,7 +161,6 @@ namespace GeometryHelper.Dxf
         public DxfColor ContentColor
         {
             get => Table.ContentColor(Row, Column);
-
             set
             {
                 if (value != null)
@@ -188,7 +184,6 @@ namespace GeometryHelper.Dxf
         public DxfColor BackgroundColor
         {
             get => Table.BackgroundColor(Row, Column);
-
             set
             {
                 if (value != null)
@@ -211,7 +206,6 @@ namespace GeometryHelper.Dxf
         public bool? IsBackgroundColorNone
         {
             get => Table.IsBackgroundColorNone(Row, Column);
-
             set
             {
                 if (value.HasValue)
@@ -246,7 +240,8 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets whether the cell is another, of the same table, row and column.</summary>
         /// <param name="other">The other cell.</param>
         /// <returns>Whether they are the same.</returns>
-        public bool Equals(DxfCell other) => other != null && ReferenceEquals(other.Table, Table) && other.Row == Row && other.Column == Column;
+        public bool Equals(DxfCell other) =>
+            other != null && ReferenceEquals(other.Table, Table) && other.Row == Row && other.Column == Column;
 
         /// <summary>Gets whether an object is a cell of the same table, row and column.</summary>
         /// <param name="obj">The object.</param>

@@ -13,7 +13,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     public sealed class QuickSelectViewModel : ObservableObject
     {
         /// <summary>The operators in the order of AutoCAD's list.</summary>
-        public static readonly IReadOnlyList<string> OperatorNames = new[] { "= Equals", "<> Not Equal", "> Greater than", "< Less than", "* Wildcard Match", "Select All" };
+        public static readonly IReadOnlyList<string> OperatorNames = new[]
+        {
+            "= Equals",
+            "<> Not Equal",
+            "> Greater than",
+            "< Less than",
+            "* Wildcard Match",
+            "Select All",
+        };
 
         private readonly CadDocument _document;
         private readonly CadCommandSession _session;
@@ -55,7 +63,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 if (Set(ref _applyTo, value))
                 {
-                    _quick = new CadQuickSelect(_document, null, value == "Current selection" ? _document.Selection.Handles : null);
+                    _quick = new CadQuickSelect(
+                        _document,
+                        null,
+                        value == "Current selection" ? _document.Selection.Handles : null
+                    );
                     ObjectTypes = _quick.ObjectTypes;
                     Raise(nameof(ObjectTypes));
                     ObjectType = ObjectTypes.FirstOrDefault();
@@ -108,7 +120,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The values in use of the property among the objects of the type, the first offered.</summary>
         private void ReadValues()
         {
-            Values = _property == null || _objectType == null ? Array.Empty<string>() : _quick.ValuesOf(_objectType, _property);
+            Values =
+                _property == null || _objectType == null
+                    ? Array.Empty<string>()
+                    : _quick.ValuesOf(_objectType, _property);
             Raise(nameof(Values));
             Raise(nameof(IsValueListed));
             Value = Values.FirstOrDefault() ?? string.Empty;
@@ -174,16 +189,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets the note at the foot of the dialog.</summary>
-        public string Note => "OK selects the objects that match and reports on the command line: \"N item(s) selected.\" Value lists the colours, layers and linetypes in use; numbers are typed.";
+        public string Note =>
+            "OK selects the objects that match and reports on the command line: \"N item(s) selected.\" Value lists the colours, layers and linetypes in use; numbers are typed.";
 
         /// <summary>OK: selects the objects that match, as the options say, and writes "N item(s) selected." on the command line.</summary>
         /// <returns>The line written.</returns>
         public string Apply()
         {
             var op = (CadQuickSelectOperator)Math.Max(0, OperatorNames.ToList().IndexOf(_operator));
-            IReadOnlyList<string> matched = _objectType == null
-                ? Array.Empty<string>()
-                : _quick.Match(_objectType, _property, op, _value, _include, _session?.Tolerance ?? Tolerance.Default);
+            IReadOnlyList<string> matched =
+                _objectType == null
+                    ? Array.Empty<string>()
+                    : _quick.Match(
+                        _objectType,
+                        _property,
+                        op,
+                        _value,
+                        _include,
+                        _session?.Tolerance ?? Tolerance.Default
+                    );
             string line = _quick.Apply(matched, _append);
             _session?.Write(line);
             return line;
@@ -235,7 +259,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="session">The session whose command line is written; null for none.</param>
         /// <param name="selected">The objects selected before FIND, Find where: Selected objects; null for none.</param>
         /// <param name="zoom">Shows objects in the view, as Zoom does; null for none.</param>
-        public FindReplaceViewModel(CadDocument document, CadCommandSession session, IReadOnlyList<string> selected, Action<IReadOnlyList<string>> zoom)
+        public FindReplaceViewModel(
+            CadDocument document,
+            CadCommandSession session,
+            IReadOnlyList<string> selected,
+            Action<IReadOnlyList<string>> zoom
+        )
         {
             _document = document ?? throw new ArgumentNullException(nameof(document));
             _session = session;
@@ -257,31 +286,103 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public CadFindOptions Options { get; }
 
         /// <summary>Gets or sets whether letters match only in the same case.</summary>
-        public bool MatchCase { get => Options.MatchCase; set { Options.MatchCase = value; Changed(); } }
+        public bool MatchCase
+        {
+            get => Options.MatchCase;
+            set
+            {
+                Options.MatchCase = value;
+                Changed();
+            }
+        }
 
         /// <summary>Gets or sets Find whole words only.</summary>
-        public bool WholeWords { get => Options.WholeWords; set { Options.WholeWords = value; Changed(); } }
+        public bool WholeWords
+        {
+            get => Options.WholeWords;
+            set
+            {
+                Options.WholeWords = value;
+                Changed();
+            }
+        }
 
         /// <summary>Gets or sets Use wildcards.</summary>
-        public bool UseWildcards { get => Options.UseWildcards; set { Options.UseWildcards = value; Changed(); } }
+        public bool UseWildcards
+        {
+            get => Options.UseWildcards;
+            set
+            {
+                Options.UseWildcards = value;
+                Changed();
+            }
+        }
 
         /// <summary>Gets or sets Search blocks.</summary>
-        public bool SearchBlocks { get => Options.SearchBlocks; set { Options.SearchBlocks = value; Changed(); } }
+        public bool SearchBlocks
+        {
+            get => Options.SearchBlocks;
+            set
+            {
+                Options.SearchBlocks = value;
+                Changed();
+            }
+        }
 
         /// <summary>Gets or sets Ignore hidden items.</summary>
-        public bool IgnoreHidden { get => Options.IgnoreHidden; set { Options.IgnoreHidden = value; Changed(); } }
+        public bool IgnoreHidden
+        {
+            get => Options.IgnoreHidden;
+            set
+            {
+                Options.IgnoreHidden = value;
+                Changed();
+            }
+        }
 
         /// <summary>Gets or sets Block attribute value.</summary>
-        public bool BlockAttributes { get => Options.BlockAttributes; set { Options.BlockAttributes = value; Changed(); } }
+        public bool BlockAttributes
+        {
+            get => Options.BlockAttributes;
+            set
+            {
+                Options.BlockAttributes = value;
+                Changed();
+            }
+        }
 
         /// <summary>Gets or sets Dimension or leader text.</summary>
-        public bool DimensionText { get => Options.DimensionText; set { Options.DimensionText = value; Changed(); } }
+        public bool DimensionText
+        {
+            get => Options.DimensionText;
+            set
+            {
+                Options.DimensionText = value;
+                Changed();
+            }
+        }
 
         /// <summary>Gets or sets Single-line or multiline text.</summary>
-        public bool Text { get => Options.Text; set { Options.Text = value; Changed(); } }
+        public bool Text
+        {
+            get => Options.Text;
+            set
+            {
+                Options.Text = value;
+                Changed();
+            }
+        }
 
         /// <summary>Gets or sets Table text.</summary>
-        public bool TableText { get => Options.TableText; set { Options.TableText = value; Changed(); } }
+        public bool TableText
+        {
+            get => Options.TableText;
+            set
+            {
+                Options.TableText = value;
+                Changed();
+            }
+        }
 
         /// <summary>Gets or sets the text searched for.</summary>
         public string FindWhat
@@ -327,7 +428,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets the results of the last search.</summary>
-        public ObservableCollection<FindResultRowViewModel> Results { get; } = new ObservableCollection<FindResultRowViewModel>();
+        public ObservableCollection<FindResultRowViewModel> Results { get; } =
+            new ObservableCollection<FindResultRowViewModel>();
 
         /// <summary>Gets or sets the result highlighted.</summary>
         public FindResultRowViewModel Current
@@ -390,7 +492,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             Search();
             int matches = Results.Sum(r => r.Result.Count);
-            CadEditResult result = CadFind.ReplaceAll(_document, Results.Select(r => r.Result).ToList(), _findWhat, _replaceWith, Options);
+            CadEditResult result = CadFind.ReplaceAll(
+                _document,
+                Results.Select(r => r.Result).ToList(),
+                _findWhat,
+                _replaceWith,
+                Options
+            );
 
             if (result.Succeeded)
             {
@@ -422,7 +530,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Searches again, as the text and the options stand.</summary>
         public void Search()
         {
-            CadFindScope scope = _findWhere == "Selected objects" ? CadFindScope.SelectedObjects : _findWhere == "Current space/layout" ? CadFindScope.CurrentSpace : CadFindScope.EntireDrawing;
+            CadFindScope scope =
+                _findWhere == "Selected objects" ? CadFindScope.SelectedObjects
+                : _findWhere == "Current space/layout" ? CadFindScope.CurrentSpace
+                : CadFindScope.EntireDrawing;
             Results.Clear();
             Current = null;
 
@@ -433,7 +544,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             int objects = Results.Select(r => r.Result.Handle).Distinct(StringComparer.OrdinalIgnoreCase).Count();
             int matches = Results.Sum(r => r.Result.Count);
-            Summary = matches.ToString(CultureInfo.InvariantCulture) + " matches in " + objects.ToString(CultureInfo.InvariantCulture) + " objects · double-click a row to zoom to it";
+            Summary =
+                matches.ToString(CultureInfo.InvariantCulture)
+                + " matches in "
+                + objects.ToString(CultureInfo.InvariantCulture)
+                + " objects · double-click a row to zoom to it";
             _searched = _findWhat;
         }
 

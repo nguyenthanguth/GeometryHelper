@@ -23,11 +23,24 @@ namespace GeometryHelper.Dxf.Viewer
         /// Bitmap, Block, DXX Extract, Encapsulated PS, IGES, Lithography, Metafile, V7 DGN and V8 DGN. Of these the presenter
         /// writes Bitmap alone; EXPORT refuses the others.
         /// </summary>
-        public static IReadOnlyList<string> ExportFileTypes { get; } = Array.AsReadOnly(new[]
-        {
-            "3D DWF (*.dwf)", "3D DWFx (*.dwfx)", "ACIS (*.sat)", Bitmap, "Block (*.dwg)", "DXX Extract (*.dxx)", "Encapsulated PS (*.eps)",
-            "IGES (*.iges;*.igs)", "Lithography (*.stl)", "Metafile (*.wmf)", "V7 DGN (*.dgn)", "V8 DGN (*.dgn)",
-        });
+        public static IReadOnlyList<string> ExportFileTypes { get; } =
+            Array.AsReadOnly(
+                new[]
+                {
+                    "3D DWF (*.dwf)",
+                    "3D DWFx (*.dwfx)",
+                    "ACIS (*.sat)",
+                    Bitmap,
+                    "Block (*.dwg)",
+                    "DXX Extract (*.dxx)",
+                    "Encapsulated PS (*.eps)",
+                    "IGES (*.iges;*.igs)",
+                    "Lithography (*.stl)",
+                    "Metafile (*.wmf)",
+                    "V7 DGN (*.dgn)",
+                    "V8 DGN (*.dgn)",
+                }
+            );
 
         /// <summary>Makes the file a command asks the window for.</summary>
         /// <param name="title">The title of the dialog: "Export Data" or "Save As PDF".</param>
@@ -78,7 +91,12 @@ namespace GeometryHelper.Dxf.Viewer
                 return Array.Empty<string>();
             }
 
-            return fileType.Substring(open + 1, close - open - 1).Split(';').Select(p => p.Trim().TrimStart('*')).Where(p => p.StartsWith(".", StringComparison.Ordinal)).ToList();
+            return fileType
+                .Substring(open + 1, close - open - 1)
+                .Split(';')
+                .Select(p => p.Trim().TrimStart('*'))
+                .Where(p => p.StartsWith(".", StringComparison.Ordinal))
+                .ToList();
         }
     }
 }

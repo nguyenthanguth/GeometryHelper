@@ -14,7 +14,9 @@ namespace GeometryHelper.Dxf
             private const string Incomplete = "without the groups that place it";
 
             private static readonly IReadOnlyList<DxfTypedValue> NoGroups = Array.AsReadOnly(new DxfTypedValue[0]);
-            private readonly SortedDictionary<string, Failure> _failures = new SortedDictionary<string, Failure>(StringComparer.Ordinal);
+            private readonly SortedDictionary<string, Failure> _failures = new SortedDictionary<string, Failure>(
+                StringComparer.Ordinal
+            );
             private Gathering _drawing;
             private int _fitSplines;
             private int _periodicSplines;
@@ -179,21 +181,47 @@ namespace GeometryHelper.Dxf
                 {
                     switch (r.Type)
                     {
-                        case "POINT": ReadPoint(r); break;
-                        case "LINE": ReadLine(r); break;
+                        case "POINT":
+                            ReadPoint(r);
+                            break;
+                        case "LINE":
+                            ReadLine(r);
+                            break;
                         case "RAY":
-                        case "XLINE": ReadRay(r); break;
-                        case "CIRCLE": ReadCircle(r); break;
-                        case "ARC": ReadArc(r); break;
-                        case "ELLIPSE": ReadEllipse(r); break;
-                        case "SPLINE": ReadSpline(r); break;
-                        case "LWPOLYLINE": ReadLightweight(r); break;
-                        case "3DFACE": ReadFace(r); break;
+                        case "XLINE":
+                            ReadRay(r);
+                            break;
+                        case "CIRCLE":
+                            ReadCircle(r);
+                            break;
+                        case "ARC":
+                            ReadArc(r);
+                            break;
+                        case "ELLIPSE":
+                            ReadEllipse(r);
+                            break;
+                        case "SPLINE":
+                            ReadSpline(r);
+                            break;
+                        case "LWPOLYLINE":
+                            ReadLightweight(r);
+                            break;
+                        case "3DFACE":
+                            ReadFace(r);
+                            break;
                         case "TEXT":
-                        case "MTEXT": ReadText(r); break;
-                        case "LEADER": ReadLeader(r); break;
-                        case "MULTILEADER": ReadMLeader(r); break;
-                        default: ReadSolid(r); break;
+                        case "MTEXT":
+                            ReadText(r);
+                            break;
+                        case "LEADER":
+                            ReadLeader(r);
+                            break;
+                        case "MULTILEADER":
+                            ReadMLeader(r);
+                            break;
+                        default:
+                            ReadSolid(r);
+                            break;
                     }
                 });
             }
@@ -240,22 +268,70 @@ namespace GeometryHelper.Dxf
 
             private void EntityWarnings(bool log = true)
             {
-                Warn(_fitSplines, " SPLINE given by its fit points alone was read as the cubic AutoCAD 2021 fits through them, its parameters by chord length, whatever degree it gives.", " SPLINEs given by their fit points alone were read as the cubics AutoCAD 2021 fits through them, their parameters by chord length, whatever degree they give.");
-                Warn(_periodicSplines, " periodic SPLINE was not read: its knots could not be clamped to those of the library.", " periodic SPLINEs were not read: their knots could not be clamped to those of the library.");
-                Warn(_refusedSplines, " SPLINE was not read: its degree, knots, weights or fit points do not make a spline the library takes.", " SPLINEs were not read: their degree, knots, weights or fit points do not make a spline the library takes.");
-                Warn(_openedLoops, " closed polyline that encloses no area, or in space does not lie in one plane, was read as an open chain that ends on its first vertex.", " closed polylines that enclose no area, or in space do not lie in one plane, were read as open chains that end on their first vertex.");
-                Warn(_droppedFaces, " face of a mesh was left out: it has fewer than three corners, names a vertex that is not there, or encloses no area.", " faces of meshes were left out: they have fewer than three corners, name a vertex that is not there, or enclose no area.");
-                Warn(_looseFaces, " mesh of fewer than four faces was read as its faces, each an entity of its own, since a body has four at least.", " meshes of fewer than four faces were read as their faces, each an entity of its own, since a body has four at least.");
-                Warn(_badLook, " group of the colour, lineweight, true colour or thickness of an entity could not be read and was left out, the entity read without it.", " groups of the colour, lineweight, true colour or thickness of entities could not be read and were left out, the entities read without them.");
+                Warn(
+                    _fitSplines,
+                    " SPLINE given by its fit points alone was read as the cubic AutoCAD 2021 fits through them, its parameters by chord length, whatever degree it gives.",
+                    " SPLINEs given by their fit points alone were read as the cubics AutoCAD 2021 fits through them, their parameters by chord length, whatever degree they give."
+                );
+                Warn(
+                    _periodicSplines,
+                    " periodic SPLINE was not read: its knots could not be clamped to those of the library.",
+                    " periodic SPLINEs were not read: their knots could not be clamped to those of the library."
+                );
+                Warn(
+                    _refusedSplines,
+                    " SPLINE was not read: its degree, knots, weights or fit points do not make a spline the library takes.",
+                    " SPLINEs were not read: their degree, knots, weights or fit points do not make a spline the library takes."
+                );
+                Warn(
+                    _openedLoops,
+                    " closed polyline that encloses no area, or in space does not lie in one plane, was read as an open chain that ends on its first vertex.",
+                    " closed polylines that enclose no area, or in space do not lie in one plane, were read as open chains that end on their first vertex."
+                );
+                Warn(
+                    _droppedFaces,
+                    " face of a mesh was left out: it has fewer than three corners, names a vertex that is not there, or encloses no area.",
+                    " faces of meshes were left out: they have fewer than three corners, name a vertex that is not there, or enclose no area."
+                );
+                Warn(
+                    _looseFaces,
+                    " mesh of fewer than four faces was read as its faces, each an entity of its own, since a body has four at least.",
+                    " meshes of fewer than four faces were read as their faces, each an entity of its own, since a body has four at least."
+                );
+                Warn(
+                    _badLook,
+                    " group of the colour, lineweight, true colour or thickness of an entity could not be read and was left out, the entity read without it.",
+                    " groups of the colour, lineweight, true colour or thickness of entities could not be read and were left out, the entities read without them."
+                );
 
                 foreach (KeyValuePair<string, Failure> failed in _failures)
                 {
-                    _warnings.Add(Number(failed.Value.Count) + " " + failed.Key + (failed.Value.Count == 1 ? " could not be read and was" : " could not be read and were") + " left out: " + failed.Value.First.GetType().Name + ", " + failed.Value.First.Message);
+                    _warnings.Add(
+                        Number(failed.Value.Count)
+                            + " "
+                            + failed.Key
+                            + (failed.Value.Count == 1 ? " could not be read and was" : " could not be read and were")
+                            + " left out: "
+                            + failed.Value.First.GetType().Name
+                            + ", "
+                            + failed.Value.First.Message
+                    );
 
                     // A placing for DxfFile logs its own line, once the placing is done.
                     if (log)
                     {
-                        GeometryHelperLog.Warn("DxfReader: " + Number(failed.Value.Count) + " " + failed.Key + (failed.Value.Count == 1 ? " could not be read and was left out." : " could not be read and were left out."), failed.Value.First);
+                        GeometryHelperLog.Warn(
+                            "DxfReader: "
+                                + Number(failed.Value.Count)
+                                + " "
+                                + failed.Key
+                                + (
+                                    failed.Value.Count == 1
+                                        ? " could not be read and was left out."
+                                        : " could not be read and were left out."
+                                ),
+                            failed.Value.First
+                        );
                     }
                 }
             }
@@ -336,7 +412,23 @@ namespace GeometryHelper.Dxf
                     throw new PastTheBound();
                 }
 
-                _into.Add(new DxfShape(shape, r.Type, look.Layer, look.Colour, string.IsNullOrEmpty(handle) ? null : handle, look.Linetype, look.Lineweight, look.TrueColour, thickness, groups, hiddenEdges, _path, _handles));
+                _into.Add(
+                    new DxfShape(
+                        shape,
+                        r.Type,
+                        look.Layer,
+                        look.Colour,
+                        string.IsNullOrEmpty(handle) ? null : handle,
+                        look.Linetype,
+                        look.Lineweight,
+                        look.TrueColour,
+                        thickness,
+                        groups,
+                        hiddenEdges,
+                        _path,
+                        _handles
+                    )
+                );
             }
 
             /// <summary>
@@ -448,7 +540,14 @@ namespace GeometryHelper.Dxf
             /// <summary>The look of an entity, or of an INSERT that its block's entities take theirs from.</summary>
             private readonly struct Look
             {
-                internal Look(string layer, int? colour, int? trueColour, string linetype, int? lineweight, double thickness)
+                internal Look(
+                    string layer,
+                    int? colour,
+                    int? trueColour,
+                    string linetype,
+                    int? lineweight,
+                    double thickness
+                )
                 {
                     Layer = layer;
                     Colour = colour;
@@ -497,9 +596,7 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>A number the scaling to millimetres took past the largest double.</summary>
-            private sealed class NotFinite : Exception
-            {
-            }
+            private sealed class NotFinite : Exception { }
 
             /// <summary>
             /// The point of a record held in the groups 10, 20, 30 (n = 0), 11, 21, 31 (n = 1) and so on, scaled to
@@ -525,7 +622,8 @@ namespace GeometryHelper.Dxf
             /// </summary>
             private static bool TryDirection(Record r, int n, out GeoVector3 direction)
             {
-                bool any = r.TryReal(10 + n, out double x) | r.TryReal(20 + n, out double y) | r.TryReal(30 + n, out double z);
+                bool any =
+                    r.TryReal(10 + n, out double x) | r.TryReal(20 + n, out double y) | r.TryReal(30 + n, out double z);
                 direction = new GeoVector3(x, y, z);
                 return any;
             }
@@ -554,7 +652,9 @@ namespace GeometryHelper.Dxf
                     return new GeoVector3(0.0, 0.0, 1.0);
                 }
 
-                return Math.Abs(length - 1.0) <= 1E-12 ? new GeoVector3(x, y, z) : new GeoVector3(x / length, y / length, z / length);
+                return Math.Abs(length - 1.0) <= 1E-12
+                    ? new GeoVector3(x, y, z)
+                    : new GeoVector3(x / length, y / length, z / length);
             }
 
             private static bool IsUp(GeoVector3 normal) => normal.X == 0.0 && normal.Y == 0.0 && normal.Z == 1.0;
@@ -625,7 +725,11 @@ namespace GeometryHelper.Dxf
                         return new GeoPoint3(x, y, z);
                     }
 
-                    var p = new GeoPoint3(_ux * x + _vx * y + Normal.X * z, _uy * x + _vy * y + Normal.Y * z, _uz * x + _vz * y + Normal.Z * z);
+                    var p = new GeoPoint3(
+                        _ux * x + _vx * y + Normal.X * z,
+                        _uy * x + _vy * y + Normal.Y * z,
+                        _uz * x + _vz * y + Normal.Z * z
+                    );
 
                     if (!IsFinite(p))
                     {
@@ -638,8 +742,13 @@ namespace GeometryHelper.Dxf
                 internal GeoPoint3 World(GeoPoint3 p) => World(p.X, p.Y, p.Z);
             }
 
-            private static bool IsFinite(GeoPoint3 p)
-                => !double.IsNaN(p.X) && !double.IsInfinity(p.X) && !double.IsNaN(p.Y) && !double.IsInfinity(p.Y) && !double.IsNaN(p.Z) && !double.IsInfinity(p.Z);
+            private static bool IsFinite(GeoPoint3 p) =>
+                !double.IsNaN(p.X)
+                && !double.IsInfinity(p.X)
+                && !double.IsNaN(p.Y)
+                && !double.IsInfinity(p.Y)
+                && !double.IsNaN(p.Z)
+                && !double.IsInfinity(p.Z);
 
             private static bool IsDown(GeoVector3 normal) => normal.X == 0.0 && normal.Y == 0.0 && normal.Z == -1.0;
 
@@ -648,8 +757,8 @@ namespace GeometryHelper.Dxf
             /// extrusion (0, 0, 1) or (0, 0, -1) exactly, and every height in that system nought. Of (0, 0, -1) the plane is
             /// the floor seen from below, its x the world's -x and its y the world's y, as AutoCAD writes a mirrored entity.
             /// </summary>
-            private bool FlatInPlane(GeoVector3 normal, IReadOnlyList<GeoPoint3> points)
-                => (IsUp(normal) || IsDown(normal)) && FlatInWorld(points);
+            private bool FlatInPlane(GeoVector3 normal, IReadOnlyList<GeoPoint3> points) =>
+                (IsUp(normal) || IsDown(normal)) && FlatInWorld(points);
 
             /// <summary>
             /// Whether an entity in world coordinates is read as a shape of the plane: asked for, and every height nought,
@@ -708,7 +817,12 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                Add(r, FlatInWorld(new[] { start, end }) ? (object)new GeoLine2(Plan(start), Plan(end)) : new GeoLine3(start, end));
+                Add(
+                    r,
+                    FlatInWorld(new[] { start, end })
+                        ? (object)new GeoLine2(Plan(start), Plan(end))
+                        : new GeoLine3(start, end)
+                );
             }
 
             /// <summary>
@@ -731,7 +845,10 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                GeoVector3 unit = Math.Abs(length - 1.0) <= 1E-12 ? direction : new GeoVector3(direction.X / length, direction.Y / length, direction.Z / length);
+                GeoVector3 unit =
+                    Math.Abs(length - 1.0) <= 1E-12
+                        ? direction
+                        : new GeoVector3(direction.X / length, direction.Y / length, direction.Z / length);
                 bool ray = r.Type == "RAY";
 
                 if (_place != null)
@@ -746,15 +863,24 @@ namespace GeometryHelper.Dxf
                         return;
                     }
 
-                    unit = Math.Abs(placedLength - 1.0) <= 1E-12 ? placed : new GeoVector3(placed.X / placedLength, placed.Y / placedLength, placed.Z / placedLength);
+                    unit =
+                        Math.Abs(placedLength - 1.0) <= 1E-12
+                            ? placed
+                            : new GeoVector3(placed.X / placedLength, placed.Y / placedLength, placed.Z / placedLength);
                 }
 
                 if (_planAs2D && origin.Z == 0.0 && unit.Z == 0.0)
                 {
                     var flat = new GeoVector2(unit.X, unit.Y);
                     double flatLength = flat.Length;
-                    flat = Math.Abs(flatLength - 1.0) <= 1E-12 ? flat : new GeoVector2(flat.X / flatLength, flat.Y / flatLength);
-                    Add(r, ray ? (object)new GeoRay2(Plan(origin), flat, true) : new GeoXLine2(Plan(origin), flat, true));
+                    flat =
+                        Math.Abs(flatLength - 1.0) <= 1E-12
+                            ? flat
+                            : new GeoVector2(flat.X / flatLength, flat.Y / flatLength);
+                    Add(
+                        r,
+                        ray ? (object)new GeoRay2(Plan(origin), flat, true) : new GeoXLine2(Plan(origin), flat, true)
+                    );
                     return;
                 }
 
@@ -802,7 +928,12 @@ namespace GeometryHelper.Dxf
             /// </summary>
             private void ReadArc(Record r)
             {
-                if (!TryPoint(r, 0, out GeoPoint3 centre) || !r.TryReal(40, out double radius) || !r.TryReal(50, out double startDegrees) || !r.TryReal(51, out double endDegrees))
+                if (
+                    !TryPoint(r, 0, out GeoPoint3 centre)
+                    || !r.TryReal(40, out double radius)
+                    || !r.TryReal(50, out double startDegrees)
+                    || !r.TryReal(51, out double endDegrees)
+                )
                 {
                     Skip(r.Type, Incomplete);
                     return;
@@ -831,9 +962,12 @@ namespace GeometryHelper.Dxf
                 // gives, as the arc read in space does.
                 if (FlatInPlane(ocs.Normal, new[] { centre }))
                 {
-                    Add(r, IsUp(ocs.Normal)
-                        ? new GeoArc2(Plan(centre), radius, start, end)
-                        : new GeoArc2(Plan(ocs.World(centre)), radius, Math.PI - start, Math.PI - end, true));
+                    Add(
+                        r,
+                        IsUp(ocs.Normal)
+                            ? new GeoArc2(Plan(centre), radius, start, end)
+                            : new GeoArc2(Plan(ocs.World(centre)), radius, Math.PI - start, Math.PI - end, true)
+                    );
                     return;
                 }
 
@@ -844,8 +978,15 @@ namespace GeometryHelper.Dxf
                     sweepDegrees += 360.0;
                 }
 
-                GeoPoint3 first = ocs.World(centre.X + radius * Math.Cos(start), centre.Y + radius * Math.Sin(start), centre.Z);
-                Add(r, GeoArc3.FromCircle(ocs.World(centre), ocs.Normal, radius, first, sweepDegrees * Math.PI / 180.0));
+                GeoPoint3 first = ocs.World(
+                    centre.X + radius * Math.Cos(start),
+                    centre.Y + radius * Math.Sin(start),
+                    centre.Z
+                );
+                Add(
+                    r,
+                    GeoArc3.FromCircle(ocs.World(centre), ocs.Normal, radius, first, sweepDegrees * Math.PI / 180.0)
+                );
             }
 
             /// <summary>
@@ -855,7 +996,11 @@ namespace GeometryHelper.Dxf
             /// </summary>
             private void ReadEllipse(Record r)
             {
-                if (!TryPoint(r, 0, out GeoPoint3 centre) || !TryPoint(r, 1, out GeoPoint3 end) || !r.TryReal(40, out double ratio))
+                if (
+                    !TryPoint(r, 0, out GeoPoint3 centre)
+                    || !TryPoint(r, 1, out GeoPoint3 end)
+                    || !r.TryReal(40, out double ratio)
+                )
                 {
                     Skip(r.Type, Incomplete);
                     return;
@@ -900,9 +1045,19 @@ namespace GeometryHelper.Dxf
 
                     if (whole)
                     {
-                        Add(r, flat
-                            ? (object)new GeoEllipse2(Plan(centre), new GeoVector2(axis.X / major, axis.Y / major), major, minor, true)
-                            : new GeoEllipse3(centre, normal, axis, major, minor));
+                        Add(
+                            r,
+                            flat
+                                ? (object)
+                                    new GeoEllipse2(
+                                        Plan(centre),
+                                        new GeoVector2(axis.X / major, axis.Y / major),
+                                        major,
+                                        minor,
+                                        true
+                                    )
+                                : new GeoEllipse3(centre, normal, axis, major, minor)
+                        );
                         return;
                     }
 
@@ -920,7 +1075,16 @@ namespace GeometryHelper.Dxf
             /// stretch that makes the circle the ellipse; so each is exactly its piece of the ellipse, to rounding. Its ends
             /// are the ellipse's points at the two angles.
             /// </summary>
-            private static object EllipticalArc(GeoPoint3 centre, GeoVector3 normal, GeoVector3 axis, double major, double minor, double from, double span, bool flat)
+            private static object EllipticalArc(
+                GeoPoint3 centre,
+                GeoVector3 normal,
+                GeoVector3 axis,
+                double major,
+                double minor,
+                double from,
+                double span,
+                bool flat
+            )
             {
                 EllipseAxes(normal, axis, major, out GeoVector3 u, out GeoVector3 w);
                 return ArcPieces(centre, u, w, major, minor, from, span, flat);
@@ -931,7 +1095,13 @@ namespace GeometryHelper.Dxf
             /// with it.
             /// </summary>
             /// <exception cref="ArgumentException">Thrown when the major axis runs along the extrusion.</exception>
-            private static void EllipseAxes(GeoVector3 normal, GeoVector3 axis, double major, out GeoVector3 u, out GeoVector3 w)
+            private static void EllipseAxes(
+                GeoVector3 normal,
+                GeoVector3 axis,
+                double major,
+                out GeoVector3 u,
+                out GeoVector3 w
+            )
             {
                 GeoVector3 inPlane = axis.Subtract(normal.Multiply(axis.DotProduct(normal)));
                 double left = inPlane.Length;
@@ -951,7 +1121,16 @@ namespace GeometryHelper.Dxf
             /// of a piece of a circle under the map that takes the circle's axes to a u and b w, so each is exactly its piece,
             /// to rounding.
             /// </summary>
-            private static object ArcPieces(GeoPoint3 centre, GeoVector3 u, GeoVector3 w, double major, double minor, double from, double span, bool flat)
+            private static object ArcPieces(
+                GeoPoint3 centre,
+                GeoVector3 u,
+                GeoVector3 w,
+                double major,
+                double minor,
+                double from,
+                double span,
+                bool flat
+            )
             {
                 int pieces = Math.Max(1, (int)Math.Ceiling(span / (Math.PI * 0.5) - 1E-9));
                 double step = span / pieces;
@@ -1015,14 +1194,54 @@ namespace GeometryHelper.Dxf
 
                     switch (code)
                     {
-                        case 10: points.Add(new GeoPoint3(Scaled(value), 0.0, 0.0)); break;
-                        case 20: if (points.Count > 0) { points[points.Count - 1] = new GeoPoint3(points[points.Count - 1].X, Scaled(value), 0.0); } break;
-                        case 30: if (points.Count > 0) { points[points.Count - 1] = new GeoPoint3(points[points.Count - 1].X, points[points.Count - 1].Y, Scaled(value)); } break;
-                        case 11: fit.Add(new GeoPoint3(Scaled(value), 0.0, 0.0)); break;
-                        case 21: if (fit.Count > 0) { fit[fit.Count - 1] = new GeoPoint3(fit[fit.Count - 1].X, Scaled(value), 0.0); } break;
-                        case 31: if (fit.Count > 0) { fit[fit.Count - 1] = new GeoPoint3(fit[fit.Count - 1].X, fit[fit.Count - 1].Y, Scaled(value)); } break;
-                        case 40: knots.Add(value); break;
-                        case 41: weights.Add(value); break;
+                        case 10:
+                            points.Add(new GeoPoint3(Scaled(value), 0.0, 0.0));
+                            break;
+                        case 20:
+                            if (points.Count > 0)
+                            {
+                                points[points.Count - 1] = new GeoPoint3(
+                                    points[points.Count - 1].X,
+                                    Scaled(value),
+                                    0.0
+                                );
+                            }
+                            break;
+                        case 30:
+                            if (points.Count > 0)
+                            {
+                                points[points.Count - 1] = new GeoPoint3(
+                                    points[points.Count - 1].X,
+                                    points[points.Count - 1].Y,
+                                    Scaled(value)
+                                );
+                            }
+                            break;
+                        case 11:
+                            fit.Add(new GeoPoint3(Scaled(value), 0.0, 0.0));
+                            break;
+                        case 21:
+                            if (fit.Count > 0)
+                            {
+                                fit[fit.Count - 1] = new GeoPoint3(fit[fit.Count - 1].X, Scaled(value), 0.0);
+                            }
+                            break;
+                        case 31:
+                            if (fit.Count > 0)
+                            {
+                                fit[fit.Count - 1] = new GeoPoint3(
+                                    fit[fit.Count - 1].X,
+                                    fit[fit.Count - 1].Y,
+                                    Scaled(value)
+                                );
+                            }
+                            break;
+                        case 40:
+                            knots.Add(value);
+                            break;
+                        case 41:
+                            weights.Add(value);
+                            break;
                     }
                 }
 
@@ -1039,14 +1258,41 @@ namespace GeometryHelper.Dxf
                         return;
                     }
 
-                    ReadFitSpline(r, fit, hasStart ? startTangent : default(GeoVector3), hasEnd ? endTangent : default(GeoVector3), flags);
+                    ReadFitSpline(
+                        r,
+                        fit,
+                        hasStart ? startTangent : default(GeoVector3),
+                        hasEnd ? endTangent : default(GeoVector3),
+                        flags
+                    );
                     return;
                 }
 
                 // AutoCAD reads a spline of fit points as the cubic it fits through them, where its control points are not it.
-                if (fit.Count >= 2 && DxfNurbsEdit.FitsAnew(fit, hasStart ? startTangent : default(GeoVector3), hasEnd ? endTangent : default(GeoVector3), r.Real(44, 0.0), flags, degree, points, knots.ConvertAll(Scaled), weights, out _, out _))
+                if (
+                    fit.Count >= 2
+                    && DxfNurbsEdit.FitsAnew(
+                        fit,
+                        hasStart ? startTangent : default(GeoVector3),
+                        hasEnd ? endTangent : default(GeoVector3),
+                        r.Real(44, 0.0),
+                        flags,
+                        degree,
+                        points,
+                        knots.ConvertAll(Scaled),
+                        weights,
+                        out _,
+                        out _
+                    )
+                )
                 {
-                    ReadFitSpline(r, fit, hasStart ? startTangent : default(GeoVector3), hasEnd ? endTangent : default(GeoVector3), flags);
+                    ReadFitSpline(
+                        r,
+                        fit,
+                        hasStart ? startTangent : default(GeoVector3),
+                        hasEnd ? endTangent : default(GeoVector3),
+                        flags
+                    );
                     return;
                 }
 
@@ -1064,7 +1310,17 @@ namespace GeometryHelper.Dxf
 
                 List<double> given = weights.Count > 0 ? weights : null;
 
-                if (!TryClamped(degree, points, knots, given, out List<GeoPoint3> clampedPoints, out List<double> clampedKnots, out List<double> clampedWeights))
+                if (
+                    !TryClamped(
+                        degree,
+                        points,
+                        knots,
+                        given,
+                        out List<GeoPoint3> clampedPoints,
+                        out List<double> clampedKnots,
+                        out List<double> clampedWeights
+                    )
+                )
                 {
                     if ((flags & 2) != 0)
                     {
@@ -1073,7 +1329,10 @@ namespace GeometryHelper.Dxf
                     }
                     else
                     {
-                        RefuseSpline(r, "that the library does not take: its degree, knots or weights do not make a spline");
+                        RefuseSpline(
+                            r,
+                            "that the library does not take: its degree, knots or weights do not make a spline"
+                        );
                     }
 
                     return;
@@ -1081,13 +1340,20 @@ namespace GeometryHelper.Dxf
 
                 try
                 {
-                    Add(r, FlatInWorld(clampedPoints)
-                        ? (object)new GeoSpline2(degree, clampedPoints.ConvertAll(Plan), clampedKnots, clampedWeights)
-                        : new GeoSpline3(degree, clampedPoints, clampedKnots, clampedWeights));
+                    Add(
+                        r,
+                        FlatInWorld(clampedPoints)
+                            ? (object)
+                                new GeoSpline2(degree, clampedPoints.ConvertAll(Plan), clampedKnots, clampedWeights)
+                            : new GeoSpline3(degree, clampedPoints, clampedKnots, clampedWeights)
+                    );
                 }
                 catch (ArgumentException)
                 {
-                    RefuseSpline(r, "that the library does not take: its degree, knots or weights do not make a spline");
+                    RefuseSpline(
+                        r,
+                        "that the library does not take: its degree, knots or weights do not make a spline"
+                    );
                 }
             }
 
@@ -1104,9 +1370,25 @@ namespace GeometryHelper.Dxf
             /// of 4 control points a third apart. The knots go up by the square roots of the chords, or by 1, where the flag 64,
             /// or 128, of group 70 says so.
             /// </summary>
-            private void ReadFitSpline(Record r, List<GeoPoint3> fit, GeoVector3 startTangent, GeoVector3 endTangent, int flags)
+            private void ReadFitSpline(
+                Record r,
+                List<GeoPoint3> fit,
+                GeoVector3 startTangent,
+                GeoVector3 endTangent,
+                int flags
+            )
             {
-                if (!DxfNurbsEdit.InterpolateCubic(fit, startTangent, endTangent, DxfNurbsEdit.Parameters(flags), out _, out List<double> knots, out List<GeoPoint3> points))
+                if (
+                    !DxfNurbsEdit.InterpolateCubic(
+                        fit,
+                        startTangent,
+                        endTangent,
+                        DxfNurbsEdit.Parameters(flags),
+                        out _,
+                        out List<double> knots,
+                        out List<GeoPoint3> points
+                    )
+                )
                 {
                     RefuseSpline(r, "whose fit points the library cannot pass a spline through");
                     return;
@@ -1117,7 +1399,9 @@ namespace GeometryHelper.Dxf
 
                 try
                 {
-                    object spline = flat ? (object)new GeoSpline2(3, points.ConvertAll(Plan), knots, null) : new GeoSpline3(3, points, knots, null);
+                    object spline = flat
+                        ? (object)new GeoSpline2(3, points.ConvertAll(Plan), knots, null)
+                        : new GeoSpline3(3, points, knots, null);
 
                     if (_place != null && !TryPlaceSpline((GeoSpline3)spline, out spline))
                     {
@@ -1141,7 +1425,15 @@ namespace GeometryHelper.Dxf
             /// it in the homogeneous coordinates of a rational spline, and keeping the control points and knots of the span.
             /// False where the knots are not the count and order a spline's are.
             /// </summary>
-            private static bool TryClamped(int degree, List<GeoPoint3> points, List<double> knots, List<double> weights, out List<GeoPoint3> clampedPoints, out List<double> clampedKnots, out List<double> clampedWeights)
+            private static bool TryClamped(
+                int degree,
+                List<GeoPoint3> points,
+                List<double> knots,
+                List<double> weights,
+                out List<GeoPoint3> clampedPoints,
+                out List<double> clampedKnots,
+                out List<double> clampedWeights
+            )
             {
                 clampedPoints = points;
                 clampedKnots = knots;
@@ -1322,7 +1614,11 @@ namespace GeometryHelper.Dxf
                     }
                     else if (atVertex && code == 20)
                     {
-                        points[points.Count - 1] = new GeoPoint3(points[points.Count - 1].X, Scaled(r.NumberAt(i)), elevation);
+                        points[points.Count - 1] = new GeoPoint3(
+                            points[points.Count - 1].X,
+                            Scaled(r.NumberAt(i)),
+                            elevation
+                        );
                     }
                     else if (atVertex && code == 42)
                     {
@@ -1374,7 +1670,10 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                double elevation = r.Has(30) ? Scaled(r.Real(30, 0.0)) : points.Count > 0 ? points[0].Z : 0.0;
+                double elevation =
+                    r.Has(30) ? Scaled(r.Real(30, 0.0))
+                    : points.Count > 0 ? points[0].Z
+                    : 0.0;
 
                 for (int i = 0; i < points.Count; i++)
                 {
@@ -1429,7 +1728,14 @@ namespace GeometryHelper.Dxf
             /// a chain, a closed polyline opened as such a loop is, or for the kind with arcs though there are none
             /// (<see cref="ArcsAsked"/>).
             /// </summary>
-            private void Chain(Record r, List<GeoPoint3> points, List<double> bulges, bool closed, bool flat, GeoVector3 normal)
+            private void Chain(
+                Record r,
+                List<GeoPoint3> points,
+                List<double> bulges,
+                bool closed,
+                bool flat,
+                GeoVector3 normal
+            )
             {
                 closed |= LoopAsked == true;
                 var kept = new List<GeoPoint3>(points.Count);
@@ -1468,7 +1774,10 @@ namespace GeometryHelper.Dxf
                 }
                 else if (kept.Count == 2)
                 {
-                    int arc = keptBulges[0] != 0.0 ? 0 : keptBulges[1] != 0.0 ? 1 : -1;
+                    int arc =
+                        keptBulges[0] != 0.0 ? 0
+                        : keptBulges[1] != 0.0 ? 1
+                        : -1;
 
                     if (arc < 0)
                     {
@@ -1482,14 +1791,19 @@ namespace GeometryHelper.Dxf
                 }
 
                 bool arcs = keptBulges.Exists(b => b != 0.0);
-                var normals = keptBulges.ConvertAll(b => b != 0.0 ? (flat ? new GeoVector3(0.0, 0.0, 1.0) : normal) : default(GeoVector3));
+                var normals = keptBulges.ConvertAll(b =>
+                    b != 0.0 ? (flat ? new GeoVector3(0.0, 0.0, 1.0) : normal) : default(GeoVector3)
+                );
 
                 if (closed && LoopAsked != false && TryLoop(kept, keptBulges, normals, flat, arcs, out object loop))
                 {
                     // A loop with no arc asked for with arcs is the same loop, judged as one by the rule of its straight edges.
                     if (ArcsAsked && !arcs)
                     {
-                        loop = flat ? (object)GeoPolygonArc2.FromValidated(kept.ConvertAll(Plan).ToArray(), keptBulges.ToArray()) : new GeoPolygonArc3(kept, keptBulges, normals, _tolerance);
+                        loop = flat
+                            ? (object)
+                                GeoPolygonArc2.FromValidated(kept.ConvertAll(Plan).ToArray(), keptBulges.ToArray())
+                            : new GeoPolygonArc3(kept, keptBulges, normals, _tolerance);
                     }
 
                     Add(r, loop);
@@ -1525,7 +1839,12 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                Add(r, arcs ? (object)new GeoPolylineArc3(kept, keptBulges, normals, _tolerance) : new GeoPolyline3(kept.ToArray(), true));
+                Add(
+                    r,
+                    arcs
+                        ? (object)new GeoPolylineArc3(kept, keptBulges, normals, _tolerance)
+                        : new GeoPolyline3(kept.ToArray(), true)
+                );
             }
 
             /// <summary>
@@ -1533,7 +1852,14 @@ namespace GeometryHelper.Dxf
             /// lie in one plane within the planar tolerance, as <see cref="GeoPolygon3"/> takes them; a loop with arcs whose
             /// area is above the vector tolerance read as an area, as a polygon's is.
             /// </summary>
-            private bool TryLoop(List<GeoPoint3> kept, List<double> keptBulges, List<GeoVector3> normals, bool flat, bool arcs, out object loop)
+            private bool TryLoop(
+                List<GeoPoint3> kept,
+                List<double> keptBulges,
+                List<GeoVector3> normals,
+                bool flat,
+                bool arcs,
+                out object loop
+            )
             {
                 loop = null;
 
@@ -1659,7 +1985,11 @@ namespace GeometryHelper.Dxf
                 double tolerance = _tolerance.EqualPoint;
                 string why = null;
 
-                if (r.Int(72, 0) != 0 ? !AddFitted(r, DxfLeader.FittedCurve(vertices, tolerance), p => p, out why) : !AddChain(r, vertices, p => p))
+                if (
+                    r.Int(72, 0) != 0
+                        ? !AddFitted(r, DxfLeader.FittedCurve(vertices, tolerance), p => p, out why)
+                        : !AddChain(r, vertices, p => p)
+                )
                 {
                     Skip(r.Type, why ?? "with fewer than two distinct vertices");
                 }
@@ -1681,13 +2011,15 @@ namespace GeometryHelper.Dxf
                     groups.Add(new KeyValuePair<int, string>(r.CodeAt(i), r.ValueAt(i)));
                 }
 
-                GeoPoint3 Scale(GeoPoint3 p) => _scale == 1.0 ? p : new GeoPoint3(Scaled(p.X), Scaled(p.Y), Scaled(p.Z));
+                GeoPoint3 Scale(GeoPoint3 p) =>
+                    _scale == 1.0 ? p : new GeoPoint3(Scaled(p.X), Scaled(p.Y), Scaled(p.Z));
                 bool any = false;
                 string why = null;
 
                 foreach (DxfMLeader.LinePath line in DxfMLeader.LinesOf(groups, _tolerance.EqualPoint / _scale))
                 {
-                    any |= line.Curve != null ? AddFitted(r, line.Curve, Scale, out why) : AddChain(r, line.Points, Scale);
+                    any |=
+                        line.Curve != null ? AddFitted(r, line.Curve, Scale, out why) : AddChain(r, line.Points, Scale);
                 }
 
                 if (!any)
@@ -1720,7 +2052,12 @@ namespace GeometryHelper.Dxf
                     return false;
                 }
 
-                Add(r, FlatInWorld(kept) ? (object)new GeoPolyline2(kept.ConvertAll(Plan).ToArray(), kept.Count) : new GeoPolyline3(kept.ToArray(), true));
+                Add(
+                    r,
+                    FlatInWorld(kept)
+                        ? (object)new GeoPolyline2(kept.ConvertAll(Plan).ToArray(), kept.Count)
+                        : new GeoPolyline3(kept.ToArray(), true)
+                );
                 return true;
             }
 
@@ -1742,14 +2079,21 @@ namespace GeometryHelper.Dxf
 
                 for (int i = 0; i < curve.Count; i++)
                 {
-                    control.Add(Place(scale(new GeoPoint3(curve.Points[3 * i], curve.Points[3 * i + 1], curve.Points[3 * i + 2]))));
+                    control.Add(
+                        Place(
+                            scale(new GeoPoint3(curve.Points[3 * i], curve.Points[3 * i + 1], curve.Points[3 * i + 2]))
+                        )
+                    );
                 }
 
                 try
                 {
-                    Add(r, FlatInWorld(control)
-                        ? (object)new GeoSpline2(curve.Degree, control.ConvertAll(Plan), curve.Knots, null)
-                        : new GeoSpline3(curve.Degree, control, curve.Knots, null));
+                    Add(
+                        r,
+                        FlatInWorld(control)
+                            ? (object)new GeoSpline2(curve.Degree, control.ConvertAll(Plan), curve.Knots, null)
+                            : new GeoSpline3(curve.Degree, control, curve.Knots, null)
+                    );
                     return true;
                 }
                 catch (ArgumentException)
@@ -1866,7 +2210,9 @@ namespace GeometryHelper.Dxf
                     {
                         int i1 = (i + 1) % m;
                         int j1 = (j + 1) % n;
-                        loops.Add(new[] { points[i * n + j], points[i * n + j1], points[i1 * n + j1], points[i1 * n + j] });
+                        loops.Add(
+                            new[] { points[i * n + j], points[i * n + j1], points[i1 * n + j1], points[i1 * n + j] }
+                        );
                     }
                 }
 
@@ -1930,7 +2276,11 @@ namespace GeometryHelper.Dxf
             /// </summary>
             private void ReadFace(Record r)
             {
-                if (!TryPoint(r, 0, out GeoPoint3 a) || !TryPoint(r, 1, out GeoPoint3 b) || !TryPoint(r, 2, out GeoPoint3 c))
+                if (
+                    !TryPoint(r, 0, out GeoPoint3 a)
+                    || !TryPoint(r, 1, out GeoPoint3 b)
+                    || !TryPoint(r, 2, out GeoPoint3 c)
+                )
                 {
                     Skip(r.Type, Incomplete);
                     return;
@@ -1991,8 +2341,12 @@ namespace GeometryHelper.Dxf
                 }
 
                 bool acrossAc = corners[0].DistanceTo(corners[2]) <= corners[1].DistanceTo(corners[3]);
-                GeoTriangle3 first = acrossAc ? new GeoTriangle3(corners[0], corners[1], corners[2]) : new GeoTriangle3(corners[0], corners[1], corners[3]);
-                GeoTriangle3 second = acrossAc ? new GeoTriangle3(corners[0], corners[2], corners[3]) : new GeoTriangle3(corners[1], corners[2], corners[3]);
+                GeoTriangle3 first = acrossAc
+                    ? new GeoTriangle3(corners[0], corners[1], corners[2])
+                    : new GeoTriangle3(corners[0], corners[1], corners[3]);
+                GeoTriangle3 second = acrossAc
+                    ? new GeoTriangle3(corners[0], corners[2], corners[3])
+                    : new GeoTriangle3(corners[1], corners[2], corners[3]);
 
                 if (first.IsDegenerate(_tolerance) && second.IsDegenerate(_tolerance))
                 {
@@ -2004,8 +2358,8 @@ namespace GeometryHelper.Dxf
                 Add(r, second);
             }
 
-            private static bool SameBits(GeoPoint3 p, GeoPoint3 q)
-                => BitConverter.DoubleToInt64Bits(p.X + 0.0) == BitConverter.DoubleToInt64Bits(q.X + 0.0)
+            private static bool SameBits(GeoPoint3 p, GeoPoint3 q) =>
+                BitConverter.DoubleToInt64Bits(p.X + 0.0) == BitConverter.DoubleToInt64Bits(q.X + 0.0)
                 && BitConverter.DoubleToInt64Bits(p.Y + 0.0) == BitConverter.DoubleToInt64Bits(q.Y + 0.0)
                 && BitConverter.DoubleToInt64Bits(p.Z + 0.0) == BitConverter.DoubleToInt64Bits(q.Z + 0.0);
 
@@ -2016,14 +2370,19 @@ namespace GeometryHelper.Dxf
             /// </summary>
             private void ReadSolid(Record r)
             {
-                if (!TryPoint(r, 0, out GeoPoint3 p1) || !TryPoint(r, 1, out GeoPoint3 p2) || !TryPoint(r, 2, out GeoPoint3 p3))
+                if (
+                    !TryPoint(r, 0, out GeoPoint3 p1)
+                    || !TryPoint(r, 1, out GeoPoint3 p2)
+                    || !TryPoint(r, 2, out GeoPoint3 p3)
+                )
                 {
                     Skip(r.Type, Incomplete);
                     return;
                 }
 
                 GeoPoint3 p4 = TryPoint(r, 3, out GeoPoint3 fourth) ? fourth : p3;
-                GeoPoint3 Height(Record record, int n, GeoPoint3 p) => record.Has(30 + n) ? p : new GeoPoint3(p.X, p.Y, p1.Z);
+                GeoPoint3 Height(Record record, int n, GeoPoint3 p) =>
+                    record.Has(30 + n) ? p : new GeoPoint3(p.X, p.Y, p1.Z);
 
                 var corners = new List<GeoPoint3> { p1, Height(r, 1, p2) };
 

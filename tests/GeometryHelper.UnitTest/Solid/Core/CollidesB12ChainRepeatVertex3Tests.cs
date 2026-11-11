@@ -21,9 +21,16 @@ namespace GeometryHelper.UnitTest.Solid
         public void AHalfCircleAfterARepeatedVertexInSpace_IsKept()
         {
             var chain = new GeoPolylineArc3(
-                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10.0004, 0, 0), new GeoPoint3(20, 0, 0) },
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10.0004, 0, 0),
+                    new GeoPoint3(20, 0, 0),
+                },
                 new[] { 0.0, 0.0, 1.0, 0.0 },
-                new[] { Up, Up, Up, Up });
+                new[] { Up, Up, Up, Up }
+            );
 
             Assert.Equal(3, chain.VertexCount);
             Assert.False(chain.GetEdgeAt(0).IsArc);
@@ -39,11 +46,16 @@ namespace GeometryHelper.UnitTest.Solid
             var loop = new GeoPolygonArc3(
                 new[]
                 {
-                    new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10.0004, 0, 0),
-                    new GeoPoint3(20, 0, 0), new GeoPoint3(20, 20, 0), new GeoPoint3(0, 20, 0),
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10.0004, 0, 0),
+                    new GeoPoint3(20, 0, 0),
+                    new GeoPoint3(20, 20, 0),
+                    new GeoPoint3(0, 20, 0),
                 },
                 new[] { 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 },
-                new[] { Up, Up, Up, Up, Up, Up });
+                new[] { Up, Up, Up, Up, Up, Up }
+            );
 
             Assert.Equal(5, loop.VertexCount);
             Assert.True(loop.GetEdgeAt(1).IsArc);

@@ -35,7 +35,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a curved loop to a point.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPoint2 point) => GetShortestLineTo(loop, point, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPoint2 point) =>
+            GetShortestLineTo(loop, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a curved loop to a point, within a tolerance.
@@ -66,12 +67,14 @@ namespace GeometryHelper.Core
         /// Where two edges are equally near, the first of them round the loop is taken.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(ProjectToPolygonArc(loop, point, tolerance), point);
+        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPoint2 point, Tolerance tolerance) =>
+            new GeoLine2(ProjectToPolygonArc(loop, point, tolerance), point);
 
         /// <summary>
         /// Gets the shortest segment joining a curved loop to a segment.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoLine2 line) => GetShortestLineTo(loop, line, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoLine2 line) =>
+            GetShortestLineTo(loop, line, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a curved loop to a segment, within a tolerance.
@@ -82,11 +85,16 @@ namespace GeometryHelper.Core
         /// <returns>A segment leaving <paramref name="loop"/> and landing on <paramref name="line"/>.</returns>
         public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoLine2 line, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             if (Stub2.ReadsAsStart(line, tolerance))
             {
-                return Stub2.Nearest(line, ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(loop), line, Stub2.AsItIs(line, tolerance)), GetShortestLineTo(loop, line.StartPoint, tolerance));
+                return Stub2.Nearest(
+                    line,
+                    ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(loop), line, Stub2.AsItIs(line, tolerance)),
+                    GetShortestLineTo(loop, line.StartPoint, tolerance)
+                );
             }
 
             return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(loop), line, tolerance);
@@ -95,7 +103,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a curved loop to an arc.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoArc2 arc) => GetShortestLineTo(loop, arc, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoArc2 arc) =>
+            GetShortestLineTo(loop, arc, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a curved loop to an arc, within a tolerance.
@@ -106,7 +115,8 @@ namespace GeometryHelper.Core
         /// <returns>A segment leaving <paramref name="loop"/> and landing on <paramref name="arc"/>.</returns>
         public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoArc2 arc, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(loop), arc, tolerance);
         }
@@ -114,7 +124,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a curved loop to a circle.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoCircle2 circle) => GetShortestLineTo(loop, circle, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoCircle2 circle) =>
+            GetShortestLineTo(loop, circle, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a curved loop to a circle, within a tolerance.
@@ -125,7 +136,8 @@ namespace GeometryHelper.Core
         /// <returns>A segment leaving <paramref name="loop"/> and landing on <paramref name="circle"/>.</returns>
         public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoCircle2 circle, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(loop), circle, tolerance);
         }
@@ -133,7 +145,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a curved loop to a polygon.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPolygon2 polygon) => GetShortestLineTo(loop, polygon, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPolygon2 polygon) =>
+            GetShortestLineTo(loop, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a curved loop to a polygon, within a tolerance.
@@ -144,8 +157,10 @@ namespace GeometryHelper.Core
         /// <returns>A segment leaving <paramref name="loop"/> and landing on <paramref name="polygon"/>.</returns>
         public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPolygon2 polygon, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polygon), tolerance);
         }
@@ -153,7 +168,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a curved loop to a polyline.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPolyline2 polyline) => GetShortestLineTo(loop, polyline, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPolyline2 polyline) =>
+            GetShortestLineTo(loop, polyline, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a curved loop to a polyline, within a tolerance.
@@ -164,8 +180,10 @@ namespace GeometryHelper.Core
         /// <returns>A segment leaving <paramref name="loop"/> and landing on <paramref name="polyline"/>.</returns>
         public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polyline), tolerance);
         }
@@ -173,7 +191,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a curved loop to another curved loop.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPolygonArc2 other) => GetShortestLineTo(loop, other, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPolygonArc2 other) =>
+            GetShortestLineTo(loop, other, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a curved loop to another curved loop, within a tolerance.
@@ -184,8 +203,10 @@ namespace GeometryHelper.Core
         /// <returns>A segment leaving <paramref name="loop"/> and landing on <paramref name="other"/>.</returns>
         public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPolygonArc2 other, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
 
             return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(other), tolerance);
         }
@@ -193,7 +214,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a curved loop to a curved chain.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPolylineArc2 chain) => GetShortestLineTo(loop, chain, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPolylineArc2 chain) =>
+            GetShortestLineTo(loop, chain, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a curved loop to a curved chain, within a tolerance.
@@ -204,8 +226,10 @@ namespace GeometryHelper.Core
         /// <returns>A segment leaving <paramref name="loop"/> and landing on <paramref name="chain"/>.</returns>
         public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoPolylineArc2 chain, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(chain), tolerance);
         }
@@ -218,7 +242,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a curved chain to a point.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPoint2 point) => GetShortestLineTo(chain, point, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPoint2 point) =>
+            GetShortestLineTo(chain, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a curved chain to a point, within a tolerance.
@@ -245,12 +270,14 @@ namespace GeometryHelper.Core
         /// remarks say. Where two edges are equally near, the first of them along the chain is taken.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(ProjectToPolylineArc(chain, point, tolerance), point);
+        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPoint2 point, Tolerance tolerance) =>
+            new GeoLine2(ProjectToPolylineArc(chain, point, tolerance), point);
 
         /// <summary>
         /// Gets the shortest segment joining a curved chain to a segment.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoLine2 line) => GetShortestLineTo(chain, line, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoLine2 line) =>
+            GetShortestLineTo(chain, line, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a curved chain to a segment, within a tolerance.
@@ -261,11 +288,16 @@ namespace GeometryHelper.Core
         /// <returns>A segment leaving <paramref name="chain"/> and landing on <paramref name="line"/>.</returns>
         public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoLine2 line, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             if (Stub2.ReadsAsStart(line, tolerance))
             {
-                return Stub2.Nearest(line, ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(chain), line, Stub2.AsItIs(line, tolerance)), GetShortestLineTo(chain, line.StartPoint, tolerance));
+                return Stub2.Nearest(
+                    line,
+                    ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(chain), line, Stub2.AsItIs(line, tolerance)),
+                    GetShortestLineTo(chain, line.StartPoint, tolerance)
+                );
             }
 
             return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(chain), line, tolerance);
@@ -274,7 +306,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a curved chain to an arc.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoArc2 arc) => GetShortestLineTo(chain, arc, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoArc2 arc) =>
+            GetShortestLineTo(chain, arc, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a curved chain to an arc, within a tolerance.
@@ -285,7 +318,8 @@ namespace GeometryHelper.Core
         /// <returns>A segment leaving <paramref name="chain"/> and landing on <paramref name="arc"/>.</returns>
         public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoArc2 arc, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(chain), arc, tolerance);
         }
@@ -293,7 +327,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a curved chain to a circle.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoCircle2 circle) => GetShortestLineTo(chain, circle, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoCircle2 circle) =>
+            GetShortestLineTo(chain, circle, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a curved chain to a circle, within a tolerance.
@@ -304,7 +339,8 @@ namespace GeometryHelper.Core
         /// <returns>A segment leaving <paramref name="chain"/> and landing on <paramref name="circle"/>.</returns>
         public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoCircle2 circle, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(chain), circle, tolerance);
         }
@@ -312,7 +348,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a curved chain to a polygon.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPolygon2 polygon) => GetShortestLineTo(chain, polygon, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPolygon2 polygon) =>
+            GetShortestLineTo(chain, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a curved chain to a polygon, within a tolerance.
@@ -323,8 +360,10 @@ namespace GeometryHelper.Core
         /// <returns>A segment leaving <paramref name="chain"/> and landing on <paramref name="polygon"/>.</returns>
         public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPolygon2 polygon, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polygon), tolerance);
         }
@@ -332,7 +371,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a curved chain to a polyline.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPolyline2 polyline) => GetShortestLineTo(chain, polyline, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPolyline2 polyline) =>
+            GetShortestLineTo(chain, polyline, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a curved chain to a polyline, within a tolerance.
@@ -343,8 +383,10 @@ namespace GeometryHelper.Core
         /// <returns>A segment leaving <paramref name="chain"/> and landing on <paramref name="polyline"/>.</returns>
         public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polyline), tolerance);
         }
@@ -352,7 +394,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a curved chain to a curved loop.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPolygonArc2 loop) => GetShortestLineTo(chain, loop, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPolygonArc2 loop) =>
+            GetShortestLineTo(chain, loop, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a curved chain to a curved loop, within a tolerance.
@@ -363,8 +406,10 @@ namespace GeometryHelper.Core
         /// <returns>A segment leaving <paramref name="chain"/> and landing on <paramref name="loop"/>.</returns>
         public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPolygonArc2 loop, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(loop), tolerance);
         }
@@ -372,7 +417,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a curved chain to another curved chain.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPolylineArc2 other) => GetShortestLineTo(chain, other, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPolylineArc2 other) =>
+            GetShortestLineTo(chain, other, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a curved chain to another curved chain, within a tolerance.
@@ -383,13 +429,14 @@ namespace GeometryHelper.Core
         /// <returns>A segment leaving <paramref name="chain"/> and landing on <paramref name="other"/>.</returns>
         public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPolylineArc2 other, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
 
             return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(other), tolerance);
         }
 
         #endregion
-
     }
 }

@@ -20,7 +20,9 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly GeoVector3 Up = Unit(new GeoVector3(0.3, -0.4, 0.866));
 
         /// <summary>The plate's length, square to its up.</summary>
-        private static readonly GeoVector3 Along = Unit(new GeoVector3(1, 0.2, 0).Subtract(Up.Multiply(new GeoVector3(1, 0.2, 0).DotProduct(Up))));
+        private static readonly GeoVector3 Along = Unit(
+            new GeoVector3(1, 0.2, 0).Subtract(Up.Multiply(new GeoVector3(1, 0.2, 0).DotProduct(Up)))
+        );
 
         /// <summary>The plate's width.</summary>
         private static readonly GeoVector3 Across = Up.CrossProduct(Along);
@@ -30,8 +32,8 @@ namespace GeometryHelper.UnitTest.Solid
         private static Tolerance All(double value) => new Tolerance(value, value, value, value);
 
         /// <summary>The point at a length, a width and a height in the turned frame standing at (out, out, out).</summary>
-        private static GeoPoint3 At(double far, double x, double y, double z)
-            => new GeoPoint3(far, far, far).Add(Along.Multiply(x)).Add(Across.Multiply(y)).Add(Up.Multiply(z));
+        private static GeoPoint3 At(double far, double x, double y, double z) =>
+            new GeoPoint3(far, far, far).Add(Along.Multiply(x)).Add(Across.Multiply(y)).Add(Up.Multiply(z));
 
         /// <summary>
         /// The plate 200 by 100 by 3 standing in the turned frame, with openings each given as its length from and to, its width
@@ -48,9 +50,18 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoSolid3 body = GeoSolid3.Extrude(new GeoPolygon3(corners.ToArray()), Up.Multiply(3), Tolerance.Default);
             GeoSolid3[] openings = holes
-                .Select(h => GeoSolid3.Extrude(
-                    new GeoPolygon3(At(far, h[0], h[1], h[4]), At(far, h[2], h[1], h[4]), At(far, h[2], h[3], h[4]), At(far, h[0], h[3], h[4])),
-                    Up.Multiply(h[5] - h[4]), Tolerance.Default))
+                .Select(h =>
+                    GeoSolid3.Extrude(
+                        new GeoPolygon3(
+                            At(far, h[0], h[1], h[4]),
+                            At(far, h[2], h[1], h[4]),
+                            At(far, h[2], h[3], h[4]),
+                            At(far, h[0], h[3], h[4])
+                        ),
+                        Up.Multiply(h[5] - h[4]),
+                        Tolerance.Default
+                    )
+                )
                 .ToArray();
 
             return holes.Length == 0 ? body : body.WithOpenings(openings);
@@ -62,7 +73,9 @@ namespace GeometryHelper.UnitTest.Solid
         /// </summary>
         private static GeoCellGrid3 TurnedPlateCells(GeoSolid3 plate, double far, Tolerance tolerance)
         {
-            MeshPlacement3 placement = MeshPlacement3.Frame(new GeoCoordinateSystem3(At(far, 0, 0, 0), Along, Across)).At(At(far, -10, -10, -2));
+            MeshPlacement3 placement = MeshPlacement3
+                .Frame(new GeoCoordinateSystem3(At(far, 0, 0, 0), Along, Across))
+                .At(At(far, -10, -10, -2));
 
             return Mesh3.ToCells(plate, CellOptions3.Grid(60, 40, 10), placement, tolerance);
         }
@@ -73,7 +86,9 @@ namespace GeometryHelper.UnitTest.Solid
         private static Tolerance Roundings(GeoSolid3 body, double roundings)
         {
             GeoAabb3 box = body.GetAabb();
-            double largest = new[] { box.Min.X, box.Min.Y, box.Min.Z, box.Max.X, box.Max.Y, box.Max.Z }.Max(System.Math.Abs);
+            double largest = new[] { box.Min.X, box.Min.Y, box.Min.Z, box.Max.X, box.Max.Y, box.Max.Z }.Max(
+                System.Math.Abs
+            );
             return All(roundings * 1E-15 * largest);
         }
 
@@ -97,7 +112,10 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(1E3, 1)]
         [InlineData(1E3, 2)]
         [InlineData(1E6, 2)]
-        public void AtTheRounding_APlaneThroughATurnedPlateWithAHole_CutsTheHoleOutOfTheSection(double far, double roundings)
+        public void AtTheRounding_APlaneThroughATurnedPlateWithAHole_CutsTheHoleOutOfTheSection(
+            double far,
+            double roundings
+        )
         {
             // The hole 20 by 20 drawn 7 past both faces; the section was empty.
             GeoSolid3 plate = TurnedPlate(far, new double[] { 70, 40, 90, 60, -7, 10 });

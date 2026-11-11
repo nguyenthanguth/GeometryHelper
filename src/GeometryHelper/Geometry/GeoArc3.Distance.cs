@@ -29,7 +29,8 @@ namespace GeometryHelper.Geometry
         /// from (0, 0.0007, 0), and the point is on it; the projection
         /// <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> keeps carrying it to the start, 0.00122 away.
         /// </remarks>
-        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => point.DistanceTo(GetClosestPointOnBoundary(point, Exactly));
+        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) =>
+            point.DistanceTo(GetClosestPointOnBoundary(point, Exactly));
 
         /// <summary>
         /// The tolerance of nought, at which only a point exactly at the centre is carried to the arc's start.

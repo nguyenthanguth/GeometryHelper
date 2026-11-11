@@ -18,19 +18,74 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             MainViewModel model = Opened(out _);
             DimStyleEditViewModel modify = model.CreateDimStyleManager().CreateModify();
 
-            Assert.Equal(new[] { "Lines", "Symbols and arrows", "Text", "Fit", "Primary units", "Alternate units", "Tolerances" }, modify.Tabs);
+            Assert.Equal(
+                new[]
+                {
+                    "Lines",
+                    "Symbols and arrows",
+                    "Text",
+                    "Fit",
+                    "Primary units",
+                    "Alternate units",
+                    "Tolerances",
+                },
+                modify.Tabs
+            );
             Assert.Equal("Modify dimension style: Standard", modify.Title);
             Assert.Equal("Preview of Standard", modify.PreviewTitle);
             Assert.Equal(
-                new[] { "Dimension lines", "Colour", "Linetype", "Lineweight", "Extend beyond ticks", "Baseline spacing", "Suppress dim line 1", "Suppress dim line 2",
-                    "Extension lines", "Colour", "Linetype ext line 1", "Linetype ext line 2", "Lineweight", "Suppress ext line 1", "Suppress ext line 2",
-                    "Extend beyond dim lines", "Offset from origin", "Fixed length extension lines", "Length" },
-                modify.FieldsOf("Lines").Select(f => f.Label));
+                new[]
+                {
+                    "Dimension lines",
+                    "Colour",
+                    "Linetype",
+                    "Lineweight",
+                    "Extend beyond ticks",
+                    "Baseline spacing",
+                    "Suppress dim line 1",
+                    "Suppress dim line 2",
+                    "Extension lines",
+                    "Colour",
+                    "Linetype ext line 1",
+                    "Linetype ext line 2",
+                    "Lineweight",
+                    "Suppress ext line 1",
+                    "Suppress ext line 2",
+                    "Extend beyond dim lines",
+                    "Offset from origin",
+                    "Fixed length extension lines",
+                    "Length",
+                },
+                modify.FieldsOf("Lines").Select(f => f.Label)
+            );
             Assert.Equal(
-                new[] { "DIMCLRD", "DIMLTYPE", "DIMLWD", "DIMDLE", "DIMDLI", "DIMSD1", "DIMSD2", "DIMCLRE", "DIMLTEX1", "DIMLTEX2", "DIMLWE", "DIMSE1", "DIMSE2", "DIMEXE", "DIMEXO", "DIMFXLON", "DIMFXL" },
-                modify.FieldsOf("Lines").Where(f => f.Kind != DimFieldKind.Header).Select(f => f.VariableText));
+                new[]
+                {
+                    "DIMCLRD",
+                    "DIMLTYPE",
+                    "DIMLWD",
+                    "DIMDLE",
+                    "DIMDLI",
+                    "DIMSD1",
+                    "DIMSD2",
+                    "DIMCLRE",
+                    "DIMLTEX1",
+                    "DIMLTEX2",
+                    "DIMLWE",
+                    "DIMSE1",
+                    "DIMSE2",
+                    "DIMEXE",
+                    "DIMEXO",
+                    "DIMFXLON",
+                    "DIMFXL",
+                },
+                modify.FieldsOf("Lines").Where(f => f.Kind != DimFieldKind.Header).Select(f => f.VariableText)
+            );
             Assert.Equal("DIMTIH · DIMTOH", modify.FieldsOf("Text").Single(f => f.Label == "Alignment").VariableText);
-            Assert.Equal("DIMGAP<0", modify.FieldsOf("Text").Single(f => f.Label == "Draw frame around text").VariableText);
+            Assert.Equal(
+                "DIMGAP<0",
+                modify.FieldsOf("Text").Single(f => f.Label == "Draw frame around text").VariableText
+            );
             Assert.True(modify.FieldsOf("Text").Single(f => f.Variable == "DIMTXSTY").HasTextStyleButton);
             Assert.Equal(0xFFFFFF, modify.FieldsOf("Lines").First(f => f.Variable == "DIMCLRD").SwatchRgb);
         }
@@ -65,10 +120,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             DimStyleEditViewModel modify = model.CreateDimStyleManager().CreateModify();
             DimFieldViewModel zeros = modify.FieldsOf("Primary units").Single(f => f.Variable == "DIMZIN");
             DimFieldViewModel affix = modify.FieldsOf("Primary units").Single(f => f.Variable == "DIMPOST");
-            DimFieldViewModel placement = modify.FieldsOf("Alternate units").Single(f => f.Label == "Alternate units shown");
+            DimFieldViewModel placement = modify
+                .FieldsOf("Alternate units")
+                .Single(f => f.Label == "Alternate units shown");
             modify.FieldsOf("Alternate units").Single(f => f.Variable == "DIMALT").IsChecked = true;
 
-            Assert.Equal(new[] { "None", "Leading", "Trailing", "Leading and trailing" }, zeros.Choices.Select(c => c.Label));
+            Assert.Equal(
+                new[] { "None", "Leading", "Trailing", "Leading and trailing" },
+                zeros.Choices.Select(c => c.Label)
+            );
             zeros.SelectedChoice = zeros.Choices.Single(c => c.Label == "Trailing");
             affix.Text = "<> mm";
             placement.SelectedChoice = placement.Choices.Single(c => c.Label == "Below primary value");
@@ -76,7 +136,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal("<> mm", affix.Text);
             Assert.Equal("DIMPOST \\X", placement.VariableText);
             modify.Tab = "alternate units";
-            Assert.Equal("Standard · alternate units on: decimal, 2 places, multiplier 25.4, shown below the primary value.", modify.Description);
+            Assert.Equal(
+                "Standard · alternate units on: decimal, 2 places, multiplier 25.4, shown below the primary value.",
+                modify.Description
+            );
             Assert.True(modify.Ok());
             DxfDimStyleTableRecord style = document.Database.DimStyleTable["Standard"];
             Assert.Equal(8, style.Dimzin & 12);
@@ -101,10 +164,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal(new[] { false, true }, manager.Styles.Select(s => s.IsModel));
             Assert.True(manager.HasNotice);
             Assert.False(manager.IsNoticeWarning);
-            Assert.Equal("Standard · arrows closed filled 0.18 · text 0.18 centred on the line · overall scale 1 · Used by 1 dimension.", manager.Description);
+            Assert.Equal(
+                "Standard · arrows closed filled 0.18 · text 0.18 centred on the line · overall scale 1 · Used by 1 dimension.",
+                manager.Description
+            );
             Assert.Equal(
                 "The preview redraws as a value changes. OK writes the style to the file and redraws the 1 dimension that uses it, as one undo step.",
-                manager.CreateModify().Notice);
+                manager.CreateModify().Notice
+            );
 
             Assert.False(manager.Delete());
             Assert.True(manager.IsNoticeWarning);
@@ -143,7 +210,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             dialog.WidthFactor = "0.8";
 
             Assert.Equal("Preview · GH_NOTES", dialog.PreviewTitle);
-            Assert.Equal("Unsaved changes to GH_NOTES. Apply redraws the 0 texts that use it, as one undo step.", dialog.Notice);
+            Assert.Equal(
+                "Unsaved changes to GH_NOTES. Apply redraws the 0 texts that use it, as one undo step.",
+                dialog.Notice
+            );
             Assert.True(dialog.IsNoticeWarning);
             Assert.True(dialog.Apply());
             Assert.False(dialog.HasNotice);

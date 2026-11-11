@@ -1,10 +1,17 @@
-<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.PointStyleWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
-        Title="Point Style" Width="460" Height="420" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" Background="#262B33">
-
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.PointStyleWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Point Style"
+    Width="460"
+    Height="420"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -21,16 +28,34 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="RadioButton">
-                            <Border x:Name="Tile" Background="{StaticResource GhCommandInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4">
+                            <Border
+                                x:Name="Tile"
+                                Background="{StaticResource GhCommandInput}"
+                                BorderBrush="{StaticResource GhBorder}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                            >
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Tile" Property="BorderBrush" Value="{StaticResource GhTextMuted}" />
+                                    <Setter
+                                        TargetName="Tile"
+                                        Property="BorderBrush"
+                                        Value="{StaticResource GhTextMuted}"
+                                    />
                                 </Trigger>
                                 <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="Tile" Property="Background" Value="{StaticResource GhSelected}" />
-                                    <Setter TargetName="Tile" Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                    <Setter
+                                        TargetName="Tile"
+                                        Property="Background"
+                                        Value="{StaticResource GhSelected}"
+                                    />
+                                    <Setter
+                                        TargetName="Tile"
+                                        Property="BorderBrush"
+                                        Value="{StaticResource GhAccent}"
+                                    />
                                     <Setter TargetName="Tile" Property="BorderThickness" Value="2" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
@@ -48,8 +73,19 @@
                         <ControlTemplate TargetType="RadioButton">
                             <StackPanel Orientation="Horizontal" Background="Transparent">
                                 <Grid Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center">
-                                    <Ellipse x:Name="Ring" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1" Fill="{StaticResource GhInput}" />
-                                    <Ellipse x:Name="Dot" Width="7" Height="7" Fill="{StaticResource GhAccent}" Visibility="Collapsed" />
+                                    <Ellipse
+                                        x:Name="Ring"
+                                        Stroke="{StaticResource GhTextMuted}"
+                                        StrokeThickness="1"
+                                        Fill="{StaticResource GhInput}"
+                                    />
+                                    <Ellipse
+                                        x:Name="Dot"
+                                        Width="7"
+                                        Height="7"
+                                        Fill="{StaticResource GhAccent}"
+                                        Visibility="Collapsed"
+                                    />
                                 </Grid>
                                 <ContentPresenter VerticalAlignment="Center" />
                             </StackPanel>
@@ -66,22 +102,54 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
-            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
-            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
         <DockPanel>
-            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
                     <TextBlock Text="Point Style" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>
 
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10" Margin="0,12,0,0">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="22,5" Margin="0,0,8,0" Click="OnOk" IsDefault="True"
-                            IsEnabled="{Binding IsSizeValid}" />
-                    <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Click="OnCancel" IsCancel="True" />
+                    <Button
+                        Style="{StaticResource StylePrimaryButton}"
+                        Content="OK"
+                        Padding="22,5"
+                        Margin="0,0,8,0"
+                        Click="OnOk"
+                        IsDefault="True"
+                        IsEnabled="{Binding IsSizeValid}"
+                    />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Cancel"
+                        Padding="14,5"
+                        Click="OnCancel"
+                        IsCancel="True"
+                    />
                 </StackPanel>
             </Border>
 
@@ -95,13 +163,29 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type local:PointStyleTileViewModel}">
-                            <RadioButton Style="{StaticResource PointTile}" IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                         ToolTip="{Binding Mode, StringFormat='PDMODE {0}'}" AutomationProperties.Name="{Binding Label}">
+                            <RadioButton
+                                Style="{StaticResource PointTile}"
+                                IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                ToolTip="{Binding Mode, StringFormat='PDMODE {0}'}"
+                                AutomationProperties.Name="{Binding Label}"
+                            >
                                 <Grid Width="32" Height="32">
-                                    <Path Data="{Binding Symbol}" Stroke="{StaticResource GhText}" StrokeThickness="1.5"
-                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
-                                    <Ellipse Width="3.2" Height="3.2" Fill="{StaticResource GhText}" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                             Visibility="{Binding HasDot, Converter={StaticResource Shown}}" />
+                                    <Path
+                                        Data="{Binding Symbol}"
+                                        Stroke="{StaticResource GhText}"
+                                        StrokeThickness="1.5"
+                                        StrokeStartLineCap="Round"
+                                        StrokeEndLineCap="Round"
+                                        StrokeLineJoin="Round"
+                                    />
+                                    <Ellipse
+                                        Width="3.2"
+                                        Height="3.2"
+                                        Fill="{StaticResource GhText}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding HasDot, Converter={StaticResource Shown}}"
+                                    />
                                 </Grid>
                             </RadioButton>
                         </DataTemplate>
@@ -111,13 +195,40 @@
                 <!-- The size and what it is measured in. -->
                 <StackPanel Margin="22,8,22,0">
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                        <TextBlock Text="Point size" Width="70" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
-                        <TextBox Style="{StaticResource StyleBox}" Width="90" Padding="8,4" BorderThickness="0" Margin="8,0,8,0"
-                                 Text="{Binding PointSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBlock Text="{Binding UnitText}" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                        <TextBlock
+                            Text="Point size"
+                            Width="70"
+                            Foreground="{StaticResource GhTextMuted}"
+                            VerticalAlignment="Center"
+                        />
+                        <TextBox
+                            Style="{StaticResource StyleBox}"
+                            Width="90"
+                            Padding="8,4"
+                            BorderThickness="0"
+                            Margin="8,0,8,0"
+                            Text="{Binding PointSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        />
+                        <TextBlock
+                            Text="{Binding UnitText}"
+                            Foreground="{StaticResource GhTextMuted}"
+                            VerticalAlignment="Center"
+                        />
                     </StackPanel>
-                    <RadioButton Style="{StaticResource PlainRadio}" GroupName="PointSize" Content="Set size relative to screen" IsChecked="{Binding IsRelative, Mode=TwoWay}" Margin="0,0,0,6" />
-                    <RadioButton Style="{StaticResource PlainRadio}" GroupName="PointSize" Content="Set size in absolute units" IsChecked="{Binding IsAbsolute, Mode=TwoWay}" Margin="0,0,0,6" />
+                    <RadioButton
+                        Style="{StaticResource PlainRadio}"
+                        GroupName="PointSize"
+                        Content="Set size relative to screen"
+                        IsChecked="{Binding IsRelative, Mode=TwoWay}"
+                        Margin="0,0,0,6"
+                    />
+                    <RadioButton
+                        Style="{StaticResource PlainRadio}"
+                        GroupName="PointSize"
+                        Content="Set size in absolute units"
+                        IsChecked="{Binding IsAbsolute, Mode=TwoWay}"
+                        Margin="0,0,0,6"
+                    />
                     <TextBlock Text="{Binding Summary}" Foreground="{StaticResource GhTextMuted}" />
                 </StackPanel>
             </StackPanel>

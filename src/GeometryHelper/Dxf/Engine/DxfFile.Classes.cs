@@ -50,7 +50,14 @@ namespace GeometryHelper.Dxf
         /// count given (0 where none is, which AutoCAD counts anew when it saves), and that it was no proxy (280) and whether it
         /// is an entity (281), as an IMAGE is. Nothing where the file has no CLASSES section.
         /// </summary>
-        internal void AddClass(string dxfName, string cppName, int proxyFlags, string application = "ObjectDBX Classes", int count = 0, bool entity = false)
+        internal void AddClass(
+            string dxfName,
+            string cppName,
+            int proxyFlags,
+            string application = "ObjectDBX Classes",
+            int count = 0,
+            bool entity = false
+        )
         {
             if (HasClass(dxfName))
             {
@@ -114,8 +121,16 @@ namespace GeometryHelper.Dxf
                     now = null;
                     var read = Record(record);
 
-                    if (record.Type != "CLASS" || !string.Equals((read.Text(1) ?? string.Empty).Trim(), dxfName, StringComparison.OrdinalIgnoreCase)
-                        || (read.Text(91) ?? string.Empty).Trim() != "0" || !WithGroup(record, 91, "1", false, out Rec counted))
+                    if (
+                        record.Type != "CLASS"
+                        || !string.Equals(
+                            (read.Text(1) ?? string.Empty).Trim(),
+                            dxfName,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                        || (read.Text(91) ?? string.Empty).Trim() != "0"
+                        || !WithGroup(record, 91, "1", false, out Rec counted)
+                    )
                     {
                         now = record;
                         return false;

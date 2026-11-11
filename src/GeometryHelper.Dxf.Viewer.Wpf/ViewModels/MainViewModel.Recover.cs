@@ -56,7 +56,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             OpenDocument(document);
             NoteRecentFile(full);
             Say("Cannot open " + name + " as it is: " + why.Message);
-            Say("The file could not be read as it is; opening what could be recovered: " + report.Count.ToString(CultureInfo.InvariantCulture) + (report.Count == 1 ? " repair." : " repairs."));
+            Say(
+                "The file could not be read as it is; opening what could be recovered: "
+                    + report.Count.ToString(CultureInfo.InvariantCulture)
+                    + (report.Count == 1 ? " repair." : " repairs.")
+            );
 
             foreach (string line in CadRecovery.Lines(report))
             {

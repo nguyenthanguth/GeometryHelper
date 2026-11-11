@@ -24,7 +24,8 @@ namespace GeometryHelper.UnitTest.Plane
         {
             return new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 50), new GeoPoint2(0, 50) },
-                new[] { 0.0, 1.0, 0.0, 1.0 });
+                new[] { 0.0, 1.0, 0.0, 1.0 }
+            );
         }
 
         /// <summary>
@@ -34,7 +35,8 @@ namespace GeometryHelper.UnitTest.Plane
         {
             return new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 50), new GeoPoint2(0, 50) },
-                new[] { 0.0, -1.0, 0.0, -1.0 });
+                new[] { 0.0, -1.0, 0.0, -1.0 }
+            );
         }
 
         [Fact]
@@ -65,15 +67,19 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(Parametrization2.GetPointAtDistance(slot, 200.0).IsEqualTo(new GeoPoint2(200, 0), Tight));
 
             // Halfway round the first arc is the far point of the round end, 25 beyond the chord.
-            Assert.True(Parametrization2.GetPointAtDistance(slot, 200.0 + Math.PI * 12.5)
-                .IsEqualTo(new GeoPoint2(225, 25), Tight));
+            Assert.True(
+                Parametrization2
+                    .GetPointAtDistance(slot, 200.0 + Math.PI * 12.5)
+                    .IsEqualTo(new GeoPoint2(225, 25), Tight)
+            );
 
             // A parameter is the same walk measured against the whole length.
             Assert.Equal(slot.Length, Parametrization2.GetDistanceAtParameter(slot, 1.0), 8);
             Assert.Equal(0.5, Parametrization2.GetParameterAtDistance(slot, slot.Length * 0.5), 12);
 
-            Assert.True(Parametrization2.GetPointAtParameter(slot, 200.0 / slot.Length)
-                .IsEqualTo(new GeoPoint2(200, 0), Tight));
+            Assert.True(
+                Parametrization2.GetPointAtParameter(slot, 200.0 / slot.Length).IsEqualTo(new GeoPoint2(200, 0), Tight)
+            );
 
             // Past either end the walk stops there rather than running on.
             Assert.True(Parametrization2.GetPointAtDistance(slot, -50.0).IsEqualTo(slot[0], Tight));
@@ -95,7 +101,8 @@ namespace GeometryHelper.UnitTest.Plane
 
             GeoPolylineArc2 chain = new GeoPolylineArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) },
-                new[] { 0.5, 0.0 });
+                new[] { 0.5, 0.0 }
+            );
 
             Assert.True(Parametrization2.GetPointAtDistance(chain, 0.0).IsEqualTo(chain[0], Tight));
             Assert.True(Parametrization2.GetPointAtDistance(chain, chain.Length).IsEqualTo(chain[2], Tight));
@@ -161,7 +168,8 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var loop = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 50), new GeoPoint2(0, 50) },
-                new[] { 0.0, bulge, 0.0, bulge });
+                new[] { 0.0, bulge, 0.0, bulge }
+            );
 
             GeoPolygon2 flat = loop.Flatten(0.0005);
             int checkedPoints = 0;
@@ -189,9 +197,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AChainEnclosesNothingHoweverItCurves()
         {
-            var arch = new GeoPolylineArc2(
-                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0) },
-                new[] { -1.0 });
+            var arch = new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0) }, new[] { -1.0 });
 
             // A half circle above the line: the middle of it is on the chain, the middle of the disc is not.
             Assert.Equal(PointLocation.OnSide, Containment2.Locate(arch, new GeoPoint2(50, 50)));
@@ -206,7 +212,9 @@ namespace GeometryHelper.UnitTest.Plane
         public void NothingToWorkWithIsRefusedRatherThanGuessedAt()
         {
             Assert.Throws<ArgumentNullException>(() => Parametrization2.GetPointAtDistance((GeoPolygonArc2)null, 1.0));
-            Assert.Throws<ArgumentNullException>(() => Parametrization2.GetPointAtParameter((GeoPolylineArc2)null, 0.5));
+            Assert.Throws<ArgumentNullException>(() =>
+                Parametrization2.GetPointAtParameter((GeoPolylineArc2)null, 0.5)
+            );
             Assert.Throws<ArgumentNullException>(() => Projection2.ProjectToPolygonArc(null, GeoPoint2.Origin));
             Assert.Throws<ArgumentNullException>(() => Containment2.Locate((GeoPolygonArc2)null, GeoPoint2.Origin));
             Assert.Throws<ArgumentNullException>(() => Containment2.Contains((GeoPolygonArc2)null, GeoPoint2.Origin));

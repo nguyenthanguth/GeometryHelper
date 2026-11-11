@@ -19,24 +19,24 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>
         /// A square of side one hundred, counter-clockwise from the origin. Edge 0 is the bottom.
         /// </summary>
-        private static GeoPolygon2 Square() => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+        private static GeoPolygon2 Square() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
 
-        private static GeoPolyline2 Chain() => new GeoPolyline2(
-            new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100));
+        private static GeoPolyline2 Chain() =>
+            new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100));
 
         private static GeoRectangle2 Plate() => new GeoRectangle2(0, 0, 100, 60);
 
         /// <summary>
         /// The same square with its right-hand side swelled into a half circle reaching out to x = 150.
         /// </summary>
-        private static GeoPolygonArc2 Slot() => new GeoPolygonArc2(
-            new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
-            new[] { 0.0, 1.0, 0.0, 0.0 });
+        private static GeoPolygonArc2 Slot() =>
+            new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
+                new[] { 0.0, 1.0, 0.0, 0.0 }
+            );
 
         private static GeoPolylineArc2 OpenSlot() => Slot().ToPolylineArc2();
-
-
 
         [Fact]
         public void TheEdgeHandedBackIsOneOfTheShapesOwnAndIsTheNearestOfThem()
@@ -108,10 +108,14 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(chain.GetClosestEdge(line).IsEqualTo(chain.GetEdgeAt(1), Tight));
             Assert.True(chain.GetClosestEdge(circle).IsEqualTo(chain.GetEdgeAt(1), Tight));
 
-            foreach (GeoLine2 answer in new[]
-            {
-                plate.GetClosestEdge(point), plate.GetClosestEdge(line), plate.GetClosestEdge(circle)
-            })
+            foreach (
+                GeoLine2 answer in new[]
+                {
+                    plate.GetClosestEdge(point),
+                    plate.GetClosestEdge(line),
+                    plate.GetClosestEdge(circle),
+                }
+            )
             {
                 Assert.Contains(plate.GetEdges(), edge => edge.IsEqualTo(answer, Tight));
             }
@@ -171,11 +175,15 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(slot.GetClosestEdge(arc).IsEqualTo(slot.GetClosestEdge(arc, Tolerance.Global)));
 
             // All four probes sit out beyond the bulge, so all four are answered by it.
-            foreach (GeoEdge2 answer in new[]
-            {
-                slot.GetClosestEdge(point), slot.GetClosestEdge(line),
-                slot.GetClosestEdge(circle), slot.GetClosestEdge(arc)
-            })
+            foreach (
+                GeoEdge2 answer in new[]
+                {
+                    slot.GetClosestEdge(point),
+                    slot.GetClosestEdge(line),
+                    slot.GetClosestEdge(circle),
+                    slot.GetClosestEdge(arc),
+                }
+            )
             {
                 Assert.True(answer.IsArc);
             }
@@ -204,12 +212,18 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(ClosestEdge2.GetClosestEdge(chain, point).IsEqualTo(chain.GetClosestEdge(point), Tight));
             Assert.True(ClosestEdge2.GetClosestEdge(plate, point).IsEqualTo(plate.GetClosestEdge(point), Tight));
             Assert.True(ClosestEdge2.GetClosestEdge(slot, arc).IsEqualTo(slot.GetClosestEdge(arc)));
-            Assert.True(ClosestEdge2.GetClosestEdge(open, arc, Tolerance.Global).IsEqualTo(open.GetClosestEdge(arc, Tolerance.Global)));
+            Assert.True(
+                ClosestEdge2
+                    .GetClosestEdge(open, arc, Tolerance.Global)
+                    .IsEqualTo(open.GetClosestEdge(arc, Tolerance.Global))
+            );
 
             Assert.Throws<ArgumentNullException>(() => ClosestEdge2.GetClosestEdge((GeoPolygon2)null, point));
             Assert.Throws<ArgumentNullException>(() => ClosestEdge2.GetClosestEdge((GeoPolyline2)null, line));
             Assert.Throws<ArgumentNullException>(() => ClosestEdge2.GetClosestEdge((GeoPolygonArc2)null, arc));
-            Assert.Throws<ArgumentNullException>(() => ClosestEdge2.GetClosestEdge((GeoPolylineArc2)null, arc, Tolerance.Global));
+            Assert.Throws<ArgumentNullException>(() =>
+                ClosestEdge2.GetClosestEdge((GeoPolylineArc2)null, arc, Tolerance.Global)
+            );
         }
     }
 }

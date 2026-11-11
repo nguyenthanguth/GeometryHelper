@@ -20,12 +20,24 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
         public void Dispose() => _folder.Dispose();
 
-        private CadDocument Made(string contents, double width, out DxfMText mtext, Action<DxfMText> more = null, string version = "AC1027")
+        private CadDocument Made(
+            string contents,
+            double width,
+            out DxfMText mtext,
+            Action<DxfMText> more = null,
+            string version = "AC1027"
+        )
         {
             _folder.Write("test.shx", ShxFiles.Unifont());
             var database = new DxfDatabase(version);
             database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "GH_SHX", FileName = "test.shx" });
-            mtext = new DxfMText { Contents = contents, Location = new GeoPoint3(0, 0, 0), TextHeight = 10.0, Width = width };
+            mtext = new DxfMText
+            {
+                Contents = contents,
+                Location = new GeoPoint3(0, 0, 0),
+                TextHeight = 10.0,
+                Width = width,
+            };
             database.ModelSpace.AppendEntity(mtext);
             mtext.TextStyleName = "GH_SHX";
             more?.Invoke(mtext);
@@ -120,12 +132,23 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [InlineData(1, 260.0, 10.0 + (50.0 / 3.0) - 12.0, 0.0, -12.0)]
         [InlineData(2, 220.0, 10.0 + (50.0 / 3.0) + 12.0, 20.0, 0.0)]
         [InlineData(3, 260.0, 10.0 + (50.0 / 3.0) + 12.0, 0.0, 0.0)]
-        public void ACornerDragged_TakesItsTwoEdgesOfTheBoxWithIt_TheLocationStayingAtTheTopLeft(int grip, double width, double height, double x, double y)
+        public void ACornerDragged_TakesItsTwoEdgesOfTheBoxWithIt_TheLocationStayingAtTheTopLeft(
+            int grip,
+            double width,
+            double height,
+            double x,
+            double y
+        )
         {
             CadDocument document = Made(@"II\PII", 240.0, out DxfMText mtext);
             CadGrip dragged = CadGrips.Of(mtext)[grip];
 
-            CadEditResult result = CadGrips.Drag(document, mtext.Handle, grip, P(dragged.Point.X + 20.0, dragged.Point.Y - 12.0));
+            CadEditResult result = CadGrips.Drag(
+                document,
+                mtext.Handle,
+                grip,
+                P(dragged.Point.X + 20.0, dragged.Point.Y - 12.0)
+            );
 
             Assert.True(result.Succeeded, result.Message);
             var after = (DxfMText)document.FindEntity(mtext.Handle);
@@ -145,10 +168,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ACornerOfAnMTextHeldAtItsMiddleDragged_MovesItsLocationHalfAsFar()
         {
-            CadDocument document = Made(@"II\PII", 240.0, out DxfMText mtext, t => t.Attachment = DxfAttachmentPoint.MiddleCenter);
+            CadDocument document = Made(@"II\PII", 240.0, out DxfMText mtext, t =>
+                t.Attachment = DxfAttachmentPoint.MiddleCenter
+            );
             CadGrip topLeft = CadGrips.Of(mtext)[1];
 
-            Assert.True(CadGrips.Drag(document, mtext.Handle, 1, P(topLeft.Point.X + 20.0, topLeft.Point.Y - 12.0)).Succeeded);
+            Assert.True(
+                CadGrips.Drag(document, mtext.Handle, 1, P(topLeft.Point.X + 20.0, topLeft.Point.Y - 12.0)).Succeeded
+            );
 
             var after = (DxfMText)document.FindEntity(mtext.Handle);
             Assert.Equal(220.0, after.Width, 9);
@@ -189,7 +216,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void TheGripOfTheLocation_MovesTheMTextWhole()
         {
-            CadDocument document = Made("II II II", 20.0, out DxfMText mtext, t => t.Attachment = DxfAttachmentPoint.TopRight);
+            CadDocument document = Made("II II II", 20.0, out DxfMText mtext, t =>
+                t.Attachment = DxfAttachmentPoint.TopRight
+            );
 
             Assert.True(CadGrips.Drag(document, mtext.Handle, 1, P(5.0, -3.0)).Succeeded);
 
@@ -204,7 +233,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Made(@"II II \LII\l \SI/I; II", 40.0, out DxfMText mtext, t => t.Layer = "0");
             DisplayText2 shown = document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>().Single();
-            List<double[]> before = shown.Parts.OfType<DisplayText2>().Select(p => new[] { p.X, p.Y, p.Height }).ToList();
+            List<double[]> before = shown
+                .Parts.OfType<DisplayText2>()
+                .Select(p => new[] { p.X, p.Y, p.Height })
+                .ToList();
             Assert.Equal(6, before.Count);
 
             CadCommandSession session = Run(Session(document), "EXPLODE", new[] { mtext.Handle }, Enter);
@@ -219,7 +251,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             // Each TEXT stands where its run of the MTEXT was drawn, and is as high.
             List<double[]> after = texts.Select(t => new[] { t.Position.X, t.Position.Y, t.Height }).ToList();
-            Comparison<double[]> order = (a, b) => Math.Abs(a[1] - b[1]) > 1E-6 ? b[1].CompareTo(a[1]) : Math.Abs(a[0] - b[0]) > 1E-6 ? a[0].CompareTo(b[0]) : a[2].CompareTo(b[2]);
+            Comparison<double[]> order = (a, b) =>
+                Math.Abs(a[1] - b[1]) > 1E-6 ? b[1].CompareTo(a[1])
+                : Math.Abs(a[0] - b[0]) > 1E-6 ? a[0].CompareTo(b[0])
+                : a[2].CompareTo(b[2]);
             before.Sort(order);
             after.Sort(order);
 
@@ -248,7 +283,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [InlineData("TL", 0.0, 40.0)]
         [InlineData("MC", 60.0, 20.0)]
         [InlineData("BR", 120.0, 0.0)]
-        public void TheFrameTheMTextCommandAsks_IsTheBoxTheWordsAreSetIn_ItsSidesTheSidesOfTheGrips(string justify, double x, double y)
+        public void TheFrameTheMTextCommandAsks_IsTheBoxTheWordsAreSetIn_ItsSidesTheSidesOfTheGrips(
+            string justify,
+            double x,
+            double y
+        )
         {
             CadDocument document = Blank();
             Run(Session(document), "MTEXT", P(0, 0), "J", justify, P(120, 40), "Plate 300 x 200");
@@ -259,7 +298,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(y, text.Location.Y, 9);
 
             // The words wrap between the two sides of the frame picked, whatever the corner or middle they hang by.
-            IReadOnlyList<CadGrip> corners = CadGrips.Of(text).Where(g => !(Math.Abs(g.Point.X - x) < 1E-9 && Math.Abs(g.Point.Y - y) < 1E-9 && g.Kind == CadGripKind.Insertion) || justify != "MC").ToList();
+            IReadOnlyList<CadGrip> corners = CadGrips
+                .Of(text)
+                .Where(g =>
+                    !(
+                        Math.Abs(g.Point.X - x) < 1E-9
+                        && Math.Abs(g.Point.Y - y) < 1E-9
+                        && g.Kind == CadGripKind.Insertion
+                    )
+                    || justify != "MC"
+                )
+                .ToList();
             Assert.Equal(0.0, corners.Min(g => g.Point.X), 9);
             Assert.Equal(120.0, corners.Max(g => g.Point.X), 9);
         }

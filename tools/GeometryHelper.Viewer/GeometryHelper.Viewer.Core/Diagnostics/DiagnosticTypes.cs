@@ -194,7 +194,18 @@ namespace GeometryHelper.Viewer
     /// </summary>
     public sealed class DiagnosticFinding
     {
-        internal DiagnosticFinding(DiagnosticChecks check, DiagnosticKind kind, bool isFault, int itemIndex, string itemName, string message, string source, Vec3 at, double size, double spotRadius)
+        internal DiagnosticFinding(
+            DiagnosticChecks check,
+            DiagnosticKind kind,
+            bool isFault,
+            int itemIndex,
+            string itemName,
+            string message,
+            string source,
+            Vec3 at,
+            double size,
+            double spotRadius
+        )
         {
             Check = check;
             Kind = kind;
@@ -288,8 +299,18 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Says the finding on one line.
         /// </summary>
-        public override string ToString()
-            => "#" + Number.ToString(CultureInfo.InvariantCulture) + " " + (ItemName ?? "scene") + ": " + Kind + " - " + Message + " [" + Source + "]";
+        public override string ToString() =>
+            "#"
+            + Number.ToString(CultureInfo.InvariantCulture)
+            + " "
+            + (ItemName ?? "scene")
+            + ": "
+            + Kind
+            + " - "
+            + Message
+            + " ["
+            + Source
+            + "]";
 
         internal static int Compare(DiagnosticFinding a, DiagnosticFinding b)
         {
@@ -414,9 +435,11 @@ namespace GeometryHelper.Viewer
         /// </summary>
         public bool IsEmpty => Strokes.Count == 0 && Dots.Count == 0 && Labels.Count == 0;
 
-        internal void Line(string color, double thickness, params Vec3[] points) => Strokes.Add(new DiagnosticStroke(new DrawPolyline(points, false), color, thickness));
+        internal void Line(string color, double thickness, params Vec3[] points) =>
+            Strokes.Add(new DiagnosticStroke(new DrawPolyline(points, false), color, thickness));
 
-        internal void Loop(string color, double thickness, Vec3[] points) => Strokes.Add(new DiagnosticStroke(new DrawPolyline(points, true), color, thickness));
+        internal void Loop(string color, double thickness, Vec3[] points) =>
+            Strokes.Add(new DiagnosticStroke(new DrawPolyline(points, true), color, thickness));
     }
 
     /// <summary>
@@ -509,8 +532,14 @@ namespace GeometryHelper.Viewer
         /// Gets or sets the checks to run; by default every check but the normals, the winding, the gap, the spheres, the pieces and the clash, which
         /// draw a great deal or need a particular selection.
         /// </summary>
-        public DiagnosticChecks Checks { get; set; } = DiagnosticChecks.Edges | DiagnosticChecks.Report | DiagnosticChecks.Flatness | DiagnosticChecks.Crossings
-            | DiagnosticChecks.Duplicates | DiagnosticChecks.Needles | DiagnosticChecks.Slivers;
+        public DiagnosticChecks Checks { get; set; } =
+            DiagnosticChecks.Edges
+            | DiagnosticChecks.Report
+            | DiagnosticChecks.Flatness
+            | DiagnosticChecks.Crossings
+            | DiagnosticChecks.Duplicates
+            | DiagnosticChecks.Needles
+            | DiagnosticChecks.Slivers;
 
         /// <summary>
         /// Gets or sets whether the library is asked first, as it is by default. With it off the viewer's own checks alone are made, which
@@ -593,7 +622,12 @@ namespace GeometryHelper.Viewer
     /// </summary>
     public sealed class DiagnosticReport
     {
-        internal DiagnosticReport(IReadOnlyList<DiagnosticFinding> findings, DiagnosticOverlay overlay, IReadOnlyList<int> items, GapReading gap)
+        internal DiagnosticReport(
+            IReadOnlyList<DiagnosticFinding> findings,
+            DiagnosticOverlay overlay,
+            IReadOnlyList<int> items,
+            GapReading gap
+        )
         {
             Findings = findings;
             Overlay = overlay;

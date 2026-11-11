@@ -37,14 +37,20 @@ namespace GeometryHelper.Dxf
 
             if (label.Trim().Length == 0 || label.IndexOfAny(LineBreaks) >= 0)
             {
-                throw new ArgumentException("A row of a lookup table is labelled by a name of one line at least one letter long.", nameof(label));
+                throw new ArgumentException(
+                    "A row of a lookup table is labelled by a name of one line at least one letter long.",
+                    nameof(label)
+                );
             }
 
             foreach (double value in values)
             {
                 if (!Guard.IsFinite(value))
                 {
-                    throw new ArgumentException("A value of a row of a lookup table is a finite number.", nameof(values));
+                    throw new ArgumentException(
+                        "A value of a row of a lookup table is a finite number.",
+                        nameof(values)
+                    );
                 }
             }
 

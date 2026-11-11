@@ -17,24 +17,154 @@ namespace GeometryHelper.Dwg
         /// <summary>The versions written: AC1018 (R2004), AC1024 (R2010), AC1027 (R2013) and AC1032 (R2018).</summary>
         public static readonly string[] Versions = { "AC1018", "AC1024", "AC1027", "AC1032" };
 
-        private static readonly byte[] HeaderStart = { 0xCF, 0x7B, 0x1F, 0x23, 0xFD, 0xDE, 0x38, 0xA9, 0x5F, 0x7C, 0x68, 0xB8, 0x4E, 0x6D, 0x33, 0x5F };
-        private static readonly byte[] HeaderEnd = { 0x30, 0x84, 0xE0, 0xDC, 0x02, 0x21, 0xC7, 0x56, 0xA0, 0x83, 0x97, 0x47, 0xB1, 0x92, 0xCC, 0xA0 };
-        private static readonly byte[] ClassesStart = { 0x8D, 0xA1, 0xC4, 0xB8, 0xC4, 0xA9, 0xF8, 0xC5, 0xC0, 0xDC, 0xF4, 0x5F, 0xE7, 0xCF, 0xB6, 0x8A };
-        private static readonly byte[] ClassesEnd = { 0x72, 0x5E, 0x3B, 0x47, 0x3B, 0x56, 0x07, 0x3A, 0x3F, 0x23, 0x0B, 0xA0, 0x18, 0x30, 0x49, 0x75 };
-        private static readonly byte[] PreviewStart = { 0x1F, 0x25, 0x6D, 0x07, 0xD4, 0x36, 0x28, 0x28, 0x9D, 0x57, 0xCA, 0x3F, 0x9D, 0x44, 0x10, 0x2B };
-        private static readonly byte[] PreviewEnd = { 0xE0, 0xDA, 0x92, 0xF8, 0x2B, 0xC9, 0xD7, 0xD7, 0x62, 0xA8, 0x35, 0xC0, 0x62, 0xBB, 0xEF, 0xD4 };
+        private static readonly byte[] HeaderStart =
+        {
+            0xCF,
+            0x7B,
+            0x1F,
+            0x23,
+            0xFD,
+            0xDE,
+            0x38,
+            0xA9,
+            0x5F,
+            0x7C,
+            0x68,
+            0xB8,
+            0x4E,
+            0x6D,
+            0x33,
+            0x5F,
+        };
+        private static readonly byte[] HeaderEnd =
+        {
+            0x30,
+            0x84,
+            0xE0,
+            0xDC,
+            0x02,
+            0x21,
+            0xC7,
+            0x56,
+            0xA0,
+            0x83,
+            0x97,
+            0x47,
+            0xB1,
+            0x92,
+            0xCC,
+            0xA0,
+        };
+        private static readonly byte[] ClassesStart =
+        {
+            0x8D,
+            0xA1,
+            0xC4,
+            0xB8,
+            0xC4,
+            0xA9,
+            0xF8,
+            0xC5,
+            0xC0,
+            0xDC,
+            0xF4,
+            0x5F,
+            0xE7,
+            0xCF,
+            0xB6,
+            0x8A,
+        };
+        private static readonly byte[] ClassesEnd =
+        {
+            0x72,
+            0x5E,
+            0x3B,
+            0x47,
+            0x3B,
+            0x56,
+            0x07,
+            0x3A,
+            0x3F,
+            0x23,
+            0x0B,
+            0xA0,
+            0x18,
+            0x30,
+            0x49,
+            0x75,
+        };
+        private static readonly byte[] PreviewStart =
+        {
+            0x1F,
+            0x25,
+            0x6D,
+            0x07,
+            0xD4,
+            0x36,
+            0x28,
+            0x28,
+            0x9D,
+            0x57,
+            0xCA,
+            0x3F,
+            0x9D,
+            0x44,
+            0x10,
+            0x2B,
+        };
+        private static readonly byte[] PreviewEnd =
+        {
+            0xE0,
+            0xDA,
+            0x92,
+            0xF8,
+            0x2B,
+            0xC9,
+            0xD7,
+            0xD7,
+            0x62,
+            0xA8,
+            0x35,
+            0xC0,
+            0x62,
+            0xBB,
+            0xEF,
+            0xD4,
+        };
 
         /// <summary>
         /// The values the specification does not name, as AutoCAD 2021 writes them in every drawing of R2018: by the name
         /// <see cref="DwgHeaderVariables"/> gives them.
         /// </summary>
-        private static readonly Dictionary<string, object> Unnamed = new Dictionary<string, object>(StringComparer.Ordinal)
+        private static readonly Dictionary<string, object> Unnamed = new Dictionary<string, object>(
+            StringComparer.Ordinal
+        )
         {
-            { "?1", 412148564080.0 }, { "?2", 1.0 }, { "?3", 1.0 }, { "?4", 1.0 }, { "?5", "m" }, { "?6", string.Empty },
-            { "?7", string.Empty }, { "?8", string.Empty }, { "?9", 0 }, { "?10", 0 }, { "?11", 0 }, { "?12", 808464432 },
-            { "?13", 486539264 }, { "?14", 1295003696 }, { "?15", 1295003696 }, { "?16", 486539264 }, { "?17", 808464432 },
-            { "?18", 100.0 }, { "?19", string.Empty }, { "?20", 100.0 }, { "?21", string.Empty }, { "?22", 0UL }, { "?23", 0 },
-            { "?24", 10 }, { "?25", 1.0 },
+            { "?1", 412148564080.0 },
+            { "?2", 1.0 },
+            { "?3", 1.0 },
+            { "?4", 1.0 },
+            { "?5", "m" },
+            { "?6", string.Empty },
+            { "?7", string.Empty },
+            { "?8", string.Empty },
+            { "?9", 0 },
+            { "?10", 0 },
+            { "?11", 0 },
+            { "?12", 808464432 },
+            { "?13", 486539264 },
+            { "?14", 1295003696 },
+            { "?15", 1295003696 },
+            { "?16", 486539264 },
+            { "?17", 808464432 },
+            { "?18", 100.0 },
+            { "?19", string.Empty },
+            { "?20", 100.0 },
+            { "?21", string.Empty },
+            { "?22", 0UL },
+            { "?23", 0 },
+            { "?24", 10 },
+            { "?25", 1.0 },
         };
 
         /// <summary>
@@ -43,17 +173,17 @@ namespace GeometryHelper.Dwg
         /// <c>TSTACKSIZE</c> are in no DXF, and the writer's own drawings give few variables.
         /// </summary>
         private const string Defaults =
-            "DIMASO=1;DIMSHO=1;REGENMODE=1;FILLMODE=1;PSLTSCALE=1;USRTIMER=1;WORLDVIEW=1;TILEMODE=1;VISRETAIN=1;PROXYGRAPHICS=1;" +
-            "TREEDEPTH=3020;LUNITS=2;LUPREC=4;ATTMODE=1;SPLINESEGS=8;SURFU=6;SURFV=6;SURFTYPE=6;SURFTAB1=6;SURFTAB2=6;" +
-            "SPLINETYPE=6;SHADEDGE=3;SHADEDIF=70;MAXACTVP=64;ISOLINES=8;TEXTQLTY=50;LTSCALE=1;TEXTSIZE=0.2;TRACEWID=0.05;" +
-            "SKETCHINC=0.1;FACETRES=0.5;CMLSCALE=1;CELTSCALE=1;CECOLOR=256;DIMSCALE=1;DIMASZ=0.18;DIMEXO=0.0625;DIMDLI=0.38;" +
-            "DIMEXE=0.18;DIMFXL=1;DIMJOGANG=0.78539816339744828;DIMTIH=1;DIMTOH=1;DIMTXT=0.18;DIMCEN=0.09;DIMALTF=25.4;" +
-            "DIMLFAC=1;DIMTFAC=1;DIMGAP=0.09;DIMALTD=2;DIMDEC=4;DIMTDEC=4;DIMALTU=2;DIMALTTD=2;DIMLUNIT=2;DIMDSEP=46;" +
-            "DIMTOLJ=1;DIMATFIT=3;DIMLWD=-2;DIMLWE=-2;TSTACKALIGN=1;TSTACKSIZE=70;SORTENTS=127;HIDETEXT=1;XCLIPFRAME=2;" +
-            "DIMASSOC=2;OBSCOLOR=257;INTERSECTIONCOLOR=257;STEPSPERSEC=2;STEPSIZE=6;3DDWFPREC=2;LENSLENGTH=50;SHOWHIST=1;" +
-            "PSOLWIDTH=0.25;PSOLHEIGHT=4;LOFTANG1=1.5707963267948966;LOFTANG2=1.5707963267948966;LOFTPARAM=7;LOFTNORMALS=1;" +
-            "LATITUDE=37.795;LONGITUDE=-122.394;TIMEZONE=-8000;LIGHTGLYPHDISPLAY=1;TILEMODELIGHTSYNCH=1;DWFFRAME=2;" +
-            "REALWORLDSCALE=1;INTERFERECOLOR=1";
+            "DIMASO=1;DIMSHO=1;REGENMODE=1;FILLMODE=1;PSLTSCALE=1;USRTIMER=1;WORLDVIEW=1;TILEMODE=1;VISRETAIN=1;PROXYGRAPHICS=1;"
+            + "TREEDEPTH=3020;LUNITS=2;LUPREC=4;ATTMODE=1;SPLINESEGS=8;SURFU=6;SURFV=6;SURFTYPE=6;SURFTAB1=6;SURFTAB2=6;"
+            + "SPLINETYPE=6;SHADEDGE=3;SHADEDIF=70;MAXACTVP=64;ISOLINES=8;TEXTQLTY=50;LTSCALE=1;TEXTSIZE=0.2;TRACEWID=0.05;"
+            + "SKETCHINC=0.1;FACETRES=0.5;CMLSCALE=1;CELTSCALE=1;CECOLOR=256;DIMSCALE=1;DIMASZ=0.18;DIMEXO=0.0625;DIMDLI=0.38;"
+            + "DIMEXE=0.18;DIMFXL=1;DIMJOGANG=0.78539816339744828;DIMTIH=1;DIMTOH=1;DIMTXT=0.18;DIMCEN=0.09;DIMALTF=25.4;"
+            + "DIMLFAC=1;DIMTFAC=1;DIMGAP=0.09;DIMALTD=2;DIMDEC=4;DIMTDEC=4;DIMALTU=2;DIMALTTD=2;DIMLUNIT=2;DIMDSEP=46;"
+            + "DIMTOLJ=1;DIMATFIT=3;DIMLWD=-2;DIMLWE=-2;TSTACKALIGN=1;TSTACKSIZE=70;SORTENTS=127;HIDETEXT=1;XCLIPFRAME=2;"
+            + "DIMASSOC=2;OBSCOLOR=257;INTERSECTIONCOLOR=257;STEPSPERSEC=2;STEPSIZE=6;3DDWFPREC=2;LENSLENGTH=50;SHOWHIST=1;"
+            + "PSOLWIDTH=0.25;PSOLHEIGHT=4;LOFTANG1=1.5707963267948966;LOFTANG2=1.5707963267948966;LOFTPARAM=7;LOFTNORMALS=1;"
+            + "LATITUDE=37.795;LONGITUDE=-122.394;TIMEZONE=-8000;LIGHTGLYPHDISPLAY=1;TILEMODELIGHTSYNCH=1;DWFFRAME=2;"
+            + "REALWORLDSCALE=1;INTERFERECOLOR=1";
 
         private static readonly Dictionary<string, string> DefaultValues = ParseDefaults();
 
@@ -62,8 +192,12 @@ namespace GeometryHelper.Dwg
         private readonly int _number;
         private readonly List<string> _classNames = new List<string>();
         private readonly HashSet<ulong> _written = new HashSet<ulong>();
-        private readonly SortedDictionary<string, int> _left = new SortedDictionary<string, int>(StringComparer.Ordinal);
-        private readonly Dictionary<string, int> _classCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        private readonly SortedDictionary<string, int> _left = new SortedDictionary<string, int>(
+            StringComparer.Ordinal
+        );
+        private readonly Dictionary<string, int> _classCounts = new Dictionary<string, int>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private DwgObjectWriter _objects;
         private ulong _handseed;
 
@@ -119,8 +253,12 @@ namespace GeometryHelper.Dwg
             }
 
             // Vertices, attributes and SEQENDs whose owner is left out go with it.
-            records.RemoveAll(record => (record.Type == "VERTEX" || record.Type == "ATTRIB" || record.Type == "SEQEND")
-                && record.Container != 0 && !_written.Contains(record.Container) && _written.Remove(record.Handle));
+            records.RemoveAll(record =>
+                (record.Type == "VERTEX" || record.Type == "ATTRIB" || record.Type == "SEQEND")
+                && record.Container != 0
+                && !_written.Contains(record.Container)
+                && _written.Remove(record.Handle)
+            );
             records.Sort((a, b) => a.Handle.CompareTo(b.Handle));
 
             var objects = new MemoryStream();
@@ -148,7 +286,13 @@ namespace GeometryHelper.Dwg
             byte[] objectBytes = objects.ToArray();
             container.Add("AcDb:Preview", Preview(), 9, 0x400, false);
             container.Add("AcDb:AppInfo", AppInfo(), 10, 0x180, false);
-            container.Add("AcDb:RevHistory", new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 }, 8, 0x7400, true);
+            container.Add(
+                "AcDb:RevHistory",
+                new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 },
+                8,
+                0x7400,
+                true
+            );
             container.Add("AcDb:AcDbObjects", objectBytes, 7, 0x7400, true);
             container.Add("AcDb:ObjFreeSpace", FreeSpace(map.Count), 6, 0x7400, true);
             container.Add("AcDb:Template", Template(), 5, 0x7400, true);
@@ -163,20 +307,34 @@ namespace GeometryHelper.Dwg
         {
             switch (name.ToUpperInvariant())
             {
-                case "ANSI_1250": return 28;
-                case "ANSI_1251": return 29;
-                case "ANSI_1253": return 32;
-                case "ANSI_1254": return 33;
-                case "ANSI_1255": return 34;
-                case "ANSI_1256": return 35;
-                case "ANSI_1257": return 36;
-                case "ANSI_874": return 37;
-                case "ANSI_932": return 38;
-                case "ANSI_936": return 39;
-                case "ANSI_949": return 40;
-                case "ANSI_950": return 41;
-                case "ANSI_1258": return 44;
-                default: return 30;
+                case "ANSI_1250":
+                    return 28;
+                case "ANSI_1251":
+                    return 29;
+                case "ANSI_1253":
+                    return 32;
+                case "ANSI_1254":
+                    return 33;
+                case "ANSI_1255":
+                    return 34;
+                case "ANSI_1256":
+                    return 35;
+                case "ANSI_1257":
+                    return 36;
+                case "ANSI_874":
+                    return 37;
+                case "ANSI_932":
+                    return 38;
+                case "ANSI_936":
+                    return 39;
+                case "ANSI_949":
+                    return 40;
+                case "ANSI_950":
+                    return 41;
+                case "ANSI_1258":
+                    return 44;
+                default:
+                    return 30;
             }
         }
 
@@ -318,21 +476,30 @@ namespace GeometryHelper.Dwg
         {
             switch (name.ToUpperInvariant())
             {
-                case "ACDBDICTIONARYWDFLT": return new[] { 22, 42 };
+                case "ACDBDICTIONARYWDFLT":
+                    return new[] { 22, 42 };
                 case "DICTIONARYVAR":
                 case "IMAGE":
                 case "IMAGEDEF":
-                case "IMAGEDEF_REACTOR": return new[] { 20, 0 };
+                case "IMAGEDEF_REACTOR":
+                    return new[] { 20, 0 };
                 case "MATERIAL":
-                case "DBCOLOR": return new[] { 23, 14 };
-                case "VISUALSTYLE": return new[] { 26, 0 };
+                case "DBCOLOR":
+                    return new[] { 23, 14 };
+                case "VISUALSTYLE":
+                    return new[] { 26, 0 };
                 case "SCALE":
-                case "TABLEGEOMETRY": return new[] { 27, 1 };
+                case "TABLEGEOMETRY":
+                    return new[] { 27, 1 };
                 case "ACAD_TABLE":
-                case "TABLESTYLE": return new[] { 25, 20 };
-                case "TABLECONTENT": return new[] { 25, 21 };
-                case "ACDBASSOCPERSSUBENTMANAGER": return new[] { 27, 174 };
-                default: return new[] { DwgContainerWriter.DwgVersionNumber(_version), _number >= 1032 ? 174 : 0 };
+                case "TABLESTYLE":
+                    return new[] { 25, 20 };
+                case "TABLECONTENT":
+                    return new[] { 25, 21 };
+                case "ACDBASSOCPERSSUBENTMANAGER":
+                    return new[] { 27, 174 };
+                default:
+                    return new[] { DwgContainerWriter.DwgVersionNumber(_version), _number >= 1032 ? 174 : 0 };
             }
         }
 
@@ -428,7 +595,14 @@ namespace GeometryHelper.Dwg
             info.Write(new byte[16], 0, 16);
             Unicode(info, "Written by GeometryHelper");
             info.Write(new byte[16], 0, 16);
-            Unicode(info, "<ProductInformation name =\"GeometryHelper\" build_version=\"" + version + "\" registry_version=\"" + version + "\" install_id_string=\"GeometryHelper\" registry_localeID=\"1033\"/>");
+            Unicode(
+                info,
+                "<ProductInformation name =\"GeometryHelper\" build_version=\""
+                    + version
+                    + "\" registry_version=\""
+                    + version
+                    + "\" install_id_string=\"GeometryHelper\" registry_localeID=\"1033\"/>"
+            );
             return info.ToArray();
         }
 
@@ -582,7 +756,10 @@ namespace GeometryHelper.Dwg
                 {
                     entry = entry.Substring(guard.Length + 1);
                     bool from = guard[guard.Length - 1] == '+';
-                    int bound = int.Parse(from ? guard.Substring(0, guard.Length - 1) : guard.Substring(1), CultureInfo.InvariantCulture);
+                    int bound = int.Parse(
+                        from ? guard.Substring(0, guard.Length - 1) : guard.Substring(1),
+                        CultureInfo.InvariantCulture
+                    );
 
                     if (from ? _number < bound : _number >= bound)
                     {
@@ -600,7 +777,10 @@ namespace GeometryHelper.Dwg
                     string[] parts = code.Substring(condition + 1).Split('=');
                     code = code.Substring(0, condition);
 
-                    if (!values.TryGetValue(parts[0], out int given) || given != int.Parse(parts[1], CultureInfo.InvariantCulture))
+                    if (
+                        !values.TryGetValue(parts[0], out int given)
+                        || given != int.Parse(parts[1], CultureInfo.InvariantCulture)
+                    )
                     {
                         continue;
                     }
@@ -619,7 +799,12 @@ namespace GeometryHelper.Dwg
                         data.BitLong(name == "_FLAGS" ? Flags() : Int(name));
                         break;
                     case "BLL":
-                        long.TryParse(Value(name, "0").Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out long wide);
+                        long.TryParse(
+                            Value(name, "0").Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out long wide
+                        );
                         data.BitLongLong(wide);
                         break;
                     case "RC":
@@ -629,7 +814,11 @@ namespace GeometryHelper.Dwg
                         data.BitDouble(Real(name));
                         break;
                     case "TV":
-                        Text(data, strings, Unnamed.TryGetValue(name, out object text) ? (string)text : Value(name, string.Empty));
+                        Text(
+                            data,
+                            strings,
+                            Unnamed.TryGetValue(name, out object text) ? (string)text : Value(name, string.Empty)
+                        );
                         break;
                     case "H":
                         handleStream.Handle(5, Reference(name));
@@ -679,7 +868,11 @@ namespace GeometryHelper.Dwg
             }
 
             data.BitShort(0);
-            data.BitLong(index == 256 ? unchecked((int)0xC0000000) : index == 0 ? unchecked((int)0xC1000000) : unchecked((int)0xC3000000) | (index & 0xFF));
+            data.BitLong(
+                index == 256 ? unchecked((int)0xC0000000)
+                : index == 0 ? unchecked((int)0xC1000000)
+                : unchecked((int)0xC3000000) | (index & 0xFF)
+            );
             data.RawChar(0);
         }
 
@@ -747,15 +940,26 @@ namespace GeometryHelper.Dwg
             switch (name)
             {
                 case "UCSXDIR":
-                case "PUCSXDIR": point[0] = 1.0; break;
+                case "PUCSXDIR":
+                    point[0] = 1.0;
+                    break;
                 case "UCSYDIR":
-                case "PUCSYDIR": point[1] = 1.0; break;
+                case "PUCSYDIR":
+                    point[1] = 1.0;
+                    break;
                 case "EXTMIN":
-                case "PEXTMIN": point[0] = point[1] = point[2] = 1E20; break;
+                case "PEXTMIN":
+                    point[0] = point[1] = point[2] = 1E20;
+                    break;
                 case "EXTMAX":
-                case "PEXTMAX": point[0] = point[1] = point[2] = -1E20; break;
+                case "PEXTMAX":
+                    point[0] = point[1] = point[2] = -1E20;
+                    break;
                 case "LIMMAX":
-                case "PLIMMAX": point[0] = 12.0; point[1] = 9.0; break;
+                case "PLIMMAX":
+                    point[0] = 12.0;
+                    point[1] = 9.0;
+                    break;
             }
 
             return point;
@@ -782,52 +986,114 @@ namespace GeometryHelper.Dwg
 
             switch (name)
             {
-                case "CLAYER": handle = _drawing.HandleOf("LAYER", Value(name, "0")); break;
+                case "CLAYER":
+                    handle = _drawing.HandleOf("LAYER", Value(name, "0"));
+                    break;
                 case "TEXTSTYLE":
-                case "DIMTXSTY": handle = _drawing.HandleOf("STYLE", Value(name, "Standard")); break;
+                case "DIMTXSTY":
+                    handle = _drawing.HandleOf("STYLE", Value(name, "Standard"));
+                    break;
                 case "CELTYPE":
                 case "DIMLTYPE":
                 case "DIMLTEX1":
-                case "DIMLTEX2": handle = _drawing.HandleOf("LTYPE", Value(name, string.Empty)); break;
-                case "DIMSTYLE": handle = _drawing.HandleOf("DIMSTYLE", Value(name, "Standard")); break;
-                case "CMLSTYLE": handle = Entry("ACAD_MLINESTYLE", Value(name, "Standard")); break;
+                case "DIMLTEX2":
+                    handle = _drawing.HandleOf("LTYPE", Value(name, string.Empty));
+                    break;
+                case "DIMSTYLE":
+                    handle = _drawing.HandleOf("DIMSTYLE", Value(name, "Standard"));
+                    break;
+                case "CMLSTYLE":
+                    handle = Entry("ACAD_MLINESTYLE", Value(name, "Standard"));
+                    break;
                 case "UCSNAME":
                 case "PUCSNAME":
                 case "UCSORTHOREF":
                 case "PUCSORTHOREF":
                 case "UCSBASE":
-                case "PUCSBASE": handle = _drawing.HandleOf("UCS", Value(name, string.Empty)); break;
+                case "PUCSBASE":
+                    handle = _drawing.HandleOf("UCS", Value(name, string.Empty));
+                    break;
                 case "DIMLDRBLK":
                 case "DIMBLK":
                 case "DIMBLK1":
-                case "DIMBLK2": handle = _drawing.HandleOf("BLOCK_RECORD", Value(name, string.Empty)); break;
+                case "DIMBLK2":
+                    handle = _drawing.HandleOf("BLOCK_RECORD", Value(name, string.Empty));
+                    break;
                 case "CMATERIAL":
                 case "INTERFEREOBJVS":
                 case "INTERFEREVPVS":
-                case "CPSNID": handle = DwgRecord.Hex(Value(name, "0")); break;
-                case "_BLOCKS": handle = _drawing.Table("BLOCK_RECORD")?.Handle ?? 0; break;
-                case "_LAYERS": handle = _drawing.Table("LAYER")?.Handle ?? 0; break;
-                case "_STYLES": handle = _drawing.Table("STYLE")?.Handle ?? 0; break;
-                case "_LTYPES": handle = _drawing.Table("LTYPE")?.Handle ?? 0; break;
-                case "_VIEWS": handle = _drawing.Table("VIEW")?.Handle ?? 0; break;
-                case "_UCSS": handle = _drawing.Table("UCS")?.Handle ?? 0; break;
-                case "_VPORTS": handle = _drawing.Table("VPORT")?.Handle ?? 0; break;
-                case "_APPIDS": handle = _drawing.Table("APPID")?.Handle ?? 0; break;
-                case "_DIMSTYLES": handle = _drawing.Table("DIMSTYLE")?.Handle ?? 0; break;
-                case "_NAMEDOBJECTS": handle = Root()?.Handle ?? 0; break;
-                case "_GROUPS": handle = Entry(null, "ACAD_GROUP"); break;
-                case "_MLINESTYLES": handle = Entry(null, "ACAD_MLINESTYLE"); break;
-                case "_LAYOUTS": handle = Entry(null, "ACAD_LAYOUT"); break;
-                case "_PLOTSETTINGS": handle = Entry(null, "ACAD_PLOTSETTINGS"); break;
-                case "_PLOTSTYLES": handle = Entry(null, "ACAD_PLOTSTYLENAME"); break;
-                case "_MATERIALS": handle = Entry(null, "ACAD_MATERIAL"); break;
-                case "_COLORS": handle = Entry(null, "ACAD_COLOR"); break;
-                case "_VISUALSTYLES": handle = Entry(null, "ACAD_VISUALSTYLE"); break;
-                case "_PAPERSPACE": handle = _drawing.HandleOf("BLOCK_RECORD", "*Paper_Space"); break;
-                case "_MODELSPACE": handle = _drawing.HandleOf("BLOCK_RECORD", "*Model_Space"); break;
-                case "_BYLAYER": handle = _drawing.HandleOf("LTYPE", "ByLayer"); break;
-                case "_BYBLOCK": handle = _drawing.HandleOf("LTYPE", "ByBlock"); break;
-                case "_CONTINUOUS": handle = _drawing.HandleOf("LTYPE", "Continuous"); break;
+                case "CPSNID":
+                    handle = DwgRecord.Hex(Value(name, "0"));
+                    break;
+                case "_BLOCKS":
+                    handle = _drawing.Table("BLOCK_RECORD")?.Handle ?? 0;
+                    break;
+                case "_LAYERS":
+                    handle = _drawing.Table("LAYER")?.Handle ?? 0;
+                    break;
+                case "_STYLES":
+                    handle = _drawing.Table("STYLE")?.Handle ?? 0;
+                    break;
+                case "_LTYPES":
+                    handle = _drawing.Table("LTYPE")?.Handle ?? 0;
+                    break;
+                case "_VIEWS":
+                    handle = _drawing.Table("VIEW")?.Handle ?? 0;
+                    break;
+                case "_UCSS":
+                    handle = _drawing.Table("UCS")?.Handle ?? 0;
+                    break;
+                case "_VPORTS":
+                    handle = _drawing.Table("VPORT")?.Handle ?? 0;
+                    break;
+                case "_APPIDS":
+                    handle = _drawing.Table("APPID")?.Handle ?? 0;
+                    break;
+                case "_DIMSTYLES":
+                    handle = _drawing.Table("DIMSTYLE")?.Handle ?? 0;
+                    break;
+                case "_NAMEDOBJECTS":
+                    handle = Root()?.Handle ?? 0;
+                    break;
+                case "_GROUPS":
+                    handle = Entry(null, "ACAD_GROUP");
+                    break;
+                case "_MLINESTYLES":
+                    handle = Entry(null, "ACAD_MLINESTYLE");
+                    break;
+                case "_LAYOUTS":
+                    handle = Entry(null, "ACAD_LAYOUT");
+                    break;
+                case "_PLOTSETTINGS":
+                    handle = Entry(null, "ACAD_PLOTSETTINGS");
+                    break;
+                case "_PLOTSTYLES":
+                    handle = Entry(null, "ACAD_PLOTSTYLENAME");
+                    break;
+                case "_MATERIALS":
+                    handle = Entry(null, "ACAD_MATERIAL");
+                    break;
+                case "_COLORS":
+                    handle = Entry(null, "ACAD_COLOR");
+                    break;
+                case "_VISUALSTYLES":
+                    handle = Entry(null, "ACAD_VISUALSTYLE");
+                    break;
+                case "_PAPERSPACE":
+                    handle = _drawing.HandleOf("BLOCK_RECORD", "*Paper_Space");
+                    break;
+                case "_MODELSPACE":
+                    handle = _drawing.HandleOf("BLOCK_RECORD", "*Model_Space");
+                    break;
+                case "_BYLAYER":
+                    handle = _drawing.HandleOf("LTYPE", "ByLayer");
+                    break;
+                case "_BYBLOCK":
+                    handle = _drawing.HandleOf("LTYPE", "ByBlock");
+                    break;
+                case "_CONTINUOUS":
+                    handle = _drawing.HandleOf("LTYPE", "Continuous");
+                    break;
             }
 
             return handle != 0 && _written.Contains(handle) ? handle : 0;

@@ -67,7 +67,15 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint2 over = c.Input.Point;
-            var probe = new DxfRadialDimensionLarge(P3(center), P3(center), P3(over), P3(over), 0.0, string.Empty, null);
+            var probe = new DxfRadialDimensionLarge(
+                P3(center),
+                P3(center),
+                P3(over),
+                P3(over),
+                0.0,
+                string.Empty,
+                null
+            );
             c.Write("Dimension text = " + Words(style, probe, radius, null, string.Empty));
             string text = null;
             double? textAngle = null;
@@ -76,8 +84,24 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 string words = text;
                 double? turned = textAngle;
-                yield return CadPrompt.ForPoint("Specify dimension line location", center, new[] { "Mtext", "Text", "Angle" })
-                    .Previewing(DimPreview(c, input => JoggedMade(c, style, center, radius, over, input.Point, Middle2(over, input.Point), words, turned, out _)));
+                yield return CadPrompt
+                    .ForPoint("Specify dimension line location", center, new[] { "Mtext", "Text", "Angle" })
+                    .Previewing(
+                        DimPreview(c, input =>
+                            JoggedMade(
+                                c,
+                                style,
+                                center,
+                                radius,
+                                over,
+                                input.Point,
+                                Middle2(over, input.Point),
+                                words,
+                                turned,
+                                out _
+                            )
+                        )
+                    );
 
                 if (c.Input.Is("Mtext") || c.Input.Is("Text"))
                 {
@@ -114,37 +138,113 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 location = c.Input.Point;
             string given = text;
             double? angle = textAngle;
-            yield return CadPrompt.ForPoint("Specify jog location", location)
-                .Previewing(DimPreview(c, input => JoggedMade(c, style, center, radius, over, location, input.Point, given, angle, out _)));
+            yield return CadPrompt
+                .ForPoint("Specify jog location", location)
+                .Previewing(
+                    DimPreview(c, input =>
+                        JoggedMade(c, style, center, radius, over, location, input.Point, given, angle, out _)
+                    )
+                );
 
             if (!c.Input.IsPoint)
             {
                 yield break;
             }
 
-            List<DxfEntity> picture = JoggedMade(c, style, center, radius, over, location, c.Input.Point, text, textAngle, out DxfDimension made);
+            List<DxfEntity> picture = JoggedMade(
+                c,
+                style,
+                center,
+                radius,
+                over,
+                location,
+                c.Input.Point,
+                text,
+                textAngle,
+                out DxfDimension made
+            );
             AddedHandle(Place(c, style, TextHeight(c, style), made, picture));
         }
 
-        private static GeoPoint2 Middle2(GeoPoint2 a, GeoPoint2 b) => new GeoPoint2((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0);
+        private static GeoPoint2 Middle2(GeoPoint2 a, GeoPoint2 b) =>
+            new GeoPoint2((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0);
 
         /// <summary>
         /// The picture of a jogged radius of a circle, its words put at a point and its jog given at another, and the dimension
         /// it is the picture of, as DIMJOGGED makes them (<see cref="JogPlaces"/>).
         /// </summary>
-        private static List<DxfEntity> JoggedMade(CadCommandContext c, DxfDimStyleTableRecord style, GeoPoint2 center, double radius, GeoPoint2 over, GeoPoint2 location, GeoPoint2 jogGiven, string text, double? textAngle, out DxfDimension made)
+        private static List<DxfEntity> JoggedMade(
+            CadCommandContext c,
+            DxfDimStyleTableRecord style,
+            GeoPoint2 center,
+            double radius,
+            GeoPoint2 over,
+            GeoPoint2 location,
+            GeoPoint2 jogGiven,
+            string text,
+            double? textAngle,
+            out DxfDimension made
+        )
         {
             double textHeight = TextHeight(c, style);
-            var probe = new DxfRadialDimensionLarge(P3(center), P3(center), P3(over), P3(over), 0.0, text ?? string.Empty, null);
+            var probe = new DxfRadialDimensionLarge(
+                P3(center),
+                P3(center),
+                P3(over),
+                P3(over),
+                0.0,
+                text ?? string.Empty,
+                null
+            );
             string words = Words(style, probe, radius, text, "R");
-            Sizes(style, Dimscale(c), textHeight, out double scale, out double arrow, out double height, out double gap, out _, out _);
+            Sizes(
+                style,
+                Dimscale(c),
+                textHeight,
+                out double scale,
+                out double arrow,
+                out double height,
+                out double gap,
+                out _,
+                out _
+            );
             double width = WordsWidth(style, words, height, out _);
-            JogPlaces(center, radius, over, location, jogGiven, style.Dimjogang, arrow, gap, width, style.Dimtad == 0, c.Session.Tolerance.EqualPoint, out GeoPoint2 chord, out GeoPoint2 jog, out GeoPoint2 at);
+            JogPlaces(
+                center,
+                radius,
+                over,
+                location,
+                jogGiven,
+                style.Dimjogang,
+                arrow,
+                gap,
+                width,
+                style.Dimtad == 0,
+                c.Session.Tolerance.EqualPoint,
+                out GeoPoint2 chord,
+                out GeoPoint2 jog,
+                out GeoPoint2 at
+            );
 
             // AutoCAD 2021 writes nought for the jog's angle and draws it at DIMJOGANG.
-            var jogged = new DxfRadialDimensionLarge(P3(center), P3(chord), P3(over), P3(jog), 0.0, text ?? string.Empty, null) { TextPosition = P3(at) };
+            var jogged = new DxfRadialDimensionLarge(
+                P3(center),
+                P3(chord),
+                P3(over),
+                P3(jog),
+                0.0,
+                text ?? string.Empty,
+                null
+            )
+            {
+                TextPosition = P3(at),
+            };
             made = jogged;
-            return WithTextAngle(made, Jogged(style, Dimscale(c), textHeight, center, chord, over, jog, at, words), textAngle);
+            return WithTextAngle(
+                made,
+                Jogged(style, Dimscale(c), textHeight, center, chord, over, jog, at, words),
+                textAngle
+            );
         }
 
         /// <summary>
@@ -157,7 +257,22 @@ namespace GeometryHelper.Dxf.Viewer
         /// given is: the point where a line from the centre drawn at the jog's angle, leaning away from the rim, meets it. Words
         /// the jog would leave off the line stand past the arrowhead, a gap clear.
         /// </summary>
-        internal static void JogPlaces(GeoPoint2 center, double radius, GeoPoint2 over, GeoPoint2 location, GeoPoint2 jogGiven, double jogAngle, double arrow, double gap, double width, bool onLine, double tolerance, out GeoPoint2 chord, out GeoPoint2 jog, out GeoPoint2 words)
+        internal static void JogPlaces(
+            GeoPoint2 center,
+            double radius,
+            GeoPoint2 over,
+            GeoPoint2 location,
+            GeoPoint2 jogGiven,
+            double jogAngle,
+            double arrow,
+            double gap,
+            double width,
+            bool onLine,
+            double tolerance,
+            out GeoPoint2 chord,
+            out GeoPoint2 jog,
+            out GeoPoint2 words
+        )
         {
             GeoVector2 u = UnitOf(location - center);
             double tOver = Dot(over - center, u);
@@ -215,7 +330,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// The jog of a jogged radius whose line runs along <paramref name="u"/>, given at a point: on the middle line between the
         /// radius and its parallel through the centre drawn, as AutoCAD 2021 puts it; on the radius where the centre drawn is on it.
         /// </summary>
-        internal static GeoPoint2 JogOn(GeoPoint2 center, double radius, GeoVector2 u, GeoPoint2 over, GeoPoint2 given, double jogAngle)
+        internal static GeoPoint2 JogOn(
+            GeoPoint2 center,
+            double radius,
+            GeoVector2 u,
+            GeoPoint2 over,
+            GeoPoint2 given,
+            double jogAngle
+        )
         {
             var n = new GeoVector2(-u.Y, u.X);
             double h = Dot(over - center, n);
@@ -247,7 +369,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// middle, and <paramref name="back"/> on the radius, away from it; the jog's middle itself for both where the centre
         /// drawn is on the radius. <paramref name="side"/> is 1 where the line runs out from the end of the jog to the rim.
         /// </summary>
-        private static void JogFrame(GeoPoint2 center, double radius, GeoVector2 u, GeoPoint2 over, GeoPoint2 jog, double jogAngle, out GeoPoint2 front, out GeoPoint2 back, out double side)
+        private static void JogFrame(
+            GeoPoint2 center,
+            double radius,
+            GeoVector2 u,
+            GeoPoint2 over,
+            GeoPoint2 jog,
+            double jogAngle,
+            out GeoPoint2 front,
+            out GeoPoint2 back,
+            out double side
+        )
         {
             var n = new GeoVector2(-u.Y, u.X);
             double h = Dot(over - center, n);
@@ -265,7 +397,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// the jog, across at DIMJOGANG to the radius and on to the back of the arrowhead at the rim; the words at their point,
         /// on the line for DIMTAD 0 (the line broken a gap clear of them), above it as they read for the others.
         /// </summary>
-        internal static List<DxfEntity> Jogged(DxfDimStyleTableRecord style, double dimscale, double textHeight, GeoPoint2 center, GeoPoint2 chord, GeoPoint2 over, GeoPoint2 jog, GeoPoint2 at, string words)
+        internal static List<DxfEntity> Jogged(
+            DxfDimStyleTableRecord style,
+            double dimscale,
+            double textHeight,
+            GeoPoint2 center,
+            GeoPoint2 chord,
+            GeoPoint2 over,
+            GeoPoint2 jog,
+            GeoPoint2 at,
+            string words
+        )
         {
             double radius = (chord - center).Length;
 
@@ -274,13 +416,33 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            Sizes(style, dimscale, textHeight, out double scale, out double arrow, out double height, out double gap, out _, out _);
+            Sizes(
+                style,
+                dimscale,
+                textHeight,
+                out double scale,
+                out double arrow,
+                out double height,
+                out double gap,
+                out _,
+                out _
+            );
             var picture = new List<DxfEntity>();
             GeoVector2 u = (chord - center) / radius;
             double angle = Readable(Math.Atan2(u.Y, u.X));
             DxfEntity text = Words(style, default, angle, height, words, scale);
             double width = WordsWidth(style, words, height, out height);
-            JogFrame(center, radius, u, over, jog, style.Dimjogang, out GeoPoint2 front, out GeoPoint2 back, out double side);
+            JogFrame(
+                center,
+                radius,
+                u,
+                over,
+                jog,
+                style.Dimjogang,
+                out GeoPoint2 front,
+                out GeoPoint2 back,
+                out double side
+            );
             string arrowName = ArrowOf(style, DxfDimArrowFlag.FirstArrow);
             GeoPoint2 arrowBack = CadArrowheads.TakesNoRoom(arrowName) ? chord : chord - u * (side * arrow);
             var lines = new List<KeyValuePair<GeoPoint2, GeoPoint2>>();
@@ -299,7 +461,10 @@ namespace GeometryHelper.Dxf.Viewer
                 lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(over, back));
             }
 
-            var run = new List<KeyValuePair<GeoPoint2, GeoPoint2>> { new KeyValuePair<GeoPoint2, GeoPoint2>(back, arrowBack) };
+            var run = new List<KeyValuePair<GeoPoint2, GeoPoint2>>
+            {
+                new KeyValuePair<GeoPoint2, GeoPoint2>(back, arrowBack),
+            };
             bool onLine = style.Dimtad == 0;
             GeoPoint2 wordsAt = at;
 
@@ -336,7 +501,11 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The picture of a jogged radius of the drawing from its points, its words at its text's point.</summary>
-        private static List<DxfEntity> JoggedPicture(DxfRadialDimensionLarge dimension, DxfDimStyleTableRecord style, double textHeight)
+        private static List<DxfEntity> JoggedPicture(
+            DxfRadialDimensionLarge dimension,
+            DxfDimStyleTableRecord style,
+            double textHeight
+        )
         {
             GeoPoint2 center = P2(dimension.Center);
             GeoPoint2 chord = P2(dimension.ChordPoint);
@@ -347,7 +516,17 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            return Jogged(style, style.Dimscale, textHeight, center, chord, P2(dimension.OverrideCenter), P2(dimension.JogPoint), P2(dimension.TextPosition), Formatted(dimension, radius, "R"));
+            return Jogged(
+                style,
+                style.Dimscale,
+                textHeight,
+                center,
+                chord,
+                P2(dimension.OverrideCenter),
+                P2(dimension.JogPoint),
+                P2(dimension.TextPosition),
+                Formatted(dimension, radius, "R")
+            );
         }
 
         /// <summary>
@@ -371,7 +550,12 @@ namespace GeometryHelper.Dxf.Viewer
                     GeoVector2 turned = UnitOf(to - center);
                     double turn = Math.Atan2(turned.Y, turned.X) - Math.Atan2(u.Y, u.X);
                     GeoVector2 off = words - center;
-                    words = center + new GeoVector2(off.X * Math.Cos(turn) - off.Y * Math.Sin(turn), off.X * Math.Sin(turn) + off.Y * Math.Cos(turn));
+                    words =
+                        center
+                        + new GeoVector2(
+                            off.X * Math.Cos(turn) - off.Y * Math.Sin(turn),
+                            off.X * Math.Sin(turn) + off.Y * Math.Cos(turn)
+                        );
                     u = turned;
                     break;
                 case 1:

@@ -50,11 +50,10 @@ namespace GeometryHelper.Drawing.App
             private bool _handEdit;
 
             public DrawingAppHost(string pluginFolder)
-                : base("GeometryHelper Drawing", pluginFolder)
-            {
-            }
+                : base("GeometryHelper Drawing", pluginFolder) { }
 
-            protected override string Usage => "Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--new-drawing \"Test bodies\" Assembly] [--tab Drawing] [--pick view|dimension|mark|line] [--hand-edit] [--dialog new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin|plugins|plugin-settings|plugin-untrusted|color|truecolor|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|missing-shx|missing-shx-replace|ptype|block|insert|wblock|attdef|eattedit[:Tab]|pastespec] [--plugin path.dll]";
+            protected override string Usage =>
+                "Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--new-drawing \"Test bodies\" Assembly] [--tab Drawing] [--pick view|dimension|mark|line] [--hand-edit] [--dialog new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin|plugins|plugin-settings|plugin-untrusted|color|truecolor|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|missing-shx|missing-shx-replace|ptype|block|insert|wblock|attdef|eattedit[:Tab]|pastespec] [--plugin path.dll]";
 
             protected override CadDocument SaveChangesDocument => _made?.Document;
 
@@ -62,17 +61,26 @@ namespace GeometryHelper.Drawing.App
             {
                 if (workspace != null)
                 {
-                    _drawings = workspace.AddModelDrawings(model, DrawingWorkspaceExtensions.DefaultSources(Tolerance.Default), Tolerance.Default);
+                    _drawings = workspace.AddModelDrawings(
+                        model,
+                        DrawingWorkspaceExtensions.DefaultSources(Tolerance.Default),
+                        Tolerance.Default
+                    );
                     return;
                 }
 
                 // The model drawing, its dialogs not hooked: a dialog asked for is drawn, not shown.
-                _drawings = new DrawingWorkspace(model, DrawingWorkspaceExtensions.DefaultSources(Tolerance.Default), Tolerance.Default);
+                _drawings = new DrawingWorkspace(
+                    model,
+                    DrawingWorkspaceExtensions.DefaultSources(Tolerance.Default),
+                    Tolerance.Default
+                );
                 _drawings.TabContent = new DrawingRibbonTab { DataContext = _drawings };
             }
 
             // The drawing plugins are loaded by the same manager as the command plugins.
-            protected override void AttachPlugins(CadPluginManager plugins) => _drawings.Plugins = new DrawingPluginCatalog(plugins);
+            protected override void AttachPlugins(CadPluginManager plugins) =>
+                _drawings.Plugins = new DrawingPluginCatalog(plugins);
 
             protected override bool ReadOption(string[] args, ref int index)
             {
@@ -122,13 +130,20 @@ namespace GeometryHelper.Drawing.App
                 return true;
             }
 
-            protected override bool TryCreateDialog(MainViewModel model, string dialogName, out Window window, out FrameworkElement root)
+            protected override bool TryCreateDialog(
+                MainViewModel model,
+                string dialogName,
+                out Window window,
+                out FrameworkElement root
+            )
             {
                 DialogViewModel dialog = Dialog(_drawings, dialogName);
 
                 if (dialog == null)
                 {
-                    Console.Error.WriteLine("--dialog " + dialogName + ": no such dialog, or it needs --new-drawing first.");
+                    Console.Error.WriteLine(
+                        "--dialog " + dialogName + ": no such dialog, or it needs --new-drawing first."
+                    );
                     window = null;
                     root = null;
                     return false;
@@ -167,11 +182,19 @@ namespace GeometryHelper.Drawing.App
         private static ModelDrawing MakeDrawing(DrawingWorkspace drawings, string sourceName, string preset)
         {
             NewDrawingViewModel dialog = drawings.ShowNewDrawing();
-            SourceOption source = dialog.Sources.FirstOrDefault(s => string.Equals(s.Name, sourceName, StringComparison.OrdinalIgnoreCase));
+            SourceOption source = dialog.Sources.FirstOrDefault(s =>
+                string.Equals(s.Name, sourceName, StringComparison.OrdinalIgnoreCase)
+            );
 
             if (source == null || !source.IsAvailable)
             {
-                Console.Error.WriteLine("--new-drawing: no source named " + sourceName + " can give objects; there are " + string.Join(", ", dialog.Sources.Select(s => s.Name)) + ".");
+                Console.Error.WriteLine(
+                    "--new-drawing: no source named "
+                        + sourceName
+                        + " can give objects; there are "
+                        + string.Join(", ", dialog.Sources.Select(s => s.Name))
+                        + "."
+                );
                 return null;
             }
 
@@ -184,7 +207,9 @@ namespace GeometryHelper.Drawing.App
                 return null;
             }
 
-            dialog.Preset = NewDrawingViewModel.PresetNames.First(p => string.Equals(p, preset, StringComparison.OrdinalIgnoreCase));
+            dialog.Preset = NewDrawingViewModel.PresetNames.First(p =>
+                string.Equals(p, preset, StringComparison.OrdinalIgnoreCase)
+            );
             Pump(dialog.NextAsync());
             ModelDrawing made = Pump(dialog.NextAsync());
 
@@ -200,7 +225,11 @@ namespace GeometryHelper.Drawing.App
         private static bool HandEdit(ModelDrawing made)
         {
             string handle = Pick(made, "dimension", anySpace: true);
-            return handle != null && made.Document.Owners.TryApply(made.Document, new CadEdit(handle, CadEditKind.Move, null, null, "0,25"));
+            return handle != null
+                && made.Document.Owners.TryApply(
+                    made.Document,
+                    new CadEdit(handle, CadEditKind.Move, null, null, "0,25")
+                );
         }
 
         /// <summary>The view model of a dialog of the model drawing, at the step or tab named after a colon.</summary>
@@ -227,7 +256,9 @@ namespace GeometryHelper.Drawing.App
 
                     if (update != null)
                     {
-                        update.Source = drawings.Providers.FirstOrDefault(p => p.IsAvailable && p.Name.EndsWith("changed", StringComparison.Ordinal)) ?? update.Source;
+                        update.Source = drawings.Providers.FirstOrDefault(p =>
+                            p.IsAvailable && p.Name.EndsWith("changed", StringComparison.Ordinal)
+                        ) ?? update.Source;
                         Pump(update.PreviewAsync());
                     }
 
@@ -244,7 +275,11 @@ namespace GeometryHelper.Drawing.App
                 case "export":
                     return drawings.ShowExport();
                 case "message":
-                    return MessageViewModel.Failure("Drawing not made", "B-105 could not be made from 4 parts.", new ArgumentException("The settings allow no scale."));
+                    return MessageViewModel.Failure(
+                        "Drawing not made",
+                        "B-105 could not be made from 4 parts.",
+                        new ArgumentException("The settings allow no scale.")
+                    );
                 case "run-plugin":
                     return drawings.ShowRunPlugin();
                 default:
@@ -255,19 +290,29 @@ namespace GeometryHelper.Drawing.App
         /// <summary>The first entity of a drawing, in the space shown, that draws a view, a dimension, a mark or a line of the model.</summary>
         private static string Pick(ModelDrawing made, string kind, bool anySpace = false)
         {
-            var kinds = made.Drawing.Elements.GroupBy(e => e.Id, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().Kind, StringComparer.Ordinal);
+            var kinds = made
+                .Drawing.Elements.GroupBy(e => e.Id, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First().Kind, StringComparer.Ordinal);
 
             foreach (DxfEntity entity in DrawingEntityTags.Find(made.Document.Database))
             {
-                if (entity.IsErased || !DrawingEntityTags.TryRead(entity, out string id, out _)
-                    || (!anySpace && made.Document.FindSpace(entity.Handle) != made.Document.CurrentSpace))
+                if (
+                    entity.IsErased
+                    || !DrawingEntityTags.TryRead(entity, out string id, out _)
+                    || (!anySpace && made.Document.FindSpace(entity.Handle) != made.Document.CurrentSpace)
+                )
                 {
                     continue;
                 }
 
                 bool line = !kinds.ContainsKey(id) && entity is DxfLine;
 
-                if (string.Equals(kind, "line", StringComparison.OrdinalIgnoreCase) ? line : kinds.TryGetValue(id, out string found) && string.Equals(found, kind, StringComparison.OrdinalIgnoreCase))
+                if (
+                    string.Equals(kind, "line", StringComparison.OrdinalIgnoreCase)
+                        ? line
+                        : kinds.TryGetValue(id, out string found)
+                            && string.Equals(found, kind, StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     return entity.Handle;
                 }

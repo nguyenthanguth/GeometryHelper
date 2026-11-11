@@ -20,17 +20,32 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>
         /// Two hundred square with a forty-wide hole in the middle of it.
         /// </summary>
-        private static GeoFace2 Pierced() => new GeoFace2(
-            new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200)),
-            new[]
-            {
+        private static GeoFace2 Pierced() =>
+            new GeoFace2(
                 new GeoPolygon2(
-                    new GeoPoint2(80, 80), new GeoPoint2(120, 80), new GeoPoint2(120, 120), new GeoPoint2(80, 120))
-            });
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(200, 0),
+                    new GeoPoint2(200, 200),
+                    new GeoPoint2(0, 200)
+                ),
+                new[]
+                {
+                    new GeoPolygon2(
+                        new GeoPoint2(80, 80),
+                        new GeoPoint2(120, 80),
+                        new GeoPoint2(120, 120),
+                        new GeoPoint2(80, 120)
+                    ),
+                }
+            );
 
-        private static GeoPolygon2 Square(double x, double y, double size) => new GeoPolygon2(
-            new GeoPoint2(x, y), new GeoPoint2(x + size, y), new GeoPoint2(x + size, y + size), new GeoPoint2(x, y + size));
+        private static GeoPolygon2 Square(double x, double y, double size) =>
+            new GeoPolygon2(
+                new GeoPoint2(x, y),
+                new GeoPoint2(x + size, y),
+                new GeoPoint2(x + size, y + size),
+                new GeoPoint2(x, y + size)
+            );
 
         [Fact]
         public void EveryShapeCanNowBeAskedAboutAFaceAndAgreesWithTheFace()
@@ -77,7 +92,10 @@ namespace GeometryHelper.UnitTest.Plane
             GeoLine2 fromFace = face.GetShortestLineTo(away);
 
             // It leaves the segment and lands on the boundary of the face, which is the face's answer reversed.
-            Assert.True(fromShape.StartPoint.IsEqualTo(new GeoPoint2(300, 300), Loose), fromShape.StartPoint.ToString());
+            Assert.True(
+                fromShape.StartPoint.IsEqualTo(new GeoPoint2(300, 300), Loose),
+                fromShape.StartPoint.ToString()
+            );
             Assert.True(fromShape.EndPoint.IsEqualTo(new GeoPoint2(200, 200), Loose), fromShape.EndPoint.ToString());
             Assert.True(fromShape.StartPoint.IsEqualTo(fromFace.EndPoint, Loose));
             Assert.True(fromShape.EndPoint.IsEqualTo(fromFace.StartPoint, Loose));
@@ -127,7 +145,9 @@ namespace GeometryHelper.UnitTest.Plane
             var rect = new GeoRectangle2(new GeoPoint2(50, 50), 100, 100);
             var chain = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100));
             var loop = new GeoPolygonArc2(poly);
-            var open = new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) });
+            var open = new GeoPolylineArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) }
+            );
 
             var below = new GeoPoint2(50, -50);
             var line = new GeoLine2(new GeoPoint2(0, -50), new GeoPoint2(100, -50));
@@ -202,14 +222,23 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(a.Length, b.Length);
             Assert.Equal(line.GetIntersections(arc).Length, a.Length);
 
-            Assert.Equal(line.TryIntersectWith(chain, out GeoPoint2[] c), chain.TryIntersectWith(line, out GeoPoint2[] d));
+            Assert.Equal(
+                line.TryIntersectWith(chain, out GeoPoint2[] c),
+                chain.TryIntersectWith(line, out GeoPoint2[] d)
+            );
             Assert.Equal(c.Length, d.Length);
 
-            Assert.Equal(line.TryIntersectWith(loop, out GeoPoint2[] e), loop.TryIntersectWith(line, out GeoPoint2[] f));
+            Assert.Equal(
+                line.TryIntersectWith(loop, out GeoPoint2[] e),
+                loop.TryIntersectWith(line, out GeoPoint2[] f)
+            );
             Assert.Equal(e.Length, f.Length);
             Assert.Equal(line.GetIntersections(loop).Length, e.Length);
 
-            Assert.Equal(line.TryIntersectWith(open, out GeoPoint2[] g), open.TryIntersectWith(line, out GeoPoint2[] h));
+            Assert.Equal(
+                line.TryIntersectWith(open, out GeoPoint2[] g),
+                open.TryIntersectWith(line, out GeoPoint2[] h)
+            );
             Assert.Equal(g.Length, h.Length);
 
             // A shape can be asked about its own sort, which it could not be either.
@@ -258,12 +287,15 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(probe.DistanceTo(face), probe.DistanceTo(face, global), 9);
             Assert.Equal(probe.DistanceTo(loop), probe.DistanceTo(loop, global), 9);
             Assert.Equal(probe.SignedDistanceTo(face), probe.SignedDistanceTo(face, global), 9);
-            Assert.True(probe.GetClosestPointOnBoundary(arc).IsEqualTo(probe.GetClosestPointOnBoundary(arc, global), Loose));
+            Assert.True(
+                probe.GetClosestPointOnBoundary(arc).IsEqualTo(probe.GetClosestPointOnBoundary(arc, global), Loose)
+            );
             Assert.True(probe.GetClosestEdge(loop).IsEqualTo(probe.GetClosestEdge(loop, global), Loose));
 
             Assert.Equal(
                 line.TryIntersectWith(circle, out GeoPoint2[] p),
-                line.TryIntersectWith(circle, out GeoPoint2[] q, global));
+                line.TryIntersectWith(circle, out GeoPoint2[] q, global)
+            );
             Assert.Equal(p.Length, q.Length);
         }
 

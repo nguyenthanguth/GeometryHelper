@@ -13,7 +13,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Makes the Point Style dialog of the drawing shown; null with none open.</summary>
         /// <returns>The dialog.</returns>
-        public PointStyleViewModel CreatePointStyle() => _current == null ? null : new PointStyleViewModel(_current.Document);
+        public PointStyleViewModel CreatePointStyle() =>
+            _current == null ? null : new PointStyleViewModel(_current.Document);
 
         /// <summary>PTYPE's request: the dialog shown where the workspace shows it, OK writing PDMODE and PDSIZE as one undo step.</summary>
         private void OnPointStyleRequested(CadUiRequestEventArgs e)

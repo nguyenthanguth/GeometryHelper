@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper;
+using GeometryHelper.Geometry;
 using GeometryHelper.IfcConvert.Converters.Internal;
 using GeometryHelper.IfcConvert.Core;
-using GeometryHelper.Geometry;
 
 namespace GeometryHelper.IfcConvert.Models
 {
@@ -18,7 +18,6 @@ namespace GeometryHelper.IfcConvert.Models
         private readonly GeoSolid3[] _solids;
         private readonly GeoFace3[] _openSurfaces;
         private readonly string[] _warnings;
-
 
         /// <summary>
         /// Gets the GlobalId (GUID) of the IFC product.
@@ -104,7 +103,8 @@ namespace GeometryHelper.IfcConvert.Models
             IEnumerable<GeoFace3> openSurfaces = null,
             GeoTransform3 placement = null,
             string tag = null,
-            IEnumerable<string> warnings = null)
+            IEnumerable<string> warnings = null
+        )
         {
             GlobalId = globalId ?? string.Empty;
             Name = name ?? string.Empty;
@@ -177,7 +177,9 @@ namespace GeometryHelper.IfcConvert.Models
                 catch (ArgumentException ex)
                 {
                     // Fewer than four faces were left to enclose a volume.
-                    warnings.Add($"Solid {i + 1} of {_solids.Length} collapsed under the transformation and was left out: {ex.Message}");
+                    warnings.Add(
+                        $"Solid {i + 1} of {_solids.Length} collapsed under the transformation and was left out: {ex.Message}"
+                    );
                 }
             }
 
@@ -198,10 +200,21 @@ namespace GeometryHelper.IfcConvert.Models
 
             if (surfaces.Count < _openSurfaces.Length)
             {
-                warnings.Add($"{_openSurfaces.Length - surfaces.Count} open surface(s) degenerated under the transformation and were left out.");
+                warnings.Add(
+                    $"{_openSurfaces.Length - surfaces.Count} open surface(s) degenerated under the transformation and were left out."
+                );
             }
 
-            return new IfcProductGeometry(GlobalId, Name, IfcType, solids, surfaces, transform * Placement, Tag, warnings);
+            return new IfcProductGeometry(
+                GlobalId,
+                Name,
+                IfcType,
+                solids,
+                surfaces,
+                transform * Placement,
+                Tag,
+                warnings
+            );
         }
 
         /// <summary>

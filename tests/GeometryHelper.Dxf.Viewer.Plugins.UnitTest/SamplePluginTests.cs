@@ -131,7 +131,8 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
 
             try
             {
-                GeometryHelperLog.Writer = (level, text, exception) => lines.Add(GeometryHelperLog.Format(level, text, exception));
+                GeometryHelperLog.Writer = (level, text, exception) =>
+                    lines.Add(GeometryHelperLog.Format(level, text, exception));
                 session.Feed("FAILNOW");
                 Assert.Single(PluginFiles.Texts(document));
                 session.Feed("now");
@@ -144,8 +145,14 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
             Assert.Equal(CadCommandOutcome.Failed, session.LastOutcome);
             Assert.Empty(PluginFiles.Texts(document));
             Assert.False(document.CanUndo);
-            Assert.Contains("*Error* FAILNOW of the plugin " + PluginFiles.SampleName + " failed: The sample fails on purpose.", session.History);
-            Assert.Contains(lines, l => l.StartsWith("WARN ", StringComparison.Ordinal) && l.Contains("FAILNOW of the plugin " + PluginFiles.SampleName + " failed"));
+            Assert.Contains(
+                "*Error* FAILNOW of the plugin " + PluginFiles.SampleName + " failed: The sample fails on purpose.",
+                session.History
+            );
+            Assert.Contains(lines, l =>
+                l.StartsWith("WARN ", StringComparison.Ordinal)
+                && l.Contains("FAILNOW of the plugin " + PluginFiles.SampleName + " failed")
+            );
         }
 
         [Fact]

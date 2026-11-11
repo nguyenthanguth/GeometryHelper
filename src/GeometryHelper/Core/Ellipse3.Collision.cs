@@ -27,7 +27,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches a plane, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoPlane3 plane) => CollidesWith(ellipse, plane, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoPlane3 plane) =>
+            CollidesWith(ellipse, plane, Tolerance.Global);
 
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches a plane, within a tolerance.
@@ -48,7 +49,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches a segment, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoLine3 line) => CollidesWith(ellipse, line, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoLine3 line) =>
+            CollidesWith(ellipse, line, Tolerance.Global);
 
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches a segment, within a tolerance.
@@ -61,13 +63,14 @@ namespace GeometryHelper.Core
         /// segment from (0, 0, -10) to (0, 0, 10) passes through the middle of the ellipse 300 by 100 lying in the plan about
         /// the origin and touches nothing.
         /// </returns>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoLine3 line, Tolerance tolerance)
-            => Crossings(ellipse, line, tolerance).Length > 0;
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoLine3 line, Tolerance tolerance) =>
+            Crossings(ellipse, line, tolerance).Length > 0;
 
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches a ray, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoRay3 ray) => CollidesWith(ellipse, ray, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoRay3 ray) =>
+            CollidesWith(ellipse, ray, Tolerance.Global);
 
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches a ray, within a tolerance.
@@ -76,8 +79,8 @@ namespace GeometryHelper.Core
         /// <param name="ray">The ray.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the ray crosses or touches the rim; otherwise, false, a ray through the disc alone included.</returns>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoRay3 ray, Tolerance tolerance)
-            => GetIntersections(ellipse, ray, tolerance).Length > 0;
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoRay3 ray, Tolerance tolerance) =>
+            GetIntersections(ellipse, ray, tolerance).Length > 0;
 
         #endregion
 
@@ -86,7 +89,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches an arc, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoArc3 arc) => CollidesWith(ellipse, arc, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoArc3 arc) =>
+            CollidesWith(ellipse, arc, Tolerance.Global);
 
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches an arc, within a tolerance.
@@ -110,10 +114,12 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool CollidesWith(GeoEllipse3 ellipse, GeoArc3 arc, Tolerance tolerance)
         {
-            if (Arc3.IsCoplanar(arc, ellipse.GetPlane(), tolerance)
+            if (
+                Arc3.IsCoplanar(arc, ellipse.GetPlane(), tolerance)
                 && arc.Center.IsEqualTo(ellipse.Center, tolerance)
                 && Math.Abs(ellipse.MajorRadius - arc.Radius) <= tolerance.EqualPoint
-                && Math.Abs(ellipse.MinorRadius - arc.Radius) <= tolerance.EqualPoint)
+                && Math.Abs(ellipse.MinorRadius - arc.Radius) <= tolerance.EqualPoint
+            )
             {
                 return arc.IsPointOn(StartOf(ellipse), tolerance)
                     || OnRim(ellipse, arc.StartPoint, tolerance)
@@ -127,7 +133,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches a circle, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoCircle3 circle) => CollidesWith(ellipse, circle, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoCircle3 circle) =>
+            CollidesWith(ellipse, circle, Tolerance.Global);
 
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches a circle, within a tolerance.
@@ -149,10 +156,12 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool CollidesWith(GeoEllipse3 ellipse, GeoCircle3 circle, Tolerance tolerance)
         {
-            if (IsCoplanar(ellipse, circle.GetPlane(), tolerance)
+            if (
+                IsCoplanar(ellipse, circle.GetPlane(), tolerance)
                 && ellipse.Center.IsEqualTo(circle.Center, tolerance)
                 && Math.Abs(ellipse.MajorRadius - circle.Radius) <= tolerance.EqualPoint
-                && Math.Abs(ellipse.MinorRadius - circle.Radius) <= tolerance.EqualPoint)
+                && Math.Abs(ellipse.MinorRadius - circle.Radius) <= tolerance.EqualPoint
+            )
             {
                 GeoArc3 rim = Arc3.AsArc(circle);
 
@@ -167,7 +176,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether the rims of two ellipses in space touch, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoEllipse3 other) => CollidesWith(ellipse, other, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoEllipse3 other) =>
+            CollidesWith(ellipse, other, Tolerance.Global);
 
         /// <summary>
         /// Determines whether the rims of two ellipses in space touch, within a tolerance.
@@ -186,8 +196,10 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool CollidesWith(GeoEllipse3 ellipse, GeoEllipse3 other, Tolerance tolerance)
         {
-            if (InOnePlane(ref ellipse, ref other, tolerance)
-                && SameCurve(Flat(ellipse), LayOut(ellipse, other), tolerance))
+            if (
+                InOnePlane(ref ellipse, ref other, tolerance)
+                && SameCurve(Flat(ellipse), LayOut(ellipse, other), tolerance)
+            )
             {
                 return OnRim(ellipse, StartOf(other), tolerance)
                     || OnRim(other, StartOf(ellipse), tolerance)
@@ -225,7 +237,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches a triangle, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoTriangle3 triangle) => CollidesWith(ellipse, triangle, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoTriangle3 triangle) =>
+            CollidesWith(ellipse, triangle, Tolerance.Global);
 
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches a triangle, within a tolerance.
@@ -255,7 +268,8 @@ namespace GeometryHelper.Core
         /// Determines whether the rim of an ellipse in space touches a polygon, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoPolygon3 polygon) => CollidesWith(ellipse, polygon, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoPolygon3 polygon) =>
+            CollidesWith(ellipse, polygon, Tolerance.Global);
 
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches a polygon, within a tolerance.
@@ -283,7 +297,8 @@ namespace GeometryHelper.Core
         /// Determines whether the rim of an ellipse in space touches a face, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoFace3 face) => CollidesWith(ellipse, face, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoFace3 face) =>
+            CollidesWith(ellipse, face, Tolerance.Global);
 
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches a face, within a tolerance.
@@ -315,7 +330,8 @@ namespace GeometryHelper.Core
         /// Determines whether the rim of an ellipse in space touches a solid, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the solid is null.</exception>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoSolid3 solid) => CollidesWith(ellipse, solid, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoSolid3 solid) =>
+            CollidesWith(ellipse, solid, Tolerance.Global);
 
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches a solid, within a tolerance.
@@ -346,7 +362,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches an oriented box, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoObb3 box) => CollidesWith(ellipse, box, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoObb3 box) =>
+            CollidesWith(ellipse, box, Tolerance.Global);
 
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches an oriented box, within a tolerance.
@@ -368,7 +385,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches an axis-aligned box, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoAabb3 box) => CollidesWith(ellipse, box, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoAabb3 box) =>
+            CollidesWith(ellipse, box, Tolerance.Global);
 
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches an axis-aligned box, within a tolerance.
@@ -394,7 +412,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches an edge, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoEdge3 edge) => CollidesWith(ellipse, edge, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoEdge3 edge) =>
+            CollidesWith(ellipse, edge, Tolerance.Global);
 
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches an edge, within a tolerance: as a segment or as an arc,
@@ -403,8 +422,8 @@ namespace GeometryHelper.Core
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="edge">The edge.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoEdge3 edge, Tolerance tolerance)
-            => edge.IsArc
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoEdge3 edge, Tolerance tolerance) =>
+            edge.IsArc
                 ? CollidesWith(ellipse, edge.ToArc(), tolerance)
                 : CollidesWith(ellipse, edge.ToLine(), tolerance);
 
@@ -412,7 +431,8 @@ namespace GeometryHelper.Core
         /// Determines whether the rim of an ellipse in space touches a curved chain, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the curved chain is null.</exception>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoPolylineArc3 chain) => CollidesWith(ellipse, chain, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoPolylineArc3 chain) =>
+            CollidesWith(ellipse, chain, Tolerance.Global);
 
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches a curved chain, within a tolerance.
@@ -444,7 +464,8 @@ namespace GeometryHelper.Core
         /// Determines whether the rim of an ellipse in space touches a curved loop, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the curved loop is null.</exception>
-        public static bool CollidesWith(GeoEllipse3 ellipse, GeoPolygonArc3 loop) => CollidesWith(ellipse, loop, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse3 ellipse, GeoPolygonArc3 loop) =>
+            CollidesWith(ellipse, loop, Tolerance.Global);
 
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches a curved loop, within a tolerance.

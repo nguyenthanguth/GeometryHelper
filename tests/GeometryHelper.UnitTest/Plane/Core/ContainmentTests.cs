@@ -1,6 +1,6 @@
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -11,12 +11,12 @@ namespace GeometryHelper.UnitTest.Plane
         #region IsPointOn Tests
 
         [Theory]
-        [InlineData(5, 0, true)]                       // Point on interior
-        [InlineData(0, 0, true)]                       // Point at StartPoint
-        [InlineData(10, 0, true)]                      // Point at EndPoint
-        [InlineData(-1, 0, false)]                     // Collinear before StartPoint
-        [InlineData(11, 0, false)]                     // Collinear after EndPoint
-        [InlineData(5, 0.1, false)]                    // Parallel2 offset
+        [InlineData(5, 0, true)] // Point on interior
+        [InlineData(0, 0, true)] // Point at StartPoint
+        [InlineData(10, 0, true)] // Point at EndPoint
+        [InlineData(-1, 0, false)] // Collinear before StartPoint
+        [InlineData(11, 0, false)] // Collinear after EndPoint
+        [InlineData(5, 0.1, false)] // Parallel2 offset
         public void IsPointOn_Line_ComprehensiveCases(double px, double py, bool expected)
         {
             var line = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0));
@@ -24,13 +24,13 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Theory]
-        [InlineData(10, 0, true)]                      // East cardinal point on boundary
-        [InlineData(0, 10, true)]                      // North cardinal point on boundary
-        [InlineData(-10, 0, true)]                     // West cardinal point on boundary
-        [InlineData(0, -10, true)]                     // South cardinal point on boundary
-        [InlineData(0, 0, false)]                      // Center (not on boundary)
-        [InlineData(5, 5, false)]                      // Inside (not on boundary)
-        [InlineData(15, 0, false)]                     // Outside
+        [InlineData(10, 0, true)] // East cardinal point on boundary
+        [InlineData(0, 10, true)] // North cardinal point on boundary
+        [InlineData(-10, 0, true)] // West cardinal point on boundary
+        [InlineData(0, -10, true)] // South cardinal point on boundary
+        [InlineData(0, 0, false)] // Center (not on boundary)
+        [InlineData(5, 5, false)] // Inside (not on boundary)
+        [InlineData(15, 0, false)] // Outside
         public void IsPointOn_Circle_ComprehensiveCases(double px, double py, bool expected)
         {
             var circle = new GeoCircle2(new GeoPoint2(0, 0), 10);
@@ -38,41 +38,33 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Theory]
-        [InlineData(5, 0, true)]                       // Bottom edge
-        [InlineData(10, 5, true)]                      // Right edge
-        [InlineData(5, 10, true)]                      // Top edge
-        [InlineData(0, 5, true)]                       // Left edge
-        [InlineData(0, 0, true)]                       // Vertex
-        [InlineData(5, 5, false)]                      // Interior center
-        [InlineData(15, 5, false)]                     // Exterior
+        [InlineData(5, 0, true)] // Bottom edge
+        [InlineData(10, 5, true)] // Right edge
+        [InlineData(5, 10, true)] // Top edge
+        [InlineData(0, 5, true)] // Left edge
+        [InlineData(0, 0, true)] // Vertex
+        [InlineData(5, 5, false)] // Interior center
+        [InlineData(15, 5, false)] // Exterior
         public void IsPointOn_Polygon_ComprehensiveCases(double px, double py, bool expected)
         {
-            var poly = new GeoPolygon2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10),
-                new GeoPoint2(0, 10)
-            });
+            var poly = new GeoPolygon2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10) }
+            );
             Assert.Equal(expected, Containment2.IsPointOn(poly, new GeoPoint2(px, py)));
         }
 
         [Theory]
-        [InlineData(5, 0, true)]                       // On segment 1
-        [InlineData(10, 5, true)]                      // On segment 2
-        [InlineData(15, 10, true)]                     // On segment 3
-        [InlineData(10, 0, true)]                      // On bend vertex 1
-        [InlineData(10, 10, true)]                     // On bend vertex 2
-        [InlineData(5, 5, false)]                      // Off polyline
+        [InlineData(5, 0, true)] // On segment 1
+        [InlineData(10, 5, true)] // On segment 2
+        [InlineData(15, 10, true)] // On segment 3
+        [InlineData(10, 0, true)] // On bend vertex 1
+        [InlineData(10, 10, true)] // On bend vertex 2
+        [InlineData(5, 5, false)] // Off polyline
         public void IsPointOn_Polyline_ComprehensiveCases(double px, double py, bool expected)
         {
-            var pl = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10),
-                new GeoPoint2(20, 10)
-            });
+            var pl = new GeoPolyline2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(20, 10) }
+            );
             Assert.Equal(expected, Containment2.IsPointOn(pl, new GeoPoint2(px, py)));
         }
 
@@ -81,11 +73,11 @@ namespace GeometryHelper.UnitTest.Plane
         #region Locate Tests
 
         [Theory]
-        [InlineData(0, 0, PointLocation.Inside)]       // Circle center
-        [InlineData(6, 0, PointLocation.Inside)]       // Inside interior
-        [InlineData(10, 0, PointLocation.OnSide)]      // Circumference
-        [InlineData(10.000001, 0, PointLocation.OnSide)]// Within default tolerance
-        [InlineData(11, 0, PointLocation.OutSide)]     // Outside
+        [InlineData(0, 0, PointLocation.Inside)] // Circle center
+        [InlineData(6, 0, PointLocation.Inside)] // Inside interior
+        [InlineData(10, 0, PointLocation.OnSide)] // Circumference
+        [InlineData(10.000001, 0, PointLocation.OnSide)] // Within default tolerance
+        [InlineData(11, 0, PointLocation.OutSide)] // Outside
         public void Locate_Circle_InsideOnAndOutside(double px, double py, PointLocation expected)
         {
             var circle = new GeoCircle2(new GeoPoint2(0, 0), 10);
@@ -93,14 +85,14 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Theory]
-        [InlineData(0, 0, PointLocation.Inside)]       // Center
-        [InlineData(10, 0, PointLocation.OnSide)]      // Right edge
-        [InlineData(-10, 0, PointLocation.OnSide)]     // Left edge
-        [InlineData(0, 5, PointLocation.OnSide)]       // Top edge
-        [InlineData(0, -5, PointLocation.OnSide)]      // Bottom edge
-        [InlineData(10, 5, PointLocation.OnSide)]      // Top-right corner
-        [InlineData(-10, -5, PointLocation.OnSide)]    // Bottom-left corner
-        [InlineData(15, 0, PointLocation.OutSide)]     // Outside
+        [InlineData(0, 0, PointLocation.Inside)] // Center
+        [InlineData(10, 0, PointLocation.OnSide)] // Right edge
+        [InlineData(-10, 0, PointLocation.OnSide)] // Left edge
+        [InlineData(0, 5, PointLocation.OnSide)] // Top edge
+        [InlineData(0, -5, PointLocation.OnSide)] // Bottom edge
+        [InlineData(10, 5, PointLocation.OnSide)] // Top-right corner
+        [InlineData(-10, -5, PointLocation.OnSide)] // Bottom-left corner
+        [InlineData(15, 0, PointLocation.OutSide)] // Outside
         public void Locate_Rectangle_InsideEdgesCornersOutside(double px, double py, PointLocation expected)
         {
             var rect = new GeoRectangle2(new GeoPoint2(0, 0), 20, 10, 0);
@@ -111,14 +103,16 @@ namespace GeometryHelper.UnitTest.Plane
         public void Locate_Polygon_ConvexAndConcave()
         {
             // Concave polygon with a V-shaped indentation on top edge
-            var concave = new GeoPolygon2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(20, 0),
-                new GeoPoint2(20, 20),
-                new GeoPoint2(10, 10), // V-notch vertex inside
-                new GeoPoint2(0, 20)
-            });
+            var concave = new GeoPolygon2(
+                new[]
+                {
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(20, 0),
+                    new GeoPoint2(20, 20),
+                    new GeoPoint2(10, 10), // V-notch vertex inside
+                    new GeoPoint2(0, 20),
+                }
+            );
 
             // Strictly inside solid region
             Assert.Equal(PointLocation.Inside, Containment2.Locate(concave, new GeoPoint2(5, 5)));
@@ -135,26 +129,21 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Theory]
-        [InlineData(5, 0, PointLocation.OnSide)]       // On segment 1
-        [InlineData(10, 0, PointLocation.OnSide)]      // On vertex
-        [InlineData(10, 5, PointLocation.OnSide)]      // On segment 2
-        [InlineData(5, 5, PointLocation.OutSide)]      // Outside
+        [InlineData(5, 0, PointLocation.OnSide)] // On segment 1
+        [InlineData(10, 0, PointLocation.OnSide)] // On vertex
+        [InlineData(10, 5, PointLocation.OnSide)] // On segment 2
+        [InlineData(5, 5, PointLocation.OutSide)] // Outside
         public void Locate_Polyline_SegmentsVerticesOutside(double px, double py, PointLocation expected)
         {
-            var pl = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10)
-            });
+            var pl = new GeoPolyline2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10) });
             Assert.Equal(expected, Containment2.Locate(pl, new GeoPoint2(px, py)));
         }
 
         [Theory]
-        [InlineData(5, 0, PointLocation.OnSide)]       // On line midpoint
-        [InlineData(0, 0, PointLocation.OnSide)]       // On line startpoint
-        [InlineData(10, 0, PointLocation.OnSide)]      // On line endpoint
-        [InlineData(5, 5, PointLocation.OutSide)]      // Off line
+        [InlineData(5, 0, PointLocation.OnSide)] // On line midpoint
+        [InlineData(0, 0, PointLocation.OnSide)] // On line startpoint
+        [InlineData(10, 0, PointLocation.OnSide)] // On line endpoint
+        [InlineData(5, 5, PointLocation.OutSide)] // Off line
         public void Locate_Line_MidpointEndpointsOutside(double px, double py, PointLocation expected)
         {
             var line = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0));
@@ -183,12 +172,7 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.False(Containment2.Contains(rect, lProtruding));
 
             // Polyline inside
-            var plInside = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(-5, -5),
-                new GeoPoint2(0, -5),
-                new GeoPoint2(0, 5)
-            });
+            var plInside = new GeoPolyline2(new[] { new GeoPoint2(-5, -5), new GeoPoint2(0, -5), new GeoPoint2(0, 5) });
             Assert.True(Containment2.Contains(rect, plInside));
         }
 
@@ -217,13 +201,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Contains_Polygon_LinePolylineAndNestedShapes()
         {
-            var poly = new GeoPolygon2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(20, 0),
-                new GeoPoint2(20, 20),
-                new GeoPoint2(0, 20)
-            });
+            var poly = new GeoPolygon2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(20, 0), new GeoPoint2(20, 20), new GeoPoint2(0, 20) }
+            );
 
             // Line segment inside
             var lInside = new GeoLine2(new GeoPoint2(5, 5), new GeoPoint2(15, 15));
@@ -234,13 +214,9 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.False(Containment2.Contains(poly, lCross));
 
             // Polyline zigzag inside
-            var plZigzag = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(2, 2),
-                new GeoPoint2(18, 2),
-                new GeoPoint2(2, 18),
-                new GeoPoint2(18, 18)
-            });
+            var plZigzag = new GeoPolyline2(
+                new[] { new GeoPoint2(2, 2), new GeoPoint2(18, 2), new GeoPoint2(2, 18), new GeoPoint2(18, 18) }
+            );
             Assert.True(Containment2.Contains(poly, plZigzag));
         }
 
@@ -281,8 +257,11 @@ namespace GeometryHelper.UnitTest.Plane
         public void ContainsLine_DiagonalBetweenVertices_IsContained()
         {
             var square = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
 
             // The diagonal touches the boundary at both ends but never leaves the square. Treating any
             // crossing as a failure used to reject it.
@@ -300,8 +279,13 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // An L shape: both endpoints sit inside, but the straight path between them exits the notch.
             var lShape = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 4),
-                new GeoPoint2(4, 4), new GeoPoint2(4, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 4),
+                new GeoPoint2(4, 4),
+                new GeoPoint2(4, 10),
+                new GeoPoint2(0, 10)
+            );
 
             Assert.True(Containment2.Contains(lShape, new GeoPoint2(9, 2)));
             Assert.True(Containment2.Contains(lShape, new GeoPoint2(2, 9)));
@@ -321,7 +305,12 @@ namespace GeometryHelper.UnitTest.Plane
             // A chain of vertices tracing a square is still a curve, not the square it draws. There is no
             // Contains overload for a polyline at all, because it would only ever restate IsPointOn.
             var traced = new GeoPolyline2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10), new GeoPoint2(0, 0));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10),
+                new GeoPoint2(0, 0)
+            );
             var open = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10));
 
             var inside = new GeoPoint2(5, 5);

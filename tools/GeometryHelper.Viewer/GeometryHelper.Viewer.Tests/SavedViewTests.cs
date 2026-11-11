@@ -17,14 +17,34 @@ namespace GeometryHelper.Viewer.Tests
             double carried = tolerance + 4E-16 * (expected.Target.Length + expected.Distance) / expected.Distance;
 
             Assert.Equal(expected.Orthographic, actual.Orthographic);
-            Assert.True((expected.Target - actual.Target).Length <= tolerance * Math.Max(1.0, expected.Target.Length), "targets " + expected.Target + " and " + actual.Target);
-            Assert.True(Math.Abs(expected.Distance - actual.Distance) <= carried * expected.Distance, "distances " + expected.Distance + " and " + actual.Distance);
-            Assert.True((expected.Forward - actual.Forward).Length <= carried, "directions " + expected.Forward + " and " + actual.Forward + ", " + (expected.Forward - actual.Forward).Length + " apart");
+            Assert.True(
+                (expected.Target - actual.Target).Length <= tolerance * Math.Max(1.0, expected.Target.Length),
+                "targets " + expected.Target + " and " + actual.Target
+            );
+            Assert.True(
+                Math.Abs(expected.Distance - actual.Distance) <= carried * expected.Distance,
+                "distances " + expected.Distance + " and " + actual.Distance
+            );
+            Assert.True(
+                (expected.Forward - actual.Forward).Length <= carried,
+                "directions "
+                    + expected.Forward
+                    + " and "
+                    + actual.Forward
+                    + ", "
+                    + (expected.Forward - actual.Forward).Length
+                    + " apart"
+            );
 
             // The top of the screen turns with the azimuth, which the line of sight tells the worse the nearer it is to vertical; a thousandth of a unit sideways
             // and nearer, the top of the screen is what is used and is exact.
-            double sideways = Math.Sqrt(expected.Forward.X * expected.Forward.X + expected.Forward.Y * expected.Forward.Y);
-            Assert.True((expected.Up - actual.Up).Length <= carried / Math.Max(sideways, 1E-3), "ups " + expected.Up + " and " + actual.Up);
+            double sideways = Math.Sqrt(
+                expected.Forward.X * expected.Forward.X + expected.Forward.Y * expected.Forward.Y
+            );
+            Assert.True(
+                (expected.Up - actual.Up).Length <= carried / Math.Max(sideways, 1E-3),
+                "ups " + expected.Up + " and " + actual.Up
+            );
         }
 
         [Fact]
@@ -36,7 +56,11 @@ namespace GeometryHelper.Viewer.Tests
             {
                 var camera = new ViewCamera
                 {
-                    Target = new Vec3((random.NextDouble() - 0.5) * 20000.0, (random.NextDouble() - 0.5) * 20000.0, (random.NextDouble() - 0.5) * 2000.0),
+                    Target = new Vec3(
+                        (random.NextDouble() - 0.5) * 20000.0,
+                        (random.NextDouble() - 0.5) * 20000.0,
+                        (random.NextDouble() - 0.5) * 2000.0
+                    ),
                     Distance = Math.Pow(10.0, random.NextDouble() * 7.0 - 3.0),
                     Azimuth = (random.NextDouble() - 0.5) * 12.0,
                     Elevation = (random.NextDouble() - 0.5) * Math.PI,
@@ -103,9 +127,23 @@ namespace GeometryHelper.Viewer.Tests
             }
 
             // A view with no width takes the distance from the eye as its scale, in perspective always.
-            ViewCamera byDistance = new SavedView("far", new Vec3(0, -500, 0), default(Vec3), new Vec3(0, 0, 1), true, 0.0).ToCamera(1.5);
+            ViewCamera byDistance = new SavedView(
+                "far",
+                new Vec3(0, -500, 0),
+                default(Vec3),
+                new Vec3(0, 0, 1),
+                true,
+                0.0
+            ).ToCamera(1.5);
             Assert.Equal(500.0, byDistance.Distance, 9);
-            ViewCamera perspective = new SavedView("persp", new Vec3(0, -500, 0), default(Vec3), new Vec3(0, 0, 1), false, 50.0).ToCamera(1.5);
+            ViewCamera perspective = new SavedView(
+                "persp",
+                new Vec3(0, -500, 0),
+                default(Vec3),
+                new Vec3(0, 0, 1),
+                false,
+                50.0
+            ).ToCamera(1.5);
             Assert.Equal(500.0, perspective.Distance, 9);
             Assert.False(perspective.Orthographic);
         }
@@ -118,7 +156,9 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Throws<ArgumentException>(() => new SavedView("", default(Vec3), z, z, false, 0.0));
             Assert.Throws<ArgumentException>(() => new SavedView("   ", default(Vec3), z, z, false, 0.0));
             Assert.Throws<ArgumentException>(() => new SavedView("same", z, z, z, false, 0.0));
-            Assert.Throws<ArgumentException>(() => new SavedView("nan", default(Vec3), new Vec3(double.NaN, 0, 0), z, false, 0.0));
+            Assert.Throws<ArgumentException>(() =>
+                new SavedView("nan", default(Vec3), new Vec3(double.NaN, 0, 0), z, false, 0.0)
+            );
             Assert.Throws<ArgumentException>(() => new SavedView("narrow", default(Vec3), z, z, true, -1.0));
             Assert.Throws<ArgumentNullException>(() => SavedView.FromCamera("none", null, 1.0));
         }
@@ -128,8 +168,20 @@ namespace GeometryHelper.Viewer.Tests
         {
             var writer = new SceneWriter("a repro");
             writer.Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 1)), layer: "x");
-            writer.View("the spike", new GeoPoint3(40.1, -60.2, 30.3), new GeoPoint3(40.123456789012345, 0.1, 1E-300), new GeoVector3(0, 0, 1));
-            writer.View("plan of it", new GeoPoint3(40, 0, 500), new GeoPoint3(40, 0, 0), new GeoVector3(0, 1, 0), ortho: true, width: 20.000000000000004);
+            writer.View(
+                "the spike",
+                new GeoPoint3(40.1, -60.2, 30.3),
+                new GeoPoint3(40.123456789012345, 0.1, 1E-300),
+                new GeoVector3(0, 0, 1)
+            );
+            writer.View(
+                "plan of it",
+                new GeoPoint3(40, 0, 500),
+                new GeoPoint3(40, 0, 0),
+                new GeoVector3(0, 1, 0),
+                ortho: true,
+                width: 20.000000000000004
+            );
 
             Scene read = SceneReader.Read(writer.ToJson());
 
@@ -179,14 +231,17 @@ namespace GeometryHelper.Viewer.Tests
 
             Assert.Equal(new[] { "a", "b" }, writer.Scene.Views.Select(v => v.Name));
             Assert.Equal(new Vec3(10, 0, 0), writer.Scene.Views[0].Eye);
-            Assert.Throws<ArgumentException>(() => writer.View("bad", new GeoPoint3(1, 1, 1), new GeoPoint3(1, 1, 1), new GeoVector3(0, 0, 1)));
+            Assert.Throws<ArgumentException>(() =>
+                writer.View("bad", new GeoPoint3(1, 1, 1), new GeoPoint3(1, 1, 1), new GeoVector3(0, 0, 1))
+            );
             Assert.Equal(2, writer.Scene.Views.Count);
         }
 
         [Fact]
         public void AViewThatIsNotInTheFileTheWayItShouldBe_IsLeftOutWithAWarningNamingIt_AndTheRestOfTheSceneIsKept()
         {
-            const string bad = "{\"format\":\"ghscene\",\"version\":1,\"views\":[{\"name\":\"ok\",\"eye\":[0,0,5],\"target\":[0,0,0],\"up\":[0,1,0]},{\"name\":\"\",\"eye\":[0,0,5],\"target\":[0,0,0],\"up\":[0,1,0]},{\"name\":\"no eye\",\"target\":[0,0,0],\"up\":[0,1,0]},{\"name\":\"on it\",\"eye\":[1,1,1],\"target\":[1,1,1],\"up\":[0,1,0]},{\"name\":\"also ok\",\"eye\":[0,5,0],\"target\":[0,0,0],\"up\":[0,0,1]}],\"items\":[]}";
+            const string bad =
+                "{\"format\":\"ghscene\",\"version\":1,\"views\":[{\"name\":\"ok\",\"eye\":[0,0,5],\"target\":[0,0,0],\"up\":[0,1,0]},{\"name\":\"\",\"eye\":[0,0,5],\"target\":[0,0,0],\"up\":[0,1,0]},{\"name\":\"no eye\",\"target\":[0,0,0],\"up\":[0,1,0]},{\"name\":\"on it\",\"eye\":[1,1,1],\"target\":[1,1,1],\"up\":[0,1,0]},{\"name\":\"also ok\",\"eye\":[0,5,0],\"target\":[0,0,0],\"up\":[0,0,1]}],\"items\":[]}";
 
             Scene scene = SceneReader.Read(bad);
 
@@ -201,11 +256,14 @@ namespace GeometryHelper.Viewer.Tests
             Assert.DoesNotContain("warning", new SceneWriter(scene).ToJson(), StringComparison.Ordinal);
 
             // A view with no 'ortho' and no 'width' is a view with perspective, and a scene with good views has no warning.
-            Scene fine = SceneReader.Read("{\"format\":\"ghscene\",\"version\":1,\"views\":[{\"name\":\"ok\",\"eye\":[0,0,5],\"target\":[0,0,0],\"up\":[0,1,0]}],\"items\":[]}");
+            Scene fine = SceneReader.Read(
+                "{\"format\":\"ghscene\",\"version\":1,\"views\":[{\"name\":\"ok\",\"eye\":[0,0,5],\"target\":[0,0,0],\"up\":[0,1,0]}],\"items\":[]}"
+            );
             Assert.False(fine.Views[0].Orthographic);
             Assert.Equal(0.0, fine.Views[0].Width);
             Assert.Empty(fine.LoadWarnings);
         }
+
         [Fact]
         public void AComparison_OpensAtTheViewTheBuildUnderTestSaved_ElseAtTheOthers()
         {
@@ -222,12 +280,16 @@ namespace GeometryHelper.Viewer.Tests
                 return writer.Scene;
             }
 
-            Scene Compared(Scene left, Scene right) => ComparisonScene.Build(SceneComparison.Compare(left, right), left, right).Scene;
+            Scene Compared(Scene left, Scene right) =>
+                ComparisonScene.Build(SceneComparison.Compare(left, right), left, right).Scene;
 
             // What the window applies is the camera the carried view gives: the same look as the view of the build under test, not just the same list.
             Scene withRight = Compared(Make("left"), Make("right"));
             ViewCamera applied = Assert.Single(withRight.Views).ToCamera(1.5);
-            ViewCamera expected = new SceneWriter().View("right", new GeoPoint3(0, 0, 10), new GeoPoint3(0, 0, 0), new GeoVector3(0, 1, 0)).Scene.Views[0].ToCamera(1.5);
+            ViewCamera expected = new SceneWriter()
+                .View("right", new GeoPoint3(0, 0, 10), new GeoPoint3(0, 0, 0), new GeoVector3(0, 1, 0))
+                .Scene.Views[0]
+                .ToCamera(1.5);
             Assert.Equal(expected.Target, applied.Target);
             Assert.Equal(expected.Distance, applied.Distance, 12);
             Assert.True((expected.Forward - applied.Forward).Length < 1E-12);
@@ -252,7 +314,10 @@ namespace GeometryHelper.Viewer.Tests
             int items = Array.FindIndex(lines, l => l.StartsWith("\"items\"", StringComparison.Ordinal));
 
             Assert.True(views > 0 && views < items);
-            Assert.Equal("{\"name\":\"v\",\"eye\":[0,0,10],\"target\":[0,0,0],\"up\":[0,1,0],\"ortho\":true,\"width\":12.5}", lines[views + 1]);
+            Assert.Equal(
+                "{\"name\":\"v\",\"eye\":[0,0,10],\"target\":[0,0,0],\"up\":[0,1,0],\"ortho\":true,\"width\":12.5}",
+                lines[views + 1]
+            );
             Assert.DoesNotContain("\r", writer.ToJson(), StringComparison.Ordinal);
         }
     }

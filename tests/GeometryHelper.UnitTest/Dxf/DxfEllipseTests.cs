@@ -20,23 +20,35 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
 
-        private static readonly GeoTransform3 Turn = new GeoTransform3(new[,]
-        {
-            { 0.7816391739070251, -0.4829292842142122, 0.3947397981737998, 10.0 },
-            { 0.5501172307043584, 0.8320301337746346, -0.07139249941787586, -5.0 },
-            { -0.29395787843858057, 0.27295633888831433, 0.9160150668873173, 2.5 },
-            { 0.0, 0.0, 0.0, 1.0 },
-        });
+        private static readonly GeoTransform3 Turn = new GeoTransform3(
+            new[,]
+            {
+                { 0.7816391739070251, -0.4829292842142122, 0.3947397981737998, 10.0 },
+                { 0.5501172307043584, 0.8320301337746346, -0.07139249941787586, -5.0 },
+                { -0.29395787843858057, 0.27295633888831433, 0.9160150668873173, 2.5 },
+                { 0.0, 0.0, 0.0, 1.0 },
+            }
+        );
 
-        private static readonly GeoTransform3 Shear = new GeoTransform3(new[,]
-        {
-            { 0.9210609940028851, -0.3894183423086505, 0.0, 1.0 },
-            { 0.778836684617301, 1.8421219880057702, 0.0, 2.0 },
-            { 0.0, 0.0, 1.0, 3.0 },
-            { 0.0, 0.0, 0.0, 1.0 },
-        });
+        private static readonly GeoTransform3 Shear = new GeoTransform3(
+            new[,]
+            {
+                { 0.9210609940028851, -0.3894183423086505, 0.0, 1.0 },
+                { 0.778836684617301, 1.8421219880057702, 0.0, 2.0 },
+                { 0.0, 0.0, 1.0, 3.0 },
+                { 0.0, 0.0, 0.0, 1.0 },
+            }
+        );
 
-        private static readonly GeoTransform3 Mirror = new GeoTransform3(new double[,] { { -1, 0, 0, 3 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } });
+        private static readonly GeoTransform3 Mirror = new GeoTransform3(
+            new double[,]
+            {
+                { -1, 0, 0, 3 },
+                { 0, 1, 0, 0 },
+                { 0, 0, 1, 0 },
+                { 0, 0, 0, 1 },
+            }
+        );
 
         [Fact]
         public void APartOfAnEllipse_IsReadAsEzdxfReadsIt_ItsAnglesNotItsParameters()
@@ -92,11 +104,22 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AnEllipse_IsWalkedByItsParameter_AndItsDistancesGoBackToTheirPoints()
         {
-            var ellipse = new DxfEllipse(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), new GeoVector3(10, 0, 0), 0.5, 0.0, 2.0 * Math.PI);
+            var ellipse = new DxfEllipse(
+                new GeoPoint3(0, 0, 0),
+                new GeoVector3(0, 0, 1),
+                new GeoVector3(10, 0, 0),
+                0.5,
+                0.0,
+                2.0 * Math.PI
+            );
             var near = new Tolerance(1E-12, 1E-12);
 
             Assert.True(ellipse.GetPointAtParameter(Math.PI / 2).IsEqualTo(new GeoPoint3(0, 5, 0), near));
-            Assert.Equal(Math.PI / 4, ellipse.GetParameterAtPoint(new GeoPoint3(10 * Math.Cos(Math.PI / 4), 5 * Math.Sin(Math.PI / 4), 0)), 14);
+            Assert.Equal(
+                Math.PI / 4,
+                ellipse.GetParameterAtPoint(new GeoPoint3(10 * Math.Cos(Math.PI / 4), 5 * Math.Sin(Math.PI / 4), 0)),
+                14
+            );
             Assert.Equal(Math.Atan2(0.5, 1.0), ellipse.GetAngleAtParameter(Math.PI / 4), 15);
             Assert.Equal(Math.PI / 4, ellipse.GetParameterAtAngle(Math.Atan2(0.5, 1.0)), 15);
 
@@ -109,27 +132,40 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.True(ellipse.GetFirstDerivative(0.0).IsEqualTo(new GeoVector3(0, 5, 0), near));
             Assert.True(ellipse.GetSecondDerivative(0.0).IsEqualTo(new GeoVector3(-10, 0, 0), near));
-            Assert.True(ellipse.GetClosestPointTo(new GeoPoint3(20, 0, 3), false).IsEqualTo(new GeoPoint3(10, 0, 0), near));
+            Assert.True(
+                ellipse.GetClosestPointTo(new GeoPoint3(20, 0, 3), false).IsEqualTo(new GeoPoint3(10, 0, 0), near)
+            );
             Assert.Throws<NotSupportedException>(() => ellipse.Extend(7.0));
 
             // The curve 1 out from the ellipse of radii 10 and 5 is a spline, as AutoCAD gives one; 1 in about the reversed normal too.
             var outer = (DxfSpline)Assert.Single(ellipse.GetOffsetCurves(1.0));
-            var flipped = (DxfSpline)Assert.Single(ellipse.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(0, 0, -1), 1.0));
+            var flipped = (DxfSpline)
+                Assert.Single(ellipse.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(0, 0, -1), 1.0));
             var inner = (DxfSpline)Assert.Single(ellipse.GetOffsetCurves(-1.0));
 
             for (int i = 0; i < 24; i++)
             {
-                GeoPoint3 q = outer.GetPointAtParameter(outer.StartParam + (outer.EndParam - outer.StartParam) * i / 24);
-                Assert.True(Math.Abs(ellipse.GetClosestPointTo(q, false).DistanceTo(q) - 1.0) <= Tolerance.Default.EqualPoint);
+                GeoPoint3 q = outer.GetPointAtParameter(
+                    outer.StartParam + (outer.EndParam - outer.StartParam) * i / 24
+                );
+                Assert.True(
+                    Math.Abs(ellipse.GetClosestPointTo(q, false).DistanceTo(q) - 1.0) <= Tolerance.Default.EqualPoint
+                );
                 Assert.True(q.X * q.X / 100 + q.Y * q.Y / 25 > 1.0);
-                GeoPoint3 r = flipped.GetPointAtParameter(flipped.StartParam + (flipped.EndParam - flipped.StartParam) * i / 24);
+                GeoPoint3 r = flipped.GetPointAtParameter(
+                    flipped.StartParam + (flipped.EndParam - flipped.StartParam) * i / 24
+                );
                 Assert.True(r.X * r.X / 100 + r.Y * r.Y / 25 > 1.0);
-                GeoPoint3 s = inner.GetPointAtParameter(inner.StartParam + (inner.EndParam - inner.StartParam) * i / 24);
+                GeoPoint3 s = inner.GetPointAtParameter(
+                    inner.StartParam + (inner.EndParam - inner.StartParam) * i / 24
+                );
                 Assert.True(s.X * s.X / 100 + s.Y * s.Y / 25 < 1.0);
             }
 
             Assert.True(outer.Closed);
-            Assert.Throws<ArgumentException>(() => ellipse.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(1, 0, 0), 1.0));
+            Assert.Throws<ArgumentException>(() =>
+                ellipse.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(1, 0, 0), 1.0)
+            );
 
             IReadOnlyList<DxfCurve> pieces = ellipse.GetSplitCurves(new[] { 1.0, 4.0 });
             Assert.Equal(2, pieces.Count);
@@ -194,10 +230,19 @@ namespace GeometryHelper.UnitTest.Dxf
             // The parameters are what ezdxf's oracle writes: atan2(sin a, ratio cos a), from nought up to 2 pi.
             Assert.Equal(Math.Atan2(Math.Sin(0.6), 0.35 * Math.Cos(0.6)), again.StartParam);
 
-            again.Set(new GeoPoint3(1, 2, 3), new GeoVector3(0, 0, 1), new GeoVector3(0, 4, 0), 0.25, 0.0, 2.0 * Math.PI);
+            again.Set(
+                new GeoPoint3(1, 2, 3),
+                new GeoVector3(0, 0, 1),
+                new GeoVector3(0, 4, 0),
+                0.25,
+                0.0,
+                2.0 * Math.PI
+            );
             Assert.Equal(Bits(new GeoVector3(0, 4, 0)), Bits(again.MajorAxis));
             Assert.True(again.Closed);
-            Assert.Throws<ArgumentException>(() => again.Set(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), new GeoVector3(0, 0, 4), 0.5, 0, 1));
+            Assert.Throws<ArgumentException>(() =>
+                again.Set(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), new GeoVector3(0, 0, 4), 0.5, 0, 1)
+            );
             Assert.Throws<ArgumentOutOfRangeException>(() => again.RadiusRatio = 1.5);
         }
 
@@ -207,7 +252,14 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                var ellipse = new DxfEllipse(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), new GeoVector3(4, 0, 0), 0.5, 0.0, 2.0 * Math.PI);
+                var ellipse = new DxfEllipse(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoVector3(0, 0, 1),
+                    new GeoVector3(4, 0, 0),
+                    0.5,
+                    0.0,
+                    2.0 * Math.PI
+                );
 
                 db.ModelSpace.AppendEntity(ellipse);
 
@@ -267,10 +319,14 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(new GeoPoint3(9.536436208636118, -3.7840124765396412, 0.0), mirrored.EndPoint, 1E-9);
         }
 
-        private static void Near(GeoPoint3 expected, GeoPoint3 actual, double relative)
-            => Assert.True(actual.DistanceTo(expected) <= relative * Math.Max(1.0, Math.Abs(expected.X) + Math.Abs(expected.Y) + Math.Abs(expected.Z)), actual + " is not " + expected);
+        private static void Near(GeoPoint3 expected, GeoPoint3 actual, double relative) =>
+            Assert.True(
+                actual.DistanceTo(expected)
+                    <= relative * Math.Max(1.0, Math.Abs(expected.X) + Math.Abs(expected.Y) + Math.Abs(expected.Z)),
+                actual + " is not " + expected
+            );
 
-        private static void Near(GeoVector3 expected, GeoVector3 actual)
-            => Assert.True(actual.Subtract(expected).Length <= 1E-9, actual + " is not " + expected);
+        private static void Near(GeoVector3 expected, GeoVector3 actual) =>
+            Assert.True(actual.Subtract(expected).Length <= 1E-9, actual + " is not " + expected);
     }
 }

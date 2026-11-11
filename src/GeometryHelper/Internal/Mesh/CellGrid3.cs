@@ -73,7 +73,15 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance, whose point a cell has to be larger than.</param>
         /// <param name="name">The axis, for a message.</param>
         /// <exception cref="ArgumentException">Thrown when a cell is no larger than the point tolerance.</exception>
-        internal static Lines Lay(CellAxis axis, double min, double max, double joint, bool anchored, Tolerance tolerance, string name)
+        internal static Lines Lay(
+            CellAxis axis,
+            double min,
+            double max,
+            double joint,
+            bool anchored,
+            Tolerance tolerance,
+            string name
+        )
         {
             if (axis.IsWhole)
             {
@@ -87,14 +95,20 @@ namespace GeometryHelper.Core
                 // Counted before anything is laid out for them: the most an int holds would not fit in memory.
                 if (n > MaxCells)
                 {
-                    throw new ArgumentException($"{n} cells along the {name} axis are more than the {MaxCells} cells a grid may have.", "options");
+                    throw new ArgumentException(
+                        $"{n} cells along the {name} axis are more than the {MaxCells} cells a grid may have.",
+                        "options"
+                    );
                 }
 
                 double size = (max - min - (n - 1) * joint) / n;
 
                 if (!(size > tolerance.EqualPoint))
                 {
-                    throw new ArgumentException($"Divided into {n}, the body leaves cells of {size} along its {name} axis, no larger than the point tolerance.", "options");
+                    throw new ArgumentException(
+                        $"Divided into {n}, the body leaves cells of {size} along its {name} axis, no larger than the point tolerance.",
+                        "options"
+                    );
                 }
 
                 var starts = new double[n];
@@ -108,7 +122,10 @@ namespace GeometryHelper.Core
 
                 for (int i = 0; i < n; i++)
                 {
-                    ends[i] = i == n - 1 ? max : joint == 0.0 ? starts[i + 1] : starts[i] + size;
+                    ends[i] =
+                        i == n - 1 ? max
+                        : joint == 0.0 ? starts[i + 1]
+                        : starts[i] + size;
                 }
 
                 return new Lines(starts, ends);
@@ -117,11 +134,23 @@ namespace GeometryHelper.Core
             return LayBySize(axis.Size, axis.Alignment, min, max, joint, anchored, tolerance, name);
         }
 
-        private static Lines LayBySize(double size, GridAlignment alignment, double min, double max, double joint, bool anchored, Tolerance tolerance, string name)
+        private static Lines LayBySize(
+            double size,
+            GridAlignment alignment,
+            double min,
+            double max,
+            double joint,
+            bool anchored,
+            Tolerance tolerance,
+            string name
+        )
         {
             if (!(size > tolerance.EqualPoint))
             {
-                throw new ArgumentException($"A cell of {size} along the {name} axis is no larger than the point tolerance.", "options");
+                throw new ArgumentException(
+                    $"A cell of {size} along the {name} axis is no larger than the point tolerance.",
+                    "options"
+                );
             }
 
             double pitch = size + joint;
@@ -154,7 +183,10 @@ namespace GeometryHelper.Core
             // below would never end.
             if ((max - min) / pitch > MaxCells + 2.0)
             {
-                throw new ArgumentException($"More than {MaxCells} cells along the {name} axis, which are more than a grid may have; the cells are far smaller than the body.", "options");
+                throw new ArgumentException(
+                    $"More than {MaxCells} cells along the {name} axis, which are more than a grid may have; the cells are far smaller than the body.",
+                    "options"
+                );
             }
 
             // The cells k that reach into the span: start + k pitch before its end, and start + k pitch + size past its
@@ -186,7 +218,10 @@ namespace GeometryHelper.Core
 
             if (count > MaxCells)
             {
-                throw new ArgumentException($"{count} cells along the {name} axis are more than the {MaxCells} cells a grid may have; the cells are far smaller than the body.", "options");
+                throw new ArgumentException(
+                    $"{count} cells along the {name} axis are more than the {MaxCells} cells a grid may have; the cells are far smaller than the body.",
+                    "options"
+                );
             }
 
             var starts = new double[(int)count];
@@ -221,7 +256,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Lays the grid through a body's corners.
         /// </summary>
-        private static Layout Lay(IReadOnlyList<GeoPoint3> points, GeoCoordinateSystem3 axes, CellOptions3 options, GeoPoint3? origin, Tolerance tolerance)
+        private static Layout Lay(
+            IReadOnlyList<GeoPoint3> points,
+            GeoCoordinateSystem3 axes,
+            CellOptions3 options,
+            GeoPoint3? origin,
+            Tolerance tolerance
+        )
         {
             // A joint no wider than the tolerance is none: the cells meet.
             double joint = options.Joint > tolerance.EqualPoint ? options.Joint : 0.0;
@@ -281,7 +322,8 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentException(
                     $"A grid of {lines[0].Count} by {lines[1].Count} by {lines[2].Count} cells through the body is more than the {MaxCells} cells a grid may have; the cells are far smaller than the body.",
-                    "options");
+                    "options"
+                );
             }
 
             // The frame's origin is where the first cells start, and everything is measured from there.
@@ -292,8 +334,18 @@ namespace GeometryHelper.Core
                 first[a] = lines[a].Count > 0 ? lines[a].Starts[0] : min[a];
             }
 
-            GeoPoint3 corner = reference.Add(directions[0].Multiply(first[0])).Add(directions[1].Multiply(first[1])).Add(directions[2].Multiply(first[2]));
-            var layout = new Layout { Frame = axes.WithOrigin(corner), Lines = new Lines[3], Min = new double[3], Max = new double[3], Joint = joint };
+            GeoPoint3 corner = reference
+                .Add(directions[0].Multiply(first[0]))
+                .Add(directions[1].Multiply(first[1]))
+                .Add(directions[2].Multiply(first[2]));
+            var layout = new Layout
+            {
+                Frame = axes.WithOrigin(corner),
+                Lines = new Lines[3],
+                Min = new double[3],
+                Max = new double[3],
+                Joint = joint,
+            };
 
             for (int a = 0; a < 3; a++)
             {
@@ -327,29 +379,34 @@ namespace GeometryHelper.Core
         /// joint apart, the point tolerance alone: the cuts bound the joints, and moved onto a corner within the joint they
         /// would carry a cell into it.
         /// </summary>
-        private static double SnapDistance(CellOptions3 options, Layout layout, Tolerance tolerance)
-            => layout.Joint > 0.0 ? tolerance.EqualPoint : Math.Max(options.SnapDistance, tolerance.EqualPoint);
+        private static double SnapDistance(CellOptions3 options, Layout layout, Tolerance tolerance) =>
+            layout.Joint > 0.0 ? tolerance.EqualPoint : Math.Max(options.SnapDistance, tolerance.EqualPoint);
 
         /// <summary>
         /// How near the far side of a part a cut is not made, the slice staying on the part: the snap distance, or four point
         /// tolerances if more. Between cells a joint apart, the point tolerance alone: a slice past a joint is the cell
         /// beyond's, and kept on the part before it, it would go with the joint.
         /// </summary>
-        private static double Reach(CellOptions3 options, Layout layout, Tolerance tolerance)
-            => layout.Joint > 0.0 ? tolerance.EqualPoint : Math.Max(SnapDistance(options, layout, tolerance), Tip * tolerance.EqualPoint);
+        private static double Reach(CellOptions3 options, Layout layout, Tolerance tolerance) =>
+            layout.Joint > 0.0
+                ? tolerance.EqualPoint
+                : Math.Max(SnapDistance(options, layout, tolerance), Tip * tolerance.EqualPoint);
 
         /// <summary>
         /// How near a side of a part a cut moved onto a corner is not made: four point tolerances, or between cells a joint
         /// apart the point tolerance, as <see cref="Reach"/> says.
         /// </summary>
-        private static double TipOf(Layout layout, Tolerance tolerance) => (layout.Joint > 0.0 ? 1.0 : Tip) * tolerance.EqualPoint;
+        private static double TipOf(Layout layout, Tolerance tolerance) =>
+            (layout.Joint > 0.0 ? 1.0 : Tip) * tolerance.EqualPoint;
 
-        private static GeoCellGrid3 Empty(Layout layout, Tolerance tolerance)
-            => new GeoCellGrid3(layout.Frame, Starts(layout), Ends(layout), new GeoCell3[0], layout.Joint, tolerance);
+        private static GeoCellGrid3 Empty(Layout layout, Tolerance tolerance) =>
+            new GeoCellGrid3(layout.Frame, Starts(layout), Ends(layout), new GeoCell3[0], layout.Joint, tolerance);
 
-        private static double[][] Starts(Layout layout) => new[] { layout.Lines[0].Starts, layout.Lines[1].Starts, layout.Lines[2].Starts };
+        private static double[][] Starts(Layout layout) =>
+            new[] { layout.Lines[0].Starts, layout.Lines[1].Starts, layout.Lines[2].Starts };
 
-        private static double[][] Ends(Layout layout) => new[] { layout.Lines[0].Ends, layout.Lines[1].Ends, layout.Lines[2].Ends };
+        private static double[][] Ends(Layout layout) =>
+            new[] { layout.Lines[0].Ends, layout.Lines[1].Ends, layout.Lines[2].Ends };
 
         #endregion
 
@@ -381,13 +438,26 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Cuts a box into the cells of a grid whose axes run along its sides, by arithmetic: every cell is a box.
         /// </summary>
-        public static GeoCellGrid3 OfBox(GeoObb3 box, GeoCoordinateSystem3 axes, CellOptions3 options, GeoPoint3? origin, Tolerance tolerance)
+        public static GeoCellGrid3 OfBox(
+            GeoObb3 box,
+            GeoCoordinateSystem3 axes,
+            CellOptions3 options,
+            GeoPoint3? origin,
+            Tolerance tolerance
+        )
         {
             if (box.IsDegenerate(tolerance))
             {
                 // A flat box holds nothing, and lays no cells.
                 var none = new double[0];
-                return new GeoCellGrid3(axes.WithOrigin(box.Center), new[] { none, none, none }, new[] { none, none, none }, new GeoCell3[0], 0.0, tolerance);
+                return new GeoCellGrid3(
+                    axes.WithOrigin(box.Center),
+                    new[] { none, none, none },
+                    new[] { none, none, none },
+                    new GeoCell3[0],
+                    0.0,
+                    tolerance
+                );
             }
 
             Layout layout = Lay(box.GetCorners(), axes, options, origin, tolerance);
@@ -408,7 +478,9 @@ namespace GeometryHelper.Core
             }
 
             var cells = new List<GeoCell3>();
-            Lines xs = layout.Lines[0], ys = layout.Lines[1], zs = layout.Lines[2];
+            Lines xs = layout.Lines[0],
+                ys = layout.Lines[1],
+                zs = layout.Lines[2];
 
             for (int k = 0; k < zs.Count; k++)
             {
@@ -431,30 +503,60 @@ namespace GeometryHelper.Core
                             continue;
                         }
 
-                        GeoObb3 whole = GeoCellGrid3.BoxOf(layout.Frame, xs.Starts[i], xs.Ends[i], ys.Starts[j], ys.Ends[j], zs.Starts[k], zs.Ends[k]);
-                        GeoObb3 material = GeoCellGrid3.BoxOf(layout.Frame, low[0][i], high[0][i], low[1][j], high[1][j], low[2][k], high[2][k]);
-                        bool isWhole = Same(low[0][i], xs.Starts[i], tolerance) && Same(high[0][i], xs.Ends[i], tolerance)
-                            && Same(low[1][j], ys.Starts[j], tolerance) && Same(high[1][j], ys.Ends[j], tolerance)
-                            && Same(low[2][k], zs.Starts[k], tolerance) && Same(high[2][k], zs.Ends[k], tolerance);
+                        GeoObb3 whole = GeoCellGrid3.BoxOf(
+                            layout.Frame,
+                            xs.Starts[i],
+                            xs.Ends[i],
+                            ys.Starts[j],
+                            ys.Ends[j],
+                            zs.Starts[k],
+                            zs.Ends[k]
+                        );
+                        GeoObb3 material = GeoCellGrid3.BoxOf(
+                            layout.Frame,
+                            low[0][i],
+                            high[0][i],
+                            low[1][j],
+                            high[1][j],
+                            low[2][k],
+                            high[2][k]
+                        );
+                        bool isWhole =
+                            Same(low[0][i], xs.Starts[i], tolerance)
+                            && Same(high[0][i], xs.Ends[i], tolerance)
+                            && Same(low[1][j], ys.Starts[j], tolerance)
+                            && Same(high[1][j], ys.Ends[j], tolerance)
+                            && Same(low[2][k], zs.Starts[k], tolerance)
+                            && Same(high[2][k], zs.Ends[k], tolerance);
                         double volume = (high[0][i] - low[0][i]) * (high[1][j] - low[1][j]) * (high[2][k] - low[2][k]);
 
-                        cells.Add(new GeoCell3(
-                            i,
-                            j,
-                            k,
-                            0,
-                            whole,
-                            null,
-                            material,
-                            isWhole,
-                            volume,
-                            new[] { low[0][i], low[1][j], low[2][k] },
-                            new[] { high[0][i], high[1][j], high[2][k] }));
+                        cells.Add(
+                            new GeoCell3(
+                                i,
+                                j,
+                                k,
+                                0,
+                                whole,
+                                null,
+                                material,
+                                isWhole,
+                                volume,
+                                new[] { low[0][i], low[1][j], low[2][k] },
+                                new[] { high[0][i], high[1][j], high[2][k] }
+                            )
+                        );
                     }
                 }
             }
 
-            return new GeoCellGrid3(layout.Frame, Starts(layout), Ends(layout), cells.ToArray(), layout.Joint, tolerance);
+            return new GeoCellGrid3(
+                layout.Frame,
+                Starts(layout),
+                Ends(layout),
+                cells.ToArray(),
+                layout.Joint,
+                tolerance
+            );
         }
 
         /// <summary>
@@ -468,7 +570,15 @@ namespace GeometryHelper.Core
         /// <param name="near">The point tolerance, within which a slice either side of a cut is as thick as the other.</param>
         /// <param name="low">Where each cell's part starts.</param>
         /// <param name="high">Where it ends.</param>
-        private static void Spans(Lines lines, double min, double max, double reach, double near, double[] low, double[] high)
+        private static void Spans(
+            Lines lines,
+            double min,
+            double max,
+            double reach,
+            double near,
+            double[] low,
+            double[] high
+        )
         {
             // What is left of the box: from here to its far side, while anything is.
             double from = min;
@@ -503,7 +613,10 @@ namespace GeometryHelper.Core
 
                 int end = Decide(lines.Ends[i], from, max, reach, near);
                 low[i] = from;
-                high[i] = end < 0 ? max : end == 0 ? lines.Ends[i] : from;
+                high[i] =
+                    end < 0 ? max
+                    : end == 0 ? lines.Ends[i]
+                    : from;
 
                 if (end < 0)
                 {
@@ -551,10 +664,12 @@ namespace GeometryHelper.Core
         public static GeoSolid3 BoxSolid(GeoObb3 box)
         {
             GeoPoint3[] c = box.GetCorners();
-            double sx = box.SizeX, sy = box.SizeY, sz = box.SizeZ;
+            double sx = box.SizeX,
+                sy = box.SizeY,
+                sz = box.SizeZ;
 
-            GeoFace3 Face(GeoVector3 normal, double area, params GeoPoint3[] corners)
-                => new GeoFace3(GeoPolygon3.FromValidated(corners, normal, area));
+            GeoFace3 Face(GeoVector3 normal, double area, params GeoPoint3[] corners) =>
+                new GeoFace3(GeoPolygon3.FromValidated(corners, normal, area));
 
             return new GeoSolid3(
                 Face(box.AxisZ.Negate(), sx * sy, c[0], c[3], c[2], c[1]),
@@ -562,7 +677,8 @@ namespace GeometryHelper.Core
                 Face(box.AxisY.Negate(), sx * sz, c[0], c[1], c[5], c[4]),
                 Face(box.AxisY, sx * sz, c[2], c[3], c[7], c[6]),
                 Face(box.AxisX, sy * sz, c[1], c[2], c[6], c[5]),
-                Face(box.AxisX.Negate(), sy * sz, c[3], c[0], c[4], c[7]));
+                Face(box.AxisX.Negate(), sy * sz, c[3], c[0], c[4], c[7])
+            );
         }
 
         #endregion
@@ -602,7 +718,14 @@ namespace GeometryHelper.Core
                 var highs = (double[])High.Clone();
                 lows[axis] = low;
                 highs[axis] = high;
-                return new Piece(solid, lows, highs, axis == 0 ? index : I, axis == 1 ? index : J, axis == 2 ? index : K);
+                return new Piece(
+                    solid,
+                    lows,
+                    highs,
+                    axis == 0 ? index : I,
+                    axis == 1 ? index : J,
+                    axis == 2 ? index : K
+                );
             }
         }
 
@@ -633,7 +756,16 @@ namespace GeometryHelper.Core
         /// The tolerance the cells were asked within: below the rounding of the coordinates, where the body is cut within the
         /// rounding (see <see cref="Splition3.BelowTheRounding"/>), a finer one, which each cell is welded to close within.
         /// </param>
-        public static GeoCellGrid3 OfSolid(GeoSolid3 gross, GeoSolid3 material, IReadOnlyList<GeoSolid3> openings, GeoCoordinateSystem3 axes, CellOptions3 options, GeoPoint3? origin, Tolerance tolerance, Tolerance asked)
+        public static GeoCellGrid3 OfSolid(
+            GeoSolid3 gross,
+            GeoSolid3 material,
+            IReadOnlyList<GeoSolid3> openings,
+            GeoCoordinateSystem3 axes,
+            CellOptions3 options,
+            GeoPoint3? origin,
+            Tolerance tolerance,
+            Tolerance asked
+        )
         {
             Layout layout = Lay(Corners(gross), axes, options, origin, tolerance);
 
@@ -687,20 +819,32 @@ namespace GeometryHelper.Core
                 all.AddRange(found);
             }
 
-            all.Sort((a, b) =>
-            {
-                int byK = a.K.CompareTo(b.K);
-
-                if (byK != 0)
+            all.Sort(
+                (a, b) =>
                 {
-                    return byK;
+                    int byK = a.K.CompareTo(b.K);
+
+                    if (byK != 0)
+                    {
+                        return byK;
+                    }
+
+                    int byJ = a.J.CompareTo(b.J);
+                    return byJ != 0 ? byJ
+                        : a.I.CompareTo(b.I) != 0 ? a.I.CompareTo(b.I)
+                        : a.Piece.CompareTo(b.Piece);
                 }
+            );
 
-                int byJ = a.J.CompareTo(b.J);
-                return byJ != 0 ? byJ : a.I.CompareTo(b.I) != 0 ? a.I.CompareTo(b.I) : a.Piece.CompareTo(b.Piece);
-            });
-
-            return new GeoCellGrid3(layout.Frame, Starts(layout), Ends(layout), all.ToArray(), layout.Joint, tolerance, asked);
+            return new GeoCellGrid3(
+                layout.Frame,
+                Starts(layout),
+                Ends(layout),
+                all.ToArray(),
+                layout.Joint,
+                tolerance,
+                asked
+            );
         }
 
         /// <summary>
@@ -774,7 +918,11 @@ namespace GeometryHelper.Core
             GeoSolid3 rest = piece.Solid;
             double low = piece.Low[axis];
 
-            if (lines.Count == 1 && lines.Starts[0] <= cutting.Layout.Min[axis] && lines.Ends[0] >= cutting.Layout.Max[axis])
+            if (
+                lines.Count == 1
+                && lines.Starts[0] <= cutting.Layout.Min[axis]
+                && lines.Ends[0] >= cutting.Layout.Max[axis]
+            )
             {
                 // A whole axis, or one cell reaching past the body both ways: nothing to cut.
                 found.Add(piece.With(rest, axis, 0, low, piece.High[axis]));
@@ -899,7 +1047,9 @@ namespace GeometryHelper.Core
 
             if (over <= cutting.Reach || under <= cutting.Reach)
             {
-                return over <= cutting.Reach && (under > cutting.Reach || under >= over - cutting.Tolerance.EqualPoint) ? new Cut { Below = piece } : new Cut { Above = piece };
+                return over <= cutting.Reach && (under > cutting.Reach || under >= over - cutting.Tolerance.EqualPoint)
+                    ? new Cut { Below = piece }
+                    : new Cut { Above = piece };
             }
 
             if (!double.IsNaN(nearest))
@@ -923,7 +1073,13 @@ namespace GeometryHelper.Core
 
             if (Splition3.TrySplitCell(piece, plane, out GeoSolid3 above, out GeoSolid3 below, cutting.Tolerance))
             {
-                return new Cut { Below = below, Above = above, Made = true, At = at };
+                return new Cut
+                {
+                    Below = below,
+                    Above = above,
+                    Made = true,
+                    At = at,
+                };
             }
 
             // The point of a needle past the plane, however deep, can be thinner across than the point tolerance where the
@@ -938,8 +1094,13 @@ namespace GeometryHelper.Core
             // A cut the body would not take, which a closed body should never give: the piece goes whole to the side of its
             // middle, or where one side is a joint or past the cells to the side a cell takes, so that nothing of the body is
             // lost, and the grid says so.
-            bool toBelow = kept == Kept.Both ? origin.GetVectorTo(piece.GrossCentroid).DotProduct(direction) < at : kept == Kept.Below;
-            GeometryHelperLog.Warn($"Cells: a cut square to the grid's {AxisNames[axis]} axis at {at} through a piece of the body could not be made; the piece is kept whole in the cell {(toBelow ? "below" : "above")}.");
+            bool toBelow =
+                kept == Kept.Both
+                    ? origin.GetVectorTo(piece.GrossCentroid).DotProduct(direction) < at
+                    : kept == Kept.Below;
+            GeometryHelperLog.Warn(
+                $"Cells: a cut square to the grid's {AxisNames[axis]} axis at {at} through a piece of the body could not be made; the piece is kept whole in the cell {(toBelow ? "below" : "above")}."
+            );
 
             return toBelow ? new Cut { Below = piece } : new Cut { Above = piece };
         }
@@ -971,7 +1132,13 @@ namespace GeometryHelper.Core
                 return piece;
             }
 
-            bool cut = Boolean3.TryCutOpenings(piece, meeting, out GeoSolid3 material, tolerance, out Exception failure);
+            bool cut = Boolean3.TryCutOpenings(
+                piece,
+                meeting,
+                out GeoSolid3 material,
+                tolerance,
+                out Exception failure
+            );
 
             if (failure == null && !cut)
             {
@@ -983,7 +1150,10 @@ namespace GeometryHelper.Core
                 return material;
             }
 
-            GeometryHelperLog.Warn("Cells: the openings a cell meets could not be cut into it; the cell keeps their material.", failure);
+            GeometryHelperLog.Warn(
+                "Cells: the openings a cell meets could not be cut into it; the cell keeps their material.",
+                failure
+            );
             return piece;
         }
 
@@ -991,7 +1161,13 @@ namespace GeometryHelper.Core
         /// The cells a piece makes: one for each part of it that does not touch the others, numbered in turn up Z, along Y
         /// and along X by their middles.
         /// </summary>
-        private static List<GeoCell3> Cells(Piece piece, IReadOnlyList<GeoSolid3> openings, Layout layout, Tolerance tolerance, Tolerance asked)
+        private static List<GeoCell3> Cells(
+            Piece piece,
+            IReadOnlyList<GeoSolid3> openings,
+            Layout layout,
+            Tolerance tolerance,
+            Tolerance asked
+        )
         {
             GeoSolid3 material = CutIn(piece.Solid, openings, tolerance);
 
@@ -1008,23 +1184,30 @@ namespace GeometryHelper.Core
                 parts.Add((shell, layout.Frame.ToLocal(shell.GrossCentroid)));
             }
 
-            parts.Sort((a, b) =>
-            {
-                int byZ = a.Middle.Z.CompareTo(b.Middle.Z);
-
-                if (byZ != 0)
+            parts.Sort(
+                (a, b) =>
                 {
-                    return byZ;
+                    int byZ = a.Middle.Z.CompareTo(b.Middle.Z);
+
+                    if (byZ != 0)
+                    {
+                        return byZ;
+                    }
+
+                    int byY = a.Middle.Y.CompareTo(b.Middle.Y);
+                    return byY != 0 ? byY : a.Middle.X.CompareTo(b.Middle.X);
                 }
+            );
 
-                int byY = a.Middle.Y.CompareTo(b.Middle.Y);
-                return byY != 0 ? byY : a.Middle.X.CompareTo(b.Middle.X);
-            });
-
-            Lines xs = layout.Lines[0], ys = layout.Lines[1], zs = layout.Lines[2];
-            double x0 = xs.Starts[piece.I], x1 = xs.Ends[piece.I];
-            double y0 = ys.Starts[piece.J], y1 = ys.Ends[piece.J];
-            double z0 = zs.Starts[piece.K], z1 = zs.Ends[piece.K];
+            Lines xs = layout.Lines[0],
+                ys = layout.Lines[1],
+                zs = layout.Lines[2];
+            double x0 = xs.Starts[piece.I],
+                x1 = xs.Ends[piece.I];
+            double y0 = ys.Starts[piece.J],
+                y1 = ys.Ends[piece.J];
+            double z0 = zs.Starts[piece.K],
+                z1 = zs.Ends[piece.K];
             GeoObb3 whole = GeoCellGrid3.BoxOf(layout.Frame, x0, x1, y0, y1, z0, z1);
             double boxVolume = (x1 - x0) * (y1 - y0) * (z1 - z0);
             double boxArea = 2.0 * ((x1 - x0) * (y1 - y0) + (y1 - y0) * (z1 - z0) + (z1 - z0) * (x1 - x0));
@@ -1039,7 +1222,11 @@ namespace GeometryHelper.Core
                 // Cut within the rounding of the coordinates, below which the cells were asked, a cell meets on corners as far
                 // apart as it: made one, it closes within the tolerance asked too, as the cut of openings asked so welds its
                 // material.
-                if (asked.EqualPoint < tolerance.EqualPoint && !solid.ClosesByCorners(asked) && Weld3.TryWeld(solid, tolerance, asked, out GeoSolid3 welded))
+                if (
+                    asked.EqualPoint < tolerance.EqualPoint
+                    && !solid.ClosesByCorners(asked)
+                    && Weld3.TryWeld(solid, tolerance, asked, out GeoSolid3 welded)
+                )
                 {
                     solid = welded;
                 }
@@ -1049,11 +1236,26 @@ namespace GeometryHelper.Core
                 // The body fills the cell but for a skin no thicker than the point tolerance: every face it has there lies on
                 // a side of the cell, as a box's whole cell is cut by none of its sides. The volume alone would let through a
                 // hole or a pocket taking less than the skin's.
-                bool isWhole = parts.Count == 1
+                bool isWhole =
+                    parts.Count == 1
                     && Math.Abs(boxVolume - volume) <= tolerance.EqualPoint * boxArea
                     && OnSides(solid, layout.Frame, low, high, tolerance);
 
-                cells.Add(new GeoCell3(piece.I, piece.J, piece.K, p, whole, solid, null, isWhole, volume, (double[])piece.Low.Clone(), (double[])piece.High.Clone()));
+                cells.Add(
+                    new GeoCell3(
+                        piece.I,
+                        piece.J,
+                        piece.K,
+                        p,
+                        whole,
+                        solid,
+                        null,
+                        isWhole,
+                        volume,
+                        (double[])piece.Low.Clone(),
+                        (double[])piece.High.Clone()
+                    )
+                );
             }
 
             return cells;
@@ -1062,7 +1264,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Whether every face of a body lies on a side of a cell, within the point tolerance.
         /// </summary>
-        private static bool OnSides(GeoSolid3 solid, GeoCoordinateSystem3 frame, double[] low, double[] high, Tolerance tolerance)
+        private static bool OnSides(
+            GeoSolid3 solid,
+            GeoCoordinateSystem3 frame,
+            double[] low,
+            double[] high,
+            Tolerance tolerance
+        )
         {
             foreach (GeoFace3 face in solid.Faces)
             {
@@ -1091,7 +1299,10 @@ namespace GeometryHelper.Core
             foreach (GeoPoint3 corner in face.Boundary.Vertices)
             {
                 GeoPoint3 local = frame.ToLocal(corner);
-                double d = axis == 0 ? local.X : axis == 1 ? local.Y : local.Z;
+                double d =
+                    axis == 0 ? local.X
+                    : axis == 1 ? local.Y
+                    : local.Z;
 
                 if (Math.Abs(d - at) > tolerance.EqualPoint)
                 {

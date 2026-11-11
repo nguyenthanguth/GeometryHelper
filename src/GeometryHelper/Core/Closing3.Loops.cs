@@ -50,7 +50,16 @@ namespace GeometryHelper.Core
         /// </remarks>
         private static bool TryReadOpenEdges(Work work, out List<Rim> rims)
         {
-            if (TryReadOpenEdges(work.Stretches, work.Dropped, work.Turned, work.Options.MaxGap, out rims, out GeoPoint3 at))
+            if (
+                TryReadOpenEdges(
+                    work.Stretches,
+                    work.Dropped,
+                    work.Turned,
+                    work.Options.MaxGap,
+                    out rims,
+                    out GeoPoint3 at
+                )
+            )
             {
                 return true;
             }
@@ -71,14 +80,23 @@ namespace GeometryHelper.Core
         /// <param name="rims">The edges left open, those pieces of gaps among them; empty where nothing is open.</param>
         /// <param name="fin">The middle of the first stretch a fin stands on, where there is one; the origin otherwise.</param>
         /// <returns>false where a fin longer than the widest gap stands on an edge left open.</returns>
-        private static bool TryReadOpenEdges(List<Stretch> stretches, bool[] dropped, bool[] turned, double maxGap, out List<Rim> rims, out GeoPoint3 fin)
+        private static bool TryReadOpenEdges(
+            List<Stretch> stretches,
+            bool[] dropped,
+            bool[] turned,
+            double maxGap,
+            out List<Rim> rims,
+            out GeoPoint3 fin
+        )
         {
             rims = new List<Rim>();
             fin = GeoPoint3.Origin;
 
             foreach (Stretch stretch in stretches)
             {
-                int count = 0, forward = 0, live = -1;
+                int count = 0,
+                    forward = 0,
+                    live = -1;
 
                 for (int r = 0; r < stretch.Faces.Length; r++)
                 {
@@ -120,7 +138,11 @@ namespace GeometryHelper.Core
                 if (count == 1)
                 {
                     (GeoPoint3 Start, GeoPoint3 End) edge = stretch.Edges[live];
-                    rims.Add(forward == 1 ? new Rim(stretch.End, stretch.Start, edge) : new Rim(stretch.Start, stretch.End, edge));
+                    rims.Add(
+                        forward == 1
+                            ? new Rim(stretch.End, stretch.Start, edge)
+                            : new Rim(stretch.Start, stretch.End, edge)
+                    );
                 }
             }
 
@@ -269,7 +291,13 @@ namespace GeometryHelper.Core
         /// body is still open there.
         /// </para>
         /// </remarks>
-        private static bool TryChainLoops(List<Rim> rims, Tolerance tolerance, out List<Loop> loops, out ClosingFailure failure, out GeoPoint3 at)
+        private static bool TryChainLoops(
+            List<Rim> rims,
+            Tolerance tolerance,
+            out List<Loop> loops,
+            out ClosingFailure failure,
+            out GeoPoint3 at
+        )
         {
             loops = new List<Loop>();
             failure = ClosingFailure.None;
@@ -364,8 +392,7 @@ namespace GeometryHelper.Core
                     corners.Add(rims[e].From);
                     hole |= !rims[e].IsGap;
                     e = next[e];
-                }
-                while (e != seed && !used[e]);
+                } while (e != seed && !used[e]);
 
                 loops.Add(new Loop(corners, hole));
             }
@@ -389,7 +416,8 @@ namespace GeometryHelper.Core
 
             while (arrivals.Count > 1)
             {
-                int bestArrival = -1, bestDeparture = -1;
+                int bestArrival = -1,
+                    bestDeparture = -1;
                 double most = double.MaxValue;
 
                 foreach (int a in arrivals)
@@ -506,7 +534,10 @@ namespace GeometryHelper.Core
             {
                 foreach (GeoFace3 face in LoopAssembly.AssembleFacesIn(flat, plane, tolerance))
                 {
-                    if (HasCorner(face, loop.Corners[0], tolerance) && TryGetPointOn(face, tolerance, out GeoPoint3 inside))
+                    if (
+                        HasCorner(face, loop.Corners[0], tolerance)
+                        && TryGetPointOn(face, tolerance, out GeoPoint3 inside)
+                    )
                     {
                         return inside;
                     }

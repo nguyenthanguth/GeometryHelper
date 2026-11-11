@@ -46,7 +46,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!(xLength > 0.0) || !(zLength > 1E-12 * yAxis.Length))
             {
-                throw new ArgumentException("The axes of a UCS have a length and are not parallel: " + xAxis + " and " + yAxis + " are not.", nameof(xAxis));
+                throw new ArgumentException(
+                    "The axes of a UCS have a length and are not parallel: " + xAxis + " and " + yAxis + " are not.",
+                    nameof(xAxis)
+                );
             }
 
             Origin = origin;
@@ -54,8 +57,16 @@ namespace GeometryHelper.Dxf.Viewer
             ZAxis = z / zLength;
             YAxis = ZAxis.CrossProduct(XAxis);
             Name = string.IsNullOrEmpty(name) ? null : name;
-            IsWorld = origin.X == 0.0 && origin.Y == 0.0 && origin.Z == 0.0 && XAxis.X == 1.0 && XAxis.Y == 0.0 && XAxis.Z == 0.0
-                && YAxis.X == 0.0 && YAxis.Y == 1.0 && YAxis.Z == 0.0;
+            IsWorld =
+                origin.X == 0.0
+                && origin.Y == 0.0
+                && origin.Z == 0.0
+                && XAxis.X == 1.0
+                && XAxis.Y == 0.0
+                && XAxis.Z == 0.0
+                && YAxis.X == 0.0
+                && YAxis.Y == 1.0
+                && YAxis.Z == 0.0;
             IsPlanar = ZAxis.Z >= 1.0 - Tolerance.Default.EqualVector;
             Angle = Math.Atan2(XAxis.Y, XAxis.X);
             _cos = IsWorld ? 1.0 : Math.Cos(Angle);
@@ -104,7 +115,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             double cos = Math.Cos(angle);
             double sin = Math.Sin(angle);
-            return new CadUcs(new GeoPoint3(origin.X, origin.Y, 0.0), new GeoVector3(cos, sin, 0.0), new GeoVector3(-sin, cos, 0.0), name);
+            return new CadUcs(
+                new GeoPoint3(origin.X, origin.Y, 0.0),
+                new GeoVector3(cos, sin, 0.0),
+                new GeoVector3(-sin, cos, 0.0),
+                name
+            );
         }
 
         /// <summary>Gets a point of the world in this system: its distances along the X and Y axes from the origin.</summary>
@@ -125,7 +141,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the world point of a point given in this system.</summary>
         /// <param name="ucs">The point, in this system.</param>
         /// <returns>The point in world coordinates.</returns>
-        public GeoPoint2 ToWorld(GeoPoint2 ucs) => IsWorld ? ucs : new GeoPoint2(Origin.X + ucs.X * _cos - ucs.Y * _sin, Origin.Y + ucs.X * _sin + ucs.Y * _cos);
+        public GeoPoint2 ToWorld(GeoPoint2 ucs) =>
+            IsWorld
+                ? ucs
+                : new GeoPoint2(Origin.X + ucs.X * _cos - ucs.Y * _sin, Origin.Y + ucs.X * _sin + ucs.Y * _cos);
 
         /// <summary>Gets a point of the world in this system, in three dimensions.</summary>
         /// <param name="world">The point, in world coordinates.</param>
@@ -144,12 +163,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the world direction of a direction given in this system: turned by <see cref="Angle"/>.</summary>
         /// <param name="ucs">The direction, in this system.</param>
         /// <returns>The direction in world coordinates.</returns>
-        public GeoVector2 ToWorld(GeoVector2 ucs) => IsWorld ? ucs : new GeoVector2(ucs.X * _cos - ucs.Y * _sin, ucs.X * _sin + ucs.Y * _cos);
+        public GeoVector2 ToWorld(GeoVector2 ucs) =>
+            IsWorld ? ucs : new GeoVector2(ucs.X * _cos - ucs.Y * _sin, ucs.X * _sin + ucs.Y * _cos);
 
         /// <summary>Gets a direction of the world in this system.</summary>
         /// <param name="world">The direction, in world coordinates.</param>
         /// <returns>The direction in this system.</returns>
-        public GeoVector2 ToUcs(GeoVector2 world) => IsWorld ? world : new GeoVector2(world.X * _cos + world.Y * _sin, -world.X * _sin + world.Y * _cos);
+        public GeoVector2 ToUcs(GeoVector2 world) =>
+            IsWorld ? world : new GeoVector2(world.X * _cos + world.Y * _sin, -world.X * _sin + world.Y * _cos);
 
         /// <summary>Gets the world angle of an angle measured from this system's X axis: 30 degrees in a system turned 45 is 75 in the world.</summary>
         /// <param name="ucs">The angle from this system's X axis, in radians.</param>
@@ -178,15 +199,25 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(other));
             }
 
-            return (Origin - other.Origin).Length <= tolerance.EqualPoint && (XAxis - other.XAxis).Length <= tolerance.EqualVector
+            return (Origin - other.Origin).Length <= tolerance.EqualPoint
+                && (XAxis - other.XAxis).Length <= tolerance.EqualVector
                 && (YAxis - other.YAxis).Length <= tolerance.EqualVector;
         }
 
         /// <summary>Gives the system as a line: its name, origin and angle.</summary>
         /// <returns>The line, such as <c>Slab (100, 50, 0) at 30°</c>.</returns>
-        public override string ToString()
-            => (Name ?? (IsWorld ? "*WORLD*" : "*NO NAME*")) + " (" + Number(Origin.X) + ", " + Number(Origin.Y) + ", " + Number(Origin.Z) + ") at "
-                + Number(Angle * 180.0 / Math.PI) + "°" + (IsPlanar ? string.Empty : ", not parallel to the view");
+        public override string ToString() =>
+            (Name ?? (IsWorld ? "*WORLD*" : "*NO NAME*"))
+            + " ("
+            + Number(Origin.X)
+            + ", "
+            + Number(Origin.Y)
+            + ", "
+            + Number(Origin.Z)
+            + ") at "
+            + Number(Angle * 180.0 / Math.PI)
+            + "°"
+            + (IsPlanar ? string.Empty : ", not parallel to the view");
 
         private static string Number(double value) => (value + 0.0).ToString("0.####", CultureInfo.InvariantCulture);
 

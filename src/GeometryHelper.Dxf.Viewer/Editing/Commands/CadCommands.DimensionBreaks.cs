@@ -67,7 +67,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfEntity entity in crossed)
             {
-                if (entity.Handle != null && !breaks.Any(b => string.Equals(b.ObjectHandle, entity.Handle, StringComparison.OrdinalIgnoreCase)))
+                if (
+                    entity.Handle != null
+                    && !breaks.Any(b =>
+                        string.Equals(b.ObjectHandle, entity.Handle, StringComparison.OrdinalIgnoreCase)
+                    )
+                )
                 {
                     breaks.Add(new DimensionBreak(entity.Handle));
                     added = true;
@@ -110,8 +115,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DimensionBreak stored in breaks)
             {
-                if (stored.ObjectHandle != null && database != null && database.TryGetObject(stored.ObjectHandle, out DxfDBObject found)
-                    && found is DxfEntity entity && !ReferenceEquals(entity, dimension) && (entity is DxfLine || entity is DxfPolyline || entity is DxfCircle || entity is DxfArc))
+                if (
+                    stored.ObjectHandle != null
+                    && database != null
+                    && database.TryGetObject(stored.ObjectHandle, out DxfDBObject found)
+                    && found is DxfEntity entity
+                    && !ReferenceEquals(entity, dimension)
+                    && (entity is DxfLine || entity is DxfPolyline || entity is DxfCircle || entity is DxfArc)
+                )
                 {
                     cutters.Add(entity);
                 }
@@ -169,27 +180,44 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            if (groups.TryGetValue(331, out string handle) && !string.IsNullOrWhiteSpace(handle) && Whole(groups, 71) != 2)
+            if (
+                groups.TryGetValue(331, out string handle)
+                && !string.IsNullOrWhiteSpace(handle)
+                && Whole(groups, 71) != 2
+            )
             {
                 breaks.Add(new DimensionBreak(handle.Trim()));
             }
             else if (Whole(groups, 71) == 2)
             {
-                breaks.Add(new DimensionBreak(Whole(groups, 91), new GeoPoint3(Real(groups, 10), Real(groups, 20), Real(groups, 30)), new GeoPoint3(Real(groups, 11), Real(groups, 21), Real(groups, 31))));
+                breaks.Add(
+                    new DimensionBreak(
+                        Whole(groups, 91),
+                        new GeoPoint3(Real(groups, 10), Real(groups, 20), Real(groups, 30)),
+                        new GeoPoint3(Real(groups, 11), Real(groups, 21), Real(groups, 31))
+                    )
+                );
             }
         }
 
-        private static int Whole(Dictionary<int, string> groups, int code)
-            => groups.TryGetValue(code, out string text) && int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : 0;
+        private static int Whole(Dictionary<int, string> groups, int code) =>
+            groups.TryGetValue(code, out string text)
+            && int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : 0;
 
-        private static double Real(Dictionary<int, string> groups, int code)
-            => groups.TryGetValue(code, out string text) && double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ? value : 0.0;
+        private static double Real(Dictionary<int, string> groups, int code) =>
+            groups.TryGetValue(code, out string text)
+            && double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+                ? value
+                : 0.0;
 
         /// <summary>The BREAKDATA of a dimension, under ACAD_BREAKDATA in its extension dictionary; null where it has none.</summary>
         private static DxfDBObject BreakData(DxfDimension dimension)
         {
             DxfDBDictionary dictionary = dimension.Item == null ? null : dimension.ExtensionDictionary;
-            DxfDBObject data = dictionary != null && dictionary.Contains(BreakDataKey) ? dictionary.GetAt(BreakDataKey) : null;
+            DxfDBObject data =
+                dictionary != null && dictionary.Contains(BreakDataKey) ? dictionary.GetAt(BreakDataKey) : null;
             return data?.Item != null && data.Item.Type == "BREAKDATA" ? data : null;
         }
 
@@ -275,7 +303,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Puts the handle of a BREAKDATA among the reactors of the object a break is at, or takes it out; nothing for a break by hand or an object gone.</summary>
         private static void SetBreakReactor(DxfFile file, string objectHandle, string breakData, bool present)
         {
-            if (objectHandle != null && file.Database != null && file.Database.TryGetObject(objectHandle, out DxfDBObject found) && found.Item != null)
+            if (
+                objectHandle != null
+                && file.Database != null
+                && file.Database.TryGetObject(objectHandle, out DxfDBObject found)
+                && found.Item != null
+            )
             {
                 file.SetReactor(found.Item, breakData, present);
             }

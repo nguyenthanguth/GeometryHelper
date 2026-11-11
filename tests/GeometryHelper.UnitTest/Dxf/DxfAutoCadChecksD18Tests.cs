@@ -17,7 +17,8 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfAutoCadChecksD18Tests
     {
-        private static string G(int code, string value) => code.ToString(CultureInfo.InvariantCulture).PadLeft(3) + "\n" + value + "\n";
+        private static string G(int code, string value) =>
+            code.ToString(CultureInfo.InvariantCulture).PadLeft(3) + "\n" + value + "\n";
 
         private static DxfTable Table(DxfDatabase db) => DxfAutoCadChecksD16Tests.Table(db);
 
@@ -67,14 +68,22 @@ namespace GeometryHelper.UnitTest.Dxf
             table.SetDataLink(new DxfCellRange(1, 0, 2, 1), (DxfDataLink)db.DataLinkDictionary["GH_PARTS"]);
 
             string content = Record(db.ToText(), "B03");
-            string[] cells = content.Split(new[] { G(1, "LINKEDTABLEDATACELL_BEGIN") }, StringSplitOptions.None).Skip(1).ToArray();
+            string[] cells = content
+                .Split(new[] { G(1, "LINKEDTABLEDATACELL_BEGIN") }, StringSplitOptions.None)
+                .Skip(1)
+                .ToArray();
             Assert.Equal(6, cells.Length);
 
             foreach (int k in new[] { 3, 4, 5 })
             {
                 Assert.StartsWith(G(90, "0"), cells[k], StringComparison.Ordinal);
                 Assert.Contains(G(309, "DATAMAP_END") + G(92, "0") + G(95, "0"), cells[k], StringComparison.Ordinal);
-                Assert.Equal(Record(before, "B03").Split(new[] { G(1, "LINKEDTABLEDATACELL_BEGIN") }, StringSplitOptions.None)[k + 1], cells[k]);
+                Assert.Equal(
+                    Record(before, "B03").Split(new[] { G(1, "LINKEDTABLEDATACELL_BEGIN") }, StringSplitOptions.None)[
+                        k + 1
+                    ],
+                    cells[k]
+                );
             }
 
             Assert.Equal(Record(before, "F6"), Record(db.ToText(), "F6"));
@@ -129,7 +138,10 @@ namespace GeometryHelper.UnitTest.Dxf
             mtext.SetStaticColumns(50.0, 10.0, 2);
             Assert.Equal(110.0, ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73").Width);
 
-            DxfMText plain = ByHandle<DxfMText>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1021")), "73");
+            DxfMText plain = ByHandle<DxfMText>(
+                DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1021")),
+                "73"
+            );
             Assert.Equal(DxfColumnType.NoColumns, plain.ColumnType);
             Assert.Equal(40.0, plain.Width);
         }
@@ -148,15 +160,37 @@ namespace GeometryHelper.UnitTest.Dxf
             {
                 string handle = (0xB0 + k).ToString("X", CultureInfo.InvariantCulture);
                 links.Append(G(1005, handle));
-                columns.Append(G(0, "MTEXT")).Append(G(5, handle)).Append(G(330, "17")).Append(G(100, "AcDbEntity")).Append(G(8, "0")).Append(G(100, "AcDbMText"))
-                    .Append(G(10, (60.0 * k).ToString("R", CultureInfo.InvariantCulture))).Append(G(20, "40.0")).Append(G(30, "0.0")).Append(G(40, "3.0"))
-                    .Append(G(41, "50.0")).Append(G(71, "1")).Append(G(1, "column")).Append(G(1001, "ACAD")).Append(info);
+                columns
+                    .Append(G(0, "MTEXT"))
+                    .Append(G(5, handle))
+                    .Append(G(330, "17"))
+                    .Append(G(100, "AcDbEntity"))
+                    .Append(G(8, "0"))
+                    .Append(G(100, "AcDbMText"))
+                    .Append(G(10, (60.0 * k).ToString("R", CultureInfo.InvariantCulture)))
+                    .Append(G(20, "40.0"))
+                    .Append(G(30, "0.0"))
+                    .Append(G(40, "3.0"))
+                    .Append(G(41, "50.0"))
+                    .Append(G(71, "1"))
+                    .Append(G(1, "column"))
+                    .Append(G(1001, "ACAD"))
+                    .Append(info);
             }
 
-            string data = "1001\nACAD\n" + info + G(1000, "ACAD_MTEXT_COLUMNS_BEGIN") + G(1070, "47") + G(1070, count.ToString(CultureInfo.InvariantCulture)) + links
-                + G(1000, "ACAD_MTEXT_COLUMNS_END") + defined;
-            return DxfFileEzdxfDrawings.R2000
-                .Replace("\n 41\n40.0\n 71\n1\n  1\n{\\fArial|b1;Bold}\\Pline two é\n  0\n", "\n 41\n50.0\n 71\n1\n  1\n{\\fArial|b1;Bold}\\Pline two é\n" + data + columns + "  0\n");
+            string data =
+                "1001\nACAD\n"
+                + info
+                + G(1000, "ACAD_MTEXT_COLUMNS_BEGIN")
+                + G(1070, "47")
+                + G(1070, count.ToString(CultureInfo.InvariantCulture))
+                + links
+                + G(1000, "ACAD_MTEXT_COLUMNS_END")
+                + defined;
+            return DxfFileEzdxfDrawings.R2000.Replace(
+                "\n 41\n40.0\n 71\n1\n  1\n{\\fArial|b1;Bold}\\Pline two é\n  0\n",
+                "\n 41\n50.0\n 71\n1\n  1\n{\\fArial|b1;Bold}\\Pline two é\n" + data + columns + "  0\n"
+            );
         }
 
         private static string Info(params int[] whole)
@@ -166,7 +200,11 @@ namespace GeometryHelper.UnitTest.Dxf
             for (int i = 0; i < whole.Length; i += 2)
             {
                 text.Append(G(1070, whole[i].ToString(CultureInfo.InvariantCulture)));
-                text.Append(whole[i] == 48 || whole[i] == 49 ? G(1040, whole[i + 1].ToString(CultureInfo.InvariantCulture)) : G(1070, whole[i + 1].ToString(CultureInfo.InvariantCulture)));
+                text.Append(
+                    whole[i] == 48 || whole[i] == 49
+                        ? G(1040, whole[i + 1].ToString(CultureInfo.InvariantCulture))
+                        : G(1070, whole[i + 1].ToString(CultureInfo.InvariantCulture))
+                );
             }
 
             return text.ToString();
@@ -179,12 +217,36 @@ namespace GeometryHelper.UnitTest.Dxf
             // auto height, 13 columns, Width 770, Height 0; 8F dynamic of its own heights 15, 25 and 0, 3 columns, Width 170,
             // Height 15, its ACAD_MTEXT_DEFINED_HEIGHT 15. Each column 50 wide, the gutters 10, the 41 of each 50.
             const string End = "1000\nACAD_MTEXT_COLUMN_INFO_END\n";
-            const string Defined = "1000\nACAD_MTEXT_DEFINED_HEIGHT_BEGIN\n1070\n46\n1040\n15.0\n1000\nACAD_MTEXT_DEFINED_HEIGHT_END\n";
+            const string Defined =
+                "1000\nACAD_MTEXT_DEFINED_HEIGHT_BEGIN\n1070\n46\n1040\n15.0\n1000\nACAD_MTEXT_DEFINED_HEIGHT_END\n";
             var cases = new[]
             {
-                (Info(75, 1, 79, 0, 76, 2, 78, 0, 48, 50, 49, 10) + End, 2, string.Empty, DxfColumnType.StaticColumns, 110.0, 0.0),
-                (Info(75, 2, 79, 1, 76, 13, 78, 0, 48, 50, 49, 10) + End, 13, string.Empty, DxfColumnType.DynamicColumns, 770.0, 0.0),
-                (Info(75, 2, 79, 0, 76, 3, 78, 0, 48, 50, 49, 10, 50, 3) + "1040\n15.0\n1040\n25.0\n1040\n0.0\n" + End, 3, Defined, DxfColumnType.DynamicColumns, 170.0, 15.0),
+                (
+                    Info(75, 1, 79, 0, 76, 2, 78, 0, 48, 50, 49, 10) + End,
+                    2,
+                    string.Empty,
+                    DxfColumnType.StaticColumns,
+                    110.0,
+                    0.0
+                ),
+                (
+                    Info(75, 2, 79, 1, 76, 13, 78, 0, 48, 50, 49, 10) + End,
+                    13,
+                    string.Empty,
+                    DxfColumnType.DynamicColumns,
+                    770.0,
+                    0.0
+                ),
+                (
+                    Info(75, 2, 79, 0, 76, 3, 78, 0, 48, 50, 49, 10, 50, 3)
+                        + "1040\n15.0\n1040\n25.0\n1040\n0.0\n"
+                        + End,
+                    3,
+                    Defined,
+                    DxfColumnType.DynamicColumns,
+                    170.0,
+                    15.0
+                ),
             };
 
             foreach (var (info, count, defined, type, width, height) in cases)
@@ -219,7 +281,11 @@ namespace GeometryHelper.UnitTest.Dxf
             mtext.SetColumnHeight(1, 25.0);
 
             string text = db.ToText();
-            Assert.Contains("1000\nACAD_MTEXT_DEFINED_HEIGHT_BEGIN\n1070\n46\n1040\n15\n", text, StringComparison.Ordinal);
+            Assert.Contains(
+                "1000\nACAD_MTEXT_DEFINED_HEIGHT_BEGIN\n1070\n46\n1040\n15\n",
+                text,
+                StringComparison.Ordinal
+            );
             Assert.DoesNotContain("\n 46\n", Record(text, "73"), StringComparison.Ordinal);
             Assert.Equal(0.0, ByHandle<DxfMText>(DxfDatabase.Parse(text), "73").Height);
         }

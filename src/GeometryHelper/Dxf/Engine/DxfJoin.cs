@@ -33,7 +33,9 @@ namespace GeometryHelper.Dxf
         {
             if (source.IsErased)
             {
-                throw new InvalidOperationException("The " + source.GetType().Name + " is erased, and nothing is joined to it.");
+                throw new InvalidOperationException(
+                    "The " + source.GetType().Name + " is erased, and nothing is joined to it."
+                );
             }
 
             string parameter = single ? "secondaryEntity" : "otherEntities";
@@ -58,7 +60,10 @@ namespace GeometryHelper.Dxf
 
                 if (other.IsErased)
                 {
-                    throw new ArgumentException("The " + other.GetType().Name + " at " + Number(i) + " is erased.", parameter);
+                    throw new ArgumentException(
+                        "The " + other.GetType().Name + " at " + Number(i) + " is erased.",
+                        parameter
+                    );
                 }
 
                 taken.Add(seen.Add(other) ? other : null);
@@ -90,7 +95,11 @@ namespace GeometryHelper.Dxf
                     return Splines(spline, work);
 
                 default:
-                    throw new NotSupportedException("A " + source.GetType().Name + " takes no others: AutoCAD's JOIN joins into a line, an arc, an elliptical arc, a polyline or a spline.");
+                    throw new NotSupportedException(
+                        "A "
+                            + source.GetType().Name
+                            + " takes no others: AutoCAD's JOIN joins into a line, an arc, an elliptical arc, a polyline or a spline."
+                    );
             }
         }
 
@@ -131,7 +140,11 @@ namespace GeometryHelper.Dxf
 
                 if (!(entity is DxfLine other))
                 {
-                    work.Refuse("A LINE takes only lines, as AutoCAD's JOIN does, and was given a " + entity.GetType().Name + ".");
+                    work.Refuse(
+                        "A LINE takes only lines, as AutoCAD's JOIN does, and was given a "
+                            + entity.GetType().Name
+                            + "."
+                    );
                     continue;
                 }
 
@@ -140,7 +153,17 @@ namespace GeometryHelper.Dxf
 
                 if (!Along(start, unit, a, tolerance) || !Along(start, unit, b, tolerance))
                 {
-                    work.Refuse("The line from " + a + " to " + b + " is not along the line from " + start + " to " + end + " within the point tolerance.");
+                    work.Refuse(
+                        "The line from "
+                            + a
+                            + " to "
+                            + b
+                            + " is not along the line from "
+                            + start
+                            + " to "
+                            + end
+                            + " within the point tolerance."
+                    );
                     continue;
                 }
 
@@ -192,14 +215,22 @@ namespace GeometryHelper.Dxf
 
             if (!(source.A > tolerance.EqualPoint) || !(source.B > tolerance.EqualPoint))
             {
-                throw new InvalidOperationException("The " + source.Entity.GetType().Name + " is of no radius, and has no curve for others to run round.");
+                throw new InvalidOperationException(
+                    "The "
+                        + source.Entity.GetType().Name
+                        + " is of no radius, and has no curve for others to run round."
+                );
             }
 
             double angular = tolerance.EqualPoint / Math.Max(source.A, source.B);
 
             if ((source.Entity is DxfEllipse whole && whole.Closed) || !(source.Sweep < Turn - angular))
             {
-                throw new InvalidOperationException("A whole " + (source.Entity is DxfArc ? "circle" : "ellipse") + " has no ends, and nothing is joined to it.");
+                throw new InvalidOperationException(
+                    "A whole "
+                        + (source.Entity is DxfArc ? "circle" : "ellipse")
+                        + " has no ends, and nothing is joined to it."
+                );
             }
 
             // Each other in the source's parameters: from the point it starts at seen counter-clockwise about the source's
@@ -217,7 +248,13 @@ namespace GeometryHelper.Dxf
 
                 if (entity.GetType() != source.Entity.GetType())
                 {
-                    work.Refuse("A " + source.Entity.GetType().Name + " takes only others of its kind, as AutoCAD's JOIN does, and was given a " + entity.GetType().Name + ".");
+                    work.Refuse(
+                        "A "
+                            + source.Entity.GetType().Name
+                            + " takes only others of its kind, as AutoCAD's JOIN does, and was given a "
+                            + entity.GetType().Name
+                            + "."
+                    );
                     continue;
                 }
 
@@ -231,13 +268,24 @@ namespace GeometryHelper.Dxf
 
                 if (!source.IsSameCurve(other, tolerance))
                 {
-                    work.Refuse("The " + entity.GetType().Name + " is not of the same " + (entity is DxfArc ? "circle" : "ellipse") + " within the point tolerance.");
+                    work.Refuse(
+                        "The "
+                            + entity.GetType().Name
+                            + " is not of the same "
+                            + (entity is DxfArc ? "circle" : "ellipse")
+                            + " within the point tolerance."
+                    );
                     continue;
                 }
 
                 bool same = other.Normal.DotProduct(source.Normal) > 0.0;
                 double from = source.ParameterOf(same ? other.Entity.StartPoint : other.Entity.EndPoint);
-                others.Add(new KeyValuePair<int, double[]>(i, new[] { from, Math.Min(other.Sweep, Turn), Wrap(from - source.Start - source.Sweep) }));
+                others.Add(
+                    new KeyValuePair<int, double[]>(
+                        i,
+                        new[] { from, Math.Min(other.Sweep, Turn), Wrap(from - source.Start - source.Sweep) }
+                    )
+                );
             }
 
             others.Sort((x, y) => x.Value[2] != y.Value[2] ? x.Value[2].CompareTo(y.Value[2]) : x.Key.CompareTo(y.Key));
@@ -275,7 +323,13 @@ namespace GeometryHelper.Dxf
 
                 if (reach - back >= Turn - angular)
                 {
-                    work.Refuse("The " + entity.GetType().Name + " would make the source the whole curve, which it is not: AutoCAD's JOIN makes that a " + (entity is DxfArc ? "CIRCLE" : "whole ELLIPSE") + ".");
+                    work.Refuse(
+                        "The "
+                            + entity.GetType().Name
+                            + " would make the source the whole curve, which it is not: AutoCAD's JOIN makes that a "
+                            + (entity is DxfArc ? "CIRCLE" : "whole ELLIPSE")
+                            + "."
+                    );
                     continue;
                 }
 
@@ -333,7 +387,17 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private sealed class Round
         {
-            private Round(DxfCurve entity, GeoPoint3 center, GeoVector3 u, GeoVector3 v, double a, double b, GeoVector3 normal, double start, double sweep)
+            private Round(
+                DxfCurve entity,
+                GeoPoint3 center,
+                GeoVector3 u,
+                GeoVector3 v,
+                double a,
+                double b,
+                GeoVector3 normal,
+                double start,
+                double sweep
+            )
             {
                 Entity = entity;
                 Center = center;
@@ -369,7 +433,17 @@ namespace GeometryHelper.Dxf
             {
                 GeoTransform3 ecs = arc.Ecs;
                 double radius = arc.Radius;
-                return new Round(arc, arc.Center, ecs.Transform(GeoVector3.XAxis), ecs.Transform(GeoVector3.YAxis), radius, radius, arc.Normal, arc.StartAngle, arc.TotalAngle);
+                return new Round(
+                    arc,
+                    arc.Center,
+                    ecs.Transform(GeoVector3.XAxis),
+                    ecs.Transform(GeoVector3.YAxis),
+                    radius,
+                    radius,
+                    arc.Normal,
+                    arc.StartAngle,
+                    arc.TotalAngle
+                );
             }
 
             /// <summary>An ellipse: its major and minor axes, its eccentric angle the parameter.</summary>
@@ -380,7 +454,17 @@ namespace GeometryHelper.Dxf
                 double a = major.Length;
                 double b = minor.Length;
                 double start = ellipse.StartParam;
-                return new Round(ellipse, ellipse.Center, a > 0.0 ? major.Divide(a) : major, b > 0.0 ? minor.Divide(b) : minor, a, b, ellipse.Normal, start, ellipse.EndParam - start);
+                return new Round(
+                    ellipse,
+                    ellipse.Center,
+                    a > 0.0 ? major.Divide(a) : major,
+                    b > 0.0 ? minor.Divide(b) : minor,
+                    a,
+                    b,
+                    ellipse.Normal,
+                    start,
+                    ellipse.EndParam - start
+                );
             }
 
             /// <summary>The parameter of a point of the curve, from minus a half turn up to a half turn.</summary>
@@ -398,12 +482,19 @@ namespace GeometryHelper.Dxf
             {
                 double slack = tolerance.EqualPoint;
 
-                if (!Center.IsEqualTo(other.Center, tolerance) || !(Math.Abs(A - other.A) <= slack) || !(Math.Abs(B - other.B) <= slack))
+                if (
+                    !Center.IsEqualTo(other.Center, tolerance)
+                    || !(Math.Abs(A - other.A) <= slack)
+                    || !(Math.Abs(B - other.B) <= slack)
+                )
                 {
                     return false;
                 }
 
-                if (!(Math.Abs(other.U.Multiply(other.A).DotProduct(Normal)) <= slack) || !(Math.Abs(other.V.Multiply(other.B).DotProduct(Normal)) <= slack))
+                if (
+                    !(Math.Abs(other.U.Multiply(other.A).DotProduct(Normal)) <= slack)
+                    || !(Math.Abs(other.V.Multiply(other.B).DotProduct(Normal)) <= slack)
+                )
                 {
                     return false;
                 }
@@ -483,7 +574,14 @@ namespace GeometryHelper.Dxf
                 runs.Add(run);
             }
 
-            Chain chain = Chain.Of(links, Point(own[0]), Point(own[own.Count - 1]), TailOf(own, false), TailOf(own, true), tolerance);
+            Chain chain = Chain.Of(
+                links,
+                Point(own[0]),
+                Point(own[own.Count - 1]),
+                TailOf(own, false),
+                TailOf(own, true),
+                tolerance
+            );
             List<int> joined = work.Joined(links);
 
             if (chain.Attached == 0)
@@ -568,7 +666,13 @@ namespace GeometryHelper.Dxf
         /// its ends are measured in space; null with why where the polyline does not take it: a LINE, an ARC, a LWPOLYLINE or a
         /// POLYLINE of the plane, open, straight or fitted not, and in its plane within the tolerance, the whole of each arc.
         /// </summary>
-        private static string FlatRun(DxfEntity entity, Frame frame, double elevation, Tolerance tolerance, out List<DxfPolyVertex> run)
+        private static string FlatRun(
+            DxfEntity entity,
+            Frame frame,
+            double elevation,
+            Tolerance tolerance,
+            out List<DxfPolyVertex> run
+        )
         {
             run = null;
             double slack = tolerance.EqualPoint;
@@ -596,7 +700,13 @@ namespace GeometryHelper.Dxf
                     GeoTransform3 ecs = arc.Ecs;
                     GeoPoint3 a = frame.Local(arc.StartPoint);
                     GeoPoint3 b = frame.Local(arc.EndPoint);
-                    double off = Farthest(frame.Local(arc.Center).Z - elevation, radius * ecs.Transform(GeoVector3.XAxis).DotProduct(frame.N), radius * ecs.Transform(GeoVector3.YAxis).DotProduct(frame.N), arc.StartAngle, total);
+                    double off = Farthest(
+                        frame.Local(arc.Center).Z - elevation,
+                        radius * ecs.Transform(GeoVector3.XAxis).DotProduct(frame.N),
+                        radius * ecs.Transform(GeoVector3.YAxis).DotProduct(frame.N),
+                        arc.StartAngle,
+                        total
+                    );
 
                     if (!(off <= slack))
                     {
@@ -632,7 +742,9 @@ namespace GeometryHelper.Dxf
                     return run == null ? OffThePlane(entity) : null;
 
                 default:
-                    return "A polyline of the plane takes lines, arcs and polylines of the plane, as AutoCAD's JOIN does, and was given a " + entity.GetType().Name + ".";
+                    return "A polyline of the plane takes lines, arcs and polylines of the plane, as AutoCAD's JOIN does, and was given a "
+                        + entity.GetType().Name
+                        + ".";
             }
         }
 
@@ -641,7 +753,13 @@ namespace GeometryHelper.Dxf
         /// turned over where the normals are the other way; null where a vertex, or any point of an arc, is off the plane at the
         /// elevation by more than the tolerance. Of the same normal, to the bit, the vertices keep their coordinates.
         /// </summary>
-        private static List<DxfPolyVertex> Placed(List<DxfPolyVertex> vertices, Frame own, Frame frame, double elevation, Tolerance tolerance)
+        private static List<DxfPolyVertex> Placed(
+            List<DxfPolyVertex> vertices,
+            Frame own,
+            Frame frame,
+            double elevation,
+            Tolerance tolerance
+        )
         {
             double slack = tolerance.EqualPoint;
             bool same = own.IsSameAs(frame);
@@ -661,8 +779,22 @@ namespace GeometryHelper.Dxf
                 // The arc of a plane tilted to this one: the height of its points is that of its centre and a wave of the angle.
                 if (!same && i + 1 < vertices.Count && DxfPolylineEdit.IsArc(q, vertices[i + 1]))
                 {
-                    DxfPolylineEdit.Circle(q, vertices[i + 1], out double cx, out double cy, out double r, out double a0, out double theta);
-                    double off = Farthest(frame.Local(own.World(cx, cy, q.Z)).Z - elevation, r * own.U.DotProduct(frame.N), r * own.V.DotProduct(frame.N), theta < 0.0 ? a0 + theta : a0, Math.Abs(theta));
+                    DxfPolylineEdit.Circle(
+                        q,
+                        vertices[i + 1],
+                        out double cx,
+                        out double cy,
+                        out double r,
+                        out double a0,
+                        out double theta
+                    );
+                    double off = Farthest(
+                        frame.Local(own.World(cx, cy, q.Z)).Z - elevation,
+                        r * own.U.DotProduct(frame.N),
+                        r * own.V.DotProduct(frame.N),
+                        theta < 0.0 ? a0 + theta : a0,
+                        Math.Abs(theta)
+                    );
 
                     if (!(off <= slack))
                     {
@@ -712,7 +844,14 @@ namespace GeometryHelper.Dxf
                 runs.Add(run);
             }
 
-            Chain chain = Chain.Of(links, Point(own[0]), Point(own[own.Count - 1]), TailOf(own, false), TailOf(own, true), tolerance);
+            Chain chain = Chain.Of(
+                links,
+                Point(own[0]),
+                Point(own[own.Count - 1]),
+                TailOf(own, false),
+                TailOf(own, true),
+                tolerance
+            );
             List<int> joined = work.Joined(links);
 
             if (chain.Attached == 0)
@@ -803,7 +942,9 @@ namespace GeometryHelper.Dxf
                     break;
 
                 default:
-                    return "A 3D polyline takes lines and polylines with no arcs, and was given a " + entity.GetType().Name + ": AutoCAD's JOIN makes a spline of one joined to a curve, which a POLYLINE does not become in place.";
+                    return "A 3D polyline takes lines and polylines with no arcs, and was given a "
+                        + entity.GetType().Name
+                        + ": AutoCAD's JOIN makes a spline of one joined to a curve, which a POLYLINE does not become in place.";
             }
 
             run = new List<DxfPolyVertex>(vertices.Count);
@@ -815,7 +956,9 @@ namespace GeometryHelper.Dxf
                 if (i + 1 < vertices.Count && DxfPolylineEdit.IsArc(q, vertices[i + 1]))
                 {
                     run = null;
-                    return "A 3D polyline takes no arc, and the " + entity.GetType().Name + " has one: AutoCAD's JOIN makes a spline of it.";
+                    return "A 3D polyline takes no arc, and the "
+                        + entity.GetType().Name
+                        + " has one: AutoCAD's JOIN makes a spline of it.";
                 }
 
                 run.Add(Vertex(own.World(q.X, q.Y, q.Z)));
@@ -845,7 +988,17 @@ namespace GeometryHelper.Dxf
                 if (j < n - 1)
                 {
                     DxfPolyVertex leaves = run[n - 2 - j];
-                    turned.Add(new DxfPolyVertex(at.X, at.Y, at.Z, -leaves.Bulge, leaves.EndWidth, leaves.StartWidth, leaves.Widths));
+                    turned.Add(
+                        new DxfPolyVertex(
+                            at.X,
+                            at.Y,
+                            at.Z,
+                            -leaves.Bulge,
+                            leaves.EndWidth,
+                            leaves.StartWidth,
+                            leaves.Widths
+                        )
+                    );
                 }
                 else
                 {
@@ -863,7 +1016,8 @@ namespace GeometryHelper.Dxf
             return q;
         }
 
-        private static DxfPolyVertex Vertex(double x, double y, double z, double bulge) => new DxfPolyVertex(x, y, z, bulge, 0.0, 0.0, false);
+        private static DxfPolyVertex Vertex(double x, double y, double z, double bulge) =>
+            new DxfPolyVertex(x, y, z, bulge, 0.0, 0.0, false);
 
         private static DxfPolyVertex Vertex(GeoPoint3 p) => new DxfPolyVertex(p.X, p.Y, p.Z, 0.0, 0.0, 0.0, false);
 
@@ -873,7 +1027,13 @@ namespace GeometryHelper.Dxf
         /// The link of a run of vertices, put among the links: a point where every vertex is within the tolerance of the first;
         /// why it is refused where it has no vertices, or where its ends meet and it is not a point, as a closed curve.
         /// </summary>
-        private static string Linked(int index, DxfEntity entity, List<DxfPolyVertex> run, Tolerance tolerance, List<Link> links)
+        private static string Linked(
+            int index,
+            DxfEntity entity,
+            List<DxfPolyVertex> run,
+            Tolerance tolerance,
+            List<Link> links
+        )
         {
             if (run.Count == 0)
             {
@@ -954,7 +1114,15 @@ namespace GeometryHelper.Dxf
 
                 if (DxfPolylineEdit.IsArc(a, b))
                 {
-                    DxfPolylineEdit.Circle(a, b, out double cx, out double cy, out double r, out double a0, out double theta);
+                    DxfPolylineEdit.Circle(
+                        a,
+                        b,
+                        out double cx,
+                        out double cy,
+                        out double r,
+                        out double a0,
+                        out double theta
+                    );
                     double angle = a0 + theta * f;
                     return new GeoPoint3(cx + r * Math.Cos(angle), cy + r * Math.Sin(angle), z);
                 }
@@ -972,7 +1140,10 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private static double Farthest(double k, double a, double b, double start, double sweep)
         {
-            double farthest = Math.Max(Math.Abs(k + a * Math.Cos(start) + b * Math.Sin(start)), Math.Abs(k + a * Math.Cos(start + sweep) + b * Math.Sin(start + sweep)));
+            double farthest = Math.Max(
+                Math.Abs(k + a * Math.Cos(start) + b * Math.Sin(start)),
+                Math.Abs(k + a * Math.Cos(start + sweep) + b * Math.Sin(start + sweep))
+            );
             double peak = Math.Atan2(b, a);
 
             foreach (double t in new[] { peak, peak + Math.PI })
@@ -1043,7 +1214,14 @@ namespace GeometryHelper.Dxf
 
             // A piece runs back over the source where it is the source's whole curve run back.
             var own = new Nurbs(degree, knots, points);
-            Chain chain = Chain.Of(links, own.First, own.Last, new Tail(own.Last, own.Middle), new Tail(own.First, own.Middle), tolerance);
+            Chain chain = Chain.Of(
+                links,
+                own.First,
+                own.Last,
+                new Tail(own.Last, own.Middle),
+                new Tail(own.First, own.Middle),
+                tolerance
+            );
             List<int> joined = work.Joined(links);
 
             if (chain.Attached == 0)
@@ -1120,7 +1298,13 @@ namespace GeometryHelper.Dxf
             {
                 double[] first = pw[0];
                 double w = pw[pw.Count - 1][3];
-                pw[pw.Count - 1] = new[] { first[0] / first[3] * w, first[1] / first[3] * w, first[2] / first[3] * w, w };
+                pw[pw.Count - 1] = new[]
+                {
+                    first[0] / first[3] * w,
+                    first[1] / first[3] * w,
+                    first[2] / first[3] * w,
+                    w,
+                };
             }
 
             bool planar = true;
@@ -1129,7 +1313,9 @@ namespace GeometryHelper.Dxf
             if (source.IsPlanar)
             {
                 GeoVector3 normal = source.Ecs.Transform(GeoVector3.ZAxis);
-                planar = DxfCurveTools.TryPlane(euclidean, normal, out GeoVector3 found) && found.IsParallelTo(normal, tolerance);
+                planar =
+                    DxfCurveTools.TryPlane(euclidean, normal, out GeoVector3 found)
+                    && found.IsParallelTo(normal, tolerance);
             }
 
             source.TakeJoined(highest, u, pw, chain.Closed, planar, Straight(euclidean, tolerance));
@@ -1155,7 +1341,11 @@ namespace GeometryHelper.Dxf
                     GeoPoint3 a = line.StartPoint;
                     GeoPoint3 b = line.EndPoint;
                     double length = a.DistanceTo(b);
-                    piece = new Nurbs(1, new List<double> { 0.0, 0.0, length, length }, new List<double[]> { new[] { a.X, a.Y, a.Z, 1.0 }, new[] { b.X, b.Y, b.Z, 1.0 } });
+                    piece = new Nurbs(
+                        1,
+                        new List<double> { 0.0, 0.0, length, length },
+                        new List<double[]> { new[] { a.X, a.Y, a.Z, 1.0 }, new[] { b.X, b.Y, b.Z, 1.0 } }
+                    );
                     return null;
                 }
 
@@ -1184,7 +1374,9 @@ namespace GeometryHelper.Dxf
                     break;
 
                 default:
-                    return "A SPLINE takes lines, arcs, elliptical arcs, polylines and splines, as AutoCAD's JOIN does, and was given a " + entity.GetType().Name + ".";
+                    return "A SPLINE takes lines, arcs, elliptical arcs, polylines and splines, as AutoCAD's JOIN does, and was given a "
+                        + entity.GetType().Name
+                        + ".";
             }
 
             if (closed)
@@ -1201,7 +1393,11 @@ namespace GeometryHelper.Dxf
                 }
 
                 GeoPoint3 at = curve.StartPoint;
-                piece = new Nurbs(1, new List<double> { 0.0, 0.0, 0.0, 0.0 }, new List<double[]> { new[] { at.X, at.Y, at.Z, 1.0 }, new[] { at.X, at.Y, at.Z, 1.0 } });
+                piece = new Nurbs(
+                    1,
+                    new List<double> { 0.0, 0.0, 0.0, 0.0 },
+                    new List<double[]> { new[] { at.X, at.Y, at.Z, 1.0 }, new[] { at.X, at.Y, at.Z, 1.0 } }
+                );
                 return null;
             }
 
@@ -1285,7 +1481,14 @@ namespace GeometryHelper.Dxf
                     return this;
                 }
 
-                DxfNurbsEdit.ElevateDegree(Degree, Knots, Points, degree - Degree, out List<double> knots, out List<double[]> points);
+                DxfNurbsEdit.ElevateDegree(
+                    Degree,
+                    Knots,
+                    Points,
+                    degree - Degree,
+                    out List<double> knots,
+                    out List<double[]> points
+                );
                 return new Nurbs(degree, knots, points);
             }
 
@@ -1348,7 +1551,9 @@ namespace GeometryHelper.Dxf
 
             if (fitted)
             {
-                throw new InvalidOperationException("A fitted polyline is drawn through vertices the fitting made: straighten it to join to it.");
+                throw new InvalidOperationException(
+                    "A fitted polyline is drawn through vertices the fitting made: straighten it to join to it."
+                );
             }
         }
 
@@ -1357,11 +1562,14 @@ namespace GeometryHelper.Dxf
         {
             if (count == 0)
             {
-                throw new InvalidOperationException("A polyline of no vertices has no ends, and nothing is joined to it.");
+                throw new InvalidOperationException(
+                    "A polyline of no vertices has no ends, and nothing is joined to it."
+                );
             }
         }
 
-        private static string NoVertices(DxfEntity entity) => "The " + entity.GetType().Name + " has no vertices, and nothing of it is joined.";
+        private static string NoVertices(DxfEntity entity) =>
+            "The " + entity.GetType().Name + " has no vertices, and nothing of it is joined.";
 
         /// <summary>Whether points lie along one line within the tolerance: that through the first and the one farthest from it.</summary>
         private static bool Straight(List<GeoPoint3> points, Tolerance tolerance)
@@ -1388,9 +1596,11 @@ namespace GeometryHelper.Dxf
             return points.TrueForAll(p => Along(first, unit, p, tolerance));
         }
 
-        private static string Closed(DxfEntity entity) => "The " + entity.GetType().Name + " is closed, and AutoCAD's JOIN joins no closed curve.";
+        private static string Closed(DxfEntity entity) =>
+            "The " + entity.GetType().Name + " is closed, and AutoCAD's JOIN joins no closed curve.";
 
-        private static string OffThePlane(DxfEntity entity) => "The " + entity.GetType().Name + " is not in the plane of the polyline within the point tolerance.";
+        private static string OffThePlane(DxfEntity entity) =>
+            "The " + entity.GetType().Name + " is not in the plane of the polyline within the point tolerance.";
 
         private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
 
@@ -1440,12 +1650,22 @@ namespace GeometryHelper.Dxf
 
                 if (_single && joined.Count == 0 && links.Count > 0 && links[0].RunsBack)
                 {
-                    throw new ArgumentException("The " + Others[links[0].Index].GetType().Name + " runs back over the piece before it at the end it meets, as a line drawn twice does, and is not joined.", _parameter);
+                    throw new ArgumentException(
+                        "The "
+                            + Others[links[0].Index].GetType().Name
+                            + " runs back over the piece before it at the end it meets, as a line drawn twice does, and is not joined.",
+                        _parameter
+                    );
                 }
 
                 if (_single && joined.Count == 0 && links.Count > 0)
                 {
-                    throw new ArgumentException("The " + Others[links[0].Index].GetType().Name + " meets neither end within the point tolerance: AutoCAD's JOIN joins it end to end.", _parameter);
+                    throw new ArgumentException(
+                        "The "
+                            + Others[links[0].Index].GetType().Name
+                            + " meets neither end within the point tolerance: AutoCAD's JOIN joins it end to end.",
+                        _parameter
+                    );
                 }
 
                 return joined;
@@ -1514,9 +1734,7 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private sealed class Chain
         {
-            private Chain()
-            {
-            }
+            private Chain() { }
 
             internal List<Link> Before { get; } = new List<Link>();
 
@@ -1534,7 +1752,14 @@ namespace GeometryHelper.Dxf
             /// stopped, closed, where a link brings the two ends together. A link that would run back over what lies at the end,
             /// to its far end through its middle, is taken and left out.
             /// </summary>
-            internal static Chain Of(List<Link> links, GeoPoint3 start, GeoPoint3 end, Tail startTail, Tail endTail, Tolerance tolerance)
+            internal static Chain Of(
+                List<Link> links,
+                GeoPoint3 start,
+                GeoPoint3 end,
+                Tail startTail,
+                Tail endTail,
+                Tolerance tolerance
+            )
             {
                 var chain = new Chain();
 
@@ -1568,7 +1793,11 @@ namespace GeometryHelper.Dxf
                         Tail tail = onward ? endTail : startTail;
 
                         // A piece that would run back over the one at the end, as a line drawn twice, is left out.
-                        if (tail != null && far.IsEqualTo(tail.Far, tolerance) && link.Middle.IsEqualTo(tail.Middle, tolerance))
+                        if (
+                            tail != null
+                            && far.IsEqualTo(tail.Far, tolerance)
+                            && link.Middle.IsEqualTo(tail.Middle, tolerance)
+                        )
                         {
                             link.RunsBack = true;
                             continue;
@@ -1635,7 +1864,12 @@ namespace GeometryHelper.Dxf
                     {
                         for (long dz = -1; dz <= 1; dz++)
                         {
-                            if (!_cells.TryGetValue(new Cell(cell.X + dx, cell.Y + dy, cell.Z + dz), out List<int> entries))
+                            if (
+                                !_cells.TryGetValue(
+                                    new Cell(cell.X + dx, cell.Y + dy, cell.Z + dz),
+                                    out List<int> entries
+                                )
+                            )
                             {
                                 continue;
                             }
@@ -1701,7 +1935,9 @@ namespace GeometryHelper.Dxf
             private long Whole(double value)
             {
                 double floor = Math.Floor(value / _size);
-                return floor >= long.MaxValue ? long.MaxValue : floor <= long.MinValue ? long.MinValue : (long)floor;
+                return floor >= long.MaxValue ? long.MaxValue
+                    : floor <= long.MinValue ? long.MinValue
+                    : (long)floor;
             }
         }
 
@@ -1760,12 +1996,17 @@ namespace GeometryHelper.Dxf
                 return new GeoPoint3(d.DotProduct(U), d.DotProduct(V), d.DotProduct(N));
             }
 
-            internal GeoPoint3 World(double x, double y, double z)
-                => new GeoPoint3(U.X * x + V.X * y + N.X * z, U.Y * x + V.Y * y + N.Y * z, U.Z * x + V.Z * y + N.Z * z);
+            internal GeoPoint3 World(double x, double y, double z) =>
+                new GeoPoint3(U.X * x + V.X * y + N.X * z, U.Y * x + V.Y * y + N.Y * z, U.Z * x + V.Z * y + N.Z * z);
 
             /// <summary>Whether another is the same system to the bit.</summary>
-            internal bool IsSameAs(Frame other)
-                => U.X == other.U.X && U.Y == other.U.Y && U.Z == other.U.Z && N.X == other.N.X && N.Y == other.N.Y && N.Z == other.N.Z;
+            internal bool IsSameAs(Frame other) =>
+                U.X == other.U.X
+                && U.Y == other.U.Y
+                && U.Z == other.U.Z
+                && N.X == other.N.X
+                && N.Y == other.N.Y
+                && N.Z == other.N.Z;
         }
 
         #endregion

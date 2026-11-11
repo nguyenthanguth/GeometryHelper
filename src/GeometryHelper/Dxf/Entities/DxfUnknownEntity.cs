@@ -19,9 +19,7 @@ namespace GeometryHelper.Dxf
     public sealed class DxfUnknownEntity : DxfEntity
     {
         internal DxfUnknownEntity(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets the type of the entity as the file names it in its group 0, as AutoCAD's class names its <c>DxfName</c>:
@@ -88,7 +86,11 @@ namespace GeometryHelper.Dxf
                 case "REVOLVEDSURFACE":
                 case "SWEPTSURFACE":
                 case "NURBSURFACE":
-                    throw new NotSupportedException("A " + DxfName + " is broken by AutoCAD's solid modeler (ACIS), which the library has not: explode it in AutoCAD.");
+                    throw new NotSupportedException(
+                        "A "
+                            + DxfName
+                            + " is broken by AutoCAD's solid modeler (ACIS), which the library has not: explode it in AutoCAD."
+                    );
                 case "MESH":
                     return MeshParts().AsReadOnly();
                 default:
@@ -114,7 +116,13 @@ namespace GeometryHelper.Dxf
             int level = 0;
             string handle = Handle ?? string.Empty;
 
-            while (i < n && !(groups[i].TypeCode == 100 && string.Equals(groups[i].Value?.Trim(), "AcDbSubDMesh", StringComparison.Ordinal)))
+            while (
+                i < n
+                && !(
+                    groups[i].TypeCode == 100
+                    && string.Equals(groups[i].Value?.Trim(), "AcDbSubDMesh", StringComparison.Ordinal)
+                )
+            )
             {
                 i++;
             }
@@ -126,7 +134,13 @@ namespace GeometryHelper.Dxf
 
             if (level != 0)
             {
-                throw new NotSupportedException("The MESH " + handle + " is smoothed to level " + level.ToString(CultureInfo.InvariantCulture) + ", and breaks into the faces its smoothing makes, which the library does not work out: explode it in AutoCAD, or take its smoothing off first.");
+                throw new NotSupportedException(
+                    "The MESH "
+                        + handle
+                        + " is smoothed to level "
+                        + level.ToString(CultureInfo.InvariantCulture)
+                        + ", and breaks into the faces its smoothing makes, which the library does not work out: explode it in AutoCAD, or take its smoothing off first."
+                );
             }
 
             // A count of the record, and the groups it counts after it, checked to be there.
@@ -136,7 +150,20 @@ namespace GeometryHelper.Dxf
 
                 if (count < 0 || (long)count * each > n - i - 1)
                 {
-                    throw new InvalidOperationException("The MESH " + handle + (count < 0 ? " holds no count of its " + what + " (" + code.ToString(CultureInfo.InvariantCulture) + ") where its record should" : " counts more " + what + " than its record holds") + ", as ezdxf refuses one.");
+                    throw new InvalidOperationException(
+                        "The MESH "
+                            + handle
+                            + (
+                                count < 0
+                                    ? " holds no count of its "
+                                        + what
+                                        + " ("
+                                        + code.ToString(CultureInfo.InvariantCulture)
+                                        + ") where its record should"
+                                    : " counts more " + what + " than its record holds"
+                            )
+                            + ", as ezdxf refuses one."
+                    );
                 }
 
                 i++;
@@ -147,7 +174,9 @@ namespace GeometryHelper.Dxf
             {
                 if (i >= n || groups[i].TypeCode != code)
                 {
-                    throw new InvalidOperationException("The MESH " + handle + " holds fewer " + what + " than it counts, as ezdxf refuses one.");
+                    throw new InvalidOperationException(
+                        "The MESH " + handle + " holds fewer " + what + " than it counts, as ezdxf refuses one."
+                    );
                 }
             }
 
@@ -196,18 +225,29 @@ namespace GeometryHelper.Dxf
             for (int o = 0; o < overrides; o++)
             {
                 int subentity = i < n && groups[i].TypeCode == 91 ? DxfLeaderGroups.Whole(groups[i].Value, 0) : 0;
-                int properties = i + 1 < n && groups[i + 1].TypeCode == 92 ? DxfLeaderGroups.Whole(groups[i + 1].Value, 0) : 0;
+                int properties =
+                    i + 1 < n && groups[i + 1].TypeCode == 92 ? DxfLeaderGroups.Whole(groups[i + 1].Value, 0) : 0;
                 i += 2;
                 int index = -1;
                 int truth = -1;
 
                 for (int q = 0; q < properties; q++)
                 {
-                    bool colour = i + 1 < n && groups[i].TypeCode == 90 && DxfLeaderGroups.Whole(groups[i].Value, -1) == 0 && groups[i + 1].TypeCode == 63;
+                    bool colour =
+                        i + 1 < n
+                        && groups[i].TypeCode == 90
+                        && DxfLeaderGroups.Whole(groups[i].Value, -1) == 0
+                        && groups[i + 1].TypeCode == 63;
 
                     if (!colour || subentity < 1)
                     {
-                        throw new NotSupportedException("The MESH " + handle + " gives " + overrides.ToString(CultureInfo.InvariantCulture) + " of its faces, edges or vertices a material, a transparency or a look of their own other than a face's colour, which AutoCAD keeps on the faces it breaks into and the library does not read: explode it in AutoCAD.");
+                        throw new NotSupportedException(
+                            "The MESH "
+                                + handle
+                                + " gives "
+                                + overrides.ToString(CultureInfo.InvariantCulture)
+                                + " of its faces, edges or vertices a material, a transparency or a look of their own other than a face's colour, which AutoCAD keeps on the faces it breaks into and the library does not read: explode it in AutoCAD."
+                        );
                     }
 
                     index = DxfLeaderGroups.Whole(groups[i + 1].Value, 256);
@@ -228,11 +268,25 @@ namespace GeometryHelper.Dxf
             for (int at = 0; at < list.Count; at += list[at] + 1)
             {
                 int count = list[at];
-                string face = "The face " + faces.Count.ToString(CultureInfo.InvariantCulture) + " of the MESH " + handle + " has " + count.ToString(CultureInfo.InvariantCulture) + " corners";
+                string face =
+                    "The face "
+                    + faces.Count.ToString(CultureInfo.InvariantCulture)
+                    + " of the MESH "
+                    + handle
+                    + " has "
+                    + count.ToString(CultureInfo.InvariantCulture)
+                    + " corners";
 
                 if (count < 3 || count > list.Count - at - 1)
                 {
-                    throw new InvalidOperationException(face + (count < 3 ? ", where a face has three at least." : ", and its list of faces ends before them."));
+                    throw new InvalidOperationException(
+                        face
+                            + (
+                                count < 3
+                                    ? ", where a face has three at least."
+                                    : ", and its list of faces ends before them."
+                            )
+                    );
                 }
 
                 var corners = new int[count];
@@ -243,7 +297,14 @@ namespace GeometryHelper.Dxf
 
                     if (corners[k] < 0 || corners[k] >= points.Count)
                     {
-                        throw new InvalidOperationException(face + ", one of them the vertex " + corners[k].ToString(CultureInfo.InvariantCulture) + ", and the MESH has " + points.Count.ToString(CultureInfo.InvariantCulture) + " from nought.");
+                        throw new InvalidOperationException(
+                            face
+                                + ", one of them the vertex "
+                                + corners[k].ToString(CultureInfo.InvariantCulture)
+                                + ", and the MESH has "
+                                + points.Count.ToString(CultureInfo.InvariantCulture)
+                                + " from nought."
+                        );
                     }
                 }
 
@@ -259,7 +320,17 @@ namespace GeometryHelper.Dxf
 
             if (beyond >= faces.Count)
             {
-                throw new NotSupportedException("The MESH " + handle + " gives " + overrides.ToString(CultureInfo.InvariantCulture) + " of its faces, edges or vertices a colour of their own, the subentity " + (beyond + 1).ToString(CultureInfo.InvariantCulture) + " among them where it has " + faces.Count.ToString(CultureInfo.InvariantCulture) + " faces: an edge's or a vertex's colour is not read by the library: explode it in AutoCAD.");
+                throw new NotSupportedException(
+                    "The MESH "
+                        + handle
+                        + " gives "
+                        + overrides.ToString(CultureInfo.InvariantCulture)
+                        + " of its faces, edges or vertices a colour of their own, the subentity "
+                        + (beyond + 1).ToString(CultureInfo.InvariantCulture)
+                        + " among them where it has "
+                        + faces.Count.ToString(CultureInfo.InvariantCulture)
+                        + " faces: an edge's or a vertex's colour is not read by the library: explode it in AutoCAD."
+                );
             }
 
             var look = new Look(this);
@@ -284,7 +355,18 @@ namespace GeometryHelper.Dxf
 
                 if (count <= 4)
                 {
-                    made.Add(new DxfFace(points[round[0]], points[round[1]], points[round[2]], points[round[count - 1]], true, true, true, true));
+                    made.Add(
+                        new DxfFace(
+                            points[round[0]],
+                            points[round[1]],
+                            points[round[2]],
+                            points[round[count - 1]],
+                            true,
+                            true,
+                            true,
+                            true
+                        )
+                    );
                 }
                 else
                 {
@@ -473,8 +555,10 @@ namespace GeometryHelper.Dxf
         /// <summary>Refuses: the geometry of a type the library keeps as it is is not changed.</summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="NotSupportedException">Thrown always.</exception>
-        private protected override void TransformEntity(GeoTransform3 transform)
-            => throw new NotSupportedException("A " + DxfName + " is kept as the file has it, and is not moved: the library has no class for it yet.");
+        private protected override void TransformEntity(GeoTransform3 transform) =>
+            throw new NotSupportedException(
+                "A " + DxfName + " is kept as the file has it, and is not moved: the library has no class for it yet."
+            );
 
         /// <summary>The parts of an MLINE, as <see cref="Explode"/> sets them out, its record and its style read once.</summary>
         private List<DxfEntity> MlineParts()
@@ -494,7 +578,17 @@ namespace GeometryHelper.Dxf
             {
                 if (count == 0 || vertex.Parameters.Count != count)
                 {
-                    throw new InvalidOperationException("The MLINE " + (Handle ?? string.Empty) + " holds " + vertex.Parameters.Count.ToString(CultureInfo.InvariantCulture) + " elements at a vertex, and its style " + mline.StyleName + " " + count.ToString(CultureInfo.InvariantCulture) + ".");
+                    throw new InvalidOperationException(
+                        "The MLINE "
+                            + (Handle ?? string.Empty)
+                            + " holds "
+                            + vertex.Parameters.Count.ToString(CultureInfo.InvariantCulture)
+                            + " elements at a vertex, and its style "
+                            + mline.StyleName
+                            + " "
+                            + count.ToString(CultureInfo.InvariantCulture)
+                            + "."
+                    );
                 }
             }
 
@@ -542,7 +636,11 @@ namespace GeometryHelper.Dxf
             {
                 GeoPoint3 upper = at[top];
                 GeoPoint3 lower = at[bottom];
-                var half = new GeoPoint3(lower.X + (upper.X - lower.X) * 0.5, lower.Y + (upper.Y - lower.Y) * 0.5, lower.Z + (upper.Z - lower.Z) * 0.5);
+                var half = new GeoPoint3(
+                    lower.X + (upper.X - lower.X) * 0.5,
+                    lower.Y + (upper.Y - lower.Y) * 0.5,
+                    lower.Z + (upper.Z - lower.Z) * 0.5
+                );
                 Line(upper, half, top);
                 Line(lower, half, bottom);
             }
@@ -551,7 +649,11 @@ namespace GeometryHelper.Dxf
             {
                 GeoPoint3 start = at[from];
                 GeoPoint3 end = at[to];
-                var center = new GeoPoint3(start.X + (end.X - start.X) * 0.5, start.Y + (end.Y - start.Y) * 0.5, start.Z + (end.Z - start.Z) * 0.5);
+                var center = new GeoPoint3(
+                    start.X + (end.X - start.X) * 0.5,
+                    start.Y + (end.Y - start.Y) * 0.5,
+                    start.Z + (end.Z - start.Z) * 0.5
+                );
                 double radius = start.DistanceTo(end) / 2.0;
 
                 if (!(radius > tolerance))
@@ -565,7 +667,11 @@ namespace GeometryHelper.Dxf
                 int one = style.Elements[from].Colour;
                 int two = style.Elements[to].Colour;
 
-                foreach (double[] span in one == two ? new[] { new[] { 0.0, Math.PI } } : new[] { new[] { 0.0, Math.PI / 2.0 }, new[] { Math.PI / 2.0, Math.PI } })
+                foreach (
+                    double[] span in one == two
+                        ? new[] { new[] { 0.0, Math.PI } }
+                        : new[] { new[] { 0.0, Math.PI / 2.0 }, new[] { Math.PI / 2.0, Math.PI } }
+                )
                 {
                     var arc = new DxfArc(center, normal, radius, angle + span[0], angle + span[1]);
                     look.GiveTo(arc);
@@ -646,7 +752,13 @@ namespace GeometryHelper.Dxf
         /// the next: the whole of it where its parameters say no more than its offset and a start of nought, else each piece from
         /// a start to the stop after it, the last to the end, measured along the segment from where it stands.
         /// </summary>
-        private static void Pieces(GeoPoint3 start, GeoPoint3 end, List<double> parameters, int element, Action<GeoPoint3, GeoPoint3, int> line)
+        private static void Pieces(
+            GeoPoint3 start,
+            GeoPoint3 end,
+            List<double> parameters,
+            int element,
+            Action<GeoPoint3, GeoPoint3, int> line
+        )
         {
             if (parameters.Count <= 2 && (parameters.Count < 2 || parameters[1] == 0.0))
             {
@@ -667,7 +779,11 @@ namespace GeometryHelper.Dxf
             {
                 double from = Math.Max(0.0, Math.Min(length, parameters[i]));
                 double to = i + 1 < parameters.Count ? Math.Max(from, Math.Min(length, parameters[i + 1])) : length;
-                line(from == 0.0 ? start : start.Add(along.Multiply(from)), to == length ? end : start.Add(along.Multiply(to)), element);
+                line(
+                    from == 0.0 ? start : start.Add(along.Multiply(from)),
+                    to == length ? end : start.Add(along.Multiply(to)),
+                    element
+                );
             }
         }
 
@@ -692,21 +808,37 @@ namespace GeometryHelper.Dxf
             DxfDatabase database = (IsResident ? Item.File : Item.File.Origin)?.Database;
             DxfDBObject found = null;
 
-            if (database != null && mline.StyleHandle != null && database.TryGetObject(mline.StyleHandle, out DxfDBObject byHandle) && byHandle.Item?.Type == "MLINESTYLE")
+            if (
+                database != null
+                && mline.StyleHandle != null
+                && database.TryGetObject(mline.StyleHandle, out DxfDBObject byHandle)
+                && byHandle.Item?.Type == "MLINESTYLE"
+            )
             {
                 found = byHandle;
             }
 
             DxfDBDictionary styles = found == null ? database?.MLStyleDictionary : null;
 
-            if (styles != null && styles.Contains(mline.StyleName) && styles.GetAt(mline.StyleName) is DxfDBObject byName && byName.Item?.Type == "MLINESTYLE")
+            if (
+                styles != null
+                && styles.Contains(mline.StyleName)
+                && styles.GetAt(mline.StyleName) is DxfDBObject byName
+                && byName.Item?.Type == "MLINESTYLE"
+            )
             {
                 found = byName;
             }
 
             if (found == null)
             {
-                throw new InvalidOperationException("The MLINE " + (Handle ?? string.Empty) + " is drawn by the style " + mline.StyleName + ", which its drawing has not: it has no elements to break into.");
+                throw new InvalidOperationException(
+                    "The MLINE "
+                        + (Handle ?? string.Empty)
+                        + " is drawn by the style "
+                        + mline.StyleName
+                        + ", which its drawing has not: it has no elements to break into."
+                );
             }
 
             return DxfMline.Style.Read(found.Item.File.ObjectGroupsOf(found.Item));

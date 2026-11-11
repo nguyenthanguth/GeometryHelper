@@ -22,7 +22,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 Assert.True(model.Open(other));
 
-                Assert.DoesNotContain(model.FileRows, r => string.Equals(r.Path, saved, StringComparison.OrdinalIgnoreCase));
+                Assert.DoesNotContain(model.FileRows, r =>
+                    string.Equals(r.Path, saved, StringComparison.OrdinalIgnoreCase)
+                );
                 Assert.Equal(2, model.FileRows.Count(r => !r.IsHeader));
                 Assert.Equal("All 2", model.AllChipText);
 

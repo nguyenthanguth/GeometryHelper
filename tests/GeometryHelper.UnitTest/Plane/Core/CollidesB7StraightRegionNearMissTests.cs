@@ -36,8 +36,8 @@ namespace GeometryHelper.UnitTest.Plane
         private static GeoTriangle2 TopTriangle() => new GeoTriangle2(P(0, 0), P(100, 100), P(0, 100));
 
         /// <summary>The square with a hole 20 by 20 in its middle, from (40, 40) to (60, 60).</summary>
-        private static GeoFace2 SquareWithAHole()
-            => new GeoFace2(SquarePolygon(), new[] { new GeoPolygon2(P(40, 40), P(60, 40), P(60, 60), P(40, 60)) });
+        private static GeoFace2 SquareWithAHole() =>
+            new GeoFace2(SquarePolygon(), new[] { new GeoPolygon2(P(40, 40), P(60, 40), P(60, 60), P(40, 60)) });
 
         /// <summary>
         /// The quadrilateral with its top corner at (0, 100) and its two upper sides falling from there at 10 degrees, to
@@ -208,8 +208,8 @@ namespace GeometryHelper.UnitTest.Plane
         /// from there to (40, 100.01) and (80, 100.01): for a gap of 0.0005 their lines meet the top 1.05 out, outside the
         /// end slack, and no corner of either lies inside the other.
         /// </summary>
-        private static GeoPolygon2 HangingDiamond(double gap)
-            => new GeoPolygon2(P(40, 100.01), P(60, 100 + gap), P(80, 100.01), P(60, 120));
+        private static GeoPolygon2 HangingDiamond(double gap) =>
+            new GeoPolygon2(P(40, 100.01), P(60, 100 + gap), P(80, 100.01), P(60, 120));
 
         [Fact]
         public void ADiamondHangingFiveTenThousandthsAboveASquare_CollidesWithThePolygonRectangleTriangleAndFace()
@@ -251,7 +251,10 @@ namespace GeometryHelper.UnitTest.Plane
             // The flat triangle (40, 100.01), (60, 100.0005), (80, 100.01) above the top triangle; the diamond as a face
             // with a small hole, above the square face.
             var flat = new GeoTriangle2(P(40, 100.01), P(60, 100.0005), P(80, 100.01));
-            var diamondFace = new GeoFace2(HangingDiamond(0.0005), new[] { new GeoPolygon2(P(58, 108), P(62, 108), P(60, 112)) });
+            var diamondFace = new GeoFace2(
+                HangingDiamond(0.0005),
+                new[] { new GeoPolygon2(P(58, 108), P(62, 108), P(60, 112)) }
+            );
 
             Assert.True(flat.CollidesWith(TopTriangle(), Thousandth));
             Assert.True(TopTriangle().CollidesWith(flat, Thousandth));
@@ -296,15 +299,25 @@ namespace GeometryHelper.UnitTest.Plane
                 Leader = new GeoLine2(P(0, 0), P(60, 0)),
                 Box = new GeoRectangle2(P(30, 0), 40, 10),
                 Offset = 5,
-                BlockLines = new[] { new GeoLine2(P(30 - 20 * Math.Cos(s), 15 + gap + 20 * Math.Sin(s)), P(30, 15 + gap)) },
-                BlockPolygons = new[] { new GeoPolygon2(P(20, 5 - gap - rise), P(30, 5 - gap), P(40, 5 - gap - rise), P(30, -20)) },
+                BlockLines = new[]
+                {
+                    new GeoLine2(P(30 - 20 * Math.Cos(s), 15 + gap + 20 * Math.Sin(s)), P(30, 15 + gap)),
+                },
+                BlockPolygons = new[]
+                {
+                    new GeoPolygon2(P(20, 5 - gap - rise), P(30, 5 - gap), P(40, 5 - gap - rise), P(30, -20)),
+                },
             };
         }
 
         /// <summary>The least distance from where the label was put to its two obstacles.</summary>
         private static double Clearance(ArrangeItem item, ArrangeResult result)
         {
-            var placed = new GeoRectangle2(P(item.Box.Center.X + result.Translation.X, item.Box.Center.Y + result.Translation.Y), item.Box.Width, item.Box.Height);
+            var placed = new GeoRectangle2(
+                P(item.Box.Center.X + result.Translation.X, item.Box.Center.Y + result.Translation.Y),
+                item.Box.Width,
+                item.Box.Height
+            );
 
             return Math.Min(placed.DistanceTo(item.BlockLines[0]), placed.DistanceTo(item.BlockPolygons[0]));
         }
@@ -314,7 +327,9 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // On 2755f30 the label was put at its first place, half a thousandth from both obstacles.
             ArrangeItem item = LabelBetweenTwoObstacles(0.0005);
-            ArrangeResult result = Assert.Single(Arranger.Run(new[] { item }, new ArrangeOptions { Tolerance = Thousandth }));
+            ArrangeResult result = Assert.Single(
+                Arranger.Run(new[] { item }, new ArrangeOptions { Tolerance = Thousandth })
+            );
 
             Assert.True(!result.Placed || Clearance(item, result) > 1E-3);
         }
@@ -324,7 +339,9 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // A guard: at 1E-4 the place is clear of both.
             ArrangeItem item = LabelBetweenTwoObstacles(0.0005);
-            ArrangeResult result = Assert.Single(Arranger.Run(new[] { item }, new ArrangeOptions { Tolerance = TenThousandth }));
+            ArrangeResult result = Assert.Single(
+                Arranger.Run(new[] { item }, new ArrangeOptions { Tolerance = TenThousandth })
+            );
 
             Assert.True(result.Placed);
             Assert.True(Clearance(item, result) > 1E-4);

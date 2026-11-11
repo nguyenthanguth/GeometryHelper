@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using GeometryHelper.Geometry;
 using GeometryHelper.IfcConvert.Converters.Internal;
 using GeometryHelper.IfcConvert.Core.Internal;
 using GeometryHelper.IfcConvert.Models;
-using GeometryHelper.Geometry;
 using Xbim.Ifc;
 using Xbim.Ifc4.Interfaces;
 
@@ -23,7 +23,9 @@ namespace GeometryHelper.IfcConvert.Core
         private bool _disposed;
         private readonly IIfcSession _session;
 
-        private static readonly Dictionary<string, IfcStoreCache> GlobalStores = new Dictionary<string, IfcStoreCache>(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, IfcStoreCache> GlobalStores = new Dictionary<string, IfcStoreCache>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private static readonly object CacheLock = new object();
 
         /// <summary>
@@ -164,10 +166,7 @@ namespace GeometryHelper.IfcConvert.Core
                     return cachedStore;
                 }
 
-                var newStore = new IfcStoreCache(key)
-                {
-                    IsGlobalCached = true
-                };
+                var newStore = new IfcStoreCache(key) { IsGlobalCached = true };
                 GlobalStores[key] = newStore;
                 return newStore;
             }
@@ -188,7 +187,8 @@ namespace GeometryHelper.IfcConvert.Core
             {
                 throw new ArgumentException(
                     $"The global IFC cache needs the full path of the file, e.g. C:\\Models\\Building.ifc or \\\\server\\share\\Building.ifc, not '{filePath}'.",
-                    nameof(filePath));
+                    nameof(filePath)
+                );
             }
 
             return Path.GetFullPath(filePath);
@@ -325,9 +325,13 @@ namespace GeometryHelper.IfcConvert.Core
         /// <param name="ifcTypeName">The IFC entity type name (with or without 'Ifc' prefix, case-insensitive).</param>
         /// <param name="options">Optional conversion options.</param>
         /// <returns>A list of <see cref="IfcProductGeometry"/> representations.</returns>
-        public IReadOnlyList<IfcProductGeometry> GetGeometriesByType(string ifcTypeName, IfcConvertOptions options = null)
+        public IReadOnlyList<IfcProductGeometry> GetGeometriesByType(
+            string ifcTypeName,
+            IfcConvertOptions options = null
+        )
         {
-            return _session?.GetGeometriesByType(ifcTypeName, ResolveOptions(options)) ?? Array.Empty<IfcProductGeometry>();
+            return _session?.GetGeometriesByType(ifcTypeName, ResolveOptions(options))
+                ?? Array.Empty<IfcProductGeometry>();
         }
 
         /// <summary>
@@ -425,8 +429,10 @@ namespace GeometryHelper.IfcConvert.Core
             return null;
         }
 
-        private static readonly IReadOnlyDictionary<string, IfcPropertySet> EmptyPropertySets =
-            new Dictionary<string, IfcPropertySet>(StringComparer.OrdinalIgnoreCase);
+        private static readonly IReadOnlyDictionary<string, IfcPropertySet> EmptyPropertySets = new Dictionary<
+            string,
+            IfcPropertySet
+        >(StringComparer.OrdinalIgnoreCase);
 
         #endregion
 

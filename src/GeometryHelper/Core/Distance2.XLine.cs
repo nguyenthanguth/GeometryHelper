@@ -49,7 +49,8 @@ namespace GeometryHelper.Core
 
         internal static double DistanceTo(GeoPolygon2 poly, GeoXLine2 xline, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             // DistanceTo(poly, line) read with the tolerance passed down, which it takes from the global one.
             GeoLine2 cut = XLine2.CutPast(xline, poly, tolerance);
@@ -63,21 +64,24 @@ namespace GeometryHelper.Core
             for (int i = 0; i < poly.EdgeCount; i++)
             {
                 double d = DistanceToSide(poly.GetEdgeAt(i), cut, tolerance);
-                if (d < minDistance) minDistance = d;
+                if (d < minDistance)
+                    minDistance = d;
             }
             return minDistance;
         }
 
         internal static double DistanceTo(GeoPolygonArc2 loop, GeoXLine2 xline, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return DistanceTo(loop, XLine2.CutPast(xline, loop, tolerance), tolerance);
         }
 
         internal static double DistanceTo(GeoPolyline2 polyline, GeoXLine2 xline, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             // DistanceTo(polyline, line) read with the tolerance passed down, which it takes from the global one.
             GeoLine2 cut = XLine2.CutPast(xline, polyline, tolerance);
@@ -91,14 +95,16 @@ namespace GeometryHelper.Core
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
                 double d = DistanceToSide(polyline.GetEdgeAt(i), cut, tolerance);
-                if (d < minDistance) minDistance = d;
+                if (d < minDistance)
+                    minDistance = d;
             }
             return minDistance;
         }
 
         internal static double DistanceTo(GeoPolylineArc2 chain, GeoXLine2 xline, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return DistanceTo(chain, XLine2.CutPast(xline, chain, tolerance), tolerance);
         }
@@ -117,7 +123,8 @@ namespace GeometryHelper.Core
             foreach (GeoLine2 edge in rect.GetEdges())
             {
                 double d = DistanceToSide(edge, cut, tolerance);
-                if (d < minDistance) minDistance = d;
+                if (d < minDistance)
+                    minDistance = d;
             }
             return minDistance;
         }

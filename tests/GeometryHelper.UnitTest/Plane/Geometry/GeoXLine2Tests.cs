@@ -157,7 +157,9 @@ namespace GeometryHelper.UnitTest.Plane
         {
             GeoTransform2 squash = GeoTransform2.Scaling(0, 1);
 
-            Assert.Throws<InvalidOperationException>(() => new GeoXLine2(P(5, 5), GeoVector2.XAxis).TransformBy(squash));
+            Assert.Throws<InvalidOperationException>(() =>
+                new GeoXLine2(P(5, 5), GeoVector2.XAxis).TransformBy(squash)
+            );
             Assert.Throws<InvalidOperationException>(() => squash.Transform(new GeoXLine2(P(5, 5), GeoVector2.XAxis)));
             Assert.Throws<ArgumentNullException>(() => new GeoXLine2(P(5, 5), GeoVector2.XAxis).TransformBy(null));
 
@@ -383,7 +385,12 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Null(new GeoXLine2(P(100 + shift, 100 + shift), new GeoVector2(1, -1)).ClipTo(square, Strict));
             Assert.Null(new GeoXLine2(P(100 + shift, 100 + shift), new GeoVector2(1, -1)).ClipTo(square));
-            Assert.NotNull(new GeoXLine2(P(100 + 0.0009 / Math.Sqrt(2), 100 + 0.0009 / Math.Sqrt(2)), new GeoVector2(1, -1)).ClipTo(square, Strict));
+            Assert.NotNull(
+                new GeoXLine2(
+                    P(100 + 0.0009 / Math.Sqrt(2), 100 + 0.0009 / Math.Sqrt(2)),
+                    new GeoVector2(1, -1)
+                ).ClipTo(square, Strict)
+            );
         }
 
         [Fact]
@@ -481,13 +488,20 @@ namespace GeometryHelper.UnitTest.Plane
             double half = Math.PI / 360;
             double two = Math.PI / 90;
 
-            Assert.True(line.IsParallelTo(new GeoXLine2(P(7, 7), new GeoVector2(Math.Cos(half), Math.Sin(half))), Strict));
-            Assert.False(line.IsParallelTo(new GeoXLine2(P(7, 7), new GeoVector2(Math.Cos(two), Math.Sin(two))), Strict));
+            Assert.True(
+                line.IsParallelTo(new GeoXLine2(P(7, 7), new GeoVector2(Math.Cos(half), Math.Sin(half))), Strict)
+            );
+            Assert.False(
+                line.IsParallelTo(new GeoXLine2(P(7, 7), new GeoVector2(Math.Cos(two), Math.Sin(two))), Strict)
+            );
             Assert.True(line.IsParallelTo(line.Reverse(), Strict));
             Assert.True(line.IsParallelTo(new GeoLine2(P(0, 10), P(-100, 10)), Strict));
             Assert.False(line.IsParallelTo(new GeoLine2(P(0, 10), P(0, 100)), Strict));
             Assert.Equal(line.IsParallelTo(line.Reverse(), Tolerance.Global), line.IsParallelTo(line.Reverse()));
-            Assert.Equal(line.IsParallelTo(new GeoLine2(P(0, 10), P(-100, 10)), Tolerance.Global), line.IsParallelTo(new GeoLine2(P(0, 10), P(-100, 10))));
+            Assert.Equal(
+                line.IsParallelTo(new GeoLine2(P(0, 10), P(-100, 10)), Tolerance.Global),
+                line.IsParallelTo(new GeoLine2(P(0, 10), P(-100, 10)))
+            );
         }
 
         [Fact]
@@ -499,7 +513,10 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(line.IsSameLineAs(new GeoXLine2(P(-20, 0.0004), GeoVector2.XAxis), Strict));
             Assert.False(line.IsSameLineAs(new GeoXLine2(P(0, 0.002), GeoVector2.XAxis), Strict));
             Assert.False(line.IsSameLineAs(new GeoXLine2(P(0, 0), new GeoVector2(1, 0.01)), Strict));
-            Assert.True(line.IsSameLineAs(new GeoXLine2(P(500, 0), new GeoVector2(-1, 0)), Strict) == new GeoXLine2(P(500, 0), new GeoVector2(-1, 0)).IsSameLineAs(line, Strict));
+            Assert.True(
+                line.IsSameLineAs(new GeoXLine2(P(500, 0), new GeoVector2(-1, 0)), Strict)
+                    == new GeoXLine2(P(500, 0), new GeoVector2(-1, 0)).IsSameLineAs(line, Strict)
+            );
             Assert.Equal(line.IsSameLineAs(line.Reverse(), Tolerance.Global), line.IsSameLineAs(line.Reverse()));
         }
 
@@ -555,7 +572,10 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(a.IsEqualTo(new GeoXLine2(P(1.0005, 2), GeoVector2.XAxis), Strict));
             Assert.False(a.IsEqualTo(new GeoXLine2(P(1.002, 2), GeoVector2.XAxis), Strict));
             Assert.False(a.IsEqualTo(new GeoXLine2(P(1, 2), new GeoVector2(1, 0.001)), Strict));
-            Assert.Equal(a.IsEqualTo(new GeoXLine2(P(1.0005, 2), GeoVector2.XAxis), Tolerance.Global), a.IsEqualTo(new GeoXLine2(P(1.0005, 2), GeoVector2.XAxis)));
+            Assert.Equal(
+                a.IsEqualTo(new GeoXLine2(P(1.0005, 2), GeoVector2.XAxis), Tolerance.Global),
+                a.IsEqualTo(new GeoXLine2(P(1.0005, 2), GeoVector2.XAxis))
+            );
         }
 
         [Fact]

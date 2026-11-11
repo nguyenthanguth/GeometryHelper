@@ -117,7 +117,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static double DistanceTo(GeoPolygon2 poly, GeoRay2 ray, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             // DistanceTo(poly, line) read with the tolerance passed down, which it takes from the global one.
             GeoLine2 cut = Ray2.CutPast(ray, poly, tolerance);
@@ -131,7 +132,8 @@ namespace GeometryHelper.Core
             for (int i = 0; i < poly.EdgeCount; i++)
             {
                 double d = DistanceToSide(poly.GetEdgeAt(i), cut, tolerance);
-                if (d < minDistance) minDistance = d;
+                if (d < minDistance)
+                    minDistance = d;
             }
             return minDistance;
         }
@@ -153,7 +155,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static double DistanceTo(GeoPolygonArc2 loop, GeoRay2 ray, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return DistanceTo(loop, Ray2.CutPast(ray, loop, tolerance), tolerance);
         }
@@ -162,7 +165,8 @@ namespace GeometryHelper.Core
         /// Calculates the shortest distance between a polyline and a ray, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public static double DistanceTo(GeoPolyline2 polyline, GeoRay2 ray) => DistanceTo(polyline, ray, Tolerance.Global);
+        public static double DistanceTo(GeoPolyline2 polyline, GeoRay2 ray) =>
+            DistanceTo(polyline, ray, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a polyline and a ray, within a tolerance.
@@ -171,7 +175,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static double DistanceTo(GeoPolyline2 polyline, GeoRay2 ray, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             // DistanceTo(polyline, line) read with the tolerance passed down, which it takes from the global one.
             GeoLine2 cut = Ray2.CutPast(ray, polyline, tolerance);
@@ -185,7 +190,8 @@ namespace GeometryHelper.Core
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
                 double d = DistanceToSide(polyline.GetEdgeAt(i), cut, tolerance);
-                if (d < minDistance) minDistance = d;
+                if (d < minDistance)
+                    minDistance = d;
             }
             return minDistance;
         }
@@ -202,7 +208,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static double DistanceTo(GeoPolylineArc2 chain, GeoRay2 ray, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return DistanceTo(chain, Ray2.CutPast(ray, chain, tolerance), tolerance);
         }
@@ -234,7 +241,8 @@ namespace GeometryHelper.Core
             foreach (GeoLine2 edge in rect.GetEdges())
             {
                 double d = DistanceToSide(edge, cut, tolerance);
-                if (d < minDistance) minDistance = d;
+                if (d < minDistance)
+                    minDistance = d;
             }
             return minDistance;
         }

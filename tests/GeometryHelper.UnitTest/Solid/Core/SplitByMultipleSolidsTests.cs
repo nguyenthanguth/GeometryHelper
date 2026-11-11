@@ -16,8 +16,10 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoPoint3[] baseCcw =
             {
-                new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y0, z0),
-                new GeoPoint3(x1, y1, z0), new GeoPoint3(x0, y1, z0)
+                new GeoPoint3(x0, y0, z0),
+                new GeoPoint3(x1, y0, z0),
+                new GeoPoint3(x1, y1, z0),
+                new GeoPoint3(x0, y1, z0),
             };
 
             List<GeoFace3> faces = new List<GeoFace3>();
@@ -45,23 +47,27 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A straight run along X at y = z = 5, from x = -10 to x = 60.
         /// </summary>
-        private static GeoPolyline3 Chain() =>
-            new GeoPolyline3(new GeoPoint3(-10, 5, 5), new GeoPoint3(60, 5, 5));
+        private static GeoPolyline3 Chain() => new GeoPolyline3(new GeoPoint3(-10, 5, 5), new GeoPoint3(60, 5, 5));
 
-        private static GeoLine3 Segment() =>
-            new GeoLine3(new GeoPoint3(-10, 5, 5), new GeoPoint3(60, 5, 5));
+        private static GeoLine3 Segment() => new GeoLine3(new GeoPoint3(-10, 5, 5), new GeoPoint3(60, 5, 5));
 
         private static double TotalLength(GeoPolyline3[] pieces)
         {
             double total = 0.0;
-            foreach (GeoPolyline3 piece in pieces) { total += piece.Length; }
+            foreach (GeoPolyline3 piece in pieces)
+            {
+                total += piece.Length;
+            }
             return total;
         }
 
         private static double TotalLength(GeoLine3[] pieces)
         {
             double total = 0.0;
-            foreach (GeoLine3 piece in pieces) { total += piece.Length; }
+            foreach (GeoLine3 piece in pieces)
+            {
+                total += piece.Length;
+            }
             return total;
         }
 
@@ -187,7 +193,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 box = Box(0, 0, 0, 10, 10, 10);
 
             bool dense = Chain().TrySplitBy(new[] { box }, out GeoPolyline3[] denseIn, out GeoPolyline3[] denseOut);
-            bool sparse = Chain().TrySplitBy(new[] { null, box, null }, out GeoPolyline3[] sparseIn, out GeoPolyline3[] sparseOut);
+            bool sparse = Chain()
+                .TrySplitBy(new[] { null, box, null }, out GeoPolyline3[] sparseIn, out GeoPolyline3[] sparseOut);
 
             Assert.Equal(dense, sparse);
             Assert.Equal(denseIn.Length, sparseIn.Length);
@@ -199,17 +206,25 @@ namespace GeometryHelper.UnitTest.Solid
         public void ANullArray_IsRefused()
         {
             Assert.Throws<ArgumentNullException>(() =>
-                Chain().TrySplitBy((GeoSolid3[])null, out GeoPolyline3[] _, out GeoPolyline3[] _));
+                Chain().TrySplitBy((GeoSolid3[])null, out GeoPolyline3[] _, out GeoPolyline3[] _)
+            );
 
             Assert.Throws<ArgumentNullException>(() =>
-                Segment().TrySplitBy((GeoSolid3[])null, out GeoLine3[] _, out GeoLine3[] _));
+                Segment().TrySplitBy((GeoSolid3[])null, out GeoLine3[] _, out GeoLine3[] _)
+            );
         }
 
         [Fact]
         public void ANullSubject_IsRefused()
         {
             Assert.Throws<ArgumentNullException>(() =>
-                Splition3.TrySplitBy((GeoPolyline3)null, new[] { Box(0, 0, 0, 1, 1, 1) }, out GeoPolyline3[] _, out GeoPolyline3[] _));
+                Splition3.TrySplitBy(
+                    (GeoPolyline3)null,
+                    new[] { Box(0, 0, 0, 1, 1, 1) },
+                    out GeoPolyline3[] _,
+                    out GeoPolyline3[] _
+                )
+            );
         }
 
         #endregion
@@ -239,7 +254,9 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 block = Box(0, 0, 0, 30, 10, 10).WithOpenings(new[] { Box(10, 3, 3, 20, 7, 7) });
             GeoSolid3 plug = Box(10, 3, 3, 20, 7, 7);
 
-            Assert.True(Chain().TrySplitBy(new[] { block, plug }, out GeoPolyline3[] inside, out GeoPolyline3[] outside));
+            Assert.True(
+                Chain().TrySplitBy(new[] { block, plug }, out GeoPolyline3[] inside, out GeoPolyline3[] outside)
+            );
 
             // The union of the drilled block and the plug is the solid block again.
             Assert.Single(inside);
@@ -261,7 +278,7 @@ namespace GeometryHelper.UnitTest.Solid
                 new[] { Box(0, 0, 0, 10, 10, 10), Box(5, 0, 0, 20, 10, 10) },
                 new[] { Box(0, 0, 0, 10, 10, 10), Box(10, 0, 0, 25, 10, 10) },
                 new[] { Box(0, 100, 0, 10, 110, 10) },
-                new GeoSolid3[0]
+                new GeoSolid3[0],
             };
 
             foreach (GeoSolid3[] cutters in arrangements)
@@ -294,9 +311,18 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // Turns the corner inside the body, so the piece inside spans two edges of the chain.
             GeoPolyline3 bent = new GeoPolyline3(
-                new GeoPoint3(-10, 5, 5), new GeoPoint3(5, 5, 5), new GeoPoint3(5, 5, 40));
+                new GeoPoint3(-10, 5, 5),
+                new GeoPoint3(5, 5, 5),
+                new GeoPoint3(5, 5, 40)
+            );
 
-            Assert.True(bent.TrySplitBy(new[] { Box(0, 0, 0, 10, 10, 10) }, out GeoPolyline3[] inside, out GeoPolyline3[] outside));
+            Assert.True(
+                bent.TrySplitBy(
+                    new[] { Box(0, 0, 0, 10, 10, 10) },
+                    out GeoPolyline3[] inside,
+                    out GeoPolyline3[] outside
+                )
+            );
 
             Assert.Single(inside);
 

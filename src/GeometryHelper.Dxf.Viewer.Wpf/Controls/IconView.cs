@@ -12,19 +12,41 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     {
         /// <summary>Identifies the <see cref="Data"/> property.</summary>
         public static readonly DependencyProperty DataProperty = DependencyProperty.Register(
-            nameof(Data), typeof(System.Windows.Media.Geometry), typeof(IconView), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+            nameof(Data),
+            typeof(System.Windows.Media.Geometry),
+            typeof(IconView),
+            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender)
+        );
 
         /// <summary>Identifies the <see cref="Size"/> property.</summary>
         public static readonly DependencyProperty SizeProperty = DependencyProperty.Register(
-            nameof(Size), typeof(double), typeof(IconView), new FrameworkPropertyMetadata(16.0, FrameworkPropertyMetadataOptions.AffectsMeasure | FrameworkPropertyMetadataOptions.AffectsRender));
+            nameof(Size),
+            typeof(double),
+            typeof(IconView),
+            new FrameworkPropertyMetadata(
+                16.0,
+                FrameworkPropertyMetadataOptions.AffectsMeasure | FrameworkPropertyMetadataOptions.AffectsRender
+            )
+        );
 
         /// <summary>Identifies the <see cref="Stroke"/> property.</summary>
         public static readonly DependencyProperty StrokeProperty = DependencyProperty.Register(
-            nameof(Stroke), typeof(Brush), typeof(IconView), new FrameworkPropertyMetadata(new SolidColorBrush(Color.FromRgb(0xC9, 0xD1, 0xDB)), FrameworkPropertyMetadataOptions.AffectsRender));
+            nameof(Stroke),
+            typeof(Brush),
+            typeof(IconView),
+            new FrameworkPropertyMetadata(
+                new SolidColorBrush(Color.FromRgb(0xC9, 0xD1, 0xDB)),
+                FrameworkPropertyMetadataOptions.AffectsRender
+            )
+        );
 
         /// <summary>Identifies the <see cref="StrokeThickness"/> property.</summary>
         public static readonly DependencyProperty StrokeThicknessProperty = DependencyProperty.Register(
-            nameof(StrokeThickness), typeof(double), typeof(IconView), new FrameworkPropertyMetadata(1.8, FrameworkPropertyMetadataOptions.AffectsRender));
+            nameof(StrokeThickness),
+            typeof(double),
+            typeof(IconView),
+            new FrameworkPropertyMetadata(1.8, FrameworkPropertyMetadataOptions.AffectsRender)
+        );
 
         /// <summary>Gets or sets the path of the icon on its 24 by 24 grid.</summary>
         public System.Windows.Media.Geometry Data

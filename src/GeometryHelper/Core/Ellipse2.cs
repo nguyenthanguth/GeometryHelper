@@ -288,7 +288,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Says where a point sits relative to an ellipse, using the default tolerance.
         /// </summary>
-        public static PointLocation Locate(GeoEllipse2 ellipse, GeoPoint2 point) => Locate(ellipse, point, Tolerance.Global);
+        public static PointLocation Locate(GeoEllipse2 ellipse, GeoPoint2 point) =>
+            Locate(ellipse, point, Tolerance.Global);
 
         /// <summary>
         /// Says where a point sits relative to an ellipse, within a tolerance.
@@ -330,7 +331,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a point lies on the rim of an ellipse, using the default tolerance.
         /// </summary>
-        public static bool IsPointOn(GeoEllipse2 ellipse, GeoPoint2 point) => IsPointOn(ellipse, point, Tolerance.Global);
+        public static bool IsPointOn(GeoEllipse2 ellipse, GeoPoint2 point) =>
+            IsPointOn(ellipse, point, Tolerance.Global);
 
         /// <summary>
         /// Checks whether a point lies on the rim of an ellipse, within a tolerance.
@@ -360,7 +362,13 @@ namespace GeometryHelper.Core
         /// </summary>
         public static GeoEllipse2 Translate(GeoEllipse2 ellipse, GeoVector2 vector)
         {
-            return new GeoEllipse2(ellipse.Center.Add(vector), ellipse.MajorAxis, ellipse.MajorRadius, ellipse.MinorRadius, true);
+            return new GeoEllipse2(
+                ellipse.Center.Add(vector),
+                ellipse.MajorAxis,
+                ellipse.MajorRadius,
+                ellipse.MinorRadius,
+                true
+            );
         }
 
         /// <summary>
@@ -376,7 +384,8 @@ namespace GeometryHelper.Core
                 ellipse.MajorAxis.RotateBy(angleRad),
                 ellipse.MajorRadius,
                 ellipse.MinorRadius,
-                true);
+                true
+            );
         }
 
         /// <summary>
@@ -425,7 +434,13 @@ namespace GeometryHelper.Core
             GeoVector2 across = transform.Transform(ellipse.MinorAxis.Multiply(ellipse.MinorRadius));
             GeoPoint2 center = transform.Transform(ellipse.Center);
 
-            return FromSemiAxes(center, along, across, Math.Abs(determinant) * ellipse.MajorRadius * ellipse.MinorRadius, out _);
+            return FromSemiAxes(
+                center,
+                along,
+                across,
+                Math.Abs(determinant) * ellipse.MajorRadius * ellipse.MinorRadius,
+                out _
+            );
         }
 
         /// <summary>
@@ -442,7 +457,13 @@ namespace GeometryHelper.Core
         /// made a million transformations 45 ms to 53 ms on .NET 10.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static GeoEllipse2 FromSemiAxes(GeoPoint2 center, GeoVector2 along, GeoVector2 across, double area, out bool circle)
+        internal static GeoEllipse2 FromSemiAxes(
+            GeoPoint2 center,
+            GeoVector2 along,
+            GeoVector2 across,
+            double area,
+            out bool circle
+        )
         {
             // The closed form of the singular values of a 2 by 2 matrix, whose columns are the images of the semi-axes.
             double e = 0.5 * (along.X + across.Y);
@@ -573,7 +594,8 @@ namespace GeometryHelper.Core
         /// Breaks the region of an ellipse into triangles fanned from its centre, the rim cut by a chord tolerance, using
         /// the default tolerance.
         /// </summary>
-        public static GeoTriangle2[] TriangulateSurface(GeoEllipse2 ellipse, double chordTolerance) => TriangulateSurface(ellipse, chordTolerance, Tolerance.Global);
+        public static GeoTriangle2[] TriangulateSurface(GeoEllipse2 ellipse, double chordTolerance) =>
+            TriangulateSurface(ellipse, chordTolerance, Tolerance.Global);
 
         /// <summary>
         /// Breaks the region of an ellipse into triangles fanned from its centre, the rim cut by a chord tolerance, within
@@ -594,7 +616,11 @@ namespace GeometryHelper.Core
                 return Array.Empty<GeoTriangle2>();
             }
 
-            return Triangulation2.Fan(ellipse.Center, ToPolygonByChordTolerance(ellipse, chordTolerance).Vertices, tolerance);
+            return Triangulation2.Fan(
+                ellipse.Center,
+                ToPolygonByChordTolerance(ellipse, chordTolerance).Vertices,
+                tolerance
+            );
         }
 
         #endregion
@@ -604,7 +630,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether two ellipses are the same shape in the same place, within the default tolerance.
         /// </summary>
-        public static bool IsEqualTo(GeoEllipse2 ellipse, GeoEllipse2 other) => IsEqualTo(ellipse, other, Tolerance.Global);
+        public static bool IsEqualTo(GeoEllipse2 ellipse, GeoEllipse2 other) =>
+            IsEqualTo(ellipse, other, Tolerance.Global);
 
         /// <summary>
         /// Determines whether two ellipses are the same shape in the same place, within a tolerance.
@@ -619,9 +646,11 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool IsEqualTo(GeoEllipse2 ellipse, GeoEllipse2 other, Tolerance tolerance)
         {
-            if (!ellipse.Center.IsEqualTo(other.Center, tolerance)
+            if (
+                !ellipse.Center.IsEqualTo(other.Center, tolerance)
                 || !(Math.Abs(ellipse.MajorRadius - other.MajorRadius) <= tolerance.EqualPoint)
-                || !(Math.Abs(ellipse.MinorRadius - other.MinorRadius) <= tolerance.EqualPoint))
+                || !(Math.Abs(ellipse.MinorRadius - other.MinorRadius) <= tolerance.EqualPoint)
+            )
             {
                 return false;
             }
@@ -631,7 +660,8 @@ namespace GeometryHelper.Core
                 return true;
             }
 
-            return ellipse.MajorAxis.IsEqualTo(other.MajorAxis, tolerance) || ellipse.MajorAxis.IsEqualTo(other.MajorAxis.Multiply(-1.0), tolerance);
+            return ellipse.MajorAxis.IsEqualTo(other.MajorAxis, tolerance)
+                || ellipse.MajorAxis.IsEqualTo(other.MajorAxis.Multiply(-1.0), tolerance);
         }
 
         #endregion
@@ -647,7 +677,8 @@ namespace GeometryHelper.Core
 
             return new GeoPoint2(
                 ellipse.Center.X + (along * major.X - across * major.Y),
-                ellipse.Center.Y + (along * major.Y + across * major.X));
+                ellipse.Center.Y + (along * major.Y + across * major.X)
+            );
         }
 
         /// <summary>
@@ -757,8 +788,10 @@ namespace GeometryHelper.Core
         internal static double Wrap(double parameter)
         {
             double wrapped = parameter % 1.0;
-            if (wrapped < 0.0) wrapped += 1.0;
-            if (wrapped >= 1.0) wrapped = 0.0;
+            if (wrapped < 0.0)
+                wrapped += 1.0;
+            if (wrapped >= 1.0)
+                wrapped = 0.0;
             return wrapped;
         }
 

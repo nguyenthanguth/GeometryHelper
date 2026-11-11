@@ -330,7 +330,10 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(ray.IsParallelTo(new GeoLine2(P(0, 0), P(100 * Math.Cos(half), 100 * Math.Sin(half))), Strict));
             Assert.False(ray.IsParallelTo(new GeoLine2(P(0, 0), P(100 * Math.Cos(two), 100 * Math.Sin(two))), Strict));
             Assert.True(ray.IsParallelTo(new GeoLine2(P(300, 40), P(200, 40)), Strict));
-            Assert.Equal(ray.IsParallelTo(new GeoLine2(P(300, 40), P(200, 40)), Tolerance.Global), ray.IsParallelTo(new GeoLine2(P(300, 40), P(200, 40))));
+            Assert.Equal(
+                ray.IsParallelTo(new GeoLine2(P(300, 40), P(200, 40)), Tolerance.Global),
+                ray.IsParallelTo(new GeoLine2(P(300, 40), P(200, 40)))
+            );
         }
 
         [Fact]
@@ -369,7 +372,10 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.True(ray.IsEqualTo(new GeoRay2(P(3.0005, -7), GeoVector2.XAxis), Strict));
             Assert.False(ray.IsEqualTo(new GeoRay2(P(3.002, -7), GeoVector2.XAxis), Strict));
-            Assert.Equal(ray.IsEqualTo(new GeoRay2(P(3.0005, -7), GeoVector2.XAxis), Tolerance.Global), ray.IsEqualTo(new GeoRay2(P(3.0005, -7), GeoVector2.XAxis)));
+            Assert.Equal(
+                ray.IsEqualTo(new GeoRay2(P(3.0005, -7), GeoVector2.XAxis), Tolerance.Global),
+                ray.IsEqualTo(new GeoRay2(P(3.0005, -7), GeoVector2.XAxis))
+            );
         }
 
         [Fact]
@@ -386,7 +392,10 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ARayPrintsItsOriginAndDirection()
         {
-            Assert.Equal("Ray2(Origin: (1, 2), Direction: (0, 1))", new GeoRay2(P(1, 2), new GeoVector2(0, 5)).ToString());
+            Assert.Equal(
+                "Ray2(Origin: (1, 2), Direction: (0, 1))",
+                new GeoRay2(P(1, 2), new GeoVector2(0, 5)).ToString()
+            );
         }
 
         [Fact]
@@ -469,7 +478,10 @@ namespace GeometryHelper.UnitTest.Plane
             var segment = new GeoLine2(P(50, -10), P(50, 10));
             var polyline = new GeoPolyline2(P(0, 0), P(100, 0), P(100, 100));
             var chain = new GeoPolylineArc2(new[] { P(0, 0), P(100, 0), P(100, 100) }, new[] { 0.0, 1.0 });
-            var loop = new GeoPolygonArc2(new[] { P(0, 0), P(200, 0), P(200, 50), P(0, 50) }, new[] { 0.0, 1.0, 0.0, 1.0 });
+            var loop = new GeoPolygonArc2(
+                new[] { P(0, 0), P(200, 0), P(200, 50), P(0, 50) },
+                new[] { 0.0, 1.0, 0.0, 1.0 }
+            );
             var other = new GeoRay2(P(50, -50), GeoVector2.YAxis);
             var ellipse = new GeoEllipse2(P(0, 0), GeoVector2.XAxis, 100, 50);
             var point = P(3, 4);
@@ -483,31 +495,120 @@ namespace GeometryHelper.UnitTest.Plane
 
             foreach (Tolerance tolerance in new[] { Strict, Tolerance.Global })
             {
-                ray.CollidesWith(arc, tolerance); ray.DistanceTo(arc, tolerance); ray.GetIntersections(arc, tolerance); ray.TryIntersectWith(arc, out _, tolerance); ray.GetShortestLineTo(arc, tolerance);
-                ray.CollidesWith(circle, tolerance); ray.DistanceTo(circle, tolerance); ray.GetIntersections(circle, tolerance); ray.TryIntersectWith(circle, out _, tolerance); ray.GetShortestLineTo(circle, tolerance);
-                ray.CollidesWith(edge, tolerance); ray.DistanceTo(edge, tolerance); ray.GetIntersections(edge, tolerance); ray.GetShortestLineTo(edge, tolerance);
-                ray.CollidesWith(face, tolerance); ray.DistanceTo(face, tolerance); ray.GetIntersections(face, tolerance); ray.TryIntersectWith(face, out _, tolerance); ray.GetShortestLineTo(face, tolerance);
-                ray.CollidesWith(segment, tolerance); ray.DistanceTo(segment, tolerance); ray.TryIntersectWith(segment, out GeoPoint2 _, tolerance); ray.GetShortestLineTo(segment, tolerance);
-                ray.CollidesWith(square, tolerance); ray.DistanceTo(square, tolerance); ray.GetIntersections(square, tolerance); ray.GetShortestLineTo(square, tolerance);
-                ray.CollidesWith(loop, tolerance); ray.DistanceTo(loop, tolerance); ray.GetIntersections(loop, tolerance); ray.TryIntersectWith(loop, out _, tolerance); ray.GetShortestLineTo(loop, tolerance);
-                ray.CollidesWith(polyline, tolerance); ray.DistanceTo(polyline, tolerance); ray.GetIntersections(polyline, tolerance); ray.TryIntersectWith(polyline, out _, tolerance); ray.GetShortestLineTo(polyline, tolerance);
-                ray.CollidesWith(chain, tolerance); ray.DistanceTo(chain, tolerance); ray.GetIntersections(chain, tolerance); ray.TryIntersectWith(chain, out _, tolerance); ray.GetShortestLineTo(chain, tolerance);
-                ray.CollidesWith(rectangle, tolerance); ray.DistanceTo(rectangle, tolerance); ray.GetIntersections(rectangle, tolerance); ray.TryIntersectWith(rectangle, out _, tolerance); ray.GetShortestLineTo(rectangle, tolerance);
-                ray.CollidesWith(triangle, tolerance); ray.DistanceTo(triangle, tolerance); ray.GetIntersections(triangle, tolerance); ray.TryIntersectWith(triangle, out _, tolerance); ray.GetShortestLineTo(triangle, tolerance);
-                ray.CollidesWith(other, tolerance); ray.DistanceTo(other, tolerance); ray.TryIntersectWith(other, out GeoPoint2 _, tolerance); ray.GetShortestLineTo(other, tolerance);
-                other.CollidesWith(ray, tolerance); other.DistanceTo(ray, tolerance); other.TryIntersectWith(ray, out GeoPoint2 _, tolerance); other.GetShortestLineTo(ray, tolerance);
+                ray.CollidesWith(arc, tolerance);
+                ray.DistanceTo(arc, tolerance);
+                ray.GetIntersections(arc, tolerance);
+                ray.TryIntersectWith(arc, out _, tolerance);
+                ray.GetShortestLineTo(arc, tolerance);
+                ray.CollidesWith(circle, tolerance);
+                ray.DistanceTo(circle, tolerance);
+                ray.GetIntersections(circle, tolerance);
+                ray.TryIntersectWith(circle, out _, tolerance);
+                ray.GetShortestLineTo(circle, tolerance);
+                ray.CollidesWith(edge, tolerance);
+                ray.DistanceTo(edge, tolerance);
+                ray.GetIntersections(edge, tolerance);
+                ray.GetShortestLineTo(edge, tolerance);
+                ray.CollidesWith(face, tolerance);
+                ray.DistanceTo(face, tolerance);
+                ray.GetIntersections(face, tolerance);
+                ray.TryIntersectWith(face, out _, tolerance);
+                ray.GetShortestLineTo(face, tolerance);
+                ray.CollidesWith(segment, tolerance);
+                ray.DistanceTo(segment, tolerance);
+                ray.TryIntersectWith(segment, out GeoPoint2 _, tolerance);
+                ray.GetShortestLineTo(segment, tolerance);
+                ray.CollidesWith(square, tolerance);
+                ray.DistanceTo(square, tolerance);
+                ray.GetIntersections(square, tolerance);
+                ray.GetShortestLineTo(square, tolerance);
+                ray.CollidesWith(loop, tolerance);
+                ray.DistanceTo(loop, tolerance);
+                ray.GetIntersections(loop, tolerance);
+                ray.TryIntersectWith(loop, out _, tolerance);
+                ray.GetShortestLineTo(loop, tolerance);
+                ray.CollidesWith(polyline, tolerance);
+                ray.DistanceTo(polyline, tolerance);
+                ray.GetIntersections(polyline, tolerance);
+                ray.TryIntersectWith(polyline, out _, tolerance);
+                ray.GetShortestLineTo(polyline, tolerance);
+                ray.CollidesWith(chain, tolerance);
+                ray.DistanceTo(chain, tolerance);
+                ray.GetIntersections(chain, tolerance);
+                ray.TryIntersectWith(chain, out _, tolerance);
+                ray.GetShortestLineTo(chain, tolerance);
+                ray.CollidesWith(rectangle, tolerance);
+                ray.DistanceTo(rectangle, tolerance);
+                ray.GetIntersections(rectangle, tolerance);
+                ray.TryIntersectWith(rectangle, out _, tolerance);
+                ray.GetShortestLineTo(rectangle, tolerance);
+                ray.CollidesWith(triangle, tolerance);
+                ray.DistanceTo(triangle, tolerance);
+                ray.GetIntersections(triangle, tolerance);
+                ray.TryIntersectWith(triangle, out _, tolerance);
+                ray.GetShortestLineTo(triangle, tolerance);
+                ray.CollidesWith(other, tolerance);
+                ray.DistanceTo(other, tolerance);
+                ray.TryIntersectWith(other, out GeoPoint2 _, tolerance);
+                ray.GetShortestLineTo(other, tolerance);
+                other.CollidesWith(ray, tolerance);
+                other.DistanceTo(ray, tolerance);
+                other.TryIntersectWith(ray, out GeoPoint2 _, tolerance);
+                other.GetShortestLineTo(ray, tolerance);
 
-                arc.CollidesWith(ray, tolerance); arc.DistanceTo(ray, tolerance); arc.GetIntersections(ray, tolerance); arc.TryIntersectWith(ray, out _, tolerance); arc.GetShortestLineTo(ray, tolerance);
-                circle.CollidesWith(ray, tolerance); circle.DistanceTo(ray, tolerance); circle.GetIntersections(ray, tolerance); circle.TryIntersectWith(ray, out _, tolerance); circle.GetShortestLineTo(ray, tolerance);
-                edge.CollidesWith(ray, tolerance); edge.DistanceTo(ray, tolerance); edge.GetIntersections(ray, tolerance); edge.GetShortestLineTo(ray, tolerance);
-                ellipse.CollidesWith(ray, tolerance); ellipse.DistanceTo(ray, tolerance); ellipse.GetIntersections(ray, tolerance); ellipse.TryIntersectWith(ray, out _, tolerance); ellipse.GetShortestLineTo(ray, tolerance);
-                face.CollidesWith(ray, tolerance); face.DistanceTo(ray, tolerance); face.GetIntersections(ray, tolerance); face.TryIntersectWith(ray, out _, tolerance); face.GetShortestLineTo(ray, tolerance);
-                square.CollidesWith(ray, tolerance); square.DistanceTo(ray, tolerance); square.GetIntersections(ray, tolerance); square.GetShortestLineTo(ray, tolerance);
-                loop.CollidesWith(ray, tolerance); loop.DistanceTo(ray, tolerance); loop.GetIntersections(ray, tolerance); loop.TryIntersectWith(ray, out _, tolerance); loop.GetShortestLineTo(ray, tolerance);
-                polyline.CollidesWith(ray, tolerance); polyline.DistanceTo(ray, tolerance); polyline.GetIntersections(ray, tolerance); polyline.TryIntersectWith(ray, out _, tolerance); polyline.GetShortestLineTo(ray, tolerance);
-                chain.CollidesWith(ray, tolerance); chain.DistanceTo(ray, tolerance); chain.GetIntersections(ray, tolerance); chain.TryIntersectWith(ray, out _, tolerance); chain.GetShortestLineTo(ray, tolerance);
-                rectangle.CollidesWith(ray, tolerance); rectangle.DistanceTo(ray, tolerance); rectangle.GetIntersections(ray, tolerance); rectangle.TryIntersectWith(ray, out _, tolerance); rectangle.GetShortestLineTo(ray, tolerance);
-                triangle.CollidesWith(ray, tolerance); triangle.DistanceTo(ray, tolerance); triangle.GetIntersections(ray, tolerance); triangle.TryIntersectWith(ray, out _, tolerance); triangle.GetShortestLineTo(ray, tolerance);
+                arc.CollidesWith(ray, tolerance);
+                arc.DistanceTo(ray, tolerance);
+                arc.GetIntersections(ray, tolerance);
+                arc.TryIntersectWith(ray, out _, tolerance);
+                arc.GetShortestLineTo(ray, tolerance);
+                circle.CollidesWith(ray, tolerance);
+                circle.DistanceTo(ray, tolerance);
+                circle.GetIntersections(ray, tolerance);
+                circle.TryIntersectWith(ray, out _, tolerance);
+                circle.GetShortestLineTo(ray, tolerance);
+                edge.CollidesWith(ray, tolerance);
+                edge.DistanceTo(ray, tolerance);
+                edge.GetIntersections(ray, tolerance);
+                edge.GetShortestLineTo(ray, tolerance);
+                ellipse.CollidesWith(ray, tolerance);
+                ellipse.DistanceTo(ray, tolerance);
+                ellipse.GetIntersections(ray, tolerance);
+                ellipse.TryIntersectWith(ray, out _, tolerance);
+                ellipse.GetShortestLineTo(ray, tolerance);
+                face.CollidesWith(ray, tolerance);
+                face.DistanceTo(ray, tolerance);
+                face.GetIntersections(ray, tolerance);
+                face.TryIntersectWith(ray, out _, tolerance);
+                face.GetShortestLineTo(ray, tolerance);
+                square.CollidesWith(ray, tolerance);
+                square.DistanceTo(ray, tolerance);
+                square.GetIntersections(ray, tolerance);
+                square.GetShortestLineTo(ray, tolerance);
+                loop.CollidesWith(ray, tolerance);
+                loop.DistanceTo(ray, tolerance);
+                loop.GetIntersections(ray, tolerance);
+                loop.TryIntersectWith(ray, out _, tolerance);
+                loop.GetShortestLineTo(ray, tolerance);
+                polyline.CollidesWith(ray, tolerance);
+                polyline.DistanceTo(ray, tolerance);
+                polyline.GetIntersections(ray, tolerance);
+                polyline.TryIntersectWith(ray, out _, tolerance);
+                polyline.GetShortestLineTo(ray, tolerance);
+                chain.CollidesWith(ray, tolerance);
+                chain.DistanceTo(ray, tolerance);
+                chain.GetIntersections(ray, tolerance);
+                chain.TryIntersectWith(ray, out _, tolerance);
+                chain.GetShortestLineTo(ray, tolerance);
+                rectangle.CollidesWith(ray, tolerance);
+                rectangle.DistanceTo(ray, tolerance);
+                rectangle.GetIntersections(ray, tolerance);
+                rectangle.TryIntersectWith(ray, out _, tolerance);
+                rectangle.GetShortestLineTo(ray, tolerance);
+                triangle.CollidesWith(ray, tolerance);
+                triangle.DistanceTo(ray, tolerance);
+                triangle.GetIntersections(ray, tolerance);
+                triangle.TryIntersectWith(ray, out _, tolerance);
+                triangle.GetShortestLineTo(ray, tolerance);
             }
         }
 

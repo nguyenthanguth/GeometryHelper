@@ -29,10 +29,15 @@ namespace GeometryHelper.UnitTest.Solid
             /// <summary>The gap is exact to rounding: 4E-14 of the largest coordinate, 200 on the floor and 3 500 out there.</summary>
             public double Allowance;
 
-            public GeoPoint3 P(double x, double y, double h = 0) => new GeoPoint3(
-                O.X + x * X.X + y * Y.X + h * N.X, O.Y + x * X.Y + y * Y.Y + h * N.Y, O.Z + x * X.Z + y * Y.Z + h * N.Z);
+            public GeoPoint3 P(double x, double y, double h = 0) =>
+                new GeoPoint3(
+                    O.X + x * X.X + y * Y.X + h * N.X,
+                    O.Y + x * X.Y + y * Y.Y + h * N.Y,
+                    O.Z + x * X.Z + y * Y.Z + h * N.Z
+                );
 
-            public GeoVector3 V(double x, double y) => new GeoVector3(x * X.X + y * Y.X, x * X.Y + y * Y.Y, x * X.Z + y * Y.Z);
+            public GeoVector3 V(double x, double y) =>
+                new GeoVector3(x * X.X + y * Y.X, x * X.Y + y * Y.Y, x * X.Z + y * Y.Z);
         }
 
         /// <summary>The floor z = 0, or a plane turned 0.6 rad about Z and 0.8 about X, through (3000.25, -1500.5, 800.125).</summary>
@@ -40,10 +45,20 @@ namespace GeometryHelper.UnitTest.Solid
         {
             if (plane == "floor")
             {
-                return new Frame { O = new GeoPoint3(0, 0, 0), X = GeoVector3.XAxis, Y = GeoVector3.YAxis, N = GeoVector3.ZAxis, Allowance = 1E-11 };
+                return new Frame
+                {
+                    O = new GeoPoint3(0, 0, 0),
+                    X = GeoVector3.XAxis,
+                    Y = GeoVector3.YAxis,
+                    N = GeoVector3.ZAxis,
+                    Allowance = 1E-11,
+                };
             }
 
-            double ca = Math.Cos(0.6), sa = Math.Sin(0.6), cb = Math.Cos(0.8), sb = Math.Sin(0.8);
+            double ca = Math.Cos(0.6),
+                sa = Math.Sin(0.6),
+                cb = Math.Cos(0.8),
+                sb = Math.Sin(0.8);
             return new Frame
             {
                 O = new GeoPoint3(3000.25, -1500.5, 800.125),
@@ -89,7 +104,10 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         /// <summary>Both ways round the distance is the gap, and both ways round they collide exactly where it is within the tolerance.</summary>
-        private static void AssertMeasured(Frame f, (double Gap, double There, double Back, bool Collides, bool CollidesBack) m)
+        private static void AssertMeasured(
+            Frame f,
+            (double Gap, double There, double Back, bool Collides, bool CollidesBack) m
+        )
         {
             AssertGap(m.Gap, m.There, f.Allowance);
             AssertGap(m.Gap, m.Back, f.Allowance);
@@ -110,15 +128,28 @@ namespace GeometryHelper.UnitTest.Solid
 
         #region T1: half a tolerance off, in the plane
 
-        public static IEnumerable<object[]> InThePlaneCases() => OnBothPlanes(
-            "segment starting off the side", "segment ending off the side", "segment starting off the triangle",
-            "segment starting off the face", "segment in the hole off its rim", "two squares side to side",
-            "polyline starting off the side", "ray starting off the side", "two rays leaving each other",
-            "ray leaving the polyline's start", "segment off the block's top", "segment off the solid's top");
+        public static IEnumerable<object[]> InThePlaneCases() =>
+            OnBothPlanes(
+                "segment starting off the side",
+                "segment ending off the side",
+                "segment starting off the triangle",
+                "segment starting off the face",
+                "segment in the hole off its rim",
+                "two squares side to side",
+                "polyline starting off the side",
+                "ray starting off the side",
+                "two rays leaving each other",
+                "ray leaving the polyline's start",
+                "segment off the block's top",
+                "segment off the solid's top"
+            );
 
         [Theory]
         [MemberData(nameof(InThePlaneCases))]
-        public void AStraightShapeHalfAToleranceOffInThePlane_IsThatFarEitherWayRoundAndCollides(string kind, string plane)
+        public void AStraightShapeHalfAToleranceOffInThePlane_IsThatFarEitherWayRoundAndCollides(
+            string kind,
+            string plane
+        )
         {
             Frame f = On(plane);
             Tolerance t = Tol;
@@ -128,13 +159,31 @@ namespace GeometryHelper.UnitTest.Solid
             switch (kind)
             {
                 case "segment starting off the side":
-                    AssertMeasured(f, (Half, square.DistanceTo(away, t), away.DistanceTo(square, t), square.CollidesWith(away, t), away.CollidesWith(square, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            Half,
+                            square.DistanceTo(away, t),
+                            away.DistanceTo(square, t),
+                            square.CollidesWith(away, t),
+                            away.CollidesWith(square, t)
+                        )
+                    );
                     break;
 
                 case "segment ending off the side":
                 {
                     var toward = new GeoLine3(f.P(150, 50), f.P(Off, 50));
-                    AssertMeasured(f, (Half, square.DistanceTo(toward, t), toward.DistanceTo(square, t), square.CollidesWith(toward, t), toward.CollidesWith(square, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            Half,
+                            square.DistanceTo(toward, t),
+                            toward.DistanceTo(square, t),
+                            square.CollidesWith(toward, t),
+                            toward.CollidesWith(square, t)
+                        )
+                    );
                     break;
                 }
 
@@ -143,14 +192,32 @@ namespace GeometryHelper.UnitTest.Solid
                     // Below the side y = 0 of the triangle (0, 0), (100, 0), (0, 100), running away from it.
                     var tri = new GeoTriangle3(f.P(0, 0), f.P(100, 0), f.P(0, 100));
                     var line = new GeoLine3(f.P(50, -Half), f.P(50, -50));
-                    AssertMeasured(f, (Half, tri.DistanceTo(line, t), line.DistanceTo(tri, t), tri.CollidesWith(line, t), line.CollidesWith(tri, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            Half,
+                            tri.DistanceTo(line, t),
+                            line.DistanceTo(tri, t),
+                            tri.CollidesWith(line, t),
+                            line.CollidesWith(tri, t)
+                        )
+                    );
                     break;
                 }
 
                 case "segment starting off the face":
                 {
                     GeoFace3 plate = Plate(f);
-                    AssertMeasured(f, (Half, plate.DistanceTo(away, t), away.DistanceTo(plate, t), plate.CollidesWith(away, t), away.CollidesWith(plate, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            Half,
+                            plate.DistanceTo(away, t),
+                            away.DistanceTo(plate, t),
+                            plate.CollidesWith(away, t),
+                            away.CollidesWith(plate, t)
+                        )
+                    );
                     break;
                 }
 
@@ -160,28 +227,64 @@ namespace GeometryHelper.UnitTest.Solid
                     GeoFace3 plate = Plate(f);
                     double x = 40 + Half;
                     var line = new GeoLine3(f.P(x, 50), f.P(50, 50));
-                    AssertMeasured(f, (x - 40, plate.DistanceTo(line, t), line.DistanceTo(plate, t), plate.CollidesWith(line, t), line.CollidesWith(plate, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            x - 40,
+                            plate.DistanceTo(line, t),
+                            line.DistanceTo(plate, t),
+                            plate.CollidesWith(line, t),
+                            line.CollidesWith(plate, t)
+                        )
+                    );
                     break;
                 }
 
                 case "two squares side to side":
                 {
                     GeoPolygon3 other = Box(f, Off, 0, 200, 100);
-                    AssertMeasured(f, (Half, square.DistanceTo(other, t), other.DistanceTo(square, t), square.CollidesWith(other, t), other.CollidesWith(square, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            Half,
+                            square.DistanceTo(other, t),
+                            other.DistanceTo(square, t),
+                            square.CollidesWith(other, t),
+                            other.CollidesWith(square, t)
+                        )
+                    );
                     break;
                 }
 
                 case "polyline starting off the side":
                 {
                     var chain = new GeoPolyline3(f.P(Off, 50), f.P(150, 50), f.P(150, 80));
-                    AssertMeasured(f, (Half, square.DistanceTo(chain, t), chain.DistanceTo(square, t), square.CollidesWith(chain, t), chain.CollidesWith(square, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            Half,
+                            square.DistanceTo(chain, t),
+                            chain.DistanceTo(square, t),
+                            square.CollidesWith(chain, t),
+                            chain.CollidesWith(square, t)
+                        )
+                    );
                     break;
                 }
 
                 case "ray starting off the side":
                 {
                     var ray = new GeoRay3(f.P(Off, 50), f.V(1, 0));
-                    AssertMeasured(f, (Half, square.DistanceTo(ray, t), ray.DistanceTo(square, t), square.CollidesWith(ray, t), ray.CollidesWith(square, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            Half,
+                            square.DistanceTo(ray, t),
+                            ray.DistanceTo(square, t),
+                            square.CollidesWith(ray, t),
+                            ray.CollidesWith(square, t)
+                        )
+                    );
                     break;
                 }
 
@@ -190,7 +293,10 @@ namespace GeometryHelper.UnitTest.Solid
                     // Origins 0.0003 apart along X, each pointing away from the other.
                     var a = new GeoRay3(f.P(0, 0), f.V(1, 0));
                     var b = new GeoRay3(f.P(-0.0003, 0), f.V(-1, 0));
-                    AssertMeasured(f, (0.0003, a.DistanceTo(b, t), b.DistanceTo(a, t), a.CollidesWith(b, t), b.CollidesWith(a, t)));
+                    AssertMeasured(
+                        f,
+                        (0.0003, a.DistanceTo(b, t), b.DistanceTo(a, t), a.CollidesWith(b, t), b.CollidesWith(a, t))
+                    );
                     break;
                 }
 
@@ -199,7 +305,16 @@ namespace GeometryHelper.UnitTest.Solid
                     // The polyline (0, 0), (60, 0), (60, 30); the ray starts half a tolerance behind its start, going back.
                     var chain = new GeoPolyline3(f.P(0, 0), f.P(60, 0), f.P(60, 30));
                     var ray = new GeoRay3(f.P(-Half, 0), f.V(-1, 0));
-                    AssertMeasured(f, (Half, chain.DistanceTo(ray, t), ray.DistanceTo(chain, t), chain.CollidesWith(ray, t), ray.CollidesWith(chain, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            Half,
+                            chain.DistanceTo(ray, t),
+                            ray.DistanceTo(chain, t),
+                            chain.CollidesWith(ray, t),
+                            ray.CollidesWith(chain, t)
+                        )
+                    );
                     break;
                 }
 
@@ -209,12 +324,30 @@ namespace GeometryHelper.UnitTest.Solid
                     if (plane == "floor")
                     {
                         var aabb = new GeoAabb3(new GeoPoint3(0, 0, -50), new GeoPoint3(100, 100, 0));
-                        AssertMeasured(f, (Half, aabb.DistanceTo(away, t), away.DistanceTo(aabb, t), aabb.CollidesWith(away, t), away.CollidesWith(aabb, t)));
+                        AssertMeasured(
+                            f,
+                            (
+                                Half,
+                                aabb.DistanceTo(away, t),
+                                away.DistanceTo(aabb, t),
+                                aabb.CollidesWith(away, t),
+                                away.CollidesWith(aabb, t)
+                            )
+                        );
                     }
                     else
                     {
                         GeoObb3 obb = Block(f);
-                        AssertMeasured(f, (Half, obb.DistanceTo(away, t), away.DistanceTo(obb, t), obb.CollidesWith(away, t), away.CollidesWith(obb, t)));
+                        AssertMeasured(
+                            f,
+                            (
+                                Half,
+                                obb.DistanceTo(away, t),
+                                away.DistanceTo(obb, t),
+                                obb.CollidesWith(away, t),
+                                away.CollidesWith(obb, t)
+                            )
+                        );
                     }
 
                     break;
@@ -223,7 +356,16 @@ namespace GeometryHelper.UnitTest.Solid
                 default:
                 {
                     GeoSolid3 solid = Block(f).ToSolid();
-                    AssertMeasured(f, (Half, solid.DistanceTo(away, t), away.DistanceTo(solid, t), solid.CollidesWith(away, t), away.CollidesWith(solid, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            Half,
+                            solid.DistanceTo(away, t),
+                            away.DistanceTo(solid, t),
+                            solid.CollidesWith(away, t),
+                            away.CollidesWith(solid, t)
+                        )
+                    );
                     break;
                 }
             }
@@ -233,8 +375,12 @@ namespace GeometryHelper.UnitTest.Solid
 
         #region T2: past the tolerance at a corner
 
-        public static IEnumerable<object[]> PastTheToleranceCases() => OnBothPlanes(
-            "square starting off a segment's end", "segment off the block's corner", "segment off the solid's corner");
+        public static IEnumerable<object[]> PastTheToleranceCases() =>
+            OnBothPlanes(
+                "square starting off a segment's end",
+                "segment off the block's corner",
+                "segment off the solid's corner"
+            );
 
         [Theory]
         [MemberData(nameof(PastTheToleranceCases))]
@@ -252,8 +398,22 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     // The segment from (0, 0) to (60, 0); the square's first corner at (60 + d, d), the square running away.
                     var line = new GeoLine3(f.P(0, 0), f.P(60, 0));
-                    var square = new GeoPolygon3(f.P(60 + d, d), f.P(160 + d, d), f.P(160 + d, 100 + d), f.P(60 + d, 100 + d));
-                    AssertMeasured(f, (gap, line.DistanceTo(square, t), square.DistanceTo(line, t), line.CollidesWith(square, t), square.CollidesWith(line, t)));
+                    var square = new GeoPolygon3(
+                        f.P(60 + d, d),
+                        f.P(160 + d, d),
+                        f.P(160 + d, 100 + d),
+                        f.P(60 + d, 100 + d)
+                    );
+                    AssertMeasured(
+                        f,
+                        (
+                            gap,
+                            line.DistanceTo(square, t),
+                            square.DistanceTo(line, t),
+                            line.CollidesWith(square, t),
+                            square.CollidesWith(line, t)
+                        )
+                    );
                     break;
                 }
 
@@ -263,12 +423,30 @@ namespace GeometryHelper.UnitTest.Solid
                     if (plane == "floor")
                     {
                         var aabb = new GeoAabb3(new GeoPoint3(0, 0, -50), new GeoPoint3(100, 100, 0));
-                        AssertMeasured(f, (gap, aabb.DistanceTo(line, t), line.DistanceTo(aabb, t), aabb.CollidesWith(line, t), line.CollidesWith(aabb, t)));
+                        AssertMeasured(
+                            f,
+                            (
+                                gap,
+                                aabb.DistanceTo(line, t),
+                                line.DistanceTo(aabb, t),
+                                aabb.CollidesWith(line, t),
+                                line.CollidesWith(aabb, t)
+                            )
+                        );
                     }
                     else
                     {
                         GeoObb3 obb = Block(f);
-                        AssertMeasured(f, (gap, obb.DistanceTo(line, t), line.DistanceTo(obb, t), obb.CollidesWith(line, t), line.CollidesWith(obb, t)));
+                        AssertMeasured(
+                            f,
+                            (
+                                gap,
+                                obb.DistanceTo(line, t),
+                                line.DistanceTo(obb, t),
+                                obb.CollidesWith(line, t),
+                                line.CollidesWith(obb, t)
+                            )
+                        );
                     }
 
                     break;
@@ -278,7 +456,16 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     var line = new GeoLine3(f.P(100 + d, 100 + d), f.P(150, 150));
                     GeoSolid3 solid = Block(f).ToSolid();
-                    AssertMeasured(f, (gap, solid.DistanceTo(line, t), line.DistanceTo(solid, t), solid.CollidesWith(line, t), line.CollidesWith(solid, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            gap,
+                            solid.DistanceTo(line, t),
+                            line.DistanceTo(solid, t),
+                            solid.CollidesWith(line, t),
+                            line.CollidesWith(solid, t)
+                        )
+                    );
                     break;
                 }
             }
@@ -288,9 +475,13 @@ namespace GeometryHelper.UnitTest.Solid
 
         #region T3: off the plane by up to the planar tolerance, measured in space
 
-        public static IEnumerable<object[]> OffThePlaneCases() => OnBothPlanes(
-            "segment 0.0003 over the square", "segment 0.0009 up and 0.0009 out", "square 0.0003 over the square",
-            "segment 0.0003 over the block's top");
+        public static IEnumerable<object[]> OffThePlaneCases() =>
+            OnBothPlanes(
+                "segment 0.0003 over the square",
+                "segment 0.0009 up and 0.0009 out",
+                "square 0.0003 over the square",
+                "segment 0.0003 over the block's top"
+            );
 
         [Theory]
         [MemberData(nameof(OffThePlaneCases))]
@@ -305,7 +496,16 @@ namespace GeometryHelper.UnitTest.Solid
                 case "segment 0.0003 over the square":
                 {
                     var line = new GeoLine3(f.P(20, 20, 0.0003), f.P(30, 40, 0.0003));
-                    AssertMeasured(f, (0.0003, square.DistanceTo(line, t), line.DistanceTo(square, t), square.CollidesWith(line, t), line.CollidesWith(square, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            0.0003,
+                            square.DistanceTo(line, t),
+                            line.DistanceTo(square, t),
+                            square.CollidesWith(line, t),
+                            line.CollidesWith(square, t)
+                        )
+                    );
                     break;
                 }
 
@@ -314,14 +514,32 @@ namespace GeometryHelper.UnitTest.Solid
                     // Beside the side x = 100, 0.0009 out and 0.0009 up: sqrt(2) 0.0009 = 0.00127 away, past the tolerance.
                     var line = new GeoLine3(f.P(100.0009, 50, 0.0009), f.P(150, 50, 0.0009));
                     double gap = Math.Sqrt(2) * (100.0009 - 100);
-                    AssertMeasured(f, (gap, square.DistanceTo(line, t), line.DistanceTo(square, t), square.CollidesWith(line, t), line.CollidesWith(square, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            gap,
+                            square.DistanceTo(line, t),
+                            line.DistanceTo(square, t),
+                            square.CollidesWith(line, t),
+                            line.CollidesWith(square, t)
+                        )
+                    );
                     break;
                 }
 
                 case "square 0.0003 over the square":
                 {
                     GeoPolygon3 over = Box(f, 50, 50, 150, 150, 0.0003);
-                    AssertMeasured(f, (0.0003, square.DistanceTo(over, t), over.DistanceTo(square, t), square.CollidesWith(over, t), over.CollidesWith(square, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            0.0003,
+                            square.DistanceTo(over, t),
+                            over.DistanceTo(square, t),
+                            square.CollidesWith(over, t),
+                            over.CollidesWith(square, t)
+                        )
+                    );
                     break;
                 }
 
@@ -331,12 +549,30 @@ namespace GeometryHelper.UnitTest.Solid
                     if (plane == "floor")
                     {
                         var aabb = new GeoAabb3(new GeoPoint3(0, 0, -50), new GeoPoint3(100, 100, 0));
-                        AssertMeasured(f, (0.0003, aabb.DistanceTo(line, t), line.DistanceTo(aabb, t), aabb.CollidesWith(line, t), line.CollidesWith(aabb, t)));
+                        AssertMeasured(
+                            f,
+                            (
+                                0.0003,
+                                aabb.DistanceTo(line, t),
+                                line.DistanceTo(aabb, t),
+                                aabb.CollidesWith(line, t),
+                                line.CollidesWith(aabb, t)
+                            )
+                        );
                     }
                     else
                     {
                         GeoObb3 obb = Block(f);
-                        AssertMeasured(f, (0.0003, obb.DistanceTo(line, t), line.DistanceTo(obb, t), obb.CollidesWith(line, t), line.CollidesWith(obb, t)));
+                        AssertMeasured(
+                            f,
+                            (
+                                0.0003,
+                                obb.DistanceTo(line, t),
+                                line.DistanceTo(obb, t),
+                                obb.CollidesWith(line, t),
+                                line.CollidesWith(obb, t)
+                            )
+                        );
                     }
 
                     break;
@@ -348,8 +584,8 @@ namespace GeometryHelper.UnitTest.Solid
 
         #region T4: a point
 
-        public static IEnumerable<object[]> PointCases() => OnBothPlanes(
-            "square", "face outline", "face hole", "solid's top", "under the square's plane");
+        public static IEnumerable<object[]> PointCases() =>
+            OnBothPlanes("square", "face outline", "face hole", "solid's top", "under the square's plane");
 
         [Theory]
         [MemberData(nameof(PointCases))]
@@ -423,19 +659,38 @@ namespace GeometryHelper.UnitTest.Solid
             Tolerance t = Tol;
             double g = 0.0009;
             double r = Math.Sqrt(0.5);
-            double cx = 60 + g * r, cy = g * r;
+            double cx = 60 + g * r,
+                cy = g * r;
             GeoPoint3 Q(double along, double aside) => f.P(cx + along * r - aside * r, cy + along * r + aside * r);
             var square = new GeoPolygon3(Q(0, -30), Q(40, -30), Q(40, 30), Q(0, 30));
             GeoLine3 seg = new GeoLine3(f.P(0, 0), f.P(60, 0));
 
             if (kind == "polygon")
             {
-                AssertMeasured(f, (g, seg.DistanceTo(square, t), square.DistanceTo(seg, t), seg.CollidesWith(square, t), square.CollidesWith(seg, t)));
+                AssertMeasured(
+                    f,
+                    (
+                        g,
+                        seg.DistanceTo(square, t),
+                        square.DistanceTo(seg, t),
+                        seg.CollidesWith(square, t),
+                        square.CollidesWith(seg, t)
+                    )
+                );
             }
             else
             {
                 var chain = new GeoPolyline3(f.P(0, 30), f.P(0, 0), f.P(60, 0));
-                AssertMeasured(f, (g, chain.DistanceTo(square, t), square.DistanceTo(chain, t), chain.CollidesWith(square, t), square.CollidesWith(chain, t)));
+                AssertMeasured(
+                    f,
+                    (
+                        g,
+                        chain.DistanceTo(square, t),
+                        square.DistanceTo(chain, t),
+                        chain.CollidesWith(square, t),
+                        square.CollidesWith(chain, t)
+                    )
+                );
             }
         }
 
@@ -443,13 +698,21 @@ namespace GeometryHelper.UnitTest.Solid
 
         #region Controls: what already reads right and must stay so
 
-        public static IEnumerable<object[]> ControlCases() => OnBothPlanes(
-            "segment crossing the square", "segment piercing the square", "segment five tolerances off",
-            "segments crossing in plan 0.0005 apart", "segment starting on the side");
+        public static IEnumerable<object[]> ControlCases() =>
+            OnBothPlanes(
+                "segment crossing the square",
+                "segment piercing the square",
+                "segment five tolerances off",
+                "segments crossing in plan 0.0005 apart",
+                "segment starting on the side"
+            );
 
         [Theory]
         [MemberData(nameof(ControlCases))]
-        public void ACrossingAPiercingAWideGapOrATouch_ReadsAsItDidAndCollidesWithinTheTolerance(string kind, string plane)
+        public void ACrossingAPiercingAWideGapOrATouch_ReadsAsItDidAndCollidesWithinTheTolerance(
+            string kind,
+            string plane
+        )
         {
             Frame f = On(plane);
             Tolerance t = Tol;
@@ -460,21 +723,48 @@ namespace GeometryHelper.UnitTest.Solid
                 case "segment crossing the square":
                 {
                     var line = new GeoLine3(f.P(50, 50), f.P(150, 50));
-                    AssertMeasured(f, (0.0, square.DistanceTo(line, t), line.DistanceTo(square, t), square.CollidesWith(line, t), line.CollidesWith(square, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            0.0,
+                            square.DistanceTo(line, t),
+                            line.DistanceTo(square, t),
+                            square.CollidesWith(line, t),
+                            line.CollidesWith(square, t)
+                        )
+                    );
                     break;
                 }
 
                 case "segment piercing the square":
                 {
                     var line = new GeoLine3(f.P(50, 50, -1), f.P(50, 50, 1));
-                    AssertMeasured(f, (0.0, square.DistanceTo(line, t), line.DistanceTo(square, t), square.CollidesWith(line, t), line.CollidesWith(square, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            0.0,
+                            square.DistanceTo(line, t),
+                            line.DistanceTo(square, t),
+                            square.CollidesWith(line, t),
+                            line.CollidesWith(square, t)
+                        )
+                    );
                     break;
                 }
 
                 case "segment five tolerances off":
                 {
                     var line = new GeoLine3(f.P(100.005, 50), f.P(150, 50));
-                    AssertMeasured(f, (100.005 - 100, square.DistanceTo(line, t), line.DistanceTo(square, t), square.CollidesWith(line, t), line.CollidesWith(square, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            100.005 - 100,
+                            square.DistanceTo(line, t),
+                            line.DistanceTo(square, t),
+                            square.CollidesWith(line, t),
+                            line.CollidesWith(square, t)
+                        )
+                    );
                     break;
                 }
 
@@ -483,14 +773,32 @@ namespace GeometryHelper.UnitTest.Solid
                     // One along X in the plane, the other along Y 0.0005 above it: the gap is the height.
                     var a = new GeoLine3(f.P(0, 0), f.P(10, 0));
                     var b = new GeoLine3(f.P(5, -5, 0.0005), f.P(5, 5, 0.0005));
-                    AssertMeasured(f, (0.0005, Within(t, () => a.DistanceTo(b)), Within(t, () => b.DistanceTo(a)), a.CollidesWith(b, t), b.CollidesWith(a, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            0.0005,
+                            Within(t, () => a.DistanceTo(b)),
+                            Within(t, () => b.DistanceTo(a)),
+                            a.CollidesWith(b, t),
+                            b.CollidesWith(a, t)
+                        )
+                    );
                     break;
                 }
 
                 default:
                 {
                     var line = new GeoLine3(f.P(100, 50), f.P(150, 50));
-                    AssertMeasured(f, (0.0, square.DistanceTo(line, t), line.DistanceTo(square, t), square.CollidesWith(line, t), line.CollidesWith(square, t)));
+                    AssertMeasured(
+                        f,
+                        (
+                            0.0,
+                            square.DistanceTo(line, t),
+                            line.DistanceTo(square, t),
+                            square.CollidesWith(line, t),
+                            line.CollidesWith(square, t)
+                        )
+                    );
                     break;
                 }
             }

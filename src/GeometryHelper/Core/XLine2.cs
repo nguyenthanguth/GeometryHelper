@@ -55,7 +55,10 @@ namespace GeometryHelper.Core
         {
             double margin = Math.Max(1.0, 100.0 * tolerance.EqualPoint);
 
-            return new GeoLine2(xline.GetPointAtDistance(nearest - margin), xline.GetPointAtDistance(farthest + margin));
+            return new GeoLine2(
+                xline.GetPointAtDistance(nearest - margin),
+                xline.GetPointAtDistance(farthest + margin)
+            );
         }
 
         /// <summary>
@@ -91,14 +94,14 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Cuts a line past a circle.
         /// </summary>
-        internal static GeoLine2 CutPast(GeoXLine2 xline, GeoCircle2 circle, Tolerance tolerance)
-            => CutPastRound(xline, circle.Center, circle.Radius, tolerance);
+        internal static GeoLine2 CutPast(GeoXLine2 xline, GeoCircle2 circle, Tolerance tolerance) =>
+            CutPastRound(xline, circle.Center, circle.Radius, tolerance);
 
         /// <summary>
         /// Cuts a line past an ellipse, read by the circle of its major radius.
         /// </summary>
-        internal static GeoLine2 CutPast(GeoXLine2 xline, GeoEllipse2 ellipse, Tolerance tolerance)
-            => CutPastRound(xline, ellipse.Center, ellipse.MajorRadius, tolerance);
+        internal static GeoLine2 CutPast(GeoXLine2 xline, GeoEllipse2 ellipse, Tolerance tolerance) =>
+            CutPastRound(xline, ellipse.Center, ellipse.MajorRadius, tolerance);
 
         /// <summary>
         /// Cuts a line past a rectangle.
@@ -128,7 +131,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         internal static GeoLine2 CutPast(GeoXLine2 xline, GeoPolygon2 poly, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             Extent(xline, poly.Vertices, out double nearest, out double farthest);
 
@@ -141,7 +145,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         internal static GeoLine2 CutPast(GeoXLine2 xline, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             Extent(xline, polyline.Vertices, out double nearest, out double farthest);
 
@@ -154,7 +159,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         internal static GeoLine2 CutPast(GeoXLine2 xline, GeoFace2 face, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             Extent(xline, face.Boundary.Vertices, out double nearest, out double farthest);
 
@@ -174,7 +180,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         internal static GeoLine2 CutPast(GeoXLine2 xline, GeoPolygonArc2 loop, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             Extent(xline, loop.Vertices, out double nearest, out double farthest);
 
@@ -198,7 +205,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         internal static GeoLine2 CutPast(GeoXLine2 xline, GeoPolylineArc2 chain, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             Extent(xline, chain.Vertices, out double nearest, out double farthest);
 
@@ -222,9 +230,12 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static bool Precedes(GeoXLine2 first, GeoXLine2 second)
         {
-            if (first.Origin.X != second.Origin.X) return first.Origin.X < second.Origin.X;
-            if (first.Origin.Y != second.Origin.Y) return first.Origin.Y < second.Origin.Y;
-            if (first.Direction.X != second.Direction.X) return first.Direction.X < second.Direction.X;
+            if (first.Origin.X != second.Origin.X)
+                return first.Origin.X < second.Origin.X;
+            if (first.Origin.Y != second.Origin.Y)
+                return first.Origin.Y < second.Origin.Y;
+            if (first.Direction.X != second.Direction.X)
+                return first.Direction.X < second.Direction.X;
 
             return first.Direction.Y < second.Direction.Y;
         }
@@ -232,8 +243,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the point of a line nearest a point: its foot, the projection on the line.
         /// </summary>
-        internal static GeoPoint2 Project(GeoXLine2 xline, GeoPoint2 point)
-            => xline.GetPointAtDistance(xline.GetDistanceAtPoint(point));
+        internal static GeoPoint2 Project(GeoXLine2 xline, GeoPoint2 point) =>
+            xline.GetPointAtDistance(xline.GetDistanceAtPoint(point));
 
         /// <summary>
         /// Finds where a line and a ray cross, at any angle, and how far along each.
@@ -251,7 +262,14 @@ namespace GeometryHelper.Core
         /// (1, -0.0000001) cross 300 million along and are nought apart, though
         /// <see cref="Intersection2.TryIntersectWith(GeoRay2, GeoXLine2, out GeoPoint2, Tolerance)"/> calls them parallel.
         /// </remarks>
-        internal static bool TryCross(GeoXLine2 xline, GeoRay2 ray, Tolerance tolerance, bool pastOrigin, out double alongLine, out double alongRay)
+        internal static bool TryCross(
+            GeoXLine2 xline,
+            GeoRay2 ray,
+            Tolerance tolerance,
+            bool pastOrigin,
+            out double alongLine,
+            out double alongRay
+        )
         {
             alongLine = 0.0;
             alongRay = 0.0;
@@ -314,7 +332,16 @@ namespace GeometryHelper.Core
             // An origin that is not a number places no crossing, and neither does one that cannot be placed, measured along the
             // line that is further from it, so that asked either way round the answer is the same. Written as what has to hold,
             // so that a NaN fails it.
-            if (!Guard.IsFinite(along) || !Placeable(sine, Math.Max(Math.Abs(along), Math.Abs(alongOther)), xline1.Origin, xline2.Origin, tolerance))
+            if (
+                !Guard.IsFinite(along)
+                || !Placeable(
+                    sine,
+                    Math.Max(Math.Abs(along), Math.Abs(alongOther)),
+                    xline1.Origin,
+                    xline2.Origin,
+                    tolerance
+                )
+            )
             {
                 return false;
             }
@@ -333,14 +360,25 @@ namespace GeometryHelper.Core
         /// lines at any real angle cross, whatever the tolerance, even where it is 1E-12 or nought. With a point tolerance of a
         /// thousandth and coordinates near nought the limit is 4.5E12 along. Two rays are read by it as well (see <see cref="Ray2"/>).
         /// </remarks>
-        internal static bool Placeable(double sine, double along, GeoPoint2 first, GeoPoint2 second, Tolerance tolerance)
+        internal static bool Placeable(
+            double sine,
+            double along,
+            GeoPoint2 first,
+            GeoPoint2 second,
+            Tolerance tolerance
+        )
         {
             if (Math.Abs(sine) > NearlyParallel)
             {
                 return !double.IsNaN(along);
             }
 
-            double reach = along + Math.Max(Math.Max(Math.Abs(first.X), Math.Abs(first.Y)), Math.Max(Math.Abs(second.X), Math.Abs(second.Y)));
+            double reach =
+                along
+                + Math.Max(
+                    Math.Max(Math.Abs(first.X), Math.Abs(first.Y)),
+                    Math.Max(Math.Abs(second.X), Math.Abs(second.Y))
+                );
 
             // Written as what has to hold, so that a NaN fails it.
             return reach * Epsilon <= tolerance.EqualPoint;
@@ -349,7 +387,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets how far along a line the nearest and the farthest of a set of points project; a NaN among them is carried.
         /// </summary>
-        private static void Extent(GeoXLine2 xline, IReadOnlyList<GeoPoint2> points, out double nearest, out double farthest)
+        private static void Extent(
+            GeoXLine2 xline,
+            IReadOnlyList<GeoPoint2> points,
+            out double nearest,
+            out double farthest
+        )
         {
             nearest = double.PositiveInfinity;
             farthest = double.NegativeInfinity;

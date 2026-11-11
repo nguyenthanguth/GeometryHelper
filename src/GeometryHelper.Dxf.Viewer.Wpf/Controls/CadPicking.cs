@@ -18,7 +18,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// near the one drawn on top first (<see cref="PickIndex.Pick"/>), where more than one lies there and the click would
         /// pick (no command, or "Select objects:" and the like); else none.
         /// </summary>
-        public static IReadOnlyList<string> Overlapping(CadDocument document, CadSpace space, CadCommandSession session, GeoPoint2 at, double aperture)
+        public static IReadOnlyList<string> Overlapping(
+            CadDocument document,
+            CadSpace space,
+            CadCommandSession session,
+            GeoPoint2 at,
+            double aperture
+        )
         {
             if (document.SelectionCycling != 2 || (session != null && session.IsRunning && !WantsObjects(session)))
             {
@@ -33,7 +39,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public static string CycleLabel(CadDocument document, string handle)
         {
             DxfEntity entity = document.FindEntity(handle);
-            return entity == null ? handle : CadProperties.Describe(document, null, new[] { handle }).Label.Replace(" (1)", string.Empty) + " · " + (entity.Layer ?? "0");
+            return entity == null
+                ? handle
+                : CadProperties.Describe(document, null, new[] { handle }).Label.Replace(" (1)", string.Empty)
+                    + " · "
+                    + (entity.Layer ?? "0");
         }
 
         /// <summary>An object chosen from the Selection list, taken as a click on it alone takes it: fed to "Select objects:", or selected with its group.</summary>
@@ -68,7 +78,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public static bool WantsPoint(CadCommandSession session)
         {
             CadPrompt prompt = session?.Prompt;
-            return prompt != null && (prompt.Kind == CadPromptKind.Point || prompt.Kind == CadPromptKind.Distance || prompt.Kind == CadPromptKind.Angle);
+            return prompt != null
+                && (
+                    prompt.Kind == CadPromptKind.Point
+                    || prompt.Kind == CadPromptKind.Distance
+                    || prompt.Kind == CadPromptKind.Angle
+                );
         }
 
         /// <summary>Gets whether the prompt waiting takes objects: "Select objects:" or a prompt for one object.</summary>
@@ -83,7 +98,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <paramref name="drawnFrom"/> where it has none, <see cref="CadPrompt.SnapFrom"/>), the grid, ortho and polar along the
         /// space's UCS; null where no snap is given.
         /// </summary>
-        public static CadSnapResult Snap(CadDocument document, CadSpace space, ObjectSnap snap, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint, GeoPoint2? drawnFrom = null)
+        public static CadSnapResult Snap(
+            CadDocument document,
+            CadSpace space,
+            ObjectSnap snap,
+            GeoPoint2 cursor,
+            double aperture,
+            GeoPoint2? basePoint,
+            GeoPoint2? drawnFrom = null
+        )
         {
             if (snap == null)
             {
@@ -96,7 +119,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>The cursor has rested at a point prompt: a point is acquired or let go for Extension, Parallel and tracking (<see cref="ObjectSnap.Acquire"/>).</summary>
         /// <returns>Whether one was.</returns>
-        public static bool Acquire(CadDocument document, CadSpace space, ObjectSnap snap, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint)
+        public static bool Acquire(
+            CadDocument document,
+            CadSpace space,
+            ObjectSnap snap,
+            GeoPoint2 cursor,
+            double aperture,
+            GeoPoint2? basePoint
+        )
         {
             if (snap == null)
             {
@@ -109,7 +139,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>A left click at a point of the drawing.</summary>
         /// <returns>Whether the selection or the command changed.</returns>
-        public static bool Click(CadDocument document, CadSpace space, CadCommandSession session, ObjectSnap snap, GeoPoint2 cursor, double aperture, bool shift, bool control = false)
+        public static bool Click(
+            CadDocument document,
+            CadSpace space,
+            CadCommandSession session,
+            ObjectSnap snap,
+            GeoPoint2 cursor,
+            double aperture,
+            bool shift,
+            bool control = false
+        )
         {
             if (session != null && session.IsRunning)
             {
@@ -127,19 +166,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     // Ctrl held as the point is picked turns an arc of ARC or PLINE the other way, as in AutoCAD, and a grip
                     // edit's first point copies. The snap goes with its point, so that a dimension ties the point to its object.
-                    return snapped != null && snapped.Handle != null ? session.Feed(snapped, control) : session.Feed(snapped?.Point ?? cursor, false, control);
+                    return snapped != null && snapped.Handle != null
+                        ? session.Feed(snapped, control)
+                        : session.Feed(snapped?.Point ?? cursor, false, control);
                 }
 
                 return WantsObjects(session) && session.Feed(cursor, shift);
             }
 
             int before = document.Selection.Count;
-            return Pick(document, space, cursor.X, cursor.Y, aperture, shift) != null || before != document.Selection.Count;
+            return Pick(document, space, cursor.X, cursor.Y, aperture, shift) != null
+                || before != document.Selection.Count;
         }
 
         /// <summary>A window (left to right) or crossing (right to left) box dragged over the drawing.</summary>
         /// <returns>The handles the box took.</returns>
-        public static IReadOnlyList<string> BoxDone(CadDocument document, CadSpace space, CadCommandSession session, DisplayBox box, bool crossing, bool shift)
+        public static IReadOnlyList<string> BoxDone(
+            CadDocument document,
+            CadSpace space,
+            CadCommandSession session,
+            DisplayBox box,
+            bool crossing,
+            bool shift
+        )
         {
             if (session != null && session.IsRunning)
             {
@@ -182,7 +231,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             DisplayBox bounds = Bounds(ring);
-            return Math.Abs(SignedArea(ring)) >= 0.1 * bounds.Width * bounds.Height && bounds.Width > 0.0 && bounds.Height > 0.0;
+            return Math.Abs(SignedArea(ring)) >= 0.1 * bounds.Width * bounds.Height
+                && bounds.Width > 0.0
+                && bounds.Height > 0.0;
         }
 
         /// <summary>
@@ -190,7 +241,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// window; counter-clockwise what it touches, as a crossing. It answers "Select objects:" as a box does.
         /// </summary>
         /// <returns>The handles the lasso took.</returns>
-        public static IReadOnlyList<string> LassoDone(CadDocument document, CadSpace space, CadCommandSession session, IReadOnlyList<GeoPoint2> ring, bool shift)
+        public static IReadOnlyList<string> LassoDone(
+            CadDocument document,
+            CadSpace space,
+            CadCommandSession session,
+            IReadOnlyList<GeoPoint2> ring,
+            bool shift
+        )
         {
             bool running = session != null && session.IsRunning;
 
@@ -200,7 +257,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             PickIndex index = document.GetPickIndex(space);
-            IReadOnlyList<string> found = SignedArea(ring) > 0.0 ? index.CrossingPolygon(ring) : index.WindowPolygon(ring);
+            IReadOnlyList<string> found =
+                SignedArea(ring) > 0.0 ? index.CrossingPolygon(ring) : index.WindowPolygon(ring);
 
             if (!running)
             {
@@ -243,7 +301,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Picks at a point of the drawing with no command running.</summary>
         /// <returns>The handle picked, or null where nothing lies within the tolerance.</returns>
-        public static string Pick(CadDocument document, CadSpace space, double x, double y, double tolerance, bool toggle)
+        public static string Pick(
+            CadDocument document,
+            CadSpace space,
+            double x,
+            double y,
+            double tolerance,
+            bool toggle
+        )
         {
             IReadOnlyList<string> found = document.GetPickIndex(space).Pick(x, y, tolerance);
 
@@ -288,11 +353,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets what ZOOM Extents shows of a space: what it draws, and for a layout its sheet of paper too, so that a layout
         /// opens on its whole sheet as AutoCAD opens one.
         /// </summary>
-        public static DisplayBox Extents(CadDocument document, CadSpace space) => document.GetDisplay(space).Bounds.Union(space.PaperBounds);
+        public static DisplayBox Extents(CadDocument document, CadSpace space) =>
+            document.GetDisplay(space).Bounds.Union(space.PaperBounds);
 
         /// <summary>Selects by a box of the drawing with no command running: a window takes the entities wholly inside, a crossing those it touches.</summary>
         /// <returns>The handles the box took.</returns>
-        public static IReadOnlyList<string> Box(CadDocument document, CadSpace space, DisplayBox box, bool crossing, bool remove)
+        public static IReadOnlyList<string> Box(
+            CadDocument document,
+            CadSpace space,
+            DisplayBox box,
+            bool crossing,
+            bool remove
+        )
         {
             PickIndex index = document.GetPickIndex(space);
             IReadOnlyList<string> found = document.WithGroups(crossing ? index.Crossing(box) : index.Window(box));

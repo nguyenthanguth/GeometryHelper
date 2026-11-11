@@ -73,7 +73,9 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
                 Assert.Contains(opened.Drawing.Elements, e => e.Kind == "Dimension" && e.ViewId == "V-RIGHT");
                 Assert.Contains("V-RIGHT", opened.Drawing.Settings.Views.DimensionedViews);
                 Assert.Equal("UPDATE", opened.Document.NextUndo.Name);
-                Assert.Contains(bench.Model.History, l => l.StartsWith("Dimensions of V-RIGHT: ", StringComparison.Ordinal));
+                Assert.Contains(bench.Model.History, l =>
+                    l.StartsWith("Dimensions of V-RIGHT: ", StringComparison.Ordinal)
+                );
             }
             finally
             {
@@ -99,11 +101,17 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
 
                 Assert.False(await bench.Workspace.AddViewAsync(ViewKind.Isometric));
                 MessageViewModel message = Assert.Single(bench.Messages);
-                Assert.Contains("B1 was opened from its file, and the source it was made from is not at hand: pick its source in Update from model first.", message.Text);
+                Assert.Contains(
+                    "B1 was opened from its file, and the source it was made from is not at hand: pick its source in Update from model first.",
+                    message.Text
+                );
 
                 opened.Document.Selection.Set(new[] { Tagged(opened, "V-RIGHT") });
                 Assert.Null(bench.Workspace.ReDimensionSelectedView());
-                Assert.Contains("Dimensions of V-RIGHT not made: B1 was opened from its file, and the source it was made from is not at hand: pick its source in Update from model first.", bench.Model.History);
+                Assert.Contains(
+                    "Dimensions of V-RIGHT not made: B1 was opened from its file, and the source it was made from is not at hand: pick its source in Update from model first.",
+                    bench.Model.History
+                );
                 Assert.Equal(entities, DrawingEntityTags.Find(opened.Document.Database).Count);
 
                 // Update from model finds the drawing's objects in the test bodies; Add view is made from them then.
@@ -127,7 +135,11 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             {
                 string path = await SavedAndClosedAsync(new Bench(), folder);
                 var model = new MainViewModel();
-                var workspace = new DrawingWorkspace(model, new IDrawingSourceProvider[] { new EmptySource("Test bodies") }, Bench.Tol);
+                var workspace = new DrawingWorkspace(
+                    model,
+                    new IDrawingSourceProvider[] { new EmptySource("Test bodies") },
+                    Bench.Tol
+                );
                 var messages = new List<MessageViewModel>();
                 workspace.DialogRequested += (s, e) => messages.Add(e.Model as MessageViewModel);
                 Assert.True(model.Open(path));
@@ -136,7 +148,10 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
 
                 Assert.False(await workspace.AddViewAsync(ViewKind.Isometric));
 
-                Assert.Contains("None of the objects B1 draws is in Test bodies: pick the source it was made from in Update from model first.", Assert.Single(messages).Text);
+                Assert.Contains(
+                    "None of the objects B1 draws is in Test bodies: pick the source it was made from in Update from model first.",
+                    Assert.Single(messages).Text
+                );
                 Assert.Empty(opened.Drawing.Views);
                 Assert.Equal(entities, DrawingEntityTags.Find(opened.Document.Database).Count);
                 Assert.False(opened.Document.CanUndo);
@@ -157,7 +172,11 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
                 var bench = new Bench();
                 string path = await SavedAndClosedAsync(bench, folder);
                 var model = new MainViewModel();
-                var workspace = new DrawingWorkspace(model, new IDrawingSourceProvider[] { bench.Changed, bench.Original }, Bench.Tol);
+                var workspace = new DrawingWorkspace(
+                    model,
+                    new IDrawingSourceProvider[] { bench.Changed, bench.Original },
+                    Bench.Tol
+                );
                 Assert.True(model.Open(path));
 
                 var dialog = new UpdateFromModelViewModel(workspace, workspace.Current);
@@ -221,8 +240,11 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             database.Save(path);
         }
 
-        private static string Tagged(ModelDrawing drawing, string id)
-            => DrawingEntityTags.Find(drawing.Document.Database).First(e => !e.IsErased && DrawingEntityTags.TryRead(e, out string tag, out _) && tag == id).Handle;
+        private static string Tagged(ModelDrawing drawing, string id) =>
+            DrawingEntityTags
+                .Find(drawing.Document.Database)
+                .First(e => !e.IsErased && DrawingEntityTags.TryRead(e, out string tag, out _) && tag == id)
+                .Handle;
 
         /// <summary>A source that is connected and gives no objects.</summary>
         private sealed class EmptySource : IDrawingSourceProvider

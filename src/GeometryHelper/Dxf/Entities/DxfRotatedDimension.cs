@@ -17,13 +17,20 @@ namespace GeometryHelper.Dxf
     public sealed class DxfRotatedDimension : DxfDimension
     {
         // The groups of AcDbAlignedDimension and AcDbRotatedDimension in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 12, 22, 32, 13, 23, 33, 14, 24, 34, 50, 52, 100 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 12, 22, 32, 13, 23, 33, 14, 24, 34, 50, 52, 100 }
+        );
 
         /// <summary>Initializes a level dimension of the origin to the origin, as AutoCAD's <c>new RotatedDimension()</c>, in the style Standard.</summary>
         public DxfRotatedDimension()
-            : this(0.0, new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(0.0, 0.0, 0.0), string.Empty, null)
-        {
-        }
+            : this(
+                0.0,
+                new GeoPoint3(0.0, 0.0, 0.0),
+                new GeoPoint3(0.0, 0.0, 0.0),
+                new GeoPoint3(0.0, 0.0, 0.0),
+                string.Empty,
+                null
+            ) { }
 
         /// <summary>
         /// Initializes a rotated dimension, as AutoCAD's <c>new RotatedDimension(rotation, line1Point, line2Point,
@@ -38,30 +45,52 @@ namespace GeometryHelper.Dxf
         /// <param name="dimensionStyle">The style it is drawn in, by its name; null for Standard.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the rotation is not a finite number.</exception>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
-        public DxfRotatedDimension(double rotation, GeoPoint3 line1Point, GeoPoint3 line2Point, GeoPoint3 dimensionLinePoint, string dimensionText, DxfDimStyleTableRecord dimensionStyle)
-            : base("DIMENSION", 0, dimensionLinePoint, dimensionText, dimensionStyle, Groups(rotation, line1Point, line2Point))
-        {
-        }
+        public DxfRotatedDimension(
+            double rotation,
+            GeoPoint3 line1Point,
+            GeoPoint3 line2Point,
+            GeoPoint3 dimensionLinePoint,
+            string dimensionText,
+            DxfDimStyleTableRecord dimensionStyle
+        )
+            : base(
+                "DIMENSION",
+                0,
+                dimensionLinePoint,
+                dimensionText,
+                dimensionStyle,
+                Groups(rotation, line1Point, line2Point)
+            ) { }
 
         internal DxfRotatedDimension(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets where the first extension line starts (groups 13, 23, 33), as AutoCAD's <c>XLine1Point</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 XLine1Point { get => SubPoint(13); set => SetSubPoint(13, value); }
+        public GeoPoint3 XLine1Point
+        {
+            get => SubPoint(13);
+            set => SetSubPoint(13, value);
+        }
 
         /// <summary>Gets or sets where the second extension line starts (groups 14, 24, 34), as AutoCAD's <c>XLine2Point</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 XLine2Point { get => SubPoint(14); set => SetSubPoint(14, value); }
+        public GeoPoint3 XLine2Point
+        {
+            get => SubPoint(14);
+            set => SetSubPoint(14, value);
+        }
 
         /// <summary>Gets or sets a point of the dimension line (groups 10, 20, 30), as AutoCAD's <c>DimLinePoint</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 DimLinePoint { get => DefinitionPoint; set => SetDefinitionPoint(value); }
+        public GeoPoint3 DimLinePoint
+        {
+            get => DefinitionPoint;
+            set => SetDefinitionPoint(value);
+        }
 
         /// <summary>
         /// Gets or sets the direction measured along (group 50, in degrees, in the plane of the normal), as AutoCAD's
@@ -83,7 +112,11 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the angle set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Oblique { get => ObliqueAngle(); set => SetOblique(value); }
+        public double Oblique
+        {
+            get => ObliqueAngle();
+            set => SetOblique(value);
+        }
 
         /// <summary>
         /// Gets the distance between the two points along <see cref="Rotation"/>, as AutoCAD's <c>Measurement</c>, the direction

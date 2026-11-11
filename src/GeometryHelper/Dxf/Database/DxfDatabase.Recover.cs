@@ -123,7 +123,9 @@ namespace GeometryHelper.Dxf
 
             if (length >= Binary.Length && System.Text.Encoding.ASCII.GetString(bytes, 0, Binary.Length) == Binary)
             {
-                throw new FormatException("This is a binary DXF, which is not read: save the drawing as an ASCII DXF and read that.");
+                throw new FormatException(
+                    "This is a binary DXF, which is not read: save the drawing as an ASCII DXF and read that."
+                );
             }
 
             var repairs = new List<DxfRepair>();
@@ -137,7 +139,15 @@ namespace GeometryHelper.Dxf
             catch (Exception e) when (!(e is OutOfMemoryException))
             {
                 GeometryHelperLog.Warn("DxfDatabase: the audit of " + source + " stopped.", e);
-                repairs.Add(new DxfRepair(DxfRepairKind.Unreadable, "The audit of the recovered drawing stopped: " + e.Message, 0, null, false));
+                repairs.Add(
+                    new DxfRepair(
+                        DxfRepairKind.Unreadable,
+                        "The audit of the recovered drawing stopped: " + e.Message,
+                        0,
+                        null,
+                        false
+                    )
+                );
             }
 
             report = new DxfRepairReport(repairs);
@@ -167,24 +177,50 @@ namespace GeometryHelper.Dxf
                 try
                 {
                     var database = new DxfDatabase(DxfFile.Recovered(recovery.Bytes, recovery.Length, source));
-                    repairs.Add(new DxfRepair(DxfRepairKind.Encoding, "The file could not be read in the code page its header names (" + first.Message + "); it was read as ANSI_1252.", 0, null, true));
+                    repairs.Add(
+                        new DxfRepair(
+                            DxfRepairKind.Encoding,
+                            "The file could not be read in the code page its header names ("
+                                + first.Message
+                                + "); it was read as ANSI_1252.",
+                            0,
+                            null,
+                            true
+                        )
+                    );
                     return database;
                 }
-                catch (Exception e) when (!(e is OutOfMemoryException))
-                {
-                }
+                catch (Exception e) when (!(e is OutOfMemoryException)) { }
             }
 
             try
             {
                 byte[] entities = recovery.EntitiesOnly(out int length);
                 var database = new DxfDatabase(DxfFile.Recovered(entities, length, source));
-                repairs.Add(new DxfRepair(DxfRepairKind.Unreadable, "The repaired file could still not be read (" + first.Message + "); only its entities were kept.", 0, null, true));
+                repairs.Add(
+                    new DxfRepair(
+                        DxfRepairKind.Unreadable,
+                        "The repaired file could still not be read ("
+                            + first.Message
+                            + "); only its entities were kept.",
+                        0,
+                        null,
+                        true
+                    )
+                );
                 return database;
             }
             catch (Exception e) when (!(e is OutOfMemoryException))
             {
-                repairs.Add(new DxfRepair(DxfRepairKind.Unreadable, "Nothing of the file could be read (" + e.Message + "); the drawing is empty.", 0, null, false));
+                repairs.Add(
+                    new DxfRepair(
+                        DxfRepairKind.Unreadable,
+                        "Nothing of the file could be read (" + e.Message + "); the drawing is empty.",
+                        0,
+                        null,
+                        false
+                    )
+                );
                 return new DxfDatabase("AC1015");
             }
         }
@@ -213,24 +249,58 @@ namespace GeometryHelper.Dxf
                 foreach (DxfEntity entity in block)
                 {
                     DxfItem item = entity.Item;
-                    string named = item.Type + (item.Handle != null ? " " + item.Handle : string.Empty) + (block.IsLayout ? string.Empty : " in the block " + block.Name);
+                    string named =
+                        item.Type
+                        + (item.Handle != null ? " " + item.Handle : string.Empty)
+                        + (block.IsLayout ? string.Empty : " in the block " + block.Name);
                     string name = "The " + named;
                     DxfFile.Audited audited = File.Audit(item);
 
                     foreach (Tuple<int, int, int, string, DxfRepairKind, string> wrong in audited.Wrong)
                     {
-                        string where = (wrong.Item1 > 0 ? " has in its " + Ordinal(wrong.Item1) + " vertex or attribute" : " has") + " in its group " + wrong.Item3.ToString(CultureInfo.InvariantCulture);
+                        string where =
+                            (wrong.Item1 > 0 ? " has in its " + Ordinal(wrong.Item1) + " vertex or attribute" : " has")
+                            + " in its group "
+                            + wrong.Item3.ToString(CultureInfo.InvariantCulture);
 
                         if (wrong.Item5 == DxfRepairKind.NonFiniteNumber)
                         {
-                            repairs.Add(new DxfRepair(wrong.Item5, name + where + " a number that is not finite, '" + wrong.Item4.Trim() + "'" + (fix ? "; it was erased." : "."), 0, item.Handle, fix));
+                            repairs.Add(
+                                new DxfRepair(
+                                    wrong.Item5,
+                                    name
+                                        + where
+                                        + " a number that is not finite, '"
+                                        + wrong.Item4.Trim()
+                                        + "'"
+                                        + (fix ? "; it was erased." : "."),
+                                    0,
+                                    item.Handle,
+                                    fix
+                                )
+                            );
                             later.Add(entity.Erase);
                             break;
                         }
 
                         bool own = wrong.Item1 == 0 && fix;
-                        string said = wrong.Item5 == DxfRepairKind.BadNumber ? " no number, '" + wrong.Item4.Trim() + "'" : " the count " + wrong.Item4.Trim() + " of " + wrong.Item6 + (wrong.Item5 == DxfRepairKind.WrongLoopCount ? " boundary paths" : " vertices");
-                        repairs.Add(new DxfRepair(wrong.Item5, name + where + said + (own ? "; it was set to " + wrong.Item6 + "." : "."), 0, item.Handle, own));
+                        string said =
+                            wrong.Item5 == DxfRepairKind.BadNumber
+                                ? " no number, '" + wrong.Item4.Trim() + "'"
+                                : " the count "
+                                    + wrong.Item4.Trim()
+                                    + " of "
+                                    + wrong.Item6
+                                    + (wrong.Item5 == DxfRepairKind.WrongLoopCount ? " boundary paths" : " vertices");
+                        repairs.Add(
+                            new DxfRepair(
+                                wrong.Item5,
+                                name + where + said + (own ? "; it was set to " + wrong.Item6 + "." : "."),
+                                0,
+                                item.Handle,
+                                own
+                            )
+                        );
 
                         if (own)
                         {
@@ -247,12 +317,32 @@ namespace GeometryHelper.Dxf
 
                     if (audited.Block != null && !blocks.Contains(audited.Block) && !BlockTable.Has(audited.Block))
                     {
-                        repairs.Add(new DxfRepair(DxfRepairKind.MissingBlock, name + " places the block " + audited.Block + ", which the drawing does not define; it was kept, drawing nothing.", 0, item.Handle, false));
+                        repairs.Add(
+                            new DxfRepair(
+                                DxfRepairKind.MissingBlock,
+                                name
+                                    + " places the block "
+                                    + audited.Block
+                                    + ", which the drawing does not define; it was kept, drawing nothing.",
+                                0,
+                                item.Handle,
+                                false
+                            )
+                        );
                     }
 
                     if (!DxfRecovery.IsEntity(item.Type) && !classes.Contains(item.Type))
                     {
-                        repairs.Add(new DxfRepair(DxfRepairKind.UnknownEntity, name + " is of a type neither AutoCAD's own nor named in the CLASSES section; it was kept as it is.", 0, item.Handle, false));
+                        repairs.Add(
+                            new DxfRepair(
+                                DxfRepairKind.UnknownEntity,
+                                name
+                                    + " is of a type neither AutoCAD's own nor named in the CLASSES section; it was kept as it is.",
+                                0,
+                                item.Handle,
+                                false
+                            )
+                        );
                     }
                 }
             }
@@ -260,15 +350,48 @@ namespace GeometryHelper.Dxf
             foreach (MissingName need in missing)
             {
                 string fixedBy = fix ? Add(need) : null;
-                repairs.Add(new DxfRepair(need.Kind, "The " + Table(need.Kind) + " " + need.Name + ", named by " + need.Count.ToString(CultureInfo.InvariantCulture) + (need.Count == 1 ? " entity" : " entities") + " (the first: the " + need.First + "), is not in its table" + (fixedBy == string.Empty ? "; it was added." : fixedBy != null ? "; it could not be added: " + fixedBy : "."), 0, null, fixedBy == string.Empty));
+                repairs.Add(
+                    new DxfRepair(
+                        need.Kind,
+                        "The "
+                            + Table(need.Kind)
+                            + " "
+                            + need.Name
+                            + ", named by "
+                            + need.Count.ToString(CultureInfo.InvariantCulture)
+                            + (need.Count == 1 ? " entity" : " entities")
+                            + " (the first: the "
+                            + need.First
+                            + "), is not in its table"
+                            + (
+                                fixedBy == string.Empty ? "; it was added."
+                                : fixedBy != null ? "; it could not be added: " + fixedBy
+                                : "."
+                            ),
+                        0,
+                        null,
+                        fixedBy == string.Empty
+                    )
+                );
             }
 
             later.ForEach(a => a());
 
             foreach (Tuple<DxfItem, int, int, string, string> entry in File.BrokenEntries())
             {
-                string said = entry.Item4 == null ? "A pointer " + entry.Item5 + " with no name before it" : entry.Item5 == null ? "The entry " + entry.Item4 + " with no pointer after it" : "The entry " + entry.Item4 + " that points at '" + entry.Item5 + "', which is not a handle,";
-                repairs.Add(new DxfRepair(DxfRepairKind.BrokenDictionaryEntry, said + " stands in the dictionary " + entry.Item1.Handle + (fix ? "; it was taken out." : "."), 0, entry.Item1.Handle, fix));
+                string said =
+                    entry.Item4 == null ? "A pointer " + entry.Item5 + " with no name before it"
+                    : entry.Item5 == null ? "The entry " + entry.Item4 + " with no pointer after it"
+                    : "The entry " + entry.Item4 + " that points at '" + entry.Item5 + "', which is not a handle,";
+                repairs.Add(
+                    new DxfRepair(
+                        DxfRepairKind.BrokenDictionaryEntry,
+                        said + " stands in the dictionary " + entry.Item1.Handle + (fix ? "; it was taken out." : "."),
+                        0,
+                        entry.Item1.Handle,
+                        fix
+                    )
+                );
 
                 for (int i = entry.Item3 - 1; i >= 0 && fix; i--)
                 {
@@ -301,19 +424,44 @@ namespace GeometryHelper.Dxf
             return names;
         }
 
-        private static void Need(List<MissingName> missing, Dictionary<DxfRepairKind, HashSet<string>> tables, DxfRepairKind kind, string name, string entity)
+        private static void Need(
+            List<MissingName> missing,
+            Dictionary<DxfRepairKind, HashSet<string>> tables,
+            DxfRepairKind kind,
+            string name,
+            string entity
+        )
         {
-            if (string.IsNullOrEmpty(name) || tables[kind].Contains(name)
-                || (kind == DxfRepairKind.MissingLinetype && (string.Equals(name, "BYLAYER", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "BYBLOCK", StringComparison.OrdinalIgnoreCase))))
+            if (
+                string.IsNullOrEmpty(name)
+                || tables[kind].Contains(name)
+                || (
+                    kind == DxfRepairKind.MissingLinetype
+                    && (
+                        string.Equals(name, "BYLAYER", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(name, "BYBLOCK", StringComparison.OrdinalIgnoreCase)
+                    )
+                )
+            )
             {
                 return;
             }
 
-            MissingName found = missing.Find(m => m.Kind == kind && string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase));
+            MissingName found = missing.Find(m =>
+                m.Kind == kind && string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase)
+            );
 
             if (found == null)
             {
-                missing.Add(new MissingName { Kind = kind, Name = name, Count = 1, First = entity });
+                missing.Add(
+                    new MissingName
+                    {
+                        Kind = kind,
+                        Name = name,
+                        Count = 1,
+                        First = entity,
+                    }
+                );
             }
             else
             {
@@ -350,10 +498,21 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        private static string Table(DxfRepairKind kind)
-            => kind == DxfRepairKind.MissingLayer ? "layer" : kind == DxfRepairKind.MissingLinetype ? "linetype" : kind == DxfRepairKind.MissingTextStyle ? "text style" : "dimension style";
+        private static string Table(DxfRepairKind kind) =>
+            kind == DxfRepairKind.MissingLayer ? "layer"
+            : kind == DxfRepairKind.MissingLinetype ? "linetype"
+            : kind == DxfRepairKind.MissingTextStyle ? "text style"
+            : "dimension style";
 
-        private static string Ordinal(int number) => number.ToString(CultureInfo.InvariantCulture) + (number % 100 >= 11 && number % 100 <= 13 ? "th" : number % 10 == 1 ? "st" : number % 10 == 2 ? "nd" : number % 10 == 3 ? "rd" : "th");
+        private static string Ordinal(int number) =>
+            number.ToString(CultureInfo.InvariantCulture)
+            + (
+                number % 100 >= 11 && number % 100 <= 13 ? "th"
+                : number % 10 == 1 ? "st"
+                : number % 10 == 2 ? "nd"
+                : number % 10 == 3 ? "rd"
+                : "th"
+            );
 
         /// <summary>One Info line for the call, and one Debug line with every message where there are any.</summary>
         private static void Said(string what, DxfRepairReport report)

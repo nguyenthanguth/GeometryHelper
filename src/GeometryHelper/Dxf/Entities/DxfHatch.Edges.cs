@@ -90,8 +90,17 @@ namespace GeometryHelper.Dxf
 
                         // The point the arc starts at, as it runs: a counter-clockwise arc at its start angle, a clockwise one at its end.
                         double first = (Ccw ? start : end) * (Math.PI / 180.0);
-                        GeoPoint3 from = World(this[10] + radius * Math.Cos(first), this[20] + radius * Math.Sin(first));
-                        return GeoArc3.FromCircle(centre, normal, radius, from, (Ccw ? span : -span) * (Math.PI / 180.0));
+                        GeoPoint3 from = World(
+                            this[10] + radius * Math.Cos(first),
+                            this[20] + radius * Math.Sin(first)
+                        );
+                        return GeoArc3.FromCircle(
+                            centre,
+                            normal,
+                            radius,
+                            from,
+                            (Ccw ? span : -span) * (Math.PI / 180.0)
+                        );
                     }
 
                     case 3:
@@ -121,19 +130,36 @@ namespace GeometryHelper.Dxf
                         var points = new List<GeoPoint3>();
                         var weights = new List<double>();
                         var knots = new List<double>();
-                        DxfCurveTools.Conic(centre, u =>
-                        {
-                            double t = ccw ? from + u : to - u;
-                            double kx = -ratio * my;
-                            double ky = ratio * mx;
-                            return World(cx + Math.Cos(t) * mx + Math.Sin(t) * kx, cy + Math.Cos(t) * my + Math.Sin(t) * ky);
-                        }, 0.0, sweep, false, points, weights, knots);
+                        DxfCurveTools.Conic(
+                            centre,
+                            u =>
+                            {
+                                double t = ccw ? from + u : to - u;
+                                double kx = -ratio * my;
+                                double ky = ratio * mx;
+                                return World(
+                                    cx + Math.Cos(t) * mx + Math.Sin(t) * kx,
+                                    cy + Math.Cos(t) * my + Math.Sin(t) * ky
+                                );
+                            },
+                            0.0,
+                            sweep,
+                            false,
+                            points,
+                            weights,
+                            knots
+                        );
                         return new GeoSpline3(2, points, knots, weights);
                     }
 
                     case 4:
                     {
-                        Spline(out int degree, out List<double> knots, out List<double[]> control, out List<double> weights);
+                        Spline(
+                            out int degree,
+                            out List<double> knots,
+                            out List<double[]> control,
+                            out List<double> weights
+                        );
 
                         if (control.Count == 0)
                         {
@@ -145,7 +171,11 @@ namespace GeometryHelper.Dxf
                     }
 
                     default:
-                        throw new ArgumentException("An edge of a HATCH is a line, an arc, an ellipse or a spline, 1 to 4; this one is " + Type.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".");
+                        throw new ArgumentException(
+                            "An edge of a HATCH is a line, an arc, an ellipse or a spline, 1 to 4; this one is "
+                                + Type.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                + "."
+                        );
                 }
             }
 
@@ -251,7 +281,10 @@ namespace GeometryHelper.Dxf
                         double r = this[40];
                         Run(out double from, out double sweep);
                         start = new GeoPoint2(this[10] + r * Math.Cos(from), this[20] + r * Math.Sin(from));
-                        end = new GeoPoint2(this[10] + r * Math.Cos(from + sweep), this[20] + r * Math.Sin(from + sweep));
+                        end = new GeoPoint2(
+                            this[10] + r * Math.Cos(from + sweep),
+                            this[20] + r * Math.Sin(from + sweep)
+                        );
                         return;
                     }
 
@@ -267,7 +300,11 @@ namespace GeometryHelper.Dxf
                             Parameters(first, last, ratio, out from, out to);
                         }
 
-                        GeoPoint2 At(double t) => new GeoPoint2(cx + Math.Cos(t) * mx - Math.Sin(t) * ratio * my, cy + Math.Cos(t) * my + Math.Sin(t) * ratio * mx);
+                        GeoPoint2 At(double t) =>
+                            new GeoPoint2(
+                                cx + Math.Cos(t) * mx - Math.Sin(t) * ratio * my,
+                                cy + Math.Cos(t) * my + Math.Sin(t) * ratio * mx
+                            );
                         start = At(Ccw ? from : to);
                         end = At(Ccw ? to : from);
                         return;
@@ -309,7 +346,10 @@ namespace GeometryHelper.Dxf
                         Angles(out double first, out double last);
                         double from = Within(Ccw ? first : last) * (Math.PI / 180.0);
                         start = new GeoPoint2(this[10] + r * Math.Cos(from), this[20] + r * Math.Sin(from));
-                        end = new GeoPoint2(this[10] + r * Math.Cos(from + sweep), this[20] + r * Math.Sin(from + sweep));
+                        end = new GeoPoint2(
+                            this[10] + r * Math.Cos(from + sweep),
+                            this[20] + r * Math.Sin(from + sweep)
+                        );
                         return PatternCurve.Conic(start, end, this[10], this[20], r, 0.0, 0.0, r, from, from + sweep);
                     }
 
@@ -330,9 +370,21 @@ namespace GeometryHelper.Dxf
                         }
 
                         // Its ends as Ends gives them, a whole ellipse's both where it starts.
-                        GeoPoint2 At(double t) => new GeoPoint2(cx + Math.Cos(t) * mx - Math.Sin(t) * ratio * my, cy + Math.Cos(t) * my + Math.Sin(t) * ratio * mx);
-                        start = At(whole ? 0.0 : Ccw ? from : to);
-                        end = At(whole ? 0.0 : Ccw ? to : from);
+                        GeoPoint2 At(double t) =>
+                            new GeoPoint2(
+                                cx + Math.Cos(t) * mx - Math.Sin(t) * ratio * my,
+                                cy + Math.Cos(t) * my + Math.Sin(t) * ratio * mx
+                            );
+                        start = At(
+                            whole ? 0.0
+                            : Ccw ? from
+                            : to
+                        );
+                        end = At(
+                            whole ? 0.0
+                            : Ccw ? to
+                            : from
+                        );
                         return Ccw
                             ? PatternCurve.Conic(start, end, cx, cy, mx, my, -ratio * my, ratio * mx, from, to)
                             : PatternCurve.Conic(start, end, cx, cy, mx, my, -ratio * my, ratio * mx, to, from);
@@ -392,7 +444,12 @@ namespace GeometryHelper.Dxf
                         for (int i = 0; i < steps; i++)
                         {
                             double t = Ccw ? from + (to - from) * i / steps : to - (to - from) * i / steps;
-                            points.Add(new GeoPoint2(cx + Math.Cos(t) * mx - Math.Sin(t) * ratio * my, cy + Math.Cos(t) * my + Math.Sin(t) * ratio * mx));
+                            points.Add(
+                                new GeoPoint2(
+                                    cx + Math.Cos(t) * mx - Math.Sin(t) * ratio * my,
+                                    cy + Math.Cos(t) * my + Math.Sin(t) * ratio * mx
+                                )
+                            );
                         }
 
                         break;
@@ -491,7 +548,12 @@ namespace GeometryHelper.Dxf
                     }
                     else if (pair && code == 11 && Type == 3)
                     {
-                        GeoVector3 d = general != null ? new GeoVector3(general[0], general[1], 0.0) : ocs.TransformDirection(new GeoVector3(Num(moved[i].Value, 0.0), Num(moved[i + 1].Value, 0.0), 0.0));
+                        GeoVector3 d =
+                            general != null
+                                ? new GeoVector3(general[0], general[1], 0.0)
+                                : ocs.TransformDirection(
+                                    new GeoVector3(Num(moved[i].Value, 0.0), Num(moved[i + 1].Value, 0.0), 0.0)
+                                );
                         moved[i] = G(11, d.X);
                         moved[i + 1] = G(21, d.Y);
                         i++;
@@ -507,7 +569,8 @@ namespace GeometryHelper.Dxf
                     else if ((code == 50 || code == 51) && (Type == 2 || (Type == 3 && !whole)))
                     {
                         // Written back as the file keeps it: a clockwise edge's angles the complements of its ends, swapped.
-                        double value = code == 50 ? (Ccw ? newStart : 360.0 - newEnd) : (Ccw ? newEnd : 360.0 - newStart);
+                        double value =
+                            code == 50 ? (Ccw ? newStart : 360.0 - newEnd) : (Ccw ? newEnd : 360.0 - newStart);
                         moved[i] = G(code, value);
                     }
                 }
@@ -525,7 +588,8 @@ namespace GeometryHelper.Dxf
                 Ellipse(out _, out _, out double mx, out double my, out double ratio);
                 GeoVector3 u = ocs.TransformDirection(new GeoVector3(mx, my, 0.0));
                 GeoVector3 v = ocs.TransformDirection(new GeoVector3(-ratio * my, ratio * mx, 0.0));
-                double t0 = 0.5 * Math.Atan2(2.0 * (u.X * v.X + u.Y * v.Y), (u.X * u.X + u.Y * u.Y) - (v.X * v.X + v.Y * v.Y));
+                double t0 =
+                    0.5 * Math.Atan2(2.0 * (u.X * v.X + u.Y * v.Y), (u.X * u.X + u.Y * u.Y) - (v.X * v.X + v.Y * v.Y));
                 double ax = u.X * Math.Cos(t0) + v.X * Math.Sin(t0);
                 double ay = u.Y * Math.Cos(t0) + v.Y * Math.Sin(t0);
                 double bx = -u.X * Math.Sin(t0) + v.X * Math.Cos(t0);
@@ -584,7 +648,18 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>The angle in degrees an ellipse's point at an angle has once moved, measured from the moved major axis, as ezdxf measures it.</summary>
-            private static double EllipseAngle(DxfOcsTransform ocs, double cx, double cy, double mx, double my, double ratio, double angle, double elevation, GeoPoint3 centre, GeoVector3 axis)
+            private static double EllipseAngle(
+                DxfOcsTransform ocs,
+                double cx,
+                double cy,
+                double mx,
+                double my,
+                double ratio,
+                double angle,
+                double elevation,
+                GeoPoint3 centre,
+                GeoVector3 axis
+            )
             {
                 double radians = angle * (Math.PI / 180.0);
                 double t = Math.Atan2(Math.Sin(radians) / ratio, Math.Cos(radians));
@@ -596,7 +671,9 @@ namespace GeometryHelper.Dxf
                 double uy = axis.Y / major;
                 double along = ((p.X - centre.X) * ux + (p.Y - centre.Y) * uy) / major;
                 double across = ((p.X - centre.X) * -uy + (p.Y - centre.Y) * ux) / (ratio * major);
-                double moved = Math.Atan2(Math.Sin(Math.Atan2(across, along)) * ratio, Math.Cos(Math.Atan2(across, along))) * (180.0 / Math.PI);
+                double moved =
+                    Math.Atan2(Math.Sin(Math.Atan2(across, along)) * ratio, Math.Cos(Math.Atan2(across, along)))
+                    * (180.0 / Math.PI);
                 moved %= 360.0;
                 moved = moved < 0.0 ? moved + 360.0 : moved;
                 return moved >= 360.0 - 1E-9 ? 0.0 : moved;
@@ -634,7 +711,12 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            private void Spline(out int degree, out List<double> knots, out List<double[]> control, out List<double> weights)
+            private void Spline(
+                out int degree,
+                out List<double> knots,
+                out List<double[]> control,
+                out List<double> weights
+            )
             {
                 degree = Whole(Text(Groups, 94), 3);
                 knots = new List<double>();
@@ -681,7 +763,12 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentException("A spline edge has no control points, which AutoCAD needs.");
                 }
 
-                return new GeoSpline2(degree, control.ConvertAll(p => new GeoPoint2(p[0], p[1])), knots, weights.Count == control.Count ? weights : null);
+                return new GeoSpline2(
+                    degree,
+                    control.ConvertAll(p => new GeoPoint2(p[0], p[1])),
+                    knots,
+                    weights.Count == control.Count ? weights : null
+                );
             }
         }
 
@@ -724,8 +811,12 @@ namespace GeometryHelper.Dxf
                     double toward = Math.Atan2(b[1] - a[1], b[0] - a[0]) + (Math.PI / 2.0 - Math.Atan(a[2]) * 2.0);
                     double cx = a[0] + radius * Math.Cos(toward);
                     double cy = a[1] + radius * Math.Sin(toward);
-                    double from = Math.Atan2((a[2] < 0.0 ? b[1] : a[1]) - cy, (a[2] < 0.0 ? b[0] : a[0]) - cx) * (180.0 / Math.PI);
-                    double to = Math.Atan2((a[2] < 0.0 ? a[1] : b[1]) - cy, (a[2] < 0.0 ? a[0] : b[0]) - cx) * (180.0 / Math.PI);
+                    double from =
+                        Math.Atan2((a[2] < 0.0 ? b[1] : a[1]) - cy, (a[2] < 0.0 ? b[0] : a[0]) - cx)
+                        * (180.0 / Math.PI);
+                    double to =
+                        Math.Atan2((a[2] < 0.0 ? a[1] : b[1]) - cy, (a[2] < 0.0 ? a[0] : b[0]) - cx)
+                        * (180.0 / Math.PI);
                     edges.AddRange(EllipseOfArc(cx, cy, Math.Abs(radius), from, to, a[2] > 0.0));
                 }
             }
@@ -744,7 +835,16 @@ namespace GeometryHelper.Dxf
                     double a50 = Num(Text(edge.Groups, 50), 0.0);
                     double a51 = Num(Text(edge.Groups, 51), 0.0);
                     bool ccw = Whole(Text(edge.Groups, 73), 1) != 0;
-                    edges.AddRange(EllipseOfArc(Num(Text(edge.Groups, 10), 0.0), Num(Text(edge.Groups, 20), 0.0), Num(Text(edge.Groups, 40), 0.0), ccw ? a50 : 360.0 - a51, ccw ? a51 : 360.0 - a50, ccw));
+                    edges.AddRange(
+                        EllipseOfArc(
+                            Num(Text(edge.Groups, 10), 0.0),
+                            Num(Text(edge.Groups, 20), 0.0),
+                            Num(Text(edge.Groups, 40), 0.0),
+                            ccw ? a50 : 360.0 - a51,
+                            ccw ? a51 : 360.0 - a50,
+                            ccw
+                        )
+                    );
                 }
             }
 
@@ -755,7 +855,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The groups of an ellipse edge of a ratio of 1 that is an arc: its angles counter-clockwise, kept as the file keeps them for one that runs clockwise.</summary>
-        private static KeyValuePair<int, string>[] EllipseOfArc(double cx, double cy, double radius, double from, double to, bool ccw)
+        private static KeyValuePair<int, string>[] EllipseOfArc(
+            double cx,
+            double cy,
+            double radius,
+            double from,
+            double to,
+            bool ccw
+        )
         {
             double start = Mod360(from);
             double end = Mod360(to);
@@ -767,8 +874,15 @@ namespace GeometryHelper.Dxf
 
             return new[]
             {
-                G(72, 3), G(10, cx), G(20, cy), G(11, radius), G(21, "0"), G(40, "1"),
-                G(50, ccw ? start : 360.0 - end), G(51, ccw ? end : 360.0 - start), G(73, ccw ? 1 : 0),
+                G(72, 3),
+                G(10, cx),
+                G(20, cy),
+                G(11, radius),
+                G(21, "0"),
+                G(40, "1"),
+                G(50, ccw ? start : 360.0 - end),
+                G(51, ccw ? end : 360.0 - start),
+                G(73, ccw ? 1 : 0),
             };
         }
 
@@ -803,14 +917,21 @@ namespace GeometryHelper.Dxf
 
                 if (!point.IsValid || Math.Abs(local.Z - _elevation) > _tolerance.EqualPoint)
                 {
-                    throw new ArgumentException("The point " + point + " is not in the plane of the HATCH.", "hatchLoop");
+                    throw new ArgumentException(
+                        "The point " + point + " is not in the plane of the HATCH.",
+                        "hatchLoop"
+                    );
                 }
 
                 return new GeoPoint2(local.X, local.Y);
             }
 
             /// <summary>The vertices of a chain in the plane's system, each with its bulge about the normal.</summary>
-            internal List<double[]> Vertices(IReadOnlyList<GeoPoint3> points, IReadOnlyList<double> bulges, IReadOnlyList<GeoVector3> normals)
+            internal List<double[]> Vertices(
+                IReadOnlyList<GeoPoint3> points,
+                IReadOnlyList<double> bulges,
+                IReadOnlyList<GeoVector3> normals
+            )
             {
                 var vertices = new List<double[]>(points.Count);
 
@@ -844,7 +965,9 @@ namespace GeometryHelper.Dxf
                         return 1;
 
                     case GeoEdge3 edge:
-                        return edge.IsArc ? Edges(edge.ToArc(), groups, fitCount) : Edges(edge.ToLine(), groups, fitCount);
+                        return edge.IsArc
+                            ? Edges(edge.ToArc(), groups, fitCount)
+                            : Edges(edge.ToLine(), groups, fitCount);
 
                     case GeoPolylineArc3 chain:
                         return Chain(chain.GetEdges(), groups, fitCount);
@@ -861,7 +984,18 @@ namespace GeometryHelper.Dxf
                         double from = Math.Atan2(start.Y - centre.Y, start.X - centre.X) * (180.0 / Math.PI);
                         double sweep = Math.Abs(arc.SweptAngle) * (180.0 / Math.PI);
                         double first = Mod360(ccw ? from : -from);
-                        groups.AddRange(new[] { G(72, 2), G(10, centre.X), G(20, centre.Y), G(40, arc.Radius), G(50, first), G(51, first + sweep), G(73, ccw ? 1 : 0) });
+                        groups.AddRange(
+                            new[]
+                            {
+                                G(72, 2),
+                                G(10, centre.X),
+                                G(20, centre.Y),
+                                G(40, arc.Radius),
+                                G(50, first),
+                                G(51, first + sweep),
+                                G(73, ccw ? 1 : 0),
+                            }
+                        );
                         return 1;
                     }
 
@@ -870,7 +1004,18 @@ namespace GeometryHelper.Dxf
                         Along(circle.Normal);
                         GeoPoint2 centre = Point(circle.Center);
                         bool ccw = circle.Normal.DotProduct(_normal) > 0.0;
-                        groups.AddRange(new[] { G(72, 2), G(10, centre.X), G(20, centre.Y), G(40, circle.Radius), G(50, "0"), G(51, "360"), G(73, ccw ? 1 : 0) });
+                        groups.AddRange(
+                            new[]
+                            {
+                                G(72, 2),
+                                G(10, centre.X),
+                                G(20, centre.Y),
+                                G(40, circle.Radius),
+                                G(50, "0"),
+                                G(51, "360"),
+                                G(73, ccw ? 1 : 0),
+                            }
+                        );
                         return 1;
                     }
 
@@ -878,13 +1023,25 @@ namespace GeometryHelper.Dxf
                     {
                         Along(ellipse.Normal);
                         GeoPoint2 centre = Point(ellipse.Center);
-                        GeoPoint3 axis = WorldToOcs(_normal, new GeoPoint3(ellipse.MajorAxis.X, ellipse.MajorAxis.Y, ellipse.MajorAxis.Z));
+                        GeoPoint3 axis = WorldToOcs(
+                            _normal,
+                            new GeoPoint3(ellipse.MajorAxis.X, ellipse.MajorAxis.Y, ellipse.MajorAxis.Z)
+                        );
                         bool ccw = ellipse.Normal.DotProduct(_normal) > 0.0;
-                        groups.AddRange(new[]
-                        {
-                            G(72, 3), G(10, centre.X), G(20, centre.Y), G(11, axis.X * ellipse.MajorRadius), G(21, axis.Y * ellipse.MajorRadius),
-                            G(40, ellipse.MinorRadius / ellipse.MajorRadius), G(50, "0"), G(51, "360"), G(73, ccw ? 1 : 0),
-                        });
+                        groups.AddRange(
+                            new[]
+                            {
+                                G(72, 3),
+                                G(10, centre.X),
+                                G(20, centre.Y),
+                                G(11, axis.X * ellipse.MajorRadius),
+                                G(21, axis.Y * ellipse.MajorRadius),
+                                G(40, ellipse.MinorRadius / ellipse.MajorRadius),
+                                G(50, "0"),
+                                G(51, "360"),
+                                G(73, ccw ? 1 : 0),
+                            }
+                        );
                         return 1;
                     }
 
@@ -892,7 +1049,12 @@ namespace GeometryHelper.Dxf
                     {
                         var head = new List<KeyValuePair<int, string>>
                         {
-                            G(72, 4), G(94, spline.Degree), G(73, spline.IsRational ? 1 : 0), G(74, "0"), G(95, spline.Knots.Count), G(96, spline.ControlPoints.Count),
+                            G(72, 4),
+                            G(94, spline.Degree),
+                            G(73, spline.IsRational ? 1 : 0),
+                            G(74, "0"),
+                            G(95, spline.Knots.Count),
+                            G(96, spline.ControlPoints.Count),
                         };
 
                         foreach (double knot in spline.Knots)
@@ -922,7 +1084,12 @@ namespace GeometryHelper.Dxf
                     }
 
                     default:
-                        throw new ArgumentException("An edge of a loop of a HATCH is a line, an arc, a circle, an ellipse or a spline: a " + curve.GetType().Name + " is none of them.", "hatchLoop");
+                        throw new ArgumentException(
+                            "An edge of a loop of a HATCH is a line, an arc, a circle, an ellipse or a spline: a "
+                                + curve.GetType().Name
+                                + " is none of them.",
+                            "hatchLoop"
+                        );
                 }
             }
 
@@ -943,7 +1110,10 @@ namespace GeometryHelper.Dxf
             {
                 if (!normal.IsParallelTo(_normal, _tolerance))
                 {
-                    throw new ArgumentException("An arc of a loop turns about " + normal + ", not about the normal of the HATCH.", "hatchLoop");
+                    throw new ArgumentException(
+                        "An arc of a loop turns about " + normal + ", not about the normal of the HATCH.",
+                        "hatchLoop"
+                    );
                 }
             }
         }

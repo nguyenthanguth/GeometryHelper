@@ -16,7 +16,11 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class ArcProjectionFaultLN1NearlyWholeTurnTests
     {
-        private static readonly GeoCoordinateSystem3 Plan = new GeoCoordinateSystem3(new GeoPoint3(0, 0, 0), GeoVector3.XAxis, GeoVector3.YAxis);
+        private static readonly GeoCoordinateSystem3 Plan = new GeoCoordinateSystem3(
+            new GeoPoint3(0, 0, 0),
+            GeoVector3.XAxis,
+            GeoVector3.YAxis
+        );
 
         private static GeoPoint2 Down(GeoPoint3 point) => new GeoPoint2(point.X, point.Y);
 
@@ -28,7 +32,14 @@ namespace GeometryHelper.UnitTest.Solid
         public void AnArcALittleShortOfAWholeTurn_ComesDownAsTheArcItIs(double degrees, bool clockwise)
         {
             double sweep = degrees * Math.PI / 180.0;
-            var arc = new GeoArc3(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 10, 1.0, clockwise ? 1.0 - sweep : 1.0 + sweep, clockwise);
+            var arc = new GeoArc3(
+                new GeoPoint3(0, 0, 0),
+                GeoVector3.ZAxis,
+                10,
+                1.0,
+                clockwise ? 1.0 - sweep : 1.0 + sweep,
+                clockwise
+            );
 
             GeoArc2 flat = arc.ProjectToArc2(Plan);
 

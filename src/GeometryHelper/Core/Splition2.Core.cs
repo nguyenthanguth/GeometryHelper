@@ -76,7 +76,6 @@ namespace GeometryHelper.Core
             return crossings.ToArray();
         }
 
-
         /// <summary>
         /// Puts a caller supplied set of cut positions into the form the walker expects: ascending, free of
         /// positions closer together than the tolerance, and free of positions at or beyond either end.
@@ -93,7 +92,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         internal static double[] NormalizeCuts(double totalLength, IEnumerable<double> distances, Tolerance tolerance)
         {
-            if (distances == null) throw new ArgumentNullException(nameof(distances));
+            if (distances == null)
+                throw new ArgumentNullException(nameof(distances));
 
             double margin = tolerance.EqualPoint;
 
@@ -101,9 +101,12 @@ namespace GeometryHelper.Core
             foreach (double distance in distances)
             {
                 // NaN survives every comparison below, so it has to be rejected on its own.
-                if (double.IsNaN(distance)) continue;
-                if (distance <= margin) continue;
-                if (distance >= totalLength - margin) continue;
+                if (double.IsNaN(distance))
+                    continue;
+                if (distance <= margin)
+                    continue;
+                if (distance >= totalLength - margin)
+                    continue;
 
                 kept.Add(distance);
             }
@@ -135,7 +138,12 @@ namespace GeometryHelper.Core
         /// A point off the subject is refused rather than projected onto it. Projecting would always
         /// succeed and would silently cut somewhere the caller never asked for.
         /// </remarks>
-        internal static bool TryGetCutDistance(GeoLine2 source, GeoPoint2 point, Tolerance tolerance, out double distance)
+        internal static bool TryGetCutDistance(
+            GeoLine2 source,
+            GeoPoint2 point,
+            Tolerance tolerance,
+            out double distance
+        )
         {
             distance = 0.0;
             if (!Containment2.IsPointOn(source, point, tolerance))
@@ -152,17 +160,23 @@ namespace GeometryHelper.Core
         /// <see cref="Parametrization2.GetDistanceAtPoint(GeoLine2, GeoPoint2)"/> reads one no longer than the global tolerance
         /// as its start.
         /// </summary>
-        private static double DistanceAlong(GeoLine2 line, GeoPoint2 point)
-            => Parametrization2.GetParameterAtPoint(line, point, default(Tolerance)) * line.Length;
+        private static double DistanceAlong(GeoLine2 line, GeoPoint2 point) =>
+            Parametrization2.GetParameterAtPoint(line, point, default(Tolerance)) * line.Length;
 
         /// <summary>
         /// Converts a point into the arc length at which the subject should be cut, rejecting points that
         /// do not lie on the subject.
         /// </summary>
-        internal static bool TryGetCutDistance(GeoPolyline2 source, GeoPoint2 point, Tolerance tolerance, out double distance)
+        internal static bool TryGetCutDistance(
+            GeoPolyline2 source,
+            GeoPoint2 point,
+            Tolerance tolerance,
+            out double distance
+        )
         {
             distance = 0.0;
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
             if (!Containment2.IsPointOn(source, point, tolerance))
             {
                 return false;
@@ -202,7 +216,11 @@ namespace GeometryHelper.Core
         /// </para>
         /// </remarks>
         internal static double[] KeepCrossings(
-            double totalLength, double[] cuts, Func<double, bool> isInsideAt, out bool[] insideOfPiece)
+            double totalLength,
+            double[] cuts,
+            Func<double, bool> isInsideAt,
+            out bool[] insideOfPiece
+        )
         {
             if (cuts.Length == 0)
             {
@@ -366,7 +384,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         internal static GeoPolyline2[] SplitPolylineAt(GeoPolyline2 source, double[] cuts, Tolerance tolerance)
         {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
 
             if (cuts.Length == 0)
             {
@@ -406,8 +425,12 @@ namespace GeometryHelper.Core
         /// only a hair long, which is exactly the degenerate result the tolerance exists to prevent.
         /// </remarks>
         private static void BuildStations(
-            GeoPolyline2 source, double[] cuts, Tolerance tolerance,
-            out GeoPoint2[] stations, out int[] boundaries)
+            GeoPolyline2 source,
+            double[] cuts,
+            Tolerance tolerance,
+            out GeoPoint2[] stations,
+            out int[] boundaries
+        )
         {
             int edgeCount = source.EdgeCount;
             double margin = tolerance.EqualPoint;
@@ -428,9 +451,8 @@ namespace GeometryHelper.Core
                 while (nextCut < cuts.Length && cuts[nextCut] < edgeEnd - margin)
                 {
                     double into = cuts[nextCut] - accumulated;
-                    GeoPoint2 cutPoint = edgeLength > 0.0
-                        ? edge.GetPointAtParameter(into / edgeLength)
-                        : edge.StartPoint;
+                    GeoPoint2 cutPoint =
+                        edgeLength > 0.0 ? edge.GetPointAtParameter(into / edgeLength) : edge.StartPoint;
 
                     cutStation.Add(points.Count);
                     points.Add(cutPoint);
@@ -460,8 +482,10 @@ namespace GeometryHelper.Core
             var distinct = new List<int>(cutStation.Count);
             foreach (int station in cutStation)
             {
-                if (station <= 0 || station >= lastStation) continue;
-                if (distinct.Count > 0 && distinct[distinct.Count - 1] == station) continue;
+                if (station <= 0 || station >= lastStation)
+                    continue;
+                if (distinct.Count > 0 && distinct[distinct.Count - 1] == station)
+                    continue;
                 distinct.Add(station);
             }
 

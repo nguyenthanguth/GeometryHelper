@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -57,9 +57,7 @@ namespace GeometryHelper.Geometry
         /// <param name="plane">The carrying plane; the circle is centred on its origin.</param>
         /// <param name="radius">The radius; it must be positive.</param>
         public GeoCircle3(GeoPlane3 plane, double radius)
-            : this(plane.Origin, plane.Normal, radius)
-        {
-        }
+            : this(plane.Origin, plane.Normal, radius) { }
 
         /// <summary>
         /// Initializes a circle from a normal that is already normalized.
@@ -164,12 +162,14 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the arc length from the zero parameter to a normalized parameter around the circumference.
         /// </summary>
-        public double GetDistanceAtParameter(double parameter) => Parametrization3.GetDistanceAtParameter(this, parameter);
+        public double GetDistanceAtParameter(double parameter) =>
+            Parametrization3.GetDistanceAtParameter(this, parameter);
 
         /// <summary>
         /// Gets the normalized parameter at an arc length measured around the circumference.
         /// </summary>
-        public double GetParameterAtDistance(double distance) => Parametrization3.GetParameterAtDistance(this, distance);
+        public double GetParameterAtDistance(double distance) =>
+            Parametrization3.GetParameterAtDistance(this, distance);
 
         /// <summary>
         /// Gets the normalized parameter of the point on the circumference closest to the supplied point.
@@ -180,7 +180,8 @@ namespace GeometryHelper.Geometry
         /// Gets the normalized parameter of the point on the circumference closest to the supplied point,
         /// within a tolerance.
         /// </summary>
-        public double GetParameterAtPoint(GeoPoint3 point, Tolerance tolerance) => Parametrization3.GetParameterAtPoint(this, point, tolerance);
+        public double GetParameterAtPoint(GeoPoint3 point, Tolerance tolerance) =>
+            Parametrization3.GetParameterAtPoint(this, point, tolerance);
 
         /// <summary>
         /// Gets the arc length from the zero parameter to the point on the circumference closest to the
@@ -192,7 +193,8 @@ namespace GeometryHelper.Geometry
         /// Gets the arc length from the zero parameter to the point on the circumference closest to the
         /// supplied point, within a tolerance.
         /// </summary>
-        public double GetDistanceAtPoint(GeoPoint3 point, Tolerance tolerance) => Parametrization3.GetDistanceAtPoint(this, point, tolerance);
+        public double GetDistanceAtPoint(GeoPoint3 point, Tolerance tolerance) =>
+            Parametrization3.GetDistanceAtPoint(this, point, tolerance);
 
         /// <summary>
         /// Approximates the circle as a polygon.
@@ -246,7 +248,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Locates a point relative to this disc, within a tolerance.
         /// </summary>
-        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) => Containment3.Locate(this, point, tolerance);
+        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) =>
+            Containment3.Locate(this, point, tolerance);
 
         /// <summary>
         /// Checks whether this disc holds a point, using the default tolerance.
@@ -290,7 +293,8 @@ namespace GeometryHelper.Geometry
         /// <param name="result">The concentric circle, or this circle when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if a circle is left; false if it shrinks to nothing.</returns>
-        public bool TryOffset(double distance, out GeoCircle3 result, Tolerance tolerance) => Offset3.TryOffset(this, distance, out result, tolerance);
+        public bool TryOffset(double distance, out GeoCircle3 result, Tolerance tolerance) =>
+            Offset3.TryOffset(this, distance, out result, tolerance);
 
         #endregion
 
@@ -333,9 +337,9 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool IsEqualTo(GeoCircle3 other, Tolerance tolerance)
         {
-            return Center.IsEqualTo(other.Center, tolerance) &&
-                   Normal.IsEqualTo(other.Normal, tolerance) &&
-                   Math.Abs(Radius - other.Radius) <= tolerance.EqualPoint;
+            return Center.IsEqualTo(other.Center, tolerance)
+                && Normal.IsEqualTo(other.Normal, tolerance)
+                && Math.Abs(Radius - other.Radius) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -418,7 +422,8 @@ namespace GeometryHelper.Geometry
         /// <param name="kind">The kind of faces.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
         /// <exception cref="ArgumentException">Thrown for <see cref="Meshing.MeshKind.Grid"/>, which needs the size of its cells.</exception>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshKind kind) => Meshing.Mesh3.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Meshing.MeshPlacement3.World, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshKind kind) =>
+            Meshing.Mesh3.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Meshing.MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks the disc into faces as the options say, its grid level, with the second axis up the slope, using the
@@ -426,7 +431,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="options">How to break it up.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options) => Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options) =>
+            Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks the disc into faces as the options say, its grid level, with the second axis up the slope, within a
@@ -435,7 +441,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How to break it up.</param>
         /// <param name="tolerance">The tolerance the shape is read within: which of its rings touch, what has no area, and for a grid which cells are whole.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) => Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, tolerance);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) =>
+            Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Breaks the disc into faces as the options say, its grid standing as the placement says, using the default
@@ -444,7 +451,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How to break it up.</param>
         /// <param name="placement">Which way the grid or the strips run in the plane, and where a cell starts.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement) => Meshing.Mesh3.ToMesh(this, options, placement, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement) =>
+            Meshing.Mesh3.ToMesh(this, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Breaks the disc into faces as the options say, its grid standing as the placement says, within a tolerance:
@@ -464,7 +472,11 @@ namespace GeometryHelper.Geometry
         /// The rim is flattened by the options' chord tolerance first, and the triangles fanned from the center. The mesh's
         /// normal is the circle's.
         /// </remarks>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement, Tolerance tolerance) => Meshing.Mesh3.ToMesh(this, options, placement, tolerance);
+        public Meshing.GeoMesh3 ToMesh(
+            Meshing.MeshOptions options,
+            Meshing.MeshPlacement3 placement,
+            Tolerance tolerance
+        ) => Meshing.Mesh3.ToMesh(this, options, placement, tolerance);
 
         /// <summary>
         /// Approximates the circle as a chain, cut by the automatic chord tolerance.

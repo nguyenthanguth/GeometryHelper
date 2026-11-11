@@ -20,7 +20,15 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly Tolerance Default = Tolerance.Default;
 
         private static readonly GeoPolygon3 Square = new GeoPolygon3(
-            new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(1000, 0, 0), new GeoPoint3(1000, 1000, 0), new GeoPoint3(0, 1000, 0) }, Default);
+            new[]
+            {
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(1000, 0, 0),
+                new GeoPoint3(1000, 1000, 0),
+                new GeoPoint3(0, 1000, 0),
+            },
+            Default
+        );
 
         private static readonly GeoObb3 Slab = new GeoObb3(new GeoPoint3(500, 500, -5), 1000, 1000, 10);
 
@@ -28,12 +36,28 @@ namespace GeometryHelper.UnitTest.Solid
         public void AWideArcTiltedLessThanTheVectorTolerance_TouchesWhereItDipsNearest()
         {
             double tilt = 9E-6;
-            var arc = new GeoArc3(new GeoPoint3(400, 400, 0.0006 + 300 * Math.Sin(tilt)), new GeoVector3(0, Math.Sin(tilt), Math.Cos(tilt)), 300, 0, 6);
+            var arc = new GeoArc3(
+                new GeoPoint3(400, 400, 0.0006 + 300 * Math.Sin(tilt)),
+                new GeoVector3(0, Math.Sin(tilt), Math.Cos(tilt)),
+                300,
+                0,
+                6
+            );
 
             Assert.True(Arc3.CollidesWith(arc, Square, Default));
-            Assert.True(Assert.Single(Arc3.GetIntersections(arc, Square, Default)).DistanceTo(new GeoPoint3(400, 700, 0.0006)) < 1E-6);
-            Assert.True(Assert.Single(Arc3.GetIntersections(arc, new GeoFace3(Square), Default)).DistanceTo(new GeoPoint3(400, 700, 0.0006)) < 1E-6);
-            Assert.True(Assert.Single(Arc3.GetIntersections(arc, Slab, Default)).DistanceTo(new GeoPoint3(400, 700, 0.0006)) < 1E-6);
+            Assert.True(
+                Assert.Single(Arc3.GetIntersections(arc, Square, Default)).DistanceTo(new GeoPoint3(400, 700, 0.0006))
+                    < 1E-6
+            );
+            Assert.True(
+                Assert
+                    .Single(Arc3.GetIntersections(arc, new GeoFace3(Square), Default))
+                    .DistanceTo(new GeoPoint3(400, 700, 0.0006)) < 1E-6
+            );
+            Assert.True(
+                Assert.Single(Arc3.GetIntersections(arc, Slab, Default)).DistanceTo(new GeoPoint3(400, 700, 0.0006))
+                    < 1E-6
+            );
         }
 
         [Fact]

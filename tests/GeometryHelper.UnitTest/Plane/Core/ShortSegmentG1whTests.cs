@@ -23,15 +23,25 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class ShortSegmentG1whTests
     {
-        private static readonly Tolerance Hundredth = new Tolerance(1E-2, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-2);
+        private static readonly Tolerance Hundredth = new Tolerance(
+            1E-2,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-2
+        );
 
         private static readonly GeoPoint2 Beside = new GeoPoint2(10.03, 0.003);
 
-        private static GeoPolygon2 Polygon()
-            => new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 0.006), new GeoPoint2(0, 10));
+        private static GeoPolygon2 Polygon() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 0.006), new GeoPoint2(0, 10));
 
-        private static GeoPolyline2 Hairpin()
-            => new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 0.006), new GeoPoint2(0, 0.006));
+        private static GeoPolyline2 Hairpin() =>
+            new GeoPolyline2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 0.006),
+                new GeoPoint2(0, 0.006)
+            );
 
         private static void AssertAt(double x, double y, GeoPoint2 actual)
         {
@@ -63,7 +73,12 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The polygon as the outline of a face, and as a hole in the square 50 by 50 round it, the point on the material.
             var face = new GeoFace2(Polygon());
-            var square = new GeoPolygon2(new GeoPoint2(-20, -20), new GeoPoint2(30, -20), new GeoPoint2(30, 30), new GeoPoint2(-20, 30));
+            var square = new GeoPolygon2(
+                new GeoPoint2(-20, -20),
+                new GeoPoint2(30, -20),
+                new GeoPoint2(30, 30),
+                new GeoPoint2(-20, 30)
+            );
             var holed = new GeoFace2(square, new[] { Polygon() });
 
             AssertAt(10, 0.003, face.GetClosestPointOnBoundary(Beside, Hundredth));

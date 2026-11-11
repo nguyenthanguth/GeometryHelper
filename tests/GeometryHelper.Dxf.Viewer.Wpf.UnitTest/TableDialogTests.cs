@@ -210,26 +210,58 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Layout(workspace, 1600, 960);
                 TableCellRibbon ribbon = Descendants(workspace).OfType<TableCellRibbon>().Single();
                 List<Button> buttons = Descendants(ribbon).OfType<Button>().ToList();
-                string[] greyed = { "Match Cell", "Cell Locking ▾", "Data Format ▾", "Block", "Field", "Formula ▾", "Manage Cell Contents", "Link Cell", "Download from Source" };
+                string[] greyed =
+                {
+                    "Match Cell",
+                    "Cell Locking ▾",
+                    "Data Format ▾",
+                    "Block",
+                    "Field",
+                    "Formula ▾",
+                    "Manage Cell Contents",
+                    "Link Cell",
+                    "Download from Source",
+                };
 
                 foreach (string name in greyed)
                 {
                     Assert.False(buttons.Single(b => name.Equals(b.Content)).IsEnabled, name);
                 }
 
-                foreach (string name in new[] { "Insert Above", "Insert Below", "Delete Row(s)", "Insert Left", "Insert Right", "Delete Column(s)", "Unmerge Cells", "Cell Borders ▾" })
+                foreach (
+                    string name in new[]
+                    {
+                        "Insert Above",
+                        "Insert Below",
+                        "Delete Row(s)",
+                        "Insert Left",
+                        "Insert Right",
+                        "Delete Column(s)",
+                        "Unmerge Cells",
+                        "Cell Borders ▾",
+                    }
+                )
                 {
                     Assert.True(buttons.Single(b => name.Equals(b.Content)).IsEnabled, name);
                 }
 
                 Assert.False(buttons.Single(b => "Merge Cells ▾".Equals(b.Content)).IsEnabled);
-                Assert.Contains(Descendants(workspace).OfType<ToggleButton>(), t => "Table Cell".Equals(t.Content) && t.Visibility == Visibility.Visible);
+                Assert.Contains(Descendants(workspace).OfType<ToggleButton>(), t =>
+                    "Table Cell".Equals(t.Content) && t.Visibility == Visibility.Visible
+                );
 
                 var manager = new TableStyleWindow(model.CreateTableStyleManager());
                 var insert = new InsertTableWindow(new InsertTableViewModel(new CadInsertTableRequest(document)));
                 var modify = new TableStyleModifyWindow(new TableStyleModifyViewModel(document, "Standard", false));
 
-                foreach ((Window window, FrameworkElement body) in new (Window, FrameworkElement)[] { (manager, manager.Body), (insert, insert.Body), (modify, modify.Body) })
+                foreach (
+                    (Window window, FrameworkElement body) in new (Window, FrameworkElement)[]
+                    {
+                        (manager, manager.Body),
+                        (insert, insert.Body),
+                        (modify, modify.Body),
+                    }
+                )
                 {
                     object context = window.DataContext;
                     window.Content = null;
@@ -241,7 +273,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 Button close = Descendants(manager.Body).OfType<Button>().Single(b => "Close".Equals(b.Content));
                 Assert.Same(manager.FindResource("GhCloseButton"), close.Style);
-                Assert.Contains(Descendants(insert.Body).OfType<RadioButton>(), r => "From a data link".Equals(r.Content) && !r.IsEnabled);
+                Assert.Contains(Descendants(insert.Body).OfType<RadioButton>(), r =>
+                    "From a data link".Equals(r.Content) && !r.IsEnabled
+                );
             });
         }
 

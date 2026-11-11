@@ -39,7 +39,10 @@ namespace GeometryHelper.Viewer
         {
             if (double.IsNaN(chordTolerance) || double.IsInfinity(chordTolerance) || chordTolerance <= 0.0)
             {
-                throw new ArgumentOutOfRangeException(nameof(chordTolerance), "A chord tolerance is a number above nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(chordTolerance),
+                    "A chord tolerance is a number above nought."
+                );
             }
 
             ChordTolerance = chordTolerance;
@@ -97,7 +100,10 @@ namespace GeometryHelper.Viewer
                 return 1;
             }
 
-            double wanted = Math.Max(Math.Ceiling(turn / MaxPieceAngle), Math.Ceiling(MinPiecesPerTurn * turn / (2.0 * Math.PI)));
+            double wanted = Math.Max(
+                Math.Ceiling(turn / MaxPieceAngle),
+                Math.Ceiling(MinPiecesPerTurn * turn / (2.0 * Math.PI))
+            );
 
             if (!AngleOnly && radius > 0.0 && !double.IsInfinity(radius))
             {
@@ -180,7 +186,11 @@ namespace GeometryHelper.Viewer
             for (int i = 0; i <= pieces; i++)
             {
                 double angle = startAngle + sweptAngle * i / pieces;
-                points[i] = new Vec3(center.X + radius * Math.Cos(angle), center.Y + radius * Math.Sin(angle), center.Z);
+                points[i] = new Vec3(
+                    center.X + radius * Math.Cos(angle),
+                    center.Y + radius * Math.Sin(angle),
+                    center.Z
+                );
             }
 
             rule.NoteExtremes(center, new Vec3(1, 0, 0), new Vec3(0, 1, 0), radius, radius, startAngle, sweptAngle);
@@ -198,7 +208,14 @@ namespace GeometryHelper.Viewer
         /// <param name="startAngle">The angle it starts at, in radians.</param>
         /// <param name="sweptAngle">The angle it turns through, positive counter-clockwise round the normal.</param>
         /// <exception cref="ArgumentException">Thrown when the normal has no length.</exception>
-        public static Vec3[] Arc3(ChordRule rule, Vec3 center, Vec3 normal, double radius, double startAngle, double sweptAngle)
+        public static Vec3[] Arc3(
+            ChordRule rule,
+            Vec3 center,
+            Vec3 normal,
+            double radius,
+            double startAngle,
+            double sweptAngle
+        )
         {
             Axes(normal, out Vec3 u, out Vec3 v);
 
@@ -254,7 +271,14 @@ namespace GeometryHelper.Viewer
         /// <param name="minorDirection">The direction of the minor axis, square to the major.</param>
         /// <param name="majorRadius">The half length of the major axis.</param>
         /// <param name="minorRadius">The half length of the minor axis.</param>
-        public static Vec3[] Ellipse(ChordRule rule, Vec3 center, Vec3 majorDirection, Vec3 minorDirection, double majorRadius, double minorRadius)
+        public static Vec3[] Ellipse(
+            ChordRule rule,
+            Vec3 center,
+            Vec3 majorDirection,
+            Vec3 minorDirection,
+            double majorRadius,
+            double minorRadius
+        )
         {
             int pieces = rule.Pieces(2.0 * Math.PI, Math.Max(Math.Abs(majorRadius), Math.Abs(minorRadius)));
             var points = new Vec3[pieces];
@@ -262,7 +286,10 @@ namespace GeometryHelper.Viewer
             for (int i = 0; i < pieces; i++)
             {
                 double t = 2.0 * Math.PI * i / pieces;
-                points[i] = center + majorDirection * (majorRadius * Math.Cos(t)) + minorDirection * (minorRadius * Math.Sin(t));
+                points[i] =
+                    center
+                    + majorDirection * (majorRadius * Math.Cos(t))
+                    + minorDirection * (minorRadius * Math.Sin(t));
             }
 
             rule.NoteExtremes(center, majorDirection, minorDirection, majorRadius, minorRadius, 0.0, 2.0 * Math.PI);
@@ -277,7 +304,12 @@ namespace GeometryHelper.Viewer
         /// <param name="vertices">The vertices.</param>
         /// <param name="bulges">The bulge of the edge leaving each vertex; a missing one is straight.</param>
         /// <param name="closed">Whether the last vertex joins back to the first; the first is then not repeated.</param>
-        public static Vec3[] Chain2(ChordRule rule, IReadOnlyList<Vec3> vertices, IReadOnlyList<double> bulges, bool closed)
+        public static Vec3[] Chain2(
+            ChordRule rule,
+            IReadOnlyList<Vec3> vertices,
+            IReadOnlyList<double> bulges,
+            bool closed
+        )
         {
             var points = new List<Vec3>();
             int edges = closed ? vertices.Count : vertices.Count - 1;
@@ -313,7 +345,13 @@ namespace GeometryHelper.Viewer
         /// <param name="bulges">The bulge of the edge leaving each vertex; a missing one is straight.</param>
         /// <param name="normals">The normal each bulge is read about; a missing one, and one of no length, draws its edge straight.</param>
         /// <param name="closed">Whether the last vertex joins back to the first; the first is then not repeated.</param>
-        public static Vec3[] Chain3(ChordRule rule, IReadOnlyList<Vec3> vertices, IReadOnlyList<double> bulges, IReadOnlyList<Vec3> normals, bool closed)
+        public static Vec3[] Chain3(
+            ChordRule rule,
+            IReadOnlyList<Vec3> vertices,
+            IReadOnlyList<double> bulges,
+            IReadOnlyList<Vec3> normals,
+            bool closed
+        )
         {
             var points = new List<Vec3>();
             int edges = closed ? vertices.Count : vertices.Count - 1;
@@ -347,7 +385,10 @@ namespace GeometryHelper.Viewer
         /// </summary>
         internal static void Axes(Vec3 normal, out Vec3 u, out Vec3 v)
         {
-            new GeoPlane3(new GeoPoint3(0.0, 0.0, 0.0), new GeoVector3(normal.X, normal.Y, normal.Z)).GetAxes(out GeoVector3 uAxis, out GeoVector3 vAxis);
+            new GeoPlane3(new GeoPoint3(0.0, 0.0, 0.0), new GeoVector3(normal.X, normal.Y, normal.Z)).GetAxes(
+                out GeoVector3 uAxis,
+                out GeoVector3 vAxis
+            );
             u = new Vec3(uAxis.X, uAxis.Y, uAxis.Z);
             v = new Vec3(vAxis.X, vAxis.Y, vAxis.Z);
         }
@@ -357,7 +398,14 @@ namespace GeometryHelper.Viewer
         /// bulge; its centre lies on the left of the chord, looking from the start to the end, for a positive bulge and on the
         /// right for a negative one, the other side of the chord once the arc turns past a half circle.
         /// </summary>
-        private static void AddInterior(ChordRule rule, List<Vec3> points, Vec3 from, Vec3 to, double bulge, Vec3 normal)
+        private static void AddInterior(
+            ChordRule rule,
+            List<Vec3> points,
+            Vec3 from,
+            Vec3 to,
+            double bulge,
+            Vec3 normal
+        )
         {
             Vec3 chord = to - from;
             double length = chord.Length;

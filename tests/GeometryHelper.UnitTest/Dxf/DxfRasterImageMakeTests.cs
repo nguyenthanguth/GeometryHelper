@@ -18,9 +18,11 @@ namespace GeometryHelper.UnitTest.Dxf
     {
         private const string Picture = @"C:\pictures\px43.png";
 
-        private static void Near(GeoPoint3 expected, GeoPoint3 actual) => Assert.True(expected.DistanceTo(actual) <= 1E-9, expected + " was " + actual);
+        private static void Near(GeoPoint3 expected, GeoPoint3 actual) =>
+            Assert.True(expected.DistanceTo(actual) <= 1E-9, expected + " was " + actual);
 
-        private static void Near(GeoVector3 expected, GeoVector3 actual) => Assert.True((expected - actual).Length <= 1E-9, expected + " was " + actual);
+        private static void Near(GeoVector3 expected, GeoVector3 actual) =>
+            Assert.True((expected - actual).Length <= 1E-9, expected + " was " + actual);
 
         private static string Record(string text, string handle) => Records(text).First(r => HandleOf(r) == handle);
 
@@ -37,10 +39,14 @@ namespace GeometryHelper.UnitTest.Dxf
             return groups.ToArray();
         }
 
-        private static string After(string record, string from) => string.Join(" ", Groups(record).SkipWhile(g => !g.StartsWith(from, StringComparison.Ordinal)));
+        private static string After(string record, string from) =>
+            string.Join(" ", Groups(record).SkipWhile(g => !g.StartsWith(from, StringComparison.Ordinal)));
 
-        private static string ClassRecord(string text, string name)
-            => Records(text).FirstOrDefault(r => r.StartsWith("  0\nCLASS\n", StringComparison.Ordinal) && r.Contains("\n  1\n" + name + "\n"));
+        private static string ClassRecord(string text, string name) =>
+            Records(text)
+                .FirstOrDefault(r =>
+                    r.StartsWith("  0\nCLASS\n", StringComparison.Ordinal) && r.Contains("\n  1\n" + name + "\n")
+                );
 
         private static DxfRasterImageDef Definition(DxfDatabase db)
         {
@@ -74,7 +80,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("PX43_1", DxfRasterImageDef.SuggestName(images, "PX43.tif"));
 
             string text = db.ToText();
-            Assert.Equal("100=AcDbRasterImageDef 90=0 1=C:\\pictures\\px43.png 10=4 20=3 11=0.2646 21=0.2646 280=1 281=2", After(Record(text, definition.Handle), "100=AcDbRasterImageDef"));
+            Assert.Equal(
+                "100=AcDbRasterImageDef 90=0 1=C:\\pictures\\px43.png 10=4 20=3 11=0.2646 21=0.2646 280=1 281=2",
+                After(Record(text, definition.Handle), "100=AcDbRasterImageDef")
+            );
             Assert.Throws<ArgumentOutOfRangeException>(() => definition.ResolutionUnits = DxfUnit.Millimeter);
 
             // The variables of images, as AutoCAD 2021 gives a drawing it opens with images, and the classes counted.
@@ -105,7 +114,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(new GeoVector3(4, 0, 0), u);
             Near(new GeoVector3(0, 3, 0), v);
             Assert.Same(definition, image.ImageDef);
-            Assert.Equal(DxfImageDisplayOptions.Show | DxfImageDisplayOptions.ShowUnaligned | DxfImageDisplayOptions.Clip, image.DisplayOptions);
+            Assert.Equal(
+                DxfImageDisplayOptions.Show | DxfImageDisplayOptions.ShowUnaligned | DxfImageDisplayOptions.Clip,
+                image.DisplayOptions
+            );
 
             image.SetOrientation(new GeoPoint3(10, 20, 0), new GeoVector3(40, 0, 0), new GeoVector3(0, 30, 0));
             db.ModelSpace.AppendEntity(image);
@@ -113,11 +125,25 @@ namespace GeometryHelper.UnitTest.Dxf
             string record = Record(text, image.Handle);
             string reactor = Groups(record).Single(g => g.StartsWith("360=", StringComparison.Ordinal)).Substring(4);
 
-            Assert.Equal("100=AcDbRasterImage 90=0 10=10 20=20 30=0 11=10 21=0 31=0 12=0 22=10 32=0 13=4 23=3 340=" + definition.Handle
-                + " 70=7 280=0 281=50 282=50 283=0 290=0 360=" + reactor + " 71=1 91=2 14=-0.5 24=-0.5 14=3.5 24=2.5", After(record, "100=AcDbRasterImage"));
+            Assert.Equal(
+                "100=AcDbRasterImage 90=0 10=10 20=20 30=0 11=10 21=0 31=0 12=0 22=10 32=0 13=4 23=3 340="
+                    + definition.Handle
+                    + " 70=7 280=0 281=50 282=50 283=0 290=0 360="
+                    + reactor
+                    + " 71=1 91=2 14=-0.5 24=-0.5 14=3.5 24=2.5",
+                After(record, "100=AcDbRasterImage")
+            );
 
             // The reactor as AutoCAD writes it: owned by the image and naming it; the definition lists it.
-            Assert.Equal("0=IMAGEDEF_REACTOR 5=" + reactor + " 330=" + image.Handle + " 100=AcDbRasterImageDefReactor 90=2 330=" + image.Handle, string.Join(" ", Groups(Record(text, reactor))));
+            Assert.Equal(
+                "0=IMAGEDEF_REACTOR 5="
+                    + reactor
+                    + " 330="
+                    + image.Handle
+                    + " 100=AcDbRasterImageDefReactor 90=2 330="
+                    + image.Handle,
+                string.Join(" ", Groups(Record(text, reactor)))
+            );
             Assert.Contains("330=" + reactor, Groups(Record(text, definition.Handle)));
             Assert.Equal(1, definition.GetEntityCount(out bool locked));
             Assert.False(locked);
@@ -146,7 +172,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal(2, definition.GetEntityCount(out _));
             string text = db.ToText();
-            Assert.Equal(2, Records(text).Count(r => r.StartsWith("  0\nIMAGEDEF_REACTOR\n", StringComparison.Ordinal)));
+            Assert.Equal(
+                2,
+                Records(text).Count(r => r.StartsWith("  0\nIMAGEDEF_REACTOR\n", StringComparison.Ordinal))
+            );
             Assert.Contains("67=1", Groups(Record(text, db.PaperSpace.Cast<DxfEntity>().Single().Handle)));
 
             var placed = (DxfRasterImage)db.ModelSpace.OfType<DxfBlockReference>().Last().Explode().Single();
@@ -164,15 +193,31 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<InvalidOperationException>(() => db.ModelSpace.AppendEntity(wipeout));
             Assert.False(wipeout.IsResident);
 
-            wipeout.SetFrom(new[] { new GeoPoint2(-30, -10), new GeoPoint2(10, -10), new GeoPoint2(10, 20), new GeoPoint2(-30, 20), new GeoPoint2(-30, -10) }, new GeoVector3(0, 0, 1));
+            wipeout.SetFrom(
+                new[]
+                {
+                    new GeoPoint2(-30, -10),
+                    new GeoPoint2(10, -10),
+                    new GeoPoint2(10, 20),
+                    new GeoPoint2(-30, 20),
+                    new GeoPoint2(-30, -10),
+                },
+                new GeoVector3(0, 0, 1)
+            );
             db.ModelSpace.AppendEntity(wipeout);
             string text = db.ToText();
-            Assert.Equal("100=AcDbWipeout 90=0 10=-30 20=-10 30=0 11=40 21=0 31=0 12=0 22=40 32=0 13=1 23=1 340=0 70=7 280=1 281=50 282=50 283=0 290=0 360=0 71=2 91=5 "
-                + "14=-0.5 24=0.5 14=0.5 24=0.5 14=0.5 24=-0.25 14=-0.5 24=-0.25 14=-0.5 24=0.5", After(Record(text, wipeout.Handle), "100=AcDbWipeout"));
+            Assert.Equal(
+                "100=AcDbWipeout 90=0 10=-30 20=-10 30=0 11=40 21=0 31=0 12=0 22=40 32=0 13=1 23=1 340=0 70=7 280=1 281=50 282=50 283=0 290=0 360=0 71=2 91=5 "
+                    + "14=-0.5 24=0.5 14=0.5 24=0.5 14=0.5 24=-0.25 14=-0.5 24=-0.25 14=-0.5 24=0.5",
+                After(Record(text, wipeout.Handle), "100=AcDbWipeout")
+            );
 
             // The variables of wipeouts as AutoCAD 2021 gives a drawing it opens with one: frames shown.
             DxfDBObject variables = db.NamedObjectsDictionary.GetAt("ACAD_WIPEOUT_VARS");
-            Assert.Equal("100=AcDbWipeoutVariables 70=1", After(Record(text, variables.Handle), "100=AcDbWipeoutVariables"));
+            Assert.Equal(
+                "100=AcDbWipeoutVariables 70=1",
+                After(Record(text, variables.Handle), "100=AcDbWipeoutVariables")
+            );
             Assert.Contains("\n 91\n1\n", ClassRecord(text, "WIPEOUT"));
             Assert.Contains("\n 91\n1\n", ClassRecord(text, "WIPEOUTVARIABLES"));
             Near(new GeoPoint3(-30, -10, 0), db.Extmin);
@@ -185,7 +230,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<InvalidOperationException>(() => DxfRasterImageDef.CreateImageDictionary(r12));
 
             var wipeout = new DxfWipeout();
-            wipeout.SetFrom(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 5), new GeoPoint2(0, 0) }, new GeoVector3(0, 0, 1));
+            wipeout.SetFrom(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 5), new GeoPoint2(0, 0) },
+                new GeoVector3(0, 0, 1)
+            );
             Assert.Throws<ArgumentException>(() => r12.ModelSpace.AppendEntity(wipeout));
 
             // An image shows a definition of its own drawing: appended to another, it would point at nothing there.
@@ -193,7 +241,9 @@ namespace GeometryHelper.UnitTest.Dxf
             var two = new DxfDatabase("AC1032");
             var image = new DxfRasterImage(Definition(one));
             Assert.Throws<ArgumentException>(() => two.ModelSpace.AppendEntity(image));
-            Assert.Throws<ArgumentException>(() => new DxfRasterImage(new DxfRasterImageDef(Picture, new GeoVector2(4, 3))));
+            Assert.Throws<ArgumentException>(() =>
+                new DxfRasterImage(new DxfRasterImageDef(Picture, new GeoVector2(4, 3)))
+            );
             Assert.Throws<ArgumentOutOfRangeException>(() => new DxfRasterImageDef(Picture, new GeoVector2(0, 3)));
             one.ModelSpace.AppendEntity(image);
         }
@@ -242,7 +292,17 @@ namespace GeometryHelper.UnitTest.Dxf
             image.GetOrientation(out _, out GeoVector3 u, out GeoVector3 v);
             Near(new GeoVector3(40, 0, 0), u);
             Near(new GeoVector3(0, 30, 0), v);
-            Assert.Equal(new[] { new GeoPoint2(-0.5, -0.5), new GeoPoint2(-0.5, 5.5), new GeoPoint2(7.5, 5.5), new GeoPoint2(7.5, -0.5), new GeoPoint2(-0.5, -0.5) }, image.GetClipBoundary());
+            Assert.Equal(
+                new[]
+                {
+                    new GeoPoint2(-0.5, -0.5),
+                    new GeoPoint2(-0.5, 5.5),
+                    new GeoPoint2(7.5, 5.5),
+                    new GeoPoint2(7.5, -0.5),
+                    new GeoPoint2(-0.5, -0.5),
+                },
+                image.GetClipBoundary()
+            );
             Assert.Equal(0, first.GetEntityCount(out _));
             Assert.Equal(1, second.GetEntityCount(out _));
             Assert.Throws<ArgumentException>(() => image.AssociateRasterDef(Definition(new DxfDatabase("AC1032"))));

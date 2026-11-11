@@ -25,7 +25,20 @@ namespace GeometryHelper.Dxf
     {
         private readonly Func<DxfReader.Placing> _placed;
 
-        internal DxfInsert(string blockName, GeoPoint3 position, GeoVector3 normal, double rotation, double scaleX, double scaleY, double scaleZ, int columns, int rows, double columnSpacing, double rowSpacing, Func<DxfReader.Placing> placed)
+        internal DxfInsert(
+            string blockName,
+            GeoPoint3 position,
+            GeoVector3 normal,
+            double rotation,
+            double scaleX,
+            double scaleY,
+            double scaleZ,
+            int columns,
+            int rows,
+            double columnSpacing,
+            double rowSpacing,
+            Func<DxfReader.Placing> placed
+        )
         {
             BlockName = blockName;
             Position = position;

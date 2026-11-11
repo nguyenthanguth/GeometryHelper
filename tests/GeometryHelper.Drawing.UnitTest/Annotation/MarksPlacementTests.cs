@@ -45,7 +45,13 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             Near(-20, mark.Leader[0].Y);
             Near(0, mark.Anchor.Y);
             Near(20, mark.Leader[0].DistanceTo(mark.Anchor));
-            Assert.Equal(new DrawingLinks(new[] { "TC1-plate" }, new[] { new DrawingLinkPoint3("TC1-plate", new GeoPoint3(150, 100, 10)) }), mark.Links);
+            Assert.Equal(
+                new DrawingLinks(
+                    new[] { "TC1-plate" },
+                    new[] { new DrawingLinkPoint3("TC1-plate", new GeoPoint3(150, 100, 10)) }
+                ),
+                mark.Links
+            );
         }
 
         [Fact]
@@ -67,7 +73,14 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
 
                 foreach (ViewKind kind in new[] { ViewKind.Front, ViewKind.Top, ViewKind.Right })
                 {
-                    cases.Add((body.Name + "-" + kind, Objects(body), StandardViews.GetFrame(frame, kind).CoordinateSystem, 20));
+                    cases.Add(
+                        (
+                            body.Name + "-" + kind,
+                            Objects(body),
+                            StandardViews.GetFrame(frame, kind).CoordinateSystem,
+                            20
+                        )
+                    );
                 }
             }
 
@@ -77,17 +90,24 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             {
                 Marked marked = Mark(objects, frame, scale);
                 _output.WriteLine(name + ": " + string.Join(", ", marked.Marks.Select(m => m.Id + " " + m.Text)));
-                failures.AddRange(Marker.FindOverlaps(marked.Marks, marked.Dimensions, Tol).Select(o => name + ": " + o));
+                failures.AddRange(
+                    Marker.FindOverlaps(marked.Marks, marked.Dimensions, Tol).Select(o => name + ": " + o)
+                );
                 failures.AddRange(LeadersOffTheirObjects(marked).Select(o => name + ": " + o));
 
                 // One mark for each object with a visible line that the default settings mark, and none for another.
                 var seen = new HashSet<string>(marked.View.VisibleEdges.SelectMany(e => e.ObjectIds));
-                string[] expected = objects.Where(o => o.Kind == DrawingObjectKind.Part && o.Mark.Length > 0 && seen.Contains(o.Id)).Select(o => "M-" + o.Id).ToArray();
+                string[] expected = objects
+                    .Where(o => o.Kind == DrawingObjectKind.Part && o.Mark.Length > 0 && seen.Contains(o.Id))
+                    .Select(o => "M-" + o.Id)
+                    .ToArray();
                 string[] parts = marked.Marks.Where(m => m.Kind != MarkKind.Bolt).Select(m => m.Id).ToArray();
 
                 if (!expected.OrderBy(i => i, StringComparer.Ordinal).SequenceEqual(parts))
                 {
-                    failures.Add(name + ": marks " + string.Join(", ", parts) + " against " + string.Join(", ", expected));
+                    failures.Add(
+                        name + ": marks " + string.Join(", ", parts) + " against " + string.Join(", ", expected)
+                    );
                 }
             }
 
@@ -109,7 +129,11 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
                 {
                     foreach (double scale in new[] { 10.0, 20.0 })
                     {
-                        Marked marked = Mark(Objects(body), StandardViews.GetFrame(frame, kind).CoordinateSystem, scale);
+                        Marked marked = Mark(
+                            Objects(body),
+                            StandardViews.GetFrame(frame, kind).CoordinateSystem,
+                            scale
+                        );
 
                         foreach (DrawingDimension d in marked.Dimensions)
                         {
@@ -121,25 +145,48 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
                             }
 
                             GeoLine2 line = d.DimensionLine.Value;
-                            double length = line.Length, h = d.TextHeight;
-                            double ux = (line.EndPoint.X - line.StartPoint.X) / length, uy = (line.EndPoint.Y - line.StartPoint.Y) / length;
+                            double length = line.Length,
+                                h = d.TextHeight;
+                            double ux = (line.EndPoint.X - line.StartPoint.X) / length,
+                                uy = (line.EndPoint.Y - line.StartPoint.Y) / length;
 
-                            foreach ((GeoPoint2 tip, double sign) in new[] { (line.StartPoint, -1.0), (line.EndPoint, 1.0) })
+                            foreach (
+                                (GeoPoint2 tip, double sign) in new[] { (line.StartPoint, -1.0), (line.EndPoint, 1.0) }
+                            )
                             {
                                 arrows++;
                                 var back = new GeoPoint2(tip.X + sign * ux * h, tip.Y + sign * uy * h);
-                                double minX = Math.Min(tip.X, back.X) - Math.Abs(uy) * h / 6, maxX = Math.Max(tip.X, back.X) + Math.Abs(uy) * h / 6;
-                                double minY = Math.Min(tip.Y, back.Y) - Math.Abs(ux) * h / 6, maxY = Math.Max(tip.Y, back.Y) + Math.Abs(ux) * h / 6;
+                                double minX = Math.Min(tip.X, back.X) - Math.Abs(uy) * h / 6,
+                                    maxX = Math.Max(tip.X, back.X) + Math.Abs(uy) * h / 6;
+                                double minY = Math.Min(tip.Y, back.Y) - Math.Abs(ux) * h / 6,
+                                    maxY = Math.Max(tip.Y, back.Y) + Math.Abs(ux) * h / 6;
 
                                 foreach (DrawingMark mark in marked.Marks)
                                 {
                                     GeoRectangle2 box = mark.TextBox;
-                                    double left = box.Center.X - box.Width / 2, right = box.Center.X + box.Width / 2;
-                                    double bottom = box.Center.Y - box.Height / 2, top = box.Center.Y + box.Height / 2;
+                                    double left = box.Center.X - box.Width / 2,
+                                        right = box.Center.X + box.Width / 2;
+                                    double bottom = box.Center.Y - box.Height / 2,
+                                        top = box.Center.Y + box.Height / 2;
 
-                                    if (left < maxX - Tol.EqualPoint && right > minX + Tol.EqualPoint && bottom < maxY - Tol.EqualPoint && top > minY + Tol.EqualPoint)
+                                    if (
+                                        left < maxX - Tol.EqualPoint
+                                        && right > minX + Tol.EqualPoint
+                                        && bottom < maxY - Tol.EqualPoint
+                                        && top > minY + Tol.EqualPoint
+                                    )
                                     {
-                                        found.Add(body.Name + " " + kind + " 1:" + scale + ": " + mark.Id + " over an arrow of " + d.Id);
+                                        found.Add(
+                                            body.Name
+                                                + " "
+                                                + kind
+                                                + " 1:"
+                                                + scale
+                                                + ": "
+                                                + mark.Id
+                                                + " over an arrow of "
+                                                + d.Id
+                                        );
                                     }
                                 }
                             }
@@ -159,10 +206,18 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         {
             DrawingObject big = Part("A-big", Box(0, 0, 10, 400, 300, 30), true);
             DrawingObject small = Part("B-small", Box(100, 100, 0, 200, 200, 10));
-            DrawingObject[] objects = { new DrawingObject(big.Id, big.Kind, big.Solid, big.Frame, mark: "P1", isMain: true), new DrawingObject(small.Id, small.Kind, small.Solid, small.Frame, mark: "P2") };
+            DrawingObject[] objects =
+            {
+                new DrawingObject(big.Id, big.Kind, big.Solid, big.Frame, mark: "P1", isMain: true),
+                new DrawingObject(small.Id, small.Kind, small.Solid, small.Frame, mark: "P2"),
+            };
 
             Marked fromAbove = Mark(objects, Top, 5);
-            Marked fromBelow = Mark(objects, new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis.Negate()), 5);
+            Marked fromBelow = Mark(
+                objects,
+                new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis.Negate()),
+                5
+            );
 
             Assert.Equal(new[] { "M-A-big" }, fromAbove.Marks.Select(m => m.Id));
             Assert.Equal(new[] { "M-A-big", "M-B-small" }, fromBelow.Marks.Select(m => m.Id));
@@ -177,7 +232,9 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             Assert.Equal("4 x M20 x 80", bolts.Text);
             Assert.Equal("M-TC5-bolt-1", bolts.Id);
             Assert.Equal(new[] { "TC5-bolt-1", "TC5-bolt-2", "TC5-bolt-3", "TC5-bolt-4" }, bolts.ObjectIds);
-            Assert.Contains(new[] { P(-150, -150), P(150, -150), P(-150, 150), P(150, 150) }, c => c.DistanceTo(bolts.Anchor) <= Tol.EqualPoint);
+            Assert.Contains(new[] { P(-150, -150), P(150, -150), P(-150, 150), P(150, 150) }, c =>
+                c.DistanceTo(bolts.Anchor) <= Tol.EqualPoint
+            );
         }
 
         [Fact]
@@ -194,9 +251,30 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         [Fact]
         public void TheFieldsOfTheContentMakeTheTextAndAnEmptyFieldIsLeftOut()
         {
-            var plate = new DrawingObject("P-1", DrawingObjectKind.Part, Box(0, 0, 0, 300, 200, 20), GeoCoordinateSystem3.Global, mark: "P1", profile: "PL20*200",
-                attributes: new[] { new KeyValuePair<string, string>("WEIGHT", "9.4") });
-            var content = new MarkContent { Part = new MarkFormat(new[] { MarkField.Mark, MarkField.Material, MarkField.Profile, MarkField.Length, MarkField.Attribute("WEIGHT"), MarkField.Count }, " ") };
+            var plate = new DrawingObject(
+                "P-1",
+                DrawingObjectKind.Part,
+                Box(0, 0, 0, 300, 200, 20),
+                GeoCoordinateSystem3.Global,
+                mark: "P1",
+                profile: "PL20*200",
+                attributes: new[] { new KeyValuePair<string, string>("WEIGHT", "9.4") }
+            );
+            var content = new MarkContent
+            {
+                Part = new MarkFormat(
+                    new[]
+                    {
+                        MarkField.Mark,
+                        MarkField.Material,
+                        MarkField.Profile,
+                        MarkField.Length,
+                        MarkField.Attribute("WEIGHT"),
+                        MarkField.Count,
+                    },
+                    " "
+                ),
+            };
 
             Marked marked = Mark(new[] { plate }, Top, 5, content: content);
 
@@ -208,11 +286,26 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         {
             DrawingObject[] objects =
             {
-                new DrawingObject("S-1", DrawingObjectKind.Part, Box(0, 0, 0, 100, 10, 50), GeoCoordinateSystem3.Global, mark: "S1"),
-                new DrawingObject("S-2", DrawingObjectKind.Part, Box(300, 0, 0, 400, 10, 50), GeoCoordinateSystem3.Global, mark: "S1",
-                    attributes: new[] { new KeyValuePair<string, string>("Length", "100.0") }),
+                new DrawingObject(
+                    "S-1",
+                    DrawingObjectKind.Part,
+                    Box(0, 0, 0, 100, 10, 50),
+                    GeoCoordinateSystem3.Global,
+                    mark: "S1"
+                ),
+                new DrawingObject(
+                    "S-2",
+                    DrawingObjectKind.Part,
+                    Box(300, 0, 0, 400, 10, 50),
+                    GeoCoordinateSystem3.Global,
+                    mark: "S1",
+                    attributes: new[] { new KeyValuePair<string, string>("Length", "100.0") }
+                ),
             };
-            var content = new MarkContent { Part = new MarkFormat(new[] { MarkField.Count, MarkField.Mark, MarkField.Length }, "/") };
+            var content = new MarkContent
+            {
+                Part = new MarkFormat(new[] { MarkField.Count, MarkField.Mark, MarkField.Length }, "/"),
+            };
 
             Marked marked = Mark(objects, Front, 5, content: content);
 
@@ -233,10 +326,19 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         [Fact]
         public void BoltsOfOneBoltGroupAttributeAreOneGroupWhateverTheirAssembly()
         {
-            DrawingObject Bolt(string id, double x, string group) => new DrawingObject(
-                id, DrawingObjectKind.Bolt, GeoSolid3.Cylinder(new GeoPoint3(x, 0, -10), new GeoPoint3(x, 0, 50), 8, 24, Tol),
-                new GeoCoordinateSystem3(new GeoPoint3(x, 0, -10), GeoVector3.ZAxis, GeoVector3.XAxis), parentId: id,
-                attributes: new[] { new KeyValuePair<string, string>("BoltGroup", group), new KeyValuePair<string, string>("Diameter", "16") });
+            DrawingObject Bolt(string id, double x, string group) =>
+                new DrawingObject(
+                    id,
+                    DrawingObjectKind.Bolt,
+                    GeoSolid3.Cylinder(new GeoPoint3(x, 0, -10), new GeoPoint3(x, 0, 50), 8, 24, Tol),
+                    new GeoCoordinateSystem3(new GeoPoint3(x, 0, -10), GeoVector3.ZAxis, GeoVector3.XAxis),
+                    parentId: id,
+                    attributes: new[]
+                    {
+                        new KeyValuePair<string, string>("BoltGroup", group),
+                        new KeyValuePair<string, string>("Diameter", "16"),
+                    }
+                );
 
             DrawingObject[] objects = { Bolt("b1", 0, "G1"), Bolt("b2", 100, "G1"), Bolt("b3", 200, "G2") };
 
@@ -249,8 +351,16 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         [Fact]
         public void TenPlatesSideBySideGetTenMarksNoneOverAnotherOrADimension()
         {
-            DrawingObject[] objects = Enumerable.Range(0, 10)
-                .Select(i => new DrawingObject("P-" + i, DrawingObjectKind.Part, Box(i * 60, 0, 0, i * 60 + 50, 200, 10), GeoCoordinateSystem3.Global, mark: "P" + (i + 1), isMain: i == 0))
+            DrawingObject[] objects = Enumerable
+                .Range(0, 10)
+                .Select(i => new DrawingObject(
+                    "P-" + i,
+                    DrawingObjectKind.Part,
+                    Box(i * 60, 0, 0, i * 60 + 50, 200, 10),
+                    GeoCoordinateSystem3.Global,
+                    mark: "P" + (i + 1),
+                    isMain: i == 0
+                ))
                 .ToArray();
 
             Marked marked = Mark(objects, Top, 10);
@@ -278,7 +388,9 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             DrawingMark b = marked.Marks[1];
 
             Assert.Empty(Marker.FindOverlaps(new[] { a, b }, new DrawingDimension[0], Tol));
-            Assert.Contains(Marker.FindOverlaps(new[] { a, a }, new DrawingDimension[0], Tol), o => o.Contains("text over the text of " + a.Id));
+            Assert.Contains(Marker.FindOverlaps(new[] { a, a }, new DrawingDimension[0], Tol), o =>
+                o.Contains("text over the text of " + a.Id)
+            );
         }
 
         [Fact]
@@ -288,11 +400,21 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             ProjectedView2 view = Project(objects, Top);
             var none = new DrawingDimension[0];
 
-            Assert.Throws<ArgumentNullException>(() => Marker.Mark(null, objects, Top, none, new MarkSettings(), new MarkContent(), 1, Tol));
-            Assert.Throws<ArgumentNullException>(() => Marker.Mark(view, objects, Top, none, null, new MarkContent(), 1, Tol));
-            Assert.Throws<ArgumentNullException>(() => Marker.Mark(view, objects, Top, none, new MarkSettings(), null, 1, Tol));
-            Assert.Throws<ArgumentOutOfRangeException>(() => Marker.Mark(view, objects, Top, none, new MarkSettings(), new MarkContent(), 0, Tol));
-            Assert.Throws<ArgumentException>(() => Marker.Mark(view, objects.Concat(objects), Top, none, new MarkSettings(), new MarkContent(), 1, Tol));
+            Assert.Throws<ArgumentNullException>(() =>
+                Marker.Mark(null, objects, Top, none, new MarkSettings(), new MarkContent(), 1, Tol)
+            );
+            Assert.Throws<ArgumentNullException>(() =>
+                Marker.Mark(view, objects, Top, none, null, new MarkContent(), 1, Tol)
+            );
+            Assert.Throws<ArgumentNullException>(() =>
+                Marker.Mark(view, objects, Top, none, new MarkSettings(), null, 1, Tol)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                Marker.Mark(view, objects, Top, none, new MarkSettings(), new MarkContent(), 0, Tol)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                Marker.Mark(view, objects.Concat(objects), Top, none, new MarkSettings(), new MarkContent(), 1, Tol)
+            );
             Assert.Throws<ArgumentException>(() => MarkField.Attribute(""));
             Assert.Throws<ArgumentException>(() => new MarkFormat(new MarkField[] { null }, " "));
             Assert.Throws<ArgumentNullException>(() => new MarkContent { Bolt = null });

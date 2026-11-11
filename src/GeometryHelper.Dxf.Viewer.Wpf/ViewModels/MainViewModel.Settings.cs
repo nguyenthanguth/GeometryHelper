@@ -161,7 +161,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return written;
             }
 
-            foreach (KnownFile file in _files.Values.Where(f => f.Document != null && f.Document.HasFile && f.Document.IsModified).OrderBy(f => f.Path, StringComparer.OrdinalIgnoreCase))
+            foreach (
+                KnownFile file in _files
+                    .Values.Where(f => f.Document != null && f.Document.HasFile && f.Document.IsModified)
+                    .OrderBy(f => f.Path, StringComparer.OrdinalIgnoreCase)
+            )
             {
                 if (file.Session.IsRunning || file.Document.IsInGroup)
                 {
@@ -171,7 +175,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 string path = file.Document.FileName;
                 string folder = System.IO.Path.GetDirectoryName(path);
                 string name = System.IO.Path.GetFileNameWithoutExtension(path);
-                string Copy(int k) => System.IO.Path.Combine(folder, name + ".autosave" + k.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".dxf");
+                string Copy(int k) =>
+                    System.IO.Path.Combine(
+                        folder,
+                        name + ".autosave" + k.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".dxf"
+                    );
 
                 try
                 {
@@ -193,7 +201,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
                 catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
                 {
-                    GeometryHelperLog.Warn("MainViewModel: the autosave copy of " + path + " could not be written.", ex);
+                    GeometryHelperLog.Warn(
+                        "MainViewModel: the autosave copy of " + path + " could not be written.",
+                        ex
+                    );
                 }
             }
 
@@ -230,7 +241,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Makes the view model of Global settings over a copy of the settings in use, on a category; null for the first.</summary>
         /// <param name="category">The category shown first, as Shortcuts; null for Appearance.</param>
         /// <returns>The view model.</returns>
-        public GlobalSettingsViewModel CreateGlobalSettings(string category = null) => new GlobalSettingsViewModel(this, category);
+        public GlobalSettingsViewModel CreateGlobalSettings(string category = null) =>
+            new GlobalSettingsViewModel(this, category);
 
         /// <summary>
         /// Runs what a key pressed is given in the shortcuts, as "Ctrl+1": a toggle of the status bar, or a command started on the
@@ -278,7 +290,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (toggle != null)
             {
-                if (toggle.Name == "OSNAP" && string.Equals(gesture, "F3", StringComparison.OrdinalIgnoreCase) && !_settings.F3TogglesSnaps)
+                if (
+                    toggle.Name == "OSNAP"
+                    && string.Equals(gesture, "F3", StringComparison.OrdinalIgnoreCase)
+                    && !_settings.F3TogglesSnaps
+                )
                 {
                     return false;
                 }
@@ -303,8 +319,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (Session == null && _plugins != null)
             {
-                names.UnionWith(new[] { CadPluginManager.LoadCommand, CadPluginManager.UnloadCommand, CadPluginManager.ReloadCommand });
-                names.UnionWith(_plugins.Plugins.Where(p => p.IsLoaded).SelectMany(p => p.Plugin.Commands).Select(c => c.Name));
+                names.UnionWith(
+                    new[]
+                    {
+                        CadPluginManager.LoadCommand,
+                        CadPluginManager.UnloadCommand,
+                        CadPluginManager.ReloadCommand,
+                    }
+                );
+                names.UnionWith(
+                    _plugins.Plugins.Where(p => p.IsLoaded).SelectMany(p => p.Plugin.Commands).Select(c => c.Name)
+                );
             }
 
             return names.ToList();
@@ -347,12 +372,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             var aliases = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var keys = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (KeyValuePair<string, string> alias in registry.Shortcuts.Aliases.Where(a => !CadShortcuts.Default.Aliases.ContainsKey(a.Key)))
+            foreach (
+                KeyValuePair<string, string> alias in registry.Shortcuts.Aliases.Where(a =>
+                    !CadShortcuts.Default.Aliases.ContainsKey(a.Key)
+                )
+            )
             {
                 aliases[alias.Key] = alias.Value;
             }
 
-            foreach (KeyValuePair<string, string> key in registry.Shortcuts.Keys.Where(k => !CadShortcuts.Default.Keys.ContainsKey(k.Key)))
+            foreach (
+                KeyValuePair<string, string> key in registry.Shortcuts.Keys.Where(k =>
+                    !CadShortcuts.Default.Keys.ContainsKey(k.Key)
+                )
+            )
             {
                 keys[key.Key] = key.Value;
             }

@@ -1,29 +1,30 @@
-﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-
-  <!-- NuGet lets .NET Core / .NET 5+ projects install this net48 package (AssetTargetFallback, warning NU1701),
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <!-- NuGet lets .NET Core / .NET 5+ projects install this net48 package (AssetTargetFallback, warning NU1701),
        but the native xBIM engine would then fail at run time. Stop the build with a clear message instead. -->
-  <Target Name="GeometryHelperIfcConvertCheckFramework" BeforeTargets="ResolveAssemblyReferences"
-          Condition="'$(TargetFrameworkIdentifier)' != '' And '$(TargetFrameworkIdentifier)' != '.NETFramework'">
-    <Error Text="GeometryHelper.IfcConvert requires .NET Framework 4.8 (x64). Its xBIM geometry engine is C++/CLI for .NET Framework and cannot run on $(TargetFrameworkIdentifier) $(TargetFrameworkVersion)." />
-  </Target>
+    <Target
+        Name="GeometryHelperIfcConvertCheckFramework"
+        BeforeTargets="ResolveAssemblyReferences"
+        Condition="'$(TargetFrameworkIdentifier)' != '' And '$(TargetFrameworkIdentifier)' != '.NETFramework'"
+    >
+        <Error Text="GeometryHelper.IfcConvert requires .NET Framework 4.8 (x64). Its xBIM geometry engine is C++/CLI for .NET Framework and cannot run on $(TargetFrameworkIdentifier) $(TargetFrameworkVersion)." />
+    </Target>
 
-  <!-- Ensure native xBIM C++ OpenCascade engine DLLs are copied to consumer output directory -->
-  <ItemGroup Condition="'$(PlatformTarget)' == 'x64' Or '$(Platform)' == 'x64' Or ('$(PlatformTarget)' != 'x86' And '$(Platform)' != 'x86')">
-    <None Include="$(MSBuildThisFileDirectory)..\..\runtimes\win-x64\native\Xbim.Geometry.Engine64.dll">
-      <Link>Xbim.Geometry.Engine64.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-      <Pack>false</Pack>
-    </None>
-  </ItemGroup>
+    <!-- Ensure native xBIM C++ OpenCascade engine DLLs are copied to consumer output directory -->
+    <ItemGroup Condition="'$(PlatformTarget)' == 'x64' Or '$(Platform)' == 'x64' Or ('$(PlatformTarget)' != 'x86' And '$(Platform)' != 'x86')">
+        <None Include="$(MSBuildThisFileDirectory)..\..\runtimes\win-x64\native\Xbim.Geometry.Engine64.dll">
+            <Link>Xbim.Geometry.Engine64.dll</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Visible>false</Visible>
+            <Pack>false</Pack>
+        </None>
+    </ItemGroup>
 
-  <ItemGroup Condition="'$(PlatformTarget)' == 'x86' Or '$(Platform)' == 'x86'">
-    <None Include="$(MSBuildThisFileDirectory)..\..\runtimes\win-x86\native\Xbim.Geometry.Engine32.dll">
-      <Link>Xbim.Geometry.Engine32.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-      <Pack>false</Pack>
-    </None>
-  </ItemGroup>
-
+    <ItemGroup Condition="'$(PlatformTarget)' == 'x86' Or '$(Platform)' == 'x86'">
+        <None Include="$(MSBuildThisFileDirectory)..\..\runtimes\win-x86\native\Xbim.Geometry.Engine32.dll">
+            <Link>Xbim.Geometry.Engine32.dll</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Visible>false</Visible>
+            <Pack>false</Pack>
+        </None>
+    </ItemGroup>
 </Project>

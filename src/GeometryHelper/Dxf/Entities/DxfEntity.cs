@@ -38,9 +38,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>The object of a record of a file, the one that stands for it from now on.</summary>
         private protected DxfEntity(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// An entity made in code from a shape, written as <see cref="DxfWriter"/> writes the shape, on layer 0 with no look of
@@ -49,18 +47,14 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentNullException">Thrown when the shape is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the writer has no overload of Add for the shape, or writes it as more than one entity.</exception>
         private protected DxfEntity(object shape)
-            : base(DxfFile.Detached(shape))
-        {
-        }
+            : base(DxfFile.Detached(shape)) { }
 
         /// <summary>
         /// An entity made in code from its groups: its type, layer 0, then the groups given, which begin with its subclass
         /// marker, such as <c>base("RAY", new[] { new DxfTypedValue(100, "AcDbRay"), ... })</c>.
         /// </summary>
         private protected DxfEntity(string dxfName, IEnumerable<DxfTypedValue> groups)
-            : base(DxfFile.Detached(dxfName, groups))
-        {
-        }
+            : base(DxfFile.Detached(dxfName, groups)) { }
 
         #region The look
 
@@ -86,7 +80,6 @@ namespace GeometryHelper.Dxf
                 string name = layer == null ? string.Empty : DxfReader.NameOf(layer);
                 return name.Length == 0 ? "0" : name;
             }
-
             set
             {
                 if (value == null)
@@ -114,7 +107,6 @@ namespace GeometryHelper.Dxf
         public int ColorIndex
         {
             get => Item.Colour ?? 256;
-
             set
             {
                 if (value != ColorIndex)
@@ -152,7 +144,6 @@ namespace GeometryHelper.Dxf
 
                 return DxfColor.OfIndex(ColorIndex);
             }
-
             set
             {
                 if (value == null)
@@ -182,7 +173,12 @@ namespace GeometryHelper.Dxf
                         ColorIndex = value.ColorIndex;
                         break;
                     default:
-                        throw new ArgumentException("An entity of DXF is by layer, by block, of the index or of a true colour: " + value.ColorMethod + " is none of them.", nameof(value));
+                        throw new ArgumentException(
+                            "An entity of DXF is by layer, by block, of the index or of a true colour: "
+                                + value.ColorMethod
+                                + " is none of them.",
+                            nameof(value)
+                        );
                 }
             }
         }
@@ -202,7 +198,6 @@ namespace GeometryHelper.Dxf
                 int? colour = Item.TrueColour;
                 return colour.HasValue ? colour.Value & 0xFFFFFF : (int?)null;
             }
-
             set
             {
                 if (value != TrueColor)
@@ -230,7 +225,6 @@ namespace GeometryHelper.Dxf
                 string name = linetype == null ? string.Empty : DxfReader.NameOf(linetype);
                 return name.Length == 0 ? "ByLayer" : name;
             }
-
             set
             {
                 if (value == null)
@@ -256,8 +250,10 @@ namespace GeometryHelper.Dxf
         /// R12, which has no scale of an entity's own: R13 (AC1012) brought it.</exception>
         public double LinetypeScale
         {
-            get => Numbers.TryRead(Item.File.CommonValueOf(Item, 48), out double scale) && Guard.IsFinite(scale) ? scale : 1.0;
-
+            get =>
+                Numbers.TryRead(Item.File.CommonValueOf(Item, 48), out double scale) && Guard.IsFinite(scale)
+                    ? scale
+                    : 1.0;
             set
             {
                 // The scale it has changes nothing, whatever the file holds.
@@ -285,7 +281,6 @@ namespace GeometryHelper.Dxf
         public DxfLineWeight LineWeight
         {
             get => (DxfLineWeight)(Item.Lineweight ?? -1);
-
             set
             {
                 if (value != LineWeight)
@@ -304,8 +299,16 @@ namespace GeometryHelper.Dxf
         /// of R12, which writes none: R13 (AC1012) brought it.</exception>
         public bool Visible
         {
-            get => !(int.TryParse(Item.File.CommonValueOf(Item, 60)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int hidden) && hidden == 1);
-
+            get =>
+                !(
+                    int.TryParse(
+                        Item.File.CommonValueOf(Item, 60)?.Trim(),
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int hidden
+                    )
+                    && hidden == 1
+                );
             set
             {
                 if (value != Visible)
@@ -330,8 +333,15 @@ namespace GeometryHelper.Dxf
         /// file older than R2004 (AC1018), which has none.</exception>
         public DxfTransparency Transparency
         {
-            get => int.TryParse(Item.File.CommonValueOf(Item, 440)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? DxfTransparency.OfValue(value) : DxfTransparency.ByLayer;
-
+            get =>
+                int.TryParse(
+                    Item.File.CommonValueOf(Item, 440)?.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int value
+                )
+                    ? DxfTransparency.OfValue(value)
+                    : DxfTransparency.ByLayer;
             set
             {
                 if (value == Transparency)
@@ -341,12 +351,19 @@ namespace GeometryHelper.Dxf
 
                 if (value.IsInvalid)
                 {
-                    throw new ArgumentException("A transparency is by layer, by block or by alpha: an error value is not written.", nameof(value));
+                    throw new ArgumentException(
+                        "A transparency is by layer, by block or by alpha: an error value is not written.",
+                        nameof(value)
+                    );
                 }
 
                 Item.File.Requires(1018, "transparency", "R2004 (AC1018)");
                 LookChanging();
-                Item.File.SetCommon(Item, 440, value.IsByLayer ? null : value.Value.ToString(CultureInfo.InvariantCulture));
+                Item.File.SetCommon(
+                    Item,
+                    440,
+                    value.IsByLayer ? null : value.Value.ToString(CultureInfo.InvariantCulture)
+                );
             }
         }
 
@@ -383,7 +400,12 @@ namespace GeometryHelper.Dxf
                 // Model and paper space stand for their entities once the drawing is opened, whether walked yet or not.
                 DxfDatabase database = Item.File.Database;
                 DxfSpaceKind kind = Item.Space.Kind;
-                return Item.Space.Record ?? (database == null || kind == DxfSpaceKind.Block ? null : kind == DxfSpaceKind.Model ? database.ModelSpace : database.PaperSpace);
+                return Item.Space.Record
+                    ?? (
+                        database == null || kind == DxfSpaceKind.Block ? null
+                        : kind == DxfSpaceKind.Model ? database.ModelSpace
+                        : database.PaperSpace
+                    );
             }
         }
 
@@ -414,7 +436,9 @@ namespace GeometryHelper.Dxf
 
             if (IsErased)
             {
-                throw new InvalidOperationException("The " + Item.Type + " " + (Handle ?? string.Empty) + " is erased, and is not changed.");
+                throw new InvalidOperationException(
+                    "The " + Item.Type + " " + (Handle ?? string.Empty) + " is erased, and is not changed."
+                );
             }
 
             string layer = entity.Layer;
@@ -435,7 +459,10 @@ namespace GeometryHelper.Dxf
 
             if (!string.Equals(linetype, Linetype, StringComparison.Ordinal) && !file.LinetypeListed(linetype))
             {
-                throw new ArgumentException("The linetype " + linetype + " is not in the file's linetype table.", nameof(entity));
+                throw new ArgumentException(
+                    "The linetype " + linetype + " is not in the file's linetype table.",
+                    nameof(entity)
+                );
             }
 
             if ((trueColour.HasValue && trueColour != TrueColor) || (book != null && bookChanges))
@@ -501,7 +528,13 @@ namespace GeometryHelper.Dxf
 
             IReadOnlyList<DxfTypedValue> scale = database.GetHeader("$CELTSCALE");
 
-            if (scale != null && scale.Count > 0 && Numbers.TryRead(scale[0].Value, out double factor) && factor > 0.0 && Guard.IsFinite(factor))
+            if (
+                scale != null
+                && scale.Count > 0
+                && Numbers.TryRead(scale[0].Value, out double factor)
+                && factor > 0.0
+                && Guard.IsFinite(factor)
+            )
             {
                 LinetypeScale = factor;
             }
@@ -522,7 +555,11 @@ namespace GeometryHelper.Dxf
 
             if (database == null)
             {
-                throw new InvalidOperationException("The " + Item.Type + " is in no drawing to take the look of: append it to a block first, or give the drawing.");
+                throw new InvalidOperationException(
+                    "The "
+                        + Item.Type
+                        + " is in no drawing to take the look of: append it to a block first, or give the drawing."
+                );
             }
 
             SetDatabaseDefaults(database);
@@ -577,7 +614,9 @@ namespace GeometryHelper.Dxf
 
                 if (box == null)
                 {
-                    throw new InvalidOperationException("The " + Item.Type + " has no shape the library reads to give it extents.");
+                    throw new InvalidOperationException(
+                        "The " + Item.Type + " has no shape the library reads to give it extents."
+                    );
                 }
 
                 return new GeoAabb3(new GeoPoint3(box[0], box[1], box[2]), new GeoPoint3(box[3], box[4], box[5]));
@@ -636,7 +675,14 @@ namespace GeometryHelper.Dxf
         /// <paramref name="kind"/> words where it is given (given the list of shapes where there are more than one).
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown where the entity gives no shape of the kind.</exception>
-        private protected T ShapeAs<T>(string method, bool plan, Tolerance tolerance, bool? loop = null, bool arcs = false, Func<object, string> kind = null)
+        private protected T ShapeAs<T>(
+            string method,
+            bool plan,
+            Tolerance tolerance,
+            bool? loop = null,
+            bool arcs = false,
+            Func<object, string> kind = null
+        )
         {
             if (IsErased)
             {
@@ -657,7 +703,16 @@ namespace GeometryHelper.Dxf
 
             if (read.Count == 0)
             {
-                throw new InvalidOperationException(TypeAndHandle + " has no shape for " + method + " to give: the reader reads none of a " + Item.Type + " " + (why ?? "of this record") + ".");
+                throw new InvalidOperationException(
+                    TypeAndHandle
+                        + " has no shape for "
+                        + method
+                        + " to give: the reader reads none of a "
+                        + Item.Type
+                        + " "
+                        + (why ?? "of this record")
+                        + "."
+                );
             }
 
             if (read.Count == 1 && read[0] is T shape)
@@ -667,24 +722,52 @@ namespace GeometryHelper.Dxf
 
             if (read.Count > 1)
             {
-                throw new InvalidOperationException(kind?.Invoke(read) ?? TypeAndHandle + " is read as " + read.Count.ToString(CultureInfo.InvariantCulture) + " shapes, not one " + typeof(T).Name + ": GetGeometry gives them.");
+                throw new InvalidOperationException(
+                    kind?.Invoke(read)
+                        ?? TypeAndHandle
+                            + " is read as "
+                            + read.Count.ToString(CultureInfo.InvariantCulture)
+                            + " shapes, not one "
+                            + typeof(T).Name
+                            + ": GetGeometry gives them."
+                );
             }
 
             if (plan && InSpace(read[0]))
             {
-                throw new InvalidOperationException(TypeAndHandle + " does not lie on the floor, the XY plane at height nought, as " + method + " asks: " + method.Substring(0, method.Length - 1) + "3 gives it in space.");
+                throw new InvalidOperationException(
+                    TypeAndHandle
+                        + " does not lie on the floor, the XY plane at height nought, as "
+                        + method
+                        + " asks: "
+                        + method.Substring(0, method.Length - 1)
+                        + "3 gives it in space."
+                );
             }
 
-            throw new InvalidOperationException(kind?.Invoke(read[0]) ?? TypeAndHandle + " is read as a " + read[0].GetType().Name + ", not a " + typeof(T).Name + ".");
+            throw new InvalidOperationException(
+                kind?.Invoke(read[0])
+                    ?? TypeAndHandle + " is read as a " + read[0].GetType().Name + ", not a " + typeof(T).Name + "."
+            );
         }
 
         /// <summary>The entity as a message names it: its type and its handle, "The LINE 1A".</summary>
         private protected string TypeAndHandle => "The " + Item.Type + (Handle == null ? string.Empty : " " + Handle);
 
         /// <summary>Whether a shape the reader gives is one of space.</summary>
-        private static bool InSpace(object shape)
-            => shape is GeoPoint3 || shape is GeoLine3 || shape is GeoRay3 || shape is GeoXLine3 || shape is GeoCircle3 || shape is GeoArc3 || shape is GeoEllipse3
-            || shape is GeoSpline3 || shape is GeoPolyline3 || shape is GeoPolygon3 || shape is GeoPolylineArc3 || shape is GeoPolygonArc3;
+        private static bool InSpace(object shape) =>
+            shape is GeoPoint3
+            || shape is GeoLine3
+            || shape is GeoRay3
+            || shape is GeoXLine3
+            || shape is GeoCircle3
+            || shape is GeoArc3
+            || shape is GeoEllipse3
+            || shape is GeoSpline3
+            || shape is GeoPolyline3
+            || shape is GeoPolygon3
+            || shape is GeoPolylineArc3
+            || shape is GeoPolygonArc3;
 
         /// <summary>
         /// Moves, turns, scales or mirrors the entity by a transformation, as AutoCAD's <c>TransformBy</c> does: its record is
@@ -846,8 +929,10 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <returns>The entities, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
         /// <exception cref="NotSupportedException">Thrown for a class that does not break into others.</exception>
-        public virtual IReadOnlyList<DxfEntity> Explode()
-            => throw new NotSupportedException("A " + GetType().Name + " does not break into other entities: AutoCAD answers eNotApplicable.");
+        public virtual IReadOnlyList<DxfEntity> Explode() =>
+            throw new NotSupportedException(
+                "A " + GetType().Name + " does not break into other entities: AutoCAD answers eNotApplicable."
+            );
 
         /// <summary>
         /// Joins another curve into the entity, as AutoCAD's <c>JoinEntity</c> does by the rules of its JOIN: the entity's record
@@ -952,13 +1037,15 @@ namespace GeometryHelper.Dxf
             {
                 GeoVector3 normal = GetNormal();
                 OcsAxes(normal, out GeoVector3 u, out GeoVector3 v);
-                return new GeoTransform3(new double[,]
-                {
-                    { u.X, v.X, normal.X, 0.0 },
-                    { u.Y, v.Y, normal.Y, 0.0 },
-                    { u.Z, v.Z, normal.Z, 0.0 },
-                    { 0.0, 0.0, 0.0, 1.0 },
-                });
+                return new GeoTransform3(
+                    new double[,]
+                    {
+                        { u.X, v.X, normal.X, 0.0 },
+                        { u.Y, v.Y, normal.Y, 0.0 },
+                        { u.Z, v.Z, normal.Z, 0.0 },
+                        { 0.0, 0.0, 0.0, 1.0 },
+                    }
+                );
             }
         }
 
@@ -966,7 +1053,8 @@ namespace GeometryHelper.Dxf
 
         #region Planes and crossings
 
-        private static readonly Dictionary<Tuple<Type, Type>, MethodInfo> Crossings = new Dictionary<Tuple<Type, Type>, MethodInfo>();
+        private static readonly Dictionary<Tuple<Type, Type>, MethodInfo> Crossings =
+            new Dictionary<Tuple<Type, Type>, MethodInfo>();
 
         /// <summary>
         /// Gets whether the entity lies in one plane, as AutoCAD's <c>IsPlanar</c>: whether <see cref="GetPlane"/> finds one, to
@@ -991,7 +1079,13 @@ namespace GeometryHelper.Dxf
         {
             if (!TryGetPlane(out GeoPlane3 plane))
             {
-                throw new InvalidOperationException("The " + Item.Type + " " + (Handle ?? string.Empty) + " does not lie in one plane, or has no shape the library reads, as AutoCAD answers eNotPlanar.");
+                throw new InvalidOperationException(
+                    "The "
+                        + Item.Type
+                        + " "
+                        + (Handle ?? string.Empty)
+                        + " does not lie in one plane, or has no shape the library reads, as AutoCAD answers eNotPlanar."
+                );
             }
 
             return plane;
@@ -1026,7 +1120,11 @@ namespace GeometryHelper.Dxf
 
             if (intersectType < DxfIntersect.OnBothOperands || intersectType > DxfIntersect.ExtendBoth)
             {
-                throw new ArgumentOutOfRangeException(nameof(intersectType), intersectType, "The type of intersection is one of DxfIntersect.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(intersectType),
+                    intersectType,
+                    "The type of intersection is one of DxfIntersect."
+                );
             }
 
             bool extendThis = intersectType == DxfIntersect.ExtendThis || intersectType == DxfIntersect.ExtendBoth;
@@ -1035,7 +1133,11 @@ namespace GeometryHelper.Dxf
             var points = new List<GeoPoint3>();
 
             List<object> ours = GetGeometry().Select(s => extendThis ? Extended(s) : s).SelectMany(Outline).ToList();
-            List<object> others = entityPointer.GetGeometry().Select(s => extendOther ? Extended(s) : s).SelectMany(Outline).ToList();
+            List<object> others = entityPointer
+                .GetGeometry()
+                .Select(s => extendOther ? Extended(s) : s)
+                .SelectMany(Outline)
+                .ToList();
 
             foreach (object mine in ours)
             {
@@ -1073,7 +1175,11 @@ namespace GeometryHelper.Dxf
 
             if (intersectType < DxfIntersect.OnBothOperands || intersectType > DxfIntersect.ExtendBoth)
             {
-                throw new ArgumentOutOfRangeException(nameof(intersectType), intersectType, "The type of intersection is one of DxfIntersect.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(intersectType),
+                    intersectType,
+                    "The type of intersection is one of DxfIntersect."
+                );
             }
 
             GeoAabb3 mine = GeometricExtents;
@@ -1081,7 +1187,13 @@ namespace GeometryHelper.Dxf
             Tolerance tolerance = Tolerance.Default;
             var points = new List<GeoPoint3>();
 
-            foreach (KeyValuePair<GeoAabb3, GeoAabb3> pair in new[] { new KeyValuePair<GeoAabb3, GeoAabb3>(mine, theirs), new KeyValuePair<GeoAabb3, GeoAabb3>(theirs, mine) })
+            foreach (
+                KeyValuePair<GeoAabb3, GeoAabb3> pair in new[]
+                {
+                    new KeyValuePair<GeoAabb3, GeoAabb3>(mine, theirs),
+                    new KeyValuePair<GeoAabb3, GeoAabb3>(theirs, mine),
+                }
+            )
             {
                 foreach (GeoLine3 edge in Edges(pair.Key, tolerance))
                 {
@@ -1184,7 +1296,10 @@ namespace GeometryHelper.Dxf
 
             GeoVector3 spanned = first.GetVectorTo(far).CrossProduct(first.GetVectorTo(wide));
 
-            if (!spanned.TryGetNormal(out GeoVector3 unit, tolerance) || !Holds(new GeoPlane3(first, unit), points, normals, tolerance))
+            if (
+                !spanned.TryGetNormal(out GeoVector3 unit, tolerance)
+                || !Holds(new GeoPlane3(first, unit), points, normals, tolerance)
+            )
             {
                 return false;
             }
@@ -1194,8 +1309,12 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether a plane holds every point and is the plane of every shape that has one of its own.</summary>
-        private static bool Holds(GeoPlane3 plane, List<GeoPoint3> points, List<GeoVector3> normals, Tolerance tolerance)
-            => plane.ContainsAll(points, tolerance) && normals.TrueForAll(n => n.IsParallelTo(plane.Normal, tolerance));
+        private static bool Holds(
+            GeoPlane3 plane,
+            List<GeoPoint3> points,
+            List<GeoVector3> normals,
+            Tolerance tolerance
+        ) => plane.ContainsAll(points, tolerance) && normals.TrueForAll(n => n.IsParallelTo(plane.Normal, tolerance));
 
         /// <summary>
         /// The points of a shape that fix where it lies, and the normal of its own plane where it has one: a circle's centre and
@@ -1205,17 +1324,50 @@ namespace GeometryHelper.Dxf
         {
             switch (shape)
             {
-                case GeoPoint3 s: points.Add(s); return true;
-                case GeoLine3 s: points.Add(s.StartPoint); points.Add(s.EndPoint); return true;
-                case GeoRay3 s: points.Add(s.Origin); points.Add(s.Origin.Add(s.Direction)); return true;
-                case GeoXLine3 s: points.Add(s.Origin); points.Add(s.Origin.Add(s.Direction)); return true;
-                case GeoCircle3 s: points.Add(s.Center); normals.Add(s.Normal); return true;
-                case GeoArc3 s: points.Add(s.Center); points.Add(s.StartPoint); normals.Add(s.Normal); return true;
-                case GeoEllipse3 s: points.Add(s.Center); normals.Add(s.Normal); return true;
-                case GeoTriangle3 s: points.Add(s.A); points.Add(s.B); points.Add(s.C); return true;
-                case GeoPolygon3 s: points.AddRange(s.Vertices); normals.Add(s.Normal); return true;
-                case GeoPolygonArc3 s: points.AddRange(s.Vertices); normals.Add(s.Normal); return true;
-                case GeoPolyline3 s: points.AddRange(s.Vertices); return true;
+                case GeoPoint3 s:
+                    points.Add(s);
+                    return true;
+                case GeoLine3 s:
+                    points.Add(s.StartPoint);
+                    points.Add(s.EndPoint);
+                    return true;
+                case GeoRay3 s:
+                    points.Add(s.Origin);
+                    points.Add(s.Origin.Add(s.Direction));
+                    return true;
+                case GeoXLine3 s:
+                    points.Add(s.Origin);
+                    points.Add(s.Origin.Add(s.Direction));
+                    return true;
+                case GeoCircle3 s:
+                    points.Add(s.Center);
+                    normals.Add(s.Normal);
+                    return true;
+                case GeoArc3 s:
+                    points.Add(s.Center);
+                    points.Add(s.StartPoint);
+                    normals.Add(s.Normal);
+                    return true;
+                case GeoEllipse3 s:
+                    points.Add(s.Center);
+                    normals.Add(s.Normal);
+                    return true;
+                case GeoTriangle3 s:
+                    points.Add(s.A);
+                    points.Add(s.B);
+                    points.Add(s.C);
+                    return true;
+                case GeoPolygon3 s:
+                    points.AddRange(s.Vertices);
+                    normals.Add(s.Normal);
+                    return true;
+                case GeoPolygonArc3 s:
+                    points.AddRange(s.Vertices);
+                    normals.Add(s.Normal);
+                    return true;
+                case GeoPolyline3 s:
+                    points.AddRange(s.Vertices);
+                    return true;
                 case GeoPolylineArc3 s:
                     points.AddRange(s.Vertices);
 
@@ -1227,9 +1379,15 @@ namespace GeometryHelper.Dxf
 
                     // A chain the library gives no plane is straight along one line, or does not lie in one.
                     return AlongOneLine(s.Vertices, tolerance);
-                case GeoSpline3 s: points.AddRange(s.ControlPoints); return true;
-                case DxfText s: points.Add(s.Position); normals.Add(s.Normal); return true;
-                default: return false;
+                case GeoSpline3 s:
+                    points.AddRange(s.ControlPoints);
+                    return true;
+                case DxfText s:
+                    points.Add(s.Position);
+                    normals.Add(s.Normal);
+                    return true;
+                default:
+                    return false;
             }
         }
 
@@ -1264,9 +1422,12 @@ namespace GeometryHelper.Dxf
         {
             switch (shape)
             {
-                case GeoLine3 s when s.StartPoint.DistanceTo(s.EndPoint) > 0.0: return new GeoXLine3(s.StartPoint, s.Direction);
-                case GeoArc3 s: return new GeoCircle3(s.Center, s.Normal, s.Radius);
-                default: return shape;
+                case GeoLine3 s when s.StartPoint.DistanceTo(s.EndPoint) > 0.0:
+                    return new GeoXLine3(s.StartPoint, s.Direction);
+                case GeoArc3 s:
+                    return new GeoCircle3(s.Center, s.Normal, s.Radius);
+                default:
+                    return shape;
             }
         }
 
@@ -1278,12 +1439,18 @@ namespace GeometryHelper.Dxf
         {
             switch (shape)
             {
-                case GeoPolygon3 s: return Segments(s.GetEdges());
-                case GeoPolygonArc3 s: return EdgePieces(s.GetEdges());
-                case GeoTriangle3 s: return Segments(new[] { new GeoLine3(s.A, s.B), new GeoLine3(s.B, s.C), new GeoLine3(s.C, s.A) });
-                case GeoFace3 s: return FaceEdges(s);
-                case GeoSolid3 s: return s.Faces.SelectMany(FaceEdges);
-                default: return new[] { shape };
+                case GeoPolygon3 s:
+                    return Segments(s.GetEdges());
+                case GeoPolygonArc3 s:
+                    return EdgePieces(s.GetEdges());
+                case GeoTriangle3 s:
+                    return Segments(new[] { new GeoLine3(s.A, s.B), new GeoLine3(s.B, s.C), new GeoLine3(s.C, s.A) });
+                case GeoFace3 s:
+                    return FaceEdges(s);
+                case GeoSolid3 s:
+                    return s.Faces.SelectMany(FaceEdges);
+                default:
+                    return new[] { shape };
             }
         }
 
@@ -1292,20 +1459,25 @@ namespace GeometryHelper.Dxf
         {
             switch (shape)
             {
-                case GeoPolyline3 s: return Segments(s.GetEdges());
-                case GeoPolylineArc3 s: return EdgePieces(s.GetEdges());
-                default: return null;
+                case GeoPolyline3 s:
+                    return Segments(s.GetEdges());
+                case GeoPolylineArc3 s:
+                    return EdgePieces(s.GetEdges());
+                default:
+                    return null;
             }
         }
 
-        private static IEnumerable<object> FaceEdges(GeoFace3 face)
-            => Segments(face.Boundary.GetEdges()).Concat(face.Holes.SelectMany(h => Segments(h.GetEdges())));
+        private static IEnumerable<object> FaceEdges(GeoFace3 face) =>
+            Segments(face.Boundary.GetEdges()).Concat(face.Holes.SelectMany(h => Segments(h.GetEdges())));
 
-        private static IEnumerable<object> Segments(IEnumerable<GeoLine3> lines)
-            => lines.Where(l => l.StartPoint.DistanceTo(l.EndPoint) > 0.0).Cast<object>();
+        private static IEnumerable<object> Segments(IEnumerable<GeoLine3> lines) =>
+            lines.Where(l => l.StartPoint.DistanceTo(l.EndPoint) > 0.0).Cast<object>();
 
-        private static IEnumerable<object> EdgePieces(IEnumerable<GeoEdge3> edges)
-            => edges.Select(e => e.IsArc ? (object)e.ToArc() : e.ToLine()).Where(p => !(p is GeoLine3 l) || l.StartPoint.DistanceTo(l.EndPoint) > 0.0);
+        private static IEnumerable<object> EdgePieces(IEnumerable<GeoEdge3> edges) =>
+            edges
+                .Select(e => e.IsArc ? (object)e.ToArc() : e.ToLine())
+                .Where(p => !(p is GeoLine3 l) || l.StartPoint.DistanceTo(l.EndPoint) > 0.0);
 
         /// <summary>
         /// Where two shapes meet: by the library's <c>GetIntersections(other, tolerance)</c> of the one or of the other, whichever
@@ -1352,21 +1524,35 @@ namespace GeometryHelper.Dxf
                 return OnShape(other, a, tolerance);
             }
 
-            throw new NotSupportedException("The library has no intersection of a " + a.GetType().Name + " and a " + b.GetType().Name + ".");
+            throw new NotSupportedException(
+                "The library has no intersection of a " + a.GetType().Name + " and a " + b.GetType().Name + "."
+            );
         }
 
         /// <summary>A point where it lies on a shape, within the tolerance: by the shape's <c>DistanceTo(GeoPoint3)</c>; none where it lies off it.</summary>
         /// <exception cref="NotSupportedException">Thrown for a shape the library measures no distance to, as a text.</exception>
         private static IEnumerable<GeoPoint3> OnShape(GeoPoint3 point, object shape, Tolerance tolerance)
         {
-            MethodInfo distance = shape.GetType().GetMethod("DistanceTo", BindingFlags.Instance | BindingFlags.Public, null, new[] { typeof(GeoPoint3) }, null);
+            MethodInfo distance = shape
+                .GetType()
+                .GetMethod(
+                    "DistanceTo",
+                    BindingFlags.Instance | BindingFlags.Public,
+                    null,
+                    new[] { typeof(GeoPoint3) },
+                    null
+                );
 
             if (distance == null || distance.ReturnType != typeof(double))
             {
-                throw new NotSupportedException("The library measures no distance from a point to a " + shape.GetType().Name + ".");
+                throw new NotSupportedException(
+                    "The library measures no distance from a point to a " + shape.GetType().Name + "."
+                );
             }
 
-            return (double)distance.Invoke(shape, new object[] { point }) <= tolerance.EqualPoint ? new[] { point } : new GeoPoint3[0];
+            return (double)distance.Invoke(shape, new object[] { point }) <= tolerance.EqualPoint
+                ? new[] { point }
+                : new GeoPoint3[0];
         }
 
         /// <summary>The method <c>GeoPoint3[] GetIntersections(other, Tolerance)</c> of a class of shape for another, found once; null where it has none.</summary>
@@ -1378,7 +1564,13 @@ namespace GeometryHelper.Dxf
             {
                 if (!Crossings.TryGetValue(key, out MethodInfo method))
                 {
-                    method = type.GetMethod("GetIntersections", BindingFlags.Instance | BindingFlags.Public, null, new[] { other, typeof(Tolerance) }, null);
+                    method = type.GetMethod(
+                        "GetIntersections",
+                        BindingFlags.Instance | BindingFlags.Public,
+                        null,
+                        new[] { other, typeof(Tolerance) },
+                        null
+                    );
                     method = method != null && method.ReturnType == typeof(GeoPoint3[]) ? method : null;
                     Crossings.Add(key, method);
                 }
@@ -1405,7 +1597,11 @@ namespace GeometryHelper.Dxf
 
             for (int i = 0; i < 8; i++)
             {
-                corners[i] = new GeoPoint3((i & 1) == 0 ? a.X : b.X, (i & 2) == 0 ? a.Y : b.Y, (i & 4) == 0 ? a.Z : b.Z);
+                corners[i] = new GeoPoint3(
+                    (i & 1) == 0 ? a.X : b.X,
+                    (i & 2) == 0 ? a.Y : b.Y,
+                    (i & 4) == 0 ? a.Z : b.Z
+                );
             }
 
             for (int i = 0; i < 8; i++)
@@ -1446,12 +1642,16 @@ namespace GeometryHelper.Dxf
 
             if (!IsResident)
             {
-                throw new InvalidOperationException("The " + Item.Type + " is in no file to be erased from: add it to a block first.");
+                throw new InvalidOperationException(
+                    "The " + Item.Type + " is in no file to be erased from: add it to a block first."
+                );
             }
 
             if (!Item.File.Erase(Item))
             {
-                throw new InvalidOperationException("The " + Item.Type + " " + (Handle ?? string.Empty) + " is erased already.");
+                throw new InvalidOperationException(
+                    "The " + Item.Type + " " + (Handle ?? string.Empty) + " is erased already."
+                );
             }
         }
 
@@ -1477,18 +1677,14 @@ namespace GeometryHelper.Dxf
         /// unless the class says otherwise.
         /// </summary>
         /// <exception cref="ArgumentException">Thrown where the class refuses the block.</exception>
-        internal virtual void Appending(DxfBlockTableRecord owner)
-        {
-        }
+        internal virtual void Appending(DxfBlockTableRecord owner) { }
 
         /// <summary>
         /// Called once <see cref="DxfBlockTableRecord.AppendEntity"/> has written the entity into its block, given whether it was
         /// made in code rather than copied: an IMAGE made in code is given its IMAGEDEF_REACTOR. Nothing unless the class says
         /// otherwise.
         /// </summary>
-        internal virtual void Appended(bool madeInCode)
-        {
-        }
+        internal virtual void Appended(bool madeInCode) { }
 
         /// <summary>
         /// The codes of the type's own groups in the order AutoCAD writes them, a 100 where a subclass marker stands: where a
@@ -1501,18 +1697,20 @@ namespace GeometryHelper.Dxf
         /// and the others of the look) before they write a change: nothing, but for a table, which merges the rows AutoCAD merges
         /// when it loads a file, as at any edit of it (<see cref="DxfTable"/>).
         /// </summary>
-        private protected virtual void LookChanging()
-        {
-        }
+        private protected virtual void LookChanging() { }
 
         /// <summary>The text of the first group of a code in the type's own part of the record, as the file writes it; null where it has none.</summary>
         private protected string GetString(int code) => Item.File.ValueOf(Item, code);
 
         /// <summary>The number of the first group of a code in the type's own part, as the reader reads it; the fallback where it has none, or not a finite number.</summary>
-        private protected double GetDouble(int code, double fallback) => Numbers.TryRead(GetString(code), out double value) && Guard.IsFinite(value) ? value : fallback;
+        private protected double GetDouble(int code, double fallback) =>
+            Numbers.TryRead(GetString(code), out double value) && Guard.IsFinite(value) ? value : fallback;
 
         /// <summary>The whole number of the first group of a code in the type's own part; the fallback where it has none, or not a whole number.</summary>
-        private protected int GetInt(int code, int fallback) => int.TryParse(GetString(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+        private protected int GetInt(int code, int fallback) =>
+            int.TryParse(GetString(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : fallback;
 
         /// <summary>
         /// The point in the groups of a code and the codes 10 and 20 above it (10, 20, 30 for the first), as the reader reads
@@ -1540,11 +1738,14 @@ namespace GeometryHelper.Dxf
                 return new GeoVector3(0.0, 0.0, 1.0);
             }
 
-            return Math.Abs(length - 1.0) <= 1E-12 ? new GeoVector3(x, y, z) : new GeoVector3(x / length, y / length, z / length);
+            return Math.Abs(length - 1.0) <= 1E-12
+                ? new GeoVector3(x, y, z)
+                : new GeoVector3(x / length, y / length, z / length);
         }
 
         /// <summary>Sets the text of a group of the type's own part as it is to be written; null takes it out. Nothing is written where it is as it was.</summary>
-        private protected void SetString(int code, string value) => SetGroups(new KeyValuePair<int, string>(code, value));
+        private protected void SetString(int code, string value) =>
+            SetGroups(new KeyValuePair<int, string>(code, value));
 
         /// <summary>Sets a number of the type's own part, written as <see cref="DxfWriter"/> writes one; nothing is written where the number read is the same, to the bit.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number is not a finite number.</exception>
@@ -1572,7 +1773,8 @@ namespace GeometryHelper.Dxf
         /// bit, written anew, and the others of the point with it where the record leaves them out; nothing where none differs.
         /// </summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
-        private protected void SetPoint(int code, GeoPoint3 value, GeoPoint3 fallback) => SetGroups(PointGroups(code, value, fallback));
+        private protected void SetPoint(int code, GeoPoint3 value, GeoPoint3 fallback) =>
+            SetGroups(PointGroups(code, value, fallback));
 
         /// <summary>Sets the extrusion (210, 220, 230) to a direction made of unit length, as <see cref="SetPoint"/> sets a point; nothing where it is the one read.</summary>
         /// <exception cref="ArgumentException">Thrown when the direction has no length or is not finite.</exception>
@@ -1583,7 +1785,10 @@ namespace GeometryHelper.Dxf
         {
             if (!value.IsValid)
             {
-                throw new ArgumentException("A point has to be of finite numbers: " + value + " is not.", nameof(value));
+                throw new ArgumentException(
+                    "A point has to be of finite numbers: " + value + " is not.",
+                    nameof(value)
+                );
             }
 
             GeoPoint3 now = GetPoint(code, fallback);
@@ -1597,7 +1802,10 @@ namespace GeometryHelper.Dxf
 
             if (!value.IsValid || !(length > 0.0) || double.IsInfinity(length))
             {
-                throw new ArgumentException("A normal has to be a direction of finite numbers and some length: " + value + " is not.", nameof(value));
+                throw new ArgumentException(
+                    "A normal has to be a direction of finite numbers and some length: " + value + " is not.",
+                    nameof(value)
+                );
             }
 
             GeoVector3 unit = Math.Abs(length - 1.0) <= 1E-12 ? value : value.Divide(length);
@@ -1644,7 +1852,11 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Sets groups of the own part of a record that follows the entity, as <see cref="SetGroups"/> sets its own, by the class's <see cref="GroupOrder"/>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the entity is erased.</exception>
-        private protected void SetGroupsAt(int record, IReadOnlyList<int> order, params KeyValuePair<int, string>[] groups)
+        private protected void SetGroupsAt(
+            int record,
+            IReadOnlyList<int> order,
+            params KeyValuePair<int, string>[] groups
+        )
         {
             if (groups.Length > 0)
             {
@@ -1658,8 +1870,11 @@ namespace GeometryHelper.Dxf
         /// written where the groups are as they were. For runs, as the vertices of a LWPOLYLINE (10, 20, 40, 41, 42 and 91).
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the entity is erased.</exception>
-        private protected void ReplaceGroups(int record, IReadOnlyCollection<int> codes, params KeyValuePair<int, string>[] groups)
-            => Item.File.ReplaceOwn(Item, record, new HashSet<int>(codes), groups, GroupOrder, true);
+        private protected void ReplaceGroups(
+            int record,
+            IReadOnlyCollection<int> codes,
+            params KeyValuePair<int, string>[] groups
+        ) => Item.File.ReplaceOwn(Item, record, new HashSet<int>(codes), groups, GroupOrder, true);
 
         /// <summary>
         /// Writes the records that follow the entity anew, as the vertices of a POLYLINE: each of the type and own groups given
@@ -1713,7 +1928,9 @@ namespace GeometryHelper.Dxf
 
             if (follower.Item.Parent != null || follower.IsResident || follower.IsErased)
             {
-                throw new InvalidOperationException("The " + follower.Item.Type + " is of a file or follows an entity already: put in one made in code.");
+                throw new InvalidOperationException(
+                    "The " + follower.Item.Type + " is of a file or follows an entity already: put in one made in code."
+                );
             }
 
             follower.Bind(Item.File.InsertFollower(Item, record, follower.Item));
@@ -1728,7 +1945,10 @@ namespace GeometryHelper.Dxf
         /// <param name="records">For each record to change, its index (0 the entity's own) and its groups.</param>
         /// <param name="order">The codes of the records' own groups in the order AutoCAD writes them, as <see cref="GroupOrder"/>.</param>
         /// <exception cref="InvalidOperationException">Thrown when the entity is erased.</exception>
-        private protected void SetGroupsAtMany(IReadOnlyList<KeyValuePair<int, KeyValuePair<int, string>[]>> records, IReadOnlyList<int> order)
+        private protected void SetGroupsAtMany(
+            IReadOnlyList<KeyValuePair<int, KeyValuePair<int, string>[]>> records,
+            IReadOnlyList<int> order
+        )
         {
             var values = new List<KeyValuePair<int, IList<KeyValuePair<int, string>>>>(records.Count);
 
@@ -1764,7 +1984,18 @@ namespace GeometryHelper.Dxf
 
             if (type != Item.Type)
             {
-                throw new ArgumentException("A " + shape.GetType().Name + " is written as a " + type + ", and a " + GetType().Name + " is a " + Item.Type + ".", nameof(shape));
+                throw new ArgumentException(
+                    "A "
+                        + shape.GetType().Name
+                        + " is written as a "
+                        + type
+                        + ", and a "
+                        + GetType().Name
+                        + " is a "
+                        + Item.Type
+                        + ".",
+                    nameof(shape)
+                );
             }
 
             Item.File.SetShape(Item, shape, null, false, sameAs);
@@ -1842,7 +2073,10 @@ namespace GeometryHelper.Dxf
                 get
                 {
                     int weight = (int)_lineWeight;
-                    return _colorIndex >= 0 && _colorIndex <= 256 && ((weight >= -3 && weight <= -1) || DxfShape.IsLineweight(weight)) && DxfFile.IsLayerName(_layer);
+                    return _colorIndex >= 0
+                        && _colorIndex <= 256
+                        && ((weight >= -3 && weight <= -1) || DxfShape.IsLineweight(weight))
+                        && DxfFile.IsLayerName(_layer);
                 }
             }
 
@@ -1862,13 +2096,16 @@ namespace GeometryHelper.Dxf
                     return given;
                 }
 
-                DxfEntity made = Of(DxfFile.Detached(
-                    shape,
-                    _layer,
-                    _colorIndex != 256 ? _colorIndex : (int?)null,
-                    _trueColor,
-                    !string.Equals(_linetype, "ByLayer", StringComparison.Ordinal) ? _linetype : null,
-                    _lineWeight != DxfLineWeight.ByLayer ? (int)_lineWeight : (int?)null));
+                DxfEntity made = Of(
+                    DxfFile.Detached(
+                        shape,
+                        _layer,
+                        _colorIndex != 256 ? _colorIndex : (int?)null,
+                        _trueColor,
+                        !string.Equals(_linetype, "ByLayer", StringComparison.Ordinal) ? _linetype : null,
+                        _lineWeight != DxfLineWeight.ByLayer ? (int)_lineWeight : (int?)null
+                    )
+                );
 
                 if (!Same(_linetypeScale, 1.0))
                 {
@@ -1919,8 +2156,12 @@ namespace GeometryHelper.Dxf
             // vertex only of its own cell or of one next to it, so each question looks at those 27 cells alone.
             Dictionary<(long, long, long), List<GeoPoint3>> cells = null;
 
-            (long, long, long) Cell(GeoPoint3 point)
-                => ((long)Math.Floor(point.X / tolerance), (long)Math.Floor(point.Y / tolerance), (long)Math.Floor(point.Z / tolerance));
+            (long, long, long) Cell(GeoPoint3 point) =>
+                (
+                    (long)Math.Floor(point.X / tolerance),
+                    (long)Math.Floor(point.Y / tolerance),
+                    (long)Math.Floor(point.Z / tolerance)
+                );
 
             bool OnVertex(GeoPoint3 point)
             {
@@ -1974,11 +2215,28 @@ namespace GeometryHelper.Dxf
                 {
                     GeoEdge3 edge = edges[i];
 
-                    if (vertices != null && edge.IsArc && i + 1 < edges.Count && edges[i + 1].IsArc && !OnVertex(edge.EndPoint))
+                    if (
+                        vertices != null
+                        && edge.IsArc
+                        && i + 1 < edges.Count
+                        && edges[i + 1].IsArc
+                        && !OnVertex(edge.EndPoint)
+                    )
                     {
                         // The two halves of one arc, cut where no vertex is: one ARC from the start of the first to the end of the second.
                         GeoArc3 first = edge.ToArc();
-                        parts.Add(ArcOn(first.Center, first.Normal, first.Radius, edge.StartPoint, edges[i + 1].EndPoint, normal ?? first.Normal, look, thickness));
+                        parts.Add(
+                            ArcOn(
+                                first.Center,
+                                first.Normal,
+                                first.Radius,
+                                edge.StartPoint,
+                                edges[i + 1].EndPoint,
+                                normal ?? first.Normal,
+                                look,
+                                thickness
+                            )
+                        );
                         i++;
                     }
                     else if (edge.StartPoint.DistanceTo(edge.EndPoint) > tolerance)
@@ -2050,7 +2308,16 @@ namespace GeometryHelper.Dxf
             // An arc off the world's plane is made on the normal at once, rather than made and made again.
             if (shape is GeoArc3 bulge && !(up.X == 0.0 && up.Y == 0.0 && up.Z == 1.0))
             {
-                return ArcOn(bulge.Center, bulge.Normal, bulge.Radius, bulge.StartPoint, bulge.EndPoint, up, look, thickness);
+                return ArcOn(
+                    bulge.Center,
+                    bulge.Normal,
+                    bulge.Radius,
+                    bulge.StartPoint,
+                    bulge.EndPoint,
+                    up,
+                    look,
+                    thickness
+                );
             }
 
             DxfEntity part = PartOf(shape, look, thickness);
@@ -2060,7 +2327,8 @@ namespace GeometryHelper.Dxf
                 case DxfLine line:
                     line.Normal = up;
                     return part;
-                case DxfArc arc when !(Same(arc.Normal.X, up.X) && Same(arc.Normal.Y, up.Y) && Same(arc.Normal.Z, up.Z)):
+                case DxfArc arc
+                    when !(Same(arc.Normal.X, up.X) && Same(arc.Normal.Y, up.Y) && Same(arc.Normal.Z, up.Z)):
                     return ArcOn(arc.Center, arc.Normal, arc.Radius, arc.StartPoint, arc.EndPoint, up, look, thickness);
                 default:
                     return part;
@@ -2072,13 +2340,28 @@ namespace GeometryHelper.Dxf
         /// end to the other counter-clockwise about it: from its start where it ran that way about its own normal, else from its
         /// end; its angles in the system of the normal.
         /// </summary>
-        private static DxfEntity ArcOn(GeoPoint3 center, GeoVector3 own, double radius, GeoPoint3 start, GeoPoint3 end, GeoVector3 up, Look look, double thickness)
+        private static DxfEntity ArcOn(
+            GeoPoint3 center,
+            GeoVector3 own,
+            double radius,
+            GeoPoint3 start,
+            GeoPoint3 end,
+            GeoVector3 up,
+            Look look,
+            double thickness
+        )
         {
             bool back = own.DotProduct(up) < 0.0;
             GeoPoint3 middle = WorldToOcs(up, center);
             GeoPoint3 from = WorldToOcs(up, back ? end : start);
             GeoPoint3 to = WorldToOcs(up, back ? start : end);
-            var arc = new DxfArc(center, up, radius, Math.Atan2(from.Y - middle.Y, from.X - middle.X), Math.Atan2(to.Y - middle.Y, to.X - middle.X));
+            var arc = new DxfArc(
+                center,
+                up,
+                radius,
+                Math.Atan2(from.Y - middle.Y, from.X - middle.X),
+                Math.Atan2(to.Y - middle.Y, to.X - middle.X)
+            );
             look.GiveTo(arc);
             arc.Thickness = thickness;
             return arc;
@@ -2110,7 +2393,15 @@ namespace GeometryHelper.Dxf
 
             if (left > 0)
             {
-                GeometryHelperLog.Debug("DxfEntity: " + left.ToString(CultureInfo.InvariantCulture) + " entities of the block " + block.Name + " could not be placed, and were left out of the " + Item.Type + " exploded.");
+                GeometryHelperLog.Debug(
+                    "DxfEntity: "
+                        + left.ToString(CultureInfo.InvariantCulture)
+                        + " entities of the block "
+                        + block.Name
+                        + " could not be placed, and were left out of the "
+                        + Item.Type
+                        + " exploded."
+                );
             }
 
             return parts;
@@ -2141,7 +2432,8 @@ namespace GeometryHelper.Dxf
                 return name;
             }
 
-            DxfTextStyleTableRecord style = TextStyleNamed(name) ?? throw new ArgumentException("The drawing has no text style named " + name + ".", parameter);
+            DxfTextStyleTableRecord style = TextStyleNamed(name)
+                ?? throw new ArgumentException("The drawing has no text style named " + name + ".", parameter);
             return style.Name;
         }
 
@@ -2157,12 +2449,20 @@ namespace GeometryHelper.Dxf
 
             if (style.IsErased || !style.IsResident)
             {
-                throw new ArgumentException("The text style " + style.Name + " is erased or in no drawing: give a style of a drawing's text style table.", parameter);
+                throw new ArgumentException(
+                    "The text style "
+                        + style.Name
+                        + " is erased or in no drawing: give a style of a drawing's text style table.",
+                    parameter
+                );
             }
 
             if (IsResident && style.Item.File != Item.File)
             {
-                throw new ArgumentException("The text style " + style.Name + " is of another drawing than the " + Item.Type + ".", parameter);
+                throw new ArgumentException(
+                    "The text style " + style.Name + " is of another drawing than the " + Item.Type + ".",
+                    parameter
+                );
             }
 
             return style.Name;
@@ -2185,7 +2485,13 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfItem item in file.TableItems("STYLE"))
             {
-                if (string.Equals(DxfReader.NameOf(item.File.ValueOf(item, 2) ?? string.Empty), name, StringComparison.OrdinalIgnoreCase))
+                if (
+                    string.Equals(
+                        DxfReader.NameOf(item.File.ValueOf(item, 2) ?? string.Empty),
+                        name,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
                 {
                     return;
                 }
@@ -2197,7 +2503,10 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            throw new ArgumentException("The text style " + name + " is not in the file's text style table.", parameter);
+            throw new ArgumentException(
+                "The text style " + name + " is not in the file's text style table.",
+                parameter
+            );
         }
 
         /// <summary>A copy of the entity in no file, of the same class, as <see cref="GetTransformedCopy"/> gives one.</summary>
@@ -2206,7 +2515,9 @@ namespace GeometryHelper.Dxf
         {
             if (IsErased)
             {
-                throw new InvalidOperationException("The " + Item.Type + " " + (Handle ?? string.Empty) + " is erased, and is not copied.");
+                throw new InvalidOperationException(
+                    "The " + Item.Type + " " + (Handle ?? string.Empty) + " is erased, and is not copied."
+                );
             }
 
             DxfItem copy = Item.File.CopyOf(Item);
@@ -2233,14 +2544,22 @@ namespace GeometryHelper.Dxf
 
             if (item.CopiedContexts != null)
             {
-                carried = new List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> { new KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>(0, item.CopiedContexts) };
+                carried = new List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>>
+                {
+                    new KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>(0, item.CopiedContexts),
+                };
             }
 
             foreach (DxfItem follower in item.Followers ?? new List<DxfItem>())
             {
                 if (follower?.CopiedContexts != null)
                 {
-                    (carried = carried ?? new List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>>()).Add(new KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>(follower.Index, follower.CopiedContexts));
+                    (carried = carried ?? new List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>>()).Add(
+                        new KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>(
+                            follower.Index,
+                            follower.CopiedContexts
+                        )
+                    );
                 }
             }
 
@@ -2292,11 +2611,10 @@ namespace GeometryHelper.Dxf
         /// Gives a copy what the entity holds outside its records, as a dimension in no drawing the records set on it, which it
         /// takes to their namesakes when it is appended; nothing unless the class says otherwise.
         /// </summary>
-        private protected virtual void Copied(DxfEntity original)
-        {
-        }
+        private protected virtual void Copied(DxfEntity original) { }
 
-        private static readonly Dictionary<Type, ConstructorInfo> RecordConstructors = new Dictionary<Type, ConstructorInfo>();
+        private static readonly Dictionary<Type, ConstructorInfo> RecordConstructors =
+            new Dictionary<Type, ConstructorInfo>();
 
         /// <summary>An object of the entity's own class for a record, through the constructor every class has of a record; null where it has none.</summary>
         private DxfEntity SameClass(DxfItem item)
@@ -2308,7 +2626,12 @@ namespace GeometryHelper.Dxf
             {
                 if (!RecordConstructors.TryGetValue(type, out constructor))
                 {
-                    constructor = type.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public, null, new[] { typeof(DxfItem) }, null);
+                    constructor = type.GetConstructor(
+                        BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public,
+                        null,
+                        new[] { typeof(DxfItem) },
+                        null
+                    );
                     RecordConstructors.Add(type, constructor);
                 }
             }
@@ -2357,7 +2680,11 @@ namespace GeometryHelper.Dxf
             }
 
             OcsAxes(normal, out GeoVector3 u, out GeoVector3 v);
-            return new GeoPoint3(u.X * point.X + v.X * point.Y + normal.X * point.Z, u.Y * point.X + v.Y * point.Y + normal.Y * point.Z, u.Z * point.X + v.Z * point.Y + normal.Z * point.Z);
+            return new GeoPoint3(
+                u.X * point.X + v.X * point.Y + normal.X * point.Z,
+                u.Y * point.X + v.Y * point.Y + normal.Y * point.Z,
+                u.Z * point.X + v.Z * point.Y + normal.Z * point.Z
+            );
         }
 
         /// <summary>A point of the world in the system of an extrusion; the point itself for the extrusion (0, 0, 1).</summary>
@@ -2369,7 +2696,11 @@ namespace GeometryHelper.Dxf
             }
 
             OcsAxes(normal, out GeoVector3 u, out GeoVector3 v);
-            return new GeoPoint3(u.X * point.X + u.Y * point.Y + u.Z * point.Z, v.X * point.X + v.Y * point.Y + v.Z * point.Z, normal.X * point.X + normal.Y * point.Y + normal.Z * point.Z);
+            return new GeoPoint3(
+                u.X * point.X + u.Y * point.Y + u.Z * point.Z,
+                v.X * point.X + v.Y * point.Y + v.Z * point.Z,
+                normal.X * point.X + normal.Y * point.Y + normal.Z * point.Z
+            );
         }
 
         /// <summary>The groups of several setters together, to be set by one <see cref="SetGroups"/>, in one writing of the record.</summary>
@@ -2386,7 +2717,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether two numbers are the same to the bit.</summary>
-        private protected static bool Same(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
+        private protected static bool Same(double a, double b) =>
+            BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
 
         private bool TryNumber(int code, out double value)
         {
@@ -2435,6 +2767,7 @@ namespace GeometryHelper.Dxf
         /// Gives the entity as a line for debugging: its type, its handle and its layer.
         /// </summary>
         /// <returns>The entity as a line, such as <c>LINE 2F on steel</c>.</returns>
-        public override string ToString() => Item.Type + (Handle != null ? " " + Handle : string.Empty) + " on " + Layer;
+        public override string ToString() =>
+            Item.Type + (Handle != null ? " " + Handle : string.Empty) + " on " + Layer;
     }
 }

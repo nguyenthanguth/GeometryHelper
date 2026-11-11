@@ -27,7 +27,14 @@ namespace GeometryHelper.Drawing
         /// <param name="settings">Its settings by name, in the order given; null for none. A value may be null.</param>
         /// <exception cref="ArgumentNullException">Thrown when the id or the plugin's name is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the id or the plugin's name is empty, or a setting has a null name.</exception>
-        public DrawingPluginRun(string id, string plugin, string version = null, string viewId = null, DrawingLinks inputs = null, IEnumerable<KeyValuePair<string, string>> settings = null)
+        public DrawingPluginRun(
+            string id,
+            string plugin,
+            string version = null,
+            string viewId = null,
+            DrawingLinks inputs = null,
+            IEnumerable<KeyValuePair<string, string>> settings = null
+        )
         {
             Id = DrawingRecordGroups.Named(id, nameof(id), "A plugin run needs an id.");
             Plugin = DrawingRecordGroups.Named(plugin, nameof(plugin), "A plugin run names its plugin.");
@@ -58,14 +65,14 @@ namespace GeometryHelper.Drawing
         /// <summary>Whether this run is the same as another, field by field.</summary>
         /// <param name="other">The other run.</param>
         /// <returns>Whether they are the same.</returns>
-        public bool Equals(DrawingPluginRun other)
-            => other != null
-               && string.Equals(Id, other.Id, StringComparison.Ordinal)
-               && string.Equals(Plugin, other.Plugin, StringComparison.Ordinal)
-               && string.Equals(Version, other.Version, StringComparison.Ordinal)
-               && string.Equals(ViewId, other.ViewId, StringComparison.Ordinal)
-               && Inputs.Equals(other.Inputs)
-               && DrawingRecordGroups.SameValues(_settings, other._settings);
+        public bool Equals(DrawingPluginRun other) =>
+            other != null
+            && string.Equals(Id, other.Id, StringComparison.Ordinal)
+            && string.Equals(Plugin, other.Plugin, StringComparison.Ordinal)
+            && string.Equals(Version, other.Version, StringComparison.Ordinal)
+            && string.Equals(ViewId, other.ViewId, StringComparison.Ordinal)
+            && Inputs.Equals(other.Inputs)
+            && DrawingRecordGroups.SameValues(_settings, other._settings);
 
         /// <summary>Whether an object is a run the same as this one.</summary>
         /// <param name="obj">The object.</param>
@@ -86,6 +93,11 @@ namespace GeometryHelper.Drawing
 
         /// <summary>Gives the run as a line for debugging.</summary>
         /// <returns>The line, such as <c>BoltDimensions 1.2 R-1 in V-1</c>.</returns>
-        public override string ToString() => Plugin + (Version == null ? string.Empty : " " + Version) + " " + Id + (ViewId == null ? string.Empty : " in " + ViewId);
+        public override string ToString() =>
+            Plugin
+            + (Version == null ? string.Empty : " " + Version)
+            + " "
+            + Id
+            + (ViewId == null ? string.Empty : " in " + ViewId);
     }
 }

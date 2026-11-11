@@ -43,7 +43,12 @@ namespace GeometryHelper.Core
         /// A cut at an endpoint is refused rather than producing a piece of zero length, so no piece ever
         /// comes back shorter than the tolerance.
         /// </remarks>
-        public static bool TrySplitAtDistance(GeoLine3 line, double distance, out GeoLine3[] pieces, Tolerance tolerance)
+        public static bool TrySplitAtDistance(
+            GeoLine3 line,
+            double distance,
+            out GeoLine3[] pieces,
+            Tolerance tolerance
+        )
         {
             pieces = new[] { line };
 
@@ -54,11 +59,7 @@ namespace GeometryHelper.Core
 
             GeoPoint3 cut = Parametrization3.GetPointAtDistance(line, distance);
 
-            pieces = new[]
-            {
-                new GeoLine3(line.StartPoint, cut),
-                new GeoLine3(cut, line.EndPoint)
-            };
+            pieces = new[] { new GeoLine3(line.StartPoint, cut), new GeoLine3(cut, line.EndPoint) };
 
             return true;
         }
@@ -221,7 +222,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Splits a polyline at an arc length from its start, within a tolerance.
         /// </summary>
-        public static bool TrySplitAtDistance(GeoPolyline3 polyline, double distance, out GeoPolyline3[] pieces, Tolerance tolerance)
+        public static bool TrySplitAtDistance(
+            GeoPolyline3 polyline,
+            double distance,
+            out GeoPolyline3[] pieces,
+            Tolerance tolerance
+        )
         {
             if (polyline == null)
             {
@@ -252,7 +258,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Splits a polyline at a point on it, within a tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoPolyline3 polyline, GeoPoint3 point, out GeoPolyline3[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline3 polyline,
+            GeoPoint3 point,
+            out GeoPolyline3[] pieces,
+            Tolerance tolerance
+        )
         {
             if (polyline == null)
             {
@@ -266,7 +277,12 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            return TrySplitAtDistance(polyline, Parametrization3.GetDistanceAtPoint(polyline, point, tolerance), out pieces, tolerance);
+            return TrySplitAtDistance(
+                polyline,
+                Parametrization3.GetDistanceAtPoint(polyline, point, tolerance),
+                out pieces,
+                tolerance
+            );
         }
 
         /// <summary>
@@ -303,7 +319,11 @@ namespace GeometryHelper.Core
         /// as one piece ending at the corner.
         /// </para>
         /// </remarks>
-        public static GeoPolyline3[] SplitAtDistances(GeoPolyline3 polyline, IEnumerable<double> distances, Tolerance tolerance)
+        public static GeoPolyline3[] SplitAtDistances(
+            GeoPolyline3 polyline,
+            IEnumerable<double> distances,
+            Tolerance tolerance
+        )
         {
             if (polyline == null)
             {
@@ -339,7 +359,8 @@ namespace GeometryHelper.Core
                     // start rather than carried back along this leg off the polyline; and one within the tolerance of
                     // where the piece so far ends is there, so the next piece starts where this one ends.
                     double along = cuts[nextCut] - travelled;
-                    GeoPoint3 cut = along > 0.0 ? Parametrization3.GetPointAtDistance(segment, along) : segment.StartPoint;
+                    GeoPoint3 cut =
+                        along > 0.0 ? Parametrization3.GetPointAtDistance(segment, along) : segment.StartPoint;
                     GeoPoint3 last = current[current.Count - 1];
 
                     if (last.IsEqualTo(cut, tolerance))
@@ -391,7 +412,12 @@ namespace GeometryHelper.Core
         /// then kept as it is, since without the corner the piece would be shorter than the tolerance. Where only the last
         /// cut is left within the tolerance of the end, that cut is not made and the piece before it ends there.
         /// </remarks>
-        private static void EndAt(GeoPoint3 end, List<GeoPoint3> current, List<GeoPolyline3> pieces, Tolerance tolerance)
+        private static void EndAt(
+            GeoPoint3 end,
+            List<GeoPoint3> current,
+            List<GeoPolyline3> pieces,
+            Tolerance tolerance
+        )
         {
             if (current.Count >= 2)
             {
@@ -437,7 +463,12 @@ namespace GeometryHelper.Core
         /// A chain can cross the same plane several times, so every crossing is cut at and the pieces come
         /// back in order along the chain, alternating sides.
         /// </remarks>
-        public static bool TrySplitBy(GeoPolyline3 polyline, GeoPlane3 cutter, out GeoPolyline3[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline3 polyline,
+            GeoPlane3 cutter,
+            out GeoPolyline3[] pieces,
+            Tolerance tolerance
+        )
         {
             if (polyline == null)
             {
@@ -484,7 +515,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Splits a polygon by a plane, using the default tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoPolygon3 polygon, GeoPlane3 cutter, out GeoPolygon3[] above, out GeoPolygon3[] below)
+        public static bool TrySplitBy(
+            GeoPolygon3 polygon,
+            GeoPlane3 cutter,
+            out GeoPolygon3[] above,
+            out GeoPolygon3[] below
+        )
         {
             return TrySplitBy(polygon, cutter, out above, out below, Tolerance.Global);
         }
@@ -508,14 +544,26 @@ namespace GeometryHelper.Core
         /// the other side comes back empty.
         /// </para>
         /// </remarks>
-        public static bool TrySplitBy(GeoPolygon3 polygon, GeoPlane3 cutter, out GeoPolygon3[] above, out GeoPolygon3[] below, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolygon3 polygon,
+            GeoPlane3 cutter,
+            out GeoPolygon3[] above,
+            out GeoPolygon3[] below,
+            Tolerance tolerance
+        )
         {
             if (polygon == null)
             {
                 throw new ArgumentNullException(nameof(polygon));
             }
 
-            bool split = TrySplitBy(new GeoFace3(polygon), cutter, out GeoFace3[] faceAbove, out GeoFace3[] faceBelow, tolerance);
+            bool split = TrySplitBy(
+                new GeoFace3(polygon),
+                cutter,
+                out GeoFace3[] faceAbove,
+                out GeoFace3[] faceBelow,
+                tolerance
+            );
 
             // Cutting a hole-free region with a half-space can only produce hole-free pieces, so taking
             // the boundary of each piece loses nothing here.
@@ -564,7 +612,13 @@ namespace GeometryHelper.Core
         /// no amount of sorting whole holes would produce it. A hole the plane misses stays a hole, and is
         /// attached to whichever piece encloses it.
         /// </remarks>
-        public static bool TrySplitBy(GeoFace3 face, GeoPlane3 cutter, out GeoFace3[] above, out GeoFace3[] below, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoFace3 face,
+            GeoPlane3 cutter,
+            out GeoFace3[] above,
+            out GeoFace3[] below,
+            Tolerance tolerance
+        )
         {
             if (face == null)
             {
@@ -642,7 +696,14 @@ namespace GeometryHelper.Core
         /// caller decides what that means, which is why the pieces are handed back as they are rather than the
         /// whole face in their place.
         /// </remarks>
-        private static FaceCut Cut(GeoFace3 face, GeoPlane3 cutter, Tolerance tolerance, Tolerance pieces, out List<GeoFace3> above, out List<GeoFace3> below)
+        private static FaceCut Cut(
+            GeoFace3 face,
+            GeoPlane3 cutter,
+            Tolerance tolerance,
+            Tolerance pieces,
+            out List<GeoFace3> above,
+            out List<GeoFace3> below
+        )
         {
             above = null;
             below = null;
@@ -696,7 +757,6 @@ namespace GeometryHelper.Core
             return FaceCut.Crossed;
         }
 
-
         /// <summary>
         /// Walks every ring of a face: the outer boundary first, then each hole.
         /// </summary>
@@ -736,7 +796,13 @@ namespace GeometryHelper.Core
         /// and because the pairing spans all rings at once, a run on the outer boundary joins straight onto
         /// a run on a hole rim when the plane passes through both.
         /// </remarks>
-        private static List<List<GeoPoint3>> CutRings(GeoFace3 face, GeoPlane3 cutter, GeoRay3 cutLine, int wantedSide, Tolerance tolerance)
+        private static List<List<GeoPoint3>> CutRings(
+            GeoFace3 face,
+            GeoPlane3 cutter,
+            GeoRay3 cutLine,
+            int wantedSide,
+            Tolerance tolerance
+        )
         {
             List<List<GeoPoint3>> loops = new List<List<GeoPoint3>>();
 
@@ -942,7 +1008,13 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="points">The rebuilt ring.</param>
         /// <param name="sides">Which side of the cutter each entry is on: 1, 0 or -1.</param>
-        private static void BuildCutRing(IReadOnlyList<GeoPoint3> ring, GeoPlane3 cutter, Tolerance tolerance, out List<GeoPoint3> points, out List<int> sides)
+        private static void BuildCutRing(
+            IReadOnlyList<GeoPoint3> ring,
+            GeoPlane3 cutter,
+            Tolerance tolerance,
+            out List<GeoPoint3> points,
+            out List<int> sides
+        )
         {
             points = new List<GeoPoint3>();
             sides = new List<int>();
@@ -962,8 +1034,12 @@ namespace GeometryHelper.Core
 
                 // Only a genuine crossing needs a new vertex. An edge that merely ends on the plane
                 // already has one there.
-                if (currentSide != 0 && nextSide != 0 && currentSide != nextSide &&
-                    Intersection3.TryCross(new GeoLine3(current, next), cutter, out GeoPoint3 hit, tolerance))
+                if (
+                    currentSide != 0
+                    && nextSide != 0
+                    && currentSide != nextSide
+                    && Intersection3.TryCross(new GeoLine3(current, next), cutter, out GeoPoint3 hit, tolerance)
+                )
                 {
                     points.Add(hit);
                     sides.Add(0);
@@ -1014,7 +1090,13 @@ namespace GeometryHelper.Core
         /// <param name="points">The ring the sides are of, walked with the material on its left.</param>
         /// <param name="faceNormal">The normal of the face the ring bounds, which fixes what its left is.</param>
         /// <param name="cutterNormal">The normal of the cutting plane, pointing to the side 1 stands for.</param>
-        private static void ResolveTouches(List<int> sides, int wantedSide, List<GeoPoint3> points, GeoVector3 faceNormal, GeoVector3 cutterNormal)
+        private static void ResolveTouches(
+            List<int> sides,
+            int wantedSide,
+            List<GeoPoint3> points,
+            GeoVector3 faceNormal,
+            GeoVector3 cutterNormal
+        )
         {
             int count = sides.Count;
             int start = -1;
@@ -1077,7 +1159,16 @@ namespace GeometryHelper.Core
                         sides[(start + offset + k) % count] = before;
                     }
                 }
-                else if (BordersSide(points, (start + offset) % count, (start + offset + length - 1) % count, faceNormal, cutterNormal, wantedSide == before ? after : before) == before)
+                else if (
+                    BordersSide(
+                        points,
+                        (start + offset) % count,
+                        (start + offset + length - 1) % count,
+                        faceNormal,
+                        cutterNormal,
+                        wantedSide == before ? after : before
+                    ) == before
+                )
                 {
                     // A crossing, and the run is boundary of the side before it: the piece before the run runs
                     // along it to its far end, and the piece beyond begins there.
@@ -1110,7 +1201,14 @@ namespace GeometryHelper.Core
         /// <param name="cutterNormal">The normal of the cutting plane.</param>
         /// <param name="fallback">The side to answer for a run with no length to judge by.</param>
         /// <returns>1 for the side the cutter normal points to, -1 for the other.</returns>
-        private static int BordersSide(List<GeoPoint3> points, int first, int last, GeoVector3 faceNormal, GeoVector3 cutterNormal, int fallback)
+        private static int BordersSide(
+            List<GeoPoint3> points,
+            int first,
+            int last,
+            GeoVector3 faceNormal,
+            GeoVector3 cutterNormal,
+            int fallback
+        )
         {
             GeoVector3 along = points[first].GetVectorTo(points[last]);
 
@@ -1191,7 +1289,13 @@ namespace GeometryHelper.Core
         /// millimetres, closed.
         /// </para>
         /// </remarks>
-        public static bool TrySplitBy(GeoSolid3 solid, GeoPlane3 cutter, out GeoSolid3 above, out GeoSolid3 below, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoSolid3 solid,
+            GeoPlane3 cutter,
+            out GeoSolid3 above,
+            out GeoSolid3 below,
+            Tolerance tolerance
+        )
         {
             if (solid == null)
             {
@@ -1202,7 +1306,10 @@ namespace GeometryHelper.Core
             // halves with its own faces facing in and the caps out, a plate 20 thick cut at 5 into 50 000 and 16 667.
             GeoSolid3 outwards = solid.TurnOutwards();
 
-            if (TrySplitCell(outwards, cutter, out above, out below, tolerance) && ClosesOrRecuts(outwards, cutter, ref above, ref below, tolerance))
+            if (
+                TrySplitCell(outwards, cutter, out above, out below, tolerance)
+                && ClosesOrRecuts(outwards, cutter, ref above, ref below, tolerance)
+            )
             {
                 return true;
             }
@@ -1244,12 +1351,22 @@ namespace GeometryHelper.Core
         /// whose halves had been open to <c>Validate</c> and their slabs 5 to 45 % off what the plane cuts off.
         /// </para>
         /// </remarks>
-        private static bool ClosesOrRecuts(GeoSolid3 solid, GeoPlane3 cutter, ref GeoSolid3 above, ref GeoSolid3 below, Tolerance tolerance)
+        private static bool ClosesOrRecuts(
+            GeoSolid3 solid,
+            GeoPlane3 cutter,
+            ref GeoSolid3 above,
+            ref GeoSolid3 below,
+            Tolerance tolerance
+        )
         {
             Tolerance work = Boolean3.ForWork(tolerance);
 
             // With no tolerance a finer cut is the same cut and nothing welds: the halves come back as cut.
-            if (!(work.EqualPoint > 0.0) || Shells3.Closes(above, work) && Shells3.Closes(below, work) || !Shells3.Closes(solid, work))
+            if (
+                !(work.EqualPoint > 0.0)
+                || Shells3.Closes(above, work) && Shells3.Closes(below, work)
+                || !Shells3.Closes(solid, work)
+            )
             {
                 return true;
             }
@@ -1259,7 +1376,12 @@ namespace GeometryHelper.Core
 
             foreach (double fraction in new[] { 0.1, 0.01 })
             {
-                var finer = new Tolerance(tolerance.EqualPoint * fraction, tolerance.EqualVector, tolerance.EqualAngleRad, tolerance.EqualPlanar * fraction);
+                var finer = new Tolerance(
+                    tolerance.EqualPoint * fraction,
+                    tolerance.EqualVector,
+                    tolerance.EqualAngleRad,
+                    tolerance.EqualPlanar * fraction
+                );
 
                 if (TrySplitCell(solid, cutter, out up, out down, finer) && AddsUp(solid, up, down, 0.0, work))
                 {
@@ -1295,7 +1417,8 @@ namespace GeometryHelper.Core
 
             double whole = solid.GrossVolume;
             double section = 0.5 * Math.Min(above.GrossSurfaceArea, below.GrossSurfaceArea);
-            return Math.Abs(above.GrossVolume + below.GrossVolume - whole) <= moved + work.EqualPoint * section + 1E-9 * whole;
+            return Math.Abs(above.GrossVolume + below.GrossVolume - whole)
+                <= moved + work.EqualPoint * section + 1E-9 * whole;
         }
 
         /// <summary>
@@ -1307,12 +1430,29 @@ namespace GeometryHelper.Core
         /// <param name="below">The part on the other side; the body itself when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the plane parts the body; otherwise, false.</returns>
-        internal static bool TrySplitCell(GeoSolid3 solid, GeoPlane3 cutter, out GeoSolid3 above, out GeoSolid3 below, Tolerance tolerance)
+        internal static bool TrySplitCell(
+            GeoSolid3 solid,
+            GeoPlane3 cutter,
+            out GeoSolid3 above,
+            out GeoSolid3 below,
+            Tolerance tolerance
+        )
         {
             above = solid;
             below = solid;
 
-            if (!TryCut(solid, cutter, tolerance, out List<GeoFace3> upperFaces, out List<GeoFace3> lowerFaces, out List<GeoFace3> upperCaps, out List<GeoFace3> lowerCaps, out _))
+            if (
+                !TryCut(
+                    solid,
+                    cutter,
+                    tolerance,
+                    out List<GeoFace3> upperFaces,
+                    out List<GeoFace3> lowerFaces,
+                    out List<GeoFace3> upperCaps,
+                    out List<GeoFace3> lowerCaps,
+                    out _
+                )
+            )
             {
                 return false;
             }
@@ -1320,7 +1460,13 @@ namespace GeometryHelper.Core
             upperFaces.AddRange(upperCaps);
             lowerFaces.AddRange(lowerCaps);
 
-            SplitOpenings(solid, cutter, tolerance, out List<GeoSolid3> upperOpenings, out List<GeoSolid3> lowerOpenings);
+            SplitOpenings(
+                solid,
+                cutter,
+                tolerance,
+                out List<GeoSolid3> upperOpenings,
+                out List<GeoSolid3> lowerOpenings
+            );
 
             above = new GeoSolid3(upperFaces, upperOpenings);
             below = new GeoSolid3(lowerFaces, lowerOpenings);
@@ -1343,8 +1489,20 @@ namespace GeometryHelper.Core
         /// </remarks>
         internal static GeoFace3[] Section(GeoSolid3 solid, GeoPlane3 cutter, Tolerance tolerance)
         {
-            if (!TryCut(solid, cutter, tolerance, out _, out _, out List<GeoFace3> upperCaps, out List<GeoFace3> lowerCaps, out bool along)
-                || upperCaps.Count == 0 || lowerCaps.Count == 0)
+            if (
+                !TryCut(
+                    solid,
+                    cutter,
+                    tolerance,
+                    out _,
+                    out _,
+                    out List<GeoFace3> upperCaps,
+                    out List<GeoFace3> lowerCaps,
+                    out bool along
+                )
+                || upperCaps.Count == 0
+                || lowerCaps.Count == 0
+            )
             {
                 return new GeoFace3[0];
             }
@@ -1356,7 +1514,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// What the caps of the half below a plane and of the half above both cover, facing along the plane's normal.
         /// </summary>
-        private static GeoFace3[] Common(List<GeoFace3> lowerCaps, List<GeoFace3> upperCaps, GeoPlane3 cutter, Tolerance tolerance)
+        private static GeoFace3[] Common(
+            List<GeoFace3> lowerCaps,
+            List<GeoFace3> upperCaps,
+            GeoPlane3 cutter,
+            Tolerance tolerance
+        )
         {
             var frame = new GeoCoordinateSystem3(cutter);
             var common = new List<GeoFace3>();
@@ -1414,7 +1577,9 @@ namespace GeometryHelper.Core
         /// </summary>
         private static GeoFace2 LaidOut(GeoFace3 face, GeoCoordinateSystem3 frame)
         {
-            GeoPolygon2 boundary = CounterClockwise(MeshLift3.LayOutPolygon(MeshLift3.LayOut(frame, face.Boundary.Vertices)));
+            GeoPolygon2 boundary = CounterClockwise(
+                MeshLift3.LayOutPolygon(MeshLift3.LayOut(frame, face.Boundary.Vertices))
+            );
 
             if (boundary == null)
             {
@@ -1504,8 +1669,13 @@ namespace GeometryHelper.Core
         /// some corners and off it at others: of 2 700 unions, differences and intersections of such slabs and chips with a
         /// cube turned at random, six that were valid came out open or wound two ways.
         /// </remarks>
-        internal static Tolerance OnPlaneWithinRounding(GeoSolid3 solid, Tolerance tolerance)
-            => new Tolerance(tolerance.EqualPoint, tolerance.EqualVector, tolerance.EqualAngleRad, tolerance.EqualPlanar + Rounding(solid));
+        internal static Tolerance OnPlaneWithinRounding(GeoSolid3 solid, Tolerance tolerance) =>
+            new Tolerance(
+                tolerance.EqualPoint,
+                tolerance.EqualVector,
+                tolerance.EqualAngleRad,
+                tolerance.EqualPlanar + Rounding(solid)
+            );
 
         /// <summary>
         /// As much as rounding can move a corner of a body off a plane it lies in: a trillionth of the size of its coordinates.
@@ -1514,8 +1684,12 @@ namespace GeometryHelper.Core
         {
             GeoAabb3 box = solid.GetAabb();
             double reach = Math.Max(
-                Math.Max(Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Max.X)), Math.Max(Math.Abs(box.Min.Y), Math.Abs(box.Max.Y))),
-                Math.Max(Math.Abs(box.Min.Z), Math.Abs(box.Max.Z)));
+                Math.Max(
+                    Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Max.X)),
+                    Math.Max(Math.Abs(box.Min.Y), Math.Abs(box.Max.Y))
+                ),
+                Math.Max(Math.Abs(box.Min.Z), Math.Abs(box.Max.Z))
+            );
 
             return 1E-12 * (1.0 + reach);
         }
@@ -1550,7 +1724,10 @@ namespace GeometryHelper.Core
 
             double rounding = Rounding(solid);
 
-            if (!(tolerance.EqualPoint < Intersection3.Rounding(box, box.Min)) && !(tolerance.EqualPoint < Math.Min(rounding, RaisedBelow)))
+            if (
+                !(tolerance.EqualPoint < Intersection3.Rounding(box, box.Min))
+                && !(tolerance.EqualPoint < Math.Min(rounding, RaisedBelow))
+            )
             {
                 return false;
             }
@@ -1593,7 +1770,8 @@ namespace GeometryHelper.Core
             out List<GeoFace3> lowerFaces,
             out List<GeoFace3> upperCaps,
             out List<GeoFace3> lowerCaps,
-            out bool along)
+            out bool along
+        )
         {
             upperFaces = new List<GeoFace3>();
             lowerFaces = new List<GeoFace3>();
@@ -1604,7 +1782,9 @@ namespace GeometryHelper.Core
 
             foreach (GeoFace3 face in solid.Faces)
             {
-                switch (Cut(face, cutter, tolerance, pieces, out List<GeoFace3> faceAbove, out List<GeoFace3> faceBelow))
+                switch (
+                    Cut(face, cutter, tolerance, pieces, out List<GeoFace3> faceAbove, out List<GeoFace3> faceBelow)
+                )
                 {
                     case FaceCut.InPlane:
                         // A face lying in the cutting plane belongs to neither side: the cap replaces it.
@@ -1640,12 +1820,32 @@ namespace GeometryHelper.Core
             // rims usually describe the same shape, but not when the cutting plane holds a face of the body
             // already: there the two halves meet the plane over different areas, and one cap cannot serve
             // for both. Cutting an L-shaped prism along the plane of its own notch is exactly that case.
-            if (!TryBuildCaps(upperFaces, cutter, cutter.Normal.Negate(), tolerance, pieces, out upperCaps, out bool upperBridged))
+            if (
+                !TryBuildCaps(
+                    upperFaces,
+                    cutter,
+                    cutter.Normal.Negate(),
+                    tolerance,
+                    pieces,
+                    out upperCaps,
+                    out bool upperBridged
+                )
+            )
             {
                 return false;
             }
 
-            if (!TryBuildCaps(lowerFaces, cutter, cutter.Normal, tolerance, pieces, out lowerCaps, out bool lowerBridged))
+            if (
+                !TryBuildCaps(
+                    lowerFaces,
+                    cutter,
+                    cutter.Normal,
+                    tolerance,
+                    pieces,
+                    out lowerCaps,
+                    out bool lowerBridged
+                )
+            )
             {
                 return false;
             }
@@ -1672,13 +1872,22 @@ namespace GeometryHelper.Core
         /// A half closed within the tolerance as it is, the copies of the edge no further apart beside the cap than the
         /// tolerance, is left as it is: the crack between them is the body's own, and the halves hold what it holds.
         /// </remarks>
-        private static void CloseSlivers(List<GeoFace3> halfFaces, List<GeoFace3> caps, Tolerance tolerance, Tolerance pieces)
+        private static void CloseSlivers(
+            List<GeoFace3> halfFaces,
+            List<GeoFace3> caps,
+            Tolerance tolerance,
+            Tolerance pieces
+        )
         {
             var all = new List<GeoFace3>(halfFaces);
             all.AddRange(caps);
 
-            if (all.Count < 4 || new GeoSolid3(all).ClosesByCorners(tolerance)
-                || !LoopAssembly.TryCloseSlivers(all, tolerance, pieces, out List<GeoFace3> slivers) || slivers.Count == 0)
+            if (
+                all.Count < 4
+                || new GeoSolid3(all).ClosesByCorners(tolerance)
+                || !LoopAssembly.TryCloseSlivers(all, tolerance, pieces, out List<GeoFace3> slivers)
+                || slivers.Count == 0
+            )
             {
                 return;
             }
@@ -1705,7 +1914,13 @@ namespace GeometryHelper.Core
         /// closed and measure correctly in every other respect.
         /// </para>
         /// </remarks>
-        private static void SplitOpenings(GeoSolid3 solid, GeoPlane3 cutter, Tolerance tolerance, out List<GeoSolid3> upper, out List<GeoSolid3> lower)
+        private static void SplitOpenings(
+            GeoSolid3 solid,
+            GeoPlane3 cutter,
+            Tolerance tolerance,
+            out List<GeoSolid3> upper,
+            out List<GeoSolid3> lower
+        )
         {
             upper = new List<GeoSolid3>();
             lower = new List<GeoSolid3>();
@@ -1745,7 +1960,15 @@ namespace GeometryHelper.Core
         /// than the point tolerance and larger than a square of it do; true with no caps when the half has no edge on the
         /// plane its own faces do not run both ways.
         /// </returns>
-        private static bool TryBuildCaps(List<GeoFace3> halfFaces, GeoPlane3 cutter, GeoVector3 outward, Tolerance tolerance, Tolerance pieces, out List<GeoFace3> caps, out bool bridged)
+        private static bool TryBuildCaps(
+            List<GeoFace3> halfFaces,
+            GeoPlane3 cutter,
+            GeoVector3 outward,
+            Tolerance tolerance,
+            Tolerance pieces,
+            out List<GeoFace3> caps,
+            out bool bridged
+        )
         {
             caps = new List<GeoFace3>();
             bridged = false;
@@ -1761,8 +1984,10 @@ namespace GeometryHelper.Core
                         GeoPoint3 from = ring[i];
                         GeoPoint3 to = ring[(i + 1) % ring.Count];
 
-                        if (Containment3.GetSide(cutter, from, tolerance) != PlaneSide.On ||
-                            Containment3.GetSide(cutter, to, tolerance) != PlaneSide.On)
+                        if (
+                            Containment3.GetSide(cutter, from, tolerance) != PlaneSide.On
+                            || Containment3.GetSide(cutter, to, tolerance) != PlaneSide.On
+                        )
                         {
                             continue;
                         }
@@ -1800,7 +2025,10 @@ namespace GeometryHelper.Core
             // LoopAssembly.TryBridgeGaps.
             if (!LoopAssembly.TryChainLoops(edges, outward, tolerance, out List<List<GeoPoint3>> loops))
             {
-                if (!LoopAssembly.TryBridgeGaps(edges, tolerance, out List<GeoLine3> joined) || !LoopAssembly.TryChainLoops(joined, outward, tolerance, out loops))
+                if (
+                    !LoopAssembly.TryBridgeGaps(edges, tolerance, out List<GeoLine3> joined)
+                    || !LoopAssembly.TryChainLoops(joined, outward, tolerance, out loops)
+                )
                 {
                     // An open chain means the surface did not close, so the section cannot be trusted.
                     return false;
@@ -1824,7 +2052,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Splits a polyline by a solid, using the default tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoPolyline3 subject, GeoSolid3 cutter, out GeoPolyline3[] inside, out GeoPolyline3[] outside)
+        public static bool TrySplitBy(
+            GeoPolyline3 subject,
+            GeoSolid3 cutter,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside
+        )
         {
             return TrySplitBy(subject, cutter, out inside, out outside, Tolerance.Global);
         }
@@ -1860,7 +2093,13 @@ namespace GeometryHelper.Core
         /// over every edge of the body on every call; ask <see cref="GeoSolid3.IsClosed()"/> once instead.
         /// </para>
         /// </remarks>
-        public static bool TrySplitBy(GeoPolyline3 subject, GeoSolid3 cutter, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline3 subject,
+            GeoSolid3 cutter,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside,
+            Tolerance tolerance
+        )
         {
             if (subject == null)
             {
@@ -1874,7 +2113,12 @@ namespace GeometryHelper.Core
 
             List<double> cuts = CollectSurfaceCrossings(subject, cutter, tolerance);
 
-            return SortPieces(SplitAtDistances(subject, cuts, tolerance), point => Containment3.Contains(cutter, point, tolerance), out inside, out outside);
+            return SortPieces(
+                SplitAtDistances(subject, cuts, tolerance),
+                point => Containment3.Contains(cutter, point, tolerance),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
@@ -1888,7 +2132,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Splits a line segment by a solid, within a tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoLine3 subject, GeoSolid3 cutter, out GeoLine3[] inside, out GeoLine3[] outside, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoLine3 subject,
+            GeoSolid3 cutter,
+            out GeoLine3[] inside,
+            out GeoLine3[] outside,
+            Tolerance tolerance
+        )
         {
             if (cutter == null)
             {
@@ -1897,13 +2147,23 @@ namespace GeometryHelper.Core
 
             List<double> cuts = CollectSurfaceCrossings(subject, cutter, 0.0, tolerance);
 
-            return SortPieces(SplitAtDistances(subject, cuts, tolerance), point => Containment3.Contains(cutter, point, tolerance), out inside, out outside);
+            return SortPieces(
+                SplitAtDistances(subject, cuts, tolerance),
+                point => Containment3.Contains(cutter, point, tolerance),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
         /// Splits a polyline by several solids at once, using the default tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoPolyline3 subject, GeoSolid3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside)
+        public static bool TrySplitBy(
+            GeoPolyline3 subject,
+            GeoSolid3[] cutters,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside
+        )
         {
             return TrySplitBy(subject, cutters, out inside, out outside, Tolerance.Global);
         }
@@ -1934,7 +2194,13 @@ namespace GeometryHelper.Core
         /// <see cref="GeoSolid3.IsClosed()"/> once instead.
         /// </para>
         /// </remarks>
-        public static bool TrySplitBy(GeoPolyline3 subject, GeoSolid3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline3 subject,
+            GeoSolid3[] cutters,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside,
+            Tolerance tolerance
+        )
         {
             if (subject == null)
             {
@@ -1959,13 +2225,23 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return SortPieces(SplitAtDistances(subject, cuts, tolerance), point => IsInsideAny(cutters, point, tolerance), out inside, out outside);
+            return SortPieces(
+                SplitAtDistances(subject, cuts, tolerance),
+                point => IsInsideAny(cutters, point, tolerance),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
         /// Splits a line segment by several solids at once, using the default tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoLine3 subject, GeoSolid3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside)
+        public static bool TrySplitBy(
+            GeoLine3 subject,
+            GeoSolid3[] cutters,
+            out GeoLine3[] inside,
+            out GeoLine3[] outside
+        )
         {
             return TrySplitBy(subject, cutters, out inside, out outside, Tolerance.Global);
         }
@@ -1982,7 +2258,13 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The bodies act as their union, exactly as in the polyline overload above.
         /// </remarks>
-        public static bool TrySplitBy(GeoLine3 subject, GeoSolid3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoLine3 subject,
+            GeoSolid3[] cutters,
+            out GeoLine3[] inside,
+            out GeoLine3[] outside,
+            Tolerance tolerance
+        )
         {
             if (cutters == null)
             {
@@ -1999,7 +2281,12 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return SortPieces(SplitAtDistances(subject, cuts, tolerance), point => IsInsideAny(cutters, point, tolerance), out inside, out outside);
+            return SortPieces(
+                SplitAtDistances(subject, cuts, tolerance),
+                point => IsInsideAny(cutters, point, tolerance),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
@@ -2026,7 +2313,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Splits a polyline by an oriented box, using the default tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoPolyline3 subject, GeoObb3 cutter, out GeoPolyline3[] inside, out GeoPolyline3[] outside)
+        public static bool TrySplitBy(
+            GeoPolyline3 subject,
+            GeoObb3 cutter,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside
+        )
         {
             return TrySplitBy(subject, cutter, out inside, out outside, Tolerance.Global);
         }
@@ -2038,7 +2330,13 @@ namespace GeometryHelper.Core
         /// A box is a closed body like any other, but a far cheaper one to cross-check: the crossings come
         /// from the slab test rather than from walking a surface, so this does not build or traverse a mesh.
         /// </remarks>
-        public static bool TrySplitBy(GeoPolyline3 subject, GeoObb3 cutter, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline3 subject,
+            GeoObb3 cutter,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside,
+            Tolerance tolerance
+        )
         {
             if (subject == null)
             {
@@ -2065,7 +2363,12 @@ namespace GeometryHelper.Core
                 travelled += edge.Length;
             }
 
-            return SortPieces(SplitAtDistances(subject, cuts, tolerance), point => Containment3.Contains(cutter, point, tolerance), out inside, out outside);
+            return SortPieces(
+                SplitAtDistances(subject, cuts, tolerance),
+                point => Containment3.Contains(cutter, point, tolerance),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
@@ -2079,7 +2382,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Splits a line segment by an oriented box, within a tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoLine3 subject, GeoObb3 cutter, out GeoLine3[] inside, out GeoLine3[] outside, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoLine3 subject,
+            GeoObb3 cutter,
+            out GeoLine3[] inside,
+            out GeoLine3[] outside,
+            Tolerance tolerance
+        )
         {
             if (cutter == null)
             {
@@ -2093,13 +2402,23 @@ namespace GeometryHelper.Core
                 cuts.Add(DistanceAlong(subject, hit));
             }
 
-            return SortPieces(SplitAtDistances(subject, cuts, tolerance), point => Containment3.Contains(cutter, point, tolerance), out inside, out outside);
+            return SortPieces(
+                SplitAtDistances(subject, cuts, tolerance),
+                point => Containment3.Contains(cutter, point, tolerance),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
         /// Splits a polyline by an axis-aligned box, using the default tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoPolyline3 subject, GeoAabb3 cutter, out GeoPolyline3[] inside, out GeoPolyline3[] outside)
+        public static bool TrySplitBy(
+            GeoPolyline3 subject,
+            GeoAabb3 cutter,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside
+        )
         {
             return TrySplitBy(subject, cutter, out inside, out outside, Tolerance.Global);
         }
@@ -2110,7 +2429,13 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// An empty box holds nothing, so there is nothing to cut and the whole chain comes back as outside.
         /// </remarks>
-        public static bool TrySplitBy(GeoPolyline3 subject, GeoAabb3 cutter, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline3 subject,
+            GeoAabb3 cutter,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside,
+            Tolerance tolerance
+        )
         {
             if (subject == null)
             {
@@ -2138,7 +2463,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Splits a line segment by an axis-aligned box, within a tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoLine3 subject, GeoAabb3 cutter, out GeoLine3[] inside, out GeoLine3[] outside, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoLine3 subject,
+            GeoAabb3 cutter,
+            out GeoLine3[] inside,
+            out GeoLine3[] outside,
+            Tolerance tolerance
+        )
         {
             if (cutter.IsEmpty)
             {
@@ -2153,7 +2484,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Splits a polyline by several oriented boxes at once, using the default tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoPolyline3 subject, GeoObb3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside)
+        public static bool TrySplitBy(
+            GeoPolyline3 subject,
+            GeoObb3[] cutters,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside
+        )
         {
             return TrySplitBy(subject, cutters, out inside, out outside, Tolerance.Global);
         }
@@ -2176,7 +2512,13 @@ namespace GeometryHelper.Core
         /// rather than from walking a surface, so no mesh is built or traversed here.
         /// </para>
         /// </remarks>
-        public static bool TrySplitBy(GeoPolyline3 subject, GeoObb3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline3 subject,
+            GeoObb3[] cutters,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside,
+            Tolerance tolerance
+        )
         {
             if (subject == null)
             {
@@ -2213,13 +2555,23 @@ namespace GeometryHelper.Core
                 travelled += edge.Length;
             }
 
-            return SortPieces(SplitAtDistances(subject, cuts, tolerance), point => IsInsideAny(cutters, point, tolerance), out inside, out outside);
+            return SortPieces(
+                SplitAtDistances(subject, cuts, tolerance),
+                point => IsInsideAny(cutters, point, tolerance),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
         /// Splits a line segment by several oriented boxes at once, using the default tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoLine3 subject, GeoObb3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside)
+        public static bool TrySplitBy(
+            GeoLine3 subject,
+            GeoObb3[] cutters,
+            out GeoLine3[] inside,
+            out GeoLine3[] outside
+        )
         {
             return TrySplitBy(subject, cutters, out inside, out outside, Tolerance.Global);
         }
@@ -2236,7 +2588,13 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The boxes act as their union, exactly as in the polyline overload above.
         /// </remarks>
-        public static bool TrySplitBy(GeoLine3 subject, GeoObb3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoLine3 subject,
+            GeoObb3[] cutters,
+            out GeoLine3[] inside,
+            out GeoLine3[] outside,
+            Tolerance tolerance
+        )
         {
             if (cutters == null)
             {
@@ -2258,13 +2616,23 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return SortPieces(SplitAtDistances(subject, cuts, tolerance), point => IsInsideAny(cutters, point, tolerance), out inside, out outside);
+            return SortPieces(
+                SplitAtDistances(subject, cuts, tolerance),
+                point => IsInsideAny(cutters, point, tolerance),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
         /// Splits a polyline by several axis-aligned boxes at once, using the default tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoPolyline3 subject, GeoAabb3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside)
+        public static bool TrySplitBy(
+            GeoPolyline3 subject,
+            GeoAabb3[] cutters,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside
+        )
         {
             return TrySplitBy(subject, cutters, out inside, out outside, Tolerance.Global);
         }
@@ -2283,7 +2651,13 @@ namespace GeometryHelper.Core
         /// rather than a reference, so there are no null entries to skip here; what takes their place is
         /// the empty box, which holds nothing and so can be left out before the work starts.
         /// </remarks>
-        public static bool TrySplitBy(GeoPolyline3 subject, GeoAabb3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline3 subject,
+            GeoAabb3[] cutters,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside,
+            Tolerance tolerance
+        )
         {
             if (subject == null)
             {
@@ -2296,7 +2670,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Splits a line segment by several axis-aligned boxes at once, using the default tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoLine3 subject, GeoAabb3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside)
+        public static bool TrySplitBy(
+            GeoLine3 subject,
+            GeoAabb3[] cutters,
+            out GeoLine3[] inside,
+            out GeoLine3[] outside
+        )
         {
             return TrySplitBy(subject, cutters, out inside, out outside, Tolerance.Global);
         }
@@ -2313,7 +2692,13 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The boxes act as their union, exactly as in the polyline overload above.
         /// </remarks>
-        public static bool TrySplitBy(GeoLine3 subject, GeoAabb3[] cutters, out GeoLine3[] inside, out GeoLine3[] outside, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoLine3 subject,
+            GeoAabb3[] cutters,
+            out GeoLine3[] inside,
+            out GeoLine3[] outside,
+            Tolerance tolerance
+        )
         {
             return TrySplitBy(subject, ToBoxes(cutters), out inside, out outside, tolerance);
         }
@@ -2378,7 +2763,12 @@ namespace GeometryHelper.Core
         /// apart would hand back a subject chopped at positions that mean nothing, so neighbours that agree
         /// are joined back up and what comes out is the longest run on each side.
         /// </remarks>
-        private static bool SortPieces(GeoPolyline3[] pieces, Func<GeoPoint3, bool> isInside, out GeoPolyline3[] inside, out GeoPolyline3[] outside)
+        private static bool SortPieces(
+            GeoPolyline3[] pieces,
+            Func<GeoPoint3, bool> isInside,
+            out GeoPolyline3[] inside,
+            out GeoPolyline3[] outside
+        )
         {
             // The chain was cut at every crossing, so each piece lies wholly on one side and the point
             // halfway along it speaks for the whole of it.
@@ -2435,7 +2825,12 @@ namespace GeometryHelper.Core
         /// run of neighbours that ended up on the same side.
         /// </summary>
         /// <returns>false when everything landed on one side, meaning nothing was really cut.</returns>
-        private static bool SortPieces(GeoLine3[] pieces, Func<GeoPoint3, bool> isInside, out GeoLine3[] inside, out GeoLine3[] outside)
+        private static bool SortPieces(
+            GeoLine3[] pieces,
+            Func<GeoPoint3, bool> isInside,
+            out GeoLine3[] inside,
+            out GeoLine3[] outside
+        )
         {
             bool[] within = new bool[pieces.Length];
             for (int i = 0; i < pieces.Length; i++)
@@ -2512,8 +2907,8 @@ namespace GeometryHelper.Core
         /// <see cref="Parametrization3.GetDistanceAtPoint(GeoLine3, GeoPoint3)"/> reads one no longer than the global tolerance
         /// as its start.
         /// </summary>
-        private static double DistanceAlong(GeoLine3 line, GeoPoint3 point)
-            => Parametrization3.GetParameterAtPoint(line, point, default(Tolerance)) * line.Length;
+        private static double DistanceAlong(GeoLine3 line, GeoPoint3 point) =>
+            Parametrization3.GetParameterAtPoint(line, point, default(Tolerance)) * line.Length;
 
         /// <summary>
         /// Collects where one segment crosses the surface of a body, as arc lengths offset by how far along
@@ -2528,7 +2923,12 @@ namespace GeometryHelper.Core
         /// which is what keeps a chain against a large body from costing a full surface walk per edge.
         /// </para>
         /// </remarks>
-        private static List<double> CollectSurfaceCrossings(GeoLine3 edge, GeoSolid3 cutter, double offset, Tolerance tolerance)
+        private static List<double> CollectSurfaceCrossings(
+            GeoLine3 edge,
+            GeoSolid3 cutter,
+            double offset,
+            Tolerance tolerance
+        )
         {
             List<double> cuts = new List<double>();
 
@@ -2562,7 +2962,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Splits a polyline by a plane and sorts the pieces by side, using the default tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoPolyline3 subject, GeoPlane3 cutter, out GeoPolyline3[] above, out GeoPolyline3[] below)
+        public static bool TrySplitBy(
+            GeoPolyline3 subject,
+            GeoPlane3 cutter,
+            out GeoPolyline3[] above,
+            out GeoPolyline3[] below
+        )
         {
             return TrySplitBy(subject, cutter, out above, out below, Tolerance.Global);
         }
@@ -2590,7 +2995,13 @@ namespace GeometryHelper.Core
         /// the longest run on each side rather than a chain chopped at positions that separate nothing.
         /// </para>
         /// </remarks>
-        public static bool TrySplitBy(GeoPolyline3 subject, GeoPlane3 cutter, out GeoPolyline3[] above, out GeoPolyline3[] below, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline3 subject,
+            GeoPlane3 cutter,
+            out GeoPolyline3[] above,
+            out GeoPolyline3[] below,
+            Tolerance tolerance
+        )
         {
             if (subject == null)
             {
@@ -2599,7 +3010,12 @@ namespace GeometryHelper.Core
 
             TrySplitBy(subject, cutter, out GeoPolyline3[] pieces, tolerance);
 
-            return SortPieces(pieces, point => Containment3.GetSide(cutter, point, tolerance) != PlaneSide.Below, out above, out below);
+            return SortPieces(
+                pieces,
+                point => Containment3.GetSide(cutter, point, tolerance) != PlaneSide.Below,
+                out above,
+                out below
+            );
         }
 
         /// <summary>
@@ -2613,11 +3029,22 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Splits a line segment by a plane and sorts the pieces by side, within a tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoLine3 subject, GeoPlane3 cutter, out GeoLine3[] above, out GeoLine3[] below, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoLine3 subject,
+            GeoPlane3 cutter,
+            out GeoLine3[] above,
+            out GeoLine3[] below,
+            Tolerance tolerance
+        )
         {
             TrySplitBy(subject, cutter, out GeoLine3[] pieces, tolerance);
 
-            return SortPieces(pieces, point => Containment3.GetSide(cutter, point, tolerance) != PlaneSide.Below, out above, out below);
+            return SortPieces(
+                pieces,
+                point => Containment3.GetSide(cutter, point, tolerance) != PlaneSide.Below,
+                out above,
+                out below
+            );
         }
 
         #endregion
@@ -2651,7 +3078,12 @@ namespace GeometryHelper.Core
         /// anywhere the region divides.
         /// </para>
         /// </remarks>
-        public static bool TrySplitBy(GeoPolyline3 subject, GeoPolygon3 cutter, out GeoPolyline3[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline3 subject,
+            GeoPolygon3 cutter,
+            out GeoPolyline3[] pieces,
+            Tolerance tolerance
+        )
         {
             if (subject == null)
             {
@@ -2663,7 +3095,12 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutter));
             }
 
-            return TryCutAtCrossings(subject, (GeoLine3 edge, out GeoPoint3 hit) => Intersection3.TryCross(edge, cutter, out hit, tolerance), out pieces, tolerance);
+            return TryCutAtCrossings(
+                subject,
+                (GeoLine3 edge, out GeoPoint3 hit) => Intersection3.TryCross(edge, cutter, out hit, tolerance),
+                out pieces,
+                tolerance
+            );
         }
 
         /// <summary>
@@ -2681,7 +3118,12 @@ namespace GeometryHelper.Core
         /// The holes in the face are respected: a chain threading through a hole passes through nothing and
         /// is not cut there.
         /// </remarks>
-        public static bool TrySplitBy(GeoPolyline3 subject, GeoFace3 cutter, out GeoPolyline3[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline3 subject,
+            GeoFace3 cutter,
+            out GeoPolyline3[] pieces,
+            Tolerance tolerance
+        )
         {
             if (subject == null)
             {
@@ -2693,7 +3135,12 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutter));
             }
 
-            return TryCutAtCrossings(subject, (GeoLine3 edge, out GeoPoint3 hit) => Intersection3.TryCross(edge, cutter, out hit, tolerance), out pieces, tolerance);
+            return TryCutAtCrossings(
+                subject,
+                (GeoLine3 edge, out GeoPoint3 hit) => Intersection3.TryCross(edge, cutter, out hit, tolerance),
+                out pieces,
+                tolerance
+            );
         }
 
         /// <summary>
@@ -2759,7 +3206,12 @@ namespace GeometryHelper.Core
         /// A segment can meet a flat region at most once, since the region lies in a single plane and the
         /// segment crosses that plane at most once, so one test per segment is enough.
         /// </remarks>
-        private static bool TryCutAtCrossings(GeoPolyline3 subject, CrossingTest test, out GeoPolyline3[] pieces, Tolerance tolerance)
+        private static bool TryCutAtCrossings(
+            GeoPolyline3 subject,
+            CrossingTest test,
+            out GeoPolyline3[] pieces,
+            Tolerance tolerance
+        )
         {
             List<double> cuts = new List<double>();
             double travelled = 0.0;
@@ -2828,7 +3280,12 @@ namespace GeometryHelper.Core
         /// needs the crossings paired up the way a plane cut pairs them; that is not attempted here.
         /// </para>
         /// </remarks>
-        public static bool TrySplitBy(GeoPolygon3 subject, GeoPolyline3 cutLine, out GeoPolygon3[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolygon3 subject,
+            GeoPolyline3 cutLine,
+            out GeoPolygon3[] pieces,
+            Tolerance tolerance
+        )
         {
             if (subject == null)
             {
@@ -2849,8 +3306,10 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            if (!Containment3.IsPointOn(subject, cutLine.StartPoint, tolerance) ||
-                !Containment3.IsPointOn(subject, cutLine.EndPoint, tolerance))
+            if (
+                !Containment3.IsPointOn(subject, cutLine.StartPoint, tolerance)
+                || !Containment3.IsPointOn(subject, cutLine.EndPoint, tolerance)
+            )
             {
                 return false;
             }
@@ -2980,14 +3439,18 @@ namespace GeometryHelper.Core
         /// wrap into a plain comparison. A corner within the tolerance of either end is left out, as a polygon
         /// would drop the one or the other.
         /// </remarks>
-        private static List<GeoPoint3> BoundarySpan(GeoPolygon3 polygon, double from, double to, GeoPoint3 fromPoint, GeoPoint3 toPoint, Tolerance tolerance)
+        private static List<GeoPoint3> BoundarySpan(
+            GeoPolygon3 polygon,
+            double from,
+            double to,
+            GeoPoint3 fromPoint,
+            GeoPoint3 toPoint,
+            Tolerance tolerance
+        )
         {
             double perimeter = polygon.Length;
 
-            List<GeoPoint3> span = new List<GeoPoint3>
-            {
-                fromPoint
-            };
+            List<GeoPoint3> span = new List<GeoPoint3> { fromPoint };
 
             double reach = Ahead(to - from, perimeter);
 
@@ -3007,8 +3470,12 @@ namespace GeometryHelper.Core
 
                 GeoPoint3 corner = polygon[(i + 1) % polygon.VertexCount];
 
-                if (ahead > tolerance.EqualPoint && ahead < reach - tolerance.EqualPoint &&
-                    !corner.IsEqualTo(fromPoint, tolerance) && !corner.IsEqualTo(toPoint, tolerance))
+                if (
+                    ahead > tolerance.EqualPoint
+                    && ahead < reach - tolerance.EqualPoint
+                    && !corner.IsEqualTo(fromPoint, tolerance)
+                    && !corner.IsEqualTo(toPoint, tolerance)
+                )
                 {
                     aheads.Add(ahead);
                     candidates.Add(corner);
@@ -3059,7 +3526,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Splits a polygon by a solid, using the default tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoPolygon3 subject, GeoSolid3 cutter, out GeoPolygon3[] inside, out GeoPolygon3[] outside)
+        public static bool TrySplitBy(
+            GeoPolygon3 subject,
+            GeoSolid3 cutter,
+            out GeoPolygon3[] inside,
+            out GeoPolygon3[] outside
+        )
         {
             return TrySplitBy(subject, cutter, out inside, out outside, Tolerance.Global);
         }
@@ -3093,7 +3565,13 @@ namespace GeometryHelper.Core
         /// separates nothing is rejected before any work is done.
         /// </para>
         /// </remarks>
-        public static bool TrySplitBy(GeoPolygon3 subject, GeoSolid3 cutter, out GeoPolygon3[] inside, out GeoPolygon3[] outside, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolygon3 subject,
+            GeoSolid3 cutter,
+            out GeoPolygon3[] inside,
+            out GeoPolygon3[] outside,
+            Tolerance tolerance
+        )
         {
             if (subject == null)
             {
@@ -3182,7 +3660,13 @@ namespace GeometryHelper.Core
         /// plane in it already, and where a list of reaches is given, the box of each face to the reach of its plane; see
         /// <see cref="AddPlane"/>.
         /// </summary>
-        internal static void CollectFacePlanes(GeoSolid3 solid, GeoAabb3 region, Tolerance tolerance, List<GeoPlane3> planes, List<GeoAabb3> reach)
+        internal static void CollectFacePlanes(
+            GeoSolid3 solid,
+            GeoAabb3 region,
+            Tolerance tolerance,
+            List<GeoPlane3> planes,
+            List<GeoAabb3> reach
+        )
         {
             foreach (GeoFace3 face in solid.Faces)
             {
@@ -3204,7 +3688,13 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="planes">The planes collected so far.</param>
         /// <param name="reach">The reach of each plane in <paramref name="planes"/>, in its order; null where it is not wanted.</param>
-        internal static void AddPlane(GeoFace3 face, GeoAabb3 region, Tolerance tolerance, List<GeoPlane3> planes, List<GeoAabb3> reach)
+        internal static void AddPlane(
+            GeoFace3 face,
+            GeoAabb3 region,
+            Tolerance tolerance,
+            List<GeoPlane3> planes,
+            List<GeoAabb3> reach
+        )
         {
             GeoPlane3 plane = face.GetPlane();
 

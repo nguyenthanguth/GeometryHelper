@@ -18,7 +18,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnRowClick(object sender, MouseButtonEventArgs e)
         {
-            if (DataContext is MainViewModel model && ((FrameworkElement)sender).DataContext is CommandSuggestionViewModel row)
+            if (
+                DataContext is MainViewModel model
+                && ((FrameworkElement)sender).DataContext is CommandSuggestionViewModel row
+            )
             {
                 model.RunSuggestion(row);
                 e.Handled = true;

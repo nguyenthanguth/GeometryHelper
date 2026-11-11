@@ -49,7 +49,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             GeoSolid3 body = ClosingTestBodies.BoxWithTopCornersMovedOut((6, 0.02));
             GeoPoint3 moved = ClosingTestBodies.Corners()[6].Add(ClosingTestBodies.OutOfTheTop(6).Multiply(0.02));
 
-            Assert.False(body.TryClose(out GeoSolid3 notClosed, new SolidClosingOptions(Fine, 0.005), out SolidClosing3 refused));
+            Assert.False(
+                body.TryClose(out GeoSolid3 notClosed, new SolidClosingOptions(Fine, 0.005), out SolidClosing3 refused)
+            );
             Assert.Equal(ClosingFailure.GapTooWide, refused.Failure);
             Assert.Null(notClosed);
             Assert.Empty(refused.Repairs);
@@ -114,8 +116,12 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.False(body.Validate(Fine).IsClosed);
 
             SolidClosing3 report = AssertWelded(body, 0.005, out GeoSolid3 closed);
-            Assert.Contains(report.Repairs, repair => repair.Kind == SolidRepairKind.Weld && repair.Size >= 0.0014 && repair.Size <= 0.0016);
-            Assert.Contains(report.Repairs, repair => repair.Kind == SolidRepairKind.Weld && repair.Size >= 0.0034 && repair.Size <= 0.0036);
+            Assert.Contains(report.Repairs, repair =>
+                repair.Kind == SolidRepairKind.Weld && repair.Size >= 0.0014 && repair.Size <= 0.0016
+            );
+            Assert.Contains(report.Repairs, repair =>
+                repair.Kind == SolidRepairKind.Weld && repair.Size >= 0.0034 && repair.Size <= 0.0036
+            );
             Assert.Equal(6, closed.Faces.Count);
             Assert.InRange(closed.GetVolume(Fine), Volume - 0.0035 * Area, Volume + 0.0035 * Area);
         }
@@ -127,7 +133,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // no corner of the front is near it. The crack lies in the top's plane, and the corner is moved onto the front's
             // edge within it, the edge split there; threaded into the front instead, it would fold the front under the top.
             GeoSolid3 body = ClosingTestBodies.BoxWithTheTopsFrontBentOut(0.003);
-            Assert.Contains(body.Validate(Fine).Issues, issue => issue.Kind == SolidIssueKind.OpenEdge && issue.Faces.Count == 1 && issue.Size > 29.0);
+            Assert.Contains(body.Validate(Fine).Issues, issue =>
+                issue.Kind == SolidIssueKind.OpenEdge && issue.Faces.Count == 1 && issue.Size > 29.0
+            );
 
             SolidClosing3 report = AssertWelded(body, 0.005, out GeoSolid3 closed);
             Assert.Contains(report.Repairs, repair => repair.Size >= 0.0029 && repair.Size <= 0.0031);
@@ -173,7 +181,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.True(slotted.Validate(Fine).IsValid);
             Assert.Equal(PointLocation.OutSide, slotted.Locate(inTheSlot, Fine));
 
-            GeoSolid3 body = ClosingTestBodies.PrismWithTopCornerMoved(plan, 0, 10, 1, new GeoVector3(1, -1, 0).Multiply(0.003 / Math.Sqrt(2.0)));
+            GeoSolid3 body = ClosingTestBodies.PrismWithTopCornerMoved(
+                plan,
+                0,
+                10,
+                1,
+                new GeoVector3(1, -1, 0).Multiply(0.003 / Math.Sqrt(2.0))
+            );
             Assert.False(body.Validate(Fine).IsClosed);
 
             SolidClosing3 report = AssertWelded(body, 0.005, out GeoSolid3 closed);
@@ -204,7 +218,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
         // lying back to back, each change a weld or a corner put on an edge.
         private static SolidClosing3 AssertWelded(GeoSolid3 body, double gap, out GeoSolid3 closed)
         {
-            Assert.True(body.TryClose(out closed, new SolidClosingOptions(Fine, gap), out SolidClosing3 report), report.ToString());
+            Assert.True(
+                body.TryClose(out closed, new SolidClosingOptions(Fine, gap), out SolidClosing3 report),
+                report.ToString()
+            );
             Assert.NotSame(body, closed);
             SolidValidation3 check = closed.Validate(Fine);
             Assert.True(check.IsValid, check.ToString());
@@ -214,7 +231,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.Null(report.FailureLocation);
             Assert.Equal(0.0, report.AddedArea);
             Assert.NotEmpty(report.Repairs);
-            Assert.All(report.Repairs, repair => Assert.Contains(repair.Kind, new[] { SolidRepairKind.Weld, SolidRepairKind.SplitEdge }));
+            Assert.All(report.Repairs, repair =>
+                Assert.Contains(repair.Kind, new[] { SolidRepairKind.Weld, SolidRepairKind.SplitEdge })
+            );
             return report;
         }
 

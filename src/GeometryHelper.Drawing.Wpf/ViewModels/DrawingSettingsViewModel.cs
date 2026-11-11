@@ -74,7 +74,17 @@ namespace GeometryHelper.Drawing.Wpf
         private string _value;
         private string _error = string.Empty;
 
-        internal SettingRow(SettingRowKind kind, string label, string hint, string unit, Func<string> get, Action<string> set, Action changed, IReadOnlyList<string> options = null, IReadOnlyList<SettingChip> chips = null)
+        internal SettingRow(
+            SettingRowKind kind,
+            string label,
+            string hint,
+            string unit,
+            Func<string> get,
+            Action<string> set,
+            Action changed,
+            IReadOnlyList<string> options = null,
+            IReadOnlyList<SettingChip> chips = null
+        )
         {
             Kind = kind;
             Label = label;
@@ -217,13 +227,32 @@ namespace GeometryHelper.Drawing.Wpf
     public sealed class DrawingSettingsViewModel : DialogViewModel
     {
         /// <summary>The names of the tabs, in order.</summary>
-        public static readonly IReadOnlyList<string> TabNames = new[] { "Views", "Scales", "Dimensions", "Marks", "Sheet" };
+        public static readonly IReadOnlyList<string> TabNames = new[]
+        {
+            "Views",
+            "Scales",
+            "Dimensions",
+            "Marks",
+            "Sheet",
+        };
 
         private static readonly double[] KnownScales = { 1, 2, 5, 10, 15, 20, 25, 50, 100, 200, 500 };
-        private static readonly ViewKind[] AxisKinds = { ViewKind.Front, ViewKind.Top, ViewKind.Bottom, ViewKind.Right, ViewKind.Left, ViewKind.Back, ViewKind.Isometric };
+        private static readonly ViewKind[] AxisKinds =
+        {
+            ViewKind.Front,
+            ViewKind.Top,
+            ViewKind.Bottom,
+            ViewKind.Right,
+            ViewKind.Left,
+            ViewKind.Back,
+            ViewKind.Isometric,
+        };
 
         private readonly DrawingWorkspace _workspace;
-        private readonly Dictionary<string, IReadOnlyList<SettingSection>> _tabs = new Dictionary<string, IReadOnlyList<SettingSection>>(StringComparer.Ordinal);
+        private readonly Dictionary<string, IReadOnlyList<SettingSection>> _tabs = new Dictionary<
+            string,
+            IReadOnlyList<SettingSection>
+        >(StringComparer.Ordinal);
         private string _tab = "Views";
         private bool _isDirty;
         private string _notice = string.Empty;
@@ -287,13 +316,20 @@ namespace GeometryHelper.Drawing.Wpf
                         return new[]
                         {
                             "Views: " + string.Join(", ", Settings.Views.Kinds.Select(ViewName)),
-                            Settings.Views.Sections.Count == 0 ? "No sections asked for." : "Sections: " + string.Join(", ", Settings.Views.Sections.Select(s => s.Name + "-" + s.Name)),
-                            (Settings.ProjectionMethod == ProjectionMethod.FirstAngle ? "First" : "Third") + "-angle projection: the top view goes " + (Settings.ProjectionMethod == ProjectionMethod.FirstAngle ? "below" : "above") + " the front view.",
+                            Settings.Views.Sections.Count == 0
+                                ? "No sections asked for."
+                                : "Sections: "
+                                    + string.Join(", ", Settings.Views.Sections.Select(s => s.Name + "-" + s.Name)),
+                            (Settings.ProjectionMethod == ProjectionMethod.FirstAngle ? "First" : "Third")
+                                + "-angle projection: the top view goes "
+                                + (Settings.ProjectionMethod == ProjectionMethod.FirstAngle ? "below" : "above")
+                                + " the front view.",
                         };
                     case "Scales":
                         return new[]
                         {
-                            "Allowed: " + string.Join(", ", Settings.Scales.OrderBy(s => s).Select(s => "1:" + Length(s))),
+                            "Allowed: "
+                                + string.Join(", ", Settings.Scales.OrderBy(s => s).Select(s => "1:" + Length(s))),
                             "Now: 1:" + Length(Drawing.Drawing.Scale),
                             "The largest allowed scale at which every view and its dimensions fit the room the sheet gives them.",
                         };
@@ -301,22 +337,51 @@ namespace GeometryHelper.Drawing.Wpf
                         return new[]
                         {
                             "Rules: " + string.Join(", ", DimensionRules()),
-                            "Views dimensioned: " + (Settings.Views.Dimensioned.Count == 0 ? "none" : string.Join(", ", Settings.Views.Dimensioned.Select(ViewName))),
-                            "Tiers " + Length(Settings.Dimensions.TierSpacing) + " mm apart on the sheet, text " + Length(Settings.Dimensions.TextHeight) + " mm, rounded to " + Length(Settings.Dimensions.Rounding) + " mm.",
+                            "Views dimensioned: "
+                                + (
+                                    Settings.Views.Dimensioned.Count == 0
+                                        ? "none"
+                                        : string.Join(", ", Settings.Views.Dimensioned.Select(ViewName))
+                                ),
+                            "Tiers "
+                                + Length(Settings.Dimensions.TierSpacing)
+                                + " mm apart on the sheet, text "
+                                + Length(Settings.Dimensions.TextHeight)
+                                + " mm, rounded to "
+                                + Length(Settings.Dimensions.Rounding)
+                                + " mm.",
                         };
                     case "Marks":
                         return new[]
                         {
-                            "Marked: " + (Settings.Marks.MainParts && Settings.Marks.Fittings ? "main parts and fittings" : Settings.Marks.MainParts ? "main parts" : Settings.Marks.Fittings ? "fittings" : "nothing"),
-                            "Text " + Length(Settings.Marks.TextHeight) + " mm high, " + Length(Settings.Marks.Offset) + " mm off its part.",
+                            "Marked: "
+                                + (
+                                    Settings.Marks.MainParts && Settings.Marks.Fittings ? "main parts and fittings"
+                                    : Settings.Marks.MainParts ? "main parts"
+                                    : Settings.Marks.Fittings ? "fittings"
+                                    : "nothing"
+                                ),
+                            "Text "
+                                + Length(Settings.Marks.TextHeight)
+                                + " mm high, "
+                                + Length(Settings.Marks.Offset)
+                                + " mm off its part.",
                             "Marks are placed so that none covers another mark, a dimension or a line where it can be avoided.",
                         };
                     default:
                         return new[]
                         {
-                            Settings.Sheet.Size + " " + Settings.Sheet.Orientation.ToString().ToLowerInvariant() + ", frame " + Length(Settings.Sheet.Margin) + " mm in from the edge.",
-                            "Title block 180 by 40 in the lower right corner" + (Settings.Sheet.PartList ? ", the part list above it." : "; no part list."),
-                            Settings.Sheet.AllowLargerSheet ? "A larger sheet is taken where the views do not fit." : "The sheet stays its size; views that do not fit are said.",
+                            Settings.Sheet.Size
+                                + " "
+                                + Settings.Sheet.Orientation.ToString().ToLowerInvariant()
+                                + ", frame "
+                                + Length(Settings.Sheet.Margin)
+                                + " mm in from the edge.",
+                            "Title block 180 by 40 in the lower right corner"
+                                + (Settings.Sheet.PartList ? ", the part list above it." : "; no part list."),
+                            Settings.Sheet.AllowLargerSheet
+                                ? "A larger sheet is taken where the views do not fit."
+                                : "The sheet stays its size; views that do not fit are said.",
                         };
                 }
             }
@@ -370,9 +435,21 @@ namespace GeometryHelper.Drawing.Wpf
 
             try
             {
-                UpdateReport result = await _workspace.ApplySettingsAsync(Drawing, Settings, "Changed", (text, work) => RunAsync(text, work));
+                UpdateReport result = await _workspace.ApplySettingsAsync(Drawing, Settings, "Changed", (text, work) =>
+                    RunAsync(text, work)
+                );
                 IsDirty = false;
-                Notice = "Made again: " + DrawingWorkspace.Count(result.EditsKept.Count, "hand edit") + " kept" + (result.EditsDropped.Count == 0 ? "." : ", " + result.EditsDropped.Count.ToString(CultureInfo.InvariantCulture) + " no longer apply (see the command line).");
+                Notice =
+                    "Made again: "
+                    + DrawingWorkspace.Count(result.EditsKept.Count, "hand edit")
+                    + " kept"
+                    + (
+                        result.EditsDropped.Count == 0
+                            ? "."
+                            : ", "
+                                + result.EditsDropped.Count.ToString(CultureInfo.InvariantCulture)
+                                + " no longer apply (see the command line)."
+                    );
                 Raise(nameof(Title));
                 return true;
             }
@@ -383,7 +460,9 @@ namespace GeometryHelper.Drawing.Wpf
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
-                _workspace.ShowMessage(MessageViewModel.Failure("Settings not applied", Drawing.Number + " was left as it was.", ex));
+                _workspace.ShowMessage(
+                    MessageViewModel.Failure("Settings not applied", Drawing.Number + " was left as it was.", ex)
+                );
                 return false;
             }
         }
@@ -408,109 +487,278 @@ namespace GeometryHelper.Drawing.Wpf
         {
             DrawingSettings s = Settings;
             ViewSettings v = s.Views;
-            var views = AxisKinds.Select(k => Toggle(ViewName(k), ViewHint(k), () => v.Kinds.Contains(k), on => Include(v.Kinds, k, on))).ToList();
+            var views = AxisKinds
+                .Select(k => Toggle(ViewName(k), ViewHint(k), () => v.Kinds.Contains(k), on => Include(v.Kinds, k, on)))
+                .ToList();
             _tabs["Views"] = new[]
             {
                 new SettingSection("Views to make", views),
-                new SettingSection("Sections and details", new[]
-                {
-                    Info("Sections asked for", v.Sections.Count == 0 ? "None" : string.Join(", ", v.Sections.Select(x => x.Name + " at " + Length(x.Share * 100) + " %, looking as " + ViewName(x.LookingAs)))),
-                    Info("Details asked for", v.Details.Count == 0 ? "None" : string.Join(", ", v.Details.Select(x => x.Name + " of " + ViewName(x.Of) + ", " + Length(x.Enlargement) + " times"))),
-                    Info("From cut lines", "Drawn on a view: the next step"),
-                    Choice("Projection", new[] { "Third angle", "First angle" }, () => s.ProjectionMethod == ProjectionMethod.FirstAngle ? "First angle" : "Third angle",
-                        x => s.ProjectionMethod = x == "First angle" ? ProjectionMethod.FirstAngle : ProjectionMethod.ThirdAngle),
-                }),
-                new SettingSection("Visible area", new[]
-                {
-                    Number("Crop margin", "mm", () => v.CropMargin, x => v.CropMargin = x),
-                    Number("Section depth", "mm", () => v.SectionDepth, x => v.SectionDepth = x),
-                    Number("Smooth angle", "°", () => v.SmoothAngleRad * 180.0 / Math.PI, x => v.SmoothAngleRad = x * Math.PI / 180.0),
-                    Toggle("Hidden lines", "drawn dashed on the Hidden layer", () => v.HiddenLines, on => v.HiddenLines = on),
-                }),
+                new SettingSection(
+                    "Sections and details",
+                    new[]
+                    {
+                        Info(
+                            "Sections asked for",
+                            v.Sections.Count == 0
+                                ? "None"
+                                : string.Join(
+                                    ", ",
+                                    v.Sections.Select(x =>
+                                        x.Name
+                                        + " at "
+                                        + Length(x.Share * 100)
+                                        + " %, looking as "
+                                        + ViewName(x.LookingAs)
+                                    )
+                                )
+                        ),
+                        Info(
+                            "Details asked for",
+                            v.Details.Count == 0
+                                ? "None"
+                                : string.Join(
+                                    ", ",
+                                    v.Details.Select(x =>
+                                        x.Name + " of " + ViewName(x.Of) + ", " + Length(x.Enlargement) + " times"
+                                    )
+                                )
+                        ),
+                        Info("From cut lines", "Drawn on a view: the next step"),
+                        Choice(
+                            "Projection",
+                            new[] { "Third angle", "First angle" },
+                            () => s.ProjectionMethod == ProjectionMethod.FirstAngle ? "First angle" : "Third angle",
+                            x =>
+                                s.ProjectionMethod =
+                                    x == "First angle" ? ProjectionMethod.FirstAngle : ProjectionMethod.ThirdAngle
+                        ),
+                    }
+                ),
+                new SettingSection(
+                    "Visible area",
+                    new[]
+                    {
+                        Number("Crop margin", "mm", () => v.CropMargin, x => v.CropMargin = x),
+                        Number("Section depth", "mm", () => v.SectionDepth, x => v.SectionDepth = x),
+                        Number(
+                            "Smooth angle",
+                            "°",
+                            () => v.SmoothAngleRad * 180.0 / Math.PI,
+                            x => v.SmoothAngleRad = x * Math.PI / 180.0
+                        ),
+                        Toggle(
+                            "Hidden lines",
+                            "drawn dashed on the Hidden layer",
+                            () => v.HiddenLines,
+                            on => v.HiddenLines = on
+                        ),
+                    }
+                ),
             };
 
-            var scales = KnownScales.Union(s.Scales).OrderBy(x => x).Select(x => new SettingChip("1:" + Length(x), () => s.Scales.Contains(x), on => SetScale(x, on))).ToList();
+            var scales = KnownScales
+                .Union(s.Scales)
+                .OrderBy(x => x)
+                .Select(x => new SettingChip("1:" + Length(x), () => s.Scales.Contains(x), on => SetScale(x, on)))
+                .ToList();
             _tabs["Scales"] = new[]
             {
-                new SettingSection("Allowed scales", new[]
-                {
-                    new SettingRow(SettingRowKind.Chips, "Views", null, null, () => string.Empty, null, Changed, chips: scales),
-                    Info("Chosen", "The largest allowed that fits, every view at one scale; a detail at its own"),
-                }),
+                new SettingSection(
+                    "Allowed scales",
+                    new[]
+                    {
+                        new SettingRow(
+                            SettingRowKind.Chips,
+                            "Views",
+                            null,
+                            null,
+                            () => string.Empty,
+                            null,
+                            Changed,
+                            chips: scales
+                        ),
+                        Info("Chosen", "The largest allowed that fits, every view at one scale; a detail at its own"),
+                    }
+                ),
             };
 
             AnnotationDimensions(s);
             _tabs["Marks"] = new[]
             {
-                new SettingSection("Content", new[]
-                {
-                    Toggle("Main parts", "the main part of each assembly", () => s.Marks.MainParts, on => s.Marks.MainParts = on),
-                    Toggle("Fittings", "the parts that are not main parts", () => s.Marks.Fittings, on => s.Marks.Fittings = on),
-                }),
-                new SettingSection("Look and placing", new[]
-                {
-                    Number("Text height", "mm", () => s.Marks.TextHeight, x => s.Marks.TextHeight = x),
-                    Number("Offset from the part", "mm", () => s.Marks.Offset, x => s.Marks.Offset = x),
-                }),
+                new SettingSection(
+                    "Content",
+                    new[]
+                    {
+                        Toggle(
+                            "Main parts",
+                            "the main part of each assembly",
+                            () => s.Marks.MainParts,
+                            on => s.Marks.MainParts = on
+                        ),
+                        Toggle(
+                            "Fittings",
+                            "the parts that are not main parts",
+                            () => s.Marks.Fittings,
+                            on => s.Marks.Fittings = on
+                        ),
+                    }
+                ),
+                new SettingSection(
+                    "Look and placing",
+                    new[]
+                    {
+                        Number("Text height", "mm", () => s.Marks.TextHeight, x => s.Marks.TextHeight = x),
+                        Number("Offset from the part", "mm", () => s.Marks.Offset, x => s.Marks.Offset = x),
+                    }
+                ),
             };
 
             SheetSettings sheet = s.Sheet;
             TitleBlock title = sheet.TitleBlock;
             _tabs["Sheet"] = new[]
             {
-                new SettingSection("Sheet", new[]
-                {
-                    Choice("Size", NewDrawingViewModel.SheetSizeNames, () => sheet.Size.ToString(), x => sheet.Size = (PaperSize)Enum.Parse(typeof(PaperSize), x)),
-                    Choice("Orientation", new[] { "Landscape", "Portrait" }, () => sheet.Orientation.ToString(), x => sheet.Orientation = (SheetOrientation)Enum.Parse(typeof(SheetOrientation), x)),
-                    Number("Margin", "mm", () => sheet.Margin, x => sheet.Margin = x),
-                    Number("View spacing", "mm", () => sheet.ViewSpacing, x => sheet.ViewSpacing = x),
-                    Toggle("Grow the sheet if the views do not fit", "up to A0", () => sheet.AllowLargerSheet, on => sheet.AllowLargerSheet = on),
-                    Toggle("Part list", "mark, quantity, profile, material, length", () => sheet.PartList, on => sheet.PartList = on),
-                }),
-                new SettingSection("Title block", new[]
-                {
-                    Text("Project", () => title.Project, x => title.Project = x),
-                    Text("Drawing number", () => title.DrawingNumber, x => title.DrawingNumber = x),
-                    Text("Title", () => title.Title, x => title.Title = x),
-                    Text("Revision", () => title.Revision, x => title.Revision = x),
-                    Text("Company", () => title.Company, x => title.Company = x),
-                    Text("Drawn by", () => title.DrawnBy, x => title.DrawnBy = x),
-                    Text("Date", () => title.Date, x => title.Date = x),
-                }),
+                new SettingSection(
+                    "Sheet",
+                    new[]
+                    {
+                        Choice(
+                            "Size",
+                            NewDrawingViewModel.SheetSizeNames,
+                            () => sheet.Size.ToString(),
+                            x => sheet.Size = (PaperSize)Enum.Parse(typeof(PaperSize), x)
+                        ),
+                        Choice(
+                            "Orientation",
+                            new[] { "Landscape", "Portrait" },
+                            () => sheet.Orientation.ToString(),
+                            x => sheet.Orientation = (SheetOrientation)Enum.Parse(typeof(SheetOrientation), x)
+                        ),
+                        Number("Margin", "mm", () => sheet.Margin, x => sheet.Margin = x),
+                        Number("View spacing", "mm", () => sheet.ViewSpacing, x => sheet.ViewSpacing = x),
+                        Toggle(
+                            "Grow the sheet if the views do not fit",
+                            "up to A0",
+                            () => sheet.AllowLargerSheet,
+                            on => sheet.AllowLargerSheet = on
+                        ),
+                        Toggle(
+                            "Part list",
+                            "mark, quantity, profile, material, length",
+                            () => sheet.PartList,
+                            on => sheet.PartList = on
+                        ),
+                    }
+                ),
+                new SettingSection(
+                    "Title block",
+                    new[]
+                    {
+                        Text("Project", () => title.Project, x => title.Project = x),
+                        Text("Drawing number", () => title.DrawingNumber, x => title.DrawingNumber = x),
+                        Text("Title", () => title.Title, x => title.Title = x),
+                        Text("Revision", () => title.Revision, x => title.Revision = x),
+                        Text("Company", () => title.Company, x => title.Company = x),
+                        Text("Drawn by", () => title.DrawnBy, x => title.DrawnBy = x),
+                        Text("Date", () => title.Date, x => title.Date = x),
+                    }
+                ),
             };
         }
 
         private void AnnotationDimensions(DrawingSettings s)
         {
             Annotation.DimensionSettings d = s.Dimensions;
-            ViewKind[] dimensionable = { ViewKind.Front, ViewKind.Top, ViewKind.Bottom, ViewKind.Right, ViewKind.Left, ViewKind.Back, ViewKind.Section };
-            var dimensioned = dimensionable.Select(k => new SettingChip(ViewName(k), () => s.Views.Dimensioned.Contains(k), on =>
+            ViewKind[] dimensionable =
             {
-                Include(s.Views.Dimensioned, k, on);
-                Changed();
-                return true;
-            })).ToList();
+                ViewKind.Front,
+                ViewKind.Top,
+                ViewKind.Bottom,
+                ViewKind.Right,
+                ViewKind.Left,
+                ViewKind.Back,
+                ViewKind.Section,
+            };
+            var dimensioned = dimensionable
+                .Select(k => new SettingChip(
+                    ViewName(k),
+                    () => s.Views.Dimensioned.Contains(k),
+                    on =>
+                    {
+                        Include(s.Views.Dimensioned, k, on);
+                        Changed();
+                        return true;
+                    }
+                ))
+                .ToList();
             _tabs["Dimensions"] = new[]
             {
-                new SettingSection("Rules", new[]
-                {
-                    Toggle("Overall", "length, width and height of the main part", () => d.Overall, on => d.Overall = on),
-                    Toggle("Chain", "end to end through the centres of holes and bolts", () => d.Chain, on => d.Chain = on),
-                    Toggle("Cumulative", "all from the main part's first end", () => d.Cumulative, on => d.Cumulative = on),
-                    Toggle("Ordinate", "all from the main part's work point", () => d.Ordinate, on => d.Ordinate = on),
-                    Toggle("Holes by group", "pitch as n x p and the distance to the ends", () => d.HolesByGroup, on => d.HolesByGroup = on),
-                    Toggle("Merge equal dimensions", "equal neighbours as one n x p", () => d.MergeEqual, on => d.MergeEqual = on),
-                }),
-                new SettingSection("Views dimensioned", new[]
-                {
-                    new SettingRow(SettingRowKind.Chips, "Views", null, null, () => string.Empty, null, Changed, chips: dimensioned),
-                }),
-                new SettingSection("Placing and text", new[]
-                {
-                    Number("Tier spacing", "mm", () => d.TierSpacing, x => d.TierSpacing = x),
-                    Number("Text height", "mm", () => d.TextHeight, x => d.TextHeight = x),
-                    Number("Rounding", "mm", () => d.Rounding, x => d.Rounding = x),
-                }),
+                new SettingSection(
+                    "Rules",
+                    new[]
+                    {
+                        Toggle(
+                            "Overall",
+                            "length, width and height of the main part",
+                            () => d.Overall,
+                            on => d.Overall = on
+                        ),
+                        Toggle(
+                            "Chain",
+                            "end to end through the centres of holes and bolts",
+                            () => d.Chain,
+                            on => d.Chain = on
+                        ),
+                        Toggle(
+                            "Cumulative",
+                            "all from the main part's first end",
+                            () => d.Cumulative,
+                            on => d.Cumulative = on
+                        ),
+                        Toggle(
+                            "Ordinate",
+                            "all from the main part's work point",
+                            () => d.Ordinate,
+                            on => d.Ordinate = on
+                        ),
+                        Toggle(
+                            "Holes by group",
+                            "pitch as n x p and the distance to the ends",
+                            () => d.HolesByGroup,
+                            on => d.HolesByGroup = on
+                        ),
+                        Toggle(
+                            "Merge equal dimensions",
+                            "equal neighbours as one n x p",
+                            () => d.MergeEqual,
+                            on => d.MergeEqual = on
+                        ),
+                    }
+                ),
+                new SettingSection(
+                    "Views dimensioned",
+                    new[]
+                    {
+                        new SettingRow(
+                            SettingRowKind.Chips,
+                            "Views",
+                            null,
+                            null,
+                            () => string.Empty,
+                            null,
+                            Changed,
+                            chips: dimensioned
+                        ),
+                    }
+                ),
+                new SettingSection(
+                    "Placing and text",
+                    new[]
+                    {
+                        Number("Tier spacing", "mm", () => d.TierSpacing, x => d.TierSpacing = x),
+                        Number("Text height", "mm", () => d.TextHeight, x => d.TextHeight = x),
+                        Number("Rounding", "mm", () => d.Rounding, x => d.Rounding = x),
+                    }
+                ),
             };
         }
 
@@ -593,23 +841,44 @@ namespace GeometryHelper.Drawing.Wpf
             ((DelegateCommand)OkCommand)?.RaiseCanExecuteChanged();
         }
 
-        private SettingRow Toggle(string label, string hint, Func<bool> get, Action<bool> set)
-            => new SettingRow(SettingRowKind.Toggle, label, hint, null, () => get() ? "1" : "0", x => set(x == "1"), Changed);
+        private SettingRow Toggle(string label, string hint, Func<bool> get, Action<bool> set) =>
+            new SettingRow(
+                SettingRowKind.Toggle,
+                label,
+                hint,
+                null,
+                () => get() ? "1" : "0",
+                x => set(x == "1"),
+                Changed
+            );
 
-        private SettingRow Number(string label, string unit, Func<double> get, Action<double> set)
-            => new SettingRow(SettingRowKind.Number, label, null, unit, () => Plain(get()), x => set(double.Parse(x.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture)), Changed);
+        private SettingRow Number(string label, string unit, Func<double> get, Action<double> set) =>
+            new SettingRow(
+                SettingRowKind.Number,
+                label,
+                null,
+                unit,
+                () => Plain(get()),
+                x => set(double.Parse(x.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture)),
+                Changed
+            );
 
-        private SettingRow Text(string label, Func<string> get, Action<string> set)
-            => new SettingRow(SettingRowKind.Text, label, null, null, get, set, Changed);
+        private SettingRow Text(string label, Func<string> get, Action<string> set) =>
+            new SettingRow(SettingRowKind.Text, label, null, null, get, set, Changed);
 
-        private SettingRow Choice(string label, IReadOnlyList<string> options, Func<string> get, Action<string> set)
-            => new SettingRow(SettingRowKind.Choice, label, null, null, get, set, Changed, options);
+        private SettingRow Choice(string label, IReadOnlyList<string> options, Func<string> get, Action<string> set) =>
+            new SettingRow(SettingRowKind.Choice, label, null, null, get, set, Changed, options);
 
-        private static SettingRow Info(string label, string value) => new SettingRow(SettingRowKind.Info, label, null, null, () => value, null, null);
+        private static SettingRow Info(string label, string value) =>
+            new SettingRow(SettingRowKind.Info, label, null, null, () => value, null, null);
 
-        private static string Plain(double value) => Math.Round(value, 6).ToString("0.######", CultureInfo.InvariantCulture);
+        private static string Plain(double value) =>
+            Math.Round(value, 6).ToString("0.######", CultureInfo.InvariantCulture);
 
-        private static string ViewName(ViewKind kind) => kind == ViewKind.Right ? "Right end" : kind == ViewKind.Left ? "Left end" : kind.ToString();
+        private static string ViewName(ViewKind kind) =>
+            kind == ViewKind.Right ? "Right end"
+            : kind == ViewKind.Left ? "Left end"
+            : kind.ToString();
 
         private static string ViewHint(ViewKind kind)
         {

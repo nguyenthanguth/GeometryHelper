@@ -46,7 +46,10 @@ namespace GeometryHelper.Viewer
 
             if (double.IsNaN(width) || double.IsInfinity(width) || width < 0.0)
             {
-                throw new ArgumentException("The width of a view must be a finite number not below nought.", nameof(width));
+                throw new ArgumentException(
+                    "The width of a view must be a finite number not below nought.",
+                    nameof(width)
+                );
             }
 
             Name = name;
@@ -104,7 +107,14 @@ namespace GeometryHelper.Viewer
             }
 
             double width = 2.0 * camera.Distance * camera.HalfHeightRatio * Math.Max(aspect, 1E-6);
-            return new SavedView(name, camera.Target - camera.Forward * camera.Distance, camera.Target, camera.Up, camera.Orthographic, camera.Orthographic ? width : 0.0);
+            return new SavedView(
+                name,
+                camera.Target - camera.Forward * camera.Distance,
+                camera.Target,
+                camera.Up,
+                camera.Orthographic,
+                camera.Orthographic ? width : 0.0
+            );
         }
 
         /// <summary>
@@ -124,7 +134,8 @@ namespace GeometryHelper.Viewer
             // no larger than that is rounding, and the camera is taken to look straight down or up.
             double scale = Math.Max(
                 Math.Max(Math.Max(Math.Abs(Eye.X), Math.Abs(Eye.Y)), Math.Abs(Eye.Z)),
-                Math.Max(Math.Max(Math.Abs(Target.X), Math.Abs(Target.Y)), Math.Abs(Target.Z)));
+                Math.Max(Math.Max(Math.Abs(Target.X), Math.Abs(Target.Y)), Math.Abs(Target.Z))
+            );
             var flat = new Vec3(Up.X, Up.Y, 0.0).Normalized();
             bool steep = horizontal <= Math.Max(SteepLimit, 1E-15 * scale / look.Length);
 
@@ -140,9 +151,10 @@ namespace GeometryHelper.Viewer
                 camera.Azimuth = Math.Atan2(-forward.Y, -forward.X);
             }
 
-            camera.Distance = Orthographic && Width > 0.0
-                ? Width / (2.0 * camera.HalfHeightRatio * Math.Max(aspect, 1E-6))
-                : look.Length;
+            camera.Distance =
+                Orthographic && Width > 0.0
+                    ? Width / (2.0 * camera.HalfHeightRatio * Math.Max(aspect, 1E-6))
+                    : look.Length;
             return camera;
         }
     }

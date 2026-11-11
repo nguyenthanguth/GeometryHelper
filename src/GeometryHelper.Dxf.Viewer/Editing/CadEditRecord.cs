@@ -44,7 +44,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// where the edit is not of one property.</param>
         /// <param name="oldValue">The value before, as text; null where there is none.</param>
         /// <param name="newValue">The value after, as text; null where there is none.</param>
-        public CadEditRecord(CadEditRecordKind kind, string handle, string property = null, string oldValue = null, string newValue = null)
+        public CadEditRecord(
+            CadEditRecordKind kind,
+            string handle,
+            string property = null,
+            string oldValue = null,
+            string newValue = null
+        )
         {
             Kind = kind;
             Handle = handle;
@@ -81,8 +87,10 @@ namespace GeometryHelper.Dxf.Viewer
         internal bool IsLayerLook { get; set; }
 
         /// <inheritdoc/>
-        public override string ToString()
-            => Kind + (Handle != null ? " " + Handle : string.Empty) + (Property != null ? " " + Property + ": " + OldValue + " -> " + NewValue : string.Empty);
+        public override string ToString() =>
+            Kind
+            + (Handle != null ? " " + Handle : string.Empty)
+            + (Property != null ? " " + Property + ": " + OldValue + " -> " + NewValue : string.Empty);
     }
 
     /// <summary>One step of the undo list: the edits of one command, of one Properties change or of one grip dragged.</summary>
@@ -127,18 +135,27 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the records of the edit made; empty when it was not.</summary>
         public IReadOnlyList<CadEditRecord> Records { get; }
 
-        internal static CadEditResult Done(IReadOnlyList<CadEditRecord> records) => new CadEditResult(true, false, null, records);
+        internal static CadEditResult Done(IReadOnlyList<CadEditRecord> records) =>
+            new CadEditResult(true, false, null, records);
 
         /// <summary>Makes the result of an edit refused before anything was written, as a check of the window refuses one, so that it is reported as the document's own refusals are.</summary>
         /// <param name="message">Why, as the command line shows it.</param>
         /// <returns>The result: not made, refused, with the message.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the message is null.</exception>
-        public static CadEditResult Refuse(string message) => new CadEditResult(false, true, message ?? throw new ArgumentNullException(nameof(message)), Array.Empty<CadEditRecord>());
+        public static CadEditResult Refuse(string message) =>
+            new CadEditResult(
+                false,
+                true,
+                message ?? throw new ArgumentNullException(nameof(message)),
+                Array.Empty<CadEditRecord>()
+            );
 
-        internal static CadEditResult Fail(string message) => new CadEditResult(false, false, message, Array.Empty<CadEditRecord>());
+        internal static CadEditResult Fail(string message) =>
+            new CadEditResult(false, false, message, Array.Empty<CadEditRecord>());
 
         /// <inheritdoc/>
-        public override string ToString() => Succeeded ? "Done (" + Records.Count + ")" : (Refused ? "Refused: " : "Failed: ") + Message;
+        public override string ToString() =>
+            Succeeded ? "Done (" + Records.Count + ")" : (Refused ? "Refused: " : "Failed: ") + Message;
     }
 
     /// <summary>
@@ -199,7 +216,13 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>What changed in a document: the entities touched, the spaces whose display lists were dropped, and why.</summary>
     public sealed class CadDocumentChangedEventArgs : EventArgs
     {
-        internal CadDocumentChangedEventArgs(CadChangeKind kind, string stepName, IReadOnlyList<string> handles, IReadOnlyList<CadSpace> spaces, bool tablesChanged)
+        internal CadDocumentChangedEventArgs(
+            CadChangeKind kind,
+            string stepName,
+            IReadOnlyList<string> handles,
+            IReadOnlyList<CadSpace> spaces,
+            bool tablesChanged
+        )
         {
             Kind = kind;
             StepName = stepName;

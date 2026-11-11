@@ -118,10 +118,10 @@ namespace GeometryHelper.IfcConvert.UnitTest
         [Trait("Category", "PropertyModel")]
         public void IfcPropertySet_TryGetProperty_MissingKey_ReturnsFalse()
         {
-            var pset = new IfcPropertySet("Pset_WallCommon", new[]
-            {
-                new IfcPropertyValue("IsExternal", true, "IfcBoolean")
-            });
+            var pset = new IfcPropertySet(
+                "Pset_WallCommon",
+                new[] { new IfcPropertyValue("IsExternal", true, "IfcBoolean") }
+            );
 
             bool found = pset.TryGetProperty("NonExistentProperty", out var val);
 
@@ -180,11 +180,14 @@ namespace GeometryHelper.IfcConvert.UnitTest
         [Trait("Category", "PropertyModel")]
         public void IfcPropertySet_ToString_ContainsNameAndCount()
         {
-            var pset = new IfcPropertySet("Pset_WallCommon", new[]
-            {
-                new IfcPropertyValue("IsExternal", true, "IfcBoolean"),
-                new IfcPropertyValue("FireRating", "REI90", "IfcLabel"),
-            });
+            var pset = new IfcPropertySet(
+                "Pset_WallCommon",
+                new[]
+                {
+                    new IfcPropertyValue("IsExternal", true, "IfcBoolean"),
+                    new IfcPropertyValue("FireRating", "REI90", "IfcLabel"),
+                }
+            );
 
             string str = pset.ToString();
             Assert.Contains("Pset_WallCommon", str);
@@ -197,8 +200,11 @@ namespace GeometryHelper.IfcConvert.UnitTest
         [Trait("Category", "PropertyModel")]
         public void GetProperties_NullGuid_ReturnsEmptyDictionary()
         {
-            using var store = Xbim.Ifc.IfcStore.Create(CreateCredentials(),
-                XbimSchemaVersion.Ifc4, XbimStoreType.InMemoryModel);
+            using var store = Xbim.Ifc.IfcStore.Create(
+                CreateCredentials(),
+                XbimSchemaVersion.Ifc4,
+                XbimStoreType.InMemoryModel
+            );
             using var cache = new IfcStoreCache(store);
 
             var props = cache.GetProperties(null);
@@ -213,8 +219,11 @@ namespace GeometryHelper.IfcConvert.UnitTest
         [Trait("Category", "PropertyModel")]
         public void GetProperty_NonExistentProduct_ReturnsNull()
         {
-            using var store = Xbim.Ifc.IfcStore.Create(CreateCredentials(),
-                XbimSchemaVersion.Ifc4, XbimStoreType.InMemoryModel);
+            using var store = Xbim.Ifc.IfcStore.Create(
+                CreateCredentials(),
+                XbimSchemaVersion.Ifc4,
+                XbimStoreType.InMemoryModel
+            );
             using var cache = new IfcStoreCache(store);
 
             var val = cache.GetProperty("DOES_NOT_EXIST", "Pset_WallCommon", "IsExternal");
@@ -225,8 +234,13 @@ namespace GeometryHelper.IfcConvert.UnitTest
         [Trait("Category", "PropertyModel")]
         public void GetProperty_ExistingProductButNoPropertySets_ReturnsNull()
         {
-            using (var store = Xbim.Ifc.IfcStore.Create(CreateCredentials(),
-                XbimSchemaVersion.Ifc4, XbimStoreType.InMemoryModel))
+            using (
+                var store = Xbim.Ifc.IfcStore.Create(
+                    CreateCredentials(),
+                    XbimSchemaVersion.Ifc4,
+                    XbimStoreType.InMemoryModel
+                )
+            )
             {
                 string guid;
                 using (var txn = store.BeginTransaction("Add wall"))
@@ -259,7 +273,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
                 ApplicationVersion = "3.2.0",
                 EditorsFamilyName = "Unit",
                 EditorsGivenName = "Test",
-                EditorsOrganisationName = "GeometryHelper"
+                EditorsOrganisationName = "GeometryHelper",
             };
         }
     }

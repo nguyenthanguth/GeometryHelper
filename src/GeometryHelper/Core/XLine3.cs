@@ -66,7 +66,10 @@ namespace GeometryHelper.Core
         {
             double margin = Math.Max(1.0, 100.0 * tolerance.EqualPoint);
 
-            return new GeoLine3(xline.GetPointAtDistance(nearest - margin), xline.GetPointAtDistance(farthest + margin));
+            return new GeoLine3(
+                xline.GetPointAtDistance(nearest - margin),
+                xline.GetPointAtDistance(farthest + margin)
+            );
         }
 
         /// <summary>
@@ -102,14 +105,14 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Cuts a line past a circle.
         /// </summary>
-        internal static GeoLine3 CutPast(GeoXLine3 xline, GeoCircle3 circle, Tolerance tolerance)
-            => CutPastRound(xline, circle.Center, circle.Radius, tolerance);
+        internal static GeoLine3 CutPast(GeoXLine3 xline, GeoCircle3 circle, Tolerance tolerance) =>
+            CutPastRound(xline, circle.Center, circle.Radius, tolerance);
 
         /// <summary>
         /// Cuts a line past an ellipse, read by the sphere of its major radius.
         /// </summary>
-        internal static GeoLine3 CutPast(GeoXLine3 xline, GeoEllipse3 ellipse, Tolerance tolerance)
-            => CutPastRound(xline, ellipse.Center, ellipse.MajorRadius, tolerance);
+        internal static GeoLine3 CutPast(GeoXLine3 xline, GeoEllipse3 ellipse, Tolerance tolerance) =>
+            CutPastRound(xline, ellipse.Center, ellipse.MajorRadius, tolerance);
 
         /// <summary>
         /// Cuts a line past an axis-aligned box.
@@ -132,7 +135,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         internal static GeoLine3 CutPast(GeoXLine3 xline, GeoObb3 box, Tolerance tolerance)
         {
-            if (box == null) throw new ArgumentNullException(nameof(box));
+            if (box == null)
+                throw new ArgumentNullException(nameof(box));
 
             Extent(xline, box.GetCorners(), out double nearest, out double farthest);
 
@@ -145,7 +149,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the solid is null.</exception>
         internal static GeoLine3 CutPast(GeoXLine3 xline, GeoSolid3 solid, Tolerance tolerance)
         {
-            if (solid == null) throw new ArgumentNullException(nameof(solid));
+            if (solid == null)
+                throw new ArgumentNullException(nameof(solid));
 
             return CutPast(xline, solid.GetAabb(), tolerance);
         }
@@ -168,7 +173,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         internal static GeoLine3 CutPast(GeoXLine3 xline, GeoPolygon3 polygon, Tolerance tolerance)
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             Extent(xline, polygon.Vertices, out double nearest, out double farthest);
 
@@ -181,7 +187,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         internal static GeoLine3 CutPast(GeoXLine3 xline, GeoPolyline3 polyline, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             Extent(xline, polyline.Vertices, out double nearest, out double farthest);
 
@@ -194,7 +201,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         internal static GeoLine3 CutPast(GeoXLine3 xline, GeoFace3 face, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             Extent(xline, face.Boundary.Vertices, out double nearest, out double farthest);
 
@@ -214,7 +222,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         internal static GeoLine3 CutPast(GeoXLine3 xline, GeoPolygonArc3 loop, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             Extent(xline, loop.Vertices, out double nearest, out double farthest);
 
@@ -238,7 +247,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         internal static GeoLine3 CutPast(GeoXLine3 xline, GeoPolylineArc3 chain, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             Extent(xline, chain.Vertices, out double nearest, out double farthest);
 
@@ -262,11 +272,16 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static bool Precedes(GeoXLine3 first, GeoXLine3 second)
         {
-            if (first.Origin.X != second.Origin.X) return first.Origin.X < second.Origin.X;
-            if (first.Origin.Y != second.Origin.Y) return first.Origin.Y < second.Origin.Y;
-            if (first.Origin.Z != second.Origin.Z) return first.Origin.Z < second.Origin.Z;
-            if (first.Direction.X != second.Direction.X) return first.Direction.X < second.Direction.X;
-            if (first.Direction.Y != second.Direction.Y) return first.Direction.Y < second.Direction.Y;
+            if (first.Origin.X != second.Origin.X)
+                return first.Origin.X < second.Origin.X;
+            if (first.Origin.Y != second.Origin.Y)
+                return first.Origin.Y < second.Origin.Y;
+            if (first.Origin.Z != second.Origin.Z)
+                return first.Origin.Z < second.Origin.Z;
+            if (first.Direction.X != second.Direction.X)
+                return first.Direction.X < second.Direction.X;
+            if (first.Direction.Y != second.Direction.Y)
+                return first.Direction.Y < second.Direction.Y;
 
             return first.Direction.Z < second.Direction.Z;
         }
@@ -274,8 +289,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the point of a line nearest a point: its foot, the projection on the line.
         /// </summary>
-        internal static GeoPoint3 Project(GeoXLine3 xline, GeoPoint3 point)
-            => xline.GetPointAtDistance(xline.GetDistanceAtPoint(point));
+        internal static GeoPoint3 Project(GeoXLine3 xline, GeoPoint3 point) =>
+            xline.GetPointAtDistance(xline.GetDistanceAtPoint(point));
 
         /// <summary>
         /// Finds where two lines in space come nearest, at any angle, and how far along each.
@@ -293,37 +308,93 @@ namespace GeometryHelper.Core
         /// <see cref="Placeable"/>); a NaN has none either. It is worked out from the one that comes first (see
         /// <see cref="Precedes"/>), so that asked either way round the gap is the same to the bit.
         /// </remarks>
-        internal static bool TryBridge(GeoXLine3 xline1, GeoXLine3 xline2, Tolerance tolerance, out double alongFirst, out double alongSecond, out double gap)
+        internal static bool TryBridge(
+            GeoXLine3 xline1,
+            GeoXLine3 xline2,
+            Tolerance tolerance,
+            out double alongFirst,
+            out double alongSecond,
+            out double gap
+        )
         {
             if (Precedes(xline2, xline1))
             {
-                bool bridged = Nearest(xline2.Origin, xline2.Direction, xline1.Origin, xline1.Direction, tolerance, out alongSecond, out alongFirst, out gap);
+                bool bridged = Nearest(
+                    xline2.Origin,
+                    xline2.Direction,
+                    xline1.Origin,
+                    xline1.Direction,
+                    tolerance,
+                    out alongSecond,
+                    out alongFirst,
+                    out gap
+                );
 
                 return bridged;
             }
 
-            return Nearest(xline1.Origin, xline1.Direction, xline2.Origin, xline2.Direction, tolerance, out alongFirst, out alongSecond, out gap);
+            return Nearest(
+                xline1.Origin,
+                xline1.Direction,
+                xline2.Origin,
+                xline2.Direction,
+                tolerance,
+                out alongFirst,
+                out alongSecond,
+                out gap
+            );
         }
 
         /// <summary>
         /// Finds where a line and a ray come nearest, at any angle, and how far along each: the common perpendicular of the two
         /// lines, wherever the ray reaches it or not.
         /// </summary>
-        internal static bool TryBridge(GeoXLine3 xline, GeoRay3 ray, Tolerance tolerance, out double alongLine, out double alongRay, out double gap)
-            => Nearest(xline.Origin, xline.Direction, ray.Origin, ray.Direction, tolerance, out alongLine, out alongRay, out gap);
+        internal static bool TryBridge(
+            GeoXLine3 xline,
+            GeoRay3 ray,
+            Tolerance tolerance,
+            out double alongLine,
+            out double alongRay,
+            out double gap
+        ) =>
+            Nearest(
+                xline.Origin,
+                xline.Direction,
+                ray.Origin,
+                ray.Direction,
+                tolerance,
+                out alongLine,
+                out alongRay,
+                out gap
+            );
 
         /// <summary>
         /// Works out the common perpendicular of two lines given by a point and a direction.
         /// </summary>
-        private static bool Nearest(GeoPoint3 origin1, GeoVector3 direction1, GeoPoint3 origin2, GeoVector3 direction2, Tolerance tolerance, out double along1, out double along2, out double gap)
+        private static bool Nearest(
+            GeoPoint3 origin1,
+            GeoVector3 direction1,
+            GeoPoint3 origin2,
+            GeoVector3 direction2,
+            Tolerance tolerance,
+            out double along1,
+            out double along2,
+            out double gap
+        )
         {
             along1 = 0.0;
             along2 = 0.0;
             gap = 0.0;
 
-            double d1x = direction1.X, d1y = direction1.Y, d1z = direction1.Z;
-            double d2x = direction2.X, d2y = direction2.Y, d2z = direction2.Z;
-            double rx = origin1.X - origin2.X, ry = origin1.Y - origin2.Y, rz = origin1.Z - origin2.Z;
+            double d1x = direction1.X,
+                d1y = direction1.Y,
+                d1z = direction1.Z;
+            double d2x = direction2.X,
+                d2y = direction2.Y,
+                d2z = direction2.Z;
+            double rx = origin1.X - origin2.X,
+                ry = origin1.Y - origin2.Y,
+                rz = origin1.Z - origin2.Z;
 
             // The cross product of the directions: both of unit length, its length is the sine of the angle between them. Each
             // component is the difference of two products worked out to a rounding of its own, so that two directions a millionth
@@ -346,15 +417,37 @@ namespace GeometryHelper.Core
             // a rounding of its own. The two are then as good as the offset and the sine allow (a rounding of the offset over the
             // sine), however small the sine, where moving the pair by the residual again and again lost every digit of them below
             // a sine of 1E-12 and left a segment between them a hair longer than the gap, or a crossing with a length.
-            double wx = -rx, wy = -ry, wz = -rz;
+            double wx = -rx,
+                wy = -ry,
+                wz = -rz;
             var normal = new GeoVector3(nx, ny, nz);
-            double s = DotProduct(new GeoVector3(DifferenceOfProducts(wy, d2z, wz, d2y), DifferenceOfProducts(wz, d2x, wx, d2z), DifferenceOfProducts(wx, d2y, wy, d2x)), normal) / denominator;
-            double t = DotProduct(new GeoVector3(DifferenceOfProducts(wy, d1z, wz, d1y), DifferenceOfProducts(wz, d1x, wx, d1z), DifferenceOfProducts(wx, d1y, wy, d1x)), normal) / denominator;
+            double s =
+                DotProduct(
+                    new GeoVector3(
+                        DifferenceOfProducts(wy, d2z, wz, d2y),
+                        DifferenceOfProducts(wz, d2x, wx, d2z),
+                        DifferenceOfProducts(wx, d2y, wy, d2x)
+                    ),
+                    normal
+                ) / denominator;
+            double t =
+                DotProduct(
+                    new GeoVector3(
+                        DifferenceOfProducts(wy, d1z, wz, d1y),
+                        DifferenceOfProducts(wz, d1x, wx, d1z),
+                        DifferenceOfProducts(wx, d1y, wy, d1x)
+                    ),
+                    normal
+                ) / denominator;
 
             // An origin that is not a number places no meeting, and neither does one that cannot be placed, measured along
             // the line that is further from it, so that asked either way round the answer is the same. Written as what has
             // to hold, so that a NaN fails it.
-            if (!Guard.IsFinite(s) || !Guard.IsFinite(t) || !Placeable(sine, Math.Max(Math.Abs(s), Math.Abs(t)), origin1, origin2, tolerance))
+            if (
+                !Guard.IsFinite(s)
+                || !Guard.IsFinite(t)
+                || !Placeable(sine, Math.Max(Math.Abs(s), Math.Abs(t)), origin1, origin2, tolerance)
+            )
             {
                 return false;
             }
@@ -474,7 +567,10 @@ namespace GeometryHelper.Core
 
             double distance = rise / climb;
 
-            if (!Guard.IsFinite(distance) || !Placeable(climb, Math.Abs(distance), xline.Origin, plane.Origin, tolerance))
+            if (
+                !Guard.IsFinite(distance)
+                || !Placeable(climb, Math.Abs(distance), xline.Origin, plane.Origin, tolerance)
+            )
             {
                 return false;
             }
@@ -509,13 +605,18 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the largest coordinate of a point in size; a NaN is carried.
         /// </summary>
-        private static double Largest(GeoPoint3 point)
-            => Math.Max(Math.Max(Math.Abs(point.X), Math.Abs(point.Y)), Math.Abs(point.Z));
+        private static double Largest(GeoPoint3 point) =>
+            Math.Max(Math.Max(Math.Abs(point.X), Math.Abs(point.Y)), Math.Abs(point.Z));
 
         /// <summary>
         /// Gets how far along a line the nearest and the farthest of a set of points project; a NaN among them is carried.
         /// </summary>
-        private static void Extent(GeoXLine3 xline, IReadOnlyList<GeoPoint3> points, out double nearest, out double farthest)
+        private static void Extent(
+            GeoXLine3 xline,
+            IReadOnlyList<GeoPoint3> points,
+            out double nearest,
+            out double farthest
+        )
         {
             nearest = double.PositiveInfinity;
             farthest = double.NegativeInfinity;

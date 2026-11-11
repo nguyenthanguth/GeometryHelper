@@ -14,11 +14,13 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A 10 by 10 square in the XY plane, perimeter 40, starting at the origin.
         /// </summary>
-        private static GeoPolygon3 MakeSquare() => new GeoPolygon3(
-            new GeoPoint3(0, 0, 0),
-            new GeoPoint3(10, 0, 0),
-            new GeoPoint3(10, 10, 0),
-            new GeoPoint3(0, 10, 0));
+        private static GeoPolygon3 MakeSquare() =>
+            new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
         private static readonly GeoCircle3 UnitDisc = new GeoCircle3(GeoPoint3.Origin, GeoVector3.ZAxis, 5.0);
 
@@ -128,8 +130,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(circumference, UnitDisc.Length, 9);
             Assert.Equal(circumference * 0.25, UnitDisc.GetDistanceAtParameter(0.25), 9);
             Assert.Equal(0.25, UnitDisc.GetParameterAtDistance(circumference * 0.25), 9);
-            Assert.True(UnitDisc.GetPointAtDistance(circumference * 0.5)
-                .IsEqualTo(UnitDisc.GetPointAtParameter(0.5)));
+            Assert.True(UnitDisc.GetPointAtDistance(circumference * 0.5).IsEqualTo(UnitDisc.GetPointAtParameter(0.5)));
         }
 
         [Fact]
@@ -169,7 +170,11 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPoint3 probe = new GeoPoint3(9, 2, 4);
 
             Assert.Equal(Parametrization3.GetPointAtParameter(UnitDisc, 0.3), UnitDisc.GetPointAtParameter(0.3));
-            Assert.Equal(Parametrization3.GetParameterAtPoint(UnitDisc, probe), UnitDisc.GetParameterAtPoint(probe), 12);
+            Assert.Equal(
+                Parametrization3.GetParameterAtPoint(UnitDisc, probe),
+                UnitDisc.GetParameterAtPoint(probe),
+                12
+            );
             Assert.Equal(Parametrization3.GetDistanceAtPoint(UnitDisc, probe), UnitDisc.GetDistanceAtPoint(probe), 12);
         }
 

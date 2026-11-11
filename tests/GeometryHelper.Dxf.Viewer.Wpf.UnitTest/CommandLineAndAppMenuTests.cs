@@ -41,7 +41,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.True(rule > 1);
             List<CommandSuggestionViewModel> prefix = rows.Take(rule).Skip(1).ToList();
             Assert.All(prefix, r => Assert.StartsWith("LA", r.Name, StringComparison.Ordinal));
-            Assert.Equal(prefix.OrderBy(r => r.IsVariable).ThenBy(r => r.Name, StringComparer.Ordinal).Select(r => r.Name), prefix.Select(r => r.Name));
+            Assert.Equal(
+                prefix.OrderBy(r => r.IsVariable).ThenBy(r => r.Name, StringComparer.Ordinal).Select(r => r.Name),
+                prefix.Select(r => r.Name)
+            );
             Assert.Contains(prefix, r => r.Name == "LAYOUT");
 
             // Below the rule the names with LA inside, CLAYER among them as a variable with {x}.
@@ -302,7 +305,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             model.ShowSuggestions();
 
             // No command begins with WAL: the named objects come first, with no rule above them, the block before the layers.
-            IReadOnlyList<CommandSuggestionViewModel> rows = model.Suggestions.Where(r => r.ContentType != null).ToList();
+            IReadOnlyList<CommandSuggestionViewModel> rows = model
+                .Suggestions.Where(r => r.ContentType != null)
+                .ToList();
             Assert.Equal(new[] { "WALL_TAG", "WALL-FINISH", "WALLS" }, rows.Select(r => r.Name));
             Assert.Equal(new[] { "Block", "Layer", "Layer" }, rows.Select(r => r.ContentType));
             Assert.Equal(("", "WAL", "LS"), (rows[2].Before, rows[2].Hit, rows[2].After));
@@ -336,7 +341,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             model.CommandText = "ANSI3";
             model.ShowSuggestions();
-            CommandSuggestionViewModel pattern = model.Suggestions.First(r => r.ContentType == "Hatch" && r.Name != "ANSI31");
+            CommandSuggestionViewModel pattern = model.Suggestions.First(r =>
+                r.ContentType == "Hatch" && r.Name != "ANSI31"
+            );
             Assert.True(model.RunSuggestion(pattern));
             Assert.Equal(pattern.Name, model.Document.HatchSettings.PatternName);
             Assert.Contains("Command: HATCH", model.History);
@@ -349,7 +356,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             model.CommandText = "STANDARD";
             model.ShowSuggestions();
-            Assert.Equal(new[] { "Text Style", "Dim Style" }, model.Suggestions.Where(r => r.Name == "Standard").Select(r => r.ContentType));
+            Assert.Equal(
+                new[] { "Text Style", "Dim Style" },
+                model.Suggestions.Where(r => r.Name == "Standard").Select(r => r.ContentType)
+            );
             Assert.Equal("ISO-25", model.CurrentDimStyle);
             Assert.True(model.RunSuggestion(model.Suggestions.Single(r => r.ContentType == "Dim Style")));
             Assert.Equal("Standard", model.CurrentDimStyle);
@@ -381,7 +391,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         public void RecentCommands_KeepTheLastTwentyNewestFirst_EachOnce()
         {
             MainViewModel model = Opened();
-            string[] names = { "LINE", "CIRCLE", "MOVE", "COPY", "ROTATE", "SCALE", "MIRROR", "TRIM", "EXTEND", "FILLET", "CHAMFER", "OFFSET", "ARC", "PLINE", "STRETCH", "BREAK", "JOIN", "ERASE", "EXPLODE", "LAYER", "ZOOM" };
+            string[] names =
+            {
+                "LINE",
+                "CIRCLE",
+                "MOVE",
+                "COPY",
+                "ROTATE",
+                "SCALE",
+                "MIRROR",
+                "TRIM",
+                "EXTEND",
+                "FILLET",
+                "CHAMFER",
+                "OFFSET",
+                "ARC",
+                "PLINE",
+                "STRETCH",
+                "BREAK",
+                "JOIN",
+                "ERASE",
+                "EXPLODE",
+                "LAYER",
+                "ZOOM",
+            };
 
             foreach (string name in names.Concat(new[] { "c" }))
             {
@@ -410,11 +443,39 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             IReadOnlyList<CadMenuItemViewModel> menu = model.CommandLineMenu();
 
-            Assert.Equal(new[] { "Recent Commands", "Input Settings", "", "Copy", "Copy History", "Paste", "Paste To CmdLine", "", "Options…" }, menu.Select(i => i.Header));
+            Assert.Equal(
+                new[]
+                {
+                    "Recent Commands",
+                    "Input Settings",
+                    "",
+                    "Copy",
+                    "Copy History",
+                    "Paste",
+                    "Paste To CmdLine",
+                    "",
+                    "Options…",
+                },
+                menu.Select(i => i.Header)
+            );
             Assert.False(menu[0].IsEnabled);
             IReadOnlyList<CadMenuItemViewModel> input = menu[1].Items;
-            Assert.Equal(new[] { "AutoComplete", "AutoCorrect", "Search System Variables", "Search Content", "Mid-string Search", "", "Delay Time…" }, input.Select(i => i.Header));
-            Assert.All(input.Where(i => i.Header.Length > 0 && i.Header != "Delay Time…"), i => Assert.True(i.IsChecked, i.Header));
+            Assert.Equal(
+                new[]
+                {
+                    "AutoComplete",
+                    "AutoCorrect",
+                    "Search System Variables",
+                    "Search Content",
+                    "Mid-string Search",
+                    "",
+                    "Delay Time…",
+                },
+                input.Select(i => i.Header)
+            );
+            Assert.All(input.Where(i => i.Header.Length > 0 && i.Header != "Delay Time…"), i =>
+                Assert.True(i.IsChecked, i.Header)
+            );
             Assert.True(input[3].IsEnabled);
             Assert.True(input[6].IsEnabled);
             input[3].Command.Execute(null);
@@ -528,7 +589,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal("LINE", read.CorrectionOf("lien"));
             Assert.Null(read.CorrectionOf("CRICLE"));
             Assert.Equal(new[] { 3, 1 }, read.AutoCorrections.Select(c => c.Count));
-            Assert.Equal(new[] { @"D:\Plans\a.dxf", @"D:\Plans\c.dxf", @"D:\Plans\b.dxf" }, read.RecentFiles.Select(f => f.Path));
+            Assert.Equal(
+                new[] { @"D:\Plans\a.dxf", @"D:\Plans\c.dxf", @"D:\Plans\b.dxf" },
+                read.RecentFiles.Select(f => f.Path)
+            );
             Assert.Equal(new[] { true, false, false }, read.RecentFiles.Select(f => f.IsPinned));
             Assert.Equal(start.AddMinutes(2), read.RecentFiles[1].Opened);
             Assert.Equal(DateTimeKind.Utc, read.RecentFiles[1].Opened.Kind);
@@ -545,7 +609,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Throws<ArgumentOutOfRangeException>(() => settings.AutoCompleteDelay = 10001);
 
             string path = Path.Combine(_folder.FullPath, "bad.json");
-            File.WriteAllText(path, "{ \"input\": { \"delayMilliseconds\": 5 }, \"commandUses\": { \"LINE\": \"many\", \"MOVE\": 2 }, \"recentFiles\": [ { \"path\": \"\", \"opened\": \"2026-11-10T09:14:00Z\" }, { \"path\": \"D:\\\\x.dxf\", \"opened\": \"2026-11-10T09:14:00Z\", \"pinned\": true } ] }");
+            File.WriteAllText(
+                path,
+                "{ \"input\": { \"delayMilliseconds\": 5 }, \"commandUses\": { \"LINE\": \"many\", \"MOVE\": 2 }, \"recentFiles\": [ { \"path\": \"\", \"opened\": \"2026-11-10T09:14:00Z\" }, { \"path\": \"D:\\\\x.dxf\", \"opened\": \"2026-11-10T09:14:00Z\", \"pinned\": true } ] }"
+            );
             GlobalSettings read = GlobalSettings.Load(path);
 
             Assert.Equal(300, read.AutoCompleteDelay);
@@ -562,7 +629,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             for (int i = 0; i < 12; i++)
             {
-                settings.NoteFileOpened(@"D:\Plans\f" + i.ToString("00", System.Globalization.CultureInfo.InvariantCulture) + ".dxf", start.AddHours(i));
+                settings.NoteFileOpened(
+                    @"D:\Plans\f" + i.ToString("00", System.Globalization.CultureInfo.InvariantCulture) + ".dxf",
+                    start.AddHours(i)
+                );
             }
 
             Assert.Equal(GlobalSettings.RecentFilesShown, settings.RecentFiles.Count);
@@ -573,15 +643,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.True(settings.SetFilePinned(@"d:\plans\F09.DXF", true));
             Assert.False(settings.SetFilePinned(@"D:\Plans\f09.dxf", true));
             Assert.False(settings.SetFilePinned(@"D:\Plans\gone.dxf", true));
-            Assert.Equal(new[] { @"D:\Plans\f05.dxf", @"D:\Plans\f09.dxf", @"D:\Plans\f11.dxf", @"D:\Plans\f10.dxf" }, settings.RecentFiles.Take(4).Select(f => f.Path));
+            Assert.Equal(
+                new[] { @"D:\Plans\f05.dxf", @"D:\Plans\f09.dxf", @"D:\Plans\f11.dxf", @"D:\Plans\f10.dxf" },
+                settings.RecentFiles.Take(4).Select(f => f.Path)
+            );
 
             // Opened again, a pinned file keeps its place; one not pinned goes to the top of the others.
             settings.NoteFileOpened(@"D:\Plans\f05.dxf", start.AddDays(1));
             settings.NoteFileOpened(@"D:\Plans\f04.dxf", start.AddDays(1));
-            Assert.Equal(new[] { @"D:\Plans\f05.dxf", @"D:\Plans\f09.dxf", @"D:\Plans\f04.dxf", @"D:\Plans\f11.dxf" }, settings.RecentFiles.Take(4).Select(f => f.Path));
+            Assert.Equal(
+                new[] { @"D:\Plans\f05.dxf", @"D:\Plans\f09.dxf", @"D:\Plans\f04.dxf", @"D:\Plans\f11.dxf" },
+                settings.RecentFiles.Take(4).Select(f => f.Path)
+            );
 
             Assert.True(settings.SetFilePinned(@"D:\Plans\f09.dxf", false));
-            Assert.Equal(new[] { @"D:\Plans\f05.dxf", @"D:\Plans\f04.dxf", @"D:\Plans\f11.dxf", @"D:\Plans\f10.dxf", @"D:\Plans\f09.dxf" }, settings.RecentFiles.Take(5).Select(f => f.Path));
+            Assert.Equal(
+                new[]
+                {
+                    @"D:\Plans\f05.dxf",
+                    @"D:\Plans\f04.dxf",
+                    @"D:\Plans\f11.dxf",
+                    @"D:\Plans\f10.dxf",
+                    @"D:\Plans\f09.dxf",
+                },
+                settings.RecentFiles.Take(5).Select(f => f.Path)
+            );
         }
 
         [Fact]
@@ -630,7 +716,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal("Unpin", model.RecentDocuments[0].PinText);
 
             // The menu of the G button lists the same files.
-            Assert.Equal(model.RecentDocuments.Select(d => d.Path), model.CreateAppMenu().RecentDocuments.Select(d => d.Path));
+            Assert.Equal(
+                model.RecentDocuments.Select(d => d.Path),
+                model.CreateAppMenu().RecentDocuments.Select(d => d.Path)
+            );
 
             // Its pin button unpins it.
             model.RecentDocuments[0].PinCommand.Execute(null);
@@ -642,12 +731,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             var model = new MainViewModel { Now = () => new DateTime(2026, 11, 10, 12, 0, 0) };
             GlobalSettings settings = model.Settings.Clone();
-            settings.NoteFileOpened(@"D:\Plans\a.dxf", new DateTime(2026, 11, 10, 9, 14, 0, DateTimeKind.Local).ToUniversalTime());
-            settings.NoteFileOpened(@"D:\Plans\b.dxf", new DateTime(2026, 11, 9, 16, 40, 0, DateTimeKind.Local).ToUniversalTime());
-            settings.NoteFileOpened(@"D:\Plans\c.dxf", new DateTime(2026, 10, 30, 8, 0, 0, DateTimeKind.Local).ToUniversalTime());
+            settings.NoteFileOpened(
+                @"D:\Plans\a.dxf",
+                new DateTime(2026, 11, 10, 9, 14, 0, DateTimeKind.Local).ToUniversalTime()
+            );
+            settings.NoteFileOpened(
+                @"D:\Plans\b.dxf",
+                new DateTime(2026, 11, 9, 16, 40, 0, DateTimeKind.Local).ToUniversalTime()
+            );
+            settings.NoteFileOpened(
+                @"D:\Plans\c.dxf",
+                new DateTime(2026, 10, 30, 8, 0, 0, DateTimeKind.Local).ToUniversalTime()
+            );
             model.ApplySettings(settings);
 
-            Assert.Equal(new[] { "today 09:14", "yesterday 16:40", "2026-10-30" }, model.RecentDocuments.Select(d => d.OpenedText));
+            Assert.Equal(
+                new[] { "today 09:14", "yesterday 16:40", "2026-10-30" },
+                model.RecentDocuments.Select(d => d.OpenedText)
+            );
         }
 
         [Fact]
@@ -682,7 +783,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 RecentDocumentViewModel without = model.RecentDocuments[1];
                 RecentDocumentViewModel gone = model.RecentDocuments[2];
                 int raised = 0;
-                withPicture.PropertyChanged += (s, e) => raised += e.PropertyName == nameof(RecentDocumentViewModel.Thumbnail) ? 1 : 0;
+                withPicture.PropertyChanged += (s, e) =>
+                    raised += e.PropertyName == nameof(RecentDocumentViewModel.Thumbnail) ? 1 : 0;
 
                 // Read on a worker thread, the window not held while a slow file is read; the picture raised once there.
                 System.Threading.Tasks.Task.WaitAll(withPicture.WhenRead(), without.WhenRead(), gone.WhenRead());
@@ -730,7 +832,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.False(model.OpenRecent(model.RecentDocuments[1]));
 
             Assert.False(model.HasDocument);
-            Assert.Contains("Cannot find " + Path.Combine(_folder.FullPath, "gone.dxf") + ": it is taken off the recent files.", model.History);
+            Assert.Contains(
+                "Cannot find " + Path.Combine(_folder.FullPath, "gone.dxf") + ": it is taken off the recent files.",
+                model.History
+            );
             Assert.Equal(new[] { room }, model.RecentDocuments.Select(d => d.Path));
             Assert.Equal(new[] { room }, model.Settings.RecentFiles.Select(f => f.Path));
         }
@@ -763,7 +868,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.False(model.CanMakeFromModel);
             Assert.Equal("Open and edit any 2D drawing. No file is open.", model.StartScreenText);
             Assert.Equal(new[] { MainViewModel.NewDrawingWelcomeText }, model.RecentHistory);
-            Assert.Equal("Welcome. Ctrl+O opens a DXF, Ctrl+N starts a new drawing.", MainViewModel.NewDrawingWelcomeText);
+            Assert.Equal(
+                "Welcome. Ctrl+O opens a DXF, Ctrl+N starts a new drawing.",
+                MainViewModel.NewDrawingWelcomeText
+            );
 
             model.NewByShortcut();
 
@@ -784,7 +892,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             Assert.True(model.CanMakeFromModel);
             Assert.Contains(nameof(MainViewModel.CanMakeFromModel), raised);
-            Assert.Equal("Open and edit any 2D drawing, or make drawings from a model. No file is open.", model.StartScreenText);
+            Assert.Equal(
+                "Open and edit any 2D drawing, or make drawings from a model. No file is open.",
+                model.StartScreenText
+            );
             Assert.Equal(new[] { MainViewModel.WelcomeText }, model.RecentHistory);
             model.NewByShortcut();
             Assert.Equal(1, asked);
@@ -803,7 +914,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             AppMenuViewModel start = new MainViewModel().CreateAppMenu("GeometryHelper DXF");
 
-            Assert.Equal(new[] { "New", "Open", "Save", "Save As", "", "Export", "Print", "", "Close" }, start.Items.Select(i => i.Name));
+            Assert.Equal(
+                new[] { "New", "Open", "Save", "Save As", "", "Export", "Print", "", "Close" },
+                start.Items.Select(i => i.Name)
+            );
             Assert.Equal("Exit GeometryHelper DXF", start.ExitText);
             Assert.False(start.Items.Single(i => i.Key == "save").IsEnabled);
             Assert.False(start.Items.Single(i => i.Key == "export").IsEnabled);
@@ -812,12 +926,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             AppMenuViewModel menu = Opened().CreateAppMenu();
             AppMenuItemViewModel export = menu.Items.Single(i => i.Key == "export");
-            Assert.Equal(new[] { "PDF", "PNG", "JPG", "BMP", "Block or objects to a DXF", "Other Formats" }, export.Items.Select(i => i.Name));
+            Assert.Equal(
+                new[] { "PDF", "PNG", "JPG", "BMP", "Block or objects to a DXF", "Other Formats" },
+                export.Items.Select(i => i.Name)
+            );
             Assert.Equal(new[] { true, true, true, true, true, true }, export.Items.Select(i => i.IsEnabled));
-            Assert.Equal(new[] { "Plot", "Batch Plot", "Plot Preview", "Page Setup", "Manage Plot Styles" }, menu.Items.Single(i => i.Key == "print").Items.Select(i => i.Name));
-            Assert.Equal(new[] { true, false, true, true, false }, menu.Items.Single(i => i.Key == "print").Items.Select(i => i.IsEnabled));
-            Assert.Equal(new[] { "Drawing", "Drawing Template", "Other Formats" }, menu.Items.Single(i => i.Key == "saveas").Items.Select(i => i.Name));
-            Assert.Equal(new[] { "Current Drawing", "All Drawings" }, menu.Items.Single(i => i.Key == "close").Items.Select(i => i.Name));
+            Assert.Equal(
+                new[] { "Plot", "Batch Plot", "Plot Preview", "Page Setup", "Manage Plot Styles" },
+                menu.Items.Single(i => i.Key == "print").Items.Select(i => i.Name)
+            );
+            Assert.Equal(
+                new[] { true, false, true, true, false },
+                menu.Items.Single(i => i.Key == "print").Items.Select(i => i.IsEnabled)
+            );
+            Assert.Equal(
+                new[] { "Drawing", "Drawing Template", "Other Formats" },
+                menu.Items.Single(i => i.Key == "saveas").Items.Select(i => i.Name)
+            );
+            Assert.Equal(
+                new[] { "Current Drawing", "All Drawings" },
+                menu.Items.Single(i => i.Key == "close").Items.Select(i => i.Name)
+            );
 
             menu.ShownItem = export;
             Assert.False(menu.IsRecentShown);
@@ -924,9 +1053,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             DxfDatabase database = CadTemplate.CreateMetric();
             database.LayerTable.Add(new DxfLayerTableRecord { Name = "WALLS", ColorIndex = 7 });
             database.LayerTable.Add(new DxfLayerTableRecord { Name = "WALL-FINISH", ColorIndex = 3 });
-            var tag = new DxfBlockTableRecord { Name = "WALL_TAG", Origin = new GeometryHelper.Geometry.GeoPoint3(0, 0, 0) };
+            var tag = new DxfBlockTableRecord
+            {
+                Name = "WALL_TAG",
+                Origin = new GeometryHelper.Geometry.GeoPoint3(0, 0, 0),
+            };
             database.BlockTable.Add(tag);
-            tag.AppendEntity(new DxfCircle(new GeometryHelper.Geometry.GeoPoint3(0, 0, 0), new GeometryHelper.Geometry.GeoVector3(0, 0, 1), 50.0));
+            tag.AppendEntity(
+                new DxfCircle(
+                    new GeometryHelper.Geometry.GeoPoint3(0, 0, 0),
+                    new GeometryHelper.Geometry.GeoVector3(0, 0, 1),
+                    50.0
+                )
+            );
             var model = new MainViewModel();
             model.OpenDocument(CadDocument.From(database, "plan.dxf"));
 

@@ -113,9 +113,7 @@ namespace GeometryHelper.Core
 
                 if (distance <= walked + length)
                 {
-                    return length <= 0.0
-                        ? edge.StartPoint
-                        : edge.GetPointAtParameter((distance - walked) / length);
+                    return length <= 0.0 ? edge.StartPoint : edge.GetPointAtParameter((distance - walked) / length);
                 }
 
                 walked += length;
@@ -219,13 +217,15 @@ namespace GeometryHelper.Core
         /// Whether a tolerance reads an edge as the point at its start: a straight one no longer than the point tolerance,
         /// which the projection onto a segment and the crossing test take for a point.
         /// </summary>
-        internal static bool ReadsAsPoint(GeoEdge2 edge, Tolerance tolerance) => !edge.IsArc && ReadsAsPoint(edge.StartPoint, edge.EndPoint, tolerance);
+        internal static bool ReadsAsPoint(GeoEdge2 edge, Tolerance tolerance) =>
+            !edge.IsArc && ReadsAsPoint(edge.StartPoint, edge.EndPoint, tolerance);
 
         /// <summary>
         /// Whether a tolerance reads a side of a polygon, a polyline or a rectangle as the point at its start, as it reads a
         /// straight edge.
         /// </summary>
-        internal static bool ReadsAsPoint(GeoLine2 side, Tolerance tolerance) => ReadsAsPoint(side.StartPoint, side.EndPoint, tolerance);
+        internal static bool ReadsAsPoint(GeoLine2 side, Tolerance tolerance) =>
+            ReadsAsPoint(side.StartPoint, side.EndPoint, tolerance);
 
         /// <summary>
         /// Whether a tolerance reads the straight run from one point to another as the point at its start.
@@ -248,25 +248,27 @@ namespace GeometryHelper.Core
         /// it would read as a point, which is the side it is however short. A side 0.006 long is joined at nought at a
         /// tolerance of a hundredth, and at the tolerance given at a thousandth.
         /// </summary>
-        internal static Tolerance ForSide(GeoEdge2 side, Tolerance tolerance) => ReadsAsPoint(side, tolerance) ? Exactly : tolerance;
+        internal static Tolerance ForSide(GeoEdge2 side, Tolerance tolerance) =>
+            ReadsAsPoint(side, tolerance) ? Exactly : tolerance;
 
         /// <summary>
         /// Gets the tolerance a side of a polygon, a polyline or a rectangle is joined to something else at, as for an edge.
         /// </summary>
-        internal static Tolerance ForSide(GeoLine2 side, Tolerance tolerance) => ReadsAsPoint(side, tolerance) ? Exactly : tolerance;
+        internal static Tolerance ForSide(GeoLine2 side, Tolerance tolerance) =>
+            ReadsAsPoint(side, tolerance) ? Exactly : tolerance;
 
         /// <summary>
         /// Gets the tolerance two sides of shapes are joined at: nought where either is a straight side the tolerance would
         /// read as a point.
         /// </summary>
-        private static Tolerance ForSides(GeoEdge2 side, GeoEdge2 other, Tolerance tolerance)
-            => ReadsAsPoint(side, tolerance) || ReadsAsPoint(other, tolerance) ? Exactly : tolerance;
+        private static Tolerance ForSides(GeoEdge2 side, GeoEdge2 other, Tolerance tolerance) =>
+            ReadsAsPoint(side, tolerance) || ReadsAsPoint(other, tolerance) ? Exactly : tolerance;
 
         /// <summary>
         /// Gets the tolerance two straight sides of shapes are joined at, as for two edges.
         /// </summary>
-        internal static Tolerance ForSides(GeoLine2 side, GeoLine2 other, Tolerance tolerance)
-            => ReadsAsPoint(side, tolerance) || ReadsAsPoint(other, tolerance) ? Exactly : tolerance;
+        internal static Tolerance ForSides(GeoLine2 side, GeoLine2 other, Tolerance tolerance) =>
+            ReadsAsPoint(side, tolerance) || ReadsAsPoint(other, tolerance) ? Exactly : tolerance;
 
         /// <summary>
         /// Gets the shortest segment joining a run of edges to a straight segment.
@@ -389,9 +391,10 @@ namespace GeometryHelper.Core
             {
                 foreach (GeoEdge2 other in second)
                 {
-                    bool crossing = one.IsArc || other.IsArc
-                        ? Meet(one, other)
-                        : Collision2.Crosses(one.ToLine(), other.ToLine(), tolerance);
+                    bool crossing =
+                        one.IsArc || other.IsArc
+                            ? Meet(one, other)
+                            : Collision2.Crosses(one.ToLine(), other.ToLine(), tolerance);
 
                     if (crossing)
                     {
@@ -411,9 +414,7 @@ namespace GeometryHelper.Core
         {
             foreach (GeoEdge2 edge in edges)
             {
-                bool crossing = edge.IsArc
-                    ? Meet(edge, line)
-                    : Collision2.Crosses(edge.ToLine(), line, tolerance);
+                bool crossing = edge.IsArc ? Meet(edge, line) : Collision2.Crosses(edge.ToLine(), line, tolerance);
 
                 if (crossing)
                 {
@@ -566,7 +567,12 @@ namespace GeometryHelper.Core
         /// point: an edge that bows too little reads as its chord, and a true arc edge also tries its stored end points
         /// where the answer is within the rounding of the arc, so that a vertex the shape shares with the edge reads nought.
         /// </summary>
-        internal static double Edge(GeoEdge2 edge, Func<GeoLine2, double> line, Func<GeoArc2, double> arc, Func<GeoPoint2, double> point)
+        internal static double Edge(
+            GeoEdge2 edge,
+            Func<GeoLine2, double> line,
+            Func<GeoArc2, double> arc,
+            Func<GeoPoint2, double> point
+        )
         {
             if (Straight(edge, out GeoLine2 straight))
             {
@@ -600,7 +606,13 @@ namespace GeometryHelper.Core
             double gap = Arc2.Bowed(arc, line, tolerance);
 
             return Rounds(gap, arc)
-                ? Math.Min(gap, Math.Min(Distance2.DistanceTo(line, edge.StartPoint, tolerance), Distance2.DistanceTo(line, edge.EndPoint, tolerance)))
+                ? Math.Min(
+                    gap,
+                    Math.Min(
+                        Distance2.DistanceTo(line, edge.StartPoint, tolerance),
+                        Distance2.DistanceTo(line, edge.EndPoint, tolerance)
+                    )
+                )
                 : gap;
         }
 
@@ -639,7 +651,13 @@ namespace GeometryHelper.Core
             double gap = Arc2.Gap(round, arc);
 
             return Rounds(gap, round)
-                ? Math.Min(gap, Math.Min(Arc2.DistanceTo(arc, edge.StartPoint, Exactly), Arc2.DistanceTo(arc, edge.EndPoint, Exactly)))
+                ? Math.Min(
+                    gap,
+                    Math.Min(
+                        Arc2.DistanceTo(arc, edge.StartPoint, Exactly),
+                        Arc2.DistanceTo(arc, edge.EndPoint, Exactly)
+                    )
+                )
                 : gap;
         }
 
@@ -681,13 +699,27 @@ namespace GeometryHelper.Core
             }
 
             // Two edges that share a vertex share it exactly, though each arc places its ends through its centre.
-            gap = Math.Min(gap, Math.Min(
-                Math.Min(edge.StartPoint.DistanceTo(other.StartPoint), edge.StartPoint.DistanceTo(other.EndPoint)),
-                Math.Min(edge.EndPoint.DistanceTo(other.StartPoint), edge.EndPoint.DistanceTo(other.EndPoint))));
+            gap = Math.Min(
+                gap,
+                Math.Min(
+                    Math.Min(edge.StartPoint.DistanceTo(other.StartPoint), edge.StartPoint.DistanceTo(other.EndPoint)),
+                    Math.Min(edge.EndPoint.DistanceTo(other.StartPoint), edge.EndPoint.DistanceTo(other.EndPoint))
+                )
+            );
 
-            return Math.Min(gap, Math.Min(
-                Math.Min(Arc2.DistanceTo(otherArc, edge.StartPoint, Exactly), Arc2.DistanceTo(otherArc, edge.EndPoint, Exactly)),
-                Math.Min(Arc2.DistanceTo(arc, other.StartPoint, Exactly), Arc2.DistanceTo(arc, other.EndPoint, Exactly))));
+            return Math.Min(
+                gap,
+                Math.Min(
+                    Math.Min(
+                        Arc2.DistanceTo(otherArc, edge.StartPoint, Exactly),
+                        Arc2.DistanceTo(otherArc, edge.EndPoint, Exactly)
+                    ),
+                    Math.Min(
+                        Arc2.DistanceTo(arc, other.StartPoint, Exactly),
+                        Arc2.DistanceTo(arc, other.EndPoint, Exactly)
+                    )
+                )
+            );
         }
 
         /// <summary>
@@ -699,7 +731,13 @@ namespace GeometryHelper.Core
             double gap = Arc2.Bowed(arc, line, tolerance);
 
             return Rounds(gap, arc)
-                ? Math.Min(gap, Math.Min(Distance2.DistanceTo(line, edge.StartPoint, tolerance), Distance2.DistanceTo(line, edge.EndPoint, tolerance)))
+                ? Math.Min(
+                    gap,
+                    Math.Min(
+                        Distance2.DistanceTo(line, edge.StartPoint, tolerance),
+                        Distance2.DistanceTo(line, edge.EndPoint, tolerance)
+                    )
+                )
                 : gap;
         }
 
@@ -708,8 +746,8 @@ namespace GeometryHelper.Core
         /// centre and radius reach from the origin, could be all there is to it: a vertex shared with another edge, which
         /// the arc places a few parts in 1E16 of its radius off.
         /// </summary>
-        private static bool Rounds(double gap, GeoArc2 arc)
-            => gap <= 1E-14 * (Math.Abs(arc.Center.X) + Math.Abs(arc.Center.Y) + arc.Radius);
+        private static bool Rounds(double gap, GeoArc2 arc) =>
+            gap <= 1E-14 * (Math.Abs(arc.Center.X) + Math.Abs(arc.Center.Y) + arc.Radius);
 
         /// <summary>
         /// Whether a distance between two arcs is within the rounding of either.
@@ -907,8 +945,11 @@ namespace GeometryHelper.Core
             internal static Box Of(GeoEdge2 edge)
             {
                 var chord = new Box(
-                    Math.Min(edge.StartPoint.X, edge.EndPoint.X), Math.Min(edge.StartPoint.Y, edge.EndPoint.Y),
-                    Math.Max(edge.StartPoint.X, edge.EndPoint.X), Math.Max(edge.StartPoint.Y, edge.EndPoint.Y));
+                    Math.Min(edge.StartPoint.X, edge.EndPoint.X),
+                    Math.Min(edge.StartPoint.Y, edge.EndPoint.Y),
+                    Math.Max(edge.StartPoint.X, edge.EndPoint.X),
+                    Math.Max(edge.StartPoint.Y, edge.EndPoint.Y)
+                );
 
                 if (!edge.IsArc)
                 {
@@ -922,19 +963,28 @@ namespace GeometryHelper.Core
                 {
                     double sagitta = half * bulge;
 
-                    return new Box(chord._minX - sagitta, chord._minY - sagitta, chord._maxX + sagitta, chord._maxY + sagitta);
+                    return new Box(
+                        chord._minX - sagitta,
+                        chord._minY - sagitta,
+                        chord._maxX + sagitta,
+                        chord._maxY + sagitta
+                    );
                 }
 
                 return Around(
-                    new GeoPoint2(0.5 * (edge.StartPoint.X + edge.EndPoint.X), 0.5 * (edge.StartPoint.Y + edge.EndPoint.Y)),
-                    half * bulge);
+                    new GeoPoint2(
+                        0.5 * (edge.StartPoint.X + edge.EndPoint.X),
+                        0.5 * (edge.StartPoint.Y + edge.EndPoint.Y)
+                    ),
+                    half * bulge
+                );
             }
 
             /// <summary>
             /// The box of everything within a reach of a centre, which holds an arc or a circle about it.
             /// </summary>
-            internal static Box Around(GeoPoint2 centre, double reach)
-                => new Box(centre.X - reach, centre.Y - reach, centre.X + reach, centre.Y + reach);
+            internal static Box Around(GeoPoint2 centre, double reach) =>
+                new Box(centre.X - reach, centre.Y - reach, centre.X + reach, centre.Y + reach);
 
             /// <summary>
             /// Whether two boxes come within twice the point tolerance of each other, so that nothing within the
@@ -962,7 +1012,9 @@ namespace GeometryHelper.Core
                 return Arc2.GetIntersections(side.ToArc(), line, tolerance);
             }
 
-            return Intersection2.TryCross(side.ToLine(), false, line, true, out GeoPoint2 meeting, tolerance) ? new[] { meeting } : new GeoPoint2[0];
+            return Intersection2.TryCross(side.ToLine(), false, line, true, out GeoPoint2 meeting, tolerance)
+                ? new[] { meeting }
+                : new GeoPoint2[0];
         }
 
         /// <summary>
@@ -976,7 +1028,15 @@ namespace GeometryHelper.Core
                 return side.GetIntersections(other, tolerance);
             }
 
-            return Intersection2.Crossing(side.ToLine(), other.ToLine(), Enums.LineExtension.None, out GeoPoint2 meeting, tolerance) ? new[] { meeting } : new GeoPoint2[0];
+            return Intersection2.Crossing(
+                side.ToLine(),
+                other.ToLine(),
+                Enums.LineExtension.None,
+                out GeoPoint2 meeting,
+                tolerance
+            )
+                ? new[] { meeting }
+                : new GeoPoint2[0];
         }
 
         /// <summary>
@@ -1045,14 +1105,22 @@ namespace GeometryHelper.Core
         /// on a vertex ends the run there without splitting anything. A distance at either end, off the
         /// run, or repeated is ignored, so the runs always have something in them.
         /// </remarks>
-        internal static List<List<GeoEdge2>> SplitAt(List<GeoEdge2> edges, IEnumerable<double> distances, Tolerance tolerance)
+        internal static List<List<GeoEdge2>> SplitAt(
+            List<GeoEdge2> edges,
+            IEnumerable<double> distances,
+            Tolerance tolerance
+        )
         {
             double total = LengthOf(edges);
             var cuts = new List<double>();
 
             foreach (double distance in distances)
             {
-                if (double.IsNaN(distance) || distance <= tolerance.EqualPoint || distance >= total - tolerance.EqualPoint)
+                if (
+                    double.IsNaN(distance)
+                    || distance <= tolerance.EqualPoint
+                    || distance >= total - tolerance.EqualPoint
+                )
                 {
                     continue;
                 }

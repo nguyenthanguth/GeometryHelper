@@ -31,9 +31,25 @@ namespace GeometryHelper.UnitTest.Dxf
         /// </summary>
         private static DxfDatabase Holding(string version, string written)
         {
-            DxfDatabase db = DxfDatabase.Parse(version == "R2000" ? DxfDimensionDrawings.R2000 : DxfDimensionDrawings.R2018);
-            db.ModelSpace.AppendEntity(new DxfMText { Contents = Placeholder, Location = P(0, 0), TextHeight = 2.5 });
-            db.ModelSpace.AppendEntity(new DxfDBText { TextString = Placeholder, Position = P(0, 10), Height = 2.5 });
+            DxfDatabase db = DxfDatabase.Parse(
+                version == "R2000" ? DxfDimensionDrawings.R2000 : DxfDimensionDrawings.R2018
+            );
+            db.ModelSpace.AppendEntity(
+                new DxfMText
+                {
+                    Contents = Placeholder,
+                    Location = P(0, 0),
+                    TextHeight = 2.5,
+                }
+            );
+            db.ModelSpace.AppendEntity(
+                new DxfDBText
+                {
+                    TextString = Placeholder,
+                    Position = P(0, 10),
+                    Height = 2.5,
+                }
+            );
             var block = new DxfBlockTableRecord { Name = "GH_TAGGED" };
             db.BlockTable.Add(block);
             block.AppendEntity(new DxfAttributeDefinition(P(0, 0), "v", "TAG", "p", null));
@@ -43,8 +59,18 @@ namespace GeometryHelper.UnitTest.Dxf
             var drawn = new DxfBlockTableRecord { Name = "GH_DRAWN" };
             db.BlockTable.Add(drawn);
             drawn.AppendEntity(new DxfLine(P(0, 70), P(100, 70)));
-            db.ModelSpace.AppendEntity(new DxfRotatedDimension(0.0, P(0, 60), P(100, 60), P(50, 70), Placeholder, null) { DimBlock = drawn });
-            var mleader = new DxfMLeader { MText = new DxfMText { Contents = Placeholder, Location = P(30, 42), TextHeight = 2.5 } };
+            db.ModelSpace.AppendEntity(
+                new DxfRotatedDimension(0.0, P(0, 60), P(100, 60), P(50, 70), Placeholder, null) { DimBlock = drawn }
+            );
+            var mleader = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = Placeholder,
+                    Location = P(30, 42),
+                    TextHeight = 2.5,
+                },
+            };
             mleader.AddLeaderLine(P(0, 30));
             db.ModelSpace.AppendEntity(mleader);
             db.ModelSpace.OfType<DxfTable>().First().SetTextString(2, 0, Placeholder);
@@ -62,7 +88,12 @@ namespace GeometryHelper.UnitTest.Dxf
             {
                 db.ModelSpace.OfType<DxfMText>().Single().Contents,
                 db.ModelSpace.OfType<DxfDBText>().Single().TextString,
-                db.ModelSpace.OfType<DxfBlockReference>().Single(b => b.Name == "GH_TAGGED").AttributeCollection.Cast<DxfAttributeReference>().Single().TextString,
+                db
+                    .ModelSpace.OfType<DxfBlockReference>()
+                    .Single(b => b.Name == "GH_TAGGED")
+                    .AttributeCollection.Cast<DxfAttributeReference>()
+                    .Single()
+                    .TextString,
                 db.ModelSpace.OfType<DxfRotatedDimension>().Single(d => d.DimBlock?.Name == "GH_DRAWN").DimensionText,
                 db.ModelSpace.OfType<DxfMLeader>().Single().MText.Contents,
                 table.TextString(2, 0),
@@ -104,7 +135,9 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = Holding(version, "a\\U+000Ab");
             DxfMText mtext = db.ModelSpace.OfType<DxfMText>().Single();
-            DxfRotatedDimension dimension = db.ModelSpace.OfType<DxfRotatedDimension>().Single(d => d.DimBlock?.Name == "GH_DRAWN");
+            DxfRotatedDimension dimension = db
+                .ModelSpace.OfType<DxfRotatedDimension>()
+                .Single(d => d.DimBlock?.Name == "GH_DRAWN");
             string before = db.ToText();
 
             Assert.Equal("a\nb", mtext.Contents);
@@ -120,8 +153,19 @@ namespace GeometryHelper.UnitTest.Dxf
             // AutoCAD 2021 writes the pieces of 250 characters of the escaped words, cutting an escape: \U+01 | 10.
             string escapes = string.Concat(Enumerable.Repeat("\\U+0110", 40));
             DxfDatabase db = DxfDatabase.Parse(new DxfDatabase("AC1018").ToText());
-            db.ModelSpace.AppendEntity(new DxfMText { Contents = Placeholder, Location = P(0, 0), TextHeight = 2.5 });
-            string text = db.ToText().Replace("  1\n" + Placeholder + "\n", "  3\n" + escapes.Substring(0, 250) + "\n  1\n" + escapes.Substring(250) + "\n");
+            db.ModelSpace.AppendEntity(
+                new DxfMText
+                {
+                    Contents = Placeholder,
+                    Location = P(0, 0),
+                    TextHeight = 2.5,
+                }
+            );
+            string text = db.ToText()
+                .Replace(
+                    "  1\n" + Placeholder + "\n",
+                    "  3\n" + escapes.Substring(0, 250) + "\n  1\n" + escapes.Substring(250) + "\n"
+                );
             Assert.EndsWith("\\U+01", escapes.Substring(0, 250));
             DxfMText mtext = DxfDatabase.Parse(text).ModelSpace.OfType<DxfMText>().Single();
 
@@ -135,8 +179,22 @@ namespace GeometryHelper.UnitTest.Dxf
             // AutoCAD 2021 refuses a DXF of R2018 holding the four bytes of UTF-8 of U+1F600 (eFilerError) and reads its escapes.
             string face = char.ConvertFromUtf32(0x1F600);
             var db = new DxfDatabase("AC1032");
-            db.ModelSpace.AppendEntity(new DxfMText { Contents = "x" + face + "yĐ", Location = P(0, 0), TextHeight = 2.5 });
-            db.ModelSpace.AppendEntity(new DxfDBText { TextString = "x" + face + "yĐ", Position = P(0, 10), Height = 2.5 });
+            db.ModelSpace.AppendEntity(
+                new DxfMText
+                {
+                    Contents = "x" + face + "yĐ",
+                    Location = P(0, 0),
+                    TextHeight = 2.5,
+                }
+            );
+            db.ModelSpace.AppendEntity(
+                new DxfDBText
+                {
+                    TextString = "x" + face + "yĐ",
+                    Position = P(0, 10),
+                    Height = 2.5,
+                }
+            );
 
             using (var stream = new MemoryStream())
             {
@@ -177,36 +235,43 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 using (var go = new System.Threading.ManualResetEventSlim(false))
                 {
-                    var threads = Enumerable.Range(0, 8).Select(t => new System.Threading.Thread(() =>
-                    {
-                        go.Wait();
-
-                        try
+                    var threads = Enumerable
+                        .Range(0, 8)
+                        .Select(t => new System.Threading.Thread(() =>
                         {
-                            if (t % 2 == 0)
+                            go.Wait();
+
+                            try
                             {
-                                if (shared.ApproxNumObjects != alone)
+                                if (t % 2 == 0)
                                 {
-                                    System.Threading.Interlocked.Increment(ref wrong);
-                                }
-                            }
-                            else
-                            {
-                                foreach (string handle in handles)
-                                {
-                                    if (shared.EntityByHandle(handle) == null)
+                                    if (shared.ApproxNumObjects != alone)
                                     {
                                         System.Threading.Interlocked.Increment(ref wrong);
                                     }
                                 }
+                                else
+                                {
+                                    foreach (string handle in handles)
+                                    {
+                                        if (shared.EntityByHandle(handle) == null)
+                                        {
+                                            System.Threading.Interlocked.Increment(ref wrong);
+                                        }
+                                    }
+                                }
                             }
-                        }
-                        catch (Exception e)
-                        {
-                            System.Threading.Interlocked.Increment(ref thrown);
-                            System.Threading.Interlocked.CompareExchange(ref seen, e.GetType().Name + ": " + e.Message, null);
-                        }
-                    })).ToList();
+                            catch (Exception e)
+                            {
+                                System.Threading.Interlocked.Increment(ref thrown);
+                                System.Threading.Interlocked.CompareExchange(
+                                    ref seen,
+                                    e.GetType().Name + ": " + e.Message,
+                                    null
+                                );
+                            }
+                        }))
+                        .ToList();
 
                     threads.ForEach(thread => thread.Start());
                     go.Set();

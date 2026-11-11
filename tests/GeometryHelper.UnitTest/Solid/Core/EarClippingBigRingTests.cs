@@ -42,8 +42,13 @@ namespace GeometryHelper.UnitTest.Solid
                 for (int k = 0; k < perQuarter; k++)
                 {
                     double t = (double)k / perQuarter;
-                    double x = (1.0 - t * t) / (1.0 + t * t), y = 2.0 * t / (1.0 + t * t);
-                    (double X, double Y) turned = quarter == 0 ? (x, y) : quarter == 1 ? (-y, x) : quarter == 2 ? (-x, -y) : (y, -x);
+                    double x = (1.0 - t * t) / (1.0 + t * t),
+                        y = 2.0 * t / (1.0 + t * t);
+                    (double X, double Y) turned =
+                        quarter == 0 ? (x, y)
+                        : quarter == 1 ? (-y, x)
+                        : quarter == 2 ? (-x, -y)
+                        : (y, -x);
                     corners.Add((centerX + radius * turned.X, centerY + radius * turned.Y));
                 }
             }
@@ -54,20 +59,23 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A corner on the plane z = 0, or on a plane standing up 0.6 in 1 over x, shifted 5 up.
         /// </summary>
-        private static GeoPoint3 At((double X, double Y) corner, bool tilted)
-            => tilted ? new GeoPoint3(corner.X * 0.8, corner.Y, corner.X * 0.6 + 5.0) : new GeoPoint3(corner.X, corner.Y, 0.0);
+        private static GeoPoint3 At((double X, double Y) corner, bool tilted) =>
+            tilted
+                ? new GeoPoint3(corner.X * 0.8, corner.Y, corner.X * 0.6 + 5.0)
+                : new GeoPoint3(corner.X, corner.Y, 0.0);
 
-        private static GeoPolygon3 Polygon(IEnumerable<(double X, double Y)> corners, bool tilted)
-            => new GeoPolygon3(corners.Select(c => At(c, tilted)), Within);
+        private static GeoPolygon3 Polygon(IEnumerable<(double X, double Y)> corners, bool tilted) =>
+            new GeoPolygon3(corners.Select(c => At(c, tilted)), Within);
 
-        private static GeoFace3 Round(int perQuarter, double radius, bool tilted)
-            => new GeoFace3(Polygon(Circle(perQuarter, radius, 0, 0), tilted), null, Within);
+        private static GeoFace3 Round(int perQuarter, double radius, bool tilted) =>
+            new GeoFace3(Polygon(Circle(perQuarter, radius, 0, 0), tilted), null, Within);
 
         private static GeoFace3 Star(bool tilted)
         {
             // 400 corners, every other one pulled in from 500 to 300 from the center.
             List<(double X, double Y)> corners = Circle(100, 1, 0, 0)
-                .Select((p, i) => (p.X * (i % 2 == 0 ? 500.0 : 300.0), p.Y * (i % 2 == 0 ? 500.0 : 300.0))).ToList();
+                .Select((p, i) => (p.X * (i % 2 == 0 ? 500.0 : 300.0), p.Y * (i % 2 == 0 ? 500.0 : 300.0)))
+                .ToList();
 
             return new GeoFace3(Polygon(corners, tilted), null, Within);
         }
@@ -98,7 +106,10 @@ namespace GeometryHelper.UnitTest.Solid
         private static GeoFace3 Plate(bool tilted)
         {
             // 600 by 400 with five round holes of 24 corners, alternately above and below the middle.
-            GeoPolygon3 boundary = Polygon(new[] { (-300.0, -200.0), (300.0, -200.0), (300.0, 200.0), (-300.0, 200.0) }, tilted);
+            GeoPolygon3 boundary = Polygon(
+                new[] { (-300.0, -200.0), (300.0, -200.0), (300.0, 200.0), (-300.0, 200.0) },
+                tilted
+            );
             var holes = new List<GeoPolygon3>();
 
             for (int h = 0; h < 5; h++)
@@ -141,13 +152,20 @@ namespace GeometryHelper.UnitTest.Solid
         {
             switch (name)
             {
-                case "convex 700": return Round(175, 500, tilted);
-                case "convex 4000": return Round(1000, 500, tilted);
-                case "star 400": return Star(tilted);
-                case "comb 80": return Comb(tilted);
-                case "plate": return Plate(tilted);
-                case "nearly convex 500": return NearlyConvex(tilted);
-                default: return RoundedRectangle(tilted);
+                case "convex 700":
+                    return Round(175, 500, tilted);
+                case "convex 4000":
+                    return Round(1000, 500, tilted);
+                case "star 400":
+                    return Star(tilted);
+                case "comb 80":
+                    return Comb(tilted);
+                case "plate":
+                    return Plate(tilted);
+                case "nearly convex 500":
+                    return NearlyConvex(tilted);
+                default:
+                    return RoundedRectangle(tilted);
             }
         }
 
@@ -214,10 +232,19 @@ namespace GeometryHelper.UnitTest.Solid
             // The first corner is an ear every time, so the cut is the fan round the last corner.
             for (int k = 0; k <= n - 4; k++)
             {
-                Assert.True(triangles[k].A.IsEqualTo(corners[n - 1], Within) && triangles[k].B.IsEqualTo(corners[k], Within) && triangles[k].C.IsEqualTo(corners[k + 1], Within), $"triangle {k}");
+                Assert.True(
+                    triangles[k].A.IsEqualTo(corners[n - 1], Within)
+                        && triangles[k].B.IsEqualTo(corners[k], Within)
+                        && triangles[k].C.IsEqualTo(corners[k + 1], Within),
+                    $"triangle {k}"
+                );
             }
 
-            Assert.True(triangles[n - 3].A.IsEqualTo(corners[n - 3], Within) && triangles[n - 3].B.IsEqualTo(corners[n - 2], Within) && triangles[n - 3].C.IsEqualTo(corners[n - 1], Within));
+            Assert.True(
+                triangles[n - 3].A.IsEqualTo(corners[n - 3], Within)
+                    && triangles[n - 3].B.IsEqualTo(corners[n - 2], Within)
+                    && triangles[n - 3].C.IsEqualTo(corners[n - 1], Within)
+            );
             Assert.InRange(triangles.Sum(t => t.Area), face.Area - 1E-3, face.Area + 1E-3);
         }
 
@@ -248,7 +275,8 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // Every other corner pulled in, so half the corners are reflex and each ear is looked at against them.
             List<(double X, double Y)> corners = Circle(500, 1, 0, 0)
-                .Select((p, i) => (p.X * (i % 2 == 0 ? 500.0 : 300.0), p.Y * (i % 2 == 0 ? 500.0 : 300.0))).ToList();
+                .Select((p, i) => (p.X * (i % 2 == 0 ? 500.0 : 300.0), p.Y * (i % 2 == 0 ? 500.0 : 300.0)))
+                .ToList();
             var face = new GeoFace3(Polygon(corners, false), null, Within);
 
             GeoTriangle3[] triangles = face.TriangulateSurface(Within);

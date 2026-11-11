@@ -35,25 +35,31 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Initializes a mesh of no points and no faces, as AutoCAD's <c>new PolyFaceMesh()</c>, on layer 0 in no file.</summary>
         public DxfPolyFaceMesh()
-            : base("POLYLINE", new[]
-            {
-                new DxfTypedValue(100, "AcDbPolyFaceMesh"),
-                new DxfTypedValue(66, "1"),
-                new DxfTypedValue(10, "0"),
-                new DxfTypedValue(20, "0"),
-                new DxfTypedValue(30, "0"),
-                new DxfTypedValue(70, "64"),
-                new DxfTypedValue(71, "0"),
-                new DxfTypedValue(72, "0"),
-            })
+            : base(
+                "POLYLINE",
+                new[]
+                {
+                    new DxfTypedValue(100, "AcDbPolyFaceMesh"),
+                    new DxfTypedValue(66, "1"),
+                    new DxfTypedValue(10, "0"),
+                    new DxfTypedValue(20, "0"),
+                    new DxfTypedValue(30, "0"),
+                    new DxfTypedValue(70, "64"),
+                    new DxfTypedValue(71, "0"),
+                    new DxfTypedValue(72, "0"),
+                }
+            )
         {
-            SetFollowers(new[] { new KeyValuePair<string, KeyValuePair<int, string>[]>("SEQEND", new KeyValuePair<int, string>[0]) });
+            SetFollowers(
+                new[]
+                {
+                    new KeyValuePair<string, KeyValuePair<int, string>[]>("SEQEND", new KeyValuePair<int, string>[0]),
+                }
+            );
         }
 
         private DxfPolyFaceMesh(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets how many points the mesh has (group 71), as AutoCAD's <c>NumVertices</c>.</summary>
         public int NumVertices => GetInt(71, 0);
@@ -119,7 +125,10 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(faceRecord));
             }
 
-            InsertFollowerAt(RecordCount > 1 && RecordType(RecordCount - 1) == "SEQEND" ? RecordCount - 1 : RecordCount, faceRecord);
+            InsertFollowerAt(
+                RecordCount > 1 && RecordType(RecordCount - 1) == "SEQEND" ? RecordCount - 1 : RecordCount,
+                faceRecord
+            );
             Count(72, NumFaces + 1);
         }
 
@@ -142,7 +151,10 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            SetGroupsAtMany(DxfFollowers.Moved(Item, transform, v => (DxfFollowers.Whole(v, 70, 0) & 64) != 0), VertexOrder);
+            SetGroupsAtMany(
+                DxfFollowers.Moved(Item, transform, v => (DxfFollowers.Whole(v, 70, 0) & 64) != 0),
+                VertexOrder
+            );
         }
 
         /// <summary>
@@ -163,7 +175,8 @@ namespace GeometryHelper.Dxf
             var origin = new GeoPoint3(0.0, 0.0, 0.0);
             var points = new List<GeoPoint3>();
             var faces = new List<DxfEntity>();
-            List<KeyValuePair<IReadOnlyList<DxfTypedValue>, IReadOnlyList<DxfTypedValue>>> records = DxfFollowers.WholeVertices(Item);
+            List<KeyValuePair<IReadOnlyList<DxfTypedValue>, IReadOnlyList<DxfTypedValue>>> records =
+                DxfFollowers.WholeVertices(Item);
 
             // The points come before the faces, as AutoCAD writes them; a face names them by their number among the points.
             foreach (KeyValuePair<IReadOnlyList<DxfTypedValue>, IReadOnlyList<DxfTypedValue>> record in records)
@@ -218,7 +231,16 @@ namespace GeometryHelper.Dxf
                     hidden |= (hidden & 4) << 1;
                 }
 
-                var face = new DxfFace(corners[0], corners[1], corners[2], corners[3], (hidden & 1) == 0, (hidden & 2) == 0, (hidden & 4) == 0, (hidden & 8) == 0);
+                var face = new DxfFace(
+                    corners[0],
+                    corners[1],
+                    corners[2],
+                    corners[3],
+                    (hidden & 1) == 0,
+                    (hidden & 2) == 0,
+                    (hidden & 4) == 0,
+                    (hidden & 8) == 0
+                );
                 look.GiveTo(face);
                 faces.Add(face);
             }
@@ -274,18 +296,26 @@ namespace GeometryHelper.Dxf
 
                     if (Math.Abs(corner) == number)
                     {
-                        throw new InvalidOperationException("The point " + number.ToString(CultureInfo.InvariantCulture) + " of the mesh is a corner of a face: erase the face first.");
+                        throw new InvalidOperationException(
+                            "The point "
+                                + number.ToString(CultureInfo.InvariantCulture)
+                                + " of the mesh is a corner of a face: erase the face first."
+                        );
                     }
 
                     if (Math.Abs(corner) > number)
                     {
-                        changes.AddRange(DxfFollowers.WholeChange(record.Value, code, corner > 0 ? corner - 1 : corner + 1, 0));
+                        changes.AddRange(
+                            DxfFollowers.WholeChange(record.Value, code, corner > 0 ? corner - 1 : corner + 1, 0)
+                        );
                     }
                 }
 
                 if (changes.Count > 0)
                 {
-                    renumbered.Add(new KeyValuePair<int, IList<KeyValuePair<int, string>>>(record.Key, changes.ToArray()));
+                    renumbered.Add(
+                        new KeyValuePair<int, IList<KeyValuePair<int, string>>>(record.Key, changes.ToArray())
+                    );
                 }
             }
 
@@ -337,12 +367,18 @@ namespace GeometryHelper.Dxf
         {
             if (value != GetInt(code, 0))
             {
-                Item.File.SetValues(Item, new[] { new KeyValuePair<int, string>(code, value.ToString(CultureInfo.InvariantCulture)) }, GroupOrder, false);
+                Item.File.SetValues(
+                    Item,
+                    new[] { new KeyValuePair<int, string>(code, value.ToString(CultureInfo.InvariantCulture)) },
+                    GroupOrder,
+                    false
+                );
             }
         }
 
         [DxfType("POLYLINE")]
-        internal static DxfEntity Create(DxfItem item) => (DxfPolyline2d.Flags(item) & 64) != 0 ? new DxfPolyFaceMesh(item) : null;
+        internal static DxfEntity Create(DxfItem item) =>
+            (DxfPolyline2d.Flags(item) & 64) != 0 ? new DxfPolyFaceMesh(item) : null;
 
         /// <inheritdoc/>
         private protected override IReadOnlyList<int> GroupOrder => Order;

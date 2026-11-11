@@ -191,7 +191,12 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (Escape(text).Length > LongestText)
             {
-                throw new ArgumentException("A text of a tag is at most " + LongestText.ToString(CultureInfo.InvariantCulture) + " characters as written; this one is longer.", parameter);
+                throw new ArgumentException(
+                    "A text of a tag is at most "
+                        + LongestText.ToString(CultureInfo.InvariantCulture)
+                        + " characters as written; this one is longer.",
+                    parameter
+                );
             }
         }
 
@@ -263,8 +268,15 @@ namespace GeometryHelper.Dxf.Viewer
                 int start = wide ? i + 2 : i + 1;
                 int digits = wide ? 4 : 2;
 
-                if (start + digits > written.Length
-                    || !int.TryParse(written.Substring(start, digits), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int code))
+                if (
+                    start + digits > written.Length
+                    || !int.TryParse(
+                        written.Substring(start, digits),
+                        NumberStyles.AllowHexSpecifier,
+                        CultureInfo.InvariantCulture,
+                        out int code
+                    )
+                )
                 {
                     return false;
                 }

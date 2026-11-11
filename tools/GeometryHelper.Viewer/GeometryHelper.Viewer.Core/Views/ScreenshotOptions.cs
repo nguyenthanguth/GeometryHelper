@@ -68,7 +68,14 @@ namespace GeometryHelper.Viewer
         /// <param name="pixelsWidth">The width of the picture.</param>
         /// <param name="pixelsHeight">The height of the picture.</param>
         /// <exception cref="ArgumentNullException">Thrown when the layout is null.</exception>
-        public void PictureSize(ViewLayout layout, double width, double height, double gap, out int pixelsWidth, out int pixelsHeight)
+        public void PictureSize(
+            ViewLayout layout,
+            double width,
+            double height,
+            double gap,
+            out int pixelsWidth,
+            out int pixelsHeight
+        )
         {
             double w = width;
             double h = height;
@@ -112,7 +119,9 @@ namespace GeometryHelper.Viewer
                 return new[] { new ViewCell(active.Slot, 0.0, 0.0, active.Width * Scale, active.Height * Scale) };
             }
 
-            return cells.Select(c => new ViewCell(c.Slot, c.X * Scale, c.Y * Scale, c.Width * Scale, c.Height * Scale)).ToList();
+            return cells
+                .Select(c => new ViewCell(c.Slot, c.X * Scale, c.Y * Scale, c.Width * Scale, c.Height * Scale))
+                .ToList();
         }
     }
 }

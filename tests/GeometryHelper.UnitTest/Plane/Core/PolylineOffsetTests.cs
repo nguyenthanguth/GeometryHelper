@@ -1,8 +1,8 @@
 using System;
 using System.Linq;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -17,7 +17,10 @@ namespace GeometryHelper.UnitTest.Plane
         private static GeoPolyline2 Chain(params double[] xy)
         {
             var points = new GeoPoint2[xy.Length / 2];
-            for (int i = 0; i < points.Length; i++) { points[i] = new GeoPoint2(xy[2 * i], xy[2 * i + 1]); }
+            for (int i = 0; i < points.Length; i++)
+            {
+                points[i] = new GeoPoint2(xy[2 * i], xy[2 * i + 1]);
+            }
             return new GeoPolyline2(points);
         }
 
@@ -26,7 +29,10 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(expected.VertexCount, actual.VertexCount);
             for (int i = 0; i < expected.VertexCount; i++)
             {
-                Assert.True(expected[i].DistanceTo(actual[i]) <= tolerance, $"vertex {i}: expected {expected[i]}, got {actual[i]}");
+                Assert.True(
+                    expected[i].DistanceTo(actual[i]) <= tolerance,
+                    $"vertex {i}: expected {expected[i]}, got {actual[i]}"
+                );
             }
         }
 
@@ -53,7 +59,9 @@ namespace GeometryHelper.UnitTest.Plane
             // Chamfer: one segment across the corner, square to its bisector at the offset distance.
             GeoPolyline2 chamfered = chain.Offset(-1.0, OffsetJoin.Chamfer).Single();
             Assert.Equal(4, chamfered.VertexCount);
-            double reach = new GeoLine2(chamfered[1], chamfered[2]).GetClosestPointOnBoundary(new GeoPoint2(10, 0)).DistanceTo(new GeoPoint2(10, 0));
+            double reach = new GeoLine2(chamfered[1], chamfered[2])
+                .GetClosestPointOnBoundary(new GeoPoint2(10, 0))
+                .DistanceTo(new GeoPoint2(10, 0));
             Assert.Equal(1.0, reach, 9);
         }
 
@@ -67,7 +75,9 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.True(rounded.VertexCount > 10);
             Assert.Equal(20.0 + Math.PI / 2.0, rounded.Length, 3);
-            Assert.All(rounded.Vertices.Skip(1).Take(rounded.VertexCount - 2), v => Assert.Equal(1.0, chain.DistanceTo(v), 9));
+            Assert.All(rounded.Vertices.Skip(1).Take(rounded.VertexCount - 2), v =>
+                Assert.Equal(1.0, chain.DistanceTo(v), 9)
+            );
         }
 
         [Fact]
@@ -108,7 +118,10 @@ namespace GeometryHelper.UnitTest.Plane
             for (int t = 0; t < 50; t++)
             {
                 // A chain running left to right that never turns back on itself.
-                var points = Enumerable.Range(0, 12).Select(i => new GeoPoint2(i * 5.0, rng.NextDouble() * 4.0)).ToArray();
+                var points = Enumerable
+                    .Range(0, 12)
+                    .Select(i => new GeoPoint2(i * 5.0, rng.NextDouble() * 4.0))
+                    .ToArray();
                 var chain = new GeoPolyline2(points);
 
                 foreach (double d in new[] { 0.8, -0.8 })
@@ -117,7 +130,10 @@ namespace GeometryHelper.UnitTest.Plane
                     Assert.Single(result);
 
                     GeoPolyline2 curve = result[0];
-                    Assert.True(curve[curve.VertexCount - 1].X > curve[0].X, "the offset runs the same way as the chain");
+                    Assert.True(
+                        curve[curve.VertexCount - 1].X > curve[0].X,
+                        "the offset runs the same way as the chain"
+                    );
 
                     foreach (GeoPoint2 v in curve.Vertices)
                     {
@@ -145,9 +161,15 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(Offset2.Offset(chain, 1.0), chain.Offset(1.0));
             Assert.Equal(Offset2.Offset(chain, 1.0, Tolerance.Global), chain.Offset(1.0, Tolerance.Global));
             Assert.Equal(Offset2.Offset(chain, -1.0, OffsetJoin.Round), chain.Offset(-1.0, OffsetJoin.Round));
-            Assert.Equal(Offset2.Offset(chain, -1.0, OffsetJoin.Round, Tolerance.Global), chain.Offset(-1.0, OffsetJoin.Round, Tolerance.Global));
+            Assert.Equal(
+                Offset2.Offset(chain, -1.0, OffsetJoin.Round, Tolerance.Global),
+                chain.Offset(-1.0, OffsetJoin.Round, Tolerance.Global)
+            );
             Assert.Equal(Offset2.Offset(chain, -1.0, OffsetOptions.Default), chain.Offset(-1.0, OffsetOptions.Default));
-            Assert.Equal(Offset2.Offset(chain, -1.0, OffsetOptions.Default, Tolerance.Global), chain.Offset(-1.0, OffsetOptions.Default, Tolerance.Global));
+            Assert.Equal(
+                Offset2.Offset(chain, -1.0, OffsetOptions.Default, Tolerance.Global),
+                chain.Offset(-1.0, OffsetOptions.Default, Tolerance.Global)
+            );
         }
 
         [Fact]
@@ -177,7 +199,10 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(circle, unchanged);
             Assert.False(circle.TryOffset(-7.0, out _));
 
-            Assert.Equal(Offset2.TryOffset(circle, 1.0, out GeoCircle2 a), circle.TryOffset(1.0, out GeoCircle2 b, Tolerance.Global));
+            Assert.Equal(
+                Offset2.TryOffset(circle, 1.0, out GeoCircle2 a),
+                circle.TryOffset(1.0, out GeoCircle2 b, Tolerance.Global)
+            );
             Assert.Equal(a, b);
             Assert.Throws<ArgumentOutOfRangeException>(() => circle.TryOffset(double.NaN, out _));
         }
@@ -201,7 +226,10 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(rect.TryOffset(-1.9, out GeoRectangle2 thin));
             Assert.Equal(0.2, thin.Height, 12);
 
-            Assert.Equal(Offset2.TryOffset(rect, 1.0, out GeoRectangle2 a), rect.TryOffset(1.0, out GeoRectangle2 b, Tolerance.Global));
+            Assert.Equal(
+                Offset2.TryOffset(rect, 1.0, out GeoRectangle2 a),
+                rect.TryOffset(1.0, out GeoRectangle2 b, Tolerance.Global)
+            );
             Assert.Equal(a, b);
         }
 

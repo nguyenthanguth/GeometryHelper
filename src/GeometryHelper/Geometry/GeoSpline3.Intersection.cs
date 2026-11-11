@@ -70,9 +70,17 @@ namespace GeometryHelper.Geometry
         {
             if (Stub3.ReadsAsStart(line, tolerance))
             {
-                GeoPoint3[] asItIs = Spline3.GetIntersections(this, Spline3.Of(this, line), Stub3.AsItIs(line, tolerance));
+                GeoPoint3[] asItIs = Spline3.GetIntersections(
+                    this,
+                    Spline3.Of(this, line),
+                    Stub3.AsItIs(line, tolerance)
+                );
 
-                return Stub3.Meeting(line, asItIs, asItIs.Length == 0 && DistanceTo(line.StartPoint, tolerance) <= tolerance.EqualPoint);
+                return Stub3.Meeting(
+                    line,
+                    asItIs,
+                    asItIs.Length == 0 && DistanceTo(line.StartPoint, tolerance) <= tolerance.EqualPoint
+                );
             }
 
             return Spline3.GetIntersections(this, Spline3.Of(this, line), tolerance);
@@ -83,7 +91,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="line">The line segment.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoLine3 line, out GeoPoint3[] intersections) => TryIntersectWith(line, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoLine3 line, out GeoPoint3[] intersections) =>
+            TryIntersectWith(line, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline crosses a line segment, within a tolerance.
@@ -114,14 +123,16 @@ namespace GeometryHelper.Geometry
         /// without crossing, and where an end of the spline or of the shape comes within the point tolerance of the other. Where the spline runs
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
-        public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, ray), tolerance);
+        public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance) =>
+            Spline3.GetIntersections(this, Spline3.Of(this, ray), tolerance);
 
         /// <summary>
         /// Tries to find where this spline crosses a ray, using the default tolerance.
         /// </summary>
         /// <param name="ray">The ray.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3[] intersections) => TryIntersectWith(ray, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3[] intersections) =>
+            TryIntersectWith(ray, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline crosses a ray, within a tolerance.
@@ -152,14 +163,16 @@ namespace GeometryHelper.Geometry
         /// without crossing, and where an end of the spline or of the shape comes within the point tolerance of the other. Where the spline runs
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
-        public GeoPoint3[] GetIntersections(GeoXLine3 xline, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, xline), tolerance);
+        public GeoPoint3[] GetIntersections(GeoXLine3 xline, Tolerance tolerance) =>
+            Spline3.GetIntersections(this, Spline3.Of(this, xline), tolerance);
 
         /// <summary>
         /// Tries to find where this spline crosses an infinite line, using the default tolerance.
         /// </summary>
         /// <param name="xline">The infinite line.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoXLine3 xline, out GeoPoint3[] intersections) => TryIntersectWith(xline, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoXLine3 xline, out GeoPoint3[] intersections) =>
+            TryIntersectWith(xline, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline crosses an infinite line, within a tolerance.
@@ -190,14 +203,16 @@ namespace GeometryHelper.Geometry
         /// without crossing, and where an end of the spline or of the shape comes within the point tolerance of the other. Where the spline runs
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
-        public GeoPoint3[] GetIntersections(GeoPlane3 plane, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, plane), tolerance);
+        public GeoPoint3[] GetIntersections(GeoPlane3 plane, Tolerance tolerance) =>
+            Spline3.GetIntersections(this, Spline3.Of(this, plane), tolerance);
 
         /// <summary>
         /// Tries to find where this spline crosses a plane, using the default tolerance.
         /// </summary>
         /// <param name="plane">The plane.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoPlane3 plane, out GeoPoint3[] intersections) => TryIntersectWith(plane, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoPlane3 plane, out GeoPoint3[] intersections) =>
+            TryIntersectWith(plane, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline crosses a plane, within a tolerance.
@@ -230,7 +245,8 @@ namespace GeometryHelper.Geometry
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the polyline is null.</exception>
-        public GeoPoint3[] GetIntersections(GeoPolyline3 polyline, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, polyline), tolerance);
+        public GeoPoint3[] GetIntersections(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Spline3.GetIntersections(this, Spline3.Of(this, polyline), tolerance);
 
         /// <summary>
         /// Tries to find where this spline crosses a polyline, using the default tolerance.
@@ -238,7 +254,8 @@ namespace GeometryHelper.Geometry
         /// <param name="polyline">The polyline.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
         /// <exception cref="System.ArgumentNullException">Thrown when the polyline is null.</exception>
-        public bool TryIntersectWith(GeoPolyline3 polyline, out GeoPoint3[] intersections) => TryIntersectWith(polyline, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoPolyline3 polyline, out GeoPoint3[] intersections) =>
+            TryIntersectWith(polyline, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline crosses a polyline, within a tolerance.
@@ -272,7 +289,8 @@ namespace GeometryHelper.Geometry
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
-        public GeoPoint3[] GetIntersections(GeoPolygon3 polygon, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, polygon), tolerance);
+        public GeoPoint3[] GetIntersections(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Spline3.GetIntersections(this, Spline3.Of(this, polygon), tolerance);
 
         /// <summary>
         /// Tries to find where this spline pierces or crosses the outline of a polygon, using the default tolerance.
@@ -280,7 +298,8 @@ namespace GeometryHelper.Geometry
         /// <param name="polygon">The polygon.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
         /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
-        public bool TryIntersectWith(GeoPolygon3 polygon, out GeoPoint3[] intersections) => TryIntersectWith(polygon, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoPolygon3 polygon, out GeoPoint3[] intersections) =>
+            TryIntersectWith(polygon, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline pierces or crosses the outline of a polygon, within a tolerance.
@@ -312,14 +331,16 @@ namespace GeometryHelper.Geometry
         /// without crossing, and where an end of the spline or of the shape comes within the point tolerance of the other. Where the spline runs
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
-        public GeoPoint3[] GetIntersections(GeoTriangle3 triangle, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, triangle), tolerance);
+        public GeoPoint3[] GetIntersections(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Spline3.GetIntersections(this, Spline3.Of(this, triangle), tolerance);
 
         /// <summary>
         /// Tries to find where this spline pierces or crosses the outline of a triangle, using the default tolerance.
         /// </summary>
         /// <param name="triangle">The triangle.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoTriangle3 triangle, out GeoPoint3[] intersections) => TryIntersectWith(triangle, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoTriangle3 triangle, out GeoPoint3[] intersections) =>
+            TryIntersectWith(triangle, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline pierces or crosses the outline of a triangle, within a tolerance.
@@ -352,7 +373,8 @@ namespace GeometryHelper.Geometry
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
-        public GeoPoint3[] GetIntersections(GeoFace3 face, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, face), tolerance);
+        public GeoPoint3[] GetIntersections(GeoFace3 face, Tolerance tolerance) =>
+            Spline3.GetIntersections(this, Spline3.Of(this, face), tolerance);
 
         /// <summary>
         /// Tries to find where this spline pierces or crosses the outline of a face, using the default tolerance.
@@ -360,7 +382,8 @@ namespace GeometryHelper.Geometry
         /// <param name="face">The face.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
         /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
-        public bool TryIntersectWith(GeoFace3 face, out GeoPoint3[] intersections) => TryIntersectWith(face, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoFace3 face, out GeoPoint3[] intersections) =>
+            TryIntersectWith(face, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline pierces or crosses the outline of a face, within a tolerance.
@@ -392,14 +415,16 @@ namespace GeometryHelper.Geometry
         /// without crossing, and where an end of the spline or of the shape comes within the point tolerance of the other. Where the spline runs
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
-        public GeoPoint3[] GetIntersections(GeoAabb3 box, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, box), tolerance);
+        public GeoPoint3[] GetIntersections(GeoAabb3 box, Tolerance tolerance) =>
+            Spline3.GetIntersections(this, Spline3.Of(this, box), tolerance);
 
         /// <summary>
         /// Tries to find where this spline crosses the skin of an axis-aligned box, using the default tolerance.
         /// </summary>
         /// <param name="box">The box.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoAabb3 box, out GeoPoint3[] intersections) => TryIntersectWith(box, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoAabb3 box, out GeoPoint3[] intersections) =>
+            TryIntersectWith(box, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline crosses the skin of an axis-aligned box, within a tolerance.
@@ -432,7 +457,8 @@ namespace GeometryHelper.Geometry
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the box is null.</exception>
-        public GeoPoint3[] GetIntersections(GeoObb3 box, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, box), tolerance);
+        public GeoPoint3[] GetIntersections(GeoObb3 box, Tolerance tolerance) =>
+            Spline3.GetIntersections(this, Spline3.Of(this, box), tolerance);
 
         /// <summary>
         /// Tries to find where this spline crosses the skin of an oriented box, using the default tolerance.
@@ -440,7 +466,8 @@ namespace GeometryHelper.Geometry
         /// <param name="box">The box.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
         /// <exception cref="System.ArgumentNullException">Thrown when the box is null.</exception>
-        public bool TryIntersectWith(GeoObb3 box, out GeoPoint3[] intersections) => TryIntersectWith(box, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoObb3 box, out GeoPoint3[] intersections) =>
+            TryIntersectWith(box, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline crosses the skin of an oriented box, within a tolerance.
@@ -474,7 +501,8 @@ namespace GeometryHelper.Geometry
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the solid is null.</exception>
-        public GeoPoint3[] GetIntersections(GeoSolid3 solid, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, solid, tolerance, false), tolerance);
+        public GeoPoint3[] GetIntersections(GeoSolid3 solid, Tolerance tolerance) =>
+            Spline3.GetIntersections(this, Spline3.Of(this, solid, tolerance, false), tolerance);
 
         /// <summary>
         /// Tries to find where this spline crosses the skin of a solid, using the default tolerance.
@@ -482,7 +510,8 @@ namespace GeometryHelper.Geometry
         /// <param name="solid">The solid.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
         /// <exception cref="System.ArgumentNullException">Thrown when the solid is null.</exception>
-        public bool TryIntersectWith(GeoSolid3 solid, out GeoPoint3[] intersections) => TryIntersectWith(solid, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoSolid3 solid, out GeoPoint3[] intersections) =>
+            TryIntersectWith(solid, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline crosses the skin of a solid, within a tolerance.
@@ -514,14 +543,16 @@ namespace GeometryHelper.Geometry
         /// without crossing, and where an end of the spline or of the shape comes within the point tolerance of the other. Where the spline runs
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
-        public GeoPoint3[] GetIntersections(GeoSphere3 sphere, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, sphere), tolerance);
+        public GeoPoint3[] GetIntersections(GeoSphere3 sphere, Tolerance tolerance) =>
+            Spline3.GetIntersections(this, Spline3.Of(this, sphere), tolerance);
 
         /// <summary>
         /// Tries to find where this spline crosses the skin of a ball, using the default tolerance.
         /// </summary>
         /// <param name="sphere">The ball.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoSphere3 sphere, out GeoPoint3[] intersections) => TryIntersectWith(sphere, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoSphere3 sphere, out GeoPoint3[] intersections) =>
+            TryIntersectWith(sphere, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline crosses the skin of a ball, within a tolerance.
@@ -552,14 +583,16 @@ namespace GeometryHelper.Geometry
         /// without crossing, and where an end of the spline or of the shape comes within the point tolerance of the other. Where the spline runs
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
-        public GeoPoint3[] GetIntersections(GeoArc3 arc, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, arc), tolerance);
+        public GeoPoint3[] GetIntersections(GeoArc3 arc, Tolerance tolerance) =>
+            Spline3.GetIntersections(this, Spline3.Of(this, arc), tolerance);
 
         /// <summary>
         /// Tries to find where this spline crosses an arc, using the default tolerance.
         /// </summary>
         /// <param name="arc">The arc.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoArc3 arc, out GeoPoint3[] intersections) => TryIntersectWith(arc, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoArc3 arc, out GeoPoint3[] intersections) =>
+            TryIntersectWith(arc, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline crosses an arc, within a tolerance.
@@ -590,14 +623,16 @@ namespace GeometryHelper.Geometry
         /// without crossing, and where an end of the spline or of the shape comes within the point tolerance of the other. Where the spline runs
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
-        public GeoPoint3[] GetIntersections(GeoCircle3 circle, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, circle), tolerance);
+        public GeoPoint3[] GetIntersections(GeoCircle3 circle, Tolerance tolerance) =>
+            Spline3.GetIntersections(this, Spline3.Of(this, circle), tolerance);
 
         /// <summary>
         /// Tries to find where this spline crosses the rim of a circle, using the default tolerance.
         /// </summary>
         /// <param name="circle">The circle.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoCircle3 circle, out GeoPoint3[] intersections) => TryIntersectWith(circle, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoCircle3 circle, out GeoPoint3[] intersections) =>
+            TryIntersectWith(circle, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline crosses the rim of a circle, within a tolerance.
@@ -628,14 +663,16 @@ namespace GeometryHelper.Geometry
         /// without crossing, and where an end of the spline or of the shape comes within the point tolerance of the other. Where the spline runs
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
-        public GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, ellipse), tolerance);
+        public GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, Tolerance tolerance) =>
+            Spline3.GetIntersections(this, Spline3.Of(this, ellipse), tolerance);
 
         /// <summary>
         /// Tries to find where this spline crosses the rim of an ellipse, using the default tolerance.
         /// </summary>
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoEllipse3 ellipse, out GeoPoint3[] intersections) => TryIntersectWith(ellipse, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoEllipse3 ellipse, out GeoPoint3[] intersections) =>
+            TryIntersectWith(ellipse, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline crosses the rim of an ellipse, within a tolerance.
@@ -666,8 +703,8 @@ namespace GeometryHelper.Geometry
         /// without crossing, and where an end of the spline or of the shape comes within the point tolerance of the other. Where the spline runs
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
-        public GeoPoint3[] GetIntersections(GeoEdge3 edge, Tolerance tolerance)
-            => Stub3.ReadsAsStart(edge, tolerance)
+        public GeoPoint3[] GetIntersections(GeoEdge3 edge, Tolerance tolerance) =>
+            Stub3.ReadsAsStart(edge, tolerance)
                 ? GetIntersections(edge.ToLine(), tolerance)
                 : Spline3.GetIntersections(this, Spline3.Of(this, edge), tolerance);
 
@@ -676,7 +713,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="edge">The edge.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoEdge3 edge, out GeoPoint3[] intersections) => TryIntersectWith(edge, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoEdge3 edge, out GeoPoint3[] intersections) =>
+            TryIntersectWith(edge, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline crosses an edge, within a tolerance.
@@ -709,7 +747,8 @@ namespace GeometryHelper.Geometry
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the chain is null.</exception>
-        public GeoPoint3[] GetIntersections(GeoPolylineArc3 chain, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, chain), tolerance);
+        public GeoPoint3[] GetIntersections(GeoPolylineArc3 chain, Tolerance tolerance) =>
+            Spline3.GetIntersections(this, Spline3.Of(this, chain), tolerance);
 
         /// <summary>
         /// Tries to find where this spline crosses a curved chain, using the default tolerance.
@@ -717,7 +756,8 @@ namespace GeometryHelper.Geometry
         /// <param name="chain">The curved chain.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
         /// <exception cref="System.ArgumentNullException">Thrown when the chain is null.</exception>
-        public bool TryIntersectWith(GeoPolylineArc3 chain, out GeoPoint3[] intersections) => TryIntersectWith(chain, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoPolylineArc3 chain, out GeoPoint3[] intersections) =>
+            TryIntersectWith(chain, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline crosses a curved chain, within a tolerance.
@@ -751,7 +791,8 @@ namespace GeometryHelper.Geometry
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the loop is null.</exception>
-        public GeoPoint3[] GetIntersections(GeoPolygonArc3 loop, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, loop), tolerance);
+        public GeoPoint3[] GetIntersections(GeoPolygonArc3 loop, Tolerance tolerance) =>
+            Spline3.GetIntersections(this, Spline3.Of(this, loop), tolerance);
 
         /// <summary>
         /// Tries to find where this spline crosses the outline of a curved loop, using the default tolerance.
@@ -759,7 +800,8 @@ namespace GeometryHelper.Geometry
         /// <param name="loop">The curved loop.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
         /// <exception cref="System.ArgumentNullException">Thrown when the loop is null.</exception>
-        public bool TryIntersectWith(GeoPolygonArc3 loop, out GeoPoint3[] intersections) => TryIntersectWith(loop, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoPolygonArc3 loop, out GeoPoint3[] intersections) =>
+            TryIntersectWith(loop, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline crosses the outline of a curved loop, within a tolerance.

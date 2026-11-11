@@ -28,19 +28,28 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class ShortEdgeG1vTests
     {
-        private static readonly Tolerance Hundredth = new Tolerance(1E-2, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-2);
+        private static readonly Tolerance Hundredth = new Tolerance(
+            1E-2,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-2
+        );
 
         /// <summary>How far each corner of the short side is from a point 0.03 to the right of its middle.</summary>
         private static readonly double ToACorner = Math.Sqrt(0.03 * 0.03 + 0.003 * 0.003);
 
-        private static GeoPolygonArc2 Loop()
-            => new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 0.006), new GeoPoint2(0, 10) });
+        private static GeoPolygonArc2 Loop() =>
+            new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 0.006), new GeoPoint2(0, 10) }
+            );
 
-        private static GeoPolylineArc2 Hairpin()
-            => new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 0.006), new GeoPoint2(0, 0.006) });
+        private static GeoPolylineArc2 Hairpin() =>
+            new GeoPolylineArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 0.006), new GeoPoint2(0, 0.006) }
+            );
 
-        private static bool IsTheShortSide(GeoEdge2 edge)
-            => edge.StartPoint.X == 10 && edge.StartPoint.Y == 0 && edge.EndPoint.X == 10 && edge.EndPoint.Y == 0.006;
+        private static bool IsTheShortSide(GeoEdge2 edge) =>
+            edge.StartPoint.X == 10 && edge.StartPoint.Y == 0 && edge.EndPoint.X == 10 && edge.EndPoint.Y == 0.006;
 
         [Fact]
         public void APointBesideTheMiddleOfAShortSide_HasThatSideForItsClosestEdge()
@@ -68,7 +77,11 @@ namespace GeometryHelper.UnitTest.Plane
         public void ACircleAndAnArcBesideTheMiddleOfAShortSide_HaveThatSideForTheirClosestEdge()
         {
             var circle = new GeoCircle2(new GeoPoint2(10.05, 0.003), 0.02);
-            GeoArc2 arc = GeoArc2.FromThreePoints(new GeoPoint2(10.035, -0.02), new GeoPoint2(10.03, 0.003), new GeoPoint2(10.035, 0.026));
+            GeoArc2 arc = GeoArc2.FromThreePoints(
+                new GeoPoint2(10.035, -0.02),
+                new GeoPoint2(10.03, 0.003),
+                new GeoPoint2(10.035, 0.026)
+            );
 
             Assert.True(IsTheShortSide(Loop().GetClosestEdge(circle, Hundredth)));
             Assert.True(IsTheShortSide(Loop().GetClosestEdge(arc, Hundredth)));
@@ -107,7 +120,11 @@ namespace GeometryHelper.UnitTest.Plane
         public void TheShortestLineToAnArcBowingTowardsTheMiddleOfAShortSide_IsAsLongAsTheDistance()
         {
             // The arc through (10.035, -0.02), (10.03, 0.003) and (10.035, 0.026) comes nearest the side at (10.03, 0.003).
-            GeoArc2 arc = GeoArc2.FromThreePoints(new GeoPoint2(10.035, -0.02), new GeoPoint2(10.03, 0.003), new GeoPoint2(10.035, 0.026));
+            GeoArc2 arc = GeoArc2.FromThreePoints(
+                new GeoPoint2(10.035, -0.02),
+                new GeoPoint2(10.03, 0.003),
+                new GeoPoint2(10.035, 0.026)
+            );
             double distance = Hairpin().DistanceTo(arc, Hundredth);
 
             Assert.Equal(0.03, distance, 9);
@@ -119,7 +136,11 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void TheShortestLineToAPolylineBesideTheMiddleOfAShortSide_IsAsLongAsTheDistance()
         {
-            var polyline = new GeoPolyline2(new GeoPoint2(10.03, 0.003), new GeoPoint2(10.05, 0.003), new GeoPoint2(10.05, 0.05));
+            var polyline = new GeoPolyline2(
+                new GeoPoint2(10.03, 0.003),
+                new GeoPoint2(10.05, 0.003),
+                new GeoPoint2(10.05, 0.05)
+            );
 
             Assert.Equal(0.03, Loop().GetShortestLineTo(polyline, Hundredth).Length, 12);
             Assert.Equal(0.03, Hairpin().GetShortestLineTo(polyline, Hundredth).Length, 12);
@@ -132,7 +153,17 @@ namespace GeometryHelper.UnitTest.Plane
             // within a billionth, at a tolerance of a hundredth.
             var build = new Tolerance(1E-9, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-9);
             var loop = new GeoPolygonArc3(
-                new[] { new GeoPoint3(0, 0, 5), new GeoPoint3(10, 0, 5), new GeoPoint3(10, 0.006, 5), new GeoPoint3(0, 10, 5) }, null, null, build);
+                new[]
+                {
+                    new GeoPoint3(0, 0, 5),
+                    new GeoPoint3(10, 0, 5),
+                    new GeoPoint3(10, 0.006, 5),
+                    new GeoPoint3(0, 10, 5),
+                },
+                null,
+                null,
+                build
+            );
             var segment = new GeoLine3(new GeoPoint3(10.03, 0.003, 5), new GeoPoint3(10.05, 0.003, 5));
 
             Assert.Equal(0.03, loop.GetShortestLineTo(segment, Hundredth).Length, 12);

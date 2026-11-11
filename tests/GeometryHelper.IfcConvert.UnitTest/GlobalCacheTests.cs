@@ -9,16 +9,19 @@ namespace GeometryHelper.IfcConvert.UnitTest
     [Collection("IfcEngine")]
     public class GlobalCacheTests
     {
-        private static string SampleModel => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TestFiles", "wall-extruded-solid.ifc");
+        private static string SampleModel =>
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TestFiles", "wall-extruded-solid.ifc");
 
         private static int CachedEntriesFor(string fullPath) =>
-            IfcStoreCache.GetGlobalCacheInfo().Count(e => string.Equals(e.Key, fullPath, StringComparison.OrdinalIgnoreCase));
+            IfcStoreCache
+                .GetGlobalCacheInfo()
+                .Count(e => string.Equals(e.Key, fullPath, StringComparison.OrdinalIgnoreCase));
 
         [Theory]
-        [InlineData("model.ifc")]           // relative to the current folder
-        [InlineData(@"Models\model.ifc")]   // relative to the current folder
-        [InlineData(@"\Models\model.ifc")]  // relative to the current drive
-        [InlineData(@"C:model.ifc")]        // relative to the current folder of drive C:
+        [InlineData("model.ifc")] // relative to the current folder
+        [InlineData(@"Models\model.ifc")] // relative to the current folder
+        [InlineData(@"\Models\model.ifc")] // relative to the current drive
+        [InlineData(@"C:model.ifc")] // relative to the current folder of drive C:
         public void GetOrCreate_RejectsPathsThatAreNotFull(string path)
         {
             ArgumentException ex = Assert.Throws<ArgumentException>(() => IfcStoreCache.GetOrCreate(path));
@@ -43,7 +46,10 @@ namespace GeometryHelper.IfcConvert.UnitTest
                 IfcStoreCache first = IfcStoreCache.GetOrCreate(fullPath);
 
                 Assert.Same(first, IfcStoreCache.GetOrCreate(fullPath.Replace('\\', '/')));
-                Assert.Same(first, IfcStoreCache.GetOrCreate(Path.Combine(folder, "..", Path.GetFileName(folder), name)));
+                Assert.Same(
+                    first,
+                    IfcStoreCache.GetOrCreate(Path.Combine(folder, "..", Path.GetFileName(folder), name))
+                );
                 Assert.Same(first, IfcStoreCache.GetOrCreate(Path.Combine(folder, ".", name)));
                 Assert.Same(first, IfcStoreCache.GetOrCreate(fullPath.ToUpperInvariant()));
                 Assert.Equal(1, CachedEntriesFor(fullPath));

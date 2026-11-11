@@ -20,11 +20,23 @@ namespace GeometryHelper.Dxf.Viewer
             bool erase = c.Remembered("offset.erase", 0.0) != 0.0;
             bool current = c.Remembered("offset.layer", 0.0) != 0.0;
             double distance = c.Remembered("offset.distance", -1.0);
-            c.Write("Current settings: Erase source=" + (erase ? "Yes" : "No") + "  Layer=" + (current ? "Current" : "Source") + "  OFFSETGAPTYPE=0");
+            c.Write(
+                "Current settings: Erase source="
+                    + (erase ? "Yes" : "No")
+                    + "  Layer="
+                    + (current ? "Current" : "Source")
+                    + "  OFFSETGAPTYPE=0"
+            );
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify offset distance", null, new[] { "Through", "Erase", "Layer" }, distance < 0.0 ? "Through" : Length(distance), true);
+                yield return CadPrompt.ForPoint(
+                    "Specify offset distance",
+                    null,
+                    new[] { "Through", "Erase", "Layer" },
+                    distance < 0.0 ? "Through" : Length(distance),
+                    true
+                );
 
                 if (c.Input.Is("Through"))
                 {
@@ -34,7 +46,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("Erase"))
                 {
-                    yield return CadPrompt.ForKeyword("Erase source object after offsetting?", new[] { "Yes", "No" }, erase ? "Yes" : "No");
+                    yield return CadPrompt.ForKeyword(
+                        "Erase source object after offsetting?",
+                        new[] { "Yes", "No" },
+                        erase ? "Yes" : "No"
+                    );
                     erase = c.Input.Is("Yes") || (c.Input.IsNone && erase);
                     c.Remember("offset.erase", erase ? 1.0 : 0.0);
                     continue;
@@ -42,7 +58,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("Layer"))
                 {
-                    yield return CadPrompt.ForKeyword("Enter layer option for offset objects", new[] { "Current", "Source" }, current ? "Current" : "Source");
+                    yield return CadPrompt.ForKeyword(
+                        "Enter layer option for offset objects",
+                        new[] { "Current", "Source" },
+                        current ? "Current" : "Source"
+                    );
                     current = c.Input.Is("Current") || (c.Input.IsNone && current);
                     c.Remember("offset.layer", current ? 1.0 : 0.0);
                     continue;
@@ -67,7 +87,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                     typed = (c.Input.Point - first).Length;
                 }
-                else if (c.Input.Kind != CadInputKind.Text || !double.TryParse(c.Input.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out typed) || double.IsNaN(typed) || double.IsInfinity(typed))
+                else if (
+                    c.Input.Kind != CadInputKind.Text
+                    || !double.TryParse(c.Input.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out typed)
+                    || double.IsNaN(typed)
+                    || double.IsInfinity(typed)
+                )
                 {
                     c.Write("Requires numeric distance, two points, or option keyword.");
                     continue;
@@ -118,12 +143,16 @@ namespace GeometryHelper.Dxf.Viewer
                     string from = source;
 
                     // The offset the point at the cursor would make, as AutoCAD 2021 drags it to the side the cursor is on.
-                    CadPreview shown = CadPreview.Making(c, input => OffsetCurves(c, from, input.Point, distance, true) is IReadOnlyList<DxfCurve> curves
-                        ? OffsetCopies(curves, current ? c.Database.Clayer : null)
-                        : null);
-                    yield return (multiple
-                        ? CadPrompt.ForPoint(ask, null, new[] { "Exit", "Undo" }, "next object")
-                        : CadPrompt.ForPoint(ask, null, new[] { "Exit", "Multiple", "Undo" }, "Exit")).Previewing(shown);
+                    CadPreview shown = CadPreview.Making(c, input =>
+                        OffsetCurves(c, from, input.Point, distance, true) is IReadOnlyList<DxfCurve> curves
+                            ? OffsetCopies(curves, current ? c.Database.Clayer : null)
+                            : null
+                    );
+                    yield return (
+                        multiple
+                            ? CadPrompt.ForPoint(ask, null, new[] { "Exit", "Undo" }, "next object")
+                            : CadPrompt.ForPoint(ask, null, new[] { "Exit", "Multiple", "Undo" }, "Exit")
+                    ).Previewing(shown);
 
                     if (c.Input.Is("Exit"))
                     {
@@ -199,8 +228,18 @@ namespace GeometryHelper.Dxf.Viewer
         {
             DxfEntity entity = c.Document.FindEntity(handle);
 
-            if (!(entity is DxfLine || entity is DxfArc || entity is DxfCircle || entity is DxfEllipse || entity is DxfPolyline || entity is DxfSpline
-                || entity is DxfXline || entity is DxfRay))
+            if (
+                !(
+                    entity is DxfLine
+                    || entity is DxfArc
+                    || entity is DxfCircle
+                    || entity is DxfEllipse
+                    || entity is DxfPolyline
+                    || entity is DxfSpline
+                    || entity is DxfXline
+                    || entity is DxfRay
+                )
+            )
             {
                 c.Write("Cannot offset that object.");
                 return false;
@@ -220,7 +259,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// curve where it comes nearest, a line's own way along it, the rest outwards or to the right. Gives the handle of the
         /// first curve made, or null where none was.
         /// </summary>
-        private static string OffsetOne(CadCommandContext c, string handle, GeoPoint2 side, double distance, bool erase, bool currentLayer)
+        private static string OffsetOne(
+            CadCommandContext c,
+            string handle,
+            GeoPoint2 side,
+            double distance,
+            bool erase,
+            bool currentLayer
+        )
         {
             IReadOnlyList<DxfCurve> made = OffsetCurves(c, handle, side, distance);
 
@@ -230,7 +276,9 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            IReadOnlyList<CadEditRecord> planned = erase ? new[] { new CadEditRecord(CadEditRecordKind.Erased, handle) } : null;
+            IReadOnlyList<CadEditRecord> planned = erase
+                ? new[] { new CadEditRecord(CadEditRecordKind.Erased, handle) }
+                : null;
             string layer = c.Database.Clayer;
             CadEditResult result = c.Apply(planned, s =>
             {
@@ -275,7 +323,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// The curves the offset of one curve to the side of a point, or through it, makes, as <see cref="OffsetOne"/> adds them
         /// and the prompt of the side previews them; null where it makes none.
         /// </summary>
-        private static IReadOnlyList<DxfCurve> OffsetCurves(CadCommandContext c, string handle, GeoPoint2 side, double distance, bool quiet = false)
+        private static IReadOnlyList<DxfCurve> OffsetCurves(
+            CadCommandContext c,
+            string handle,
+            GeoPoint2 side,
+            double distance,
+            bool quiet = false
+        )
         {
             if (!(c.Document.FindEntity(handle) is DxfCurve curve))
             {
@@ -317,7 +371,11 @@ namespace GeometryHelper.Dxf.Viewer
                         break;
                 }
             }
-            catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException || exception is NotSupportedException)
+            catch (Exception exception)
+                when (exception is ArgumentException
+                    || exception is InvalidOperationException
+                    || exception is NotSupportedException
+                )
             {
                 // The preview asks at every move of the mouse, and logs nothing.
                 if (!quiet)
@@ -331,8 +389,8 @@ namespace GeometryHelper.Dxf.Viewer
             return made;
         }
 
-        private static bool Outside(GeoPoint3 center, GeoPoint2 point, double radius)
-            => new GeoVector2(point.X - center.X, point.Y - center.Y).Length > radius;
+        private static bool Outside(GeoPoint3 center, GeoPoint2 point, double radius) =>
+            new GeoVector2(point.X - center.X, point.Y - center.Y).Length > radius;
 
         /// <summary>Whether a point of the plan lies outside an ellipse, measured in the ellipse's own axes.</summary>
         private static bool OutsideEllipse(DxfEllipse ellipse, GeoPoint2 point)

@@ -26,7 +26,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="taken">Whether a name is taken already; null for none.</param>
         /// <param name="startWith">The styles New may start with; null where the dialog asks only the name.</param>
         /// <param name="start">The style offered to start with.</param>
-        public StyleNameViewModel(string title, string name, Func<string, bool> taken, IReadOnlyList<string> startWith = null, string start = null)
+        public StyleNameViewModel(
+            string title,
+            string name,
+            Func<string, bool> taken,
+            IReadOnlyList<string> startWith = null,
+            string start = null
+        )
         {
             Title = title ?? string.Empty;
             _name = name ?? string.Empty;
@@ -167,7 +173,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             get
             {
-                if (_first == null || _second == null || !_document.Database.DimStyleTable.Has(_first) || !_document.Database.DimStyleTable.Has(_second))
+                if (
+                    _first == null
+                    || _second == null
+                    || !_document.Database.DimStyleTable.Has(_first)
+                    || !_document.Database.DimStyleTable.Has(_second)
+                )
                 {
                     return Array.Empty<string[]>();
                 }
@@ -176,19 +187,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 if (string.Equals(_first, _second, StringComparison.OrdinalIgnoreCase))
                 {
-                    return a.Select(v => new[] { v.Key.ToUpperInvariant(), CadDimStyleEditor.Text(v.Value), string.Empty }).ToList();
+                    return a.Select(v =>
+                            new[] { v.Key.ToUpperInvariant(), CadDimStyleEditor.Text(v.Value), string.Empty }
+                        )
+                        .ToList();
                 }
 
                 SortedDictionary<string, object> b = CadDimStyleEditor.Read(_document.Database.DimStyleTable[_second]);
-                return CadDimStyleEditor.Compare(a, b).Select(d => new[] { d.Key.ToUpperInvariant(), d.Value[0], d.Value[1] }).ToList();
+                return CadDimStyleEditor
+                    .Compare(a, b)
+                    .Select(d => new[] { d.Key.ToUpperInvariant(), d.Value[0], d.Value[1] })
+                    .ToList();
             }
         }
 
         /// <summary>Gets the line over the list, as AutoCAD's: "AutoCAD found 3 differences:", or "All properties of ISO-25:".</summary>
-        public string Summary
-            => string.Equals(_first, _second, StringComparison.OrdinalIgnoreCase)
-                ? "All properties of " + _first + ":"
-                : Rows.Count == 0 ? "No differences found." : "Found " + Rows.Count.ToString(CultureInfo.InvariantCulture) + " differences:";
+        public string Summary =>
+            string.Equals(_first, _second, StringComparison.OrdinalIgnoreCase) ? "All properties of " + _first + ":"
+            : Rows.Count == 0 ? "No differences found."
+            : "Found " + Rows.Count.ToString(CultureInfo.InvariantCulture) + " differences:";
 
         /// <summary>Gets the command of Close.</summary>
         public ICommand CloseCommand { get; }
@@ -219,7 +236,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             OverrideCommand = new DelegateCommand(_ => Open(CreateOverride()));
             CompareCommand = new DelegateCommand(_ => ShowCompare?.Invoke(CreateCompare()));
             DeleteCommand = new DelegateCommand(_ => Delete());
-            RenameCommand = new DelegateCommand(_ => Rename(AskName?.Invoke(new StyleNameViewModel("Rename Dimension Style", _selected?.Name, n => _document.Database.DimStyleTable.Has(n) && !string.Equals(n, _selected?.Name, StringComparison.OrdinalIgnoreCase)))));
+            RenameCommand = new DelegateCommand(_ =>
+                Rename(
+                    AskName?.Invoke(
+                        new StyleNameViewModel("Rename Dimension Style", _selected?.Name, n =>
+                            _document.Database.DimStyleTable.Has(n)
+                            && !string.Equals(n, _selected?.Name, StringComparison.OrdinalIgnoreCase)
+                        )
+                    )
+                )
+            );
             CloseCommand = new DelegateCommand(_ => CloseRequested?.Invoke(this, true));
             Reload(CadDimStyleEditor.Current(document.Database));
         }
@@ -237,7 +263,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public Action<DimStyleCompareViewModel> ShowCompare { get; set; }
 
         /// <summary>Gets the filters of the list: All styles, Styles in use.</summary>
-        public IReadOnlyList<string> Filters { get; } = new[] { TextStyleViewModel.AllStyles, TextStyleViewModel.StylesInUse };
+        public IReadOnlyList<string> Filters { get; } =
+            new[] { TextStyleViewModel.AllStyles, TextStyleViewModel.StylesInUse };
 
         /// <summary>Gets or sets the filter of the list.</summary>
         public string Filter
@@ -265,7 +292,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string PreviewTitle => "Preview of " + _selected?.Name;
 
         /// <summary>Gets the line at the foot: "5 styles · double-click a style to modify it".</summary>
-        public string Footer => Styles.Count.ToString(CultureInfo.InvariantCulture) + (Styles.Count == 1 ? " style" : " styles") + " · double-click a style to modify it";
+        public string Footer =>
+            Styles.Count.ToString(CultureInfo.InvariantCulture)
+            + (Styles.Count == 1 ? " style" : " styles")
+            + " · double-click a style to modify it";
 
         /// <summary>Gets whether the notice says why an edit was refused, drawn as a warning.</summary>
         public bool IsNoticeWarning => _notice.Length > 0;
@@ -302,24 +332,62 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return string.Empty;
                 }
 
-                SortedDictionary<string, object> v = CadDimStyleEditor.Read(_document.Database.DimStyleTable[_selected.Name]);
-                string[] vertical = { "centred on the line", "above the line", "outside the line", "placed as JIS", "below the line" };
+                SortedDictionary<string, object> v = CadDimStyleEditor.Read(
+                    _document.Database.DimStyleTable[_selected.Name]
+                );
+                string[] vertical =
+                {
+                    "centred on the line",
+                    "above the line",
+                    "outside the line",
+                    "placed as JIS",
+                    "below the line",
+                };
                 int tad = v.TryGetValue("Dimtad", out object t) && t is int i && i >= 0 && i < vertical.Length ? i : 0;
-                object arrow = v.TryGetValue("Dimsah", out object sah) && sah is bool split && split ? Value(v, "Dimblk1") : Value(v, "Dimblk");
-                return _selected.Name + " · arrows " + CadDimStyleEditor.Text(arrow).ToLowerInvariant() + " " + Number(v, "Dimasz") + " · text " + Number(v, "Dimtxt") + " " + vertical[tad]
-                    + " · overall scale " + Number(v, "Dimscale") + " · Used by " + _selected.Uses.ToString(CultureInfo.InvariantCulture) + (_selected.Uses == 1 ? " dimension." : " dimensions.");
+                object arrow =
+                    v.TryGetValue("Dimsah", out object sah) && sah is bool split && split
+                        ? Value(v, "Dimblk1")
+                        : Value(v, "Dimblk");
+                return _selected.Name
+                    + " · arrows "
+                    + CadDimStyleEditor.Text(arrow).ToLowerInvariant()
+                    + " "
+                    + Number(v, "Dimasz")
+                    + " · text "
+                    + Number(v, "Dimtxt")
+                    + " "
+                    + vertical[tad]
+                    + " · overall scale "
+                    + Number(v, "Dimscale")
+                    + " · Used by "
+                    + _selected.Uses.ToString(CultureInfo.InvariantCulture)
+                    + (_selected.Uses == 1 ? " dimension." : " dimensions.");
             }
         }
 
         /// <summary>Gets the preview of the style selected: a linear, a radius and an angular dimension, as the DIM commands draw them.</summary>
-        public ImageSource Preview
-            => _preview ?? (_selected == null ? null : _preview = CadStylePreview.Dimensions(_document.Database, CadDimStyleEditor.Read(_document.Database.DimStyleTable[_selected.Name]), _document.Fonts, 360, 230));
+        public ImageSource Preview =>
+            _preview
+            ?? (
+                _selected == null
+                    ? null
+                    : _preview = CadStylePreview.Dimensions(
+                        _document.Database,
+                        CadDimStyleEditor.Read(_document.Database.DimStyleTable[_selected.Name]),
+                        _document.Fonts,
+                        360,
+                        230
+                    )
+            );
 
         /// <summary>
         /// Gets the notice under the description: why an edit was refused; else, where the drawing has styles a model drawing
         /// makes (GH_MODEL_...), what changing one does; else empty, the notice hidden.
         /// </summary>
-        public string Notice => _notice.Length > 0 ? _notice : Styles.Any(s => s.IsModel) ? ManagerNotices.ModelStyle : string.Empty;
+        public string Notice =>
+            _notice.Length > 0 ? _notice
+            : Styles.Any(s => s.IsModel) ? ManagerNotices.ModelStyle
+            : string.Empty;
 
         /// <summary>Gets the command of Set Current.</summary>
         public ICommand SetCurrentCommand { get; }
@@ -347,7 +415,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Makes the style selected current, its variables given to the header.</summary>
         /// <returns>Whether it was made current.</returns>
-        public bool SetCurrent() => _selected != null && Report(CadDimStyleEditor.SetCurrent(_document, _selected.Name), _selected.Name);
+        public bool SetCurrent() =>
+            _selected != null && Report(CadDimStyleEditor.SetCurrent(_document, _selected.Name), _selected.Name);
 
         /// <summary>
         /// Makes the New dialog as Continue of Create New Dimension Style opens it: the name asked (Copy of the style selected
@@ -357,35 +426,61 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public DimStyleEditViewModel CreateNew()
         {
             string start = _selected?.Name ?? CadDimStyleEditor.Current(_document.Database);
-            var ask = new StyleNameViewModel("Create New Dimension Style", "Copy of " + start, n => _document.Database.DimStyleTable.Has(n), Styles.Select(s => s.Name).ToList(), start);
+            var ask = new StyleNameViewModel(
+                "Create New Dimension Style",
+                "Copy of " + start,
+                n => _document.Database.DimStyleTable.Has(n),
+                Styles.Select(s => s.Name).ToList(),
+                start
+            );
             string name = AskName?.Invoke(ask);
-            return name == null ? null : new DimStyleEditViewModel(_document, DimStyleEditMode.New, name, ask.StartWith);
+            return name == null
+                ? null
+                : new DimStyleEditViewModel(_document, DimStyleEditMode.New, name, ask.StartWith);
         }
 
         /// <summary>Makes the Modify dialog of the style selected.</summary>
         /// <returns>The dialog's view model; null where none is selected.</returns>
-        public DimStyleEditViewModel CreateModify() => _selected == null ? null : new DimStyleEditViewModel(_document, DimStyleEditMode.Modify, _selected.Name);
+        public DimStyleEditViewModel CreateModify() =>
+            _selected == null ? null : new DimStyleEditViewModel(_document, DimStyleEditMode.Modify, _selected.Name);
 
         /// <summary>Makes the Override dialog of the current style, OK writing into the dimensions selected in the drawing.</summary>
         /// <returns>The dialog's view model; null where the drawing has no dimension style.</returns>
         public DimStyleEditViewModel CreateOverride()
         {
             string current = CadDimStyleEditor.Current(_document.Database);
-            return current == null ? null : new DimStyleEditViewModel(_document, DimStyleEditMode.Override, current, null, _document.Selection.Handles.ToList());
+            return current == null
+                ? null
+                : new DimStyleEditViewModel(
+                    _document,
+                    DimStyleEditMode.Override,
+                    current,
+                    null,
+                    _document.Selection.Handles.ToList()
+                );
         }
 
         /// <summary>Makes Compare, the style selected compared with itself until another is chosen, as AutoCAD opens it.</summary>
         /// <returns>The view model.</returns>
-        public DimStyleCompareViewModel CreateCompare() => new DimStyleCompareViewModel(_document, _selected?.Name, _selected?.Name);
+        public DimStyleCompareViewModel CreateCompare() =>
+            new DimStyleCompareViewModel(_document, _selected?.Name, _selected?.Name);
 
         /// <summary>Deletes the style selected; refused for Standard, the current style and a style in use, the reason in <see cref="Notice"/>.</summary>
         /// <returns>Whether it was deleted.</returns>
-        public bool Delete() => _selected != null && Report(CadDimStyleEditor.Delete(_document, _selected.Name), CadDimStyleEditor.Current(_document.Database));
+        public bool Delete() =>
+            _selected != null
+            && Report(
+                CadDimStyleEditor.Delete(_document, _selected.Name),
+                CadDimStyleEditor.Current(_document.Database)
+            );
 
         /// <summary>Renames the style selected.</summary>
         /// <param name="name">The new name; null does nothing.</param>
         /// <returns>Whether it was renamed.</returns>
-        public bool Rename(string name) => _selected != null && name != null && Report(CadDimStyleEditor.Rename(_document, _selected.Name, name), name.Trim());
+        public bool Rename(string name) =>
+            _selected != null
+            && name != null
+            && Report(CadDimStyleEditor.Rename(_document, _selected.Name, name), name.Trim());
 
         /// <summary>Shows a dialog of a style and reads the list again where it wrote, on the style it wrote.</summary>
         private void Open(DimStyleEditViewModel editor)
@@ -421,14 +516,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 int uses = CadDimStyleEditor.CountUses(_document, style.Name);
 
-                if (_filter == TextStyleViewModel.AllStyles || uses > 0 || string.Equals(style.Name, current, StringComparison.OrdinalIgnoreCase))
+                if (
+                    _filter == TextStyleViewModel.AllStyles
+                    || uses > 0
+                    || string.Equals(style.Name, current, StringComparison.OrdinalIgnoreCase)
+                )
                 {
-                    Styles.Add(new StyleRowViewModel(style.Name, string.Equals(style.Name, current, StringComparison.OrdinalIgnoreCase), uses));
+                    Styles.Add(
+                        new StyleRowViewModel(
+                            style.Name,
+                            string.Equals(style.Name, current, StringComparison.OrdinalIgnoreCase),
+                            uses
+                        )
+                    );
                 }
             }
 
             _selected = null;
-            SelectedStyle = Styles.FirstOrDefault(s => string.Equals(s.Name, show, StringComparison.OrdinalIgnoreCase)) ?? Styles.FirstOrDefault();
+            SelectedStyle = Styles.FirstOrDefault(s => string.Equals(s.Name, show, StringComparison.OrdinalIgnoreCase))
+                ?? Styles.FirstOrDefault();
             Raise(nameof(SelectedStyle));
             Raise(nameof(CurrentStyleText));
             Raise(nameof(Footer));
@@ -436,9 +542,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(HasNotice));
         }
 
-        private static object Value(IDictionary<string, object> values, string name) => values.TryGetValue(name, out object value) ? value : null;
+        private static object Value(IDictionary<string, object> values, string name) =>
+            values.TryGetValue(name, out object value) ? value : null;
 
-        private static string Number(IDictionary<string, object> values, string name)
-            => Value(values, name) is double number ? number.ToString("0.####", CultureInfo.InvariantCulture) : string.Empty;
+        private static string Number(IDictionary<string, object> values, string name) =>
+            Value(values, name) is double number
+                ? number.ToString("0.####", CultureInfo.InvariantCulture)
+                : string.Empty;
     }
 }

@@ -84,7 +84,8 @@ namespace GeometryHelper.Core
             for (int i = 0; i < count; i++)
             {
                 line[i] = i;
-                GeoPoint3 a = segments[i].Start, b = segments[i].End;
+                GeoPoint3 a = segments[i].Start,
+                    b = segments[i].End;
                 box[6 * i] = Math.Min(a.X, b.X) - reach;
                 box[(6 * i) + 1] = Math.Max(a.X, b.X) + reach;
                 box[(6 * i) + 2] = Math.Min(a.Y, b.Y) - reach;
@@ -156,7 +157,15 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                segments.Add(new Segment { Start = start, End = end, Face = face, Hole = hole });
+                segments.Add(
+                    new Segment
+                    {
+                        Start = start,
+                        End = end,
+                        Face = face,
+                        Hole = hole,
+                    }
+                );
             }
         }
 
@@ -168,7 +177,12 @@ namespace GeometryHelper.Core
         /// <param name="members">The edges along the line, by index, lowest first.</param>
         /// <param name="reach">The point tolerance.</param>
         /// <param name="stretches">The stretches so far.</param>
-        private static void AddStretches(List<Segment> segments, List<int> members, double reach, List<Stretch> stretches)
+        private static void AddStretches(
+            List<Segment> segments,
+            List<int> members,
+            double reach,
+            List<Stretch> stretches
+        )
         {
             // Along the longest edge, whose direction is the truest, the first of them where two are as long.
             int longest = members[0];
@@ -198,18 +212,20 @@ namespace GeometryHelper.Core
                 stops.Add((to[k], k, true, s.End));
             }
 
-            stops.Sort((a, b) =>
-            {
-                int byAt = a.At.CompareTo(b.At);
-
-                if (byAt != 0)
+            stops.Sort(
+                (a, b) =>
                 {
-                    return byAt;
-                }
+                    int byAt = a.At.CompareTo(b.At);
 
-                int byMember = a.Member.CompareTo(b.Member);
-                return byMember != 0 ? byMember : a.IsEnd.CompareTo(b.IsEnd);
-            });
+                    if (byAt != 0)
+                    {
+                        return byAt;
+                    }
+
+                    int byMember = a.Member.CompareTo(b.Member);
+                    return byMember != 0 ? byMember : a.IsEnd.CompareTo(b.IsEnd);
+                }
+            );
 
             var faces = new List<int>();
             var forward = new List<bool>();
@@ -244,7 +260,9 @@ namespace GeometryHelper.Core
                     forward.Add((to[m] > from[m]) != s.Hole);
                 }
 
-                stretches.Add(new Stretch(stops[k].Point, stops[k + 1].Point, faces.ToArray(), forward.ToArray(), edges.ToArray()));
+                stretches.Add(
+                    new Stretch(stops[k].Point, stops[k + 1].Point, faces.ToArray(), forward.ToArray(), edges.ToArray())
+                );
             }
         }
 
@@ -293,7 +311,8 @@ namespace GeometryHelper.Core
 
             foreach (double high in highs)
             {
-                int below = 0, above = lows.Length;
+                int below = 0,
+                    above = lows.Length;
 
                 while (below < above)
                 {
@@ -341,11 +360,15 @@ namespace GeometryHelper.Core
         /// <param name="j">The other.</param>
         private static bool BoxesMeet(double[] box, int i, int j)
         {
-            int a = 6 * i, b = 6 * j;
+            int a = 6 * i,
+                b = 6 * j;
 
-            return box[a] <= box[b + 1] && box[b] <= box[a + 1]
-                && box[a + 2] <= box[b + 3] && box[b + 2] <= box[a + 3]
-                && box[a + 4] <= box[b + 5] && box[b + 4] <= box[a + 5];
+            return box[a] <= box[b + 1]
+                && box[b] <= box[a + 1]
+                && box[a + 2] <= box[b + 3]
+                && box[b + 2] <= box[a + 3]
+                && box[a + 4] <= box[b + 5]
+                && box[b + 4] <= box[a + 5];
         }
 
         /// <summary>
@@ -410,7 +433,10 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="point">The point.</param>
         /// <param name="axis">Which.</param>
-        private static double Coordinate(GeoPoint3 point, int axis) => axis == 0 ? point.X : axis == 1 ? point.Y : point.Z;
+        private static double Coordinate(GeoPoint3 point, int axis) =>
+            axis == 0 ? point.X
+            : axis == 1 ? point.Y
+            : point.Z;
 
         /// <summary>
         /// The root of a set, the sets kept by their lowest member.
@@ -477,7 +503,13 @@ namespace GeometryHelper.Core
             /// <param name="faces">The face of each edge covering it.</param>
             /// <param name="forward">Whether each edge runs it from its start to its end, its face on the left.</param>
             /// <param name="edges">The corners each edge covering it runs between, as its ring runs them.</param>
-            internal Stretch(GeoPoint3 start, GeoPoint3 end, int[] faces, bool[] forward, (GeoPoint3 Start, GeoPoint3 End)[] edges)
+            internal Stretch(
+                GeoPoint3 start,
+                GeoPoint3 end,
+                int[] faces,
+                bool[] forward,
+                (GeoPoint3 Start, GeoPoint3 End)[] edges
+            )
             {
                 Start = start;
                 End = end;

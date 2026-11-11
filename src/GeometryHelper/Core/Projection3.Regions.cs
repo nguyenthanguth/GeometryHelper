@@ -50,7 +50,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a line segment to the material of a face.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoLine3 line, GeoFace3 face) => GetShortestLineTo(line, face, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoLine3 line, GeoFace3 face) =>
+            GetShortestLineTo(line, face, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a line segment to the material of a face, within a tolerance.
@@ -86,7 +87,8 @@ namespace GeometryHelper.Core
                 return Stub3.Nearest(
                     line,
                     Closest(line, face, Stub3.AsItIs(line, tolerance), Stub3.AsItIs(line, tolerance)),
-                    new GeoLine3(line.StartPoint, ProjectToFace(face, line.StartPoint, tolerance, Exactly)));
+                    new GeoLine3(line.StartPoint, ProjectToFace(face, line.StartPoint, tolerance, Exactly))
+                );
             }
 
             return Closest(line, face, tolerance, Exactly);
@@ -118,8 +120,16 @@ namespace GeometryHelper.Core
                 Consider(ref best, ref shortest, Closest(line, edges[i], sides));
             }
 
-            Consider(ref best, ref shortest, new GeoLine3(line.StartPoint, ProjectToFace(face, line.StartPoint, tolerance, sides)));
-            Consider(ref best, ref shortest, new GeoLine3(line.EndPoint, ProjectToFace(face, line.EndPoint, tolerance, sides)));
+            Consider(
+                ref best,
+                ref shortest,
+                new GeoLine3(line.StartPoint, ProjectToFace(face, line.StartPoint, tolerance, sides))
+            );
+            Consider(
+                ref best,
+                ref shortest,
+                new GeoLine3(line.EndPoint, ProjectToFace(face, line.EndPoint, tolerance, sides))
+            );
 
             return best;
         }
@@ -128,7 +138,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a polyline to the material of a face.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline or the face is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoFace3 face) => GetShortestLineTo(polyline, face, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoFace3 face) =>
+            GetShortestLineTo(polyline, face, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a polyline to the material of a face, within a tolerance.
@@ -172,7 +183,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a ray to the material of a face.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoRay3 ray, GeoFace3 face) => GetShortestLineTo(ray, face, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoRay3 ray, GeoFace3 face) =>
+            GetShortestLineTo(ray, face, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a ray to the material of a face, within a tolerance.
@@ -220,7 +232,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a ray to a polygon.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoRay3 ray, GeoPolygon3 polygon) => GetShortestLineTo(ray, polygon, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoRay3 ray, GeoPolygon3 polygon) =>
+            GetShortestLineTo(ray, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a ray to a polygon, within a tolerance.
@@ -268,7 +281,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a triangle to a polygon.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoTriangle3 triangle, GeoPolygon3 polygon) => GetShortestLineTo(triangle, polygon, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoTriangle3 triangle, GeoPolygon3 polygon) =>
+            GetShortestLineTo(triangle, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a triangle to a polygon, within a tolerance.
@@ -299,7 +313,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a triangle to the material of a face.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoTriangle3 triangle, GeoFace3 face) => GetShortestLineTo(triangle, face, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoTriangle3 triangle, GeoFace3 face) =>
+            GetShortestLineTo(triangle, face, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a triangle to the material of a face, within a tolerance.
@@ -331,7 +346,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining two polygons.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either polygon is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoPolygon3 polygon1, GeoPolygon3 polygon2) => GetShortestLineTo(polygon1, polygon2, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoPolygon3 polygon1, GeoPolygon3 polygon2) =>
+            GetShortestLineTo(polygon1, polygon2, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining two polygons, within a tolerance.
@@ -367,7 +383,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining the material of a face to a polygon.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face or the polygon is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoFace3 face, GeoPolygon3 polygon) => GetShortestLineTo(face, polygon, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoFace3 face, GeoPolygon3 polygon) =>
+            GetShortestLineTo(face, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining the material of a face to a polygon, within a tolerance.
@@ -403,7 +420,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining the materials of two faces.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either face is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoFace3 face1, GeoFace3 face2) => GetShortestLineTo(face1, face2, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoFace3 face1, GeoFace3 face2) =>
+            GetShortestLineTo(face1, face2, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining the materials of two faces, within a tolerance.
@@ -449,9 +467,15 @@ namespace GeometryHelper.Core
         internal static GeoLine3 Join(GeoTriangle3 triangle, GeoPolygon3 polygon, double near, Tolerance tolerance)
         {
             return JoinRegions(
-                Intersection3.EdgesOf(triangle), Region(triangle), edge => ToRegion(edge, polygon, tolerance),
-                polygon.GetEdges(), Region(polygon), edge => ToRegion(edge, triangle, tolerance),
-                near, tolerance);
+                Intersection3.EdgesOf(triangle),
+                Region(triangle),
+                edge => ToRegion(edge, polygon, tolerance),
+                polygon.GetEdges(),
+                Region(polygon),
+                edge => ToRegion(edge, triangle, tolerance),
+                near,
+                tolerance
+            );
         }
 
         /// <summary>
@@ -461,9 +485,15 @@ namespace GeometryHelper.Core
         internal static GeoLine3 Join(GeoTriangle3 triangle, GeoFace3 face, double near, Tolerance tolerance)
         {
             return JoinRegions(
-                Intersection3.EdgesOf(triangle), Region(triangle), edge => ToRegion(edge, face, tolerance),
-                Intersection3.EdgesOf(face), Region(face), edge => ToRegion(edge, triangle, tolerance),
-                near, tolerance);
+                Intersection3.EdgesOf(triangle),
+                Region(triangle),
+                edge => ToRegion(edge, face, tolerance),
+                Intersection3.EdgesOf(face),
+                Region(face),
+                edge => ToRegion(edge, triangle, tolerance),
+                near,
+                tolerance
+            );
         }
 
         /// <summary>
@@ -473,9 +503,15 @@ namespace GeometryHelper.Core
         internal static GeoLine3 Join(GeoPolygon3 polygon1, GeoPolygon3 polygon2, double near, Tolerance tolerance)
         {
             return JoinRegions(
-                polygon1.GetEdges(), Region(polygon1), edge => ToRegion(edge, polygon2, tolerance),
-                polygon2.GetEdges(), Region(polygon2), edge => ToRegion(edge, polygon1, tolerance),
-                near, tolerance);
+                polygon1.GetEdges(),
+                Region(polygon1),
+                edge => ToRegion(edge, polygon2, tolerance),
+                polygon2.GetEdges(),
+                Region(polygon2),
+                edge => ToRegion(edge, polygon1, tolerance),
+                near,
+                tolerance
+            );
         }
 
         /// <summary>
@@ -485,9 +521,15 @@ namespace GeometryHelper.Core
         internal static GeoLine3 Join(GeoFace3 face, GeoPolygon3 polygon, double near, Tolerance tolerance)
         {
             return JoinRegions(
-                Intersection3.EdgesOf(face), Region(face), edge => ToRegion(edge, polygon, tolerance),
-                polygon.GetEdges(), Region(polygon), edge => ToRegion(edge, face, tolerance),
-                near, tolerance);
+                Intersection3.EdgesOf(face),
+                Region(face),
+                edge => ToRegion(edge, polygon, tolerance),
+                polygon.GetEdges(),
+                Region(polygon),
+                edge => ToRegion(edge, face, tolerance),
+                near,
+                tolerance
+            );
         }
 
         /// <summary>
@@ -497,9 +539,15 @@ namespace GeometryHelper.Core
         internal static GeoLine3 Join(GeoFace3 face1, GeoFace3 face2, double near, Tolerance tolerance)
         {
             return JoinRegions(
-                Intersection3.EdgesOf(face1), Region(face1), edge => ToRegion(edge, face2, tolerance),
-                Intersection3.EdgesOf(face2), Region(face2), edge => ToRegion(edge, face1, tolerance),
-                near, tolerance);
+                Intersection3.EdgesOf(face1),
+                Region(face1),
+                edge => ToRegion(edge, face2, tolerance),
+                Intersection3.EdgesOf(face2),
+                Region(face2),
+                edge => ToRegion(edge, face1, tolerance),
+                near,
+                tolerance
+            );
         }
 
         /// <summary>
@@ -538,14 +586,14 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the box and the plane of a triangle, which bound how near an edge of another region can come to it.
         /// </summary>
-        private static (GeoAabb3 Box, GeoPlane3 Plane) Region(GeoTriangle3 triangle)
-            => (triangle.GetAabb(), Intersection3.Flat.Of(triangle).Plane);
+        private static (GeoAabb3 Box, GeoPlane3 Plane) Region(GeoTriangle3 triangle) =>
+            (triangle.GetAabb(), Intersection3.Flat.Of(triangle).Plane);
 
         /// <summary>
         /// Gets the box and the plane of a polygon, which bound how near an edge of another region can come to it.
         /// </summary>
-        private static (GeoAabb3 Box, GeoPlane3 Plane) Region(GeoPolygon3 polygon)
-            => (polygon.GetAabb(), polygon.GetPlane());
+        private static (GeoAabb3 Box, GeoPlane3 Plane) Region(GeoPolygon3 polygon) =>
+            (polygon.GetAabb(), polygon.GetPlane());
 
         /// <summary>
         /// Gets the box and the plane of a face, which bound how near an edge of another region can come to it.
@@ -574,7 +622,8 @@ namespace GeometryHelper.Core
             (GeoAabb3 Box, GeoPlane3 Plane) secondRegion,
             Func<GeoLine3, GeoLine3> toFirst,
             double near,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             double slack = 4.0 * tolerance.EqualPoint;
 
@@ -614,7 +663,8 @@ namespace GeometryHelper.Core
             double gap = edge.GetAabb().DistanceTo(region.Box);
             double from = region.Plane.SignedDistanceTo(edge.StartPoint);
             double to = region.Plane.SignedDistanceTo(edge.EndPoint);
-            double height = from > 0.0 && to > 0.0 ? Math.Min(from, to)
+            double height =
+                from > 0.0 && to > 0.0 ? Math.Min(from, to)
                 : from < 0.0 && to < 0.0 ? -Math.Max(from, to)
                 : 0.0;
 
@@ -628,7 +678,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a triangle to a plane.
         /// </summary>
-        public static GeoLine3 GetShortestLineTo(GeoTriangle3 triangle, GeoPlane3 plane) => GetShortestLineTo(triangle, plane, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoTriangle3 triangle, GeoPlane3 plane) =>
+            GetShortestLineTo(triangle, plane, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a triangle to a plane.
@@ -657,7 +708,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a polygon to a plane.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoPolygon3 polygon, GeoPlane3 plane) => GetShortestLineTo(polygon, plane, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoPolygon3 polygon, GeoPlane3 plane) =>
+            GetShortestLineTo(polygon, plane, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a polygon to a plane.
@@ -692,7 +744,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining the material of a face to a plane.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoFace3 face, GeoPlane3 plane) => GetShortestLineTo(face, plane, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoFace3 face, GeoPlane3 plane) =>
+            GetShortestLineTo(face, plane, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining the material of a face to a plane.
@@ -726,7 +779,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a ray to a plane.
         /// </summary>
-        public static GeoLine3 GetShortestLineTo(GeoRay3 ray, GeoPlane3 plane) => GetShortestLineTo(ray, plane, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoRay3 ray, GeoPlane3 plane) =>
+            GetShortestLineTo(ray, plane, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a ray to a plane.
@@ -804,7 +858,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining two rays.
         /// </summary>
-        public static GeoLine3 GetShortestLineTo(GeoRay3 ray1, GeoRay3 ray2) => GetShortestLineTo(ray1, ray2, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoRay3 ray1, GeoRay3 ray2) =>
+            GetShortestLineTo(ray1, ray2, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining two rays.
@@ -840,7 +895,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a polyline to a ray.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoRay3 ray) => GetShortestLineTo(polyline, ray, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoRay3 ray) =>
+            GetShortestLineTo(polyline, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a polyline to a ray, within a tolerance.
@@ -890,9 +946,11 @@ namespace GeometryHelper.Core
 
             GeoLine3 across = GetShortestLineTo(ray.ToLine(1.0), line, Enums.LineExtension.First, Exactly);
 
-            Consider(ref best, ref shortest, new GeoLine3(
-                ProjectToRay(ray, across.StartPoint),
-                ProjectToLine(line, across.EndPoint, Exactly)));
+            Consider(
+                ref best,
+                ref shortest,
+                new GeoLine3(ProjectToRay(ray, across.StartPoint), ProjectToLine(line, across.EndPoint, Exactly))
+            );
 
             return best;
         }
@@ -905,7 +963,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a solid to the material of a face.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the solid or the face is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoFace3 face) => GetShortestLineTo(solid, face, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoSolid3 solid, GeoFace3 face) =>
+            GetShortestLineTo(solid, face, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a solid to the material of a face, within a tolerance.

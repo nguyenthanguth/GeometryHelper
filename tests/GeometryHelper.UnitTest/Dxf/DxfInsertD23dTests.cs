@@ -55,38 +55,63 @@ namespace GeometryHelper.UnitTest.Dxf
                 block.AppendEntity(line);
             }
 
-            DxfBlockLinearParameter width = block.AddLinearParameter("Width", "Overall width of the panel", new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20,
-                DxfBlockParameterValueSet.Increments(50, 300, 10));
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                "Overall width of the panel",
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                DxfBlockParameterValueSet.Increments(50, 300, 10)
+            );
             block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), lines.Take(3));
             return block;
         }
 
-        private static DxfDynamicBlockReferenceProperty Width(DxfBlockReference insert) => insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == "Width");
+        private static DxfDynamicBlockReferenceProperty Width(DxfBlockReference insert) =>
+            insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == "Width");
 
         private static double Real(DxfDynamicBlockReferenceProperty property) => Assert.IsType<double>(property.Value);
 
         private static DxfDatabase Reopened(DxfDatabase db) => DxfDatabase.Parse(db.ToText());
 
         /// <summary>The INSERTs of a space that place GH_PANEL or a block standing for it, in their order.</summary>
-        private static List<DxfBlockReference> Panels(IEnumerable<DxfEntity> space)
-            => space.OfType<DxfBlockReference>().Where(r => r.Name == "GH_PANEL" || r.Name.StartsWith("*U", StringComparison.Ordinal)).ToList();
+        private static List<DxfBlockReference> Panels(IEnumerable<DxfEntity> space) =>
+            space
+                .OfType<DxfBlockReference>()
+                .Where(r => r.Name == "GH_PANEL" || r.Name.StartsWith("*U", StringComparison.Ordinal))
+                .ToList();
 
         /// <summary>The names of the anonymous blocks of a drawing, in the order of its table.</summary>
-        private static List<string> Anonymous(DxfDatabase db) => db.BlockTable.Where(b => b.Name.StartsWith("*U", StringComparison.Ordinal)).Select(b => b.Name).ToList();
+        private static List<string> Anonymous(DxfDatabase db) =>
+            db.BlockTable.Where(b => b.Name.StartsWith("*U", StringComparison.Ordinal)).Select(b => b.Name).ToList();
 
         /// <summary>The ends of the lines of the block an INSERT places, in their order.</summary>
-        private static List<GeoPoint3> Drawn(DxfBlockReference insert)
-            => insert.BlockTableRecord.OfType<DxfLine>().SelectMany(l => new[] { l.StartPoint, l.EndPoint }).ToList();
+        private static List<GeoPoint3> Drawn(DxfBlockReference insert) =>
+            insert.BlockTableRecord.OfType<DxfLine>().SelectMany(l => new[] { l.StartPoint, l.EndPoint }).ToList();
 
         // A drawing of R12 built as text: a block of a name AutoCAD gives itself flagged anonymous (70 of 1).
-        private const string Head12 = "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1009\n  0\nENDSEC\n  0\nSECTION\n  2\nBLOCKS\n";
+        private const string Head12 =
+            "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1009\n  0\nENDSEC\n  0\nSECTION\n  2\nBLOCKS\n";
         private const string Line12 = "  0\nLINE\n  8\n0\n 10\n0\n 20\n0\n 30\n0\n 11\n1\n 21\n0\n 31\n0\n";
 
-        private static string Insert12(string name, double x) => "  0\nINSERT\n  8\n0\n  2\n" + name + "\n 10\n" + x.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n 20\n0\n 30\n0\n";
+        private static string Insert12(string name, double x) =>
+            "  0\nINSERT\n  8\n0\n  2\n"
+            + name
+            + "\n 10\n"
+            + x.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + "\n 20\n0\n 30\n0\n";
 
-        private static string Block12(string name, string entities) => "  0\nBLOCK\n  8\n0\n  2\n" + name + "\n 70\n" + (name.StartsWith("*", StringComparison.Ordinal) ? "1" : "0") + "\n 10\n0\n 20\n0\n 30\n0\n" + entities + "  0\nENDBLK\n  8\n0\n";
+        private static string Block12(string name, string entities) =>
+            "  0\nBLOCK\n  8\n0\n  2\n"
+            + name
+            + "\n 70\n"
+            + (name.StartsWith("*", StringComparison.Ordinal) ? "1" : "0")
+            + "\n 10\n0\n 20\n0\n 30\n0\n"
+            + entities
+            + "  0\nENDBLK\n  8\n0\n";
 
-        private static string Drawing12(string blocks, string entities) => Head12 + blocks + "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n" + entities + "  0\nENDSEC\n  0\nEOF\n";
+        private static string Drawing12(string blocks, string entities) =>
+            Head12 + blocks + "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n" + entities + "  0\nENDSEC\n  0\nEOF\n";
 
         // ---- An anonymous block two INSERTs place, copied once ----
 
@@ -139,7 +164,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AStaticAnonymousBlockTwoInsertsPlace_IsInsertedOnce()
         {
-            DxfDatabase source = DxfDatabase.Parse(Drawing12(Block12("*U1", Line12), Insert12("*U1", 0) + Insert12("*U1", 10)));
+            DxfDatabase source = DxfDatabase.Parse(
+                Drawing12(Block12("*U1", Line12), Insert12("*U1", 0) + Insert12("*U1", 10))
+            );
             DxfDatabase db = DxfDatabase.Parse(Drawing12(Block12("*U1", Line12), string.Empty));
 
             db.Insert(GeoTransform3.Identity, source, true);
@@ -153,7 +180,12 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AnAnonymousBlockPlacedInABlockMergedAndInModelSpace_IsInsertedOnce()
         {
-            DxfDatabase source = DxfDatabase.Parse(Drawing12(Block12("*U1", Line12) + Block12("HOLDER", Insert12("*U1", 5)), Insert12("*U1", 0) + Insert12("HOLDER", 20)));
+            DxfDatabase source = DxfDatabase.Parse(
+                Drawing12(
+                    Block12("*U1", Line12) + Block12("HOLDER", Insert12("*U1", 5)),
+                    Insert12("*U1", 0) + Insert12("HOLDER", 20)
+                )
+            );
             DxfDatabase db = DxfDatabase.Parse(Drawing12(string.Empty, string.Empty));
 
             db.Insert(GeoTransform3.Identity, source, true);
@@ -167,7 +199,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void TwoInsertsOfOneAnonymousBlock_CopiedTogetherByWblockCloneObjects_PlaceOneCopy()
         {
-            DxfDatabase source = DxfDatabase.Parse(Drawing12(Block12("*U1", Line12), Insert12("*U1", 0) + Insert12("*U1", 10)));
+            DxfDatabase source = DxfDatabase.Parse(
+                Drawing12(Block12("*U1", Line12), Insert12("*U1", 0) + Insert12("*U1", 10))
+            );
             DxfDatabase db = DxfDatabase.Parse(Drawing12(string.Empty, string.Empty));
 
             IReadOnlyList<DxfEntity> copies = source.WblockCloneObjects(source.ModelSpace.ToList(), db.ModelSpace);
@@ -179,13 +213,18 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void TwoInsertsOfOneAnonymousBlock_CopiedByTwoCalls_PlaceACopyEach_AsAutoCadsTwoCallsDo()
         {
-            DxfDatabase source = DxfDatabase.Parse(Drawing12(Block12("*U1", Line12), Insert12("*U1", 0) + Insert12("*U1", 10)));
+            DxfDatabase source = DxfDatabase.Parse(
+                Drawing12(Block12("*U1", Line12), Insert12("*U1", 0) + Insert12("*U1", 10))
+            );
             DxfDatabase db = DxfDatabase.Parse(Drawing12(string.Empty, string.Empty));
 
             source.WblockCloneObjects(new[] { source.ModelSpace.First() }, db.ModelSpace);
             source.WblockCloneObjects(new[] { source.ModelSpace.Last() }, db.ModelSpace);
 
-            Assert.Equal(new[] { "*U1", "*U2" }, Reopened(db).ModelSpace.OfType<DxfBlockReference>().Select(r => r.Name));
+            Assert.Equal(
+                new[] { "*U1", "*U2" },
+                Reopened(db).ModelSpace.OfType<DxfBlockReference>().Select(r => r.Name)
+            );
         }
 
         // ---- A dynamic INSERT copied alone by WblockCloneObjects ----
@@ -361,7 +400,10 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             var db = new DxfDatabase(version);
 
-            Assert.Contains("  9\n$ACADVER\n  1\n" + version + "\n  9\n$DWGCODEPAGE\n  3\nANSI_1252\n", db.ToText().Replace("\r\n", "\n"));
+            Assert.Contains(
+                "  9\n$ACADVER\n  1\n" + version + "\n  9\n$DWGCODEPAGE\n  3\nANSI_1252\n",
+                db.ToText().Replace("\r\n", "\n")
+            );
             Assert.Equal("ANSI_1252", db.GetHeader("$DWGCODEPAGE").Single().Value.Trim());
         }
 
@@ -370,7 +412,14 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             const string words = "철근 상부";
             var source = new DxfDatabase("AC1032");
-            source.ModelSpace.AppendEntity(new DxfDBText { Position = new GeoPoint3(0, 0, 0), TextString = words, Height = 2.5 });
+            source.ModelSpace.AppendEntity(
+                new DxfDBText
+                {
+                    Position = new GeoPoint3(0, 0, 0),
+                    TextString = words,
+                    Height = 2.5,
+                }
+            );
             var db = new DxfDatabase("AC1032");
 
             db.Insert(GeoTransform3.Identity, source, true);
@@ -394,7 +443,14 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             const string words = "철근";
             var source = new DxfDatabase("AC1032");
-            source.ModelSpace.AppendEntity(new DxfDBText { Position = new GeoPoint3(0, 0, 0), TextString = words, Height = 2.5 });
+            source.ModelSpace.AppendEntity(
+                new DxfDBText
+                {
+                    Position = new GeoPoint3(0, 0, 0),
+                    TextString = words,
+                    Height = 2.5,
+                }
+            );
             var db = new DxfDatabase("AC1018");
 
             db.Insert(GeoTransform3.Identity, source, true);

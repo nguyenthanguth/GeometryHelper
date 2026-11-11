@@ -28,7 +28,8 @@ namespace GeometryHelper.Dxf
         /// Gets the VPORT table of the drawing, as AutoCAD's <c>ViewportTableId</c> gives its id: the tiled viewports of model
         /// space, the snap and the grid of the drawing in its <c>*Active</c>, as <see cref="DxfViewportTable"/> says.
         /// </summary>
-        public DxfViewportTable ViewportTable => _viewportTable ?? (_viewportTable = new DxfViewportTable(File, File.TableItem("VPORT")));
+        public DxfViewportTable ViewportTable =>
+            _viewportTable ?? (_viewportTable = new DxfViewportTable(File, File.TableItem("VPORT")));
 
         /// <summary>Gets the origin of the current UCS of model space (<c>$UCSORG</c>), as AutoCAD's <c>Ucsorg</c>, in world coordinates; the origin where the header gives none.</summary>
         public GeoPoint3 Ucsorg => Point("$UCSORG");
@@ -120,7 +121,8 @@ namespace GeometryHelper.Dxf
         /// <param name="orthoView">The orthographic system, top to right.</param>
         /// <returns>The origin, in world coordinates.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the system is <see cref="DxfOrthographicView.NonOrthoView"/> or not one of <see cref="DxfOrthographicView"/>.</exception>
-        public GeoPoint3 WorldUcsBaseOrigin(DxfOrthographicView orthoView) => Point("$UCSORG" + Side(orthoView, nameof(orthoView)));
+        public GeoPoint3 WorldUcsBaseOrigin(DxfOrthographicView orthoView) =>
+            Point("$UCSORG" + Side(orthoView, nameof(orthoView)));
 
         /// <summary>Sets the origin of an orthographic UCS of model space when the base UCS is the world, as AutoCAD's <c>SetWorldUcsBaseOrigin</c>: <c>$UCSORGTOP</c> for the top.</summary>
         /// <param name="origin">The origin, in world coordinates.</param>
@@ -128,13 +130,15 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when a coordinate of the origin is not a finite number.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the system is <see cref="DxfOrthographicView.NonOrthoView"/> or not one of <see cref="DxfOrthographicView"/>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the origin changes in a file older than R2000 (AC1015), which has no such variables.</exception>
-        public void SetWorldUcsBaseOrigin(GeoPoint3 origin, DxfOrthographicView orthoView) => PutBaseOrigin("$UCSORG" + Side(orthoView, nameof(orthoView)), origin);
+        public void SetWorldUcsBaseOrigin(GeoPoint3 origin, DxfOrthographicView orthoView) =>
+            PutBaseOrigin("$UCSORG" + Side(orthoView, nameof(orthoView)), origin);
 
         /// <summary>Gets the origin of an orthographic UCS of paper space when the base UCS is the world (<c>$PUCSORGTOP</c> to <c>$PUCSORGBACK</c>), as AutoCAD's <c>WorldPaperspaceUcsBaseOrigin</c>; the origin where the header gives none.</summary>
         /// <param name="orthoView">The orthographic system, top to right.</param>
         /// <returns>The origin, in world coordinates.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the system is <see cref="DxfOrthographicView.NonOrthoView"/> or not one of <see cref="DxfOrthographicView"/>.</exception>
-        public GeoPoint3 WorldPaperspaceUcsBaseOrigin(DxfOrthographicView orthoView) => Point("$PUCSORG" + Side(orthoView, nameof(orthoView)));
+        public GeoPoint3 WorldPaperspaceUcsBaseOrigin(DxfOrthographicView orthoView) =>
+            Point("$PUCSORG" + Side(orthoView, nameof(orthoView)));
 
         /// <summary>Sets the origin of an orthographic UCS of paper space when the base UCS is the world, as AutoCAD's <c>SetWorldPaperspaceUcsBaseOrigin</c>: <c>$PUCSORGTOP</c> for the top.</summary>
         /// <param name="origin">The origin, in world coordinates.</param>
@@ -142,20 +146,32 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when a coordinate of the origin is not a finite number.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the system is <see cref="DxfOrthographicView.NonOrthoView"/> or not one of <see cref="DxfOrthographicView"/>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the origin changes in a file older than R2000 (AC1015), which has no such variables.</exception>
-        public void SetWorldPaperspaceUcsBaseOrigin(GeoPoint3 origin, DxfOrthographicView orthoView) => PutBaseOrigin("$PUCSORG" + Side(orthoView, nameof(orthoView)), origin);
+        public void SetWorldPaperspaceUcsBaseOrigin(GeoPoint3 origin, DxfOrthographicView orthoView) =>
+            PutBaseOrigin("$PUCSORG" + Side(orthoView, nameof(orthoView)), origin);
 
         /// <summary>The end of the name of the variable of an orthographic system: TOP for the top.</summary>
         private static string Side(DxfOrthographicView view, string parameter)
         {
             switch (view)
             {
-                case DxfOrthographicView.TopView: return "TOP";
-                case DxfOrthographicView.BottomView: return "BOTTOM";
-                case DxfOrthographicView.FrontView: return "FRONT";
-                case DxfOrthographicView.BackView: return "BACK";
-                case DxfOrthographicView.LeftView: return "LEFT";
-                case DxfOrthographicView.RightView: return "RIGHT";
-                default: throw new ArgumentOutOfRangeException(parameter, view, "An orthographic system is the top, bottom, front, back, left or right.");
+                case DxfOrthographicView.TopView:
+                    return "TOP";
+                case DxfOrthographicView.BottomView:
+                    return "BOTTOM";
+                case DxfOrthographicView.FrontView:
+                    return "FRONT";
+                case DxfOrthographicView.BackView:
+                    return "BACK";
+                case DxfOrthographicView.LeftView:
+                    return "LEFT";
+                case DxfOrthographicView.RightView:
+                    return "RIGHT";
+                default:
+                    throw new ArgumentOutOfRangeException(
+                        parameter,
+                        view,
+                        "An orthographic system is the top, bottom, front, back, left or right."
+                    );
             }
         }
 
@@ -163,7 +179,10 @@ namespace GeometryHelper.Dxf
         {
             if (!origin.IsValid)
             {
-                throw new ArgumentException("A point has to be of finite numbers: " + origin + " is not.", nameof(origin));
+                throw new ArgumentException(
+                    "A point has to be of finite numbers: " + origin + " is not.",
+                    nameof(origin)
+                );
             }
 
             GeoPoint3 now = Point(name);
@@ -195,7 +214,10 @@ namespace GeometryHelper.Dxf
         {
             if (!value.IsValid)
             {
-                throw new ArgumentException("A UCS has to have a finite origin and unit axes at right angles: " + value + " has not.", nameof(value));
+                throw new ArgumentException(
+                    "A UCS has to have a finite origin and unit axes at right angles: " + value + " has not.",
+                    nameof(value)
+                );
             }
 
             SetPoint(prefix + "ORG", value.Origin);
@@ -207,12 +229,15 @@ namespace GeometryHelper.Dxf
         {
             if (!(Same(value.X, now.X) && Same(value.Y, now.Y) && Same(value.Z, now.Z)))
             {
-                File.SetHeader(name, new[]
-                {
-                    new DxfTypedValue(10, Numbers.Exact(value.X + 0.0)),
-                    new DxfTypedValue(20, Numbers.Exact(value.Y + 0.0)),
-                    new DxfTypedValue(30, Numbers.Exact(value.Z + 0.0)),
-                });
+                File.SetHeader(
+                    name,
+                    new[]
+                    {
+                        new DxfTypedValue(10, Numbers.Exact(value.X + 0.0)),
+                        new DxfTypedValue(20, Numbers.Exact(value.Y + 0.0)),
+                        new DxfTypedValue(30, Numbers.Exact(value.Z + 0.0)),
+                    }
+                );
             }
         }
 
@@ -239,7 +264,14 @@ namespace GeometryHelper.Dxf
         {
             foreach (DxfItem item in File.TableItems("UCS"))
             {
-                if (!item.IsRemoved && string.Equals(DxfReader.NameOf(File.ValueOf(item, 2) ?? string.Empty), name, StringComparison.OrdinalIgnoreCase))
+                if (
+                    !item.IsRemoved
+                    && string.Equals(
+                        DxfReader.NameOf(File.ValueOf(item, 2) ?? string.Empty),
+                        name,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
                 {
                     return true;
                 }

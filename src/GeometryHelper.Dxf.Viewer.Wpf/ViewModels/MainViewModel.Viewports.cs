@@ -22,7 +22,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the MODEL/PAPER button's command: in a layout it runs MSPACE on the paper and PSPACE through a viewport, as
         /// AutoCAD's button does; nothing on the Model tab or while a command runs.
         /// </summary>
-        public ICommand ToggleSpaceCommand => _toggleSpaceCommand ?? (_toggleSpaceCommand = new DelegateCommand(_ => ToggleSpace()));
+        public ICommand ToggleSpaceCommand =>
+            _toggleSpaceCommand ?? (_toggleSpaceCommand = new DelegateCommand(_ => ToggleSpace()));
 
         /// <summary>
         /// Gets the scales the status bar's list offers for a viewport: <see cref="CadViewports.StandardScales"/>, after the
@@ -60,7 +61,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 DxfViewport viewport = ScaledViewport();
                 return viewport == null ? null : CadViewports.ScaleName(viewport.CustomScale);
             }
-
             set
             {
                 DxfViewport viewport = ScaledViewport();
@@ -71,7 +71,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 CadEditResult result;
-                KeyValuePair<string, double> listed = DrawingScales().FirstOrDefault(s => string.Equals(s.Key, value, StringComparison.OrdinalIgnoreCase));
+                KeyValuePair<string, double> listed = DrawingScales()
+                    .FirstOrDefault(s => string.Equals(s.Key, value, StringComparison.OrdinalIgnoreCase));
 
                 if (listed.Key != null && !CadViewports.StandardScales.Contains(value))
                 {
@@ -81,11 +82,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 if (CadViewports.StandardScales.Contains(value))
                 {
-                    result = CadPropertyEditor.Set(_current.Document, new[] { viewport.Handle }, "Standard scale", value);
+                    result = CadPropertyEditor.Set(
+                        _current.Document,
+                        new[] { viewport.Handle },
+                        "Standard scale",
+                        value
+                    );
                 }
                 else if (CadViewports.TryReadScale(value, out double scale))
                 {
-                    result = CadPropertyEditor.Set(_current.Document, new[] { viewport.Handle }, "Custom scale", scale.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+                    result = CadPropertyEditor.Set(
+                        _current.Document,
+                        new[] { viewport.Handle },
+                        "Custom scale",
+                        scale.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                    );
                 }
                 else
                 {
@@ -133,7 +144,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             IReadOnlyCollection<string> handles = document.Selection.Handles;
-            return handles.Count == 1 && document.FindEntity(handles.First()) is DxfViewport selected && selected.Number > 1 && selected.Height > 0.0 ? selected : null;
+            return
+                handles.Count == 1
+                && document.FindEntity(handles.First()) is DxfViewport selected
+                && selected.Number > 1
+                && selected.Height > 0.0
+                ? selected
+                : null;
         }
 
         private void RaiseViewportScale()
@@ -157,7 +174,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool HasStatusScale => _current != null && (IsModelSpace || HasViewportScale);
 
         /// <summary>Gets the scale the status bar shows: CANNOSCALE on the Model tab, as 1:1; the viewport's in a layout, as 1:20.</summary>
-        public string StatusScale => _current == null ? null : IsModelSpace ? _current.Document.Database.Cannoscale : ViewportScale;
+        public string StatusScale =>
+            _current == null ? null
+            : IsModelSpace ? _current.Document.Database.Cannoscale
+            : ViewportScale;
 
         /// <summary>
         /// Gets whether the display of the viewport whose scale is shown is locked, the padlock closed and the scale grey; false
@@ -166,7 +186,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool IsViewportLocked => ScaledViewport()?.Locked == true;
 
         /// <summary>Gets the padlock's command: locks or unlocks the display of the viewport worked through or selected, one undo step (its Display locked).</summary>
-        public ICommand ToggleViewportLockCommand => _toggleLockCommand ?? (_toggleLockCommand = new DelegateCommand(_ => ToggleViewportLock()));
+        public ICommand ToggleViewportLockCommand =>
+            _toggleLockCommand ?? (_toggleLockCommand = new DelegateCommand(_ => ToggleViewportLock()));
 
         /// <summary>
         /// Gets the items of the scale list the status bar opens. In a layout, as AutoCAD 2021's: Scale to fit, the scales of the
@@ -191,7 +212,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 foreach (string name in AnnotationScales())
                 {
                     string chosen = name;
-                    items.Add(new CadMenuItemViewModel(name, () => SetAnnotationScale(chosen), true, null, string.Equals(name, own, StringComparison.OrdinalIgnoreCase)));
+                    items.Add(
+                        new CadMenuItemViewModel(
+                            name,
+                            () => SetAnnotationScale(chosen),
+                            true,
+                            null,
+                            string.Equals(name, own, StringComparison.OrdinalIgnoreCase)
+                        )
+                    );
                 }
 
                 return items;
@@ -212,11 +241,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 double chosen = scale.Value;
-                items.Add(new CadMenuItemViewModel(scale.Key, () => SetViewportScale(chosen), open, null, Math.Abs(chosen - now) <= 1E-9 * chosen));
+                items.Add(
+                    new CadMenuItemViewModel(
+                        scale.Key,
+                        () => SetViewportScale(chosen),
+                        open,
+                        null,
+                        Math.Abs(chosen - now) <= 1E-9 * chosen
+                    )
+                );
             }
 
             items.Add(CadMenuItemViewModel.Separator());
-            items.Add(new CadMenuItemViewModel("Custom...", () => StartCommand("-SCALELISTEDIT"), open, "Edits the drawing's list of scales on the command line, as -SCALELISTEDIT (the Edit Drawing Scales dialog is not built)", false));
+            items.Add(
+                new CadMenuItemViewModel(
+                    "Custom...",
+                    () => StartCommand("-SCALELISTEDIT"),
+                    open,
+                    "Edits the drawing's list of scales on the command line, as -SCALELISTEDIT (the Edit Drawing Scales dialog is not built)",
+                    false
+                )
+            );
             return items;
         }
 
@@ -231,9 +276,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             try
             {
-                DxfObjectContextCollection list = _current.Document.Database.ObjectContextManager?.GetContextCollection("ACDB_ANNOTATIONSCALES");
+                DxfObjectContextCollection list = _current.Document.Database.ObjectContextManager?.GetContextCollection(
+                    "ACDB_ANNOTATIONSCALES"
+                );
 
-                foreach (DxfAnnotationScale scale in ((IEnumerable<DxfObjectContext>)list ?? Array.Empty<DxfObjectContext>()).OfType<DxfAnnotationScale>())
+                foreach (
+                    DxfAnnotationScale scale in (
+                        (IEnumerable<DxfObjectContext>)list ?? Array.Empty<DxfObjectContext>()
+                    ).OfType<DxfAnnotationScale>()
+                )
                 {
                     if (scale.Scale > 0.0 && !double.IsInfinity(scale.Scale))
                     {
@@ -268,7 +319,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            CadEditResult result = CadPropertyEditor.Set(_current.Document, new[] { viewport.Handle }, "Custom scale", scale.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+            CadEditResult result = CadPropertyEditor.Set(
+                _current.Document,
+                new[] { viewport.Handle },
+                "Custom scale",
+                scale.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+            );
 
             if (!result.Succeeded)
             {
@@ -287,9 +343,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             try
             {
-                DxfObjectContextCollection list = _current.Document.Database.ObjectContextManager?.GetContextCollection("ACDB_ANNOTATIONSCALES");
+                DxfObjectContextCollection list = _current.Document.Database.ObjectContextManager?.GetContextCollection(
+                    "ACDB_ANNOTATIONSCALES"
+                );
 
-                foreach (DxfObjectContext scale in (IEnumerable<DxfObjectContext>)list ?? Array.Empty<DxfObjectContext>())
+                foreach (
+                    DxfObjectContext scale in (IEnumerable<DxfObjectContext>)list ?? Array.Empty<DxfObjectContext>()
+                )
                 {
                     names.Add(scale.Name);
                 }
@@ -336,7 +396,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (!string.Equals(old, name, StringComparison.Ordinal))
             {
-                CadEditResult result = _current.Document.ApplyEdit("CANNOSCALE", new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "CANNOSCALE", old, name) }, s => s.Database.Cannoscale = name);
+                CadEditResult result = _current.Document.ApplyEdit(
+                    "CANNOSCALE",
+                    new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "CANNOSCALE", old, name) },
+                    s => s.Database.Cannoscale = name
+                );
 
                 if (!result.Succeeded)
                 {
@@ -356,7 +420,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            CadEditResult result = CadPropertyEditor.Set(_current.Document, new[] { viewport.Handle }, "Display locked", viewport.Locked ? "No" : "Yes");
+            CadEditResult result = CadPropertyEditor.Set(
+                _current.Document,
+                new[] { viewport.Handle },
+                "Display locked",
+                viewport.Locked ? "No" : "Yes"
+            );
 
             if (!result.Succeeded)
             {

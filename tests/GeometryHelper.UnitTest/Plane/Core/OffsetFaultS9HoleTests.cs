@@ -34,32 +34,72 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 yield return new GeoPolygonArc2(
                     Enumerable.Range(0, n).Select(i => loop.Vertices[(i + start) % n]),
-                    Enumerable.Range(0, n).Select(i => loop.Bulges[(i + start) % n]));
+                    Enumerable.Range(0, n).Select(i => loop.Bulges[(i + start) % n])
+                );
             }
 
             yield return loop.Reverse();
         }
 
         /// <summary>The loops that run against the source.</summary>
-        private static GeoPolygonArc2[] Holes(GeoPolygonArc2[] loops, GeoPolygonArc2 source)
-            => loops.Where(loop => loop.IsClockwise != source.IsClockwise).ToArray();
+        private static GeoPolygonArc2[] Holes(GeoPolygonArc2[] loops, GeoPolygonArc2 source) =>
+            loops.Where(loop => loop.IsClockwise != source.IsClockwise).ToArray();
 
         /// <summary>
         /// The square of side 100 about the origin with a lens cut out of it, tips (-20, 0) and the mouth (20, -0.5) to
         /// (20, 0.5), each side an arc of bulge -0.5 sagging 10 from its chord, radius 25.00195, the slot 1 wide out to
         /// the right side.
         /// </summary>
-        private static GeoPolygonArc2 LensCavity() => Loop(
-            new[] { P(-50, -50), P(50, -50), P(50, -0.5), P(20, -0.5), P(-20, 0), P(20, 0.5), P(50, 0.5), P(50, 50), P(-50, 50) },
-            0.0, 0.0, 0.0, -0.5, -0.5);
+        private static GeoPolygonArc2 LensCavity() =>
+            Loop(
+                new[]
+                {
+                    P(-50, -50),
+                    P(50, -50),
+                    P(50, -0.5),
+                    P(20, -0.5),
+                    P(-20, 0),
+                    P(20, 0.5),
+                    P(50, 0.5),
+                    P(50, 50),
+                    P(-50, 50),
+                },
+                0.0,
+                0.0,
+                0.0,
+                -0.5,
+                -0.5
+            );
 
         /// <summary>
         /// The square of side 100 about the origin with a cavity 60 by 60 whose bottom and top bow 20 into it, bulge 2/3,
         /// radius 32.5 about (0, -42.5) and (0, 42.5), opened by a slot 2 wide from (30, 25) out to the right side.
         /// </summary>
-        private static GeoPolygonArc2 WaistedCavity() => Loop(
-            new[] { P(-50, -50), P(50, -50), P(50, 25), P(30, 25), P(30, -30), P(-30, -30), P(-30, 30), P(30, 30), P(30, 27), P(50, 27), P(50, 50), P(-50, 50) },
-            0.0, 0.0, 0.0, 0.0, 2.0 / 3.0, 0.0, 2.0 / 3.0);
+        private static GeoPolygonArc2 WaistedCavity() =>
+            Loop(
+                new[]
+                {
+                    P(-50, -50),
+                    P(50, -50),
+                    P(50, 25),
+                    P(30, 25),
+                    P(30, -30),
+                    P(-30, -30),
+                    P(-30, 30),
+                    P(30, 30),
+                    P(30, 27),
+                    P(50, 27),
+                    P(50, 50),
+                    P(-50, 50),
+                },
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                2.0 / 3.0,
+                0.0,
+                2.0 / 3.0
+            );
 
         [Fact]
         public void ALensShapedCavityGrownUntilItsMouthCloses_ComesBackAsAHoleOfTwoArcs()
@@ -108,7 +148,9 @@ namespace GeometryHelper.UnitTest.Plane
                 Assert.Equal(3, grown.Length);
                 Assert.Equal(2, holes.Length);
                 Assert.All(holes, hole => Assert.Equal(each, hole.Area, 1E-6));
-                Assert.All(holes, hole => Assert.True(WorstOffDistance(PiecesOf(hole), PiecesOf(source), 11.0) <= 1E-9));
+                Assert.All(holes, hole =>
+                    Assert.True(WorstOffDistance(PiecesOf(hole), PiecesOf(source), 11.0) <= 1E-9)
+                );
             }
         }
 
@@ -118,11 +160,23 @@ namespace GeometryHelper.UnitTest.Plane
             // Guard: the square of side 100 with a cavity 60 by 60 opened by a mouth 4 wide, grown by 3 with round corners.
             // The hole is the cavity shrunk to 54 by 54, 2 916, and the bit between the circles of 3 about the mouth's
             // corners (80, 48) and (80, 52) left of x = 77: 2 (6 - sqrt 5 - 4.5 asin(2/3)), 0.95950.
-            GeoPolygonArc2 ring = Loop(new[]
-            {
-                P(0, 0), P(100, 0), P(100, 48), P(80, 48), P(80, 20), P(20, 20), P(20, 80), P(80, 80), P(80, 52), P(100, 52),
-                P(100, 100), P(0, 100),
-            });
+            GeoPolygonArc2 ring = Loop(
+                new[]
+                {
+                    P(0, 0),
+                    P(100, 0),
+                    P(100, 48),
+                    P(80, 48),
+                    P(80, 20),
+                    P(20, 20),
+                    P(20, 80),
+                    P(80, 80),
+                    P(80, 52),
+                    P(100, 52),
+                    P(100, 100),
+                    P(0, 100),
+                }
+            );
 
             GeoPolygonArc2[] grown = Offset2.Offset(ring, 3.0, Round, Thousandth);
 
@@ -140,12 +194,24 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolygonArc2 notch = Loop(
                 new[]
                 {
-                    P(-19.17112017687155, 12.203761643576019), P(-16.730586243320037, 16.923089717676937),
-                    P(-13.185408897953149, 15.089751268649046), P(-12.629366363844245, 16.164986120145521),
-                    P(-16.174543709211132, 17.998324569173413), P(-14.577630229355096, 21.08632040229331),
-                    P(-8.35983909825299, 17.870877439031791), P(-12.953329045769447, 8.9883186803145),
+                    P(-19.17112017687155, 12.203761643576019),
+                    P(-16.730586243320037, 16.923089717676937),
+                    P(-13.185408897953149, 15.089751268649046),
+                    P(-12.629366363844245, 16.164986120145521),
+                    P(-16.174543709211132, 17.998324569173413),
+                    P(-14.577630229355096, 21.08632040229331),
+                    P(-8.35983909825299, 17.870877439031791),
+                    P(-12.953329045769447, 8.9883186803145),
                 },
-                0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.1);
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.1,
+                0.0,
+                0.0,
+                0.1
+            );
             var options = new OffsetOptions(OffsetJoin.Miter, double.PositiveInfinity, 0.0);
 
             Assert.Empty(Offset2.Offset(notch, -2.5, options, Tenth));

@@ -128,7 +128,12 @@ namespace GeometryHelper.Core
         /// Resolves loops into the clean loops of the region they enclose under a fill rule, with the region on
         /// their left.
         /// </summary>
-        public static List<List<GeoPoint2>> Resolve(IEnumerable<IReadOnlyList<GeoPoint2>> loops, FillRule rule, Tolerance tolerance, double snap)
+        public static List<List<GeoPoint2>> Resolve(
+            IEnumerable<IReadOnlyList<GeoPoint2>> loops,
+            FillRule rule,
+            Tolerance tolerance,
+            double snap
+        )
         {
             WindingRegion region = new WindingRegion();
 
@@ -143,7 +148,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Offsets a region given by clean loops with the region on their left, and groups the result.
         /// </summary>
-        public static List<LoopGroup> OffsetRegion(List<List<GeoPoint2>> region, double distance, OffsetOptions options, Tolerance tolerance, double snap)
+        public static List<LoopGroup> OffsetRegion(
+            List<List<GeoPoint2>> region,
+            double distance,
+            OffsetOptions options,
+            Tolerance tolerance,
+            double snap
+        )
         {
             if (region.Count == 0)
             {
@@ -168,7 +179,13 @@ namespace GeometryHelper.Core
         /// the parallel curve that survive, running the same way as the chain. A stretch lying within the point
         /// tolerance along the chain is the chain itself, and goes.
         /// </summary>
-        public static List<List<GeoPoint2>> OffsetChain(List<GeoPoint2> chain, double distance, OffsetOptions options, Tolerance tolerance, double snap)
+        public static List<List<GeoPoint2>> OffsetChain(
+            List<GeoPoint2> chain,
+            double distance,
+            OffsetOptions options,
+            Tolerance tolerance,
+            double snap
+        )
         {
             bool toLeft = distance > 0.0;
             double width = Math.Abs(distance);
@@ -183,7 +200,13 @@ namespace GeometryHelper.Core
             CornerStyle style = new CornerStyle(options.Join, options.MiterLimit, options.GetArcTolerance(width));
 
             // The shared builder offsets to the right for a positive distance, so the left takes a negative one.
-            List<GeoPoint2> raw = OffsetOutline.BuildOpenChain(path, -width, style, out List<bool> throughCorner, out List<(GeoPoint2 From, GeoPoint2 To)> pastTheOtherLeg);
+            List<GeoPoint2> raw = OffsetOutline.BuildOpenChain(
+                path,
+                -width,
+                style,
+                out List<bool> throughCorner,
+                out List<(GeoPoint2 From, GeoPoint2 To)> pastTheOtherLeg
+            );
 
             // The band the chain sweeps to its left, traced with the band on the left of every edge: along the
             // chain, out along the end, back along the raw offset, and in along the start. Each edge carries a
@@ -204,7 +227,13 @@ namespace GeometryHelper.Core
 
             band.AddEdge(raw[0], path[0], CapFlag);
 
-            ChainRuns runs = new ChainRuns(path, pastTheOtherLeg, Extent(new[] { path, raw }), snap, tolerance.EqualPoint);
+            ChainRuns runs = new ChainRuns(
+                path,
+                pastTheOtherLeg,
+                Extent(new[] { path, raw }),
+                snap,
+                tolerance.EqualPoint
+            );
 
             foreach (RegionLoop loop in band.Resolve(FillRule.Positive, snap))
             {
@@ -237,7 +266,11 @@ namespace GeometryHelper.Core
 
                 // Area over perimeter is half the width of a thin loop: one narrower than the point tolerance is
                 // a seam left where two edges almost met, not a shape.
-                if (cleaned != null && Math.Abs(LoopTools.SignedArea(cleaned)) > 0.5 * tolerance.EqualPoint * LoopTools.Perimeter(cleaned))
+                if (
+                    cleaned != null
+                    && Math.Abs(LoopTools.SignedArea(cleaned))
+                        > 0.5 * tolerance.EqualPoint * LoopTools.Perimeter(cleaned)
+                )
                 {
                     kept.Add(cleaned);
                 }

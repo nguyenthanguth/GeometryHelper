@@ -46,7 +46,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(DxfColumnType.NoColumns, mtext.ColumnType);
                 Assert.Equal(0, mtext.ColumnCount);
 
-                var theirs = (DxfText)DxfReader.Parse(text, new DxfReadOptions { Tolerance = Tolerance.Default }).Shapes.Single(s => s.Handle == "73").Shape;
+                var theirs = (DxfText)
+                    DxfReader
+                        .Parse(text, new DxfReadOptions { Tolerance = Tolerance.Default })
+                        .Shapes.Single(s => s.Handle == "73")
+                        .Shape;
                 var ours = (DxfText)Assert.Single(mtext.GetGeometry());
                 Assert.Equal(Bits(theirs.Position), Bits(ours.Position));
                 Assert.Equal(theirs.Value, ours.Value);
@@ -60,7 +64,8 @@ namespace GeometryHelper.UnitTest.Dxf
             // that repeats its location (11) and width (40): the MTEXT's own groups are read before it.
             string text = DxfFileEzdxfDrawings.R2018.Replace(
                 "  0\nMTEXT\n  5\n73\n",
-                "  0\nMTEXT\n  5\nF73\n330\n17\n100\nAcDbEntity\n  8\n0\n100\nAcDbMText\n 10\n1\n 20\n2\n 30\n0\n 40\n2.5\n 41\n10\n 71\n1\n  1\ncolumns\n101\nEmbedded Object\n 70\n1\n 10\n1\n 20\n0\n 30\n0\n 11\n1\n 21\n2\n 31\n0\n 40\n10\n 41\n0\n 42\n34\n 43\n5\n 71\n1\n 72\n3\n 44\n10\n 45\n2\n 73\n0\n 74\n0\n 46\n0\n  0\nMTEXT\n  5\n73\n");
+                "  0\nMTEXT\n  5\nF73\n330\n17\n100\nAcDbEntity\n  8\n0\n100\nAcDbMText\n 10\n1\n 20\n2\n 30\n0\n 40\n2.5\n 41\n10\n 71\n1\n  1\ncolumns\n101\nEmbedded Object\n 70\n1\n 10\n1\n 20\n0\n 30\n0\n 11\n1\n 21\n2\n 31\n0\n 40\n10\n 41\n0\n 42\n34\n 43\n5\n 71\n1\n 72\n3\n 44\n10\n 45\n2\n 73\n0\n 74\n0\n 46\n0\n  0\nMTEXT\n  5\n73\n"
+            );
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfMText columns = ByHandle<DxfMText>(db, "F73");
 
@@ -76,9 +81,16 @@ namespace GeometryHelper.UnitTest.Dxf
             // A direction set where the MTEXT has none of its own lands in its own part, the embedded object's 11 kept.
             columns.Direction = new GeoVector3(0, 1, 0);
             string record = Records(db.ToText()).Single(r => HandleOf(r) == "F73");
-            Assert.Contains(" 71\n1\n  1\ncolumns\n 11\n0\n 21\n1\n 31\n0\n101\nEmbedded Object\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                " 71\n1\n  1\ncolumns\n 11\n0\n 21\n1\n 31\n0\n101\nEmbedded Object\n",
+                record,
+                StringComparison.Ordinal
+            );
             Assert.Contains("\n 11\n1\n 21\n2\n 31\n0\n", record, StringComparison.Ordinal);
-            Assert.Equal(Bits(new GeoVector3(0, 1, 0)), Bits(ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "F73").Direction));
+            Assert.Equal(
+                Bits(new GeoVector3(0, 1, 0)),
+                Bits(ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "F73").Direction)
+            );
         }
 
         #endregion
@@ -88,9 +100,21 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void EverySetterGivenTheValueItGives_LeavesTheFileByteForByte()
         {
-            string writer = DxfReaderRoundTripTests.OneOfEach()
+            string writer = DxfReaderRoundTripTests
+                .OneOfEach()
                 .Add(new DxfText(new GeoPoint3(1, 2, 3), new GeoVector3(0, 0, 1), 2.5, 0.3, "writer text"))
-                .Add(new DxfText(new GeoPoint3(4, 5, 6), new GeoVector3(0, 0.6, 0.8), 1.5, 0.2, "writer\nmtext", true, 1.0, 20.0))
+                .Add(
+                    new DxfText(
+                        new GeoPoint3(4, 5, 6),
+                        new GeoVector3(0, 0.6, 0.8),
+                        1.5,
+                        0.2,
+                        "writer\nmtext",
+                        true,
+                        1.0,
+                        20.0
+                    )
+                )
                 .ToString();
 
             foreach (string text in Drawings.Concat(new[] { writer }))
@@ -123,7 +147,15 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // The MTEXT of the embedded object of R2018, and one of R2000 in three static columns of the extended data of ACAD,
             // each number written as AutoCAD writes it, 10 not 10.0.
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018, WithEmbeddedColumns(), WithColumnData() })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R2000,
+                    DxfFileEzdxfDrawings.R2018,
+                    WithEmbeddedColumns(),
+                    WithColumnData(),
+                }
+            )
             {
                 SettingWhatItHasChangesNothing<DxfMText>(text, m =>
                 {
@@ -161,7 +193,11 @@ namespace GeometryHelper.UnitTest.Dxf
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "73");
             string record = Records(saved).Single(r => HandleOf(r) == "73");
-            Assert.Contains("101\nEmbedded Object\n 70\n1\n 10\n1\n 20\n0\n 30\n0\n 11\n20\n 21\n40\n 31\n0\n 40\n42.5\n 41\n0\n 42\n42.5\n 43\n0\n 71\n1\n 72\n3\n 44\n12.5\n 45\n2.5\n 73\n0\n 74\n0\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                "101\nEmbedded Object\n 70\n1\n 10\n1\n 20\n0\n 30\n0\n 11\n20\n 21\n40\n 31\n0\n 40\n42.5\n 41\n0\n 42\n42.5\n 43\n0\n 71\n1\n 72\n3\n 44\n12.5\n 45\n2.5\n 73\n0\n 74\n0\n",
+                record,
+                StringComparison.Ordinal
+            );
             DxfMText again = ByHandle<DxfMText>(DxfDatabase.Parse(saved), "73");
             Assert.Equal(DxfColumnType.StaticColumns, again.ColumnType);
             Assert.Equal(3, again.ColumnCount);
@@ -176,13 +212,20 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(DxfColumnType.DynamicColumns, dynamic.ColumnType);
             Assert.False(dynamic.ColumnAutoHeight);
             Assert.Equal(3, dynamic.ColumnCount);
-            Assert.Equal(new[] { 0.0, 7.5, 0.0 }, new[] { dynamic.GetColumnHeight(0), dynamic.GetColumnHeight(1), dynamic.GetColumnHeight(2) });
+            Assert.Equal(
+                new[] { 0.0, 7.5, 0.0 },
+                new[] { dynamic.GetColumnHeight(0), dynamic.GetColumnHeight(1), dynamic.GetColumnHeight(2) }
+            );
 
             // Dynamic columns of auto height write no count (72 of 0), as AutoCAD does: it is read back from the width of all.
             mtext.ColumnAutoHeight = true;
             mtext.ColumnFlowReversed = true;
             DxfMText auto = ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73");
-            Assert.Contains(" 72\n0\n", Records(db.ToText()).Single(r => HandleOf(r) == "73"), StringComparison.Ordinal);
+            Assert.Contains(
+                " 72\n0\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "73"),
+                StringComparison.Ordinal
+            );
             Assert.Equal(3, auto.ColumnCount);
             Assert.True(auto.ColumnFlowReversed);
             Assert.Equal(0.0, auto.GetColumnHeight(1));
@@ -207,8 +250,28 @@ namespace GeometryHelper.UnitTest.Dxf
 
             OnlyTheseChanged(text, db.ToText(), "73");
             Assert.Equal(
-                new[] { "1001 ACAD", "1000 ACAD_MTEXT_COLUMN_INFO_BEGIN", "1070 75", "1070 1", "1070 79", "1070 0", "1070 76", "1070 3", "1070 78", "1070 0", "1070 48", "1040 12.5", "1070 49", "1040 2.5", "1000 ACAD_MTEXT_COLUMN_INFO_END" },
-                ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73").GetXDataForApplication("ACAD").Select(g => g.TypeCode + " " + g.Value));
+                new[]
+                {
+                    "1001 ACAD",
+                    "1000 ACAD_MTEXT_COLUMN_INFO_BEGIN",
+                    "1070 75",
+                    "1070 1",
+                    "1070 79",
+                    "1070 0",
+                    "1070 76",
+                    "1070 3",
+                    "1070 78",
+                    "1070 0",
+                    "1070 48",
+                    "1040 12.5",
+                    "1070 49",
+                    "1040 2.5",
+                    "1000 ACAD_MTEXT_COLUMN_INFO_END",
+                },
+                ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73")
+                    .GetXDataForApplication("ACAD")
+                    .Select(g => g.TypeCode + " " + g.Value)
+            );
             Assert.DoesNotContain("101\nEmbedded Object\n", db.ToText(), StringComparison.Ordinal);
 
             mtext.SetDynamicColumns(10.0, 2.0, false);
@@ -217,7 +280,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(DxfColumnType.DynamicColumns, again.ColumnType);
             Assert.Equal(4.0, again.GetColumnHeight(2));
             Assert.Contains("1070 50", again.GetXDataForApplication("ACAD").Select(g => g.TypeCode + " " + g.Value));
-            Assert.DoesNotContain("1000 ACAD_MTEXT_DEFINED_HEIGHT_BEGIN", again.GetXDataForApplication("ACAD").Select(g => g.TypeCode + " " + g.Value));
+            Assert.DoesNotContain(
+                "1000 ACAD_MTEXT_DEFINED_HEIGHT_BEGIN",
+                again.GetXDataForApplication("ACAD").Select(g => g.TypeCode + " " + g.Value)
+            );
 
             // Taken out, the columns leave the MTEXT as it was but for its width, which they made theirs.
             mtext.ColumnType = DxfColumnType.NoColumns;
@@ -230,10 +296,21 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TheColumnsOfAnMTextMadeInCode_AreWrittenInTheFormOfTheDrawingItIsAddedTo()
         {
             // The extended data of R2007, as R2000 reads them as columns only with column MTEXTs linked, which are not made.
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1021"), DxfFileEzdxfDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1021"),
+                    DxfFileEzdxfDrawings.R2018,
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                var made = new DxfMText { Contents = "a\\Pb\\Pc", Location = new GeoPoint3(1, 2, 0), Width = 20.0 };
+                var made = new DxfMText
+                {
+                    Contents = "a\\Pb\\Pc",
+                    Location = new GeoPoint3(1, 2, 0),
+                    Width = 20.0,
+                };
                 made.SetStaticColumns(20.0, 5.0, 2);
 
                 db.ModelSpace.AppendEntity(made);
@@ -259,7 +336,11 @@ namespace GeometryHelper.UnitTest.Dxf
             mtext.Attachment = DxfAttachmentPoint.MiddleCenter;
             mtext.Location = new GeoPoint3(5, 6, 0);
             string record = Records(db.ToText()).Single(r => HandleOf(r) == "F73");
-            Assert.Contains("101\nEmbedded Object\n 70\n5\n 10\n1\n 20\n0\n 30\n0\n 11\n5\n 21\n6\n 31\n0\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                "101\nEmbedded Object\n 70\n5\n 10\n1\n 20\n0\n 30\n0\n 11\n5\n 21\n6\n 31\n0\n",
+                record,
+                StringComparison.Ordinal
+            );
 
             // ezdxf 1.4.5 by the scale (2, 3, 1): column width 20, gutter 4, the height of all 15, the width of all 68.
             mtext.TransformBy(GeoTransform3.Scaling(2.0, 3.0, 1.0));
@@ -267,7 +348,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(20.0, again.ColumnWidth);
             Assert.Equal(4.0, again.ColumnGutterWidth);
             Assert.Equal(3, again.ColumnCount);
-            Assert.Contains(" 42\n68\n",Records(db.ToText()).Single(r => HandleOf(r) == "F73"), StringComparison.Ordinal);
+            Assert.Contains(
+                " 42\n68\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "F73"),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -301,19 +386,51 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(WithLinkedColumns());
             DxfMText main = ByHandle<DxfMText>(db, "5A");
 
-            string[] Expected(int count) => new[]
-            {
-                "1001 ACAD", "1000 ACAD_MTEXT_COLUMN_INFO_BEGIN", "1070 75", "1070 1", "1070 79", "1070 0", "1070 76", "1070 " + count, "1070 78", "1070 0",
-                "1070 48", "1040 25", "1070 49", "1040 5", "1000 ACAD_MTEXT_COLUMN_INFO_END",
-                "1000 ACAD_MTEXT_COLUMNS_BEGIN", "1070 47", "1070 3", "1005 5B", "1005 5C", "1000 ACAD_MTEXT_COLUMNS_END",
-                "1000 ACAD_MTEXT_DEFINED_HEIGHT_BEGIN", "1070 46", "1040 60", "1000 ACAD_MTEXT_DEFINED_HEIGHT_END",
-            };
+            string[] Expected(int count) =>
+                new[]
+                {
+                    "1001 ACAD",
+                    "1000 ACAD_MTEXT_COLUMN_INFO_BEGIN",
+                    "1070 75",
+                    "1070 1",
+                    "1070 79",
+                    "1070 0",
+                    "1070 76",
+                    "1070 " + count,
+                    "1070 78",
+                    "1070 0",
+                    "1070 48",
+                    "1040 25",
+                    "1070 49",
+                    "1040 5",
+                    "1000 ACAD_MTEXT_COLUMN_INFO_END",
+                    "1000 ACAD_MTEXT_COLUMNS_BEGIN",
+                    "1070 47",
+                    "1070 3",
+                    "1005 5B",
+                    "1005 5C",
+                    "1000 ACAD_MTEXT_COLUMNS_END",
+                    "1000 ACAD_MTEXT_DEFINED_HEIGHT_BEGIN",
+                    "1070 46",
+                    "1040 60",
+                    "1000 ACAD_MTEXT_DEFINED_HEIGHT_END",
+                };
 
             main.TransformBy(GeoTransform3.Scaling(2.0));
-            Assert.Equal(Expected(3), ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "5A").GetXDataForApplication("ACAD").Select(g => g.TypeCode + " " + g.Value));
+            Assert.Equal(
+                Expected(3),
+                ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "5A")
+                    .GetXDataForApplication("ACAD")
+                    .Select(g => g.TypeCode + " " + g.Value)
+            );
 
             main.ColumnCount = 5;
-            Assert.Equal(Expected(5), ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "5A").GetXDataForApplication("ACAD").Select(g => g.TypeCode + " " + g.Value));
+            Assert.Equal(
+                Expected(5),
+                ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "5A")
+                    .GetXDataForApplication("ACAD")
+                    .Select(g => g.TypeCode + " " + g.Value)
+            );
         }
 
         [Fact]
@@ -329,7 +446,11 @@ namespace GeometryHelper.UnitTest.Dxf
                     DxfDatabase target = into == null ? db : DxfDatabase.Parse(into);
                     DxfMText main = ByHandle<DxfMText>(db, "5A");
                     string before = Records(db.ToText()).Single(r => HandleOf(r) == "5A");
-                    var copy = (DxfMText)(moved ? main.GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(0, 50, 0))) : main.Clone());
+                    var copy = (DxfMText)(
+                        moved
+                            ? main.GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(0, 50, 0)))
+                            : main.Clone()
+                    );
 
                     target.ModelSpace.AppendEntity(copy);
 
@@ -339,7 +460,11 @@ namespace GeometryHelper.UnitTest.Dxf
                     Assert.Equal("one\\Ntwo\\Nthree", again.Contents);
                     Assert.Equal(r2018 ? DxfColumnType.StaticColumns : DxfColumnType.NoColumns, again.ColumnType);
                     Assert.Equal(r2018 ? 3 : 0, again.ColumnCount);
-                    Assert.DoesNotContain("ACAD_MTEXT_COLUMNS_BEGIN", Records(target.ToText()).Single(r => HandleOf(r) == copy.Handle), StringComparison.Ordinal);
+                    Assert.DoesNotContain(
+                        "ACAD_MTEXT_COLUMNS_BEGIN",
+                        Records(target.ToText()).Single(r => HandleOf(r) == copy.Handle),
+                        StringComparison.Ordinal
+                    );
                     Assert.Equal(before, Records(db.ToText()).Single(r => HandleOf(r) == "5A"));
                 }
             }
@@ -350,13 +475,21 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // BOLT given the MTEXT 5A and its column MTEXTs 5B and 5C: exploded, its columns come out one MTEXT of all their
             // words, as ezdxf leaves the column MTEXTs out of the block and its main MTEXT holds them; into its owner too.
-            string text = DxfFileEzdxfDrawings.R2000.Replace("  0\nENDBLK\n  5\n34\n", LinkedColumns("32") + "  0\nENDBLK\n  5\n34\n");
+            string text = DxfFileEzdxfDrawings.R2000.Replace(
+                "  0\nENDBLK\n  5\n34\n",
+                LinkedColumns("32") + "  0\nENDBLK\n  5\n34\n"
+            );
             DxfDatabase db = DxfDatabase.Parse(text);
-            DxfBlockReference bolt = Everything(db).OfType<DxfBlockReference>().Single(b => b.Owner == db.ModelSpace && b.Name == "BOLT" && !(b is DxfMInsertBlock));
+            DxfBlockReference bolt = Everything(db)
+                .OfType<DxfBlockReference>()
+                .Single(b => b.Owner == db.ModelSpace && b.Name == "BOLT" && !(b is DxfMInsertBlock));
 
             IReadOnlyList<DxfEntity> parts = bolt.Explode();
 
-            Assert.Equal(new[] { "DxfCircle", "DxfLine", "DxfAttributeDefinition", "DxfMText" }, parts.Select(p => p.GetType().Name));
+            Assert.Equal(
+                new[] { "DxfCircle", "DxfLine", "DxfAttributeDefinition", "DxfMText" },
+                parts.Select(p => p.GetType().Name)
+            );
             Assert.Equal("one\\Ntwo\\Nthree", ((DxfMText)parts[3]).Contents);
             Assert.DoesNotContain(((DxfMText)parts[3]).GetXDataForApplication("ACAD"), g => g.TypeCode == 1005);
 
@@ -364,7 +497,10 @@ namespace GeometryHelper.UnitTest.Dxf
             bolt.ExplodeToOwnerSpace();
             DxfMText appended = db.ModelSpace.OfType<DxfMText>().Last();
             Assert.Equal(count + 4, db.ModelSpace.Count);
-            Assert.Equal("one\\Ntwo\\Nthree", ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), appended.Handle).Contents);
+            Assert.Equal(
+                "one\\Ntwo\\Nthree",
+                ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), appended.Handle).Contents
+            );
         }
 
         [Fact]
@@ -383,7 +519,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(Bits(new GeoPoint3(x, 0, 0)), Bits(column.Location));
                 Assert.Equal(5.0, column.TextHeight);
                 Assert.Equal(handle == "5A" ? 85.0 : 25.0, column.Width);
-                Assert.Contains("\n 41\n25\n", Records(db.ToText()).Single(r => HandleOf(r) == handle), StringComparison.Ordinal);
+                Assert.Contains(
+                    "\n 41\n25\n",
+                    Records(db.ToText()).Single(r => HandleOf(r) == handle),
+                    StringComparison.Ordinal
+                );
                 Assert.Equal(60.0, column.Height);
             }
 
@@ -449,7 +589,10 @@ namespace GeometryHelper.UnitTest.Dxf
             main.SetColumnHeight(1, 7.0);
 
             DxfDatabase again = DxfDatabase.Parse(db.ToText());
-            Assert.Equal(new[] { 30.0, 7.0, 30.0 }, Enumerable.Range(0, 3).Select(i => ByHandle<DxfMText>(again, "5A").GetColumnHeight(i)));
+            Assert.Equal(
+                new[] { 30.0, 7.0, 30.0 },
+                Enumerable.Range(0, 3).Select(i => ByHandle<DxfMText>(again, "5A").GetColumnHeight(i))
+            );
             Assert.Equal(new[] { 7.0, 30.0 }, new[] { "5B", "5C" }.Select(h => Linked(again, h).Height));
 
             main.SetStaticColumns(12.5, 2.5, 3);
@@ -467,7 +610,9 @@ namespace GeometryHelper.UnitTest.Dxf
             ByHandle<DxfMText>(db, "5A").Erase();
 
             Assert.True(second.IsErased);
-            Assert.DoesNotContain(Records(db.ToText()), r => HandleOf(r) == "5B" || HandleOf(r) == "5C" || HandleOf(r) == "5A");
+            Assert.DoesNotContain(Records(db.ToText()), r =>
+                HandleOf(r) == "5B" || HandleOf(r) == "5C" || HandleOf(r) == "5A"
+            );
             Assert.Contains(Records(db.ToText()), r => HandleOf(r) == "73");
         }
 
@@ -485,9 +630,18 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfMText again = ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "5A");
             Assert.Equal(40.0, again.Height);
             Assert.Contains("1040 40", again.GetXDataForApplication("ACAD").Select(g => g.TypeCode + " " + g.Value));
-            Assert.DoesNotContain("\n 46\n", Records(db.ToText()).Single(r => HandleOf(r) == "5A"), StringComparison.Ordinal);
-            InvalidOperationException refused = Assert.Throws<InvalidOperationException>(() => ByHandle<DxfMText>(db, "73").Height = 5.0);
-            Assert.Equal("A DXF older than R2007 (AC1021) has no height of an MTEXT's box but in the extended data of its columns.", refused.Message);
+            Assert.DoesNotContain(
+                "\n 46\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "5A"),
+                StringComparison.Ordinal
+            );
+            InvalidOperationException refused = Assert.Throws<InvalidOperationException>(() =>
+                ByHandle<DxfMText>(db, "73").Height = 5.0
+            );
+            Assert.Equal(
+                "A DXF older than R2007 (AC1021) has no height of an MTEXT's box but in the extended data of its columns.",
+                refused.Message
+            );
         }
 
         #endregion
@@ -518,7 +672,9 @@ namespace GeometryHelper.UnitTest.Dxf
             mtext.SetAttachmentMovingLocation(DxfAttachmentPoint.TopCenter);
             Assert.Equal(DxfAttachmentPoint.TopCenter, mtext.Attachment);
             Assert.Equal(Bits(new GeoPoint3(40.0, 40.0, 0.0)), Bits(mtext.Location));
-            Assert.Throws<InvalidOperationException>(() => mtext.SetAttachmentMovingLocation(DxfAttachmentPoint.MiddleLeft));
+            Assert.Throws<InvalidOperationException>(() =>
+                mtext.SetAttachmentMovingLocation(DxfAttachmentPoint.MiddleLeft)
+            );
 
             string high = DxfFileEzdxfDrawings.R2018.Replace(" 41\n40.0\n 71\n1\n", " 41\n40.0\n 71\n1\n 43\n6.0\n");
             DxfMText tall = ByHandle<DxfMText>(DxfDatabase.Parse(high), "73");
@@ -552,27 +708,36 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new DxfTransparency(128), again.BackgroundTransparency);
 
             mtext.BackgroundTransparency = new DxfTransparency(DxfTransparencyMethod.ByLayer);
-            Assert.DoesNotContain("441\n", Records(db.ToText()).Single(r => HandleOf(r) == "73"), StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "441\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "73"),
+                StringComparison.Ordinal
+            );
 
             DxfMText old = ByHandle<DxfMText>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000), "73");
             Assert.Throws<InvalidOperationException>(() => old.ShowBorders = true);
-            Assert.Throws<InvalidOperationException>(() => old.BackgroundTransparency = new DxfTransparency(DxfTransparencyMethod.ByBlock));
+            Assert.Throws<InvalidOperationException>(() =>
+                old.BackgroundTransparency = new DxfTransparency(DxfTransparencyMethod.ByBlock)
+            );
         }
 
         #endregion
 
         /// <summary>The R2018 drawing with the MTEXT F73 in three static columns of an embedded object, as ezdxf 1.4.5 writes one.</summary>
-        private static string WithEmbeddedColumns() => DxfFileEzdxfDrawings.R2018.Replace(
-            "  0\nMTEXT\n  5\n73\n",
-            "  0\nMTEXT\n  5\nF73\n330\n17\n100\nAcDbEntity\n  8\n0\n100\nAcDbMText\n 10\n1\n 20\n2\n 30\n0\n 40\n2.5\n 41\n10\n 46\n5\n 71\n1\n  1\ncolumns\n101\nEmbedded Object\n 70\n1\n 10\n1\n 20\n0\n 30\n0\n 11\n1\n 21\n2\n 31\n0\n 40\n10\n 41\n5\n 42\n34\n 43\n5\n 71\n1\n 72\n3\n 44\n10\n 45\n2\n 73\n0\n 74\n0\n  0\nMTEXT\n  5\n73\n");
+        private static string WithEmbeddedColumns() =>
+            DxfFileEzdxfDrawings.R2018.Replace(
+                "  0\nMTEXT\n  5\n73\n",
+                "  0\nMTEXT\n  5\nF73\n330\n17\n100\nAcDbEntity\n  8\n0\n100\nAcDbMText\n 10\n1\n 20\n2\n 30\n0\n 40\n2.5\n 41\n10\n 46\n5\n 71\n1\n  1\ncolumns\n101\nEmbedded Object\n 70\n1\n 10\n1\n 20\n0\n 30\n0\n 11\n1\n 21\n2\n 31\n0\n 40\n10\n 41\n5\n 42\n34\n 43\n5\n 71\n1\n 72\n3\n 44\n10\n 45\n2\n 73\n0\n 74\n0\n  0\nMTEXT\n  5\n73\n"
+            );
 
         /// <summary>The R2000 drawing with the MTEXT 73 in three static columns 10 wide of the extended data of ACAD, as ezdxf 1.4.5 writes them.</summary>
         /// <summary>The R2000 drawing with the MTEXT 5A in three static columns linked to the MTEXTs 5B and 5C, in model space.</summary>
         /// <summary>An MTEXT of model space by handle, a linked column among them, which the walk of the block leaves to its MTEXT.</summary>
-        private static DxfMText Linked(DxfDatabase db, string handle)
-            => db.ModelSpace.AllEntities().OfType<DxfMText>().First(m => m.Handle == handle);
+        private static DxfMText Linked(DxfDatabase db, string handle) =>
+            db.ModelSpace.AllEntities().OfType<DxfMText>().First(m => m.Handle == handle);
 
-        private static string WithLinkedColumns() => DxfFileEzdxfDrawings.R2000.Replace("  0\nMTEXT\n  5\n73\n", LinkedColumns("17") + "  0\nMTEXT\n  5\n73\n");
+        private static string WithLinkedColumns() =>
+            DxfFileEzdxfDrawings.R2000.Replace("  0\nMTEXT\n  5\n73\n", LinkedColumns("17") + "  0\nMTEXT\n  5\n73\n");
 
         /// <summary>
         /// An MTEXT 5A at (100, 0, 0) in three static columns 12.5 wide, 2.5 apart and 30 high, with its two column MTEXTs 5B and
@@ -580,19 +745,33 @@ namespace GeometryHelper.UnitTest.Dxf
         /// </summary>
         private static string LinkedColumns(string owner)
         {
-            string Head(string handle, string x, string words) => "  0\nMTEXT\n  5\n" + handle + "\n330\n" + owner + "\n100\nAcDbEntity\n  8\n0\n100\nAcDbMText\n 10\n" + x
-                + "\n 20\n0.0\n 30\n0.0\n 40\n2.5\n 41\n12.5\n 71\n1\n  1\n" + words + "\n1001\nACAD\n";
-            const string Height = "1000\nACAD_MTEXT_DEFINED_HEIGHT_BEGIN\n1070\n46\n1040\n30.0\n1000\nACAD_MTEXT_DEFINED_HEIGHT_END\n";
+            string Head(string handle, string x, string words) =>
+                "  0\nMTEXT\n  5\n"
+                + handle
+                + "\n330\n"
+                + owner
+                + "\n100\nAcDbEntity\n  8\n0\n100\nAcDbMText\n 10\n"
+                + x
+                + "\n 20\n0.0\n 30\n0.0\n 40\n2.5\n 41\n12.5\n 71\n1\n  1\n"
+                + words
+                + "\n1001\nACAD\n";
+            const string Height =
+                "1000\nACAD_MTEXT_DEFINED_HEIGHT_BEGIN\n1070\n46\n1040\n30.0\n1000\nACAD_MTEXT_DEFINED_HEIGHT_END\n";
             return Head("5A", "100.0", "one\\N")
                 + "1000\nACAD_MTEXT_COLUMN_INFO_BEGIN\n1070\n75\n1070\n1\n1070\n79\n1070\n0\n1070\n76\n1070\n3\n1070\n78\n1070\n0\n1070\n48\n1040\n12.5\n1070\n49\n1040\n2.5\n1000\nACAD_MTEXT_COLUMN_INFO_END\n"
-                + "1000\nACAD_MTEXT_COLUMNS_BEGIN\n1070\n47\n1070\n3\n1005\n5B\n1005\n5C\n1000\nACAD_MTEXT_COLUMNS_END\n" + Height
-                + Head("5B", "115.0", "two\\N") + Height
-                + Head("5C", "130.0", "three") + Height;
+                + "1000\nACAD_MTEXT_COLUMNS_BEGIN\n1070\n47\n1070\n3\n1005\n5B\n1005\n5C\n1000\nACAD_MTEXT_COLUMNS_END\n"
+                + Height
+                + Head("5B", "115.0", "two\\N")
+                + Height
+                + Head("5C", "130.0", "three")
+                + Height;
         }
 
-        private static string WithColumnData() => DxfFileEzdxfDrawings.R2000.Replace(
-            "line two é\n  0\n",
-            "line two é\n1001\nACAD\n1000\nACAD_MTEXT_COLUMN_INFO_BEGIN\n1070\n75\n1070\n1\n1070\n79\n1070\n0\n1070\n76\n1070\n3\n1070\n78\n1070\n0\n1070\n48\n1040\n10\n1070\n49\n1040\n2\n1000\nACAD_MTEXT_COLUMN_INFO_END\n1000\nACAD_MTEXT_DEFINED_HEIGHT_BEGIN\n1070\n46\n1040\n5\n1000\nACAD_MTEXT_DEFINED_HEIGHT_END\n  0\n");
+        private static string WithColumnData() =>
+            DxfFileEzdxfDrawings.R2000.Replace(
+                "line two é\n  0\n",
+                "line two é\n1001\nACAD\n1000\nACAD_MTEXT_COLUMN_INFO_BEGIN\n1070\n75\n1070\n1\n1070\n79\n1070\n0\n1070\n76\n1070\n3\n1070\n78\n1070\n0\n1070\n48\n1040\n10\n1070\n49\n1040\n2\n1000\nACAD_MTEXT_COLUMN_INFO_END\n1000\nACAD_MTEXT_DEFINED_HEIGHT_BEGIN\n1070\n46\n1040\n5\n1000\nACAD_MTEXT_DEFINED_HEIGHT_END\n  0\n"
+            );
 
         [Fact]
         public void TheDirectionItReads_GivenBack_ChangesNothing_ThoughItsFileWritesOneNotOfUnitLength()
@@ -601,7 +780,10 @@ namespace GeometryHelper.UnitTest.Dxf
             // unit length again is (0.7071067811865476, ...). Given back what it reads, it is written as it was.
             foreach (string text in Drawings)
             {
-                string tilted = text.Replace("AcDbMText\n 10\n20.0\n 20\n40.0\n 30\n0.0\n", "AcDbMText\n 10\n20.0\n 20\n40.0\n 30\n0.0\n 11\n1\n 21\n1\n 31\n0\n");
+                string tilted = text.Replace(
+                    "AcDbMText\n 10\n20.0\n 20\n40.0\n 30\n0.0\n",
+                    "AcDbMText\n 10\n20.0\n 20\n40.0\n 30\n0.0\n 11\n1\n 21\n1\n 31\n0\n"
+                );
                 Assert.NotEqual(text, tilted);
                 DxfDatabase db = DxfDatabase.Parse(tilted);
                 DxfMText mtext = ByHandle<DxfMText>(db, "73");
@@ -659,7 +841,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(1.5, again.LineSpacingFactor);
                 Assert.Equal(background, again.BackgroundFill);
                 Assert.Equal(background ? 2 : (int?)null, (int?)again.BackgroundFillColor?.ColorIndex);
-                Assert.Equal(2, Records(saved).Single(r => HandleOf(r) == "73").Split('\n').Count(l => l.Trim() == "3"));
+                Assert.Equal(
+                    2,
+                    Records(saved).Single(r => HandleOf(r) == "73").Split('\n').Count(l => l.Trim() == "3")
+                );
             }
         }
 
@@ -682,13 +867,15 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // ezdxf 1.4.5 by the uniform scale by 2 turned about z (M2): insert (10.571843032117073, 94.24772739650206, 1),
             // direction (1.910672978251212, 0.5910404133226791, 0), height 6, width 80, the words' \H scaled with them.
-            var scale = new GeoTransform3(new double[,]
-            {
-                { 1.910672978251212, -0.5910404133226791, 0.0, -4.0 },
-                { 0.5910404133226791, 1.910672978251212, 0.0, 6.0 },
-                { 0.0, 0.0, 2.0, 1.0 },
-                { 0, 0, 0, 1 },
-            });
+            var scale = new GeoTransform3(
+                new double[,]
+                {
+                    { 1.910672978251212, -0.5910404133226791, 0.0, -4.0 },
+                    { 0.5910404133226791, 1.910672978251212, 0.0, 6.0 },
+                    { 0.0, 0.0, 2.0, 1.0 },
+                    { 0, 0, 0, 1 },
+                }
+            );
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
             DxfMText mtext = ByHandle<DxfMText>(db, "73");
             mtext.Contents = "{\\H2.5;big} {\\H1.5x;rel}";
@@ -722,7 +909,13 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                var made = new DxfMText { Contents = "new \\Pmtext", Location = new GeoPoint3(2, 2, 0), TextHeight = 2.5, Width = 30.0 };
+                var made = new DxfMText
+                {
+                    Contents = "new \\Pmtext",
+                    Location = new GeoPoint3(2, 2, 0),
+                    TextHeight = 2.5,
+                    Width = 30.0,
+                };
                 db.ModelSpace.AppendEntity(made);
 
                 DxfMText again = ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), made.Handle);

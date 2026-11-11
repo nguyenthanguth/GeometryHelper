@@ -52,14 +52,16 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>The options of "Select objects:", as AutoCAD 2021's.</summary>
     public sealed partial class CadCommandSession
     {
-        private const string Expects = "Window/Last/Crossing/BOX/ALL/Fence/WPolygon/CPolygon/Group/Add/Remove/Multiple/Previous/Undo/AUto/SIngle";
+        private const string Expects =
+            "Window/Last/Crossing/BOX/ALL/Fence/WPolygon/CPolygon/Group/Add/Remove/Multiple/Previous/Undo/AUto/SIngle";
 
         private static readonly CadPrompt Options = CadPrompt.ForKeyword("Select objects", Expects.Split('/'));
 
         private readonly List<GeoPoint2> _band = new List<GeoPoint2>();
 
         // The changes of the selection gathered so far, the last last, which Undo takes back one at a time.
-        private readonly List<KeyValuePair<List<string>, List<string>>> _steps = new List<KeyValuePair<List<string>, List<string>>>();
+        private readonly List<KeyValuePair<List<string>, List<string>>> _steps =
+            new List<KeyValuePair<List<string>, List<string>>>();
         private IReadOnlyList<string> _previous = Array.Empty<string>();
         private CadPrompt _asked;
         private string _option;
@@ -100,7 +102,10 @@ namespace GeometryHelper.Dxf.Viewer
 
                     foreach (DxfEntity entity in Document.WorkingSpace.Block)
                     {
-                        if (!string.IsNullOrEmpty(entity.Handle) && !(entity is DxfViewport viewport && viewport.Number == 1))
+                        if (
+                            !string.IsNullOrEmpty(entity.Handle)
+                            && !(entity is DxfViewport viewport && viewport.Number == 1)
+                        )
                         {
                             all.Add(entity.Handle);
                         }
@@ -129,7 +134,10 @@ namespace GeometryHelper.Dxf.Viewer
 
                     foreach (string handle in _previous)
                     {
-                        if (Document.FindEntity(handle) != null && ReferenceEquals(Document.FindSpace(handle), Document.WorkingSpace))
+                        if (
+                            Document.FindEntity(handle) != null
+                            && ReferenceEquals(Document.FindSpace(handle), Document.WorkingSpace)
+                        )
                         {
                             previous.Add(handle);
                         }
@@ -226,13 +234,21 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 if (_band.Count == 1)
                 {
-                    CadSelectionBandKind kind = _option == "Window" ? CadSelectionBandKind.Window : _option == "Crossing" ? CadSelectionBandKind.Crossing : CadSelectionBandKind.Box;
+                    CadSelectionBandKind kind =
+                        _option == "Window" ? CadSelectionBandKind.Window
+                        : _option == "Crossing" ? CadSelectionBandKind.Crossing
+                        : CadSelectionBandKind.Box;
                     Ask(Banded(CadPrompt.ForPoint("Specify opposite corner", point), kind));
                     return true;
                 }
 
                 GeoPoint2 first = _band[0];
-                var box = new DisplayBox(Math.Min(first.X, point.X), Math.Min(first.Y, point.Y), Math.Max(first.X, point.X), Math.Max(first.Y, point.Y));
+                var box = new DisplayBox(
+                    Math.Min(first.X, point.X),
+                    Math.Min(first.Y, point.Y),
+                    Math.Max(first.X, point.X),
+                    Math.Max(first.Y, point.Y)
+                );
                 bool crossing = _option == "Crossing" || (_option == "BOX" && point.X < first.X);
                 PickIndex index = Document.GetPickIndex(Document.WorkingSpace);
                 List<string> found = new List<string>(crossing ? index.Crossing(box) : index.Window(box));
@@ -255,7 +271,10 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            CadSelectionBandKind kind = fence ? CadSelectionBandKind.Fence : _option == "WPolygon" ? CadSelectionBandKind.WindowPolygon : CadSelectionBandKind.CrossingPolygon;
+            CadSelectionBandKind kind =
+                fence ? CadSelectionBandKind.Fence
+                : _option == "WPolygon" ? CadSelectionBandKind.WindowPolygon
+                : CadSelectionBandKind.CrossingPolygon;
             CadPrompt next = fence
                 ? CadPrompt.ForPoint("Specify next fence point", _band[_band.Count - 1], new[] { "Undo" })
                 : CadPrompt.ForPoint("Specify endpoint of line", _band[_band.Count - 1], new[] { "Undo" });
@@ -323,7 +342,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if ((option == "WPolygon" || option == "CPolygon") && points.Count >= 3)
             {
-                GatherWhole(new List<string>(option == "WPolygon" ? index.WindowPolygon(points) : index.CrossingPolygon(points)));
+                GatherWhole(
+                    new List<string>(option == "WPolygon" ? index.WindowPolygon(points) : index.CrossingPolygon(points))
+                );
             }
             else
             {
@@ -401,13 +422,21 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfDBDictionaryEntry entry in dictionary)
             {
-                if (string.Equals(entry.Key, name.Trim(), StringComparison.OrdinalIgnoreCase) && entry.Value is DxfGroup group && !group.IsErased)
+                if (
+                    string.Equals(entry.Key, name.Trim(), StringComparison.OrdinalIgnoreCase)
+                    && entry.Value is DxfGroup group
+                    && !group.IsErased
+                )
                 {
                     var members = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
 
                     foreach (DxfEntity member in group.GetAllEntityIds())
                     {
-                        if (member.Handle != null && Document.FindEntity(member.Handle) != null && ReferenceEquals(Document.FindSpace(member.Handle), Document.WorkingSpace))
+                        if (
+                            member.Handle != null
+                            && Document.FindEntity(member.Handle) != null
+                            && ReferenceEquals(Document.FindSpace(member.Handle), Document.WorkingSpace)
+                        )
                         {
                             members.Add(member.Handle);
                         }
@@ -434,7 +463,10 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 string handle = item.Handle;
 
-                if (string.IsNullOrEmpty(handle) || !ulong.TryParse(handle, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong value))
+                if (
+                    string.IsNullOrEmpty(handle)
+                    || !ulong.TryParse(handle, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong value)
+                )
                 {
                     continue;
                 }

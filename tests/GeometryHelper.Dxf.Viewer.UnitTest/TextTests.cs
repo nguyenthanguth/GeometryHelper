@@ -11,7 +11,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         private static DisplayText2 MText(string contents, Action<DxfDatabase, DxfMText> more = null)
         {
             var database = new DxfDatabase("AC1018");
-            var mtext = new DxfMText { Contents = contents, Location = new GeoPoint3(10, 20, 0), TextHeight = 2.5 };
+            var mtext = new DxfMText
+            {
+                Contents = contents,
+                Location = new GeoPoint3(10, 20, 0),
+                TextHeight = 2.5,
+            };
             database.ModelSpace.AppendEntity(mtext);
             more?.Invoke(database, mtext);
             CadDocument document = CadDocument.From(database);
@@ -35,7 +40,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [InlineData(@"{\H1.2x;\W0.75;PLATE}", 0.75, 0.9)]
         [InlineData(@"\W2;\W0.4x;PLATE", 0.8, 0.8)]
         [InlineData(@"PLATE", 1.0, 1.0)]
-        public void AnMTextIsDrawnAtTheWidthItsCodesSetBeforeItsWordsAndMeasuredAtIt(string contents, double factor, double wide)
+        public void AnMTextIsDrawnAtTheWidthItsCodesSetBeforeItsWordsAndMeasuredAtIt(
+            string contents,
+            double factor,
+            double wide
+        )
         {
             DisplayText2 shown = MText(contents);
 
@@ -68,13 +77,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             var style = new DxfTextStyleTableRecord { Name = "GH_ARIAL", FileName = "arial.ttf" };
             database.TextStyleTable.Add(style);
             style.Font = new DxfFontDescriptor("Arial", false, false, 0, 34);
-            var text = new DxfDBText { TextString = "SLANT", Position = new GeoPoint3(0, 0, 0), Height = 5 };
+            var text = new DxfDBText
+            {
+                TextString = "SLANT",
+                Position = new GeoPoint3(0, 0, 0),
+                Height = 5,
+            };
             database.ModelSpace.AppendEntity(text);
             text.TextStyleName = "GH_ARIAL";
             text.Oblique = 15.0 * Math.PI / 180.0;
             CadDocument document = CadDocument.From(database);
 
-            DisplayText2 shown = Assert.IsType<DisplayText2>(Assert.Single(document.GetDisplay(document.ModelSpace).Items));
+            DisplayText2 shown = Assert.IsType<DisplayText2>(
+                Assert.Single(document.GetDisplay(document.ModelSpace).Items)
+            );
 
             Assert.Equal("Arial", shown.FontName);
             Assert.Equal(15.0 * Math.PI / 180.0, shown.Oblique, 9);
@@ -99,7 +115,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [InlineData(@"ROMANS", 0.75)]
         [InlineData(@"\W0.5;ROMANS", 0.5)]
         [InlineData(@"\W1.2x;ROMANS", 0.9)]
-        public void AnMTextOfAStyleOfNarrowLettersIsDrawnAtTheStylesWidthUnlessItsCodesSetOne(string contents, double factor)
+        public void AnMTextOfAStyleOfNarrowLettersIsDrawnAtTheStylesWidthUnlessItsCodesSetOne(
+            string contents,
+            double factor
+        )
         {
             DisplayText2 shown = MText(contents, (database, mtext) =>
             {

@@ -10,28 +10,32 @@ namespace GeometryHelper.Core
     {
         internal static GeoPoint2[] GetIntersections(GeoFace2 face, GeoXLine2 xline, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             return GetIntersections(face, XLine2.CutPast(xline, face, tolerance), tolerance);
         }
 
         internal static bool CollidesWith(GeoFace2 face, GeoXLine2 xline, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             return CollidesWith(face, XLine2.CutPast(xline, face, tolerance), tolerance);
         }
 
         internal static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoXLine2 xline, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             return GetShortestLineTo(face, XLine2.CutPast(xline, face, tolerance), tolerance);
         }
 
         internal static double DistanceTo(GeoFace2 face, GeoXLine2 xline, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             return DistanceTo(face, XLine2.CutPast(xline, face, tolerance), tolerance);
         }

@@ -109,9 +109,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             for (int i = 0; i < 200; i++)
             {
-                made.ModelSpace.AppendEntity(i % 2 == 0
-                    ? new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(i, 1, 0)) { Layer = "L" + (i % 60) }
-                    : (DxfEntity)new DxfBlockReference(new GeoPoint3(i, 0, 0), made.BlockTable["S" + (i % 40)]));
+                made.ModelSpace.AppendEntity(
+                    i % 2 == 0
+                        ? new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(i, 1, 0)) { Layer = "L" + (i % 60) }
+                        : (DxfEntity)new DxfBlockReference(new GeoPoint3(i, 0, 0), made.BlockTable["S" + (i % 40)])
+                );
             }
 
             string text = made.ToText();
@@ -149,37 +151,54 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 using (var go = new System.Threading.ManualResetEventSlim(false))
                 {
-                    var threads = Enumerable.Range(0, 8).Select(t => new System.Threading.Thread(() =>
-                    {
-                        int way = (t + round) % 3;
-                        go.Wait();
-
-                        try
+                    var threads = Enumerable
+                        .Range(0, 8)
+                        .Select(t => new System.Threading.Thread(() =>
                         {
-                            layers[t] = shared.LayerTable.Cast<DxfLayerTableRecord>().Last();
+                            int way = (t + round) % 3;
+                            go.Wait();
 
-                            if (shared.LinetypeTable.Cast<DxfDBObject>().Count() + shared.TextStyleTable.Cast<DxfDBObject>().Count() == 0 || Copy(shared, way) != alone[way])
+                            try
                             {
-                                System.Threading.Interlocked.Increment(ref wrong);
+                                layers[t] = shared.LayerTable.Cast<DxfLayerTableRecord>().Last();
+
+                                if (
+                                    shared.LinetypeTable.Cast<DxfDBObject>().Count()
+                                        + shared.TextStyleTable.Cast<DxfDBObject>().Count()
+                                        == 0
+                                    || Copy(shared, way) != alone[way]
+                                )
+                                {
+                                    System.Threading.Interlocked.Increment(ref wrong);
+                                }
                             }
-                        }
-                        catch (Exception e)
-                        {
-                            System.Threading.Interlocked.Increment(ref thrown);
-                            System.Threading.Interlocked.CompareExchange(ref first, e.GetType().Name + ": " + e.Message, null);
-                        }
-                    })).ToList();
+                            catch (Exception e)
+                            {
+                                System.Threading.Interlocked.Increment(ref thrown);
+                                System.Threading.Interlocked.CompareExchange(
+                                    ref first,
+                                    e.GetType().Name + ": " + e.Message,
+                                    null
+                                );
+                            }
+                        }))
+                        .ToList();
 
                     threads.ForEach(thread => thread.Start());
                     go.Set();
-                    Assert.All(threads, thread => Assert.True(thread.Join(TimeSpan.FromSeconds(60)), "A thread copying did not end."));
+                    Assert.All(threads, thread =>
+                        Assert.True(thread.Join(TimeSpan.FromSeconds(60)), "A thread copying did not end.")
+                    );
                 }
 
                 Assert.Equal(text, shared.ToText());
                 Assert.All(layers, layer => Assert.Same(layers[0], layer));
             }
 
-            Assert.True(wrong == 0 && thrown == 0, wrong + " copies came out otherwise and " + thrown + " threw, the first " + first);
+            Assert.True(
+                wrong == 0 && thrown == 0,
+                wrong + " copies came out otherwise and " + thrown + " threw, the first " + first
+            );
         }
 
         [Fact]
@@ -196,7 +215,17 @@ namespace GeometryHelper.UnitTest.Dxf
                 var drawn = new DxfBlockTableRecord { Name = "GH_DRAWN" + i };
                 made.BlockTable.Add(drawn);
                 drawn.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)));
-                var dimension = new DxfRotatedDimension(0, new GeoPoint3(i, 0, 0), new GeoPoint3(i + 1, 0, 0), new GeoPoint3(i, 2, 0), string.Empty, style) { DimBlock = drawn };
+                var dimension = new DxfRotatedDimension(
+                    0,
+                    new GeoPoint3(i, 0, 0),
+                    new GeoPoint3(i + 1, 0, 0),
+                    new GeoPoint3(i, 2, 0),
+                    string.Empty,
+                    style
+                )
+                {
+                    DimBlock = drawn,
+                };
                 made.ModelSpace.AppendEntity(dimension);
                 dimension.Dimblk = arrow;
             }
@@ -216,7 +245,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDimension[] dimensions = read.ModelSpace.OfType<DxfDimension>().ToArray();
             Assert.Equal(3000, dimensions.Length);
             Assert.All(dimensions, d => Assert.Equal("GH_ARROW", d.Dimblk.Name));
-            Assert.Equal(3000, dimensions.Select(d => d.DimBlock.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            Assert.Equal(
+                3000,
+                dimensions.Select(d => d.DimBlock.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count()
+            );
             Assert.Equal("*D1", dimensions[0].DimBlock.Name);
             Assert.Equal("*D3000", dimensions[2999].DimBlock.Name);
         }
@@ -251,12 +283,23 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // The top inserted into the bottom, or a block into itself, would make a round, and is refused as before.
             string text = db.ToText();
-            ArgumentException round = Assert.Throws<ArgumentException>(() => blocks[0].AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), blocks[2999])));
-            Assert.StartsWith("The INSERT of C2999 would make the block C0 insert itself.", round.Message, StringComparison.Ordinal);
-            Assert.Throws<ArgumentException>(() => blocks[5].AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), blocks[5])));
+            ArgumentException round = Assert.Throws<ArgumentException>(() =>
+                blocks[0].AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), blocks[2999]))
+            );
+            Assert.StartsWith(
+                "The INSERT of C2999 would make the block C0 insert itself.",
+                round.Message,
+                StringComparison.Ordinal
+            );
+            Assert.Throws<ArgumentException>(() =>
+                blocks[5].AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), blocks[5]))
+            );
             Assert.Equal(text, db.ToText());
             db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), blocks[2999]));
-            Assert.Equal("C2998", DxfDatabase.Parse(db.ToText()).BlockTable["C2999"].OfType<DxfBlockReference>().Single().Name);
+            Assert.Equal(
+                "C2998",
+                DxfDatabase.Parse(db.ToText()).BlockTable["C2999"].OfType<DxfBlockReference>().Single().Name
+            );
         }
 
         [Fact]
@@ -318,7 +361,10 @@ namespace GeometryHelper.UnitTest.Dxf
             // Each as a polyline read afresh gives it, to the bit.
             foreach (int i in new[] { 0, 1, 4999, 9999 })
             {
-                Assert.Equal(DxfModel.Bits(DxfDatabase.Parse(text).ModelSpace.OfType<DxfPolyline>().Single().GetPoint3dAt(i)), DxfModel.Bits(points[i]));
+                Assert.Equal(
+                    DxfModel.Bits(DxfDatabase.Parse(text).ModelSpace.OfType<DxfPolyline>().Single().GetPoint3dAt(i)),
+                    DxfModel.Bits(points[i])
+                );
             }
 
             // Raised and one vertex moved, the polyline is read as it stands: (1, 1) at 4 on the normal (0, 0.6, 0.8), whose
@@ -326,8 +372,15 @@ namespace GeometryHelper.UnitTest.Dxf
             // vertex 1.5 further along the normal.
             read.Elevation = 4.0;
             read.SetPointAt(3, new GeoPoint2(1, 1));
-            Assert.True(read.GetPoint3dAt(3).IsEqualTo(new GeoPoint3(-1, 1.6, 3.8), Tolerance.Default), read.GetPoint3dAt(3).ToString());
-            Assert.True(read.GetPoint3dAt(9999).IsEqualTo(points[9999] + new GeoVector3(0.0, 0.6, 0.8) * 1.5, Tolerance.Default), read.GetPoint3dAt(9999).ToString());
+            Assert.True(
+                read.GetPoint3dAt(3).IsEqualTo(new GeoPoint3(-1, 1.6, 3.8), Tolerance.Default),
+                read.GetPoint3dAt(3).ToString()
+            );
+            Assert.True(
+                read.GetPoint3dAt(9999)
+                    .IsEqualTo(points[9999] + new GeoVector3(0.0, 0.6, 0.8) * 1.5, Tolerance.Default),
+                read.GetPoint3dAt(9999).ToString()
+            );
             DxfPolyline saved = DxfDatabase.Parse(db.ToText()).ModelSpace.OfType<DxfPolyline>().Single();
             Assert.Equal(DxfModel.Bits(saved.GetPoint3dAt(3)), DxfModel.Bits(read.GetPoint3dAt(3)));
             Assert.Equal(DxfModel.Bits(saved.GetPoint3dAt(9999)), DxfModel.Bits(read.GetPoint3dAt(9999)));

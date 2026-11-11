@@ -53,7 +53,12 @@ namespace GeometryHelper.UnitTest.Dxf
             // Each of the 26 blocks is the root of an INSERT, and each would work out the 1 000 blocks the bound allows, 26 000
             // in all, were the bound one for each INSERT; it is one for the reading, so 1 000 are worked out, and every INSERT is
             // refused, those of the blocks read on their own too.
-            var options = new DxfReadOptions { Tolerance = Tol, KeepGroups = false, MostSizedBlocks = 1000 };
+            var options = new DxfReadOptions
+            {
+                Tolerance = Tol,
+                KeepGroups = false,
+                MostSizedBlocks = 1000,
+            };
             DxfDocument once = DxfReader.Parse(RingOfRoots(25, 1), options);
             DxfDocument thrice = DxfReader.Parse(RingOfRoots(25, 3), options);
 
@@ -66,8 +71,13 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(inserts, read.Skipped["INSERT"]);
                 Assert.All(read.Blocks, b => Assert.Equal("LINE", Assert.Single(b.Shapes).Type));
                 Assert.Equal(
-                    new[] { (inserts + 51) + " INSERTs were not placed, 51 of them inside the blocks read for Blocks: the reading had worked out the sizes of 1000 blocks, as many as it works out, and not yet what their blocks place, so they could not be held to DxfReadOptions.MaxPlacedEntities." },
-                    read.Warnings.ToArray());
+                    new[]
+                    {
+                        (inserts + 51)
+                            + " INSERTs were not placed, 51 of them inside the blocks read for Blocks: the reading had worked out the sizes of 1000 blocks, as many as it works out, and not yet what their blocks place, so they could not be held to DxfReadOptions.MaxPlacedEntities.",
+                    },
+                    read.Warnings.ToArray()
+                );
             }
         }
 
@@ -78,7 +88,15 @@ namespace GeometryHelper.UnitTest.Dxf
             // itself, a block twice as often as the one before it but after X4, which inserts X0 once: from X0 31 lines, from
             // X1 23, from X2 19, from X3 17 and from X4 16. Working each root out visits as many blocks as it places lines, 106
             // in all, and the second and third INSERTs of each root reuse its size.
-            DxfDocument read = DxfReader.Parse(RingOfRoots(4, 3), new DxfReadOptions { Tolerance = Tol, KeepGroups = false, MostSizedBlocks = 1000 });
+            DxfDocument read = DxfReader.Parse(
+                RingOfRoots(4, 3),
+                new DxfReadOptions
+                {
+                    Tolerance = Tol,
+                    KeepGroups = false,
+                    MostSizedBlocks = 1000,
+                }
+            );
 
             Assert.Equal(106, read.SizedBlocks);
             Assert.Equal(3 * 106, read.Shapes.Count);

@@ -20,21 +20,32 @@ namespace GeometryHelper.UnitTest.Solid
 
         /// <summary>The axis of the turned bodies: their Y axis, leaning in space.</summary>
         private static readonly GeoCoordinateSystem3 Turned = new GeoCoordinateSystem3(
-            GeoPoint3.Origin, new GeoVector3(0.6, 0.8, 0.0), new GeoVector3(-0.48, 0.36, 0.8));
+            GeoPoint3.Origin,
+            new GeoVector3(0.6, 0.8, 0.0),
+            new GeoVector3(-0.48, 0.36, 0.8)
+        );
 
         /// <summary>A cylinder of radius 20 and height 50, or a cone of radius 20 at its foot and height 50, about the axis.</summary>
         private static GeoSolid3 Body(string shape)
         {
-            GeoPolygon2 profile = shape == "cylinder"
-                ? new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(20, 0), new GeoPoint2(20, 50), new GeoPoint2(0, 50))
-                : new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(20, 0), new GeoPoint2(0, 50));
+            GeoPolygon2 profile =
+                shape == "cylinder"
+                    ? new GeoPolygon2(
+                        new GeoPoint2(0, 0),
+                        new GeoPoint2(20, 0),
+                        new GeoPoint2(20, 50),
+                        new GeoPoint2(0, 50)
+                    )
+                    : new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(20, 0), new GeoPoint2(0, 50));
 
             return GeoSolid3.Revolve(profile, Turned, 2 * Math.PI, 0.01, Tolerance.Default);
         }
 
         /// <summary>The point at a distance from the axis, an angle round it and a height along it.</summary>
-        private static GeoPoint3 At(double radius, double angle, double height)
-            => Turned.Origin.Add(Turned.XAxis.Multiply(radius * Math.Cos(angle))).Add(Turned.YAxis.Multiply(height))
+        private static GeoPoint3 At(double radius, double angle, double height) =>
+            Turned
+                .Origin.Add(Turned.XAxis.Multiply(radius * Math.Cos(angle)))
+                .Add(Turned.YAxis.Multiply(height))
                 .Add(Turned.ZAxis.Multiply(radius * Math.Sin(angle)));
 
         /// <summary>A hundred points inside the body, from a tenth to eight tenths of the way out from the axis.</summary>
@@ -67,7 +78,10 @@ namespace GeometryHelper.UnitTest.Solid
                 var ray = new GeoRay3(point, new GeoVector3(0.3 + 0.1 * (k / 10), -0.2 + 0.05 * (k % 10), 0.5));
                 k++;
 
-                if (prepared.GetIntersections(ray, Nought).Length != 1 || ray.GetIntersections(body, Nought).Length != 1)
+                if (
+                    prepared.GetIntersections(ray, Nought).Length != 1
+                    || ray.GetIntersections(body, Nought).Length != 1
+                )
                 {
                     missed.Add(point);
                 }
@@ -87,7 +101,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             foreach (GeoPoint3 point in Inside(shape))
             {
-                if (prepared.Locate(point, Nought) != PointLocation.Inside || body.Locate(point, Nought) != PointLocation.Inside)
+                if (
+                    prepared.Locate(point, Nought) != PointLocation.Inside
+                    || body.Locate(point, Nought) != PointLocation.Inside
+                )
                 {
                     misread.Add(point);
                 }
@@ -120,7 +137,11 @@ namespace GeometryHelper.UnitTest.Solid
             double chord = 20 * (1 - Math.Cos(Math.PI / 64)) * 1.0000001;
             GeoSolid3 body = GeoSolid3.Revolve(
                 new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(20, 0), new GeoPoint2(20, 50), new GeoPoint2(0, 50)),
-                new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis), 2 * Math.PI, chord, Tolerance.Default);
+                new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis),
+                2 * Math.PI,
+                chord,
+                Tolerance.Default
+            );
             var prepared = new GeoPreparedSolid3(body, Nought);
             var misread = new List<double>();
 
@@ -128,7 +149,10 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 var point = new GeoPoint3(0, height, 0);
 
-                if (prepared.Locate(point, Nought) != PointLocation.Inside || body.Locate(point, Nought) != PointLocation.Inside)
+                if (
+                    prepared.Locate(point, Nought) != PointLocation.Inside
+                    || body.Locate(point, Nought) != PointLocation.Inside
+                )
                 {
                     misread.Add(height);
                 }
@@ -144,7 +168,11 @@ namespace GeometryHelper.UnitTest.Solid
             double chord = 20 * (1 - Math.Cos(Math.PI / 64)) * 1.0000001;
             GeoSolid3 body = GeoSolid3.Revolve(
                 new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(20, 0), new GeoPoint2(20, 50), new GeoPoint2(0, 50)),
-                new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis), 2 * Math.PI, chord, Tolerance.Default);
+                new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis),
+                2 * Math.PI,
+                chord,
+                Tolerance.Default
+            );
             var prepared = new GeoPreparedSolid3(body, Nought);
             var ray = new GeoRay3(new GeoPoint3(-60, 20, -60), new GeoVector3(1, 0, 1));
 
@@ -166,7 +194,11 @@ namespace GeometryHelper.UnitTest.Solid
             double chord = 20 * (1 - Math.Cos(Math.PI / 64)) * 1.0000001;
             GeoSolid3 body = GeoSolid3.Revolve(
                 new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(20, 0), new GeoPoint2(20, 50), new GeoPoint2(0, 50)),
-                new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis), 2 * Math.PI, chord, Tolerance.Default);
+                new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis),
+                2 * Math.PI,
+                chord,
+                Tolerance.Default
+            );
             var prepared = new GeoPreparedSolid3(body, Nought);
             var ray = new GeoRay3(new GeoPoint3(-far, 20, -far), new GeoVector3(1, 0, 1));
             var entry = new GeoPoint3(-20 / Math.Sqrt(2), 20, -20 / Math.Sqrt(2));
@@ -189,9 +221,14 @@ namespace GeometryHelper.UnitTest.Solid
             double chord = 20 * (1 - Math.Cos(Math.PI / 1080)) * 1.0000001;
             GeoSolid3 body = GeoSolid3.Revolve(
                 new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(20, 0), new GeoPoint2(20, 50), new GeoPoint2(0, 50)),
-                new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis), 2 * Math.PI, chord, Tolerance.Default);
+                new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis),
+                2 * Math.PI,
+                chord,
+                Tolerance.Default
+            );
             var prepared = new GeoPreparedSolid3(body, Nought);
-            const double Angle = -2.193297093339541, Height = 43.38281158515383;
+            const double Angle = -2.193297093339541,
+                Height = 43.38281158515383;
             var from = new GeoPoint3(60 * Math.Cos(Angle), Height, 60 * Math.Sin(Angle));
             var ray = new GeoRay3(from, from.GetVectorTo(new GeoPoint3(0, Height, 0)));
 

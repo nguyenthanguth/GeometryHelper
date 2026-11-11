@@ -12,14 +12,71 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     /// </summary>
     public class XlineRayIndexTests
     {
-        private static string Xline(double x, double y, double dx, double dy, string handle = null)
-            => TestDrawings.Entity("XLINE", "0", 256, handle, 100, "AcDbXline", 10, x, 20, y, 30, 0.0, 11, dx, 21, dy, 31, 0.0);
+        private static string Xline(double x, double y, double dx, double dy, string handle = null) =>
+            TestDrawings.Entity(
+                "XLINE",
+                "0",
+                256,
+                handle,
+                100,
+                "AcDbXline",
+                10,
+                x,
+                20,
+                y,
+                30,
+                0.0,
+                11,
+                dx,
+                21,
+                dy,
+                31,
+                0.0
+            );
 
-        private static string Ray(double x, double y, double dx, double dy, string handle = null)
-            => TestDrawings.Entity("RAY", "0", 256, handle, 100, "AcDbRay", 10, x, 20, y, 30, 0.0, 11, dx, 21, dy, 31, 0.0);
+        private static string Ray(double x, double y, double dx, double dy, string handle = null) =>
+            TestDrawings.Entity(
+                "RAY",
+                "0",
+                256,
+                handle,
+                100,
+                "AcDbRay",
+                10,
+                x,
+                20,
+                y,
+                30,
+                0.0,
+                11,
+                dx,
+                21,
+                dy,
+                31,
+                0.0
+            );
 
-        private static string Line(double x0, double y0, double x1, double y1, string handle)
-            => TestDrawings.Entity("LINE", "0", 256, handle, 100, "AcDbLine", 10, x0, 20, y0, 30, 0.0, 11, x1, 21, y1, 31, 0.0);
+        private static string Line(double x0, double y0, double x1, double y1, string handle) =>
+            TestDrawings.Entity(
+                "LINE",
+                "0",
+                256,
+                handle,
+                100,
+                "AcDbLine",
+                10,
+                x0,
+                20,
+                y0,
+                30,
+                0.0,
+                11,
+                x1,
+                21,
+                y1,
+                31,
+                0.0
+            );
 
         private static PickIndex Index(params string[] entities)
         {
@@ -41,11 +98,19 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void AnXlineOfABlock_StillOffersTheInsertionPoint_ThoughItPassesFarFromTheCursor()
         {
             // The block's one object is an xline along (1, 1) through (300, 0); inserted at (100, 100) it passes far from it.
-            DxfDatabase database = TestDrawings.Drawing(null, TestDrawings.Block("K", Xline(300, 0, 1, 1)), TestDrawings.Insert("K", 100, 100, handle: "C1"));
+            DxfDatabase database = TestDrawings.Drawing(
+                null,
+                TestDrawings.Block("K", Xline(300, 0, 1, 1)),
+                TestDrawings.Insert("K", 100, 100, handle: "C1")
+            );
             CadDocument document = CadDocument.From(database, "test.dxf");
             PickIndex index = document.GetPickIndex(document.ModelSpace);
 
-            CadSnapResult result = new ObjectSnap(Tight) { Modes = CadSnapModes.Insertion }.Snap(index, P(100.3, 100.2), 1.0);
+            CadSnapResult result = new ObjectSnap(Tight) { Modes = CadSnapModes.Insertion }.Snap(
+                index,
+                P(100.3, 100.2),
+                1.0
+            );
 
             Assert.Equal(CadSnapKind.Insertion, result.Kind);
             Assert.Equal("C1", result.Handle);
@@ -62,9 +127,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             {
                 double x = random.NextDouble() * 1000.0;
                 double y = random.NextDouble() * 1000.0;
-                double a = k % 10 == 3 ? 0.0 : k % 10 == 7 ? Math.PI / 2.0 : random.NextDouble() * Math.PI * 2.0;
+                double a =
+                    k % 10 == 3 ? 0.0
+                    : k % 10 == 7 ? Math.PI / 2.0
+                    : random.NextDouble() * Math.PI * 2.0;
                 string handle = (0x100 + k).ToString("X");
-                entities.Add(k % 2 == 0 ? Xline(x, y, Math.Cos(a), Math.Sin(a), handle) : Ray(x, y, Math.Cos(a), Math.Sin(a), handle));
+                entities.Add(
+                    k % 2 == 0
+                        ? Xline(x, y, Math.Cos(a), Math.Sin(a), handle)
+                        : Ray(x, y, Math.Cos(a), Math.Sin(a), handle)
+                );
             }
 
             for (int k = 0; k < 400; k++)
@@ -84,11 +156,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 double tolerance = 0.1 + random.NextDouble() * 5.0;
 
                 var picked = new SortedSet<string>(index.Pick(x, y, tolerance), StringComparer.Ordinal);
-                var near = new SortedSet<string>(items.Where(i => i.DistanceTo(x, y) <= tolerance).Select(i => i.Handle), StringComparer.Ordinal);
+                var near = new SortedSet<string>(
+                    items.Where(i => i.DistanceTo(x, y) <= tolerance).Select(i => i.Handle),
+                    StringComparer.Ordinal
+                );
                 Assert.Equal(near, picked);
 
                 var box = new DisplayBox(x, y, x + tolerance * 4.0, y + tolerance * 3.0);
-                var crossed = new SortedSet<string>(items.Where(i => i.Touches(box)).Select(i => i.Handle), StringComparer.Ordinal);
+                var crossed = new SortedSet<string>(
+                    items.Where(i => i.Touches(box)).Select(i => i.Handle),
+                    StringComparer.Ordinal
+                );
                 Assert.Equal(crossed, new SortedSet<string>(index.Crossing(box), StringComparer.Ordinal));
             }
         }

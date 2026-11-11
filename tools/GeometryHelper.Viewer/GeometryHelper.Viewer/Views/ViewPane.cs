@@ -41,7 +41,11 @@ namespace GeometryHelper.Viewer.Views
                 Camera = Perspective,
             };
             Viewport.Items.Add(new AmbientLight3D { Color = Color.FromRgb(0x70, 0x70, 0x70) });
-            Headlight = new DirectionalLight3D { Color = Color.FromRgb(0xE0, 0xE0, 0xE0), Direction = new System.Windows.Media.Media3D.Vector3D(0, 0, -1) };
+            Headlight = new DirectionalLight3D
+            {
+                Color = Color.FromRgb(0xE0, 0xE0, 0xE0),
+                Direction = new System.Windows.Media.Media3D.Vector3D(0, 0, -1),
+            };
             Viewport.Items.Add(Headlight);
 
             Band = new Rectangle { Visibility = Visibility.Collapsed, StrokeThickness = 1.2 };
@@ -64,7 +68,14 @@ namespace GeometryHelper.Viewer.Views
             content.Children.Add(Viewport);
             content.Children.Add(canvas);
             content.Children.Add(Caption);
-            Outline = new Rectangle { Stroke = ActiveBrush, StrokeThickness = 3.0, Fill = null, IsHitTestVisible = false, Visibility = Visibility.Collapsed };
+            Outline = new Rectangle
+            {
+                Stroke = ActiveBrush,
+                StrokeThickness = 3.0,
+                Fill = null,
+                IsHitTestVisible = false,
+                Visibility = Visibility.Collapsed,
+            };
             content.Children.Add(Outline);
             Frame = content;
             Frame.Tag = number;
@@ -214,7 +225,12 @@ namespace GeometryHelper.Viewer.Views
         internal void UpdateCaption(bool show)
         {
             Caption.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-            Caption.Text = Names[Number] + " - " + Slot.Mode + (Camera.Orthographic ? ", ortho" : ", perspective") + (Slot.Linked ? ", linked" : string.Empty);
+            Caption.Text =
+                Names[Number]
+                + " - "
+                + Slot.Mode
+                + (Camera.Orthographic ? ", ortho" : ", perspective")
+                + (Slot.Linked ? ", linked" : string.Empty);
         }
 
         /// <summary>

@@ -24,7 +24,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForPoint(mode == null ? "Select objects" : "Specify first corner", null, null, null, true);
+                yield return CadPrompt.ForPoint(
+                    mode == null ? "Select objects" : "Specify first corner",
+                    null,
+                    null,
+                    null,
+                    true
+                );
 
                 if (c.Input.IsNone)
                 {
@@ -58,7 +64,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                     while (ring.Count > 0)
                     {
-                        yield return CadPrompt.ForPoint("Specify endpoint of line", ring[ring.Count - 1], new[] { "Undo" });
+                        yield return CadPrompt.ForPoint(
+                            "Specify endpoint of line",
+                            ring[ring.Count - 1],
+                            new[] { "Undo" }
+                        );
 
                         if (c.Input.Is("Undo"))
                         {
@@ -94,7 +104,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (mode == null)
                 {
-                    IReadOnlyList<string> hit = c.Document.GetPickIndex(c.Space).Pick(first.X, first.Y, c.Session.PickAperture);
+                    IReadOnlyList<string> hit = c
+                        .Document.GetPickIndex(c.Space)
+                        .Pick(first.X, first.Y, c.Session.PickAperture);
 
                     if (hit.Count > 0)
                     {
@@ -112,7 +124,12 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 GeoPoint2 second = c.Input.Point;
-                var box = new DisplayBox(Math.Min(first.X, second.X), Math.Min(first.Y, second.Y), Math.Max(first.X, second.X), Math.Max(first.Y, second.Y));
+                var box = new DisplayBox(
+                    Math.Min(first.X, second.X),
+                    Math.Min(first.Y, second.Y),
+                    Math.Max(first.X, second.X),
+                    Math.Max(first.Y, second.Y)
+                );
                 bool crossing = mode == "C" || (mode == null && second.X < first.X);
                 PickIndex index = c.Document.GetPickIndex(c.Space);
                 boxes.Add(box);
@@ -156,7 +173,14 @@ namespace GeometryHelper.Dxf.Viewer
                     DxfEntity entity = c.Document.FindEntity(handle);
                     bool[] held = single.Contains(handle) ? null : Held(entity, inside);
 
-                    if ((held != null && !Array.Exists(held, h => h)) || (held != null && !Array.TrueForAll(held, h => h) && c.Document.Owners.GetEditRule(entity) != CadEditRule.Free))
+                    if (
+                        (held != null && !Array.Exists(held, h => h))
+                        || (
+                            held != null
+                            && !Array.TrueForAll(held, h => h)
+                            && c.Document.Owners.GetEditRule(entity) != CadEditRule.Free
+                        )
+                    )
                     {
                         continue;
                     }
@@ -204,7 +228,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (held == null || Array.TrueForAll(held, h => h))
                 {
-                    planned.Add(new CadEditRecord(CadEditRecordKind.Transformed, handle, "Move", null, Values(by.X, by.Y)));
+                    planned.Add(
+                        new CadEditRecord(CadEditRecordKind.Transformed, handle, "Move", null, Values(by.X, by.Y))
+                    );
                     stretched.Add(new KeyValuePair<string, bool[]>(handle, null));
                     continue;
                 }
@@ -216,7 +242,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Document.Owners.GetEditRule(entity) != CadEditRule.Free)
                 {
-                    c.Write("This " + CadOwnerEditGate.Describe(entity) + " belongs to the model and cannot be stretched here.");
+                    c.Write(
+                        "This "
+                            + CadOwnerEditGate.Describe(entity)
+                            + " belongs to the model and cannot be stretched here."
+                    );
                     continue;
                 }
 
@@ -280,11 +310,15 @@ namespace GeometryHelper.Dxf.Viewer
             c.Write(line);
         }
 
-        private static IReadOnlyList<string> Crossing(CadCommandContext c, DisplayBox box) => c.Document.GetPickIndex(c.Space).Crossing(box);
+        private static IReadOnlyList<string> Crossing(CadCommandContext c, DisplayBox box) =>
+            c.Document.GetPickIndex(c.Space).Crossing(box);
 
         private static DisplayBox Bounds(List<GeoPoint2> ring)
         {
-            double minX = double.PositiveInfinity, minY = double.PositiveInfinity, maxX = double.NegativeInfinity, maxY = double.NegativeInfinity;
+            double minX = double.PositiveInfinity,
+                minY = double.PositiveInfinity,
+                maxX = double.NegativeInfinity,
+                maxY = double.NegativeInfinity;
 
             foreach (GeoPoint2 point in ring)
             {
@@ -314,8 +348,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 for (int i = 0, j = ring.Count - 1; i < ring.Count; j = i++)
                 {
-                    if ((ring[i].Y > point.Y) != (ring[j].Y > point.Y)
-                        && point.X < (ring[j].X - ring[i].X) * (point.Y - ring[i].Y) / (ring[j].Y - ring[i].Y) + ring[i].X)
+                    if (
+                        (ring[i].Y > point.Y) != (ring[j].Y > point.Y)
+                        && point.X
+                            < (ring[j].X - ring[i].X) * (point.Y - ring[i].Y) / (ring[j].Y - ring[i].Y) + ring[i].X
+                    )
                     {
                         odd = !odd;
                     }
@@ -342,7 +379,8 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 case DxfLine line:
                     return new[] { inside(line.StartPoint), inside(line.EndPoint) };
-                case DxfPolyline polyline when Math.Abs(Math.Abs(polyline.Normal.Z) - 1.0) <= Tolerance.Default.EqualVector:
+                case DxfPolyline polyline
+                    when Math.Abs(Math.Abs(polyline.Normal.Z) - 1.0) <= Tolerance.Default.EqualVector:
                     var vertices = new bool[polyline.NumberOfVertices];
 
                     for (int i = 0; i < vertices.Length; i++)
@@ -364,7 +402,12 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfBlockReference insert:
                     return new[] { inside(insert.Position) };
                 case DxfRotatedDimension rotated:
-                    return new[] { inside(rotated.XLine1Point), inside(rotated.XLine2Point), inside(rotated.DimLinePoint) };
+                    return new[]
+                    {
+                        inside(rotated.XLine1Point),
+                        inside(rotated.XLine2Point),
+                        inside(rotated.DimLinePoint),
+                    };
                 case DxfDBPoint point:
                     return new[] { inside(point.Position) };
                 default:
@@ -374,7 +417,8 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         box = entity.GeometricExtents;
                     }
-                    catch (Exception exception) when (exception is InvalidOperationException || exception is NotSupportedException)
+                    catch (Exception exception)
+                        when (exception is InvalidOperationException || exception is NotSupportedException)
                     {
                         return new bool[0];
                     }
@@ -386,7 +430,10 @@ namespace GeometryHelper.Dxf.Viewer
 
                     return new[]
                     {
-                        inside(box.Min) && inside(box.Max) && inside(new GeoPoint3(box.Min.X, box.Max.Y, 0.0)) && inside(new GeoPoint3(box.Max.X, box.Min.Y, 0.0)),
+                        inside(box.Min)
+                            && inside(box.Max)
+                            && inside(new GeoPoint3(box.Min.X, box.Max.Y, 0.0))
+                            && inside(new GeoPoint3(box.Max.X, box.Min.Y, 0.0)),
                     };
             }
         }
@@ -399,7 +446,11 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfLine line:
                     if (held[0])
                     {
-                        line.StartPoint = new GeoPoint3(line.StartPoint.X + by.X, line.StartPoint.Y + by.Y, line.StartPoint.Z);
+                        line.StartPoint = new GeoPoint3(
+                            line.StartPoint.X + by.X,
+                            line.StartPoint.Y + by.Y,
+                            line.StartPoint.Z
+                        );
                     }
 
                     if (held[1])
@@ -475,11 +526,13 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint3 from = arc.StartPoint;
             GeoPoint3 to = arc.EndPoint;
             GeoPoint3 middle = arc.GetPointAtParameter((arc.StartParam + arc.EndParam) / 2.0);
-            double cx = to.X - from.X, cy = to.Y - from.Y;
+            double cx = to.X - from.X,
+                cy = to.Y - from.Y;
             double chord = Math.Sqrt(cx * cx + cy * cy);
             var a = new GeoPoint3(from.X + start.X, from.Y + start.Y, from.Z);
             var b = new GeoPoint3(to.X + end.X, to.Y + end.Y, to.Z);
-            double nx = b.X - a.X, ny = b.Y - a.Y;
+            double nx = b.X - a.X,
+                ny = b.Y - a.Y;
             double reach = Math.Sqrt(nx * nx + ny * ny);
 
             if (!(chord > 0.0) || !(reach > Tolerance.Default.EqualPoint))
@@ -489,10 +542,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             // The height of the middle off the chord, signed to the left of the chord from the start to the end, kept.
-            double height = ((middle.X - (from.X + to.X) / 2.0) * -cy + (middle.Y - (from.Y + to.Y) / 2.0) * cx) / chord;
+            double height =
+                ((middle.X - (from.X + to.X) / 2.0) * -cy + (middle.Y - (from.Y + to.Y) / 2.0) * cx) / chord;
             double half = reach / 2.0;
             double radius = (half * half + height * height) / (2.0 * Math.Abs(height));
-            double lx = -ny / reach, ly = nx / reach;
+            double lx = -ny / reach,
+                ly = nx / reach;
             double off = height - Math.Sign(height) * radius;
             var centre = new GeoPoint2((a.X + b.X) / 2.0 + lx * off, (a.Y + b.Y) / 2.0 + ly * off);
             double startAngle = Math.Atan2(a.Y - centre.Y, a.X - centre.X);
@@ -535,8 +590,21 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 p1 = c.Input.Point;
 
             // The objects moved by the one pair, as they are moved where no second pair is given.
-            yield return CadPrompt.ForPoint("Specify first destination point", p1)
-                .Previewing(CadPreview.MovingOne(c, c.Selected, input => CadPreview.Flat(GeoTransform3.Translation(new GeoVector3(input.Point.X - p1.X, input.Point.Y - p1.Y, 0.0))), true));
+            yield return CadPrompt
+                .ForPoint("Specify first destination point", p1)
+                .Previewing(
+                    CadPreview.MovingOne(
+                        c,
+                        c.Selected,
+                        input =>
+                            CadPreview.Flat(
+                                GeoTransform3.Translation(
+                                    new GeoVector3(input.Point.X - p1.X, input.Point.Y - p1.Y, 0.0)
+                                )
+                            ),
+                        true
+                    )
+                );
 
             if (!c.Input.IsPoint)
             {
@@ -549,7 +617,14 @@ namespace GeometryHelper.Dxf.Viewer
             if (!c.Input.IsPoint)
             {
                 // One pair moves the objects, as MOVE does.
-                Transform(c, c.Selected, GeoTransform3.Translation(new GeoVector3(q1.X - p1.X, q1.Y - p1.Y, 0.0)), false, "Move", Values(q1.X - p1.X, q1.Y - p1.Y));
+                Transform(
+                    c,
+                    c.Selected,
+                    GeoTransform3.Translation(new GeoVector3(q1.X - p1.X, q1.Y - p1.Y, 0.0)),
+                    false,
+                    "Move",
+                    Values(q1.X - p1.X, q1.Y - p1.Y)
+                );
                 yield break;
             }
 
@@ -557,8 +632,19 @@ namespace GeometryHelper.Dxf.Viewer
             double tolerance = c.Session.Tolerance.EqualPoint;
 
             // The objects moved and turned by the two pairs, as they are where the third is not given and they are not scaled.
-            yield return CadPrompt.ForPoint("Specify second destination point", p2).Previewing(CadPreview.MovingOne(c, c.Selected, input =>
-                (p2 - p1).Length > tolerance && (input.Point - q1).Length > tolerance ? CadPreview.Flat(Aligned(p1, q1, p2, input.Point)) : (Affine2?)null, true));
+            yield return CadPrompt
+                .ForPoint("Specify second destination point", p2)
+                .Previewing(
+                    CadPreview.MovingOne(
+                        c,
+                        c.Selected,
+                        input =>
+                            (p2 - p1).Length > tolerance && (input.Point - q1).Length > tolerance
+                                ? CadPreview.Flat(Aligned(p1, q1, p2, input.Point))
+                                : (Affine2?)null,
+                        true
+                    )
+                );
 
             if (!c.Input.IsPoint)
             {
@@ -594,12 +680,18 @@ namespace GeometryHelper.Dxf.Viewer
                 if (sourceSide * targetSide < 0.0)
                 {
                     GeoVector2 axis = q2 - q1;
-                    moved = GeoTransform3.RotationAxis(P3(q1), new GeoVector3(axis.X, axis.Y, 0.0).Normalize(), Math.PI) * moved;
+                    moved =
+                        GeoTransform3.RotationAxis(P3(q1), new GeoVector3(axis.X, axis.Y, 0.0).Normalize(), Math.PI)
+                        * moved;
                 }
             }
             else if (c.Input.IsNone)
             {
-                yield return CadPrompt.ForKeyword("Scale objects based on alignment points?", new[] { "Yes", "No" }, "N");
+                yield return CadPrompt.ForKeyword(
+                    "Scale objects based on alignment points?",
+                    new[] { "Yes", "No" },
+                    "N"
+                );
 
                 if (c.Input.Is("Yes"))
                 {
@@ -619,7 +711,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Document.Owners.GetEditRule(entity) != CadEditRule.Free)
                 {
-                    c.Write("This " + CadOwnerEditGate.Describe(entity) + " belongs to the model and cannot be aligned here.");
+                    c.Write(
+                        "This "
+                            + CadOwnerEditGate.Describe(entity)
+                            + " belongs to the model and cannot be aligned here."
+                    );
                     continue;
                 }
 
@@ -636,7 +732,8 @@ namespace GeometryHelper.Dxf.Viewer
         private static GeoTransform3 Aligned(GeoPoint2 p1, GeoPoint2 q1, GeoPoint2 p2, GeoPoint2 q2)
         {
             double turn = Math.Atan2((q2 - q1).Y, (q2 - q1).X) - Math.Atan2((p2 - p1).Y, (p2 - p1).X);
-            return GeoTransform3.RotationAxis(P3(q1), Up, turn) * GeoTransform3.Translation(new GeoVector3(q1.X - p1.X, q1.Y - p1.Y, 0.0));
+            return GeoTransform3.RotationAxis(P3(q1), Up, turn)
+                * GeoTransform3.Translation(new GeoVector3(q1.X - p1.X, q1.Y - p1.Y, 0.0));
         }
     }
 }

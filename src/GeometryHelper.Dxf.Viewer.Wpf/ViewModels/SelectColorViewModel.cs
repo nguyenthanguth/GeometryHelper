@@ -62,7 +62,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             StandardColors = _swatches.Take(9).ToList();
-            GridColors = Shades.SelectMany(shade => Enumerable.Range(1, 24).Select(hue => _swatches[hue * 10 + shade - 1])).ToList();
+            GridColors = Shades
+                .SelectMany(shade => Enumerable.Range(1, 24).Select(hue => _swatches[hue * 10 + shade - 1]))
+                .ToList();
             GreyColors = _swatches.Skip(249).ToList();
             PickIndexCommand = new DelegateCommand(p => PickIndex(Convert.ToInt32(p, CultureInfo.InvariantCulture)));
             ByLayerCommand = new DelegateCommand(_ => Choose(DxfColor.ByLayer, false), _ => OffersByLayerAndByBlock);
@@ -147,7 +149,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get => Text(_color);
             set
             {
-                if (TryParse(value, out DxfColor color) && (OffersByLayerAndByBlock || (!color.IsByLayer && !color.IsByBlock)))
+                if (
+                    TryParse(value, out DxfColor color)
+                    && (OffersByLayerAndByBlock || (!color.IsByLayer && !color.IsByBlock))
+                )
                 {
                     Choose(color, false);
                 }
@@ -208,7 +213,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 string typed = (value ?? string.Empty).Trim().TrimStart('#');
 
-                if (typed.Length == 6 && int.TryParse(typed, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int rgb))
+                if (
+                    typed.Length == 6
+                    && int.TryParse(typed, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int rgb)
+                )
                 {
                     SetRgb(rgb >> 16, (rgb >> 8) & 0xFF, rgb & 0xFF);
                 }
@@ -251,14 +259,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         public string TrueColorText
         {
-            get => _red.ToString(CultureInfo.InvariantCulture) + "," + _green.ToString(CultureInfo.InvariantCulture) + "," + _blue.ToString(CultureInfo.InvariantCulture);
+            get =>
+                _red.ToString(CultureInfo.InvariantCulture)
+                + ","
+                + _green.ToString(CultureInfo.InvariantCulture)
+                + ","
+                + _blue.ToString(CultureInfo.InvariantCulture);
             set
             {
                 string[] parts = (value ?? string.Empty).Split(',');
 
-                if (parts.Length == 3 && byte.TryParse(parts[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte r)
+                if (
+                    parts.Length == 3
+                    && byte.TryParse(parts[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte r)
                     && byte.TryParse(parts[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte g)
-                    && byte.TryParse(parts[2].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte b))
+                    && byte.TryParse(parts[2].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte b)
+                )
                 {
                     SetRgb(r, g, b);
                 }
@@ -319,7 +335,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            SetHsl((int)Math.Round(Fraction(x / width) * 360.0), (int)Math.Round((1.0 - Fraction(y / height)) * 100.0), _luminance);
+            SetHsl(
+                (int)Math.Round(Fraction(x / width) * 360.0),
+                (int)Math.Round((1.0 - Fraction(y / height)) * 100.0),
+                _luminance
+            );
         }
 
         /// <summary>
@@ -381,10 +401,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (color.IsByColor)
             {
-                return color.Red.ToString(CultureInfo.InvariantCulture) + "," + color.Green.ToString(CultureInfo.InvariantCulture) + "," + color.Blue.ToString(CultureInfo.InvariantCulture);
+                return color.Red.ToString(CultureInfo.InvariantCulture)
+                    + ","
+                    + color.Green.ToString(CultureInfo.InvariantCulture)
+                    + ","
+                    + color.Blue.ToString(CultureInfo.InvariantCulture);
             }
 
-            return color.ColorIndex >= 1 && color.ColorIndex <= 7 ? Names[color.ColorIndex] : color.ColorIndex.ToString(CultureInfo.InvariantCulture);
+            return color.ColorIndex >= 1 && color.ColorIndex <= 7
+                ? Names[color.ColorIndex]
+                : color.ColorIndex.ToString(CultureInfo.InvariantCulture);
         }
 
         /// <summary>A colour as Properties and the Color box write it: ByLayer, ByBlock, Red to White, 1 to 255, or 10,20,30.</summary>
@@ -401,7 +427,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 color = DxfColor.ByBlock;
             }
-            else if (Array.FindIndex(Names, n => string.Equals(n, typed, StringComparison.OrdinalIgnoreCase)) is int named && named > 0)
+            else if (
+                Array.FindIndex(Names, n => string.Equals(n, typed, StringComparison.OrdinalIgnoreCase)) is int named
+                && named > 0
+            )
             {
                 color = DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)named);
             }
@@ -413,9 +442,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 string[] parts = typed.Split(',');
 
-                if (parts.Length == 3 && byte.TryParse(parts[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte r)
+                if (
+                    parts.Length == 3
+                    && byte.TryParse(parts[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte r)
                     && byte.TryParse(parts[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte g)
-                    && byte.TryParse(parts[2].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte b))
+                    && byte.TryParse(parts[2].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte b)
+                )
                 {
                     color = DxfColor.FromRgb(r, g, b);
                 }
@@ -431,14 +463,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return Text(color);
             }
 
-            return color.IsByColor ? "Red, Green, Blue: " + Text(color) : "Index color: " + color.ColorIndex.ToString(CultureInfo.InvariantCulture);
+            return color.IsByColor
+                ? "Red, Green, Blue: " + Text(color)
+                : "Index color: " + color.ColorIndex.ToString(CultureInfo.InvariantCulture);
         }
 
-        private static int Swatch(DxfColor color) => color.IsByLayer || color.IsByBlock ? 0xFFFFFF : color.ColorValue & 0xFFFFFF;
+        private static int Swatch(DxfColor color) =>
+            color.IsByLayer || color.IsByBlock ? 0xFFFFFF : color.ColorValue & 0xFFFFFF;
 
         private static int Clamp(int value, int min, int max) => Math.Max(min, Math.Min(max, value));
 
-        private static DxfColor Rgb(int red, int green, int blue) => DxfColor.FromRgb((byte)Clamp(red, 0, 255), (byte)Clamp(green, 0, 255), (byte)Clamp(blue, 0, 255));
+        private static DxfColor Rgb(int red, int green, int blue) =>
+            DxfColor.FromRgb((byte)Clamp(red, 0, 255), (byte)Clamp(green, 0, 255), (byte)Clamp(blue, 0, 255));
 
         /// <summary>
         /// The true colour of a red, a green and a blue typed; the same as shown is left alone, so that a box or a slider giving
@@ -492,10 +528,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double c = (1.0 - Math.Abs(2.0 * l - 1.0)) * (saturation / 100.0);
             double x = c * (1.0 - Math.Abs(h % 2.0 - 1.0));
             double m = l - c / 2.0;
-            double r = h < 1 ? c : h < 2 ? x : h < 4 ? 0.0 : h < 5 ? x : c;
-            double g = h < 1 ? x : h < 3 ? c : h < 4 ? x : 0.0;
-            double b = h < 2 ? 0.0 : h < 3 ? x : h < 5 ? c : x;
-            return (Clamp((int)Math.Round((r + m) * 255.0), 0, 255) << 16) | (Clamp((int)Math.Round((g + m) * 255.0), 0, 255) << 8) | Clamp((int)Math.Round((b + m) * 255.0), 0, 255);
+            double r =
+                h < 1 ? c
+                : h < 2 ? x
+                : h < 4 ? 0.0
+                : h < 5 ? x
+                : c;
+            double g =
+                h < 1 ? x
+                : h < 3 ? c
+                : h < 4 ? x
+                : 0.0;
+            double b =
+                h < 2 ? 0.0
+                : h < 3 ? x
+                : h < 5 ? c
+                : x;
+            return (Clamp((int)Math.Round((r + m) * 255.0), 0, 255) << 16)
+                | (Clamp((int)Math.Round((g + m) * 255.0), 0, 255) << 8)
+                | Clamp((int)Math.Round((b + m) * 255.0), 0, 255);
         }
 
         /// <summary>Makes a colour the one chosen and shows it on both tabs; the hue, saturation and luminance kept where they were typed.</summary>
@@ -518,7 +569,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     double min = Math.Min(r, Math.Min(g, b));
                     double delta = max - min;
                     double l = (max + min) / 2.0;
-                    double hue = delta <= 0.0 ? 0.0 : max == r ? 60.0 * (((g - b) / delta % 6.0 + 6.0) % 6.0) : max == g ? 60.0 * ((b - r) / delta + 2.0) : 60.0 * ((r - g) / delta + 4.0);
+                    double hue =
+                        delta <= 0.0 ? 0.0
+                        : max == r ? 60.0 * (((g - b) / delta % 6.0 + 6.0) % 6.0)
+                        : max == g ? 60.0 * ((b - r) / delta + 2.0)
+                        : 60.0 * ((r - g) / delta + 4.0);
                     _hue = (int)Math.Round(hue) % 360;
                     _saturation = delta <= 0.0 ? 0 : (int)Math.Round(100.0 * delta / (1.0 - Math.Abs(2.0 * l - 1.0)));
                     _luminance = (int)Math.Round(100.0 * l);
@@ -530,9 +585,33 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 swatch.IsSelected = color.IsByAci && swatch.Index == color.ColorIndex;
             }
 
-            foreach (string name in new[] { nameof(Color), nameof(ColorRgb), nameof(ColorText), nameof(ColorBoxText), nameof(Red), nameof(Green), nameof(Blue), nameof(Hue), nameof(Saturation), nameof(Luminance), nameof(Hex),
-                nameof(TrueColorText), nameof(HueAcross), nameof(SaturationDown), nameof(LuminanceDown), nameof(RedAlong), nameof(GreenAlong), nameof(BlueAlong),
-                nameof(LuminanceBar), nameof(RedBar), nameof(GreenBar), nameof(BlueBar) })
+            foreach (
+                string name in new[]
+                {
+                    nameof(Color),
+                    nameof(ColorRgb),
+                    nameof(ColorText),
+                    nameof(ColorBoxText),
+                    nameof(Red),
+                    nameof(Green),
+                    nameof(Blue),
+                    nameof(Hue),
+                    nameof(Saturation),
+                    nameof(Luminance),
+                    nameof(Hex),
+                    nameof(TrueColorText),
+                    nameof(HueAcross),
+                    nameof(SaturationDown),
+                    nameof(LuminanceDown),
+                    nameof(RedAlong),
+                    nameof(GreenAlong),
+                    nameof(BlueAlong),
+                    nameof(LuminanceBar),
+                    nameof(RedBar),
+                    nameof(GreenBar),
+                    nameof(BlueBar),
+                }
+            )
             {
                 Raise(name);
             }
@@ -557,8 +636,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public int Rgb { get; }
 
         /// <summary>Gets what hovering shows: "Index color: 30 · 255,127,0".</summary>
-        public string ToolTip => "Index color: " + Index.ToString(CultureInfo.InvariantCulture) + " · " + ((Rgb >> 16) & 0xFF).ToString(CultureInfo.InvariantCulture) + ","
-            + ((Rgb >> 8) & 0xFF).ToString(CultureInfo.InvariantCulture) + "," + (Rgb & 0xFF).ToString(CultureInfo.InvariantCulture);
+        public string ToolTip =>
+            "Index color: "
+            + Index.ToString(CultureInfo.InvariantCulture)
+            + " · "
+            + ((Rgb >> 16) & 0xFF).ToString(CultureInfo.InvariantCulture)
+            + ","
+            + ((Rgb >> 8) & 0xFF).ToString(CultureInfo.InvariantCulture)
+            + ","
+            + (Rgb & 0xFF).ToString(CultureInfo.InvariantCulture);
 
         /// <summary>Gets whether it is the colour chosen, drawn with a white frame.</summary>
         public bool IsSelected

@@ -21,10 +21,15 @@ namespace GeometryHelper.Dxf.Viewer
     /// </remarks>
     public static class CadDimStyleEditor
     {
-        private static readonly Lazy<IReadOnlyList<PropertyInfo>> StyleProperties = new Lazy<IReadOnlyList<PropertyInfo>>(() => PropertiesOf(typeof(DxfDimStyleTableRecord)));
+        private static readonly Lazy<IReadOnlyList<PropertyInfo>> StyleProperties = new Lazy<
+            IReadOnlyList<PropertyInfo>
+        >(() => PropertiesOf(typeof(DxfDimStyleTableRecord)));
 
-        private static readonly Lazy<IReadOnlyList<PropertyInfo>> DimensionProperties = new Lazy<IReadOnlyList<PropertyInfo>>(
-            () => PropertiesOf(typeof(DxfDimension)).Where(p => StyleProperties.Value.Any(s => s.Name == p.Name)).ToList());
+        private static readonly Lazy<IReadOnlyList<PropertyInfo>> DimensionProperties = new Lazy<
+            IReadOnlyList<PropertyInfo>
+        >(() =>
+            PropertiesOf(typeof(DxfDimension)).Where(p => StyleProperties.Value.Any(s => s.Name == p.Name)).ToList()
+        );
 
         /// <summary>Gets the names of the variables a style has, as the library names them, in ordinal order: Dimadec to Dimzin.</summary>
         public static IReadOnlyList<string> VariableNames => StyleProperties.Value.Select(p => p.Name).ToList();
@@ -50,7 +55,9 @@ namespace GeometryHelper.Dxf.Viewer
                 return database.DimStyleTable[name].Name;
             }
 
-            return database.DimStyleTable.Has("Standard") ? database.DimStyleTable["Standard"].Name : database.DimStyleTable.Select(s => s.Name).FirstOrDefault();
+            return database.DimStyleTable.Has("Standard")
+                ? database.DimStyleTable["Standard"].Name
+                : database.DimStyleTable.Select(s => s.Name).FirstOrDefault();
         }
 
         /// <summary>
@@ -59,13 +66,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         /// <param name="database">The drawing.</param>
         /// <returns>The styles.</returns>
-        public static IReadOnlyList<DxfDimStyleTableRecord> Styles(DxfDatabase database)
-            => database.DimStyleTable.Where(s => !string.IsNullOrEmpty(s.Name) && s.Name.IndexOf('$') < 0).ToList();
+        public static IReadOnlyList<DxfDimStyleTableRecord> Styles(DxfDatabase database) =>
+            database.DimStyleTable.Where(s => !string.IsNullOrEmpty(s.Name) && s.Name.IndexOf('$') < 0).ToList();
 
         /// <summary>Gets whether a style is one a model drawing makes (its name starting GH_MODEL), which an update makes again from the drawing settings.</summary>
         /// <param name="name">The style's name.</param>
         /// <returns>True for GH_MODEL_10 and its like.</returns>
-        public static bool IsModelStyle(string name) => name != null && name.StartsWith("GH_MODEL", StringComparison.OrdinalIgnoreCase);
+        public static bool IsModelStyle(string name) =>
+            name != null && name.StartsWith("GH_MODEL", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>Reads the variables of a style, or of the dimension style data a dimension or the header gives, by their names.</summary>
         /// <param name="style">The style.</param>
@@ -85,7 +93,10 @@ namespace GeometryHelper.Dxf.Viewer
                 try
                 {
                     object value = Named(property.GetValue(style));
-                    values[property.Name] = value == null && property.PropertyType == typeof(DxfBlockTableRecord) ? CadArrowheads.ClosedFilled : value;
+                    values[property.Name] =
+                        value == null && property.PropertyType == typeof(DxfBlockTableRecord)
+                            ? CadArrowheads.ClosedFilled
+                            : value;
                 }
                 catch (TargetInvocationException)
                 {
@@ -103,7 +114,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="first">The values of one style.</param>
         /// <param name="second">The values of the other.</param>
         /// <returns>The differences: the name, the first's value, the second's.</returns>
-        public static IReadOnlyList<KeyValuePair<string, string[]>> Compare(IDictionary<string, object> first, IDictionary<string, object> second)
+        public static IReadOnlyList<KeyValuePair<string, string[]>> Compare(
+            IDictionary<string, object> first,
+            IDictionary<string, object> second
+        )
         {
             var differences = new List<KeyValuePair<string, string[]>>();
 
@@ -159,11 +173,15 @@ namespace GeometryHelper.Dxf.Viewer
 
             string set = style.Name;
             string old = Current(document.Database);
-            return document.ApplyEdit("DIMSTYLE", new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$DIMSTYLE", old, set) }, s =>
-            {
-                s.Database.Dimstyle = set;
-                s.Database.SetDimstyleData(s.Database.DimStyleTable[set]);
-            });
+            return document.ApplyEdit(
+                "DIMSTYLE",
+                new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$DIMSTYLE", old, set) },
+                s =>
+                {
+                    s.Database.Dimstyle = set;
+                    s.Database.SetDimstyleData(s.Database.DimStyleTable[set]);
+                }
+            );
         }
 
         /// <summary>Adds a style, as the Manager's New: a copy of another's variables (Start With), under a name no style of the drawing has.</summary>
@@ -172,7 +190,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="from">The style it starts with.</param>
         /// <param name="values">The variables it is given over those it starts with, as the New dialog's Continue sets them; null for none.</param>
         /// <returns>What came of it.</returns>
-        public static CadEditResult Add(CadDocument document, string name, string from, IDictionary<string, object> values)
+        public static CadEditResult Add(
+            CadDocument document,
+            string name,
+            string from,
+            IDictionary<string, object> values
+        )
         {
             DxfDimStyleTableRecord source = Find(document, from, out CadEditResult refused);
 
@@ -200,11 +223,15 @@ namespace GeometryHelper.Dxf.Viewer
                 start[value.Key] = value.Value;
             }
 
-            return document.ApplyEdit("DIMSTYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New dimension style", null, trimmed) }, s =>
-            {
-                s.Database.DimStyleTable.Add(new DxfDimStyleTableRecord { Name = trimmed });
-                Write(s.Database, s.Database.DimStyleTable[trimmed], start);
-            });
+            return document.ApplyEdit(
+                "DIMSTYLE",
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New dimension style", null, trimmed) },
+                s =>
+                {
+                    s.Database.DimStyleTable.Add(new DxfDimStyleTableRecord { Name = trimmed });
+                    Write(s.Database, s.Database.DimStyleTable[trimmed], start);
+                }
+            );
         }
 
         /// <summary>
@@ -231,28 +258,35 @@ namespace GeometryHelper.Dxf.Viewer
 
             SortedDictionary<string, object> now = Read(style);
 
-            if (Compare(now, values.Where(v => now.ContainsKey(v.Key)).ToDictionary(v => v.Key, v => v.Value)).Count == 0)
+            if (
+                Compare(now, values.Where(v => now.ContainsKey(v.Key)).ToDictionary(v => v.Key, v => v.Value)).Count
+                == 0
+            )
             {
                 return CadEditResult.Done(Array.Empty<CadEditRecord>());
             }
 
             string set = style.Name;
             bool current = string.Equals(set, Current(document.Database), StringComparison.OrdinalIgnoreCase);
-            return document.ApplyEdit("DIMSTYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Dimension style " + set, null, null) }, s =>
-            {
-                DxfDimStyleTableRecord target = s.Database.DimStyleTable[set];
-                Write(s.Database, target, values);
-
-                if (current)
+            return document.ApplyEdit(
+                "DIMSTYLE",
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Dimension style " + set, null, null) },
+                s =>
                 {
-                    s.Database.SetDimstyleData(target);
-                }
+                    DxfDimStyleTableRecord target = s.Database.DimStyleTable[set];
+                    Write(s.Database, target, values);
 
-                foreach (DxfDimension dimension in Dimensions(s.Document, d => IsDrawnIn(d, set)))
-                {
-                    CadCommands.Redraw(dimension);
+                    if (current)
+                    {
+                        s.Database.SetDimstyleData(target);
+                    }
+
+                    foreach (DxfDimension dimension in Dimensions(s.Document, d => IsDrawnIn(d, set)))
+                    {
+                        CadCommands.Redraw(dimension);
+                    }
                 }
-            });
+            );
         }
 
         /// <summary>
@@ -264,21 +298,38 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="handles">The dimensions.</param>
         /// <param name="values">The variables that differ from their style, by name.</param>
         /// <returns>What came of it; refused where no dimension is given.</returns>
-        public static CadEditResult Override(CadDocument document, IReadOnlyCollection<string> handles, IDictionary<string, object> values)
+        public static CadEditResult Override(
+            CadDocument document,
+            IReadOnlyCollection<string> handles,
+            IDictionary<string, object> values
+        )
         {
             if (document == null)
             {
                 throw new ArgumentNullException(nameof(document));
             }
 
-            List<string> dimensions = (handles ?? Array.Empty<string>()).Where(h => document.FindEntity(h) is DxfDimension).OrderBy(h => h, StringComparer.Ordinal).ToList();
+            List<string> dimensions = (handles ?? Array.Empty<string>())
+                .Where(h => document.FindEntity(h) is DxfDimension)
+                .OrderBy(h => h, StringComparer.Ordinal)
+                .ToList();
 
             if (dimensions.Count == 0)
             {
-                return CadEditResult.Refuse("Select the dimensions to override first: an override is written into each dimension selected.");
+                return CadEditResult.Refuse(
+                    "Select the dimensions to override first: an override is written into each dimension selected."
+                );
             }
 
-            var planned = dimensions.Select(h => new CadEditRecord(CadEditRecordKind.PropertyChanged, h, "Dimension style overrides", null, null)).ToArray();
+            var planned = dimensions
+                .Select(h => new CadEditRecord(
+                    CadEditRecordKind.PropertyChanged,
+                    h,
+                    "Dimension style overrides",
+                    null,
+                    null
+                ))
+                .ToArray();
             return document.ApplyEdit("DIMOVERRIDE", planned, s =>
             {
                 foreach (string handle in dimensions)
@@ -314,7 +365,10 @@ namespace GeometryHelper.Dxf.Viewer
                 try
                 {
                     object value = Named(property.GetValue(from));
-                    values[property.Name] = value == null && property.PropertyType == typeof(DxfBlockTableRecord) ? CadArrowheads.ClosedFilled : value;
+                    values[property.Name] =
+                        value == null && property.PropertyType == typeof(DxfBlockTableRecord)
+                            ? CadArrowheads.ClosedFilled
+                            : value;
                 }
                 catch (TargetInvocationException)
                 {
@@ -350,7 +404,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             string set = style.Name;
 
-            if (string.Equals(set, "Standard", StringComparison.OrdinalIgnoreCase) || string.Equals(set, Current(document.Database), StringComparison.OrdinalIgnoreCase))
+            if (
+                string.Equals(set, "Standard", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(set, Current(document.Database), StringComparison.OrdinalIgnoreCase)
+            )
             {
                 return CadEditResult.Refuse("Standard and the current style cannot be deleted.");
             }
@@ -359,10 +416,21 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (uses > 0)
             {
-                return CadEditResult.Refuse("Style \"" + set + "\" is in use by " + uses + (uses == 1 ? " dimension" : " dimensions") + ", and cannot be deleted.");
+                return CadEditResult.Refuse(
+                    "Style \""
+                        + set
+                        + "\" is in use by "
+                        + uses
+                        + (uses == 1 ? " dimension" : " dimensions")
+                        + ", and cannot be deleted."
+                );
             }
 
-            return document.ApplyEdit("DIMSTYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Delete dimension style", set, null) }, s => s.Database.DimStyleTable[set].Erase());
+            return document.ApplyEdit(
+                "DIMSTYLE",
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Delete dimension style", set, null) },
+                s => s.Database.DimStyleTable[set].Erase()
+            );
         }
 
         /// <summary>Renames a style with the dimensions drawn in it, as the Manager's Rename; Standard keeps its name.</summary>
@@ -392,19 +460,30 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse("A dimension style needs a name, with no $ in it.");
             }
 
-            if (!string.Equals(trimmed, set, StringComparison.OrdinalIgnoreCase) && document.Database.DimStyleTable.Has(trimmed))
+            if (
+                !string.Equals(trimmed, set, StringComparison.OrdinalIgnoreCase)
+                && document.Database.DimStyleTable.Has(trimmed)
+            )
             {
                 return CadEditResult.Refuse("Dimension style \"" + trimmed + "\" already exists.");
             }
 
-            return document.ApplyEdit("DIMSTYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Rename dimension style", set, trimmed) }, s => s.Database.DimStyleTable[set].Name = trimmed);
+            return document.ApplyEdit(
+                "DIMSTYLE",
+                new[]
+                {
+                    new CadEditRecord(CadEditRecordKind.TableChanged, null, "Rename dimension style", set, trimmed),
+                },
+                s => s.Database.DimStyleTable[set].Name = trimmed
+            );
         }
 
         /// <summary>Gets how many dimensions are drawn in a style, or in a style AutoCAD keeps for one kind of them (ISO-25$0), in every space and block.</summary>
         /// <param name="document">The document.</param>
         /// <param name="name">The style's name.</param>
         /// <returns>The number.</returns>
-        public static int CountUses(CadDocument document, string name) => Dimensions(document, d => IsDrawnIn(d, name)).Count;
+        public static int CountUses(CadDocument document, string name) =>
+            Dimensions(document, d => IsDrawnIn(d, name)).Count;
 
         /// <summary>
         /// Makes the sample dimensions of the Manager's preview: a drawing of its own holding the style's variables (the text
@@ -423,25 +502,56 @@ namespace GeometryHelper.Dxf.Viewer
 
             var database = new DxfDatabase("AC1027");
 
-            if (values.TryGetValue("Dimtxsty", out object textStyle) && textStyle is string styleName && source.TextStyleTable.Has(styleName) && !database.TextStyleTable.Has(styleName))
+            if (
+                values.TryGetValue("Dimtxsty", out object textStyle)
+                && textStyle is string styleName
+                && source.TextStyleTable.Has(styleName)
+                && !database.TextStyleTable.Has(styleName)
+            )
             {
                 DxfTextStyleTableRecord from = source.TextStyleTable[styleName];
-                database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = from.Name, FileName = from.FileName, BigFontFileName = from.BigFontFileName, XScale = from.XScale, ObliquingAngle = from.ObliquingAngle });
+                database.TextStyleTable.Add(
+                    new DxfTextStyleTableRecord
+                    {
+                        Name = from.Name,
+                        FileName = from.FileName,
+                        BigFontFileName = from.BigFontFileName,
+                        XScale = from.XScale,
+                        ObliquingAngle = from.ObliquingAngle,
+                    }
+                );
                 database.TextStyleTable[from.Name].Font = from.Font;
             }
 
             var copy = new DxfDimStyleTableRecord { Name = "Preview" };
             database.DimStyleTable.Add(copy);
-            Write(database, database.DimStyleTable["Preview"], values.Where(v => !v.Key.StartsWith("Dimltype", StringComparison.Ordinal) && !v.Key.StartsWith("Dimltex", StringComparison.Ordinal)).ToDictionary(v => v.Key, v => v.Value));
+            Write(
+                database,
+                database.DimStyleTable["Preview"],
+                values
+                    .Where(v =>
+                        !v.Key.StartsWith("Dimltype", StringComparison.Ordinal)
+                        && !v.Key.StartsWith("Dimltex", StringComparison.Ordinal)
+                    )
+                    .ToDictionary(v => v.Key, v => v.Value)
+            );
             CadCommands.DrawSamples(database, database.DimStyleTable["Preview"]);
             return database;
         }
 
         /// <summary>Writes variables into a style of a drawing, each that differs, a name of an arrowhead, text style or linetype taken to its record there.</summary>
-        internal static void Write(DxfDatabase database, DxfDimStyleTableRecord style, IDictionary<string, object> values)
-            => SetAll(database, StyleProperties.Value, style, values);
+        internal static void Write(
+            DxfDatabase database,
+            DxfDimStyleTableRecord style,
+            IDictionary<string, object> values
+        ) => SetAll(database, StyleProperties.Value, style, values);
 
-        private static void SetAll(DxfDatabase database, IReadOnlyList<PropertyInfo> properties, object target, IDictionary<string, object> values)
+        private static void SetAll(
+            DxfDatabase database,
+            IReadOnlyList<PropertyInfo> properties,
+            object target,
+            IDictionary<string, object> values
+        )
         {
             foreach (PropertyInfo property in properties)
             {
@@ -455,7 +565,10 @@ namespace GeometryHelper.Dxf.Viewer
                 try
                 {
                     now = Named(property.GetValue(target));
-                    now = now == null && property.PropertyType == typeof(DxfBlockTableRecord) ? CadArrowheads.ClosedFilled : now;
+                    now =
+                        now == null && property.PropertyType == typeof(DxfBlockTableRecord)
+                            ? CadArrowheads.ClosedFilled
+                            : now;
                 }
                 catch (TargetInvocationException)
                 {
@@ -488,12 +601,16 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (type == typeof(DxfTextStyleTableRecord))
             {
-                return value is string style && database.TextStyleTable.Has(style) ? database.TextStyleTable[style] : null;
+                return value is string style && database.TextStyleTable.Has(style)
+                    ? database.TextStyleTable[style]
+                    : null;
             }
 
             if (type == typeof(DxfLinetypeTableRecord))
             {
-                return value is string linetype && database.LinetypeTable.Has(linetype) ? database.LinetypeTable[linetype] : null;
+                return value is string linetype && database.LinetypeTable.Has(linetype)
+                    ? database.LinetypeTable[linetype]
+                    : null;
             }
 
             return value;
@@ -518,7 +635,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             string name = dimension.DimensionStyleName ?? string.Empty;
             return string.Equals(name, style, StringComparison.OrdinalIgnoreCase)
-                || (name.Length > style.Length + 1 && name.StartsWith(style, StringComparison.OrdinalIgnoreCase) && name[style.Length] == '$');
+                || (
+                    name.Length > style.Length + 1
+                    && name.StartsWith(style, StringComparison.OrdinalIgnoreCase)
+                    && name[style.Length] == '$'
+                );
         }
 
         /// <summary>The dimensions of every space and block a test takes, those an owner keeps left out, in the order of the blocks.</summary>
@@ -530,7 +651,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 foreach (DxfEntity entity in block)
                 {
-                    if (entity is DxfDimension dimension && test(dimension) && document.Owners.GetEditRule(dimension) == CadEditRule.Free)
+                    if (
+                        entity is DxfDimension dimension
+                        && test(dimension)
+                        && document.Owners.GetEditRule(dimension) == CadEditRule.Free
+                    )
                     {
                         found.Add(dimension);
                     }
@@ -540,10 +665,17 @@ namespace GeometryHelper.Dxf.Viewer
             return found;
         }
 
-        private static IReadOnlyList<PropertyInfo> PropertiesOf(Type type)
-            => type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(p => p.Name.StartsWith("Dim", StringComparison.Ordinal) && !p.Name.StartsWith("Dimension", StringComparison.Ordinal) && p.Name != "DimBlock" && p.Name != "DimBlockPosition"
-                    && p.CanRead && p.CanWrite && p.GetIndexParameters().Length == 0)
+        private static IReadOnlyList<PropertyInfo> PropertiesOf(Type type) =>
+            type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p =>
+                    p.Name.StartsWith("Dim", StringComparison.Ordinal)
+                    && !p.Name.StartsWith("Dimension", StringComparison.Ordinal)
+                    && p.Name != "DimBlock"
+                    && p.Name != "DimBlockPosition"
+                    && p.CanRead
+                    && p.CanWrite
+                    && p.GetIndexParameters().Length == 0
+                )
                 .OrderBy(p => p.Name, StringComparer.Ordinal)
                 .ToList();
 

@@ -1,9 +1,16 @@
-<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.DirectionControlWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Direction Control" Width="360" Height="360" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" Background="#262B33">
-
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.DirectionControlWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Direction Control"
+    Width="360"
+    Height="360"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -18,21 +25,58 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
-            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
-            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
         <DockPanel>
-            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
-                    <TextBlock Text="Direction Control" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock
+                        Text="Direction Control"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"
+                    />
                 </DockPanel>
             </Border>
 
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Click="OnCancel" IsCancel="True" />
-                    <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Click="OnOk" IsDefault="True" />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Cancel"
+                        Padding="14,5"
+                        Margin="0,0,8,0"
+                        Click="OnCancel"
+                        IsCancel="True"
+                    />
+                    <Button
+                        Style="{StaticResource StylePrimaryButton}"
+                        Content="OK"
+                        Padding="14,5"
+                        Click="OnOk"
+                        IsDefault="True"
+                    />
                 </StackPanel>
             </Border>
 
@@ -51,26 +95,93 @@
                             <RowDefinition Height="24" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <RadioButton Style="{StaticResource BlockRadio}" GroupName="Base" Content="East" IsChecked="{Binding East, Mode=TwoWay}" VerticalAlignment="Center" />
+                        <RadioButton
+                            Style="{StaticResource BlockRadio}"
+                            GroupName="Base"
+                            Content="East"
+                            IsChecked="{Binding East, Mode=TwoWay}"
+                            VerticalAlignment="Center"
+                        />
                         <TextBlock Grid.Column="1" Style="{StaticResource Degrees}" Text="0" />
-                        <RadioButton Grid.Row="1" Style="{StaticResource BlockRadio}" GroupName="Base" Content="North" IsChecked="{Binding North, Mode=TwoWay}" VerticalAlignment="Center" />
+                        <RadioButton
+                            Grid.Row="1"
+                            Style="{StaticResource BlockRadio}"
+                            GroupName="Base"
+                            Content="North"
+                            IsChecked="{Binding North, Mode=TwoWay}"
+                            VerticalAlignment="Center"
+                        />
                         <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Degrees}" Text="90" />
-                        <RadioButton Grid.Row="2" Style="{StaticResource BlockRadio}" GroupName="Base" Content="West" IsChecked="{Binding West, Mode=TwoWay}" VerticalAlignment="Center" />
+                        <RadioButton
+                            Grid.Row="2"
+                            Style="{StaticResource BlockRadio}"
+                            GroupName="Base"
+                            Content="West"
+                            IsChecked="{Binding West, Mode=TwoWay}"
+                            VerticalAlignment="Center"
+                        />
                         <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource Degrees}" Text="180" />
-                        <RadioButton Grid.Row="3" Style="{StaticResource BlockRadio}" GroupName="Base" Content="South" IsChecked="{Binding South, Mode=TwoWay}" VerticalAlignment="Center" />
+                        <RadioButton
+                            Grid.Row="3"
+                            Style="{StaticResource BlockRadio}"
+                            GroupName="Base"
+                            Content="South"
+                            IsChecked="{Binding South, Mode=TwoWay}"
+                            VerticalAlignment="Center"
+                        />
                         <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource Degrees}" Text="270" />
-                        <RadioButton Grid.Row="4" Style="{StaticResource BlockRadio}" GroupName="Base" Content="Other" IsChecked="{Binding Other, Mode=TwoWay}" VerticalAlignment="Center" />
-                        <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="18,4,0,0" IsEnabled="{Binding Other}">
-                            <TextBlock Text="Angle:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" Margin="0,0,6,0" />
-                            <TextBox Style="{StaticResource BlockNumber}" Width="90" Text="{Binding Angle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Angle" />
-                            <Button Style="{StaticResource BlockPickButton}" Margin="6,0,0,0" Click="OnPick" ToolTip="Pick an angle" AutomationProperties.Name="Pick an angle">
-                                <Path Data="M4 20h16M4 20l12-12" Stroke="{StaticResource GhText}" StrokeThickness="1.6" Width="14" Height="14" Stretch="Uniform" />
+                        <RadioButton
+                            Grid.Row="4"
+                            Style="{StaticResource BlockRadio}"
+                            GroupName="Base"
+                            Content="Other"
+                            IsChecked="{Binding Other, Mode=TwoWay}"
+                            VerticalAlignment="Center"
+                        />
+                        <StackPanel
+                            Grid.Row="5"
+                            Grid.ColumnSpan="2"
+                            Orientation="Horizontal"
+                            Margin="18,4,0,0"
+                            IsEnabled="{Binding Other}"
+                        >
+                            <TextBlock
+                                Text="Angle:"
+                                Foreground="{StaticResource GhTextMuted}"
+                                VerticalAlignment="Center"
+                                Margin="0,0,6,0"
+                            />
+                            <TextBox
+                                Style="{StaticResource BlockNumber}"
+                                Width="90"
+                                Text="{Binding Angle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                AutomationProperties.Name="Angle"
+                            />
+                            <Button
+                                Style="{StaticResource BlockPickButton}"
+                                Margin="6,0,0,0"
+                                Click="OnPick"
+                                ToolTip="Pick an angle"
+                                AutomationProperties.Name="Pick an angle"
+                            >
+                                <Path
+                                    Data="M4 20h16M4 20l12-12"
+                                    Stroke="{StaticResource GhText}"
+                                    StrokeThickness="1.6"
+                                    Width="14"
+                                    Height="14"
+                                    Stretch="Uniform"
+                                />
                             </Button>
                         </StackPanel>
                     </Grid>
                 </HeaderedContentControl>
-                <TextBlock Margin="0,10,0,0" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap"
-                           Text="ANGBASE. Angle and the pick button open only with Other; the pick hides the dialog and asks for two points." />
+                <TextBlock
+                    Margin="0,10,0,0"
+                    Foreground="{StaticResource GhTextMuted}"
+                    TextWrapping="Wrap"
+                    Text="ANGBASE. Angle and the pick button open only with Other; the pick hides the dialog and asks for two points."
+                />
             </StackPanel>
         </DockPanel>
     </Border>

@@ -102,7 +102,17 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            GeometryHelperLog.Info("DxfFile: " + Number(_starts.Length) + " records opened from " + source + ", " + Number(length) + " bytes, version " + (Version ?? "not given") + (warnings.Count > 0 ? ": " + string.Join(" ", warnings) : "."));
+            GeometryHelperLog.Info(
+                "DxfFile: "
+                    + Number(_starts.Length)
+                    + " records opened from "
+                    + source
+                    + ", "
+                    + Number(length)
+                    + " bytes, version "
+                    + (Version ?? "not given")
+                    + (warnings.Count > 0 ? ": " + string.Join(" ", warnings) : ".")
+            );
         }
 
         #region Opening and saving
@@ -405,7 +415,9 @@ namespace GeometryHelper.Dxf
                 return new List<Rec> { RecordAt(item.Parent, item.Index) };
             }
 
-            return item.Piece != null ? new List<Rec>(item.Piece.Records) : Current(item.First, item.First + item.Count);
+            return item.Piece != null
+                ? new List<Rec>(item.Piece.Records)
+                : Current(item.First, item.First + item.Count);
         }
 
         /// <summary>One record of an entity as it stands, its own (0) or one that follows it, read without copying the others.</summary>
@@ -421,7 +433,9 @@ namespace GeometryHelper.Dxf
                 return item.Piece.Records[index];
             }
 
-            return _slots?[item.First] == null ? Original(item.First + index) : Current(item.First, item.First + item.Count)[index];
+            return _slots?[item.First] == null
+                ? Original(item.First + index)
+                : Current(item.First, item.First + item.Count)[index];
         }
 
         /// <summary>The first record of an entity as it stands, its own, which holds its look.</summary>
@@ -570,7 +584,18 @@ namespace GeometryHelper.Dxf
 
             while (walk.Next(out int code, out int start, out int end))
             {
-                if ((code == 5 || code == 105 || code == 8 || code == 6 || code == 39 || code == 62 || code == 370 || code == 420) && !values.ContainsKey(code))
+                if (
+                    (
+                        code == 5
+                        || code == 105
+                        || code == 8
+                        || code == 6
+                        || code == 39
+                        || code == 62
+                        || code == 370
+                        || code == 420
+                    ) && !values.ContainsKey(code)
+                )
                 {
                     values.Add(code, Text(record, start, end));
                 }
@@ -578,11 +603,20 @@ namespace GeometryHelper.Dxf
 
             string Value(int code) => values.TryGetValue(code, out string value) ? value : null;
 
-            int? Whole(int code) => values.TryGetValue(code, out string value) && int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) ? number : (int?)null;
+            int? Whole(int code) =>
+                values.TryGetValue(code, out string value)
+                && int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int number)
+                    ? number
+                    : (int?)null;
 
             // A DIMSTYLE gives its handle as 105: its 5 is the name of its arrow block in a file of R12.
             string handle = (record.Type == "DIMSTYLE" ? Value(105) : Value(5))?.Trim();
-            double thickness = values.TryGetValue(39, out string raised) && Numbers.TryRead(raised, out double read) && Guard.IsFinite(read) ? read : 0.0;
+            double thickness =
+                values.TryGetValue(39, out string raised)
+                && Numbers.TryRead(raised, out double read)
+                && Guard.IsFinite(read)
+                    ? read
+                    : 0.0;
 
             return new Look
             {
@@ -614,8 +648,14 @@ namespace GeometryHelper.Dxf
         /// <see cref="DxfReader.ShapesOf(DxfReader.Record, Tolerance, bool, bool?, bool, out string)"/> reads them; the reason
         /// where there are none.
         /// </summary>
-        internal List<object> ShapesOf(DxfItem item, Tolerance tolerance, bool planAs2D, bool? loop, bool arcs, out string why)
-            => DxfReader.ShapesOf(Records(item), tolerance, planAs2D, loop, arcs, out why);
+        internal List<object> ShapesOf(
+            DxfItem item,
+            Tolerance tolerance,
+            bool planAs2D,
+            bool? loop,
+            bool arcs,
+            out string why
+        ) => DxfReader.ShapesOf(Records(item), tolerance, planAs2D, loop, arcs, out why);
 
         /// <summary>
         /// The record of an INSERT as it is placed: a copy in no file names the block it was copied with by that block's name
@@ -637,7 +677,15 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            return WithGroup(head, 2, block.Name, false, out Rec named) && !string.Equals(DxfReader.NameOf(ValueOf(item, 2, true) ?? string.Empty), block.Name, StringComparison.Ordinal) ? named : head;
+            return
+                WithGroup(head, 2, block.Name, false, out Rec named)
+                && !string.Equals(
+                    DxfReader.NameOf(ValueOf(item, 2, true) ?? string.Empty),
+                    block.Name,
+                    StringComparison.Ordinal
+                )
+                ? named
+                : head;
         }
 
         /// <summary>What the reader places of an INSERT, with the layer table and the blocks of the file.</summary>
@@ -646,13 +694,22 @@ namespace GeometryHelper.Dxf
             // A copy in no file places its block as the drawing it was copied from has it now, edits and all: by that
             // drawing's placing, not by one of the bytes it was read from.
             DxfFile placer = _detached && _origin != null && _origin != Template ? _origin : this;
-            DxfReader.Placing placing = placer._placer.Value.Place(Record(InsertRecord(insert) ?? HeadOf(insert)), insert.Block);
+            DxfReader.Placing placing = placer._placer.Value.Place(
+                Record(InsertRecord(insert) ?? HeadOf(insert)),
+                insert.Block
+            );
 
             // One line for the placing, outside the lock: Warn where an entity threw, Debug for what was left out as expected.
             if (placing.Warnings.Count > 0)
             {
-                string line = "DxfFile: the INSERT " + (insert.Handle ?? "with no handle") + (insert.Block != null ? " in the block " + insert.Block : string.Empty)
-                    + " placed " + Number(placing.Entities.Count) + " entities: " + string.Join(" ", placing.Warnings);
+                string line =
+                    "DxfFile: the INSERT "
+                    + (insert.Handle ?? "with no handle")
+                    + (insert.Block != null ? " in the block " + insert.Block : string.Empty)
+                    + " placed "
+                    + Number(placing.Entities.Count)
+                    + " entities: "
+                    + string.Join(" ", placing.Warnings);
 
                 if (placing.Failure != null)
                 {
@@ -696,11 +753,12 @@ namespace GeometryHelper.Dxf
             return new DxfReader.Placer(LayerRecords(), drawingLayers, blocks, Tolerance.Default);
         }
 
-        private Lazy<IReadOnlyList<DxfLayer>> NewLayers() => new Lazy<IReadOnlyList<DxfLayer>>(() =>
-        {
-            LayerTableReadings++;
-            return Array.AsReadOnly(DxfReader.LayerTableOf(LayerRecords()));
-        });
+        private Lazy<IReadOnlyList<DxfLayer>> NewLayers() =>
+            new Lazy<IReadOnlyList<DxfLayer>>(() =>
+            {
+                LayerTableReadings++;
+                return Array.AsReadOnly(DxfReader.LayerTableOf(LayerRecords()));
+            });
 
         /// <summary>How many times the layer table was read, for the tests of the cost of adding layers.</summary>
         internal int LayerTableReadings { get; private set; }
@@ -781,7 +839,9 @@ namespace GeometryHelper.Dxf
                             variable = value.Trim();
                             current = new List<DxfTypedValue>();
                             variables[variable] = current.AsReadOnly();
-                            order.Add(new KeyValuePair<string, IReadOnlyList<DxfTypedValue>>(variable, current.AsReadOnly()));
+                            order.Add(
+                                new KeyValuePair<string, IReadOnlyList<DxfTypedValue>>(variable, current.AsReadOnly())
+                            );
                             return;
                         }
 
@@ -844,7 +904,11 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return new Drawing { Model = new DxfSpace(this, model), Paper = new DxfSpace(this, paper, DxfSpaceKind.Paper) };
+            return new Drawing
+            {
+                Model = new DxfSpace(this, model),
+                Paper = new DxfSpace(this, paper, DxfSpaceKind.Paper),
+            };
         }
 
         /// <summary>Whether a record is in paper space: its first group 67 is 1, as the reader reads it.</summary>
@@ -861,7 +925,9 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return value != null && int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int space) && space == 1;
+            return value != null
+                && int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int space)
+                && space == 1;
         }
 
         private IReadOnlyDictionary<string, DxfFileBlock> ReadBlocks()
@@ -898,7 +964,18 @@ namespace GeometryHelper.Dxf
                     {
                         List<DxfItem> items = Items(i + 1, end, name);
                         DxfReader.BlockOf(header, out GeoPoint3 basePoint, out int flags);
-                        blocks.Add(name, new DxfFileBlock(this, name, basePoint, flags, items, new DxfItem(this, i, 1, "BLOCK", null), end));
+                        blocks.Add(
+                            name,
+                            new DxfFileBlock(
+                                this,
+                                name,
+                                basePoint,
+                                flags,
+                                items,
+                                new DxfItem(this, i, 1, "BLOCK", null),
+                                end
+                            )
+                        );
                     }
 
                     i = end;
@@ -923,7 +1000,10 @@ namespace GeometryHelper.Dxf
             {
                 string type = _types[i];
                 int next = i + 1;
-                string part = type == "POLYLINE" ? "VERTEX" : type == "INSERT" ? "ATTRIB" : null;
+                string part =
+                    type == "POLYLINE" ? "VERTEX"
+                    : type == "INSERT" ? "ATTRIB"
+                    : null;
 
                 if (part != null)
                 {
@@ -1018,7 +1098,15 @@ namespace GeometryHelper.Dxf
                     {
                         if (section != null)
                         {
-                            throw new FormatException("The DXF is cut short: the section " + section + " opened on line " + Number(sectionLine) + " has no ENDSEC before the EOF on line " + Number(line) + ".");
+                            throw new FormatException(
+                                "The DXF is cut short: the section "
+                                    + section
+                                    + " opened on line "
+                                    + Number(sectionLine)
+                                    + " has no ENDSEC before the EOF on line "
+                                    + Number(line)
+                                    + "."
+                            );
                         }
 
                         Add(codeStart, word);
@@ -1030,14 +1118,31 @@ namespace GeometryHelper.Dxf
                     {
                         if (section != null)
                         {
-                            throw new FormatException("This is not a DXF that can be read: a SECTION opens on line " + Number(line) + " inside the section " + section + " opened on line " + Number(sectionLine) + ", which has no ENDSEC.");
+                            throw new FormatException(
+                                "This is not a DXF that can be read: a SECTION opens on line "
+                                    + Number(line)
+                                    + " inside the section "
+                                    + section
+                                    + " opened on line "
+                                    + Number(sectionLine)
+                                    + ", which has no ENDSEC."
+                            );
                         }
 
                         Add(codeStart, word);
 
-                        if (!Next(out int nameCode, out _, out int nameStart, out int nameEnd, out int nameLine, true) || nameCode != 2)
+                        if (
+                            !Next(out int nameCode, out _, out int nameStart, out int nameEnd, out int nameLine, true)
+                            || nameCode != 2
+                        )
                         {
-                            throw new FormatException("This is not a DXF that can be read: the SECTION on line " + Number(line) + " is not named by a group 2 on line " + Number(nameLine) + ".");
+                            throw new FormatException(
+                                "This is not a DXF that can be read: the SECTION on line "
+                                    + Number(line)
+                                    + " is not named by a group 2 on line "
+                                    + Number(nameLine)
+                                    + "."
+                            );
                         }
 
                         section = _file.Text(nameStart, nameEnd).Trim();
@@ -1051,7 +1156,11 @@ namespace GeometryHelper.Dxf
                     {
                         if (section == null)
                         {
-                            throw new FormatException("This is not a DXF that can be read: the ENDSEC on line " + Number(line) + " closes no section.");
+                            throw new FormatException(
+                                "This is not a DXF that can be read: the ENDSEC on line "
+                                    + Number(line)
+                                    + " closes no section."
+                            );
                         }
 
                         Add(codeStart, word);
@@ -1062,7 +1171,13 @@ namespace GeometryHelper.Dxf
 
                     if (section == null)
                     {
-                        throw new FormatException("This is not a DXF that can be read: the " + word + " on line " + Number(line) + " stands in no section.");
+                        throw new FormatException(
+                            "This is not a DXF that can be read: the "
+                                + word
+                                + " on line "
+                                + Number(line)
+                                + " stands in no section."
+                        );
                     }
 
                     Add(codeStart, word);
@@ -1070,7 +1185,17 @@ namespace GeometryHelper.Dxf
 
                 if (!ended)
                 {
-                    throw new FormatException("The DXF is cut short: it ends on line " + Number(_line) + " without the EOF that closes a DXF" + (section != null ? ", inside the section " + section + " opened on line " + Number(sectionLine) : string.Empty) + ".");
+                    throw new FormatException(
+                        "The DXF is cut short: it ends on line "
+                            + Number(_line)
+                            + " without the EOF that closes a DXF"
+                            + (
+                                section != null
+                                    ? ", inside the section " + section + " opened on line " + Number(sectionLine)
+                                    : string.Empty
+                            )
+                            + "."
+                    );
                 }
 
                 if (!entities)
@@ -1103,7 +1228,14 @@ namespace GeometryHelper.Dxf
             /// Reads the next pair, a comment (999) passed over unless asked for, as the reader reads it; false at the end of
             /// the file. The line is that of the code.
             /// </summary>
-            private bool Next(out int code, out int codeStart, out int valueStart, out int valueEnd, out int line, bool comments = false)
+            private bool Next(
+                out int code,
+                out int codeStart,
+                out int valueStart,
+                out int valueEnd,
+                out int line,
+                bool comments = false
+            )
             {
                 while (true)
                 {
@@ -1124,13 +1256,26 @@ namespace GeometryHelper.Dxf
                     if (!TryCode(_file._bytes, codeStart, codeEnd, out code))
                     {
                         string text = _file.Text(codeStart, codeEnd);
-                        string said = text.Substring(0, Math.Min(text.Length, 24)) + (text.Length > 24 ? "..." : string.Empty);
-                        throw new FormatException("This is not a DXF that can be read: line " + Number(line) + " should be a group code, a whole number, and is '" + said + "'.");
+                        string said =
+                            text.Substring(0, Math.Min(text.Length, 24)) + (text.Length > 24 ? "..." : string.Empty);
+                        throw new FormatException(
+                            "This is not a DXF that can be read: line "
+                                + Number(line)
+                                + " should be a group code, a whole number, and is '"
+                                + said
+                                + "'."
+                        );
                     }
 
                     if (_at >= _file._length)
                     {
-                        throw new FormatException("The DXF is cut short: the group code " + Number(code) + " on line " + Number(line) + ", the last, has no value after it.");
+                        throw new FormatException(
+                            "The DXF is cut short: the group code "
+                                + Number(code)
+                                + " on line "
+                                + Number(line)
+                                + ", the last, has no value after it."
+                        );
                     }
 
                     valueStart = _at;
@@ -1273,8 +1418,10 @@ namespace GeometryHelper.Dxf
             return true;
         }
 
-        private static FormatException Binary()
-            => new FormatException("This is a binary DXF, which is not read: save the drawing as an ASCII DXF and read that.");
+        private static FormatException Binary() =>
+            new FormatException(
+                "This is a binary DXF, which is not read: save the drawing as an ASCII DXF and read that."
+            );
 
         private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
 

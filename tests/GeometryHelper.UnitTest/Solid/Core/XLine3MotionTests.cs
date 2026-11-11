@@ -49,10 +49,26 @@ namespace GeometryHelper.UnitTest.Solid
             for (int i = 0; i < 400; i++)
             {
                 XLineSpecimen specimen = XLine3Gen.Make(kind, random);
-                GeoXLine3 line = XLine3Gen.MakeLine(random, specimen, i % 5 == 0 ? XLine3Gen.Layout.Random : XLine3Gen.Layout.Through);
+                GeoXLine3 line = XLine3Gen.MakeLine(
+                    random,
+                    specimen,
+                    i % 5 == 0 ? XLine3Gen.Layout.Random : XLine3Gen.Layout.Through
+                );
                 Vec axis = XLine3Gen.RandomUnit(random);
-                GeoTransform3 motion = GeoTransform3.Translation(new GeoVector3(random.NextDouble() * 400 - 200, random.NextDouble() * 400 - 200, random.NextDouble() * 400 - 200))
-                    .Multiply(GeoTransform3.RotationAxis(new GeoVector3(axis.X, axis.Y, axis.Z), random.NextDouble() * 2 * Math.PI));
+                GeoTransform3 motion = GeoTransform3
+                    .Translation(
+                        new GeoVector3(
+                            random.NextDouble() * 400 - 200,
+                            random.NextDouble() * 400 - 200,
+                            random.NextDouble() * 400 - 200
+                        )
+                    )
+                    .Multiply(
+                        GeoTransform3.RotationAxis(
+                            new GeoVector3(axis.X, axis.Y, axis.Z),
+                            random.NextDouble() * 2 * Math.PI
+                        )
+                    );
 
                 try
                 {
@@ -80,7 +96,10 @@ namespace GeometryHelper.UnitTest.Solid
                     {
                         double again = Distance(movedLine, movedShape, Strict);
 
-                        Assert.True(Math.Abs(distance - again) <= 1E-6 * Math.Max(1.0, distance), "distance " + distance + " moved to " + again);
+                        Assert.True(
+                            Math.Abs(distance - again) <= 1E-6 * Math.Max(1.0, distance),
+                            "distance " + distance + " moved to " + again
+                        );
                     }
 
                     if (Answers(line, "GetIntersections", shape) && !specimen.Delicate(new Ln(line)))
@@ -88,21 +107,32 @@ namespace GeometryHelper.UnitTest.Solid
                         GeoPoint3[] before = Crossings(line, shape, Strict);
                         GeoPoint3[] after = Crossings(movedLine, movedShape, Strict);
 
-                        Assert.True(before.Length == after.Length, before.Length + " crossings moved to " + after.Length);
+                        Assert.True(
+                            before.Length == after.Length,
+                            before.Length + " crossings moved to " + after.Length
+                        );
 
                         for (int k = 0; k < before.Length; k++)
                         {
-                            Assert.True(motion.Transform(before[k]).DistanceTo(after[k]) <= 1E-6, "crossing " + k + " not carried");
+                            Assert.True(
+                                motion.Transform(before[k]).DistanceTo(after[k]) <= 1E-6,
+                                "crossing " + k + " not carried"
+                            );
                         }
                     }
                 }
                 catch (Exception e)
                 {
-                    failures.Add(kind + " #" + i + ": " + e.Message + "\n   shape " + specimen.Shape + "\n   line  " + line);
+                    failures.Add(
+                        kind + " #" + i + ": " + e.Message + "\n   shape " + specimen.Shape + "\n   line  " + line
+                    );
                 }
             }
 
-            Assert.True(failures.Count == 0, failures.Count + " of 400 pairs of " + kind + " changed:\n" + string.Join("\n", failures.Take(8)));
+            Assert.True(
+                failures.Count == 0,
+                failures.Count + " of 400 pairs of " + kind + " changed:\n" + string.Join("\n", failures.Take(8))
+            );
         }
     }
 }

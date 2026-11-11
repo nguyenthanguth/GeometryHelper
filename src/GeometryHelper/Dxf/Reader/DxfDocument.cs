@@ -14,9 +14,20 @@ namespace GeometryHelper.Dxf
     public sealed class DxfDocument
     {
         private readonly DxfShape[] _entities;
-        private readonly Dictionary<string, DxfLayer> _layerNames = new Dictionary<string, DxfLayer>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, DxfLayer> _layerNames = new Dictionary<string, DxfLayer>(
+            StringComparer.OrdinalIgnoreCase
+        );
 
-        internal DxfDocument(DxfShape[] entities, string[] layers, DxfLayer[] layerTable, DxfBlock[] blocks, DxfUnits units, string version, IReadOnlyDictionary<string, int> skipped, string[] warnings)
+        internal DxfDocument(
+            DxfShape[] entities,
+            string[] layers,
+            DxfLayer[] layerTable,
+            DxfBlock[] blocks,
+            DxfUnits units,
+            string version,
+            IReadOnlyDictionary<string, int> skipped,
+            string[] warnings
+        )
         {
             _entities = entities;
 

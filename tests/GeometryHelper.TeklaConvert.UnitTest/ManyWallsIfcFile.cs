@@ -12,7 +12,8 @@ namespace GeometryHelper.TeklaConvert.UnitTest
     /// </summary>
     internal sealed class ManyWallsIfcFile : IDisposable
     {
-        private const string Head = @"ISO-10303-21;
+        private const string Head =
+            @"ISO-10303-21;
 HEADER;
 FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');
 FILE_NAME('many_walls.ifc','2026-09-28T00:00:00',('Tester'),('TestOrg'),'xBIM','xBIM','');
@@ -41,10 +42,25 @@ DATA;
             for (int k = 0; k < count; k++)
             {
                 int id = 100 + 4 * k;
-                step.AppendLine(string.Format(CultureInfo.InvariantCulture, "#{0}=IFCCARTESIANPOINT(({1}.,0.,0.));", id, 2 * k));
-                step.AppendLine(string.Format(CultureInfo.InvariantCulture, "#{0}=IFCAXIS2PLACEMENT3D(#{1},$,$);", id + 1, id));
-                step.AppendLine(string.Format(CultureInfo.InvariantCulture, "#{0}=IFCLOCALPLACEMENT($,#{1});", id + 2, id + 1));
-                step.AppendLine(string.Format(CultureInfo.InvariantCulture, "#{0}=IFCWALL('{1}',$,'Wall_{2}',$,$,#{3},#13,$,$);", id + 3, Guid(k), k, id + 2));
+                step.AppendLine(
+                    string.Format(CultureInfo.InvariantCulture, "#{0}=IFCCARTESIANPOINT(({1}.,0.,0.));", id, 2 * k)
+                );
+                step.AppendLine(
+                    string.Format(CultureInfo.InvariantCulture, "#{0}=IFCAXIS2PLACEMENT3D(#{1},$,$);", id + 1, id)
+                );
+                step.AppendLine(
+                    string.Format(CultureInfo.InvariantCulture, "#{0}=IFCLOCALPLACEMENT($,#{1});", id + 2, id + 1)
+                );
+                step.AppendLine(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "#{0}=IFCWALL('{1}',$,'Wall_{2}',$,$,#{3},#13,$,$);",
+                        id + 3,
+                        Guid(k),
+                        k,
+                        id + 2
+                    )
+                );
             }
 
             step.AppendLine("ENDSEC;");

@@ -14,7 +14,12 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfSolidTests
     {
-        private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
+        private static readonly string[] Drawings =
+        {
+            DxfFileEzdxfDrawings.R12,
+            DxfFileEzdxfDrawings.R2000,
+            DxfFileEzdxfDrawings.R2018,
+        };
 
         [Fact]
         public void TheSolidsOfEzdxf_AreReadAsEzdxfReadsThem_ToTheBit()
@@ -32,7 +37,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(Bits(new GeoPoint3(-1, -FromBits(0x3fc50b06a14b8fc7), 0)), Bits(arrow.GetPointAt(3)));
             Assert.Equal(0, arrow.ColorIndex);
 
-            DxfDocument read = DxfReader.Parse(DxfFileEzdxfDrawings.R2000, new DxfReadOptions { Tolerance = Tolerance.Default });
+            DxfDocument read = DxfReader.Parse(
+                DxfFileEzdxfDrawings.R2000,
+                new DxfReadOptions { Tolerance = Tolerance.Default }
+            );
             Assert.Equal(read.Shapes.Single(s => s.Handle == "43").Shape, Assert.Single(solid.GetGeometry()));
         }
 
@@ -102,7 +110,8 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The value of the group 11 of a record, the x of its second corner, as written.</summary>
-        private static string Corner(string record) => record.Replace("\r", string.Empty).Split('\n').SkipWhile(l => l.Trim() != "11").Skip(1).First().Trim();
+        private static string Corner(string record) =>
+            record.Replace("\r", string.Empty).Split('\n').SkipWhile(l => l.Trim() != "11").Skip(1).First().Trim();
 
         [Fact]
         public void ASolidMadeInCode_IsAppendedToEachVersion()
@@ -110,7 +119,12 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                var solid = new DxfSolid(new GeoPoint3(0, 0, 0), new GeoPoint3(2, 0, 0), new GeoPoint3(0, 2, 0), new GeoPoint3(2, 2, 0));
+                var solid = new DxfSolid(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(2, 0, 0),
+                    new GeoPoint3(0, 2, 0),
+                    new GeoPoint3(2, 2, 0)
+                );
 
                 db.ModelSpace.AppendEntity(solid);
 
@@ -131,7 +145,10 @@ namespace GeometryHelper.UnitTest.Dxf
             ByHandle<DxfSolid>(db, "43").TransformBy(DxfPolylineTests.Turn());
 
             DxfSolid again = ByHandle<DxfSolid>(DxfDatabase.Parse(db.ToText()), "43");
-            DxfPolylineTests.Near(new GeoVector3(0.3947397981737998, -0.0713924994178759, 0.9160150668873175), again.Normal);
+            DxfPolylineTests.Near(
+                new GeoVector3(0.3947397981737998, -0.0713924994178759, 0.9160150668873175),
+                again.Normal
+            );
             string record = Records(db.ToText()).Single(r => HandleOf(r) == "43");
             Assert.Contains(" 10\n-3.14045438332655", record, StringComparison.Ordinal);
             Assert.Contains(" 21\n-10.29177862822912", record, StringComparison.Ordinal);

@@ -21,11 +21,14 @@ namespace GeometryHelper.UnitTest.Solid.Core
         // A face of the corners given, wound to face along (ox, oy, oz).
         private static GeoFace3 Facing(double ox, double oy, double oz, params GeoPoint3[] corners)
         {
-            double nx = 0, ny = 0, nz = 0;
+            double nx = 0,
+                ny = 0,
+                nz = 0;
 
             for (int i = 0; i < corners.Length; i++)
             {
-                GeoPoint3 p = corners[i], q = corners[(i + 1) % corners.Length];
+                GeoPoint3 p = corners[i],
+                    q = corners[(i + 1) % corners.Length];
                 nx += (p.Y - q.Y) * (p.Z + q.Z);
                 ny += (p.Z - q.Z) * (p.X + q.X);
                 nz += (p.X - q.X) * (p.Y + q.Y);
@@ -45,26 +48,78 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// are two faces each meeting along a crack from z = h - slant to h + slant; the two copies of each crack's edge are gap
         /// apart at y = 0, nought at y = 10.
         /// </summary>
-        private static GeoSolid3 CrackedU(double left, double right, double floor, double a, double c, double h, double slant, double gap)
+        private static GeoSolid3 CrackedU(
+            double left,
+            double right,
+            double floor,
+            double a,
+            double c,
+            double h,
+            double slant,
+            double gap
+        )
         {
-            double xa = a - slant, xb = a + slant, xc = c - slant, xd = c + slant, za = h - slant, zb = h + slant;
-            return new GeoSolid3(new List<GeoFace3>
-            {
-                Facing(0, 0, -1, P(0, 0, 0), P(xa, 0, 0), P(xb, 10, 0), P(0, 10, 0)),
-                Facing(0, 0, -1, P(xa + gap, 0, 0), P(xc, 0, 0), P(xd, 10, 0), P(xb, 10, 0)),
-                Facing(0, 0, -1, P(xc + gap, 0, 0), P(30, 0, 0), P(30, 10, 0), P(xd, 10, 0)),
-                Facing(-1, 0, 0, P(0, 0, 0), P(0, 10, 0), P(0, 10, zb), P(0, 0, za)),
-                Facing(-1, 0, 0, P(0, 0, za + gap), P(0, 10, zb), P(0, 10, 10), P(0, 0, 10)),
-                Facing(1, 0, 0, P(30, 0, 0), P(30, 10, 0), P(30, 10, zb), P(30, 0, za)),
-                Facing(1, 0, 0, P(30, 0, za + gap), P(30, 10, zb), P(30, 10, 10), P(30, 0, 10)),
-                Facing(0, 0, 1, P(0, 0, 10), P(left, 0, 10), P(left, 10, 10), P(0, 10, 10)),
-                Facing(0, 0, 1, P(right, 0, 10), P(30, 0, 10), P(30, 10, 10), P(right, 10, 10)),
-                Facing(1, 0, 0, P(left, 0, floor), P(left, 0, 10), P(left, 10, 10), P(left, 10, floor)),
-                Facing(-1, 0, 0, P(right, 0, floor), P(right, 10, floor), P(right, 10, 10), P(right, 0, 10)),
-                Facing(0, 0, 1, P(left, 0, floor), P(left, 10, floor), P(right, 10, floor), P(right, 0, floor)),
-                Facing(0, -1, 0, P(0, 0, 0), P(xa, 0, 0), P(xa + gap, 0, 0), P(xc, 0, 0), P(xc + gap, 0, 0), P(30, 0, 0), P(30, 0, za), P(30, 0, za + gap), P(30, 0, 10), P(right, 0, 10), P(right, 0, floor), P(left, 0, floor), P(left, 0, 10), P(0, 0, 10), P(0, 0, za + gap), P(0, 0, za)),
-                Facing(0, 1, 0, P(0, 10, 0), P(xb, 10, 0), P(xd, 10, 0), P(30, 10, 0), P(30, 10, zb), P(30, 10, 10), P(right, 10, 10), P(right, 10, floor), P(left, 10, floor), P(left, 10, 10), P(0, 10, 10), P(0, 10, zb)),
-            });
+            double xa = a - slant,
+                xb = a + slant,
+                xc = c - slant,
+                xd = c + slant,
+                za = h - slant,
+                zb = h + slant;
+            return new GeoSolid3(
+                new List<GeoFace3>
+                {
+                    Facing(0, 0, -1, P(0, 0, 0), P(xa, 0, 0), P(xb, 10, 0), P(0, 10, 0)),
+                    Facing(0, 0, -1, P(xa + gap, 0, 0), P(xc, 0, 0), P(xd, 10, 0), P(xb, 10, 0)),
+                    Facing(0, 0, -1, P(xc + gap, 0, 0), P(30, 0, 0), P(30, 10, 0), P(xd, 10, 0)),
+                    Facing(-1, 0, 0, P(0, 0, 0), P(0, 10, 0), P(0, 10, zb), P(0, 0, za)),
+                    Facing(-1, 0, 0, P(0, 0, za + gap), P(0, 10, zb), P(0, 10, 10), P(0, 0, 10)),
+                    Facing(1, 0, 0, P(30, 0, 0), P(30, 10, 0), P(30, 10, zb), P(30, 0, za)),
+                    Facing(1, 0, 0, P(30, 0, za + gap), P(30, 10, zb), P(30, 10, 10), P(30, 0, 10)),
+                    Facing(0, 0, 1, P(0, 0, 10), P(left, 0, 10), P(left, 10, 10), P(0, 10, 10)),
+                    Facing(0, 0, 1, P(right, 0, 10), P(30, 0, 10), P(30, 10, 10), P(right, 10, 10)),
+                    Facing(1, 0, 0, P(left, 0, floor), P(left, 0, 10), P(left, 10, 10), P(left, 10, floor)),
+                    Facing(-1, 0, 0, P(right, 0, floor), P(right, 10, floor), P(right, 10, 10), P(right, 0, 10)),
+                    Facing(0, 0, 1, P(left, 0, floor), P(left, 10, floor), P(right, 10, floor), P(right, 0, floor)),
+                    Facing(
+                        0,
+                        -1,
+                        0,
+                        P(0, 0, 0),
+                        P(xa, 0, 0),
+                        P(xa + gap, 0, 0),
+                        P(xc, 0, 0),
+                        P(xc + gap, 0, 0),
+                        P(30, 0, 0),
+                        P(30, 0, za),
+                        P(30, 0, za + gap),
+                        P(30, 0, 10),
+                        P(right, 0, 10),
+                        P(right, 0, floor),
+                        P(left, 0, floor),
+                        P(left, 0, 10),
+                        P(0, 0, 10),
+                        P(0, 0, za + gap),
+                        P(0, 0, za)
+                    ),
+                    Facing(
+                        0,
+                        1,
+                        0,
+                        P(0, 10, 0),
+                        P(xb, 10, 0),
+                        P(xd, 10, 0),
+                        P(30, 10, 0),
+                        P(30, 10, zb),
+                        P(30, 10, 10),
+                        P(right, 10, 10),
+                        P(right, 10, floor),
+                        P(left, 10, floor),
+                        P(left, 10, 10),
+                        P(0, 10, 10),
+                        P(0, 10, zb)
+                    ),
+                }
+            );
         }
 
         /// <summary>
@@ -72,7 +127,18 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// one for each p among the planes given that lies within it, and whose sides x = x0 and x1 are faces meeting along
         /// cracks from z = q - slant to q + slant, the copies of each crack's edge gap apart at y = y0.
         /// </summary>
-        private static GeoSolid3 CrackedBox(double x0, double y0, double z0, double x1, double y1, double z1, double[] xs, double[] zs, double slant, double gap)
+        private static GeoSolid3 CrackedBox(
+            double x0,
+            double y0,
+            double z0,
+            double x1,
+            double y1,
+            double z1,
+            double[] xs,
+            double[] zs,
+            double slant,
+            double gap
+        )
         {
             double[] px = xs.Where(p => p - slant > x0 + 0.05 && p + slant < x1 - 0.05).OrderBy(p => p).ToArray();
             double[] qz = zs.Where(q => q - slant > z0 + 0.05 && q + slant < z1 - 0.05).OrderBy(q => q).ToArray();
@@ -80,8 +146,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             for (int k = 0; k <= px.Length; k++)
             {
-                double a0 = k == 0 ? x0 : px[k - 1] - slant + gap, a1 = k == px.Length ? x1 : px[k] - slant;
-                double b0 = k == 0 ? x0 : px[k - 1] + slant, b1 = k == px.Length ? x1 : px[k] + slant;
+                double a0 = k == 0 ? x0 : px[k - 1] - slant + gap,
+                    a1 = k == px.Length ? x1 : px[k] - slant;
+                double b0 = k == 0 ? x0 : px[k - 1] + slant,
+                    b1 = k == px.Length ? x1 : px[k] + slant;
                 faces.Add(Facing(0, 0, -1, P(a0, y0, z0), P(a1, y0, z0), P(b1, y1, z0), P(b0, y1, z0)));
             }
 
@@ -89,8 +157,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
             {
                 for (int k = 0; k <= qz.Length; k++)
                 {
-                    double a0 = k == 0 ? z0 : qz[k - 1] - slant + gap, a1 = k == qz.Length ? z1 : qz[k] - slant;
-                    double b0 = k == 0 ? z0 : qz[k - 1] + slant, b1 = k == qz.Length ? z1 : qz[k] + slant;
+                    double a0 = k == 0 ? z0 : qz[k - 1] - slant + gap,
+                        a1 = k == qz.Length ? z1 : qz[k] - slant;
+                    double b0 = k == 0 ? z0 : qz[k - 1] + slant,
+                        b1 = k == qz.Length ? z1 : qz[k] + slant;
                     faces.Add(Facing(x == x0 ? -1 : 1, 0, 0, P(x, y0, a0), P(x, y0, a1), P(x, y1, b1), P(x, y1, b0)));
                 }
             }
@@ -133,14 +203,31 @@ namespace GeometryHelper.UnitTest.Solid.Core
             return new GeoSolid3(faces);
         }
 
-        private static double Overlap(double a0, double a1, double b0, double b1) => System.Math.Max(0, System.Math.Min(a1, b1) - System.Math.Max(a0, b0));
+        private static double Overlap(double a0, double a1, double b0, double b1) =>
+            System.Math.Max(0, System.Math.Min(a1, b1) - System.Math.Max(a0, b0));
 
         // The cracked U and the cracked box its cracks lie under the planes of, of a case (the U's notch from left to right
         // down to floor, the box x0..x1, y0..y1, z0..z1, its cracks' slant and gap), as built, turned about (1, 2, 3) by 0.7,
         // or turned and moved some 96 metres off; with the volumes of the U, the box and their common part.
-        private static void Bodies(double[] c, int place, out GeoSolid3 u, out GeoSolid3 box, out double ofU, out double ofBox, out double shared)
+        private static void Bodies(
+            double[] c,
+            int place,
+            out GeoSolid3 u,
+            out GeoSolid3 box,
+            out double ofU,
+            out double ofBox,
+            out double shared
+        )
         {
-            double left = c[0], right = c[1], floor = c[2], x0 = c[3], y0 = c[4], z0 = c[5], x1 = c[6], y1 = c[7], z1 = c[8];
+            double left = c[0],
+                right = c[1],
+                floor = c[2],
+                x0 = c[3],
+                y0 = c[4],
+                z0 = c[5],
+                x1 = c[6],
+                y1 = c[7],
+                z1 = c[8];
             u = CrackedU(left, right, floor, x0, x1, z0, c[9], c[10]);
             box = CrackedBox(x0, y0, z0, x1, y1, z1, new[] { left, right }, new[] { floor, 10.0 }, c[9], c[10]);
 
@@ -160,21 +247,81 @@ namespace GeometryHelper.UnitTest.Solid.Core
             double across = Overlap(0, 10, y0, y1);
             ofU = 3000 - (right - left) * 10 * (10 - floor);
             ofBox = (x1 - x0) * (y1 - y0) * (z1 - z0);
-            shared = Overlap(0, 30, x0, x1) * across * Overlap(0, 10, z0, z1) - Overlap(left, right, x0, x1) * across * Overlap(floor, 10, z0, z1);
+            shared =
+                Overlap(0, 30, x0, x1) * across * Overlap(0, 10, z0, z1)
+                - Overlap(left, right, x0, x1) * across * Overlap(floor, 10, z0, z1);
         }
 
         // The box dips 0.088 into the U's left arm over its floor, 0.52 through the floor of the notch, and into both arms and
         // the floor at once; then 0.028 into the left arm.
         private static readonly double[][] Dipping =
         {
-            new[] { 9.831254792321126, 20.755215746702262, 6.95927136855166, 9.743056404610655, -1, 7.104404962064886, 19.139957489185015, 11, 11.34425965992001, 0.004060055014866619, 1.6527461274192402E-05 },
-            new[] { 9.001576882322121, 18.308039685854705, 4.155695153472803, 10.125711419072799, 3.7333651016156026, 3.6320367093812846, 16.822596754470187, 6.776817525167399, 14.578653996148452, 0.005766650169674883, 7.222208116626426E-05 },
-            new[] { 10.990523764393537, 19.713903291949027, 6.643715063409747, 10.295542171222877, 1.901233025780522, 6.4998677578754105, 19.825917890819685, 11, 11.384676223799902, 0.0032609160211616818, 1.739178200016202E-05 },
-            new[] { 10.648314857226012, 19.374989923730023, 5.535605032712037, 10.620669045169219, -1, 6.951269459748301, 18.71476751194092, 11, 12.905254750468421, 0.027730188153931353, 5.715732746215051E-05 },
+            new[]
+            {
+                9.831254792321126,
+                20.755215746702262,
+                6.95927136855166,
+                9.743056404610655,
+                -1,
+                7.104404962064886,
+                19.139957489185015,
+                11,
+                11.34425965992001,
+                0.004060055014866619,
+                1.6527461274192402E-05,
+            },
+            new[]
+            {
+                9.001576882322121,
+                18.308039685854705,
+                4.155695153472803,
+                10.125711419072799,
+                3.7333651016156026,
+                3.6320367093812846,
+                16.822596754470187,
+                6.776817525167399,
+                14.578653996148452,
+                0.005766650169674883,
+                7.222208116626426E-05,
+            },
+            new[]
+            {
+                10.990523764393537,
+                19.713903291949027,
+                6.643715063409747,
+                10.295542171222877,
+                1.901233025780522,
+                6.4998677578754105,
+                19.825917890819685,
+                11,
+                11.384676223799902,
+                0.0032609160211616818,
+                1.739178200016202E-05,
+            },
+            new[]
+            {
+                10.648314857226012,
+                19.374989923730023,
+                5.535605032712037,
+                10.620669045169219,
+                -1,
+                6.951269459748301,
+                18.71476751194092,
+                11,
+                12.905254750468421,
+                0.027730188153931353,
+                5.715732746215051E-05,
+            },
         };
 
         // Made, a result is valid and holds what it should within the tolerance times its area.
-        private static void AssertRight(bool made, GeoSolid3 result, BooleanOutcome outcome, double expected, Tolerance tolerance)
+        private static void AssertRight(
+            bool made,
+            GeoSolid3 result,
+            BooleanOutcome outcome,
+            double expected,
+            Tolerance tolerance
+        )
         {
             Assert.True(made);
             Assert.Equal(BooleanOutcome.Made, outcome);
@@ -184,8 +331,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         // A box x0..x1, y0..y1, z0..z1, whole.
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => CrackedBox(x0, y0, z0, x1, y1, z1, new double[0], new double[0], 0, 0);
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            CrackedBox(x0, y0, z0, x1, y1, z1, new double[0], new double[0], 0, 0);
 
         [Theory]
         [InlineData(0, 0)]
@@ -203,7 +350,15 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void ACrackedBoxLessTheCrackedUItDipsInto_IsWorkedOutOnTheBodiesWelded(int which, int place)
         {
             // Not worked out as they came: the box less the U leaves 475.54, 212.44, 390.55 and 577.46.
-            Bodies(Dipping[which], place, out GeoSolid3 u, out GeoSolid3 box, out _, out double ofBox, out double shared);
+            Bodies(
+                Dipping[which],
+                place,
+                out GeoSolid3 u,
+                out GeoSolid3 box,
+                out _,
+                out double ofBox,
+                out double shared
+            );
             bool made = Boolean3.TrySubtract(box, u, out GeoSolid3 rest, Fine, out BooleanOutcome outcome);
             AssertRight(made, rest, outcome, ofBox - shared, Fine);
         }
@@ -214,11 +369,22 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [InlineData(1, 1)]
         [InlineData(2, 0)]
         [InlineData(2, 2)]
-        public void TheCommonPartAndTheUnionOfACrackedUAndACrackedBoxDippingIntoIt_AreWorkedOutOnTheBodiesWelded(int which, int place)
+        public void TheCommonPartAndTheUnionOfACrackedUAndACrackedBoxDippingIntoIt_AreWorkedOutOnTheBodiesWelded(
+            int which,
+            int place
+        )
         {
             // Not worked out as they came: the box dipping 0.088 into the U's arm shares 2.55 with it, and the two join into
             // 3 143.38.
-            Bodies(Dipping[which], place, out GeoSolid3 u, out GeoSolid3 box, out double ofU, out double ofBox, out double shared);
+            Bodies(
+                Dipping[which],
+                place,
+                out GeoSolid3 u,
+                out GeoSolid3 box,
+                out double ofU,
+                out double ofBox,
+                out double shared
+            );
             bool common = Boolean3.TryIntersect(u, box, out GeoSolid3 part, Fine, out BooleanOutcome commonOutcome);
             AssertRight(common, part, commonOutcome, shared, Fine);
             bool joined = Boolean3.TryUnion(u, box, out GeoSolid3 union, Fine, out BooleanOutcome unionOutcome);
@@ -234,7 +400,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // Turned and moved far out, the two are worked out near the origin, and welded there.
             Bodies(Dipping[0], 1, out GeoSolid3 u, out GeoSolid3 box, out _, out double ofBox, out double shared);
             GeoTransform3 move = GeoTransform3.Translation(new GeoVector3(far, -0.7 * far, 0.4 * far));
-            bool made = Boolean3.TrySubtract(box.TransformBy(move), u.TransformBy(move), out GeoSolid3 rest, Fine, out BooleanOutcome outcome);
+            bool made = Boolean3.TrySubtract(
+                box.TransformBy(move),
+                u.TransformBy(move),
+                out GeoSolid3 rest,
+                Fine,
+                out BooleanOutcome outcome
+            );
             AssertRight(made, rest, outcome, ofBox - shared, Fine);
         }
 

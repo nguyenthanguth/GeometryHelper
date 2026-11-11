@@ -27,7 +27,18 @@ namespace GeometryHelper.Internal.Nurbs
         /// A bound no point of the box is nearer the slab than: the box lies in the box of its own corners, which in the frame is a box
         /// too, and the distance between two boxes with their sides along the same three directions is the length of the three gaps.
         /// </returns>
-        internal static double Gap(double[] min, double[] max, int at, double ox, double oy, double oz, double[] axes, double[] low, double[] high, double scale)
+        internal static double Gap(
+            double[] min,
+            double[] max,
+            int at,
+            double ox,
+            double oy,
+            double oz,
+            double[] axes,
+            double[] low,
+            double[] high,
+            double scale
+        )
         {
             double lx = min[at];
             double hx = max[at];
@@ -118,7 +129,17 @@ namespace GeometryHelper.Internal.Nurbs
         /// Gets two unit directions square to a unit direction and to each other: the first square to it and to the coordinate axis it
         /// leans on least, the second square to both.
         /// </summary>
-        internal static void Perpendiculars(double dx, double dy, double dz, out double ux, out double uy, out double uz, out double vx, out double vy, out double vz)
+        internal static void Perpendiculars(
+            double dx,
+            double dy,
+            double dz,
+            out double ux,
+            out double uy,
+            out double uz,
+            out double vx,
+            out double vy,
+            out double vz
+        )
         {
             double ax = Math.Abs(dx);
             double ay = Math.Abs(dy);
@@ -155,10 +176,23 @@ namespace GeometryHelper.Internal.Nurbs
     internal sealed class LinePartner3 : FormPartner
     {
         private readonly double _scale;
-        private readonly double _ux, _uy, _uz, _vx, _vy, _vz;
+        private readonly double _ux,
+            _uy,
+            _uz,
+            _vx,
+            _vy,
+            _vz;
 
-        internal readonly double Ox, Oy, Oz, Dx, Dy, Dz, T0, T1;
-        internal readonly bool EndA, EndB;
+        internal readonly double Ox,
+            Oy,
+            Oz,
+            Dx,
+            Dy,
+            Dz,
+            T0,
+            T1;
+        internal readonly bool EndA,
+            EndB;
 
         /// <summary>
         /// Makes the stretch.
@@ -173,7 +207,18 @@ namespace GeometryHelper.Internal.Nurbs
         /// <param name="t1">How far along it stops, not below the start.</param>
         /// <param name="endA">Whether the start is a true end of the shape, and not only where a line without ends was cut.</param>
         /// <param name="endB">Whether the stop is a true end of the shape.</param>
-        internal LinePartner3(double ox, double oy, double oz, double dx, double dy, double dz, double t0, double t1, bool endA, bool endB)
+        internal LinePartner3(
+            double ox,
+            double oy,
+            double oz,
+            double dx,
+            double dy,
+            double dz,
+            double t0,
+            double t1,
+            bool endA,
+            bool endB
+        )
         {
             Ox = ox;
             Oy = oy;
@@ -197,17 +242,32 @@ namespace GeometryHelper.Internal.Nurbs
 
             _scale = Math.Max(
                 Math.Max(Math.Max(Math.Abs(ox), Math.Abs(oy)), Math.Abs(oz)),
-                Math.Max(Math.Max(Math.Max(Math.Abs(x0), Math.Abs(y0)), Math.Abs(z0)), Math.Max(Math.Max(Math.Abs(x1), Math.Abs(y1)), Math.Abs(z1))));
+                Math.Max(
+                    Math.Max(Math.Max(Math.Abs(x0), Math.Abs(y0)), Math.Abs(z0)),
+                    Math.Max(Math.Max(Math.Abs(x1), Math.Abs(y1)), Math.Abs(z1))
+                )
+            );
         }
 
         internal override double Scale => _scale;
 
         internal override double Extent => T1 - T0;
 
-        internal override double Gap(double px, double py, double pz, out double qx, out double qy, out double qz, out double other)
+        internal override double Gap(
+            double px,
+            double py,
+            double pz,
+            out double qx,
+            out double qy,
+            out double qz,
+            out double other
+        )
         {
             double t = (px - Ox) * Dx + (py - Oy) * Dy + (pz - Oz) * Dz;
-            double c = t < T0 ? T0 : t > T1 ? T1 : t;
+            double c =
+                t < T0 ? T0
+                : t > T1 ? T1
+                : t;
             qx = Ox + c * Dx;
             qy = Oy + c * Dy;
             qz = Oz + c * Dz;
@@ -245,8 +305,14 @@ namespace GeometryHelper.Internal.Nurbs
             double along = Dx * rx + Dy * ry + Dz * rz;
             double reach = Math.Abs(Dx) * ex + Math.Abs(Dy) * ey + Math.Abs(Dz) * ez;
             double beyond = Math.Max(T0 - (along + reach), (along - reach) - T1) - slack;
-            double acrossU = Math.Abs(_ux * rx + _uy * ry + _uz * rz) - (Math.Abs(_ux) * ex + Math.Abs(_uy) * ey + Math.Abs(_uz) * ez) - slack;
-            double acrossV = Math.Abs(_vx * rx + _vy * ry + _vz * rz) - (Math.Abs(_vx) * ex + Math.Abs(_vy) * ey + Math.Abs(_vz) * ez) - slack;
+            double acrossU =
+                Math.Abs(_ux * rx + _uy * ry + _uz * rz)
+                - (Math.Abs(_ux) * ex + Math.Abs(_uy) * ey + Math.Abs(_uz) * ez)
+                - slack;
+            double acrossV =
+                Math.Abs(_vx * rx + _vy * ry + _vz * rz)
+                - (Math.Abs(_vx) * ex + Math.Abs(_vy) * ey + Math.Abs(_vz) * ez)
+                - slack;
 
             beyond = beyond > 0.0 ? beyond : 0.0;
             acrossU = acrossU > 0.0 ? acrossU : 0.0;
@@ -255,7 +321,18 @@ namespace GeometryHelper.Internal.Nurbs
             return Math.Sqrt(beyond * beyond + acrossU * acrossU + acrossV * acrossV);
         }
 
-        internal override bool TryGetFrame(double qx, double qy, double qz, double other, out double r1x, out double r1y, out double r1z, out double r2x, out double r2y, out double r2z)
+        internal override bool TryGetFrame(
+            double qx,
+            double qy,
+            double qz,
+            double other,
+            out double r1x,
+            out double r1y,
+            out double r1z,
+            out double r2x,
+            out double r2y,
+            out double r2z
+        )
         {
             r1x = Dx;
             r1y = Dy;
@@ -268,7 +345,14 @@ namespace GeometryHelper.Internal.Nurbs
 
         internal override bool IsFree(double other) => other > T0 && other < T1;
 
-        internal override void GetBox(out double minX, out double minY, out double minZ, out double maxX, out double maxY, out double maxZ)
+        internal override void GetBox(
+            out double minX,
+            out double minY,
+            out double minZ,
+            out double maxX,
+            out double maxY,
+            out double maxZ
+        )
         {
             double x0 = Ox + T0 * Dx;
             double y0 = Oy + T0 * Dy;
@@ -325,7 +409,13 @@ namespace GeometryHelper.Internal.Nurbs
         /// the plane. The direction is the one that holds most of the two polynomials' coefficients, by the angle that makes the second's
         /// sum of squares least.
         /// </remarks>
-        private double Offsets(BezierPieces pieces, int piece, out double[] weights, out double[] most, out double[] least)
+        private double Offsets(
+            BezierPieces pieces,
+            int piece,
+            out double[] weights,
+            out double[] most,
+            out double[] least
+        )
         {
             NurbsCurve.Numerators(pieces, piece, new[] { Ox, Oy, Oz }, out double[][] numerators, out weights);
             int p = pieces.Degree;
@@ -356,10 +446,14 @@ namespace GeometryHelper.Internal.Nurbs
                 least[j] = c * v[j] - s * u[j];
             }
 
-            double size = Bernstein.MaxAbs(numerators[0]) + Bernstein.MaxAbs(numerators[1]) + Bernstein.MaxAbs(numerators[2]);
+            double size =
+                Bernstein.MaxAbs(numerators[0]) + Bernstein.MaxAbs(numerators[1]) + Bernstein.MaxAbs(numerators[2]);
             Slab.Weights(pieces, piece, out _, out double heaviest);
 
-            return Math.Max(NurbsCurve.NoiseShare * size, Hunt.SnapShare * Slab.World(pieces, piece, _scale) * heaviest);
+            return Math.Max(
+                NurbsCurve.NoiseShare * size,
+                Hunt.SnapShare * Slab.World(pieces, piece, _scale) * heaviest
+            );
         }
 
         /// <summary>
@@ -452,7 +546,14 @@ namespace GeometryHelper.Internal.Nurbs
 
             for (int i = 0; i < roots.Count; i++)
             {
-                knots[i] = Least(curve, pieces, piece, Refine(curve, hunt, At(pieces, piece, roots[i])), hunt, out gaps[i]);
+                knots[i] = Least(
+                    curve,
+                    pieces,
+                    piece,
+                    Refine(curve, hunt, At(pieces, piece, roots[i])),
+                    hunt,
+                    out gaps[i]
+                );
             }
 
             roots.Clear();
@@ -601,7 +702,14 @@ namespace GeometryHelper.Internal.Nurbs
         /// Says whether two places of a piece lie in one basin of the distance from the line: no point between them farther from it than
         /// the farther of the two by more than four snaps, by eight looks.
         /// </summary>
-        private bool OneBasin(NurbsCurve curve, double first, double firstGap, double second, double secondGap, Hunt hunt)
+        private bool OneBasin(
+            NurbsCurve curve,
+            double first,
+            double firstGap,
+            double second,
+            double secondGap,
+            Hunt hunt
+        )
         {
             double ceiling = Math.Max(firstGap, secondGap) + 4.0 * hunt.Snap;
             var point = new double[3];
@@ -617,7 +725,10 @@ namespace GeometryHelper.Internal.Nurbs
             return true;
         }
 
-        private static double At(BezierPieces pieces, int piece, double s) => s <= 0.0 ? pieces.From[piece] : s >= 1.0 ? pieces.To[piece] : pieces.From[piece] + s * (pieces.To[piece] - pieces.From[piece]);
+        private static double At(BezierPieces pieces, int piece, double s) =>
+            s <= 0.0 ? pieces.From[piece]
+            : s >= 1.0 ? pieces.To[piece]
+            : pieces.From[piece] + s * (pieces.To[piece] - pieces.From[piece]);
 
         internal override bool Coincident(NurbsCurve curve, int piece)
         {
@@ -667,7 +778,10 @@ namespace GeometryHelper.Internal.Nurbs
 
             for (int k = 0; k < 3; k++)
             {
-                double d = k == 0 ? Dx : k == 1 ? Dy : Dz;
+                double d =
+                    k == 0 ? Dx
+                    : k == 1 ? Dy
+                    : Dz;
                 var across = new double[p + 1];
 
                 for (int j = 0; j <= p; j++)
@@ -693,7 +807,8 @@ namespace GeometryHelper.Internal.Nurbs
             // The piece lies along the line when its offset from it is within rounding of nought, which is a share of the size of
             // the numbers it was worked out from or, far from the origin, of the coordinates themselves, and the form is the square of
             // that offset.
-            double size = Bernstein.MaxAbs(numerators[0]) + Bernstein.MaxAbs(numerators[1]) + Bernstein.MaxAbs(numerators[2]);
+            double size =
+                Bernstein.MaxAbs(numerators[0]) + Bernstein.MaxAbs(numerators[1]) + Bernstein.MaxAbs(numerators[2]);
             Slab.Weights(pieces, piece, out _, out double most);
             double snap = Hunt.SnapShare * Slab.World(pieces, piece, _scale) * most;
             scale = Math.Max(NurbsCurve.NoiseShare * size * size, snap * snap / NurbsCurve.NoiseShare);
@@ -725,7 +840,12 @@ namespace GeometryHelper.Internal.Nurbs
         // What has been found about which pieces of the curve lie in this plane, made when first asked.
         private Dictionary<int, bool> Memo => _coincident ?? (_coincident = new Dictionary<int, bool>());
 
-        internal readonly double Ox, Oy, Oz, Nx, Ny, Nz;
+        internal readonly double Ox,
+            Oy,
+            Oz,
+            Nx,
+            Ny,
+            Nz;
 
         /// <summary>
         /// Makes the partner.
@@ -741,7 +861,19 @@ namespace GeometryHelper.Internal.Nurbs
         /// <param name="boxMax">The largest coordinates of that box.</param>
         /// <param name="scale">The size of the numbers the shapes are given in.</param>
         /// <param name="extent">How large the shape is, from side to side; for a whole plane, how large the curve it is asked about is.</param>
-        internal PlanePartner3(double ox, double oy, double oz, double nx, double ny, double nz, Func<GeoPoint3, bool> holds, double[] boxMin, double[] boxMax, double scale, double extent)
+        internal PlanePartner3(
+            double ox,
+            double oy,
+            double oz,
+            double nx,
+            double ny,
+            double nz,
+            Func<GeoPoint3, bool> holds,
+            double[] boxMin,
+            double[] boxMax,
+            double scale,
+            double extent
+        )
         {
             Ox = ox;
             Oy = oy;
@@ -755,7 +887,17 @@ namespace GeometryHelper.Internal.Nurbs
             _scale = Math.Max(scale, Math.Max(Math.Abs(ox), Math.Max(Math.Abs(oy), Math.Abs(oz))));
             _extent = extent;
 
-            Slab.Perpendiculars(nx, ny, nz, out double ux, out double uy, out double uz, out double vx, out double vy, out double vz);
+            Slab.Perpendiculars(
+                nx,
+                ny,
+                nz,
+                out double ux,
+                out double uy,
+                out double uz,
+                out double vx,
+                out double vy,
+                out double vz
+            );
             _axes[0] = nx;
             _axes[1] = ny;
             _axes[2] = nz;
@@ -777,7 +919,15 @@ namespace GeometryHelper.Internal.Nurbs
 
         internal override double Extent => _extent;
 
-        internal override double Gap(double px, double py, double pz, out double qx, out double qy, out double qz, out double other)
+        internal override double Gap(
+            double px,
+            double py,
+            double pz,
+            out double qx,
+            out double qy,
+            out double qz,
+            out double other
+        )
         {
             double height = Nx * (px - Ox) + Ny * (py - Oy) + Nz * (pz - Oz);
             qx = px - height * Nx;
@@ -791,7 +941,17 @@ namespace GeometryHelper.Internal.Nurbs
                 // the shape's corners, and a solid of many faces is asked of each of them.
                 double slack = 1E-9 * _scale;
 
-                if (_boxMin != null && (qx < _boxMin[0] - slack || qx > _boxMax[0] + slack || qy < _boxMin[1] - slack || qy > _boxMax[1] + slack || qz < _boxMin[2] - slack || qz > _boxMax[2] + slack))
+                if (
+                    _boxMin != null
+                    && (
+                        qx < _boxMin[0] - slack
+                        || qx > _boxMax[0] + slack
+                        || qy < _boxMin[1] - slack
+                        || qy > _boxMax[1] + slack
+                        || qz < _boxMin[2] - slack
+                        || qz > _boxMax[2] + slack
+                    )
+                )
                 {
                     return double.PositiveInfinity;
                 }
@@ -832,7 +992,16 @@ namespace GeometryHelper.Internal.Nurbs
             return Math.Max(bound, Math.Sqrt(square));
         }
 
-        internal override bool TryGetSurface(double px, double py, double pz, out double ux, out double uy, out double uz, out double bend, out double noise)
+        internal override bool TryGetSurface(
+            double px,
+            double py,
+            double pz,
+            out double ux,
+            out double uy,
+            out double uz,
+            out double bend,
+            out double noise
+        )
         {
             double height = Nx * (px - Ox) + Ny * (py - Oy) + Nz * (pz - Oz);
             double side = height >= 0.0 ? 1.0 : -1.0;
@@ -844,7 +1013,14 @@ namespace GeometryHelper.Internal.Nurbs
             return true;
         }
 
-        internal override void GetBox(out double minX, out double minY, out double minZ, out double maxX, out double maxY, out double maxZ)
+        internal override void GetBox(
+            out double minX,
+            out double minY,
+            out double minZ,
+            out double maxX,
+            out double maxY,
+            out double maxZ
+        )
         {
             if (_boxMin == null)
             {
@@ -876,7 +1052,8 @@ namespace GeometryHelper.Internal.Nurbs
 
             // What is nought to rounding: a share of the size of the numbers the offset was worked out from or, far from the origin, a
             // share of the coordinates themselves, which carry their own rounding into it, over the least weight.
-            double size = Bernstein.MaxAbs(numerators[0]) + Bernstein.MaxAbs(numerators[1]) + Bernstein.MaxAbs(numerators[2]);
+            double size =
+                Bernstein.MaxAbs(numerators[0]) + Bernstein.MaxAbs(numerators[1]) + Bernstein.MaxAbs(numerators[2]);
             Slab.Weights(pieces, piece, out double least, out _);
             noise = Math.Max(NurbsCurve.NoiseShare * size, Hunt.SnapShare * Slab.World(pieces, piece, _scale) * least);
 
@@ -913,7 +1090,13 @@ namespace GeometryHelper.Internal.Nurbs
             for (int i = 0; i < roots.Count; i++)
             {
                 double s = roots[i];
-                curve.Consider(hunt, this, s <= 0.0 ? from : s >= 1.0 ? pieces.To[piece] : from + s * span);
+                curve.Consider(
+                    hunt,
+                    this,
+                    s <= 0.0 ? from
+                        : s >= 1.0 ? pieces.To[piece]
+                        : from + s * span
+                );
             }
 
             // The offered roots are done with; room for the next piece.
@@ -950,7 +1133,10 @@ namespace GeometryHelper.Internal.Nurbs
     {
         private readonly double _scale;
 
-        internal readonly double Cx, Cy, Cz, Radius;
+        internal readonly double Cx,
+            Cy,
+            Cz,
+            Radius;
 
         internal SpherePartner3(double cx, double cy, double cz, double radius)
         {
@@ -965,7 +1151,15 @@ namespace GeometryHelper.Internal.Nurbs
 
         internal override double Extent => 2.0 * Radius;
 
-        internal override double Gap(double px, double py, double pz, out double qx, out double qy, out double qz, out double other)
+        internal override double Gap(
+            double px,
+            double py,
+            double pz,
+            out double qx,
+            out double qy,
+            out double qz,
+            out double other
+        )
         {
             double dx = px - Cx;
             double dy = py - Cy;
@@ -1005,9 +1199,18 @@ namespace GeometryHelper.Internal.Nurbs
             double hz = max[at + 2];
 
             // How near and how far the box is from the centre: no point of it is nearer the surface than the nearer of those is to the radius.
-            double gx = Cx < lx ? lx - Cx : Cx > hx ? Cx - hx : 0.0;
-            double gy = Cy < ly ? ly - Cy : Cy > hy ? Cy - hy : 0.0;
-            double gz = Cz < lz ? lz - Cz : Cz > hz ? Cz - hz : 0.0;
+            double gx =
+                Cx < lx ? lx - Cx
+                : Cx > hx ? Cx - hx
+                : 0.0;
+            double gy =
+                Cy < ly ? ly - Cy
+                : Cy > hy ? Cy - hy
+                : 0.0;
+            double gz =
+                Cz < lz ? lz - Cz
+                : Cz > hz ? Cz - hz
+                : 0.0;
             double fx = Math.Max(Math.Abs(Cx - lx), Math.Abs(Cx - hx));
             double fy = Math.Max(Math.Abs(Cy - ly), Math.Abs(Cy - hy));
             double fz = Math.Max(Math.Abs(Cz - lz), Math.Abs(Cz - hz));
@@ -1019,7 +1222,16 @@ namespace GeometryHelper.Internal.Nurbs
             return bound > 0.0 ? bound : 0.0;
         }
 
-        internal override bool TryGetSurface(double px, double py, double pz, out double ux, out double uy, out double uz, out double bend, out double noise)
+        internal override bool TryGetSurface(
+            double px,
+            double py,
+            double pz,
+            out double ux,
+            out double uy,
+            out double uz,
+            out double bend,
+            out double noise
+        )
         {
             double dx = px - Cx;
             double dy = py - Cy;
@@ -1046,7 +1258,14 @@ namespace GeometryHelper.Internal.Nurbs
             return true;
         }
 
-        internal override void GetBox(out double minX, out double minY, out double minZ, out double maxX, out double maxY, out double maxZ)
+        internal override void GetBox(
+            out double minX,
+            out double minY,
+            out double minZ,
+            out double maxX,
+            out double maxY,
+            out double maxZ
+        )
         {
             minX = Cx - Radius;
             maxX = Cx + Radius;

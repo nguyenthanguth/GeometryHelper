@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GeometryHelper.Arranging;
 using GeometryHelper.Geometry;
 using Xunit;
-using GeometryHelper.Arranging;
 
 namespace GeometryHelper.UnitTest.Arranging
 {
@@ -46,7 +46,7 @@ namespace GeometryHelper.UnitTest.Arranging
             var label = new ArrangeItem
             {
                 Leader = new GeoLine2(0.0, 0.0, 400.0, 0.0),
-                Box = new GeoRectangle2(new GeoPoint2(200.0, 0.0), 20.0, 10.0)
+                Box = new GeoRectangle2(new GeoPoint2(200.0, 0.0), 20.0, 10.0),
             };
 
             ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label })[0];
@@ -78,7 +78,7 @@ namespace GeometryHelper.UnitTest.Arranging
             // Offset is per-label, so two labels sharing the same ArrangeOptions must still
             // expand candidates from two different perpendicular levels.
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
-            var near = LabelOn(leader);                       // Offset = 5
+            var near = LabelOn(leader); // Offset = 5
             var far = LabelOn(leader);
             far.Offset = 30.0;
 
@@ -95,7 +95,7 @@ namespace GeometryHelper.UnitTest.Arranging
             // Same guide segment, same options: label declaring larger offset must
             // stop further from the guide segment, and both must lie exactly on their first perpendicular level.
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
-            var near = LabelOn(leader);                       // Offset = 5
+            var near = LabelOn(leader); // Offset = 5
             var far = LabelOn(leader);
             far.Offset = 30.0;
 
@@ -132,13 +132,10 @@ namespace GeometryHelper.UnitTest.Arranging
             var a1 = new ArrangeItem
             {
                 Box = new GeoRectangle2(new GeoPoint2(5.0, 0.0), 2.0, 2.0), // Too small
-                Leader = leaderLine
+                Leader = leaderLine,
             };
 
-            var options = new ArrangeOptions
-            {
-                MinimumBoxSize = 5.0
-            };
+            var options = new ArrangeOptions { MinimumBoxSize = 5.0 };
 
             ArrangeResult result = Arranger.Run(new List<ArrangeItem> { a1 }, options)[0];
             Assert.Equal(GeoVector2.Zero, result.Translation);
@@ -152,7 +149,7 @@ namespace GeometryHelper.UnitTest.Arranging
             {
                 Leader = new GeoLine2(5.0, 0.0, 5.0, 0.0),
                 Box = new GeoRectangle2(new GeoPoint2(5.0, 0.0), 20.0, 10.0),
-                Offset = 5.0
+                Offset = 5.0,
             };
 
             ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, OptionsFor())[0];
@@ -173,7 +170,7 @@ namespace GeometryHelper.UnitTest.Arranging
             {
                 Leader = leader,
                 Box = new GeoRectangle2(new GeoPoint2(20.0, 10.0), 20.0, 10.0),
-                Offset = 5.0
+                Offset = 5.0,
             };
 
             ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, OptionsFor())[0];
@@ -247,7 +244,8 @@ namespace GeometryHelper.UnitTest.Arranging
                 new GeoPoint2(-60.0, 0.0),
                 new GeoPoint2(60.0, 0.0),
                 new GeoPoint2(60.0, 40.0),
-                new GeoPoint2(-60.0, 40.0));
+                new GeoPoint2(-60.0, 40.0)
+            );
 
             var label = LabelOn(leader);
             label.BlockPolygons = new List<GeoPolygon2> { blockPoly };
@@ -296,7 +294,8 @@ namespace GeometryHelper.UnitTest.Arranging
                 bool clean = true;
                 for (int j = 0; j < labels.Count && clean; j++)
                 {
-                    if (i != j && boxes[i].CollidesWith(boxes[j])) clean = false;
+                    if (i != j && boxes[i].CollidesWith(boxes[j]))
+                        clean = false;
                 }
 
                 Assert.Equal(clean, results[i].Placed);
@@ -317,7 +316,7 @@ namespace GeometryHelper.UnitTest.Arranging
             label.BlockLines = new List<GeoLine2>
             {
                 new GeoLine2(-100, 10.0, 100, 10.0), // Blocks upper row
-                new GeoLine2(-100, -10.0, 100, -10.0) // Blocks lower row
+                new GeoLine2(-100, -10.0, 100, -10.0), // Blocks lower row
             };
 
             var options = OptionsFor();
@@ -343,7 +342,7 @@ namespace GeometryHelper.UnitTest.Arranging
             failedLabel.BlockLines = new List<GeoLine2>
             {
                 new GeoLine2(900, 10.0, 1100, 10.0),
-                new GeoLine2(900, -10.0, 1100, -10.0)
+                new GeoLine2(900, -10.0, 1100, -10.0),
             };
 
             var options = OptionsFor();
@@ -366,10 +365,7 @@ namespace GeometryHelper.UnitTest.Arranging
             var failedLabel = LabelOn(leader);
 
             // Force failedLabel to enter Pass 2 by blocking with BlockLines
-            failedLabel.BlockLines = new List<GeoLine2>
-            {
-                new GeoLine2(-100, 10.0, 100, 10.0)
-            };
+            failedLabel.BlockLines = new List<GeoLine2> { new GeoLine2(-100, 10.0, 100, 10.0) };
 
             var options = OptionsFor();
             options.PerpendicularLevels = 2;
@@ -393,13 +389,13 @@ namespace GeometryHelper.UnitTest.Arranging
             {
                 Leader = leader,
                 Box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0, Math.PI / 4.0),
-                Offset = 5.0
+                Offset = 5.0,
             };
             var b = new ArrangeItem
             {
                 Leader = leader,
                 Box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0, Math.PI / 4.0),
-                Offset = 5.0
+                Offset = 5.0,
             };
 
             ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { a, b }, OptionsFor());
@@ -420,7 +416,7 @@ namespace GeometryHelper.UnitTest.Arranging
             {
                 Leader = leader,
                 Box = new GeoRectangle2(new GeoPoint2(10.0, 0.0), 30.0, 10.0), // Label width = 30
-                Offset = 5.0
+                Offset = 5.0,
             };
 
             var options = OptionsFor();
@@ -450,12 +446,14 @@ namespace GeometryHelper.UnitTest.Arranging
                 new GeoPoint2(20.0, 16.0),
                 new GeoPoint2(40.0, 16.0),
                 new GeoPoint2(40.0, 17.0),
-                new GeoPoint2(20.0, 17.0));
+                new GeoPoint2(20.0, 17.0)
+            );
             var blockPoly2 = new GeoPolygon2(
                 new GeoPoint2(20.0, -17.0),
                 new GeoPoint2(40.0, -17.0),
                 new GeoPoint2(40.0, -16.0),
-                new GeoPoint2(20.0, -16.0));
+                new GeoPoint2(20.0, -16.0)
+            );
             label.BlockPolygons = new List<GeoPolygon2> { blockPoly1, blockPoly2 };
 
             var options = OptionsFor();
@@ -479,7 +477,7 @@ namespace GeometryHelper.UnitTest.Arranging
             {
                 Leader = leader,
                 Box = new GeoRectangle2(new GeoPoint2(20.05, 10.0), 20.0, 10.0),
-                Offset = 5.0
+                Offset = 5.0,
             };
 
             var options = OptionsFor();
@@ -584,7 +582,12 @@ namespace GeometryHelper.UnitTest.Arranging
             var label = LabelOn(leader);
             label.BlockPolygons = new[]
             {
-                new GeoPolygon2(new GeoPoint2(15.0, 6.0), new GeoPoint2(25.0, 6.0), new GeoPoint2(25.0, 14.0), new GeoPoint2(15.0, 14.0))
+                new GeoPolygon2(
+                    new GeoPoint2(15.0, 6.0),
+                    new GeoPoint2(25.0, 6.0),
+                    new GeoPoint2(25.0, 14.0),
+                    new GeoPoint2(15.0, 14.0)
+                ),
             };
 
             var options = OptionsFor();
@@ -636,8 +639,18 @@ namespace GeometryHelper.UnitTest.Arranging
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
 
             // Multiple static obstacles overlapping each other
-            var obs1 = new GeoPolygon2(new GeoPoint2(-50, 5), new GeoPoint2(50, 5), new GeoPoint2(50, 15), new GeoPoint2(-50, 15));
-            var obs2 = new GeoPolygon2(new GeoPoint2(-10, 5), new GeoPoint2(90, 5), new GeoPoint2(90, 15), new GeoPoint2(-10, 15));
+            var obs1 = new GeoPolygon2(
+                new GeoPoint2(-50, 5),
+                new GeoPoint2(50, 5),
+                new GeoPoint2(50, 15),
+                new GeoPoint2(-50, 15)
+            );
+            var obs2 = new GeoPolygon2(
+                new GeoPoint2(-10, 5),
+                new GeoPoint2(90, 5),
+                new GeoPoint2(90, 15),
+                new GeoPoint2(-10, 15)
+            );
 
             var label = LabelOn(leader);
             label.BlockPolygons = new List<GeoPolygon2> { obs1, obs2 };
@@ -660,7 +673,7 @@ namespace GeometryHelper.UnitTest.Arranging
             {
                 Leader = leader,
                 Box = new GeoRectangle2(leader.MidPoint, 1.0, 1.0), // Tiny label
-                Offset = 1.0
+                Offset = 1.0,
             };
 
             var options = OptionsFor();
@@ -679,7 +692,7 @@ namespace GeometryHelper.UnitTest.Arranging
             {
                 Leader = leader,
                 Box = new GeoRectangle2(leader.MidPoint, 1000.0, 1000.0), // Giant label
-                Offset = 5.0
+                Offset = 5.0,
             };
 
             ArrangeResult result = Arranger.Run(new List<ArrangeItem> { a }, OptionsFor())[0];
@@ -713,7 +726,8 @@ namespace GeometryHelper.UnitTest.Arranging
                 new GeoPoint2(-200.0, -45.0),
                 new GeoPoint2(200.0, -45.0),
                 new GeoPoint2(200.0, 45.0),
-                new GeoPoint2(-200.0, 45.0));
+                new GeoPoint2(-200.0, 45.0)
+            );
 
             label.BlockPolygons = new List<GeoPolygon2> { obstacle };
 

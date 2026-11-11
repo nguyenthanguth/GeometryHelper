@@ -19,7 +19,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             DxfDatabase database = CadTemplate.CreateMetric();
             database.ModelSpace.AppendEntity(new DxfCircle(new GeoPoint3(100, 100, 0), new GeoVector3(0, 0, 1), 10.0));
             database.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(100, 90, 0), new GeoPoint3(100, 70, 0)));
-            database.ModelSpace.AppendEntity(new DxfAttributeDefinition(new GeoPoint3(100, 100, 0), "A", "GRID", "Grid letter", null));
+            database.ModelSpace.AppendEntity(
+                new DxfAttributeDefinition(new GeoPoint3(100, 100, 0), "A", "GRID", "Grid letter", null)
+            );
             return database.ToText();
         }
 
@@ -123,7 +125,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Equal("C", placed.AttributeCollection[0].TextString);
                 Assert.Equal(new[] { "GB" }, model.RecentBlocks.ToArray());
 
-                var again = new BlocksPaletteViewModel(new CadInsertRequest(model.Document), model.RecentBlocks) { Tab = "Recent" };
+                var again = new BlocksPaletteViewModel(new CadInsertRequest(model.Document), model.RecentBlocks)
+                {
+                    Tab = "Recent",
+                };
                 Assert.Equal("GB", Assert.Single(again.Tiles).Name);
             }
         }
@@ -157,7 +162,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             {
                 MainViewModel model = Open(folder);
                 MakeBubble(model);
-                var dialog = new WriteBlockViewModel(new CadWriteBlockRequest(model.Document) { FileName = Path.Combine(folder.FullPath, "gb.dxf") });
+                var dialog = new WriteBlockViewModel(
+                    new CadWriteBlockRequest(model.Document) { FileName = Path.Combine(folder.FullPath, "gb.dxf") }
+                );
 
                 Assert.True(dialog.IsObjects);
                 Assert.True(dialog.IsRetain);
@@ -182,7 +189,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             using (var folder = new TestFolder())
             {
                 MainViewModel model = Open(folder);
-                var dialog = new AttributeDefinitionViewModel(new CadAttributeDefinitionRequest(model.Document, null, 2.5));
+                var dialog = new AttributeDefinitionViewModel(
+                    new CadAttributeDefinitionRequest(model.Document, null, 2.5)
+                );
 
                 dialog.Tag = "GRID LETTER";
                 Assert.False(dialog.CanOk);
@@ -231,7 +240,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 model.Execute("EATTEDIT");
                 model.Session.FeedSelection(new[] { handle });
 
-                DxfAttributeReference attribute = model.Document.ModelSpace.Block.OfType<DxfBlockReference>().Single().AttributeCollection.Single();
+                DxfAttributeReference attribute = model
+                    .Document.ModelSpace.Block.OfType<DxfBlockReference>()
+                    .Single()
+                    .AttributeCollection.Single();
                 Assert.Equal("D", attribute.TextString);
                 Assert.Equal(1, attribute.Color.ColorIndex);
                 Assert.Equal(5.0, attribute.Height);

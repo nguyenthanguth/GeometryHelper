@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -54,7 +54,8 @@ namespace GeometryHelper.Geometry
         /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
         /// than the tolerance given is read as its start point, except where it crosses a side or an arc.
         /// </returns>
-        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => Distance2.DistanceTo(loop, this, tolerance);
+        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Distance2.DistanceTo(loop, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this segment to a curved chain.
@@ -72,7 +73,8 @@ namespace GeometryHelper.Geometry
         /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
         /// than the tolerance given is read as its start point, except where it crosses a side or an arc.
         /// </returns>
-        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) => Distance2.DistanceTo(chain, this, tolerance);
+        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Distance2.DistanceTo(chain, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this line segment to another line segment using default tolerance.

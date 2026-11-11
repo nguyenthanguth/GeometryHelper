@@ -34,14 +34,10 @@ namespace GeometryHelper.Dxf
         /// base point and direction before it is drawn.
         /// </summary>
         public DxfRay()
-            : base("RAY", Groups("AcDbRay"))
-        {
-        }
+            : base("RAY", Groups("AcDbRay")) { }
 
         private DxfRay(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets the point the ray starts from (groups 10, 20, 30), in world coordinates, as AutoCAD's <c>BasePoint</c>; the origin where the record gives none.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
@@ -74,7 +70,6 @@ namespace GeometryHelper.Dxf
         public GeoPoint3 SecondPoint
         {
             get => BasePoint.Add(UnitDir);
-
             set
             {
                 if (!SamePoint(value, SecondPoint))
@@ -209,8 +204,10 @@ namespace GeometryHelper.Dxf
         /// <param name="offsetDist">The distance.</param>
         /// <returns>Nothing: it throws.</returns>
         /// <exception cref="NotSupportedException">Thrown always.</exception>
-        public override IReadOnlyList<DxfCurve> GetOffsetCurves(double offsetDist)
-            => throw new NotSupportedException("A ray has no plane of its own to be offset in: give one by GetOffsetCurvesGivenPlaneNormal.");
+        public override IReadOnlyList<DxfCurve> GetOffsetCurves(double offsetDist) =>
+            throw new NotSupportedException(
+                "A ray has no plane of its own to be offset in: give one by GetOffsetCurvesGivenPlaneNormal."
+            );
 
         /// <summary>
         /// Gets the ray at a distance from this one in the plane of a normal, as AutoCAD's <c>GetOffsetCurvesGivenPlaneNormal</c>:
@@ -222,7 +219,10 @@ namespace GeometryHelper.Dxf
         /// <returns>The one ray, of the same look, in no file.</returns>
         /// <exception cref="ArgumentException">Thrown when the normal has no length or runs along the ray.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
-        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(GeoVector3 planeNormal, double offsetDist)
+        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(
+            GeoVector3 planeNormal,
+            double offsetDist
+        )
         {
             GeoVector3 shift = Sideways(planeNormal, Direction(UnitDir), -offsetDist);
             var copy = (DxfRay)Copy();
@@ -232,7 +232,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Refuses, as AutoCAD does: a ray runs one way from its base point, and turned it would be another ray.</summary>
         /// <exception cref="NotSupportedException">Thrown always.</exception>
-        public override void ReverseCurve() => throw new NotSupportedException("A ray runs one way from its base point: it cannot be turned to run the other way.");
+        public override void ReverseCurve() =>
+            throw new NotSupportedException(
+                "A ray runs one way from its base point: it cannot be turned to run the other way."
+            );
 
         /// <summary>
         /// Extends the ray back along itself to a parameter below nought, as AutoCAD's <c>Extend</c>: its base point is moved
@@ -247,7 +250,11 @@ namespace GeometryHelper.Dxf
 
             if (newParameter >= 0.0)
             {
-                throw new ArgumentOutOfRangeException(nameof(newParameter), newParameter, "The parameter lies on the ray, which runs from nought without end: one below nought extends it back.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(newParameter),
+                    newParameter,
+                    "The parameter lies on the ray, which runs from nought without end: one below nought extends it back."
+                );
             }
 
             BasePoint = BasePoint.Add(Direction(UnitDir).Multiply(newParameter));
@@ -268,7 +275,10 @@ namespace GeometryHelper.Dxf
 
             if (!GetClosestPointTo(toPoint, true).IsEqualTo(toPoint, Tolerance.Default))
             {
-                throw new ArgumentException("The point " + toPoint + " is not on the line through the ray.", nameof(toPoint));
+                throw new ArgumentException(
+                    "The point " + toPoint + " is not on the line through the ray.",
+                    nameof(toPoint)
+                );
             }
 
             BasePoint = toPoint;
@@ -309,7 +319,9 @@ namespace GeometryHelper.Dxf
             {
                 if (cut - from > slack)
                 {
-                    pieces.Add(Segment(this, origin.Add(direction.Multiply(from)), origin.Add(direction.Multiply(cut))));
+                    pieces.Add(
+                        Segment(this, origin.Add(direction.Multiply(from)), origin.Add(direction.Multiply(cut)))
+                    );
                     from = cut;
                 }
             }
@@ -367,7 +379,12 @@ namespace GeometryHelper.Dxf
 
             if (!(geCurve is GeoRay3 ray))
             {
-                throw new ArgumentException("A ray takes a GeoRay3 or a GeoRay2, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
+                throw new ArgumentException(
+                    "A ray takes a GeoRay3 or a GeoRay2, and was given "
+                        + (geCurve == null ? "null" : "a " + geCurve.GetType().Name)
+                        + ".",
+                    nameof(geCurve)
+                );
             }
 
             SetShape(ray);
@@ -394,12 +411,16 @@ namespace GeometryHelper.Dxf
         private protected override IReadOnlyList<int> GroupOrder => Order;
 
         /// <summary>The groups of a ray or an xline made in code: its marker, the origin and the x axis.</summary>
-        internal static IEnumerable<DxfTypedValue> Groups(string marker)
-            => new[]
+        internal static IEnumerable<DxfTypedValue> Groups(string marker) =>
+            new[]
             {
                 new DxfTypedValue(100, marker),
-                new DxfTypedValue(10, "0"), new DxfTypedValue(20, "0"), new DxfTypedValue(30, "0"),
-                new DxfTypedValue(11, "1"), new DxfTypedValue(21, "0"), new DxfTypedValue(31, "0"),
+                new DxfTypedValue(10, "0"),
+                new DxfTypedValue(20, "0"),
+                new DxfTypedValue(30, "0"),
+                new DxfTypedValue(11, "1"),
+                new DxfTypedValue(21, "0"),
+                new DxfTypedValue(31, "0"),
             };
 
         /// <summary>The direction of a ray or an xline made of unit length as the reader makes it: kept where it is within 1E-12 of that.</summary>
@@ -423,9 +444,16 @@ namespace GeometryHelper.Dxf
             GeoVector3 side = direction.CrossProduct(planeNormal);
             double length = side.Length;
 
-            if (!planeNormal.IsValid || !(length > Tolerance.Default.EqualVector * Math.Max(1.0, planeNormal.Length)) || double.IsInfinity(length))
+            if (
+                !planeNormal.IsValid
+                || !(length > Tolerance.Default.EqualVector * Math.Max(1.0, planeNormal.Length))
+                || double.IsInfinity(length)
+            )
             {
-                throw new ArgumentException("The normal " + planeNormal + " has no length or runs along the line.", nameof(planeNormal));
+                throw new ArgumentException(
+                    "The normal " + planeNormal + " has no length or runs along the line.",
+                    nameof(planeNormal)
+                );
             }
 
             return side.Multiply(offsetDist / length);
@@ -443,7 +471,13 @@ namespace GeometryHelper.Dxf
         /// <summary>A ray or an xline moved as ezdxf moves one: the base point moved, the direction turned and made of unit length.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the transformation takes the direction to no length.</exception>
-        internal static void Moved(GeoTransform3 transform, GeoPoint3 origin, GeoVector3 raw, out GeoPoint3 newOrigin, out GeoPoint3 newDirection)
+        internal static void Moved(
+            GeoTransform3 transform,
+            GeoPoint3 origin,
+            GeoVector3 raw,
+            out GeoPoint3 newOrigin,
+            out GeoPoint3 newDirection
+        )
         {
             if (transform == null)
             {

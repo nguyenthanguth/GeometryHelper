@@ -44,8 +44,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly Brush Accent = Freeze(new SolidColorBrush(Color.FromRgb(0x3D, 0x9B, 0xFF)));
         private static readonly Brush Selection = Freeze(new SolidColorBrush(Color.FromArgb(0x99, 0x3D, 0x9B, 0xFF)));
         private static readonly Brush MaskBack = Freeze(new SolidColorBrush(Color.FromRgb(0, 0, 0)));
-        private static readonly Pen Border = FreezePen(new Pen(new SolidColorBrush(Color.FromRgb(0x9A, 0xA4, 0xB1)), 1.0) { DashStyle = DashStyles.Dash });
-        private static readonly Pen Tick = FreezePen(new Pen(new SolidColorBrush(Color.FromRgb(0x1A, 0x1E, 0x24)), 1.0));
+        private static readonly Pen Border = FreezePen(
+            new Pen(new SolidColorBrush(Color.FromRgb(0x9A, 0xA4, 0xB1)), 1.0) { DashStyle = DashStyles.Dash }
+        );
+        private static readonly Pen Tick = FreezePen(
+            new Pen(new SolidColorBrush(Color.FromRgb(0x1A, 0x1E, 0x24)), 1.0)
+        );
         private static readonly Pen Caret = FreezePen(new Pen(Brushes.White, 2.0));
 
         private readonly Dictionary<int, Brush> _brushes = new Dictionary<int, Brush>();
@@ -251,7 +255,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     int caret = _model.Editor.Caret;
                     int line = _layout.LineOfPlace(caret);
                     double x = PixelX(_layout.XOf(caret));
-                    dc.DrawLine(Caret, new Point(x, PixelY(_layout.TopOf(line))), new Point(x, PixelY(_layout.BottomOf(line))));
+                    dc.DrawLine(
+                        Caret,
+                        new Point(x, PixelY(_layout.TopOf(line))),
+                        new Point(x, PixelY(_layout.BottomOf(line)))
+                    );
                 }
             }
 
@@ -338,7 +346,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.Editor.MoveTo(PlaceAt(at), true);
             }
 
-            Cursor = _model.IsRulerShown && at.Y < RulerHeight && Math.Abs(at.X - BoxRight) <= 8.0 ? Cursors.SizeWE : Cursors.IBeam;
+            Cursor =
+                _model.IsRulerShown && at.Y < RulerHeight && Math.Abs(at.X - BoxRight) <= 8.0
+                    ? Cursors.SizeWE
+                    : Cursors.IBeam;
         }
 
         /// <inheritdoc/>
@@ -418,10 +429,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     editor.Delete();
                     return true;
                 case System.Windows.Input.Key.Left:
-                    editor.MoveTo(!shift && editor.SelectionLength > 0 ? editor.SelectionStart : editor.Caret - 1, shift);
+                    editor.MoveTo(
+                        !shift && editor.SelectionLength > 0 ? editor.SelectionStart : editor.Caret - 1,
+                        shift
+                    );
                     return true;
                 case System.Windows.Input.Key.Right:
-                    editor.MoveTo(!shift && editor.SelectionLength > 0 ? editor.SelectionStart + editor.SelectionLength : editor.Caret + 1, shift);
+                    editor.MoveTo(
+                        !shift && editor.SelectionLength > 0
+                            ? editor.SelectionStart + editor.SelectionLength
+                            : editor.Caret + 1,
+                        shift
+                    );
                     return true;
                 case System.Windows.Input.Key.Home:
                 case System.Windows.Input.Key.End:
@@ -548,7 +567,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     _layout = new CadMTextEditorLayout(_document, _model.Edit);
                 }
 
-                _layout.Update(_model.Editor, _model.Width, _model.Attachment, _model.LineSpacing, DefaultRgb, LayerRgb);
+                _layout.Update(
+                    _model.Editor,
+                    _model.Width,
+                    _model.Attachment,
+                    _model.LineSpacing,
+                    DefaultRgb,
+                    LayerRgb
+                );
                 _stale = false;
             }
 
@@ -592,7 +618,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // The indents, first line above and paragraph below, at the left; the diamond of the width at the right.
             dc.DrawGeometry(Dark, null, Triangle(Pad, 1.0, Pad + 8.0, 1.0, Pad + 4.0, 7.0));
-            dc.DrawGeometry(Dark, null, Triangle(Pad, RulerHeight - 1.0, Pad + 8.0, RulerHeight - 1.0, Pad + 4.0, RulerHeight - 7.0));
+            dc.DrawGeometry(
+                Dark,
+                null,
+                Triangle(Pad, RulerHeight - 1.0, Pad + 8.0, RulerHeight - 1.0, Pad + 4.0, RulerHeight - 7.0)
+            );
             double right = BoxRight;
             var diamond = new StreamGeometry();
 
@@ -607,7 +637,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             dc.DrawGeometry(_draggingWidth ? Accent : Dark, null, diamond);
         }
 
-        private static System.Windows.Media.Geometry Triangle(double x0, double y0, double x1, double y1, double x2, double y2)
+        private static System.Windows.Media.Geometry Triangle(
+            double x0,
+            double y0,
+            double x1,
+            double y1,
+            double x2,
+            double y2
+        )
         {
             var geometry = new StreamGeometry();
 
@@ -711,20 +748,50 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             // The runs of the lines a key did not change are drawn from the letters set for the last frame.
-            string family = text.FontName == null ? "Arial" : System.IO.Path.HasExtension(text.FontName) ? System.IO.Path.GetFileNameWithoutExtension(text.FontName) : text.FontName;
-            string key = string.Join("\u0001", text.Text, family, size.ToString("R", CultureInfo.InvariantCulture), text.IsBold ? "b" : string.Empty, text.IsItalic ? "i" : string.Empty, text.Style.Rgb.ToString(CultureInfo.InvariantCulture));
+            string family =
+                text.FontName == null ? "Arial"
+                : System.IO.Path.HasExtension(text.FontName) ? System.IO.Path.GetFileNameWithoutExtension(text.FontName)
+                : text.FontName;
+            string key = string.Join(
+                "\u0001",
+                text.Text,
+                family,
+                size.ToString("R", CultureInfo.InvariantCulture),
+                text.IsBold ? "b" : string.Empty,
+                text.IsItalic ? "i" : string.Empty,
+                text.Style.Rgb.ToString(CultureInfo.InvariantCulture)
+            );
 
-            if (!_lastFrame.TryGetValue(key, out FormattedText formatted) && !_thisFrame.TryGetValue(key, out formatted))
+            if (
+                !_lastFrame.TryGetValue(key, out FormattedText formatted) && !_thisFrame.TryGetValue(key, out formatted)
+            )
             {
-                var typeface = new Typeface(new FontFamily(family), text.IsItalic ? FontStyles.Italic : FontStyles.Normal, text.IsBold ? FontWeights.Bold : FontWeights.Normal, FontStretches.Normal);
-                formatted = new FormattedText(text.Text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, size, BrushOf(text.Style.Rgb, true), 1.0);
+                var typeface = new Typeface(
+                    new FontFamily(family),
+                    text.IsItalic ? FontStyles.Italic : FontStyles.Normal,
+                    text.IsBold ? FontWeights.Bold : FontWeights.Normal,
+                    FontStretches.Normal
+                );
+                formatted = new FormattedText(
+                    text.Text,
+                    CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight,
+                    typeface,
+                    size,
+                    BrushOf(text.Style.Rgb, true),
+                    1.0
+                );
             }
 
             _thisFrame[key] = formatted;
             double x = PixelX(text.X);
             double baseline = PixelY(text.Y);
             double slant = Math.Tan(text.Oblique);
-            dc.PushTransform(new MatrixTransform(new Matrix(text.WidthFactor, 0.0, -slant, 1.0, x - (text.WidthFactor * x) + (slant * baseline), 0.0)));
+            dc.PushTransform(
+                new MatrixTransform(
+                    new Matrix(text.WidthFactor, 0.0, -slant, 1.0, x - (text.WidthFactor * x) + (slant * baseline), 0.0)
+                )
+            );
             dc.DrawText(formatted, new Point(x, baseline - formatted.Baseline));
             dc.Pop();
         }
@@ -761,8 +828,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnModelChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(TextEditorViewModel.IsRulerShown) || e.PropertyName == nameof(TextEditorViewModel.Attachment)
-                || e.PropertyName == nameof(TextEditorViewModel.LineSpacing) || e.PropertyName == nameof(TextEditorViewModel.Width))
+            if (
+                e.PropertyName == nameof(TextEditorViewModel.IsRulerShown)
+                || e.PropertyName == nameof(TextEditorViewModel.Attachment)
+                || e.PropertyName == nameof(TextEditorViewModel.LineSpacing)
+                || e.PropertyName == nameof(TextEditorViewModel.Width)
+            )
             {
                 Restale();
             }
@@ -776,7 +847,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             catch (System.Runtime.InteropServices.COMException exception)
             {
-                GeometryHelperLog.Warn("CadMTextEditBox: the clipboard was busy; the words were not copied.", exception);
+                GeometryHelperLog.Warn(
+                    "CadMTextEditBox: the clipboard was busy; the words were not copied.",
+                    exception
+                );
             }
         }
 

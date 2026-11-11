@@ -20,7 +20,8 @@ namespace GeometryHelper.UnitTest.Plane
         {
             return new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 50), new GeoPoint2(0, 50) },
-                new[] { 0.0, 1.0, 0.0, 1.0 });
+                new[] { 0.0, 1.0, 0.0, 1.0 }
+            );
         }
 
         private static GeoPolylineArc2 Chain()
@@ -28,7 +29,8 @@ namespace GeometryHelper.UnitTest.Plane
             // Straight 100, then a half circle of radius 50, then straight 100.
             return new GeoPolylineArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
-                new[] { 0.0, 1.0, 0.0 });
+                new[] { 0.0, 1.0, 0.0 }
+            );
         }
 
         [Fact]
@@ -135,14 +137,19 @@ namespace GeometryHelper.UnitTest.Plane
             // One round end only: the centroid moves toward it, and the flattened loop agrees.
             var lopsided = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 50), new GeoPoint2(0, 50) },
-                new[] { 0.0, 1.0, 0.0, 0.0 });
+                new[] { 0.0, 1.0, 0.0, 0.0 }
+            );
 
             Assert.True(lopsided.Centroid.X > 100.0);
             Assert.True(lopsided.Centroid.IsEqualTo(lopsided.Flatten(0.0005).Centroid, new Tolerance(1E-3, 1E-6)));
 
             // A straight loop gives what the straight world gives.
             var square = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
 
             Assert.True(new GeoPolygonArc2(square).Centroid.IsEqualTo(square.Centroid, Tight));
         }
@@ -156,13 +163,15 @@ namespace GeometryHelper.UnitTest.Plane
             // Two ends bulging so far inward that they run into each other.
             var pinched = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 50), new GeoPoint2(0, 50) },
-                new[] { 0.0, -3.0, 0.0, -3.0 });
+                new[] { 0.0, -3.0, 0.0, -3.0 }
+            );
 
             Assert.False(pinched.IsSimple());
 
             // A bow tie is not simple however straight it is.
-            var crossed = new GeoPolygonArc2(new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 10), new GeoPoint2(10, 0), new GeoPoint2(0, 10)));
+            var crossed = new GeoPolygonArc2(
+                new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 10), new GeoPoint2(10, 0), new GeoPoint2(0, 10))
+            );
 
             Assert.False(crossed.IsSimple());
         }
@@ -182,8 +191,9 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(opened.ToPolygonArc2().IsEqualTo(slot));
 
             // Two points cannot close into anything.
-            Assert.Throws<InvalidOperationException>(
-                () => new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0) }).ToPolygonArc2());
+            Assert.Throws<InvalidOperationException>(() =>
+                new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0) }).ToPolygonArc2()
+            );
         }
 
         [Fact]
@@ -205,11 +215,18 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(chain != chain.Reverse());
             Assert.False(chain == null);
         }
+
         [Fact]
         public void OneCornerCanBeCutOnItsOwnAndTheShorthandsWork()
         {
-            var square = new GeoPolygonArc2(new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100)));
+            var square = new GeoPolygonArc2(
+                new GeoPolygon2(
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(100, 0),
+                    new GeoPoint2(100, 100),
+                    new GeoPoint2(0, 100)
+                )
+            );
 
             Assert.True(square.TryChamferAt(1, 10.0, 20.0, out GeoPolygonArc2 cut));
             Assert.Equal(5, cut.VertexCount);

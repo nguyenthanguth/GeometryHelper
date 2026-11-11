@@ -142,9 +142,17 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>The point a snap gave, which snap gave it and, for an object snap, the object.</summary>
     public sealed class CadSnapResult
     {
-        private static readonly IReadOnlyList<IReadOnlyList<GeoPoint2>> NoTracks = Array.Empty<IReadOnlyList<GeoPoint2>>();
+        private static readonly IReadOnlyList<IReadOnlyList<GeoPoint2>> NoTracks = Array.Empty<
+            IReadOnlyList<GeoPoint2>
+        >();
 
-        internal CadSnapResult(CadSnapKind kind, GeoPoint2 point, string handle, IReadOnlyList<IReadOnlyList<GeoPoint2>> tracks = null, object source = null)
+        internal CadSnapResult(
+            CadSnapKind kind,
+            GeoPoint2 point,
+            string handle,
+            IReadOnlyList<IReadOnlyList<GeoPoint2>> tracks = null,
+            object source = null
+        )
         {
             Kind = kind;
             Point = point;
@@ -247,7 +255,12 @@ namespace GeometryHelper.Dxf.Viewer
         public ObjectSnap(Tolerance tolerance)
         {
             Tolerance = tolerance;
-            Modes = CadSnapModes.Endpoint | CadSnapModes.Midpoint | CadSnapModes.Center | CadSnapModes.Quadrant | CadSnapModes.Intersection;
+            Modes =
+                CadSnapModes.Endpoint
+                | CadSnapModes.Midpoint
+                | CadSnapModes.Center
+                | CadSnapModes.Quadrant
+                | CadSnapModes.Intersection;
             IsOn = true;
             PolarAngle = Math.PI / 2.0;
             GridX = 10.0;
@@ -355,7 +368,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="drawnFrom">The point perpendicular and tangent are drawn from where there is no base point, as a dimension's first origin draws them from the last point (<see cref="CadPrompt.SnapFrom"/>); null for none.</param>
         /// <returns>The point and the snap that gave it.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the index is null.</exception>
-        public CadSnapResult Snap(PickIndex index, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint = null, GeoPoint2? drawnFrom = null)
+        public CadSnapResult Snap(
+            PickIndex index,
+            GeoPoint2 cursor,
+            double aperture,
+            GeoPoint2? basePoint = null,
+            GeoPoint2? drawnFrom = null
+        )
         {
             if (index == null)
             {
@@ -384,7 +403,8 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 point = new GeoPoint2(
                     GridOrigin.X + Math.Round((point.X - GridOrigin.X) / GridX, MidpointRounding.AwayFromZero) * GridX,
-                    GridOrigin.Y + Math.Round((point.Y - GridOrigin.Y) / GridY, MidpointRounding.AwayFromZero) * GridY);
+                    GridOrigin.Y + Math.Round((point.Y - GridOrigin.Y) / GridY, MidpointRounding.AwayFromZero) * GridY
+                );
                 kind = CadSnapKind.Grid;
             }
 
@@ -396,7 +416,8 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (Ortho)
                 {
-                    point = Math.Abs(dx) >= Math.Abs(dy) ? new GeoPoint2(point.X, from.Y) : new GeoPoint2(from.X, point.Y);
+                    point =
+                        Math.Abs(dx) >= Math.Abs(dy) ? new GeoPoint2(point.X, from.Y) : new GeoPoint2(from.X, point.Y);
                     kind = CadSnapKind.Ortho;
                 }
                 else if (Polar && PolarAngle > Tolerance.EqualAngleRad)
@@ -419,7 +440,13 @@ namespace GeometryHelper.Dxf.Viewer
             return new CadSnapResult(kind, ucs.ToWorld(point), null);
         }
 
-        private CadSnapResult ObjectSnapAt(PickIndex index, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint, GeoPoint2? drawnFrom)
+        private CadSnapResult ObjectSnapAt(
+            PickIndex index,
+            GeoPoint2 cursor,
+            double aperture,
+            GeoPoint2? basePoint,
+            GeoPoint2? drawnFrom
+        )
         {
             var found = new Found();
             Gather(index, cursor, aperture, basePoint ?? drawnFrom, found);
@@ -433,14 +460,25 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             AddTracking(cursor, aperture, basePoint, near, tracked);
-            Candidate best = Best(near) ?? Best(found.OnObject) ?? Best(tracked) ?? Best(offered) ?? Best(found.Nearest);
-            return best == null ? null : new CadSnapResult(best.Kind, best.Point, best.Handle, best.Tracks, best.Source);
+            Candidate best = Best(near)
+                ?? Best(found.OnObject)
+                ?? Best(tracked)
+                ?? Best(offered)
+                ?? Best(found.Nearest);
+            return best == null
+                ? null
+                : new CadSnapResult(best.Kind, best.Point, best.Handle, best.Tracks, best.Source);
         }
 
         /// <summary>The snaps of the items under the aperture: the points near the cursor, those the objects under it give, the nearest points, and the curves under it.</summary>
         private void Gather(PickIndex index, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint, Found found)
         {
-            var box = new DisplayBox(cursor.X - aperture, cursor.Y - aperture, cursor.X + aperture, cursor.Y + aperture);
+            var box = new DisplayBox(
+                cursor.X - aperture,
+                cursor.Y - aperture,
+                cursor.X + aperture,
+                cursor.Y + aperture
+            );
             IReadOnlyList<DisplayItem2> items = index.ItemsNear(box);
             List<Candidate> near = found.Near;
             List<Candidate> onObject = found.OnObject;
@@ -452,12 +490,40 @@ namespace GeometryHelper.Dxf.Viewer
                 switch (item)
                 {
                     case DisplayPolyline2 chain:
-                        AddChain(chain.Xy, chain.Count, chain.Closed, chain.IsSampled, item, cursor, aperture, basePoint, near, onObject, nearest, curves, found.Ends);
+                        AddChain(
+                            chain.Xy,
+                            chain.Count,
+                            chain.Closed,
+                            chain.IsSampled,
+                            item,
+                            cursor,
+                            aperture,
+                            basePoint,
+                            near,
+                            onObject,
+                            nearest,
+                            curves,
+                            found.Ends
+                        );
                         break;
                     case DisplayFill2 fill:
                         foreach (double[] ring in fill.Rings)
                         {
-                            AddChain(ring, ring.Length / 2, true, false, item, cursor, aperture, basePoint, near, onObject, nearest, curves, found.Ends);
+                            AddChain(
+                                ring,
+                                ring.Length / 2,
+                                true,
+                                false,
+                                item,
+                                cursor,
+                                aperture,
+                                basePoint,
+                                near,
+                                onObject,
+                                nearest,
+                                curves,
+                                found.Ends
+                            );
                         }
 
                         break;
@@ -485,7 +551,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// The insertion points of the block or text an item is drawn for: near the cursor, or wherever they lie with the cursor
         /// on the item, as AutoCAD takes a block's base point from any of its lines.
         /// </summary>
-        private static void AddInsertion(DisplayList2 list, DisplayItem2 item, GeoPoint2 cursor, double aperture, List<Candidate> near, List<Candidate> onObject)
+        private static void AddInsertion(
+            DisplayList2 list,
+            DisplayItem2 item,
+            GeoPoint2 cursor,
+            double aperture,
+            List<Candidate> near,
+            List<Candidate> onObject
+        )
         {
             IReadOnlyList<GeoPoint2> points = list.InsertionPointsOf(item.Handle);
 
@@ -509,8 +582,21 @@ namespace GeometryHelper.Dxf.Viewer
 
         private bool Has(CadSnapModes mode) => (_active & mode) != 0;
 
-        private void AddChain(IReadOnlyList<double> xy, int count, bool closed, bool sampled, DisplayItem2 item, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint,
-            List<Candidate> near, List<Candidate> onObject, List<Candidate> nearest, List<Curve> curves, List<End> ends)
+        private void AddChain(
+            IReadOnlyList<double> xy,
+            int count,
+            bool closed,
+            bool sampled,
+            DisplayItem2 item,
+            GeoPoint2 cursor,
+            double aperture,
+            GeoPoint2? basePoint,
+            List<Candidate> near,
+            List<Candidate> onObject,
+            List<Candidate> nearest,
+            List<Curve> curves,
+            List<End> ends
+        )
         {
             if (count == 0)
             {
@@ -537,7 +623,14 @@ namespace GeometryHelper.Dxf.Viewer
                         continue;
                     }
 
-                    Near(near, CadSnapKind.Endpoint, new GeoPoint2(xy[2 * i], xy[2 * i + 1]), item.Handle, cursor, aperture);
+                    Near(
+                        near,
+                        CadSnapKind.Endpoint,
+                        new GeoPoint2(xy[2 * i], xy[2 * i + 1]),
+                        item.Handle,
+                        cursor,
+                        aperture
+                    );
                 }
             }
 
@@ -552,7 +645,14 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (!sampled && Has(CadSnapModes.Midpoint))
                 {
-                    Near(near, CadSnapKind.Midpoint, new GeoPoint2((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0), item.Handle, cursor, aperture);
+                    Near(
+                        near,
+                        CadSnapKind.Midpoint,
+                        new GeoPoint2((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0),
+                        item.Handle,
+                        cursor,
+                        aperture
+                    );
                 }
 
                 GeoPoint2 foot = Foot(cursor, a, b, out _);
@@ -590,13 +690,21 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             // The centroid of a closed polyline: near the cursor, or with the cursor on the polyline, as the centre of a circle is.
-            if (Has(CadSnapModes.GeometricCenter) && closed && count > 2 && item is DisplayPolyline2 && Centroid(xy, count, out GeoPoint2 centroid))
+            if (
+                Has(CadSnapModes.GeometricCenter)
+                && closed
+                && count > 2
+                && item is DisplayPolyline2
+                && Centroid(xy, count, out GeoPoint2 centroid)
+            )
             {
                 Near(near, CadSnapKind.GeometricCenter, centroid, item.Handle, cursor, aperture);
 
                 if (under)
                 {
-                    onObject.Add(new Candidate(CadSnapKind.GeometricCenter, centroid, item.Handle, (centroid - cursor).Length));
+                    onObject.Add(
+                        new Candidate(CadSnapKind.GeometricCenter, centroid, item.Handle, (centroid - cursor).Length)
+                    );
                 }
             }
         }
@@ -636,7 +744,17 @@ namespace GeometryHelper.Dxf.Viewer
             return true;
         }
 
-        private void AddArc(DisplayArc2 arc, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint, List<Candidate> near, List<Candidate> onObject, List<Candidate> nearest, List<Curve> curves, List<End> ends)
+        private void AddArc(
+            DisplayArc2 arc,
+            GeoPoint2 cursor,
+            double aperture,
+            GeoPoint2? basePoint,
+            List<Candidate> near,
+            List<Candidate> onObject,
+            List<Candidate> nearest,
+            List<Curve> curves,
+            List<End> ends
+        )
         {
             var center = new GeoPoint2(arc.Cx, arc.Cy);
             double reach = arc.DistanceTo(cursor.X, cursor.Y);
@@ -737,7 +855,14 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         arc.PointAt(a, out double px, out double py);
                         var foot = new GeoPoint2(px, py);
-                        onObject.Add(new Candidate(CadSnapKind.Perpendicular, foot, arc.Handle, reach + (foot - cursor).Length * 1E-9));
+                        onObject.Add(
+                            new Candidate(
+                                CadSnapKind.Perpendicular,
+                                foot,
+                                arc.Handle,
+                                reach + (foot - cursor).Length * 1E-9
+                            )
+                        );
                     }
                 }
             }
@@ -753,7 +878,14 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         arc.PointAt(a, out double tx, out double ty);
                         var touch = new GeoPoint2(tx, ty);
-                        onObject.Add(new Candidate(CadSnapKind.Tangent, touch, arc.Handle, reach + (touch - cursor).Length * 1E-9));
+                        onObject.Add(
+                            new Candidate(
+                                CadSnapKind.Tangent,
+                                touch,
+                                arc.Handle,
+                                reach + (touch - cursor).Length * 1E-9
+                            )
+                        );
                     }
                 }
             }
@@ -765,7 +897,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// else lies under the cursor, however far from the base point. A ray along +X from (100, 0) gives the perpendicular
         /// from (500, 80) at (500, 0), and none from (0, 80), whose foot lies behind it.
         /// </summary>
-        private void AddRay(DisplayRay2 ray, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint, List<Candidate> near, List<Candidate> onObject, List<Candidate> nearest, List<Curve> curves, List<End> ends)
+        private void AddRay(
+            DisplayRay2 ray,
+            GeoPoint2 cursor,
+            double aperture,
+            GeoPoint2? basePoint,
+            List<Candidate> near,
+            List<Candidate> onObject,
+            List<Candidate> nearest,
+            List<Curve> curves,
+            List<End> ends
+        )
         {
             var origin = new GeoPoint2(ray.X, ray.Y);
             var way = new GeoVector2(ray.Dx, ray.Dy);
@@ -791,7 +933,16 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (ends != null && toBase <= aperture)
                 {
-                    ends.Add(new End { Point = origin, Handle = ray.Handle, Reach = toBase, OnIt = reach, Along = -way });
+                    ends.Add(
+                        new End
+                        {
+                            Point = origin,
+                            Handle = ray.Handle,
+                            Reach = toBase,
+                            OnIt = reach,
+                            Along = -way,
+                        }
+                    );
                 }
             }
 
@@ -827,7 +978,10 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     foreach (GeoPoint2 point in Cross(curves[i], curves[j]))
                     {
-                        string handle = string.CompareOrdinal(curves[i].Handle, curves[j].Handle) <= 0 ? curves[i].Handle : curves[j].Handle;
+                        string handle =
+                            string.CompareOrdinal(curves[i].Handle, curves[j].Handle) <= 0
+                                ? curves[i].Handle
+                                : curves[j].Handle;
                         Near(near, CadSnapKind.Intersection, point, handle, cursor, aperture);
                     }
                 }
@@ -855,7 +1009,10 @@ namespace GeometryHelper.Dxf.Viewer
                 double slackT = Tolerance.EqualPoint / r.Length;
                 double slackU = Tolerance.EqualPoint / s.Length;
 
-                if (extended || (t >= a.Least - slackT && t <= a.Most + slackT && u >= b.Least - slackU && u <= b.Most + slackU))
+                if (
+                    extended
+                    || (t >= a.Least - slackT && t <= a.Most + slackT && u >= b.Least - slackU && u <= b.Most + slackU)
+                )
                 {
                     yield return a.A + r * t;
                 }
@@ -902,7 +1059,9 @@ namespace GeometryHelper.Dxf.Viewer
             if (discriminant < 0.0)
             {
                 // A line within the tolerance of touching the circle touches it at the foot from the centre.
-                GeoPoint2 foot = line.IsEndless ? Foot(circle.Center, line.A, d, line.Least, out double tf) : Foot(circle.Center, line.A, line.B, out tf);
+                GeoPoint2 foot = line.IsEndless
+                    ? Foot(circle.Center, line.A, d, line.Least, out double tf)
+                    : Foot(circle.Center, line.A, line.B, out tf);
 
                 if (extended)
                 {
@@ -917,7 +1076,12 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                if (Math.Abs((foot - circle.Center).Length - circle.Radius) <= Tolerance.EqualPoint && tf >= line.Least - slack && tf <= line.Most + slack && circle.Covers(foot, Tolerance))
+                if (
+                    Math.Abs((foot - circle.Center).Length - circle.Radius) <= Tolerance.EqualPoint
+                    && tf >= line.Least - slack
+                    && tf <= line.Most + slack
+                    && circle.Covers(foot, Tolerance)
+                )
                 {
                     yield return foot;
                 }
@@ -943,7 +1107,11 @@ namespace GeometryHelper.Dxf.Viewer
             GeoVector2 between = b.Center - a.Center;
             double d = between.Length;
 
-            if (d <= Tolerance.EqualPoint || d > a.Radius + b.Radius + Tolerance.EqualPoint || d < Math.Abs(a.Radius - b.Radius) - Tolerance.EqualPoint)
+            if (
+                d <= Tolerance.EqualPoint
+                || d > a.Radius + b.Radius + Tolerance.EqualPoint
+                || d < Math.Abs(a.Radius - b.Radius) - Tolerance.EqualPoint
+            )
             {
                 yield break;
             }
@@ -953,7 +1121,8 @@ namespace GeometryHelper.Dxf.Viewer
             GeoVector2 unit = between / d;
             GeoPoint2 middle = a.Center + unit * along;
             var normal = new GeoVector2(-unit.Y, unit.X);
-            var points = h <= Tolerance.EqualPoint ? new[] { middle } : new[] { middle + normal * h, middle - normal * h };
+            var points =
+                h <= Tolerance.EqualPoint ? new[] { middle } : new[] { middle + normal * h, middle - normal * h };
 
             foreach (GeoPoint2 point in points)
             {
@@ -986,7 +1155,14 @@ namespace GeometryHelper.Dxf.Viewer
             return Math.Min(toStart, toEnd) <= Tolerance.EqualPoint;
         }
 
-        private static void Near(List<Candidate> list, CadSnapKind kind, GeoPoint2 point, string handle, GeoPoint2 cursor, double aperture)
+        private static void Near(
+            List<Candidate> list,
+            CadSnapKind kind,
+            GeoPoint2 point,
+            string handle,
+            GeoPoint2 cursor,
+            double aperture
+        )
         {
             double reach = (point - cursor).Length;
 
@@ -1070,7 +1246,14 @@ namespace GeometryHelper.Dxf.Viewer
 
         private sealed class Candidate
         {
-            public Candidate(CadSnapKind kind, GeoPoint2 point, string handle, double reach, IReadOnlyList<IReadOnlyList<GeoPoint2>> tracks = null, object source = null)
+            public Candidate(
+                CadSnapKind kind,
+                GeoPoint2 point,
+                string handle,
+                double reach,
+                IReadOnlyList<IReadOnlyList<GeoPoint2>> tracks = null,
+                object source = null
+            )
             {
                 Kind = kind;
                 Point = point;
@@ -1129,13 +1312,55 @@ namespace GeometryHelper.Dxf.Viewer
             /// <summary>Whether it is a piece of a curve drawn as a chain (a spline, an ellipse), whose run means nothing.</summary>
             public bool Sampled { get; private set; }
 
-            public static Curve Segment(GeoPoint2 a, GeoPoint2 b, string handle, double reach, GeoPoint2 foot, bool sampled)
-                => new Curve { A = a, B = b, Run = b - a, Handle = handle, Reach = reach, Foot = foot, Sampled = sampled };
+            public static Curve Segment(
+                GeoPoint2 a,
+                GeoPoint2 b,
+                string handle,
+                double reach,
+                GeoPoint2 foot,
+                bool sampled
+            ) =>
+                new Curve
+                {
+                    A = a,
+                    B = b,
+                    Run = b - a,
+                    Handle = handle,
+                    Reach = reach,
+                    Foot = foot,
+                    Sampled = sampled,
+                };
 
-            public static Curve Ray(GeoPoint2 origin, GeoVector2 way, double least, string handle, double reach, GeoPoint2 foot)
-                => new Curve { A = origin, B = origin + way, Run = way, Least = least, Most = double.PositiveInfinity, IsEndless = true, Handle = handle, Reach = reach, Foot = foot };
+            public static Curve Ray(
+                GeoPoint2 origin,
+                GeoVector2 way,
+                double least,
+                string handle,
+                double reach,
+                GeoPoint2 foot
+            ) =>
+                new Curve
+                {
+                    A = origin,
+                    B = origin + way,
+                    Run = way,
+                    Least = least,
+                    Most = double.PositiveInfinity,
+                    IsEndless = true,
+                    Handle = handle,
+                    Reach = reach,
+                    Foot = foot,
+                };
 
-            public static Curve Arc(DisplayArc2 arc, double reach) => new Curve { _arc = arc, Center = new GeoPoint2(arc.Cx, arc.Cy), Radius = arc.Radius, Handle = arc.Handle, Reach = reach };
+            public static Curve Arc(DisplayArc2 arc, double reach) =>
+                new Curve
+                {
+                    _arc = arc,
+                    Center = new GeoPoint2(arc.Cx, arc.Cy),
+                    Radius = arc.Radius,
+                    Handle = arc.Handle,
+                    Reach = reach,
+                };
 
             /// <summary>The point of the curve nearest a point: the foot on a segment, on an arc the point at its angle, else the nearer end.</summary>
             public GeoPoint2 NearestTo(GeoPoint2 cursor)
@@ -1169,7 +1394,8 @@ namespace GeometryHelper.Dxf.Viewer
 
                 _arc.PointAt(_arc.Start, out double sx, out double sy);
                 _arc.PointAt(_arc.Start + _arc.Sweep, out double ex, out double ey);
-                return (point - new GeoPoint2(sx, sy)).Length <= tolerance.EqualPoint || (point - new GeoPoint2(ex, ey)).Length <= tolerance.EqualPoint;
+                return (point - new GeoPoint2(sx, sy)).Length <= tolerance.EqualPoint
+                    || (point - new GeoPoint2(ex, ey)).Length <= tolerance.EqualPoint;
             }
         }
     }

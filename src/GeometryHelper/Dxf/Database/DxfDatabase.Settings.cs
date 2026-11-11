@@ -176,7 +176,6 @@ namespace GeometryHelper.Dxf
                 DxfDBDictionary styles = MLStyleDictionary;
                 return styles != null && styles.Contains(name) ? styles.GetAt(name) : null;
             }
-
             set
             {
                 DxfDBDictionary styles = MLStyleDictionary;
@@ -362,7 +361,6 @@ namespace GeometryHelper.Dxf
         public GeoPoint3 Pinsbase
         {
             get => Point("$PINSBASE");
-
             set
             {
                 GeoPoint3 now = Pinsbase;
@@ -664,7 +662,9 @@ namespace GeometryHelper.Dxf
         private int Maintenance()
         {
             string written = First("$ACADMAINTVER", 90) ?? First("$ACADMAINTVER", 70);
-            return int.TryParse(written?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : 0;
+            return int.TryParse(written?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : 0;
         }
 
         /// <summary>Refuses a variable the file's version has not; one R12 (AC1009) has needs no check.</summary>
@@ -673,7 +673,10 @@ namespace GeometryHelper.Dxf
         {
             if (version > 1009)
             {
-                string release = version == 1015 ? "R2000" : version == 1018 ? "R2004" : "R2007";
+                string release =
+                    version == 1015 ? "R2000"
+                    : version == 1018 ? "R2004"
+                    : "R2007";
                 File.Requires(version, name, release + " (AC" + version.ToString(CultureInfo.InvariantCulture) + ")");
             }
         }
@@ -746,7 +749,10 @@ namespace GeometryHelper.Dxf
 
             if (value.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0)
             {
-                throw new ArgumentException("A variable of the header is one line: " + name + " cannot hold a line break.", nameof(value));
+                throw new ArgumentException(
+                    "A variable of the header is one line: " + name + " cannot hold a line break.",
+                    nameof(value)
+                );
             }
 
             Since(since, name);
@@ -767,7 +773,10 @@ namespace GeometryHelper.Dxf
 
             if (!Guid.TryParse(value, out Guid guid))
             {
-                throw new ArgumentException(name + " is a GUID, as {7021885A-675A-47A4-AA57-30A391B5281B}: '" + value + "' is not.", nameof(value));
+                throw new ArgumentException(
+                    name + " is a GUID, as {7021885A-675A-47A4-AA57-30A391B5281B}: '" + value + "' is not.",
+                    nameof(value)
+                );
             }
 
             PutText(name, 2, "{" + guid.ToString("D").ToUpperInvariant() + "}", now, 1015);
@@ -782,7 +791,15 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Sets a variable of the header to the handle of an object of a dictionary of the drawing; nothing where it names that object.</summary>
-        private void PutPointed(string name, int code, DxfDBObject value, DxfDBObject now, DxfDBDictionary dictionary, string what, int since)
+        private void PutPointed(
+            string name,
+            int code,
+            DxfDBObject value,
+            DxfDBObject now,
+            DxfDBDictionary dictionary,
+            string what,
+            int since
+        )
         {
             if (Entered(name, value, now, dictionary, what, since))
             {
@@ -797,7 +814,14 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentNullException">Thrown when the object is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the file is older than the version the variable came with.</exception>
         /// <exception cref="ArgumentException">Thrown when the object is not an entry of the dictionary of this drawing.</exception>
-        private bool Entered(string name, DxfDBObject value, DxfDBObject now, DxfDBDictionary dictionary, string what, int since)
+        private bool Entered(
+            string name,
+            DxfDBObject value,
+            DxfDBObject now,
+            DxfDBDictionary dictionary,
+            string what,
+            int since
+        )
         {
             if (value == null)
             {

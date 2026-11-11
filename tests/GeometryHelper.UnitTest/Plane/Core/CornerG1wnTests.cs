@@ -20,13 +20,29 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class CornerG1wnTests
     {
-        private static readonly Tolerance Millionth = new Tolerance(1E-6, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-6);
-        private static readonly Tolerance Thousandth = new Tolerance(1E-3, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-3);
-        private static readonly Tolerance Tight = new Tolerance(1E-12, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-12);
+        private static readonly Tolerance Millionth = new Tolerance(
+            1E-6,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-6
+        );
+        private static readonly Tolerance Thousandth = new Tolerance(
+            1E-3,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-3
+        );
+        private static readonly Tolerance Tight = new Tolerance(
+            1E-12,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-12
+        );
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
-        private static GeoPolygonArc2 Rectangle() => new GeoPolygonArc2(new[] { P(0, 0), P(100, 0), P(100, 50), P(0, 50) }, null);
+        private static GeoPolygonArc2 Rectangle() =>
+            new GeoPolygonArc2(new[] { P(0, 0), P(100, 0), P(100, 50), P(0, 50) }, null);
 
         private static int ArcsOf(GeoPolygonArc2 loop) => loop.Bulges.Count(bulge => bulge != 0.0);
 
@@ -49,7 +65,11 @@ namespace GeometryHelper.UnitTest.Plane
             // The arcs are 0.0007 across, shorter than the tolerance; the fillet keeps an arc however small, and the chain
             // round the same corners keeps its three.
             GeoPolygonArc2 rounded = Corner2.Fillet(Rectangle(), 0.0005, Thousandth);
-            GeoPolylineArc2 chain = Corner2.Fillet(new GeoPolylineArc2(new[] { P(0, 0), P(100, 0), P(100, 50), P(0, 50), P(0, 0) }, null), 0.0005, Thousandth);
+            GeoPolylineArc2 chain = Corner2.Fillet(
+                new GeoPolylineArc2(new[] { P(0, 0), P(100, 0), P(100, 50), P(0, 50), P(0, 0) }, null),
+                0.0005,
+                Thousandth
+            );
 
             Assert.Equal(4, ArcsOf(rounded));
             Assert.Equal(3, chain.Bulges.Count(bulge => bulge != 0.0));

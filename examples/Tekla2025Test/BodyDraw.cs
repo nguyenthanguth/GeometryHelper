@@ -91,7 +91,11 @@ namespace Tekla2025Test
         /// <param name="what">What is drawn, for the window titles.</param>
         /// <param name="count">How many polycurves the bodies will take, asked before drawing them.</param>
         /// <param name="draw">Draws one body, returning its polycurves.</param>
-        private void Run(string what, Func<List<GeoSolid3>, int> count, Func<GeoSolid3, IEnumerable<ControlPolycurve>> draw)
+        private void Run(
+            string what,
+            Func<List<GeoSolid3>, int> count,
+            Func<GeoSolid3, IEnumerable<ControlPolycurve>> draw
+        )
         {
             string title = "Draw " + what;
 
@@ -100,7 +104,8 @@ namespace Tekla2025Test
                 // Tekla.Structures.Model has a ModelObjectSelector too, hence the full name.
                 var parts = new List<Part>();
                 var referenceObjects = new List<ReferenceModelObject>();
-                ModelObjectEnumerator selection = new Tekla.Structures.Model.UI.ModelObjectSelector().GetSelectedObjects();
+                ModelObjectEnumerator selection =
+                    new Tekla.Structures.Model.UI.ModelObjectSelector().GetSelectedObjects();
                 while (selection.MoveNext())
                 {
                     if (selection.Current is Part part)
@@ -139,7 +144,11 @@ namespace Tekla2025Test
                 int products = 0;
                 if (referenceObjects.Count > 0)
                 {
-                    foreach (IfcProductGeometry product in referenceObjects.ToIfcGeometries(new IfcConvertOptions { ApplyVoids = CutIfcOpenings }))
+                    foreach (
+                        IfcProductGeometry product in referenceObjects.ToIfcGeometries(
+                            new IfcConvertOptions { ApplyVoids = CutIfcOpenings }
+                        )
+                    )
                     {
                         bodies.AddRange(product.Solids);
                         products++;
@@ -149,9 +158,15 @@ namespace Tekla2025Test
                 reading.Stop();
 
                 int polycurves = count(bodies);
-                if (polycurves > DrawWithoutAsking &&
-                    MessageBox.Show($"{bodies.Count} bodies take {polycurves} polycurves, which Tekla inserts one at a time. Draw them?",
-                        title, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                if (
+                    polycurves > DrawWithoutAsking
+                    && MessageBox.Show(
+                        $"{bodies.Count} bodies take {polycurves} polycurves, which Tekla inserts one at a time. Draw them?",
+                        title,
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question
+                    ) != DialogResult.Yes
+                )
                 {
                     return;
                 }
@@ -174,7 +189,19 @@ namespace Tekla2025Test
 
                 drawing.Stop();
 
-                MessageBox.Show(Summary(what, bodies, parts.Count, unreadable, referenceObjects.Count, products, reading.Elapsed, drawing.Elapsed), title);
+                MessageBox.Show(
+                    Summary(
+                        what,
+                        bodies,
+                        parts.Count,
+                        unreadable,
+                        referenceObjects.Count,
+                        products,
+                        reading.Elapsed,
+                        drawing.Elapsed
+                    ),
+                    title
+                );
             }
             catch (Exception ex)
             {
@@ -198,16 +225,29 @@ namespace Tekla2025Test
         /// <summary>
         /// What was read and drawn, and which bodies are not closed.
         /// </summary>
-        private string Summary(string what, List<GeoSolid3> bodies, int parts, int unreadable, int referenceObjects, int products, TimeSpan reading, TimeSpan drawing)
+        private string Summary(
+            string what,
+            List<GeoSolid3> bodies,
+            int parts,
+            int unreadable,
+            int referenceObjects,
+            int products,
+            TimeSpan reading,
+            TimeSpan drawing
+        )
         {
             List<GeoSolid3> open = bodies.Where(body => !body.IsClosed()).ToList();
             string notRead = unreadable > 0 ? $" ({unreadable} whose solid could not be read)" : string.Empty;
             var text = new StringBuilder();
 
-            text.AppendLine($"{parts} part(s){notRead} and {referenceObjects} IFC object(s) ({products} product(s)): " +
-                $"{bodies.Count} bodies, {bodies.Sum(body => body.Faces.Count)} faces, read in {reading.TotalMilliseconds:0} ms.");
-            text.AppendLine($"Drawn as {what}: {drawn.Count} polycurves in {drawing.TotalMilliseconds:0} ms" +
-                (what.EndsWith("triangles") ? ", green." : ", faces blue, holes cyan."));
+            text.AppendLine(
+                $"{parts} part(s){notRead} and {referenceObjects} IFC object(s) ({products} product(s)): "
+                    + $"{bodies.Count} bodies, {bodies.Sum(body => body.Faces.Count)} faces, read in {reading.TotalMilliseconds:0} ms."
+            );
+            text.AppendLine(
+                $"Drawn as {what}: {drawn.Count} polycurves in {drawing.TotalMilliseconds:0} ms"
+                    + (what.EndsWith("triangles") ? ", green." : ", faces blue, holes cyan.")
+            );
             text.AppendLine(open.Count == 0 ? "Every body is closed." : $"{open.Count} bodies are not closed.");
             text.AppendLine("Pressing either draw button again, or closing the test window, takes them out.");
 

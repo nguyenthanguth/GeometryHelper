@@ -24,8 +24,10 @@ namespace GeometryHelper.Geometry
         /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
         /// than the tolerance given is read as its start point.
         /// </returns>
-        public double DistanceTo(GeoPoint2 point, Tolerance tolerance)
-            => IsArc ? Core.Arc2.DistanceTo(ToArc(), point, tolerance) : point.DistanceTo(GetClosestPointOnBoundary(point, tolerance));
+        public double DistanceTo(GeoPoint2 point, Tolerance tolerance) =>
+            IsArc
+                ? Core.Arc2.DistanceTo(ToArc(), point, tolerance)
+                : point.DistanceTo(GetClosestPointOnBoundary(point, tolerance));
 
         /// <summary>
         /// Gets the distance from the edge to a straight segment.
@@ -121,7 +123,8 @@ namespace GeometryHelper.Geometry
         /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
         /// than the global point tolerance is read as its start point, except where it crosses a side or an arc.
         /// </returns>
-        public double DistanceTo(GeoPolygon2 poly) => (poly ?? throw new ArgumentNullException(nameof(poly))).DistanceTo(this);
+        public double DistanceTo(GeoPolygon2 poly) =>
+            (poly ?? throw new ArgumentNullException(nameof(poly))).DistanceTo(this);
 
         /// <summary>
         /// Gets the distance from this edge to a curved loop.
@@ -139,7 +142,8 @@ namespace GeometryHelper.Geometry
         /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
         /// than the tolerance given is read as its start point, except where it crosses a side or an arc.
         /// </returns>
-        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => (loop ?? throw new ArgumentNullException(nameof(loop))).DistanceTo(this, tolerance);
+        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            (loop ?? throw new ArgumentNullException(nameof(loop))).DistanceTo(this, tolerance);
 
         /// <summary>
         /// Gets the distance from this edge to a polyline.
@@ -148,7 +152,8 @@ namespace GeometryHelper.Geometry
         /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
         /// than the global point tolerance is read as its start point, except where it crosses a side or an arc.
         /// </returns>
-        public double DistanceTo(GeoPolyline2 polyline) => (polyline ?? throw new ArgumentNullException(nameof(polyline))).DistanceTo(this);
+        public double DistanceTo(GeoPolyline2 polyline) =>
+            (polyline ?? throw new ArgumentNullException(nameof(polyline))).DistanceTo(this);
 
         /// <summary>
         /// Gets the distance from this edge to a curved chain.
@@ -166,7 +171,8 @@ namespace GeometryHelper.Geometry
         /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
         /// than the tolerance given is read as its start point, except where it crosses a side or an arc.
         /// </returns>
-        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) => (chain ?? throw new ArgumentNullException(nameof(chain))).DistanceTo(this, tolerance);
+        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            (chain ?? throw new ArgumentNullException(nameof(chain))).DistanceTo(this, tolerance);
 
         /// <summary>
         /// Gets the distance from this edge to a rectangle.

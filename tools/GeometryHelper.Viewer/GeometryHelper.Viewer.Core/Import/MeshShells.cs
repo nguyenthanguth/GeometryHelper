@@ -64,7 +64,12 @@ namespace GeometryHelper.Viewer
         /// <param name="faces">The faces, each the indexes of its corners in order.</param>
         /// <param name="tolerance">How far apart two corners may be and be one.</param>
         /// <param name="cancel">Stops the work.</param>
-        internal static List<ShellPiece> Split(IReadOnlyList<Vec3> points, IReadOnlyList<int[]> faces, double tolerance, CancellationToken cancel)
+        internal static List<ShellPiece> Split(
+            IReadOnlyList<Vec3> points,
+            IReadOnlyList<int[]> faces,
+            double tolerance,
+            CancellationToken cancel
+        )
         {
             int count = faces.Count;
             int[] cluster = Cluster(points, tolerance, out Vec3[] rep);
@@ -124,12 +129,21 @@ namespace GeometryHelper.Viewer
                         continue;
                     }
 
-                    uses.Add(new Use { Key = a < b ? ((long)a << 32) | (uint)b : ((long)b << 32) | (uint)a, Face = f, Forward = a < b });
+                    uses.Add(
+                        new Use
+                        {
+                            Key = a < b ? ((long)a << 32) | (uint)b : ((long)b << 32) | (uint)a,
+                            Face = f,
+                            Forward = a < b,
+                        }
+                    );
                 }
             }
 
             Use[] sorted = uses.ToArray();
-            Array.Sort(sorted, (x, y) => x.Key != y.Key ? x.Key.CompareTo(y.Key) : x.Face != y.Face ? x.Face.CompareTo(y.Face) : x.Forward.CompareTo(y.Forward));
+            Array.Sort(sorted, (x, y) => x.Key != y.Key ? x.Key.CompareTo(y.Key)
+                : x.Face != y.Face ? x.Face.CompareTo(y.Face)
+                : x.Forward.CompareTo(y.Forward));
 
             var parent = new int[count];
             var unpaired = new bool[count];
@@ -232,7 +246,14 @@ namespace GeometryHelper.Viewer
         /// <param name="fileOrder">Whether the corners keep the order they have in the mesh, else the order the chosen faces first name them.</param>
         /// <param name="corners">The corners of the new mesh.</param>
         /// <param name="taken">Its faces.</param>
-        internal static void Extract(IReadOnlyList<Vec3> points, IReadOnlyList<int[]> faces, IReadOnlyList<int> chosen, bool fileOrder, out List<Vec3> corners, out List<int[]> taken)
+        internal static void Extract(
+            IReadOnlyList<Vec3> points,
+            IReadOnlyList<int[]> faces,
+            IReadOnlyList<int> chosen,
+            bool fileOrder,
+            out List<Vec3> corners,
+            out List<int[]> taken
+        )
         {
             var local = new Dictionary<int, int>();
             corners = new List<Vec3>();
@@ -403,13 +424,17 @@ namespace GeometryHelper.Viewer
             return cluster;
         }
 
-        private static bool Lower(Vec3 a, Vec3 b)
-            => a.X != b.X ? a.X < b.X : a.Y != b.Y ? a.Y < b.Y : a.Z < b.Z;
+        private static bool Lower(Vec3 a, Vec3 b) =>
+            a.X != b.X ? a.X < b.X
+            : a.Y != b.Y ? a.Y < b.Y
+            : a.Z < b.Z;
 
         private static long Cell(double v, double cell)
         {
             double c = Math.Floor(v / cell);
-            return c > 4E18 ? long.MaxValue / 2 : c < -4E18 ? long.MinValue / 2 : (long)c;
+            return c > 4E18 ? long.MaxValue / 2
+                : c < -4E18 ? long.MinValue / 2
+                : (long)c;
         }
 
         private readonly struct CellKey
@@ -453,7 +478,15 @@ namespace GeometryHelper.Viewer
         /// Pairs the uses of one edge, joining the faces of each pair. Two uses that run opposite ways are a pair; more than two are put in order round the
         /// edge, and each that begins a wedge of material is paired with the one that ends it.
         /// </summary>
-        private static bool[] Pair(Use[] uses, int start, int n, Vec3[] normal, Vec3[] rep, int[] parent, out bool overlapping)
+        private static bool[] Pair(
+            Use[] uses,
+            int start,
+            int n,
+            Vec3[] normal,
+            Vec3[] rep,
+            int[] parent,
+            out bool overlapping
+        )
         {
             var paired = new bool[n];
             overlapping = false;
@@ -491,7 +524,10 @@ namespace GeometryHelper.Viewer
                 return paired;
             }
 
-            Vec3 axis = Math.Abs(e.X) <= Math.Abs(e.Y) && Math.Abs(e.X) <= Math.Abs(e.Z) ? new Vec3(1, 0, 0) : Math.Abs(e.Y) <= Math.Abs(e.Z) ? new Vec3(0, 1, 0) : new Vec3(0, 0, 1);
+            Vec3 axis =
+                Math.Abs(e.X) <= Math.Abs(e.Y) && Math.Abs(e.X) <= Math.Abs(e.Z) ? new Vec3(1, 0, 0)
+                : Math.Abs(e.Y) <= Math.Abs(e.Z) ? new Vec3(0, 1, 0)
+                : new Vec3(0, 0, 1);
             Vec3 u = Vec3.Cross(e, axis).Normalized();
             Vec3 v = Vec3.Cross(e, u);
             var order = new List<int>(n);
@@ -511,20 +547,22 @@ namespace GeometryHelper.Viewer
 
             // A use that runs the edge backwards has its material on the side of increasing angle: it begins a wedge. One that runs it forwards ends one.
             // Where a wedge ends at the angle another begins, the end comes first.
-            order.Sort((x, y) =>
-            {
-                Use p = uses[start + x];
-                Use q = uses[start + y];
-                int c = p.Angle.CompareTo(q.Angle);
-
-                if (c != 0)
+            order.Sort(
+                (x, y) =>
                 {
-                    return c;
-                }
+                    Use p = uses[start + x];
+                    Use q = uses[start + y];
+                    int c = p.Angle.CompareTo(q.Angle);
 
-                c = q.Forward.CompareTo(p.Forward);
-                return c != 0 ? c : p.Face.CompareTo(q.Face);
-            });
+                    if (c != 0)
+                    {
+                        return c;
+                    }
+
+                    c = q.Forward.CompareTo(p.Forward);
+                    return c != 0 ? c : p.Face.CompareTo(q.Face);
+                }
+            );
 
             // The wedges of material round an edge begin and end in turn. Where two begin or two end one after the other, the bodies overlap along it, and
             // nothing is paired: which face meets which cannot be told from the edge.
@@ -604,7 +642,9 @@ namespace GeometryHelper.Viewer
 
         private static Vec3 Newell(List<int> ids, Vec3[] rep)
         {
-            double x = 0.0, y = 0.0, z = 0.0;
+            double x = 0.0,
+                y = 0.0,
+                z = 0.0;
 
             for (int i = 0; i < ids.Count; i++)
             {
@@ -657,7 +697,15 @@ namespace GeometryHelper.Viewer
             return sum / 6.0;
         }
 
-        private static List<ShellPiece> Assemble(List<List<int>> members, bool[] closed, double[] volume, IReadOnlyList<int[]> faces, IReadOnlyList<Vec3> points, double tolerance, CancellationToken cancel)
+        private static List<ShellPiece> Assemble(
+            List<List<int>> members,
+            bool[] closed,
+            double[] volume,
+            IReadOnlyList<int[]> faces,
+            IReadOnlyList<Vec3> points,
+            double tolerance,
+            CancellationToken cancel
+        )
         {
             // A closed shell that runs inside out is a void; it goes to the smallest outward shell that holds it.
             var voidOf = new int[members.Count];
@@ -752,14 +800,21 @@ namespace GeometryHelper.Viewer
             return pieces;
         }
 
-        private static bool Holds(Bounds3 outer, Bounds3 inner, double slack)
-            => outer.HasValue && inner.HasValue
-                && outer.Min.X - slack <= inner.Min.X && outer.Min.Y - slack <= inner.Min.Y && outer.Min.Z - slack <= inner.Min.Z
-                && outer.Max.X + slack >= inner.Max.X && outer.Max.Y + slack >= inner.Max.Y && outer.Max.Z + slack >= inner.Max.Z;
+        private static bool Holds(Bounds3 outer, Bounds3 inner, double slack) =>
+            outer.HasValue
+            && inner.HasValue
+            && outer.Min.X - slack <= inner.Min.X
+            && outer.Min.Y - slack <= inner.Min.Y
+            && outer.Min.Z - slack <= inner.Min.Z
+            && outer.Max.X + slack >= inner.Max.X
+            && outer.Max.Y + slack >= inner.Max.Y
+            && outer.Max.Z + slack >= inner.Max.Z;
 
         private static Vec3 Centre(int[] face, IReadOnlyList<Vec3> points)
         {
-            double x = 0.0, y = 0.0, z = 0.0;
+            double x = 0.0,
+                y = 0.0,
+                z = 0.0;
 
             foreach (int i in face)
             {

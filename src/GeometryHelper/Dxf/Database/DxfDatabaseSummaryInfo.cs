@@ -16,7 +16,11 @@ namespace GeometryHelper.Dxf
 
         private static readonly int[] TextCodes = { 2, 3, 4, 6, 7, 8, 9 };
 
-        internal static readonly DxfDatabaseSummaryInfo Empty = new DxfDatabaseSummaryInfo(new string[7], string.Empty, new List<KeyValuePair<string, string>>());
+        internal static readonly DxfDatabaseSummaryInfo Empty = new DxfDatabaseSummaryInfo(
+            new string[7],
+            string.Empty,
+            new List<KeyValuePair<string, string>>()
+        );
 
         private readonly string[] _texts;
 
@@ -83,14 +87,24 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            if (!string.Equals(HyperlinkBase, other.HyperlinkBase, StringComparison.Ordinal) || CustomProperties.Count != other.CustomProperties.Count)
+            if (
+                !string.Equals(HyperlinkBase, other.HyperlinkBase, StringComparison.Ordinal)
+                || CustomProperties.Count != other.CustomProperties.Count
+            )
             {
                 return false;
             }
 
             for (int i = 0; i < CustomProperties.Count; i++)
             {
-                if (!string.Equals(CustomProperties[i].Key, other.CustomProperties[i].Key, StringComparison.Ordinal) || !string.Equals(CustomProperties[i].Value, other.CustomProperties[i].Value, StringComparison.Ordinal))
+                if (
+                    !string.Equals(CustomProperties[i].Key, other.CustomProperties[i].Key, StringComparison.Ordinal)
+                    || !string.Equals(
+                        CustomProperties[i].Value,
+                        other.CustomProperties[i].Value,
+                        StringComparison.Ordinal
+                    )
+                )
                 {
                     return false;
                 }
@@ -122,7 +136,8 @@ namespace GeometryHelper.Dxf
         /// <param name="a">The one.</param>
         /// <param name="b">The other.</param>
         /// <returns>Whether they are.</returns>
-        public static bool operator ==(DxfDatabaseSummaryInfo a, DxfDatabaseSummaryInfo b) => a is null ? b is null : a.Equals(b);
+        public static bool operator ==(DxfDatabaseSummaryInfo a, DxfDatabaseSummaryInfo b) =>
+            a is null ? b is null : a.Equals(b);
 
         /// <summary>Gets whether two sets of properties differ, as AutoCAD's <c>!=</c>.</summary>
         /// <param name="a">The one.</param>
@@ -138,8 +153,8 @@ namespace GeometryHelper.Dxf
         internal string[] Texts => (string[])_texts.Clone();
 
         /// <summary>These properties with another base of the hyperlinks, as the header gives it.</summary>
-        internal DxfDatabaseSummaryInfo WithHyperlinkBase(string hyperlinkBase)
-            => new DxfDatabaseSummaryInfo(_texts, hyperlinkBase, new List<KeyValuePair<string, string>>(CustomProperties));
+        internal DxfDatabaseSummaryInfo WithHyperlinkBase(string hyperlinkBase) =>
+            new DxfDatabaseSummaryInfo(_texts, hyperlinkBase, new List<KeyValuePair<string, string>>(CustomProperties));
 
         /// <summary>
         /// The properties of the data of a DWGPROPS: the first group of each of the codes 2, 3, 4, 6, 7, 8 and 9, the group 1
@@ -185,7 +200,11 @@ namespace GeometryHelper.Dxf
             for (int i = listAt + 1 + 2 * count; listAt >= 0 && i < data.Count && data[i].TypeCode == 300; i++)
             {
                 int equals = data[i].Value.IndexOf('=');
-                Add(custom, equals < 0 ? data[i].Value : data[i].Value.Substring(0, equals), equals < 0 ? string.Empty : data[i].Value.Substring(equals + 1));
+                Add(
+                    custom,
+                    equals < 0 ? data[i].Value : data[i].Value.Substring(0, equals),
+                    equals < 0 ? string.Empty : data[i].Value.Substring(equals + 1)
+                );
             }
 
             return new DxfDatabaseSummaryInfo(texts, hyperlinkBase, custom);
@@ -209,7 +228,15 @@ namespace GeometryHelper.Dxf
                 }
                 else if (data[i].TypeCode == 90 && ones >= 2)
                 {
-                    if (!int.TryParse(data[i].Value.Trim(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out count) || count < 0)
+                    if (
+                        !int.TryParse(
+                            data[i].Value.Trim(),
+                            System.Globalization.NumberStyles.Integer,
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            out count
+                        )
+                        || count < 0
+                    )
                     {
                         count = 0;
                     }
@@ -217,7 +244,12 @@ namespace GeometryHelper.Dxf
                     // As many pairs as the count says and the data holds, each two groups 1.
                     int pairs = 0;
 
-                    while (pairs < count && i + 2 + 2 * pairs < data.Count && data[i + 1 + 2 * pairs].TypeCode == 1 && data[i + 2 + 2 * pairs].TypeCode == 1)
+                    while (
+                        pairs < count
+                        && i + 2 + 2 * pairs < data.Count
+                        && data[i + 1 + 2 * pairs].TypeCode == 1
+                        && data[i + 2 + 2 * pairs].TypeCode == 1
+                    )
                     {
                         pairs++;
                     }
@@ -232,7 +264,10 @@ namespace GeometryHelper.Dxf
 
         private static void Add(List<KeyValuePair<string, string>> custom, string name, string value)
         {
-            if (name.Trim().Length > 0 && !custom.Exists(p => string.Equals(p.Key, name, StringComparison.OrdinalIgnoreCase)))
+            if (
+                name.Trim().Length > 0
+                && !custom.Exists(p => string.Equals(p.Key, name, StringComparison.OrdinalIgnoreCase))
+            )
             {
                 custom.Add(new KeyValuePair<string, string>(name, value));
             }
@@ -245,7 +280,12 @@ namespace GeometryHelper.Dxf
         /// it; then the groups the data kept has after those, a list of custom properties after its group 90 and the groups 300
         /// after that left out, so that the record holds one set of them.
         /// </summary>
-        internal List<DxfTypedValue> Written(IReadOnlyList<DxfTypedValue> kept, string editing, string created, string updated)
+        internal List<DxfTypedValue> Written(
+            IReadOnlyList<DxfTypedValue> kept,
+            string editing,
+            string created,
+            string updated
+        )
         {
             string[] times = { editing ?? "0.0", created ?? "0.0", updated ?? "0.0" };
             var rest = new List<DxfTypedValue>();
@@ -296,7 +336,12 @@ namespace GeometryHelper.Dxf
 
             for (int i = 0; i < 10; i++)
             {
-                data.Add(new DxfTypedValue(300 + i, i < CustomProperties.Count ? CustomProperties[i].Key + "=" + CustomProperties[i].Value : "="));
+                data.Add(
+                    new DxfTypedValue(
+                        300 + i,
+                        i < CustomProperties.Count ? CustomProperties[i].Key + "=" + CustomProperties[i].Value : "="
+                    )
+                );
             }
 
             for (int i = 0; i < 3; i++)
@@ -305,7 +350,12 @@ namespace GeometryHelper.Dxf
             }
 
             data.Add(new DxfTypedValue(1, HyperlinkBase));
-            data.Add(new DxfTypedValue(90, CustomProperties.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            data.Add(
+                new DxfTypedValue(
+                    90,
+                    CustomProperties.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                )
+            );
 
             for (int i = 10; i < CustomProperties.Count; i++)
             {
@@ -326,7 +376,10 @@ namespace GeometryHelper.Dxf
 
             if (text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0)
             {
-                throw new ArgumentException("A property of the drawing is one line, with no line break in it.", parameter);
+                throw new ArgumentException(
+                    "A property of the drawing is one line, with no line break in it.",
+                    parameter
+                );
             }
 
             return text;

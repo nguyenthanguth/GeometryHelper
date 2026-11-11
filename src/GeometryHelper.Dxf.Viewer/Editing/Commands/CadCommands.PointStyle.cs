@@ -11,7 +11,8 @@ namespace GeometryHelper.Dxf.Viewer
     internal static partial class CadCommands
     {
         /// <summary>PTYPE: the window's Point Style dialog; with no window, PDMODE and then PDSIZE asked in turn.</summary>
-        private static IEnumerable<CadPrompt> PointStyle(CadCommandContext c) => c.Session.Request("PTYPE", c.Document) ? Array.Empty<CadPrompt>() : PointStyleTyped(c);
+        private static IEnumerable<CadPrompt> PointStyle(CadCommandContext c) =>
+            c.Session.Request("PTYPE", c.Document) ? Array.Empty<CadPrompt>() : PointStyleTyped(c);
 
         /// <summary>
         /// PDMODE, "Enter new value for PDMODE &lt;0&gt;:", a whole number from -32768 to 32767 (0 a dot, 1 nothing, 2 a plus, 3

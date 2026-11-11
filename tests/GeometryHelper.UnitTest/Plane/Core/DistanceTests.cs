@@ -10,11 +10,11 @@ namespace GeometryHelper.UnitTest.Plane
         #region Point - Point Tests
 
         [Theory]
-        [InlineData(0, 0, 0, 0, 0.0)]                  // Coincident points
-        [InlineData(0, 0, 10, 0, 10.0)]                // Horizontal distance
-        [InlineData(0, 0, 0, -15, 15.0)]               // Vertical negative distance
-        [InlineData(0, 0, 3, 4, 5.0)]                  // Diagonal 3-4-5 triangle
-        [InlineData(-3, -4, 3, 4, 10.0)]               // Across origin symmetry
+        [InlineData(0, 0, 0, 0, 0.0)] // Coincident points
+        [InlineData(0, 0, 10, 0, 10.0)] // Horizontal distance
+        [InlineData(0, 0, 0, -15, 15.0)] // Vertical negative distance
+        [InlineData(0, 0, 3, 4, 5.0)] // Diagonal 3-4-5 triangle
+        [InlineData(-3, -4, 3, 4, 10.0)] // Across origin symmetry
         public void PointToPoint_BasicAndEdgeCases(double x1, double y1, double x2, double y2, double expected)
         {
             var p1 = new GeoPoint2(x1, y1);
@@ -29,11 +29,11 @@ namespace GeometryHelper.UnitTest.Plane
         #region Point - Line Tests
 
         [Theory]
-        [InlineData(5, 5, 5.0)]                        // Orthogonal projection lies within segment
-        [InlineData(5, 0, 0.0)]                        // Point directly on segment
-        [InlineData(-5, 0, 5.0)]                       // Clamped to StartPoint
-        [InlineData(15, 0, 5.0)]                       // Clamped to EndPoint
-        [InlineData(-3, 4, 5.0)]                       // Diagonal off StartPoint (3-4-5)
+        [InlineData(5, 5, 5.0)] // Orthogonal projection lies within segment
+        [InlineData(5, 0, 0.0)] // Point directly on segment
+        [InlineData(-5, 0, 5.0)] // Clamped to StartPoint
+        [InlineData(15, 0, 5.0)] // Clamped to EndPoint
+        [InlineData(-3, 4, 5.0)] // Diagonal off StartPoint (3-4-5)
         public void PointToLine_OrthogonalAndClampedEndpoints(double px, double py, double expected)
         {
             var line = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0));
@@ -97,10 +97,10 @@ namespace GeometryHelper.UnitTest.Plane
         #region Circle - Shapes Tests
 
         [Theory]
-        [InlineData(0, 0, 0.0)]                        // At center (inside) -> dist = 0
-        [InlineData(5, 0, 0.0)]                        // Inside circle -> dist = 0
-        [InlineData(10, 0, 0.0)]                       // On circumference -> dist = 0
-        [InlineData(15, 0, 5.0)]                       // Outside circle -> dist = 15 - 10 = 5
+        [InlineData(0, 0, 0.0)] // At center (inside) -> dist = 0
+        [InlineData(5, 0, 0.0)] // Inside circle -> dist = 0
+        [InlineData(10, 0, 0.0)] // On circumference -> dist = 0
+        [InlineData(15, 0, 5.0)] // Outside circle -> dist = 15 - 10 = 5
         public void CircleToPoint_InsideOnAndOutside(double px, double py, double expected)
         {
             var circle = new GeoCircle2(new GeoPoint2(0, 0), 10);
@@ -160,12 +160,12 @@ namespace GeometryHelper.UnitTest.Plane
         #region Rectangle - Shapes Tests
 
         [Theory]
-        [InlineData(0, 0, 0.0)]                        // Inside center -> dist = 0
-        [InlineData(10, 0, 0.0)]                       // On right edge -> dist = 0
-        [InlineData(10, 5, 0.0)]                       // On corner -> dist = 0
-        [InlineData(15, 0, 5.0)]                       // Outside right edge -> dist = 5
-        [InlineData(0, 10, 5.0)]                       // Outside top edge -> dist = 5
-        [InlineData(13, 9, 5.0)]                       // Diagonal from corner (10, 5): dx=3, dy=4 -> dist = 5
+        [InlineData(0, 0, 0.0)] // Inside center -> dist = 0
+        [InlineData(10, 0, 0.0)] // On right edge -> dist = 0
+        [InlineData(10, 5, 0.0)] // On corner -> dist = 0
+        [InlineData(15, 0, 5.0)] // Outside right edge -> dist = 5
+        [InlineData(0, 10, 5.0)] // Outside top edge -> dist = 5
+        [InlineData(13, 9, 5.0)] // Diagonal from corner (10, 5): dx=3, dy=4 -> dist = 5
         public void RectangleToPoint_InsideEdgesAndCorners(double px, double py, double expected)
         {
             var rect = new GeoRectangle2(new GeoPoint2(0, 0), 20, 10, 0);
@@ -227,14 +227,16 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void PolygonAndPolyline_ComplexDistanceCalculations()
         {
-            var poly = new GeoPolygon2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(20, 0),
-                new GeoPoint2(20, 20),
-                new GeoPoint2(10, 10), // Concave bay vertex
-                new GeoPoint2(0, 20)
-            });
+            var poly = new GeoPolygon2(
+                new[]
+                {
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(20, 0),
+                    new GeoPoint2(20, 20),
+                    new GeoPoint2(10, 10), // Concave bay vertex
+                    new GeoPoint2(0, 20),
+                }
+            );
 
             // Point on boundary -> dist = 0
             Assert.Equal(0.0, Distance2.DistanceTo(poly, new GeoPoint2(10, 0)), 4);
@@ -244,13 +246,9 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(Distance2.DistanceTo(poly, ptInBay) > 0.0);
 
             // Polyline tests
-            var pl = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10),
-                new GeoPoint2(20, 10)
-            });
+            var pl = new GeoPolyline2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(20, 10) }
+            );
 
             // Point on bend vertex (10, 0) -> dist = 0
             Assert.Equal(0.0, Distance2.DistanceTo(pl, new GeoPoint2(10, 0)), 4);
@@ -273,8 +271,11 @@ namespace GeometryHelper.UnitTest.Plane
             var interior = new GeoPoint2(5, 5);
 
             var poly = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
             var rect = new GeoRectangle2(new GeoPoint2(5, 5), 10, 10);
             var circle = new GeoCircle2(new GeoPoint2(5, 5), 10);
 
@@ -290,7 +291,12 @@ namespace GeometryHelper.UnitTest.Plane
             // A polyline is a curve, so a point in the middle of a shape it traces is at its distance
             // from the path, not at zero. Only the polygon form encloses.
             var traced = new GeoPolyline2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10), new GeoPoint2(0, 0));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10),
+                new GeoPoint2(0, 0)
+            );
             var interior = new GeoPoint2(5, 5);
 
             Assert.Equal(5.0, Distance2.DistanceTo(traced, interior), 9);
@@ -303,8 +309,11 @@ namespace GeometryHelper.UnitTest.Plane
             var inside = new GeoLine2(new GeoPoint2(4, 4), new GeoPoint2(6, 6));
 
             var poly = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
             var rect = new GeoRectangle2(new GeoPoint2(5, 5), 10, 10);
 
             Assert.Equal(0.0, Distance2.DistanceTo(poly, inside), 9);
@@ -315,8 +324,11 @@ namespace GeometryHelper.UnitTest.Plane
         public void BoundaryDistance_RemainsReachableThroughProjection()
         {
             var poly = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
             var interior = new GeoPoint2(5, 5);
 
             // The region distance is zero, but the distance to the boundary is still available.
@@ -329,8 +341,11 @@ namespace GeometryHelper.UnitTest.Plane
         public void DistanceToExterior_IsUnchanged()
         {
             var poly = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
 
             Assert.Equal(5.0, Distance2.DistanceTo(poly, new GeoPoint2(15, 5)), 9);
             Assert.Equal(5.0, Distance2.DistanceTo(poly, new GeoPoint2(5, -5)), 9);

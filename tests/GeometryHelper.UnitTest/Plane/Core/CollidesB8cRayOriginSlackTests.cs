@@ -35,7 +35,8 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void TwoOriginsOneAndAHalfThousandthsApart_DoNotCollideAtAThousandth()
         {
-            GeoRay2 a = AlongX(), b = Leaving();
+            GeoRay2 a = AlongX(),
+                b = Leaving();
 
             Assert.False(Collision2.CollidesWith(a, b, Thousandth));
             Assert.False(Collision2.CollidesWith(b, a, Thousandth));
@@ -46,7 +47,8 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void TwoOriginsOneAndAHalfThousandthsApart_MeasureTheirGapAndAreJoinedOriginToOrigin()
         {
-            GeoRay2 a = AlongX(), b = Leaving();
+            GeoRay2 a = AlongX(),
+                b = Leaving();
 
             foreach (var tolerance in new[] { TenThousandth, Thousandth, Tenth })
             {

@@ -20,6 +20,6 @@ namespace GeometryHelper.Drawing
         Weld,
 
         /// <summary>A reinforcing bar or a stirrup.</summary>
-        Rebar
+        Rebar,
     }
 }

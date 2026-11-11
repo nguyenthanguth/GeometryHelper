@@ -56,9 +56,7 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly List<Piece> _pieces = new List<Piece>();
         private readonly List<Stroke> _strokes = new List<Stroke>();
 
-        private CadMTextLayout()
-        {
-        }
+        private CadMTextLayout() { }
 
         /// <summary>The runs of letters, each where its pen starts on its baseline.</summary>
         internal IReadOnlyList<Piece> Pieces => _pieces;
@@ -88,7 +86,13 @@ namespace GeometryHelper.Dxf.Viewer
         internal double[] Box { get; private set; }
 
         /// <summary>Lays out an MTEXT's words. The face of a look is asked of <paramref name="faceOf"/>, the style's where the look names no font.</summary>
-        internal static CadMTextLayout Of(DxfMText text, CadMTextContent content, Func<CadMTextLook, CadFontFace> faceOf, double styleWidth, double styleOblique)
+        internal static CadMTextLayout Of(
+            DxfMText text,
+            CadMTextContent content,
+            Func<CadMTextLook, CadFontFace> faceOf,
+            double styleWidth,
+            double styleOblique
+        )
         {
             var layout = new CadMTextLayout();
             new Builder(layout, text, content, faceOf, styleWidth, styleOblique, false).Build();
@@ -100,7 +104,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// (<see cref="CadMTextEditor"/>: a letter, a symbol or a stack one, a paragraph break one) stands: <see cref="Places"/>.
         /// An empty paragraph at the end is a line of its own here, for the caret after the last break to stand on.
         /// </summary>
-        internal static CadMTextLayout OfEditor(DxfMText text, CadMTextContent content, Func<CadMTextLook, CadFontFace> faceOf, double styleWidth, double styleOblique)
+        internal static CadMTextLayout OfEditor(
+            DxfMText text,
+            CadMTextContent content,
+            Func<CadMTextLook, CadFontFace> faceOf,
+            double styleWidth,
+            double styleOblique
+        )
         {
             var layout = new CadMTextLayout();
             new Builder(layout, text, content, faceOf, styleWidth, styleOblique, true).Build();
@@ -318,7 +328,15 @@ namespace GeometryHelper.Dxf.Viewer
             private readonly List<int> _paragraphPlace = new List<int>();
             private readonly List<int> _paragraphLine = new List<int>();
 
-            public Builder(CadMTextLayout layout, DxfMText text, CadMTextContent content, Func<CadMTextLook, CadFontFace> faceOf, double styleWidth, double styleOblique, bool editing)
+            public Builder(
+                CadMTextLayout layout,
+                DxfMText text,
+                CadMTextContent content,
+                Func<CadMTextLook, CadFontFace> faceOf,
+                double styleWidth,
+                double styleOblique,
+                bool editing
+            )
             {
                 _editing = editing;
                 _layout = layout;
@@ -451,19 +469,36 @@ namespace GeometryHelper.Dxf.Viewer
                         switch (item[0])
                         {
                             case 'i':
-                                format.Indent = reset ? 0.0 : Number(rest, out double indent) ? indent * unit : format.Indent;
+                                format.Indent =
+                                    reset ? 0.0
+                                    : Number(rest, out double indent) ? indent * unit
+                                    : format.Indent;
                                 break;
                             case 'l':
-                                format.Left = reset ? 0.0 : Number(rest, out double left) ? left * unit : format.Left;
+                                format.Left =
+                                    reset ? 0.0
+                                    : Number(rest, out double left) ? left * unit
+                                    : format.Left;
                                 break;
                             case 'r':
-                                format.Right = reset ? 0.0 : Number(rest, out double right) ? right * unit : format.Right;
+                                format.Right =
+                                    reset ? 0.0
+                                    : Number(rest, out double right) ? right * unit
+                                    : format.Right;
                                 break;
                             case 'b':
-                                format.Before = reset ? 0.0 : Number(rest, out double b) ? (times ? Math.Min(4.0, Math.Max(0.25, b)) : Math.Max(0.0, b)) * unit : format.Before;
+                                format.Before =
+                                    reset ? 0.0
+                                    : Number(rest, out double b)
+                                        ? (times ? Math.Min(4.0, Math.Max(0.25, b)) : Math.Max(0.0, b)) * unit
+                                    : format.Before;
                                 break;
                             case 'a':
-                                format.After = reset ? 0.0 : Number(rest, out double a) ? (times ? Math.Min(4.0, Math.Max(0.25, a)) : Math.Max(0.0, a)) * unit : format.After;
+                                format.After =
+                                    reset ? 0.0
+                                    : Number(rest, out double a)
+                                        ? (times ? Math.Min(4.0, Math.Max(0.25, a)) : Math.Max(0.0, a)) * unit
+                                    : format.After;
                                 break;
                             case 's':
                                 if (reset || rest.Length == 0 || "mea".IndexOf(rest[0]) < 0)
@@ -474,7 +509,10 @@ namespace GeometryHelper.Dxf.Viewer
                                 else if (Number(rest.Substring(1), out double factor) && factor > 0.0)
                                 {
                                     format.Mode = rest[0];
-                                    format.Factor = rest[0] == 'm' ? factor : Math.Min(4.0, Math.Max(0.25, times ? factor : factor / _h));
+                                    format.Factor =
+                                        rest[0] == 'm'
+                                            ? factor
+                                            : Math.Min(4.0, Math.Max(0.25, times ? factor : factor / _h));
                                 }
 
                                 break;
@@ -487,7 +525,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             private static bool Number(string text, out double number)
             {
-                return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out number) && !double.IsNaN(number) && !double.IsInfinity(number);
+                return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out number)
+                    && !double.IsNaN(number)
+                    && !double.IsInfinity(number);
             }
 
             /// <summary>The atoms of a paragraph, measured, each given the editor's place of its first letter, the paragraph's first at <paramref name="place"/>.</summary>
@@ -504,7 +544,12 @@ namespace GeometryHelper.Dxf.Viewer
                     int firstAtom = atoms.Count;
                     place += code != null ? 1 : run.Text.Length;
 
-                    if (code != null && code.Length > 3 && code.StartsWith("\\S", StringComparison.Ordinal) && code[code.Length - 1] == ';')
+                    if (
+                        code != null
+                        && code.Length > 3
+                        && code.StartsWith("\\S", StringComparison.Ordinal)
+                        && code[code.Length - 1] == ';'
+                    )
                     {
                         Atom stack = Stack(look, code.Substring(2, code.Length - 3));
                         stack.Joins = previous != ' ' && previous != '\t';
@@ -516,7 +561,14 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     // A code that is not known is drawn as it is written, as AutoCAD draws \M+1A1A.
-                    string words = code != null && code.Length == 2 && code[0] == '\\' && run.Text.Length == 1 && code[1] == run.Text[0] ? code : run.Text;
+                    string words =
+                        code != null
+                        && code.Length == 2
+                        && code[0] == '\\'
+                        && run.Text.Length == 1
+                        && code[1] == run.Text[0]
+                            ? code
+                            : run.Text;
                     int i = 0;
 
                     while (i < words.Length)
@@ -551,7 +603,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                         while (i < words.Length && words[i] != ' ' && words[i] != '\t')
                         {
-                            int letter = char.IsHighSurrogate(words[i]) && i + 1 < words.Length && char.IsLowSurrogate(words[i + 1]) ? char.ConvertToUtf32(words[i], words[i + 1]) : words[i];
+                            int letter =
+                                char.IsHighSurrogate(words[i])
+                                && i + 1 < words.Length
+                                && char.IsLowSurrogate(words[i + 1])
+                                    ? char.ConvertToUtf32(words[i], words[i + 1])
+                                    : words[i];
 
                             if (i > from && DxfMTextLayout.Breaks(last, letter))
                             {
@@ -563,7 +620,12 @@ namespace GeometryHelper.Dxf.Viewer
                         }
 
                         Atom word = New(Kind.Word, words.Substring(from, i - from), look);
-                        int first = char.IsHighSurrogate(words[from]) && from + 1 < words.Length && char.IsLowSurrogate(words[from + 1]) ? char.ConvertToUtf32(words[from], words[from + 1]) : words[from];
+                        int first =
+                            char.IsHighSurrogate(words[from])
+                            && from + 1 < words.Length
+                            && char.IsLowSurrogate(words[from + 1])
+                                ? char.ConvertToUtf32(words[from], words[from + 1])
+                                : words[from];
                         word.Joins = before != ' ' && before != '\t' && !DxfMTextLayout.Breaks(before, first);
                         Measure(word);
                         atoms.Add(word);
@@ -615,7 +677,21 @@ namespace GeometryHelper.Dxf.Viewer
             /// <summary>Measures the letters of an atom: its advance and the box of its ink, a line over or under it taken in up and down.</summary>
             private static void Measure(Atom atom)
             {
-                Span(atom.Ink, atom.Text, atom.H, atom.Wf, atom.Track, LeanOf(atom), out double advance, out double left, out double right, out double bottom, out double top, out bool inked, out int letters);
+                Span(
+                    atom.Ink,
+                    atom.Text,
+                    atom.H,
+                    atom.Wf,
+                    atom.Track,
+                    LeanOf(atom),
+                    out double advance,
+                    out double left,
+                    out double right,
+                    out double bottom,
+                    out double top,
+                    out bool inked,
+                    out int letters
+                );
                 atom.Advance = advance;
                 atom.Left = left;
                 atom.Right = right;
@@ -635,7 +711,21 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            private static void Span(CadTextInk ink, string text, double h, double wf, double track, double lean, out double advance, out double left, out double right, out double bottom, out double top, out bool inked, out int letters)
+            private static void Span(
+                CadTextInk ink,
+                string text,
+                double h,
+                double wf,
+                double track,
+                double lean,
+                out double advance,
+                out double left,
+                out double right,
+                out double bottom,
+                out double top,
+                out bool inked,
+                out int letters
+            )
             {
                 advance = 0.0;
                 left = right = bottom = top = 0.0;
@@ -703,8 +793,36 @@ namespace GeometryHelper.Dxf.Viewer
                 atom.Upper = upper.ToString();
                 atom.Lower = lower.ToString();
                 atom.Letters = 1;
-                Span(atom.Ink, atom.Upper, h, atom.Wf, atom.Track, LeanOf(atom), out atom.UpperAdvance, out double ul, out double ur, out double ub, out double ut, out bool uInked, out _);
-                Span(atom.Ink, atom.Lower, h, atom.Wf, atom.Track, LeanOf(atom), out atom.LowerAdvance, out double ll, out double lr, out double lb, out double lt, out bool lInked, out _);
+                Span(
+                    atom.Ink,
+                    atom.Upper,
+                    h,
+                    atom.Wf,
+                    atom.Track,
+                    LeanOf(atom),
+                    out atom.UpperAdvance,
+                    out double ul,
+                    out double ur,
+                    out double ub,
+                    out double ut,
+                    out bool uInked,
+                    out _
+                );
+                Span(
+                    atom.Ink,
+                    atom.Lower,
+                    h,
+                    atom.Wf,
+                    atom.Track,
+                    LeanOf(atom),
+                    out atom.LowerAdvance,
+                    out double ll,
+                    out double lr,
+                    out double lb,
+                    out double lt,
+                    out bool lInked,
+                    out _
+                );
                 double uw = uInked ? ur - ul : 0.0;
                 double lw = lInked ? lr - ll : 0.0;
                 double wide = Math.Max(uw, lw);
@@ -742,7 +860,10 @@ namespace GeometryHelper.Dxf.Viewer
                     atom.UpperX = -ul;
                     atom.UpperY = atom.Lower.Length == 0 ? h / 3.0 : lowerTop + (h / 3.0);
                     atom.LowerX = -ll;
-                    atom.StackHigh = atom.Lower.Length == 0 ? (h / 3.0) + upperTop : atom.Upper.Length == 0 ? lowerTop : lowerTop + (h / 3.0) + upperTop;
+                    atom.StackHigh =
+                        atom.Lower.Length == 0 ? (h / 3.0) + upperTop
+                        : atom.Upper.Length == 0 ? lowerTop
+                        : lowerTop + (h / 3.0) + upperTop;
                     end = wide;
                 }
 
@@ -756,10 +877,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             /// <summary>How far a letter of an atom leans along its line for each unit it stands up, over its width.</summary>
-            private static double LeanOf(Atom atom) => atom.Slant != 0.0 && atom.Wf > 0.0 ? Math.Tan(atom.Slant) / atom.Wf : 0.0;
+            private static double LeanOf(Atom atom) =>
+                atom.Slant != 0.0 && atom.Wf > 0.0 ? Math.Tan(atom.Slant) / atom.Wf : 0.0;
 
             /// <summary>The ink of an atom from its own left edge: ink left of the pen is not counted in a TrueType font.</summary>
-            private static double LeftOf(Atom atom) => !atom.HasInk ? 0.0 : atom.Ink.IsShx || atom.Kind == Kind.Stack ? atom.Left : Math.Max(0.0, atom.Left);
+            private static double LeftOf(Atom atom) =>
+                !atom.HasInk ? 0.0
+                : atom.Ink.IsShx || atom.Kind == Kind.Stack ? atom.Left
+                : Math.Max(0.0, atom.Left);
 
             /// <summary>Breaks the atoms of a paragraph into lines.</summary>
             private void Wrap(List<Atom> atoms, Format format, char align, bool startsColumn)
@@ -802,7 +927,11 @@ namespace GeometryHelper.Dxf.Viewer
                     bool inked = false;
                     double point = double.NaN;
 
-                    while (k < atoms.Count && (atoms[k].Kind == Kind.Word || atoms[k].Kind == Kind.Stack) && (k == j || atoms[k].Joins))
+                    while (
+                        k < atoms.Count
+                        && (atoms[k].Kind == Kind.Word || atoms[k].Kind == Kind.Stack)
+                        && (k == j || atoms[k].Joins)
+                    )
                     {
                         Atom w = atoms[k];
 
@@ -817,7 +946,21 @@ namespace GeometryHelper.Dxf.Viewer
 
                         if (double.IsNaN(point) && w.Kind == Kind.Word && w.Text.IndexOf('.') >= 0)
                         {
-                            Span(w.Ink, w.Text.Substring(0, w.Text.IndexOf('.')), w.H, w.Wf, w.Track, 0.0, out double to, out _, out _, out _, out _, out _, out _);
+                            Span(
+                                w.Ink,
+                                w.Text.Substring(0, w.Text.IndexOf('.')),
+                                w.H,
+                                w.Wf,
+                                w.Track,
+                                0.0,
+                                out double to,
+                                out _,
+                                out _,
+                                out _,
+                                out _,
+                                out _,
+                                out _
+                            );
                             point = advance + to;
                         }
 
@@ -842,7 +985,8 @@ namespace GeometryHelper.Dxf.Viewer
 
                         // A word at a left stop stands with its ink on the stop, and the pen goes on as if it began there.
                         after = stop.Value == 'l' ? stop.Key + advance : double.NaN;
-                        start = stop.Value == 'c' ? stop.Key - ((inkLeft + inkRight) / 2.0)
+                        start =
+                            stop.Value == 'c' ? stop.Key - ((inkLeft + inkRight) / 2.0)
                             : stop.Value == 'r' ? stop.Key - inkRight
                             : stop.Value == 'd' ? stop.Key - (double.IsNaN(point) ? advance : point)
                             : stop.Key - inkLeft;
@@ -894,7 +1038,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             private Line Start(Format format, char align, bool first, bool startsColumn)
             {
-                var line = new Line { Format = format, Align = align, First = first, StartsColumn = startsColumn };
+                var line = new Line
+                {
+                    Format = format,
+                    Align = align,
+                    First = first,
+                    StartsColumn = startsColumn,
+                };
                 line.Left = format.Left + (first ? format.Indent : 0.0);
                 line.InkRight = line.Left;
                 _lines.Add(line);
@@ -935,8 +1085,15 @@ namespace GeometryHelper.Dxf.Viewer
                 if (dropped != null && _width > 0.0 && atoms.Count > 0)
                 {
                     Atom last = atoms[atoms.Count - 1];
-                    bool own = last.Kind == Kind.Stack || !SameFace(last.Face, dropped.Face) || last.H != dropped.H || last.Wf != dropped.Wf
-                        || last.Slant != dropped.Slant || last.Track != dropped.Track || last.Bold != dropped.Bold || last.Italic != dropped.Italic;
+                    bool own =
+                        last.Kind == Kind.Stack
+                        || !SameFace(last.Face, dropped.Face)
+                        || last.H != dropped.H
+                        || last.Wf != dropped.Wf
+                        || last.Slant != dropped.Slant
+                        || last.Track != dropped.Track
+                        || last.Bold != dropped.Bold
+                        || last.Italic != dropped.Italic;
                     line.Push = own ? line.Lead : 0.0;
                 }
 
@@ -985,7 +1142,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             private static bool SameFace(CadFontFace a, CadFontFace b)
             {
-                return ReferenceEquals(a, b) || (ReferenceEquals(a.Shx, b.Shx) && ReferenceEquals(a.Big, b.Big) && string.Equals(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+                return ReferenceEquals(a, b)
+                    || (
+                        ReferenceEquals(a.Shx, b.Shx)
+                        && ReferenceEquals(a.Big, b.Big)
+                        && string.Equals(a.Name, b.Name, StringComparison.OrdinalIgnoreCase)
+                    );
             }
 
             private static bool HasWord(List<Atom> atoms)
@@ -1086,12 +1248,17 @@ namespace GeometryHelper.Dxf.Viewer
                 Format g = before.Format;
                 double third = _h / 3.0;
                 double natural = exactly ? factor * 5.0 * third : factor * (before.BoxHigh + third);
-                double cell = g.Mode == 'm' ? g.Factor * natural
+                double cell =
+                    g.Mode == 'm' ? g.Factor * natural
                     : g.Mode == 'e' ? g.Factor * 5.0 * third
                     : g.Mode == 'a' ? Math.Max(natural, g.Factor * 5.0 * third)
                     : natural;
                 Format own = line.Format;
-                return cell - Fall(before, exactly) + Fall(line, exactly) + (before.Last ? g.After : 0.0) + (line.First ? own.Before : 0.0);
+                return cell
+                    - Fall(before, exactly)
+                    + Fall(line, exactly)
+                    + (before.Last ? g.After : 0.0)
+                    + (line.First ? own.Before : 0.0);
             }
 
             /// <summary>How far below the top of its cell the baseline of a line lies.</summary>
@@ -1100,7 +1267,8 @@ namespace GeometryHelper.Dxf.Viewer
                 Format g = line.Format;
                 return g.Mode == 'e' ? g.Factor * _h
                     : g.Mode == 'a' ? Math.Max(line.Top, (g.Factor * _h) + (_h / 3.0))
-                    : exactly ? _h : line.Top;
+                    : exactly ? _h
+                    : line.Top;
             }
 
             /// <summary>Sets the lines down their columns, puts the whole at the attachment point and writes the pieces out.</summary>
@@ -1110,7 +1278,8 @@ namespace GeometryHelper.Dxf.Viewer
                 double factor = _text.LineSpacingFactor > 0.0 ? _text.LineSpacingFactor : 1.0;
                 DxfColumnType type = _columns ? _text.ColumnType : DxfColumnType.NoColumns;
                 bool manual = type == DxfColumnType.DynamicColumns && !_text.ColumnAutoHeight;
-                int fixedCount = type == DxfColumnType.StaticColumns || manual ? Math.Max(1, _text.ColumnCount) : int.MaxValue;
+                int fixedCount =
+                    type == DxfColumnType.StaticColumns || manual ? Math.Max(1, _text.ColumnCount) : int.MaxValue;
                 int column = 0;
                 Line before = null;
                 var highs = new List<double>();
@@ -1137,7 +1306,13 @@ namespace GeometryHelper.Dxf.Viewer
                     double at = before == null ? Drop(line, exactly) : depth + Pitch(before, line, exactly, factor);
                     double limit = ColumnHigh(type, manual, column);
 
-                    if (_columns && before != null && limit > 0.0 && at + line.Depth > limit + 1E-9 && column < fixedCount - 1)
+                    if (
+                        _columns
+                        && before != null
+                        && limit > 0.0
+                        && at + line.Depth > limit + 1E-9
+                        && column < fixedCount - 1
+                    )
                     {
                         highs.Add(High(before, depth, exactly));
                         column++;
@@ -1171,15 +1346,27 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 double hung = _columns && defined > 0.0 ? defined : actualHigh;
-                double left = across == 0 ? 0.0 : across == 1 ? -total / 2.0 : -total;
-                double top = down == 0 ? 0.0 : down == 1 ? hung / 2.0 : hung;
+                double left =
+                    across == 0 ? 0.0
+                    : across == 1 ? -total / 2.0
+                    : -total;
+                double top =
+                    down == 0 ? 0.0
+                    : down == 1 ? hung / 2.0
+                    : hung;
                 var shifts = new double[highs.Count];
 
                 for (int c = 0; c < highs.Count; c++)
                 {
                     double room = _columns && defined > 0.0 ? ColumnHigh(type, manual, c) : hung;
                     room = room > 0.0 ? room : hung;
-                    shifts[c] = top - (down == 0 ? 0.0 : down == 1 ? (room - highs[c]) / 2.0 : room - highs[c]);
+                    shifts[c] =
+                        top
+                        - (
+                            down == 0 ? 0.0
+                            : down == 1 ? (room - highs[c]) / 2.0
+                            : room - highs[c]
+                        );
                 }
 
                 double inkLeft = double.MaxValue;
@@ -1224,14 +1411,26 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 // AutoCAD's box is as high as the columns are set, as the tallest is where each has a height of its own, and with no columns as the lines or the height given, whichever is more.
-                double high = !_columns ? Math.Max(_text.Height, actualHigh) : manual || defined <= 0.0 ? actualHigh : defined;
-                double boxTop = down == 0 ? 0.0 : down == 1 ? high / 2.0 : high;
+                double high =
+                    !_columns ? Math.Max(_text.Height, actualHigh)
+                    : manual || defined <= 0.0 ? actualHigh
+                    : defined;
+                double boxTop =
+                    down == 0 ? 0.0
+                    : down == 1 ? high / 2.0
+                    : high;
                 _layout.LineCount = _lines.Count;
                 _layout.ColumnCount = count;
                 _layout.ActualWidth = widest;
                 _layout.ActualHeight = actualHigh;
                 _layout.Ink = new[] { inkLeft, inkBottom, inkRight, inkTop };
-                _layout.TextBox = new[] { left, top - (_columns && defined > 0.0 ? defined : actualHigh), left + total, top };
+                _layout.TextBox = new[]
+                {
+                    left,
+                    top - (_columns && defined > 0.0 ? defined : actualHigh),
+                    left + total,
+                    top,
+                };
                 _layout.Box = new[] { left, boxTop - high, left + total, boxTop };
 
                 if (_editing)
@@ -1244,16 +1443,18 @@ namespace GeometryHelper.Dxf.Viewer
             private void Map(Line line, int number, double x, double y, double columnLeft, double columnRight)
             {
                 PlaceMap map = _layout.Places;
-                map.Lines.Add(new LineBox
-                {
-                    Baseline = y,
-                    Top = y + line.Top,
-                    Bottom = y - Math.Max(line.Depth, _h / 3.0),
-                    Left = x + line.Left,
-                    Column = line.Column,
-                    ColumnLeft = columnLeft,
-                    ColumnRight = columnRight,
-                });
+                map.Lines.Add(
+                    new LineBox
+                    {
+                        Baseline = y,
+                        Top = y + line.Top,
+                        Bottom = y - Math.Max(line.Depth, _h / 3.0),
+                        Left = x + line.Left,
+                        Column = line.Column,
+                        ColumnLeft = columnLeft,
+                        ColumnRight = columnRight,
+                    }
+                );
 
                 foreach (Atom a in line.Atoms)
                 {
@@ -1375,7 +1576,9 @@ namespace GeometryHelper.Dxf.Viewer
                     return 0.0;
                 }
 
-                return a.Look.Align.Value == 1 ? (lineHigh - a.H) / 2.0 : a.Look.Align.Value == 2 ? lineHigh - a.H : 0.0;
+                return a.Look.Align.Value == 1 ? (lineHigh - a.H) / 2.0
+                    : a.Look.Align.Value == 2 ? lineHigh - a.H
+                    : 0.0;
             }
 
             /// <summary>Writes the pieces and strokes of a line, the atoms that follow one another in one look as one piece.</summary>
@@ -1410,7 +1613,17 @@ namespace GeometryHelper.Dxf.Viewer
 
                         if (a.Bar != null)
                         {
-                            _layout._strokes.Add(new Stroke { X0 = ax + a.Bar[0], Y0 = y + a.Bar[1], X1 = ax + a.Bar[2], Y1 = y + a.Bar[3], Look = a.Look, IsBar = true });
+                            _layout._strokes.Add(
+                                new Stroke
+                                {
+                                    X0 = ax + a.Bar[0],
+                                    Y0 = y + a.Bar[1],
+                                    X1 = ax + a.Bar[2],
+                                    Y1 = y + a.Bar[3],
+                                    Look = a.Look,
+                                    IsBar = true,
+                                }
+                            );
                         }
 
                         continue;
@@ -1441,7 +1654,13 @@ namespace GeometryHelper.Dxf.Viewer
                             pen += step + a.Spread;
                         }
                     }
-                    else if (open != null && ReferenceEquals(openAtom.Look, a.Look) && ReferenceEquals(openAtom.Face, a.Face) && Math.Abs(open.X + open.Advance - ax) < 1E-9 && Math.Abs(open.Y - ay) < 1E-9)
+                    else if (
+                        open != null
+                        && ReferenceEquals(openAtom.Look, a.Look)
+                        && ReferenceEquals(openAtom.Face, a.Face)
+                        && Math.Abs(open.X + open.Advance - ax) < 1E-9
+                        && Math.Abs(open.Y - ay) < 1E-9
+                    )
                     {
                         open.Text += a.Text;
                         open.Advance += a.Advance;
@@ -1491,19 +1710,38 @@ namespace GeometryHelper.Dxf.Viewer
 
                 for (int level = 0; level < 3; level++)
                 {
-                    if (!(level == 0 ? look.Underline : level == 1 ? look.Strikethrough : look.Overline))
+                    if (
+                        !(
+                            level == 0 ? look.Underline
+                            : level == 1 ? look.Strikethrough
+                            : look.Overline
+                        )
+                    )
                     {
                         continue;
                     }
 
-                    double at = y + ((level == 0 ? -0.2 : level == 1 ? 0.5 : 1.2) * a.H);
+                    double at =
+                        y
+                        + (
+                            (
+                                level == 0 ? -0.2
+                                : level == 1 ? 0.5
+                                : 1.2
+                            ) * a.H
+                        );
                     Stroke joined = null;
 
                     for (int s = _layout._strokes.Count - 1; s >= 0 && s >= _layout._strokes.Count - 3; s--)
                     {
                         Stroke last = _layout._strokes[s];
 
-                        if (ReferenceEquals(last.Look, look) && Math.Abs(last.Y0 - at) < 1E-9 && Math.Abs(last.Y1 - at) < 1E-9 && Math.Abs(last.X1 - from) < 1E-9)
+                        if (
+                            ReferenceEquals(last.Look, look)
+                            && Math.Abs(last.Y0 - at) < 1E-9
+                            && Math.Abs(last.Y1 - at) < 1E-9
+                            && Math.Abs(last.X1 - from) < 1E-9
+                        )
                         {
                             joined = last;
                             break;
@@ -1516,7 +1754,16 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else
                     {
-                        _layout._strokes.Add(new Stroke { X0 = from, Y0 = at, X1 = to, Y1 = at, Look = look });
+                        _layout._strokes.Add(
+                            new Stroke
+                            {
+                                X0 = from,
+                                Y0 = at,
+                                X1 = to,
+                                Y1 = at,
+                                Look = look,
+                            }
+                        );
                     }
                 }
             }

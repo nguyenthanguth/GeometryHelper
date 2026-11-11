@@ -21,33 +21,63 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly Tolerance Default = Tolerance.Default;
 
         private static readonly GeoPolygon3 Plate = new GeoPolygon3(
-            new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(30, 0, 0), new GeoPoint3(30, 20, 0), new GeoPoint3(0, 20, 0) }, Default);
+            new[]
+            {
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(30, 0, 0),
+                new GeoPoint3(30, 20, 0),
+                new GeoPoint3(0, 20, 0),
+            },
+            Default
+        );
 
-        private static readonly GeoFace3 Holed = new GeoFace3(Plate, new[]
-        {
-            new GeoPolygon3(new[] { new GeoPoint3(10, 5, 0), new GeoPoint3(10, 15, 0), new GeoPoint3(20, 15, 0), new GeoPoint3(20, 5, 0) }, Default),
-        });
+        private static readonly GeoFace3 Holed = new GeoFace3(
+            Plate,
+            new[]
+            {
+                new GeoPolygon3(
+                    new[]
+                    {
+                        new GeoPoint3(10, 5, 0),
+                        new GeoPoint3(10, 15, 0),
+                        new GeoPoint3(20, 15, 0),
+                        new GeoPoint3(20, 5, 0),
+                    },
+                    Default
+                ),
+            }
+        );
 
-        private static readonly GeoTriangle3 Corner = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(30, 0, 0), new GeoPoint3(15, 20, 0));
+        private static readonly GeoTriangle3 Corner = new GeoTriangle3(
+            new GeoPoint3(0, 0, 0),
+            new GeoPoint3(30, 0, 0),
+            new GeoPoint3(15, 20, 0)
+        );
 
         /// <summary>
         /// An arc of radius 5 standing upright in the plane y = -0.0006, dipping to (15, -0.0006, 0.0006): 0.00085 from the
         /// side y = 0, and never down to the plane.
         /// </summary>
         private static readonly GeoArc3 Dipping = GeoArc3.FromThreePoints(
-            new GeoPoint3(12, -0.0006, 1.0006), new GeoPoint3(15, -0.0006, 0.0006), new GeoPoint3(18, -0.0006, 1.0006), Default);
+            new GeoPoint3(12, -0.0006, 1.0006),
+            new GeoPoint3(15, -0.0006, 0.0006),
+            new GeoPoint3(18, -0.0006, 1.0006),
+            Default
+        );
 
         private static readonly GeoPoint3 Lowest = new GeoPoint3(15, -0.0006, 0.0006);
 
         [Fact]
         public void ATiltedArcDippingWithinTheToleranceOfASide_IsGivenItsLowestPoint()
         {
-            foreach (GeoPoint3[] hits in new[]
-            {
-                Arc3.GetIntersections(Dipping, Plate, Default),
-                Arc3.GetIntersections(Dipping, Holed, Default),
-                Arc3.GetIntersections(Dipping, Corner, Default),
-            })
+            foreach (
+                GeoPoint3[] hits in new[]
+                {
+                    Arc3.GetIntersections(Dipping, Plate, Default),
+                    Arc3.GetIntersections(Dipping, Holed, Default),
+                    Arc3.GetIntersections(Dipping, Corner, Default),
+                }
+            )
             {
                 GeoPoint3 hit = Assert.Single(hits);
                 Assert.True(hit.DistanceTo(Lowest) < 1E-9);
@@ -72,7 +102,12 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AnArcDippingFurtherThanTheTolerance_IsGivenNone()
         {
-            var clear = GeoArc3.FromThreePoints(new GeoPoint3(12, -0.0008, 1.0008), new GeoPoint3(15, -0.0008, 0.0008), new GeoPoint3(18, -0.0008, 1.0008), Default);
+            var clear = GeoArc3.FromThreePoints(
+                new GeoPoint3(12, -0.0008, 1.0008),
+                new GeoPoint3(15, -0.0008, 0.0008),
+                new GeoPoint3(18, -0.0008, 1.0008),
+                Default
+            );
 
             Assert.False(Arc3.CollidesWith(clear, Plate, Default));
             Assert.Empty(Arc3.GetIntersections(clear, Plate, Default));
@@ -95,10 +130,18 @@ namespace GeometryHelper.UnitTest.Solid
         public void AnArcInThePlaneBowingWithinTheToleranceOfASide_IsGivenItsNearestPoint()
         {
             // In the plane, outside the side y = 0, bowing to (15, -0.0006, 0) with a radius of 5: it lies along nothing.
-            var beside = GeoArc3.FromThreePoints(new GeoPoint3(12, -1.0006, 0), new GeoPoint3(15, -0.0006, 0), new GeoPoint3(18, -1.0006, 0), Default);
+            var beside = GeoArc3.FromThreePoints(
+                new GeoPoint3(12, -1.0006, 0),
+                new GeoPoint3(15, -0.0006, 0),
+                new GeoPoint3(18, -1.0006, 0),
+                Default
+            );
 
             Assert.True(Arc3.CollidesWith(beside, Plate, Default));
-            Assert.True(Assert.Single(Arc3.GetIntersections(beside, Plate, Default)).DistanceTo(new GeoPoint3(15, -0.0006, 0)) < 1E-9);
+            Assert.True(
+                Assert.Single(Arc3.GetIntersections(beside, Plate, Default)).DistanceTo(new GeoPoint3(15, -0.0006, 0))
+                    < 1E-9
+            );
         }
 
         [Fact]
@@ -127,7 +170,11 @@ namespace GeometryHelper.UnitTest.Solid
                     near = new GeoPoint3(30 + Jitter(), 20 + Jitter(), Jitter());
                 }
 
-                var normal = new GeoVector3(random.NextDouble() * 2 - 1, random.NextDouble() * 2 - 1, random.NextDouble() * 2 - 1);
+                var normal = new GeoVector3(
+                    random.NextDouble() * 2 - 1,
+                    random.NextDouble() * 2 - 1,
+                    random.NextDouble() * 2 - 1
+                );
 
                 if (normal.Length < 0.1)
                 {
@@ -138,7 +185,13 @@ namespace GeometryHelper.UnitTest.Solid
                 double sweep = 0.1 + random.NextDouble() * 2.5;
                 var probe = new GeoArc3(GeoPoint3.Origin, normal, radius, -sweep / 2, sweep / 2);
                 GeoPoint3 middle = probe.MidPoint;
-                var arc = new GeoArc3(new GeoPoint3(near.X - middle.X, near.Y - middle.Y, near.Z - middle.Z), normal, radius, -sweep / 2, sweep / 2);
+                var arc = new GeoArc3(
+                    new GeoPoint3(near.X - middle.X, near.Y - middle.Y, near.Z - middle.Z),
+                    normal,
+                    radius,
+                    -sweep / 2,
+                    sweep / 2
+                );
 
                 bool collides = Arc3.CollidesWith(arc, Holed, Default);
                 GeoPoint3[] hits = Arc3.GetIntersections(arc, Holed, Default);

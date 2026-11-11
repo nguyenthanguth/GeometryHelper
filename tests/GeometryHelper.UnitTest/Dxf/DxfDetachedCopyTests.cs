@@ -20,7 +20,8 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             DxfEntity line = ByHandle<DxfLine>(db, "3E").Clone();
-            DxfEntity circle = ByHandle<DxfCircle>(db, "3F").GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(1, 0, 0)));
+            DxfEntity circle = ByHandle<DxfCircle>(db, "3F")
+                .GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(1, 0, 0)));
             DxfEntity again = line.Clone();
             var made = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0));
             var other = new DxfCircle(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 2);
@@ -130,7 +131,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Empty(copy.GetGeometry());
             Assert.Null(copy.BlockTableRecord);
-            Assert.Throws<ArgumentException>(() => DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000).ModelSpace.AppendEntity(copy));
+            Assert.Throws<ArgumentException>(() =>
+                DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000).ModelSpace.AppendEntity(copy)
+            );
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

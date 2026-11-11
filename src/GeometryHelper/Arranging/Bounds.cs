@@ -11,10 +11,13 @@ namespace GeometryHelper.Arranging
     {
         /// <summary>Gets the minimum X coordinate.</summary>
         internal double MinX { get; }
+
         /// <summary>Gets the minimum Y coordinate.</summary>
         internal double MinY { get; }
+
         /// <summary>Gets the maximum X coordinate.</summary>
         internal double MaxX { get; }
+
         /// <summary>Gets the maximum Y coordinate.</summary>
         internal double MaxY { get; }
 
@@ -36,16 +39,22 @@ namespace GeometryHelper.Arranging
         /// <returns>The calculated bounds.</returns>
         internal static Bounds Of(GeoPolygon2 polygon)
         {
-            double minX = double.MaxValue, minY = double.MaxValue;
-            double maxX = double.MinValue, maxY = double.MinValue;
+            double minX = double.MaxValue,
+                minY = double.MaxValue;
+            double maxX = double.MinValue,
+                maxY = double.MinValue;
             int count = polygon.VertexCount;
             for (int i = 0; i < count; i++)
             {
                 var v = polygon[i];
-                if (v.X < minX) minX = v.X;
-                if (v.Y < minY) minY = v.Y;
-                if (v.X > maxX) maxX = v.X;
-                if (v.Y > maxY) maxY = v.Y;
+                if (v.X < minX)
+                    minX = v.X;
+                if (v.Y < minY)
+                    minY = v.Y;
+                if (v.X > maxX)
+                    maxX = v.X;
+                if (v.Y > maxY)
+                    maxY = v.Y;
             }
             return new Bounds(minX, minY, maxX, maxY);
         }
@@ -73,14 +82,20 @@ namespace GeometryHelper.Arranging
         internal static Bounds Of(GeoRectangle2 rect)
         {
             var vertices = rect.GetVertices();
-            double minX = double.MaxValue, minY = double.MaxValue;
-            double maxX = double.MinValue, maxY = double.MinValue;
+            double minX = double.MaxValue,
+                minY = double.MaxValue;
+            double maxX = double.MinValue,
+                maxY = double.MinValue;
             foreach (var v in vertices)
             {
-                if (v.X < minX) minX = v.X;
-                if (v.Y < minY) minY = v.Y;
-                if (v.X > maxX) maxX = v.X;
-                if (v.Y > maxY) maxY = v.Y;
+                if (v.X < minX)
+                    minX = v.X;
+                if (v.Y < minY)
+                    minY = v.Y;
+                if (v.X > maxX)
+                    maxX = v.X;
+                if (v.Y > maxY)
+                    maxY = v.Y;
             }
             return new Bounds(minX, minY, maxX, maxY);
         }
@@ -125,9 +140,14 @@ namespace GeometryHelper.Arranging
         /// <returns>The bounds of both: each side the further out of the two, taken as it is, with no arithmetic.</returns>
         internal Bounds Union(Bounds other)
         {
-            return new Bounds(Math.Min(MinX, other.MinX), Math.Min(MinY, other.MinY),
-                Math.Max(MaxX, other.MaxX), Math.Max(MaxY, other.MaxY));
+            return new Bounds(
+                Math.Min(MinX, other.MinX),
+                Math.Min(MinY, other.MinY),
+                Math.Max(MaxX, other.MaxX),
+                Math.Max(MaxY, other.MaxY)
+            );
         }
+
         /// <summary>
         /// The distance between these bounds and other bounds: nought where they overlap or touch. No shape inside the one
         /// stands closer than this to a shape inside the other.
@@ -141,7 +161,6 @@ namespace GeometryHelper.Arranging
             return Math.Sqrt(dx * dx + dy * dy);
         }
 
-
         /// <summary>
         /// Checks whether these bounds overlap other bounds.
         /// </summary>
@@ -149,8 +168,7 @@ namespace GeometryHelper.Arranging
         /// <returns>True if they overlap; otherwise, false.</returns>
         internal bool Overlaps(Bounds other)
         {
-            return MinX <= other.MaxX && other.MinX <= MaxX
-                                      && MinY <= other.MaxY && other.MinY <= MaxY;
+            return MinX <= other.MaxX && other.MinX <= MaxX && MinY <= other.MaxY && other.MinY <= MaxY;
         }
     }
 }

@@ -18,7 +18,8 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
-        private static GeoPolygon2 Square(double x, double y, double side) => new GeoPolygon2(P(x, y), P(x + side, y), P(x + side, y + side), P(x, y + side));
+        private static GeoPolygon2 Square(double x, double y, double side) =>
+            new GeoPolygon2(P(x, y), P(x + side, y), P(x + side, y + side), P(x, y + side));
 
         /// <summary>
         /// Asserts the triangles cover the material: their area is the material's, each runs counter-clockwise, and
@@ -78,7 +79,10 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AFaceIsMeshedRoundEveryHole()
         {
-            var face = new GeoFace2(Square(0, 0, 1000), new[] { Square(100, 100, 200), Square(500, 400, 300), Square(150, 600, 100) });
+            var face = new GeoFace2(
+                Square(0, 0, 1000),
+                new[] { Square(100, 100, 200), Square(500, 400, 300), Square(150, 600, 100) }
+            );
 
             GeoTriangle2[] triangles = face.TriangulateSurface(Tolerance);
 
@@ -89,7 +93,10 @@ namespace GeometryHelper.UnitTest.Plane
         public void HolesSharingAnEdgeAreTakenTogether()
         {
             // Two holes side by side, sharing the side x = 300, and a third standing on the boundary's bottom edge.
-            var face = new GeoFace2(Square(0, 0, 1000), new[] { Square(100, 100, 200), Square(300, 100, 200), Square(700, 0, 100) });
+            var face = new GeoFace2(
+                Square(0, 0, 1000),
+                new[] { Square(100, 100, 200), Square(300, 100, 200), Square(700, 0, 100) }
+            );
 
             GeoTriangle2[] triangles = face.TriangulateSurface(Tolerance);
 
@@ -130,7 +137,10 @@ namespace GeometryHelper.UnitTest.Plane
         public void AFaceFarFromTheOriginKeepsItsArea()
         {
             var offset = new GeoVector2(4.2E5, -3.1E5);
-            var face = new GeoFace2(Square(0, 0, 1000).Translate(offset), new[] { Square(250, 250, 500).Translate(offset) });
+            var face = new GeoFace2(
+                Square(0, 0, 1000).Translate(offset),
+                new[] { Square(250, 250, 500).Translate(offset) }
+            );
 
             GeoTriangle2[] triangles = face.TriangulateSurface(Tolerance);
 
@@ -140,7 +150,10 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void TheTrianglesAreTheOnesTheFaceHasInSpace()
         {
-            var face = new GeoFace2(new GeoPolygon2(P(0, 0), P(300, 0), P(300, 100), P(120, 100), P(120, 250), P(0, 250)), new[] { Square(30, 40, 50) });
+            var face = new GeoFace2(
+                new GeoPolygon2(P(0, 0), P(300, 0), P(300, 100), P(120, 100), P(120, 250), P(0, 250)),
+                new[] { Square(30, 40, 50) }
+            );
             GeoTriangle2[] flat = face.TriangulateSurface(Tolerance);
 
             var frame = new GeoCoordinateSystem3(new GeoPlane3(GeoPoint3.Origin, GeoVector3.ZAxis));
@@ -164,7 +177,9 @@ namespace GeometryHelper.UnitTest.Plane
             // The chords lie inside the arcs, by no more than the chord tolerance along each.
             double exact = 100.0 * 100.0 - (4.0 - Math.PI) * 20.0 * 20.0;
             Assert.InRange(triangles.Sum(t => t.Area), exact - chord * rounded.Length, exact);
-            Assert.All(triangles.SelectMany(t => t.GetVertices()), corner => Assert.True(rounded.DistanceTo(corner) <= 1E-9));
+            Assert.All(triangles.SelectMany(t => t.GetVertices()), corner =>
+                Assert.True(rounded.DistanceTo(corner) <= 1E-9)
+            );
         }
 
         [Fact]

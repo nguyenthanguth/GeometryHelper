@@ -14,7 +14,12 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfDBTextTests
     {
-        private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
+        private static readonly string[] Drawings =
+        {
+            DxfFileEzdxfDrawings.R12,
+            DxfFileEzdxfDrawings.R2000,
+            DxfFileEzdxfDrawings.R2018,
+        };
 
         #region Read as ezdxf reads it
 
@@ -77,9 +82,21 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void EverySetterGivenTheValueItGives_LeavesTheFileByteForByte()
         {
-            string writer = DxfReaderRoundTripTests.OneOfEach()
+            string writer = DxfReaderRoundTripTests
+                .OneOfEach()
                 .Add(new DxfText(new GeoPoint3(1, 2, 3), new GeoVector3(0, 0, 1), 2.5, 0.3, "writer text"))
-                .Add(new DxfText(new GeoPoint3(4, 5, 6), new GeoVector3(0, 0.6, 0.8), 1.5, 0.2, "writer\nmtext", true, 1.0, 20.0))
+                .Add(
+                    new DxfText(
+                        new GeoPoint3(4, 5, 6),
+                        new GeoVector3(0, 0.6, 0.8),
+                        1.5,
+                        0.2,
+                        "writer\nmtext",
+                        true,
+                        1.0,
+                        20.0
+                    )
+                )
                 .ToString();
 
             foreach (string text in Drawings.Concat(new[] { writer }))
@@ -189,7 +206,15 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // ezdxf 1.4.5, Text.transform() of the TEXT 64 of R2000 by x stretched twice and moved by 1: insert and align point
             // (15, 8, 0), height 2.56527057434103, rotation 7.630740212430057, oblique -20.55604521958348, width 1.899519052838329.
-            var stretch = new GeoTransform3(new double[,] { { 2, 0, 0, 1 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } });
+            var stretch = new GeoTransform3(
+                new double[,]
+                {
+                    { 2, 0, 0, 1 },
+                    { 0, 1, 0, 0 },
+                    { 0, 0, 1, 0 },
+                    { 0, 0, 0, 1 },
+                }
+            );
 
             foreach (string text in new[] { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000 })
             {
@@ -237,7 +262,14 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                var made = new DxfDBText { TextString = "new text", Position = new GeoPoint3(3, 3, 0), Height = 2.0, Rotation = 0.3, Layer = "notes" };
+                var made = new DxfDBText
+                {
+                    TextString = "new text",
+                    Position = new GeoPoint3(3, 3, 0),
+                    Height = 2.0,
+                    Rotation = 0.3,
+                    Layer = "notes",
+                };
 
                 Assert.Null(made.Handle);
                 db.ModelSpace.AppendEntity(made);
@@ -273,13 +305,15 @@ namespace GeometryHelper.UnitTest.Dxf
         #endregion
 
         /// <summary>The turn and move M1 of the oracle: a rotation out of the xy plane, then a move by (10, -5, 2.5).</summary>
-        internal static readonly GeoTransform3 Turn = new GeoTransform3(new double[,]
-        {
-            { 0.7816391739070251, -0.4829292842142122, 0.3947397981737998, 10.0 },
-            { 0.5501172307043584, 0.8320301337746346, -0.07139249941787586, -5.0 },
-            { -0.29395787843858057, 0.27295633888831433, 0.9160150668873173, 2.5 },
-            { 0, 0, 0, 1 },
-        });
+        internal static readonly GeoTransform3 Turn = new GeoTransform3(
+            new double[,]
+            {
+                { 0.7816391739070251, -0.4829292842142122, 0.3947397981737998, 10.0 },
+                { 0.5501172307043584, 0.8320301337746346, -0.07139249941787586, -5.0 },
+                { -0.29395787843858057, 0.27295633888831433, 0.9160150668873173, 2.5 },
+                { 0, 0, 0, 1 },
+            }
+        );
 
         /// <summary>A point of the system of a normal's plane in the world, by the arbitrary axis algorithm.</summary>
         internal static GeoPoint3 Ocs(GeoVector3 normal, GeoPoint3 p)
@@ -287,11 +321,18 @@ namespace GeometryHelper.UnitTest.Dxf
             bool nearZ = Math.Abs(normal.X) < 1.0 / 64.0 && Math.Abs(normal.Y) < 1.0 / 64.0;
             GeoVector3 u = (nearZ ? new GeoVector3(0, 1, 0) : new GeoVector3(0, 0, 1)).CrossProduct(normal).Normalize();
             GeoVector3 v = normal.CrossProduct(u).Normalize();
-            return new GeoPoint3(u.X * p.X + v.X * p.Y + normal.X * p.Z, u.Y * p.X + v.Y * p.Y + normal.Y * p.Z, u.Z * p.X + v.Z * p.Y + normal.Z * p.Z);
+            return new GeoPoint3(
+                u.X * p.X + v.X * p.Y + normal.X * p.Z,
+                u.Y * p.X + v.Y * p.Y + normal.Y * p.Z,
+                u.Z * p.X + v.Z * p.Y + normal.Z * p.Z
+            );
         }
 
-        internal static void Near(double expected, double actual)
-            => Assert.True(Math.Abs(expected - actual) <= 1E-9 * Math.Max(1.0, Math.Abs(expected)), "expected " + expected.ToString("R") + ", was " + actual.ToString("R"));
+        internal static void Near(double expected, double actual) =>
+            Assert.True(
+                Math.Abs(expected - actual) <= 1E-9 * Math.Max(1.0, Math.Abs(expected)),
+                "expected " + expected.ToString("R") + ", was " + actual.ToString("R")
+            );
 
         internal static void Near(GeoPoint3 expected, GeoPoint3 actual)
         {

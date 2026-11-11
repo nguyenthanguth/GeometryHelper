@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GeometryHelper.Arranging;
 using GeometryHelper.Geometry;
 using Xunit;
-using GeometryHelper.Arranging;
 
 namespace GeometryHelper.UnitTest.Arranging
 {
@@ -27,12 +27,12 @@ namespace GeometryHelper.UnitTest.Arranging
             {
                 new ArrangeItem
                 {
-                    Box    = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
+                    Box = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
                     Leader = leader,
                     Offset = 50.0,
                     BlockPolygons = new List<GeoPolygon2>(),
-                    BlockLines    = new List<GeoLine2>()
-                }
+                    BlockLines = new List<GeoLine2>(),
+                },
             };
 
             ArrangeResult[] results = Arranger.Run(items);
@@ -59,24 +59,20 @@ namespace GeometryHelper.UnitTest.Arranging
         {
             var leader = new GeoLine2(0.0, 0.0, 2000.0, 0.0);
 
-            var options = new ArrangeOptions
-            {
-                RowGap              = 20.0,
-                PerpendicularLevels = 3
-            };
+            var options = new ArrangeOptions { RowGap = 20.0, PerpendicularLevels = 3 };
 
             var smallTextLabel = new ArrangeItem
             {
-                Box    = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
+                Box = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
                 Leader = leader,
-                Offset = 50.0
+                Offset = 50.0,
             };
 
             var largeTextLabel = new ArrangeItem
             {
-                Box    = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 4000.0, 2000.0),
+                Box = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 4000.0, 2000.0),
                 Leader = leader,
-                Offset = 200.0
+                Offset = 200.0,
             };
 
             ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { smallTextLabel, largeTextLabel }, options);
@@ -99,7 +95,7 @@ namespace GeometryHelper.UnitTest.Arranging
                 Box = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
                 Leader = leader,
                 OffsetTop = 20.0,
-                OffsetBottom = 300.0
+                OffsetBottom = 300.0,
             };
 
             List<GeoPoint2> points = dimensionText.GetPlacePoints(new ArrangeOptions());
@@ -122,10 +118,10 @@ namespace GeometryHelper.UnitTest.Arranging
 
             var levelMark = new ArrangeItem
             {
-                Box       = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
-                Leader    = leader,
+                Box = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
+                Leader = leader,
                 OffsetTop = 20.0,
-                Side      = ArrangeSide.Top   // above the leader, never below it
+                Side = ArrangeSide.Top, // above the leader, never below it
             };
 
             // Every candidate above the leader, the first row 500 + 20 off.
@@ -134,7 +130,12 @@ namespace GeometryHelper.UnitTest.Arranging
             // Walled in above, it is left on the first of its places there, free as it is below.
             levelMark.BlockPolygons = new[]
             {
-                new GeoPolygon2(new GeoPoint2(-5000.0, 1.0), new GeoPoint2(7000.0, 1.0), new GeoPoint2(7000.0, 5000.0), new GeoPoint2(-5000.0, 5000.0))
+                new GeoPolygon2(
+                    new GeoPoint2(-5000.0, 1.0),
+                    new GeoPoint2(7000.0, 1.0),
+                    new GeoPoint2(7000.0, 5000.0),
+                    new GeoPoint2(-5000.0, 5000.0)
+                ),
             };
             ArrangeResult result = Arranger.Run(new List<ArrangeItem> { levelMark })[0];
             Assert.False(result.Placed);

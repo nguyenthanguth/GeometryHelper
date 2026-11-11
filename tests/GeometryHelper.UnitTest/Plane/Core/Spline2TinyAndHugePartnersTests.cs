@@ -35,11 +35,17 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static void AssertPlaces(GeoPoint2[] actual, double within, params GeoPoint2[] expected)
         {
-            Assert.True(actual.Length == expected.Length, actual.Length + " points " + string.Join(" ", actual) + ", " + expected.Length + " expected");
+            Assert.True(
+                actual.Length == expected.Length,
+                actual.Length + " points " + string.Join(" ", actual) + ", " + expected.Length + " expected"
+            );
 
             foreach (GeoPoint2 place in expected)
             {
-                Assert.True(actual.Any(p => p.DistanceTo(place) <= within), "no point near " + place + " in " + string.Join(" ", actual));
+                Assert.True(
+                    actual.Any(p => p.DistanceTo(place) <= within),
+                    "no point near " + place + " in " + string.Join(" ", actual)
+                );
             }
         }
 

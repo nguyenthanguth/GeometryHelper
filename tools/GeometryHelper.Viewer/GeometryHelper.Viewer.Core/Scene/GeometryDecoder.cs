@@ -24,42 +24,78 @@ namespace GeometryHelper.Viewer
             // Each kind is built by a method of its own, so that a type is looked for only when an item of it is decoded.
             switch (item.Kind)
             {
-                case "GeoPoint2": return Decode_GeoPoint2(d);
-                case "GeoPoint3": return Decode_GeoPoint3(d);
-                case "GeoLine2": return Decode_GeoLine2(d);
-                case "GeoLine3": return Decode_GeoLine3(d);
-                case "GeoRay2": return Decode_GeoRay2(d);
-                case "GeoRay3": return Decode_GeoRay3(d);
-                case "GeoXLine2": return Decode_GeoXLine2(d);
-                case "GeoXLine3": return Decode_GeoXLine3(d);
-                case "GeoPolyline2": return Decode_GeoPolyline2(d);
-                case "GeoPolygon2": return Decode_GeoPolygon2(d);
-                case "GeoPolyline3": return Decode_GeoPolyline3(d);
-                case "GeoPolygon3": return Decode_GeoPolygon3(d);
-                case "GeoPolylineArc2": return Decode_GeoPolylineArc2(d);
-                case "GeoPolygonArc2": return Decode_GeoPolygonArc2(d);
-                case "GeoPolylineArc3": return Decode_GeoPolylineArc3(d);
-                case "GeoPolygonArc3": return Decode_GeoPolygonArc3(d);
-                case "GeoArc2": return Decode_GeoArc2(d);
-                case "GeoArc3": return Decode_GeoArc3(d);
-                case "GeoCircle2": return Decode_GeoCircle2(d);
-                case "GeoCircle3": return Decode_GeoCircle3(d);
-                case "GeoEllipse2": return Decode_GeoEllipse2(d);
-                case "GeoEllipse3": return Decode_GeoEllipse3(d);
-                case "GeoSpline2": return Decode_GeoSpline2(d);
-                case "GeoSpline3": return Decode_GeoSpline3(d);
-                case "GeoRectangle2": return Decode_GeoRectangle2(d);
-                case "GeoTriangle2": return Decode_GeoTriangle2(d);
-                case "GeoTriangle3": return Decode_GeoTriangle3(d);
-                case "GeoFace2": return Decode_GeoFace2(d);
-                case "GeoFace3": return Decode_GeoFace3(d);
-                case "GeoSolid3": return Decode_GeoSolid3(d);
-                case "GeoMesh2": return Decode_GeoMesh2(d);
-                case "GeoMesh3": return Decode_GeoMesh3(d);
-                case "GeoAabb3": return Decode_GeoAabb3(d);
-                case "GeoObb3": return Decode_GeoObb3(d);
-                case "GeoSphere3": return Decode_GeoSphere3(d);
-                case "GeoPlane3": return Decode_GeoPlane3(d);
+                case "GeoPoint2":
+                    return Decode_GeoPoint2(d);
+                case "GeoPoint3":
+                    return Decode_GeoPoint3(d);
+                case "GeoLine2":
+                    return Decode_GeoLine2(d);
+                case "GeoLine3":
+                    return Decode_GeoLine3(d);
+                case "GeoRay2":
+                    return Decode_GeoRay2(d);
+                case "GeoRay3":
+                    return Decode_GeoRay3(d);
+                case "GeoXLine2":
+                    return Decode_GeoXLine2(d);
+                case "GeoXLine3":
+                    return Decode_GeoXLine3(d);
+                case "GeoPolyline2":
+                    return Decode_GeoPolyline2(d);
+                case "GeoPolygon2":
+                    return Decode_GeoPolygon2(d);
+                case "GeoPolyline3":
+                    return Decode_GeoPolyline3(d);
+                case "GeoPolygon3":
+                    return Decode_GeoPolygon3(d);
+                case "GeoPolylineArc2":
+                    return Decode_GeoPolylineArc2(d);
+                case "GeoPolygonArc2":
+                    return Decode_GeoPolygonArc2(d);
+                case "GeoPolylineArc3":
+                    return Decode_GeoPolylineArc3(d);
+                case "GeoPolygonArc3":
+                    return Decode_GeoPolygonArc3(d);
+                case "GeoArc2":
+                    return Decode_GeoArc2(d);
+                case "GeoArc3":
+                    return Decode_GeoArc3(d);
+                case "GeoCircle2":
+                    return Decode_GeoCircle2(d);
+                case "GeoCircle3":
+                    return Decode_GeoCircle3(d);
+                case "GeoEllipse2":
+                    return Decode_GeoEllipse2(d);
+                case "GeoEllipse3":
+                    return Decode_GeoEllipse3(d);
+                case "GeoSpline2":
+                    return Decode_GeoSpline2(d);
+                case "GeoSpline3":
+                    return Decode_GeoSpline3(d);
+                case "GeoRectangle2":
+                    return Decode_GeoRectangle2(d);
+                case "GeoTriangle2":
+                    return Decode_GeoTriangle2(d);
+                case "GeoTriangle3":
+                    return Decode_GeoTriangle3(d);
+                case "GeoFace2":
+                    return Decode_GeoFace2(d);
+                case "GeoFace3":
+                    return Decode_GeoFace3(d);
+                case "GeoSolid3":
+                    return Decode_GeoSolid3(d);
+                case "GeoMesh2":
+                    return Decode_GeoMesh2(d);
+                case "GeoMesh3":
+                    return Decode_GeoMesh3(d);
+                case "GeoAabb3":
+                    return Decode_GeoAabb3(d);
+                case "GeoObb3":
+                    return Decode_GeoObb3(d);
+                case "GeoSphere3":
+                    return Decode_GeoSphere3(d);
+                case "GeoPlane3":
+                    return Decode_GeoPlane3(d);
                 case SceneKinds.Text:
                     throw new NotSupportedException("A label has no library shape.");
 
@@ -190,7 +226,11 @@ namespace GeometryHelper.Viewer
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static object Decode_GeoCircle3(JsonElement d)
         {
-            return new GeoCircle3(P3(DataJson.Point(d, "center", 3)), V3(DataJson.Point(d, "normal", 3)), DataJson.Number(d, "radius"));
+            return new GeoCircle3(
+                P3(DataJson.Point(d, "center", 3)),
+                V3(DataJson.Point(d, "normal", 3)),
+                DataJson.Number(d, "radius")
+            );
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -200,7 +240,8 @@ namespace GeometryHelper.Viewer
                 P2(DataJson.Point(d, "center", 2)),
                 V2(DataJson.Point(d, "majorAxis", 2)),
                 DataJson.Number(d, "majorRadius"),
-                DataJson.Number(d, "minorRadius"));
+                DataJson.Number(d, "minorRadius")
+            );
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -211,19 +252,30 @@ namespace GeometryHelper.Viewer
                 V3(DataJson.Point(d, "normal", 3)),
                 V3(DataJson.Point(d, "majorAxis", 3)),
                 DataJson.Number(d, "majorRadius"),
-                DataJson.Number(d, "minorRadius"));
+                DataJson.Number(d, "minorRadius")
+            );
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static object Decode_GeoSpline2(JsonElement d)
         {
-            return new GeoSpline2(DataJson.Degree(d), DataJson.Points(d, "points", 2).Select(P2), DataJson.Numbers(DataJson.Get(d, "knots")), DataJson.Weights(d));
+            return new GeoSpline2(
+                DataJson.Degree(d),
+                DataJson.Points(d, "points", 2).Select(P2),
+                DataJson.Numbers(DataJson.Get(d, "knots")),
+                DataJson.Weights(d)
+            );
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static object Decode_GeoSpline3(JsonElement d)
         {
-            return new GeoSpline3(DataJson.Degree(d), DataJson.Points(d, "points", 3).Select(P3), DataJson.Numbers(DataJson.Get(d, "knots")), DataJson.Weights(d));
+            return new GeoSpline3(
+                DataJson.Degree(d),
+                DataJson.Points(d, "points", 3).Select(P3),
+                DataJson.Numbers(DataJson.Get(d, "knots")),
+                DataJson.Weights(d)
+            );
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -233,7 +285,8 @@ namespace GeometryHelper.Viewer
                 P2(DataJson.Point(d, "center", 2)),
                 DataJson.Number(d, "width"),
                 DataJson.Number(d, "height"),
-                DataJson.Number(d, "angle"));
+                DataJson.Number(d, "angle")
+            );
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -255,7 +308,8 @@ namespace GeometryHelper.Viewer
         {
             return new GeoFace2(
                 new GeoPolygon2(DataJson.Points(DataJson.Get(d, "outer"), 2).Select(P2)),
-                DataJson.List(d, "holes").Select(hole => new GeoPolygon2(DataJson.Points(hole, 2).Select(P2))).ToList());
+                DataJson.List(d, "holes").Select(hole => new GeoPolygon2(DataJson.Points(hole, 2).Select(P2))).ToList()
+            );
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -303,7 +357,8 @@ namespace GeometryHelper.Viewer
                 DataJson.Number(d, "sizeY"),
                 DataJson.Number(d, "sizeZ"),
                 V3(DataJson.Point(d, "axisX", 3)),
-                V3(DataJson.Point(d, "axisY", 3)));
+                V3(DataJson.Point(d, "axisY", 3))
+            );
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -360,7 +415,13 @@ namespace GeometryHelper.Viewer
             double sweep = DataJson.Number(d, "sweep");
             double start = DataJson.Number(d, "start");
 
-            return new GeoArc2(P2(DataJson.Point(d, "center", 2)), DataJson.Number(d, "radius"), start, start + sweep, sweep < 0.0);
+            return new GeoArc2(
+                P2(DataJson.Point(d, "center", 2)),
+                DataJson.Number(d, "radius"),
+                start,
+                start + sweep,
+                sweep < 0.0
+            );
         }
 
         private static GeoArc3 Arc3(JsonElement d)
@@ -374,7 +435,8 @@ namespace GeometryHelper.Viewer
                 DataJson.Number(d, "radius"),
                 start,
                 start + sweep,
-                sweep < 0.0);
+                sweep < 0.0
+            );
         }
 
         internal static GeoFace3 DecodeFace3(JsonElement d) => Face3(d);
@@ -382,7 +444,10 @@ namespace GeometryHelper.Viewer
         private static GeoFace3 Face3(JsonElement d)
         {
             GeoPolygon3 outer = new GeoPolygon3(DataJson.Points(DataJson.Get(d, "outer"), 3).Select(P3));
-            List<GeoPolygon3> holes = DataJson.List(d, "holes").Select(hole => new GeoPolygon3(DataJson.Points(hole, 3).Select(P3))).ToList();
+            List<GeoPolygon3> holes = DataJson
+                .List(d, "holes")
+                .Select(hole => new GeoPolygon3(DataJson.Points(hole, 3).Select(P3)))
+                .ToList();
 
             return new GeoFace3(outer, holes);
         }

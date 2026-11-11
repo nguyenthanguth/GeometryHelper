@@ -13,7 +13,8 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly GeoTriangle3 UnitTriangle = new GeoTriangle3(
             new GeoPoint3(0.0, 0.0, 0.0),
             new GeoPoint3(4.0, 0.0, 0.0),
-            new GeoPoint3(0.0, 3.0, 0.0));
+            new GeoPoint3(0.0, 3.0, 0.0)
+        );
 
         [Fact]
         public void AreaMatchesTheClassicalFormula()
@@ -51,7 +52,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoTriangle3 collinear = new GeoTriangle3(
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(1.0, 1.0, 1.0),
-                new GeoPoint3(2.0, 2.0, 2.0));
+                new GeoPoint3(2.0, 2.0, 2.0)
+            );
 
             Assert.True(collinear.IsDegenerate());
             Assert.Equal(0.0, collinear.Area, 9);
@@ -102,7 +104,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoTriangle3 collinear = new GeoTriangle3(
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(1.0, 0.0, 0.0),
-                new GeoPoint3(2.0, 0.0, 0.0));
+                new GeoPoint3(2.0, 0.0, 0.0)
+            );
 
             Assert.False(collinear.TryGetBarycentric(GeoPoint3.Origin, out double u, out double v, out double w));
             Assert.Equal(0.0, u);
@@ -133,7 +136,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoTriangle3 collinear = new GeoTriangle3(
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(1.0, 0.0, 0.0),
-                new GeoPoint3(2.0, 0.0, 0.0));
+                new GeoPoint3(2.0, 0.0, 0.0)
+            );
 
             Assert.Equal(PointLocation.OnSide, collinear.Locate(new GeoPoint3(1.0, 0.0, 0.0)));
             Assert.Equal(PointLocation.OutSide, collinear.Locate(new GeoPoint3(1.0, 0.01, 0.0)));
@@ -161,7 +165,7 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(-5.0, -5.0, 0.0),
                 new GeoPoint3(10.0, 0.0, 3.0),
                 new GeoPoint3(0.0, 10.0, -3.0),
-                new GeoPoint3(2.0, -4.0, 0.0)
+                new GeoPoint3(2.0, -4.0, 0.0),
             };
 
             foreach (GeoPoint3 probe in probes)

@@ -24,7 +24,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
         private static CadDocument Owned(CadEditRule rule, out string handle)
         {
-            DxfDatabase database = TestDrawings.Drawing(null, null, TestDrawings.Line(0, 0, 100, 0, handle: "A1"), TestDrawings.Line(0, 50, 100, 50, handle: "A2"));
+            DxfDatabase database = TestDrawings.Drawing(
+                null,
+                null,
+                TestDrawings.Line(0, 0, 100, 0, handle: "A1"),
+                TestDrawings.Line(0, 50, 100, 50, handle: "A2")
+            );
             DxfEntity line = database.ModelSpace.OfType<DxfLine>().Single(e => e.Handle == "A1");
             new CadOwnerTag("Model", "view-1").WriteTo(line);
             CadDocument document = CadDocument.From(database, "test.dxf");
@@ -55,7 +60,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string before = document.Database.ToText();
             var planned = new[] { new CadEditRecord(CadEditRecordKind.Transformed, handle, "Move") };
 
-            CadEditResult result = document.ApplyEdit("MOVE", planned, s => document.FindEntity(handle).TransformBy(GeometryHelper.Geometry.GeoTransform3.Translation(new GeometryHelper.Geometry.GeoVector3(5, 5, 0))));
+            CadEditResult result = document.ApplyEdit("MOVE", planned, s =>
+                document
+                    .FindEntity(handle)
+                    .TransformBy(
+                        GeometryHelper.Geometry.GeoTransform3.Translation(
+                            new GeometryHelper.Geometry.GeoVector3(5, 5, 0)
+                        )
+                    )
+            );
 
             Assert.True(result.Refused);
             Assert.Contains("belongs to the model", result.Message);
@@ -68,7 +81,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Owned(CadEditRule.ReadOnly, out _);
             DxfEntity free = document.FindEntity("A2");
 
-            Assert.True(document.EditGate.Allows(document, free, new CadEditRecord(CadEditRecordKind.Erased, "A2"), out _));
+            Assert.True(
+                document.EditGate.Allows(document, free, new CadEditRecord(CadEditRecordKind.Erased, "A2"), out _)
+            );
         }
 
         [Fact]

@@ -32,7 +32,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static GeoCoordinateSystem3 FrameOf(GeoPolygon3 polygon)
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             return FrameOf(polygon.Vertices, polygon.Normal);
         }
@@ -45,7 +46,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static GeoCoordinateSystem3 FrameOf(GeoFace3 face)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             return FrameOf(face.Boundary);
         }
@@ -128,7 +130,12 @@ namespace GeometryHelper.Core
         /// <param name="result">The point in the plane, or the origin when the method returns false.</param>
         /// <param name="tolerance">The tolerance: <see cref="Tolerance.EqualPlanar"/> decides how far off the plane still counts as on it.</param>
         /// <returns>true if the point lies on the plane of the frame; otherwise, false.</returns>
-        public static bool TryToPoint2(GeoCoordinateSystem3 frame, GeoPoint3 point, out GeoPoint2 result, Tolerance tolerance)
+        public static bool TryToPoint2(
+            GeoCoordinateSystem3 frame,
+            GeoPoint3 point,
+            out GeoPoint2 result,
+            Tolerance tolerance
+        )
         {
             GeoPoint3 local = frame.ToLocal(point);
 
@@ -223,7 +230,10 @@ namespace GeometryHelper.Core
 
             if (!direction.TryGetNormal(out _))
             {
-                throw new ArgumentException("A ray along the normal of the frame has no direction in its plane.", nameof(ray));
+                throw new ArgumentException(
+                    "A ray along the normal of the frame has no direction in its plane.",
+                    nameof(ray)
+                );
             }
 
             return new GeoRay2(ProjectToPoint2(frame, ray.Origin), direction);
@@ -261,7 +271,10 @@ namespace GeometryHelper.Core
 
             if (!direction.TryGetNormal(out _))
             {
-                throw new ArgumentException("A line along the normal of the frame has no direction in its plane.", nameof(xline));
+                throw new ArgumentException(
+                    "A line along the normal of the frame has no direction in its plane.",
+                    nameof(xline)
+                );
             }
 
             return new GeoXLine2(ProjectToPoint2(frame, xline.Origin), direction);
@@ -295,13 +308,17 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoPolyline2 ProjectToPolyline2(GeoCoordinateSystem3 frame, GeoPolyline3 polyline)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             List<GeoPoint2> kept = FlattenSideForSide(frame, polyline.Vertices, false);
 
             if (kept.Count < 2 || !ReachesOut(kept, Tolerance.Global))
             {
-                throw new ArgumentException("A polyline must have at least 2 distinct vertices; this one is a point in the frame.", nameof(polyline));
+                throw new ArgumentException(
+                    "A polyline must have at least 2 distinct vertices; this one is a point in the frame.",
+                    nameof(polyline)
+                );
             }
 
             return new GeoPolyline2(kept.ToArray(), kept.Count);
@@ -321,7 +338,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoPolyline3 ToPolyline3(GeoCoordinateSystem3 frame, GeoPolyline2 polyline)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             // The vertices of a chain stand apart already; only two laid on the very same point become one.
             return new GeoPolyline3(Lift(frame, polyline.Vertices), default(Tolerance));
@@ -350,7 +368,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoPolygon2 ProjectToPolygon2(GeoCoordinateSystem3 frame, GeoPolygon3 polygon)
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             List<GeoPoint2> kept = FlattenSideForSide(frame, polygon.Vertices, true);
 
@@ -363,7 +382,10 @@ namespace GeometryHelper.Core
 
             if (!EnclosesArea(flat, Tolerance.Global))
             {
-                throw new ArgumentException("A polygon must enclose an area; seen in the frame its vertices are collinear.", nameof(polygon));
+                throw new ArgumentException(
+                    "A polygon must enclose an area; seen in the frame its vertices are collinear.",
+                    nameof(polygon)
+                );
             }
 
             return flat;
@@ -398,7 +420,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoPolygon3 ToPolygon3(GeoCoordinateSystem3 frame, GeoPolygon2 polygon)
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             // The corners of a polygon stand apart already; only two laid on the very same point become one.
             return new GeoPolygon3(Lift(frame, polygon.Vertices), default(Tolerance), Tolerance.Global);
@@ -418,7 +441,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoFace2 ProjectToFace2(GeoCoordinateSystem3 frame, GeoFace3 face)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             var holes = new List<GeoPolygon2>(face.Holes.Count);
 
@@ -461,7 +485,11 @@ namespace GeometryHelper.Core
         /// sliver 0.005 wide asked under a tolerance of 0.01 has no area left to lay out, and threw too.
         /// </remarks>
         internal static bool TryProjectToPolygon2(
-            GeoCoordinateSystem3 frame, GeoPolygon3 polygon, Tolerance tolerance, out GeoPolygon2 laidOut)
+            GeoCoordinateSystem3 frame,
+            GeoPolygon3 polygon,
+            Tolerance tolerance,
+            out GeoPolygon2 laidOut
+        )
         {
             laidOut = null;
             List<GeoPoint2> flat = Flatten(frame, polygon.Vertices);
@@ -494,7 +522,12 @@ namespace GeometryHelper.Core
         /// does, with each ring laid out under the given tolerance, or says false where any ring has fewer than three
         /// corners standing apart under it.
         /// </summary>
-        internal static bool TryProjectToFace2(GeoCoordinateSystem3 frame, GeoFace3 face, Tolerance tolerance, out GeoFace2 laidOut)
+        internal static bool TryProjectToFace2(
+            GeoCoordinateSystem3 frame,
+            GeoFace3 face,
+            Tolerance tolerance,
+            out GeoFace2 laidOut
+        )
         {
             laidOut = null;
             var holes = new List<GeoPolygon2>(face.Holes.Count);
@@ -532,7 +565,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoFace3 ToFace3(GeoCoordinateSystem3 frame, GeoFace2 face)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             var holes = new List<GeoPolygon3>(face.Holes.Count);
 
@@ -552,7 +586,11 @@ namespace GeometryHelper.Core
         /// <returns>The triangle in the plane of the frame, running the way it runs seen from the frame's Z axis.</returns>
         public static GeoTriangle2 ProjectToTriangle2(GeoCoordinateSystem3 frame, GeoTriangle3 triangle)
         {
-            return new GeoTriangle2(ProjectToPoint2(frame, triangle.A), ProjectToPoint2(frame, triangle.B), ProjectToPoint2(frame, triangle.C));
+            return new GeoTriangle2(
+                ProjectToPoint2(frame, triangle.A),
+                ProjectToPoint2(frame, triangle.B),
+                ProjectToPoint2(frame, triangle.C)
+            );
         }
 
         /// <summary>
@@ -563,7 +601,11 @@ namespace GeometryHelper.Core
         /// <returns>The triangle in space, on the plane of the frame.</returns>
         public static GeoTriangle3 ToTriangle3(GeoCoordinateSystem3 frame, GeoTriangle2 triangle)
         {
-            return new GeoTriangle3(ToPoint3(frame, triangle.A), ToPoint3(frame, triangle.B), ToPoint3(frame, triangle.C));
+            return new GeoTriangle3(
+                ToPoint3(frame, triangle.A),
+                ToPoint3(frame, triangle.B),
+                ToPoint3(frame, triangle.C)
+            );
         }
 
         /// <summary>
@@ -585,7 +627,12 @@ namespace GeometryHelper.Core
         {
             GeoEllipse3 seen = Ellipse3.ProjectToPlane(ellipse, frame.GetPlane());
 
-            return new GeoEllipse2(ProjectToPoint2(frame, seen.Center), ProjectToVector2(frame, seen.MajorAxis), seen.MajorRadius, seen.MinorRadius);
+            return new GeoEllipse2(
+                ProjectToPoint2(frame, seen.Center),
+                ProjectToVector2(frame, seen.MajorAxis),
+                seen.MajorRadius,
+                seen.MinorRadius
+            );
         }
 
         /// <summary>
@@ -596,7 +643,8 @@ namespace GeometryHelper.Core
         /// <param name="circle">The circle in space.</param>
         /// <returns>The ellipse in the plane of the frame: a circle of radius 300 tilted 60° from the frame's plane is an ellipse 300 by 150 there.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the circle stands square to the plane, where it would flatten into a segment rather than an ellipse.</exception>
-        public static GeoEllipse2 ProjectToEllipse2(GeoCoordinateSystem3 frame, GeoCircle3 circle) => ProjectToEllipse2(frame, GeoEllipse3.FromCircle(circle));
+        public static GeoEllipse2 ProjectToEllipse2(GeoCoordinateSystem3 frame, GeoCircle3 circle) =>
+            ProjectToEllipse2(frame, GeoEllipse3.FromCircle(circle));
 
         /// <summary>
         /// Puts an ellipse of the plane back into space, exactly: its centre and its axis carried by the frame, its normal
@@ -607,7 +655,14 @@ namespace GeometryHelper.Core
         /// <returns>The ellipse in space, on the plane of the frame, its eccentric angle the one it had in the plane.</returns>
         public static GeoEllipse3 ToEllipse3(GeoCoordinateSystem3 frame, GeoEllipse2 ellipse)
         {
-            return new GeoEllipse3(ToPoint3(frame, ellipse.Center), frame.ZAxis, ToVector3(frame, ellipse.MajorAxis), ellipse.MajorRadius, ellipse.MinorRadius, true);
+            return new GeoEllipse3(
+                ToPoint3(frame, ellipse.Center),
+                frame.ZAxis,
+                ToVector3(frame, ellipse.MajorAxis),
+                ellipse.MajorRadius,
+                ellipse.MinorRadius,
+                true
+            );
         }
 
         #endregion
@@ -631,7 +686,11 @@ namespace GeometryHelper.Core
         /// a loop, on the first, within the rounding of laying it out, as the ends of a side seen along the Z axis of the
         /// frame do. A leg 5 long along that axis, 300 from the origin, lands 1E-13 from its start, not on it.
         /// </summary>
-        private static List<GeoPoint2> FlattenSideForSide(GeoCoordinateSystem3 frame, IReadOnlyList<GeoPoint3> points, bool closed)
+        private static List<GeoPoint2> FlattenSideForSide(
+            GeoCoordinateSystem3 frame,
+            IReadOnlyList<GeoPoint3> points,
+            bool closed
+        )
         {
             var kept = new List<GeoPoint2>(points.Count);
             var reach = new List<double>(points.Count);
@@ -661,7 +720,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// The largest coordinate of a point, which the rounding of laying it out in a frame is a share of.
         /// </summary>
-        private static double Reach(GeoPoint3 point) => Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z)));
+        private static double Reach(GeoPoint3 point) =>
+            Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z)));
 
         /// <summary>
         /// Whether two points laid out land on each other within the rounding of laying out points that reach so far.
@@ -696,12 +756,17 @@ namespace GeometryHelper.Core
 
             if (loop.VertexCount == 3)
             {
-                spanSquared = Math.Max(loop[0].GetDistanceSquaredTo(loop[1]), Math.Max(loop[1].GetDistanceSquaredTo(loop[2]), loop[2].GetDistanceSquaredTo(loop[0])));
+                spanSquared = Math.Max(
+                    loop[0].GetDistanceSquaredTo(loop[1]),
+                    Math.Max(loop[1].GetDistanceSquaredTo(loop[2]), loop[2].GetDistanceSquaredTo(loop[0]))
+                );
             }
             else
             {
-                double minX = double.PositiveInfinity, minY = double.PositiveInfinity;
-                double maxX = double.NegativeInfinity, maxY = double.NegativeInfinity;
+                double minX = double.PositiveInfinity,
+                    minY = double.PositiveInfinity;
+                double maxX = double.NegativeInfinity,
+                    maxY = double.NegativeInfinity;
 
                 foreach (GeoPoint2 vertex in loop.Vertices)
                 {
@@ -715,7 +780,9 @@ namespace GeometryHelper.Core
             }
 
             // Written as what the loop has to have, so that one of NaNs has no width; the last share is the rounding.
-            return 2.0 * area > tolerance.EqualPoint * Math.Sqrt(spanSquared) && area > 1E-15 * spanSquared && !double.IsInfinity(area);
+            return 2.0 * area > tolerance.EqualPoint * Math.Sqrt(spanSquared)
+                && area > 1E-15 * spanSquared
+                && !double.IsInfinity(area);
         }
 
         /// <summary>

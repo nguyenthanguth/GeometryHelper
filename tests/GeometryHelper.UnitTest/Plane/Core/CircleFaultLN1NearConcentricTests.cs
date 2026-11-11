@@ -72,7 +72,9 @@ namespace GeometryHelper.UnitTest.Plane
         public void TheCrossings_AreTheOnesTheSplinesFind()
         {
             // The splines find them to a millionth, their own accuracy.
-            GeoPoint2[] fromSplines = GeoSpline2.FromCircle(First()).GetIntersections(GeoSpline2.FromCircle(Outside()), Thousandth);
+            GeoPoint2[] fromSplines = GeoSpline2
+                .FromCircle(First())
+                .GetIntersections(GeoSpline2.FromCircle(Outside()), Thousandth);
             GeoPoint2[] fromCircles = First().GetIntersections(Outside(), Thousandth);
 
             Assert.Equal(2, fromSplines.Length);
@@ -99,7 +101,10 @@ namespace GeometryHelper.UnitTest.Plane
             // An edge holds its ends and its bulge, and the centre and radius worked out of them again are some 1E-13 off the
             // arc's. Near-concentric circles cross where the difference of their radii, times their sum over twice the
             // distance between their centres, puts them, so that rounding moves the crossing a little.
-            Assert.True(Assert.Single(new GeoEdge2(first).GetIntersections(new GeoEdge2(second), Thousandth)).DistanceTo(Upper) < 1E-5);
+            Assert.True(
+                Assert.Single(new GeoEdge2(first).GetIntersections(new GeoEdge2(second), Thousandth)).DistanceTo(Upper)
+                    < 1E-5
+            );
         }
 
         [Fact]
@@ -136,8 +141,16 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // Two arcs of the circle of radius 750 about (1234.5678, 2345.6789), their ends rounded to six places: their
             // centres, worked out from their ends and bulges, are 1.6E-6 apart, and they were cut at (1650.09, 2970.05).
-            var e1 = new GeoEdge2(new GeoPoint2(1980.820924, 2420.553962), new GeoPoint2(1287.620701, 3093.80014), 0.36502849483042454);
-            var e2 = new GeoEdge2(new GeoPoint2(1925.363546, 2637.742657), new GeoPoint2(1506.336116, 3044.708214), 0.2027100355086725);
+            var e1 = new GeoEdge2(
+                new GeoPoint2(1980.820924, 2420.553962),
+                new GeoPoint2(1287.620701, 3093.80014),
+                0.36502849483042454
+            );
+            var e2 = new GeoEdge2(
+                new GeoPoint2(1925.363546, 2637.742657),
+                new GeoPoint2(1506.336116, 3044.708214),
+                0.2027100355086725
+            );
 
             Assert.Empty(e1.GetIntersections(e2, Thousandth));
             Assert.Empty(e2.GetIntersections(e1, Thousandth));
@@ -172,10 +185,12 @@ namespace GeometryHelper.UnitTest.Plane
             // The circle of radius 500 about (1234.5, -678.9): the two edges overlap from 1 to 1.5 radians, and their centres,
             // worked out from their ends and bulges, are a few roundings apart.
             var centre = new GeoPoint2(1234.5, -678.9);
-            GeoEdge2 Edge(double from, double to) => new GeoEdge2(
-                new GeoPoint2(centre.X + 500 * Math.Cos(from), centre.Y + 500 * Math.Sin(from)),
-                new GeoPoint2(centre.X + 500 * Math.Cos(to), centre.Y + 500 * Math.Sin(to)),
-                Math.Tan((to - from) / 4));
+            GeoEdge2 Edge(double from, double to) =>
+                new GeoEdge2(
+                    new GeoPoint2(centre.X + 500 * Math.Cos(from), centre.Y + 500 * Math.Sin(from)),
+                    new GeoPoint2(centre.X + 500 * Math.Cos(to), centre.Y + 500 * Math.Sin(to)),
+                    Math.Tan((to - from) / 4)
+                );
 
             GeoEdge2 first = Edge(0.5, 1.5);
             GeoEdge2 second = Edge(1.0, 2.0);

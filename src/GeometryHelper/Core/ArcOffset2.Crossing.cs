@@ -171,7 +171,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="open">How many runs of the offset were left open, which no loop closes.</param>
         /// <returns>The loops of the offset, counter-clockwise where they bound the region from outside.</returns>
-        internal static List<List<GeoEdge2>> Offset(List<List<GeoEdge2>> loops, List<List<GeoEdge2>> region, double distance, OffsetOptions options, Tolerance tolerance, out int open)
+        internal static List<List<GeoEdge2>> Offset(
+            List<List<GeoEdge2>> loops,
+            List<List<GeoEdge2>> region,
+            double distance,
+            OffsetOptions options,
+            Tolerance tolerance,
+            out int open
+        )
         {
             open = 0;
 
@@ -219,12 +226,32 @@ namespace GeometryHelper.Core
                 // The loop's own numbers for its edges and corners are made the shape's.
                 foreach (Piece piece in joined)
                 {
-                    pieces.Add(new Piece(piece.Edge, piece.Bridge, piece.Source < 0 ? -1 : piece.Source + baseIndex, piece.Corner < 0 ? -1 : piece.Corner + baseIndex, piece.Across, piece.Spent));
+                    pieces.Add(
+                        new Piece(
+                            piece.Edge,
+                            piece.Bridge,
+                            piece.Source < 0 ? -1 : piece.Source + baseIndex,
+                            piece.Corner < 0 ? -1 : piece.Corner + baseIndex,
+                            piece.Across,
+                            piece.Spent
+                        )
+                    );
                 }
 
                 foreach (Mitre mitre in local)
                 {
-                    mitres.Add(new Mitre(mitre.Corner + baseIndex, mitre.Before, mitre.After, mitre.First, mitre.Second, mitre.Square, mitre.StraightFirst, mitre.StraightSecond));
+                    mitres.Add(
+                        new Mitre(
+                            mitre.Corner + baseIndex,
+                            mitre.Before,
+                            mitre.After,
+                            mitre.First,
+                            mitre.Second,
+                            mitre.Square,
+                            mitre.StraightFirst,
+                            mitre.StraightSecond
+                        )
+                    );
                 }
 
                 pieceSizes.Add(joined.Count);
@@ -235,7 +262,19 @@ namespace GeometryHelper.Core
                 return new List<List<GeoEdge2>>();
             }
 
-            return Prune(pieces, mitres, all, true, distance, tolerance, Spans.Of(pieceSizes), Spans.Of(edgeSizes), new Region(region, distance > 0.0), 1, out open);
+            return Prune(
+                pieces,
+                mitres,
+                all,
+                true,
+                distance,
+                tolerance,
+                Spans.Of(pieceSizes),
+                Spans.Of(edgeSizes),
+                new Region(region, distance > 0.0),
+                1,
+                out open
+            );
         }
 
         /// <summary>
@@ -282,7 +321,14 @@ namespace GeometryHelper.Core
         /// runs straight on through being no corner, and one beside a lobe that is a sliver within the tolerance.
         /// </para>
         /// </remarks>
-        internal static bool TrySplitAtCrossings(List<GeoEdge2> edges, Tolerance tolerance, out List<List<GeoEdge2>> region, out List<List<GeoEdge2>> bounds, out int found, bool tipsApart = false)
+        internal static bool TrySplitAtCrossings(
+            List<GeoEdge2> edges,
+            Tolerance tolerance,
+            out List<List<GeoEdge2>> region,
+            out List<List<GeoEdge2>> bounds,
+            out int found,
+            bool tipsApart = false
+        )
         {
             return TrySplitAtCrossings(edges, tolerance, out region, out bounds, out found, tipsApart, out _);
         }
@@ -304,7 +350,15 @@ namespace GeometryHelper.Core
         /// other were made one, and where the loop runs through one point more than twice.
         /// </param>
         /// <returns>true when two edges cross each other, other than at a vertex, and the loop was cut.</returns>
-        internal static bool TrySplitAtCrossings(List<GeoEdge2> edges, Tolerance tolerance, out List<List<GeoEdge2>> region, out List<List<GeoEdge2>> bounds, out int found, bool tipsApart, out int coarse)
+        internal static bool TrySplitAtCrossings(
+            List<GeoEdge2> edges,
+            Tolerance tolerance,
+            out List<List<GeoEdge2>> region,
+            out List<List<GeoEdge2>> bounds,
+            out int found,
+            bool tipsApart,
+            out int coarse
+        )
         {
             region = null;
             bounds = null;
@@ -342,7 +396,13 @@ namespace GeometryHelper.Core
             }
 
             TurnWithTheRegionOnTheLeft(chains, loops);
-            List<List<GeoEdge2>> joined = JoinAcrossTheSpaceBetween(chains, tipsApart, tipsApart ? CornersAlongX(edges, tolerance) : null, tolerance, out coarse);
+            List<List<GeoEdge2>> joined = JoinAcrossTheSpaceBetween(
+                chains,
+                tipsApart,
+                tipsApart ? CornersAlongX(edges, tolerance) : null,
+                tolerance,
+                out coarse
+            );
 
             if (joined == null)
             {
@@ -358,7 +418,8 @@ namespace GeometryHelper.Core
         /// Counts the places two edges of a loop cross each other, as <see cref="TrySplitAtCrossings(List{GeoEdge2}, Tolerance, out List{List{GeoEdge2}}, out List{List{GeoEdge2}}, out int, bool)"/>
         /// finds them, the loop not cut: a vertex that only touches another edge, or edges that only graze, are no crossing.
         /// </summary>
-        internal static int CountCrossings(List<GeoEdge2> edges, Tolerance tolerance) => FindCrossings(edges, tolerance).Count;
+        internal static int CountCrossings(List<GeoEdge2> edges, Tolerance tolerance) =>
+            FindCrossings(edges, tolerance).Count;
 
         private static List<List<GeoEdge2>> EdgesOf(List<List<Sub>> loops)
         {
@@ -475,7 +536,9 @@ namespace GeometryHelper.Core
 
             Array.Sort(order, (one, other) =>
             {
-                int byStart = (alongX ? boxes[one].MinX : boxes[one].MinY).CompareTo(alongX ? boxes[other].MinX : boxes[other].MinY);
+                int byStart = (alongX ? boxes[one].MinX : boxes[one].MinY).CompareTo(
+                    alongX ? boxes[other].MinX : boxes[other].MinY
+                );
 
                 return byStart != 0 ? byStart : one.CompareTo(other);
             });
@@ -528,14 +591,25 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>Kept out of the sweep, whose loop .NET 8's profile-guided compiler makes slower with it inside.</remarks>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static long Enough(Box all, int count)
-            => Guard.IsFinite(all.MaxX - all.MinX) && Guard.IsFinite(all.MaxY - all.MinY) ? 8L * count + 1024L : long.MaxValue;
+        private static long Enough(Box all, int count) =>
+            Guard.IsFinite(all.MaxX - all.MinX) && Guard.IsFinite(all.MaxY - all.MinY)
+                ? 8L * count + 1024L
+                : long.MaxValue;
 
         /// <summary>
         /// Tries a box against those after it in the order of the sweep that start before it ends, and notes where the edges
         /// of those it overlaps cross.
         /// </summary>
-        private static void TryAlong(int a, int[] order, Box[] boxes, bool alongX, List<GeoEdge2> edges, Carrier[] carriers, Tolerance tolerance, List<Crossing> found)
+        private static void TryAlong(
+            int a,
+            int[] order,
+            Box[] boxes,
+            bool alongX,
+            List<GeoEdge2> edges,
+            Carrier[] carriers,
+            Tolerance tolerance,
+            List<Crossing> found
+        )
         {
             int one = order[a];
             double reach = alongX ? boxes[one].MaxX : boxes[one].MaxY;
@@ -562,7 +636,16 @@ namespace GeometryHelper.Core
         /// Tries each box from a place in the order of the sweep on against those after it, as the sweep does and in the same
         /// order, reading only those in the rows across the sweep it lies in and those that lie across many.
         /// </summary>
-        private static void TryInRows(int from, int[] order, Box[] boxes, bool alongX, List<GeoEdge2> edges, Carrier[] carriers, Tolerance tolerance, List<Crossing> found)
+        private static void TryInRows(
+            int from,
+            int[] order,
+            Box[] boxes,
+            bool alongX,
+            List<GeoEdge2> edges,
+            Carrier[] carriers,
+            Tolerance tolerance,
+            List<Crossing> found
+        )
         {
             var rows = new BoxRows(boxes, order, alongX);
             var near = new List<int>();
@@ -780,7 +863,9 @@ namespace GeometryHelper.Core
             {
                 double row = Math.Floor((value - low) / width);
 
-                return row <= 0.0 ? 0 : row >= rows - 1 ? rows - 1 : (int)row;
+                return row <= 0.0 ? 0
+                    : row >= rows - 1 ? rows - 1
+                    : (int)row;
             }
 
             /// <summary>
@@ -873,7 +958,15 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Notes where two edges of a loop cross each other, if they do.
         /// </summary>
-        private static void CrossingsOf(int i, int j, List<GeoEdge2> edges, Carrier[] carriers, Box[] boxes, Tolerance tolerance, List<Crossing> found)
+        private static void CrossingsOf(
+            int i,
+            int j,
+            List<GeoEdge2> edges,
+            Carrier[] carriers,
+            Box[] boxes,
+            Tolerance tolerance,
+            List<Crossing> found
+        )
         {
             // Two edges that meet at a vertex meet again, if at all, at one place the shape of their circles gives outright,
             // and most do not: that is looked at before the edges are crossed.
@@ -882,7 +975,11 @@ namespace GeometryHelper.Core
                 return;
             }
 
-            if (i == 0 && j == edges.Count - 1 && !MayMeetAgain(carriers[j], carriers[i], edges[i].StartPoint, boxes[j], boxes[i]))
+            if (
+                i == 0
+                && j == edges.Count - 1
+                && !MayMeetAgain(carriers[j], carriers[i], edges[i].StartPoint, boxes[j], boxes[i])
+            )
             {
                 return;
             }
@@ -928,7 +1025,15 @@ namespace GeometryHelper.Core
         /// its neighbours on one side of it touches it and does not cross it, and a vertex with its neighbours on either side
         /// does: the loop <c>0,0; 10,0; 10,10; 5,0; 3,-6</c> crosses the edge from the origin to (10, 0) at (5, 0).
         /// </remarks>
-        private static bool CrossesAtAVertex(List<GeoEdge2> edges, int i, int j, GeoPoint2 at, Tolerance tolerance, out int firstAt, out int secondAt)
+        private static bool CrossesAtAVertex(
+            List<GeoEdge2> edges,
+            int i,
+            int j,
+            GeoPoint2 at,
+            Tolerance tolerance,
+            out int firstAt,
+            out int secondAt
+        )
         {
             firstAt = 0;
             secondAt = 0;
@@ -968,8 +1073,17 @@ namespace GeometryHelper.Core
             double fromJ = Turn(forwardI, backJ);
             double toJ = Turn(forwardI, forwardJ);
 
-            if (double.IsNaN(comes) || double.IsNaN(fromJ) || double.IsNaN(toJ) || Parted(comes, 0.0, apart) || Parted(fromJ, 0.0, apart) || Parted(toJ, 0.0, apart)
-                || Parted(fromJ, comes, apart) || Parted(toJ, comes, apart) || Parted(fromJ, toJ, apart))
+            if (
+                double.IsNaN(comes)
+                || double.IsNaN(fromJ)
+                || double.IsNaN(toJ)
+                || Parted(comes, 0.0, apart)
+                || Parted(fromJ, 0.0, apart)
+                || Parted(toJ, 0.0, apart)
+                || Parted(fromJ, comes, apart)
+                || Parted(toJ, comes, apart)
+                || Parted(fromJ, toJ, apart)
+            )
             {
                 return false;
             }
@@ -991,7 +1105,16 @@ namespace GeometryHelper.Core
         /// Gets the two rays a pass through a place leaves it by: back the way it came and on the way it goes, and the
         /// length of the shorter edge they run along.
         /// </summary>
-        private static void Ray(List<GeoEdge2> edges, int edge, int vertex, GeoPoint2 at, int count, out GeoVector2 back, out GeoVector2 forward, out double reach)
+        private static void Ray(
+            List<GeoEdge2> edges,
+            int edge,
+            int vertex,
+            GeoPoint2 at,
+            int count,
+            out GeoVector2 back,
+            out GeoVector2 forward,
+            out double reach
+        )
         {
             if (vertex < 0)
             {
@@ -1005,7 +1128,10 @@ namespace GeometryHelper.Core
 
             back = Heading(edges[before], at) * -1.0;
             forward = Heading(edges[vertex], at);
-            reach = Math.Min(edges[before].StartPoint.DistanceTo(edges[before].EndPoint), edges[vertex].StartPoint.DistanceTo(edges[vertex].EndPoint));
+            reach = Math.Min(
+                edges[before].StartPoint.DistanceTo(edges[before].EndPoint),
+                edges[vertex].StartPoint.DistanceTo(edges[vertex].EndPoint)
+            );
         }
 
         /// <summary>
@@ -1202,7 +1328,15 @@ namespace GeometryHelper.Core
                         {
                             if (place != own && crossings[order[place]].At.IsEqualTo(ownAt, tolerance))
                             {
-                                int latest = LatestWithin(crossings, sweep, members[place], from, before, at, tolerance);
+                                int latest = LatestWithin(
+                                    crossings,
+                                    sweep,
+                                    members[place],
+                                    from,
+                                    before,
+                                    at,
+                                    tolerance
+                                );
 
                                 if (latest >= 0)
                                 {
@@ -1220,7 +1354,19 @@ namespace GeometryHelper.Core
                     {
                         int place = FirstOf(first, rank[sweep[k]]);
 
-                        if (TryJoin(crossings, sweep, order, first, members, boxes, Math.Min(place, own), Math.Max(place, own), tolerance))
+                        if (
+                            TryJoin(
+                                crossings,
+                                sweep,
+                                order,
+                                first,
+                                members,
+                                boxes,
+                                Math.Min(place, own),
+                                Math.Max(place, own),
+                                tolerance
+                            )
+                        )
                         {
                             int keep = Math.Min(place, own);
                             int gone = Math.Max(place, own);
@@ -1292,7 +1438,17 @@ namespace GeometryHelper.Core
         /// <param name="join">The first crossing of the other place.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the places were made one.</returns>
-        private static bool TryJoin(List<Crossing> crossings, int[] sweep, int[] byX, int[] first, List<int>[] members, Box[] boxes, int keep, int join, Tolerance tolerance)
+        private static bool TryJoin(
+            List<Crossing> crossings,
+            int[] sweep,
+            int[] byX,
+            int[] first,
+            List<int>[] members,
+            Box[] boxes,
+            int keep,
+            int join,
+            Tolerance tolerance
+        )
         {
             GeoPoint2 place = crossings[byX[keep]].At;
             Box box = boxes[join];
@@ -1300,8 +1456,11 @@ namespace GeometryHelper.Core
             // A crossing in the box lies no further from the place along either axis than one of its corners, so where the
             // corners all lie within the tolerance of the place the crossings do, and are not read one by one: a stream of
             // crossings each further left, each taking in a place of thousands, read all of them every time.
-            bool within = new GeoPoint2(box.MinX, box.MinY).IsEqualTo(place, tolerance) && new GeoPoint2(box.MinX, box.MaxY).IsEqualTo(place, tolerance)
-                && new GeoPoint2(box.MaxX, box.MinY).IsEqualTo(place, tolerance) && new GeoPoint2(box.MaxX, box.MaxY).IsEqualTo(place, tolerance);
+            bool within =
+                new GeoPoint2(box.MinX, box.MinY).IsEqualTo(place, tolerance)
+                && new GeoPoint2(box.MinX, box.MaxY).IsEqualTo(place, tolerance)
+                && new GeoPoint2(box.MaxX, box.MinY).IsEqualTo(place, tolerance)
+                && new GeoPoint2(box.MaxX, box.MaxY).IsEqualTo(place, tolerance);
 
             if (!within)
             {
@@ -1345,7 +1504,15 @@ namespace GeometryHelper.Core
         /// Gets the latest place in the sweep, before a given one and not before another, of a crossing of a place that lies
         /// within the tolerance of a point, or -1 where there is none.
         /// </summary>
-        private static int LatestWithin(List<Crossing> crossings, int[] sweep, List<int> members, int from, int before, GeoPoint2 at, Tolerance tolerance)
+        private static int LatestWithin(
+            List<Crossing> crossings,
+            int[] sweep,
+            List<int> members,
+            int from,
+            int before,
+            GeoPoint2 at,
+            Tolerance tolerance
+        )
         {
             int low = 0;
             int high = members.Count;
@@ -1454,7 +1621,8 @@ namespace GeometryHelper.Core
 
                 width = Math.Max(width, 1E-150);
 
-                bool oneRow = !(tolerance * tolerance < double.PositiveInfinity) || !(last - origin < double.PositiveInfinity);
+                bool oneRow =
+                    !(tolerance * tolerance < double.PositiveInfinity) || !(last - origin < double.PositiveInfinity);
                 _rowOf = new int[count];
                 _slot = new int[count];
                 _across = new int[count];
@@ -1500,7 +1668,9 @@ namespace GeometryHelper.Core
 
                 int beside = row + which - 1;
 
-                return beside >= 0 && beside < _filed.Length && _across[beside] == _across[row] + which - 1 ? _filed[beside] : null;
+                return beside >= 0 && beside < _filed.Length && _across[beside] == _across[row] + which - 1
+                    ? _filed[beside]
+                    : null;
             }
 
             /// <summary>
@@ -1568,7 +1738,12 @@ namespace GeometryHelper.Core
         /// Cuts every edge at the places it crosses another, in the order the loop runs.
         /// </summary>
         /// <returns>The pieces, each running to the next, or null where an edge could not be cut where it crosses.</returns>
-        private static List<Sub> CutAtNodes(List<GeoEdge2> edges, List<Crossing> crossings, List<GeoPoint2> nodes, Tolerance tolerance)
+        private static List<Sub> CutAtNodes(
+            List<GeoEdge2> edges,
+            List<Crossing> crossings,
+            List<GeoPoint2> nodes,
+            Tolerance tolerance
+        )
         {
             int count = edges.Count;
             var onEdge = new List<KeyValuePair<double, int>>[count];
@@ -1583,8 +1758,28 @@ namespace GeometryHelper.Core
 
             foreach (Crossing crossing in crossings)
             {
-                AddNode(onEdge, startNode, endNode, edges, crossing.First, crossing.FirstAt, crossing.At, crossing.Node, tolerance);
-                AddNode(onEdge, startNode, endNode, edges, crossing.Second, crossing.SecondAt, crossing.At, crossing.Node, tolerance);
+                AddNode(
+                    onEdge,
+                    startNode,
+                    endNode,
+                    edges,
+                    crossing.First,
+                    crossing.FirstAt,
+                    crossing.At,
+                    crossing.Node,
+                    tolerance
+                );
+                AddNode(
+                    onEdge,
+                    startNode,
+                    endNode,
+                    edges,
+                    crossing.Second,
+                    crossing.SecondAt,
+                    crossing.At,
+                    crossing.Node,
+                    tolerance
+                );
             }
 
             // A crossing at a vertex is the end of one edge and the start of the next.
@@ -1612,12 +1807,15 @@ namespace GeometryHelper.Core
 
                 if (onEdge[i] != null)
                 {
-                    onEdge[i].Sort((one, other) =>
-                    {
-                        int byParameter = one.Key.CompareTo(other.Key);
+                    onEdge[i]
+                        .Sort(
+                            (one, other) =>
+                            {
+                                int byParameter = one.Key.CompareTo(other.Key);
 
-                        return byParameter != 0 ? byParameter : one.Value.CompareTo(other.Value);
-                    });
+                                return byParameter != 0 ? byParameter : one.Value.CompareTo(other.Value);
+                            }
+                        );
 
                     foreach (KeyValuePair<double, int> cut in onEdge[i])
                     {
@@ -1629,7 +1827,14 @@ namespace GeometryHelper.Core
 
                         GeoPoint2 at = nodes[cut.Value];
 
-                        if (!rest.TrySplitAtParameter(rest.GetParameterAtPoint(at, tolerance), out GeoEdge2 before, out GeoEdge2 after, tolerance))
+                        if (
+                            !rest.TrySplitAtParameter(
+                                rest.GetParameterAtPoint(at, tolerance),
+                                out GeoEdge2 before,
+                                out GeoEdge2 after,
+                                tolerance
+                            )
+                        )
                         {
                             return null;
                         }
@@ -1662,7 +1867,17 @@ namespace GeometryHelper.Core
             return walk;
         }
 
-        private static void AddNode(List<KeyValuePair<double, int>>[] onEdge, int[] startNode, int[] endNode, List<GeoEdge2> edges, int edge, int where, GeoPoint2 at, int node, Tolerance tolerance)
+        private static void AddNode(
+            List<KeyValuePair<double, int>>[] onEdge,
+            int[] startNode,
+            int[] endNode,
+            List<GeoEdge2> edges,
+            int edge,
+            int where,
+            GeoPoint2 at,
+            int node,
+            Tolerance tolerance
+        )
         {
             if (where == 1)
             {
@@ -1943,7 +2158,13 @@ namespace GeometryHelper.Core
         /// to (4, 2), crossing itself at (5, 1.667), grown by 3 with miters, is 253.263, as the straight path gives it, where
         /// with its quarters mitered as tips it grew horns out to (-4.487, 1.667) and (14.487, 1.667).
         /// </remarks>
-        private static List<List<GeoEdge2>> JoinAcrossTheSpaceBetween(List<Chain> chains, bool tipsApart, GeoPoint2[] corners, Tolerance tolerance, out int coarse)
+        private static List<List<GeoEdge2>> JoinAcrossTheSpaceBetween(
+            List<Chain> chains,
+            bool tipsApart,
+            GeoPoint2[] corners,
+            Tolerance tolerance,
+            out int coarse
+        )
         {
             coarse = 0;
 
@@ -1970,7 +2191,11 @@ namespace GeometryHelper.Core
 
             foreach (KeyValuePair<int, List<int>> pair in arriving)
             {
-                if (!leaving.TryGetValue(pair.Key, out List<int> onward) || onward.Count != pair.Value.Count || !TryPair(chains, pair.Value, onward, false))
+                if (
+                    !leaving.TryGetValue(pair.Key, out List<int> onward)
+                    || onward.Count != pair.Value.Count
+                    || !TryPair(chains, pair.Value, onward, false)
+                )
                 {
                     return null;
                 }
@@ -2037,8 +2262,10 @@ namespace GeometryHelper.Core
                         together.Add(place);
                         coarse++;
                     }
-                    else if (IsSliver(chains[pair[0]], chains[chains[pair[0]].Next], arriving, tolerance)
-                        || IsSliver(chains[pair[1]], chains[chains[pair[1]].Next], arriving, tolerance))
+                    else if (
+                        IsSliver(chains[pair[0]], chains[chains[pair[0]].Next], arriving, tolerance)
+                        || IsSliver(chains[pair[1]], chains[chains[pair[1]].Next], arriving, tolerance)
+                    )
                     {
                         together.Add(place);
                     }
@@ -2279,7 +2506,11 @@ namespace GeometryHelper.Core
                 GeoVector2 leaving = Heading(edges[i], at);
                 double lengths = arriving.Length * leaving.Length;
 
-                if (lengths > 0.0 && arriving.DotProduct(leaving) > 0.0 && Math.Abs(arriving.CrossProduct(leaving)) <= tolerance.EqualVector * lengths)
+                if (
+                    lengths > 0.0
+                    && arriving.DotProduct(leaving) > 0.0
+                    && Math.Abs(arriving.CrossProduct(leaving)) <= tolerance.EqualVector * lengths
+                )
                 {
                     continue;
                 }
@@ -2287,12 +2518,14 @@ namespace GeometryHelper.Core
                 corners.Add(at);
             }
 
-            corners.Sort((one, other) =>
-            {
-                int byX = one.X.CompareTo(other.X);
+            corners.Sort(
+                (one, other) =>
+                {
+                    int byX = one.X.CompareTo(other.X);
 
-                return byX != 0 ? byX : one.Y.CompareTo(other.Y);
-            });
+                    return byX != 0 ? byX : one.Y.CompareTo(other.Y);
+                }
+            );
 
             return corners.ToArray();
         }
@@ -2313,7 +2546,13 @@ namespace GeometryHelper.Core
         /// tie of 30 degrees from (-10, 2.679) to (0.2, -0.054), (0.2, 0.054) and (-10, -2.679), with a vertex on its edge
         /// 0.005 from the crossing, grown by 1 at a tolerance of 0.01, is mitered at its tips, 59.970, as without the vertex.
         /// </remarks>
-        private static bool EndsBeside(List<Chain> chains, List<int> into, List<int> onward, GeoPoint2[] corners, Tolerance tolerance)
+        private static bool EndsBeside(
+            List<Chain> chains,
+            List<int> into,
+            List<int> onward,
+            GeoPoint2[] corners,
+            Tolerance tolerance
+        )
         {
             GeoPoint2 at = chains[into[0]].Edges[chains[into[0]].Edges.Count - 1].EndPoint;
 
@@ -2326,7 +2565,10 @@ namespace GeometryHelper.Core
             {
                 GeoEdge2 last = chains[c].Edges[chains[c].Edges.Count - 1];
 
-                if (last.StartPoint.IsEqualTo(last.EndPoint, tolerance) && NearACorner(last.StartPoint, corners, tolerance))
+                if (
+                    last.StartPoint.IsEqualTo(last.EndPoint, tolerance)
+                    && NearACorner(last.StartPoint, corners, tolerance)
+                )
                 {
                     return true;
                 }
@@ -2336,7 +2578,10 @@ namespace GeometryHelper.Core
             {
                 GeoEdge2 first = chains[c].Edges[0];
 
-                if (first.EndPoint.IsEqualTo(first.StartPoint, tolerance) && NearACorner(first.EndPoint, corners, tolerance))
+                if (
+                    first.EndPoint.IsEqualTo(first.StartPoint, tolerance)
+                    && NearACorner(first.EndPoint, corners, tolerance)
+                )
                 {
                     return true;
                 }
@@ -2390,7 +2635,12 @@ namespace GeometryHelper.Core
         /// two crossings of its own is a lobe however thin: the lens 0.7 long and 0.04 wide that an arc dipping through an
         /// edge cuts is mitered at its tips at a tolerance of 0.1 as within 1E-3.
         /// </remarks>
-        private static bool IsSliver(Chain arriving, Chain after, SortedDictionary<int, List<int>> places, Tolerance tolerance)
+        private static bool IsSliver(
+            Chain arriving,
+            Chain after,
+            SortedDictionary<int, List<int>> places,
+            Tolerance tolerance
+        )
         {
             if (ReferenceEquals(arriving, after) || arriving.From != after.To || places[arriving.From].Count <= 2)
             {
@@ -2563,7 +2813,9 @@ namespace GeometryHelper.Core
             {
                 int band = (int)((y - _low) * _scale);
 
-                return band < 0 ? 0 : band >= _bands ? _bands - 1 : band;
+                return band < 0 ? 0
+                    : band >= _bands ? _bands - 1
+                    : band;
             }
 
             private void Register(List<int>[] bands, List<int> longs, int side, double low, double high)
@@ -2610,9 +2862,7 @@ namespace GeometryHelper.Core
             /// Puts the boxes of loops in a tree, each numbered by its place in the array.
             /// </summary>
             internal LoopBoxes(LoopIndex[] loops)
-                : this(Array.ConvertAll(loops, loop => loop.Bounds))
-            {
-            }
+                : this(Array.ConvertAll(loops, loop => loop.Bounds)) { }
 
             /// <summary>
             /// Puts boxes in a tree, each numbered by its place in the array, which is kept and not changed.
@@ -2746,7 +2996,10 @@ namespace GeometryHelper.Core
                 // The first half along the axis, which keeps its order; the other order is parted into the boxes of that half
                 // and the rest, each in the order it had.
                 int middle = from + (to - from) / 2;
-                bool alongX = !(Middle(byY[to - 1], false) - Middle(byY[from], false) > Middle(_order[to - 1], true) - Middle(_order[from], true));
+                bool alongX = !(
+                    Middle(byY[to - 1], false) - Middle(byY[from], false)
+                    > Middle(_order[to - 1], true) - Middle(_order[from], true)
+                );
                 int[] halved = alongX ? _order : byY;
                 int[] parted = alongX ? byY : _order;
                 int kept = from;
@@ -2781,8 +3034,10 @@ namespace GeometryHelper.Core
                 return part;
             }
 
-            private double Middle(int loop, bool alongX)
-                => alongX ? _boxes[loop].MinX * 0.5 + _boxes[loop].MaxX * 0.5 : _boxes[loop].MinY * 0.5 + _boxes[loop].MaxY * 0.5;
+            private double Middle(int loop, bool alongX) =>
+                alongX
+                    ? _boxes[loop].MinX * 0.5 + _boxes[loop].MaxX * 0.5
+                    : _boxes[loop].MinY * 0.5 + _boxes[loop].MaxY * 0.5;
 
             private int ByMiddle(int one, int other, bool alongX)
             {

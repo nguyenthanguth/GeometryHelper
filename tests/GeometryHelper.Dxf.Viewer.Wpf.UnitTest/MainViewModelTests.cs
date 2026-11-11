@@ -102,7 +102,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Empty(model.SelectBox(box, false, false));
                 Assert.Equal(0, model.Document.Selection.Count);
 
-                Assert.Equal(new[] { bottom, column }.OrderBy(h => h, System.StringComparer.Ordinal), model.SelectBox(box, true, false));
+                Assert.Equal(
+                    new[] { bottom, column }.OrderBy(h => h, System.StringComparer.Ordinal),
+                    model.SelectBox(box, true, false)
+                );
                 Assert.Equal(2, model.Document.Selection.Count);
 
                 // With Shift the box takes away what it touches.
@@ -289,7 +292,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             var model = new MainViewModel();
 
-            Assert.Equal(new[] { "GRID", "SNAP", "ORTHO", "POLAR", "OTRACK", "OSNAP" }, model.Toggles.Select(t => t.Name));
+            Assert.Equal(
+                new[] { "GRID", "SNAP", "ORTHO", "POLAR", "OTRACK", "OSNAP" },
+                model.Toggles.Select(t => t.Name)
+            );
             Assert.Equal(new[] { false, false, false, true, true, true }, model.Toggles.Select(t => t.IsOn));
 
             model.Toggles[0].ToggleCommand.Execute(null);

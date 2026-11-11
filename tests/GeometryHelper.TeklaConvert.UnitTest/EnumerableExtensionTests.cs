@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper.TeklaConvert;
-using TSG = Tekla.Structures.Geometry3d;
 using Xunit;
+using TSG = Tekla.Structures.Geometry3d;
 
 namespace GeometryHelper.TeklaConvert.UnitTest
 {

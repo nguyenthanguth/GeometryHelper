@@ -34,9 +34,11 @@ namespace GeometryHelper.Dxf
         /// <param name="polyline">The loop.</param>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public DxfHatchLoop(DxfHatchLoopTypes loopType, GeoPolygonArc3 polyline)
-            : this(loopType | DxfHatchLoopTypes.Polyline, (object)(polyline ?? throw new ArgumentNullException(nameof(polyline))), NoCurves)
-        {
-        }
+            : this(
+                loopType | DxfHatchLoopTypes.Polyline,
+                (object)(polyline ?? throw new ArgumentNullException(nameof(polyline))),
+                NoCurves
+            ) { }
 
         /// <summary>
         /// Initializes a loop of a polyline that may be open, as AutoCAD's <c>HatchLoop</c> of the type
@@ -47,9 +49,11 @@ namespace GeometryHelper.Dxf
         /// <param name="polyline">The chain.</param>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public DxfHatchLoop(DxfHatchLoopTypes loopType, GeoPolylineArc3 polyline)
-            : this(loopType | DxfHatchLoopTypes.Polyline, (object)(polyline ?? throw new ArgumentNullException(nameof(polyline))), NoCurves)
-        {
-        }
+            : this(
+                loopType | DxfHatchLoopTypes.Polyline,
+                (object)(polyline ?? throw new ArgumentNullException(nameof(polyline))),
+                NoCurves
+            ) { }
 
         /// <summary>
         /// Initializes a loop of edges, as AutoCAD's <c>HatchLoop</c> with its <c>Curves</c>: in the world, one after another,
@@ -62,9 +66,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentNullException">Thrown when the edges are null, or one of them is.</exception>
         /// <exception cref="ArgumentException">Thrown when there is no edge, or an edge is a shape a loop of a HATCH has none of.</exception>
         public DxfHatchLoop(DxfHatchLoopTypes loopType, IEnumerable<object> curves)
-            : this(loopType & ~DxfHatchLoopTypes.Polyline, null, Checked(curves))
-        {
-        }
+            : this(loopType & ~DxfHatchLoopTypes.Polyline, null, Checked(curves)) { }
 
         private DxfHatchLoop(DxfHatchLoopTypes loopType, object polyline, IReadOnlyList<object> curves)
         {
@@ -74,7 +76,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A loop read from a HATCH: its shapes, and its groups as the file has them in the plane they were read in.</summary>
-        internal DxfHatchLoop(DxfHatchLoopTypes loopType, object polyline, IReadOnlyList<object> curves, List<KeyValuePair<int, string>> groups, GeoVector3 normal, double elevation)
+        internal DxfHatchLoop(
+            DxfHatchLoopTypes loopType,
+            object polyline,
+            IReadOnlyList<object> curves,
+            List<KeyValuePair<int, string>> groups,
+            GeoVector3 normal,
+            double elevation
+        )
             : this(loopType, polyline, curves)
         {
             Groups = groups;
@@ -134,7 +143,12 @@ namespace GeometryHelper.Dxf
                         list.Add(curve);
                         break;
                     default:
-                        throw new ArgumentException("An edge of a loop of a HATCH is a line, an arc, a circle, an ellipse, a spline or a chain of lines and arcs: a " + curve.GetType().Name + " is none of them.", nameof(curves));
+                        throw new ArgumentException(
+                            "An edge of a loop of a HATCH is a line, an arc, a circle, an ellipse, a spline or a chain of lines and arcs: a "
+                                + curve.GetType().Name
+                                + " is none of them.",
+                            nameof(curves)
+                        );
                 }
             }
 

@@ -11,7 +11,8 @@ namespace GeometryHelper.Core
         /// Determines whether options allow any hole to be filled: a largest hole above nought, and a strategy that fills.
         /// </summary>
         /// <param name="options">The options.</param>
-        private static bool MayFill(SolidClosingOptions options) => options.MaxHoleArea > 0.0 && options.Fill != FillStrategy.None;
+        private static bool MayFill(SolidClosingOptions options) =>
+            options.MaxHoleArea > 0.0 && options.Fill != FillStrategy.None;
 
         /// <summary>
         /// Fills the loops left open, holes and gaps too wide for the welds alike, each hole by the faces the options allow,
@@ -63,7 +64,14 @@ namespace GeometryHelper.Core
         /// added, where they would balance.
         /// </para>
         /// </remarks>
-        private static bool TryFillHoles(Work work, List<GeoFace3> faces, List<int> origins, List<Loop> loops, out GeoSolid3 closed, out SolidClosing3 report)
+        private static bool TryFillHoles(
+            Work work,
+            List<GeoFace3> faces,
+            List<int> origins,
+            List<Loop> loops,
+            out GeoSolid3 closed,
+            out SolidClosing3 report
+        )
         {
             closed = null;
             report = null;
@@ -96,7 +104,18 @@ namespace GeometryHelper.Core
                 if (hole.Warped >= 0)
                 {
                     // Out of flat: the triangles of least area across it, lying on no face of the body, and crossing none.
-                    if (!TryTriangulate(loops[hole.Warped], hole.Warped, faces, boxes, options, out Patch triangles, out ClosingFailure failure, out GeoPoint3 at))
+                    if (
+                        !TryTriangulate(
+                            loops[hole.Warped],
+                            hole.Warped,
+                            faces,
+                            boxes,
+                            options,
+                            out Patch triangles,
+                            out ClosingFailure failure,
+                            out GeoPoint3 at
+                        )
+                    )
                     {
                         work.Refuse(failure, at);
                         return false;
@@ -153,16 +172,27 @@ namespace GeometryHelper.Core
         /// <param name="taken">The fills taken before, of the holes before it.</param>
         /// <param name="near">A list to work in.</param>
         /// <param name="fill">The fills taken; null when the method returns false.</param>
-        private static bool TryChoose(Work work, List<GeoFace3> faces, List<Hole> holes, int h, FaceBoxes boxes, List<Patch> taken, List<int> near, out List<Patch> fill)
+        private static bool TryChoose(
+            Work work,
+            List<GeoFace3> faces,
+            List<Hole> holes,
+            int h,
+            FaceBoxes boxes,
+            List<Patch> taken,
+            List<int> near,
+            out List<Patch> fill
+        )
         {
             Tolerance tolerance = work.Tolerance;
             Hole hole = holes[h];
             fill = null;
 
-            bool caps = LieOnNoFace(hole.Caps, faces, boxes, near, tolerance, out GeoPoint3 trouble)
+            bool caps =
+                LieOnNoFace(hole.Caps, faces, boxes, near, tolerance, out GeoPoint3 trouble)
                 && !CrossesBody(hole.Caps, faces, boxes, taken, near, tolerance, out trouble);
             List<Patch> walled = hole.Walls != null ? new List<Patch> { hole.Walls } : null;
-            bool walls = walled != null
+            bool walls =
+                walled != null
                 && LieOnNoFace(walled, faces, boxes, near, tolerance, out _)
                 && !CrossesBody(walled, faces, boxes, taken, near, tolerance, out _)
                 && WallsClose(faces, holes, h, tolerance);
@@ -200,7 +230,15 @@ namespace GeometryHelper.Core
         /// <param name="taken">The fills, in order.</param>
         /// <param name="closed">The body; null when the method returns false.</param>
         /// <param name="report">What was done to it; null when the method returns false.</param>
-        private static bool TryTakeFilled(Work work, List<GeoFace3> all, int given, List<int> origins, List<Patch> taken, out GeoSolid3 closed, out SolidClosing3 report)
+        private static bool TryTakeFilled(
+            Work work,
+            List<GeoFace3> all,
+            int given,
+            List<int> origins,
+            List<Patch> taken,
+            out GeoSolid3 closed,
+            out SolidClosing3 report
+        )
         {
             closed = null;
             report = null;
@@ -243,7 +281,13 @@ namespace GeometryHelper.Core
             }
 
             closed = body;
-            report = new SolidClosing3(work.Repairs.ToArray(), work.AddedArea, VolumeChange(work.Solid, body), ClosingFailure.None, null);
+            report = new SolidClosing3(
+                work.Repairs.ToArray(),
+                work.AddedArea,
+                VolumeChange(work.Solid, body),
+                ClosingFailure.None,
+                null
+            );
             return true;
         }
 
@@ -346,7 +390,15 @@ namespace GeometryHelper.Core
                 boxes[i] = GeoAabb3.FromPoints(loop.Corners);
             }
 
-            int[] holder = Holders(loops, rings, planes, boxes, warped, tolerance.EqualPlanar + options.MaxOffFlat, tolerance);
+            int[] holder = Holders(
+                loops,
+                rings,
+                planes,
+                boxes,
+                warped,
+                tolerance.EqualPlanar + options.MaxOffFlat,
+                tolerance
+            );
 
             // Each loop read the boundary of a face or a hole of one, the larger first, as the loops holding them are.
             var order = new List<int>();
@@ -359,11 +411,13 @@ namespace GeometryHelper.Core
                 }
             }
 
-            order.Sort((a, b) =>
-            {
-                int byArea = loops[b].Area.CompareTo(loops[a].Area);
-                return byArea != 0 ? byArea : a.CompareTo(b);
-            });
+            order.Sort(
+                (a, b) =>
+                {
+                    int byArea = loops[b].Area.CompareTo(loops[a].Area);
+                    return byArea != 0 ? byArea : a.CompareTo(b);
+                }
+            );
 
             var boundary = new bool[count];
             var inner = new List<int>[count];
@@ -477,7 +531,15 @@ namespace GeometryHelper.Core
         /// The loops are filed by their boxes, and each is set only against those whose boxes hold its own. Two flat loops
         /// lie in one plane within the planar tolerance, as a face takes its holes.
         /// </remarks>
-        private static int[] Holders(List<Loop> loops, GeoPolygon3[] rings, GeoPlane3[] planes, GeoAabb3[] boxes, bool[] warped, double band, Tolerance tolerance)
+        private static int[] Holders(
+            List<Loop> loops,
+            GeoPolygon3[] rings,
+            GeoPlane3[] planes,
+            GeoAabb3[] boxes,
+            bool[] warped,
+            double band,
+            Tolerance tolerance
+        )
         {
             int count = loops.Count;
             var holder = new int[count];
@@ -513,7 +575,9 @@ namespace GeometryHelper.Core
                     bool across = warped[a] || warped[b];
                     double off = across ? band : tolerance.EqualPlanar;
 
-                    if (!Holds(boxes[a], boxes[b], across ? Math.Max(band, tolerance.EqualPoint) : tolerance.EqualPoint))
+                    if (
+                        !Holds(boxes[a], boxes[b], across ? Math.Max(band, tolerance.EqualPoint) : tolerance.EqualPoint)
+                    )
                     {
                         continue;
                     }
@@ -542,9 +606,12 @@ namespace GeometryHelper.Core
         /// <param name="margin">The margin.</param>
         private static bool Holds(GeoAabb3 outer, GeoAabb3 inner, double margin)
         {
-            return inner.Min.X >= outer.Min.X - margin && inner.Max.X <= outer.Max.X + margin
-                && inner.Min.Y >= outer.Min.Y - margin && inner.Max.Y <= outer.Max.Y + margin
-                && inner.Min.Z >= outer.Min.Z - margin && inner.Max.Z <= outer.Max.Z + margin;
+            return inner.Min.X >= outer.Min.X - margin
+                && inner.Max.X <= outer.Max.X + margin
+                && inner.Min.Y >= outer.Min.Y - margin
+                && inner.Max.Y <= outer.Max.Y + margin
+                && inner.Min.Z >= outer.Min.Z - margin
+                && inner.Max.Z <= outer.Max.Z + margin;
         }
 
         /// <summary>
@@ -602,7 +669,14 @@ namespace GeometryHelper.Core
         /// <param name="other">For each loop, the loop at the other end of its hole; below nought where there is none.</param>
         /// <returns>For each loop paired, the corners of the walls between it and the loop at the other end, each wall on four;
         /// null for the others.</returns>
-        private static List<GeoPoint3[]>[] PairEnds(List<Loop> loops, Patch[] patches, List<int>[] inner, Tolerance tolerance, FaceShells shells, out int[] other)
+        private static List<GeoPoint3[]>[] PairEnds(
+            List<Loop> loops,
+            Patch[] patches,
+            List<int>[] inner,
+            Tolerance tolerance,
+            FaceShells shells,
+            out int[] other
+        )
         {
             int count = loops.Count;
             other = new int[count];
@@ -707,7 +781,13 @@ namespace GeometryHelper.Core
                 for (int c = 0; c < count && fit; c++)
                 {
                     // Each wall runs the edge of each end the way a face closing it would.
-                    var wall = new[] { a[c], a[(c + 1) % count], b[(((shift - c - 1) % count) + count) % count], b[(((shift - c) % count) + count) % count] };
+                    var wall = new[]
+                    {
+                        a[c],
+                        a[(c + 1) % count],
+                        b[(((shift - c - 1) % count) + count) % count],
+                        b[(((shift - c) % count) + count) % count],
+                    };
                     fit = FlatAndConvex(wall, tolerance.EqualPlanar, out double wallArea);
                     area += wallArea;
                     walls.Add(wall);
@@ -764,11 +844,17 @@ namespace GeometryHelper.Core
         /// <param name="area">The area they enclose, by Newell's method.</param>
         private static bool FlatAndConvex(GeoPoint3[] quad, double planar, out double area)
         {
-            double nx = 0.0, ny = 0.0, nz = 0.0, cx = 0.0, cy = 0.0, cz = 0.0;
+            double nx = 0.0,
+                ny = 0.0,
+                nz = 0.0,
+                cx = 0.0,
+                cy = 0.0,
+                cz = 0.0;
 
             for (int i = 0; i < 4; i++)
             {
-                GeoPoint3 p = quad[i], q = quad[(i + 1) % 4];
+                GeoPoint3 p = quad[i],
+                    q = quad[(i + 1) % 4];
                 nx += (p.Y - q.Y) * (p.Z + q.Z);
                 ny += (p.Z - q.Z) * (p.X + q.X);
                 nz += (p.X - q.X) * (p.Y + q.Y);
@@ -864,7 +950,15 @@ namespace GeometryHelper.Core
         /// box: a body has few holes.
         /// </para>
         /// </remarks>
-        private static bool CrossesBody(List<Patch> fills, List<GeoFace3> faces, FaceBoxes boxes, List<Patch> taken, List<int> near, Tolerance tolerance, out GeoPoint3 at)
+        private static bool CrossesBody(
+            List<Patch> fills,
+            List<GeoFace3> faces,
+            FaceBoxes boxes,
+            List<Patch> taken,
+            List<int> near,
+            Tolerance tolerance,
+            out GeoPoint3 at
+        )
         {
             foreach (Patch fill in fills)
             {
@@ -945,7 +1039,8 @@ namespace GeometryHelper.Core
 
                 for (int i = 0; i < count; i++)
                 {
-                    GeoPoint3 p = ring[i], q = ring[(i + 1) % count];
+                    GeoPoint3 p = ring[i],
+                        q = ring[(i + 1) % count];
                     double dp = origin.GetVectorTo(p).DotProduct(normal);
                     double dq = origin.GetVectorTo(q).DotProduct(normal);
 
@@ -956,7 +1051,11 @@ namespace GeometryHelper.Core
 
                     GeoPoint3 crossing = p.Add(p.GetVectorTo(q).Multiply(dp / (dp - dq)));
 
-                    if (face.Locate(crossing, tolerance) == PointLocation.Inside && !OnEdgesOf(face, p, tolerance) && !OnEdgesOf(face, q, tolerance))
+                    if (
+                        face.Locate(crossing, tolerance) == PointLocation.Inside
+                        && !OnEdgesOf(face, p, tolerance)
+                        && !OnEdgesOf(face, q, tolerance)
+                    )
                     {
                         at = crossing;
                         return true;
@@ -986,7 +1085,8 @@ namespace GeometryHelper.Core
             GeoPoint3 origin = other.Boundary[0];
             GeoVector3 normal = other.Normal;
             double planar = tolerance.EqualPlanar;
-            bool above = false, below = false;
+            bool above = false,
+                below = false;
             GeoPolygon3 ring = face.Boundary;
 
             for (int i = 0; i < ring.VertexCount; i++)
@@ -1021,7 +1121,10 @@ namespace GeometryHelper.Core
 
                 for (int i = 0; i < count; i++)
                 {
-                    if (point.DistanceTo(NearestOnSegment(ring[i], ring[(i + 1) % count], point)) <= tolerance.EqualPoint)
+                    if (
+                        point.DistanceTo(NearestOnSegment(ring[i], ring[(i + 1) % count], point))
+                        <= tolerance.EqualPoint
+                    )
                     {
                         return true;
                     }
@@ -1091,7 +1194,8 @@ namespace GeometryHelper.Core
         /// wide for the welds can be filled by a face as thin as the pieces a cut leaves (see
         /// <see cref="LoopAssembly.ForPieces"/>).
         /// </remarks>
-        private static Tolerance ForFills(Tolerance tolerance) => LoopAssembly.ForFacePieces(LoopAssembly.ForPieces(tolerance));
+        private static Tolerance ForFills(Tolerance tolerance) =>
+            LoopAssembly.ForFacePieces(LoopAssembly.ForPieces(tolerance));
 
         /// <summary>
         /// Determines whether none of the faces of some fills lies back to back with a face of the body.
@@ -1102,7 +1206,14 @@ namespace GeometryHelper.Core
         /// <param name="near">A list to work in.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="at">Where a face lies back to back with one of the body; the origin where none does.</param>
-        private static bool LieOnNoFace(List<Patch> fills, List<GeoFace3> faces, FaceBoxes boxes, List<int> near, Tolerance tolerance, out GeoPoint3 at)
+        private static bool LieOnNoFace(
+            List<Patch> fills,
+            List<GeoFace3> faces,
+            FaceBoxes boxes,
+            List<int> near,
+            Tolerance tolerance,
+            out GeoPoint3 at
+        )
         {
             foreach (Patch fill in fills)
             {
@@ -1133,7 +1244,14 @@ namespace GeometryHelper.Core
         /// The point of the face added is one well within it (see <see cref="TryGetPointOn"/>): the middle of a face with a
         /// hole can lie in the hole.
         /// </remarks>
-        private static bool BacksOnto(GeoFace3 added, List<GeoFace3> faces, FaceBoxes boxes, List<int> near, Tolerance tolerance, out GeoPoint3 at)
+        private static bool BacksOnto(
+            GeoFace3 added,
+            List<GeoFace3> faces,
+            FaceBoxes boxes,
+            List<int> near,
+            Tolerance tolerance,
+            out GeoPoint3 at
+        )
         {
             GeoAabb3 box = added.GetAabb();
             GeoPoint3 point = TryGetPointOn(added, tolerance, out GeoPoint3 inside) ? inside : added.Centroid;
@@ -1149,7 +1267,10 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                if (other.GetAabb().Contains(point, tolerance) && other.Locate(point, tolerance) != PointLocation.OutSide)
+                if (
+                    other.GetAabb().Contains(point, tolerance)
+                    && other.Locate(point, tolerance) != PointLocation.OutSide
+                )
                 {
                     at = point;
                     return true;
@@ -1222,8 +1343,8 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="fill">The fill.</param>
         /// <param name="tolerance">The tolerance.</param>
-        private static GeoPoint3 PointOn(Patch fill, Tolerance tolerance)
-            => TryGetPointOn(fill.Faces[0], tolerance, out GeoPoint3 point) ? point : fill.Faces[0].Centroid;
+        private static GeoPoint3 PointOn(Patch fill, Tolerance tolerance) =>
+            TryGetPointOn(fill.Faces[0], tolerance, out GeoPoint3 point) ? point : fill.Faces[0].Centroid;
 
         /// <summary>
         /// The area some fills add.
@@ -1268,7 +1389,15 @@ namespace GeometryHelper.Core
         /// turned where it had not; see <see cref="TurnAgain(Work, int)"/>.
         /// </para>
         /// </remarks>
-        private static void FaceShellsOutwards(Work work, List<GeoFace3> all, int given, List<int> origins, List<Patch> taken, List<Loop> loops, FaceShells shells)
+        private static void FaceShellsOutwards(
+            Work work,
+            List<GeoFace3> all,
+            int given,
+            List<int> origins,
+            List<Patch> taken,
+            List<Loop> loops,
+            FaceShells shells
+        )
         {
             Tolerance tolerance = work.Tolerance;
             var parent = (int[])shells.Parent.Clone();
@@ -1477,7 +1606,9 @@ namespace GeometryHelper.Core
                         return Faces[0].Centroid;
                     }
 
-                    double x = 0.0, y = 0.0, z = 0.0;
+                    double x = 0.0,
+                        y = 0.0,
+                        z = 0.0;
 
                     foreach (GeoFace3 face in Faces)
                     {

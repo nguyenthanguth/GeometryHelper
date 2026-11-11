@@ -146,7 +146,9 @@ namespace GeometryHelper.TeklaConvert
 
         // Reason to the ids or names left out for it, both in ordinal order when written, so the one Debug line of a call
         // reads the same every run.
-        private readonly SortedDictionary<string, List<string>> _skipped = new SortedDictionary<string, List<string>>(StringComparer.Ordinal);
+        private readonly SortedDictionary<string, List<string>> _skipped = new SortedDictionary<string, List<string>>(
+            StringComparer.Ordinal
+        );
 
         /// <summary>The parts read.</summary>
         internal List<TeklaPartData> Parts { get; } = new List<TeklaPartData>();

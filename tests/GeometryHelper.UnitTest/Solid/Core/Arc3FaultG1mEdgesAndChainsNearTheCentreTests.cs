@@ -22,7 +22,8 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly GeoPoint3 Centre = new GeoPoint3(1000, -2000, 500);
 
-        private static Tolerance At(double equalPoint) => new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
+        private static Tolerance At(double equalPoint) =>
+            new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
 
         private static GeoArc3 HalfCircle(double radius, double degrees)
         {
@@ -37,15 +38,16 @@ namespace GeometryHelper.UnitTest.Solid
             GeoVector3 toStart = arc.Center.GetVectorTo(arc.StartPoint).Normalize();
             GeoVector3 toMiddle = arc.Center.GetVectorTo(arc.MidPoint).Normalize();
 
-            return arc.Center
-                .Add(toStart.Multiply(fromCentre * Math.Cos(angle)))
+            return arc
+                .Center.Add(toStart.Multiply(fromCentre * Math.Cos(angle)))
                 .Add(toMiddle.Multiply(fromCentre * Math.Sin(angle)))
                 .Add(arc.Normal.Multiply(height));
         }
 
         /// <summary>A point in the arc's plane, so far along the way to its start and so far along the way to its middle.</summary>
-        private static GeoPoint3 InPlane(GeoArc3 arc, double towardsStart, double towardsMiddle) => Around(arc, 0.0, towardsStart, 0.0)
-            .Add(arc.Center.GetVectorTo(arc.MidPoint).Normalize().Multiply(towardsMiddle));
+        private static GeoPoint3 InPlane(GeoArc3 arc, double towardsStart, double towardsMiddle) =>
+            Around(arc, 0.0, towardsStart, 0.0)
+                .Add(arc.Center.GetVectorTo(arc.MidPoint).Normalize().Multiply(towardsMiddle));
 
         /// <summary>The bend, with a straight leg 10 long running out from each end of it along its diameter.</summary>
         private static List<GeoEdge3> ChainEdges(GeoArc3 arc)
@@ -97,7 +99,10 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(1E-3, 30.0)]
         [InlineData(1E-2, 0.0)]
         [InlineData(1E-2, 30.0)]
-        public void APointNearTheCentreOfAnEdgeAsLargeAsTheTolerance_IsTheExactDistanceFromIt(double equalPoint, double degrees)
+        public void APointNearTheCentreOfAnEdgeAsLargeAsTheTolerance_IsTheExactDistanceFromIt(
+            double equalPoint,
+            double degrees
+        )
         {
             // At a tolerance of 0.001, the half circle of radius 0.001 as an edge and the point 0.0007 from its centre under
             // its middle: 0.0003 from it, and on it. Carried to the start it stood 0.00122 away and was off. Raised by 0.0004 it
@@ -124,7 +129,10 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(1E-3, 30.0)]
         [InlineData(1E-2, 0.0)]
         [InlineData(1E-2, 30.0)]
-        public void APointNearTheCentreOfABendOfAChainAsLargeAsTheTolerance_IsTheExactDistanceFromIt(double equalPoint, double degrees)
+        public void APointNearTheCentreOfABendOfAChainAsLargeAsTheTolerance_IsTheExactDistanceFromIt(
+            double equalPoint,
+            double degrees
+        )
         {
             // The same half circle as the middle edge of a chain and as one side of a loop, and the same point: 0.0003 from
             // the bend, where each end of it is 0.00122 away. Carried to the bend's start, the chain and the loop read 0.00122.
@@ -177,9 +185,18 @@ namespace GeometryHelper.UnitTest.Solid
                 double away = onArc.DistanceTo(moved);
 
                 Assert.InRange(edge.DistanceTo(moved, t), 0.29E-3 - 1E-11, 0.29E-3 + 1E-11);
-                Assert.True(edge.DistanceTo(moved, t) <= edge.DistanceTo(onArc, t) + away + 1E-11, $"edge, moved from {degrees} degrees");
-                Assert.True(chain.DistanceTo(moved, t) <= chain.DistanceTo(onArc, t) + away + 1E-11, $"chain, moved from {degrees} degrees");
-                Assert.True(loop.DistanceTo(moved, t) <= loop.DistanceTo(onArc, t) + away + 1E-11, $"loop, moved from {degrees} degrees");
+                Assert.True(
+                    edge.DistanceTo(moved, t) <= edge.DistanceTo(onArc, t) + away + 1E-11,
+                    $"edge, moved from {degrees} degrees"
+                );
+                Assert.True(
+                    chain.DistanceTo(moved, t) <= chain.DistanceTo(onArc, t) + away + 1E-11,
+                    $"chain, moved from {degrees} degrees"
+                );
+                Assert.True(
+                    loop.DistanceTo(moved, t) <= loop.DistanceTo(onArc, t) + away + 1E-11,
+                    $"loop, moved from {degrees} degrees"
+                );
             }
         }
 
@@ -197,14 +214,18 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(0)]
         [InlineData(1)]
         [InlineData(2)]
-        public void TheShortestLineFromABallCentredNearTheCentreOfABend_IsAsLongAsTheDistanceAndLandsAtTheContact(int shape)
+        public void TheShortestLineFromABallCentredNearTheCentreOfABend_IsAsLongAsTheDistanceAndLandsAtTheContact(
+            int shape
+        )
         {
             // The lower half of the circle of radius 50 about the origin, as an edge (0), as the bend of a chain with a leg 100
             // up from its start (1), and as one side of a loop closed by three sides 100 up (2); the ball of radius 49.99 about
             // (0, -0.0009, 0), at a tolerance of a thousandth. The bend's bottom (0, -50, 0) is 49.9991 from the centre of the
             // ball, so the ball is 0.0091 short of it. The centre was carried to the bend's start (-50, 0, 0), 0.01 away.
             Tolerance t = At(1E-3);
-            var bend = new GeoEdge3(GeoArc3.FromThreePoints(new GeoPoint3(-50, 0, 0), new GeoPoint3(0, -50, 0), new GeoPoint3(50, 0, 0), t));
+            var bend = new GeoEdge3(
+                GeoArc3.FromThreePoints(new GeoPoint3(-50, 0, 0), new GeoPoint3(0, -50, 0), new GeoPoint3(50, 0, 0), t)
+            );
             var ball = new GeoSphere3(new GeoPoint3(0, -0.0009, 0), 49.99);
             var upLeft = new GeoPoint3(-50, 100, 0);
             var upRight = new GeoPoint3(50, 100, 0);
@@ -228,7 +249,15 @@ namespace GeometryHelper.UnitTest.Solid
             }
             else
             {
-                var loop = new GeoPolygonArc3(new[] { bend, new GeoEdge3(bend.EndPoint, upRight), new GeoEdge3(upRight, upLeft), new GeoEdge3(upLeft, bend.StartPoint) });
+                var loop = new GeoPolygonArc3(
+                    new[]
+                    {
+                        bend,
+                        new GeoEdge3(bend.EndPoint, upRight),
+                        new GeoEdge3(upRight, upLeft),
+                        new GeoEdge3(upLeft, bend.StartPoint),
+                    }
+                );
                 distance = ball.DistanceTo(loop, t);
                 line = ball.GetShortestLineTo(loop, t);
                 back = loop.GetShortestLineTo(ball, t);
@@ -284,10 +313,17 @@ namespace GeometryHelper.UnitTest.Solid
             // the loop opened at its first vertex, cut nowhere. It is cut at the middle of the bend.
             Tolerance t = At(1E-3);
             var loop = new GeoPolygonArc3(
-                new[] { new GeoPoint3(0.01, -0.01, 0), new GeoPoint3(0.001, 0, 0), new GeoPoint3(-0.001, 0, 0), new GeoPoint3(-0.01, -0.01, 0) },
+                new[]
+                {
+                    new GeoPoint3(0.01, -0.01, 0),
+                    new GeoPoint3(0.001, 0, 0),
+                    new GeoPoint3(-0.001, 0, 0),
+                    new GeoPoint3(-0.01, -0.01, 0),
+                },
                 new[] { 0.0, 1.0, 0.0, 0.0 },
                 new[] { Up, Up, Up, Up },
-                t);
+                t
+            );
 
             Assert.True(loop.IsPointOn(UnderTheMiddle, t));
             Assert.True(loop.TrySplitBy(UnderTheMiddle, out GeoPolylineArc3[] pieces, t));
@@ -302,10 +338,17 @@ namespace GeometryHelper.UnitTest.Solid
         {
             Tolerance t = At(1E-3);
             var loop = new GeoPolygonArc3(
-                new[] { new GeoPoint3(0.01, -0.01, 0), new GeoPoint3(0.001, 0, 0), new GeoPoint3(-0.001, 0, 0), new GeoPoint3(-0.01, -0.01, 0) },
+                new[]
+                {
+                    new GeoPoint3(0.01, -0.01, 0),
+                    new GeoPoint3(0.001, 0, 0),
+                    new GeoPoint3(-0.001, 0, 0),
+                    new GeoPoint3(-0.01, -0.01, 0),
+                },
                 new[] { 0.0, 1.0, 0.0, 0.0 },
                 new[] { Up, Up, Up, Up },
-                t);
+                t
+            );
 
             Assert.True(loop.TrySplitBy(loop[0], out GeoPolylineArc3[] pieces, t));
             Assert.Single(pieces);
@@ -321,10 +364,17 @@ namespace GeometryHelper.UnitTest.Solid
             // the bend, and each trim ends there.
             Tolerance t = At(1E-3);
             var chain = new GeoPolylineArc3(
-                new[] { new GeoPoint3(0.01, 0, 0), new GeoPoint3(0.001, 0, 0), new GeoPoint3(-0.001, 0, 0), new GeoPoint3(-0.01, 0, 0) },
+                new[]
+                {
+                    new GeoPoint3(0.01, 0, 0),
+                    new GeoPoint3(0.001, 0, 0),
+                    new GeoPoint3(-0.001, 0, 0),
+                    new GeoPoint3(-0.01, 0, 0),
+                },
                 new[] { 0.0, 1.0, 0.0 },
                 new[] { Up, Up, Up },
-                t);
+                t
+            );
 
             Assert.True(chain.IsPointOn(UnderTheMiddle, t));
             Assert.True(chain.TrySplitBy(UnderTheMiddle, out GeoPolylineArc3[] pieces, t));
@@ -368,7 +418,12 @@ namespace GeometryHelper.UnitTest.Solid
             // away, at (-42.87, 25.72, 0); they are read as at the centre, as the arc's nearest point reads them, and cut
             // nothing.
             Tolerance t = At(1E-3);
-            GeoArc3 arc = GeoArc3.FromThreePoints(new GeoPoint3(50, 0, 0), new GeoPoint3(0, 50, 0), new GeoPoint3(-50, 0, 0), t);
+            GeoArc3 arc = GeoArc3.FromThreePoints(
+                new GeoPoint3(50, 0, 0),
+                new GeoPoint3(0, 50, 0),
+                new GeoPoint3(-50, 0, 0),
+                t
+            );
 
             Assert.False(arc.TrySplitAt(new GeoPoint3(x, y, 0), out GeoArc3[] pieces, t));
             Assert.Single(pieces);

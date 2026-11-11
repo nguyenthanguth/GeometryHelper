@@ -97,7 +97,10 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData(false, true)]
         [InlineData(true, false)]
         [InlineData(true, true)]
-        public void ACopyOfACopyAssociatedWithADefinitionOfTheDrawingItGoesInto_ShowsIt_ClonedOrMoved(bool moved, bool sameHandle)
+        public void ACopyOfACopyAssociatedWithADefinitionOfTheDrawingItGoesInto_ShowsIt_ClonedOrMoved(
+            bool moved,
+            bool sameHandle
+        )
         {
             // The copy of the copy keeps the definition AssociateRasterDef gave, whether or not the drawing it came from has
             // one of the same handle.
@@ -117,7 +120,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             var copy = (DxfRasterImage)image.Clone();
             copy.AssociateRasterDef(big);
-            var again = (DxfRasterImage)(moved ? copy.GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(0, 100, 0))) : copy.Clone());
+            var again = (DxfRasterImage)(
+                moved ? copy.GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(0, 100, 0))) : copy.Clone()
+            );
             two.ModelSpace.AppendEntity(again);
             string text = two.ToText();
 
@@ -153,9 +158,22 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new GeoPoint3(70, -10, 0), placed.ModelSpace.OfType<DxfWipeout>().Single().GetVertices()[0]);
 
             // One of no boundary, which AutoCAD 2021 crashes opening, is refused all the same.
-            string none = text.Substring(0, at) + text.Substring(at, end - at).Replace(" 71\n2\n 91\n5\n", " 71\n0\n 91\n0\n") + text.Substring(end);
-            DxfWipeout broken = ByHandle<DxfWipeout>(DxfDatabase.Parse(none.Replace(" 14\n-0.5\n 24\n0.5\n 14\n0.5\n 24\n0.5\n 14\n0.5\n 24\n-0.25\n 14\n-0.5\n 24\n-0.25\n 14\n-0.5\n 24\n0.5\n", string.Empty)), "C14");
-            Assert.Throws<InvalidOperationException>(() => new DxfDatabase("AC1032").ModelSpace.AppendEntity(broken.Clone()));
+            string none =
+                text.Substring(0, at)
+                + text.Substring(at, end - at).Replace(" 71\n2\n 91\n5\n", " 71\n0\n 91\n0\n")
+                + text.Substring(end);
+            DxfWipeout broken = ByHandle<DxfWipeout>(
+                DxfDatabase.Parse(
+                    none.Replace(
+                        " 14\n-0.5\n 24\n0.5\n 14\n0.5\n 24\n0.5\n 14\n0.5\n 24\n-0.25\n 14\n-0.5\n 24\n-0.25\n 14\n-0.5\n 24\n0.5\n",
+                        string.Empty
+                    )
+                ),
+                "C14"
+            );
+            Assert.Throws<InvalidOperationException>(() =>
+                new DxfDatabase("AC1032").ModelSpace.AppendEntity(broken.Clone())
+            );
         }
 
         // The drawing with the record of a handle changed.
@@ -169,7 +187,10 @@ namespace GeometryHelper.UnitTest.Dxf
         // A record with its last corner left out and its count one less.
         private static string LastCornerOut(string record, int count, string corner)
         {
-            record = record.Replace(" 91\n" + count.ToString(CultureInfo.InvariantCulture) + "\n", " 91\n" + (count - 1).ToString(CultureInfo.InvariantCulture) + "\n");
+            record = record.Replace(
+                " 91\n" + count.ToString(CultureInfo.InvariantCulture) + "\n",
+                " 91\n" + (count - 1).ToString(CultureInfo.InvariantCulture) + "\n"
+            );
             int last = record.LastIndexOf(corner, StringComparison.Ordinal);
             return record.Substring(0, last) + record.Substring(last + corner.Length);
         }
@@ -181,8 +202,11 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // C14 with its closing corner left out, 91 of 4: AutoCAD 2021 reads such a wipeout as of no corners and shows
             // nothing, and the library reads it closed; its copies are written closed, its first corner again at the end.
-            string text = WithRecord(DxfRasterImageDrawings.R2018, "C14", r => LastCornerOut(r, 5, " 14\n-0.5\n 24\n0.5\n"));
-            const string Closed = " 91\n5\n 14\n-0.5\n 24\n0.5\n 14\n0.5\n 24\n0.5\n 14\n0.5\n 24\n-0.25\n 14\n-0.5\n 24\n-0.25\n 14\n-0.5\n 24\n0.5\n";
+            string text = WithRecord(DxfRasterImageDrawings.R2018, "C14", r =>
+                LastCornerOut(r, 5, " 14\n-0.5\n 24\n0.5\n")
+            );
+            const string Closed =
+                " 91\n5\n 14\n-0.5\n 24\n0.5\n 14\n0.5\n 24\n0.5\n 14\n0.5\n 24\n-0.25\n 14\n-0.5\n 24\n-0.25\n 14\n-0.5\n 24\n0.5\n";
             DxfDatabase source = DxfDatabase.Parse(text);
             Assert.Equal(text, source.ToText());
             var held = ByHandle<DxfWipeout>(source, "C14");
@@ -196,7 +220,11 @@ namespace GeometryHelper.UnitTest.Dxf
             // The drawing holds a MESH, which the library moves not: inserted where it is.
             var placed = new DxfDatabase("AC1032");
             placed.Insert(GeoTransform3.Identity, source, true);
-            Assert.Contains(Closed, Record(placed.ToText(), placed.ModelSpace.OfType<DxfWipeout>().Single().Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                Closed,
+                Record(placed.ToText(), placed.ModelSpace.OfType<DxfWipeout>().Single().Handle),
+                StringComparison.Ordinal
+            );
 
             DxfEntity moved = held.GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(0, 100, 0)));
             source.ModelSpace.AppendEntity(moved);
@@ -210,12 +238,18 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // C11's triangle with its closing corner left out, and with it moved 1E-6 pixel along x: AutoCAD 2021 crashes opening
             // a drawing that holds either. The copies end on the first corner, to the bit.
-            string open = WithRecord(DxfRasterImageDrawings.R2018, "C11", r => LastCornerOut(r, 4, " 14\n0.0\n 24\n0.0\n"));
+            string open = WithRecord(DxfRasterImageDrawings.R2018, "C11", r =>
+                LastCornerOut(r, 4, " 14\n0.0\n 24\n0.0\n")
+            );
             var held = ByHandle<DxfRasterImage>(DxfDatabase.Parse(open), "C11");
             var into = new DxfDatabase("AC1032");
             var copy = (DxfRasterImage)held.Clone();
             into.ModelSpace.AppendEntity(copy);
-            Assert.Contains(" 91\n4\n 14\n0.0\n 24\n0.0\n 14\n3.0\n 24\n0.0\n 14\n1.5\n 24\n2.5\n 14\n0.0\n 24\n0.0\n", Record(into.ToText(), copy.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                " 91\n4\n 14\n0.0\n 24\n0.0\n 14\n3.0\n 24\n0.0\n 14\n1.5\n 24\n2.5\n 14\n0.0\n 24\n0.0\n",
+                Record(into.ToText(), copy.Handle),
+                StringComparison.Ordinal
+            );
             Assert.Equal(Corners(held), Corners(copy));
 
             string near = WithRecord(DxfRasterImageDrawings.R2018, "C11", r =>
@@ -225,19 +259,30 @@ namespace GeometryHelper.UnitTest.Dxf
             });
             var nearly = (DxfRasterImage)ByHandle<DxfRasterImage>(DxfDatabase.Parse(near), "C11").Clone();
             into.ModelSpace.AppendEntity(nearly);
-            Assert.Contains(" 91\n5\n 14\n0.0\n 24\n0.0\n 14\n3.0\n 24\n0.0\n 14\n1.5\n 24\n2.5\n 14\n0.000001\n 24\n0.0\n 14\n0.0\n 24\n0.0\n", Record(into.ToText(), nearly.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                " 91\n5\n 14\n0.0\n 24\n0.0\n 14\n3.0\n 24\n0.0\n 14\n1.5\n 24\n2.5\n 14\n0.000001\n 24\n0.0\n 14\n0.0\n 24\n0.0\n",
+                Record(into.ToText(), nearly.Handle),
+                StringComparison.Ordinal
+            );
 
             // One closed is written as it is.
-            var closed = (DxfRasterImage)ByHandle<DxfRasterImage>(DxfDatabase.Parse(DxfRasterImageDrawings.R2018), "C11").Clone();
+            var closed = (DxfRasterImage)
+                ByHandle<DxfRasterImage>(DxfDatabase.Parse(DxfRasterImageDrawings.R2018), "C11").Clone();
             into.ModelSpace.AppendEntity(closed);
-            Assert.Contains(" 91\n4\n 14\n0.0\n 24\n0.0\n 14\n3.0\n 24\n0.0\n 14\n1.5\n 24\n2.5\n 14\n0.0\n 24\n0.0\n", Record(into.ToText(), closed.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                " 91\n4\n 14\n0.0\n 24\n0.0\n 14\n3.0\n 24\n0.0\n 14\n1.5\n 24\n2.5\n 14\n0.0\n 24\n0.0\n",
+                Record(into.ToText(), closed.Handle),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
         public void AnImageOfAPolygonNotClosed_GivenAnotherDefinition_IsWrittenClosed()
         {
             // AssociateRasterDef writes the boundary anew, scaled to the new picture: closed, as AutoCAD 2021 cannot open one not.
-            string open = WithRecord(DxfRasterImageDrawings.R2018, "C11", r => LastCornerOut(r, 4, " 14\n0.0\n 24\n0.0\n"));
+            string open = WithRecord(DxfRasterImageDrawings.R2018, "C11", r =>
+                LastCornerOut(r, 4, " 14\n0.0\n 24\n0.0\n")
+            );
             DxfDatabase db = DxfDatabase.Parse(open);
             var image = ByHandle<DxfRasterImage>(db, "C11");
             DxfDBDictionary images = DxfRasterImageDef.GetImageDictionary(db);
@@ -264,7 +309,11 @@ namespace GeometryHelper.UnitTest.Dxf
             string before = db.ToText();
 
             var again = new DxfRasterImageDef(@"D:\other\px43.png", new GeoVector2(8, 6));
-            Assert.Contains("SuggestName", Assert.Throws<ArgumentException>(() => images.SetAt("PX43", again)).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "SuggestName",
+                Assert.Throws<ArgumentException>(() => images.SetAt("PX43", again)).Message,
+                StringComparison.Ordinal
+            );
             Assert.Equal(before, db.ToText());
             Assert.Same(first, images.GetAt("px43"));
             Assert.False(again.IsResident);
@@ -298,16 +347,37 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfRasterImage Placed()
             {
                 var image = new DxfRasterImage(definition);
-                image.SetOrientation(new GeoPoint3(12.345, -7.5, 3.25), new GeoVector3(40.1, 3.3, 0.7), new GeoVector3(-2.2, 29.9, 1.1));
+                image.SetOrientation(
+                    new GeoPoint3(12.345, -7.5, 3.25),
+                    new GeoVector3(40.1, 3.3, 0.7),
+                    new GeoVector3(-2.2, 29.9, 1.1)
+                );
                 db.ModelSpace.AppendEntity(image);
                 made.Add(image);
                 return image;
             }
 
-            GeoPoint2[] triangle = { new GeoPoint2(0, 0), new GeoPoint2(3.3, 0.1), new GeoPoint2(1.7, 2.9), new GeoPoint2(0, 0) };
+            GeoPoint2[] triangle =
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(3.3, 0.1),
+                new GeoPoint2(1.7, 2.9),
+                new GeoPoint2(0, 0),
+            };
             Placed();
             Placed().SetClipBoundary(DxfClipBoundaryType.Poly, triangle);
-            Placed().SetClipBoundary(DxfClipBoundaryType.Rectangle, new[] { new GeoPoint2(0.3, 0.4), new GeoPoint2(0.3, 2.2), new GeoPoint2(3.1, 2.2), new GeoPoint2(3.1, 0.4), new GeoPoint2(0.3, 0.4) });
+            Placed()
+                .SetClipBoundary(
+                    DxfClipBoundaryType.Rectangle,
+                    new[]
+                    {
+                        new GeoPoint2(0.3, 0.4),
+                        new GeoPoint2(0.3, 2.2),
+                        new GeoPoint2(3.1, 2.2),
+                        new GeoPoint2(3.1, 0.4),
+                        new GeoPoint2(0.3, 0.4),
+                    }
+                );
             DxfRasterImage inverted = Placed();
             inverted.SetClipBoundary(DxfClipBoundaryType.Poly, triangle);
             inverted.IsClipInverted = true;
@@ -316,15 +386,48 @@ namespace GeometryHelper.UnitTest.Dxf
             off.IsClipped = false;
             DxfRasterImage turned = Placed();
             turned.SetClipBoundary(DxfClipBoundaryType.Poly, triangle);
-            turned.TransformBy(GeoTransform3.RotationAxis(new GeoPoint3(5, -3, 2), new GeoVector3(1, 2, 3), 0.7) * GeoTransform3.Scaling(new GeoPoint3(1, 1, 1), 1.3));
+            turned.TransformBy(
+                GeoTransform3.RotationAxis(new GeoPoint3(5, -3, 2), new GeoVector3(1, 2, 3), 0.7)
+                    * GeoTransform3.Scaling(new GeoPoint3(1, 1, 1), 1.3)
+            );
             var wipeout = new DxfWipeout();
-            wipeout.SetFrom(new[] { new GeoPoint2(100000.5, 200000.25), new GeoPoint2(100030.75, 200001.5), new GeoPoint2(100025.125, 200020.875), new GeoPoint2(100003.25, 200015.5), new GeoPoint2(100000.5, 200000.25) }, new GeoVector3(0.3, -0.4, 0.866));
+            wipeout.SetFrom(
+                new[]
+                {
+                    new GeoPoint2(100000.5, 200000.25),
+                    new GeoPoint2(100030.75, 200001.5),
+                    new GeoPoint2(100025.125, 200020.875),
+                    new GeoPoint2(100003.25, 200015.5),
+                    new GeoPoint2(100000.5, 200000.25),
+                },
+                new GeoVector3(0.3, -0.4, 0.866)
+            );
             db.ModelSpace.AppendEntity(wipeout);
             made.Add(wipeout);
             var square = new DxfWipeout();
-            square.SetFrom(new[] { new GeoPoint2(-30, -10), new GeoPoint2(10, -10), new GeoPoint2(10, 20), new GeoPoint2(-30, 20), new GeoPoint2(-30, -10) }, new GeoVector3(0, 0, 1));
+            square.SetFrom(
+                new[]
+                {
+                    new GeoPoint2(-30, -10),
+                    new GeoPoint2(10, -10),
+                    new GeoPoint2(10, 20),
+                    new GeoPoint2(-30, 20),
+                    new GeoPoint2(-30, -10),
+                },
+                new GeoVector3(0, 0, 1)
+            );
             db.ModelSpace.AppendEntity(square);
-            square.SetClipBoundary(DxfClipBoundaryType.Rectangle, new[] { new GeoPoint2(-0.25, 0.5), new GeoPoint2(-0.25, -0.5), new GeoPoint2(0.5, -0.5), new GeoPoint2(0.5, 0.5), new GeoPoint2(-0.25, 0.5) });
+            square.SetClipBoundary(
+                DxfClipBoundaryType.Rectangle,
+                new[]
+                {
+                    new GeoPoint2(-0.25, 0.5),
+                    new GeoPoint2(-0.25, -0.5),
+                    new GeoPoint2(0.5, -0.5),
+                    new GeoPoint2(0.5, 0.5),
+                    new GeoPoint2(-0.25, 0.5),
+                }
+            );
             made.Add(square);
 
             Assert.Equal(Golden.Length, made.Count);

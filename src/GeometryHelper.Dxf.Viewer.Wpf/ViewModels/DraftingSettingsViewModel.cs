@@ -78,8 +78,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         internal DraftingSettingsViewModel(MainViewModel model, string tab)
         {
             _model = model;
-            _tab = new[] { SnapAndGridTab, PolarTrackingTab, ObjectSnapTab }.FirstOrDefault(t => string.Equals(t, tab, StringComparison.OrdinalIgnoreCase)) ?? ObjectSnapTab;
-            Modes = MainViewModel.SnapModeTable.Select(i => new SnapModeRowViewModel(i.Kind, i.Mode, (model.SnapModes & i.Mode) != 0)).ToList();
+            _tab = new[] { SnapAndGridTab, PolarTrackingTab, ObjectSnapTab }.FirstOrDefault(t =>
+                string.Equals(t, tab, StringComparison.OrdinalIgnoreCase)
+            ) ?? ObjectSnapTab;
+            Modes = MainViewModel
+                .SnapModeTable.Select(i => new SnapModeRowViewModel(i.Kind, i.Mode, (model.SnapModes & i.Mode) != 0))
+                .ToList();
             _isSnapOn = model.Toggles.First(t => t.Name == "OSNAP").IsOn;
             _isGridSnapOn = model.Toggles.First(t => t.Name == "SNAP").IsOn;
             _isGridOn = model.Toggles.First(t => t.Name == "GRID").IsOn;
@@ -274,8 +278,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private static bool Positive(string text, out double value)
-            => double.TryParse((text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value) && value > 0.0 && !double.IsInfinity(value);
+        private static bool Positive(string text, out double value) =>
+            double.TryParse((text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+            && value > 0.0
+            && !double.IsInfinity(value);
 
         private static string Text(double value) => value.ToString("0.####", CultureInfo.InvariantCulture);
     }

@@ -16,12 +16,17 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class ShortSegmentG1wiTests
     {
-        private static readonly Tolerance Hundredth = new Tolerance(1E-2, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-2);
+        private static readonly Tolerance Hundredth = new Tolerance(
+            1E-2,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-2
+        );
 
         private static readonly GeoPoint2 Beside = new GeoPoint2(10.03, 0.003);
 
-        private static GeoPolygon2 Polygon()
-            => new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 0.006), new GeoPoint2(0, 10));
+        private static GeoPolygon2 Polygon() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 0.006), new GeoPoint2(0, 10));
 
         [Fact]
         public void TheClosestPointOfAnIndex_BesideAShortStraightEdge_IsOnTheEdgeAsItIs()

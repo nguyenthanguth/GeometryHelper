@@ -118,4 +118,3 @@ namespace GeometryHelper.Arranging
         public Tolerance Tolerance { get; set; } = Tolerance.Global;
     }
 }
-

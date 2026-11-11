@@ -17,8 +17,8 @@ namespace GeometryHelper.UnitTest.Arranging
         /// The label of the guide's example, 2000 by 1000 on a leader 2000 long: its first rows stand 500 plus the gap
         /// of each side off.
         /// </summary>
-        private static ArrangeItem DimensionText(bool reversed, ArrangeSide side, double top, double bottom)
-            => new ArrangeItem
+        private static ArrangeItem DimensionText(bool reversed, ArrangeSide side, double top, double bottom) =>
+            new ArrangeItem
             {
                 Box = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
                 Leader = reversed ? new GeoLine2(2000.0, 0.0, 0.0, 0.0) : new GeoLine2(0.0, 0.0, 2000.0, 0.0),
@@ -31,28 +31,33 @@ namespace GeometryHelper.UnitTest.Arranging
         private static GeoVector2 TopNormal(GeoLine2 leader)
         {
             double length = leader.Length;
-            var normal = new GeoVector2(-(leader.EndPoint.Y - leader.StartPoint.Y) / length, (leader.EndPoint.X - leader.StartPoint.X) / length);
+            var normal = new GeoVector2(
+                -(leader.EndPoint.Y - leader.StartPoint.Y) / length,
+                (leader.EndPoint.X - leader.StartPoint.X) / length
+            );
             return normal.Y < 0.0 || (normal.Y == 0.0 && normal.X > 0.0) ? -normal : normal;
         }
 
         // How far a point stands off the leader, towards its top side.
-        private static double Across(GeoPoint2 point, GeoLine2 leader) => leader.MidPoint.GetVectorTo(point).DotProduct(TopNormal(leader));
+        private static double Across(GeoPoint2 point, GeoLine2 leader) =>
+            leader.MidPoint.GetVectorTo(point).DotProduct(TopNormal(leader));
 
-        public static IEnumerable<object[]> Leaders() => new[]
-        {
-            new object[] { 0.0, 0.0, 100.0, 0.0 },
-            new object[] { 100.0, 0.0, 0.0, 0.0 },
-            new object[] { 0.0, 0.0, 0.0, 100.0 },
-            new object[] { 0.0, 100.0, 0.0, 0.0 },
-            new object[] { 0.0, 0.0, 100.0, 100.0 },
-            new object[] { 0.0, 100.0, 100.0, 0.0 },
-        };
+        public static IEnumerable<object[]> Leaders() =>
+            new[]
+            {
+                new object[] { 0.0, 0.0, 100.0, 0.0 },
+                new object[] { 100.0, 0.0, 0.0, 0.0 },
+                new object[] { 0.0, 0.0, 0.0, 100.0 },
+                new object[] { 0.0, 100.0, 0.0, 0.0 },
+                new object[] { 0.0, 0.0, 100.0, 100.0 },
+                new object[] { 0.0, 100.0, 100.0, 0.0 },
+            };
 
         // The leader drawn either way, the label kept to either side.
-        public static IEnumerable<object[]> BothWaysOneSide()
-            => from reversed in new[] { false, true }
-               from side in new[] { ArrangeSide.Top, ArrangeSide.Bottom }
-               select new object[] { reversed, side };
+        public static IEnumerable<object[]> BothWaysOneSide() =>
+            from reversed in new[] { false, true }
+            from side in new[] { ArrangeSide.Top, ArrangeSide.Bottom }
+            select new object[] { reversed, side };
 
         [Fact]
         public void TheSide_StartsAsBoth()
@@ -98,7 +103,11 @@ namespace GeometryHelper.UnitTest.Arranging
                 Assert.Equal(top.Count, bottom.Count);
 
                 // The first row of each side stands half the height of the label across the leader plus its gap off.
-                Assert.Equal(top.Min(p => Across(p, leader)) - gaps[0], -bottom.Max(p => Across(p, leader)) - gaps[1], 9);
+                Assert.Equal(
+                    top.Min(p => Across(p, leader)) - gaps[0],
+                    -bottom.Max(p => Across(p, leader)) - gaps[1],
+                    9
+                );
             }
         }
 
@@ -114,9 +123,10 @@ namespace GeometryHelper.UnitTest.Arranging
             foreach (bool leaderBlocked in new[] { false, true })
             {
                 // The side kept to has a gap of 300, the other side the smaller or the same.
-                ArrangeItem label = side == ArrangeSide.Top
-                    ? DimensionText(reversed, side, 300.0, otherGap)
-                    : DimensionText(reversed, side, otherGap, 300.0);
+                ArrangeItem label =
+                    side == ArrangeSide.Top
+                        ? DimensionText(reversed, side, 300.0, otherGap)
+                        : DimensionText(reversed, side, otherGap, 300.0);
                 if (leaderBlocked)
                 {
                     label.BlockLines = new[] { label.Leader };
@@ -141,13 +151,20 @@ namespace GeometryHelper.UnitTest.Arranging
             ArrangeItem label = DimensionText(reversed, side, 20.0, 20.0);
             label.BlockPolygons = new[]
             {
-                side == ArrangeSide.Top ? Rectangle(-5000.0, 1.0, 7000.0, 5000.0) : Rectangle(-5000.0, -5000.0, 7000.0, -1.0)
+                side == ArrangeSide.Top
+                    ? Rectangle(-5000.0, 1.0, 7000.0, 5000.0)
+                    : Rectangle(-5000.0, -5000.0, 7000.0, -1.0),
             };
 
             ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions())[0];
 
             Assert.False(result.Placed);
-            Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(1000.0, side == ArrangeSide.Top ? 520.0 : -520.0)), result.ToString());
+            Assert.True(
+                (label.Box.Center + result.Translation).IsEqualTo(
+                    new GeoPoint2(1000.0, side == ArrangeSide.Top ? 520.0 : -520.0)
+                ),
+                result.ToString()
+            );
         }
 
         /// <summary>
@@ -164,14 +181,19 @@ namespace GeometryHelper.UnitTest.Arranging
                 lines.Add(new GeoLine2(x, -600.0, x, 800.0));
             }
 
-            ArrangeItem label = LabelOn(reversed ? new GeoLine2(100.0, 0.0, 0.0, 0.0) : new GeoLine2(0.0, 0.0, 100.0, 0.0));
+            ArrangeItem label = LabelOn(
+                reversed ? new GeoLine2(100.0, 0.0, 0.0, 0.0) : new GeoLine2(0.0, 0.0, 100.0, 0.0)
+            );
             label.Side = side;
             label.BlockLines = lines;
 
             ArrangeResult result = Arranger.Run(new[] { label }, OptionsFor())[0];
 
             Assert.False(result.Placed);
-            Assert.True(result.Translation.IsEqualTo(new GeoVector2(0.0, side == ArrangeSide.Top ? 10.0 : -10.0)), result.ToString());
+            Assert.True(
+                result.Translation.IsEqualTo(new GeoVector2(0.0, side == ArrangeSide.Top ? 10.0 : -10.0)),
+                result.ToString()
+            );
         }
 
         /// <summary>
@@ -184,12 +206,22 @@ namespace GeometryHelper.UnitTest.Arranging
             ArrangeItem label = LabelOn(new GeoLine2(0.0, 0.0, 100.0, 0.0));
             label.Offset = 20.0;
             label.Side = ArrangeSide.Top;
-            label.BlockPolygons = new[] { Rectangle(-100.0, 20.0, 200.0, 30.0), Rectangle(-100.0, 130.0, 200.0, 140.0) };
+            label.BlockPolygons = new[]
+            {
+                Rectangle(-100.0, 20.0, 200.0, 30.0),
+                Rectangle(-100.0, 130.0, 200.0, 140.0),
+            };
 
-            ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions { RowGap = 100.0, PerpendicularLevels = 3 })[0];
+            ArrangeResult result = Arranger.Run(
+                new[] { label },
+                new ArrangeOptions { RowGap = 100.0, PerpendicularLevels = 3 }
+            )[0];
 
             Assert.True(result.Placed, result.ToString());
-            Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(50.0, 245.0)), result.ToString());
+            Assert.True(
+                (label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(50.0, 245.0)),
+                result.ToString()
+            );
         }
 
         [Theory]

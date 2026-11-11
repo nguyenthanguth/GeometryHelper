@@ -30,7 +30,18 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
             GeoSolid3 beam = GeoSolid3.Extrude(ISection(300, 150, 12, 8), section, length, Tol);
             var objects = new List<DrawingObject>
             {
-                new DrawingObject("TC2-beam", DrawingObjectKind.Part, beam, beamFrame, "BEAM", "B1", "I300*150*12*8", "S355", "TC2", true),
+                new DrawingObject(
+                    "TC2-beam",
+                    DrawingObjectKind.Part,
+                    beam,
+                    beamFrame,
+                    "BEAM",
+                    "B1",
+                    "I300*150*12*8",
+                    "S355",
+                    "TC2",
+                    true
+                ),
             };
 
             var centres = new List<GeoPolygon2>();
@@ -44,14 +55,47 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
             }
 
             var plateFrame = new GeoCoordinateSystem3(new GeoPoint3(length, 0, 0), GeoVector3.YAxis, GeoVector3.ZAxis);
-            GeoSolid3 plate = GeoSolid3.Extrude(new GeoFace2(Rectangle(-100, -170, 100, 170), centres), plateFrame, 20, Tol);
-            objects.Add(new DrawingObject("TC2-endplate", DrawingObjectKind.Part, plate, plateFrame, "PLATE", "P1", "PL20*200", "S355", "TC2"));
+            GeoSolid3 plate = GeoSolid3.Extrude(
+                new GeoFace2(Rectangle(-100, -170, 100, 170), centres),
+                plateFrame,
+                20,
+                Tol
+            );
+            objects.Add(
+                new DrawingObject(
+                    "TC2-endplate",
+                    DrawingObjectKind.Part,
+                    plate,
+                    plateFrame,
+                    "PLATE",
+                    "P1",
+                    "PL20*200",
+                    "S355",
+                    "TC2"
+                )
+            );
 
             if (extra)
             {
-                var extraFrame = new GeoCoordinateSystem3(new GeoPoint3(500, -50, 150), GeoVector3.XAxis, GeoVector3.YAxis);
+                var extraFrame = new GeoCoordinateSystem3(
+                    new GeoPoint3(500, -50, 150),
+                    GeoVector3.XAxis,
+                    GeoVector3.YAxis
+                );
                 GeoSolid3 body = GeoSolid3.Extrude(Rectangle(0, 0, 100, 100), extraFrame, 10, Tol);
-                objects.Add(new DrawingObject("P-EXTRA", DrawingObjectKind.Part, body, extraFrame, "PLATE", "P9", "PL10*100", "S355", "TC2"));
+                objects.Add(
+                    new DrawingObject(
+                        "P-EXTRA",
+                        DrawingObjectKind.Part,
+                        body,
+                        extraFrame,
+                        "PLATE",
+                        "P9",
+                        "PL10*100",
+                        "S355",
+                        "TC2"
+                    )
+                );
             }
 
             return new DrawingSource(objects);
@@ -67,16 +111,18 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
         }
 
         /// <summary>The entities of a space of a drawing tagged with an element's id, in their order.</summary>
-        public static List<DxfEntity> Tagged(IEnumerable<DxfEntity> space, string id)
-            => space.Where(e => !e.IsErased && DrawingEntityTags.TryRead(e, out string objectId, out _) && objectId == id).ToList();
+        public static List<DxfEntity> Tagged(IEnumerable<DxfEntity> space, string id) =>
+            space
+                .Where(e => !e.IsErased && DrawingEntityTags.TryRead(e, out string objectId, out _) && objectId == id)
+                .ToList();
 
         /// <summary>The DIMENSION of an element id in model space.</summary>
-        public static DxfDimension Dimension(DxfDatabase database, string id)
-            => Tagged(database.ModelSpace.Cast<DxfEntity>(), id).OfType<DxfDimension>().Single();
+        public static DxfDimension Dimension(DxfDatabase database, string id) =>
+            Tagged(database.ModelSpace.Cast<DxfEntity>(), id).OfType<DxfDimension>().Single();
 
         /// <summary>The layout the sheet is drawn on.</summary>
-        public static DxfLayout SheetLayout(DxfDatabase database)
-            => database.Layouts.Single(l => l.LayoutName == DrawingDxfWriter.LayoutName);
+        public static DxfLayout SheetLayout(DxfDatabase database) =>
+            database.Layouts.Single(l => l.LayoutName == DrawingDxfWriter.LayoutName);
 
         /// <summary>The drawing saved to bytes and read back.</summary>
         public static DxfDatabase SavedAndOpened(DxfDatabase database)
@@ -113,8 +159,11 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
         {
             CadDocument document = CadDocument.From(database, name + ".dxf");
             CadSpace space = document.Spaces.Single(s => s.Name == spaceName);
-            DisplayBox box = space.IsModel ? document.GetDisplay(space).Bounds : space.PaperBounds.Union(document.GetDisplay(space).Bounds);
-            const int width = 2000, height = 1414;
+            DisplayBox box = space.IsModel
+                ? document.GetDisplay(space).Bounds
+                : space.PaperBounds.Union(document.GetDisplay(space).Bounds);
+            const int width = 2000,
+                height = 1414;
             var cad = new CadView(width, height);
 
             if (!box.IsEmpty)
@@ -149,15 +198,41 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
-        private static GeoPolygon2 Rectangle(double x0, double y0, double x1, double y1) => new GeoPolygon2(P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1));
+        private static GeoPolygon2 Rectangle(double x0, double y0, double x1, double y1) =>
+            new GeoPolygon2(P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1));
 
-        private static GeoPolygon2 Circle(double x, double y, double radius, int corners)
-            => new GeoPolygon2(Enumerable.Range(0, corners).Select(i => P(x + radius * Math.Cos(2 * Math.PI * i / corners), y + radius * Math.Sin(2 * Math.PI * i / corners))));
+        private static GeoPolygon2 Circle(double x, double y, double radius, int corners) =>
+            new GeoPolygon2(
+                Enumerable
+                    .Range(0, corners)
+                    .Select(i =>
+                        P(
+                            x + radius * Math.Cos(2 * Math.PI * i / corners),
+                            y + radius * Math.Sin(2 * Math.PI * i / corners)
+                        )
+                    )
+            );
 
         private static GeoPolygon2 ISection(double depth, double width, double flange, double web)
         {
-            double w = width / 2, d = depth / 2, t = web / 2, f = d - flange;
-            return new GeoPolygon2(P(-w, -d), P(w, -d), P(w, -f), P(t, -f), P(t, f), P(w, f), P(w, d), P(-w, d), P(-w, f), P(-t, f), P(-t, -f), P(-w, -f));
+            double w = width / 2,
+                d = depth / 2,
+                t = web / 2,
+                f = d - flange;
+            return new GeoPolygon2(
+                P(-w, -d),
+                P(w, -d),
+                P(w, -f),
+                P(t, -f),
+                P(t, f),
+                P(w, f),
+                P(w, d),
+                P(-w, d),
+                P(-w, f),
+                P(-t, f),
+                P(-t, -f),
+                P(-w, -f)
+            );
         }
     }
 }

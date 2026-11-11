@@ -29,7 +29,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     {
                         var model = new MainViewModel();
                         model.Open(folder.Write("room.dxf", TestFiles.Room(out string bottom, out _)));
-                        var canvas = new CadCanvas { Document = model.Document, Space = model.Space, View = model.View, Session = model.Session, Snap = model.Snap };
+                        var canvas = new CadCanvas
+                        {
+                            Document = model.Document,
+                            Space = model.Space,
+                            View = model.View,
+                            Session = model.Session,
+                            Snap = model.Snap,
+                        };
                         canvas.PixelSizeChanged += (s, e) => model.SetCanvasSize(canvas.PixelWidth, canvas.PixelHeight);
                         canvas.Options.Background = 0x203040;
                         canvas.Measure(new Size(Width, Height));
@@ -53,7 +60,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         /// <summary>The renderer's own frame of the canvas's view: its scene, or the entities given alone.</summary>
         private static SKBitmap Frame(CadCanvas canvas, string only = null)
         {
-            var frame = new SKBitmap(new SKImageInfo(canvas.PixelWidth, canvas.PixelHeight, SKColorType.Bgra8888, SKAlphaType.Premul));
+            var frame = new SKBitmap(
+                new SKImageInfo(canvas.PixelWidth, canvas.PixelHeight, SKColorType.Bgra8888, SKAlphaType.Premul)
+            );
 
             using (var surface = new SKCanvas(frame))
             using (var renderer = new SkiaCanvasRenderer())
@@ -64,7 +73,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 }
                 else
                 {
-                    renderer.RenderOnly(surface, canvas.Document, canvas.Space, canvas.View, canvas.Options, new[] { only });
+                    renderer.RenderOnly(
+                        surface,
+                        canvas.Document,
+                        canvas.Space,
+                        canvas.View,
+                        canvas.Options,
+                        new[] { only }
+                    );
                 }
             }
 
@@ -94,93 +110,102 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         [Fact]
         public void PngOut_AsksTheFileOfTheDialog_AndWritesTheCanvasScene_WithoutTheSelectionOrItsGrips()
         {
-            OnCanvas((model, canvas, folder, bottom) =>
-            {
-                model.Document.Selection.Set(new[] { bottom });
-                canvas.RenderNow();
-                Assert.True(canvas.GripCount > 0);
-                string offeredFolder = null;
-                string offeredName = null;
-                string path = Path.Combine(folder, "room-shown.png");
-                model.AskImageFile = (where, name) =>
+            OnCanvas(
+                (model, canvas, folder, bottom) =>
                 {
-                    offeredFolder = where;
-                    offeredName = name;
-                    return path;
-                };
+                    model.Document.Selection.Set(new[] { bottom });
+                    canvas.RenderNow();
+                    Assert.True(canvas.GripCount > 0);
+                    string offeredFolder = null;
+                    string offeredName = null;
+                    string path = Path.Combine(folder, "room-shown.png");
+                    model.AskImageFile = (where, name) =>
+                    {
+                        offeredFolder = where;
+                        offeredName = name;
+                        return path;
+                    };
 
-                model.Execute("PNGOUT");
-                Assert.Equal("Select objects or <all objects and viewports>:", model.Session.PromptText);
-                model.Session.Enter();
+                    model.Execute("PNGOUT");
+                    Assert.Equal("Select objects or <all objects and viewports>:", model.Session.PromptText);
+                    model.Session.Enter();
 
-                Assert.False(model.Session.IsRunning);
-                Assert.Equal(folder, offeredFolder);
-                Assert.Equal("room.png", offeredName);
-                Assert.Equal(Width, canvas.PixelWidth);
+                    Assert.False(model.Session.IsRunning);
+                    Assert.Equal(folder, offeredFolder);
+                    Assert.Equal("room.png", offeredName);
+                    Assert.Equal(Width, canvas.PixelWidth);
 
-                using (SKBitmap image = SKBitmap.Decode(path))
-                using (SKBitmap frame = Frame(canvas))
-                {
-                    Assert.Equal(Width, image.Width);
-                    Assert.Equal(Height, image.Height);
-                    Assert.Equal(new SKColor(0x20, 0x30, 0x40), image.GetPixel(0, 0));
-                    Assert.Equal(0, Differ(image, frame));
+                    using (SKBitmap image = SKBitmap.Decode(path))
+                    using (SKBitmap frame = Frame(canvas))
+                    {
+                        Assert.Equal(Width, image.Width);
+                        Assert.Equal(Height, image.Height);
+                        Assert.Equal(new SKColor(0x20, 0x30, 0x40), image.GetPixel(0, 0));
+                        Assert.Equal(0, Differ(image, frame));
+                    }
                 }
-            });
+            );
         }
 
         [Fact]
         public void TheGridShown_IsWrittenWithAllObjects_AndNotWithTheObjectsSelected()
         {
-            OnCanvas((model, canvas, folder, bottom) =>
-            {
-                canvas.ShowGrid = true;
-                canvas.RenderNow();
-                string all = Path.Combine(folder, "all.bmp");
-                string selected = Path.Combine(folder, "selected.bmp");
-                string next = all;
-                model.AskImageFile = (where, name) => next;
-
-                model.Execute("BMPOUT");
-                model.Session.Enter();
-                next = selected;
-                model.Execute("BMPOUT");
-                model.Session.FeedSelection(new[] { bottom });
-                model.Session.Enter();
-
-                using (SKBitmap image = SKBitmap.Decode(all))
-                using (SKBitmap frame = Frame(canvas))
+            OnCanvas(
+                (model, canvas, folder, bottom) =>
                 {
-                    Assert.True(Differ(image, frame) > 1000);
-                }
+                    canvas.ShowGrid = true;
+                    canvas.RenderNow();
+                    string all = Path.Combine(folder, "all.bmp");
+                    string selected = Path.Combine(folder, "selected.bmp");
+                    string next = all;
+                    model.AskImageFile = (where, name) => next;
 
-                using (SKBitmap image = SKBitmap.Decode(selected))
-                using (SKBitmap frame = Frame(canvas, bottom))
-                using (SKBitmap scene = Frame(canvas))
-                {
-                    Assert.Equal(0, Differ(image, frame));
-                    Assert.True(Differ(image, scene) > 0);
+                    model.Execute("BMPOUT");
+                    model.Session.Enter();
+                    next = selected;
+                    model.Execute("BMPOUT");
+                    model.Session.FeedSelection(new[] { bottom });
+                    model.Session.Enter();
+
+                    using (SKBitmap image = SKBitmap.Decode(all))
+                    using (SKBitmap frame = Frame(canvas))
+                    {
+                        Assert.True(Differ(image, frame) > 1000);
+                    }
+
+                    using (SKBitmap image = SKBitmap.Decode(selected))
+                    using (SKBitmap frame = Frame(canvas, bottom))
+                    using (SKBitmap scene = Frame(canvas))
+                    {
+                        Assert.Equal(0, Differ(image, frame));
+                        Assert.True(Differ(image, scene) > 0);
+                    }
                 }
-            });
+            );
         }
 
         [Fact]
         public void TheDialogCancelled_WritesNothing_AndNoDialogLeavesTheCommandLinesPrompt()
         {
-            OnCanvas((model, canvas, folder, bottom) =>
-            {
-                model.AskImageFile = (where, name) => null;
-                model.Execute("JPGOUT");
-                Assert.False(model.Session.IsRunning);
-                Assert.Empty(Directory.GetFiles(folder, "*.jpg"));
+            OnCanvas(
+                (model, canvas, folder, bottom) =>
+                {
+                    model.AskImageFile = (where, name) => null;
+                    model.Execute("JPGOUT");
+                    Assert.False(model.Session.IsRunning);
+                    Assert.Empty(Directory.GetFiles(folder, "*.jpg"));
 
-                model.AskImageFile = null;
-                model.Execute("JPGOUT");
-                Assert.Equal("Enter file name <" + Path.Combine(folder, "room.jpg") + ">:", model.Session.PromptText);
-                model.Session.Feed("typed");
-                model.Session.Enter();
-                Assert.True(File.Exists(Path.Combine(folder, "typed.jpg")));
-            });
+                    model.AskImageFile = null;
+                    model.Execute("JPGOUT");
+                    Assert.Equal(
+                        "Enter file name <" + Path.Combine(folder, "room.jpg") + ">:",
+                        model.Session.PromptText
+                    );
+                    model.Session.Feed("typed");
+                    model.Session.Enter();
+                    Assert.True(File.Exists(Path.Combine(folder, "typed.jpg")));
+                }
+            );
         }
     }
 }

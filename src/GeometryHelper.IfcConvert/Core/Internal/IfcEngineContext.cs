@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Xbim.Common.Geometry;
 using Xbim.Geometry.Engine.Interop;
 using Xbim.Ifc4.Interfaces;

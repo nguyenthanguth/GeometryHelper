@@ -17,17 +17,32 @@ namespace GeometryHelper.UnitTest.Dxf
     {
         private static readonly Tolerance Tol = Tolerance.Default;
 
-        private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
-
-        private static readonly GeoTransform3 Turn = new GeoTransform3(new[,]
+        private static readonly string[] Drawings =
         {
-            { 0.7816391739070251, -0.4829292842142122, 0.3947397981737998, 10.0 },
-            { 0.5501172307043584, 0.8320301337746346, -0.07139249941787586, -5.0 },
-            { -0.29395787843858057, 0.27295633888831433, 0.9160150668873173, 2.5 },
-            { 0.0, 0.0, 0.0, 1.0 },
-        });
+            DxfFileEzdxfDrawings.R12,
+            DxfFileEzdxfDrawings.R2000,
+            DxfFileEzdxfDrawings.R2018,
+        };
 
-        private static readonly GeoTransform3 Mirror = new GeoTransform3(new double[,] { { -1, 0, 0, 3 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } });
+        private static readonly GeoTransform3 Turn = new GeoTransform3(
+            new[,]
+            {
+                { 0.7816391739070251, -0.4829292842142122, 0.3947397981737998, 10.0 },
+                { 0.5501172307043584, 0.8320301337746346, -0.07139249941787586, -5.0 },
+                { -0.29395787843858057, 0.27295633888831433, 0.9160150668873173, 2.5 },
+                { 0.0, 0.0, 0.0, 1.0 },
+            }
+        );
+
+        private static readonly GeoTransform3 Mirror = new GeoTransform3(
+            new double[,]
+            {
+                { -1, 0, 0, 3 },
+                { 0, 1, 0, 0 },
+                { 0, 0, 1, 0 },
+                { 0, 0, 0, 1 },
+            }
+        );
 
         [Fact]
         public void AnArcOnATiltedNormal_IsReadAsEzdxfReadsIt_ItsAnglesInRadians()
@@ -35,7 +50,14 @@ namespace GeometryHelper.UnitTest.Dxf
             // ezdxf 1.4.5: ARC 40 of R2000 (43 of R12), groups 10/20/30 (30, 30, 0) on the extrusion (1, 2, 3), 15 to 200
             // degrees: OCS.to_wcs (-37.589873214007014, -8.09770710302035, 17.928429140015904), normal (0.2672612419124244,
             // 0.5345224838248488, 0.8017837257372732), start 0.2617993877991494 and end 3.490658503988659 radians.
-            foreach (var (text, handle) in new[] { (DxfFileEzdxfDrawings.R12, "43"), (DxfFileEzdxfDrawings.R2000, "40"), (DxfFileEzdxfDrawings.R2018, "40") })
+            foreach (
+                var (text, handle) in new[]
+                {
+                    (DxfFileEzdxfDrawings.R12, "43"),
+                    (DxfFileEzdxfDrawings.R2000, "40"),
+                    (DxfFileEzdxfDrawings.R2018, "40"),
+                }
+            )
             {
                 DxfArc arc = ByHandle<DxfArc>(DxfDatabase.Parse(text), handle);
 
@@ -85,8 +107,12 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(5.0 * Math.PI, arc.GetDistAtPoint(new GeoPoint3(10, 0, 0)), 12);
             Assert.True(arc.GetPointAtDist(5.0 * Math.PI).IsEqualTo(new GeoPoint3(10, 0, 0), near));
             Assert.Equal(0.5 * 100.0 * Math.PI, arc.Area, 11);
-            Assert.True(arc.GetClosestPointTo(new GeoPoint3(-20, 1, 0), false).IsEqualTo(new GeoPoint3(0, 10, 0), near));
-            Assert.True(arc.GetClosestPointTo(new GeoPoint3(-20, 0, 0), true).IsEqualTo(new GeoPoint3(-10, 0, 0), near));
+            Assert.True(
+                arc.GetClosestPointTo(new GeoPoint3(-20, 1, 0), false).IsEqualTo(new GeoPoint3(0, 10, 0), near)
+            );
+            Assert.True(
+                arc.GetClosestPointTo(new GeoPoint3(-20, 0, 0), true).IsEqualTo(new GeoPoint3(-10, 0, 0), near)
+            );
             Assert.Throws<ArgumentException>(() => arc.GetParameterAtPoint(new GeoPoint3(-10, 0, 0)));
             Assert.Throws<ArgumentOutOfRangeException>(() => arc.GetPointAtParameter(Math.PI));
 
@@ -160,7 +186,10 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                var arc = new DxfArc(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 3.0, 0.5, 2.5) { Layer = "rebar" };
+                var arc = new DxfArc(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 3.0, 0.5, 2.5)
+                {
+                    Layer = "rebar",
+                };
 
                 db.ModelSpace.AppendEntity(arc);
 
@@ -209,13 +238,17 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(new GeoPoint3(29.03238150247498, -10.197322616342973, 15.475675578386973), mirrored.EndPoint, 1E-9);
         }
 
-        private static void Near(GeoPoint3 expected, GeoPoint3 actual, double relative)
-            => Assert.True(actual.DistanceTo(expected) <= relative * Math.Max(1.0, Math.Abs(expected.X) + Math.Abs(expected.Y) + Math.Abs(expected.Z)), actual + " is not " + expected);
+        private static void Near(GeoPoint3 expected, GeoPoint3 actual, double relative) =>
+            Assert.True(
+                actual.DistanceTo(expected)
+                    <= relative * Math.Max(1.0, Math.Abs(expected.X) + Math.Abs(expected.Y) + Math.Abs(expected.Z)),
+                actual + " is not " + expected
+            );
 
-        private static void Near(GeoVector3 expected, GeoVector3 actual, double absolute)
-            => Assert.True(actual.Subtract(expected).Length <= absolute, actual + " is not " + expected);
+        private static void Near(GeoVector3 expected, GeoVector3 actual, double absolute) =>
+            Assert.True(actual.Subtract(expected).Length <= absolute, actual + " is not " + expected);
 
-        private static string LayerTableHandle(string text)
-            => HandleOf(Records(text).First(r => r.StartsWith("  0\nTABLE\n  2\nLAYER\n", StringComparison.Ordinal)));
+        private static string LayerTableHandle(string text) =>
+            HandleOf(Records(text).First(r => r.StartsWith("  0\nTABLE\n  2\nLAYER\n", StringComparison.Ordinal)));
     }
 }

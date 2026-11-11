@@ -95,9 +95,15 @@ namespace GeometryHelper.Core
 
             // What each body moved in was moved in as, so that one given twice is moved once; and what each body and face moved
             // in was given as, so that one handed back untouched goes out as it came. Read by reference, never enumerated.
-            private readonly Dictionary<GeoSolid3, GeoSolid3> _moved = new Dictionary<GeoSolid3, GeoSolid3>(SameObject<GeoSolid3>.Comparer);
-            private readonly Dictionary<GeoSolid3, GeoSolid3> _givenBodies = new Dictionary<GeoSolid3, GeoSolid3>(SameObject<GeoSolid3>.Comparer);
-            private readonly Dictionary<GeoFace3, GeoFace3> _givenFaces = new Dictionary<GeoFace3, GeoFace3>(SameObject<GeoFace3>.Comparer);
+            private readonly Dictionary<GeoSolid3, GeoSolid3> _moved = new Dictionary<GeoSolid3, GeoSolid3>(
+                SameObject<GeoSolid3>.Comparer
+            );
+            private readonly Dictionary<GeoSolid3, GeoSolid3> _givenBodies = new Dictionary<GeoSolid3, GeoSolid3>(
+                SameObject<GeoSolid3>.Comparer
+            );
+            private readonly Dictionary<GeoFace3, GeoFace3> _givenFaces = new Dictionary<GeoFace3, GeoFace3>(
+                SameObject<GeoFace3>.Comparer
+            );
 
             // How many booleans on this thread are being worked out in a frame.
             [ThreadStatic]
@@ -151,8 +157,8 @@ namespace GeometryHelper.Core
             /// <param name="tolerance">The tolerance it is worked out within.</param>
             /// <param name="frame">The frame; null when the method returns false.</param>
             /// <returns>true where the body stands far out, as <see cref="FarFrame"/> says; otherwise, false.</returns>
-            internal static bool TryFor(GeoSolid3 body, Tolerance tolerance, out FarFrame frame)
-                => TryFor(body, new GeoSolid3[0], tolerance, out frame);
+            internal static bool TryFor(GeoSolid3 body, Tolerance tolerance, out FarFrame frame) =>
+                TryFor(body, new GeoSolid3[0], tolerance, out frame);
 
             /// <summary>
             /// Gets the frame two bodies are worked out in, where they stand far out.
@@ -162,8 +168,8 @@ namespace GeometryHelper.Core
             /// <param name="tolerance">The tolerance the boolean is asked within.</param>
             /// <param name="frame">The frame; null when the method returns false.</param>
             /// <returns>true where the two stand far out, as <see cref="FarFrame"/> says; otherwise, false.</returns>
-            internal static bool TryFor(GeoSolid3 first, GeoSolid3 second, Tolerance tolerance, out FarFrame frame)
-                => TryFor(first, new[] { second }, tolerance, out frame);
+            internal static bool TryFor(GeoSolid3 first, GeoSolid3 second, Tolerance tolerance, out FarFrame frame) =>
+                TryFor(first, new[] { second }, tolerance, out frame);
 
             /// <summary>
             /// Gets the frame a body and others are worked out in, where they stand far out together.
@@ -173,7 +179,12 @@ namespace GeometryHelper.Core
             /// <param name="tolerance">The tolerance the booleans are asked within.</param>
             /// <param name="frame">The frame; null when the method returns false.</param>
             /// <returns>true where the bodies stand far out, as <see cref="FarFrame"/> says; otherwise, false.</returns>
-            internal static bool TryFor(GeoSolid3 first, IEnumerable<GeoSolid3> others, Tolerance tolerance, out FarFrame frame)
+            internal static bool TryFor(
+                GeoSolid3 first,
+                IEnumerable<GeoSolid3> others,
+                Tolerance tolerance,
+                out FarFrame frame
+            )
             {
                 frame = null;
 
@@ -204,16 +215,22 @@ namespace GeometryHelper.Core
                 GeoPoint3 max = box.Max;
                 double reach = Math.Max(
                     Math.Max(Math.Max(Math.Abs(min.X), Math.Abs(max.X)), Math.Max(Math.Abs(min.Y), Math.Abs(max.Y))),
-                    Math.Max(Math.Abs(min.Z), Math.Abs(max.Z)));
+                    Math.Max(Math.Abs(min.Z), Math.Abs(max.Z))
+                );
                 double size = Math.Max(max.X - min.X, Math.Max(max.Y - min.Y, max.Z - min.Z));
 
-                if (!(reach > FarReach && reach > FarTimesSize * size) || Math.Min(tolerance.EqualPoint, tolerance.EqualPlanar) < FarFinest * reach)
+                if (
+                    !(reach > FarReach && reach > FarTimesSize * size)
+                    || Math.Min(tolerance.EqualPoint, tolerance.EqualPlanar) < FarFinest * reach
+                )
                 {
                     return false;
                 }
 
                 double lift = FarLift * reach;
-                frame = new FarFrame(new GeoVector3(Corner(min.X, max.X, lift), Corner(min.Y, max.Y, lift), Corner(min.Z, max.Z, lift)));
+                frame = new FarFrame(
+                    new GeoVector3(Corner(min.X, max.X, lift), Corner(min.Y, max.Y, lift), Corner(min.Z, max.Z, lift))
+                );
                 frame.Reach = reach;
                 return true;
             }
@@ -234,8 +251,8 @@ namespace GeometryHelper.Core
             /// finer than <see cref="FarFinest"/> of the reach, as <see cref="TryFor(GeoSolid3, IEnumerable{GeoSolid3}, Tolerance, out FarFrame)"/>
             /// reads it.
             /// </summary>
-            internal static bool Admits(double reach, Tolerance tolerance)
-                => _working == 0 && !(Math.Min(tolerance.EqualPoint, tolerance.EqualPlanar) < FarFinest * reach);
+            internal static bool Admits(double reach, Tolerance tolerance) =>
+                _working == 0 && !(Math.Min(tolerance.EqualPoint, tolerance.EqualPlanar) < FarFinest * reach);
 
             /// <summary>
             /// Gets the origin along an axis, the least coordinate less the lift, where every coordinate from the least to the
@@ -246,7 +263,9 @@ namespace GeometryHelper.Core
             {
                 double origin = min - lift;
 
-                return (origin > 0.0 && min >= 0.5 * origin && max <= 2.0 * origin) || (origin < 0.0 && max <= 0.5 * origin && min >= 2.0 * origin)
+                return
+                    (origin > 0.0 && min >= 0.5 * origin && max <= 2.0 * origin)
+                    || (origin < 0.0 && max <= 0.5 * origin && min >= 2.0 * origin)
                     ? origin
                     : 0.0;
             }
@@ -269,7 +288,15 @@ namespace GeometryHelper.Core
             /// <summary>
             /// Works out a boolean of two bodies in the frame, and moves what it gives back out.
             /// </summary>
-            internal bool Work(Operation operation, GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome, out GeoSolid3 open)
+            internal bool Work(
+                Operation operation,
+                GeoSolid3 first,
+                GeoSolid3 second,
+                out GeoSolid3 result,
+                Tolerance tolerance,
+                out BooleanOutcome outcome,
+                out GeoSolid3 open
+            )
             {
                 bool made;
                 Enter();
@@ -367,8 +394,8 @@ namespace GeometryHelper.Core
             /// <summary>
             /// Moves a placement of a grid into the frame: the point a cell starts at, where it has one; its axes as they are.
             /// </summary>
-            internal MeshPlacement3 In(MeshPlacement3 placement)
-                => placement.Origin.HasValue ? placement.At(placement.Origin.Value.Add(_in)) : placement;
+            internal MeshPlacement3 In(MeshPlacement3 placement) =>
+                placement.Origin.HasValue ? placement.At(placement.Origin.Value.Add(_in)) : placement;
 
             /// <summary>
             /// Moves faces out of the frame, as the faces of a body are moved out.
@@ -379,7 +406,9 @@ namespace GeometryHelper.Core
 
                 for (int i = 0; i < faces.Length; i++)
                 {
-                    faces[i] = _givenFaces.TryGetValue(moved[i], out GeoFace3 was) ? was : moved[i].MovedBy(_origin, false);
+                    faces[i] = _givenFaces.TryGetValue(moved[i], out GeoFace3 was)
+                        ? was
+                        : moved[i].MovedBy(_origin, false);
                 }
 
                 return faces;
@@ -388,15 +417,15 @@ namespace GeometryHelper.Core
             /// <summary>
             /// Moves a box out of the frame: its centre, coordinate by coordinate; its axes and sizes as they are.
             /// </summary>
-            internal GeoObb3 Out(GeoObb3 box)
-                => new GeoObb3(box.CoordinateSystem.WithOrigin(box.Center.Add(_origin)), box.SizeX, box.SizeY, box.SizeZ);
+            internal GeoObb3 Out(GeoObb3 box) =>
+                new GeoObb3(box.CoordinateSystem.WithOrigin(box.Center.Add(_origin)), box.SizeX, box.SizeY, box.SizeZ);
 
             /// <summary>
             /// Moves a grid of cells out of the frame: its origin, each cell's box and each cell's material; where the cells
             /// start and end along its axes, measured from its origin, and what each holds, as they are.
             /// </summary>
-            internal GeoCellGrid3 Out(GeoCellGrid3 grid)
-                => grid.Moved(grid.Frame.WithOrigin(grid.Frame.Origin.Add(_origin)), cell => cell.Moved(Out, Out));
+            internal GeoCellGrid3 Out(GeoCellGrid3 grid) =>
+                grid.Moved(grid.Frame.WithOrigin(grid.Frame.Origin.Add(_origin)), cell => cell.Moved(Out, Out));
 
             /// <summary>
             /// Moves what a run of cuts reports out of the frame: the place of each repair of a cut closed.
@@ -417,10 +446,24 @@ namespace GeometryHelper.Core
                     }
 
                     GeoPoint3? at = closing.FailureLocation;
-                    closings[i] = new SolidClosing3(repairs, closing.AddedArea, closing.VolumeChange, closing.Failure, at.HasValue ? at.Value.Add(_origin) : (GeoPoint3?)null);
+                    closings[i] = new SolidClosing3(
+                        repairs,
+                        closing.AddedArea,
+                        closing.VolumeChange,
+                        closing.Failure,
+                        at.HasValue ? at.Value.Add(_origin) : (GeoPoint3?)null
+                    );
                 }
 
-                return new SubtractReport(report.Tools, report.Taken, report.Skipped, report.WithinFallback, report.Closed, closings, report.RefusedByVolume);
+                return new SubtractReport(
+                    report.Tools,
+                    report.Taken,
+                    report.Skipped,
+                    report.WithinFallback,
+                    report.Closed,
+                    closings,
+                    report.RefusedByVolume
+                );
             }
         }
 
@@ -589,7 +632,8 @@ namespace GeometryHelper.Core
             /// <summary>
             /// Moves a segment out of the frame, end by end.
             /// </summary>
-            internal GeoLine3 Out(GeoLine3 line) => new GeoLine3(line.StartPoint.Add(_origin), line.EndPoint.Add(_origin));
+            internal GeoLine3 Out(GeoLine3 line) =>
+                new GeoLine3(line.StartPoint.Add(_origin), line.EndPoint.Add(_origin));
         }
 
         /// <summary>

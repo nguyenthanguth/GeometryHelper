@@ -14,7 +14,12 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class BvhShortSideG1wdTests
     {
-        private static readonly Tolerance Thousandth = new Tolerance(1E-3, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-3);
+        private static readonly Tolerance Thousandth = new Tolerance(
+            1E-3,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-3
+        );
 
         [Fact]
         public void AShortLastSidePointingAtAnotherIndex_IsMeasuredToItsEnd()

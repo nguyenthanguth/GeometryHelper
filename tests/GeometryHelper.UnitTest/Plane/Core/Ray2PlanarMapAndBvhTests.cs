@@ -24,7 +24,8 @@ namespace GeometryHelper.UnitTest.Plane
     {
         private static readonly Tolerance Strict = new Tolerance(1E-3, 1E-5);
 
-        private static GeoCoordinateSystem3 Upright() => new GeoCoordinateSystem3(new GeoPoint3(10, 20, 30), GeoVector3.YAxis, GeoVector3.ZAxis);
+        private static GeoCoordinateSystem3 Upright() =>
+            new GeoCoordinateSystem3(new GeoPoint3(10, 20, 30), GeoVector3.YAxis, GeoVector3.ZAxis);
 
         private static void AssertNear(GeoPoint2 expected, GeoPoint2 actual, double within = 1E-12)
         {
@@ -94,8 +95,16 @@ namespace GeometryHelper.UnitTest.Plane
             var inPlane = new GeoRay3(new GeoPoint3(10, -4, 81), new GeoVector3(0, 1, 2));
             var flat = new GeoRay2(new GeoPoint2(-3, 9), new GeoVector2(1, 2));
 
-            Assert.True(PlanarMap.ToRay3(Upright(), PlanarMap.ProjectToRay2(Upright(), inPlane)).IsEqualTo(inPlane, new Tolerance(1E-12, 1E-12)));
-            Assert.True(PlanarMap.ProjectToRay2(Upright(), PlanarMap.ToRay3(Upright(), flat)).IsEqualTo(flat, new Tolerance(1E-12, 1E-12)));
+            Assert.True(
+                PlanarMap
+                    .ToRay3(Upright(), PlanarMap.ProjectToRay2(Upright(), inPlane))
+                    .IsEqualTo(inPlane, new Tolerance(1E-12, 1E-12))
+            );
+            Assert.True(
+                PlanarMap
+                    .ProjectToRay2(Upright(), PlanarMap.ToRay3(Upright(), flat))
+                    .IsEqualTo(flat, new Tolerance(1E-12, 1E-12))
+            );
         }
 
         [Fact]
@@ -120,10 +129,15 @@ namespace GeometryHelper.UnitTest.Plane
         /// </summary>
         private static GeoLine2 Cut(GeoRay2 ray, GeoVector2 unit, GeoBvh2 index, Tolerance tolerance)
         {
-            double far = index.Bounds.GetVertices().Max(c => (c.X - ray.Origin.X) * unit.X + (c.Y - ray.Origin.Y) * unit.Y);
+            double far = index
+                .Bounds.GetVertices()
+                .Max(c => (c.X - ray.Origin.X) * unit.X + (c.Y - ray.Origin.Y) * unit.Y);
             double reach = Math.Max(0.0, far) + Math.Max(1.0, 100 * tolerance.EqualPoint);
 
-            return new GeoLine2(ray.Origin, new GeoPoint2(ray.Origin.X + reach * unit.X, ray.Origin.Y + reach * unit.Y));
+            return new GeoLine2(
+                ray.Origin,
+                new GeoPoint2(ray.Origin.X + reach * unit.X, ray.Origin.Y + reach * unit.Y)
+            );
         }
 
         [Fact]
@@ -174,10 +188,24 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var ray = new GeoRay2(new GeoPoint2(-50, 50), GeoVector2.XAxis);
 
-            AssertSamePoints(new[] { new GeoPoint2(0, 50), new GeoPoint2(100, 50) }, GeoBvh2.FromPolygon(Square()).GetIntersections(ray, Strict));
-            AssertSamePoints(Square().GetIntersections(ray, Strict), GeoBvh2.FromPolygon(Square()).GetIntersections(ray, Strict));
-            AssertSamePoints(Plate().GetIntersections(ray, Strict), GeoBvh2.FromFace(Plate()).GetIntersections(ray, Strict));
-            AssertSamePoints(Ell().GetIntersections(new GeoRay2(new GeoPoint2(20, -50), new GeoVector2(1, 1)), Strict), GeoBvh2.FromPolyline(Ell()).GetIntersections(new GeoRay2(new GeoPoint2(20, -50), new GeoVector2(1, 1)), Strict));
+            AssertSamePoints(
+                new[] { new GeoPoint2(0, 50), new GeoPoint2(100, 50) },
+                GeoBvh2.FromPolygon(Square()).GetIntersections(ray, Strict)
+            );
+            AssertSamePoints(
+                Square().GetIntersections(ray, Strict),
+                GeoBvh2.FromPolygon(Square()).GetIntersections(ray, Strict)
+            );
+            AssertSamePoints(
+                Plate().GetIntersections(ray, Strict),
+                GeoBvh2.FromFace(Plate()).GetIntersections(ray, Strict)
+            );
+            AssertSamePoints(
+                Ell().GetIntersections(new GeoRay2(new GeoPoint2(20, -50), new GeoVector2(1, 1)), Strict),
+                GeoBvh2
+                    .FromPolyline(Ell())
+                    .GetIntersections(new GeoRay2(new GeoPoint2(20, -50), new GeoVector2(1, 1)), Strict)
+            );
         }
 
         [Fact]
@@ -209,7 +237,13 @@ namespace GeometryHelper.UnitTest.Plane
         {
             GeoBvh2 index = GeoBvh2.FromPolygonArc(Cog(24, 100));
 
-            foreach (GeoRay2 ray in new[] { new GeoRay2(new GeoPoint2(3, -2), new GeoVector2(1, 2)), new GeoRay2(new GeoPoint2(-300, 7), GeoVector2.XAxis) })
+            foreach (
+                GeoRay2 ray in new[]
+                {
+                    new GeoRay2(new GeoPoint2(3, -2), new GeoVector2(1, 2)),
+                    new GeoRay2(new GeoPoint2(-300, 7), GeoVector2.XAxis),
+                }
+            )
             {
                 Assert.Equal(index.GetIntersections(ray, Tolerance.Global), index.GetIntersections(ray));
             }

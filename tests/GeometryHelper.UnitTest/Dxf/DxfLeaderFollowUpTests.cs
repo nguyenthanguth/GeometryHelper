@@ -40,7 +40,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(back.IsEqualTo(met, Tol), back.ToString());
             Assert.True(leader.GetClosestPointTo(met, false).IsEqualTo(met, Tol));
             var shape = Assert.IsType<GeoPolyline3>(Assert.Single(leader.GetGeometry()));
-            Assert.Equal(new[] { Bits(new GeoPoint3(0, 0, 0)), Bits(new GeoPoint3(10, 5, 0)) }, shape.Vertices.Select(Bits));
+            Assert.Equal(
+                new[] { Bits(new GeoPoint3(0, 0, 0)), Bits(new GeoPoint3(10, 5, 0)) },
+                shape.Vertices.Select(Bits)
+            );
             Assert.Same(shape, leader.GetGeCurve());
             Assert.True(leader.IsPlanar);
         }
@@ -53,8 +56,18 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             DxfLeader leader = ByHandle<DxfLeader>(db, "89");
 
-            GeoPoint3 low = Assert.Single(leader.IntersectWith(new DxfLine(new GeoPoint3(-5, 7, 0), new GeoPoint3(25, 7, 0)), DxfIntersect.OnBothOperands));
-            GeoPoint3 high = Assert.Single(leader.IntersectWith(new DxfLine(new GeoPoint3(15, -5, 0), new GeoPoint3(15, 25, 0)), DxfIntersect.OnBothOperands));
+            GeoPoint3 low = Assert.Single(
+                leader.IntersectWith(
+                    new DxfLine(new GeoPoint3(-5, 7, 0), new GeoPoint3(25, 7, 0)),
+                    DxfIntersect.OnBothOperands
+                )
+            );
+            GeoPoint3 high = Assert.Single(
+                leader.IntersectWith(
+                    new DxfLine(new GeoPoint3(15, -5, 0), new GeoPoint3(15, 25, 0)),
+                    DxfIntersect.OnBothOperands
+                )
+            );
 
             Assert.True(low.IsEqualTo(new GeoPoint3(7, 7, 0), Tol), low.ToString());
             Assert.True(high.IsEqualTo(new GeoPoint3(15, 10, 0), Tol), high.ToString());
@@ -85,7 +98,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(met.Y > 10.0 + 0.1, met.ToString());
             Assert.True(leader.GetClosestPointTo(met, false).IsEqualTo(met, Tol));
             var shape = Assert.IsType<GeoSpline3>(Assert.Single(leader.GetGeometry()));
-            Assert.Equal(Assert.IsType<GeoSpline3>(Assert.Single(drawn.GetGeometry())).ControlPoints.Select(Bits), shape.ControlPoints.Select(Bits));
+            Assert.Equal(
+                Assert.IsType<GeoSpline3>(Assert.Single(drawn.GetGeometry())).ControlPoints.Select(Bits),
+                shape.ControlPoints.Select(Bits)
+            );
             Assert.True(leader.IsPlanar);
 
             var dot = new DxfLeader();
@@ -118,7 +134,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.NotEqual(Bits(before), Bits(after));
             Assert.True(drawn.GetPointAtParameter(0.5 * leader.EndParam).IsEqualTo(after, new Tolerance(1E-12, 1E-12)));
             Assert.Equal(Bits(leader.Spline.GetPointAtParameter(0.5 * leader.EndParam)), Bits(after));
-            Assert.Equal(Assert.IsType<GeoSpline3>(Assert.Single(drawn.GetGeometry())).ControlPoints.Select(Bits), Assert.IsType<GeoSpline3>(Assert.Single(leader.GetGeometry())).ControlPoints.Select(Bits));
+            Assert.Equal(
+                Assert.IsType<GeoSpline3>(Assert.Single(drawn.GetGeometry())).ControlPoints.Select(Bits),
+                Assert.IsType<GeoSpline3>(Assert.Single(leader.GetGeometry())).ControlPoints.Select(Bits)
+            );
 
             leader.IsSplined = false;
 
@@ -132,14 +151,23 @@ namespace GeometryHelper.UnitTest.Dxf
             // 4 000 vertices, the spline kept between questions while lines are made in no file between them, which change
             // the file such entities are held in: each point is that of the spline Explode fits, its parameter run over the
             // lengths of the chords (check 63), to the rounding.
-            var text = new StringBuilder("  0\nSECTION\n  2\nENTITIES\n  0\nLEADER\n  5\nC10\n100\nAcDbEntity\n  8\n0\n100\nAcDbLeader\n  3\nStandard\n 71\n1\n 72\n1\n 73\n3\n 76\n4000\n");
+            var text = new StringBuilder(
+                "  0\nSECTION\n  2\nENTITIES\n  0\nLEADER\n  5\nC10\n100\nAcDbEntity\n  8\n0\n100\nAcDbLeader\n  3\nStandard\n 71\n1\n 72\n1\n 73\n3\n 76\n4000\n"
+            );
 
             for (int i = 0; i < 4000; i++)
             {
-                text.Append(" 10\n" + (i * 10).ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n 20\n" + ((i % 2) * 5).ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n 30\n0.0\n");
+                text.Append(
+                    " 10\n"
+                        + (i * 10).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        + "\n 20\n"
+                        + ((i % 2) * 5).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        + "\n 30\n0.0\n"
+                );
             }
 
-            var leader = (DxfLeader)DxfDatabase.Parse(text.Append("  0\nENDSEC\n  0\nEOF\n").ToString()).ModelSpace.First();
+            var leader = (DxfLeader)
+                DxfDatabase.Parse(text.Append("  0\nENDSEC\n  0\nEOF\n").ToString()).ModelSpace.First();
             var points = new GeoPoint3[400];
 
             for (int i = 0; i < 400; i++)
@@ -164,11 +192,19 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfLeader leader = B3With(" 62\n257\n");
             leader.Dimclrd = DxfColor.FromColorIndex(DxfColorMethod.ByAci, 7);
 
-            Assert.Contains("colour index", Assert.Throws<ArgumentOutOfRangeException>(() => leader.Explode()).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "colour index",
+                Assert.Throws<ArgumentOutOfRangeException>(() => leader.Explode()).Message,
+                StringComparison.Ordinal
+            );
 
             leader.IsSplined = true;
 
-            Assert.Contains("colour index", Assert.Throws<ArgumentOutOfRangeException>(() => leader.Explode()).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "colour index",
+                Assert.Throws<ArgumentOutOfRangeException>(() => leader.Explode()).Message,
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -178,11 +214,19 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfLeader leader = B3With("370\n7\n");
             leader.Dimlwd = DxfLineWeight.LineWeight025;
 
-            Assert.Contains("lineweight", Assert.Throws<ArgumentOutOfRangeException>(() => leader.Explode()).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "lineweight",
+                Assert.Throws<ArgumentOutOfRangeException>(() => leader.Explode()).Message,
+                StringComparison.Ordinal
+            );
 
             leader.IsSplined = true;
 
-            Assert.Contains("lineweight", Assert.Throws<ArgumentOutOfRangeException>(() => leader.Explode()).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "lineweight",
+                Assert.Throws<ArgumentOutOfRangeException>(() => leader.Explode()).Message,
+                StringComparison.Ordinal
+            );
         }
 
         #endregion
@@ -204,7 +248,11 @@ namespace GeometryHelper.UnitTest.Dxf
             db.ModelSpace.AppendEntity(later);
             List<string> records = Records(db.ToText());
 
-            Assert.Contains("330\nB9\n177\n0\n 44\n1.0\n302\n42\n", records.Single(r => HandleOf(r) == "BA"), StringComparison.Ordinal);
+            Assert.Contains(
+                "330\nB9\n177\n0\n 44\n1.0\n302\n42\n",
+                records.Single(r => HandleOf(r) == "BA"),
+                StringComparison.Ordinal
+            );
 
             foreach (DxfMLeader made in new[] { copy, later })
             {
@@ -229,16 +277,27 @@ namespace GeometryHelper.UnitTest.Dxf
             alone.ModelSpace.AppendEntity(copy);
             DxfDatabase together = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
 
-            IReadOnlyList<DxfEntity> copies = source.WblockCloneObjects(new DxfEntity[] { original, insert }, together.ModelSpace);
+            IReadOnlyList<DxfEntity> copies = source.WblockCloneObjects(
+                new DxfEntity[] { original, insert },
+                together.ModelSpace
+            );
 
             foreach (DxfMLeader made in new[] { copy, (DxfMLeader)copies[0] })
             {
                 DxfDatabase db = made == copy ? alone : together;
                 Assert.Same(db.BlockTable["GKTAG"], made.BlockContent);
                 var placed = Assert.IsType<DxfBlockReference>(made.Explode()[0]);
-                Assert.Equal(new[] { "NUM=42" }, placed.AttributeCollection.Cast<DxfAttributeReference>().Select(a => a.Tag + "=" + a.TextString));
-                var read = Assert.IsType<DxfBlockReference>(ByHandle<DxfMLeader>(DxfDatabase.Parse(db.ToText()), made.Handle).Explode()[0]);
-                Assert.Equal(new[] { "NUM=42" }, read.AttributeCollection.Cast<DxfAttributeReference>().Select(a => a.Tag + "=" + a.TextString));
+                Assert.Equal(
+                    new[] { "NUM=42" },
+                    placed.AttributeCollection.Cast<DxfAttributeReference>().Select(a => a.Tag + "=" + a.TextString)
+                );
+                var read = Assert.IsType<DxfBlockReference>(
+                    ByHandle<DxfMLeader>(DxfDatabase.Parse(db.ToText()), made.Handle).Explode()[0]
+                );
+                Assert.Equal(
+                    new[] { "NUM=42" },
+                    read.AttributeCollection.Cast<DxfAttributeReference>().Select(a => a.Tag + "=" + a.TextString)
+                );
             }
 
             Assert.Equal("GKTAG", ((DxfBlockReference)copies[1]).Name);
@@ -252,7 +311,11 @@ namespace GeometryHelper.UnitTest.Dxf
             // INSERT of GKTAG; an INSERT of W copied into ezdxf's drawing brings W and GKTAG, and the copy of BA in W places the
             // copy of GKTAG with NUM 42 and draws its arrows by it.
             string text = DxfHatchLeaderDrawings.R2018.Replace("\r\n", "\n");
-            int at = text.IndexOf("330\nB9\n177\n", text.IndexOf("MULTILEADER\n  5\nBA\n", StringComparison.Ordinal), StringComparison.Ordinal);
+            int at = text.IndexOf(
+                "330\nB9\n177\n",
+                text.IndexOf("MULTILEADER\n  5\nBA\n", StringComparison.Ordinal),
+                StringComparison.Ordinal
+            );
             DxfDatabase source = DxfDatabase.Parse(text.Insert(at, " 94\n0\n345\nB5\n"));
             DxfBlockTableRecord gktag = source.BlockTable["GKTAG"];
             var w = new DxfBlockTableRecord { Name = "W" };
@@ -272,10 +335,17 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfMLeader copied = db.BlockTable["W"].OfType<DxfMLeader>().Single();
                 Assert.Same(db.BlockTable["GKTAG"], copied.BlockContent);
                 Assert.Same(db.BlockTable["GKTAG"], copied.ArrowSymbol);
-                Assert.Contains(" 94\n0\n345\n" + db.BlockTable["GKTAG"].Handle + "\n", Records(db.ToText()).Single(r => HandleOf(r) == copied.Handle), StringComparison.Ordinal);
+                Assert.Contains(
+                    " 94\n0\n345\n" + db.BlockTable["GKTAG"].Handle + "\n",
+                    Records(db.ToText()).Single(r => HandleOf(r) == copied.Handle),
+                    StringComparison.Ordinal
+                );
                 var insert = Assert.IsType<DxfBlockReference>(copied.Explode()[0]);
                 Assert.Equal("GKTAG", insert.Name);
-                Assert.Equal(new[] { "NUM=42" }, insert.AttributeCollection.Cast<DxfAttributeReference>().Select(a => a.Tag + "=" + a.TextString));
+                Assert.Equal(
+                    new[] { "NUM=42" },
+                    insert.AttributeCollection.Cast<DxfAttributeReference>().Select(a => a.Tag + "=" + a.TextString)
+                );
             }
         }
 

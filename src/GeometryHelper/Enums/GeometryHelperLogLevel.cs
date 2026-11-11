@@ -23,6 +23,6 @@ namespace GeometryHelper.Enums
         /// <summary>
         /// Something failed that the caller should know about.
         /// </summary>
-        Err
+        Err,
     }
 }

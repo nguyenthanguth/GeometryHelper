@@ -75,7 +75,8 @@ namespace GeometryHelper
         /// set to or a scope opened with <see cref="Use(Tolerance)"/> makes it. <c>new Tolerance()</c> is not it: that
         /// has every threshold at 0.
         /// </remarks>
-        public static Tolerance Default => new Tolerance(DefaultEqualPoint, DefaultEqualVector, DefaultEqualAngleRad, DefaultEqualPlanar);
+        public static Tolerance Default =>
+            new Tolerance(DefaultEqualPoint, DefaultEqualVector, DefaultEqualAngleRad, DefaultEqualPlanar);
 
         /// <summary>
         /// The process-wide setting, held whole so that it is swapped in one step: a tolerance is several
@@ -168,7 +169,9 @@ namespace GeometryHelper
 
                 if (Thread.CurrentThread.ManagedThreadId != _thread)
                 {
-                    throw new InvalidOperationException("A tolerance scope has to be closed on the thread that opened it.");
+                    throw new InvalidOperationException(
+                        "A tolerance scope has to be closed on the thread that opened it."
+                    );
                 }
 
                 _scoped = _previous;
@@ -184,9 +187,7 @@ namespace GeometryHelper
         /// <param name="equalVector">Threshold when comparing two vectors.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when one of the thresholds is negative.</exception>
         public Tolerance(double equalPoint, double equalVector)
-            : this(equalPoint, equalVector, DefaultEqualAngleRad, DefaultEqualPlanar)
-        {
-        }
+            : this(equalPoint, equalVector, DefaultEqualAngleRad, DefaultEqualPlanar) { }
 
         /// <summary>
         /// Initializes a tolerance instance with thresholds for points, vectors and angles. The planar
@@ -197,9 +198,7 @@ namespace GeometryHelper
         /// <param name="equalAngleRad">Angular threshold when comparing angles or parallelism, in radians.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when one of the thresholds is negative.</exception>
         public Tolerance(double equalPoint, double equalVector, double equalAngleRad)
-            : this(equalPoint, equalVector, equalAngleRad, equalPoint)
-        {
-        }
+            : this(equalPoint, equalVector, equalAngleRad, equalPoint) { }
 
         /// <summary>
         /// Initializes a tolerance instance with thresholds for points, vectors, angles and coplanarity.
@@ -211,13 +210,29 @@ namespace GeometryHelper
         /// <exception cref="ArgumentOutOfRangeException">Thrown when one of the thresholds is negative.</exception>
         public Tolerance(double equalPoint, double equalVector, double equalAngleRad, double equalPlanar)
         {
-            Guard.NonNegative(equalPoint, nameof(equalPoint), "A tolerance has to be a number, and cannot be negative.");
+            Guard.NonNegative(
+                equalPoint,
+                nameof(equalPoint),
+                "A tolerance has to be a number, and cannot be negative."
+            );
 
-            Guard.NonNegative(equalVector, nameof(equalVector), "A tolerance has to be a number, and cannot be negative.");
+            Guard.NonNegative(
+                equalVector,
+                nameof(equalVector),
+                "A tolerance has to be a number, and cannot be negative."
+            );
 
-            Guard.NonNegative(equalAngleRad, nameof(equalAngleRad), "A tolerance has to be a number, and cannot be negative.");
+            Guard.NonNegative(
+                equalAngleRad,
+                nameof(equalAngleRad),
+                "A tolerance has to be a number, and cannot be negative."
+            );
 
-            Guard.NonNegative(equalPlanar, nameof(equalPlanar), "A tolerance has to be a number, and cannot be negative.");
+            Guard.NonNegative(
+                equalPlanar,
+                nameof(equalPlanar),
+                "A tolerance has to be a number, and cannot be negative."
+            );
 
             EqualPoint = equalPoint;
             EqualVector = equalVector;
@@ -268,10 +283,10 @@ namespace GeometryHelper
         /// </summary>
         public bool Equals(Tolerance other)
         {
-            return EqualPoint.Equals(other.EqualPoint) &&
-                   EqualVector.Equals(other.EqualVector) &&
-                   EqualAngleRad.Equals(other.EqualAngleRad) &&
-                   EqualPlanar.Equals(other.EqualPlanar);
+            return EqualPoint.Equals(other.EqualPoint)
+                && EqualVector.Equals(other.EqualVector)
+                && EqualAngleRad.Equals(other.EqualAngleRad)
+                && EqualPlanar.Equals(other.EqualPlanar);
         }
 
         /// <summary>
@@ -319,7 +334,8 @@ namespace GeometryHelper
                 EqualPoint,
                 EqualVector,
                 EqualAngleRad,
-                EqualPlanar);
+                EqualPlanar
+            );
         }
     }
 }

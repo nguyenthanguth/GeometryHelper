@@ -10,11 +10,13 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     public class GeoPolygon3Tests
     {
-        private static GeoPolygon3 MakeSquare() => new GeoPolygon3(
-            new GeoPoint3(0.0, 0.0, 0.0),
-            new GeoPoint3(10.0, 0.0, 0.0),
-            new GeoPoint3(10.0, 10.0, 0.0),
-            new GeoPoint3(0.0, 10.0, 0.0));
+        private static GeoPolygon3 MakeSquare() =>
+            new GeoPolygon3(
+                new GeoPoint3(0.0, 0.0, 0.0),
+                new GeoPoint3(10.0, 0.0, 0.0),
+                new GeoPoint3(10.0, 10.0, 0.0),
+                new GeoPoint3(0.0, 10.0, 0.0)
+            );
 
         [Fact]
         public void AreaAndPerimeterMatchTheShape()
@@ -50,7 +52,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(1.0, 0.0, 0.0),
                 new GeoPoint3(1.0, diagonal, diagonal),
-                new GeoPoint3(0.0, diagonal, diagonal));
+                new GeoPoint3(0.0, diagonal, diagonal)
+            );
 
             Assert.Equal(1.0, tilted.Area, 9);
             Assert.True(tilted.Normal.IsPerpendicularTo(GeoVector3.XAxis));
@@ -80,10 +83,14 @@ namespace GeometryHelper.UnitTest.Solid
         /// </summary>
         internal static readonly GeoPoint3[] GirderFace =
         {
-            new GeoPoint3(7989.99999991793, 20, 189.99900000000002), new GeoPoint3(7954.99999991793, 20, 190),
-            new GeoPoint3(257.000004518777, 19.99999999959249, 190), new GeoPoint3(257.00003389886115, 149.999999999622, 190),
-            new GeoPoint3(7954.99999991793, 150, 190), new GeoPoint3(7989.99999991793, 150, 190),
-            new GeoPoint3(7992.99999991793, 150, 190), new GeoPoint3(7992.99999991793, 20, 190),
+            new GeoPoint3(7989.99999991793, 20, 189.99900000000002),
+            new GeoPoint3(7954.99999991793, 20, 190),
+            new GeoPoint3(257.000004518777, 19.99999999959249, 190),
+            new GeoPoint3(257.00003389886115, 149.999999999622, 190),
+            new GeoPoint3(7954.99999991793, 150, 190),
+            new GeoPoint3(7989.99999991793, 150, 190),
+            new GeoPoint3(7992.99999991793, 150, 190),
+            new GeoPoint3(7992.99999991793, 20, 190),
         };
 
         /// <summary>
@@ -98,11 +105,14 @@ namespace GeometryHelper.UnitTest.Solid
             // face was refused, and the body with it. A move that keeps every length keeps the polygon as flat as it was.
             var face = new GeoPolygon3(GirderFace, Tolerance.Default);
 
-            foreach (GeoTransform3 move in new[]
-            {
-                GeoTransform3.Translation(GirderPlace),
-                GeoTransform3.Translation(GirderPlace) * GeoTransform3.RotationAxis(GeoPoint3.Origin, new GeoVector3(0.2, -0.3, 1.0), 0.7),
-            })
+            foreach (
+                GeoTransform3 move in new[]
+                {
+                    GeoTransform3.Translation(GirderPlace),
+                    GeoTransform3.Translation(GirderPlace)
+                        * GeoTransform3.RotationAxis(GeoPoint3.Origin, new GeoVector3(0.2, -0.3, 1.0), 0.7),
+                }
+            )
             {
                 GeoPolygon3 placed = face.TransformBy(move);
 
@@ -112,34 +122,44 @@ namespace GeometryHelper.UnitTest.Solid
             }
         }
 
-        private static GeoPoint3 Near(Random random)
-            => new GeoPoint3(24000.0 + random.NextDouble() * 1000.0, -26000.0 + random.NextDouble() * 1000.0, 3000.0 + random.NextDouble() * 1000.0);
+        private static GeoPoint3 Near(Random random) =>
+            new GeoPoint3(
+                24000.0 + random.NextDouble() * 1000.0,
+                -26000.0 + random.NextDouble() * 1000.0,
+                3000.0 + random.NextDouble() * 1000.0
+            );
 
         [Fact]
         public void NonCoplanarVerticesAreRefused()
         {
-            Assert.Throws<ArgumentException>(() => new GeoPolygon3(
-                new GeoPoint3(0.0, 0.0, 0.0),
-                new GeoPoint3(10.0, 0.0, 0.0),
-                new GeoPoint3(10.0, 10.0, 0.0),
-                new GeoPoint3(0.0, 10.0, 5.0)));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoPolygon3(
+                    new GeoPoint3(0.0, 0.0, 0.0),
+                    new GeoPoint3(10.0, 0.0, 0.0),
+                    new GeoPoint3(10.0, 10.0, 0.0),
+                    new GeoPoint3(0.0, 10.0, 5.0)
+                )
+            );
         }
 
         [Fact]
         public void CollinearVerticesAreRefusedBecauseTheyEncloseNothing()
         {
-            Assert.Throws<ArgumentException>(() => new GeoPolygon3(
-                new GeoPoint3(0.0, 0.0, 0.0),
-                new GeoPoint3(1.0, 0.0, 0.0),
-                new GeoPoint3(2.0, 0.0, 0.0)));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoPolygon3(
+                    new GeoPoint3(0.0, 0.0, 0.0),
+                    new GeoPoint3(1.0, 0.0, 0.0),
+                    new GeoPoint3(2.0, 0.0, 0.0)
+                )
+            );
         }
 
         [Fact]
         public void FewerThanThreeDistinctVerticesAreRefused()
         {
-            Assert.Throws<ArgumentException>(() => new GeoPolygon3(
-                new GeoPoint3(0.0, 0.0, 0.0),
-                new GeoPoint3(1.0, 0.0, 0.0)));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoPolygon3(new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(1.0, 0.0, 0.0))
+            );
         }
 
         [Fact]
@@ -150,7 +170,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(10.0, 0.0, 0.0),
                 new GeoPoint3(10.0, 10.0, 0.0),
                 new GeoPoint3(0.0, 10.0, 0.0),
-                new GeoPoint3(0.0, 0.0, 0.0));
+                new GeoPoint3(0.0, 0.0, 0.0)
+            );
 
             Assert.Equal(4, square.VertexCount);
             Assert.Equal(100.0, square.Area, 9);
@@ -193,7 +214,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(10.0, 4.0, 0.0),
                 new GeoPoint3(4.0, 4.0, 0.0),
                 new GeoPoint3(4.0, 10.0, 0.0),
-                new GeoPoint3(0.0, 10.0, 0.0));
+                new GeoPoint3(0.0, 10.0, 0.0)
+            );
 
             Assert.Equal(64.0, lShape.Area, 9);
             Assert.Equal(PointLocation.Inside, lShape.Locate(new GeoPoint3(2.0, 2.0, 0.0)));
@@ -216,7 +238,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPolygon3 triangle = new GeoPolygon3(
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(9.0, 0.0, 0.0),
-                new GeoPoint3(0.0, 9.0, 0.0));
+                new GeoPoint3(0.0, 9.0, 0.0)
+            );
 
             Assert.True(triangle.Centroid.IsEqualTo(new GeoPoint3(3.0, 3.0, 0.0)));
         }
@@ -233,7 +256,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(10.0, 4.0, 0.0),
                 new GeoPoint3(4.0, 4.0, 0.0),
                 new GeoPoint3(4.0, 10.0, 0.0),
-                new GeoPoint3(0.0, 10.0, 0.0));
+                new GeoPoint3(0.0, 10.0, 0.0)
+            );
 
             Assert.True(lShape.Centroid.IsEqualTo(new GeoPoint3(3.875, 3.875, 0.0)));
         }
@@ -256,7 +280,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(10.0, 4.0, 0.0),
                 new GeoPoint3(4.0, 4.0, 0.0),
                 new GeoPoint3(4.0, 10.0, 0.0),
-                new GeoPoint3(0.0, 10.0, 0.0));
+                new GeoPoint3(0.0, 10.0, 0.0)
+            );
 
             GeoTriangle3[] fan = lShape.Triangulate();
 

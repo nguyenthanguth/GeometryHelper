@@ -96,8 +96,7 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
                     at = to;
                     loop.Add(at);
-                }
-                while (at != start);
+                } while (at != start);
 
                 loop.RemoveAt(loop.Count - 1);
 
@@ -137,7 +136,12 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             return true;
         }
 
-        private static void AddRing(IReadOnlyList<GeoPoint3> ring, bool reversed, Corners corners, Dictionary<(int From, int To), int> open)
+        private static void AddRing(
+            IReadOnlyList<GeoPoint3> ring,
+            bool reversed,
+            Corners corners,
+            Dictionary<(int From, int To), int> open
+        )
         {
             int count = ring.Count;
 
@@ -194,7 +198,8 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         private sealed class Corners
         {
             private readonly double _cell;
-            private readonly Dictionary<(long, long, long), List<int>> _grid = new Dictionary<(long, long, long), List<int>>();
+            private readonly Dictionary<(long, long, long), List<int>> _grid =
+                new Dictionary<(long, long, long), List<int>>();
             private readonly List<GeoPoint3> _points = new List<GeoPoint3>();
 
             internal Corners(double tolerance)
@@ -206,7 +211,9 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
             internal int Id(GeoPoint3 point)
             {
-                long x = (long)Math.Floor(point.X / _cell), y = (long)Math.Floor(point.Y / _cell), z = (long)Math.Floor(point.Z / _cell);
+                long x = (long)Math.Floor(point.X / _cell),
+                    y = (long)Math.Floor(point.Y / _cell),
+                    z = (long)Math.Floor(point.Z / _cell);
 
                 for (long i = x - 1; i <= x + 1; i++)
                 {

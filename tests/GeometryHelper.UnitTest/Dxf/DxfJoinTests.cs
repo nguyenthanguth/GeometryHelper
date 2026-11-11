@@ -36,26 +36,66 @@ namespace GeometryHelper.UnitTest.Dxf
             return polyline;
         }
 
-        private static DxfLine Line(double x0, double y0, double x1, double y1) => new DxfLine(new GeoPoint3(x0, y0, 0), new GeoPoint3(x1, y1, 0));
+        private static DxfLine Line(double x0, double y0, double x1, double y1) =>
+            new DxfLine(new GeoPoint3(x0, y0, 0), new GeoPoint3(x1, y1, 0));
 
-        private static void Near(GeoPoint3 expected, GeoPoint3 actual) => Assert.True(actual.IsEqualTo(expected, Tight), "Expected " + expected + ", was " + actual + ".");
+        private static void Near(GeoPoint3 expected, GeoPoint3 actual) =>
+            Assert.True(actual.IsEqualTo(expected, Tight), "Expected " + expected + ", was " + actual + ".");
 
         /// <summary>Asserts that a join is refused with an <see cref="ArgumentException"/> whose message says why, as the part given.</summary>
-        private static void Refused(string why, Action join) => Assert.Contains(why, Assert.Throws<ArgumentException>(join).Message);
+        private static void Refused(string why, Action join) =>
+            Assert.Contains(why, Assert.Throws<ArgumentException>(join).Message);
 
         /// <summary>A curve of each kind a source is given, made anew for each pair: each starts at (10, 0, 0).</summary>
         private static DxfCurve Piece(string kind)
         {
             switch (kind)
             {
-                case "LINE": return Line(10, 0, 20, 0);
-                case "ARC": return new DxfArc(new GeoPoint3(15, 0, 0), 5, Math.PI, 1.5 * Math.PI);
-                case "ELLIPSE": return new DxfEllipse(new GeoPoint3(15, 0, 0), Up, new GeoVector3(5, 0, 0), 0.5, Math.PI, 1.5 * Math.PI);
-                case "LWPOLYLINE": return Light(10, 0, 20, 5);
-                case "POLYLINE2D": return new DxfPolyline2d(DxfPoly2dType.SimplePoly, new[] { new GeoPoint3(10, 0, 0), new GeoPoint3(20, 5, 0) }, 0, false, 0, 0, null);
-                case "POLYLINE3D": return new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(10, 0, 0), new GeoPoint3(20, 0, 5) }, false);
-                case "SPLINE": return new DxfSpline(2, false, false, false, new[] { new GeoPoint3(10, 0, 0), new GeoPoint3(15, 5, 0), new GeoPoint3(20, 0, 0) }, new[] { 0.0, 0, 0, 1, 1, 1 }, null, 1E-10, 1E-10);
-                default: return new DxfCircle(new GeoPoint3(15, 0, 0), Up, 5);
+                case "LINE":
+                    return Line(10, 0, 20, 0);
+                case "ARC":
+                    return new DxfArc(new GeoPoint3(15, 0, 0), 5, Math.PI, 1.5 * Math.PI);
+                case "ELLIPSE":
+                    return new DxfEllipse(
+                        new GeoPoint3(15, 0, 0),
+                        Up,
+                        new GeoVector3(5, 0, 0),
+                        0.5,
+                        Math.PI,
+                        1.5 * Math.PI
+                    );
+                case "LWPOLYLINE":
+                    return Light(10, 0, 20, 5);
+                case "POLYLINE2D":
+                    return new DxfPolyline2d(
+                        DxfPoly2dType.SimplePoly,
+                        new[] { new GeoPoint3(10, 0, 0), new GeoPoint3(20, 5, 0) },
+                        0,
+                        false,
+                        0,
+                        0,
+                        null
+                    );
+                case "POLYLINE3D":
+                    return new DxfPolyline3d(
+                        DxfPoly3dType.SimplePoly,
+                        new[] { new GeoPoint3(10, 0, 0), new GeoPoint3(20, 0, 5) },
+                        false
+                    );
+                case "SPLINE":
+                    return new DxfSpline(
+                        2,
+                        false,
+                        false,
+                        false,
+                        new[] { new GeoPoint3(10, 0, 0), new GeoPoint3(15, 5, 0), new GeoPoint3(20, 0, 0) },
+                        new[] { 0.0, 0, 0, 1, 1, 1 },
+                        null,
+                        1E-10,
+                        1E-10
+                    );
+                default:
+                    return new DxfCircle(new GeoPoint3(15, 0, 0), Up, 5);
             }
         }
 
@@ -64,13 +104,49 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             switch (kind)
             {
-                case "LINE": return Line(0, 0, 10, 0);
-                case "ARC": return new DxfArc(new GeoPoint3(15, 0, 0), 5, 0.5 * Math.PI, Math.PI);
-                case "ELLIPSE": return new DxfEllipse(new GeoPoint3(15, 0, 0), Up, new GeoVector3(5, 0, 0), 0.5, 0.5 * Math.PI, Math.PI);
-                case "LWPOLYLINE": return Light(0, 0, 10, 0);
-                case "POLYLINE2D": return new DxfPolyline2d(DxfPoly2dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) }, 0, false, 0, 0, null);
-                case "POLYLINE3D": return new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) }, false);
-                default: return new DxfSpline(1, false, false, false, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) }, new[] { 0.0, 0, 1, 1 }, null, 1E-10, 1E-10);
+                case "LINE":
+                    return Line(0, 0, 10, 0);
+                case "ARC":
+                    return new DxfArc(new GeoPoint3(15, 0, 0), 5, 0.5 * Math.PI, Math.PI);
+                case "ELLIPSE":
+                    return new DxfEllipse(
+                        new GeoPoint3(15, 0, 0),
+                        Up,
+                        new GeoVector3(5, 0, 0),
+                        0.5,
+                        0.5 * Math.PI,
+                        Math.PI
+                    );
+                case "LWPOLYLINE":
+                    return Light(0, 0, 10, 0);
+                case "POLYLINE2D":
+                    return new DxfPolyline2d(
+                        DxfPoly2dType.SimplePoly,
+                        new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) },
+                        0,
+                        false,
+                        0,
+                        0,
+                        null
+                    );
+                case "POLYLINE3D":
+                    return new DxfPolyline3d(
+                        DxfPoly3dType.SimplePoly,
+                        new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) },
+                        false
+                    );
+                default:
+                    return new DxfSpline(
+                        1,
+                        false,
+                        false,
+                        false,
+                        new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) },
+                        new[] { 0.0, 0, 1, 1 },
+                        null,
+                        1E-10,
+                        1E-10
+                    );
             }
         }
 
@@ -120,13 +196,31 @@ namespace GeometryHelper.UnitTest.Dxf
                     if (takes[source].Contains(kind))
                     {
                         curve.JoinEntity(piece);
-                        Assert.True(curve.EndPoint.IsEqualTo(ends[kind], new Tolerance(1E-9, 1E-9)), source + " joined to " + kind + " ends at " + curve.EndPoint + ".");
-                        Assert.True(curve.StartPoint.IsEqualTo(new GeoPoint3(source == "ARC" || source == "ELLIPSE" ? 15 : 0, source == "ARC" ? 5 : source == "ELLIPSE" ? 2.5 : 0, 0), Tight), source + " joined to " + kind + " starts at " + curve.StartPoint + ".");
+                        Assert.True(
+                            curve.EndPoint.IsEqualTo(ends[kind], new Tolerance(1E-9, 1E-9)),
+                            source + " joined to " + kind + " ends at " + curve.EndPoint + "."
+                        );
+                        Assert.True(
+                            curve.StartPoint.IsEqualTo(
+                                new GeoPoint3(
+                                    source == "ARC" || source == "ELLIPSE" ? 15 : 0,
+                                    source == "ARC" ? 5
+                                        : source == "ELLIPSE" ? 2.5
+                                        : 0,
+                                    0
+                                ),
+                                Tight
+                            ),
+                            source + " joined to " + kind + " starts at " + curve.StartPoint + "."
+                        );
                     }
                     else
                     {
                         Refused(why[source], () => curve.JoinEntity(piece));
-                        Assert.True(curve.EndPoint.IsEqualTo(new GeoPoint3(10, 0, 0), Tight), source + " refusing " + kind + " ends at " + curve.EndPoint + ".");
+                        Assert.True(
+                            curve.EndPoint.IsEqualTo(new GeoPoint3(10, 0, 0), Tight),
+                            source + " refusing " + kind + " ends at " + curve.EndPoint + "."
+                        );
                     }
                 }
             }
@@ -136,7 +230,11 @@ namespace GeometryHelper.UnitTest.Dxf
         public void A3DPolylineInADrawingOfR12_TakesALine_ItsVerticesWrittenAnewAndReadBack()
         {
             DxfDatabase made = DxfDatabase.Parse(DxfFileEzdxfDrawings.R12);
-            var polyline = new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) }, false);
+            var polyline = new DxfPolyline3d(
+                DxfPoly3dType.SimplePoly,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) },
+                false
+            );
             var line = new DxfLine(new GeoPoint3(10, 0, 5), new GeoPoint3(10.0006, 0, 0));
             made.ModelSpace.AppendEntity(polyline);
             made.ModelSpace.AppendEntity(line);
@@ -150,7 +248,10 @@ namespace GeometryHelper.UnitTest.Dxf
             string after = Encoding.UTF8.GetString(Saved(db));
             OnlyTheseChanged(before, after, old.Concat(source.Select(v => v.Handle)).ToArray());
             var again = ByHandle<DxfPolyline3d>(DxfDatabase.Parse(after), polyline.Handle);
-            Assert.Equal(new[] { Bits(new GeoPoint3(0, 0, 0)), Bits(new GeoPoint3(10, 0, 0)), Bits(new GeoPoint3(10, 0, 5)) }, again.Select(v => Bits(v.Position)));
+            Assert.Equal(
+                new[] { Bits(new GeoPoint3(0, 0, 0)), Bits(new GeoPoint3(10, 0, 0)), Bits(new GeoPoint3(10, 0, 5)) },
+                again.Select(v => Bits(v.Position))
+            );
             Assert.Equal(15.0, again.Length, 12);
         }
 
@@ -220,8 +321,12 @@ namespace GeometryHelper.UnitTest.Dxf
             // seen from the centre, some 4E-5 off.
             arc.JoinEntity(new DxfArc(new GeoPoint3(0, 0.0005, 0), 10.0009, 1.25 * Math.PI, 1.5 * Math.PI));
             Assert.Equal(1.5 * Math.PI, arc.EndAngle, 3);
-            Refused("is not of the same circle", () => arc.JoinEntity(new DxfArc(new GeoPoint3(0, 0, 0), 10.0011, 1.5 * Math.PI, 1.6 * Math.PI)));
-            Refused("is not of the same circle", () => arc.JoinEntity(new DxfArc(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0), 10, 0, 1)));
+            Refused("is not of the same circle", () =>
+                arc.JoinEntity(new DxfArc(new GeoPoint3(0, 0, 0), 10.0011, 1.5 * Math.PI, 1.6 * Math.PI))
+            );
+            Refused("is not of the same circle", () =>
+                arc.JoinEntity(new DxfArc(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0), 10, 0, 1))
+            );
             Refused("takes only others of its kind", () => arc.JoinEntity(Line(0, -10, 10, 0)));
         }
 
@@ -238,9 +343,17 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(0.0, ellipse.StartParam);
             Assert.Equal(1.5 * Math.PI, ellipse.EndParam, 12);
             Near(new GeoPoint3(0, -10, 0), ellipse.EndPoint);
-            Refused("is closed", () => ellipse.JoinEntity(new DxfEllipse(new GeoPoint3(0, 0, 0), Up, new GeoVector3(20, 0, 0), 0.5, 0, 2 * Math.PI)));
-            Refused("is not of the same ellipse", () => ellipse.JoinEntity(new DxfEllipse(new GeoPoint3(0, 0, 0), Up, new GeoVector3(0, 20, 0), 0.5, 0, 1)));
-            Refused("takes only others of its kind", () => ellipse.JoinEntity(new DxfArc(new GeoPoint3(0, 0, 0), 20, 0, 1)));
+            Refused("is closed", () =>
+                ellipse.JoinEntity(
+                    new DxfEllipse(new GeoPoint3(0, 0, 0), Up, new GeoVector3(20, 0, 0), 0.5, 0, 2 * Math.PI)
+                )
+            );
+            Refused("is not of the same ellipse", () =>
+                ellipse.JoinEntity(new DxfEllipse(new GeoPoint3(0, 0, 0), Up, new GeoVector3(0, 20, 0), 0.5, 0, 1))
+            );
+            Refused("takes only others of its kind", () =>
+                ellipse.JoinEntity(new DxfArc(new GeoPoint3(0, 0, 0), 20, 0, 1))
+            );
             Assert.Throws<InvalidOperationException>(() => new DxfEllipse().JoinEntity(other));
         }
 
@@ -287,13 +400,31 @@ namespace GeometryHelper.UnitTest.Dxf
             polyline.JoinEntity(new DxfLine(new GeoPoint3(10.0007, 0, 0.0007), new GeoPoint3(20, 0, 0)));
             Assert.Equal(3, polyline.NumberOfVertices);
             Assert.Equal(Bits(new GeoPoint3(10, 0, 0)), Bits(polyline.GetPoint3dAt(1)));
-            Refused("meets neither end", () => polyline.JoinEntity(new DxfLine(new GeoPoint3(20.0008, 0, 0.0008), new GeoPoint3(30, 0, 0))));
+            Refused("meets neither end", () =>
+                polyline.JoinEntity(new DxfLine(new GeoPoint3(20.0008, 0, 0.0008), new GeoPoint3(30, 0, 0)))
+            );
 
             Refused("meets neither end", () => polyline.JoinEntity(Line(20.0011, 0, 30, 0)));
-            Refused("is not in the plane", () => polyline.JoinEntity(new DxfLine(new GeoPoint3(20, 0, 0), new GeoPoint3(30, 0, 0.0011))));
-            Refused("is not in the plane", () => polyline.JoinEntity(new DxfArc(new GeoPoint3(20, 0, 5), new GeoVector3(0, 1, 0), 5, 1.5 * Math.PI, 1.5 * Math.PI + 1)));
-            Refused("A polyline of the plane takes", () => polyline.JoinEntity(new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(20, 0, 0), new GeoPoint3(30, 0, 0) }, false)));
-            Refused("A polyline of the plane takes", () => polyline.JoinEntity(new DxfCircle(new GeoPoint3(25, 0, 0), Up, 5)));
+            Refused("is not in the plane", () =>
+                polyline.JoinEntity(new DxfLine(new GeoPoint3(20, 0, 0), new GeoPoint3(30, 0, 0.0011)))
+            );
+            Refused("is not in the plane", () =>
+                polyline.JoinEntity(
+                    new DxfArc(new GeoPoint3(20, 0, 5), new GeoVector3(0, 1, 0), 5, 1.5 * Math.PI, 1.5 * Math.PI + 1)
+                )
+            );
+            Refused("A polyline of the plane takes", () =>
+                polyline.JoinEntity(
+                    new DxfPolyline3d(
+                        DxfPoly3dType.SimplePoly,
+                        new[] { new GeoPoint3(20, 0, 0), new GeoPoint3(30, 0, 0) },
+                        false
+                    )
+                )
+            );
+            Refused("A polyline of the plane takes", () =>
+                polyline.JoinEntity(new DxfCircle(new GeoPoint3(25, 0, 0), Up, 5))
+            );
             Assert.Equal(3, polyline.NumberOfVertices);
         }
 
@@ -352,7 +483,9 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfLine next = Line(10, 0, 20, 0);
             var point = new DxfLine(new GeoPoint3(20, 0, 0), new GeoPoint3(20.0005, 0, 0));
 
-            IReadOnlyList<int> joined = polyline.JoinEntities(new DxfEntity[] { next, point, next, Line(50, 0, 60, 0) });
+            IReadOnlyList<int> joined = polyline.JoinEntities(
+                new DxfEntity[] { next, point, next, Line(50, 0, 60, 0) }
+            );
 
             Assert.Equal(new[] { 0, 1 }, joined);
             Assert.Equal(3, polyline.NumberOfVertices);
@@ -379,8 +512,24 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // Widths 1 by default on (0, 0), (10, 0); a line on to (20, 0) has none; a polyline of the plane from (30, 0) back to
             // (20, 0), bulged by 0.25 and 3 wide to 5, runs on turned, -0.25 and 5 to 3.
-            var polyline = new DxfPolyline2d(DxfPoly2dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) }, 0, false, 1, 1, null);
-            var back = new DxfPolyline2d(DxfPoly2dType.SimplePoly, new[] { new GeoPoint3(30, 0, 0), new GeoPoint3(20, 0, 0) }, 0, false, 3, 5, new[] { 0.25, 0 });
+            var polyline = new DxfPolyline2d(
+                DxfPoly2dType.SimplePoly,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) },
+                0,
+                false,
+                1,
+                1,
+                null
+            );
+            var back = new DxfPolyline2d(
+                DxfPoly2dType.SimplePoly,
+                new[] { new GeoPoint3(30, 0, 0), new GeoPoint3(20, 0, 0) },
+                0,
+                false,
+                3,
+                5,
+                new[] { 0.25, 0 }
+            );
 
             Assert.Equal(new[] { 0, 1 }, polyline.JoinEntities(new DxfEntity[] { Line(10, 0, 20, 0), back }));
 
@@ -400,10 +549,28 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void APolylineOfThePlane_TakesLinesAndArcs_InADrawingOfR12AsOfR2000_ItsVerticesWrittenAnew()
         {
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R12,
+                    DxfFileEzdxfDrawings.R2000,
+                    DxfFileEzdxfDrawings.R2018,
+                }
+            )
             {
                 DxfDatabase made = DxfDatabase.Parse(text);
-                var polyline = new DxfPolyline2d(DxfPoly2dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) }, 0, false, 0, 0, null) { Layer = "joined" };
+                var polyline = new DxfPolyline2d(
+                    DxfPoly2dType.SimplePoly,
+                    new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) },
+                    0,
+                    false,
+                    0,
+                    0,
+                    null
+                )
+                {
+                    Layer = "joined",
+                };
                 DxfLine line = Line(0, 0, 10, 10);
                 var arc = new DxfArc(new GeoPoint3(10, 5, 0), 5, -Math.PI / 2, Math.PI / 2);
                 made.ModelSpace.AppendEntity(polyline);
@@ -414,7 +581,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfDatabase db = DxfDatabase.Parse(before);
                 var source = ByHandle<DxfPolyline2d>(db, polyline.Handle);
                 var old = source.Select(v => v.Handle).ToList();
-                IReadOnlyList<int> joined = source.JoinEntities(new DxfEntity[] { ByHandle<DxfLine>(db, line.Handle), ByHandle<DxfArc>(db, arc.Handle) });
+                IReadOnlyList<int> joined = source.JoinEntities(
+                    new DxfEntity[] { ByHandle<DxfLine>(db, line.Handle), ByHandle<DxfArc>(db, arc.Handle) }
+                );
 
                 Assert.Equal(new[] { 0, 1 }, joined);
                 Assert.True(source.Closed);
@@ -425,7 +594,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 // The triangle (0, 0), (10, 0), (10, 10) and the half circle of radius 5 outside its upright side.
                 string after = TextOf(Saved(db));
-                OnlyTheseChanged(before, after, old.Concat(vertices.Select(v => v.Handle)).Append(source.Handle).ToArray());
+                OnlyTheseChanged(
+                    before,
+                    after,
+                    old.Concat(vertices.Select(v => v.Handle)).Append(source.Handle).ToArray()
+                );
                 var again = ByHandle<DxfPolyline2d>(DxfDatabase.Parse(after), polyline.Handle);
                 Assert.Equal(source.Area, again.Area, 12);
                 Assert.Equal(50.0 + Math.PI * 12.5, again.Area, 9);
@@ -461,13 +634,19 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void A3DPolyline_TakesLinesAndPolylinesWithNoArcInAnyPlane_ButNoArc()
         {
-            var polyline = new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) }, false);
+            var polyline = new DxfPolyline3d(
+                DxfPoly3dType.SimplePoly,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) },
+                false
+            );
             DxfPolyline standing = Light(0, 0, 0, 10);
             standing.Normal = new GeoVector3(1, 0, 0);
             standing.Elevation = 10;
             Near(new GeoPoint3(10, 0, 0), standing.StartPoint);
 
-            IReadOnlyList<int> joined = polyline.JoinEntities(new DxfEntity[] { new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, -5)), standing });
+            IReadOnlyList<int> joined = polyline.JoinEntities(
+                new DxfEntity[] { new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, -5)), standing }
+            );
 
             Assert.Equal(new[] { 0, 1 }, joined);
             var points = polyline.Select(v => v.Position).ToList();
@@ -478,7 +657,13 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfPolyline bulged = Light(0, 0, -10, 0);
             bulged.SetBulgeAt(0, 0.5);
             Refused("A 3D polyline takes", () => polyline.JoinEntity(new DxfArc(new GeoPoint3(10, 5, 10), 5, 0, 1)));
-            Refused("takes no arc", () => new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, 1) }, false).JoinEntity(bulged));
+            Refused("takes no arc", () =>
+                new DxfPolyline3d(
+                    DxfPoly3dType.SimplePoly,
+                    new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, 1) },
+                    false
+                ).JoinEntity(bulged)
+            );
         }
 
         [Fact]
@@ -494,7 +679,13 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfPolyline polyline = Light(-10, 0, 0, 0);
             polyline.SetBulgeAt(0, 1);
             var pieces = new DxfCurve[] { arc, polyline, line };
-            var samples = pieces.SelectMany(c => Enumerable.Range(0, 9).Select(i => c.GetPointAtParameter(c.StartParam + (c.EndParam - c.StartParam) * i / 8))).ToList();
+            var samples = pieces
+                .SelectMany(c =>
+                    Enumerable
+                        .Range(0, 9)
+                        .Select(i => c.GetPointAtParameter(c.StartParam + (c.EndParam - c.StartParam) * i / 8))
+                )
+                .ToList();
             samples.AddRange(Enumerable.Range(0, 9).Select(i => spline.GetPointAtParameter(i / 8.0)));
             Near(new GeoPoint3(20, 0, 1), arc.StartPoint);
 
@@ -507,7 +698,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.False(spline.Closed);
             Assert.Equal(Bits(new GeoPoint3(-10, 0, 0)), Bits(spline.StartPoint));
             Near(new GeoPoint3(20, 0, 11), spline.EndPoint);
-            Assert.All(samples, p => Assert.True(spline.GetClosestPointTo(p, false).IsEqualTo(p, new Tolerance(1E-6, 1E-6)), p.ToString()));
+            Assert.All(samples, p =>
+                Assert.True(spline.GetClosestPointTo(p, false).IsEqualTo(p, new Tolerance(1E-6, 1E-6)), p.ToString())
+            );
 
             DxfDatabase again = DxfDatabase.Parse(Encoding.UTF8.GetString(Saved(db)));
             DxfSpline read = ByHandle<DxfSpline>(again, "70");
@@ -519,9 +712,21 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ASplineBroughtBackToItsStart_IsClosed_AndAPlanarOneTakenOutOfItsPlaneIsNoLongerSaidToBePlanar()
         {
             var points = new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(5, 5, 0), new GeoPoint3(10, 0, 0) };
-            var spline = new DxfSpline(2, false, false, false, points, new[] { 0.0, 0, 0, 1, 1, 1 }, null, 1E-10, 1E-10);
+            var spline = new DxfSpline(
+                2,
+                false,
+                false,
+                false,
+                points,
+                new[] { 0.0, 0, 0, 1, 1, 1 },
+                null,
+                1E-10,
+                1E-10
+            );
 
-            IReadOnlyList<int> joined = spline.JoinEntities(new DxfEntity[] { Line(0, 0, 0, -10), Line(10, -10, 10, 0), Line(0, -10, 10, -10) });
+            IReadOnlyList<int> joined = spline.JoinEntities(
+                new DxfEntity[] { Line(0, 0, 0, -10), Line(10, -10, 10, 0), Line(0, -10, 10, -10) }
+            );
 
             Assert.Equal(new[] { 0, 1, 2 }, joined);
             Assert.True(spline.Closed);
@@ -530,15 +735,67 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<InvalidOperationException>(() => spline.JoinEntity(Line(0, 0, -5, 0)));
 
             // A spline the record says is planar, on the floor: a line on the floor keeps it so, one standing up does not.
-            string text = string.Join("\n", new[]
-            {
-                "  0", "SECTION", "  2", "ENTITIES",
-                "  0", "SPLINE", "  5", "2A", "100", "AcDbEntity", "  8", "0", "100", "AcDbSpline",
-                "210", "0.0", "220", "0.0", "230", "1.0", " 70", "8", " 71", "1", " 72", "4", " 73", "2", " 74", "0",
-                " 40", "0.0", " 40", "0.0", " 40", "1.0", " 40", "1.0",
-                " 10", "0.0", " 20", "0.0", " 30", "0.0", " 10", "10.0", " 20", "0.0", " 30", "0.0",
-                "  0", "ENDSEC", "  0", "EOF", string.Empty,
-            });
+            string text = string.Join(
+                "\n",
+                new[]
+                {
+                    "  0",
+                    "SECTION",
+                    "  2",
+                    "ENTITIES",
+                    "  0",
+                    "SPLINE",
+                    "  5",
+                    "2A",
+                    "100",
+                    "AcDbEntity",
+                    "  8",
+                    "0",
+                    "100",
+                    "AcDbSpline",
+                    "210",
+                    "0.0",
+                    "220",
+                    "0.0",
+                    "230",
+                    "1.0",
+                    " 70",
+                    "8",
+                    " 71",
+                    "1",
+                    " 72",
+                    "4",
+                    " 73",
+                    "2",
+                    " 74",
+                    "0",
+                    " 40",
+                    "0.0",
+                    " 40",
+                    "0.0",
+                    " 40",
+                    "1.0",
+                    " 40",
+                    "1.0",
+                    " 10",
+                    "0.0",
+                    " 20",
+                    "0.0",
+                    " 30",
+                    "0.0",
+                    " 10",
+                    "10.0",
+                    " 20",
+                    "0.0",
+                    " 30",
+                    "0.0",
+                    "  0",
+                    "ENDSEC",
+                    "  0",
+                    "EOF",
+                    string.Empty,
+                }
+            );
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfSpline flat = ByHandle<DxfSpline>(db, "2A");
             flat.JoinEntity(Line(10, 0, 20, 0));
@@ -571,8 +828,12 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AnEntityOfAClassJoinTakesNothingInto_IsRefused_AndSoIsAClosedOrFittedSource()
         {
-            Assert.Throws<NotSupportedException>(() => new DxfCircle(new GeoPoint3(0, 0, 0), Up, 5).JoinEntity(Line(5, 0, 10, 0)));
-            Assert.Throws<NotSupportedException>(() => new DxfDBPoint(new GeoPoint3(0, 0, 0)).JoinEntities(new DxfEntity[0]));
+            Assert.Throws<NotSupportedException>(() =>
+                new DxfCircle(new GeoPoint3(0, 0, 0), Up, 5).JoinEntity(Line(5, 0, 10, 0))
+            );
+            Assert.Throws<NotSupportedException>(() =>
+                new DxfDBPoint(new GeoPoint3(0, 0, 0)).JoinEntities(new DxfEntity[0])
+            );
 
             DxfPolyline closed = Light(0, 0, 10, 0, 10, 10);
             closed.Closed = true;
@@ -580,7 +841,15 @@ namespace GeometryHelper.UnitTest.Dxf
             Refused("is closed", () => Light(0, 0, -5, 0).JoinEntity(closed));
             Assert.Throws<InvalidOperationException>(() => new DxfPolyline().JoinEntity(Line(0, 0, -5, 0)));
 
-            var fitted = new DxfPolyline2d(DxfPoly2dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 5, 0), new GeoPoint3(20, 0, 0) }, 0, false, 0, 0, null);
+            var fitted = new DxfPolyline2d(
+                DxfPoly2dType.SimplePoly,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 5, 0), new GeoPoint3(20, 0, 0) },
+                0,
+                false,
+                0,
+                0,
+                null
+            );
             fitted.CurveFit();
             Assert.Throws<InvalidOperationException>(() => fitted.JoinEntity(Line(20, 0, 30, 0)));
             Refused("fitted polyline", () => Light(20, 0, 30, 0).JoinEntity(fitted));
@@ -592,7 +861,9 @@ namespace GeometryHelper.UnitTest.Dxf
             const double Far = 1E7;
             DxfPolyline polyline = Light(Far, Far, Far + 10, Far);
 
-            polyline.JoinEntity(new DxfLine(new GeoPoint3(Far + 20, Far + 0.5, 0), new GeoPoint3(Far + 10.0007, Far, 0)));
+            polyline.JoinEntity(
+                new DxfLine(new GeoPoint3(Far + 20, Far + 0.5, 0), new GeoPoint3(Far + 10.0007, Far, 0))
+            );
             polyline.JoinEntity(new DxfArc(new GeoPoint3(Far, Far + 5, 0), 5, 0.5 * Math.PI, 1.5 * Math.PI));
 
             // The half circle from (Far, Far + 10) round the left to the start, counter-clockwise: a bulge of 1.
@@ -619,7 +890,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             for (int i = 1; i < Count; i++)
             {
-                segments.Add(random.Next(2) == 0 ? new DxfLine(path[i], path[i + 1]) : new DxfLine(path[i + 1], path[i]));
+                segments.Add(
+                    random.Next(2) == 0 ? new DxfLine(path[i], path[i + 1]) : new DxfLine(path[i + 1], path[i])
+                );
             }
 
             List<DxfEntity> shuffled = segments.OrderBy(_ => random.Next()).ToList();
@@ -633,10 +906,22 @@ namespace GeometryHelper.UnitTest.Dxf
             watch.Stop();
             Assert.Equal(Count - 1, joined.Count);
             Assert.Equal(Count + 1, polyline.NumberOfVertices);
-            Assert.All(Enumerable.Range(0, Count / 97 + 1).Select(k => k * 97).Append(Count), i => Assert.Equal(Bits(path[i]), Bits(polyline.GetPoint3dAt(i))));
+            Assert.All(Enumerable.Range(0, Count / 97 + 1).Select(k => k * 97).Append(Count), i =>
+                Assert.Equal(Bits(path[i]), Bits(polyline.GetPoint3dAt(i)))
+            );
             Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), watch.Elapsed.ToString());
 
-            var spline = new DxfSpline(1, false, false, false, new[] { path[0], path[1] }, new[] { 0.0, 0, 1, 1 }, null, 1E-10, 1E-10);
+            var spline = new DxfSpline(
+                1,
+                false,
+                false,
+                false,
+                new[] { path[0], path[1] },
+                new[] { 0.0, 0, 1, 1 },
+                null,
+                1E-10,
+                1E-10
+            );
             Assert.Equal(Count - 1, spline.JoinEntities(shuffled).Count);
             Assert.Equal(path.Select(Bits), spline.ControlPoints.Select(Bits));
             Assert.Equal(Bits(path[Count]), Bits(spline.EndPoint));
@@ -648,15 +933,42 @@ namespace GeometryHelper.UnitTest.Dxf
             var sources = new Func<DxfCurve>[]
             {
                 () => Light(0, 0, 10, 0),
-                () => new DxfPolyline2d(DxfPoly2dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) }, 0, false, 0, 0, null),
-                () => new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) }, false),
-                () => new DxfSpline(1, false, false, false, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) }, new[] { 0.0, 0, 1, 1 }, null, 1E-10, 1E-10),
+                () =>
+                    new DxfPolyline2d(
+                        DxfPoly2dType.SimplePoly,
+                        new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) },
+                        0,
+                        false,
+                        0,
+                        0,
+                        null
+                    ),
+                () =>
+                    new DxfPolyline3d(
+                        DxfPoly3dType.SimplePoly,
+                        new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) },
+                        false
+                    ),
+                () =>
+                    new DxfSpline(
+                        1,
+                        false,
+                        false,
+                        false,
+                        new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) },
+                        new[] { 0.0, 0, 1, 1 },
+                        null,
+                        1E-10,
+                        1E-10
+                    ),
             };
 
             foreach (Func<DxfCurve> source in sources)
             {
                 bool flat = source() is DxfPolyline || source() is DxfPolyline2d;
-                var empties = flat ? new DxfEntity[] { new DxfPolyline(), new DxfPolyline2d() } : new DxfEntity[] { new DxfPolyline(), new DxfPolyline2d(), new DxfPolyline3d() };
+                var empties = flat
+                    ? new DxfEntity[] { new DxfPolyline(), new DxfPolyline2d() }
+                    : new DxfEntity[] { new DxfPolyline(), new DxfPolyline2d(), new DxfPolyline3d() };
 
                 foreach (DxfEntity empty in empties)
                 {
@@ -711,15 +1023,67 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // Flags 24, planar and linear, on the floor along the x axis: a line on along it keeps both, one turning off it in
             // the floor keeps planar alone, 8.
-            string text = string.Join("\n", new[]
-            {
-                "  0", "SECTION", "  2", "ENTITIES",
-                "  0", "SPLINE", "  5", "2A", "100", "AcDbEntity", "  8", "0", "100", "AcDbSpline",
-                "210", "0.0", "220", "0.0", "230", "1.0", " 70", "24", " 71", "1", " 72", "4", " 73", "2", " 74", "0",
-                " 40", "0.0", " 40", "0.0", " 40", "1.0", " 40", "1.0",
-                " 10", "0.0", " 20", "0.0", " 30", "0.0", " 10", "10.0", " 20", "0.0", " 30", "0.0",
-                "  0", "ENDSEC", "  0", "EOF", string.Empty,
-            });
+            string text = string.Join(
+                "\n",
+                new[]
+                {
+                    "  0",
+                    "SECTION",
+                    "  2",
+                    "ENTITIES",
+                    "  0",
+                    "SPLINE",
+                    "  5",
+                    "2A",
+                    "100",
+                    "AcDbEntity",
+                    "  8",
+                    "0",
+                    "100",
+                    "AcDbSpline",
+                    "210",
+                    "0.0",
+                    "220",
+                    "0.0",
+                    "230",
+                    "1.0",
+                    " 70",
+                    "24",
+                    " 71",
+                    "1",
+                    " 72",
+                    "4",
+                    " 73",
+                    "2",
+                    " 74",
+                    "0",
+                    " 40",
+                    "0.0",
+                    " 40",
+                    "0.0",
+                    " 40",
+                    "1.0",
+                    " 40",
+                    "1.0",
+                    " 10",
+                    "0.0",
+                    " 20",
+                    "0.0",
+                    " 30",
+                    "0.0",
+                    " 10",
+                    "10.0",
+                    " 20",
+                    "0.0",
+                    " 30",
+                    "0.0",
+                    "  0",
+                    "ENDSEC",
+                    "  0",
+                    "EOF",
+                    string.Empty,
+                }
+            );
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfSpline spline = ByHandle<DxfSpline>(db, "2A");
 
@@ -738,9 +1102,19 @@ namespace GeometryHelper.UnitTest.Dxf
             // floor, its middle on it, its sides 0.011 off.
             double s = Math.Sin(0.0011);
             double c = Math.Cos(0.0011);
-            var arc = new DxfArc(new GeoPoint3(0, 0, 0), new GeoVector3(s, 0, c), 10, Math.PI / 2 + 0.085, Math.PI / 2 - 0.085);
+            var arc = new DxfArc(
+                new GeoPoint3(0, 0, 0),
+                new GeoVector3(s, 0, c),
+                10,
+                Math.PI / 2 + 0.085,
+                Math.PI / 2 - 0.085
+            );
             GeoPoint3 at = arc.StartPoint;
-            Assert.True(Math.Abs(at.Z) < 0.001 && Math.Abs(arc.EndPoint.Z) < 0.001 && Math.Abs(arc.GetPointAtParameter(arc.StartParam + 0.5 * arc.TotalAngle).Z) < 0.001);
+            Assert.True(
+                Math.Abs(at.Z) < 0.001
+                    && Math.Abs(arc.EndPoint.Z) < 0.001
+                    && Math.Abs(arc.GetPointAtParameter(arc.StartParam + 0.5 * arc.TotalAngle).Z) < 0.001
+            );
             Refused("is not in the plane", () => Light(at.X - 5, at.Y, at.X, at.Y).JoinEntity(arc));
 
             // The same of a segment of a polyline so tilted: its vertices 0.00033 off, the middle of its arc 0.00017, its
@@ -752,7 +1126,13 @@ namespace GeometryHelper.UnitTest.Dxf
             Refused("is not in the plane", () => Light(-5, 0, 0, 0).JoinEntity(Assert.Single(tilted.Explode())));
 
             // Tilted ten times less, it is within the tolerance and joins.
-            var flatter = new DxfArc(new GeoPoint3(0, 0, 0), new GeoVector3(Math.Sin(0.00009), 0, Math.Cos(0.00009)), 10, Math.PI / 2 + 0.085, Math.PI / 2 - 0.085);
+            var flatter = new DxfArc(
+                new GeoPoint3(0, 0, 0),
+                new GeoVector3(Math.Sin(0.00009), 0, Math.Cos(0.00009)),
+                10,
+                Math.PI / 2 + 0.085,
+                Math.PI / 2 - 0.085
+            );
             GeoPoint3 near = flatter.StartPoint;
             DxfPolyline joined = Light(near.X - 5, near.Y, near.X, near.Y);
             joined.JoinEntity(flatter);
@@ -778,17 +1158,31 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(0.0, first.StartAngle);
             Assert.Equal(1.75 * Math.PI, first.EndAngle, 12);
 
-            var ellipses = new Func<double, double, DxfEllipse>((from, to) =>
-            {
-                var e = new DxfEllipse(center, Up, new GeoVector3(20, 0, 0), 0.5, 0, 1);
-                e.StartParam = from;
-                e.EndParam = to;
-                return e;
-            });
+            var ellipses = new Func<double, double, DxfEllipse>(
+                (from, to) =>
+                {
+                    var e = new DxfEllipse(center, Up, new GeoVector3(20, 0, 0), 0.5, 0, 1);
+                    e.StartParam = from;
+                    e.EndParam = to;
+                    return e;
+                }
+            );
             DxfEllipse one = ellipses(0, Math.PI / 2);
             DxfEllipse other = ellipses(0, Math.PI / 2);
-            one.JoinEntities(new DxfEntity[] { ellipses(1.5 * Math.PI, 1.75 * Math.PI), ellipses(1.75 * Math.PI, 2 * Math.PI + Math.PI / 8) });
-            other.JoinEntities(new DxfEntity[] { ellipses(1.75 * Math.PI, 2 * Math.PI + Math.PI / 8), ellipses(1.5 * Math.PI, 1.75 * Math.PI) });
+            one.JoinEntities(
+                new DxfEntity[]
+                {
+                    ellipses(1.5 * Math.PI, 1.75 * Math.PI),
+                    ellipses(1.75 * Math.PI, 2 * Math.PI + Math.PI / 8),
+                }
+            );
+            other.JoinEntities(
+                new DxfEntity[]
+                {
+                    ellipses(1.75 * Math.PI, 2 * Math.PI + Math.PI / 8),
+                    ellipses(1.5 * Math.PI, 1.75 * Math.PI),
+                }
+            );
             Assert.Equal(Bits(one.StartParam), Bits(other.StartParam));
             Assert.Equal(Bits(one.EndParam), Bits(other.EndParam));
         }
@@ -801,7 +1195,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // A line drawn twice: the second, run back from (20, 0), is left out, and the chain goes on past it.
             DxfPolyline polyline = Light(0, 0, 10, 0);
-            Assert.Equal(new[] { 0, 2 }, polyline.JoinEntities(new DxfEntity[] { Line(10, 0, 20, 0), Line(20, 0, 10, 0), Line(20, 0, 20, 10) }));
+            Assert.Equal(
+                new[] { 0, 2 },
+                polyline.JoinEntities(new DxfEntity[] { Line(10, 0, 20, 0), Line(20, 0, 10, 0), Line(20, 0, 20, 10) })
+            );
             Assert.Equal(4, polyline.NumberOfVertices);
             Assert.Equal(Bits(new GeoPoint3(20, 10, 0)), Bits(polyline.EndPoint));
 
@@ -813,8 +1210,26 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(bulged.Closed);
             Assert.Equal(25 * Math.PI, Math.Abs(bulged.Area), 9);
 
-            Refused("runs back over", () => new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) }, false).JoinEntity(Line(10, 0, 0, 0)));
-            Refused("runs back over", () => new DxfSpline(1, false, false, false, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) }, new[] { 0.0, 0, 1, 1 }, null, 1E-10, 1E-10).JoinEntity(Line(10, 0, 0, 0)));
+            Refused("runs back over", () =>
+                new DxfPolyline3d(
+                    DxfPoly3dType.SimplePoly,
+                    new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) },
+                    false
+                ).JoinEntity(Line(10, 0, 0, 0))
+            );
+            Refused("runs back over", () =>
+                new DxfSpline(
+                    1,
+                    false,
+                    false,
+                    false,
+                    new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) },
+                    new[] { 0.0, 0, 1, 1 },
+                    null,
+                    1E-10,
+                    1E-10
+                ).JoinEntity(Line(10, 0, 0, 0))
+            );
         }
     }
 }

@@ -15,43 +15,104 @@ namespace GeometryHelper.IfcConvert.Core.Internal
     /// </summary>
     internal sealed class IfcUnits
     {
-        private static readonly Dictionary<string, string> PrefixSymbols = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly Dictionary<string, string> PrefixSymbols = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase
+        )
         {
-            { "EXA", "E" }, { "PETA", "P" }, { "TERA", "T" }, { "GIGA", "G" }, { "MEGA", "M" }, { "KILO", "k" },
-            { "HECTO", "h" }, { "DECA", "da" }, { "DECI", "d" }, { "CENTI", "c" }, { "MILLI", "m" },
-            { "MICRO", "µ" }, { "NANO", "n" }, { "PICO", "p" }, { "FEMTO", "f" }, { "ATTO", "a" }
+            { "EXA", "E" },
+            { "PETA", "P" },
+            { "TERA", "T" },
+            { "GIGA", "G" },
+            { "MEGA", "M" },
+            { "KILO", "k" },
+            { "HECTO", "h" },
+            { "DECA", "da" },
+            { "DECI", "d" },
+            { "CENTI", "c" },
+            { "MILLI", "m" },
+            { "MICRO", "µ" },
+            { "NANO", "n" },
+            { "PICO", "p" },
+            { "FEMTO", "f" },
+            { "ATTO", "a" },
         };
 
-        private static readonly Dictionary<string, string> SiNameSymbols = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly Dictionary<string, string> SiNameSymbols = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase
+        )
         {
-            { "METRE", "m" }, { "SQUARE_METRE", "m2" }, { "CUBIC_METRE", "m3" }, { "GRAM", "g" }, { "SECOND", "s" },
-            { "KELVIN", "K" }, { "DEGREE_CELSIUS", "°C" }, { "PASCAL", "Pa" }, { "NEWTON", "N" }, { "RADIAN", "rad" },
-            { "STERADIAN", "sr" }, { "JOULE", "J" }, { "WATT", "W" }, { "AMPERE", "A" }, { "VOLT", "V" },
-            { "HERTZ", "Hz" }, { "MOLE", "mol" }, { "CANDELA", "cd" }, { "LUMEN", "lm" }, { "LUX", "lx" },
-            { "OHM", "Ω" }, { "COULOMB", "C" }, { "FARAD", "F" }, { "SIEMENS", "S" }, { "WEBER", "Wb" },
-            { "TESLA", "T" }, { "HENRY", "H" }, { "BECQUEREL", "Bq" }, { "GRAY", "Gy" }, { "SIEVERT", "Sv" }
+            { "METRE", "m" },
+            { "SQUARE_METRE", "m2" },
+            { "CUBIC_METRE", "m3" },
+            { "GRAM", "g" },
+            { "SECOND", "s" },
+            { "KELVIN", "K" },
+            { "DEGREE_CELSIUS", "°C" },
+            { "PASCAL", "Pa" },
+            { "NEWTON", "N" },
+            { "RADIAN", "rad" },
+            { "STERADIAN", "sr" },
+            { "JOULE", "J" },
+            { "WATT", "W" },
+            { "AMPERE", "A" },
+            { "VOLT", "V" },
+            { "HERTZ", "Hz" },
+            { "MOLE", "mol" },
+            { "CANDELA", "cd" },
+            { "LUMEN", "lm" },
+            { "LUX", "lx" },
+            { "OHM", "Ω" },
+            { "COULOMB", "C" },
+            { "FARAD", "F" },
+            { "SIEMENS", "S" },
+            { "WEBER", "Wb" },
+            { "TESLA", "T" },
+            { "HENRY", "H" },
+            { "BECQUEREL", "Bq" },
+            { "GRAY", "Gy" },
+            { "SIEVERT", "Sv" },
         };
 
-        private static readonly Dictionary<string, string> ConversionBasedSymbols = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly Dictionary<string, string> ConversionBasedSymbols = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase
+        )
         {
-            { "FOOT", "ft" }, { "INCH", "in" }, { "YARD", "yd" }, { "MILE", "mi" },
-            { "SQUARE FOOT", "ft2" }, { "SQUARE INCH", "in2" }, { "CUBIC FOOT", "ft3" }, { "CUBIC INCH", "in3" },
-            { "POUND", "lb" }, { "DEGREE", "°" }
+            { "FOOT", "ft" },
+            { "INCH", "in" },
+            { "YARD", "yd" },
+            { "MILE", "mi" },
+            { "SQUARE FOOT", "ft2" },
+            { "SQUARE INCH", "in2" },
+            { "CUBIC FOOT", "ft3" },
+            { "CUBIC INCH", "in3" },
+            { "POUND", "lb" },
+            { "DEGREE", "°" },
         };
 
         // Measure type -> IfcUnitEnum member of the project unit that applies when the value carries no unit.
-        private static readonly Dictionary<string, string> MeasureUnitTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly Dictionary<string, string> MeasureUnitTypes = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase
+        )
         {
-            { "IfcLengthMeasure", "LENGTHUNIT" }, { "IfcPositiveLengthMeasure", "LENGTHUNIT" },
-            { "IfcNonNegativeLengthMeasure", "LENGTHUNIT" }, { "IfcAreaMeasure", "AREAUNIT" },
-            { "IfcVolumeMeasure", "VOLUMEUNIT" }, { "IfcMassMeasure", "MASSUNIT" },
-            { "IfcPlaneAngleMeasure", "PLANEANGLEUNIT" }, { "IfcPositivePlaneAngleMeasure", "PLANEANGLEUNIT" },
-            { "IfcTimeMeasure", "TIMEUNIT" }, { "IfcThermodynamicTemperatureMeasure", "THERMODYNAMICTEMPERATUREUNIT" },
-            { "IfcForceMeasure", "FORCEUNIT" }, { "IfcPressureMeasure", "PRESSUREUNIT" },
-            { "IfcEnergyMeasure", "ENERGYUNIT" }, { "IfcPowerMeasure", "POWERUNIT" }
+            { "IfcLengthMeasure", "LENGTHUNIT" },
+            { "IfcPositiveLengthMeasure", "LENGTHUNIT" },
+            { "IfcNonNegativeLengthMeasure", "LENGTHUNIT" },
+            { "IfcAreaMeasure", "AREAUNIT" },
+            { "IfcVolumeMeasure", "VOLUMEUNIT" },
+            { "IfcMassMeasure", "MASSUNIT" },
+            { "IfcPlaneAngleMeasure", "PLANEANGLEUNIT" },
+            { "IfcPositivePlaneAngleMeasure", "PLANEANGLEUNIT" },
+            { "IfcTimeMeasure", "TIMEUNIT" },
+            { "IfcThermodynamicTemperatureMeasure", "THERMODYNAMICTEMPERATUREUNIT" },
+            { "IfcForceMeasure", "FORCEUNIT" },
+            { "IfcPressureMeasure", "PRESSUREUNIT" },
+            { "IfcEnergyMeasure", "ENERGYUNIT" },
+            { "IfcPowerMeasure", "POWERUNIT" },
         };
 
-        private readonly Dictionary<string, IIfcNamedUnit> _byType = new Dictionary<string, IIfcNamedUnit>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, IIfcNamedUnit> _byType = new Dictionary<string, IIfcNamedUnit>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private readonly double _lengthToMetres;
 
         public IfcUnits(IModel model)
@@ -103,7 +164,9 @@ namespace GeometryHelper.IfcConvert.Core.Internal
         /// </summary>
         public string SymbolForUnitType(string unitType)
         {
-            return unitType != null && _byType.TryGetValue(unitType, out IIfcNamedUnit unit) ? SymbolOf(unit) : string.Empty;
+            return unitType != null && _byType.TryGetValue(unitType, out IIfcNamedUnit unit)
+                ? SymbolOf(unit)
+                : string.Empty;
         }
 
         /// <summary>
@@ -124,9 +187,13 @@ namespace GeometryHelper.IfcConvert.Core.Internal
             switch (unit)
             {
                 case IIfcSIUnit si:
-                    string prefix = si.Prefix.HasValue && PrefixSymbols.TryGetValue(si.Prefix.Value.ToString(), out string p) ? p : string.Empty;
+                    string prefix =
+                        si.Prefix.HasValue && PrefixSymbols.TryGetValue(si.Prefix.Value.ToString(), out string p)
+                            ? p
+                            : string.Empty;
                     string name = si.Name.ToString();
-                    return prefix + (SiNameSymbols.TryGetValue(name, out string symbol) ? symbol : name.ToLowerInvariant());
+                    return prefix
+                        + (SiNameSymbols.TryGetValue(name, out string symbol) ? symbol : name.ToLowerInvariant());
 
                 case IIfcConversionBasedUnit conversion:
                     string conversionName = conversion.Name.ToString();
@@ -139,13 +206,20 @@ namespace GeometryHelper.IfcConvert.Core.Internal
 
         private static string NameFromFactor(double metres)
         {
-            if (Math.Abs(metres - 1.0) < 1e-9) return "METRE";
-            if (Math.Abs(metres - 0.001) < 1e-12) return "MILLIMETRE";
-            if (Math.Abs(metres - 0.01) < 1e-11) return "CENTIMETRE";
-            if (Math.Abs(metres - 0.1) < 1e-10) return "DECIMETRE";
-            if (Math.Abs(metres - 1000.0) < 1e-6) return "KILOMETRE";
-            if (Math.Abs(metres - 0.3048) < 1e-9) return "FOOT";
-            if (Math.Abs(metres - 0.0254) < 1e-10) return "INCH";
+            if (Math.Abs(metres - 1.0) < 1e-9)
+                return "METRE";
+            if (Math.Abs(metres - 0.001) < 1e-12)
+                return "MILLIMETRE";
+            if (Math.Abs(metres - 0.01) < 1e-11)
+                return "CENTIMETRE";
+            if (Math.Abs(metres - 0.1) < 1e-10)
+                return "DECIMETRE";
+            if (Math.Abs(metres - 1000.0) < 1e-6)
+                return "KILOMETRE";
+            if (Math.Abs(metres - 0.3048) < 1e-9)
+                return "FOOT";
+            if (Math.Abs(metres - 0.0254) < 1e-10)
+                return "INCH";
             return "METRE";
         }
     }

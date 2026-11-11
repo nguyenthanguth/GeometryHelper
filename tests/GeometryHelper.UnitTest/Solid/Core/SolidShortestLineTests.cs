@@ -16,14 +16,13 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Tight = new Tolerance(1E-9, 1E-9);
 
-        private static GeoSolid3 BoxAt(double x) => new GeoAabb3(new GeoPoint3(x, 0, 0), new GeoPoint3(x + 100, 100, 100))
-            .ToObb()
-            .ToSolid();
+        private static GeoSolid3 BoxAt(double x) =>
+            new GeoAabb3(new GeoPoint3(x, 0, 0), new GeoPoint3(x + 100, 100, 100)).ToObb().ToSolid();
 
         private static GeoSolid3 Box() => BoxAt(0);
 
-        private static bool OnSurface(GeoSolid3 solid, GeoPoint3 point)
-            => solid.GetClosestPointOnBoundary(point).DistanceTo(point) < 1E-7;
+        private static bool OnSurface(GeoSolid3 solid, GeoPoint3 point) =>
+            solid.GetClosestPointOnBoundary(point).DistanceTo(point) < 1E-7;
 
         [Fact]
         public void TheSegmentRunsFromFaceToFaceAndIsAsLongAsTheGap()
@@ -50,18 +49,25 @@ namespace GeometryHelper.UnitTest.Solid
             var point = new GeoPoint3(300, 50, 50);
             var line = new GeoLine3(new GeoPoint3(300, 50, 0), new GeoPoint3(300, 50, 100));
             var triangle = new GeoTriangle3(
-                new GeoPoint3(300, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(300, 100, 0));
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(300, 100, 0)
+            );
 
             Assert.Equal(box.DistanceTo(point), box.GetShortestLineTo(point).Length, 9);
             Assert.Equal(box.DistanceTo(line), box.GetShortestLineTo(line).Length, 9);
             Assert.Equal(box.DistanceTo(triangle), box.GetShortestLineTo(triangle).Length, 9);
             Assert.Equal(box.DistanceTo(away), box.GetShortestLineTo(away).Length, 9);
 
-            foreach (GeoLine3 joining in new[]
-            {
-                box.GetShortestLineTo(point), box.GetShortestLineTo(line),
-                box.GetShortestLineTo(triangle), box.GetShortestLineTo(away)
-            })
+            foreach (
+                GeoLine3 joining in new[]
+                {
+                    box.GetShortestLineTo(point),
+                    box.GetShortestLineTo(line),
+                    box.GetShortestLineTo(triangle),
+                    box.GetShortestLineTo(away),
+                }
+            )
             {
                 Assert.Equal(200.0, joining.Length, 9);
                 Assert.True(OnSurface(box, joining.StartPoint), "start off the surface");
@@ -81,7 +87,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             var through = new GeoLine3(new GeoPoint3(-50, 50, 50), new GeoPoint3(150, 50, 50));
             var cutting = new GeoTriangle3(
-                new GeoPoint3(50, -50, 50), new GeoPoint3(50, 150, 50), new GeoPoint3(50, 50, 200));
+                new GeoPoint3(50, -50, 50),
+                new GeoPoint3(50, 150, 50),
+                new GeoPoint3(50, 50, 200)
+            );
 
             Assert.Equal(0.0, box.GetShortestLineTo(through).Length, 9);
             Assert.Equal(0.0, box.GetShortestLineTo(cutting).Length, 9);
@@ -113,10 +122,8 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TwoTrianglesAreJoinedWhereTheyAreNearestAndNowhereElse()
         {
-            var flat = new GeoTriangle3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
-            var above = new GeoTriangle3(
-                new GeoPoint3(0, 0, 40), new GeoPoint3(100, 0, 40), new GeoPoint3(0, 100, 40));
+            var flat = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
+            var above = new GeoTriangle3(new GeoPoint3(0, 0, 40), new GeoPoint3(100, 0, 40), new GeoPoint3(0, 100, 40));
 
             GeoLine3 joining = Projection3.GetShortestLineTo(flat, above);
 
@@ -127,7 +134,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             // Two that cross share a point, and that is all the segment is.
             var crossing = new GeoTriangle3(
-                new GeoPoint3(20, 20, -50), new GeoPoint3(30, 20, 50), new GeoPoint3(20, 30, 50));
+                new GeoPoint3(20, 20, -50),
+                new GeoPoint3(30, 20, 50),
+                new GeoPoint3(20, 30, 50)
+            );
 
             Assert.Equal(0.0, Projection3.GetShortestLineTo(flat, crossing).Length, 9);
             Assert.Equal(0.0, Distance3.DistanceTo(flat, crossing), 9);
@@ -175,7 +185,11 @@ namespace GeometryHelper.UnitTest.Solid
             var line = new GeoLine3(new GeoPoint3(300, 50, 0), new GeoPoint3(300, 50, 100));
 
             Assert.True(Projection3.GetShortestLineTo(box, point).IsEqualTo(box.GetShortestLineTo(point), Tight));
-            Assert.True(Projection3.GetShortestLineTo(box, line, Tolerance.Global).IsEqualTo(box.GetShortestLineTo(line, Tolerance.Global), Tight));
+            Assert.True(
+                Projection3
+                    .GetShortestLineTo(box, line, Tolerance.Global)
+                    .IsEqualTo(box.GetShortestLineTo(line, Tolerance.Global), Tight)
+            );
             Assert.True(Projection3.GetShortestLineTo(box, away).IsEqualTo(box.GetShortestLineTo(away), Tight));
 
             Assert.Throws<ArgumentNullException>(() => Projection3.GetShortestLineTo((GeoSolid3)null, point));

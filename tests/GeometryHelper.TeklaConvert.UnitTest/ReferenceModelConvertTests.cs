@@ -4,12 +4,12 @@ using System.IO;
 using System.Linq;
 using GeometryHelper;
 using GeometryHelper.Enums;
+using GeometryHelper.Geometry;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Models;
-using GeometryHelper.Geometry;
 using GeometryHelper.TeklaConvert;
-using TSG = Tekla.Structures.Geometry3d;
 using Xunit;
+using TSG = Tekla.Structures.Geometry3d;
 
 namespace GeometryHelper.TeklaConvert.UnitTest
 {
@@ -81,7 +81,11 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         public void CreateOptions_ForAWholeModel_LeavesAggregatedPartsOut()
         {
             Assert.False(ReferenceModelConvert.CreateOptions(1.0, null, true).IncludeAggregatedParts);
-            Assert.False(ReferenceModelConvert.CreateOptions(1.0, new IfcConvertOptions { IncludeAggregatedParts = true }, true).IncludeAggregatedParts);
+            Assert.False(
+                ReferenceModelConvert
+                    .CreateOptions(1.0, new IfcConvertOptions { IncludeAggregatedParts = true }, true)
+                    .IncludeAggregatedParts
+            );
         }
 
         [Theory]
@@ -100,7 +104,11 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         [InlineData(@"C:\Models\House", @"D:\Shared\Site.ifczip", @"D:\Shared\Site.ifczip")]
         [InlineData(@"C:\Models\House", @"\\server\share\Bridge.ifcxml", @"\\server\share\Bridge.ifcxml")]
         [InlineData(@"C:\Models\House", @"C:/Models/House/./Sub/../Building.ifc", @"C:\Models\House\Building.ifc")]
-        public void ResolveIfcFilePath_ResolvesAgainstTheModelFolder(string modelPath, string activeFilePath, string expected)
+        public void ResolveIfcFilePath_ResolvesAgainstTheModelFolder(
+            string modelPath,
+            string activeFilePath,
+            string expected
+        )
         {
             Assert.Equal(expected, ReferenceModelConvert.ResolveIfcFilePath(modelPath, activeFilePath));
         }
@@ -124,19 +132,32 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         {
             // A reference model inserted at (1000, 2000, 300) and turned 90 degrees about Z ...
             TSG.CoordinateSystem frame = new TSG.CoordinateSystem(
-                new TSG.Point(1000, 2000, 300), new TSG.Vector(0, 1, 0), new TSG.Vector(-1, 0, 0));
+                new TSG.Point(1000, 2000, 300),
+                new TSG.Vector(0, 1, 0),
+                new TSG.Vector(-1, 0, 0)
+            );
 
             // ... read while the work plane is that of a part standing on a diagonal. The TransformationMatrixToLocal
             // of that plane is MatrixFactory.ToCoordinateSystem of its frame; a TransformationPlane itself cannot be
             // made without a running Tekla (its constructor goes through Tekla's remoting proxy).
             TSG.CoordinateSystem part = new TSG.CoordinateSystem(
-                new TSG.Point(-500, 700, 100), new TSG.Vector(1, 1, 0), new TSG.Vector(0, 0, 1));
+                new TSG.Point(-500, 700, 100),
+                new TSG.Vector(1, 1, 0),
+                new TSG.Vector(0, 0, 1)
+            );
             TSG.Matrix globalToWorkPlane = TSG.MatrixFactory.ToCoordinateSystem(part);
             TSG.Matrix ifcToGlobal = TSG.MatrixFactory.FromCoordinateSystem(frame);
 
             GeoTransform3 composed = ReferenceModelConvert.ComposeIfcToWorkPlane(frame, globalToWorkPlane);
 
-            foreach (TSG.Point ifcPoint in new[] { new TSG.Point(0, 0, 0), new TSG.Point(500, -250, 2000), new TSG.Point(-1234.5, 678.9, -42) })
+            foreach (
+                TSG.Point ifcPoint in new[]
+                {
+                    new TSG.Point(0, 0, 0),
+                    new TSG.Point(500, -250, 2000),
+                    new TSG.Point(-1234.5, 678.9, -42),
+                }
+            )
             {
                 TSG.Point expected = globalToWorkPlane.Transform(ifcToGlobal.Transform(ifcPoint));
                 GeoPoint3 actual = composed.Transform(ifcPoint.ToGeoPoint3());
@@ -151,13 +172,24 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         public void TransformGeometry_CarriesBodiesSurfacesAndPlacement_AndKeepsTheProduct()
         {
             GeoSolid3 tetrahedron = Tetrahedron(100.0);
-            GeoFace3 surface = new GeoFace3(new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(0, 10, 0)));
+            GeoFace3 surface = new GeoFace3(
+                new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(0, 10, 0))
+            );
             GeoTransform3 placement = GeoTransform3.Translation(new GeoVector3(5, 6, 7));
             IfcProductGeometry original = new IfcProductGeometry(
-                "2O2Fr$t4X7Zf8NOew3FNr2", "Wall", "IfcWall", new[] { tetrahedron }, new[] { surface }, placement, "T1", new[] { "#12 IfcExtrudedAreaSolid: note" });
+                "2O2Fr$t4X7Zf8NOew3FNr2",
+                "Wall",
+                "IfcWall",
+                new[] { tetrahedron },
+                new[] { surface },
+                placement,
+                "T1",
+                new[] { "#12 IfcExtrudedAreaSolid: note" }
+            );
 
             // Turned 90 degrees about Z, then moved.
-            GeoTransform3 move = GeoTransform3.Translation(new GeoVector3(1000, -2000, 300)) * GeoTransform3.RotationZ(Math.PI / 2.0);
+            GeoTransform3 move =
+                GeoTransform3.Translation(new GeoVector3(1000, -2000, 300)) * GeoTransform3.RotationZ(Math.PI / 2.0);
 
             IfcProductGeometry moved = ReferenceModelConvert.TransformGeometry(original, move, Tolerance.Global);
 
@@ -193,7 +225,10 @@ namespace GeometryHelper.TeklaConvert.UnitTest
                 List<IfcProductGeometry> geometries = ReferenceModelConvert.ConvertWholeModel(cache, options, move);
 
                 Assert.NotNull(geometries);
-                Assert.Equal(new[] { TwoWallsIfcFile.WallA, TwoWallsIfcFile.WallB }, geometries.Select(g => g.GlobalId).OrderBy(g => g));
+                Assert.Equal(
+                    new[] { TwoWallsIfcFile.WallA, TwoWallsIfcFile.WallB },
+                    geometries.Select(g => g.GlobalId).OrderBy(g => g)
+                );
 
                 // 1 x 0.5 x 2 m at scale 2, in millimetres: x -1000..1000, y -500..500, z 0..4000, then moved.
                 IfcProductGeometry wallA = geometries.Single(g => g.GlobalId == TwoWallsIfcFile.WallA);
@@ -218,12 +253,19 @@ namespace GeometryHelper.TeklaConvert.UnitTest
                 IfcStoreCache cache = ReferenceModelConvert.TryOpen(file.FilePath);
                 IfcConvertOptions options = ReferenceModelConvert.CreateOptions(1.0, null, true);
 
-                List<IfcProductGeometry> geometries = ReferenceModelConvert.ConvertWholeModel(cache, options, GeoTransform3.Translation(new GeoVector3(0, 0, 10000)));
+                List<IfcProductGeometry> geometries = ReferenceModelConvert.ConvertWholeModel(
+                    cache,
+                    options,
+                    GeoTransform3.Translation(new GeoVector3(0, 0, 10000))
+                );
 
                 // The order one product at a time gives, from the file opened apart.
                 using (IfcStoreCache apart = IfcStoreCache.Open(file.FilePath))
                 {
-                    Assert.Equal(apart.EnumerateGeometries(options).Select(g => g.GlobalId), geometries.Select(g => g.GlobalId));
+                    Assert.Equal(
+                        apart.EnumerateGeometries(options).Select(g => g.GlobalId),
+                        geometries.Select(g => g.GlobalId)
+                    );
                 }
 
                 Assert.Equal(120, geometries.Count);
@@ -231,7 +273,11 @@ namespace GeometryHelper.TeklaConvert.UnitTest
                 {
                     // Wall k is x 2k -0.5..+0.5, y -0.25..0.25, z 0..2 m, in millimetres here, and 10 m up.
                     int k = int.Parse(wall.GlobalId.Substring(1), System.Globalization.CultureInfo.InvariantCulture);
-                    AssertBox(wall.BoundingBox, new GeoPoint3(2000 * k - 500, -250, 10000), new GeoPoint3(2000 * k + 500, 250, 12000));
+                    AssertBox(
+                        wall.BoundingBox,
+                        new GeoPoint3(2000 * k - 500, -250, 10000),
+                        new GeoPoint3(2000 * k + 500, 250, 12000)
+                    );
                 }
             }
         }
@@ -321,14 +367,23 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         [Fact]
         public void TransformGeometry_ABodyThatCannotBeRebuilt_IsLeftOutAndLogged()
         {
-            IfcProductGeometry original = new IfcProductGeometry("2O2Fr$t4X7Zf8NOew3FNr2", "Plate", "IfcPlate", new[] { Tetrahedron(100.0) });
+            IfcProductGeometry original = new IfcProductGeometry(
+                "2O2Fr$t4X7Zf8NOew3FNr2",
+                "Plate",
+                "IfcPlate",
+                new[] { Tetrahedron(100.0) }
+            );
 
             // Shrunk a million times, its faces fall below the smallest area a polygon may have.
             GeoTransform3 collapse = GeoTransform3.Scaling(1e-6);
 
             using (LogCapture log = new LogCapture())
             {
-                IfcProductGeometry moved = ReferenceModelConvert.TransformGeometry(original, collapse, Tolerance.Global);
+                IfcProductGeometry moved = ReferenceModelConvert.TransformGeometry(
+                    original,
+                    collapse,
+                    Tolerance.Global
+                );
 
                 // Left out, and said so both in the product's warnings and in the log.
                 Assert.Empty(moved.Solids);
@@ -352,11 +407,17 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             // 3 of 500 beams of a real Tekla model read with ApplyVoids = true. A move that keeps every length now
             // carries the faces over as they are.
             GeoSolid3 box = SliverBox();
-            IfcProductGeometry original = new IfcProductGeometry("1eLFzR00fm8Z4tDJ0qCJ0m", "GIRDER", "IfcBeam", new[] { box });
+            IfcProductGeometry original = new IfcProductGeometry(
+                "1eLFzR00fm8Z4tDJ0qCJ0m",
+                "GIRDER",
+                "IfcBeam",
+                new[] { box }
+            );
             Assert.Equal(box.Faces.Count, box.TransformBy(GeoTransform3.Identity).Faces.Count);
 
             IfcConvertOptions options = ReferenceModelConvert.CreateOptions(1.0, null, false);
-            GeoTransform3 move = GeoTransform3.Translation(new GeoVector3(12000, 34000, 5000)) * GeoTransform3.RotationZ(Math.PI / 6.0);
+            GeoTransform3 move =
+                GeoTransform3.Translation(new GeoVector3(12000, 34000, 5000)) * GeoTransform3.RotationZ(Math.PI / 6.0);
 
             using (LogCapture log = new LogCapture())
             {
@@ -378,7 +439,9 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             {
                 Assert.Null(ReferenceModelConvert.ResolveIfcFilePath(@"C:\Models\House", "Bad|Name.ifc"));
 
-                Assert.Contains(log.Entries, e => e.Level == GeometryHelperLogLevel.Warn && e.Message.Contains("Bad|Name.ifc"));
+                Assert.Contains(log.Entries, e =>
+                    e.Level == GeometryHelperLogLevel.Warn && e.Message.Contains("Bad|Name.ifc")
+                );
             }
         }
 
@@ -397,22 +460,34 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         // the conversion builds it, and the rest. Faces wound so that their normals point out of the body.
         private static GeoSolid3 SliverBox()
         {
-            Tolerance construction = new Tolerance(Tolerance.DefaultEqualPoint, Tolerance.DefaultEqualPoint * Tolerance.DefaultEqualPoint);
+            Tolerance construction = new Tolerance(
+                Tolerance.DefaultEqualPoint,
+                Tolerance.DefaultEqualPoint * Tolerance.DefaultEqualPoint
+            );
 
-            GeoPoint3 b0 = new GeoPoint3(0, 0, 0), b1 = new GeoPoint3(100, 0, 0), b2 = new GeoPoint3(100, 100, 0), b3 = new GeoPoint3(0, 100, 0);
-            GeoPoint3 t0 = new GeoPoint3(0, 0, 100), t1 = new GeoPoint3(100, 0, 100), t2 = new GeoPoint3(100, 100, 100), t3 = new GeoPoint3(0, 100, 100);
-            GeoPoint3 a = new GeoPoint3(1, 0, 100), m = new GeoPoint3(0.5, 0.015, 100);
+            GeoPoint3 b0 = new GeoPoint3(0, 0, 0),
+                b1 = new GeoPoint3(100, 0, 0),
+                b2 = new GeoPoint3(100, 100, 0),
+                b3 = new GeoPoint3(0, 100, 0);
+            GeoPoint3 t0 = new GeoPoint3(0, 0, 100),
+                t1 = new GeoPoint3(100, 0, 100),
+                t2 = new GeoPoint3(100, 100, 100),
+                t3 = new GeoPoint3(0, 100, 100);
+            GeoPoint3 a = new GeoPoint3(1, 0, 100),
+                m = new GeoPoint3(0.5, 0.015, 100);
 
-            return new GeoSolid3(new[]
-            {
-                new GeoFace3(new GeoPolygon3(b0, b3, b2, b1)),
-                new GeoFace3(new GeoPolygon3(b0, b1, t1, t0)),
-                new GeoFace3(new GeoPolygon3(b1, b2, t2, t1)),
-                new GeoFace3(new GeoPolygon3(b2, b3, t3, t2)),
-                new GeoFace3(new GeoPolygon3(b3, b0, t0, t3)),
-                new GeoFace3(new GeoPolygon3(new[] { t0, a, m }, construction)),
-                new GeoFace3(new GeoPolygon3(t0, m, a, t1, t2, t3)),
-            });
+            return new GeoSolid3(
+                new[]
+                {
+                    new GeoFace3(new GeoPolygon3(b0, b3, b2, b1)),
+                    new GeoFace3(new GeoPolygon3(b0, b1, t1, t0)),
+                    new GeoFace3(new GeoPolygon3(b1, b2, t2, t1)),
+                    new GeoFace3(new GeoPolygon3(b2, b3, t3, t2)),
+                    new GeoFace3(new GeoPolygon3(b3, b0, t0, t3)),
+                    new GeoFace3(new GeoPolygon3(new[] { t0, a, m }, construction)),
+                    new GeoFace3(new GeoPolygon3(t0, m, a, t1, t2, t3)),
+                }
+            );
         }
 
         // Faces wound so that their normals point out of the body.
@@ -423,13 +498,15 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             GeoPoint3 c = new GeoPoint3(0, size, 0);
             GeoPoint3 d = new GeoPoint3(0, 0, size);
 
-            return new GeoSolid3(new[]
-            {
-                new GeoFace3(new GeoPolygon3(a, c, b)),
-                new GeoFace3(new GeoPolygon3(a, b, d)),
-                new GeoFace3(new GeoPolygon3(a, d, c)),
-                new GeoFace3(new GeoPolygon3(b, c, d)),
-            });
+            return new GeoSolid3(
+                new[]
+                {
+                    new GeoFace3(new GeoPolygon3(a, c, b)),
+                    new GeoFace3(new GeoPolygon3(a, b, d)),
+                    new GeoFace3(new GeoPolygon3(a, d, c)),
+                    new GeoFace3(new GeoPolygon3(b, c, d)),
+                }
+            );
         }
     }
 }

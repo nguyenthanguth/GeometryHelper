@@ -6,9 +6,9 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using GeometryHelper;
+using GeometryHelper.Geometry;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Core.Internal;
-using GeometryHelper.Geometry;
 using Xbim.Common;
 using Xbim.Common.Geometry;
 using Xbim.Ifc4.Interfaces;
@@ -31,14 +31,18 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <remarks>
         /// Held for as long as the model is: an IFC store dropped from the cache takes its items with it.
         /// </remarks>
-        private static readonly ConditionalWeakTable<IModel, ModelItems> Items = new ConditionalWeakTable<IModel, ModelItems>();
+        private static readonly ConditionalWeakTable<IModel, ModelItems> Items =
+            new ConditionalWeakTable<IModel, ModelItems>();
 
         /// <summary>
         /// The items of one model built so far, and how many were built in the geometry engine.
         /// </summary>
         private sealed class ModelItems
         {
-            internal readonly ConcurrentDictionary<string, Lazy<BuiltItem>> Built = new ConcurrentDictionary<string, Lazy<BuiltItem>>(StringComparer.Ordinal);
+            internal readonly ConcurrentDictionary<string, Lazy<BuiltItem>> Built = new ConcurrentDictionary<
+                string,
+                Lazy<BuiltItem>
+            >(StringComparer.Ordinal);
 
             internal int BuildCount;
         }
@@ -62,7 +66,8 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <summary>
         /// Gets how many items of a model with nothing to cut from them were built in the geometry engine.
         /// </summary>
-        internal static int BuiltItemCount(IModel model) => model != null && Items.TryGetValue(model, out ModelItems items) ? items.BuildCount : 0;
+        internal static int BuiltItemCount(IModel model) =>
+            model != null && Items.TryGetValue(model, out ModelItems items) ? items.BuildCount : 0;
 
         /// <summary>
         /// Reads the axis-aligned bounding box of an xBIM solid as a <see cref="GeoAabb3"/>.
@@ -80,7 +85,11 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
             XbimRect3D box = solid.BoundingBox;
             GeoPoint3 min = new GeoPoint3(box.X * scale, box.Y * scale, box.Z * scale);
-            GeoPoint3 max = new GeoPoint3((box.X + box.SizeX) * scale, (box.Y + box.SizeY) * scale, (box.Z + box.SizeZ) * scale);
+            GeoPoint3 max = new GeoPoint3(
+                (box.X + box.SizeX) * scale,
+                (box.Y + box.SizeY) * scale,
+                (box.Z + box.SizeZ) * scale
+            );
 
             return new GeoAabb3(min, max);
         }
@@ -93,8 +102,12 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <param name="options">Optional conversion options.</param>
         /// <param name="warnings">Receives a message for every problem met, or null to ignore them.</param>
         /// <returns><c>true</c> if the body was successfully converted into a valid solid of at least 4 faces; otherwise <c>false</c>.</returns>
-        public static bool TryToGeoSolid3(this IXbimSolid solid, out GeoSolid3 result, IfcConvertOptions options = null,
-            ICollection<string> warnings = null)
+        public static bool TryToGeoSolid3(
+            this IXbimSolid solid,
+            out GeoSolid3 result,
+            IfcConvertOptions options = null,
+            ICollection<string> warnings = null
+        )
         {
             result = null;
 
@@ -105,7 +118,10 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
             options = options ?? new IfcConvertOptions();
 
-            if (options.TessellateNonPlanarFaces && MeshConvert.RequiresMeshing(solid, options.Tolerance.EqualPoint / options.ScaleFactor))
+            if (
+                options.TessellateNonPlanarFaces
+                && MeshConvert.RequiresMeshing(solid, options.Tolerance.EqualPoint / options.ScaleFactor)
+            )
             {
                 return MeshConvert.TryMeshSolid(solid, options, out result, warnings);
             }
@@ -137,9 +153,11 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
             if (faces.Count < 4)
             {
-                warnings?.Add(unreadFaces > 0
-                    ? $"Only {faces.Count} face(s) could be read; a solid needs at least 4."
-                    : $"A shell of {faces.Count} face(s) cannot enclose a volume and was left out.");
+                warnings?.Add(
+                    unreadFaces > 0
+                        ? $"Only {faces.Count} face(s) could be read; a solid needs at least 4."
+                        : $"A shell of {faces.Count} face(s) cannot enclose a volume and was left out."
+                );
                 return false;
             }
 
@@ -149,7 +167,10 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                 result = new GeoSolid3(FaceOrientation.Orient(faces, options.Tolerance));
 
                 // A shell the file calls closed can still be written with a flat gap in it; see FlatGaps.
-                if (!result.IsClosed(options.Tolerance) && FlatGaps.TryClose(result, options.Tolerance.ForConstruction(), out GeoSolid3 closed))
+                if (
+                    !result.IsClosed(options.Tolerance)
+                    && FlatGaps.TryClose(result, options.Tolerance.ForConstruction(), out GeoSolid3 closed)
+                )
                 {
                     result = closed;
                 }
@@ -172,7 +193,11 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// their place, went with it. So the bodies are put in order of where they lie, low corner first, then of how
         /// large they are, and the warnings in the order of their text. The order of the file's own items is kept.
         /// </remarks>
-        private static List<GeoSolid3> InOneOrder(IEnumerable<IXbimSolid> set, IfcConvertOptions options, ICollection<string> warnings)
+        private static List<GeoSolid3> InOneOrder(
+            IEnumerable<IXbimSolid> set,
+            IfcConvertOptions options,
+            ICollection<string> warnings
+        )
         {
             var bodies = new List<GeoSolid3>();
             var said = new List<string>();
@@ -195,9 +220,14 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
             return bodies
                 .Select(body => (Body: body, Box: body.GetAabb()))
-                .OrderBy(b => b.Box.Min.X).ThenBy(b => b.Box.Min.Y).ThenBy(b => b.Box.Min.Z)
-                .ThenBy(b => b.Box.Max.X).ThenBy(b => b.Box.Max.Y).ThenBy(b => b.Box.Max.Z)
-                .ThenBy(b => b.Body.GetVolume(options.Tolerance)).ThenBy(b => b.Body.Faces.Count)
+                .OrderBy(b => b.Box.Min.X)
+                .ThenBy(b => b.Box.Min.Y)
+                .ThenBy(b => b.Box.Min.Z)
+                .ThenBy(b => b.Box.Max.X)
+                .ThenBy(b => b.Box.Max.Y)
+                .ThenBy(b => b.Box.Max.Z)
+                .ThenBy(b => b.Body.GetVolume(options.Tolerance))
+                .ThenBy(b => b.Body.Faces.Count)
                 .Select(b => b.Body)
                 .ToList();
         }
@@ -209,8 +239,11 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <param name="options">Optional conversion options.</param>
         /// <param name="warnings">Receives a message for every problem met, or null to ignore them.</param>
         /// <returns>A list of converted <see cref="GeoSolid3"/> bodies.</returns>
-        public static List<GeoSolid3> ToGeoSolids(this IXbimGeometryObject geometryObject, IfcConvertOptions options = null,
-            ICollection<string> warnings = null)
+        public static List<GeoSolid3> ToGeoSolids(
+            this IXbimGeometryObject geometryObject,
+            IfcConvertOptions options = null,
+            ICollection<string> warnings = null
+        )
         {
             List<GeoSolid3> solids = new List<GeoSolid3>();
 
@@ -271,7 +304,10 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <param name="item">The IFC geometric representation item.</param>
         /// <param name="options">Optional conversion options.</param>
         /// <returns>A list of converted <see cref="GeoSolid3"/> bodies.</returns>
-        public static List<GeoSolid3> ToGeoSolids(this IIfcGeometricRepresentationItem item, IfcConvertOptions options = null)
+        public static List<GeoSolid3> ToGeoSolids(
+            this IIfcGeometricRepresentationItem item,
+            IfcConvertOptions options = null
+        )
         {
             return item.ToGeoSolids(options, null, out _, null);
         }
@@ -286,8 +322,13 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <param name="cutApplied">true when there were no cutters or all of them were cut successfully.</param>
         /// <param name="warnings">Receives a message, prefixed with the item's entity label, for every problem met; may be null.</param>
         /// <returns>A list of converted <see cref="GeoSolid3"/> bodies.</returns>
-        public static List<GeoSolid3> ToGeoSolids(this IIfcGeometricRepresentationItem item, IfcConvertOptions options,
-            IReadOnlyList<IXbimSolid> cutters, out bool cutApplied, ICollection<string> warnings)
+        public static List<GeoSolid3> ToGeoSolids(
+            this IIfcGeometricRepresentationItem item,
+            IfcConvertOptions options,
+            IReadOnlyList<IXbimSolid> cutters,
+            out bool cutApplied,
+            ICollection<string> warnings
+        )
         {
             cutApplied = cutters == null || cutters.Count == 0;
 
@@ -308,12 +349,14 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                 string key = item.EntityLabel.ToString(CultureInfo.InvariantCulture) + "|" + options.GetCacheKey();
 
                 // Lazy, so that threads asking for one item at once share one build.
-                BuiltItem built = items.Built.GetOrAdd(key, unused => new Lazy<BuiltItem>(() =>
-                {
-                    Interlocked.Increment(ref items.BuildCount);
-                    List<GeoSolid3> bodies = Build(item, options, null, out _, out List<string> messages);
-                    return new BuiltItem(bodies, messages);
-                })).Value;
+                BuiltItem built = items
+                    .Built.GetOrAdd(key, unused => new Lazy<BuiltItem>(() =>
+                    {
+                        Interlocked.Increment(ref items.BuildCount);
+                        List<GeoSolid3> bodies = Build(item, options, null, out _, out List<string> messages);
+                        return new BuiltItem(bodies, messages);
+                    }))
+                    .Value;
 
                 AddWarnings(warnings, built.Warnings);
                 return new List<GeoSolid3>(built.Solids);
@@ -333,8 +376,13 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <param name="cutApplied">true when there were no cutters or all of them were cut successfully.</param>
         /// <param name="warnings">A message, prefixed with the item's entity label, for every problem met.</param>
         /// <returns>The bodies of the item.</returns>
-        private static List<GeoSolid3> Build(IIfcGeometricRepresentationItem item, IfcConvertOptions options,
-            IReadOnlyList<IXbimSolid> cutters, out bool cutApplied, out List<string> warnings)
+        private static List<GeoSolid3> Build(
+            IIfcGeometricRepresentationItem item,
+            IfcConvertOptions options,
+            IReadOnlyList<IXbimSolid> cutters,
+            out bool cutApplied,
+            out List<string> warnings
+        )
         {
             List<GeoSolid3> solids = new List<GeoSolid3>();
             cutApplied = cutters == null || cutters.Count == 0;
@@ -365,7 +413,8 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                     }
                     else
                     {
-                        double precision = item.Model?.ModelFactors?.Precision ?? options.Tolerance.EqualPoint / options.ScaleFactor;
+                        double precision = item.Model?.ModelFactors?.Precision
+                            ?? options.Tolerance.EqualPoint / options.ScaleFactor;
                         if (VoidConvert.TryCut(geomObj, cutters, precision, out List<IXbimSolid> cut))
                         {
                             cutApplied = true;

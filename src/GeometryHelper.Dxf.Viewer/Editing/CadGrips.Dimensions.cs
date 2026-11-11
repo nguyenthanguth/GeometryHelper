@@ -20,15 +20,22 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 case DxfRotatedDimension _:
                 case DxfAlignedDimension _:
-                    {
-                        LinearFrame(dimension, out GeoPoint2 p1, out GeoPoint2 p2, out GeoPoint2 onLine, out GeoVector2 along, out double oblique);
-                        add(CadGripKind.DefinitionPoint, p1);
-                        add(CadGripKind.DefinitionPoint, p2);
-                        add(CadGripKind.DimensionLine, CadCommands.Foot(p1, onLine, along, oblique));
-                        add(CadGripKind.DimensionLine, CadCommands.Foot(p2, onLine, along, oblique));
-                        add(CadGripKind.Text, WordsAt(dimension));
-                        break;
-                    }
+                {
+                    LinearFrame(
+                        dimension,
+                        out GeoPoint2 p1,
+                        out GeoPoint2 p2,
+                        out GeoPoint2 onLine,
+                        out GeoVector2 along,
+                        out double oblique
+                    );
+                    add(CadGripKind.DefinitionPoint, p1);
+                    add(CadGripKind.DefinitionPoint, p2);
+                    add(CadGripKind.DimensionLine, CadCommands.Foot(p1, onLine, along, oblique));
+                    add(CadGripKind.DimensionLine, CadCommands.Foot(p2, onLine, along, oblique));
+                    add(CadGripKind.Text, WordsAt(dimension));
+                    break;
+                }
 
                 case DxfRadialDimension radial:
                     add(CadGripKind.DefinitionPoint, P2(radial.ChordPoint));
@@ -90,7 +97,14 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A linear or aligned dimension's points: its extension line origins, the point of its line, the line's direction and the slant of its extension lines.</summary>
-        private static void LinearFrame(DxfDimension dimension, out GeoPoint2 p1, out GeoPoint2 p2, out GeoPoint2 onLine, out GeoVector2 along, out double oblique)
+        private static void LinearFrame(
+            DxfDimension dimension,
+            out GeoPoint2 p1,
+            out GeoPoint2 p2,
+            out GeoPoint2 onLine,
+            out GeoVector2 along,
+            out double oblique
+        )
         {
             oblique = CadCommands.ObliqueOf(dimension);
 
@@ -111,7 +125,13 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Drags a grip of a dimension: its points rewritten and its picture drawn anew, one undo step.</summary>
-        private static CadEditResult DragDimension(CadDocument document, string handle, int gripIndex, GeoPoint2 from, GeoPoint2 to)
+        private static CadEditResult DragDimension(
+            CadDocument document,
+            string handle,
+            int gripIndex,
+            GeoPoint2 from,
+            GeoPoint2 to
+        )
         {
             var dimension = (DxfDimension)document.FindEntity(handle);
             double least = Tolerance.Default.EqualPoint;
@@ -121,7 +141,13 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse("The dimension would measure nothing with its grip there.");
             }
 
-            var record = new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Grip " + gripIndex, CadCommands.Values(from.X, from.Y), CadCommands.Values(to.X, to.Y));
+            var record = new CadEditRecord(
+                CadEditRecordKind.Reshaped,
+                handle,
+                "Grip " + gripIndex,
+                CadCommands.Values(from.X, from.Y),
+                CadCommands.Values(to.X, to.Y)
+            );
             return document.ApplyEdit("GRIP", new[] { record }, s =>
             {
                 if (s.IsHandled(handle))
@@ -147,16 +173,18 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 case DxfRotatedDimension _:
                 case DxfAlignedDimension _:
+                {
+                    if (gripIndex > 1)
                     {
-                        if (gripIndex > 1)
-                        {
-                            return true;
-                        }
-
-                        LinearFrame(dimension, out GeoPoint2 p1, out GeoPoint2 p2, out _, out GeoVector2 along, out _);
-                        GeoVector2 span = (gripIndex == 1 ? to : p2) - (gripIndex == 0 ? to : p1);
-                        return dimension is DxfAlignedDimension ? span.Length > least : Math.Abs(span.X * along.X + span.Y * along.Y) > least;
+                        return true;
                     }
+
+                    LinearFrame(dimension, out GeoPoint2 p1, out GeoPoint2 p2, out _, out GeoVector2 along, out _);
+                    GeoVector2 span = (gripIndex == 1 ? to : p2) - (gripIndex == 0 ? to : p1);
+                    return dimension is DxfAlignedDimension
+                        ? span.Length > least
+                        : Math.Abs(span.X * along.X + span.Y * along.Y) > least;
+                }
 
                 case DxfRadialDimension radial when gripIndex == 0:
                     return (to - P2(radial.Center)).Length > least;
@@ -165,7 +193,8 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfRadialDimensionLarge jogged when gripIndex == 0 || gripIndex == 3:
                     return (to - P2(jogged.Center)).Length > least;
                 case DxfOrdinateDimension ordinate:
-                    return ((gripIndex == 0 ? P2(ordinate.LeaderEndPoint) : P2(ordinate.DefiningPoint)) - to).Length > least;
+                    return ((gripIndex == 0 ? P2(ordinate.LeaderEndPoint) : P2(ordinate.DefiningPoint)) - to).Length
+                        > least;
                 default:
                     return true;
             }
@@ -220,23 +249,45 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfPoint3AngularDimension three:
                     switch (gripIndex)
                     {
-                        case 0: three.CenterPoint = At(to, three.CenterPoint); break;
-                        case 1: three.XLine1Point = At(to, three.XLine1Point); break;
-                        case 2: three.XLine2Point = At(to, three.XLine2Point); break;
-                        case 3: three.ArcPoint = At(to, three.ArcPoint); break;
-                        default: CadCommands.DragWords(dimension, to); break;
+                        case 0:
+                            three.CenterPoint = At(to, three.CenterPoint);
+                            break;
+                        case 1:
+                            three.XLine1Point = At(to, three.XLine1Point);
+                            break;
+                        case 2:
+                            three.XLine2Point = At(to, three.XLine2Point);
+                            break;
+                        case 3:
+                            three.ArcPoint = At(to, three.ArcPoint);
+                            break;
+                        default:
+                            CadCommands.DragWords(dimension, to);
+                            break;
                     }
 
                     break;
                 case DxfLineAngularDimension2 two:
                     switch (gripIndex)
                     {
-                        case 0: two.XLine1Start = At(to, two.XLine1Start); break;
-                        case 1: two.XLine1End = At(to, two.XLine1End); break;
-                        case 2: two.XLine2Start = At(to, two.XLine2Start); break;
-                        case 3: two.XLine2End = At(to, two.XLine2End); break;
-                        case 4: two.ArcPoint = At(to, two.ArcPoint); break;
-                        default: CadCommands.DragWords(dimension, to); break;
+                        case 0:
+                            two.XLine1Start = At(to, two.XLine1Start);
+                            break;
+                        case 1:
+                            two.XLine1End = At(to, two.XLine1End);
+                            break;
+                        case 2:
+                            two.XLine2Start = At(to, two.XLine2Start);
+                            break;
+                        case 3:
+                            two.XLine2End = At(to, two.XLine2End);
+                            break;
+                        case 4:
+                            two.ArcPoint = At(to, two.ArcPoint);
+                            break;
+                        default:
+                            CadCommands.DragWords(dimension, to);
+                            break;
                     }
 
                     break;
@@ -270,7 +321,14 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            LinearFrame(dimension, out GeoPoint2 p1, out GeoPoint2 p2, out GeoPoint2 onLine, out GeoVector2 along, out double oblique);
+            LinearFrame(
+                dimension,
+                out GeoPoint2 p1,
+                out GeoPoint2 p2,
+                out GeoPoint2 onLine,
+                out GeoVector2 along,
+                out double oblique
+            );
             GeoPoint2 line;
 
             if (gripIndex >= 2)
@@ -355,11 +413,15 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            double turn = Math.Atan2(to.Y - center.Y, to.X - center.X) - Math.Atan2(from.Y - center.Y, from.X - center.X);
+            double turn =
+                Math.Atan2(to.Y - center.Y, to.X - center.X) - Math.Atan2(from.Y - center.Y, from.X - center.X);
             GeoVector2 off = P2(dimension.TextPosition) - center;
             double cos = Math.Cos(turn);
             double sin = Math.Sin(turn);
-            dimension.TextPosition = At(center + new GeoVector2(off.X * cos - off.Y * sin, off.X * sin + off.Y * cos), dimension.TextPosition);
+            dimension.TextPosition = At(
+                center + new GeoVector2(off.X * cos - off.Y * sin, off.X * sin + off.Y * cos),
+                dimension.TextPosition
+            );
         }
 
         /// <summary>A vector made a unit long; the fallback where it has no length.</summary>
@@ -376,7 +438,8 @@ namespace GeometryHelper.Dxf.Viewer
             return other > 1E-12 ? fallback / other : new GeoVector2(1.0, 0.0);
         }
 
-        private static GeoPoint2 Middle(GeoPoint2 a, GeoPoint2 b) => new GeoPoint2((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0);
+        private static GeoPoint2 Middle(GeoPoint2 a, GeoPoint2 b) =>
+            new GeoPoint2((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0);
 
         private static GeoPoint2 P2(GeoPoint3 point) => new GeoPoint2(point.X, point.Y);
 

@@ -21,14 +21,24 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class CopyG1wrTests
     {
-        private static readonly Tolerance Millionth = new Tolerance(1E-6, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-6);
-        private static readonly Tolerance Tight = new Tolerance(1E-12, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-12);
+        private static readonly Tolerance Millionth = new Tolerance(
+            1E-6,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-6
+        );
+        private static readonly Tolerance Tight = new Tolerance(
+            1E-12,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-12
+        );
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
         // The chain (0, 0), (10, 0), (10, 10) rounded by 0.0005 at a millionth: an arc 0.0007 across between two legs.
-        private static GeoPolylineArc2 Rounded()
-            => new GeoPolyline2(P(0, 0), P(10, 0), P(10, 10)).Fillet(0.0005, Millionth);
+        private static GeoPolylineArc2 Rounded() =>
+            new GeoPolyline2(P(0, 0), P(10, 0), P(10, 10)).Fillet(0.0005, Millionth);
 
         private static int ArcsOf(GeoPolylineArc2 chain) => chain.GetEdges().Count(edge => edge.IsArc);
 
@@ -104,7 +114,12 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AChainCutByThreeTenThousandthsAtAMillionthMoved_TurnsAtBothEndsOfTheCut()
         {
-            GeoPolyline2 cut = Corner2.Chamfer(new GeoPolyline2(P(0, 0), P(10, 0), P(10, 10)), 0.0003, 0.0003, Millionth);
+            GeoPolyline2 cut = Corner2.Chamfer(
+                new GeoPolyline2(P(0, 0), P(10, 0), P(10, 10)),
+                0.0003,
+                0.0003,
+                Millionth
+            );
 
             GeoPolyline2 moved = cut.Translate(new GeoVector2(5, 7));
 
@@ -116,7 +131,12 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AChainCutByThreeTenThousandthsAtAMillionthTurnedAboutAPoint_TurnsAtBothEndsOfTheCut()
         {
-            GeoPolyline2 cut = Corner2.Chamfer(new GeoPolyline2(P(0, 0), P(10, 0), P(10, 10)), 0.0003, 0.0003, Millionth);
+            GeoPolyline2 cut = Corner2.Chamfer(
+                new GeoPolyline2(P(0, 0), P(10, 0), P(10, 10)),
+                0.0003,
+                0.0003,
+                Millionth
+            );
 
             GeoPolyline2 turned = cut.RotateBy(Math.PI / 2.0, P(0, 0));
 
@@ -132,7 +152,14 @@ namespace GeometryHelper.UnitTest.Plane
             // balance from (0.0005, 0.0005) to 0.000452 / 0.84 = 0.000538095... each way.
             var face = new GeoFace2(
                 ConvexHull2.Of(new[] { P(0, 0), P(0.001, 0), P(0.001, 0.001), P(0, 0.001) }, Tight),
-                new[] { ConvexHull2.Of(new[] { P(0.0001, 0.0001), P(0.0001, 0.0005), P(0.0005, 0.0005), P(0.0005, 0.0001) }, Tight) });
+                new[]
+                {
+                    ConvexHull2.Of(
+                        new[] { P(0.0001, 0.0001), P(0.0001, 0.0005), P(0.0005, 0.0005), P(0.0005, 0.0001) },
+                        Tight
+                    ),
+                }
+            );
 
             GeoPoint2 centroid = face.Centroid;
 
@@ -170,8 +197,10 @@ namespace GeometryHelper.UnitTest.Plane
         public void ASquareFiveTenThousandthsAcrossWithBowedSides_FlattensToEveryCornerOfItsChords()
         {
             // The square 50 by 50 with sides bowed by a bulge of 0.2, scaled down edge for edge.
-            GeoPolygonArc2 loop = new GeoPolygonArc2(new[] { P(0, 0), P(50, 0), P(50, 50), P(0, 50) }, new[] { 0.2, 0.2, 0.2, 0.2 })
-                .TransformBy(GeoTransform2.Scaling(1E-5));
+            GeoPolygonArc2 loop = new GeoPolygonArc2(
+                new[] { P(0, 0), P(50, 0), P(50, 50), P(0, 50) },
+                new[] { 0.2, 0.2, 0.2, 0.2 }
+            ).TransformBy(GeoTransform2.Scaling(1E-5));
 
             GeoPolygon2 flat = loop.Flatten();
 
@@ -183,7 +212,10 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ASquareFiveTenThousandthsAcross_FlattensToItsFourCorners()
         {
-            GeoPolygonArc2 loop = new GeoPolygonArc2(new[] { P(0, 0), P(50, 0), P(50, 50), P(0, 50) }, null).TransformBy(GeoTransform2.Scaling(1E-5));
+            GeoPolygonArc2 loop = new GeoPolygonArc2(
+                new[] { P(0, 0), P(50, 0), P(50, 50), P(0, 50) },
+                null
+            ).TransformBy(GeoTransform2.Scaling(1E-5));
 
             GeoPolygon2 flat = loop.Flatten();
 
@@ -194,7 +226,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AChainFiveTenThousandthsLongWithABowedLeg_FlattensToEveryCornerOfItsChords()
         {
-            var chain = new GeoPolylineArc2(new[] { new GeoEdge2(P(0, 0), P(0.0005, 0), 0.0), new GeoEdge2(P(0.0005, 0), P(0.0005, 0.0005), 0.4) });
+            var chain = new GeoPolylineArc2(
+                new[] { new GeoEdge2(P(0, 0), P(0.0005, 0), 0.0), new GeoEdge2(P(0.0005, 0), P(0.0005, 0.0005), 0.4) }
+            );
 
             GeoPolyline2 flat = chain.Flatten();
 

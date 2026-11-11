@@ -104,7 +104,14 @@ namespace GeometryHelper.Viewer.Builds
         /// <param name="cancel">Kills the process, and the ones it started, when cancelled.</param>
         /// <returns>The result.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the environment, the script or the source is null.</exception>
-        public static async Task<SideRunResult> RunAsync(CompareEnvironment environment, string script, BuildSource source, string label, Action<string> log, CancellationToken cancel)
+        public static async Task<SideRunResult> RunAsync(
+            CompareEnvironment environment,
+            string script,
+            BuildSource source,
+            string label,
+            Action<string> log,
+            CancellationToken cancel
+        )
         {
             if (environment == null)
             {
@@ -135,14 +142,16 @@ namespace GeometryHelper.Viewer.Builds
                 string dll = await ResolveAsync(environment, source, Say, cancel).ConfigureAwait(false);
                 result.LibraryPath = dll;
                 string folder = await Task.Run(
-                    () =>
-                    {
-                        // The key is taken from the copy of the DLL the runner is made with, so it is the key of the bytes that run.
-                        string copied = RunnerCache.Prepare(environment, dll, Say, out string key);
-                        result.LibraryKey = key;
-                        return copied;
-                    },
-                    cancel).ConfigureAwait(false);
+                        () =>
+                        {
+                            // The key is taken from the copy of the DLL the runner is made with, so it is the key of the bytes that run.
+                            string copied = RunnerCache.Prepare(environment, dll, Say, out string key);
+                            result.LibraryKey = key;
+                            return copied;
+                        },
+                        cancel
+                    )
+                    .ConfigureAwait(false);
 
                 Directory.CreateDirectory(environment.ScenesFolder);
                 scenePath = Path.Combine(environment.ScenesFolder, Guid.NewGuid().ToString("N") + ".ghscene.json");
@@ -162,37 +171,40 @@ namespace GeometryHelper.Viewer.Builds
                 arguments.Add("--measure");
                 Say("running " + Path.GetFileName(script) + " against " + source.Describe());
 
-                ChildResult ran = await ChildProcess.RunAsync(
-                    exe,
-                    arguments,
-                    Path.GetDirectoryName(Path.GetFullPath(script)),
-                    environment.RunTimeout,
-                    line =>
-                    {
-                        if (line.StartsWith("note: ", StringComparison.Ordinal))
+                ChildResult ran = await ChildProcess
+                    .RunAsync(
+                        exe,
+                        arguments,
+                        Path.GetDirectoryName(Path.GetFullPath(script)),
+                        environment.RunTimeout,
+                        line =>
                         {
-                            lock (notes)
+                            if (line.StartsWith("note: ", StringComparison.Ordinal))
                             {
-                                notes.Add(line.Substring(6));
+                                lock (notes)
+                                {
+                                    notes.Add(line.Substring(6));
+                                }
                             }
-                        }
-                        else if (line.StartsWith("library: ", StringComparison.Ordinal))
-                        {
-                            result.LibraryLine = line.Substring(9);
-                        }
+                            else if (line.StartsWith("library: ", StringComparison.Ordinal))
+                            {
+                                result.LibraryLine = line.Substring(9);
+                            }
 
-                        Say(line);
-                    },
-                    line =>
-                    {
-                        lock (errors)
+                            Say(line);
+                        },
+                        line =>
                         {
-                            errors.Add(line);
-                        }
+                            lock (errors)
+                            {
+                                errors.Add(line);
+                            }
 
-                        Say(line);
-                    },
-                    cancel).ConfigureAwait(false);
+                            Say(line);
+                        },
+                        cancel
+                    )
+                    .ConfigureAwait(false);
 
                 result.Cancelled = ran.Cancelled;
                 result.TimedOut = ran.TimedOut;
@@ -203,7 +215,13 @@ namespace GeometryHelper.Viewer.Builds
                 }
                 else if (ran.TimedOut)
                 {
-                    errors.Add("The script ran for more than " + environment.RunTimeout.TotalSeconds.ToString("0", CultureInfo.InvariantCulture) + " s against " + source.Describe() + " and was killed.");
+                    errors.Add(
+                        "The script ran for more than "
+                            + environment.RunTimeout.TotalSeconds.ToString("0", CultureInfo.InvariantCulture)
+                            + " s against "
+                            + source.Describe()
+                            + " and was killed."
+                    );
                 }
                 else if (ran.ExitCode == 0 && File.Exists(scenePath))
                 {
@@ -213,11 +231,17 @@ namespace GeometryHelper.Viewer.Builds
                 }
                 else if (errors.Count == 0)
                 {
-                    errors.Add("The runner stopped with exit code " + ran.ExitCode.ToString(CultureInfo.InvariantCulture) + " and said nothing.");
+                    errors.Add(
+                        "The runner stopped with exit code "
+                            + ran.ExitCode.ToString(CultureInfo.InvariantCulture)
+                            + " and said nothing."
+                    );
                 }
                 else if (ran.ExitCode != 1)
                 {
-                    errors.Add("The runner stopped with exit code " + ran.ExitCode.ToString(CultureInfo.InvariantCulture) + ".");
+                    errors.Add(
+                        "The runner stopped with exit code " + ran.ExitCode.ToString(CultureInfo.InvariantCulture) + "."
+                    );
                 }
             }
             catch (OperationCanceledException)
@@ -238,9 +262,7 @@ namespace GeometryHelper.Viewer.Builds
                     {
                         File.Delete(scenePath);
                     }
-                    catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
-                    {
-                    }
+                    catch (Exception e) when (e is IOException || e is UnauthorizedAccessException) { }
                 }
             }
 
@@ -260,7 +282,10 @@ namespace GeometryHelper.Viewer.Builds
             {
                 using (var hash = System.Security.Cryptography.SHA256.Create())
                 {
-                    return string.Concat(hash.ComputeHash(File.ReadAllBytes(script)).Select(b => b.ToString("x2", CultureInfo.InvariantCulture)));
+                    return string.Concat(
+                        hash.ComputeHash(File.ReadAllBytes(script))
+                            .Select(b => b.ToString("x2", CultureInfo.InvariantCulture))
+                    );
                 }
             }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
@@ -278,7 +303,12 @@ namespace GeometryHelper.Viewer.Builds
         /// <param name="cancel">Kills the build.</param>
         /// <returns>The path of the DLL.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the DLL does not exist, or the commit cannot be built.</exception>
-        public static async Task<string> ResolveAsync(CompareEnvironment environment, BuildSource source, Action<string> log, CancellationToken cancel)
+        public static async Task<string> ResolveAsync(
+            CompareEnvironment environment,
+            BuildSource source,
+            Action<string> log,
+            CancellationToken cancel
+        )
         {
             if (environment == null)
             {
@@ -303,7 +333,9 @@ namespace GeometryHelper.Viewer.Builds
                     break;
 
                 default:
-                    dll = await GitBuilds.EnsureBuiltAsync(environment, source.Repository, source.Commit, log, cancel).ConfigureAwait(false);
+                    dll = await GitBuilds
+                        .EnsureBuiltAsync(environment, source.Repository, source.Commit, log, cancel)
+                        .ConfigureAwait(false);
                     break;
             }
 

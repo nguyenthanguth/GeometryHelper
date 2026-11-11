@@ -24,7 +24,8 @@ namespace GeometryHelper.UnitTest.Solid
         public void ABoxCutInTwoByAnOpeningAcrossThePlane_IsTenFromIt()
         {
             // The box from z = -20 to 20 less the opening from z = -10 to 10, wider than it every way.
-            GeoSolid3 cut = Block(Pt(0, 0, -20), Pt(40, 40, 20)).WithOpenings(new[] { Block(Pt(-5, -5, -10), Pt(45, 45, 10)) });
+            GeoSolid3 cut = Block(Pt(0, 0, -20), Pt(40, 40, 20))
+                .WithOpenings(new[] { Block(Pt(-5, -5, -10), Pt(45, 45, 10)) });
 
             Assert.False(Middle().CollidesWith(cut, Within));
             Assert.Equal(10.0, cut.DistanceTo(Middle(), Within), 9);
@@ -33,7 +34,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ABodyOfTwoShellsEitherSideOfThePlane_IsTenFromIt()
         {
-            GeoSolid3 pair = new GeoSolid3(Block(Pt(0, 0, 10), Pt(40, 40, 20)).Faces.Concat(Block(Pt(0, 0, -20), Pt(40, 40, -10)).Faces));
+            GeoSolid3 pair = new GeoSolid3(
+                Block(Pt(0, 0, 10), Pt(40, 40, 20)).Faces.Concat(Block(Pt(0, 0, -20), Pt(40, 40, -10)).Faces)
+            );
 
             Assert.False(Middle().CollidesWith(pair, Within));
             Assert.Equal(10.0, pair.DistanceTo(Middle(), Within), 9);
@@ -42,7 +45,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ABodyOfTwoShellsEitherSideOfThePlane_IsJoinedToItFromTheNearestCornerAsFarAsItsDistance()
         {
-            GeoSolid3 pair = new GeoSolid3(Block(Pt(0, 0, 10), Pt(40, 40, 20)).Faces.Concat(Block(Pt(0, 0, -20), Pt(40, 40, -10)).Faces));
+            GeoSolid3 pair = new GeoSolid3(
+                Block(Pt(0, 0, 10), Pt(40, 40, 20)).Faces.Concat(Block(Pt(0, 0, -20), Pt(40, 40, -10)).Faces)
+            );
 
             Assert.Equal(pair.DistanceTo(Middle(), Within), pair.GetShortestLineTo(Middle(), Within).Length, 9);
         }
@@ -50,7 +55,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AShellCrossingThePlaneBesideAnotherClearOfIt_IsNoughtFromIt()
         {
-            GeoSolid3 pair = new GeoSolid3(Block(Pt(0, 0, -5), Pt(40, 40, 5)).Faces.Concat(Block(Pt(60, 0, 10), Pt(100, 40, 20)).Faces));
+            GeoSolid3 pair = new GeoSolid3(
+                Block(Pt(0, 0, -5), Pt(40, 40, 5)).Faces.Concat(Block(Pt(60, 0, 10), Pt(100, 40, 20)).Faces)
+            );
 
             Assert.True(Middle().CollidesWith(pair, Within));
             Assert.Equal(0.0, pair.DistanceTo(Middle(), Within));

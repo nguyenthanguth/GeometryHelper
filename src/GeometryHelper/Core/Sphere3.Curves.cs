@@ -16,10 +16,14 @@ namespace GeometryHelper.Core
             switch (CutByPlane(sphere, arc.GetPlane(), tolerance, out GeoCircle3 circle, out GeoPoint3 touch))
             {
                 case Meeting.Circle:
-                    return Along(Arc3.GetIntersections(arc, circle, tolerance), p => arc.GetParameterAtPoint(p, tolerance));
+                    return Along(Arc3.GetIntersections(arc, circle, tolerance), p =>
+                        arc.GetParameterAtPoint(p, tolerance)
+                    );
 
                 case Meeting.Point:
-                    return arc.DistanceTo(touch, tolerance) <= tolerance.EqualPoint ? new[] { touch } : new GeoPoint3[0];
+                    return arc.DistanceTo(touch, tolerance) <= tolerance.EqualPoint
+                        ? new[] { touch }
+                        : new GeoPoint3[0];
 
                 default:
                     return new GeoPoint3[0];
@@ -31,10 +35,16 @@ namespace GeometryHelper.Core
             switch (CutByPlane(sphere, rim.GetPlane(), tolerance, out GeoCircle3 circle, out GeoPoint3 touch))
             {
                 case Meeting.Circle:
-                    return Along(Arc3.GetIntersections(rim, circle, tolerance), p => rim.GetParameterAtPoint(p, tolerance));
+                    return Along(Arc3.GetIntersections(rim, circle, tolerance), p =>
+                        rim.GetParameterAtPoint(p, tolerance)
+                    );
 
                 case Meeting.Point:
-                    return Distance3.DistanceTo(touch, Projection3.ProjectToCircle(rim, touch, tolerance)) <= tolerance.EqualPoint ? new[] { touch } : new GeoPoint3[0];
+                    return
+                        Distance3.DistanceTo(touch, Projection3.ProjectToCircle(rim, touch, tolerance))
+                        <= tolerance.EqualPoint
+                        ? new[] { touch }
+                        : new GeoPoint3[0];
 
                 default:
                     return new GeoPoint3[0];
@@ -46,10 +56,16 @@ namespace GeometryHelper.Core
             switch (CutByPlane(sphere, ellipse.GetPlane(), tolerance, out GeoCircle3 circle, out GeoPoint3 touch))
             {
                 case Meeting.Circle:
-                    return Along(Ellipse3.GetIntersections(ellipse, circle, tolerance), p => ellipse.GetParameterAtPoint(p, tolerance));
+                    return Along(Ellipse3.GetIntersections(ellipse, circle, tolerance), p =>
+                        ellipse.GetParameterAtPoint(p, tolerance)
+                    );
 
                 case Meeting.Point:
-                    return Distance3.DistanceTo(touch, Ellipse3.GetClosestPointOnBoundary(ellipse, touch)) <= tolerance.EqualPoint ? new[] { touch } : new GeoPoint3[0];
+                    return
+                        Distance3.DistanceTo(touch, Ellipse3.GetClosestPointOnBoundary(ellipse, touch))
+                        <= tolerance.EqualPoint
+                        ? new[] { touch }
+                        : new GeoPoint3[0];
 
                 default:
                     return new GeoPoint3[0];
@@ -65,7 +81,12 @@ namespace GeometryHelper.Core
             return found.ToArray();
         }
 
-        internal static GeoPoint3[] Cross(GeoSphere3 sphere, IEnumerable<GeoEdge3> edges, bool closed, Tolerance tolerance)
+        internal static GeoPoint3[] Cross(
+            GeoSphere3 sphere,
+            IEnumerable<GeoEdge3> edges,
+            bool closed,
+            Tolerance tolerance
+        )
         {
             var found = new List<GeoPoint3>();
 
@@ -95,12 +116,7 @@ namespace GeometryHelper.Core
         // two curves' crossing gave them in.
         private static GeoPoint3[] Along(GeoPoint3[] points, Func<GeoPoint3, double> parameter)
         {
-            return points
-                .OrderBy(parameter)
-                .ThenBy(p => p.X)
-                .ThenBy(p => p.Y)
-                .ThenBy(p => p.Z)
-                .ToArray();
+            return points.OrderBy(parameter).ThenBy(p => p.X).ThenBy(p => p.Y).ThenBy(p => p.Z).ToArray();
         }
     }
 }

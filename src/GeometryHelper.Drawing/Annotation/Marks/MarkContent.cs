@@ -24,7 +24,10 @@ namespace GeometryHelper.Drawing.Annotation
     {
         private MarkFormat _part = new MarkFormat(new[] { MarkField.Mark }, " ");
         private MarkFormat _assembly = new MarkFormat(new[] { MarkField.Mark }, " ");
-        private MarkFormat _bolt = new MarkFormat(new[] { MarkField.Count, MarkField.Diameter, MarkField.Length }, " x ");
+        private MarkFormat _bolt = new MarkFormat(
+            new[] { MarkField.Count, MarkField.Diameter, MarkField.Length },
+            " x "
+        );
 
         /// <summary>Gets or sets the text of a part mark; the position mark by default.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the value set is null.</exception>

@@ -14,7 +14,15 @@ namespace GeometryHelper
     /// </summary>
     public sealed class SubtractReport
     {
-        internal SubtractReport(int tools, int taken, IReadOnlyList<int> skipped, IReadOnlyList<int> withinFallback, IReadOnlyList<int> closed, IReadOnlyList<SolidClosing3> closings, IReadOnlyList<int> refusedByVolume)
+        internal SubtractReport(
+            int tools,
+            int taken,
+            IReadOnlyList<int> skipped,
+            IReadOnlyList<int> withinFallback,
+            IReadOnlyList<int> closed,
+            IReadOnlyList<SolidClosing3> closings,
+            IReadOnlyList<int> refusedByVolume
+        )
         {
             Tools = tools;
             Taken = taken;
@@ -75,7 +83,15 @@ namespace GeometryHelper
         /// <inheritdoc/>
         public override string ToString()
         {
-            return string.Format(CultureInfo.InvariantCulture, "(Tools: {0}, Taken: {1}, Skipped: {2}, WithinFallback: {3}, Closed: {4})", Tools, Taken, Skipped.Count, WithinFallback.Count, Closed.Count);
+            return string.Format(
+                CultureInfo.InvariantCulture,
+                "(Tools: {0}, Taken: {1}, Skipped: {2}, WithinFallback: {3}, Closed: {4})",
+                Tools,
+                Taken,
+                Skipped.Count,
+                WithinFallback.Count,
+                Closed.Count
+            );
         }
     }
 }

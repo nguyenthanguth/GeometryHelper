@@ -40,7 +40,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The record.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the name is null.</exception>
         /// <exception cref="KeyNotFoundException">Thrown when the table has no record of the name.</exception>
-        public DxfSymbolTableRecord this[string key] => Find(key) ?? throw new KeyNotFoundException("The table has no record named " + key + ".");
+        public DxfSymbolTableRecord this[string key] =>
+            Find(key) ?? throw new KeyNotFoundException("The table has no record named " + key + ".");
 
         /// <summary>
         /// Adds a record made in code to the table, as AutoCAD's <c>Add</c>: its record written before the table's ENDTAB in
@@ -86,7 +87,10 @@ namespace GeometryHelper.Dxf
 
                 if (Has(name))
                 {
-                    throw new ArgumentException("The table has a record named " + name + " already, letters of either case the same.", nameof(value));
+                    throw new ArgumentException(
+                        "The table has a record named " + name + " already, letters of either case the same.",
+                        nameof(value)
+                    );
                 }
             }
 
@@ -138,7 +142,12 @@ namespace GeometryHelper.Dxf
 
             if (bar <= 0 || bar == name.Length - 1)
             {
-                throw new ArgumentException("A record of an external reference is named after it, the reference's name and the record's with a | between: '" + name + "' is not one.", parameter);
+                throw new ArgumentException(
+                    "A record of an external reference is named after it, the reference's name and the record's with a | between: '"
+                        + name
+                        + "' is not one.",
+                    parameter
+                );
             }
 
             CheckName(name.Substring(0, bar), parameter);
@@ -149,14 +158,22 @@ namespace GeometryHelper.Dxf
         {
             if (name.Length == 0 || name.Trim().Length != name.Length)
             {
-                throw new ArgumentException("A name has to be given, with no space at either end: '" + name + "' is not one.", parameter);
+                throw new ArgumentException(
+                    "A name has to be given, with no space at either end: '" + name + "' is not one.",
+                    parameter
+                );
             }
 
             foreach (char c in name)
             {
                 if (c < ' ' || "<>/\\\":;?*|=`".IndexOf(c) >= 0)
                 {
-                    throw new ArgumentException("A name cannot have a control character or any of < > / \\ \" : ; ? * | = ` in it, as AutoCAD does not take them: '" + name + "' has one.", parameter);
+                    throw new ArgumentException(
+                        "A name cannot have a control character or any of < > / \\ \" : ; ? * | = ` in it, as AutoCAD does not take them: '"
+                            + name
+                            + "' has one.",
+                        parameter
+                    );
                 }
             }
         }
@@ -170,15 +187,11 @@ namespace GeometryHelper.Dxf
         private string _name;
 
         /// <summary>A record made in code, to be added to its table.</summary>
-        private protected DxfSymbolTableRecord()
-        {
-        }
+        private protected DxfSymbolTableRecord() { }
 
         /// <summary>The object of a record of a file.</summary>
         private protected DxfSymbolTableRecord(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets or sets the name of the record (group 2), as AutoCAD's <c>Name</c>: as the file spells it, the spaces around it
@@ -197,7 +210,6 @@ namespace GeometryHelper.Dxf
         public virtual string Name
         {
             get => Item == null ? _name : DxfReader.NameOf(Item.File.ValueOf(Item, 2) ?? string.Empty);
-
             set
             {
                 if (value == null)
@@ -222,8 +234,12 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Renames a record of a file with every reference to it, the name checked; refused by a kind of record not renamed yet.</summary>
         /// <exception cref="InvalidOperationException">Thrown by a kind of record not renamed yet.</exception>
-        private protected virtual void Rename(string name)
-            => throw new InvalidOperationException("The record " + Name + " is of a file, and is not renamed yet: a later release renames one with every reference to it.");
+        private protected virtual void Rename(string name) =>
+            throw new InvalidOperationException(
+                "The record "
+                    + Name
+                    + " is of a file, and is not renamed yet: a later release renames one with every reference to it."
+            );
 
         /// <summary>
         /// Gets whether the record comes from an external reference (flag 16 of group 70, or a name with a | in it), as
@@ -251,7 +267,10 @@ namespace GeometryHelper.Dxf
         {
             if (resolved && !dependent)
             {
-                throw new ArgumentException("A record is resolved only where it comes from an external reference.", nameof(resolved));
+                throw new ArgumentException(
+                    "A record is resolved only where it comes from an external reference.",
+                    nameof(resolved)
+                );
             }
 
             if (IsErased)
@@ -263,17 +282,29 @@ namespace GeometryHelper.Dxf
 
             if (name != null && dependent != (name.IndexOf('|') >= 0))
             {
-                throw new ArgumentException(dependent
-                    ? "The record " + name + " is not named after an external reference, as grid|WALL, and is not made one of it."
-                    : "The record " + name + " is named after an external reference, and stays one of it.", nameof(dependent));
+                throw new ArgumentException(
+                    dependent
+                        ? "The record "
+                            + name
+                            + " is not named after an external reference, as grid|WALL, and is not made one of it."
+                        : "The record " + name + " is named after an external reference, and stays one of it.",
+                    nameof(dependent)
+                );
             }
 
             return (dependent ? 16 : 0) | (resolved ? 32 : 0);
         }
 
         /// <summary>The whole number of the first group 70 of the own part of a record; nought where it has none.</summary>
-        private protected static int FlagsOf(DxfItem item)
-            => int.TryParse(item.File.ValueOf(item, 70)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags) ? flags : 0;
+        private protected static int FlagsOf(DxfItem item) =>
+            int.TryParse(
+                item.File.ValueOf(item, 70)?.Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int flags
+            )
+                ? flags
+                : 0;
 
         /// <summary>
         /// Gives the record as a line for debugging: its kind and its name.

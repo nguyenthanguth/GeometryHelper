@@ -14,16 +14,49 @@ namespace GeometryHelper.Dxf
         // The destinations of RTF whose words are not the document's, left out whole.
         private static readonly HashSet<string> Skipped = new HashSet<string>(StringComparer.Ordinal)
         {
-            "stylesheet", "info", "pict", "header", "headerl", "headerr", "headerf", "footer", "footerl", "footerr", "footerf",
-            "footnote", "object", "listtable", "listoverridetable", "rsidtbl", "generator", "themedata", "colorschememapping",
-            "latentstyles", "datastore", "xmlnstbl", "filetbl", "revtbl", "mmathPr", "fldinst", "bkmkstart", "bkmkend",
+            "stylesheet",
+            "info",
+            "pict",
+            "header",
+            "headerl",
+            "headerr",
+            "headerf",
+            "footer",
+            "footerl",
+            "footerr",
+            "footerf",
+            "footnote",
+            "object",
+            "listtable",
+            "listoverridetable",
+            "rsidtbl",
+            "generator",
+            "themedata",
+            "colorschememapping",
+            "latentstyles",
+            "datastore",
+            "xmlnstbl",
+            "filetbl",
+            "revtbl",
+            "mmathPr",
+            "fldinst",
+            "bkmkstart",
+            "bkmkend",
         };
 
         // The words of RTF that stand for a letter, and the letter.
         private static readonly Dictionary<string, char> Letters = new Dictionary<string, char>(StringComparer.Ordinal)
         {
-            ["emdash"] = '\u2014', ["endash"] = '\u2013', ["bullet"] = '\u2022', ["lquote"] = '\u2018', ["rquote"] = '\u2019',
-            ["ldblquote"] = '\u201C', ["rdblquote"] = '\u201D', ["emspace"] = '\u2003', ["enspace"] = '\u2002', ["qmspace"] = '\u2005',
+            ["emdash"] = '\u2014',
+            ["endash"] = '\u2013',
+            ["bullet"] = '\u2022',
+            ["lquote"] = '\u2018',
+            ["rquote"] = '\u2019',
+            ["ldblquote"] = '\u201C',
+            ["rdblquote"] = '\u201D',
+            ["emspace"] = '\u2003',
+            ["enspace"] = '\u2002',
+            ["qmspace"] = '\u2005',
         };
 
         /// <summary>
@@ -108,7 +141,16 @@ namespace GeometryHelper.Dxf
                     case 'o':
                         break;
                     case 'U':
-                        if (i + 6 < contents.Length && contents[i + 2] == '+' && int.TryParse(contents.Substring(i + 3, 4), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int letter))
+                        if (
+                            i + 6 < contents.Length
+                            && contents[i + 2] == '+'
+                            && int.TryParse(
+                                contents.Substring(i + 3, 4),
+                                NumberStyles.AllowHexSpecifier,
+                                CultureInfo.InvariantCulture,
+                                out int letter
+                            )
+                        )
                         {
                             Letter(body, (char)letter);
                             i += 7;
@@ -153,7 +195,9 @@ namespace GeometryHelper.Dxf
 
             for (int f = 0; f < fonts.Count; f++)
             {
-                rtf.Append(@"{\f").Append(f.ToString(CultureInfo.InvariantCulture)).Append(files[f] ? @"{\*\ghfontfile}" : " ");
+                rtf.Append(@"{\f")
+                    .Append(f.ToString(CultureInfo.InvariantCulture))
+                    .Append(files[f] ? @"{\*\ghfontfile}" : " ");
 
                 foreach (char c in fonts[f])
                 {
@@ -171,9 +215,13 @@ namespace GeometryHelper.Dxf
 
                 foreach (int rgb in colors)
                 {
-                    rtf.Append(@"\red").Append(((rgb >> 16) & 0xFF).ToString(CultureInfo.InvariantCulture))
-                        .Append(@"\green").Append(((rgb >> 8) & 0xFF).ToString(CultureInfo.InvariantCulture))
-                        .Append(@"\blue").Append((rgb & 0xFF).ToString(CultureInfo.InvariantCulture)).Append(';');
+                    rtf.Append(@"\red")
+                        .Append(((rgb >> 16) & 0xFF).ToString(CultureInfo.InvariantCulture))
+                        .Append(@"\green")
+                        .Append(((rgb >> 8) & 0xFF).ToString(CultureInfo.InvariantCulture))
+                        .Append(@"\blue")
+                        .Append((rgb & 0xFF).ToString(CultureInfo.InvariantCulture))
+                        .Append(';');
                 }
 
                 rtf.Append('}');
@@ -187,7 +235,14 @@ namespace GeometryHelper.Dxf
         /// without their codes give it; a font its entry of the font table, bold and italic with a TrueType font's; a colour of
         /// AutoCAD's index its entry of the colour table, BYLAYER and BYBLOCK the automatic colour; any other left out.
         /// </summary>
-        private static void Argument(StringBuilder body, char code, string argument, List<string> fonts, List<bool> files, List<int> colors)
+        private static void Argument(
+            StringBuilder body,
+            char code,
+            string argument,
+            List<string> fonts,
+            List<bool> files,
+            List<int> colors
+        )
         {
             switch (code)
             {
@@ -214,13 +269,18 @@ namespace GeometryHelper.Dxf
 
                     if (code == 'f')
                     {
-                        body.Append(Array.IndexOf(parts, "b1") > 0 ? @"\b" : @"\b0").Append(Array.IndexOf(parts, "i1") > 0 ? @"\i" : @"\i0");
+                        body.Append(Array.IndexOf(parts, "b1") > 0 ? @"\b" : @"\b0")
+                            .Append(Array.IndexOf(parts, "i1") > 0 ? @"\i" : @"\i0");
                     }
 
                     body.Append(' ');
                     return;
                 case 'C':
-                    if (int.TryParse(argument.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int index) && index >= 1 && index <= 255)
+                    if (
+                        int.TryParse(argument.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int index)
+                        && index >= 1
+                        && index <= 255
+                    )
                     {
                         int rgb = DxfColor.OfIndex(index).ColorValue;
                         int entry = colors.IndexOf(rgb);
@@ -432,7 +492,15 @@ namespace GeometryHelper.Dxf
                         bool has = end > numberStart && !(end == numberStart + 1 && rtf[numberStart] == '-');
                         int parameter = 0;
 
-                        if (has && !int.TryParse(rtf.Substring(numberStart, end - numberStart), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out parameter))
+                        if (
+                            has
+                            && !int.TryParse(
+                                rtf.Substring(numberStart, end - numberStart),
+                                NumberStyles.AllowLeadingSign,
+                                CultureInfo.InvariantCulture,
+                                out parameter
+                            )
+                        )
                         {
                             parameter = rtf[numberStart] == '-' ? int.MinValue : int.MaxValue;
                         }
@@ -450,7 +518,15 @@ namespace GeometryHelper.Dxf
                     switch (next)
                     {
                         case '\'':
-                            if (i + 3 < rtf.Length && int.TryParse(rtf.Substring(i + 2, 2), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int code))
+                            if (
+                                i + 3 < rtf.Length
+                                && int.TryParse(
+                                    rtf.Substring(i + 2, 2),
+                                    NumberStyles.AllowHexSpecifier,
+                                    CultureInfo.InvariantCulture,
+                                    out int code
+                                )
+                            )
                             {
                                 Letter(DxfReader.Windows1252(((char)code).ToString())[0]);
                                 i += 4;
@@ -633,7 +709,11 @@ namespace GeometryHelper.Dxf
                     case Destination.ColorTable:
                         if (c == ';')
                         {
-                            _colors.Add(_red < 0 && _green < 0 && _blue < 0 ? (int?)null : (Byte(_red) << 16) | (Byte(_green) << 8) | Byte(_blue));
+                            _colors.Add(
+                                _red < 0 && _green < 0 && _blue < 0
+                                    ? (int?)null
+                                    : (Byte(_red) << 16) | (Byte(_green) << 8) | Byte(_blue)
+                            );
                             _red = _green = _blue = -1;
                         }
 
@@ -697,7 +777,8 @@ namespace GeometryHelper.Dxf
                     _settledFont = _fonts.TryGetValue(index, out string named) && named.Length > 0 ? named : _styleFont;
                     _settledFile = string.Equals(_settledFont, _styleFont, StringComparison.OrdinalIgnoreCase)
                         ? _styleIsFile
-                        : (_fontFiles.TryGetValue(index, out bool marked) && marked) || _settledFont.EndsWith(".shx", StringComparison.OrdinalIgnoreCase);
+                        : (_fontFiles.TryGetValue(index, out bool marked) && marked)
+                            || _settledFont.EndsWith(".shx", StringComparison.OrdinalIgnoreCase);
                 }
 
                 string font = _settledFont;
@@ -707,7 +788,11 @@ namespace GeometryHelper.Dxf
                 bool italic = _state.Italic && !_settledFile;
                 bool file = _settledFile;
 
-                if (!string.Equals(font, _font, StringComparison.OrdinalIgnoreCase) || bold != _bold || italic != _italic)
+                if (
+                    !string.Equals(font, _font, StringComparison.OrdinalIgnoreCase)
+                    || bold != _bold
+                    || italic != _italic
+                )
                 {
                     if (file)
                     {
@@ -715,7 +800,14 @@ namespace GeometryHelper.Dxf
                     }
                     else
                     {
-                        _words.Append(@"\f").Append(font).Append("|b").Append(bold ? '1' : '0').Append("|i").Append(italic ? '1' : '0').Append(';');
+                        _words
+                            .Append(@"\f")
+                            .Append(font)
+                            .Append("|b")
+                            .Append(bold ? '1' : '0')
+                            .Append("|i")
+                            .Append(italic ? '1' : '0')
+                            .Append(';');
                     }
 
                     _font = font;
@@ -727,7 +819,16 @@ namespace GeometryHelper.Dxf
 
                 if (color != _color)
                 {
-                    _words.Append(@"\C").Append(color.HasValue ? DxfColor.FromRgb((byte)(color.Value >> 16), (byte)(color.Value >> 8), (byte)color.Value).ColorIndex.ToString(CultureInfo.InvariantCulture) : "256").Append(';');
+                    _words
+                        .Append(@"\C")
+                        .Append(
+                            color.HasValue
+                                ? DxfColor
+                                    .FromRgb((byte)(color.Value >> 16), (byte)(color.Value >> 8), (byte)color.Value)
+                                    .ColorIndex.ToString(CultureInfo.InvariantCulture)
+                                : "256"
+                        )
+                        .Append(';');
                     _color = color;
                 }
 

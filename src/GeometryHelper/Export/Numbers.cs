@@ -15,8 +15,29 @@ namespace GeometryHelper.Export
         // Every power of ten up to 1E22 is a double exactly.
         private static readonly double[] SmallPowersOfTen =
         {
-            1E0, 1E1, 1E2, 1E3, 1E4, 1E5, 1E6, 1E7, 1E8, 1E9, 1E10, 1E11,
-            1E12, 1E13, 1E14, 1E15, 1E16, 1E17, 1E18, 1E19, 1E20, 1E21, 1E22,
+            1E0,
+            1E1,
+            1E2,
+            1E3,
+            1E4,
+            1E5,
+            1E6,
+            1E7,
+            1E8,
+            1E9,
+            1E10,
+            1E11,
+            1E12,
+            1E13,
+            1E14,
+            1E15,
+            1E16,
+            1E17,
+            1E18,
+            1E19,
+            1E20,
+            1E21,
+            1E22,
         };
 
         /// <summary>
@@ -61,7 +82,10 @@ namespace GeometryHelper.Export
             {
                 for (int digits = 1; digits < 15; digits++)
                 {
-                    string shorter = value.ToString("G" + digits.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+                    string shorter = value.ToString(
+                        "G" + digits.ToString(CultureInfo.InvariantCulture),
+                        CultureInfo.InvariantCulture
+                    );
 
                     if (Fits(shorter, bits))
                     {
@@ -117,7 +141,8 @@ namespace GeometryHelper.Export
             if (digits <= (1UL << 53) && ten >= -22 && ten <= 22)
             {
                 double whole = digits;
-                double read = ten >= 0 ? (double)(whole * SmallPowersOfTen[ten]) : (double)(whole / SmallPowersOfTen[-ten]);
+                double read =
+                    ten >= 0 ? (double)(whole * SmallPowersOfTen[ten]) : (double)(whole / SmallPowersOfTen[-ten]);
 
                 return read == Math.Abs(value);
             }
@@ -388,11 +413,15 @@ namespace GeometryHelper.Export
             if (stored <= 19 && first <= (1UL << 53) && power >= -22 && power <= 22)
             {
                 double whole = first;
-                magnitude = power >= 0 ? (double)(whole * SmallPowersOfTen[power]) : (double)(whole / SmallPowersOfTen[-power]);
+                magnitude =
+                    power >= 0 ? (double)(whole * SmallPowersOfTen[power]) : (double)(whole / SmallPowersOfTen[-power]);
             }
             else
             {
-                BigInteger digits = stored <= 19 ? new BigInteger(first) : BigInteger.Parse(new string(kept, 0, stored), CultureInfo.InvariantCulture);
+                BigInteger digits =
+                    stored <= 19
+                        ? new BigInteger(first)
+                        : BigInteger.Parse(new string(kept, 0, stored), CultureInfo.InvariantCulture);
 
                 if (!Nearest(digits, power, Guess(first, power + stored - lead), out magnitude))
                 {
@@ -441,7 +470,10 @@ namespace GeometryHelper.Export
         /// </summary>
         private static bool Nearest(BigInteger digits, int ten, double guess, out double value)
         {
-            value = double.IsInfinity(guess) ? double.MaxValue : double.IsNaN(guess) ? 0.0 : guess;
+            value =
+                double.IsInfinity(guess) ? double.MaxValue
+                : double.IsNaN(guess) ? 0.0
+                : guess;
 
             for (int step = 0; step < 64; step++)
             {
@@ -510,7 +542,8 @@ namespace GeometryHelper.Export
             return left.CompareTo(right);
         }
 
-        private static BigInteger PowerOfTen(int power) => power < PowersOfTen.Length ? PowersOfTen[power] : BigInteger.Pow(10, power);
+        private static BigInteger PowerOfTen(int power) =>
+            power < PowersOfTen.Length ? PowersOfTen[power] : BigInteger.Pow(10, power);
 
         private static BigInteger[] BuildPowersOfTen(int count)
         {

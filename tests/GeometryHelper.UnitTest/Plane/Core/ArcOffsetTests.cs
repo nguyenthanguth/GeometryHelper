@@ -20,7 +20,11 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>
         /// Round joins, cut fine enough that Clipper's approximation of them does not muddy a comparison.
         /// </summary>
-        private static readonly OffsetOptions FineRound = new OffsetOptions(OffsetJoin.Round, OffsetOptions.DefaultMiterLimit, 0.0005);
+        private static readonly OffsetOptions FineRound = new OffsetOptions(
+            OffsetJoin.Round,
+            OffsetOptions.DefaultMiterLimit,
+            0.0005
+        );
 
         /// <summary>
         /// A slot 200 long and 50 wide, with a half circle of radius 25 on each end.
@@ -29,7 +33,8 @@ namespace GeometryHelper.UnitTest.Plane
         {
             return new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 50), new GeoPoint2(0, 50) },
-                new[] { 0.0, 1.0, 0.0, 1.0 });
+                new[] { 0.0, 1.0, 0.0, 1.0 }
+            );
         }
 
         [Fact]
@@ -93,8 +98,10 @@ namespace GeometryHelper.UnitTest.Plane
             double fromClipper = straight.Sum(piece => piece.Area);
 
             // The two come at it from opposite directions and have to land in the same place.
-            Assert.True(Math.Abs(fromArcs - fromClipper) / fromClipper < 1E-4,
-                $"arcs {fromArcs:0.####} against clipper {fromClipper:0.####}");
+            Assert.True(
+                Math.Abs(fromArcs - fromClipper) / fromClipper < 1E-4,
+                $"arcs {fromArcs:0.####} against clipper {fromClipper:0.####}"
+            );
         }
 
         [Theory]
@@ -103,9 +110,14 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(30.0)]
         public void APlateWithRoundedCornersOffsetsAgainstClipperToo(double distance)
         {
-            GeoPolygonArc2 plate = new GeoPolygonArc2(new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(300, 0), new GeoPoint2(300, 200), new GeoPoint2(0, 200)))
-                .Fillet(40.0);
+            GeoPolygonArc2 plate = new GeoPolygonArc2(
+                new GeoPolygon2(
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(300, 0),
+                    new GeoPoint2(300, 200),
+                    new GeoPoint2(0, 200)
+                )
+            ).Fillet(40.0);
 
             Assert.Equal(4, plate.GetEdges().Count(edge => edge.IsArc));
 
@@ -129,9 +141,19 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // A dumbbell: two wide ends joined by a narrow waist.
             var dumbbell = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 90), new GeoPoint2(120, 90),
-                new GeoPoint2(120, 110), new GeoPoint2(200, 110), new GeoPoint2(200, 200), new GeoPoint2(0, 200),
-                new GeoPoint2(0, 110), new GeoPoint2(80, 110), new GeoPoint2(80, 90), new GeoPoint2(0, 90));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(200, 0),
+                new GeoPoint2(200, 90),
+                new GeoPoint2(120, 90),
+                new GeoPoint2(120, 110),
+                new GeoPoint2(200, 110),
+                new GeoPoint2(200, 200),
+                new GeoPoint2(0, 200),
+                new GeoPoint2(0, 110),
+                new GeoPoint2(80, 110),
+                new GeoPoint2(80, 90),
+                new GeoPoint2(0, 90)
+            );
 
             var curvedForm = new GeoPolygonArc2(dumbbell);
 
@@ -142,7 +164,9 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(2, straight.Length);
             Assert.Equal(2, curved.Length);
             // The arcs are exact and Clipper's are cut fine, so the two answers meet closely.
-            Assert.True(Math.Abs(curved.Sum(p => p.Area) - straight.Sum(p => p.Area)) / straight.Sum(p => p.Area) < 1E-5);
+            Assert.True(
+                Math.Abs(curved.Sum(p => p.Area) - straight.Sum(p => p.Area)) / straight.Sum(p => p.Area) < 1E-5
+            );
         }
 
         [Fact]
@@ -166,7 +190,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AnOpenedCornerIsFilledTheWayTheOptionsSay()
         {
-            var ell = new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) });
+            var ell = new GeoPolylineArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) }
+            );
 
             // To the right of the way it runs, the corner opens up.
             GeoPolylineArc2 round = ell.Offset(-20.0, OffsetJoin.Round)[0];
@@ -183,7 +209,9 @@ namespace GeometryHelper.UnitTest.Plane
             // both pieces on to where they meet.
             Assert.False(chamfer.HasArcs);
             Assert.False(miter.HasArcs);
-            Assert.Contains(chamfer.Vertices, v => v.IsEqualTo(new GeoPoint2(100 + 20 * Math.Tan(Math.PI / 8), -20), Loose));
+            Assert.Contains(chamfer.Vertices, v =>
+                v.IsEqualTo(new GeoPoint2(100 + 20 * Math.Tan(Math.PI / 8), -20), Loose)
+            );
             Assert.Contains(chamfer.Vertices, v => v.IsEqualTo(new GeoPoint2(120, -20 * Math.Tan(Math.PI / 8)), Loose));
             Assert.Contains(miter.Vertices, v => v.IsEqualTo(new GeoPoint2(120, -20), Loose));
 
@@ -204,13 +232,15 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Throws<ArgumentNullException>(() => Offset2.Offset((GeoPolylineArc2)null, 10.0));
             Assert.Throws<ArgumentNullException>(() => Offset2.Offset(slot, 10.0, (OffsetOptions)null));
         }
+
         [Fact]
         public void AMiterAgainstACurveRunsTheArcOnRoundItsOwnCircle()
         {
             // A straight run into an arc that bends away, offset so the corner opens up.
             var bent = new GeoPolylineArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(140, 60) },
-                new[] { 0.0, -0.4 });
+                new[] { 0.0, -0.4 }
+            );
 
             GeoArc2 was = bent.GetEdgeAt(1).ToArc();
 
@@ -247,9 +277,14 @@ namespace GeometryHelper.UnitTest.Plane
             // of radius 16.16, never reaches the square 200 from the corner. The corner is rounded off instead.
             var steep = new GeoPolylineArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(140, 60) },
-                new[] { 0.0, -0.9 });
+                new[] { 0.0, -0.9 }
+            );
 
-            Assert.Equal(steep.Offset(-20.0, OffsetJoin.Round)[0].Length, steep.Offset(-20.0, OffsetJoin.Miter)[0].Length, 9);
+            Assert.Equal(
+                steep.Offset(-20.0, OffsetJoin.Round)[0].Length,
+                steep.Offset(-20.0, OffsetJoin.Miter)[0].Length,
+                9
+            );
         }
     }
 }

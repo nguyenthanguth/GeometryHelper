@@ -20,8 +20,8 @@ namespace GeometryHelper.UnitTest.Plane
     public class CollisionFaultB11NearFlatCornerTests
     {
         /// <summary>The chain from (0, 0) by the given bulge to (100, 0), then by bulge 0.4 to (110, 30).</summary>
-        private static GeoPolylineArc2 Chain(double bulge)
-            => new GeoPolylineArc2(new[] { P(0, 0), P(100, 0), P(110, 30) }, new[] { bulge, 0.4 });
+        private static GeoPolylineArc2 Chain(double bulge) =>
+            new GeoPolylineArc2(new[] { P(0, 0), P(100, 0), P(110, 30) }, new[] { bulge, 0.4 });
 
         /// <summary>The arc of bulge 0.4 from (100, 0) to (110, 30), counter-clockwise about a centre to its left.</summary>
         private static GeoArc2 SecondArc() => new GeoEdge2(P(100, 0), P(110, 30), 0.4).ToArc();
@@ -78,7 +78,9 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The offset is one chain of three corners. Its middle corner lies on both moved curves: the arc's circle,
             // its radius less the distance, and the flat edge moved by the distance, both worked out here.
-            GeoPolylineArc2 offset = Assert.Single(Offset2.Offset(Chain(bulge), distance, new OffsetOptions(OffsetJoin.Miter), TenThousandth));
+            GeoPolylineArc2 offset = Assert.Single(
+                Offset2.Offset(Chain(bulge), distance, new OffsetOptions(OffsetJoin.Miter), TenThousandth)
+            );
 
             Assert.Equal(3, offset.Vertices.Count);
 

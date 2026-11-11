@@ -10,10 +10,58 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>PEDIT, as AutoCAD 2021 asks it and stores what it makes (checked in AutoCAD's own console).</summary>
     internal static partial class CadCommands
     {
-        private static readonly string[] PeditOpenOptions = { "Close", "Join", "Width", "Edit vertex", "Fit", "Spline", "Decurve", "Ltype gen", "Reverse", "Undo" };
-        private static readonly string[] PeditClosedOptions = { "Open", "Join", "Width", "Edit vertex", "Fit", "Spline", "Decurve", "Ltype gen", "Reverse", "Undo" };
-        private static readonly string[] PeditManyOptions = { "Close", "Open", "Join", "Width", "Fit", "Spline", "Decurve", "Ltype gen", "Reverse", "Undo" };
-        private static readonly string[] PeditVertexOptions = { "Next", "Previous", "Break", "Insert", "Move", "Regen", "Straighten", "Tangent", "Width", "eXit" };
+        private static readonly string[] PeditOpenOptions =
+        {
+            "Close",
+            "Join",
+            "Width",
+            "Edit vertex",
+            "Fit",
+            "Spline",
+            "Decurve",
+            "Ltype gen",
+            "Reverse",
+            "Undo",
+        };
+        private static readonly string[] PeditClosedOptions =
+        {
+            "Open",
+            "Join",
+            "Width",
+            "Edit vertex",
+            "Fit",
+            "Spline",
+            "Decurve",
+            "Ltype gen",
+            "Reverse",
+            "Undo",
+        };
+        private static readonly string[] PeditManyOptions =
+        {
+            "Close",
+            "Open",
+            "Join",
+            "Width",
+            "Fit",
+            "Spline",
+            "Decurve",
+            "Ltype gen",
+            "Reverse",
+            "Undo",
+        };
+        private static readonly string[] PeditVertexOptions =
+        {
+            "Next",
+            "Previous",
+            "Break",
+            "Insert",
+            "Move",
+            "Regen",
+            "Straighten",
+            "Tangent",
+            "Width",
+            "eXit",
+        };
         private static readonly string[] PeditGoOptions = { "Next", "Previous", "Go", "eXit" };
         private static readonly string[] PeditJoinTypes = { "Extend", "Add", "Both" };
 
@@ -51,11 +99,21 @@ namespace GeometryHelper.Dxf.Viewer
                 string picked = c.Input.Handles[0];
                 DxfEntity entity = c.Document.FindEntity(picked);
 
-                if (!(entity is DxfPolyline || entity is DxfPolyline2d || entity is DxfPolyline3d || entity is DxfLine || entity is DxfArc))
+                if (
+                    !(
+                        entity is DxfPolyline
+                        || entity is DxfPolyline2d
+                        || entity is DxfPolyline3d
+                        || entity is DxfLine
+                        || entity is DxfArc
+                    )
+                )
                 {
-                    c.Write(entity is DxfPolygonMesh || entity is DxfPolyFaceMesh
-                        ? "PEDIT edits polylines and 3D polylines here; meshes are not edited yet."
-                        : "Object selected is not a polyline");
+                    c.Write(
+                        entity is DxfPolygonMesh || entity is DxfPolyFaceMesh
+                            ? "PEDIT edits polylines and 3D polylines here; meshes are not edited yet."
+                            : "Object selected is not a polyline"
+                    );
                     continue;
                 }
 
@@ -108,7 +166,11 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                yield return CadPrompt.ForKeywordOrText("Enter an option", polyline.Closed ? PeditClosedOptions : PeditOpenOptions, null);
+                yield return CadPrompt.ForKeywordOrText(
+                    "Enter an option",
+                    polyline.Closed ? PeditClosedOptions : PeditOpenOptions,
+                    null
+                );
 
                 if (c.Input.IsNone || PeditExit(c.Input))
                 {
@@ -163,7 +225,11 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (c.Input.Is("Ltype gen"))
                 {
-                    yield return CadPrompt.ForKeyword("Enter polyline linetype generation option", new[] { "ON", "OFF" }, PeditLinetypeGeneration(polyline) ? "On" : "Off");
+                    yield return CadPrompt.ForKeyword(
+                        "Enter polyline linetype generation option",
+                        new[] { "ON", "OFF" },
+                        PeditLinetypeGeneration(polyline) ? "On" : "Off"
+                    );
 
                     if (c.Input.Is("ON") || c.Input.Is("OFF"))
                     {
@@ -211,7 +277,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (!yes.Value)
                 {
-                    foreach (CadPrompt prompt in PeditYesNo(c, "Convert Lines, Arcs and Splines to polylines [Yes/No]?", yes))
+                    foreach (
+                        CadPrompt prompt in PeditYesNo(c, "Convert Lines, Arcs and Splines to polylines [Yes/No]?", yes)
+                    )
                     {
                         yield return prompt;
                     }
@@ -220,7 +288,9 @@ namespace GeometryHelper.Dxf.Viewer
                 // Splines are left as they are: their conversion by a precision is not built.
                 if (yes.Value)
                 {
-                    handles.AddRange(PeditMakePolylines(c, others.Where(h => !(c.Document.FindEntity(h) is DxfSpline)).ToList()));
+                    handles.AddRange(
+                        PeditMakePolylines(c, others.Where(h => !(c.Document.FindEntity(h) is DxfSpline)).ToList())
+                    );
                 }
             }
 
@@ -230,7 +300,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             // In the order the handles were given out, a shorter one first, as AutoCAD joins into the oldest.
-            handles.Sort((a, b) => a.Length != b.Length ? a.Length.CompareTo(b.Length) : string.Compare(a, b, StringComparison.OrdinalIgnoreCase));
+            handles.Sort(
+                (a, b) =>
+                    a.Length != b.Length
+                        ? a.Length.CompareTo(b.Length)
+                        : string.Compare(a, b, StringComparison.OrdinalIgnoreCase)
+            );
             var marks = new List<CadGroupMark>();
 
             while (true)
@@ -267,7 +342,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                     while (true)
                     {
-                        yield return CadPrompt.ForDistance("Enter fuzz distance", null, new[] { "Jointype" }, Length(fuzz));
+                        yield return CadPrompt.ForDistance(
+                            "Enter fuzz distance",
+                            null,
+                            new[] { "Jointype" },
+                            Length(fuzz)
+                        );
 
                         if (c.Input.Is("Jointype"))
                         {
@@ -312,7 +392,9 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (c.Input.Is("Ltype gen"))
                 {
-                    yield return CadPrompt.ForKeyword("Enter polyline linetype generation option", new[] { "ON", "OFF" }).WithoutColon();
+                    yield return CadPrompt
+                        .ForKeyword("Enter polyline linetype generation option", new[] { "ON", "OFF" })
+                        .WithoutColon();
 
                     if (c.Input.Is("ON") || c.Input.Is("OFF"))
                     {
@@ -402,7 +484,10 @@ namespace GeometryHelper.Dxf.Viewer
             marks.RemoveAt(marks.Count - 1);
         }
 
-        private static string PeditJoinTypeName(int type) => type == 1 ? "Add segment" : type == 2 ? "Both (Extend or Add)" : "Extend";
+        private static string PeditJoinTypeName(int type) =>
+            type == 1 ? "Add segment"
+            : type == 2 ? "Both (Extend or Add)"
+            : "Extend";
 
         /// <summary>
         /// Makes lines and arcs polylines of one segment, each a new LWPOLYLINE of the look of the object it replaces, an arc's
@@ -435,26 +520,35 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Makes one change to each of the polylines, one step of the run that Undo takes back.</summary>
-        private static bool PeditEach(CadCommandContext c, IReadOnlyList<string> handles, string how, List<CadGroupMark> marks, Action<CadEditScope, DxfCurve> change)
+        private static bool PeditEach(
+            CadCommandContext c,
+            IReadOnlyList<string> handles,
+            string how,
+            List<CadGroupMark> marks,
+            Action<CadEditScope, DxfCurve> change
+        )
         {
             c.OpenUndoStep();
             CadGroupMark mark = c.Document.MarkGroup();
             var spaces = handles.Select(h => c.Document.FindSpace(h)?.Name).ToList();
-            CadEditResult result = c.Apply(handles.Select(h => new CadEditRecord(CadEditRecordKind.Reshaped, h, how)).ToList(), s =>
-            {
-                for (int i = 0; i < handles.Count; i++)
+            CadEditResult result = c.Apply(
+                handles.Select(h => new CadEditRecord(CadEditRecordKind.Reshaped, h, how)).ToList(),
+                s =>
                 {
-                    DxfEntity before = s.Document.FindEntity(handles[i]);
-                    change(s, (DxfCurve)before);
-
-                    // A polyline put in its own place (a LWPOLYLINE made a POLYLINE and back) is another object of the handle,
-                    // which the index of handles is made again for.
-                    if (before.IsErased)
+                    for (int i = 0; i < handles.Count; i++)
                     {
-                        s.Record(new CadEditRecord(CadEditRecordKind.Added, handles[i]) { Space = spaces[i] });
+                        DxfEntity before = s.Document.FindEntity(handles[i]);
+                        change(s, (DxfCurve)before);
+
+                        // A polyline put in its own place (a LWPOLYLINE made a POLYLINE and back) is another object of the handle,
+                        // which the index of handles is made again for.
+                        if (before.IsErased)
+                        {
+                            s.Record(new CadEditRecord(CadEditRecordKind.Added, handles[i]) { Space = spaces[i] });
+                        }
                     }
                 }
-            });
+            );
 
             if (result.Succeeded)
             {
@@ -465,7 +559,12 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Close, Open, Fit, Spline, Decurve and Reverse, each on every polyline given.</summary>
-        private static void PeditPlain(CadCommandContext c, IReadOnlyList<string> handles, string option, List<CadGroupMark> marks)
+        private static void PeditPlain(
+            CadCommandContext c,
+            IReadOnlyList<string> handles,
+            string option,
+            List<CadGroupMark> marks
+        )
         {
             switch (option)
             {
@@ -531,7 +630,13 @@ namespace GeometryHelper.Dxf.Viewer
                     PeditEach(c, handles, option, marks, (s, p) =>
                     {
                         // A spline is fitted again on its frame turned round, its curve's vertices written anew as AutoCAD writes them.
-                        if (p is DxfPolyline2d heavy && (heavy.PolyType == DxfPoly2dType.QuadSplinePoly || heavy.PolyType == DxfPoly2dType.CubicSplinePoly))
+                        if (
+                            p is DxfPolyline2d heavy
+                            && (
+                                heavy.PolyType == DxfPoly2dType.QuadSplinePoly
+                                || heavy.PolyType == DxfPoly2dType.CubicSplinePoly
+                            )
+                        )
                         {
                             DxfPoly2dType type = heavy.PolyType;
                             heavy.Straighten();
@@ -547,11 +652,14 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The polyline as a POLYLINE: a LWPOLYLINE put in its own place as one, as AutoCAD's Fit and Spline make it.</summary>
-        private static DxfPolyline2d PeditHeavy(DxfCurve polyline) => polyline is DxfPolyline light ? light.ConvertTo(true) : (DxfPolyline2d)polyline;
+        private static DxfPolyline2d PeditHeavy(DxfCurve polyline) =>
+            polyline is DxfPolyline light ? light.ConvertTo(true) : (DxfPolyline2d)polyline;
 
-        private static DxfPoly2dType PeditType(DxfCurve polyline) => polyline is DxfPolyline2d heavy ? heavy.PolyType : DxfPoly2dType.SimplePoly;
+        private static DxfPoly2dType PeditType(DxfCurve polyline) =>
+            polyline is DxfPolyline2d heavy ? heavy.PolyType : DxfPoly2dType.SimplePoly;
 
-        private static bool PeditLinetypeGeneration(DxfCurve polyline) => polyline is DxfPolyline light ? light.Plinegen : ((DxfPolyline2d)polyline).LinetypeGenerationOn;
+        private static bool PeditLinetypeGeneration(DxfCurve polyline) =>
+            polyline is DxfPolyline light ? light.Plinegen : ((DxfPolyline2d)polyline).LinetypeGenerationOn;
 
         private static void PeditSetLinetypeGeneration(DxfCurve polyline, bool on)
         {
@@ -589,9 +697,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// The single Join: the lines, arcs and polylines that meet the polyline's ends joined into it end to end, as AutoCAD's
         /// JoinEntities joins them, and "3 segments added to polyline" said.
         /// </summary>
-        private static void PeditJoin(CadCommandContext c, string handle, IReadOnlyList<string> picked, List<CadGroupMark> marks)
+        private static void PeditJoin(
+            CadCommandContext c,
+            string handle,
+            IReadOnlyList<string> picked,
+            List<CadGroupMark> marks
+        )
         {
-            var others = picked.Where(h => !string.Equals(h, handle, StringComparison.OrdinalIgnoreCase) && PeditJoinable(c, h)).ToList();
+            var others = picked
+                .Where(h => !string.Equals(h, handle, StringComparison.OrdinalIgnoreCase) && PeditJoinable(c, h))
+                .ToList();
             var polyline = (DxfCurve)c.Document.FindEntity(handle);
 
             if (others.Count == 0 || (polyline is DxfPolyline2d fitted && fitted.PolyType != DxfPoly2dType.SimplePoly))
@@ -630,12 +745,19 @@ namespace GeometryHelper.Dxf.Viewer
         {
             DxfEntity entity = c.Document.FindEntity(handle);
 
-            if (entity == null || CadLayerEditor.IsLocked(c.Database, entity.Layer) || c.Document.Owners.GetEditRule(entity) != CadEditRule.Free)
+            if (
+                entity == null
+                || CadLayerEditor.IsLocked(c.Database, entity.Layer)
+                || c.Document.Owners.GetEditRule(entity) != CadEditRule.Free
+            )
             {
                 return false;
             }
 
-            return entity is DxfLine || entity is DxfArc || entity is DxfPolyline || (entity is DxfPolyline2d heavy && heavy.PolyType == DxfPoly2dType.SimplePoly);
+            return entity is DxfLine
+                || entity is DxfArc
+                || entity is DxfPolyline
+                || (entity is DxfPolyline2d heavy && heavy.PolyType == DxfPoly2dType.SimplePoly);
         }
 
         /// <summary>The count of segments a polyline draws through its frame: its vertices, one less where it is open.</summary>
@@ -650,7 +772,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// first, in the order of their handles: Extend runs the two end segments on or back to where they meet, an arc round its circle,
         /// Add puts a straight segment between the ends, Both extends where it can and adds where it cannot.
         /// </summary>
-        private static void PeditFuzzJoin(CadCommandContext c, List<string> handles, double fuzz, int type, List<CadGroupMark> marks)
+        private static void PeditFuzzJoin(
+            CadCommandContext c,
+            List<string> handles,
+            double fuzz,
+            int type,
+            List<CadGroupMark> marks
+        )
         {
             double slack = Slack(c);
             var chains = new List<PeditChain>();
@@ -681,12 +809,18 @@ namespace GeometryHelper.Dxf.Viewer
                 while (true)
                 {
                     PeditChain best = null;
-                    bool bestAtEnd = false, bestFromStart = false;
+                    bool bestAtEnd = false,
+                        bestFromStart = false;
                     double bestGap = double.MaxValue;
 
                     foreach (PeditChain other in chains)
                     {
-                        if (other == seed || other.Gone || refused.Contains(other.Handle) || !seed.SamePlane(other, slack))
+                        if (
+                            other == seed
+                            || other.Gone
+                            || refused.Contains(other.Handle)
+                            || !seed.SamePlane(other, slack)
+                        )
                         {
                             continue;
                         }
@@ -696,12 +830,17 @@ namespace GeometryHelper.Dxf.Viewer
                             foreach (bool fromStart in new[] { true, false })
                             {
                                 GeoPoint2 mine = atEnd ? seed.Points[seed.Points.Count - 1].At : seed.Points[0].At;
-                                GeoPoint2 theirs = fromStart ? other.Points[0].At : other.Points[other.Points.Count - 1].At;
+                                GeoPoint2 theirs = fromStart
+                                    ? other.Points[0].At
+                                    : other.Points[other.Points.Count - 1].At;
                                 double gap = (theirs - mine).Length;
 
                                 // The nearest that joins within the fuzz; at one distance the lower handle, the seed's end before
                                 // its start.
-                                if (gap < bestGap - slack && PeditAttach(seed, other, atEnd, fromStart, type, fuzz, slack, false) >= 0)
+                                if (
+                                    gap < bestGap - slack
+                                    && PeditAttach(seed, other, atEnd, fromStart, type, fuzz, slack, false) >= 0
+                                )
                                 {
                                     best = other;
                                     bestGap = gap;
@@ -736,7 +875,11 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 // Ends brought together close the polyline, as AutoCAD's join closes one.
-                if (changed.Contains(seed) && seed.Points.Count > 2 && (seed.Points[0].At - seed.Points[seed.Points.Count - 1].At).Length <= slack)
+                if (
+                    changed.Contains(seed)
+                    && seed.Points.Count > 2
+                    && (seed.Points[0].At - seed.Points[seed.Points.Count - 1].At).Length <= slack
+                )
                 {
                     seed.Points.RemoveAt(seed.Points.Count - 1);
                     seed.Closed = true;
@@ -751,13 +894,20 @@ namespace GeometryHelper.Dxf.Viewer
 
             c.OpenUndoStep();
             CadGroupMark mark = c.Document.MarkGroup();
-            var planned = changed.Select(k => new CadEditRecord(CadEditRecordKind.Reshaped, k.Handle, "Join"))
-                .Concat(gone.Select(h => new CadEditRecord(CadEditRecordKind.Erased, h))).ToList();
+            var planned = changed
+                .Select(k => new CadEditRecord(CadEditRecordKind.Reshaped, k.Handle, "Join"))
+                .Concat(gone.Select(h => new CadEditRecord(CadEditRecordKind.Erased, h)))
+                .ToList();
             CadEditResult result = c.Apply(planned, s =>
             {
                 foreach (PeditChain chain in changed)
                 {
-                    PeditWrite((DxfCurve)s.Document.FindEntity(chain.Handle), chain.Points, chain.Closed, DxfPoly2dType.SimplePoly);
+                    PeditWrite(
+                        (DxfCurve)s.Document.FindEntity(chain.Handle),
+                        chain.Points,
+                        chain.Closed,
+                        DxfPoly2dType.SimplePoly
+                    );
                 }
 
                 foreach (string handle in gone)
@@ -781,7 +931,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// other; Both extends where it can and adds where it cannot. Gives the segments added, or -1 where they do not join
         /// and nothing is changed.
         /// </summary>
-        private static int PeditAttach(PeditChain seed, PeditChain other, bool atEnd, bool fromStart, int type, double fuzz, double slack, bool apply)
+        private static int PeditAttach(
+            PeditChain seed,
+            PeditChain other,
+            bool atEnd,
+            bool fromStart,
+            int type,
+            double fuzz,
+            double slack,
+            bool apply
+        )
         {
             // The two run one way: the seed then the other where they meet at the seed's end, the other then the seed at its start.
             List<PeditPoint> first;
@@ -805,14 +964,24 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!touch && type != 1)
             {
-                GeoPoint2? meet = first.Count >= 2 && second.Count >= 2 ? PeditMeet(first[first.Count - 2], a, b, second[0].Bulge, second[1].At) : null;
+                GeoPoint2? meet =
+                    first.Count >= 2 && second.Count >= 2
+                        ? PeditMeet(first[first.Count - 2], a, b, second[0].Bulge, second[1].At)
+                        : null;
 
                 // An arc at an end is run on, or cut back, along its circle to where the two meet, its bulge made anew.
-                double before = meet.HasValue ? PeditBulgeTo(first[first.Count - 2].At, a, first[first.Count - 2].Bulge, meet.Value, true) : 0.0;
+                double before = meet.HasValue
+                    ? PeditBulgeTo(first[first.Count - 2].At, a, first[first.Count - 2].Bulge, meet.Value, true)
+                    : 0.0;
                 double after = meet.HasValue ? PeditBulgeTo(b, second[1].At, second[0].Bulge, meet.Value, false) : 0.0;
 
-                if (meet.HasValue && !double.IsNaN(before) && !double.IsNaN(after)
-                    && (meet.Value - a).Length <= fuzz + slack && (meet.Value - b).Length <= fuzz + slack)
+                if (
+                    meet.HasValue
+                    && !double.IsNaN(before)
+                    && !double.IsNaN(after)
+                    && (meet.Value - a).Length <= fuzz + slack
+                    && (meet.Value - b).Length <= fuzz + slack
+                )
                 {
                     first[first.Count - 2].Bulge = before;
                     first[first.Count - 1].At = meet.Value;
@@ -904,7 +1073,13 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The circle of a segment of a bulge, its centre and radius; false where the segment is straight.</summary>
-        private static bool PeditCircle(GeoPoint2 from, GeoPoint2 to, double bulge, out GeoPoint2 center, out double radius)
+        private static bool PeditCircle(
+            GeoPoint2 from,
+            GeoPoint2 to,
+            double bulge,
+            out GeoPoint2 center,
+            out double radius
+        )
         {
             GeoVector2 chord = to - from;
 
@@ -923,7 +1098,13 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Adds where the line through two points crosses a circle.</summary>
-        private static void PeditLineCircle(GeoPoint2 p0, GeoPoint2 p1, GeoPoint2 center, double radius, List<GeoPoint2> found)
+        private static void PeditLineCircle(
+            GeoPoint2 p0,
+            GeoPoint2 p1,
+            GeoPoint2 center,
+            double radius,
+            List<GeoPoint2> found
+        )
         {
             GeoVector2 u = p1 - p0;
             double length = u.Length;
@@ -981,7 +1162,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             GeoPoint2 start = atEnd ? from : meet;
             GeoPoint2 end = atEnd ? meet : to;
-            double sweep = Math.Atan2(end.Y - center.Y, end.X - center.X) - Math.Atan2(start.Y - center.Y, start.X - center.X);
+            double sweep =
+                Math.Atan2(end.Y - center.Y, end.X - center.X) - Math.Atan2(start.Y - center.Y, start.X - center.X);
             double turn = 2.0 * Math.PI;
             sweep = bulge > 0.0 ? ((sweep % turn) + turn) % turn : -((((-sweep) % turn) + turn) % turn);
             return Math.Abs(sweep) <= Tolerance.Default.EqualVector ? double.NaN : Math.Tan(sweep / 4.0);
@@ -1012,8 +1194,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// look, as AutoCAD 2021 makes one (RECTANG and REVCLOUD make LWPOLYLINEs whatever it is); a LWPOLYLINE otherwise, or
         /// in a drawing of R12.
         /// </summary>
-        private static DxfCurve OfPlineType(CadCommandContext c, DxfPolyline made)
-            => made != null && c.Remembered("plinetype", 2.0) == 0.0 && string.CompareOrdinal(c.Database.Version, "AC1014") >= 0 ? made.ConvertTo(false) : (DxfCurve)made;
+        private static DxfCurve OfPlineType(CadCommandContext c, DxfPolyline made) =>
+            made != null
+            && c.Remembered("plinetype", 2.0) == 0.0
+            && string.CompareOrdinal(c.Database.Version, "AC1014") >= 0
+                ? made.ConvertTo(false)
+                : (DxfCurve)made;
 
         /// <summary>
         /// Makes a POLYLINE a LWPOLYLINE in its own place at the end of the single PEDIT, as AutoCAD 2021's PLINETYPE 1 and 2 do
@@ -1022,8 +1208,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static void PeditToLightweight(CadCommandContext c, string handle)
         {
-            if (c.Remembered("plinetype", 2.0) == 0.0 || !(c.Document.FindEntity(handle) is DxfPolyline2d heavy) || heavy.PolyType != DxfPoly2dType.SimplePoly
-                || string.CompareOrdinal(c.Database.Version, "AC1014") < 0 || heavy.Count() < 2)
+            if (
+                c.Remembered("plinetype", 2.0) == 0.0
+                || !(c.Document.FindEntity(handle) is DxfPolyline2d heavy)
+                || heavy.PolyType != DxfPoly2dType.SimplePoly
+                || string.CompareOrdinal(c.Database.Version, "AC1014") < 0
+                || heavy.Count() < 2
+            )
             {
                 return;
             }
@@ -1076,7 +1267,9 @@ namespace GeometryHelper.Dxf.Viewer
                 frame = PeditFrame(polyline);
                 at = Math.Max(0, Math.Min(at, frame.Count - 1));
                 GeoPoint2 here = PeditWorld(polyline, frame[at].At);
-                yield return CadPrompt.ForKeyword("Enter a vertex editing option", PeditVertexOptions, way).Marking(here);
+                yield return CadPrompt
+                    .ForKeyword("Enter a vertex editing option", PeditVertexOptions, way)
+                    .Marking(here);
 
                 if (c.Input.Is("eXit") || c.Input.Kind != CadInputKind.Keyword)
                 {
@@ -1091,9 +1284,19 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (c.Input.Is("Width"))
                 {
-                    yield return CadPrompt.ForDistance("Specify starting width for next segment", null, null, Length(frame[at].Start));
+                    yield return CadPrompt.ForDistance(
+                        "Specify starting width for next segment",
+                        null,
+                        null,
+                        Length(frame[at].Start)
+                    );
                     double start = c.Input.Kind == CadInputKind.Number ? c.Input.Number : frame[at].Start;
-                    yield return CadPrompt.ForDistance("Specify ending width for next segment", null, null, Length(start));
+                    yield return CadPrompt.ForDistance(
+                        "Specify ending width for next segment",
+                        null,
+                        null,
+                        Length(start)
+                    );
                     double end = c.Input.Kind == CadInputKind.Number ? c.Input.Number : start;
 
                     if (start >= 0.0 && end >= 0.0)
@@ -1118,7 +1321,9 @@ namespace GeometryHelper.Dxf.Viewer
                         string vertex = frame[at].Source.Handle;
                         PeditVertexApply(c, handle, state, s =>
                         {
-                            DxfVertex2d own = ((DxfPolyline2d)s.Document.FindEntity(handle)).First(v => string.Equals(v.Handle, vertex, StringComparison.OrdinalIgnoreCase));
+                            DxfVertex2d own = ((DxfPolyline2d)s.Document.FindEntity(handle)).First(v =>
+                                string.Equals(v.Handle, vertex, StringComparison.OrdinalIgnoreCase)
+                            );
                             own.Tangent = angle;
                             own.TangentUsed = true;
                         });
@@ -1127,7 +1332,10 @@ namespace GeometryHelper.Dxf.Viewer
                 else if (c.Input.Is("Move") || c.Input.Is("Insert"))
                 {
                     bool insert = c.Input.Is("Insert");
-                    yield return CadPrompt.ForPoint(insert ? "Specify location for new vertex" : "Specify new location for marked vertex", here);
+                    yield return CadPrompt.ForPoint(
+                        insert ? "Specify location for new vertex" : "Specify new location for marked vertex",
+                        here
+                    );
 
                     if (!c.Input.IsPoint)
                     {
@@ -1139,7 +1347,15 @@ namespace GeometryHelper.Dxf.Viewer
                     if (insert)
                     {
                         // The new vertex follows the marked one, as wide as that one's segment ends, and is marked next.
-                        frame.Insert(at + 1, new PeditPoint { At = to, Start = frame[at].End, End = frame[at].End });
+                        frame.Insert(
+                            at + 1,
+                            new PeditPoint
+                            {
+                                At = to,
+                                Start = frame[at].End,
+                                End = frame[at].End,
+                            }
+                        );
                         at++;
                     }
                     else
@@ -1158,7 +1374,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                     while (true)
                     {
-                        yield return CadPrompt.ForKeyword("Enter an option", PeditGoOptions, go).Marking(PeditWorld(polyline, frame[other].At));
+                        yield return CadPrompt
+                            .ForKeyword("Enter an option", PeditGoOptions, go)
+                            .Marking(PeditWorld(polyline, frame[other].At));
 
                         if (c.Input.Is("Next") || c.Input.Is("Previous"))
                         {
@@ -1217,15 +1435,25 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Writes the frame of a polyline changed by Edit vertex, fitted again as it was.</summary>
-        private static void PeditVertexChange(CadCommandContext c, string handle, Ref<CadGroupMark> state, List<PeditPoint> frame, bool closed)
-            => PeditVertexApply(c, handle, state, s =>
+        private static void PeditVertexChange(
+            CadCommandContext c,
+            string handle,
+            Ref<CadGroupMark> state,
+            List<PeditPoint> frame,
+            bool closed
+        ) => PeditVertexApply(c, handle, state, s =>
             {
                 var polyline = (DxfCurve)s.Document.FindEntity(handle);
                 PeditWrite(polyline, frame, closed, PeditType(polyline));
             });
 
         /// <summary>Makes a change of Edit vertex, the savepoint of the first being that which Undo goes back to.</summary>
-        private static void PeditVertexApply(CadCommandContext c, string handle, Ref<CadGroupMark> state, Action<CadEditScope> change)
+        private static void PeditVertexApply(
+            CadCommandContext c,
+            string handle,
+            Ref<CadGroupMark> state,
+            Action<CadEditScope> change
+        )
         {
             c.OpenUndoStep();
 
@@ -1270,7 +1498,8 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (made != null)
                 {
-                    DxfPolyline2d piece = s.Append(s.Document.FindSpace(handle), PeditNew(polyline, made)) as DxfPolyline2d;
+                    DxfPolyline2d piece =
+                        s.Append(s.Document.FindSpace(handle), PeditNew(polyline, made)) as DxfPolyline2d;
                     DxfPoly2dType fit = PeditPieceType(type, made.Count);
 
                     if (piece != null && fit != DxfPoly2dType.SimplePoly)
@@ -1282,8 +1511,10 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>How a piece Break leaves is fitted: a spline's again on three vertices of its frame or more, any other straight.</summary>
-        private static DxfPoly2dType PeditPieceType(DxfPoly2dType type, int vertices)
-            => (type == DxfPoly2dType.QuadSplinePoly || type == DxfPoly2dType.CubicSplinePoly) && vertices >= 3 ? type : DxfPoly2dType.SimplePoly;
+        private static DxfPoly2dType PeditPieceType(DxfPoly2dType type, int vertices) =>
+            (type == DxfPoly2dType.QuadSplinePoly || type == DxfPoly2dType.CubicSplinePoly) && vertices >= 3
+                ? type
+                : DxfPoly2dType.SimplePoly;
 
         /// <summary>A new polyline of a piece, of the kind, look and plane of the one it came from, straight; it is fitted once in the drawing.</summary>
         private static DxfCurve PeditNew(DxfCurve from, List<PeditPoint> points)
@@ -1306,7 +1537,15 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             var heavy = (DxfPolyline2d)from;
-            var piece = new DxfPolyline2d(DxfPoly2dType.SimplePoly, points.Select(p => new GeoPoint3(p.At.X, p.At.Y, 0.0)), heavy.Elevation, false, 0.0, 0.0, points.Select(p => p.Bulge));
+            var piece = new DxfPolyline2d(
+                DxfPoly2dType.SimplePoly,
+                points.Select(p => new GeoPoint3(p.At.X, p.At.Y, 0.0)),
+                heavy.Elevation,
+                false,
+                0.0,
+                0.0,
+                points.Select(p => p.Bulge)
+            );
             List<DxfVertex2d> vertices = piece.ToList();
 
             for (int i = 0; i < points.Count; i++)
@@ -1374,8 +1613,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             public bool Gone { get; set; }
 
-            public bool SamePlane(PeditChain other, double slack)
-                => (_normal - other._normal).Length <= Tolerance.Default.EqualVector && Math.Abs(_elevation - other._elevation) <= slack;
+            public bool SamePlane(PeditChain other, double slack) =>
+                (_normal - other._normal).Length <= Tolerance.Default.EqualVector
+                && Math.Abs(_elevation - other._elevation) <= slack;
         }
 
         /// <summary>
@@ -1390,7 +1630,15 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 for (int i = 0; i < light.NumberOfVertices; i++)
                 {
-                    frame.Add(new PeditPoint { At = light.GetPoint2dAt(i), Bulge = light.GetBulgeAt(i), Start = light.GetStartWidthAt(i), End = light.GetEndWidthAt(i) });
+                    frame.Add(
+                        new PeditPoint
+                        {
+                            At = light.GetPoint2dAt(i),
+                            Bulge = light.GetBulgeAt(i),
+                            Start = light.GetStartWidthAt(i),
+                            End = light.GetEndWidthAt(i),
+                        }
+                    );
                 }
 
                 return frame;
@@ -1406,33 +1654,50 @@ namespace GeometryHelper.Dxf.Viewer
                 DxfVertex2d vertex = vertices[i];
                 DxfVertex2dType kind = vertex.VertexType;
 
-                if (spline ? kind != DxfVertex2dType.SplineControlVertex : kind == DxfVertex2dType.CurveFitVertex || kind == DxfVertex2dType.SplineFitVertex)
+                if (
+                    spline
+                        ? kind != DxfVertex2dType.SplineControlVertex
+                        : kind == DxfVertex2dType.CurveFitVertex || kind == DxfVertex2dType.SplineFitVertex
+                )
                 {
                     continue;
                 }
 
                 // A curve fit moved the end width of a segment onto the vertex it put in its middle.
-                double end = type == DxfPoly2dType.FitCurvePoly && i + 1 < vertices.Count && vertices[i + 1].VertexType == DxfVertex2dType.CurveFitVertex
-                    ? vertices[i + 1].EndWidth
-                    : vertex.EndWidth;
-                frame.Add(new PeditPoint
-                {
-                    At = new GeoPoint2(vertex.Position.X, vertex.Position.Y),
-                    Bulge = type == DxfPoly2dType.SimplePoly ? vertex.Bulge : 0.0,
-                    Start = vertex.StartWidth,
-                    End = end,
-                    Tangent = vertex.TangentUsed ? vertex.Tangent : (double?)null,
-                    Source = vertex,
-                });
+                double end =
+                    type == DxfPoly2dType.FitCurvePoly
+                    && i + 1 < vertices.Count
+                    && vertices[i + 1].VertexType == DxfVertex2dType.CurveFitVertex
+                        ? vertices[i + 1].EndWidth
+                        : vertex.EndWidth;
+                frame.Add(
+                    new PeditPoint
+                    {
+                        At = new GeoPoint2(vertex.Position.X, vertex.Position.Y),
+                        Bulge = type == DxfPoly2dType.SimplePoly ? vertex.Bulge : 0.0,
+                        Start = vertex.StartWidth,
+                        End = end,
+                        Tangent = vertex.TangentUsed ? vertex.Tangent : (double?)null,
+                        Source = vertex,
+                    }
+                );
             }
 
             return frame;
         }
 
         /// <summary>The vertices a POLYLINE is drawn through, those of its frame and those its curve fitting made, as plain vertices.</summary>
-        private static List<PeditPoint> PeditDrawn(DxfCurve polyline)
-            => ((DxfPolyline2d)polyline).Where(v => v.VertexType != DxfVertex2dType.SplineControlVertex)
-                .Select(v => new PeditPoint { At = new GeoPoint2(v.Position.X, v.Position.Y), Bulge = v.Bulge, Start = v.StartWidth, End = v.EndWidth }).ToList();
+        private static List<PeditPoint> PeditDrawn(DxfCurve polyline) =>
+            ((DxfPolyline2d)polyline)
+                .Where(v => v.VertexType != DxfVertex2dType.SplineControlVertex)
+                .Select(v => new PeditPoint
+                {
+                    At = new GeoPoint2(v.Position.X, v.Position.Y),
+                    Bulge = v.Bulge,
+                    Start = v.StartWidth,
+                    End = v.EndWidth,
+                })
+                .ToList();
 
         /// <summary>Where each vertex of the frame of a curve-fitted POLYLINE is among the vertices it is drawn through.</summary>
         private static List<int> PeditFrameIndices(DxfCurve polyline)

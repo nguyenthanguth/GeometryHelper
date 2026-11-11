@@ -20,7 +20,9 @@ namespace GeometryHelper.Core
         /// by the same measure the projection onto a segment takes it for a point. A tolerance no coarser than the rounding
         /// of the segment's start, nought or <see cref="AsItIs"/>, reads none so, and measures every segment as it is.
         /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining
+        )]
         internal static bool ReadsAsStart(GeoLine2 line, Tolerance tolerance)
         {
             double x = line.EndPoint.X - line.StartPoint.X;
@@ -49,8 +51,15 @@ namespace GeometryHelper.Core
         internal static bool Meets(double gap, GeoLine2 line, GeoLine2 other)
         {
             double far = Math.Max(
-                Math.Max(Math.Max(Math.Abs(line.StartPoint.X), Math.Abs(line.StartPoint.Y)), Math.Max(Math.Abs(line.EndPoint.X), Math.Abs(line.EndPoint.Y))),
-                Math.Max(Math.Max(Math.Abs(other.StartPoint.X), Math.Abs(other.StartPoint.Y)), Math.Max(Math.Abs(other.EndPoint.X), Math.Abs(other.EndPoint.Y))));
+                Math.Max(
+                    Math.Max(Math.Abs(line.StartPoint.X), Math.Abs(line.StartPoint.Y)),
+                    Math.Max(Math.Abs(line.EndPoint.X), Math.Abs(line.EndPoint.Y))
+                ),
+                Math.Max(
+                    Math.Max(Math.Abs(other.StartPoint.X), Math.Abs(other.StartPoint.Y)),
+                    Math.Max(Math.Abs(other.EndPoint.X), Math.Abs(other.EndPoint.Y))
+                )
+            );
 
             return gap <= 1E-12 * Math.Max(1.0, far);
         }
@@ -74,8 +83,8 @@ namespace GeometryHelper.Core
         /// <param name="line">The segment read as its start.</param>
         /// <param name="asItIs">The shortest segment to the segment as it is, found with <see cref="AsItIs"/>.</param>
         /// <param name="toStart">The shortest segment to its start, running the same way as <paramref name="asItIs"/>.</param>
-        internal static GeoLine2 Nearest(GeoLine2 line, GeoLine2 asItIs, GeoLine2 toStart)
-            => Meets(asItIs.Length, line) ? asItIs : toStart;
+        internal static GeoLine2 Nearest(GeoLine2 line, GeoLine2 asItIs, GeoLine2 toStart) =>
+            Meets(asItIs.Length, line) ? asItIs : toStart;
 
         /// <summary>
         /// The rounding of a segment's start: 1E-12 of its largest coordinate, and of one at the least.
@@ -85,7 +94,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// The rounding of a point: 1E-12 of its largest coordinate, and of one at the least.
         /// </summary>
-        internal static double Rounding(GeoPoint2 point)
-            => 1E-12 * Math.Max(1.0, Math.Max(Math.Abs(point.X), Math.Abs(point.Y)));
+        internal static double Rounding(GeoPoint2 point) =>
+            1E-12 * Math.Max(1.0, Math.Max(Math.Abs(point.X), Math.Abs(point.Y)));
     }
 }

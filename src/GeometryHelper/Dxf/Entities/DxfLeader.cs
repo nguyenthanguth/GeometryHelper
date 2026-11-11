@@ -43,10 +43,38 @@ namespace GeometryHelper.Dxf
     public sealed partial class DxfLeader : DxfCurve
     {
         // The groups of AcDbLeader in the order AutoCAD writes them, a vertex being 10, 20 and 30.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[]
-        {
-            100, 3, 71, 72, 73, 74, 75, 40, 41, 76, 10, 20, 30, 77, 340, 210, 220, 230, 211, 221, 231, 212, 222, 232, 213, 223, 233,
-        });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[]
+            {
+                100,
+                3,
+                71,
+                72,
+                73,
+                74,
+                75,
+                40,
+                41,
+                76,
+                10,
+                20,
+                30,
+                77,
+                340,
+                210,
+                220,
+                230,
+                211,
+                221,
+                231,
+                212,
+                222,
+                232,
+                213,
+                223,
+                233,
+            }
+        );
 
         private static readonly IReadOnlyCollection<int> VertexCodes = Array.AsReadOnly(new[] { 10, 20, 30 });
 
@@ -57,18 +85,23 @@ namespace GeometryHelper.Dxf
         /// <c>new Leader()</c>, on layer 0 in no file; give it its vertices with <see cref="AppendVertex"/>, two at least.
         /// </summary>
         public DxfLeader()
-            : base("LEADER", new[]
-            {
-                new DxfTypedValue(100, "AcDbLeader"), new DxfTypedValue(3, "Standard"), new DxfTypedValue(71, "1"), new DxfTypedValue(72, "0"),
-                new DxfTypedValue(73, "3"), new DxfTypedValue(74, "1"), new DxfTypedValue(75, "0"), new DxfTypedValue(76, "0"),
-            })
-        {
-        }
+            : base(
+                "LEADER",
+                new[]
+                {
+                    new DxfTypedValue(100, "AcDbLeader"),
+                    new DxfTypedValue(3, "Standard"),
+                    new DxfTypedValue(71, "1"),
+                    new DxfTypedValue(72, "0"),
+                    new DxfTypedValue(73, "3"),
+                    new DxfTypedValue(74, "1"),
+                    new DxfTypedValue(75, "0"),
+                    new DxfTypedValue(76, "0"),
+                }
+            ) { }
 
         private DxfLeader(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         [DxfType("LEADER")]
         internal static DxfEntity Create(DxfItem item) => new DxfLeader(item);
@@ -92,7 +125,11 @@ namespace GeometryHelper.Dxf
 
             if (off >= 0)
             {
-                throw new InvalidOperationException("The vertex " + off.ToString(CultureInfo.InvariantCulture) + " of the leader lies off the plane of its normal through its first, as AutoCAD answers eNotPlanar.");
+                throw new InvalidOperationException(
+                    "The vertex "
+                        + off.ToString(CultureInfo.InvariantCulture)
+                        + " of the leader lies off the plane of its normal through its first, as AutoCAD answers eNotPlanar."
+                );
             }
 
             return plane;
@@ -121,7 +158,10 @@ namespace GeometryHelper.Dxf
         {
             if (!value.IsValid)
             {
-                throw new ArgumentException("A plane has a finite origin and a normal of unit length: " + value + " has not.", nameof(value));
+                throw new ArgumentException(
+                    "A plane has a finite origin and a normal of unit length: " + value + " has not.",
+                    nameof(value)
+                );
             }
 
             // The normal as the record has it where it is the plane's to the rounding, so that its own plane writes nothing.
@@ -149,7 +189,9 @@ namespace GeometryHelper.Dxf
         {
             GeoVector3 from = origin.GetVectorTo(point);
             double off = normal.DotProduct(from);
-            return Math.Abs(off) <= 1E-12 * (1.0 + from.Length) ? point : new GeoPoint3(point.X - off * normal.X, point.Y - off * normal.Y, point.Z - off * normal.Z);
+            return Math.Abs(off) <= 1E-12 * (1.0 + from.Length)
+                ? point
+                : new GeoPoint3(point.X - off * normal.X, point.Y - off * normal.Y, point.Z - off * normal.Z);
         }
 
         /// <summary>
@@ -167,7 +209,11 @@ namespace GeometryHelper.Dxf
                 return direction;
             }
 
-            var laid = new GeoVector3(direction.X - along * normal.X, direction.Y - along * normal.Y, direction.Z - along * normal.Z);
+            var laid = new GeoVector3(
+                direction.X - along * normal.X,
+                direction.Y - along * normal.Y,
+                direction.Z - along * normal.Z
+            );
             double length = laid.Length;
 
             if (!(length > Tolerance.Default.EqualVector * size))
@@ -179,7 +225,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A direction as it was, to the bit, where it is the new one to 1E-12; else the new one.</summary>
-        internal static GeoVector3 Kept(GeoVector3 old, GeoVector3 now) => old.Subtract(now).Length <= 1E-12 ? old : now;
+        internal static GeoVector3 Kept(GeoVector3 old, GeoVector3 now) =>
+            old.Subtract(now).Length <= 1E-12 ? old : now;
 
         /// <summary>
         /// The plane of the normal through the first vertex, and the first vertex off it by more than the point tolerance, -1
@@ -259,7 +306,12 @@ namespace GeometryHelper.Dxf
         {
             if (NumVertices < 2)
             {
-                throw new ArgumentException("A leader has two vertices at least, as AutoCAD takes one, and this one has " + NumVertices.ToString(CultureInfo.InvariantCulture) + ": give it them by AppendVertex first.", "entity");
+                throw new ArgumentException(
+                    "A leader has two vertices at least, as AutoCAD takes one, and this one has "
+                        + NumVertices.ToString(CultureInfo.InvariantCulture)
+                        + ": give it them by AppendVertex first.",
+                    "entity"
+                );
             }
         }
 
@@ -342,7 +394,13 @@ namespace GeometryHelper.Dxf
 
             // Words above or below the line (Dimtad not nought) the hook runs on under, its end moved to their far end, where the
             // drawing's fonts measure them, as AutoCAD 2021 explodes the leader (check F1b).
-            if (!IsSplined && HasHookLine && vertices.Count >= 2 && Num(Value(77), 0.0) != 0.0 && WordsEnd(vertices, out GeoPoint3 end))
+            if (
+                !IsSplined
+                && HasHookLine
+                && vertices.Count >= 2
+                && Num(Value(77), 0.0) != 0.0
+                && WordsEnd(vertices, out GeoPoint3 end)
+            )
             {
                 vertices[vertices.Count - 1] = end;
             }
@@ -403,7 +461,12 @@ namespace GeometryHelper.Dxf
         {
             end = vertices[vertices.Count - 1];
 
-            if (!IsResident || Item.File.Database?.Fonts == null || !(Annotation is DxfMText words) || !(words.MeasuredWidth is double width))
+            if (
+                !IsResident
+                || Item.File.Database?.Fonts == null
+                || !(Annotation is DxfMText words)
+                || !(words.MeasuredWidth is double width)
+            )
             {
                 return false;
             }
@@ -470,7 +533,13 @@ namespace GeometryHelper.Dxf
         /// along the directions given, is given so by its <c>Explode</c>, as AutoCAD 2021 gives it. Exploded, the spline keeps
         /// its fit data too, the vertices it runs through and its directions at the ends, as AutoCAD 2021's has three fit points.
         /// </summary>
-        internal static DxfSpline ParameterSpline(List<GeoPoint3> vertices, double tolerance, GeoVector3? leaving = null, GeoVector3? reaching = null, bool exploded = false)
+        internal static DxfSpline ParameterSpline(
+            List<GeoPoint3> vertices,
+            double tolerance,
+            GeoVector3? leaving = null,
+            GeoVector3? reaching = null,
+            bool exploded = false
+        )
         {
             NurbsCurve curve = FittedCurve(vertices, tolerance, leaving, reaching);
 
@@ -520,7 +589,9 @@ namespace GeometryHelper.Dxf
             if (exploded)
             {
                 GeoVector3 start = DxfOcsTransform.Normalized(leaving ?? through[0].GetVectorTo(through[1]));
-                GeoVector3 end = DxfOcsTransform.Normalized(reaching ?? through[through.Count - 2].GetVectorTo(through[through.Count - 1]));
+                GeoVector3 end = DxfOcsTransform.Normalized(
+                    reaching ?? through[through.Count - 2].GetVectorTo(through[through.Count - 1])
+                );
                 spline.KeepFit(through, start, end);
             }
 
@@ -532,7 +603,12 @@ namespace GeometryHelper.Dxf
         /// to 1, its control points and knots, for <see cref="DxfReader"/>, which reads a LEADER as it; null where the vertices
         /// are all one point.
         /// </summary>
-        internal static NurbsCurve FittedCurve(List<GeoPoint3> vertices, double tolerance, GeoVector3? leaving = null, GeoVector3? reaching = null)
+        internal static NurbsCurve FittedCurve(
+            List<GeoPoint3> vertices,
+            double tolerance,
+            GeoVector3? leaving = null,
+            GeoVector3? reaching = null
+        )
         {
             var through = new List<GeoPoint3>(vertices.Count);
 
@@ -559,8 +635,17 @@ namespace GeometryHelper.Dxf
             }
 
             GeoVector3 start = DxfOcsTransform.Normalized(leaving ?? through[0].GetVectorTo(through[1]));
-            GeoVector3 end = DxfOcsTransform.Normalized(reaching ?? through[through.Count - 2].GetVectorTo(through[through.Count - 1]));
-            return NurbsCurve.Interpolate(3, fit, 3, new[] { start.X, start.Y, start.Z }, new[] { end.X, end.Y, end.Z }, true);
+            GeoVector3 end = DxfOcsTransform.Normalized(
+                reaching ?? through[through.Count - 2].GetVectorTo(through[through.Count - 1])
+            );
+            return NurbsCurve.Interpolate(
+                3,
+                fit,
+                3,
+                new[] { start.X, start.Y, start.Z },
+                new[] { end.X, end.Y, end.Z },
+                true
+            );
         }
 
         #region The vertices
@@ -637,7 +722,11 @@ namespace GeometryHelper.Dxf
 
             if (vertices.Count <= 2)
             {
-                throw new InvalidOperationException("A leader keeps two vertices at least, and this one has " + vertices.Count.ToString(CultureInfo.InvariantCulture) + ": erase the leader instead.");
+                throw new InvalidOperationException(
+                    "A leader keeps two vertices at least, and this one has "
+                        + vertices.Count.ToString(CultureInfo.InvariantCulture)
+                        + ": erase the leader instead."
+                );
             }
 
             vertices.RemoveAt(vertices.Count - 1);
@@ -704,7 +793,6 @@ namespace GeometryHelper.Dxf
                 string handle = GetString(340)?.Trim();
                 return handle == null || handle == "0" ? null : EntityByHandle(handle);
             }
-
             set
             {
                 DxfEntity was = Annotation;
@@ -721,19 +809,34 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                int type = value is DxfMText ? 0 : value.Item.Type == "TOLERANCE" ? 1 : value is DxfBlockReference ? 2 : -1;
+                int type =
+                    value is DxfMText ? 0
+                    : value.Item.Type == "TOLERANCE" ? 1
+                    : value is DxfBlockReference ? 2
+                    : -1;
 
                 if (type < 0)
                 {
-                    throw new ArgumentException("A leader points to an MTEXT, a TOLERANCE or an INSERT, and was given a " + value.Item.Type + ".", nameof(value));
+                    throw new ArgumentException(
+                        "A leader points to an MTEXT, a TOLERANCE or an INSERT, and was given a "
+                            + value.Item.Type
+                            + ".",
+                        nameof(value)
+                    );
                 }
 
                 if (!value.IsResident || value.IsErased || value.Item.File != Item.File)
                 {
-                    throw new ArgumentException("A leader points to an entity of its own drawing: the " + value.Item.Type + " is not of it.", nameof(value));
+                    throw new ArgumentException(
+                        "A leader points to an entity of its own drawing: the " + value.Item.Type + " is not of it.",
+                        nameof(value)
+                    );
                 }
 
-                SetGroups(new KeyValuePair<int, string>(340, value.Handle), new KeyValuePair<int, string>(73, type.ToString(CultureInfo.InvariantCulture)));
+                SetGroups(
+                    new KeyValuePair<int, string>(340, value.Handle),
+                    new KeyValuePair<int, string>(73, type.ToString(CultureInfo.InvariantCulture))
+                );
                 React(was, false);
                 React(value, true);
             }
@@ -742,7 +845,13 @@ namespace GeometryHelper.Dxf
         /// <summary>Puts the leader among the reactors of an annotation (102 <c>{ACAD_REACTORS</c>), or takes it out, as AutoCAD keeps it there; nothing for none.</summary>
         private void React(DxfEntity annotation, bool present)
         {
-            if (annotation != null && IsResident && annotation.IsResident && !annotation.IsErased && annotation.Item.File == Item.File)
+            if (
+                annotation != null
+                && IsResident
+                && annotation.IsResident
+                && !annotation.IsErased
+                && annotation.Item.File == Item.File
+            )
             {
                 Item.File.SetReactor(annotation.Item, Handle, present);
             }
@@ -775,7 +884,6 @@ namespace GeometryHelper.Dxf
                 string name = DxfReader.NameOf(GetString(3) ?? string.Empty);
                 return name.Length == 0 ? "Standard" : name;
             }
-
             set
             {
                 if (value == null)
@@ -793,7 +901,10 @@ namespace GeometryHelper.Dxf
 
                 if (style == null && IsResident)
                 {
-                    throw new ArgumentException("The drawing has no dimension style named " + name + ".", nameof(value));
+                    throw new ArgumentException(
+                        "The drawing has no dimension style named " + name + ".",
+                        nameof(value)
+                    );
                 }
 
                 SetString(3, style == null ? name : DxfReader.NameOf(style.File.ValueOf(style, 2) ?? name));
@@ -888,7 +999,6 @@ namespace GeometryHelper.Dxf
         public DxfColor Dimclrd
         {
             get => DxfColor.OfIndex(OverrideInteger(176, 0));
-
             set
             {
                 if (value == null)
@@ -898,7 +1008,10 @@ namespace GeometryHelper.Dxf
 
                 if (!value.IsByAci && !value.IsByBlock && !value.IsByLayer)
                 {
-                    throw new ArgumentException("DIMCLRD holds a colour of AutoCAD's index, BYBLOCK or BYLAYER: " + value + " is none of them.", nameof(value));
+                    throw new ArgumentException(
+                        "DIMCLRD holds a colour of AutoCAD's index, BYBLOCK or BYLAYER: " + value + " is none of them.",
+                        nameof(value)
+                    );
                 }
 
                 SetOverrideInteger(176, value.ColorIndex);
@@ -922,7 +1035,6 @@ namespace GeometryHelper.Dxf
                 string handle = pair != null ? pair[1].Value : StyleValue(341);
                 return handle == null ? null : BlockByHandle(handle.Trim());
             }
-
             set
             {
                 if (ReferenceEquals(value, Dimldrblk))
@@ -936,14 +1048,21 @@ namespace GeometryHelper.Dxf
 
                     if (own != null && BlockByHandle(own.Trim()) != null)
                     {
-                        throw new InvalidOperationException("The leader's dimension style draws its arrow by a block: the closed filled arrow is set on the style.");
+                        throw new InvalidOperationException(
+                            "The leader's dimension style draws its arrow by a block: the closed filled arrow is set on the style."
+                        );
                     }
 
                     WriteOverride(341, null);
                     return;
                 }
 
-                if (!IsResident || value.Handle == null || Database()?.BlockTable == null || BlockByHandle(value.Handle) != value)
+                if (
+                    !IsResident
+                    || value.Handle == null
+                    || Database()?.BlockTable == null
+                    || BlockByHandle(value.Handle) != value
+                )
                 {
                     throw new ArgumentException("The arrow of a leader is a block of its own drawing.", nameof(value));
                 }
@@ -965,7 +1084,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The chain, in world coordinates.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the leader is splined, has fewer than two vertices apart, a
         /// number of its record is not finite, or it is erased.</exception>
-        public GeoPolyline3 ToGeoPolyline3() => ShapeAs<GeoPolyline3>(nameof(ToGeoPolyline3), false, Tolerance.Default, kind: OtherKind);
+        public GeoPolyline3 ToGeoPolyline3() =>
+            ShapeAs<GeoPolyline3>(nameof(ToGeoPolyline3), false, Tolerance.Default, kind: OtherKind);
 
         /// <summary>
         /// Gets the curve of a straight leader as a chain of the plane, as <see cref="DxfReader"/> reads it with
@@ -986,7 +1106,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The chain in the plane.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the leader does not lie on the floor, is splined, has fewer than
         /// two vertices apart within the point tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoPolyline2 ToGeoPolyline2(Tolerance tolerance) => ShapeAs<GeoPolyline2>(nameof(ToGeoPolyline2), true, tolerance, kind: OtherKind);
+        public GeoPolyline2 ToGeoPolyline2(Tolerance tolerance) =>
+            ShapeAs<GeoPolyline2>(nameof(ToGeoPolyline2), true, tolerance, kind: OtherKind);
 
         /// <summary>
         /// Gets the curve of a splined leader as the library's spline, as <see cref="DxfEntity.GetGeometry"/> gives it, to the
@@ -997,7 +1118,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The spline, in world coordinates.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the leader is straight, has fewer than two vertices apart, a
         /// number of its record is not finite, or it is erased.</exception>
-        public GeoSpline3 ToGeoSpline3() => ShapeAs<GeoSpline3>(nameof(ToGeoSpline3), false, Tolerance.Default, kind: OtherKind);
+        public GeoSpline3 ToGeoSpline3() =>
+            ShapeAs<GeoSpline3>(nameof(ToGeoSpline3), false, Tolerance.Default, kind: OtherKind);
 
         /// <summary>
         /// Gets the curve of a splined leader as a spline of the plane, as <see cref="DxfReader"/> reads it with
@@ -1017,13 +1139,20 @@ namespace GeometryHelper.Dxf
         /// <returns>The spline in the plane.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the leader does not lie on the floor, is straight, has fewer
         /// than two vertices apart within the point tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoSpline2 ToGeoSpline2(Tolerance tolerance) => ShapeAs<GeoSpline2>(nameof(ToGeoSpline2), true, tolerance, kind: OtherKind);
+        public GeoSpline2 ToGeoSpline2(Tolerance tolerance) =>
+            ShapeAs<GeoSpline2>(nameof(ToGeoSpline2), true, tolerance, kind: OtherKind);
 
         /// <summary>Why the curve read is not of the kind asked: a splined leader is a spline, a straight one a chain.</summary>
-        private string OtherKind(object shape)
-            => shape is GeoSpline3 || shape is GeoSpline2
-                ? TypeAndHandle + " is splined: " + (shape is GeoSpline2 ? "ToGeoSpline2" : "ToGeoSpline3") + " gives its curve."
-                : TypeAndHandle + " is straight: " + (shape is GeoPolyline2 ? "ToGeoPolyline2" : "ToGeoPolyline3") + " gives its curve.";
+        private string OtherKind(object shape) =>
+            shape is GeoSpline3 || shape is GeoSpline2
+                ? TypeAndHandle
+                    + " is splined: "
+                    + (shape is GeoSpline2 ? "ToGeoSpline2" : "ToGeoSpline3")
+                    + " gives its curve."
+                : TypeAndHandle
+                    + " is straight: "
+                    + (shape is GeoPolyline2 ? "ToGeoPolyline2" : "ToGeoPolyline3")
+                    + " gives its curve.";
 
         /// <summary>
         /// Gets the parameter at the last vertex, as AutoCAD's: the count of the segments of a straight leader; of a splined one
@@ -1071,7 +1200,8 @@ namespace GeometryHelper.Dxf
         /// <param name="point">The point, within the point tolerance of the leader.</param>
         /// <returns>The parameter: the first segment's where two meet at the point.</returns>
         /// <exception cref="ArgumentException">Thrown when the point is not on the leader.</exception>
-        public override double GetParameterAtPoint(GeoPoint3 point) => Splined()?.GetParameterAtPoint(point) ?? ParameterOn(Chain(), point);
+        public override double GetParameterAtPoint(GeoPoint3 point) =>
+            Splined()?.GetParameterAtPoint(point) ?? ParameterOn(Chain(), point);
 
         /// <summary>Gets the distance along the leader from its first vertex to a parameter, as AutoCAD's <c>GetDistanceAtParameter</c>.</summary>
         /// <param name="value">The parameter, from nought to <see cref="EndParam"/>.</param>
@@ -1271,7 +1401,12 @@ namespace GeometryHelper.Dxf
             foreach (int code in new[] { 211, 212, 213 })
             {
                 // The direction of the hook is (1, 0, 0) where the record gives none, and is turned as ezdxf turns it; the offsets only where it has them.
-                if (code == 211 || GetString(code) != null || GetString(code + 10) != null || GetString(code + 20) != null)
+                if (
+                    code == 211
+                    || GetString(code) != null
+                    || GetString(code + 10) != null
+                    || GetString(code + 20) != null
+                )
                 {
                     var fallback = new GeoPoint3(code == 211 ? 1.0 : 0.0, 0.0, 0.0);
                     GeoPoint3 v = GetPoint(code, fallback);
@@ -1370,7 +1505,8 @@ namespace GeometryHelper.Dxf
                 run.Add(G(30, now.Z));
             }
 
-            KeyValuePair<int, string>[] count = vertices.Count == GetInt(76, -1) ? new KeyValuePair<int, string>[0] : new[] { G(76, vertices.Count) };
+            KeyValuePair<int, string>[] count =
+                vertices.Count == GetInt(76, -1) ? new KeyValuePair<int, string>[0] : new[] { G(76, vertices.Count) };
             KeyValuePair<int, string>[] groups = Join(head, count);
 
             if (groups.Length > 0)
@@ -1397,8 +1533,8 @@ namespace GeometryHelper.Dxf
             return groups;
         }
 
-        private static GeoPoint3 Point(List<KeyValuePair<int, string>> vertex)
-            => new GeoPoint3(Num(Text(vertex, 10), 0.0), Num(Text(vertex, 20), 0.0), Num(Text(vertex, 30), 0.0));
+        private static GeoPoint3 Point(List<KeyValuePair<int, string>> vertex) =>
+            new GeoPoint3(Num(Text(vertex, 10), 0.0), Num(Text(vertex, 20), 0.0), Num(Text(vertex, 30), 0.0));
 
         private static bool SamePoint(GeoPoint3 a, GeoPoint3 b) => Same(a.X, b.X) && Same(a.Y, b.Y) && Same(a.Z, b.Z);
 
@@ -1418,7 +1554,13 @@ namespace GeometryHelper.Dxf
         {
             if (index < 0 || index >= vertices.Count)
             {
-                throw new ArgumentOutOfRangeException(parameter, index, "The leader has " + vertices.Count.ToString(CultureInfo.InvariantCulture) + " vertices, from nought.");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    index,
+                    "The leader has "
+                        + vertices.Count.ToString(CultureInfo.InvariantCulture)
+                        + " vertices, from nought."
+                );
             }
         }
 
@@ -1455,7 +1597,11 @@ namespace GeometryHelper.Dxf
 
             if (read.Spline == null)
             {
-                throw new InvalidOperationException(read.Count == 0 ? "The leader has no vertex: it is no curve to walk." : "The vertices of the splined leader are all one point: no spline runs through them.");
+                throw new InvalidOperationException(
+                    read.Count == 0
+                        ? "The leader has no vertex: it is no curve to walk."
+                        : "The vertices of the splined leader are all one point: no spline runs through them."
+                );
             }
 
             return read.Spline;
@@ -1520,7 +1666,14 @@ namespace GeometryHelper.Dxf
                 throw new InvalidOperationException("The leader has no vertex: it is no curve to walk.");
             }
 
-            return new DxfBulgeChain(new GeoVector3(0.0, 0.0, 1.0), new GeoVector3(1.0, 0.0, 0.0), new GeoVector3(0.0, 1.0, 0.0), Vertices(), null, false);
+            return new DxfBulgeChain(
+                new GeoVector3(0.0, 0.0, 1.0),
+                new GeoVector3(1.0, 0.0, 0.0),
+                new GeoVector3(0.0, 1.0, 0.0),
+                Vertices(),
+                null,
+                false
+            );
         }
 
         private static double ParameterOn(DxfBulgeChain chain, GeoPoint3 point)
@@ -1602,7 +1755,14 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfItem item in file.TableItems("DIMSTYLE"))
             {
-                if (!item.IsRemoved && string.Equals(DxfReader.NameOf(item.File.ValueOf(item, 2) ?? string.Empty), name, StringComparison.OrdinalIgnoreCase))
+                if (
+                    !item.IsRemoved
+                    && string.Equals(
+                        DxfReader.NameOf(item.File.ValueOf(item, 2) ?? string.Empty),
+                        name,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
                 {
                     return item;
                 }
@@ -1655,7 +1815,12 @@ namespace GeometryHelper.Dxf
 
             for (int i = 0; i + 1 < data.Count; i++)
             {
-                if (data[i].TypeCode == 1000 && string.Equals(data[i].Value.Trim(), "DSTYLE", StringComparison.OrdinalIgnoreCase) && data[i + 1].TypeCode == 1002 && data[i + 1].Value.Trim() == "{")
+                if (
+                    data[i].TypeCode == 1000
+                    && string.Equals(data[i].Value.Trim(), "DSTYLE", StringComparison.OrdinalIgnoreCase)
+                    && data[i + 1].TypeCode == 1002
+                    && data[i + 1].Value.Trim() == "{"
+                )
                 {
                     open = i + 1;
                     close = data.FindIndex(open + 1, g => g.TypeCode == 1002 && g.Value.Trim() == "}");
@@ -1740,7 +1905,10 @@ namespace GeometryHelper.Dxf
         {
             Guard.Finite(value, nameof(value), "The variable has to be a finite number.");
 
-            if (Same(value, OverrideReal(code, double.NaN)) || (Override(code) == null && StyleValue(code) == null && Same(value, DefaultOf(code))))
+            if (
+                Same(value, OverrideReal(code, double.NaN))
+                || (Override(code) == null && StyleValue(code) == null && Same(value, DefaultOf(code)))
+            )
             {
                 return;
             }
@@ -1755,7 +1923,10 @@ namespace GeometryHelper.Dxf
 
         private void SetOverrideInteger(int code, int value)
         {
-            if (value == OverrideInteger(code, int.MinValue) || (Override(code) == null && StyleValue(code) == null && value == (int)DefaultOf(code)))
+            if (
+                value == OverrideInteger(code, int.MinValue)
+                || (Override(code) == null && StyleValue(code) == null && value == (int)DefaultOf(code))
+            )
             {
                 return;
             }
@@ -1768,12 +1939,18 @@ namespace GeometryHelper.Dxf
         {
             switch (code)
             {
-                case 41: return 0.18;
-                case 147: return 0.09;
-                case 40: return 1.0;
-                case 140: return 0.18;
-                case 371: return -2;
-                default: return 0;
+                case 41:
+                    return 0.18;
+                case 147:
+                    return 0.09;
+                case 40:
+                    return 1.0;
+                case 140:
+                    return 0.18;
+                case 371:
+                    return -2;
+                default:
+                    return 0;
             }
         }
 

@@ -55,7 +55,12 @@ namespace GeometryHelper.Drawing
 
         private static readonly (string Head, double Width)[] PartColumns =
         {
-            ("MARK", 20), ("QTY", 12), ("PROFILE", 40), ("MATERIAL", 25), ("LENGTH", 23), ("NAME", 40),
+            ("MARK", 20),
+            ("QTY", 12),
+            ("PROFILE", 40),
+            ("MATERIAL", 25),
+            ("LENGTH", 23),
+            ("NAME", 40),
         };
 
         /// <summary>The cells of the title block: the attribute's tag, its label, and its cell from the block's lower left corner.</summary>
@@ -89,7 +94,9 @@ namespace GeometryHelper.Drawing
 
             if (drawing.Content == null)
             {
-                throw new InvalidOperationException("A drawing opened from a file has no views to write until it is updated from its source.");
+                throw new InvalidOperationException(
+                    "A drawing opened from a file has no views to write until it is updated from its source."
+                );
             }
 
             var database = new DxfDatabase("AC1027");
@@ -101,12 +108,20 @@ namespace GeometryHelper.Drawing
         /// <summary>
         /// Writes the entities of a drawing into a DXF, the hand edits applied: the views, their annotation and the sheet.
         /// </summary>
-        internal static void WriteContent(DxfDatabase database, DrawingContent content, DrawingSettings settings, IReadOnlyList<DrawingEdit> edits, Tolerance tolerance)
+        internal static void WriteContent(
+            DxfDatabase database,
+            DrawingContent content,
+            DrawingSettings settings,
+            IReadOnlyList<DrawingEdit> edits,
+            Tolerance tolerance
+        )
         {
             bool layout = settings.ExportMode == DrawingExportMode.LayoutAndViewports;
             Prepare(database);
             SortedDictionary<string, List<DrawingEdit>> byId = ById(edits);
-            DxfBlockTableRecord sheetSpace = layout ? SheetLayout(database, content.Sheet).BlockTableRecord : database.ModelSpace;
+            DxfBlockTableRecord sheetSpace = layout
+                ? SheetLayout(database, content.Sheet).BlockTableRecord
+                : database.ModelSpace;
             var dimensionIds = new SortedDictionary<string, string>(StringComparer.Ordinal);
             var styles = new SortedDictionary<string, double>(StringComparer.Ordinal);
             var texts = new SortedDictionary<string, string>(StringComparer.Ordinal);
@@ -114,7 +129,9 @@ namespace GeometryHelper.Drawing
             foreach (DrawingView view in content.Views)
             {
                 GeoPoint2 sheetOrigin = Moved(view.SheetOrigin, byId, view.Id);
-                Placement place = layout ? new Placement(view.ModelOrigin, 1.0) : new Placement(sheetOrigin, view.Scale);
+                Placement place = layout
+                    ? new Placement(view.ModelOrigin, 1.0)
+                    : new Placement(sheetOrigin, view.Scale);
                 WriteLines(database.ModelSpace, view, place, layout ? view.Scale : 1.0, tolerance.EqualPoint);
 
                 for (int i = 0; i < view.Dimensions.Count; i++)
@@ -156,11 +173,19 @@ namespace GeometryHelper.Drawing
         /// Writes one mark into model space as <see cref="DrawingMark.WriteTo"/> draws it, tagged with the drawing's id for
         /// it and its view's, its text and leader moved by the moves made of it by hand, its arrow left on its object.
         /// </summary>
-        internal static void WriteMark(DxfDatabase database, string viewId, string id, DrawingMark mark, Placement place, SortedDictionary<string, List<DrawingEdit>> byId)
+        internal static void WriteMark(
+            DxfDatabase database,
+            string viewId,
+            string id,
+            DrawingMark mark,
+            Placement place,
+            SortedDictionary<string, List<DrawingEdit>> byId
+        )
         {
             // A move by hand is in the units of the space it was made in; the view's millimetres are those times the scale.
             GeoVector2 offset = Offset(byId, id);
-            mark.MovedBy(new GeoVector2(offset.X * place.Scale, offset.Y * place.Scale)).Write(database, new ViewPlacement2(viewId, place.Origin, place.Scale), id);
+            mark.MovedBy(new GeoVector2(offset.X * place.Scale, offset.Y * place.Scale))
+                .Write(database, new ViewPlacement2(viewId, place.Origin, place.Scale), id);
         }
 
         /// <summary>
@@ -200,7 +225,12 @@ namespace GeometryHelper.Drawing
         /// The text is overridden in the block that draws it too, so that it shows at once: the measured text, as the drawing
         /// wrote it, stands for &lt;&gt; in the override, and comes back where the override is empty.
         /// </summary>
-        internal static void ApplyDimensionEdit(DxfDatabase database, DxfDimension dimension, DrawingEdit edit, string measured)
+        internal static void ApplyDimensionEdit(
+            DxfDatabase database,
+            DxfDimension dimension,
+            DrawingEdit edit,
+            string measured
+        )
         {
             switch (edit.Kind)
             {
@@ -211,7 +241,12 @@ namespace GeometryHelper.Drawing
                         DxfBlockTableRecord picture = dimension.DimBlock;
                         dimension.Erase();
 
-                        if (picture != null && picture.IsAnonymous && !picture.IsErased && !DrawsWith(database, picture))
+                        if (
+                            picture != null
+                            && picture.IsAnonymous
+                            && !picture.IsErased
+                            && !DrawsWith(database, picture)
+                        )
                         {
                             picture.Erase();
                         }
@@ -259,7 +294,12 @@ namespace GeometryHelper.Drawing
 
                 foreach (DxfEntity entity in layout.BlockTableRecord)
                 {
-                    if (!entity.IsErased && entity is DxfDimension other && other.DimBlock != null && string.Equals(other.DimBlock.Name, picture.Name, StringComparison.OrdinalIgnoreCase))
+                    if (
+                        !entity.IsErased
+                        && entity is DxfDimension other
+                        && other.DimBlock != null
+                        && string.Equals(other.DimBlock.Name, picture.Name, StringComparison.OrdinalIgnoreCase)
+                    )
                     {
                         return true;
                     }
@@ -281,10 +321,15 @@ namespace GeometryHelper.Drawing
 
             string[] parts = value.Split(',');
 
-            if (parts.Length != 2
+            if (
+                parts.Length != 2
                 || !double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double dx)
                 || !double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double dy)
-                || double.IsNaN(dx) || double.IsInfinity(dx) || double.IsNaN(dy) || double.IsInfinity(dy))
+                || double.IsNaN(dx)
+                || double.IsInfinity(dx)
+                || double.IsNaN(dy)
+                || double.IsInfinity(dy)
+            )
             {
                 return false;
             }
@@ -296,7 +341,8 @@ namespace GeometryHelper.Drawing
         /// <summary>The sum of the moves recorded for an element, in the order they were made.</summary>
         internal static GeoVector2 Offset(SortedDictionary<string, List<DrawingEdit>> byId, string id)
         {
-            double x = 0.0, y = 0.0;
+            double x = 0.0,
+                y = 0.0;
 
             if (byId.TryGetValue(id, out List<DrawingEdit> edits))
             {
@@ -342,7 +388,10 @@ namespace GeometryHelper.Drawing
 
             foreach (DxfLayout layout in database.Layouts)
             {
-                if (string.Equals(layout.LayoutName, "Model", StringComparison.OrdinalIgnoreCase) || layout.BlockTableRecord == null)
+                if (
+                    string.Equals(layout.LayoutName, "Model", StringComparison.OrdinalIgnoreCase)
+                    || layout.BlockTableRecord == null
+                )
                 {
                     continue;
                 }
@@ -353,7 +402,11 @@ namespace GeometryHelper.Drawing
                     return layout;
                 }
 
-                if (empty == null && string.Equals(layout.LayoutName, "Layout1", StringComparison.OrdinalIgnoreCase) && Count(layout.BlockTableRecord) == 0)
+                if (
+                    empty == null
+                    && string.Equals(layout.LayoutName, "Layout1", StringComparison.OrdinalIgnoreCase)
+                    && Count(layout.BlockTableRecord) == 0
+                )
                 {
                     empty = layout;
                 }
@@ -380,8 +433,16 @@ namespace GeometryHelper.Drawing
         /// </summary>
         internal static string MediaName(DrawingSheet sheet)
         {
-            string size = sheet.Width.ToString("0.00", CultureInfo.InvariantCulture) + "_x_" + sheet.Height.ToString("0.00", CultureInfo.InvariantCulture) + "_MM";
-            bool iso = sheet.SizeName.Length == 2 && sheet.SizeName[0] == 'A' && sheet.SizeName[1] >= '0' && sheet.SizeName[1] <= '4';
+            string size =
+                sheet.Width.ToString("0.00", CultureInfo.InvariantCulture)
+                + "_x_"
+                + sheet.Height.ToString("0.00", CultureInfo.InvariantCulture)
+                + "_MM";
+            bool iso =
+                sheet.SizeName.Length == 2
+                && sheet.SizeName[0] == 'A'
+                && sheet.SizeName[1] >= '0'
+                && sheet.SizeName[1] <= '4';
             return (iso ? "ISO_" + sheet.SizeName : "Custom") + "_(" + size + ")";
         }
 
@@ -404,8 +465,15 @@ namespace GeometryHelper.Drawing
         }
 
         /// <summary>A view's place on the sheet, in paper millimetres, at a sheet origin.</summary>
-        internal static GeoRectangle2 SheetBox(DrawingView view, GeoPoint2 sheetOrigin)
-            => new GeoRectangle2(new GeoPoint2(sheetOrigin.X + view.Box.Center.X / view.Scale, sheetOrigin.Y + view.Box.Center.Y / view.Scale), view.Box.Width / view.Scale, view.Box.Height / view.Scale);
+        internal static GeoRectangle2 SheetBox(DrawingView view, GeoPoint2 sheetOrigin) =>
+            new GeoRectangle2(
+                new GeoPoint2(
+                    sheetOrigin.X + view.Box.Center.X / view.Scale,
+                    sheetOrigin.Y + view.Box.Center.Y / view.Scale
+                ),
+                view.Box.Width / view.Scale,
+                view.Box.Height / view.Scale
+            );
 
         /// <summary>A point moved by the sum of the moves recorded for an element.</summary>
         internal static GeoPoint2 Moved(GeoPoint2 point, SortedDictionary<string, List<DrawingEdit>> byId, string id)
@@ -451,14 +519,25 @@ namespace GeometryHelper.Drawing
             database.LayerTable[ViewportLayer].IsPlottable = false;
         }
 
-        private static void WriteLines(DxfBlockTableRecord space, DrawingView view, Placement place, double hatchScale, double tol)
+        private static void WriteLines(
+            DxfBlockTableRecord space,
+            DrawingView view,
+            Placement place,
+            double hatchScale,
+            double tol
+        )
         {
             // The crop taken in by the point tolerance, so that a line on its edge is kept whole.
             var crop = new Extent(ViewBuilder.Grow(view.Crop, tol));
 
             foreach (ProjectedFace2 section in view.Lines.SectionFaces)
             {
-                var faceBox = new Extent(double.PositiveInfinity, double.PositiveInfinity, double.NegativeInfinity, double.NegativeInfinity);
+                var faceBox = new Extent(
+                    double.PositiveInfinity,
+                    double.PositiveInfinity,
+                    double.NegativeInfinity,
+                    double.NegativeInfinity
+                );
 
                 foreach (GeoPoint2 p in section.Face.Boundary.Vertices)
                 {
@@ -492,7 +571,14 @@ namespace GeometryHelper.Drawing
             }
         }
 
-        private static void WriteEdges(DxfBlockTableRecord space, IReadOnlyList<ProjectedEdge2> edges, string layer, string viewId, Extent crop, Placement place)
+        private static void WriteEdges(
+            DxfBlockTableRecord space,
+            IReadOnlyList<ProjectedEdge2> edges,
+            string layer,
+            string viewId,
+            Extent crop,
+            Placement place
+        )
         {
             foreach (ProjectedEdge2 edge in edges)
             {
@@ -514,15 +600,22 @@ namespace GeometryHelper.Drawing
 
                 foreach (double[] piece in Clip.Arc(arc.Center, arc.Radius, start, sweep, edge.IsCircle, crop))
                 {
-                    DxfEntity entity = piece == null
-                        ? (DxfEntity)new DxfCircle(centre, GeoVector3.ZAxis, radius)
-                        : new DxfArc(centre, radius, Turn(piece[0]), Turn(piece[0] + piece[1]));
+                    DxfEntity entity =
+                        piece == null
+                            ? (DxfEntity)new DxfCircle(centre, GeoVector3.ZAxis, radius)
+                            : new DxfArc(centre, radius, Turn(piece[0]), Turn(piece[0] + piece[1]));
                     Append(space, entity, layer, edge.ObjectId, viewId);
                 }
             }
         }
 
-        private static void Append(DxfBlockTableRecord space, DxfEntity entity, string layer, string objectId, string viewId)
+        private static void Append(
+            DxfBlockTableRecord space,
+            DxfEntity entity,
+            string layer,
+            string objectId,
+            string viewId
+        )
         {
             entity.Layer = layer;
             space.AppendEntity(entity);
@@ -544,7 +637,10 @@ namespace GeometryHelper.Drawing
             viewport.CenterPoint = new GeoPoint3(box.Center.X, box.Center.Y, 0.0);
             viewport.Width = box.Width;
             viewport.Height = box.Height;
-            viewport.ViewCenter = new GeoPoint2(view.ModelOrigin.X + view.Box.Center.X, view.ModelOrigin.Y + view.Box.Center.Y);
+            viewport.ViewCenter = new GeoPoint2(
+                view.ModelOrigin.X + view.Box.Center.X,
+                view.ModelOrigin.Y + view.Box.Center.Y
+            );
             viewport.ViewHeight = view.Box.Height;
             viewport.On = true;
             DrawingEntityTags.Tag(viewport, view.Id, view.Id);
@@ -554,7 +650,11 @@ namespace GeometryHelper.Drawing
         {
             var title = new DxfDBText
             {
-                Position = new GeoPoint3(box.Center.X - box.Width / 2.0, box.Center.Y - box.Height / 2.0 + TitleGap, 0.0),
+                Position = new GeoPoint3(
+                    box.Center.X - box.Width / 2.0,
+                    box.Center.Y - box.Height / 2.0 + TitleGap,
+                    0.0
+                ),
                 Height = TitleHeight,
                 TextString = view.Title,
                 Layer = SheetLayer,
@@ -567,7 +667,15 @@ namespace GeometryHelper.Drawing
         /// <summary>
         /// Gives each dimension written the drawing's id for it in its tag, its style in model space, and its hand edits.
         /// </summary>
-        private static void FinishDimensions(DxfDatabase database, SortedDictionary<string, string> ids, SortedDictionary<string, double> scales, SortedDictionary<string, string> texts, bool layout, DrawingSettings settings, SortedDictionary<string, List<DrawingEdit>> byId)
+        private static void FinishDimensions(
+            DxfDatabase database,
+            SortedDictionary<string, string> ids,
+            SortedDictionary<string, double> scales,
+            SortedDictionary<string, string> texts,
+            bool layout,
+            DrawingSettings settings,
+            SortedDictionary<string, List<DrawingEdit>> byId
+        )
         {
             var written = new List<DxfDimension>();
 
@@ -644,7 +752,12 @@ namespace GeometryHelper.Drawing
             return style;
         }
 
-        private static void WriteSheet(DxfDatabase database, DxfBlockTableRecord space, DrawingSheet sheet, double scale)
+        private static void WriteSheet(
+            DxfDatabase database,
+            DxfBlockTableRecord space,
+            DrawingSheet sheet,
+            double scale
+        )
         {
             Rectangle(space, new Extent(0.0, 0.0, sheet.Width, sheet.Height), DrawingBuilder.SheetId);
             Rectangle(space, new Extent(sheet.Frame), DrawingBuilder.SheetId);
@@ -668,7 +781,12 @@ namespace GeometryHelper.Drawing
             DrawingEntityTags.Tag(polyline, id, null);
         }
 
-        private static void WriteTitleBlock(DxfDatabase database, DxfBlockTableRecord space, DrawingSheet sheet, double scale)
+        private static void WriteTitleBlock(
+            DxfDatabase database,
+            DxfBlockTableRecord space,
+            DrawingSheet sheet,
+            double scale
+        )
         {
             DxfBlockTableRecord block = TitleBlockDefinition(database);
             var corner = new Extent(sheet.TitleBlockBox);
@@ -677,14 +795,25 @@ namespace GeometryHelper.Drawing
             TitleBlock title = sheet.TitleBlock;
             string[] values =
             {
-                title.Project, title.Title, title.DrawingNumber, title.Revision, "1:" + scale.ToString("0.######", CultureInfo.InvariantCulture), sheet.SizeName,
-                title.Company, title.DrawnBy, title.Date,
+                title.Project,
+                title.Title,
+                title.DrawingNumber,
+                title.Revision,
+                "1:" + scale.ToString("0.######", CultureInfo.InvariantCulture),
+                sheet.SizeName,
+                title.Company,
+                title.DrawnBy,
+                title.Date,
             };
 
             for (int i = 0; i < TitleCells.Length; i++)
             {
                 var at = new GeoPoint3(corner.X0 + TitleCells[i].X + 2.0, corner.Y0 + TitleCells[i].Y + 1.5, 0.0);
-                var attribute = new DxfAttributeReference(at, values[i], TitleCells[i].Tag, null) { Height = 3.0, Layer = SheetLayer };
+                var attribute = new DxfAttributeReference(at, values[i], TitleCells[i].Tag, null)
+                {
+                    Height = 3.0,
+                    Layer = SheetLayer,
+                };
                 insert.AttributeCollection.AppendAttribute(attribute);
             }
 
@@ -700,7 +829,8 @@ namespace GeometryHelper.Drawing
 
             var block = new DxfBlockTableRecord { Name = TitleBlockName, Origin = new GeoPoint3(0.0, 0.0, 0.0) };
             database.BlockTable.Add(block);
-            double w = TitleBlock.Width, h = TitleBlock.Height;
+            double w = TitleBlock.Width,
+                h = TitleBlock.Height;
             BlockLine(block, 0, 0, w, 0);
             BlockLine(block, w, 0, w, h);
             BlockLine(block, w, h, 0, h);
@@ -716,17 +846,33 @@ namespace GeometryHelper.Drawing
                     BlockLine(block, x, y, x, y + 10);
                 }
 
-                var text = new DxfDBText { Position = new GeoPoint3(x + 1.0, y + 7.0, 0.0), Height = 1.8, TextString = label, Layer = "0" };
+                var text = new DxfDBText
+                {
+                    Position = new GeoPoint3(x + 1.0, y + 7.0, 0.0),
+                    Height = 1.8,
+                    TextString = label,
+                    Layer = "0",
+                };
                 block.AppendEntity(text);
-                var definition = new DxfAttributeDefinition(new GeoPoint3(x + 2.0, y + 1.5, 0.0), string.Empty, tag, label, null) { Height = 3.0, Layer = "0" };
+                var definition = new DxfAttributeDefinition(
+                    new GeoPoint3(x + 2.0, y + 1.5, 0.0),
+                    string.Empty,
+                    tag,
+                    label,
+                    null
+                )
+                {
+                    Height = 3.0,
+                    Layer = "0",
+                };
                 block.AppendEntity(definition);
             }
 
             return block;
         }
 
-        private static void BlockLine(DxfBlockTableRecord block, double x0, double y0, double x1, double y1)
-            => block.AppendEntity(new DxfLine(new GeoPoint3(x0, y0, 0.0), new GeoPoint3(x1, y1, 0.0)) { Layer = "0" });
+        private static void BlockLine(DxfBlockTableRecord block, double x0, double y0, double x1, double y1) =>
+            block.AppendEntity(new DxfLine(new GeoPoint3(x0, y0, 0.0), new GeoPoint3(x1, y1, 0.0)) { Layer = "0" });
 
         private static void WritePartList(DxfBlockTableRecord space, IReadOnlyList<PartListRow> rows, Extent box)
         {
@@ -750,17 +896,18 @@ namespace GeometryHelper.Drawing
 
             for (int i = 0; i <= rows.Count; i++)
             {
-                string[] cells = i == 0
-                    ? Array.ConvertAll(PartColumns, c => c.Head)
-                    : new[]
-                    {
-                        rows[i - 1].Mark,
-                        rows[i - 1].Quantity.ToString(CultureInfo.InvariantCulture),
-                        rows[i - 1].Profile,
-                        rows[i - 1].Material,
-                        rows[i - 1].Length.ToString("0", CultureInfo.InvariantCulture),
-                        rows[i - 1].Name,
-                    };
+                string[] cells =
+                    i == 0
+                        ? Array.ConvertAll(PartColumns, c => c.Head)
+                        : new[]
+                        {
+                            rows[i - 1].Mark,
+                            rows[i - 1].Quantity.ToString(CultureInfo.InvariantCulture),
+                            rows[i - 1].Profile,
+                            rows[i - 1].Material,
+                            rows[i - 1].Length.ToString("0", CultureInfo.InvariantCulture),
+                            rows[i - 1].Name,
+                        };
                 double y = box.Y1 - (i + 1) * row + 1.75;
                 x = box.X0;
 
@@ -768,7 +915,13 @@ namespace GeometryHelper.Drawing
                 {
                     if (cells[c].Length > 0)
                     {
-                        var text = new DxfDBText { Position = new GeoPoint3(x + 1.0, y, 0.0), Height = 2.5, TextString = cells[c], Layer = SheetLayer };
+                        var text = new DxfDBText
+                        {
+                            Position = new GeoPoint3(x + 1.0, y, 0.0),
+                            Height = 2.5,
+                            TextString = cells[c],
+                            Layer = SheetLayer,
+                        };
                         space.AppendEntity(text);
                         DrawingEntityTags.Tag(text, DrawingBuilder.PartListId, null);
                     }
@@ -792,7 +945,12 @@ namespace GeometryHelper.Drawing
                 return;
             }
 
-            var linetype = new DxfLinetypeTableRecord { Name = name, AsciiDescription = description, NumDashes = dashes.Length };
+            var linetype = new DxfLinetypeTableRecord
+            {
+                Name = name,
+                AsciiDescription = description,
+                NumDashes = dashes.Length,
+            };
 
             for (int i = 0; i < dashes.Length; i++)
             {

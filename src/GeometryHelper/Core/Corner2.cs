@@ -27,13 +27,15 @@ namespace GeometryHelper.Core
         /// <param name="polygon">The polygon.</param>
         /// <param name="distance">How far back along each edge the cut is measured.</param>
         /// <returns>The chamfered polygon.</returns>
-        public static GeoPolygon2 Chamfer(GeoPolygon2 polygon, double distance) => Chamfer(polygon, distance, distance, Tolerance.Global);
+        public static GeoPolygon2 Chamfer(GeoPolygon2 polygon, double distance) =>
+            Chamfer(polygon, distance, distance, Tolerance.Global);
 
         /// <summary>
         /// Chamfers every corner of a polygon that has room for it, cutting the same distance along both
         /// edges, within a tolerance.
         /// </summary>
-        public static GeoPolygon2 Chamfer(GeoPolygon2 polygon, double distance, Tolerance tolerance) => Chamfer(polygon, distance, distance, tolerance);
+        public static GeoPolygon2 Chamfer(GeoPolygon2 polygon, double distance, Tolerance tolerance) =>
+            Chamfer(polygon, distance, distance, tolerance);
 
         /// <summary>
         /// Chamfers every corner of a polygon that has room for it, using the default tolerance.
@@ -42,7 +44,8 @@ namespace GeometryHelper.Core
         /// <param name="distance1">How far back along the edge running into the corner.</param>
         /// <param name="distance2">How far back along the edge running out of it.</param>
         /// <returns>The chamfered polygon.</returns>
-        public static GeoPolygon2 Chamfer(GeoPolygon2 polygon, double distance1, double distance2) => Chamfer(polygon, distance1, distance2, Tolerance.Global);
+        public static GeoPolygon2 Chamfer(GeoPolygon2 polygon, double distance1, double distance2) =>
+            Chamfer(polygon, distance1, distance2, Tolerance.Global);
 
         /// <summary>
         /// Chamfers every corner of a polygon that has room for it, within a tolerance.
@@ -67,7 +70,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentOutOfRangeException">Thrown when either distance is not a positive number.</exception>
         public static GeoPolygon2 Chamfer(GeoPolygon2 polygon, double distance1, double distance2, Tolerance tolerance)
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             RequirePositive(distance1, nameof(distance1));
             RequirePositive(distance2, nameof(distance2));
@@ -81,18 +85,21 @@ namespace GeometryHelper.Core
         /// Chamfers every corner of a chain that has room for it, cutting the same distance along both
         /// edges, using the default tolerance.
         /// </summary>
-        public static GeoPolyline2 Chamfer(GeoPolyline2 polyline, double distance) => Chamfer(polyline, distance, distance, Tolerance.Global);
+        public static GeoPolyline2 Chamfer(GeoPolyline2 polyline, double distance) =>
+            Chamfer(polyline, distance, distance, Tolerance.Global);
 
         /// <summary>
         /// Chamfers every corner of a chain that has room for it, cutting the same distance along both
         /// edges, within a tolerance.
         /// </summary>
-        public static GeoPolyline2 Chamfer(GeoPolyline2 polyline, double distance, Tolerance tolerance) => Chamfer(polyline, distance, distance, tolerance);
+        public static GeoPolyline2 Chamfer(GeoPolyline2 polyline, double distance, Tolerance tolerance) =>
+            Chamfer(polyline, distance, distance, tolerance);
 
         /// <summary>
         /// Chamfers every corner of a chain that has room for it, using the default tolerance.
         /// </summary>
-        public static GeoPolyline2 Chamfer(GeoPolyline2 polyline, double distance1, double distance2) => Chamfer(polyline, distance1, distance2, Tolerance.Global);
+        public static GeoPolyline2 Chamfer(GeoPolyline2 polyline, double distance1, double distance2) =>
+            Chamfer(polyline, distance1, distance2, Tolerance.Global);
 
         /// <summary>
         /// Chamfers every corner of a chain that has room for it, within a tolerance.
@@ -114,9 +121,15 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when either distance is not a positive number.</exception>
-        public static GeoPolyline2 Chamfer(GeoPolyline2 polyline, double distance1, double distance2, Tolerance tolerance)
+        public static GeoPolyline2 Chamfer(
+            GeoPolyline2 polyline,
+            double distance1,
+            double distance2,
+            Tolerance tolerance
+        )
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             RequirePositive(distance1, nameof(distance1));
             RequirePositive(distance2, nameof(distance2));
@@ -129,7 +142,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Chamfers one corner of a polygon, using the default tolerance.
         /// </summary>
-        public static bool TryChamferAt(GeoPolygon2 polygon, int index, double distance1, double distance2, out GeoPolygon2 result)
+        public static bool TryChamferAt(
+            GeoPolygon2 polygon,
+            int index,
+            double distance1,
+            double distance2,
+            out GeoPolygon2 result
+        )
         {
             return TryChamferAt(polygon, index, distance1, distance2, out result, Tolerance.Global);
         }
@@ -150,9 +169,17 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the polygon or either distance is not a positive number.</exception>
-        public static bool TryChamferAt(GeoPolygon2 polygon, int index, double distance1, double distance2, out GeoPolygon2 result, Tolerance tolerance)
+        public static bool TryChamferAt(
+            GeoPolygon2 polygon,
+            int index,
+            double distance1,
+            double distance2,
+            out GeoPolygon2 result,
+            Tolerance tolerance
+        )
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             if (index < 0 || index >= polygon.VertexCount)
             {
@@ -164,7 +191,18 @@ namespace GeometryHelper.Core
 
             result = polygon;
 
-            if (!TryCut(polygon.Vertices, true, index, distance1, distance2, tolerance, out GeoPoint2 from, out GeoPoint2 to))
+            if (
+                !TryCut(
+                    polygon.Vertices,
+                    true,
+                    index,
+                    distance1,
+                    distance2,
+                    tolerance,
+                    out GeoPoint2 from,
+                    out GeoPoint2 to
+                )
+            )
             {
                 return false;
             }
@@ -198,7 +236,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Chamfers one corner of a chain, using the default tolerance.
         /// </summary>
-        public static bool TryChamferAt(GeoPolyline2 polyline, int index, double distance1, double distance2, out GeoPolyline2 result)
+        public static bool TryChamferAt(
+            GeoPolyline2 polyline,
+            int index,
+            double distance1,
+            double distance2,
+            out GeoPolyline2 result
+        )
         {
             return TryChamferAt(polyline, index, distance1, distance2, out result, Tolerance.Global);
         }
@@ -219,9 +263,17 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the chain or either distance is not a positive number.</exception>
-        public static bool TryChamferAt(GeoPolyline2 polyline, int index, double distance1, double distance2, out GeoPolyline2 result, Tolerance tolerance)
+        public static bool TryChamferAt(
+            GeoPolyline2 polyline,
+            int index,
+            double distance1,
+            double distance2,
+            out GeoPolyline2 result,
+            Tolerance tolerance
+        )
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             if (index < 0 || index >= polyline.VertexCount)
             {
@@ -239,7 +291,18 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            if (!TryCut(polyline.Vertices, false, index, distance1, distance2, tolerance, out GeoPoint2 from, out GeoPoint2 to))
+            if (
+                !TryCut(
+                    polyline.Vertices,
+                    false,
+                    index,
+                    distance1,
+                    distance2,
+                    tolerance,
+                    out GeoPoint2 from,
+                    out GeoPoint2 to
+                )
+            )
             {
                 return false;
             }
@@ -287,7 +350,8 @@ namespace GeometryHelper.Core
             double distance1,
             double distance2,
             Tolerance tolerance,
-            string what)
+            string what
+        )
         {
             int count = vertices.Count;
             bool[] cut = new bool[count];
@@ -301,7 +365,19 @@ namespace GeometryHelper.Core
 
             for (int i = first; i <= last; i++)
             {
-                if (TryCut(vertices, closed, i, distance1, distance2, tolerance, out from[i], out to[i], out bool wasStraight))
+                if (
+                    TryCut(
+                        vertices,
+                        closed,
+                        i,
+                        distance1,
+                        distance2,
+                        tolerance,
+                        out from[i],
+                        out to[i],
+                        out bool wasStraight
+                    )
+                )
                 {
                     cut[i] = true;
                 }
@@ -320,14 +396,16 @@ namespace GeometryHelper.Core
             int cutCount = 0;
             foreach (bool one in cut)
             {
-                if (one) cutCount++;
+                if (one)
+                    cutCount++;
             }
 
             if (straight > 0 || tooShort > 0)
             {
                 GeometryHelperLog.Debug(
-                    $"Chamfer left {straight + tooShort} corner(s) of the {what} alone: " +
-                    $"{tooShort} had too little edge to cut, {straight} were straight.");
+                    $"Chamfer left {straight + tooShort} corner(s) of the {what} alone: "
+                        + $"{tooShort} had too little edge to cut, {straight} were straight."
+                );
             }
 
             if (cutCount == 0)
@@ -365,7 +443,8 @@ namespace GeometryHelper.Core
             bool[] cut,
             double distance1,
             double distance2,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             int count = vertices.Count;
             int edgeCount = closed ? count : count - 1;
@@ -394,10 +473,11 @@ namespace GeometryHelper.Core
 
                     // Drop whichever of the two takes more of this edge; on a tie, the earlier one, so the
                     // answer does not depend on where the walk began.
-                    int victim = !cut[start] ? end
-                               : !cut[end] ? start
-                               : distance2 >= distance1 ? start
-                               : end;
+                    int victim =
+                        !cut[start] ? end
+                        : !cut[end] ? start
+                        : distance2 >= distance1 ? start
+                        : end;
 
                     cut[victim] = false;
                     dropped++;
@@ -427,7 +507,8 @@ namespace GeometryHelper.Core
             GeoPoint2[] to,
             double distance1,
             double distance2,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             int count = vertices.Count;
             int edgeCount = closed ? count : count - 1;
@@ -442,19 +523,25 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                double left = vertices[start].DistanceTo(vertices[end]) - (cut[start] ? distance2 : 0.0) - (cut[end] ? distance1 : 0.0);
+                double left =
+                    vertices[start].DistanceTo(vertices[end])
+                    - (cut[start] ? distance2 : 0.0)
+                    - (cut[end] ? distance1 : 0.0);
 
                 if (left > tolerance.EqualPoint)
                 {
                     continue;
                 }
 
-                GeoPoint2 meet = !cut[end] ? vertices[end]
-                               : !cut[start] ? vertices[start]
-                               : Midway(to[start], from[end]);
+                GeoPoint2 meet =
+                    !cut[end] ? vertices[end]
+                    : !cut[start] ? vertices[start]
+                    : Midway(to[start], from[end]);
 
-                if (cut[start]) to[start] = meet;
-                if (cut[end]) from[end] = meet;
+                if (cut[start])
+                    to[start] = meet;
+                if (cut[end])
+                    from[end] = meet;
             }
         }
 
@@ -466,7 +553,8 @@ namespace GeometryHelper.Core
             double distance2,
             Tolerance tolerance,
             out GeoPoint2 from,
-            out GeoPoint2 to)
+            out GeoPoint2 to
+        )
         {
             if (!TryCut(vertices, closed, index, distance1, distance2, tolerance, out from, out to, out _))
             {
@@ -499,7 +587,8 @@ namespace GeometryHelper.Core
             Tolerance tolerance,
             out GeoPoint2 from,
             out GeoPoint2 to,
-            out bool straight)
+            out bool straight
+        )
         {
             int count = vertices.Count;
             from = default;
@@ -640,9 +729,15 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when either distance is not a positive number.</exception>
-        public static GeoPolylineArc2 Chamfer(GeoPolylineArc2 polyline, double distance1, double distance2, Tolerance tolerance)
+        public static GeoPolylineArc2 Chamfer(
+            GeoPolylineArc2 polyline,
+            double distance1,
+            double distance2,
+            Tolerance tolerance
+        )
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             RequirePositive(distance1, nameof(distance1));
             RequirePositive(distance2, nameof(distance2));
@@ -661,9 +756,15 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when either distance is not a positive number.</exception>
-        public static GeoPolygonArc2 Chamfer(GeoPolygonArc2 polygon, double distance1, double distance2, Tolerance tolerance)
+        public static GeoPolygonArc2 Chamfer(
+            GeoPolygonArc2 polygon,
+            double distance1,
+            double distance2,
+            Tolerance tolerance
+        )
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             RequirePositive(distance1, nameof(distance1));
             RequirePositive(distance2, nameof(distance2));
@@ -696,7 +797,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not a positive number.</exception>
         public static GeoPolylineArc2 Fillet(GeoPolylineArc2 polyline, double radius, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             RequirePositive(radius, nameof(radius));
 
@@ -728,14 +830,21 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not a positive number.</exception>
         public static GeoPolygonArc2 Fillet(GeoPolygonArc2 polygon, double radius, Tolerance tolerance)
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             RequirePositive(radius, nameof(radius));
 
             return Reshape(polygon, Everywhere(radius, polygon.EdgeCount), 0.0, 0.0, tolerance);
         }
 
-        private static GeoPolylineArc2 Reshape(GeoPolylineArc2 polyline, double?[] radiusAtCorner, double distance1, double distance2, Tolerance tolerance)
+        private static GeoPolylineArc2 Reshape(
+            GeoPolylineArc2 polyline,
+            double?[] radiusAtCorner,
+            double distance1,
+            double distance2,
+            Tolerance tolerance
+        )
         {
             var edges = new List<GeoEdge2>(polyline.EdgeCount);
 
@@ -747,7 +856,13 @@ namespace GeometryHelper.Core
             return new GeoPolylineArc2(ReshapeCorners(edges, false, radiusAtCorner, distance1, distance2, tolerance));
         }
 
-        private static GeoPolygonArc2 Reshape(GeoPolygonArc2 polygon, double?[] radiusAtCorner, double distance1, double distance2, Tolerance tolerance)
+        private static GeoPolygonArc2 Reshape(
+            GeoPolygonArc2 polygon,
+            double?[] radiusAtCorner,
+            double distance1,
+            double distance2,
+            Tolerance tolerance
+        )
         {
             var edges = new List<GeoEdge2>(polygon.EdgeCount);
 
@@ -772,7 +887,9 @@ namespace GeometryHelper.Core
             // take those fillets, and is given back as it was.
             if (!GeoPolygonArc2.TryFromEdges(vertices, bulges, tolerance, out GeoPolygonArc2 loop))
             {
-                GeometryHelperLog.Debug("Fillet or chamfer left the loop alone: what it would leave has fewer than three corners.");
+                GeometryHelperLog.Debug(
+                    "Fillet or chamfer left the loop alone: what it would leave has fewer than three corners."
+                );
                 return polygon;
             }
 
@@ -796,7 +913,8 @@ namespace GeometryHelper.Core
             double?[] radiusAtCorner,
             double distance1,
             double distance2,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             int count = edges.Count;
             int corners = closed ? count : count - 1;
@@ -838,7 +956,17 @@ namespace GeometryHelper.Core
                     // A corner against a curve is rounded the same way as one between two segments: the
                     // centre of the arc lies where the two pieces, each moved sideways by the radius,
                     // cross. Only the arithmetic differs.
-                    if (!ArcFillet2.TryFillet(incoming, outgoing, radius.Value, out GeoArc2 arc, out GeoEdge2 shorter1, out GeoEdge2 shorter2, tolerance))
+                    if (
+                        !ArcFillet2.TryFillet(
+                            incoming,
+                            outgoing,
+                            radius.Value,
+                            out GeoArc2 arc,
+                            out GeoEdge2 shorter1,
+                            out GeoEdge2 shorter2,
+                            tolerance
+                        )
+                    )
                     {
                         tooShort++;
                         continue;
@@ -873,9 +1001,23 @@ namespace GeometryHelper.Core
                 GeoLine2 line1 = incoming.ToLine();
                 GeoLine2 line2 = outgoing.ToLine();
 
-                if (!TryCutCorner(line1, line2, distance1, distance2, tolerance, out GeoPoint2 from, out GeoPoint2 to, out bool wasStraight))
+                if (
+                    !TryCutCorner(
+                        line1,
+                        line2,
+                        distance1,
+                        distance2,
+                        tolerance,
+                        out GeoPoint2 from,
+                        out GeoPoint2 to,
+                        out bool wasStraight
+                    )
+                )
                 {
-                    if (wasStraight) straightRun++; else tooShort++;
+                    if (wasStraight)
+                        straightRun++;
+                    else
+                        tooShort++;
                     continue;
                 }
 
@@ -933,8 +1075,9 @@ namespace GeometryHelper.Core
             if (curved > 0 || straightRun > 0 || tooShort > 0)
             {
                 GeometryHelperLog.Debug(
-                    $"{(radiusAtCorner == null ? "Chamfer" : "Fillet")} left {curved + straightRun + tooShort} corner(s) alone: " +
-                    $"{tooShort} had too little edge, {straightRun} were straight, {curved} met an arc.");
+                    $"{(radiusAtCorner == null ? "Chamfer" : "Fillet")} left {curved + straightRun + tooShort} corner(s) alone: "
+                        + $"{tooShort} had too little edge, {straightRun} were straight, {curved} met an arc."
+                );
             }
 
             // Walk the edges, shortening each end that gave something up and putting the new piece in.
@@ -950,9 +1093,7 @@ namespace GeometryHelper.Core
                 GeoPoint2 start = doCut[atStart] ? cutTo[atStart] : edge.StartPoint;
                 GeoPoint2 end = doCut[e] ? cutFrom[e] : edge.EndPoint;
 
-                double bulge = edge.IsArc
-                    ? Math.Tan(edge.ToArc().SweptAngle * (keepTo[e] - keepFrom[e]) * 0.25)
-                    : 0.0;
+                double bulge = edge.IsArc ? Math.Tan(edge.ToArc().SweptAngle * (keepTo[e] - keepFrom[e]) * 0.25) : 0.0;
 
                 pieces.Add(new GeoEdge2(start, end, bulge));
 
@@ -967,7 +1108,11 @@ namespace GeometryHelper.Core
                     bool none = edge.Length - takenAtStart[e] - takenAtEnd[e] <= tolerance.EqualPoint;
 
                     gone.Add(none);
-                    meetAt.Add(!doCut[e] ? edge.EndPoint : !doCut[atStart] ? edge.StartPoint : Midway(start, end));
+                    meetAt.Add(
+                        !doCut[e] ? edge.EndPoint
+                        : !doCut[atStart] ? edge.StartPoint
+                        : Midway(start, end)
+                    );
                 }
                 else
                 {
@@ -997,7 +1142,12 @@ namespace GeometryHelper.Core
         /// moves; any other run meets where its last piece says. A piece that moves keeps its bulge, so an arc
         /// stays an arc between its new ends. Pieces with nothing gone beside them are given back as they were.
         /// </remarks>
-        private static List<GeoEdge2> Joined(List<GeoEdge2> pieces, List<bool> gone, List<GeoPoint2> meetAt, bool closed)
+        private static List<GeoEdge2> Joined(
+            List<GeoEdge2> pieces,
+            List<bool> gone,
+            List<GeoPoint2> meetAt,
+            bool closed
+        )
         {
             int n = pieces.Count;
             int first = gone.IndexOf(false);
@@ -1032,9 +1182,10 @@ namespace GeometryHelper.Core
                 bool atChainStart = !closed && runStart == 0;
                 bool atChainEnd = !closed && position == n;
 
-                GeoPoint2 meet = atChainStart ? pieces[0].StartPoint
-                               : atChainEnd ? pieces[n - 1].EndPoint
-                               : meetAt[(origin + position - 1) % n];
+                GeoPoint2 meet =
+                    atChainStart ? pieces[0].StartPoint
+                    : atChainEnd ? pieces[n - 1].EndPoint
+                    : meetAt[(origin + position - 1) % n];
 
                 if (!atChainStart)
                 {
@@ -1058,9 +1209,11 @@ namespace GeometryHelper.Core
 
                 GeoEdge2 piece = pieces[k];
 
-                result.Add(starts[k].HasValue || ends[k].HasValue
-                    ? new GeoEdge2(starts[k] ?? piece.StartPoint, ends[k] ?? piece.EndPoint, piece.Bulge)
-                    : piece);
+                result.Add(
+                    starts[k].HasValue || ends[k].HasValue
+                        ? new GeoEdge2(starts[k] ?? piece.StartPoint, ends[k] ?? piece.EndPoint, piece.Bulge)
+                        : piece
+                );
             }
 
             return result;
@@ -1082,8 +1235,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the point half way between two points.
         /// </summary>
-        private static GeoPoint2 Midway(GeoPoint2 first, GeoPoint2 second)
-            => new GeoPoint2((first.X + second.X) * 0.5, (first.Y + second.Y) * 0.5);
+        private static GeoPoint2 Midway(GeoPoint2 first, GeoPoint2 second) =>
+            new GeoPoint2((first.X + second.X) * 0.5, (first.Y + second.Y) * 0.5);
 
         /// <summary>
         /// Gets one radius for every corner of a run of edges.
@@ -1139,7 +1292,10 @@ namespace GeometryHelper.Core
             {
                 if (double.IsNaN(radius) || double.IsInfinity(radius) || radius < 0.0)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(radii), "A radius must be a number, and never negative; zero leaves a corner alone.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(radii),
+                        "A radius must be a number, and never negative; zero leaves a corner alone."
+                    );
                 }
             }
         }
@@ -1147,7 +1303,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Rounds the corners of a chain, each by its own radius, using the default tolerance.
         /// </summary>
-        public static GeoPolylineArc2 Fillet(GeoPolylineArc2 polyline, IReadOnlyList<double> radii) => Fillet(polyline, radii, Tolerance.Global);
+        public static GeoPolylineArc2 Fillet(GeoPolylineArc2 polyline, IReadOnlyList<double> radii) =>
+            Fillet(polyline, radii, Tolerance.Global);
 
         /// <summary>
         /// Rounds the corners of a chain, each by its own radius, within a tolerance.
@@ -1168,17 +1325,25 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a radius is negative or not a number.</exception>
         public static GeoPolylineArc2 Fillet(GeoPolylineArc2 polyline, IReadOnlyList<double> radii, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             RequireRadii(radii);
 
-            return Reshape(polyline, ByCorner(radii, polyline.EdgeCount, false, polyline.VertexCount), 0.0, 0.0, tolerance);
+            return Reshape(
+                polyline,
+                ByCorner(radii, polyline.EdgeCount, false, polyline.VertexCount),
+                0.0,
+                0.0,
+                tolerance
+            );
         }
 
         /// <summary>
         /// Rounds the corners of a loop, each by its own radius, using the default tolerance.
         /// </summary>
-        public static GeoPolygonArc2 Fillet(GeoPolygonArc2 polygon, IReadOnlyList<double> radii) => Fillet(polygon, radii, Tolerance.Global);
+        public static GeoPolygonArc2 Fillet(GeoPolygonArc2 polygon, IReadOnlyList<double> radii) =>
+            Fillet(polygon, radii, Tolerance.Global);
 
         /// <summary>
         /// Rounds the corners of a loop, each by its own radius, within a tolerance.
@@ -1191,7 +1356,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a radius is negative or not a number.</exception>
         public static GeoPolygonArc2 Fillet(GeoPolygonArc2 polygon, IReadOnlyList<double> radii, Tolerance tolerance)
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             RequireRadii(radii);
 
@@ -1217,9 +1383,16 @@ namespace GeometryHelper.Core
         /// <returns>true if the corner had room for the arc on its inside; false when it had not, or when it turns by no more than <see cref="Tolerance.EqualAngleRad"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the chain or the radius is not a positive number.</exception>
-        public static bool TryFilletAt(GeoPolylineArc2 polyline, int index, double radius, out GeoPolylineArc2 result, Tolerance tolerance)
+        public static bool TryFilletAt(
+            GeoPolylineArc2 polyline,
+            int index,
+            double radius,
+            out GeoPolylineArc2 result,
+            Tolerance tolerance
+        )
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             if (index < 0 || index >= polyline.VertexCount)
             {
@@ -1236,7 +1409,12 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            List<GeoEdge2> edges = RoundOneCorner(polyline.GetEdgeAt(index - 1), polyline.GetEdgeAt(index), radius, tolerance);
+            List<GeoEdge2> edges = RoundOneCorner(
+                polyline.GetEdgeAt(index - 1),
+                polyline.GetEdgeAt(index),
+                radius,
+                tolerance
+            );
 
             if (edges == null)
             {
@@ -1286,9 +1464,16 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the loop or the radius is not a positive number.</exception>
-        public static bool TryFilletAt(GeoPolygonArc2 polygon, int index, double radius, out GeoPolygonArc2 result, Tolerance tolerance)
+        public static bool TryFilletAt(
+            GeoPolygonArc2 polygon,
+            int index,
+            double radius,
+            out GeoPolygonArc2 result,
+            Tolerance tolerance
+        )
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             if (index < 0 || index >= polygon.VertexCount)
             {
@@ -1301,7 +1486,12 @@ namespace GeometryHelper.Core
 
             int before = (index - 1 + polygon.EdgeCount) % polygon.EdgeCount;
 
-            List<GeoEdge2> edges = RoundOneCorner(polygon.GetEdgeAt(before), polygon.GetEdgeAt(index), radius, tolerance);
+            List<GeoEdge2> edges = RoundOneCorner(
+                polygon.GetEdgeAt(before),
+                polygon.GetEdgeAt(index),
+                radius,
+                tolerance
+            );
 
             if (edges == null)
             {
@@ -1347,17 +1537,34 @@ namespace GeometryHelper.Core
         /// <returns>The shortened first edge, the arc, and the shortened second edge, an edge the corner takes all
         /// of, give or take the tolerance, dropped and the arc run from its far end; null when the corner had no
         /// room for that radius.</returns>
-        private static List<GeoEdge2> RoundOneCorner(GeoEdge2 incoming, GeoEdge2 outgoing, double radius, Tolerance tolerance)
+        private static List<GeoEdge2> RoundOneCorner(
+            GeoEdge2 incoming,
+            GeoEdge2 outgoing,
+            double radius,
+            Tolerance tolerance
+        )
         {
-            if (!ArcFillet2.TryFillet(incoming, outgoing, radius, out GeoArc2 arc, out GeoEdge2 shorter1, out GeoEdge2 shorter2, tolerance))
+            if (
+                !ArcFillet2.TryFillet(
+                    incoming,
+                    outgoing,
+                    radius,
+                    out GeoArc2 arc,
+                    out GeoEdge2 shorter1,
+                    out GeoEdge2 shorter2,
+                    tolerance
+                )
+            )
             {
                 return null;
             }
 
             // A corner that eats the whole of an edge, give or take the tolerance, leaves nothing of it, and the
             // arc runs from the edge's far end, which does not move.
-            bool allOfFirst = incoming.Length - ArcFillet2.Taken(incoming, shorter1.EndPoint, true) <= tolerance.EqualPoint;
-            bool allOfSecond = outgoing.Length - ArcFillet2.Taken(outgoing, shorter2.StartPoint, false) <= tolerance.EqualPoint;
+            bool allOfFirst =
+                incoming.Length - ArcFillet2.Taken(incoming, shorter1.EndPoint, true) <= tolerance.EqualPoint;
+            bool allOfSecond =
+                outgoing.Length - ArcFillet2.Taken(outgoing, shorter2.StartPoint, false) <= tolerance.EqualPoint;
 
             var edges = new List<GeoEdge2>(3);
 
@@ -1388,9 +1595,17 @@ namespace GeometryHelper.Core
         /// <returns>true if the corner had room for the cut; false when it had not, or either edge is an arc.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the chain or either distance is not a positive number.</exception>
-        public static bool TryChamferAt(GeoPolylineArc2 polyline, int index, double distance1, double distance2, out GeoPolylineArc2 result, Tolerance tolerance)
+        public static bool TryChamferAt(
+            GeoPolylineArc2 polyline,
+            int index,
+            double distance1,
+            double distance2,
+            out GeoPolylineArc2 result,
+            Tolerance tolerance
+        )
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             if (index < 0 || index >= polyline.VertexCount)
             {
@@ -1408,7 +1623,13 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            List<GeoEdge2> edges = CutOneCorner(polyline.GetEdgeAt(index - 1), polyline.GetEdgeAt(index), distance1, distance2, tolerance);
+            List<GeoEdge2> edges = CutOneCorner(
+                polyline.GetEdgeAt(index - 1),
+                polyline.GetEdgeAt(index),
+                distance1,
+                distance2,
+                tolerance
+            );
 
             if (edges == null)
             {
@@ -1436,7 +1657,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Chamfers one corner of a chain that may curve, using the default tolerance.
         /// </summary>
-        public static bool TryChamferAt(GeoPolylineArc2 polyline, int index, double distance1, double distance2, out GeoPolylineArc2 result)
+        public static bool TryChamferAt(
+            GeoPolylineArc2 polyline,
+            int index,
+            double distance1,
+            double distance2,
+            out GeoPolylineArc2 result
+        )
         {
             return TryChamferAt(polyline, index, distance1, distance2, out result, Tolerance.Global);
         }
@@ -1458,9 +1685,17 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the loop or either distance is not a positive number.</exception>
-        public static bool TryChamferAt(GeoPolygonArc2 polygon, int index, double distance1, double distance2, out GeoPolygonArc2 result, Tolerance tolerance)
+        public static bool TryChamferAt(
+            GeoPolygonArc2 polygon,
+            int index,
+            double distance1,
+            double distance2,
+            out GeoPolygonArc2 result,
+            Tolerance tolerance
+        )
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             if (index < 0 || index >= polygon.VertexCount)
             {
@@ -1474,7 +1709,13 @@ namespace GeometryHelper.Core
 
             int before = (index - 1 + polygon.EdgeCount) % polygon.EdgeCount;
 
-            List<GeoEdge2> edges = CutOneCorner(polygon.GetEdgeAt(before), polygon.GetEdgeAt(index), distance1, distance2, tolerance);
+            List<GeoEdge2> edges = CutOneCorner(
+                polygon.GetEdgeAt(before),
+                polygon.GetEdgeAt(index),
+                distance1,
+                distance2,
+                tolerance
+            );
 
             if (edges == null)
             {
@@ -1517,7 +1758,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Chamfers one corner of a loop that may curve, using the default tolerance.
         /// </summary>
-        public static bool TryChamferAt(GeoPolygonArc2 polygon, int index, double distance1, double distance2, out GeoPolygonArc2 result)
+        public static bool TryChamferAt(
+            GeoPolygonArc2 polygon,
+            int index,
+            double distance1,
+            double distance2,
+            out GeoPolygonArc2 result
+        )
         {
             return TryChamferAt(polygon, index, distance1, distance2, out result, Tolerance.Global);
         }
@@ -1526,14 +1773,31 @@ namespace GeometryHelper.Core
         /// Cuts the corner between two edges, and gives back the three edges that replace them.
         /// </summary>
         /// <returns>The shortened first edge, the cut, and the shortened second edge; null when the corner had no room or either edge is an arc.</returns>
-        private static List<GeoEdge2> CutOneCorner(GeoEdge2 incoming, GeoEdge2 outgoing, double distance1, double distance2, Tolerance tolerance)
+        private static List<GeoEdge2> CutOneCorner(
+            GeoEdge2 incoming,
+            GeoEdge2 outgoing,
+            double distance1,
+            double distance2,
+            Tolerance tolerance
+        )
         {
             if (incoming.IsArc || outgoing.IsArc)
             {
                 return null;
             }
 
-            if (!TryCutCorner(incoming.ToLine(), outgoing.ToLine(), distance1, distance2, tolerance, out GeoPoint2 from, out GeoPoint2 to, out _))
+            if (
+                !TryCutCorner(
+                    incoming.ToLine(),
+                    outgoing.ToLine(),
+                    distance1,
+                    distance2,
+                    tolerance,
+                    out GeoPoint2 from,
+                    out GeoPoint2 to,
+                    out _
+                )
+            )
             {
                 return null;
             }
@@ -1571,7 +1835,8 @@ namespace GeometryHelper.Core
             Tolerance tolerance,
             out GeoPoint2 from,
             out GeoPoint2 to,
-            out bool straight)
+            out bool straight
+        )
         {
             from = default;
             to = default;

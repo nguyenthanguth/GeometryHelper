@@ -26,7 +26,11 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The arc of radius 50 about (50, 50, 0) standing upright in x = 50, through (50, 0, 0), (50, 50, 50) and
             // (50, 100, 0): it passes the rectangle's edges at its two ends. Once an InvalidOperationException from GetFaces.
-            GeoArc3 arc = GeoArc3.FromThreePoints(new GeoPoint3(50, 0, 0), new GeoPoint3(50, 50, 50), new GeoPoint3(50, 100, 0));
+            GeoArc3 arc = GeoArc3.FromThreePoints(
+                new GeoPoint3(50, 0, 0),
+                new GeoPoint3(50, 50, 50),
+                new GeoPoint3(50, 100, 0)
+            );
 
             Assert.True(arc.TryIntersectWith(Sheet(), out GeoPoint3[] points, Tol));
             Assert.Equal(2, points.Length);
@@ -48,7 +52,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AnEllipseThroughABoxFlatOnOneAxis_MeetsItsRectangle()
         {
-            GeoEllipse3 ellipse = GeoEllipse3.FromCircle(new GeoCircle3(new GeoPoint3(50, 50, 0), new GeoVector3(1, 0, 0), 30));
+            GeoEllipse3 ellipse = GeoEllipse3.FromCircle(
+                new GeoCircle3(new GeoPoint3(50, 50, 0), new GeoVector3(1, 0, 0), 30)
+            );
 
             Assert.True(ellipse.TryIntersectWith(Sheet(), out GeoPoint3[] points, Tol));
             Assert.Equal(2, points.Length);
@@ -60,8 +66,17 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AFlatRegionOrAPlaneAgainstABoxFlatOrEmpty_IsFalse_NotAThrow()
         {
-            var triangle = new GeoTriangle3(new GeoPoint3(-50, -50, 0), new GeoPoint3(300, -50, 0), new GeoPoint3(-50, 300, 0));
-            var polygon = new GeoPolygon3(new GeoPoint3(20, -10, -10), new GeoPoint3(20, 110, -10), new GeoPoint3(20, 110, 10), new GeoPoint3(20, -10, 10));
+            var triangle = new GeoTriangle3(
+                new GeoPoint3(-50, -50, 0),
+                new GeoPoint3(300, -50, 0),
+                new GeoPoint3(-50, 300, 0)
+            );
+            var polygon = new GeoPolygon3(
+                new GeoPoint3(20, -10, -10),
+                new GeoPoint3(20, 110, -10),
+                new GeoPoint3(20, 110, 10),
+                new GeoPoint3(20, -10, 10)
+            );
             var face = new GeoFace3(polygon);
             var plane = new GeoPlane3(new GeoPoint3(20, 0, 0), new GeoVector3(1, 0, 0));
             var flatAabb = new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 100, 0));
@@ -121,7 +136,11 @@ namespace GeometryHelper.UnitTest.Solid
             // The arc of radius 30 about (50, 20, 0) upright in x = 50, from below the rectangle to above it through (50, 50, 0):
             // cut there, both pieces are outside a box that holds nothing, and run on as one. Once an
             // InvalidOperationException from GetFaces.
-            GeoArc3 arc = GeoArc3.FromThreePoints(new GeoPoint3(50, 20, -30), new GeoPoint3(50, 50, 0), new GeoPoint3(50, 20, 30));
+            GeoArc3 arc = GeoArc3.FromThreePoints(
+                new GeoPoint3(50, 20, -30),
+                new GeoPoint3(50, 50, 0),
+                new GeoPoint3(50, 20, 30)
+            );
             var chain = new GeoPolylineArc3(new[] { new GeoEdge3(arc) });
 
             Assert.False(chain.TrySplitBy(Sheet(), out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside, Tol));
@@ -134,9 +153,15 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The small circle stands in y = 0 with its major axis along z, square to the plane of the large one, and lies in
             // that plane within the planar tolerance. Once an ArgumentException from laying it out with an axis of no length.
-            GeoEllipse3 large = GeoEllipse3.FromCircle(new GeoCircle3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 100));
-            GeoEllipse3 small = GeoEllipse3.FromCircle(new GeoCircle3(new GeoPoint3(100, 0, 0), new GeoVector3(0, 1, 0), 0.0001));
-            GeoEllipse3 far = GeoEllipse3.FromCircle(new GeoCircle3(new GeoPoint3(50, 0, 0), new GeoVector3(0, 1, 0), 0.0001));
+            GeoEllipse3 large = GeoEllipse3.FromCircle(
+                new GeoCircle3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 100)
+            );
+            GeoEllipse3 small = GeoEllipse3.FromCircle(
+                new GeoCircle3(new GeoPoint3(100, 0, 0), new GeoVector3(0, 1, 0), 0.0001)
+            );
+            GeoEllipse3 far = GeoEllipse3.FromCircle(
+                new GeoCircle3(new GeoPoint3(50, 0, 0), new GeoVector3(0, 1, 0), 0.0001)
+            );
 
             Assert.True(large.TryIntersectWith(small, out GeoPoint3[] touch, Tol));
             Assert.All(touch, p => Assert.True(p.DistanceTo(new GeoPoint3(100, 0, 0)) <= 0.002));
@@ -148,7 +173,14 @@ namespace GeometryHelper.UnitTest.Solid
         {
             var flat = new GeoFace2(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(50, 0)));
 
-            Assert.False(flat.TrySplitBy(new GeoLine2(new GeoPoint2(50, -10), new GeoPoint2(50, 10)), out GeoFace2[] left, out GeoFace2[] right, Tol));
+            Assert.False(
+                flat.TrySplitBy(
+                    new GeoLine2(new GeoPoint2(50, -10), new GeoPoint2(50, 10)),
+                    out GeoFace2[] left,
+                    out GeoFace2[] right,
+                    Tol
+                )
+            );
             Assert.Same(flat, Assert.Single(left));
             Assert.Empty(right);
         }

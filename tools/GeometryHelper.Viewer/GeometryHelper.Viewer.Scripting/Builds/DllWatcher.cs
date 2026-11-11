@@ -37,7 +37,8 @@ namespace GeometryHelper.Viewer.Builds
             _timer = new Timer(_ => Fire(), null, Timeout.Infinite, Timeout.Infinite);
             _watcher = new FileSystemWatcher(Path.GetDirectoryName(_path), Path.GetFileName(_path))
             {
-                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.CreationTime,
+                NotifyFilter =
+                    NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.CreationTime,
             };
             _watcher.Changed += (s, e) => Restart();
             _watcher.Created += (s, e) => Restart();

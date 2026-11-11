@@ -18,22 +18,35 @@ namespace GeometryHelper.UnitTest.Solid
 
         /// <summary>The axis of the turned cylinder: its Y axis, leaning in space.</summary>
         private static readonly GeoCoordinateSystem3 Turned = new GeoCoordinateSystem3(
-            GeoPoint3.Origin, new GeoVector3(0.6, 0.8, 0.0), new GeoVector3(-0.48, 0.36, 0.8));
+            GeoPoint3.Origin,
+            new GeoVector3(0.6, 0.8, 0.0),
+            new GeoVector3(-0.48, 0.36, 0.8)
+        );
 
         /// <summary>A cylinder of radius 20 and height 50 about the axis.</summary>
-        private static GeoSolid3 Cylinder()
-            => GeoSolid3.Revolve(
+        private static GeoSolid3 Cylinder() =>
+            GeoSolid3.Revolve(
                 new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(20, 0), new GeoPoint2(20, 50), new GeoPoint2(0, 50)),
-                Turned, 2 * Math.PI, 0.01, Tolerance.Default);
+                Turned,
+                2 * Math.PI,
+                0.01,
+                Tolerance.Default
+            );
 
         /// <summary>The point at a distance from the axis, an angle round it and a height along it.</summary>
-        private static GeoPoint3 At(double radius, double angle, double height)
-            => Turned.Origin.Add(Turned.XAxis.Multiply(radius * Math.Cos(angle))).Add(Turned.YAxis.Multiply(height))
+        private static GeoPoint3 At(double radius, double angle, double height) =>
+            Turned
+                .Origin.Add(Turned.XAxis.Multiply(radius * Math.Cos(angle)))
+                .Add(Turned.YAxis.Multiply(height))
                 .Add(Turned.ZAxis.Multiply(radius * Math.Sin(angle)));
 
         /// <summary>A direction leaning every way in space, a different one for each number.</summary>
-        private static GeoVector3 Leaning(int i)
-            => new GeoVector3(Math.Cos(0.7 * i) * Math.Sin(1.1 + 0.3 * i), Math.Sin(0.7 * i) * Math.Sin(1.1 + 0.3 * i), Math.Cos(1.1 + 0.3 * i));
+        private static GeoVector3 Leaning(int i) =>
+            new GeoVector3(
+                Math.Cos(0.7 * i) * Math.Sin(1.1 + 0.3 * i),
+                Math.Sin(0.7 * i) * Math.Sin(1.1 + 0.3 * i),
+                Math.Cos(1.1 + 0.3 * i)
+            );
 
         /// <summary>
         /// A hundred triangles turned about in space, their sides 60 to 100 long, each with the segment from 30 under its
@@ -49,7 +62,13 @@ namespace GeometryHelper.UnitTest.Solid
                 var triangle = new GeoTriangle3(corner, second, third);
                 GeoVector3 across = triangle.Normal.Add(Leaning(i + 71).Multiply(0.3));
 
-                yield return (triangle, new GeoLine3(triangle.Centroid.Add(across.Multiply(-30)), triangle.Centroid.Add(across.Multiply(30))));
+                yield return (
+                    triangle,
+                    new GeoLine3(
+                        triangle.Centroid.Add(across.Multiply(-30)),
+                        triangle.Centroid.Add(across.Multiply(30))
+                    )
+                );
             }
         }
 
@@ -61,7 +80,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             foreach ((GeoTriangle3 triangle, GeoLine3 segment) in TurnedTriangles())
             {
-                if (!segment.TryIntersectWith(triangle, out GeoPoint3 crossing, Nought) || crossing.DistanceTo(triangle.Centroid) > 1E-9)
+                if (
+                    !segment.TryIntersectWith(triangle, out GeoPoint3 crossing, Nought)
+                    || crossing.DistanceTo(triangle.Centroid) > 1E-9
+                )
                 {
                     missed.Add(i);
                 }
@@ -82,7 +104,10 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 var face = new GeoFace3(new GeoPolygon3(triangle.A, triangle.B, triangle.C));
 
-                if (!segment.TryIntersectWith(face, out GeoPoint3 crossing, Nought) || crossing.DistanceTo(triangle.Centroid) > 1E-9)
+                if (
+                    !segment.TryIntersectWith(face, out GeoPoint3 crossing, Nought)
+                    || crossing.DistanceTo(triangle.Centroid) > 1E-9
+                )
                 {
                     missed.Add(i);
                 }
@@ -160,7 +185,10 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 var line = new GeoXLine3(through, along);
 
-                if (line.GetIntersections(body, Nought).Length != 2 || prepared.GetIntersections(line, Nought).Length != 2)
+                if (
+                    line.GetIntersections(body, Nought).Length != 2
+                    || prepared.GetIntersections(line, Nought).Length != 2
+                )
                 {
                     missed.Add(i);
                 }
@@ -181,7 +209,10 @@ namespace GeometryHelper.UnitTest.Solid
             // body holds its lower end, to a billionth or 1E-15 of the coordinates, and it is nought from it, but the boxes were
             // asked first at the tolerance given and it touched nothing.
             GeoSolid3 box = new GeoObb3(new GeoPoint3(far + 50, far + 40, far + 25), 100, 80, 50).ToSolid();
-            var segment = new GeoLine3(new GeoPoint3(far + 50, far + 40, far + 50 + over), new GeoPoint3(far + 50, far + 40, far + 80));
+            var segment = new GeoLine3(
+                new GeoPoint3(far + 50, far + 40, far + 50 + over),
+                new GeoPoint3(far + 50, far + 40, far + 80)
+            );
 
             Assert.Equal(0.0, segment.DistanceTo(box, Nought));
             Assert.True(segment.CollidesWith(box, Nought));
@@ -216,7 +247,12 @@ namespace GeometryHelper.UnitTest.Solid
         /// The box 100 by 80 by 50 turned about in space, and on each of its sides 20 points with the segment from 10 off the side
         /// to each, leaning off its normal.
         /// </summary>
-        private static IEnumerable<(GeoSolid3 Box, GeoFace3 Side, GeoTriangle3 Under, GeoLine3 Segment)> SegmentsEndingOnATurnedBox()
+        private static IEnumerable<(
+            GeoSolid3 Box,
+            GeoFace3 Side,
+            GeoTriangle3 Under,
+            GeoLine3 Segment
+        )> SegmentsEndingOnATurnedBox()
         {
             GeoSolid3 box = new GeoObb3(new GeoPoint3(10, 20, 30), 100, 80, 50, Turned.XAxis, Turned.YAxis).ToSolid();
             var middle = new GeoPoint3(10, 20, 30);
@@ -234,8 +270,11 @@ namespace GeometryHelper.UnitTest.Solid
 
                 for (int i = 0; i < 20; i++)
                 {
-                    double u = 0.1 + 0.017 * i, v = 0.12 + 0.013 * ((7 * i) % 20);
-                    GeoPoint3 point = under.A.Add(under.A.GetVectorTo(under.B).Multiply(u)).Add(under.A.GetVectorTo(under.C).Multiply(v));
+                    double u = 0.1 + 0.017 * i,
+                        v = 0.12 + 0.013 * ((7 * i) % 20);
+                    GeoPoint3 point = under
+                        .A.Add(under.A.GetVectorTo(under.B).Multiply(u))
+                        .Add(under.A.GetVectorTo(under.C).Multiply(v));
                     GeoPoint3 start = point.Add(normal.Multiply(10)).Add(Leaning(i).Multiply(3));
 
                     yield return (box, side, under, new GeoLine3(start, point));
@@ -268,8 +307,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             foreach ((_, GeoFace3 side, GeoTriangle3 under, GeoLine3 segment) in SegmentsEndingOnATurnedBox())
             {
-                if (segment.TryIntersectWith(under, out _, Nought) != segment.CollidesWith(under, Nought)
-                    || segment.TryIntersectWith(side, out _, Nought) != segment.CollidesWith(side, Nought))
+                if (
+                    segment.TryIntersectWith(under, out _, Nought) != segment.CollidesWith(under, Nought)
+                    || segment.TryIntersectWith(side, out _, Nought) != segment.CollidesWith(side, Nought)
+                )
                 {
                     misread.Add(segment.EndPoint);
                 }
@@ -288,7 +329,11 @@ namespace GeometryHelper.UnitTest.Solid
             double chord = 20 * (1 - Math.Cos(Math.PI / 64)) * 1.0000001;
             GeoSolid3 body = GeoSolid3.Revolve(
                 new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(20, 0), new GeoPoint2(20, 50), new GeoPoint2(0, 50)),
-                new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis), 2 * Math.PI, chord, Tolerance.Default);
+                new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis),
+                2 * Math.PI,
+                chord,
+                Tolerance.Default
+            );
             var segment = new GeoLine3(new GeoPoint3(-far, 20, -far), new GeoPoint3(far, 20, far));
 
             GeoPoint3[] crossings = segment.GetIntersections(body, Nought);

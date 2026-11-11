@@ -40,7 +40,14 @@ namespace GeometryHelper.Drawing
         /// <exception cref="ArgumentException">Thrown when the origin is not a point of numbers, the direction or the up
         /// has no length, or the up lies along the direction.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a depth is negative or not a number.</exception>
-        public ViewFrame3(GeoPoint3 origin, GeoVector3 direction, GeoVector3 up, double depthInFront, double depthBehind, Tolerance tolerance)
+        public ViewFrame3(
+            GeoPoint3 origin,
+            GeoVector3 direction,
+            GeoVector3 up,
+            double depthInFront,
+            double depthBehind,
+            Tolerance tolerance
+        )
         {
             if (!origin.IsValid)
             {
@@ -54,7 +61,10 @@ namespace GeometryHelper.Drawing
 
             if (!up.IsValid || up.IsZeroLength(tolerance) || up.IsParallelTo(direction, tolerance))
             {
-                throw new ArgumentException("The up of a view has to lie across the direction it looks along.", nameof(up));
+                throw new ArgumentException(
+                    "The up of a view has to lie across the direction it looks along.",
+                    nameof(up)
+                );
             }
 
             CheckDepth(depthInFront, nameof(depthInFront));
@@ -118,8 +128,8 @@ namespace GeometryHelper.Drawing
         /// <summary>
         /// Makes the frame of a view along axes already known to be square, seeing everything in front and behind.
         /// </summary>
-        internal static ViewFrame3 Along(GeoPoint3 origin, GeoVector3 towardsViewer, GeoVector3 up)
-            => new ViewFrame3(Square(origin, towardsViewer, up));
+        internal static ViewFrame3 Along(GeoPoint3 origin, GeoVector3 towardsViewer, GeoVector3 up) =>
+            new ViewFrame3(Square(origin, towardsViewer, up));
 
         private static GeoCoordinateSystem3 Square(GeoPoint3 origin, GeoVector3 towardsViewer, GeoVector3 up)
         {

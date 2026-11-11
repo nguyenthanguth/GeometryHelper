@@ -12,12 +12,16 @@ namespace GeometryHelper.Dwg
     /// </summary>
     internal sealed class DwgDrawing
     {
-        private readonly Dictionary<string, List<KeyValuePair<int, string>>> _header = new Dictionary<string, List<KeyValuePair<int, string>>>(StringComparer.Ordinal);
-        private readonly Dictionary<string, Dictionary<string, ulong>> _names = new Dictionary<string, Dictionary<string, ulong>>(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<KeyValuePair<int, string>>> _header = new Dictionary<
+            string,
+            List<KeyValuePair<int, string>>
+        >(StringComparer.Ordinal);
+        private readonly Dictionary<string, Dictionary<string, ulong>> _names = new Dictionary<
+            string,
+            Dictionary<string, ulong>
+        >(StringComparer.Ordinal);
 
-        private DwgDrawing()
-        {
-        }
+        private DwgDrawing() { }
 
         /// <summary>The header variables in the order of the file, each by its name without the dollar sign.</summary>
         public readonly List<string> HeaderNames = new List<string>();
@@ -73,7 +77,9 @@ namespace GeometryHelper.Dwg
 
                 if (!int.TryParse(codeLine.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int code))
                 {
-                    throw new FormatException("The DXF text has a group code that is not a number: " + codeLine.Trim() + ".");
+                    throw new FormatException(
+                        "The DXF text has a group code that is not a number: " + codeLine.Trim() + "."
+                    );
                 }
 
                 groups.Add(new KeyValuePair<int, string>(code, Line(text, ref at)));
@@ -129,11 +135,21 @@ namespace GeometryHelper.Dwg
 
                     switch (section)
                     {
-                        case "CLASSES": Classes.AddRange(records); break;
-                        case "TABLES": ReadTables(records); break;
-                        case "BLOCKS": ReadBlocks(records); break;
-                        case "ENTITIES": Entities.AddRange(Nest(records)); break;
-                        case "OBJECTS": Objects.AddRange(records); break;
+                        case "CLASSES":
+                            Classes.AddRange(records);
+                            break;
+                        case "TABLES":
+                            ReadTables(records);
+                            break;
+                        case "BLOCKS":
+                            ReadBlocks(records);
+                            break;
+                        case "ENTITIES":
+                            Entities.AddRange(Nest(records));
+                            break;
+                        case "OBJECTS":
+                            Objects.AddRange(records);
+                            break;
                     }
                 }
 
@@ -148,7 +164,13 @@ namespace GeometryHelper.Dwg
             foreach (DwgRecord block in Blocks)
             {
                 ulong owner = block.Owner;
-                BlockEnds[owner] = new[] { block, block.Entities.Count > 0 && block.Entities[block.Entities.Count - 1].Type == "ENDBLK" ? block.Entities[block.Entities.Count - 1] : null };
+                BlockEnds[owner] = new[]
+                {
+                    block,
+                    block.Entities.Count > 0 && block.Entities[block.Entities.Count - 1].Type == "ENDBLK"
+                        ? block.Entities[block.Entities.Count - 1]
+                        : null,
+                };
 
                 foreach (DwgRecord entity in block.Entities)
                 {
@@ -338,7 +360,8 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>The groups of the header variable <paramref name="name"/> (no dollar sign); null where the file has none.</summary>
-        public List<KeyValuePair<int, string>> Header(string name) => _header.TryGetValue(name, out List<KeyValuePair<int, string>> groups) ? groups : null;
+        public List<KeyValuePair<int, string>> Header(string name) =>
+            _header.TryGetValue(name, out List<KeyValuePair<int, string>> groups) ? groups : null;
 
         /// <summary>The first value of the header variable <paramref name="name"/>; <paramref name="otherwise"/> where the file has none.</summary>
         public string HeaderText(string name, string otherwise)
@@ -362,6 +385,7 @@ namespace GeometryHelper.Dwg
         public DwgRecord Table(string name) => Tables.Find(table => table.Type == "TABLE:" + name);
 
         /// <summary>The record of <paramref name="handle"/>; null where there is none.</summary>
-        public DwgRecord Find(ulong handle) => handle != 0 && ByHandle.TryGetValue(handle, out DwgRecord record) ? record : null;
+        public DwgRecord Find(ulong handle) =>
+            handle != 0 && ByHandle.TryGetValue(handle, out DwgRecord record) ? record : null;
     }
 }

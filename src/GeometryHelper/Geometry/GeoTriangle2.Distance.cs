@@ -33,7 +33,8 @@ namespace GeometryHelper.Geometry
         /// The distance out to the nearest side, measured exactly, negative when the point lies inside the triangle
         /// and nought when the tolerance given calls it on a side.
         /// </returns>
-        public double SignedDistanceTo(GeoPoint2 point, Tolerance tolerance) => Triangle2.SignedDistanceTo(this, point, tolerance);
+        public double SignedDistanceTo(GeoPoint2 point, Tolerance tolerance) =>
+            Triangle2.SignedDistanceTo(this, point, tolerance);
 
         /// <summary>
         /// Gets the distance from this triangle to a polygon.
@@ -105,7 +106,8 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from this triangle to a curved loop, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => Triangle2.DistanceTo(this, loop, tolerance);
+        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Triangle2.DistanceTo(this, loop, tolerance);
 
         /// <summary>
         /// Gets the distance from this triangle to a curved chain, using the default tolerance.
@@ -117,7 +119,8 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from this triangle to a curved chain, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) => Triangle2.DistanceTo(this, chain, tolerance);
+        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Triangle2.DistanceTo(this, chain, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this triangle to the material of a face: the same answer as

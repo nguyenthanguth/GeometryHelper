@@ -38,7 +38,11 @@ namespace GeometryHelper.Viewer
             bool ofFace = loop.Unit != null && loop.Unit.Label == "face";
             List<Crossing> crossings = null;
 
-            if (!meshFace && loop.Points.Length >= 3 && (On(DiagnosticChecks.Crossings) || On(DiagnosticChecks.Slivers)))
+            if (
+                !meshFace
+                && loop.Points.Length >= 3
+                && (On(DiagnosticChecks.Crossings) || On(DiagnosticChecks.Slivers))
+            )
             {
                 crossings = FindCrossings(m, loop);
                 loop.Crossings = crossings.Count;
@@ -59,7 +63,13 @@ namespace GeometryHelper.Viewer
                 LoopDuplicates(m, loop);
             }
 
-            if (On(DiagnosticChecks.Slivers) && loop.Closed && loop.Points.Length >= 3 && !(loop.Unit != null && loop.Unit.LibrarySlivers) && (crossings == null || crossings.Count == 0))
+            if (
+                On(DiagnosticChecks.Slivers)
+                && loop.Closed
+                && loop.Points.Length >= 3
+                && !(loop.Unit != null && loop.Unit.LibrarySlivers)
+                && (crossings == null || crossings.Count == 0)
+            )
             {
                 Sliver(m, loop);
             }
@@ -88,7 +98,8 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Finds where the edges of a loop meet one another, or where the edges of the loops of a face meet those of another loop.
         /// </summary>
-        private List<Crossing> FindCrossings(ItemModel m, LoopData loop) => FindCrossings(m, new List<LoopData> { loop }, false);
+        private List<Crossing> FindCrossings(ItemModel m, LoopData loop) =>
+            FindCrossings(m, new List<LoopData> { loop }, false);
 
         private struct CurveRef
         {
@@ -122,7 +133,14 @@ namespace GeometryHelper.Viewer
 
                     if (curves[k] != null)
                     {
-                        refs.Add(new CurveRef { Curve = curves[k], Loop = l, Edge = k });
+                        refs.Add(
+                            new CurveRef
+                            {
+                                Curve = curves[k],
+                                Loop = l,
+                                Edge = k,
+                            }
+                        );
                     }
                 }
             }
@@ -189,7 +207,9 @@ namespace GeometryHelper.Viewer
                     // wrap round the end of a closed loop is such a join too.
                     double[] p = pre[ra.Loop];
                     forward = p[rb.Edge] - p[ra.Edge + 1];
-                    wrapped = loops[ra.Loop].Closed ? p[p.Length - 1] - (p[rb.Edge + 1] - p[ra.Edge]) : double.PositiveInfinity;
+                    wrapped = loops[ra.Loop].Closed
+                        ? p[p.Length - 1] - (p[rb.Edge + 1] - p[ra.Edge])
+                        : double.PositiveInfinity;
                 }
 
                 foreach (Vec3 hit in CurveIntersections.Find(ci, cj, tol))
@@ -206,7 +226,12 @@ namespace GeometryHelper.Viewer
 
                     CrossingClass how;
 
-                    if (Near(hit, ci.Start, tol) || Near(hit, ci.End, tol) || Near(hit, cj.Start, tol) || Near(hit, cj.End, tol))
+                    if (
+                        Near(hit, ci.Start, tol)
+                        || Near(hit, ci.End, tol)
+                        || Near(hit, cj.Start, tol)
+                        || Near(hit, cj.End, tol)
+                    )
                     {
                         how = CrossingClass.Touch;
                     }
@@ -216,22 +241,34 @@ namespace GeometryHelper.Viewer
                         how = ChangesSide(ci, cj, hit, normal) ? CrossingClass.Crossing : CrossingClass.Tangent;
                     }
 
-                    found.Add(new Crossing { At = hit, FirstLoop = ra.Loop, First = ra.Edge, SecondLoop = rb.Loop, Second = rb.Edge, How = how });
+                    found.Add(
+                        new Crossing
+                        {
+                            At = hit,
+                            FirstLoop = ra.Loop,
+                            First = ra.Edge,
+                            SecondLoop = rb.Loop,
+                            Second = rb.Edge,
+                            How = how,
+                        }
+                    );
                 }
             }
 
             // Edges ending at a vertex that lies on a third meet it at one point twice, and a tangent can be found a few times along its
             // length: the points joined within the tolerance, one to the next, are one place, whichever way they sort.
-            found.Sort((x, y) =>
-            {
-                int c = x.At.X.CompareTo(y.At.X);
-                c = c != 0 ? c : x.At.Y.CompareTo(y.At.Y);
-                c = c != 0 ? c : x.At.Z.CompareTo(y.At.Z);
-                c = c != 0 ? c : x.FirstLoop.CompareTo(y.FirstLoop);
-                c = c != 0 ? c : x.First.CompareTo(y.First);
-                c = c != 0 ? c : x.SecondLoop.CompareTo(y.SecondLoop);
-                return c != 0 ? c : x.Second.CompareTo(y.Second);
-            });
+            found.Sort(
+                (x, y) =>
+                {
+                    int c = x.At.X.CompareTo(y.At.X);
+                    c = c != 0 ? c : x.At.Y.CompareTo(y.At.Y);
+                    c = c != 0 ? c : x.At.Z.CompareTo(y.At.Z);
+                    c = c != 0 ? c : x.FirstLoop.CompareTo(y.FirstLoop);
+                    c = c != 0 ? c : x.First.CompareTo(y.First);
+                    c = c != 0 ? c : x.SecondLoop.CompareTo(y.SecondLoop);
+                    return c != 0 ? c : x.Second.CompareTo(y.Second);
+                }
+            );
 
             if (found.Count < 2)
             {
@@ -262,8 +299,8 @@ namespace GeometryHelper.Viewer
             return merged;
         }
 
-        private static Vec3 LoopNormal(LoopData loop)
-            => loop.Dimension == 2 ? new Vec3(0.0, 0.0, 1.0) : LoopMath.Newell(loop.Points).Normalized();
+        private static Vec3 LoopNormal(LoopData loop) =>
+            loop.Dimension == 2 ? new Vec3(0.0, 0.0, 1.0) : LoopMath.Newell(loop.Points).Normalized();
 
         private static bool Near(Vec3 a, Vec3 b, double tolerance) => (a - b).Length <= tolerance;
 
@@ -373,23 +410,55 @@ namespace GeometryHelper.Viewer
 
             // A loop on its own is asked of the library always; a face of a body, of which there can be thousands, only where the viewer found
             // it crossing itself, so that the two can be compared.
-            if (_options.UseLibrary && loop.Closed && loop.Points.Length >= 4 && (loop.Unit == null || crossings.Count > 0))
+            if (
+                _options.UseLibrary
+                && loop.Closed
+                && loop.Points.Length >= 4
+                && (loop.Unit == null || crossings.Count > 0)
+            )
             {
                 simple = LibrarySimple(loop, out library);
             }
 
-            string agree = simple == null ? string.Empty : simple.Value ? "; " + library + " says the loop is simple" : "; " + library + " agrees: not simple";
+            string agree =
+                simple == null ? string.Empty
+                : simple.Value ? "; " + library + " says the loop is simple"
+                : "; " + library + " agrees: not simple";
 
             foreach (Crossing c in crossings)
             {
-                string text = loop.Role + ": edges " + Number(c.First) + " and " + Number(c.Second) + MeetText(c, " cross at ");
-                DiagnosticFinding f = Add(m, DiagnosticChecks.Crossings, DiagnosticKind.SelfCrossing, true, text, "viewer: exact curves, CurveIntersections" + agree, c.At, 0.0, 0.0);
+                string text =
+                    loop.Role + ": edges " + Number(c.First) + " and " + Number(c.Second) + MeetText(c, " cross at ");
+                DiagnosticFinding f = Add(
+                    m,
+                    DiagnosticChecks.Crossings,
+                    DiagnosticKind.SelfCrossing,
+                    true,
+                    text,
+                    "viewer: exact curves, CurveIntersections" + agree,
+                    c.At,
+                    0.0,
+                    0.0
+                );
                 f.Drawing.Dots.Add(new DiagnosticDot(c.At, DiagnosticColors.Crossing, 13.0));
             }
 
             if (simple == false && crossings.Count == 0)
             {
-                Add(m, DiagnosticChecks.Crossings, DiagnosticKind.SelfCrossing, true, loop.Role + ": " + library + " says the loop is not simple, though the exact curves of its edges meet nowhere but where neighbours join", library, loop.Points[0], 0.0, 0.0);
+                Add(
+                    m,
+                    DiagnosticChecks.Crossings,
+                    DiagnosticKind.SelfCrossing,
+                    true,
+                    loop.Role
+                        + ": "
+                        + library
+                        + " says the loop is not simple, though the exact curves of its edges meet nowhere but where neighbours join",
+                    library,
+                    loop.Points[0],
+                    0.0,
+                    0.0
+                );
             }
         }
 
@@ -409,17 +478,42 @@ namespace GeometryHelper.Viewer
 
                 foreach (Crossing c in FindCrossings(m, loops, true))
                 {
-                    string text = (unit.Label == "face" ? string.Empty : unit.Label + ": ") + loops[c.FirstLoop].Role + " (edge " + Number(c.First) + ") and " + loops[c.SecondLoop].Role + " (edge " + Number(c.Second) + ")" + MeetText(c, " cross at ");
-                    DiagnosticFinding finding = Add(m, DiagnosticChecks.Crossings, DiagnosticKind.SelfCrossing, true, text, "viewer: exact curves, CurveIntersections", c.At, 0.0, 0.0);
+                    string text =
+                        (unit.Label == "face" ? string.Empty : unit.Label + ": ")
+                        + loops[c.FirstLoop].Role
+                        + " (edge "
+                        + Number(c.First)
+                        + ") and "
+                        + loops[c.SecondLoop].Role
+                        + " (edge "
+                        + Number(c.Second)
+                        + ")"
+                        + MeetText(c, " cross at ");
+                    DiagnosticFinding finding = Add(
+                        m,
+                        DiagnosticChecks.Crossings,
+                        DiagnosticKind.SelfCrossing,
+                        true,
+                        text,
+                        "viewer: exact curves, CurveIntersections",
+                        c.At,
+                        0.0,
+                        0.0
+                    );
                     finding.Drawing.Dots.Add(new DiagnosticDot(c.At, DiagnosticColors.Crossing, 13.0));
                 }
             }
         }
 
-        private string MeetText(Crossing c, string cross)
-            => c.How == CrossingClass.Crossing ? cross + Where(c.At)
-                : c.How == CrossingClass.Touch ? " touch at " + Where(c.At) + " (an end of one lies on the other within EqualPoint " + N(_tol) + ")"
-                : " touch tangentially at " + Where(c.At) + " (they come within EqualPoint " + N(_tol) + " of each other without changing side)";
+        private string MeetText(Crossing c, string cross) =>
+            c.How == CrossingClass.Crossing ? cross + Where(c.At)
+            : c.How == CrossingClass.Touch
+                ? " touch at " + Where(c.At) + " (an end of one lies on the other within EqualPoint " + N(_tol) + ")"
+            : " touch tangentially at "
+                + Where(c.At)
+                + " (they come within EqualPoint "
+                + N(_tol)
+                + " of each other without changing side)";
 
         /// <summary>
         /// Asks the library whether the loop crosses itself, with the loop rebuilt as the kind of polygon it is.
@@ -435,7 +529,10 @@ namespace GeometryHelper.Viewer
                     if (loop.HasArcs)
                     {
                         source = "GeoPolygonArc2.IsSimple(tolerance)";
-                        return new GeoPolygonArc2(loop.Points.Select(p => new GeoPoint2(p.X, p.Y)), loop.Bulges).IsSimple(_scene.Tolerance);
+                        return new GeoPolygonArc2(
+                            loop.Points.Select(p => new GeoPoint2(p.X, p.Y)),
+                            loop.Bulges
+                        ).IsSimple(_scene.Tolerance);
                     }
 
                     source = "GeoPolygon2.IsSimple(tolerance)";
@@ -452,13 +549,20 @@ namespace GeometryHelper.Viewer
                         normals[k] = new GeoVector3(loop.Normals[k].X, loop.Normals[k].Y, loop.Normals[k].Z);
                     }
 
-                    return new GeoPolygonArc3(loop.Points.Select(p => new GeoPoint3(p.X, p.Y, p.Z)), loop.Bulges, normals).IsSimple(_scene.Tolerance);
+                    return new GeoPolygonArc3(
+                        loop.Points.Select(p => new GeoPoint3(p.X, p.Y, p.Z)),
+                        loop.Bulges,
+                        normals
+                    ).IsSimple(_scene.Tolerance);
                 }
 
                 source = "GeoPolygon3.IsSimple(tolerance)";
-                return new GeoPolygon3(loop.Points.Select(p => new GeoPoint3(p.X, p.Y, p.Z))).IsSimple(_scene.Tolerance);
+                return new GeoPolygon3(loop.Points.Select(p => new GeoPoint3(p.X, p.Y, p.Z))).IsSimple(
+                    _scene.Tolerance
+                );
             }
-            catch (Exception e) when (e is ArgumentException || e is InvalidOperationException || e is NotSupportedException)
+            catch (Exception e)
+                when (e is ArgumentException || e is InvalidOperationException || e is NotSupportedException)
             {
                 // The library keeps no loop of fewer than three vertices, or one off its plane: it has no reading.
                 source = null;
@@ -483,9 +587,27 @@ namespace GeometryHelper.Viewer
         {
             if (_needleFacts > 0)
             {
-                string text = Count(_needleFacts, "vertex") + " of the item turn back by more than " + N(NeedleTurnDegrees) + " degrees but the spike is wider than EqualPoint " + N(_tol)
-                    + " where its shorter side ends, a thin shape and no fault; the narrowest is " + N(_needleNarrowest) + " wide at " + _needleWhere;
-                DiagnosticFinding f = Add(m, DiagnosticChecks.Needles, DiagnosticKind.Needle, false, text, "viewer: tangents of the exact curves at the vertex", _needleAt, _needleTurn, _needleNarrowest);
+                string text =
+                    Count(_needleFacts, "vertex")
+                    + " of the item turn back by more than "
+                    + N(NeedleTurnDegrees)
+                    + " degrees but the spike is wider than EqualPoint "
+                    + N(_tol)
+                    + " where its shorter side ends, a thin shape and no fault; the narrowest is "
+                    + N(_needleNarrowest)
+                    + " wide at "
+                    + _needleWhere;
+                DiagnosticFinding f = Add(
+                    m,
+                    DiagnosticChecks.Needles,
+                    DiagnosticKind.Needle,
+                    false,
+                    text,
+                    "viewer: tangents of the exact curves at the vertex",
+                    _needleAt,
+                    _needleTurn,
+                    _needleNarrowest
+                );
                 f.Drawing.Dots.Add(new DiagnosticDot(_needleAt, DiagnosticColors.Needle, 12.0));
             }
 
@@ -504,7 +626,12 @@ namespace GeometryHelper.Viewer
             }
 
             // A loop that is itself a sliver has the same fault at every corner, and is told once as the sliver it is.
-            if (On(DiagnosticChecks.Slivers) && loop.Closed && (n == 3 || loop.Crossings == 0) && Math.Abs(LoopMath.SignedArea(loop, out _)) < _tol * LoopMath.LongestChord(loop))
+            if (
+                On(DiagnosticChecks.Slivers)
+                && loop.Closed
+                && (n == 3 || loop.Crossings == 0)
+                && Math.Abs(LoopMath.SignedArea(loop, out _)) < _tol * LoopMath.LongestChord(loop)
+            )
             {
                 return;
             }
@@ -581,9 +708,31 @@ namespace GeometryHelper.Viewer
                     continue;
                 }
 
-                string text = loop.Role + ": vertex " + Number(k) + " turns back by " + N(turn) + " degrees, a needle; the shorter edge to it is " + N(shorter) + " long and the spike is "
-                    + N(width) + " wide where it ends, " + (fault ? "no wider than" : "wider than") + " EqualPoint " + N(_tol);
-                DiagnosticFinding f = Add(m, DiagnosticChecks.Needles, DiagnosticKind.Needle, fault, text, "viewer: tangents of the exact curves at the vertex", loop.Points[k], turn, shorter);
+                string text =
+                    loop.Role
+                    + ": vertex "
+                    + Number(k)
+                    + " turns back by "
+                    + N(turn)
+                    + " degrees, a needle; the shorter edge to it is "
+                    + N(shorter)
+                    + " long and the spike is "
+                    + N(width)
+                    + " wide where it ends, "
+                    + (fault ? "no wider than" : "wider than")
+                    + " EqualPoint "
+                    + N(_tol);
+                DiagnosticFinding f = Add(
+                    m,
+                    DiagnosticChecks.Needles,
+                    DiagnosticKind.Needle,
+                    fault,
+                    text,
+                    "viewer: tangents of the exact curves at the vertex",
+                    loop.Points[k],
+                    turn,
+                    shorter
+                );
                 f.Drawing.Line(DiagnosticColors.Needle, 3.0, before.Start, loop.Points[k], after.End);
                 f.Drawing.Dots.Add(new DiagnosticDot(loop.Points[k], DiagnosticColors.Needle, 12.0));
             }
@@ -598,8 +747,28 @@ namespace GeometryHelper.Viewer
                 bool neighbours = second == first + 1 || (loop.Closed && first == 0 && second == n - 1);
                 Vec3 a = loop.Points[first];
                 Vec3 b = loop.Points[second];
-                string text = loop.Role + ": vertices " + Number(first) + " and " + Number(second) + (neighbours ? " (neighbours)" : " (not neighbours)") + " are " + N(distance) + " apart, within EqualPoint " + N(_tol);
-                DiagnosticFinding f = Add(m, DiagnosticChecks.Duplicates, DiagnosticKind.DuplicateVertex, true, text, "viewer: vertices closer than EqualPoint", (a + b) * 0.5, distance, distance);
+                string text =
+                    loop.Role
+                    + ": vertices "
+                    + Number(first)
+                    + " and "
+                    + Number(second)
+                    + (neighbours ? " (neighbours)" : " (not neighbours)")
+                    + " are "
+                    + N(distance)
+                    + " apart, within EqualPoint "
+                    + N(_tol);
+                DiagnosticFinding f = Add(
+                    m,
+                    DiagnosticChecks.Duplicates,
+                    DiagnosticKind.DuplicateVertex,
+                    true,
+                    text,
+                    "viewer: vertices closer than EqualPoint",
+                    (a + b) * 0.5,
+                    distance,
+                    distance
+                );
                 f.Drawing.Line(DiagnosticColors.Duplicate, 4.0, a, b);
                 f.Drawing.Dots.Add(new DiagnosticDot((a + b) * 0.5, DiagnosticColors.Duplicate, 11.0));
             }
@@ -625,8 +794,29 @@ namespace GeometryHelper.Viewer
             }
 
             centre = centre * (1.0 / loop.Points.Length);
-            string text = loop.Role + ": area " + N(area) + " against a longest edge of " + N(longest) + ", about " + N(width) + " wide; under EqualPoint " + N(_tol) + " times the longest edge, " + N(_tol * longest);
-            DiagnosticFinding f = Add(m, DiagnosticChecks.Slivers, DiagnosticKind.Sliver, true, text, "viewer: area against the longest edge", centre, area, longest * 0.6);
+            string text =
+                loop.Role
+                + ": area "
+                + N(area)
+                + " against a longest edge of "
+                + N(longest)
+                + ", about "
+                + N(width)
+                + " wide; under EqualPoint "
+                + N(_tol)
+                + " times the longest edge, "
+                + N(_tol * longest);
+            DiagnosticFinding f = Add(
+                m,
+                DiagnosticChecks.Slivers,
+                DiagnosticKind.Sliver,
+                true,
+                text,
+                "viewer: area against the longest edge",
+                centre,
+                area,
+                longest * 0.6
+            );
             f.Drawing.Loop(DiagnosticColors.Sliver, 3.5, loop.Points);
         }
 
@@ -641,7 +831,12 @@ namespace GeometryHelper.Viewer
             bool? libraryClockwise = null;
 
             // The polygons of the plane have a reading in the library, which is asked first.
-            if (_options.UseLibrary && loop.Dimension == 2 && loop.Ring == 0 && (loop.Kind == "GeoPolygon2" || loop.Kind == "GeoPolygonArc2"))
+            if (
+                _options.UseLibrary
+                && loop.Dimension == 2
+                && loop.Ring == 0
+                && (loop.Kind == "GeoPolygon2" || loop.Kind == "GeoPolygonArc2")
+            )
             {
                 try
                 {
@@ -673,17 +868,37 @@ namespace GeometryHelper.Viewer
             {
                 LoopData outer = loop.Unit.Faces[loop.Face][0];
                 double outerArea = LoopMath.SignedArea(outer, out Vec3 outerNormal);
-                sameAsOuter = loop.Dimension == 2 ? (outerArea < 0.0) == clockwise : Vec3.Dot(normal, outerNormal) > 0.0;
+                sameAsOuter =
+                    loop.Dimension == 2 ? (outerArea < 0.0) == clockwise : Vec3.Dot(normal, outerNormal) > 0.0;
             }
 
-            string way = loop.Dimension == 2
-                ? (clockwise ? "clockwise" : "counter-clockwise") + " (signed area " + N(area) + ")"
-                : "counter-clockwise seen from its normal " + normal + " (area " + N(Math.Abs(area)) + ")";
+            string way =
+                loop.Dimension == 2
+                    ? (clockwise ? "clockwise" : "counter-clockwise") + " (signed area " + N(area) + ")"
+                    : "counter-clockwise seen from its normal " + normal + " (area " + N(Math.Abs(area)) + ")";
             // The library turns the hole of a GeoFace3 to run the way its outline does (GeoFace3's constructor flips a hole that runs against it) and
             // reads a hole of a GeoFace2 either way: a hole that runs the way its outline does is a fact to know, never a fault.
-            string text = loop.Role + " runs " + way + (sameAsOuter ? "; a hole runs the same way as its outline, which the library stores for a GeoFace3 and reads for a GeoFace2" : string.Empty);
+            string text =
+                loop.Role
+                + " runs "
+                + way
+                + (
+                    sameAsOuter
+                        ? "; a hole runs the same way as its outline, which the library stores for a GeoFace3 and reads for a GeoFace2"
+                        : string.Empty
+                );
             Vec3 first = loop.Points[0];
-            DiagnosticFinding f = Add(m, DiagnosticChecks.Winding, DiagnosticKind.LoopWinding, false, text, source, first, area, 0.0);
+            DiagnosticFinding f = Add(
+                m,
+                DiagnosticChecks.Winding,
+                DiagnosticKind.LoopWinding,
+                false,
+                text,
+                source,
+                first,
+                area,
+                0.0
+            );
 
             SceneCurve[] curves = loop.Curves(m.Index);
             int stride = Math.Max(1, (curves.Length + MaxWindingArrows - 1) / MaxWindingArrows);
@@ -702,7 +917,14 @@ namespace GeometryHelper.Viewer
                 Vec3 mid = c.Middle ?? (c.Start + c.End) * 0.5;
                 Vec3 dir = LoopMath.MiddleTangent(c);
                 double half = 0.5 * Math.Min(0.35 * (c.End - c.Start).Length, 0.12 * perimeter);
-                LoopMath.Arrow(f.Drawing, DiagnosticColors.Direction, 2.0, mid - dir * half, mid + dir * half, Vec3.Cross(up, dir).Normalized());
+                LoopMath.Arrow(
+                    f.Drawing,
+                    DiagnosticColors.Direction,
+                    2.0,
+                    mid - dir * half,
+                    mid + dir * half,
+                    Vec3.Cross(up, dir).Normalized()
+                );
             }
         }
 
@@ -712,8 +934,23 @@ namespace GeometryHelper.Viewer
 
             if (worst > _planar)
             {
-                string text = loop.Role + ": a corner is " + N(worst) + " off the plane through the first corner, more than EqualPlanar " + N(_planar);
-                DiagnosticFinding f = Add(m, DiagnosticChecks.Flatness, DiagnosticKind.NotFlat, true, text, "viewer, as the library's polygon reads it: distance from the plane through the first corner", at, worst, 0.0);
+                string text =
+                    loop.Role
+                    + ": a corner is "
+                    + N(worst)
+                    + " off the plane through the first corner, more than EqualPlanar "
+                    + N(_planar);
+                DiagnosticFinding f = Add(
+                    m,
+                    DiagnosticChecks.Flatness,
+                    DiagnosticKind.NotFlat,
+                    true,
+                    text,
+                    "viewer, as the library's polygon reads it: distance from the plane through the first corner",
+                    at,
+                    worst,
+                    0.0
+                );
                 f.Drawing.Loop(DiagnosticColors.NotFlat, 3.0, loop.Points);
             }
         }
@@ -737,8 +974,25 @@ namespace GeometryHelper.Viewer
 
             centre = centre * (1.0 / loop.Points.Length);
             Vec3 normal = vector * (1.0 / area);
-            DiagnosticFinding f = Add(m, DiagnosticChecks.Normals, DiagnosticKind.Normals, false, loop.Role + ": normal " + normal + " by the right-hand rule round the outline", "viewer: right-hand rule round the outline", centre, area, 0.0);
-            LoopMath.Arrow(f.Drawing, DiagnosticColors.Direction, 2.0, centre, centre + normal * (0.5 * Math.Sqrt(area)), LoopMath.Perpendicular(normal));
+            DiagnosticFinding f = Add(
+                m,
+                DiagnosticChecks.Normals,
+                DiagnosticKind.Normals,
+                false,
+                loop.Role + ": normal " + normal + " by the right-hand rule round the outline",
+                "viewer: right-hand rule round the outline",
+                centre,
+                area,
+                0.0
+            );
+            LoopMath.Arrow(
+                f.Drawing,
+                DiagnosticColors.Direction,
+                2.0,
+                centre,
+                centre + normal * (0.5 * Math.Sqrt(area)),
+                LoopMath.Perpendicular(normal)
+            );
         }
 
         /// <summary>

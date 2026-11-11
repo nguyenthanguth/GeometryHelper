@@ -13,8 +13,7 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     public class SplitByVolumeTests
     {
-        private static GeoSolid3 MakeBoxSolid(GeoPoint3 min, GeoPoint3 max) =>
-            new GeoAabb3(min, max).ToObb().ToSolid();
+        private static GeoSolid3 MakeBoxSolid(GeoPoint3 min, GeoPoint3 max) => new GeoAabb3(min, max).ToObb().ToSolid();
 
         /// <summary>
         /// A cube from (0,0,0) to (10,10,10).
@@ -87,7 +86,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(-5, 5, 5),
                 new GeoPoint3(5, 5, 5),
                 new GeoPoint3(5, 5, 20),
-                new GeoPoint3(30, 5, 20));
+                new GeoPoint3(30, 5, 20)
+            );
 
             Assert.True(chain.TrySplitBy(MakeCube(), out GeoPolyline3[] inside, out GeoPolyline3[] outside));
 
@@ -154,17 +154,20 @@ namespace GeometryHelper.UnitTest.Solid
         public void AConcaveSolidCanTakeTheChainInAndOutMoreThanOnce()
         {
             // A U-shaped prism. A straight chain across both arms is inside, outside, inside, outside...
-            GeoSolid3 uShape = MakePrism(new[]
-            {
-                new GeoPoint3(0, 0, 0),
-                new GeoPoint3(9, 0, 0),
-                new GeoPoint3(9, 10, 0),
-                new GeoPoint3(6, 10, 0),
-                new GeoPoint3(6, 4, 0),
-                new GeoPoint3(3, 4, 0),
-                new GeoPoint3(3, 10, 0),
-                new GeoPoint3(0, 10, 0)
-            }, 5.0);
+            GeoSolid3 uShape = MakePrism(
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(9, 0, 0),
+                    new GeoPoint3(9, 10, 0),
+                    new GeoPoint3(6, 10, 0),
+                    new GeoPoint3(6, 4, 0),
+                    new GeoPoint3(3, 4, 0),
+                    new GeoPoint3(3, 10, 0),
+                    new GeoPoint3(0, 10, 0),
+                },
+                5.0
+            );
 
             // At y = 7 the profile is material over x in [0,3] and [6,9], and void between.
             GeoPolyline3 chain = new GeoPolyline3(new GeoPoint3(-5, 7, 2), new GeoPoint3(15, 7, 2));
@@ -247,7 +250,9 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPolyline3 chain = new GeoPolyline3(new GeoPoint3(-5, 5, 5), new GeoPoint3(20, 5, 5));
 
             Assert.True(chain.TrySplitBy(box, out GeoPolyline3[] boxInside, out GeoPolyline3[] boxOutside));
-            Assert.True(chain.TrySplitBy(box.ToSolid(), out GeoPolyline3[] solidInside, out GeoPolyline3[] solidOutside));
+            Assert.True(
+                chain.TrySplitBy(box.ToSolid(), out GeoPolyline3[] solidInside, out GeoPolyline3[] solidOutside)
+            );
 
             Assert.Equal(solidInside.Length, boxInside.Length);
             Assert.Equal(solidOutside.Length, boxOutside.Length);
@@ -257,15 +262,13 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ARotatedBoxCutsAlongItsOwnAxes()
         {
-            GeoObb3 box = new GeoObb3(
-                GeoPoint3.Origin, 20, 4, 4,
-                new GeoVector3(1, 1, 0),
-                new GeoVector3(-1, 1, 0));
+            GeoObb3 box = new GeoObb3(GeoPoint3.Origin, 20, 4, 4, new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 0));
 
             // Along the long axis of the box, entering and leaving through its end faces.
             GeoPolyline3 chain = new GeoPolyline3(
                 GeoPoint3.Origin.Add(box.AxisX.Multiply(-30)),
-                GeoPoint3.Origin.Add(box.AxisX.Multiply(30)));
+                GeoPoint3.Origin.Add(box.AxisX.Multiply(30))
+            );
 
             Assert.True(chain.TrySplitBy(box, out GeoPolyline3[] inside, out GeoPolyline3[] outside));
 
@@ -356,7 +359,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Throws<ArgumentNullException>(() => Splition3.TrySplitBy(chain, (GeoSolid3)null, out _, out _));
             Assert.Throws<ArgumentNullException>(() => Splition3.TrySplitBy(chain, (GeoObb3)null, out _, out _));
-            Assert.Throws<ArgumentNullException>(() => Splition3.TrySplitBy((GeoPolyline3)null, MakeCube(), out _, out _));
+            Assert.Throws<ArgumentNullException>(() =>
+                Splition3.TrySplitBy((GeoPolyline3)null, MakeCube(), out _, out _)
+            );
         }
     }
 }

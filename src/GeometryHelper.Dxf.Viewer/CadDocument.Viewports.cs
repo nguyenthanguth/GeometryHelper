@@ -155,7 +155,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="name">The name of the undo step, as ZOOM or PAN.</param>
         /// <returns>What came of it: refused for no such viewport, a height not above nought, or a viewport whose display is locked.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the name is null.</exception>
-        public CadEditResult SetViewportView(string handle, GeoPoint2 viewCenter, double viewHeight, string name) => SetViewportView(handle, viewCenter, viewHeight, name, false);
+        public CadEditResult SetViewportView(string handle, GeoPoint2 viewCenter, double viewHeight, string name) =>
+            SetViewportView(handle, viewCenter, viewHeight, name, false);
 
         /// <summary>
         /// Sets the view a viewport shows of model space, as <see cref="SetViewportView(string, GeoPoint2, double, string)"/>; a
@@ -171,7 +172,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// before it where no other step, a save or an undo came between.</param>
         /// <returns>What came of it, refused as the other overload refuses.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the name is null.</exception>
-        public CadEditResult SetViewportView(string handle, GeoPoint2 viewCenter, double viewHeight, string name, bool realTime)
+        public CadEditResult SetViewportView(
+            string handle,
+            GeoPoint2 viewCenter,
+            double viewHeight,
+            string name,
+            bool realTime
+        )
         {
             if (name == null)
             {
@@ -189,7 +196,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             try
             {
-                return ApplyEdit(name, ViewRecord(handle, viewCenter, viewHeight), ViewWriter(handle, viewCenter, viewHeight));
+                return ApplyEdit(
+                    name,
+                    ViewRecord(handle, viewCenter, viewHeight),
+                    ViewWriter(handle, viewCenter, viewHeight)
+                );
             }
             finally
             {
@@ -218,21 +229,31 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var viewport = (DxfViewport)FindEntity(handle);
             string was = CadCommands.Values(viewport.ViewCenter.X, viewport.ViewCenter.Y, viewport.ViewHeight);
-            return new[] { new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "View", was, CadCommands.Values(viewCenter.X, viewCenter.Y, viewHeight)) };
+            return new[]
+            {
+                new CadEditRecord(
+                    CadEditRecordKind.PropertyChanged,
+                    handle,
+                    "View",
+                    was,
+                    CadCommands.Values(viewCenter.X, viewCenter.Y, viewHeight)
+                ),
+            };
         }
 
         /// <summary>The writer of a viewport's view, found through the scope.</summary>
-        internal static Action<CadEditScope> ViewWriter(string handle, GeoPoint2 viewCenter, double viewHeight) => s =>
-        {
-            if (s.IsHandled(handle))
+        internal static Action<CadEditScope> ViewWriter(string handle, GeoPoint2 viewCenter, double viewHeight) =>
+            s =>
             {
-                return;
-            }
+                if (s.IsHandled(handle))
+                {
+                    return;
+                }
 
-            var viewport = (DxfViewport)s.Document.FindEntity(handle);
-            viewport.ViewCenter = viewCenter;
-            viewport.ViewHeight = viewHeight;
-        };
+                var viewport = (DxfViewport)s.Document.FindEntity(handle);
+                viewport.ViewCenter = viewCenter;
+                viewport.ViewHeight = viewHeight;
+            };
 
         /// <summary>The viewport of a handle a layout can be worked in through; null for none.</summary>
         private DxfViewport WorkedThrough(CadSpace space, string handle)
@@ -242,7 +263,12 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            return FindEntity(handle) is DxfViewport viewport && ReferenceEquals(FindSpace(handle), space) && CadViewports.CanWorkThrough(viewport) ? viewport : null;
+            return
+                FindEntity(handle) is DxfViewport viewport
+                && ReferenceEquals(FindSpace(handle), space)
+                && CadViewports.CanWorkThrough(viewport)
+                ? viewport
+                : null;
         }
     }
 
@@ -275,7 +301,13 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(viewport));
             }
 
-            if (viewport.IsErased || viewport.Number <= 1 || !(viewport.Width > 0.0) || !(viewport.Height > 0.0) || !(viewport.ViewHeight > 0.0))
+            if (
+                viewport.IsErased
+                || viewport.Number <= 1
+                || !(viewport.Width > 0.0)
+                || !(viewport.Height > 0.0)
+                || !(viewport.ViewHeight > 0.0)
+            )
             {
                 return false;
             }
@@ -324,7 +356,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// point of model space at the middle of the frame, about the view's target and turned by its twist.</param>
         /// <param name="viewHeight">The height of model space the frame shows.</param>
         /// <exception cref="ArgumentNullException">Thrown when a view or the viewport is null.</exception>
-        public static void ViewOf(CadView paper, CadView model, DxfViewport viewport, out GeoPoint2 viewCenter, out double viewHeight)
+        public static void ViewOf(
+            CadView paper,
+            CadView model,
+            DxfViewport viewport,
+            out GeoPoint2 viewCenter,
+            out double viewHeight
+        )
         {
             if (paper == null)
             {
@@ -345,7 +383,10 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint3 frame = viewport.CenterPoint;
             viewHeight = viewport.Height / scale;
             GeoPoint2 middle = ToView(viewport, new GeoPoint2(model.CenterX, model.CenterY));
-            viewCenter = new GeoPoint2(middle.X - (paper.CenterX - frame.X) / scale, middle.Y - (paper.CenterY - frame.Y) / scale);
+            viewCenter = new GeoPoint2(
+                middle.X - (paper.CenterX - frame.X) / scale,
+                middle.Y - (paper.CenterY - frame.Y) / scale
+            );
         }
 
         /// <summary>
@@ -422,7 +463,10 @@ namespace GeometryHelper.Dxf.Viewer
             double scale = viewport.Height / viewport.ViewHeight;
             GeoPoint3 frame = viewport.CenterPoint;
             GeoPoint2 view = viewport.ViewCenter;
-            return FromView(viewport, new GeoPoint2(view.X + (paper.X - frame.X) / scale, view.Y + (paper.Y - frame.Y) / scale));
+            return FromView(
+                viewport,
+                new GeoPoint2(view.X + (paper.X - frame.X) / scale, view.Y + (paper.Y - frame.Y) / scale)
+            );
         }
 
         /// <summary>The point of the paper a point of model space is shown at through a viewport.</summary>
@@ -470,7 +514,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             view = FromView(viewport, view);
-            return new DisplayBox(view.X - width / 2.0, view.Y - height / 2.0, view.X + width / 2.0, view.Y + height / 2.0);
+            return new DisplayBox(
+                view.X - width / 2.0,
+                view.Y - height / 2.0,
+                view.X + width / 2.0,
+                view.Y + height / 2.0
+            );
         }
 
         /// <summary>
@@ -535,10 +584,15 @@ namespace GeometryHelper.Dxf.Viewer
             string[] parts = (name ?? string.Empty).Trim().Split(':');
             var culture = System.Globalization.CultureInfo.InvariantCulture;
 
-            if (parts.Length != 2
+            if (
+                parts.Length != 2
                 || !double.TryParse(parts[0].Trim(), System.Globalization.NumberStyles.Float, culture, out double paper)
                 || !double.TryParse(parts[1].Trim(), System.Globalization.NumberStyles.Float, culture, out double model)
-                || !(paper > 0.0) || !(model > 0.0) || double.IsInfinity(paper) || double.IsInfinity(model))
+                || !(paper > 0.0)
+                || !(model > 0.0)
+                || double.IsInfinity(paper)
+                || double.IsInfinity(model)
+            )
             {
                 return false;
             }

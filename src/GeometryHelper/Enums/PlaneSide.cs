@@ -22,6 +22,6 @@ namespace GeometryHelper.Enums
         /// <summary>
         /// The point lies on the plane itself, within tolerance.
         /// </summary>
-        On
+        On,
     }
 }

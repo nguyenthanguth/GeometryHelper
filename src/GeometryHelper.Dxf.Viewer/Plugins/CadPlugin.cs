@@ -65,10 +65,16 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
         /// <exception cref="ArgumentNullException">Thrown when the assemblies are null.</exception>
         /// <exception cref="CadPluginException">Thrown when the plugin needs a newer API, states an API version that is not
         /// one, or has no command.</exception>
-        public static CadPlugin FromAssemblies(string name, IEnumerable<Assembly> assemblies, string version = null) => MakeFrom(name, assemblies, version, true);
+        public static CadPlugin FromAssemblies(string name, IEnumerable<Assembly> assemblies, string version = null) =>
+            MakeFrom(name, assemblies, version, true);
 
         /// <summary>A plugin from its assemblies; one with no command refused only where commands are needed, as they are not for one that holds drawing plugins.</summary>
-        internal static CadPlugin MakeFrom(string name, IEnumerable<Assembly> assemblies, string version, bool needsCommand)
+        internal static CadPlugin MakeFrom(
+            string name,
+            IEnumerable<Assembly> assemblies,
+            string version,
+            bool needsCommand
+        )
         {
             if (assemblies == null)
             {
@@ -105,7 +111,14 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
                 if (!System.Version.TryParse(api.Version, out Version stated))
                 {
-                    throw new CadPluginException(name, "The plugin " + name + " states the API version \"" + api.Version + "\", which is not a version.");
+                    throw new CadPluginException(
+                        name,
+                        "The plugin "
+                            + name
+                            + " states the API version \""
+                            + api.Version
+                            + "\", which is not a version."
+                    );
                 }
 
                 if (stated > required)
@@ -116,16 +129,35 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
             if (required > ApiVersion)
             {
-                throw new CadPluginException(name, "The plugin " + name + " needs version " + required + " of the plugin API, and this presenter has " + ApiVersion + ": it needs a newer presenter.");
+                throw new CadPluginException(
+                    name,
+                    "The plugin "
+                        + name
+                        + " needs version "
+                        + required
+                        + " of the plugin API, and this presenter has "
+                        + ApiVersion
+                        + ": it needs a newer presenter."
+                );
             }
 
-            var plugin = new CadPlugin(name, version ?? (sorted.Count > 0 ? VersionOf(sorted[0]) : string.Empty), required);
+            var plugin = new CadPlugin(
+                name,
+                version ?? (sorted.Count > 0 ? VersionOf(sorted[0]) : string.Empty),
+                required
+            );
             plugin.Read(sorted);
 
             if (plugin.Commands.Count == 0 && needsCommand)
             {
                 string why = plugin.Problems.Count > 0 ? " " + string.Join(" ", plugin.Problems) : string.Empty;
-                throw new CadPluginException(name, "The plugin " + name + " has no command: no public method marked [CadCommand] that takes a CadCommandContext and returns IEnumerable<CadPrompt>." + why);
+                throw new CadPluginException(
+                    name,
+                    "The plugin "
+                        + name
+                        + " has no command: no public method marked [CadCommand] that takes a CadCommandContext and returns IEnumerable<CadPrompt>."
+                        + why
+                );
             }
 
             return plugin;
@@ -166,7 +198,17 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
                 if (taken != null)
                 {
-                    refused.Add("The command " + command.Name + " of the plugin " + Name + " is not added: " + command.Name + " already runs " + taken.Name + ".");
+                    refused.Add(
+                        "The command "
+                            + command.Name
+                            + " of the plugin "
+                            + Name
+                            + " is not added: "
+                            + command.Name
+                            + " already runs "
+                            + taken.Name
+                            + "."
+                    );
                     continue;
                 }
 
@@ -178,9 +220,20 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                     continue;
                 }
 
-                if (registry.Shortcuts.Aliases.TryGetValue(command.Alias, out string owner) || registry.Find(command.Alias) != null)
+                if (
+                    registry.Shortcuts.Aliases.TryGetValue(command.Alias, out string owner)
+                    || registry.Find(command.Alias) != null
+                )
                 {
-                    refused.Add("The alias " + command.Alias + " of the command " + command.Name + " is not added: it is already the alias of " + (owner ?? registry.Find(command.Alias).Name) + ".");
+                    refused.Add(
+                        "The alias "
+                            + command.Alias
+                            + " of the command "
+                            + command.Name
+                            + " is not added: it is already the alias of "
+                            + (owner ?? registry.Find(command.Alias).Name)
+                            + "."
+                    );
                     continue;
                 }
 
@@ -290,9 +343,19 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             Problems = problems;
         }
 
-        private void ReadType(Type type, SortedDictionary<string, CadPluginCommand> commands, List<CadPluginSetting> settings, List<string> problems)
+        private void ReadType(
+            Type type,
+            SortedDictionary<string, CadPluginCommand> commands,
+            List<CadPluginSetting> settings,
+            List<string> problems
+        )
         {
-            const BindingFlags all = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+            const BindingFlags all =
+                BindingFlags.Public
+                | BindingFlags.NonPublic
+                | BindingFlags.Static
+                | BindingFlags.Instance
+                | BindingFlags.DeclaredOnly;
             var methods = new List<MethodInfo>();
             var properties = new List<PropertyInfo>();
 
@@ -324,12 +387,18 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
             if (!type.IsVisible || type.IsGenericTypeDefinition || type.IsInterface)
             {
-                problems.Add("The class " + where + " is left out: a plugin's commands and settings are in a public class that is not generic.");
+                problems.Add(
+                    "The class "
+                        + where
+                        + " is left out: a plugin's commands and settings are in a public class that is not generic."
+                );
                 return;
             }
 
             object instance = null;
-            bool needsInstance = methods.Exists(m => !m.IsStatic) || properties.Exists(p => !(p.GetGetMethod(true) ?? p.GetSetMethod(true)).IsStatic);
+            bool needsInstance =
+                methods.Exists(m => !m.IsStatic)
+                || properties.Exists(p => !(p.GetGetMethod(true) ?? p.GetSetMethod(true)).IsStatic);
 
             if (needsInstance)
             {
@@ -339,15 +408,25 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 }
                 catch (Exception exception)
                 {
-                    Exception cause = exception is TargetInvocationException invocation && invocation.InnerException != null ? invocation.InnerException : exception;
-                    problems.Add("The class " + where + " is left out: it could not be made with a public constructor that takes nothing (" + cause.Message + ").");
+                    Exception cause =
+                        exception is TargetInvocationException invocation && invocation.InnerException != null
+                            ? invocation.InnerException
+                            : exception;
+                    problems.Add(
+                        "The class "
+                            + where
+                            + " is left out: it could not be made with a public constructor that takes nothing ("
+                            + cause.Message
+                            + ")."
+                    );
                     return;
                 }
             }
 
             foreach (MethodInfo method in methods)
             {
-                var attribute = (CadCommandAttribute)Attribute.GetCustomAttribute(method, typeof(CadCommandAttribute), false);
+                var attribute = (CadCommandAttribute)
+                    Attribute.GetCustomAttribute(method, typeof(CadCommandAttribute), false);
                 string at = where + "." + method.Name;
                 string problem = Unusable(method, attribute);
 
@@ -361,40 +440,75 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
                 if (commands.ContainsKey(name))
                 {
-                    problems.Add("The command " + name + " (" + at + ") is left out: the plugin has a command of that name already.");
+                    problems.Add(
+                        "The command "
+                            + name
+                            + " ("
+                            + at
+                            + ") is left out: the plugin has a command of that name already."
+                    );
                     continue;
                 }
 
-                string alias = string.IsNullOrWhiteSpace(attribute.Alias) ? null : attribute.Alias.Trim().ToUpperInvariant();
+                string alias = string.IsNullOrWhiteSpace(attribute.Alias)
+                    ? null
+                    : attribute.Alias.Trim().ToUpperInvariant();
 
                 if (alias != null && (alias.IndexOf(' ') >= 0 || string.Equals(alias, name, StringComparison.Ordinal)))
                 {
-                    problems.Add("The alias " + alias + " of the command " + name + " is left out: an alias is one word other than the name.");
+                    problems.Add(
+                        "The alias "
+                            + alias
+                            + " of the command "
+                            + name
+                            + " is left out: an alias is one word other than the name."
+                    );
                     alias = null;
                 }
 
                 if (alias != null && (commands.ContainsKey(alias) || AliasTaken(commands, alias)))
                 {
-                    problems.Add("The alias " + alias + " of the command " + name + " is left out: the plugin uses it already.");
+                    problems.Add(
+                        "The alias " + alias + " of the command " + name + " is left out: the plugin uses it already."
+                    );
                     alias = null;
                 }
 
-                var body = (Func<CadCommandContext, IEnumerable<CadPrompt>>)(method.IsStatic
-                    ? Delegate.CreateDelegate(typeof(Func<CadCommandContext, IEnumerable<CadPrompt>>), method)
-                    : Delegate.CreateDelegate(typeof(Func<CadCommandContext, IEnumerable<CadPrompt>>), instance, method));
-                commands.Add(name, new CadPluginCommand(this, name, alias, attribute.Description, attribute.UsesSelection, body));
+                var body =
+                    (Func<CadCommandContext, IEnumerable<CadPrompt>>)(
+                        method.IsStatic
+                            ? Delegate.CreateDelegate(typeof(Func<CadCommandContext, IEnumerable<CadPrompt>>), method)
+                            : Delegate.CreateDelegate(
+                                typeof(Func<CadCommandContext, IEnumerable<CadPrompt>>),
+                                instance,
+                                method
+                            )
+                    );
+                commands.Add(
+                    name,
+                    new CadPluginCommand(this, name, alias, attribute.Description, attribute.UsesSelection, body)
+                );
             }
 
             foreach (PropertyInfo property in properties)
             {
-                var attribute = (CadSettingAttribute)Attribute.GetCustomAttribute(property, typeof(CadSettingAttribute), false);
+                var attribute = (CadSettingAttribute)
+                    Attribute.GetCustomAttribute(property, typeof(CadSettingAttribute), false);
                 CadSettingKind? kind = CadPluginSetting.KindOf(property.PropertyType);
                 MethodInfo get = property.GetGetMethod();
                 MethodInfo set = property.GetSetMethod();
 
                 if (kind == null || get == null || set == null || property.GetIndexParameters().Length > 0)
                 {
-                    problems.Add("The setting " + attribute.Label + " (" + where + "." + property.Name + ") is left out: a setting is a property with a public get and set, of type double, int, bool, string or an enumeration.");
+                    problems.Add(
+                        "The setting "
+                            + attribute.Label
+                            + " ("
+                            + where
+                            + "."
+                            + property.Name
+                            + ") is left out: a setting is a property with a public get and set, of type double, int, bool, string or an enumeration."
+                    );
                     continue;
                 }
 
@@ -404,8 +518,21 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 }
                 catch (Exception exception)
                 {
-                    Exception cause = exception is TargetInvocationException invocation && invocation.InnerException != null ? invocation.InnerException : exception;
-                    problems.Add("The setting " + attribute.Label + " (" + where + "." + property.Name + ") is left out: its value could not be read (" + cause.Message + ").");
+                    Exception cause =
+                        exception is TargetInvocationException invocation && invocation.InnerException != null
+                            ? invocation.InnerException
+                            : exception;
+                    problems.Add(
+                        "The setting "
+                            + attribute.Label
+                            + " ("
+                            + where
+                            + "."
+                            + property.Name
+                            + ") is left out: its value could not be read ("
+                            + cause.Message
+                            + ")."
+                    );
                 }
             }
         }
@@ -471,7 +598,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             catch (ReflectionTypeLoadException exception)
             {
                 types = exception.Types;
-                Exception first = exception.LoaderExceptions != null && exception.LoaderExceptions.Length > 0 ? exception.LoaderExceptions[0] : exception;
+                Exception first =
+                    exception.LoaderExceptions != null && exception.LoaderExceptions.Length > 0
+                        ? exception.LoaderExceptions[0]
+                        : exception;
                 problems.Add("Some classes of " + assembly.GetName().Name + " could not be read: " + first?.Message);
             }
 
@@ -491,7 +621,8 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
         private static string VersionOf(Assembly assembly)
         {
-            var informational = (AssemblyInformationalVersionAttribute)Attribute.GetCustomAttribute(assembly, typeof(AssemblyInformationalVersionAttribute));
+            var informational = (AssemblyInformationalVersionAttribute)
+                Attribute.GetCustomAttribute(assembly, typeof(AssemblyInformationalVersionAttribute));
 
             if (informational != null && !string.IsNullOrEmpty(informational.InformationalVersion))
             {
@@ -531,7 +662,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 {
                     if (!IsEnabled)
                     {
-                        throw new CadPluginException(Name, "The plugin " + Name + " was unloaded while " + command.Name + " ran.");
+                        throw new CadPluginException(
+                            Name,
+                            "The plugin " + Name + " was unloaded while " + command.Name + " ran."
+                        );
                     }
 
                     bool more;
@@ -555,8 +689,18 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             }
         }
 
-        private CadPluginException Failed(CadPluginCommand command, Exception exception)
-            => new CadPluginException(Name, string.Format(CultureInfo.InvariantCulture, "{0} of the plugin {1} failed: {2}", command.Name, Name, exception.Message), exception);
+        private CadPluginException Failed(CadPluginCommand command, Exception exception) =>
+            new CadPluginException(
+                Name,
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "{0} of the plugin {1} failed: {2}",
+                    command.Name,
+                    Name,
+                    exception.Message
+                ),
+                exception
+            );
 
         private sealed class Registration
         {
@@ -576,7 +720,14 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
     /// <summary>One command of a plugin: its name, alias and description as its attribute gives them, and the command the registry runs.</summary>
     public sealed class CadPluginCommand
     {
-        internal CadPluginCommand(CadPlugin plugin, string name, string alias, string description, bool usesSelection, Func<CadCommandContext, IEnumerable<CadPrompt>> body)
+        internal CadPluginCommand(
+            CadPlugin plugin,
+            string name,
+            string alias,
+            string description,
+            bool usesSelection,
+            Func<CadCommandContext, IEnumerable<CadPrompt>> body
+        )
         {
             Plugin = plugin;
             Name = name;

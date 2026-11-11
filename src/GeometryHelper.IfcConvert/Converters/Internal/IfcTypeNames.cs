@@ -29,8 +29,14 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         // IfcSpatialStructureElement is listed for IFC2x3, which has no IfcSpatialElement.
         private static readonly string[] NonPhysicalTypes =
         {
-            "IfcFeatureElementSubtraction", "IfcSpatialElement", "IfcSpatialStructureElement",
-            "IfcAnnotation", "IfcGrid", "IfcVirtualElement", "IfcStructuralItem", "IfcPort"
+            "IfcFeatureElementSubtraction",
+            "IfcSpatialElement",
+            "IfcSpatialStructureElement",
+            "IfcAnnotation",
+            "IfcGrid",
+            "IfcVirtualElement",
+            "IfcStructuralItem",
+            "IfcPort",
         };
 
         /// <summary>
@@ -69,8 +75,10 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
             for (ExpressType type = entity.ExpressType; type != null; type = type.SuperType)
             {
-                if (string.Equals(type.ExpressName, name, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(type.ExpressName, prefixed, StringComparison.OrdinalIgnoreCase))
+                if (
+                    string.Equals(type.ExpressName, name, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(type.ExpressName, prefixed, StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     return true;
                 }

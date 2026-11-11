@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -89,16 +89,32 @@ namespace GeometryHelper.UnitTest.Solid
 
             while (index <= Steps)
             {
-                if (!inside[index]) { index++; continue; }
+                if (!inside[index])
+                {
+                    index++;
+                    continue;
+                }
 
                 int first = index;
-                while (index <= Steps && inside[index]) { index++; }
+                while (index <= Steps && inside[index])
+                {
+                    index++;
+                }
                 int last = index - 1;
 
-                if (last - first + 1 < Sustained) { continue; }
+                if (last - first + 1 < Sustained)
+                {
+                    continue;
+                }
 
-                if (first > 0) { crossings++; }
-                if (last < Steps) { crossings++; }
+                if (first > 0)
+                {
+                    crossings++;
+                }
+                if (last < Steps)
+                {
+                    crossings++;
+                }
             }
 
             return crossings;
@@ -108,31 +124,42 @@ namespace GeometryHelper.UnitTest.Solid
         public void ASegmentCrossingAPlaneIsAlwaysFound()
         {
             Random rng = new Random(1001);
-            int crossings = 0, missed = 0;
+            int crossings = 0,
+                missed = 0;
 
             for (int t = 0; t < 2000; t++)
             {
                 var line = new GeoLine3(
                     new GeoPoint3(rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10)),
-                    new GeoPoint3(rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10)));
+                    new GeoPoint3(rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10))
+                );
 
-                if (line.Length < 1E-6) { continue; }
+                if (line.Length < 1E-6)
+                {
+                    continue;
+                }
 
                 var plane = new GeoPlane3(
                     new GeoPoint3(rng.Next(-5, 6), rng.Next(-5, 6), rng.Next(-5, 6)),
-                    new GeoVector3(rng.Next(-3, 4) + 0.3, rng.Next(-3, 4) + 0.7, rng.Next(-3, 4) + 0.1));
+                    new GeoVector3(rng.Next(-3, 4) + 0.3, rng.Next(-3, 4) + 0.7, rng.Next(-3, 4) + 0.1)
+                );
 
                 double atStart = plane.SignedDistanceTo(line.StartPoint);
                 double atEnd = plane.SignedDistanceTo(line.EndPoint);
 
                 // Strictly on opposite sides: the segment has to pass through, and the crossing is not a
                 // graze that could be argued away.
-                if (atStart > Tol.EqualPlanar && atEnd < -Tol.EqualPlanar ||
-                    atStart < -Tol.EqualPlanar && atEnd > Tol.EqualPlanar)
+                if (
+                    atStart > Tol.EqualPlanar && atEnd < -Tol.EqualPlanar
+                    || atStart < -Tol.EqualPlanar && atEnd > Tol.EqualPlanar
+                )
                 {
                     crossings++;
 
-                    if (!Intersection3.TryIntersectWith(line, plane, out GeoPoint3 _, Tol)) { missed++; }
+                    if (!Intersection3.TryIntersectWith(line, plane, out GeoPoint3 _, Tol))
+                    {
+                        missed++;
+                    }
                 }
             }
 
@@ -144,50 +171,75 @@ namespace GeometryHelper.UnitTest.Solid
         public void ASegmentCrossingATriangleIsAlwaysFound()
         {
             Random rng = new Random(2002);
-            int crossings = 0, missed = 0;
+            int crossings = 0,
+                missed = 0;
 
             for (int t = 0; t < 4000; t++)
             {
                 var triangle = new GeoTriangle3(
                     new GeoPoint3(rng.Next(-6, 7), rng.Next(-6, 7), 0),
                     new GeoPoint3(rng.Next(-6, 7), rng.Next(-6, 7), 0),
-                    new GeoPoint3(rng.Next(-6, 7), rng.Next(-6, 7), 0));
+                    new GeoPoint3(rng.Next(-6, 7), rng.Next(-6, 7), 0)
+                );
 
-                if (triangle.IsDegenerate(Tol)) { continue; }
+                if (triangle.IsDegenerate(Tol))
+                {
+                    continue;
+                }
 
                 // Aimed through the triangle so that crossings are common.
                 GeoPoint3 target = triangle.Centroid;
                 var line = new GeoLine3(
                     new GeoPoint3(target.X + rng.Next(-3, 4), target.Y + rng.Next(-3, 4), -5),
-                    new GeoPoint3(target.X + rng.Next(-3, 4), target.Y + rng.Next(-3, 4), 5));
+                    new GeoPoint3(target.X + rng.Next(-3, 4), target.Y + rng.Next(-3, 4), 5)
+                );
 
                 GeoPlane3 plane = triangle.GetPlane();
 
                 double atStart = plane.SignedDistanceTo(line.StartPoint);
                 double atEnd = plane.SignedDistanceTo(line.EndPoint);
 
-                if (!(atStart > Tol.EqualPlanar && atEnd < -Tol.EqualPlanar ||
-                      atStart < -Tol.EqualPlanar && atEnd > Tol.EqualPlanar))
+                if (
+                    !(
+                        atStart > Tol.EqualPlanar && atEnd < -Tol.EqualPlanar
+                        || atStart < -Tol.EqualPlanar && atEnd > Tol.EqualPlanar
+                    )
+                )
                 {
                     continue;
                 }
 
                 // Where the segment meets the plane, worked out independently of the triangle test.
-                if (!Intersection3.TryIntersectWith(line, plane, out GeoPoint3 onPlane, Tol)) { continue; }
+                if (!Intersection3.TryIntersectWith(line, plane, out GeoPoint3 onPlane, Tol))
+                {
+                    continue;
+                }
 
                 // Comfortably inside the triangle, so the answer cannot turn on a tolerance.
-                if (Distance3.DistanceTo(triangle, onPlane) > 1E-6) { continue; }
+                if (Distance3.DistanceTo(triangle, onPlane) > 1E-6)
+                {
+                    continue;
+                }
 
                 bool nearAnEdge = false;
                 for (int e = 0; e < 3; e++)
                 {
-                    if (Distance3.DistanceTo(triangle.GetEdgeAt(e), onPlane, Tol) < 1E-3) { nearAnEdge = true; }
+                    if (Distance3.DistanceTo(triangle.GetEdgeAt(e), onPlane, Tol) < 1E-3)
+                    {
+                        nearAnEdge = true;
+                    }
                 }
-                if (nearAnEdge) { continue; }
+                if (nearAnEdge)
+                {
+                    continue;
+                }
 
                 crossings++;
 
-                if (!Intersection3.TryIntersectWith(line, triangle, out GeoPoint3 _, Tol)) { missed++; }
+                if (!Intersection3.TryIntersectWith(line, triangle, out GeoPoint3 _, Tol))
+                {
+                    missed++;
+                }
             }
 
             Assert.True(crossings > 300, $"only {crossings} segments actually pierced a triangle");
@@ -198,32 +250,54 @@ namespace GeometryHelper.UnitTest.Solid
         public void EveryTimeASegmentEntersOrLeavesASolidThereIsACrossing()
         {
             Random rng = new Random(3003);
-            int cases = 0, withTransitions = 0, totalTransitions = 0, short_ = 0;
+            int cases = 0,
+                withTransitions = 0,
+                totalTransitions = 0,
+                short_ = 0;
 
             for (int t = 0; t < 60; t++)
             {
                 GeoSolid3 body;
-                try { body = Prism(Star(rng, 4 + rng.Next(5)), 6.0); }
-                catch (ArgumentException) { continue; }
+                try
+                {
+                    body = Prism(Star(rng, 4 + rng.Next(5)), 6.0);
+                }
+                catch (ArgumentException)
+                {
+                    continue;
+                }
 
                 for (int q = 0; q < 4; q++)
                 {
                     var line = new GeoLine3(
                         new GeoPoint3(rng.Next(-14, 15), rng.Next(-14, 15), rng.Next(-2, 9)),
-                        new GeoPoint3(rng.Next(-14, 15), rng.Next(-14, 15), rng.Next(-2, 9)));
+                        new GeoPoint3(rng.Next(-14, 15), rng.Next(-14, 15), rng.Next(-2, 9))
+                    );
 
-                    if (line.Length < 1E-6) { continue; }
+                    if (line.Length < 1E-6)
+                    {
+                        continue;
+                    }
 
                     cases++;
 
-                    int crossings = CountSustainedCrossings(line, p => Containment3.Locate(body, p, Tol) == PointLocation.Inside);
+                    int crossings = CountSustainedCrossings(line, p =>
+                        Containment3.Locate(body, p, Tol) == PointLocation.Inside
+                    );
 
-                    if (crossings > 0) { withTransitions++; totalTransitions += crossings; }
+                    if (crossings > 0)
+                    {
+                        withTransitions++;
+                        totalTransitions += crossings;
+                    }
 
                     GeoPoint3[] found = Intersection3.GetIntersections(line, body, Tol);
 
                     // Every passage from inside to outside or back has to have been noticed.
-                    if (found.Length < crossings) { short_++; }
+                    if (found.Length < crossings)
+                    {
+                        short_++;
+                    }
                 }
             }
 
@@ -237,7 +311,10 @@ namespace GeometryHelper.UnitTest.Solid
         public void EveryTimeASegmentEntersOrLeavesABoxThereIsACrossing()
         {
             Random rng = new Random(4004);
-            int cases = 0, withTransitions = 0, shortObb = 0, shortAabb = 0;
+            int cases = 0,
+                withTransitions = 0,
+                shortObb = 0,
+                shortAabb = 0;
 
             for (int t = 0; t < 400; t++)
             {
@@ -254,18 +331,39 @@ namespace GeometryHelper.UnitTest.Solid
                     // Thrown through the middle of the box, so that entering and leaving it is the common
                     // case rather than a rare one.
                     var line = new GeoLine3(
-                        new GeoPoint3(middle.X + rng.Next(-9, 10), middle.Y + rng.Next(-9, 10), middle.Z + rng.Next(-9, 10)),
-                        new GeoPoint3(middle.X + rng.Next(-9, 10), middle.Y + rng.Next(-9, 10), middle.Z + rng.Next(-9, 10)));
+                        new GeoPoint3(
+                            middle.X + rng.Next(-9, 10),
+                            middle.Y + rng.Next(-9, 10),
+                            middle.Z + rng.Next(-9, 10)
+                        ),
+                        new GeoPoint3(
+                            middle.X + rng.Next(-9, 10),
+                            middle.Y + rng.Next(-9, 10),
+                            middle.Z + rng.Next(-9, 10)
+                        )
+                    );
 
-                    if (line.Length < 1E-6) { continue; }
+                    if (line.Length < 1E-6)
+                    {
+                        continue;
+                    }
 
                     cases++;
 
                     int crossings = CountSustainedCrossings(line, p => aabb.Contains(p, Tol));
-                    if (crossings > 0) { withTransitions++; }
+                    if (crossings > 0)
+                    {
+                        withTransitions++;
+                    }
 
-                    if (Intersection3.GetIntersections(line, aabb, Tol).Length < crossings) { shortAabb++; }
-                    if (Intersection3.GetIntersections(line, obb, Tol).Length < crossings) { shortObb++; }
+                    if (Intersection3.GetIntersections(line, aabb, Tol).Length < crossings)
+                    {
+                        shortAabb++;
+                    }
+                    if (Intersection3.GetIntersections(line, obb, Tol).Length < crossings)
+                    {
+                        shortObb++;
+                    }
                 }
             }
 
@@ -279,29 +377,53 @@ namespace GeometryHelper.UnitTest.Solid
         public void ASegmentPiercingAFaceIsAlwaysFound()
         {
             Random rng = new Random(5005);
-            int crossings = 0, missedPolygon = 0, missedFace = 0;
+            int crossings = 0,
+                missedPolygon = 0,
+                missedFace = 0;
 
             for (int t = 0; t < 1500; t++)
             {
                 GeoPolygon3 plate;
-                try { plate = new GeoPolygon3(Star(rng, 4 + rng.Next(5))); }
-                catch (ArgumentException) { continue; }
+                try
+                {
+                    plate = new GeoPolygon3(Star(rng, 4 + rng.Next(5)));
+                }
+                catch (ArgumentException)
+                {
+                    continue;
+                }
 
                 GeoPoint3 target = plate.Centroid;
                 var line = new GeoLine3(
                     new GeoPoint3(target.X + rng.Next(-4, 5), target.Y + rng.Next(-4, 5), -5),
-                    new GeoPoint3(target.X + rng.Next(-4, 5), target.Y + rng.Next(-4, 5), 5));
+                    new GeoPoint3(target.X + rng.Next(-4, 5), target.Y + rng.Next(-4, 5), 5)
+                );
 
-                if (!Intersection3.TryIntersectWith(line, plate.GetPlane(), out GeoPoint3 onPlane, Tol)) { continue; }
+                if (!Intersection3.TryIntersectWith(line, plate.GetPlane(), out GeoPoint3 onPlane, Tol))
+                {
+                    continue;
+                }
 
                 // Comfortably inside the outline, well clear of every edge.
-                if (Containment3.Locate(plate, onPlane, Tol) != PointLocation.Inside) { continue; }
-                if (Projection3.ProjectToPolygonBoundary(plate, onPlane, Tol).DistanceTo(onPlane) < 1E-3) { continue; }
+                if (Containment3.Locate(plate, onPlane, Tol) != PointLocation.Inside)
+                {
+                    continue;
+                }
+                if (Projection3.ProjectToPolygonBoundary(plate, onPlane, Tol).DistanceTo(onPlane) < 1E-3)
+                {
+                    continue;
+                }
 
                 crossings++;
 
-                if (!Intersection3.TryIntersectWith(line, plate, out GeoPoint3 _, Tol)) { missedPolygon++; }
-                if (!Intersection3.TryIntersectWith(line, new GeoFace3(plate), out GeoPoint3 _, Tol)) { missedFace++; }
+                if (!Intersection3.TryIntersectWith(line, plate, out GeoPoint3 _, Tol))
+                {
+                    missedPolygon++;
+                }
+                if (!Intersection3.TryIntersectWith(line, new GeoFace3(plate), out GeoPoint3 _, Tol))
+                {
+                    missedFace++;
+                }
             }
 
             Assert.True(crossings > 200, $"only {crossings} segments actually pierced a plate");
@@ -313,20 +435,27 @@ namespace GeometryHelper.UnitTest.Solid
         public void TwoPlanesThatAreNotParallelAlwaysMeet()
         {
             Random rng = new Random(6006);
-            int pairs = 0, missed = 0, offLine = 0;
+            int pairs = 0,
+                missed = 0,
+                offLine = 0;
 
             for (int t = 0; t < 2000; t++)
             {
                 var one = new GeoPlane3(
                     new GeoPoint3(rng.Next(-6, 7), rng.Next(-6, 7), rng.Next(-6, 7)),
-                    new GeoVector3(rng.Next(-3, 4) + 0.3, rng.Next(-3, 4) + 0.7, rng.Next(-3, 4) + 0.1));
+                    new GeoVector3(rng.Next(-3, 4) + 0.3, rng.Next(-3, 4) + 0.7, rng.Next(-3, 4) + 0.1)
+                );
 
                 var two = new GeoPlane3(
                     new GeoPoint3(rng.Next(-6, 7), rng.Next(-6, 7), rng.Next(-6, 7)),
-                    new GeoVector3(rng.Next(-3, 4) + 0.9, rng.Next(-3, 4) + 0.2, rng.Next(-3, 4) + 0.5));
+                    new GeoVector3(rng.Next(-3, 4) + 0.9, rng.Next(-3, 4) + 0.2, rng.Next(-3, 4) + 0.5)
+                );
 
                 // Not parallel, so they must meet in a line.
-                if (Parallel3.IsParallel(one.Normal, two.Normal, Tol)) { continue; }
+                if (Parallel3.IsParallel(one.Normal, two.Normal, Tol))
+                {
+                    continue;
+                }
 
                 pairs++;
 
@@ -341,8 +470,14 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     GeoPoint3 along = seam.GetPointAtDistance(k * 7.0);
 
-                    if (Math.Abs(one.SignedDistanceTo(along)) > Tol.EqualPlanar) { offLine++; }
-                    if (Math.Abs(two.SignedDistanceTo(along)) > Tol.EqualPlanar) { offLine++; }
+                    if (Math.Abs(one.SignedDistanceTo(along)) > Tol.EqualPlanar)
+                    {
+                        offLine++;
+                    }
+                    if (Math.Abs(two.SignedDistanceTo(along)) > Tol.EqualPlanar)
+                    {
+                        offLine++;
+                    }
                 }
             }
 

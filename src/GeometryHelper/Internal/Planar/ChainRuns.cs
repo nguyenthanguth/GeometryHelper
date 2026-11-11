@@ -23,7 +23,13 @@ namespace GeometryHelper.Internal.Planar
         /// <param name="extent">The largest coordinate of the band.</param>
         /// <param name="margin">How far an outline point may lie from the edge it came from.</param>
         /// <param name="equalPoint">The point tolerance: an outline stretch this close to the chain lies on it.</param>
-        public ChainRuns(IReadOnlyList<GeoPoint2> path, List<(GeoPoint2 From, GeoPoint2 To)> pastTheOtherLeg, double extent, double margin, double equalPoint)
+        public ChainRuns(
+            IReadOnlyList<GeoPoint2> path,
+            List<(GeoPoint2 From, GeoPoint2 To)> pastTheOtherLeg,
+            double extent,
+            double margin,
+            double equalPoint
+        )
         {
             _margin = margin;
             _equalPoint = equalPoint;
@@ -218,9 +224,11 @@ namespace GeometryHelper.Internal.Planar
 
                 // The part of the edge beside the segment lies along it when both its ends do, since the distance
                 // to a segment rises and falls only once along a straight edge.
-                if ((end - start) * length > _equalPoint
+                if (
+                    (end - start) * length > _equalPoint
                     && SegmentIndex.DistanceToSegment(p + direction * start, a, b) <= _equalPoint
-                    && SegmentIndex.DistanceToSegment(p + direction * end, a, b) <= _equalPoint)
+                    && SegmentIndex.DistanceToSegment(p + direction * end, a, b) <= _equalPoint
+                )
                 {
                     stretches.Add((start, end));
                 }
@@ -386,7 +394,8 @@ namespace GeometryHelper.Internal.Planar
                 GeoPoint2 a = _chain[i];
                 GeoVector2 direction = _chain[i + 1] - a;
                 double length = direction.Length;
-                double along = length > 0.0 ? Math.Max(0.0, Math.Min(length, (point - a).Dot(direction) / length)) : 0.0;
+                double along =
+                    length > 0.0 ? Math.Max(0.0, Math.Min(length, (point - a).Dot(direction) / length)) : 0.0;
                 GeoPoint2 nearest = length > 0.0 ? a + direction * (along / length) : a;
                 double distance = nearest.DistanceSquaredTo(point);
 

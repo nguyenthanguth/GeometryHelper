@@ -14,7 +14,8 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfAutoCadChecksD20Tests
     {
-        private static string G(int code, string value) => code.ToString(CultureInfo.InvariantCulture).PadLeft(3) + "\n" + value + "\n";
+        private static string G(int code, string value) =>
+            code.ToString(CultureInfo.InvariantCulture).PadLeft(3) + "\n" + value + "\n";
 
         private static DxfTable Table(DxfDatabase db) => DxfAutoCadChecksD16Tests.Table(db);
 
@@ -51,7 +52,9 @@ namespace GeometryHelper.UnitTest.Dxf
         /// <summary>The state (90) of each cell of the TABLECONTENT B03, row by row.</summary>
         private static List<string> States(DxfDatabase db)
         {
-            string[] cells = DxfAutoCadChecksD16Tests.Record(db.ToText(), "B03").Split(new[] { Begin }, StringSplitOptions.None);
+            string[] cells = DxfAutoCadChecksD16Tests
+                .Record(db.ToText(), "B03")
+                .Split(new[] { Begin }, StringSplitOptions.None);
             return cells.Skip(1).Select(c => c.Split('\n')[1].Trim()).ToList();
         }
 

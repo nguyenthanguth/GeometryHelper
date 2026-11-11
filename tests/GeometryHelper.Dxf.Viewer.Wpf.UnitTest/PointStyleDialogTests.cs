@@ -31,7 +31,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             var dialog = new PointStyleViewModel(Points(0, 0.0));
 
-            Assert.Equal(new[] { 0, 1, 2, 3, 4, 32, 33, 34, 35, 36, 64, 65, 66, 67, 68, 96, 97, 98, 99, 100 }, dialog.Tiles.Select(t => t.Mode).ToArray());
+            Assert.Equal(
+                new[] { 0, 1, 2, 3, 4, 32, 33, 34, 35, 36, 64, 65, 66, 67, 68, 96, 97, 98, 99, 100 },
+                dialog.Tiles.Select(t => t.Mode).ToArray()
+            );
             Assert.True(dialog.Tiles[0].IsSelected);
             Assert.Equal("PDMODE 34, plus, circle around", dialog.Tiles[7].Label);
 
@@ -139,7 +142,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Equal(2.5, model.Document.Database.Pdsize);
                 Assert.Equal("PTYPE", model.Document.NextUndo.Name);
                 Assert.True(model.Revision > revision);
-                Assert.DoesNotContain(model.History, h => h.IndexOf("Enter new value for PDMODE", StringComparison.Ordinal) >= 0);
+                Assert.DoesNotContain(model.History, h =>
+                    h.IndexOf("Enter new value for PDMODE", StringComparison.Ordinal) >= 0
+                );
 
                 model.Execute("DDPTYPE");
                 Assert.Equal(2, shown);

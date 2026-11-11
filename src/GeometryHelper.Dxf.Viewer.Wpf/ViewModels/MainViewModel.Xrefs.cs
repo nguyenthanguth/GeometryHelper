@@ -15,11 +15,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     public sealed partial class MainViewModel
     {
         // The image frame box's items, IMAGEFRAME 0, 1 and 2, in AutoCAD 2021's words.
-        private static readonly string[] ImageFrameNames = { "Hide Frames", "Display and Plot Frames", "Display but Not Plot Frames" };
+        private static readonly string[] ImageFrameNames =
+        {
+            "Hide Frames",
+            "Display and Plot Frames",
+            "Display but Not Plot Frames",
+        };
 
         // The drawings whose referenced files are followed, and the references of each announced as changed: looked up only.
-        private readonly Dictionary<CadDocument, EventHandler> _referenceWatchers = new Dictionary<CadDocument, EventHandler>();
-        private readonly Dictionary<CadDocument, HashSet<string>> _announcedReferences = new Dictionary<CadDocument, HashSet<string>>();
+        private readonly Dictionary<CadDocument, EventHandler> _referenceWatchers =
+            new Dictionary<CadDocument, EventHandler>();
+        private readonly Dictionary<CadDocument, HashSet<string>> _announcedReferences =
+            new Dictionary<CadDocument, HashSet<string>>();
         private bool _watchReferenceFiles;
 
         /// <summary>Gets or sets how the workspace shows the External References palette, beside the window and left open.</summary>
@@ -93,8 +100,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             bool one = changed.Count == 1;
-            file.Session.Write("External Reference Files Have Changed: " + string.Join(", ", changed) + (one ? " needs" : " need") + " reloading. Reload "
-                + (one ? "it" : "them") + " with -XREF Reload or in the External References palette.");
+            file.Session.Write(
+                "External Reference Files Have Changed: "
+                    + string.Join(", ", changed)
+                    + (one ? " needs" : " need")
+                    + " reloading. Reload "
+                    + (one ? "it" : "them")
+                    + " with -XREF Reload or in the External References palette."
+            );
 
             if (file == _current)
             {
@@ -105,8 +118,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Follows the files a drawing's external references were read from, while <see cref="WatchReferenceFiles"/> is set.</summary>
         private void WatchReferences(CadDocument document)
         {
-            System.Windows.Threading.Dispatcher dispatcher = System.Windows.Application.Current?.Dispatcher ?? System.Windows.Threading.Dispatcher.CurrentDispatcher;
-            EventHandler handler = (sender, e) => dispatcher.BeginInvoke(new Action(() => AnnounceChangedReferences(document)));
+            System.Windows.Threading.Dispatcher dispatcher = System.Windows.Application.Current?.Dispatcher
+                ?? System.Windows.Threading.Dispatcher.CurrentDispatcher;
+            EventHandler handler = (sender, e) =>
+                dispatcher.BeginInvoke(new Action(() => AnnounceChangedReferences(document)));
             _referenceWatchers[document] = handler;
             document.Xrefs.FilesChanged += handler;
             document.Xrefs.WatchFiles = _watchReferenceFiles;
@@ -160,8 +175,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets the items of the image frame box of Insert › Reference, IMAGEFRAME 0, 1 and 2 in turn, the drawing's ticked.</summary>
-        public IReadOnlyList<StyleBoxItemViewModel> ImageFrameItems
-            => ImageFrameNames.Select((n, i) => new StyleBoxItemViewModel(n, i == ImageFrame, "IMAGEFRAME " + i.ToString(CultureInfo.InvariantCulture), false)).ToList();
+        public IReadOnlyList<StyleBoxItemViewModel> ImageFrameItems =>
+            ImageFrameNames
+                .Select(
+                    (n, i) =>
+                        new StyleBoxItemViewModel(
+                            n,
+                            i == ImageFrame,
+                            "IMAGEFRAME " + i.ToString(CultureInfo.InvariantCulture),
+                            false
+                        )
+                )
+                .ToList();
 
         /// <summary>
         /// Gets or sets the image frame box's choice, the name of the drawing's IMAGEFRAME: Hide Frames (0), Display and Plot
@@ -191,7 +216,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get
             {
                 DxfDatabase database = _current?.Document.Database;
-                DxfRasterVariables variables = database?.NamedObjectsDictionary?.Contains("ACAD_IMAGE_VARS") == true ? database.NamedObjectsDictionary.GetAt("ACAD_IMAGE_VARS") as DxfRasterVariables : null;
+                DxfRasterVariables variables =
+                    database?.NamedObjectsDictionary?.Contains("ACAD_IMAGE_VARS") == true
+                        ? database.NamedObjectsDictionary.GetAt("ACAD_IMAGE_VARS") as DxfRasterVariables
+                        : null;
                 int value = variables == null ? 1 : (int)variables.ImageFrame;
                 return value < 0 || value > 2 ? 1 : value;
             }

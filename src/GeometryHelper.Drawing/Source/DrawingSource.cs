@@ -50,7 +50,10 @@ namespace GeometryHelper.Drawing
         {
             if (!frame.IsValid)
             {
-                throw new ArgumentException("The frame has to have three unit axes square to each other.", nameof(frame));
+                throw new ArgumentException(
+                    "The frame has to have three unit axes square to each other.",
+                    nameof(frame)
+                );
             }
 
             DrawingObject[] sorted = Sort(objects, out _byId);
@@ -81,7 +84,10 @@ namespace GeometryHelper.Drawing
             return _byId.TryGetValue(id, out found);
         }
 
-        private static DrawingObject[] Sort(IEnumerable<DrawingObject> objects, out Dictionary<string, DrawingObject> byId)
+        private static DrawingObject[] Sort(
+            IEnumerable<DrawingObject> objects,
+            out Dictionary<string, DrawingObject> byId
+        )
         {
             if (objects == null)
             {

@@ -14,8 +14,8 @@ namespace GeometryHelper.UnitTest.Arranging
     /// </summary>
     public class ArrangeToleranceTieTests
     {
-        private static GeoPolygon2 Box(double x0, double y0, double x1, double y1) => new GeoPolygon2(
-            new GeoPoint2(x0, y0), new GeoPoint2(x1, y0), new GeoPoint2(x1, y1), new GeoPoint2(x0, y1));
+        private static GeoPolygon2 Box(double x0, double y0, double x1, double y1) =>
+            new GeoPolygon2(new GeoPoint2(x0, y0), new GeoPoint2(x1, y0), new GeoPoint2(x1, y1), new GeoPoint2(x0, y1));
 
         /// <summary>
         /// A label 40 by 10 hung off a leader 60 long, among three lines and two regions that stand 0.0002 off the places
@@ -35,14 +35,14 @@ namespace GeometryHelper.UnitTest.Arranging
                 BlockPolygons = new List<GeoPolygon2>
                 {
                     Box(x + 5, y - 30, x + 55, y - gap - 5),
-                    Box(x + 65 + gap, y - 10, x + 100, y + 30)
+                    Box(x + 65 + gap, y - 10, x + 100, y + 30),
                 },
                 BlockLines = new List<GeoLine2>
                 {
                     new GeoLine2(x + 50 + gap, y + 5, x + 90, y + 5),
                     new GeoLine2(x + 10 - gap, y + 10, x + 10 - gap, y + 40),
-                    new GeoLine2(x - 20, y + 15 + gap, x + 80, y + 15 + gap)
-                }
+                    new GeoLine2(x - 20, y + 15 + gap, x + 80, y + 15 + gap),
+                },
             };
 
             var options = new ArrangeOptions { Tolerance = new Tolerance(1E-4, 1E-5) };
@@ -80,8 +80,8 @@ namespace GeometryHelper.UnitTest.Arranging
                 BlockLines = new List<GeoLine2>
                 {
                     new GeoLine2(dx - 20, dy + 15.5, dx + 80, dy + 15.5),
-                    new GeoLine2(dx - 20, dy - 15.5 - d, dx + 80, dy - 15.5 - d)
-                }
+                    new GeoLine2(dx - 20, dy - 15.5 - d, dx + 80, dy - 15.5 - d),
+                },
             };
 
             var options = new ArrangeOptions { Tolerance = Tolerance.Default };
@@ -96,7 +96,10 @@ namespace GeometryHelper.UnitTest.Arranging
         [InlineData(1E4, 1E4)]
         [InlineData(1E5, 1E5)]
         [InlineData(1E6, 1E6)]
-        public void ALabelBetweenClearancesAHundredMillionthApart_TakesThePlaceTriedFirstWhereverTheSceneLies(double dx, double dy)
+        public void ALabelBetweenClearancesAHundredMillionthApart_TakesThePlaceTriedFirstWhereverTheSceneLies(
+            double dx,
+            double dy
+        )
         {
             // Above is tried first and 0.5 clear; below is 0.5 and a hundred-millionth clear, within a thousandth of the
             // tolerance of above. A band that grew with the distance from the origin sent the label below near the origin

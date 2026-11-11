@@ -19,7 +19,8 @@ namespace GeometryHelper.UnitTest.Dxf
     {
         private static readonly Tolerance Tol = Tolerance.Default;
 
-        private static DxfDocument Plan(string text) => DxfReader.Parse(text, new DxfReadOptions { PlanAs2D = true, Tolerance = Tol });
+        private static DxfDocument Plan(string text) =>
+            DxfReader.Parse(text, new DxfReadOptions { PlanAs2D = true, Tolerance = Tol });
 
         // ----- Files that cannot be read ---------------------------------------------------------------------------------
 
@@ -29,7 +30,12 @@ namespace GeometryHelper.UnitTest.Dxf
             string binary = "AutoCAD Binary DXF\r\n\u001a\0\0\0SECTION";
 
             Assert.Contains("binary", Assert.Throws<FormatException>(() => DxfReader.Parse(binary)).Message);
-            Assert.Contains("binary", Assert.Throws<FormatException>(() => DxfReader.Read(new MemoryStream(Encoding.ASCII.GetBytes(binary)))).Message);
+            Assert.Contains(
+                "binary",
+                Assert
+                    .Throws<FormatException>(() => DxfReader.Read(new MemoryStream(Encoding.ASCII.GetBytes(binary))))
+                    .Message
+            );
         }
 
         [Fact]
@@ -76,22 +82,230 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void EntitiesWithNoShapeToThem_AreCountedUnderTheirTypes_AndTheOthersRead()
         {
-            string text = R2000(G(
-                0, "LINE", 8, "0", 10, "5", 20, "5", 11, "5", 21, "5",
-                0, "LINE", 8, "0", 10, "0", 20, "0", 11, "0.0004", 21, "0",
-                0, "LINE", 8, "0", 10, "NaN", 20, "0", 11, "1", 21, "0",
-                0, "LINE", 8, "0", 10, "0", 20, "Infinity", 11, "1", 21, "0",
-                0, "LINE", 8, "0", 10, "0", 20, "0", 11, "10", 21, "0",
-                0, "LWPOLYLINE", 8, "0", 90, 1, 70, 0, 10, "1", 20, "1",
-                0, "LWPOLYLINE", 8, "0", 90, 3, 70, 1, 10, "1", 20, "1", 10, "1", 20, "1.0001", 10, "1.0002", 20, "1",
-                0, "CIRCLE", 8, "0", 10, "0", 20, "0", 40, "0",
-                0, "ARC", 8, "0", 10, "0", 20, "0", 40, "0", 50, "0", 51, "90",
-                0, "ELLIPSE", 8, "0", 10, "0", 20, "0", 11, "0", 21, "0", 31, "0", 40, "0.5",
-                0, "ELLIPSE", 8, "0", 10, "0", 20, "0", 11, "10", 21, "0", 31, "0", 40, "0",
-                0, "SPLINE", 8, "0", 70, 8, 71, 3, 40, "0", 40, "1", 10, "0", 20, "0", 10, "1", 20, "1",
-                0, "3DFACE", 8, "0", 10, "1", 20, "1", 30, "1", 11, "1", 21, "1", 31, "1", 12, "1", 22, "1", 32, "1", 13, "1", 23, "1", 33, "1",
-                0, "RAY", 8, "0", 10, "0", 20, "0", 11, "0", 21, "0", 31, "0",
-                0, "CIRCLE", 8, "0", 10, "0", 20, "0", 40, "3"));
+            string text = R2000(
+                G(
+                    0,
+                    "LINE",
+                    8,
+                    "0",
+                    10,
+                    "5",
+                    20,
+                    "5",
+                    11,
+                    "5",
+                    21,
+                    "5",
+                    0,
+                    "LINE",
+                    8,
+                    "0",
+                    10,
+                    "0",
+                    20,
+                    "0",
+                    11,
+                    "0.0004",
+                    21,
+                    "0",
+                    0,
+                    "LINE",
+                    8,
+                    "0",
+                    10,
+                    "NaN",
+                    20,
+                    "0",
+                    11,
+                    "1",
+                    21,
+                    "0",
+                    0,
+                    "LINE",
+                    8,
+                    "0",
+                    10,
+                    "0",
+                    20,
+                    "Infinity",
+                    11,
+                    "1",
+                    21,
+                    "0",
+                    0,
+                    "LINE",
+                    8,
+                    "0",
+                    10,
+                    "0",
+                    20,
+                    "0",
+                    11,
+                    "10",
+                    21,
+                    "0",
+                    0,
+                    "LWPOLYLINE",
+                    8,
+                    "0",
+                    90,
+                    1,
+                    70,
+                    0,
+                    10,
+                    "1",
+                    20,
+                    "1",
+                    0,
+                    "LWPOLYLINE",
+                    8,
+                    "0",
+                    90,
+                    3,
+                    70,
+                    1,
+                    10,
+                    "1",
+                    20,
+                    "1",
+                    10,
+                    "1",
+                    20,
+                    "1.0001",
+                    10,
+                    "1.0002",
+                    20,
+                    "1",
+                    0,
+                    "CIRCLE",
+                    8,
+                    "0",
+                    10,
+                    "0",
+                    20,
+                    "0",
+                    40,
+                    "0",
+                    0,
+                    "ARC",
+                    8,
+                    "0",
+                    10,
+                    "0",
+                    20,
+                    "0",
+                    40,
+                    "0",
+                    50,
+                    "0",
+                    51,
+                    "90",
+                    0,
+                    "ELLIPSE",
+                    8,
+                    "0",
+                    10,
+                    "0",
+                    20,
+                    "0",
+                    11,
+                    "0",
+                    21,
+                    "0",
+                    31,
+                    "0",
+                    40,
+                    "0.5",
+                    0,
+                    "ELLIPSE",
+                    8,
+                    "0",
+                    10,
+                    "0",
+                    20,
+                    "0",
+                    11,
+                    "10",
+                    21,
+                    "0",
+                    31,
+                    "0",
+                    40,
+                    "0",
+                    0,
+                    "SPLINE",
+                    8,
+                    "0",
+                    70,
+                    8,
+                    71,
+                    3,
+                    40,
+                    "0",
+                    40,
+                    "1",
+                    10,
+                    "0",
+                    20,
+                    "0",
+                    10,
+                    "1",
+                    20,
+                    "1",
+                    0,
+                    "3DFACE",
+                    8,
+                    "0",
+                    10,
+                    "1",
+                    20,
+                    "1",
+                    30,
+                    "1",
+                    11,
+                    "1",
+                    21,
+                    "1",
+                    31,
+                    "1",
+                    12,
+                    "1",
+                    22,
+                    "1",
+                    32,
+                    "1",
+                    13,
+                    "1",
+                    23,
+                    "1",
+                    33,
+                    "1",
+                    0,
+                    "RAY",
+                    8,
+                    "0",
+                    10,
+                    "0",
+                    20,
+                    "0",
+                    11,
+                    "0",
+                    21,
+                    "0",
+                    31,
+                    "0",
+                    0,
+                    "CIRCLE",
+                    8,
+                    "0",
+                    10,
+                    "0",
+                    20,
+                    "0",
+                    40,
+                    "3"
+                )
+            );
 
             var log = new List<string>();
             Action<GeometryHelperLogLevel, string, Exception> before = GeometryHelperLog.Writer;
@@ -109,15 +323,29 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             Assert.Equal(new[] { "LINE", "CIRCLE" }, read.Shapes.Select(e => e.Type).ToArray());
-            Assert.Equal(new[] { "3DFACE", "ARC", "CIRCLE", "ELLIPSE", "LINE", "LWPOLYLINE", "RAY", "SPLINE" }, read.Skipped.Keys.ToArray());
+            Assert.Equal(
+                new[] { "3DFACE", "ARC", "CIRCLE", "ELLIPSE", "LINE", "LWPOLYLINE", "RAY", "SPLINE" },
+                read.Skipped.Keys.ToArray()
+            );
             Assert.Equal(4, read.Skipped["LINE"]);
             Assert.Equal(2, read.Skipped["LWPOLYLINE"]);
             Assert.Equal(2, read.Skipped["ELLIPSE"]);
 
             // One Debug line for each type, saying why, and one Info line for the call.
             Assert.Equal(8, log.Count(l => l.StartsWith("Debug DxfReader: ", StringComparison.Ordinal)));
-            Assert.Contains("Debug DxfReader: 4 LINE not read: 2 of no length, 2 with a number that is not a finite number.", log);
-            Assert.True(log.Exists(l => l.StartsWith("Info DxfReader: 2 entities read from a text, 13 skipped (3DFACE 1, ARC 1, CIRCLE 1, ELLIPSE 2, LINE 4, LWPOLYLINE 2, RAY 1, SPLINE 1)", StringComparison.Ordinal)), string.Join(" | ", log));
+            Assert.Contains(
+                "Debug DxfReader: 4 LINE not read: 2 of no length, 2 with a number that is not a finite number.",
+                log
+            );
+            Assert.True(
+                log.Exists(l =>
+                    l.StartsWith(
+                        "Info DxfReader: 2 entities read from a text, 13 skipped (3DFACE 1, ARC 1, CIRCLE 1, ELLIPSE 2, LINE 4, LWPOLYLINE 2, RAY 1, SPLINE 1)",
+                        StringComparison.Ordinal
+                    )
+                ),
+                string.Join(" | ", log)
+            );
         }
 
         [Fact]
@@ -126,7 +354,11 @@ namespace GeometryHelper.UnitTest.Dxf
             string text = R2000(G(0, "LINE", 8, "0", 10, "0", 20, "0", 11, "0.0004", 21, "0"));
 
             Assert.Empty(Plan(text).Shapes);
-            Assert.Single(DxfReader.Parse(text, new DxfReadOptions { PlanAs2D = true, Tolerance = new Tolerance(1E-5, 1E-7) }).Shapes);
+            Assert.Single(
+                DxfReader
+                    .Parse(text, new DxfReadOptions { PlanAs2D = true, Tolerance = new Tolerance(1E-5, 1E-7) })
+                    .Shapes
+            );
         }
 
         [Fact]
@@ -134,14 +366,74 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // A closed periodic cubic of four control points, its knots uniform as AutoCAD writes them: the curve is that of
             // the knots 3 to 4, and the spline read is the same curve there.
-            string text = R2000(G(
-                0, "SPLINE", 8, "0", 70, 11, 71, 3, 72, 8, 73, 4, 74, 0,
-                40, "0", 40, "1", 40, "2", 40, "3", 40, "4", 40, "5", 40, "6", 40, "7",
-                10, "0", 20, "0", 30, "0", 10, "10", 20, "0", 30, "0", 10, "10", 20, "10", 30, "0", 10, "0", 20, "10", 30, "0"));
+            string text = R2000(
+                G(
+                    0,
+                    "SPLINE",
+                    8,
+                    "0",
+                    70,
+                    11,
+                    71,
+                    3,
+                    72,
+                    8,
+                    73,
+                    4,
+                    74,
+                    0,
+                    40,
+                    "0",
+                    40,
+                    "1",
+                    40,
+                    "2",
+                    40,
+                    "3",
+                    40,
+                    "4",
+                    40,
+                    "5",
+                    40,
+                    "6",
+                    40,
+                    "7",
+                    10,
+                    "0",
+                    20,
+                    "0",
+                    30,
+                    "0",
+                    10,
+                    "10",
+                    20,
+                    "0",
+                    30,
+                    "0",
+                    10,
+                    "10",
+                    20,
+                    "10",
+                    30,
+                    "0",
+                    10,
+                    "0",
+                    20,
+                    "10",
+                    30,
+                    "0"
+                )
+            );
 
             DxfDocument read = Plan(text);
             var spline = Assert.IsType<GeoSpline2>(Assert.Single(read.Shapes).Shape);
-            var control = new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10) };
+            var control = new[]
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10),
+            };
             double[] knots = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
             Assert.Equal(new[] { 3.0, 3, 3, 3, 4, 4, 4, 4 }, spline.Knots.ToArray());
@@ -191,16 +483,146 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ADrawingInMetres_IsScaledToMillimetersWhereAsked_ItsAnglesBulgesRatiosKnotsAndWeightsKept()
         {
-            string text = File("AC1015", 6, string.Empty, G(
-                0, "LINE", 8, "0", 39, "0.5", 10, "1", 20, "2", 30, "3", 11, "4", 21, "5", 31, "6",
-                0, "ARC", 8, "0", 10, "1", 20, "1", 30, "0", 40, "2", 50, "30", 51, "60",
-                0, "LWPOLYLINE", 8, "0", 90, 2, 70, 0, 38, "0.25", 10, "0", 20, "0", 42, "0.5", 10, "1", 20, "0",
-                0, "ELLIPSE", 8, "0", 10, "1", 20, "1", 30, "0", 11, "2", 21, "0", 31, "0", 40, "0.5",
-                0, "SPLINE", 8, "0", 70, 12, 71, 2, 72, 6, 73, 3, 74, 0, 40, "0", 40, "0", 40, "0", 40, "1", 40, "1", 40, "1", 41, "1", 41, "0.5", 41, "1",
-                10, "0", 20, "0", 30, "0", 10, "1", 20, "1", 30, "0", 10, "2", 20, "0", 30, "0"));
+            string text = File(
+                "AC1015",
+                6,
+                string.Empty,
+                G(
+                    0,
+                    "LINE",
+                    8,
+                    "0",
+                    39,
+                    "0.5",
+                    10,
+                    "1",
+                    20,
+                    "2",
+                    30,
+                    "3",
+                    11,
+                    "4",
+                    21,
+                    "5",
+                    31,
+                    "6",
+                    0,
+                    "ARC",
+                    8,
+                    "0",
+                    10,
+                    "1",
+                    20,
+                    "1",
+                    30,
+                    "0",
+                    40,
+                    "2",
+                    50,
+                    "30",
+                    51,
+                    "60",
+                    0,
+                    "LWPOLYLINE",
+                    8,
+                    "0",
+                    90,
+                    2,
+                    70,
+                    0,
+                    38,
+                    "0.25",
+                    10,
+                    "0",
+                    20,
+                    "0",
+                    42,
+                    "0.5",
+                    10,
+                    "1",
+                    20,
+                    "0",
+                    0,
+                    "ELLIPSE",
+                    8,
+                    "0",
+                    10,
+                    "1",
+                    20,
+                    "1",
+                    30,
+                    "0",
+                    11,
+                    "2",
+                    21,
+                    "0",
+                    31,
+                    "0",
+                    40,
+                    "0.5",
+                    0,
+                    "SPLINE",
+                    8,
+                    "0",
+                    70,
+                    12,
+                    71,
+                    2,
+                    72,
+                    6,
+                    73,
+                    3,
+                    74,
+                    0,
+                    40,
+                    "0",
+                    40,
+                    "0",
+                    40,
+                    "0",
+                    40,
+                    "1",
+                    40,
+                    "1",
+                    40,
+                    "1",
+                    41,
+                    "1",
+                    41,
+                    "0.5",
+                    41,
+                    "1",
+                    10,
+                    "0",
+                    20,
+                    "0",
+                    30,
+                    "0",
+                    10,
+                    "1",
+                    20,
+                    "1",
+                    30,
+                    "0",
+                    10,
+                    "2",
+                    20,
+                    "0",
+                    30,
+                    "0"
+                )
+            );
 
             DxfDocument kept = Plan(text);
-            DxfDocument scaled = DxfReader.Parse(text, new DxfReadOptions { PlanAs2D = true, ToMillimeters = true, Tolerance = Tol });
+            DxfDocument scaled = DxfReader.Parse(
+                text,
+                new DxfReadOptions
+                {
+                    PlanAs2D = true,
+                    ToMillimeters = true,
+                    Tolerance = Tol,
+                }
+            );
 
             Assert.Equal(DxfUnits.Meters, kept.Units);
             Assert.Equal(DxfUnits.Meters, scaled.Units);
@@ -231,8 +653,14 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ADrawingInInches_IsScaledBy25Point4_AndOneWithNoUnitOrAnUnknownOne_IsKeptAndWarnedAbout()
         {
-            string Line(int units) => File("AC1015", units, string.Empty, G(0, "POINT", 8, "0", 10, "2", 20, "3", 30, "0"));
-            var options = new DxfReadOptions { PlanAs2D = true, ToMillimeters = true, Tolerance = Tol };
+            string Line(int units) =>
+                File("AC1015", units, string.Empty, G(0, "POINT", 8, "0", 10, "2", 20, "3", 30, "0"));
+            var options = new DxfReadOptions
+            {
+                PlanAs2D = true,
+                ToMillimeters = true,
+                Tolerance = Tol,
+            };
 
             DxfDocument inches = DxfReader.Parse(Line(1), options);
             DxfDocument none = DxfReader.Parse(Line(0), options);
@@ -250,7 +678,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AVersionOutsideR12ToR2018_IsReadAndWarnedAbout()
         {
-            DxfDocument read = DxfReader.Parse(File("AC1006", 0, string.Empty, G(0, "POINT", 8, "0", 10, "1", 20, "1")));
+            DxfDocument read = DxfReader.Parse(
+                File("AC1006", 0, string.Empty, G(0, "POINT", 8, "0", 10, "1", 20, "1"))
+            );
 
             Assert.Single(read.Shapes);
             Assert.Contains(read.Warnings, w => w.Contains("AC1006"));

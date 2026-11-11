@@ -94,28 +94,32 @@ namespace GeometryHelper
         /// </summary>
         /// <param name="message">The message.</param>
         /// <param name="exception">The exception behind it, if any.</param>
-        public static void Debug(string message, Exception exception = null) => Write(GeometryHelperLogLevel.Debug, message, exception);
+        public static void Debug(string message, Exception exception = null) =>
+            Write(GeometryHelperLogLevel.Debug, message, exception);
 
         /// <summary>
         /// Writes the ordinary outcome of an operation.
         /// </summary>
         /// <param name="message">The message.</param>
         /// <param name="exception">The exception behind it, if any.</param>
-        public static void Info(string message, Exception exception = null) => Write(GeometryHelperLogLevel.Info, message, exception);
+        public static void Info(string message, Exception exception = null) =>
+            Write(GeometryHelperLogLevel.Info, message, exception);
 
         /// <summary>
         /// Writes that something was left out or could not be done, and the work went on without it.
         /// </summary>
         /// <param name="message">The message.</param>
         /// <param name="exception">The exception behind it, if any.</param>
-        public static void Warn(string message, Exception exception = null) => Write(GeometryHelperLogLevel.Warn, message, exception);
+        public static void Warn(string message, Exception exception = null) =>
+            Write(GeometryHelperLogLevel.Warn, message, exception);
 
         /// <summary>
         /// Writes that something failed that the caller should know about.
         /// </summary>
         /// <param name="message">The message.</param>
         /// <param name="exception">The exception behind it, if any.</param>
-        public static void Err(string message, Exception exception = null) => Write(GeometryHelperLogLevel.Err, message, exception);
+        public static void Err(string message, Exception exception = null) =>
+            Write(GeometryHelperLogLevel.Err, message, exception);
 
         /// <summary>
         /// Formats a message the way the default writer does, for example
@@ -129,9 +133,7 @@ namespace GeometryHelper
         {
             string text = level.ToString().ToUpperInvariant() + " " + (message ?? string.Empty);
 
-            return exception == null
-                ? text
-                : text + " [" + exception.GetType().Name + ": " + exception.Message + "]";
+            return exception == null ? text : text + " [" + exception.GetType().Name + ": " + exception.Message + "]";
         }
 
         private static void Write(GeometryHelperLogLevel level, string message, Exception exception)

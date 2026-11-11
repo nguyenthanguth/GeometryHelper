@@ -19,9 +19,11 @@ namespace GeometryHelper.Viewer.Tests
     {
         private static readonly GeoPoint3 Centre = new GeoPoint3(100.25, -40.5, 7.125);
 
-        private static Scene Ball(double radius) => new SceneWriter().Add(new GeoSphere3(Centre, radius), name: "ball").Scene;
+        private static Scene Ball(double radius) =>
+            new SceneWriter().Add(new GeoSphere3(Centre, radius), name: "ball").Scene;
 
-        private static double Area(IEnumerable<DrawTriangle> triangles) => triangles.Sum(t => Vec3.Cross(t.B - t.A, t.C - t.A).Length * 0.5);
+        private static double Area(IEnumerable<DrawTriangle> triangles) =>
+            triangles.Sum(t => Vec3.Cross(t.B - t.A, t.C - t.A).Length * 0.5);
 
         private static double Away(Vec3 point) => (point - new Vec3(Centre.X, Centre.Y, Centre.Z)).Length;
 
@@ -150,7 +152,9 @@ namespace GeometryHelper.Viewer.Tests
 
             // At the chord tolerance of the scene each would take 262 144 at most, 10.2 million in all.
             Assert.InRange(total, 3500000, PrimitiveBuilder.MostBallTrianglesInAScene);
-            Assert.All(primitives.Items, item => Assert.Equal(primitives.Items[0].Triangles.Count, item.Triangles.Count));
+            Assert.All(primitives.Items, item =>
+                Assert.Equal(primitives.Items[0].Triangles.Count, item.Triangles.Count)
+            );
             Assert.All(primitives.Items, item => Assert.Null(item.Warning));
 
             string said = Assert.Single(primitives.Warnings);
@@ -159,7 +163,9 @@ namespace GeometryHelper.Viewer.Tests
             Assert.DoesNotContain("still over", said);
 
             // Every ball is on its sphere whatever its tolerance.
-            Assert.All(primitives.Items[7].Triangles, t => Assert.Equal(100.0, (t.A - new Vec3(7 * 250.0, 0, 0)).Length, 9));
+            Assert.All(primitives.Items[7].Triangles, t =>
+                Assert.Equal(100.0, (t.A - new Vec3(7 * 250.0, 0, 0)).Length, 9)
+            );
         }
 
         [Fact]
@@ -173,7 +179,10 @@ namespace GeometryHelper.Viewer.Tests
             }
 
             Primitives primitives = Primitives.Build(writer.Scene);
-            int alone = Primitives.Build(new SceneWriter().Add(new GeoSphere3(GeoPoint3.Origin, 20.0)).Scene).Items[0].Triangles.Count;
+            int alone = Primitives
+                .Build(new SceneWriter().Add(new GeoSphere3(GeoPoint3.Origin, 20.0)).Scene)
+                .Items[0]
+                .Triangles.Count;
 
             Assert.All(primitives.Items, item => Assert.Equal(alone, item.Triangles.Count));
             Assert.Empty(primitives.Warnings);
@@ -191,7 +200,11 @@ namespace GeometryHelper.Viewer.Tests
 
             Primitives primitives = Primitives.Build(writer.Scene);
 
-            Assert.InRange(primitives.Items.Sum(item => (long)item.Triangles.Count), 1, PrimitiveBuilder.MostBallTrianglesInAScene);
+            Assert.InRange(
+                primitives.Items.Sum(item => (long)item.Triangles.Count),
+                1,
+                PrimitiveBuilder.MostBallTrianglesInAScene
+            );
             Assert.True(primitives.Items[0].Triangles.Count > primitives.Items[1].Triangles.Count);
             Assert.Single(primitives.Warnings);
         }
@@ -203,24 +216,40 @@ namespace GeometryHelper.Viewer.Tests
             Primitives primitives = Primitives.Build(scene);
             var ball = new GeoSphere3(Centre, 12.5);
 
-            Dictionary<string, string> numbers = ItemMeasures.Describe(scene.Items[0], scene, primitives.Items[0]).ToDictionary(p => p.Key, p => p.Value);
+            Dictionary<string, string> numbers = ItemMeasures
+                .Describe(scene.Items[0], scene, primitives.Items[0])
+                .ToDictionary(p => p.Key, p => p.Value);
 
             Assert.Equal("12.5", numbers["Radius"]);
             Assert.Equal(G10(ball.Volume), numbers["Volume"]);
             Assert.Equal(G10(ball.SurfaceArea), numbers["Surface area"]);
             Assert.Equal("100.25, -40.5, 7.125", numbers["Center"]);
-            Assert.Equal("(" + G10(Centre.X - 12.5) + ", " + G10(Centre.Y - 12.5) + ", " + G10(Centre.Z - 12.5) + ")", numbers["Bounds min (library)"]);
+            Assert.Equal(
+                "(" + G10(Centre.X - 12.5) + ", " + G10(Centre.Y - 12.5) + ", " + G10(Centre.Z - 12.5) + ")",
+                numbers["Bounds min (library)"]
+            );
         }
 
         [Fact]
         public void TheCentreOfABall_SnapsAsACentre_ExactlyWhereItIs()
         {
-            var view = ViewFixture.Top(new SceneWriter()
-                .Add(new GeoSphere3(new GeoPoint3(10, 20, 0), 40.0))
-                .Add(new GeoLine2(new GeoPoint2(-100, -100), new GeoPoint2(100, -100))));
+            var view = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoSphere3(new GeoPoint3(10, 20, 0), 40.0))
+                    .Add(new GeoLine2(new GeoPoint2(-100, -100), new GeoPoint2(100, -100)))
+            );
 
             (double x, double y) = view.Pixel(new Vec3(10, 20, 0));
-            SnapHit hit = SnapEngine.Find(view.Geometry, view.Map, x + 2.0, y - 1.5, SnapKinds.Centre, SnapEngine.DefaultRadius, view.Scene.EqualPoint, null);
+            SnapHit hit = SnapEngine.Find(
+                view.Geometry,
+                view.Map,
+                x + 2.0,
+                y - 1.5,
+                SnapKinds.Centre,
+                SnapEngine.DefaultRadius,
+                view.Scene.EqualPoint,
+                null
+            );
 
             Assert.Equal("centre", hit.Name);
             Assert.Equal(new Vec3(10, 20, 0), hit.Point);
@@ -235,7 +264,16 @@ namespace GeometryHelper.Viewer.Tests
             // The equator seen from above is the rim of the disc: a point of it at 30 degrees, the cursor two pixels outside it.
             double angle = 30.0 * Math.PI / 180.0;
             (double x, double y) = view.Pixel(new Vec3(40.0 * Math.Cos(angle), 40.0 * Math.Sin(angle), 0));
-            SnapHit hit = SnapEngine.Find(view.Geometry, view.Map, x + 2.0 * Math.Cos(angle), y - 2.0 * Math.Sin(angle), SnapKinds.Nearest, SnapEngine.DefaultRadius, view.Scene.EqualPoint, null);
+            SnapHit hit = SnapEngine.Find(
+                view.Geometry,
+                view.Map,
+                x + 2.0 * Math.Cos(angle),
+                y - 2.0 * Math.Sin(angle),
+                SnapKinds.Nearest,
+                SnapEngine.DefaultRadius,
+                view.Scene.EqualPoint,
+                null
+            );
 
             Assert.Equal("nearest", hit.Name);
             Assert.Equal(40.0, hit.Point.Length, 12);
@@ -279,7 +317,9 @@ namespace GeometryHelper.Viewer.Tests
         public void ABallCutOffCentre_HasACapOfTheSmallerDisc()
         {
             Primitives primitives = Primitives.Build(Ball(50.0));
-            var clips = new ClipSet(new[] { new ClipPlane(new Vec3(Centre.X, Centre.Y, Centre.Z + 30.0), new Vec3(0, 0, 1)) });
+            var clips = new ClipSet(
+                new[] { new ClipPlane(new Vec3(Centre.X, Centre.Y, Centre.Z + 30.0), new Vec3(0, 0, 1)) }
+            );
 
             ClipResult result = ClipResult.Build(primitives, clips, true);
 
@@ -317,7 +357,10 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Equal(new GeoSphere3(GeoPoint3.Origin, 10.0).Volume, piece.Size, 9);
 
             // Every other check runs over it with no word of complaint about what it is.
-            DiagnosticReport all = Diag.Run(scene, DiagnosticChecks.All & ~DiagnosticChecks.Gap & ~DiagnosticChecks.Pieces & ~DiagnosticChecks.Clash);
+            DiagnosticReport all = Diag.Run(
+                scene,
+                DiagnosticChecks.All & ~DiagnosticChecks.Gap & ~DiagnosticChecks.Pieces & ~DiagnosticChecks.Clash
+            );
             Assert.DoesNotContain(all.Findings, f => f.ItemName == "ball");
         }
 

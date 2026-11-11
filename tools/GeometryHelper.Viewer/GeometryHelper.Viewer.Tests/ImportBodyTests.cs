@@ -21,10 +21,16 @@ namespace GeometryHelper.Viewer.Tests
         private static readonly Tolerance Tol = Tolerance.Default;
         private static readonly ClashOptions Options = new ClashOptions(0.0, true, 1);
 
-        private static GeoSolid3 Plate(double x, double y, double z, double sx, double sy, double sz)
-            => GeoSolid3.Extrude(
-                new GeoPolygon3(new GeoPoint3(x, y, z), new GeoPoint3(x + sx, y, z), new GeoPoint3(x + sx, y + sy, z), new GeoPoint3(x, y + sy, z)),
-                new GeoVector3(0, 0, sz));
+        private static GeoSolid3 Plate(double x, double y, double z, double sx, double sy, double sz) =>
+            GeoSolid3.Extrude(
+                new GeoPolygon3(
+                    new GeoPoint3(x, y, z),
+                    new GeoPoint3(x + sx, y, z),
+                    new GeoPoint3(x + sx, y + sy, z),
+                    new GeoPoint3(x, y + sy, z)
+                ),
+                new GeoVector3(0, 0, sz)
+            );
 
         private static Scene Dxf(params (GeoSolid3 Body, string Layer)[] bodies)
         {
@@ -50,11 +56,14 @@ namespace GeometryHelper.Viewer.Tests
             return SceneImport.ReadText(writer.ToString(), "obj");
         }
 
-        private static DiagnosticReport Clash(Scene scene, params int[] items) => Diag.Run(scene, DiagnosticChecks.Clash, true, items);
+        private static DiagnosticReport Clash(Scene scene, params int[] items) =>
+            Diag.Run(scene, DiagnosticChecks.Clash, true, items);
 
-        private static ClashResult[] Library(GeoSolid3 a, GeoSolid3 b) => Clash3.Find(new[] { a }, new[] { b }, Options, Tol);
+        private static ClashResult[] Library(GeoSolid3 a, GeoSolid3 b) =>
+            Clash3.Find(new[] { a }, new[] { b }, Options, Tol);
 
-        private static GeoSolid3 Hollow() => Plate(0, 0, 0, 100, 60, 40).WithOpenings(new[] { Plate(30, 20, 10, 20, 20, 20) });
+        private static GeoSolid3 Hollow() =>
+            Plate(0, 0, 0, 100, 60, 40).WithOpenings(new[] { Plate(30, 20, 10, 20, 20, 20) });
 
         #region A body with a void
 
@@ -66,7 +75,12 @@ namespace GeometryHelper.Viewer.Tests
             foreach (Scene scene in new[] { Dxf((hollow, "steel")), Obj((hollow, "hollow")) })
             {
                 SceneItem item = Imp.Only(scene);
-                List<ShellPiece> pieces = MeshShells.Split(Imp.MeshPoints(item), GeometryDecoder.Faces(item.Data).ToList(), 1E-3, CancellationToken.None);
+                List<ShellPiece> pieces = MeshShells.Split(
+                    Imp.MeshPoints(item),
+                    GeometryDecoder.Faces(item.Data).ToList(),
+                    1E-3,
+                    CancellationToken.None
+                );
 
                 Assert.Equal("GeoMesh3", item.Kind);
                 ShellPiece piece = Assert.Single(pieces);
@@ -103,8 +117,14 @@ namespace GeometryHelper.Viewer.Tests
 
             foreach (string format in new[] { "dxf", "obj" })
             {
-                Scene free = format == "dxf" ? Dxf((hollow, "steel"), (inTheVoid, "bolt")) : Obj((hollow, "hollow"), (inTheVoid, "bolt"));
-                Scene through = format == "dxf" ? Dxf((hollow, "steel"), (throughTheWall, "bolt")) : Obj((hollow, "hollow"), (throughTheWall, "bolt"));
+                Scene free =
+                    format == "dxf"
+                        ? Dxf((hollow, "steel"), (inTheVoid, "bolt"))
+                        : Obj((hollow, "hollow"), (inTheVoid, "bolt"));
+                Scene through =
+                    format == "dxf"
+                        ? Dxf((hollow, "steel"), (throughTheWall, "bolt"))
+                        : Obj((hollow, "hollow"), (throughTheWall, "bolt"));
 
                 Assert.Equal(2, free.Items.Count);
                 Assert.Empty(Clash(free).Findings);
@@ -125,7 +145,14 @@ namespace GeometryHelper.Viewer.Tests
             GeoTriangle3[] turned = inside.Select(t => new GeoTriangle3(t.A, t.C, t.B)).ToArray();
             Scene scene = SceneImport.ReadText(new ObjWriter().Add(turned, "inside out").ToString(), "obj");
             SceneItem item = Imp.Only(scene);
-            ShellPiece piece = Assert.Single(MeshShells.Split(Imp.MeshPoints(item), GeometryDecoder.Faces(item.Data).ToList(), 1E-3, CancellationToken.None));
+            ShellPiece piece = Assert.Single(
+                MeshShells.Split(
+                    Imp.MeshPoints(item),
+                    GeometryDecoder.Faces(item.Data).ToList(),
+                    1E-3,
+                    CancellationToken.None
+                )
+            );
 
             Assert.True(piece.Closed);
             Assert.Empty(piece.Voids);
@@ -140,7 +167,10 @@ namespace GeometryHelper.Viewer.Tests
             Scene scene = Dxf((big, "steel"), (small, "steel"));
 
             Assert.Equal(2, scene.Items.Count);
-            Assert.Equal(new[] { big.TriangulateSurface(Tol).Length, 12 }, scene.Items.Select(i => Imp.MeshFaces(i).Count).ToArray());
+            Assert.Equal(
+                new[] { big.TriangulateSurface(Tol).Length, 12 },
+                scene.Items.Select(i => Imp.MeshFaces(i).Count).ToArray()
+            );
             Assert.Empty(Clash(scene).Findings);
         }
 
@@ -153,15 +183,20 @@ namespace GeometryHelper.Viewer.Tests
             const double h = 20.0;
             GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
 
-            return new GeoSolid3(new[]
-            {
-                new GeoFace3(new GeoPolygon3(P(0, 0, 0), P(0, 60, 0), P(100, 60, 0), P(100, 0, 0)), null),
-                new GeoFace3(new GeoPolygon3(P(0, 0, h + e), P(100, 0, h + e), P(100, 60, h + e), P(0, 60, h + e)), null),
-                new GeoFace3(new GeoPolygon3(P(0, 0, 0), P(100, 0, 0), P(100, 0, h), P(0, 0, h)), null),
-                new GeoFace3(new GeoPolygon3(P(100, 0, 0), P(100, 60, 0), P(100, 60, h), P(100, 0, h)), null),
-                new GeoFace3(new GeoPolygon3(P(100, 60, 0), P(0, 60, 0), P(0, 60, h), P(100, 60, h)), null),
-                new GeoFace3(new GeoPolygon3(P(0, 60, 0), P(0, 0, 0), P(0, 0, h), P(0, 60, h)), null),
-            });
+            return new GeoSolid3(
+                new[]
+                {
+                    new GeoFace3(new GeoPolygon3(P(0, 0, 0), P(0, 60, 0), P(100, 60, 0), P(100, 0, 0)), null),
+                    new GeoFace3(
+                        new GeoPolygon3(P(0, 0, h + e), P(100, 0, h + e), P(100, 60, h + e), P(0, 60, h + e)),
+                        null
+                    ),
+                    new GeoFace3(new GeoPolygon3(P(0, 0, 0), P(100, 0, 0), P(100, 0, h), P(0, 0, h)), null),
+                    new GeoFace3(new GeoPolygon3(P(100, 0, 0), P(100, 60, 0), P(100, 60, h), P(100, 0, h)), null),
+                    new GeoFace3(new GeoPolygon3(P(100, 60, 0), P(0, 60, 0), P(0, 60, h), P(100, 60, h)), null),
+                    new GeoFace3(new GeoPolygon3(P(0, 60, 0), P(0, 0, 0), P(0, 0, h), P(0, 60, h)), null),
+                }
+            );
         }
 
         [Fact]
@@ -174,11 +209,20 @@ namespace GeometryHelper.Viewer.Tests
             Assert.True(box.IsClosed(Tol));
             Assert.Equal(10000.0, expected.Volume, 3);
 
-            foreach (Scene scene in new[] { Dxf((box, "steel"), (other, "bolt")), Obj((box, "steel"), (other, "bolt")) })
+            foreach (
+                Scene scene in new[] { Dxf((box, "steel"), (other, "bolt")), Obj((box, "steel"), (other, "bolt")) }
+            )
             {
                 Assert.Equal(2, scene.Items.Count);
                 SceneItem item = scene.Items[0];
-                ShellPiece piece = Assert.Single(MeshShells.Split(Imp.MeshPoints(item), GeometryDecoder.Faces(item.Data).ToList(), 1E-3, CancellationToken.None));
+                ShellPiece piece = Assert.Single(
+                    MeshShells.Split(
+                        Imp.MeshPoints(item),
+                        GeometryDecoder.Faces(item.Data).ToList(),
+                        1E-3,
+                        CancellationToken.None
+                    )
+                );
                 Assert.True(piece.Closed);
 
                 // The corners are 1E-7 apart, where the library's 1E-3 welds them; the number differs from the library's on the six faces by the 2E-5 of its own healing.
@@ -231,7 +275,9 @@ namespace GeometryHelper.Viewer.Tests
             GeoSolid3 small = Plate(0, 0, 0, 50, 30, 10);
             ClashResult expected = Library(big, small).Single();
 
-            foreach (Scene scene in new[] { Dxf((big, "steel"), (small, "steel")), Obj((big, "big"), (small, "small")) })
+            foreach (
+                Scene scene in new[] { Dxf((big, "steel"), (small, "steel")), Obj((big, "big"), (small, "small")) }
+            )
             {
                 Assert.Equal(2, scene.Items.Count);
                 DiagnosticFinding clash = Assert.Single(Diag.Of(Clash(scene), DiagnosticKind.HardClash));
@@ -256,11 +302,20 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ARowOfBodiesLyingFaceToFace_IsOneItemToABody_InAnyOrderOfTheFile()
         {
-            GeoSolid3[] row = { Plate(0, 0, 0, 10, 10, 10), Plate(10, 0, 0, 10, 10, 10), Plate(20, 0, 0, 10, 10, 10), Plate(10, 10, 0, 10, 10, 10) };
+            GeoSolid3[] row =
+            {
+                Plate(0, 0, 0, 10, 10, 10),
+                Plate(10, 0, 0, 10, 10, 10),
+                Plate(20, 0, 0, 10, 10, 10),
+                Plate(10, 10, 0, 10, 10, 10),
+            };
 
             Assert.Equal(4, Dxf(row.Select(b => (b, "steel")).ToArray()).Items.Count);
             Assert.Equal(4, Dxf(row.AsEnumerable().Reverse().Select(b => (b, "steel")).ToArray()).Items.Count);
-            Assert.Equal(4, Obj(row.Select((b, i) => (b, "b" + i.ToString(CultureInfo.InvariantCulture))).ToArray()).Items.Count);
+            Assert.Equal(
+                4,
+                Obj(row.Select((b, i) => (b, "b" + i.ToString(CultureInfo.InvariantCulture))).ToArray()).Items.Count
+            );
         }
 
         [Fact]
@@ -268,7 +323,10 @@ namespace GeometryHelper.Viewer.Tests
         {
             GeoTriangle3[] first = Plate(0, 0, 0, 10, 10, 10).TriangulateSurface(Tol);
             GeoTriangle3[] second = Plate(50, 0, 0, 10, 10, 10).TriangulateSurface(Tol);
-            Scene scene = SceneImport.ReadText(new ObjWriter().Add(first.Concat(second), "two boxes").ToString(), "obj");
+            Scene scene = SceneImport.ReadText(
+                new ObjWriter().Add(first.Concat(second), "two boxes").ToString(),
+                "obj"
+            );
 
             Assert.Equal(new[] { "two_boxes", "two_boxes 2" }, scene.Items.Select(i => i.Name).ToArray());
             Assert.All(scene.Items, i => Assert.Equal(12, Imp.MeshFaces(i).Count));
@@ -290,7 +348,8 @@ namespace GeometryHelper.Viewer.Tests
         public void TheSplittingDoesNotFollowTheOrderOfTheFaces()
         {
             // A box, a box lying against it, and in the first a void: two bodies, however the faces are ordered.
-            GeoTriangle3[] triangles = Plate(0, 0, 0, 10, 10, 10).TriangulateSurface(Tol)
+            GeoTriangle3[] triangles = Plate(0, 0, 0, 10, 10, 10)
+                .TriangulateSurface(Tol)
                 .Concat(Plate(10, 0, 0, 10, 10, 10).TriangulateSurface(Tol))
                 .Concat(Plate(2, 2, 2, 3, 3, 3).TriangulateSurface(Tol).Select(t => new GeoTriangle3(t.A, t.C, t.B)))
                 .ToArray();
@@ -308,7 +367,25 @@ namespace GeometryHelper.Viewer.Tests
             string Summary(List<int[]> order)
             {
                 List<ShellPiece> pieces = MeshShells.Split(points, order, 1E-3, CancellationToken.None);
-                return string.Join(";", pieces.Select(p => p.Closed + ":" + p.Voids.Count + ":" + p.Faces.Count + ":" + string.Join(",", p.Faces.Select(f => Imp.Key(order[f].Select(i => points[i]))).OrderBy(k => k, StringComparer.Ordinal).Take(1))).OrderBy(x => x, StringComparer.Ordinal));
+                return string.Join(
+                    ";",
+                    pieces
+                        .Select(p =>
+                            p.Closed
+                            + ":"
+                            + p.Voids.Count
+                            + ":"
+                            + p.Faces.Count
+                            + ":"
+                            + string.Join(
+                                ",",
+                                p.Faces.Select(f => Imp.Key(order[f].Select(i => points[i])))
+                                    .OrderBy(k => k, StringComparer.Ordinal)
+                                    .Take(1)
+                            )
+                        )
+                        .OrderBy(x => x, StringComparer.Ordinal)
+                );
             }
 
             List<ShellPiece> forward = MeshShells.Split(points, faces, 1E-3, CancellationToken.None);

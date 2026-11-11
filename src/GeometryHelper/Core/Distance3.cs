@@ -81,8 +81,8 @@ namespace GeometryHelper.Core
         /// distance zero. The gap is measured from the triangle's own corners and plane, so a point on a sliver 0.0001 wide
         /// and 100 long reads nought, where the closest point found by projection can be 0.0005 away.
         /// </remarks>
-        public static double DistanceTo(GeoTriangle3 triangle, GeoPoint3 point)
-            => Gap3.PointToTriangle(triangle, point);
+        public static double DistanceTo(GeoTriangle3 triangle, GeoPoint3 point) =>
+            Gap3.PointToTriangle(triangle, point);
 
         /// <summary>
         /// Calculates the shortest distance from a triangle to a point as the closest-point search of
@@ -92,8 +92,8 @@ namespace GeometryHelper.Core
         /// This is what the search for the nearest triangles of two bodies and the collision of two triangles ask, which the
         /// clash reads and keeps as it was. <see cref="DistanceTo(GeoTriangle3, GeoPoint3)"/> measures a sliver where it is.
         /// </remarks>
-        internal static double DistanceToByProjection(GeoTriangle3 triangle, GeoPoint3 point)
-            => DistanceTo(Projection3.ProjectToTriangle(triangle, point), point);
+        internal static double DistanceToByProjection(GeoTriangle3 triangle, GeoPoint3 point) =>
+            DistanceTo(Projection3.ProjectToTriangle(triangle, point), point);
 
         #endregion
 
@@ -113,8 +113,8 @@ namespace GeometryHelper.Core
         /// longer than the tolerance is read as its start where it does not truly meet the other. The segment from the origin
         /// to (60, 0, 0) and the one from (60.0004, 0, 0) to (100, 0, 0) are 0.0004 apart.
         /// </remarks>
-        public static double DistanceTo(GeoLine3 line1, GeoLine3 line2, Tolerance tolerance)
-            => Gap3.Segments(line1.StartPoint, line1.EndPoint, true, line2.StartPoint, line2.EndPoint, true, tolerance);
+        public static double DistanceTo(GeoLine3 line1, GeoLine3 line2, Tolerance tolerance) =>
+            Gap3.Segments(line1.StartPoint, line1.EndPoint, true, line2.StartPoint, line2.EndPoint, true, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between two line segments as the closest-point search of
@@ -124,8 +124,8 @@ namespace GeometryHelper.Core
         /// This is what the search for the nearest triangles of two bodies and the collision of two triangles ask, which the
         /// clash reads and keeps as it was.
         /// </remarks>
-        internal static double DistanceToByProjection(GeoLine3 line1, GeoLine3 line2, Tolerance tolerance)
-            => Projection3.Closest(line1, line2, tolerance).Length;
+        internal static double DistanceToByProjection(GeoLine3 line1, GeoLine3 line2, Tolerance tolerance) =>
+            Projection3.Closest(line1, line2, tolerance).Length;
 
         /// <summary>
         /// Calculates the shortest distance between a ray and a line segment.
@@ -147,7 +147,14 @@ namespace GeometryHelper.Core
             double reach = Math.Max(ray.Origin.DistanceTo(line.StartPoint), ray.Origin.DistanceTo(line.EndPoint));
 
             return Gap3.Segments(
-                ray.Origin, Gap3.RayEnd(ray, reach), false, line.StartPoint, line.EndPoint, true, tolerance);
+                ray.Origin,
+                Gap3.RayEnd(ray, reach),
+                false,
+                line.StartPoint,
+                line.EndPoint,
+                true,
+                tolerance
+            );
         }
 
         #endregion
@@ -177,7 +184,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the distance between two planes.
         /// </summary>
-        public static double DistanceTo(GeoPlane3 plane1, GeoPlane3 plane2) => DistanceTo(plane1, plane2, Tolerance.Global);
+        public static double DistanceTo(GeoPlane3 plane1, GeoPlane3 plane2) =>
+            DistanceTo(plane1, plane2, Tolerance.Global);
 
         /// <summary>
         /// Calculates the distance between two planes, within a tolerance.
@@ -203,7 +211,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance from a polyline to a point.
         /// </summary>
-        public static double DistanceTo(GeoPolyline3 polyline, GeoPoint3 point) => DistanceTo(polyline, point, Tolerance.Global);
+        public static double DistanceTo(GeoPolyline3 polyline, GeoPoint3 point) =>
+            DistanceTo(polyline, point, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance from a polyline to a point, within a tolerance.
@@ -223,7 +232,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance from a polygon to a point.
         /// </summary>
-        public static double DistanceTo(GeoPolygon3 polygon, GeoPoint3 point) => DistanceTo(polygon, point, Tolerance.Global);
+        public static double DistanceTo(GeoPolygon3 polygon, GeoPoint3 point) =>
+            DistanceTo(polygon, point, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance from a polygon to a point, within a tolerance.
@@ -318,7 +328,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance from a circular disc to a point.
         /// </summary>
-        public static double DistanceTo(GeoCircle3 circle, GeoPoint3 point) => DistanceTo(circle, point, Tolerance.Global);
+        public static double DistanceTo(GeoCircle3 circle, GeoPoint3 point) =>
+            DistanceTo(circle, point, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance from a circular disc to a point, within a tolerance.
@@ -349,7 +360,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between two triangles.
         /// </summary>
-        public static double DistanceTo(GeoTriangle3 triangle1, GeoTriangle3 triangle2) => DistanceTo(triangle1, triangle2, Tolerance.Global);
+        public static double DistanceTo(GeoTriangle3 triangle1, GeoTriangle3 triangle2) =>
+            DistanceTo(triangle1, triangle2, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between two triangles, within a tolerance.
@@ -398,7 +410,10 @@ namespace GeometryHelper.Core
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    best = Math.Min(best, DistanceToByProjection(triangle1.GetEdgeAt(i), triangle2.GetEdgeAt(j), tolerance));
+                    best = Math.Min(
+                        best,
+                        DistanceToByProjection(triangle1.GetEdgeAt(i), triangle2.GetEdgeAt(j), tolerance)
+                    );
                 }
             }
 
@@ -414,7 +429,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a line segment and a triangle.
         /// </summary>
-        public static double DistanceTo(GeoLine3 line, GeoTriangle3 triangle) => DistanceTo(line, triangle, Tolerance.Global);
+        public static double DistanceTo(GeoLine3 line, GeoTriangle3 triangle) =>
+            DistanceTo(line, triangle, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a line segment and a triangle, within a tolerance.
@@ -433,7 +449,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a line segment and a polygon.
         /// </summary>
-        public static double DistanceTo(GeoLine3 line, GeoPolygon3 polygon) => DistanceTo(line, polygon, Tolerance.Global);
+        public static double DistanceTo(GeoLine3 line, GeoPolygon3 polygon) =>
+            DistanceTo(line, polygon, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a line segment and a polygon, within a tolerance.
@@ -489,7 +506,15 @@ namespace GeometryHelper.Core
             // The faces run straight across every opening; the nearest material can sit on any opening's rim.
             solid = Material3.Whole(solid, tolerance);
 
-            double best = Gap3.SurfaceSegment(solid, line.StartPoint, line.EndPoint, true, tolerance, double.MaxValue, 0.0);
+            double best = Gap3.SurfaceSegment(
+                solid,
+                line.StartPoint,
+                line.EndPoint,
+                true,
+                tolerance,
+                double.MaxValue,
+                0.0
+            );
 
             if (best <= 0.0 || Gap3.Holds(solid, line.StartPoint) || Gap3.Holds(solid, line.EndPoint))
             {
@@ -502,7 +527,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a solid and a triangle.
         /// </summary>
-        public static double DistanceTo(GeoSolid3 solid, GeoTriangle3 triangle) => DistanceTo(solid, triangle, Tolerance.Global);
+        public static double DistanceTo(GeoSolid3 solid, GeoTriangle3 triangle) =>
+            DistanceTo(solid, triangle, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a solid and a triangle, within a tolerance.
@@ -532,7 +558,12 @@ namespace GeometryHelper.Core
 
             double best = Gap3.SurfaceRegion(solid, Gap3.Region.Of(triangle), double.MaxValue, 0.0);
 
-            if (best <= 0.0 || Gap3.Holds(solid, triangle.A) || Gap3.Holds(solid, triangle.B) || Gap3.Holds(solid, triangle.C))
+            if (
+                best <= 0.0
+                || Gap3.Holds(solid, triangle.A)
+                || Gap3.Holds(solid, triangle.B)
+                || Gap3.Holds(solid, triangle.C)
+            )
             {
                 return 0.0;
             }
@@ -543,7 +574,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a solid and a polygon.
         /// </summary>
-        public static double DistanceTo(GeoSolid3 solid, GeoPolygon3 polygon) => DistanceTo(solid, polygon, Tolerance.Global);
+        public static double DistanceTo(GeoSolid3 solid, GeoPolygon3 polygon) =>
+            DistanceTo(solid, polygon, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a solid and a polygon, within a tolerance.
@@ -592,7 +624,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a solid and a polyline.
         /// </summary>
-        public static double DistanceTo(GeoSolid3 solid, GeoPolyline3 polyline) => DistanceTo(solid, polyline, Tolerance.Global);
+        public static double DistanceTo(GeoSolid3 solid, GeoPolyline3 polyline) =>
+            DistanceTo(solid, polyline, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a solid and a polyline, within a tolerance.
@@ -720,7 +753,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between two solids.
         /// </summary>
-        public static double DistanceTo(GeoSolid3 solid1, GeoSolid3 solid2) => DistanceTo(solid1, solid2, Tolerance.Global);
+        public static double DistanceTo(GeoSolid3 solid1, GeoSolid3 solid2) =>
+            DistanceTo(solid1, solid2, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between two solids, within a tolerance.
@@ -754,7 +788,10 @@ namespace GeometryHelper.Core
                 return 0.0;
             }
 
-            return new Spatial.GeoBvh3(solid1.TriangulateQuietly(tolerance)).DistanceTo(new Spatial.GeoBvh3(solid2.TriangulateQuietly(tolerance)), tolerance);
+            return new Spatial.GeoBvh3(solid1.TriangulateQuietly(tolerance)).DistanceTo(
+                new Spatial.GeoBvh3(solid2.TriangulateQuietly(tolerance)),
+                tolerance
+            );
         }
 
         /// <summary>

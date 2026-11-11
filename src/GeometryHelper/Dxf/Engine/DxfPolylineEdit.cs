@@ -14,7 +14,15 @@ namespace GeometryHelper.Dxf
     /// </summary>
     internal struct DxfPolyVertex
     {
-        internal DxfPolyVertex(double x, double y, double z, double bulge, double startWidth, double endWidth, bool widths)
+        internal DxfPolyVertex(
+            double x,
+            double y,
+            double z,
+            double bulge,
+            double startWidth,
+            double endWidth,
+            bool widths
+        )
         {
             X = x;
             Y = y;
@@ -150,8 +158,8 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the end segment has no length to give it a direction.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when an arc would be run round a whole turn or more.</exception>
-        internal static void Extend(List<DxfPolyVertex> v, double parameter, string name)
-            => Extend(v, parameter > 0.0, parameter > 0.0 ? parameter - (v.Count - 2) : parameter, name);
+        internal static void Extend(List<DxfPolyVertex> v, double parameter, string name) =>
+            Extend(v, parameter > 0.0, parameter > 0.0 ? parameter - (v.Count - 2) : parameter, name);
 
         /// <summary>
         /// Moves an end of an open polyline to a share along its end segment run on: the end to a share of the last segment
@@ -203,7 +211,9 @@ namespace GeometryHelper.Dxf
 
             if (!IsArc(a, b))
             {
-                double dx = b.X - a.X, dy = b.Y - a.Y, dz = plane ? 0.0 : b.Z - a.Z;
+                double dx = b.X - a.X,
+                    dy = b.Y - a.Y,
+                    dz = plane ? 0.0 : b.Z - a.Z;
                 double ll = dx * dx + dy * dy + dz * dz;
 
                 if (!(ll > 0.0))
@@ -213,12 +223,15 @@ namespace GeometryHelper.Dxf
 
                 double qz = plane ? 0.0 : z - a.Z;
                 double t = ((x - a.X) * dx + (y - a.Y) * dy + qz * dz) / ll;
-                double gx = a.X + dx * t - x, gy = a.Y + dy * t - y, gz = plane ? 0.0 : a.Z + dz * t - z;
+                double gx = a.X + dx * t - x,
+                    gy = a.Y + dy * t - y,
+                    gz = plane ? 0.0 : a.Z + dz * t - z;
                 return Math.Sqrt(gx * gx + gy * gy + gz * gz) <= slack ? t : double.NaN;
             }
 
             Circle(a, b, out double cx, out double cy, out double r, out double a0, out double theta);
-            double rx = x - cx, ry = y - cy;
+            double rx = x - cx,
+                ry = y - cy;
 
             if (!(Math.Abs(Math.Sqrt(rx * rx + ry * ry) - r) <= slack))
             {
@@ -242,7 +255,14 @@ namespace GeometryHelper.Dxf
         {
             if (atStart ? !(share < 0.0) : !(share > 1.0))
             {
-                throw new ArgumentException("The point " + toPoint + " is on the polyline itself, not past its " + (atStart ? "start" : "end") + ": an end is run on, not cut back.", name);
+                throw new ArgumentException(
+                    "The point "
+                        + toPoint
+                        + " is on the polyline itself, not past its "
+                        + (atStart ? "start" : "end")
+                        + ": an end is run on, not cut back.",
+                    name
+                );
             }
         }
 
@@ -251,7 +271,15 @@ namespace GeometryHelper.Dxf
         {
             if (!IsArc(a, b))
             {
-                return new DxfPolyVertex(a.X + (b.X - a.X) * f, a.Y + (b.Y - a.Y) * f, a.Z + (b.Z - a.Z) * f, 0.0, 0.0, 0.0, false);
+                return new DxfPolyVertex(
+                    a.X + (b.X - a.X) * f,
+                    a.Y + (b.Y - a.Y) * f,
+                    a.Z + (b.Z - a.Z) * f,
+                    0.0,
+                    0.0,
+                    0.0,
+                    false
+                );
             }
 
             Circle(a, b, out double cx, out double cy, out double r, out double a0, out double theta);
@@ -266,7 +294,12 @@ namespace GeometryHelper.Dxf
         /// and an open one the chains of <see cref="Offset2.Offset(GeoPolylineArc2, double, OffsetOptions, Tolerance)"/>. A
         /// closed polyline that crosses itself gives none, as AutoCAD 2021's <c>GetOffsetCurves</c> gives none of a bow tie.
         /// </summary>
-        internal static List<KeyValuePair<List<DxfPolyVertex>, bool>> Offset(List<DxfPolyVertex> v, bool closed, double distance, double z)
+        internal static List<KeyValuePair<List<DxfPolyVertex>, bool>> Offset(
+            List<DxfPolyVertex> v,
+            bool closed,
+            double distance,
+            double z
+        )
         {
             var options = new OffsetOptions(OffsetJoin.Miter, double.PositiveInfinity);
             var results = new List<KeyValuePair<List<DxfPolyVertex>, bool>>();
@@ -297,7 +330,14 @@ namespace GeometryHelper.Dxf
 
                 if (crossings > 0)
                 {
-                    GeometryHelperLog.Debug("DxfPolyline: a closed polyline of " + v.Count.ToString(CultureInfo.InvariantCulture) + " vertices crosses itself at " + crossings.ToString(CultureInfo.InvariantCulture) + (crossings == 1 ? " place" : " places") + ", and has no offset, as AutoCAD gives none.");
+                    GeometryHelperLog.Debug(
+                        "DxfPolyline: a closed polyline of "
+                            + v.Count.ToString(CultureInfo.InvariantCulture)
+                            + " vertices crosses itself at "
+                            + crossings.ToString(CultureInfo.InvariantCulture)
+                            + (crossings == 1 ? " place" : " places")
+                            + ", and has no offset, as AutoCAD gives none."
+                    );
                     return results;
                 }
 
@@ -305,7 +345,9 @@ namespace GeometryHelper.Dxf
 
                 foreach (GeoPolygonArc2 one in Offset2.Offset(polygon, sideways, options, Tolerance.Default, false))
                 {
-                    results.Add(new KeyValuePair<List<DxfPolyVertex>, bool>(Vertices(one.Vertices, one.Bulges, z), true));
+                    results.Add(
+                        new KeyValuePair<List<DxfPolyVertex>, bool>(Vertices(one.Vertices, one.Bulges, z), true)
+                    );
                 }
 
                 return results;
@@ -356,11 +398,19 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether the segment from one vertex to the next is an arc: a bulge, and ends apart.</summary>
-        internal static bool IsArc(DxfPolyVertex a, DxfPolyVertex b)
-            => Math.Abs(a.Bulge) >= 1E-300 && (b.X - a.X != 0.0 || b.Y - a.Y != 0.0);
+        internal static bool IsArc(DxfPolyVertex a, DxfPolyVertex b) =>
+            Math.Abs(a.Bulge) >= 1E-300 && (b.X - a.X != 0.0 || b.Y - a.Y != 0.0);
 
         /// <summary>The circle of the arc from one vertex to the next, as <see cref="DxfBulgeChain"/> works it out.</summary>
-        internal static void Circle(DxfPolyVertex a, DxfPolyVertex b, out double cx, out double cy, out double r, out double a0, out double theta)
+        internal static void Circle(
+            DxfPolyVertex a,
+            DxfPolyVertex b,
+            out double cx,
+            out double cy,
+            out double r,
+            out double a0,
+            out double theta
+        )
         {
             double dx = b.X - a.X;
             double dy = b.Y - a.Y;
@@ -374,8 +424,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The bulge of the part of an arc of a bulge from one share of it to another.</summary>
-        internal static double Part(double bulge, double from, double to)
-            => bulge == 0.0 ? 0.0 : Math.Tan(4.0 * Math.Atan(bulge) * (to - from) / 4.0);
+        internal static double Part(double bulge, double from, double to) =>
+            bulge == 0.0 ? 0.0 : Math.Tan(4.0 * Math.Atan(bulge) * (to - from) / 4.0);
 
         /// <summary>The width at a share along the segment a vertex starts, read straight from its start width to its end width.</summary>
         internal static double Width(DxfPolyVertex a, double f) => a.StartWidth + (a.EndWidth - a.StartWidth) * f;
@@ -383,16 +433,24 @@ namespace GeometryHelper.Dxf
         /// <summary>Refuses a share that runs a segment of no length, or an arc round a whole turn or more.</summary>
         private static void Reach(DxfPolyVertex a, DxfPolyVertex b, double share, string name)
         {
-            double dx = b.X - a.X, dy = b.Y - a.Y, dz = b.Z - a.Z;
+            double dx = b.X - a.X,
+                dy = b.Y - a.Y,
+                dz = b.Z - a.Z;
 
             if (!(dx * dx + dy * dy + dz * dz > 0.0))
             {
-                throw new InvalidOperationException("The end segment of the polyline has no length to give it a direction to be extended in.");
+                throw new InvalidOperationException(
+                    "The end segment of the polyline has no length to give it a direction to be extended in."
+                );
             }
 
             if (IsArc(a, b) && Math.Abs(4.0 * Math.Atan(a.Bulge) * (share >= 0.0 ? share : 1.0 - share)) >= Turn)
             {
-                throw new ArgumentOutOfRangeException(name, share, "The parameter would take the end arc round a whole turn or more.");
+                throw new ArgumentOutOfRangeException(
+                    name,
+                    share,
+                    "The parameter would take the end arc round a whole turn or more."
+                );
             }
         }
 
@@ -420,13 +478,19 @@ namespace GeometryHelper.Dxf
             return bulges;
         }
 
-        private static List<DxfPolyVertex> Vertices(IReadOnlyList<GeoPoint2> points, IReadOnlyList<double> bulges, double z)
+        private static List<DxfPolyVertex> Vertices(
+            IReadOnlyList<GeoPoint2> points,
+            IReadOnlyList<double> bulges,
+            double z
+        )
         {
             var vertices = new List<DxfPolyVertex>(points.Count);
 
             for (int i = 0; i < points.Count; i++)
             {
-                vertices.Add(new DxfPolyVertex(points[i].X, points[i].Y, z, i < bulges.Count ? bulges[i] : 0.0, 0.0, 0.0, false));
+                vertices.Add(
+                    new DxfPolyVertex(points[i].X, points[i].Y, z, i < bulges.Count ? bulges[i] : 0.0, 0.0, 0.0, false)
+                );
             }
 
             return vertices;

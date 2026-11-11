@@ -12,10 +12,12 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly Tolerance Tight = new Tolerance(1E-9, 1E-9);
 
         // Far from the world origin, as a Tekla model in millimetres is, and turned about every axis.
-        private static GeoCoordinateSystem3 FarAndTurned() => new GeoCoordinateSystem3(
-            new GeoPoint3(152000.0, -87500.0, 4300.0),
-            new GeoVector3(1.0, 2.0, 3.0),
-            new GeoVector3(3.0, -1.0, 0.5));
+        private static GeoCoordinateSystem3 FarAndTurned() =>
+            new GeoCoordinateSystem3(
+                new GeoPoint3(152000.0, -87500.0, 4300.0),
+                new GeoVector3(1.0, 2.0, 3.0),
+                new GeoVector3(3.0, -1.0, 0.5)
+            );
 
         #region Coordinate system
 
@@ -25,7 +27,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoCoordinateSystem3 system = new GeoCoordinateSystem3(
                 new GeoPoint3(1.0, 2.0, 3.0),
                 new GeoVector3(2.0, 0.0, 0.0),
-                new GeoVector3(3.0, 4.0, 0.0));
+                new GeoVector3(3.0, 4.0, 0.0)
+            );
 
             Assert.True(system.XAxis.IsEqualTo(GeoVector3.XAxis));
             Assert.True(system.YAxis.IsEqualTo(GeoVector3.YAxis));
@@ -35,10 +38,12 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ParallelOrDegenerateAxesAreRejected()
         {
-            Assert.Throws<ArgumentException>(() => new GeoCoordinateSystem3(
-                GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.XAxis));
-            Assert.Throws<ArgumentException>(() => new GeoCoordinateSystem3(
-                GeoPoint3.Origin, GeoVector3.Zero, GeoVector3.YAxis));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.XAxis)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.Zero, GeoVector3.YAxis)
+            );
         }
 
         [Fact]
@@ -47,7 +52,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoCoordinateSystem3 system = new GeoCoordinateSystem3(
                 new GeoPoint3(10.0, -20.0, 30.0),
                 new GeoVector3(1.0, 1.0, 0.0),
-                new GeoVector3(-1.0, 1.0, 1.0));
+                new GeoVector3(-1.0, 1.0, 1.0)
+            );
 
             GeoPoint3 point = new GeoPoint3(3.0, -7.0, 11.0);
 
@@ -59,7 +65,10 @@ namespace GeometryHelper.UnitTest.Solid
         public void AVectorIgnoresTheOriginWhileAPointDoesNot()
         {
             GeoCoordinateSystem3 shifted = new GeoCoordinateSystem3(
-                new GeoPoint3(100.0, 100.0, 100.0), GeoVector3.XAxis, GeoVector3.YAxis);
+                new GeoPoint3(100.0, 100.0, 100.0),
+                GeoVector3.XAxis,
+                GeoVector3.YAxis
+            );
 
             GeoVector3 vector = new GeoVector3(1.0, 2.0, 3.0);
 
@@ -73,7 +82,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoCoordinateSystem3 system = new GeoCoordinateSystem3(
                 new GeoPoint3(5.0, 5.0, 5.0),
                 new GeoVector3(1.0, 2.0, 3.0),
-                new GeoVector3(3.0, -1.0, 0.0));
+                new GeoVector3(3.0, -1.0, 0.0)
+            );
 
             GeoPoint3 a = new GeoPoint3(1.0, 2.0, 3.0);
             GeoPoint3 b = new GeoPoint3(-4.0, 8.0, 0.5);
@@ -107,7 +117,9 @@ namespace GeometryHelper.UnitTest.Solid
             GeoCoordinateSystem3 system = FarAndTurned();
             GeoTransform3 toLocal = GeoTransform3.ToCoordinateSystem(system);
 
-            foreach (GeoPoint3 point in new[] { system.Origin, new GeoPoint3(152350.0, -87020.0, 4125.0), GeoPoint3.Origin })
+            foreach (
+                GeoPoint3 point in new[] { system.Origin, new GeoPoint3(152350.0, -87020.0, 4125.0), GeoPoint3.Origin }
+            )
             {
                 Assert.True(toLocal.Transform(point).IsEqualTo(system.ToLocal(point), Tight));
             }
@@ -138,10 +150,16 @@ namespace GeometryHelper.UnitTest.Solid
             // The face of a wall, drawn in the wall's own frame and placed in the model: read back into the
             // frame, it lies flat again with the corners it was drawn with.
             GeoCoordinateSystem3 wall = new GeoCoordinateSystem3(
-                new GeoPoint3(25000.0, 12000.0, 3000.0), new GeoVector3(1.0, 1.0, 0.0), GeoVector3.ZAxis);
+                new GeoPoint3(25000.0, 12000.0, 3000.0),
+                new GeoVector3(1.0, 1.0, 0.0),
+                GeoVector3.ZAxis
+            );
             GeoPolygon3 drawn = new GeoPolygon3(
-                new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(6000.0, 0.0, 0.0),
-                new GeoPoint3(6000.0, 3000.0, 0.0), new GeoPoint3(0.0, 3000.0, 0.0));
+                new GeoPoint3(0.0, 0.0, 0.0),
+                new GeoPoint3(6000.0, 0.0, 0.0),
+                new GeoPoint3(6000.0, 3000.0, 0.0),
+                new GeoPoint3(0.0, 3000.0, 0.0)
+            );
 
             GeoPolygon3 placed = drawn.TransformBy(GeoTransform3.FromCoordinateSystem(wall));
             GeoPolygon3 read = placed.TransformBy(GeoTransform3.ToCoordinateSystem(wall));
@@ -158,13 +176,20 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // An opening framed in its wall's coordinates, and the wall framed in the model's.
             GeoCoordinateSystem3 wall = new GeoCoordinateSystem3(
-                new GeoPoint3(5000.0, -2000.0, 300.0), new GeoVector3(1.0, 1.0, 0.0), new GeoVector3(-1.0, 1.0, 1.0));
+                new GeoPoint3(5000.0, -2000.0, 300.0),
+                new GeoVector3(1.0, 1.0, 0.0),
+                new GeoVector3(-1.0, 1.0, 1.0)
+            );
             GeoCoordinateSystem3 openingInWall = new GeoCoordinateSystem3(
-                new GeoPoint3(1200.0, 800.0, 0.0), new GeoVector3(0.0, 1.0, 0.0), new GeoVector3(-1.0, 0.0, 0.0));
+                new GeoPoint3(1200.0, 800.0, 0.0),
+                new GeoVector3(0.0, 1.0, 0.0),
+                new GeoVector3(-1.0, 0.0, 0.0)
+            );
             GeoCoordinateSystem3 openingInWorld = openingInWall.TransformBy(GeoTransform3.FromCoordinateSystem(wall));
 
             // The wall is read into first, so it stands on the right.
-            GeoTransform3 nested = GeoTransform3.ToCoordinateSystem(openingInWall) * GeoTransform3.ToCoordinateSystem(wall);
+            GeoTransform3 nested =
+                GeoTransform3.ToCoordinateSystem(openingInWall) * GeoTransform3.ToCoordinateSystem(wall);
 
             Assert.True(nested.IsEqualTo(GeoTransform3.ToCoordinateSystem(openingInWorld), Tight));
 
@@ -213,8 +238,9 @@ namespace GeometryHelper.UnitTest.Solid
             GeoVector3 vector = new GeoVector3(4.0, -5.0, 6.0);
             double angle = 0.83;
 
-            Assert.True(GeoTransform3.RotationAxis(axis, angle).Transform(vector)
-                .IsEqualTo(vector.RotateBy(angle, axis)));
+            Assert.True(
+                GeoTransform3.RotationAxis(axis, angle).Transform(vector).IsEqualTo(vector.RotateBy(angle, axis))
+            );
         }
 
         [Fact]
@@ -224,8 +250,10 @@ namespace GeometryHelper.UnitTest.Solid
             GeoTransform3 spin = GeoTransform3.RotationAxis(pivot, GeoVector3.ZAxis, 1.1);
 
             Assert.True(spin.Transform(pivot).IsEqualTo(pivot));
-            Assert.True(spin.Transform(pivot.Add(new GeoVector3(0.0, 0.0, 5.0)))
-                .IsEqualTo(pivot.Add(new GeoVector3(0.0, 0.0, 5.0))));
+            Assert.True(
+                spin.Transform(pivot.Add(new GeoVector3(0.0, 0.0, 5.0)))
+                    .IsEqualTo(pivot.Add(new GeoVector3(0.0, 0.0, 5.0)))
+            );
         }
 
         [Fact]
@@ -254,7 +282,9 @@ namespace GeometryHelper.UnitTest.Solid
             GeoTransform3 grow = GeoTransform3.Scaling(centre, 3.0);
 
             Assert.True(grow.Transform(centre).IsEqualTo(centre));
-            Assert.True(grow.Transform(centre.Add(GeoVector3.XAxis)).IsEqualTo(centre.Add(GeoVector3.XAxis.Multiply(3.0))));
+            Assert.True(
+                grow.Transform(centre.Add(GeoVector3.XAxis)).IsEqualTo(centre.Add(GeoVector3.XAxis.Multiply(3.0)))
+            );
         }
 
         [Fact]
@@ -279,7 +309,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void MirroringTwiceReturnsToTheStart()
         {
-            GeoTransform3 mirror = GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(1.0, 1.0, 1.0), new GeoVector3(1.0, 2.0, 3.0)));
+            GeoTransform3 mirror = GeoTransform3.Mirror(
+                new GeoPlane3(new GeoPoint3(1.0, 1.0, 1.0), new GeoVector3(1.0, 2.0, 3.0))
+            );
 
             Assert.True(mirror.Multiply(mirror).IsIdentity());
         }
@@ -302,7 +334,8 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TheInverseUndoesTheTransformation()
         {
-            GeoTransform3 combined = GeoTransform3.Translation(new GeoVector3(3.0, -4.0, 5.0))
+            GeoTransform3 combined = GeoTransform3
+                .Translation(new GeoVector3(3.0, -4.0, 5.0))
                 .Multiply(GeoTransform3.RotationAxis(new GeoVector3(1.0, 2.0, 3.0), 0.9))
                 .Multiply(GeoTransform3.Scaling(2.0, 3.0, 4.0));
 
@@ -343,7 +376,11 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoTransform3 move = GeoTransform3.Translation(new GeoVector3(1.0, 2.0, 3.0));
             GeoLine3 line = new GeoLine3(GeoPoint3.Origin, new GeoPoint3(10.0, 0.0, 0.0));
-            GeoTriangle3 triangle = new GeoTriangle3(GeoPoint3.Origin, new GeoPoint3(1.0, 0.0, 0.0), new GeoPoint3(0.0, 1.0, 0.0));
+            GeoTriangle3 triangle = new GeoTriangle3(
+                GeoPoint3.Origin,
+                new GeoPoint3(1.0, 0.0, 0.0),
+                new GeoPoint3(0.0, 1.0, 0.0)
+            );
 
             Assert.Equal(line.Length, move.Transform(line).Length, 9);
             Assert.Equal(triangle.Area, move.Transform(triangle).Area, 9);
@@ -361,7 +398,10 @@ namespace GeometryHelper.UnitTest.Solid
         public void TheMatrixIsCopiedOnConstructionSoLaterEditsDoNotLeakIn()
         {
             double[,] raw = new double[4, 4];
-            raw[0, 0] = 1.0; raw[1, 1] = 1.0; raw[2, 2] = 1.0; raw[3, 3] = 1.0;
+            raw[0, 0] = 1.0;
+            raw[1, 1] = 1.0;
+            raw[2, 2] = 1.0;
+            raw[3, 3] = 1.0;
 
             GeoTransform3 transform = new GeoTransform3(raw);
             raw[0, 3] = 999.0;

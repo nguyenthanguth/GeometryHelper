@@ -16,7 +16,8 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class NotANumberTests
     {
-        public static TheoryData<double> NotSizes => new TheoryData<double> { double.NaN, double.PositiveInfinity, double.NegativeInfinity, -1.0 };
+        public static TheoryData<double> NotSizes =>
+            new TheoryData<double> { double.NaN, double.PositiveInfinity, double.NegativeInfinity, -1.0 };
 
         [Theory]
         [MemberData(nameof(NotSizes))]
@@ -46,7 +47,9 @@ namespace GeometryHelper.UnitTest.Solid
         public void ARectangleRefusesAnAngleThatIsNotANumber()
         {
             Assert.ThrowsAny<ArgumentException>(() => new GeoRectangle2(new GeoPoint2(0, 0), 1, 1, double.NaN));
-            Assert.ThrowsAny<ArgumentException>(() => new GeoRectangle2(new GeoPoint2(0, 0), 1, 1, double.PositiveInfinity));
+            Assert.ThrowsAny<ArgumentException>(() =>
+                new GeoRectangle2(new GeoPoint2(0, 0), 1, 1, double.PositiveInfinity)
+            );
         }
 
         [Fact]
@@ -55,7 +58,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.False(new GeoVector3(double.NaN, 0, 0).TryGetNormal(out _));
             Assert.False(new GeoVector3(double.PositiveInfinity, 1, 0).TryGetNormal(out _));
             Assert.False(new GeoVector2(double.NaN, 1).TryGetNormal(out _));
-            Assert.ThrowsAny<ArgumentException>(() => new GeoPlane3(GeoPoint3.Origin, new GeoVector3(double.NaN, 0, 1)));
+            Assert.ThrowsAny<ArgumentException>(() =>
+                new GeoPlane3(GeoPoint3.Origin, new GeoVector3(double.NaN, 0, 1))
+            );
             Assert.ThrowsAny<ArgumentException>(() => new GeoRay3(GeoPoint3.Origin, new GeoVector3(0, double.NaN, 1)));
         }
 

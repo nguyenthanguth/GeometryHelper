@@ -17,7 +17,8 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class FilletG1wuTests
     {
-        private static Tolerance Within(double point) => new Tolerance(point, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, point);
+        private static Tolerance Within(double point) =>
+            new Tolerance(point, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, point);
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
@@ -39,7 +40,8 @@ namespace GeometryHelper.UnitTest.Plane
                     P(x * scale, y * scale),
                     P((12.0 + 7.0 * Math.Cos(second + 1.0)) * scale, 7.0 * Math.Sin(second + 1.0) * scale),
                 },
-                new[] { Math.Tan(0.25), Math.Tan(0.25), 0.0 });
+                new[] { Math.Tan(0.25), Math.Tan(0.25), 0.0 }
+            );
         }
 
         // The cap of the circle of radius 12 about the origin above the chord y = 4, turned by half a radian about the origin
@@ -50,11 +52,19 @@ namespace GeometryHelper.UnitTest.Plane
             double x0 = Math.Sqrt(12.0 * 12.0 - 4.0 * 4.0);
             double corner = Math.Atan2(4.0, x0);
             double end = Math.PI / 2 + (Math.PI / 2 - corner) / 2;
-            GeoTransform2 place = GeoTransform2.Translation(new GeoVector2(30 * scale, 40 * scale)) * GeoTransform2.Rotation(P(0, 0), 0.5);
+            GeoTransform2 place =
+                GeoTransform2.Translation(new GeoVector2(30 * scale, 40 * scale))
+                * GeoTransform2.Rotation(P(0, 0), 0.5);
 
             return new GeoPolylineArc2(
-                new[] { P(-0.5 * x0 * scale, 4.0 * scale), P(x0 * scale, 4.0 * scale), P(12.0 * Math.Cos(end) * scale, 12.0 * Math.Sin(end) * scale) }.Select(place.Transform),
-                new[] { 0.0, Math.Tan((end - corner) / 4), 0.0 });
+                new[]
+                {
+                    P(-0.5 * x0 * scale, 4.0 * scale),
+                    P(x0 * scale, 4.0 * scale),
+                    P(12.0 * Math.Cos(end) * scale, 12.0 * Math.Sin(end) * scale),
+                }.Select(place.Transform),
+                new[] { 0.0, Math.Tan((end - corner) / 4), 0.0 }
+            );
         }
 
         [Fact]

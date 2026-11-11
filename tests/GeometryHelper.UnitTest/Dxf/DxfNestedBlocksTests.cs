@@ -61,21 +61,27 @@ namespace GeometryHelper.UnitTest.Dxf
         private static void OnAThreadOf1MB(Action body)
         {
             Exception thrown = null;
-            var thread = new System.Threading.Thread(() =>
-            {
-                try
+            var thread = new System.Threading.Thread(
+                () =>
                 {
-                    body();
-                }
-                catch (Exception e)
-                {
-                    thrown = e;
-                }
-            }, 1024 * 1024);
+                    try
+                    {
+                        body();
+                    }
+                    catch (Exception e)
+                    {
+                        thrown = e;
+                    }
+                },
+                1024 * 1024
+            );
 
             thread.IsBackground = true;
             thread.Start();
-            Assert.True(thread.Join(TimeSpan.FromMinutes(2)), "The walks of 6 000 nested blocks did not end in 2 minutes.");
+            Assert.True(
+                thread.Join(TimeSpan.FromMinutes(2)),
+                "The walks of 6 000 nested blocks did not end in 2 minutes."
+            );
 
             if (thrown != null)
             {
@@ -84,44 +90,56 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void BlocksNested6000Deep_AreWalkedToTheBottom_AndARoundThroughThemIsStillRefused() => OnAThreadOf1MB(() =>
-        {
-            DxfDatabase db = Nest(Deep);
-            DxfBlockTableRecord bottom = db.BlockTable["B0"];
-            DxfBlockTableRecord top = db.BlockTable["B" + (Deep - 1)];
-            DxfBlockReference placed = db.ModelSpace.OfType<DxfBlockReference>().Single();
-            string text = db.ToText();
+        public void BlocksNested6000Deep_AreWalkedToTheBottom_AndARoundThroughThemIsStillRefused() =>
+            OnAThreadOf1MB(() =>
+            {
+                DxfDatabase db = Nest(Deep);
+                DxfBlockTableRecord bottom = db.BlockTable["B0"];
+                DxfBlockTableRecord top = db.BlockTable["B" + (Deep - 1)];
+                DxfBlockReference placed = db.ModelSpace.OfType<DxfBlockReference>().Single();
+                string text = db.ToText();
 
-            // An INSERT of the top block appended to the bottom one, the model space INSERT moved into it, and an INSERT of it
-            // given the top block: each would make B0 insert itself through 6 000 blocks, and each is refused.
-            Assert.Throws<ArgumentException>(() => bottom.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), top)));
-            Assert.Throws<ArgumentException>(() => bottom.AssumeOwnershipOf(new DxfEntity[] { placed }));
-            Assert.Equal(text, db.ToText());
-            var leaf = new DxfBlockTableRecord { Name = "LEAF" };
-            db.BlockTable.Add(leaf);
-            var turned = new DxfBlockReference(new GeoPoint3(0, 0, 0), leaf);
-            bottom.AppendEntity(turned);
-            Assert.Throws<ArgumentException>(() => turned.BlockTableRecord = top);
-            Assert.Same(leaf, turned.BlockTableRecord);
-            turned.Erase();
+                // An INSERT of the top block appended to the bottom one, the model space INSERT moved into it, and an INSERT of it
+                // given the top block: each would make B0 insert itself through 6 000 blocks, and each is refused.
+                Assert.Throws<ArgumentException>(() =>
+                    bottom.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), top))
+                );
+                Assert.Throws<ArgumentException>(() => bottom.AssumeOwnershipOf(new DxfEntity[] { placed }));
+                Assert.Equal(text, db.ToText());
+                var leaf = new DxfBlockTableRecord { Name = "LEAF" };
+                db.BlockTable.Add(leaf);
+                var turned = new DxfBlockReference(new GeoPoint3(0, 0, 0), leaf);
+                bottom.AppendEntity(turned);
+                Assert.Throws<ArgumentException>(() => turned.BlockTableRecord = top);
+                Assert.Same(leaf, turned.BlockTableRecord);
+                turned.Erase();
 
-            // A block of its own takes the model space INSERT, whose 6 000 blocks insert none of it.
-            var keep = new DxfBlockTableRecord { Name = "KEEP" };
-            db.BlockTable.Add(keep);
-            keep.AssumeOwnershipOf(new DxfEntity[] { placed });
-            Assert.Same(keep, placed.Owner);
-            db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), keep));
+                // A block of its own takes the model space INSERT, whose 6 000 blocks insert none of it.
+                var keep = new DxfBlockTableRecord { Name = "KEEP" };
+                db.BlockTable.Add(keep);
+                keep.AssumeOwnershipOf(new DxfEntity[] { placed });
+                Assert.Same(keep, placed.Owner);
+                db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), keep));
 
-            // Each block puts the one it inserts 1 further along x: B0's line comes 5 999 along, moved 10 up.
-            GeoAabb3 box = db.ModelSpace.OfType<DxfBlockReference>().Single().GeometryExtentsBestFit(GeoTransform3.Translation(new GeoVector3(0, 10, 0)));
-            Assert.True(box.Min.IsEqualTo(new GeoPoint3(5999, 10, 0), Tolerance.Default), box.ToString());
-            Assert.True(box.Max.IsEqualTo(new GeoPoint3(6009, 10, 0), Tolerance.Default), box.ToString());
+                // Each block puts the one it inserts 1 further along x: B0's line comes 5 999 along, moved 10 up.
+                GeoAabb3 box = db
+                    .ModelSpace.OfType<DxfBlockReference>()
+                    .Single()
+                    .GeometryExtentsBestFit(GeoTransform3.Translation(new GeoVector3(0, 10, 0)));
+                Assert.True(box.Min.IsEqualTo(new GeoPoint3(5999, 10, 0), Tolerance.Default), box.ToString());
+                Assert.True(box.Max.IsEqualTo(new GeoPoint3(6009, 10, 0), Tolerance.Default), box.ToString());
 
-            // Saved, the INSERT's size is worked out down the 6 000 blocks; the reader places 64 of them, as it says.
-            string saved = db.ToText();
-            Assert.Equal(Deep, DxfDatabase.Parse(saved).BlockTable.Count(b => b.Name.StartsWith("B", StringComparison.Ordinal)));
-            Assert.Contains("1 INSERT nested more than 64 deep was not placed.", DxfReader.Parse(saved, new DxfReadOptions { Tolerance = Tolerance.Default }).Warnings);
-        });
+                // Saved, the INSERT's size is worked out down the 6 000 blocks; the reader places 64 of them, as it says.
+                string saved = db.ToText();
+                Assert.Equal(
+                    Deep,
+                    DxfDatabase.Parse(saved).BlockTable.Count(b => b.Name.StartsWith("B", StringComparison.Ordinal))
+                );
+                Assert.Contains(
+                    "1 INSERT nested more than 64 deep was not placed.",
+                    DxfReader.Parse(saved, new DxfReadOptions { Tolerance = Tolerance.Default }).Warnings
+                );
+            });
 
         [Fact]
         public void ADrawingOf3000BlocksNestedOneInsideTheNext_IsInsertedInSeconds()
@@ -147,9 +165,15 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase read = DxfDatabase.Parse(db.ToText());
             Assert.Equal(new GeoPoint3(100, 0, 0), read.ModelSpace.OfType<DxfBlockReference>().Single().Position);
             Assert.Equal("B" + (Depth - 1), read.ModelSpace.OfType<DxfBlockReference>().Single().Name);
-            Assert.Equal("B" + (Depth - 2), read.BlockTable["B" + (Depth - 1)].OfType<DxfBlockReference>().Single().Name);
+            Assert.Equal(
+                "B" + (Depth - 2),
+                read.BlockTable["B" + (Depth - 1)].OfType<DxfBlockReference>().Single().Name
+            );
             Assert.IsType<DxfLine>(read.BlockTable["B0"].Single());
-            Assert.Equal("B" + (Depth - 1), DxfDatabase.Parse(plate.ToText()).BlockTable["PLATE"].OfType<DxfBlockReference>().Single().Name);
+            Assert.Equal(
+                "B" + (Depth - 1),
+                DxfDatabase.Parse(plate.ToText()).BlockTable["PLATE"].OfType<DxfBlockReference>().Single().Name
+            );
         }
 
         [Fact]
@@ -157,17 +181,30 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // This drawing's P holds an INSERT of X, a block it has not; the other's X inserts P. Merged, X would insert itself
             // through this P, as before.
-            const string Head = "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1009\n  0\nENDSEC\n  0\nSECTION\n  2\nBLOCKS\n";
+            const string Head =
+                "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1009\n  0\nENDSEC\n  0\nSECTION\n  2\nBLOCKS\n";
             const string Line = "  0\nLINE\n  8\n0\n 10\n0\n 20\n0\n 30\n0\n 11\n1\n 21\n0\n 31\n0\n";
             string Insert(string name) => "  0\nINSERT\n  8\n0\n  2\n" + name + "\n 10\n0\n 20\n0\n 30\n0\n";
-            string Block(string name, string entities) => "  0\nBLOCK\n  8\n0\n  2\n" + name + "\n 70\n0\n 10\n0\n 20\n0\n 30\n0\n" + entities + "  0\nENDBLK\n  8\n0\n";
-            string Drawing(string blocks, string entities) => Head + blocks + "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n" + entities + "  0\nENDSEC\n  0\nEOF\n";
+            string Block(string name, string entities) =>
+                "  0\nBLOCK\n  8\n0\n  2\n"
+                + name
+                + "\n 70\n0\n 10\n0\n 20\n0\n 30\n0\n"
+                + entities
+                + "  0\nENDBLK\n  8\n0\n";
+            string Drawing(string blocks, string entities) =>
+                Head + blocks + "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n" + entities + "  0\nENDSEC\n  0\nEOF\n";
             string source = Drawing(Block("P", Line) + Block("X", Insert("P")), Insert("X"));
 
             DxfDatabase db = DxfDatabase.Parse(Drawing(Block("P", Line + Insert("X")), string.Empty));
             string before = db.ToText();
-            ArgumentException refused = Assert.Throws<ArgumentException>(() => db.Insert(GeoTransform3.Identity, DxfDatabase.Parse(source), true));
-            Assert.Contains("The block X the copies bring would insert itself", refused.Message, StringComparison.Ordinal);
+            ArgumentException refused = Assert.Throws<ArgumentException>(() =>
+                db.Insert(GeoTransform3.Identity, DxfDatabase.Parse(source), true)
+            );
+            Assert.Contains(
+                "The block X the copies bring would insert itself",
+                refused.Message,
+                StringComparison.Ordinal
+            );
 
             // Refused before anything is written: X does not come, empty, as it came before it was refused.
             Assert.False(db.BlockTable.Has("X"));
@@ -198,7 +235,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             ArgumentException refused = Assert.Throws<ArgumentException>(() => p.AppendEntity(made));
             Assert.Contains("has no block M", refused.Message, StringComparison.Ordinal);
-            Assert.Throws<ArgumentException>(() => db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), m)));
+            Assert.Throws<ArgumentException>(() =>
+                db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), m))
+            );
             var placed = new DxfBlockReference(new GeoPoint3(0, 0, 0), p);
             db.ModelSpace.AppendEntity(placed);
             Assert.Throws<ArgumentException>(() => placed.BlockTableRecord = m);
@@ -283,15 +322,37 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal(0, misses);
             Assert.Equal(0, throws);
-            Assert.True(watch.ElapsedMilliseconds < 30000, "40 rounds of lookups took " + watch.ElapsedMilliseconds + " ms.");
+            Assert.True(
+                watch.ElapsedMilliseconds < 30000,
+                "40 rounds of lookups took " + watch.ElapsedMilliseconds + " ms."
+            );
         }
 
         [Fact]
         public void ADrawingOf3000NestedBlocksTheBottomOfWhichADrawingOfR12CannotHold_IsRefusedWhole()
         {
             DxfDatabase source = Nest(Depth);
-            source.BlockTable["B0"].AppendEntity(new DxfSpline(3, false, false, false, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0), new GeoPoint3(2, 0, 0), new GeoPoint3(3, 1, 0) },
-                new[] { 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0 }, new double[0], 0.0, 0.0));
+            source
+                .BlockTable["B0"]
+                .AppendEntity(
+                    new DxfSpline(
+                        3,
+                        false,
+                        false,
+                        false,
+                        new[]
+                        {
+                            new GeoPoint3(0, 0, 0),
+                            new GeoPoint3(1, 1, 0),
+                            new GeoPoint3(2, 0, 0),
+                            new GeoPoint3(3, 1, 0),
+                        },
+                        new[] { 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0 },
+                        new double[0],
+                        0.0,
+                        0.0
+                    )
+                );
             DxfDatabase r12 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R12);
             string text = r12.ToText();
 
@@ -339,10 +400,18 @@ namespace GeometryHelper.UnitTest.Dxf
             Differ(text, saved, out List<string> gone, out List<string> come);
             Assert.Equal(4, come.Count(r => !r.Contains("\nHEADER\n")));
             Assert.Equal(4, gone.Count(r => !r.Contains("\nHEADER\n")));
-            Assert.All(come.Where(r => !r.Contains("\nHEADER\n")), r => Assert.Contains("_R12\n", r, StringComparison.Ordinal));
+            Assert.All(come.Where(r => !r.Contains("\nHEADER\n")), r =>
+                Assert.Contains("_R12\n", r, StringComparison.Ordinal)
+            );
 
-            DxfDimension read = DxfDatabase.Parse(saved).ModelSpace.OfType<DxfDimension>().First(d => d.Handle == dimension.Handle);
-            Assert.Equal(new[] { "GH_DOT_R12", "GH_TICK_R12", "GH_OPEN_R12" }, new[] { read.Dimblk.Name, read.Dimblk1.Name, read.Dimblk2.Name });
+            DxfDimension read = DxfDatabase
+                .Parse(saved)
+                .ModelSpace.OfType<DxfDimension>()
+                .First(d => d.Handle == dimension.Handle);
+            Assert.Equal(
+                new[] { "GH_DOT_R12", "GH_TICK_R12", "GH_OPEN_R12" },
+                new[] { read.Dimblk.Name, read.Dimblk1.Name, read.Dimblk2.Name }
+            );
             Assert.Throws<InvalidOperationException>(() => arrows[0].Erase());
 
             // A drawing of R2000 names the arrows by their handles (1005), which renaming leaves as they are.

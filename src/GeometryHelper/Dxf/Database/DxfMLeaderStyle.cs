@@ -37,8 +37,52 @@ namespace GeometryHelper.Dxf
         // The groups of AcDbMLeaderStyle in the order the DXF reference writes them.
         internal static readonly int[] Order =
         {
-            179, 170, 171, 172, 90, 40, 41, 173, 91, 340, 92, 290, 42, 291, 43, 3, 341, 44, 300, 342, 174, 178, 175, 176, 93, 45, 292,
-            297, 46, 343, 94, 47, 49, 140, 293, 141, 294, 177, 142, 295, 296, 143, 271, 272, 273, 298,
+            179,
+            170,
+            171,
+            172,
+            90,
+            40,
+            41,
+            173,
+            91,
+            340,
+            92,
+            290,
+            42,
+            291,
+            43,
+            3,
+            341,
+            44,
+            300,
+            342,
+            174,
+            178,
+            175,
+            176,
+            93,
+            45,
+            292,
+            297,
+            46,
+            343,
+            94,
+            47,
+            49,
+            140,
+            293,
+            141,
+            294,
+            177,
+            142,
+            295,
+            296,
+            143,
+            271,
+            272,
+            273,
+            298,
         };
 
         // The same order with the subclass marker first, as a group is put into the record.
@@ -53,14 +97,10 @@ namespace GeometryHelper.Dxf
         /// <c>new MLeaderStyle()</c>: to be added to a drawing by <see cref="DxfDBDictionary.SetAt"/>, or given the values a
         /// multileader is drawn with by <see cref="DxfMLeader.GetOverridedMLeaderStyle"/>.
         /// </summary>
-        public DxfMLeaderStyle()
-        {
-        }
+        public DxfMLeaderStyle() { }
 
         internal DxfMLeaderStyle(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets the name of the style, as AutoCAD's <c>Name</c>: the name of its entry in the dictionary that owns it, as
@@ -78,7 +118,12 @@ namespace GeometryHelper.Dxf
 
                 string owner = OwnerHandle;
 
-                if (owner != null && IsResident && Item.File.Database.TryGetObject(owner, out DxfDBObject found) && found is DxfDBDictionary dictionary)
+                if (
+                    owner != null
+                    && IsResident
+                    && Item.File.Database.TryGetObject(owner, out DxfDBObject found)
+                    && found is DxfDBDictionary dictionary
+                )
                 {
                     foreach (DxfDBDictionaryEntry entry in dictionary)
                     {
@@ -116,7 +161,11 @@ namespace GeometryHelper.Dxf
             {
                 if (value != 0 && value < 2)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A leader is drawn through 2 points or more, or 0 for no limit.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A leader is drawn through 2 points or more, or 0 for no limit."
+                    );
                 }
 
                 Set(90, value.ToString(CultureInfo.InvariantCulture));
@@ -258,7 +307,6 @@ namespace GeometryHelper.Dxf
                 string words = Text(300);
                 return string.IsNullOrEmpty(words) ? null : new DxfMText { Contents = words };
             }
-
             set => Set(300, value?.Contents ?? string.Empty);
         }
 
@@ -287,13 +335,23 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when the side is not known.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the place is not one of <see cref="DxfTextAttachmentType"/>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
-        public void SetTextAttachmentType(DxfTextAttachmentType textAttachmentType, DxfLeaderDirectionType leaderDirection)
+        public void SetTextAttachmentType(
+            DxfTextAttachmentType textAttachmentType,
+            DxfLeaderDirectionType leaderDirection
+        )
         {
             int code = SideCode(leaderDirection, nameof(leaderDirection));
 
-            if (textAttachmentType < DxfTextAttachmentType.AttachmentTopOfTop || textAttachmentType > DxfTextAttachmentType.AttachmentLinedCenter)
+            if (
+                textAttachmentType < DxfTextAttachmentType.AttachmentTopOfTop
+                || textAttachmentType > DxfTextAttachmentType.AttachmentLinedCenter
+            )
             {
-                throw new ArgumentOutOfRangeException(nameof(textAttachmentType), textAttachmentType, "A leader meets the words at one of the places of DxfTextAttachmentType, 0 to 10.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(textAttachmentType),
+                    textAttachmentType,
+                    "A leader meets the words at one of the places of DxfTextAttachmentType, 0 to 10."
+                );
             }
 
             Set(code, ((int)textAttachmentType).ToString(CultureInfo.InvariantCulture));
@@ -305,7 +363,14 @@ namespace GeometryHelper.Dxf
         public DxfTextAngleType TextAngleType
         {
             get => (DxfTextAngleType)Whole(Text(175), 1);
-            set => SetWhole(175, (int)value, 0, 2, "Words are turned along the leader (0), level (1) or right reading (2).");
+            set =>
+                SetWhole(
+                    175,
+                    (int)value,
+                    0,
+                    2,
+                    "Words are turned along the leader (0), level (1) or right reading (2)."
+                );
         }
 
         /// <summary>Gets how the words are lined up (group 176), as AutoCAD's <c>TextAlignmentType</c>; on the left where the record gives none.</summary>
@@ -430,7 +495,14 @@ namespace GeometryHelper.Dxf
         public DxfTextAttachmentDirection TextAttachmentDirection
         {
             get => (DxfTextAttachmentDirection)Whole(Text(271), 0);
-            set => SetWhole(271, (int)value, 0, 1, "Leaders meet the words on the left and right (0) or the top and bottom (1).");
+            set =>
+                SetWhole(
+                    271,
+                    (int)value,
+                    0,
+                    1,
+                    "Leaders meet the words on the left and right (0) or the top and bottom (1)."
+                );
         }
 
         /// <summary>Gives the style as a line for debugging: its type and its handle.</summary>
@@ -517,48 +589,90 @@ namespace GeometryHelper.Dxf
         {
             switch (code)
             {
-                case 179: return "2";
-                case 170: return "2";
-                case 171: return "1";
-                case 172: return "0";
-                case 90: return "2";
-                case 40: return DxfTable.AsReal(0.0);
-                case 41: return DxfTable.AsReal(0.0);
-                case 173: return "1";
-                case 91: return ByBlock;
-                case 92: return "-2";
-                case 290: return "1";
-                case 42: return DxfTable.AsReal(2.0);
-                case 291: return "1";
-                case 43: return DxfTable.AsReal(8.0);
-                case 3: return string.Empty;
-                case 44: return DxfTable.AsReal(4.0);
-                case 300: return string.Empty;
-                case 174: return "1";
-                case 178: return "1";
-                case 175: return "1";
-                case 176: return "0";
-                case 93: return ByBlock;
-                case 45: return DxfTable.AsReal(4.0);
-                case 292: return "0";
-                case 297: return "0";
-                case 46: return DxfTable.AsReal(4.0);
-                case 94: return ByBlock;
-                case 47: return DxfTable.AsReal(1.0);
-                case 49: return DxfTable.AsReal(1.0);
-                case 140: return DxfTable.AsReal(1.0);
-                case 293: return "1";
-                case 141: return DxfTable.AsReal(0.0);
-                case 294: return "1";
-                case 177: return "0";
-                case 142: return DxfTable.AsReal(1.0);
-                case 295: return "0";
-                case 296: return "0";
-                case 143: return DxfTable.AsReal(3.75);
-                case 271: return "0";
-                case 272: return "9";
-                case 273: return "9";
-                default: return "0";
+                case 179:
+                    return "2";
+                case 170:
+                    return "2";
+                case 171:
+                    return "1";
+                case 172:
+                    return "0";
+                case 90:
+                    return "2";
+                case 40:
+                    return DxfTable.AsReal(0.0);
+                case 41:
+                    return DxfTable.AsReal(0.0);
+                case 173:
+                    return "1";
+                case 91:
+                    return ByBlock;
+                case 92:
+                    return "-2";
+                case 290:
+                    return "1";
+                case 42:
+                    return DxfTable.AsReal(2.0);
+                case 291:
+                    return "1";
+                case 43:
+                    return DxfTable.AsReal(8.0);
+                case 3:
+                    return string.Empty;
+                case 44:
+                    return DxfTable.AsReal(4.0);
+                case 300:
+                    return string.Empty;
+                case 174:
+                    return "1";
+                case 178:
+                    return "1";
+                case 175:
+                    return "1";
+                case 176:
+                    return "0";
+                case 93:
+                    return ByBlock;
+                case 45:
+                    return DxfTable.AsReal(4.0);
+                case 292:
+                    return "0";
+                case 297:
+                    return "0";
+                case 46:
+                    return DxfTable.AsReal(4.0);
+                case 94:
+                    return ByBlock;
+                case 47:
+                    return DxfTable.AsReal(1.0);
+                case 49:
+                    return DxfTable.AsReal(1.0);
+                case 140:
+                    return DxfTable.AsReal(1.0);
+                case 293:
+                    return "1";
+                case 141:
+                    return DxfTable.AsReal(0.0);
+                case 294:
+                    return "1";
+                case 177:
+                    return "0";
+                case 142:
+                    return DxfTable.AsReal(1.0);
+                case 295:
+                    return "0";
+                case 296:
+                    return "0";
+                case 143:
+                    return DxfTable.AsReal(3.75);
+                case 271:
+                    return "0";
+                case 272:
+                    return "9";
+                case 273:
+                    return "9";
+                default:
+                    return "0";
             }
         }
 
@@ -570,7 +684,9 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            return code == 340 ? found is DxfLinetypeTableRecord : code == 342 ? found is DxfTextStyleTableRecord : found is DxfBlockTableRecord;
+            return code == 340 ? found is DxfLinetypeTableRecord
+                : code == 342 ? found is DxfTextStyleTableRecord
+                : found is DxfBlockTableRecord;
         }
 
         /// <summary>Writes a group: put in the record in its place, or among the groups of a style in no file; null takes it out.</summary>
@@ -582,7 +698,8 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            InFile("be changed").SetValues(Item, new[] { new KeyValuePair<int, string>(code, value) }, RecordOrder, false);
+            InFile("be changed")
+                .SetValues(Item, new[] { new KeyValuePair<int, string>(code, value) }, RecordOrder, false);
         }
 
         private void SetWhole(int code, int value, int least, int most, string message)
@@ -597,7 +714,11 @@ namespace GeometryHelper.Dxf
 
         private void SetSize(int code, double value)
         {
-            Guard.NonNegative(value, "value", "A size of a multileader style has to be a finite number of nought or more.");
+            Guard.NonNegative(
+                value,
+                "value",
+                "A size of a multileader style has to be a finite number of nought or more."
+            );
             Set(code, DxfTable.AsReal(value));
         }
 
@@ -612,9 +733,16 @@ namespace GeometryHelper.Dxf
 
             DxfDatabase database = record.IsResident ? record.Item.File.Database : null;
 
-            if (database == null || (Item != null && !ReferenceEquals(database, Naming())) || (Item == null && _naming != null && !ReferenceEquals(database, _naming)))
+            if (
+                database == null
+                || (Item != null && !ReferenceEquals(database, Naming()))
+                || (Item == null && _naming != null && !ReferenceEquals(database, _naming))
+            )
             {
-                throw new ArgumentException("The " + kind + " of a multileader style is one of the style's own drawing.", "value");
+                throw new ArgumentException(
+                    "The " + kind + " of a multileader style is one of the style's own drawing.",
+                    "value"
+                );
             }
 
             if (Item == null)
@@ -656,11 +784,19 @@ namespace GeometryHelper.Dxf
         {
             switch (side)
             {
-                case DxfLeaderDirectionType.LeftLeader: return 174;
-                case DxfLeaderDirectionType.RightLeader: return 178;
-                case DxfLeaderDirectionType.TopLeader: return 273;
-                case DxfLeaderDirectionType.BottomLeader: return 272;
-                default: throw new ArgumentException("A side is the left, the right, the top or the bottom: " + side + " is none of them.", parameter);
+                case DxfLeaderDirectionType.LeftLeader:
+                    return 174;
+                case DxfLeaderDirectionType.RightLeader:
+                    return 178;
+                case DxfLeaderDirectionType.TopLeader:
+                    return 273;
+                case DxfLeaderDirectionType.BottomLeader:
+                    return 272;
+                default:
+                    throw new ArgumentException(
+                        "A side is the left, the right, the top or the bottom: " + side + " is none of them.",
+                        parameter
+                    );
             }
         }
 
@@ -669,7 +805,11 @@ namespace GeometryHelper.Dxf
         {
             if (!Enum.IsDefined(typeof(DxfAngleConstraint), constraint))
             {
-                throw new ArgumentOutOfRangeException("value", constraint, "An angle constraint is one of DxfAngleConstraint.");
+                throw new ArgumentOutOfRangeException(
+                    "value",
+                    constraint,
+                    "An angle constraint is one of DxfAngleConstraint."
+                );
             }
 
             return DxfTable.AsReal((int)constraint * Math.PI / 12.0);
@@ -680,22 +820,35 @@ namespace GeometryHelper.Dxf
         {
             double steps = Num(text, 0.0) * 12.0 / Math.PI;
             int whole = (int)Math.Round(steps);
-            return Math.Abs(steps - whole) <= 1E-6 && Enum.IsDefined(typeof(DxfAngleConstraint), whole) ? (DxfAngleConstraint)whole : DxfAngleConstraint.DegreesAny;
+            return Math.Abs(steps - whole) <= 1E-6 && Enum.IsDefined(typeof(DxfAngleConstraint), whole)
+                ? (DxfAngleConstraint)whole
+                : DxfAngleConstraint.DegreesAny;
         }
 
         /// <summary>The block of a handle in the drawing the style reads its blocks in; null where there is none.</summary>
-        private DxfBlockTableRecord BlockOf(string handle) => handle == null ? null : DxfMLeader.BlockByHandle(Naming(), handle.Trim());
+        private DxfBlockTableRecord BlockOf(string handle) =>
+            handle == null ? null : DxfMLeader.BlockByHandle(Naming(), handle.Trim());
 
         /// <summary>The object of a handle in the drawing the style reads its records in; null where there is none.</summary>
         private DxfDBObject RecordOf(string handle)
         {
             DxfDatabase database = Naming();
             handle = handle?.Trim();
-            return handle != null && handle.Length > 0 && handle != "0" && database != null && database.TryGetObject(handle, out DxfDBObject found) ? found : null;
+            return
+                handle != null
+                && handle.Length > 0
+                && handle != "0"
+                && database != null
+                && database.TryGetObject(handle, out DxfDBObject found)
+                ? found
+                : null;
         }
 
         /// <summary>The drawing the style reads its blocks and records in: its own, or for one in no file the multileader's it was given the values of.</summary>
-        private DxfDatabase Naming() => Item == null ? _naming : IsResident ? Item.File.Database : null;
+        private DxfDatabase Naming() =>
+            Item == null ? _naming
+            : IsResident ? Item.File.Database
+            : null;
 
         private static int[] Marked()
         {

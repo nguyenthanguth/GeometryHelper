@@ -46,15 +46,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             foreach (string value in values)
             {
                 string chosen = value;
-                rows.Add(new CadMenuItemViewModel(value, () =>
-                {
-                    CadEditResult result = CadDynamicBlocks.Choose(document, handle, gripIndex, chosen);
+                rows.Add(
+                    new CadMenuItemViewModel(
+                        value,
+                        () =>
+                        {
+                            CadEditResult result = CadDynamicBlocks.Choose(document, handle, gripIndex, chosen);
 
-                    if (!result.Succeeded)
-                    {
-                        Say(result.Message);
-                    }
-                }, isChecked: value == shown));
+                            if (!result.Succeeded)
+                            {
+                                Say(result.Message);
+                            }
+                        },
+                        isChecked: value == shown
+                    )
+                );
             }
 
             return rows;
@@ -73,8 +79,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             CadDocument document = _current.Document;
-            bool dynamic = document.Selection.Handles.Any(h => document.FindEntity(h) is DxfBlockReference insert && IsDynamic(insert));
-            return dynamic ? new[] { new CadMenuItemViewModel("Reset Block", () => StartCommand("RESETBLOCK"), toolTip: "Resets the selected dynamic block references to their default values (RESETBLOCK)") } : null;
+            bool dynamic = document.Selection.Handles.Any(h =>
+                document.FindEntity(h) is DxfBlockReference insert && IsDynamic(insert)
+            );
+            return dynamic
+                ? new[]
+                {
+                    new CadMenuItemViewModel(
+                        "Reset Block",
+                        () => StartCommand("RESETBLOCK"),
+                        toolTip: "Resets the selected dynamic block references to their default values (RESETBLOCK)"
+                    ),
+                }
+                : null;
         }
 
         /// <summary>Whether a block reference places a dynamic block; false where that cannot be read.</summary>
@@ -84,7 +101,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 return insert.IsDynamicBlock;
             }
-            catch (System.Exception exception) when (exception is System.NotSupportedException || exception is System.InvalidOperationException || exception is System.FormatException)
+            catch (System.Exception exception)
+                when (exception is System.NotSupportedException
+                    || exception is System.InvalidOperationException
+                    || exception is System.FormatException
+                )
             {
                 return false;
             }

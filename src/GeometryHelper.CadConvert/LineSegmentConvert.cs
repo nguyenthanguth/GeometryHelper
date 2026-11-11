@@ -27,7 +27,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="segments">The sequence of AutoCAD 2D line segments to convert.</param>
         /// <returns>A list of converted <see cref="GeoLine2"/>.</returns>
-        public static List<GeoLine2> ToGeoLine2(this IEnumerable<LineSegment2d> segments) => segments.Select(ToGeoLine2).ToList();
+        public static List<GeoLine2> ToGeoLine2(this IEnumerable<LineSegment2d> segments) =>
+            segments.Select(ToGeoLine2).ToList();
 
         /// <summary>
         /// Converts a AutoCAD 3D line segment to a GeometryHelper 2D line (discarding the Z coordinate).
@@ -44,7 +45,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="segments">The sequence of AutoCAD 3D line segments to convert.</param>
         /// <returns>A list of converted <see cref="GeoLine2"/>.</returns>
-        public static List<GeoLine2> ToGeoLine2(this IEnumerable<LineSegment3d> segments) => segments.Select(ToGeoLine2).ToList();
+        public static List<GeoLine2> ToGeoLine2(this IEnumerable<LineSegment3d> segments) =>
+            segments.Select(ToGeoLine2).ToList();
 
         /// <summary>
         /// Converts a AutoCAD Database Line entity to a GeometryHelper 2D line (discarding the Z coordinate).
@@ -70,8 +72,12 @@ namespace GeometryHelper.CadConvert
         /// <returns>The converted AutoCAD <see cref="Line"/>.</returns>
         public static Line ToAcadLine(this GeoLine2 geoLine)
         {
-            if (geoLine == null) throw new ArgumentNullException(nameof(geoLine));
-            return new Line(new Point3d(geoLine.StartPoint.X, geoLine.StartPoint.Y, 0.0), new Point3d(geoLine.EndPoint.X, geoLine.EndPoint.Y, 0.0));
+            if (geoLine == null)
+                throw new ArgumentNullException(nameof(geoLine));
+            return new Line(
+                new Point3d(geoLine.StartPoint.X, geoLine.StartPoint.Y, 0.0),
+                new Point3d(geoLine.EndPoint.X, geoLine.EndPoint.Y, 0.0)
+            );
         }
 
         /// <summary>

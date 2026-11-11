@@ -43,9 +43,7 @@ namespace GeometryHelper.Arranging
         /// <summary>
         /// Initializes a new, empty instance of the <see cref="ObstacleSpatialIndex"/> class.
         /// </summary>
-        internal ObstacleSpatialIndex()
-        {
-        }
+        internal ObstacleSpatialIndex() { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ObstacleSpatialIndex"/> class holding the obstacles, numbered in
@@ -80,7 +78,12 @@ namespace GeometryHelper.Arranging
             _obstacles.Add(obstacle);
 
             Bounds box = obstacle.Box;
-            if (!double.IsNaN(box.MinX) && !double.IsNaN(box.MinY) && !double.IsNaN(box.MaxX) && !double.IsNaN(box.MaxY))
+            if (
+                !double.IsNaN(box.MinX)
+                && !double.IsNaN(box.MinY)
+                && !double.IsNaN(box.MaxX)
+                && !double.IsNaN(box.MaxY)
+            )
             {
                 InsertLeaf(Allocate(box, ordinal));
             }
@@ -155,7 +158,15 @@ namespace GeometryHelper.Arranging
             }
 
             int index = _nodeCount++;
-            _nodes[index] = new Node { Box = box, Parent = None, Left = None, Right = None, Height = 0, Ordinal = ordinal };
+            _nodes[index] = new Node
+            {
+                Box = box,
+                Parent = None,
+                Left = None,
+                Right = None,
+                Height = 0,
+                Ordinal = ordinal,
+            };
             return index;
         }
 

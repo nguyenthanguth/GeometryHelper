@@ -30,6 +30,6 @@ namespace GeometryHelper.Enums
         /// <summary>
         /// Both segments are read as infinite lines.
         /// </summary>
-        Both
+        Both,
     }
 }

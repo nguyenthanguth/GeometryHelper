@@ -68,7 +68,12 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int draw = 0; draw < 60; draw++)
             {
-                GeoSpline2 spline = Wander(random, 1 + random.Next(draw % 5 == 0 ? 3000 : 60), 1 + random.Next(4), 10.0);
+                GeoSpline2 spline = Wander(
+                    random,
+                    1 + random.Next(draw % 5 == 0 ? 3000 : 60),
+                    1 + random.Next(4),
+                    10.0
+                );
                 NurbsCurve curve = spline.Curve;
                 BezierPieces pieces = curve.Pieces;
                 PieceIndex index = curve.Index;
@@ -76,14 +81,21 @@ namespace GeometryHelper.UnitTest.Plane
                 for (int k = 0; k < 20; k++)
                 {
                     GeoPoint2 on = spline.GetPointAtParameter(random.NextDouble());
-                    var query = new[] { on.X + Between(random, -300, 300) * (k % 3), on.Y + Between(random, -300, 300) * (k % 3) };
+                    var query = new[]
+                    {
+                        on.X + Between(random, -300, 300) * (k % 3),
+                        on.Y + Between(random, -300, 300) * (k % 3),
+                    };
                     var region = new PointBound(query);
                     double limit = new[] { 0.0, 1.0, 10.0, 100.0, 1E6 }[random.Next(5)];
 
                     var found = new List<int>();
                     index.Collect(ref region, limit, found);
                     found.Sort();
-                    var expected = Enumerable.Range(0, pieces.Count).Where(i => region.Bound(pieces.BoxMin, pieces.BoxMax, i * 2) <= limit).ToList();
+                    var expected = Enumerable
+                        .Range(0, pieces.Count)
+                        .Where(i => region.Bound(pieces.BoxMin, pieces.BoxMax, i * 2) <= limit)
+                        .ToList();
 
                     Assert.Equal(expected, found);
 
@@ -132,8 +144,17 @@ namespace GeometryHelper.UnitTest.Plane
                     {
                         for (int j = 0; j < pb.Count; j++)
                         {
-                            double gx = Math.Max(0.0, Math.Max(pb.BoxMin[2 * j] - pa.BoxMax[2 * i], pa.BoxMin[2 * i] - pb.BoxMax[2 * j]));
-                            double gy = Math.Max(0.0, Math.Max(pb.BoxMin[2 * j + 1] - pa.BoxMax[2 * i + 1], pa.BoxMin[2 * i + 1] - pb.BoxMax[2 * j + 1]));
+                            double gx = Math.Max(
+                                0.0,
+                                Math.Max(pb.BoxMin[2 * j] - pa.BoxMax[2 * i], pa.BoxMin[2 * i] - pb.BoxMax[2 * j])
+                            );
+                            double gy = Math.Max(
+                                0.0,
+                                Math.Max(
+                                    pb.BoxMin[2 * j + 1] - pa.BoxMax[2 * i + 1],
+                                    pa.BoxMin[2 * i + 1] - pb.BoxMax[2 * j + 1]
+                                )
+                            );
 
                             if (Math.Sqrt(gx * gx + gy * gy) <= limit)
                             {
@@ -155,7 +176,10 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ThePointQueriesOfEverySpline_AreBitForBitWhatTheyWereBeforeTheTree()
         {
-            Assert.Equal("d45f362cf40821c4c4953a52d47b7f42fb13b661fccfbda23e304d53ddc35a11", Hash(Record(120) + RecordInSpace(60)));
+            Assert.Equal(
+                "d45f362cf40821c4c4953a52d47b7f42fb13b661fccfbda23e304d53ddc35a11",
+                Hash(Record(120) + RecordInSpace(60))
+            );
         }
 
         /// <summary>
@@ -166,7 +190,10 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ThePointQueriesOfSplinesOfMoreThanTwentyFourSpans_AreBitForBitWhatTheyWereBeforeTheTree()
         {
-            Assert.Equal("b44dea7db5f9f1ac9f2882b748f3043602355317478713d6103b82cdd146647b", Hash(Record(120, 25, 23456) + RecordInSpace(60, 25, 65432)));
+            Assert.Equal(
+                "b44dea7db5f9f1ac9f2882b748f3043602355317478713d6103b82cdd146647b",
+                Hash(Record(120, 25, 23456) + RecordInSpace(60, 25, 65432))
+            );
         }
 
         private static string Hash(string text)
@@ -299,8 +326,22 @@ namespace GeometryHelper.UnitTest.Plane
                     double k = spline.GetKnotAtPoint(p);
                     GeoPoint2 c = spline.GetClosestPointOnBoundary(p);
                     GeoLine2 line = spline.GetShortestLineTo(p);
-                    text.Append(s).Append(' ').Append(q).Append(' ').Append(Bits(d)).Append(' ').Append(Bits(k)).Append(' ')
-                        .Append(Bits(c.X)).Append(' ').Append(Bits(c.Y)).Append(' ').Append(Bits(line.StartPoint.X)).Append(' ').Append(Bits(line.EndPoint.Y)).Append('\n');
+                    text.Append(s)
+                        .Append(' ')
+                        .Append(q)
+                        .Append(' ')
+                        .Append(Bits(d))
+                        .Append(' ')
+                        .Append(Bits(k))
+                        .Append(' ')
+                        .Append(Bits(c.X))
+                        .Append(' ')
+                        .Append(Bits(c.Y))
+                        .Append(' ')
+                        .Append(Bits(line.StartPoint.X))
+                        .Append(' ')
+                        .Append(Bits(line.EndPoint.Y))
+                        .Append('\n');
                 }
             }
 
@@ -391,7 +432,11 @@ namespace GeometryHelper.UnitTest.Plane
                     switch (q % 4)
                     {
                         case 0:
-                            p = new GeoPoint3(Between(random, -reach, reach), Between(random, -reach, reach), Between(random, -reach, reach));
+                            p = new GeoPoint3(
+                                Between(random, -reach, reach),
+                                Between(random, -reach, reach),
+                                Between(random, -reach, reach)
+                            );
                             break;
                         case 1:
                             p = spline.GetPointAtParameter(random.NextDouble());
@@ -399,7 +444,11 @@ namespace GeometryHelper.UnitTest.Plane
                         case 2:
                         {
                             GeoPoint3 b = spline.GetPointAtParameter(random.NextDouble());
-                            p = new GeoPoint3(b.X + Between(random, -0.01, 0.01), b.Y + Between(random, -0.01, 0.01), b.Z + Between(random, -0.01, 0.01));
+                            p = new GeoPoint3(
+                                b.X + Between(random, -0.01, 0.01),
+                                b.Y + Between(random, -0.01, 0.01),
+                                b.Z + Between(random, -0.01, 0.01)
+                            );
                             break;
                         }
 
@@ -412,8 +461,25 @@ namespace GeometryHelper.UnitTest.Plane
                     double k = spline.GetKnotAtPoint(p);
                     GeoPoint3 c = spline.GetClosestPointOnBoundary(p);
                     GeoLine3 line = spline.GetShortestLineTo(p);
-                    text.Append("3 ").Append(s).Append(' ').Append(q).Append(' ').Append(Bits(d)).Append(' ').Append(Bits(k)).Append(' ')
-                        .Append(Bits(c.X)).Append(' ').Append(Bits(c.Y)).Append(' ').Append(Bits(c.Z)).Append(' ').Append(Bits(line.StartPoint.X)).Append(' ').Append(Bits(line.EndPoint.Z)).Append('\n');
+                    text.Append("3 ")
+                        .Append(s)
+                        .Append(' ')
+                        .Append(q)
+                        .Append(' ')
+                        .Append(Bits(d))
+                        .Append(' ')
+                        .Append(Bits(k))
+                        .Append(' ')
+                        .Append(Bits(c.X))
+                        .Append(' ')
+                        .Append(Bits(c.Y))
+                        .Append(' ')
+                        .Append(Bits(c.Z))
+                        .Append(' ')
+                        .Append(Bits(line.StartPoint.X))
+                        .Append(' ')
+                        .Append(Bits(line.EndPoint.Z))
+                        .Append('\n');
                 }
             }
 
@@ -453,13 +519,19 @@ namespace GeometryHelper.UnitTest.Plane
                 {
                     double dx = vertices[i + 1].X - vertices[i].X;
                     double dy = vertices[i + 1].Y - vertices[i].Y;
-                    double t = Math.Max(0.0, Math.Min(1.0, ((q.X - vertices[i].X) * dx + (q.Y - vertices[i].Y) * dy) / (dx * dx + dy * dy)));
+                    double t = Math.Max(
+                        0.0,
+                        Math.Min(1.0, ((q.X - vertices[i].X) * dx + (q.Y - vertices[i].Y) * dy) / (dx * dx + dy * dy))
+                    );
                     double ex = q.X - (vertices[i].X + t * dx);
                     double ey = q.Y - (vertices[i].Y + t * dy);
                     least = Math.Min(least, Math.Sqrt(ex * ex + ey * ey));
                 }
 
-                Assert.True(Math.Abs(spline.DistanceTo(q) - least) <= 1E-9 * (1.0 + least), "query " + k + ": " + spline.DistanceTo(q).ToString("R") + " against " + least.ToString("R"));
+                Assert.True(
+                    Math.Abs(spline.DistanceTo(q) - least) <= 1E-9 * (1.0 + least),
+                    "query " + k + ": " + spline.DistanceTo(q).ToString("R") + " against " + least.ToString("R")
+                );
             }
         }
     }

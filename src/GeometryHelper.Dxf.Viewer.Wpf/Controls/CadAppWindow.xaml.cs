@@ -24,9 +24,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             AppName = appName ?? throw new ArgumentNullException(nameof(appName));
             InitializeComponent();
             Workspace.AppName = appName;
-            SetBinding(TitleProperty, new Binding(nameof(MainViewModel.Title)) { StringFormat = appName.Replace("{", "{{").Replace("}", "}}") + "  {0}" });
+            SetBinding(
+                TitleProperty,
+                new Binding(nameof(MainViewModel.Title))
+                {
+                    StringFormat = appName.Replace("{", "{{").Replace("}", "}}") + "  {0}",
+                }
+            );
             DataContext = model;
-            StateChanged += (s, e) => Workspace.Margin = WindowState == WindowState.Maximized ? new Thickness(7) : new Thickness(0);
+            StateChanged += (s, e) =>
+                Workspace.Margin = WindowState == WindowState.Maximized ? new Thickness(7) : new Thickness(0);
 
             // Drawings with changes not saved are asked about once, for all of them, before the window closes.
             Closing += (s, e) => e.Cancel = !Model.ConfirmExit();
@@ -43,7 +50,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnMinimise(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 
-        private void OnMaximise(object sender, RoutedEventArgs e) => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        private void OnMaximise(object sender, RoutedEventArgs e) =>
+            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
         private void OnClose(object sender, RoutedEventArgs e) => Close();
     }

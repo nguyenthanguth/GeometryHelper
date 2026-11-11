@@ -68,7 +68,10 @@ namespace GeometryHelper
 
             if (double.IsNaN(arcTolerance) || double.IsInfinity(arcTolerance) || arcTolerance < 0.0)
             {
-                throw new ArgumentOutOfRangeException(nameof(arcTolerance), "The arc tolerance must be zero (automatic) or a positive distance.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(arcTolerance),
+                    "The arc tolerance must be zero (automatic) or a positive distance."
+                );
             }
 
             Join = join;
@@ -108,10 +111,10 @@ namespace GeometryHelper
         /// </summary>
         public bool Equals(OffsetOptions other)
         {
-            return other != null &&
-                   Join == other.Join &&
-                   MiterLimit.Equals(other.MiterLimit) &&
-                   ArcTolerance.Equals(other.ArcTolerance);
+            return other != null
+                && Join == other.Join
+                && MiterLimit.Equals(other.MiterLimit)
+                && ArcTolerance.Equals(other.ArcTolerance);
         }
 
         /// <summary>
@@ -143,7 +146,8 @@ namespace GeometryHelper
                 "(Join: {0}, MiterLimit: {1}, ArcTolerance: {2})",
                 Join,
                 MiterLimit,
-                ArcTolerance > 0.0 ? ArcTolerance.ToString(CultureInfo.InvariantCulture) : "automatic");
+                ArcTolerance > 0.0 ? ArcTolerance.ToString(CultureInfo.InvariantCulture) : "automatic"
+            );
         }
     }
 }

@@ -16,7 +16,11 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Tol = Tolerance.Default;
 
-        private static readonly GeoCoordinateSystem3 Plan = new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis);
+        private static readonly GeoCoordinateSystem3 Plan = new GeoCoordinateSystem3(
+            GeoPoint3.Origin,
+            GeoVector3.XAxis,
+            GeoVector3.YAxis
+        );
 
         /// <summary>The normal +Z turned by an angle about the X axis, the chord's own direction.</summary>
         private static GeoVector3 Turned(double degrees)
@@ -26,23 +30,31 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         /// <summary>The edge from the origin along +X, bowing about a normal turned out of the plan.</summary>
-        private static GeoEdge3 Edge(double chord, double bulge, double degrees)
-            => new GeoEdge3(GeoPoint3.Origin, new GeoPoint3(chord, 0, 0), bulge, Turned(degrees), Tol);
+        private static GeoEdge3 Edge(double chord, double bulge, double degrees) =>
+            new GeoEdge3(GeoPoint3.Origin, new GeoPoint3(chord, 0, 0), bulge, Turned(degrees), Tol);
 
         /// <summary>The chain (0, 0, 0), (chord, 0, 0), (chord, chord, 0), its first edge that one.</summary>
-        private static GeoPolylineArc3 Chain(double chord, double bulge, double degrees)
-            => new GeoPolylineArc3(
+        private static GeoPolylineArc3 Chain(double chord, double bulge, double degrees) =>
+            new GeoPolylineArc3(
                 new[] { GeoPoint3.Origin, new GeoPoint3(chord, 0, 0), new GeoPoint3(chord, chord, 0) },
                 new[] { bulge, 0 },
-                new[] { Turned(degrees), GeoVector3.ZAxis });
+                new[] { Turned(degrees), GeoVector3.ZAxis }
+            );
 
         /// <summary>The square of side chord in the plan, its first side that edge.</summary>
-        private static GeoPolygonArc3 Loop(double chord, double bulge, double degrees)
-            => new GeoPolygonArc3(
-                new[] { GeoPoint3.Origin, new GeoPoint3(chord, 0, 0), new GeoPoint3(chord, chord, 0), new GeoPoint3(0, chord, 0) },
+        private static GeoPolygonArc3 Loop(double chord, double bulge, double degrees) =>
+            new GeoPolygonArc3(
+                new[]
+                {
+                    GeoPoint3.Origin,
+                    new GeoPoint3(chord, 0, 0),
+                    new GeoPoint3(chord, chord, 0),
+                    new GeoPoint3(0, chord, 0),
+                },
                 new[] { -bulge, 0, 0, 0 },
                 new[] { Turned(degrees), GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis },
-                Tol);
+                Tol
+            );
 
         [Fact]
         public void AHalfCircleTurnedJustUnderADegreeOutOfItsChain_StandsOffIt()
@@ -127,7 +139,11 @@ namespace GeometryHelper.UnitTest.Solid
             // half turn it stays between its ends, at most 0.0009 up; a bulge of 3 has radius 8.33 and runs on to 13.33
             // along, 0.0012 up.
             var end = new GeoPoint3(10, 0, 0.0009);
-            GeoVector3 normal = GeoPoint3.Origin.GetVectorTo(end).CrossProduct(GeoVector3.YAxis).Multiply(-1).Normalize();
+            GeoVector3 normal = GeoPoint3
+                .Origin.GetVectorTo(end)
+                .CrossProduct(GeoVector3.YAxis)
+                .Multiply(-1)
+                .Normalize();
             var edge = new GeoEdge3(GeoPoint3.Origin, end, bulge, normal, Tol);
 
             Assert.Equal(lies, PlanarMap.TryToEdge2(Plan, edge, out _, Tol));
@@ -139,12 +155,23 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // Two corners stand 0.0009 above the plan and two on it; the half circle from the second corner to the third
             // bows out along +X and dips back across the plan as it goes, never more than 0.0009 off it.
-            var corners = new[] { GeoPoint3.Origin, new GeoPoint3(100, 0, 0.0009), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0.0009) };
+            var corners = new[]
+            {
+                GeoPoint3.Origin,
+                new GeoPoint3(100, 0, 0.0009),
+                new GeoPoint3(100, 100, 0),
+                new GeoPoint3(0, 100, 0.0009),
+            };
             GeoVector3 along = corners[1].GetVectorTo(corners[2]).Normalize();
             GeoVector3 bow = new GeoVector3(1, 0, -1.8E-5).Normalize();
             GeoVector3 normal = bow.CrossProduct(along).Normalize();
 
-            var loop = new GeoPolygonArc3(corners, new[] { 0, 1, 0, 0.0 }, new[] { normal, normal, normal, normal }, Tol);
+            var loop = new GeoPolygonArc3(
+                corners,
+                new[] { 0, 1, 0, 0.0 },
+                new[] { normal, normal, normal, normal },
+                Tol
+            );
             var chain = new GeoPolylineArc3(corners, new[] { 0, 1, 0.0 }, new[] { normal, normal, normal });
 
             Assert.True(loop.Length > 400);
@@ -217,7 +244,10 @@ namespace GeometryHelper.UnitTest.Solid
             var arc = new GeoArc3(new GeoPoint3(5, 6, 0), Turned(0.0005), 9.985, 0.4, 0.4 - 2E-10);
 
             Assert.True(PlanarMap.TryToArc2(Plan, arc, out GeoArc2 flat, Tol));
-            Assert.True(flat.GetPointAtParameter(0.5).DistanceTo(PlanarMap.ProjectToPoint2(Plan, arc.GetPointAtParameter(0.5))) <= Tol.EqualPlanar);
+            Assert.True(
+                flat.GetPointAtParameter(0.5).DistanceTo(PlanarMap.ProjectToPoint2(Plan, arc.GetPointAtParameter(0.5)))
+                    <= Tol.EqualPlanar
+            );
         }
 
         [Theory]

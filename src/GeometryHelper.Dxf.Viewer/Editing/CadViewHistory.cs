@@ -15,21 +15,29 @@ namespace GeometryHelper.Dxf.Viewer
         internal const int Kept = 20;
 
         private readonly Dictionary<CadSpace, List<DisplayBox>> _spaces = new Dictionary<CadSpace, List<DisplayBox>>();
-        private readonly Dictionary<string, List<KeyValuePair<GeoPoint2, double>>> _viewports = new Dictionary<string, List<KeyValuePair<GeoPoint2, double>>>(System.StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, List<KeyValuePair<GeoPoint2, double>>> _viewports = new Dictionary<
+            string,
+            List<KeyValuePair<GeoPoint2, double>>
+        >(System.StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Keeps the box a space's view showed, before a zoom or a pan of it.</summary>
         internal void Add(CadSpace space, DisplayBox box) => Push(List(_spaces, space), box);
 
         /// <summary>Takes the box a space's view showed last; false where its list is empty.</summary>
-        internal bool TryTake(CadSpace space, out DisplayBox box) => Pop(_spaces.TryGetValue(space, out List<DisplayBox> list) ? list : null, out box);
+        internal bool TryTake(CadSpace space, out DisplayBox box) =>
+            Pop(_spaces.TryGetValue(space, out List<DisplayBox> list) ? list : null, out box);
 
         /// <summary>Keeps the view a viewport showed (its view centre and height), before a zoom or a pan of it.</summary>
-        internal void Add(string viewport, GeoPoint2 center, double height) => Push(List(_viewports, viewport), new KeyValuePair<GeoPoint2, double>(center, height));
+        internal void Add(string viewport, GeoPoint2 center, double height) =>
+            Push(List(_viewports, viewport), new KeyValuePair<GeoPoint2, double>(center, height));
 
         /// <summary>Takes the view a viewport showed last; false where its list is empty.</summary>
         internal bool TryTake(string viewport, out GeoPoint2 center, out double height)
         {
-            bool taken = Pop(_viewports.TryGetValue(viewport, out List<KeyValuePair<GeoPoint2, double>> list) ? list : null, out KeyValuePair<GeoPoint2, double> view);
+            bool taken = Pop(
+                _viewports.TryGetValue(viewport, out List<KeyValuePair<GeoPoint2, double>> list) ? list : null,
+                out KeyValuePair<GeoPoint2, double> view
+            );
             center = view.Key;
             height = view.Value;
             return taken;

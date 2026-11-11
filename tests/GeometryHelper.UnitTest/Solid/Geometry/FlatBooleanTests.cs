@@ -22,14 +22,22 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly Tolerance Loose = new Tolerance(1E-7, 1E-7);
 
         /// <summary>A square in z = 0.</summary>
-        private static GeoPolygon3 Plate(double x, double y, double size) => new GeoPolygon3(
-            new GeoPoint3(x, y, 0), new GeoPoint3(x + size, y, 0),
-            new GeoPoint3(x + size, y + size, 0), new GeoPoint3(x, y + size, 0));
+        private static GeoPolygon3 Plate(double x, double y, double size) =>
+            new GeoPolygon3(
+                new GeoPoint3(x, y, 0),
+                new GeoPoint3(x + size, y, 0),
+                new GeoPoint3(x + size, y + size, 0),
+                new GeoPoint3(x, y + size, 0)
+            );
 
         /// <summary>The same square standing in a tilted plane, so nothing rests on z = 0 being special.</summary>
-        private static GeoPolygon3 Tilted(double along, double size) => new GeoPolygon3(
-            new GeoPoint3(along, along, 0), new GeoPoint3(along + size, along + size, 0),
-            new GeoPoint3(along + size, along + size, size), new GeoPoint3(along, along, size));
+        private static GeoPolygon3 Tilted(double along, double size) =>
+            new GeoPolygon3(
+                new GeoPoint3(along, along, 0),
+                new GeoPoint3(along + size, along + size, 0),
+                new GeoPoint3(along + size, along + size, size),
+                new GeoPoint3(along, along, size)
+            );
 
         [Fact]
         public void TwoPlatesInOnePlaneCanBeJoinedAndCutFromEachOther()
@@ -58,10 +66,18 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // A ring built out of four bars: the hole in the middle belongs to no bar.
             GeoPolygon3 bottom = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0), new GeoPoint3(300, 50, 0), new GeoPoint3(0, 50, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(300, 50, 0),
+                new GeoPoint3(0, 50, 0)
+            );
             GeoPolygon3 top = bottom.Translate(new GeoVector3(0, 250, 0));
             GeoPolygon3 left = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0), new GeoPoint3(50, 300, 0), new GeoPoint3(0, 300, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(50, 0, 0),
+                new GeoPoint3(50, 300, 0),
+                new GeoPoint3(0, 300, 0)
+            );
             GeoPolygon3 right = left.Translate(new GeoVector3(250, 0, 0));
 
             // Each bar has to touch what is there already, or the running union is two pieces and carrying one
@@ -107,7 +123,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             // Standing upright shares no plane with lying flat either.
             var upright = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 0, 100), new GeoPoint3(0, 0, 100));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 0, 100),
+                new GeoPoint3(0, 0, 100)
+            );
 
             Assert.False(flat.SharesPlaneWith(upright.GetPlane(), Loose));
             Assert.Throws<ArgumentException>(() => flat.Union(upright));
@@ -125,7 +145,11 @@ namespace GeometryHelper.UnitTest.Solid
             // The same overlapping square with its vertices the other way round, so its normal points the
             // other way. It has to read as an area, not as a hole.
             var reversed = new GeoPolygon3(
-                new GeoPoint3(50, 150, 0), new GeoPoint3(150, 150, 0), new GeoPoint3(150, 50, 0), new GeoPoint3(50, 50, 0));
+                new GeoPoint3(50, 150, 0),
+                new GeoPoint3(150, 150, 0),
+                new GeoPoint3(150, 50, 0),
+                new GeoPoint3(50, 50, 0)
+            );
 
             Assert.True(reversed.Normal.IsEqualTo(first.Normal.Negate(), Loose));
             Assert.True(first.SharesPlaneWith(reversed.GetPlane(), Loose));
@@ -137,9 +161,7 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AFaceKeepsItsHolesThroughACombination()
         {
-            var plate = new GeoFace3(
-                Plate(0, 0, 300),
-                new[] { Plate(200, 200, 50) });
+            var plate = new GeoFace3(Plate(0, 0, 300), new[] { Plate(200, 200, 50) });
 
             Assert.Equal(300 * 300 - 50 * 50, plate.Area, 6);
 
@@ -189,15 +211,31 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPolygon3 second = Plate(50, 50, 100);
 
             var flatFirst = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(0, 100)
+            );
             var flatSecond = new GeoPolygon2(
-                new GeoPoint2(50, 50), new GeoPoint2(150, 50), new GeoPoint2(150, 150), new GeoPoint2(50, 150));
+                new GeoPoint2(50, 50),
+                new GeoPoint2(150, 50),
+                new GeoPoint2(150, 150),
+                new GeoPoint2(50, 150)
+            );
 
             Assert.Equal(Boolean2.Union(flatFirst, flatSecond).Length, first.Union(second).Length);
-            Assert.Equal(Boolean2.Union(flatFirst, flatSecond).Sum(f => f.Area), first.Union(second).Sum(f => f.Area), 6);
+            Assert.Equal(
+                Boolean2.Union(flatFirst, flatSecond).Sum(f => f.Area),
+                first.Union(second).Sum(f => f.Area),
+                6
+            );
             Assert.Equal(Boolean2.Xor(flatFirst, flatSecond).Length, first.Xor(second).Length);
             Assert.Equal(Boolean2.Xor(flatFirst, flatSecond).Sum(f => f.Area), first.Xor(second).Sum(f => f.Area), 6);
-            Assert.Equal(Boolean2.Subtract(flatFirst, flatSecond).Sum(f => f.Area), first.Subtract(second).Sum(f => f.Area), 6);
+            Assert.Equal(
+                Boolean2.Subtract(flatFirst, flatSecond).Sum(f => f.Area),
+                first.Subtract(second).Sum(f => f.Area),
+                6
+            );
         }
 
         /// <summary>
@@ -213,12 +251,22 @@ namespace GeometryHelper.UnitTest.Solid
             foreach (double leg in new[] { 0.1, 0.05 })
             {
                 var square = new GeoFace3(Plate(0, 0, 1));
-                var allButTheCorner = new GeoFace3(new GeoPolygon3(
-                    new GeoPoint3(leg, 0, 0), new GeoPoint3(2, 0, 0), new GeoPoint3(2, 2, 0), new GeoPoint3(0, 2, 0), new GeoPoint3(0, leg, 0)));
+                var allButTheCorner = new GeoFace3(
+                    new GeoPolygon3(
+                        new GeoPoint3(leg, 0, 0),
+                        new GeoPoint3(2, 0, 0),
+                        new GeoPoint3(2, 2, 0),
+                        new GeoPoint3(0, 2, 0),
+                        new GeoPoint3(0, leg, 0)
+                    )
+                );
 
                 GeoFace3[] left = Boolean3.Subtract(square, allButTheCorner, Tolerance.Global);
 
-                Assert.True(Math.Abs(left.Sum(face => face.Area) - leg * leg / 2) <= 1E-6 * leg * leg, $"leg {leg}: {left.Sum(face => face.Area)}");
+                Assert.True(
+                    Math.Abs(left.Sum(face => face.Area) - leg * leg / 2) <= 1E-6 * leg * leg,
+                    $"leg {leg}: {left.Sum(face => face.Area)}"
+                );
             }
         }
 
@@ -232,8 +280,17 @@ namespace GeometryHelper.UnitTest.Solid
         {
             var tight = new Tolerance(1E-7, 1E-12, Tolerance.DefaultEqualAngleRad, 1E-7);
             var plate = new GeoFace3(Plate(0, 0, 1));
-            var speck = new GeoFace3(new GeoPolygon3(
-                new[] { new GeoPoint3(0.5, 0.5, 0), new GeoPoint3(0.50005, 0.5, 0), new GeoPoint3(0.5, 0.50005, 0) }, tight));
+            var speck = new GeoFace3(
+                new GeoPolygon3(
+                    new[]
+                    {
+                        new GeoPoint3(0.5, 0.5, 0),
+                        new GeoPoint3(0.50005, 0.5, 0),
+                        new GeoPoint3(0.5, 0.50005, 0),
+                    },
+                    tight
+                )
+            );
 
             Assert.Empty(Boolean3.Intersect(plate, speck, tight));
             Assert.Equal(1.0, Assert.Single(Boolean3.Subtract(plate, speck, tight)).Area, 9);
@@ -275,8 +332,14 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(50.0 * 100.0 * 100.0, left.GetVolume(), 3);
 
             // A turned box is exact too: six flat faces, nothing fitted.
-            var turned = new GeoObb3(new GeoPoint3(0, 0, 0), 100, 100, 100,
-                new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 0));
+            var turned = new GeoObb3(
+                new GeoPoint3(0, 0, 0),
+                100,
+                100,
+                100,
+                new GeoVector3(1, 1, 0),
+                new GeoVector3(-1, 1, 0)
+            );
 
             Assert.True(turned.TryIntersect(turned, out GeoSolid3 itself));
             Assert.Equal(turned.Volume, itself.GetVolume(), 3);
@@ -336,9 +399,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(face.SharesPlaneWith(second.GetPlane()), face.SharesPlaneWith(second.GetPlane(), global));
             Assert.Equal(loop.SharesPlaneWith(second.GetPlane()), loop.SharesPlaneWith(second.GetPlane(), global));
 
-            Assert.Equal(
-                box.TryUnion(box, out GeoSolid3 a),
-                box.TryUnion(box, out GeoSolid3 b, global));
+            Assert.Equal(box.TryUnion(box, out GeoSolid3 a), box.TryUnion(box, out GeoSolid3 b, global));
             Assert.Equal(a.GetVolume(), b.GetVolume(), 3);
 
             Assert.Throws<ArgumentNullException>(() => Boolean3.Union((GeoPolygon3)null, first));

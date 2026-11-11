@@ -112,13 +112,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void CirclePolygon_CollidesWith_ComprehensiveCases()
         {
-            var poly = new GeoPolygon2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(20, 0),
-                new GeoPoint2(20, 20),
-                new GeoPoint2(0, 20)
-            });
+            var poly = new GeoPolygon2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(20, 0), new GeoPoint2(20, 20), new GeoPoint2(0, 20) }
+            );
 
             // Center inside polygon
             var cInside = new GeoCircle2(new GeoPoint2(10, 10), 3);
@@ -136,12 +132,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void CirclePolyline_CollidesWith_ComprehensiveCases()
         {
-            var pl = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10)
-            });
+            var pl = new GeoPolyline2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10) });
 
             // Circle crossing first segment
             var cCross = new GeoCircle2(new GeoPoint2(5, 0), 3);
@@ -206,23 +197,15 @@ namespace GeometryHelper.UnitTest.Plane
             var rect = new GeoRectangle2(new GeoPoint2(0, 0), 20, 10, 0);
 
             // Polygon overlapping rectangle
-            var pOverlap = new GeoPolygon2(new[]
-            {
-                new GeoPoint2(5, 0),
-                new GeoPoint2(15, 0),
-                new GeoPoint2(15, 10),
-                new GeoPoint2(5, 10)
-            });
+            var pOverlap = new GeoPolygon2(
+                new[] { new GeoPoint2(5, 0), new GeoPoint2(15, 0), new GeoPoint2(15, 10), new GeoPoint2(5, 10) }
+            );
             Assert.True(Collision2.CollidesWith(rect, pOverlap));
 
             // Disjoint polygon
-            var pDisjoint = new GeoPolygon2(new[]
-            {
-                new GeoPoint2(30, 30),
-                new GeoPoint2(40, 30),
-                new GeoPoint2(40, 40),
-                new GeoPoint2(30, 40)
-            });
+            var pDisjoint = new GeoPolygon2(
+                new[] { new GeoPoint2(30, 30), new GeoPoint2(40, 30), new GeoPoint2(40, 40), new GeoPoint2(30, 40) }
+            );
             Assert.False(Collision2.CollidesWith(rect, pDisjoint));
         }
 
@@ -232,22 +215,13 @@ namespace GeometryHelper.UnitTest.Plane
             var rect = new GeoRectangle2(new GeoPoint2(0, 0), 20, 10, 0);
 
             // Polyline cutting through rectangle
-            var plCross = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(-15, 0),
-                new GeoPoint2(0, 0),
-                new GeoPoint2(0, 15)
-            });
+            var plCross = new GeoPolyline2(new[] { new GeoPoint2(-15, 0), new GeoPoint2(0, 0), new GeoPoint2(0, 15) });
             Assert.True(Collision2.CollidesWith(plCross, rect));
             Assert.True(rect.CollidesWith(plCross));
             Assert.True(plCross.CollidesWith(rect));
 
             // Disjoint polyline
-            var plDisjoint = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(30, 30),
-                new GeoPoint2(40, 30)
-            });
+            var plDisjoint = new GeoPolyline2(new[] { new GeoPoint2(30, 30), new GeoPoint2(40, 30) });
             Assert.False(Collision2.CollidesWith(plDisjoint, rect));
             Assert.False(rect.CollidesWith(plDisjoint));
             Assert.False(plDisjoint.CollidesWith(rect));
@@ -260,77 +234,44 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void PolygonPolygon_CollidesWith_ComprehensiveCases()
         {
-            var p1 = new GeoPolygon2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10),
-                new GeoPoint2(0, 10)
-            });
+            var p1 = new GeoPolygon2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10) }
+            );
 
             // Overlapping
-            var pOverlap = new GeoPolygon2(new[]
-            {
-                new GeoPoint2(5, 5),
-                new GeoPoint2(15, 5),
-                new GeoPoint2(15, 15),
-                new GeoPoint2(5, 15)
-            });
+            var pOverlap = new GeoPolygon2(
+                new[] { new GeoPoint2(5, 5), new GeoPoint2(15, 5), new GeoPoint2(15, 15), new GeoPoint2(5, 15) }
+            );
             Assert.True(Collision2.CollidesWith(p1, pOverlap));
 
             // Touching along edge
-            var pTouch = new GeoPolygon2(new[]
-            {
-                new GeoPoint2(10, 0),
-                new GeoPoint2(20, 0),
-                new GeoPoint2(20, 10),
-                new GeoPoint2(10, 10)
-            });
+            var pTouch = new GeoPolygon2(
+                new[] { new GeoPoint2(10, 0), new GeoPoint2(20, 0), new GeoPoint2(20, 10), new GeoPoint2(10, 10) }
+            );
             Assert.True(Collision2.CollidesWith(p1, pTouch));
 
             // Disjoint
-            var pDisjoint = new GeoPolygon2(new[]
-            {
-                new GeoPoint2(20, 20),
-                new GeoPoint2(30, 20),
-                new GeoPoint2(30, 30),
-                new GeoPoint2(20, 30)
-            });
+            var pDisjoint = new GeoPolygon2(
+                new[] { new GeoPoint2(20, 20), new GeoPoint2(30, 20), new GeoPoint2(30, 30), new GeoPoint2(20, 30) }
+            );
             Assert.False(Collision2.CollidesWith(p1, pDisjoint));
         }
 
         [Fact]
         public void PolylinePolyline_CollidesWith_ComprehensiveCases()
         {
-            var pl1 = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10)
-            });
+            var pl1 = new GeoPolyline2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10) });
 
             // Crossing segment 1
-            var plCross = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(5, -5),
-                new GeoPoint2(5, 5)
-            });
+            var plCross = new GeoPolyline2(new[] { new GeoPoint2(5, -5), new GeoPoint2(5, 5) });
             Assert.True(Collision2.CollidesWith(pl1, plCross));
 
             // Touching endpoint
-            var plTouch = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(10, 10),
-                new GeoPoint2(20, 10)
-            });
+            var plTouch = new GeoPolyline2(new[] { new GeoPoint2(10, 10), new GeoPoint2(20, 10) });
             Assert.True(Collision2.CollidesWith(pl1, plTouch));
 
             // Disjoint
-            var plDisjoint = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(0, 20),
-                new GeoPoint2(10, 20)
-            });
+            var plDisjoint = new GeoPolyline2(new[] { new GeoPoint2(0, 20), new GeoPoint2(10, 20) });
             Assert.False(Collision2.CollidesWith(pl1, plDisjoint));
         }
 
@@ -340,8 +281,8 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void RectangleRectangle_ZeroExtent_DoesNotThrowAndStillSeparates()
         {
-            var flat = new GeoRectangle2(new GeoPoint2(0, 0), 10, 0);      // zero height
-            var thin = new GeoRectangle2(new GeoPoint2(0, 0), 0, 10);      // zero width
+            var flat = new GeoRectangle2(new GeoPoint2(0, 0), 10, 0); // zero height
+            var thin = new GeoRectangle2(new GeoPoint2(0, 0), 0, 10); // zero width
             var degenerate = new GeoRectangle2(new GeoPoint2(0, 0), 0, 0); // a single point
             var overlapping = new GeoRectangle2(new GeoPoint2(1, 0), 10, 10);
             var faraway = new GeoRectangle2(new GeoPoint2(500, 500), 10, 10);
@@ -363,8 +304,20 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void PolylinePolyline_NestedLoops_DoNotCollideButTheirPolygonsDo()
         {
-            var outer = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100), new GeoPoint2(0, 0));
-            var inner = new GeoPolyline2(new GeoPoint2(40, 40), new GeoPoint2(60, 40), new GeoPoint2(60, 60), new GeoPoint2(40, 60), new GeoPoint2(40, 40));
+            var outer = new GeoPolyline2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(0, 100),
+                new GeoPoint2(0, 0)
+            );
+            var inner = new GeoPolyline2(
+                new GeoPoint2(40, 40),
+                new GeoPoint2(60, 40),
+                new GeoPoint2(60, 60),
+                new GeoPoint2(40, 60),
+                new GeoPoint2(40, 40)
+            );
 
             // No edges cross, and a polyline encloses nothing, so the two curves never meet. Asking about
             // the enclosed area is what GeoPolygon2 is for, and there the containment does count.
@@ -391,8 +344,20 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void PolylinePolyline_DisjointLoops_DoNotCollide()
         {
-            var left = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10), new GeoPoint2(0, 0));
-            var right = new GeoPolyline2(new GeoPoint2(50, 0), new GeoPoint2(60, 0), new GeoPoint2(60, 10), new GeoPoint2(50, 10), new GeoPoint2(50, 0));
+            var left = new GeoPolyline2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10),
+                new GeoPoint2(0, 0)
+            );
+            var right = new GeoPolyline2(
+                new GeoPoint2(50, 0),
+                new GeoPoint2(60, 0),
+                new GeoPoint2(60, 10),
+                new GeoPoint2(50, 10),
+                new GeoPoint2(50, 0)
+            );
 
             Assert.False(Collision2.CollidesWith(left, right));
         }
@@ -410,7 +375,13 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void TracedLoop_EnclosesNothing_UntilItBecomesAPolygon()
         {
-            var loop = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100), new GeoPoint2(0, 0));
+            var loop = new GeoPolyline2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(0, 100),
+                new GeoPoint2(0, 0)
+            );
             var polygon = loop.ToPolygon();
 
             var box = new GeoRectangle2(new GeoPoint2(50, 50), 4, 4);

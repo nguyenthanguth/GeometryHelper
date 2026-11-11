@@ -77,29 +77,43 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // A grip edit drags the objects selected as the command of its mode does: MOVE, ROTATE, SCALE, MIRROR; STRETCH has none.
             string name = session.IsGripEditing
-                ? message.StartsWith("Specify move point", StringComparison.Ordinal) ? "MOVE"
-                : message.StartsWith("Specify rotation angle", StringComparison.Ordinal) ? "ROTATE"
-                : message.StartsWith("Specify scale factor", StringComparison.Ordinal) ? "SCALE"
-                : message.StartsWith("Specify second point", StringComparison.Ordinal) ? "MIRROR" : null
+                ? message.StartsWith("Specify move point", StringComparison.Ordinal)
+                    ? "MOVE"
+                    : message.StartsWith("Specify rotation angle", StringComparison.Ordinal)
+                        ? "ROTATE"
+                        : message.StartsWith("Specify scale factor", StringComparison.Ordinal)
+                            ? "SCALE"
+                            : message.StartsWith("Specify second point", StringComparison.Ordinal)
+                                ? "MIRROR"
+                                : null
                 : session.Current.Name;
 
             if (session.IsGripEditing && name != null)
             {
-                message = name == "MOVE" ? "Specify second point" : name == "MIRROR" ? "Specify second point of mirror line" : message;
+                message =
+                    name == "MOVE" ? "Specify second point"
+                    : name == "MIRROR" ? "Specify second point of mirror line"
+                    : message;
             }
 
             switch (name)
             {
                 case "MOVE":
                 case "COPY":
-                    if (prompt.Kind == CadPromptKind.Point && message.StartsWith("Specify second point", StringComparison.Ordinal))
+                    if (
+                        prompt.Kind == CadPromptKind.Point
+                        && message.StartsWith("Specify second point", StringComparison.Ordinal)
+                    )
                     {
                         return Affine2.Translation(way.X, way.Y);
                     }
 
                     break;
                 case "ROTATE":
-                    if (prompt.Kind == CadPromptKind.Angle && message.StartsWith("Specify rotation angle", StringComparison.Ordinal))
+                    if (
+                        prompt.Kind == CadPromptKind.Angle
+                        && message.StartsWith("Specify rotation angle", StringComparison.Ordinal)
+                    )
                     {
                         double angle = Math.Atan2(way.Y, way.X);
                         double cos = Math.Cos(angle);
@@ -109,14 +123,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     break;
                 case "SCALE":
-                    if (prompt.Kind == CadPromptKind.Distance && message.StartsWith("Specify scale factor", StringComparison.Ordinal) && way.Length > 0.0)
+                    if (
+                        prompt.Kind == CadPromptKind.Distance
+                        && message.StartsWith("Specify scale factor", StringComparison.Ordinal)
+                        && way.Length > 0.0
+                    )
                     {
                         return About(b, way.Length, 0.0, 0.0, way.Length);
                     }
 
                     break;
                 case "MIRROR":
-                    if (prompt.Kind == CadPromptKind.Point && message.StartsWith("Specify second point of mirror line", StringComparison.Ordinal) && way.Length > 0.0)
+                    if (
+                        prompt.Kind == CadPromptKind.Point
+                        && message.StartsWith("Specify second point of mirror line", StringComparison.Ordinal)
+                        && way.Length > 0.0
+                    )
                     {
                         double ux = way.X / way.Length;
                         double uy = way.Y / way.Length;
@@ -138,7 +160,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             DisplayList2 list = document.GetDisplay(space);
 
-            if (_built && ReferenceEquals(list, _list) && tolerance <= _tolerance * 2.0 && tolerance >= _tolerance / 2.0)
+            if (
+                _built
+                && ReferenceEquals(list, _list)
+                && tolerance <= _tolerance * 2.0
+                && tolerance >= _tolerance / 2.0
+            )
             {
                 return _paths;
             }
@@ -163,11 +190,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <see cref="Paths(CadDocument, CadSpace, double)"/> gives those of the objects the command took: kept while the
         /// objects, the display list and the zoom stay much as they were.
         /// </summary>
-        public IReadOnlyList<double[]> Paths(CadDocument document, CadSpace space, IReadOnlyList<string> handles, double tolerance)
+        public IReadOnlyList<double[]> Paths(
+            CadDocument document,
+            CadSpace space,
+            IReadOnlyList<string> handles,
+            double tolerance
+        )
         {
             DisplayList2 list = document.GetDisplay(space);
 
-            if (ReferenceEquals(handles, _movedHandles) && ReferenceEquals(list, _movedList) && tolerance <= _movedTolerance * 2.0 && tolerance >= _movedTolerance / 2.0)
+            if (
+                ReferenceEquals(handles, _movedHandles)
+                && ReferenceEquals(list, _movedList)
+                && tolerance <= _movedTolerance * 2.0
+                && tolerance >= _movedTolerance / 2.0
+            )
             {
                 return _movedPaths;
             }
@@ -185,7 +222,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public IReadOnlyList<double[]> MovedRays(Affine2 moved, DisplayBox view) => Clip(_movedRays, moved, view);
 
         /// <summary>The outlines of the items of some objects of a display list, added to the paths and the rays.</summary>
-        private static void Gather(DisplayList2 list, IReadOnlyList<string> handles, double tolerance, List<double[]> paths, List<DisplayRay2> rays)
+        private static void Gather(
+            DisplayList2 list,
+            IReadOnlyList<string> handles,
+            double tolerance,
+            List<double[]> paths,
+            List<DisplayRay2> rays
+        )
         {
             if (handles.Count == 0)
             {
@@ -222,7 +265,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             IReadOnlyList<DisplayItem2> items = drag.Items;
 
-            if (ReferenceEquals(items, _dragItems) && tolerance <= _dragTolerance * 2.0 && tolerance >= _dragTolerance / 2.0)
+            if (
+                ReferenceEquals(items, _dragItems)
+                && tolerance <= _dragTolerance * 2.0
+                && tolerance >= _dragTolerance / 2.0
+            )
             {
                 return _dragPaths;
             }
@@ -290,7 +337,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case DisplayText2 text:
                     DisplayBox box = text.Bounds;
-                    paths.Add(new[] { box.MinX, box.MinY, box.MaxX, box.MinY, box.MaxX, box.MaxY, box.MinX, box.MaxY, box.MinX, box.MinY });
+                    paths.Add(
+                        new[]
+                        {
+                            box.MinX,
+                            box.MinY,
+                            box.MaxX,
+                            box.MinY,
+                            box.MaxX,
+                            box.MaxY,
+                            box.MinX,
+                            box.MaxY,
+                            box.MinX,
+                            box.MinY,
+                        }
+                    );
                     break;
                 case DisplayRay2 ray:
                     rays.Add(ray);
@@ -314,7 +375,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     continue;
                 }
 
-                var placed = new DisplayRay2(moved.X(ray.X, ray.Y), moved.Y(ray.X, ray.Y), dx, dy, ray.IsBothWays, ray.Style, ray.Handle, ray.Layer);
+                var placed = new DisplayRay2(
+                    moved.X(ray.X, ray.Y),
+                    moved.Y(ray.X, ray.Y),
+                    dx,
+                    dy,
+                    ray.IsBothWays,
+                    ray.Style,
+                    ray.Handle,
+                    ray.Layer
+                );
 
                 if (placed.TryClip(view, out double x0, out double y0, out double x1, out double y1))
                 {
@@ -326,8 +396,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>A linear map about a point: x' = b + M (x - b), M given by its columns (a, b) and (c, d).</summary>
-        private static Affine2 About(GeoPoint2 p, double a, double b, double c, double d)
-            => new Affine2(a, b, c, d, p.X - (a * p.X + c * p.Y), p.Y - (b * p.X + d * p.Y));
+        private static Affine2 About(GeoPoint2 p, double a, double b, double c, double d) =>
+            new Affine2(a, b, c, d, p.X - (a * p.X + c * p.Y), p.Y - (b * p.X + d * p.Y));
 
         private void Take(IEnumerable<string> handles)
         {

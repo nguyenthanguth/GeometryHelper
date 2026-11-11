@@ -72,9 +72,18 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(0.0, Read("1e-400"));
 
             // The numbers .NET Framework's parser reads a step off.
-            Assert.Equal(BitConverter.DoubleToInt64Bits(4.8721540113315704), BitConverter.DoubleToInt64Bits(Read("4.8721540113315704")));
-            Assert.Equal(BitConverter.DoubleToInt64Bits(3.3824149791069402), BitConverter.DoubleToInt64Bits(Read("3.3824149791069402")));
-            Assert.Equal(BitConverter.DoubleToInt64Bits(-2.1661333540296802E-08), BitConverter.DoubleToInt64Bits(Read("-2.1661333540296802E-08")));
+            Assert.Equal(
+                BitConverter.DoubleToInt64Bits(4.8721540113315704),
+                BitConverter.DoubleToInt64Bits(Read("4.8721540113315704"))
+            );
+            Assert.Equal(
+                BitConverter.DoubleToInt64Bits(3.3824149791069402),
+                BitConverter.DoubleToInt64Bits(Read("3.3824149791069402"))
+            );
+            Assert.Equal(
+                BitConverter.DoubleToInt64Bits(-2.1661333540296802E-08),
+                BitConverter.DoubleToInt64Bits(Read("-2.1661333540296802E-08"))
+            );
         }
 
         [Fact]
@@ -87,7 +96,25 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(long.MinValue, BitConverter.DoubleToInt64Bits(Read("-0")));
             Assert.Equal(0.1, Read("0.1000000000000000055511151231257827021181583404541015625"));
 
-            foreach (string text in new[] { "NaN", "Infinity", "-Infinity", "1e400", "1,5", "0x10", ".e5", "1e", "1e+", "", "  ", "1.2.3", "12a", "--1" })
+            foreach (
+                string text in new[]
+                {
+                    "NaN",
+                    "Infinity",
+                    "-Infinity",
+                    "1e400",
+                    "1,5",
+                    "0x10",
+                    ".e5",
+                    "1e",
+                    "1e+",
+                    "",
+                    "  ",
+                    "1.2.3",
+                    "12a",
+                    "--1",
+                }
+            )
             {
                 Assert.False(Numbers.TryRead(text, out _), text);
             }
@@ -130,7 +157,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 Write(writer, shape);
             }
 
-            DxfDocument read = DxfReader.Parse(writer.ToString(), new DxfReadOptions { PlanAs2D = plan, Tolerance = Tol });
+            DxfDocument read = DxfReader.Parse(
+                writer.ToString(),
+                new DxfReadOptions { PlanAs2D = plan, Tolerance = Tol }
+            );
 
             Assert.Empty(read.Skipped);
             Assert.Equal(shapes.Count, read.Shapes.Count);
@@ -152,7 +182,16 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 for (int k = 0; k < expected.Length; k++)
                 {
-                    string said = shapes[i].GetType().Name + " " + i + ", number " + k + ": " + expected[k].ToString("R", CultureInfo.InvariantCulture) + " read as " + actual[k].ToString("R", CultureInfo.InvariantCulture);
+                    string said =
+                        shapes[i].GetType().Name
+                        + " "
+                        + i
+                        + ", number "
+                        + k
+                        + ": "
+                        + expected[k].ToString("R", CultureInfo.InvariantCulture)
+                        + " read as "
+                        + actual[k].ToString("R", CultureInfo.InvariantCulture);
 
                     if (rounded)
                     {
@@ -160,7 +199,11 @@ namespace GeometryHelper.UnitTest.Dxf
                     }
                     else
                     {
-                        Assert.True(BitConverter.DoubleToInt64Bits(expected[k] + 0.0) == BitConverter.DoubleToInt64Bits(actual[k]), said);
+                        Assert.True(
+                            BitConverter.DoubleToInt64Bits(expected[k] + 0.0)
+                                == BitConverter.DoubleToInt64Bits(actual[k]),
+                            said
+                        );
                     }
                 }
             }
@@ -170,28 +213,71 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             switch (shape)
             {
-                case GeoPoint2 s: writer.Add(s); break;
-                case GeoLine2 s: writer.Add(s); break;
-                case GeoPolyline2 s: writer.Add(s); break;
-                case GeoPolygon2 s: writer.Add(s); break;
-                case GeoPolylineArc2 s: writer.Add(s); break;
-                case GeoPolygonArc2 s: writer.Add(s); break;
-                case GeoCircle2 s: writer.Add(s); break;
-                case GeoRay2 s: writer.Add(s); break;
-                case GeoXLine2 s: writer.Add(s); break;
-                case GeoSpline2 s: writer.Add(s); break;
-                case GeoPoint3 s: writer.Add(s); break;
-                case GeoLine3 s: writer.Add(s); break;
-                case GeoPolyline3 s: writer.Add(s); break;
-                case GeoPolygon3 s: writer.Add(s); break;
-                case GeoPolylineArc3 s: writer.Add(s, Tol); break;
-                case GeoPolygonArc3 s: writer.Add(s); break;
-                case GeoCircle3 s: writer.Add(s); break;
-                case GeoRay3 s: writer.Add(s); break;
-                case GeoXLine3 s: writer.Add(s); break;
-                case GeoTriangle3 s: writer.Add(s); break;
-                case GeoSpline3 s: writer.Add(s); break;
-                default: throw new ArgumentException(shape.GetType().Name);
+                case GeoPoint2 s:
+                    writer.Add(s);
+                    break;
+                case GeoLine2 s:
+                    writer.Add(s);
+                    break;
+                case GeoPolyline2 s:
+                    writer.Add(s);
+                    break;
+                case GeoPolygon2 s:
+                    writer.Add(s);
+                    break;
+                case GeoPolylineArc2 s:
+                    writer.Add(s);
+                    break;
+                case GeoPolygonArc2 s:
+                    writer.Add(s);
+                    break;
+                case GeoCircle2 s:
+                    writer.Add(s);
+                    break;
+                case GeoRay2 s:
+                    writer.Add(s);
+                    break;
+                case GeoXLine2 s:
+                    writer.Add(s);
+                    break;
+                case GeoSpline2 s:
+                    writer.Add(s);
+                    break;
+                case GeoPoint3 s:
+                    writer.Add(s);
+                    break;
+                case GeoLine3 s:
+                    writer.Add(s);
+                    break;
+                case GeoPolyline3 s:
+                    writer.Add(s);
+                    break;
+                case GeoPolygon3 s:
+                    writer.Add(s);
+                    break;
+                case GeoPolylineArc3 s:
+                    writer.Add(s, Tol);
+                    break;
+                case GeoPolygonArc3 s:
+                    writer.Add(s);
+                    break;
+                case GeoCircle3 s:
+                    writer.Add(s);
+                    break;
+                case GeoRay3 s:
+                    writer.Add(s);
+                    break;
+                case GeoXLine3 s:
+                    writer.Add(s);
+                    break;
+                case GeoTriangle3 s:
+                    writer.Add(s);
+                    break;
+                case GeoSpline3 s:
+                    writer.Add(s);
+                    break;
+                default:
+                    throw new ArgumentException(shape.GetType().Name);
             }
         }
 
@@ -199,47 +285,132 @@ namespace GeometryHelper.UnitTest.Dxf
         private static double[] Of(object shape)
         {
             var n = new List<double>();
-            void P2(GeoPoint2 p) { n.Add(p.X); n.Add(p.Y); }
-            void P3(GeoPoint3 p) { n.Add(p.X); n.Add(p.Y); n.Add(p.Z); }
+            void P2(GeoPoint2 p)
+            {
+                n.Add(p.X);
+                n.Add(p.Y);
+            }
+            void P3(GeoPoint3 p)
+            {
+                n.Add(p.X);
+                n.Add(p.Y);
+                n.Add(p.Z);
+            }
 
             switch (shape)
             {
-                case GeoPoint2 s: P2(s); break;
-                case GeoLine2 s: P2(s.StartPoint); P2(s.EndPoint); break;
-                case GeoPolyline2 s: s.Vertices.ToList().ForEach(P2); break;
-                case GeoPolygon2 s: s.Vertices.ToList().ForEach(P2); break;
-                case GeoPolylineArc2 s: s.Vertices.ToList().ForEach(P2); n.AddRange(s.Bulges.Take(s.VertexCount - 1)); break;
-                case GeoPolygonArc2 s: s.Vertices.ToList().ForEach(P2); n.AddRange(s.Bulges); break;
-                case GeoCircle2 s: P2(s.Center); n.Add(s.Radius); break;
-                case GeoRay2 s: P2(s.Origin); n.Add(s.Direction.X); n.Add(s.Direction.Y); break;
-                case GeoXLine2 s: P2(s.Origin); n.Add(s.Direction.X); n.Add(s.Direction.Y); break;
-                case GeoSpline2 s: n.Add(s.Degree); s.ControlPoints.ToList().ForEach(P2); n.AddRange(s.Knots); n.AddRange(s.Weights); break;
-                case GeoPoint3 s: P3(s); break;
-                case GeoLine3 s: P3(s.StartPoint); P3(s.EndPoint); break;
-                case GeoPolyline3 s: s.Vertices.ToList().ForEach(P3); break;
-                case GeoPolygon3 s: s.Vertices.ToList().ForEach(P3); break;
-                case GeoPolylineArc3 s: s.Vertices.ToList().ForEach(P3); n.AddRange(s.Bulges.Take(s.VertexCount - 1)); break;
-                case GeoPolygonArc3 s: s.Vertices.ToList().ForEach(P3); n.AddRange(s.Bulges); break;
-                case GeoCircle3 s: P3(s.Center); n.Add(s.Radius); n.Add(s.Normal.X); n.Add(s.Normal.Y); n.Add(s.Normal.Z); break;
-                case GeoRay3 s: P3(s.Origin); n.Add(s.Direction.X); n.Add(s.Direction.Y); n.Add(s.Direction.Z); break;
-                case GeoXLine3 s: P3(s.Origin); n.Add(s.Direction.X); n.Add(s.Direction.Y); n.Add(s.Direction.Z); break;
-                case GeoTriangle3 s: P3(s.A); P3(s.B); P3(s.C); break;
-                case GeoSpline3 s: n.Add(s.Degree); s.ControlPoints.ToList().ForEach(P3); n.AddRange(s.Knots); n.AddRange(s.Weights); break;
-                default: throw new ArgumentException(shape.GetType().Name);
+                case GeoPoint2 s:
+                    P2(s);
+                    break;
+                case GeoLine2 s:
+                    P2(s.StartPoint);
+                    P2(s.EndPoint);
+                    break;
+                case GeoPolyline2 s:
+                    s.Vertices.ToList().ForEach(P2);
+                    break;
+                case GeoPolygon2 s:
+                    s.Vertices.ToList().ForEach(P2);
+                    break;
+                case GeoPolylineArc2 s:
+                    s.Vertices.ToList().ForEach(P2);
+                    n.AddRange(s.Bulges.Take(s.VertexCount - 1));
+                    break;
+                case GeoPolygonArc2 s:
+                    s.Vertices.ToList().ForEach(P2);
+                    n.AddRange(s.Bulges);
+                    break;
+                case GeoCircle2 s:
+                    P2(s.Center);
+                    n.Add(s.Radius);
+                    break;
+                case GeoRay2 s:
+                    P2(s.Origin);
+                    n.Add(s.Direction.X);
+                    n.Add(s.Direction.Y);
+                    break;
+                case GeoXLine2 s:
+                    P2(s.Origin);
+                    n.Add(s.Direction.X);
+                    n.Add(s.Direction.Y);
+                    break;
+                case GeoSpline2 s:
+                    n.Add(s.Degree);
+                    s.ControlPoints.ToList().ForEach(P2);
+                    n.AddRange(s.Knots);
+                    n.AddRange(s.Weights);
+                    break;
+                case GeoPoint3 s:
+                    P3(s);
+                    break;
+                case GeoLine3 s:
+                    P3(s.StartPoint);
+                    P3(s.EndPoint);
+                    break;
+                case GeoPolyline3 s:
+                    s.Vertices.ToList().ForEach(P3);
+                    break;
+                case GeoPolygon3 s:
+                    s.Vertices.ToList().ForEach(P3);
+                    break;
+                case GeoPolylineArc3 s:
+                    s.Vertices.ToList().ForEach(P3);
+                    n.AddRange(s.Bulges.Take(s.VertexCount - 1));
+                    break;
+                case GeoPolygonArc3 s:
+                    s.Vertices.ToList().ForEach(P3);
+                    n.AddRange(s.Bulges);
+                    break;
+                case GeoCircle3 s:
+                    P3(s.Center);
+                    n.Add(s.Radius);
+                    n.Add(s.Normal.X);
+                    n.Add(s.Normal.Y);
+                    n.Add(s.Normal.Z);
+                    break;
+                case GeoRay3 s:
+                    P3(s.Origin);
+                    n.Add(s.Direction.X);
+                    n.Add(s.Direction.Y);
+                    n.Add(s.Direction.Z);
+                    break;
+                case GeoXLine3 s:
+                    P3(s.Origin);
+                    n.Add(s.Direction.X);
+                    n.Add(s.Direction.Y);
+                    n.Add(s.Direction.Z);
+                    break;
+                case GeoTriangle3 s:
+                    P3(s.A);
+                    P3(s.B);
+                    P3(s.C);
+                    break;
+                case GeoSpline3 s:
+                    n.Add(s.Degree);
+                    s.ControlPoints.ToList().ForEach(P3);
+                    n.AddRange(s.Knots);
+                    n.AddRange(s.Weights);
+                    break;
+                default:
+                    throw new ArgumentException(shape.GetType().Name);
             }
 
             return n.ToArray();
         }
 
-        private static double Coordinate(Random random) => (random.NextDouble() - 0.5) * Math.Pow(10, random.Next(1, 6));
+        private static double Coordinate(Random random) =>
+            (random.NextDouble() - 0.5) * Math.Pow(10, random.Next(1, 6));
 
         private static GeoPoint2 Point2(Random random) => new GeoPoint2(Coordinate(random), Coordinate(random));
 
-        private static GeoPoint3 Point3(Random random) => new GeoPoint3(Coordinate(random), Coordinate(random), Coordinate(random));
+        private static GeoPoint3 Point3(Random random) =>
+            new GeoPoint3(Coordinate(random), Coordinate(random), Coordinate(random));
 
-        private static double Bulge(Random random) => random.Next(3) == 0 ? 0.0 : (random.Next(2) == 0 ? -1 : 1) * (0.05 + random.NextDouble() * 1.5);
+        private static double Bulge(Random random) =>
+            random.Next(3) == 0 ? 0.0 : (random.Next(2) == 0 ? -1 : 1) * (0.05 + random.NextDouble() * 1.5);
 
-        private static List<GeoPoint2> Points2(Random random, int count) => Enumerable.Range(0, count).Select(_ => Point2(random)).ToList();
+        private static List<GeoPoint2> Points2(Random random, int count) =>
+            Enumerable.Range(0, count).Select(_ => Point2(random)).ToList();
 
         private static IEnumerable<object> Flat(Random random)
         {
@@ -272,9 +443,18 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // A polygon in a plane at random, its corners on the plane to rounding.
             GeoPoint3 origin = Point3(random);
-            GeoVector3 u = new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5).Normalize();
+            GeoVector3 u = new GeoVector3(
+                random.NextDouble() - 0.5,
+                random.NextDouble() - 0.5,
+                random.NextDouble() - 0.5
+            ).Normalize();
             GeoVector3 v = u.GetPerpendicularVector();
-            yield return new GeoPolygon3(Enumerable.Range(0, 3 + random.Next(5)).Select(k => origin.Add(u.Multiply(Coordinate(random))).Add(v.Multiply(Coordinate(random)))), Tol);
+            yield return new GeoPolygon3(
+                Enumerable
+                    .Range(0, 3 + random.Next(5))
+                    .Select(k => origin.Add(u.Multiply(Coordinate(random))).Add(v.Multiply(Coordinate(random)))),
+                Tol
+            );
 
             // A chain and a loop with arcs at a height, about up, written as lightweight polylines at an elevation.
             double height = Coordinate(random);
@@ -283,16 +463,32 @@ namespace GeometryHelper.UnitTest.Dxf
             int open = 3 + random.Next(4);
             var openBulges = Enumerable.Range(0, open).Select(_ => Bulge(random)).ToList();
             openBulges[0] = 0.5;
-            yield return new GeoPolylineArc3(Points2(random, open).Select(At), openBulges, openBulges.Select(_ => up), Tol);
+            yield return new GeoPolylineArc3(
+                Points2(random, open).Select(At),
+                openBulges,
+                openBulges.Select(_ => up),
+                Tol
+            );
 
             int closed = 3 + random.Next(4);
             var closedBulges = Enumerable.Range(0, closed).Select(_ => Bulge(random)).ToList();
             closedBulges[0] = 0.75;
-            yield return new GeoPolygonArc3(Points2(random, closed).Select(At), closedBulges, closedBulges.Select(_ => up), Tol);
+            yield return new GeoPolygonArc3(
+                Points2(random, closed).Select(At),
+                closedBulges,
+                closedBulges.Select(_ => up),
+                Tol
+            );
 
             yield return new GeoCircle3(Point3(random), up, 0.01 + random.NextDouble() * 1000);
-            yield return new GeoRay3(Point3(random), new GeoVector3(Coordinate(random), Coordinate(random), Coordinate(random)));
-            yield return new GeoXLine3(Point3(random), new GeoVector3(Coordinate(random), Coordinate(random), Coordinate(random)));
+            yield return new GeoRay3(
+                Point3(random),
+                new GeoVector3(Coordinate(random), Coordinate(random), Coordinate(random))
+            );
+            yield return new GeoXLine3(
+                Point3(random),
+                new GeoVector3(Coordinate(random), Coordinate(random), Coordinate(random))
+            );
             yield return new GeoTriangle3(Point3(random), Point3(random), Point3(random));
             yield return Spline3(random);
         }
@@ -305,8 +501,8 @@ namespace GeometryHelper.UnitTest.Dxf
             return knots;
         }
 
-        private static List<double> Weights(Random random, int count)
-            => random.Next(2) == 0 ? null : Enumerable.Range(0, count).Select(_ => 0.3 + random.NextDouble() * 3).ToList();
+        private static List<double> Weights(Random random, int count) =>
+            random.Next(2) == 0 ? null : Enumerable.Range(0, count).Select(_ => 0.3 + random.NextDouble() * 3).ToList();
 
         private static GeoSpline2 Spline2(Random random)
         {
@@ -319,7 +515,12 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             int degree = 1 + random.Next(4);
             int count = degree + 1 + random.Next(5);
-            return new GeoSpline3(degree, Enumerable.Range(0, count).Select(_ => Point3(random)), Knots(random, degree, count), Weights(random, count));
+            return new GeoSpline3(
+                degree,
+                Enumerable.Range(0, count).Select(_ => Point3(random)),
+                Knots(random, degree, count),
+                Weights(random, count)
+            );
         }
     }
 }

@@ -21,8 +21,8 @@ namespace GeometryHelper.UnitTest.Solid
         /// A bar in the plane z = 0: along the x axis from the origin to (400, 0, 0), then up to (400, 200, 0),
         /// with a fifty radius at the one corner.
         /// </summary>
-        private static GeoPolylineArc3 Bar() => new GeoPolyline3(
-            new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0)).Fillet(50.0);
+        private static GeoPolylineArc3 Bar() =>
+            new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0)).Fillet(50.0);
 
         /// <summary>
         /// A slab of concrete reaching out to x = 300, with the start of the bar well inside it, so the bar
@@ -118,7 +118,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Contains(true, bar.GetEdges().Select(edge => edge.IsArc));
 
             GeoPolyline3 setOut = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(400, 200, 0)
+            );
 
             Assert.True(bar.Length < setOut.Length);
 
@@ -147,9 +150,14 @@ namespace GeometryHelper.UnitTest.Solid
         public void AClosedLoopAnswersTheSameWay()
         {
             // A stirrup: a square loop in z = 0 with its corners rounded.
-            GeoPolygonArc3 stirrup = new GeoPolygonArc3(new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(200, 0, 0),
-                new GeoPoint3(200, 200, 0), new GeoPoint3(0, 200, 0))).Fillet(30.0);
+            GeoPolygonArc3 stirrup = new GeoPolygonArc3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(200, 0, 0),
+                    new GeoPoint3(200, 200, 0),
+                    new GeoPoint3(0, 200, 0)
+                )
+            ).Fillet(30.0);
 
             var across = new GeoPlane3(new GeoPoint3(100, 0, 0), new GeoVector3(1, 0, 0));
 

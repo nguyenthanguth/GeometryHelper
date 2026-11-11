@@ -16,13 +16,28 @@ namespace GeometryHelper.UnitTest.Dxf
     public class DxfOle2FramePngTests
     {
         /// <summary>A PNG of the samples given, row by row as PNG lays them (filter 0 or the one given each row), interlaced where asked.</summary>
-        private static byte[] Png(int width, int height, int colour, int depth, Func<int, int, int[]> samples, byte[] palette = null, byte[] transparency = null, bool interlaced = false, int perMetre = 0)
+        private static byte[] Png(
+            int width,
+            int height,
+            int colour,
+            int depth,
+            Func<int, int, int[]> samples,
+            byte[] palette = null,
+            byte[] transparency = null,
+            bool interlaced = false,
+            int perMetre = 0
+        )
         {
             var raw = new MemoryStream();
 
             void Image(int[] xs, int[] ys)
             {
-                int channels = colour == 0 ? 1 : colour == 2 ? 3 : colour == 3 ? 1 : colour == 4 ? 2 : 4;
+                int channels =
+                    colour == 0 ? 1
+                    : colour == 2 ? 3
+                    : colour == 3 ? 1
+                    : colour == 4 ? 2
+                    : 4;
                 int filter = 0;
 
                 foreach (int y in ys)
@@ -86,7 +101,10 @@ namespace GeometryHelper.UnitTest.Dxf
             }
             else
             {
-                int[] x0 = { 0, 4, 0, 2, 0, 1, 0 }, y0 = { 0, 0, 4, 0, 2, 0, 1 }, dx = { 8, 8, 4, 4, 2, 2, 1 }, dy = { 8, 8, 8, 4, 4, 2, 2 };
+                int[] x0 =  { 0, 4, 0, 2, 0, 1, 0 },
+                    y0 =  { 0, 0, 4, 0, 2, 0, 1 },
+                    dx =  { 8, 8, 4, 4, 2, 2, 1 },
+                    dy =  { 8, 8, 8, 4, 4, 2, 2 };
                 for (int p = 0; p < 7; p++)
                 {
                     int[] xs = Enumerable.Range(0, width).Where(x => x >= x0[p] && (x - x0[p]) % dx[p] == 0).ToArray();
@@ -100,7 +118,14 @@ namespace GeometryHelper.UnitTest.Dxf
 
             var png = new MemoryStream();
             png.Write(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }, 0, 8);
-            Chunk(png, "IHDR", Be(width).Concat(Be(height)).Concat(new[] { (byte)depth, (byte)colour, (byte)0, (byte)0, (byte)(interlaced ? 1 : 0) }).ToArray());
+            Chunk(
+                png,
+                "IHDR",
+                Be(width)
+                    .Concat(Be(height))
+                    .Concat(new[] { (byte)depth, (byte)colour, (byte)0, (byte)0, (byte)(interlaced ? 1 : 0) })
+                    .ToArray()
+            );
 
             if (perMetre > 0)
             {
@@ -158,7 +183,8 @@ namespace GeometryHelper.UnitTest.Dxf
                 deflate.Write(raw, 0, raw.Length);
             }
 
-            uint a = 1, b = 0;
+            uint a = 1,
+                b = 0;
             foreach (byte x in raw)
             {
                 a = (a + x) % 65521;
@@ -190,7 +216,14 @@ namespace GeometryHelper.UnitTest.Dxf
         public void APngOfTrueColourAndAlpha_IsLaidOverWhite_ItsSizeFromItsPhys()
         {
             // 3 by 2: red opaque, green half, blue clear; a grey row below. 7 874 pixels a metre is 200 dots an inch.
-            int[] Rgba(int x, int y) => y == 0 ? (x == 0 ? new[] { 255, 0, 0, 255 } : x == 1 ? new[] { 0, 255, 0, 128 } : new[] { 0, 0, 255, 0 }) : new[] { 100, 100, 100, 255 };
+            int[] Rgba(int x, int y) =>
+                y == 0
+                    ? (
+                        x == 0 ? new[] { 255, 0, 0, 255 }
+                        : x == 1 ? new[] { 0, 255, 0, 128 }
+                        : new[] { 0, 0, 255, 0 }
+                    )
+                    : new[] { 100, 100, 100, 255 };
             byte[] png = Png(3, 2, 6, 8, Rgba, perMetre: 7874);
             var frame = new DxfOle2Frame(png);
             byte[] bmp = frame.GetPictureData(out _);
@@ -212,9 +245,22 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (bool interlaced in new[] { false, true })
             {
                 byte[] grey8 = PictureOf(Png(10, 9, 0, 8, (x, y) => new[] { Grey(x, y) }, interlaced: interlaced));
-                byte[] grey16 = PictureOf(Png(10, 9, 0, 16, (x, y) => new[] { Grey(x, y) * 257 }, interlaced: interlaced));
-                byte[] rgb16 = PictureOf(Png(10, 9, 2, 16, (x, y) => new[] { Grey(x, y) * 257, Grey(x, y) * 257, Grey(x, y) * 257 }, interlaced: interlaced));
-                byte[] greyAlpha = PictureOf(Png(10, 9, 4, 8, (x, y) => new[] { Grey(x, y), 255 }, interlaced: interlaced));
+                byte[] grey16 = PictureOf(
+                    Png(10, 9, 0, 16, (x, y) => new[] { Grey(x, y) * 257 }, interlaced: interlaced)
+                );
+                byte[] rgb16 = PictureOf(
+                    Png(
+                        10,
+                        9,
+                        2,
+                        16,
+                        (x, y) => new[] { Grey(x, y) * 257, Grey(x, y) * 257, Grey(x, y) * 257 },
+                        interlaced: interlaced
+                    )
+                );
+                byte[] greyAlpha = PictureOf(
+                    Png(10, 9, 4, 8, (x, y) => new[] { Grey(x, y), 255 }, interlaced: interlaced)
+                );
                 Assert.Equal(grey8, grey16);
                 Assert.Equal(grey8, rgb16);
                 Assert.Equal(grey8, greyAlpha);
@@ -229,13 +275,25 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 // A palette of four colours, the last clear by its tRNS.
                 byte[] palette = { 255, 0, 0, 0, 255, 0, 0, 0, 255, 9, 9, 9 };
-                byte[] indexed = PictureOf(Png(10, 9, 3, 4, (x, y) => new[] { x % 4 }, palette, new byte[] { 255, 255, 255, 0 }, interlaced));
+                byte[] indexed = PictureOf(
+                    Png(10, 9, 3, 4, (x, y) => new[] { x % 4 }, palette, new byte[] { 255, 255, 255, 0 }, interlaced)
+                );
                 Assert.Equal(new[] { 0, 0, 255 }, Bgr(indexed, 0, 2));
                 Assert.Equal(new[] { 255, 0, 0 }, Bgr(indexed, 2, 2));
                 Assert.Equal(new[] { 255, 255, 255 }, Bgr(indexed, 3, 2));
 
                 // True colour keyed clear by its tRNS.
-                byte[] keyed = PictureOf(Png(10, 9, 2, 8, (x, y) => x == 0 ? new[] { 10, 20, 30 } : new[] { 1, 2, 3 }, transparency: new byte[] { 0, 10, 0, 20, 0, 30 }, interlaced: interlaced));
+                byte[] keyed = PictureOf(
+                    Png(
+                        10,
+                        9,
+                        2,
+                        8,
+                        (x, y) => x == 0 ? new[] { 10, 20, 30 } : new[] { 1, 2, 3 },
+                        transparency: new byte[] { 0, 10, 0, 20, 0, 30 },
+                        interlaced: interlaced
+                    )
+                );
                 Assert.Equal(new[] { 255, 255, 255 }, Bgr(keyed, 0, 4));
                 Assert.Equal(new[] { 3, 2, 1 }, Bgr(keyed, 1, 4));
             }
@@ -251,11 +309,19 @@ namespace GeometryHelper.UnitTest.Dxf
 
             byte[] badDepth = (byte[])png.Clone();
             badDepth[24] = 3;
-            Assert.Contains("colour type", Assert.Throws<ArgumentException>(() => new DxfOle2Frame(badDepth)).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "colour type",
+                Assert.Throws<ArgumentException>(() => new DxfOle2Frame(badDepth)).Message,
+                StringComparison.Ordinal
+            );
 
             byte[] noPalette = Png(4, 4, 3, 8, (x, y) => new[] { 0 }, new byte[] { 1, 2, 3 });
             noPalette = noPalette.Take(33).Concat(noPalette.Skip(33 + 12 + 3)).ToArray();
-            Assert.Contains("palette", Assert.Throws<ArgumentException>(() => new DxfOle2Frame(noPalette)).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "palette",
+                Assert.Throws<ArgumentException>(() => new DxfOle2Frame(noPalette)).Message,
+                StringComparison.Ordinal
+            );
 
             byte[] jpeg = { 0xFF, 0xD8, 0xFF, 0xE0, 0, 16, (byte)'J', (byte)'F', (byte)'I', (byte)'F' };
             Assert.Throws<ArgumentException>(() => new DxfOle2Frame(jpeg.Concat(new byte[60]).ToArray()));

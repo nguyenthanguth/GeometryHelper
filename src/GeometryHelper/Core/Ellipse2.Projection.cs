@@ -21,7 +21,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to a point, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPoint2 point) => GetShortestLineTo(ellipse, point, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPoint2 point) =>
+            GetShortestLineTo(ellipse, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to a point.
@@ -36,7 +37,8 @@ namespace GeometryHelper.Core
         /// distance; on the rim it has no length. From the ellipse 300 by 100 centred on the origin, the point (400, 0)
         /// gets the segment from (300, 0), 100 long, and the centre gets the one from (0, 100).
         /// </returns>
-        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(GetClosestPointOnBoundary(ellipse, point), point);
+        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPoint2 point, Tolerance tolerance) =>
+            new GeoLine2(GetClosestPointOnBoundary(ellipse, point), point);
 
         #endregion
 
@@ -45,7 +47,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to a segment, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoLine2 line) => GetShortestLineTo(ellipse, line, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoLine2 line) =>
+            GetShortestLineTo(ellipse, line, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to a segment, within a tolerance.
@@ -62,7 +65,11 @@ namespace GeometryHelper.Core
         {
             if (Stub2.ReadsAsStart(line, tolerance))
             {
-                return Stub2.Nearest(line, GetShortestLineTo(ellipse, line, Stub2.AsItIs(line, tolerance)), GetShortestLineTo(ellipse, line.StartPoint, tolerance));
+                return Stub2.Nearest(
+                    line,
+                    GetShortestLineTo(ellipse, line, Stub2.AsItIs(line, tolerance)),
+                    GetShortestLineTo(ellipse, line.StartPoint, tolerance)
+                );
             }
 
             GeoPoint2[] crossings = GetIntersections(ellipse, line, tolerance);
@@ -80,7 +87,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining the rim of an ellipse to a polyline, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPolyline2 polyline) => GetShortestLineTo(ellipse, polyline, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPolyline2 polyline) =>
+            GetShortestLineTo(ellipse, polyline, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to a polyline, within a tolerance.
@@ -92,7 +100,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return ShortestToEdges(ellipse, polyline.GetEdges(), tolerance);
         }
@@ -101,7 +110,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining the rim of an ellipse to the boundary of a polygon, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPolygon2 polygon) => GetShortestLineTo(ellipse, polygon, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPolygon2 polygon) =>
+            GetShortestLineTo(ellipse, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to the boundary of a polygon, within a tolerance.
@@ -113,7 +123,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPolygon2 polygon, Tolerance tolerance)
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             return ShortestToEdges(ellipse, polygon.GetEdges(), tolerance);
         }
@@ -121,7 +132,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to the boundary of a rectangle, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoRectangle2 rect) => GetShortestLineTo(ellipse, rect, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoRectangle2 rect) =>
+            GetShortestLineTo(ellipse, rect, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to the boundary of a rectangle, within a tolerance.
@@ -138,7 +150,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to a triangle, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoTriangle2 triangle) => GetShortestLineTo(ellipse, triangle, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoTriangle2 triangle) =>
+            GetShortestLineTo(ellipse, triangle, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to a triangle, within a tolerance.
@@ -158,7 +171,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining the rim of an ellipse to the boundary of a face, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoFace2 face) => GetShortestLineTo(ellipse, face, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoFace2 face) =>
+            GetShortestLineTo(ellipse, face, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to the boundary of a face, within a tolerance.
@@ -170,7 +184,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoFace2 face, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             GeoLine2 best = GetShortestLineTo(ellipse, face.Boundary, tolerance);
 
@@ -190,7 +205,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to an edge, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoEdge2 edge) => GetShortestLineTo(ellipse, edge, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoEdge2 edge) =>
+            GetShortestLineTo(ellipse, edge, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to an edge, within a tolerance: as a segment or as an arc,
@@ -210,7 +226,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to a circle, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoCircle2 circle) => GetShortestLineTo(ellipse, circle, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoCircle2 circle) =>
+            GetShortestLineTo(ellipse, circle, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to the circumference of a circle, within a tolerance.
@@ -239,7 +256,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to an arc, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoArc2 arc) => GetShortestLineTo(ellipse, arc, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoArc2 arc) =>
+            GetShortestLineTo(ellipse, arc, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to an arc, within a tolerance.
@@ -264,7 +282,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining the rims of two ellipses, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoEllipse2 other) => GetShortestLineTo(ellipse, other, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoEllipse2 other) =>
+            GetShortestLineTo(ellipse, other, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining the rims of two ellipses, within a tolerance.
@@ -300,7 +319,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining the rim of an ellipse to a curved chain, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPolylineArc2 chain) => GetShortestLineTo(ellipse, chain, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPolylineArc2 chain) =>
+            GetShortestLineTo(ellipse, chain, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to a curved chain, within a tolerance.
@@ -312,7 +332,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPolylineArc2 chain, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return ShortestToEdges(ellipse, chain.GetEdges(), tolerance);
         }
@@ -321,7 +342,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining the rim of an ellipse to a curved loop, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPolygonArc2 loop) => GetShortestLineTo(ellipse, loop, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPolygonArc2 loop) =>
+            GetShortestLineTo(ellipse, loop, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining the rim of an ellipse to a curved loop, within a tolerance.
@@ -333,7 +355,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoPolygonArc2 loop, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return ShortestToEdges(ellipse, loop.GetEdges(), tolerance);
         }
@@ -346,7 +369,8 @@ namespace GeometryHelper.Core
         /// Gets the edge of a polygon nearest an ellipse, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static GeoLine2 GetClosestEdge(GeoEllipse2 ellipse, GeoPolygon2 polygon) => GetClosestEdge(ellipse, polygon, Tolerance.Global);
+        public static GeoLine2 GetClosestEdge(GeoEllipse2 ellipse, GeoPolygon2 polygon) =>
+            GetClosestEdge(ellipse, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the edge of a polygon nearest an ellipse, within a tolerance.
@@ -358,7 +382,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static GeoLine2 GetClosestEdge(GeoEllipse2 ellipse, GeoPolygon2 polygon, Tolerance tolerance)
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             return ClosestEdge2.Among(polygon.GetEdges(), edge => DistanceTo(ellipse, edge, tolerance));
         }
@@ -367,7 +392,8 @@ namespace GeometryHelper.Core
         /// Gets the edge of a polyline nearest an ellipse, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public static GeoLine2 GetClosestEdge(GeoEllipse2 ellipse, GeoPolyline2 polyline) => GetClosestEdge(ellipse, polyline, Tolerance.Global);
+        public static GeoLine2 GetClosestEdge(GeoEllipse2 ellipse, GeoPolyline2 polyline) =>
+            GetClosestEdge(ellipse, polyline, Tolerance.Global);
 
         /// <summary>
         /// Gets the edge of a polyline nearest an ellipse, within a tolerance.
@@ -379,7 +405,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static GeoLine2 GetClosestEdge(GeoEllipse2 ellipse, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return ClosestEdge2.Among(polyline.GetEdges(), edge => DistanceTo(ellipse, edge, tolerance));
         }
@@ -387,7 +414,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the side of a rectangle nearest an ellipse, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetClosestEdge(GeoEllipse2 ellipse, GeoRectangle2 rect) => GetClosestEdge(ellipse, rect, Tolerance.Global);
+        public static GeoLine2 GetClosestEdge(GeoEllipse2 ellipse, GeoRectangle2 rect) =>
+            GetClosestEdge(ellipse, rect, Tolerance.Global);
 
         /// <summary>
         /// Gets the side of a rectangle nearest an ellipse, within a tolerance.
@@ -404,7 +432,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the edge of a triangle nearest an ellipse, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetClosestEdge(GeoEllipse2 ellipse, GeoTriangle2 triangle) => GetClosestEdge(ellipse, triangle, Tolerance.Global);
+        public static GeoLine2 GetClosestEdge(GeoEllipse2 ellipse, GeoTriangle2 triangle) =>
+            GetClosestEdge(ellipse, triangle, Tolerance.Global);
 
         /// <summary>
         /// Gets the edge of a triangle nearest an ellipse, within a tolerance.
@@ -442,7 +471,8 @@ namespace GeometryHelper.Core
         /// Gets the edge of a curved loop nearest an ellipse, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoEdge2 GetClosestEdge(GeoEllipse2 ellipse, GeoPolygonArc2 loop) => GetClosestEdge(ellipse, loop, Tolerance.Global);
+        public static GeoEdge2 GetClosestEdge(GeoEllipse2 ellipse, GeoPolygonArc2 loop) =>
+            GetClosestEdge(ellipse, loop, Tolerance.Global);
 
         /// <summary>
         /// Gets the edge of a curved loop nearest an ellipse, within a tolerance.
@@ -454,7 +484,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static GeoEdge2 GetClosestEdge(GeoEllipse2 ellipse, GeoPolygonArc2 loop, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return ClosestEdge2.Among(loop.GetEdges(), edge => DistanceTo(ellipse, edge, tolerance));
         }
@@ -463,7 +494,8 @@ namespace GeometryHelper.Core
         /// Gets the edge of a curved chain nearest an ellipse, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoEdge2 GetClosestEdge(GeoEllipse2 ellipse, GeoPolylineArc2 chain) => GetClosestEdge(ellipse, chain, Tolerance.Global);
+        public static GeoEdge2 GetClosestEdge(GeoEllipse2 ellipse, GeoPolylineArc2 chain) =>
+            GetClosestEdge(ellipse, chain, Tolerance.Global);
 
         /// <summary>
         /// Gets the edge of a curved chain nearest an ellipse, within a tolerance.
@@ -475,7 +507,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoEdge2 GetClosestEdge(GeoEllipse2 ellipse, GeoPolylineArc2 chain, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return ClosestEdge2.Among(chain.GetEdges(), edge => DistanceTo(ellipse, edge, tolerance));
         }

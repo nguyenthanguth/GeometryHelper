@@ -17,7 +17,14 @@ namespace GeometryHelper.Packing.Algorithms
         /// <param name="width">The width of the block.</param>
         /// <param name="height">The height of the block.</param>
         /// <param name="kept">Whether the boxes stand as they were given, so that they may overlap one another.</param>
-        internal Cluster(int group, IReadOnlyList<int> members, IReadOnlyList<(double X, double Y)> offsets, double width, double height, bool kept)
+        internal Cluster(
+            int group,
+            IReadOnlyList<int> members,
+            IReadOnlyList<(double X, double Y)> offsets,
+            double width,
+            double height,
+            bool kept
+        )
         {
             Group = group;
             Members = members;

@@ -18,7 +18,33 @@ namespace GeometryHelper.Dxf
         private static readonly IReadOnlyList<DxfTypedValue> NoGroups = Array.AsReadOnly(new DxfTypedValue[0]);
 
         // The lineweights AutoCAD has, in hundredths of a millimetre.
-        private static readonly int[] Lineweights = { 0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53, 60, 70, 80, 90, 100, 106, 120, 140, 158, 200, 211 };
+        private static readonly int[] Lineweights =
+        {
+            0,
+            5,
+            9,
+            13,
+            15,
+            18,
+            20,
+            25,
+            30,
+            35,
+            40,
+            50,
+            53,
+            60,
+            70,
+            80,
+            90,
+            100,
+            106,
+            120,
+            140,
+            158,
+            200,
+            211,
+        };
 
         /// <summary>Whether a lineweight is one of AutoCAD's.</summary>
         internal static bool IsLineweight(int weight) => Array.IndexOf(Lineweights, weight) >= 0;
@@ -41,7 +67,15 @@ namespace GeometryHelper.Dxf
         /// The entity has no <see cref="Type"/> and no <see cref="Handle"/>, the file not having named them, and no
         /// <see cref="Groups"/>. A plate on the layer steel in red is <c>new DxfShape(plate, "steel", color: 1)</c>.
         /// </remarks>
-        public DxfShape(object shape, string layer = null, int? color = null, int? trueColor = null, string linetype = null, int? lineWeight = null, double thickness = 0.0)
+        public DxfShape(
+            object shape,
+            string layer = null,
+            int? color = null,
+            int? trueColor = null,
+            string linetype = null,
+            int? lineWeight = null,
+            double thickness = 0.0
+        )
         {
             if (shape == null)
             {
@@ -50,17 +84,31 @@ namespace GeometryHelper.Dxf
 
             if (color.HasValue && (color.Value < 1 || color.Value > 255))
             {
-                throw new ArgumentOutOfRangeException(nameof(color), color, "An AutoCAD colour index runs from 1 to 255.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(color),
+                    color,
+                    "An AutoCAD colour index runs from 1 to 255."
+                );
             }
 
             if (trueColor.HasValue && (trueColor.Value < 0 || trueColor.Value > 0xFFFFFF))
             {
-                throw new ArgumentOutOfRangeException(nameof(trueColor), trueColor, "A true colour is red, green and blue, 0 to 0xFFFFFF.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(trueColor),
+                    trueColor,
+                    "A true colour is red, green and blue, 0 to 0xFFFFFF."
+                );
             }
 
             if (lineWeight.HasValue && !IsLineweight(lineWeight.Value))
             {
-                throw new ArgumentOutOfRangeException(nameof(lineWeight), lineWeight, "A lineweight is one of AutoCAD's, in hundredths of a millimetre: " + string.Join(", ", Lineweights) + ".");
+                throw new ArgumentOutOfRangeException(
+                    nameof(lineWeight),
+                    lineWeight,
+                    "A lineweight is one of AutoCAD's, in hundredths of a millimetre: "
+                        + string.Join(", ", Lineweights)
+                        + "."
+                );
             }
 
             Guard.Finite(thickness, nameof(thickness), "A thickness has to be a finite number.");
@@ -77,7 +125,21 @@ namespace GeometryHelper.Dxf
             InsertHandles = NoBlocks;
         }
 
-        internal DxfShape(object shape, string type, string layer, int? colour, string handle, string linetype, int? lineweight, int? trueColour, double thickness, IReadOnlyList<DxfTypedValue> groups, int hiddenEdges = 0, IReadOnlyList<string> blockPath = null, IReadOnlyList<string> insertHandles = null)
+        internal DxfShape(
+            object shape,
+            string type,
+            string layer,
+            int? colour,
+            string handle,
+            string linetype,
+            int? lineweight,
+            int? trueColour,
+            double thickness,
+            IReadOnlyList<DxfTypedValue> groups,
+            int hiddenEdges = 0,
+            IReadOnlyList<string> blockPath = null,
+            IReadOnlyList<string> insertHandles = null
+        )
         {
             Shape = shape;
             Type = type;

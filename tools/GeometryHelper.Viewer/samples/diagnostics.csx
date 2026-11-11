@@ -13,20 +13,54 @@
 // The shapes that hold a fault the library would put right as it builds them (a vertex 0.0004 from another, a face off flat) are written into the
 // scene as the numbers they are, since a scene holds what it is given.
 
-Scene.Layer("bodies", "#1F77B4").Layer("loops", "#2CA02C").Layer("gap", "#8C564B").Layer("pieces", "#7F7F7F");
+Scene
+    .Layer("bodies", "#1F77B4")
+    .Layer("loops", "#2CA02C")
+    .Layer("gap", "#8C564B")
+    .Layer("pieces", "#7F7F7F");
 
 string R(double v) => v.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
-string Pts2(params double[] xy) => "[" + string.Join(",", Enumerable.Range(0, xy.Length / 2).Select(i => "[" + R(xy[2 * i]) + "," + R(xy[2 * i + 1]) + "]")) + "]";
-string Pts3(params double[] xyz) => "[" + string.Join(",", Enumerable.Range(0, xyz.Length / 3).Select(i => "[" + R(xyz[3 * i]) + "," + R(xyz[3 * i + 1]) + "," + R(xyz[3 * i + 2]) + "]")) + "]";
+
+string Pts2(params double[] xy) =>
+    "["
+    + string.Join(
+        ",",
+        Enumerable.Range(0, xy.Length / 2).Select(i => "[" + R(xy[2 * i]) + "," + R(xy[2 * i + 1]) + "]")
+    )
+    + "]";
+
+string Pts3(params double[] xyz) =>
+    "["
+    + string.Join(
+        ",",
+        Enumerable
+            .Range(0, xyz.Length / 3)
+            .Select(i => "[" + R(xyz[3 * i]) + "," + R(xyz[3 * i + 1]) + "," + R(xyz[3 * i + 2]) + "]")
+    )
+    + "]";
 
 void Raw(string kind, string json, string name, string layer, string color = null)
 {
-    Scene.Scene.Items.Add(new SceneItem { Kind = kind, Name = name, Layer = layer, Color = color, Data = System.Text.Json.JsonDocument.Parse(json).RootElement.Clone() });
+    Scene.Scene.Items.Add(
+        new SceneItem
+        {
+            Kind = kind,
+            Name = name,
+            Layer = layer,
+            Color = color,
+            Data = System.Text.Json.JsonDocument.Parse(json).RootElement.Clone(),
+        }
+    );
 }
 
 GeoSolid3 Box(double x, double y)
 {
-    var floor = new GeoPolygon3(new GeoPoint3(x, y, 0), new GeoPoint3(x + 20, y, 0), new GeoPoint3(x + 20, y + 20, 0), new GeoPoint3(x, y + 20, 0));
+    var floor = new GeoPolygon3(
+        new GeoPoint3(x, y, 0),
+        new GeoPoint3(x + 20, y, 0),
+        new GeoPoint3(x + 20, y + 20, 0),
+        new GeoPoint3(x, y + 20, 0)
+    );
     return GeoSolid3.Extrude(floor, new GeoVector3(0, 0, 20));
 }
 
@@ -40,18 +74,57 @@ turned[0] = new GeoFace3(new GeoPolygon3(turned[0].Boundary.Vertices.Reverse()),
 Show(new GeoSolid3(turned), layer: "bodies", name: "box with a face turned over");
 
 GeoSolid3 third = Box(80, 0);
-var fin = new GeoFace3(new GeoPolygon3(new GeoPoint3(80, 0, 20), new GeoPoint3(100, 0, 20), new GeoPoint3(100, 0, 40), new GeoPoint3(80, 0, 40)), null);
+var fin = new GeoFace3(
+    new GeoPolygon3(
+        new GeoPoint3(80, 0, 20),
+        new GeoPoint3(100, 0, 20),
+        new GeoPoint3(100, 0, 40),
+        new GeoPoint3(80, 0, 40)
+    ),
+    null
+);
 Show(new GeoSolid3(third.Faces.Concat(new[] { fin })), layer: "bodies", name: "box with a fin");
 
-Raw("GeoMesh3", "{\"kind\":\"Convex\",\"points\":" + Pts3(120, 0, 0, 140, 0, 0, 140, 20, 0, 120, 20, 0) + ",\"faces\":[[0,1,2],[0,3,2]]}", "mesh with a triangle turned over", "bodies");
+Raw(
+    "GeoMesh3",
+    "{\"kind\":\"Convex\",\"points\":"
+        + Pts3(120, 0, 0, 140, 0, 0, 140, 20, 0, 120, 20, 0)
+        + ",\"faces\":[[0,1,2],[0,3,2]]}",
+    "mesh with a triangle turned over",
+    "bodies"
+);
 
 // Loops.
-Show(new GeoPolygon2(new GeoPoint2(0, -60), new GeoPoint2(2, -58), new GeoPoint2(2, -60), new GeoPoint2(0, -58)), layer: "loops", name: "bow tie");
-Raw("GeoPolygon2", "{\"points\":" + Pts2(20, -60, 30, -60, 30, -50, 25.0004, -50, 25, -30, 24.9996, -50, 20, -50) + "}", "needle", "loops");
-Raw("GeoPolygon2", "{\"points\":" + Pts2(40, -60, 50, -60, 50, -59.9996, 50, -50, 40, -50) + "}", "doubled corner", "loops");
+Show(
+    new GeoPolygon2(new GeoPoint2(0, -60), new GeoPoint2(2, -58), new GeoPoint2(2, -60), new GeoPoint2(0, -58)),
+    layer: "loops",
+    name: "bow tie"
+);
+Raw(
+    "GeoPolygon2",
+    "{\"points\":" + Pts2(20, -60, 30, -60, 30, -50, 25.0004, -50, 25, -30, 24.9996, -50, 20, -50) + "}",
+    "needle",
+    "loops"
+);
+Raw(
+    "GeoPolygon2",
+    "{\"points\":" + Pts2(40, -60, 50, -60, 50, -59.9996, 50, -50, 40, -50) + "}",
+    "doubled corner",
+    "loops"
+);
 Raw("GeoTriangle2", "{\"points\":" + Pts2(60, -60, 90, -60, 75, -59.9995) + "}", "sliver", "loops");
-Raw("GeoPolygonArc2", "{\"points\":" + Pts2(60, -45, 70, -45, 70, -39, 60, -39) + ",\"bulges\":[-0.8,0,-0.8,0]}", "arcs bulging into each other", "loops");
-Raw("GeoFace3", "{\"outer\":" + Pts3(80, -45, 0, 90, -45, 0, 90, -35, 0.01, 80, -35, 0) + ",\"holes\":[]}", "face off flat", "loops");
+Raw(
+    "GeoPolygonArc2",
+    "{\"points\":" + Pts2(60, -45, 70, -45, 70, -39, 60, -39) + ",\"bulges\":[-0.8,0,-0.8,0]}",
+    "arcs bulging into each other",
+    "loops"
+);
+Raw(
+    "GeoFace3",
+    "{\"outer\":" + Pts3(80, -45, 0, 90, -45, 0, 90, -35, 0.01, 80, -35, 0) + ",\"holes\":[]}",
+    "face off flat",
+    "loops"
+);
 
 // The gap.
 Raw("GeoPolygon2", "{\"points\":" + Pts2(0, -120, 10, -120, 10, -110, 0, -110) + "}", "gap A", "gap");
@@ -62,5 +135,9 @@ Raw("GeoPolygon2", "{\"points\":" + Pts2(40, -120, 41, -120, 41, -119, 40, -119)
 Raw("GeoPolygon2", "{\"points\":" + Pts2(45, -120, 47, -120, 47, -118, 45, -118) + "}", "piece 2", "pieces");
 Raw("GeoPolygon2", "{\"points\":" + Pts2(50, -120, 53, -120, 53, -117, 50, -117) + "}", "piece 3", "pieces");
 
-Note("Ctrl+D opens the diagnostics. Run them on everything, or select one shape first; the gap needs exactly the two squares 'gap A' and 'gap B' selected.");
-Note("The bow tie crosses itself at (1, -59). The needle's tip is (25, -30). The doubled corner is (50, -60) and (50, -59.9996).");
+Note(
+    "Ctrl+D opens the diagnostics. Run them on everything, or select one shape first; the gap needs exactly the two squares 'gap A' and 'gap B' selected."
+);
+Note(
+    "The bow tie crosses itself at (1, -59). The needle's tip is (25, -30). The doubled corner is (50, -60) and (50, -59.9996)."
+);

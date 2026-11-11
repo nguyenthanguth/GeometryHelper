@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -96,7 +96,9 @@ namespace GeometryHelper.UnitTest.Plane
         public void Extend_AnUnknownEnd_IsRefused()
         {
             Assert.Throws<ArgumentOutOfRangeException>(() => Horizontal.Extend(1.0, (LineEnd)7));
-            Assert.Throws<ArgumentOutOfRangeException>(() => Horizontal.TryExtendTo(new GeoPoint2(20, 0), (LineEnd)7, out _));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                Horizontal.TryExtendTo(new GeoPoint2(20, 0), (LineEnd)7, out _)
+            );
         }
 
         [Fact]
@@ -202,7 +204,9 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.False(Horizontal.TryExtendTo(new GeoLine2(20, 1, 20, 5), LineEnd.End, out _));
 
             // Its carrying line can still be reached by intersecting with the boundary extended.
-            Assert.True(Horizontal.TryIntersectWith(new GeoLine2(20, 1, 20, 5), LineExtension.Both, out GeoPoint2 implied));
+            Assert.True(
+                Horizontal.TryIntersectWith(new GeoLine2(20, 1, 20, 5), LineExtension.Both, out GeoPoint2 implied)
+            );
             Assert.True(Horizontal.TryExtendTo(implied, LineEnd.End, out GeoLine2 viaPoint));
             AssertLine(new GeoLine2(0, 0, 20, 0), viaPoint);
         }
@@ -233,7 +237,11 @@ namespace GeometryHelper.UnitTest.Plane
         #region To other boundaries
 
         private static readonly GeoPolygon2 Square = new GeoPolygon2(
-            new GeoPoint2(20, -5), new GeoPoint2(30, -5), new GeoPoint2(30, 5), new GeoPoint2(20, 5));
+            new GeoPoint2(20, -5),
+            new GeoPoint2(30, -5),
+            new GeoPoint2(30, 5),
+            new GeoPoint2(20, 5)
+        );
 
         [Fact]
         public void ExtendToPolygon_StopsAtTheNearestEdgeBeyondTheEnd()
@@ -267,7 +275,11 @@ namespace GeometryHelper.UnitTest.Plane
         public void ExtendAndTrim_ToAPolyline_UseEveryEdge()
         {
             var zigzag = new GeoPolyline2(
-                new GeoPoint2(15, -5), new GeoPoint2(17, 5), new GeoPoint2(19, -5), new GeoPoint2(21, 5));
+                new GeoPoint2(15, -5),
+                new GeoPoint2(17, 5),
+                new GeoPoint2(19, -5),
+                new GeoPoint2(21, 5)
+            );
 
             Assert.True(Horizontal.TryExtendTo(zigzag, LineEnd.End, out GeoLine2 first));
             AssertLine(new GeoLine2(0, 0, 16, 0), first);
@@ -291,7 +303,9 @@ namespace GeometryHelper.UnitTest.Plane
             AssertLine(new GeoLine2(0, 0, 25, 0), trimmed);
 
             // Tangent: touched once, at the foot of the perpendicular from the centre.
-            Assert.True(Horizontal.TryExtendTo(new GeoCircle2(new GeoPoint2(20, 5), 5.0), LineEnd.End, out GeoLine2 tangent));
+            Assert.True(
+                Horizontal.TryExtendTo(new GeoCircle2(new GeoPoint2(20, 5), 5.0), LineEnd.End, out GeoLine2 tangent)
+            );
             AssertLine(new GeoLine2(0, 0, 20, 0), tangent);
 
             // Missed altogether.
@@ -325,7 +339,10 @@ namespace GeometryHelper.UnitTest.Plane
 
             foreach (var line in new[] { new GeoLine2(0, 0, 12, 0), new GeoLine2(0, 0, 27, 0) })
             {
-                Assert.True(line.TryExtendTo(boundary, LineEnd.End, out GeoLine2 fitted) || line.TryTrimTo(boundary, LineEnd.End, out fitted));
+                Assert.True(
+                    line.TryExtendTo(boundary, LineEnd.End, out GeoLine2 fitted)
+                        || line.TryTrimTo(boundary, LineEnd.End, out fitted)
+                );
                 AssertLine(new GeoLine2(0, 0, 20, 0), fitted);
             }
         }
@@ -340,31 +357,67 @@ namespace GeometryHelper.UnitTest.Plane
             var rect = new GeoRectangle2(new GeoPoint2(25, 0), 10, 10);
             var point = new GeoPoint2(20, 3);
 
-            Assert.Equal(Lengthen2.TryExtendTo(line, point, LineEnd.End, out GeoLine2 a1), line.TryExtendTo(point, LineEnd.End, out GeoLine2 b1));
+            Assert.Equal(
+                Lengthen2.TryExtendTo(line, point, LineEnd.End, out GeoLine2 a1),
+                line.TryExtendTo(point, LineEnd.End, out GeoLine2 b1)
+            );
             Assert.Equal(a1, b1);
-            Assert.Equal(Lengthen2.TryExtendTo(line, boundary, LineEnd.End, out GeoLine2 a2), line.TryExtendTo(boundary, LineEnd.End, out GeoLine2 b2));
+            Assert.Equal(
+                Lengthen2.TryExtendTo(line, boundary, LineEnd.End, out GeoLine2 a2),
+                line.TryExtendTo(boundary, LineEnd.End, out GeoLine2 b2)
+            );
             Assert.Equal(a2, b2);
-            Assert.Equal(Lengthen2.TryExtendTo(line, polyline, LineEnd.End, out GeoLine2 a3), line.TryExtendTo(polyline, LineEnd.End, out GeoLine2 b3));
+            Assert.Equal(
+                Lengthen2.TryExtendTo(line, polyline, LineEnd.End, out GeoLine2 a3),
+                line.TryExtendTo(polyline, LineEnd.End, out GeoLine2 b3)
+            );
             Assert.Equal(a3, b3);
-            Assert.Equal(Lengthen2.TryExtendTo(line, Square, LineEnd.End, out GeoLine2 a4), line.TryExtendTo(Square, LineEnd.End, out GeoLine2 b4));
+            Assert.Equal(
+                Lengthen2.TryExtendTo(line, Square, LineEnd.End, out GeoLine2 a4),
+                line.TryExtendTo(Square, LineEnd.End, out GeoLine2 b4)
+            );
             Assert.Equal(a4, b4);
-            Assert.Equal(Lengthen2.TryExtendTo(line, circle, LineEnd.End, out GeoLine2 a5), line.TryExtendTo(circle, LineEnd.End, out GeoLine2 b5));
+            Assert.Equal(
+                Lengthen2.TryExtendTo(line, circle, LineEnd.End, out GeoLine2 a5),
+                line.TryExtendTo(circle, LineEnd.End, out GeoLine2 b5)
+            );
             Assert.Equal(a5, b5);
-            Assert.Equal(Lengthen2.TryExtendTo(line, rect, LineEnd.End, out GeoLine2 a6), line.TryExtendTo(rect, LineEnd.End, out GeoLine2 b6));
+            Assert.Equal(
+                Lengthen2.TryExtendTo(line, rect, LineEnd.End, out GeoLine2 a6),
+                line.TryExtendTo(rect, LineEnd.End, out GeoLine2 b6)
+            );
             Assert.Equal(a6, b6);
 
             var longLine = line.Extend(30.0, LineEnd.End);
-            Assert.Equal(Lengthen2.TryTrimTo(longLine, point, LineEnd.End, out GeoLine2 c1), longLine.TryTrimTo(point, LineEnd.End, out GeoLine2 d1));
+            Assert.Equal(
+                Lengthen2.TryTrimTo(longLine, point, LineEnd.End, out GeoLine2 c1),
+                longLine.TryTrimTo(point, LineEnd.End, out GeoLine2 d1)
+            );
             Assert.Equal(c1, d1);
-            Assert.Equal(Lengthen2.TryTrimTo(longLine, boundary, LineEnd.End, out GeoLine2 c2), longLine.TryTrimTo(boundary, LineEnd.End, out GeoLine2 d2));
+            Assert.Equal(
+                Lengthen2.TryTrimTo(longLine, boundary, LineEnd.End, out GeoLine2 c2),
+                longLine.TryTrimTo(boundary, LineEnd.End, out GeoLine2 d2)
+            );
             Assert.Equal(c2, d2);
-            Assert.Equal(Lengthen2.TryTrimTo(longLine, polyline, LineEnd.End, out GeoLine2 c3), longLine.TryTrimTo(polyline, LineEnd.End, out GeoLine2 d3));
+            Assert.Equal(
+                Lengthen2.TryTrimTo(longLine, polyline, LineEnd.End, out GeoLine2 c3),
+                longLine.TryTrimTo(polyline, LineEnd.End, out GeoLine2 d3)
+            );
             Assert.Equal(c3, d3);
-            Assert.Equal(Lengthen2.TryTrimTo(longLine, Square, LineEnd.End, out GeoLine2 c4), longLine.TryTrimTo(Square, LineEnd.End, out GeoLine2 d4));
+            Assert.Equal(
+                Lengthen2.TryTrimTo(longLine, Square, LineEnd.End, out GeoLine2 c4),
+                longLine.TryTrimTo(Square, LineEnd.End, out GeoLine2 d4)
+            );
             Assert.Equal(c4, d4);
-            Assert.Equal(Lengthen2.TryTrimTo(longLine, circle, LineEnd.End, out GeoLine2 c5), longLine.TryTrimTo(circle, LineEnd.End, out GeoLine2 d5));
+            Assert.Equal(
+                Lengthen2.TryTrimTo(longLine, circle, LineEnd.End, out GeoLine2 c5),
+                longLine.TryTrimTo(circle, LineEnd.End, out GeoLine2 d5)
+            );
             Assert.Equal(c5, d5);
-            Assert.Equal(Lengthen2.TryTrimTo(longLine, rect, LineEnd.End, out GeoLine2 c6), longLine.TryTrimTo(rect, LineEnd.End, out GeoLine2 d6));
+            Assert.Equal(
+                Lengthen2.TryTrimTo(longLine, rect, LineEnd.End, out GeoLine2 c6),
+                longLine.TryTrimTo(rect, LineEnd.End, out GeoLine2 d6)
+            );
             Assert.Equal(c6, d6);
         }
 
@@ -453,27 +506,51 @@ namespace GeometryHelper.UnitTest.Plane
                 GeoPoint2 Move(GeoPoint2 p) => p.RotateBy(angle, new GeoPoint2(0, 0)).Add(shift);
                 GeoLine2 MoveLine(GeoLine2 l) => new GeoLine2(Move(l.StartPoint), Move(l.EndPoint));
 
-                var line = new GeoLine2(rng.NextDouble() * 10, rng.NextDouble() * 10, 20 + rng.NextDouble() * 10, rng.NextDouble() * 10);
+                var line = new GeoLine2(
+                    rng.NextDouble() * 10,
+                    rng.NextDouble() * 10,
+                    20 + rng.NextDouble() * 10,
+                    rng.NextDouble() * 10
+                );
                 var polygon = new GeoPolygon2(
-                    new GeoPoint2(35, -8), new GeoPoint2(50, -6), new GeoPoint2(48, 14), new GeoPoint2(36, 12));
+                    new GeoPoint2(35, -8),
+                    new GeoPoint2(50, -6),
+                    new GeoPoint2(48, 14),
+                    new GeoPoint2(36, 12)
+                );
                 var circle = new GeoCircle2(new GeoPoint2(40, 4), 6.0);
                 LineEnd end = trial % 2 == 0 ? LineEnd.End : LineEnd.Start;
-                if (end == LineEnd.Start) { line = line.Reverse(); }
+                if (end == LineEnd.Start)
+                {
+                    line = line.Reverse();
+                }
 
-                var movedPolygon = new GeoPolygon2(new[] { Move(polygon[0]), Move(polygon[1]), Move(polygon[2]), Move(polygon[3]) });
+                var movedPolygon = new GeoPolygon2(
+                    new[] { Move(polygon[0]), Move(polygon[1]), Move(polygon[2]), Move(polygon[3]) }
+                );
                 var movedCircle = new GeoCircle2(Move(circle.Center), circle.Radius);
 
                 bool hitPolygon = line.TryExtendTo(polygon, end, out GeoLine2 toPolygon);
                 Assert.Equal(hitPolygon, MoveLine(line).TryExtendTo(movedPolygon, end, out GeoLine2 movedToPolygon));
-                if (hitPolygon) { AssertLine(MoveLine(toPolygon), movedToPolygon, 1e-7); checkedCases++; }
+                if (hitPolygon)
+                {
+                    AssertLine(MoveLine(toPolygon), movedToPolygon, 1e-7);
+                    checkedCases++;
+                }
 
                 bool hitCircle = line.TryExtendTo(circle, end, out GeoLine2 toCircle);
                 Assert.Equal(hitCircle, MoveLine(line).TryExtendTo(movedCircle, end, out GeoLine2 movedToCircle));
-                if (hitCircle) { AssertLine(MoveLine(toCircle), movedToCircle, 1e-7); }
+                if (hitCircle)
+                {
+                    AssertLine(MoveLine(toCircle), movedToCircle, 1e-7);
+                }
 
                 var other = new GeoLine2(60, -20 + rng.NextDouble() * 5, 55 + rng.NextDouble() * 10, 30);
                 bool corner = line.TryTrimExtendToCorner(other, out GeoLine2 c1, out GeoLine2 c2);
-                Assert.Equal(corner, MoveLine(line).TryTrimExtendToCorner(MoveLine(other), out GeoLine2 m1, out GeoLine2 m2));
+                Assert.Equal(
+                    corner,
+                    MoveLine(line).TryTrimExtendToCorner(MoveLine(other), out GeoLine2 m1, out GeoLine2 m2)
+                );
                 if (corner)
                 {
                     AssertLine(MoveLine(c1), m1, 1e-7);
@@ -491,7 +568,12 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int trial = 0; trial < 200; trial++)
             {
-                var line = new GeoLine2(rng.NextDouble() * 10, rng.NextDouble() * 10, 15 + rng.NextDouble() * 10, 5 + rng.NextDouble() * 10);
+                var line = new GeoLine2(
+                    rng.NextDouble() * 10,
+                    rng.NextDouble() * 10,
+                    15 + rng.NextDouble() * 10,
+                    5 + rng.NextDouble() * 10
+                );
                 var boundary = new GeoLine2(40 + rng.NextDouble() * 10, -100, 40 + rng.NextDouble() * 10, 100);
 
                 if (!line.TryExtendTo(boundary, LineEnd.End, out GeoLine2 result))
@@ -501,7 +583,9 @@ namespace GeometryHelper.UnitTest.Plane
 
                 // The start never moved, the direction is kept, and the new end lies on the boundary.
                 Assert.Equal(line.StartPoint, result.StartPoint);
-                Assert.True(Math.Abs(result.Direction.CrossProduct(line.Direction)) / (result.Length * line.Length) < 1e-12);
+                Assert.True(
+                    Math.Abs(result.Direction.CrossProduct(line.Direction)) / (result.Length * line.Length) < 1e-12
+                );
                 Assert.True(result.Direction.DotProduct(line.Direction) > 0);
                 Assert.True(boundary.DistanceTo(result.EndPoint) < 1e-9);
             }

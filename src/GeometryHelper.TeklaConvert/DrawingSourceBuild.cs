@@ -54,7 +54,13 @@ namespace GeometryHelper.TeklaConvert
         /// <param name="call">The name of the public call, for the log.</param>
         /// <param name="given">What the call was given, for the log: "assembly ...", "part ...", "12 model objects".</param>
         /// <param name="tolerance">The tolerance.</param>
-        internal static DrawingSource Build(TeklaDrawingData data, string frameOwnerId, string call, string given, Tolerance tolerance)
+        internal static DrawingSource Build(
+            TeklaDrawingData data,
+            string frameOwnerId,
+            string call,
+            string given,
+            Tolerance tolerance
+        )
         {
             var objects = new List<DrawingObject>();
             var bodies = new Dictionary<string, GeoSolid3>(StringComparer.Ordinal);
@@ -101,7 +107,15 @@ namespace GeometryHelper.TeklaConvert
 
             if (data.SkippedCount > 0)
             {
-                GeometryHelperLog.Debug(string.Format(CultureInfo.InvariantCulture, "{0}: left out {1}: {2}.", call, data.SkippedCount, data.DescribeSkipped()));
+                GeometryHelperLog.Debug(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "{0}: left out {1}: {2}.",
+                        call,
+                        data.SkippedCount,
+                        data.DescribeSkipped()
+                    )
+                );
             }
 
             var counts = new int[Enum.GetValues(typeof(DrawingObjectKind)).Length];
@@ -111,17 +125,20 @@ namespace GeometryHelper.TeklaConvert
                 counts[(int)item.Kind]++;
             }
 
-            GeometryHelperLog.Info(string.Format(
-                CultureInfo.InvariantCulture,
-                "{0}: {1} objects ({2} parts, {3} bolts, {4} holes, {5} welds) from {6}, {7} left out.",
-                call,
-                objects.Count,
-                counts[(int)DrawingObjectKind.Part],
-                counts[(int)DrawingObjectKind.Bolt],
-                counts[(int)DrawingObjectKind.Hole],
-                counts[(int)DrawingObjectKind.Weld],
-                given,
-                data.SkippedCount));
+            GeometryHelperLog.Info(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "{0}: {1} objects ({2} parts, {3} bolts, {4} holes, {5} welds) from {6}, {7} left out.",
+                    call,
+                    objects.Count,
+                    counts[(int)DrawingObjectKind.Part],
+                    counts[(int)DrawingObjectKind.Bolt],
+                    counts[(int)DrawingObjectKind.Hole],
+                    counts[(int)DrawingObjectKind.Weld],
+                    given,
+                    data.SkippedCount
+                )
+            );
 
             return frame.HasValue ? new DrawingSource(objects, frame.Value) : new DrawingSource(objects);
         }
@@ -156,7 +173,8 @@ namespace GeometryHelper.TeklaConvert
                 part.Material,
                 part.AssemblyId,
                 part.IsMain,
-                attributes);
+                attributes
+            );
         }
 
         /// <summary>
@@ -168,7 +186,12 @@ namespace GeometryHelper.TeklaConvert
         /// <param name="bodies">The bodies of the parts in the source, by id.</param>
         /// <param name="data">Where a bolt or a hole left out is counted.</param>
         /// <param name="tolerance">The tolerance.</param>
-        internal static List<DrawingObject> BoltObjects(TeklaBoltGroupData group, IReadOnlyDictionary<string, GeoSolid3> bodies, TeklaDrawingData data, Tolerance tolerance)
+        internal static List<DrawingObject> BoltObjects(
+            TeklaBoltGroupData group,
+            IReadOnlyDictionary<string, GeoSolid3> bodies,
+            TeklaDrawingData data,
+            Tolerance tolerance
+        )
         {
             var objects = new List<DrawingObject>();
             double holeDiameter = group.Diameter + group.HoleTolerance;
@@ -195,12 +218,21 @@ namespace GeometryHelper.TeklaConvert
             {
                 GeoPoint3 position = group.Positions[i];
                 string id = group.Id + "-" + (i + 1).ToString(CultureInfo.InvariantCulture);
-                double min = 0.0, max = 0.0;
-                bool found = group.HasBolt && TrySpan(position, axis, group.Diameter, group.BodyCorners, out min, out max);
+                double min = 0.0,
+                    max = 0.0;
+                bool found =
+                    group.HasBolt && TrySpan(position, axis, group.Diameter, group.BodyCorners, out min, out max);
 
                 if (!found)
                 {
-                    found = TryAxisSpan(position, axis, SortedBodies(group.BoltedPartIds, bodies), tolerance, out min, out max);
+                    found = TryAxisSpan(
+                        position,
+                        axis,
+                        SortedBodies(group.BoltedPartIds, bodies),
+                        tolerance,
+                        out min,
+                        out max
+                    );
                 }
 
                 if (!found)
@@ -236,7 +268,10 @@ namespace GeometryHelper.TeklaConvert
                 var attributes = new List<KeyValuePair<string, string>>
                 {
                     new KeyValuePair<string, string>(BoltGroupAttribute, group.Id),
-                    new KeyValuePair<string, string>(CountAttribute, group.Positions.Count.ToString(CultureInfo.InvariantCulture)),
+                    new KeyValuePair<string, string>(
+                        CountAttribute,
+                        group.Positions.Count.ToString(CultureInfo.InvariantCulture)
+                    ),
                     new KeyValuePair<string, string>(DiameterAttribute, Number(2.0 * radius)),
                     new KeyValuePair<string, string>(HoleDiameterAttribute, Number(holeDiameter)),
                 };
@@ -256,14 +291,17 @@ namespace GeometryHelper.TeklaConvert
                     attributes.Add(new KeyValuePair<string, string>(BoltedPartsAttribute, string.Join(",", bolted)));
                 }
 
-                objects.Add(new DrawingObject(
-                    id,
-                    group.HasBolt ? DrawingObjectKind.Bolt : DrawingObjectKind.Hole,
-                    body,
-                    frame,
-                    name: group.HasBolt ? "BOLT" : "HOLE",
-                    parentId: group.PartToBoltToId,
-                    attributes: attributes));
+                objects.Add(
+                    new DrawingObject(
+                        id,
+                        group.HasBolt ? DrawingObjectKind.Bolt : DrawingObjectKind.Hole,
+                        body,
+                        frame,
+                        name: group.HasBolt ? "BOLT" : "HOLE",
+                        parentId: group.PartToBoltToId,
+                        attributes: attributes
+                    )
+                );
             }
 
             return objects;
@@ -282,7 +320,8 @@ namespace GeometryHelper.TeklaConvert
                 weld.Frame ?? GeoCoordinateSystem3.Global,
                 name: "WELD",
                 parentId: weld.MainPartId,
-                attributes: WeldAttributes(weld));
+                attributes: WeldAttributes(weld)
+            );
         }
 
         /// <summary>
@@ -300,7 +339,10 @@ namespace GeometryHelper.TeklaConvert
 
             if (above || below)
             {
-                WeldSide side = above && below ? WeldSide.Both : above ? WeldSide.Arrow : WeldSide.Other;
+                WeldSide side =
+                    above && below ? WeldSide.Both
+                    : above ? WeldSide.Arrow
+                    : WeldSide.Other;
                 string type = above ? weld.TypeAbove : weld.TypeBelow;
                 double size = above ? weld.SizeAbove : weld.SizeBelow;
                 double length = above ? weld.LengthAbove : weld.LengthBelow;
@@ -311,7 +353,9 @@ namespace GeometryHelper.TeklaConvert
 
                 if (size > 0.0)
                 {
-                    attributes.Add(new KeyValuePair<string, string>(WeldSymbol.SizeAttribute, prefix.Trim() + Number(size)));
+                    attributes.Add(
+                        new KeyValuePair<string, string>(WeldSymbol.SizeAttribute, prefix.Trim() + Number(size))
+                    );
                 }
 
                 if (length > 0.0)
@@ -320,7 +364,9 @@ namespace GeometryHelper.TeklaConvert
                 }
                 else if (weld.Length.HasValue && weld.Length.Value > 0.0)
                 {
-                    attributes.Add(new KeyValuePair<string, string>(WeldSymbol.LengthAttribute, Number(weld.Length.Value)));
+                    attributes.Add(
+                        new KeyValuePair<string, string>(WeldSymbol.LengthAttribute, Number(weld.Length.Value))
+                    );
                 }
             }
 
@@ -384,7 +430,14 @@ namespace GeometryHelper.TeklaConvert
         /// How far along an axis through a point the corners within a reach of that axis run, from the point; false where
         /// no corner is within the reach.
         /// </summary>
-        internal static bool TrySpan(GeoPoint3 position, GeoVector3 axis, double reach, IEnumerable<GeoPoint3> corners, out double min, out double max)
+        internal static bool TrySpan(
+            GeoPoint3 position,
+            GeoVector3 axis,
+            double reach,
+            IEnumerable<GeoPoint3> corners,
+            out double min,
+            out double max
+        )
         {
             min = double.PositiveInfinity;
             max = double.NegativeInfinity;
@@ -438,8 +491,8 @@ namespace GeometryHelper.TeklaConvert
             return unique;
         }
 
-        private static bool HasKind(string teklaName)
-            => !string.IsNullOrEmpty(teklaName) && !string.Equals(teklaName, "WELD_TYPE_NONE", StringComparison.Ordinal);
+        private static bool HasKind(string teklaName) =>
+            !string.IsNullOrEmpty(teklaName) && !string.Equals(teklaName, "WELD_TYPE_NONE", StringComparison.Ordinal);
 
         private static void AddText(List<KeyValuePair<string, string>> attributes, string name, string value)
         {
@@ -467,7 +520,10 @@ namespace GeometryHelper.TeklaConvert
         }
 
         /// <summary>Every corner of the bodies of the parts bolted that are in the source, their holes' corners among them.</summary>
-        private static List<GeoSolid3> SortedBodies(IReadOnlyList<string> boltedPartIds, IReadOnlyDictionary<string, GeoSolid3> bodies)
+        private static List<GeoSolid3> SortedBodies(
+            IReadOnlyList<string> boltedPartIds,
+            IReadOnlyDictionary<string, GeoSolid3> bodies
+        )
         {
             var solids = new List<GeoSolid3>();
 
@@ -496,7 +552,14 @@ namespace GeometryHelper.TeklaConvert
         /// <param name="min">Where the run starts along the axis from the position.</param>
         /// <param name="max">Where it ends.</param>
         /// <returns>False where the axis meets no material.</returns>
-        internal static bool TryAxisSpan(GeoPoint3 position, GeoVector3 axis, IReadOnlyList<GeoSolid3> solids, Tolerance tolerance, out double min, out double max)
+        internal static bool TryAxisSpan(
+            GeoPoint3 position,
+            GeoVector3 axis,
+            IReadOnlyList<GeoSolid3> solids,
+            Tolerance tolerance,
+            out double min,
+            out double max
+        )
         {
             min = 0.0;
             max = 0.0;
@@ -535,11 +598,13 @@ namespace GeometryHelper.TeklaConvert
                 return false;
             }
 
-            runs.Sort((a, b) =>
-            {
-                int byStart = a[0].CompareTo(b[0]);
-                return byStart != 0 ? byStart : a[1].CompareTo(b[1]);
-            });
+            runs.Sort(
+                (a, b) =>
+                {
+                    int byStart = a[0].CompareTo(b[0]);
+                    return byStart != 0 ? byStart : a[1].CompareTo(b[1]);
+                }
+            );
 
             var merged = new List<double[]>();
 
@@ -574,7 +639,10 @@ namespace GeometryHelper.TeklaConvert
             return true;
         }
 
-        private static List<GeoPoint3> PartCorners(IReadOnlyList<string> boltedPartIds, IReadOnlyDictionary<string, GeoSolid3> bodies)
+        private static List<GeoPoint3> PartCorners(
+            IReadOnlyList<string> boltedPartIds,
+            IReadOnlyDictionary<string, GeoSolid3> bodies
+        )
         {
             var corners = new List<GeoPoint3>();
 

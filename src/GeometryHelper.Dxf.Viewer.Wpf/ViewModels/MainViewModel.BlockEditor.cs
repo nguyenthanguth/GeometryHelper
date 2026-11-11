@@ -55,13 +55,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get
             {
                 CadBlockEditor editor = _current?.Document.BlockEditor;
-                return editor == null ? null : (editor.HasUnsavedChanges ? "Unsaved changes to " : "Block Editor: ") + editor.Name;
+                return editor == null
+                    ? null
+                    : (editor.HasUnsavedChanges ? "Unsaved changes to " : "Block Editor: ") + editor.Name;
             }
         }
 
         /// <summary>The spaces given a tab: the Block Editor's alone while it is open, as AutoCAD hides the layout tabs; else every space.</summary>
-        private static IReadOnlyList<CadSpace> TabSpaces(CadDocument document)
-            => document.BlockEditor != null ? new[] { document.CurrentSpace } : document.Spaces;
+        private static IReadOnlyList<CadSpace> TabSpaces(CadDocument document) =>
+            document.BlockEditor != null ? new[] { document.CurrentSpace } : document.Spaces;
 
         /// <summary>
         /// Takes every dialog the window hooked off the view model, as the screenshot mode needs, where nothing may open a real
@@ -70,22 +72,44 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         internal void StubDialogs()
         {
-            const System.Reflection.BindingFlags Instance = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
+            const System.Reflection.BindingFlags Instance =
+                System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.Public
+                | System.Reflection.BindingFlags.NonPublic;
 
-            foreach (System.Reflection.PropertyInfo property in typeof(MainViewModel).GetProperties(Instance).OrderBy(p => p.Name, StringComparer.Ordinal))
+            foreach (
+                System.Reflection.PropertyInfo property in typeof(MainViewModel)
+                    .GetProperties(Instance)
+                    .OrderBy(p => p.Name, StringComparer.Ordinal)
+            )
             {
-                bool hook = property.Name.StartsWith("Show", StringComparison.Ordinal) || property.Name.StartsWith("Ask", StringComparison.Ordinal)
-                    || property.Name.StartsWith("Pick", StringComparison.Ordinal) || property.Name.StartsWith("Confirm", StringComparison.Ordinal);
+                bool hook =
+                    property.Name.StartsWith("Show", StringComparison.Ordinal)
+                    || property.Name.StartsWith("Ask", StringComparison.Ordinal)
+                    || property.Name.StartsWith("Pick", StringComparison.Ordinal)
+                    || property.Name.StartsWith("Confirm", StringComparison.Ordinal);
 
-                if (hook && typeof(Delegate).IsAssignableFrom(property.PropertyType) && property.CanWrite && property.GetSetMethod(true) != null)
+                if (
+                    hook
+                    && typeof(Delegate).IsAssignableFrom(property.PropertyType)
+                    && property.CanWrite
+                    && property.GetSetMethod(true) != null
+                )
                 {
                     property.SetValue(this, null);
                 }
             }
 
-            foreach (System.Reflection.FieldInfo field in typeof(MainViewModel).GetFields(Instance).OrderBy(f => f.Name, StringComparer.Ordinal))
+            foreach (
+                System.Reflection.FieldInfo field in typeof(MainViewModel)
+                    .GetFields(Instance)
+                    .OrderBy(f => f.Name, StringComparer.Ordinal)
+            )
             {
-                if (typeof(Delegate).IsAssignableFrom(field.FieldType) && field.Name.IndexOf("Requested", StringComparison.Ordinal) >= 0)
+                if (
+                    typeof(Delegate).IsAssignableFrom(field.FieldType)
+                    && field.Name.IndexOf("Requested", StringComparison.Ordinal) >= 0
+                )
                 {
                     field.SetValue(this, null);
                 }
@@ -217,7 +241,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool HasVisibilityStates => _editor.VisibilityStates.Count > 0;
 
         /// <summary>Gets the states the visibility state box lists, in the block's order; "(none)" alone for a block of none.</summary>
-        public IReadOnlyList<string> VisibilityStates => HasVisibilityStates ? _editor.VisibilityStates : new[] { NoState };
+        public IReadOnlyList<string> VisibilityStates =>
+            HasVisibilityStates ? _editor.VisibilityStates : new[] { NoState };
 
         /// <summary>
         /// Gets or sets the state the box shows, and the editor with it: the entities another state lists and it does not are
@@ -234,7 +259,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return;
                 }
 
-                CadEditResult result = _model.Document?.SetBlockEditorVisibilityState(value) ?? CadEditResult.Refuse("No drawing is shown.");
+                CadEditResult result = _model.Document?.SetBlockEditorVisibilityState(value)
+                    ?? CadEditResult.Refuse("No drawing is shown.");
 
                 if (!result.Succeeded)
                 {
@@ -323,7 +349,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             foreach (DxfBlockTableRecord block in CadBlocks.Named(database))
             {
-                string tag = block.IsDynamicBlock ? "dynamic" : block.OfType<DxfAttributeDefinition>().Any() ? "attributes" : string.Empty;
+                string tag =
+                    block.IsDynamicBlock ? "dynamic"
+                    : block.OfType<DxfAttributeDefinition>().Any() ? "attributes"
+                    : string.Empty;
                 rows.Add(new BlockEditRowViewModel(block.Name, tag));
             }
 
@@ -355,7 +384,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return;
                 }
 
-                BlockEditRowViewModel row = Rows.FirstOrDefault(r => string.Equals(r.Name, _name.Trim(), StringComparison.OrdinalIgnoreCase));
+                BlockEditRowViewModel row = Rows.FirstOrDefault(r =>
+                    string.Equals(r.Name, _name.Trim(), StringComparison.OrdinalIgnoreCase)
+                );
 
                 if (!ReferenceEquals(row, _selected))
                 {
@@ -386,7 +417,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public ImageSource Preview => IsBlock ? _pictures.Draw(_selected.Name) : null;
 
         /// <summary>Gets the description of the block named; empty for none.</summary>
-        public string Description => IsBlock ? Request.Document.Database.BlockTable[_selected.Name].Comments ?? string.Empty : string.Empty;
+        public string Description =>
+            IsBlock ? Request.Document.Database.BlockTable[_selected.Name].Comments ?? string.Empty : string.Empty;
 
         /// <summary>
         /// Gets whether OK may be pressed: a name AutoCAD takes, or &lt;Current Drawing&gt;; for Save Block As, one no block of
@@ -403,11 +435,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return CadBlocks.IsName(name) && !Request.Document.Database.BlockTable.Has(name);
                 }
 
-                return string.Equals(name, CadBlockEditor.CurrentDrawing, StringComparison.OrdinalIgnoreCase) || CadBlocks.IsName(name);
+                return string.Equals(name, CadBlockEditor.CurrentDrawing, StringComparison.OrdinalIgnoreCase)
+                    || CadBlocks.IsName(name);
             }
         }
 
-        private bool IsBlock => _selected != null && !string.Equals(_selected.Name, CadBlockEditor.CurrentDrawing, StringComparison.Ordinal);
+        private bool IsBlock =>
+            _selected != null
+            && !string.Equals(_selected.Name, CadBlockEditor.CurrentDrawing, StringComparison.Ordinal);
 
         /// <summary>Closes the dialog: the name and the action written into the request.</summary>
         /// <param name="action">OK or Cancel.</param>

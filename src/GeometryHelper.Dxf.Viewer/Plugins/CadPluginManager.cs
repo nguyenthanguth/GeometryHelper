@@ -65,7 +65,12 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
         /// <param name="shadowFolder">The folder the plugins' files are copied to and loaded from; a folder of this process's
         /// under the temporary folder where null, those left by processes that have ended deleted.</param>
         /// <exception cref="ArgumentNullException">Thrown when the loader, the plugin folder or the settings path is null.</exception>
-        public CadPluginManager(CadPluginLoader loader, string pluginFolder, string settingsPath, string shadowFolder = null)
+        public CadPluginManager(
+            CadPluginLoader loader,
+            string pluginFolder,
+            string settingsPath,
+            string shadowFolder = null
+        )
         {
             _loader = loader ?? throw new ArgumentNullException(nameof(loader));
             PluginFolder = Path.GetFullPath(pluginFolder ?? throw new ArgumentNullException(nameof(pluginFolder)));
@@ -75,7 +80,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             {
                 string root = Path.Combine(Path.GetTempPath(), "GeometryHelper", "PluginCopies");
                 DeleteLeftCopies(root);
-                shadowFolder = Path.Combine(root, Process.GetCurrentProcess().Id.ToString(CultureInfo.InvariantCulture));
+                shadowFolder = Path.Combine(
+                    root,
+                    Process.GetCurrentProcess().Id.ToString(CultureInfo.InvariantCulture)
+                );
             }
 
             ShadowFolder = Path.GetFullPath(shadowFolder);
@@ -194,7 +202,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
             if (!registry.Shortcuts.Aliases.ContainsKey(LoadAlias) && registry.Find(LoadAlias) == null)
             {
-                var aliases = new List<KeyValuePair<string, string>>(registry.Shortcuts.Aliases) { new KeyValuePair<string, string>(LoadAlias, LoadCommand) };
+                var aliases = new List<KeyValuePair<string, string>>(registry.Shortcuts.Aliases)
+                {
+                    new KeyValuePair<string, string>(LoadAlias, LoadCommand),
+                };
                 registry.Shortcuts = new CadShortcuts(aliases, registry.Shortcuts.Keys);
             }
 
@@ -238,7 +249,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 }
             }
 
-            if (registry.Shortcuts.Aliases.TryGetValue(LoadAlias, out string target) && string.Equals(target, LoadCommand, StringComparison.OrdinalIgnoreCase))
+            if (
+                registry.Shortcuts.Aliases.TryGetValue(LoadAlias, out string target)
+                && string.Equals(target, LoadCommand, StringComparison.OrdinalIgnoreCase)
+            )
             {
                 var aliases = new List<KeyValuePair<string, string>>();
 
@@ -288,13 +302,21 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
             if (plugin == null || !plugin.IsLoaded)
             {
-                return Refuse(CadPluginAction.Unload, name ?? string.Empty, string.Empty, false, "No plugin " + name + " is loaded.");
+                return Refuse(
+                    CadPluginAction.Unload,
+                    name ?? string.Empty,
+                    string.Empty,
+                    false,
+                    "No plugin " + name + " is loaded."
+                );
             }
 
             UnloadQuietly(plugin);
             string message = CanUnload
                 ? "Unloaded " + plugin.Name + "."
-                : "Switched " + plugin.Name + " off: its commands are gone, and its code stays loaded until the presenter restarts.";
+                : "Switched "
+                    + plugin.Name
+                    + " off: its commands are gone, and its code stays loaded until the presenter restarts.";
             Record(CadPluginAction.Unload, plugin.Name, plugin.Path, plugin.IsTrusted, true, message);
             Changed();
             return new CadPluginResult(true, message, plugin, null);
@@ -313,13 +335,25 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
             if (plugin == null)
             {
-                return Refuse(CadPluginAction.Reload, name ?? string.Empty, string.Empty, false, "No plugin " + name + " is known in this session.");
+                return Refuse(
+                    CadPluginAction.Reload,
+                    name ?? string.Empty,
+                    string.Empty,
+                    false,
+                    "No plugin " + name + " is known in this session."
+                );
             }
 
             // A plugin whose file has gone stays loaded.
             if (!File.Exists(plugin.Path) && !Directory.Exists(plugin.Path))
             {
-                return Refuse(CadPluginAction.Reload, plugin.Name, plugin.Path, plugin.IsTrusted, "There is no file " + plugin.Path + " to reload " + plugin.Name + " from.");
+                return Refuse(
+                    CadPluginAction.Reload,
+                    plugin.Name,
+                    plugin.Path,
+                    plugin.IsTrusted,
+                    "There is no file " + plugin.Path + " to reload " + plugin.Name + " from."
+                );
             }
 
             if (plugin.IsLoaded)
@@ -348,9 +382,18 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             string path = Path.GetFullPath(Unquote(packagePath));
             string file = Path.GetFileName(path);
 
-            if (!string.Equals(Path.GetExtension(path), CadPluginPackage.Extension, StringComparison.OrdinalIgnoreCase) || !File.Exists(path))
+            if (
+                !string.Equals(Path.GetExtension(path), CadPluginPackage.Extension, StringComparison.OrdinalIgnoreCase)
+                || !File.Exists(path)
+            )
             {
-                return Refuse(CadPluginAction.Install, file, path, false, "There is no package " + path + ": a plugin is installed from a .ghplugin file.");
+                return Refuse(
+                    CadPluginAction.Install,
+                    file,
+                    path,
+                    false,
+                    "There is no package " + path + ": a plugin is installed from a .ghplugin file."
+                );
             }
 
             CadPluginManifest manifest;
@@ -359,9 +402,20 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             {
                 manifest = CadPluginManifest.Read(path);
             }
-            catch (Exception exception) when (exception is FormatException || exception is IOException || exception is UnauthorizedAccessException)
+            catch (Exception exception)
+                when (exception is FormatException
+                    || exception is IOException
+                    || exception is UnauthorizedAccessException
+                )
             {
-                return Refuse(CadPluginAction.Install, file, path, false, "The package " + path + " cannot be read: " + exception.Message, exception);
+                return Refuse(
+                    CadPluginAction.Install,
+                    file,
+                    path,
+                    false,
+                    "The package " + path + " cannot be read: " + exception.Message,
+                    exception
+                );
             }
 
             string refusal = RefusalOf(manifest);
@@ -374,10 +428,23 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
             // Windows drops the dots and spaces a file name ends in, so "..." or ". ." would name the plugin folder itself and
             // the delete below would take every installed plugin with it: the folder must lie strictly inside the plugin folder.
-            if (manifest.Id.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || manifest.Id.EndsWith(".", StringComparison.Ordinal)
-                || manifest.Id.EndsWith(" ", StringComparison.Ordinal) || !IsIn(Path.GetFullPath(Path.Combine(PluginFolder, manifest.Id)).TrimEnd(Path.DirectorySeparatorChar), PluginFolder))
+            if (
+                manifest.Id.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
+                || manifest.Id.EndsWith(".", StringComparison.Ordinal)
+                || manifest.Id.EndsWith(" ", StringComparison.Ordinal)
+                || !IsIn(
+                    Path.GetFullPath(Path.Combine(PluginFolder, manifest.Id)).TrimEnd(Path.DirectorySeparatorChar),
+                    PluginFolder
+                )
+            )
             {
-                return Refuse(CadPluginAction.Install, manifest.Name, path, trusted, "The plugin's id \"" + manifest.Id + "\" cannot name a folder.");
+                return Refuse(
+                    CadPluginAction.Install,
+                    manifest.Name,
+                    path,
+                    trusted,
+                    "The plugin's id \"" + manifest.Id + "\" cannot name a folder."
+                );
             }
 
             if (!trusted && !Confirmed(path))
@@ -389,7 +456,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
             foreach (CadLoadedPlugin old in _plugins.ToArray())
             {
-                if (string.Equals(old.Path, folder, StringComparison.OrdinalIgnoreCase) || string.Equals(old.Name, manifest.Name, StringComparison.OrdinalIgnoreCase))
+                if (
+                    string.Equals(old.Path, folder, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(old.Name, manifest.Name, StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     if (old.IsLoaded)
                     {
@@ -409,13 +479,31 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
                 CadPluginPackage.Unpack(path, folder);
             }
-            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is FormatException)
+            catch (Exception exception)
+                when (exception is IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is FormatException
+                )
             {
                 Changed();
-                return Refuse(CadPluginAction.Install, manifest.Name, path, trusted, "The package " + path + " cannot be unpacked into " + folder + ": " + exception.Message, exception);
+                return Refuse(
+                    CadPluginAction.Install,
+                    manifest.Name,
+                    path,
+                    trusted,
+                    "The package " + path + " cannot be unpacked into " + folder + ": " + exception.Message,
+                    exception
+                );
             }
 
-            Record(CadPluginAction.Install, manifest.Name, path, trusted, true, "Installed " + manifest.Name + " " + manifest.Version + " into " + folder + ".");
+            Record(
+                CadPluginAction.Install,
+                manifest.Name,
+                path,
+                trusted,
+                true,
+                "Installed " + manifest.Name + " " + manifest.Version + " into " + folder + "."
+            );
             return LoadFrom(folder, CadPluginAction.Load, true);
         }
 
@@ -428,7 +516,13 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
             if (plugin == null || !plugin.IsInstalled)
             {
-                return Refuse(CadPluginAction.Uninstall, name ?? string.Empty, plugin?.Path ?? string.Empty, false, "No plugin " + name + " is installed in the plugin folder.");
+                return Refuse(
+                    CadPluginAction.Uninstall,
+                    name ?? string.Empty,
+                    plugin?.Path ?? string.Empty,
+                    false,
+                    "No plugin " + name + " is installed in the plugin folder."
+                );
             }
 
             if (plugin.IsLoaded)
@@ -445,7 +539,14 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
             {
                 Changed();
-                return Refuse(CadPluginAction.Uninstall, plugin.Name, plugin.Path, true, "The folder " + plugin.Path + " cannot be deleted: " + exception.Message, exception);
+                return Refuse(
+                    CadPluginAction.Uninstall,
+                    plugin.Name,
+                    plugin.Path,
+                    true,
+                    "The folder " + plugin.Path + " cannot be deleted: " + exception.Message,
+                    exception
+                );
             }
 
             string message = "Uninstalled " + plugin.Name + ".";
@@ -495,11 +596,18 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 throw new ArgumentNullException(nameof(folder));
             }
 
-            string full = Path.GetFullPath(Unquote(folder)).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            string full = Path.GetFullPath(Unquote(folder))
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
             foreach (string trusted in TrustedFolders)
             {
-                if (string.Equals(trusted.TrimEnd(Path.DirectorySeparatorChar), full, StringComparison.OrdinalIgnoreCase))
+                if (
+                    string.Equals(
+                        trusted.TrimEnd(Path.DirectorySeparatorChar),
+                        full,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
                 {
                     return false;
                 }
@@ -521,7 +629,8 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 throw new ArgumentNullException(nameof(folder));
             }
 
-            string full = Path.GetFullPath(Unquote(folder)).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            string full = Path.GetFullPath(Unquote(folder))
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             int at = _trusted.FindIndex(t => string.Equals(t, full, StringComparison.OrdinalIgnoreCase));
 
             if (at < 0)
@@ -617,7 +726,11 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             {
                 full = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             }
-            catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException || exception is PathTooLongException)
+            catch (Exception exception)
+                when (exception is ArgumentException
+                    || exception is NotSupportedException
+                    || exception is PathTooLongException
+                )
             {
                 return Refuse(action, path, path, false, "\"" + path + "\" is not a path: " + exception.Message);
             }
@@ -625,17 +738,26 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             string file = Path.GetFileName(full);
             string extension = Path.GetExtension(full);
             bool isFolder = Directory.Exists(full);
-            bool isPackage = !isFolder && string.Equals(extension, CadPluginPackage.Extension, StringComparison.OrdinalIgnoreCase);
+            bool isPackage =
+                !isFolder && string.Equals(extension, CadPluginPackage.Extension, StringComparison.OrdinalIgnoreCase);
             bool isDll = !isFolder && string.Equals(extension, ".dll", StringComparison.OrdinalIgnoreCase);
 
             if (!(isFolder || ((isPackage || isDll) && File.Exists(full))))
             {
-                return Refuse(action, file, full, false, "There is no plugin " + full + ": a plugin is a .dll, a .ghplugin, or the folder of one installed.");
+                return Refuse(
+                    action,
+                    file,
+                    full,
+                    false,
+                    "There is no plugin " + full + ": a plugin is a .dll, a .ghplugin, or the folder of one installed."
+                );
             }
 
             bool trusted = installing || IsTrusted(full);
             CadPluginManifest manifest = null;
-            string manifestPath = isPackage ? full : Path.Combine(isFolder ? full : Path.GetDirectoryName(full), CadPluginManifest.FileName);
+            string manifestPath = isPackage
+                ? full
+                : Path.Combine(isFolder ? full : Path.GetDirectoryName(full), CadPluginManifest.FileName);
 
             if (isPackage || isFolder || File.Exists(manifestPath))
             {
@@ -643,9 +765,20 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 {
                     manifest = CadPluginManifest.Read(manifestPath);
                 }
-                catch (Exception exception) when (exception is FormatException || exception is IOException || exception is UnauthorizedAccessException)
+                catch (Exception exception)
+                    when (exception is FormatException
+                        || exception is IOException
+                        || exception is UnauthorizedAccessException
+                    )
                 {
-                    return Refuse(action, file, full, trusted, "The manifest of " + full + " cannot be read: " + exception.Message, exception);
+                    return Refuse(
+                        action,
+                        file,
+                        full,
+                        trusted,
+                        "The manifest of " + full + " cannot be read: " + exception.Message,
+                        exception
+                    );
                 }
 
                 string refusal = RefusalOf(manifest);
@@ -660,9 +793,25 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
             foreach (CadLoadedPlugin loaded in _plugins)
             {
-                if (loaded.IsLoaded && (string.Equals(loaded.Name, name, StringComparison.OrdinalIgnoreCase) || string.Equals(loaded.Path, full, StringComparison.OrdinalIgnoreCase)))
+                if (
+                    loaded.IsLoaded
+                    && (
+                        string.Equals(loaded.Name, name, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(loaded.Path, full, StringComparison.OrdinalIgnoreCase)
+                    )
+                )
                 {
-                    return Refuse(action, name, full, trusted, "The plugin " + loaded.Name + " is loaded already, from " + loaded.Path + "; PLUGINRELOAD loads it again.");
+                    return Refuse(
+                        action,
+                        name,
+                        full,
+                        trusted,
+                        "The plugin "
+                            + loaded.Name
+                            + " is loaded already, from "
+                            + loaded.Path
+                            + "; PLUGINRELOAD loads it again."
+                    );
                 }
             }
 
@@ -671,14 +820,22 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 return Refuse(action, name, full, false, NotTrusted(full));
             }
 
-            string copies = Path.Combine(ShadowFolder, (++_loads).ToString("D3", CultureInfo.InvariantCulture) + "-" + Safe(name));
+            string copies = Path.Combine(
+                ShadowFolder,
+                (++_loads).ToString("D3", CultureInfo.InvariantCulture) + "-" + Safe(name)
+            );
             IReadOnlyList<Assembly> assemblies = null;
             CadPlugin plugin;
             IReadOnlyList<string> drawingPlugins = new string[0];
 
             // A drawing plugin, or a bare .dll that may hold one, need not have a command.
             Func<CadPluginManifest, IReadOnlyList<Assembly>, IReadOnlyList<string>> finder = DrawingPluginFinder;
-            bool mayDraw = finder != null && (manifest == null || string.Equals(manifest.Kind, CadPluginManifest.DrawingKind, StringComparison.Ordinal));
+            bool mayDraw =
+                finder != null
+                && (
+                    manifest == null
+                    || string.Equals(manifest.Kind, CadPluginManifest.DrawingKind, StringComparison.Ordinal)
+                );
 
             try
             {
@@ -692,7 +849,12 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
                     if (plugin.Commands.Count == 0 && drawingPlugins.Count == 0)
                     {
-                        throw new CadPluginException(name, "The plugin " + name + " has no command and no drawing plugin: no public method marked [CadCommand], and no public class derived from DrawingPlugin.");
+                        throw new CadPluginException(
+                            name,
+                            "The plugin "
+                                + name
+                                + " has no command and no drawing plugin: no public method marked [CadCommand], and no public class derived from DrawingPlugin."
+                        );
                     }
                 }
             }
@@ -704,7 +866,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 }
 
                 TryDelete(copies);
-                string reason = exception is CadPluginException ? exception.Message : "The plugin " + name + " cannot be loaded from " + full + ": " + exception.Message;
+                string reason =
+                    exception is CadPluginException
+                        ? exception.Message
+                        : "The plugin " + name + " cannot be loaded from " + full + ": " + exception.Message;
                 return Refuse(action, name, full, trusted, reason, exception is CadPluginException ? null : exception);
             }
 
@@ -712,7 +877,11 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
             if (!_loader.CanUnload && FirstBuildKept(assemblies, copies))
             {
-                warnings.Add("The build of " + name + " loaded first in this session runs: .NET Framework takes a new build when the presenter restarts.");
+                warnings.Add(
+                    "The build of "
+                        + name
+                        + " loaded first in this session runs: .NET Framework takes a new build when the presenter restarts."
+                );
             }
 
             foreach (CadCommandRegistry registry in _registries)
@@ -720,7 +889,13 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 AddDistinct(warnings, plugin.AddTo(registry));
             }
 
-            _plugins.RemoveAll(p => !p.IsLoaded && (string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase) || string.Equals(p.Path, full, StringComparison.OrdinalIgnoreCase)));
+            _plugins.RemoveAll(p =>
+                !p.IsLoaded
+                && (
+                    string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(p.Path, full, StringComparison.OrdinalIgnoreCase)
+                )
+            );
             bool installed = isFolder && IsIn(full, PluginFolder);
             var entry = new CadLoadedPlugin(name, full, manifest, installed, trusted)
             {
@@ -728,7 +903,8 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 Assemblies = assemblies,
                 DrawingPlugins = drawingPlugins,
                 ShadowFolder = copies,
-                LoadAtStartup = installed || _startup.Exists(p => string.Equals(p, full, StringComparison.OrdinalIgnoreCase)),
+                LoadAtStartup =
+                    installed || _startup.Exists(p => string.Equals(p, full, StringComparison.OrdinalIgnoreCase)),
             };
             _plugins.Add(entry);
             _plugins.Sort(Compare);
@@ -741,8 +917,21 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             }
 
             names.AddRange(drawingPlugins);
-            string message = (action == CadPluginAction.Reload ? "Reloaded " : "Loaded ") + name + (plugin.Version.Length > 0 ? " " + plugin.Version : string.Empty) + ": " + string.Join(", ", names) + ".";
-            Record(action, name, full, trusted, true, message + (warnings.Count > 0 ? " " + string.Join(" ", warnings) : string.Empty));
+            string message =
+                (action == CadPluginAction.Reload ? "Reloaded " : "Loaded ")
+                + name
+                + (plugin.Version.Length > 0 ? " " + plugin.Version : string.Empty)
+                + ": "
+                + string.Join(", ", names)
+                + ".";
+            Record(
+                action,
+                name,
+                full,
+                trusted,
+                true,
+                message + (warnings.Count > 0 ? " " + string.Join(" ", warnings) : string.Empty)
+            );
             Changed();
             return new CadPluginResult(true, message, entry, warnings);
         }
@@ -824,8 +1013,11 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             }
         }
 
-        private bool IsLoaded(string path)
-            => _plugins.Exists(p => p.IsLoaded && string.Equals(p.Path, path.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase));
+        private bool IsLoaded(string path) =>
+            _plugins.Exists(p =>
+                p.IsLoaded
+                && string.Equals(p.Path, path.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)
+            );
 
         /// <summary>Whether a file outside the trusted folders may be loaded: asked until it is confirmed for its folder in the session.</summary>
         private bool Confirmed(string path)
@@ -856,27 +1048,57 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             }
             catch (Exception exception)
             {
-                GeometryHelperLog.Warn("CadPluginManager: asking whether to load " + path + " failed; it is not loaded.", exception);
+                GeometryHelperLog.Warn(
+                    "CadPluginManager: asking whether to load " + path + " failed; it is not loaded.",
+                    exception
+                );
                 return false;
             }
         }
 
         /// <summary>Why a manifest's plugin is not loaded: none for a drawing plugin where they are found, whose API the finder judges.</summary>
-        private string RefusalOf(CadPluginManifest manifest)
-            => DrawingPluginFinder != null && string.Equals(manifest.Kind, CadPluginManifest.DrawingKind, StringComparison.Ordinal) ? null : manifest.Refusal();
+        private string RefusalOf(CadPluginManifest manifest) =>
+            DrawingPluginFinder != null
+            && string.Equals(manifest.Kind, CadPluginManifest.DrawingKind, StringComparison.Ordinal)
+                ? null
+                : manifest.Refusal();
 
-        private static string NotTrusted(string path) => path + " is outside the trusted folders, and loading it was not confirmed.";
+        private static string NotTrusted(string path) =>
+            path + " is outside the trusted folders, and loading it was not confirmed.";
 
-        private CadPluginResult Refuse(CadPluginAction action, string plugin, string path, bool trusted, string reason, Exception exception = null)
+        private CadPluginResult Refuse(
+            CadPluginAction action,
+            string plugin,
+            string path,
+            bool trusted,
+            string reason,
+            Exception exception = null
+        )
         {
             Record(action, plugin, path, trusted, false, reason, exception);
             return new CadPluginResult(false, reason, null, null);
         }
 
-        private void Record(CadPluginAction action, string plugin, string path, bool trusted, bool succeeded, string result, Exception exception = null)
+        private void Record(
+            CadPluginAction action,
+            string plugin,
+            string path,
+            bool trusted,
+            bool succeeded,
+            string result,
+            Exception exception = null
+        )
         {
             _log.Add(new CadPluginLogEntry(DateTime.Now, plugin, action, path, trusted, succeeded, result));
-            string line = "CadPluginManager: " + action + " " + plugin + " from " + path + (trusted ? " (trusted): " : " (not trusted): ") + result;
+            string line =
+                "CadPluginManager: "
+                + action
+                + " "
+                + plugin
+                + " from "
+                + path
+                + (trusted ? " (trusted): " : " (not trusted): ")
+                + result;
 
             if (exception != null)
             {
@@ -923,8 +1145,14 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             }
 
             c.Write("Plugins: " + string.Join(", ", names) + ".");
-            yield return CadPrompt.ForString("Enter the name of the plugin to " + verb, names.Count == 1 ? names[0] : null);
-            string name = c.Input.Kind == CadInputKind.Text && !string.IsNullOrWhiteSpace(c.Input.Text) ? c.Input.Text : (names.Count == 1 ? names[0] : null);
+            yield return CadPrompt.ForString(
+                "Enter the name of the plugin to " + verb,
+                names.Count == 1 ? names[0] : null
+            );
+            string name =
+                c.Input.Kind == CadInputKind.Text && !string.IsNullOrWhiteSpace(c.Input.Text)
+                    ? c.Input.Text
+                    : (names.Count == 1 ? names[0] : null);
 
             if (name == null)
             {
@@ -952,7 +1180,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
                 foreach (string path in settings?.Startup ?? new List<string>())
                 {
-                    if (!string.IsNullOrWhiteSpace(path) && !_startup.Exists(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase)))
+                    if (
+                        !string.IsNullOrWhiteSpace(path)
+                        && !_startup.Exists(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase))
+                    )
                     {
                         _startup.Add(path);
                     }
@@ -960,15 +1191,28 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
                 foreach (string folder in settings?.Trusted ?? new List<string>())
                 {
-                    if (!string.IsNullOrWhiteSpace(folder) && !_trusted.Exists(t => string.Equals(t, folder, StringComparison.OrdinalIgnoreCase)))
+                    if (
+                        !string.IsNullOrWhiteSpace(folder)
+                        && !_trusted.Exists(t => string.Equals(t, folder, StringComparison.OrdinalIgnoreCase))
+                    )
                     {
                         _trusted.Add(folder);
                     }
                 }
             }
-            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is SerializationException || exception is System.Xml.XmlException)
+            catch (Exception exception)
+                when (exception is IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is SerializationException
+                    || exception is System.Xml.XmlException
+                )
             {
-                GeometryHelperLog.Warn("CadPluginManager: the plugin settings " + SettingsPath + " cannot be read; no plugin is on the startup list and only the plugin folder is trusted.", exception);
+                GeometryHelperLog.Warn(
+                    "CadPluginManager: the plugin settings "
+                        + SettingsPath
+                        + " cannot be read; no plugin is on the startup list and only the plugin folder is trusted.",
+                    exception
+                );
             }
         }
 
@@ -977,21 +1221,33 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath));
-                var settings = new Settings { Startup = new List<string>(_startup), Trusted = new List<string>(_trusted) };
+                var settings = new Settings
+                {
+                    Startup = new List<string>(_startup),
+                    Trusted = new List<string>(_trusted),
+                };
 
                 using (var stream = new MemoryStream())
                 {
-                    using (var writer = JsonReaderWriterFactory.CreateJsonWriter(stream, Encoding.UTF8, false, true, "  "))
+                    using (
+                        var writer = JsonReaderWriterFactory.CreateJsonWriter(stream, Encoding.UTF8, false, true, "  ")
+                    )
                     {
                         new DataContractJsonSerializer(typeof(Settings)).WriteObject(writer, settings);
                     }
 
-                    File.WriteAllText(SettingsPath, Encoding.UTF8.GetString(stream.ToArray()).Replace("\\/", "/").Replace("\r\n", "\n") + "\n");
+                    File.WriteAllText(
+                        SettingsPath,
+                        Encoding.UTF8.GetString(stream.ToArray()).Replace("\\/", "/").Replace("\r\n", "\n") + "\n"
+                    );
                 }
             }
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
             {
-                GeometryHelperLog.Warn("CadPluginManager: the plugin settings " + SettingsPath + " cannot be written.", exception);
+                GeometryHelperLog.Warn(
+                    "CadPluginManager: the plugin settings " + SettingsPath + " cannot be written.",
+                    exception
+                );
             }
         }
 
@@ -1012,13 +1268,19 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             return order != 0 ? order : string.CompareOrdinal(a.Path, b.Path);
         }
 
-        private static bool IsIn(string path, string folder)
-            => !string.IsNullOrEmpty(path) && path.StartsWith(folder.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+        private static bool IsIn(string path, string folder) =>
+            !string.IsNullOrEmpty(path)
+            && path.StartsWith(
+                folder.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase
+            );
 
         private static string Unquote(string text)
         {
             string trimmed = text.Trim();
-            return trimmed.Length >= 2 && trimmed[0] == '"' && trimmed[trimmed.Length - 1] == '"' ? trimmed.Substring(1, trimmed.Length - 2).Trim() : trimmed;
+            return trimmed.Length >= 2 && trimmed[0] == '"' && trimmed[trimmed.Length - 1] == '"'
+                ? trimmed.Substring(1, trimmed.Length - 2).Trim()
+                : trimmed;
         }
 
         private static string Safe(string name)
@@ -1044,7 +1306,11 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             }
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
             {
-                GeometryHelperLog.Debug("CadPluginManager: the copies in " + folder + " are still in use; they are deleted at a later start.");
+                GeometryHelperLog.Debug(
+                    "CadPluginManager: the copies in "
+                        + folder
+                        + " are still in use; they are deleted at a later start."
+                );
             }
         }
 
@@ -1062,7 +1328,11 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
             foreach (string folder in folders)
             {
-                if (!int.TryParse(Path.GetFileName(folder), NumberStyles.None, CultureInfo.InvariantCulture, out int id) || id == self || Running(id))
+                if (
+                    !int.TryParse(Path.GetFileName(folder), NumberStyles.None, CultureInfo.InvariantCulture, out int id)
+                    || id == self
+                    || Running(id)
+                )
                 {
                     continue;
                 }

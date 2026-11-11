@@ -1,25 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <UseWPF>true</UseWPF>
+        <PlatformTarget>x64</PlatformTarget>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <RootNamespace>GeometryHelper.Drawing.App</RootNamespace>
+        <AssemblyName>GeometryHelper.Drawing.App</AssemblyName>
+        <StartupObject>GeometryHelper.Drawing.App.Program</StartupObject>
+        <Description>GeometryHelper Drawing: the standalone app that opens and shows DXF drawings, laid out as AutoCAD 2D.</Description>
+        <IsPackable>false</IsPackable>
+        <NoWarn>$(NoWarn);MSB3277</NoWarn>
+    </PropertyGroup>
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <UseWPF>true</UseWPF>
-    <PlatformTarget>x64</PlatformTarget>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <RootNamespace>GeometryHelper.Drawing.App</RootNamespace>
-    <AssemblyName>GeometryHelper.Drawing.App</AssemblyName>
-    <StartupObject>GeometryHelper.Drawing.App.Program</StartupObject>
-    <Description>GeometryHelper Drawing: the standalone app that opens and shows DXF drawings, laid out as AutoCAD 2D.</Description>
-    <IsPackable>false</IsPackable>
-    <NoWarn>$(NoWarn);MSB3277</NoWarn>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\GeometryHelper.Drawing.Wpf\GeometryHelper.Drawing.Wpf.csproj" />
-    <ProjectReference Include="..\GeometryHelper.Drawing\GeometryHelper.Drawing.csproj" />
-    <ProjectReference Include="..\GeometryHelper.Dxf.Viewer.Wpf\GeometryHelper.Dxf.Viewer.Wpf.csproj" />
-    <ProjectReference Include="..\GeometryHelper.Dxf.Viewer\GeometryHelper.Dxf.Viewer.csproj" />
-    <ProjectReference Include="..\GeometryHelper\GeometryHelper.csproj" />
-  </ItemGroup>
-
+    <ItemGroup>
+        <ProjectReference Include="..\GeometryHelper.Drawing.Wpf\GeometryHelper.Drawing.Wpf.csproj" />
+        <ProjectReference Include="..\GeometryHelper.Drawing\GeometryHelper.Drawing.csproj" />
+        <ProjectReference Include="..\GeometryHelper.Dxf.Viewer.Wpf\GeometryHelper.Dxf.Viewer.Wpf.csproj" />
+        <ProjectReference Include="..\GeometryHelper.Dxf.Viewer\GeometryHelper.Dxf.Viewer.csproj" />
+        <ProjectReference Include="..\GeometryHelper\GeometryHelper.csproj" />
+    </ItemGroup>
 </Project>

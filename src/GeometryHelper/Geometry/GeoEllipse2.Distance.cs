@@ -46,7 +46,8 @@ namespace GeometryHelper.Geometry
         /// The distance out to the rim, measured exactly, negative when the point lies inside the ellipse
         /// and nought when the tolerance given calls it on the rim.
         /// </returns>
-        public double SignedDistanceTo(GeoPoint2 point, Tolerance tolerance) => Ellipse2.SignedDistanceTo(this, point, tolerance);
+        public double SignedDistanceTo(GeoPoint2 point, Tolerance tolerance) =>
+            Ellipse2.SignedDistanceTo(this, point, tolerance);
 
         /// <summary>
         /// Gets the shortest distance from this ellipse to a segment, using the default tolerance.
@@ -84,7 +85,8 @@ namespace GeometryHelper.Geometry
         /// 1E-6 where the two nearly touch: see the note on ellipses in the plane guide.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the polyline is null.</exception>
-        public double DistanceTo(GeoPolyline2 polyline, Tolerance tolerance) => Ellipse2.DistanceTo(this, polyline, tolerance);
+        public double DistanceTo(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Ellipse2.DistanceTo(this, polyline, tolerance);
 
         /// <summary>
         /// Gets the shortest distance from this ellipse to a polygon, using the default tolerance.
@@ -104,7 +106,8 @@ namespace GeometryHelper.Geometry
         /// 1E-6 where the two nearly touch: see the note on ellipses in the plane guide.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
-        public double DistanceTo(GeoPolygon2 polygon, Tolerance tolerance) => Ellipse2.DistanceTo(this, polygon, tolerance);
+        public double DistanceTo(GeoPolygon2 polygon, Tolerance tolerance) =>
+            Ellipse2.DistanceTo(this, polygon, tolerance);
 
         /// <summary>
         /// Gets the shortest distance from this ellipse to a rectangle, using the default tolerance.
@@ -140,7 +143,8 @@ namespace GeometryHelper.Geometry
         /// Nought only where they truly meet, otherwise the gap, measured exactly. Exact to rounding, and only to about
         /// 1E-6 where the two nearly touch: see the note on ellipses in the plane guide.
         /// </returns>
-        public double DistanceTo(GeoTriangle2 triangle, Tolerance tolerance) => Ellipse2.DistanceTo(this, triangle, tolerance);
+        public double DistanceTo(GeoTriangle2 triangle, Tolerance tolerance) =>
+            Ellipse2.DistanceTo(this, triangle, tolerance);
 
         /// <summary>
         /// Gets the shortest distance from this ellipse to an edge, using the default tolerance.
@@ -176,7 +180,8 @@ namespace GeometryHelper.Geometry
         /// Nought only where they truly meet, otherwise the gap, measured exactly. Exact to rounding, and only to about
         /// 1E-6 where the two nearly touch: see the note on ellipses in the plane guide.
         /// </returns>
-        public double DistanceTo(GeoCircle2 circle, Tolerance tolerance) => Ellipse2.DistanceTo(this, circle, tolerance);
+        public double DistanceTo(GeoCircle2 circle, Tolerance tolerance) =>
+            Ellipse2.DistanceTo(this, circle, tolerance);
 
         /// <summary>
         /// Gets the shortest distance from this ellipse to an arc, using the default tolerance.
@@ -214,7 +219,8 @@ namespace GeometryHelper.Geometry
         /// 1E-6 where the two nearly touch: see the note on ellipses in the plane guide.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the chain is null.</exception>
-        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) => Ellipse2.DistanceTo(this, chain, tolerance);
+        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Ellipse2.DistanceTo(this, chain, tolerance);
 
         /// <summary>
         /// Gets the shortest distance from this ellipse to a curved loop, using the default tolerance.
@@ -234,7 +240,8 @@ namespace GeometryHelper.Geometry
         /// 1E-6 where the two nearly touch: see the note on ellipses in the plane guide.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the loop is null.</exception>
-        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => Ellipse2.DistanceTo(this, loop, tolerance);
+        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Ellipse2.DistanceTo(this, loop, tolerance);
 
         /// <summary>
         /// Gets the shortest distance from this ellipse to another ellipse, using the default tolerance.

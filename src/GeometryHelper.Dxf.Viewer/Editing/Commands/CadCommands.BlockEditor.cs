@@ -16,8 +16,23 @@ namespace GeometryHelper.Dxf.Viewer
         // The commands that leave the block or change another space, which the Block Editor refuses, as the design's notes list them.
         private static readonly HashSet<string> LeaveBlock = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "BEDIT", "-BEDIT", "XREF", "-XREF", "XATTACH", "IMAGEATTACH", "EXTERNALREFERENCES", "LAYOUT", "PLOT", "-PLOT", "PREVIEW",
-            "PAGESETUP", "MSPACE", "PSPACE", "MVIEW", "QSAVE", "SAVEAS",
+            "BEDIT",
+            "-BEDIT",
+            "XREF",
+            "-XREF",
+            "XATTACH",
+            "IMAGEATTACH",
+            "EXTERNALREFERENCES",
+            "LAYOUT",
+            "PLOT",
+            "-PLOT",
+            "PREVIEW",
+            "PAGESETUP",
+            "MSPACE",
+            "PSPACE",
+            "MVIEW",
+            "QSAVE",
+            "SAVEAS",
         };
 
         internal static void AddBlockEditorTo(CadCommandRegistry registry)
@@ -27,7 +42,9 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("BSAVE", BlockSave));
             registry.Add(new CadCommand("BSAVEAS", BlockSaveAs));
             registry.Add(new CadCommand("BCLOSE", BlockClose));
-            registry.Add(new CadCommand("BAUTHORPALETTE", c => Say(c, "The Block Authoring Palettes are not in this version.")));
+            registry.Add(
+                new CadCommand("BAUTHORPALETTE", c => Say(c, "The Block Authoring Palettes are not in this version."))
+            );
         }
 
         /// <summary>Whether the Block Editor refuses a command, "Not allowed in the Block Editor.": BEDIT again, XREF, LAYOUT, PLOT and the others that leave the block.</summary>
@@ -39,10 +56,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> BlockEdit(CadCommandContext c)
         {
-            string offered = c.PreSelected.Select(h => c.Document.FindEntity(h)).OfType<DxfBlockReference>()
-                .Select(r => r.Name).FirstOrDefault(n => NamedBlocks(c.Database).Exists(b => string.Equals(b.Name, n, StringComparison.OrdinalIgnoreCase)));
+            string offered = c
+                .PreSelected.Select(h => c.Document.FindEntity(h))
+                .OfType<DxfBlockReference>()
+                .Select(r => r.Name)
+                .FirstOrDefault(n =>
+                    NamedBlocks(c.Database).Exists(b => string.Equals(b.Name, n, StringComparison.OrdinalIgnoreCase))
+                );
             c.ClearsSelection = c.PreSelected.Count > 0;
-            var request = new CadBlockEditRequest(c.Document, "Edit Block Definition", offered ?? CadBlockEditor.CurrentDrawing);
+            var request = new CadBlockEditRequest(
+                c.Document,
+                "Edit Block Definition",
+                offered ?? CadBlockEditor.CurrentDrawing
+            );
 
             if (!c.Session.Request("BEDIT", c.Document, request))
             {
@@ -96,7 +122,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             CadBlockEditor editor = c.Document.BlockEditor;
             int count = editor.Space.Block.Count(e => !e.IsErased);
-            c.Write("Block Editor opened: " + editor.Name + " (" + count.ToString(CultureInfo.InvariantCulture) + (count == 1 ? " object)" : " objects)"));
+            c.Write(
+                "Block Editor opened: "
+                    + editor.Name
+                    + " ("
+                    + count.ToString(CultureInfo.InvariantCulture)
+                    + (count == 1 ? " object)" : " objects)")
+            );
         }
 
         /// <summary>BSAVE (BS): the block saved, every INSERT of it drawn anew.</summary>
@@ -179,8 +211,15 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (!asked.Handled)
                 {
-                    yield return CadPrompt.ForKeyword("Save changes to " + editor.Name + "?", new[] { "Save", "Discard", "Cancel" }, "Save");
-                    answer = c.Input.Is("Save") ? "Save" : c.Input.Is("Discard") ? "Discard" : null;
+                    yield return CadPrompt.ForKeyword(
+                        "Save changes to " + editor.Name + "?",
+                        new[] { "Save", "Discard", "Cancel" },
+                        "Save"
+                    );
+                    answer =
+                        c.Input.Is("Save") ? "Save"
+                        : c.Input.Is("Discard") ? "Discard"
+                        : null;
                 }
 
                 if (answer != "Save" && answer != "Discard")

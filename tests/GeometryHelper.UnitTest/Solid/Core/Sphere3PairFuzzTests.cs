@@ -22,9 +22,11 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Strict = XLine3Probe.Strict;
 
-        private static int Cases => int.TryParse(Environment.GetEnvironmentVariable("SPHERE3_FUZZ"), out int n) ? n : 20000;
+        private static int Cases =>
+            int.TryParse(Environment.GetEnvironmentVariable("SPHERE3_FUZZ"), out int n) ? n : 20000;
 
-        private static int Seed => int.TryParse(Environment.GetEnvironmentVariable("SPHERE3_SEED"), out int n) ? n : 20261020;
+        private static int Seed =>
+            int.TryParse(Environment.GetEnvironmentVariable("SPHERE3_SEED"), out int n) ? n : 20261020;
 
         private static double Between(Random r, double lo, double hi) => lo + (hi - lo) * r.NextDouble();
 
@@ -88,7 +90,10 @@ namespace GeometryHelper.UnitTest.Solid
                 }
             }
 
-            Assert.True(failures.Count == 0, failures.Count + " of " + Cases + " pairs of balls went wrong:\n" + string.Join("\n", failures.Take(8)));
+            Assert.True(
+                failures.Count == 0,
+                failures.Count + " of " + Cases + " pairs of balls went wrong:\n" + string.Join("\n", failures.Take(8))
+            );
             Assert.True(circles >= Cases / 10, "only " + circles + " pairs crossed in a circle");
             Assert.True(tangents >= Cases / 100, "only " + tangents + " pairs touched at a point");
             Assert.True(touching >= Cases / 10, "only " + touching + " pairs collided");
@@ -102,7 +107,10 @@ namespace GeometryHelper.UnitTest.Solid
             double gap = Math.Max(0.0, d - rim);
 
             // The gap, from either side, to the bit.
-            Assert.True(Math.Abs(a.DistanceTo(b) - gap) <= 1E-9 * Math.Max(1.0, d), "gap " + a.DistanceTo(b) + " against " + gap);
+            Assert.True(
+                Math.Abs(a.DistanceTo(b) - gap) <= 1E-9 * Math.Max(1.0, d),
+                "gap " + a.DistanceTo(b) + " against " + gap
+            );
             Assert.True(a.DistanceTo(b).Equals(b.DistanceTo(a)), "the gap differs from the other side");
 
             bool collides = a.CollidesWith(b, Strict);
@@ -120,19 +128,35 @@ namespace GeometryHelper.UnitTest.Solid
             GeoLine3 line = a.GetShortestLineTo(b, Strict);
             GeoLine3 back = b.GetShortestLineTo(a, Strict);
 
-            Assert.True(line.StartPoint.Equals(back.EndPoint) && line.EndPoint.Equals(back.StartPoint), "the shortest line is not the other side's turned round");
+            Assert.True(
+                line.StartPoint.Equals(back.EndPoint) && line.EndPoint.Equals(back.StartPoint),
+                "the shortest line is not the other side's turned round"
+            );
             Assert.True(line.Equals(a.GetShortestLineTo(b)), "the form without a tolerance gives another line");
 
             if (gap > 1E-9 * Math.Max(1.0, d))
             {
-                Assert.True(Math.Abs(Dist(line.StartPoint, a.Center) - a.Radius) <= 1E-9 * Math.Max(1.0, a.Radius), "the line does not start on the first surface");
-                Assert.True(Math.Abs(Dist(line.EndPoint, b.Center) - b.Radius) <= 1E-9 * Math.Max(1.0, b.Radius), "the line does not end on the second surface");
-                Assert.True(Math.Abs(line.Length - gap) <= 1E-9 * Math.Max(1.0, d), "the line is " + line.Length + " long against a gap of " + gap);
+                Assert.True(
+                    Math.Abs(Dist(line.StartPoint, a.Center) - a.Radius) <= 1E-9 * Math.Max(1.0, a.Radius),
+                    "the line does not start on the first surface"
+                );
+                Assert.True(
+                    Math.Abs(Dist(line.EndPoint, b.Center) - b.Radius) <= 1E-9 * Math.Max(1.0, b.Radius),
+                    "the line does not end on the second surface"
+                );
+                Assert.True(
+                    Math.Abs(line.Length - gap) <= 1E-9 * Math.Max(1.0, d),
+                    "the line is " + line.Length + " long against a gap of " + gap
+                );
             }
             else if (d < rim - 1E-9 * Math.Max(1.0, d))
             {
                 Assert.True(line.Length == 0.0, "the line of two balls that meet has a length");
-                Assert.True(Dist(line.StartPoint, a.Center) <= a.Radius + 1E-9 * Math.Max(1.0, a.Radius) && Dist(line.StartPoint, b.Center) <= b.Radius + 1E-9 * Math.Max(1.0, b.Radius), "the line of no length is not inside both");
+                Assert.True(
+                    Dist(line.StartPoint, a.Center) <= a.Radius + 1E-9 * Math.Max(1.0, a.Radius)
+                        && Dist(line.StartPoint, b.Center) <= b.Radius + 1E-9 * Math.Max(1.0, b.Radius),
+                    "the line of no length is not inside both"
+                );
             }
 
             // The circle and the point.
@@ -141,22 +165,47 @@ namespace GeometryHelper.UnitTest.Solid
             bool tangent = a.TryGetTangentPoint(b, out GeoPoint3 touch, Strict);
             bool theirTangent = b.TryGetTangentPoint(a, out GeoPoint3 theirTouch, Strict);
 
-            Assert.True(circle == theirCircle && tangent == theirTangent, "the two sides disagree on how the surfaces meet");
+            Assert.True(
+                circle == theirCircle && tangent == theirTangent,
+                "the two sides disagree on how the surfaces meet"
+            );
             Assert.True(!(circle && tangent), "the surfaces cross in a circle and touch at a point");
             tangents += tangent ? 1 : 0;
-            Assert.True(circle == a.TryGetIntersectionCircle(b, out GeoCircle3 plain), "the form without a tolerance finds another circle");
-            Assert.True(tangent == a.TryGetTangentPoint(b, out GeoPoint3 plainTouch), "the form without a tolerance finds another point");
+            Assert.True(
+                circle == a.TryGetIntersectionCircle(b, out GeoCircle3 plain),
+                "the form without a tolerance finds another circle"
+            );
+            Assert.True(
+                tangent == a.TryGetTangentPoint(b, out GeoPoint3 plainTouch),
+                "the form without a tolerance finds another point"
+            );
 
             if (circle)
             {
-                Assert.True(ours.Center.Equals(theirs.Center) && ours.Radius.Equals(theirs.Radius), "the circle differs from the other side");
-                Assert.True(ours.Normal.Equals(theirs.Normal.Negate()), "the normal of the circle is not turned round from the other side");
-                Assert.True(ours.Equals(plain) && touch.Equals(default(GeoPoint3)) && theirTouch.Equals(default(GeoPoint3)), "a circle comes with a point");
+                Assert.True(
+                    ours.Center.Equals(theirs.Center) && ours.Radius.Equals(theirs.Radius),
+                    "the circle differs from the other side"
+                );
+                Assert.True(
+                    ours.Normal.Equals(theirs.Normal.Negate()),
+                    "the normal of the circle is not turned round from the other side"
+                );
+                Assert.True(
+                    ours.Equals(plain) && touch.Equals(default(GeoPoint3)) && theirTouch.Equals(default(GeoPoint3)),
+                    "a circle comes with a point"
+                );
             }
 
             if (tangent)
             {
-                Assert.True(Math.Abs(Dist(touch, a.Center) - a.Radius) <= 1E-3 + 1E-9 && Math.Abs(Dist(touch, b.Center) - b.Radius) <= 1E-3 + 1E-9, "the touch is off a surface by " + Math.Abs(Dist(touch, a.Center) - a.Radius) + " and " + Math.Abs(Dist(touch, b.Center) - b.Radius));
+                Assert.True(
+                    Math.Abs(Dist(touch, a.Center) - a.Radius) <= 1E-3 + 1E-9
+                        && Math.Abs(Dist(touch, b.Center) - b.Radius) <= 1E-3 + 1E-9,
+                    "the touch is off a surface by "
+                        + Math.Abs(Dist(touch, a.Center) - a.Radius)
+                        + " and "
+                        + Math.Abs(Dist(touch, b.Center) - b.Radius)
+                );
                 Assert.True(touch.Equals(theirTouch), "the point differs from the other side");
                 Assert.True(touch.Equals(plainTouch), "the form without a tolerance finds another point");
             }
@@ -178,7 +227,20 @@ namespace GeometryHelper.UnitTest.Solid
                 return;
             }
 
-            Assert.True(circle == crosses, "circle " + circle + " where the formulas say " + crosses + " (d " + d + ", sum " + rim + ", difference " + inner + ")");
+            Assert.True(
+                circle == crosses,
+                "circle "
+                    + circle
+                    + " where the formulas say "
+                    + crosses
+                    + " (d "
+                    + d
+                    + ", sum "
+                    + rim
+                    + ", difference "
+                    + inner
+                    + ")"
+            );
             Assert.False(tangent, "a touch where the surfaces are not within the tolerance of touching");
 
             if (!circle)
@@ -190,10 +252,22 @@ namespace GeometryHelper.UnitTest.Solid
 
             Vec u = (Vec.Of(b.Center) - Vec.Of(a.Center)).Unit();
 
-            Assert.True(Dist(ours.Center, (Vec.Of(a.Center) + u * along).ToPoint()) <= 1E-9 * Math.Max(1.0, d), "the circle is not centred where the formulas say");
-            Assert.True(Math.Abs(ours.Radius - Math.Sqrt(squared)) <= 1E-9 * Math.Max(1.0, a.Radius), "the circle has a radius of " + ours.Radius + " against " + Math.Sqrt(squared));
-            Assert.True(Vec.Of(ours.Normal).Cross(u).Length <= 1E-12, "the normal of the circle is not along the line between the centres");
-            Assert.True(Vec.Of(ours.Normal).Dot(u) > 0.0, "the normal of the circle does not point from the first ball to the second");
+            Assert.True(
+                Dist(ours.Center, (Vec.Of(a.Center) + u * along).ToPoint()) <= 1E-9 * Math.Max(1.0, d),
+                "the circle is not centred where the formulas say"
+            );
+            Assert.True(
+                Math.Abs(ours.Radius - Math.Sqrt(squared)) <= 1E-9 * Math.Max(1.0, a.Radius),
+                "the circle has a radius of " + ours.Radius + " against " + Math.Sqrt(squared)
+            );
+            Assert.True(
+                Vec.Of(ours.Normal).Cross(u).Length <= 1E-12,
+                "the normal of the circle is not along the line between the centres"
+            );
+            Assert.True(
+                Vec.Of(ours.Normal).Dot(u) > 0.0,
+                "the normal of the circle does not point from the first ball to the second"
+            );
 
             // Every point of the circle lies on both surfaces.
             Vec n = Vec.Of(ours.Normal);
@@ -203,10 +277,17 @@ namespace GeometryHelper.UnitTest.Solid
             for (int k = 0; k < 16; k++)
             {
                 double angle = 2.0 * Math.PI * k / 16.0;
-                Vec point = Vec.Of(ours.Center) + ux * (ours.Radius * Math.Cos(angle)) + uy * (ours.Radius * Math.Sin(angle));
+                Vec point =
+                    Vec.Of(ours.Center) + ux * (ours.Radius * Math.Cos(angle)) + uy * (ours.Radius * Math.Sin(angle));
 
-                Assert.True(Math.Abs(point.DistanceTo(Vec.Of(a.Center)) - a.Radius) <= 1E-8 * Math.Max(1.0, a.Radius), "a point of the circle is off the first surface");
-                Assert.True(Math.Abs(point.DistanceTo(Vec.Of(b.Center)) - b.Radius) <= 1E-8 * Math.Max(1.0, b.Radius), "a point of the circle is off the second surface");
+                Assert.True(
+                    Math.Abs(point.DistanceTo(Vec.Of(a.Center)) - a.Radius) <= 1E-8 * Math.Max(1.0, a.Radius),
+                    "a point of the circle is off the first surface"
+                );
+                Assert.True(
+                    Math.Abs(point.DistanceTo(Vec.Of(b.Center)) - b.Radius) <= 1E-8 * Math.Max(1.0, b.Radius),
+                    "a point of the circle is off the second surface"
+                );
             }
         }
 
@@ -233,7 +314,10 @@ namespace GeometryHelper.UnitTest.Solid
                     Vec side = XLine3Gen.RandomUnit(random);
 
                     side = (side - n * side.Dot(n)).Unit();
-                    at = o + side * Between(random, 0, 100) + n * ((radius + gaps[random.Next(gaps.Length)]) * (random.Next(2) == 0 ? 1 : -1));
+                    at =
+                        o
+                        + side * Between(random, 0, 100)
+                        + n * ((radius + gaps[random.Next(gaps.Length)]) * (random.Next(2) == 0 ? 1 : -1));
                 }
                 else
                 {
@@ -248,11 +332,29 @@ namespace GeometryHelper.UnitTest.Solid
                 }
                 catch (Exception e)
                 {
-                    failures.Add("#" + i + ": " + e.Message + "\n   ball  " + ball + "\n   plane " + plane.Origin + " " + plane.Normal);
+                    failures.Add(
+                        "#"
+                            + i
+                            + ": "
+                            + e.Message
+                            + "\n   ball  "
+                            + ball
+                            + "\n   plane "
+                            + plane.Origin
+                            + " "
+                            + plane.Normal
+                    );
                 }
             }
 
-            Assert.True(failures.Count == 0, failures.Count + " of " + Cases + " balls and planes went wrong:\n" + string.Join("\n", failures.Take(8)));
+            Assert.True(
+                failures.Count == 0,
+                failures.Count
+                    + " of "
+                    + Cases
+                    + " balls and planes went wrong:\n"
+                    + string.Join("\n", failures.Take(8))
+            );
             Assert.True(circles >= Cases / 10, "only " + circles + " planes cut a circle");
             Assert.True(tangents >= Cases / 100, "only " + tangents + " planes touched at a point");
         }
@@ -264,7 +366,10 @@ namespace GeometryHelper.UnitTest.Solid
             double height = n.Dot(c - Vec.Of(plane.Origin));
             double gap = Math.Max(0.0, Math.Abs(height) - ball.Radius);
 
-            Assert.True(Math.Abs(ball.DistanceTo(plane) - gap) <= 1E-9 * Math.Max(1.0, Math.Abs(height)), "gap " + ball.DistanceTo(plane) + " against " + gap);
+            Assert.True(
+                Math.Abs(ball.DistanceTo(plane) - gap) <= 1E-9 * Math.Max(1.0, Math.Abs(height)),
+                "gap " + ball.DistanceTo(plane) + " against " + gap
+            );
             Assert.True(ball.DistanceTo(plane).Equals(plane.DistanceTo(ball)), "the gap differs from the other side");
 
             bool collides = ball.CollidesWith(plane, Strict);
@@ -279,18 +384,35 @@ namespace GeometryHelper.UnitTest.Solid
             GeoLine3 line = ball.GetShortestLineTo(plane, Strict);
             GeoLine3 back = plane.GetShortestLineTo(ball, Strict);
 
-            Assert.True(line.StartPoint.Equals(back.EndPoint) && line.EndPoint.Equals(back.StartPoint), "the shortest line is not the other side's turned round");
+            Assert.True(
+                line.StartPoint.Equals(back.EndPoint) && line.EndPoint.Equals(back.StartPoint),
+                "the shortest line is not the other side's turned round"
+            );
 
             if (gap > 1E-9)
             {
-                Assert.True(Math.Abs(Dist(line.StartPoint, ball.Center) - ball.Radius) <= 1E-9 * Math.Max(1.0, ball.Radius), "the line does not start on the surface");
-                Assert.True(Math.Abs(n.Dot(Vec.Of(line.EndPoint) - Vec.Of(plane.Origin))) <= 1E-9 * Math.Max(1.0, Math.Abs(height)), "the line does not end on the plane");
-                Assert.True(Math.Abs(line.Length - gap) <= 1E-9 * Math.Max(1.0, Math.Abs(height)), "the line is " + line.Length + " long against a gap of " + gap);
+                Assert.True(
+                    Math.Abs(Dist(line.StartPoint, ball.Center) - ball.Radius) <= 1E-9 * Math.Max(1.0, ball.Radius),
+                    "the line does not start on the surface"
+                );
+                Assert.True(
+                    Math.Abs(n.Dot(Vec.Of(line.EndPoint) - Vec.Of(plane.Origin)))
+                        <= 1E-9 * Math.Max(1.0, Math.Abs(height)),
+                    "the line does not end on the plane"
+                );
+                Assert.True(
+                    Math.Abs(line.Length - gap) <= 1E-9 * Math.Max(1.0, Math.Abs(height)),
+                    "the line is " + line.Length + " long against a gap of " + gap
+                );
             }
             else if (Math.Abs(height) < ball.Radius - 1E-9 * Math.Max(1.0, ball.Radius))
             {
                 Assert.True(line.Length == 0.0, "the line of a plane through the ball has a length");
-                Assert.True(Math.Abs(n.Dot(Vec.Of(line.StartPoint) - Vec.Of(plane.Origin))) <= 1E-9 * Math.Max(1.0, ball.Radius), "the line of no length is off the plane");
+                Assert.True(
+                    Math.Abs(n.Dot(Vec.Of(line.StartPoint) - Vec.Of(plane.Origin)))
+                        <= 1E-9 * Math.Max(1.0, ball.Radius),
+                    "the line of no length is off the plane"
+                );
             }
 
             bool circle = ball.TryGetIntersectionCircle(plane, out GeoCircle3 ours, Strict);
@@ -312,7 +434,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             if (tangent)
             {
-                Assert.True(touch.Equals(theirTouch) && touch.Equals(plainTouch), "the point differs from the other side");
+                Assert.True(
+                    touch.Equals(theirTouch) && touch.Equals(plainTouch),
+                    "the point differs from the other side"
+                );
             }
 
             // The depth of the plane into the surface: a circle where it is more than the point tolerance, a touch where it is within it.
@@ -333,9 +458,19 @@ namespace GeometryHelper.UnitTest.Solid
 
             circles++;
 
-            Assert.True(Math.Abs(ours.Radius - Math.Sqrt(depth * (ball.Radius + Math.Abs(height)))) <= 1E-9 * Math.Max(1.0, ball.Radius), "the circle has a radius of " + ours.Radius);
-            Assert.True(Dist(ours.Center, (c - n * height).ToPoint()) <= 1E-9 * Math.Max(1.0, ball.Radius), "the circle is not centred on the foot of the centre");
-            Assert.True(ours.Normal.IsEqualTo(plane.Normal, new Tolerance(1E-3, 1E-12)), "the circle does not take the normal of the plane");
+            Assert.True(
+                Math.Abs(ours.Radius - Math.Sqrt(depth * (ball.Radius + Math.Abs(height))))
+                    <= 1E-9 * Math.Max(1.0, ball.Radius),
+                "the circle has a radius of " + ours.Radius
+            );
+            Assert.True(
+                Dist(ours.Center, (c - n * height).ToPoint()) <= 1E-9 * Math.Max(1.0, ball.Radius),
+                "the circle is not centred on the foot of the centre"
+            );
+            Assert.True(
+                ours.Normal.IsEqualTo(plane.Normal, new Tolerance(1E-3, 1E-12)),
+                "the circle does not take the normal of the plane"
+            );
         }
 
         [Fact]
@@ -357,12 +492,18 @@ namespace GeometryHelper.UnitTest.Solid
                 Vec c = o + side * Between(random, 0, 100) + n * ((radius + offset) * (random.Next(2) == 0 ? 1 : -1));
                 var ball = new GeoSphere3(c.ToPoint(), radius);
 
-                Assert.True(ball.TryGetTangentPoint(plane, out GeoPoint3 touch, Strict), "no touch at an offset of " + offset);
+                Assert.True(
+                    ball.TryGetTangentPoint(plane, out GeoPoint3 touch, Strict),
+                    "no touch at an offset of " + offset
+                );
                 Assert.False(ball.TryGetIntersectionCircle(plane, out _, Strict));
 
                 double height = n.Dot(c - o);
 
-                Assert.True(Dist(touch, (c - n * height).ToPoint()) <= 1E-9 * Math.Max(1.0, radius), "the touch is not the foot of the centre");
+                Assert.True(
+                    Dist(touch, (c - n * height).ToPoint()) <= 1E-9 * Math.Max(1.0, radius),
+                    "the touch is not the foot of the centre"
+                );
             }
         }
     }

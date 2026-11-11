@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -85,7 +85,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="circle">The circle.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoCircle3 circle, Tolerance tolerance) => Ellipse3.CollidesWith(this, circle, tolerance);
+        public bool CollidesWith(GeoCircle3 circle, Tolerance tolerance) =>
+            Ellipse3.CollidesWith(this, circle, tolerance);
 
         /// <summary>
         /// Checks whether the rim of this ellipse touches another ellipse, using the default tolerance.
@@ -102,7 +103,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="other">The other ellipse.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoEllipse3 other, Tolerance tolerance) => Ellipse3.CollidesWith(this, other, tolerance);
+        public bool CollidesWith(GeoEllipse3 other, Tolerance tolerance) =>
+            Ellipse3.CollidesWith(this, other, tolerance);
 
         /// <summary>
         /// Checks whether the rim of this ellipse touches a triangle, using the default tolerance.
@@ -115,7 +117,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="triangle">The triangle.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) => Ellipse3.CollidesWith(this, triangle, tolerance);
+        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Ellipse3.CollidesWith(this, triangle, tolerance);
 
         /// <summary>
         /// Checks whether the rim of this ellipse touches a polygon, using the default tolerance.
@@ -132,7 +135,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="polygon">The polygon.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) => Ellipse3.CollidesWith(this, polygon, tolerance);
+        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Ellipse3.CollidesWith(this, polygon, tolerance);
 
         /// <summary>
         /// Checks whether the rim of this ellipse touches a face, using the default tolerance.
@@ -217,7 +221,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="chain">The curved chain.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance) => Ellipse3.CollidesWith(this, chain, tolerance);
+        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance) =>
+            Ellipse3.CollidesWith(this, chain, tolerance);
 
         /// <summary>
         /// Checks whether the rim of this ellipse touches a curved loop, using the default tolerance.
@@ -230,6 +235,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="loop">The curved loop.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance) => Ellipse3.CollidesWith(this, loop, tolerance);
+        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance) =>
+            Ellipse3.CollidesWith(this, loop, tolerance);
     }
 }

@@ -52,7 +52,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 bool frozen = c.Database.LayerTable.Has(entity.Layer) && c.Database.LayerTable[entity.Layer].IsFrozen;
 
-                if (!string.IsNullOrEmpty(entity.Handle) && !frozen && !(entity is DxfViewport viewport && viewport.Number == 1))
+                if (
+                    !string.IsNullOrEmpty(entity.Handle)
+                    && !frozen
+                    && !(entity is DxfViewport viewport && viewport.Number == 1)
+                )
                 {
                     all.Add(entity.Handle);
                 }
@@ -70,7 +74,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForKeyword("Enter an option", new[] { "Distance", "Radius", "Angle", "ARea", "eXit" }, offered);
+                yield return CadPrompt.ForKeyword(
+                    "Enter an option",
+                    new[] { "Distance", "Radius", "Angle", "ARea", "eXit" },
+                    offered
+                );
                 IEnumerable<CadPrompt> measure;
 
                 if (c.Input.Is("Distance"))
@@ -106,8 +114,12 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> MeasureRadius(CadCommandContext c)
         {
             yield return CadPrompt.ForEntity("Select arc or circle");
-            DxfEntity picked = c.Input.Kind == CadInputKind.Selection ? c.Document.FindEntity(c.Input.Handles[0]) : null;
-            double radius = picked is DxfCircle circle ? circle.Radius : picked is DxfArc arc ? arc.Radius : double.NaN;
+            DxfEntity picked =
+                c.Input.Kind == CadInputKind.Selection ? c.Document.FindEntity(c.Input.Handles[0]) : null;
+            double radius =
+                picked is DxfCircle circle ? circle.Radius
+                : picked is DxfArc arc ? arc.Radius
+                : double.NaN;
 
             if (double.IsNaN(radius))
             {
@@ -137,7 +149,11 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     yield return CadPrompt.ForEntity("Select second line");
 
-                    if (c.Input.Kind != CadInputKind.Selection || !(c.Document.FindEntity(c.Input.Handles[0]) is DxfLine other) || ReferenceEquals(other, line))
+                    if (
+                        c.Input.Kind != CadInputKind.Selection
+                        || !(c.Document.FindEntity(c.Input.Handles[0]) is DxfLine other)
+                        || ReferenceEquals(other, line)
+                    )
                     {
                         c.Write("Object selected is not a second line.");
                         yield break;
@@ -314,7 +330,16 @@ namespace GeometryHelper.Dxf.Viewer
 
                 while (true)
                 {
-                    foreach (CadPrompt prompt in WholeIn(c, "(1, 2, 4, 8, 16, 32, 64, 128, or 256)", 1, 256, 1 << Math.Min(8, database.Luprec), answer))
+                    foreach (
+                        CadPrompt prompt in WholeIn(
+                            c,
+                            "(1, 2, 4, 8, 16, 32, 64, 128, or 256)",
+                            1,
+                            256,
+                            1 << Math.Min(8, database.Luprec),
+                            answer
+                        )
+                    )
                     {
                         yield return prompt;
                     }
@@ -331,7 +356,16 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else
             {
-                foreach (CadPrompt prompt in WholeIn(c, "Enter number of digits to right of decimal point (0 to 8)", 0, 8, database.Luprec, answer))
+                foreach (
+                    CadPrompt prompt in WholeIn(
+                        c,
+                        "Enter number of digits to right of decimal point (0 to 8)",
+                        0,
+                        8,
+                        database.Luprec,
+                        answer
+                    )
+                )
                 {
                     yield return prompt;
                 }
@@ -351,7 +385,16 @@ namespace GeometryHelper.Dxf.Viewer
 
             int aunits = answer.Value - 1;
 
-            foreach (CadPrompt prompt in WholeIn(c, "Enter number of fractional places for display of angles (0 to 8)", 0, 8, database.Auprec, answer))
+            foreach (
+                CadPrompt prompt in WholeIn(
+                    c,
+                    "Enter number of fractional places for display of angles (0 to 8)",
+                    0,
+                    8,
+                    database.Auprec,
+                    answer
+                )
+            )
             {
                 yield return prompt;
             }
@@ -364,7 +407,10 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             double angbase = database.Angbase;
-            string shown = (angbase * 180.0 / Math.PI).ToString("F" + auprec.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+            string shown = (angbase * 180.0 / Math.PI).ToString(
+                "F" + auprec.ToString(CultureInfo.InvariantCulture),
+                CultureInfo.InvariantCulture
+            );
             yield return CadPrompt.ForAngle("Enter direction for angle 0", null, null, shown).Plain();
 
             if (c.Input.Kind == CadInputKind.Number)
@@ -376,7 +422,11 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForKeyword("Measure angles clockwise?", new[] { "Yes", "No" }, database.Angdir ? "Yes" : "No");
+            yield return CadPrompt.ForKeyword(
+                "Measure angles clockwise?",
+                new[] { "Yes", "No" },
+                database.Angdir ? "Yes" : "No"
+            );
 
             if (c.Input.Kind != CadInputKind.Keyword)
             {
@@ -407,7 +457,14 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Asks a whole number from <paramref name="low"/> to <paramref name="high"/> until one is given; Enter keeps the one offered.</summary>
-        private static IEnumerable<CadPrompt> WholeIn(CadCommandContext c, string message, int low, int high, int offered, Ref<int> result)
+        private static IEnumerable<CadPrompt> WholeIn(
+            CadCommandContext c,
+            string message,
+            int low,
+            int high,
+            int offered,
+            Ref<int> result
+        )
         {
             result.Value = offered;
 
@@ -426,7 +483,13 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                c.Write("Requires an integer between " + low.ToString(CultureInfo.InvariantCulture) + " and " + high.ToString(CultureInfo.InvariantCulture) + ".");
+                c.Write(
+                    "Requires an integer between "
+                        + low.ToString(CultureInfo.InvariantCulture)
+                        + " and "
+                        + high.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
         }
 
@@ -438,14 +501,23 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> CurrentColor(CadCommandContext c)
         {
             DxfColor old = c.Database.Cecolor;
-            string shown = old.IsByLayer ? "BYLAYER" : old.IsByBlock ? "BYBLOCK" : CadPropertyEditor.ColorName(old).ToLowerInvariant();
-            yield return CadPrompt.ForKeywordOrText("Enter new object color", new[] { "Truecolor", "COlorbook" }, shown);
+            string shown =
+                old.IsByLayer ? "BYLAYER"
+                : old.IsByBlock ? "BYBLOCK"
+                : CadPropertyEditor.ColorName(old).ToLowerInvariant();
+            yield return CadPrompt.ForKeywordOrText(
+                "Enter new object color",
+                new[] { "Truecolor", "COlorbook" },
+                shown
+            );
 
             if (c.Input.Is("Truecolor") || c.Input.Is("COlorbook"))
             {
-                c.Write(c.Input.Is("Truecolor")
-                    ? "The drawing keeps the colour of new objects as an index: give an object a true colour in Properties."
-                    : "Color books are not available here.");
+                c.Write(
+                    c.Input.Is("Truecolor")
+                        ? "The drawing keeps the colour of new objects as an index: give an object a true colour in Properties."
+                        : "Color books are not available here."
+                );
                 yield break;
             }
 
@@ -469,7 +541,19 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!color.Equals(old))
             {
-                c.Apply(new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$CECOLOR", shown, CadPropertyEditor.ColorName(color)) }, s => s.Database.Cecolor = color);
+                c.Apply(
+                    new[]
+                    {
+                        new CadEditRecord(
+                            CadEditRecordKind.SettingChanged,
+                            null,
+                            "$CECOLOR",
+                            shown,
+                            CadPropertyEditor.ColorName(color)
+                        ),
+                    },
+                    s => s.Database.Cecolor = color
+                );
             }
         }
 
@@ -477,7 +561,9 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (old != value)
             {
-                records.Add(new CadEditRecord(CadEditRecordKind.SettingChanged, null, name, Values(old), Values(value)));
+                records.Add(
+                    new CadEditRecord(CadEditRecordKind.SettingChanged, null, name, Values(old), Values(value))
+                );
             }
         }
 
@@ -514,7 +600,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             string was = space.Name;
             DxfLayout layout = space.Layout;
-            CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Rename layout", was, name) }, s => layout.LayoutName = name);
+            CadEditResult result = c.Apply(
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Rename layout", was, name) },
+                s => layout.LayoutName = name
+            );
 
             if (result.Succeeded)
             {
@@ -583,7 +672,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                 lines = File.ReadAllLines(name);
             }
-            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException || exception is NotSupportedException)
+            catch (Exception exception)
+                when (exception is IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is ArgumentException
+                    || exception is NotSupportedException
+                )
             {
                 GeometryHelperLog.Debug("CadCommands: the script " + name + " could not be read: " + exception.Message);
             }

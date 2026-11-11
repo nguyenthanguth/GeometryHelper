@@ -11,10 +11,30 @@ namespace GeometryHelper.Dxf.Viewer
     {
         private static readonly string[] OnOffChoices = { "On", "Off" };
         private static readonly string[] VerticalChoices = { "Centered", "Above", "Outside", "JIS", "Below" };
-        private static readonly string[] HorizontalChoices = { "Centered", "At Ext Line 1", "At Ext Line 2", "Over Ext Line 1", "Over Ext Line 2" };
+        private static readonly string[] HorizontalChoices =
+        {
+            "Centered",
+            "At Ext Line 1",
+            "At Ext Line 2",
+            "Over Ext Line 1",
+            "Over Ext Line 2",
+        };
         private static readonly string[] FitChoices = { "Both text and arrows", "Arrows", "Text", "Best fit" };
-        private static readonly string[] MovementChoices = { "Move dim line with text", "Move text, add leader", "Move text, no leader" };
-        private static readonly string[] UnitChoices = { "Scientific", "Decimal", "Engineering", "Architectural", "Fractional", "Windows desktop" };
+        private static readonly string[] MovementChoices =
+        {
+            "Move dim line with text",
+            "Move text, add leader",
+            "Move text, no leader",
+        };
+        private static readonly string[] UnitChoices =
+        {
+            "Scientific",
+            "Decimal",
+            "Engineering",
+            "Architectural",
+            "Fractional",
+            "Windows desktop",
+        };
 
         /// <summary>Reads a dimension's row as text.</summary>
         internal delegate string DimensionRead(DxfDimension dimension, Func<double, string> angle);
@@ -25,7 +45,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>One row of a dimension: its group, label, how it is read and written, and the values it offers.</summary>
         internal sealed class DimensionRow
         {
-            public DimensionRow(string group, string label, DimensionRead read, DimensionParse parse, IReadOnlyList<string> choices = null)
+            public DimensionRow(
+                string group,
+                string label,
+                DimensionRead read,
+                DimensionParse parse,
+                IReadOnlyList<string> choices = null
+            )
             {
                 Group = group;
                 Label = label;
@@ -53,56 +79,138 @@ namespace GeometryHelper.Dxf.Viewer
         internal static IReadOnlyList<DimensionRow> DimensionRows => LazyRows.Value;
 
         // Made on first use, after the lists of choices of both files of the class are.
-        private static readonly Lazy<DimensionRow[]> LazyRows = new Lazy<DimensionRow[]>(() => new[]
-        {
-            new DimensionRow("Misc", "Dim style", (d, a) => d.DimensionStyleName, ParseStyle),
-
-            new DimensionRow("Lines & Arrows", "Arrow 1", (d, a) => CadArrowheads.NameOf(d.Dimsah ? d.Dimblk1 : d.Dimblk), (DxfDatabase db, string t, out Action<DxfDimension> w) => ParseArrow(db, t, true, out w), CadArrowheads.Names),
-            new DimensionRow("Lines & Arrows", "Arrow 2", (d, a) => CadArrowheads.NameOf(d.Dimsah ? d.Dimblk2 : d.Dimblk), (DxfDatabase db, string t, out Action<DxfDimension> w) => ParseArrow(db, t, false, out w), CadArrowheads.Names),
-            Distance("Lines & Arrows", "Arrow size", d => d.Dimasz, (d, v) => d.Dimasz = v),
-            new DimensionRow("Lines & Arrows", "Dim line lineweight", (d, a) => LineWeightText(d.Dimlwd), (DxfDatabase db, string t, out Action<DxfDimension> w) => Weight(t, (d, v) => d.Dimlwd = v, out w)),
-            new DimensionRow("Lines & Arrows", "Ext line lineweight", (d, a) => LineWeightText(d.Dimlwe), (DxfDatabase db, string t, out Action<DxfDimension> w) => Weight(t, (d, v) => d.Dimlwe = v, out w)),
-            Switch("Lines & Arrows", "Dim line 1", d => !d.Dimsd1, (d, v) => d.Dimsd1 = !v),
-            Switch("Lines & Arrows", "Dim line 2", d => !d.Dimsd2, (d, v) => d.Dimsd2 = !v),
-            Colour("Lines & Arrows", "Dim line color", d => d.Dimclrd, (d, v) => d.Dimclrd = v),
-            Linetype("Lines & Arrows", "Dim line linetype", d => d.Dimltype, (d, v) => d.Dimltype = v),
-            Distance("Lines & Arrows", "Dim line ext", d => d.Dimdle, (d, v) => d.Dimdle = v),
-            Linetype("Lines & Arrows", "Ext line 1 linetype", d => d.Dimltex1, (d, v) => d.Dimltex1 = v),
-            Linetype("Lines & Arrows", "Ext line 2 linetype", d => d.Dimltex2, (d, v) => d.Dimltex2 = v),
-            Switch("Lines & Arrows", "Ext line 1", d => !d.Dimse1, (d, v) => d.Dimse1 = !v),
-            Switch("Lines & Arrows", "Ext line 2", d => !d.Dimse2, (d, v) => d.Dimse2 = !v),
-            Colour("Lines & Arrows", "Ext line color", d => d.Dimclre, (d, v) => d.Dimclre = v),
-            Distance("Lines & Arrows", "Ext line ext", d => d.Dimexe, (d, v) => d.Dimexe = v),
-            Distance("Lines & Arrows", "Ext line offset", d => d.Dimexo, (d, v) => d.Dimexo = v),
-
-            Colour("Text", "Text color", d => d.Dimclrt, (d, v) => d.Dimclrt = v),
-            new DimensionRow("Text", "Text height", (d, a) => Length(d.Dimtxt), (DxfDatabase db, string t, out Action<DxfDimension> w) => Real(t, true, true, (d, v) => d.Dimtxt = v, out w, "Text height")),
-            new DimensionRow("Text", "Text offset", (d, a) => Length(d.Dimgap), (DxfDatabase db, string t, out Action<DxfDimension> w) => Real(t, false, false, (d, v) => d.Dimgap = v, out w, "Text offset")),
-            Switch("Text", "Text outside align", d => d.Dimtoh, (d, v) => d.Dimtoh = v),
-            Choice("Text", "Text pos hor", HorizontalChoices, 0, d => d.Dimjust, (d, v) => d.Dimjust = v),
-            Choice("Text", "Text pos vert", VerticalChoices, 0, d => d.Dimtad, (d, v) => d.Dimtad = v),
-            new DimensionRow("Text", "Text style", (d, a) => d.TextStyle?.Name ?? "Standard", ParseTextStyle),
-            Switch("Text", "Text inside align", d => d.Dimtih, (d, v) => d.Dimtih = v),
-            new DimensionRow("Text", "Text rotation", (d, a) => a(d.TextRotation), (DxfDatabase db, string t, out Action<DxfDimension> w) => Real(t, false, false, (d, v) => d.TextRotation = Turn(v), out w, "Text rotation")),
-            new DimensionRow("Text", "Measurement", (d, a) => IsAngular(d) ? a(d.Measurement) : Length(d.Measurement), null),
-
-            Switch("Fit", "Dim line forced", d => d.Dimtofl, (d, v) => d.Dimtofl = v),
-            Switch("Fit", "Dim line inside", d => d.Dimsoxd, (d, v) => d.Dimsoxd = v),
-            Distance("Fit", "Dim scale overall", d => d.Dimscale, (d, v) => d.Dimscale = v),
-            Choice("Fit", "Fit", FitChoices, 0, d => d.Dimatfit, (d, v) => d.Dimatfit = v),
-            Switch("Fit", "Text inside", d => d.Dimtix, (d, v) => d.Dimtix = v),
-            Choice("Fit", "Text movement", MovementChoices, 0, d => d.Dimtmove, (d, v) => d.Dimtmove = v),
-
-            new DimensionRow("Primary Units", "Decimal separator", (d, a) => d.Dimdsep == ' ' ? "Space" : d.Dimdsep.ToString(), ParseSeparator),
-            new DimensionRow("Primary Units", "Dim prefix", (d, a) => Prefix(d.Dimpost), (DxfDatabase db, string t, out Action<DxfDimension> w) => Post(t, true, out w)),
-            new DimensionRow("Primary Units", "Dim suffix", (d, a) => Suffix(d.Dimpost), (DxfDatabase db, string t, out Action<DxfDimension> w) => Post(t, false, out w)),
-            Distance("Primary Units", "Dim roundoff", d => d.Dimrnd, (d, v) => d.Dimrnd = v),
-            new DimensionRow("Primary Units", "Dim scale linear", (d, a) => Length(d.Dimlfac), (DxfDatabase db, string t, out Action<DxfDimension> w) => Real(t, true, true, (d, v) => d.Dimlfac = v, out w, "Dim scale linear")),
-            Choice("Primary Units", "Dim units", UnitChoices, 1, d => d.Dimlunit, (d, v) => d.Dimlunit = v),
-            Switch("Primary Units", "Suppress leading zeros", d => (d.Dimzin & 4) != 0, (d, v) => d.Dimzin = v ? d.Dimzin | 4 : d.Dimzin & ~4, true),
-            Switch("Primary Units", "Suppress trailing zeros", d => (d.Dimzin & 8) != 0, (d, v) => d.Dimzin = v ? d.Dimzin | 8 : d.Dimzin & ~8, true),
-            new DimensionRow("Primary Units", "Precision", (d, a) => PrecisionText(IsAngular(d) ? d.Dimadec : d.Dimdec), ParsePrecision, PrecisionChoices()),
-        });
+        private static readonly Lazy<DimensionRow[]> LazyRows = new Lazy<DimensionRow[]>(() =>
+            new[]
+            {
+                new DimensionRow("Misc", "Dim style", (d, a) => d.DimensionStyleName, ParseStyle),
+                new DimensionRow(
+                    "Lines & Arrows",
+                    "Arrow 1",
+                    (d, a) => CadArrowheads.NameOf(d.Dimsah ? d.Dimblk1 : d.Dimblk),
+                    (DxfDatabase db, string t, out Action<DxfDimension> w) => ParseArrow(db, t, true, out w),
+                    CadArrowheads.Names
+                ),
+                new DimensionRow(
+                    "Lines & Arrows",
+                    "Arrow 2",
+                    (d, a) => CadArrowheads.NameOf(d.Dimsah ? d.Dimblk2 : d.Dimblk),
+                    (DxfDatabase db, string t, out Action<DxfDimension> w) => ParseArrow(db, t, false, out w),
+                    CadArrowheads.Names
+                ),
+                Distance("Lines & Arrows", "Arrow size", d => d.Dimasz, (d, v) => d.Dimasz = v),
+                new DimensionRow(
+                    "Lines & Arrows",
+                    "Dim line lineweight",
+                    (d, a) => LineWeightText(d.Dimlwd),
+                    (DxfDatabase db, string t, out Action<DxfDimension> w) => Weight(t, (d, v) => d.Dimlwd = v, out w)
+                ),
+                new DimensionRow(
+                    "Lines & Arrows",
+                    "Ext line lineweight",
+                    (d, a) => LineWeightText(d.Dimlwe),
+                    (DxfDatabase db, string t, out Action<DxfDimension> w) => Weight(t, (d, v) => d.Dimlwe = v, out w)
+                ),
+                Switch("Lines & Arrows", "Dim line 1", d => !d.Dimsd1, (d, v) => d.Dimsd1 = !v),
+                Switch("Lines & Arrows", "Dim line 2", d => !d.Dimsd2, (d, v) => d.Dimsd2 = !v),
+                Colour("Lines & Arrows", "Dim line color", d => d.Dimclrd, (d, v) => d.Dimclrd = v),
+                Linetype("Lines & Arrows", "Dim line linetype", d => d.Dimltype, (d, v) => d.Dimltype = v),
+                Distance("Lines & Arrows", "Dim line ext", d => d.Dimdle, (d, v) => d.Dimdle = v),
+                Linetype("Lines & Arrows", "Ext line 1 linetype", d => d.Dimltex1, (d, v) => d.Dimltex1 = v),
+                Linetype("Lines & Arrows", "Ext line 2 linetype", d => d.Dimltex2, (d, v) => d.Dimltex2 = v),
+                Switch("Lines & Arrows", "Ext line 1", d => !d.Dimse1, (d, v) => d.Dimse1 = !v),
+                Switch("Lines & Arrows", "Ext line 2", d => !d.Dimse2, (d, v) => d.Dimse2 = !v),
+                Colour("Lines & Arrows", "Ext line color", d => d.Dimclre, (d, v) => d.Dimclre = v),
+                Distance("Lines & Arrows", "Ext line ext", d => d.Dimexe, (d, v) => d.Dimexe = v),
+                Distance("Lines & Arrows", "Ext line offset", d => d.Dimexo, (d, v) => d.Dimexo = v),
+                Colour("Text", "Text color", d => d.Dimclrt, (d, v) => d.Dimclrt = v),
+                new DimensionRow(
+                    "Text",
+                    "Text height",
+                    (d, a) => Length(d.Dimtxt),
+                    (DxfDatabase db, string t, out Action<DxfDimension> w) =>
+                        Real(t, true, true, (d, v) => d.Dimtxt = v, out w, "Text height")
+                ),
+                new DimensionRow(
+                    "Text",
+                    "Text offset",
+                    (d, a) => Length(d.Dimgap),
+                    (DxfDatabase db, string t, out Action<DxfDimension> w) =>
+                        Real(t, false, false, (d, v) => d.Dimgap = v, out w, "Text offset")
+                ),
+                Switch("Text", "Text outside align", d => d.Dimtoh, (d, v) => d.Dimtoh = v),
+                Choice("Text", "Text pos hor", HorizontalChoices, 0, d => d.Dimjust, (d, v) => d.Dimjust = v),
+                Choice("Text", "Text pos vert", VerticalChoices, 0, d => d.Dimtad, (d, v) => d.Dimtad = v),
+                new DimensionRow("Text", "Text style", (d, a) => d.TextStyle?.Name ?? "Standard", ParseTextStyle),
+                Switch("Text", "Text inside align", d => d.Dimtih, (d, v) => d.Dimtih = v),
+                new DimensionRow(
+                    "Text",
+                    "Text rotation",
+                    (d, a) => a(d.TextRotation),
+                    (DxfDatabase db, string t, out Action<DxfDimension> w) =>
+                        Real(t, false, false, (d, v) => d.TextRotation = Turn(v), out w, "Text rotation")
+                ),
+                new DimensionRow(
+                    "Text",
+                    "Measurement",
+                    (d, a) => IsAngular(d) ? a(d.Measurement) : Length(d.Measurement),
+                    null
+                ),
+                Switch("Fit", "Dim line forced", d => d.Dimtofl, (d, v) => d.Dimtofl = v),
+                Switch("Fit", "Dim line inside", d => d.Dimsoxd, (d, v) => d.Dimsoxd = v),
+                Distance("Fit", "Dim scale overall", d => d.Dimscale, (d, v) => d.Dimscale = v),
+                Choice("Fit", "Fit", FitChoices, 0, d => d.Dimatfit, (d, v) => d.Dimatfit = v),
+                Switch("Fit", "Text inside", d => d.Dimtix, (d, v) => d.Dimtix = v),
+                Choice("Fit", "Text movement", MovementChoices, 0, d => d.Dimtmove, (d, v) => d.Dimtmove = v),
+                new DimensionRow(
+                    "Primary Units",
+                    "Decimal separator",
+                    (d, a) => d.Dimdsep == ' ' ? "Space" : d.Dimdsep.ToString(),
+                    ParseSeparator
+                ),
+                new DimensionRow(
+                    "Primary Units",
+                    "Dim prefix",
+                    (d, a) => Prefix(d.Dimpost),
+                    (DxfDatabase db, string t, out Action<DxfDimension> w) => Post(t, true, out w)
+                ),
+                new DimensionRow(
+                    "Primary Units",
+                    "Dim suffix",
+                    (d, a) => Suffix(d.Dimpost),
+                    (DxfDatabase db, string t, out Action<DxfDimension> w) => Post(t, false, out w)
+                ),
+                Distance("Primary Units", "Dim roundoff", d => d.Dimrnd, (d, v) => d.Dimrnd = v),
+                new DimensionRow(
+                    "Primary Units",
+                    "Dim scale linear",
+                    (d, a) => Length(d.Dimlfac),
+                    (DxfDatabase db, string t, out Action<DxfDimension> w) =>
+                        Real(t, true, true, (d, v) => d.Dimlfac = v, out w, "Dim scale linear")
+                ),
+                Choice("Primary Units", "Dim units", UnitChoices, 1, d => d.Dimlunit, (d, v) => d.Dimlunit = v),
+                Switch(
+                    "Primary Units",
+                    "Suppress leading zeros",
+                    d => (d.Dimzin & 4) != 0,
+                    (d, v) => d.Dimzin = v ? d.Dimzin | 4 : d.Dimzin & ~4,
+                    true
+                ),
+                Switch(
+                    "Primary Units",
+                    "Suppress trailing zeros",
+                    d => (d.Dimzin & 8) != 0,
+                    (d, v) => d.Dimzin = v ? d.Dimzin | 8 : d.Dimzin & ~8,
+                    true
+                ),
+                new DimensionRow(
+                    "Primary Units",
+                    "Precision",
+                    (d, a) => PrecisionText(IsAngular(d) ? d.Dimadec : d.Dimdec),
+                    ParsePrecision,
+                    PrecisionChoices()
+                ),
+            }
+        );
 
         /// <summary>The groups of a dimension: those of <see cref="DimensionRows"/> and its text override, in AutoCAD's order.</summary>
         private static IEnumerable<CadPropertyGroup> DimensionGroups(DxfDimension dimension, Formats f)
@@ -120,13 +228,24 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 title = row.Group;
-                IReadOnlyList<string> choices = row.Label == "Dim style" ? CadDimStyleEditor.Styles(f.Database).Select(s => s.Name).ToList()
-                    : row.Label == "Text style" ? TextStyles(f.Database) : row.Choices;
-                rows.Add(new CadPropertyRow(row.Label, Read(() => row.Read(dimension, f.Plain), string.Empty), row.Parse == null, choices));
+                IReadOnlyList<string> choices =
+                    row.Label == "Dim style" ? CadDimStyleEditor.Styles(f.Database).Select(s => s.Name).ToList()
+                    : row.Label == "Text style" ? TextStyles(f.Database)
+                    : row.Choices;
+                rows.Add(
+                    new CadPropertyRow(
+                        row.Label,
+                        Read(() => row.Read(dimension, f.Plain), string.Empty),
+                        row.Parse == null,
+                        choices
+                    )
+                );
 
                 if (row.Label == "Measurement")
                 {
-                    rows.Add(new CadPropertyRow("Text override", Read(() => dimension.DimensionText, string.Empty), false));
+                    rows.Add(
+                        new CadPropertyRow("Text override", Read(() => dimension.DimensionText, string.Empty), false)
+                    );
                 }
             }
 
@@ -134,10 +253,26 @@ namespace GeometryHelper.Dxf.Viewer
             return groups;
         }
 
-        private static DimensionRow Distance(string group, string label, Func<DxfDimension, double> get, Action<DxfDimension, double> set)
-            => new DimensionRow(group, label, (d, a) => Length(get(d)), (DxfDatabase db, string t, out Action<DxfDimension> w) => Real(t, false, true, set, out w, label));
+        private static DimensionRow Distance(
+            string group,
+            string label,
+            Func<DxfDimension, double> get,
+            Action<DxfDimension, double> set
+        ) =>
+            new DimensionRow(
+                group,
+                label,
+                (d, a) => Length(get(d)),
+                (DxfDatabase db, string t, out Action<DxfDimension> w) => Real(t, false, true, set, out w, label)
+            );
 
-        private static DimensionRow Switch(string group, string label, Func<DxfDimension, bool> get, Action<DxfDimension, bool> set, bool yesNo = false)
+        private static DimensionRow Switch(
+            string group,
+            string label,
+            Func<DxfDimension, bool> get,
+            Action<DxfDimension, bool> set,
+            bool yesNo = false
+        )
         {
             string[] words = yesNo ? YesNoChoices : OnOffChoices;
             return new DimensionRow(
@@ -148,19 +283,31 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     bool on = string.Equals(t, words[0], StringComparison.OrdinalIgnoreCase);
                     w = d => set(d, on);
-                    return on || string.Equals(t, words[1], StringComparison.OrdinalIgnoreCase) ? null : label + " is " + words[0] + " or " + words[1] + ".";
+                    return on || string.Equals(t, words[1], StringComparison.OrdinalIgnoreCase)
+                        ? null
+                        : label + " is " + words[0] + " or " + words[1] + ".";
                 },
-                words);
+                words
+            );
         }
 
-        private static DimensionRow Choice(string group, string label, string[] words, int first, Func<DxfDimension, int> get, Action<DxfDimension, int> set)
-            => new DimensionRow(
+        private static DimensionRow Choice(
+            string group,
+            string label,
+            string[] words,
+            int first,
+            Func<DxfDimension, int> get,
+            Action<DxfDimension, int> set
+        ) =>
+            new DimensionRow(
                 group,
                 label,
                 (d, a) =>
                 {
                     int index = get(d) - first;
-                    return index >= 0 && index < words.Length ? words[index] : get(d).ToString(CultureInfo.InvariantCulture);
+                    return index >= 0 && index < words.Length
+                        ? words[index]
+                        : get(d).ToString(CultureInfo.InvariantCulture);
                 },
                 (DxfDatabase db, string t, out Action<DxfDimension> w) =>
                 {
@@ -168,10 +315,16 @@ namespace GeometryHelper.Dxf.Viewer
                     w = d => set(d, index + first);
                     return index >= 0 ? null : label + " is one of " + string.Join(", ", words) + ".";
                 },
-                words);
+                words
+            );
 
-        private static DimensionRow Colour(string group, string label, Func<DxfDimension, DxfColor> get, Action<DxfDimension, DxfColor> set)
-            => new DimensionRow(
+        private static DimensionRow Colour(
+            string group,
+            string label,
+            Func<DxfDimension, DxfColor> get,
+            Action<DxfDimension, DxfColor> set
+        ) =>
+            new DimensionRow(
                 group,
                 label,
                 (d, a) => ColorText(get(d)),
@@ -180,10 +333,16 @@ namespace GeometryHelper.Dxf.Viewer
                     string error = CadPropertyEditor.ParseColor(t, out DxfColor color);
                     w = d => set(d, color);
                     return error;
-                });
+                }
+            );
 
-        private static DimensionRow Linetype(string group, string label, Func<DxfDimension, DxfLinetypeTableRecord> get, Action<DxfDimension, DxfLinetypeTableRecord> set)
-            => new DimensionRow(
+        private static DimensionRow Linetype(
+            string group,
+            string label,
+            Func<DxfDimension, DxfLinetypeTableRecord> get,
+            Action<DxfDimension, DxfLinetypeTableRecord> set
+        ) =>
+            new DimensionRow(
                 group,
                 label,
                 (d, a) => get(d)?.Name ?? "ByBlock",
@@ -199,11 +358,22 @@ namespace GeometryHelper.Dxf.Viewer
                     string name = db.LinetypeTable[t].Name;
                     w = d => set(d, db.LinetypeTable[name]);
                     return null;
-                });
+                }
+            );
 
-        private static string Real(string text, bool positive, bool notNegative, Action<DxfDimension, double> set, out Action<DxfDimension> write, string label)
+        private static string Real(
+            string text,
+            bool positive,
+            bool notNegative,
+            Action<DxfDimension, double> set,
+            out Action<DxfDimension> write,
+            string label
+        )
         {
-            bool number = double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && !double.IsNaN(value) && !double.IsInfinity(value);
+            bool number =
+                double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+                && !double.IsNaN(value)
+                && !double.IsInfinity(value);
             write = d => set(d, value);
 
             if (!number)
@@ -219,7 +389,11 @@ namespace GeometryHelper.Dxf.Viewer
             return notNegative && value < 0.0 ? label + " is a number, nought or more." : null;
         }
 
-        private static string Weight(string text, Action<DxfDimension, DxfLineWeight> set, out Action<DxfDimension> write)
+        private static string Weight(
+            string text,
+            Action<DxfDimension, DxfLineWeight> set,
+            out Action<DxfDimension> write
+        )
         {
             string error = CadPropertyEditor.ParseLineWeight(text, out DxfLineWeight weight);
             write = d => set(d, weight);
@@ -261,9 +435,16 @@ namespace GeometryHelper.Dxf.Viewer
         private static string ParseArrow(DxfDatabase db, string text, bool first, out Action<DxfDimension> write)
         {
             write = null;
-            string name = CadArrowheads.Names.FirstOrDefault(n => string.Equals(n, text, StringComparison.OrdinalIgnoreCase));
+            string name = CadArrowheads.Names.FirstOrDefault(n =>
+                string.Equals(n, text, StringComparison.OrdinalIgnoreCase)
+            );
 
-            if (name == null && text.Length > 0 && !text.StartsWith("*", StringComparison.Ordinal) && db.BlockTable.Has(text))
+            if (
+                name == null
+                && text.Length > 0
+                && !text.StartsWith("*", StringComparison.Ordinal)
+                && db.BlockTable.Has(text)
+            )
             {
                 name = db.BlockTable[text].Name;
             }
@@ -287,9 +468,14 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static string ParseSeparator(DxfDatabase db, string text, out Action<DxfDimension> write)
         {
-            char separator = string.Equals(text, "Space", StringComparison.OrdinalIgnoreCase) ? ' ' : text.Length == 1 ? text[0] : '\0';
+            char separator =
+                string.Equals(text, "Space", StringComparison.OrdinalIgnoreCase) ? ' '
+                : text.Length == 1 ? text[0]
+                : '\0';
             write = d => d.Dimdsep = separator;
-            return separator == '.' || separator == ',' || separator == ' ' ? null : "Decimal separator is a period (.), a comma (,) or Space.";
+            return separator == '.' || separator == ',' || separator == ' '
+                ? null
+                : "Decimal separator is a period (.), a comma (,) or Space.";
         }
 
         private static string Prefix(string post)
@@ -317,7 +503,8 @@ namespace GeometryHelper.Dxf.Viewer
             return text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0 ? "A prefix or suffix is on one line." : null;
         }
 
-        private static string PrecisionText(int places) => places <= 0 ? "0" : "0." + new string('0', Math.Min(8, places));
+        private static string PrecisionText(int places) =>
+            places <= 0 ? "0" : "0." + new string('0', Math.Min(8, places));
 
         private static IReadOnlyList<string> PrecisionChoices()
         {
@@ -333,8 +520,12 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static string ParsePrecision(DxfDatabase db, string text, out Action<DxfDimension> write)
         {
-            int places = text == "0" ? 0 : text.StartsWith("0.", StringComparison.Ordinal) && text.Substring(2).All(c => c == '0') ? text.Length - 2
-                : int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int typed) ? typed : -1;
+            int places =
+                text == "0" ? 0
+                : text.StartsWith("0.", StringComparison.Ordinal) && text.Substring(2).All(c => c == '0')
+                    ? text.Length - 2
+                : int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int typed) ? typed
+                : -1;
             write = d =>
             {
                 if (IsAngular(d))

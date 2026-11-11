@@ -22,8 +22,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             return CadDocument.From(database, name);
         }
 
-        private static DxfLine Line(double x0, double y0, double x1, double y1)
-            => new DxfLine { StartPoint = new GeoPoint3(x0, y0, 0), EndPoint = new GeoPoint3(x1, y1, 0) };
+        private static DxfLine Line(double x0, double y0, double x1, double y1) =>
+            new DxfLine { StartPoint = new GeoPoint3(x0, y0, 0), EndPoint = new GeoPoint3(x1, y1, 0) };
 
         [Fact]
         public void ObjectsCopiedInOneDrawing_ArePastedIntoAnother_ThroughTheWindowsOneClipboard()
@@ -67,7 +67,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             Assert.Equal("1 object copied from plan.dxf · Model", shown.SourceDetail);
             Assert.False(shown.Formats.Single(f => f.Name == "Image (PNG)").IsEnabled);
-            DxfBlockReference insert = Assert.Single(document.ModelSpace.Block.Cast<DxfEntity>().OfType<DxfBlockReference>());
+            DxfBlockReference insert = Assert.Single(
+                document.ModelSpace.Block.Cast<DxfEntity>().OfType<DxfBlockReference>()
+            );
             Assert.StartsWith("A$C", insert.Name);
         }
 
@@ -87,7 +89,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         public void ADoubleClickOnAText_OpensItsEditBox_AndEnterWritesTheWords()
         {
             var model = new MainViewModel();
-            var text = new DxfDBText { Position = new GeoPoint3(10, 20, 0), Height = 5, TextString = "ROOM 1" };
+            var text = new DxfDBText
+            {
+                Position = new GeoPoint3(10, 20, 0),
+                Height = 5,
+                TextString = "ROOM 1",
+            };
             CadDocument document = Drawing("rooms.dxf", text);
             model.OpenDocument(document, "rooms.dxf");
 
@@ -138,7 +145,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         public void EscInTheMTextEditor_AsksWhereThereAreChanges_AndDontSaveKeepsTheMText()
         {
             var model = new MainViewModel();
-            var mtext = new DxfMText { Location = new GeoPoint3(0, 0, 0), TextHeight = 2.5, Contents = "PLATE" };
+            var mtext = new DxfMText
+            {
+                Location = new GeoPoint3(0, 0, 0),
+                TextHeight = 2.5,
+                Contents = "PLATE",
+            };
             CadDocument document = Drawing("plate.dxf", mtext);
             model.OpenDocument(document, "plate.dxf");
             int asked = 0;
@@ -169,7 +181,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         public void EscInTheEditBoxOfAText_KeepsTheOldWords()
         {
             var model = new MainViewModel();
-            var text = new DxfDBText { Position = new GeoPoint3(10, 20, 0), Height = 5, TextString = "ROOM 1" };
+            var text = new DxfDBText
+            {
+                Position = new GeoPoint3(10, 20, 0),
+                Height = 5,
+                TextString = "ROOM 1",
+            };
             CadDocument document = Drawing("rooms.dxf", text);
             model.OpenDocument(document, "rooms.dxf");
 
@@ -186,7 +203,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         public void EscInTheMTextEditorWithNothingChanged_ClosesWithoutAsking()
         {
             var model = new MainViewModel();
-            var mtext = new DxfMText { Location = new GeoPoint3(0, 0, 0), TextHeight = 2.5, Contents = "PLATE" };
+            var mtext = new DxfMText
+            {
+                Location = new GeoPoint3(0, 0, 0),
+                TextHeight = 2.5,
+                Contents = "PLATE",
+            };
             CadDocument document = Drawing("plate.dxf", mtext);
             model.OpenDocument(document, "plate.dxf");
             int asked = 0;
@@ -209,7 +231,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         public void EscInTheMTextEditorWithChanges_YesSavesThemAndCloses()
         {
             var model = new MainViewModel();
-            var mtext = new DxfMText { Location = new GeoPoint3(0, 0, 0), TextHeight = 2.5, Contents = "PLATE" };
+            var mtext = new DxfMText
+            {
+                Location = new GeoPoint3(0, 0, 0),
+                TextHeight = 2.5,
+                Contents = "PLATE",
+            };
             CadDocument document = Drawing("plate.dxf", mtext);
             model.OpenDocument(document, "plate.dxf");
             int asked = 0;
@@ -237,7 +264,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             using (var folder = new TestFolder())
             {
                 var model = new MainViewModel { SettingsPath = Path.Combine(folder.FullPath, "settings.json") };
-                var mtext = new DxfMText { Location = new GeoPoint3(0, 0, 0), TextHeight = 2.5, Contents = "PLATE" };
+                var mtext = new DxfMText
+                {
+                    Location = new GeoPoint3(0, 0, 0),
+                    TextHeight = 2.5,
+                    Contents = "PLATE",
+                };
                 CadDocument document = Drawing("plate.dxf", mtext);
                 model.OpenDocument(document, "plate.dxf");
                 int asked = 0;
@@ -276,7 +308,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             using (var folder = new TestFolder())
             {
                 var model = new MainViewModel { SettingsPath = Path.Combine(folder.FullPath, "settings.json") };
-                var mtext = new DxfMText { Location = new GeoPoint3(0, 0, 0), TextHeight = 2.5, Contents = "PLATE" };
+                var mtext = new DxfMText
+                {
+                    Location = new GeoPoint3(0, 0, 0),
+                    TextHeight = 2.5,
+                    Contents = "PLATE",
+                };
                 CadDocument document = Drawing("plate.dxf", mtext);
                 model.OpenDocument(document, "plate.dxf");
                 int asked = 0;
@@ -338,7 +375,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         public void TheJustificationAndTheWidthTheEditorSet_AreWrittenWithTheWordsInOneStep()
         {
             var model = new MainViewModel();
-            var mtext = new DxfMText { Location = new GeoPoint3(0, 0, 0), TextHeight = 2.5, Width = 50, Contents = "PLATE" };
+            var mtext = new DxfMText
+            {
+                Location = new GeoPoint3(0, 0, 0),
+                TextHeight = 2.5,
+                Width = 50,
+                Contents = "PLATE",
+            };
             CadDocument document = Drawing("plate.dxf", mtext);
             model.OpenDocument(document, "plate.dxf");
             Assert.True(model.EditTextAt(mtext.Handle));

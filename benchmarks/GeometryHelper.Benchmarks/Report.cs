@@ -14,9 +14,7 @@ namespace GeometryHelper.Benchmarks
     /// </summary>
     internal sealed class RunInfo
     {
-        private RunInfo()
-        {
-        }
+        private RunInfo() { }
 
         /// <summary>Gets when the run started, in UTC.</summary>
         internal DateTime StartedUtc { get; private set; }
@@ -63,7 +61,8 @@ namespace GeometryHelper.Benchmarks
                 StartedUtc = DateTime.UtcNow,
                 GitSha = string.IsNullOrEmpty(sha) ? "unknown" : sha,
                 GitDirty = status == null ? (bool?)null : status.Length > 0,
-                TargetFramework = typeof(RunInfo).Assembly.GetCustomAttribute<TargetFrameworkAttribute>()?.FrameworkName ?? "unknown",
+                TargetFramework = typeof(RunInfo).Assembly.GetCustomAttribute<TargetFrameworkAttribute>()?.FrameworkName
+                    ?? "unknown",
                 Runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
                 Architecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),
                 Os = System.Runtime.InteropServices.RuntimeInformation.OSDescription.Trim(),
@@ -76,8 +75,8 @@ namespace GeometryHelper.Benchmarks
         /// <summary>
         /// The provenance written at the top of the approved signatures.
         /// </summary>
-        internal string Provenance()
-            => GitSha + (GitDirty == true ? " with changes" : string.Empty) + ", " + Runtime + ", " + Architecture;
+        internal string Provenance() =>
+            GitSha + (GitDirty == true ? " with changes" : string.Empty) + ", " + Runtime + ", " + Architecture;
 
         /// <summary>
         /// Asks git, in the repository, for one line of output.
@@ -105,7 +104,8 @@ namespace GeometryHelper.Benchmarks
                     return git.ExitCode == 0 ? output.Trim() : null;
                 }
             }
-            catch (Exception exception) when (exception is System.ComponentModel.Win32Exception || exception is InvalidOperationException)
+            catch (Exception exception)
+                when (exception is System.ComponentModel.Win32Exception || exception is InvalidOperationException)
             {
                 return null;
             }
@@ -132,11 +132,19 @@ namespace GeometryHelper.Benchmarks
         /// <param name="results">What each case came to, in the order they ran.</param>
         /// <param name="approving">Whether the run approved its signatures.</param>
         /// <returns>The paths of the JSON and the Markdown.</returns>
-        internal static (string Json, string Markdown) Write(string folder, RunInfo info, IReadOnlyList<CaseResult> results, bool approving)
+        internal static (string Json, string Markdown) Write(
+            string folder,
+            RunInfo info,
+            IReadOnlyList<CaseResult> results,
+            bool approving
+        )
         {
             Directory.CreateDirectory(folder);
 
-            string stem = Path.Combine(folder, info.Profile.Name + "-" + info.StartedUtc.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture));
+            string stem = Path.Combine(
+                folder,
+                info.Profile.Name + "-" + info.StartedUtc.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture)
+            );
             string json = stem + ".json";
             string markdown = stem + ".md";
 
@@ -151,11 +159,23 @@ namespace GeometryHelper.Benchmarks
             var text = new StringBuilder();
             text.Append("{\n");
             Field(text, 1, "schema", SchemaVersion.ToString(CultureInfo.InvariantCulture), true);
-            Field(text, 1, "startedUtc", Quote(info.StartedUtc.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture)), true);
+            Field(
+                text,
+                1,
+                "startedUtc",
+                Quote(info.StartedUtc.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture)),
+                true
+            );
             Field(text, 1, "profile", Quote(info.Profile.Name), true);
             Field(text, 1, "approving", approving ? "true" : "false", true);
             Field(text, 1, "gitSha", Quote(info.GitSha), true);
-            Field(text, 1, "gitDirty", info.GitDirty.HasValue ? (info.GitDirty.Value ? "true" : "false") : "null", true);
+            Field(
+                text,
+                1,
+                "gitDirty",
+                info.GitDirty.HasValue ? (info.GitDirty.Value ? "true" : "false") : "null",
+                true
+            );
             Field(text, 1, "targetFramework", Quote(info.TargetFramework), true);
             Field(text, 1, "runtime", Quote(info.Runtime), true);
             Field(text, 1, "architecture", Quote(info.Architecture), true);
@@ -199,21 +219,33 @@ namespace GeometryHelper.Benchmarks
         {
             var text = new StringBuilder();
             text.Append("# GeometryHelper benchmarks, ").Append(info.Profile.Name).Append(" profile\n\n");
-            text.Append("- Started: ").Append(info.StartedUtc.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)).Append(" UTC\n");
+            text.Append("- Started: ")
+                .Append(info.StartedUtc.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture))
+                .Append(" UTC\n");
             text.Append("- Commit: `").Append(info.GitSha).Append('`');
             text.Append(info.GitDirty == true ? ", with changes to tracked files" : string.Empty).Append('\n');
             text.Append("- Runtime: ").Append(info.Runtime).Append(", ").Append(info.Architecture);
             text.Append(", built for ").Append(info.TargetFramework).Append('\n');
             text.Append("- Machine: ").Append(info.Os).Append(", ").Append(info.Processor);
-            text.Append(", ").Append(info.ProcessorCount.ToString(CultureInfo.InvariantCulture)).Append(" logical processors\n");
+            text.Append(", ")
+                .Append(info.ProcessorCount.ToString(CultureInfo.InvariantCulture))
+                .Append(" logical processors\n");
             text.Append("- Profile: ").Append(info.Profile.Name).Append(", ");
-            text.Append(Count(info.Profile.Warmup)).Append(" warm-up and ").Append(Count(info.Profile.Samples)).Append(" timed runs a case, ");
-            text.Append(Count(info.Profile.HeavyWarmup)).Append(" and ").Append(Count(info.Profile.HeavySamples)).Append(" of a heavy one\n");
+            text.Append(Count(info.Profile.Warmup))
+                .Append(" warm-up and ")
+                .Append(Count(info.Profile.Samples))
+                .Append(" timed runs a case, ");
+            text.Append(Count(info.Profile.HeavyWarmup))
+                .Append(" and ")
+                .Append(Count(info.Profile.HeavySamples))
+                .Append(" of a heavy one\n");
             text.Append("- Times in milliseconds. p95 is by ").Append(Statistics.P95Convention).Append('\n');
 
             if (approving)
             {
-                text.Append("- This run approved its signatures; \"matched\" compares them with those approved before it\n");
+                text.Append(
+                    "- This run approved its signatures; \"matched\" compares them with those approved before it\n"
+                );
             }
 
             text.Append('\n');
@@ -232,7 +264,13 @@ namespace GeometryHelper.Benchmarks
                 text.Append(" | ").Append(Millis(s.Min));
                 text.Append(" | ").Append(Millis(s.Max));
                 text.Append(" | `").Append(r.Signature.Substring(0, 12)).Append("`");
-                text.Append(" | ").Append(!r.Deterministic ? "**not deterministic**" : r.Matched ? "yes" : r.Approved == null ? "**none approved**" : "**no**");
+                text.Append(" | ")
+                    .Append(
+                        !r.Deterministic ? "**not deterministic**"
+                        : r.Matched ? "yes"
+                        : r.Approved == null ? "**none approved**"
+                        : "**no**"
+                    );
                 text.Append(" |\n");
             }
 
@@ -240,7 +278,13 @@ namespace GeometryHelper.Benchmarks
 
             foreach (CaseResult r in results)
             {
-                text.Append("- **").Append(r.Case.Name).Append("**: ").Append(r.Note).Append(". Signature `").Append(r.Signature).Append("`");
+                text.Append("- **")
+                    .Append(r.Case.Name)
+                    .Append("**: ")
+                    .Append(r.Note)
+                    .Append(". Signature `")
+                    .Append(r.Signature)
+                    .Append("`");
 
                 if (r.Approved != null && !r.Matched)
                 {
@@ -256,8 +300,8 @@ namespace GeometryHelper.Benchmarks
         /// <summary>
         /// A whole number with its thousands set apart by spaces: 12 004 650.
         /// </summary>
-        internal static string Count(long value)
-            => value.ToString("#,0", CultureInfo.InvariantCulture).Replace(',', ' ');
+        internal static string Count(long value) =>
+            value.ToString("#,0", CultureInfo.InvariantCulture).Replace(',', ' ');
 
         private static string Millis(double value) => value.ToString("0.000", CultureInfo.InvariantCulture);
 
@@ -277,11 +321,21 @@ namespace GeometryHelper.Benchmarks
             {
                 switch (c)
                 {
-                    case '"': text.Append("\\\""); break;
-                    case '\\': text.Append("\\\\"); break;
-                    case '\n': text.Append("\\n"); break;
-                    case '\r': text.Append("\\r"); break;
-                    case '\t': text.Append("\\t"); break;
+                    case '"':
+                        text.Append("\\\"");
+                        break;
+                    case '\\':
+                        text.Append("\\\\");
+                        break;
+                    case '\n':
+                        text.Append("\\n");
+                        break;
+                    case '\r':
+                        text.Append("\\r");
+                        break;
+                    case '\t':
+                        text.Append("\\t");
+                        break;
                     default:
                         if (c < ' ')
                         {

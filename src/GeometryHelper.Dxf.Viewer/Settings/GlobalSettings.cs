@@ -26,7 +26,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the colour or the lineweight is out of range.</exception>
         public GlobalLayer(string name, int rgb, string linetype, double lineWeight, bool plot = true)
         {
-            Name = string.IsNullOrWhiteSpace(name) ? throw new ArgumentException("A layer needs a name.", nameof(name)) : name.Trim();
+            Name = string.IsNullOrWhiteSpace(name)
+                ? throw new ArgumentException("A layer needs a name.", nameof(name))
+                : name.Trim();
             Rgb = GlobalSettings.Colour(rgb, nameof(rgb));
             Linetype = string.IsNullOrWhiteSpace(linetype) ? "Continuous" : linetype.Trim();
             LineWeight = GlobalSettings.Range(lineWeight, 0.0, 2.11, nameof(lineWeight));
@@ -73,7 +75,11 @@ namespace GeometryHelper.Dxf.Viewer
     public sealed partial class GlobalSettings
     {
         /// <summary>The DXF export layouts, as Drawing defaults names them: layout and viewports, or the sheet in model space (D10).</summary>
-        public static readonly IReadOnlyList<string> ExportLayouts = new[] { "LayoutAndViewports", "SheetInModelSpace" };
+        public static readonly IReadOnlyList<string> ExportLayouts = new[]
+        {
+            "LayoutAndViewports",
+            "SheetInModelSpace",
+        };
 
         /// <summary>
         /// What a message hidden by its Always perform my current choice does instead of asking: Ask shows it, Yes and No give
@@ -122,7 +128,9 @@ namespace GeometryHelper.Dxf.Viewer
         private string _replacementFont = CadFonts.BuiltInName;
         private string _fontMapFile = string.Empty;
         private List<string> _supportFolders = new List<string>(CadSupportFiles.DefaultFolders);
-        private SortedDictionary<string, string> _fontSubstitutions = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private SortedDictionary<string, string> _fontSubstitutions = new SortedDictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private int _checkEverySeconds = 30;
         private string _saveFolder = string.Empty;
         private int _autosaveMinutes = 10;
@@ -134,7 +142,13 @@ namespace GeometryHelper.Dxf.Viewer
         private SortedDictionary<string, string> _keys = Copy(CadShortcuts.Default.Keys);
 
         /// <summary>Gets the file the settings are kept in: %AppData%\GeometryHelper\Drawing\settings.json.</summary>
-        public static string DefaultPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GeometryHelper", "Drawing", "settings.json");
+        public static string DefaultPath =>
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "GeometryHelper",
+                "Drawing",
+                "settings.json"
+            );
 
         // ---- Appearance
 
@@ -143,39 +157,75 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets or sets the colour of the canvas behind a drawing, 0xRRGGBB: black by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not a colour of 0 to 0xFFFFFF.</exception>
-        public int CanvasBackground { get => _background; set => _background = Colour(value, nameof(CanvasBackground)); }
+        public int CanvasBackground
+        {
+            get => _background;
+            set => _background = Colour(value, nameof(CanvasBackground));
+        }
 
         /// <summary>Gets or sets the colour of the paper of a layout: white by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not a colour of 0 to 0xFFFFFF.</exception>
-        public int Paper { get => _paper; set => _paper = Colour(value, nameof(Paper)); }
+        public int Paper
+        {
+            get => _paper;
+            set => _paper = Colour(value, nameof(Paper));
+        }
 
         /// <summary>Gets or sets the colour of the canvas behind a block open in the Block Editor (BEDIT): #3B4049 by default, a grey no drawing's canvas is taken for.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not a colour of 0 to 0xFFFFFF.</exception>
-        public int BlockEditorBackground { get => _blockEditor; set => _blockEditor = Colour(value, nameof(BlockEditorBackground)); }
+        public int BlockEditorBackground
+        {
+            get => _blockEditor;
+            set => _blockEditor = Colour(value, nameof(BlockEditorBackground));
+        }
 
         /// <summary>Gets or sets the colour of a drawing's visible lines of colour 7 on a dark canvas: white by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not a colour of 0 to 0xFFFFFF.</exception>
-        public int VisibleLines { get => _visibleLines; set => _visibleLines = Colour(value, nameof(VisibleLines)); }
+        public int VisibleLines
+        {
+            get => _visibleLines;
+            set => _visibleLines = Colour(value, nameof(VisibleLines));
+        }
 
         /// <summary>Gets or sets the colour of the hidden lines of a model drawing: #9AA4B1 by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not a colour of 0 to 0xFFFFFF.</exception>
-        public int HiddenLines { get => _hiddenLines; set => _hiddenLines = Colour(value, nameof(HiddenLines)); }
+        public int HiddenLines
+        {
+            get => _hiddenLines;
+            set => _hiddenLines = Colour(value, nameof(HiddenLines));
+        }
 
         /// <summary>Gets or sets the colour of the objects selected: #3D9BFF by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not a colour of 0 to 0xFFFFFF.</exception>
-        public int Selection { get => _selection; set => _selection = Colour(value, nameof(Selection)); }
+        public int Selection
+        {
+            get => _selection;
+            set => _selection = Colour(value, nameof(Selection));
+        }
 
         /// <summary>Gets or sets the colour of the grips: #3D9BFF by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not a colour of 0 to 0xFFFFFF.</exception>
-        public int Grip { get => _grip; set => _grip = Colour(value, nameof(Grip)); }
+        public int Grip
+        {
+            get => _grip;
+            set => _grip = Colour(value, nameof(Grip));
+        }
 
         /// <summary>Gets or sets the size of the crosshair in per cent of the screen, 1 to 100: 5 by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
-        public double CrosshairPercent { get => _crosshairPercent; set => _crosshairPercent = Range(value, 1.0, 100.0, nameof(CrosshairPercent)); }
+        public double CrosshairPercent
+        {
+            get => _crosshairPercent;
+            set => _crosshairPercent = Range(value, 1.0, 100.0, nameof(CrosshairPercent));
+        }
 
         /// <summary>Gets or sets how far from the cursor a click picks, in pixels, 1 to 50: 5 by default, as AutoCAD's PICKBOX.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
-        public int PickboxPixels { get => _pickboxPixels; set => _pickboxPixels = (int)Range(value, 1, 50, nameof(PickboxPixels)); }
+        public int PickboxPixels
+        {
+            get => _pickboxPixels;
+            set => _pickboxPixels = (int)Range(value, 1, 50, nameof(PickboxPixels));
+        }
 
         /// <summary>Gets or sets whether the canvas shows its dot grid at start (F7): off by default.</summary>
         public bool Grid { get; set; }
@@ -187,14 +237,22 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets or sets how much a notch of the wheel zooms, 1.01 to 4: 1.2 by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
-        public double WheelZoomFactor { get => _wheelZoomFactor; set => _wheelZoomFactor = Range(value, 1.01, 4.0, nameof(WheelZoomFactor)); }
+        public double WheelZoomFactor
+        {
+            get => _wheelZoomFactor;
+            set => _wheelZoomFactor = Range(value, 1.01, 4.0, nameof(WheelZoomFactor));
+        }
 
         /// <summary>Gets or sets the object snaps on: those of <see cref="CadSnapModes.All"/> but Nearest by default, Node and Geometric Center off.</summary>
         public CadSnapModes Snaps { get; set; } = CadSnapModes.All & ~CadSnapModes.Nearest;
 
         /// <summary>Gets or sets how near the cursor a snap is taken, in pixels, 2 to 50: 10 by default, as AutoCAD's APERTURE.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
-        public int AperturePixels { get => _aperturePixels; set => _aperturePixels = (int)Range(value, 2, 50, nameof(AperturePixels)); }
+        public int AperturePixels
+        {
+            get => _aperturePixels;
+            set => _aperturePixels = (int)Range(value, 2, 50, nameof(AperturePixels));
+        }
 
         /// <summary>
         /// Gets or sets the polar tracking increment in degrees, as AutoCAD's POLARANG: above nought and up to 360; 90 by
@@ -204,7 +262,15 @@ namespace GeometryHelper.Dxf.Viewer
         public double PolarAngle
         {
             get => _polarAngle;
-            set => _polarAngle = value > 0.0 && value <= 360.0 ? value : throw new ArgumentOutOfRangeException(nameof(PolarAngle), value, "The polar angle has to be above 0 and up to 360 degrees.");
+            set =>
+                _polarAngle =
+                    value > 0.0 && value <= 360.0
+                        ? value
+                        : throw new ArgumentOutOfRangeException(
+                            nameof(PolarAngle),
+                            value,
+                            "The polar angle has to be above 0 and up to 360 degrees."
+                        );
         }
 
         /// <summary>
@@ -213,7 +279,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// Shift held; 0 by default, as AutoCAD's. The presenter follows 2 and 8 and keeps 1 and 4.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
-        public int PolarMode { get => _polarMode; set => _polarMode = (int)Range(value, 0, 15, nameof(PolarMode)); }
+        public int PolarMode
+        {
+            get => _polarMode;
+            set => _polarMode = (int)Range(value, 0, 15, nameof(PolarMode));
+        }
 
         /// <summary>Gets or sets whether F3 switches the snaps: on by default.</summary>
         public bool F3TogglesSnaps { get; set; } = true;
@@ -234,33 +304,61 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets or sets the preset of a new drawing: Part, Assembly or General; Assembly by default.</summary>
         /// <exception cref="ArgumentException">Thrown when the value is not one of <see cref="Presets"/>.</exception>
-        public string DefaultPreset { get => _preset; set => _preset = OneOf(value, Presets, nameof(DefaultPreset)); }
+        public string DefaultPreset
+        {
+            get => _preset;
+            set => _preset = OneOf(value, Presets, nameof(DefaultPreset));
+        }
 
         /// <summary>Gets or sets the sheet of a new drawing: A0 to A4; A2 by default.</summary>
         /// <exception cref="ArgumentException">Thrown when the value is not one of <see cref="SheetSizes"/>.</exception>
-        public string DefaultSheetSize { get => _sheetSize; set => _sheetSize = OneOf(value, SheetSizes, nameof(DefaultSheetSize)); }
+        public string DefaultSheetSize
+        {
+            get => _sheetSize;
+            set => _sheetSize = OneOf(value, SheetSizes, nameof(DefaultSheetSize));
+        }
 
         /// <summary>Gets or sets which way round the sheet lies: Landscape or Portrait; Landscape by default.</summary>
         /// <exception cref="ArgumentException">Thrown when the value is neither.</exception>
-        public string DefaultOrientation { get => _orientation; set => _orientation = OneOf(value, new[] { "Landscape", "Portrait" }, nameof(DefaultOrientation)); }
+        public string DefaultOrientation
+        {
+            get => _orientation;
+            set => _orientation = OneOf(value, new[] { "Landscape", "Portrait" }, nameof(DefaultOrientation));
+        }
 
         /// <summary>Gets or sets the projection method (D9): Third angle or First angle; Third angle by default.</summary>
         /// <exception cref="ArgumentException">Thrown when the value is neither.</exception>
-        public string DefaultProjection { get => _projection; set => _projection = OneOf(value, new[] { "Third angle", "First angle" }, nameof(DefaultProjection)); }
+        public string DefaultProjection
+        {
+            get => _projection;
+            set => _projection = OneOf(value, new[] { "Third angle", "First angle" }, nameof(DefaultProjection));
+        }
 
         // ---- Units and rounding
 
         /// <summary>Gets or sets the decimals of the coordinates the status bar shows, 0 to 8: 2 by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
-        public int CoordinateDecimals { get => _coordinateDecimals; set => _coordinateDecimals = (int)Range(value, 0, 8, nameof(CoordinateDecimals)); }
+        public int CoordinateDecimals
+        {
+            get => _coordinateDecimals;
+            set => _coordinateDecimals = (int)Range(value, 0, 8, nameof(CoordinateDecimals));
+        }
 
         /// <summary>Gets or sets the decimals of the dimensions of a new model drawing, 0 to 8: 0 by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
-        public int DimensionDecimals { get => _dimensionDecimals; set => _dimensionDecimals = (int)Range(value, 0, 8, nameof(DimensionDecimals)); }
+        public int DimensionDecimals
+        {
+            get => _dimensionDecimals;
+            set => _dimensionDecimals = (int)Range(value, 0, 8, nameof(DimensionDecimals));
+        }
 
         /// <summary>Gets or sets the decimals of angles shown, 0 to 8: 1 by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
-        public int AngleDecimals { get => _angleDecimals; set => _angleDecimals = (int)Range(value, 0, 8, nameof(AngleDecimals)); }
+        public int AngleDecimals
+        {
+            get => _angleDecimals;
+            set => _angleDecimals = (int)Range(value, 0, 8, nameof(AngleDecimals));
+        }
 
         /// <summary>Gets or sets what parts the thousands: Space, None, Comma or Point; Space by default, as "12 345".</summary>
         /// <exception cref="ArgumentException">Thrown when the value is not one of <see cref="ThousandsSeparators"/>, or is the decimal separator.</exception>
@@ -270,7 +368,13 @@ namespace GeometryHelper.Dxf.Viewer
             set
             {
                 string v = OneOf(value, ThousandsSeparators, nameof(ThousandsSeparator));
-                _thousands = v == _decimal ? throw new ArgumentException("The thousands cannot be parted by the decimal separator.", nameof(ThousandsSeparator)) : v;
+                _thousands =
+                    v == _decimal
+                        ? throw new ArgumentException(
+                            "The thousands cannot be parted by the decimal separator.",
+                            nameof(ThousandsSeparator)
+                        )
+                        : v;
             }
         }
 
@@ -282,7 +386,13 @@ namespace GeometryHelper.Dxf.Viewer
             set
             {
                 string v = OneOf(value, new[] { "Point", "Comma" }, nameof(DecimalSeparator));
-                _decimal = v == _thousands ? throw new ArgumentException("The decimal separator cannot be the thousands separator.", nameof(DecimalSeparator)) : v;
+                _decimal =
+                    v == _thousands
+                        ? throw new ArgumentException(
+                            "The decimal separator cannot be the thousands separator.",
+                            nameof(DecimalSeparator)
+                        )
+                        : v;
             }
         }
 
@@ -304,8 +414,15 @@ namespace GeometryHelper.Dxf.Viewer
                     throw new ArgumentException("The layer table holds no null layer.", nameof(Layers));
                 }
 
-                string twice = value.GroupBy(l => l.Name, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1).Select(g => g.Key).FirstOrDefault();
-                _layers = twice == null ? value.ToList() : throw new ArgumentException("The layer " + twice + " is in the table twice.", nameof(Layers));
+                string twice = value
+                    .GroupBy(l => l.Name, StringComparer.OrdinalIgnoreCase)
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key)
+                    .FirstOrDefault();
+                _layers =
+                    twice == null
+                        ? value.ToList()
+                        : throw new ArgumentException("The layer " + twice + " is in the table twice.", nameof(Layers));
             }
         }
 
@@ -313,26 +430,46 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets or sets the font of the app: Inter by default.</summary>
         /// <exception cref="ArgumentException">Thrown when the value is empty.</exception>
-        public string UiFont { get => _uiFont; set => _uiFont = Name(value, nameof(UiFont)); }
+        public string UiFont
+        {
+            get => _uiFont;
+            set => _uiFont = Name(value, nameof(UiFont));
+        }
 
         /// <summary>Gets or sets the font text is drawn in where its style's font is missing and <see cref="ReplacementFont"/> is not found either: Arial by default.</summary>
         /// <exception cref="ArgumentException">Thrown when the value is empty.</exception>
-        public string DrawingFont { get => _drawingFont; set => _drawingFont = Name(value, nameof(DrawingFont)); }
+        public string DrawingFont
+        {
+            get => _drawingFont;
+            set => _drawingFont = Name(value, nameof(DrawingFont));
+        }
 
         /// <summary>
         /// Gets or sets the height of the text of a new model drawing on paper, in millimetres, which TEXT and MTEXT start
         /// from and the dimensions DIM* makes are written with: 2.5 by default.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not above 0 and up to 100.</exception>
-        public double TextHeight { get => _textHeight; set => _textHeight = Range(value, 0.1, 100.0, nameof(TextHeight)); }
+        public double TextHeight
+        {
+            get => _textHeight;
+            set => _textHeight = Range(value, 0.1, 100.0, nameof(TextHeight));
+        }
 
         /// <summary>Gets or sets the height of the titles of views on paper, in millimetres: 5 by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not above 0 and up to 100.</exception>
-        public double TitleTextHeight { get => _titleTextHeight; set => _titleTextHeight = Range(value, 0.1, 100.0, nameof(TitleTextHeight)); }
+        public double TitleTextHeight
+        {
+            get => _titleTextHeight;
+            set => _titleTextHeight = Range(value, 0.1, 100.0, nameof(TitleTextHeight));
+        }
 
         /// <summary>Gets or sets the width factor of the drawing text, which TEXT and MTEXT write, 0.1 to 10: 0.8 by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
-        public double WidthFactor { get => _widthFactor; set => _widthFactor = Range(value, 0.1, 10.0, nameof(WidthFactor)); }
+        public double WidthFactor
+        {
+            get => _widthFactor;
+            set => _widthFactor = Range(value, 0.1, 10.0, nameof(WidthFactor));
+        }
 
         // ---- Fonts
 
@@ -347,7 +484,12 @@ namespace GeometryHelper.Dxf.Viewer
         public IReadOnlyList<string> FontSearchFolders
         {
             get => _fontFolders.AsReadOnly();
-            set => _fontFolders = (value ?? throw new ArgumentNullException(nameof(value))).Where(f => !string.IsNullOrWhiteSpace(f)).Select(f => f.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            set =>
+                _fontFolders = (value ?? throw new ArgumentNullException(nameof(value)))
+                    .Where(f => !string.IsNullOrWhiteSpace(f))
+                    .Select(f => f.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
         }
 
         /// <summary>
@@ -356,14 +498,22 @@ namespace GeometryHelper.Dxf.Viewer
         /// (simplex.shx,gbcbig.shx); by default the presenter's own single-stroke font, GeometryHelper Simplex
         /// (<see cref="CadFonts.BuiltInName"/>). Empty, or a font not found either, draws it in <see cref="DrawingFont"/>.
         /// </summary>
-        public string ReplacementFont { get => _replacementFont; set => _replacementFont = (value ?? string.Empty).Trim(); }
+        public string ReplacementFont
+        {
+            get => _replacementFont;
+            set => _replacementFont = (value ?? string.Empty).Trim();
+        }
 
         /// <summary>
         /// Gets or sets the font mapping file, as AutoCAD's FONTMAP: the path of a .fmp file of a line <c>oldfont;newfont</c>
         /// for each font drawn in another, its pairs read into <see cref="FontSubstitutions"/> as the drawings are given their
         /// fonts, a font the table names as well drawn as the table says; empty, the default, for none.
         /// </summary>
-        public string FontMapFile { get => _fontMapFile; set => _fontMapFile = (value ?? string.Empty).Trim(); }
+        public string FontMapFile
+        {
+            get => _fontMapFile;
+            set => _fontMapFile = (value ?? string.Empty).Trim();
+        }
 
         /// <summary>
         /// Gets or sets whether the Missing SHX files dialog is shown once as a drawing opens whose text styles name SHX fonts
@@ -382,7 +532,12 @@ namespace GeometryHelper.Dxf.Viewer
         public IReadOnlyList<string> SupportSearchFolders
         {
             get => _supportFolders.AsReadOnly();
-            set => _supportFolders = (value ?? throw new ArgumentNullException(nameof(value))).Where(f => !string.IsNullOrWhiteSpace(f)).Select(f => f.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            set =>
+                _supportFolders = (value ?? throw new ArgumentNullException(nameof(value)))
+                    .Where(f => !string.IsNullOrWhiteSpace(f))
+                    .Select(f => f.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
         }
 
         /// <summary>Gets the fonts drawn in others, as AutoCAD's font mapping file gives them: each name to the name it is drawn in (romans.shx to isocp.shx); none by default.</summary>
@@ -395,7 +550,10 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var table = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (KeyValuePair<string, string> pair in substitutions ?? throw new ArgumentNullException(nameof(substitutions)))
+            foreach (
+                KeyValuePair<string, string> pair in substitutions
+                    ?? throw new ArgumentNullException(nameof(substitutions))
+            )
             {
                 if (!string.IsNullOrWhiteSpace(pair.Key) && !string.IsNullOrWhiteSpace(pair.Value))
                 {
@@ -413,7 +571,11 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets or sets how often the sources are asked, in seconds, 5 to 3 600: 30 by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
-        public int CheckEverySeconds { get => _checkEverySeconds; set => _checkEverySeconds = (int)Range(value, 5, 3600, nameof(CheckEverySeconds)); }
+        public int CheckEverySeconds
+        {
+            get => _checkEverySeconds;
+            set => _checkEverySeconds = (int)Range(value, 5, 3600, nameof(CheckEverySeconds));
+        }
 
         // ---- Shortcuts
 
@@ -426,19 +588,35 @@ namespace GeometryHelper.Dxf.Viewer
         // ---- Save and export
 
         /// <summary>Gets or sets the folder drawings are saved and exported to; empty, the default, for the user's Documents.</summary>
-        public string SaveFolder { get => _saveFolder; set => _saveFolder = (value ?? string.Empty).Trim(); }
+        public string SaveFolder
+        {
+            get => _saveFolder;
+            set => _saveFolder = (value ?? string.Empty).Trim();
+        }
 
         /// <summary>Gets or sets how often a drawing with changes is saved aside, in minutes, 0 (never) to 240: 10 by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
-        public int AutosaveMinutes { get => _autosaveMinutes; set => _autosaveMinutes = (int)Range(value, 0, 240, nameof(AutosaveMinutes)); }
+        public int AutosaveMinutes
+        {
+            get => _autosaveMinutes;
+            set => _autosaveMinutes = (int)Range(value, 0, 240, nameof(AutosaveMinutes));
+        }
 
         /// <summary>Gets or sets how many backups of a file are kept, 0 to 50: 3 by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
-        public int BackupsKept { get => _backupsKept; set => _backupsKept = (int)Range(value, 0, 50, nameof(BackupsKept)); }
+        public int BackupsKept
+        {
+            get => _backupsKept;
+            set => _backupsKept = (int)Range(value, 0, 50, nameof(BackupsKept));
+        }
 
         /// <summary>Gets or sets how a model drawing's DXF is laid out (D10): LayoutAndViewports, the default, or SheetInModelSpace.</summary>
         /// <exception cref="ArgumentException">Thrown when the value is not one of <see cref="ExportLayouts"/>.</exception>
-        public string ExportLayout { get => _exportLayout; set => _exportLayout = OneOf(value, ExportLayouts, nameof(ExportLayout)); }
+        public string ExportLayout
+        {
+            get => _exportLayout;
+            set => _exportLayout = OneOf(value, ExportLayouts, nameof(ExportLayout));
+        }
 
         /// <summary>Gets or sets whether the folder is opened after an export: off by default.</summary>
         public bool OpenAfterExport { get; set; }
@@ -452,7 +630,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// Setting it back to Ask, or Global settings' Reset to defaults, shows the question again.
         /// </summary>
         /// <exception cref="ArgumentException">Thrown when the value is not one of <see cref="HiddenMessageChoices"/>.</exception>
-        public string MTextUnsavedChanges { get => _mtextUnsavedChanges; set => _mtextUnsavedChanges = OneOf(value, HiddenMessageChoices, nameof(MTextUnsavedChanges)); }
+        public string MTextUnsavedChanges
+        {
+            get => _mtextUnsavedChanges;
+            set => _mtextUnsavedChanges = OneOf(value, HiddenMessageChoices, nameof(MTextUnsavedChanges));
+        }
 
         /// <summary>
         /// Sets the aliases and keys: each alias and key to a command's name, letters of either case the same. A key given to
@@ -462,9 +644,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="keys">The keys.</param>
         /// <exception cref="ArgumentNullException">Thrown when either is null.</exception>
         /// <exception cref="ArgumentException">Thrown when an alias or key, or its command, is empty.</exception>
-        public void SetShortcuts(IEnumerable<KeyValuePair<string, string>> aliases, IEnumerable<KeyValuePair<string, string>> keys)
+        public void SetShortcuts(
+            IEnumerable<KeyValuePair<string, string>> aliases,
+            IEnumerable<KeyValuePair<string, string>> keys
+        )
         {
-            var shortcuts = new CadShortcuts(aliases ?? throw new ArgumentNullException(nameof(aliases)), keys ?? throw new ArgumentNullException(nameof(keys)));
+            var shortcuts = new CadShortcuts(
+                aliases ?? throw new ArgumentNullException(nameof(aliases)),
+                keys ?? throw new ArgumentNullException(nameof(keys))
+            );
             _aliases = Copy(shortcuts.Aliases);
             _keys = Copy(shortcuts.Keys);
         }
@@ -479,8 +667,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         /// <param name="familyExists">Whether the canvas has a TrueType typeface of a name; null to take every typeface as there.</param>
         /// <returns>The fonts.</returns>
-        public CadFonts ToFonts(Func<string, bool> familyExists = null)
-            => new CadFonts(_fontFolders, _replacementFont, CadFonts.ReadFontMap(_fontMapFile).Concat(_fontSubstitutions), familyExists);
+        public CadFonts ToFonts(Func<string, bool> familyExists = null) =>
+            new CadFonts(
+                _fontFolders,
+                _replacementFont,
+                CadFonts.ReadFontMap(_fontMapFile).Concat(_fontSubstitutions),
+                familyExists
+            );
 
         /// <summary>
         /// Says the shortcuts that clash: an alias that is a command's own name of another command, written "DU is the name of
@@ -491,9 +684,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>A line per clash, in ordinal order.</returns>
         public IReadOnlyList<string> ShortcutConflicts(IEnumerable<string> commandNames)
         {
-            var names = new HashSet<string>(commandNames ?? Enumerable.Empty<string>(), StringComparer.OrdinalIgnoreCase);
-            return _aliases.Where(a => names.Contains(a.Key) && !string.Equals(a.Key, a.Value, StringComparison.OrdinalIgnoreCase))
-                .Select(a => "The alias " + a.Key + " is the name of the command " + a.Key.ToUpperInvariant() + ".").ToList();
+            var names = new HashSet<string>(
+                commandNames ?? Enumerable.Empty<string>(),
+                StringComparer.OrdinalIgnoreCase
+            );
+            return _aliases
+                .Where(a => names.Contains(a.Key) && !string.Equals(a.Key, a.Value, StringComparison.OrdinalIgnoreCase))
+                .Select(a => "The alias " + a.Key + " is the name of the command " + a.Key.ToUpperInvariant() + ".")
+                .ToList();
         }
 
         /// <summary>Makes a copy that shares nothing with these settings.</summary>
@@ -519,7 +717,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var format = new NumberFormatInfo
             {
-                NumberGroupSeparator = _thousands == "Space" ? " " : _thousands == "Comma" ? "," : _thousands == "Point" ? "." : string.Empty,
+                NumberGroupSeparator =
+                    _thousands == "Space" ? " "
+                    : _thousands == "Comma" ? ","
+                    : _thousands == "Point" ? "."
+                    : string.Empty,
                 NumberDecimalSeparator = _decimal == "Comma" ? "," : ".",
             };
             return value.ToString("#,0" + (decimals > 0 ? "." + new string('0', decimals) : string.Empty), format);
@@ -547,12 +749,22 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 byte[] bytes = File.ReadAllBytes(path);
 
-                using (XmlDictionaryReader reader = JsonReaderWriterFactory.CreateJsonReader(bytes, XmlDictionaryReaderQuotas.Max))
+                using (
+                    XmlDictionaryReader reader = JsonReaderWriterFactory.CreateJsonReader(
+                        bytes,
+                        XmlDictionaryReaderQuotas.Max
+                    )
+                )
                 {
                     root = XElement.Load(reader);
                 }
             }
-            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is XmlException || exception is ArgumentException)
+            catch (Exception exception)
+                when (exception is IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is XmlException
+                    || exception is ArgumentException
+                )
             {
                 GeometryHelperLog.Warn("GlobalSettings: " + path + " does not read; the defaults are used.", exception);
                 return settings;
@@ -730,25 +942,54 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The names of the snaps on, in the order they came to the presenter.</summary>
-        internal static IEnumerable<string> SnapNames(CadSnapModes modes)
-            => new[]
-                {
-                    CadSnapModes.Endpoint, CadSnapModes.Midpoint, CadSnapModes.Center, CadSnapModes.Quadrant, CadSnapModes.Intersection, CadSnapModes.Perpendicular, CadSnapModes.Tangent, CadSnapModes.Nearest,
-                    CadSnapModes.Node, CadSnapModes.GeometricCenter, CadSnapModes.Extension, CadSnapModes.Insertion, CadSnapModes.ApparentIntersection, CadSnapModes.Parallel,
-                }
-                .Where(m => (modes & m) != 0).Select(m => m.ToString());
+        internal static IEnumerable<string> SnapNames(CadSnapModes modes) =>
+            new[]
+            {
+                CadSnapModes.Endpoint,
+                CadSnapModes.Midpoint,
+                CadSnapModes.Center,
+                CadSnapModes.Quadrant,
+                CadSnapModes.Intersection,
+                CadSnapModes.Perpendicular,
+                CadSnapModes.Tangent,
+                CadSnapModes.Nearest,
+                CadSnapModes.Node,
+                CadSnapModes.GeometricCenter,
+                CadSnapModes.Extension,
+                CadSnapModes.Insertion,
+                CadSnapModes.ApparentIntersection,
+                CadSnapModes.Parallel,
+            }
+                .Where(m => (modes & m) != 0)
+                .Select(m => m.ToString());
 
-        internal static int Colour(int value, string name)
-            => value >= 0 && value <= 0xFFFFFF ? value : throw new ArgumentOutOfRangeException(name, value, "A colour is 0 to 0xFFFFFF, #000000 to #FFFFFF.");
+        internal static int Colour(int value, string name) =>
+            value >= 0 && value <= 0xFFFFFF
+                ? value
+                : throw new ArgumentOutOfRangeException(name, value, "A colour is 0 to 0xFFFFFF, #000000 to #FFFFFF.");
 
-        internal static double Range(double value, double min, double max, string name)
-            => value >= min && value <= max ? value : throw new ArgumentOutOfRangeException(name, value, "The value has to be from " + min.ToString(CultureInfo.InvariantCulture) + " to " + max.ToString(CultureInfo.InvariantCulture) + ".");
+        internal static double Range(double value, double min, double max, string name) =>
+            value >= min && value <= max
+                ? value
+                : throw new ArgumentOutOfRangeException(
+                    name,
+                    value,
+                    "The value has to be from "
+                        + min.ToString(CultureInfo.InvariantCulture)
+                        + " to "
+                        + max.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
 
-        private static string OneOf(string value, IEnumerable<string> allowed, string name)
-            => allowed.FirstOrDefault(a => string.Equals(a, (value ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase))
-               ?? throw new ArgumentException("The value has to be one of " + string.Join(", ", allowed) + ".", name);
+        private static string OneOf(string value, IEnumerable<string> allowed, string name) =>
+            allowed.FirstOrDefault(a =>
+                string.Equals(a, (value ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase)
+            ) ?? throw new ArgumentException("The value has to be one of " + string.Join(", ", allowed) + ".", name);
 
-        private static string Name(string value, string name) => string.IsNullOrWhiteSpace(value) ? throw new ArgumentException("The value needs a name.", name) : value.Trim();
+        private static string Name(string value, string name) =>
+            string.IsNullOrWhiteSpace(value)
+                ? throw new ArgumentException("The value needs a name.", name)
+                : value.Trim();
 
         private static SortedDictionary<string, string> Copy(IEnumerable<KeyValuePair<string, string>> pairs)
         {
@@ -762,18 +1003,19 @@ namespace GeometryHelper.Dxf.Viewer
             return copy;
         }
 
-        private static List<GlobalLayer> DefaultLayers() => new List<GlobalLayer>
-        {
-            new GlobalLayer("Visible", 0xFFFFFF, "Continuous", 0.35),
-            new GlobalLayer("Hidden", 0x9AA4B1, "HIDDEN", 0.18),
-            new GlobalLayer("Centre", 0xF85149, "CENTER", 0.18),
-            new GlobalLayer("Hatch", 0x9AA4B1, "Continuous", 0.13),
-            new GlobalLayer("Dimension", 0x3FB950, "Continuous", 0.18),
-            new GlobalLayer("Mark", 0x39C5CF, "Continuous", 0.18),
-            new GlobalLayer("Symbol", 0xBC8CFF, "Continuous", 0.18),
-            new GlobalLayer("Sheet", 0xFFFFFF, "Continuous", 0.25),
-            new GlobalLayer("Viewport", 0x9AA4B1, "Continuous", 0.13, plot: false),
-        };
+        private static List<GlobalLayer> DefaultLayers() =>
+            new List<GlobalLayer>
+            {
+                new GlobalLayer("Visible", 0xFFFFFF, "Continuous", 0.35),
+                new GlobalLayer("Hidden", 0x9AA4B1, "HIDDEN", 0.18),
+                new GlobalLayer("Centre", 0xF85149, "CENTER", 0.18),
+                new GlobalLayer("Hatch", 0x9AA4B1, "Continuous", 0.13),
+                new GlobalLayer("Dimension", 0x3FB950, "Continuous", 0.18),
+                new GlobalLayer("Mark", 0x39C5CF, "Continuous", 0.18),
+                new GlobalLayer("Symbol", 0xBC8CFF, "Continuous", 0.18),
+                new GlobalLayer("Sheet", 0xFFFFFF, "Continuous", 0.25),
+                new GlobalLayer("Viewport", 0x9AA4B1, "Continuous", 0.13, plot: false),
+            };
 
         /// <summary>Reads the values of the JSON file, each on its own: a value that is not valid falls back to its default with a Warn.</summary>
         private sealed class Reader
@@ -830,7 +1072,9 @@ namespace GeometryHelper.Dxf.Viewer
                 Flag("fonts", "showMissingShxDialog", v => _s.ShowMissingShxDialog = v);
                 Take("fonts", "searchFolders", e => _s.FontSearchFolders = e.Elements().Select(f => f.Value).ToList());
                 Take("fonts", "substitutions", e => _s.SetFontSubstitutions(Pairs(e)));
-                Take("support", "searchFolders", e => _s.SupportSearchFolders = e.Elements().Select(f => f.Value).ToList());
+                Take("support", "searchFolders", e =>
+                    _s.SupportSearchFolders = e.Elements().Select(f => f.Value).ToList()
+                );
                 Flag("dataSources", "checkForModelChanges", v => _s.CheckForModelChanges = v);
                 Number("dataSources", "checkEverySeconds", v => _s.CheckEverySeconds = Whole(v));
                 Text("saveAndExport", "saveFolder", v => _s.SaveFolder = v);
@@ -849,7 +1093,10 @@ namespace GeometryHelper.Dxf.Viewer
                 _s.ReadRecords(_root, _path);
             }
 
-            private static int Whole(double value) => value == Math.Floor(value) && value >= int.MinValue && value <= int.MaxValue ? (int)value : throw new ArgumentException("A whole number is needed.");
+            private static int Whole(double value) =>
+                value == Math.Floor(value) && value >= int.MinValue && value <= int.MaxValue
+                    ? (int)value
+                    : throw new ArgumentException("A whole number is needed.");
 
             private static CadSnapModes Snaps(string names)
             {
@@ -857,7 +1104,10 @@ namespace GeometryHelper.Dxf.Viewer
 
                 foreach (string name in names.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
                 {
-                    modes |= Enum.TryParse(name.Trim(), true, out CadSnapModes mode) && mode != CadSnapModes.All ? mode : throw new ArgumentException("No snap is called " + name.Trim() + ".");
+                    modes |=
+                        Enum.TryParse(name.Trim(), true, out CadSnapModes mode) && mode != CadSnapModes.All
+                            ? mode
+                            : throw new ArgumentException("No snap is called " + name.Trim() + ".");
                 }
 
                 return modes;
@@ -878,20 +1128,42 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     set(element);
                 }
-                catch (Exception exception) when (exception is ArgumentException || exception is FormatException || exception is OverflowException)
+                catch (Exception exception)
+                    when (exception is ArgumentException
+                        || exception is FormatException
+                        || exception is OverflowException
+                    )
                 {
-                    GeometryHelperLog.Warn("GlobalSettings: " + group + "." + name + " = \"" + element.Value + "\" of " + _path + " is not valid (" + exception.Message.Split('\n')[0].Trim() + "); its default is used.");
+                    GeometryHelperLog.Warn(
+                        "GlobalSettings: "
+                            + group
+                            + "."
+                            + name
+                            + " = \""
+                            + element.Value
+                            + "\" of "
+                            + _path
+                            + " is not valid ("
+                            + exception.Message.Split('\n')[0].Trim()
+                            + "); its default is used."
+                    );
                 }
             }
 
-            private void Colour(string group, string name, Action<int> set)
-                => Take(group, name, e => set(TryParseHex(e.Value, out int rgb) ? rgb : throw new FormatException("A colour is written #RRGGBB.")));
+            private void Colour(string group, string name, Action<int> set) =>
+                Take(group, name, e =>
+                    set(
+                        TryParseHex(e.Value, out int rgb)
+                            ? rgb
+                            : throw new FormatException("A colour is written #RRGGBB.")
+                    )
+                );
 
-            private void Number(string group, string name, Action<double> set)
-                => Take(group, name, e => set(double.Parse(e.Value, NumberStyles.Float, CultureInfo.InvariantCulture)));
+            private void Number(string group, string name, Action<double> set) =>
+                Take(group, name, e => set(double.Parse(e.Value, NumberStyles.Float, CultureInfo.InvariantCulture)));
 
-            private void Flag(string group, string name, Action<bool> set)
-                => Take(group, name, e => set(bool.Parse(e.Value)));
+            private void Flag(string group, string name, Action<bool> set) =>
+                Take(group, name, e => set(bool.Parse(e.Value)));
 
             private void Text(string group, string name, Action<string> set) => Take(group, name, e => set(e.Value));
 
@@ -910,16 +1182,35 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     try
                     {
-                        layers.Add(new GlobalLayer(
-                            item.Element("name")?.Value,
-                            TryParseHex(item.Element("colour")?.Value, out int rgb) ? rgb : throw new FormatException("A colour is written #RRGGBB."),
-                            item.Element("linetype")?.Value,
-                            double.Parse(item.Element("lineweight")?.Value ?? "0", NumberStyles.Float, CultureInfo.InvariantCulture),
-                            !string.Equals(item.Element("plot")?.Value, "false", StringComparison.OrdinalIgnoreCase)));
+                        layers.Add(
+                            new GlobalLayer(
+                                item.Element("name")?.Value,
+                                TryParseHex(item.Element("colour")?.Value, out int rgb)
+                                    ? rgb
+                                    : throw new FormatException("A colour is written #RRGGBB."),
+                                item.Element("linetype")?.Value,
+                                double.Parse(
+                                    item.Element("lineweight")?.Value ?? "0",
+                                    NumberStyles.Float,
+                                    CultureInfo.InvariantCulture
+                                ),
+                                !string.Equals(item.Element("plot")?.Value, "false", StringComparison.OrdinalIgnoreCase)
+                            )
+                        );
                     }
-                    catch (Exception exception) when (exception is ArgumentException || exception is FormatException || exception is OverflowException)
+                    catch (Exception exception)
+                        when (exception is ArgumentException
+                            || exception is FormatException
+                            || exception is OverflowException
+                        )
                     {
-                        GeometryHelperLog.Warn("GlobalSettings: a layer of " + _path + " is not valid (" + exception.Message.Split('\n')[0].Trim() + "); it is left out.");
+                        GeometryHelperLog.Warn(
+                            "GlobalSettings: a layer of "
+                                + _path
+                                + " is not valid ("
+                                + exception.Message.Split('\n')[0].Trim()
+                                + "); it is left out."
+                        );
                     }
                 }
 
@@ -929,7 +1220,13 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 catch (ArgumentException exception)
                 {
-                    GeometryHelperLog.Warn("GlobalSettings: the layers of " + _path + " are not valid (" + exception.Message.Split('\n')[0].Trim() + "); the default table is used.");
+                    GeometryHelperLog.Warn(
+                        "GlobalSettings: the layers of "
+                            + _path
+                            + " are not valid ("
+                            + exception.Message.Split('\n')[0].Trim()
+                            + "); the default table is used."
+                    );
                 }
             }
 
@@ -944,17 +1241,32 @@ namespace GeometryHelper.Dxf.Viewer
 
                 try
                 {
-                    _s.SetShortcuts(Pairs(shortcuts.Element("aliases")) ?? _s.Aliases, Pairs(shortcuts.Element("keys")) ?? _s.Keys);
+                    _s.SetShortcuts(
+                        Pairs(shortcuts.Element("aliases")) ?? _s.Aliases,
+                        Pairs(shortcuts.Element("keys")) ?? _s.Keys
+                    );
                 }
                 catch (ArgumentException exception)
                 {
-                    GeometryHelperLog.Warn("GlobalSettings: the shortcuts of " + _path + " are not valid (" + exception.Message.Split('\n')[0].Trim() + "); AutoCAD's are used.");
+                    GeometryHelperLog.Warn(
+                        "GlobalSettings: the shortcuts of "
+                            + _path
+                            + " are not valid ("
+                            + exception.Message.Split('\n')[0].Trim()
+                            + "); AutoCAD's are used."
+                    );
                 }
             }
 
             /// <summary>The members of an object of the JSON, the name of each held in the item attribute where it is no XML name.</summary>
-            private static IEnumerable<KeyValuePair<string, string>> Pairs(XElement element)
-                => element?.Elements().Select(e => new KeyValuePair<string, string>((string)e.Attribute("item") ?? e.Name.LocalName, e.Value)).ToList();
+            private static IEnumerable<KeyValuePair<string, string>> Pairs(XElement element) =>
+                element
+                    ?.Elements()
+                    .Select(e => new KeyValuePair<string, string>(
+                        (string)e.Attribute("item") ?? e.Name.LocalName,
+                        e.Value
+                    ))
+                    .ToList();
         }
 
         /// <summary>Writes JSON by hand, its members in the order written, two spaces of indent and LF line ends.</summary>
@@ -973,7 +1285,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             public void Value(string name, string value) => Member(name, Quote(value));
 
-            public void Value(string name, double value) => Member(name, value.ToString("R", CultureInfo.InvariantCulture));
+            public void Value(string name, double value) =>
+                Member(name, value.ToString("R", CultureInfo.InvariantCulture));
 
             public void Value(string name, int value) => Member(name, value.ToString(CultureInfo.InvariantCulture));
 

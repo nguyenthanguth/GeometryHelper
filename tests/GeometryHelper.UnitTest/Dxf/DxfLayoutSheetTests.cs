@@ -37,7 +37,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(Bits(594 * 11.0 / 10.0) + Bits(420 * 11.0 / 10.0), Bits(sheet.Width) + Bits(sheet.Height));
 
             string record = Records(db.ToText()).Single(r => HandleOf(r) == plan.Handle);
-            Assert.Contains("  4\nISO_A2_(594.00_x_420.00_MM)\n  6\n\n 40\n10\n 41\n10\n 42\n10\n 43\n10\n 44\n594\n 45\n420\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                "  4\nISO_A2_(594.00_x_420.00_MM)\n  6\n\n 40\n10\n 41\n10\n 42\n10\n 43\n10\n 44\n594\n 45\n420\n",
+                record,
+                StringComparison.Ordinal
+            );
             Assert.Contains(" 10\n-10\n 20\n-10\n 11\n584\n 21\n410\n", record, StringComparison.Ordinal);
 
             DxfLayout read = Opened(Saved(db)).Layouts.Single(l => l.LayoutName == "Plan A2");
@@ -52,7 +56,10 @@ namespace GeometryHelper.UnitTest.Dxf
             // The paper as the viewer's CadSpace.PaperBounds draws it: the sheet placed at minus the margins, 594 by 420.
             DxfExtents2d paper = Paper(read);
             Assert.Equal(new DxfExtents2d(new GeoPoint2(-10, -10), new GeoPoint2(584, 410)), paper);
-            Assert.Equal(Bits(594.0) + Bits(420.0), Bits(paper.MaxPoint.X - paper.MinPoint.X) + Bits(paper.MaxPoint.Y - paper.MinPoint.Y));
+            Assert.Equal(
+                Bits(594.0) + Bits(420.0),
+                Bits(paper.MaxPoint.X - paper.MinPoint.X) + Bits(paper.MaxPoint.Y - paper.MinPoint.Y)
+            );
         }
 
         [Theory]
@@ -69,7 +76,11 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("ezdxf_(1000.00_x_500.00_MM)", 1000.0, 500.0)]
         [InlineData("ISO_full_bleed_A3_(420.00_x_297.00_MM)", 420.0, 297.0)]
         [InlineData("GH-Strip.1_(2400.5_x_120.25_MM)", 2400.5, 120.25)]
-        public void ASheetNamedWithItsSizeInMillimetres_GivesThatSize_AndLimitsAboutItsPlottedArea(string name, double width, double height)
+        public void ASheetNamedWithItsSizeInMillimetres_GivesThatSize_AndLimitsAboutItsPlottedArea(
+            string name,
+            double width,
+            double height
+        )
         {
             DxfLayout plan = Added("AC1032", out _);
 
@@ -79,7 +90,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(name, plan.CanonicalMediaName);
             Assert.Equal(Bits(width) + Bits(height), Bits(plan.PlotPaperSize.X) + Bits(plan.PlotPaperSize.Y));
             Assert.Equal(new DxfExtents2d(new GeoPoint2(7.5, 20), new GeoPoint2(7.5, 20)), plan.PlotPaperMargins);
-            Assert.Equal(new DxfExtents2d(new GeoPoint2(-7.5, -20), new GeoPoint2(width - 7.5, height - 20)), plan.Limits);
+            Assert.Equal(
+                new DxfExtents2d(new GeoPoint2(-7.5, -20), new GeoPoint2(width - 7.5, height - 20)),
+                plan.Limits
+            );
         }
 
         [Theory]
@@ -110,7 +124,9 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             var loose = new DxfLayout { LayoutName = "Loose" };
             Assert.Throws<InvalidOperationException>(() => loose.CanonicalMediaName = "ISO_A2_(594.00_x_420.00_MM)");
-            Assert.Throws<InvalidOperationException>(() => loose.PlotPaperMargins = new DxfExtents2d(new GeoPoint2(1, 1), new GeoPoint2(1, 1)));
+            Assert.Throws<InvalidOperationException>(() =>
+                loose.PlotPaperMargins = new DxfExtents2d(new GeoPoint2(1, 1), new GeoPoint2(1, 1))
+            );
             Assert.Throws<InvalidOperationException>(() => loose.PlotOrigin = new GeoPoint2(1, 1));
             Assert.Throws<InvalidOperationException>(() => loose.PlotPaperUnits = DxfPlotPaperUnit.Inches);
             Assert.Throws<InvalidOperationException>(() => loose.PlotRotation = DxfPlotRotation.Degrees090);
@@ -119,11 +135,24 @@ namespace GeometryHelper.UnitTest.Dxf
             string before = db.ToText();
 
             // A3 is 420 by 297: margins of 210 at either side, or 148.5 above and below, leave none.
-            Assert.Throws<ArgumentException>(() => plan.PlotPaperMargins = new DxfExtents2d(new GeoPoint2(210, 20), new GeoPoint2(210, 20)));
-            Assert.Throws<ArgumentException>(() => plan.PlotPaperMargins = new DxfExtents2d(new GeoPoint2(7.5, 148.5), new GeoPoint2(7.5, 148.5)));
-            Assert.Throws<ArgumentOutOfRangeException>(() => plan.PlotPaperMargins = new DxfExtents2d(new GeoPoint2(-1, 20), new GeoPoint2(7.5, 20)));
-            Assert.Throws<ArgumentOutOfRangeException>(() => plan.PlotPaperMargins = new DxfExtents2d(new GeoPoint2(7.5, double.NaN), new GeoPoint2(7.5, 20)));
-            Assert.Throws<ArgumentOutOfRangeException>(() => plan.PlotPaperMargins = new DxfExtents2d(new GeoPoint2(7.5, 20), new GeoPoint2(double.PositiveInfinity, 20)));
+            Assert.Throws<ArgumentException>(() =>
+                plan.PlotPaperMargins = new DxfExtents2d(new GeoPoint2(210, 20), new GeoPoint2(210, 20))
+            );
+            Assert.Throws<ArgumentException>(() =>
+                plan.PlotPaperMargins = new DxfExtents2d(new GeoPoint2(7.5, 148.5), new GeoPoint2(7.5, 148.5))
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                plan.PlotPaperMargins = new DxfExtents2d(new GeoPoint2(-1, 20), new GeoPoint2(7.5, 20))
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                plan.PlotPaperMargins = new DxfExtents2d(new GeoPoint2(7.5, double.NaN), new GeoPoint2(7.5, 20))
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                plan.PlotPaperMargins = new DxfExtents2d(
+                    new GeoPoint2(7.5, 20),
+                    new GeoPoint2(double.PositiveInfinity, 20)
+                )
+            );
             Assert.Throws<ArgumentOutOfRangeException>(() => plan.PlotOrigin = new GeoPoint2(double.NaN, 0));
             Assert.Throws<ArgumentException>(() => plan.PlotPaperUnits = (DxfPlotPaperUnit)3);
             Assert.Throws<ArgumentException>(() => plan.PlotRotation = (DxfPlotRotation)4);
@@ -187,7 +216,13 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // In inches, the millimetres of the file divided by 25.4: (-0.295, -0.787) to (16.240, 10.906).
             plan.PlotPaperUnits = DxfPlotPaperUnit.Inches;
-            Assert.Equal(new DxfExtents2d(new GeoPoint2(-7.5 / 25.4, -20 / 25.4), new GeoPoint2(420 / 25.4 - 7.5 / 25.4, 297 / 25.4 - 20 / 25.4)), plan.Limits);
+            Assert.Equal(
+                new DxfExtents2d(
+                    new GeoPoint2(-7.5 / 25.4, -20 / 25.4),
+                    new GeoPoint2(420 / 25.4 - 7.5 / 25.4, 297 / 25.4 - 20 / 25.4)
+                ),
+                plan.Limits
+            );
             Assert.Equal(Bits(420.0) + Bits(7.5), Bits(plan.PlotPaperSize.X) + Bits(plan.PlotPaperMargins.MinPoint.X));
             plan.PlotPaperUnits = DxfPlotPaperUnit.Millimeters;
             Assert.Equal(new DxfExtents2d(new GeoPoint2(-7.5, -20), new GeoPoint2(412.5, 277)), plan.Limits);
@@ -219,7 +254,10 @@ namespace GeometryHelper.UnitTest.Dxf
             model.PlotPaperMargins = new DxfExtents2d(new GeoPoint2(5, 5), new GeoPoint2(5, 5));
 
             Assert.Equal(limits, model.Limits);
-            Assert.Equal(new DxfExtents2d(new GeoPoint2(5, 5), new GeoPoint2(5, 5)), DxfDatabase.Parse(db.ToText()).Layouts[0].PlotPaperMargins);
+            Assert.Equal(
+                new DxfExtents2d(new GeoPoint2(5, 5), new GeoPoint2(5, 5)),
+                DxfDatabase.Parse(db.ToText()).Layouts[0].PlotPaperMargins
+            );
         }
 
         /// <summary>A layout named Plan added to a new drawing, with the sheet of A3 on its side the library gives.</summary>
@@ -238,7 +276,8 @@ namespace GeometryHelper.UnitTest.Dxf
             double unit = layout.PlotPaperUnits == DxfPlotPaperUnit.Inches ? 1.0 / 25.4 : 1.0;
             DxfExtents2d margins = layout.PlotPaperMargins;
             GeoPoint2 origin = layout.PlotOrigin;
-            bool turned = layout.PlotRotation == DxfPlotRotation.Degrees090 || layout.PlotRotation == DxfPlotRotation.Degrees270;
+            bool turned =
+                layout.PlotRotation == DxfPlotRotation.Degrees090 || layout.PlotRotation == DxfPlotRotation.Degrees270;
             double width = (turned ? size.Y : size.X) * unit;
             double height = (turned ? size.X : size.Y) * unit;
             double left = ((turned ? margins.MinPoint.Y : margins.MinPoint.X) + origin.X) * unit;

@@ -61,7 +61,38 @@ namespace GeometryHelper.Dxf
     public abstract class DxfDimension : DxfEntity
     {
         // The groups of AcDbDimension in the order ezdxf and AutoCAD write them.
-        private static readonly IReadOnlyList<int> BaseOrder = Array.AsReadOnly(new[] { 280, 2, 3, 10, 20, 30, 11, 21, 31, 12, 22, 32, 70, 71, 72, 41, 42, 73, 74, 75, 1, 52, 53, 51, 210, 220, 230 });
+        private static readonly IReadOnlyList<int> BaseOrder = Array.AsReadOnly(
+            new[]
+            {
+                280,
+                2,
+                3,
+                10,
+                20,
+                30,
+                11,
+                21,
+                31,
+                12,
+                22,
+                32,
+                70,
+                71,
+                72,
+                41,
+                42,
+                73,
+                74,
+                75,
+                1,
+                52,
+                53,
+                51,
+                210,
+                220,
+                230,
+            }
+        );
 
         private static readonly GeoPoint3 Origin = new GeoPoint3(0.0, 0.0, 0.0);
 
@@ -74,18 +105,21 @@ namespace GeometryHelper.Dxf
 
         /// <summary>The object of a record of a file.</summary>
         private protected DxfDimension(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// A dimension made in code: its type, the marker AcDbDimension with its style's name, definition point, kind (without
         /// 32: the block it is given may be another's) and text, then the groups of its kind, which begin with its markers.
         /// </summary>
-        private protected DxfDimension(string dxfName, int kind, GeoPoint3 definition, string dimensionText, DxfDimStyleTableRecord dimensionStyle, IEnumerable<DxfTypedValue> own)
-            : base(dxfName, Groups(kind, definition, dimensionText, dimensionStyle, own))
-        {
-        }
+        private protected DxfDimension(
+            string dxfName,
+            int kind,
+            GeoPoint3 definition,
+            string dimensionText,
+            DxfDimStyleTableRecord dimensionStyle,
+            IEnumerable<DxfTypedValue> own
+        )
+            : base(dxfName, Groups(kind, definition, dimensionText, dimensionStyle, own)) { }
 
         #region What the subclass gives
 
@@ -128,7 +162,6 @@ namespace GeometryHelper.Dxf
         public string DimensionText
         {
             get => DxfReader.Decode(Own().Text(1, Own().Base) ?? string.Empty);
-
             set
             {
                 if (value == null)
@@ -193,7 +226,10 @@ namespace GeometryHelper.Dxf
 
             if (!dimMText.IsResident || dimMText.IsErased || !ReferenceEquals(dimMText.Item.File, file))
             {
-                throw new ArgumentException("The MTEXT is not of the dimension's drawing, or is erased: a field is copied between the dimension and an MTEXT of its own drawing.", nameof(dimMText));
+                throw new ArgumentException(
+                    "The MTEXT is not of the dimension's drawing, or is erased: a field is copied between the dimension and an MTEXT of its own drawing.",
+                    nameof(dimMText)
+                );
             }
         }
 
@@ -222,7 +258,6 @@ namespace GeometryHelper.Dxf
         public GeoPoint3 TextPosition
         {
             get => OcsToWorld(Normal, Own().Point(11, Own().Base, Origin));
-
             set
             {
                 CheckPoint(value);
@@ -249,7 +284,6 @@ namespace GeometryHelper.Dxf
         public bool UsingDefaultTextPosition
         {
             get => (Kind & 128) == 0;
-
             set
             {
                 if (value != UsingDefaultTextPosition)
@@ -296,7 +330,6 @@ namespace GeometryHelper.Dxf
         public GeoVector3 Normal
         {
             get => GetNormal();
-
             set
             {
                 KeyValuePair<int, string>[] normal = NormalGroups(value);
@@ -314,7 +347,13 @@ namespace GeometryHelper.Dxf
                     foreach (KeyValuePair<int, bool> point in OcsPoints(g))
                     {
                         DxfDimGroups.Range part = point.Value ? g.Sub : g.Base;
-                        g.SetPoint(point.Key, WorldToOcs(unit, OcsToWorld(now, g.Point(point.Key, part, Origin))), part, point.Value ? SubOrder : BaseOrder, Origin);
+                        g.SetPoint(
+                            point.Key,
+                            WorldToOcs(unit, OcsToWorld(now, g.Point(point.Key, part, Origin))),
+                            part,
+                            point.Value ? SubOrder : BaseOrder,
+                            Origin
+                        );
                     }
 
                     TurnAngles(g, turn, false);
@@ -338,7 +377,6 @@ namespace GeometryHelper.Dxf
         public double Elevation
         {
             get => Own().Point(11, Own().Base, Origin).Z;
-
             set
             {
                 if (Same(value, Elevation))
@@ -356,7 +394,13 @@ namespace GeometryHelper.Dxf
 
                         if (g.Find(point.Key, part) >= 0 || point.Key == 11)
                         {
-                            g.SetPoint(point.Key, new GeoPoint3(now.X, now.Y, value), part, point.Value ? SubOrder : BaseOrder, Origin);
+                            g.SetPoint(
+                                point.Key,
+                                new GeoPoint3(now.X, now.Y, value),
+                                part,
+                                point.Value ? SubOrder : BaseOrder,
+                                Origin
+                            );
                         }
                     }
                 });
@@ -372,7 +416,6 @@ namespace GeometryHelper.Dxf
         public DxfAttachmentPoint TextAttachment
         {
             get => (DxfAttachmentPoint)Own().Whole(71, Own().Base, 5);
-
             set
             {
                 // The attachment read changes nothing, whatever the file holds, as a 71 of 0 or 10.
@@ -383,7 +426,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < DxfAttachmentPoint.TopLeft || value > DxfAttachmentPoint.BottomRight)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A dimension's text is held by one of its nine points, 1 to 9.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A dimension's text is held by one of its nine points, 1 to 9."
+                    );
                 }
 
                 SetWhole(71, (int)value, (int)TextAttachment);
@@ -399,7 +446,6 @@ namespace GeometryHelper.Dxf
         public DxfLineSpacingStyle TextLineSpacingStyle
         {
             get => Own().Whole(72, Own().Base, 1) == 2 ? DxfLineSpacingStyle.Exactly : DxfLineSpacingStyle.AtLeast;
-
             set
             {
                 if (value != DxfLineSpacingStyle.AtLeast && value != DxfLineSpacingStyle.Exactly)
@@ -420,7 +466,6 @@ namespace GeometryHelper.Dxf
         public double TextLineSpacingFactor
         {
             get => Own().Real(41, Own().Base, 1.0);
-
             set
             {
                 if (Same(value, TextLineSpacingFactor))
@@ -432,7 +477,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < 0.25 || value > 4.0)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A dimension's lines are spaced from 0.25 to 4 times AutoCAD's own spacing.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A dimension's lines are spaced from 0.25 to 4 times AutoCAD's own spacing."
+                    );
                 }
 
                 Item.File.Requires(1015, "line spacing of a dimension's text", "R2000 (AC1015)");
@@ -459,9 +508,10 @@ namespace GeometryHelper.Dxf
             {
                 string name = DxfReader.NameOf(Own().Text(2, Own().Base) ?? string.Empty);
                 DxfDatabase database = (IsResident ? Item.File : Item.File.Origin)?.Database;
-                return name.Length == 0 || database == null || !database.BlockTable.Has(name) ? null : database.BlockTable[name];
+                return name.Length == 0 || database == null || !database.BlockTable.Has(name)
+                    ? null
+                    : database.BlockTable[name];
             }
-
             set
             {
                 if (value == null)
@@ -471,7 +521,12 @@ namespace GeometryHelper.Dxf
 
                 if (value.File == null || value.IsLayout || (IsResident && value.File != Item.File))
                 {
-                    throw new ArgumentException("A dimension is drawn by a block of its own drawing, not a layout: " + value.Name + " is not one.", nameof(value));
+                    throw new ArgumentException(
+                        "A dimension is drawn by a block of its own drawing, not a layout: "
+                            + value.Name
+                            + " is not one.",
+                        nameof(value)
+                    );
                 }
 
                 if (!string.Equals(value.Name, Own().Text(2, Own().Base), StringComparison.Ordinal))
@@ -497,7 +552,10 @@ namespace GeometryHelper.Dxf
             get
             {
                 DxfDimGroups g = Own();
-                return OcsToWorld(Normal, g.Find(12, g.Base) >= 0 ? g.Point(12, g.Base, Origin) : g.Point(12, g.Sub, Origin));
+                return OcsToWorld(
+                    Normal,
+                    g.Find(12, g.Base) >= 0 ? g.Point(12, g.Base, Origin) : g.Point(12, g.Sub, Origin)
+                );
             }
         }
 
@@ -516,7 +574,6 @@ namespace GeometryHelper.Dxf
                 string name = DxfReader.NameOf(Own().Text(3, Own().Base) ?? string.Empty);
                 return name.Length == 0 ? "Standard" : name;
             }
-
             set
             {
                 if (value == null)
@@ -535,7 +592,10 @@ namespace GeometryHelper.Dxf
                 {
                     if (!database.DimStyleTable.Has(value))
                     {
-                        throw new ArgumentException("The drawing has no dimension style named " + value + ".", nameof(value));
+                        throw new ArgumentException(
+                            "The drawing has no dimension style named " + value + ".",
+                            nameof(value)
+                        );
                     }
 
                     value = database.DimStyleTable[value].Name;
@@ -558,9 +618,10 @@ namespace GeometryHelper.Dxf
             get
             {
                 DxfDatabase database = IsResident ? Item.File.Database : null;
-                return database != null && database.DimStyleTable.Has(DimensionStyleName) ? database.DimStyleTable[DimensionStyleName] : null;
+                return database != null && database.DimStyleTable.Has(DimensionStyleName)
+                    ? database.DimStyleTable[DimensionStyleName]
+                    : null;
             }
-
             set
             {
                 if (value == null)
@@ -591,7 +652,6 @@ namespace GeometryHelper.Dxf
         public string Prefix
         {
             get => Before(Dimpost, "<>");
-
             set
             {
                 if (!string.Equals(value, Prefix, StringComparison.Ordinal))
@@ -610,7 +670,6 @@ namespace GeometryHelper.Dxf
         public string Suffix
         {
             get => After(Dimpost, "<>");
-
             set
             {
                 if (!string.Equals(value, Suffix, StringComparison.Ordinal))
@@ -626,7 +685,6 @@ namespace GeometryHelper.Dxf
         public string AlternatePrefix
         {
             get => Before(Dimapost, "[]");
-
             set
             {
                 if (!string.Equals(value, AlternatePrefix, StringComparison.Ordinal))
@@ -642,7 +700,6 @@ namespace GeometryHelper.Dxf
         public string AlternateSuffix
         {
             get => After(Dimapost, "[]");
-
             set
             {
                 if (!string.Equals(value, AlternateSuffix, StringComparison.Ordinal))
@@ -654,75 +711,147 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gets or sets whether leading zeros of decimal lengths are left out (flag 4 of <see cref="Dimzin"/>), as AutoCAD's <c>SuppressLeadingZeros</c>: .5 for 0.5.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public bool SuppressLeadingZeros { get => (Dimzin & 4) != 0; set => Dimzin = Bit(Dimzin, 4, value); }
+        public bool SuppressLeadingZeros
+        {
+            get => (Dimzin & 4) != 0;
+            set => Dimzin = Bit(Dimzin, 4, value);
+        }
 
         /// <summary>Gets or sets whether trailing zeros of decimal lengths are left out (flag 8 of <see cref="Dimzin"/>), as AutoCAD's <c>SuppressTrailingZeros</c>: 12.5 for 12.50.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public bool SuppressTrailingZeros { get => (Dimzin & 8) != 0; set => Dimzin = Bit(Dimzin, 8, value); }
+        public bool SuppressTrailingZeros
+        {
+            get => (Dimzin & 8) != 0;
+            set => Dimzin = Bit(Dimzin, 8, value);
+        }
 
         /// <summary>Gets or sets whether nought feet are left out (<see cref="Dimzin"/> of 0 or 3), as AutoCAD's <c>SuppressZeroFeet</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public bool SuppressZeroFeet { get => Feet(Dimzin); set => Dimzin = FeetAndInches(Dimzin, value, Inches(Dimzin)); }
+        public bool SuppressZeroFeet
+        {
+            get => Feet(Dimzin);
+            set => Dimzin = FeetAndInches(Dimzin, value, Inches(Dimzin));
+        }
 
         /// <summary>Gets or sets whether nought inches are left out (<see cref="Dimzin"/> of 0 or 2), as AutoCAD's <c>SuppressZeroInches</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public bool SuppressZeroInches { get => Inches(Dimzin); set => Dimzin = FeetAndInches(Dimzin, Feet(Dimzin), value); }
+        public bool SuppressZeroInches
+        {
+            get => Inches(Dimzin);
+            set => Dimzin = FeetAndInches(Dimzin, Feet(Dimzin), value);
+        }
 
         /// <summary>Gets or sets whether leading zeros of alternate units are left out (flag 4 of <see cref="Dimaltz"/>), as AutoCAD's <c>AltSuppressLeadingZeros</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public bool AltSuppressLeadingZeros { get => (Dimaltz & 4) != 0; set => Dimaltz = Bit(Dimaltz, 4, value); }
+        public bool AltSuppressLeadingZeros
+        {
+            get => (Dimaltz & 4) != 0;
+            set => Dimaltz = Bit(Dimaltz, 4, value);
+        }
 
         /// <summary>Gets or sets whether trailing zeros of alternate units are left out (flag 8 of <see cref="Dimaltz"/>), as AutoCAD's <c>AltSuppressTrailingZeros</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public bool AltSuppressTrailingZeros { get => (Dimaltz & 8) != 0; set => Dimaltz = Bit(Dimaltz, 8, value); }
+        public bool AltSuppressTrailingZeros
+        {
+            get => (Dimaltz & 8) != 0;
+            set => Dimaltz = Bit(Dimaltz, 8, value);
+        }
 
         /// <summary>Gets or sets whether nought feet of alternate units are left out, as AutoCAD's <c>AltSuppressZeroFeet</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public bool AltSuppressZeroFeet { get => Feet(Dimaltz); set => Dimaltz = FeetAndInches(Dimaltz, value, Inches(Dimaltz)); }
+        public bool AltSuppressZeroFeet
+        {
+            get => Feet(Dimaltz);
+            set => Dimaltz = FeetAndInches(Dimaltz, value, Inches(Dimaltz));
+        }
 
         /// <summary>Gets or sets whether nought inches of alternate units are left out, as AutoCAD's <c>AltSuppressZeroInches</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public bool AltSuppressZeroInches { get => Inches(Dimaltz); set => Dimaltz = FeetAndInches(Dimaltz, Feet(Dimaltz), value); }
+        public bool AltSuppressZeroInches
+        {
+            get => Inches(Dimaltz);
+            set => Dimaltz = FeetAndInches(Dimaltz, Feet(Dimaltz), value);
+        }
 
         /// <summary>Gets or sets whether leading zeros of tolerances are left out (flag 4 of <see cref="Dimtzin"/>), as AutoCAD's <c>ToleranceSuppressLeadingZeros</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public bool ToleranceSuppressLeadingZeros { get => (Dimtzin & 4) != 0; set => Dimtzin = Bit(Dimtzin, 4, value); }
+        public bool ToleranceSuppressLeadingZeros
+        {
+            get => (Dimtzin & 4) != 0;
+            set => Dimtzin = Bit(Dimtzin, 4, value);
+        }
 
         /// <summary>Gets or sets whether trailing zeros of tolerances are left out (flag 8 of <see cref="Dimtzin"/>), as AutoCAD's <c>ToleranceSuppressTrailingZeros</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public bool ToleranceSuppressTrailingZeros { get => (Dimtzin & 8) != 0; set => Dimtzin = Bit(Dimtzin, 8, value); }
+        public bool ToleranceSuppressTrailingZeros
+        {
+            get => (Dimtzin & 8) != 0;
+            set => Dimtzin = Bit(Dimtzin, 8, value);
+        }
 
         /// <summary>Gets or sets whether nought feet of tolerances are left out, as AutoCAD's <c>ToleranceSuppressZeroFeet</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public bool ToleranceSuppressZeroFeet { get => Feet(Dimtzin); set => Dimtzin = FeetAndInches(Dimtzin, value, Inches(Dimtzin)); }
+        public bool ToleranceSuppressZeroFeet
+        {
+            get => Feet(Dimtzin);
+            set => Dimtzin = FeetAndInches(Dimtzin, value, Inches(Dimtzin));
+        }
 
         /// <summary>Gets or sets whether nought inches of tolerances are left out, as AutoCAD's <c>ToleranceSuppressZeroInches</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public bool ToleranceSuppressZeroInches { get => Inches(Dimtzin); set => Dimtzin = FeetAndInches(Dimtzin, Feet(Dimtzin), value); }
+        public bool ToleranceSuppressZeroInches
+        {
+            get => Inches(Dimtzin);
+            set => Dimtzin = FeetAndInches(Dimtzin, Feet(Dimtzin), value);
+        }
 
         /// <summary>Gets or sets whether leading zeros of tolerances in alternate units are left out (flag 4 of <see cref="Dimalttz"/>), as AutoCAD's <c>AltToleranceSuppressLeadingZeros</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public bool AltToleranceSuppressLeadingZeros { get => (Dimalttz & 4) != 0; set => Dimalttz = Bit(Dimalttz, 4, value); }
+        public bool AltToleranceSuppressLeadingZeros
+        {
+            get => (Dimalttz & 4) != 0;
+            set => Dimalttz = Bit(Dimalttz, 4, value);
+        }
 
         /// <summary>Gets or sets whether trailing zeros of tolerances in alternate units are left out (flag 8 of <see cref="Dimalttz"/>), as AutoCAD's <c>AltToleranceSuppressTrailingZeros</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public bool AltToleranceSuppressTrailingZeros { get => (Dimalttz & 8) != 0; set => Dimalttz = Bit(Dimalttz, 8, value); }
+        public bool AltToleranceSuppressTrailingZeros
+        {
+            get => (Dimalttz & 8) != 0;
+            set => Dimalttz = Bit(Dimalttz, 8, value);
+        }
 
         /// <summary>Gets or sets whether nought feet of tolerances in alternate units are left out, as AutoCAD's <c>AltToleranceSuppressZeroFeet</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public bool AltToleranceSuppressZeroFeet { get => Feet(Dimalttz); set => Dimalttz = FeetAndInches(Dimalttz, value, Inches(Dimalttz)); }
+        public bool AltToleranceSuppressZeroFeet
+        {
+            get => Feet(Dimalttz);
+            set => Dimalttz = FeetAndInches(Dimalttz, value, Inches(Dimalttz));
+        }
 
         /// <summary>Gets or sets whether nought inches of tolerances in alternate units are left out, as AutoCAD's <c>AltToleranceSuppressZeroInches</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public bool AltToleranceSuppressZeroInches { get => Inches(Dimalttz); set => Dimalttz = FeetAndInches(Dimalttz, Feet(Dimalttz), value); }
+        public bool AltToleranceSuppressZeroInches
+        {
+            get => Inches(Dimalttz);
+            set => Dimalttz = FeetAndInches(Dimalttz, Feet(Dimalttz), value);
+        }
 
         /// <summary>Gets or sets whether leading zeros of angles are left out (flag 1 of <see cref="Dimazin"/>), as AutoCAD's <c>SuppressAngularLeadingZeros</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public bool SuppressAngularLeadingZeros { get => (Dimazin & 1) != 0; set => Dimazin = Bit(Dimazin, 1, value); }
+        public bool SuppressAngularLeadingZeros
+        {
+            get => (Dimazin & 1) != 0;
+            set => Dimazin = Bit(Dimazin, 1, value);
+        }
 
         /// <summary>Gets or sets whether trailing zeros of angles are left out (flag 2 of <see cref="Dimazin"/>), as AutoCAD's <c>SuppressAngularTrailingZeros</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public bool SuppressAngularTrailingZeros { get => (Dimazin & 2) != 0; set => Dimazin = Bit(Dimazin, 2, value); }
+        public bool SuppressAngularTrailingZeros
+        {
+            get => (Dimazin & 2) != 0;
+            set => Dimazin = Bit(Dimazin, 2, value);
+        }
 
         /// <summary>Gets the size of the centre mark, as AutoCAD's <c>CenterMarkSize</c>: the size of <see cref="Dimcen"/>, 2.5 for -2.5.</summary>
         public double CenterMarkSize => Math.Abs(Dimcen);
@@ -733,7 +862,9 @@ namespace GeometryHelper.Dxf
             get
             {
                 double size = Dimcen;
-                return size > 0.0 ? DxfDimensionCenterMarkType.Mark : size < 0.0 ? DxfDimensionCenterMarkType.Line : DxfDimensionCenterMarkType.None;
+                return size > 0.0 ? DxfDimensionCenterMarkType.Mark
+                    : size < 0.0 ? DxfDimensionCenterMarkType.Line
+                    : DxfDimensionCenterMarkType.None;
             }
         }
 
@@ -744,340 +875,636 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets or sets the text style of the text, as AutoCAD's <c>TextStyleId</c> gives its id: the style's <see cref="DxfDimStyleTableRecord.Dimtxsty"/> or the dimension's override of it (340); null where neither names one.</summary>
         /// <exception cref="ArgumentException">Thrown when the style set is of another drawing.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public DxfTextStyleTableRecord TextStyle { get => (DxfTextStyleTableRecord)Get(V("Dimtxsty")); set => Set(V("Dimtxsty"), value); }
+        public DxfTextStyleTableRecord TextStyle
+        {
+            get => (DxfTextStyleTableRecord)Get(V("Dimtxsty"));
+            set => Set(V("Dimtxsty"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimadec"/>, as AutoCAD's <c>Dimadec</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int Dimadec { get => (int)Get(V("Dimadec")); set => Set(V("Dimadec"), value); }
+        public int Dimadec
+        {
+            get => (int)Get(V("Dimadec"));
+            set => Set(V("Dimadec"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimalt"/>, as AutoCAD's <c>Dimalt</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public bool Dimalt { get => (bool)Get(V("Dimalt")); set => Set(V("Dimalt"), value); }
+        public bool Dimalt
+        {
+            get => (bool)Get(V("Dimalt"));
+            set => Set(V("Dimalt"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimaltd"/>, as AutoCAD's <c>Dimaltd</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public int Dimaltd { get => (int)Get(V("Dimaltd")); set => Set(V("Dimaltd"), value); }
+        public int Dimaltd
+        {
+            get => (int)Get(V("Dimaltd"));
+            set => Set(V("Dimaltd"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimaltf"/>, as AutoCAD's <c>Dimaltf</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Dimaltf { get => (double)Get(V("Dimaltf")); set => Set(V("Dimaltf"), value); }
+        public double Dimaltf
+        {
+            get => (double)Get(V("Dimaltf"));
+            set => Set(V("Dimaltf"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimaltrnd"/>, as AutoCAD's <c>Dimaltrnd</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public double Dimaltrnd { get => (double)Get(V("Dimaltrnd")); set => Set(V("Dimaltrnd"), value); }
+        public double Dimaltrnd
+        {
+            get => (double)Get(V("Dimaltrnd"));
+            set => Set(V("Dimaltrnd"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimalttd"/>, as AutoCAD's <c>Dimalttd</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int Dimalttd { get => (int)Get(V("Dimalttd")); set => Set(V("Dimalttd"), value); }
+        public int Dimalttd
+        {
+            get => (int)Get(V("Dimalttd"));
+            set => Set(V("Dimalttd"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimalttz"/>, as AutoCAD's <c>Dimalttz</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int Dimalttz { get => (int)Get(V("Dimalttz")); set => Set(V("Dimalttz"), value); }
+        public int Dimalttz
+        {
+            get => (int)Get(V("Dimalttz"));
+            set => Set(V("Dimalttz"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimaltu"/>, as AutoCAD's <c>Dimaltu</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int Dimaltu { get => (int)Get(V("Dimaltu")); set => Set(V("Dimaltu"), value); }
+        public int Dimaltu
+        {
+            get => (int)Get(V("Dimaltu"));
+            set => Set(V("Dimaltu"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimaltz"/>, as AutoCAD's <c>Dimaltz</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int Dimaltz { get => (int)Get(V("Dimaltz")); set => Set(V("Dimaltz"), value); }
+        public int Dimaltz
+        {
+            get => (int)Get(V("Dimaltz"));
+            set => Set(V("Dimaltz"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimapost"/>, as AutoCAD's <c>Dimapost</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the text set is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the text set has a line break in it.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public string Dimapost { get => (string)Get(V("Dimapost")); set => Set(V("Dimapost"), value); }
+        public string Dimapost
+        {
+            get => (string)Get(V("Dimapost"));
+            set => Set(V("Dimapost"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimarcsym"/>, as AutoCAD's <c>Dimarcsym</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int Dimarcsym { get => (int)Get(V("Dimarcsym")); set => Set(V("Dimarcsym"), value); }
+        public int Dimarcsym
+        {
+            get => (int)Get(V("Dimarcsym"));
+            set => Set(V("Dimarcsym"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimasz"/>, as AutoCAD's <c>Dimasz</c>: its override, else its style's; 4.5 where it overrides the style's 2.5 with 4.5 (1070 41, 1040 4.5).</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Dimasz { get => (double)Get(V("Dimasz")); set => Set(V("Dimasz"), value); }
+        public double Dimasz
+        {
+            get => (double)Get(V("Dimasz"));
+            set => Set(V("Dimasz"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimatfit"/>, as AutoCAD's <c>Dimatfit</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int Dimatfit { get => (int)Get(V("Dimatfit")); set => Set(V("Dimatfit"), value); }
+        public int Dimatfit
+        {
+            get => (int)Get(V("Dimatfit"));
+            set => Set(V("Dimatfit"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimaunit"/>, as AutoCAD's <c>Dimaunit</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int Dimaunit { get => (int)Get(V("Dimaunit")); set => Set(V("Dimaunit"), value); }
+        public int Dimaunit
+        {
+            get => (int)Get(V("Dimaunit"));
+            set => Set(V("Dimaunit"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimazin"/>, as AutoCAD's <c>Dimazin</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int Dimazin { get => (int)Get(V("Dimazin")); set => Set(V("Dimazin"), value); }
+        public int Dimazin
+        {
+            get => (int)Get(V("Dimazin"));
+            set => Set(V("Dimazin"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimblk"/>, as AutoCAD's <c>Dimblk</c>: its override (1005 the block's handle, or 1000 its name in a file of R12), else its style's; null for the closed filled arrowhead.</summary>
         /// <exception cref="ArgumentException">Thrown when the block set is a layout, or of another drawing.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public DxfBlockTableRecord Dimblk { get => (DxfBlockTableRecord)Get(V("Dimblk")); set => Set(V("Dimblk"), value); }
+        public DxfBlockTableRecord Dimblk
+        {
+            get => (DxfBlockTableRecord)Get(V("Dimblk"));
+            set => Set(V("Dimblk"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimblk1"/>, as AutoCAD's <c>Dimblk1</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentException">Thrown when the block set is a layout, or of another drawing.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public DxfBlockTableRecord Dimblk1 { get => (DxfBlockTableRecord)Get(V("Dimblk1")); set => Set(V("Dimblk1"), value); }
+        public DxfBlockTableRecord Dimblk1
+        {
+            get => (DxfBlockTableRecord)Get(V("Dimblk1"));
+            set => Set(V("Dimblk1"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimblk2"/>, as AutoCAD's <c>Dimblk2</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentException">Thrown when the block set is a layout, or of another drawing.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public DxfBlockTableRecord Dimblk2 { get => (DxfBlockTableRecord)Get(V("Dimblk2")); set => Set(V("Dimblk2"), value); }
+        public DxfBlockTableRecord Dimblk2
+        {
+            get => (DxfBlockTableRecord)Get(V("Dimblk2"));
+            set => Set(V("Dimblk2"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimcen"/>, as AutoCAD's <c>Dimcen</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Dimcen { get => (double)Get(V("Dimcen")); set => Set(V("Dimcen"), value); }
+        public double Dimcen
+        {
+            get => (double)Get(V("Dimcen"));
+            set => Set(V("Dimcen"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimclrd"/>, as AutoCAD's <c>Dimclrd</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the colour set is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the colour set is a true colour.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public DxfColor Dimclrd { get => (DxfColor)Get(V("Dimclrd")); set => Set(V("Dimclrd"), value); }
+        public DxfColor Dimclrd
+        {
+            get => (DxfColor)Get(V("Dimclrd"));
+            set => Set(V("Dimclrd"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimclre"/>, as AutoCAD's <c>Dimclre</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the colour set is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the colour set is a true colour.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public DxfColor Dimclre { get => (DxfColor)Get(V("Dimclre")); set => Set(V("Dimclre"), value); }
+        public DxfColor Dimclre
+        {
+            get => (DxfColor)Get(V("Dimclre"));
+            set => Set(V("Dimclre"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimclrt"/>, as AutoCAD's <c>Dimclrt</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the colour set is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the colour set is a true colour.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public DxfColor Dimclrt { get => (DxfColor)Get(V("Dimclrt")); set => Set(V("Dimclrt"), value); }
+        public DxfColor Dimclrt
+        {
+            get => (DxfColor)Get(V("Dimclrt"));
+            set => Set(V("Dimclrt"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimdec"/>, as AutoCAD's <c>Dimdec</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int Dimdec { get => (int)Get(V("Dimdec")); set => Set(V("Dimdec"), value); }
+        public int Dimdec
+        {
+            get => (int)Get(V("Dimdec"));
+            set => Set(V("Dimdec"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimdle"/>, as AutoCAD's <c>Dimdle</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Dimdle { get => (double)Get(V("Dimdle")); set => Set(V("Dimdle"), value); }
+        public double Dimdle
+        {
+            get => (double)Get(V("Dimdle"));
+            set => Set(V("Dimdle"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimdli"/>, as AutoCAD's <c>Dimdli</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Dimdli { get => (double)Get(V("Dimdli")); set => Set(V("Dimdli"), value); }
+        public double Dimdli
+        {
+            get => (double)Get(V("Dimdli"));
+            set => Set(V("Dimdli"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimdsep"/>, as AutoCAD's <c>Dimdsep</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public char Dimdsep { get => (char)Get(V("Dimdsep")); set => Set(V("Dimdsep"), value); }
+        public char Dimdsep
+        {
+            get => (char)Get(V("Dimdsep"));
+            set => Set(V("Dimdsep"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimexe"/>, as AutoCAD's <c>Dimexe</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Dimexe { get => (double)Get(V("Dimexe")); set => Set(V("Dimexe"), value); }
+        public double Dimexe
+        {
+            get => (double)Get(V("Dimexe"));
+            set => Set(V("Dimexe"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimexo"/>, as AutoCAD's <c>Dimexo</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Dimexo { get => (double)Get(V("Dimexo")); set => Set(V("Dimexo"), value); }
+        public double Dimexo
+        {
+            get => (double)Get(V("Dimexo"));
+            set => Set(V("Dimexo"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimfrac"/>, as AutoCAD's <c>Dimfrac</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int Dimfrac { get => (int)Get(V("Dimfrac")); set => Set(V("Dimfrac"), value); }
+        public int Dimfrac
+        {
+            get => (int)Get(V("Dimfrac"));
+            set => Set(V("Dimfrac"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimfxlen"/>, as AutoCAD's <c>Dimfxlen</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2007.</exception>
-        public double Dimfxlen { get => (double)Get(V("Dimfxlen")); set => Set(V("Dimfxlen"), value); }
+        public double Dimfxlen
+        {
+            get => (double)Get(V("Dimfxlen"));
+            set => Set(V("Dimfxlen"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.DimfxlenOn"/>, as AutoCAD's <c>DimfxlenOn</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2007.</exception>
-        public bool DimfxlenOn { get => (bool)Get(V("DimfxlenOn")); set => Set(V("DimfxlenOn"), value); }
+        public bool DimfxlenOn
+        {
+            get => (bool)Get(V("DimfxlenOn"));
+            set => Set(V("DimfxlenOn"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimgap"/>, as AutoCAD's <c>Dimgap</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Dimgap { get => (double)Get(V("Dimgap")); set => Set(V("Dimgap"), value); }
+        public double Dimgap
+        {
+            get => (double)Get(V("Dimgap"));
+            set => Set(V("Dimgap"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimjogang"/> in radians, as AutoCAD's <c>Dimjogang</c>: its override (in degrees), else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the angle set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2007.</exception>
-        public double Dimjogang { get => (double)Get(V("Dimjogang")); set => Set(V("Dimjogang"), value); }
+        public double Dimjogang
+        {
+            get => (double)Get(V("Dimjogang"));
+            set => Set(V("Dimjogang"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimjust"/>, as AutoCAD's <c>Dimjust</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int Dimjust { get => (int)Get(V("Dimjust")); set => Set(V("Dimjust"), value); }
+        public int Dimjust
+        {
+            get => (int)Get(V("Dimjust"));
+            set => Set(V("Dimjust"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimldrblk"/>, as AutoCAD's <c>Dimldrblk</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentException">Thrown when the block set is a layout, or of another drawing.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public DxfBlockTableRecord Dimldrblk { get => (DxfBlockTableRecord)Get(V("Dimldrblk")); set => Set(V("Dimldrblk"), value); }
+        public DxfBlockTableRecord Dimldrblk
+        {
+            get => (DxfBlockTableRecord)Get(V("Dimldrblk"));
+            set => Set(V("Dimldrblk"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimlfac"/>, as AutoCAD's <c>Dimlfac</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Dimlfac { get => (double)Get(V("Dimlfac")); set => Set(V("Dimlfac"), value); }
+        public double Dimlfac
+        {
+            get => (double)Get(V("Dimlfac"));
+            set => Set(V("Dimlfac"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimlim"/>, as AutoCAD's <c>Dimlim</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public bool Dimlim { get => (bool)Get(V("Dimlim")); set => Set(V("Dimlim"), value); }
+        public bool Dimlim
+        {
+            get => (bool)Get(V("Dimlim"));
+            set => Set(V("Dimlim"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimltex1"/>, as AutoCAD's <c>Dimltex1</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentException">Thrown when the linetype set is of another drawing.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2007.</exception>
-        public DxfLinetypeTableRecord Dimltex1 { get => (DxfLinetypeTableRecord)Get(V("Dimltex1")); set => Set(V("Dimltex1"), value); }
+        public DxfLinetypeTableRecord Dimltex1
+        {
+            get => (DxfLinetypeTableRecord)Get(V("Dimltex1"));
+            set => Set(V("Dimltex1"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimltex2"/>, as AutoCAD's <c>Dimltex2</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentException">Thrown when the linetype set is of another drawing.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2007.</exception>
-        public DxfLinetypeTableRecord Dimltex2 { get => (DxfLinetypeTableRecord)Get(V("Dimltex2")); set => Set(V("Dimltex2"), value); }
+        public DxfLinetypeTableRecord Dimltex2
+        {
+            get => (DxfLinetypeTableRecord)Get(V("Dimltex2"));
+            set => Set(V("Dimltex2"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimltype"/>, as AutoCAD's <c>Dimltype</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentException">Thrown when the linetype set is of another drawing.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2007.</exception>
-        public DxfLinetypeTableRecord Dimltype { get => (DxfLinetypeTableRecord)Get(V("Dimltype")); set => Set(V("Dimltype"), value); }
+        public DxfLinetypeTableRecord Dimltype
+        {
+            get => (DxfLinetypeTableRecord)Get(V("Dimltype"));
+            set => Set(V("Dimltype"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimlunit"/>, as AutoCAD's <c>Dimlunit</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int Dimlunit { get => (int)Get(V("Dimlunit")); set => Set(V("Dimlunit"), value); }
+        public int Dimlunit
+        {
+            get => (int)Get(V("Dimlunit"));
+            set => Set(V("Dimlunit"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimlwd"/>, as AutoCAD's <c>Dimlwd</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the weight set is not one of AutoCAD's.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public DxfLineWeight Dimlwd { get => (DxfLineWeight)Get(V("Dimlwd")); set => Set(V("Dimlwd"), value); }
+        public DxfLineWeight Dimlwd
+        {
+            get => (DxfLineWeight)Get(V("Dimlwd"));
+            set => Set(V("Dimlwd"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimlwe"/>, as AutoCAD's <c>Dimlwe</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the weight set is not one of AutoCAD's.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public DxfLineWeight Dimlwe { get => (DxfLineWeight)Get(V("Dimlwe")); set => Set(V("Dimlwe"), value); }
+        public DxfLineWeight Dimlwe
+        {
+            get => (DxfLineWeight)Get(V("Dimlwe"));
+            set => Set(V("Dimlwe"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimpost"/>, as AutoCAD's <c>Dimpost</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the text set is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the text set has a line break in it.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public string Dimpost { get => (string)Get(V("Dimpost")); set => Set(V("Dimpost"), value); }
+        public string Dimpost
+        {
+            get => (string)Get(V("Dimpost"));
+            set => Set(V("Dimpost"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimrnd"/>, as AutoCAD's <c>Dimrnd</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Dimrnd { get => (double)Get(V("Dimrnd")); set => Set(V("Dimrnd"), value); }
+        public double Dimrnd
+        {
+            get => (double)Get(V("Dimrnd"));
+            set => Set(V("Dimrnd"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimsah"/>, as AutoCAD's <c>Dimsah</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public bool Dimsah { get => (bool)Get(V("Dimsah")); set => Set(V("Dimsah"), value); }
+        public bool Dimsah
+        {
+            get => (bool)Get(V("Dimsah"));
+            set => Set(V("Dimsah"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimscale"/>, as AutoCAD's <c>Dimscale</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Dimscale { get => (double)Get(V("Dimscale")); set => Set(V("Dimscale"), value); }
+        public double Dimscale
+        {
+            get => (double)Get(V("Dimscale"));
+            set => Set(V("Dimscale"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimsd1"/>, as AutoCAD's <c>Dimsd1</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public bool Dimsd1 { get => (bool)Get(V("Dimsd1")); set => Set(V("Dimsd1"), value); }
+        public bool Dimsd1
+        {
+            get => (bool)Get(V("Dimsd1"));
+            set => Set(V("Dimsd1"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimsd2"/>, as AutoCAD's <c>Dimsd2</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public bool Dimsd2 { get => (bool)Get(V("Dimsd2")); set => Set(V("Dimsd2"), value); }
+        public bool Dimsd2
+        {
+            get => (bool)Get(V("Dimsd2"));
+            set => Set(V("Dimsd2"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimse1"/>, as AutoCAD's <c>Dimse1</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public bool Dimse1 { get => (bool)Get(V("Dimse1")); set => Set(V("Dimse1"), value); }
+        public bool Dimse1
+        {
+            get => (bool)Get(V("Dimse1"));
+            set => Set(V("Dimse1"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimse2"/>, as AutoCAD's <c>Dimse2</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public bool Dimse2 { get => (bool)Get(V("Dimse2")); set => Set(V("Dimse2"), value); }
+        public bool Dimse2
+        {
+            get => (bool)Get(V("Dimse2"));
+            set => Set(V("Dimse2"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimsoxd"/>, as AutoCAD's <c>Dimsoxd</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public bool Dimsoxd { get => (bool)Get(V("Dimsoxd")); set => Set(V("Dimsoxd"), value); }
+        public bool Dimsoxd
+        {
+            get => (bool)Get(V("Dimsoxd"));
+            set => Set(V("Dimsoxd"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtad"/>, as AutoCAD's <c>Dimtad</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public int Dimtad { get => (int)Get(V("Dimtad")); set => Set(V("Dimtad"), value); }
+        public int Dimtad
+        {
+            get => (int)Get(V("Dimtad"));
+            set => Set(V("Dimtad"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtdec"/>, as AutoCAD's <c>Dimtdec</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int Dimtdec { get => (int)Get(V("Dimtdec")); set => Set(V("Dimtdec"), value); }
+        public int Dimtdec
+        {
+            get => (int)Get(V("Dimtdec"));
+            set => Set(V("Dimtdec"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtfac"/>, as AutoCAD's <c>Dimtfac</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Dimtfac { get => (double)Get(V("Dimtfac")); set => Set(V("Dimtfac"), value); }
+        public double Dimtfac
+        {
+            get => (double)Get(V("Dimtfac"));
+            set => Set(V("Dimtfac"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtfill"/>, as AutoCAD's <c>Dimtfill</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2007.</exception>
-        public int Dimtfill { get => (int)Get(V("Dimtfill")); set => Set(V("Dimtfill"), value); }
+        public int Dimtfill
+        {
+            get => (int)Get(V("Dimtfill"));
+            set => Set(V("Dimtfill"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtfillclr"/>, as AutoCAD's <c>Dimtfillclr</c>: its override (1070 70), else its style's.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the colour set is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the colour set is a true colour.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2007.</exception>
-        public DxfColor Dimtfillclr { get => (DxfColor)Get(V("Dimtfillclr")); set => Set(V("Dimtfillclr"), value); }
+        public DxfColor Dimtfillclr
+        {
+            get => (DxfColor)Get(V("Dimtfillclr"));
+            set => Set(V("Dimtfillclr"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtih"/>, as AutoCAD's <c>Dimtih</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public bool Dimtih { get => (bool)Get(V("Dimtih")); set => Set(V("Dimtih"), value); }
+        public bool Dimtih
+        {
+            get => (bool)Get(V("Dimtih"));
+            set => Set(V("Dimtih"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtix"/>, as AutoCAD's <c>Dimtix</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public bool Dimtix { get => (bool)Get(V("Dimtix")); set => Set(V("Dimtix"), value); }
+        public bool Dimtix
+        {
+            get => (bool)Get(V("Dimtix"));
+            set => Set(V("Dimtix"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtm"/>, as AutoCAD's <c>Dimtm</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Dimtm { get => (double)Get(V("Dimtm")); set => Set(V("Dimtm"), value); }
+        public double Dimtm
+        {
+            get => (double)Get(V("Dimtm"));
+            set => Set(V("Dimtm"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtmove"/>, as AutoCAD's <c>Dimtmove</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int Dimtmove { get => (int)Get(V("Dimtmove")); set => Set(V("Dimtmove"), value); }
+        public int Dimtmove
+        {
+            get => (int)Get(V("Dimtmove"));
+            set => Set(V("Dimtmove"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtofl"/>, as AutoCAD's <c>Dimtofl</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public bool Dimtofl { get => (bool)Get(V("Dimtofl")); set => Set(V("Dimtofl"), value); }
+        public bool Dimtofl
+        {
+            get => (bool)Get(V("Dimtofl"));
+            set => Set(V("Dimtofl"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtoh"/>, as AutoCAD's <c>Dimtoh</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public bool Dimtoh { get => (bool)Get(V("Dimtoh")); set => Set(V("Dimtoh"), value); }
+        public bool Dimtoh
+        {
+            get => (bool)Get(V("Dimtoh"));
+            set => Set(V("Dimtoh"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtol"/>, as AutoCAD's <c>Dimtol</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public bool Dimtol { get => (bool)Get(V("Dimtol")); set => Set(V("Dimtol"), value); }
+        public bool Dimtol
+        {
+            get => (bool)Get(V("Dimtol"));
+            set => Set(V("Dimtol"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtolj"/>, as AutoCAD's <c>Dimtolj</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int Dimtolj { get => (int)Get(V("Dimtolj")); set => Set(V("Dimtolj"), value); }
+        public int Dimtolj
+        {
+            get => (int)Get(V("Dimtolj"));
+            set => Set(V("Dimtolj"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtp"/>, as AutoCAD's <c>Dimtp</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Dimtp { get => (double)Get(V("Dimtp")); set => Set(V("Dimtp"), value); }
+        public double Dimtp
+        {
+            get => (double)Get(V("Dimtp"));
+            set => Set(V("Dimtp"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtsz"/>, as AutoCAD's <c>Dimtsz</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Dimtsz { get => (double)Get(V("Dimtsz")); set => Set(V("Dimtsz"), value); }
+        public double Dimtsz
+        {
+            get => (double)Get(V("Dimtsz"));
+            set => Set(V("Dimtsz"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtvp"/>, as AutoCAD's <c>Dimtvp</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Dimtvp { get => (double)Get(V("Dimtvp")); set => Set(V("Dimtvp"), value); }
+        public double Dimtvp
+        {
+            get => (double)Get(V("Dimtvp"));
+            set => Set(V("Dimtvp"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtxt"/>, as AutoCAD's <c>Dimtxt</c>: its override, else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double Dimtxt { get => (double)Get(V("Dimtxt")); set => Set(V("Dimtxt"), value); }
+        public double Dimtxt
+        {
+            get => (double)Get(V("Dimtxt"));
+            set => Set(V("Dimtxt"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtxtdirection"/>, as AutoCAD's <c>Dimtxtdirection</c>: its override (1070 294), else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2010.</exception>
-        public bool Dimtxtdirection { get => (bool)Get(V("Dimtxtdirection")); set => Set(V("Dimtxtdirection"), value); }
+        public bool Dimtxtdirection
+        {
+            get => (bool)Get(V("Dimtxtdirection"));
+            set => Set(V("Dimtxtdirection"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtzin"/>, as AutoCAD's <c>Dimtzin</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int Dimtzin { get => (int)Get(V("Dimtzin")); set => Set(V("Dimtzin"), value); }
+        public int Dimtzin
+        {
+            get => (int)Get(V("Dimtzin"));
+            set => Set(V("Dimtzin"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimupt"/>, as AutoCAD's <c>Dimupt</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public bool Dimupt { get => (bool)Get(V("Dimupt")); set => Set(V("Dimupt"), value); }
+        public bool Dimupt
+        {
+            get => (bool)Get(V("Dimupt"));
+            set => Set(V("Dimupt"), value);
+        }
 
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimzin"/>, as AutoCAD's <c>Dimzin</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public int Dimzin { get => (int)Get(V("Dimzin")); set => Set(V("Dimzin"), value); }
+        public int Dimzin
+        {
+            get => (int)Get(V("Dimzin"));
+            set => Set(V("Dimzin"), value);
+        }
 
         /// <summary>
         /// Gets the variables the dimension is drawn with, as AutoCAD's <c>GetDimstyleData</c>: a new
@@ -1125,9 +1552,15 @@ namespace GeometryHelper.Dxf
             {
                 object value = style.Get(variable);
 
-                if ((value == null && variable.Kind == DxfDimKind.TextStyle)
-                    || (IsResident && !file.Supports(variable.Since) && (variable.IsReference ? value == null : variable.SameValue(value, variable.Read(null))))
-                    || variable.SameValue(value, Get(variable)))
+                if (
+                    (value == null && variable.Kind == DxfDimKind.TextStyle)
+                    || (
+                        IsResident
+                        && !file.Supports(variable.Since)
+                        && (variable.IsReference ? value == null : variable.SameValue(value, variable.Read(null)))
+                    )
+                    || variable.SameValue(value, Get(variable))
+                )
                 {
                     continue;
                 }
@@ -1138,7 +1571,13 @@ namespace GeometryHelper.Dxf
 
                 if (IsResident && variable.IsReference && value != null)
                 {
-                    DxfDimStyleTableRecord.Reference(file, variable, (DxfDBObject)value, !file.HasMarkers, nameof(style));
+                    DxfDimStyleTableRecord.Reference(
+                        file,
+                        variable,
+                        (DxfDBObject)value,
+                        !file.HasMarkers,
+                        nameof(style)
+                    );
                 }
 
                 changes.Add(new KeyValuePair<DxfDimVariable, object>(variable, value));
@@ -1209,7 +1648,10 @@ namespace GeometryHelper.Dxf
         {
             Guard.Finite(measurement, nameof(measurement), "The measurement has to be a finite number.");
             bool angular = this is DxfLineAngularDimension2 || this is DxfPoint3AngularDimension;
-            bool paperSpace = Owner is DxfBlockTableRecord owner && owner.IsLayout && !string.Equals(owner.Name, "*Model_Space", StringComparison.OrdinalIgnoreCase);
+            bool paperSpace =
+                Owner is DxfBlockTableRecord owner
+                && owner.IsLayout
+                && !string.Equals(owner.Name, "*Model_Space", StringComparison.OrdinalIgnoreCase);
             return DxfDimFormat.Text(dimensionText, measurement, angular, paperSpace, name => Get(V(name)));
         }
 
@@ -1256,7 +1698,13 @@ namespace GeometryHelper.Dxf
 
                 if (g.Find(point.Key, part) >= 0)
                 {
-                    g.SetPoint(point.Key, ocs.TransformVertex(g.Point(point.Key, part, Origin)), part, point.Value ? SubOrder : BaseOrder, Origin);
+                    g.SetPoint(
+                        point.Key,
+                        ocs.TransformVertex(g.Point(point.Key, part, Origin)),
+                        part,
+                        point.Value ? SubOrder : BaseOrder,
+                        Origin
+                    );
                 }
             }
 
@@ -1266,7 +1714,13 @@ namespace GeometryHelper.Dxf
 
                 if (g.Find(point.Key, part) >= 0)
                 {
-                    g.SetPoint(point.Key, transform.Transform(g.Point(point.Key, part, Origin)), part, point.Value ? SubOrder : BaseOrder, Origin);
+                    g.SetPoint(
+                        point.Key,
+                        transform.Transform(g.Point(point.Key, part, Origin)),
+                        part,
+                        point.Value ? SubOrder : BaseOrder,
+                        Origin
+                    );
                 }
             }
 
@@ -1298,7 +1752,14 @@ namespace GeometryHelper.Dxf
         {
             bool ordinate = this is DxfOrdinateDimension;
 
-            foreach (KeyValuePair<int, bool> angle in new[] { new KeyValuePair<int, bool>(53, false), new KeyValuePair<int, bool>(51, false), new KeyValuePair<int, bool>(50, true) })
+            foreach (
+                KeyValuePair<int, bool> angle in new[]
+                {
+                    new KeyValuePair<int, bool>(53, false),
+                    new KeyValuePair<int, bool>(51, false),
+                    new KeyValuePair<int, bool>(50, true),
+                }
+            )
             {
                 DxfDimGroups.Range part = angle.Value ? g.Sub : g.Base;
                 int at = g.Find(angle.Key, part);
@@ -1322,7 +1783,10 @@ namespace GeometryHelper.Dxf
 
                 if (at >= 0)
                 {
-                    g.List[at] = new KeyValuePair<int, string>(angle.Key, Numbers.Exact(ocs.TransformDegrees(degrees) + 0.0));
+                    g.List[at] = new KeyValuePair<int, string>(
+                        angle.Key,
+                        Numbers.Exact(ocs.TransformDegrees(degrees) + 0.0)
+                    );
                 }
             }
         }
@@ -1332,7 +1796,12 @@ namespace GeometryHelper.Dxf
         /// from the system of the old normal into the world, moved, and taken into the system of the new, as the block's entities
         /// stand in the system of the dimension's normal.
         /// </summary>
-        private static void MovePicture(DxfBlockTableRecord block, GeoVector3 before, GeoVector3 after, GeoTransform3 transform)
+        private static void MovePicture(
+            DxfBlockTableRecord block,
+            GeoVector3 before,
+            GeoVector3 after,
+            GeoTransform3 transform
+        )
         {
             GeoTransform3 into = Frame(before, false);
             GeoTransform3 outOf = Frame(after, true);
@@ -1353,7 +1822,13 @@ namespace GeometryHelper.Dxf
 
             if (left > 0)
             {
-                GeometryHelperLog.Debug("DxfDimension: " + left.ToString(CultureInfo.InvariantCulture) + " entities of the block " + block.Name + " could not be moved with the dimension, and were left where they stand.");
+                GeometryHelperLog.Debug(
+                    "DxfDimension: "
+                        + left.ToString(CultureInfo.InvariantCulture)
+                        + " entities of the block "
+                        + block.Name
+                        + " could not be moved with the dimension, and were left where they stand."
+                );
             }
         }
 
@@ -1364,8 +1839,24 @@ namespace GeometryHelper.Dxf
             GeoVector3 n = normal;
 
             return fromWorld
-                ? new GeoTransform3(new double[,] { { u.X, u.Y, u.Z, 0.0 }, { v.X, v.Y, v.Z, 0.0 }, { n.X, n.Y, n.Z, 0.0 }, { 0.0, 0.0, 0.0, 1.0 } })
-                : new GeoTransform3(new double[,] { { u.X, v.X, n.X, 0.0 }, { u.Y, v.Y, n.Y, 0.0 }, { u.Z, v.Z, n.Z, 0.0 }, { 0.0, 0.0, 0.0, 1.0 } });
+                ? new GeoTransform3(
+                    new double[,]
+                    {
+                        { u.X, u.Y, u.Z, 0.0 },
+                        { v.X, v.Y, v.Z, 0.0 },
+                        { n.X, n.Y, n.Z, 0.0 },
+                        { 0.0, 0.0, 0.0, 1.0 },
+                    }
+                )
+                : new GeoTransform3(
+                    new double[,]
+                    {
+                        { u.X, v.X, n.X, 0.0 },
+                        { u.Y, v.Y, n.Y, 0.0 },
+                        { u.Z, v.Z, n.Z, 0.0 },
+                        { 0.0, 0.0, 0.0, 1.0 },
+                    }
+                );
         }
 
         /// <summary>
@@ -1384,7 +1875,8 @@ namespace GeometryHelper.Dxf
             DxfDatabase database = owner.File?.Database;
             DxfFile origin = Item.File.IsDetached ? Item.File.Origin : null;
             bool otherDrawing = origin != null && origin != owner.File && origin.Database != null;
-            bool brought = otherDrawing && name.StartsWith("*", StringComparison.Ordinal) && origin.Database.BlockTable.Has(name);
+            bool brought =
+                otherDrawing && name.StartsWith("*", StringComparison.Ordinal) && origin.Database.BlockTable.Has(name);
 
             // A copy of a dimension of a drawing that names no block names none, as AutoCAD keeps the dimensions of the
             // constraints of its Parking sample in the block and in each anonymous copy of it.
@@ -1392,7 +1884,12 @@ namespace GeometryHelper.Dxf
 
             if (database == null || (!none && (name.Length == 0 || (!brought && !database.BlockTable.Has(name)))))
             {
-                throw new ArgumentException("The drawing has no block " + (name.Length == 0 ? "named by the dimension" : name) + " to draw the dimension with: give it its DimBlock, a block of the drawing.", "entity");
+                throw new ArgumentException(
+                    "The drawing has no block "
+                        + (name.Length == 0 ? "named by the dimension" : name)
+                        + " to draw the dimension with: give it its DimBlock, a block of the drawing.",
+                    "entity"
+                );
             }
 
             bool r12 = !owner.File.HasMarkers;
@@ -1413,10 +1910,22 @@ namespace GeometryHelper.Dxf
 
                 if (!owner.File.Supports(variable.Since) || (r12 && variable.R12Code == 0))
                 {
-                    throw new ArgumentException("A DXF of version " + (owner.File.Version ?? "R12") + " has no " + variable.Name.ToUpperInvariant() + ", which came with " + variable.SinceSaid + ".", "entity");
+                    throw new ArgumentException(
+                        "A DXF of version "
+                            + (owner.File.Version ?? "R12")
+                            + " has no "
+                            + variable.Name.ToUpperInvariant()
+                            + ", which came with "
+                            + variable.SinceSaid
+                            + ".",
+                        "entity"
+                    );
                 }
 
-                string text = value == null ? (form ? string.Empty : "0") : Namesake(names, variable, (DxfSymbolTableRecord)value, form);
+                string text =
+                    value == null
+                        ? (form ? string.Empty : "0")
+                        : Namesake(names, variable, (DxfSymbolTableRecord)value, form);
                 held.Add(new KeyValuePair<DxfDimVariable, string>(variable, text));
             }
 
@@ -1449,14 +1958,35 @@ namespace GeometryHelper.Dxf
         /// or a text style.
         /// </summary>
         /// <exception cref="ArgumentException">Thrown when the drawing has no record of that name.</exception>
-        private static string Namesake(DxfDatabase database, DxfDimVariable variable, DxfSymbolTableRecord record, bool r12)
+        private static string Namesake(
+            DxfDatabase database,
+            DxfDimVariable variable,
+            DxfSymbolTableRecord record,
+            bool r12
+        )
         {
             string name = record.Name;
-            DxfSymbolTable table = variable.Kind == DxfDimKind.Block ? database.BlockTable : variable.Kind == DxfDimKind.Linetype ? (DxfSymbolTable)database.LinetypeTable : database.TextStyleTable;
+            DxfSymbolTable table =
+                variable.Kind == DxfDimKind.Block ? database.BlockTable
+                : variable.Kind == DxfDimKind.Linetype ? (DxfSymbolTable)database.LinetypeTable
+                : database.TextStyleTable;
 
             if (!table.Has(name))
             {
-                throw new ArgumentException("The drawing has no " + (variable.Kind == DxfDimKind.Block ? "block" : variable.Kind == DxfDimKind.Linetype ? "linetype" : "text style") + " named " + name + " for the dimension's " + variable.Name + ".", "entity");
+                throw new ArgumentException(
+                    "The drawing has no "
+                        + (
+                            variable.Kind == DxfDimKind.Block ? "block"
+                            : variable.Kind == DxfDimKind.Linetype ? "linetype"
+                            : "text style"
+                        )
+                        + " named "
+                        + name
+                        + " for the dimension's "
+                        + variable.Name
+                        + ".",
+                    "entity"
+                );
             }
 
             DxfSymbolTableRecord found = table[name];
@@ -1480,7 +2010,10 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the drawing has no block of the name the dimension is drawn by.</exception>
         public override IReadOnlyList<DxfEntity> Explode()
         {
-            DxfBlockTableRecord block = DimBlock ?? throw new InvalidOperationException("The drawing has no block " + PictureName + " the dimension is drawn with, to explode it into.");
+            DxfBlockTableRecord block = DimBlock
+                ?? throw new InvalidOperationException(
+                    "The drawing has no block " + PictureName + " the dimension is drawn with, to explode it into."
+                );
             GeoVector3 normal = Normal;
             double slack = Tolerance.Default.EqualVector;
             GeoTransform3 placing = GeoTransform3.Translation(DimBlockPosition.ToVector());
@@ -1488,11 +2021,14 @@ namespace GeometryHelper.Dxf
             if (Math.Abs(normal.X) > slack || Math.Abs(normal.Y) > slack || Math.Abs(normal.Z - 1.0) > slack)
             {
                 double elevation = Own().Point(11, Own().Base, Origin).Z;
-                placing = placing * Frame(normal, false) * GeoTransform3.Translation(new GeoVector3(0.0, 0.0, elevation));
+                placing =
+                    placing * Frame(normal, false) * GeoTransform3.Translation(new GeoVector3(0.0, 0.0, elevation));
             }
 
             return PlacedCopies(block, placing * GeoTransform3.Translation(block.Origin.ToVector().Negate()))
-                .Where(e => !(e is DxfDBPoint && string.Equals(e.Layer, "Defpoints", StringComparison.OrdinalIgnoreCase)))
+                .Where(e =>
+                    !(e is DxfDBPoint && string.Equals(e.Layer, "Defpoints", StringComparison.OrdinalIgnoreCase))
+                )
                 .ToList()
                 .AsReadOnly();
         }
@@ -1504,21 +2040,32 @@ namespace GeometryHelper.Dxf
             string written = item.File.ValueOf(item, 70);
             int kind = 0;
 
-            if (written != null && !int.TryParse(written.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out kind))
+            if (
+                written != null
+                && !int.TryParse(written.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out kind)
+            )
             {
                 return null;
             }
 
             switch (kind & 15)
             {
-                case 0: return new DxfRotatedDimension(item);
-                case 1: return new DxfAlignedDimension(item);
-                case 2: return new DxfLineAngularDimension2(item);
-                case 3: return new DxfDiametricDimension(item);
-                case 4: return new DxfRadialDimension(item);
-                case 5: return new DxfPoint3AngularDimension(item);
-                case 6: return new DxfOrdinateDimension(item);
-                default: return null;
+                case 0:
+                    return new DxfRotatedDimension(item);
+                case 1:
+                    return new DxfAlignedDimension(item);
+                case 2:
+                    return new DxfLineAngularDimension2(item);
+                case 3:
+                    return new DxfDiametricDimension(item);
+                case 4:
+                    return new DxfRadialDimension(item);
+                case 5:
+                    return new DxfPoint3AngularDimension(item);
+                case 6:
+                    return new DxfOrdinateDimension(item);
+                default:
+                    return null;
             }
         }
 
@@ -1537,7 +2084,9 @@ namespace GeometryHelper.Dxf
         {
             if (IsErased)
             {
-                throw new InvalidOperationException("The " + Item.Type + " " + (Handle ?? string.Empty) + " is erased, and is not changed.");
+                throw new InvalidOperationException(
+                    "The " + Item.Type + " " + (Handle ?? string.Empty) + " is erased, and is not changed."
+                );
             }
 
             DxfDimGroups g = Own();
@@ -1613,7 +2162,14 @@ namespace GeometryHelper.Dxf
 
             if (!Same(value, now))
             {
-                Write(g => g.Set(code, Numbers.Exact(DxfOcsTransform.Degrees(value)), sub ? g.Sub : g.Base, sub ? SubOrder : BaseOrder));
+                Write(g =>
+                    g.Set(
+                        code,
+                        Numbers.Exact(DxfOcsTransform.Degrees(value)),
+                        sub ? g.Sub : g.Base,
+                        sub ? SubOrder : BaseOrder
+                    )
+                );
             }
         }
 
@@ -1699,12 +2255,22 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            Item.File.Requires(1015, "group " + code.ToString(CultureInfo.InvariantCulture) + " of a dimension", "R2000 (AC1015)");
+            Item.File.Requires(
+                1015,
+                "group " + code.ToString(CultureInfo.InvariantCulture) + " of a dimension",
+                "R2000 (AC1015)"
+            );
             Write(g => g.Set(code, value.ToString(CultureInfo.InvariantCulture), g.Base, BaseOrder));
         }
 
         /// <summary>The groups of a dimension made in code.</summary>
-        private static IEnumerable<DxfTypedValue> Groups(int kind, GeoPoint3 definition, string dimensionText, DxfDimStyleTableRecord dimensionStyle, IEnumerable<DxfTypedValue> own)
+        private static IEnumerable<DxfTypedValue> Groups(
+            int kind,
+            GeoPoint3 definition,
+            string dimensionText,
+            DxfDimStyleTableRecord dimensionStyle,
+            IEnumerable<DxfTypedValue> own
+        )
         {
             CheckPoint(definition);
 
@@ -1743,11 +2309,15 @@ namespace GeometryHelper.Dxf
         {
             if (!value.IsValid)
             {
-                throw new ArgumentException("A point has to be of finite numbers: " + value + " is not.", nameof(value));
+                throw new ArgumentException(
+                    "A point has to be of finite numbers: " + value + " is not.",
+                    nameof(value)
+                );
             }
         }
 
-        private protected static bool Same(GeoPoint3 a, GeoPoint3 b) => Same(a.X, b.X) && Same(a.Y, b.Y) && Same(a.Z, b.Z);
+        private protected static bool Same(GeoPoint3 a, GeoPoint3 b) =>
+            Same(a.X, b.X) && Same(a.Y, b.Y) && Same(a.Z, b.Z);
 
         #endregion
 
@@ -1765,7 +2335,9 @@ namespace GeometryHelper.Dxf
 
             if (read.Override(variable.CodeIn(!Item.File.HasMarkers), out string text))
             {
-                return variable.IsReference ? DxfDimStyleTableRecord.Resolve(Item.File, variable, text) : variable.Read(text);
+                return variable.IsReference
+                    ? DxfDimStyleTableRecord.Resolve(Item.File, variable, text)
+                    : variable.Read(text);
             }
 
             DxfDimStyleTableRecord style = read.Style;
@@ -1794,7 +2366,9 @@ namespace GeometryHelper.Dxf
 
             if (IsErased)
             {
-                throw new InvalidOperationException("The " + Item.Type + " " + (Handle ?? string.Empty) + " is erased, and is not changed.");
+                throw new InvalidOperationException(
+                    "The " + Item.Type + " " + (Handle ?? string.Empty) + " is erased, and is not changed."
+                );
             }
 
             DxfFile file = Item.File;
@@ -1806,14 +2380,28 @@ namespace GeometryHelper.Dxf
             {
                 if (r12 && variable.R12Code == 0)
                 {
-                    throw new InvalidOperationException("A DXF of R12 names no " + variable.Name.ToUpperInvariant() + " of a dimension.");
+                    throw new InvalidOperationException(
+                        "A DXF of R12 names no " + variable.Name.ToUpperInvariant() + " of a dimension."
+                    );
                 }
 
                 if (!IsResident)
                 {
-                    if (value != null && (((DxfDBObject)value).IsErased || !(value is DxfSymbolTableRecord record) || record.Item == null))
+                    if (
+                        value != null
+                        && (
+                            ((DxfDBObject)value).IsErased
+                            || !(value is DxfSymbolTableRecord record)
+                            || record.Item == null
+                        )
+                    )
                     {
-                        throw new ArgumentException("The " + variable.Name + " is a record of a drawing, not erased: it is taken to the record of its name in the drawing the dimension is added to.", nameof(value));
+                        throw new ArgumentException(
+                            "The "
+                                + variable.Name
+                                + " is a record of a drawing, not erased: it is taken to the record of its name in the drawing the dimension is added to.",
+                            nameof(value)
+                        );
                     }
 
                     _held = _held ?? new Dictionary<DxfDimVariable, DxfDBObject>();
@@ -1821,7 +2409,10 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                text = value == null ? (r12 ? string.Empty : "0") : DxfDimStyleTableRecord.Reference(file, variable, (DxfDBObject)value, r12, nameof(value));
+                text =
+                    value == null
+                        ? (r12 ? string.Empty : "0")
+                        : DxfDimStyleTableRecord.Reference(file, variable, (DxfDBObject)value, r12, nameof(value));
             }
             else
             {
@@ -1856,7 +2447,16 @@ namespace GeometryHelper.Dxf
             {
                 for (int i = open + 1; i + 1 < close; i += 2)
                 {
-                    if (data[i].TypeCode == 1070 && int.TryParse(data[i].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int named) && !overrides.ContainsKey(named))
+                    if (
+                        data[i].TypeCode == 1070
+                        && int.TryParse(
+                            data[i].Value.Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out int named
+                        )
+                        && !overrides.ContainsKey(named)
+                    )
                     {
                         overrides.Add(named, data[i + 1].Value);
                     }
@@ -1865,7 +2465,12 @@ namespace GeometryHelper.Dxf
 
             // The style is read when a variable the dimension does not override first asks for it, as it was before, so that an
             // override set and read back reads no style.
-            read = new StyleReading(item, edits, overrides, new Lazy<DxfDimStyleTableRecord>(() => DimensionStyle, LazyThreadSafetyMode.PublicationOnly));
+            read = new StyleReading(
+                item,
+                edits,
+                overrides,
+                new Lazy<DxfDimStyleTableRecord>(() => DimensionStyle, LazyThreadSafetyMode.PublicationOnly)
+            );
             Volatile.Write(ref _style, read);
             return read;
         }
@@ -1876,7 +2481,12 @@ namespace GeometryHelper.Dxf
             private readonly Dictionary<int, string> _overrides;
             private readonly Lazy<DxfDimStyleTableRecord> _style;
 
-            internal StyleReading(DxfItem item, int edits, Dictionary<int, string> overrides, Lazy<DxfDimStyleTableRecord> style)
+            internal StyleReading(
+                DxfItem item,
+                int edits,
+                Dictionary<int, string> overrides,
+                Lazy<DxfDimStyleTableRecord> style
+            )
             {
                 Item = item;
                 Edits = edits;
@@ -1904,7 +2514,11 @@ namespace GeometryHelper.Dxf
         {
             List<DxfTypedValue> data = AcadData() ?? new List<DxfTypedValue> { new DxfTypedValue(1001, Application) };
             int code = variable.CodeIn(r12);
-            var pair = new[] { new DxfTypedValue(1070, code.ToString(CultureInfo.InvariantCulture)), new DxfTypedValue(variable.DataCode(r12), text) };
+            var pair = new[]
+            {
+                new DxfTypedValue(1070, code.ToString(CultureInfo.InvariantCulture)),
+                new DxfTypedValue(variable.DataCode(r12), text),
+            };
 
             if (!Bounds(data, out int open, out int close))
             {
@@ -1919,7 +2533,16 @@ namespace GeometryHelper.Dxf
 
                 for (int i = open + 1; i + 1 < close && at < 0; i += 2)
                 {
-                    if (data[i].TypeCode == 1070 && int.TryParse(data[i].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int named) && named == code)
+                    if (
+                        data[i].TypeCode == 1070
+                        && int.TryParse(
+                            data[i].Value.Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out int named
+                        )
+                        && named == code
+                    )
                     {
                         at = i;
                     }
@@ -1953,7 +2576,12 @@ namespace GeometryHelper.Dxf
 
             for (int i = 1; i + 1 < data.Count; i++)
             {
-                if (data[i].TypeCode == 1000 && string.Equals(data[i].Value?.Trim(), Overrides, StringComparison.OrdinalIgnoreCase) && data[i + 1].TypeCode == 1002 && data[i + 1].Value?.Trim() == "{")
+                if (
+                    data[i].TypeCode == 1000
+                    && string.Equals(data[i].Value?.Trim(), Overrides, StringComparison.OrdinalIgnoreCase)
+                    && data[i + 1].TypeCode == 1002
+                    && data[i + 1].Value?.Trim() == "{"
+                )
                 {
                     open = i + 1;
                     break;
@@ -2004,14 +2632,16 @@ namespace GeometryHelper.Dxf
 
         private static bool Inches(int zin) => (zin & 3) == 0 || (zin & 3) == 2;
 
-        private static int FeetAndInches(int zin, bool feet, bool inches) => (zin & ~3) | (feet ? (inches ? 0 : 3) : (inches ? 2 : 1));
+        private static int FeetAndInches(int zin, bool feet, bool inches) =>
+            (zin & ~3) | (feet ? (inches ? 0 : 3) : (inches ? 2 : 1));
 
         #endregion
 
         #region Association
 
         // The application AutoCAD 2021 lists the class DIMASSOC under.
-        private const string DimAssocApplication = "\"AcDbDimAssoc|Product Desc:     AcDim ARX App For Dimension|Company:          Autodesk, Inc.|WEB Address:      www.autodesk.com\"";
+        private const string DimAssocApplication =
+            "\"AcDbDimAssoc|Product Desc:     AcDim ARX App For Dimension|Company:          Autodesk, Inc.|WEB Address:      www.autodesk.com\"";
 
         /// <summary>
         /// Gets the DIMASSOC that ties the dimension's points to objects, as AutoCAD keeps it under ACAD_DIMASSOC in the
@@ -2022,7 +2652,9 @@ namespace GeometryHelper.Dxf
             get
             {
                 DxfDBDictionary dictionary = IsErased ? null : ExtensionDictionary;
-                return dictionary != null && dictionary.Contains(DxfDimAssoc.Key) ? dictionary.GetAt(DxfDimAssoc.Key) as DxfDimAssoc : null;
+                return dictionary != null && dictionary.Contains(DxfDimAssoc.Key)
+                    ? dictionary.GetAt(DxfDimAssoc.Key) as DxfDimAssoc
+                    : null;
             }
         }
 
@@ -2060,7 +2692,12 @@ namespace GeometryHelper.Dxf
 
                 if (list.Exists(r => r.PointIndex == reference.PointIndex))
                 {
-                    throw new ArgumentException("Two point references tie the point " + reference.PointIndex.ToString(CultureInfo.InvariantCulture) + ".", nameof(references));
+                    throw new ArgumentException(
+                        "Two point references tie the point "
+                            + reference.PointIndex.ToString(CultureInfo.InvariantCulture)
+                            + ".",
+                        nameof(references)
+                    );
                 }
 
                 list.Add(reference);
@@ -2086,7 +2723,10 @@ namespace GeometryHelper.Dxf
 
                     if (!file.Database.TryGetObject(handle, out DxfDBObject tied) || tied.Item == null)
                     {
-                        throw new ArgumentException("The drawing has no object " + handle + " to tie the dimension to.", nameof(references));
+                        throw new ArgumentException(
+                            "The drawing has no object " + handle + " to tie the dimension to.",
+                            nameof(references)
+                        );
                     }
 
                     if (!now.Exists(h => string.Equals(h, tied.Handle, StringComparison.OrdinalIgnoreCase)))
@@ -2180,7 +2820,10 @@ namespace GeometryHelper.Dxf
             {
                 foreach (string handle in new[] { reference.ObjectHandle, reference.IntersectionObjectHandle })
                 {
-                    if (handle != null && !handles.Exists(h => string.Equals(h, handle, StringComparison.OrdinalIgnoreCase)))
+                    if (
+                        handle != null
+                        && !handles.Exists(h => string.Equals(h, handle, StringComparison.OrdinalIgnoreCase))
+                    )
                     {
                         handles.Add(handle);
                     }

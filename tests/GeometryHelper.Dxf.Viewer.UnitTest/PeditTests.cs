@@ -13,10 +13,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     /// </summary>
     public class PeditTests
     {
-        private const string Options = "Enter an option [Close/Join/Width/Edit vertex/Fit/Spline/Decurve/Ltype gen/Reverse/Undo]:";
-        private const string ClosedOptions = "Enter an option [Open/Join/Width/Edit vertex/Fit/Spline/Decurve/Ltype gen/Reverse/Undo]:";
-        private const string ManyOptions = "Enter an option [Close/Open/Join/Width/Fit/Spline/Decurve/Ltype gen/Reverse/Undo]:";
-        private const string VertexOptions = "Enter a vertex editing option [Next/Previous/Break/Insert/Move/Regen/Straighten/Tangent/Width/eXit] <N>:";
+        private const string Options =
+            "Enter an option [Close/Join/Width/Edit vertex/Fit/Spline/Decurve/Ltype gen/Reverse/Undo]:";
+        private const string ClosedOptions =
+            "Enter an option [Open/Join/Width/Edit vertex/Fit/Spline/Decurve/Ltype gen/Reverse/Undo]:";
+        private const string ManyOptions =
+            "Enter an option [Close/Open/Join/Width/Fit/Spline/Decurve/Ltype gen/Reverse/Undo]:";
+        private const string VertexOptions =
+            "Enter a vertex editing option [Next/Previous/Break/Insert/Move/Regen/Straighten/Tangent/Width/eXit] <N>:";
 
         /// <summary>The open polyline (0, 0), (100, 0), (100, 50), (0, 80) drawn with PLINE.</summary>
         private static CadDocument Zigzag(out CadCommandSession session)
@@ -29,7 +33,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
         private static DxfPolyline Light(CadDocument document) => Assert.Single(All<DxfPolyline>(document.ModelSpace));
 
-        private static DxfPolyline2d Heavy(CadDocument document) => Assert.Single(All<DxfPolyline2d>(document.ModelSpace));
+        private static DxfPolyline2d Heavy(CadDocument document) =>
+            Assert.Single(All<DxfPolyline2d>(document.ModelSpace));
 
         private static void Vertices(DxfPolyline polyline, params double[] xy)
         {
@@ -143,7 +148,27 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(DxfPoly2dType.CubicSplinePoly, spline.PolyType);
             List<DxfVertex2d> vertices = spline.ToList();
             Assert.Equal(13, vertices.Count);
-            double[] curve = { 0, 0, 32.8125, 2.20703125, 56.25, 8.28125, 70.3125, 17.40234375, 75, 28.75, 70.3125, 41.50390625, 56.25, 54.84375, 32.8125, 67.94921875, 0, 80 };
+            double[] curve =
+            {
+                0,
+                0,
+                32.8125,
+                2.20703125,
+                56.25,
+                8.28125,
+                70.3125,
+                17.40234375,
+                75,
+                28.75,
+                70.3125,
+                41.50390625,
+                56.25,
+                54.84375,
+                32.8125,
+                67.94921875,
+                0,
+                80,
+            };
             Assert.Equal(DxfVertex2dType.SplineControlVertex, vertices[0].VertexType);
 
             for (int i = 0; i < 9; i++)
@@ -231,8 +256,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(polyline.Closed);
             double[][] autocad =
             {
-                new[] { 0.0, 0.0, 1, 3 }, new[] { 50.0, -5, 3, 3 }, new[] { 100.0, 0, 3, 3 }, new[] { 130.0, 30, 3, 3 },
-                new[] { 100.0, 50, 0, 0 }, new[] { -10.0, 90, 0, 0 },
+                new[] { 0.0, 0.0, 1, 3 },
+                new[] { 50.0, -5, 3, 3 },
+                new[] { 100.0, 0, 3, 3 },
+                new[] { 130.0, 30, 3, 3 },
+                new[] { 100.0, 50, 0, 0 },
+                new[] { -10.0, 90, 0, 0 },
             };
             Assert.Equal(autocad.Length, polyline.NumberOfVertices);
 
@@ -308,7 +337,25 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
-            Run(session, "PLINE", P(0, 0), P(100, 0), Enter, "LINE", P(100, 0), P(100, 50), Enter, "LINE", P(100, 50), P(0, 50), Enter, "LINE", P(0, 52), P(0, 100), Enter);
+            Run(
+                session,
+                "PLINE",
+                P(0, 0),
+                P(100, 0),
+                Enter,
+                "LINE",
+                P(100, 0),
+                P(100, 50),
+                Enter,
+                "LINE",
+                P(100, 50),
+                P(0, 50),
+                Enter,
+                "LINE",
+                P(0, 52),
+                P(0, 100),
+                Enter
+            );
 
             Run(session, "PEDIT", P(50, 0), "J");
             Assert.Equal("Select objects:", session.PromptText);
@@ -328,7 +375,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
-            Run(session, "LINE", P(0, 0), P(100, 0), Enter, "LINE", P(103, 0), P(103, 50), Enter, "LINE", P(100, 50), P(0, 52), Enter);
+            Run(
+                session,
+                "LINE",
+                P(0, 0),
+                P(100, 0),
+                Enter,
+                "LINE",
+                P(103, 0),
+                P(103, 50),
+                Enter,
+                "LINE",
+                P(100, 50),
+                P(0, 52),
+                Enter
+            );
             Run(session, "PLINE", P(200, 0), P(210, 0), P(210, 10), "C");
 
             Run(session, "PEDIT", "M", "ALL", Enter);
@@ -460,15 +521,36 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         /// <summary>A polyline of one arc drawn with PLINE: about a centre, from an angle on by an included angle, in degrees.</summary>
-        private static void ArcPline(CadCommandSession session, double cx, double cy, double radius, double from, double to)
+        private static void ArcPline(
+            CadCommandSession session,
+            double cx,
+            double cy,
+            double radius,
+            double from,
+            double to
+        )
         {
             double a = from * System.Math.PI / 180.0;
-            Run(session, "PLINE", P(cx + radius * System.Math.Cos(a), cy + radius * System.Math.Sin(a)), "A", "CE", P(cx, cy), "A",
-                (to - from).ToString("R", System.Globalization.CultureInfo.InvariantCulture), Enter);
+            Run(
+                session,
+                "PLINE",
+                P(cx + radius * System.Math.Cos(a), cy + radius * System.Math.Sin(a)),
+                "A",
+                "CE",
+                P(cx, cy),
+                "A",
+                (to - from).ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+                Enter
+            );
         }
 
         /// <summary>The two polylines drawn joined by Multiple at a fuzz (40 unless given), by the join type given; the polylines then left.</summary>
-        private static List<DxfPolyline> FuzzJoined(CadDocument document, CadCommandSession session, string type, string fuzz = "40")
+        private static List<DxfPolyline> FuzzJoined(
+            CadDocument document,
+            CadCommandSession session,
+            string type,
+            string fuzz = "40"
+        )
         {
             Run(session, "PEDIT", "M", "ALL", Enter, "J", "J", type, fuzz, "X");
             return All<DxfPolyline>(document.ModelSpace);
@@ -494,7 +576,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             {
                 CadDocument document = Blank();
                 CadCommandSession session = Session(document);
-                Run(session, "PLINE", P(0, 0), P(100, 0), Enter, "PLINE", probe[0] + "," + probe[1], probe[2] + "," + probe[3], Enter);
+                Run(
+                    session,
+                    "PLINE",
+                    P(0, 0),
+                    P(100, 0),
+                    Enter,
+                    "PLINE",
+                    probe[0] + "," + probe[1],
+                    probe[2] + "," + probe[3],
+                    Enter
+                );
                 List<DxfPolyline> left = FuzzJoined(document, session, probe[4], probe[5]);
                 string label = probe[0] + "," + probe[1] + " " + probe[4] + " " + probe[5];
 
@@ -505,7 +597,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 }
 
                 Assert.True(left.Count == 1, "Not joined: " + label);
-                double[] xy = probe[6].Split(' ', ',').Select(v => double.Parse(v, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+                double[] xy = probe[6]
+                    .Split(' ', ',')
+                    .Select(v => double.Parse(v, System.Globalization.CultureInfo.InvariantCulture))
+                    .ToArray();
                 Vertices(left[0], xy);
             }
 
@@ -564,10 +659,38 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // The rest of the cases probed: each meeting point and bulge AutoCAD 2021 stored.
             var cases = new[]
             {
-                new { From = P(40, 95), To = P(100, 95), Type = "E", Meet = P(31.2249899920, 95), Bulge = 0.3239798971 },
-                new { From = P(-10, 120), To = P(-10, 200), Type = "E", Meet = P(-10, 99.4987437107), Bulge = 0.4438656912 },
-                new { From = P(-30, 103), To = P(-100, 110), Type = "B", Meet = P(0, 100), Bulge = 0.4142135624 },
-                new { From = P(41.758, 93.392), To = P(-17.255, 104.226), Type = "E", Meet = P(28.7325594892, 95.7832972141), Bulge = 0.3312126216 },
+                new
+                {
+                    From = P(40, 95),
+                    To = P(100, 95),
+                    Type = "E",
+                    Meet = P(31.2249899920, 95),
+                    Bulge = 0.3239798971,
+                },
+                new
+                {
+                    From = P(-10, 120),
+                    To = P(-10, 200),
+                    Type = "E",
+                    Meet = P(-10, 99.4987437107),
+                    Bulge = 0.4438656912,
+                },
+                new
+                {
+                    From = P(-30, 103),
+                    To = P(-100, 110),
+                    Type = "B",
+                    Meet = P(0, 100),
+                    Bulge = 0.4142135624,
+                },
+                new
+                {
+                    From = P(41.758, 93.392),
+                    To = P(-17.255, 104.226),
+                    Type = "E",
+                    Meet = P(28.7325594892, 95.7832972141),
+                    Bulge = 0.3312126216,
+                },
             };
 
             foreach (var probe in cases)

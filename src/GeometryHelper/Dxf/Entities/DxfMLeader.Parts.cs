@@ -15,13 +15,67 @@ namespace GeometryHelper.Dxf
         {
             var groups = new List<KeyValuePair<int, string>>
             {
-                G(100, "AcDbMLeader"), G(270, "2"), G(300, "CONTEXT_DATA{"), G(40, "1"), G(10, "0"), G(20, "0"), G(30, "0"), G(41, "4"),
-                G(140, "4"), G(145, "2"), G(174, "1"), G(175, "1"), G(176, "0"), G(177, "0"), G(290, "0"), G(296, "0"), G(110, "0"),
-                G(120, "0"), G(130, "0"), G(111, "1"), G(121, "0"), G(131, "0"), G(112, "0"), G(122, "1"), G(132, "0"), G(297, "0"),
-                G(272, "9"), G(273, "9"), G(301, "}"), G(340, "0"), G(90, "0"), G(170, "1"), G(91, ByBlock), G(171, "-2"), G(290, "1"),
-                G(291, "1"), G(41, "8"), G(42, "4"), G(172, "2"), G(343, "0"), G(173, "1"), G(95, "1"), G(174, "1"), G(175, "0"),
-                G(92, ByBlock), G(292, "0"), G(93, ByBlock), G(10, "1"), G(20, "1"), G(30, "1"), G(43, "0"), G(176, "0"), G(293, "0"),
-                G(294, "0"), G(178, "0"), G(179, "1"), G(45, "1"), G(271, "0"), G(272, "9"), G(273, "9"), G(295, "0"),
+                G(100, "AcDbMLeader"),
+                G(270, "2"),
+                G(300, "CONTEXT_DATA{"),
+                G(40, "1"),
+                G(10, "0"),
+                G(20, "0"),
+                G(30, "0"),
+                G(41, "4"),
+                G(140, "4"),
+                G(145, "2"),
+                G(174, "1"),
+                G(175, "1"),
+                G(176, "0"),
+                G(177, "0"),
+                G(290, "0"),
+                G(296, "0"),
+                G(110, "0"),
+                G(120, "0"),
+                G(130, "0"),
+                G(111, "1"),
+                G(121, "0"),
+                G(131, "0"),
+                G(112, "0"),
+                G(122, "1"),
+                G(132, "0"),
+                G(297, "0"),
+                G(272, "9"),
+                G(273, "9"),
+                G(301, "}"),
+                G(340, "0"),
+                G(90, "0"),
+                G(170, "1"),
+                G(91, ByBlock),
+                G(171, "-2"),
+                G(290, "1"),
+                G(291, "1"),
+                G(41, "8"),
+                G(42, "4"),
+                G(172, "2"),
+                G(343, "0"),
+                G(173, "1"),
+                G(95, "1"),
+                G(174, "1"),
+                G(175, "0"),
+                G(92, ByBlock),
+                G(292, "0"),
+                G(93, ByBlock),
+                G(10, "1"),
+                G(20, "1"),
+                G(30, "1"),
+                G(43, "0"),
+                G(176, "0"),
+                G(293, "0"),
+                G(294, "0"),
+                G(178, "0"),
+                G(179, "1"),
+                G(45, "1"),
+                G(271, "0"),
+                G(272, "9"),
+                G(273, "9"),
+                G(295, "0"),
             };
 
             return groups.ConvertAll(g => new DxfTypedValue(g.Key, g.Value)).ToArray();
@@ -56,7 +110,14 @@ namespace GeometryHelper.Dxf
 
                 foreach (DxfDBDictionaryEntry entry in Styles(database))
                 {
-                    if (handle == null && entry.Value?.Handle != null && (string.Equals(entry.Key, wanted, StringComparison.OrdinalIgnoreCase) || string.Equals(entry.Key, "Standard", StringComparison.OrdinalIgnoreCase)))
+                    if (
+                        handle == null
+                        && entry.Value?.Handle != null
+                        && (
+                            string.Equals(entry.Key, wanted, StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(entry.Key, "Standard", StringComparison.OrdinalIgnoreCase)
+                        )
+                    )
                     {
                         handle = entry.Value.Handle;
                     }
@@ -64,7 +125,12 @@ namespace GeometryHelper.Dxf
 
                 if (handle == null)
                 {
-                    throw new ArgumentException("The drawing has no multileader style " + wanted + " in ACAD_MLEADERSTYLE for the MULTILEADER to take.", "entity");
+                    throw new ArgumentException(
+                        "The drawing has no multileader style "
+                            + wanted
+                            + " in ACAD_MLEADERSTYLE for the MULTILEADER to take.",
+                        "entity"
+                    );
                 }
 
                 Put(rec.After, 340, handle, TopOrder);
@@ -81,7 +147,10 @@ namespace GeometryHelper.Dxf
             {
                 if (!database.TextStyleTable.Has("Standard"))
                 {
-                    throw new ArgumentException("The drawing has no text style Standard for the MULTILEADER to take.", "entity");
+                    throw new ArgumentException(
+                        "The drawing has no text style Standard for the MULTILEADER to take.",
+                        "entity"
+                    );
                 }
 
                 Put(rec.After, 343, database.TextStyleTable["Standard"].Handle, TopOrder);
@@ -185,10 +254,17 @@ namespace GeometryHelper.Dxf
             // Past ezdxf, which looks at the lengths of the axes only: a shear keeps them as long as each other but no longer square.
             double square = 1E-9 * x.DotProduct(x);
 
-            if (!Close(x.DotProduct(x), y.DotProduct(y)) || (!flat && !Close(x.DotProduct(x), z.DotProduct(z))) || Math.Abs(x.DotProduct(y)) > square
-                || (!flat && (Math.Abs(x.DotProduct(z)) > square || Math.Abs(y.DotProduct(z)) > square)))
+            if (
+                !Close(x.DotProduct(x), y.DotProduct(y))
+                || (!flat && !Close(x.DotProduct(x), z.DotProduct(z)))
+                || Math.Abs(x.DotProduct(y)) > square
+                || (!flat && (Math.Abs(x.DotProduct(z)) > square || Math.Abs(y.DotProduct(z)) > square))
+            )
             {
-                throw new ArgumentException("A MULTILEADER is scaled the same along every direction, and not sheared, as AutoCAD scales one.", nameof(transform));
+                throw new ArgumentException(
+                    "A MULTILEADER is scaled the same along every direction, and not sheared, as AutoCAD scales one.",
+                    nameof(transform)
+                );
             }
 
             double scale = x.Length;
@@ -266,12 +342,14 @@ namespace GeometryHelper.Dxf
 
             if (from >= 0)
             {
-                GeoVector3 normal = PointOf(ctx.Head.GetRange(from, to - from), 11, new GeoPoint3(0.0, 0.0, 1.0)).ToVector();
+                GeoVector3 normal = PointOf(ctx.Head.GetRange(from, to - from), 11, new GeoPoint3(0.0, 0.0, 1.0))
+                    .ToVector();
                 var ocs = new DxfOcsTransform(normal.Length > 0.0 ? normal : new GeoVector3(0.0, 0.0, 1.0), transform);
                 PutPoint(ctx.Head, 11, Pt(ocs.NewExtrusion), ContextOrder, from, to);
                 Section(ctx.Head, 290, MTextCodes, out from, out to);
                 MovePoint(ctx.Head, 12, transform.Transform, ContextOrder, from, to);
-                GeoVector3 direction = PointOf(ctx.Head.GetRange(from, to - from), 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector();
+                GeoVector3 direction = PointOf(ctx.Head.GetRange(from, to - from), 13, new GeoPoint3(1.0, 0.0, 0.0))
+                    .ToVector();
                 PutPoint(ctx.Head, 13, Pt(Unit(transform.Transform(direction))), ContextOrder, from, to);
                 Section(ctx.Head, 290, MTextCodes, out from, out to);
                 int turn = ctx.Head.FindIndex(from, to - from, g => g.Key == 42);
@@ -285,8 +363,20 @@ namespace GeometryHelper.Dxf
 
                 if (!double.IsNaN(readable))
                 {
-                    GeoVector3 was = new DxfOcsTransform.Axes(normal.Length > 0.0 ? normal : new GeoVector3(0.0, 0.0, 1.0)).FromWorld(direction);
-                    Readable(rec, ctx, Unit(transform.Transform(direction)), planeZ, newX, newY, flipped, readable, Math.Atan2(was.Y, was.X));
+                    GeoVector3 was = new DxfOcsTransform.Axes(
+                        normal.Length > 0.0 ? normal : new GeoVector3(0.0, 0.0, 1.0)
+                    ).FromWorld(direction);
+                    Readable(
+                        rec,
+                        ctx,
+                        Unit(transform.Transform(direction)),
+                        planeZ,
+                        newX,
+                        newY,
+                        flipped,
+                        readable,
+                        Math.Atan2(was.Y, was.X)
+                    );
                     Section(ctx.Head, 290, MTextCodes, out from, out to);
                 }
 
@@ -386,7 +476,9 @@ namespace GeometryHelper.Dxf
                 MovePoint(leader.Head, 10, transform.Transform, LeaderOrder, 0, -1);
                 GeoVector3 dogleg = PointOf(leader.Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector();
                 double length = Num(Text(leader.Head, 40), 1.0);
-                GeoVector3 turned = transform.Transform(dogleg.Length > 0.0 ? dogleg.Multiply(length / dogleg.Length) : new GeoVector3(length, 0.0, 0.0));
+                GeoVector3 turned = transform.Transform(
+                    dogleg.Length > 0.0 ? dogleg.Multiply(length / dogleg.Length) : new GeoVector3(length, 0.0, 0.0)
+                );
                 double newLength = turned.Length;
                 PutPoint(leader.Head, 11, Pt(newLength > 0.0 ? turned.Multiply(1.0 / newLength) : dogleg), LeaderOrder);
 
@@ -474,7 +566,17 @@ namespace GeometryHelper.Dxf
         /// running the mirrored way leaves them turned nearer the turn they had before (<paramref name="turned"/>, in the system
         /// of their normal then), as a mirror across XZ does, they are kept so, upright (<see cref="Upright"/>, check D38b).
         /// </summary>
-        private void Readable(Rec rec, Ctx ctx, GeoVector3 along, GeoVector3 normal, GeoVector3 x, GeoVector3 y, bool flipped, double width, double turned)
+        private void Readable(
+            Rec rec,
+            Ctx ctx,
+            GeoVector3 along,
+            GeoVector3 normal,
+            GeoVector3 x,
+            GeoVector3 y,
+            bool flipped,
+            double width,
+            double turned
+        )
         {
             // Of the two ways to read them, the one turned in the system of their normal nearer the turn they had in the system of
             // theirs before, the other where the two are as near, as AutoCAD 2021 keeps them (check D38b): kept running the
@@ -505,7 +607,14 @@ namespace GeometryHelper.Dxf
             {
                 if (held != 2)
                 {
-                    MovePoint(ctx.Head, 12, p => p.Add(along.Multiply(held == 1 ? width : -width)), ContextOrder, from, to);
+                    MovePoint(
+                        ctx.Head,
+                        12,
+                        p => p.Add(along.Multiply(held == 1 ? width : -width)),
+                        ContextOrder,
+                        from,
+                        to
+                    );
                 }
 
                 return;
@@ -515,12 +624,20 @@ namespace GeometryHelper.Dxf
             Put(ctx.Head, 171, now.ToString(CultureInfo.InvariantCulture), ContextOrder, from, to);
             Section(ctx.Head, 290, MTextCodes, out from, out to);
             GeoPoint3 at = PointOf(ctx.Head.GetRange(from, to - from), 12, new GeoPoint3(0.0, 0.0, 0.0));
-            double left = now == 3 ? width : now == 2 ? width / 2.0 : 0.0;
+            double left =
+                now == 3 ? width
+                : now == 2 ? width / 2.0
+                : 0.0;
             double below = Below(ctx, AttachmentOf(rec, true), Height(ctx));
 
             if (!double.IsNaN(below))
             {
-                PutPoint(ctx.Head, 10, at.Add(x.Multiply(-(left + Num(Text(ctx.Head, 145), 2.0)))).Add(y.Multiply(-below)), ContextOrder);
+                PutPoint(
+                    ctx.Head,
+                    10,
+                    at.Add(x.Multiply(-(left + Num(Text(ctx.Head, 145), 2.0)))).Add(y.Multiply(-below)),
+                    ContextOrder
+                );
             }
         }
 
@@ -533,7 +650,16 @@ namespace GeometryHelper.Dxf
         /// (100, -46, 0) running along x, of 294 nought, the base point at (98, -48, 0); met at the top of the top line, at
         /// (100, -50, 0).
         /// </summary>
-        private void Upright(Rec rec, Ctx ctx, GeoVector3 along, GeoVector3 normal, GeoVector3 x, GeoVector3 y, DxfOcsTransform.Axes system, bool flipped)
+        private void Upright(
+            Rec rec,
+            Ctx ctx,
+            GeoVector3 along,
+            GeoVector3 normal,
+            GeoVector3 x,
+            GeoVector3 y,
+            DxfOcsTransform.Axes system,
+            bool flipped
+        )
         {
             Section(ctx.Head, 290, MTextCodes, out int from, out int to);
             PutPoint(ctx.Head, 11, Pt(normal), ContextOrder, from, to);
@@ -549,7 +675,14 @@ namespace GeometryHelper.Dxf
                 {
                     Put(ctx.Head, 171, (4 - was).ToString(CultureInfo.InvariantCulture), ContextOrder, from, to);
                     Section(ctx.Head, 290, MTextCodes, out from, out to);
-                    MovePoint(ctx.Head, 12, p => p.Add(along.Multiply(was == 1 ? wide : -wide)), ContextOrder, from, to);
+                    MovePoint(
+                        ctx.Head,
+                        12,
+                        p => p.Add(along.Multiply(was == 1 ? wide : -wide)),
+                        ContextOrder,
+                        from,
+                        to
+                    );
                 }
             }
 
@@ -575,14 +708,29 @@ namespace GeometryHelper.Dxf
                 Section(ctx.Head, 290, MTextCodes, out from, out to);
                 List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
                 int held = Whole(Text(m, 171), 1);
-                double left = held == 3 ? width : held == 2 ? width / 2.0 : 0.0;
+                double left =
+                    held == 3 ? width
+                    : held == 2 ? width / 2.0
+                    : 0.0;
                 GeoPoint3 at = PointOf(m, 12, new GeoPoint3(0.0, 0.0, 0.0));
-                PutPoint(ctx.Head, 10, at.Add(x.Multiply(-(left + Num(Text(ctx.Head, 145), 2.0)))).Add(y.Multiply(-below)), ContextOrder);
+                PutPoint(
+                    ctx.Head,
+                    10,
+                    at.Add(x.Multiply(-(left + Num(Text(ctx.Head, 145), 2.0)))).Add(y.Multiply(-below)),
+                    ContextOrder
+                );
             }
         }
 
         /// <summary>Moves the first point of a code in a part of a run where it has one.</summary>
-        private static void MovePoint(List<KeyValuePair<int, string>> groups, int code, Func<GeoPoint3, GeoPoint3> move, int[] order, int from, int to)
+        private static void MovePoint(
+            List<KeyValuePair<int, string>> groups,
+            int code,
+            Func<GeoPoint3, GeoPoint3> move,
+            int[] order,
+            int from,
+            int to
+        )
         {
             to = to < 0 ? groups.Count : to;
             int at = groups.FindIndex(from, to - from, g => g.Key == code);
@@ -678,7 +826,11 @@ namespace GeometryHelper.Dxf
 
         /// <summary>The context data of the record.</summary>
         /// <exception cref="InvalidOperationException">Thrown where the record has none.</exception>
-        private static Ctx Context(Rec rec) => rec.Context ?? throw new InvalidOperationException("The MULTILEADER has no context data (CONTEXT_DATA{), which AutoCAD draws it from.");
+        private static Ctx Context(Rec rec) =>
+            rec.Context
+            ?? throw new InvalidOperationException(
+                "The MULTILEADER has no context data (CONTEXT_DATA{), which AutoCAD draws it from."
+            );
 
         private static bool HasSection(Ctx ctx, int flag, HashSet<int> codes)
         {
@@ -711,14 +863,42 @@ namespace GeometryHelper.Dxf
 
             ctx.Head[flag] = G(290, "1");
             GeoPoint3 at = PointOf(ctx.Head, 10, new GeoPoint3(0.0, 0.0, 0.0));
-            var groups = new List<KeyValuePair<int, string>> { G(304, string.Empty), G(11, "0"), G(21, "0"), G(31, "1"), G(340, Text(rec.After, 343) ?? "0") };
-            groups.AddRange(PointGroups(12, at));
-            groups.AddRange(new[]
+            var groups = new List<KeyValuePair<int, string>>
             {
-                G(13, "1"), G(23, "0"), G(33, "0"), G(42, "0"), G(43, "0"), G(44, "0"), G(45, "1"), G(170, "1"), G(90, ByBlock), G(171, "1"),
-                G(172, "1"), G(91, "-939524096"), G(141, "1.5"), G(92, "0"), G(291, "0"), G(292, "0"), G(173, "0"), G(293, "0"), G(142, "0"),
-                G(143, "0"), G(294, "0"), G(295, "1"),
-            });
+                G(304, string.Empty),
+                G(11, "0"),
+                G(21, "0"),
+                G(31, "1"),
+                G(340, Text(rec.After, 343) ?? "0"),
+            };
+            groups.AddRange(PointGroups(12, at));
+            groups.AddRange(
+                new[]
+                {
+                    G(13, "1"),
+                    G(23, "0"),
+                    G(33, "0"),
+                    G(42, "0"),
+                    G(43, "0"),
+                    G(44, "0"),
+                    G(45, "1"),
+                    G(170, "1"),
+                    G(90, ByBlock),
+                    G(171, "1"),
+                    G(172, "1"),
+                    G(91, "-939524096"),
+                    G(141, "1.5"),
+                    G(92, "0"),
+                    G(291, "0"),
+                    G(292, "0"),
+                    G(173, "0"),
+                    G(293, "0"),
+                    G(142, "0"),
+                    G(143, "0"),
+                    G(294, "0"),
+                    G(295, "1"),
+                }
+            );
             ctx.Head.InsertRange(flag + 1, groups);
         }
 
@@ -816,7 +996,15 @@ namespace GeometryHelper.Dxf
 
             if (value < least || value > most)
             {
-                throw new ArgumentOutOfRangeException(nameof(value), value, "The value is not one AutoCAD has for it, " + least.ToString(CultureInfo.InvariantCulture) + " to " + most.ToString(CultureInfo.InvariantCulture) + ".");
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    "The value is not one AutoCAD has for it, "
+                        + least.ToString(CultureInfo.InvariantCulture)
+                        + " to "
+                        + most.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
 
             Rec rec = Read();
@@ -829,7 +1017,14 @@ namespace GeometryHelper.Dxf
         /// the overrides, the bit alone where it is the size read (<see cref="Unscaled"/>); then lets the content follow, given
         /// the size it was drawn.
         /// </summary>
-        private void SetContextNumber(int code, double value, double fallback, int bit, bool positive, Action<Rec, Ctx, double> follow)
+        private void SetContextNumber(
+            int code,
+            double value,
+            double fallback,
+            int bit,
+            bool positive,
+            Action<Rec, Ctx, double> follow
+        )
         {
             Guard.Finite(value, nameof(value), "The number has to be a finite number.");
             Rec rec = Read();
@@ -880,7 +1075,15 @@ namespace GeometryHelper.Dxf
         /// Sets a colour of the MULTILEADER's own, and the one of a section of its context data where it has it; the colour it
         /// has sets the bit of the overrides alone where asked (<paramref name="marked"/>), as AutoCAD 2021 sets it.
         /// </summary>
-        private void SetColour(int code, int section, int flag, HashSet<int> codes, DxfColor value, int bit, bool marked)
+        private void SetColour(
+            int code,
+            int section,
+            int flag,
+            HashSet<int> codes,
+            DxfColor value,
+            int bit,
+            bool marked
+        )
         {
             string text = DxfMLeaderColors.Text(value, nameof(value));
             Rec rec = Read();
@@ -920,7 +1123,12 @@ namespace GeometryHelper.Dxf
         {
             DxfColorMethod method = colour?.ColorMethod ?? DxfColorMethod.None;
 
-            if (method != DxfColorMethod.ByLayer && method != DxfColorMethod.ByBlock && method != DxfColorMethod.ByAci && method != DxfColorMethod.ByColor)
+            if (
+                method != DxfColorMethod.ByLayer
+                && method != DxfColorMethod.ByBlock
+                && method != DxfColorMethod.ByAci
+                && method != DxfColorMethod.ByColor
+            )
             {
                 return;
             }
@@ -932,7 +1140,14 @@ namespace GeometryHelper.Dxf
 
             if (from >= 0)
             {
-                Put(ctx.Head, 90, byBlock ? DxfMLeaderColors.Text(DxfColor.ByLayer, nameof(colour)) : text, ContextOrder, from, to);
+                Put(
+                    ctx.Head,
+                    90,
+                    byBlock ? DxfMLeaderColors.Text(DxfColor.ByLayer, nameof(colour)) : text,
+                    ContextOrder,
+                    from,
+                    to
+                );
             }
 
             if (!byBlock)
@@ -965,7 +1180,9 @@ namespace GeometryHelper.Dxf
         {
             Ctx ctx = Context(rec);
             Section(ctx.Head, 296, BlockCodes, out from, out to);
-            return from < 0 ? throw new InvalidOperationException("The MULTILEADER holds no block: give it one by BlockContent.") : ctx.Head.GetRange(from, to - from);
+            return from < 0
+                ? throw new InvalidOperationException("The MULTILEADER holds no block: give it one by BlockContent.")
+                : ctx.Head.GetRange(from, to - from);
         }
 
         /// <summary>A group of the context's block; null where it holds none.</summary>
@@ -980,7 +1197,8 @@ namespace GeometryHelper.Dxf
             return from < 0 ? null : Text(rec.Context.Head.GetRange(from, to - from), code);
         }
 
-        private static InvalidOperationException NoWords() => new InvalidOperationException("The MULTILEADER holds no words: give it some by MText.");
+        private static InvalidOperationException NoWords() =>
+            new InvalidOperationException("The MULTILEADER holds no words: give it some by MText.");
 
         private static double Positive(double value, double fallback) => value > 0.0 ? value : fallback;
 
@@ -996,21 +1214,55 @@ namespace GeometryHelper.Dxf
         {
             if (value < DxfTextAttachmentType.AttachmentTopOfTop || value > DxfTextAttachmentType.AttachmentLinedCenter)
             {
-                throw new ArgumentOutOfRangeException(nameof(value), value, "An attachment is one of AutoCAD's, 0 to 10.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    "An attachment is one of AutoCAD's, 0 to 10."
+                );
             }
         }
 
         /// <summary>The MULTILEADER's group of a side, its context data's, AutoCAD's own value and the bit of the overrides.</summary>
         /// <exception cref="ArgumentException">Thrown when the side is not known.</exception>
-        private static void AttachmentCodes(DxfLeaderDirectionType direction, out int code, out int context, out int fallback, out int bit)
+        private static void AttachmentCodes(
+            DxfLeaderDirectionType direction,
+            out int code,
+            out int context,
+            out int fallback,
+            out int bit
+        )
         {
             switch (direction)
             {
-                case DxfLeaderDirectionType.LeftLeader: code = 173; context = 174; fallback = 1; bit = 12; return;
-                case DxfLeaderDirectionType.RightLeader: code = 95; context = 175; fallback = 1; bit = 25; return;
-                case DxfLeaderDirectionType.TopLeader: code = 273; context = 273; fallback = 9; bit = 28; return;
-                case DxfLeaderDirectionType.BottomLeader: code = 272; context = 272; fallback = 9; bit = 29; return;
-                default: throw new ArgumentException("A side is the left, the right, the top or the bottom: " + direction + " is none of them.", "leaderDirection");
+                case DxfLeaderDirectionType.LeftLeader:
+                    code = 173;
+                    context = 174;
+                    fallback = 1;
+                    bit = 12;
+                    return;
+                case DxfLeaderDirectionType.RightLeader:
+                    code = 95;
+                    context = 175;
+                    fallback = 1;
+                    bit = 25;
+                    return;
+                case DxfLeaderDirectionType.TopLeader:
+                    code = 273;
+                    context = 273;
+                    fallback = 9;
+                    bit = 28;
+                    return;
+                case DxfLeaderDirectionType.BottomLeader:
+                    code = 272;
+                    context = 272;
+                    fallback = 9;
+                    bit = 29;
+                    return;
+                default:
+                    throw new ArgumentException(
+                        "A side is the left, the right, the top or the bottom: " + direction + " is none of them.",
+                        "leaderDirection"
+                    );
             }
         }
 
@@ -1024,7 +1276,10 @@ namespace GeometryHelper.Dxf
 
             for (int i = 0; i < after.Count; i++)
             {
-                if (after[i].Key == 330 && string.Equals(after[i].Value.Trim(), handle, StringComparison.OrdinalIgnoreCase))
+                if (
+                    after[i].Key == 330
+                    && string.Equals(after[i].Value.Trim(), handle, StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     return i;
                 }
@@ -1065,7 +1320,12 @@ namespace GeometryHelper.Dxf
             DxfFile file = database?.File;
             DxfItem rootItem = file != null && file.HoldsObjects ? file.ObjectItem(file.RootDictionaryHandle()) : null;
 
-            if (rootItem != null && DxfDBObject.OfObject(rootItem) is DxfDBDictionary root && root.Contains("ACAD_MLEADERSTYLE") && root.GetAt("ACAD_MLEADERSTYLE") is DxfDBDictionary styles)
+            if (
+                rootItem != null
+                && DxfDBObject.OfObject(rootItem) is DxfDBDictionary root
+                && root.Contains("ACAD_MLEADERSTYLE")
+                && root.GetAt("ACAD_MLEADERSTYLE") is DxfDBDictionary styles
+            )
             {
                 return styles;
             }
@@ -1104,7 +1364,11 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            throw new ArgumentOutOfRangeException("leaderLineIndex", index, "The MULTILEADER has no leader line of the index.");
+            throw new ArgumentOutOfRangeException(
+                "leaderLineIndex",
+                index,
+                "The MULTILEADER has no leader line of the index."
+            );
         }
 
         /// <summary>The index of a new leader line: one above every line's.</summary>
@@ -1167,7 +1431,13 @@ namespace GeometryHelper.Dxf
         {
             if (index < 0 || index >= vertices.Count)
             {
-                throw new ArgumentOutOfRangeException(parameter, index, "The leader line has " + vertices.Count.ToString(CultureInfo.InvariantCulture) + " vertices, from nought.");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    index,
+                    "The leader line has "
+                        + vertices.Count.ToString(CultureInfo.InvariantCulture)
+                        + " vertices, from nought."
+                );
             }
         }
 
@@ -1177,14 +1447,25 @@ namespace GeometryHelper.Dxf
         /// no landing takes the last as its landing, as AutoCAD 2021 takes the first vertex given a line of it (a1-addfirst),
         /// the content left where it is.
         /// </summary>
-        private void WriteVertices(Rec rec, LinePart line, LeaderPart leader, List<GeoPoint3> vertices, bool carry = false)
+        private void WriteVertices(
+            Rec rec,
+            LinePart line,
+            LeaderPart leader,
+            List<GeoPoint3> vertices,
+            bool carry = false
+        )
         {
             GeoPoint3 last = vertices[vertices.Count - 1];
 
             if (!HasLanding(leader))
             {
                 Landing(leader, out _, out bool flat, out GeoVector3 dogleg);
-                PutPoint(leader.Head, 10, flat && !Doglegged(rec.After) ? last.Add(dogleg.Negate()) : last, LeaderOrder);
+                PutPoint(
+                    leader.Head,
+                    10,
+                    flat && !Doglegged(rec.After) ? last.Add(dogleg.Negate()) : last,
+                    LeaderOrder
+                );
                 Put(leader.Head, 290, "1", LeaderOrder);
             }
             else if (Text(leader.Head, 10) == null || !SamePoint(last, LastOf(rec, leader)))
@@ -1192,7 +1473,12 @@ namespace GeometryHelper.Dxf
                 GeoPoint3 was = PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0));
                 bool had = Text(leader.Head, 10) != null;
                 Landing(leader, out _, out bool horizontal, out GeoVector3 along);
-                PutPoint(leader.Head, 10, horizontal && !Doglegged(rec.After) ? last.Add(along.Negate()) : last, LeaderOrder);
+                PutPoint(
+                    leader.Head,
+                    10,
+                    horizontal && !Doglegged(rec.After) ? last.Add(along.Negate()) : last,
+                    LeaderOrder
+                );
 
                 // The last vertex set: the content and the other landings carried with the landing, as AutoCAD 2021 carries them.
                 if (carry && had)
@@ -1218,12 +1504,20 @@ namespace GeometryHelper.Dxf
 
             if (vertices.Count < 2)
             {
-                throw new InvalidOperationException("A leader line keeps its last vertex, which AutoCAD 2021 crashed taking out of a drawing it had read, and this one has " + vertices.Count.ToString(CultureInfo.InvariantCulture) + ".");
+                throw new InvalidOperationException(
+                    "A leader line keeps its last vertex, which AutoCAD 2021 crashed taking out of a drawing it had read, and this one has "
+                        + vertices.Count.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
 
             if (!first && leader.Lines.Count > 1)
             {
-                throw new InvalidOperationException("The last vertex of a line is the landing every line of its leader ends at, and AutoCAD 2021 does not take it out of a leader of " + leader.Lines.Count.ToString(CultureInfo.InvariantCulture) + " lines (eInvalidContext).");
+                throw new InvalidOperationException(
+                    "The last vertex of a line is the landing every line of its leader ends at, and AutoCAD 2021 does not take it out of a leader of "
+                        + leader.Lines.Count.ToString(CultureInfo.InvariantCulture)
+                        + " lines (eInvalidContext)."
+                );
             }
 
             vertices.RemoveAt(first ? 0 : vertices.Count - 1);

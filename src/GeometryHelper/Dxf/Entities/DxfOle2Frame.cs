@@ -49,7 +49,9 @@ namespace GeometryHelper.Dxf
         private static readonly GeoPoint3 Origin = new GeoPoint3(0.0, 0.0, 0.0);
 
         // The own groups in the order AutoCAD 2021 writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 70, 3, 10, 20, 30, 11, 21, 31, 71, 72, 73, 90, 310, 1 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 70, 3, 10, 20, 30, 11, 21, 31, 71, 72, 73, 90, 310, 1 }
+        );
 
         // Whether 10 and 11 have been checked against the head's corners for the log, or the log told the head holds none.
         private bool _told;
@@ -80,9 +82,7 @@ namespace GeometryHelper.Dxf
         }
 
         private DxfOle2Frame(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         #region Where it is
 
@@ -118,7 +118,6 @@ namespace GeometryHelper.Dxf
                 GeoPoint3[] corners = Corners();
                 return new DxfRectangle3d(corners[0], corners[1], corners[3], corners[2]);
             }
-
             set
             {
                 GeoPoint3[] corners = { value.UpperLeft, value.UpperRight, value.LowerRight, value.LowerLeft };
@@ -128,16 +127,31 @@ namespace GeometryHelper.Dxf
                 {
                     if (!corner.IsValid)
                     {
-                        throw new ArgumentException("The corners of an OLE frame have to be of finite numbers: " + corner + " is not.", nameof(value));
+                        throw new ArgumentException(
+                            "The corners of an OLE frame have to be of finite numbers: " + corner + " is not.",
+                            nameof(value)
+                        );
                     }
                 }
 
-                bool upright = Math.Abs(corners[0].Y - corners[1].Y) <= tolerance && Math.Abs(corners[3].Y - corners[2].Y) <= tolerance
-                    && Math.Abs(corners[0].X - corners[3].X) <= tolerance && Math.Abs(corners[1].X - corners[2].X) <= tolerance;
+                bool upright =
+                    Math.Abs(corners[0].Y - corners[1].Y) <= tolerance
+                    && Math.Abs(corners[3].Y - corners[2].Y) <= tolerance
+                    && Math.Abs(corners[0].X - corners[3].X) <= tolerance
+                    && Math.Abs(corners[1].X - corners[2].X) <= tolerance;
 
-                if (!upright || !(corners[1].X - corners[0].X > tolerance) || !(corners[0].Y - corners[3].Y > tolerance))
+                if (
+                    !upright
+                    || !(corners[1].X - corners[0].X > tolerance)
+                    || !(corners[0].Y - corners[3].Y > tolerance)
+                )
                 {
-                    throw new ArgumentException("An OLE frame stands along x and y, its upper left above and left of its lower right, as AutoCAD 2021 keeps it: " + value + " does not.", nameof(value));
+                    throw new ArgumentException(
+                        "An OLE frame stands along x and y, its upper left above and left of its lower right, as AutoCAD 2021 keeps it: "
+                            + value
+                            + " does not.",
+                        nameof(value)
+                    );
                 }
 
                 WriteCorners(corners);
@@ -163,7 +177,6 @@ namespace GeometryHelper.Dxf
                 GeoPoint3[] corners = Corners();
                 return corners[1].X - corners[0].X;
             }
-
             set => Size(value, true, nameof(value));
         }
 
@@ -185,7 +198,6 @@ namespace GeometryHelper.Dxf
                 GeoPoint3[] corners = Corners();
                 return corners[0].Y - corners[3].Y;
             }
-
             set => Size(value, false, nameof(value));
         }
 
@@ -265,12 +277,15 @@ namespace GeometryHelper.Dxf
         public byte OutputQuality
         {
             get => (byte)Math.Max(0, Math.Min(255, GetInt(73, 1)));
-
             set
             {
                 if (value > 2)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The plot quality of an OLE frame is 0 (monochrome), 1 (low graphics) or 2 (high graphics), as AutoCAD 2021's palette offers.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "The plot quality of an OLE frame is 0 (monochrome), 1 (low graphics) or 2 (high graphics), as AutoCAD 2021's palette offers."
+                    );
                 }
 
                 SetGroups(new KeyValuePair<int, string>(73, value.ToString(CultureInfo.InvariantCulture)));
@@ -373,7 +388,9 @@ namespace GeometryHelper.Dxf
 
             if (picture == null && why != null)
             {
-                GeometryHelperLog.Debug("DxfOle2Frame: the OLE2FRAME " + (Handle ?? string.Empty) + " gives no picture: " + why + ".");
+                GeometryHelperLog.Debug(
+                    "DxfOle2Frame: the OLE2FRAME " + (Handle ?? string.Empty) + " gives no picture: " + why + "."
+                );
             }
 
             return picture;
@@ -398,10 +415,20 @@ namespace GeometryHelper.Dxf
 
                 if (!held)
                 {
-                    throw new InvalidOperationException(TypeAndHandle + " holds no corners, in its binary or in groups 10 and 11, to give it extents.");
+                    throw new InvalidOperationException(
+                        TypeAndHandle + " holds no corners, in its binary or in groups 10 and 11, to give it extents."
+                    );
                 }
 
-                double[] box = { double.PositiveInfinity, double.PositiveInfinity, double.PositiveInfinity, double.NegativeInfinity, double.NegativeInfinity, double.NegativeInfinity };
+                double[] box =
+                {
+                    double.PositiveInfinity,
+                    double.PositiveInfinity,
+                    double.PositiveInfinity,
+                    double.NegativeInfinity,
+                    double.NegativeInfinity,
+                    double.NegativeInfinity,
+                };
 
                 foreach (GeoPoint3 corner in corners)
                 {
@@ -480,7 +507,13 @@ namespace GeometryHelper.Dxf
                 double bottom = Math.Min(Math.Min(moved[0].Y, moved[1].Y), Math.Min(moved[2].Y, moved[3].Y));
                 double top = Math.Max(Math.Max(moved[0].Y, moved[1].Y), Math.Max(moved[2].Y, moved[3].Y));
                 double z = (moved[0].Z + moved[1].Z + moved[2].Z + moved[3].Z) / 4.0;
-                moved = new[] { new GeoPoint3(left, top, z), new GeoPoint3(right, top, z), new GeoPoint3(right, bottom, z), new GeoPoint3(left, bottom, z) };
+                moved = new[]
+                {
+                    new GeoPoint3(left, top, z),
+                    new GeoPoint3(right, top, z),
+                    new GeoPoint3(right, bottom, z),
+                    new GeoPoint3(left, bottom, z),
+                };
             }
 
             WriteCorners(moved);
@@ -529,7 +562,9 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return kept.Count < 2 ? Array.AsReadOnly(new object[0]) : Array.AsReadOnly(new object[] { new GeoPolyline3(kept.ToArray(), true) });
+            return kept.Count < 2
+                ? Array.AsReadOnly(new object[0])
+                : Array.AsReadOnly(new object[] { new GeoPolyline3(kept.ToArray(), true) });
         }
 
         [DxfType("OLE2FRAME")]
@@ -559,25 +594,48 @@ namespace GeometryHelper.Dxf
 
             if (DxfPng.IsPng(picture) && (bitmap = DxfPng.ToBitmap(picture, out why)) == null)
             {
-                throw new ArgumentException("The bytes are not a PNG an OLE frame takes: " + why + ".", nameof(picture));
+                throw new ArgumentException(
+                    "The bytes are not a PNG an OLE frame takes: " + why + ".",
+                    nameof(picture)
+                );
             }
 
-            if (!DxfOleData.TryBitmap(bitmap, out int across, out int up, out int perMetreX, out int perMetreY, out why))
+            if (
+                !DxfOleData.TryBitmap(bitmap, out int across, out int up, out int perMetreX, out int perMetreY, out why)
+            )
             {
-                throw new ArgumentException("The bytes are not a bitmap or a PNG an OLE frame takes: " + why + ".", nameof(picture));
+                throw new ArgumentException(
+                    "The bytes are not a bitmap or a PNG an OLE frame takes: " + why + ".",
+                    nameof(picture)
+                );
             }
 
             double width = across * 1000.0 / perMetreX;
             double height = up * 1000.0 / perMetreY;
-            GeoPoint3[] corners = { new GeoPoint3(0.0, height, 0.0), new GeoPoint3(width, height, 0.0), new GeoPoint3(width, 0.0, 0.0), Origin };
-            byte[] binary = DxfOleData.StaticPicture(bitmap, corners, (int)(across * 100000L / perMetreX), (int)(up * 100000L / perMetreY));
+            GeoPoint3[] corners =
+            {
+                new GeoPoint3(0.0, height, 0.0),
+                new GeoPoint3(width, height, 0.0),
+                new GeoPoint3(width, 0.0, 0.0),
+                Origin,
+            };
+            byte[] binary = DxfOleData.StaticPicture(
+                bitmap,
+                corners,
+                (int)(across * 100000L / perMetreX),
+                (int)(up * 100000L / perMetreY)
+            );
             var groups = new List<DxfTypedValue>
             {
                 new DxfTypedValue(100, "AcDbOle2Frame"),
                 new DxfTypedValue(70, "2"),
                 new DxfTypedValue(3, DxfOleData.DibUserType),
-                new DxfTypedValue(10, Numbers.Exact(corners[0].X)), new DxfTypedValue(20, Numbers.Exact(corners[0].Y)), new DxfTypedValue(30, "0.0"),
-                new DxfTypedValue(11, Numbers.Exact(corners[2].X)), new DxfTypedValue(21, Numbers.Exact(corners[2].Y)), new DxfTypedValue(31, "0.0"),
+                new DxfTypedValue(10, Numbers.Exact(corners[0].X)),
+                new DxfTypedValue(20, Numbers.Exact(corners[0].Y)),
+                new DxfTypedValue(30, "0.0"),
+                new DxfTypedValue(11, Numbers.Exact(corners[2].X)),
+                new DxfTypedValue(21, Numbers.Exact(corners[2].Y)),
+                new DxfTypedValue(31, "0.0"),
                 new DxfTypedValue(71, "3"),
                 new DxfTypedValue(72, "0"),
                 new DxfTypedValue(73, "2"),
@@ -586,7 +644,12 @@ namespace GeometryHelper.Dxf
 
             for (int at = 0; at < binary.Length; at += 32)
             {
-                groups.Add(new DxfTypedValue(310, BitConverter.ToString(binary, at, Math.Min(32, binary.Length - at)).Replace("-", string.Empty)));
+                groups.Add(
+                    new DxfTypedValue(
+                        310,
+                        BitConverter.ToString(binary, at, Math.Min(32, binary.Length - at)).Replace("-", string.Empty)
+                    )
+                );
             }
 
             groups.Add(new DxfTypedValue(1, "OLE"));
@@ -605,15 +668,24 @@ namespace GeometryHelper.Dxf
             GeoVector3 z = transform.Transform(new GeoVector3(0.0, 0.0, 1.0));
             double scale = Math.Abs(x.X);
             double tolerance = Tolerance.Default.EqualVector * scale;
-            bool upright = scale > 0.0 && Guard.IsFinite(scale)
-                && Math.Abs(x.Y) <= tolerance && Math.Abs(x.Z) <= tolerance
-                && Math.Abs(y.X) <= tolerance && Math.Abs(y.Z) <= tolerance
-                && Math.Abs(z.X) <= tolerance && Math.Abs(z.Y) <= tolerance
-                && Math.Abs(Math.Abs(y.Y) - scale) <= tolerance && Math.Abs(Math.Abs(z.Z) - scale) <= tolerance;
+            bool upright =
+                scale > 0.0
+                && Guard.IsFinite(scale)
+                && Math.Abs(x.Y) <= tolerance
+                && Math.Abs(x.Z) <= tolerance
+                && Math.Abs(y.X) <= tolerance
+                && Math.Abs(y.Z) <= tolerance
+                && Math.Abs(z.X) <= tolerance
+                && Math.Abs(z.Y) <= tolerance
+                && Math.Abs(Math.Abs(y.Y) - scale) <= tolerance
+                && Math.Abs(Math.Abs(z.Z) - scale) <= tolerance;
 
             if (!upright)
             {
-                throw new ArgumentException("An OLE frame stands along x and y and is moved, scaled by one factor or mirrored about a line along x or y only: AutoCAD 2021 keeps it upright and does not turn, shear or stretch it.", nameof(transform));
+                throw new ArgumentException(
+                    "An OLE frame stands along x and y and is moved, scaled by one factor or mirrored about a line along x or y only: AutoCAD 2021 keeps it upright and does not turn, shear or stretch it.",
+                    nameof(transform)
+                );
             }
 
             straight = x.X > 0.0 && y.Y > 0.0;
@@ -717,7 +789,12 @@ namespace GeometryHelper.Dxf
 
             if (first < 0 || bytes < DxfOleData.HeadSize || head.Length < DxfOleData.HeadSize)
             {
-                throw new InvalidOperationException(TypeAndHandle + " holds no head of " + DxfOleData.HeadSize + " bytes in its binary to write the frame into.");
+                throw new InvalidOperationException(
+                    TypeAndHandle
+                        + " holds no head of "
+                        + DxfOleData.HeadSize
+                        + " bytes in its binary to write the frame into."
+                );
             }
 
             byte[] was = (byte[])head.Clone();
@@ -732,7 +809,10 @@ namespace GeometryHelper.Dxf
 
             if (written == null)
             {
-                throw new InvalidOperationException(TypeAndHandle + " has first lines of binary that are not pairs of hexadecimal digits, which could not be written back as they were.");
+                throw new InvalidOperationException(
+                    TypeAndHandle
+                        + " has first lines of binary that are not pairs of hexadecimal digits, which could not be written back as they were."
+                );
             }
 
             var groups = new List<KeyValuePair<int, string>>(written.Length);
@@ -783,7 +863,11 @@ namespace GeometryHelper.Dxf
         {
             if (!Guard.IsFinite(percent) || !(percent > 0.0))
             {
-                throw new ArgumentOutOfRangeException(parameter, percent, "A scale of an OLE frame is a finite percentage above nought.");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    percent,
+                    "A scale of an OLE frame is a finite percentage above nought."
+                );
             }
 
             double now = width ? WcsWidth : WcsHeight;
@@ -800,14 +884,20 @@ namespace GeometryHelper.Dxf
         {
             if (!Guard.IsFinite(value) || !(value > 0.0))
             {
-                throw new ArgumentOutOfRangeException(parameter, value, "A side of an OLE frame is a finite length above nought.");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    value,
+                    "A side of an OLE frame is a finite length above nought."
+                );
             }
 
             double now = width ? WcsWidth : WcsHeight;
 
             if (!(now > 0.0))
             {
-                throw new InvalidOperationException(TypeAndHandle + " has no " + (width ? "width" : "height") + " to size.");
+                throw new InvalidOperationException(
+                    TypeAndHandle + " has no " + (width ? "width" : "height") + " to size."
+                );
             }
 
             double otherNow = width ? WcsHeight : WcsWidth;
@@ -844,17 +934,23 @@ namespace GeometryHelper.Dxf
 
             if (!Guard.IsFinite(w) || !Guard.IsFinite(h) || !(w > 0.0) || !(h > 0.0))
             {
-                throw new ArgumentOutOfRangeException(parameter, side, "The frame would be " + w + " by " + h + ", not a finite size above nought.");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    side,
+                    "The frame would be " + w + " by " + h + ", not a finite size above nought."
+                );
             }
 
             GeoPoint3 upperLeft = corners[0];
-            WriteCorners(new[]
-            {
-                upperLeft,
-                new GeoPoint3(upperLeft.X + w, upperLeft.Y, corners[1].Z),
-                new GeoPoint3(upperLeft.X + w, upperLeft.Y - h, corners[2].Z),
-                new GeoPoint3(upperLeft.X, upperLeft.Y - h, corners[3].Z),
-            });
+            WriteCorners(
+                new[]
+                {
+                    upperLeft,
+                    new GeoPoint3(upperLeft.X + w, upperLeft.Y, corners[1].Z),
+                    new GeoPoint3(upperLeft.X + w, upperLeft.Y - h, corners[2].Z),
+                    new GeoPoint3(upperLeft.X, upperLeft.Y - h, corners[3].Z),
+                }
+            );
         }
 
         /// <summary>
@@ -867,7 +963,9 @@ namespace GeometryHelper.Dxf
             int kind = code >= 70 ? 1070 : 1040;
             string text = kind == 1070 ? ((int)value).ToString(CultureInfo.InvariantCulture) : Numbers.Exact(value);
             var groups = new List<DxfTypedValue>(XData);
-            int start = groups.FindIndex(g => g.TypeCode == 1001 && string.Equals(g.Value?.Trim(), "ACAD", StringComparison.OrdinalIgnoreCase));
+            int start = groups.FindIndex(g =>
+                g.TypeCode == 1001 && string.Equals(g.Value?.Trim(), "ACAD", StringComparison.OrdinalIgnoreCase)
+            );
 
             if (start < 0)
             {
@@ -877,7 +975,9 @@ namespace GeometryHelper.Dxf
 
             int end = groups.FindIndex(start + 1, g => g.TypeCode == 1001);
             end = end < 0 ? groups.Count : end;
-            int begin = groups.FindIndex(start + 1, end - start - 1, g => g.TypeCode == 1000 && string.Equals(g.Value?.Trim(), "OLEBEGIN", StringComparison.Ordinal));
+            int begin = groups.FindIndex(start + 1, end - start - 1, g =>
+                g.TypeCode == 1000 && string.Equals(g.Value?.Trim(), "OLEBEGIN", StringComparison.Ordinal)
+            );
 
             if (begin < 0)
             {
@@ -885,7 +985,9 @@ namespace GeometryHelper.Dxf
                 begin = end;
             }
 
-            int close = groups.FindIndex(begin + 1, g => g.TypeCode == 1000 && string.Equals(g.Value?.Trim(), "OLEEND", StringComparison.Ordinal));
+            int close = groups.FindIndex(begin + 1, g =>
+                g.TypeCode == 1000 && string.Equals(g.Value?.Trim(), "OLEEND", StringComparison.Ordinal)
+            );
             close = close < 0 ? groups.Count : close;
 
             for (int i = begin + 1; i + 1 < close; i++)
@@ -895,7 +997,15 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                if (groups[i].TypeCode == 1070 && int.TryParse(groups[i].Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int at))
+                if (
+                    groups[i].TypeCode == 1070
+                    && int.TryParse(
+                        groups[i].Value?.Trim(),
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int at
+                    )
+                )
                 {
                     if (at == code)
                     {
@@ -908,7 +1018,14 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            groups.InsertRange(close, new[] { new DxfTypedValue(1070, code.ToString(CultureInfo.InvariantCulture)), new DxfTypedValue(kind, text) });
+            groups.InsertRange(
+                close,
+                new[]
+                {
+                    new DxfTypedValue(1070, code.ToString(CultureInfo.InvariantCulture)),
+                    new DxfTypedValue(kind, text),
+                }
+            );
             XData = groups;
         }
 
@@ -919,18 +1036,30 @@ namespace GeometryHelper.Dxf
             return new List<DxfTypedValue>
             {
                 new DxfTypedValue(1000, "OLEBEGIN"),
-                new DxfTypedValue(1070, "70"), new DxfTypedValue(1070, "1"),
-                new DxfTypedValue(1070, "71"), new DxfTypedValue(1070, "1"),
-                new DxfTypedValue(1070, "40"), new DxfTypedValue(1040, "0.0"),
-                new DxfTypedValue(1070, "41"), new DxfTypedValue(1040, Numbers.Exact(width)),
-                new DxfTypedValue(1070, "42"), new DxfTypedValue(1040, Numbers.Exact(height)),
-                new DxfTypedValue(1070, "72"), new DxfTypedValue(1070, "0"),
-                new DxfTypedValue(1070, "3"), new DxfTypedValue(1000, string.Empty),
-                new DxfTypedValue(1070, "90"), new DxfTypedValue(1071, "12"),
-                new DxfTypedValue(1070, "43"), new DxfTypedValue(1040, sixth),
-                new DxfTypedValue(1070, "4"), new DxfTypedValue(1000, string.Empty),
-                new DxfTypedValue(1070, "91"), new DxfTypedValue(1071, "12"),
-                new DxfTypedValue(1070, "44"), new DxfTypedValue(1040, sixth),
+                new DxfTypedValue(1070, "70"),
+                new DxfTypedValue(1070, "1"),
+                new DxfTypedValue(1070, "71"),
+                new DxfTypedValue(1070, "1"),
+                new DxfTypedValue(1070, "40"),
+                new DxfTypedValue(1040, "0.0"),
+                new DxfTypedValue(1070, "41"),
+                new DxfTypedValue(1040, Numbers.Exact(width)),
+                new DxfTypedValue(1070, "42"),
+                new DxfTypedValue(1040, Numbers.Exact(height)),
+                new DxfTypedValue(1070, "72"),
+                new DxfTypedValue(1070, "0"),
+                new DxfTypedValue(1070, "3"),
+                new DxfTypedValue(1000, string.Empty),
+                new DxfTypedValue(1070, "90"),
+                new DxfTypedValue(1071, "12"),
+                new DxfTypedValue(1070, "43"),
+                new DxfTypedValue(1040, sixth),
+                new DxfTypedValue(1070, "4"),
+                new DxfTypedValue(1000, string.Empty),
+                new DxfTypedValue(1070, "91"),
+                new DxfTypedValue(1071, "12"),
+                new DxfTypedValue(1070, "44"),
+                new DxfTypedValue(1040, sixth),
                 new DxfTypedValue(1000, "OLEEND"),
             };
         }
@@ -939,7 +1068,9 @@ namespace GeometryHelper.Dxf
         private List<GeoPoint3> Frame()
         {
             GeoPoint3[] corners = Corners(out bool held);
-            return held ? new List<GeoPoint3> { corners[0], corners[1], corners[2], corners[3], corners[0] } : new List<GeoPoint3>();
+            return held
+                ? new List<GeoPoint3> { corners[0], corners[1], corners[2], corners[3], corners[0] }
+                : new List<GeoPoint3>();
         }
 
         /// <summary>The four corners, as <see cref="Corners(out bool)"/> gives them.</summary>
@@ -956,7 +1087,9 @@ namespace GeometryHelper.Dxf
         {
             // The groups up to the line of the binary that ends the corners: AutoCAD writes 10 and 11 before it.
             int digits = 0;
-            List<DxfTypedValue> groups = Item.File.OwnGroupsUpTo(Item, g => g.TypeCode == 310 && (digits += DxfOleData.Digits(g.Value) & ~1) >= 2 * DxfOleData.CornersEnd);
+            List<DxfTypedValue> groups = Item.File.OwnGroupsUpTo(Item, g =>
+                g.TypeCode == 310 && (digits += DxfOleData.Digits(g.Value) & ~1) >= 2 * DxfOleData.CornersEnd
+            );
             held = true;
             GeoPoint3 upperLeft;
             GeoPoint3 lowerRight;
@@ -970,9 +1103,24 @@ namespace GeometryHelper.Dxf
                     PointOf(groups, 10, out upperLeft);
                     PointOf(groups, 11, out lowerRight);
 
-                    if (!corners[0].IsEqualTo(upperLeft, Tolerance.Default) || !corners[2].IsEqualTo(lowerRight, Tolerance.Default))
+                    if (
+                        !corners[0].IsEqualTo(upperLeft, Tolerance.Default)
+                        || !corners[2].IsEqualTo(lowerRight, Tolerance.Default)
+                    )
                     {
-                        GeometryHelperLog.Debug("DxfOle2Frame: the OLE2FRAME " + (Handle ?? string.Empty) + " gives the corners " + upperLeft + " and " + lowerRight + " in groups 10 and 11, and " + corners[0] + " and " + corners[2] + " in its binary, which AutoCAD reads: the binary's are taken.");
+                        GeometryHelperLog.Debug(
+                            "DxfOle2Frame: the OLE2FRAME "
+                                + (Handle ?? string.Empty)
+                                + " gives the corners "
+                                + upperLeft
+                                + " and "
+                                + lowerRight
+                                + " in groups 10 and 11, and "
+                                + corners[0]
+                                + " and "
+                                + corners[2]
+                                + " in its binary, which AutoCAD reads: the binary's are taken."
+                        );
                     }
                 }
 
@@ -984,10 +1132,21 @@ namespace GeometryHelper.Dxf
             if (!_told)
             {
                 _told = true;
-                GeometryHelperLog.Debug("DxfOle2Frame: the binary of the OLE2FRAME " + (Handle ?? string.Empty) + " holds no corners: " + (held ? "those of groups 10 and 11 are taken." : "nor do groups 10 and 11, and it has none."));
+                GeometryHelperLog.Debug(
+                    "DxfOle2Frame: the binary of the OLE2FRAME "
+                        + (Handle ?? string.Empty)
+                        + " holds no corners: "
+                        + (held ? "those of groups 10 and 11 are taken." : "nor do groups 10 and 11, and it has none.")
+                );
             }
 
-            return new[] { upperLeft, new GeoPoint3(lowerRight.X, upperLeft.Y, upperLeft.Z), lowerRight, new GeoPoint3(upperLeft.X, lowerRight.Y, lowerRight.Z) };
+            return new[]
+            {
+                upperLeft,
+                new GeoPoint3(lowerRight.X, upperLeft.Y, upperLeft.Z),
+                lowerRight,
+                new GeoPoint3(upperLeft.X, lowerRight.Y, lowerRight.Z),
+            };
         }
 
         /// <summary>
@@ -1045,7 +1204,9 @@ namespace GeometryHelper.Dxf
                 if (group.TypeCode == 1000)
                 {
                     string text = group.Value?.Trim();
-                    inside = string.Equals(text, "OLEBEGIN", StringComparison.Ordinal) || (inside && !string.Equals(text, "OLEEND", StringComparison.Ordinal));
+                    inside =
+                        string.Equals(text, "OLEBEGIN", StringComparison.Ordinal)
+                        || (inside && !string.Equals(text, "OLEEND", StringComparison.Ordinal));
                     continue;
                 }
 
@@ -1054,10 +1215,28 @@ namespace GeometryHelper.Dxf
                 {
                     DxfTypedValue value = data[++i];
 
-                    if (int.TryParse(group.Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int at) && at == code)
+                    if (
+                        int.TryParse(
+                            group.Value?.Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out int at
+                        )
+                        && at == code
+                    )
                     {
                         // NaN and the infinities are read as .NET writes them where they are asked for as stored.
-                        bool read = Numbers.TryRead(value.Value, out double number) || (stored && double.TryParse(value.Value?.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out number));
+                        bool read =
+                            Numbers.TryRead(value.Value, out double number)
+                            || (
+                                stored
+                                && double.TryParse(
+                                    value.Value?.Trim(),
+                                    NumberStyles.Float,
+                                    CultureInfo.InvariantCulture,
+                                    out number
+                                )
+                            );
                         return read && (stored || Guard.IsFinite(number)) ? number : fallback;
                     }
                 }
@@ -1071,7 +1250,11 @@ namespace GeometryHelper.Dxf
         {
             DxfCompoundFile file = DxfOleData.Compound(Binary(), out _);
 
-            if (file == null || DxfOleData.TypeOf(file) != DxfOle2FrameItemType.Link || !DxfOleData.TryLink(file, out string shown, out string path))
+            if (
+                file == null
+                || DxfOleData.TypeOf(file) != DxfOle2FrameItemType.Link
+                || !DxfOleData.TryLink(file, out string shown, out string path)
+            )
             {
                 return string.Empty;
             }

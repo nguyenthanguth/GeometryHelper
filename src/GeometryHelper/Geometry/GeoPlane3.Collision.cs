@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -55,10 +55,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="edge">The edge.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoEdge3 edge, Tolerance tolerance)
-            => edge.IsArc
-                ? CollidesWith(edge.ToArc(), tolerance)
-                : CollidesWith(edge.ToLine(), tolerance);
+        public bool CollidesWith(GeoEdge3 edge, Tolerance tolerance) =>
+            edge.IsArc ? CollidesWith(edge.ToArc(), tolerance) : CollidesWith(edge.ToLine(), tolerance);
 
         /// <summary>
         /// Checks whether this plane touches a curved chain.
@@ -71,7 +69,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="chain">The curved chain.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance) => ArcChain3.CollidesWith(chain, this, tolerance);
+        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance) =>
+            ArcChain3.CollidesWith(chain, this, tolerance);
 
         /// <summary>
         /// Checks whether this plane touches a curved loop.
@@ -84,7 +83,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="loop">The curved loop.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance) => ArcChain3.CollidesWith(loop, this, tolerance);
+        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance) =>
+            ArcChain3.CollidesWith(loop, this, tolerance);
 
         /// <summary>
         /// Checks whether this plane touches a straight chain: the same answer as
@@ -98,8 +98,8 @@ namespace GeometryHelper.Geometry
         /// <see cref="GeoPolyline3.CollidesWith(GeoPlane3, Tolerance)"/>.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance)
-            => Collision3.CollidesWith(polyline, this, tolerance);
+        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Collision3.CollidesWith(polyline, this, tolerance);
 
         /// <summary>
         /// Checks whether this plane touches a triangle: the same answer as
@@ -122,7 +122,8 @@ namespace GeometryHelper.Geometry
         /// The floor plane and the triangle with corners (0, 50, -50), (100, 50, -50) and (0, 50, 50) standing across it
         /// cross at (50, 50, 0) and (0, 50, 0); a triangle lying in the floor touches it and crosses it nowhere.
         /// </remarks>
-        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) => Collision3.CollidesWith(this, triangle, tolerance);
+        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Collision3.CollidesWith(this, triangle, tolerance);
 
         /// <summary>
         /// Checks whether this plane touches a polygon: the same answer as
@@ -147,7 +148,8 @@ namespace GeometryHelper.Geometry
         /// and (0, 50, 0); a square lying in the floor touches it and crosses it nowhere.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
-        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) => Collision3.CollidesWith(this, polygon, tolerance);
+        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Collision3.CollidesWith(this, polygon, tolerance);
 
         /// <summary>
         /// Checks whether this plane touches the material of a face: the same answer as
@@ -199,7 +201,8 @@ namespace GeometryHelper.Geometry
         /// its top, and missed by the plane z = 101; a body in two pieces either side of a plane does not touch it.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the solid is null.</exception>
-        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) => Collision3.CollidesWith(this, solid, tolerance);
+        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) =>
+            Collision3.CollidesWith(this, solid, tolerance);
 
         /// <summary>
         /// Checks whether a ray touches this plane: the same answer as

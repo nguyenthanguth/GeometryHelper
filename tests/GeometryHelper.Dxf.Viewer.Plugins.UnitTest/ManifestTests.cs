@@ -58,10 +58,12 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
         {
             Assert.Equal(
                 "The plugin Number circles needs version 2.0 of the plugin API, and this presenter has 1.0: it needs a newer presenter.",
-                CadPluginManifest.Parse(PluginFiles.Manifest(api: "2.0")).Refusal());
+                CadPluginManifest.Parse(PluginFiles.Manifest(api: "2.0")).Refusal()
+            );
             Assert.Equal(
                 "The plugin Number circles is of the kind \"drawing\", and this presenter loads command plugins only.",
-                CadPluginManifest.Parse(PluginFiles.Manifest(kind: "drawing")).Refusal());
+                CadPluginManifest.Parse(PluginFiles.Manifest(kind: "drawing")).Refusal()
+            );
         }
 
         [Fact]
@@ -78,7 +80,11 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
         [Fact]
         public void APackageIsUnpackedWithItsFolders()
         {
-            string package = _files.Package(PluginFiles.Manifest(), "sample.ghplugin", new KeyValuePair<string, string>("data/readme.txt", "Numbers circles."));
+            string package = _files.Package(
+                PluginFiles.Manifest(),
+                "sample.ghplugin",
+                new KeyValuePair<string, string>("data/readme.txt", "Numbers circles.")
+            );
             string folder = Path.Combine(_files.Root, "unpacked");
 
             CadPluginManifest manifest = CadPluginPackage.Unpack(package, folder);
@@ -92,7 +98,11 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
         [Fact]
         public void AnEntryThatWouldLandOutsideTheFolderIsRefusedAndNothingIsWritten()
         {
-            string package = _files.Package(PluginFiles.Manifest(), "evil.ghplugin", new KeyValuePair<string, string>("../evil.txt", "out"));
+            string package = _files.Package(
+                PluginFiles.Manifest(),
+                "evil.ghplugin",
+                new KeyValuePair<string, string>("../evil.txt", "out")
+            );
             string folder = Path.Combine(_files.Root, "unpacked");
 
             FormatException refused = Assert.Throws<FormatException>(() => CadPluginPackage.Unpack(package, folder));

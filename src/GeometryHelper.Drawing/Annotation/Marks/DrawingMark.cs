@@ -36,7 +36,18 @@ namespace GeometryHelper.Drawing.Annotation
         /// <summary>
         /// Initializes a mark placed in its view.
         /// </summary>
-        internal DrawingMark(string id, MarkKind kind, string objectId, string[] objectIds, string text, GeoRectangle2 textBox, GeoPoint2[] leader, double textHeight, double scale, GeoPoint3 modelPoint)
+        internal DrawingMark(
+            string id,
+            MarkKind kind,
+            string objectId,
+            string[] objectIds,
+            string text,
+            GeoRectangle2 textBox,
+            GeoPoint2[] leader,
+            double textHeight,
+            double scale,
+            GeoPoint3 modelPoint
+        )
         {
             Id = id;
             Kind = kind;
@@ -131,7 +142,9 @@ namespace GeometryHelper.Drawing.Annotation
             SymbolDxf.MarkLayer(database);
             GeoPoint2 start = _leader[0];
             GeoPoint2 end = Anchor;
-            double dx = end.X - start.X, dy = end.Y - start.Y, length = Math.Sqrt(dx * dx + dy * dy);
+            double dx = end.X - start.X,
+                dy = end.Y - start.Y,
+                length = Math.Sqrt(dx * dx + dy * dy);
 
             if (length > 0.0)
             {
@@ -140,7 +153,15 @@ namespace GeometryHelper.Drawing.Annotation
 
                 if (length >= 2.0 * arrow)
                 {
-                    SymbolDxf.Arrow(database, placement, end, new GeoVector2(dx / length, dy / length), arrow, Layer, id);
+                    SymbolDxf.Arrow(
+                        database,
+                        placement,
+                        end,
+                        new GeoVector2(dx / length, dy / length),
+                        arrow,
+                        Layer,
+                        id
+                    );
                 }
             }
 
@@ -166,8 +187,23 @@ namespace GeometryHelper.Drawing.Annotation
             }
 
             leader[leader.Length - 1] = Anchor;
-            var box = new GeoRectangle2(new GeoPoint2(TextBox.Center.X + move.X, TextBox.Center.Y + move.Y), TextBox.Width, TextBox.Height);
-            return new DrawingMark(Id, Kind, ObjectId, _objectIds, Text, box, leader, TextHeight, Scale, Links.Points[0].Point);
+            var box = new GeoRectangle2(
+                new GeoPoint2(TextBox.Center.X + move.X, TextBox.Center.Y + move.Y),
+                TextBox.Width,
+                TextBox.Height
+            );
+            return new DrawingMark(
+                Id,
+                Kind,
+                ObjectId,
+                _objectIds,
+                Text,
+                box,
+                leader,
+                TextHeight,
+                Scale,
+                Links.Points[0].Point
+            );
         }
 
         /// <summary>The mark as values of the drawing document; the objects it stands for and its point are its links.</summary>
@@ -186,7 +222,16 @@ namespace GeometryHelper.Drawing.Annotation
             {
                 new KeyValuePair<string, string>("Kind", Kind.ToString()),
                 new KeyValuePair<string, string>("Text", Text),
-                new KeyValuePair<string, string>("TextBox", string.Join(",", DrawingSettings.Write(box.Center.X), DrawingSettings.Write(box.Center.Y), DrawingSettings.Write(box.Width), DrawingSettings.Write(box.Height))),
+                new KeyValuePair<string, string>(
+                    "TextBox",
+                    string.Join(
+                        ",",
+                        DrawingSettings.Write(box.Center.X),
+                        DrawingSettings.Write(box.Center.Y),
+                        DrawingSettings.Write(box.Width),
+                        DrawingSettings.Write(box.Height)
+                    )
+                ),
                 new KeyValuePair<string, string>("Leader", string.Join(",", leader)),
                 new KeyValuePair<string, string>("TextHeight", DrawingSettings.Write(TextHeight)),
                 new KeyValuePair<string, string>("Scale", DrawingSettings.Write(Scale)),
@@ -206,13 +251,26 @@ namespace GeometryHelper.Drawing.Annotation
                 values[value.Key] = value.Value;
             }
 
-            if (element.Links.Points.Count == 0 || element.Links.ObjectIds.Count == 0
-                || !values.TryGetValue("Kind", out string kindName) || !Enum.TryParse(kindName, out MarkKind kind) || !Enum.IsDefined(typeof(MarkKind), kind)
-                || !values.TryGetValue("Text", out string text) || text == null
-                || !Numbers(values, "TextBox", out double[] box) || box.Length != 4
-                || !Numbers(values, "Leader", out double[] leader) || leader.Length < 4 || leader.Length % 2 != 0
-                || !Numbers(values, "TextHeight", out double[] height) || height.Length != 1 || !(height[0] > 0.0)
-                || !Numbers(values, "Scale", out double[] scale) || scale.Length != 1 || !(scale[0] > 0.0))
+            if (
+                element.Links.Points.Count == 0
+                || element.Links.ObjectIds.Count == 0
+                || !values.TryGetValue("Kind", out string kindName)
+                || !Enum.TryParse(kindName, out MarkKind kind)
+                || !Enum.IsDefined(typeof(MarkKind), kind)
+                || !values.TryGetValue("Text", out string text)
+                || text == null
+                || !Numbers(values, "TextBox", out double[] box)
+                || box.Length != 4
+                || !Numbers(values, "Leader", out double[] leader)
+                || leader.Length < 4
+                || leader.Length % 2 != 0
+                || !Numbers(values, "TextHeight", out double[] height)
+                || height.Length != 1
+                || !(height[0] > 0.0)
+                || !Numbers(values, "Scale", out double[] scale)
+                || scale.Length != 1
+                || !(scale[0] > 0.0)
+            )
             {
                 return null;
             }
@@ -225,7 +283,9 @@ namespace GeometryHelper.Drawing.Annotation
             }
 
             string prefix = (element.ViewId ?? string.Empty) + "/";
-            string id = element.Id.StartsWith(prefix, StringComparison.Ordinal) ? element.Id.Substring(prefix.Length) : element.Id;
+            string id = element.Id.StartsWith(prefix, StringComparison.Ordinal)
+                ? element.Id.Substring(prefix.Length)
+                : element.Id;
             DrawingLinkPoint3 point = element.Links.Points[0];
             var ids = new string[element.Links.ObjectIds.Count];
 
@@ -234,7 +294,18 @@ namespace GeometryHelper.Drawing.Annotation
                 ids[i] = element.Links.ObjectIds[i];
             }
 
-            return new DrawingMark(id, kind, point.ObjectId, ids, text, new GeoRectangle2(new GeoPoint2(box[0], box[1]), box[2], box[3]), points, height[0], scale[0], point.Point);
+            return new DrawingMark(
+                id,
+                kind,
+                point.ObjectId,
+                ids,
+                text,
+                new GeoRectangle2(new GeoPoint2(box[0], box[1]), box[2], box[3]),
+                points,
+                height[0],
+                scale[0],
+                point.Point
+            );
         }
 
         private static bool Numbers(Dictionary<string, string> values, string key, out double[] numbers)
@@ -251,7 +322,11 @@ namespace GeometryHelper.Drawing.Annotation
 
             for (int i = 0; i < parts.Length; i++)
             {
-                if (!double.TryParse(parts[i], NumberStyles.Float, CultureInfo.InvariantCulture, out numbers[i]) || double.IsNaN(numbers[i]) || double.IsInfinity(numbers[i]))
+                if (
+                    !double.TryParse(parts[i], NumberStyles.Float, CultureInfo.InvariantCulture, out numbers[i])
+                    || double.IsNaN(numbers[i])
+                    || double.IsInfinity(numbers[i])
+                )
                 {
                     return false;
                 }

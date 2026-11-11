@@ -38,7 +38,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the global coordinate system: origin at (0, 0, 0) with the world axes.
         /// </summary>
-        public static GeoCoordinateSystem3 Global => new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis);
+        public static GeoCoordinateSystem3 Global =>
+            new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis);
 
         /// <summary>
         /// Initializes a new coordinate system from an origin and two directions.
@@ -66,15 +67,20 @@ namespace GeometryHelper.Geometry
             // A direction however short has one: only one of no length has none.
             if (!xAxis.TryGetNormal(out GeoVector3 unitX, default(Tolerance)))
             {
-                throw new ArgumentException("A coordinate system needs an X direction of non-zero length.", nameof(xAxis));
+                throw new ArgumentException(
+                    "A coordinate system needs an X direction of non-zero length.",
+                    nameof(xAxis)
+                );
             }
 
             // The cross product is as long as the two directions times the sine of the angle between them, so it is the
             // sine that is read against the vector tolerance.
             GeoVector3 across = xAxis.CrossProduct(yAxis);
 
-            if (!(across.Length > Tolerance.Global.EqualVector * xAxis.Length * yAxis.Length)
-                || !across.TryGetNormal(out GeoVector3 unitZ, default(Tolerance)))
+            if (
+                !(across.Length > Tolerance.Global.EqualVector * xAxis.Length * yAxis.Length)
+                || !across.TryGetNormal(out GeoVector3 unitZ, default(Tolerance))
+            )
             {
                 throw new ArgumentException("The X and Y directions must not be parallel.", nameof(yAxis));
             }
@@ -132,7 +138,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// The same axes about another origin, exactly: rebuilding them from two of them would shift their last digits.
         /// </summary>
-        internal GeoCoordinateSystem3 WithOrigin(GeoPoint3 origin) => new GeoCoordinateSystem3(origin, XAxis, YAxis, ZAxis);
+        internal GeoCoordinateSystem3 WithOrigin(GeoPoint3 origin) =>
+            new GeoCoordinateSystem3(origin, XAxis, YAxis, ZAxis);
 
         /// <summary>
         /// The frame of two directions, made orthonormal to the bit as the public constructor makes them, but refused only
@@ -148,7 +155,10 @@ namespace GeometryHelper.Geometry
 
             if (!(alongX > 0.0) || double.IsInfinity(alongX))
             {
-                throw new ArgumentException("A coordinate system needs an X direction of non-zero length.", nameof(xAxis));
+                throw new ArgumentException(
+                    "A coordinate system needs an X direction of non-zero length.",
+                    nameof(xAxis)
+                );
             }
 
             if (!(alongZ > 0.0) || double.IsInfinity(alongZ))
@@ -188,10 +198,7 @@ namespace GeometryHelper.Geometry
         {
             GeoVector3 offset = Origin.GetVectorTo(point);
 
-            return new GeoPoint3(
-                offset.DotProduct(XAxis),
-                offset.DotProduct(YAxis),
-                offset.DotProduct(ZAxis));
+            return new GeoPoint3(offset.DotProduct(XAxis), offset.DotProduct(YAxis), offset.DotProduct(ZAxis));
         }
 
         /// <summary>
@@ -199,10 +206,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public GeoPoint3 ToGlobal(GeoPoint3 point)
         {
-            return Origin
-                .Add(XAxis.Multiply(point.X))
-                .Add(YAxis.Multiply(point.Y))
-                .Add(ZAxis.Multiply(point.Z));
+            return Origin.Add(XAxis.Multiply(point.X)).Add(YAxis.Multiply(point.Y)).Add(ZAxis.Multiply(point.Z));
         }
 
         /// <summary>
@@ -214,10 +218,7 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         public GeoVector3 ToLocal(GeoVector3 vector)
         {
-            return new GeoVector3(
-                vector.DotProduct(XAxis),
-                vector.DotProduct(YAxis),
-                vector.DotProduct(ZAxis));
+            return new GeoVector3(vector.DotProduct(XAxis), vector.DotProduct(YAxis), vector.DotProduct(ZAxis));
         }
 
         /// <summary>
@@ -225,9 +226,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public GeoVector3 ToGlobal(GeoVector3 vector)
         {
-            return XAxis.Multiply(vector.X)
-                .Add(YAxis.Multiply(vector.Y))
-                .Add(ZAxis.Multiply(vector.Z));
+            return XAxis.Multiply(vector.X).Add(YAxis.Multiply(vector.Y)).Add(ZAxis.Multiply(vector.Z));
         }
 
         /// <summary>
@@ -243,10 +242,10 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool Equals(GeoCoordinateSystem3 other)
         {
-            return Origin.Equals(other.Origin) &&
-                   XAxis.Equals(other.XAxis) &&
-                   YAxis.Equals(other.YAxis) &&
-                   ZAxis.Equals(other.ZAxis);
+            return Origin.Equals(other.Origin)
+                && XAxis.Equals(other.XAxis)
+                && YAxis.Equals(other.YAxis)
+                && ZAxis.Equals(other.ZAxis);
         }
 
         /// <summary>
@@ -279,10 +278,10 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public bool IsEqualTo(GeoCoordinateSystem3 other, Tolerance tolerance)
         {
-            return Origin.IsEqualTo(other.Origin, tolerance) &&
-                   XAxis.IsEqualTo(other.XAxis, tolerance) &&
-                   YAxis.IsEqualTo(other.YAxis, tolerance) &&
-                   ZAxis.IsEqualTo(other.ZAxis, tolerance);
+            return Origin.IsEqualTo(other.Origin, tolerance)
+                && XAxis.IsEqualTo(other.XAxis, tolerance)
+                && YAxis.IsEqualTo(other.YAxis, tolerance)
+                && ZAxis.IsEqualTo(other.ZAxis, tolerance);
         }
 
         /// <summary>
@@ -305,7 +304,13 @@ namespace GeometryHelper.Geometry
         /// the <c>out</c> of a <c>Try</c> method holds when the method said false — may not be, and answers
         /// questions without complaint all the same. A default one has no axes, so it sends every point to its origin.
         /// </remarks>
-        public bool IsValid => Origin.IsValid && Guard.IsUnit(XAxis) && Guard.IsUnit(YAxis) && Guard.IsUnit(ZAxis) && Math.Abs(XAxis.DotProduct(YAxis)) <= 1E-9 && XAxis.CrossProduct(YAxis).DotProduct(ZAxis) > 1.0 - 1E-9;
+        public bool IsValid =>
+            Origin.IsValid
+            && Guard.IsUnit(XAxis)
+            && Guard.IsUnit(YAxis)
+            && Guard.IsUnit(ZAxis)
+            && Math.Abs(XAxis.DotProduct(YAxis)) <= 1E-9
+            && XAxis.CrossProduct(YAxis).DotProduct(ZAxis) > 1.0 - 1E-9;
 
         /// <summary>
         /// Returns a string that represents the current coordinate system.

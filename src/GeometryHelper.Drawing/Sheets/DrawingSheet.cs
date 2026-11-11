@@ -15,7 +15,16 @@ namespace GeometryHelper.Drawing
     /// </remarks>
     public sealed class DrawingSheet
     {
-        internal DrawingSheet(string sizeName, double width, double height, GeoRectangle2 frame, TitleBlock titleBlock, GeoRectangle2 titleBlockBox, IReadOnlyList<PartListRow> partList, GeoRectangle2? partListBox)
+        internal DrawingSheet(
+            string sizeName,
+            double width,
+            double height,
+            GeoRectangle2 frame,
+            TitleBlock titleBlock,
+            GeoRectangle2 titleBlockBox,
+            IReadOnlyList<PartListRow> partList,
+            GeoRectangle2? partListBox
+        )
         {
             SizeName = sizeName;
             Width = width;

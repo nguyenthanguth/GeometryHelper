@@ -68,7 +68,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private readonly Action _changed;
         private string _text;
 
-        internal MLeaderFieldViewModel(MLeaderFieldKind kind, string label, Func<object> get, Action<object> set, IReadOnlyList<MLeaderChoice> choices, Action changed)
+        internal MLeaderFieldViewModel(
+            MLeaderFieldKind kind,
+            string label,
+            Func<object> get,
+            Action<object> set,
+            IReadOnlyList<MLeaderChoice> choices,
+            Action changed
+        )
         {
             Kind = kind;
             Label = label;
@@ -79,7 +86,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _text = TextOf(get?.Invoke());
         }
 
-        private MLeaderFieldViewModel(MLeaderFieldViewModel field, Func<bool> enabled, string lead, Func<bool> leadGet, Action<bool> leadSet, Func<bool> leadEnabled, Func<bool> shown, string more)
+        private MLeaderFieldViewModel(
+            MLeaderFieldViewModel field,
+            Func<bool> enabled,
+            string lead,
+            Func<bool> leadGet,
+            Action<bool> leadSet,
+            Func<bool> leadEnabled,
+            Func<bool> shown,
+            string more
+        )
             : this(field.Kind, field.Label, field._get, field._set, field.Choices, field._changed)
         {
             _enabled = enabled;
@@ -139,7 +155,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool HasMore => More.Length > 0;
 
         /// <summary>Gets the swatch of a colour field as 0xRRGGBB: the colour chosen, white for ByBlock and ByLayer; null for a field of no colour.</summary>
-        public int? SwatchRgb => _get?.Invoke() is DxfColor colour ? (colour.IsByBlock || colour.IsByLayer ? 0xFFFFFF : colour.ColorValue & 0xFFFFFF) : (int?)null;
+        public int? SwatchRgb =>
+            _get?.Invoke() is DxfColor colour
+                ? (colour.IsByBlock || colour.IsByLayer ? 0xFFFFFF : colour.ColorValue & 0xFFFFFF)
+                : (int?)null;
 
         /// <summary>Gets the items of a list field.</summary>
         public IReadOnlyList<MLeaderChoice> Choices { get; private set; }
@@ -161,7 +180,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     _set(_text);
                 }
-                else if (double.TryParse(_text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double number) && !double.IsNaN(number) && !double.IsInfinity(number))
+                else if (
+                    double.TryParse(_text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+                    && !double.IsNaN(number)
+                    && !double.IsInfinity(number)
+                )
                 {
                     _set(number);
                 }
@@ -175,7 +198,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets whether the text typed reads as a number, for a number field; true for the others.</summary>
-        public bool IsValid => Kind != MLeaderFieldKind.Number || double.TryParse((_text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out _);
+        public bool IsValid =>
+            Kind != MLeaderFieldKind.Number
+            || double.TryParse((_text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out _);
 
         /// <summary>Gets or sets the item of a list field: that of the value the field reads.</summary>
         public MLeaderChoice SelectedChoice
@@ -185,7 +210,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 object now = _get?.Invoke();
                 return Choices.FirstOrDefault(c => Same(c.Value, now));
             }
-
             set
             {
                 if (value == null || !value.IsEnabled)
@@ -201,28 +225,43 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>The field with a box to tick before its label.</summary>
-        internal MLeaderFieldViewModel Checked(Func<bool> get, Action<bool> set, Func<bool> enabled = null, Func<bool> leadEnabled = null)
-            => new MLeaderFieldViewModel(this, enabled, "check", get, set, leadEnabled, _shown, More);
+        internal MLeaderFieldViewModel Checked(
+            Func<bool> get,
+            Action<bool> set,
+            Func<bool> enabled = null,
+            Func<bool> leadEnabled = null
+        ) => new MLeaderFieldViewModel(this, enabled, "check", get, set, leadEnabled, _shown, More);
 
         /// <summary>The field with a button of a pair before its label.</summary>
-        internal MLeaderFieldViewModel Paired(string group, Func<bool> get, Action set, Func<bool> enabled = null)
-            => new MLeaderFieldViewModel(this, enabled, group, get, v => set(), null, _shown, More);
+        internal MLeaderFieldViewModel Paired(string group, Func<bool> get, Action set, Func<bool> enabled = null) =>
+            new MLeaderFieldViewModel(this, enabled, group, get, v => set(), null, _shown, More);
 
         /// <summary>The field greyed while a condition does not hold.</summary>
-        internal MLeaderFieldViewModel When(Func<bool> enabled) => new MLeaderFieldViewModel(this, enabled, Lead, _leadGet, _leadSet, _leadEnabled, _shown, More);
+        internal MLeaderFieldViewModel When(Func<bool> enabled) =>
+            new MLeaderFieldViewModel(this, enabled, Lead, _leadGet, _leadSet, _leadEnabled, _shown, More);
 
         /// <summary>The field shown while a condition holds.</summary>
-        internal MLeaderFieldViewModel ShownWhen(Func<bool> shown) => new MLeaderFieldViewModel(this, _enabled, Lead, _leadGet, _leadSet, _leadEnabled, shown, More);
+        internal MLeaderFieldViewModel ShownWhen(Func<bool> shown) =>
+            new MLeaderFieldViewModel(this, _enabled, Lead, _leadGet, _leadSet, _leadEnabled, shown, More);
 
         /// <summary>The field with a "…" after its value.</summary>
-        internal MLeaderFieldViewModel WithMore(string more) => new MLeaderFieldViewModel(this, _enabled, Lead, _leadGet, _leadSet, _leadEnabled, _shown, more);
+        internal MLeaderFieldViewModel WithMore(string more) =>
+            new MLeaderFieldViewModel(this, _enabled, Lead, _leadGet, _leadSet, _leadEnabled, _shown, more);
 
         /// <summary>Reads the value again, after another field set it.</summary>
         internal void Refresh()
         {
             string now = TextOf(_get?.Invoke());
-            bool same = Kind == MLeaderFieldKind.Text ? _text == now
-                : double.TryParse((_text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double typed) && TextOf(typed) == now;
+            bool same =
+                Kind == MLeaderFieldKind.Text
+                    ? _text == now
+                    : double.TryParse(
+                        (_text ?? string.Empty).Trim(),
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out double typed
+                    )
+                        && TextOf(typed) == now;
 
             if (!same && Kind != MLeaderFieldKind.Header)
             {
@@ -248,8 +287,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Whether two colours are the same: of one method and index, and of one value where true colours.</summary>
-        internal static bool SameColour(DxfColor a, DxfColor b)
-            => a == null ? b == null : b != null && a.ColorMethod == b.ColorMethod && a.ColorIndex == b.ColorIndex && (a.ColorMethod != DxfColorMethod.ByColor || a.ColorValue == b.ColorValue);
+        internal static bool SameColour(DxfColor a, DxfColor b) =>
+            a == null
+                ? b == null
+                : b != null
+                    && a.ColorMethod == b.ColorMethod
+                    && a.ColorIndex == b.ColorIndex
+                    && (a.ColorMethod != DxfColorMethod.ByColor || a.ColorValue == b.ColorValue);
 
         private static bool Same(object a, object b)
         {
@@ -280,7 +324,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <inheritdoc/>
-        public override string ToString() => Label + " " + (Kind == MLeaderFieldKind.Choice ? SelectedChoice?.Label : Kind == MLeaderFieldKind.Flag ? LeadChecked.ToString() : _text);
+        public override string ToString() =>
+            Label
+            + " "
+            + (
+                Kind == MLeaderFieldKind.Choice ? SelectedChoice?.Label
+                : Kind == MLeaderFieldKind.Flag ? LeadChecked.ToString()
+                : _text
+            );
     }
 
     /// <summary>A row of the styles list of the Multileader Style Manager: the style's name, whether it is current and annotative, and how many multileaders use it.</summary>
@@ -350,7 +401,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public Func<MLeaderStyleEditViewModel, bool> ShowEditor { get; set; }
 
         /// <summary>Gets the filters of the list: All styles, Styles in use.</summary>
-        public IReadOnlyList<string> Filters { get; } = new[] { TextStyleViewModel.AllStyles, TextStyleViewModel.StylesInUse };
+        public IReadOnlyList<string> Filters { get; } =
+            new[] { TextStyleViewModel.AllStyles, TextStyleViewModel.StylesInUse };
 
         /// <summary>Gets or sets the filter of the list.</summary>
         public string Filter
@@ -366,7 +418,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets the styles listed.</summary>
-        public ObservableCollection<MLeaderStyleRowViewModel> Styles { get; } = new ObservableCollection<MLeaderStyleRowViewModel>();
+        public ObservableCollection<MLeaderStyleRowViewModel> Styles { get; } =
+            new ObservableCollection<MLeaderStyleRowViewModel>();
 
         /// <summary>Gets the line over the list: "Current: Standard".</summary>
         public string CurrentStyleText => "Current: " + CadMLeaderStyleEditor.Current(_document.Database);
@@ -378,7 +431,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string PreviewTitle => "Preview of " + _selected?.Name;
 
         /// <summary>Gets the line at the foot: "4 styles · double-click a style to modify it".</summary>
-        public string Footer => Styles.Count.ToString(CultureInfo.InvariantCulture) + (Styles.Count == 1 ? " style" : " styles") + " · double-click a style to modify it";
+        public string Footer =>
+            Styles.Count.ToString(CultureInfo.InvariantCulture)
+            + (Styles.Count == 1 ? " style" : " styles")
+            + " · double-click a style to modify it";
 
         /// <summary>Gets the note under the buttons, of the styles Delete leaves.</summary>
         public string DeleteNote => "Standard, the current style and a style in use cannot be deleted.";
@@ -420,8 +476,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             get
             {
-                DxfMLeaderStyle style = _selected == null ? null : CadMLeaderStyleEditor.Find(_document.Database, _selected.Name);
-                return style == null ? string.Empty : MLeaderStyleEditViewModel.Summary(_selected.Name, CadMLeaderStyleSettings.Of(style), _selected.Uses);
+                DxfMLeaderStyle style =
+                    _selected == null ? null : CadMLeaderStyleEditor.Find(_document.Database, _selected.Name);
+                return style == null
+                    ? string.Empty
+                    : MLeaderStyleEditViewModel.Summary(
+                        _selected.Name,
+                        CadMLeaderStyleSettings.Of(style),
+                        _selected.Uses
+                    );
             }
         }
 
@@ -430,13 +493,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             get
             {
-                DxfMLeaderStyle style = _selected == null ? null : CadMLeaderStyleEditor.Find(_document.Database, _selected.Name);
-                return _preview ?? (style == null ? null : _preview = CadStylePreview.MLeader(_document.Database, CadMLeaderStyleSettings.Of(style), _document.Fonts, 360, 230));
+                DxfMLeaderStyle style =
+                    _selected == null ? null : CadMLeaderStyleEditor.Find(_document.Database, _selected.Name);
+                return _preview
+                    ?? (
+                        style == null
+                            ? null
+                            : _preview = CadStylePreview.MLeader(
+                                _document.Database,
+                                CadMLeaderStyleSettings.Of(style),
+                                _document.Fonts,
+                                360,
+                                230
+                            )
+                    );
             }
         }
 
         /// <summary>Gets whether the style selected may be deleted: not Standard, not current, not in use.</summary>
-        public bool CanDelete => _selected != null && CadMLeaderStyleEditor.WhyNotDeleted(_document.Database, _selected.Name) == null;
+        public bool CanDelete =>
+            _selected != null && CadMLeaderStyleEditor.WhyNotDeleted(_document.Database, _selected.Name) == null;
 
         /// <summary>Gets the command of Set Current.</summary>
         public ICommand SetCurrentCommand { get; }
@@ -455,7 +531,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Makes the style selected current (CMLEADERSTYLE).</summary>
         /// <returns>Whether it was made current; the reason in <see cref="Notice"/> where not.</returns>
-        public bool SetCurrent() => _selected != null && Report(CadMLeaderStyleEditor.SetCurrent(_document, _selected.Name), _selected.Name);
+        public bool SetCurrent() =>
+            _selected != null && Report(CadMLeaderStyleEditor.SetCurrent(_document, _selected.Name), _selected.Name);
 
         /// <summary>
         /// New…: the name asked (Copy of the style selected offered) with the style it starts with; the style added, one undo
@@ -465,7 +542,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool New()
         {
             string start = _selected?.Name ?? CadMLeaderStyleEditor.Current(_document.Database);
-            var ask = new StyleNameViewModel("Create New Multileader Style", "Copy of " + start, n => CadMLeaderStyleEditor.Find(_document.Database, n) != null, Styles.Select(s => s.Name).ToList(), start)
+            var ask = new StyleNameViewModel(
+                "Create New Multileader Style",
+                "Copy of " + start,
+                n => CadMLeaderStyleEditor.Find(_document.Database, n) != null,
+                Styles.Select(s => s.Name).ToList(),
+                start
+            )
             {
                 UseFor = null,
             };
@@ -482,14 +565,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Makes the Modify dialog of the style selected.</summary>
         /// <returns>The dialog's view model; null where none is selected.</returns>
-        public MLeaderStyleEditViewModel CreateModify() => _selected == null ? null : new MLeaderStyleEditViewModel(_document, _selected.Name);
+        public MLeaderStyleEditViewModel CreateModify() =>
+            _selected == null ? null : new MLeaderStyleEditViewModel(_document, _selected.Name);
 
         /// <summary>Modify…: the Modify dialog over the style selected.</summary>
         public void Modify() => Open(CreateModify());
 
         /// <summary>Deletes the style selected; refused for Standard, the current style and a style in use, the reason in <see cref="Notice"/>.</summary>
         /// <returns>Whether it was deleted.</returns>
-        public bool Delete() => _selected != null && Report(CadMLeaderStyleEditor.Delete(_document, _selected.Name), CadMLeaderStyleEditor.Current(_document.Database));
+        public bool Delete() =>
+            _selected != null
+            && Report(
+                CadMLeaderStyleEditor.Delete(_document, _selected.Name),
+                CadMLeaderStyleEditor.Current(_document.Database)
+            );
 
         private void Open(MLeaderStyleEditViewModel editor)
         {
@@ -527,13 +616,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 if (_filter == TextStyleViewModel.AllStyles || uses > 0 || isCurrent)
                 {
-                    bool annotative = CadMLeaderStyleEditor.Find(_document.Database, name).Annotative == DxfAnnotativeStates.True;
+                    bool annotative =
+                        CadMLeaderStyleEditor.Find(_document.Database, name).Annotative == DxfAnnotativeStates.True;
                     Styles.Add(new MLeaderStyleRowViewModel(name, isCurrent, annotative, uses));
                 }
             }
 
             _selected = null;
-            SelectedStyle = Styles.FirstOrDefault(s => string.Equals(s.Name, show, StringComparison.OrdinalIgnoreCase)) ?? Styles.FirstOrDefault();
+            SelectedStyle = Styles.FirstOrDefault(s => string.Equals(s.Name, show, StringComparison.OrdinalIgnoreCase))
+                ?? Styles.FirstOrDefault();
             Raise(nameof(SelectedStyle));
             Raise(nameof(CurrentStyleText));
             Raise(nameof(Footer));
@@ -554,7 +645,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private readonly CadMLeaderStyleSettings _settings;
         private readonly int _uses;
         private readonly bool _extendable;
-        private readonly Dictionary<string, IReadOnlyList<MLeaderFieldViewModel>> _tabs = new Dictionary<string, IReadOnlyList<MLeaderFieldViewModel>>(StringComparer.Ordinal);
+        private readonly Dictionary<string, IReadOnlyList<MLeaderFieldViewModel>> _tabs = new Dictionary<
+            string,
+            IReadOnlyList<MLeaderFieldViewModel>
+        >(StringComparer.Ordinal);
         private IReadOnlyList<MLeaderTabViewModel> _chips;
         private string _tab = TabNames[0];
         private string _refused = string.Empty;
@@ -568,7 +662,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public MLeaderStyleEditViewModel(CadDocument document, string name)
         {
             _document = document ?? throw new ArgumentNullException(nameof(document));
-            DxfMLeaderStyle style = CadMLeaderStyleEditor.Find(document.Database, name) ?? throw new ArgumentException("The drawing has no multileader style \"" + name + "\".", nameof(name));
+            DxfMLeaderStyle style = CadMLeaderStyleEditor.Find(document.Database, name)
+                ?? throw new ArgumentException("The drawing has no multileader style \"" + name + "\".", nameof(name));
             StyleName = style.Name;
             _settings = CadMLeaderStyleSettings.Of(style);
             Original = _settings.Clone();
@@ -576,7 +671,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _extendable = string.CompareOrdinal(document.Database.Version ?? string.Empty, "AC1027") >= 0;
             OkCommand = new DelegateCommand(_ => Ok());
             CancelCommand = new DelegateCommand(_ => CloseRequested?.Invoke(this, false));
-            TextStylesCommand = new DelegateCommand(_ => { ShowTextStyles?.Invoke(); RefreshTextStyles(); });
+            TextStylesCommand = new DelegateCommand(_ =>
+            {
+                ShowTextStyles?.Invoke();
+                RefreshTextStyles();
+            });
             BuildTabs();
         }
 
@@ -626,7 +725,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets the chips of the tabs, the one shown checked.</summary>
-        public IReadOnlyList<MLeaderTabViewModel> TabChips => _chips ?? (_chips = TabNames.Select(t => new MLeaderTabViewModel(this, t)).ToList());
+        public IReadOnlyList<MLeaderTabViewModel> TabChips =>
+            _chips ?? (_chips = TabNames.Select(t => new MLeaderTabViewModel(this, t)).ToList());
 
         /// <summary>Gets the fields of the tab shown, a group's title before its fields.</summary>
         public IReadOnlyList<MLeaderFieldViewModel> Fields => _tabs[_tab];
@@ -634,7 +734,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the fields of a tab.</summary>
         /// <param name="tab">The tab, as "Content".</param>
         /// <returns>The fields.</returns>
-        public IReadOnlyList<MLeaderFieldViewModel> FieldsOf(string tab) => _tabs[TabNames.First(t => string.Equals(t, tab, StringComparison.OrdinalIgnoreCase))];
+        public IReadOnlyList<MLeaderFieldViewModel> FieldsOf(string tab) =>
+            _tabs[TabNames.First(t => string.Equals(t, tab, StringComparison.OrdinalIgnoreCase))];
 
         /// <summary>Gets the description under the preview, of the tab shown, as "Detail notes · straight leader ByBlock · closed filled arrow 2.5 · break 3.75."</summary>
         public string Description => Describe(_tab);
@@ -643,15 +744,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the notice under the description: why OK was refused; else what OK does, "The preview redraws as a value
         /// changes. OK writes the style to the file and redraws the 14 multileaders that use it, as one undo step."
         /// </summary>
-        public string Notice => _refused.Length > 0 ? _refused
-            : "The preview redraws as a value changes. OK writes the style to the file and redraws the " + _uses.ToString(CultureInfo.InvariantCulture)
-                + (_uses == 1 ? " multileader that uses it" : " multileaders that use it") + ", as one undo step.";
+        public string Notice =>
+            _refused.Length > 0
+                ? _refused
+                : "The preview redraws as a value changes. OK writes the style to the file and redraws the "
+                    + _uses.ToString(CultureInfo.InvariantCulture)
+                    + (_uses == 1 ? " multileader that uses it" : " multileaders that use it")
+                    + ", as one undo step.";
 
         /// <summary>Gets whether the notice says why OK was refused, drawn as a warning.</summary>
         public bool IsNoticeWarning => _refused.Length > 0;
 
         /// <summary>Gets the preview: a multileader of the values set, drawn as MLEADER draws one.</summary>
-        public ImageSource Preview => _preview ?? (_preview = CadStylePreview.MLeader(_document.Database, _settings, _document.Fonts, 256, 164));
+        public ImageSource Preview =>
+            _preview ?? (_preview = CadStylePreview.MLeader(_document.Database, _settings, _document.Fonts, 256, 164));
 
         /// <summary>Gets the command of OK.</summary>
         public ICommand OkCommand { get; }
@@ -689,10 +795,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The description of a style's settings as the Manager writes it under its preview.</summary>
         internal static string Summary(string name, CadMLeaderStyleSettings s, int uses)
         {
-            string content = s.ContentType == DxfContentType.NoneContent ? "no content" : s.ContentType == DxfContentType.BlockContent ? "a block"
-                : "MTEXT " + N(s.TextHeight) + " in " + s.TextStyle + ", attached at the " + Attachment(s.LeftAttachment).ToLowerInvariant();
-            return name + " · " + LeaderWord(s.LeaderType) + " leader, " + s.Arrowhead.ToLowerInvariant() + " arrow " + N(s.ArrowSize) + " · landing "
-                + (s.SetLandingDistance ? N(s.LandingDistance) : "free") + " · " + content + " · Used by " + uses.ToString(CultureInfo.InvariantCulture) + (uses == 1 ? " multileader." : " multileaders.");
+            string content =
+                s.ContentType == DxfContentType.NoneContent ? "no content"
+                : s.ContentType == DxfContentType.BlockContent ? "a block"
+                : "MTEXT "
+                    + N(s.TextHeight)
+                    + " in "
+                    + s.TextStyle
+                    + ", attached at the "
+                    + Attachment(s.LeftAttachment).ToLowerInvariant();
+            return name
+                + " · "
+                + LeaderWord(s.LeaderType)
+                + " leader, "
+                + s.Arrowhead.ToLowerInvariant()
+                + " arrow "
+                + N(s.ArrowSize)
+                + " · landing "
+                + (s.SetLandingDistance ? N(s.LandingDistance) : "free")
+                + " · "
+                + content
+                + " · Used by "
+                + uses.ToString(CultureInfo.InvariantCulture)
+                + (uses == 1 ? " multileader." : " multileaders.");
         }
 
         private void Refuse(string why)
@@ -725,8 +850,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Changed();
         }
 
-        private MLeaderFieldViewModel Field(MLeaderFieldKind kind, string label, Func<object> get, Action<object> set, IReadOnlyList<MLeaderChoice> choices = null)
-            => new MLeaderFieldViewModel(kind, label, get, set, choices, Changed);
+        private MLeaderFieldViewModel Field(
+            MLeaderFieldKind kind,
+            string label,
+            Func<object> get,
+            Action<object> set,
+            IReadOnlyList<MLeaderChoice> choices = null
+        ) => new MLeaderFieldViewModel(kind, label, get, set, choices, Changed);
 
         private MLeaderFieldViewModel Header(string label) => Field(MLeaderFieldKind.Header, label, null, null);
 
@@ -746,7 +876,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private static IReadOnlyList<MLeaderChoice> Colours(DxfColor own)
         {
-            var choices = new List<MLeaderChoice> { new MLeaderChoice("ByBlock", DxfColor.ByBlock), new MLeaderChoice("ByLayer", DxfColor.ByLayer) };
+            var choices = new List<MLeaderChoice>
+            {
+                new MLeaderChoice("ByBlock", DxfColor.ByBlock),
+                new MLeaderChoice("ByLayer", DxfColor.ByLayer),
+            };
             string[] names = { "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White" };
 
             for (int i = 0; i < names.Length; i++)
@@ -756,23 +890,49 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (own != null && !choices.Any(c => MLeaderFieldViewModel.SameColour((DxfColor)c.Value, own)))
             {
-                choices.Add(new MLeaderChoice("Colour " + (own.IsByColor ? "#" + (own.ColorValue & 0xFFFFFF).ToString("X6", CultureInfo.InvariantCulture) : own.ColorIndex.ToString(CultureInfo.InvariantCulture)), own));
+                choices.Add(
+                    new MLeaderChoice(
+                        "Colour "
+                            + (
+                                own.IsByColor
+                                    ? "#" + (own.ColorValue & 0xFFFFFF).ToString("X6", CultureInfo.InvariantCulture)
+                                    : own.ColorIndex.ToString(CultureInfo.InvariantCulture)
+                            ),
+                        own
+                    )
+                );
             }
 
             return choices;
         }
 
-        private static IReadOnlyList<MLeaderChoice> Weights()
-            => Enum.GetValues(typeof(DxfLineWeight)).Cast<DxfLineWeight>().Where(w => w != DxfLineWeight.ByDIPs)
-                .Select(w => new MLeaderChoice(w == DxfLineWeight.ByBlock ? "ByBlock" : w == DxfLineWeight.ByLayer ? "ByLayer" : w == DxfLineWeight.ByLineWeightDefault ? "Default" : ((int)w / 100.0).ToString("0.00", CultureInfo.InvariantCulture) + " mm", w)).ToList();
+        private static IReadOnlyList<MLeaderChoice> Weights() =>
+            Enum.GetValues(typeof(DxfLineWeight))
+                .Cast<DxfLineWeight>()
+                .Where(w => w != DxfLineWeight.ByDIPs)
+                .Select(w => new MLeaderChoice(
+                    w == DxfLineWeight.ByBlock ? "ByBlock"
+                        : w == DxfLineWeight.ByLayer ? "ByLayer"
+                        : w == DxfLineWeight.ByLineWeightDefault ? "Default"
+                        : ((int)w / 100.0).ToString("0.00", CultureInfo.InvariantCulture) + " mm",
+                    w
+                ))
+                .ToList();
 
         private IReadOnlyList<MLeaderChoice> Linetypes()
         {
-            var choices = new List<MLeaderChoice> { new MLeaderChoice("ByBlock", "ByBlock"), new MLeaderChoice("ByLayer", "ByLayer") };
+            var choices = new List<MLeaderChoice>
+            {
+                new MLeaderChoice("ByBlock", "ByBlock"),
+                new MLeaderChoice("ByLayer", "ByLayer"),
+            };
 
             foreach (DxfLinetypeTableRecord linetype in _document.Database.LinetypeTable)
             {
-                if (!string.Equals(linetype.Name, "ByBlock", StringComparison.OrdinalIgnoreCase) && !string.Equals(linetype.Name, "ByLayer", StringComparison.OrdinalIgnoreCase))
+                if (
+                    !string.Equals(linetype.Name, "ByBlock", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(linetype.Name, "ByLayer", StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     choices.Add(new MLeaderChoice(linetype.Name, linetype.Name));
                 }
@@ -793,33 +953,64 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return names.Select(n => new MLeaderChoice(n, n)).ToList();
         }
 
-        private IReadOnlyList<MLeaderChoice> TextStyleChoices() => CadTextStyleEditor.Styles(_document.Database).Select(s => new MLeaderChoice(s.Name, s.Name)).ToList();
+        private IReadOnlyList<MLeaderChoice> TextStyleChoices() =>
+            CadTextStyleEditor.Styles(_document.Database).Select(s => new MLeaderChoice(s.Name, s.Name)).ToList();
 
-        private static IReadOnlyList<MLeaderChoice> Angles() => C("0", DxfAngleConstraint.DegreesAny, "15", DxfAngleConstraint.Degrees015, "30", DxfAngleConstraint.Degrees030,
-            "45", DxfAngleConstraint.Degrees045, "60", DxfAngleConstraint.Degrees060, "90", DxfAngleConstraint.Degrees090);
+        private static IReadOnlyList<MLeaderChoice> Angles() =>
+            C(
+                "0",
+                DxfAngleConstraint.DegreesAny,
+                "15",
+                DxfAngleConstraint.Degrees015,
+                "30",
+                DxfAngleConstraint.Degrees030,
+                "45",
+                DxfAngleConstraint.Degrees045,
+                "60",
+                DxfAngleConstraint.Degrees060,
+                "90",
+                DxfAngleConstraint.Degrees090
+            );
 
-        private static IReadOnlyList<MLeaderChoice> SideAttachments()
-            => Enumerable.Range(0, 9).Select(i => new MLeaderChoice(Attachment((DxfTextAttachmentType)i), (DxfTextAttachmentType)i)).ToList();
+        private static IReadOnlyList<MLeaderChoice> SideAttachments() =>
+            Enumerable
+                .Range(0, 9)
+                .Select(i => new MLeaderChoice(Attachment((DxfTextAttachmentType)i), (DxfTextAttachmentType)i))
+                .ToList();
 
         private static string Attachment(DxfTextAttachmentType type)
         {
             switch (type)
             {
-                case DxfTextAttachmentType.AttachmentTopOfTop: return "Top of top line";
-                case DxfTextAttachmentType.AttachmentMiddleOfTop: return "Middle of top line";
-                case DxfTextAttachmentType.AttachmentMiddle: return "Middle of multi-line text";
-                case DxfTextAttachmentType.AttachmentMiddleOfBottom: return "Middle of bottom line";
-                case DxfTextAttachmentType.AttachmentBottomOfBottom: return "Bottom of bottom line";
-                case DxfTextAttachmentType.AttachmentBottomLine: return "Underline bottom line";
-                case DxfTextAttachmentType.AttachmentBottomOfTopLine: return "Underline top line";
-                case DxfTextAttachmentType.AttachmentBottomOfTop: return "Bottom of top line";
-                case DxfTextAttachmentType.AttachmentAllLine: return "Underline all text";
-                case DxfTextAttachmentType.AttachmentCenter: return "Center";
-                default: return "Overline and center";
+                case DxfTextAttachmentType.AttachmentTopOfTop:
+                    return "Top of top line";
+                case DxfTextAttachmentType.AttachmentMiddleOfTop:
+                    return "Middle of top line";
+                case DxfTextAttachmentType.AttachmentMiddle:
+                    return "Middle of multi-line text";
+                case DxfTextAttachmentType.AttachmentMiddleOfBottom:
+                    return "Middle of bottom line";
+                case DxfTextAttachmentType.AttachmentBottomOfBottom:
+                    return "Bottom of bottom line";
+                case DxfTextAttachmentType.AttachmentBottomLine:
+                    return "Underline bottom line";
+                case DxfTextAttachmentType.AttachmentBottomOfTopLine:
+                    return "Underline top line";
+                case DxfTextAttachmentType.AttachmentBottomOfTop:
+                    return "Bottom of top line";
+                case DxfTextAttachmentType.AttachmentAllLine:
+                    return "Underline all text";
+                case DxfTextAttachmentType.AttachmentCenter:
+                    return "Center";
+                default:
+                    return "Overline and center";
             }
         }
 
-        private static string LeaderWord(DxfLeaderType type) => type == DxfLeaderType.SplineLeader ? "spline" : type == DxfLeaderType.InVisibleLeader ? "no" : "straight";
+        private static string LeaderWord(DxfLeaderType type) =>
+            type == DxfLeaderType.SplineLeader ? "spline"
+            : type == DxfLeaderType.InVisibleLeader ? "no"
+            : "straight";
 
         private static string N(double value) => value.ToString("0.####", CultureInfo.InvariantCulture);
 
@@ -834,10 +1025,41 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _tabs["Leader Format"] = new[]
             {
                 Header("General"),
-                Field(MLeaderFieldKind.Choice, "Type", () => s.LeaderType, v => s.LeaderType = (DxfLeaderType)v, C("Straight", DxfLeaderType.StraightLeader, "Spline", DxfLeaderType.SplineLeader, "None", DxfLeaderType.InVisibleLeader)),
-                Field(MLeaderFieldKind.Choice, "Color", () => s.LeaderColor, v => s.LeaderColor = (DxfColor)v, Colours(s.LeaderColor)),
-                Field(MLeaderFieldKind.Choice, "Linetype", () => s.LeaderLinetype, v => s.LeaderLinetype = (string)v, Linetypes()),
-                Field(MLeaderFieldKind.Choice, "Lineweight", () => s.LeaderLineweight, v => s.LeaderLineweight = (DxfLineWeight)v, Weights()),
+                Field(
+                    MLeaderFieldKind.Choice,
+                    "Type",
+                    () => s.LeaderType,
+                    v => s.LeaderType = (DxfLeaderType)v,
+                    C(
+                        "Straight",
+                        DxfLeaderType.StraightLeader,
+                        "Spline",
+                        DxfLeaderType.SplineLeader,
+                        "None",
+                        DxfLeaderType.InVisibleLeader
+                    )
+                ),
+                Field(
+                    MLeaderFieldKind.Choice,
+                    "Color",
+                    () => s.LeaderColor,
+                    v => s.LeaderColor = (DxfColor)v,
+                    Colours(s.LeaderColor)
+                ),
+                Field(
+                    MLeaderFieldKind.Choice,
+                    "Linetype",
+                    () => s.LeaderLinetype,
+                    v => s.LeaderLinetype = (string)v,
+                    Linetypes()
+                ),
+                Field(
+                    MLeaderFieldKind.Choice,
+                    "Lineweight",
+                    () => s.LeaderLineweight,
+                    v => s.LeaderLineweight = (DxfLineWeight)v,
+                    Weights()
+                ),
                 Header("Arrowhead"),
                 Field(MLeaderFieldKind.Choice, "Symbol", () => s.Arrowhead, v => s.Arrowhead = (string)v, Arrows()),
                 Field(MLeaderFieldKind.Number, "Size", () => s.ArrowSize, v => s.ArrowSize = (double)v),
@@ -848,48 +1070,198 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _tabs["Leader Structure"] = new[]
             {
                 Header("Constraints"),
-                Field(MLeaderFieldKind.Number, "Maximum leader points", () => s.MaxLeaderPoints == 0 ? 2 : s.MaxLeaderPoints, v => s.MaxLeaderPoints = Math.Max(2, (int)Math.Round((double)v)))
-                    .Checked(() => s.MaxLeaderPoints != 0, on => s.MaxLeaderPoints = on ? 2 : 0, () => s.MaxLeaderPoints != 0),
-                Field(MLeaderFieldKind.Choice, "First segment angle", () => s.FirstSegmentAngle, v => s.FirstSegmentAngle = (DxfAngleConstraint)v, Angles())
-                    .Checked(() => s.FirstSegmentAngle != DxfAngleConstraint.DegreesAny, on => s.FirstSegmentAngle = on ? DxfAngleConstraint.Degrees015 : DxfAngleConstraint.DegreesAny, () => s.FirstSegmentAngle != DxfAngleConstraint.DegreesAny),
-                Field(MLeaderFieldKind.Choice, "Second segment angle", () => s.SecondSegmentAngle, v => s.SecondSegmentAngle = (DxfAngleConstraint)v, Angles())
-                    .Checked(() => s.SecondSegmentAngle != DxfAngleConstraint.DegreesAny, on => s.SecondSegmentAngle = on ? DxfAngleConstraint.Degrees015 : DxfAngleConstraint.DegreesAny, () => s.SecondSegmentAngle != DxfAngleConstraint.DegreesAny),
+                Field(
+                        MLeaderFieldKind.Number,
+                        "Maximum leader points",
+                        () => s.MaxLeaderPoints == 0 ? 2 : s.MaxLeaderPoints,
+                        v => s.MaxLeaderPoints = Math.Max(2, (int)Math.Round((double)v))
+                    )
+                    .Checked(
+                        () => s.MaxLeaderPoints != 0,
+                        on => s.MaxLeaderPoints = on ? 2 : 0,
+                        () => s.MaxLeaderPoints != 0
+                    ),
+                Field(
+                        MLeaderFieldKind.Choice,
+                        "First segment angle",
+                        () => s.FirstSegmentAngle,
+                        v => s.FirstSegmentAngle = (DxfAngleConstraint)v,
+                        Angles()
+                    )
+                    .Checked(
+                        () => s.FirstSegmentAngle != DxfAngleConstraint.DegreesAny,
+                        on => s.FirstSegmentAngle = on ? DxfAngleConstraint.Degrees015 : DxfAngleConstraint.DegreesAny,
+                        () => s.FirstSegmentAngle != DxfAngleConstraint.DegreesAny
+                    ),
+                Field(
+                        MLeaderFieldKind.Choice,
+                        "Second segment angle",
+                        () => s.SecondSegmentAngle,
+                        v => s.SecondSegmentAngle = (DxfAngleConstraint)v,
+                        Angles()
+                    )
+                    .Checked(
+                        () => s.SecondSegmentAngle != DxfAngleConstraint.DegreesAny,
+                        on => s.SecondSegmentAngle = on ? DxfAngleConstraint.Degrees015 : DxfAngleConstraint.DegreesAny,
+                        () => s.SecondSegmentAngle != DxfAngleConstraint.DegreesAny
+                    ),
                 Header("Landing settings"),
                 Flag("Automatically include landing").Checked(() => s.IncludeLanding, on => s.IncludeLanding = on),
-                Field(MLeaderFieldKind.Number, "Set landing distance", () => s.LandingDistance, v => s.LandingDistance = (double)v)
-                    .Checked(() => s.SetLandingDistance, on => s.SetLandingDistance = on, () => s.SetLandingDistance && s.IncludeLanding, () => s.IncludeLanding),
+                Field(
+                        MLeaderFieldKind.Number,
+                        "Set landing distance",
+                        () => s.LandingDistance,
+                        v => s.LandingDistance = (double)v
+                    )
+                    .Checked(
+                        () => s.SetLandingDistance,
+                        on => s.SetLandingDistance = on,
+                        () => s.SetLandingDistance && s.IncludeLanding,
+                        () => s.IncludeLanding
+                    ),
                 Header("Scale"),
                 Flag("Annotative").Checked(() => s.Annotative, on => s.Annotative = on),
                 Flag("Scale multileaders to layout").Paired("mlscale", () => s.Scale == 0.0, () => s.Scale = 0.0),
-                Field(MLeaderFieldKind.Number, "Specify scale", () => s.Scale == 0.0 ? 1.0 : s.Scale, v => s.Scale = (double)v > 0.0 ? (double)v : s.Scale)
-                    .Paired("mlscale", () => s.Scale != 0.0, () => s.Scale = Original.Scale > 0.0 ? Original.Scale : 1.0, () => s.Scale != 0.0),
+                Field(
+                        MLeaderFieldKind.Number,
+                        "Specify scale",
+                        () => s.Scale == 0.0 ? 1.0 : s.Scale,
+                        v => s.Scale = (double)v > 0.0 ? (double)v : s.Scale
+                    )
+                    .Paired(
+                        "mlscale",
+                        () => s.Scale != 0.0,
+                        () => s.Scale = Original.Scale > 0.0 ? Original.Scale : 1.0,
+                        () => s.Scale != 0.0
+                    ),
             };
 
             _tabs["Content"] = new[]
             {
                 Header("Multileader type"),
-                Field(MLeaderFieldKind.Choice, "Type", () => s.ContentType, v => s.ContentType = (DxfContentType)v,
-                    new[] { new MLeaderChoice("Mtext", DxfContentType.MTextContent), new MLeaderChoice("Block", DxfContentType.BlockContent, false), new MLeaderChoice("None", DxfContentType.NoneContent) }),
+                Field(
+                    MLeaderFieldKind.Choice,
+                    "Type",
+                    () => s.ContentType,
+                    v => s.ContentType = (DxfContentType)v,
+                    new[]
+                    {
+                        new MLeaderChoice("Mtext", DxfContentType.MTextContent),
+                        new MLeaderChoice("Block", DxfContentType.BlockContent, false),
+                        new MLeaderChoice("None", DxfContentType.NoneContent),
+                    }
+                ),
                 Header("Text options"),
-                Field(MLeaderFieldKind.Text, "Default text", () => s.DefaultText, v => s.DefaultText = (string)v).When(() => Words).WithMore("text"),
-                Field(MLeaderFieldKind.Choice, "Text style", () => s.TextStyle, v => s.TextStyle = (string)v, TextStyleChoices()).When(() => Words).WithMore("textstyle"),
-                Field(MLeaderFieldKind.Choice, "Text angle", () => s.TextAngle, v => s.TextAngle = (DxfTextAngleType)v,
-                    C("Insert angle", DxfTextAngleType.InsertAngle, "Keep horizontal", DxfTextAngleType.HorizontalAngle, "Always right-reading", DxfTextAngleType.AlwaysRightReadingAngle)).When(() => Words),
-                Field(MLeaderFieldKind.Choice, "Text color", () => s.TextColor, v => s.TextColor = (DxfColor)v, Colours(s.TextColor)).When(() => Words),
-                Field(MLeaderFieldKind.Number, "Text height", () => s.TextHeight, v => s.TextHeight = (double)v).When(() => Words),
-                Flag("Always left justify").Checked(() => s.AlwaysLeftJustify, on => s.AlwaysLeftJustify = on, null, () => Words),
+                Field(MLeaderFieldKind.Text, "Default text", () => s.DefaultText, v => s.DefaultText = (string)v)
+                    .When(() => Words)
+                    .WithMore("text"),
+                Field(
+                        MLeaderFieldKind.Choice,
+                        "Text style",
+                        () => s.TextStyle,
+                        v => s.TextStyle = (string)v,
+                        TextStyleChoices()
+                    )
+                    .When(() => Words)
+                    .WithMore("textstyle"),
+                Field(
+                        MLeaderFieldKind.Choice,
+                        "Text angle",
+                        () => s.TextAngle,
+                        v => s.TextAngle = (DxfTextAngleType)v,
+                        C(
+                            "Insert angle",
+                            DxfTextAngleType.InsertAngle,
+                            "Keep horizontal",
+                            DxfTextAngleType.HorizontalAngle,
+                            "Always right-reading",
+                            DxfTextAngleType.AlwaysRightReadingAngle
+                        )
+                    )
+                    .When(() => Words),
+                Field(
+                        MLeaderFieldKind.Choice,
+                        "Text color",
+                        () => s.TextColor,
+                        v => s.TextColor = (DxfColor)v,
+                        Colours(s.TextColor)
+                    )
+                    .When(() => Words),
+                Field(MLeaderFieldKind.Number, "Text height", () => s.TextHeight, v => s.TextHeight = (double)v)
+                    .When(() => Words),
+                Flag("Always left justify")
+                    .Checked(() => s.AlwaysLeftJustify, on => s.AlwaysLeftJustify = on, null, () => Words),
                 Flag("Frame text").Checked(() => s.FrameText, on => s.FrameText = on, null, () => Words),
                 Header("Leader connection"),
-                Flag("Horizontal attachment").Paired("mlconn", () => Horizontal, () => s.AttachmentDirection = DxfTextAttachmentDirection.AttachmentHorizontal, () => Words),
-                Flag("Vertical attachment").Paired("mlconn", () => !Horizontal, () => s.AttachmentDirection = DxfTextAttachmentDirection.AttachmentVertical, () => Words),
-                Field(MLeaderFieldKind.Choice, "Left attachment", () => s.LeftAttachment, v => s.LeftAttachment = (DxfTextAttachmentType)v, SideAttachments()).When(() => Words).ShownWhen(() => Horizontal),
-                Field(MLeaderFieldKind.Choice, "Right attachment", () => s.RightAttachment, v => s.RightAttachment = (DxfTextAttachmentType)v, SideAttachments()).When(() => Words).ShownWhen(() => Horizontal),
-                Field(MLeaderFieldKind.Choice, "Top attachment", () => s.TopAttachment, v => s.TopAttachment = (DxfTextAttachmentType)v,
-                    C("Center", DxfTextAttachmentType.AttachmentCenter, "Overline and center", DxfTextAttachmentType.AttachmentLinedCenter)).When(() => Words).ShownWhen(() => !Horizontal),
-                Field(MLeaderFieldKind.Choice, "Bottom attachment", () => s.BottomAttachment, v => s.BottomAttachment = (DxfTextAttachmentType)v,
-                    C("Center", DxfTextAttachmentType.AttachmentCenter, "Underline and center", DxfTextAttachmentType.AttachmentLinedCenter)).When(() => Words).ShownWhen(() => !Horizontal),
-                Field(MLeaderFieldKind.Number, "Landing gap", () => s.LandingGap, v => s.LandingGap = (double)v).When(() => Words),
-                Flag("Extend leader to text").Checked(() => s.ExtendLeaderToText, on => s.ExtendLeaderToText = on, null, () => Words && _extendable),
+                Flag("Horizontal attachment")
+                    .Paired(
+                        "mlconn",
+                        () => Horizontal,
+                        () => s.AttachmentDirection = DxfTextAttachmentDirection.AttachmentHorizontal,
+                        () => Words
+                    ),
+                Flag("Vertical attachment")
+                    .Paired(
+                        "mlconn",
+                        () => !Horizontal,
+                        () => s.AttachmentDirection = DxfTextAttachmentDirection.AttachmentVertical,
+                        () => Words
+                    ),
+                Field(
+                        MLeaderFieldKind.Choice,
+                        "Left attachment",
+                        () => s.LeftAttachment,
+                        v => s.LeftAttachment = (DxfTextAttachmentType)v,
+                        SideAttachments()
+                    )
+                    .When(() => Words)
+                    .ShownWhen(() => Horizontal),
+                Field(
+                        MLeaderFieldKind.Choice,
+                        "Right attachment",
+                        () => s.RightAttachment,
+                        v => s.RightAttachment = (DxfTextAttachmentType)v,
+                        SideAttachments()
+                    )
+                    .When(() => Words)
+                    .ShownWhen(() => Horizontal),
+                Field(
+                        MLeaderFieldKind.Choice,
+                        "Top attachment",
+                        () => s.TopAttachment,
+                        v => s.TopAttachment = (DxfTextAttachmentType)v,
+                        C(
+                            "Center",
+                            DxfTextAttachmentType.AttachmentCenter,
+                            "Overline and center",
+                            DxfTextAttachmentType.AttachmentLinedCenter
+                        )
+                    )
+                    .When(() => Words)
+                    .ShownWhen(() => !Horizontal),
+                Field(
+                        MLeaderFieldKind.Choice,
+                        "Bottom attachment",
+                        () => s.BottomAttachment,
+                        v => s.BottomAttachment = (DxfTextAttachmentType)v,
+                        C(
+                            "Center",
+                            DxfTextAttachmentType.AttachmentCenter,
+                            "Underline and center",
+                            DxfTextAttachmentType.AttachmentLinedCenter
+                        )
+                    )
+                    .When(() => Words)
+                    .ShownWhen(() => !Horizontal),
+                Field(MLeaderFieldKind.Number, "Landing gap", () => s.LandingGap, v => s.LandingGap = (double)v)
+                    .When(() => Words),
+                Flag("Extend leader to text")
+                    .Checked(
+                        () => s.ExtendLeaderToText,
+                        on => s.ExtendLeaderToText = on,
+                        null,
+                        () => Words && _extendable
+                    ),
             };
         }
 
@@ -902,24 +1274,75 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             switch (tab)
             {
                 case "Leader Format":
-                    string colour = Colours(s.LeaderColor).FirstOrDefault(c => MLeaderFieldViewModel.SameColour((DxfColor)c.Value, s.LeaderColor))?.Label ?? "ByBlock";
-                    return name + LeaderWord(s.LeaderType) + " leader " + colour + " · " + s.Arrowhead.ToLowerInvariant() + " arrow " + N(s.ArrowSize) + " · break " + N(s.BreakSize) + ".";
+                    string colour = Colours(s.LeaderColor)
+                        .FirstOrDefault(c => MLeaderFieldViewModel.SameColour((DxfColor)c.Value, s.LeaderColor))
+                        ?.Label
+                        ?? "ByBlock";
+                    return name
+                        + LeaderWord(s.LeaderType)
+                        + " leader "
+                        + colour
+                        + " · "
+                        + s.Arrowhead.ToLowerInvariant()
+                        + " arrow "
+                        + N(s.ArrowSize)
+                        + " · break "
+                        + N(s.BreakSize)
+                        + ".";
                 case "Leader Structure":
-                    string points = s.MaxLeaderPoints == 0 ? "any number of leader points" : "at most " + s.MaxLeaderPoints.ToString(CultureInfo.InvariantCulture) + " leader points";
-                    string angles = s.FirstSegmentAngle == DxfAngleConstraint.DegreesAny && s.SecondSegmentAngle == DxfAngleConstraint.DegreesAny ? "no angle constraints" : "angle constraints";
-                    string landing = !s.IncludeLanding ? "no landing" : s.SetLandingDistance ? "landing " + N(s.LandingDistance) + " included" : "landing included";
-                    return name + points + ", " + angles + " · " + landing + " · " + (s.Scale == 0.0 ? "scaled to layout." : "scale " + N(s.Scale) + ".");
+                    string points =
+                        s.MaxLeaderPoints == 0
+                            ? "any number of leader points"
+                            : "at most " + s.MaxLeaderPoints.ToString(CultureInfo.InvariantCulture) + " leader points";
+                    string angles =
+                        s.FirstSegmentAngle == DxfAngleConstraint.DegreesAny
+                        && s.SecondSegmentAngle == DxfAngleConstraint.DegreesAny
+                            ? "no angle constraints"
+                            : "angle constraints";
+                    string landing =
+                        !s.IncludeLanding ? "no landing"
+                        : s.SetLandingDistance ? "landing " + N(s.LandingDistance) + " included"
+                        : "landing included";
+                    return name
+                        + points
+                        + ", "
+                        + angles
+                        + " · "
+                        + landing
+                        + " · "
+                        + (s.Scale == 0.0 ? "scaled to layout." : "scale " + N(s.Scale) + ".");
                 default:
                     if (!Words)
                     {
                         return name + (s.ContentType == DxfContentType.NoneContent ? "no content." : "a block.");
                     }
 
-                    string kept = s.TextAngle == DxfTextAngleType.HorizontalAngle ? "kept horizontal" : s.TextAngle == DxfTextAngleType.InsertAngle ? "at the insert angle" : "always right-reading";
+                    string kept =
+                        s.TextAngle == DxfTextAngleType.HorizontalAngle ? "kept horizontal"
+                        : s.TextAngle == DxfTextAngleType.InsertAngle ? "at the insert angle"
+                        : "always right-reading";
                     string attached = Horizontal
-                        ? (s.LeftAttachment == s.RightAttachment ? "attached at the " + Attachment(s.LeftAttachment).ToLowerInvariant() + " both sides" : "attached at the " + Attachment(s.LeftAttachment).ToLowerInvariant() + " and the " + Attachment(s.RightAttachment).ToLowerInvariant())
+                        ? (
+                            s.LeftAttachment == s.RightAttachment
+                                ? "attached at the " + Attachment(s.LeftAttachment).ToLowerInvariant() + " both sides"
+                                : "attached at the "
+                                    + Attachment(s.LeftAttachment).ToLowerInvariant()
+                                    + " and the "
+                                    + Attachment(s.RightAttachment).ToLowerInvariant()
+                        )
                         : "attached at the top and bottom";
-                    return name + "MTEXT " + N(s.TextHeight) + " in " + s.TextStyle + ", " + kept + " · " + attached + ", gap " + N(s.LandingGap) + ".";
+                    return name
+                        + "MTEXT "
+                        + N(s.TextHeight)
+                        + " in "
+                        + s.TextStyle
+                        + ", "
+                        + kept
+                        + " · "
+                        + attached
+                        + ", gap "
+                        + N(s.LandingGap)
+                        + ".";
             }
         }
     }

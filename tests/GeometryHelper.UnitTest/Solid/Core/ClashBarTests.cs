@@ -15,16 +15,16 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private const double Radius = 4.0;
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
         private static GeoSolid3 Plate() => Box(0, 0, 0, 100, 100, 10);
 
-        private static ClashBar Straight(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new ClashBar(new GeoPolyline3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)), Radius);
+        private static ClashBar Straight(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new ClashBar(new GeoPolyline3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)), Radius);
 
-        private static ClashResult One(ClashBar bar, GeoSolid3 part, ClashOptions options = null)
-            => Clash3.Find(new[] { bar }, new[] { part }, options ?? ClashOptions.Default).SingleOrDefault();
+        private static ClashResult One(ClashBar bar, GeoSolid3 part, ClashOptions options = null) =>
+            Clash3.Find(new[] { bar }, new[] { part }, options ?? ClashOptions.Default).SingleOrDefault();
 
         [Fact]
         public void ABarThroughAPlate_RunsInsideForTheThickness_AndIsInToItsDiameter()
@@ -56,7 +56,10 @@ namespace GeometryHelper.UnitTest.Solid
         public void ABarDippingIntoAPlate_IsAsDeepAsItsTurnGets()
         {
             // Down to 8 and back up, turning 2 beneath the top of the plate: that turn is where the bar runs deepest.
-            var dip = new ClashBar(new GeoPolyline3(new GeoPoint3(0, 50, 40), new GeoPoint3(50, 50, 8), new GeoPoint3(100, 50, 40)), Radius);
+            var dip = new ClashBar(
+                new GeoPolyline3(new GeoPoint3(0, 50, 40), new GeoPoint3(50, 50, 8), new GeoPoint3(100, 50, 40)),
+                Radius
+            );
 
             ClashResult clash = One(dip, Plate());
 
@@ -131,7 +134,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void ABentBar_RunsInsideWhereItsLegCrossesThePlate()
         {
             // Along the top at 20, bent down through the plate; the bend is an arc, ending at 15, above the plate.
-            GeoPolylineArc3 hook = new GeoPolyline3(new GeoPoint3(10, 50, 20), new GeoPoint3(60, 50, 20), new GeoPoint3(60, 50, -30)).Fillet(5);
+            GeoPolylineArc3 hook = new GeoPolyline3(
+                new GeoPoint3(10, 50, 20),
+                new GeoPoint3(60, 50, 20),
+                new GeoPoint3(60, 50, -30)
+            ).Fillet(5);
 
             ClashResult bent = One(new ClashBar(hook, Radius), Plate());
 
@@ -148,7 +155,13 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(ClashKind.Touch, graze.Kind);
             Assert.Equal(2.0, graze.Depth, 9);
 
-            Assert.Null(One(Straight(-10, 50, 12, 110, 50, 12), Plate(), new ClashOptions(includeTouching: false, minimumDepth: 3)));
+            Assert.Null(
+                One(
+                    Straight(-10, 50, 12, 110, 50, 12),
+                    Plate(),
+                    new ClashOptions(includeTouching: false, minimumDepth: 3)
+                )
+            );
         }
 
         [Fact]
@@ -163,14 +176,21 @@ namespace GeometryHelper.UnitTest.Solid
         public void ABendRunningIntoThePlate_CountsTheArcInside()
         {
             // A bend of 12 ends at 8, inside the plate: the centre line enters on the arc, a little longer than straight.
-            GeoPolylineArc3 hook = new GeoPolyline3(new GeoPoint3(10, 50, 20), new GeoPoint3(60, 50, 20), new GeoPoint3(60, 50, -30)).Fillet(12);
+            GeoPolylineArc3 hook = new GeoPolyline3(
+                new GeoPoint3(10, 50, 20),
+                new GeoPoint3(60, 50, 20),
+                new GeoPoint3(60, 50, -30)
+            ).Fillet(12);
             double arc = 12 * Math.Asin(2.0 / 12);
 
             var bar = new ClashBar(hook, Radius);
             ClashResult bent = One(bar, Plate());
 
             // The bend is followed by chords, a thousandth of the radius from it: what is measured on it is that close.
-            Assert.True(Math.Abs(bent.LengthInside - (8 + arc)) <= bar.ChordTolerance, $"{bent.LengthInside} against {8 + arc}");
+            Assert.True(
+                Math.Abs(bent.LengthInside - (8 + arc)) <= bar.ChordTolerance,
+                $"{bent.LengthInside} against {8 + arc}"
+            );
             Assert.Equal(Radius * 1E-3, bar.ChordTolerance, 12);
         }
 
@@ -183,10 +203,15 @@ namespace GeometryHelper.UnitTest.Solid
             var options = new ClashOptions(clearance: 10);
 
             ClashResult byCentreLine = One(new ClashBar(line, Radius), Plate(), options);
-            ClashResult byBody = Clash3.Find(new[] { GeoSolid3.Pipe(line, Radius, 0.01) }, new[] { Plate() }, options).Single();
+            ClashResult byBody = Clash3
+                .Find(new[] { GeoSolid3.Pipe(line, Radius, 0.01) }, new[] { Plate() }, options)
+                .Single();
 
             Assert.Equal(ClashKind.Touch, byCentreLine.Kind);
-            Assert.True(byBody.Kind == ClashKind.Touch || byBody.Kind == ClashKind.Clearance && byBody.Distance <= 0.01, byBody.ToString());
+            Assert.True(
+                byBody.Kind == ClashKind.Touch || byBody.Kind == ClashKind.Clearance && byBody.Distance <= 0.01,
+                byBody.ToString()
+            );
         }
 
         [Fact]
@@ -195,10 +220,16 @@ namespace GeometryHelper.UnitTest.Solid
             // The bar stops 2 below the plate. Built as a body it ends flat and is 2 clear; read by its centre line its
             // end is rounded and reaches 4, so it is found 2 into the plate: the check errs on the side of reporting.
             ClashBar bar = Straight(50, 50, -60, 50, 50, -2);
-            GeoSolid3 pipe = GeoSolid3.Pipe(new GeoPolyline3(new GeoPoint3(50, 50, -60), new GeoPoint3(50, 50, -2)), Radius, 0.01);
+            GeoSolid3 pipe = GeoSolid3.Pipe(
+                new GeoPolyline3(new GeoPoint3(50, 50, -60), new GeoPoint3(50, 50, -2)),
+                Radius,
+                0.01
+            );
 
             ClashResult byCentreLine = One(bar, Plate(), new ClashOptions(clearance: 25));
-            ClashResult byBody = Clash3.Find(new[] { pipe }, new[] { Plate() }, new ClashOptions(clearance: 25)).Single();
+            ClashResult byBody = Clash3
+                .Find(new[] { pipe }, new[] { Plate() }, new ClashOptions(clearance: 25))
+                .Single();
 
             Assert.Equal(ClashKind.Hard, byCentreLine.Kind);
             Assert.Equal(2.0, byCentreLine.Depth, 9);
@@ -211,10 +242,10 @@ namespace GeometryHelper.UnitTest.Solid
         {
             ClashBar[] bars =
             {
-                Straight(-10, 50, 50, 110, 50, 50),       // 0: clear of everything
-                Straight(50, 50, -20, 50, 50, 30),        // 1: through the first plate
-                Straight(250, 50, -20, 250, 50, 30),      // 2: through the second
-                Straight(-10, 50, 12, 310, 50, 12),       // 3: grazing both
+                Straight(-10, 50, 50, 110, 50, 50), // 0: clear of everything
+                Straight(50, 50, -20, 50, 50, 30), // 1: through the first plate
+                Straight(250, 50, -20, 250, 50, 30), // 2: through the second
+                Straight(-10, 50, 12, 310, 50, 12), // 3: grazing both
             };
             GeoSolid3[] parts = { Plate(), Box(200, 0, 0, 300, 100, 10) };
 
@@ -233,10 +264,10 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoPolyline3[] lines =
             {
-                new GeoPolyline3(new GeoPoint3(50, 50, -40), new GeoPoint3(50, 50, 40)),                  // through
-                new GeoPolyline3(new GeoPoint3(-40, 30, 12.5), new GeoPoint3(140, 30, 12.5)),             // grazing by 1.5
-                new GeoPolyline3(new GeoPoint3(-40, 50, 16), new GeoPoint3(140, 50, 16)),                 // 2 clear
-                new GeoPolyline3(new GeoPoint3(-40, 90, 19), new GeoPoint3(140, 90, 19)),                 // 5 clear
+                new GeoPolyline3(new GeoPoint3(50, 50, -40), new GeoPoint3(50, 50, 40)), // through
+                new GeoPolyline3(new GeoPoint3(-40, 30, 12.5), new GeoPoint3(140, 30, 12.5)), // grazing by 1.5
+                new GeoPolyline3(new GeoPoint3(-40, 50, 16), new GeoPoint3(140, 50, 16)), // 2 clear
+                new GeoPolyline3(new GeoPoint3(-40, 90, 19), new GeoPoint3(140, 90, 19)), // 5 clear
                 new GeoPolyline3(new GeoPoint3(20, -40, 30), new GeoPoint3(20, 60, 30), new GeoPoint3(20, 60, -40)), // bent down through
             };
 
@@ -260,8 +291,16 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Throws<ArgumentNullException>(() => Clash3.Find((ClashBar[])null, new[] { Plate() }));
             Assert.Throws<ArgumentNullException>(() => Clash3.Find(new ClashBar[] { null }, new[] { Plate() }));
             Assert.Throws<ArgumentNullException>(() => new ClashBar((GeoPolylineArc3)null, 1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new ClashBar(new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)), 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new ClashBar(new GeoPolylineArc3(new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0))), 1, double.NaN));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new ClashBar(new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)), 0)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new ClashBar(
+                    new GeoPolylineArc3(new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0))),
+                    1,
+                    double.NaN
+                )
+            );
         }
     }
 }

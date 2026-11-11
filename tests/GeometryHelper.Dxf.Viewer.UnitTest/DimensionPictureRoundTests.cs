@@ -51,30 +51,49 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return Session(document);
         }
 
-        private static DxfDimension Made(CadCommandSession session) => session.Document.ModelSpace.Block.OfType<DxfDimension>().Last();
+        private static DxfDimension Made(CadCommandSession session) =>
+            session.Document.ModelSpace.Block.OfType<DxfDimension>().Last();
 
         private static DxfMText Words(DxfDimension dimension) => dimension.DimBlock.OfType<DxfMText>().Single();
 
-        private static List<DxfLine> Lines(DxfDimension dimension) => dimension.DimBlock.OfType<DxfLine>().Where(l => !l.IsErased).ToList();
+        private static List<DxfLine> Lines(DxfDimension dimension) =>
+            dimension.DimBlock.OfType<DxfLine>().Where(l => !l.IsErased).ToList();
 
-        private static List<DxfArc> Arcs(DxfDimension dimension) => dimension.DimBlock.OfType<DxfArc>().Where(a => !a.IsErased).ToList();
+        private static List<DxfArc> Arcs(DxfDimension dimension) =>
+            dimension.DimBlock.OfType<DxfArc>().Where(a => !a.IsErased).ToList();
 
-        private static List<DxfSolid> Solids(DxfDimension dimension) => dimension.DimBlock.OfType<DxfSolid>().Where(s => !s.IsErased).ToList();
+        private static List<DxfSolid> Solids(DxfDimension dimension) =>
+            dimension.DimBlock.OfType<DxfSolid>().Where(s => !s.IsErased).ToList();
 
         private static GeoPoint2 P2(GeoPoint3 p) => new GeoPoint2(p.X, p.Y);
 
         /// <summary>A point at a distance along the way at 30 degrees from the origin, and across it to the left.</summary>
-        private static GeoPoint2 At30(double along, double across = 0.0) => new GeoPoint2(0, 0) + Out30 * along + Up30 * across;
+        private static GeoPoint2 At30(double along, double across = 0.0) =>
+            new GeoPoint2(0, 0) + Out30 * along + Up30 * across;
 
-        private static GeoPoint2 Polar(double degrees, double radius) => new GeoPoint2(radius * Math.Cos(degrees * Math.PI / 180.0), radius * Math.Sin(degrees * Math.PI / 180.0));
+        private static GeoPoint2 Polar(double degrees, double radius) =>
+            new GeoPoint2(radius * Math.Cos(degrees * Math.PI / 180.0), radius * Math.Sin(degrees * Math.PI / 180.0));
 
         private static bool Same(GeoPoint2 a, GeoPoint2 b, double tolerance) => (a - b).Length <= tolerance;
 
-        private static void HasLine(DxfDimension dimension, GeoPoint2 a, GeoPoint2 b, double tolerance = 1E-3)
-            => Assert.Contains(Lines(dimension), l => (Same(P2(l.StartPoint), a, tolerance) && Same(P2(l.EndPoint), b, tolerance)) || (Same(P2(l.StartPoint), b, tolerance) && Same(P2(l.EndPoint), a, tolerance)));
+        private static void HasLine(DxfDimension dimension, GeoPoint2 a, GeoPoint2 b, double tolerance = 1E-3) =>
+            Assert.Contains(Lines(dimension), l =>
+                (Same(P2(l.StartPoint), a, tolerance) && Same(P2(l.EndPoint), b, tolerance))
+                || (Same(P2(l.StartPoint), b, tolerance) && Same(P2(l.EndPoint), a, tolerance))
+            );
 
-        private static void HasArc(DxfDimension dimension, double radius, double startDegrees, double endDegrees, double tolerance = 2E-3)
-            => Assert.Contains(Arcs(dimension), a => Math.Abs(a.Radius - radius) < 1E-9 && Math.Abs(Math.IEEERemainder(a.StartAngle - startDegrees * Math.PI / 180.0, 2 * Math.PI)) < tolerance && Math.Abs(Math.IEEERemainder(a.EndAngle - endDegrees * Math.PI / 180.0, 2 * Math.PI)) < tolerance);
+        private static void HasArc(
+            DxfDimension dimension,
+            double radius,
+            double startDegrees,
+            double endDegrees,
+            double tolerance = 2E-3
+        ) =>
+            Assert.Contains(Arcs(dimension), a =>
+                Math.Abs(a.Radius - radius) < 1E-9
+                && Math.Abs(Math.IEEERemainder(a.StartAngle - startDegrees * Math.PI / 180.0, 2 * Math.PI)) < tolerance
+                && Math.Abs(Math.IEEERemainder(a.EndAngle - endDegrees * Math.PI / 180.0, 2 * Math.PI)) < tolerance
+            );
 
         /// <summary>The middle of the back of an arrowhead's SOLID, the two corners that are not its tip.</summary>
         private static GeoPoint2 Back(DxfSolid solid)
@@ -84,7 +103,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return new GeoPoint2((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0);
         }
 
-        private static DxfSolid ArrowAt(DxfDimension dimension, GeoPoint2 tip) => Assert.Single(Solids(dimension), s => Same(P2(s.GetPointAt(0)), tip, 1E-3));
+        private static DxfSolid ArrowAt(DxfDimension dimension, GeoPoint2 tip) =>
+            Assert.Single(Solids(dimension), s => Same(P2(s.GetPointAt(0)), tip, 1E-3));
 
         private static string Circle(CadCommandSession session, double radius)
         {
@@ -124,7 +144,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             HasLine(dimension, new GeoPoint2(-2.5, 0), new GeoPoint2(2.5, 0));
             HasLine(dimension, new GeoPoint2(0, -2.5), new GeoPoint2(0, 2.5));
 
-            session = Metric(s => { s.Dimtofl = false; s.Dimcen = -2.5; });
+            session = Metric(s =>
+            {
+                s.Dimtofl = false;
+                s.Dimcen = -2.5;
+            });
             Run(session, "DRA", new[] { Circle(session, 20) }, At30(45));
             dimension = Made(session);
             Assert.Equal(7, Lines(dimension).Count);
@@ -157,7 +181,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void Dimtoh_KeepsTheWordsOfARadiusOutsideLevel_OnALandingFromTheEndOfItsLine()
         {
-            CadCommandSession session = Metric(s => { s.Dimtad = 0; s.Dimtoh = true; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimtoh = true;
+            });
             Run(session, "DRA", new[] { Circle(session, 20) }, At30(45));
 
             DxfDimension dimension = Made(session);
@@ -167,7 +195,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Near(new GeoPoint2(41.4711 + Gap + 3 * Letter / 2, 22.5), P2(Words(dimension).Location), 1E-3);
 
             // DIMTAD 1: above a landing as long as the words and the gap.
-            session = Metric(s => { s.Dimtad = 1; s.Dimtoh = true; });
+            session = Metric(s =>
+            {
+                s.Dimtad = 1;
+                s.Dimtoh = true;
+            });
             Run(session, "DRA", new[] { Circle(session, 20) }, At30(45));
             dimension = Made(session);
             HasLine(dimension, new GeoPoint2(38.9711, 22.5), new GeoPoint2(38.9711 + 3 * Letter + Gap, 22.5));
@@ -339,7 +371,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             HasArc(dimension, 20, 7.168, 0.831);
             Assert.Equal(2, Solids(dimension).Count);
 
-            session = Metric(s => { s.Dimtix = true; s.Dimsoxd = true; });
+            session = Metric(s =>
+            {
+                s.Dimtix = true;
+                s.Dimsoxd = true;
+            });
             Run(session, "DAN", Enter, P(0, 0), P(40, 0), Polar(8, 40), Polar(4, 20));
             dimension = Made(session);
             Assert.Empty(Arcs(dimension));
@@ -416,7 +452,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [InlineData("Dot small blank", 0)]
         [InlineData("Integral", 0)]
         [InlineData("None", 0)]
-        public void TheDimensionLine_StartsAtTheBackOfEachArrowhead_ButRunsToTheTipOfThoseThatTakeNoRoom(string arrowhead, double inset)
+        public void TheDimensionLine_StartsAtTheBackOfEachArrowhead_ButRunsToTheTipOfThoseThatTakeNoRoom(
+            string arrowhead,
+            double inset
+        )
         {
             CadCommandSession session = Metric(s => s.Dimtad = 1);
             DxfDatabase database = session.Document.Database;
@@ -425,7 +464,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Run(session, "DLI", P(0, 0), P(100, 0), P(50, -20));
 
-            DxfLine line = Assert.Single(Lines(Made(session)), l => Math.Abs(l.StartPoint.Y + 20) < 1E-9 && Math.Abs(l.EndPoint.Y + 20) < 1E-9 && Math.Abs(l.StartPoint.X - l.EndPoint.X) > 50);
+            DxfLine line = Assert.Single(Lines(Made(session)), l =>
+                Math.Abs(l.StartPoint.Y + 20) < 1E-9
+                && Math.Abs(l.EndPoint.Y + 20) < 1E-9
+                && Math.Abs(l.StartPoint.X - l.EndPoint.X) > 50
+            );
             Assert.Equal(inset, Math.Min(line.StartPoint.X, line.EndPoint.X), 9);
             Assert.Equal(100 - inset, Math.Max(line.StartPoint.X, line.EndPoint.X), 9);
         }
@@ -453,7 +496,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "DLI", P(0, 0), P(4, 0), P(2, -20));
 
             // AutoCAD 2021 draws the line 0 to 4 and nothing past the extension lines.
-            DxfLine line = Assert.Single(Lines(Made(session)), l => Math.Abs(l.StartPoint.Y + 20) < 1E-9 && Math.Abs(l.EndPoint.Y + 20) < 1E-9);
+            DxfLine line = Assert.Single(Lines(Made(session)), l =>
+                Math.Abs(l.StartPoint.Y + 20) < 1E-9 && Math.Abs(l.EndPoint.Y + 20) < 1E-9
+            );
             Assert.Equal(0, Math.Min(line.StartPoint.X, line.EndPoint.X), 9);
             Assert.Equal(4, Math.Max(line.StartPoint.X, line.EndPoint.X), 9);
         }
@@ -462,24 +507,40 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void Dimtvp_LiftsTheWordsOfDimtad0ByThatManyTimesTheirHeight_TheLineBrokenAboutThemBelow0Point7()
         {
             // AutoCAD 2021: DIMTVP 1, the words 2.553 above (their height by the font) and the line whole, 2.5 to 97.5.
-            CadCommandSession session = Metric(s => { s.Dimtad = 0; s.Dimtvp = 1.0; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimtvp = 1.0;
+            });
             Run(session, "DLI", P(0, 0), P(100, 0), P(50, -20));
             DxfDimension dimension = Made(session);
             Near(P(50, -20 + Height), P2(Words(dimension).Location), 1E-9);
             HasLine(dimension, P(2.5, -20), P(97.5, -20), 1E-9);
 
-            session = Metric(s => { s.Dimtad = 0; s.Dimtvp = 0.5; });
+            session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimtvp = 0.5;
+            });
             Run(session, "DLI", P(0, 0), P(100, 0), P(50, -20));
             dimension = Made(session);
             Near(P(50, -20 + Height / 2), P2(Words(dimension).Location), 1E-9);
             HasLine(dimension, P(2.5, -20), P(50 - 3 * Letter / 2 - Gap, -20), 1E-9);
 
-            session = Metric(s => { s.Dimtad = 0; s.Dimtvp = -1.0; });
+            session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimtvp = -1.0;
+            });
             Run(session, "DLI", P(0, 0), P(100, 0), P(50, -20));
             Near(P(50, -20 - Height), P2(Words(Made(session)).Location), 1E-9);
 
             // Upright: above as the words read, to the left.
-            session = Metric(s => { s.Dimtad = 0; s.Dimtvp = 1.0; });
+            session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimtvp = 1.0;
+            });
             Run(session, "DLI", P(0, 0), P(0, 100), P(-20, 50));
             Near(P(-20 - Height, 50), P2(Words(Made(session)).Location), 1E-9);
         }
@@ -487,7 +548,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ADimgapBelowNought_DrawsABoxRoundTheWords_AndLiftsWordsAboveTheLineByTheGapAgain()
         {
-            CadCommandSession session = Metric(s => { s.Dimtad = 0; s.Dimgap = -Gap; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimgap = -Gap;
+            });
             Run(session, "DLI", P(0, 0), P(100, 0), P(50, -20));
             DxfDimension dimension = Made(session);
             double x = 3 * Letter / 2 + Gap;
@@ -500,14 +565,22 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             HasLine(dimension, P(50 - x, -20 + y), P(50 - x, -20 - y), 1E-9);
             HasLine(dimension, P(2.5, -20), P(50 - x, -20), 1E-9);
 
-            session = Metric(s => { s.Dimtad = 1; s.Dimgap = -Gap; });
+            session = Metric(s =>
+            {
+                s.Dimtad = 1;
+                s.Dimgap = -Gap;
+            });
             Run(session, "DLI", P(0, 0), P(100, 0), P(50, -20));
             dimension = Made(session);
             Near(P(50, -20 + 2 * Gap + Height / 2), P2(Words(dimension).Location), 1E-9);
             HasLine(dimension, P(50 - x, -20 + Gap), P(50 + x, -20 + Gap), 1E-9);
 
             // A radius's words in their box, turned with them.
-            session = Metric(s => { s.Dimtad = 1; s.Dimgap = -Gap; });
+            session = Metric(s =>
+            {
+                s.Dimtad = 1;
+                s.Dimgap = -Gap;
+            });
             Run(session, "DRA", new[] { Circle(session, 20) }, At30(45));
             dimension = Made(session);
             Near(At30(45, 2 * Gap + Height / 2), P2(Words(dimension).Location), 1E-9);
@@ -664,7 +737,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return session.Document.ModelSpace.Block.Cast<DxfEntity>().Last().Handle;
         }
 
-        private static List<DxfArc> SymbolArcs(DxfDimension dimension) => Arcs(dimension).Where(a => a.Radius < 3.0).ToList();
+        private static List<DxfArc> SymbolArcs(DxfDimension dimension) =>
+            Arcs(dimension).Where(a => a.Radius < 3.0).ToList();
 
         [Fact]
         public void DimArcOfLessThan90Degrees_RunsItsExtensionLinesAlongTheBisector_TheSymbolBeforeTheWords()
@@ -759,17 +833,27 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // AutoCAD 2021: an angle of 8 degrees with its arc through its points 20 out. Under DIMTMOVE 1 a leader along the
             // middle of the sweep from the arc to two arrowheads past it, the words a gap and half their height beyond, turned
             // along the arc; the arc between the extension lines drawn. No arc runs on to the first ray.
-            CadCommandSession session = Metric(s => { s.Dimatfit = 0; s.Dimtmove = 1; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimatfit = 0;
+                s.Dimtmove = 1;
+            });
             Run(session, "DAN", Enter, P(0, 0), P(20, 0), Polar(8, 20), Polar(4, 20));
             DxfDimension dimension = Made(session);
             HasLine(dimension, Polar(4, 20), Polar(4, 25));
             Near(Polar(4, 25 + Lift), P2(Words(dimension).Location), 1E-9);
             Assert.Equal(274 * Math.PI / 180, Words(dimension).Rotation, 9);
             HasArc(dimension, 20, 0, 8);
-            Assert.DoesNotContain(Arcs(dimension), a => Math.Abs(Math.IEEERemainder(a.EndAngle, 2 * Math.PI)) < 1E-9 && a.StartAngle > Math.PI);
+            Assert.DoesNotContain(Arcs(dimension), a =>
+                Math.Abs(Math.IEEERemainder(a.EndAngle, 2 * Math.PI)) < 1E-9 && a.StartAngle > Math.PI
+            );
 
             // Under DIMTMOVE 2 the words' middle two arrowheads past the arc, no leader.
-            session = Metric(s => { s.Dimatfit = 0; s.Dimtmove = 2; });
+            session = Metric(s =>
+            {
+                s.Dimatfit = 0;
+                s.Dimtmove = 2;
+            });
             Run(session, "DAN", Enter, P(0, 0), P(20, 0), Polar(8, 20), Polar(4, 20));
             dimension = Made(session);
             Near(Polar(4, 25), P2(Words(dimension).Location), 1E-9);
@@ -781,7 +865,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             // "%%c5", two letters 3.5 wide here: under DIMATFIT 1 they fit a diameter of 5 with a gap each side and stand at
             // its centre, the arrowheads outside, as AutoCAD 2021 fits "%%c6" 4.357 wide in a diameter of 6.
-            CadCommandSession session = Metric(s => { s.Dimtad = 0; s.Dimatfit = 1; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimatfit = 1;
+            });
             Run(session, "DDI", new[] { Circle(session, 2.5) }, At30(0.5));
             DxfDimension dimension = Made(session);
             Near(At30(0), P2(Words(dimension).Location), 1E-9);
@@ -790,11 +878,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // DIMTOFL's line through the circle broken about them, a gap clear: from the rim in to 1.75 + 0.625 out.
             HasLine(dimension, At30(2.5), At30(2.375));
             HasLine(dimension, At30(-2.5), At30(-2.375));
-            Assert.DoesNotContain(Lines(dimension), l => Same(P2(l.StartPoint), At30(-2.5), 1E-3) && Same(P2(l.EndPoint), At30(2.5), 1E-3));
+            Assert.DoesNotContain(Lines(dimension), l =>
+                Same(P2(l.StartPoint), At30(-2.5), 1E-3) && Same(P2(l.EndPoint), At30(2.5), 1E-3)
+            );
 
             // Under DIMATFIT 0, with the arrowheads inside too they take 3.5 + 1.25 + 5 = 9.75, more than a diameter of 8: both
             // go out, as AutoCAD 2021 moves "%%c9" out of a diameter of 9.
-            session = Metric(s => { s.Dimtad = 0; s.Dimatfit = 0; });
+            session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimatfit = 0;
+            });
             Run(session, "DDI", new[] { Circle(session, 4) }, At30(0.5));
             dimension = Made(session);
             Assert.True((P2(Words(dimension).Location) - P(0, 0)).Length > 4.0);
@@ -808,7 +902,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // which the words stand is broken 9.1071 / 2 + 0.625 either side of them.
             CadCommandSession session = Metric(s => s.Dimtad = 0);
             CadDocument document = session.Document;
-            document.Database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "GHSWIDE", FileName = CadFonts.BuiltInName, XScale = 1.5 });
+            document.Database.TextStyleTable.Add(
+                new DxfTextStyleTableRecord
+                {
+                    Name = "GHSWIDE",
+                    FileName = CadFonts.BuiltInName,
+                    XScale = 1.5,
+                }
+            );
             document.Database.DimStyleTable["Standard"].Dimtxsty = document.Database.TextStyleTable["GHSWIDE"];
             document.Fonts = new CadFonts(null, CadFonts.BuiltInName, null);
 
@@ -831,14 +932,22 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             // "9", 1.75 wide here, on the line (DIMTAD 0) of a dimension 9 long: with the arrowheads it takes 1.75 + 4 gaps + 5
             // = 9.25, and both go out under DIMATFIT 0, as AutoCAD 2021 moves "9" of ghsimplex, 1.548 wide, out of 9.
-            CadCommandSession session = Metric(s => { s.Dimtad = 0; s.Dimatfit = 0; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimatfit = 0;
+            });
             Run(session, "DLI", P(0, 0), P(9, 0), P(4.5, -20));
             DxfDimension dimension = Made(session);
             Near(P(-2.5, -20), Back(ArrowAt(dimension, P(0, -20))), 1E-3);
             Near(P(9 + 2 * Arrow + Gap + Letter / 2, -20), P2(Words(dimension).Location), 1E-9);
 
             // "11", 3.5 wide, just fits 11: the words in the middle, the arrowheads inside.
-            session = Metric(s => { s.Dimtad = 0; s.Dimatfit = 0; });
+            session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimatfit = 0;
+            });
             Run(session, "DLI", P(0, 0), P(11, 0), P(5.5, -20));
             dimension = Made(session);
             Near(P(5.5, -20), P2(Words(dimension).Location), 1E-9);
@@ -851,7 +960,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // "1200", 7 wide here, on the line of a dimension 12 long: with the arrowheads they do not fit, but alone they take
             // 7 + 1.25, more than the arrowheads' 5.625, so DIMATFIT 3 keeps them in and moves the arrowheads out, as AutoCAD
             // 2021 keeps "12" of ghsimplex widened 1.5 times, 5.536 wide, between extension lines 12 apart.
-            CadCommandSession session = Metric(s => { s.Dimtad = 0; s.Dimlfac = 100; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimtad = 0;
+                s.Dimlfac = 100;
+            });
             Run(session, "DLI", P(0, 0), P(12, 0), P(6, -20));
             DxfDimension dimension = Made(session);
             Assert.Equal("1200", Words(dimension).Contents);
@@ -879,7 +992,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             // "R8", 3.5 wide, on the line (DIMTAD 0) takes the arrowhead and two gaps more: 3.5 + 4 gaps + 2.5 = 8.5, more
             // than the radius, so the words go out next to the rim, as AutoCAD 2021 moves "R8" of ghsimplex out of 8.
-            session = Metric(s => { s.Dimatfit = 0; s.Dimtad = 0; });
+            session = Metric(s =>
+            {
+                s.Dimatfit = 0;
+                s.Dimtad = 0;
+            });
             Run(session, "DRA", new[] { Circle(session, 8) }, At30(45));
             dimension = Made(session);
             Near(At30(8 + 2 * Arrow + Gap + Letter), P2(Words(dimension).Location), 1E-9);
@@ -920,7 +1037,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             // "R20" put 1 out on its line: the words over the centre, the arrowhead outside the rim pointing in, on a line from
             // 22.5 to 25, and the line from the centre to the rim whole, as AutoCAD 2021 draws it.
-            CadCommandSession session = Metric(s => { s.Dimtmove = 2; s.Dimatfit = 0; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimtmove = 2;
+                s.Dimatfit = 0;
+            });
             Run(session, "DRA", new[] { Circle(session, 20) }, At30(1));
             DxfDimension dimension = Made(session);
             Near(At30(22.5), Back(ArrowAt(dimension, At30(20))), 1E-3);
@@ -928,7 +1049,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             HasLine(dimension, At30(22.5), At30(25));
 
             // Put 8 out they cover neither the centre nor the rim: the arrowhead inside, the line broken about them.
-            session = Metric(s => { s.Dimtmove = 2; s.Dimatfit = 0; });
+            session = Metric(s =>
+            {
+                s.Dimtmove = 2;
+                s.Dimatfit = 0;
+            });
             Run(session, "DRA", new[] { Circle(session, 20) }, At30(8));
             dimension = Made(session);
             Near(At30(17.5), Back(ArrowAt(dimension, At30(20))), 1E-3);
@@ -940,7 +1065,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             // "R12", 5.25 wide here, put 11 out under DIMATFIT 0 stands no nearer the rim than two arrowheads and the gap,
             // 12 - 5 - 0.625 - 2.625 = 3.75 out, as AutoCAD 2021 keeps "R12" 3.4 out under DIMATFIT 0 and 3 alike.
-            CadCommandSession session = Metric(s => { s.Dimtmove = 1; s.Dimatfit = 0; });
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimtmove = 1;
+                s.Dimatfit = 0;
+            });
             Run(session, "DRA", new[] { Circle(session, 12) }, At30(11));
             Near(At30(3.75, Lift), P2(Words(Made(session)).Location), 1E-9);
         }

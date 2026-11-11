@@ -148,7 +148,11 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            GeometryHelperLog.Info("DxfDatabase: a drawing of " + entities.Count.ToString(CultureInfo.InvariantCulture) + " entities was inserted into model space.");
+            GeometryHelperLog.Info(
+                "DxfDatabase: a drawing of "
+                    + entities.Count.ToString(CultureInfo.InvariantCulture)
+                    + " entities was inserted into model space."
+            );
         }
 
         /// <summary>
@@ -190,13 +194,21 @@ namespace GeometryHelper.Dxf
 
             if (BlockTable.Has(blockName))
             {
-                throw new ArgumentException("The drawing has a block named " + blockName + " already, letters of either case the same.", nameof(blockName));
+                throw new ArgumentException(
+                    "The drawing has a block named " + blockName + " already, letters of either case the same.",
+                    nameof(blockName)
+                );
             }
 
             // A block of the other drawing of the name would be merged, or brought by an INSERT, under the name of the new one.
             if (dataBase.BlockTable.Has(blockName))
             {
-                throw new ArgumentException("The drawing to insert has a block named " + blockName + " of its own, which would come under the same name, letters of either case the same.", nameof(blockName));
+                throw new ArgumentException(
+                    "The drawing to insert has a block named "
+                        + blockName
+                        + " of its own, which would come under the same name, letters of either case the same.",
+                    nameof(blockName)
+                );
             }
 
             var entities = new List<DxfEntity>(dataBase.ModelSpace);
@@ -235,7 +247,13 @@ namespace GeometryHelper.Dxf
             }
 
             File.CopyDynamicBlocks(dataBase.File, copied);
-            GeometryHelperLog.Info("DxfDatabase: a drawing of " + entities.Count.ToString(CultureInfo.InvariantCulture) + " entities was made the block " + blockName + ".");
+            GeometryHelperLog.Info(
+                "DxfDatabase: a drawing of "
+                    + entities.Count.ToString(CultureInfo.InvariantCulture)
+                    + " entities was made the block "
+                    + blockName
+                    + "."
+            );
             return block;
         }
 
@@ -266,7 +284,12 @@ namespace GeometryHelper.Dxf
 
             if (looped != null)
             {
-                throw new ArgumentException("The block " + looped + " of the drawing to insert inserts itself, by its own INSERTs or theirs, and is not copied: AutoCAD's AUDIT takes such an INSERT out.", "dataBase");
+                throw new ArgumentException(
+                    "The block "
+                        + looped
+                        + " of the drawing to insert inserts itself, by its own INSERTs or theirs, and is not copied: AutoCAD's AUDIT takes such an INSERT out.",
+                    "dataBase"
+                );
             }
 
             var all = new List<DxfEntity>(entities);
@@ -348,7 +371,12 @@ namespace GeometryHelper.Dxf
                         continue;
                     }
 
-                    var made = new DxfBlockTableRecord { Name = block.Name, Origin = block.Origin, MadeFlags = block.HasAttributeDefinitions ? 2 : 0 };
+                    var made = new DxfBlockTableRecord
+                    {
+                        Name = block.Name,
+                        Origin = block.Origin,
+                        MadeFlags = block.HasAttributeDefinitions ? 2 : 0,
+                    };
 
                     if (File.Supports(1015))
                     {
@@ -391,8 +419,14 @@ namespace GeometryHelper.Dxf
             {
                 string name = block.Name;
 
-                if (!block.IsLayout && !block.IsAnonymous && !name.StartsWith("*", StringComparison.Ordinal) && !block.IsFromExternalReference && !block.IsDependent
-                    && !BlockTable.Has(name))
+                if (
+                    !block.IsLayout
+                    && !block.IsAnonymous
+                    && !name.StartsWith("*", StringComparison.Ordinal)
+                    && !block.IsFromExternalReference
+                    && !block.IsDependent
+                    && !BlockTable.Has(name)
+                )
                 {
                     blocks.Add(block);
                 }

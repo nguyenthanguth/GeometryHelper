@@ -28,9 +28,13 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class Face2TouchingTests
     {
-        private static GeoPolygon2 Box(double left, double bottom, double right, double top) => new GeoPolygon2(
-            new GeoPoint2(left, bottom), new GeoPoint2(right, bottom),
-            new GeoPoint2(right, top), new GeoPoint2(left, top));
+        private static GeoPolygon2 Box(double left, double bottom, double right, double top) =>
+            new GeoPolygon2(
+                new GeoPoint2(left, bottom),
+                new GeoPoint2(right, bottom),
+                new GeoPoint2(right, top),
+                new GeoPoint2(left, top)
+            );
 
         /// <summary>
         /// Three hundred square with two tall holes in it, a twenty-wide strip of material between them.
@@ -153,7 +157,11 @@ namespace GeometryHelper.UnitTest.Plane
 
             // And something wholly outside the outline reaches nothing, holes or no holes.
             Both(face => face.CollidesWith(Box(500, 500, 600, 600)), false, "outside the outline");
-            Both(face => face.CollidesWith(new GeoLine2(new GeoPoint2(400, 0), new GeoPoint2(400, 300))), false, "beside it");
+            Both(
+                face => face.CollidesWith(new GeoLine2(new GeoPoint2(400, 0), new GeoPoint2(400, 300))),
+                false,
+                "beside it"
+            );
         }
 
         [Fact]
@@ -183,12 +191,14 @@ namespace GeometryHelper.UnitTest.Plane
             var plain = new GeoFace2(Outline());
             GeoPolygon2 outline = Outline();
 
-            foreach (GeoLine2 probe in new[]
-                     {
-                         new GeoLine2(new GeoPoint2(150, 50), new GeoPoint2(150, 250)),
-                         new GeoLine2(new GeoPoint2(400, 0), new GeoPoint2(400, 300)),
-                         new GeoLine2(new GeoPoint2(-50, 150), new GeoPoint2(350, 150)),
-                     })
+            foreach (
+                GeoLine2 probe in new[]
+                {
+                    new GeoLine2(new GeoPoint2(150, 50), new GeoPoint2(150, 250)),
+                    new GeoLine2(new GeoPoint2(400, 0), new GeoPoint2(400, 300)),
+                    new GeoLine2(new GeoPoint2(-50, 150), new GeoPoint2(350, 150)),
+                }
+            )
             {
                 Assert.Equal(outline.CollidesWith(probe), plain.CollidesWith(probe));
                 Assert.Equal(outline.GetIntersections(probe).Length, plain.GetIntersections(probe).Length);

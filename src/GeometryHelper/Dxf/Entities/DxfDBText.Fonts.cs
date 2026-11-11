@@ -40,8 +40,12 @@ namespace GeometryHelper.Dxf
                 double slant = Math.Tan(Oblique);
                 double cos = Math.Cos(turn);
                 double sin = Math.Sin(turn);
-                double minX = position.X, minY = position.Y, minZ = position.Z;
-                double maxX = minX, maxY = minY, maxZ = minZ;
+                double minX = position.X,
+                    minY = position.Y,
+                    minZ = position.Z;
+                double maxX = minX,
+                    maxY = minY,
+                    maxZ = minZ;
 
                 if (line.Box(out double left, out double right, out double bottom, out double top))
                 {
@@ -53,7 +57,10 @@ namespace GeometryHelper.Dxf
                         foreach (double y in new[] { bottom, top })
                         {
                             double u = x + (y * slant);
-                            GeoPoint3 corner = OcsToWorld(normal, new GeoPoint3(at.X + (u * cos) - (y * sin), at.Y + (u * sin) + (y * cos), at.Z));
+                            GeoPoint3 corner = OcsToWorld(
+                                normal,
+                                new GeoPoint3(at.X + (u * cos) - (y * sin), at.Y + (u * sin) + (y * cos), at.Z)
+                            );
                             minX = Math.Min(minX, corner.X);
                             minY = Math.Min(minY, corner.Y);
                             minZ = Math.Min(minZ, corner.Z);
@@ -89,7 +96,10 @@ namespace GeometryHelper.Dxf
             font = fonts.FontOf(TextStyle, out big);
             string raw = big?.Font != null ? GetString(1) ?? string.Empty : string.Empty;
 
-            if (raw.IndexOf("\\M+", StringComparison.Ordinal) >= 0 || raw.IndexOf("\\m+", StringComparison.Ordinal) >= 0)
+            if (
+                raw.IndexOf("\\M+", StringComparison.Ordinal) >= 0
+                || raw.IndexOf("\\m+", StringComparison.Ordinal) >= 0
+            )
             {
                 return null;
             }
@@ -140,7 +150,19 @@ namespace GeometryHelper.Dxf
                 }
 
                 string text = TextString;
-                double[] placed = Placed(font, big, text, horizontal, vertical, height, widthFactor, TextDouble(50, 0.0), second.X, second.Y, BitConverter.DoubleToInt64Bits(height) == BitConverter.DoubleToInt64Bits(Height) ? words : null);
+                double[] placed = Placed(
+                    font,
+                    big,
+                    text,
+                    horizontal,
+                    vertical,
+                    height,
+                    widthFactor,
+                    TextDouble(50, 0.0),
+                    second.X,
+                    second.Y,
+                    BitConverter.DoubleToInt64Bits(height) == BitConverter.DoubleToInt64Bits(Height) ? words : null
+                );
 
                 if (placed != null)
                 {
@@ -157,11 +179,25 @@ namespace GeometryHelper.Dxf
                 for (int i = 0; i < contexts.All.Count; i++)
                 {
                     ContextGroups context = ContextText.Read(contexts.All[i]);
-                    int mode = context.Has(ContextText.Horizontal) ? (int)context.Value(ContextText.Horizontal, 0.0) : horizontal;
+                    int mode = context.Has(ContextText.Horizontal)
+                        ? (int)context.Value(ContextText.Horizontal, 0.0)
+                        : horizontal;
                     double ratio = contexts.Ratios[i];
-                    double tall = Guard.IsFinite(ratio) && ratio > 0.0 ? height * contexts.DefaultRatio / ratio : height;
+                    double tall =
+                        Guard.IsFinite(ratio) && ratio > 0.0 ? height * contexts.DefaultRatio / ratio : height;
                     double degrees = context.Value(ContextText.Degrees, TextDouble(50, 0.0));
-                    placed = Placed(font, big, text, mode, vertical, tall, widthFactor, degrees, context.Value(ContextText.AlignedX, second.X), context.Value(ContextText.AlignedY, second.Y));
+                    placed = Placed(
+                        font,
+                        big,
+                        text,
+                        mode,
+                        vertical,
+                        tall,
+                        widthFactor,
+                        degrees,
+                        context.Value(ContextText.AlignedX, second.X),
+                        context.Value(ContextText.AlignedY, second.Y)
+                    );
 
                     if (placed != null && context.Has(ContextText.X) && context.Has(ContextText.Y))
                     {
@@ -207,7 +243,9 @@ namespace GeometryHelper.Dxf
             GeoVector3 normal = Normal;
             GeoPoint3 at = WorldToOcs(normal, Position);
             double turn = Rotation;
-            GeoVector3 along = OcsToWorld(normal, new GeoPoint3(at.X + Math.Cos(turn), at.Y + Math.Sin(turn), at.Z)).ToVector().Subtract(Position.ToVector());
+            GeoVector3 along = OcsToWorld(normal, new GeoPoint3(at.X + Math.Cos(turn), at.Y + Math.Sin(turn), at.Z))
+                .ToVector()
+                .Subtract(Position.ToVector());
             GeoVector3 up = normal.CrossProduct(along);
             GeoVector3 mirroredAlong = mirror.Transform(along);
             GeoVector3 mirroredUp = mirror.Transform(up);
@@ -250,23 +288,55 @@ namespace GeometryHelper.Dxf
         /// high 32 up, its depth 64 over its height 8. The words measured already at the height and width factor are given where
         /// they are.
         /// </summary>
-        private static double[] Placed(DxfFont font, DxfFonts.Big big, string text, int horizontal, int vertical, double height, double widthFactor, double degrees, double x, double y, DxfTextLine measured = null)
+        private static double[] Placed(
+            DxfFont font,
+            DxfFonts.Big big,
+            string text,
+            int horizontal,
+            int vertical,
+            double height,
+            double widthFactor,
+            double degrees,
+            double x,
+            double y,
+            DxfTextLine measured = null
+        )
         {
-            if (horizontal < 0 || horizontal > 4 || horizontal == 3 || vertical < 0 || vertical > 3 || (horizontal == 4 && vertical != 0) || (horizontal == 0 && vertical == 0))
+            if (
+                horizontal < 0
+                || horizontal > 4
+                || horizontal == 3
+                || vertical < 0
+                || vertical > 3
+                || (horizontal == 4 && vertical != 0)
+                || (horizontal == 0 && vertical == 0)
+            )
             {
                 return null;
             }
 
             DxfTextLine line = measured ?? DxfFonts.Text(font, big, text, height, widthFactor);
 
-            if (line == null || !line.AlignmentBox(out double left, out double right, out double bottom, out double top) || (vertical == 1 && big != null && big.Font == null))
+            if (
+                line == null
+                || !line.AlignmentBox(out double left, out double right, out double bottom, out double top)
+                || (vertical == 1 && big != null && big.Font == null)
+            )
             {
                 return null;
             }
 
             DxfFont deep = big?.Font ?? font;
-            double across = horizontal == 0 ? 0.0 : horizontal == 2 ? -right : -(left + right) / 2.0;
-            double up = horizontal == 4 ? -(bottom + top) / 2.0 : vertical == 3 ? -height : vertical == 2 ? -height / 2.0 : vertical == 1 ? height * deep.Below / deep.Above : 0.0;
+            double across =
+                horizontal == 0 ? 0.0
+                : horizontal == 2 ? -right
+                : -(left + right) / 2.0;
+            double up =
+                horizontal == 4 ? -(bottom + top) / 2.0
+                : vertical == 3 ? -height
+                : vertical == 2 ? -height / 2.0
+                : vertical == 1 ? height * deep.Below / deep.Above
+                : 0.0;
             double radians = degrees * (Math.PI / 180.0);
             double cos = Math.Cos(radians);
             double sin = Math.Sin(radians);
@@ -278,12 +348,27 @@ namespace GeometryHelper.Dxf
         /// its words gives the one it has, as AutoCAD 2021 gives them (check F1a): "ABC" of txt.shx 4 high aligned on two points
         /// 30 apart is 11.25 high. Left as it is where its words have no box, or reach no way right, or its points are one.
         /// </summary>
-        private void Fit(DxfFont font, DxfFonts.Big big, int horizontal, double height, double widthFactor, GeoPoint3 first, GeoPoint3 second)
+        private void Fit(
+            DxfFont font,
+            DxfFonts.Big big,
+            int horizontal,
+            double height,
+            double widthFactor,
+            GeoPoint3 first,
+            GeoPoint3 second
+        )
         {
             DxfTextLine line = DxfFonts.Text(font, big, TextString, height, widthFactor);
-            double apart = Math.Sqrt(((second.X - first.X) * (second.X - first.X)) + ((second.Y - first.Y) * (second.Y - first.Y)));
+            double apart = Math.Sqrt(
+                ((second.X - first.X) * (second.X - first.X)) + ((second.Y - first.Y) * (second.Y - first.Y))
+            );
 
-            if (line == null || !line.AlignmentBox(out _, out double right, out _, out _) || !(right > 0.0) || !(apart > 0.0))
+            if (
+                line == null
+                || !line.AlignmentBox(out _, out double right, out _, out _)
+                || !(right > 0.0)
+                || !(apart > 0.0)
+            )
             {
                 return;
             }

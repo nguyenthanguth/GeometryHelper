@@ -15,11 +15,11 @@ namespace GeometryHelper.UnitTest.Plane
     {
         private static readonly Tolerance Tight = new Tolerance(1E-9, 1E-9);
 
-        private static GeoPolygon2 Square() => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+        private static GeoPolygon2 Square() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
 
-        private static GeoPolyline2 Chain() => new GeoPolyline2(
-            new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100));
+        private static GeoPolyline2 Chain() =>
+            new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100));
 
         private static GeoRectangle2 Plate() => new GeoRectangle2(0, 0, 100, 100);
 
@@ -33,9 +33,17 @@ namespace GeometryHelper.UnitTest.Plane
         /// </summary>
         private static GeoArc2 Bulge() => new GeoArc2(new GeoPoint2(300, 50), 20.0, Math.PI / 2, 3 * Math.PI / 2);
 
-        private static GeoPolygonArc2 Slot() => new GeoPolygonArc2(
-            new[] { new GeoPoint2(300, 0), new GeoPoint2(400, 0), new GeoPoint2(400, 100), new GeoPoint2(300, 100) },
-            new[] { 0.0, 1.0, 0.0, 0.0 });
+        private static GeoPolygonArc2 Slot() =>
+            new GeoPolygonArc2(
+                new[]
+                {
+                    new GeoPoint2(300, 0),
+                    new GeoPoint2(400, 0),
+                    new GeoPoint2(400, 100),
+                    new GeoPoint2(300, 100),
+                },
+                new[] { 0.0, 1.0, 0.0, 0.0 }
+            );
 
         private static GeoPolylineArc2 OpenSlot() => Slot().ToPolylineArc2();
 
@@ -109,13 +117,19 @@ namespace GeometryHelper.UnitTest.Plane
             // The same for the open chain and for a plain arc.
             GeoPolylineArc2 open = OpenSlot();
 
-            Assert.True(square.GetShortestLineTo(open).StartPoint.IsEqualTo(open.GetShortestLineTo(square).EndPoint, Tight));
+            Assert.True(
+                square.GetShortestLineTo(open).StartPoint.IsEqualTo(open.GetShortestLineTo(square).EndPoint, Tight)
+            );
 
             GeoLine2 side = Side();
             GeoArc2 bulge = Bulge();
 
-            Assert.True(side.GetShortestLineTo(bulge).StartPoint.IsEqualTo(Arc2.GetShortestLineTo(bulge, side).EndPoint, Tight));
-            Assert.True(side.GetShortestLineTo(bulge).EndPoint.IsEqualTo(Arc2.GetShortestLineTo(bulge, side).StartPoint, Tight));
+            Assert.True(
+                side.GetShortestLineTo(bulge).StartPoint.IsEqualTo(Arc2.GetShortestLineTo(bulge, side).EndPoint, Tight)
+            );
+            Assert.True(
+                side.GetShortestLineTo(bulge).EndPoint.IsEqualTo(Arc2.GetShortestLineTo(bulge, side).StartPoint, Tight)
+            );
         }
 
         [Fact]
@@ -158,7 +172,11 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolygonArc2 slot = Slot();
 
             Assert.True(Projection2.GetShortestLineTo(square, bulge).IsEqualTo(square.GetShortestLineTo(bulge), Tight));
-            Assert.True(Projection2.GetShortestLineTo(square, slot, Tolerance.Global).IsEqualTo(square.GetShortestLineTo(slot, Tolerance.Global), Tight));
+            Assert.True(
+                Projection2
+                    .GetShortestLineTo(square, slot, Tolerance.Global)
+                    .IsEqualTo(square.GetShortestLineTo(slot, Tolerance.Global), Tight)
+            );
             Assert.True(Projection2.GetShortestLineTo(plate, bulge).IsEqualTo(plate.GetShortestLineTo(bulge), Tight));
             Assert.Equal(Distance2.DistanceTo(square, bulge), square.DistanceTo(bulge), 9);
             Assert.Equal(Distance2.DistanceTo(plate, slot), plate.DistanceTo(slot), 9);

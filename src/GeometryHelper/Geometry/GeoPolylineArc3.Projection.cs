@@ -14,7 +14,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the point of the chain nearest another point.
         /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => GetClosestPointOnBoundary(point, Tolerance.Global);
+        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) =>
+            GetClosestPointOnBoundary(point, Tolerance.Global);
 
         /// <summary>
         /// Gets the point of the chain nearest another point, within a tolerance.
@@ -36,8 +37,8 @@ namespace GeometryHelper.Geometry
         /// closest point is (10, 0.0006, 0), 0.0009 away, where it was (10, 0, 0), 0.00108 away.
         /// </para>
         /// </remarks>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance)
-            => ArcChain3.ClosestPoint(ArcChain3.EdgesOf(this), point, tolerance);
+        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance) =>
+            ArcChain3.ClosestPoint(ArcChain3.EdgesOf(this), point, tolerance);
 
         /// <summary>
         /// Gets the shortest line from this chain to the boundary of a curved loop in the same plane:
@@ -46,8 +47,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentException">Thrown when this chain does not lie in the loop's plane.</exception>
-        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 other)
-            => (other ?? throw new ArgumentNullException(nameof(other))).GetShortestLineTo(this).Reverse();
+        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 other) =>
+            (other ?? throw new ArgumentNullException(nameof(other))).GetShortestLineTo(this).Reverse();
 
         /// <summary>
         /// Gets the shortest line from this chain to the boundary of a curved loop in the same plane, within a
@@ -56,8 +57,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentException">Thrown when this chain does not lie in the loop's plane.</exception>
-        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 other, Tolerance tolerance)
-            => (other ?? throw new ArgumentNullException(nameof(other))).GetShortestLineTo(this, tolerance).Reverse();
+        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 other, Tolerance tolerance) =>
+            (other ?? throw new ArgumentNullException(nameof(other))).GetShortestLineTo(this, tolerance).Reverse();
 
         /// <summary>
         /// Gets the shortest segment joining this chain to a point, using the default tolerance.
@@ -86,7 +87,7 @@ namespace GeometryHelper.Geometry
         /// (0, 0, 0) to (10, 0, 0) and on to (10, 0.0006, 0) is 0.0009 from (10.0009, 0.0006, 0), and the line runs from
         /// (10, 0.0006, 0), 0.0009 long, where it ran from (10, 0, 0), 0.00108 long.
         /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance)
-            => new GeoLine3(GetClosestPointOnBoundary(point, tolerance), point);
+        public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance) =>
+            new GeoLine3(GetClosestPointOnBoundary(point, tolerance), point);
     }
 }

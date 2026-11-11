@@ -17,13 +17,17 @@ namespace GeometryHelper.UnitTest.Meshing
         private static GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
 
         /// <summary>The rectangle with corners (x, 0, z), wound so that the wall faces -Y.</summary>
-        private static GeoPolygon3 WallBox(double x0, double z0, double x1, double z1) => new GeoPolygon3(P(x0, 0, z0), P(x1, 0, z0), P(x1, 0, z1), P(x0, 0, z1));
+        private static GeoPolygon3 WallBox(double x0, double z0, double x1, double z1) =>
+            new GeoPolygon3(P(x0, 0, z0), P(x1, 0, z0), P(x1, 0, z1), P(x0, 0, z1));
 
-        private static GeoSolid3 Prism(GeoPolygon2 plan, double z0, double z1)
-            => GeoSolid3.Extrude(new GeoPolygon3(plan.Vertices.Select(p => P(p.X, p.Y, z0))), new GeoVector3(0, 0, z1 - z0));
+        private static GeoSolid3 Prism(GeoPolygon2 plan, double z0, double z1) =>
+            GeoSolid3.Extrude(
+                new GeoPolygon3(plan.Vertices.Select(p => P(p.X, p.Y, z0))),
+                new GeoVector3(0, 0, z1 - z0)
+            );
 
-        private static GeoPolygon2 Rect(double x0, double y0, double x1, double y1)
-            => new GeoPolygon2(new GeoPoint2(x0, y0), new GeoPoint2(x1, y0), new GeoPoint2(x1, y1), new GeoPoint2(x0, y1));
+        private static GeoPolygon2 Rect(double x0, double y0, double x1, double y1) =>
+            new GeoPolygon2(new GeoPoint2(x0, y0), new GeoPoint2(x1, y0), new GeoPoint2(x1, y1), new GeoPoint2(x0, y1));
 
         private static GeoMesh3 Panels()
         {
@@ -31,9 +35,10 @@ namespace GeometryHelper.UnitTest.Meshing
                 WallBox(0, 0, 7215, 3012),
                 new[]
                 {
-                    WallBox(900, 0, 1800, 2100),      // a door
-                    WallBox(3600, 900, 5400, 2100),   // a window
-                });
+                    WallBox(900, 0, 1800, 2100), // a door
+                    WallBox(3600, 900, 5400, 2100), // a window
+                }
+            );
 
             return wall.ToMesh(MeshOptions.Grid(1200, 600, joint: 3));
         }
@@ -59,7 +64,7 @@ namespace GeometryHelper.UnitTest.Meshing
             double run = 3000 * Math.Cos(Math.PI / 6);
             var roofSide = new GeoPolygon3(P(0, -run, 0), P(6000, -run, 0), P(6000, 0, 1500), P(0, 0, 1500));
 
-            GeoMesh3 tiles = roofSide.ToMesh(MeshOptions.Grid(400, 300));   // 150 tiles, every one whole
+            GeoMesh3 tiles = roofSide.ToMesh(MeshOptions.Grid(400, 300)); // 150 tiles, every one whole
 
             Assert.Equal(150, tiles.FaceCount);
             Assert.Equal(150, Enumerable.Range(0, tiles.FaceCount).Count(tiles.IsWhole));
@@ -69,11 +74,14 @@ namespace GeometryHelper.UnitTest.Meshing
         [Fact]
         public void WhichWayTheGridRuns_APlateLyingAskew()
         {
-            GeoTransform3 askew = GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 0.7) * GeoTransform3.RotationZ(0.3);
-            GeoPolygon3 plate = new GeoPolygon3(P(0, 0, 0), P(2400, 0, 0), P(2400, 1200, 0), P(0, 1200, 0)).TransformBy(askew);
+            GeoTransform3 askew =
+                GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 0.7) * GeoTransform3.RotationZ(0.3);
+            GeoPolygon3 plate = new GeoPolygon3(P(0, 0, 0), P(2400, 0, 0), P(2400, 1200, 0), P(0, 1200, 0)).TransformBy(
+                askew
+            );
 
-            GeoMesh3 level = plate.ToMesh(MeshOptions.Grid(600, 400));                     // 21 faces, 3 whole
-            GeoMesh3 own = plate.ToMesh(MeshOptions.Grid(600, 400), MeshPlacement3.Own);   // 12 faces, all whole
+            GeoMesh3 level = plate.ToMesh(MeshOptions.Grid(600, 400)); // 21 faces, 3 whole
+            GeoMesh3 own = plate.ToMesh(MeshOptions.Grid(600, 400), MeshPlacement3.Own); // 12 faces, all whole
 
             Assert.Equal(21, level.FaceCount);
             Assert.Equal(3, Enumerable.Range(0, level.FaceCount).Count(level.IsWhole));
@@ -92,9 +100,12 @@ namespace GeometryHelper.UnitTest.Meshing
             GeoMesh3 side = sideWall.ToMesh(MeshOptions.Grid(1200, 600, joint: 10), placement);
 
             // The rows stand at the same heights on both walls.
-            double[] Heights(GeoMesh3 mesh) => mesh.Vertices.Select(v => Math.Round(v.Z, 6)).Distinct().OrderBy(z => z).ToArray();
+            double[] Heights(GeoMesh3 mesh) =>
+                mesh.Vertices.Select(v => Math.Round(v.Z, 6)).Distinct().OrderBy(z => z).ToArray();
             Assert.Equal(Heights(front), Heights(side));
-            Assert.Throws<ArgumentException>(() => frontWall.ToMesh(MeshOptions.Grid(1200, 600, new GeoPoint2(10, 10))));
+            Assert.Throws<ArgumentException>(() =>
+                frontWall.ToMesh(MeshOptions.Grid(1200, 600, new GeoPoint2(10, 10)))
+            );
         }
 
         [Fact]
@@ -106,7 +117,14 @@ namespace GeometryHelper.UnitTest.Meshing
             var slot = new GeoPolygonArc3(
                 new[] { P(0, 0, 0), P(2400, 0, 0), P(2400, 0, 600), P(0, 0, 600) },
                 new[] { 0.0, 1.0, 0.0, 1.0 },
-                new[] { new GeoVector3(0, -1, 0), new GeoVector3(0, -1, 0), new GeoVector3(0, -1, 0), new GeoVector3(0, -1, 0) });
+                new[]
+                {
+                    new GeoVector3(0, -1, 0),
+                    new GeoVector3(0, -1, 0),
+                    new GeoVector3(0, -1, 0),
+                    new GeoVector3(0, -1, 0),
+                }
+            );
             Assert.Equal(25, slot.ToMesh(MeshOptions.Strips(0.0)).FaceCount);
             Assert.Equal(1, slot.ToMesh(MeshKind.Convex).FaceCount);
         }
@@ -155,7 +173,7 @@ namespace GeometryHelper.UnitTest.Meshing
         public void DividingTheAxes()
         {
             var box = new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(1000, 600, 400));
-            GeoCellGrid3 grid = box.ToCells(CellOptions3.Grid(300, 300, 300));    // 16 cells, 6 whole
+            GeoCellGrid3 grid = box.ToCells(CellOptions3.Grid(300, 300, 300)); // 16 cells, 6 whole
             Assert.Equal(16, grid.CellCount);
             Assert.Equal(6, grid.Cells.Count(c => c.IsWhole));
 
@@ -165,11 +183,16 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Equal(16, cylinderCells.Cells.Count(c => c.IsWhole));
 
             GeoSolid3 column = Prism(Rect(0, 0, 400, 400), 0, 3500);
-            GeoCellGrid3 lifts = column.ToCells(CellOptions3.Layers(1000));   // 1000, 1000, 1000 and 500 high
-            Assert.Equal(new[] { 1000.0, 1000, 1000, 500 }, lifts.Cells.Select(c => Math.Round(c.Volume / (400.0 * 400), 6)).ToArray());
+            GeoCellGrid3 lifts = column.ToCells(CellOptions3.Layers(1000)); // 1000, 1000, 1000 and 500 high
+            Assert.Equal(
+                new[] { 1000.0, 1000, 1000, 500 },
+                lifts.Cells.Select(c => Math.Round(c.Volume / (400.0 * 400), 6)).ToArray()
+            );
 
             var wallOfBlocks = new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(4000, 190, 2400));
-            GeoCellGrid3 blocks = wallOfBlocks.ToCells(new CellOptions3(CellAxis.BySize(390), CellAxis.Whole, CellAxis.BySize(190), 10.0));
+            GeoCellGrid3 blocks = wallOfBlocks.ToCells(
+                new CellOptions3(CellAxis.BySize(390), CellAxis.Whole, CellAxis.BySize(190), 10.0)
+            );
             Assert.Equal(120, blocks.CellCount);
             Assert.All(blocks.Cells, c => Assert.True(c.IsWhole));
         }
@@ -179,8 +202,8 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             GeoSolid3 wall = Prism(Rect(0, 0, 6000, 200), 0, 3000).TransformBy(GeoTransform3.RotationZ(Math.PI / 6));
 
-            GeoCellGrid3 upright = wall.ToCells(CellOptions3.Grid(1000, 0, 1000), MeshPlacement3.Upright);   // 18 cells, all whole
-            GeoCellGrid3 world = wall.ToCells(CellOptions3.Grid(1000, 0, 1000));                             // 18 cells, none whole
+            GeoCellGrid3 upright = wall.ToCells(CellOptions3.Grid(1000, 0, 1000), MeshPlacement3.Upright); // 18 cells, all whole
+            GeoCellGrid3 world = wall.ToCells(CellOptions3.Grid(1000, 0, 1000)); // 18 cells, none whole
 
             Assert.Equal(18, upright.CellCount);
             Assert.All(upright.Cells, c => Assert.True(c.IsWhole));
@@ -191,15 +214,36 @@ namespace GeometryHelper.UnitTest.Meshing
         [Fact]
         public void PiecesAndSnapping()
         {
-            var u = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(3000, 0), new GeoPoint2(3000, 2000), new GeoPoint2(2000, 2000), new GeoPoint2(2000, 800), new GeoPoint2(1000, 800), new GeoPoint2(1000, 2000), new GeoPoint2(0, 2000));
+            var u = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(3000, 0),
+                new GeoPoint2(3000, 2000),
+                new GeoPoint2(2000, 2000),
+                new GeoPoint2(2000, 800),
+                new GeoPoint2(1000, 800),
+                new GeoPoint2(1000, 2000),
+                new GeoPoint2(0, 2000)
+            );
             GeoCellGrid3 rows = Prism(u, 0, 500).ToCells(CellOptions3.Grid(0, 1000, 0));
             Assert.Equal(2, rows.GetCellsAt(0, 1, 0).Length);
 
-            var l = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(2000, 0), new GeoPoint2(2000, 1000), new GeoPoint2(1030, 1000), new GeoPoint2(1030, 2000), new GeoPoint2(0, 2000));
+            var l = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(2000, 0),
+                new GeoPoint2(2000, 1000),
+                new GeoPoint2(1030, 1000),
+                new GeoPoint2(1030, 2000),
+                new GeoPoint2(0, 2000)
+            );
             GeoSolid3 footing = Prism(l, 0, 600);
 
-            var options = new CellOptions3(CellAxis.BySize(500), CellAxis.BySize(500), CellAxis.Whole, snapDistance: 50);
-            GeoCellGrid3 cells = footing.ToCells(options);   // the step 30 past a line of cells goes with the cell beside
+            var options = new CellOptions3(
+                CellAxis.BySize(500),
+                CellAxis.BySize(500),
+                CellAxis.Whole,
+                snapDistance: 50
+            );
+            GeoCellGrid3 cells = footing.ToCells(options); // the step 30 past a line of cells goes with the cell beside
 
             Assert.Equal(12, cells.CellCount);
             Assert.Equal(14, footing.ToCells(CellOptions3.Grid(500, 500, 0)).CellCount);

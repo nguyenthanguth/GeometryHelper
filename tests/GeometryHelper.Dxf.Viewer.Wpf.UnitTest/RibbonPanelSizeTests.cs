@@ -22,7 +22,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
     /// </summary>
     public class RibbonPanelSizeTests
     {
-        private static readonly string[] HomeOrder = { "Draw", "Modify", "Annotation", "Layers", "Properties", "Groups", "Utilities", "Clipboard", "View" };
+        private static readonly string[] HomeOrder =
+        {
+            "Draw",
+            "Modify",
+            "Annotation",
+            "Layers",
+            "Properties",
+            "Groups",
+            "Utilities",
+            "Clipboard",
+            "View",
+        };
 
         [Fact]
         public void HomeShowsItsPanelsInAutoCadsOrder_AndAt2300PixelsNoneShrinks()
@@ -58,7 +69,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.True(HomeStrip(model, workspace).DesiredSize.Width <= 1600 - 24);
 
                 // Medium Draw keeps Rectangle, drawn by its icon alone and still named for the tooltip and screen readers.
-                Button rectangle = Descendants(panels[0]).OfType<Button>().Single(b => "RECTANG".Equals(b.CommandParameter));
+                Button rectangle = Descendants(panels[0])
+                    .OfType<Button>()
+                    .Single(b => "RECTANG".Equals(b.CommandParameter));
                 Assert.Equal("Rectangle", AutomationProperties.GetName(rectangle));
                 Assert.DoesNotContain(Descendants(rectangle).OfType<TextBlock>(), t => t.Text == "Rectangle");
                 Assert.Single(Descendants(rectangle).OfType<IconView>());
@@ -79,14 +92,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 clipboard.IsDropDownOpen = true;
 
-                List<Button> dropped = Descendants(popup.Child).OfType<Button>().Where(b => b.CommandParameter is string).ToList();
+                List<Button> dropped = Descendants(popup.Child)
+                    .OfType<Button>()
+                    .Where(b => b.CommandParameter is string)
+                    .ToList();
                 Assert.Equal(commands, dropped.Select(b => (string)b.CommandParameter));
                 Assert.Contains(Descendants(popup.Child).OfType<TextBlock>(), t => t.Text == "Clipboard");
-                ToggleButton pin = Descendants(popup.Child).OfType<ToggleButton>().Single(t => Equals(t.ToolTip, "Pin the panel open"));
+                ToggleButton pin = Descendants(popup.Child)
+                    .OfType<ToggleButton>()
+                    .Single(t => Equals(t.ToolTip, "Pin the panel open"));
 
                 foreach (Button button in dropped)
                 {
-                    Press(model, button.IsEnabled, () => button.Command.Execute(button.CommandParameter), (string)button.CommandParameter);
+                    Press(
+                        model,
+                        button.IsEnabled,
+                        () => button.Command.Execute(button.CommandParameter),
+                        (string)button.CommandParameter
+                    );
                 }
 
                 pin.IsChecked = true;
@@ -95,7 +118,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 clipboard.IsDropDownOpen = false;
 
                 Assert.DoesNotContain(Descendants(popup.Child).OfType<Button>(), b => b.CommandParameter is string);
-                Assert.Equal(commands, Descendants(clipboard).OfType<Button>().Where(b => b.CommandParameter is string).Select(b => (string)b.CommandParameter));
+                Assert.Equal(
+                    commands,
+                    Descendants(clipboard)
+                        .OfType<Button>()
+                        .Where(b => b.CommandParameter is string)
+                        .Select(b => (string)b.CommandParameter)
+                );
             });
         }
 
@@ -113,11 +142,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             OnWorkspace(1600, (model, workspace) =>
             {
                 RibbonPanel modify = HomePanels(model, workspace).Single(p => p.Title == "Modify");
-                Button order = Descendants(modify).OfType<Button>().Single(b => "DRAWORDER F".Equals(b.CommandParameter));
+                Button order = Descendants(modify)
+                    .OfType<Button>()
+                    .Single(b => "DRAWORDER F".Equals(b.CommandParameter));
                 Button arrow = SplitArrowOf(order);
                 List<MenuItem> items = MenuOf(arrow);
 
-                Assert.Equal(new[] { "DRAWORDER F", "DRAWORDER B", "DRAWORDER A", "DRAWORDER U", "TEXTTOFRONT T" }, items.Select(i => (string)i.CommandParameter));
+                Assert.Equal(
+                    new[] { "DRAWORDER F", "DRAWORDER B", "DRAWORDER A", "DRAWORDER U", "TEXTTOFRONT T" },
+                    items.Select(i => (string)i.CommandParameter)
+                );
                 Assert.Same(model.StartCommandWithOptionCommand, order.Command);
 
                 Pick(items.Single(i => "DRAWORDER B".Equals(i.CommandParameter)));
@@ -136,13 +170,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 model.Enter();
 
                 Assert.False(model.IsCommandRunning);
-                Assert.Contains(model.History.Skip(before), l => l.StartsWith("Enter object ordering option", StringComparison.Ordinal) && l.EndsWith(" B", StringComparison.Ordinal));
+                Assert.Contains(model.History.Skip(before), l =>
+                    l.StartsWith("Enter object ordering option", StringComparison.Ordinal)
+                    && l.EndsWith(" B", StringComparison.Ordinal)
+                );
 
                 // Bring Text to Front asks nothing: TEXTTOFRONT is given Text at once.
                 Pick(items.Single(i => "TEXTTOFRONT T".Equals(i.CommandParameter)));
                 Assert.Equal("TEXTTOFRONT T", order.CommandParameter);
                 Assert.False(model.IsCommandRunning);
-                Assert.Contains(model.History, l => l.StartsWith("Bring to front", StringComparison.Ordinal) && l.EndsWith(" T", StringComparison.Ordinal));
+                Assert.Contains(model.History, l =>
+                    l.StartsWith("Bring to front", StringComparison.Ordinal)
+                    && l.EndsWith(" T", StringComparison.Ordinal)
+                );
             });
         }
 
@@ -152,11 +192,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             OnWorkspace(2300, (model, workspace) =>
             {
                 RibbonPanel clipboard = HomePanels(model, workspace).Single(p => p.Title == "Clipboard");
-                Button paste = Descendants(clipboard).OfType<Button>().Single(b => "PASTECLIP".Equals(b.CommandParameter));
+                Button paste = Descendants(clipboard)
+                    .OfType<Button>()
+                    .Single(b => "PASTECLIP".Equals(b.CommandParameter));
                 Button arrow = SplitArrowOf(paste);
                 List<MenuItem> items = MenuOf(arrow);
 
-                Assert.Equal(new[] { "PASTECLIP", "PASTEBLOCK", "PASTEORIG", "PASTESPEC" }, items.Select(i => (string)i.CommandParameter));
+                Assert.Equal(
+                    new[] { "PASTECLIP", "PASTEBLOCK", "PASTEORIG", "PASTESPEC" },
+                    items.Select(i => (string)i.CommandParameter)
+                );
 
                 Pick(items[1]);
                 model.Escape();
@@ -175,14 +220,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             {
                 model.SelectedTab = model.AnnotateTab;
                 Layout(workspace, 1600);
-                RibbonPanel dimensions = Descendants(workspace).OfType<RibbonPanel>().Single(p => p.Title == "Dimensions");
+                RibbonPanel dimensions = Descendants(workspace)
+                    .OfType<RibbonPanel>()
+                    .Single(p => p.Title == "Dimensions");
                 Assert.Equal(RibbonPanelSize.Full, dimensions.Size);
 
-                Button linear = Descendants(dimensions).OfType<Button>().Single(b => "DIMLINEAR".Equals(b.CommandParameter));
+                Button linear = Descendants(dimensions)
+                    .OfType<Button>()
+                    .Single(b => "DIMLINEAR".Equals(b.CommandParameter));
                 Button linearArrow = SplitArrowOf(linear);
                 Assert.Equal("Linear ▾", Label(linearArrow));
                 List<MenuItem> types = MenuOf(linearArrow);
-                Assert.Equal(new[] { "DIMLINEAR", "DIMALIGNED", "DIMANGULAR", "DIMRADIUS", "DIMDIAMETER" }, types.Select(i => (string)i.CommandParameter));
+                Assert.Equal(
+                    new[] { "DIMLINEAR", "DIMALIGNED", "DIMANGULAR", "DIMRADIUS", "DIMDIAMETER" },
+                    types.Select(i => (string)i.CommandParameter)
+                );
 
                 Pick(types[3]);
                 model.Escape();
@@ -192,7 +244,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Equal("Radius ▾", Label(linearArrow));
                 Press(model, linear.IsEnabled, () => linear.Command.Execute(linear.CommandParameter), "DIMRADIUS");
 
-                Button continueButton = Descendants(dimensions).OfType<Button>().Single(b => "DIMCONTINUE".Equals(b.CommandParameter));
+                Button continueButton = Descendants(dimensions)
+                    .OfType<Button>()
+                    .Single(b => "DIMCONTINUE".Equals(b.CommandParameter));
                 List<MenuItem> chains = MenuOf(SplitArrowOf(continueButton));
                 Assert.Equal(new[] { "DIMCONTINUE", "DIMBASELINE" }, chains.Select(i => (string)i.CommandParameter));
 
@@ -200,12 +254,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 model.Escape();
 
                 Assert.Equal("Baseline", continueButton.Content);
-                Press(model, continueButton.IsEnabled, () => continueButton.Command.Execute(continueButton.CommandParameter), "DIMBASELINE");
+                Press(
+                    model,
+                    continueButton.IsEnabled,
+                    () => continueButton.Command.Execute(continueButton.CommandParameter),
+                    "DIMBASELINE"
+                );
 
                 // Quick, Adjust Space and Break start theirs.
                 foreach (string command in new[] { "QDIM", "DIMSPACE", "DIMBREAK" })
                 {
-                    Button button = Descendants(dimensions).OfType<Button>().Single(b => command.Equals(b.CommandParameter));
+                    Button button = Descendants(dimensions)
+                        .OfType<Button>()
+                        .Single(b => command.Equals(b.CommandParameter));
                     Press(model, button.IsEnabled, () => button.Command.Execute(button.CommandParameter), command);
                 }
             });
@@ -218,15 +279,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             {
                 model.SelectedTab = model.AnnotateTab;
                 Layout(workspace, 1600);
-                RibbonPanel dimensions = Descendants(workspace).OfType<RibbonPanel>().Single(p => p.Title == "Dimensions");
-                ToggleButton title = Descendants(dimensions).OfType<ToggleButton>().Single(t => Equals(t.Content, "Dimensions ▾"));
+                RibbonPanel dimensions = Descendants(workspace)
+                    .OfType<RibbonPanel>()
+                    .Single(p => p.Title == "Dimensions");
+                ToggleButton title = Descendants(dimensions)
+                    .OfType<ToggleButton>()
+                    .Single(t => Equals(t.Content, "Dimensions ▾"));
                 var popup = (Popup)dimensions.Template.FindName("PART_Popup", dimensions);
 
                 title.IsChecked = true;
                 popup.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
 
                 Assert.True(dimensions.IsDropDownOpen);
-                List<Button> items = Descendants(popup.Child).OfType<Button>().Where(b => b.CommandParameter is string).ToList();
+                List<Button> items = Descendants(popup.Child)
+                    .OfType<Button>()
+                    .Where(b => b.CommandParameter is string)
+                    .ToList();
                 Assert.Equal(new[] { "DIMEDIT O", "DIMEDIT R" }, items.Select(b => (string)b.CommandParameter));
 
                 foreach (Button item in items)
@@ -236,7 +304,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     Assert.True(item.IsEnabled);
                     item.Command.Execute(item.CommandParameter);
                     Assert.Contains("Command: DIMEDIT", model.History.Skip(before));
-                    Assert.Contains(model.History.Skip(before), l => l.StartsWith("Enter type of dimension editing", StringComparison.Ordinal) && l.EndsWith(" " + option, StringComparison.Ordinal));
+                    Assert.Contains(model.History.Skip(before), l =>
+                        l.StartsWith("Enter type of dimension editing", StringComparison.Ordinal)
+                        && l.EndsWith(" " + option, StringComparison.Ordinal)
+                    );
                     model.Escape();
                 }
             });
@@ -248,7 +319,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             OnWorkspace(1600, (model, workspace) =>
             {
                 RibbonPanel groups = HomePanels(model, workspace).Single(p => p.Title == "Groups");
-                ToggleButton toggle = Descendants(groups).OfType<ToggleButton>().Single(t => Equals(t.Content, "Group Selection On/Off"));
+                ToggleButton toggle = Descendants(groups)
+                    .OfType<ToggleButton>()
+                    .Single(t => Equals(t.Content, "Group Selection On/Off"));
                 Assert.Equal(1, model.Document.PickStyle);
                 Assert.True(toggle.IsEnabled);
                 Assert.True(toggle.IsChecked);
@@ -267,15 +340,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 // Group Edit and Table are not built yet.
                 foreach (string command in new[] { "GROUP", "UNGROUP" })
                 {
-                    Button button = Descendants(workspace).OfType<Button>().Single(b => command.Equals(b.CommandParameter) && b.Command == model.StartCommandCommand);
+                    Button button = Descendants(workspace)
+                        .OfType<Button>()
+                        .Single(b => command.Equals(b.CommandParameter) && b.Command == model.StartCommandCommand);
                     Press(model, button.IsEnabled, () => button.Command.Execute(button.CommandParameter), command);
                 }
 
-                Button quickSelect = Descendants(workspace).OfType<Button>().Single(b => "QSELECT".Equals(b.CommandParameter));
+                Button quickSelect = Descendants(workspace)
+                    .OfType<Button>()
+                    .Single(b => "QSELECT".Equals(b.CommandParameter));
                 Assert.True(quickSelect.IsEnabled);
                 Assert.Same(model.StartCommandCommand, quickSelect.Command);
 
-                Assert.False(Descendants(groups).OfType<Button>().Single(b => Equals(b.Content, "Group Edit")).IsEnabled);
+                Assert.False(
+                    Descendants(groups).OfType<Button>().Single(b => Equals(b.Content, "Group Edit")).IsEnabled
+                );
                 Assert.False(Descendants(workspace).OfType<Button>().Single(b => Equals(b.Content, "Table")).IsEnabled);
             });
         }
@@ -291,11 +370,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Same(model.TextEditorTab, model.SelectedTab);
                 Layout(workspace, 1600);
 
-                RibbonStrip strip = Descendants(workspace).OfType<RibbonStrip>().Single(s => s.DataContext is TextEditorViewModel);
+                RibbonStrip strip = Descendants(workspace)
+                    .OfType<RibbonStrip>()
+                    .Single(s => s.DataContext is TextEditorViewModel);
                 List<RibbonPanel> panels = strip.Children.OfType<RibbonPanel>().ToList();
                 var sizes = panels.ToDictionary(p => p.Title, p => p.Size);
 
-                Assert.Equal(new[] { "Style", "Formatting", "Paragraph", "Insert", "Spell Check", "Tools", "Options", "Close" }, panels.Select(p => p.Title));
+                Assert.Equal(
+                    new[] { "Style", "Formatting", "Paragraph", "Insert", "Spell Check", "Tools", "Options", "Close" },
+                    panels.Select(p => p.Title)
+                );
                 Assert.True(strip.DesiredSize.Width <= 1600 - 24, "The tab is " + strip.DesiredSize.Width + " wide.");
                 Assert.InRange(strip.StepsTaken, 1, 5);
                 Assert.Equal(RibbonPanelSize.Collapsed, sizes["Spell Check"]);
@@ -362,18 +446,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             element.UpdateLayout();
         }
 
-        private static RibbonStrip HomeStrip(MainViewModel model, CadWorkspace workspace)
-            => Descendants(workspace).OfType<RibbonStrip>().Single(s => ReferenceEquals(s.DataContext, model));
+        private static RibbonStrip HomeStrip(MainViewModel model, CadWorkspace workspace) =>
+            Descendants(workspace).OfType<RibbonStrip>().Single(s => ReferenceEquals(s.DataContext, model));
 
-        private static List<RibbonPanel> HomePanels(MainViewModel model, CadWorkspace workspace)
-            => HomeStrip(model, workspace).Children.OfType<RibbonPanel>().ToList();
+        private static List<RibbonPanel> HomePanels(MainViewModel model, CadWorkspace workspace) =>
+            HomeStrip(model, workspace).Children.OfType<RibbonPanel>().ToList();
 
         /// <summary>The arrow beside the button of a split, which drops its choices.</summary>
-        private static Button SplitArrowOf(Button main) => (Button)((Panel)VisualTreeHelper.GetParent(main)).Children[1];
+        private static Button SplitArrowOf(Button main) =>
+            (Button)((Panel)VisualTreeHelper.GetParent(main)).Children[1];
 
         /// <summary>The words a button shows, its content formatted as its presenter formats it.</summary>
-        private static string Label(Button button)
-            => string.IsNullOrEmpty(button.ContentStringFormat) ? (string)button.Content : string.Format(System.Globalization.CultureInfo.InvariantCulture, button.ContentStringFormat, button.Content);
+        private static string Label(Button button) =>
+            string.IsNullOrEmpty(button.ContentStringFormat)
+                ? (string)button.Content
+                : string.Format(
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    button.ContentStringFormat,
+                    button.Content
+                );
 
         /// <summary>The items of a button's menu, the menu taking the window's model from the button, its items bound at the dispatcher's next turn.</summary>
         private static List<MenuItem> MenuOf(Button opener)
@@ -388,7 +479,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         private static void Pick(MenuItem item)
         {
             Assert.True(item.IsEnabled, item.Header + " is not enabled.");
-            MethodInfo click = typeof(MenuItem).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic, null, Type.EmptyTypes, null);
+            MethodInfo click = typeof(MenuItem).GetMethod(
+                "OnClick",
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                Type.EmptyTypes,
+                null
+            );
             click.Invoke(item, null);
             item.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
         }
@@ -400,7 +497,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             int before = model.History.Count;
             press();
             Assert.Contains("Command: " + command, model.History.Skip(before));
-            Assert.DoesNotContain(model.History.Skip(before), l => l.StartsWith("Unknown command", StringComparison.Ordinal));
+            Assert.DoesNotContain(model.History.Skip(before), l =>
+                l.StartsWith("Unknown command", StringComparison.Ordinal)
+            );
             model.Escape();
         }
 

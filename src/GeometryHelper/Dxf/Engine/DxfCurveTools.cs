@@ -62,14 +62,20 @@ namespace GeometryHelper.Dxf
                 return true;
             }
 
-            double nx = 0.0, ny = 0.0, nz = 0.0;
+            double nx = 0.0,
+                ny = 0.0,
+                nz = 0.0;
 
             for (int i = 0; i < points.Count; i++)
             {
                 GeoPoint3 a = points[i];
                 GeoPoint3 b = points[(i + 1) % points.Count];
-                double ax = a.X - o.X, ay = a.Y - o.Y, az = a.Z - o.Z;
-                double bx = b.X - o.X, by = b.Y - o.Y, bz = b.Z - o.Z;
+                double ax = a.X - o.X,
+                    ay = a.Y - o.Y,
+                    az = a.Z - o.Z;
+                double bx = b.X - o.X,
+                    by = b.Y - o.Y,
+                    bz = b.Z - o.Z;
                 nx += (ay - by) * (az + bz);
                 ny += (az - bz) * (ax + bx);
                 nz += (ax - bx) * (ay + by);
@@ -116,7 +122,9 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal static GeoVector3 Upward(GeoVector3 n)
         {
-            double ax = Math.Abs(n.X), ay = Math.Abs(n.Y), az = Math.Abs(n.Z);
+            double ax = Math.Abs(n.X),
+                ay = Math.Abs(n.Y),
+                az = Math.Abs(n.Z);
             double big;
 
             if (az >= ax && az >= ay)
@@ -177,7 +185,16 @@ namespace GeometryHelper.Dxf
         /// points, weights and the knots, the parameters at the ends of the pieces each standing twice inside; with
         /// <paramref name="exact"/> the last point is the first, for a whole turn.
         /// </summary>
-        internal static void Conic(GeoPoint3 centre, Func<double, GeoPoint3> at, double start, double end, bool exact, List<GeoPoint3> points, List<double> weights, List<double> knots)
+        internal static void Conic(
+            GeoPoint3 centre,
+            Func<double, GeoPoint3> at,
+            double start,
+            double end,
+            bool exact,
+            List<GeoPoint3> points,
+            List<double> weights,
+            List<double> knots
+        )
         {
             double sweep = end - start;
             int pieces = Math.Max(1, (int)Math.Ceiling(Math.Abs(sweep) / (Math.PI * 0.5) - 1E-9));
@@ -193,7 +210,13 @@ namespace GeometryHelper.Dxf
             for (int i = 0; i < pieces; i++)
             {
                 GeoPoint3 middle = at(start + (i + 0.5) * step);
-                points.Add(new GeoPoint3(centre.X + (middle.X - centre.X) / cosine, centre.Y + (middle.Y - centre.Y) / cosine, centre.Z + (middle.Z - centre.Z) / cosine));
+                points.Add(
+                    new GeoPoint3(
+                        centre.X + (middle.X - centre.X) / cosine,
+                        centre.Y + (middle.Y - centre.Y) / cosine,
+                        centre.Z + (middle.Z - centre.Z) / cosine
+                    )
+                );
                 weights.Add(cosine);
                 double knot = i == pieces - 1 ? end : start + (i + 1) * step;
                 points.Add(i == pieces - 1 && exact ? first : at(knot));
@@ -211,8 +234,10 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal static double Bulge(double ax, double ay, double mx, double my, double bx, double by)
         {
-            double ux = ax - mx, uy = ay - my;
-            double vx = bx - mx, vy = by - my;
+            double ux = ax - mx,
+                uy = ay - my;
+            double vx = bx - mx,
+                vy = by - my;
             double cross = (mx - ax) * (by - my) - (my - ay) * (bx - mx);
             double dot = ux * vx + uy * vy;
             double angle = Math.Atan2(Math.Abs(ux * vy - uy * vx), dot);
@@ -233,7 +258,14 @@ namespace GeometryHelper.Dxf
         /// increasing order, by the length between two parameters, so that a thousand cuts cost one walk along the curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the parameters are null.</exception>
-        internal static List<double> Cuts(IReadOnlyList<double> parameters, double start, double end, bool closed, Func<double, double, double> between, Action<double> check)
+        internal static List<double> Cuts(
+            IReadOnlyList<double> parameters,
+            double start,
+            double end,
+            bool closed,
+            Func<double, double, double> between,
+            Action<double> check
+        )
         {
             if (parameters == null)
             {

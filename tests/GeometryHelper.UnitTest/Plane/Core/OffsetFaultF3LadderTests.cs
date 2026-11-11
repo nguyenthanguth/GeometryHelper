@@ -39,26 +39,52 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         /// <summary>A loop of fifteen corners in a box 1.2 across, most edges arcs, whose crossings lie too near along its edges to cut within 1E-3.</summary>
-        private static GeoPolygonArc2 FifteenCornersInABoxOfOnePointTwo() => new GeoPolygonArc2(
-            new[]
-            {
-                P(0.5096992854412276, 0.8004695466312066), P(0.8748631173711786, 0.8056697970323272), P(0.5538435484208427, 0.05647774683546407),
-                P(0.8647094179314039, 0.32605177357556286), P(0.9078126622779543, 1.1238662602340916), P(0.003870023421347067, 0.1692856130540717),
-                P(1.0132270706473248, 0.6664542407714154), P(0.4687826209207229, 0.34359131678478005), P(0.09011753118870756, 0.18933417207081482),
-                P(0.8322402143119063, 0.5278090659652349), P(1.1835588063523077, 1.0654600915858996), P(0.14344890636336366, 0.48727452487506745),
-                P(1.1034384093485945, 0.16941276644120107), P(0.38160270396613866, 1.0968413764758547), P(0.27212991899614364, 0.49626298520462747),
-            },
-            new[]
-            {
-                0.0, 0.0, -0.13074696838424865, 0.12204055172486256, 0.022987113391508884, -0.005233003900029232, 0.0, 0.23690161431995288,
-                -0.02662272254313469, 0.1235202518401296, -0.1582495548102304, 0.2403122115602308, 0.2892861415582179, -0.26493942242345747,
-                0.1944247941926237,
-            });
+        private static GeoPolygonArc2 FifteenCornersInABoxOfOnePointTwo() =>
+            new GeoPolygonArc2(
+                new[]
+                {
+                    P(0.5096992854412276, 0.8004695466312066),
+                    P(0.8748631173711786, 0.8056697970323272),
+                    P(0.5538435484208427, 0.05647774683546407),
+                    P(0.8647094179314039, 0.32605177357556286),
+                    P(0.9078126622779543, 1.1238662602340916),
+                    P(0.003870023421347067, 0.1692856130540717),
+                    P(1.0132270706473248, 0.6664542407714154),
+                    P(0.4687826209207229, 0.34359131678478005),
+                    P(0.09011753118870756, 0.18933417207081482),
+                    P(0.8322402143119063, 0.5278090659652349),
+                    P(1.1835588063523077, 1.0654600915858996),
+                    P(0.14344890636336366, 0.48727452487506745),
+                    P(1.1034384093485945, 0.16941276644120107),
+                    P(0.38160270396613866, 1.0968413764758547),
+                    P(0.27212991899614364, 0.49626298520462747),
+                },
+                new[]
+                {
+                    0.0,
+                    0.0,
+                    -0.13074696838424865,
+                    0.12204055172486256,
+                    0.022987113391508884,
+                    -0.005233003900029232,
+                    0.0,
+                    0.23690161431995288,
+                    -0.02662272254313469,
+                    0.1235202518401296,
+                    -0.1582495548102304,
+                    0.2403122115602308,
+                    0.2892861415582179,
+                    -0.26493942242345747,
+                    0.1944247941926237,
+                }
+            );
 
         /// <summary>A loop of four corners with a short arc of bulge -0.44058 0.005 long beside the origin, its first edge 8 long.</summary>
-        private static GeoPolygonArc2 FourCornersWithAShortArc() => new GeoPolygonArc2(
-            new[] { P(-8, 0), P(0, 0), P(-0.003614, 0.003455), P(2.632903, 6.989023) },
-            new[] { 0.0, -0.44058, 0.0, 0.0 });
+        private static GeoPolygonArc2 FourCornersWithAShortArc() =>
+            new GeoPolygonArc2(
+                new[] { P(-8, 0), P(0, 0), P(-0.003614, 0.003455), P(2.632903, 6.989023) },
+                new[] { 0.0, -0.44058, 0.0, 0.0 }
+            );
 
         [Fact]
         public void AStarOf71By35GrownAtATenth_IsTheOneLoopRoundIt()
@@ -82,7 +108,9 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolygonArc2 star = Star(75, 37, 5.0);
             ArcOffset2.TrySplitAtCrossings(ArcChain2.EdgesOf(star), Thousandth, out _, out _, out int crossings);
 
-            GeoPolygonArc2 grown = Assert.Single(Offset2.Offset(star, 0.3, new OffsetOptions(OffsetJoin.Round), Thousandth));
+            GeoPolygonArc2 grown = Assert.Single(
+                Offset2.Offset(star, 0.3, new OffsetOptions(OffsetJoin.Round), Thousandth)
+            );
 
             Assert.True(crossings > ArcOffset2.MostCrossingsRetried, crossings + " crossings");
             Assert.Equal(87.3190, grown.Area, 1E-3);
@@ -96,7 +124,9 @@ namespace GeometryHelper.UnitTest.Plane
             // 1E-5 it is, and grown by 1 it is one loop of 7.8584, as within 1E-5 and as the straight path within 1E-3 gives it
             // (7.8583). The second pass gave nothing.
             GeoPolygonArc2 loop = FifteenCornersInABoxOfOnePointTwo();
-            double fine = Assert.Single(Offset2.Offset(loop, 1.0, new OffsetOptions(OffsetJoin.Round), HundredThousandth)).Area;
+            double fine = Assert
+                .Single(Offset2.Offset(loop, 1.0, new OffsetOptions(OffsetJoin.Round), HundredThousandth))
+                .Area;
 
             GeoPolygonArc2 grown = Assert.Single(Offset2.Offset(loop, 1.0, new OffsetOptions(OffsetJoin.Round), Tenth));
 

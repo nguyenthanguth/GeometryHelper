@@ -18,7 +18,14 @@ namespace GeometryHelper.UnitTest.Dxf
             var db = new DxfDatabase("AC1027");
             line = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0));
             db.ModelSpace.AppendEntity(line);
-            dimension = new DxfRotatedDimension(0.0, line.StartPoint, line.EndPoint, new GeoPoint3(100, 20, 0), string.Empty, null);
+            dimension = new DxfRotatedDimension(
+                0.0,
+                line.StartPoint,
+                line.EndPoint,
+                new GeoPoint3(100, 20, 0),
+                string.Empty,
+                null
+            );
             dimension.DimBlock = Block(db);
             db.ModelSpace.AppendEntity(dimension);
             return db;
@@ -31,11 +38,12 @@ namespace GeometryHelper.UnitTest.Dxf
             return block;
         }
 
-        private static DxfOsnapPointRef[] BothEnds(DxfLine line) => new[]
-        {
-            new DxfOsnapPointRef(1, DxfOsnapType.Endpoint, line.Handle, 0, 1.0, line.EndPoint, null),
-            new DxfOsnapPointRef(0, DxfOsnapType.StartPoint, line.Handle, 0, 0.0, line.StartPoint, null),
-        };
+        private static DxfOsnapPointRef[] BothEnds(DxfLine line) =>
+            new[]
+            {
+                new DxfOsnapPointRef(1, DxfOsnapType.Endpoint, line.Handle, 0, 1.0, line.EndPoint, null),
+                new DxfOsnapPointRef(0, DxfOsnapType.StartPoint, line.Handle, 0, 0.0, line.StartPoint, null),
+            };
 
         [Fact]
         public void ADimensionTiedToBothEndsOfALine_IsWrittenAsAutoCadWritesIt_AndReadBack()
@@ -55,7 +63,14 @@ namespace GeometryHelper.UnitTest.Dxf
             string text = db.ToText().Replace("\r\n", "\n");
             Assert.Contains("ACAD_DIMASSOC", text);
             Assert.Contains("  1\nDIMASSOC\n  2\nAcDbDimAssoc\n", text);
-            Assert.Contains("100\nAcDbDimAssoc\n330\n" + dimension.Handle + "\n 90\n3\n 70\n0\n 71\n0\n  1\nAcDbOsnapPointRef\n 72\n13\n331\n" + line.Handle + "\n", text);
+            Assert.Contains(
+                "100\nAcDbDimAssoc\n330\n"
+                    + dimension.Handle
+                    + "\n 90\n3\n 70\n0\n 71\n0\n  1\nAcDbOsnapPointRef\n 72\n13\n331\n"
+                    + line.Handle
+                    + "\n",
+                text
+            );
 
             DxfDatabase again = DxfDatabase.Parse(db.ToText());
             var read = (DxfRotatedDimension)again.GetObject(dimension.Handle);
@@ -81,7 +96,9 @@ namespace GeometryHelper.UnitTest.Dxf
             radius.DimBlock = Block(db);
             db.ModelSpace.AppendEntity(radius);
 
-            DxfDimAssoc assoc = radius.SetDimAssoc(new[] { new DxfOsnapPointRef(1, DxfOsnapType.Center, circle.Handle, 0, 0.0, circle.Center, null) });
+            DxfDimAssoc assoc = radius.SetDimAssoc(
+                new[] { new DxfOsnapPointRef(1, DxfOsnapType.Center, circle.Handle, 0, 0.0, circle.Center, null) }
+            );
 
             Assert.Equal(2, assoc.AssociativityFlags);
             Assert.Equal(DxfOsnapType.Center, Assert.Single(assoc.PointReferences).OsnapType);
@@ -96,13 +113,21 @@ namespace GeometryHelper.UnitTest.Dxf
             db.ModelSpace.AppendEntity(other);
             string first = dimension.SetDimAssoc(BothEnds(line)).Handle;
 
-            DxfDimAssoc assoc = dimension.SetDimAssoc(new[] { new DxfOsnapPointRef(0, DxfOsnapType.StartPoint, other.Handle, 0, 0.0, other.StartPoint, null) });
+            DxfDimAssoc assoc = dimension.SetDimAssoc(
+                new[] { new DxfOsnapPointRef(0, DxfOsnapType.StartPoint, other.Handle, 0, 0.0, other.StartPoint, null) }
+            );
 
             Assert.Equal(first, assoc.Handle);
             Assert.Equal(1, assoc.AssociativityFlags);
             Assert.Empty(line.GetPersistentReactorIds());
             Assert.Equal(new[] { first }, other.GetPersistentReactorIds());
-            Assert.Equal(other.Handle, Assert.Single(DxfDatabase.Parse(db.ToText()).ModelSpace.OfType<DxfRotatedDimension>()).DimAssoc.PointReferences[0].ObjectHandle);
+            Assert.Equal(
+                other.Handle,
+                Assert
+                    .Single(DxfDatabase.Parse(db.ToText()).ModelSpace.OfType<DxfRotatedDimension>())
+                    .DimAssoc.PointReferences[0]
+                    .ObjectHandle
+            );
         }
 
         [Fact]
@@ -131,13 +156,24 @@ namespace GeometryHelper.UnitTest.Dxf
             var upright = new DxfLine(new GeoPoint3(100, -20, 0), new GeoPoint3(100, 60, 0));
             db.ModelSpace.AppendEntity(upright);
             var start = new DxfOsnapPointRef(0, DxfOsnapType.StartPoint, line.Handle, 0, 0.0, line.StartPoint, null);
-            DxfOsnapPointRef foot = new DxfOsnapPointRef(1, DxfOsnapType.Perpendicular, upright.Handle, 0, 0.25, new GeoPoint3(100, 0, 0), null).WithLastPoint(start);
+            DxfOsnapPointRef foot = new DxfOsnapPointRef(
+                1,
+                DxfOsnapType.Perpendicular,
+                upright.Handle,
+                0,
+                0.25,
+                new GeoPoint3(100, 0, 0),
+                null
+            ).WithLastPoint(start);
 
             dimension.SetDimAssoc(new[] { start, foot });
 
             string text = db.ToText().Replace("\r\n", "\n");
             Assert.Contains(" 72\n8\n331\n" + upright.Handle + "\n 73\n2\n 91\n0\n", text);
-            Assert.Contains(" 75\n1\n  1\nAcDbOsnapPointRef\n 72\n13\n331\n" + line.Handle + "\n 73\n2\n 91\n0\n", text);
+            Assert.Contains(
+                " 75\n1\n  1\nAcDbOsnapPointRef\n 72\n13\n331\n" + line.Handle + "\n 73\n2\n 91\n0\n",
+                text
+            );
             Assert.Equal(new[] { dimension.DimAssoc.Handle }, upright.GetPersistentReactorIds());
 
             DxfDatabase again = DxfDatabase.Parse(text);
@@ -161,7 +197,15 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Drawing(out DxfLine line, out DxfRotatedDimension dimension);
             var upright = new DxfLine(new GeoPoint3(100, -20, 0), new GeoPoint3(100, 60, 0));
             db.ModelSpace.AppendEntity(upright);
-            DxfOsnapPointRef foot = new DxfOsnapPointRef(0, DxfOsnapType.Perpendicular, upright.Handle, 0, 2.25, new GeoPoint3(100, 160, 0), null).WithLastPoint(new GeoPoint3(280, 160, 0));
+            DxfOsnapPointRef foot = new DxfOsnapPointRef(
+                0,
+                DxfOsnapType.Perpendicular,
+                upright.Handle,
+                0,
+                2.25,
+                new GeoPoint3(100, 160, 0),
+                null
+            ).WithLastPoint(new GeoPoint3(280, 160, 0));
             var end = new DxfOsnapPointRef(1, DxfOsnapType.Endpoint, line.Handle, 0, 1.0, line.EndPoint, null);
 
             dimension.SetDimAssoc(new[] { foot, end });
@@ -169,7 +213,9 @@ namespace GeometryHelper.UnitTest.Dxf
             string text = db.ToText().Replace("\r\n", "\n");
             Assert.Contains(" 75\n1\n  1\nAcDbOsnapPointRef\n 72\n0\n 40\n", text);
 
-            DxfOsnapPointRef[] references = ((DxfRotatedDimension)DxfDatabase.Parse(text).GetObject(dimension.Handle)).DimAssoc.PointReferences.ToArray();
+            DxfOsnapPointRef[] references = (
+                (DxfRotatedDimension)DxfDatabase.Parse(text).GetObject(dimension.Handle)
+            ).DimAssoc.PointReferences.ToArray();
             Assert.Equal(2, references.Length);
             Assert.Equal(DxfOsnapType.None, references[0].LastPointReference.OsnapType);
             Assert.Null(references[0].LastPointReference.ObjectHandle);
@@ -184,14 +230,24 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = Drawing(out DxfLine line, out DxfRotatedDimension dimension);
 
-            Assert.Throws<ArgumentException>(() => dimension.SetDimAssoc(new[]
-            {
-                new DxfOsnapPointRef(0, DxfOsnapType.StartPoint, line.Handle, 0, 0.0, line.StartPoint, null),
-                new DxfOsnapPointRef(0, DxfOsnapType.Endpoint, line.Handle, 0, 1.0, line.EndPoint, null),
-            }));
-            Assert.Throws<ArgumentException>(() => dimension.SetDimAssoc(new[] { new DxfOsnapPointRef(0, DxfOsnapType.StartPoint, "FFFF", 0, 0.0, line.StartPoint, null) }));
+            Assert.Throws<ArgumentException>(() =>
+                dimension.SetDimAssoc(
+                    new[]
+                    {
+                        new DxfOsnapPointRef(0, DxfOsnapType.StartPoint, line.Handle, 0, 0.0, line.StartPoint, null),
+                        new DxfOsnapPointRef(0, DxfOsnapType.Endpoint, line.Handle, 0, 1.0, line.EndPoint, null),
+                    }
+                )
+            );
+            Assert.Throws<ArgumentException>(() =>
+                dimension.SetDimAssoc(
+                    new[] { new DxfOsnapPointRef(0, DxfOsnapType.StartPoint, "FFFF", 0, 0.0, line.StartPoint, null) }
+                )
+            );
             Assert.Throws<ArgumentException>(() => dimension.SetDimAssoc(Array.Empty<DxfOsnapPointRef>()));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DxfOsnapPointRef(4, DxfOsnapType.Endpoint, line.Handle, 0, 1.0, line.EndPoint, null));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new DxfOsnapPointRef(4, DxfOsnapType.Endpoint, line.Handle, 0, 1.0, line.EndPoint, null)
+            );
             Assert.Null(dimension.DimAssoc);
         }
     }

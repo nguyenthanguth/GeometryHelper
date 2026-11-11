@@ -59,8 +59,11 @@ namespace GeometryHelper.Packing
         /// </summary>
         /// <param name="other">The placement to compare with.</param>
         /// <returns>true if the two are the same; otherwise, false.</returns>
-        public bool Equals(PackPlacement other)
-            => SheetIndex == other.SheetIndex && Translation.Equals(other.Translation) && ViewBox.Equals(other.ViewBox) && Placed == other.Placed;
+        public bool Equals(PackPlacement other) =>
+            SheetIndex == other.SheetIndex
+            && Translation.Equals(other.Translation)
+            && ViewBox.Equals(other.ViewBox)
+            && Placed == other.Placed;
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is PackPlacement other && Equals(other);
@@ -70,7 +73,8 @@ namespace GeometryHelper.Packing
         {
             unchecked
             {
-                return (((((SheetIndex * 397) ^ Translation.GetHashCode()) * 397) ^ ViewBox.GetHashCode()) * 397) ^ Placed.GetHashCode();
+                return (((((SheetIndex * 397) ^ Translation.GetHashCode()) * 397) ^ ViewBox.GetHashCode()) * 397)
+                    ^ Placed.GetHashCode();
             }
         }
 
@@ -94,7 +98,13 @@ namespace GeometryHelper.Packing
         public override string ToString()
         {
             return Placed
-                ? string.Format(CultureInfo.InvariantCulture, "PackPlacement[sheet {0}, moved ({1:0.###}, {2:0.###})]", SheetIndex, Translation.X, Translation.Y)
+                ? string.Format(
+                    CultureInfo.InvariantCulture,
+                    "PackPlacement[sheet {0}, moved ({1:0.###}, {2:0.###})]",
+                    SheetIndex,
+                    Translation.X,
+                    Translation.Y
+                )
                 : "PackPlacement[not placed]";
         }
     }

@@ -40,56 +40,108 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     {
         /// <summary>Identifies the <see cref="Title"/> property.</summary>
         public static readonly DependencyProperty TitleProperty = DependencyProperty.Register(
-            nameof(Title), typeof(string), typeof(RibbonPanel), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsMeasure));
+            nameof(Title),
+            typeof(string),
+            typeof(RibbonPanel),
+            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsMeasure)
+        );
 
         /// <summary>Identifies the <see cref="Icon"/> property.</summary>
         public static readonly DependencyProperty IconProperty = DependencyProperty.Register(
-            nameof(Icon), typeof(System.Windows.Media.Geometry), typeof(RibbonPanel), new PropertyMetadata(null));
+            nameof(Icon),
+            typeof(System.Windows.Media.Geometry),
+            typeof(RibbonPanel),
+            new PropertyMetadata(null)
+        );
 
         /// <summary>Identifies the <see cref="Header"/> property.</summary>
         public static readonly DependencyProperty HeaderProperty = DependencyProperty.Register(
-            nameof(Header), typeof(object), typeof(RibbonPanel), new PropertyMetadata(null));
+            nameof(Header),
+            typeof(object),
+            typeof(RibbonPanel),
+            new PropertyMetadata(null)
+        );
 
         /// <summary>Identifies the <see cref="Body"/> property.</summary>
         public static readonly DependencyProperty BodyProperty = DependencyProperty.Register(
-            nameof(Body), typeof(UIElement), typeof(RibbonPanel), new PropertyMetadata(null, (d, e) => ((RibbonPanel)d).Place(e.OldValue as UIElement)));
+            nameof(Body),
+            typeof(UIElement),
+            typeof(RibbonPanel),
+            new PropertyMetadata(null, (d, e) => ((RibbonPanel)d).Place(e.OldValue as UIElement))
+        );
 
         /// <summary>Identifies the <see cref="SlideOut"/> property.</summary>
         public static readonly DependencyProperty SlideOutProperty = DependencyProperty.Register(
-            nameof(SlideOut), typeof(UIElement), typeof(RibbonPanel), new PropertyMetadata(null, (d, e) => ((RibbonPanel)d).Place(e.OldValue as UIElement)));
+            nameof(SlideOut),
+            typeof(UIElement),
+            typeof(RibbonPanel),
+            new PropertyMetadata(null, (d, e) => ((RibbonPanel)d).Place(e.OldValue as UIElement))
+        );
 
         /// <summary>Identifies the <see cref="Size"/> property.</summary>
         public static readonly DependencyProperty SizeProperty = DependencyProperty.Register(
-            nameof(Size), typeof(RibbonPanelSize), typeof(RibbonPanel),
-            new FrameworkPropertyMetadata(RibbonPanelSize.Full, FrameworkPropertyMetadataOptions.AffectsMeasure, (d, e) => ((RibbonPanel)d).Place(null)));
+            nameof(Size),
+            typeof(RibbonPanelSize),
+            typeof(RibbonPanel),
+            new FrameworkPropertyMetadata(
+                RibbonPanelSize.Full,
+                FrameworkPropertyMetadataOptions.AffectsMeasure,
+                (d, e) => ((RibbonPanel)d).Place(null)
+            )
+        );
 
         /// <summary>Identifies the <see cref="IsDropDownOpen"/> property.</summary>
         public static readonly DependencyProperty IsDropDownOpenProperty = DependencyProperty.Register(
-            nameof(IsDropDownOpen), typeof(bool), typeof(RibbonPanel),
-            new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, (d, e) => ((RibbonPanel)d).OnDropDownChanged()));
+            nameof(IsDropDownOpen),
+            typeof(bool),
+            typeof(RibbonPanel),
+            new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, (d, e) =>
+                ((RibbonPanel)d).OnDropDownChanged()
+            )
+        );
 
         /// <summary>Identifies the <see cref="IsPinned"/> property.</summary>
         public static readonly DependencyProperty IsPinnedProperty = DependencyProperty.Register(
-            nameof(IsPinned), typeof(bool), typeof(RibbonPanel), new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+            nameof(IsPinned),
+            typeof(bool),
+            typeof(RibbonPanel),
+            new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault)
+        );
 
         /// <summary>
         /// Identifies the attached property that tells the buttons of a panel it is drawn medium, inherited down the panel's
         /// body: the styles of the small buttons then draw their icons alone.
         /// </summary>
         public static readonly DependencyProperty IsMediumProperty = DependencyProperty.RegisterAttached(
-            "IsMedium", typeof(bool), typeof(RibbonPanel), new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.Inherits));
+            "IsMedium",
+            typeof(bool),
+            typeof(RibbonPanel),
+            new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.Inherits)
+        );
 
         /// <summary>Identifies the <see cref="MinFullWidth"/> property.</summary>
         public static readonly DependencyProperty MinFullWidthProperty = DependencyProperty.Register(
-            nameof(MinFullWidth), typeof(double), typeof(RibbonPanel), new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsMeasure));
+            nameof(MinFullWidth),
+            typeof(double),
+            typeof(RibbonPanel),
+            new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsMeasure)
+        );
 
         /// <summary>Identifies the <see cref="MinMediumWidth"/> property.</summary>
         public static readonly DependencyProperty MinMediumWidthProperty = DependencyProperty.Register(
-            nameof(MinMediumWidth), typeof(double), typeof(RibbonPanel), new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsMeasure));
+            nameof(MinMediumWidth),
+            typeof(double),
+            typeof(RibbonPanel),
+            new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsMeasure)
+        );
 
         /// <summary>Identifies the <see cref="MinCollapsedWidth"/> property.</summary>
         public static readonly DependencyProperty MinCollapsedWidthProperty = DependencyProperty.Register(
-            nameof(MinCollapsedWidth), typeof(double), typeof(RibbonPanel), new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsMeasure));
+            nameof(MinCollapsedWidth),
+            typeof(double),
+            typeof(RibbonPanel),
+            new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsMeasure)
+        );
 
         private Decorator _inline;
         private Decorator _dropped;
@@ -184,12 +236,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether an element is drawn in a medium panel.</summary>
         /// <param name="element">The element.</param>
         /// <returns>Whether it is.</returns>
-        public static bool GetIsMedium(DependencyObject element) => (bool)(element ?? throw new ArgumentNullException(nameof(element))).GetValue(IsMediumProperty);
+        public static bool GetIsMedium(DependencyObject element) =>
+            (bool)(element ?? throw new ArgumentNullException(nameof(element))).GetValue(IsMediumProperty);
 
         /// <summary>Sets whether an element and those under it are drawn in a medium panel.</summary>
         /// <param name="element">The element.</param>
         /// <param name="value">Whether they are.</param>
-        public static void SetIsMedium(DependencyObject element, bool value) => (element ?? throw new ArgumentNullException(nameof(element))).SetValue(IsMediumProperty, value);
+        public static void SetIsMedium(DependencyObject element, bool value) =>
+            (element ?? throw new ArgumentNullException(nameof(element))).SetValue(IsMediumProperty, value);
 
         /// <inheritdoc/>
         public override void OnApplyTemplate()
@@ -228,7 +282,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         protected override Size MeasureOverride(Size constraint)
         {
             Size measured = base.MeasureOverride(constraint);
-            double least = Size == RibbonPanelSize.Full ? MinFullWidth : Size == RibbonPanelSize.Medium ? MinMediumWidth : MinCollapsedWidth;
+            double least =
+                Size == RibbonPanelSize.Full ? MinFullWidth
+                : Size == RibbonPanelSize.Medium ? MinMediumWidth
+                : MinCollapsedWidth;
             return new Size(Math.Max(measured.Width, least), measured.Height);
         }
 
@@ -378,18 +435,32 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double shift = 0.0;
             double scale = ActualWidth > 0.0 ? targetSize.Width / ActualWidth : 1.0;
 
-            if (PresentationSource.FromVisual(this)?.RootVisual is FrameworkElement root && root.IsAncestorOf(this) && scale > 0.0)
+            if (
+                PresentationSource.FromVisual(this)?.RootVisual is FrameworkElement root
+                && root.IsAncestorOf(this)
+                && scale > 0.0
+            )
             {
                 double left = TransformToAncestor(root).Transform(new Point(0.0, 0.0)).X;
                 shift = ShiftToFit(left, popupSize.Width / scale, root.ActualWidth);
             }
 
-            return new[] { new CustomPopupPlacement(new Point(shift * scale, targetSize.Height), PopupPrimaryAxis.Horizontal) };
+            return new[]
+            {
+                new CustomPopupPlacement(new Point(shift * scale, targetSize.Height), PopupPrimaryAxis.Horizontal),
+            };
         }
 
         private static bool Within(DependencyObject element, DependencyObject ancestor)
         {
-            for (DependencyObject at = element; at != null; at = at is Visual || at is System.Windows.Media.Media3D.Visual3D ? VisualTreeHelper.GetParent(at) : LogicalTreeHelper.GetParent(at))
+            for (
+                DependencyObject at = element;
+                at != null;
+                at =
+                        at is Visual || at is System.Windows.Media.Media3D.Visual3D
+                            ? VisualTreeHelper.GetParent(at)
+                            : LogicalTreeHelper.GetParent(at)
+            )
             {
                 if (at == ancestor)
                 {

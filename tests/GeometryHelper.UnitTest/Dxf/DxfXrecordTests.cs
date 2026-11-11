@@ -23,8 +23,22 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // ezdxf: [1 'B-12'] [40 12.5] [70 3] [10 (1.5, 2.5, 3.5)] [330 '33'] [102 '{GH_NOTE'] [1 'in a list'] [102 '}'] [300 ...]
             Assert.Equal(
-                new[] { "1 B-12", "40 12.5", "70 3", "10 1.5", "20 2.5", "30 3.5", "330 33", "102 {GH_NOTE", "1 in a list", "102 }", "300 " + (version == "R2018" ? "Wand€Außen" : "WandAussen") },
-                xrecord.Data.Select(g => g.ToString()));
+                new[]
+                {
+                    "1 B-12",
+                    "40 12.5",
+                    "70 3",
+                    "10 1.5",
+                    "20 2.5",
+                    "30 3.5",
+                    "330 33",
+                    "102 {GH_NOTE",
+                    "1 in a list",
+                    "102 }",
+                    "300 " + (version == "R2018" ? "Wand€Außen" : "WandAussen"),
+                },
+                xrecord.Data.Select(g => g.ToString())
+            );
             Assert.Equal(xrecord.Data.Select(g => g.ToString()), xrecord.Select(g => g.ToString()));
             Assert.Equal("39", xrecord.Handle);
             Assert.Equal("A", xrecord.OwnerHandle);
@@ -35,7 +49,10 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             string text = DxfObjectsEzdxfDrawings.R2018;
             DxfDatabase db = DxfDatabase.Parse(text);
-            var xrecord = new DxfXrecord { Data = new[] { new DxfTypedValue(1, "B-12"), new DxfTypedValue(40, "12.5") } };
+            var xrecord = new DxfXrecord
+            {
+                Data = new[] { new DxfTypedValue(1, "B-12"), new DxfTypedValue(40, "12.5") },
+            };
             xrecord.Append(new[] { new DxfTypedValue(1, "Đ") });
 
             Assert.Null(xrecord.Handle);
@@ -43,7 +60,12 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "A", xrecord.Handle);
-            Assert.Equal("  0\nXRECORD\n  5\n" + xrecord.Handle + "\n102\n{ACAD_REACTORS\n330\nA\n102\n}\n330\nA\n100\nAcDbXrecord\n280\n1\n  1\nB-12\n 40\n12.5\n  1\nĐ\n", Records(saved).Single(r => HandleOf(r) == xrecord.Handle));
+            Assert.Equal(
+                "  0\nXRECORD\n  5\n"
+                    + xrecord.Handle
+                    + "\n102\n{ACAD_REACTORS\n330\nA\n102\n}\n330\nA\n100\nAcDbXrecord\n280\n1\n  1\nB-12\n 40\n12.5\n  1\nĐ\n",
+                Records(saved).Single(r => HandleOf(r) == xrecord.Handle)
+            );
 
             var read = (DxfXrecord)DxfDatabase.Parse(saved).NamedObjectsDictionary["GH_PLATE"];
             Assert.Equal(new[] { "1 B-12", "40 12.5", "1 Đ" }, read.Data.Select(g => g.ToString()));
@@ -110,6 +132,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<InvalidOperationException>(() => new DxfXrecord().Erase());
         }
 
-        private static string Drawing(string version) => version == "R2000" ? DxfObjectsEzdxfDrawings.R2000 : DxfObjectsEzdxfDrawings.R2018;
+        private static string Drawing(string version) =>
+            version == "R2000" ? DxfObjectsEzdxfDrawings.R2000 : DxfObjectsEzdxfDrawings.R2018;
     }
 }

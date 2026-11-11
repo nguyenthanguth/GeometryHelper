@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -36,9 +36,7 @@ namespace GeometryHelper.Geometry
         /// Initializes a new GeoLine2 instance from the coordinates of the endpoints.
         /// </summary>
         public GeoLine2(double startX, double startY, double endX, double endY)
-            : this(new GeoPoint2(startX, startY), new GeoPoint2(endX, endY))
-        {
-        }
+            : this(new GeoPoint2(startX, startY), new GeoPoint2(endX, endY)) { }
 
         /// <summary>
         /// Creates a copy of this line segment.
@@ -109,7 +107,8 @@ namespace GeometryHelper.Geometry
         /// <param name="angleRad">Rotation angle in radians.</param>
         /// <param name="center">Center of rotation.</param>
         /// <returns>A new rotated line segment.</returns>
-        public GeoLine2 RotateBy(double angleRad, GeoPoint2 center) => new GeoLine2(StartPoint.RotateBy(angleRad, center), EndPoint.RotateBy(angleRad, center));
+        public GeoLine2 RotateBy(double angleRad, GeoPoint2 center) =>
+            new GeoLine2(StartPoint.RotateBy(angleRad, center), EndPoint.RotateBy(angleRad, center));
 
         /// <summary>
         /// Gets the point on the line segment at parameter t (t=0 is the start point, t=1 is the end point).
@@ -136,12 +135,14 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the arc length from the start point of this line segment to a normalized parameter.
         /// </summary>
-        public double GetDistanceAtParameter(double parameter) => Parametrization2.GetDistanceAtParameter(this, parameter);
+        public double GetDistanceAtParameter(double parameter) =>
+            Parametrization2.GetDistanceAtParameter(this, parameter);
 
         /// <summary>
         /// Gets the normalized parameter at an arc length measured from the start point of this line segment.
         /// </summary>
-        public double GetParameterAtDistance(double distance) => Parametrization2.GetParameterAtDistance(this, distance);
+        public double GetParameterAtDistance(double distance) =>
+            Parametrization2.GetParameterAtDistance(this, distance);
 
         /// <summary>
         /// Checks whether a point lies on the line segment using default tolerance.
@@ -151,7 +152,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether a point lies on the line segment within tolerance.
         /// </summary>
-        public bool IsPointOn(GeoPoint2 GeoPoint2, Tolerance tolerance) => Containment2.IsPointOn(this, GeoPoint2, tolerance);
+        public bool IsPointOn(GeoPoint2 GeoPoint2, Tolerance tolerance) =>
+            Containment2.IsPointOn(this, GeoPoint2, tolerance);
 
         /// <summary>
         /// Classifies the location of a point relative to this line segment (OnSide or OutSide) using default tolerance.
@@ -161,7 +163,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Classifies the location of a point relative to this line segment (OnSide or OutSide) within tolerance.
         /// </summary>
-        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) => Containment2.Locate(this, point, tolerance);
+        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) =>
+            Containment2.Locate(this, point, tolerance);
 
         /// <summary>
         /// Splits this segment at a point lying on it, using the default tolerance.
@@ -170,8 +173,8 @@ namespace GeometryHelper.Geometry
         /// <param name="first">The piece holding the start point.</param>
         /// <param name="second">The piece holding the end point.</param>
         /// <returns>true if the segment was split; otherwise, false.</returns>
-        public bool TrySplitBy(GeoPoint2 point, out GeoLine2 first, out GeoLine2 second)
-            => Splition2.TrySplitBy(this, point, out first, out second, Tolerance.Global);
+        public bool TrySplitBy(GeoPoint2 point, out GeoLine2 first, out GeoLine2 second) =>
+            Splition2.TrySplitBy(this, point, out first, out second, Tolerance.Global);
 
         /// <summary>
         /// Splits this segment at a point lying on it, within tolerance.
@@ -181,8 +184,8 @@ namespace GeometryHelper.Geometry
         /// <param name="second">The piece holding the end point.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the segment was split; otherwise, false.</returns>
-        public bool TrySplitBy(GeoPoint2 point, out GeoLine2 first, out GeoLine2 second, Tolerance tolerance)
-            => Splition2.TrySplitBy(this, point, out first, out second, tolerance);
+        public bool TrySplitBy(GeoPoint2 point, out GeoLine2 first, out GeoLine2 second, Tolerance tolerance) =>
+            Splition2.TrySplitBy(this, point, out first, out second, tolerance);
 
         /// <summary>
         /// Splits this segment where a cutting line segment crosses it, using the default tolerance.
@@ -191,8 +194,8 @@ namespace GeometryHelper.Geometry
         /// <param name="first">The piece holding the start point.</param>
         /// <param name="second">The piece holding the end point.</param>
         /// <returns>true if the segment was split; otherwise, false.</returns>
-        public bool TrySplitBy(GeoLine2 cutter, out GeoLine2 first, out GeoLine2 second)
-            => Splition2.TrySplitBy(this, cutter, out first, out second, Tolerance.Global);
+        public bool TrySplitBy(GeoLine2 cutter, out GeoLine2 first, out GeoLine2 second) =>
+            Splition2.TrySplitBy(this, cutter, out first, out second, Tolerance.Global);
 
         /// <summary>
         /// Splits this segment where a cutting line segment crosses it, within tolerance.
@@ -202,8 +205,8 @@ namespace GeometryHelper.Geometry
         /// <param name="second">The piece holding the end point.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the segment was split; otherwise, false.</returns>
-        public bool TrySplitBy(GeoLine2 cutter, out GeoLine2 first, out GeoLine2 second, Tolerance tolerance)
-            => Splition2.TrySplitBy(this, cutter, out first, out second, tolerance);
+        public bool TrySplitBy(GeoLine2 cutter, out GeoLine2 first, out GeoLine2 second, Tolerance tolerance) =>
+            Splition2.TrySplitBy(this, cutter, out first, out second, tolerance);
 
         /// <summary>
         /// Splits this segment against a polygon, sorting the parts by which side of its boundary they
@@ -213,8 +216,8 @@ namespace GeometryHelper.Geometry
         /// <param name="inside">The parts lying inside the polygon, in order along this segment.</param>
         /// <param name="outside">The parts lying outside the polygon, in order along this segment.</param>
         /// <returns>true if the polygon boundary crosses this segment; otherwise, false.</returns>
-        public bool TrySplitBy(GeoPolygon2 cutter, out GeoLine2[] inside, out GeoLine2[] outside)
-            => Splition2.TrySplitBy(this, cutter, out inside, out outside, Tolerance.Global);
+        public bool TrySplitBy(GeoPolygon2 cutter, out GeoLine2[] inside, out GeoLine2[] outside) =>
+            Splition2.TrySplitBy(this, cutter, out inside, out outside, Tolerance.Global);
 
         /// <summary>
         /// Splits this segment against a polygon, sorting the parts by which side of its boundary they
@@ -225,8 +228,12 @@ namespace GeometryHelper.Geometry
         /// <param name="outside">The parts lying outside the polygon, in order along this segment.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the polygon boundary crosses this segment; otherwise, false.</returns>
-        public bool TrySplitBy(GeoPolygon2 cutter, out GeoLine2[] inside, out GeoLine2[] outside, Tolerance tolerance)
-            => Splition2.TrySplitBy(this, cutter, out inside, out outside, tolerance);
+        public bool TrySplitBy(
+            GeoPolygon2 cutter,
+            out GeoLine2[] inside,
+            out GeoLine2[] outside,
+            Tolerance tolerance
+        ) => Splition2.TrySplitBy(this, cutter, out inside, out outside, tolerance);
 
         /// <summary>
         /// Splits this segment everywhere a list of cutting line segments crosses it, using the default tolerance.
@@ -234,8 +241,8 @@ namespace GeometryHelper.Geometry
         /// <param name="cutters">The cutting line segments.</param>
         /// <param name="pieces">The resulting pieces in order along this segment.</param>
         /// <returns>true if this segment was split by at least one cutter; otherwise, false.</returns>
-        public bool TrySplitBy(GeoLine2[] cutters, out GeoLine2[] pieces)
-            => Splition2.TrySplitBy(this, cutters, out pieces, Tolerance.Global);
+        public bool TrySplitBy(GeoLine2[] cutters, out GeoLine2[] pieces) =>
+            Splition2.TrySplitBy(this, cutters, out pieces, Tolerance.Global);
 
         /// <summary>
         /// Splits this segment everywhere a list of cutting line segments crosses it, within tolerance.
@@ -244,8 +251,8 @@ namespace GeometryHelper.Geometry
         /// <param name="pieces">The resulting pieces in order along this segment.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if this segment was split by at least one cutter; otherwise, false.</returns>
-        public bool TrySplitBy(GeoLine2[] cutters, out GeoLine2[] pieces, Tolerance tolerance)
-            => Splition2.TrySplitBy(this, cutters, out pieces, tolerance);
+        public bool TrySplitBy(GeoLine2[] cutters, out GeoLine2[] pieces, Tolerance tolerance) =>
+            Splition2.TrySplitBy(this, cutters, out pieces, tolerance);
 
         /// <summary>
         /// Splits this segment everywhere a cutting polyline crosses it, using the default tolerance.
@@ -253,8 +260,8 @@ namespace GeometryHelper.Geometry
         /// <param name="cutter">The cutting polyline.</param>
         /// <param name="pieces">The resulting pieces in order along this segment.</param>
         /// <returns>true if this segment was split by the polyline; otherwise, false.</returns>
-        public bool TrySplitBy(GeoPolyline2 cutter, out GeoLine2[] pieces)
-            => Splition2.TrySplitBy(this, cutter, out pieces, Tolerance.Global);
+        public bool TrySplitBy(GeoPolyline2 cutter, out GeoLine2[] pieces) =>
+            Splition2.TrySplitBy(this, cutter, out pieces, Tolerance.Global);
 
         /// <summary>
         /// Splits this segment everywhere a cutting polyline crosses it, within tolerance.
@@ -263,8 +270,8 @@ namespace GeometryHelper.Geometry
         /// <param name="pieces">The resulting pieces in order along this segment.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if this segment was split by the polyline; otherwise, false.</returns>
-        public bool TrySplitBy(GeoPolyline2 cutter, out GeoLine2[] pieces, Tolerance tolerance)
-            => Splition2.TrySplitBy(this, cutter, out pieces, tolerance);
+        public bool TrySplitBy(GeoPolyline2 cutter, out GeoLine2[] pieces, Tolerance tolerance) =>
+            Splition2.TrySplitBy(this, cutter, out pieces, tolerance);
 
         /// <summary>
         /// Splits this segment everywhere a list of points lies on it, using the default tolerance.
@@ -272,8 +279,8 @@ namespace GeometryHelper.Geometry
         /// <param name="points">The points to split at.</param>
         /// <param name="pieces">The resulting pieces in order along this segment.</param>
         /// <returns>true if this segment was split; otherwise, false.</returns>
-        public bool TrySplitBy(GeoPoint2[] points, out GeoLine2[] pieces)
-            => Splition2.TrySplitBy(this, points, out pieces, Tolerance.Global);
+        public bool TrySplitBy(GeoPoint2[] points, out GeoLine2[] pieces) =>
+            Splition2.TrySplitBy(this, points, out pieces, Tolerance.Global);
 
         /// <summary>
         /// Splits this segment everywhere a list of points lies on it, within tolerance.
@@ -282,8 +289,8 @@ namespace GeometryHelper.Geometry
         /// <param name="pieces">The resulting pieces in order along this segment.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if this segment was split; otherwise, false.</returns>
-        public bool TrySplitBy(GeoPoint2[] points, out GeoLine2[] pieces, Tolerance tolerance)
-            => Splition2.TrySplitBy(this, points, out pieces, tolerance);
+        public bool TrySplitBy(GeoPoint2[] points, out GeoLine2[] pieces, Tolerance tolerance) =>
+            Splition2.TrySplitBy(this, points, out pieces, tolerance);
 
         /// <summary>
         /// Splits this segment everywhere a list of polygon boundaries crosses it, separating the parts that fall
@@ -293,8 +300,8 @@ namespace GeometryHelper.Geometry
         /// <param name="inside">The parts lying inside the polygons, in order along this segment.</param>
         /// <param name="outside">The parts lying outside the polygons, in order along this segment.</param>
         /// <returns>true if at least one polygon boundary crosses this segment; otherwise, false.</returns>
-        public bool TrySplitBy(GeoPolygon2[] cutters, out GeoLine2[] inside, out GeoLine2[] outside)
-            => Splition2.TrySplitBy(this, cutters, out inside, out outside, Tolerance.Global);
+        public bool TrySplitBy(GeoPolygon2[] cutters, out GeoLine2[] inside, out GeoLine2[] outside) =>
+            Splition2.TrySplitBy(this, cutters, out inside, out outside, Tolerance.Global);
 
         /// <summary>
         /// Splits this segment everywhere a list of polygon boundaries crosses it, separating the parts that fall
@@ -305,8 +312,12 @@ namespace GeometryHelper.Geometry
         /// <param name="outside">The parts lying outside the polygons, in order along this segment.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if at least one polygon boundary crosses this segment; otherwise, false.</returns>
-        public bool TrySplitBy(GeoPolygon2[] cutters, out GeoLine2[] inside, out GeoLine2[] outside, Tolerance tolerance)
-            => Splition2.TrySplitBy(this, cutters, out inside, out outside, tolerance);
+        public bool TrySplitBy(
+            GeoPolygon2[] cutters,
+            out GeoLine2[] inside,
+            out GeoLine2[] outside,
+            Tolerance tolerance
+        ) => Splition2.TrySplitBy(this, cutters, out inside, out outside, tolerance);
 
         /// <summary>
         /// Splits this segment everywhere a list of polylines crosses it, using the default tolerance.
@@ -314,8 +325,8 @@ namespace GeometryHelper.Geometry
         /// <param name="cutters">The cutting polylines.</param>
         /// <param name="pieces">The resulting pieces in order along this segment.</param>
         /// <returns>true if at least one polyline crosses this segment; otherwise, false.</returns>
-        public bool TrySplitBy(GeoPolyline2[] cutters, out GeoLine2[] pieces)
-            => Splition2.TrySplitBy(this, cutters, out pieces, Tolerance.Global);
+        public bool TrySplitBy(GeoPolyline2[] cutters, out GeoLine2[] pieces) =>
+            Splition2.TrySplitBy(this, cutters, out pieces, Tolerance.Global);
 
         /// <summary>
         /// Splits this segment everywhere a list of polylines crosses it, within tolerance.
@@ -324,8 +335,8 @@ namespace GeometryHelper.Geometry
         /// <param name="pieces">The resulting pieces in order along this segment.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if at least one polyline crosses this segment; otherwise, false.</returns>
-        public bool TrySplitBy(GeoPolyline2[] cutters, out GeoLine2[] pieces, Tolerance tolerance)
-            => Splition2.TrySplitBy(this, cutters, out pieces, tolerance);
+        public bool TrySplitBy(GeoPolyline2[] cutters, out GeoLine2[] pieces, Tolerance tolerance) =>
+            Splition2.TrySplitBy(this, cutters, out pieces, tolerance);
 
         /// <summary>
         /// Splits this segment at an arc length measured from its start point, using the default tolerance.
@@ -334,8 +345,8 @@ namespace GeometryHelper.Geometry
         /// <param name="first">The piece holding the start point.</param>
         /// <param name="second">The piece holding the end point.</param>
         /// <returns>true if the segment was split; otherwise, false.</returns>
-        public bool TrySplitAtDistance(double distance, out GeoLine2 first, out GeoLine2 second)
-            => Splition2.TrySplitAtDistance(this, distance, out first, out second, Tolerance.Global);
+        public bool TrySplitAtDistance(double distance, out GeoLine2 first, out GeoLine2 second) =>
+            Splition2.TrySplitAtDistance(this, distance, out first, out second, Tolerance.Global);
 
         /// <summary>
         /// Splits this segment at an arc length measured from its start point, within tolerance.
@@ -345,8 +356,8 @@ namespace GeometryHelper.Geometry
         /// <param name="second">The piece holding the end point.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the segment was split; otherwise, false.</returns>
-        public bool TrySplitAtDistance(double distance, out GeoLine2 first, out GeoLine2 second, Tolerance tolerance)
-            => Splition2.TrySplitAtDistance(this, distance, out first, out second, tolerance);
+        public bool TrySplitAtDistance(double distance, out GeoLine2 first, out GeoLine2 second, Tolerance tolerance) =>
+            Splition2.TrySplitAtDistance(this, distance, out first, out second, tolerance);
 
         /// <summary>
         /// Splits this segment at several arc lengths measured from its start point, using the default
@@ -354,8 +365,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="distances">Arc lengths from the start point, in any order.</param>
         /// <returns>The pieces in order along this segment.</returns>
-        public GeoLine2[] SplitAtDistances(IEnumerable<double> distances)
-            => Splition2.SplitAtDistances(this, distances, Tolerance.Global);
+        public GeoLine2[] SplitAtDistances(IEnumerable<double> distances) =>
+            Splition2.SplitAtDistances(this, distances, Tolerance.Global);
 
         /// <summary>
         /// Splits this segment at several arc lengths measured from its start point, within tolerance.
@@ -363,8 +374,8 @@ namespace GeometryHelper.Geometry
         /// <param name="distances">Arc lengths from the start point, in any order.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The pieces in order along this segment.</returns>
-        public GeoLine2[] SplitAtDistances(IEnumerable<double> distances, Tolerance tolerance)
-            => Splition2.SplitAtDistances(this, distances, tolerance);
+        public GeoLine2[] SplitAtDistances(IEnumerable<double> distances, Tolerance tolerance) =>
+            Splition2.SplitAtDistances(this, distances, tolerance);
 
         #region Lengthening and trimming
 
@@ -386,7 +397,8 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <exception cref="InvalidOperationException">Thrown when the segment is too short to have a direction.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not finite or would leave nothing of the segment.</exception>
-        public GeoLine2 Extend(double distance, LineEnd end, Tolerance tolerance) => Lengthen2.Extend(this, distance, end, tolerance);
+        public GeoLine2 Extend(double distance, LineEnd end, Tolerance tolerance) =>
+            Lengthen2.Extend(this, distance, end, tolerance);
 
         /// <summary>
         /// Lengthens both ends of this segment, each by its own distance, using default tolerance. A negative
@@ -396,7 +408,8 @@ namespace GeometryHelper.Geometry
         /// <param name="endDistance">How far the end point moves outward.</param>
         /// <exception cref="InvalidOperationException">Thrown when the segment is too short to have a direction.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a distance is not finite or would leave nothing of the segment.</exception>
-        public GeoLine2 Extend(double startDistance, double endDistance) => Lengthen2.Extend(this, startDistance, endDistance, Tolerance.Global);
+        public GeoLine2 Extend(double startDistance, double endDistance) =>
+            Lengthen2.Extend(this, startDistance, endDistance, Tolerance.Global);
 
         /// <summary>
         /// Lengthens both ends of this segment, each by its own distance, within tolerance. A negative distance
@@ -407,7 +420,8 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <exception cref="InvalidOperationException">Thrown when the segment is too short to have a direction.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a distance is not finite or would leave nothing of the segment.</exception>
-        public GeoLine2 Extend(double startDistance, double endDistance, Tolerance tolerance) => Lengthen2.Extend(this, startDistance, endDistance, tolerance);
+        public GeoLine2 Extend(double startDistance, double endDistance, Tolerance tolerance) =>
+            Lengthen2.Extend(this, startDistance, endDistance, tolerance);
 
         /// <summary>
         /// Moves one end of this segment so that it measures a given length, using default tolerance. The
@@ -417,7 +431,8 @@ namespace GeometryHelper.Geometry
         /// <param name="end">The end that moves.</param>
         /// <exception cref="InvalidOperationException">Thrown when the segment is too short to have a direction.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the length is not a finite number above the tolerance.</exception>
-        public GeoLine2 ExtendToLength(double length, LineEnd end) => Lengthen2.ExtendToLength(this, length, end, Tolerance.Global);
+        public GeoLine2 ExtendToLength(double length, LineEnd end) =>
+            Lengthen2.ExtendToLength(this, length, end, Tolerance.Global);
 
         /// <summary>
         /// Moves one end of this segment so that it measures a given length, within tolerance. The other end
@@ -428,138 +443,169 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <exception cref="InvalidOperationException">Thrown when the segment is too short to have a direction.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the length is not a finite number above the tolerance.</exception>
-        public GeoLine2 ExtendToLength(double length, LineEnd end, Tolerance tolerance) => Lengthen2.ExtendToLength(this, length, end, tolerance);
+        public GeoLine2 ExtendToLength(double length, LineEnd end, Tolerance tolerance) =>
+            Lengthen2.ExtendToLength(this, length, end, tolerance);
 
         /// <summary>
         /// Extends one end of this segment to the foot of the perpendicular from a point, using default tolerance.
         /// </summary>
-        public bool TryExtendTo(GeoPoint2 point, LineEnd end, out GeoLine2 result) => Lengthen2.TryExtendTo(this, point, end, out result, Tolerance.Global);
+        public bool TryExtendTo(GeoPoint2 point, LineEnd end, out GeoLine2 result) =>
+            Lengthen2.TryExtendTo(this, point, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Extends one end of this segment to the foot of the perpendicular from a point, within tolerance.
         /// </summary>
-        public bool TryExtendTo(GeoPoint2 point, LineEnd end, out GeoLine2 result, Tolerance tolerance) => Lengthen2.TryExtendTo(this, point, end, out result, tolerance);
+        public bool TryExtendTo(GeoPoint2 point, LineEnd end, out GeoLine2 result, Tolerance tolerance) =>
+            Lengthen2.TryExtendTo(this, point, end, out result, tolerance);
 
         /// <summary>
         /// Extends one end of this segment until it meets a boundary segment, using default tolerance.
         /// </summary>
-        public bool TryExtendTo(GeoLine2 boundary, LineEnd end, out GeoLine2 result) => Lengthen2.TryExtendTo(this, boundary, end, out result, Tolerance.Global);
+        public bool TryExtendTo(GeoLine2 boundary, LineEnd end, out GeoLine2 result) =>
+            Lengthen2.TryExtendTo(this, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Extends one end of this segment until it meets a boundary segment, within tolerance.
         /// </summary>
-        public bool TryExtendTo(GeoLine2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) => Lengthen2.TryExtendTo(this, boundary, end, out result, tolerance);
+        public bool TryExtendTo(GeoLine2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) =>
+            Lengthen2.TryExtendTo(this, boundary, end, out result, tolerance);
 
         /// <summary>
         /// Extends one end of this segment until it meets a polyline, using default tolerance.
         /// </summary>
-        public bool TryExtendTo(GeoPolyline2 boundary, LineEnd end, out GeoLine2 result) => Lengthen2.TryExtendTo(this, boundary, end, out result, Tolerance.Global);
+        public bool TryExtendTo(GeoPolyline2 boundary, LineEnd end, out GeoLine2 result) =>
+            Lengthen2.TryExtendTo(this, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Extends one end of this segment until it meets a polyline, within tolerance.
         /// </summary>
-        public bool TryExtendTo(GeoPolyline2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) => Lengthen2.TryExtendTo(this, boundary, end, out result, tolerance);
+        public bool TryExtendTo(GeoPolyline2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) =>
+            Lengthen2.TryExtendTo(this, boundary, end, out result, tolerance);
 
         /// <summary>
         /// Extends one end of this segment until it meets the boundary of a polygon, using default tolerance.
         /// </summary>
-        public bool TryExtendTo(GeoPolygon2 boundary, LineEnd end, out GeoLine2 result) => Lengthen2.TryExtendTo(this, boundary, end, out result, Tolerance.Global);
+        public bool TryExtendTo(GeoPolygon2 boundary, LineEnd end, out GeoLine2 result) =>
+            Lengthen2.TryExtendTo(this, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Extends one end of this segment until it meets the boundary of a polygon, within tolerance.
         /// </summary>
-        public bool TryExtendTo(GeoPolygon2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) => Lengthen2.TryExtendTo(this, boundary, end, out result, tolerance);
+        public bool TryExtendTo(GeoPolygon2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) =>
+            Lengthen2.TryExtendTo(this, boundary, end, out result, tolerance);
 
         /// <summary>
         /// Extends one end of this segment until it meets a circle, using default tolerance.
         /// </summary>
-        public bool TryExtendTo(GeoCircle2 boundary, LineEnd end, out GeoLine2 result) => Lengthen2.TryExtendTo(this, boundary, end, out result, Tolerance.Global);
+        public bool TryExtendTo(GeoCircle2 boundary, LineEnd end, out GeoLine2 result) =>
+            Lengthen2.TryExtendTo(this, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Extends one end of this segment until it meets a circle, within tolerance.
         /// </summary>
-        public bool TryExtendTo(GeoCircle2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) => Lengthen2.TryExtendTo(this, boundary, end, out result, tolerance);
+        public bool TryExtendTo(GeoCircle2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) =>
+            Lengthen2.TryExtendTo(this, boundary, end, out result, tolerance);
 
         /// <summary>
         /// Extends one end of this segment until it meets the boundary of a rectangle, using default tolerance.
         /// </summary>
-        public bool TryExtendTo(GeoRectangle2 boundary, LineEnd end, out GeoLine2 result) => Lengthen2.TryExtendTo(this, boundary, end, out result, Tolerance.Global);
+        public bool TryExtendTo(GeoRectangle2 boundary, LineEnd end, out GeoLine2 result) =>
+            Lengthen2.TryExtendTo(this, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Extends one end of this segment until it meets the boundary of a rectangle, within tolerance.
         /// </summary>
-        public bool TryExtendTo(GeoRectangle2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) => Lengthen2.TryExtendTo(this, boundary, end, out result, tolerance);
+        public bool TryExtendTo(GeoRectangle2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) =>
+            Lengthen2.TryExtendTo(this, boundary, end, out result, tolerance);
 
         /// <summary>
         /// Trims one end of this segment back to the foot of the perpendicular from a point, using default tolerance.
         /// </summary>
-        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoLine2 result) => Lengthen2.TryTrimTo(this, point, end, out result, Tolerance.Global);
+        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoLine2 result) =>
+            Lengthen2.TryTrimTo(this, point, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Trims one end of this segment back to the foot of the perpendicular from a point, within tolerance.
         /// </summary>
-        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoLine2 result, Tolerance tolerance) => Lengthen2.TryTrimTo(this, point, end, out result, tolerance);
+        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoLine2 result, Tolerance tolerance) =>
+            Lengthen2.TryTrimTo(this, point, end, out result, tolerance);
 
         /// <summary>
         /// Trims one end of this segment back to where a boundary segment crosses it, using default tolerance.
         /// </summary>
-        public bool TryTrimTo(GeoLine2 boundary, LineEnd end, out GeoLine2 result) => Lengthen2.TryTrimTo(this, boundary, end, out result, Tolerance.Global);
+        public bool TryTrimTo(GeoLine2 boundary, LineEnd end, out GeoLine2 result) =>
+            Lengthen2.TryTrimTo(this, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Trims one end of this segment back to where a boundary segment crosses it, within tolerance.
         /// </summary>
-        public bool TryTrimTo(GeoLine2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) => Lengthen2.TryTrimTo(this, boundary, end, out result, tolerance);
+        public bool TryTrimTo(GeoLine2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) =>
+            Lengthen2.TryTrimTo(this, boundary, end, out result, tolerance);
 
         /// <summary>
         /// Trims one end of this segment back to the nearest place a polyline crosses it, using default tolerance.
         /// </summary>
-        public bool TryTrimTo(GeoPolyline2 boundary, LineEnd end, out GeoLine2 result) => Lengthen2.TryTrimTo(this, boundary, end, out result, Tolerance.Global);
+        public bool TryTrimTo(GeoPolyline2 boundary, LineEnd end, out GeoLine2 result) =>
+            Lengthen2.TryTrimTo(this, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Trims one end of this segment back to the nearest place a polyline crosses it, within tolerance.
         /// </summary>
-        public bool TryTrimTo(GeoPolyline2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) => Lengthen2.TryTrimTo(this, boundary, end, out result, tolerance);
+        public bool TryTrimTo(GeoPolyline2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) =>
+            Lengthen2.TryTrimTo(this, boundary, end, out result, tolerance);
 
         /// <summary>
         /// Trims one end of this segment back to the nearest place a polygon boundary crosses it, using default tolerance.
         /// </summary>
-        public bool TryTrimTo(GeoPolygon2 boundary, LineEnd end, out GeoLine2 result) => Lengthen2.TryTrimTo(this, boundary, end, out result, Tolerance.Global);
+        public bool TryTrimTo(GeoPolygon2 boundary, LineEnd end, out GeoLine2 result) =>
+            Lengthen2.TryTrimTo(this, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Trims one end of this segment back to the nearest place a polygon boundary crosses it, within tolerance.
         /// </summary>
-        public bool TryTrimTo(GeoPolygon2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) => Lengthen2.TryTrimTo(this, boundary, end, out result, tolerance);
+        public bool TryTrimTo(GeoPolygon2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) =>
+            Lengthen2.TryTrimTo(this, boundary, end, out result, tolerance);
 
         /// <summary>
         /// Trims one end of this segment back to the nearest place a circle crosses it, using default tolerance.
         /// </summary>
-        public bool TryTrimTo(GeoCircle2 boundary, LineEnd end, out GeoLine2 result) => Lengthen2.TryTrimTo(this, boundary, end, out result, Tolerance.Global);
+        public bool TryTrimTo(GeoCircle2 boundary, LineEnd end, out GeoLine2 result) =>
+            Lengthen2.TryTrimTo(this, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Trims one end of this segment back to the nearest place a circle crosses it, within tolerance.
         /// </summary>
-        public bool TryTrimTo(GeoCircle2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) => Lengthen2.TryTrimTo(this, boundary, end, out result, tolerance);
+        public bool TryTrimTo(GeoCircle2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) =>
+            Lengthen2.TryTrimTo(this, boundary, end, out result, tolerance);
 
         /// <summary>
         /// Trims one end of this segment back to the nearest place a rectangle boundary crosses it, using default tolerance.
         /// </summary>
-        public bool TryTrimTo(GeoRectangle2 boundary, LineEnd end, out GeoLine2 result) => Lengthen2.TryTrimTo(this, boundary, end, out result, Tolerance.Global);
+        public bool TryTrimTo(GeoRectangle2 boundary, LineEnd end, out GeoLine2 result) =>
+            Lengthen2.TryTrimTo(this, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Trims one end of this segment back to the nearest place a rectangle boundary crosses it, within tolerance.
         /// </summary>
-        public bool TryTrimTo(GeoRectangle2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) => Lengthen2.TryTrimTo(this, boundary, end, out result, tolerance);
+        public bool TryTrimTo(GeoRectangle2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) =>
+            Lengthen2.TryTrimTo(this, boundary, end, out result, tolerance);
 
         /// <summary>
         /// Trims or extends this segment and another so that they meet in a corner, using default tolerance.
         /// Each keeps its end farther from the corner. See <see cref="Lengthen2.TryTrimExtendToCorner(GeoLine2, GeoLine2, out GeoLine2, out GeoLine2, Tolerance)"/>.
         /// </summary>
-        public bool TryTrimExtendToCorner(GeoLine2 other, out GeoLine2 trimmedThis, out GeoLine2 trimmedOther) => Lengthen2.TryTrimExtendToCorner(this, other, out trimmedThis, out trimmedOther, Tolerance.Global);
+        public bool TryTrimExtendToCorner(GeoLine2 other, out GeoLine2 trimmedThis, out GeoLine2 trimmedOther) =>
+            Lengthen2.TryTrimExtendToCorner(this, other, out trimmedThis, out trimmedOther, Tolerance.Global);
 
         /// <summary>
         /// Trims or extends this segment and another so that they meet in a corner, within tolerance.
         /// </summary>
-        public bool TryTrimExtendToCorner(GeoLine2 other, out GeoLine2 trimmedThis, out GeoLine2 trimmedOther, Tolerance tolerance) => Lengthen2.TryTrimExtendToCorner(this, other, out trimmedThis, out trimmedOther, tolerance);
+        public bool TryTrimExtendToCorner(
+            GeoLine2 other,
+            out GeoLine2 trimmedThis,
+            out GeoLine2 trimmedOther,
+            Tolerance tolerance
+        ) => Lengthen2.TryTrimExtendToCorner(this, other, out trimmedThis, out trimmedOther, tolerance);
 
         #endregion
 
@@ -591,7 +637,8 @@ namespace GeometryHelper.Geometry
         /// Gets the segment parallel to this one that passes through a point, within tolerance.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the segment is too short to have a direction.</exception>
-        public GeoLine2 OffsetThrough(GeoPoint2 point, Tolerance tolerance) => Offset2.OffsetThrough(this, point, tolerance);
+        public GeoLine2 OffsetThrough(GeoPoint2 point, Tolerance tolerance) =>
+            Offset2.OffsetThrough(this, point, tolerance);
 
         #endregion
 
@@ -613,7 +660,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this line segment is parallel to a vector within angular tolerance.
         /// </summary>
-        public bool IsParallelTo(GeoVector2 vector, Tolerance tolerance) => Parallel2.IsParallel(this, vector, tolerance);
+        public bool IsParallelTo(GeoVector2 vector, Tolerance tolerance) =>
+            Parallel2.IsParallel(this, vector, tolerance);
 
         /// <summary>
         /// Checks whether this line segment is parallel to any edge of a rotated rectangle using default tolerance.
@@ -623,7 +671,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this line segment is parallel to any edge of a rotated rectangle within angular tolerance.
         /// </summary>
-        public bool IsParallelTo(GeoRectangle2 rect, Tolerance tolerance) => Parallel2.IsParallel(rect, this, tolerance);
+        public bool IsParallelTo(GeoRectangle2 rect, Tolerance tolerance) =>
+            Parallel2.IsParallel(rect, this, tolerance);
 
         /// <summary>
         /// Checks whether this line segment is perpendicular to another line segment using default tolerance.
@@ -633,7 +682,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this line segment is perpendicular to another line segment within angular tolerance.
         /// </summary>
-        public bool IsPerpendicularTo(GeoLine2 other, Tolerance tolerance) => Parallel2.IsPerpendicular(this, other, tolerance);
+        public bool IsPerpendicularTo(GeoLine2 other, Tolerance tolerance) =>
+            Parallel2.IsPerpendicular(this, other, tolerance);
 
         /// <summary>
         /// Checks whether this line segment is perpendicular to a vector using default tolerance.
@@ -643,7 +693,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this line segment is perpendicular to a vector within angular tolerance.
         /// </summary>
-        public bool IsPerpendicularTo(GeoVector2 vector, Tolerance tolerance) => Parallel2.IsPerpendicular(this, vector, tolerance);
+        public bool IsPerpendicularTo(GeoVector2 vector, Tolerance tolerance) =>
+            Parallel2.IsPerpendicular(this, vector, tolerance);
 
         /// <summary>
         /// Indicates whether the current line segment is equal to another line segment.
@@ -751,22 +802,26 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Extends this segment at one end to where it meets the edges of a triangle, using the default tolerance.
         /// </summary>
-        public bool TryExtendTo(GeoTriangle2 boundary, LineEnd end, out GeoLine2 result) => Triangle2.TryExtendTo(this, boundary, end, out result, Tolerance.Global);
+        public bool TryExtendTo(GeoTriangle2 boundary, LineEnd end, out GeoLine2 result) =>
+            Triangle2.TryExtendTo(this, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Extends this segment at one end to where it meets the edges of a triangle, within a tolerance.
         /// </summary>
-        public bool TryExtendTo(GeoTriangle2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) => Triangle2.TryExtendTo(this, boundary, end, out result, tolerance);
+        public bool TryExtendTo(GeoTriangle2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) =>
+            Triangle2.TryExtendTo(this, boundary, end, out result, tolerance);
 
         /// <summary>
         /// Trims this segment at one end to where it meets the edges of a triangle, using the default tolerance.
         /// </summary>
-        public bool TryTrimTo(GeoTriangle2 boundary, LineEnd end, out GeoLine2 result) => Triangle2.TryTrimTo(this, boundary, end, out result, Tolerance.Global);
+        public bool TryTrimTo(GeoTriangle2 boundary, LineEnd end, out GeoLine2 result) =>
+            Triangle2.TryTrimTo(this, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Trims this segment at one end to where it meets the edges of a triangle, within a tolerance.
         /// </summary>
-        public bool TryTrimTo(GeoTriangle2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) => Triangle2.TryTrimTo(this, boundary, end, out result, tolerance);
+        public bool TryTrimTo(GeoTriangle2 boundary, LineEnd end, out GeoLine2 result, Tolerance tolerance) =>
+            Triangle2.TryTrimTo(this, boundary, end, out result, tolerance);
 
         /// <summary>
         /// Checks whether this segment runs parallel to an edge of a triangle, using the default tolerance.
@@ -776,7 +831,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this segment runs parallel to an edge of a triangle, within a tolerance.
         /// </summary>
-        public bool IsParallelTo(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.IsParallel(triangle, this, tolerance);
+        public bool IsParallelTo(GeoTriangle2 triangle, Tolerance tolerance) =>
+            Triangle2.IsParallel(triangle, this, tolerance);
 
         #endregion
     }

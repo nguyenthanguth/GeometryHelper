@@ -63,7 +63,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get
             {
                 DxfTableStyle style = CadTableStyleEditor.Find(_request.Document.Database, _tableStyle);
-                return style == null ? CadTableStyleEditor.Standard(_request.Document.Database) : CadTableStyleSettings.Of(style);
+                return style == null
+                    ? CadTableStyleEditor.Standard(_request.Document.Database)
+                    : CadTableStyleSettings.Of(style);
             }
         }
 
@@ -128,7 +130,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string OtherRowStyle => "Data";
 
         /// <summary>Gets whether every number typed is one a table takes: whole columns and rows of 1 or more, a width above nought.</summary>
-        public bool IsValid => Whole(_columns) >= 1 && Whole(_dataRows) >= 1 && Whole(_rowLines) >= 1 && Real(_columnWidth) > 0.0;
+        public bool IsValid =>
+            Whole(_columns) >= 1 && Whole(_dataRows) >= 1 && Whole(_rowLines) >= 1 && Real(_columnWidth) > 0.0;
 
         /// <summary>Gets OK.</summary>
         public DelegateCommand OkCommand { get; }
@@ -152,7 +155,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 TableStyles.Add("Standard");
             }
 
-            TableStyle = TableStyles.FirstOrDefault(s => string.Equals(s, kept, StringComparison.OrdinalIgnoreCase)) ?? "Standard";
+            TableStyle = TableStyles.FirstOrDefault(s => string.Equals(s, kept, StringComparison.OrdinalIgnoreCase))
+                ?? "Standard";
         }
 
         /// <summary>OK: the values written into the request, and the dialog closed.</summary>
@@ -182,10 +186,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private static int Whole(string text) => int.TryParse((text ?? string.Empty).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : 0;
+        private static int Whole(string text) =>
+            int.TryParse(
+                (text ?? string.Empty).Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int value
+            )
+                ? value
+                : 0;
 
-        private static double Real(string text)
-            => double.TryParse((text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && !double.IsInfinity(value) ? value : 0.0;
+        private static double Real(string text) =>
+            double.TryParse(
+                (text ?? string.Empty).Trim(),
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out double value
+            ) && !double.IsInfinity(value)
+                ? value
+                : 0.0;
     }
 
     /// <summary>A row of the styles list of the Table Style dialog: the style's name and what the list says of it ("current", "2 tables").</summary>
@@ -264,7 +283,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets the styles listed.</summary>
-        public ObservableCollection<TableStyleRowViewModel> Styles { get; } = new ObservableCollection<TableStyleRowViewModel>();
+        public ObservableCollection<TableStyleRowViewModel> Styles { get; } =
+            new ObservableCollection<TableStyleRowViewModel>();
 
         /// <summary>Gets the current table style's name.</summary>
         public string CurrentStyle => CadTableStyleEditor.Current(_document.Database);
@@ -295,13 +315,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             get
             {
-                DxfTableStyle style = _selected == null ? null : CadTableStyleEditor.Find(_document.Database, _selected.Name);
-                return style == null ? (_selected != null && _selected.Name == "Standard" ? CadTableStyleEditor.Standard(_document.Database) : null) : CadTableStyleSettings.Of(style);
+                DxfTableStyle style =
+                    _selected == null ? null : CadTableStyleEditor.Find(_document.Database, _selected.Name);
+                return style == null
+                    ? (
+                        _selected != null && _selected.Name == "Standard"
+                            ? CadTableStyleEditor.Standard(_document.Database)
+                            : null
+                    )
+                    : CadTableStyleSettings.Of(style);
             }
         }
 
         /// <summary>Gets whether the style selected may be deleted: not Standard, not current, not in use.</summary>
-        public bool CanDelete => _selected != null && CadTableStyleEditor.Find(_document.Database, _selected.Name) != null && CadTableStyleEditor.WhyNotDeleted(_document.Database, _selected.Name) == null;
+        public bool CanDelete =>
+            _selected != null
+            && CadTableStyleEditor.Find(_document.Database, _selected.Name) != null
+            && CadTableStyleEditor.WhyNotDeleted(_document.Database, _selected.Name) == null;
 
         /// <summary>Gets what the last button said where it was refused; empty otherwise.</summary>
         public string Message
@@ -423,12 +453,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     continue;
                 }
 
-                string hint = string.Equals(name, current, StringComparison.OrdinalIgnoreCase) ? "current"
-                    : uses > 0 ? uses.ToString(CultureInfo.InvariantCulture) + (uses == 1 ? " table" : " tables") : string.Empty;
+                string hint =
+                    string.Equals(name, current, StringComparison.OrdinalIgnoreCase) ? "current"
+                    : uses > 0 ? uses.ToString(CultureInfo.InvariantCulture) + (uses == 1 ? " table" : " tables")
+                    : string.Empty;
                 Styles.Add(new TableStyleRowViewModel(name, hint));
             }
 
-            SelectedStyle = Styles.FirstOrDefault(r => string.Equals(r.Name, select, StringComparison.OrdinalIgnoreCase)) ?? Styles.FirstOrDefault();
+            SelectedStyle = Styles.FirstOrDefault(r =>
+                string.Equals(r.Name, select, StringComparison.OrdinalIgnoreCase)
+            ) ?? Styles.FirstOrDefault();
             Raise(nameof(Preview));
             Raise(nameof(CanDelete));
         }
@@ -446,18 +480,47 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The colours the colour boxes offer, by name and index.</summary>
         public static readonly IReadOnlyList<TableFillChoice> Colors = new[]
         {
-            new TableFillChoice("ByBlock", 0), new TableFillChoice("ByLayer", 256), new TableFillChoice("Red", 1), new TableFillChoice("Yellow", 2),
-            new TableFillChoice("Green", 3), new TableFillChoice("Cyan", 4), new TableFillChoice("Blue", 5), new TableFillChoice("Magenta", 6),
-            new TableFillChoice("White", 7), new TableFillChoice("Color 8", 8), new TableFillChoice("Color 9", 9),
+            new TableFillChoice("ByBlock", 0),
+            new TableFillChoice("ByLayer", 256),
+            new TableFillChoice("Red", 1),
+            new TableFillChoice("Yellow", 2),
+            new TableFillChoice("Green", 3),
+            new TableFillChoice("Cyan", 4),
+            new TableFillChoice("Blue", 5),
+            new TableFillChoice("Magenta", 6),
+            new TableFillChoice("White", 7),
+            new TableFillChoice("Color 8", 8),
+            new TableFillChoice("Color 9", 9),
         };
 
         /// <summary>The lineweights the Borders tab offers, by name.</summary>
-        public static readonly IReadOnlyList<string> LineWeights = new[] { "ByBlock", "ByLayer", "Default", "0.00 mm", "0.13 mm", "0.18 mm", "0.25 mm", "0.35 mm", "0.50 mm", "0.70 mm", "1.00 mm" };
+        public static readonly IReadOnlyList<string> LineWeights = new[]
+        {
+            "ByBlock",
+            "ByLayer",
+            "Default",
+            "0.00 mm",
+            "0.13 mm",
+            "0.18 mm",
+            "0.25 mm",
+            "0.35 mm",
+            "0.50 mm",
+            "0.70 mm",
+            "1.00 mm",
+        };
 
         private static readonly DxfLineWeight[] Weights =
         {
-            DxfLineWeight.ByBlock, DxfLineWeight.ByLayer, DxfLineWeight.ByLineWeightDefault, DxfLineWeight.LineWeight000, DxfLineWeight.LineWeight013,
-            DxfLineWeight.LineWeight018, DxfLineWeight.LineWeight025, DxfLineWeight.LineWeight035, DxfLineWeight.LineWeight050, DxfLineWeight.LineWeight070,
+            DxfLineWeight.ByBlock,
+            DxfLineWeight.ByLayer,
+            DxfLineWeight.ByLineWeightDefault,
+            DxfLineWeight.LineWeight000,
+            DxfLineWeight.LineWeight013,
+            DxfLineWeight.LineWeight018,
+            DxfLineWeight.LineWeight025,
+            DxfLineWeight.LineWeight035,
+            DxfLineWeight.LineWeight050,
+            DxfLineWeight.LineWeight070,
             DxfLineWeight.LineWeight100,
         };
 
@@ -477,7 +540,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public TableStyleModifyViewModel(CadDocument document, string name, bool isNew)
         {
             _document = document ?? throw new ArgumentNullException(nameof(document));
-            DxfTableStyle style = CadTableStyleEditor.Find(document.Database, name) ?? throw new ArgumentException("The drawing has no table style \"" + name + "\".", nameof(name));
+            DxfTableStyle style = CadTableStyleEditor.Find(document.Database, name)
+                ?? throw new ArgumentException("The drawing has no table style \"" + name + "\".", nameof(name));
             _name = style.Name;
             _settings = CadTableStyleSettings.Of(style);
             Title = (isNew ? "New Table Style: " : "Modify Table Style: ") + _name;
@@ -524,7 +588,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 if (CellStyles.Contains(value) && Set(ref _cellStyle, value))
                 {
-                    foreach (string name in new[] { nameof(Fill), nameof(Alignment), nameof(TextStyle), nameof(TextHeight), nameof(TextColor), nameof(Lines) })
+                    foreach (
+                        string name in new[]
+                        {
+                            nameof(Fill),
+                            nameof(Alignment),
+                            nameof(TextStyle),
+                            nameof(TextHeight),
+                            nameof(TextColor),
+                            nameof(Lines),
+                        }
+                    )
                     {
                         Raise(name);
                     }
@@ -560,7 +634,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool IsBorders => _tab == "Borders";
 
         /// <summary>Gets the fills: None, then the colours.</summary>
-        public IReadOnlyList<TableFillChoice> Fills { get; } = new[] { new TableFillChoice("None", null) }.Concat(Colors).ToList();
+        public IReadOnlyList<TableFillChoice> Fills { get; } =
+            new[] { new TableFillChoice("None", null) }.Concat(Colors).ToList();
 
         /// <summary>Gets or sets the fill of the cell style shown.</summary>
         public TableFillChoice Fill
@@ -612,7 +687,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets the text style of the cell style shown.</summary>
         public string TextStyle
         {
-            get => TextStyles.FirstOrDefault(s => string.Equals(s, Cell.TextStyle, StringComparison.OrdinalIgnoreCase)) ?? Cell.TextStyle;
+            get =>
+                TextStyles.FirstOrDefault(s => string.Equals(s, Cell.TextStyle, StringComparison.OrdinalIgnoreCase))
+                ?? Cell.TextStyle;
             set
             {
                 if (value != null)
@@ -686,7 +763,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets Cancel and the close button.</summary>
         public DelegateCommand CancelCommand { get; }
 
-        private CadTableCellStyleSettings Cell => _settings.Cell(_cellStyle == "Title" ? DxfRowType.TitleRow : _cellStyle == "Header" ? DxfRowType.HeaderRow : DxfRowType.DataRow);
+        private CadTableCellStyleSettings Cell =>
+            _settings.Cell(
+                _cellStyle == "Title" ? DxfRowType.TitleRow
+                : _cellStyle == "Header" ? DxfRowType.HeaderRow
+                : DxfRowType.DataRow
+            );
 
         /// <summary>OK: the style written, one undo step; the dialog closed, or the refusal shown.</summary>
         public void Ok()
@@ -752,7 +834,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void Number(string text, Func<double, bool> takes, Action<double> write, string property)
         {
-            if (double.TryParse((text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && !double.IsInfinity(value) && takes(value))
+            if (
+                double.TryParse(
+                    (text ?? string.Empty).Trim(),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out double value
+                )
+                && !double.IsInfinity(value)
+                && takes(value)
+            )
             {
                 write(value);
             }
@@ -774,9 +865,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return choices.FirstOrDefault(c => c.Index == null);
             }
 
-            return choices.FirstOrDefault(c => c.Index == color.ColorIndex) ?? new TableFillChoice("Color " + color.ColorIndex.ToString(CultureInfo.InvariantCulture), color.ColorIndex);
+            return choices.FirstOrDefault(c => c.Index == color.ColorIndex)
+                ?? new TableFillChoice(
+                    "Color " + color.ColorIndex.ToString(CultureInfo.InvariantCulture),
+                    color.ColorIndex
+                );
         }
 
-        private static DxfColor ColorOf(int index) => index == 0 ? DxfColor.ByBlock : index == 256 ? DxfColor.ByLayer : DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)index);
+        private static DxfColor ColorOf(int index) =>
+            index == 0 ? DxfColor.ByBlock
+            : index == 256 ? DxfColor.ByLayer
+            : DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)index);
     }
 }

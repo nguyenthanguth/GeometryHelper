@@ -21,12 +21,15 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
         private const double Radius = 8.0;
 
-        private static GeoSolid3 Part()
-            => new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(1000, 200, 100)).ToObb().ToSolid();
+        private static GeoSolid3 Part() =>
+            new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(1000, 200, 100)).ToObb().ToSolid();
 
         private static ClashResult Along(double height)
         {
-            var bar = new ClashBar(new GeoPolyline3(new GeoPoint3(-400, 100, height), new GeoPoint3(400, 100, height)), Radius);
+            var bar = new ClashBar(
+                new GeoPolyline3(new GeoPoint3(-400, 100, height), new GeoPoint3(400, 100, height)),
+                Radius
+            );
 
             return Clash3.Find(new[] { bar }, new[] { Part() }, ClashOptions.Default, Tol).Single();
         }
@@ -61,7 +64,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [Theory]
         [InlineData(-200.0, 100.0012, 1300.0, 100.0006, 700.0)]
         [InlineData(-200.0, 100.001214286, 900.0, 100.000585714, 725.0)]
-        public void ABarDriftingIntoTheToleranceOverTheTop_RunsInsideOnlyWhereItIsWithinIt(double x0, double z0, double x1, double z1, double expected)
+        public void ABarDriftingIntoTheToleranceOverTheTop_RunsInsideOnlyWhereItIsWithinIt(
+            double x0,
+            double z0,
+            double x1,
+            double z1,
+            double expected
+        )
         {
             // Along X over the middle of the top, from 0.0012 or so over it, beyond the tolerance, down to 0.0006 or so: it
             // comes within the tolerance at x = 300, or 175, and lies there up to the end of the box at x = 1 000, or its own
@@ -79,11 +88,17 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // Down the side y = 0 at x = 500 from z = 80 to -40, from 0.0002 off it to 0.0016: it leaves the tolerance 4/7 of
             // the way down, at z = 80 - 120 x 4/7, about 11.43, and runs within it for 120 x 4/7, about 68.57. It used to be
             // counted whole, 120.
-            var bar = new ClashBar(new GeoPolyline3(new GeoPoint3(500, -0.0002, 80), new GeoPoint3(500, -0.0016, -40)), Radius);
+            var bar = new ClashBar(
+                new GeoPolyline3(new GeoPoint3(500, -0.0002, 80), new GeoPoint3(500, -0.0016, -40)),
+                Radius
+            );
 
             ClashResult clash = Clash3.Find(new[] { bar }, new[] { Part() }, ClashOptions.Default, Tol).Single();
 
-            Assert.True(System.Math.Abs(clash.LengthInside - 120.0 * 4.0 / 7.0) <= Tol.EqualPoint, $"{clash.LengthInside}");
+            Assert.True(
+                System.Math.Abs(clash.LengthInside - 120.0 * 4.0 / 7.0) <= Tol.EqualPoint,
+                $"{clash.LengthInside}"
+            );
         }
 
         [Fact]

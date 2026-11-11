@@ -15,20 +15,34 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfPolyline3dTests
     {
-        private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
+        private static readonly string[] Drawings =
+        {
+            DxfFileEzdxfDrawings.R12,
+            DxfFileEzdxfDrawings.R2000,
+            DxfFileEzdxfDrawings.R2018,
+        };
 
         [Fact]
         public void TheThreeDPolylinesOfEzdxf_AreReadAsEzdxfReadsThem()
         {
             // As ezdxf 1.4.5 reads them: 44 of R2000 and 47 of R12, open, (0, 0, 0), (1, 2, 3), (4, 5, 6), each vertex flagged 32.
-            foreach (KeyValuePair<string, string> drawing in new[] { new KeyValuePair<string, string>(DxfFileEzdxfDrawings.R2000, "44"), new KeyValuePair<string, string>(DxfFileEzdxfDrawings.R12, "47") })
+            foreach (
+                KeyValuePair<string, string> drawing in new[]
+                {
+                    new KeyValuePair<string, string>(DxfFileEzdxfDrawings.R2000, "44"),
+                    new KeyValuePair<string, string>(DxfFileEzdxfDrawings.R12, "47"),
+                }
+            )
             {
                 DxfPolyline3d polyline = ByHandle<DxfPolyline3d>(DxfDatabase.Parse(drawing.Key), drawing.Value);
                 List<DxfPolylineVertex3d> vertices = polyline.ToList();
 
                 Assert.False(polyline.Closed);
                 Assert.Equal(DxfPoly3dType.SimplePoly, polyline.PolyType);
-                Assert.Equal(new[] { Bits(new GeoPoint3(0, 0, 0)), Bits(new GeoPoint3(1, 2, 3)), Bits(new GeoPoint3(4, 5, 6)) }, vertices.Select(v => Bits(v.Position)).ToArray());
+                Assert.Equal(
+                    new[] { Bits(new GeoPoint3(0, 0, 0)), Bits(new GeoPoint3(1, 2, 3)), Bits(new GeoPoint3(4, 5, 6)) },
+                    vertices.Select(v => Bits(v.Position)).ToArray()
+                );
                 Assert.Equal(DxfVertex3dType.SimpleVertex, vertices[1].VertexType);
                 Assert.Equal(Math.Sqrt(14) + Math.Sqrt(27), polyline.Length, 12);
                 Assert.Equal(2.0, polyline.EndParam);
@@ -38,7 +52,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(polyline.GetGeometry()[0], polyline.GetGeCurve());
             }
 
-            DxfDocument read = DxfReader.Parse(DxfFileEzdxfDrawings.R2000, new DxfReadOptions { Tolerance = Tolerance.Default });
+            DxfDocument read = DxfReader.Parse(
+                DxfFileEzdxfDrawings.R2000,
+                new DxfReadOptions { Tolerance = Tolerance.Default }
+            );
             DxfPolyline3d r2000 = ByHandle<DxfPolyline3d>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000), "44");
             Assert.Equal(read.Shapes.Single(s => s.Handle == "44").Shape, Assert.Single(r2000.GetGeometry()));
             Assert.Equal(new[] { "46", "47", "48" }, r2000.Select(v => v.Handle).ToArray());
@@ -122,7 +139,11 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                var polyline = new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(3, 4, 0) }, false);
+                var polyline = new DxfPolyline3d(
+                    DxfPoly3dType.SimplePoly,
+                    new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(3, 4, 0) },
+                    false
+                );
                 polyline.AppendVertex(new DxfPolylineVertex3d(new GeoPoint3(3, 4, 12)));
 
                 db.ModelSpace.AppendEntity(polyline);
@@ -134,7 +155,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(Bits(new GeoPoint3(0, 0, 0)), Bits(again.EndPoint));
             }
 
-            Assert.Throws<NotSupportedException>(() => new DxfPolyline3d(DxfPoly3dType.CubicSplinePoly, new GeoPoint3[0], false));
+            Assert.Throws<NotSupportedException>(() =>
+                new DxfPolyline3d(DxfPoly3dType.CubicSplinePoly, new GeoPoint3[0], false)
+            );
         }
 
         [Fact]
@@ -149,7 +172,10 @@ namespace GeometryHelper.UnitTest.Dxf
             List<DxfPolylineVertex3d> vertices = ByHandle<DxfPolyline3d>(DxfDatabase.Parse(db.ToText()), "44").ToList();
             DxfPolylineTests.Near(new GeoPoint3(10, -5, 2.5), vertices[0].Position);
             DxfPolylineTests.Near(new GeoPoint3(11, -3, 5.5), vertices[1].Position);
-            DxfPolylineTests.Near(new GeoPoint3(13.080349063599838, 0.9322645951833524, 8.185040582011153), vertices[2].Position);
+            DxfPolylineTests.Near(
+                new GeoPoint3(13.080349063599838, 0.9322645951833524, 8.185040582011153),
+                vertices[2].Position
+            );
             Assert.Equal(new[] { "46", "47", "48" }, vertices.Select(v => v.Handle).ToArray());
         }
     }

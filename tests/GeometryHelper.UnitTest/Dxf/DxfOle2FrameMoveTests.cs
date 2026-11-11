@@ -51,8 +51,12 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The bytes of a record's binary, as AutoCAD reads them.</summary>
-        private static byte[] Binary(string text, string handle)
-            => Lines(text, handle).SelectMany(l => Enumerable.Range(0, l.Length / 2).Select(i => Convert.ToByte(l.Substring(2 * i, 2), 16))).ToArray();
+        private static byte[] Binary(string text, string handle) =>
+            Lines(text, handle)
+                .SelectMany(l =>
+                    Enumerable.Range(0, l.Length / 2).Select(i => Convert.ToByte(l.Substring(2 * i, 2), 16))
+                )
+                .ToArray();
 
         [Fact]
         public void AFrameMoved_HasTheCornersOfItsHeadMoved_AndOnlyTheLinesTheyAreInWrittenAnew()
@@ -93,7 +97,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Corners(read, P(10, 30, 0), P(25, 20, 0));
             Assert.Equal(50.0, read.ScaleWidth, 12);
             Assert.Equal(50.0, read.ScaleHeight, 12);
-            Assert.Contains("1070\n43\n1040\n0.0833333333333333", Body(TextOf(Saved(db)), "D10"), StringComparison.Ordinal);
+            Assert.Contains(
+                "1070\n43\n1040\n0.0833333333333333",
+                Body(TextOf(Saved(db)), "D10"),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -166,8 +174,12 @@ namespace GeometryHelper.UnitTest.Dxf
             Corners(Of(Opened(Saved(db)), "D10"), P(10, 60, 0), P(70, 20, 0));
 
             byte[] before = Saved(db);
-            Assert.Throws<ArgumentException>(() => frame.Position3d = new DxfRectangle3d(P(0, 0, 0), P(10, 5, 0), P(-5, -10, 0), P(5, -5, 0)));
-            Assert.Throws<ArgumentException>(() => frame.Position3d = new DxfRectangle3d(P(70, 60, 0), P(10, 60, 0), P(70, 20, 0), P(10, 20, 0)));
+            Assert.Throws<ArgumentException>(() =>
+                frame.Position3d = new DxfRectangle3d(P(0, 0, 0), P(10, 5, 0), P(-5, -10, 0), P(5, -5, 0))
+            );
+            Assert.Throws<ArgumentException>(() =>
+                frame.Position3d = new DxfRectangle3d(P(70, 60, 0), P(10, 60, 0), P(70, 20, 0), P(10, 20, 0))
+            );
             Assert.Equal(before, Saved(db));
         }
 
@@ -186,7 +198,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(0, Of(read, "D10").OutputQuality);
             Assert.False(Of(read, "D1A").LockAspect);
             Assert.Equal(100.0, Of(read, "D1A").ScaleWidth);
-            Assert.Contains("1000\nOLEBEGIN\n1070\n70\n1070\n1\n1070\n71\n1070\n0\n", Body(TextOf(Saved(db)), "D1A"), StringComparison.Ordinal);
+            Assert.Contains(
+                "1000\nOLEBEGIN\n1070\n70\n1070\n1\n1070\n71\n1070\n0\n",
+                Body(TextOf(Saved(db)), "D1A"),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -236,7 +252,8 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AFrameOfNoCorners_IsLeftAsItIsByAMove()
         {
-            const string bare = "  0\nOLE2FRAME\n  5\nD30\n330\n17\n100\nAcDbEntity\n  8\n0\n100\nAcDbOle2Frame\n 70\n2\n 73\n2\n";
+            const string bare =
+                "  0\nOLE2FRAME\n  5\nD30\n330\n17\n100\nAcDbEntity\n  8\n0\n100\nAcDbOle2Frame\n 70\n2\n 73\n2\n";
             DxfDatabase db = DxfDatabase.Parse(DxfOle2FrameDrawings.With(DxfFileEzdxfDrawings.R2018, bare));
             byte[] before = Saved(db);
 

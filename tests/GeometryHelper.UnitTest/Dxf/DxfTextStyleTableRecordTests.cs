@@ -15,17 +15,34 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AStyleAdded_IsAStyleRecordOfTheTable_ReadBackAsItWasMade()
         {
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R12,
+                    DxfFileEzdxfDrawings.R2000,
+                    DxfFileEzdxfDrawings.R2018,
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                var romans = new DxfTextStyleTableRecord { Name = "GH_ROMANS", FileName = "romans.shx", TextSize = 2.5, XScale = 0.75, ObliquingAngle = 15 * Math.PI / 180, IsVertical = true };
+                var romans = new DxfTextStyleTableRecord
+                {
+                    Name = "GH_ROMANS",
+                    FileName = "romans.shx",
+                    TextSize = 2.5,
+                    XScale = 0.75,
+                    ObliquingAngle = 15 * Math.PI / 180,
+                    IsVertical = true,
+                };
 
                 Assert.Equal("romans.shx", romans.FileName);
                 Assert.Equal(2.5, romans.PriorSize);
                 db.TextStyleTable.Add(romans);
 
                 Assert.Same(romans, db.TextStyleTable["gh_romans"]);
-                Assert.Throws<ArgumentException>(() => db.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "Gh_Romans" }));
+                Assert.Throws<ArgumentException>(() =>
+                    db.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "Gh_Romans" })
+                );
                 DxfTextStyleTableRecord read = DxfDatabase.Parse(db.ToText()).TextStyleTable["GH_ROMANS"];
                 Assert.Equal("romans.shx", read.FileName);
                 Assert.Equal(string.Empty, read.BigFontFileName);
@@ -69,7 +86,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "29");
-            Assert.EndsWith("1001\nACAD\n1000\nArial\n1071\n33554466\n", Records(saved).Single(r => HandleOf(r) == "29"), StringComparison.Ordinal);
+            Assert.EndsWith(
+                "1001\nACAD\n1000\nArial\n1071\n33554466\n",
+                Records(saved).Single(r => HandleOf(r) == "29"),
+                StringComparison.Ordinal
+            );
             DxfTextStyleTableRecord read = DxfDatabase.Parse(saved).TextStyleTable["Standard"];
             Assert.Equal("arial.ttf", read.FileName);
             Assert.Equal(3.5, read.TextSize);

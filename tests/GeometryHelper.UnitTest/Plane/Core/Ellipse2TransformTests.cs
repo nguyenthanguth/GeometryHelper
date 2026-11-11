@@ -19,15 +19,22 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static readonly GeoPoint2 Pivot = new GeoPoint2(10, 20);
 
-        private static GeoPoint2 Turned(GeoPoint2 point, double angle) => new GeoPoint2(
-            Pivot.X + (point.X - Pivot.X) * Math.Cos(angle) - (point.Y - Pivot.Y) * Math.Sin(angle),
-            Pivot.Y + (point.X - Pivot.X) * Math.Sin(angle) + (point.Y - Pivot.Y) * Math.Cos(angle));
+        private static GeoPoint2 Turned(GeoPoint2 point, double angle) =>
+            new GeoPoint2(
+                Pivot.X + (point.X - Pivot.X) * Math.Cos(angle) - (point.Y - Pivot.Y) * Math.Sin(angle),
+                Pivot.Y + (point.X - Pivot.X) * Math.Sin(angle) + (point.Y - Pivot.Y) * Math.Cos(angle)
+            );
 
         /// <summary>
         /// Asserts that the image of the old rim lies on the new one, and that walking the old rim in steps of a
         /// twentieth of a turn walks the new one in steps of the same size, forward or back.
         /// </summary>
-        private static void AssertImageOfRim(GeoEllipse2 before, GeoTransform2 transform, GeoEllipse2 after, bool reversed)
+        private static void AssertImageOfRim(
+            GeoEllipse2 before,
+            GeoTransform2 transform,
+            GeoEllipse2 after,
+            bool reversed
+        )
         {
             const double step = 2 * Math.PI / 20;
             double previous = Ellipse2Oracle.AngleOf(after, transform.Transform(Ellipse2Oracle.Rim(before, 0.05)));
@@ -114,13 +121,24 @@ namespace GeometryHelper.UnitTest.Plane
             // circle of radius 100 becomes 161.803 by 61.803, its major axis along (0.8507, 0.5257), 31.7 degrees up,
             // and its area kept at 10 000 pi since the shear's determinant is one. The shear also moves by (5, -3).
             GeoEllipse2 circle = GeoEllipse2.FromCircle(new GeoCircle2(new GeoPoint2(0, 0), 100));
-            var shear = new GeoTransform2(new double[,] { { 1, 1, 5 }, { 0, 1, -3 }, { 0, 0, 1 } });
+            var shear = new GeoTransform2(
+                new double[,]
+                {
+                    { 1, 1, 5 },
+                    { 0, 1, -3 },
+                    { 0, 0, 1 },
+                }
+            );
             GeoEllipse2 sheared = circle.TransformBy(shear);
 
             Assert.Equal(161.80339887498948, sheared.MajorRadius, 1E-9);
             Assert.Equal(61.80339887498948, sheared.MinorRadius, 1E-9);
             Assert.Equal(10000 * Math.PI, sheared.Area, 1E-6);
-            Assert.Equal(0.0, sheared.MajorAxis.CrossProduct(new GeoVector2(0.8506508083520399, 0.5257311121191336)), 1E-12);
+            Assert.Equal(
+                0.0,
+                sheared.MajorAxis.CrossProduct(new GeoVector2(0.8506508083520399, 0.5257311121191336)),
+                1E-12
+            );
             Assert.True(sheared.Center.IsEqualTo(new GeoPoint2(5, -3), Tight));
             AssertImageOfRim(circle, shear, sheared, false);
         }
@@ -161,11 +179,20 @@ namespace GeometryHelper.UnitTest.Plane
             // A shear, an uneven scaling, a turn and a move, and the same with a mirror after: undone, each gives the
             // 300 by 100 back, its axis up to sign.
             GeoEllipse2 ellipse = Ellipse2Oracle.Tilted();
-            GeoTransform2 mixed = GeoTransform2.Translation(new GeoVector2(-70, 15))
+            GeoTransform2 mixed =
+                GeoTransform2.Translation(new GeoVector2(-70, 15))
                 * GeoTransform2.Rotation(1.3)
                 * GeoTransform2.Scaling(2.5, 0.7)
-                * new GeoTransform2(new double[,] { { 1, 0.4, 0 }, { 0, 1, 0 }, { 0, 0, 1 } });
-            GeoTransform2 mirrored = GeoTransform2.Mirror(new GeoLine2(new GeoPoint2(3, 4), new GeoPoint2(-5, 9))) * mixed;
+                * new GeoTransform2(
+                    new double[,]
+                    {
+                        { 1, 0.4, 0 },
+                        { 0, 1, 0 },
+                        { 0, 0, 1 },
+                    }
+                );
+            GeoTransform2 mirrored =
+                GeoTransform2.Mirror(new GeoLine2(new GeoPoint2(3, 4), new GeoPoint2(-5, 9))) * mixed;
 
             foreach (GeoTransform2 transform in new[] { mixed, mirrored })
             {
@@ -190,13 +217,22 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Equal(100.0, after.MajorRadius, 1E-12 * 100);
             Assert.Equal(100.0, after.MinorRadius, 1E-12 * 100);
-            Assert.True(after.MajorAxis.IsEqualTo(new GeoVector2(Math.Cos(0.7), Math.Sin(0.7)), new Tolerance(1E-12, 1E-12)));
+            Assert.True(
+                after.MajorAxis.IsEqualTo(new GeoVector2(Math.Cos(0.7), Math.Sin(0.7)), new Tolerance(1E-12, 1E-12))
+            );
             Assert.True(after.Center.IsEqualTo(transform.Transform(circle.Center), Tight));
 
             for (int k = 0; k < 12; k++)
             {
                 double p = k / 12.0;
-                Assert.True(after.GetPointAtParameter(p).IsEqualTo(transform.Transform(circle.GetPointAtParameter(p)), new Tolerance(1E-12 * 100, 1E-12)));
+                Assert.True(
+                    after
+                        .GetPointAtParameter(p)
+                        .IsEqualTo(
+                            transform.Transform(circle.GetPointAtParameter(p)),
+                            new Tolerance(1E-12 * 100, 1E-12)
+                        )
+                );
             }
         }
 

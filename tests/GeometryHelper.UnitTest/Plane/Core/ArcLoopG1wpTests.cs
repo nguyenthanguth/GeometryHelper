@@ -19,18 +19,32 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class ArcLoopG1wpTests
     {
-        private static readonly Tolerance Millionth = new Tolerance(1E-6, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-6);
-        private static readonly Tolerance Tight = new Tolerance(1E-12, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-12);
+        private static readonly Tolerance Millionth = new Tolerance(
+            1E-6,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-6
+        );
+        private static readonly Tolerance Tight = new Tolerance(
+            1E-12,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-12
+        );
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
-        private static GeoPolygonArc2 Rectangle() => new GeoPolygonArc2(new[] { P(0, 0), P(100, 0), P(100, 50), P(0, 50) }, null);
+        private static GeoPolygonArc2 Rectangle() =>
+            new GeoPolygonArc2(new[] { P(0, 0), P(100, 0), P(100, 50), P(0, 50) }, null);
 
         private static int ArcsOf(GeoPolygonArc2 loop) => loop.GetEdges().Count(edge => edge.IsArc);
 
         // The square 10 by 10 at the origin with its corner (0, 0) cut off by a side 0.000007 long, its legs 0.000005.
-        private static GeoPolygonArc2 FinelyCut()
-            => GeoPolygonArc2.FromValidated(new[] { P(0.000005, 0), P(10, 0), P(10, 10), P(0, 10), P(0, 0.000005) }, new double[5]);
+        private static GeoPolygonArc2 FinelyCut() =>
+            GeoPolygonArc2.FromValidated(
+                new[] { P(0.000005, 0), P(10, 0), P(10, 10), P(0, 10), P(0, 0.000005) },
+                new double[5]
+            );
 
         [Fact]
         public void ARectangleFilletedAtFiveTenThousandthsAtAMillionthReversed_KeepsItsFourArcs()
@@ -69,13 +83,18 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(6, rounded.VertexCount);
             Assert.Equal(1, ArcsOf(rounded));
             Assert.Contains(rounded.Vertices, corner => corner.IsEqualTo(P(0.000005 + take, 0), Tight));
-            Assert.Contains(rounded.Vertices, corner => corner.IsEqualTo(P(0.000005 - take / Math.Sqrt(2.0), take / Math.Sqrt(2.0)), Tight));
+            Assert.Contains(rounded.Vertices, corner =>
+                corner.IsEqualTo(P(0.000005 - take / Math.Sqrt(2.0), take / Math.Sqrt(2.0)), Tight)
+            );
         }
 
         [Fact]
         public void ACornerOfAStraightLoopBesideASideSevenMillionthsLong_IsRoundedAtAMillionth()
         {
-            var polygon = new GeoPolygon3(FinelyCut().Vertices.Select(corner => new GeoPoint3(corner.X, corner.Y, 0)), Tight);
+            var polygon = new GeoPolygon3(
+                FinelyCut().Vertices.Select(corner => new GeoPoint3(corner.X, corner.Y, 0)),
+                Tight
+            );
 
             Assert.True(Corner3.TryFilletAt(polygon, 0, 0.00001, out GeoPolygonArc3 rounded, Millionth));
 

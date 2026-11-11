@@ -19,17 +19,26 @@ namespace GeometryHelper.UnitTest.Dwg
         /// <summary>The types the reader does not read yet, which a comparison may find missing.</summary>
         private static readonly string[] NotReadYet =
         {
-            "ACDBDETAILVIEWSTYLE", "ACDBSECTIONVIEWSTYLE", "CELLSTYLEMAP", "MATERIAL", "TABLESTYLE", "VISUALSTYLE",
-            "ACDBASSOCPERSSUBENTMANAGER", "SHAPE",
-
+            "ACDBDETAILVIEWSTYLE",
+            "ACDBSECTIONVIEWSTYLE",
+            "CELLSTYLEMAP",
+            "MATERIAL",
+            "TABLESTYLE",
+            "VISUALSTYLE",
+            "ACDBASSOCPERSSUBENTMANAGER",
+            "SHAPE",
             // The content of a table as R2010 and later keep it, which an R2000 or R2004 file keeps for round trips.
-            "ACDBDATATABLE", "DATATABLE", "TABLECONTENT", "TABLEGEOMETRY",
-
+            "ACDBDATATABLE",
+            "DATATABLE",
+            "TABLECONTENT",
+            "TABLEGEOMETRY",
             // The records of the ACDSDATA section of R2013 and later, which holds the ACIS data of the solids.
-            "ACDSRECORD", "ACDSSCHEMA",
+            "ACDSRECORD",
+            "ACDSSCHEMA",
         };
 
-        private readonly List<(GeometryHelperLogLevel Level, string Message)> _written = new List<(GeometryHelperLogLevel Level, string Message)>();
+        private readonly List<(GeometryHelperLogLevel Level, string Message)> _written =
+            new List<(GeometryHelperLogLevel Level, string Message)>();
 
         public DwgAnswerKeyTests()
         {
@@ -53,7 +62,10 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("later", 150)]
         public void ADrawing_ReadFromItsDwg_IsTheDxfAutoCadWroteOfIt(string name, int atLeast)
         {
-            DwgAnswerKey.Result result = DwgAnswerKey.Compare(DwgAnswerKey.Key(name), DwgReader.ToDxf(DwgAnswerKey.Dwg(name)));
+            DwgAnswerKey.Result result = DwgAnswerKey.Compare(
+                DwgAnswerKey.Key(name),
+                DwgReader.ToDxf(DwgAnswerKey.Dwg(name))
+            );
 
             Assert.Empty(result.Differences);
             Assert.Empty(result.Missing.Keys.Except(NotReadYet));
@@ -79,7 +91,10 @@ namespace GeometryHelper.UnitTest.Dwg
         public void ADrawingOfALaterVersion_ReadFromItsDwg_IsTheDxfAutoCadWroteOfIt(string name, string version)
         {
             string drawing = name + "_" + version;
-            DwgAnswerKey.Result result = DwgAnswerKey.Compare(DwgAnswerKey.Key(drawing), DwgReader.ToDxf(DwgAnswerKey.Dwg(drawing)));
+            DwgAnswerKey.Result result = DwgAnswerKey.Compare(
+                DwgAnswerKey.Key(drawing),
+                DwgReader.ToDxf(DwgAnswerKey.Dwg(drawing))
+            );
 
             Assert.Empty(result.Differences);
             Assert.Empty(result.Missing.Keys.Except(NotReadYet).Except(NotReadYet.Select(type => "CLASS " + type)));
@@ -108,7 +123,10 @@ namespace GeometryHelper.UnitTest.Dwg
         public void ADrawingOfTheTypesOfW4_ReadFromItsDwg_IsTheDxfAutoCadWroteOfIt(string drawing)
         {
             // Made by probe GhDwg4 in all six versions; the repository holds the oldest and the newest of each.
-            DwgAnswerKey.Result result = DwgAnswerKey.Compare(DwgAnswerKey.Key(drawing), DwgReader.ToDxf(DwgAnswerKey.Dwg(drawing)));
+            DwgAnswerKey.Result result = DwgAnswerKey.Compare(
+                DwgAnswerKey.Key(drawing),
+                DwgReader.ToDxf(DwgAnswerKey.Dwg(drawing))
+            );
 
             Assert.Empty(result.Differences);
             Assert.Empty(result.Missing.Keys.Except(NotReadYet).Except(NotReadYet.Select(type => "CLASS " + type)));
@@ -119,7 +137,9 @@ namespace GeometryHelper.UnitTest.Dwg
         [Theory]
         [InlineData("vports_AC1015")]
         [InlineData("vports_AC1032")]
-        public void TheViewportsOfTheCurrentLayout_AreRead_NumberedFromThePaper_WithFrozenLayersAndAClipBoundary(string drawing)
+        public void TheViewportsOfTheCurrentLayout_AreRead_NumberedFromThePaper_WithFrozenLayersAndAClipBoundary(
+            string drawing
+        )
         {
             DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg(drawing), false));
             List<DxfViewport> viewports = database.PaperSpace.OfType<DxfViewport>().ToList();
@@ -145,7 +165,10 @@ namespace GeometryHelper.UnitTest.Dwg
             // ANSI31 over a polyline with a bulge, a double user pattern, a solid fill bounded by a line, an arc, a spline and
             // an elliptic arc, a gradient, ANSI37 with an island, NET following a circle, and a tilted solid fill.
             Assert.Equal(7, hatches.Count);
-            Assert.Equal(new[] { "ANSI31", "_USER", "SOLID", "SOLID", "ANSI37", "NET", "SOLID" }, hatches.Select(h => h.PatternName));
+            Assert.Equal(
+                new[] { "ANSI31", "_USER", "SOLID", "SOLID", "ANSI37", "NET", "SOLID" },
+                hatches.Select(h => h.PatternName)
+            );
             Assert.Equal(2, hatches[4].NumberOfLoops);
             Assert.True(hatches[5].Associative);
             Assert.Equal(5.0, hatches[6].Elevation, 9);
@@ -168,7 +191,10 @@ namespace GeometryHelper.UnitTest.Dwg
 
             // Two multileaders of text and one of the block GhTag under the style GhBlock.
             List<DxfMLeader> multileaders = database.ModelSpace.OfType<DxfMLeader>().ToList();
-            Assert.Equal(new[] { DxfContentType.MTextContent, DxfContentType.MTextContent, DxfContentType.BlockContent }, multileaders.Select(m => m.ContentType));
+            Assert.Equal(
+                new[] { DxfContentType.MTextContent, DxfContentType.MTextContent, DxfContentType.BlockContent },
+                multileaders.Select(m => m.ContentType)
+            );
             Assert.Equal("Multi\\Pleader", multileaders[0].MText.Contents);
         }
 
@@ -180,7 +206,10 @@ namespace GeometryHelper.UnitTest.Dwg
             DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg(drawing), false));
 
             // Two images of one PNG of 16 by 8 pixels, the second clipped by a triangle; two wipeouts.
-            List<DxfRasterImage> images = database.ModelSpace.OfType<DxfRasterImage>().Where(i => !(i is DxfWipeout)).ToList();
+            List<DxfRasterImage> images = database
+                .ModelSpace.OfType<DxfRasterImage>()
+                .Where(i => !(i is DxfWipeout))
+                .ToList();
             Assert.Equal(2, images.Count);
             Assert.All(images, image => Assert.EndsWith("gh.png", image.Path, StringComparison.Ordinal));
             Assert.True(images[1].IsClipped);
@@ -199,8 +228,13 @@ namespace GeometryHelper.UnitTest.Dwg
             // Two of STANDARD, one of GH3, whose three lines are Continuous, ByLayer and ByBlock: before R2018 the file
             // gives the first by its place in the linetype table.
             Assert.Equal(3, database.ModelSpace.OfType<DxfUnknownEntity>().Count(e => e.DxfName == "MLINE"));
-            DwgAnswerKey.Record style = Assert.Single(records, r => r.Type == "MLINESTYLE" && r.Groups.Any(g => g.Key == 2 && g.Value == "GH3"));
-            Assert.Equal(new[] { "Continuous", "BYLAYER", "BYBLOCK" }, style.Groups.Where(g => g.Key == 6).Select(g => g.Value));
+            DwgAnswerKey.Record style = Assert.Single(records, r =>
+                r.Type == "MLINESTYLE" && r.Groups.Any(g => g.Key == 2 && g.Value == "GH3")
+            );
+            Assert.Equal(
+                new[] { "Continuous", "BYLAYER", "BYBLOCK" },
+                style.Groups.Where(g => g.Key == 6).Select(g => g.Value)
+            );
         }
 
         [Theory]
@@ -227,7 +261,9 @@ namespace GeometryHelper.UnitTest.Dwg
             // Before, the entity was left out as broken: a colour of a book sets 0x8000 too, but keeps no true colour there.
             DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg("meshes_AC1032"), false));
 
-            DxfCircle circle = Assert.Single(database.ModelSpace.OfType<DxfCircle>(), c => Math.Abs(c.Radius - 5.0) < 1E-9 && Math.Abs(c.Center.X - 200.0) < 1E-9);
+            DxfCircle circle = Assert.Single(database.ModelSpace.OfType<DxfCircle>(), c =>
+                Math.Abs(c.Radius - 5.0) < 1E-9 && Math.Abs(c.Center.X - 200.0) < 1E-9
+            );
             Assert.Contains("PANTONE Yellow 012 C", circle.Color.ColorName);
             Assert.DoesNotContain(_written, line => line.Level == GeometryHelperLogLevel.Warn);
         }
@@ -237,7 +273,10 @@ namespace GeometryHelper.UnitTest.Dwg
         {
             DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg("meshes_AC1032"), false));
 
-            DxfAttributeReference note = database.ModelSpace.OfType<DxfBlockReference>().SelectMany(b => b.AttributeCollection).Single(a => a.Tag == "NOTE");
+            DxfAttributeReference note = database
+                .ModelSpace.OfType<DxfBlockReference>()
+                .SelectMany(b => b.AttributeCollection)
+                .Single(a => a.Tag == "NOTE");
             Assert.True(note.IsMTextAttribute);
             Assert.Equal("line one\\Pline two", note.MTextAttribute.Contents);
         }
@@ -260,7 +299,10 @@ namespace GeometryHelper.UnitTest.Dwg
             List<DwgAnswerKey.Record> records = DwgAnswerKey.Parse(DwgReader.ToDxf(DwgAnswerKey.Dwg("solids_AC1032")));
 
             DwgAnswerKey.Record box = Assert.Single(records, r => r.Type == "3DSOLID");
-            Assert.Matches("^\\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\}$", box.Groups.Single(g => g.Key == 2).Value);
+            Assert.Matches(
+                "^\\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\}$",
+                box.Groups.Single(g => g.Key == 2).Value
+            );
             Assert.Contains(box.Groups, g => g.Key == 100 && g.Value == "AcDb3dSolid");
         }
 
@@ -278,7 +320,9 @@ namespace GeometryHelper.UnitTest.Dwg
 
             var faults = new List<string>();
 
-            foreach (string dwg in Directory.GetFiles(folder, "*_AC10??.dwg").OrderBy(path => path, StringComparer.Ordinal))
+            foreach (
+                string dwg in Directory.GetFiles(folder, "*_AC10??.dwg").OrderBy(path => path, StringComparer.Ordinal)
+            )
             {
                 string dxf = Path.ChangeExtension(dwg, ".dxf");
                 byte[] file = File.ReadAllBytes(dwg);
@@ -288,10 +332,20 @@ namespace GeometryHelper.UnitTest.Dwg
                     continue;
                 }
 
-                string[] ignored = Path.GetFileName(dwg).StartsWith("tables_", StringComparison.Ordinal) ? new[] { "$TEXTSIZE" } : new string[0];
-                DwgAnswerKey.Result result = DwgAnswerKey.Compare(File.ReadAllBytes(dxf), DwgReader.ToDxf(file), ignored);
-                IEnumerable<string> missing = result.Missing.Keys.Except(NotReadYet).Except(NotReadYet.Select(type => "CLASS " + type));
-                faults.AddRange(result.Differences.Concat(missing).Select(fault => Path.GetFileName(dwg) + ": " + fault));
+                string[] ignored = Path.GetFileName(dwg).StartsWith("tables_", StringComparison.Ordinal)
+                    ? new[] { "$TEXTSIZE" }
+                    : new string[0];
+                DwgAnswerKey.Result result = DwgAnswerKey.Compare(
+                    File.ReadAllBytes(dxf),
+                    DwgReader.ToDxf(file),
+                    ignored
+                );
+                IEnumerable<string> missing = result
+                    .Missing.Keys.Except(NotReadYet)
+                    .Except(NotReadYet.Select(type => "CLASS " + type));
+                faults.AddRange(
+                    result.Differences.Concat(missing).Select(fault => Path.GetFileName(dwg) + ": " + fault)
+                );
             }
 
             Assert.Empty(faults);
@@ -324,7 +378,11 @@ namespace GeometryHelper.UnitTest.Dwg
         public void TheDrawingOfTheTables_IsTheDxfAutoCadWroteOfIt_ButForTheTextSizeAutoCadChanged()
         {
             // The DWG holds the text size 3.5 the drawing was given; AutoCAD wrote 0.2 after reading it back.
-            DwgAnswerKey.Result result = DwgAnswerKey.Compare(DwgAnswerKey.Key("tables"), DwgReader.ToDxf(DwgAnswerKey.Dwg("tables")), "$TEXTSIZE");
+            DwgAnswerKey.Result result = DwgAnswerKey.Compare(
+                DwgAnswerKey.Key("tables"),
+                DwgReader.ToDxf(DwgAnswerKey.Dwg("tables")),
+                "$TEXTSIZE"
+            );
 
             Assert.Empty(result.Differences);
             Assert.Empty(result.Missing.Keys.Except(NotReadYet));
@@ -343,9 +401,15 @@ namespace GeometryHelper.UnitTest.Dwg
             // The end of the line moved from 100 to 100.000001: more than the comparison lets pass.
             int eleven = text.IndexOf("\r\n 11\r\n100.0\r\n", line, StringComparison.Ordinal);
             Assert.True(eleven > 0);
-            string moved = text.Substring(0, eleven) + "\r\n 11\r\n100.000001\r\n" + text.Substring(eleven + "\r\n 11\r\n100.0\r\n".Length);
+            string moved =
+                text.Substring(0, eleven)
+                + "\r\n 11\r\n100.000001\r\n"
+                + text.Substring(eleven + "\r\n 11\r\n100.0\r\n".Length);
 
-            DwgAnswerKey.Result result = DwgAnswerKey.Compare(key, System.Text.Encoding.GetEncoding(28591).GetBytes(moved));
+            DwgAnswerKey.Result result = DwgAnswerKey.Compare(
+                key,
+                System.Text.Encoding.GetEncoding(28591).GetBytes(moved)
+            );
 
             Assert.Single(result.Differences);
             Assert.Contains("LINE", result.Differences[0]);
@@ -365,12 +429,22 @@ namespace GeometryHelper.UnitTest.Dwg
         {
             DwgReader.ToDxf(DwgAnswerKey.Dwg("later"));
 
-            string skipped = Assert.Single(_written, line => line.Level == GeometryHelperLogLevel.Debug && line.Message.StartsWith("DwgReader:", StringComparison.Ordinal)).Message;
+            string skipped = Assert
+                .Single(_written, line =>
+                    line.Level == GeometryHelperLogLevel.Debug
+                    && line.Message.StartsWith("DwgReader:", StringComparison.Ordinal)
+                )
+                .Message;
             Assert.DoesNotContain(" HATCH ", skipped);
             Assert.DoesNotContain(" LEADER ", skipped);
             Assert.Contains("MATERIAL 3", skipped);
 
-            string summary = Assert.Single(_written, line => line.Level == GeometryHelperLogLevel.Info && line.Message.StartsWith("DwgReader:", StringComparison.Ordinal)).Message;
+            string summary = Assert
+                .Single(_written, line =>
+                    line.Level == GeometryHelperLogLevel.Info
+                    && line.Message.StartsWith("DwgReader:", StringComparison.Ordinal)
+                )
+                .Message;
             Assert.Contains("AutoCAD 2000", summary);
             Assert.Contains("0 broken", summary);
         }

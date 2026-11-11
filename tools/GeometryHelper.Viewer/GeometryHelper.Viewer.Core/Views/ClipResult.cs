@@ -13,7 +13,13 @@ namespace GeometryHelper.Viewer
         private static readonly IReadOnlyList<DrawPolyline> NoLines = new DrawPolyline[0];
         private static readonly IReadOnlyList<DrawTriangle> NoTriangles = new DrawTriangle[0];
 
-        private ClipResult(ClipSet clips, Primitives clipped, IReadOnlyList<IReadOnlyList<DrawPolyline>> sections, IReadOnlyList<IReadOnlyList<DrawTriangle>> caps, int capsRefused)
+        private ClipResult(
+            ClipSet clips,
+            Primitives clipped,
+            IReadOnlyList<IReadOnlyList<DrawPolyline>> sections,
+            IReadOnlyList<IReadOnlyList<DrawTriangle>> caps,
+            int capsRefused
+        )
         {
             Clips = clips;
             Clipped = clipped;
@@ -58,7 +64,11 @@ namespace GeometryHelper.Viewer
         /// <returns>The result, with no caps.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the primitives or the planes are null.</exception>
         /// <exception cref="OperationCanceledException">Thrown when the work is cancelled.</exception>
-        public static ClipResult Build(Primitives source, ClipSet clips, CancellationToken cancel = default(CancellationToken)) => Build(source, clips, false, cancel);
+        public static ClipResult Build(
+            Primitives source,
+            ClipSet clips,
+            CancellationToken cancel = default(CancellationToken)
+        ) => Build(source, clips, false, cancel);
 
         /// <summary>
         /// Cuts a scene, and fills the closed section lines where asked.
@@ -70,7 +80,12 @@ namespace GeometryHelper.Viewer
         /// <returns>The result.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the primitives or the planes are null.</exception>
         /// <exception cref="OperationCanceledException">Thrown when the work is cancelled.</exception>
-        public static ClipResult Build(Primitives source, ClipSet clips, bool caps, CancellationToken cancel = default(CancellationToken)) => Build(source, clips, caps, true, cancel);
+        public static ClipResult Build(
+            Primitives source,
+            ClipSet clips,
+            bool caps,
+            CancellationToken cancel = default(CancellationToken)
+        ) => Build(source, clips, caps, true, cancel);
 
         /// <summary>
         /// Cuts a scene for a look while a plane is being dragged: what is left to draw, with no section lines and no caps, which is the part of the work that a person watching the plane move can do without.
@@ -81,9 +96,19 @@ namespace GeometryHelper.Viewer
         /// <returns>The result, with no section lines and no caps.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the primitives or the planes are null.</exception>
         /// <exception cref="OperationCanceledException">Thrown when the work is cancelled.</exception>
-        public static ClipResult BuildPreview(Primitives source, ClipSet clips, CancellationToken cancel = default(CancellationToken)) => Build(source, clips, false, false, cancel);
+        public static ClipResult BuildPreview(
+            Primitives source,
+            ClipSet clips,
+            CancellationToken cancel = default(CancellationToken)
+        ) => Build(source, clips, false, false, cancel);
 
-        private static ClipResult Build(Primitives source, ClipSet clips, bool caps, bool wantSections, CancellationToken cancel)
+        private static ClipResult Build(
+            Primitives source,
+            ClipSet clips,
+            bool caps,
+            bool wantSections,
+            CancellationToken cancel
+        )
         {
             if (source == null)
             {
@@ -127,7 +152,10 @@ namespace GeometryHelper.Viewer
                 }
 
                 // A vertex is on a plane, and two points are one, within the slack; a scene with no box has no slack, and the size of the item does.
-                double weld = clips.Slack > 0.0 ? clips.Slack : 1E-9 * Math.Max(1.0, item.Bounds.IsEmpty ? 1.0 : item.Bounds.Size.Length);
+                double weld =
+                    clips.Slack > 0.0
+                        ? clips.Slack
+                        : 1E-9 * Math.Max(1.0, item.Bounds.IsEmpty ? 1.0 : item.Bounds.Size.Length);
                 var lines = new List<DrawPolyline>();
                 var filled = new List<DrawTriangle>();
 
@@ -163,7 +191,13 @@ namespace GeometryHelper.Viewer
 
                     if (caps && item.IsClosedBody && chains.Count > 0)
                     {
-                        List<DrawTriangle> fill = SectionCaps.Build(chains, plane, source.Tolerance, out int refusedHere, cancel);
+                        List<DrawTriangle> fill = SectionCaps.Build(
+                            chains,
+                            plane,
+                            source.Tolerance,
+                            out int refusedHere,
+                            cancel
+                        );
                         refused += refusedHere;
 
                         if (fill.Count > 0)
@@ -203,14 +237,23 @@ namespace GeometryHelper.Viewer
         {
             double largest = Math.Max(
                 Math.Max(Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Min.Y)), Math.Abs(box.Min.Z)),
-                Math.Max(Math.Max(Math.Abs(box.Max.X), Math.Abs(box.Max.Y)), Math.Abs(box.Max.Z)));
-            double margin = weld + 1E-9 * (1.0 + largest + Math.Abs(plane.Point.X) + Math.Abs(plane.Point.Y) + Math.Abs(plane.Point.Z));
+                Math.Max(Math.Max(Math.Abs(box.Max.X), Math.Abs(box.Max.Y)), Math.Abs(box.Max.Z))
+            );
+            double margin =
+                weld
+                + 1E-9 * (1.0 + largest + Math.Abs(plane.Point.X) + Math.Abs(plane.Point.Y) + Math.Abs(plane.Point.Z));
             double lowest = double.PositiveInfinity;
             double highest = double.NegativeInfinity;
 
             for (int i = 0; i < 8; i++)
             {
-                double d = plane.SignedDistance(new Vec3((i & 1) == 0 ? box.Min.X : box.Max.X, (i & 2) == 0 ? box.Min.Y : box.Max.Y, (i & 4) == 0 ? box.Min.Z : box.Max.Z));
+                double d = plane.SignedDistance(
+                    new Vec3(
+                        (i & 1) == 0 ? box.Min.X : box.Max.X,
+                        (i & 2) == 0 ? box.Min.Y : box.Max.Y,
+                        (i & 4) == 0 ? box.Min.Z : box.Max.Z
+                    )
+                );
                 lowest = Math.Min(lowest, d);
                 highest = Math.Max(highest, d);
             }

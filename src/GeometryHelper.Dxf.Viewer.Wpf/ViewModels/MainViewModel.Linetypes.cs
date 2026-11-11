@@ -27,7 +27,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string CurrentLinetype
         {
             get => _current == null ? string.Empty : _current.Document.Database.Celtype;
-
             set
             {
                 if (_current == null || value == null || value == CurrentLinetype)
@@ -72,7 +71,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Makes the Linetype Manager of the drawing shown; null with none open.</summary>
         /// <returns>The manager.</returns>
-        public LinetypeManagerViewModel CreateLinetypeManager() => _current == null ? null : new LinetypeManagerViewModel(_current.Document);
+        public LinetypeManagerViewModel CreateLinetypeManager() =>
+            _current == null ? null : new LinetypeManagerViewModel(_current.Document);
 
         /// <summary>
         /// Gets the .pat file last chosen in the Hatch dialog by Browse… while the window is open, offered again by the next
@@ -82,7 +82,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Makes the Hatch dialog on the settings of the next hatch of the drawing shown; null with none open.</summary>
         /// <returns>The dialog.</returns>
-        public HatchSettingsViewModel CreateHatchSettings() => _current == null ? null : HatchDialog(_current.Document, _current.Document.HatchSettings, false);
+        public HatchSettingsViewModel CreateHatchSettings() =>
+            _current == null ? null : HatchDialog(_current.Document, _current.Document.HatchSettings, false);
 
         /// <summary>The Hatch dialog on settings, the pattern file of the session offered where the settings name none.</summary>
         private HatchSettingsViewModel HatchDialog(CadDocument document, CadHatchSettings settings, bool editing)

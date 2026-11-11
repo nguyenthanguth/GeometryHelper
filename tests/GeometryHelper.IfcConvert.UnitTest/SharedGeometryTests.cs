@@ -19,7 +19,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
         // A unit cube, one faceted brep (#61), used four times: by A, placed at the origin, and B, placed 10 along X,
         // each through a representation of its own; and by C and D through one representation map, mapped 20 and 30
         // along Y.
-        private static readonly string SharedBrep = IfcTestFile.CommonHeader() + @"
+        private static readonly string SharedBrep =
+            IfcTestFile.CommonHeader()
+            + @"
 #20=IFCCARTESIANPOINT((0.,0.,0.));
 #21=IFCCARTESIANPOINT((1.,0.,0.));
 #22=IFCCARTESIANPOINT((1.,1.,0.));
@@ -91,7 +93,10 @@ namespace GeometryHelper.IfcConvert.UnitTest
                 {
                     GeoSolid3 cube = Assert.Single(model.GetSolids(guid));
                     Assert.Equal(1.0, cube.GetVolume(), 9);
-                    Assert.True(cube.GetCentroid().DistanceTo(middle) < 1E-9, $"{guid} is at {cube.GetCentroid()}, not {middle}");
+                    Assert.True(
+                        cube.GetCentroid().DistanceTo(middle) < 1E-9,
+                        $"{guid} is at {cube.GetCentroid()}, not {middle}"
+                    );
                 }
 
                 Assert.Equal(1, SolidConvert.BuiltItemCount(model.GetProduct("0000000000000000000A01").Model));
@@ -104,11 +109,19 @@ namespace GeometryHelper.IfcConvert.UnitTest
             IfcTestFile.Run(SharedBrep, model =>
             {
                 GeoSolid3 metres = Assert.Single(model.GetSolids("0000000000000000000B01"));
-                GeoSolid3 millimetres = Assert.Single(model.GetSolids("0000000000000000000B01", new IfcConvertOptions { TargetUnit = LengthUnit.Millimeters }));
+                GeoSolid3 millimetres = Assert.Single(
+                    model.GetSolids(
+                        "0000000000000000000B01",
+                        new IfcConvertOptions { TargetUnit = LengthUnit.Millimeters }
+                    )
+                );
 
                 Assert.Equal(1.0, metres.GetVolume(), 9);
                 Assert.Equal(1E9, millimetres.GetVolume(), 3);
-                Assert.True(millimetres.GetCentroid().DistanceTo(new GeoPoint3(10500, 500, 500)) < 1E-6, $"{millimetres.GetCentroid()}");
+                Assert.True(
+                    millimetres.GetCentroid().DistanceTo(new GeoPoint3(10500, 500, 500)) < 1E-6,
+                    $"{millimetres.GetCentroid()}"
+                );
                 Assert.Equal(2, SolidConvert.BuiltItemCount(model.GetProduct("0000000000000000000B01").Model));
             });
         }
@@ -125,7 +138,10 @@ namespace GeometryHelper.IfcConvert.UnitTest
 
                 for (int k = 0; k < guids.Length; k++)
                 {
-                    Assert.True(middles[k].DistanceTo(Placed[k % Placed.Length].Middle) < 1E-9, $"{guids[k]} is at {middles[k]}");
+                    Assert.True(
+                        middles[k].DistanceTo(Placed[k % Placed.Length].Middle) < 1E-9,
+                        $"{guids[k]} is at {middles[k]}"
+                    );
                 }
 
                 Assert.Equal(1, SolidConvert.BuiltItemCount(model.GetProduct("0000000000000000000A01").Model));

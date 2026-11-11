@@ -21,7 +21,10 @@ namespace GeometryHelper.Drawing.Annotation
         /// </summary>
         private static readonly (bool OutsideOnly, bool NearGap, int Levels, bool ClearOfObjects)[] Rounds =
         {
-            (false, false, 4, true), (true, false, 3, false), (false, false, 8, false), (false, true, 16, false),
+            (false, false, 4, true),
+            (true, false, 3, false),
+            (false, false, 8, false),
+            (false, true, 16, false),
         };
 
         private readonly List<DrawingObject> _objects;
@@ -36,9 +39,22 @@ namespace GeometryHelper.Drawing.Annotation
         private readonly List<GeoLine2> _clearLines;
 
         // Looked up by id only, never walked, so nothing here follows its order.
-        private readonly Dictionary<string, List<ProjectedEdge2>> _visible = new Dictionary<string, List<ProjectedEdge2>>(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<ProjectedEdge2>> _visible = new Dictionary<
+            string,
+            List<ProjectedEdge2>
+        >(StringComparer.Ordinal);
 
-        internal MarkPlacer(ProjectedView2 view, List<DrawingObject> objects, GeoCoordinateSystem3 frame, List<DrawingDimension> dimensions, List<GeoRectangle2> clearBoxes, List<GeoLine2> clearLines, double height, double gap, Tolerance tolerance)
+        internal MarkPlacer(
+            ProjectedView2 view,
+            List<DrawingObject> objects,
+            GeoCoordinateSystem3 frame,
+            List<DrawingDimension> dimensions,
+            List<GeoRectangle2> clearBoxes,
+            List<GeoLine2> clearLines,
+            double height,
+            double gap,
+            Tolerance tolerance
+        )
         {
             _clearBoxes = clearBoxes;
             _clearLines = clearLines;
@@ -125,32 +141,46 @@ namespace GeometryHelper.Drawing.Annotation
 
             foreach (DrawingObject item in _objects)
             {
-                if (item.Kind != DrawingObjectKind.Part || !_visible.TryGetValue(item.Id, out List<ProjectedEdge2> edges))
+                if (
+                    item.Kind != DrawingObjectKind.Part
+                    || !_visible.TryGetValue(item.Id, out List<ProjectedEdge2> edges)
+                )
                 {
                     continue;
                 }
 
                 MarkKind kind = item.IsMain && item.ParentId != null ? MarkKind.Assembly : MarkKind.Part;
                 bool wanted = item.IsMain ? settings.MainParts : settings.Fittings;
-                string text = MarkTexts.Text(kind == MarkKind.Assembly ? content.Assembly : content.Part, item, item.Mark.Length > 0 ? counts[item.Mark] : 1);
+                string text = MarkTexts.Text(
+                    kind == MarkKind.Assembly ? content.Assembly : content.Part,
+                    item,
+                    item.Mark.Length > 0 ? counts[item.Mark] : 1
+                );
 
                 if (!wanted || text.Length == 0)
                 {
                     continue;
                 }
 
-                var target = new Target { Object = item, Edges = edges, Model = BoxCentre(item.Solid) };
-                GeoLine2 guide = Longest(edges);
-                candidates.Add(new Candidate
+                var target = new Target
                 {
-                    Id = "M-" + item.Id,
-                    Kind = kind,
-                    Text = text,
-                    ObjectIds = new[] { item.Id },
-                    Targets = new List<Target> { target },
-                    Guide = guide,
-                    Outside = Outside(guide, edges),
-                });
+                    Object = item,
+                    Edges = edges,
+                    Model = BoxCentre(item.Solid),
+                };
+                GeoLine2 guide = Longest(edges);
+                candidates.Add(
+                    new Candidate
+                    {
+                        Id = "M-" + item.Id,
+                        Kind = kind,
+                        Text = text,
+                        ObjectIds = new[] { item.Id },
+                        Targets = new List<Target> { target },
+                        Guide = guide,
+                        Outside = Outside(guide, edges),
+                    }
+                );
             }
 
             if (content.Bolt.Fields.Count > 0)
@@ -303,7 +333,8 @@ namespace GeometryHelper.Drawing.Annotation
                 new[] { p.Start, p.Anchor },
                 _height,
                 scale,
-                p.Target.Model));
+                p.Target.Model
+            ));
         }
 
         /// <summary>
@@ -325,18 +356,19 @@ namespace GeometryHelper.Drawing.Annotation
         }
 
         /// <summary>The box a mark's text takes with its margin, about a point.</summary>
-        private GeoRectangle2 Room(Candidate c, GeoPoint2 middle)
-            => new GeoRectangle2(middle, SymbolDxf.TextWidth(c.Text, _height) + 0.8 * _height, 1.8 * _height);
+        private GeoRectangle2 Room(Candidate c, GeoPoint2 middle) =>
+            new GeoRectangle2(middle, SymbolDxf.TextWidth(c.Text, _height) + 0.8 * _height, 1.8 * _height);
 
-        private ArrangeOptions Options(int levels) => new ArrangeOptions
-        {
-            RowGap = 0.5 * _height,
-            PerpendicularLevels = levels,
-            MinimumBoxSize = 0.0,
-            MinimumMoveDistance = 0.0,
-            NeighbourMargin = 2.0 * _height,
-            Tolerance = _tolerance,
-        };
+        private ArrangeOptions Options(int levels) =>
+            new ArrangeOptions
+            {
+                RowGap = 0.5 * _height,
+                PerpendicularLevels = levels,
+                MinimumBoxSize = 0.0,
+                MinimumMoveDistance = 0.0,
+                NeighbourMargin = 2.0 * _height,
+                Tolerance = _tolerance,
+            };
 
         /// <summary>
         /// The first of a mark's places, in the order the last round tries them, whose text and margin are clear of the
@@ -353,13 +385,19 @@ namespace GeometryHelper.Drawing.Annotation
             foreach (GeoPoint2 middle in Item(c, outsideOnly, nearGap).GetPlacePoints(Options(levels)))
             {
                 GeoRectangle2 room = Room(c, middle);
-                Placed placed = Attach(c, new GeoRectangle2(middle, SymbolDxf.TextWidth(c.Text, _height), _height), room);
+                Placed placed = Attach(
+                    c,
+                    new GeoRectangle2(middle, SymbolDxf.TextWidth(c.Text, _height), _height),
+                    room
+                );
 
                 // Clashes keeps the text itself clear of the symbols' lines either way.
-                if (Marker.DimensionClash(c.Id, room, placed.Start, placed.Anchor, _dimensions, _tol, null)
+                if (
+                    Marker.DimensionClash(c.Id, room, placed.Start, placed.Anchor, _dimensions, _tol, null)
                     || Marker.SymbolClash(c.Id, room, placed.Start, placed.Anchor, _clearBoxes, marginLines, _tol, null)
                     || accepted.Exists(p => Box2.Overlap(room, p.Room, _tol))
-                    || Clashes(placed, accepted))
+                    || Clashes(placed, accepted)
+                )
                 {
                     continue;
                 }
@@ -419,9 +457,17 @@ namespace GeometryHelper.Drawing.Annotation
                     GeoPoint3 model = MarkTexts.AxisCentre(bolt);
                     GeoPoint3 local = _frame.ToLocal(model);
                     var centre = new GeoPoint2(local.X, local.Y);
-                    bool endOn = Math.Abs(_frame.ZAxis.DotProduct(bolt.Frame.XAxis)) >= 1.0 - _tolerance.EqualVector
+                    bool endOn =
+                        Math.Abs(_frame.ZAxis.DotProduct(bolt.Frame.XAxis)) >= 1.0 - _tolerance.EqualVector
                         && seen.Exists(e => e.IsCircle && e.Arc.Center.DistanceTo(centre) <= _tol);
-                    var target = new Target { Object = bolt, Edges = seen, EndOn = endOn, Centre = centre, Model = model };
+                    var target = new Target
+                    {
+                        Object = bolt,
+                        Edges = seen,
+                        EndOn = endOn,
+                        Centre = centre,
+                        Model = model,
+                    };
                     targets.Add(target);
                     edges.AddRange(seen);
 
@@ -442,18 +488,22 @@ namespace GeometryHelper.Drawing.Annotation
 
                 if (ends.Count > 0)
                 {
-                    ends.Sort((a, b) =>
-                    {
-                        int c = a.Centre.X.CompareTo(b.Centre.X);
-                        c = c != 0 ? c : a.Centre.Y.CompareTo(b.Centre.Y);
-                        return c != 0 ? c : string.CompareOrdinal(a.Object.Id, b.Object.Id);
-                    });
+                    ends.Sort(
+                        (a, b) =>
+                        {
+                            int c = a.Centre.X.CompareTo(b.Centre.X);
+                            c = c != 0 ? c : a.Centre.Y.CompareTo(b.Centre.Y);
+                            return c != 0 ? c : string.CompareOrdinal(a.Object.Id, b.Object.Id);
+                        }
+                    );
 
-                    GeoPoint2 first = ends[0].Centre, last = ends[ends.Count - 1].Centre;
+                    GeoPoint2 first = ends[0].Centre,
+                        last = ends[ends.Count - 1].Centre;
                     double radius = 0.5 * MarkTexts.AxisDiameter(ends[0].Object);
-                    guide = first.DistanceTo(last) > _tol
-                        ? new GeoLine2(first, last)
-                        : new GeoLine2(first.X - radius, first.Y, first.X + radius, first.Y);
+                    guide =
+                        first.DistanceTo(last) > _tol
+                            ? new GeoLine2(first, last)
+                            : new GeoLine2(first.X - radius, first.Y, first.X + radius, first.Y);
                     guide = AtLeast(guide);
                 }
                 else
@@ -462,7 +512,18 @@ namespace GeometryHelper.Drawing.Annotation
                 }
 
                 var ids = group.ConvertAll(b => b.Id).ToArray();
-                candidates.Add(new Candidate { Id = "M-" + group[0].Id, Kind = MarkKind.Bolt, Text = text, ObjectIds = ids, Targets = targets, Guide = guide, Outside = ends.Count > 0 ? ArrangeSide.Both : Outside(guide, edges) });
+                candidates.Add(
+                    new Candidate
+                    {
+                        Id = "M-" + group[0].Id,
+                        Kind = MarkKind.Bolt,
+                        Text = text,
+                        ObjectIds = ids,
+                        Targets = targets,
+                        Guide = guide,
+                        Outside = ends.Count > 0 ? ArrangeSide.Both : Outside(guide, edges),
+                    }
+                );
             }
         }
 
@@ -496,7 +557,9 @@ namespace GeometryHelper.Drawing.Annotation
 
                 foreach (ProjectedEdge2 edge in target.Edges)
                 {
-                    GeoPoint2 p = edge.IsArc ? edge.Arc.GetClosestPointOnBoundary(middle, _tolerance) : edge.Line.GetClosestPointOnBoundary(middle);
+                    GeoPoint2 p = edge.IsArc
+                        ? edge.Arc.GetClosestPointOnBoundary(middle, _tolerance)
+                        : edge.Line.GetClosestPointOnBoundary(middle);
                     double d = p.DistanceTo(middle);
 
                     if (d < nearest)
@@ -508,21 +571,61 @@ namespace GeometryHelper.Drawing.Annotation
                 }
             }
 
-            return new Placed { Candidate = c, Target = best, Text = text, Room = room, Start = Box2.Nearest(text, anchor), Anchor = anchor };
+            return new Placed
+            {
+                Candidate = c,
+                Target = best,
+                Text = text,
+                Room = room,
+                Start = Box2.Nearest(text, anchor),
+                Anchor = anchor,
+            };
         }
 
         /// <summary>Whether a placed mark meets a dimension, or a mark placed before it, as Marker.FindOverlaps counts it.</summary>
         private bool Clashes(Placed placed, List<Placed> accepted)
         {
-            if (Marker.DimensionClash(placed.Candidate.Id, placed.Text, placed.Start, placed.Anchor, _dimensions, _tol, null)
-                || Marker.SymbolClash(placed.Candidate.Id, placed.Text, placed.Start, placed.Anchor, _clearBoxes, _clearLines, _tol, null))
+            if (
+                Marker.DimensionClash(
+                    placed.Candidate.Id,
+                    placed.Text,
+                    placed.Start,
+                    placed.Anchor,
+                    _dimensions,
+                    _tol,
+                    null
+                )
+                || Marker.SymbolClash(
+                    placed.Candidate.Id,
+                    placed.Text,
+                    placed.Start,
+                    placed.Anchor,
+                    _clearBoxes,
+                    _clearLines,
+                    _tol,
+                    null
+                )
+            )
             {
                 return true;
             }
 
             foreach (Placed other in accepted)
             {
-                if (Marker.MarkClash(placed.Candidate.Id, placed.Text, placed.Start, placed.Anchor, other.Candidate.Id, other.Text, other.Start, other.Anchor, _tol, null))
+                if (
+                    Marker.MarkClash(
+                        placed.Candidate.Id,
+                        placed.Text,
+                        placed.Start,
+                        placed.Anchor,
+                        other.Candidate.Id,
+                        other.Text,
+                        other.Start,
+                        other.Anchor,
+                        _tol,
+                        null
+                    )
+                )
                 {
                     return true;
                 }
@@ -546,7 +649,10 @@ namespace GeometryHelper.Drawing.Annotation
                     continue;
                 }
 
-                double x0 = double.PositiveInfinity, y0 = double.PositiveInfinity, x1 = double.NegativeInfinity, y1 = double.NegativeInfinity;
+                double x0 = double.PositiveInfinity,
+                    y0 = double.PositiveInfinity,
+                    x1 = double.NegativeInfinity,
+                    y1 = double.NegativeInfinity;
 
                 foreach (ProjectedEdge2 edge in edges)
                 {
@@ -571,10 +677,17 @@ namespace GeometryHelper.Drawing.Annotation
 
                 // A box seen edge on, a line, is kept clear of as a thin one.
                 double half = Math.Max(0.05 * _height, _tol);
-                boxes.Add(new GeoPolygon2(new[]
-                {
-                    new GeoPoint2(x0 - half, y0 - half), new GeoPoint2(x1 + half, y0 - half), new GeoPoint2(x1 + half, y1 + half), new GeoPoint2(x0 - half, y1 + half),
-                }));
+                boxes.Add(
+                    new GeoPolygon2(
+                        new[]
+                        {
+                            new GeoPoint2(x0 - half, y0 - half),
+                            new GeoPoint2(x1 + half, y0 - half),
+                            new GeoPoint2(x1 + half, y1 + half),
+                            new GeoPoint2(x0 - half, y1 + half),
+                        }
+                    )
+                );
             }
 
             return boxes;
@@ -612,7 +725,10 @@ namespace GeometryHelper.Drawing.Annotation
                     for (int k = 1; k <= steps; k++)
                     {
                         double angle = arc.StartAngle + arc.SweptAngle * k / steps;
-                        var next = new GeoPoint2(arc.Center.X + arc.Radius * Math.Cos(angle), arc.Center.Y + arc.Radius * Math.Sin(angle));
+                        var next = new GeoPoint2(
+                            arc.Center.X + arc.Radius * Math.Cos(angle),
+                            arc.Center.Y + arc.Radius * Math.Sin(angle)
+                        );
 
                         if (previous.DistanceTo(next) > tol)
                         {
@@ -632,7 +748,8 @@ namespace GeometryHelper.Drawing.Annotation
         /// </summary>
         private GeoLine2 Longest(List<ProjectedEdge2> edges)
         {
-            ProjectedEdge2 straight = null, round = null;
+            ProjectedEdge2 straight = null,
+                round = null;
 
             foreach (ProjectedEdge2 edge in edges)
             {
@@ -658,9 +775,15 @@ namespace GeometryHelper.Drawing.Annotation
             else
             {
                 GeoArc2 arc = round.Arc;
-                guide = !round.IsCircle && arc.StartPoint.DistanceTo(arc.EndPoint) > _tol
-                    ? new GeoLine2(arc.StartPoint, arc.EndPoint)
-                    : new GeoLine2(arc.Center.X - arc.Radius, arc.Center.Y, arc.Center.X + arc.Radius, arc.Center.Y);
+                guide =
+                    !round.IsCircle && arc.StartPoint.DistanceTo(arc.EndPoint) > _tol
+                        ? new GeoLine2(arc.StartPoint, arc.EndPoint)
+                        : new GeoLine2(
+                            arc.Center.X - arc.Radius,
+                            arc.Center.Y,
+                            arc.Center.X + arc.Radius,
+                            arc.Center.Y
+                        );
             }
 
             return AtLeast(guide);
@@ -672,7 +795,10 @@ namespace GeometryHelper.Drawing.Annotation
         /// </summary>
         private ArrangeSide Outside(GeoLine2 guide, List<ProjectedEdge2> edges)
         {
-            double x0 = double.PositiveInfinity, y0 = double.PositiveInfinity, x1 = double.NegativeInfinity, y1 = double.NegativeInfinity;
+            double x0 = double.PositiveInfinity,
+                y0 = double.PositiveInfinity,
+                x1 = double.NegativeInfinity,
+                y1 = double.NegativeInfinity;
 
             foreach (ProjectedEdge2 edge in edges)
             {
@@ -686,8 +812,10 @@ namespace GeometryHelper.Drawing.Annotation
             }
 
             double length = guide.Length;
-            double ux = (guide.EndPoint.X - guide.StartPoint.X) / length, uy = (guide.EndPoint.Y - guide.StartPoint.Y) / length;
-            double px = -uy, py = ux;
+            double ux = (guide.EndPoint.X - guide.StartPoint.X) / length,
+                uy = (guide.EndPoint.Y - guide.StartPoint.Y) / length;
+            double px = -uy,
+                py = ux;
             GeoPoint2 middle = guide.MidPoint;
             double side = (0.5 * (x0 + x1) - middle.X) * px + (0.5 * (y0 + y1) - middle.Y) * py;
 
@@ -724,7 +852,11 @@ namespace GeometryHelper.Drawing.Annotation
         private static GeoPoint3 BoxCentre(GeoSolid3 solid)
         {
             GeoAabb3 box = solid.GetAabb();
-            return new GeoPoint3((box.Min.X + box.Max.X) / 2.0, (box.Min.Y + box.Max.Y) / 2.0, (box.Min.Z + box.Max.Z) / 2.0);
+            return new GeoPoint3(
+                (box.Min.X + box.Max.X) / 2.0,
+                (box.Min.Y + box.Max.Y) / 2.0,
+                (box.Min.Z + box.Max.Z) / 2.0
+            );
         }
     }
 }

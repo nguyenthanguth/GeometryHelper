@@ -78,7 +78,11 @@ namespace GeometryHelper.UnitTest.Plane
 
             // The circle of radius 30 about (50, 25). Its centre is as near every point of the rim; the
             // closest point there is the one at angle nought, and the line must start on that same point.
-            Add(checks, "circle", new GeoCircle2(P(50, 25), 30), true,
+            Add(
+                checks,
+                "circle",
+                new GeoCircle2(P(50, 25), 30),
+                true,
                 new[]
                 {
                     ("at the centre, as near the whole rim", P(50, 25), Where.Inside),
@@ -92,12 +96,17 @@ namespace GeometryHelper.UnitTest.Plane
                 (s, p, t) => s.DistanceTo(p),
                 (s, p, t) => t == null ? s.SignedDistanceTo(p) : s.SignedDistanceTo(p, t.Value),
                 (s, p) => s.IsPointOn(p, Strict),
-                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value));
+                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value)
+            );
 
             // The ellipse 60 by 30 about (50, 25). Its centre gives the end of the minor axis, (50, 55); a point
             // inside on the major axis is as near two points of the rim, and gives the one on the positive side.
             // The point asks no ellipse: an ellipse is asked from the ellipse.
-            Add(checks, "ellipse", new GeoEllipse2(P(50, 25), new GeoVector2(1, 0), 60, 30), true,
+            Add(
+                checks,
+                "ellipse",
+                new GeoEllipse2(P(50, 25), new GeoVector2(1, 0), 60, 30),
+                true,
                 new[]
                 {
                     ("at the centre, as near both ends of the minor axis", P(50, 25), Where.Inside),
@@ -112,11 +121,16 @@ namespace GeometryHelper.UnitTest.Plane
                 (s, p, t) => t == null ? s.DistanceTo(p) : s.DistanceTo(p, t.Value),
                 (s, p, t) => t == null ? s.SignedDistanceTo(p) : s.SignedDistanceTo(p, t.Value),
                 (s, p) => s.IsPointOn(p, Strict),
-                null);
+                null
+            );
 
             // A half circle of radius 50 about (50, 0) over the top, from (100, 0) to (0, 0). Its centre is as
             // near every point of it.
-            Add(checks, "curved edge", new GeoEdge2(new GeoArc2(P(50, 0), 50, 0, Math.PI)), false,
+            Add(
+                checks,
+                "curved edge",
+                new GeoEdge2(new GeoArc2(P(50, 0), 50, 0, Math.PI)),
+                false,
                 new[]
                 {
                     ("at the centre, as near the whole arc", P(50, 0), Where.Inside),
@@ -133,9 +147,14 @@ namespace GeometryHelper.UnitTest.Plane
                 (s, p, t) => t == null ? s.DistanceTo(p) : s.DistanceTo(p, t.Value),
                 null,
                 (s, p) => s.IsPointOn(p, Strict),
-                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value));
+                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value)
+            );
 
-            Add(checks, "straight edge", new GeoEdge2(P(0, 0), P(100, 0)), false,
+            Add(
+                checks,
+                "straight edge",
+                new GeoEdge2(P(0, 0), P(100, 0)),
+                false,
                 new[]
                 {
                     ("on it", P(30, 0), Where.On),
@@ -148,15 +167,24 @@ namespace GeometryHelper.UnitTest.Plane
                 (s, p, t) => t == null ? s.DistanceTo(p) : s.DistanceTo(p, t.Value),
                 null,
                 (s, p) => s.IsPointOn(p, Strict),
-                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value));
+                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value)
+            );
 
-            Add(checks, "segment", new GeoLine2(P(0, 0), P(100, 50)), false,
+            Add(
+                checks,
+                "segment",
+                new GeoLine2(P(0, 0), P(100, 50)),
+                false,
                 new[]
                 {
                     ("on it", P(50, 25), Where.On),
                     ("on its end", P(100, 50), Where.On),
                     ("beside it", P(40, 60), Where.Outside),
-                    ("0.4 beside it", P(50 - 0.4 * 0.2 * Math.Sqrt(5), 25 + 0.4 * 0.4 * Math.Sqrt(5)), Where.JustOutside),
+                    (
+                        "0.4 beside it",
+                        P(50 - 0.4 * 0.2 * Math.Sqrt(5), 25 + 0.4 * 0.4 * Math.Sqrt(5)),
+                        Where.JustOutside
+                    ),
                     ("beyond an end", P(130, 50), Where.Outside),
                 },
                 (s, p, t) => t == null ? s.GetShortestLineTo(p) : s.GetShortestLineTo(p, t.Value),
@@ -164,12 +192,17 @@ namespace GeometryHelper.UnitTest.Plane
                 (s, p, t) => s.DistanceTo(p),
                 null,
                 (s, p) => s.IsPointOn(p, Strict),
-                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value));
+                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value)
+            );
 
             // A U from (0, 0) to (100, 60) with a notch from (30, 20) to (70, 60) cut down into its top. The
             // point (15, 30) is 15 from both the outer side and the notch's side; (50, 50) in the notch is 20
             // from both its sides.
-            Add(checks, "polygon", Notched(), true,
+            Add(
+                checks,
+                "polygon",
+                Notched(),
+                true,
                 new[]
                 {
                     ("inside, as near two sides", P(15, 30), Where.Inside),
@@ -184,10 +217,15 @@ namespace GeometryHelper.UnitTest.Plane
                 (s, p, t) => s.DistanceTo(p),
                 (s, p, t) => t == null ? s.SignedDistanceTo(p) : s.SignedDistanceTo(p, t.Value),
                 (s, p) => Containment2.IsPointOn(s, p, Strict),
-                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value));
+                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value)
+            );
 
             // The same U with its bottom bulging down to (50, -15).
-            Add(checks, "curved loop", new GeoPolygonArc2(Notched().Vertices, new[] { 0.3 }), true,
+            Add(
+                checks,
+                "curved loop",
+                new GeoPolygonArc2(Notched().Vertices, new[] { 0.3 }),
+                true,
                 new[]
                 {
                     ("inside, as near two sides", P(15, 30), Where.Inside),
@@ -202,10 +240,15 @@ namespace GeometryHelper.UnitTest.Plane
                 (s, p, t) => t == null ? s.DistanceTo(p) : s.DistanceTo(p, t.Value),
                 (s, p, t) => t == null ? s.SignedDistanceTo(p) : s.SignedDistanceTo(p, t.Value),
                 (s, p) => s.IsPointOn(p, Strict),
-                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value));
+                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value)
+            );
 
             // A V from (0, 0) up to (50, 50) and down to (100, 0); (50, 10) under its point is as near both legs.
-            Add(checks, "polyline", new GeoPolyline2(P(0, 0), P(50, 50), P(100, 0)), false,
+            Add(
+                checks,
+                "polyline",
+                new GeoPolyline2(P(0, 0), P(50, 50), P(100, 0)),
+                false,
                 new[]
                 {
                     ("on a leg", P(25, 25), Where.On),
@@ -219,11 +262,16 @@ namespace GeometryHelper.UnitTest.Plane
                 (s, p, t) => s.DistanceTo(p),
                 null,
                 (s, p) => s.IsPointOn(p, Strict),
-                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value));
+                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value)
+            );
 
             // A half circle of radius 50 below (50, 0) from (0, 0) to (100, 0), then straight on to (150, 0).
             // The centre (50, 0) is as near the whole arc, and as near the straight piece's start.
-            Add(checks, "curved chain", new GeoPolylineArc2(new[] { P(0, 0), P(100, 0), P(150, 0) }, new[] { 1.0, 0.0 }), false,
+            Add(
+                checks,
+                "curved chain",
+                new GeoPolylineArc2(new[] { P(0, 0), P(100, 0), P(150, 0) }, new[] { 1.0, 0.0 }),
+                false,
                 new[]
                 {
                     ("at the arc's centre, as near the whole arc", P(50, 0), Where.Inside),
@@ -240,10 +288,15 @@ namespace GeometryHelper.UnitTest.Plane
                 (s, p, t) => t == null ? s.DistanceTo(p) : s.DistanceTo(p, t.Value),
                 null,
                 (s, p) => s.IsPointOn(p, Strict),
-                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value));
+                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value)
+            );
 
             // The rectangle 100 by 60 about (50, 30). Its centre is 30 from both the top and the bottom.
-            Add(checks, "rectangle", new GeoRectangle2(P(50, 30), 100, 60), true,
+            Add(
+                checks,
+                "rectangle",
+                new GeoRectangle2(P(50, 30), 100, 60),
+                true,
                 new[]
                 {
                     ("at the centre, as near the top and the bottom", P(50, 30), Where.Inside),
@@ -259,10 +312,15 @@ namespace GeometryHelper.UnitTest.Plane
                 (s, p, t) => s.DistanceTo(p),
                 (s, p, t) => t == null ? s.SignedDistanceTo(p) : s.SignedDistanceTo(p, t.Value),
                 (s, p) => Containment2.IsPointOn(s.ToPolygon(), p, Strict),
-                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value));
+                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value)
+            );
 
             // The triangle (0, 0), (100, 0), (0, 100). The point (20, 20) is 20 from both short sides.
-            Add(checks, "triangle", new GeoTriangle2(P(0, 0), P(100, 0), P(0, 100)), true,
+            Add(
+                checks,
+                "triangle",
+                new GeoTriangle2(P(0, 0), P(100, 0), P(0, 100)),
+                true,
                 new[]
                 {
                     ("inside, as near both short sides", P(20, 20), Where.Inside),
@@ -277,7 +335,8 @@ namespace GeometryHelper.UnitTest.Plane
                 (s, p, t) => s.DistanceTo(p),
                 (s, p, t) => t == null ? s.SignedDistanceTo(p) : s.SignedDistanceTo(p, t.Value),
                 (s, p) => Containment2.IsPointOn(s.ToPolygon(), p, Strict),
-                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value));
+                (s, p, t) => t == null ? p.GetShortestLineTo(s) : p.GetShortestLineTo(s, t.Value)
+            );
 
             return checks;
         }
@@ -300,7 +359,8 @@ namespace GeometryHelper.UnitTest.Plane
             Func<T, GeoPoint2, Tolerance?, double> distance,
             Func<T, GeoPoint2, Tolerance?, double> depth,
             Func<T, GeoPoint2, bool> onBoundary,
-            Func<T, GeoPoint2, Tolerance?, GeoLine2> fromPoint)
+            Func<T, GeoPoint2, Tolerance?, GeoLine2> fromPoint
+        )
         {
             foreach ((string Case, GeoPoint2 Point, Where Where) c in points)
             {
@@ -309,7 +369,14 @@ namespace GeometryHelper.UnitTest.Plane
                 Names.Add(name);
                 checks.Add(name, () =>
                 {
-                    foreach ((Tolerance? tolerance, bool loose) in new[] { (None, false), ((Tolerance?)Strict, false), ((Tolerance?)Loose, true) })
+                    foreach (
+                        (Tolerance? tolerance, bool loose) in new[]
+                        {
+                            (None, false),
+                            ((Tolerance?)Strict, false),
+                            ((Tolerance?)Loose, true),
+                        }
+                    )
                     {
                         GeoLine2 found = line(shape, c.Point, tolerance);
 
@@ -325,7 +392,16 @@ namespace GeometryHelper.UnitTest.Plane
                         // most twice the offset from the centre. The start the line leaves from is still checked above.
                         if (!((c.Where == Where.JustOutside || c.Where == Where.NearArcCentre) && loose))
                         {
-                            Assert.Equal(Expected(c.Where, isRegion, distance(shape, c.Point, tolerance), depth?.Invoke(shape, c.Point, tolerance)), found.Length, Slack);
+                            Assert.Equal(
+                                Expected(
+                                    c.Where,
+                                    isRegion,
+                                    distance(shape, c.Point, tolerance),
+                                    depth?.Invoke(shape, c.Point, tolerance)
+                                ),
+                                found.Length,
+                                Slack
+                            );
                         }
 
                         if (fromPoint != null)
@@ -360,8 +436,8 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
-        private static GeoPolygon2 Notched() => new GeoPolygon2(
-            P(0, 0), P(100, 0), P(100, 60), P(70, 60), P(70, 20), P(30, 20), P(30, 60), P(0, 60));
+        private static GeoPolygon2 Notched() =>
+            new GeoPolygon2(P(0, 0), P(100, 0), P(100, 60), P(70, 60), P(70, 20), P(30, 20), P(30, 60), P(0, 60));
 
         [Fact]
         public void ATriangleIsReadByItsSidesForTheShortestLineToAPointWhateverTheTolerance()
@@ -375,9 +451,21 @@ namespace GeometryHelper.UnitTest.Plane
             var fine = new Tolerance(1E-3, 1E-5);
             var coarse = new Tolerance(1.0, 1E-5);
 
-            Assert.True(sliver.GetShortestLineTo(point, fine).StartPoint.IsEqualTo(new GeoPoint2(100, 0.25), new Tolerance(1E-9, 1E-9)));
-            Assert.True(sliver.GetShortestLineTo(point, coarse).StartPoint.IsEqualTo(new GeoPoint2(100, 0.25), new Tolerance(1E-9, 1E-9)));
-            Assert.True(point.GetShortestLineTo(sliver, coarse).EndPoint.IsEqualTo(new GeoPoint2(100, 0.25), new Tolerance(1E-9, 1E-9)));
+            Assert.True(
+                sliver
+                    .GetShortestLineTo(point, fine)
+                    .StartPoint.IsEqualTo(new GeoPoint2(100, 0.25), new Tolerance(1E-9, 1E-9))
+            );
+            Assert.True(
+                sliver
+                    .GetShortestLineTo(point, coarse)
+                    .StartPoint.IsEqualTo(new GeoPoint2(100, 0.25), new Tolerance(1E-9, 1E-9))
+            );
+            Assert.True(
+                point
+                    .GetShortestLineTo(sliver, coarse)
+                    .EndPoint.IsEqualTo(new GeoPoint2(100, 0.25), new Tolerance(1E-9, 1E-9))
+            );
         }
 
         #endregion

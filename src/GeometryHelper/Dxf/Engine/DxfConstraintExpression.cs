@@ -25,17 +25,27 @@ namespace GeometryHelper.Dxf
     {
         /// <summary>The value of an expression, each name read by the function given.</summary>
         /// <exception cref="NotSupportedException">Thrown when the expression holds anything but numbers, names, + - * / % ^, brackets, pi, e and those functions, cannot be read whole, or gives what AutoCAD would not work out.</exception>
-        internal static double Evaluate(string expression, Func<string, double> variable)
-            => Evaluate(expression, variable, name => false, out _);
+        internal static double Evaluate(string expression, Func<string, double> variable) =>
+            Evaluate(expression, variable, name => false, out _);
 
         /// <summary>
         /// The value of an expression, each name read by the function given and said whole or not by the other; whether the
         /// value is whole, as <see cref="DxfConstraintExpression"/> says.
         /// </summary>
         /// <exception cref="NotSupportedException">Thrown when the expression holds anything but numbers, names, + - * / % ^, brackets, pi, e and those functions, cannot be read whole, or gives what AutoCAD would not work out.</exception>
-        internal static double Evaluate(string expression, Func<string, double> variable, Func<string, bool> whole, out bool isWhole)
+        internal static double Evaluate(
+            string expression,
+            Func<string, double> variable,
+            Func<string, bool> whole,
+            out bool isWhole
+        )
         {
-            var reader = new Reader { Text = expression ?? string.Empty, Variable = variable, Whole = whole };
+            var reader = new Reader
+            {
+                Text = expression ?? string.Empty,
+                Variable = variable,
+                Whole = whole,
+            };
             Term value = reader.Sum();
             reader.Blanks();
 
@@ -48,8 +58,12 @@ namespace GeometryHelper.Dxf
             return value.Value;
         }
 
-        private static NotSupportedException Refused(string expression)
-            => new NotSupportedException("The expression " + expression + " of a block's constraints holds what the library does not evaluate, or gives what AutoCAD would not work out: it evaluates numbers, the names of variables, + - * / % ^, brackets, pi, e and the functions sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, asinh, acosh, atanh, sqrt, exp, exp10, ln, log, d2r, r2d, abs, sign, round, trunc, floor, ceil, min, max and pow.");
+        private static NotSupportedException Refused(string expression) =>
+            new NotSupportedException(
+                "The expression "
+                    + expression
+                    + " of a block's constraints holds what the library does not evaluate, or gives what AutoCAD would not work out: it evaluates numbers, the names of variables, + - * / % ^, brackets, pi, e and the functions sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, asinh, acosh, atanh, sqrt, exp, exp10, ln, log, d2r, r2d, abs, sign, round, trunc, floor, ceil, min, max and pow."
+            );
 
         /// <summary>A value worked out so far, and whether it is whole: never where it is past a whole number of 32 bits.</summary>
         private readonly struct Term
@@ -276,7 +290,13 @@ namespace GeometryHelper.Dxf
             /// </summary>
             private Term Remainder(Term value, Term by)
             {
-                if (Math.Floor(value.Value) != value.Value || Math.Floor(by.Value) != by.Value || !InRange(value.Value) || !InRange(by.Value) || by.Value == 0.0)
+                if (
+                    Math.Floor(value.Value) != value.Value
+                    || Math.Floor(by.Value) != by.Value
+                    || !InRange(value.Value)
+                    || !InRange(by.Value)
+                    || by.Value == 0.0
+                )
                 {
                     throw Refused(Text);
                 }

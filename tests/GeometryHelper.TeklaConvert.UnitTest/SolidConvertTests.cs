@@ -56,10 +56,22 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             // 200 x 200 x 20 with a 40 x 40 hole through it, one corner of the hole's top rim pushed 0.3 mm out each way:
             // the hole in the top face is off the face's plane, and the two walls of the hole meeting there are out of
             // flat. Read a face at a time, into polygons, the top face lost its hole and the two walls were refused.
-            GeoPoint3 b0 = P(0, 0, 0), b1 = P(200, 0, 0), b2 = P(200, 200, 0), b3 = P(0, 200, 0);
-            GeoPoint3 t0 = P(0, 0, 20), t1 = P(200, 0, 20), t2 = P(200, 200, 20), t3 = P(0, 200, 20);
-            GeoPoint3 hb0 = P(80, 80, 0), hb1 = P(120, 80, 0), hb2 = P(120, 120, 0), hb3 = P(80, 120, 0);
-            GeoPoint3 ht0 = P(80, 80, 20), ht1 = P(120, 80, 20), ht2 = P(120.3, 120.3, 20.3), ht3 = P(80, 120, 20);
+            GeoPoint3 b0 = P(0, 0, 0),
+                b1 = P(200, 0, 0),
+                b2 = P(200, 200, 0),
+                b3 = P(0, 200, 0);
+            GeoPoint3 t0 = P(0, 0, 20),
+                t1 = P(200, 0, 20),
+                t2 = P(200, 200, 20),
+                t3 = P(0, 200, 20);
+            GeoPoint3 hb0 = P(80, 80, 0),
+                hb1 = P(120, 80, 0),
+                hb2 = P(120, 120, 0),
+                hb3 = P(80, 120, 0);
+            GeoPoint3 ht0 = P(80, 80, 20),
+                ht1 = P(120, 80, 20),
+                ht2 = P(120.3, 120.3, 20.3),
+                ht3 = P(80, 120, 20);
 
             // Each face as Tekla might walk it, either way round, with the normal pointing out of the material.
             var teklaFaces = new List<(GeoVector3 Outward, GeoPoint3[][] Loops)>
@@ -86,7 +98,11 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             Assert.True(SolidConvert.TryAssemble(faces, out GeoSolid3 plate));
 
             Assert.True(plate.IsClosed(Default));
-            Assert.InRange(plate.GetVolume(), (200.0 * 200.0 - 40.0 * 40.0) * 20.0 * 0.99, (200.0 * 200.0 - 40.0 * 40.0) * 20.0 * 1.01);
+            Assert.InRange(
+                plate.GetVolume(),
+                (200.0 * 200.0 - 40.0 * 40.0) * 20.0 * 0.99,
+                (200.0 * 200.0 - 40.0 * 40.0) * 20.0 * 1.01
+            );
             Assert.Equal(PointLocation.OutSide, plate.Locate(P(100, 100, 10), Default));
             Assert.Equal(PointLocation.Inside, plate.Locate(P(40, 40, 10), Default));
         }
@@ -96,22 +112,38 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         {
             GeoPoint3[] c =
             {
-                P(0, 0, 0), P(100, 0, 0), P(100, 100, 0), P(0, 100, 0),
-                P(0, 0, 100), P(100, 0, 100), P(100, 100, 100), P(0, 100, 100),
+                P(0, 0, 0),
+                P(100, 0, 0),
+                P(100, 100, 0),
+                P(0, 100, 0),
+                P(0, 0, 100),
+                P(100, 0, 100),
+                P(100, 100, 100),
+                P(0, 100, 100),
             };
 
             // Every normal Tekla gives points into the cube: the whole surface came in reversed.
             var teklaFaces = new List<(GeoVector3 Inward, int[] Loop)>
             {
-                (Up, new[] { 0, 1, 2, 3 }), (Up.Negate(), new[] { 4, 5, 6, 7 }),
-                (GeoVector3.YAxis, new[] { 0, 1, 5, 4 }), (GeoVector3.XAxis.Negate(), new[] { 1, 2, 6, 5 }),
-                (GeoVector3.YAxis.Negate(), new[] { 2, 3, 7, 6 }), (GeoVector3.XAxis, new[] { 3, 0, 4, 7 }),
+                (Up, new[] { 0, 1, 2, 3 }),
+                (Up.Negate(), new[] { 4, 5, 6, 7 }),
+                (GeoVector3.YAxis, new[] { 0, 1, 5, 4 }),
+                (GeoVector3.XAxis.Negate(), new[] { 1, 2, 6, 5 }),
+                (GeoVector3.YAxis.Negate(), new[] { 2, 3, 7, 6 }),
+                (GeoVector3.XAxis, new[] { 3, 0, 4, 7 }),
             };
 
             var faces = new List<GeoFace3>();
             foreach ((GeoVector3 inward, int[] loop) in teklaFaces)
             {
-                Assert.True(FaceConvert.TryReadFaces(inward, new[] { loop.Select(i => c[i]).ToArray() }, Default, out GeoFace3[] read));
+                Assert.True(
+                    FaceConvert.TryReadFaces(
+                        inward,
+                        new[] { loop.Select(i => c[i]).ToArray() },
+                        Default,
+                        out GeoFace3[] read
+                    )
+                );
                 faces.AddRange(read);
             }
 

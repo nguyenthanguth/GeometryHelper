@@ -30,14 +30,21 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
                 var workspace = new CadWorkspace { DataContext = model };
 
                 // The dialogs not hooked, as the app's screenshot mode: a dialog shown would wait for a click.
-                var drawings = new DrawingWorkspace(model, DrawingWorkspaceExtensions.DefaultSources(Bench.Tol), Bench.Tol);
+                var drawings = new DrawingWorkspace(
+                    model,
+                    DrawingWorkspaceExtensions.DefaultSources(Bench.Tol),
+                    Bench.Tol
+                );
                 drawings.TabContent = new DrawingRibbonTab { DataContext = drawings };
                 NewDrawingViewModel dialog = drawings.ShowNewDrawing();
                 dialog.NextAsync().Pump();
                 dialog.NextAsync().Pump();
                 Assert.NotNull(dialog.NextAsync().Pump());
                 model.SelectedTab = drawings;
-                return new Dictionary<string, byte[]> { ["workspace"] = Render(workspace, 1600, 960, "workspace-b1.png") };
+                return new Dictionary<string, byte[]>
+                {
+                    ["workspace"] = Render(workspace, 1600, 960, "workspace-b1.png"),
+                };
             });
 
             byte[] pixels = shots["workspace"];
@@ -78,7 +85,11 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
                     ["update"] = update,
                     ["settings"] = bench.Workspace.ShowSettings(),
                     ["export"] = bench.Workspace.ShowExport(),
-                    ["message"] = MessageViewModel.Failure("Drawing not made", made.Number + " could not be made.", new InvalidOperationException("The settings allow no scale.")),
+                    ["message"] = MessageViewModel.Failure(
+                        "Drawing not made",
+                        made.Number + " could not be made.",
+                        new InvalidOperationException("The settings allow no scale.")
+                    ),
                 };
                 var rendered = new Dictionary<string, byte[]>();
 
@@ -121,7 +132,9 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             {
                 try
                 {
-                    SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
+                    SynchronizationContext.SetSynchronizationContext(
+                        new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher)
+                    );
                     result = work();
                 }
                 catch (Exception ex)

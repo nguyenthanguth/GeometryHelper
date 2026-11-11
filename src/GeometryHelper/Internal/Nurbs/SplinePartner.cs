@@ -84,9 +84,20 @@ namespace GeometryHelper.Internal.Nurbs
 
         internal override double Extent => Curve.Extent;
 
-        internal override double Gap(double px, double py, double pz, out double qx, out double qy, out double qz, out double other)
+        internal override double Gap(
+            double px,
+            double py,
+            double pz,
+            out double qx,
+            out double qy,
+            out double qz,
+            out double other
+        )
         {
-            double knot = Curve.ClosestParameter(Curve.Dim == 3 ? new[] { px, py, pz } : new[] { px, py }, out double distance);
+            double knot = Curve.ClosestParameter(
+                Curve.Dim == 3 ? new[] { px, py, pz } : new[] { px, py },
+                out double distance
+            );
             var point = new double[Curve.Dim];
             Curve.PointAt(knot, point);
             qx = point[0];
@@ -110,14 +121,28 @@ namespace GeometryHelper.Internal.Nurbs
             {
                 double below = _min[k] - max[at + k];
                 double above = min[at + k] - _max[k];
-                double gap = below > 0.0 ? below : above > 0.0 ? above : 0.0;
+                double gap =
+                    below > 0.0 ? below
+                    : above > 0.0 ? above
+                    : 0.0;
                 square += gap * gap;
             }
 
             return Math.Sqrt(square);
         }
 
-        internal override bool TryGetFrame(double qx, double qy, double qz, double other, out double r1x, out double r1y, out double r1z, out double r2x, out double r2y, out double r2z)
+        internal override bool TryGetFrame(
+            double qx,
+            double qy,
+            double qz,
+            double other,
+            out double r1x,
+            out double r1y,
+            out double r1z,
+            out double r2x,
+            out double r2y,
+            out double r2z
+        )
         {
             double[][] derivatives = Curve.Derivatives(other, 2);
             r1x = derivatives[1][0];
@@ -132,7 +157,14 @@ namespace GeometryHelper.Internal.Nurbs
         // A closed curve has no ends: its nearest point moves on round the seam.
         internal override bool IsFree(double other) => Curve.IsClosed || (other > Curve.Start && other < Curve.End);
 
-        internal override void GetBox(out double minX, out double minY, out double minZ, out double maxX, out double maxY, out double maxZ)
+        internal override void GetBox(
+            out double minX,
+            out double minY,
+            out double minZ,
+            out double maxX,
+            out double maxY,
+            out double maxZ
+        )
         {
             minX = _min[0];
             minY = _min[1];
@@ -225,9 +257,20 @@ namespace GeometryHelper.Internal.Nurbs
 
             // The inside: pairs of pieces cut until straight, the pair whose boxes are nearest first, so that the best found so far falls
             // early and the farther pairs are passed over.
-            var visit = new PieceVisit { A = a.Pieces, B = b.Pieces, Hunt = hunt, Found = new List<PiecePair>() };
+            var visit = new PieceVisit
+            {
+                A = a.Pieces,
+                B = b.Pieces,
+                Hunt = hunt,
+                Found = new List<PiecePair>(),
+            };
             a.Index.Pairs(b.Index, ref visit);
-            visit.Found.Sort((x, y) => x.Bound != y.Bound ? x.Bound.CompareTo(y.Bound) : x.First != y.First ? x.First.CompareTo(y.First) : x.Second.CompareTo(y.Second));
+            visit.Found.Sort(
+                (x, y) =>
+                    x.Bound != y.Bound ? x.Bound.CompareTo(y.Bound)
+                    : x.First != y.First ? x.First.CompareTo(y.First)
+                    : x.Second.CompareTo(y.Second)
+            );
             List<PiecePair> found = MeetArcs(a, b, visit.Found, hunt);
             int pairs = 0;
             _inSpace = hunt.Reach > 0.0 && a.Dim == 3 && !NurbsCurve.InOnePlane(a, b, out _);
@@ -254,7 +297,11 @@ namespace GeometryHelper.Internal.Nurbs
             {
                 PiecePair pair = found[i];
 
-                if (!a.TryGetArc(pair.First, out PieceArc first) || !b.TryGetArc(pair.Second, out PieceArc second) || !ArcPairs.Exact(first, second, hunt))
+                if (
+                    !a.TryGetArc(pair.First, out PieceArc first)
+                    || !b.TryGetArc(pair.Second, out PieceArc second)
+                    || !ArcPairs.Exact(first, second, hunt)
+                )
                 {
                     rest?.Add(pair);
                     continue;
@@ -395,7 +442,8 @@ namespace GeometryHelper.Internal.Nurbs
                     break;
                 }
 
-                long intervals = (long)Math.Min(Math.Max(1.0, Math.Ceiling(PolygonLength(pieces, piece) / step)), MostLooks);
+                long intervals = (long)
+                    Math.Min(Math.Max(1.0, Math.Ceiling(PolygonLength(pieces, piece) / step)), MostLooks);
                 NearShares(pieces, piece, boxMin, boxMax, 2.0 * hunt.Reach, 32.0 / intervals, shares);
 
                 // The first point of a piece that follows another is the last of that one, looked at already.
@@ -403,8 +451,12 @@ namespace GeometryHelper.Internal.Nurbs
 
                 for (int s = 0; s <= shares.Count; s += 2)
                 {
-                    long from = s < shares.Count ? Math.Max(next, (long)Math.Floor(shares[s] * intervals) - 1) : intervals + 1;
-                    long to = s < shares.Count ? Math.Min(intervals, (long)Math.Ceiling(shares[s + 1] * intervals) + 1) : intervals;
+                    long from =
+                        s < shares.Count ? Math.Max(next, (long)Math.Floor(shares[s] * intervals) - 1) : intervals + 1;
+                    long to =
+                        s < shares.Count
+                            ? Math.Min(intervals, (long)Math.Ceiling(shares[s + 1] * intervals) + 1)
+                            : intervals;
 
                     // Looks passed over are not near: a run ends at them.
                     if (from > next)
@@ -443,7 +495,11 @@ namespace GeometryHelper.Internal.Nurbs
 
                         if (near && inRun && (pastEnd || Math.Max(high, distance) - Math.Min(low, distance) <= level))
                         {
-                            length += Math.Sqrt((point[0] - lastX) * (point[0] - lastX) + (point[1] - lastY) * (point[1] - lastY) + (z - lastZ) * (z - lastZ));
+                            length += Math.Sqrt(
+                                (point[0] - lastX) * (point[0] - lastX)
+                                    + (point[1] - lastY) * (point[1] - lastY)
+                                    + (z - lastZ) * (z - lastZ)
+                            );
 
                             if (!pastEnd)
                             {
@@ -491,7 +547,17 @@ namespace GeometryHelper.Internal.Nurbs
                 {
                     if (ArcLength(a, part[0], part[1]) >= stretch)
                     {
-                        hunt.Runs.Add(new Hunt.AlongRun { Part = Position, From = part[0], To = part[1], Knots = rawLooks[r][0], Others = rawLooks[r][1], Period = b.IsClosed ? b.End - b.Start : 0.0 });
+                        hunt.Runs.Add(
+                            new Hunt.AlongRun
+                            {
+                                Part = Position,
+                                From = part[0],
+                                To = part[1],
+                                Knots = rawLooks[r][0],
+                                Others = rawLooks[r][1],
+                                Period = b.IsClosed ? b.End - b.Start : 0.0,
+                            }
+                        );
 
                         // The crossings inside a stretch are found by the offset of the one curve from the other changing sign, which two
                         // curves in a plane have; two in space have a distance that falls to nought where they cross and does not change sign,
@@ -557,7 +623,15 @@ namespace GeometryHelper.Internal.Nurbs
         /// halves no wider than the finest share. A rational piece lies in the hull of its control points only where its weights are
         /// positive, so one with another weight is given whole.
         /// </summary>
-        private static void NearShares(BezierPieces pieces, int piece, double[] min, double[] max, double margin, double finest, List<double> shares)
+        private static void NearShares(
+            BezierPieces pieces,
+            int piece,
+            double[] min,
+            double[] max,
+            double margin,
+            double finest,
+            List<double> shares
+        )
         {
             shares.Clear();
             int dim = pieces.Dim;
@@ -589,7 +663,19 @@ namespace GeometryHelper.Internal.Nurbs
             NearShares(hw, degree, dim, 0.0, 1.0, 0, min, max, margin, finest, shares);
         }
 
-        private static void NearShares(double[] hw, int degree, int dim, double from, double to, int depth, double[] min, double[] max, double margin, double finest, List<double> shares)
+        private static void NearShares(
+            double[] hw,
+            int degree,
+            int dim,
+            double from,
+            double to,
+            int depth,
+            double[] min,
+            double[] max,
+            double margin,
+            double finest,
+            List<double> shares
+        )
         {
             int stride = dim + 1;
             double gap = 0.0;
@@ -650,7 +736,9 @@ namespace GeometryHelper.Internal.Nurbs
             {
                 curve.PointAt(from + (to - from) * i / 24.0, point);
                 double z = curve.Dim == 3 ? point[2] - last[2] : 0.0;
-                length += Math.Sqrt((point[0] - last[0]) * (point[0] - last[0]) + (point[1] - last[1]) * (point[1] - last[1]) + z * z);
+                length += Math.Sqrt(
+                    (point[0] - last[0]) * (point[0] - last[0]) + (point[1] - last[1]) * (point[1] - last[1]) + z * z
+                );
                 Array.Copy(point, last, curve.Dim);
             }
 
@@ -661,7 +749,14 @@ namespace GeometryHelper.Internal.Nurbs
         /// Looks at the second curve over the stretch that a stretch of the first maps to, and gives the parts of the stretch outside
         /// the gaps cut round each place the second leaves the reach of the first.
         /// </summary>
-        private List<double[]> ConfirmFromSecond(NurbsCurve a, NurbsCurve b, double from, double to, double step, Hunt hunt)
+        private List<double[]> ConfirmFromSecond(
+            NurbsCurve a,
+            NurbsCurve b,
+            double from,
+            double to,
+            double step,
+            Hunt hunt
+        )
         {
             var point = new double[a.Dim];
             a.PointAt(from, point);
@@ -679,7 +774,10 @@ namespace GeometryHelper.Internal.Nurbs
             {
                 double begin = Math.Max(lowest, pieces.From[piece]);
                 double end = Math.Min(highest, pieces.To[piece]);
-                double share = pieces.To[piece] > pieces.From[piece] ? (end - begin) / (pieces.To[piece] - pieces.From[piece]) : 1.0;
+                double share =
+                    pieces.To[piece] > pieces.From[piece]
+                        ? (end - begin) / (pieces.To[piece] - pieces.From[piece])
+                        : 1.0;
                 int intervals = Math.Max(1, (int)Math.Ceiling(PolygonLength(pieces, piece) * share / step));
 
                 for (int k = 0; k <= intervals; k++)
@@ -691,7 +789,9 @@ namespace GeometryHelper.Internal.Nurbs
                     if (distance > hunt.Reach && nearest >= from && nearest <= to)
                     {
                         double[][] d = a.Derivatives(nearest, 1);
-                        double speed = Math.Sqrt(d[1][0] * d[1][0] + d[1][1] * d[1][1] + NurbsCurve.Z(d[1]) * NurbsCurve.Z(d[1]));
+                        double speed = Math.Sqrt(
+                            d[1][0] * d[1][0] + d[1][1] * d[1][1] + NurbsCurve.Z(d[1]) * NurbsCurve.Z(d[1])
+                        );
                         double width = speed > 0.0 ? 2.0 * step / speed : (to - from);
                         cuts.Add(new[] { nearest - width, nearest + width });
                     }
@@ -779,7 +879,13 @@ namespace GeometryHelper.Internal.Nurbs
             {
                 bool on = Math.Abs(offsets[i]) <= digits;
 
-                if (!split && on && i > 0 && Math.Abs(offsets[i - 1]) <= digits && OnBetween(a, knots[i - 1], knots[i], digits))
+                if (
+                    !split
+                    && on
+                    && i > 0
+                    && Math.Abs(offsets[i - 1]) <= digits
+                    && OnBetween(a, knots[i - 1], knots[i], digits)
+                )
                 {
                     split = true;
                 }
@@ -828,7 +934,22 @@ namespace GeometryHelper.Internal.Nurbs
                 // other from the side it leaves it to, the change of side lies before the overlap or after it, and is looked for there.
                 double searchFrom = double.NegativeInfinity;
                 double searchTo = double.PositiveInfinity;
-                int overlap = lastLarge >= 0 ? Overlap(a, b, knots, offsets, others, peakAt[lastLarge], peakAt[lobe], sides[lobe] != sides[lastLarge], hunt, out searchFrom, out searchTo) : 0;
+                int overlap =
+                    lastLarge >= 0
+                        ? Overlap(
+                            a,
+                            b,
+                            knots,
+                            offsets,
+                            others,
+                            peakAt[lastLarge],
+                            peakAt[lobe],
+                            sides[lobe] != sides[lastLarge],
+                            hunt,
+                            out searchFrom,
+                            out searchTo
+                        )
+                        : 0;
 
                 if (overlap == 1)
                 {
@@ -852,12 +973,14 @@ namespace GeometryHelper.Internal.Nurbs
                         }
                     }
 
-                    order.Sort((x, y) =>
-                    {
-                        double ax = Math.Abs(0.5 * (knots[lasts[x]] + knots[firsts[x + 1]]) - middle);
-                        double ay = Math.Abs(0.5 * (knots[lasts[y]] + knots[firsts[y + 1]]) - middle);
-                        return ax != ay ? ax.CompareTo(ay) : x.CompareTo(y);
-                    });
+                    order.Sort(
+                        (x, y) =>
+                        {
+                            double ax = Math.Abs(0.5 * (knots[lasts[x]] + knots[firsts[x + 1]]) - middle);
+                            double ay = Math.Abs(0.5 * (knots[lasts[y]] + knots[firsts[y + 1]]) - middle);
+                            return ax != ay ? ax.CompareTo(ay) : x.CompareTo(y);
+                        }
+                    );
 
                     bool met = false;
 
@@ -885,7 +1008,9 @@ namespace GeometryHelper.Internal.Nurbs
                         int inside = lasts[order[k]];
                         int outside = firsts[order[k] + 1];
                         double change = 0.5 * (knots[inside] + knots[outside]);
-                        double bestS = 0.0, bestT = 0.0, bestAway = double.PositiveInfinity;
+                        double bestS = 0.0,
+                            bestT = 0.0,
+                            bestAway = double.PositiveInfinity;
 
                         foreach (double start in new[] { others[inside], others[outside] })
                         {
@@ -947,7 +1072,19 @@ namespace GeometryHelper.Internal.Nurbs
         /// <param name="searchTo">Where the change of side is to be looked for to.</param>
         /// <returns>Nought where there is no such stretch; one where there is and nothing more is to be done; two where the change of side
         /// is to be looked for between <paramref name="searchFrom"/> and <paramref name="searchTo"/>.</returns>
-        private int Overlap(NurbsCurve a, NurbsCurve b, double[] knots, double[] offsets, double[] others, int earlier, int later, bool crossed, Hunt hunt, out double searchFrom, out double searchTo)
+        private int Overlap(
+            NurbsCurve a,
+            NurbsCurve b,
+            double[] knots,
+            double[] offsets,
+            double[] others,
+            int earlier,
+            int later,
+            bool crossed,
+            Hunt hunt,
+            out double searchFrom,
+            out double searchTo
+        )
         {
             double digits = NurbsCurve.Evaluated(hunt);
             int first = -1;
@@ -957,7 +1094,11 @@ namespace GeometryHelper.Internal.Nurbs
 
             for (int i = earlier + 1; i + 1 < later; i++)
             {
-                if (Math.Abs(offsets[i]) <= digits && Math.Abs(offsets[i + 1]) <= digits && OnBetween(a, knots[i], knots[i + 1], digits))
+                if (
+                    Math.Abs(offsets[i]) <= digits
+                    && Math.Abs(offsets[i + 1]) <= digits
+                    && OnBetween(a, knots[i], knots[i + 1], digits)
+                )
                 {
                     first = i;
                     break;
@@ -971,7 +1112,11 @@ namespace GeometryHelper.Internal.Nurbs
 
             for (int i = later - 1; i - 1 > earlier; i--)
             {
-                if (Math.Abs(offsets[i]) <= digits && Math.Abs(offsets[i - 1]) <= digits && OnBetween(a, knots[i - 1], knots[i], digits))
+                if (
+                    Math.Abs(offsets[i]) <= digits
+                    && Math.Abs(offsets[i - 1]) <= digits
+                    && OnBetween(a, knots[i - 1], knots[i], digits)
+                )
                 {
                     last = i;
                     break;
@@ -999,7 +1144,15 @@ namespace GeometryHelper.Internal.Nurbs
             bool fromEarlier = (offsets[before] < 0.0) == (offsets[earlier] < 0.0);
             bool toLater = (offsets[after] < 0.0) == (offsets[later] < 0.0);
             bool atEntry = crossed && fromEarlier && toLater;
-            hunt.Overlaps.Add(new Hunt.Overlap { Part = Position, From = entry, To = exit, Crossed = atEntry });
+            hunt.Overlaps.Add(
+                new Hunt.Overlap
+                {
+                    Part = Position,
+                    From = entry,
+                    To = exit,
+                    Crossed = atEntry,
+                }
+            );
 
             if (atEntry)
             {
@@ -1027,7 +1180,8 @@ namespace GeometryHelper.Internal.Nurbs
         /// Says whether the first curve lies on the second to the digits half way between two knot values, as it does at both: two
         /// corners of a polyline that lie on the curve it was cut from are on it, and the chord between them is not.
         /// </summary>
-        private bool OnBetween(NurbsCurve a, double from, double to, double digits) => Math.Abs(Offset(a, 0.5 * (from + to), out _)) <= digits;
+        private bool OnBetween(NurbsCurve a, double from, double to, double digits) =>
+            Math.Abs(Offset(a, 0.5 * (from + to), out _)) <= digits;
 
         /// <summary>
         /// Bisects the end of a stretch where the first curve lies on the second to the digits, between a knot value off it and one on it.
@@ -1102,7 +1256,11 @@ namespace GeometryHelper.Internal.Nurbs
 
             for (int i = 1; i < intervals; i++)
             {
-                if (_inSpace ? gaps[i] < gaps[i - 1] && gaps[i] <= gaps[i + 1] : gaps[i] < gaps[i - 1] && gaps[i] < gaps[i + 1] && gaps[i - 1] > flank && gaps[i + 1] > flank)
+                if (
+                    _inSpace
+                        ? gaps[i] < gaps[i - 1] && gaps[i] <= gaps[i + 1]
+                        : gaps[i] < gaps[i - 1] && gaps[i] < gaps[i + 1] && gaps[i - 1] > flank && gaps[i + 1] > flank
+                )
                 {
                     double s = knots[i];
                     double t = others[i];
@@ -1242,7 +1400,15 @@ namespace GeometryHelper.Internal.Nurbs
         /// is on the other, and offers it as a meeting.
         /// </summary>
         /// <returns>Whether what it found is a meeting of the two that is not a stretch where they run along each other to the snap.</returns>
-        private bool Cross(NurbsCurve a, NurbsCurve b, double inside, double outside, double outsideOther, bool insideNegative, Hunt hunt)
+        private bool Cross(
+            NurbsCurve a,
+            NurbsCurve b,
+            double inside,
+            double outside,
+            double outsideOther,
+            bool insideNegative,
+            Hunt hunt
+        )
         {
             for (int step = 0; step < 100; step++)
             {
@@ -1288,10 +1454,38 @@ namespace GeometryHelper.Internal.Nurbs
             public void Pair(int first, int second)
             {
                 int dim = A.Dim;
-                double gx = Math.Max(0.0, Math.Max(B.BoxMin[dim * second] - A.BoxMax[dim * first], A.BoxMin[dim * first] - B.BoxMax[dim * second]));
-                double gy = Math.Max(0.0, Math.Max(B.BoxMin[dim * second + 1] - A.BoxMax[dim * first + 1], A.BoxMin[dim * first + 1] - B.BoxMax[dim * second + 1]));
-                double gz = dim == 3 ? Math.Max(0.0, Math.Max(B.BoxMin[3 * second + 2] - A.BoxMax[3 * first + 2], A.BoxMin[3 * first + 2] - B.BoxMax[3 * second + 2])) : 0.0;
-                Found.Add(new PiecePair { First = first, Second = second, Bound = Math.Sqrt(gx * gx + gy * gy + gz * gz) });
+                double gx = Math.Max(
+                    0.0,
+                    Math.Max(
+                        B.BoxMin[dim * second] - A.BoxMax[dim * first],
+                        A.BoxMin[dim * first] - B.BoxMax[dim * second]
+                    )
+                );
+                double gy = Math.Max(
+                    0.0,
+                    Math.Max(
+                        B.BoxMin[dim * second + 1] - A.BoxMax[dim * first + 1],
+                        A.BoxMin[dim * first + 1] - B.BoxMax[dim * second + 1]
+                    )
+                );
+                double gz =
+                    dim == 3
+                        ? Math.Max(
+                            0.0,
+                            Math.Max(
+                                B.BoxMin[3 * second + 2] - A.BoxMax[3 * first + 2],
+                                A.BoxMin[3 * first + 2] - B.BoxMax[3 * second + 2]
+                            )
+                        )
+                        : 0.0;
+                Found.Add(
+                    new PiecePair
+                    {
+                        First = first,
+                        Second = second,
+                        Bound = Math.Sqrt(gx * gx + gy * gy + gz * gz),
+                    }
+                );
             }
         }
 
@@ -1308,7 +1502,8 @@ namespace GeometryHelper.Internal.Nurbs
             internal long Order;
 
             /// <summary>The pieces a pair that has not been made into parts is of.</summary>
-            internal int FirstPiece, SecondPiece;
+            internal int FirstPiece,
+                SecondPiece;
         }
 
         /// <summary>
@@ -1452,7 +1647,15 @@ namespace GeometryHelper.Internal.Nurbs
             {
                 if (pair.Bound <= hunt.Cutoff && (Along == null || !Along.Coincident(a, pair.First)))
                 {
-                    queue.Push(new Task { Depth = 0, Bound = pair.Bound, FirstPiece = pair.First, SecondPiece = pair.Second });
+                    queue.Push(
+                        new Task
+                        {
+                            Depth = 0,
+                            Bound = pair.Bound,
+                            FirstPiece = pair.First,
+                            SecondPiece = pair.Second,
+                        }
+                    );
                 }
             }
 
@@ -1491,7 +1694,24 @@ namespace GeometryHelper.Internal.Nurbs
                     // Curves that meet are nought apart, which nothing is nearer than: the answer is certain and there is nothing to say.
                     if (!hunt.OnlyNearest || hunt.Least > hunt.Snap)
                     {
-                        GeometryHelperLog.Debug("Spline queries: two splines of " + a.Pieces.Count + " and " + b.Pieces.Count + " pieces were cut into more than " + most + " pairs of parts" + (hunt.OnlyNearest ? "; the nearest approach found is " + hunt.Least + " and nothing left uncut is nearer than " + task.Bound : "; the places are those of the parts looked at") + ".");
+                        GeometryHelperLog.Debug(
+                            "Spline queries: two splines of "
+                                + a.Pieces.Count
+                                + " and "
+                                + b.Pieces.Count
+                                + " pieces were cut into more than "
+                                + most
+                                + " pairs of parts"
+                                + (
+                                    hunt.OnlyNearest
+                                        ? "; the nearest approach found is "
+                                            + hunt.Least
+                                            + " and nothing left uncut is nearer than "
+                                            + task.Bound
+                                        : "; the places are those of the parts looked at"
+                                )
+                                + "."
+                        );
                     }
 
                     return;
@@ -1502,7 +1722,11 @@ namespace GeometryHelper.Internal.Nurbs
                 // A part inside a stretch that lies along the other curve is not cut: it has no place to give, or in space the leasts of
                 // the distance the stretch was looked at for (CrossingsInSpace); but against a part of the other curve it may meet far
                 // from parallel it is, since that is another branch of the other curve than the one the stretch runs along.
-                if (hunt.Runs.Count > 0 && hunt.IsAlong(Position, x.From, x.To) && !MayCrossSteeply(x, y, task.Bound, hunt))
+                if (
+                    hunt.Runs.Count > 0
+                    && hunt.IsAlong(Position, x.From, x.To)
+                    && !MayCrossSteeply(x, y, task.Bound, hunt)
+                )
                 {
                     continue;
                 }
@@ -1520,14 +1744,26 @@ namespace GeometryHelper.Internal.Nurbs
                     if (x.Along(b, hunt.Scale))
                     {
                         x.PointAt(0.5, out double mx, out double my, out double mz);
-                        Pair(a, b, x.From + 0.5 * (x.To - x.From), b.ClosestParameter(a.Dim == 3 ? new[] { mx, my, mz } : new[] { mx, my }, out _), hunt);
+                        Pair(
+                            a,
+                            b,
+                            x.From + 0.5 * (x.To - x.From),
+                            b.ClosestParameter(a.Dim == 3 ? new[] { mx, my, mz } : new[] { mx, my }, out _),
+                            hunt
+                        );
                         continue;
                     }
 
                     if (y.Along(a, hunt.Scale))
                     {
                         y.PointAt(0.5, out double mx, out double my, out double mz);
-                        Pair(a, b, a.ClosestParameter(a.Dim == 3 ? new[] { mx, my, mz } : new[] { mx, my }, out _), y.From + 0.5 * (y.To - y.From), hunt);
+                        Pair(
+                            a,
+                            b,
+                            a.ClosestParameter(a.Dim == 3 ? new[] { mx, my, mz } : new[] { mx, my }, out _),
+                            y.From + 0.5 * (y.To - y.From),
+                            hunt
+                        );
                         continue;
                     }
                 }
@@ -1553,9 +1789,15 @@ namespace GeometryHelper.Internal.Nurbs
                 // million pairs and 26 s in the plane where the stretch along them ended short of the cusp, and take 0.3 s. A part no larger
                 // than the reach is measured against a part straight to a billionth however long, which is its segment: a line through a
                 // circle of radius 1E-4 had the circle cut into 2 048 straight parts, each measured against the line.
-                bool apartForGood = !hunt.OnlyNearest && task.Bound > hunt.Snap
-                    && ((x.Flat && y.Flat && x.Diagonal <= 30.0 * hunt.Reach && y.Diagonal <= 30.0 * hunt.Reach) || (x.Diagonal <= hunt.Reach && y.Diagonal <= hunt.Reach)
-                        || (x.Fine && y.Diagonal <= hunt.Reach) || (y.Fine && x.Diagonal <= hunt.Reach));
+                bool apartForGood =
+                    !hunt.OnlyNearest
+                    && task.Bound > hunt.Snap
+                    && (
+                        (x.Flat && y.Flat && x.Diagonal <= 30.0 * hunt.Reach && y.Diagonal <= 30.0 * hunt.Reach)
+                        || (x.Diagonal <= hunt.Reach && y.Diagonal <= hunt.Reach)
+                        || (x.Fine && y.Diagonal <= hunt.Reach)
+                        || (y.Fine && x.Diagonal <= hunt.Reach)
+                    );
 
                 if (task.Depth >= MostDepth || (x.Fine && y.Fine) || (x.Flat && y.Flat && x.Apart(y)) || apartForGood)
                 {
@@ -1570,11 +1812,27 @@ namespace GeometryHelper.Internal.Nurbs
                 bool cutFirst = apart && !y.Flat && y.Diagonal <= hunt.Reach && x.Diagonal > hunt.Reach;
                 bool cutSecond = apart && !x.Flat && x.Diagonal <= hunt.Reach && y.Diagonal > hunt.Reach;
 
-                if (!x.Fine && !cutSecond && (cutFirst || y.Fine || (!x.Flat && y.Flat) || (x.Flat == y.Flat && x.Diagonal >= y.Diagonal)))
+                if (
+                    !x.Fine
+                    && !cutSecond
+                    && (cutFirst || y.Fine || (!x.Flat && y.Flat) || (x.Flat == y.Flat && x.Diagonal >= y.Diagonal))
+                )
                 {
                     x.Split(out Sub left, out Sub right);
-                    Task near = new Task { First = left, Second = y, Depth = task.Depth + 1, Bound = BoundOf(left, y) };
-                    Task far = new Task { First = right, Second = y, Depth = task.Depth + 1, Bound = BoundOf(right, y) };
+                    Task near = new Task
+                    {
+                        First = left,
+                        Second = y,
+                        Depth = task.Depth + 1,
+                        Bound = BoundOf(left, y),
+                    };
+                    Task far = new Task
+                    {
+                        First = right,
+                        Second = y,
+                        Depth = task.Depth + 1,
+                        Bound = BoundOf(right, y),
+                    };
 
                     // The nearer half is taken first, which is the last in for the stack.
                     if (far.Bound < near.Bound)
@@ -1590,8 +1848,20 @@ namespace GeometryHelper.Internal.Nurbs
                 else
                 {
                     y.Split(out Sub left, out Sub right);
-                    Task near = new Task { First = x, Second = left, Depth = task.Depth + 1, Bound = BoundOf(x, left) };
-                    Task far = new Task { First = x, Second = right, Depth = task.Depth + 1, Bound = BoundOf(x, right) };
+                    Task near = new Task
+                    {
+                        First = x,
+                        Second = left,
+                        Depth = task.Depth + 1,
+                        Bound = BoundOf(x, left),
+                    };
+                    Task far = new Task
+                    {
+                        First = x,
+                        Second = right,
+                        Depth = task.Depth + 1,
+                        Bound = BoundOf(x, right),
+                    };
 
                     if (far.Bound < near.Bound)
                     {
@@ -1605,6 +1875,7 @@ namespace GeometryHelper.Internal.Nurbs
                 }
             }
         }
+
         /// <summary>
         /// Says whether two parts, the first inside a stretch along the second curve, may meet at an angle further from parallel than
         /// a degree, the default angle tolerance: their hulls meet, and their tangents are not held within that of each other.
@@ -1625,7 +1896,8 @@ namespace GeometryHelper.Internal.Nurbs
         /// <param name="y">The part of the second.</param>
         /// <param name="bound">A bound the distance between the two cannot be less than.</param>
         /// <param name="hunt">The hunt.</param>
-        private static bool MayCrossSteeply(Sub x, Sub y, double bound, Hunt hunt) => bound <= hunt.Snap && !x.Parallel(y, Tolerance.DefaultEqualAngleRad);
+        private static bool MayCrossSteeply(Sub x, Sub y, double bound, Hunt hunt) =>
+            bound <= hunt.Snap && !x.Parallel(y, Tolerance.DefaultEqualAngleRad);
 
         /// <summary>
         /// Gets a bound the distance between two parts that are straight to their reach cannot be less than: the distance between their
@@ -1633,7 +1905,22 @@ namespace GeometryHelper.Internal.Nurbs
         /// </summary>
         private static double ChordBound(Sub x, Sub y)
         {
-            Segments(x.X0, x.Y0, x.Z0, x.X1, x.Y1, x.Z1, y.X0, y.Y0, y.Z0, y.X1, y.Y1, y.Z1, out double sigma, out double tau);
+            Segments(
+                x.X0,
+                x.Y0,
+                x.Z0,
+                x.X1,
+                x.Y1,
+                x.Z1,
+                y.X0,
+                y.Y0,
+                y.Z0,
+                y.X1,
+                y.Y1,
+                y.Z1,
+                out double sigma,
+                out double tau
+            );
             double ex = (x.X0 + sigma * (x.X1 - x.X0)) - (y.X0 + tau * (y.X1 - y.X0));
             double ey = (x.Y0 + sigma * (x.Y1 - x.Y0)) - (y.Y0 + tau * (y.Y1 - y.Y0));
             double ez = (x.Z0 + sigma * (x.Z1 - x.Z0)) - (y.Z0 + tau * (y.Z1 - y.Z0));
@@ -1676,7 +1963,22 @@ namespace GeometryHelper.Internal.Nurbs
         /// </summary>
         private void Leaf(NurbsCurve a, NurbsCurve b, Sub x, Sub y, Hunt hunt)
         {
-            Segments(x.X0, x.Y0, x.Z0, x.X1, x.Y1, x.Z1, y.X0, y.Y0, y.Z0, y.X1, y.Y1, y.Z1, out double sigma, out double tau);
+            Segments(
+                x.X0,
+                x.Y0,
+                x.Z0,
+                x.X1,
+                x.Y1,
+                x.Z1,
+                y.X0,
+                y.Y0,
+                y.Z0,
+                y.X1,
+                y.Y1,
+                y.Z1,
+                out double sigma,
+                out double tau
+            );
 
             // The parts are straight to their reach, so they are no nearer than the segments less both reaches.
             double ex = (x.X0 + sigma * (x.X1 - x.X0)) - (y.X0 + tau * (y.X1 - y.X0));
@@ -1747,7 +2049,15 @@ namespace GeometryHelper.Internal.Nurbs
         /// Offers the pair of points of the two curves at two knot values.
         /// </summary>
         /// <returns>Whether the two meet there, to the snap, and do not run along each other there to it, which is no crossing.</returns>
-        private bool Pair(NurbsCurve a, NurbsCurve b, double knotA, double knotB, Hunt hunt, bool crossing = false, bool certain = false)
+        private bool Pair(
+            NurbsCurve a,
+            NurbsCurve b,
+            double knotA,
+            double knotB,
+            Hunt hunt,
+            bool crossing = false,
+            bool certain = false
+        )
         {
             knotA = a.Clamp(knotA);
             knotB = b.Clamp(knotB);
@@ -1773,27 +2083,35 @@ namespace GeometryHelper.Internal.Nurbs
             }
 
             // In space, a least inside a stretch along is a place where the two would cross if brought into one plane.
-            bool dip = _inSpace && !meets && gap <= hunt.Reach && hunt.Runs.Count > 0 && hunt.IsAlong(Position, knotA, knotA) && WouldCross(a, b, knotA, knotB, gap, hunt);
+            bool dip =
+                _inSpace
+                && !meets
+                && gap <= hunt.Reach
+                && hunt.Runs.Count > 0
+                && hunt.IsAlong(Position, knotA, knotA)
+                && WouldCross(a, b, knotA, knotB, gap, hunt);
 
-            hunt.Offer(new Contact
-            {
-                Knot = knotA,
-                Gap = gap,
-                Raw = raw,
-                Px = p[0],
-                Py = p[1],
-                Pz = a.Dim == 3 ? p[2] : 0.0,
-                Qx = q[0],
-                Qy = q[1],
-                Qz = a.Dim == 3 ? q[2] : 0.0,
-                Other = knotB,
-                Part = Position,
-                Overlap = overlap,
-                Verified = meets,
-                Crossing = crossing && meets,
-                Dip = dip,
-                From = this
-            });
+            hunt.Offer(
+                new Contact
+                {
+                    Knot = knotA,
+                    Gap = gap,
+                    Raw = raw,
+                    Px = p[0],
+                    Py = p[1],
+                    Pz = a.Dim == 3 ? p[2] : 0.0,
+                    Qx = q[0],
+                    Qy = q[1],
+                    Qz = a.Dim == 3 ? q[2] : 0.0,
+                    Other = knotB,
+                    Part = Position,
+                    Overlap = overlap,
+                    Verified = meets,
+                    Crossing = crossing && meets,
+                    Dip = dip,
+                    From = this,
+                }
+            );
 
             if (meets)
             {
@@ -1838,7 +2156,9 @@ namespace GeometryHelper.Internal.Nurbs
         private bool WouldCross(NurbsCurve a, NurbsCurve b, double knot, double other, double gap, Hunt hunt)
         {
             double[][] here = a.Derivatives(knot, 1);
-            double speed = Math.Sqrt(here[1][0] * here[1][0] + here[1][1] * here[1][1] + NurbsCurve.Z(here[1]) * NurbsCurve.Z(here[1]));
+            double speed = Math.Sqrt(
+                here[1][0] * here[1][0] + here[1][1] * here[1][1] + NurbsCurve.Z(here[1]) * NurbsCurve.Z(here[1])
+            );
             double[][] there = b.Derivatives(other, 1);
             double gx = here[0][0] - there[0][0];
             double gy = here[0][1] - there[0][1];
@@ -1893,7 +2213,12 @@ namespace GeometryHelper.Internal.Nurbs
                         continue;
                     }
 
-                    double offset = ((point[0] - near[0][0]) * sx + (point[1] - near[0][1]) * sy + (NurbsCurve.Z(point) - NurbsCurve.Z(near[0])) * sz) / across;
+                    double offset =
+                        (
+                            (point[0] - near[0][0]) * sx
+                            + (point[1] - near[0][1]) * sy
+                            + (NurbsCurve.Z(point) - NurbsCurve.Z(near[0])) * sz
+                        ) / across;
 
                     if (Math.Abs(offset) > 4.0 * hunt.Snap)
                     {
@@ -1937,7 +2262,9 @@ namespace GeometryHelper.Internal.Nurbs
             // it: a thousandth of the size of the smaller curve. Two curves that touch run side by side for a little way, but not for
             // that far, however short the pieces are and however far from the origin they lie.
             double[][] here = a.Derivatives(knot, 1);
-            double speed = Math.Sqrt(here[1][0] * here[1][0] + here[1][1] * here[1][1] + NurbsCurve.Z(here[1]) * NurbsCurve.Z(here[1]));
+            double speed = Math.Sqrt(
+                here[1][0] * here[1][0] + here[1][1] * here[1][1] + NurbsCurve.Z(here[1]) * NurbsCurve.Z(here[1])
+            );
 
             if (!(speed > a.StillSpeed))
             {
@@ -1998,9 +2325,19 @@ namespace GeometryHelper.Internal.Nurbs
                 double rz = NurbsCurve.Z(da[0]) - NurbsCurve.Z(db[0]);
                 double g1 = rx * da[1][0] + ry * da[1][1] + rz * NurbsCurve.Z(da[1]);
                 double g2 = -(rx * db[1][0] + ry * db[1][1] + rz * NurbsCurve.Z(db[1]));
-                double h11 = da[1][0] * da[1][0] + da[1][1] * da[1][1] + NurbsCurve.Z(da[1]) * NurbsCurve.Z(da[1]) + rx * da[2][0] + ry * da[2][1] + rz * NurbsCurve.Z(da[2]);
+                double h11 =
+                    da[1][0] * da[1][0]
+                    + da[1][1] * da[1][1]
+                    + NurbsCurve.Z(da[1]) * NurbsCurve.Z(da[1])
+                    + rx * da[2][0]
+                    + ry * da[2][1]
+                    + rz * NurbsCurve.Z(da[2]);
                 double h12 = -(da[1][0] * db[1][0] + da[1][1] * db[1][1] + NurbsCurve.Z(da[1]) * NurbsCurve.Z(db[1]));
-                double h22 = db[1][0] * db[1][0] + db[1][1] * db[1][1] + NurbsCurve.Z(db[1]) * NurbsCurve.Z(db[1]) - (rx * db[2][0] + ry * db[2][1] + rz * NurbsCurve.Z(db[2]));
+                double h22 =
+                    db[1][0] * db[1][0]
+                    + db[1][1] * db[1][1]
+                    + NurbsCurve.Z(db[1]) * NurbsCurve.Z(db[1])
+                    - (rx * db[2][0] + ry * db[2][1] + rz * NurbsCurve.Z(db[2]));
                 double trace = Math.Abs(h11) + Math.Abs(h22);
                 bool moved = false;
 
@@ -2009,7 +2346,15 @@ namespace GeometryHelper.Internal.Nurbs
                 // digit left. The step is written with the cross product W of the two tangents, where l11 = |P'|² + e1, l22 = |Q'|² + e2 and
                 // the matrix has determinant |W|² + |P'|² e2 + |Q'|² e1 + e1 e2, and the first component of the step is W . (r x Q') + e2 g1 and
                 // the second W . (r x P') + e1 g2: the same step, each part computed from what is small and not from what cancels.
-                double wx = 0.0, wy = 0.0, wz = 0.0, tangentP = 0.0, tangentQ = 0.0, e1 = 0.0, e2 = 0.0, wq = 0.0, wp = 0.0;
+                double wx = 0.0,
+                    wy = 0.0,
+                    wz = 0.0,
+                    tangentP = 0.0,
+                    tangentQ = 0.0,
+                    e1 = 0.0,
+                    e2 = 0.0,
+                    wq = 0.0,
+                    wp = 0.0;
 
                 if (a.Dim == 3)
                 {
@@ -2020,14 +2365,24 @@ namespace GeometryHelper.Internal.Nurbs
                     tangentQ = db[1][0] * db[1][0] + db[1][1] * db[1][1] + db[1][2] * db[1][2];
                     e1 = rx * da[2][0] + ry * da[2][1] + rz * da[2][2];
                     e2 = -(rx * db[2][0] + ry * db[2][1] + rz * db[2][2]);
-                    wq = wx * (ry * db[1][2] - rz * db[1][1]) + wy * (rz * db[1][0] - rx * db[1][2]) + wz * (rx * db[1][1] - ry * db[1][0]);
-                    wp = wx * (ry * da[1][2] - rz * da[1][1]) + wy * (rz * da[1][0] - rx * da[1][2]) + wz * (rx * da[1][1] - ry * da[1][0]);
+                    wq =
+                        wx * (ry * db[1][2] - rz * db[1][1])
+                        + wy * (rz * db[1][0] - rx * db[1][2])
+                        + wz * (rx * db[1][1] - ry * db[1][0]);
+                    wp =
+                        wx * (ry * da[1][2] - rz * da[1][1])
+                        + wy * (rz * da[1][0] - rx * da[1][2])
+                        + wz * (rx * da[1][1] - ry * da[1][0]);
                 }
 
                 // Two curves in space a hair from crossing have a matrix whose small eigenvalue is |W|² over its trace, 1E-7 of it at 1E-7 of
                 // a radian: a lift of a trillionth of the trace is five hundred times that, and the step it damps goes a five-hundredth of the
                 // way. The step is tried with no lift first, and kept if the distance does not grow.
-                for (double lift = a.Dim == 3 ? 0.0 : 1E-12; lift <= 1E3 && !moved; lift = lift == 0.0 ? 1E-12 : lift * 1E3)
+                for (
+                    double lift = a.Dim == 3 ? 0.0 : 1E-12;
+                    lift <= 1E3 && !moved;
+                    lift = lift == 0.0 ? 1E-12 : lift * 1E3
+                )
                 {
                     double l11 = h11 + lift * trace;
                     double l22 = h22 + lift * trace;
@@ -2059,11 +2414,17 @@ namespace GeometryHelper.Internal.Nurbs
 
                     double[][] na = a.Derivatives(ns, 2);
                     double[][] nb = b.Derivatives(nt, 2);
-                    double value = Square(na[0][0] - nb[0][0], na[0][1] - nb[0][1], NurbsCurve.Z(na[0]) - NurbsCurve.Z(nb[0]));
+                    double value = Square(
+                        na[0][0] - nb[0][0],
+                        na[0][1] - nb[0][1],
+                        NurbsCurve.Z(na[0]) - NurbsCurve.Z(nb[0])
+                    );
 
                     if (value <= least)
                     {
-                        bool settled = Math.Abs(ns - s) <= 1E-16 * (1.0 + Math.Abs(s)) && Math.Abs(nt - t) <= 1E-16 * (1.0 + Math.Abs(t));
+                        bool settled =
+                            Math.Abs(ns - s) <= 1E-16 * (1.0 + Math.Abs(s))
+                            && Math.Abs(nt - t) <= 1E-16 * (1.0 + Math.Abs(t));
                         s = ns;
                         t = nt;
                         da = na;
@@ -2119,7 +2480,12 @@ namespace GeometryHelper.Internal.Nurbs
 
             for (int i = 0; i < 2; i++)
             {
-                if (knots[i] < knots[i + 1] && offsets[i] != 0.0 && offsets[i + 1] != 0.0 && (offsets[i] < 0.0) != (offsets[i + 1] < 0.0))
+                if (
+                    knots[i] < knots[i + 1]
+                    && offsets[i] != 0.0
+                    && offsets[i + 1] != 0.0
+                    && (offsets[i] < 0.0) != (offsets[i + 1] < 0.0)
+                )
                 {
                     Cross(a, b, knots[i], knots[i + 1], others[i + 1], offsets[i] < 0.0, hunt);
                 }
@@ -2142,7 +2508,17 @@ namespace GeometryHelper.Internal.Nurbs
         {
             double[][] derivatives = a.Derivatives(knot, 2);
 
-            if (!NurbsCurve.TryGetFoot(this, derivatives[0][0], derivatives[0][1], 0.0, hunt.Scale, 2, out NurbsCurve.Foot foot) || !(foot.G > hunt.Snap))
+            if (
+                !NurbsCurve.TryGetFoot(
+                    this,
+                    derivatives[0][0],
+                    derivatives[0][1],
+                    0.0,
+                    hunt.Scale,
+                    2,
+                    out NurbsCurve.Foot foot
+                ) || !(foot.G > hunt.Snap)
+            )
             {
                 return;
             }
@@ -2202,7 +2578,17 @@ namespace GeometryHelper.Internal.Nurbs
         {
             double[][] derivatives = a.Derivatives(knot, 2);
 
-            if (!NurbsCurve.TryGetFoot(this, derivatives[0][0], derivatives[0][1], NurbsCurve.Z(derivatives[0]), hunt.Scale, a.Dim, out NurbsCurve.Foot foot) || !(foot.G > hunt.Snap))
+            if (
+                !NurbsCurve.TryGetFoot(
+                    this,
+                    derivatives[0][0],
+                    derivatives[0][1],
+                    NurbsCurve.Z(derivatives[0]),
+                    hunt.Scale,
+                    a.Dim,
+                    out NurbsCurve.Foot foot
+                ) || !(foot.G > hunt.Snap)
+            )
             {
                 return;
             }
@@ -2263,13 +2649,26 @@ namespace GeometryHelper.Internal.Nurbs
             {
                 double[][] derivatives = a.Derivatives(s, 2);
 
-                if (!NurbsCurve.TryGetFoot(this, derivatives[0][0], derivatives[0][1], NurbsCurve.Z(derivatives[0]), hunt.Scale, a.Dim, out NurbsCurve.Foot foot) || !(foot.G > hunt.Snap))
+                if (
+                    !NurbsCurve.TryGetFoot(
+                        this,
+                        derivatives[0][0],
+                        derivatives[0][1],
+                        NurbsCurve.Z(derivatives[0]),
+                        hunt.Scale,
+                        a.Dim,
+                        out NurbsCurve.Foot foot
+                    ) || !(foot.G > hunt.Snap)
+                )
                 {
                     return;
                 }
 
                 NurbsCurve.Variation(foot, derivatives, out double slope, out double curvature);
-                double speed2 = derivatives[1][0] * derivatives[1][0] + derivatives[1][1] * derivatives[1][1] + NurbsCurve.Z(derivatives[1]) * NurbsCurve.Z(derivatives[1]);
+                double speed2 =
+                    derivatives[1][0] * derivatives[1][0]
+                    + derivatives[1][1] * derivatives[1][1]
+                    + NurbsCurve.Z(derivatives[1]) * NurbsCurve.Z(derivatives[1]);
 
                 if (!(curvature > 1E-9 / hunt.Extent * speed2))
                 {
@@ -2314,7 +2713,22 @@ namespace GeometryHelper.Internal.Nurbs
         /// <summary>
         /// Finds the nearest points of two segments, as shares of each from its start, between 0 and 1.
         /// </summary>
-        private static void Segments(double ax, double ay, double az, double bx, double by, double bz, double cx, double cy, double cz, double dx, double dy, double dz, out double sigma, out double tau)
+        private static void Segments(
+            double ax,
+            double ay,
+            double az,
+            double bx,
+            double by,
+            double bz,
+            double cx,
+            double cy,
+            double cz,
+            double dx,
+            double dy,
+            double dz,
+            out double sigma,
+            out double tau
+        )
         {
             double ux = bx - ax;
             double uy = by - ay;
@@ -2369,7 +2783,10 @@ namespace GeometryHelper.Internal.Nurbs
             }
         }
 
-        private static double Clamp01(double value) => value < 0.0 ? 0.0 : value > 1.0 ? 1.0 : value;
+        private static double Clamp01(double value) =>
+            value < 0.0 ? 0.0
+            : value > 1.0 ? 1.0
+            : value;
 
         /// <summary>
         /// A part of a Bézier piece: its control points, the box they fill, and how far from straight they are.
@@ -2388,8 +2805,18 @@ namespace GeometryHelper.Internal.Nurbs
             internal readonly bool AtEnd;
             internal readonly double[] Hw;
 
-            internal double MinX, MinY, MinZ, MaxX, MaxY, MaxZ;
-            internal double X0, Y0, Z0, X1, Y1, Z1;
+            internal double MinX,
+                MinY,
+                MinZ,
+                MaxX,
+                MaxY,
+                MaxZ;
+            internal double X0,
+                Y0,
+                Z0,
+                X1,
+                Y1,
+                Z1;
             internal bool Flat;
             internal double Diagonal;
 
@@ -2404,12 +2831,29 @@ namespace GeometryHelper.Internal.Nurbs
             private double[] _px;
             private double[] _py;
             private double[] _pz;
-            private double _ax, _ay, _az;
+            private double _ax,
+                _ay,
+                _az;
 
             // In space, two more unit directions square to the chord and to each other.
-            private double _ux, _uy, _uz, _vx, _vy, _vz;
+            private double _ux,
+                _uy,
+                _uz,
+                _vx,
+                _vy,
+                _vz;
 
-            private Sub(int dim, int degree, bool rational, double from, double to, bool atStart, bool atEnd, double[] hw, double scale)
+            private Sub(
+                int dim,
+                int degree,
+                bool rational,
+                double from,
+                double to,
+                bool atStart,
+                bool atEnd,
+                double[] hw,
+                double scale
+            )
             {
                 _dim = dim;
                 _degree = degree;
@@ -2450,7 +2894,8 @@ namespace GeometryHelper.Internal.Nurbs
                 return new Sub(dim, p, pieces.Rational, pieces.From[piece], pieces.To[piece], true, true, hw, scale);
             }
 
-            private double Coordinate(int j, int k) => _rational ? Hw[j * _stride + k] / Hw[j * _stride + _dim] : Hw[j * _stride + k];
+            private double Coordinate(int j, int k) =>
+                _rational ? Hw[j * _stride + k] / Hw[j * _stride + _dim] : Hw[j * _stride + k];
 
             private void Measure(double scale)
             {
@@ -2513,7 +2958,10 @@ namespace GeometryHelper.Internal.Nurbs
                     double ry = _py[j] - Y0;
                     double rz = _pz[j] - Z0;
                     double along = chord > 0.0 ? (rx * cx + ry * cy + rz * cz) / (chord * chord) : 0.0;
-                    along = along < 0.0 ? 0.0 : along > 1.0 ? 1.0 : along;
+                    along =
+                        along < 0.0 ? 0.0
+                        : along > 1.0 ? 1.0
+                        : along;
                     double ox = rx - along * cx;
                     double oy = ry - along * cy;
                     double oz = rz - along * cz;
@@ -2563,7 +3011,8 @@ namespace GeometryHelper.Internal.Nurbs
                     {
                         for (int k = 0; k < _stride; k++)
                         {
-                            work[j * _stride + k] = (1.0 - share) * work[j * _stride + k] + share * work[(j + 1) * _stride + k];
+                            work[j * _stride + k] =
+                                (1.0 - share) * work[j * _stride + k] + share * work[(j + 1) * _stride + k];
                         }
                     }
                 }
@@ -2740,11 +3189,17 @@ namespace GeometryHelper.Internal.Nurbs
                     double cx = _ay * other._az - _az * other._ay;
                     double cy = _az * other._ax - _ax * other._az;
                     double cz = _ax * other._ay - _ay * other._ax;
-                    between = Math.Atan2(Math.Sqrt(cx * cx + cy * cy + cz * cz), Math.Abs(_ax * other._ax + _ay * other._ay + _az * other._az));
+                    between = Math.Atan2(
+                        Math.Sqrt(cx * cx + cy * cy + cz * cz),
+                        Math.Abs(_ax * other._ax + _ay * other._ay + _az * other._az)
+                    );
                 }
                 else
                 {
-                    between = Math.Atan2(Math.Abs(_ax * other._ay - _ay * other._ax), Math.Abs(_ax * other._ax + _ay * other._ay));
+                    between = Math.Atan2(
+                        Math.Abs(_ax * other._ay - _ay * other._ax),
+                        Math.Abs(_ax * other._ax + _ay * other._ay)
+                    );
                 }
 
                 return between + sum <= angle;
@@ -2770,11 +3225,17 @@ namespace GeometryHelper.Internal.Nurbs
                     double cx = _ay * other._az - _az * other._ay;
                     double cy = _az * other._ax - _ax * other._az;
                     double cz = _ax * other._ay - _ay * other._ax;
-                    between = Math.Atan2(Math.Sqrt(cx * cx + cy * cy + cz * cz), Math.Abs(_ax * other._ax + _ay * other._ay + _az * other._az));
+                    between = Math.Atan2(
+                        Math.Sqrt(cx * cx + cy * cy + cz * cz),
+                        Math.Abs(_ax * other._ax + _ay * other._ay + _az * other._az)
+                    );
                 }
                 else
                 {
-                    between = Math.Atan2(Math.Abs(_ax * other._ay - _ay * other._ax), Math.Abs(_ax * other._ax + _ay * other._ay));
+                    between = Math.Atan2(
+                        Math.Abs(_ax * other._ay - _ay * other._ax),
+                        Math.Abs(_ax * other._ax + _ay * other._ay)
+                    );
                 }
 
                 return between > sum;
@@ -2789,9 +3250,18 @@ namespace GeometryHelper.Internal.Nurbs
             /// </summary>
             internal double Gap(Sub other)
             {
-                double gx = other.MinX - MaxX > 0.0 ? other.MinX - MaxX : MinX - other.MaxX > 0.0 ? MinX - other.MaxX : 0.0;
-                double gy = other.MinY - MaxY > 0.0 ? other.MinY - MaxY : MinY - other.MaxY > 0.0 ? MinY - other.MaxY : 0.0;
-                double gz = other.MinZ - MaxZ > 0.0 ? other.MinZ - MaxZ : MinZ - other.MaxZ > 0.0 ? MinZ - other.MaxZ : 0.0;
+                double gx =
+                    other.MinX - MaxX > 0.0 ? other.MinX - MaxX
+                    : MinX - other.MaxX > 0.0 ? MinX - other.MaxX
+                    : 0.0;
+                double gy =
+                    other.MinY - MaxY > 0.0 ? other.MinY - MaxY
+                    : MinY - other.MaxY > 0.0 ? MinY - other.MaxY
+                    : 0.0;
+                double gz =
+                    other.MinZ - MaxZ > 0.0 ? other.MinZ - MaxZ
+                    : MinZ - other.MaxZ > 0.0 ? MinZ - other.MaxZ
+                    : 0.0;
                 double bound = Math.Sqrt(gx * gx + gy * gy + gz * gz);
 
                 if (_dim == 3)
@@ -2867,7 +3337,9 @@ namespace GeometryHelper.Internal.Nurbs
                 }
 
                 // A shadow measured to rounding is not allowed to push a bound past the truth.
-                double gap = Math.Max(otherLow - high, low - otherHigh) - 1E-15 * (Math.Abs(high) + Math.Abs(low) + Math.Abs(otherHigh) + Math.Abs(otherLow));
+                double gap =
+                    Math.Max(otherLow - high, low - otherHigh)
+                    - 1E-15 * (Math.Abs(high) + Math.Abs(low) + Math.Abs(otherHigh) + Math.Abs(otherLow));
 
                 return gap > 0.0 ? gap : 0.0;
             }

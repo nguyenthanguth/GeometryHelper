@@ -28,7 +28,9 @@ namespace GeometryHelper.Dxf
     public sealed class DxfArc : DxfCurve
     {
         // The groups of AcDbCircle and AcDbArc in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 39, 10, 20, 30, 40, 210, 220, 230, 100, 50, 51 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 39, 10, 20, 30, 40, 210, 220, 230, 100, 50, 51 }
+        );
 
         private static readonly GeoPoint3 Origin = new GeoPoint3(0.0, 0.0, 0.0);
 
@@ -41,9 +43,7 @@ namespace GeometryHelper.Dxf
         /// <c>new Arc()</c>, on layer 0 in no file; give it its radius and angles before it is drawn.
         /// </summary>
         public DxfArc()
-            : this(Origin, Up, 0.0, 0.0, 0.0)
-        {
-        }
+            : this(Origin, Up, 0.0, 0.0, 0.0) { }
 
         /// <summary>
         /// Initializes an arc about a centre on the normal (0, 0, 1), as AutoCAD's <c>new Arc(center, radius, startAngle,
@@ -56,9 +56,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is below nought, or a number is not finite.</exception>
         public DxfArc(GeoPoint3 center, double radius, double startAngle, double endAngle)
-            : this(center, Up, radius, startAngle, endAngle)
-        {
-        }
+            : this(center, Up, radius, startAngle, endAngle) { }
 
         /// <summary>
         /// Initializes an arc about a centre in the plane square to a normal, as AutoCAD's <c>new Arc(center, normal, radius,
@@ -72,14 +70,10 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number, or the normal has no length.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is below nought, or a number is not finite.</exception>
         public DxfArc(GeoPoint3 center, GeoVector3 normal, double radius, double startAngle, double endAngle)
-            : base("ARC", Groups(center, normal, radius, startAngle, endAngle))
-        {
-        }
+            : base("ARC", Groups(center, normal, radius, startAngle, endAngle)) { }
 
         private DxfArc(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets or sets the centre of the arc, in world coordinates, as AutoCAD's <c>Center</c>: the groups 10, 20 and 30 taken
@@ -91,7 +85,6 @@ namespace GeometryHelper.Dxf
         public GeoPoint3 Center
         {
             get => OcsToWorld(GetNormal(), GetPoint(10, Origin));
-
             set
             {
                 GeoPoint3 now = Center;
@@ -110,7 +103,6 @@ namespace GeometryHelper.Dxf
         public double Radius
         {
             get => GetDouble(40, 1.0);
-
             set
             {
                 Guard.NonNegative(value, nameof(value), "A radius has to be a finite number, nought or more.");
@@ -129,7 +121,6 @@ namespace GeometryHelper.Dxf
         public GeoVector3 Normal
         {
             get => GetNormal();
-
             set
             {
                 GeoVector3 unit = DxfCircle.Unit(value, nameof(value));
@@ -261,8 +252,11 @@ namespace GeometryHelper.Dxf
             double dy = local.Y - centre.Y;
             double slack = Tolerance.Default.EqualPoint;
 
-            if (Math.Abs(Math.Sqrt(dx * dx + dy * dy) - radius) <= slack && Math.Abs(local.Z - centre.Z) <= slack
-                && TryParameter(Math.Atan2(dy, dx), radius, out double parameter))
+            if (
+                Math.Abs(Math.Sqrt(dx * dx + dy * dy) - radius) <= slack
+                && Math.Abs(local.Z - centre.Z) <= slack
+                && TryParameter(Math.Atan2(dy, dx), radius, out double parameter)
+            )
             {
                 return parameter;
             }
@@ -306,7 +300,12 @@ namespace GeometryHelper.Dxf
         {
             double radius = Radius;
             Within(value, Length, nameof(value));
-            return DxfCircle.At(GetNormal(), GetPoint(10, Origin), radius, StartParam + (radius > 0.0 ? value / radius : 0.0));
+            return DxfCircle.At(
+                GetNormal(),
+                GetPoint(10, Origin),
+                radius,
+                StartParam + (radius > 0.0 ? value / radius : 0.0)
+            );
         }
 
         /// <summary>
@@ -331,7 +330,10 @@ namespace GeometryHelper.Dxf
             if (extend || FromStart(angle, start) <= EndParam)
             {
                 return length > 0.0
-                    ? OcsToWorld(normal, new GeoPoint3(centre.X + radius * (dx / length), centre.Y + radius * (dy / length), centre.Z))
+                    ? OcsToWorld(
+                        normal,
+                        new GeoPoint3(centre.X + radius * (dx / length), centre.Y + radius * (dy / length), centre.Z)
+                    )
                     : DxfCircle.At(normal, centre, radius, angle);
             }
 
@@ -379,7 +381,11 @@ namespace GeometryHelper.Dxf
 
             if (!(radius > 0.0))
             {
-                throw new ArgumentOutOfRangeException(nameof(offsetDist), offsetDist, "The offset takes the radius of the arc to nought or below.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(offsetDist),
+                    offsetDist,
+                    "The offset takes the radius of the arc to nought or below."
+                );
             }
 
             var copy = (DxfArc)Copy();
@@ -400,11 +406,21 @@ namespace GeometryHelper.Dxf
         /// <returns>The one arc, of the same look, in no file.</returns>
         /// <exception cref="ArgumentException">Thrown when the normal is not along the arc's within the vector tolerance.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number, or takes the radius to nought or below.</exception>
-        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(GeoVector3 planeNormal, double offsetDist)
+        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(
+            GeoVector3 planeNormal,
+            double offsetDist
+        )
         {
-            if (!planeNormal.IsValid || planeNormal.IsZeroLength(Tolerance.Default) || !planeNormal.IsParallelTo(GetNormal(), Tolerance.Default))
+            if (
+                !planeNormal.IsValid
+                || planeNormal.IsZeroLength(Tolerance.Default)
+                || !planeNormal.IsParallelTo(GetNormal(), Tolerance.Default)
+            )
             {
-                throw new ArgumentException("An arc is offset in its own plane: the normal " + planeNormal + " is not along the arc's.", nameof(planeNormal));
+                throw new ArgumentException(
+                    "An arc is offset in its own plane: the normal " + planeNormal + " is not along the arc's.",
+                    nameof(planeNormal)
+                );
             }
 
             return GetOffsetCurves(offsetDist);
@@ -425,7 +441,14 @@ namespace GeometryHelper.Dxf
             GeoPoint3 end = WorldToOcs(normal, EndPoint);
             double from = Degrees(Math.Atan2(end.Y - centre.Y, end.X - centre.X));
             double to = Degrees(Math.Atan2(start.Y - centre.Y, start.X - centre.X));
-            SetGroups(Join(NormalGroups(normal), PointGroups(10, centre, Origin), NumberGroups(50, from, GetDouble(50, 0.0)), NumberGroups(51, to, GetDouble(51, 360.0))));
+            SetGroups(
+                Join(
+                    NormalGroups(normal),
+                    PointGroups(10, centre, Origin),
+                    NumberGroups(50, from, GetDouble(50, 0.0)),
+                    NumberGroups(51, to, GetDouble(51, 360.0))
+                )
+            );
         }
 
         /// <summary>
@@ -444,12 +467,20 @@ namespace GeometryHelper.Dxf
 
             if (newParameter >= start && newParameter <= end)
             {
-                throw new ArgumentOutOfRangeException(nameof(newParameter), newParameter, "The parameter lies on the arc, which runs from its start angle to its end angle: one past an end extends it.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(newParameter),
+                    newParameter,
+                    "The parameter lies on the arc, which runs from its start angle to its end angle: one past an end extends it."
+                );
             }
 
             if ((newParameter < start ? end - newParameter : newParameter - start) >= Turn)
             {
-                throw new ArgumentOutOfRangeException(nameof(newParameter), newParameter, "The parameter would take the arc round a whole turn or more.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(newParameter),
+                    newParameter,
+                    "The parameter would take the arc round a whole turn or more."
+                );
             }
 
             if (newParameter < start)
@@ -477,7 +508,10 @@ namespace GeometryHelper.Dxf
 
             if (!(Math.Abs(Math.Sqrt(dx * dx + dy * dy) - Radius) <= slack && Math.Abs(local.Z - centre.Z) <= slack))
             {
-                throw new ArgumentException("The point " + toPoint + " is not on the circle of the arc.", nameof(toPoint));
+                throw new ArgumentException(
+                    "The point " + toPoint + " is not on the circle of the arc.",
+                    nameof(toPoint)
+                );
             }
 
             double angle = Math.Atan2(dy, dx);
@@ -589,7 +623,12 @@ namespace GeometryHelper.Dxf
 
             if (!(geCurve is GeoArc3 arc))
             {
-                throw new ArgumentException("An arc takes a GeoArc3 or a GeoArc2, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
+                throw new ArgumentException(
+                    "An arc takes a GeoArc3 or a GeoArc2, and was given "
+                        + (geCurve == null ? "null" : "a " + geCurve.GetType().Name)
+                        + ".",
+                    nameof(geCurve)
+                );
             }
 
             SetShape(arc);
@@ -619,7 +658,17 @@ namespace GeometryHelper.Dxf
 
             GeoVector3 old = GetNormal();
             double thickness = Thickness;
-            DxfCircle.Moved(transform, old, GetPoint(10, Origin), Radius, thickness, out GeoVector3 normal, out GeoPoint3 centre, out double radius, out double raised);
+            DxfCircle.Moved(
+                transform,
+                old,
+                GetPoint(10, Origin),
+                Radius,
+                thickness,
+                out GeoVector3 normal,
+                out GeoPoint3 centre,
+                out double radius,
+                out double raised
+            );
             double start = GetDouble(50, 0.0);
             double end = GetDouble(51, 360.0);
             double from = start;
@@ -629,12 +678,28 @@ namespace GeometryHelper.Dxf
             // they span comes out the other way round.
             if (!IsClose(SpanDegrees(start, end), 360.0, 0.0))
             {
-                Turned(transform, old, normal, start * (Math.PI / 180.0), end * (Math.PI / 180.0), out double first, out double last);
+                Turned(
+                    transform,
+                    old,
+                    normal,
+                    start * (Math.PI / 180.0),
+                    end * (Math.PI / 180.0),
+                    out double first,
+                    out double last
+                );
                 from = Wrapped(first * (180.0 / Math.PI));
                 to = Wrapped(last * (180.0 / Math.PI));
             }
 
-            SetGroups(Join(NormalGroups(normal), PointGroups(10, centre, Origin), NumberGroups(40, radius, Radius), NumberGroups(50, from, start), NumberGroups(51, to, end)));
+            SetGroups(
+                Join(
+                    NormalGroups(normal),
+                    PointGroups(10, centre, Origin),
+                    NumberGroups(40, radius, Radius),
+                    NumberGroups(50, from, start),
+                    NumberGroups(51, to, end)
+                )
+            );
 
             if (thickness != 0.0)
             {
@@ -649,7 +714,13 @@ namespace GeometryHelper.Dxf
         private protected override IReadOnlyList<int> GroupOrder => Order;
 
         /// <summary>The groups of an arc made in code: those of its circle, then its marker and its angles in degrees.</summary>
-        private static IEnumerable<DxfTypedValue> Groups(GeoPoint3 center, GeoVector3 normal, double radius, double startAngle, double endAngle)
+        private static IEnumerable<DxfTypedValue> Groups(
+            GeoPoint3 center,
+            GeoVector3 normal,
+            double radius,
+            double startAngle,
+            double endAngle
+        )
         {
             GeoVector3 unit = DxfCircle.Unit(normal, nameof(normal));
             Guard.NonNegative(radius, nameof(radius), "A radius has to be a finite number, nought or more.");
@@ -658,7 +729,10 @@ namespace GeometryHelper.Dxf
 
             if (!center.IsValid)
             {
-                throw new ArgumentException("A centre has to be of finite numbers: " + center + " is not.", nameof(center));
+                throw new ArgumentException(
+                    "A centre has to be of finite numbers: " + center + " is not.",
+                    nameof(center)
+                );
             }
 
             GeoPoint3 local = WorldToOcs(unit, center);
@@ -757,7 +831,12 @@ namespace GeometryHelper.Dxf
         private DxfArc Piece(double from, double to)
         {
             var copy = (DxfArc)Copy();
-            copy.SetGroups(Join(NumberGroups(50, Degrees(from), copy.GetDouble(50, 0.0)), NumberGroups(51, Degrees(to), copy.GetDouble(51, 360.0))));
+            copy.SetGroups(
+                Join(
+                    NumberGroups(50, Degrees(from), copy.GetDouble(50, 0.0)),
+                    NumberGroups(51, Degrees(to), copy.GetDouble(51, 360.0))
+                )
+            );
             return copy;
         }
 
@@ -770,8 +849,10 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The group that sets a number, written as <see cref="DxfWriter"/> writes one; none where it is the number read, to the bit.</summary>
-        private static KeyValuePair<int, string>[] NumberGroups(int code, double value, double now)
-            => Same(value, now) ? new KeyValuePair<int, string>[0] : new[] { new KeyValuePair<int, string>(code, Numbers.Exact(value + 0.0)) };
+        private static KeyValuePair<int, string>[] NumberGroups(int code, double value, double now) =>
+            Same(value, now)
+                ? new KeyValuePair<int, string>[0]
+                : new[] { new KeyValuePair<int, string>(code, Numbers.Exact(value + 0.0)) };
 
         /// <summary>
         /// The start and end angles of an arc turned by a transformation into the system of its new normal, as ezdxf's
@@ -779,7 +860,15 @@ namespace GeometryHelper.Dxf
         /// new system; swapped where the span they make differs from the old, which a mirror does. Half a turn is told by a
         /// third direction, a radian on from the start.
         /// </summary>
-        private static void Turned(GeoTransform3 transform, GeoVector3 old, GeoVector3 normal, double start, double end, out double first, out double last)
+        private static void Turned(
+            GeoTransform3 transform,
+            GeoVector3 old,
+            GeoVector3 normal,
+            double start,
+            double end,
+            out double first,
+            out double last
+        )
         {
             double oldSpan = SpanRadians(start, end);
             first = TurnedAngle(transform, old, normal, start);
@@ -864,7 +953,7 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Python's <c>math.isclose</c> with its relative tolerance of 1E-9 and an absolute one given.</summary>
-        private static bool IsClose(double a, double b, double absolute)
-            => a == b || Math.Abs(a - b) <= Math.Max(1E-9 * Math.Max(Math.Abs(a), Math.Abs(b)), absolute);
+        private static bool IsClose(double a, double b, double absolute) =>
+            a == b || Math.Abs(a - b) <= Math.Max(1E-9 * Math.Max(Math.Abs(a), Math.Abs(b)), absolute);
     }
 }

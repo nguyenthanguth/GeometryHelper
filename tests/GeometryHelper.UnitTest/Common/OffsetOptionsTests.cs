@@ -50,7 +50,9 @@ namespace GeometryHelper.UnitTest.Common
         [InlineData(double.PositiveInfinity)]
         public void ArcTolerance_NegativeOrNotFinite_IsRefused(double arcTolerance)
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => new OffsetOptions(OffsetJoin.Round, arcTolerance: arcTolerance));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new OffsetOptions(OffsetJoin.Round, arcTolerance: arcTolerance)
+            );
         }
 
         [Fact]

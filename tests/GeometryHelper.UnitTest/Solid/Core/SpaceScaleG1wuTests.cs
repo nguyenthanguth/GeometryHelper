@@ -18,17 +18,19 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class SpaceScaleG1wuTests
     {
-        private static Tolerance Within(double point) => new Tolerance(point, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, point);
+        private static Tolerance Within(double point) =>
+            new Tolerance(point, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, point);
 
         private static GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
 
         // The arc of radius 10 about the point given, in the floor, running counter-clockwise from 2.5 radians before the X
         // axis to 2.5 after it.
-        private static GeoArc3 Arc(double radius, GeoPoint3 centre, double scale)
-            => GeoArc3.FromThreePoints(
+        private static GeoArc3 Arc(double radius, GeoPoint3 centre, double scale) =>
+            GeoArc3.FromThreePoints(
                 P((centre.X + radius * Math.Cos(-2.5)) * scale, (centre.Y + radius * Math.Sin(-2.5)) * scale, 0),
                 P((centre.X + radius) * scale, centre.Y * scale, 0),
-                P((centre.X + radius * Math.Cos(2.5)) * scale, (centre.Y + radius * Math.Sin(2.5)) * scale, 0));
+                P((centre.X + radius * Math.Cos(2.5)) * scale, (centre.Y + radius * Math.Sin(2.5)) * scale, 0)
+            );
 
         [Fact]
         public void ASegmentTwoMillionthsLongCrossingAnArcAtAMillionth_MeetsItWhereItCrossesAsAHundredTimesLarger()
@@ -41,7 +43,10 @@ namespace GeometryHelper.UnitTest.Solid
                 GeoPoint3[] met = arc.GetIntersections(segment, Within(1E-6 * scale));
 
                 Assert.Single(met);
-                Assert.True(met[0].DistanceTo(P(0, 10 * scale, 0)) <= 1E-12 * scale, "at a scale of " + scale + ": " + met[0]);
+                Assert.True(
+                    met[0].DistanceTo(P(0, 10 * scale, 0)) <= 1E-12 * scale,
+                    "at a scale of " + scale + ": " + met[0]
+                );
             }
         }
 
@@ -72,7 +77,12 @@ namespace GeometryHelper.UnitTest.Solid
             // The half disc of radius 1 above the floor's X axis, its diameter cut at (1, 0.000002): the three corners enclose
             // a sliver of 0.000002 square units, under the vector tolerance read as an area and not 0.001 wide.
             GeoPoint3[] corners = { P(0, 0, 0), P(1, 2E-6, 0), P(2, 0, 0) };
-            var loop = new GeoPolygonArc3(corners, new[] { 0.0, 0.0, 1.0 }, new[] { GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis }, Within(1E-6));
+            var loop = new GeoPolygonArc3(
+                corners,
+                new[] { 0.0, 0.0, 1.0 },
+                new[] { GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis },
+                Within(1E-6)
+            );
 
             Assert.Throws<ArgumentException>(() => loop.Flatten());
             Assert.Throws<ArgumentException>(() => new GeoPolygon3(corners));
@@ -83,7 +93,12 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The half disc of radius 50 cut so: the three corners enclose 0.0001 square units.
             GeoPoint3[] corners = { P(0, 0, 0), P(50, 2E-6, 0), P(100, 0, 0) };
-            var loop = new GeoPolygonArc3(corners, new[] { 0.0, 0.0, 1.0 }, new[] { GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis }, Within(1E-6));
+            var loop = new GeoPolygonArc3(
+                corners,
+                new[] { 0.0, 0.0, 1.0 },
+                new[] { GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis },
+                Within(1E-6)
+            );
 
             GeoPolygon3 flat = loop.Flatten();
 
@@ -127,8 +142,15 @@ namespace GeometryHelper.UnitTest.Solid
 
                     string at = "scaled by " + scale + ", sheared by " + shear;
                     Assert.True(moved.IsClosed(Within(1E-6 * scale)), at);
-                    Assert.Equal(corners, moved.Faces.Sum(f => f.Boundary.VertexCount + f.Holes.Sum(h => h.VertexCount)));
-                    Assert.True(Math.Abs(moved.GetVolume(Within(1E-6 * scale)) - volume * scale * scale * scale) <= 1E-9 * volume * scale * scale * scale, at);
+                    Assert.Equal(
+                        corners,
+                        moved.Faces.Sum(f => f.Boundary.VertexCount + f.Holes.Sum(h => h.VertexCount))
+                    );
+                    Assert.True(
+                        Math.Abs(moved.GetVolume(Within(1E-6 * scale)) - volume * scale * scale * scale)
+                            <= 1E-9 * volume * scale * scale * scale,
+                        at
+                    );
                 }
             }
         }

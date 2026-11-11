@@ -52,9 +52,7 @@ namespace GeometryHelper.Viewer
         // never walked, so that nothing follows its order.
         private HashSet<EdgeKey> _seen;
 
-        private ExactGeometry()
-        {
-        }
+        private ExactGeometry() { }
 
         /// <summary>
         /// Gets the curves, in the order of the items and, within an item, of its data.
@@ -95,22 +93,45 @@ namespace GeometryHelper.Viewer
                 }
 
                 SceneItem item = scene.Items[i];
-                result._seen = item.Kind == "GeoSolid3" || item.Kind == "GeoFace2" || item.Kind == "GeoFace3" || item.Kind == "GeoMesh2" || item.Kind == "GeoMesh3" ? new HashSet<EdgeKey>() : null;
+                result._seen =
+                    item.Kind == "GeoSolid3"
+                    || item.Kind == "GeoFace2"
+                    || item.Kind == "GeoFace3"
+                    || item.Kind == "GeoMesh2"
+                    || item.Kind == "GeoMesh3"
+                        ? new HashSet<EdgeKey>()
+                        : null;
 
                 try
                 {
-                    result.ReadItem(item, i, primitives != null && i < primitives.Items.Count ? primitives.Items[i] : null);
+                    result.ReadItem(
+                        item,
+                        i,
+                        primitives != null && i < primitives.Items.Count ? primitives.Items[i] : null
+                    );
                 }
-                catch (Exception e) when (e is FormatException || e is InvalidOperationException || e is ArgumentException || e is KeyNotFoundException)
+                catch (Exception e)
+                    when (e is FormatException
+                        || e is InvalidOperationException
+                        || e is ArgumentException
+                        || e is KeyNotFoundException
+                    )
                 {
                     // The drawing has already said what is wrong with the numbers of this item; what was read before it failed stays.
-                    result._warnings.Add((item.Name ?? item.Kind) + ": its curves could not all be read for snapping (" + e.Message + ")");
+                    result._warnings.Add(
+                        (item.Name ?? item.Kind) + ": its curves could not all be read for snapping (" + e.Message + ")"
+                    );
                 }
             }
 
             if (result._full)
             {
-                result._warnings.Add("the scene has more than " + MaxCurves + " curves; the snaps and the picking of lines cover the first " + MaxCurves);
+                result._warnings.Add(
+                    "the scene has more than "
+                        + MaxCurves
+                        + " curves; the snaps and the picking of lines cover the first "
+                        + MaxCurves
+                );
             }
 
             return result;
@@ -134,7 +155,12 @@ namespace GeometryHelper.Viewer
 
         private void Segment(int item, Vec3 a, Vec3 b)
         {
-            if (a.IsFinite && b.IsFinite && (a.X != b.X || a.Y != b.Y || a.Z != b.Z) && (_seen == null || _seen.Add(new EdgeKey(a, b))))
+            if (
+                a.IsFinite
+                && b.IsFinite
+                && (a.X != b.X || a.Y != b.Y || a.Z != b.Z)
+                && (_seen == null || _seen.Add(new EdgeKey(a, b)))
+            )
             {
                 Add(SceneCurve.Segment(item, a, b));
             }
@@ -165,7 +191,10 @@ namespace GeometryHelper.Viewer
                 }
 
                 double bulge = k < bulges.Length ? bulges[k] : 0.0;
-                Vec3 normal = normals == null ? new Vec3(0.0, 0.0, 1.0) : k < normals.Count ? normals[k].Normalized() : default(Vec3);
+                Vec3 normal =
+                    normals == null ? new Vec3(0.0, 0.0, 1.0)
+                    : k < normals.Count ? normals[k].Normalized()
+                    : default(Vec3);
                 Add(SceneCurve.Edge(item, from, to, bulge, normal));
             }
         }
@@ -176,10 +205,18 @@ namespace GeometryHelper.Viewer
 
             switch (item.Kind)
             {
-                case "GeoPoint2": _points.Add(new ScenePoint(index, DataJson.Point(d, 2))); break;
-                case "GeoPoint3": _points.Add(new ScenePoint(index, DataJson.Point(d, 3))); break;
-                case "GeoLine2": Segment(index, DataJson.Point(d, "a", 2), DataJson.Point(d, "b", 2)); break;
-                case "GeoLine3": Segment(index, DataJson.Point(d, "a", 3), DataJson.Point(d, "b", 3)); break;
+                case "GeoPoint2":
+                    _points.Add(new ScenePoint(index, DataJson.Point(d, 2)));
+                    break;
+                case "GeoPoint3":
+                    _points.Add(new ScenePoint(index, DataJson.Point(d, 3)));
+                    break;
+                case "GeoLine2":
+                    Segment(index, DataJson.Point(d, "a", 2), DataJson.Point(d, "b", 2));
+                    break;
+                case "GeoLine3":
+                    Segment(index, DataJson.Point(d, "a", 3), DataJson.Point(d, "b", 3));
+                    break;
 
                 case "GeoRay2":
                 case "GeoRay3":
@@ -204,10 +241,18 @@ namespace GeometryHelper.Viewer
                     break;
                 }
 
-                case "GeoPolyline2": Chain(index, DataJson.Points(d, "points", 2), false); break;
-                case "GeoPolygon2": Chain(index, DataJson.Points(d, "points", 2), true); break;
-                case "GeoPolyline3": Chain(index, DataJson.Points(d, "points", 3), false); break;
-                case "GeoPolygon3": Chain(index, DataJson.Points(d, "points", 3), true); break;
+                case "GeoPolyline2":
+                    Chain(index, DataJson.Points(d, "points", 2), false);
+                    break;
+                case "GeoPolygon2":
+                    Chain(index, DataJson.Points(d, "points", 2), true);
+                    break;
+                case "GeoPolyline3":
+                    Chain(index, DataJson.Points(d, "points", 3), false);
+                    break;
+                case "GeoPolygon3":
+                    Chain(index, DataJson.Points(d, "points", 3), true);
+                    break;
 
                 case "GeoPolylineArc2":
                 case "GeoPolygonArc2":
@@ -221,37 +266,94 @@ namespace GeometryHelper.Viewer
                 case "GeoPolygonArc3":
                 {
                     Vec3[] points = DataJson.Points(d, "points", 3);
-                    IReadOnlyList<Vec3> normals = DataJson.TryGet(d, "normals", out JsonElement list) ? DataJson.Points(list, 3) : new Vec3[0];
+                    IReadOnlyList<Vec3> normals = DataJson.TryGet(d, "normals", out JsonElement list)
+                        ? DataJson.Points(list, 3)
+                        : new Vec3[0];
                     Edges(index, points, DataJson.Bulges(d, points.Length), normals, item.Kind == "GeoPolygonArc3");
                     break;
                 }
 
                 case "GeoArc2":
-                    Add(SceneCurve.Conic(index, DataJson.Point(d, "center", 2), new Vec3(1, 0, 0), new Vec3(0, 1, 0), DataJson.Number(d, "radius"), DataJson.Number(d, "radius"), DataJson.Number(d, "start"), DataJson.Number(d, "sweep")));
+                    Add(
+                        SceneCurve.Conic(
+                            index,
+                            DataJson.Point(d, "center", 2),
+                            new Vec3(1, 0, 0),
+                            new Vec3(0, 1, 0),
+                            DataJson.Number(d, "radius"),
+                            DataJson.Number(d, "radius"),
+                            DataJson.Number(d, "start"),
+                            DataJson.Number(d, "sweep")
+                        )
+                    );
                     break;
 
                 case "GeoArc3":
                 {
                     ArcTessellation.Axes(DataJson.Point(d, "normal", 3), out Vec3 u, out Vec3 v);
-                    Add(SceneCurve.Conic(index, DataJson.Point(d, "center", 3), u, v, DataJson.Number(d, "radius"), DataJson.Number(d, "radius"), DataJson.Number(d, "start"), DataJson.Number(d, "sweep")));
+                    Add(
+                        SceneCurve.Conic(
+                            index,
+                            DataJson.Point(d, "center", 3),
+                            u,
+                            v,
+                            DataJson.Number(d, "radius"),
+                            DataJson.Number(d, "radius"),
+                            DataJson.Number(d, "start"),
+                            DataJson.Number(d, "sweep")
+                        )
+                    );
                     break;
                 }
 
                 case "GeoCircle2":
-                    Add(SceneCurve.Conic(index, DataJson.Point(d, "center", 2), new Vec3(1, 0, 0), new Vec3(0, 1, 0), DataJson.Number(d, "radius"), DataJson.Number(d, "radius"), 0.0, 2.0 * Math.PI));
+                    Add(
+                        SceneCurve.Conic(
+                            index,
+                            DataJson.Point(d, "center", 2),
+                            new Vec3(1, 0, 0),
+                            new Vec3(0, 1, 0),
+                            DataJson.Number(d, "radius"),
+                            DataJson.Number(d, "radius"),
+                            0.0,
+                            2.0 * Math.PI
+                        )
+                    );
                     break;
 
                 case "GeoCircle3":
                 {
                     ArcTessellation.Axes(DataJson.Point(d, "normal", 3), out Vec3 u, out Vec3 v);
-                    Add(SceneCurve.Conic(index, DataJson.Point(d, "center", 3), u, v, DataJson.Number(d, "radius"), DataJson.Number(d, "radius"), 0.0, 2.0 * Math.PI));
+                    Add(
+                        SceneCurve.Conic(
+                            index,
+                            DataJson.Point(d, "center", 3),
+                            u,
+                            v,
+                            DataJson.Number(d, "radius"),
+                            DataJson.Number(d, "radius"),
+                            0.0,
+                            2.0 * Math.PI
+                        )
+                    );
                     break;
                 }
 
                 case "GeoEllipse2":
                 {
                     Vec3 major = DataJson.Point(d, "majorAxis", 2).Normalized();
-                    Add(SceneCurve.Conic(index, DataJson.Point(d, "center", 2), major, new Vec3(-major.Y, major.X, 0.0), DataJson.Number(d, "majorRadius"), DataJson.Number(d, "minorRadius"), 0.0, 2.0 * Math.PI));
+                    Add(
+                        SceneCurve.Conic(
+                            index,
+                            DataJson.Point(d, "center", 2),
+                            major,
+                            new Vec3(-major.Y, major.X, 0.0),
+                            DataJson.Number(d, "majorRadius"),
+                            DataJson.Number(d, "minorRadius"),
+                            0.0,
+                            2.0 * Math.PI
+                        )
+                    );
                     break;
                 }
 
@@ -259,7 +361,18 @@ namespace GeometryHelper.Viewer
                 {
                     Vec3 major = DataJson.Point(d, "majorAxis", 3).Normalized();
                     Vec3 minor = Vec3.Cross(DataJson.Point(d, "normal", 3).Normalized(), major);
-                    Add(SceneCurve.Conic(index, DataJson.Point(d, "center", 3), major, minor, DataJson.Number(d, "majorRadius"), DataJson.Number(d, "minorRadius"), 0.0, 2.0 * Math.PI));
+                    Add(
+                        SceneCurve.Conic(
+                            index,
+                            DataJson.Point(d, "center", 3),
+                            major,
+                            minor,
+                            DataJson.Number(d, "majorRadius"),
+                            DataJson.Number(d, "minorRadius"),
+                            0.0,
+                            2.0 * Math.PI
+                        )
+                    );
                     break;
                 }
 
@@ -274,7 +387,14 @@ namespace GeometryHelper.Viewer
                         {
                             // A piece of no length at an end, as control points repeated there give, draws chords of no length: the ends are
                             // the first and last chords that have one.
-                            bool Has(int k) => line.Points[k].IsFinite && line.Points[k + 1].IsFinite && (line.Points[k].X != line.Points[k + 1].X || line.Points[k].Y != line.Points[k + 1].Y || line.Points[k].Z != line.Points[k + 1].Z);
+                            bool Has(int k) =>
+                                line.Points[k].IsFinite
+                                && line.Points[k + 1].IsFinite
+                                && (
+                                    line.Points[k].X != line.Points[k + 1].X
+                                    || line.Points[k].Y != line.Points[k + 1].Y
+                                    || line.Points[k].Z != line.Points[k + 1].Z
+                                );
                             int first = 0;
                             int last = line.Points.Length - 2;
 
@@ -292,7 +412,15 @@ namespace GeometryHelper.Viewer
                             {
                                 if (Has(k))
                                 {
-                                    Add(SceneCurve.Chord(index, line.Points[k], line.Points[k + 1], k == first, k == last));
+                                    Add(
+                                        SceneCurve.Chord(
+                                            index,
+                                            line.Points[k],
+                                            line.Points[k + 1],
+                                            k == first,
+                                            k == last
+                                        )
+                                    );
                                 }
                             }
                         }
@@ -310,18 +438,39 @@ namespace GeometryHelper.Viewer
                     double cos = Math.Cos(angle);
                     double sin = Math.Sin(angle);
 
-                    Vec3 Corner(double x, double y) => new Vec3(center.X + x * cos - y * sin, center.Y + x * sin + y * cos, 0.0);
+                    Vec3 Corner(double x, double y) =>
+                        new Vec3(center.X + x * cos - y * sin, center.Y + x * sin + y * cos, 0.0);
 
-                    Chain(index, new[] { Corner(-halfWidth, -halfHeight), Corner(halfWidth, -halfHeight), Corner(halfWidth, halfHeight), Corner(-halfWidth, halfHeight) }, true);
+                    Chain(
+                        index,
+                        new[]
+                        {
+                            Corner(-halfWidth, -halfHeight),
+                            Corner(halfWidth, -halfHeight),
+                            Corner(halfWidth, halfHeight),
+                            Corner(-halfWidth, halfHeight),
+                        },
+                        true
+                    );
                     break;
                 }
 
-                case "GeoTriangle2": Chain(index, DataJson.Points(d, "points", 2), true); break;
-                case "GeoTriangle3": Chain(index, DataJson.Points(d, "points", 3), true); break;
+                case "GeoTriangle2":
+                    Chain(index, DataJson.Points(d, "points", 2), true);
+                    break;
+                case "GeoTriangle3":
+                    Chain(index, DataJson.Points(d, "points", 3), true);
+                    break;
 
-                case "GeoFace2": Face(index, d, 2); break;
-                case "GeoFace3": Face(index, d, 3); break;
-                case "GeoSolid3": Solid(index, d); break;
+                case "GeoFace2":
+                    Face(index, d, 2);
+                    break;
+                case "GeoFace3":
+                    Face(index, d, 3);
+                    break;
+                case "GeoSolid3":
+                    Solid(index, d);
+                    break;
 
                 case "GeoMesh2":
                 case "GeoMesh3":
@@ -360,11 +509,20 @@ namespace GeometryHelper.Viewer
                     Vec3 min = DataJson.Point(d, "min", 3);
                     Vec3 max = DataJson.Point(d, "max", 3);
 
-                    Box(index, new[]
-                    {
-                        new Vec3(min.X, min.Y, min.Z), new Vec3(max.X, min.Y, min.Z), new Vec3(max.X, max.Y, min.Z), new Vec3(min.X, max.Y, min.Z),
-                        new Vec3(min.X, min.Y, max.Z), new Vec3(max.X, min.Y, max.Z), new Vec3(max.X, max.Y, max.Z), new Vec3(min.X, max.Y, max.Z),
-                    });
+                    Box(
+                        index,
+                        new[]
+                        {
+                            new Vec3(min.X, min.Y, min.Z),
+                            new Vec3(max.X, min.Y, min.Z),
+                            new Vec3(max.X, max.Y, min.Z),
+                            new Vec3(min.X, max.Y, min.Z),
+                            new Vec3(min.X, min.Y, max.Z),
+                            new Vec3(max.X, min.Y, max.Z),
+                            new Vec3(max.X, max.Y, max.Z),
+                            new Vec3(min.X, max.Y, max.Z),
+                        }
+                    );
                     break;
                 }
 
@@ -378,11 +536,20 @@ namespace GeometryHelper.Viewer
                     Vec3 dy = axisY * (DataJson.Number(d, "sizeY") * 0.5);
                     Vec3 dz = axisZ * (DataJson.Number(d, "sizeZ") * 0.5);
 
-                    Box(index, new[]
-                    {
-                        center - dx - dy - dz, center + dx - dy - dz, center + dx + dy - dz, center - dx + dy - dz,
-                        center - dx - dy + dz, center + dx - dy + dz, center + dx + dy + dz, center - dx + dy + dz,
-                    });
+                    Box(
+                        index,
+                        new[]
+                        {
+                            center - dx - dy - dz,
+                            center + dx - dy - dz,
+                            center + dx + dy - dz,
+                            center - dx + dy - dz,
+                            center - dx - dy + dz,
+                            center + dx - dy + dz,
+                            center + dx + dy + dz,
+                            center - dx + dy + dz,
+                        }
+                    );
                     break;
                 }
 
@@ -464,7 +631,10 @@ namespace GeometryHelper.Viewer
 
             internal EdgeKey(Vec3 a, Vec3 b)
             {
-                bool swap = a.X != b.X ? a.X > b.X : a.Y != b.Y ? a.Y > b.Y : a.Z > b.Z;
+                bool swap =
+                    a.X != b.X ? a.X > b.X
+                    : a.Y != b.Y ? a.Y > b.Y
+                    : a.Z > b.Z;
                 Vec3 first = swap ? b : a;
                 Vec3 second = swap ? a : b;
                 _ax = first.X + 0.0;
@@ -475,8 +645,13 @@ namespace GeometryHelper.Viewer
                 _bz = second.Z + 0.0;
             }
 
-            public bool Equals(EdgeKey other)
-                => _ax.Equals(other._ax) && _ay.Equals(other._ay) && _az.Equals(other._az) && _bx.Equals(other._bx) && _by.Equals(other._by) && _bz.Equals(other._bz);
+            public bool Equals(EdgeKey other) =>
+                _ax.Equals(other._ax)
+                && _ay.Equals(other._ay)
+                && _az.Equals(other._az)
+                && _bx.Equals(other._bx)
+                && _by.Equals(other._by)
+                && _bz.Equals(other._bz);
 
             public override bool Equals(object obj) => obj is EdgeKey other && Equals(other);
 

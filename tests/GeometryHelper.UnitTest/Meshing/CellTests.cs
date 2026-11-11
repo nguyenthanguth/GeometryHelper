@@ -46,17 +46,30 @@ namespace GeometryHelper.UnitTest.Meshing
 
         private static GeoPoint2 Q(double x, double y) => new GeoPoint2(x, y);
 
-        private static GeoSolid3 Prism(GeoPolygon2 plan, double z0, double z1)
-            => GeoSolid3.Extrude(new GeoPolygon3(plan.Vertices.Select(p => P(p.X, p.Y, z0)), Tolerance), new GeoVector3(0, 0, z1 - z0), Tolerance);
+        private static GeoSolid3 Prism(GeoPolygon2 plan, double z0, double z1) =>
+            GeoSolid3.Extrude(
+                new GeoPolygon3(plan.Vertices.Select(p => P(p.X, p.Y, z0)), Tolerance),
+                new GeoVector3(0, 0, z1 - z0),
+                Tolerance
+            );
 
-        private static GeoPolygon2 Rect(double x0, double y0, double x1, double y1) => new GeoPolygon2(Q(x0, y0), Q(x1, y0), Q(x1, y1), Q(x0, y1));
+        private static GeoPolygon2 Rect(double x0, double y0, double x1, double y1) =>
+            new GeoPolygon2(Q(x0, y0), Q(x1, y0), Q(x1, y1), Q(x0, y1));
 
         private static int Whole(GeoCellGrid3 grid) => grid.Cells.Count(c => c.IsWhole);
 
         /// <summary>The extent of a cell's material along one of the grid's axes.</summary>
         private static double Extent(GeoCell3 cell, GeoCoordinateSystem3 frame, int axis)
         {
-            double[] d = cell.Solid.Faces.SelectMany(f => f.Boundary.Vertices).Select(p => frame.ToLocal(p)).Select(l => axis == 0 ? l.X : axis == 1 ? l.Y : l.Z).ToArray();
+            double[] d = cell
+                .Solid.Faces.SelectMany(f => f.Boundary.Vertices)
+                .Select(p => frame.ToLocal(p))
+                .Select(l =>
+                    axis == 0 ? l.X
+                    : axis == 1 ? l.Y
+                    : l.Z
+                )
+                .ToArray();
             return d.Max() - d.Min();
         }
 
@@ -110,7 +123,10 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             // 1000 long in cells of 300, as the plane lays them.
             var bar = new GeoAabb3(P(0, 0, 0), P(1000, 100, 100));
-            GeoCellGrid3 grid = bar.ToCells(new CellOptions3(CellAxis.BySize(300, alignment), CellAxis.Whole, CellAxis.Whole), Tolerance);
+            GeoCellGrid3 grid = bar.ToCells(
+                new CellOptions3(CellAxis.BySize(300, alignment), CellAxis.Whole, CellAxis.Whole),
+                Tolerance
+            );
 
             GeoCell3 first = grid.Cells.Where(c => c.IsWhole).OrderBy(c => c.I).First();
             Assert.Equal(firstWholeStart, first.Box.Center.X - 150.0, 9);
@@ -129,8 +145,14 @@ namespace GeometryHelper.UnitTest.Meshing
             var bar = new GeoAabb3(P(0, 0, 0), P(1000, 100, 100));
             double[] Starts(GridAlignment alignment)
             {
-                GeoCellGrid3 grid = bar.ToCells(new CellOptions3(CellAxis.BySize(300, alignment), CellAxis.Whole, CellAxis.Whole, 20), Tolerance);
-                return Enumerable.Range(0, grid.CountX).Select(i => Math.Round(grid.GetBox(i, 0, 0).Center.X - 150.0, 9)).ToArray();
+                GeoCellGrid3 grid = bar.ToCells(
+                    new CellOptions3(CellAxis.BySize(300, alignment), CellAxis.Whole, CellAxis.Whole, 20),
+                    Tolerance
+                );
+                return Enumerable
+                    .Range(0, grid.CountX)
+                    .Select(i => Math.Round(grid.GetBox(i, 0, 0).Center.X - 150.0, 9))
+                    .ToArray();
             }
 
             // A cell ends at the far side; the joint between two cells stands on the middle, 490 to 510.
@@ -157,12 +179,34 @@ namespace GeometryHelper.UnitTest.Meshing
         public void AnOriginPutsACellsCornerOnIt()
         {
             var box = new GeoAabb3(P(0, 0, 0), P(1000, 1000, 1000));
-            GeoCellGrid3 grid = box.ToCells(CellOptions3.Grid(300, 400, 1000), MeshPlacement3.World.At(P(50, -10000, 7)), Tolerance);
+            GeoCellGrid3 grid = box.ToCells(
+                CellOptions3.Grid(300, 400, 1000),
+                MeshPlacement3.World.At(P(50, -10000, 7)),
+                Tolerance
+            );
 
             // Along X the cells start at 50 + 300k, along Y at 400k, along Z at 7 + 1000k.
-            Assert.Equal(new[] { -250.0, 50, 350, 650, 950 }, Enumerable.Range(0, grid.CountX).Select(i => Math.Round(grid.GetBox(i, 0, 0).Center.X - 150.0, 9)).ToArray());
-            Assert.Equal(new[] { 0.0, 400, 800 }, Enumerable.Range(0, grid.CountY).Select(j => Math.Round(grid.GetBox(0, j, 0).Center.Y - 200.0, 9)).ToArray());
-            Assert.Equal(new[] { -993.0, 7 }, Enumerable.Range(0, grid.CountZ).Select(k => Math.Round(grid.GetBox(0, 0, k).Center.Z - 500.0, 9)).ToArray());
+            Assert.Equal(
+                new[] { -250.0, 50, 350, 650, 950 },
+                Enumerable
+                    .Range(0, grid.CountX)
+                    .Select(i => Math.Round(grid.GetBox(i, 0, 0).Center.X - 150.0, 9))
+                    .ToArray()
+            );
+            Assert.Equal(
+                new[] { 0.0, 400, 800 },
+                Enumerable
+                    .Range(0, grid.CountY)
+                    .Select(j => Math.Round(grid.GetBox(0, j, 0).Center.Y - 200.0, 9))
+                    .ToArray()
+            );
+            Assert.Equal(
+                new[] { -993.0, 7 },
+                Enumerable
+                    .Range(0, grid.CountZ)
+                    .Select(k => Math.Round(grid.GetBox(0, 0, k).Center.Z - 500.0, 9))
+                    .ToArray()
+            );
             CellAssert.IsSound(grid, p => InBox(box, p), box.Volume, Tolerance.EqualPoint, Tolerance);
         }
 
@@ -171,11 +215,21 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             // Blocks of 390 by 190 with joints of 10: 10 along a wall 4000 long, 12 up 2400.
             var wall = new GeoAabb3(P(0, 0, 0), P(4000, 190, 2400));
-            GeoCellGrid3 blocks = wall.ToCells(new CellOptions3(CellAxis.BySize(390), CellAxis.Whole, CellAxis.BySize(190), 10.0), Tolerance);
+            GeoCellGrid3 blocks = wall.ToCells(
+                new CellOptions3(CellAxis.BySize(390), CellAxis.Whole, CellAxis.BySize(190), 10.0),
+                Tolerance
+            );
 
             Assert.Equal(120, blocks.CellCount);
             Assert.Equal(120, Whole(blocks));
-            CellAssert.IsSound(blocks, p => InBox(wall, p), 120 * 390.0 * 190 * 190, Tolerance.EqualPoint, Tolerance, covers: false);
+            CellAssert.IsSound(
+                blocks,
+                p => InBox(wall, p),
+                120 * 390.0 * 190 * 190,
+                Tolerance.EqualPoint,
+                Tolerance,
+                covers: false
+            );
 
             for (int n = 0; n < blocks.CellCount; n++)
             {
@@ -206,7 +260,10 @@ namespace GeometryHelper.UnitTest.Meshing
             GeoCellGrid3 lifts = column.ToCells(CellOptions3.Layers(1000), Tolerance);
 
             Assert.Equal(new[] { 1, 1, 4 }, new[] { lifts.CountX, lifts.CountY, lifts.CountZ });
-            Assert.Equal(new[] { 1000.0, 1000, 1000, 500 }, lifts.Cells.Select(c => Math.Round(c.Volume / (400.0 * 400), 6)).ToArray());
+            Assert.Equal(
+                new[] { 1000.0, 1000, 1000, 500 },
+                lifts.Cells.Select(c => Math.Round(c.Volume / (400.0 * 400), 6)).ToArray()
+            );
             CellAssert.IsSound(lifts, p => InBox(column, p), column.Volume, Tolerance.EqualPoint, Tolerance);
         }
 
@@ -223,7 +280,10 @@ namespace GeometryHelper.UnitTest.Meshing
 
             // A snap distance of 50 takes a slice of 30 into the cell beside, which is no longer whole.
             var longer = new GeoAabb3(P(0, 0, 0), P(1030, 500, 500));
-            GeoCellGrid3 snapped = longer.ToCells(new CellOptions3(CellAxis.BySize(500), CellAxis.Whole, CellAxis.Whole, snapDistance: 50), Tolerance);
+            GeoCellGrid3 snapped = longer.ToCells(
+                new CellOptions3(CellAxis.BySize(500), CellAxis.Whole, CellAxis.Whole, snapDistance: 50),
+                Tolerance
+            );
 
             Assert.Equal(2, snapped.CellCount);
             Assert.Equal(530.0 * 500 * 500, snapped.Cells[1].Volume, 3);
@@ -240,13 +300,26 @@ namespace GeometryHelper.UnitTest.Meshing
             // Along its thickness the box is no thicker than the snap distance, or four point tolerances: every cell's far
             // side is within it of the box's near side, and went onto it.
             var plate = new GeoAabb3(P(0, 0, 0), P(1000, 1000, thickness));
-            GeoCellGrid3 grid = plate.ToCells(new CellOptions3(CellAxis.BySize(100), CellAxis.BySize(100), CellAxis.Whole, 0, snap), Tolerance);
+            GeoCellGrid3 grid = plate.ToCells(
+                new CellOptions3(CellAxis.BySize(100), CellAxis.BySize(100), CellAxis.Whole, 0, snap),
+                Tolerance
+            );
 
             Assert.Equal(100, grid.CellCount);
             Assert.Equal(plate.Volume, grid.Volume, 6);
 
-            var turned = new GeoObb3(P(0, 0, 0), 2000, 1000, thickness, new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 0));
-            GeoCellGrid3 own = turned.ToCells(new CellOptions3(CellAxis.BySize(500), CellAxis.BySize(500), CellAxis.Whole, 0, snap), Tolerance);
+            var turned = new GeoObb3(
+                P(0, 0, 0),
+                2000,
+                1000,
+                thickness,
+                new GeoVector3(1, 1, 0),
+                new GeoVector3(-1, 1, 0)
+            );
+            GeoCellGrid3 own = turned.ToCells(
+                new CellOptions3(CellAxis.BySize(500), CellAxis.BySize(500), CellAxis.Whole, 0, snap),
+                Tolerance
+            );
 
             Assert.Equal(8, own.CellCount);
             Assert.Equal(turned.Volume, own.Volume, 6);
@@ -277,29 +350,45 @@ namespace GeometryHelper.UnitTest.Meshing
 
             Assert.Throws<ArgumentException>(() => box.ToCells(CellOptions3.Grid(10, 10, 10), Tolerance));
             Assert.Throws<ArgumentException>(() => box.ToCells(CellOptions3.Grid(0.005, 0, 0), Tolerance));
-            Assert.Throws<ArgumentException>(() => new GeoAabb3(P(0, 0, 0), P(1, 1, 1)).ToCells(CellOptions3.Divide(1000, 1, 1), Tolerance));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoAabb3(P(0, 0, 0), P(1, 1, 1)).ToCells(CellOptions3.Divide(1000, 1, 1), Tolerance)
+            );
 
             // At a tolerance of nought no cell is too small, and a count was laid out before it was counted: the most an int
             // holds ran out of memory.
             var zero = new Tolerance(0.0, 0.0, 0.0, 0.0);
-            Assert.Throws<ArgumentException>(() => new GeoAabb3(P(0, 0, 0), P(100, 100, 100)).ToCells(CellOptions3.Divide(int.MaxValue, 1, 1), zero));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoAabb3(P(0, 0, 0), P(100, 100, 100)).ToCells(CellOptions3.Divide(int.MaxValue, 1, 1), zero)
+            );
 
             // And cells of 1E-14 along 100, more than 2^53 of them, where a cell's number less one is the number itself: the
             // steps that find the first cell never ended.
-            Assert.Throws<ArgumentException>(() => new GeoAabb3(P(0, 0, 0), P(100, 100, 100)).ToCells(CellOptions3.Grid(1E-14, 0, 0), zero));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoAabb3(P(0, 0, 0), P(100, 100, 100)).ToCells(CellOptions3.Grid(1E-14, 0, 0), zero)
+            );
         }
 
         [Fact]
         public void AnEmptyOrFlatBoxHasNoCells()
         {
             Assert.Equal(0, GeoAabb3.Empty.ToCells(CellOptions3.Grid(100, 100, 100), Tolerance).CellCount);
-            Assert.Equal(0, new GeoObb3(P(0, 0, 0), 1000, 1000, 0).ToCells(CellOptions3.Grid(100, 100, 100), Tolerance).CellCount);
+            Assert.Equal(
+                0,
+                new GeoObb3(P(0, 0, 0), 1000, 1000, 0).ToCells(CellOptions3.Grid(100, 100, 100), Tolerance).CellCount
+            );
         }
 
         [Fact]
         public void ATurnedBoxIsCutAlongItsOwnSidesUnlessToldOtherwise()
         {
-            var box = new GeoObb3(P(500, 500, 500), 2000, 1000, 600, new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 0.2));
+            var box = new GeoObb3(
+                P(500, 500, 500),
+                2000,
+                1000,
+                600,
+                new GeoVector3(1, 1, 0),
+                new GeoVector3(-1, 1, 0.2)
+            );
             GeoCellGrid3 own = box.ToCells(CellOptions3.Grid(500, 500, 300), Tolerance);
             GeoCellGrid3 world = box.ToCells(CellOptions3.Grid(500, 500, 300), MeshPlacement3.World, Tolerance);
 
@@ -334,12 +423,27 @@ namespace GeometryHelper.UnitTest.Meshing
         [Fact]
         public void AnObjFileGivesEveryCellAsAnObjectOfItsOwn()
         {
-            var u = new GeoPolygon2(Q(0, 0), Q(3000, 0), Q(3000, 2000), Q(2000, 2000), Q(2000, 800), Q(1000, 800), Q(1000, 2000), Q(0, 2000));
+            var u = new GeoPolygon2(
+                Q(0, 0),
+                Q(3000, 0),
+                Q(3000, 2000),
+                Q(2000, 2000),
+                Q(2000, 800),
+                Q(1000, 800),
+                Q(1000, 2000),
+                Q(0, 2000)
+            );
             GeoCellGrid3 grid = Prism(u, 0, 500).ToCells(CellOptions3.Grid(0, 1000, 0), Tolerance);
             string[] lines = new GeometryHelper.Export.ObjWriter().Add(grid, "pour").ToString().Split('\n');
 
-            Assert.Equal(new[] { "o pour_0_0_0", "o pour_0_1_0", "o pour_0_1_0_1" }, lines.Where(l => l.StartsWith("o ", StringComparison.Ordinal)).ToArray());
-            Assert.Equal(grid.Cells.Sum(c => c.Solid.Triangulate().Length), lines.Count(l => l.StartsWith("f ", StringComparison.Ordinal)));
+            Assert.Equal(
+                new[] { "o pour_0_0_0", "o pour_0_1_0", "o pour_0_1_0_1" },
+                lines.Where(l => l.StartsWith("o ", StringComparison.Ordinal)).ToArray()
+            );
+            Assert.Equal(
+                grid.Cells.Sum(c => c.Solid.Triangulate().Length),
+                lines.Count(l => l.StartsWith("f ", StringComparison.Ordinal))
+            );
         }
 
         [Fact]
@@ -376,25 +480,49 @@ namespace GeometryHelper.UnitTest.Meshing
 
             for (int n = 0; n < byBox.CellCount; n++)
             {
-                Assert.Equal((byBox.Cells[n].I, byBox.Cells[n].J, byBox.Cells[n].K), (byBody.Cells[n].I, byBody.Cells[n].J, byBody.Cells[n].K));
+                Assert.Equal(
+                    (byBox.Cells[n].I, byBox.Cells[n].J, byBox.Cells[n].K),
+                    (byBody.Cells[n].I, byBody.Cells[n].J, byBody.Cells[n].K)
+                );
                 Assert.Equal(byBox.Cells[n].Volume, byBody.Cells[n].Volume, 3);
             }
 
-            CellAssert.IsSound(byBody, p => solid.Locate(p, Tolerance), solid.GetVolume(), Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(
+                byBody,
+                p => solid.Locate(p, Tolerance),
+                solid.GetVolume(),
+                Tolerance.EqualPoint,
+                Tolerance
+            );
         }
 
         [Fact]
         public void AStepAHairOffAGridLineLeavesNoSliver()
         {
             // An L-shaped footing whose step stands five ten-thousandths past the line between two cells.
-            var l = new GeoPolygon2(Q(0, 0), Q(2000, 0), Q(2000, 1000), Q(1000.0005, 1000), Q(1000.0005, 2000), Q(0, 2000));
+            var l = new GeoPolygon2(
+                Q(0, 0),
+                Q(2000, 0),
+                Q(2000, 1000),
+                Q(1000.0005, 1000),
+                Q(1000.0005, 2000),
+                Q(0, 2000)
+            );
             GeoSolid3 footing = Prism(l, 0, 800);
             GeoCellGrid3 grid = footing.ToCells(CellOptions3.Grid(500, 500, 400), Tolerance);
 
             Assert.Equal(24, grid.CellCount);
             Assert.Equal(24, Whole(grid));
-            Assert.All(grid.Cells, c => Assert.True(Extent(c, grid.Frame, 0) > 499.99, $"{c} is {Extent(c, grid.Frame, 0)} along X"));
-            CellAssert.IsSound(grid, p => footing.Locate(p, Tolerance), footing.GetVolume(), Tolerance.EqualPoint, Tolerance);
+            Assert.All(grid.Cells, c =>
+                Assert.True(Extent(c, grid.Frame, 0) > 499.99, $"{c} is {Extent(c, grid.Frame, 0)} along X")
+            );
+            CellAssert.IsSound(
+                grid,
+                p => footing.Locate(p, Tolerance),
+                footing.GetVolume(),
+                Tolerance.EqualPoint,
+                Tolerance
+            );
         }
 
         [Fact]
@@ -407,12 +535,19 @@ namespace GeometryHelper.UnitTest.Meshing
                 new GeoFace3(new GeoPolygon3(P(0, 0, 0), P(1000, 0, 0), P(500, 500, 1000.0014))),
                 new GeoFace3(new GeoPolygon3(P(1000, 0, 0), P(1000, 1000, 0), P(500, 500, 1000.0014))),
                 new GeoFace3(new GeoPolygon3(P(1000, 1000, 0), P(0, 1000, 0), P(500, 500, 1000.0014))),
-                new GeoFace3(new GeoPolygon3(P(0, 1000, 0), P(0, 0, 0), P(500, 500, 1000.0014))));
+                new GeoFace3(new GeoPolygon3(P(0, 1000, 0), P(0, 0, 0), P(500, 500, 1000.0014)))
+            );
             GeoCellGrid3 lifts = pyramid.ToCells(CellOptions3.Layers(500), Tolerance);
 
             Assert.Equal(2, lifts.CellCount);
             Assert.Equal(pyramid.GetVolume(), lifts.Volume, 3);
-            CellAssert.IsSound(lifts, p => pyramid.Locate(p, Tolerance), pyramid.GetVolume(), 4 * Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(
+                lifts,
+                p => pyramid.Locate(p, Tolerance),
+                pyramid.GetVolume(),
+                4 * Tolerance.EqualPoint,
+                Tolerance
+            );
         }
 
         [Fact]
@@ -420,12 +555,16 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             // A needle 800 long on a base 25 across, its point a fortieth of a millimetre past the line between two cells:
             // across the line it is eight ten-thousandths wide, less than the point tolerance, and no piece can be cut there.
-            GeoPoint3 a = P(200, 0, 0), b = P(200, 25, 0), c = P(200, 0, 25), d = P(1000.0244, 5, 5);
+            GeoPoint3 a = P(200, 0, 0),
+                b = P(200, 25, 0),
+                c = P(200, 0, 25),
+                d = P(1000.0244, 5, 5);
             var needle = new GeoSolid3(
                 new GeoFace3(new GeoPolygon3(a, c, b)),
                 new GeoFace3(new GeoPolygon3(a, b, d)),
                 new GeoFace3(new GeoPolygon3(b, c, d)),
-                new GeoFace3(new GeoPolygon3(c, a, d)));
+                new GeoFace3(new GeoPolygon3(c, a, d))
+            );
             GeoCellGrid3 grid = needle.ToCells(CellOptions3.Grid(800, 0, 0), Tolerance);
 
             Assert.True(needle.IsClosed(Tolerance));
@@ -440,8 +579,15 @@ namespace GeometryHelper.UnitTest.Meshing
             // An L standing in XZ, a flange 1000 long and 5 thick and a web 100 wide and 500 tall: past the web the flange is
             // thinner along Z than the snap distance, and lies wholly above the cut before the first layer.
             var l = new[] { Q(0, 0), Q(1000, 0), Q(1000, 5), Q(100, 5), Q(100, 500), Q(0, 500) };
-            GeoSolid3 body = GeoSolid3.Extrude(new GeoPolygon3(l.Select(p => P(p.X, 0, p.Y)), Tolerance), new GeoVector3(0, 100, 0), Tolerance);
-            GeoCellGrid3 grid = body.ToCells(new CellOptions3(CellAxis.BySize(200), CellAxis.Whole, CellAxis.BySize(100), 0, 6), Tolerance);
+            GeoSolid3 body = GeoSolid3.Extrude(
+                new GeoPolygon3(l.Select(p => P(p.X, 0, p.Y)), Tolerance),
+                new GeoVector3(0, 100, 0),
+                Tolerance
+            );
+            GeoCellGrid3 grid = body.ToCells(
+                new CellOptions3(CellAxis.BySize(200), CellAxis.Whole, CellAxis.BySize(100), 0, 6),
+                Tolerance
+            );
 
             Assert.Equal(5.45E6, body.GetVolume(), 3);
             CellAssert.IsSound(grid, p => body.Locate(p, Tolerance), body.GetVolume(), 6, Tolerance);
@@ -454,7 +600,10 @@ namespace GeometryHelper.UnitTest.Meshing
             // distance of it, and belongs to the layer above.
             GeoSolid3 column = Prism(Rect(0, 0, 100, 100), 0, 300);
             Assert.True(column.TryUnion(Prism(Rect(100, 0, 200, 100), 205, 208), out GeoSolid3 body, Tolerance));
-            GeoCellGrid3 grid = body.ToCells(new CellOptions3(CellAxis.BySize(100), CellAxis.Whole, CellAxis.BySize(100), 0, 10), Tolerance);
+            GeoCellGrid3 grid = body.ToCells(
+                new CellOptions3(CellAxis.BySize(100), CellAxis.Whole, CellAxis.BySize(100), 0, 10),
+                Tolerance
+            );
 
             GeoCell3 ledge = Assert.Single(grid.Cells, c => c.I == 1);
             Assert.Equal(2, ledge.K);
@@ -475,9 +624,17 @@ namespace GeometryHelper.UnitTest.Meshing
 
             // So too with a snap distance of 60 and the slope from 159.99 to 160.02.
             GeoSolid3 longer = Prism(new GeoPolygon2(Q(0, 0), Q(159.99, 0), Q(160.02, 100), Q(0, 100)), 0, 100);
-            GeoCellGrid3 snapped = longer.ToCells(new CellOptions3(CellAxis.BySize(100), CellAxis.Whole, CellAxis.Whole, 0, 60), Tolerance);
+            GeoCellGrid3 snapped = longer.ToCells(
+                new CellOptions3(CellAxis.BySize(100), CellAxis.Whole, CellAxis.Whole, 0, 60),
+                Tolerance
+            );
 
-            Assert.All(snapped.Cells, c => Assert.True(Extent(c, snapped.Frame, 0) > 4 * Tolerance.EqualPoint, $"{c} is {Extent(c, snapped.Frame, 0)} along X"));
+            Assert.All(snapped.Cells, c =>
+                Assert.True(
+                    Extent(c, snapped.Frame, 0) > 4 * Tolerance.EqualPoint,
+                    $"{c} is {Extent(c, snapped.Frame, 0)} along X"
+                )
+            );
             CellAssert.IsSound(snapped, p => longer.Locate(p, Tolerance), longer.GetVolume(), 60, Tolerance);
         }
 
@@ -489,18 +646,38 @@ namespace GeometryHelper.UnitTest.Meshing
             GeoSolid3 footing = Prism(l, 0, 800);
 
             GeoCellGrid3 tight = footing.ToCells(CellOptions3.Grid(500, 500, 0), Tolerance);
-            GeoCellGrid3 snapped = footing.ToCells(new CellOptions3(CellAxis.BySize(500), CellAxis.BySize(500), CellAxis.Whole, snapDistance: 50), Tolerance);
+            GeoCellGrid3 snapped = footing.ToCells(
+                new CellOptions3(CellAxis.BySize(500), CellAxis.BySize(500), CellAxis.Whole, snapDistance: 50),
+                Tolerance
+            );
 
             Assert.Contains(tight.Cells, c => Extent(c, tight.Frame, 0) < 31);
-            Assert.All(snapped.Cells, c => Assert.True(Extent(c, snapped.Frame, 0) > 450, $"{c} is {Extent(c, snapped.Frame, 0)} along X"));
-            CellAssert.IsSound(tight, p => footing.Locate(p, Tolerance), footing.GetVolume(), Tolerance.EqualPoint, Tolerance);
+            Assert.All(snapped.Cells, c =>
+                Assert.True(Extent(c, snapped.Frame, 0) > 450, $"{c} is {Extent(c, snapped.Frame, 0)} along X")
+            );
+            CellAssert.IsSound(
+                tight,
+                p => footing.Locate(p, Tolerance),
+                footing.GetVolume(),
+                Tolerance.EqualPoint,
+                Tolerance
+            );
             CellAssert.IsSound(snapped, p => footing.Locate(p, Tolerance), footing.GetVolume(), 50, Tolerance);
         }
 
         [Fact]
         public void ACellAcrossTheNotchOfAUComesInTwoPieces()
         {
-            var u = new GeoPolygon2(Q(0, 0), Q(3000, 0), Q(3000, 2000), Q(2000, 2000), Q(2000, 800), Q(1000, 800), Q(1000, 2000), Q(0, 2000));
+            var u = new GeoPolygon2(
+                Q(0, 0),
+                Q(3000, 0),
+                Q(3000, 2000),
+                Q(2000, 2000),
+                Q(2000, 800),
+                Q(1000, 800),
+                Q(1000, 2000),
+                Q(0, 2000)
+            );
             GeoSolid3 body = Prism(u, 0, 500);
             GeoCellGrid3 grid = body.ToCells(CellOptions3.Grid(0, 1000, 0), Tolerance);
 
@@ -508,7 +685,10 @@ namespace GeometryHelper.UnitTest.Meshing
             GeoCell3[] arms = grid.GetCellsAt(0, 1, 0);
             Assert.Equal(2, arms.Length);
             Assert.Equal(new[] { 0, 1 }, arms.Select(c => c.Piece).ToArray());
-            Assert.True(grid.Frame.ToLocal(arms[0].Solid.GetCentroid()).X < grid.Frame.ToLocal(arms[1].Solid.GetCentroid()).X, "the pieces come in turn along X");
+            Assert.True(
+                grid.Frame.ToLocal(arms[0].Solid.GetCentroid()).X < grid.Frame.ToLocal(arms[1].Solid.GetCentroid()).X,
+                "the pieces come in turn along X"
+            );
             Assert.All(arms, a => Assert.Equal(1000.0 * 1000 * 500, a.Volume, 3));
 
             // The base meets both arms, the arms do not meet each other.
@@ -523,7 +703,16 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             // A U with its arms along X: the column of cells over the arms holds both, apart, and the cut along Y between them
             // touches neither.
-            var u = new GeoPolygon2(Q(0, 0), Q(2000, 0), Q(2000, 1000), Q(800, 1000), Q(800, 2000), Q(2000, 2000), Q(2000, 3000), Q(0, 3000));
+            var u = new GeoPolygon2(
+                Q(0, 0),
+                Q(2000, 0),
+                Q(2000, 1000),
+                Q(800, 1000),
+                Q(800, 2000),
+                Q(2000, 2000),
+                Q(2000, 3000),
+                Q(0, 3000)
+            );
             GeoSolid3 body = Prism(u, 0, 500);
             GeoCellGrid3 grid = body.ToCells(CellOptions3.Grid(1000, 1500, 0), Tolerance);
 
@@ -546,7 +735,13 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Equal(4, bays.CellCount);
             Assert.Equal(0, Whole(bays));
             Assert.Equal(SubtractedVolume.Of(pierced, Tolerance), bays.Volume, 0);
-            CellAssert.IsSound(bays, p => pierced.Locate(p, Tolerance), SubtractedVolume.Of(pierced, Tolerance), Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(
+                bays,
+                p => pierced.Locate(p, Tolerance),
+                SubtractedVolume.Of(pierced, Tolerance),
+                Tolerance.EqualPoint,
+                Tolerance
+            );
         }
 
         [Fact]
@@ -555,7 +750,9 @@ namespace GeometryHelper.UnitTest.Meshing
             GeoSolid3 block = Prism(Rect(0, 0, 1000, 1000), 0, 1000);
             GeoSolid3 bigger = Prism(Rect(-10, -10, 1010, 1010), -10, 1010);
 
-            GeoCellGrid3 grid = block.WithOpenings(new[] { bigger }).ToCells(CellOptions3.Grid(500, 500, 500), Tolerance);
+            GeoCellGrid3 grid = block
+                .WithOpenings(new[] { bigger })
+                .ToCells(CellOptions3.Grid(500, 500, 500), Tolerance);
             Assert.Equal(0, grid.CellCount);
             Assert.Equal(8, grid.CountX * grid.CountY * grid.CountZ);
         }
@@ -568,7 +765,11 @@ namespace GeometryHelper.UnitTest.Meshing
             // and the cut was once not worked out at all and taken for openings that take all of it. Each cell has the
             // openings it meets cut in instead, and one that cannot have them is kept whole of them, and says so.
             GeoSolid3 sliver = OpeningSliver();
-            GeoSolid3 ell = Prism(new GeoPolygon2(Q(0, 0), Q(65, 0), Q(65, 62), Q(40, 62), Q(40, 142), Q(0, 142)), 0, 1777);
+            GeoSolid3 ell = Prism(
+                new GeoPolygon2(Q(0, 0), Q(65, 0), Q(65, 62), Q(40, 62), Q(40, 142), Q(0, 142)),
+                0,
+                1777
+            );
             GeoCellGrid3 grid = ell.WithOpenings(new[] { sliver }).ToCells(CellOptions3.Grid(500, 500, 500), Tolerance);
 
             Assert.Equal(ell.ToCells(CellOptions3.Grid(500, 500, 500), Tolerance).CellCount, grid.CellCount);
@@ -595,7 +796,8 @@ namespace GeometryHelper.UnitTest.Meshing
                 new GeoFace3(new GeoPolygon3(a, d, f, e)),
                 new GeoFace3(new GeoPolygon3(c, b, h, g)),
                 new GeoFace3(new GeoPolygon3(d, c, g, f)),
-                new GeoFace3(new GeoPolygon3(b, a, e, h)));
+                new GeoFace3(new GeoPolygon3(b, a, e, h))
+            );
         }
 
         [Fact]
@@ -607,7 +809,15 @@ namespace GeometryHelper.UnitTest.Meshing
             var mirror = GeoTransform3.Mirror(new GeoPlane3(P(0, 0, 0), GeoVector3.XAxis));
             var region = new GeoAabb3(P(-300, 0, 0), P(0, 300, 300));
 
-            foreach (GeoSolid3 inwards in new[] { box.TransformBy(mirror), new GeoSolid3(box.Faces.Select(f => f.Flip())).TransformBy(GeoTransform3.Translation(new GeoVector3(-300, 0, 0))) })
+            foreach (
+                GeoSolid3 inwards in new[]
+                {
+                    box.TransformBy(mirror),
+                    new GeoSolid3(box.Faces.Select(f => f.Flip())).TransformBy(
+                        GeoTransform3.Translation(new GeoVector3(-300, 0, 0))
+                    ),
+                }
+            )
             {
                 Assert.True(inwards.GetSignedVolume() < 0.0);
                 GeoCellGrid3 grid = inwards.ToCells(CellOptions3.Grid(100, 100, 100), Tolerance);
@@ -619,8 +829,13 @@ namespace GeometryHelper.UnitTest.Meshing
             }
 
             // An L with a shaft through it, mirrored with it.
-            GeoSolid3 ell = Prism(new GeoPolygon2(Q(0, 0), Q(2000, 0), Q(2000, 1000), Q(1000, 1000), Q(1000, 2000), Q(0, 2000)), 0, 500);
-            GeoSolid3 shafted = ell.WithOpenings(new[] { Prism(Rect(300, 300, 700, 700), -100, 600) }).TransformBy(mirror);
+            GeoSolid3 ell = Prism(
+                new GeoPolygon2(Q(0, 0), Q(2000, 0), Q(2000, 1000), Q(1000, 1000), Q(1000, 2000), Q(0, 2000)),
+                0,
+                500
+            );
+            GeoSolid3 shafted = ell.WithOpenings(new[] { Prism(Rect(300, 300, 700, 700), -100, 600) })
+                .TransformBy(mirror);
             GeoCellGrid3 cells = shafted.ToCells(CellOptions3.Grid(500, 500, 0), Tolerance);
 
             Assert.Equal(ell.GetVolume() - 400.0 * 400 * 500, cells.Volume, 3);
@@ -632,7 +847,8 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             // A hole 30 across through a slab, a shaft 8 across through a block and a pocket 30 square and 100 deep in its top:
             // each takes less than the point tolerance times the cell's surface from the cell, which was all whole asked.
-            GeoSolid3 slab = Prism(Rect(0, 0, 6000, 6000), 0, 200).WithOpenings(new[] { Prism(Rect(1000, 1000, 1030, 1030), -10, 210) });
+            GeoSolid3 slab = Prism(Rect(0, 0, 6000, 6000), 0, 200)
+                .WithOpenings(new[] { Prism(Rect(1000, 1000, 1030, 1030), -10, 210) });
             GeoCellGrid3 bays = slab.ToCells(CellOptions3.Grid(3000, 3000, 0), Tolerance);
 
             Assert.Equal(4, bays.CellCount);
@@ -640,7 +856,9 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Equal(3, Whole(bays));
 
             GeoSolid3 cube = Prism(Rect(0, 0, 1000, 1000), 0, 1000);
-            GeoSolid3 drilled = cube.WithOpenings(new[] { GeoSolid3.Cylinder(P(500, 500, -10), P(500, 500, 1010), 4, 16, Tolerance) });
+            GeoSolid3 drilled = cube.WithOpenings(
+                new[] { GeoSolid3.Cylinder(P(500, 500, -10), P(500, 500, 1010), 4, 16, Tolerance) }
+            );
             GeoSolid3 pocketed = cube.WithOpenings(new[] { Prism(Rect(400, 400, 430, 430), 900, 1010) });
 
             Assert.False(Assert.Single(drilled.ToCells(CellOptions3.Grid(1000, 1000, 1000), Tolerance).Cells).IsWhole);
@@ -660,8 +878,14 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Equal(2, Whole(body));
 
             // A step five ten-thousandths past a line is within the tolerance of it: the cells either side are whole.
-            GeoSolid3 footing = Prism(new GeoPolygon2(Q(0, 0), Q(2000, 0), Q(2000, 1000), Q(1000.0005, 1000), Q(1000.0005, 2000), Q(0, 2000)), 0, 800);
-            Assert.All(footing.ToCells(CellOptions3.Grid(500, 500, 400), Tolerance).Cells, c => Assert.True(c.IsWhole, $"{c} is not whole"));
+            GeoSolid3 footing = Prism(
+                new GeoPolygon2(Q(0, 0), Q(2000, 0), Q(2000, 1000), Q(1000.0005, 1000), Q(1000.0005, 2000), Q(0, 2000)),
+                0,
+                800
+            );
+            Assert.All(footing.ToCells(CellOptions3.Grid(500, 500, 400), Tolerance).Cells, c =>
+                Assert.True(c.IsWhole, $"{c} is not whole")
+            );
         }
 
         [Fact]
@@ -681,7 +905,13 @@ namespace GeometryHelper.UnitTest.Meshing
 
             Assert.Equal(64, grid.CellCount);
             Assert.Equal(16, Whole(grid));
-            CellAssert.IsSound(grid, p => cylinder.Locate(p, Tolerance), cylinder.GetVolume(), Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(
+                grid,
+                p => cylinder.Locate(p, Tolerance),
+                cylinder.GetVolume(),
+                Tolerance.EqualPoint,
+                Tolerance
+            );
         }
 
         [Fact]
@@ -697,15 +927,31 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Equal(1.0, upright.Frame.ZAxis.Z, 12);
             Assert.Equal(Math.Cos(Math.PI / 6), upright.Frame.XAxis.X, 9);
             Assert.True(Whole(world) < 18);
-            CellAssert.IsSound(upright, p => wall.Locate(p, Tolerance), wall.GetVolume(), Tolerance.EqualPoint, Tolerance);
-            CellAssert.IsSound(world, p => wall.Locate(p, Tolerance), wall.GetVolume(), Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(
+                upright,
+                p => wall.Locate(p, Tolerance),
+                wall.GetVolume(),
+                Tolerance.EqualPoint,
+                Tolerance
+            );
+            CellAssert.IsSound(
+                world,
+                p => wall.Locate(p, Tolerance),
+                wall.GetVolume(),
+                Tolerance.EqualPoint,
+                Tolerance
+            );
         }
 
         [Fact]
         public void OwnAxesStandUpAndRunAlongTheBody()
         {
             // A beam 5000 long, 300 wide and 600 deep, its length turned 20 degrees in plan.
-            GeoSolid3 beam = Prism(Rect(0, 0, 5000, 300), 0, 600).TransformBy(GeoTransform3.Translation(new GeoVector3(100, 200, 3000)) * GeoTransform3.RotationZ(20 * Math.PI / 180));
+            GeoSolid3 beam = Prism(Rect(0, 0, 5000, 300), 0, 600)
+                .TransformBy(
+                    GeoTransform3.Translation(new GeoVector3(100, 200, 3000))
+                        * GeoTransform3.RotationZ(20 * Math.PI / 180)
+                );
             GeoCellGrid3 grid = beam.ToCells(CellOptions3.Grid(1000, 0, 0), MeshPlacement3.Own, Tolerance);
 
             Assert.Equal(1.0, grid.Frame.ZAxis.Z, 9);
@@ -719,18 +965,38 @@ namespace GeometryHelper.UnitTest.Meshing
         public void ADirectionOrAFrameGivesTheAxes()
         {
             GeoSolid3 block = Prism(Rect(0, 0, 2000, 2000), 0, 1000);
-            GeoCellGrid3 along = block.ToCells(CellOptions3.Grid(700, 700, 0), MeshPlacement3.Along(new GeoVector3(1, 1, 0)), Tolerance);
+            GeoCellGrid3 along = block.ToCells(
+                CellOptions3.Grid(700, 700, 0),
+                MeshPlacement3.Along(new GeoVector3(1, 1, 0)),
+                Tolerance
+            );
 
             Assert.Equal(Math.Sqrt(0.5), along.Frame.XAxis.X, 12);
             Assert.Equal(Math.Sqrt(0.5), along.Frame.XAxis.Y, 12);
             Assert.Equal(1.0, along.Frame.ZAxis.Z, 12);
-            CellAssert.IsSound(along, p => block.Locate(p, Tolerance), block.GetVolume(), Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(
+                along,
+                p => block.Locate(p, Tolerance),
+                block.GetVolume(),
+                Tolerance.EqualPoint,
+                Tolerance
+            );
 
             var frame = new GeoCoordinateSystem3(P(0, 0, 0), new GeoVector3(0, 1, 0), new GeoVector3(0, 0, 1));
-            GeoCellGrid3 framed = block.ToCells(CellOptions3.Grid(700, 700, 700), MeshPlacement3.Frame(frame), Tolerance);
+            GeoCellGrid3 framed = block.ToCells(
+                CellOptions3.Grid(700, 700, 700),
+                MeshPlacement3.Frame(frame),
+                Tolerance
+            );
             Assert.Equal(frame.XAxis, framed.Frame.XAxis);
             Assert.Equal(frame.ZAxis, framed.Frame.ZAxis);
-            CellAssert.IsSound(framed, p => block.Locate(p, Tolerance), block.GetVolume(), Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(
+                framed,
+                p => block.Locate(p, Tolerance),
+                block.GetVolume(),
+                Tolerance.EqualPoint,
+                Tolerance
+            );
         }
 
         [Fact]
@@ -738,13 +1004,23 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             // A footing seven kilometres out, the cells starting at whole steps of 1000 from the world's origin.
             GeoSolid3 footing = Prism(Rect(7012345.5, 512345.25, 7015345.5, 514345.25), 31.5, 1031.5);
-            GeoCellGrid3 grid = footing.ToCells(CellOptions3.Grid(1000, 1000, 0), MeshPlacement3.World.At(P(0, 0, 0)), Tolerance);
+            GeoCellGrid3 grid = footing.ToCells(
+                CellOptions3.Grid(1000, 1000, 0),
+                MeshPlacement3.World.At(P(0, 0, 0)),
+                Tolerance
+            );
 
             Assert.Equal(0.0, grid.Frame.Origin.X % 1000.0, 6);
             Assert.Equal(0.0, grid.Frame.Origin.Y % 1000.0, 6);
             Assert.Equal(4, grid.CountX);
             Assert.Equal(3, grid.CountY);
-            CellAssert.IsSound(grid, p => footing.Locate(p, Tolerance), footing.GetVolume(), Tolerance.EqualPoint, Tolerance);
+            CellAssert.IsSound(
+                grid,
+                p => footing.Locate(p, Tolerance),
+                footing.GetVolume(),
+                Tolerance.EqualPoint,
+                Tolerance
+            );
         }
 
         [Fact]
@@ -756,7 +1032,14 @@ namespace GeometryHelper.UnitTest.Meshing
             // Three bays of 1990 a joint of 20 apart along 6010, two along 4000: what the joints take is gone.
             Assert.Equal(6, bays.CellCount);
             Assert.Equal(6, Whole(bays));
-            CellAssert.IsSound(bays, p => slab.Locate(p, Tolerance), 6 * 1990.0 * 1990 * 250, Tolerance.EqualPoint, Tolerance, covers: false);
+            CellAssert.IsSound(
+                bays,
+                p => slab.Locate(p, Tolerance),
+                6 * 1990.0 * 1990 * 250,
+                Tolerance.EqualPoint,
+                Tolerance,
+                covers: false
+            );
             Assert.All(Enumerable.Range(0, bays.CellCount), n => Assert.Empty(bays.GetAdjacentCells(n)));
         }
 
@@ -764,8 +1047,14 @@ namespace GeometryHelper.UnitTest.Meshing
         public void AJointIsCutOutHoweverWideTheSnapDistance()
         {
             GeoSolid3 slab = Prism(Rect(0, 0, 6010, 4000), 0, 250);
-            GeoCellGrid3 bays = slab.ToCells(new CellOptions3(CellAxis.BySize(1990), CellAxis.BySize(1990), CellAxis.Whole, 20, snapDistance: 50), Tolerance);
-            GeoCellGrid3 boxes = new GeoAabb3(P(0, 0, 0), P(6010, 4000, 250)).ToCells(new CellOptions3(CellAxis.BySize(1990), CellAxis.BySize(1990), CellAxis.Whole, 20, snapDistance: 50), Tolerance);
+            GeoCellGrid3 bays = slab.ToCells(
+                new CellOptions3(CellAxis.BySize(1990), CellAxis.BySize(1990), CellAxis.Whole, 20, snapDistance: 50),
+                Tolerance
+            );
+            GeoCellGrid3 boxes = new GeoAabb3(P(0, 0, 0), P(6010, 4000, 250)).ToCells(
+                new CellOptions3(CellAxis.BySize(1990), CellAxis.BySize(1990), CellAxis.Whole, 20, snapDistance: 50),
+                Tolerance
+            );
 
             Assert.Equal(6 * 1990.0 * 1990 * 250, bays.Volume, 0);
             Assert.Equal(6 * 1990.0 * 1990 * 250, boxes.Volume, 0);
@@ -788,7 +1077,14 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Equal(count, boxes.CellCount);
             Assert.Equal(count, cells.CellCount);
             Assert.Equal(expected, boxes.Volume, 6);
-            CellAssert.IsSound(cells, p => body.Locate(p, Tolerance), expected, Tolerance.EqualPoint, Tolerance, covers: false);
+            CellAssert.IsSound(
+                cells,
+                p => body.Locate(p, Tolerance),
+                expected,
+                Tolerance.EqualPoint,
+                Tolerance,
+                covers: false
+            );
         }
 
         [Fact]
@@ -796,7 +1092,9 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             // A plate thinner than the point tolerance, so that no cut through it can be made, and each is warned of. Its middle
             // stands in the joint between the first two cells: kept whole on the side of its middle, it went with the joint.
-            GeoSolid3 plate = GeometryHelper.Core.CellGrid3.BoxSolid(new GeoAabb3(P(0, 0, 0), P(1000, 100, 0.0005)).ToObb());
+            GeoSolid3 plate = GeometryHelper.Core.CellGrid3.BoxSolid(
+                new GeoAabb3(P(0, 0, 0), P(1000, 100, 0.0005)).ToObb()
+            );
             GeoCellGrid3 grid = plate.ToCells(CellOptions3.Grid(495, 0, 0, joint: 10), Tolerance);
 
             Assert.Equal(plate.GetVolume(), grid.Volume, 9);
@@ -811,8 +1109,15 @@ namespace GeometryHelper.UnitTest.Meshing
             // An L standing in XZ, cells of 100 along X with a snap distance of 60: the first cut goes onto the step at 150,
             // the second onto the same corner and is not made, and the cells 0 and 2 meet across the step's plane.
             var l = new[] { Q(0, 0), Q(400, 0), Q(400, 100), Q(150, 100), Q(150, 200), Q(0, 200) };
-            GeoSolid3 wall = GeoSolid3.Extrude(new GeoPolygon3(l.Select(p => P(p.X, 0, p.Y)), Tolerance), new GeoVector3(0, 100, 0), Tolerance);
-            GeoCellGrid3 cells = wall.ToCells(new CellOptions3(CellAxis.BySize(100), CellAxis.Whole, CellAxis.Whole, 0, 60), Tolerance);
+            GeoSolid3 wall = GeoSolid3.Extrude(
+                new GeoPolygon3(l.Select(p => P(p.X, 0, p.Y)), Tolerance),
+                new GeoVector3(0, 100, 0),
+                Tolerance
+            );
+            GeoCellGrid3 cells = wall.ToCells(
+                new CellOptions3(CellAxis.BySize(100), CellAxis.Whole, CellAxis.Whole, 0, 60),
+                Tolerance
+            );
             int first = cells.Cells.ToList().FindIndex(c => c.I == 0);
             int third = cells.Cells.ToList().FindIndex(c => c.I == 2);
 
@@ -821,8 +1126,15 @@ namespace GeometryHelper.UnitTest.Meshing
 
             // A notch in a block, cells of 100 both ways with a snap distance of 35: the second column's cut along Y goes onto
             // the notch at 130, the first's stays at 100, and the cells (0, 1) and (1, 0) meet over 30 of the plane x = 100.
-            GeoSolid3 block = Prism(new GeoPolygon2(Q(0, 0), Q(200, 0), Q(200, 130), Q(170, 130), Q(170, 300), Q(0, 300)), 0, 100);
-            GeoCellGrid3 grid = block.ToCells(new CellOptions3(CellAxis.BySize(100), CellAxis.BySize(100), CellAxis.Whole, 0, 35), Tolerance);
+            GeoSolid3 block = Prism(
+                new GeoPolygon2(Q(0, 0), Q(200, 0), Q(200, 130), Q(170, 130), Q(170, 300), Q(0, 300)),
+                0,
+                100
+            );
+            GeoCellGrid3 grid = block.ToCells(
+                new CellOptions3(CellAxis.BySize(100), CellAxis.BySize(100), CellAxis.Whole, 0, 35),
+                Tolerance
+            );
             int a = grid.Cells.ToList().FindIndex(c => c.I == 1 && c.J == 0);
             int b = grid.Cells.ToList().FindIndex(c => c.I == 0 && c.J == 1);
 
@@ -838,17 +1150,31 @@ namespace GeometryHelper.UnitTest.Meshing
             // a ten-thousandth: their faces are too thin for the global tolerance, which the neighbours and the OBJ writer
             // read them with.
             var fine = new Tolerance(1E-4, 1E-4);
-            GeoPoint3 a = P(0, 0, 0), b = P(0, 0.005, 0), c = P(0, 0, 50);
+            GeoPoint3 a = P(0, 0, 0),
+                b = P(0, 0.005, 0),
+                c = P(0, 0, 50);
             var up = new GeoVector3(300, 0, 0);
             GeoFace3 F(params GeoPoint3[] p) => new GeoFace3(new GeoPolygon3(p, fine));
-            var wedge = new GeoSolid3(F(a, c, b), F(a.Add(up), b.Add(up), c.Add(up)), F(a, b, b.Add(up), a.Add(up)), F(b, c, c.Add(up), b.Add(up)), F(c, a, a.Add(up), c.Add(up)));
-            GeoCellGrid3 slices = wedge.ToCells(new CellOptions3(CellAxis.BySize(100), CellAxis.Whole, CellAxis.Whole), fine);
+            var wedge = new GeoSolid3(
+                F(a, c, b),
+                F(a.Add(up), b.Add(up), c.Add(up)),
+                F(a, b, b.Add(up), a.Add(up)),
+                F(b, c, c.Add(up), b.Add(up)),
+                F(c, a, a.Add(up), c.Add(up))
+            );
+            GeoCellGrid3 slices = wedge.ToCells(
+                new CellOptions3(CellAxis.BySize(100), CellAxis.Whole, CellAxis.Whole),
+                fine
+            );
 
             Assert.Equal(3, slices.CellCount);
             Assert.Equal(new[] { 1 }, slices.GetAdjacentCells(0));
             Assert.Equal(new[] { 0, 2 }, slices.GetAdjacentCells(1));
 
-            GeoCellGrid3 boxes = new GeoAabb3(P(0, 0, 0), P(100.006, 50, 50)).ToCells(new CellOptions3(CellAxis.BySize(100), CellAxis.Whole, CellAxis.Whole), fine);
+            GeoCellGrid3 boxes = new GeoAabb3(P(0, 0, 0), P(100.006, 50, 50)).ToCells(
+                new CellOptions3(CellAxis.BySize(100), CellAxis.Whole, CellAxis.Whole),
+                fine
+            );
             string[] lines = new GeometryHelper.Export.ObjWriter().Add(boxes, "c").ToString().Split('\n');
 
             Assert.Equal(2, boxes.CellCount);
@@ -860,13 +1186,24 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             GeoSolid3 cylinder = GeoSolid3.Cylinder(P(0, 0, 0), P(0, 0, 2000), 600, 32, Tolerance);
             GeoCellGrid3 many = cylinder.ToCells(CellOptions3.Grid(300, 300, 500), Tolerance);
-            GeoCellGrid3 one = cylinder.ToCells(new CellOptions3(CellAxis.BySize(300), CellAxis.BySize(300), CellAxis.BySize(500), maxDegreeOfParallelism: 1), Tolerance);
+            GeoCellGrid3 one = cylinder.ToCells(
+                new CellOptions3(
+                    CellAxis.BySize(300),
+                    CellAxis.BySize(300),
+                    CellAxis.BySize(500),
+                    maxDegreeOfParallelism: 1
+                ),
+                Tolerance
+            );
 
             Assert.Equal(many.CellCount, one.CellCount);
 
             for (int n = 0; n < many.CellCount; n++)
             {
-                Assert.Equal((many.Cells[n].I, many.Cells[n].J, many.Cells[n].K, many.Cells[n].Piece), (one.Cells[n].I, one.Cells[n].J, one.Cells[n].K, one.Cells[n].Piece));
+                Assert.Equal(
+                    (many.Cells[n].I, many.Cells[n].J, many.Cells[n].K, many.Cells[n].Piece),
+                    (one.Cells[n].I, one.Cells[n].J, one.Cells[n].K, one.Cells[n].Piece)
+                );
                 Assert.Equal(many.Cells[n].Volume, one.Cells[n].Volume);
             }
         }
@@ -908,12 +1245,18 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Throws<ArgumentOutOfRangeException>(() => CellAxis.ByCount(0));
             Assert.Throws<ArgumentOutOfRangeException>(() => CellOptions3.Grid(-1, 0, 0));
             Assert.Throws<ArgumentOutOfRangeException>(() => CellOptions3.Grid(1, 1, 1, -1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new CellOptions3(CellAxis.Whole, CellAxis.Whole, CellAxis.Whole, snapDistance: -1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new CellOptions3(CellAxis.Whole, CellAxis.Whole, CellAxis.Whole, maxDegreeOfParallelism: 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new CellOptions3(CellAxis.Whole, CellAxis.Whole, CellAxis.Whole, snapDistance: -1)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new CellOptions3(CellAxis.Whole, CellAxis.Whole, CellAxis.Whole, maxDegreeOfParallelism: 0)
+            );
             Assert.Throws<ArgumentNullException>(() => new GeoAabb3(P(0, 0, 0), P(1, 1, 1)).ToCells(null));
             Assert.Throws<ArgumentNullException>(() => Mesh3.ToCells((GeoSolid3)null, CellOptions3.Grid(1, 1, 1)));
             Assert.Throws<ArgumentNullException>(() => Mesh3.ToCells((GeoObb3)null, CellOptions3.Grid(1, 1, 1)));
-            Assert.Throws<ArgumentNullException>(() => new GeoAabb3(P(0, 0, 0), P(1, 1, 1)).ToCells(CellOptions3.Grid(1, 1, 1), (MeshPlacement3)null));
+            Assert.Throws<ArgumentNullException>(() =>
+                new GeoAabb3(P(0, 0, 0), P(1, 1, 1)).ToCells(CellOptions3.Grid(1, 1, 1), (MeshPlacement3)null)
+            );
         }
 
         #endregion
@@ -930,7 +1273,15 @@ namespace GeometryHelper.UnitTest.Meshing
 
         public static CellGrid3Lines Of(CellAxis axis, double min, double max, double joint, Tolerance tolerance)
         {
-            GeometryHelper.Core.CellGrid3.Lines lines = GeometryHelper.Core.CellGrid3.Lay(axis, min, max, joint, false, tolerance, "X");
+            GeometryHelper.Core.CellGrid3.Lines lines = GeometryHelper.Core.CellGrid3.Lay(
+                axis,
+                min,
+                max,
+                joint,
+                false,
+                tolerance,
+                "X"
+            );
             return new CellGrid3Lines { Starts = lines.Starts, Ends = lines.Ends };
         }
     }

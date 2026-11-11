@@ -157,7 +157,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         private static DisplayText2 Shown(string contents, string layer = "0")
         {
             var database = new DxfDatabase("AC1027");
-            var mtext = new DxfMText { Contents = contents, Location = new GeoPoint3(10, 20, 0), TextHeight = 2.5, Layer = layer };
+            var mtext = new DxfMText
+            {
+                Contents = contents,
+                Location = new GeoPoint3(10, 20, 0),
+                TextHeight = 2.5,
+                Layer = layer,
+            };
             database.ModelSpace.AppendEntity(mtext);
             CadDocument document = CadDocument.From(database);
             return Assert.IsType<DisplayText2>(Assert.Single(document.GetDisplay(document.ModelSpace).Items));

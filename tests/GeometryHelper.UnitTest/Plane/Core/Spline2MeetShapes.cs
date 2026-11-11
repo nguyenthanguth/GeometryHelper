@@ -14,7 +14,20 @@ namespace GeometryHelper.UnitTest.Plane
     {
         internal static readonly string[] Kinds =
         {
-            "segment", "ray", "xline", "polyline", "polygon", "rectangle", "triangle", "face", "arc", "circle", "ellipse", "edge", "chain", "loop"
+            "segment",
+            "ray",
+            "xline",
+            "polyline",
+            "polygon",
+            "rectangle",
+            "triangle",
+            "face",
+            "arc",
+            "circle",
+            "ellipse",
+            "edge",
+            "chain",
+            "loop",
         };
 
         private static double Between(Random r, double lo, double hi) => lo + (hi - lo) * r.NextDouble();
@@ -115,7 +128,7 @@ namespace GeometryHelper.UnitTest.Plane
                         P(ox + (-w / 2) * c - (-h / 2) * s, oy + (-w / 2) * s + (-h / 2) * c),
                         P(ox + (w / 2) * c - (-h / 2) * s, oy + (w / 2) * s + (-h / 2) * c),
                         P(ox + (w / 2) * c - (h / 2) * s, oy + (w / 2) * s + (h / 2) * c),
-                        P(ox + (-w / 2) * c - (h / 2) * s, oy + (-w / 2) * s + (h / 2) * c)
+                        P(ox + (-w / 2) * c - (h / 2) * s, oy + (-w / 2) * s + (h / 2) * c),
                     };
                     AddEdges(shape, corners, true);
                     shape.Inside = (x, y) => Spline2MeetOracle.InRing(corners, x, y);
@@ -140,7 +153,9 @@ namespace GeometryHelper.UnitTest.Plane
                     shape.Shape = face;
                     AddEdges(shape, face.Boundary.Vertices, true);
                     AddEdges(shape, face.Holes[0].Vertices, true);
-                    shape.Inside = (x, y) => Spline2MeetOracle.InRing(face.Boundary.Vertices, x, y) && !Spline2MeetOracle.InRing(face.Holes[0].Vertices, x, y);
+                    shape.Inside = (x, y) =>
+                        Spline2MeetOracle.InRing(face.Boundary.Vertices, x, y)
+                        && !Spline2MeetOracle.InRing(face.Holes[0].Vertices, x, y);
                     break;
                 }
 
@@ -188,14 +203,19 @@ namespace GeometryHelper.UnitTest.Plane
                     }
 
                     shape.Shape = new GeoEdge2(a, b, bulge);
-                    shape.Parts.Add(bulge == 0.0 ? (MeetPart)MeetSegment.Between(a, b) : MeetRound.OfBulge(a, b, bulge));
+                    shape.Parts.Add(
+                        bulge == 0.0 ? (MeetPart)MeetSegment.Between(a, b) : MeetRound.OfBulge(a, b, bulge)
+                    );
                     break;
                 }
 
                 case "chain":
                 {
                     GeoPoint2[] ring = Star(r, ox, oy, radius, 0.3, 2 + r.Next(4));
-                    double[] bulges = Enumerable.Range(0, ring.Length - 1).Select(i => r.Next(3) == 0 ? 0.0 : Between(r, -1.2, 1.2)).ToArray();
+                    double[] bulges = Enumerable
+                        .Range(0, ring.Length - 1)
+                        .Select(i => r.Next(3) == 0 ? 0.0 : Between(r, -1.2, 1.2))
+                        .ToArray();
                     shape.Shape = new GeoPolylineArc2(ring, bulges);
                     AddCurved(shape, ring, bulges, false);
                     break;
@@ -204,7 +224,10 @@ namespace GeometryHelper.UnitTest.Plane
                 default:
                 {
                     GeoPoint2[] ring = Star(r, ox, oy, radius, 0.5, 3 + r.Next(4));
-                    double[] bulges = Enumerable.Range(0, ring.Length).Select(i => r.Next(3) == 0 ? 0.0 : Between(r, -0.4, 0.4)).ToArray();
+                    double[] bulges = Enumerable
+                        .Range(0, ring.Length)
+                        .Select(i => r.Next(3) == 0 ? 0.0 : Between(r, -0.4, 0.4))
+                        .ToArray();
                     var loop = new GeoPolygonArc2(ring, bulges);
                     shape.Shape = loop;
                     AddCurved(shape, ring, bulges, true);
@@ -266,7 +289,11 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 GeoPoint2 a = ring[i];
                 GeoPoint2 b = ring[(i + 1) % ring.Length];
-                shape.Parts.Add(Math.Abs(bulges[i]) < 1E-12 ? (MeetPart)MeetSegment.Between(a, b) : MeetRound.OfBulge(a, b, bulges[i]));
+                shape.Parts.Add(
+                    Math.Abs(bulges[i]) < 1E-12
+                        ? (MeetPart)MeetSegment.Between(a, b)
+                        : MeetRound.OfBulge(a, b, bulges[i])
+                );
             }
         }
     }

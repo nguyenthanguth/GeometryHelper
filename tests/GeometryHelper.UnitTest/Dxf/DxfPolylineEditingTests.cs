@@ -31,7 +31,13 @@ namespace GeometryHelper.UnitTest.Dxf
         private static DxfPolyline Square(bool clockwise)
         {
             var polyline = new DxfPolyline();
-            var points = new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10) };
+            var points = new[]
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10),
+            };
 
             foreach (GeoPoint2 point in clockwise ? points.Reverse() : points)
             {
@@ -85,12 +91,22 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(144.0, grown.Area, 9);
             Assert.True(grown.Closed);
             Assert.Equal(64.0, shrunk.Area, 9);
-            Assert.Equal(64.0, ((DxfPolyline)Assert.Single(Square(false).GetOffsetCurvesGivenPlaneNormal(new GeoVector3(0, 0, -1), 1.0))).Area, 9);
+            Assert.Equal(
+                64.0,
+                (
+                    (DxfPolyline)
+                        Assert.Single(Square(false).GetOffsetCurvesGivenPlaneNormal(new GeoVector3(0, 0, -1), 1.0))
+                ).Area,
+                9
+            );
 
             // The half circle of radius 5 runs counter-clockwise: to its right it takes the radius 6, as an arc would.
             DxfPolyline open = LineAndHalfCircle();
             var right = (DxfPolyline)Assert.Single(open.GetOffsetCurves(1.0));
-            Assert.Contains(Enumerable.Range(0, right.NumberOfVertices), i => right.GetSegmentType(i) == DxfSegmentType.Arc && Math.Abs(right.GetArcSegment2dAt(i).Radius - 6.0) < 1E-9);
+            Assert.Contains(Enumerable.Range(0, right.NumberOfVertices), i =>
+                right.GetSegmentType(i) == DxfSegmentType.Arc
+                && Math.Abs(right.GetArcSegment2dAt(i).Radius - 6.0) < 1E-9
+            );
             Assert.True(right.StartPoint.IsEqualTo(new GeoPoint3(0, -1, 0), Tight));
             Assert.Throws<ArgumentException>(() => open.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(1, 0, 0), 1.0));
         }
@@ -132,8 +148,20 @@ namespace GeometryHelper.UnitTest.Dxf
             light.AddVertexAt(0, new GeoPoint2(0, 0), 0, 0, 0);
             light.AddVertexAt(1, new GeoPoint2(10, 0), 0, 0, 0);
             light.AddVertexAt(2, new GeoPoint2(20, 0), 0, 0, 0);
-            var plane = new DxfPolyline2d(DxfPoly2dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(20, 0, 0) }, 0, false, 0, 0, null);
-            var space = new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(20, 0, 0) }, false);
+            var plane = new DxfPolyline2d(
+                DxfPoly2dType.SimplePoly,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(20, 0, 0) },
+                0,
+                false,
+                0,
+                0,
+                null
+            );
+            var space = new DxfPolyline3d(
+                DxfPoly3dType.SimplePoly,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(20, 0, 0) },
+                false
+            );
 
             foreach (DxfCurve polyline in new DxfCurve[] { light, plane, space })
             {
@@ -163,7 +191,11 @@ namespace GeometryHelper.UnitTest.Dxf
             var inner = (DxfPolyline)Assert.Single(polyline.GetOffsetCurvesGivenPlaneNormal(down, 1.0));
             Assert.Equal(4.0, inner.GetArcSegment2dAt(0).Radius, 9);
             Assert.Equal(6.0, ((DxfArc)Assert.Single(arc.GetOffsetCurves(1.0))).Radius, 12);
-            Assert.Equal(6.0, ((DxfPolyline)Assert.Single(polyline.GetOffsetCurves(1.0))).GetArcSegment2dAt(0).Radius, 9);
+            Assert.Equal(
+                6.0,
+                ((DxfPolyline)Assert.Single(polyline.GetOffsetCurves(1.0))).GetArcSegment2dAt(0).Radius,
+                9
+            );
         }
 
         [Fact]
@@ -209,14 +241,21 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string saved = TextOf(Saved(db));
             OnlyTheseChanged(text, saved, "49", "4D");
-            Assert.True(ByHandle<DxfPolyline2d>(DxfDatabase.Parse(saved), "49").EndPoint.IsEqualTo(new GeoPoint3(5, 7.5, 0), Tight));
+            Assert.True(
+                ByHandle<DxfPolyline2d>(DxfDatabase.Parse(saved), "49")
+                    .EndPoint.IsEqualTo(new GeoPoint3(5, 7.5, 0), Tight)
+            );
         }
 
         [Fact]
         public void APolylineInSpace_IsCutRunOnAndOffsetInItsPlane()
         {
             // (0, 0, 0), (3, 4, 0), (3, 4, 12) cut at 1.5: the second piece from (3, 4, 6).
-            var polyline = new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(3, 4, 0), new GeoPoint3(3, 4, 12) }, false);
+            var polyline = new DxfPolyline3d(
+                DxfPoly3dType.SimplePoly,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(3, 4, 0), new GeoPoint3(3, 4, 12) },
+                false
+            );
             IReadOnlyList<DxfCurve> pieces = polyline.GetSplitCurves(new[] { 1.5 });
 
             Assert.Equal(2, pieces.Count);
@@ -227,15 +266,38 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(polyline.EndPoint.IsEqualTo(new GeoPoint3(3, 4, 18), Tight));
             polyline.Extend(true, new GeoPoint3(-3, -4, 0));
             Assert.True(polyline.StartPoint.IsEqualTo(new GeoPoint3(-3, -4, 0), Tight));
-            Assert.Throws<InvalidOperationException>(() => new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 1), new GeoPoint3(1, 1, 0), new GeoPoint3(0, 1, 1) }, false).GetOffsetCurves(1.0));
+            Assert.Throws<InvalidOperationException>(() =>
+                new DxfPolyline3d(
+                    DxfPoly3dType.SimplePoly,
+                    new[]
+                    {
+                        new GeoPoint3(0, 0, 0),
+                        new GeoPoint3(1, 0, 1),
+                        new GeoPoint3(1, 1, 0),
+                        new GeoPoint3(0, 1, 1),
+                    },
+                    false
+                ).GetOffsetCurves(1.0)
+            );
 
             // A square standing in the plane x = 2, counter-clockwise seen from +x: grown by 1 about (1, 0, 0).
-            var standing = new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(2, 0, 0), new GeoPoint3(2, 10, 0), new GeoPoint3(2, 10, 10), new GeoPoint3(2, 0, 10) }, true);
+            var standing = new DxfPolyline3d(
+                DxfPoly3dType.SimplePoly,
+                new[]
+                {
+                    new GeoPoint3(2, 0, 0),
+                    new GeoPoint3(2, 10, 0),
+                    new GeoPoint3(2, 10, 10),
+                    new GeoPoint3(2, 0, 10),
+                },
+                true
+            );
             var grown = (DxfPolyline3d)Assert.Single(standing.GetOffsetCurves(1.0));
             Assert.Equal(4, grown.Count());
             Assert.All(grown, v => Assert.Equal(2.0, v.Position.X, 9));
             Assert.Equal(48.0, grown.Length, 9);
-            var shrunk = (DxfPolyline3d)Assert.Single(standing.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(-1, 0, 0), 1.0));
+            var shrunk = (DxfPolyline3d)
+                Assert.Single(standing.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(-1, 0, 0), 1.0));
             Assert.Equal(32.0, shrunk.Length, 9);
         }
 
@@ -273,7 +335,9 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             DxfDatabase r12 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R12);
-            Assert.Throws<ArgumentException>(() => new DxfPolyline().ConvertFrom(ByHandle<DxfPolyline2d>(r12, "4C"), true));
+            Assert.Throws<ArgumentException>(() =>
+                new DxfPolyline().ConvertFrom(ByHandle<DxfPolyline2d>(r12, "4C"), true)
+            );
         }
 
         [Fact]

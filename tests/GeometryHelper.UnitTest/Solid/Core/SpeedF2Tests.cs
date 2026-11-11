@@ -29,7 +29,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             while (points.Count < count)
             {
-                double x = random.NextDouble() * 2 - 1, y = random.NextDouble() * 2 - 1, z = random.NextDouble() * 2 - 1;
+                double x = random.NextDouble() * 2 - 1,
+                    y = random.NextDouble() * 2 - 1,
+                    z = random.NextDouble() * 2 - 1;
                 double length = Math.Sqrt(x * x + y * y + z * z);
 
                 if (length >= 0.1 && length <= 1)
@@ -83,9 +85,21 @@ namespace GeometryHelper.UnitTest.Solid
 
             while (triangles.Count < 50000)
             {
-                var a = new GeoPoint3(random.NextDouble() * 1000, random.NextDouble() * 1000, random.NextDouble() * 1000);
-                var b = new GeoPoint3(a.X + random.NextDouble() * 10, a.Y + random.NextDouble() * 10, a.Z - random.NextDouble() * 10);
-                var c = new GeoPoint3(a.X - random.NextDouble() * 10, a.Y + random.NextDouble() * 10, a.Z + random.NextDouble() * 10);
+                var a = new GeoPoint3(
+                    random.NextDouble() * 1000,
+                    random.NextDouble() * 1000,
+                    random.NextDouble() * 1000
+                );
+                var b = new GeoPoint3(
+                    a.X + random.NextDouble() * 10,
+                    a.Y + random.NextDouble() * 10,
+                    a.Z - random.NextDouble() * 10
+                );
+                var c = new GeoPoint3(
+                    a.X - random.NextDouble() * 10,
+                    a.Y + random.NextDouble() * 10,
+                    a.Z + random.NextDouble() * 10
+                );
                 triangles.Add(new GeoFace3(new GeoPolygon3(new[] { a, b, c })));
             }
 

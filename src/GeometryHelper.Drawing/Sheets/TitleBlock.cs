@@ -25,25 +25,53 @@ namespace GeometryHelper.Drawing
         public const double Height = 40.0;
 
         /// <summary>Gets or sets the project's name.</summary>
-        public string Project { get => _project; set => _project = value ?? string.Empty; }
+        public string Project
+        {
+            get => _project;
+            set => _project = value ?? string.Empty;
+        }
 
         /// <summary>Gets or sets the drawing number; the drawing's id where it is left empty.</summary>
-        public string DrawingNumber { get => _drawingNumber; set => _drawingNumber = value ?? string.Empty; }
+        public string DrawingNumber
+        {
+            get => _drawingNumber;
+            set => _drawingNumber = value ?? string.Empty;
+        }
 
         /// <summary>Gets or sets the title; the main part's name and mark where it is left empty.</summary>
-        public string Title { get => _title; set => _title = value ?? string.Empty; }
+        public string Title
+        {
+            get => _title;
+            set => _title = value ?? string.Empty;
+        }
 
         /// <summary>Gets or sets the revision.</summary>
-        public string Revision { get => _revision; set => _revision = value ?? string.Empty; }
+        public string Revision
+        {
+            get => _revision;
+            set => _revision = value ?? string.Empty;
+        }
 
         /// <summary>Gets or sets the company's name.</summary>
-        public string Company { get => _company; set => _company = value ?? string.Empty; }
+        public string Company
+        {
+            get => _company;
+            set => _company = value ?? string.Empty;
+        }
 
         /// <summary>Gets or sets who drew it.</summary>
-        public string DrawnBy { get => _drawnBy; set => _drawnBy = value ?? string.Empty; }
+        public string DrawnBy
+        {
+            get => _drawnBy;
+            set => _drawnBy = value ?? string.Empty;
+        }
 
         /// <summary>Gets or sets the date, as it is to be written; nothing fills it in, so the same drawing is the same file.</summary>
-        public string Date { get => _date; set => _date = value ?? string.Empty; }
+        public string Date
+        {
+            get => _date;
+            set => _date = value ?? string.Empty;
+        }
 
         internal TitleBlock Clone() => (TitleBlock)MemberwiseClone();
     }

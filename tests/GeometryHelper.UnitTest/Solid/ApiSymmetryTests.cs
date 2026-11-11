@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using GeometryHelper.UnitTest.Common;
 using Xunit;
@@ -19,11 +19,16 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static IEnumerable<Type> GeometryTypes()
         {
-            return typeof(GeoPoint3).Assembly
-                .GetTypes()
+            return typeof(GeoPoint3)
+                .Assembly.GetTypes()
                 // The geometry namespace holds both dimensions since the libraries were merged, and the
                 // promises checked here are the ones the solid types make, so the plane types are left out.
-                .Where(t => t.IsPublic && t.Namespace == "GeometryHelper.Geometry" && t.Name.StartsWith("Geo") && t.Name.EndsWith("3"))
+                .Where(t =>
+                    t.IsPublic
+                    && t.Namespace == "GeometryHelper.Geometry"
+                    && t.Name.StartsWith("Geo")
+                    && t.Name.EndsWith("3")
+                )
                 .OrderBy(t => t.Name);
         }
 
@@ -32,9 +37,7 @@ namespace GeometryHelper.UnitTest.Solid
         {
             foreach (Type type in GeometryTypes())
             {
-                Assert.True(
-                    type.GetMethod("Clone", Type.EmptyTypes) != null,
-                    type.Name + " has no Clone()");
+                Assert.True(type.GetMethod("Clone", Type.EmptyTypes) != null, type.Name + " has no Clone()");
             }
         }
 
@@ -51,14 +54,25 @@ namespace GeometryHelper.UnitTest.Solid
 
                 Assert.True(
                     type.GetMethod("TransformBy", new[] { typeof(GeoTransform3) }) != null,
-                    type.Name + " has no TransformBy(GeoTransform3)");
+                    type.Name + " has no TransformBy(GeoTransform3)"
+                );
             }
         }
 
         [Fact]
         public void EveryBoundedTypeReportsItsBoundingBox()
         {
-            Type[] unbounded = { typeof(GeoPlane3), typeof(GeoRay3), typeof(GeoXLine3), typeof(GeoTransform3), typeof(GeoCoordinateSystem3), typeof(GeoAabb3), typeof(GeoVector3), typeof(GeoPoint3) };
+            Type[] unbounded =
+            {
+                typeof(GeoPlane3),
+                typeof(GeoRay3),
+                typeof(GeoXLine3),
+                typeof(GeoTransform3),
+                typeof(GeoCoordinateSystem3),
+                typeof(GeoAabb3),
+                typeof(GeoVector3),
+                typeof(GeoPoint3),
+            };
 
             foreach (Type type in GeometryTypes())
             {
@@ -67,9 +81,7 @@ namespace GeometryHelper.UnitTest.Solid
                     continue;
                 }
 
-                Assert.True(
-                    type.GetMethod("GetAabb", Type.EmptyTypes) != null,
-                    type.Name + " has no GetAabb()");
+                Assert.True(type.GetMethod("GetAabb", Type.EmptyTypes) != null, type.Name + " has no GetAabb()");
             }
         }
 
@@ -83,7 +95,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             if (missing.Length > 0)
             {
-                Assert.Fail(missing.Length + " one-sided pairs in space, the member missing first:\n" + string.Join("\n", missing));
+                Assert.Fail(
+                    missing.Length
+                        + " one-sided pairs in space, the member missing first:\n"
+                        + string.Join("\n", missing)
+                );
             }
         }
 
@@ -97,7 +113,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             if (missing.Length > 0)
             {
-                Assert.Fail(missing.Length + " shortest lines missing in space where a distance exists:\n" + string.Join("\n", missing));
+                Assert.Fail(
+                    missing.Length
+                        + " shortest lines missing in space where a distance exists:\n"
+                        + string.Join("\n", missing)
+                );
             }
         }
 
@@ -112,7 +132,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             if (missing.Length > 0)
             {
-                Assert.Fail(missing.Length + " collisions and crossings missing between straight or flat shapes in space:\n" + string.Join("\n", missing));
+                Assert.Fail(
+                    missing.Length
+                        + " collisions and crossings missing between straight or flat shapes in space:\n"
+                        + string.Join("\n", missing)
+                );
             }
         }
 
@@ -126,14 +150,19 @@ namespace GeometryHelper.UnitTest.Solid
 
             if (missing.Length > 0)
             {
-                Assert.Fail(missing.Length + " distances missing between straight or flat shapes in space:\n" + string.Join("\n", missing));
+                Assert.Fail(
+                    missing.Length
+                        + " distances missing between straight or flat shapes in space:\n"
+                        + string.Join("\n", missing)
+                );
             }
         }
 
         [Fact]
         public void TransformingThroughEitherFormGivesTheSameResult()
         {
-            GeoTransform3 motion = GeoTransform3.Translation(new GeoVector3(3, -4, 5))
+            GeoTransform3 motion = GeoTransform3
+                .Translation(new GeoVector3(3, -4, 5))
                 .Multiply(GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 0.7));
 
             var point = new GeoPoint3(1, 2, 3);
@@ -226,12 +255,18 @@ namespace GeometryHelper.UnitTest.Solid
         public void TheFaceAgreesWithTheCoreClassesItNowDelegatesTo()
         {
             GeoPolygon3 boundary = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
             GeoPolygon3 hole = new GeoPolygon3(
-                new GeoPoint3(4, 4, 0), new GeoPoint3(6, 4, 0),
-                new GeoPoint3(6, 6, 0), new GeoPoint3(4, 6, 0));
+                new GeoPoint3(4, 4, 0),
+                new GeoPoint3(6, 4, 0),
+                new GeoPoint3(6, 6, 0),
+                new GeoPoint3(4, 6, 0)
+            );
 
             GeoFace3 face = new GeoFace3(boundary, new[] { hole });
 
@@ -240,7 +275,7 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(1, 1, 0),
                 new GeoPoint3(5, 5, 0),
                 new GeoPoint3(4, 5, 0),
-                new GeoPoint3(50, 50, 0)
+                new GeoPoint3(50, 50, 0),
             };
 
             foreach (GeoPoint3 probe in probes)
@@ -258,8 +293,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             var polyline = new GeoPolyline3(GeoPoint3.Origin, new GeoPoint3(10, 0, 0));
             var polygon = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
             var face = new GeoFace3(polygon);
             var circle = new GeoCircle3(GeoPoint3.Origin, GeoVector3.ZAxis, 5.0);
             var obb = new GeoObb3(GeoPoint3.Origin, 4, 4, 4);
@@ -293,8 +331,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             var triangle = new GeoTriangle3(GeoPoint3.Origin, new GeoPoint3(10, 0, 0), new GeoPoint3(0, 10, 0));
             var polygon = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
             GeoSolid3 solid = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(10, 10, 1)).ToObb().ToSolid();
 
             Assert.Equal(Distance3.DistanceTo(line, triangle), line.DistanceTo(triangle), 9);
@@ -306,16 +347,25 @@ namespace GeometryHelper.UnitTest.Solid
         public void PlanarRegionsCanBeComparedForOrientation()
         {
             var flat = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
             var higher = new GeoPolygon3(
-                new GeoPoint3(0, 0, 5), new GeoPoint3(10, 0, 5),
-                new GeoPoint3(10, 10, 5), new GeoPoint3(0, 10, 5));
+                new GeoPoint3(0, 0, 5),
+                new GeoPoint3(10, 0, 5),
+                new GeoPoint3(10, 10, 5),
+                new GeoPoint3(0, 10, 5)
+            );
 
             var upright = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 0, 10), new GeoPoint3(0, 0, 10));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 0, 10),
+                new GeoPoint3(0, 0, 10)
+            );
 
             Assert.True(Parallel3.IsParallel(flat, higher));
             Assert.True(Parallel3.IsParallel(flat, flat.Flip()));

@@ -70,7 +70,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             foreach (KeyValuePair<int, byte[]> letter in letters.OrderBy(l => l.Key))
             {
-                byte[] record = new byte[] { 0 }.Concat(letter.Value).ToArray();
+                byte[] record = new byte[] { 0 }
+                    .Concat(letter.Value)
+                    .ToArray();
                 bytes.AddRange(BitConverter.GetBytes((ushort)letter.Key));
                 bytes.AddRange(BitConverter.GetBytes((ushort)record.Length));
                 bytes.AddRange(record);
@@ -85,11 +87,35 @@ namespace GeometryHelper.UnitTest.Dxf
         /// the letters, shape 0 its name, above, below and modes, or in an extended big font its cell's height, nought, modes, its
         /// width and nought.
         /// </summary>
-        private static byte[] BigFont(int above, int below, int[] ranges, IDictionary<int, byte[]> letters, int cellWidth = 0)
+        private static byte[] BigFont(
+            int above,
+            int below,
+            int[] ranges,
+            IDictionary<int, byte[]> letters,
+            int cellWidth = 0
+        )
         {
-            byte[] tail = cellWidth > 0 ? new byte[] { (byte)above, 0, 2, (byte)cellWidth, 0 } : new byte[] { (byte)above, (byte)below, 2, 0 };
-            var records = new List<KeyValuePair<int, byte[]>> { new KeyValuePair<int, byte[]>(0, Encoding.ASCII.GetBytes("GH BIG").Concat(new byte[] { 0 }).Concat(tail).ToArray()) };
-            records.AddRange(letters.OrderBy(l => l.Key).Select(l => new KeyValuePair<int, byte[]>(l.Key, new byte[] { 0 }.Concat(l.Value).ToArray())));
+            byte[] tail =
+                cellWidth > 0
+                    ? new byte[] { (byte)above, 0, 2, (byte)cellWidth, 0 }
+                    : new byte[] { (byte)above, (byte)below, 2, 0 };
+            var records = new List<KeyValuePair<int, byte[]>>
+            {
+                new KeyValuePair<int, byte[]>(
+                    0,
+                    Encoding.ASCII.GetBytes("GH BIG").Concat(new byte[] { 0 }).Concat(tail).ToArray()
+                ),
+            };
+            records.AddRange(
+                letters
+                    .OrderBy(l => l.Key)
+                    .Select(l => new KeyValuePair<int, byte[]>(
+                        l.Key,
+                        new byte[] { 0 }
+                            .Concat(l.Value)
+                            .ToArray()
+                    ))
+            );
             var bytes = new List<byte>(Encoding.ASCII.GetBytes("AutoCAD-86 bigfont 1.0\r\n\u001A"));
             int count = records.Count + 1;
             bytes.AddRange(BitConverter.GetBytes((ushort)8));
@@ -121,26 +147,50 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>A Chinese big font as gbcbig.shx is made: a height above of nought and a depth of 4, bytes A1 to FE opening a letter of two; 中 (D6D0 in GBK), Ж (A7A8) and ° (A1E3) its letters.</summary>
-        private static byte[] Chinese() => BigFont(0, 4, new[] { 0xA1, 0xFE }, new Dictionary<int, byte[]> { { 0xD6D0, Cell }, { 0xA7A8, Cell }, { 0xA1E3, Cell } });
+        private static byte[] Chinese() =>
+            BigFont(
+                0,
+                4,
+                new[] { 0xA1, 0xFE },
+                new Dictionary<int, byte[]>
+                {
+                    { 0xD6D0, Cell },
+                    { 0xA7A8, Cell },
+                    { 0xA1E3, Cell },
+                }
+            );
 
         /// <summary>
         /// A Japanese extended big font as extfont.shx is made: a cell 14 wide and 15 high, 81 to 9F opening a letter of two; a
         /// space 9 wide, A, a half-width ｱ (B1) and a question mark of its own; 中 (9286) its mouth a box of the cell stretched
         /// from (1, 6) into 12 by 6 and its stroke down from (7, 15); 。 (8142) a dot and a whole circle; and the box shape FD01.
         /// </summary>
-        private static byte[] Japanese() => BigFont(15, 0, new[] { 0x81, 0x9F }, new Dictionary<int, byte[]>
-        {
-            { 0x20, new byte[] { 2, 0x90, 0 } },
-            { 0x3F, new byte[] { 2, 8, 2, 0, 1, 8, 5, 10, 2, 8, 3, 0xF6, 0 } },
-            { 0x41, new byte[] { 2, 8, 1, 0, 1, 8, 20, 15, 2, 8, 1, 0xF1, 0 } },
-            { 0xB1, new byte[] { 2, 8, 1, 0, 1, 8, 8, 10, 2, 8, 1, 0xF6, 0 } },
-            { 0x9286, new byte[] { 2, 7, 0, 0xFD, 0x01, 1, 6, 12, 6, 2, 8, 7, 15, 1, 0xFC, 2, 8, 11, 0, 0 } },
-            { 0x8142, new byte[] { 2, 8, 3, 3, 1, 10, 2, 0x00, 2, 8, 15, 0xFD, 0 } },
-            { 0xFD01, new byte[] { 2, 8, 0, 0, 1, 0xF4, 0xE0, 0xFC, 0xE8, 2, 8, 18, 0, 0 } },
-        }, 14);
+        private static byte[] Japanese() =>
+            BigFont(
+                15,
+                0,
+                new[] { 0x81, 0x9F },
+                new Dictionary<int, byte[]>
+                {
+                    { 0x20, new byte[] { 2, 0x90, 0 } },
+                    { 0x3F, new byte[] { 2, 8, 2, 0, 1, 8, 5, 10, 2, 8, 3, 0xF6, 0 } },
+                    { 0x41, new byte[] { 2, 8, 1, 0, 1, 8, 20, 15, 2, 8, 1, 0xF1, 0 } },
+                    { 0xB1, new byte[] { 2, 8, 1, 0, 1, 8, 8, 10, 2, 8, 1, 0xF6, 0 } },
+                    { 0x9286, new byte[] { 2, 7, 0, 0xFD, 0x01, 1, 6, 12, 6, 2, 8, 7, 15, 1, 0xFC, 2, 8, 11, 0, 0 } },
+                    { 0x8142, new byte[] { 2, 8, 3, 3, 1, 10, 2, 0x00, 2, 8, 15, 0xFD, 0 } },
+                    { 0xFD01, new byte[] { 2, 8, 0, 0, 1, 0xF4, 0xE0, 0xFC, 0xE8, 2, 8, 18, 0, 0 } },
+                },
+                14
+            );
 
         /// <summary>A big font of symbols as special.shx is made, 6 above: "~" opening a letter of two, "~!" (7E21) a line 4 long 3 up.</summary>
-        private static byte[] Symbols() => BigFont(6, 2, new[] { 0x7E, 0x7E }, new Dictionary<int, byte[]> { { 0x7E21, new byte[] { 2, 8, 0, 3, 1, 0x40, 2, 8, 2, 0xFD, 0 } } });
+        private static byte[] Symbols() =>
+            BigFont(
+                6,
+                2,
+                new[] { 0x7E, 0x7E },
+                new Dictionary<int, byte[]> { { 0x7E21, new byte[] { 2, 8, 0, 3, 1, 0x40, 2, 8, 2, 0xFD, 0 } } }
+            );
 
         /// <summary>A folder of its own holding txt.shx and the files given; deleted after the test.</summary>
         private static void InFolder(Action<string> test, params KeyValuePair<string, byte[]>[] files)
@@ -165,13 +215,21 @@ namespace GeometryHelper.UnitTest.Dxf
             }
         }
 
-        private static KeyValuePair<string, byte[]> F(string name, byte[] bytes) => new KeyValuePair<string, byte[]>(name, bytes);
+        private static KeyValuePair<string, byte[]> F(string name, byte[] bytes) =>
+            new KeyValuePair<string, byte[]>(name, bytes);
 
         /// <summary>A new drawing of R2018, its fonts looked for in the folder given (none where null), its style BIG of txt.shx and the big font given.</summary>
         private static DxfDatabase Drawing(string folder, string bigFont, string font = "txt.shx")
         {
             var db = new DxfDatabase("AC1032");
-            db.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "BIG", FileName = font, BigFontFileName = bigFont });
+            db.TextStyleTable.Add(
+                new DxfTextStyleTableRecord
+                {
+                    Name = "BIG",
+                    FileName = font,
+                    BigFontFileName = bigFont,
+                }
+            );
 
             if (folder != null)
             {
@@ -183,14 +241,34 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static GeoPoint3 P(double x, double y) => new GeoPoint3(x, y, 0);
 
-        private static void Is(GeoPoint3 expected, GeoPoint3 actual) => Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
+        private static void Is(GeoPoint3 expected, GeoPoint3 actual) =>
+            Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
 
-        private static void Is(double expected, double actual) => Assert.True(Math.Abs(expected - actual) <= Near, "expected " + expected.ToString("R", CultureInfo.InvariantCulture) + ", got " + actual.ToString("R", CultureInfo.InvariantCulture));
+        private static void Is(double expected, double actual) =>
+            Assert.True(
+                Math.Abs(expected - actual) <= Near,
+                "expected "
+                    + expected.ToString("R", CultureInfo.InvariantCulture)
+                    + ", got "
+                    + actual.ToString("R", CultureInfo.InvariantCulture)
+            );
 
         /// <summary>A TEXT 4 high in model space in the style BIG, its modes and second point given.</summary>
-        private static DxfDBText Text(DxfDatabase db, string words, int horizontal, int vertical, GeoPoint3 second, double height = 4.0)
+        private static DxfDBText Text(
+            DxfDatabase db,
+            string words,
+            int horizontal,
+            int vertical,
+            GeoPoint3 second,
+            double height = 4.0
+        )
         {
-            var text = new DxfDBText { TextString = words, Height = height, TextStyleName = "BIG" };
+            var text = new DxfDBText
+            {
+                TextString = words,
+                Height = height,
+                TextStyleName = "BIG",
+            };
             text.HorizontalMode = (DxfTextHorizontalMode)horizontal;
             text.VerticalMode = (DxfTextVerticalMode)vertical;
             text.AlignmentPoint = second;
@@ -201,7 +279,13 @@ namespace GeometryHelper.UnitTest.Dxf
         /// <summary>A TEXT 4 high at the origin, left on its baseline, in the style BIG.</summary>
         private static GeoAabb3 Ink(DxfDatabase db, string words)
         {
-            var text = new DxfDBText { TextString = words, Height = 4, TextStyleName = "BIG", Position = P(0, 0) };
+            var text = new DxfDBText
+            {
+                TextString = words,
+                Height = 4,
+                TextStyleName = "BIG",
+                Position = P(0, 0),
+            };
             db.ModelSpace.AppendEntity(text);
             return text.GeometricExtents;
         }
@@ -254,12 +338,16 @@ namespace GeometryHelper.UnitTest.Dxf
                     // gbcbig.shx as foo.shx draws 中 as its question mark): its letters beyond ASCII are not measured.
                     GeoPoint3 unmeasured = Text(Drawing(null, "gbcbig.shx"), "中", 1, 0, P(100, 50)).Position;
                     Is(unmeasured, Text(Drawing(folder, "mybig.shx"), "中", 1, 0, P(100, 50)).Position);
-                    Is(unmeasured, Text(Drawing(folder, Path.Combine(folder, "gbcbig.shx")), "中", 1, 0, P(100, 50)).Position);
+                    Is(
+                        unmeasured,
+                        Text(Drawing(folder, Path.Combine(folder, "gbcbig.shx")), "中", 1, 0, P(100, 50)).Position
+                    );
                     Is(P(94.666666666666671, 50), Text(Drawing(folder, "mybig.shx"), "ABC", 1, 0, P(100, 50)).Position);
                 },
                 F("gbcbig.shx", Chinese()),
                 F("chineset.shx", Chinese()),
-                F("mybig.shx", Chinese()));
+                F("mybig.shx", Chinese())
+            );
         }
 
         [Fact]
@@ -276,7 +364,8 @@ namespace GeometryHelper.UnitTest.Dxf
                     Is(P(100, 50), Text(Drawing(folder, "extfont.shx"), "A", 0, 1, P(100, 50)).Position);
                 },
                 F("gbcbig.shx", Chinese()),
-                F("extfont.shx", Japanese()));
+                F("extfont.shx", Japanese())
+            );
         }
 
         [Fact]
@@ -296,7 +385,8 @@ namespace GeometryHelper.UnitTest.Dxf
                     Is(P(0.26666666666666666, 0), kana.Min);
                     Is(P(2.4, 2.6666666666666665), kana.Max);
                 },
-                F("extfont.shx", Japanese()));
+                F("extfont.shx", Japanese())
+            );
         }
 
         [Fact]
@@ -316,7 +406,8 @@ namespace GeometryHelper.UnitTest.Dxf
                     Is(P(1.3333333333333333, 4), degree.Max);
                     Is(P(1.3333333333333333, 4), Ink(db, "%%d").Max);
                 },
-                F("gbcbig.shx", Chinese()));
+                F("gbcbig.shx", Chinese())
+            );
         }
 
         [Fact]
@@ -333,7 +424,8 @@ namespace GeometryHelper.UnitTest.Dxf
                     Is(P(1.8666666666666667, 2.6666666666666665), mark.Max);
                 },
                 F("gbcbig.shx", Chinese()),
-                F("extfont.shx", Japanese()));
+                F("extfont.shx", Japanese())
+            );
         }
 
         [Fact]
@@ -352,7 +444,8 @@ namespace GeometryHelper.UnitTest.Dxf
                     Is(P(98.333333333333329, 50), Text(db, "~ ", 1, 0, P(100, 50)).Position);
                     Is(P(98.666666666666671, 50), Text(db, "~", 1, 0, P(100, 50)).Position);
                 },
-                F("symbols.shx", Symbols()));
+                F("symbols.shx", Symbols())
+            );
         }
 
         [Fact]
@@ -374,7 +467,8 @@ namespace GeometryHelper.UnitTest.Dxf
                     Is(P(0.8, 0.8), stop.Min);
                     Is(P(0.8, 0.8), stop.Max);
                 },
-                F("extfont.shx", Japanese()));
+                F("extfont.shx", Japanese())
+            );
         }
 
         [Fact]
@@ -393,11 +487,18 @@ namespace GeometryHelper.UnitTest.Dxf
                     Is(P(96.666666666666671, 50), Text(db, "中A", 1, 0, P(100, 50)).Position);
 
                     // An MTEXT is not boxed so: "中A" is 6.167 wide, from 中's ink.
-                    var mtext = new DxfMText { Contents = "中A", TextHeight = 4, TextStyleName = "BIG", Location = P(0, 0) };
+                    var mtext = new DxfMText
+                    {
+                        Contents = "中A",
+                        TextHeight = 4,
+                        TextStyleName = "BIG",
+                        Location = P(0, 0),
+                    };
                     db.ModelSpace.AppendEntity(mtext);
                     Is(6.1666666666666661, mtext.ActualWidth);
                 },
-                F("gbcbig.shx", Chinese()));
+                F("gbcbig.shx", Chinese())
+            );
         }
 
         [Fact]
@@ -409,7 +510,13 @@ namespace GeometryHelper.UnitTest.Dxf
                     DxfDatabase db = Drawing(folder, "gbcbig.shx");
                     DxfMText Made(string contents)
                     {
-                        var mtext = new DxfMText { Contents = contents, TextHeight = 4, TextStyleName = "BIG", Location = P(0, 0) };
+                        var mtext = new DxfMText
+                        {
+                            Contents = contents,
+                            TextHeight = 4,
+                            TextStyleName = "BIG",
+                            Location = P(0, 0),
+                        };
                         db.ModelSpace.AppendEntity(mtext);
                         return mtext;
                     }
@@ -425,7 +532,8 @@ namespace GeometryHelper.UnitTest.Dxf
                     Assert.Equal(0.0, Made((char)0x3000 + "中").ActualWidth);
                     Assert.Equal(0.0, Made("\\M+5D6D0").ActualWidth);
                 },
-                F("gbcbig.shx", Chinese()));
+                F("gbcbig.shx", Chinese())
+            );
         }
 
         [Fact]
@@ -440,7 +548,8 @@ namespace GeometryHelper.UnitTest.Dxf
                     Is(P(100, 52.1), Text(db, "A", 0, 1, P(100, 50), 7).Position);
                 },
                 F("gh.ttf", TrueTypeFile.Font(TrueTypeFile.Letters())),
-                F("gbcbig.shx", Chinese()));
+                F("gbcbig.shx", Chinese())
+            );
         }
 
         [Fact]
@@ -450,11 +559,18 @@ namespace GeometryHelper.UnitTest.Dxf
                 folder =>
                 {
                     // AutoCAD 2021 (F3): times.shx beside gbcbig.shx inked "~!" a third of a unit higher than its glyphs read.
-                    GeoPoint3 unmeasured = Text(Drawing(null, "gbcbig.shx", "shapes.shx"), "AB", 1, 0, P(100, 50)).Position;
+                    GeoPoint3 unmeasured = Text(
+                        Drawing(null, "gbcbig.shx", "shapes.shx"),
+                        "AB",
+                        1,
+                        0,
+                        P(100, 50)
+                    ).Position;
                     Is(unmeasured, Text(Drawing(folder, "gbcbig.shx", "shapes.shx"), "AB", 1, 0, P(100, 50)).Position);
                 },
                 F("shapes.shx", Shapes()),
-                F("gbcbig.shx", Chinese()));
+                F("gbcbig.shx", Chinese())
+            );
         }
 
         [Fact]
@@ -517,9 +633,22 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             var records = new List<KeyValuePair<int, byte[]>>
             {
-                new KeyValuePair<int, byte[]>(0, Encoding.ASCII.GetBytes("GH SHAPES").Concat(new byte[] { 0, 6, 2, 0, 0 }).ToArray()),
-                new KeyValuePair<int, byte[]>('A', new byte[] { 0 }.Concat(Capital).ToArray()),
-                new KeyValuePair<int, byte[]>('B', new byte[] { 0 }.Concat(Capital).ToArray()),
+                new KeyValuePair<int, byte[]>(
+                    0,
+                    Encoding.ASCII.GetBytes("GH SHAPES").Concat(new byte[] { 0, 6, 2, 0, 0 }).ToArray()
+                ),
+                new KeyValuePair<int, byte[]>(
+                    'A',
+                    new byte[] { 0 }
+                        .Concat(Capital)
+                        .ToArray()
+                ),
+                new KeyValuePair<int, byte[]>(
+                    'B',
+                    new byte[] { 0 }
+                        .Concat(Capital)
+                        .ToArray()
+                ),
             };
             var bytes = new List<byte>(Encoding.ASCII.GetBytes("AutoCAD-86 shapes 1.0\r\n\u001A"));
             bytes.AddRange(BitConverter.GetBytes((ushort)0));

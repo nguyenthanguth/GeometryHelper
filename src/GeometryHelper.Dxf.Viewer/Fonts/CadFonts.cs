@@ -36,19 +36,33 @@ namespace GeometryHelper.Dxf.Viewer
 
         // The code page of each big font AutoCAD knows by its name, as the library's measuring reads them: 中 is D6D0 in
         // gbcbig.shx (GBK), A4A4 in chineset.shx (Big5) and 9286 in extfont.shx (Shift-JIS).
-        private static readonly Dictionary<string, int> BigPages = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        private static readonly Dictionary<string, int> BigPages = new Dictionary<string, int>(
+            StringComparer.OrdinalIgnoreCase
+        )
         {
-            { "bigfont", 932 }, { "extfont", 932 }, { "extfont2", 932 }, { "@extfont2", 932 }, { "gbcbig", 936 },
-            { "whgdtxt", 949 }, { "whgtxt", 949 }, { "whtgtxt", 949 }, { "whtmtxt", 949 }, { "chineset", 950 },
+            { "bigfont", 932 },
+            { "extfont", 932 },
+            { "extfont2", 932 },
+            { "@extfont2", 932 },
+            { "gbcbig", 936 },
+            { "whgdtxt", 949 },
+            { "whgtxt", 949 },
+            { "whtgtxt", 949 },
+            { "whtmtxt", 949 },
+            { "chineset", 950 },
         };
 
-        private static readonly Dictionary<string, Kept> Loaded = new Dictionary<string, Kept>(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, Kept> Loaded = new Dictionary<string, Kept>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private static readonly HashSet<string> Unread = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static readonly Lazy<ShxFont> Own = new Lazy<ShxFont>(() => ShxFont.Read(HersheySimplex.Unifont()));
         private static long _clock;
 
         private readonly Func<string, bool> _familyExists;
-        private readonly Dictionary<string, string> _paths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _paths = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private readonly HashSet<string> _reported = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Makes the fonts of a document.</summary>
@@ -56,13 +70,23 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="replacement">The font a font not found is drawn in, as FONTALT: <see cref="BuiltInName"/>, an SHX file (simplex.shx), a TrueType file or a typeface, and after a comma the big font a big font not found is drawn in (simplex.shx,gbcbig.shx); null or empty for the canvas's own.</param>
         /// <param name="substitutions">Fonts drawn in others, each name to the name it is drawn in (romans.shx to isocp.shx); null for none.</param>
         /// <param name="familyExists">Whether the canvas has a TrueType typeface of a name; null to take every typeface as there.</param>
-        public CadFonts(IEnumerable<string> folders, string replacement, IEnumerable<KeyValuePair<string, string>> substitutions, Func<string, bool> familyExists = null)
+        public CadFonts(
+            IEnumerable<string> folders,
+            string replacement,
+            IEnumerable<KeyValuePair<string, string>> substitutions,
+            Func<string, bool> familyExists = null
+        )
         {
-            Folders = (folders ?? Enumerable.Empty<string>()).Where(f => !string.IsNullOrWhiteSpace(f)).Select(f => f.Trim()).ToList();
+            Folders = (folders ?? Enumerable.Empty<string>())
+                .Where(f => !string.IsNullOrWhiteSpace(f))
+                .Select(f => f.Trim())
+                .ToList();
             Replacement = (replacement ?? string.Empty).Trim();
             var table = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (KeyValuePair<string, string> pair in substitutions ?? Enumerable.Empty<KeyValuePair<string, string>>())
+            foreach (
+                KeyValuePair<string, string> pair in substitutions ?? Enumerable.Empty<KeyValuePair<string, string>>()
+            )
             {
                 if (!string.IsNullOrWhiteSpace(pair.Key) && !string.IsNullOrWhiteSpace(pair.Value))
                 {
@@ -104,9 +128,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets whether these fonts are set as another's: the same folders, replacement and substitutions.</summary>
         /// <param name="other">The other fonts.</param>
         /// <returns>True where they are.</returns>
-        public bool IsSetAs(CadFonts other)
-            => other != null && Folders.SequenceEqual(other.Folders, StringComparer.OrdinalIgnoreCase) && string.Equals(Replacement, other.Replacement, StringComparison.OrdinalIgnoreCase)
-               && Substitutions.Count == other.Substitutions.Count && Substitutions.All(p => other.Substitutions.TryGetValue(p.Key, out string v) && string.Equals(v, p.Value, StringComparison.OrdinalIgnoreCase));
+        public bool IsSetAs(CadFonts other) =>
+            other != null
+            && Folders.SequenceEqual(other.Folders, StringComparer.OrdinalIgnoreCase)
+            && string.Equals(Replacement, other.Replacement, StringComparison.OrdinalIgnoreCase)
+            && Substitutions.Count == other.Substitutions.Count
+            && Substitutions.All(p =>
+                other.Substitutions.TryGetValue(p.Key, out string v)
+                && string.Equals(v, p.Value, StringComparison.OrdinalIgnoreCase)
+            );
 
         /// <summary>
         /// Gets these fonts with one more font drawn in another, as a font missing is given its own replacement: the same
@@ -161,13 +191,25 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 lines = File.ReadAllLines(path.Trim());
             }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException || e is NotSupportedException || e is System.Security.SecurityException)
+            catch (Exception e)
+                when (e is IOException
+                    || e is UnauthorizedAccessException
+                    || e is ArgumentException
+                    || e is NotSupportedException
+                    || e is System.Security.SecurityException
+                )
             {
                 lock (Loaded)
                 {
                     if (Unread.Add("fmp|" + path.Trim()))
                     {
-                        GeometryHelperLog.Debug("CadFonts: the font mapping file " + path + " could not be read (" + e.Message + "); no font is mapped by it.");
+                        GeometryHelperLog.Debug(
+                            "CadFonts: the font mapping file "
+                                + path
+                                + " could not be read ("
+                                + e.Message
+                                + "); no font is mapped by it."
+                        );
                     }
                 }
 
@@ -178,9 +220,18 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 int semicolon = line.IndexOf(';');
 
-                if (semicolon > 0 && line.Substring(0, semicolon).Trim().Length > 0 && line.Substring(semicolon + 1).Trim().Length > 0)
+                if (
+                    semicolon > 0
+                    && line.Substring(0, semicolon).Trim().Length > 0
+                    && line.Substring(semicolon + 1).Trim().Length > 0
+                )
                 {
-                    pairs.Add(new KeyValuePair<string, string>(line.Substring(0, semicolon).Trim(), line.Substring(semicolon + 1).Trim()));
+                    pairs.Add(
+                        new KeyValuePair<string, string>(
+                            line.Substring(0, semicolon).Trim(),
+                            line.Substring(semicolon + 1).Trim()
+                        )
+                    );
                 }
             }
 
@@ -231,7 +282,13 @@ namespace GeometryHelper.Dxf.Viewer
                 var file = new FileInfo(path);
                 key = file.FullName + "|" + file.Length + "|" + file.LastWriteTimeUtc.Ticks;
             }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException || e is NotSupportedException || e is System.Security.SecurityException)
+            catch (Exception e)
+                when (e is IOException
+                    || e is UnauthorizedAccessException
+                    || e is ArgumentException
+                    || e is NotSupportedException
+                    || e is System.Security.SecurityException
+                )
             {
                 return null;
             }
@@ -252,7 +309,13 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 font = ShxFont.Read(File.ReadAllBytes(path));
             }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is NotSupportedException || e is System.Security.SecurityException || e is OutOfMemoryException)
+            catch (Exception e)
+                when (e is IOException
+                    || e is UnauthorizedAccessException
+                    || e is NotSupportedException
+                    || e is System.Security.SecurityException
+                    || e is OutOfMemoryException
+                )
             {
                 why = "could not be read (" + e.Message + ")";
             }
@@ -263,7 +326,9 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     if (Unread.Add(key))
                     {
-                        GeometryHelperLog.Debug("CadFonts: the font " + path + " " + why + "; it is taken as not found.");
+                        GeometryHelperLog.Debug(
+                            "CadFonts: the font " + path + " " + why + "; it is taken as not found."
+                        );
                     }
 
                     return null;
@@ -284,9 +349,22 @@ namespace GeometryHelper.Dxf.Viewer
         /// The face a text style is drawn in, and the line to say where its font is not found and is replaced, given once a
         /// font; with fonts off, the style's typeface or file as the canvas takes it.
         /// </summary>
-        internal CadFontFace Resolve(string fileName, string bigFontFileName, string typeface, string drawingFolder, out string report)
+        internal CadFontFace Resolve(
+            string fileName,
+            string bigFontFileName,
+            string typeface,
+            string drawingFolder,
+            out string report
+        )
         {
-            CadFontFace face = Face(fileName, bigFontFileName, typeface, drawingFolder, out CadMissingFont missing, out CadMissingFont missingBig);
+            CadFontFace face = Face(
+                fileName,
+                bigFontFileName,
+                typeface,
+                drawingFolder,
+                out CadMissingFont missing,
+                out CadMissingFont missingBig
+            );
             report = null;
 
             lock (_reported)
@@ -329,18 +407,33 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                Face(style.FileName, style.BigFontFileName, style.Font.TypeFace, drawingFolder, out CadMissingFont missing, out CadMissingFont missingBig);
+                Face(
+                    style.FileName,
+                    style.BigFontFileName,
+                    style.Font.TypeFace,
+                    drawingFolder,
+                    out CadMissingFont missing,
+                    out CadMissingFont missingBig
+                );
 
                 foreach (CadMissingFont font in new[] { missing, missingBig })
                 {
-                    if (font != null && font.IsShx && !found.Any(f => string.Equals(f.Key, font.Key, StringComparison.Ordinal)))
+                    if (
+                        font != null
+                        && font.IsShx
+                        && !found.Any(f => string.Equals(f.Key, font.Key, StringComparison.Ordinal))
+                    )
                     {
                         found.Add(font);
                     }
                 }
             }
 
-            found = found.OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase).ThenBy(f => f.IsBigFont).ThenBy(f => f.Name, StringComparer.Ordinal).ToList();
+            found = found
+                .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(f => f.IsBigFont)
+                .ThenBy(f => f.Name, StringComparer.Ordinal)
+                .ToList();
 
             if (mark)
             {
@@ -357,14 +450,22 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The face a text style is drawn in, found as <see cref="Resolve"/> finds it, a font not found left unsaid.</summary>
-        internal CadFontFace FaceOf(string fileName, string bigFontFileName, string typeface, string drawingFolder) => Face(fileName, bigFontFileName, typeface, drawingFolder, out _, out _);
+        internal CadFontFace FaceOf(string fileName, string bigFontFileName, string typeface, string drawingFolder) =>
+            Face(fileName, bigFontFileName, typeface, drawingFolder, out _, out _);
 
         /// <summary>
         /// The face a text style is drawn in, and its font and big font where they are not found: a font not found drawn in
         /// the first half of <see cref="Replacement"/>, a big font not found in its half after the comma, else its letters as
         /// question marks. With fonts off, the style's typeface or file as the canvas takes it.
         /// </summary>
-        private CadFontFace Face(string fileName, string bigFontFileName, string typeface, string drawingFolder, out CadMissingFont missing, out CadMissingFont missingBig)
+        private CadFontFace Face(
+            string fileName,
+            string bigFontFileName,
+            string typeface,
+            string drawingFolder,
+            out CadMissingFont missing,
+            out CadMissingFont missingBig
+        )
         {
             missing = null;
             missingBig = null;
@@ -385,11 +486,21 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 string alternate = Half(0);
                 CadFontFace replaced = alternate.Length == 0 ? null : Find(alternate, drawingFolder, true, false);
-                string drawnIn = replaced == null ? string.Empty : IsBuiltIn(alternate) ? BuiltInTitle : alternate;
+                string drawnIn =
+                    replaced == null ? string.Empty
+                    : IsBuiltIn(alternate) ? BuiltInTitle
+                    : alternate;
                 string what = named + (substituted ? " (as " + wanted + ")" : string.Empty);
                 string extension = Path.GetExtension(named).ToLowerInvariant();
-                string line = "Font " + what + " not found: using " + (drawnIn.Length == 0 ? "the drawing font" : drawnIn) + ".";
-                missing = new CadMissingFont(named, false, drawnIn, line, !isFamily && (extension.Length == 0 || extension == ".shx"));
+                string line =
+                    "Font " + what + " not found: using " + (drawnIn.Length == 0 ? "the drawing font" : drawnIn) + ".";
+                missing = new CadMissingFont(
+                    named,
+                    false,
+                    drawnIn,
+                    line,
+                    !isFamily && (extension.Length == 0 || extension == ".shx")
+                );
                 face = replaced ?? new CadFontFace(named, null, null, null);
             }
 
@@ -406,7 +517,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 used = Half(1);
                 bigFont = used.Length == 0 ? null : LoadBig(used, drawingFolder);
-                string line = "Big font " + big + " not found: " + (bigFont == null ? "its letters are drawn as question marks." : "using " + used + ".");
+                string line =
+                    "Big font "
+                    + big
+                    + " not found: "
+                    + (bigFont == null ? "its letters are drawn as question marks." : "using " + used + ".");
                 missingBig = new CadMissingFont(big, true, bigFont == null ? string.Empty : used, line, true);
 
                 if (bigFont == null)
@@ -429,7 +544,9 @@ namespace GeometryHelper.Dxf.Viewer
         private string Half(int which)
         {
             int comma = Replacement.IndexOf(',');
-            return comma < 0 ? (which == 0 ? Replacement : string.Empty) : (which == 0 ? Replacement.Substring(0, comma) : Replacement.Substring(comma + 1)).Trim();
+            return comma < 0
+                ? (which == 0 ? Replacement : string.Empty)
+                : (which == 0 ? Replacement.Substring(0, comma) : Replacement.Substring(comma + 1)).Trim();
         }
 
         /// <summary>
@@ -442,7 +559,8 @@ namespace GeometryHelper.Dxf.Viewer
         public static bool IsBuiltIn(string name)
         {
             string trimmed = (name ?? string.Empty).Trim();
-            return string.Equals(trimmed, BuiltInName, StringComparison.OrdinalIgnoreCase) || string.Equals(trimmed, BuiltInName + ".shx", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(trimmed, BuiltInName, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(trimmed, BuiltInName + ".shx", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>A name as <see cref="Substitutions"/> gives it, by its whole name or its name without the extension; the name itself where none is given.</summary>
@@ -475,7 +593,9 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 string path = Locate(name, drawingFolder);
                 string bare = Path.GetFileNameWithoutExtension(name);
-                return path != null ? new CadFontFace(path, null, null, null) : HasFamily(bare) ? new CadFontFace(name, null, null, null) : null;
+                return path != null ? new CadFontFace(path, null, null, null)
+                    : HasFamily(bare) ? new CadFontFace(name, null, null, null)
+                    : null;
             }
 
             if (family && extension.Length == 0 && _familyExists != null && _familyExists(name))
@@ -493,7 +613,9 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            return !shxOnly && family && extension.Length == 0 && HasFamily(name) ? new CadFontFace(name, null, null, null) : null;
+            return !shxOnly && family && extension.Length == 0 && HasFamily(name)
+                ? new CadFontFace(name, null, null, null)
+                : null;
         }
 
         private bool HasFamily(string name) => _familyExists == null || _familyExists(name);
@@ -528,7 +650,13 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
             }
-            catch (Exception e) when (e is ArgumentException || e is NotSupportedException || e is IOException || e is UnauthorizedAccessException || e is System.Security.SecurityException)
+            catch (Exception e)
+                when (e is ArgumentException
+                    || e is NotSupportedException
+                    || e is IOException
+                    || e is UnauthorizedAccessException
+                    || e is System.Security.SecurityException
+                )
             {
                 return null;
             }
@@ -539,7 +667,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The code page AutoCAD reads a big font's letters in, by its bare name; null for a name it knows not, one written with its folder, or a page the runtime has not.</summary>
         private static Encoding PageOf(string name)
         {
-            string bare = name.EndsWith(".shx", StringComparison.OrdinalIgnoreCase) ? name.Substring(0, name.Length - 4) : name;
+            string bare = name.EndsWith(".shx", StringComparison.OrdinalIgnoreCase)
+                ? name.Substring(0, name.Length - 4)
+                : name;
 
             if (name.IndexOfAny(new[] { '\\', '/', ':' }) >= 0 || !BigPages.TryGetValue(bare, out int number))
             {
@@ -548,7 +678,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             try
             {
-                return Encoding.GetEncoding(number, new EncoderReplacementFallback(string.Empty), DecoderFallback.ReplacementFallback);
+                return Encoding.GetEncoding(
+                    number,
+                    new EncoderReplacementFallback(string.Empty),
+                    DecoderFallback.ReplacementFallback
+                );
             }
             catch (Exception e) when (e is ArgumentException || e is NotSupportedException)
             {
@@ -601,15 +735,31 @@ namespace GeometryHelper.Dxf.Viewer
         internal string Line { get; }
 
         /// <summary>What it is said once by: an SHX font by its name without .shx, so that a style's isocp.shx and an MTEXT's \Fisocp are one; else its line.</summary>
-        internal string Key => IsShx ? (IsBigFont ? "big|" : "shx|") + (Name.EndsWith(".shx", StringComparison.OrdinalIgnoreCase) ? Name.Substring(0, Name.Length - 4) : Name).ToUpperInvariant() + "|" + DrawnIn : Line;
+        internal string Key =>
+            IsShx
+                ? (IsBigFont ? "big|" : "shx|")
+                    + (
+                        Name.EndsWith(".shx", StringComparison.OrdinalIgnoreCase)
+                            ? Name.Substring(0, Name.Length - 4)
+                            : Name
+                    ).ToUpperInvariant()
+                    + "|"
+                    + DrawnIn
+                : Line;
 
         /// <summary>Whether the style names it as an SHX file rather than a TrueType file or typeface.</summary>
         internal bool IsShx { get; }
 
         /// <summary>Gets the font as the list of missing SHX files gives it: "romans.shx drawn in GeometryHelper Simplex".</summary>
         /// <returns>The text.</returns>
-        public override string ToString()
-            => Name + (IsBigFont ? " (big font)" : string.Empty) + (DrawnIn.Length > 0 ? " drawn in " + DrawnIn : IsBigFont ? " drawn as question marks" : " drawn in the drawing font");
+        public override string ToString() =>
+            Name
+            + (IsBigFont ? " (big font)" : string.Empty)
+            + (
+                DrawnIn.Length > 0 ? " drawn in " + DrawnIn
+                : IsBigFont ? " drawn as question marks"
+                : " drawn in the drawing font"
+            );
     }
 
     /// <summary>What a text style is drawn in: an SHX font with the big font beside it and its code page, or the name the canvas takes.</summary>

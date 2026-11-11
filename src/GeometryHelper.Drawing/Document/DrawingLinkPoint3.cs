@@ -51,11 +51,11 @@ namespace GeometryHelper.Drawing
         /// <summary>Whether this link point is the same as another: the same object id and the same coordinates to the bit.</summary>
         /// <param name="other">The other link point.</param>
         /// <returns>Whether they are the same.</returns>
-        public bool Equals(DrawingLinkPoint3 other)
-            => string.Equals(ObjectId, other.ObjectId, StringComparison.Ordinal)
-               && DrawingRecordGroups.SameBits(Point.X, other.Point.X)
-               && DrawingRecordGroups.SameBits(Point.Y, other.Point.Y)
-               && DrawingRecordGroups.SameBits(Point.Z, other.Point.Z);
+        public bool Equals(DrawingLinkPoint3 other) =>
+            string.Equals(ObjectId, other.ObjectId, StringComparison.Ordinal)
+            && DrawingRecordGroups.SameBits(Point.X, other.Point.X)
+            && DrawingRecordGroups.SameBits(Point.Y, other.Point.Y)
+            && DrawingRecordGroups.SameBits(Point.Z, other.Point.Z);
 
         /// <summary>Whether an object is a link point the same as this one.</summary>
         /// <param name="obj">The object.</param>

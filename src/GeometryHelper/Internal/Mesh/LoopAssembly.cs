@@ -42,7 +42,7 @@ namespace GeometryHelper.Core
                 yield return reversed;
             }
         }
-        
+
         /// <summary>
         /// How many point tolerances apart the two ends of a gap in a rim may stand to be joined: the crossings of two copies
         /// of one edge a point tolerance apart, met at a slant of fifteen degrees.
@@ -161,7 +161,12 @@ namespace GeometryHelper.Core
         /// where one point for both copies would take the two sides of a wall thinner than the tolerance for one. A loop of
         /// no area is an edge run beside two that make it up, which the surface closes as it is, and is passed over.
         /// </remarks>
-        internal static bool TryCloseSlivers(List<GeoFace3> faces, Tolerance tolerance, Tolerance pieces, out List<GeoFace3> slivers)
+        internal static bool TryCloseSlivers(
+            List<GeoFace3> faces,
+            Tolerance tolerance,
+            Tolerance pieces,
+            out List<GeoFace3> slivers
+        )
         {
             slivers = null;
 
@@ -208,7 +213,11 @@ namespace GeometryHelper.Core
                 int from = (int)(run.Key >> 32);
                 int to = (int)(run.Key & 0xFFFFFFFF);
 
-                for (int extra = run.Value - (runs.TryGetValue(Run(to, from), out int back) ? back : 0); extra > 0; extra--)
+                for (
+                    int extra = run.Value - (runs.TryGetValue(Run(to, from), out int back) ? back : 0);
+                    extra > 0;
+                    extra--
+                )
                 {
                     if (!leaving.TryGetValue(to, out List<int> ends))
                     {
@@ -338,7 +347,12 @@ namespace GeometryHelper.Core
         /// the walk on the outline it is already following and leaves the other to be traced on its own.
         /// </para>
         /// </remarks>
-        internal static bool TryChainLoops(List<GeoLine3> edges, GeoVector3 normal, Tolerance tolerance, out List<List<GeoPoint3>> loops)
+        internal static bool TryChainLoops(
+            List<GeoLine3> edges,
+            GeoVector3 normal,
+            Tolerance tolerance,
+            out List<List<GeoPoint3>> loops
+        )
         {
             loops = new List<List<GeoPoint3>>();
 
@@ -429,7 +443,14 @@ namespace GeometryHelper.Core
         /// carrying straight on is therefore preferred to any turn, and a turn back the way the walk came
         /// is taken only when there is nothing else.
         /// </remarks>
-        private static int PickNextEdge(List<GeoLine3> edges, Dictionary<int, List<int>> leaving, bool[] used, int current, int vertex, GeoVector3 normal)
+        private static int PickNextEdge(
+            List<GeoLine3> edges,
+            Dictionary<int, List<int>> leaving,
+            bool[] used,
+            int current,
+            int vertex,
+            GeoVector3 normal
+        )
         {
             if (!leaving.TryGetValue(vertex, out List<int> candidates))
             {
@@ -501,9 +522,19 @@ namespace GeometryHelper.Core
         /// loops enclose a loop settles it either way — an odd count makes it a hole, an even one makes it
         /// an outer boundary — and the winding is then set to match rather than trusted.
         /// </remarks>
-        internal static List<GeoFace3> AssembleFaces(List<List<GeoPoint3>> loops, GeoVector3 orientation, Tolerance tolerance)
+        internal static List<GeoFace3> AssembleFaces(
+            List<List<GeoPoint3>> loops,
+            GeoVector3 orientation,
+            Tolerance tolerance
+        )
         {
-            Assemble(loops, loop => TryBuildPolygon(loop, orientation, tolerance), tolerance, true, out List<GeoFace3> faces);
+            Assemble(
+                loops,
+                loop => TryBuildPolygon(loop, orientation, tolerance),
+                tolerance,
+                true,
+                out List<GeoFace3> faces
+            );
             return faces;
         }
 
@@ -523,9 +554,18 @@ namespace GeometryHelper.Core
         /// face's holes held to its plane within twice the planar tolerance: a corner a hair one way, another a hair the
         /// other.
         /// </remarks>
-        internal static List<GeoFace3> AssembleFacesIn(List<List<GeoPoint3>> loops, GeoPlane3 plane, Tolerance tolerance)
+        internal static List<GeoFace3> AssembleFacesIn(
+            List<List<GeoPoint3>> loops,
+            GeoPlane3 plane,
+            Tolerance tolerance
+        )
         {
-            var flat = new Tolerance(tolerance.EqualPoint, tolerance.EqualVector, tolerance.EqualAngleRad, 2.0 * tolerance.EqualPlanar);
+            var flat = new Tolerance(
+                tolerance.EqualPoint,
+                tolerance.EqualVector,
+                tolerance.EqualAngleRad,
+                2.0 * tolerance.EqualPlanar
+            );
             Assemble(loops, loop => TryBuildPolygonIn(loop, plane, tolerance), flat, true, out List<GeoFace3> faces);
             return faces;
         }
@@ -538,15 +578,25 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="faces">The faces; null when the method returns false.</param>
         /// <returns>false where a hole stands further than the tolerance off the plane of the loop round it.</returns>
-        internal static bool TryAssembleFaces(List<List<GeoPoint3>> loops, GeoVector3 orientation, Tolerance tolerance, out List<GeoFace3> faces)
-            => Assemble(loops, loop => TryBuildPolygon(loop, orientation, tolerance), tolerance, false, out faces);
+        internal static bool TryAssembleFaces(
+            List<List<GeoPoint3>> loops,
+            GeoVector3 orientation,
+            Tolerance tolerance,
+            out List<GeoFace3> faces
+        ) => Assemble(loops, loop => TryBuildPolygon(loop, orientation, tolerance), tolerance, false, out faces);
 
         /// <param name="loops">The loops.</param>
         /// <param name="build">The polygon of a loop, or null where it makes none.</param>
         /// <param name="tolerance">The tolerance the polygons are nested within and a face's holes held to its plane.</param>
         /// <param name="anyPlane">Whether a hole may stand off the plane of the loop round it.</param>
         /// <param name="faces">The faces; null when the method returns false.</param>
-        private static bool Assemble(List<List<GeoPoint3>> loops, Func<List<GeoPoint3>, GeoPolygon3> build, Tolerance tolerance, bool anyPlane, out List<GeoFace3> faces)
+        private static bool Assemble(
+            List<List<GeoPoint3>> loops,
+            Func<List<GeoPoint3>, GeoPolygon3> build,
+            Tolerance tolerance,
+            bool anyPlane,
+            out List<GeoFace3> faces
+        )
         {
             faces = null;
             List<GeoPolygon3> polygons = new List<GeoPolygon3>();
@@ -661,7 +711,11 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < corners.Count; i++)
             {
-                PointLocation location = Containment3.Locate(outer, corners[i].GetMiddlePoint(corners[(i + 1) % corners.Count]), tolerance);
+                PointLocation location = Containment3.Locate(
+                    outer,
+                    corners[i].GetMiddlePoint(corners[(i + 1) % corners.Count]),
+                    tolerance
+                );
 
                 if (location == PointLocation.Inside)
                 {
@@ -711,7 +765,10 @@ namespace GeometryHelper.Core
             {
                 foreach (GeoPoint3 vertex in polygon.Vertices)
                 {
-                    size = Math.Max(size, Math.Max(Math.Abs(vertex.X), Math.Max(Math.Abs(vertex.Y), Math.Abs(vertex.Z))));
+                    size = Math.Max(
+                        size,
+                        Math.Max(Math.Abs(vertex.X), Math.Max(Math.Abs(vertex.Y), Math.Abs(vertex.Z)))
+                    );
                 }
             }
 
@@ -831,10 +888,15 @@ namespace GeometryHelper.Core
 
                 foreach (int j in open)
                 {
-                    if (j != i
-                        && corner[0][i] >= low[0][j] && corner[0][i] <= high[0][j]
-                        && corner[1][i] >= low[1][j] && corner[1][i] <= high[1][j]
-                        && corner[2][i] >= low[2][j] && corner[2][i] <= high[2][j])
+                    if (
+                        j != i
+                        && corner[0][i] >= low[0][j]
+                        && corner[0][i] <= high[0][j]
+                        && corner[1][i] >= low[1][j]
+                        && corner[1][i] <= high[1][j]
+                        && corner[2][i] >= low[2][j]
+                        && corner[2][i] <= high[2][j]
+                    )
                     {
                         within[j].Add(i);
                     }
@@ -864,12 +926,13 @@ namespace GeometryHelper.Core
         /// them, or it would be on it, so its area is at least half the two together; an eighth keeps every one
         /// and still refuses what rounding leaves of three points in a line.
         /// </remarks>
-        internal static Tolerance ForPieces(Tolerance tolerance)
-            => new Tolerance(
+        internal static Tolerance ForPieces(Tolerance tolerance) =>
+            new Tolerance(
                 tolerance.EqualPoint,
                 Math.Min(tolerance.EqualVector, tolerance.EqualPoint * tolerance.EqualPlanar * 0.125),
                 tolerance.EqualAngleRad,
-                tolerance.EqualPlanar);
+                tolerance.EqualPlanar
+            );
 
         /// <summary>
         /// Gets the tolerance the pieces of a face cut in two are built within: the one given, with three times its planar
@@ -883,8 +946,13 @@ namespace GeometryHelper.Core
         /// face of a turned column was 0.0146 out of flat, it was refused, and the half it belonged to could not close. A
         /// piece can be no further out of flat than the face it is cut from.
         /// </remarks>
-        internal static Tolerance ForFacePieces(Tolerance tolerance)
-            => new Tolerance(tolerance.EqualPoint, tolerance.EqualVector, tolerance.EqualAngleRad, 3.0 * tolerance.EqualPlanar);
+        internal static Tolerance ForFacePieces(Tolerance tolerance) =>
+            new Tolerance(
+                tolerance.EqualPoint,
+                tolerance.EqualVector,
+                tolerance.EqualAngleRad,
+                3.0 * tolerance.EqualPlanar
+            );
 
         /// <summary>
         /// Builds a polygon from a walked loop, matching the orientation asked for.
@@ -1024,7 +1092,8 @@ namespace GeometryHelper.Core
 
                 foreach (GeoLine3 edge in edges)
                 {
-                    double a = Coordinate(edge.StartPoint, candidate), b = Coordinate(edge.EndPoint, candidate);
+                    double a = Coordinate(edge.StartPoint, candidate),
+                        b = Coordinate(edge.EndPoint, candidate);
                     tried += UpperBound(along, Math.Max(a, b) + reach) - LowerBound(along, Math.Min(a, b) - reach);
                 }
 
@@ -1049,13 +1118,21 @@ namespace GeometryHelper.Core
             {
                 cuts.Clear();
 
-                GeoPoint3 a = edge.StartPoint, b = edge.EndPoint;
-                double minX = Math.Min(a.X, b.X) - reach, maxX = Math.Max(a.X, b.X) + reach;
-                double minY = Math.Min(a.Y, b.Y) - reach, maxY = Math.Max(a.Y, b.Y) + reach;
-                double minZ = Math.Min(a.Z, b.Z) - reach, maxZ = Math.Max(a.Z, b.Z) + reach;
+                GeoPoint3 a = edge.StartPoint,
+                    b = edge.EndPoint;
+                double minX = Math.Min(a.X, b.X) - reach,
+                    maxX = Math.Max(a.X, b.X) + reach;
+                double minY = Math.Min(a.Y, b.Y) - reach,
+                    maxY = Math.Max(a.Y, b.Y) + reach;
+                double minZ = Math.Min(a.Z, b.Z) - reach,
+                    maxZ = Math.Max(a.Z, b.Z) + reach;
                 double high = Math.Max(Coordinate(a, axis), Coordinate(b, axis)) + reach;
 
-                for (int k = LowerBound(along, Math.Min(Coordinate(a, axis), Coordinate(b, axis)) - reach); k < count && along[k] <= high; k++)
+                for (
+                    int k = LowerBound(along, Math.Min(Coordinate(a, axis), Coordinate(b, axis)) - reach);
+                    k < count && along[k] <= high;
+                    k++
+                )
                 {
                     GeoPoint3 end = ends[k];
 
@@ -1079,14 +1156,18 @@ namespace GeometryHelper.Core
             edges.AddRange(resolved);
         }
 
-        private static double Coordinate(GeoPoint3 point, int axis) => axis == 0 ? point.X : axis == 1 ? point.Y : point.Z;
+        private static double Coordinate(GeoPoint3 point, int axis) =>
+            axis == 0 ? point.X
+            : axis == 1 ? point.Y
+            : point.Z;
 
         /// <summary>
         /// Gets the first position in a sorted array holding a value larger than a given one.
         /// </summary>
         private static int UpperBound(double[] sorted, double value)
         {
-            int low = 0, high = sorted.Length;
+            int low = 0,
+                high = sorted.Length;
 
             while (low < high)
             {
@@ -1110,7 +1191,8 @@ namespace GeometryHelper.Core
         /// </summary>
         private static int LowerBound(double[] sorted, double value)
         {
-            int low = 0, high = sorted.Length;
+            int low = 0,
+                high = sorted.Length;
 
             while (low < high)
             {
@@ -1142,7 +1224,8 @@ namespace GeometryHelper.Core
         /// still cancels. See <see cref="SplitAtEdgeEnds"/>.
         /// </para>
         /// </remarks>
-        internal static void CancelOpposedEdges(List<GeoLine3> edges, Tolerance tolerance) => CancelOpposedEdges(edges, tolerance, out _);
+        internal static void CancelOpposedEdges(List<GeoLine3> edges, Tolerance tolerance) =>
+            CancelOpposedEdges(edges, tolerance, out _);
 
         /// <summary>
         /// Removes pairs of edges that run the same stretch in opposite directions, and says how much area the pairs that
@@ -1191,8 +1274,10 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    if (edges[i].StartPoint.IsEqualTo(edges[j].EndPoint, tolerance) &&
-                        edges[i].EndPoint.IsEqualTo(edges[j].StartPoint, tolerance))
+                    if (
+                        edges[i].StartPoint.IsEqualTo(edges[j].EndPoint, tolerance)
+                        && edges[i].EndPoint.IsEqualTo(edges[j].StartPoint, tolerance)
+                    )
                     {
                         dropped[i] = true;
                         dropped[j] = true;
@@ -1259,9 +1344,11 @@ namespace GeometryHelper.Core
 
                 foreach (int j in near)
                 {
-                    if (j > i &&
-                        edges[i].StartPoint.IsEqualTo(edges[j].EndPoint, tolerance) &&
-                        edges[i].EndPoint.IsEqualTo(edges[j].StartPoint, tolerance))
+                    if (
+                        j > i
+                        && edges[i].StartPoint.IsEqualTo(edges[j].EndPoint, tolerance)
+                        && edges[i].EndPoint.IsEqualTo(edges[j].StartPoint, tolerance)
+                    )
                     {
                         GeoVector3 across = edges[i].StartPoint.GetVectorTo(edges[j].StartPoint);
                         GeoVector3 back = edges[i].EndPoint.GetVectorTo(edges[j].EndPoint);
@@ -1270,8 +1357,12 @@ namespace GeometryHelper.Core
                 }
             }
 
-            pairs.Sort((a, b) => a.Between != b.Between ? a.Between.CompareTo(b.Between)
-                : a.First != b.First ? a.First.CompareTo(b.First) : a.Second.CompareTo(b.Second));
+            pairs.Sort(
+                (a, b) =>
+                    a.Between != b.Between ? a.Between.CompareTo(b.Between)
+                    : a.First != b.First ? a.First.CompareTo(b.First)
+                    : a.Second.CompareTo(b.Second)
+            );
 
             bool[] dropped = new bool[edges.Count];
 

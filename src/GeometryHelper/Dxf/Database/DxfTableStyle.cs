@@ -35,7 +35,12 @@ namespace GeometryHelper.Dxf
         private static readonly int[] CellCodes = { 7, 140, 170, 62, 63, 283, 90, 91, 1 };
 
         // The place of each kind of row among the three cells of the record: the data's first, then the title's and the header's.
-        private static readonly DxfRowType[] Written = { DxfRowType.DataRow, DxfRowType.TitleRow, DxfRowType.HeaderRow };
+        private static readonly DxfRowType[] Written =
+        {
+            DxfRowType.DataRow,
+            DxfRowType.TitleRow,
+            DxfRowType.HeaderRow,
+        };
 
         private Model _made;
 
@@ -50,9 +55,7 @@ namespace GeometryHelper.Dxf
         }
 
         internal DxfTableStyle(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets the name of the style, as AutoCAD's <c>Name</c>: the name of its entry in the dictionary that owns it, as
@@ -64,7 +67,12 @@ namespace GeometryHelper.Dxf
             {
                 string owner = Item == null ? null : OwnerHandle;
 
-                if (owner != null && IsResident && Item.File.Database.TryGetObject(owner, out DxfDBObject found) && found is DxfDBDictionary dictionary)
+                if (
+                    owner != null
+                    && IsResident
+                    && Item.File.Database.TryGetObject(owner, out DxfDBObject found)
+                    && found is DxfDBDictionary dictionary
+                )
                 {
                     return dictionary.NameOf(this);
                 }
@@ -103,7 +111,11 @@ namespace GeometryHelper.Dxf
             {
                 if (value != DxfFlowDirection.TopToBottom && value != DxfFlowDirection.BottomToTop)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The rows of a table run TopToBottom or BottomToTop.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "The rows of a table run TopToBottom or BottomToTop."
+                    );
                 }
 
                 Change(m => m.SetHead(70, value == DxfFlowDirection.BottomToTop ? "1" : "0"));
@@ -219,7 +231,9 @@ namespace GeometryHelper.Dxf
         {
             int kind = Kind(rowType, nameof(rowType));
             int value = Whole(Read().Cell(kind, 170), kind == 0 ? 2 : 5);
-            return value >= 1 && value <= 9 ? (DxfCellAlignment)value : kind == 0 ? DxfCellAlignment.TopCenter : DxfCellAlignment.MiddleCenter;
+            return value >= 1 && value <= 9 ? (DxfCellAlignment)value
+                : kind == 0 ? DxfCellAlignment.TopCenter
+                : DxfCellAlignment.MiddleCenter;
         }
 
         /// <summary>Sets where the content of the cells of kinds of row stands, as AutoCAD's <c>SetAlignment(alignment, rowTypes)</c>.</summary>
@@ -231,7 +245,11 @@ namespace GeometryHelper.Dxf
         {
             if ((int)alignment < 1 || (int)alignment > 9)
             {
-                throw new ArgumentOutOfRangeException(nameof(alignment), alignment, "A cell's content is aligned at one of nine places, TopLeft to BottomRight.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(alignment),
+                    alignment,
+                    "A cell's content is aligned at one of nine places, TopLeft to BottomRight."
+                );
             }
 
             SetCells(rowTypes, 170, ((int)alignment).ToString(CultureInfo.InvariantCulture));
@@ -241,7 +259,8 @@ namespace GeometryHelper.Dxf
         /// <param name="rowType">The kind: one of the three.</param>
         /// <returns>The colour.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the kind is not one of the three.</exception>
-        public DxfColor Color(DxfRowType rowType) => DxfColor.OfIndex(Whole(Read().Cell(Kind(rowType, nameof(rowType)), 62), 0));
+        public DxfColor Color(DxfRowType rowType) =>
+            DxfColor.OfIndex(Whole(Read().Cell(Kind(rowType, nameof(rowType)), 62), 0));
 
         /// <summary>Sets the colour of the text of kinds of row, as AutoCAD's <c>SetColor(color, rowTypes)</c>.</summary>
         /// <param name="color">The colour: of the index, by layer or by block.</param>
@@ -250,13 +269,15 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when the colour is a true colour or none.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the kinds are none or hold a flag none of the three has.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
-        public void SetColor(DxfColor color, DxfRowType rowTypes) => SetCells(rowTypes, 62, IndexOf(color, nameof(color)));
+        public void SetColor(DxfColor color, DxfRowType rowTypes) =>
+            SetCells(rowTypes, 62, IndexOf(color, nameof(color)));
 
         /// <summary>Gets the colour the cells of a kind of row are filled with (group 63), as AutoCAD's <c>BackgroundColor(rowType)</c>; 7 where the record gives none.</summary>
         /// <param name="rowType">The kind: one of the three.</param>
         /// <returns>The colour.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the kind is not one of the three.</exception>
-        public DxfColor BackgroundColor(DxfRowType rowType) => DxfColor.OfIndex(Whole(Read().Cell(Kind(rowType, nameof(rowType)), 63), 7));
+        public DxfColor BackgroundColor(DxfRowType rowType) =>
+            DxfColor.OfIndex(Whole(Read().Cell(Kind(rowType, nameof(rowType)), 63), 7));
 
         /// <summary>Sets the colour the cells of kinds of row are filled with and turns the fill on, as AutoCAD's <c>SetBackgroundColor(color, rowTypes)</c>.</summary>
         /// <param name="color">The colour: of the index, by layer or by block.</param>
@@ -283,22 +304,27 @@ namespace GeometryHelper.Dxf
         /// <param name="rowType">The kind: one of the three.</param>
         /// <returns>Whether they are unfilled.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the kind is not one of the three.</exception>
-        public bool IsBackgroundColorNone(DxfRowType rowType) => Whole(Read().Cell(Kind(rowType, nameof(rowType)), 283), 0) == 0;
+        public bool IsBackgroundColorNone(DxfRowType rowType) =>
+            Whole(Read().Cell(Kind(rowType, nameof(rowType)), 283), 0) == 0;
 
         /// <summary>Sets whether the cells of kinds of row are left unfilled, as AutoCAD's <c>SetBackgroundColorNone(value, rowTypes)</c>.</summary>
         /// <param name="value">Whether they are unfilled.</param>
         /// <param name="rowTypes">The kinds, one or more of the three.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the kinds are none or hold a flag none of the three has.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
-        public void SetBackgroundColorNone(bool value, DxfRowType rowTypes) => SetCells(rowTypes, 283, value ? "0" : "1");
+        public void SetBackgroundColorNone(bool value, DxfRowType rowTypes) =>
+            SetCells(rowTypes, 283, value ? "0" : "1");
 
         /// <summary>Gets the lineweight of a line of a kind of row (groups 274 to 279), as AutoCAD's <c>GridLineWeight(gridLineType, rowType)</c>; by block where the record gives none.</summary>
         /// <param name="gridLineType">The line: one of the six.</param>
         /// <param name="rowType">The kind: one of the three.</param>
         /// <returns>The lineweight.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the line is not one of the six, or the kind not one of the three.</exception>
-        public DxfLineWeight GridLineWeight(DxfGridLineType gridLineType, DxfRowType rowType)
-            => (DxfLineWeight)Whole(Read().Cell(Kind(rowType, nameof(rowType)), 274 + Line(gridLineType, nameof(gridLineType))), (int)DxfLineWeight.ByBlock);
+        public DxfLineWeight GridLineWeight(DxfGridLineType gridLineType, DxfRowType rowType) =>
+            (DxfLineWeight)Whole(
+                Read().Cell(Kind(rowType, nameof(rowType)), 274 + Line(gridLineType, nameof(gridLineType))),
+                (int)DxfLineWeight.ByBlock
+            );
 
         /// <summary>Sets the lineweight of lines of kinds of row, as AutoCAD's <c>SetGridLineWeight(lineWeight, borders, rowTypes)</c>.</summary>
         /// <param name="lineWeight">The lineweight.</param>
@@ -306,16 +332,16 @@ namespace GeometryHelper.Dxf
         /// <param name="rowTypes">The kinds, one or more of the three.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the lines or the kinds are none or hold a flag none of their own has.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
-        public void SetGridLineWeight(DxfLineWeight lineWeight, DxfGridLineType borders, DxfRowType rowTypes)
-            => SetLines(borders, rowTypes, 274, ((int)lineWeight).ToString(CultureInfo.InvariantCulture));
+        public void SetGridLineWeight(DxfLineWeight lineWeight, DxfGridLineType borders, DxfRowType rowTypes) =>
+            SetLines(borders, rowTypes, 274, ((int)lineWeight).ToString(CultureInfo.InvariantCulture));
 
         /// <summary>Gets whether a line of a kind of row is drawn (groups 284 to 289), as AutoCAD's <c>GridVisibility(gridLineType, rowType)</c>; drawn where the record gives none.</summary>
         /// <param name="gridLineType">The line: one of the six.</param>
         /// <param name="rowType">The kind: one of the three.</param>
         /// <returns>Whether it is drawn.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the line is not one of the six, or the kind not one of the three.</exception>
-        public bool GridVisibility(DxfGridLineType gridLineType, DxfRowType rowType)
-            => Whole(Read().Cell(Kind(rowType, nameof(rowType)), 284 + Line(gridLineType, nameof(gridLineType))), 1) != 0;
+        public bool GridVisibility(DxfGridLineType gridLineType, DxfRowType rowType) =>
+            Whole(Read().Cell(Kind(rowType, nameof(rowType)), 284 + Line(gridLineType, nameof(gridLineType))), 1) != 0;
 
         /// <summary>Sets whether lines of kinds of row are drawn, as AutoCAD's <c>SetGridVisibility(visible, borders, rowTypes)</c>.</summary>
         /// <param name="visible">Whether they are drawn.</param>
@@ -323,15 +349,18 @@ namespace GeometryHelper.Dxf
         /// <param name="rowTypes">The kinds, one or more of the three.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the lines or the kinds are none or hold a flag none of their own has.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
-        public void SetGridVisibility(bool visible, DxfGridLineType borders, DxfRowType rowTypes) => SetLines(borders, rowTypes, 284, visible ? "1" : "0");
+        public void SetGridVisibility(bool visible, DxfGridLineType borders, DxfRowType rowTypes) =>
+            SetLines(borders, rowTypes, 284, visible ? "1" : "0");
 
         /// <summary>Gets the colour of a line of a kind of row (groups 64 to 69), as AutoCAD's <c>GridColor(gridLineType, rowType)</c>; by block where the record gives none.</summary>
         /// <param name="gridLineType">The line: one of the six.</param>
         /// <param name="rowType">The kind: one of the three.</param>
         /// <returns>The colour.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the line is not one of the six, or the kind not one of the three.</exception>
-        public DxfColor GridColor(DxfGridLineType gridLineType, DxfRowType rowType)
-            => DxfColor.OfIndex(Whole(Read().Cell(Kind(rowType, nameof(rowType)), 64 + Line(gridLineType, nameof(gridLineType))), 0));
+        public DxfColor GridColor(DxfGridLineType gridLineType, DxfRowType rowType) =>
+            DxfColor.OfIndex(
+                Whole(Read().Cell(Kind(rowType, nameof(rowType)), 64 + Line(gridLineType, nameof(gridLineType))), 0)
+            );
 
         /// <summary>Sets the colour of lines of kinds of row, as AutoCAD's <c>SetGridColor(color, borders, rowTypes)</c>.</summary>
         /// <param name="color">The colour: of the index, by layer or by block.</param>
@@ -341,7 +370,8 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when the colour is a true colour or none.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the lines or the kinds are none or hold a flag none of their own has.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
-        public void SetGridColor(DxfColor color, DxfGridLineType borders, DxfRowType rowTypes) => SetLines(borders, rowTypes, 64, IndexOf(color, nameof(color)));
+        public void SetGridColor(DxfColor color, DxfGridLineType borders, DxfRowType rowTypes) =>
+            SetLines(borders, rowTypes, 64, IndexOf(color, nameof(color)));
 
         /// <summary>Gives the style as a line for debugging: its type and its handle.</summary>
         /// <returns>The line, such as <c>TABLESTYLE 7E</c>.</returns>
@@ -405,7 +435,11 @@ namespace GeometryHelper.Dxf
 
             if (lines <= 0 || (lines & ~63) != 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(borders), borders, "The lines are one or more of the six of DxfGridLineType.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(borders),
+                    borders,
+                    "The lines are one or more of the six of DxfGridLineType."
+                );
             }
 
             int[] kinds = Kinds(rowTypes, nameof(rowTypes));
@@ -453,7 +487,11 @@ namespace GeometryHelper.Dxf
 
             if (at < 0)
             {
-                throw new ArgumentOutOfRangeException(parameter, rowType, "The rows are of one kind: TitleRow, HeaderRow or DataRow.");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    rowType,
+                    "The rows are of one kind: TitleRow, HeaderRow or DataRow."
+                );
             }
 
             return at;
@@ -466,7 +504,11 @@ namespace GeometryHelper.Dxf
 
             if (flags <= 0 || (flags & ~7) != 0)
             {
-                throw new ArgumentOutOfRangeException(parameter, rowTypes, "The rows are one or more of TitleRow, HeaderRow and DataRow.");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    rowTypes,
+                    "The rows are one or more of TitleRow, HeaderRow and DataRow."
+                );
             }
 
             var kinds = new List<int>(3);
@@ -493,7 +535,11 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            throw new ArgumentOutOfRangeException(parameter, line, "A line of the rows of a kind is one of the six of DxfGridLineType alone.");
+            throw new ArgumentOutOfRangeException(
+                parameter,
+                line,
+                "A line of the rows of a kind is one of the six of DxfGridLineType alone."
+            );
         }
 
         private static string IndexOf(DxfColor color, string parameter)
@@ -511,15 +557,20 @@ namespace GeometryHelper.Dxf
                 case DxfColorMethod.Foreground:
                     return color.ColorIndex.ToString(CultureInfo.InvariantCulture);
                 default:
-                    throw new ArgumentException("A table style writes a colour of AutoCAD's index: " + color + " is not one.", parameter);
+                    throw new ArgumentException(
+                        "A table style writes a colour of AutoCAD's index: " + color + " is not one.",
+                        parameter
+                    );
             }
         }
 
-        private static int Whole(string text, int otherwise)
-            => int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : otherwise;
+        private static int Whole(string text, int otherwise) =>
+            int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : otherwise;
 
-        private static double Real(string text, double otherwise)
-            => Numbers.TryRead(text, out double value) && Guard.IsFinite(value) ? value : otherwise;
+        private static double Real(string text, double otherwise) =>
+            Numbers.TryRead(text, out double value) && Guard.IsFinite(value) ? value : otherwise;
 
         /// <summary>
         /// The groups of a TABLESTYLE after its subclass marker: its own (the head), the cells of the data, the title and the
@@ -528,7 +579,12 @@ namespace GeometryHelper.Dxf
         private sealed class Model
         {
             private readonly List<KeyValuePair<int, string>> _head = new List<KeyValuePair<int, string>>();
-            private readonly List<KeyValuePair<int, string>>[] _cells = { new List<KeyValuePair<int, string>>(), new List<KeyValuePair<int, string>>(), new List<KeyValuePair<int, string>>() };
+            private readonly List<KeyValuePair<int, string>>[] _cells =
+            {
+                new List<KeyValuePair<int, string>>(),
+                new List<KeyValuePair<int, string>>(),
+                new List<KeyValuePair<int, string>>(),
+            };
             private readonly List<KeyValuePair<int, string>> _rest = new List<KeyValuePair<int, string>>();
 
             private Model(bool metric)
@@ -540,7 +596,8 @@ namespace GeometryHelper.Dxf
             internal bool Metric { get; }
 
             /// <summary>The height AutoCAD's Standard gives the text of a kind of row: the data's and the header's 4.5 and the title's 6 in millimetres, 0.18 and 0.25 in inches.</summary>
-            internal static double StandardHeight(int kind, bool metric) => kind == 1 ? (metric ? 6.0 : 0.25) : (metric ? 4.5 : 0.18);
+            internal static double StandardHeight(int kind, bool metric) =>
+                kind == 1 ? (metric ? 6.0 : 0.25) : (metric ? 4.5 : 0.18);
 
             /// <summary>AutoCAD's Standard, every group written.</summary>
             internal static Model Standard(bool metric, bool valued)
@@ -558,7 +615,9 @@ namespace GeometryHelper.Dxf
                 for (int kind = 0; kind < 3; kind++)
                 {
                     model._cells[kind].Add(new KeyValuePair<int, string>(7, "Standard"));
-                    model._cells[kind].Add(new KeyValuePair<int, string>(140, DxfTable.AsReal(StandardHeight(kind, metric))));
+                    model
+                        ._cells[kind]
+                        .Add(new KeyValuePair<int, string>(140, DxfTable.AsReal(StandardHeight(kind, metric))));
                     model._cells[kind].Add(new KeyValuePair<int, string>(170, kind == 0 ? "2" : "5"));
                 }
 
@@ -591,9 +650,14 @@ namespace GeometryHelper.Dxf
                         }
 
                         described |= group.Key == 3 || group.Key == 70 || group.Key == 40;
-                        model._head.Add(new KeyValuePair<int, string>(group.Key == 280 ? -280 : group.Key, group.Value));
+                        model._head.Add(
+                            new KeyValuePair<int, string>(group.Key == 280 ? -280 : group.Key, group.Value)
+                        );
                     }
-                    else if (model._rest.Count == 0 && (Array.IndexOf(CellCodes, group.Key) >= 0 || IsLineCode(group.Key)))
+                    else if (
+                        model._rest.Count == 0
+                        && (Array.IndexOf(CellCodes, group.Key) >= 0 || IsLineCode(group.Key))
+                    )
                     {
                         model._cells[cell].Add(group);
                     }
@@ -640,7 +704,15 @@ namespace GeometryHelper.Dxf
 
                 foreach (KeyValuePair<int, string> group in _head)
                 {
-                    if (group.Key != 3 && group.Key != 70 && group.Key != 71 && group.Key != 40 && group.Key != 41 && group.Key != -280 && group.Key != 281)
+                    if (
+                        group.Key != 3
+                        && group.Key != 70
+                        && group.Key != 71
+                        && group.Key != 40
+                        && group.Key != 41
+                        && group.Key != -280
+                        && group.Key != 281
+                    )
                     {
                         groups.Add(group);
                     }
@@ -649,7 +721,12 @@ namespace GeometryHelper.Dxf
                 for (int kind = 0; kind < 3; kind++)
                 {
                     groups.Add(new KeyValuePair<int, string>(7, Cell(kind, 7) ?? "Standard"));
-                    groups.Add(new KeyValuePair<int, string>(140, Cell(kind, 140) ?? DxfTable.AsReal(StandardHeight(kind, Metric))));
+                    groups.Add(
+                        new KeyValuePair<int, string>(
+                            140,
+                            Cell(kind, 140) ?? DxfTable.AsReal(StandardHeight(kind, Metric))
+                        )
+                    );
                     groups.Add(new KeyValuePair<int, string>(170, Cell(kind, 170) ?? (kind == 0 ? "2" : "5")));
                     groups.Add(new KeyValuePair<int, string>(62, Cell(kind, 62) ?? "0"));
                     groups.Add(new KeyValuePair<int, string>(63, Cell(kind, 63) ?? "7"));
@@ -674,7 +751,8 @@ namespace GeometryHelper.Dxf
                 return groups;
             }
 
-            private static bool IsLineCode(int code) => (code >= 274 && code <= 279) || (code >= 284 && code <= 289) || (code >= 64 && code <= 69);
+            private static bool IsLineCode(int code) =>
+                (code >= 274 && code <= 279) || (code >= 284 && code <= 289) || (code >= 64 && code <= 69);
 
             private static string Find(List<KeyValuePair<int, string>> groups, int code)
             {

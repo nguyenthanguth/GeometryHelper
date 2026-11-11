@@ -23,20 +23,45 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class ShortSegmentG1wjTests
     {
-        private static readonly Tolerance Hundredth = new Tolerance(1E-2, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-2);
+        private static readonly Tolerance Hundredth = new Tolerance(
+            1E-2,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-2
+        );
 
         private static readonly GeoPoint3 Beside = new GeoPoint3(10.03, 0.003, 0);
 
-        private static GeoPolyline3 Hook() => new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 0.006, 0));
+        private static GeoPolyline3 Hook() =>
+            new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 0.006, 0));
 
-        private static GeoPolyline3 Hairpin()
-            => new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 0.006, 0), new GeoPoint3(0, 0.006, 0));
+        private static GeoPolyline3 Hairpin() =>
+            new GeoPolyline3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 0.006, 0),
+                new GeoPoint3(0, 0.006, 0)
+            );
 
-        private static GeoPolyline3 SmallHairpin()
-            => new GeoPolyline3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 0.0006, 0), new GeoPoint3(0, 0.0006, 0) }, true);
+        private static GeoPolyline3 SmallHairpin() =>
+            new GeoPolyline3(
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 0.0006, 0),
+                    new GeoPoint3(0, 0.0006, 0),
+                },
+                true
+            );
 
-        private static GeoPolygon3 Polygon()
-            => new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 0.006, 0), new GeoPoint3(0, 10, 0));
+        private static GeoPolygon3 Polygon() =>
+            new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 0.006, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
         private static void AssertAt(double x, double y, double z, GeoPoint3 actual)
         {
@@ -76,7 +101,14 @@ namespace GeometryHelper.UnitTest.Solid
         public void APolylineWithAShortLastLegCutByAPlane_EndsItsLastPieceWhereThePolylineEnds()
         {
             // The cuts by a plane, a body or a box go through the same cutting at a distance.
-            Assert.True(Hook().TrySplitBy(new GeoPlane3(new GeoPoint3(5, 0, 0), new GeoVector3(1, 0, 0)), out GeoPolyline3[] pieces, Hundredth));
+            Assert.True(
+                Hook()
+                    .TrySplitBy(
+                        new GeoPlane3(new GeoPoint3(5, 0, 0), new GeoVector3(1, 0, 0)),
+                        out GeoPolyline3[] pieces,
+                        Hundredth
+                    )
+            );
 
             Assert.Equal(2, pieces.Length);
             AssertAt(10, 0.006, 0, pieces[1].EndPoint);
@@ -133,7 +165,9 @@ namespace GeometryHelper.UnitTest.Solid
             foreach (GeoPolygon3 piece in pieces)
             {
                 Assert.Contains(start, piece.Vertices);
-                Assert.DoesNotContain(piece.Vertices, corner => corner.DistanceTo(new GeoPoint3(10, 0.003, 0)) <= 1E-12);
+                Assert.DoesNotContain(piece.Vertices, corner =>
+                    corner.DistanceTo(new GeoPoint3(10, 0.003, 0)) <= 1E-12
+                );
             }
         }
     }

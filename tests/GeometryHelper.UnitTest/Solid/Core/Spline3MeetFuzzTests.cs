@@ -36,7 +36,10 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class Spline3MeetFuzzTests
     {
-        private static readonly int Multiplier = int.TryParse(Environment.GetEnvironmentVariable("SPLINE_FUZZ_DRAWS"), out int asked) && asked > 0 ? asked : 1;
+        private static readonly int Multiplier =
+            int.TryParse(Environment.GetEnvironmentVariable("SPLINE_FUZZ_DRAWS"), out int asked) && asked > 0
+                ? asked
+                : 1;
 
         private readonly ITestOutputHelper _output;
         private int _extra;
@@ -60,9 +63,23 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static long Bits(double value) => BitConverter.DoubleToInt64Bits(value);
 
-        private static bool SameBits(GeoPoint3 p, GeoPoint3 q) => Bits(p.X) == Bits(q.X) && Bits(p.Y) == Bits(q.Y) && Bits(p.Z) == Bits(q.Z);
+        private static bool SameBits(GeoPoint3 p, GeoPoint3 q) =>
+            Bits(p.X) == Bits(q.X) && Bits(p.Y) == Bits(q.Y) && Bits(p.Z) == Bits(q.Z);
 
-        private static string Name(SplineOracle o, string kind, int draw) => kind + ", draw " + draw + ": degree " + o.Degree + ", " + o.Count + " points " + string.Join(" ", o.Points.Select(v => v.ToString("R"))) + ", knots " + string.Join(" ", o.Knots.Select(v => v.ToString("R"))) + ", weights " + string.Join(" ", o.Weights.Select(v => v.ToString("R")));
+        private static string Name(SplineOracle o, string kind, int draw) =>
+            kind
+            + ", draw "
+            + draw
+            + ": degree "
+            + o.Degree
+            + ", "
+            + o.Count
+            + " points "
+            + string.Join(" ", o.Points.Select(v => v.ToString("R")))
+            + ", knots "
+            + string.Join(" ", o.Knots.Select(v => v.ToString("R")))
+            + ", weights "
+            + string.Join(" ", o.Weights.Select(v => v.ToString("R")));
 
         public static TheoryData<string> Kinds()
         {
@@ -85,7 +102,15 @@ namespace GeometryHelper.UnitTest.Solid
 
         internal static double[] BoxOf(SplineOracle o)
         {
-            double[] box = { double.MaxValue, double.MaxValue, double.MaxValue, double.MinValue, double.MinValue, double.MinValue };
+            double[] box =
+            {
+                double.MaxValue,
+                double.MaxValue,
+                double.MaxValue,
+                double.MinValue,
+                double.MinValue,
+                double.MinValue,
+            };
 
             for (int i = 0; i < o.Count; i++)
             {
@@ -113,7 +138,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             // A pair whose collision, or whose count of places, turns on a few rounding errors, a least of the distance at the point
             // tolerance, is a matter for the hand cases. A near touch within the tolerance is not: it is a place, and counted.
-            if (Math.Abs(expected.Distance - 1E-3) <= 4.0 * slack || expected.Leasts.Any(v => Math.Abs(v - 1E-3) <= 4.0 * slack))
+            if (
+                Math.Abs(expected.Distance - 1E-3) <= 4.0 * slack
+                || expected.Leasts.Any(v => Math.Abs(v - 1E-3) <= 4.0 * slack)
+            )
             {
                 return false;
             }
@@ -129,10 +157,26 @@ namespace GeometryHelper.UnitTest.Solid
             double fromSpline = Distance(spline, shape.Shape, Strict);
             double fromShape = Distance(shape.Shape, spline, Strict);
 
-            Assert.True(Bits(fromSpline) == Bits(fromShape), label + ": the distance is " + fromSpline.ToString("R") + " from the spline and " + fromShape.ToString("R") + " from the shape");
+            Assert.True(
+                Bits(fromSpline) == Bits(fromShape),
+                label
+                    + ": the distance is "
+                    + fromSpline.ToString("R")
+                    + " from the spline and "
+                    + fromShape.ToString("R")
+                    + " from the shape"
+            );
             double error = Math.Abs(fromSpline - expected.Distance);
             worst = Math.Max(worst, error / size);
-            Assert.True(error <= slack, label + ": distance " + fromSpline.ToString("R") + ", the oracle says " + expected.Distance.ToString("R") + Shown(shape));
+            Assert.True(
+                error <= slack,
+                label
+                    + ": distance "
+                    + fromSpline.ToString("R")
+                    + ", the oracle says "
+                    + expected.Distance.ToString("R")
+                    + Shown(shape)
+            );
 
             bool collides = expected.Distance <= 1E-3;
             Assert.Equal(collides, Collides(spline, shape.Shape, Strict));
@@ -141,7 +185,10 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPoint3[] crossings = Crossings(spline, shape.Shape, Strict);
             GeoPoint3[] back = Crossings(shape.Shape, spline, Strict);
 
-            Assert.True(crossings.Length == back.Length && crossings.Zip(back, SameBits).All(b => b), label + ": the crossings differ from the two sides");
+            Assert.True(
+                crossings.Length == back.Length && crossings.Zip(back, SameBits).All(b => b),
+                label + ": the crossings differ from the two sides"
+            );
             string shown = Shown(shape);
 
             // The places are the oracle's: every place the oracle found is given, within two thousandths of where the oracle puts it, and
@@ -149,13 +196,45 @@ namespace GeometryHelper.UnitTest.Solid
             // two are within the point tolerance of each other.
             Assert.True(
                 crossings.Length == expected.Places.Count,
-                label + ": " + crossings.Length + " places " + string.Join(" ", crossings.Select(c => c.ToString())) + ", the oracle's " + expected.Places.Count + ": " + string.Join(" ", expected.Places.Select(c => c[0].ToString("R") + "," + c[1].ToString("R") + "," + c[2].ToString("R"))) + shown);
+                label
+                    + ": "
+                    + crossings.Length
+                    + " places "
+                    + string.Join(" ", crossings.Select(c => c.ToString()))
+                    + ", the oracle's "
+                    + expected.Places.Count
+                    + ": "
+                    + string.Join(
+                        " ",
+                        expected.Places.Select(c =>
+                            c[0].ToString("R") + "," + c[1].ToString("R") + "," + c[2].ToString("R")
+                        )
+                    )
+                    + shown
+            );
 
             foreach (double[] at in expected.Places)
             {
                 Assert.True(
-                    crossings.Any(c => Math.Sqrt((at[0] - c.X) * (at[0] - c.X) + (at[1] - c.Y) * (at[1] - c.Y) + (at[2] - c.Z) * (at[2] - c.Z)) <= 2E-3 + slack),
-                    label + ": the place (" + at[0].ToString("R") + ", " + at[1].ToString("R") + ", " + at[2].ToString("R") + ") the oracle found is not among " + string.Join(" ", crossings.Select(c => c.ToString())) + shown);
+                    crossings.Any(c =>
+                        Math.Sqrt(
+                            (at[0] - c.X) * (at[0] - c.X)
+                                + (at[1] - c.Y) * (at[1] - c.Y)
+                                + (at[2] - c.Z) * (at[2] - c.Z)
+                        )
+                        <= 2E-3 + slack
+                    ),
+                    label
+                        + ": the place ("
+                        + at[0].ToString("R")
+                        + ", "
+                        + at[1].ToString("R")
+                        + ", "
+                        + at[2].ToString("R")
+                        + ") the oracle found is not among "
+                        + string.Join(" ", crossings.Select(c => c.ToString()))
+                        + shown
+                );
             }
 
             for (int i = 0; i < crossings.Length; i++)
@@ -164,11 +243,30 @@ namespace GeometryHelper.UnitTest.Solid
                 double onShape = shape.Crossing.Min(part => part.Gap(crossings[i].X, crossings[i].Y, crossings[i].Z));
                 // The nearest point of a spline whose weights are a million to one is good to a few billionths of its size, so the point of the
                 // spline a place is, asked for its distance from the spline, is that far off it.
-                Assert.True(onSpline <= 10.0 * slack && onShape <= 1E-3 + slack, label + ": the place " + crossings[i] + " is " + onSpline + " off the spline and " + onShape + " off the shape" + shown);
+                Assert.True(
+                    onSpline <= 10.0 * slack && onShape <= 1E-3 + slack,
+                    label
+                        + ": the place "
+                        + crossings[i]
+                        + " is "
+                        + onSpline
+                        + " off the spline and "
+                        + onShape
+                        + " off the shape"
+                        + shown
+                );
 
                 for (int j = 0; j < i; j++)
                 {
-                    Assert.True(crossings[i].DistanceTo(crossings[j]) > 1E-3, label + ": the places " + crossings[j] + " and " + crossings[i] + " are within the point tolerance");
+                    Assert.True(
+                        crossings[i].DistanceTo(crossings[j]) > 1E-3,
+                        label
+                            + ": the places "
+                            + crossings[j]
+                            + " and "
+                            + crossings[i]
+                            + " are within the point tolerance"
+                    );
                 }
             }
 
@@ -183,8 +281,19 @@ namespace GeometryHelper.UnitTest.Solid
             GeoLine3 leaving = Shortest(spline, shape.Shape, Strict);
             GeoLine3 landing = Shortest(shape.Shape, spline, Strict);
 
-            Assert.True(Math.Abs(leaving.Length - expected.Boundary) <= slack, label + ": the shortest segment is " + leaving.Length.ToString("R") + " long, the oracle says " + expected.Boundary.ToString("R") + shown);
-            Assert.True(SameBits(leaving.StartPoint, landing.EndPoint) && SameBits(leaving.EndPoint, landing.StartPoint), label + ": the shortest segments are not the same turned round");
+            Assert.True(
+                Math.Abs(leaving.Length - expected.Boundary) <= slack,
+                label
+                    + ": the shortest segment is "
+                    + leaving.Length.ToString("R")
+                    + " long, the oracle says "
+                    + expected.Boundary.ToString("R")
+                    + shown
+            );
+            Assert.True(
+                SameBits(leaving.StartPoint, landing.EndPoint) && SameBits(leaving.EndPoint, landing.StartPoint),
+                label + ": the shortest segments are not the same turned round"
+            );
             return true;
         }
 
@@ -206,7 +315,14 @@ namespace GeometryHelper.UnitTest.Solid
 
                 for (int k = 0; k < 3; k++)
                 {
-                    Meet3Shape shape = Spline3MeetShapes.Draw(random, kind, 0.5 * (box[0] + box[3]), 0.5 * (box[1] + box[4]), 0.5 * (box[2] + box[5]), Reach(o));
+                    Meet3Shape shape = Spline3MeetShapes.Draw(
+                        random,
+                        kind,
+                        0.5 * (box[0] + box[3]),
+                        0.5 * (box[1] + box[4]),
+                        0.5 * (box[2] + box[5]),
+                        Reach(o)
+                    );
 
                     if (Check(Name(o, kind, draw), spline, o, shape, ref worst))
                     {
@@ -220,7 +336,20 @@ namespace GeometryHelper.UnitTest.Solid
                 }
             }
 
-            _output.WriteLine(kind + ": " + checkedCount + " pairs held to the oracle (" + crossed + " with a place, " + left + " left out as at the tolerance); worst distance error " + worst.ToString("0.0E+0") + " of the size of the spline; " + _extra + " places in all, each the oracle's too");
+            _output.WriteLine(
+                kind
+                    + ": "
+                    + checkedCount
+                    + " pairs held to the oracle ("
+                    + crossed
+                    + " with a place, "
+                    + left
+                    + " left out as at the tolerance); worst distance error "
+                    + worst.ToString("0.0E+0")
+                    + " of the size of the spline; "
+                    + _extra
+                    + " places in all, each the oracle's too"
+            );
             Assert.True(checkedCount > 15, "too few pairs checked: " + checkedCount);
         }
 
@@ -236,12 +365,16 @@ namespace GeometryHelper.UnitTest.Solid
             double[] at = o.FastPoint(u);
             double[] before = o.FastPoint(u - step);
             double[] after = o.FastPoint(u + step);
-            double[] tangent = Spline3MeetShapes.Unit(new[] { after[0] - before[0], after[1] - before[1], after[2] - before[2] });
+            double[] tangent = Spline3MeetShapes.Unit(
+                new[] { after[0] - before[0], after[1] - before[1], after[2] - before[2] }
+            );
 
             // A direction square to the tangent, drawn at random: the offset goes this way, and so does a ball's or a circle's centre.
             double[] any = Spline3MeetShapes.Direction(random);
             double along = Spline3MeetShapes.Dot(any, tangent);
-            double[] m = Spline3MeetShapes.Unit(new[] { any[0] - along * tangent[0], any[1] - along * tangent[1], any[2] - along * tangent[2] });
+            double[] m = Spline3MeetShapes.Unit(
+                new[] { any[0] - along * tangent[0], any[1] - along * tangent[1], any[2] - along * tangent[2] }
+            );
             double[] w = Spline3MeetShapes.Cross(tangent, m);
             double reach = Reach(o);
             double[] q = { at[0] + m[0] * offset, at[1] + m[1] * offset, at[2] + m[2] * offset };
@@ -261,16 +394,41 @@ namespace GeometryHelper.UnitTest.Solid
                 }
 
                 case "xline":
-                    shape.Shape = new GeoXLine3(new GeoPoint3(q[0], q[1], q[2]), new GeoVector3(tangent[0], tangent[1], tangent[2]));
-                    shape.Parts.Add(new Meet3Segment(q[0], q[1], q[2], tangent[0], tangent[1], tangent[2], 0.0, false, true));
+                    shape.Shape = new GeoXLine3(
+                        new GeoPoint3(q[0], q[1], q[2]),
+                        new GeoVector3(tangent[0], tangent[1], tangent[2])
+                    );
+                    shape.Parts.Add(
+                        new Meet3Segment(q[0], q[1], q[2], tangent[0], tangent[1], tangent[2], 0.0, false, true)
+                    );
                     break;
 
                 case "ray":
                 {
                     // Starts a way behind the touch and runs along the tangent through it.
-                    double[] from = { q[0] - tangent[0] * size * 0.5, q[1] - tangent[1] * size * 0.5, q[2] - tangent[2] * size * 0.5 };
-                    shape.Shape = new GeoRay3(new GeoPoint3(from[0], from[1], from[2]), new GeoVector3(tangent[0], tangent[1], tangent[2]));
-                    shape.Parts.Add(new Meet3Segment(from[0], from[1], from[2], tangent[0], tangent[1], tangent[2], 0.0, true, false));
+                    double[] from =
+                    {
+                        q[0] - tangent[0] * size * 0.5,
+                        q[1] - tangent[1] * size * 0.5,
+                        q[2] - tangent[2] * size * 0.5,
+                    };
+                    shape.Shape = new GeoRay3(
+                        new GeoPoint3(from[0], from[1], from[2]),
+                        new GeoVector3(tangent[0], tangent[1], tangent[2])
+                    );
+                    shape.Parts.Add(
+                        new Meet3Segment(
+                            from[0],
+                            from[1],
+                            from[2],
+                            tangent[0],
+                            tangent[1],
+                            tangent[2],
+                            0.0,
+                            true,
+                            false
+                        )
+                    );
                     break;
                 }
 
@@ -295,10 +453,17 @@ namespace GeometryHelper.UnitTest.Solid
                 case "sphere":
                 {
                     double radius = size;
-                    double[] c = { q[0] + m[0] * side * radius, q[1] + m[1] * side * radius, q[2] + m[2] * side * radius };
+                    double[] c =
+                    {
+                        q[0] + m[0] * side * radius,
+                        q[1] + m[1] * side * radius,
+                        q[2] + m[2] * side * radius,
+                    };
                     shape.Shape = new GeoSphere3(new GeoPoint3(c[0], c[1], c[2]), radius);
                     shape.Parts.Add(new Meet3Sphere(c[0], c[1], c[2], radius));
-                    shape.Inside = (x, y, z) => Math.Sqrt((x - c[0]) * (x - c[0]) + (y - c[1]) * (y - c[1]) + (z - c[2]) * (z - c[2])) <= radius;
+                    shape.Inside = (x, y, z) =>
+                        Math.Sqrt((x - c[0]) * (x - c[0]) + (y - c[1]) * (y - c[1]) + (z - c[2]) * (z - c[2]))
+                        <= radius;
                     break;
                 }
 
@@ -309,9 +474,17 @@ namespace GeometryHelper.UnitTest.Solid
                     double[] c = { q[0] + m[0] * side * b, q[1] + m[1] * side * b, q[2] + m[2] * side * b };
                     var disc = new Meet3Ellipse(c, tangent, m, size, b, true);
                     var rim = new Meet3Ellipse(c, tangent, m, size, b, false);
-                    shape.Shape = kind == "circle"
-                        ? (object)new GeoCircle3(new GeoPoint3(c[0], c[1], c[2]), new GeoVector3(w[0], w[1], w[2]), size)
-                        : new GeoEllipse3(new GeoPoint3(c[0], c[1], c[2]), new GeoVector3(w[0], w[1], w[2]), new GeoVector3(tangent[0], tangent[1], tangent[2]), size, b);
+                    shape.Shape =
+                        kind == "circle"
+                            ? (object)
+                                new GeoCircle3(new GeoPoint3(c[0], c[1], c[2]), new GeoVector3(w[0], w[1], w[2]), size)
+                            : new GeoEllipse3(
+                                new GeoPoint3(c[0], c[1], c[2]),
+                                new GeoVector3(w[0], w[1], w[2]),
+                                new GeoVector3(tangent[0], tangent[1], tangent[2]),
+                                size,
+                                b
+                            );
                     shape.Parts.Add(disc);
                     shape.Parts.Add(rim);
                     shape.Rims = new List<Meet3Part> { rim };
@@ -346,8 +519,7 @@ namespace GeometryHelper.UnitTest.Solid
                 do
                 {
                     o = SplineGen.Draw(random, 3, maxDegree: 5);
-                }
-                while (o.Degree < 2);
+                } while (o.Degree < 2);
 
                 GeoSpline3 spline = Make(o);
 
@@ -363,7 +535,16 @@ namespace GeometryHelper.UnitTest.Solid
                 }
             }
 
-            _output.WriteLine(kind + ": " + checkedCount + " pairs at the tolerance held to the oracle's places (" + touched + " with a place), " + _extra + " places in all");
+            _output.WriteLine(
+                kind
+                    + ": "
+                    + checkedCount
+                    + " pairs at the tolerance held to the oracle's places ("
+                    + touched
+                    + " with a place), "
+                    + _extra
+                    + " places in all"
+            );
             Assert.True(checkedCount > 50, "too few pairs checked: " + checkedCount);
             Assert.True(touched > 30, "too few pairs with a place: " + touched);
         }
@@ -374,12 +555,26 @@ namespace GeometryHelper.UnitTest.Solid
         /// </summary>
         private static GeoSpline3 Lay(GeoSpline2 flat, int axis)
         {
-            GeoPoint3[] points = flat.ControlPoints.Select(p => axis == 2 ? new GeoPoint3(p.X, p.Y, 0.0) : axis == 0 ? new GeoPoint3(0.0, p.X, p.Y) : new GeoPoint3(p.X, 0.0, p.Y)).ToArray();
+            GeoPoint3[] points = flat
+                .ControlPoints.Select(p =>
+                    axis == 2 ? new GeoPoint3(p.X, p.Y, 0.0)
+                    : axis == 0 ? new GeoPoint3(0.0, p.X, p.Y)
+                    : new GeoPoint3(p.X, 0.0, p.Y)
+                )
+                .ToArray();
 
-            return new GeoSpline3(flat.Degree, points, flat.Knots.ToArray(), flat.IsRational ? flat.Weights.ToArray() : null);
+            return new GeoSpline3(
+                flat.Degree,
+                points,
+                flat.Knots.ToArray(),
+                flat.IsRational ? flat.Weights.ToArray() : null
+            );
         }
 
-        private static GeoPoint3 Lay(GeoPoint2 p, int axis) => axis == 2 ? new GeoPoint3(p.X, p.Y, 0.0) : axis == 0 ? new GeoPoint3(0.0, p.X, p.Y) : new GeoPoint3(p.X, 0.0, p.Y);
+        private static GeoPoint3 Lay(GeoPoint2 p, int axis) =>
+            axis == 2 ? new GeoPoint3(p.X, p.Y, 0.0)
+            : axis == 0 ? new GeoPoint3(0.0, p.X, p.Y)
+            : new GeoPoint3(p.X, 0.0, p.Y);
 
         [Fact]
         public void ASplineAndItsOwnCopyMovedAFewThousandths_AreNoFartherApartThanTheMove_AndFromEitherSideTheSame()
@@ -400,18 +595,33 @@ namespace GeometryHelper.UnitTest.Solid
                     SplineOracle drawn = SplineGen.Draw(random, 2, maxDegree: 5);
                     GeoSpline2 twin = Spline2MeetFuzzTests.Make(drawn);
                     double angle = 2.0 * Math.PI * random.NextDouble();
-                    GeoSpline2 twinCopy = twin.Translate(new GeoVector2(shift * Math.Cos(angle), shift * Math.Sin(angle)));
+                    GeoSpline2 twinCopy = twin.Translate(
+                        new GeoVector2(shift * Math.Cos(angle), shift * Math.Sin(angle))
+                    );
                     int axis = draw % 3;
                     GeoSpline3 laid = Lay(twin, axis);
                     GeoSpline3 laidCopy = Lay(twinCopy, axis);
-                    string label = Name(drawn, "laid square to axis " + axis + ", copy moved " + shift.ToString("R") + " along it", draw);
+                    string label = Name(
+                        drawn,
+                        "laid square to axis " + axis + ", copy moved " + shift.ToString("R") + " along it",
+                        draw
+                    );
 
                     GeoPoint2[] inPlane = twin.GetIntersections(twinCopy, Strict);
                     GeoPoint3[] inSpace = laid.GetIntersections(laidCopy, Strict);
 
-                    Assert.True(inPlane.Length == inSpace.Length, label + ": " + inSpace.Length + " places in space and " + inPlane.Length + " in the plane");
-                    Assert.True(inPlane.Select(p => Lay(p, axis)).Zip(inSpace, SameBits).All(b => b), label + ": the places are not the plane's");
-                    Assert.True(Bits(twin.DistanceTo(twinCopy, Strict)) == Bits(laid.DistanceTo(laidCopy, Strict)), label + ": the distance is not the plane's");
+                    Assert.True(
+                        inPlane.Length == inSpace.Length,
+                        label + ": " + inSpace.Length + " places in space and " + inPlane.Length + " in the plane"
+                    );
+                    Assert.True(
+                        inPlane.Select(p => Lay(p, axis)).Zip(inSpace, SameBits).All(b => b),
+                        label + ": the places are not the plane's"
+                    );
+                    Assert.True(
+                        Bits(twin.DistanceTo(twinCopy, Strict)) == Bits(laid.DistanceTo(laidCopy, Strict)),
+                        label + ": the distance is not the plane's"
+                    );
                     twins++;
                 }
 
@@ -419,7 +629,8 @@ namespace GeometryHelper.UnitTest.Solid
                 SplineOracle o = SplineGen.Draw(random, 3, maxDegree: 5);
                 GeoSpline3 spline = Make(o);
                 double size = Reach(o);
-                double slack = 1E-9 * size + 64.0 * 2.220446049250313E-16 * Math.Max(1.0, o.Points.Max(Math.Abs)) * 16.0;
+                double slack =
+                    1E-9 * size + 64.0 * 2.220446049250313E-16 * Math.Max(1.0, o.Points.Max(Math.Abs)) * 16.0;
 
                 {
                     double[] d = Spline3MeetShapes.Direction(random);
@@ -428,15 +639,29 @@ namespace GeometryHelper.UnitTest.Solid
                     double there = spline.DistanceTo(copy, Strict);
                     double back = copy.DistanceTo(spline, Strict);
 
-                    Assert.True(Bits(there) == Bits(back), label + ": the distance is " + there.ToString("R") + " one way and " + back.ToString("R") + " the other");
-                    Assert.True(there <= shift + slack, label + ": the distance " + there.ToString("R") + " is more than the move");
+                    Assert.True(
+                        Bits(there) == Bits(back),
+                        label
+                            + ": the distance is "
+                            + there.ToString("R")
+                            + " one way and "
+                            + back.ToString("R")
+                            + " the other"
+                    );
+                    Assert.True(
+                        there <= shift + slack,
+                        label + ": the distance " + there.ToString("R") + " is more than the move"
+                    );
                     Assert.Equal(there <= 1E-3, spline.CollidesWith(copy, Strict));
                     Assert.Equal(there <= 1E-3, copy.CollidesWith(spline, Strict));
 
                     GeoPoint3[] places = spline.GetIntersections(copy, Strict);
                     GeoPoint3[] places2 = copy.GetIntersections(spline, Strict);
 
-                    Assert.True(places.Length == places2.Length && places.Zip(places2, SameBits).All(b => b), label + ": the places differ from the two sides");
+                    Assert.True(
+                        places.Length == places2.Length && places.Zip(places2, SameBits).All(b => b),
+                        label + ": the places differ from the two sides"
+                    );
 
                     for (int i = 0; i < places.Length; i++)
                     {
@@ -444,11 +669,26 @@ namespace GeometryHelper.UnitTest.Solid
                         double toSpline = spline.DistanceTo(places[i]);
                         double toCopy = copy.DistanceTo(places[i]);
 
-                        Assert.True(Math.Min(toSpline, toCopy) <= 10.0 * slack && Math.Max(toSpline, toCopy) <= 1E-3 + 10.0 * slack, label + ": the place " + places[i] + " is " + spline.DistanceTo(places[i]).ToString("R") + " off the spline and " + copy.DistanceTo(places[i]).ToString("R") + " off the copy, slack " + slack.ToString("R"));
+                        Assert.True(
+                            Math.Min(toSpline, toCopy) <= 10.0 * slack
+                                && Math.Max(toSpline, toCopy) <= 1E-3 + 10.0 * slack,
+                            label
+                                + ": the place "
+                                + places[i]
+                                + " is "
+                                + spline.DistanceTo(places[i]).ToString("R")
+                                + " off the spline and "
+                                + copy.DistanceTo(places[i]).ToString("R")
+                                + " off the copy, slack "
+                                + slack.ToString("R")
+                        );
 
                         for (int j = 0; j < i; j++)
                         {
-                            Assert.True(places[i].DistanceTo(places[j]) > 1E-3, label + ": two places within the point tolerance");
+                            Assert.True(
+                                places[i].DistanceTo(places[j]) > 1E-3,
+                                label + ": two places within the point tolerance"
+                            );
                         }
                     }
 
@@ -458,29 +698,67 @@ namespace GeometryHelper.UnitTest.Solid
                     // either way from it: every least whose side is clear two hundredths of the tolerance out either way, the one side and the
                     // other, before the distance comes nearer, is a place (the library reads a hundredth, at steps that double, so one clear only
                     // past its last step before an end is not held to it); and every place is a least where the side changes, or an end.
-                    bool smooth = o.Degree >= 3 && o.Knots.Skip(o.Degree + 1).Take(o.Knots.Length - 2 * o.Degree - 2).Distinct().Count() == o.Knots.Length - 2 * o.Degree - 2;
+                    bool smooth =
+                        o.Degree >= 3
+                        && o.Knots.Skip(o.Degree + 1).Take(o.Knots.Length - 2 * o.Degree - 2).Distinct().Count()
+                            == o.Knots.Length - 2 * o.Degree - 2;
 
-                    if (shift < 1E-3 && smooth && !GeometryHelper.Internal.Nurbs.NurbsCurve.InOnePlane(spline.Curve, copy.Curve, out _))
+                    if (
+                        shift < 1E-3
+                        && smooth
+                        && !GeometryHelper.Internal.Nurbs.NurbsCurve.InOnePlane(spline.Curve, copy.Curve, out _)
+                    )
                     {
-                        WouldCrossings(spline, new GeoVector3(d[0] * shift, d[1] * shift, d[2] * shift), 1E-3, out List<double> must, out List<double> may);
+                        WouldCrossings(
+                            spline,
+                            new GeoVector3(d[0] * shift, d[1] * shift, d[2] * shift),
+                            1E-3,
+                            out List<double> must,
+                            out List<double> may
+                        );
 
                         // A least with no curvature is as near for a stretch, and the place may be anywhere on it: knots are compared, to a
                         // thousandth of the domain.
                         double near = 1E-3 * (spline.DomainEnd - spline.DomainStart);
                         double[] knots = places.Select(p => spline.GetKnotAtPoint(p)).ToArray();
-                        string where = "; moved along (" + d[0].ToString("R") + ", " + d[1].ToString("R") + ", " + d[2].ToString("R") + "); places at knots " + string.Join(" ", places.Select(p => spline.GetKnotAtPoint(p).ToString("R")));
+                        string where =
+                            "; moved along ("
+                            + d[0].ToString("R")
+                            + ", "
+                            + d[1].ToString("R")
+                            + ", "
+                            + d[2].ToString("R")
+                            + "); places at knots "
+                            + string.Join(" ", places.Select(p => spline.GetKnotAtPoint(p).ToString("R")));
 
                         foreach (double crossing in must)
                         {
-                            Assert.True(knots.Any(k => Math.Abs(k - crossing) <= near), label + ": the oracle's would-be crossing at knot " + crossing.ToString("R") + " is not a place" + where);
+                            Assert.True(
+                                knots.Any(k => Math.Abs(k - crossing) <= near),
+                                label
+                                    + ": the oracle's would-be crossing at knot "
+                                    + crossing.ToString("R")
+                                    + " is not a place"
+                                    + where
+                            );
                         }
 
                         for (int i = 0; i < places.Length; i++)
                         {
                             GeoPoint3 place = places[i];
                             double knot = knots[i];
-                            bool atEnd = Math.Min(place.DistanceTo(spline.StartPoint), Math.Min(place.DistanceTo(spline.EndPoint), Math.Min(place.DistanceTo(copy.StartPoint), place.DistanceTo(copy.EndPoint)))) <= 2E-3;
-                            Assert.True(atEnd || may.Any(k => Math.Abs(k - knot) <= near), label + ": the place " + place + " is no least where the copy goes across" + where);
+                            bool atEnd =
+                                Math.Min(
+                                    place.DistanceTo(spline.StartPoint),
+                                    Math.Min(
+                                        place.DistanceTo(spline.EndPoint),
+                                        Math.Min(place.DistanceTo(copy.StartPoint), place.DistanceTo(copy.EndPoint))
+                                    )
+                                ) <= 2E-3;
+                            Assert.True(
+                                atEnd || may.Any(k => Math.Abs(k - knot) <= near),
+                                label + ": the place " + place + " is no least where the copy goes across" + where
+                            );
                         }
 
                         crossings += must.Count;
@@ -489,13 +767,31 @@ namespace GeometryHelper.UnitTest.Solid
                     GeoLine3 leaving = spline.GetShortestLineTo(copy, Strict);
                     GeoLine3 landing = copy.GetShortestLineTo(spline, Strict);
 
-                    Assert.True(Math.Abs(leaving.Length - there) <= slack, label + ": the shortest segment is " + leaving.Length.ToString("R") + " long, the distance " + there.ToString("R"));
-                    Assert.True(SameBits(leaving.StartPoint, landing.EndPoint) && SameBits(leaving.EndPoint, landing.StartPoint), label + ": the shortest segments are not the same turned round");
+                    Assert.True(
+                        Math.Abs(leaving.Length - there) <= slack,
+                        label
+                            + ": the shortest segment is "
+                            + leaving.Length.ToString("R")
+                            + " long, the distance "
+                            + there.ToString("R")
+                    );
+                    Assert.True(
+                        SameBits(leaving.StartPoint, landing.EndPoint)
+                            && SameBits(leaving.EndPoint, landing.StartPoint),
+                        label + ": the shortest segments are not the same turned round"
+                    );
                     asked++;
                 }
             }
 
-            _output.WriteLine(twins + " copies in a plane square to an axis, the plane's answers to the bit; " + asked + " copies in space asked, all five queries from both sides, " + crossings + " would-be crossings held to the oracle");
+            _output.WriteLine(
+                twins
+                    + " copies in a plane square to an axis, the plane's answers to the bit; "
+                    + asked
+                    + " copies in space asked, all five queries from both sides, "
+                    + crossings
+                    + " would-be crossings held to the oracle"
+            );
         }
 
         /// <summary>
@@ -514,7 +810,13 @@ namespace GeometryHelper.UnitTest.Solid
         /// at that point, nought at the least itself. Leasts within the tolerance of each other are one, and those within a thousandth of
         /// the domain of an end are left to the ends.
         /// </remarks>
-        private static void WouldCrossings(GeoSpline3 spline, GeoVector3 v, double tolerance, out List<double> must, out List<double> may)
+        private static void WouldCrossings(
+            GeoSpline3 spline,
+            GeoVector3 v,
+            double tolerance,
+            out List<double> must,
+            out List<double> may
+        )
         {
             const int Samples = 40000;
             double from = spline.DomainStart;
@@ -542,7 +844,11 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 double here = along[i] * along[i];
 
-                if (!(here > along[i - 1] * along[i - 1] && here >= along[i + 1] * along[i + 1]) || i < Samples / 1000 || i > Samples - Samples / 1000)
+                if (
+                    !(here > along[i - 1] * along[i - 1] && here >= along[i + 1] * along[i + 1])
+                    || i < Samples / 1000
+                    || i > Samples - Samples / 1000
+                )
                 {
                     continue;
                 }
@@ -570,7 +876,11 @@ namespace GeometryHelper.UnitTest.Solid
         private static int Side(GeoVector3 v, GeoVector3[] tangents, double[] along, int at, int way, double flank)
         {
             int sign = 0;
-            var gap = new GeoVector3(v.X - along[at] * tangents[at].X, v.Y - along[at] * tangents[at].Y, v.Z - along[at] * tangents[at].Z);
+            var gap = new GeoVector3(
+                v.X - along[at] * tangents[at].X,
+                v.Y - along[at] * tangents[at].Y,
+                v.Z - along[at] * tangents[at].Z
+            );
 
             for (int j = at + way; j > 0 && j < along.Length - 1; j += way)
             {
@@ -621,7 +931,19 @@ namespace GeometryHelper.UnitTest.Solid
         public void ANastySplineInSpace_AgainstTheShapes_IsTheOracle(string nasty)
         {
             var random = new Random(73000 + Array.IndexOf(SplineGen.NastyKinds, nasty));
-            string[] kinds = { "segment", "xline", "plane", "polygon", "aabb", "sphere", "circle", "ellipse", "arc", "chain" };
+            string[] kinds =
+            {
+                "segment",
+                "xline",
+                "plane",
+                "polygon",
+                "aabb",
+                "sphere",
+                "circle",
+                "ellipse",
+                "arc",
+                "chain",
+            };
             double worst = 0.0;
             int checkedCount = 0;
 
@@ -644,7 +966,14 @@ namespace GeometryHelper.UnitTest.Solid
 
                 foreach (string kind in kinds)
                 {
-                    Meet3Shape shape = Spline3MeetShapes.Draw(random, kind, 0.5 * (box[0] + box[3]), 0.5 * (box[1] + box[4]), 0.5 * (box[2] + box[5]), Reach(o));
+                    Meet3Shape shape = Spline3MeetShapes.Draw(
+                        random,
+                        kind,
+                        0.5 * (box[0] + box[3]),
+                        0.5 * (box[1] + box[4]),
+                        0.5 * (box[2] + box[5]),
+                        Reach(o)
+                    );
 
                     if (Check(Name(o, nasty + "/" + kind, draw), spline, o, shape, ref worst))
                     {
@@ -653,7 +982,14 @@ namespace GeometryHelper.UnitTest.Solid
                 }
             }
 
-            _output.WriteLine(nasty + ": " + checkedCount + " pairs held to the oracle; worst distance error " + worst.ToString("0.0E+0") + " of the size of the spline");
+            _output.WriteLine(
+                nasty
+                    + ": "
+                    + checkedCount
+                    + " pairs held to the oracle; worst distance error "
+                    + worst.ToString("0.0E+0")
+                    + " of the size of the spline"
+            );
             Assert.True(checkedCount > 5, "too few pairs checked: " + checkedCount);
         }
 
@@ -681,9 +1017,15 @@ namespace GeometryHelper.UnitTest.Solid
 
                 for (int i = 0; i < count; i++)
                 {
-                    fit.Add(i == through
-                        ? new GeoPoint3(at[0], at[1], at[2])
-                        : new GeoPoint3(at[0] + reach * (random.NextDouble() - 0.5) * 2.0, at[1] + reach * (random.NextDouble() - 0.5) * 2.0, at[2] + reach * (random.NextDouble() - 0.5) * 2.0));
+                    fit.Add(
+                        i == through
+                            ? new GeoPoint3(at[0], at[1], at[2])
+                            : new GeoPoint3(
+                                at[0] + reach * (random.NextDouble() - 0.5) * 2.0,
+                                at[1] + reach * (random.NextDouble() - 0.5) * 2.0,
+                                at[2] + reach * (random.NextDouble() - 0.5) * 2.0
+                            )
+                    );
                 }
 
                 GeoSpline3 b;
@@ -701,16 +1043,33 @@ namespace GeometryHelper.UnitTest.Solid
                 GeoPoint3 point = new GeoPoint3(at[0], at[1], at[2]);
                 GeoPoint3[] along = a.GetIntersections(b, Strict);
                 GeoPoint3[] back = b.GetIntersections(a, Strict);
-                string label = "draw " + draw + " through " + point + ": " + Name(first, "A", draw) + " | " + string.Join(" ", fit);
+                string label =
+                    "draw "
+                    + draw
+                    + " through "
+                    + point
+                    + ": "
+                    + Name(first, "A", draw)
+                    + " | "
+                    + string.Join(" ", fit);
 
-                Assert.True(a.DistanceTo(b, Strict) <= 1E-9 * reach, label + ": the distance is " + a.DistanceTo(b, Strict).ToString("R"));
+                Assert.True(
+                    a.DistanceTo(b, Strict) <= 1E-9 * reach,
+                    label + ": the distance is " + a.DistanceTo(b, Strict).ToString("R")
+                );
                 Assert.Equal(a.DistanceTo(b, Strict), b.DistanceTo(a, Strict));
-                Assert.True(along.Any(p => p.DistanceTo(point) <= 2E-3), label + ": no place at the point, in " + string.Join(" ", along));
+                Assert.True(
+                    along.Any(p => p.DistanceTo(point) <= 2E-3),
+                    label + ": no place at the point, in " + string.Join(" ", along)
+                );
                 Assert.Equal(along.Length, back.Length);
 
                 foreach (GeoPoint3 p in along)
                 {
-                    Assert.True(a.DistanceTo(p) <= slack && b.DistanceTo(p) <= 1E-3 + slack, label + ": the place " + p + " is off a curve");
+                    Assert.True(
+                        a.DistanceTo(p) <= slack && b.DistanceTo(p) <= 1E-3 + slack,
+                        label + ": the place " + p + " is off a curve"
+                    );
                     Assert.Contains(back, q => SameBits(p, q));
                 }
 
@@ -718,7 +1077,10 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     for (int j = 0; j < i; j++)
                     {
-                        Assert.True(along[i].DistanceTo(along[j]) > 1E-3, label + ": two places within the point tolerance of each other");
+                        Assert.True(
+                            along[i].DistanceTo(along[j]) > 1E-3,
+                            label + ": two places within the point tolerance of each other"
+                        );
                     }
                 }
 
@@ -726,7 +1088,12 @@ namespace GeometryHelper.UnitTest.Solid
                 checkedCount++;
             }
 
-            _output.WriteLine(checkedCount + " pairs of splines through a common point, each meeting there (" + others + " other places in all)");
+            _output.WriteLine(
+                checkedCount
+                    + " pairs of splines through a common point, each meeting there ("
+                    + others
+                    + " other places in all)"
+            );
             Assert.True(checkedCount > 5, "too few pairs checked: " + checkedCount);
         }
 
@@ -746,9 +1113,22 @@ namespace GeometryHelper.UnitTest.Solid
                 double[] far = { 0.0, 1E3, 1E5, 1E6 };
                 double reach = far[random.Next(far.Length)];
                 var frame = new GeoCoordinateSystem3(
-                    new GeoPoint3(reach * (random.NextDouble() - 0.5), reach * (random.NextDouble() - 0.5), reach * (random.NextDouble() - 0.5)),
-                    new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5).Normalize(),
-                    new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5).Normalize());
+                    new GeoPoint3(
+                        reach * (random.NextDouble() - 0.5),
+                        reach * (random.NextDouble() - 0.5),
+                        reach * (random.NextDouble() - 0.5)
+                    ),
+                    new GeoVector3(
+                        random.NextDouble() - 0.5,
+                        random.NextDouble() - 0.5,
+                        random.NextDouble() - 0.5
+                    ).Normalize(),
+                    new GeoVector3(
+                        random.NextDouble() - 0.5,
+                        random.NextDouble() - 0.5,
+                        random.NextDouble() - 0.5
+                    ).Normalize()
+                );
                 double r1 = 5.0 + 95.0 * random.NextDouble();
                 double r2 = 5.0 + 95.0 * random.NextDouble();
                 double angle = 2.0 * Math.PI * random.NextDouble();
@@ -766,7 +1146,7 @@ namespace GeometryHelper.UnitTest.Solid
                 GeoPoint3[] expected =
                 {
                     frame.ToGlobal(new GeoPoint3(along * ux - half * uy, along * uy + half * ux, 0.0)),
-                    frame.ToGlobal(new GeoPoint3(along * ux + half * uy, along * uy - half * ux, 0.0))
+                    frame.ToGlobal(new GeoPoint3(along * ux + half * uy, along * uy - half * ux, 0.0)),
                 };
 
                 // A pair within a few thousandths of touching, or of the point tolerance of one another, is a matter for the hand cases.
@@ -777,17 +1157,25 @@ namespace GeometryHelper.UnitTest.Solid
 
                 GeoPoint3[] places = first.GetIntersections(second, Strict);
                 GeoPoint3[] back = second.GetIntersections(first, Strict);
-                string label = "draw " + draw + " in " + frame + ": radii " + r1 + " and " + r2 + " centres " + d + " apart";
+                string label =
+                    "draw " + draw + " in " + frame + ": radii " + r1 + " and " + r2 + " centres " + d + " apart";
 
                 Assert.True(places.Length == 2, label + ": " + places.Length + " places " + string.Join(" ", places));
                 Assert.Equal(2, back.Length);
-                Assert.All(expected, e => Assert.Contains(places, p => p.DistanceTo(e) <= 1E-5 * Math.Max(1.0, reach * 1E-3) + 1E-6));
+                Assert.All(expected, e =>
+                    Assert.Contains(places, p => p.DistanceTo(e) <= 1E-5 * Math.Max(1.0, reach * 1E-3) + 1E-6)
+                );
                 Assert.Equal(0.0, first.DistanceTo(second, Strict));
                 touching++;
                 checkedCount++;
             }
 
-            _output.WriteLine(checkedCount + " pairs of circle splines in a plane of space, each meeting in the two points of the formula (" + touching + ")");
+            _output.WriteLine(
+                checkedCount
+                    + " pairs of circle splines in a plane of space, each meeting in the two points of the formula ("
+                    + touching
+                    + ")"
+            );
             Assert.True(checkedCount > 15, "too few pairs checked: " + checkedCount);
         }
 
@@ -810,7 +1198,10 @@ namespace GeometryHelper.UnitTest.Solid
                 // The second is moved to lie about the first.
                 for (int k = 0; k < 3; k++)
                 {
-                    shift[k] = 0.5 * (box[k] + box[3 + k]) - 0.5 * (box2[k] + box2[3 + k]) + (random.NextDouble() - 0.5) * Reach(first);
+                    shift[k] =
+                        0.5 * (box[k] + box[3 + k])
+                        - 0.5 * (box2[k] + box2[3 + k])
+                        + (random.NextDouble() - 0.5) * Reach(first);
                 }
 
                 for (int i = 0; i < moved.Length; i++)
@@ -818,7 +1209,13 @@ namespace GeometryHelper.UnitTest.Solid
                     moved[i] = Math.Round(second.Points[i] + shift[i % 3], 4);
                 }
 
-                second = new SplineOracle(3, second.Degree, second.Knots, moved, second.Weights.Any(w => w != 1.0) ? second.Weights : null);
+                second = new SplineOracle(
+                    3,
+                    second.Degree,
+                    second.Knots,
+                    moved,
+                    second.Weights.Any(w => w != 1.0) ? second.Weights : null
+                );
                 GeoSpline3 a = Make(first);
                 GeoSpline3 b = Make(second);
                 double size = Math.Max(Reach(first), Reach(second));
@@ -828,14 +1225,31 @@ namespace GeometryHelper.UnitTest.Solid
 
                 double ab = a.DistanceTo(b, Strict);
                 double ba = b.DistanceTo(a, Strict);
-                Assert.True(Bits(ab) == Bits(ba), label + ": the distance is " + ab.ToString("R") + " one way and " + ba.ToString("R") + " the other");
+                Assert.True(
+                    Bits(ab) == Bits(ba),
+                    label + ": the distance is " + ab.ToString("R") + " one way and " + ba.ToString("R") + " the other"
+                );
 
                 // A least distance found by the oracle's search is above the true one; the library's is a real pair of points, so it is never above it.
-                Assert.True(ab <= expected.Distance + slack, label + ": the library says " + ab.ToString("R") + ", more than the oracle's " + expected.Distance.ToString("R"));
+                Assert.True(
+                    ab <= expected.Distance + slack,
+                    label
+                        + ": the library says "
+                        + ab.ToString("R")
+                        + ", more than the oracle's "
+                        + expected.Distance.ToString("R")
+                );
 
                 if (ab > 2E-3 && ab >= expected.Distance - slack)
                 {
-                    Assert.True(ab >= expected.Distance - slack, label + ": the library says " + ab.ToString("R") + ", the oracle " + expected.Distance.ToString("R"));
+                    Assert.True(
+                        ab >= expected.Distance - slack,
+                        label
+                            + ": the library says "
+                            + ab.ToString("R")
+                            + ", the oracle "
+                            + expected.Distance.ToString("R")
+                    );
                 }
                 else if (ab > 2E-3)
                 {
@@ -843,7 +1257,17 @@ namespace GeometryHelper.UnitTest.Solid
                     // ends on the two curves and as far apart as the distance says.
                     GeoLine3 shown = a.GetShortestLineTo(b, Strict);
 
-                    Assert.True(a.DistanceTo(shown.StartPoint) <= 10.0 * slack && b.DistanceTo(shown.EndPoint) <= 10.0 * slack && Math.Abs(shown.Length - ab) <= slack, label + ": the library's " + ab.ToString("R") + " is below the oracle's " + expected.Distance.ToString("R") + " and its segment is not a real pair");
+                    Assert.True(
+                        a.DistanceTo(shown.StartPoint) <= 10.0 * slack
+                            && b.DistanceTo(shown.EndPoint) <= 10.0 * slack
+                            && Math.Abs(shown.Length - ab) <= slack,
+                        label
+                            + ": the library's "
+                            + ab.ToString("R")
+                            + " is below the oracle's "
+                            + expected.Distance.ToString("R")
+                            + " and its segment is not a real pair"
+                    );
                 }
 
                 GeoPoint3[] along = a.GetIntersections(b, Strict);
@@ -856,24 +1280,54 @@ namespace GeometryHelper.UnitTest.Solid
                     Assert.Contains(other, q => SameBits(p, q));
 
                     // Every place given is on the first curve and within the tolerance of the second.
-                    Assert.True(a.DistanceTo(p) <= slack && b.DistanceTo(p) <= 1E-3 + slack, label + ": the place " + p + " is off a curve");
+                    Assert.True(
+                        a.DistanceTo(p) <= slack && b.DistanceTo(p) <= 1E-3 + slack,
+                        label + ": the place " + p + " is off a curve"
+                    );
                 }
 
                 foreach (double[] p in expected.Places)
                 {
-                    Assert.True(along.Any(q => Math.Sqrt((p[0] - q.X) * (p[0] - q.X) + (p[1] - q.Y) * (p[1] - q.Y) + (p[2] - q.Z) * (p[2] - q.Z)) <= 2E-3), label + ": the oracle's place (" + p[0] + ", " + p[1] + ", " + p[2] + ") is missing from " + string.Join(" ", along));
+                    Assert.True(
+                        along.Any(q =>
+                            Math.Sqrt(
+                                (p[0] - q.X) * (p[0] - q.X) + (p[1] - q.Y) * (p[1] - q.Y) + (p[2] - q.Z) * (p[2] - q.Z)
+                            ) <= 2E-3
+                        ),
+                        label
+                            + ": the oracle's place ("
+                            + p[0]
+                            + ", "
+                            + p[1]
+                            + ", "
+                            + p[2]
+                            + ") is missing from "
+                            + string.Join(" ", along)
+                    );
                 }
 
                 near += along.Length;
                 GeoLine3 line = a.GetShortestLineTo(b, Strict);
                 GeoLine3 reversed = b.GetShortestLineTo(a, Strict);
 
-                Assert.True(SameBits(line.StartPoint, reversed.EndPoint) && SameBits(line.EndPoint, reversed.StartPoint), label + ": the shortest segments are not the same turned round");
-                Assert.True(Math.Abs(line.Length - ab) <= 1E-9 * size, label + ": the shortest segment is " + line.Length.ToString("R") + " long and the distance " + ab.ToString("R"));
+                Assert.True(
+                    SameBits(line.StartPoint, reversed.EndPoint) && SameBits(line.EndPoint, reversed.StartPoint),
+                    label + ": the shortest segments are not the same turned round"
+                );
+                Assert.True(
+                    Math.Abs(line.Length - ab) <= 1E-9 * size,
+                    label
+                        + ": the shortest segment is "
+                        + line.Length.ToString("R")
+                        + " long and the distance "
+                        + ab.ToString("R")
+                );
                 checkedCount++;
             }
 
-            _output.WriteLine(checkedCount + " pairs of splines in space held to the oracle (" + near + " places in all)");
+            _output.WriteLine(
+                checkedCount + " pairs of splines in space held to the oracle (" + near + " places in all)"
+            );
         }
     }
 }

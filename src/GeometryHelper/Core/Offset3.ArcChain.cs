@@ -30,35 +30,52 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the curve parallel to a flat curved chain at a distance to its left within its plane.
         /// </summary>
-        public static GeoPolylineArc3[] OffsetInPlane(GeoPolylineArc3 chain, double distance, GeoVector3 planeNormal)
-            => OffsetInPlane(chain, distance, planeNormal, OffsetOptions.Default, Tolerance.Global);
+        public static GeoPolylineArc3[] OffsetInPlane(GeoPolylineArc3 chain, double distance, GeoVector3 planeNormal) =>
+            OffsetInPlane(chain, distance, planeNormal, OffsetOptions.Default, Tolerance.Global);
 
         /// <summary>
         /// Gets the curve parallel to a flat curved chain at a distance to its left within its plane, within a tolerance.
         /// </summary>
-        public static GeoPolylineArc3[] OffsetInPlane(GeoPolylineArc3 chain, double distance, GeoVector3 planeNormal, Tolerance tolerance)
-            => OffsetInPlane(chain, distance, planeNormal, OffsetOptions.Default, tolerance);
+        public static GeoPolylineArc3[] OffsetInPlane(
+            GeoPolylineArc3 chain,
+            double distance,
+            GeoVector3 planeNormal,
+            Tolerance tolerance
+        ) => OffsetInPlane(chain, distance, planeNormal, OffsetOptions.Default, tolerance);
 
         /// <summary>
         /// Gets the curve parallel to a flat curved chain at a distance to its left within its plane, with the
         /// given shape of corner.
         /// </summary>
-        public static GeoPolylineArc3[] OffsetInPlane(GeoPolylineArc3 chain, double distance, GeoVector3 planeNormal, OffsetJoin join)
-            => OffsetInPlane(chain, distance, planeNormal, new OffsetOptions(join), Tolerance.Global);
+        public static GeoPolylineArc3[] OffsetInPlane(
+            GeoPolylineArc3 chain,
+            double distance,
+            GeoVector3 planeNormal,
+            OffsetJoin join
+        ) => OffsetInPlane(chain, distance, planeNormal, new OffsetOptions(join), Tolerance.Global);
 
         /// <summary>
         /// Gets the curve parallel to a flat curved chain at a distance to its left within its plane, with the
         /// given shape of corner, within a tolerance.
         /// </summary>
-        public static GeoPolylineArc3[] OffsetInPlane(GeoPolylineArc3 chain, double distance, GeoVector3 planeNormal, OffsetJoin join, Tolerance tolerance)
-            => OffsetInPlane(chain, distance, planeNormal, new OffsetOptions(join), tolerance);
+        public static GeoPolylineArc3[] OffsetInPlane(
+            GeoPolylineArc3 chain,
+            double distance,
+            GeoVector3 planeNormal,
+            OffsetJoin join,
+            Tolerance tolerance
+        ) => OffsetInPlane(chain, distance, planeNormal, new OffsetOptions(join), tolerance);
 
         /// <summary>
         /// Gets the curve parallel to a flat curved chain at a distance to its left within its plane, as the
         /// options say.
         /// </summary>
-        public static GeoPolylineArc3[] OffsetInPlane(GeoPolylineArc3 chain, double distance, GeoVector3 planeNormal, OffsetOptions options)
-            => OffsetInPlane(chain, distance, planeNormal, options, Tolerance.Global);
+        public static GeoPolylineArc3[] OffsetInPlane(
+            GeoPolylineArc3 chain,
+            double distance,
+            GeoVector3 planeNormal,
+            OffsetOptions options
+        ) => OffsetInPlane(chain, distance, planeNormal, options, Tolerance.Global);
 
         /// <summary>
         /// Gets the curve parallel to a flat curved chain at a distance to its left within its plane, as the
@@ -88,7 +105,8 @@ namespace GeometryHelper.Core
             double distance,
             GeoVector3 planeNormal,
             OffsetOptions options,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             if (chain == null)
             {
@@ -112,7 +130,13 @@ namespace GeometryHelper.Core
             // running along one line, and the two can then never disagree.
             if (!HoldsAnArc(chain))
             {
-                GeoPolyline3[] straight = OffsetInPlane(new GeoPolyline3(chain.Vertices), distance, planeNormal, options, tolerance);
+                GeoPolyline3[] straight = OffsetInPlane(
+                    new GeoPolyline3(chain.Vertices),
+                    distance,
+                    planeNormal,
+                    options,
+                    tolerance
+                );
                 var asChains = new GeoPolylineArc3[straight.Length];
 
                 for (int i = 0; i < straight.Length; i++)
@@ -128,7 +152,9 @@ namespace GeometryHelper.Core
             if (!PlanarMap.TryToPolylineArc2(frame, chain, out GeoPolylineArc2 flat, tolerance))
             {
                 throw new ArgumentException(
-                    "The chain does not lie in one plane, so it has no side to offset to.", nameof(chain));
+                    "The chain does not lie in one plane, so it has no side to offset to.",
+                    nameof(chain)
+                );
             }
 
             var result = new List<GeoPolylineArc3>();
@@ -166,7 +192,11 @@ namespace GeometryHelper.Core
         /// normal only says which side the chain is seen from, so it is used to turn the plane over and never to
         /// replace it: that keeps left meaning the same thing here as it does for a straight chain.
         /// </remarks>
-        private static GeoCoordinateSystem3 FrameFacing(GeoPolylineArc3 chain, GeoVector3 planeNormal, Tolerance tolerance)
+        private static GeoCoordinateSystem3 FrameFacing(
+            GeoPolylineArc3 chain,
+            GeoVector3 planeNormal,
+            Tolerance tolerance
+        )
         {
             double length = planeNormal.Length;
 
@@ -178,7 +208,9 @@ namespace GeometryHelper.Core
             if (!chain.TryGetPlane(out GeoPlane3 plane, tolerance))
             {
                 throw new ArgumentException(
-                    "The chain does not lie in one plane, so it has no side to offset to.", nameof(chain));
+                    "The chain does not lie in one plane, so it has no side to offset to.",
+                    nameof(chain)
+                );
             }
 
             double facing = plane.Normal.DotProduct(planeNormal.Divide(length));
@@ -186,7 +218,9 @@ namespace GeometryHelper.Core
             if (Math.Abs(facing) <= tolerance.EqualAngleSin)
             {
                 throw new ArgumentException(
-                    "The plane normal lies in the plane of the chain, so it gives no side to offset to.", nameof(planeNormal));
+                    "The plane normal lies in the plane of the chain, so it gives no side to offset to.",
+                    nameof(planeNormal)
+                );
             }
 
             GeoVector3 normal = facing > 0.0 ? plane.Normal : plane.Normal.Negate();

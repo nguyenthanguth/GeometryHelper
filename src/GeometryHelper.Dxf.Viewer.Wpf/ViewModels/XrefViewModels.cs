@@ -118,11 +118,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets the colour of the icon: red for a reference not found.</summary>
-        public Brush IconBrush => Reference?.Status == CadReferenceStatus.NotFound ? Frozen(0xF8, 0x51, 0x49) : Frozen(0xC9, 0xD1, 0xDB);
+        public Brush IconBrush =>
+            Reference?.Status == CadReferenceStatus.NotFound ? Frozen(0xF8, 0x51, 0x49) : Frozen(0xC9, 0xD1, 0xDB);
 
         /// <summary>Gets the outline of the icon: a sheet for a drawing, a sheet ticked for the drawing itself, a picture for an image.</summary>
-        public System.Windows.Media.Geometry Icon => System.Windows.Media.Geometry.Parse(IsCurrent ? "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 14l2 2 4-4"
-            : IsImage ? "M3 5h18v14H3zM7 15l3-4 3 3 2-2 3 3M8 9h.01" : "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5");
+        public System.Windows.Media.Geometry Icon =>
+            System.Windows.Media.Geometry.Parse(
+                IsCurrent ? "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 14l2 2 4-4"
+                : IsImage ? "M3 5h18v14H3zM7 15l3-4 3 3 2-2 3 3M8 9h.01"
+                : "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5"
+            );
 
         /// <summary>A size as the palette shows it: kilobytes rounded up below a megabyte, megabytes to one place above.</summary>
         internal static string Size(long bytes)
@@ -172,9 +177,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             DetachCommand = new DelegateCommand(_ => Run("Detach"), _ => IsOwn);
             RefreshCommand = new DelegateCommand(_ => Refresh());
             ReloadAllCommand = new DelegateCommand(_ => ReloadAll(), _ => Document != null);
-            MakeAbsoluteCommand = new DelegateCommand(_ => SetPathType(CadPathType.Full), _ => IsOwn && Selected.Reference.FoundAt != null);
-            MakeRelativeCommand = new DelegateCommand(_ => SetPathType(CadPathType.Relative), _ => IsOwn && Selected.Reference.FoundAt != null && Document?.HasFile == true);
-            RemovePathCommand = new DelegateCommand(_ => SetPathType(CadPathType.None), _ => IsOwn && Selected.Reference.FoundAt != null);
+            MakeAbsoluteCommand = new DelegateCommand(
+                _ => SetPathType(CadPathType.Full),
+                _ => IsOwn && Selected.Reference.FoundAt != null
+            );
+            MakeRelativeCommand = new DelegateCommand(
+                _ => SetPathType(CadPathType.Relative),
+                _ => IsOwn && Selected.Reference.FoundAt != null && Document?.HasFile == true
+            );
+            RemovePathCommand = new DelegateCommand(
+                _ => SetPathType(CadPathType.None),
+                _ => IsOwn && Selected.Reference.FoundAt != null
+            );
             Refresh();
         }
 
@@ -182,7 +196,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public CadDocument Document => _model.Document;
 
         /// <summary>Gets the rows: the drawing itself, then its external references, then its images.</summary>
-        public ObservableCollection<ReferenceRowViewModel> Rows { get; } = new ObservableCollection<ReferenceRowViewModel>();
+        public ObservableCollection<ReferenceRowViewModel> Rows { get; } =
+            new ObservableCollection<ReferenceRowViewModel>();
 
         /// <summary>Gets or sets the row selected, whose details are shown.</summary>
         public ReferenceRowViewModel Selected
@@ -262,7 +277,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 details.Add(new ReferenceDetailViewModel("Status", row.StatusText, false));
                 details.Add(new ReferenceDetailViewModel("Size", row.SizeText, false));
                 details.Add(new ReferenceDetailViewModel("Type", row.TypeName, false));
-                details.Add(new ReferenceDetailViewModel("Date", date?.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture), false));
+                details.Add(
+                    new ReferenceDetailViewModel(
+                        "Date",
+                        date?.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+                        false
+                    )
+                );
                 details.Add(new ReferenceDetailViewModel("Saved Path", reference?.SavedPath ?? string.Empty, true));
                 details.Add(new ReferenceDetailViewModel("Found At", found ?? string.Empty, true));
 
@@ -285,7 +306,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return null;
                 }
 
-                return _preview ?? (_preview = PreviewOf(_selected.Reference.FoundAt, _selected.IsImage, Document?.Fonts, 420, 240));
+                return _preview
+                    ?? (
+                        _preview = PreviewOf(_selected.Reference.FoundAt, _selected.IsImage, Document?.Fonts, 420, 240)
+                    );
             }
         }
 
@@ -345,7 +369,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
             }
 
-            ReferenceRowViewModel keep = wasCurrent ? Rows.FirstOrDefault() : Rows.FirstOrDefault(r => !r.IsCurrent && string.Equals(r.Name, selected, StringComparison.OrdinalIgnoreCase));
+            ReferenceRowViewModel keep = wasCurrent
+                ? Rows.FirstOrDefault()
+                : Rows.FirstOrDefault(r =>
+                    !r.IsCurrent && string.Equals(r.Name, selected, StringComparison.OrdinalIgnoreCase)
+                );
             _selected = null;
             Selected = keep ?? Rows.FirstOrDefault(r => !r.IsCurrent) ?? Rows.FirstOrDefault();
             Raise(nameof(Details));
@@ -366,7 +394,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>The words of the palette for a path type: Relative path, Full path, No path.</summary>
-        internal static string PathTypeName(CadPathType type) => type == CadPathType.Relative ? "Relative path" : type == CadPathType.Full ? "Full path" : "No path";
+        internal static string PathTypeName(CadPathType type) =>
+            type == CadPathType.Relative ? "Relative path"
+            : type == CadPathType.Full ? "Full path"
+            : "No path";
 
         /// <summary>The picture of a file: a drawing's model space drawn, or the picture read at the width asked; null where it cannot be read.</summary>
         internal static ImageSource PreviewOf(string path, bool image, CadFonts fonts, int width, int height)
@@ -389,7 +420,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             catch (Exception exception)
             {
-                GeometryHelperLog.Debug("ExternalReferencesViewModel: no preview of " + path + ": " + exception.Message);
+                GeometryHelperLog.Debug(
+                    "ExternalReferencesViewModel: no preview of " + path + ": " + exception.Message
+                );
                 return null;
             }
         }
@@ -405,7 +438,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (reference.IsImage)
             {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(reference.FoundAt) { UseShellExecute = true });
+                System.Diagnostics.Process.Start(
+                    new System.Diagnostics.ProcessStartInfo(reference.FoundAt) { UseShellExecute = true }
+                );
                 return;
             }
 
@@ -419,7 +454,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            string answer = option == "Unload" ? "U" : option == "Reload" ? "R" : "D";
+            string answer =
+                option == "Unload" ? "U"
+                : option == "Reload" ? "R"
+                : "D";
             _model.RunWithAnswers(_selected.IsImage ? "-IMAGE" : "-XREF", answer, _selected.Name);
             Refresh();
         }
@@ -454,7 +492,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             // -IMAGE has no path type of its own: Path is given the path the type writes.
-            SetPath(CadXrefManager.PathFor(_selected.Reference.FoundAt, type, Document.HasFile ? Path.GetDirectoryName(Document.FileName) : null));
+            SetPath(
+                CadXrefManager.PathFor(
+                    _selected.Reference.FoundAt,
+                    type,
+                    Document.HasFile ? Path.GetDirectoryName(Document.FileName) : null
+                )
+            );
         }
     }
 
@@ -503,12 +547,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool IsXref => !IsImage;
 
         /// <summary>Gets the kinds of file offered, as the dialog's note says them.</summary>
-        public string FilesNote => IsImage
-            ? "Files of type: PNG (*.png), JPEG (*.jpg, *.jpeg), Bitmap (*.bmp). TIFF, GIF, PDF and the other raster types of AutoCAD are not offered."
-            : "Files of type: Drawing Exchange Format (*.dxf). DWG is not offered: the presenter reads DXF only, so an xref is a DXF file.";
+        public string FilesNote =>
+            IsImage
+                ? "Files of type: PNG (*.png), JPEG (*.jpg, *.jpeg), Bitmap (*.bmp). TIFF, GIF, PDF and the other raster types of AutoCAD are not offered."
+                : "Files of type: Drawing Exchange Format (*.dxf). DWG is not offered: the presenter reads DXF only, so an xref is a DXF file.";
 
         /// <summary>Gets the filter of the Browse dialog.</summary>
-        public string BrowseFilter => IsImage ? "Images (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp|PNG (*.png)|*.png|JPEG (*.jpg;*.jpeg)|*.jpg;*.jpeg|Bitmap (*.bmp)|*.bmp" : "Drawing Exchange Format (*.dxf)|*.dxf";
+        public string BrowseFilter =>
+            IsImage
+                ? "Images (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp|PNG (*.png)|*.png|JPEG (*.jpg;*.jpeg)|*.jpg;*.jpeg|Bitmap (*.bmp)|*.bmp"
+                : "Drawing Exchange Format (*.dxf)|*.dxf";
 
         /// <summary>Gets or sets the full path of the file chosen; set, the dialog reads it and shows what it found.</summary>
         public string FileName
@@ -519,7 +567,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Request.FileName = value;
                 _preview = null;
 
-                foreach (string name in new[] { nameof(FileName), nameof(Name), nameof(Names), nameof(SavedPath), nameof(FoundIn), nameof(UnitText), nameof(UnitSecond), nameof(Error), nameof(CanOk), nameof(Preview) })
+                foreach (
+                    string name in new[]
+                    {
+                        nameof(FileName),
+                        nameof(Name),
+                        nameof(Names),
+                        nameof(SavedPath),
+                        nameof(FoundIn),
+                        nameof(UnitText),
+                        nameof(UnitSecond),
+                        nameof(Error),
+                        nameof(CanOk),
+                        nameof(Preview),
+                    }
+                )
                 {
                     Raise(name);
                 }
@@ -552,7 +614,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 foreach (CadExternalReference reference in Request.Document.Xrefs.GetReferences())
                 {
-                    if (reference.IsImage == IsImage && !names.Contains(reference.Name, StringComparer.OrdinalIgnoreCase))
+                    if (
+                        reference.IsImage == IsImage
+                        && !names.Contains(reference.Name, StringComparer.OrdinalIgnoreCase)
+                    )
                     {
                         names.Add(reference.Name);
                     }
@@ -590,7 +655,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get => ExternalReferencesViewModel.PathTypeName(Request.PathType);
             set
             {
-                Request.PathType = value == "Full path" ? CadPathType.Full : value == "No path" ? CadPathType.None : CadPathType.Relative;
+                Request.PathType =
+                    value == "Full path" ? CadPathType.Full
+                    : value == "No path" ? CadPathType.None
+                    : CadPathType.Relative;
                 Raise(nameof(PathType));
                 Raise(nameof(SavedPath));
             }
@@ -751,9 +819,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return string.Empty;
                 }
 
-                string pixels = Request.PixelWidth.ToString(CultureInfo.InvariantCulture) + " × " + Request.PixelHeight.ToString(CultureInfo.InvariantCulture) + " px";
+                string pixels =
+                    Request.PixelWidth.ToString(CultureInfo.InvariantCulture)
+                    + " × "
+                    + Request.PixelHeight.ToString(CultureInfo.InvariantCulture)
+                    + " px";
                 return Request.HasResolution
-                    ? pixels + " · 1 px = " + (Request.BaseWidth / Request.PixelWidth).ToString("0.####", CultureInfo.InvariantCulture) + " " + UnitShort(Request.Document.Database.Insunits)
+                    ? pixels
+                        + " · 1 px = "
+                        + (Request.BaseWidth / Request.PixelWidth).ToString("0.####", CultureInfo.InvariantCulture)
+                        + " "
+                        + UnitShort(Request.Document.Database.Insunits)
                     : pixels + " · width 1 unit";
             }
         }
@@ -768,7 +844,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string Error => Request.Error ?? string.Empty;
 
         /// <summary>Gets whether OK can be pressed: a file chosen that can be attached, and a name.</summary>
-        public bool CanOk => Request.FileName != null && Request.Error == null && !string.IsNullOrWhiteSpace(Request.Name);
+        public bool CanOk =>
+            Request.FileName != null && Request.Error == null && !string.IsNullOrWhiteSpace(Request.Name);
 
         /// <summary>Gets the preview of the file chosen: the drawing drawn, or the picture; null before one is chosen.</summary>
         public ImageSource Preview
@@ -780,9 +857,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return _preview;
                 }
 
-                _preview = IsImage
-                    ? ExternalReferencesViewModel.PreviewOf(Request.FileName, true, null, 200, 150)
-                    : Request.Drawing == null ? null : CadStylePreview.Drawing(Request.Drawing, Request.Document.Fonts, 200, 150);
+                _preview =
+                    IsImage ? ExternalReferencesViewModel.PreviewOf(Request.FileName, true, null, 200, 150)
+                    : Request.Drawing == null ? null
+                    : CadStylePreview.Drawing(Request.Drawing, Request.Document.Fonts, 200, 150);
                 return _preview;
             }
         }
@@ -795,25 +873,35 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 Request.Point = new GeoPoint3(Read(_x, 0.0), Read(_y, 0.0), Read(_z, 0.0));
                 double x = Read(_scaleX, 1.0);
-                Request.Scale = Request.UniformScale || IsImage ? new GeoVector3(x, x, x) : new GeoVector3(x, Read(_scaleY, x), Read(_scaleZ, x));
+                Request.Scale =
+                    Request.UniformScale || IsImage
+                        ? new GeoVector3(x, x, x)
+                        : new GeoVector3(x, Read(_scaleY, x), Read(_scaleZ, x));
                 Request.Rotation = Read(_angle, 0.0) * Math.PI / 180.0;
             }
 
             Request.Action = action;
         }
 
-        private static double Read(string text, double fallback) => BlockNumbers.TryRead(text, out double value) && value != 0.0 ? value : fallback;
+        private static double Read(string text, double fallback) =>
+            BlockNumbers.TryRead(text, out double value) && value != 0.0 ? value : fallback;
 
         private static string UnitShort(DxfUnits units)
         {
             switch (units)
             {
-                case DxfUnits.Millimeters: return "mm";
-                case DxfUnits.Centimeters: return "cm";
-                case DxfUnits.Meters: return "m";
-                case DxfUnits.Inches: return "in";
-                case DxfUnits.Feet: return "ft";
-                default: return "units";
+                case DxfUnits.Millimeters:
+                    return "mm";
+                case DxfUnits.Centimeters:
+                    return "cm";
+                case DxfUnits.Meters:
+                    return "m";
+                case DxfUnits.Inches:
+                    return "in";
+                case DxfUnits.Feet:
+                    return "ft";
+                default:
+                    return "units";
             }
         }
     }

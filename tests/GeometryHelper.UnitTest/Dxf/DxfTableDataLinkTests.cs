@@ -17,7 +17,10 @@ namespace GeometryHelper.UnitTest.Dxf
     public class DxfTableDataLinkTests
     {
         // The drawing of R2018 read as one of R2007, whose cells AutoCAD writes in the same form.
-        private static readonly string R2007 = DxfDimensionDrawings.R2018.Replace("$ACADVER\n  1\nAC1032\n", "$ACADVER\n  1\nAC1021\n");
+        private static readonly string R2007 = DxfDimensionDrawings.R2018.Replace(
+            "$ACADVER\n  1\nAC1032\n",
+            "$ACADVER\n  1\nAC1021\n"
+        );
 
         private static readonly string[] Versions = { R2007, DxfDimensionDrawings.R2018 };
 
@@ -41,18 +44,32 @@ namespace GeometryHelper.UnitTest.Dxf
         /// </summary>
         private static string Linked(string text, int option, params (string Cell, int Rows, int Columns)[] cells)
         {
-            string linked = text
-                .Replace("$HANDSEED\n  5\n10A\n", "$HANDSEED\n  5\nA03\n")
+            string linked = text.Replace("$HANDSEED\n  5\n10A\n", "$HANDSEED\n  5\nA03\n")
                 .Replace("  3\nEZDXF_META\n350\n2D\n", "  3\nACAD_DATALINK\n350\nA00\n  3\nEZDXF_META\n350\n2D\n")
-                .Replace("  0\nENDSEC\n  0\nEOF\n", "  0\nDICTIONARY\n  5\nA00\n330\nA\n100\nAcDbDictionary\n281\n1\n  3\nParts\n350\nA01\n"
-                    + "  0\nDATALINK\n  5\nA01\n102\n{ACAD_REACTORS\n330\nA00\n102\n}\n330\nA00\n100\nAcDbDataLink\n  1\nAcExcel\n300\nBill of parts\n301\nData source file: parts.xlsx\n302\nparts.xlsx!Sheet1!A1:A2\n"
-                    + " 90\n" + option.ToString(CultureInfo.InvariantCulture) + "\n 91\n1179649\n 92\n1\n170\n2026\n171\n10\n172\n20\n173\n13\n174\n31\n175\n10\n176\n484\n177\n1\n 93\n0\n304\nUpdated\n"
-                    + " 94\n0\n305\nCUSTOMDATA\n  1\nDATAMAP_BEGIN\n309\nDATAMAP_END\n360\nA02\n"
-                    + "  0\nXRECORD\n  5\nA02\n330\nA01\n100\nAcDbXrecord\n280\n1\n  1\ncached\n  0\nENDSEC\n  0\nEOF\n");
+                .Replace(
+                    "  0\nENDSEC\n  0\nEOF\n",
+                    "  0\nDICTIONARY\n  5\nA00\n330\nA\n100\nAcDbDictionary\n281\n1\n  3\nParts\n350\nA01\n"
+                        + "  0\nDATALINK\n  5\nA01\n102\n{ACAD_REACTORS\n330\nA00\n102\n}\n330\nA00\n100\nAcDbDataLink\n  1\nAcExcel\n300\nBill of parts\n301\nData source file: parts.xlsx\n302\nparts.xlsx!Sheet1!A1:A2\n"
+                        + " 90\n"
+                        + option.ToString(CultureInfo.InvariantCulture)
+                        + "\n 91\n1179649\n 92\n1\n170\n2026\n171\n10\n172\n20\n173\n13\n174\n31\n175\n10\n176\n484\n177\n1\n 93\n0\n304\nUpdated\n"
+                        + " 94\n0\n305\nCUSTOMDATA\n  1\nDATAMAP_BEGIN\n309\nDATAMAP_END\n360\nA02\n"
+                        + "  0\nXRECORD\n  5\nA02\n330\nA01\n100\nAcDbXrecord\n280\n1\n  1\ncached\n  0\nENDSEC\n  0\nEOF\n"
+                );
 
             foreach ((string cell, int rows, int columns) in cells)
             {
-                linked = linked.Replace(cell, cell.Replace(" 92\n0\n", " 92\n1\n340\nA01\n 93\n" + rows.ToString(CultureInfo.InvariantCulture) + "\n 94\n" + columns.ToString(CultureInfo.InvariantCulture) + "\n 96\n0\n"));
+                linked = linked.Replace(
+                    cell,
+                    cell.Replace(
+                        " 92\n0\n",
+                        " 92\n1\n340\nA01\n 93\n"
+                            + rows.ToString(CultureInfo.InvariantCulture)
+                            + "\n 94\n"
+                            + columns.ToString(CultureInfo.InvariantCulture)
+                            + "\n 96\n0\n"
+                    )
+                );
             }
 
             return linked;
@@ -70,10 +87,12 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static string TableRecord(string text) => Records(text).Single(r => HandleOf(r) == "F6");
 
-        private static string Record(string text, string handle) => Records(text).SingleOrDefault(r => HandleOf(r) == handle);
+        private static string Record(string text, string handle) =>
+            Records(text).SingleOrDefault(r => HandleOf(r) == handle);
 
         /// <summary>How many cells of a table's record name a link: its groups end in a 96 of nought before the cell's value.</summary>
-        private static int LinksNamed(string record) => record.Split(new[] { "\n 96\n0\n301\nCELL_VALUE\n" }, StringSplitOptions.None).Length - 1;
+        private static int LinksNamed(string record) =>
+            record.Split(new[] { "\n 96\n0\n301\nCELL_VALUE\n" }, StringSplitOptions.None).Length - 1;
 
         [Fact]
         public void ADataLinkOfTheLayoutGuessed_IsReadFromEachCellOfItsRange_WithItsUpdate()
@@ -95,7 +114,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(DxfDataLinkOption.PersistCache, link.DataLinkOption);
                 Assert.Equal(1179649, link.UpdateOption);
                 Assert.True(link.IsValid);
-                Assert.Equal(0, link.GetUpdateStatus(out DxfUpdateDirection direction, out DateTime time, out string message));
+                Assert.Equal(
+                    0,
+                    link.GetUpdateStatus(out DxfUpdateDirection direction, out DateTime time, out string message)
+                );
                 Assert.Equal(DxfUpdateDirection.SourceToData, direction);
                 Assert.Equal(new DateTime(2026, 10, 20, 13, 31, 10, 484), time);
                 Assert.Equal("Updated", message);
@@ -134,7 +156,17 @@ namespace GeometryHelper.UnitTest.Dxf
             // A cell is linked to a DATALINK of the drawing (SetDataLink, of the AutoCAD checks D17); no new DATALINK is made.
             Assert.Null(typeof(DxfDataLink).GetConstructor(Type.EmptyTypes));
 
-            foreach (string name in new[] { "DataAdapterId", "Description", "ToolTip", "ConnectionString", "DataLinkOption", "UpdateOption" })
+            foreach (
+                string name in new[]
+                {
+                    "DataAdapterId",
+                    "Description",
+                    "ToolTip",
+                    "ConnectionString",
+                    "DataLinkOption",
+                    "UpdateOption",
+                }
+            )
             {
                 Assert.Null(typeof(DxfDataLink).GetProperty(name).GetSetMethod());
             }
@@ -350,7 +382,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 string saved = db.ToText();
                 // As AutoCAD 2021 wrote the formula of its cell (1, 0), 344 after 145 and before the 92 (point 78).
                 Assert.Contains("145\n0.0\n344\n", TableRecord(saved), StringComparison.Ordinal);
-                Assert.Contains(" 92\n1\n340\nA01\n 93\n2\n 94\n1\n 96\n0\n301\nCELL_VALUE\n", TableRecord(saved), StringComparison.Ordinal);
+                Assert.Contains(
+                    " 92\n1\n340\nA01\n 93\n2\n 94\n1\n 96\n0\n301\nCELL_VALUE\n",
+                    TableRecord(saved),
+                    StringComparison.Ordinal
+                );
                 DxfTable read = Table(DxfDatabase.Parse(saved));
                 Assert.True(read.IsLinked(1, 0));
                 Assert.True(read.IsLinked(2, 0));
@@ -362,7 +398,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 string after = db.ToText();
                 Assert.DoesNotContain("\n340\nA01\n", TableRecord(after), StringComparison.Ordinal);
-                Assert.Contains(" 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n", TableRecord(after), StringComparison.Ordinal);
+                Assert.Contains(
+                    " 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n",
+                    TableRecord(after),
+                    StringComparison.Ordinal
+                );
                 Assert.Contains("145\n0.0\n344\n", TableRecord(after), StringComparison.Ordinal);
                 Assert.Empty(table.GetDataLink());
                 Assert.Equal("=1+2", Table(DxfDatabase.Parse(after)).GetFormula(1, 0, 0));
@@ -379,25 +419,49 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfTable table = Table(db);
                 var link = (DxfDataLink)db.GetObject("A01");
 
-                table.CopyFrom(table, DxfTableCopyOptions.ExpandOrContractTable, new DxfCellRange(1, 0, 1, 1), new DxfCellRange(3, 0, 3, 0));
+                table.CopyFrom(
+                    table,
+                    DxfTableCopyOptions.ExpandOrContractTable,
+                    new DxfCellRange(1, 0, 1, 1),
+                    new DxfCellRange(3, 0, 3, 0)
+                );
                 Assert.Equal(new DxfCellRange(3, 0, 3, 0), table.GetDataLinkRange(3, 0));
                 Assert.Same(link, table.GetDataLink(3, 0));
                 Assert.Equal(new[] { link }, table.GetDataLink());
 
                 // SkipDataLink keeps this table's links and copies none: (3, 0) keeps its link, (2, 0) is given none.
-                table.CopyFrom(table, DxfTableCopyOptions.SkipDataLink, new DxfCellRange(1, 0, 1, 0), new DxfCellRange(3, 0, 3, 0));
+                table.CopyFrom(
+                    table,
+                    DxfTableCopyOptions.SkipDataLink,
+                    new DxfCellRange(1, 0, 1, 0),
+                    new DxfCellRange(3, 0, 3, 0)
+                );
                 Assert.True(table.IsLinked(3, 0));
-                table.CopyFrom(table, DxfTableCopyOptions.SkipDataLink, new DxfCellRange(1, 0, 1, 0), new DxfCellRange(2, 0, 2, 0));
+                table.CopyFrom(
+                    table,
+                    DxfTableCopyOptions.SkipDataLink,
+                    new DxfCellRange(1, 0, 1, 0),
+                    new DxfCellRange(2, 0, 2, 0)
+                );
                 Assert.False(table.IsLinked(2, 0));
                 Assert.Equal("Mark", table.TextString(2, 0));
 
                 // A copy over a linked range takes its link out; one wholly within carries it.
-                table.CopyFrom(table, DxfTableCopyOptions.None, new DxfCellRange(0, 0, 0, 1), new DxfCellRange(3, 0, 3, 0));
+                table.CopyFrom(
+                    table,
+                    DxfTableCopyOptions.None,
+                    new DxfCellRange(0, 0, 0, 1),
+                    new DxfCellRange(3, 0, 3, 0)
+                );
                 Assert.False(table.IsLinked(3, 0));
                 Assert.True(table.IsLinked(1, 0));
 
                 // Cells filled from a linked one are copies of its content, not of its link.
-                table.Fill(new DxfCellRange(2, 0, 2, 0), new DxfCellRange(1, 0, 1, 0), DxfTableFillOptions.CopyContent | DxfTableFillOptions.CopyFormat);
+                table.Fill(
+                    new DxfCellRange(2, 0, 2, 0),
+                    new DxfCellRange(1, 0, 1, 0),
+                    DxfTableFillOptions.CopyContent | DxfTableFillOptions.CopyFormat
+                );
                 Assert.Equal(new DxfCellRange(1, 0, 1, 0), table.GetDataLinkRange(1, 0));
                 Assert.False(table.IsLinked(2, 0));
                 Assert.Equal(1, LinksNamed(TableRecord(db.ToText())));
@@ -428,7 +492,10 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ACellNamingNoDataLinkOfTheDrawing_IsReadAsLinkedToNone_AndTakenAwayStill()
         {
-            string dangling = DxfDimensionDrawings.R2018.Replace(MarkCell, " 92\n1\n340\nFFF0\n 93\n1\n 94\n1\n 96\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n");
+            string dangling = DxfDimensionDrawings.R2018.Replace(
+                MarkCell,
+                " 92\n1\n340\nFFF0\n 93\n1\n 94\n1\n 96\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n"
+            );
             DxfDatabase db = DxfDatabase.Parse(dangling);
             DxfTable table = Table(db);
             Assert.False(table.IsLinked(1, 0));
@@ -441,7 +508,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(TableRecord(DxfDimensionDrawings.R2018), TableRecord(db.ToText()));
         }
 
-        private static void Refused<T>(Action action, string part) where T : Exception
+        private static void Refused<T>(Action action, string part)
+            where T : Exception
         {
             T refused = Assert.Throws<T>(action);
             Assert.Contains(part, refused.Message, StringComparison.Ordinal);

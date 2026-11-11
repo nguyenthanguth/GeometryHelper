@@ -16,7 +16,12 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfPolyline2dTests
     {
-        private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
+        private static readonly string[] Drawings =
+        {
+            DxfFileEzdxfDrawings.R12,
+            DxfFileEzdxfDrawings.R2000,
+            DxfFileEzdxfDrawings.R2018,
+        };
 
         #region Read as ezdxf reads it
 
@@ -25,7 +30,13 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // As ezdxf 1.4.5 reads them: 49 of R2000 closed on the layer Wand€Außen, its vertices 4B, 4C, 4D at (0, 0),
             // (5, 0), (5, 5), owner 17 as the file writes it; 4C of R12 the same, with no handles of its vertices' owners.
-            foreach (KeyValuePair<string, string> drawing in new[] { new KeyValuePair<string, string>(DxfFileEzdxfDrawings.R2000, "49"), new KeyValuePair<string, string>(DxfFileEzdxfDrawings.R12, "4C") })
+            foreach (
+                KeyValuePair<string, string> drawing in new[]
+                {
+                    new KeyValuePair<string, string>(DxfFileEzdxfDrawings.R2000, "49"),
+                    new KeyValuePair<string, string>(DxfFileEzdxfDrawings.R12, "4C"),
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(drawing.Key);
                 DxfPolyline2d polyline = ByHandle<DxfPolyline2d>(db, drawing.Value);
@@ -57,7 +68,10 @@ namespace GeometryHelper.UnitTest.Dxf
         public void APolylinesShape_IsTheReaders()
         {
             DxfPolyline2d polyline = ByHandle<DxfPolyline2d>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000), "49");
-            DxfDocument read = DxfReader.Parse(DxfFileEzdxfDrawings.R2000, new DxfReadOptions { Tolerance = Tolerance.Default });
+            DxfDocument read = DxfReader.Parse(
+                DxfFileEzdxfDrawings.R2000,
+                new DxfReadOptions { Tolerance = Tolerance.Default }
+            );
 
             Assert.Equal(read.Shapes.Single(s => s.Handle == "49").Shape, Assert.Single(polyline.GetGeometry()));
             Assert.Equal(polyline.GetGeometry()[0], polyline.GetGeCurve());
@@ -133,7 +147,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(read.TangentUsed);
             Assert.Equal(2.0, again.Elevation);
             Assert.False(again.Closed);
-            Assert.Contains(" 42\n0.5\n 70\n2\n", Records(saved).Single(r => HandleOf(r) == "4C"), StringComparison.Ordinal);
+            Assert.Contains(
+                " 42\n0.5\n 70\n2\n",
+                Records(saved).Single(r => HandleOf(r) == "4C"),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -186,7 +204,18 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                var polyline = new DxfPolyline2d(DxfPoly2dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0) }, 1.5, false, 0.0, 0.0, new[] { 0.0, 1.0, 0.0 }) { Layer = "rebar" };
+                var polyline = new DxfPolyline2d(
+                    DxfPoly2dType.SimplePoly,
+                    new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0) },
+                    1.5,
+                    false,
+                    0.0,
+                    0.0,
+                    new[] { 0.0, 1.0, 0.0 }
+                )
+                {
+                    Layer = "rebar",
+                };
 
                 db.ModelSpace.AppendEntity(polyline);
 
@@ -199,7 +228,6 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal("rebar", again.Layer);
                 Assert.Contains(Records(saved), r => r.StartsWith("  0\nSEQEND\n", StringComparison.Ordinal));
             }
-
         }
 
         [Fact]
@@ -212,7 +240,9 @@ namespace GeometryHelper.UnitTest.Dxf
             polyline.Erase();
 
             string saved = db.ToText();
-            Assert.DoesNotContain(Records(saved), r => HandleOf(r) == "49" || HandleOf(r) == "4B" || HandleOf(r) == "4D");
+            Assert.DoesNotContain(Records(saved), r =>
+                HandleOf(r) == "49" || HandleOf(r) == "4B" || HandleOf(r) == "4D"
+            );
             Assert.True(polyline.IsErased);
             Assert.True(polyline.First().IsErased);
             Assert.True(vertex.IsErased);
@@ -237,13 +267,28 @@ namespace GeometryHelper.UnitTest.Dxf
             string saved = db.ToText();
             DxfPolyline2d again = ByHandle<DxfPolyline2d>(DxfDatabase.Parse(saved), "49");
             List<DxfVertex2d> vertices = again.ToList();
-            DxfPolylineTests.Near(new GeoVector3(0.3947397981737998, -0.0713924994178759, 0.9160150668873175), again.Normal);
+            DxfPolylineTests.Near(
+                new GeoVector3(0.3947397981737998, -0.0713924994178759, 0.9160150668873175),
+                again.Normal
+            );
             Assert.Equal(6.5943981460456715, again.Elevation, 9);
-            DxfPolylineTests.Near(new GeoPoint2(-3.1404543833265546, -8.826180337930698), new GeoPoint2(vertices[0].Position.X, vertices[0].Position.Y));
-            DxfPolylineTests.Near(new GeoPoint2(0.2617706712097556, -12.490176063676762), new GeoPoint2(vertices[1].Position.X, vertices[1].Position.Y));
-            DxfPolylineTests.Near(new GeoPoint2(3.925766396955818, -9.087951009140452), new GeoPoint2(vertices[2].Position.X, vertices[2].Position.Y));
+            DxfPolylineTests.Near(
+                new GeoPoint2(-3.1404543833265546, -8.826180337930698),
+                new GeoPoint2(vertices[0].Position.X, vertices[0].Position.Y)
+            );
+            DxfPolylineTests.Near(
+                new GeoPoint2(0.2617706712097556, -12.490176063676762),
+                new GeoPoint2(vertices[1].Position.X, vertices[1].Position.Y)
+            );
+            DxfPolylineTests.Near(
+                new GeoPoint2(3.925766396955818, -9.087951009140452),
+                new GeoPoint2(vertices[2].Position.X, vertices[2].Position.Y)
+            );
             Assert.Equal(new[] { "4B", "4C", "4D" }, vertices.Select(v => v.Handle).ToArray());
-            DxfPolylineTests.Near(DxfPolylineTests.Turn().Transform(new GeoPoint3(5, 5, 0)), again.VertexPosition(vertices[2]));
+            DxfPolylineTests.Near(
+                DxfPolylineTests.Turn().Transform(new GeoPoint3(5, 5, 0)),
+                again.VertexPosition(vertices[2])
+            );
         }
 
         #endregion

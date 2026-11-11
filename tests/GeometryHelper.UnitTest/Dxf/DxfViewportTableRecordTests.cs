@@ -65,7 +65,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new GeoVector2(2.5, 5.0), read.SnapIncrements);
             Assert.Equal(new GeoVector2(10.0, 20.0), read.GridIncrements);
             Assert.Equal(new GeoPoint2(1.0, 2.0), read.SnapBase);
-            Assert.Equal(BitConverter.DoubleToInt64Bits(active.SnapAngle), BitConverter.DoubleToInt64Bits(read.SnapAngle));
+            Assert.Equal(
+                BitConverter.DoubleToInt64Bits(active.SnapAngle),
+                BitConverter.DoubleToInt64Bits(read.SnapAngle)
+            );
             Assert.True(read.IsometricSnapEnabled);
             Assert.Equal(2, read.SnapPair);
             Assert.Equal(5, read.GridDisplay);
@@ -100,7 +103,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // GRIDUNIT of nought takes the snap's spacing, and is kept as such.
             active.GridIncrements = new GeoVector2(0.0, 0.0);
-            Assert.Equal(new GeoVector2(0.0, 0.0), DxfDatabase.Parse(db.ToText()).ViewportTable["*Active"].GridIncrements);
+            Assert.Equal(
+                new GeoVector2(0.0, 0.0),
+                DxfDatabase.Parse(db.ToText()).ViewportTable["*Active"].GridIncrements
+            );
         }
 
         [Fact]

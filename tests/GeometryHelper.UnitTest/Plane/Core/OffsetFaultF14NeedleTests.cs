@@ -17,18 +17,25 @@ namespace GeometryHelper.UnitTest.Plane
     public class OffsetFaultF14NeedleTests
     {
         /// <summary>The square 10 by 10 whose bottom dips from (4.9996, 0) to (5, -0.01) and back up to (5.0004, 0).</summary>
-        private static GeoPolygonArc2 SquareWithANotch()
-            => Loop(new[] { P(0, 0), P(4.9996, 0), P(5, -0.01), P(5.0004, 0), P(10, 0), P(10, 10), P(0, 10) });
+        private static GeoPolygonArc2 SquareWithANotch() =>
+            Loop(new[] { P(0, 0), P(4.9996, 0), P(5, -0.01), P(5.0004, 0), P(10, 0), P(10, 10), P(0, 10) });
 
         /// <summary>
         /// The triangle (0, 0), (10, 0), (5, 10) with a needle from its top up to (5, 20) and back down to (5.0004, 10).
         /// </summary>
-        private static GeoPolygonArc2 TriangleWithANeedle()
-            => Loop(new[] { P(0, 0), P(10, 0), P(5, 10), P(5, 20), P(5.0004, 10) });
+        private static GeoPolygonArc2 TriangleWithANeedle() =>
+            Loop(new[] { P(0, 0), P(10, 0), P(5, 10), P(5, 20), P(5.0004, 10) });
 
         /// <summary>The square 10 by 10 with a needle on its top, its sides arcs of bulge 0.1 bowing apart.</summary>
-        private static GeoPolygonArc2 SquareWithACurvedNeedle()
-            => Loop(new[] { P(0, 0), P(10, 0), P(10, 10), P(4.0005, 10), P(4, 16), P(4, 10), P(0, 10) }, 0, 0, 0, 0.1, 0.1);
+        private static GeoPolygonArc2 SquareWithACurvedNeedle() =>
+            Loop(
+                new[] { P(0, 0), P(10, 0), P(10, 10), P(4.0005, 10), P(4, 16), P(4, 10), P(0, 10) },
+                0,
+                0,
+                0,
+                0.1,
+                0.1
+            );
 
         private static OffsetOptions Options(OffsetJoin join) => new OffsetOptions(join);
 
@@ -38,7 +45,12 @@ namespace GeometryHelper.UnitTest.Plane
         /// </summary>
         private static double StraightArea(GeoPolygonArc2 loop, double distance, OffsetJoin join, Tolerance tolerance)
         {
-            GeoPolygon2[] loops = Offset2.Offset(new GeoPolygon2(loop.Vertices.ToList()), distance, new OffsetOptions(join, 10, 1E-5), tolerance);
+            GeoPolygon2[] loops = Offset2.Offset(
+                new GeoPolygon2(loop.Vertices.ToList()),
+                distance,
+                new OffsetOptions(join, 10, 1E-5),
+                tolerance
+            );
             bool clockwise = loop.IsClockwise;
             return loops.Sum(p => p.IsClockwise == clockwise ? p.Area : -p.Area);
         }
@@ -47,7 +59,10 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(OffsetJoin.Round, 112.282743)]
         [InlineData(OffsetJoin.Miter, 112.36)]
         [InlineData(OffsetJoin.Chamfer, 112.298233)]
-        public void ASquareWithANeedleThinnerThanTheToleranceGrown_IsTheSquareGrownAsTheStraightPathGivesIt(OffsetJoin join, double area)
+        public void ASquareWithANeedleThinnerThanTheToleranceGrown_IsTheSquareGrownAsTheStraightPathGivesIt(
+            OffsetJoin join,
+            double area
+        )
         {
             // The needle is 0.0005 wide at its foot, under the tolerance 1E-3: the straight path merges its foot and drops
             // it, and grows the square alone, 100 + 12 + 0.09 pi with round joins, 112.36 mitered, 112.2982 chamfered. Offset
@@ -62,7 +77,10 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(OffsetJoin.Round, 112.282743)]
         [InlineData(OffsetJoin.Miter, 112.36)]
         [InlineData(OffsetJoin.Chamfer, 112.298233)]
-        public void ASquareWithANotchNarrowerThanTheToleranceGrown_IsTheSquareGrownAsTheStraightPathGivesIt(OffsetJoin join, double area)
+        public void ASquareWithANotchNarrowerThanTheToleranceGrown_IsTheSquareGrownAsTheStraightPathGivesIt(
+            OffsetJoin join,
+            double area
+        )
         {
             // The notch is 0.0008 wide where it leaves the bottom, under the tolerance: the straight path drops it. Offset as
             // drawn, its tip 0.01 down grew 112.2838 round, a miter spike 3 long, 113.6307, and 112.3040 chamfered.
@@ -84,7 +102,11 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolygonArc2 triangle = Loop(new[] { P(0, 0), P(10, 0), P(5, 10) });
             GeoPolygonArc2 grown = Assert.Single(Offset2.Offset(TriangleWithANeedle(), 0.3, Options(join), Thousandth));
 
-            Assert.Equal(Assert.Single(Offset2.Offset(triangle, 0.3, Options(join), Thousandth)).Area, grown.Area, 1E-9);
+            Assert.Equal(
+                Assert.Single(Offset2.Offset(triangle, 0.3, Options(join), Thousandth)).Area,
+                grown.Area,
+                1E-9
+            );
             Assert.Equal(StraightArea(triangle, 0.3, join, Thousandth), grown.Area, 1E-4);
         }
 
@@ -93,7 +115,9 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // Within 1E-4 the needle's foot, 0.0005 wide, is five tolerances across, and it grows round its tip as drawn:
             // 115.845469, as the straight path gives it (115.845450, its round joins cut within the default share).
-            GeoPolygonArc2 grown = Assert.Single(Offset2.Offset(SquareWithANeedle(), 0.3, Options(OffsetJoin.Round), TenThousandth));
+            GeoPolygonArc2 grown = Assert.Single(
+                Offset2.Offset(SquareWithANeedle(), 0.3, Options(OffsetJoin.Round), TenThousandth)
+            );
 
             Assert.Equal(115.845469, grown.Area, 1E-5);
         }
@@ -103,7 +127,9 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // Only a spike between two straight edges is dropped: one whose sides are arcs bowing 0.3 apart encloses more than
             // the tolerance across, and grown by 0.3 keeps its own outline about it, more than the square alone.
-            GeoPolygonArc2 grown = Assert.Single(Offset2.Offset(SquareWithACurvedNeedle(), 0.3, Options(OffsetJoin.Round), Thousandth));
+            GeoPolygonArc2 grown = Assert.Single(
+                Offset2.Offset(SquareWithACurvedNeedle(), 0.3, Options(OffsetJoin.Round), Thousandth)
+            );
 
             Assert.True(grown.Area > 112.282743 + 1.0);
         }

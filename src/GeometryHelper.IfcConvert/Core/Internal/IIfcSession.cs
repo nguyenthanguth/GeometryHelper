@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using GeometryHelper.IfcConvert.Models;
 using GeometryHelper.Geometry;
+using GeometryHelper.IfcConvert.Models;
 
 namespace GeometryHelper.IfcConvert.Core.Internal
 {

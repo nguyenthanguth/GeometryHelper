@@ -16,7 +16,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     {
         /// <summary>The preview the canvas shows.</summary>
         public static readonly DependencyProperty ModelProperty = DependencyProperty.Register(
-            nameof(Model), typeof(PlotPreviewViewModel), typeof(PlotPreviewCanvas), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+            nameof(Model),
+            typeof(PlotPreviewViewModel),
+            typeof(PlotPreviewCanvas),
+            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender)
+        );
 
         private readonly SkiaCanvasRenderer _renderer = new SkiaCanvasRenderer();
         private Point? _from;
@@ -72,20 +76,49 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     using (var shadow = new SKPaint { Color = new SKColor(0, 0, 0, 89) })
                     using (var paper = new SKPaint { Color = SKColors.White })
                     using (var dashes = SKPathEffect.CreateDash(new[] { 4f, 3f }, 0f))
-                    using (var frame = new SKPaint { Color = new SKColor(0x9A, 0xA4, 0xB1), IsStroke = true, StrokeWidth = 1f, PathEffect = dashes })
+                    using (
+                        var frame = new SKPaint
+                        {
+                            Color = new SKColor(0x9A, 0xA4, 0xB1),
+                            IsStroke = true,
+                            StrokeWidth = 1f,
+                            PathEffect = dashes,
+                        }
+                    )
                     {
-                        canvas.DrawRect(new SKRect(sheet.Left + 6f, sheet.Top + 6f, sheet.Right + 6f, sheet.Bottom + 6f), shadow);
+                        canvas.DrawRect(
+                            new SKRect(sheet.Left + 6f, sheet.Top + 6f, sheet.Right + 6f, sheet.Bottom + 6f),
+                            shadow
+                        );
                         canvas.DrawRect(sheet, paper);
-                        canvas.DrawRect(Rect(m, page.Printable.MinX, page.Printable.MinY, page.Printable.MaxX, page.Printable.MaxY), frame);
+                        canvas.DrawRect(
+                            Rect(m, page.Printable.MinX, page.Printable.MinY, page.Printable.MaxX, page.Printable.MaxY),
+                            frame
+                        );
                     }
 
                     _renderer.RenderPlot(canvas, model.Document, model.Space, page, model.Settings, m);
 
                     if (_from.HasValue && model.Mode == PlotPreviewMode.ZoomWindow)
                     {
-                        using (var band = new SKPaint { Color = new SKColor(0x3D, 0x9B, 0xFF), IsStroke = true, StrokeWidth = 1f })
+                        using (
+                            var band = new SKPaint
+                            {
+                                Color = new SKColor(0x3D, 0x9B, 0xFF),
+                                IsStroke = true,
+                                StrokeWidth = 1f,
+                            }
+                        )
                         {
-                            canvas.DrawRect(new SKRect((float)Math.Min(_from.Value.X, _to.X), (float)Math.Min(_from.Value.Y, _to.Y), (float)Math.Max(_from.Value.X, _to.X), (float)Math.Max(_from.Value.Y, _to.Y)), band);
+                            canvas.DrawRect(
+                                new SKRect(
+                                    (float)Math.Min(_from.Value.X, _to.X),
+                                    (float)Math.Min(_from.Value.Y, _to.Y),
+                                    (float)Math.Max(_from.Value.X, _to.X),
+                                    (float)Math.Max(_from.Value.Y, _to.Y)
+                                ),
+                                band
+                            );
                         }
                     }
                 }
@@ -116,7 +149,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             using (SKBitmap drawn = Draw(width, height))
             {
                 var bitmap = new WriteableBitmap(width, height, 96.0, 96.0, PixelFormats.Pbgra32, null);
-                bitmap.WritePixels(new Int32Rect(0, 0, width, height), drawn.GetPixels(), drawn.ByteCount, drawn.RowBytes);
+                bitmap.WritePixels(
+                    new Int32Rect(0, 0, width, height),
+                    drawn.GetPixels(),
+                    drawn.ByteCount,
+                    drawn.RowBytes
+                );
                 drawingContext.DrawImage(bitmap, new Rect(0, 0, width, height));
             }
         }
@@ -152,7 +190,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             else if (model.Mode == PlotPreviewMode.Zoom)
             {
                 // A drag up of 100 pixels zooms in twice, as AutoCAD's real-time zoom does about the window's middle.
-                model.ZoomAt(ActualWidth / 2.0, ActualHeight / 2.0, Math.Pow(2.0, (_to.Y - at.Y) / 100.0), ActualWidth, ActualHeight);
+                model.ZoomAt(
+                    ActualWidth / 2.0,
+                    ActualHeight / 2.0,
+                    Math.Pow(2.0, (_to.Y - at.Y) / 100.0),
+                    ActualWidth,
+                    ActualHeight
+                );
             }
 
             _to = at;
@@ -191,7 +235,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             float top = (float)m.Y(x0, y1);
             float right = (float)m.X(x1, y0);
             float bottom = (float)m.Y(x1, y0);
-            return new SKRect(Math.Min(left, right), Math.Min(top, bottom), Math.Max(left, right), Math.Max(top, bottom));
+            return new SKRect(
+                Math.Min(left, right),
+                Math.Min(top, bottom),
+                Math.Max(left, right),
+                Math.Max(top, bottom)
+            );
         }
     }
 }

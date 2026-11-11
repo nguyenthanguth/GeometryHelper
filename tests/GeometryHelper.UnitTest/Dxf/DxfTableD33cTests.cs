@@ -38,16 +38,18 @@ namespace GeometryHelper.UnitTest.Dxf
             // D33c e01 to e20 (and D33b m30 to m32): AutoCAD 2021 merged the title across the table when it loaded the file and
             // wrote it merged whatever was done to the table, a row put in, a value set, a size, a height, a move; the library
             // merged it before DeleteRows and DeleteColumns alone, and wrote it unmerged after the rest.
-            foreach (Action<DxfTable> edit in new Action<DxfTable>[]
-            {
-                t => t.InsertRows(3, 9.0, 1),
-                t => t.SetValue(2, 0, "Z"),
-                t => t.SetSize(4, 2),
-                t => t.SetRowHeight(2, 12.0),
-                t => t.SetTextHeight(2, 0, 5.0),
-                t => t.SetGridColor(2, 0, DxfGridLineType.HorizontalTop, Aci(1)),
-                t => t.TransformBy(GeoTransform3.Translation(new GeoVector3(10.0, 0.0, 0.0))),
-            })
+            foreach (
+                Action<DxfTable> edit in new Action<DxfTable>[]
+                {
+                    t => t.InsertRows(3, 9.0, 1),
+                    t => t.SetValue(2, 0, "Z"),
+                    t => t.SetSize(4, 2),
+                    t => t.SetRowHeight(2, 12.0),
+                    t => t.SetTextHeight(2, 0, 5.0),
+                    t => t.SetGridColor(2, 0, DxfGridLineType.HorizontalTop, Aci(1)),
+                    t => t.TransformBy(GeoTransform3.Translation(new GeoVector3(10.0, 0.0, 0.0))),
+                }
+            )
             {
                 DxfDatabase db = Unmerged();
                 edit(Table(db));
@@ -86,7 +88,12 @@ namespace GeometryHelper.UnitTest.Dxf
             // merged on load and filled from Parts, and the second cell of a block merged in the same session; the library
             // filled it.
             DxfDatabase title = Unmerged();
-            Table(title).Fill(new DxfCellRange(0, 1, 0, 1), new DxfCellRange(0, 0, 0, 0), DxfTableFillOptions.CopyContent | DxfTableFillOptions.Row);
+            Table(title)
+                .Fill(
+                    new DxfCellRange(0, 1, 0, 1),
+                    new DxfCellRange(0, 0, 0, 0),
+                    DxfTableFillOptions.CopyContent | DxfTableFillOptions.Row
+                );
             DxfTable read = Reread(title);
             Assert.Equal(new DxfCellRange(0, 0, 0, 1), read.GetMergeRange(0, 1));
             Assert.Equal(string.Empty, read.TextString(0, 1));
@@ -117,7 +124,14 @@ namespace GeometryHelper.UnitTest.Dxf
                 {
                     if (r != 2 || c != 1)
                     {
-                        table.SetValue(r, c, "r" + r.ToString(CultureInfo.InvariantCulture) + "c" + c.ToString(CultureInfo.InvariantCulture));
+                        table.SetValue(
+                            r,
+                            c,
+                            "r"
+                                + r.ToString(CultureInfo.InvariantCulture)
+                                + "c"
+                                + c.ToString(CultureInfo.InvariantCulture)
+                        );
                     }
                 }
             }
@@ -125,7 +139,15 @@ namespace GeometryHelper.UnitTest.Dxf
             return DxfDatabase.Parse(db.ToText());
         }
 
-        private static string[] Filled(DxfCellRange fill, DxfCellRange source, DxfTableFillOptions options, bool row, int line, int from, int to)
+        private static string[] Filled(
+            DxfCellRange fill,
+            DxfCellRange source,
+            DxfTableFillOptions options,
+            bool row,
+            int line,
+            int from,
+            int to
+        )
         {
             DxfDatabase db = Grid();
             Table(db).Fill(fill, source, options);
@@ -147,15 +169,57 @@ namespace GeometryHelper.UnitTest.Dxf
             // longer than the source took the source's last cell into its own last, and went back through the source from
             // there, 2.5 and 3.5 filled into rows 10 to 12 giving 3.5, 2.5, 3.5; the library went on from the fill's first cell.
             const DxfTableFillOptions Content = DxfTableFillOptions.CopyContent;
-            Assert.Equal(new[] { "r15c3", "r14c3", "r15c3" }, Filled(new DxfCellRange(10, 3, 12, 3), new DxfCellRange(14, 3, 15, 3), Content, false, 3, 10, 12));
-            Assert.Equal(new[] { "r12c3", "r10c3", "r11c3", "r12c3" }, Filled(new DxfCellRange(6, 3, 9, 3), new DxfCellRange(10, 3, 12, 3), Content, false, 3, 6, 9));
-            Assert.Equal(new[] { "r5c11", "r5c12", "r5c13", "r5c10", "r5c11", "r5c12", "r5c13" }, Filled(new DxfCellRange(5, 3, 5, 9), new DxfCellRange(5, 10, 5, 13), Content | DxfTableFillOptions.Row, true, 5, 3, 9));
+            Assert.Equal(
+                new[] { "r15c3", "r14c3", "r15c3" },
+                Filled(new DxfCellRange(10, 3, 12, 3), new DxfCellRange(14, 3, 15, 3), Content, false, 3, 10, 12)
+            );
+            Assert.Equal(
+                new[] { "r12c3", "r10c3", "r11c3", "r12c3" },
+                Filled(new DxfCellRange(6, 3, 9, 3), new DxfCellRange(10, 3, 12, 3), Content, false, 3, 6, 9)
+            );
+            Assert.Equal(
+                new[] { "r5c11", "r5c12", "r5c13", "r5c10", "r5c11", "r5c12", "r5c13" },
+                Filled(
+                    new DxfCellRange(5, 3, 5, 9),
+                    new DxfCellRange(5, 10, 5, 13),
+                    Content | DxfTableFillOptions.Row,
+                    true,
+                    5,
+                    3,
+                    9
+                )
+            );
 
             // One no longer than the source goes on from its first cell, as before (h-x01, h-x14, f-u-n3-L2), and so does a fill
             // below or right of it, to the table's end (h-x21, h-x22).
-            Assert.Equal(new[] { "r5c2", "r5c3" }, Filled(new DxfCellRange(5, 0, 5, 1), new DxfCellRange(5, 2, 5, 4), Content | DxfTableFillOptions.Row, true, 5, 0, 1));
-            Assert.Equal(new[] { "r5c3", "r6c3", "r7c3" }, Filled(new DxfCellRange(2, 3, 4, 3), new DxfCellRange(5, 3, 8, 3), Content, false, 3, 2, 4));
-            Assert.Equal(new[] { "r5c6", "r5c7", "r5c8", "r5c6", "r5c7" }, Filled(new DxfCellRange(5, 9, 5, 13), new DxfCellRange(5, 6, 5, 8), Content | DxfTableFillOptions.Row, true, 5, 9, 13));
+            Assert.Equal(
+                new[] { "r5c2", "r5c3" },
+                Filled(
+                    new DxfCellRange(5, 0, 5, 1),
+                    new DxfCellRange(5, 2, 5, 4),
+                    Content | DxfTableFillOptions.Row,
+                    true,
+                    5,
+                    0,
+                    1
+                )
+            );
+            Assert.Equal(
+                new[] { "r5c3", "r6c3", "r7c3" },
+                Filled(new DxfCellRange(2, 3, 4, 3), new DxfCellRange(5, 3, 8, 3), Content, false, 3, 2, 4)
+            );
+            Assert.Equal(
+                new[] { "r5c6", "r5c7", "r5c8", "r5c6", "r5c7" },
+                Filled(
+                    new DxfCellRange(5, 9, 5, 13),
+                    new DxfCellRange(5, 6, 5, 8),
+                    Content | DxfTableFillOptions.Row,
+                    true,
+                    5,
+                    9,
+                    13
+                )
+            );
         }
 
         [Fact]
@@ -166,10 +230,38 @@ namespace GeometryHelper.UnitTest.Dxf
             // past the table's first column (or row): four sources from column 7 filled into columns 0 to 6 filled 3 to 6 and
             // left 0 to 2; the library filled them all.
             const DxfTableFillOptions Along = DxfTableFillOptions.CopyContent | DxfTableFillOptions.Row;
-            Assert.Equal(new[] { "r5c0", "r5c1", "r5c2", "r5c7", "r5c8", "r5c9", "r5c10" }, Filled(new DxfCellRange(5, 0, 5, 6), new DxfCellRange(5, 7, 5, 10), Along, true, 5, 0, 6));
-            Assert.Equal(new[] { "r5c0", "r5c3", "r5c4" }, Filled(new DxfCellRange(5, 0, 5, 2), new DxfCellRange(5, 3, 5, 4), Along | DxfTableFillOptions.CopyFormat, true, 5, 0, 2));
-            Assert.Equal(new[] { "r5c0", "r5c1", "r5c5", "r5c6", "r5c7" }, Filled(new DxfCellRange(5, 0, 5, 4), new DxfCellRange(5, 5, 5, 7), Along, true, 5, 0, 4));
-            Assert.Equal(new[] { string.Empty, "r5c3", "r6c3", "r7c3" }, Filled(new DxfCellRange(1, 3, 4, 3), new DxfCellRange(5, 3, 7, 3), DxfTableFillOptions.CopyContent, false, 3, 1, 4));
+            Assert.Equal(
+                new[] { "r5c0", "r5c1", "r5c2", "r5c7", "r5c8", "r5c9", "r5c10" },
+                Filled(new DxfCellRange(5, 0, 5, 6), new DxfCellRange(5, 7, 5, 10), Along, true, 5, 0, 6)
+            );
+            Assert.Equal(
+                new[] { "r5c0", "r5c3", "r5c4" },
+                Filled(
+                    new DxfCellRange(5, 0, 5, 2),
+                    new DxfCellRange(5, 3, 5, 4),
+                    Along | DxfTableFillOptions.CopyFormat,
+                    true,
+                    5,
+                    0,
+                    2
+                )
+            );
+            Assert.Equal(
+                new[] { "r5c0", "r5c1", "r5c5", "r5c6", "r5c7" },
+                Filled(new DxfCellRange(5, 0, 5, 4), new DxfCellRange(5, 5, 5, 7), Along, true, 5, 0, 4)
+            );
+            Assert.Equal(
+                new[] { string.Empty, "r5c3", "r6c3", "r7c3" },
+                Filled(
+                    new DxfCellRange(1, 3, 4, 3),
+                    new DxfCellRange(5, 3, 7, 3),
+                    DxfTableFillOptions.CopyContent,
+                    false,
+                    3,
+                    1,
+                    4
+                )
+            );
         }
 
         #endregion
@@ -214,7 +306,12 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             const string Head = " 93\n0\n 94\n0\n 95\n0\n 96\n0\n141\n10.0\n";
             Assert.Contains(Head, DxfDimensionDrawings.R2018, StringComparison.Ordinal);
-            DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018.Replace(Head, " 93\n6886016\n 94\n0\n 95\n0\n 96\n0\n  7\nGH_TXT\n140\n9.0\n170\n1\n 63\n3\n 64\n1\n140\n9.0\n283\n0\n141\n10.0\n"));
+            DxfDatabase db = DxfDatabase.Parse(
+                DxfDimensionDrawings.R2018.Replace(
+                    Head,
+                    " 93\n6886016\n 94\n0\n 95\n0\n 96\n0\n  7\nGH_TXT\n140\n9.0\n170\n1\n 63\n3\n 64\n1\n140\n9.0\n283\n0\n141\n10.0\n"
+                )
+            );
             DxfTable table = Table(db);
             table.SetAlignment(2, 0, DxfCellAlignment.TopLeft);
             table.SetTextStyle(2, 0, db.TextStyleTable["GH_TXT"]);
@@ -233,7 +330,13 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase kept = RowLooks();
             Table(kept).ResetValue(2, 0);
             DxfTable read = Reread(kept);
-            Assert.Equal(DxfCellProperties.Alignment | DxfCellProperties.ContentColor | DxfCellProperties.TextStyle | DxfCellProperties.TextHeight, read.GetOverrides(2, 0, 0));
+            Assert.Equal(
+                DxfCellProperties.Alignment
+                    | DxfCellProperties.ContentColor
+                    | DxfCellProperties.TextStyle
+                    | DxfCellProperties.TextHeight,
+                read.GetOverrides(2, 0, 0)
+            );
             Assert.Equal(9.0, read.TextHeight(2, 0));
 
             DxfDatabase table = RowLooks();
@@ -250,7 +353,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 Table(db).ResetValue(2, 0);
                 Table(db).ClearTableStyleOverrides(options);
                 string record = Record(db.ToText(), "F6");
-                Assert.Contains("301\nCELL_VALUE\n 93\n7\n 90\n0\n 94\n0\n300\n\n302\n\n304\n", record, StringComparison.Ordinal);
+                Assert.Contains(
+                    "301\nCELL_VALUE\n 93\n7\n 90\n0\n 94\n0\n300\n\n302\n\n304\n",
+                    record,
+                    StringComparison.Ordinal
+                );
             }
         }
 
@@ -275,7 +382,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(6.0, read.TextHeight(1, 1));
             Assert.Equal(new DxfCellRange(1, 0, 1, 1), read.GetMergeRange(1, 1));
 
-            DxfDatabase loaded = DxfDatabase.Parse(DxfAutoCadChecksD16Tests.LinkedByAutoCad(DxfDimensionDrawings.R2018));
+            DxfDatabase loaded = DxfDatabase.Parse(
+                DxfAutoCadChecksD16Tests.LinkedByAutoCad(DxfDimensionDrawings.R2018)
+            );
             DxfTable moved = Table(loaded);
             moved.SetSize(4, 2);
             moved.InsertRows(0, 9.0, 1);

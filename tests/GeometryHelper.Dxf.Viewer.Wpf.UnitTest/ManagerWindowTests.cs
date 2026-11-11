@@ -30,9 +30,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             var gb = new DxfBlockTableRecord { Name = "GB" };
             db.BlockTable.Add(gb);
             gb.AppendEntity(new DxfCircle(new GeoPoint3(0, 0, 0), Up, 5));
-            gb.AppendEntity(new DxfAttributeDefinition(new GeoPoint3(0, 0, 0), "A", "GRID", "Grid letter", null) { Height = 2.5 });
-            gb.AppendEntity(new DxfAttributeDefinition(new GeoPoint3(0, -4, 0), "L1", "LEVEL", "Level name", null) { Height = 2.5 });
-            gb.AppendEntity(new DxfAttributeDefinition(new GeoPoint3(0, -8, 0), "B", "GRID", "Grid again", null) { Height = 2.5 });
+            gb.AppendEntity(
+                new DxfAttributeDefinition(new GeoPoint3(0, 0, 0), "A", "GRID", "Grid letter", null) { Height = 2.5 }
+            );
+            gb.AppendEntity(
+                new DxfAttributeDefinition(new GeoPoint3(0, -4, 0), "L1", "LEVEL", "Level name", null) { Height = 2.5 }
+            );
+            gb.AppendEntity(
+                new DxfAttributeDefinition(new GeoPoint3(0, -8, 0), "B", "GRID", "Grid again", null) { Height = 2.5 }
+            );
             var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), gb);
             db.ModelSpace.AppendEntity(insert);
 
@@ -48,17 +54,32 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             for (int i = 1; i <= 11; i++)
             {
-                tb.AppendEntity(new DxfAttributeDefinition(new GeoPoint3(0, -5 * i, 0), "V" + i, "T" + i, "Field " + i, null) { Height = 2.5 });
+                tb.AppendEntity(
+                    new DxfAttributeDefinition(new GeoPoint3(0, -5 * i, 0), "V" + i, "T" + i, "Field " + i, null)
+                    {
+                        Height = 2.5,
+                    }
+                );
             }
 
-            tb.AppendEntity(new DxfAttributeDefinition(new GeoPoint3(0, -70, 0), "0", "REV", "Revision", null) { Height = 2.5, Constant = true });
+            tb.AppendEntity(
+                new DxfAttributeDefinition(new GeoPoint3(0, -70, 0), "0", "REV", "Revision", null)
+                {
+                    Height = 2.5,
+                    Constant = true,
+                }
+            );
             var old = new DxfBlockTableRecord { Name = "OLD" };
             db.BlockTable.Add(old);
             old.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)));
             db.LayerTable.Add(new DxfLayerTableRecord { Name = "TMP" });
             db.LayerTable.Add(new DxfLayerTableRecord { Name = "WALLS" });
-            db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 20, 0), new GeoPoint3(100, 20, 0)) { Layer = "WALLS" });
-            db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 30, 0), new GeoPoint3(100, 30, 0)) { Layer = "WALLS" });
+            db.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(0, 20, 0), new GeoPoint3(100, 20, 0)) { Layer = "WALLS" }
+            );
+            db.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(0, 30, 0), new GeoPoint3(100, 30, 0)) { Layer = "WALLS" }
+            );
             return db;
         }
 
@@ -66,7 +87,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             var model = new MainViewModel();
             Assert.True(model.Open(folder.Write("plan-level2.dxf", Drawing())));
-            List<string> walls = model.Document.ModelSpace.Block.Where(e => e.Layer == "WALLS").Select(e => e.Handle).ToList();
+            List<string> walls = model
+                .Document.ModelSpace.Block.Where(e => e.Layer == "WALLS")
+                .Select(e => e.Handle)
+                .ToList();
             model.Execute("-GROUP");
             model.Execute(string.Empty);
             model.Execute("PAIR");
@@ -76,7 +100,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             return model;
         }
 
-        private static List<DxfAttributeDefinition> Definitions(MainViewModel model, string block) => model.Document.Database.BlockTable[block].OfType<DxfAttributeDefinition>().ToList();
+        private static List<DxfAttributeDefinition> Definitions(MainViewModel model, string block) =>
+            model.Document.Database.BlockTable[block].OfType<DxfAttributeDefinition>().ToList();
 
         [Fact]
         public void TheManagerGreysMoveUpOnTheFirstRow_DrawsTagsGivenTwiceInRed_AndEditThenSyncReachTheBlockAndItsInserts()
@@ -211,14 +236,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     return true;
                 };
 
-                foreach (string line in new[] { "ATTDIA", "1", "-INSERT", "TB", "500,0", string.Empty, string.Empty, string.Empty })
+                foreach (
+                    string line in new[]
+                    {
+                        "ATTDIA",
+                        "1",
+                        "-INSERT",
+                        "TB",
+                        "500,0",
+                        string.Empty,
+                        string.Empty,
+                        string.Empty,
+                    }
+                )
                 {
                     model.Execute(line);
                 }
 
                 Assert.True(reached);
                 Assert.False(model.Session.IsRunning);
-                DxfBlockReference placed = model.Document.ModelSpace.Block.OfType<DxfBlockReference>().Single(r => r.Name == "TB");
+                DxfBlockReference placed = model
+                    .Document.ModelSpace.Block.OfType<DxfBlockReference>()
+                    .Single(r => r.Name == "TB");
                 Assert.Equal(11, placed.AttributeCollection.Count);
                 Assert.Equal("LEVEL 2 PLAN", placed.AttributeCollection[0].TextString);
                 Assert.Equal("V2", placed.AttributeCollection[1].TextString);
@@ -258,7 +297,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     purge.Nodes.Single(n => n.Name == "TMP").IsChecked = true;
                     Assert.Equal(2, purge.PurgeChecked());
                     Assert.Equal(new[] { "Purge block \"OLD\"?", "Purge layer \"TMP\"?" }, asked);
-                    Assert.Equal(new[] { "TB" }, purge.Nodes.Single(n => n.Name == "Blocks").Children.Select(c => c.Name));
+                    Assert.Equal(
+                        new[] { "TB" },
+                        purge.Nodes.Single(n => n.Name == "Blocks").Children.Select(c => c.Name)
+                    );
 
                     purge.Mode = purge.Modes[1];
                     Assert.Equal("Named items in use", purge.TreeTitle);
@@ -360,25 +402,59 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         var model = new MainViewModel();
                         Assert.True(model.Open(path));
                         object shown = null;
-                        model.ShowBlockAttributeManager = d => { shown = d; return true; };
+                        model.ShowBlockAttributeManager = d =>
+                        {
+                            shown = d;
+                            return true;
+                        };
                         model.Execute("BATTMAN");
                         var manager = (BlockAttributeManagerViewModel)shown;
                         var windows = new List<Window>
                         {
                             new BlockAttributeManagerWindow(manager),
-                            new EditAttributeWindow(new EditAttributeViewModel(model.Document, manager.Block, manager.Request.Rows[0])),
-                            new AttributeManagerSettingsWindow(new AttributeManagerSettingsViewModel(manager.Request.Settings)),
+                            new EditAttributeWindow(
+                                new EditAttributeViewModel(model.Document, manager.Block, manager.Request.Rows[0])
+                            ),
+                            new AttributeManagerSettingsWindow(
+                                new AttributeManagerSettingsViewModel(manager.Request.Settings)
+                            ),
                         };
-                        model.ShowPurge = d => { shown = d; return true; };
+                        model.ShowPurge = d =>
+                        {
+                            shown = d;
+                            return true;
+                        };
                         model.Execute("PURGE");
                         windows.Add(new PurgeWindow((PurgeViewModel)shown));
-                        model.ShowGroupManager = d => { shown = d; return true; };
+                        model.ShowGroupManager = d =>
+                        {
+                            shown = d;
+                            return true;
+                        };
                         model.Execute("CLASSICGROUP");
                         windows.Add(new GroupManagerWindow((GroupManagerViewModel)shown));
-                        windows.Add(new OrderGroupWindow(new OrderGroupViewModel(((GroupManagerViewModel)shown).Request)));
-                        model.ShowEditAttributes = d => { shown = d; return true; };
+                        windows.Add(
+                            new OrderGroupWindow(new OrderGroupViewModel(((GroupManagerViewModel)shown).Request))
+                        );
+                        model.ShowEditAttributes = d =>
+                        {
+                            shown = d;
+                            return true;
+                        };
 
-                        foreach (string line in new[] { "ATTDIA", "1", "-INSERT", "TB", "500,0", string.Empty, string.Empty, string.Empty })
+                        foreach (
+                            string line in new[]
+                            {
+                                "ATTDIA",
+                                "1",
+                                "-INSERT",
+                                "TB",
+                                "500,0",
+                                string.Empty,
+                                string.Empty,
+                                string.Empty,
+                            }
+                        )
                         {
                             model.Execute(line);
                         }

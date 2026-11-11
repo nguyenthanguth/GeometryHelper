@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using GeometryHelper;
 using GeometryHelper.Clash;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Extension;
 using GeometryHelper.Geometry;
 using GeometryHelper.Spatial;
 using Xunit;
-using System.Linq;
 
 namespace GeometryHelper.UnitTest.Solid
 {
@@ -48,8 +48,12 @@ namespace GeometryHelper.UnitTest.Solid
         public void ACurveHasNoInteriorUntilItBecomesARegion()
         {
             var traced = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0), new GeoPoint3(0, 0, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0),
+                new GeoPoint3(0, 0, 0)
+            );
 
             var middle = new GeoPoint3(5, 5, 0);
 
@@ -63,8 +67,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void APlanarRegionIsFlatSoAPointAboveItIsOutside()
         {
             var square = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
             Assert.Equal(PointLocation.Inside, square.Locate(new GeoPoint3(5, 5, 0)));
             Assert.Equal(PointLocation.OnSide, square.Locate(new GeoPoint3(5, 0, 0)));
@@ -74,19 +81,20 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void FlatnessIsEnforced()
         {
-            Assert.Throws<ArgumentException>(() => new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 5)));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(0, 10, 5)
+                )
+            );
         }
 
         [Fact]
         public void ABoundingBoxEnclosesThePointsGivenToIt()
         {
-            var bounds = GeoAabb3.FromPoints(new[]
-            {
-                new GeoPoint3(1, 5, -2),
-                new GeoPoint3(-3, 0, 4),
-            });
+            var bounds = GeoAabb3.FromPoints(new[] { new GeoPoint3(1, 5, -2), new GeoPoint3(-3, 0, 4) });
 
             Assert.True(bounds.Min.IsEqualTo(new GeoPoint3(-3, 0, -2)));
             Assert.True(bounds.Max.IsEqualTo(new GeoPoint3(1, 5, 4)));
@@ -96,10 +104,7 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AnOrientedBoxSquaresUpItsAxes()
         {
-            var box = new GeoObb3(
-                GeoPoint3.Origin, 2, 2, 2,
-                GeoVector3.XAxis,
-                new GeoVector3(0.5, 1, 0));
+            var box = new GeoObb3(GeoPoint3.Origin, 2, 2, 2, GeoVector3.XAxis, new GeoVector3(0.5, 1, 0));
 
             Assert.True(box.AxisX.IsPerpendicularTo(box.AxisY));
             Assert.True(box.AxisX.CrossProduct(box.AxisY).IsEqualTo(box.AxisZ));
@@ -134,7 +139,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(4, check.Issues.Count);
             Assert.All(check.Issues, issue => Assert.Equal(SolidIssueKind.OpenEdge, issue.Kind));
             Assert.All(check.Issues, issue => Assert.Equal(10.0, issue.Size, 9));
-            Assert.Equal("SolidIssue3[OpenEdge 10 long at (5, 10, 10), face 2; 1 one way, 0 the other]", check.Issues[0].ToString());
+            Assert.Equal(
+                "SolidIssue3[OpenEdge 10 long at (5, 10, 10), face 2; 1 one way, 0 the other]",
+                check.Issues[0].ToString()
+            );
         }
 
         [Fact]
@@ -177,8 +185,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(segment.GetPointAtParameter(2.0).IsEqualTo(new GeoPoint3(20, 0, 0)));
 
-            var chain = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0), new GeoPoint3(3, 4, 0));
+            var chain = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0), new GeoPoint3(3, 4, 0));
 
             Assert.True(chain.GetPointAtDistance(5.0).IsEqualTo(new GeoPoint3(3, 2, 0)));
             Assert.True(chain.GetPointAtDistance(100.0).IsEqualTo(new GeoPoint3(3, 4, 0)));
@@ -201,9 +208,15 @@ namespace GeometryHelper.UnitTest.Solid
         public void SplittingAConcaveRegion()
         {
             var uShape = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(9, 0, 0), new GeoPoint3(9, 10, 0),
-                new GeoPoint3(6, 10, 0), new GeoPoint3(6, 4, 0), new GeoPoint3(3, 4, 0),
-                new GeoPoint3(3, 10, 0), new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(9, 0, 0),
+                new GeoPoint3(9, 10, 0),
+                new GeoPoint3(6, 10, 0),
+                new GeoPoint3(6, 4, 0),
+                new GeoPoint3(3, 4, 0),
+                new GeoPoint3(3, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
             var cutter = new GeoPlane3(new GeoPoint3(0, 7, 0), GeoVector3.YAxis);
 
@@ -227,12 +240,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void JoiningAShuffledSetOfPieces()
         {
-            GeoPolyline3[] chains = Merge3.Join(new[]
-            {
-                new GeoPolyline3(new GeoPoint3(3, 4, 0), new GeoPoint3(3, 0, 0)),
-                new GeoPolyline3(new GeoPoint3(3, 4, 0), new GeoPoint3(8, 4, 0)),
-                new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0)),
-            });
+            GeoPolyline3[] chains = Merge3.Join(
+                new[]
+                {
+                    new GeoPolyline3(new GeoPoint3(3, 4, 0), new GeoPoint3(3, 0, 0)),
+                    new GeoPolyline3(new GeoPoint3(3, 4, 0), new GeoPoint3(8, 4, 0)),
+                    new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0)),
+                }
+            );
 
             Assert.Single(chains);
             Assert.Equal(4, chains[0].VertexCount);
@@ -253,7 +268,8 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(2, tree.GetIntersections(ray).Length);
 
             var otherTree = GeometryHelper.Spatial.GeoBvh3.FromSolid(
-                solid.TransformBy(GeoTransform3.Translation(new GeoVector3(5, 0, 0))));
+                solid.TransformBy(GeoTransform3.Translation(new GeoVector3(5, 0, 0)))
+            );
 
             Assert.True(tree.CollidesWith(otherTree));
         }
@@ -286,7 +302,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             // The two bodies swallow ten units of the route each; the route itself is seventy long.
             double buried = 0.0;
-            foreach (GeoPolyline3 piece in embedded) { buried += piece.Length; }
+            foreach (GeoPolyline3 piece in embedded)
+            {
+                buried += piece.Length;
+            }
             Assert.Equal(20.0, buried, 9);
 
             // Two bodies meeting face to face leave no cut between them.
@@ -308,8 +327,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void ABoundedRegionCutsOnlyWhereItIsPiercedThrough()
         {
             var plate = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
             // Crosses z = 0 far outside the outline of the plate.
             var chain = new GeoPolyline3(new GeoPoint3(50, 50, -5), new GeoPoint3(50, 50, 5));
@@ -325,8 +347,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void CuttingAPlateAlongALineAndAgainstABody()
         {
             var plate = new GeoPolygon3(
-                new GeoPoint3(-5, -5, 5), new GeoPoint3(15, -5, 5),
-                new GeoPoint3(15, 15, 5), new GeoPoint3(-5, 15, 5));
+                new GeoPoint3(-5, -5, 5),
+                new GeoPoint3(15, -5, 5),
+                new GeoPoint3(15, 15, 5),
+                new GeoPoint3(-5, 15, 5)
+            );
 
             var cutLine = new GeoPolyline3(new GeoPoint3(-5, 5, 5), new GeoPoint3(15, 5, 5));
 
@@ -393,14 +418,16 @@ namespace GeometryHelper.UnitTest.Solid
             var segment = new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0));
             Assert.True(segment.GetPointAtParameter(2.0).IsEqualTo(new GeoPoint3(20, 0, 0)));
 
-            var chain = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0), new GeoPoint3(3, 4, 0));
+            var chain = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0), new GeoPoint3(3, 4, 0));
             Assert.True(chain.GetPointAtDistance(5.0).IsEqualTo(new GeoPoint3(3, 2, 0)));
             Assert.True(chain.GetPointAtDistance(100.0).IsEqualTo(new GeoPoint3(3, 4, 0)));
 
             var square = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
             Assert.True(square.GetPointAtParameter(0.25).IsEqualTo(new GeoPoint3(10, 0, 0)));
             Assert.True(square.GetPointAtParameter(1.25).IsEqualTo(square.GetPointAtParameter(0.25)));
         }
@@ -450,7 +477,8 @@ namespace GeometryHelper.UnitTest.Solid
             var frame = new GeoCoordinateSystem3(
                 new GeoPoint3(10, -20, 30),
                 new GeoVector3(1, 1, 0),
-                new GeoVector3(-1, 1, 1));
+                new GeoVector3(-1, 1, 1)
+            );
 
             var point = new GeoPoint3(3, -7, 11);
 
@@ -458,7 +486,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             // A whole shape goes into the frame and back through TransformBy.
             var outline = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(4, 0, 0), new GeoPoint3(4, 3, 1), new GeoPoint3(0, 3, 1));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(4, 0, 0),
+                new GeoPoint3(4, 3, 1),
+                new GeoPoint3(0, 3, 1)
+            );
 
             GeoPolygon3 inFrame = outline.TransformBy(GeoTransform3.ToCoordinateSystem(frame));
             GeoPolygon3 back = inFrame.TransformBy(GeoTransform3.FromCoordinateSystem(frame));
@@ -470,18 +502,23 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ATransformationAppliesRightToLeftAndCanBeUndone()
         {
-            GeoTransform3 motion = GeoTransform3.Translation(new GeoVector3(10, 0, 0))
+            GeoTransform3 motion = GeoTransform3
+                .Translation(new GeoVector3(10, 0, 0))
                 .Multiply(GeoTransform3.RotationZ(Math.PI / 2));
 
             Assert.True(motion.Transform(GeoPoint3.Origin).IsEqualTo(new GeoPoint3(10, 0, 0)));
             Assert.True(motion.Inverse().Transform(motion.Transform(GeoPoint3.Origin)).IsEqualTo(GeoPoint3.Origin));
         }
+
         [Fact]
         public void PointChains_ThinThenChain()
         {
             var traced = new List<GeoPoint3>
             {
-                new GeoPoint3(0, 0, 0), new GeoPoint3(0.0001, 0, 0), new GeoPoint3(5, 0, 0), new GeoPoint3(5, 0, 5),
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(0.0001, 0, 0),
+                new GeoPoint3(5, 0, 0),
+                new GeoPoint3(5, 0, 5),
             };
 
             // "The second point is a hair away from the first and goes." - 3 points.
@@ -508,7 +545,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(15, 0, 0)), beam.Extend(5.0, LineEnd.End));
             Assert.Equal(new GeoLine3(new GeoPoint3(-2, 0, 0), new GeoPoint3(13, 0, 0)), beam.Extend(2.0, 3.0));
-            Assert.Equal(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(8, 0, 0)), beam.ExtendToLength(8.0, LineEnd.End));
+            Assert.Equal(
+                new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(8, 0, 0)),
+                beam.ExtendToLength(8.0, LineEnd.End)
+            );
 
             var wall = new GeoPlane3(new GeoPoint3(20, 0, 0), GeoVector3.XAxis);
             Assert.True(beam.TryExtendTo(wall, LineEnd.End, out GeoLine3 reached));
@@ -525,25 +565,39 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(trimmed.EndPoint.IsEqualTo(new GeoPoint3(30, 0, 0)));
 
             // "fits an end to a boundary whichever side of it the end starts on"
-            foreach (GeoLine3 line in new[]
-                     {
-                         new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(12, 0, 0)),
-                         new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(27, 0, 0))
-                     })
+            foreach (
+                GeoLine3 line in new[]
+                {
+                    new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(12, 0, 0)),
+                    new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(27, 0, 0)),
+                }
+            )
             {
-                Assert.True(line.TryExtendTo(wall, LineEnd.End, out GeoLine3 fit) || line.TryTrimTo(wall, LineEnd.End, out fit));
+                Assert.True(
+                    line.TryExtendTo(wall, LineEnd.End, out GeoLine3 fit) || line.TryTrimTo(wall, LineEnd.End, out fit)
+                );
                 Assert.Equal(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(20, 0, 0)), fit);
             }
 
             // "each keeps its longer part and both end at the meeting point"
-            Assert.True(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(8, 0, 0))
-                .TryTrimExtendToCorner(new GeoLine3(new GeoPoint3(10, 2, 0), new GeoPoint3(10, 10, 0)), out GeoLine3 a, out GeoLine3 b));
+            Assert.True(
+                new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(8, 0, 0)).TryTrimExtendToCorner(
+                    new GeoLine3(new GeoPoint3(10, 2, 0), new GeoPoint3(10, 10, 0)),
+                    out GeoLine3 a,
+                    out GeoLine3 b
+                )
+            );
             Assert.Equal(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)), a);
             Assert.Equal(new GeoLine3(new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0)), b);
 
             // "where they pass wider than that, it reports false"
-            Assert.False(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(8, 0, 0))
-                .TryTrimExtendToCorner(new GeoLine3(new GeoPoint3(10, 2, 1), new GeoPoint3(10, 10, 1)), out _, out _));
+            Assert.False(
+                new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(8, 0, 0)).TryTrimExtendToCorner(
+                    new GeoLine3(new GeoPoint3(10, 2, 1), new GeoPoint3(10, 10, 1)),
+                    out _,
+                    out _
+                )
+            );
         }
 
         [Fact]
@@ -552,7 +606,10 @@ namespace GeometryHelper.UnitTest.Solid
             var line = new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0));
 
             // "left, seen from the normal"
-            Assert.Equal(new GeoLine3(new GeoPoint3(0, 2, 0), new GeoPoint3(10, 2, 0)), line.OffsetInPlane(2.0, GeoVector3.ZAxis));
+            Assert.Equal(
+                new GeoLine3(new GeoPoint3(0, 2, 0), new GeoPoint3(10, 2, 0)),
+                line.OffsetInPlane(2.0, GeoVector3.ZAxis)
+            );
 
             // "towards a direction; only its square part counts"
             GeoLine3 tilted = line.Offset(2.0, new GeoVector3(0, 1, 1));
@@ -560,14 +617,23 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(0.0, tilted.StartPoint.X, 9);
 
             // "sideways and up in one call"
-            Assert.Equal(new GeoLine3(new GeoPoint3(0, 2, 3), new GeoPoint3(10, 2, 3)), line.Offset(2.0, 3.0, GeoVector3.ZAxis));
+            Assert.Equal(
+                new GeoLine3(new GeoPoint3(0, 2, 3), new GeoPoint3(10, 2, 3)),
+                line.Offset(2.0, 3.0, GeoVector3.ZAxis)
+            );
 
             // "the parallel through a point"
-            Assert.Equal(new GeoLine3(new GeoPoint3(0, 7, 0), new GeoPoint3(10, 7, 0)), line.OffsetThrough(new GeoPoint3(3, 7, 0)));
+            Assert.Equal(
+                new GeoLine3(new GeoPoint3(0, 7, 0), new GeoPoint3(10, 7, 0)),
+                line.OffsetThrough(new GeoPoint3(3, 7, 0))
+            );
 
             var square = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
             GeoPolygon3[] grown = square.Offset(2.0);
             Assert.Single(grown);
@@ -580,10 +646,18 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Empty(square.Offset(-5.0));
 
             // "a GeoFace3 keeps its holes, which grow as the boundary shrinks"
-            var plate = new GeoFace3(square, new[]
-            {
-                new GeoPolygon3(new GeoPoint3(3, 3, 0), new GeoPoint3(7, 3, 0), new GeoPoint3(7, 7, 0), new GeoPoint3(3, 7, 0))
-            });
+            var plate = new GeoFace3(
+                square,
+                new[]
+                {
+                    new GeoPolygon3(
+                        new GeoPoint3(3, 3, 0),
+                        new GeoPoint3(7, 3, 0),
+                        new GeoPoint3(7, 7, 0),
+                        new GeoPoint3(3, 7, 0)
+                    ),
+                }
+            );
             GeoFace3 shrunk = Assert.Single(plate.Offset(-1.0));
             Assert.Single(shrunk.Holes);
             Assert.Equal(8.0 * 8.0 - 6.0 * 6.0, shrunk.Area, 9);
@@ -602,8 +676,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             // "the result comes back exactly in that plane": the same square tilted keeps its own plane.
             var slope = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 10),
-                new GeoPoint3(10, 10, 10), new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 10),
+                new GeoPoint3(10, 10, 10),
+                new GeoPoint3(0, 10, 0)
+            );
             GeoPolygon3 offsetSlope = Assert.Single(slope.Offset(1.0));
             GeoPlane3 carrier = new GeoPlane3(slope.Vertices[0], slope.Normal);
             Assert.All(offsetSlope.Vertices, v => Assert.Equal(0.0, carrier.SignedDistanceTo(v), 9));
@@ -615,19 +692,32 @@ namespace GeometryHelper.UnitTest.Solid
             // "Self-intersection is ... not checked on the way in ... polygon.IsSimple() runs it when you
             // want it"
             var crossed = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(2, 8, 0), new GeoPoint3(6, -4, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(2, 8, 0),
+                new GeoPoint3(6, -4, 0)
+            );
 
             Assert.False(crossed.IsSimple());
 
             // A boundary that encloses no net area has no normal, so it is refused outright rather than
             // built and reported not simple.
-            Assert.Throws<ArgumentException>(() => new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 0),
-                new GeoPoint3(10, 0, 0), new GeoPoint3(0, 10, 0)));
-            Assert.True(new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0)).IsSimple());
+            Assert.Throws<ArgumentException>(() =>
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(0, 10, 0)
+                )
+            );
+            Assert.True(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(0, 10, 0)
+                ).IsSimple()
+            );
         }
 
         [Fact]
@@ -635,11 +725,17 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // "GeoCoordinateSystem3 frame = plate.GetFrame();" on a plate tilted in space.
             var carrier = new GeoCoordinateSystem3(
-                new GeoPoint3(12, -8, 30), new GeoVector3(1, 1, 0).Normalize(), new GeoVector3(-1, 1, 1).Normalize());
+                new GeoPoint3(12, -8, 30),
+                new GeoVector3(1, 1, 0).Normalize(),
+                new GeoVector3(-1, 1, 1).Normalize()
+            );
 
-            GeoPolygon3 Plate(params double[] xy) => new GeoPolygon3(
-                Enumerable.Range(0, xy.Length / 2)
-                    .Select(i => PlanarMap.ToPoint3(carrier, new GeoPoint2(xy[2 * i], xy[2 * i + 1]))));
+            GeoPolygon3 Plate(params double[] xy) =>
+                new GeoPolygon3(
+                    Enumerable
+                        .Range(0, xy.Length / 2)
+                        .Select(i => PlanarMap.ToPoint3(carrier, new GeoPoint2(xy[2 * i], xy[2 * i + 1])))
+                );
 
             GeoPolygon3 plate = Plate(0, 0, 60, 0, 60, 40, 0, 40);
             GeoPolygon3 opening = Plate(10, 10, 20, 10, 20, 20, 10, 20);
@@ -668,14 +764,20 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.False(above.TryToPoint2(frame, out _));
 
             // "point.ProjectToPoint2(frame); // always answers, by projecting"
-            Assert.True(above.ProjectToPoint2(frame).IsEqualTo(plate.Vertices[0].ProjectToPoint2(frame),
-                new Tolerance(1E-9, 1E-9)));
+            Assert.True(
+                above
+                    .ProjectToPoint2(frame)
+                    .IsEqualTo(plate.Vertices[0].ProjectToPoint2(frame), new Tolerance(1E-9, 1E-9))
+            );
 
             // "Every flat type makes the trip"
             var chain = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(5, 0), new GeoPoint2(5, 5));
             Assert.Equal(chain.Length, chain.ToPolyline3(frame).Length, 9);
-            Assert.Equal(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(3, 4)).Length,
-                         new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(3, 4)).ToLine3(frame).Length, 9);
+            Assert.Equal(
+                new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(3, 4)).Length,
+                new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(3, 4)).ToLine3(frame).Length,
+                9
+            );
         }
 
         [Fact]
@@ -687,10 +789,16 @@ namespace GeometryHelper.UnitTest.Solid
             var line = new GeoLine3(new GeoPoint3(300, 50, 0), new GeoPoint3(300, 50, 100));
             var ray = new GeoRay3(new GeoPoint3(300, 50, 50), new GeoVector3(1, 0, 0));
             var triangle = new GeoTriangle3(
-                new GeoPoint3(300, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(300, 100, 0));
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(300, 100, 0)
+            );
             var polygon = new GeoPolygon3(
-                new GeoPoint3(300, 0, 0), new GeoPoint3(400, 0, 0),
-                new GeoPoint3(400, 100, 0), new GeoPoint3(300, 100, 0));
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(400, 100, 0),
+                new GeoPoint3(300, 100, 0)
+            );
             var polyline = new GeoPolyline3(new GeoPoint3(300, 0, 0), new GeoPoint3(300, 100, 0));
             var plane = new GeoPlane3(new GeoPoint3(300, 0, 0), new GeoVector3(1, 0, 0));
             var obb = new GeoAabb3(new GeoPoint3(300, 0, 0), new GeoPoint3(400, 100, 100)).ToObb();
@@ -699,13 +807,21 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 otherSolid = obb.ToSolid();
 
             // Every one of them stands two hundred from the far face of the slab.
-            foreach (double reach in new[]
-            {
-                slab.DistanceTo(point), slab.DistanceTo(line), slab.DistanceTo(ray),
-                slab.DistanceTo(triangle), slab.DistanceTo(polygon), slab.DistanceTo(polyline),
-                slab.DistanceTo(plane), slab.DistanceTo(obb), slab.DistanceTo(aabb),
-                slab.DistanceTo(otherSolid)
-            })
+            foreach (
+                double reach in new[]
+                {
+                    slab.DistanceTo(point),
+                    slab.DistanceTo(line),
+                    slab.DistanceTo(ray),
+                    slab.DistanceTo(triangle),
+                    slab.DistanceTo(polygon),
+                    slab.DistanceTo(polyline),
+                    slab.DistanceTo(plane),
+                    slab.DistanceTo(obb),
+                    slab.DistanceTo(aabb),
+                    slab.DistanceTo(otherSolid),
+                }
+            )
             {
                 Assert.Equal(200.0, reach, 9);
             }
@@ -724,11 +840,16 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Empty(slab.GetIntersections(plane));
 
             // The shortest line is the distance, and it leaves the surface.
-            foreach (GeoLine3 joining in new[]
-            {
-                slab.GetShortestLineTo(point), slab.GetShortestLineTo(line), slab.GetShortestLineTo(ray),
-                slab.GetShortestLineTo(triangle), slab.GetShortestLineTo(otherSolid)
-            })
+            foreach (
+                GeoLine3 joining in new[]
+                {
+                    slab.GetShortestLineTo(point),
+                    slab.GetShortestLineTo(line),
+                    slab.GetShortestLineTo(ray),
+                    slab.GetShortestLineTo(triangle),
+                    slab.GetShortestLineTo(otherSolid),
+                }
+            )
             {
                 Assert.Equal(200.0, joining.Length, 9);
                 Assert.Equal(100.0, joining.StartPoint.X, 9);
@@ -796,8 +917,11 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(bulged.GetPlane().Normal.IsParallelTo(new GeoVector3(0, 0, 1)));
 
             GeoPolylineArc3 bar = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0),
-                new GeoPoint3(300, 300, 0), new GeoPoint3(300, 300, 300)).Fillet(50.0);
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(300, 300, 0),
+                new GeoPoint3(300, 300, 300)
+            ).Fillet(50.0);
 
             Assert.Equal(857.1, bar.Length, 1);
             Assert.False(bar.IsPlanar());
@@ -805,9 +929,14 @@ namespace GeometryHelper.UnitTest.Solid
             // Shorter than the set-out by 2r - pi r / 2 at each of the two bends.
             Assert.Equal(900.0 - 2.0 * (2.0 * 50.0 - Math.PI * 50.0 / 2.0), bar.Length, 6);
 
-            GeoPolygonArc3 tie = new GeoPolygonArc3(new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0),
-                new GeoPoint3(300, 200, 0), new GeoPoint3(0, 200, 0))).Fillet(40.0);
+            GeoPolygonArc3 tie = new GeoPolygonArc3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(300, 0, 0),
+                    new GeoPoint3(300, 200, 0),
+                    new GeoPoint3(0, 200, 0)
+                )
+            ).Fillet(40.0);
 
             Assert.True(tie.Area > 0.0);
             Assert.True(tie.Contains(new GeoPoint3(150, 100, 0)));
@@ -820,14 +949,21 @@ namespace GeometryHelper.UnitTest.Solid
         public void BetweenThePlaneAndSpaceWithArcs_EverySampleHolds()
         {
             var plate = new GeoPolygon3(
-                new GeoPoint3(0, 0, 10), new GeoPoint3(100, 0, 10),
-                new GeoPoint3(100, 100, 10), new GeoPoint3(0, 100, 10));
+                new GeoPoint3(0, 0, 10),
+                new GeoPoint3(100, 0, 10),
+                new GeoPoint3(100, 100, 10),
+                new GeoPoint3(0, 100, 10)
+            );
 
             GeoCoordinateSystem3 frame = plate.GetFrame();
 
-            GeoPolylineArc3 edgeInModel = PlanarMap.ToPolylineArc3(frame, new GeoPolylineArc2(
-                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) },
-                new[] { 0.0, -1.0, 0.0 }));
+            GeoPolylineArc3 edgeInModel = PlanarMap.ToPolylineArc3(
+                frame,
+                new GeoPolylineArc2(
+                    new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) },
+                    new[] { 0.0, -1.0, 0.0 }
+                )
+            );
 
             Assert.True(PlanarMap.TryToPolylineArc2(frame, edgeInModel, out GeoPolylineArc2 laidOut));
 
@@ -846,11 +982,15 @@ namespace GeometryHelper.UnitTest.Solid
         public void SamplingABentBar_EverySampleHolds()
         {
             GeoPolylineArc3 bar = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0),
-                new GeoPoint3(300, 300, 0), new GeoPoint3(300, 300, 300)).Fillet(50.0);
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(300, 300, 0),
+                new GeoPoint3(300, 300, 300)
+            ).Fillet(50.0);
 
-            GeoSolid3 slab = new GeoAabb3(
-                new GeoPoint3(500, -500, -500), new GeoPoint3(600, 500, 500)).ToObb().ToSolid();
+            GeoSolid3 slab = new GeoAabb3(new GeoPoint3(500, -500, -500), new GeoPoint3(600, 500, 500))
+                .ToObb()
+                .ToSolid();
 
             Assert.Equal(200.0, bar.ToPolyline3(0.1).DistanceTo(slab), 6);
             Assert.False(bar.ToPolyline3(0.1).CollidesWith(slab));
@@ -894,8 +1034,7 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ASegmentOrRayAgainstAFlatShape_EverySampleHolds()
         {
-            var flat = new GeoTriangle3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
+            var flat = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
             var piercing = new GeoLine3(new GeoPoint3(20, 10, -50), new GeoPoint3(20, 10, 50));
 
             Assert.True(piercing.CollidesWith(flat));
@@ -903,14 +1042,21 @@ namespace GeometryHelper.UnitTest.Solid
 
             var plate = new GeoFace3(
                 new GeoPolygon3(
-                    new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0),
-                    new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0)),
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    new GeoPoint3(100, 100, 0),
+                    new GeoPoint3(0, 100, 0)
+                ),
                 new[]
                 {
                     new GeoPolygon3(
-                        new GeoPoint3(40, 40, 0), new GeoPoint3(60, 40, 0),
-                        new GeoPoint3(60, 60, 0), new GeoPoint3(40, 60, 0))
-                });
+                        new GeoPoint3(40, 40, 0),
+                        new GeoPoint3(60, 40, 0),
+                        new GeoPoint3(60, 60, 0),
+                        new GeoPoint3(40, 60, 0)
+                    ),
+                }
+            );
 
             Assert.True(new GeoLine3(new GeoPoint3(20, 20, -50), new GeoPoint3(20, 20, 50)).CollidesWith(plate));
             Assert.False(new GeoLine3(new GeoPoint3(50, 50, -50), new GeoPoint3(50, 50, 50)).CollidesWith(plate));
@@ -921,10 +1067,15 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(new GeoRay3(new GeoPoint3(-50, 50, 50), new GeoVector3(1, 0, 0)).CollidesWith(crate));
             Assert.False(new GeoRay3(new GeoPoint3(-50, 50, 50), new GeoVector3(-1, 0, 0)).CollidesWith(crate));
         }
+
         [Fact]
         public void CuttingAnArcInSpace()
         {
-            GeoArc3 bend = GeoArc3.FromThreePoints(new GeoPoint3(100, 0, 0), new GeoPoint3(71, 71, 0), new GeoPoint3(0, 100, 0));
+            GeoArc3 bend = GeoArc3.FromThreePoints(
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(71, 71, 0),
+                new GeoPoint3(0, 100, 0)
+            );
 
             Assert.True(bend.TrySplitAt(0.25, out GeoArc3[] quarters));
             Assert.Equal(bend.Length, quarters[0].Length + quarters[1].Length, 6);
@@ -940,7 +1091,11 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void LengtheningArcsAndBarsInSpace()
         {
-            GeoArc3 bend = GeoArc3.FromThreePoints(new GeoPoint3(100, 0, 0), new GeoPoint3(71, 71, 0), new GeoPoint3(0, 100, 0));
+            GeoArc3 bend = GeoArc3.FromThreePoints(
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(71, 71, 0),
+                new GeoPoint3(0, 100, 0)
+            );
 
             Assert.Equal(bend.Length + 50.0, bend.Extend(50.0, LineEnd.End).Length, 6);
             Assert.Equal(200.0, bend.ExtendToLength(200.0, LineEnd.Start).Length, 6);
@@ -948,7 +1103,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(bend.Length / 2.0, half.Length, 6);
 
             GeoPolylineArc3 bar = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0)).Fillet(50.0);
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(400, 200, 0)
+            ).Fillet(50.0);
 
             Assert.Equal(bar.Length + 300.0, bar.Extend(300.0, LineEnd.End).Length, 6);
             Assert.Equal(1000.0, bar.ExtendToLength(1000.0, LineEnd.Start).Length, 6);
@@ -960,7 +1118,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void CombiningFlatShapesAndBoxes()
         {
             var plate = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 100, 0),
+                new GeoPoint3(0, 100, 0)
+            );
             GeoPolygon3 patch = plate.Translate(new GeoVector3(50, 50, 0));
 
             GeoFace3[] joined = plate.Union(patch);
@@ -988,19 +1150,28 @@ namespace GeometryHelper.UnitTest.Solid
         public void OneBarAgainstAnotherAndAgainstEverythingElse()
         {
             GeoPolylineArc3 bar = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0)).Fillet(50.0);
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(400, 200, 0)
+            ).Fillet(50.0);
 
             Assert.Single(bar.GetIntersections(new GeoLine3(new GeoPoint3(200, -50, 0), new GeoPoint3(200, 50, 0))));
             Assert.Single(bar.GetIntersections(new GeoRay3(new GeoPoint3(200, -50, 0), new GeoVector3(0, 1, 0))));
 
             GeoPolylineArc3 otherBar = bar.TransformBy(
-                GeoTransform3.RotationAxis(new GeoPoint3(200, 0, 0), GeoVector3.ZAxis, Math.PI / 2.0));
+                GeoTransform3.RotationAxis(new GeoPoint3(200, 0, 0), GeoVector3.ZAxis, Math.PI / 2.0)
+            );
 
             Assert.True(bar.CollidesWith(otherBar));
 
-            var stirrup = new GeoPolygonArc3(new GeoPolygon3(
-                new GeoPoint3(-100, -100, 0), new GeoPoint3(300, -100, 0),
-                new GeoPoint3(300, 100, 0), new GeoPoint3(-100, 100, 0)));
+            var stirrup = new GeoPolygonArc3(
+                new GeoPolygon3(
+                    new GeoPoint3(-100, -100, 0),
+                    new GeoPoint3(300, -100, 0),
+                    new GeoPoint3(300, 100, 0),
+                    new GeoPoint3(-100, 100, 0)
+                )
+            );
 
             Assert.NotEmpty(stirrup.GetIntersections(bar));
 
@@ -1034,22 +1205,37 @@ namespace GeometryHelper.UnitTest.Solid
         public void CuttingCornersInSpaceAndMeasuringFromALoop()
         {
             var crooked = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0), new GeoPoint3(400, 200, 300));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(400, 200, 0),
+                new GeoPoint3(400, 200, 300)
+            );
 
             Assert.False(crooked.IsPlanar());
             Assert.Equal(crooked.VertexCount + 2, crooked.Chamfer(50.0).VertexCount);
             Assert.True(crooked.Chamfer(80.0, 20.0)[1].IsEqualTo(new GeoPoint3(320, 0, 0)));
 
             var loop = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(200, 0, 0), new GeoPoint3(200, 200, 0), new GeoPoint3(0, 200, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(200, 0, 0),
+                new GeoPoint3(200, 200, 0),
+                new GeoPoint3(0, 200, 0)
+            );
 
             Assert.Equal(4, loop.Fillet(30.0).GetEdges().Count(edge => edge.IsArc));
 
             GeoPolylineArc3 bar = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0)).Fillet(50.0);
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(400, 200, 0)
+            ).Fillet(50.0);
 
             Assert.Single(bar.OffsetInPlane(30.0, GeoVector3.ZAxis));
-            Assert.Equal(20.0, bar.OffsetInPlane(30.0, GeoVector3.ZAxis)[0].GetEdges().Single(edge => edge.IsArc).ToArc().Radius, 6);
+            Assert.Equal(
+                20.0,
+                bar.OffsetInPlane(30.0, GeoVector3.ZAxis)[0].GetEdges().Single(edge => edge.IsArc).ToArc().Radius,
+                6
+            );
 
             var stirrup = new GeoPolygonArc3(loop);
             var point = new GeoPoint3(-50, 100, 0);
@@ -1058,7 +1244,11 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(stirrup.GetClosestEdge(point).IsPointOn(stirrup.GetShortestLineTo(point).StartPoint));
 
             var coplanarPlate = new GeoPolygon3(
-                new GeoPoint3(-200, 0, 0), new GeoPoint3(-100, 0, 0), new GeoPoint3(-100, 200, 0), new GeoPoint3(-200, 200, 0));
+                new GeoPoint3(-200, 0, 0),
+                new GeoPoint3(-100, 0, 0),
+                new GeoPoint3(-100, 200, 0),
+                new GeoPoint3(-200, 200, 0)
+            );
 
             Assert.Equal(100.0, stirrup.GetShortestLineTo(coplanarPlate).Length, 6);
         }
@@ -1096,7 +1286,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(GeoBvh3.FromSolid(solid).TriangleCount, tree.TriangleCount);
             Assert.Equal(solid.DistanceTo(point), tree.DistanceTo(point), 6);
-            Assert.True(tree.GetClosestPoint(point).IsEqualTo(solid.GetClosestPointOnBoundary(point), new Tolerance(1E-7, 1E-7)));
+            Assert.True(
+                tree.GetClosestPoint(point).IsEqualTo(solid.GetClosestPointOnBoundary(point), new Tolerance(1E-7, 1E-7))
+            );
             Assert.Equal(2, tree.GetIntersections(ray).Length);
             Assert.True(tree.CollidesWith(tree));
 
@@ -1110,8 +1302,12 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void EveryQuestionTakesTheOpeningsIntoAccount()
         {
-            GeoSolid3 plate = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 20)).ToObb().ToSolid()
-                .WithOpenings(new[] { new GeoAabb3(new GeoPoint3(40, 40, -1), new GeoPoint3(60, 60, 21)).ToObb().ToSolid() });
+            GeoSolid3 plate = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 20))
+                .ToObb()
+                .ToSolid()
+                .WithOpenings(
+                    new[] { new GeoAabb3(new GeoPoint3(40, 40, -1), new GeoPoint3(60, 60, 21)).ToObb().ToSolid() }
+                );
             GeoSolid3 pin = new GeoAabb3(new GeoPoint3(45, 45, -50), new GeoPoint3(55, 55, 50)).ToObb().ToSolid();
 
             Assert.False(plate.CollidesWith(pin));
@@ -1129,8 +1325,8 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void CheckingPartsAgainstEachOther()
         {
-            GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-                => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+            GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+                new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
             Assert.True(Box(0, 0, 0, 30, 100, 30).TryUnion(Box(70, 0, 0, 100, 100, 30), out GeoSolid3 plates));
 
@@ -1138,9 +1334,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             var pairs = new[]
             {
-                (plates, Box(-10, 40, 10, 110, 60, 20)),               // a beam through two plates: two clashes
+                (plates, Box(-10, 40, 10, 110, 60, 20)), // a beam through two plates: two clashes
                 (Box(0, 0, 0, 200, 200, 50), Box(50, 50, 50, 150, 150, 500)), // a column on a footing: bearing
-                (plate, Box(45, 45, -50, 55, 55, 50)),                  // a pin through a bolt hole: nothing
+                (plate, Box(45, 45, -50, 55, 55, 50)), // a pin through a bolt hole: nothing
                 (Box(0, 0, 0, 10, 10, 10), Box(500, 0, 0, 510, 10, 10)), // apart: nothing to ask
             };
 
@@ -1199,7 +1395,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(pierced.Locate(point), plate.Locate(point));
             Assert.Equal(pierced.SignedDistanceTo(point), plate.SignedDistanceTo(point), 9);
-            Assert.Equal(pierced.GetClosestPointOnBoundary(point).DistanceTo(point), plate.GetClosestPointOnBoundary(point).DistanceTo(point), 9);
+            Assert.Equal(
+                pierced.GetClosestPointOnBoundary(point).DistanceTo(point),
+                plate.GetClosestPointOnBoundary(point).DistanceTo(point),
+                9
+            );
             Assert.Equal(4, plate.GetIntersections(ray).Length);
 
             foreach (GeoSolid3 bolt in bolts)
@@ -1211,18 +1411,19 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.Equal(pierced.Intersect(bolt).Length, plate.Intersect(prepared).Length);
             }
         }
+
         [Fact]
         public void CheckingAWholeSetOfParts()
         {
-            GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-                => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+            GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+                new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
             var parts = new List<GeoSolid3>
             {
-                Box(0, 0, 0, 200, 200, 50),          // a footing
-                Box(50, 50, 50, 150, 150, 500),      // a column standing on it
-                Box(-10, 90, 300, 210, 110, 320),    // a beam through the column
-                Box(250, 0, 0, 260, 10, 10),         // a bracket twenty clear of the footing
+                Box(0, 0, 0, 200, 200, 50), // a footing
+                Box(50, 50, 50, 150, 150, 500), // a column standing on it
+                Box(-10, 90, 300, 210, 110, 320), // a beam through the column
+                Box(250, 0, 0, 260, 10, 10), // a bracket twenty clear of the footing
             };
 
             ClashResult[] clashes = Clash3.Find(parts, new ClashOptions(clearance: 25.0));
@@ -1250,23 +1451,26 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(2, clashes.Length);
 
             // One set against another: the bracket against everything else, clearance of sixty.
-            ClashResult near = Assert.Single(Clash3.Find(new[] { parts[3] }, parts.Take(3).ToList(), new ClashOptions(clearance: 60.0)));
+            ClashResult near = Assert.Single(
+                Clash3.Find(new[] { parts[3] }, parts.Take(3).ToList(), new ClashOptions(clearance: 60.0))
+            );
             Assert.Equal((0, 0, ClashKind.Clearance), (near.First, near.Second, near.Kind));
         }
+
         [Fact]
         public void HowDeepAClashRuns()
         {
-            GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-                => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+            GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+                new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
             GeoSolid3 flange = Box(0, 0, 0, 100, 100, 10);
-            GeoSolid3 graze = Box(20, 40, 9.5, 80, 50, 20);      // half a millimetre into the flange, 60 long
-            GeoSolid3 through = Box(40, 60, -20, 55, 75, 30);    // a pin through it
+            GeoSolid3 graze = Box(20, 40, 9.5, 80, 50, 20); // half a millimetre into the flange, 60 long
+            GeoSolid3 through = Box(40, 60, -20, 55, 75, 30); // a pin through it
 
             ClashResult[] every = Clash3.Find(new[] { flange }, new[] { graze, through });
             Assert.Equal(0.5, every[0].Depth, 6);
-            Assert.Equal(300.0, every[0].Volume, 6);             // grows with the length; the depth does not
-            Assert.Equal(10.0, every[1].Depth, 6);               // as deep as the thinner of the two
+            Assert.Equal(300.0, every[0].Volume, 6); // grows with the length; the depth does not
+            Assert.Equal(10.0, every[1].Depth, 6); // as deep as the thinner of the two
 
             var options = new ClashOptions(clearance: 25.0, minimumDepth: 2.0, minimumVolume: 1000.0);
 
@@ -1275,29 +1479,36 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(0.5, counted[0].Depth, 6);
             Assert.Equal(300.0, counted[0].Volume, 6);
             Assert.Single(counted[0].Overlaps);
-            Assert.Equal(ClashKind.Hard, counted[1].Kind);       // 10 deep, 2250 in volume: both enough
+            Assert.Equal(ClashKind.Hard, counted[1].Kind); // 10 deep, 2250 in volume: both enough
         }
+
         [Fact]
         public void ReinforcementByItsCentreLine()
         {
-            GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-                => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+            GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+                new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
             var parts = new List<GeoSolid3>
             {
-                Box(0, 0, 0, 200, 200, 50),          // a footing
-                Box(50, 50, 50, 150, 150, 500),      // a column standing on it
-                Box(-10, 90, 300, 210, 110, 320),    // a beam through the column
-                Box(250, 0, 0, 260, 10, 10),         // a bracket twenty clear of the footing
+                Box(0, 0, 0, 200, 200, 50), // a footing
+                Box(50, 50, 50, 150, 150, 500), // a column standing on it
+                Box(-10, 90, 300, 210, 110, 320), // a beam through the column
+                Box(250, 0, 0, 260, 10, 10), // a bracket twenty clear of the footing
             };
 
             GeoPolylineArc3 centreLine = new GeoPolyline3(
-                new GeoPoint3(-100, 100, 150), new GeoPoint3(100, 100, 150), new GeoPoint3(100, 100, -100)).Fillet(40.0);
+                new GeoPoint3(-100, 100, 150),
+                new GeoPoint3(100, 100, 150),
+                new GeoPoint3(100, 100, -100)
+            ).Fillet(40.0);
             var bar = new ClashBar(centreLine, radius: 8.0);
 
             ClashResult[] clashes = Clash3.Find(new[] { bar }, parts, new ClashOptions(clearance: 25.0));
 
-            Assert.Equal(new[] { (0, 0, ClashKind.Hard), (0, 1, ClashKind.Hard) }, clashes.Select(c => (c.First, c.Second, c.Kind)));
+            Assert.Equal(
+                new[] { (0, 0, ClashKind.Hard), (0, 1, ClashKind.Hard) },
+                clashes.Select(c => (c.First, c.Second, c.Kind))
+            );
             Assert.All(clashes, clash => Assert.Equal(16.0, clash.Depth, 9));
             Assert.All(clashes, clash => Assert.Empty(clash.Overlaps));
             Assert.Equal(50.0, clashes[0].LengthInside, 9);
@@ -1307,17 +1518,45 @@ namespace GeometryHelper.UnitTest.Solid
             double inColumn = 10.0 + 20.0 * Math.PI + 60.0;
             Assert.InRange(clashes[1].LengthInside, inColumn - 0.01, inColumn);
         }
+
         [Fact]
         public void MakingBodies()
         {
             var placement = new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis);
-            var outline = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(300, 0), new GeoPoint2(300, 200), new GeoPoint2(0, 200));
-            var face = new GeoFace3(new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0)));
-            GeoPoint3 head = new GeoPoint3(150, 100, -30), tip = new GeoPoint3(150, 100, 50);
-            GeoPolylineArc3 centreLine = new GeoPolyline3(new GeoPoint3(0, 0, 100), new GeoPoint3(500, 0, 100), new GeoPoint3(500, 0, 600)).Fillet(40);
-            var section = new GeoPolygon2(new GeoPoint2(-50, -100), new GeoPoint2(50, -100), new GeoPoint2(50, 100), new GeoPoint2(-50, 100));
+            var outline = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(300, 0),
+                new GeoPoint2(300, 200),
+                new GeoPoint2(0, 200)
+            );
+            var face = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    new GeoPoint3(100, 100, 0),
+                    new GeoPoint3(0, 100, 0)
+                )
+            );
+            GeoPoint3 head = new GeoPoint3(150, 100, -30),
+                tip = new GeoPoint3(150, 100, 50);
+            GeoPolylineArc3 centreLine = new GeoPolyline3(
+                new GeoPoint3(0, 0, 100),
+                new GeoPoint3(500, 0, 100),
+                new GeoPoint3(500, 0, 600)
+            ).Fillet(40);
+            var section = new GeoPolygon2(
+                new GeoPoint2(-50, -100),
+                new GeoPoint2(50, -100),
+                new GeoPoint2(50, 100),
+                new GeoPoint2(-50, 100)
+            );
             var path = new GeoPolyline3(new GeoPoint3(0, 1000, 0), new GeoPoint3(3000, 1000, 0));
-            var profile = new GeoPolygon2(new GeoPoint2(100, 0), new GeoPoint2(150, 0), new GeoPoint2(150, 50), new GeoPoint2(100, 50));
+            var profile = new GeoPolygon2(
+                new GeoPoint2(100, 0),
+                new GeoPoint2(150, 0),
+                new GeoPoint2(150, 50),
+                new GeoPoint2(100, 50)
+            );
 
             GeoSolid3 plate = GeoSolid3.Extrude(outline, placement, 20);
             GeoSolid3 slab = GeoSolid3.Extrude(face, new GeoVector3(0, 0, 200));
@@ -1335,11 +1574,16 @@ namespace GeometryHelper.UnitTest.Solid
             // The member stands upright: its section's Y is the world's Z.
             Assert.Equal(200.0, member.GetAabb().Max.Z - member.GetAabb().Min.Z, 9);
         }
+
         [Fact]
         public void WeighingCuttingAndFittingABody()
         {
-            GeoSolid3 plate = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(200, 100, 20)).ToObb().ToSolid()
-                .WithOpenings(new[] { new GeoAabb3(new GeoPoint3(90, 40, -1), new GeoPoint3(110, 60, 21)).ToObb().ToSolid() });
+            GeoSolid3 plate = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(200, 100, 20))
+                .ToObb()
+                .ToSolid()
+                .WithOpenings(
+                    new[] { new GeoAabb3(new GeoPoint3(90, 40, -1), new GeoPoint3(110, 60, 21)).ToObb().ToSolid() }
+                );
             var hinge = new GeoPoint3(0, 0, 0);
 
             MassProperties3 steel = plate.GetMassProperties(7.85E-6);
@@ -1359,8 +1603,12 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ReadingTheFacesMoreThanOneWay()
         {
-            GeoSolid3 plate = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(200, 100, 20)).ToObb().ToSolid()
-                .WithOpenings(new[] { new GeoAabb3(new GeoPoint3(90, 40, -1), new GeoPoint3(110, 60, 21)).ToObb().ToSolid() });
+            GeoSolid3 plate = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(200, 100, 20))
+                .ToObb()
+                .ToSolid()
+                .WithOpenings(
+                    new[] { new GeoAabb3(new GeoPoint3(90, 40, -1), new GeoPoint3(110, 60, 21)).ToObb().ToSolid() }
+                );
 
             double net = Measure3.Volume(plate, VolumeMethod.Surface);
             double kg = Measure3.Mass(plate, 7.85E-6, VolumeMethod.Surface);

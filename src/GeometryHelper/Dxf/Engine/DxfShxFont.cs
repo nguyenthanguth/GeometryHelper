@@ -67,7 +67,15 @@ namespace GeometryHelper.Dxf
             _codes = codes;
         }
 
-        private DxfShxFont(int above, int below, int[] leads, bool extended, int cellWidth, int cellHeight, Dictionary<int, byte[]> codes)
+        private DxfShxFont(
+            int above,
+            int below,
+            int[] leads,
+            bool extended,
+            int cellWidth,
+            int cellHeight,
+            Dictionary<int, byte[]> codes
+        )
         {
             IsBig = true;
             Above = above == 0 ? BigAboveOfNought : above;
@@ -125,7 +133,10 @@ namespace GeometryHelper.Dxf
 
             string header = Encoding.ASCII.GetString(bytes, 0, end);
 
-            if (header.StartsWith("AutoCAD-86 shapes 1.0", StringComparison.Ordinal) || header.StartsWith("AutoCAD-86 shapes 1.1", StringComparison.Ordinal))
+            if (
+                header.StartsWith("AutoCAD-86 shapes 1.0", StringComparison.Ordinal)
+                || header.StartsWith("AutoCAD-86 shapes 1.1", StringComparison.Ordinal)
+            )
             {
                 return Shapes(bytes, end + 1);
             }
@@ -135,7 +146,9 @@ namespace GeometryHelper.Dxf
                 return Big(bytes, end + 1);
             }
 
-            return header.StartsWith("AutoCAD-86 unifont 1.0", StringComparison.Ordinal) ? Unifont(bytes, end + 1) : null;
+            return header.StartsWith("AutoCAD-86 unifont 1.0", StringComparison.Ordinal)
+                ? Unifont(bytes, end + 1)
+                : null;
         }
 
         /// <summary>
@@ -177,7 +190,9 @@ namespace GeometryHelper.Dxf
                 int entry = at + (i * 8);
                 int number = U16(bytes, entry);
                 int length = U16(bytes, entry + 2);
-                long place = (uint)(bytes[entry + 4] | (bytes[entry + 5] << 8) | (bytes[entry + 6] << 16) | (bytes[entry + 7] << 24));
+                long place = (uint)(
+                    bytes[entry + 4] | (bytes[entry + 5] << 8) | (bytes[entry + 6] << 16) | (bytes[entry + 7] << 24)
+                );
 
                 if (length == 0 && place == 0)
                 {
@@ -212,7 +227,15 @@ namespace GeometryHelper.Dxf
             }
 
             bool extended = head.Length >= 5;
-            return new DxfShxFont(head[0], head[1], leads, extended, extended ? head[3] : 0, extended ? head[0] : 0, codes);
+            return new DxfShxFont(
+                head[0],
+                head[1],
+                leads,
+                extended,
+                extended ? head[3] : 0,
+                extended ? head[0] : 0,
+                codes
+            );
         }
 
         /// <summary>A font of shapes 1.0 or 1.1: the first and last numbers and the count, the number and length of each shape, then the shapes, each its name, a byte 0 and its codes.</summary>
@@ -343,7 +366,15 @@ namespace GeometryHelper.Dxf
                 {
                     var pen = new Pen();
                     Draw(number, pen);
-                    glyph = new Glyph(pen.X, pen.Xs.ToArray(), pen.Ys.ToArray(), pen.InksOrigin, !pen.Broken, pen.Low, pen.High);
+                    glyph = new Glyph(
+                        pen.X,
+                        pen.Xs.ToArray(),
+                        pen.Ys.ToArray(),
+                        pen.InksOrigin,
+                        !pen.Broken,
+                        pen.Low,
+                        pen.High
+                    );
                     _glyphs.Add(number, glyph);
                 }
 

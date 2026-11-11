@@ -76,7 +76,8 @@ namespace GeometryHelper.Takeoff
         /// </param>
         /// <returns>The take-off of each part, in the order the parts were given.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="items"/> is null.</exception>
-        public static VolumeTakeoffResult[] Run(IReadOnlyList<VolumeItem> items) => Run(items, VolumeTakeoffOptions.Default);
+        public static VolumeTakeoffResult[] Run(IReadOnlyList<VolumeItem> items) =>
+            Run(items, VolumeTakeoffOptions.Default);
 
         /// <summary>
         /// Takes off the volumes of the parts.
@@ -158,17 +159,22 @@ namespace GeometryHelper.Takeoff
                 pairWeights[k] = (long)pairs[k].Loser.Item.Solid.Faces.Count + pairs[k].Keeper.Item.Solid.Faces.Count;
             }
 
-            Parallel.ForEach(Partitioner.Create(HeaviestFirst(pairWeights), EnumerablePartitionerOptions.NoBuffering), threads, k =>
-            {
-                using (Tolerance.Use(caller))
+            Parallel.ForEach(
+                Partitioner.Create(HeaviestFirst(pairWeights), EnumerablePartitionerOptions.NoBuffering),
+                threads,
+                k =>
                 {
-                    WorkOut(pairs[k], boolean);
+                    using (Tolerance.Use(caller))
+                    {
+                        WorkOut(pairs[k], boolean);
+                    }
                 }
-            });
+            );
 
             // Phase 2: each piece less the pieces of the same part before it, in the order of the parts that keep them.
             var losing = new List<Pair>[parts.Length];
-            int touching = 0, overlaps = 0;
+            int touching = 0,
+                overlaps = 0;
 
             foreach (Pair pair in pairs)
             {
@@ -191,13 +197,17 @@ namespace GeometryHelper.Takeoff
                 stepWeights[s] = steps[s].Weight;
             }
 
-            Parallel.ForEach(Partitioner.Create(HeaviestFirst(stepWeights), EnumerablePartitionerOptions.NoBuffering), threads, s =>
-            {
-                using (Tolerance.Use(caller))
+            Parallel.ForEach(
+                Partitioner.Create(HeaviestFirst(stepWeights), EnumerablePartitionerOptions.NoBuffering),
+                threads,
+                s =>
                 {
-                    TakeOffOnce(steps[s], boolean);
+                    using (Tolerance.Use(caller))
+                    {
+                        TakeOffOnce(steps[s], boolean);
+                    }
                 }
-            });
+            );
 
             // The results, put together in the order of the items once both phases are done.
             var results = new VolumeTakeoffResult[given.Length];
@@ -205,18 +215,24 @@ namespace GeometryHelper.Takeoff
 
             for (int i = 0; i < given.Length; i++)
             {
-                results[i] = parts[i] == null
-                    ? new VolumeTakeoffResult(null, 0.0, 0.0, 0.0, new VolumeDeduction[0], new[] { "no item" })
-                    : Result(parts[i], losing[i], tolerance);
+                results[i] =
+                    parts[i] == null
+                        ? new VolumeTakeoffResult(null, 0.0, 0.0, 0.0, new VolumeDeduction[0], new[] { "no item" })
+                        : Result(parts[i], losing[i], tolerance);
                 issues += results[i].Issues.Count;
             }
 
             if (touching > 0)
             {
-                GeometryHelperLog.Debug("VolumeTakeoff: " + touching + " pairs only touch, and nothing is taken off for them.");
+                GeometryHelperLog.Debug(
+                    "VolumeTakeoff: " + touching + " pairs only touch, and nothing is taken off for them."
+                );
             }
 
-            int slicedPairs = 0, straight = 0, slicedSteps = 0, unsliced = 0;
+            int slicedPairs = 0,
+                straight = 0,
+                slicedSteps = 0,
+                unsliced = 0;
 
             foreach (Pair pair in pairs)
             {
@@ -228,12 +244,32 @@ namespace GeometryHelper.Takeoff
 
             if (slicedPairs + slicedSteps > 0)
             {
-                GeometryHelperLog.Debug("VolumeTakeoff: " + slicedPairs + " pairs whose common part the booleans could not make, " + straight
-                    + " of them near-coincident and sent straight to slicing, and " + slicedSteps
-                    + " pieces whose overlaps before could not be cut out, or were sliced, worked out by slicing; " + unsliced + " of them could not be.");
+                GeometryHelperLog.Debug(
+                    "VolumeTakeoff: "
+                        + slicedPairs
+                        + " pairs whose common part the booleans could not make, "
+                        + straight
+                        + " of them near-coincident and sent straight to slicing, and "
+                        + slicedSteps
+                        + " pieces whose overlaps before could not be cut out, or were sliced, worked out by slicing; "
+                        + unsliced
+                        + " of them could not be."
+                );
             }
 
-            GeometryHelperLog.Info("VolumeTakeoff: " + given.Length + " items, " + pairs.Length + " pairs, " + overlaps + " overlaps, " + issues + " issues, " + watch.ElapsedMilliseconds + " ms.");
+            GeometryHelperLog.Info(
+                "VolumeTakeoff: "
+                    + given.Length
+                    + " items, "
+                    + pairs.Length
+                    + " pairs, "
+                    + overlaps
+                    + " overlaps, "
+                    + issues
+                    + " issues, "
+                    + watch.ElapsedMilliseconds
+                    + " ms."
+            );
 
             return results;
         }
@@ -245,14 +281,20 @@ namespace GeometryHelper.Takeoff
         /// </summary>
         private static Part Measure(int index, VolumeItem item, Tolerance tolerance)
         {
-            var part = new Part { Index = index, Item = item, Box = item.Solid.GetAabb() };
+            var part = new Part
+            {
+                Index = index,
+                Item = item,
+                Box = item.Solid.GetAabb(),
+            };
 
             try
             {
                 if (!item.Solid.TryGetVolume(out double volume, tolerance))
                 {
                     volume = item.Solid.GetVolume(tolerance);
-                    part.GrossIssue = "the solid's own volume is not to be trusted: an opening could not be cut out, or the material does not close; the volume its faces give is taken";
+                    part.GrossIssue =
+                        "the solid's own volume is not to be trusted: an opening could not be cut out, or the material does not close; the volume its faces give is taken";
                 }
 
                 part.Gross = volume;
@@ -260,7 +302,10 @@ namespace GeometryHelper.Takeoff
             }
             catch (Exception exception) when (!(exception is OutOfMemoryException))
             {
-                GeometryHelperLog.Warn("VolumeTakeoff: the volume of item " + index + " could not be measured, and is taken as nought.", exception);
+                GeometryHelperLog.Warn(
+                    "VolumeTakeoff: the volume of item " + index + " could not be measured, and is taken as nought.",
+                    exception
+                );
                 part.Gross = 0.0;
                 part.Area = 0.0;
                 part.GrossIssue = "the solid's own volume could not be measured: it is taken as 0";
@@ -287,25 +332,27 @@ namespace GeometryHelper.Takeoff
 
             // The higher priority first; of two the same, an id before none and the larger id first, then the earlier in the
             // list. CompareTo, not a subtraction, which would wrap round between int.MinValue and int.MaxValue.
-            present.Sort((a, b) =>
-            {
-                if (a.Item.Priority != b.Item.Priority)
+            present.Sort(
+                (a, b) =>
                 {
-                    return b.Item.Priority.CompareTo(a.Item.Priority);
-                }
+                    if (a.Item.Priority != b.Item.Priority)
+                    {
+                        return b.Item.Priority.CompareTo(a.Item.Priority);
+                    }
 
-                if (a.Item.Id.HasValue != b.Item.Id.HasValue)
-                {
-                    return a.Item.Id.HasValue ? -1 : 1;
-                }
+                    if (a.Item.Id.HasValue != b.Item.Id.HasValue)
+                    {
+                        return a.Item.Id.HasValue ? -1 : 1;
+                    }
 
-                if (a.Item.Id.HasValue && a.Item.Id.Value != b.Item.Id.Value)
-                {
-                    return b.Item.Id.Value.CompareTo(a.Item.Id.Value);
-                }
+                    if (a.Item.Id.HasValue && a.Item.Id.Value != b.Item.Id.Value)
+                    {
+                        return b.Item.Id.Value.CompareTo(a.Item.Id.Value);
+                    }
 
-                return a.Index.CompareTo(b.Index);
-            });
+                    return a.Index.CompareTo(b.Index);
+                }
+            );
 
             for (int r = 0; r < present.Count; r++)
             {
@@ -378,12 +425,19 @@ namespace GeometryHelper.Takeoff
 
                     if (Overlap(a.Box, b.Box, reach))
                     {
-                        pairs.Add(a.Rank < b.Rank ? new Pair { Keeper = a, Loser = b } : new Pair { Keeper = b, Loser = a });
+                        pairs.Add(
+                            a.Rank < b.Rank ? new Pair { Keeper = a, Loser = b } : new Pair { Keeper = b, Loser = a }
+                        );
                     }
                 }
             }
 
-            pairs.Sort((x, y) => x.Keeper.Rank != y.Keeper.Rank ? x.Keeper.Rank.CompareTo(y.Keeper.Rank) : x.Loser.Rank.CompareTo(y.Loser.Rank));
+            pairs.Sort(
+                (x, y) =>
+                    x.Keeper.Rank != y.Keeper.Rank
+                        ? x.Keeper.Rank.CompareTo(y.Keeper.Rank)
+                        : x.Loser.Rank.CompareTo(y.Loser.Rank)
+            );
 
             return pairs.ToArray();
         }
@@ -414,7 +468,8 @@ namespace GeometryHelper.Takeoff
         /// </summary>
         private static int FirstAtOrAbove(double[] sorted, double value)
         {
-            int below = 0, above = sorted.Length;
+            int below = 0,
+                above = sorted.Length;
 
             while (below < above)
             {
@@ -433,9 +488,15 @@ namespace GeometryHelper.Takeoff
             return below;
         }
 
-        private static double Low(GeoAabb3 box, int axis) => axis == 0 ? box.Min.X : axis == 1 ? box.Min.Y : box.Min.Z;
+        private static double Low(GeoAabb3 box, int axis) =>
+            axis == 0 ? box.Min.X
+            : axis == 1 ? box.Min.Y
+            : box.Min.Z;
 
-        private static double High(GeoAabb3 box, int axis) => axis == 0 ? box.Max.X : axis == 1 ? box.Max.Y : box.Max.Z;
+        private static double High(GeoAabb3 box, int axis) =>
+            axis == 0 ? box.Max.X
+            : axis == 1 ? box.Max.Y
+            : box.Max.Z;
 
         /// <summary>
         /// Whether two boxes overlap by more than a reach along all three axes.
@@ -468,7 +529,8 @@ namespace GeometryHelper.Takeoff
         /// Whether a volume is too thin to be an overlap: no more than the point tolerance times half the area, thinner on
         /// average than half the tolerance.
         /// </summary>
-        private static bool Thin(double volume, double area, Tolerance tolerance) => volume <= tolerance.EqualPoint * area * 0.5;
+        private static bool Thin(double volume, double area, Tolerance tolerance) =>
+            volume <= tolerance.EqualPoint * area * 0.5;
 
         /// <summary>
         /// The least surface a body of a volume can have, a ball's: the cube root of 36 pi times the volume squared. The
@@ -526,7 +588,8 @@ namespace GeometryHelper.Takeoff
         private static void WorkOut(Pair pair, SolidBooleanOptions options)
         {
             Tolerance tolerance = options.Tolerance;
-            Part loser = pair.Loser, keeper = pair.Keeper;
+            Part loser = pair.Loser,
+                keeper = pair.Keeper;
             double most = Math.Min(loser.Gross, keeper.Gross);
             double slack = tolerance.EqualPoint * (loser.Area + keeper.Area);
 
@@ -545,7 +608,13 @@ namespace GeometryHelper.Takeoff
 
             try
             {
-                bool made = Boolean3.TryIntersect(loser.Item.Solid, keeper.Item.Solid, out GeoSolid3 piece, options, out BooleanOutcome outcome);
+                bool made = Boolean3.TryIntersect(
+                    loser.Item.Solid,
+                    keeper.Item.Solid,
+                    out GeoSolid3 piece,
+                    options,
+                    out BooleanOutcome outcome
+                );
 
                 if (!made && outcome == BooleanOutcome.Empty)
                 {
@@ -574,7 +643,14 @@ namespace GeometryHelper.Takeoff
             }
             catch (Exception exception) when (!(exception is OutOfMemoryException))
             {
-                GeometryHelperLog.Warn("VolumeTakeoff: what items " + loser.Index + " and " + keeper.Index + " share could not be worked out as a body; it is worked out by slicing.", exception);
+                GeometryHelperLog.Warn(
+                    "VolumeTakeoff: what items "
+                        + loser.Index
+                        + " and "
+                        + keeper.Index
+                        + " share could not be worked out as a body; it is worked out by slicing.",
+                    exception
+                );
             }
 
             pair.Kind = Kind.Sliced;
@@ -620,7 +696,11 @@ namespace GeometryHelper.Takeoff
 
                 foreach (GeoFace3 other in near)
                 {
-                    if (Overlap(box, other.GetAabb(), -NearDistance) && Beside(plane, other, tolerance) && ++found >= NearFacePairs)
+                    if (
+                        Overlap(box, other.GetAabb(), -NearDistance)
+                        && Beside(plane, other, tolerance)
+                        && ++found >= NearFacePairs
+                    )
                     {
                         return true;
                     }
@@ -640,7 +720,10 @@ namespace GeometryHelper.Takeoff
             // Atan2 of the cross and the dot of the two unit normals, not Acos, which loses the angle near parallel; the
             // dot without its sign folds the turned-round case onto the parallel one.
             GeoVector3 normal = plane.Normal;
-            double angle = Math.Atan2(normal.CrossProduct(face.Normal).Length, Math.Abs(normal.DotProduct(face.Normal)));
+            double angle = Math.Atan2(
+                normal.CrossProduct(face.Normal).Length,
+                Math.Abs(normal.DotProduct(face.Normal))
+            );
 
             if (angle <= tolerance.EqualVector || angle > NearAngleRad)
             {
@@ -690,7 +773,9 @@ namespace GeometryHelper.Takeoff
                     Pair pair = list[m];
                     bool piece = pair.Kind == Kind.Piece;
                     var tools = new List<Pair>();
-                    long weight = piece ? pair.Piece.Faces.Count : (long)pair.Loser.Item.Solid.Faces.Count + pair.Keeper.Item.Solid.Faces.Count;
+                    long weight = piece
+                        ? pair.Piece.Faces.Count
+                        : (long)pair.Loser.Item.Solid.Faces.Count + pair.Keeper.Item.Solid.Faces.Count;
 
                     for (int j = 0; j < m; j++)
                     {
@@ -698,7 +783,11 @@ namespace GeometryHelper.Takeoff
                         GeoSolid3 tool = Tool(earlier);
 
                         // What the loser shares with this keeper: the piece, or for an overlap to slice the box the two share.
-                        if (piece ? Overlap(pair.Piece.GetAabb(), tool.GetAabb(), reach) : Overlap(pair.Loser.Box, pair.Keeper.Box, tool.GetAabb(), reach))
+                        if (
+                            piece
+                                ? Overlap(pair.Piece.GetAabb(), tool.GetAabb(), reach)
+                                : Overlap(pair.Loser.Box, pair.Keeper.Box, tool.GetAabb(), reach)
+                        )
                         {
                             tools.Add(earlier);
                             weight += tool.Faces.Count;
@@ -711,7 +800,14 @@ namespace GeometryHelper.Takeoff
                         continue;
                     }
 
-                    steps.Add(new Step { Pair = pair, Tools = tools, Weight = weight });
+                    steps.Add(
+                        new Step
+                        {
+                            Pair = pair,
+                            Tools = tools,
+                            Weight = weight,
+                        }
+                    );
                 }
             }
 
@@ -725,13 +821,15 @@ namespace GeometryHelper.Takeoff
         {
             return Math.Min(Math.Min(a.Max.X, b.Max.X), c.Max.X) - Math.Max(Math.Max(a.Min.X, b.Min.X), c.Min.X) > reach
                 && Math.Min(Math.Min(a.Max.Y, b.Max.Y), c.Max.Y) - Math.Max(Math.Max(a.Min.Y, b.Min.Y), c.Min.Y) > reach
-                && Math.Min(Math.Min(a.Max.Z, b.Max.Z), c.Max.Z) - Math.Max(Math.Max(a.Min.Z, b.Min.Z), c.Min.Z) > reach;
+                && Math.Min(Math.Min(a.Max.Z, b.Max.Z), c.Max.Z) - Math.Max(Math.Max(a.Min.Z, b.Min.Z), c.Min.Z)
+                    > reach;
         }
 
         /// <summary>
         /// The body an earlier overlap is taken out of a later piece by: its piece, or for one to slice the keeper.
         /// </summary>
-        private static GeoSolid3 Tool(Pair earlier) => earlier.Kind == Kind.Piece ? earlier.Piece : earlier.Keeper.Item.Solid;
+        private static GeoSolid3 Tool(Pair earlier) =>
+            earlier.Kind == Kind.Piece ? earlier.Piece : earlier.Keeper.Item.Solid;
 
         /// <summary>
         /// Works out what a keeper takes off a part and no keeper before it took: a piece less the earlier pieces, cut,
@@ -745,7 +843,13 @@ namespace GeometryHelper.Takeoff
             // A piece with a keeper to cut out whose overlap is sliced is sliced too: the keeper's whole body cut out of the
             // piece is a boolean the slicing need not trust. A girder ranked over a column, its overlap with a wall sliced,
             // cut out of the column's piece of the wall left 324 108 388.10, where slicing gives the exact 324 108 381.91.
-            if (pair.Kind == Kind.Piece && (step.Tools.Exists(tool => tool.Kind == Kind.Sliced) || (BreakTakeOff != null && BreakTakeOff(pair.Loser.Index, pair.Keeper.Index))))
+            if (
+                pair.Kind == Kind.Piece
+                && (
+                    step.Tools.Exists(tool => tool.Kind == Kind.Sliced)
+                    || (BreakTakeOff != null && BreakTakeOff(pair.Loser.Index, pair.Keeper.Index))
+                )
+            )
             {
                 pair.BySlicing = true;
             }
@@ -760,7 +864,15 @@ namespace GeometryHelper.Takeoff
 
                 try
                 {
-                    if (!Boolean3.TrySubtractAll(pair.Piece, tools, out GeoSolid3 rest, options, out SubtractReport report))
+                    if (
+                        !Boolean3.TrySubtractAll(
+                            pair.Piece,
+                            tools,
+                            out GeoSolid3 rest,
+                            options,
+                            out SubtractReport report
+                        )
+                    )
                     {
                         pair.Deducted = 0.0;
                         return;
@@ -775,7 +887,14 @@ namespace GeometryHelper.Takeoff
                 }
                 catch (Exception exception) when (!(exception is OutOfMemoryException))
                 {
-                    GeometryHelperLog.Warn("VolumeTakeoff: the overlaps before the one of items " + pair.Loser.Index + " and " + pair.Keeper.Index + " could not be cut out of it; it is worked out by slicing.", exception);
+                    GeometryHelperLog.Warn(
+                        "VolumeTakeoff: the overlaps before the one of items "
+                            + pair.Loser.Index
+                            + " and "
+                            + pair.Keeper.Index
+                            + " could not be cut out of it; it is worked out by slicing.",
+                        exception
+                    );
                 }
 
                 pair.BySlicing = true;
@@ -799,13 +918,23 @@ namespace GeometryHelper.Takeoff
             }
             catch (Exception exception) when (!(exception is OutOfMemoryException))
             {
-                GeometryHelperLog.Warn("VolumeTakeoff: what items " + pair.Loser.Index + " and " + pair.Keeper.Index + " share could not be sliced; it is not taken off.", exception);
+                GeometryHelperLog.Warn(
+                    "VolumeTakeoff: what items "
+                        + pair.Loser.Index
+                        + " and "
+                        + pair.Keeper.Index
+                        + " share could not be sliced; it is not taken off.",
+                    exception
+                );
             }
 
             if (!sliced)
             {
                 pair.Deducted = 0.0;
-                pair.Issue = "overlap with #" + pair.Keeper.Index + " could not be worked out, by booleans or by slicing: not deducted, so the net volume is an upper bound";
+                pair.Issue =
+                    "overlap with #"
+                    + pair.Keeper.Index
+                    + " could not be worked out, by booleans or by slicing: not deducted, so the net volume is an upper bound";
                 return;
             }
 
@@ -860,11 +989,14 @@ namespace GeometryHelper.Takeoff
                 // read it, as for a part wholly inside another; beyond, it is more than the part holds.
                 if (-net > tolerance.EqualPoint * part.Area)
                 {
-                    issues.Add(string.Format(
-                        CultureInfo.InvariantCulture,
-                        "the deductions, {0:0.###}, come to more than the gross volume, {1:0.###}: the net volume is clamped to 0",
-                        deducted,
-                        part.Gross));
+                    issues.Add(
+                        string.Format(
+                            CultureInfo.InvariantCulture,
+                            "the deductions, {0:0.###}, come to more than the gross volume, {1:0.###}: the net volume is clamped to 0",
+                            deducted,
+                            part.Gross
+                        )
+                    );
                 }
 
                 net = 0.0;
@@ -874,7 +1006,14 @@ namespace GeometryHelper.Takeoff
                 net = part.Gross;
             }
 
-            return new VolumeTakeoffResult(part.Item, part.Gross, deducted, net, deductions.ToArray(), issues.ToArray());
+            return new VolumeTakeoffResult(
+                part.Item,
+                part.Gross,
+                deducted,
+                net,
+                deductions.ToArray(),
+                issues.ToArray()
+            );
         }
 
         #endregion

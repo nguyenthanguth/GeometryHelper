@@ -85,7 +85,8 @@ namespace GeometryHelper.Dxf.Viewer
         public bool FrameText { get; set; }
 
         /// <summary>Gets or sets which sides of the text the leaders meet: the left and right (horizontal) or the top and bottom (vertical).</summary>
-        public DxfTextAttachmentDirection AttachmentDirection { get; set; } = DxfTextAttachmentDirection.AttachmentHorizontal;
+        public DxfTextAttachmentDirection AttachmentDirection { get; set; } =
+            DxfTextAttachmentDirection.AttachmentHorizontal;
 
         /// <summary>Gets or sets where a leader on the left meets the text.</summary>
         public DxfTextAttachmentType LeftAttachment { get; set; } = DxfTextAttachmentType.AttachmentMiddleOfTop;
@@ -123,7 +124,8 @@ namespace GeometryHelper.Dxf.Viewer
                 LeaderColor = style.LeaderLineColor,
                 LeaderLinetype = linetype == null ? "ByBlock" : linetype.Name,
                 LeaderLineweight = style.LeaderLineWeight,
-                Arrowhead = style.ArrowSymbol == null ? CadArrowheads.ClosedFilled : CadArrowheads.NameOf(style.ArrowSymbol),
+                Arrowhead =
+                    style.ArrowSymbol == null ? CadArrowheads.ClosedFilled : CadArrowheads.NameOf(style.ArrowSymbol),
                 ArrowSize = style.ArrowSize,
                 BreakSize = style.BreakSize,
                 MaxLeaderPoints = style.MaxLeaderSegmentsPoints,
@@ -159,22 +161,46 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets whether two settings write the same style.</summary>
         /// <param name="other">The other.</param>
         /// <returns>True where every value is the same, names of either case alike.</returns>
-        public bool SameAs(CadMLeaderStyleSettings other)
-            => other != null && LeaderType == other.LeaderType && SameColor(LeaderColor, other.LeaderColor)
-                && string.Equals(LeaderLinetype, other.LeaderLinetype, StringComparison.OrdinalIgnoreCase) && LeaderLineweight == other.LeaderLineweight
-                && string.Equals(Arrowhead, other.Arrowhead, StringComparison.OrdinalIgnoreCase) && ArrowSize.Equals(other.ArrowSize) && BreakSize.Equals(other.BreakSize)
-                && MaxLeaderPoints == other.MaxLeaderPoints && FirstSegmentAngle == other.FirstSegmentAngle && SecondSegmentAngle == other.SecondSegmentAngle
-                && IncludeLanding == other.IncludeLanding && SetLandingDistance == other.SetLandingDistance && LandingDistance.Equals(other.LandingDistance)
-                && Annotative == other.Annotative && Scale.Equals(other.Scale) && ContentType == other.ContentType
-                && string.Equals(DefaultText ?? string.Empty, other.DefaultText ?? string.Empty, StringComparison.Ordinal)
-                && string.Equals(TextStyle, other.TextStyle, StringComparison.OrdinalIgnoreCase) && TextAngle == other.TextAngle && SameColor(TextColor, other.TextColor)
-                && TextHeight.Equals(other.TextHeight) && AlwaysLeftJustify == other.AlwaysLeftJustify && FrameText == other.FrameText
-                && AttachmentDirection == other.AttachmentDirection && LeftAttachment == other.LeftAttachment && RightAttachment == other.RightAttachment
-                && TopAttachment == other.TopAttachment && BottomAttachment == other.BottomAttachment && LandingGap.Equals(other.LandingGap)
-                && ExtendLeaderToText == other.ExtendLeaderToText;
+        public bool SameAs(CadMLeaderStyleSettings other) =>
+            other != null
+            && LeaderType == other.LeaderType
+            && SameColor(LeaderColor, other.LeaderColor)
+            && string.Equals(LeaderLinetype, other.LeaderLinetype, StringComparison.OrdinalIgnoreCase)
+            && LeaderLineweight == other.LeaderLineweight
+            && string.Equals(Arrowhead, other.Arrowhead, StringComparison.OrdinalIgnoreCase)
+            && ArrowSize.Equals(other.ArrowSize)
+            && BreakSize.Equals(other.BreakSize)
+            && MaxLeaderPoints == other.MaxLeaderPoints
+            && FirstSegmentAngle == other.FirstSegmentAngle
+            && SecondSegmentAngle == other.SecondSegmentAngle
+            && IncludeLanding == other.IncludeLanding
+            && SetLandingDistance == other.SetLandingDistance
+            && LandingDistance.Equals(other.LandingDistance)
+            && Annotative == other.Annotative
+            && Scale.Equals(other.Scale)
+            && ContentType == other.ContentType
+            && string.Equals(DefaultText ?? string.Empty, other.DefaultText ?? string.Empty, StringComparison.Ordinal)
+            && string.Equals(TextStyle, other.TextStyle, StringComparison.OrdinalIgnoreCase)
+            && TextAngle == other.TextAngle
+            && SameColor(TextColor, other.TextColor)
+            && TextHeight.Equals(other.TextHeight)
+            && AlwaysLeftJustify == other.AlwaysLeftJustify
+            && FrameText == other.FrameText
+            && AttachmentDirection == other.AttachmentDirection
+            && LeftAttachment == other.LeftAttachment
+            && RightAttachment == other.RightAttachment
+            && TopAttachment == other.TopAttachment
+            && BottomAttachment == other.BottomAttachment
+            && LandingGap.Equals(other.LandingGap)
+            && ExtendLeaderToText == other.ExtendLeaderToText;
 
-        internal static bool SameColor(DxfColor a, DxfColor b)
-            => a == null ? b == null : b != null && a.ColorMethod == b.ColorMethod && a.ColorIndex == b.ColorIndex && (a.ColorMethod != DxfColorMethod.ByColor || a.ColorValue == b.ColorValue);
+        internal static bool SameColor(DxfColor a, DxfColor b) =>
+            a == null
+                ? b == null
+                : b != null
+                    && a.ColorMethod == b.ColorMethod
+                    && a.ColorIndex == b.ColorIndex
+                    && (a.ColorMethod != DxfColorMethod.ByColor || a.ColorValue == b.ColorValue);
     }
 
     /// <summary>
@@ -217,14 +243,18 @@ namespace GeometryHelper.Dxf.Viewer
             }
             catch (InvalidOperationException exception)
             {
-                GeometryHelperLog.Debug("CadMLeaderStyleEditor: the multileader styles were not read: " + exception.Message);
+                GeometryHelperLog.Debug(
+                    "CadMLeaderStyleEditor: the multileader styles were not read: " + exception.Message
+                );
             }
 
-            names.Sort((a, b) =>
-            {
-                int byCase = string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
-                return byCase != 0 ? byCase : string.CompareOrdinal(a, b);
-            });
+            names.Sort(
+                (a, b) =>
+                {
+                    int byCase = string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
+                    return byCase != 0 ? byCase : string.CompareOrdinal(a, b);
+                }
+            );
             return names;
         }
 
@@ -235,7 +265,9 @@ namespace GeometryHelper.Dxf.Viewer
         public static DxfMLeaderStyle Find(DxfDatabase database, string name)
         {
             DxfDBDictionary styles = database?.MLeaderStyleDictionary;
-            return styles != null && name != null && styles.Contains(name.Trim()) ? styles[name.Trim()] as DxfMLeaderStyle : null;
+            return styles != null && name != null && styles.Contains(name.Trim())
+                ? styles[name.Trim()] as DxfMLeaderStyle
+                : null;
         }
 
         /// <summary>Gets the name of the current multileader style (CMLEADERSTYLE), as the dictionary spells it; Standard where the drawing names none it has.</summary>
@@ -285,7 +317,10 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 foreach (DxfEntity entity in block)
                 {
-                    if (entity is DxfMLeader mleader && string.Equals(StyleName(mleader), set, StringComparison.OrdinalIgnoreCase))
+                    if (
+                        entity is DxfMLeader mleader
+                        && string.Equals(StyleName(mleader), set, StringComparison.OrdinalIgnoreCase)
+                    )
                     {
                         handles.Add(mleader.Handle);
                     }
@@ -325,8 +360,14 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Done(Array.Empty<CadEditRecord>());
             }
 
-            CadEditResult result = document.ApplyEdit("MLEADERSTYLE", new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "CMLEADERSTYLE", old, set) }, s => s.Database.MLeaderstyle = set);
-            return result.Succeeded ? result : CadEditResult.Refuse("\"" + set + "\" cannot be made current: " + result.Message);
+            CadEditResult result = document.ApplyEdit(
+                "MLEADERSTYLE",
+                new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "CMLEADERSTYLE", old, set) },
+                s => s.Database.MLeaderstyle = set
+            );
+            return result.Succeeded
+                ? result
+                : CadEditResult.Refuse("\"" + set + "\" cannot be made current: " + result.Message);
         }
 
         /// <summary>
@@ -356,7 +397,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (trimmed.IndexOfAny(new[] { '<', '>', '/', '\\', '"', ':', ';', '?', '*', '|', ',', '=', '`' }) >= 0)
             {
-                return CadEditResult.Refuse("The name \"" + trimmed + "\" has a letter AutoCAD does not take in a name.");
+                return CadEditResult.Refuse(
+                    "The name \"" + trimmed + "\" has a letter AutoCAD does not take in a name."
+                );
             }
 
             if (Find(document.Database, trimmed) != null)
@@ -365,14 +408,22 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             DxfMLeaderStyle source = from == null ? null : Find(document.Database, from);
-            CadMLeaderStyleSettings settings = source == null ? new CadMLeaderStyleSettings() : CadMLeaderStyleSettings.Of(source);
+            CadMLeaderStyleSettings settings =
+                source == null ? new CadMLeaderStyleSettings() : CadMLeaderStyleSettings.Of(source);
             document.EnsureNamedObjectsDictionary();
-            return document.ApplyEdit("MLEADERSTYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New multileader style", null, trimmed) }, s =>
-            {
-                var style = new DxfMLeaderStyle();
-                Dictionary(s.Database).SetAt(trimmed, style);
-                Write(s.Database, style, settings);
-            });
+            return document.ApplyEdit(
+                "MLEADERSTYLE",
+                new[]
+                {
+                    new CadEditRecord(CadEditRecordKind.TableChanged, null, "New multileader style", null, trimmed),
+                },
+                s =>
+                {
+                    var style = new DxfMLeaderStyle();
+                    Dictionary(s.Database).SetAt(trimmed, style);
+                    Write(s.Database, style, settings);
+                }
+            );
         }
 
         /// <summary>
@@ -420,8 +471,19 @@ namespace GeometryHelper.Dxf.Viewer
 
             string set = style.Name;
             IReadOnlyList<string> uses = Uses(document.Database, set);
-            var planned = new List<CadEditRecord> { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Multileader style " + set, null, set) };
-            planned.AddRange(uses.Select(handle => new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "Multileader style", set, set)));
+            var planned = new List<CadEditRecord>
+            {
+                new CadEditRecord(CadEditRecordKind.TableChanged, null, "Multileader style " + set, null, set),
+            };
+            planned.AddRange(
+                uses.Select(handle => new CadEditRecord(
+                    CadEditRecordKind.PropertyChanged,
+                    handle,
+                    "Multileader style",
+                    set,
+                    set
+                ))
+            );
             return document.ApplyEdit("MLEADERSTYLE", planned, s =>
             {
                 Write(s.Database, Find(s.Database, set), settings);
@@ -459,7 +521,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string set = Find(document.Database, name).Name;
-            return document.ApplyEdit("MLEADERSTYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Delete multileader style", set, null) }, s => s.Database.MLeaderStyleDictionary.Remove(set));
+            return document.ApplyEdit(
+                "MLEADERSTYLE",
+                new[]
+                {
+                    new CadEditRecord(CadEditRecordKind.TableChanged, null, "Delete multileader style", set, null),
+                },
+                s => s.Database.MLeaderStyleDictionary.Remove(set)
+            );
         }
 
         /// <summary>Gets why a style may not be deleted, as Delete is greyed: Standard, the current style, a style a multileader uses; null where it may.</summary>
@@ -492,7 +561,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             int uses = Uses(database, style.Name).Count;
-            return uses > 0 ? "\"" + style.Name + "\" is in use by " + uses + (uses == 1 ? " multileader" : " multileaders") + " and cannot be deleted." : null;
+            return uses > 0
+                ? "\""
+                    + style.Name
+                    + "\" is in use by "
+                    + uses
+                    + (uses == 1 ? " multileader" : " multileaders")
+                    + " and cannot be deleted."
+                : null;
         }
 
         /// <summary>
@@ -515,12 +591,19 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             document.EnsureNamedObjectsDictionary();
-            return document.ApplyEdit("MLEADERSTYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New multileader style", null, "Standard") }, s =>
-            {
-                var style = new DxfMLeaderStyle();
-                Dictionary(s.Database).SetAt("Standard", style);
-                Write(s.Database, style, new CadMLeaderStyleSettings());
-            });
+            return document.ApplyEdit(
+                "MLEADERSTYLE",
+                new[]
+                {
+                    new CadEditRecord(CadEditRecordKind.TableChanged, null, "New multileader style", null, "Standard"),
+                },
+                s =>
+                {
+                    var style = new DxfMLeaderStyle();
+                    Dictionary(s.Database).SetAt("Standard", style);
+                    Write(s.Database, style, new CadMLeaderStyleSettings());
+                }
+            );
         }
 
         /// <summary>
@@ -555,7 +638,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!string.IsNullOrEmpty(words))
             {
-                mleader.MText = new DxfMText { Contents = words, Location = landing, TextHeight = style.TextHeight * scale };
+                mleader.MText = new DxfMText
+                {
+                    Contents = words,
+                    Location = landing,
+                    TextHeight = style.TextHeight * scale,
+                };
             }
 
             mleader.AddLeaderLine(arrow);
@@ -613,15 +701,23 @@ namespace GeometryHelper.Dxf.Viewer
                 shown.LeaderLinetype = "ByBlock";
                 Write(database, style, shown);
 
-                double size = settings.TextHeight > 0.0 && !double.IsInfinity(settings.TextHeight) ? settings.TextHeight : 2.5;
+                double size =
+                    settings.TextHeight > 0.0 && !double.IsInfinity(settings.TextHeight) ? settings.TextHeight : 2.5;
                 string words = settings.ContentType == DxfContentType.MTextContent ? "Default Text" : null;
-                DxfMLeader mleader = Make(style, new GeoPoint3(0, 0, 0), new GeoPoint3(6.0 * size, 4.0 * size, 0), words);
+                DxfMLeader mleader = Make(
+                    style,
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(6.0 * size, 4.0 * size, 0),
+                    words
+                );
                 database.ModelSpace.AppendEntity(mleader);
                 mleader.SetFromStyle();
             }
             catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException)
             {
-                GeometryHelperLog.Debug("CadMLeaderStyleEditor: the sample multileader was not made: " + exception.Message);
+                GeometryHelperLog.Debug(
+                    "CadMLeaderStyleEditor: the sample multileader was not made: " + exception.Message
+                );
             }
 
             return database;
@@ -637,7 +733,13 @@ namespace GeometryHelper.Dxf.Viewer
                 return "Text height must be a number above nought.";
             }
 
-            if (!Size(settings.ArrowSize) || !Size(settings.BreakSize) || !Size(settings.LandingDistance) || !Size(settings.LandingGap) || !Size(settings.Scale))
+            if (
+                !Size(settings.ArrowSize)
+                || !Size(settings.BreakSize)
+                || !Size(settings.LandingDistance)
+                || !Size(settings.LandingGap)
+                || !Size(settings.Scale)
+            )
             {
                 return "Sizes and the scale must be numbers of nought or more.";
             }
@@ -756,11 +858,15 @@ namespace GeometryHelper.Dxf.Viewer
         {
             style.LeaderLineType = settings.LeaderType;
             style.LeaderLineColor = settings.LeaderColor ?? DxfColor.ByBlock;
-            style.LeaderLineLinetype = database.LinetypeTable.Has(settings.LeaderLinetype ?? string.Empty) ? database.LinetypeTable[settings.LeaderLinetype] : null;
+            style.LeaderLineLinetype = database.LinetypeTable.Has(settings.LeaderLinetype ?? string.Empty)
+                ? database.LinetypeTable[settings.LeaderLinetype]
+                : null;
             style.LeaderLineWeight = settings.LeaderLineweight;
-            style.ArrowSymbol = string.Equals(settings.Arrowhead, CadArrowheads.ClosedFilled, StringComparison.OrdinalIgnoreCase) || string.IsNullOrEmpty(settings.Arrowhead)
-                ? null
-                : CadArrowheads.Ensure(database, settings.Arrowhead);
+            style.ArrowSymbol =
+                string.Equals(settings.Arrowhead, CadArrowheads.ClosedFilled, StringComparison.OrdinalIgnoreCase)
+                || string.IsNullOrEmpty(settings.Arrowhead)
+                    ? null
+                    : CadArrowheads.Ensure(database, settings.Arrowhead);
             style.ArrowSize = settings.ArrowSize;
             style.BreakSize = settings.BreakSize;
             style.MaxLeaderSegmentsPoints = settings.MaxLeaderPoints;
@@ -770,8 +876,11 @@ namespace GeometryHelper.Dxf.Viewer
             style.EnableDogleg = settings.SetLandingDistance;
             style.DoglegLength = settings.LandingDistance;
             style.Scale = settings.Scale;
-            style.ContentType = settings.ContentType == DxfContentType.BlockContent ? style.ContentType : settings.ContentType;
-            style.DefaultMText = string.IsNullOrEmpty(settings.DefaultText) ? null : new DxfMText { Contents = settings.DefaultText };
+            style.ContentType =
+                settings.ContentType == DxfContentType.BlockContent ? style.ContentType : settings.ContentType;
+            style.DefaultMText = string.IsNullOrEmpty(settings.DefaultText)
+                ? null
+                : new DxfMText { Contents = settings.DefaultText };
             style.TextStyle = database.TextStyleTable[settings.TextStyle];
             style.TextAngleType = settings.TextAngle;
             style.TextColor = settings.TextColor ?? DxfColor.ByBlock;

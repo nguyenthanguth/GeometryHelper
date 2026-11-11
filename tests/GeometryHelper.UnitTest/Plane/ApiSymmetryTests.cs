@@ -24,7 +24,11 @@ namespace GeometryHelper.UnitTest.Plane
 
             if (missing.Length > 0)
             {
-                Assert.Fail(missing.Length + " one-sided pairs in the plane, the member missing first:\n" + string.Join("\n", missing));
+                Assert.Fail(
+                    missing.Length
+                        + " one-sided pairs in the plane, the member missing first:\n"
+                        + string.Join("\n", missing)
+                );
             }
         }
 
@@ -38,7 +42,11 @@ namespace GeometryHelper.UnitTest.Plane
 
             if (missing.Length > 0)
             {
-                Assert.Fail(missing.Length + " shortest lines missing in the plane where a distance exists:\n" + string.Join("\n", missing));
+                Assert.Fail(
+                    missing.Length
+                        + " shortest lines missing in the plane where a distance exists:\n"
+                        + string.Join("\n", missing)
+                );
             }
         }
 
@@ -77,7 +85,12 @@ namespace GeometryHelper.UnitTest.Plane
         {
             if (asked.GetMethod("GetShortestLineTo", arguments)?.ReturnType != typeof(GeoLine2))
             {
-                missing.Add(asked.Name + ".GetShortestLineTo(" + string.Join(", ", Array.ConvertAll(arguments, t => t.Name)) + ")");
+                missing.Add(
+                    asked.Name
+                        + ".GetShortestLineTo("
+                        + string.Join(", ", Array.ConvertAll(arguments, t => t.Name))
+                        + ")"
+                );
             }
         }
     }

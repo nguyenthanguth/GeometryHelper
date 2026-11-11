@@ -14,7 +14,13 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfHatchOwnLinesTests
     {
-        private static readonly GeoPoint2[] Square = { new GeoPoint2(0, 0), new GeoPoint2(30, 0), new GeoPoint2(30, 20), new GeoPoint2(0, 20) };
+        private static readonly GeoPoint2[] Square =
+        {
+            new GeoPoint2(0, 0),
+            new GeoPoint2(30, 0),
+            new GeoPoint2(30, 20),
+            new GeoPoint2(0, 20),
+        };
 
         private static DxfDatabase Reopen(DxfDatabase db)
         {
@@ -40,7 +46,9 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfHatch hatch = Ansi31(db);
             Assert.Equal(0, hatch.NumberOfPatternDefinitions);
 
-            hatch.SetPatternDefinitions(new[] { new DxfPatternDefinition(Math.PI / 4.0, 0.0, 0.0, -2.2450640303, 2.2450640303, null) });
+            hatch.SetPatternDefinitions(
+                new[] { new DxfPatternDefinition(Math.PI / 4.0, 0.0, 0.0, -2.2450640303, 2.2450640303, null) }
+            );
 
             DxfPatternDefinition line = hatch.GetPatternDefinitionAt(0);
             Assert.Equal(Math.PI / 4.0, line.Angle, 15);
@@ -49,7 +57,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(11, hatch.Explode().Count);
 
             string text = db.ToText();
-            Assert.Contains("\n 78\n1\n 53\n45\n 43\n0\n 44\n0\n 45\n-2.2450640303\n 46\n2.2450640303\n 79\n0\n", text.Replace("\r\n", "\n"));
+            Assert.Contains(
+                "\n 78\n1\n 53\n45\n 43\n0\n 44\n0\n 45\n-2.2450640303\n 46\n2.2450640303\n 79\n0\n",
+                text.Replace("\r\n", "\n")
+            );
             DxfHatch read = Reopen(db).ModelSpace.OfType<DxfHatch>().Single();
             Assert.Equal("ANSI31", read.PatternName);
             Assert.Equal(1, read.NumberOfPatternDefinitions);
@@ -60,7 +71,9 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             var db = new DxfDatabase("AC1032");
             DxfHatch hatch = Ansi31(db);
-            hatch.SetPatternDefinitions(new[] { new DxfPatternDefinition(0.0, 0.0, 0.0, 0.0, 2.0, new[] { 1.0, -0.5 }) });
+            hatch.SetPatternDefinitions(
+                new[] { new DxfPatternDefinition(0.0, 0.0, 0.0, 0.0, 2.0, new[] { 1.0, -0.5 }) }
+            );
 
             hatch.PatternScale = 3.0;
             DxfPatternDefinition line = hatch.GetPatternDefinitionAt(0);
@@ -71,9 +84,13 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<ArgumentNullException>(() => hatch.SetPatternDefinitions(null));
 
             hatch.SetHatchPattern(DxfHatchPatternType.UserDefined, "_USER");
-            Assert.Throws<InvalidOperationException>(() => hatch.SetPatternDefinitions(new[] { new DxfPatternDefinition(0, 0, 0, 0, 1, null) }));
+            Assert.Throws<InvalidOperationException>(() =>
+                hatch.SetPatternDefinitions(new[] { new DxfPatternDefinition(0, 0, 0, 0, 1, null) })
+            );
             hatch.SetHatchPattern(DxfHatchPatternType.PreDefined, "SOLID");
-            Assert.Throws<InvalidOperationException>(() => hatch.SetPatternDefinitions(new[] { new DxfPatternDefinition(0, 0, 0, 0, 1, null) }));
+            Assert.Throws<InvalidOperationException>(() =>
+                hatch.SetPatternDefinitions(new[] { new DxfPatternDefinition(0, 0, 0, 0, 1, null) })
+            );
         }
 
         [Fact]
@@ -105,7 +122,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             hatch.RemoveAssociatedObjects();
             Assert.False(hatch.Associative);
-            Assert.DoesNotContain("{ACAD_REACTORS\n330\n" + hatch.Handle + "\n102\n}", db.ToText().Replace("\r\n", "\n"));
+            Assert.DoesNotContain(
+                "{ACAD_REACTORS\n330\n" + hatch.Handle + "\n102\n}",
+                db.ToText().Replace("\r\n", "\n")
+            );
         }
 
         [Fact]
@@ -118,9 +138,15 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfHatch hatch = Ansi31(db);
 
             Assert.Throws<ArgumentException>(() => hatch.SetAssociatedObjects(new IReadOnlyList<DxfEntity>[0]));
-            Assert.Throws<ArgumentException>(() => hatch.SetAssociatedObjects(new IReadOnlyList<DxfEntity>[] { new DxfEntity[] { line } }));
-            Assert.Throws<ArgumentNullException>(() => hatch.SetAssociatedObjects(new IReadOnlyList<DxfEntity>[] { null }));
-            Assert.Throws<InvalidOperationException>(() => new DxfHatch().SetAssociatedObjects(new IReadOnlyList<DxfEntity>[0]));
+            Assert.Throws<ArgumentException>(() =>
+                hatch.SetAssociatedObjects(new IReadOnlyList<DxfEntity>[] { new DxfEntity[] { line } })
+            );
+            Assert.Throws<ArgumentNullException>(() =>
+                hatch.SetAssociatedObjects(new IReadOnlyList<DxfEntity>[] { null })
+            );
+            Assert.Throws<InvalidOperationException>(() =>
+                new DxfHatch().SetAssociatedObjects(new IReadOnlyList<DxfEntity>[0])
+            );
             Assert.False(hatch.Associative);
         }
     }

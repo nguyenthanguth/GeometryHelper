@@ -45,7 +45,10 @@ namespace GeometryHelper.Drawing.Annotation
 
             Elevation = elevation;
             string rounded = DrawingDimension.Format(elevation, 1.0);
-            Text = rounded == "0" ? "±0" : rounded[0] == '-' ? rounded : "+" + rounded;
+            Text =
+                rounded == "0" ? "±0"
+                : rounded[0] == '-' ? rounded
+                : "+" + rounded;
         }
 
         /// <summary>Gets the id of the mark.</summary>
@@ -67,8 +70,13 @@ namespace GeometryHelper.Drawing.Annotation
         /// Gets the box of the text, square to the view's axes: on the top line of the triangle, 0.2 of the height right of
         /// the triangle and above the line.
         /// </summary>
-        public GeoRectangle2 TextBox
-            => Box2.FromCorner(Point.X + 0.7 * TextHeight, Point.Y + 1.0 * TextHeight, SymbolDxf.TextWidth(Text, TextHeight), TextHeight);
+        public GeoRectangle2 TextBox =>
+            Box2.FromCorner(
+                Point.X + 0.7 * TextHeight,
+                Point.Y + 1.0 * TextHeight,
+                SymbolDxf.TextWidth(Text, TextHeight),
+                TextHeight
+            );
 
         /// <summary>
         /// Writes the mark into the model space of a drawing: the triangle as a closed LWPOLYLINE, its top line as a LINE and
@@ -96,10 +104,24 @@ namespace GeometryHelper.Drawing.Annotation
         internal void Write(DxfDatabase database, ViewPlacement2 placement, string id)
         {
             SymbolDxf.SymbolLayer(database);
-            double half = 0.5 * TextHeight, top = Point.Y + 0.8 * TextHeight;
-            SymbolDxf.Outline(database, placement, new[] { Point, new GeoPoint2(Point.X + half, top), new GeoPoint2(Point.X - half, top) }, SymbolSettings.Layer, id);
+            double half = 0.5 * TextHeight,
+                top = Point.Y + 0.8 * TextHeight;
+            SymbolDxf.Outline(
+                database,
+                placement,
+                new[] { Point, new GeoPoint2(Point.X + half, top), new GeoPoint2(Point.X - half, top) },
+                SymbolSettings.Layer,
+                id
+            );
             GeoRectangle2 box = TextBox;
-            SymbolDxf.Line(database, placement, new GeoPoint2(Point.X - half, top), new GeoPoint2(box.Center.X + 0.5 * box.Width + 0.2 * TextHeight, top), SymbolSettings.Layer, id);
+            SymbolDxf.Line(
+                database,
+                placement,
+                new GeoPoint2(Point.X - half, top),
+                new GeoPoint2(box.Center.X + 0.5 * box.Width + 0.2 * TextHeight, top),
+                SymbolSettings.Layer,
+                id
+            );
             SymbolDxf.Text(database, placement, box.Center, TextHeight, Text, SymbolSettings.Layer, id);
         }
 

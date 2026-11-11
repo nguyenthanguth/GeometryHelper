@@ -17,8 +17,7 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static GeoCircle2 Flat() => new GeoCircle2(new GeoPoint2(120, -40), Radius);
 
-        private static GeoCircle3 Tilted() => new GeoCircle3(
-            new GeoPoint3(1, 2, 3), new GeoVector3(1, 1, 1), Radius);
+        private static GeoCircle3 Tilted() => new GeoCircle3(new GeoPoint3(1, 2, 3), new GeoVector3(1, 1, 1), Radius);
 
         private static double LargestSagitta(GeoCircle2 circle, GeoPolygon2 polygon)
         {
@@ -27,8 +26,10 @@ namespace GeometryHelper.UnitTest.Plane
             for (int i = 0; i < polygon.EdgeCount; i++)
             {
                 GeoLine2 edge = polygon.GetEdgeAt(i);
-                GeoPoint2 middle = new GeoPoint2((edge.StartPoint.X + edge.EndPoint.X) * 0.5,
-                                                 (edge.StartPoint.Y + edge.EndPoint.Y) * 0.5);
+                GeoPoint2 middle = new GeoPoint2(
+                    (edge.StartPoint.X + edge.EndPoint.X) * 0.5,
+                    (edge.StartPoint.Y + edge.EndPoint.Y) * 0.5
+                );
                 worst = Math.Max(worst, circle.Radius - circle.Center.DistanceTo(middle));
             }
 
@@ -170,7 +171,10 @@ namespace GeometryHelper.UnitTest.Plane
             var inSpace = new GeoCircle3(GeoPoint3.Origin, GeoVector3.ZAxis, 250.0);
 
             Assert.Equal(flat.ToPolygon().VertexCount, inSpace.ToPolygon().VertexCount);
-            Assert.Equal(flat.ToPolygonByChordTolerance(1.0).VertexCount, inSpace.ToPolygonByChordTolerance(1.0).VertexCount);
+            Assert.Equal(
+                flat.ToPolygonByChordTolerance(1.0).VertexCount,
+                inSpace.ToPolygonByChordTolerance(1.0).VertexCount
+            );
             Assert.Equal(flat.ToPolygonBySpacing(40.0).VertexCount, inSpace.ToPolygonBySpacing(40.0).VertexCount);
         }
     }

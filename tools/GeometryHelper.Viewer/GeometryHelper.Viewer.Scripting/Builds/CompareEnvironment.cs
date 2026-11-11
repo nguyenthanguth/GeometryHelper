@@ -92,10 +92,13 @@ namespace GeometryHelper.Viewer.Builds
         /// Makes the environment the viewer runs in: the caches in <c>%LOCALAPPDATA%\GeometryHelper.Viewer</c>, the runner in a folder
         /// called <c>runner</c> beside the viewer's own files, and the library the viewer is running with.
         /// </summary>
-        public static CompareEnvironment CreateDefault()
-            => new CompareEnvironment
+        public static CompareEnvironment CreateDefault() =>
+            new CompareEnvironment
             {
-                CacheRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GeometryHelper.Viewer"),
+                CacheRoot = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "GeometryHelper.Viewer"
+                ),
                 RunnerFolder = Path.Combine(AppContext.BaseDirectory, "runner"),
                 OwnLibrary = typeof(Tolerance).Assembly.Location,
             };

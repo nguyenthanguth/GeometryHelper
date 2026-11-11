@@ -28,7 +28,12 @@ namespace GeometryHelper.Viewer
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the item or the plane is null.</exception>
         /// <exception cref="OperationCanceledException">Thrown when the work is cancelled.</exception>
-        public static List<DrawPolyline> Chains(ItemPrimitives item, ClipPlane plane, double weld, CancellationToken cancel = default(CancellationToken))
+        public static List<DrawPolyline> Chains(
+            ItemPrimitives item,
+            ClipPlane plane,
+            double weld,
+            CancellationToken cancel = default(CancellationToken)
+        )
         {
             if (item == null)
             {
@@ -55,7 +60,10 @@ namespace GeometryHelper.Viewer
                 biggest = Math.Max(biggest, Math.Max(Math.Max(Math.Abs(t.A.X), Math.Abs(t.A.Y)), Math.Abs(t.A.Z)));
             }
 
-            weld = Math.Max(weld, 1E-12 * Math.Max(biggest, Math.Abs(plane.Point.X) + Math.Abs(plane.Point.Y) + Math.Abs(plane.Point.Z)));
+            weld = Math.Max(
+                weld,
+                1E-12 * Math.Max(biggest, Math.Abs(plane.Point.X) + Math.Abs(plane.Point.Y) + Math.Abs(plane.Point.Z))
+            );
 
             if (!(weld > 0.0))
             {
@@ -121,7 +129,10 @@ namespace GeometryHelper.Viewer
             internal Vec3 B;
         }
 
-        private static int Side(double distance, double weld) => distance > weld ? 1 : distance < -weld ? -1 : 0;
+        private static int Side(double distance, double weld) =>
+            distance > weld ? 1
+            : distance < -weld ? -1
+            : 0;
 
         private static void CutTriangle(DrawTriangle t, ClipPlane plane, double weld, List<Cut> cuts)
         {
@@ -140,14 +151,26 @@ namespace GeometryHelper.Viewer
                 return;
             }
 
-            Vec3 V(int i) => i == 0 ? t.A : i == 1 ? t.B : t.C;
-            double D(int i) => i == 0 ? d0 : i == 1 ? d1 : d2;
-            int S(int i) => i == 0 ? s0 : i == 1 ? s1 : s2;
+            Vec3 V(int i) =>
+                i == 0 ? t.A
+                : i == 1 ? t.B
+                : t.C;
+            double D(int i) =>
+                i == 0 ? d0
+                : i == 1 ? d1
+                : d2;
+            int S(int i) =>
+                i == 0 ? s0
+                : i == 1 ? s1
+                : s2;
 
             if (zero == 2)
             {
                 // The third corner is off the plane and the other two on it: an edge in the plane, which the triangle beyond it finds too.
-                int off = S(0) != 0 ? 0 : S(1) != 0 ? 1 : 2;
+                int off =
+                    S(0) != 0 ? 0
+                    : S(1) != 0 ? 1
+                    : 2;
                 cuts.Add(new Cut { A = V((off + 1) % 3), B = V((off + 2) % 3) });
                 return;
             }
@@ -156,7 +179,10 @@ namespace GeometryHelper.Viewer
             {
                 if (positive == 1 && negative == 1)
                 {
-                    int on = S(0) == 0 ? 0 : S(1) == 0 ? 1 : 2;
+                    int on =
+                        S(0) == 0 ? 0
+                        : S(1) == 0 ? 1
+                        : 2;
                     int p = (on + 1) % 3;
                     int q = (on + 2) % 3;
                     cuts.Add(new Cut { A = V(on), B = CrossingPoint(V(p), D(p), V(q), D(q)) });
@@ -171,10 +197,19 @@ namespace GeometryHelper.Viewer
             }
 
             // One corner is alone on its side: the cut runs between the points where its two edges meet the plane.
-            int lone = s0 == s1 ? 2 : s0 == s2 ? 1 : 0;
+            int lone =
+                s0 == s1 ? 2
+                : s0 == s2 ? 1
+                : 0;
             int a = (lone + 1) % 3;
             int b = (lone + 2) % 3;
-            cuts.Add(new Cut { A = CrossingPoint(V(lone), D(lone), V(a), D(a)), B = CrossingPoint(V(lone), D(lone), V(b), D(b)) });
+            cuts.Add(
+                new Cut
+                {
+                    A = CrossingPoint(V(lone), D(lone), V(a), D(a)),
+                    B = CrossingPoint(V(lone), D(lone), V(b), D(b)),
+                }
+            );
         }
 
         private static Vec3 CrossingPoint(Vec3 u, double du, Vec3 v, double dv)
@@ -193,8 +228,10 @@ namespace GeometryHelper.Viewer
             return u + (v - u) * (du / (du - dv));
         }
 
-        private static bool Before(Vec3 a, Vec3 b)
-            => a.X != b.X ? a.X < b.X : a.Y != b.Y ? a.Y < b.Y : a.Z < b.Z;
+        private static bool Before(Vec3 a, Vec3 b) =>
+            a.X != b.X ? a.X < b.X
+            : a.Y != b.Y ? a.Y < b.Y
+            : a.Z < b.Z;
 
         /// <summary>
         /// Joins the cuts into chains: ends within the weld are one point, a cut twice is one, and a chain is followed from an end, or from a

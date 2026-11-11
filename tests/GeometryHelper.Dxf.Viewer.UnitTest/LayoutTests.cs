@@ -15,7 +15,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             var database = new DxfDatabase("AC1018");
             database.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1000, 0, 0)));
-            var note = new DxfDBText { TextString = "NOTE", Position = new GeoPoint3(500, 50, 0), Height = 25 };
+            var note = new DxfDBText
+            {
+                TextString = "NOTE",
+                Position = new GeoPoint3(500, 50, 0),
+                Height = 25,
+            };
             database.ModelSpace.AppendEntity(note);
             note.Layer = "Notes";
 
@@ -28,9 +33,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return CadDocument.From(database);
         }
 
-        private static DxfViewport AddViewport(DxfLayout layout, GeoPoint3 center, double width, double height, GeoPoint2 view, double viewHeight)
+        private static DxfViewport AddViewport(
+            DxfLayout layout,
+            GeoPoint3 center,
+            double width,
+            double height,
+            GeoPoint2 view,
+            double viewHeight
+        )
         {
-            var viewport = new DxfViewport { CenterPoint = center, Width = width, Height = height };
+            var viewport = new DxfViewport
+            {
+                CenterPoint = center,
+                Width = width,
+                Height = height,
+            };
             layout.BlockTableRecord.AppendEntity(viewport);
             viewport.ViewCenter = view;
             viewport.ViewHeight = viewHeight;
@@ -69,7 +86,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void TheModelPointAtAViewportsViewCentreLandsOnItsCentreOnTheSheet()
         {
             CadDocument document = TwoViewports();
-            DisplayViewport2 viewport = document.GetDisplay(document.Spaces.Single(s => s.Name == "Plan")).Items.OfType<DisplayViewport2>().OrderBy(v => v.CenterX).First();
+            DisplayViewport2 viewport = document
+                .GetDisplay(document.Spaces.Single(s => s.Name == "Plan"))
+                .Items.OfType<DisplayViewport2>()
+                .OrderBy(v => v.CenterX)
+                .First();
 
             Affine2 m = viewport.ModelToPaper;
 

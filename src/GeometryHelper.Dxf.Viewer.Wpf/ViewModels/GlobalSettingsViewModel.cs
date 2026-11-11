@@ -73,7 +73,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private string _value;
         private string _error = string.Empty;
 
-        internal GlobalSettingRow(GlobalSettingKind kind, string label, string unit, Func<string> get, Action<string> set, Action changed, IReadOnlyList<string> options = null, IReadOnlyList<GlobalSettingCheck> checks = null)
+        internal GlobalSettingRow(
+            GlobalSettingKind kind,
+            string label,
+            string unit,
+            Func<string> get,
+            Action<string> set,
+            Action changed,
+            IReadOnlyList<string> options = null,
+            IReadOnlyList<GlobalSettingCheck> checks = null
+        )
         {
             Kind = kind;
             Label = label;
@@ -123,7 +132,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
                 catch (Exception ex) when (ex is FormatException || ex is ArgumentException || ex is OverflowException)
                 {
-                    Error = ex is FormatException || ex is OverflowException ? (Kind == GlobalSettingKind.Colour ? "A colour is written #RRGGBB." : "Not a number.") : FirstLine(ex.Message);
+                    Error =
+                        ex is FormatException || ex is OverflowException
+                            ? (Kind == GlobalSettingKind.Colour ? "A colour is written #RRGGBB." : "Not a number.")
+                            : FirstLine(ex.Message);
                 }
 
                 Raise(nameof(Value));
@@ -272,7 +284,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets or sets the name.</summary>
-        public string Name { get => _name; set => Set(ref _name, value ?? string.Empty); }
+        public string Name
+        {
+            get => _name;
+            set => Set(ref _name, value ?? string.Empty);
+        }
 
         /// <summary>Gets or sets the colour, #RRGGBB.</summary>
         public string Colour
@@ -291,13 +307,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public int Rgb => GlobalSettings.TryParseHex(_colour, out int rgb) ? rgb : 0;
 
         /// <summary>Gets or sets the linetype.</summary>
-        public string Linetype { get => _linetype; set => Set(ref _linetype, value ?? string.Empty); }
+        public string Linetype
+        {
+            get => _linetype;
+            set => Set(ref _linetype, value ?? string.Empty);
+        }
 
         /// <summary>Gets or sets the lineweight in millimetres, as text.</summary>
-        public string LineWeight { get => _lineWeight; set => Set(ref _lineWeight, value ?? string.Empty); }
+        public string LineWeight
+        {
+            get => _lineWeight;
+            set => Set(ref _lineWeight, value ?? string.Empty);
+        }
 
         /// <summary>Gets or sets whether it is plotted.</summary>
-        public bool Plot { get => _plot; set => Set(ref _plot, value); }
+        public bool Plot
+        {
+            get => _plot;
+            set => Set(ref _plot, value);
+        }
 
         /// <summary>The layer, or why it is not one.</summary>
         internal GlobalLayer ToLayer(out string error)
@@ -311,11 +339,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     throw new FormatException("A colour is written #RRGGBB.");
                 }
 
-                return new GlobalLayer(_name, rgb, _linetype, double.Parse(_lineWeight, NumberStyles.Float, CultureInfo.InvariantCulture), _plot);
+                return new GlobalLayer(
+                    _name,
+                    rgb,
+                    _linetype,
+                    double.Parse(_lineWeight, NumberStyles.Float, CultureInfo.InvariantCulture),
+                    _plot
+                );
             }
             catch (Exception ex) when (ex is FormatException || ex is ArgumentException || ex is OverflowException)
             {
-                error = "The layer " + (_name.Length == 0 ? "with no name" : _name) + ": " + ex.Message.Split('\n')[0].Trim();
+                error =
+                    "The layer "
+                    + (_name.Length == 0 ? "with no name" : _name)
+                    + ": "
+                    + ex.Message.Split('\n')[0].Trim();
                 return null;
             }
         }
@@ -390,7 +428,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         internal IEnumerable<string> KeyList => Split(_keys);
 
-        private static IEnumerable<string> Split(string text) => (text ?? string.Empty).Split(',').Select(s => s.Trim()).Where(s => s.Length > 0);
+        private static IEnumerable<string> Split(string text) =>
+            (text ?? string.Empty).Split(',').Select(s => s.Trim()).Where(s => s.Length > 0);
 
         /// <inheritdoc/>
         public override string ToString() => Command;
@@ -407,7 +446,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets or sets the folder.</summary>
-        public string Folder { get => _folder; set => Set(ref _folder, value ?? string.Empty); }
+        public string Folder
+        {
+            get => _folder;
+            set => Set(ref _folder, value ?? string.Empty);
+        }
 
         /// <inheritdoc/>
         public override string ToString() => _folder;
@@ -426,10 +469,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets or sets the font a style names: romans.shx, Arial.</summary>
-        public string Font { get => _font; set => Set(ref _font, value ?? string.Empty); }
+        public string Font
+        {
+            get => _font;
+            set => Set(ref _font, value ?? string.Empty);
+        }
 
         /// <summary>Gets or sets the font it is drawn in.</summary>
-        public string DrawnIn { get => _drawnIn; set => Set(ref _drawnIn, value ?? string.Empty); }
+        public string DrawnIn
+        {
+            get => _drawnIn;
+            set => Set(ref _drawnIn, value ?? string.Empty);
+        }
 
         /// <inheritdoc/>
         public override string ToString() => _font + " -> " + _drawnIn;
@@ -451,11 +502,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private static readonly string[] NamedColours =
         {
-            "Black · #000000", "Dark grey · #212830", "Grey · #3A414C", "Light grey · #9AA4B1", "White · #FFFFFF", "Blue · #3D9BFF",
-            "Green · #3FB950", "Amber · #D29922", "Red · #F85149", "Cyan · #39C5CF",
+            "Black · #000000",
+            "Dark grey · #212830",
+            "Grey · #3A414C",
+            "Light grey · #9AA4B1",
+            "White · #FFFFFF",
+            "Blue · #3D9BFF",
+            "Green · #3FB950",
+            "Amber · #D29922",
+            "Red · #F85149",
+            "Cyan · #39C5CF",
         };
 
-        private static readonly Dictionary<string, string> Descriptions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly Dictionary<string, string> Descriptions = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase
+        )
         {
             ["ZOOM"] = "Zoom; E extents, W window, P previous",
             ["PAN"] = "Pan the canvas",
@@ -504,7 +565,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         };
 
         private readonly MainViewModel _model;
-        private readonly Dictionary<string, IReadOnlyList<GlobalSettingSection>> _pages = new Dictionary<string, IReadOnlyList<GlobalSettingSection>>(StringComparer.Ordinal);
+        private readonly Dictionary<string, IReadOnlyList<GlobalSettingSection>> _pages = new Dictionary<
+            string,
+            IReadOnlyList<GlobalSettingSection>
+        >(StringComparer.Ordinal);
         private GlobalSettings _working;
         private GlobalSettingCategory _category;
         private string _search = string.Empty;
@@ -520,33 +584,79 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _model = model ?? throw new ArgumentNullException(nameof(model));
             Categories = new[]
             {
-                new GlobalSettingCategory("Appearance", false, "Applies to every drawing on this machine. Press Apply to see it on the canvas at once; the values are kept for the next start."),
-                new GlobalSettingCategory("Canvas and cursor", false, "How the canvas zooms, picks and snaps, as AutoCAD does by default."),
-                new GlobalSettingCategory("Drawing defaults", true, "For drawings made from a model (the MODEL categories). Used when a new drawing is made; each drawing keeps its own settings afterwards."),
-                new GlobalSettingCategory("Units and rounding", false, "Units are millimetres throughout; these settings change how values are shown."),
-                new GlobalSettingCategory("Layers, colours and lines", false, "The layers written to new drawings, with their colour, linetype and lineweight."),
+                new GlobalSettingCategory(
+                    "Appearance",
+                    false,
+                    "Applies to every drawing on this machine. Press Apply to see it on the canvas at once; the values are kept for the next start."
+                ),
+                new GlobalSettingCategory(
+                    "Canvas and cursor",
+                    false,
+                    "How the canvas zooms, picks and snaps, as AutoCAD does by default."
+                ),
+                new GlobalSettingCategory(
+                    "Drawing defaults",
+                    true,
+                    "For drawings made from a model (the MODEL categories). Used when a new drawing is made; each drawing keeps its own settings afterwards."
+                ),
+                new GlobalSettingCategory(
+                    "Units and rounding",
+                    false,
+                    "Units are millimetres throughout; these settings change how values are shown."
+                ),
+                new GlobalSettingCategory(
+                    "Layers, colours and lines",
+                    false,
+                    "The layers written to new drawings, with their colour, linetype and lineweight."
+                ),
                 new GlobalSettingCategory("Text and fonts", false, "Fonts of the app and of the drawings."),
-                new GlobalSettingCategory("Fonts", false, "Where the fonts of text styles are found, as AutoCAD's support path, and what draws a font not found, as FONTALT and the font mapping file. The folder of the drawing is looked in first, then the folders listed here; AutoCAD's own folders are not looked in unless listed. A font not found is drawn in GeometryHelper Simplex (ghsimplex), the presenter's own single-stroke font, by default."),
-                new GlobalSettingCategory("Data sources", true, "For drawings made from a model (the MODEL categories). Where drawings get their objects."),
-                new GlobalSettingCategory("Shortcuts", false, "Commands, aliases and keys default to AutoCAD's. Type a command's aliases and keys parted by commas; a key or an alias used twice is shown in red."),
-                new GlobalSettingCategory("Save and export", false, "Where drawings are saved and how they are exported."),
+                new GlobalSettingCategory(
+                    "Fonts",
+                    false,
+                    "Where the fonts of text styles are found, as AutoCAD's support path, and what draws a font not found, as FONTALT and the font mapping file. The folder of the drawing is looked in first, then the folders listed here; AutoCAD's own folders are not looked in unless listed. A font not found is drawn in GeometryHelper Simplex (ghsimplex), the presenter's own single-stroke font, by default."
+                ),
+                new GlobalSettingCategory(
+                    "Data sources",
+                    true,
+                    "For drawings made from a model (the MODEL categories). Where drawings get their objects."
+                ),
+                new GlobalSettingCategory(
+                    "Shortcuts",
+                    false,
+                    "Commands, aliases and keys default to AutoCAD's. Type a command's aliases and keys parted by commas; a key or an alias used twice is shown in red."
+                ),
+                new GlobalSettingCategory(
+                    "Save and export",
+                    false,
+                    "Where drawings are saved and how they are exported."
+                ),
             };
-            CategoryCommand = new DelegateCommand(p => SelectedCategory = Categories.FirstOrDefault(c => c.Name == (p as string ?? (p as GlobalSettingCategory)?.Name)));
+            CategoryCommand = new DelegateCommand(p =>
+                SelectedCategory = Categories.FirstOrDefault(c =>
+                    c.Name == (p as string ?? (p as GlobalSettingCategory)?.Name)
+                )
+            );
             ResetCommand = new DelegateCommand(_ => Reset());
             ResetShortcutsCommand = new DelegateCommand(_ => FillShortcuts(true));
             AddLayerCommand = new DelegateCommand(_ => AddLayer());
             RemoveLayerCommand = new DelegateCommand(p => RemoveLayer(p as GlobalLayerRow));
             AddFontFolderCommand = new DelegateCommand(p => FontFolders.Add(new FontFolderRow(p as string)));
             RemoveFontFolderCommand = new DelegateCommand(p => FontFolders.Remove(p as FontFolderRow));
-            AddFontSubstitutionCommand = new DelegateCommand(_ => FontSubstitutions.Add(new FontSubstitutionRow(string.Empty, string.Empty)));
-            RemoveFontSubstitutionCommand = new DelegateCommand(p => FontSubstitutions.Remove(p as FontSubstitutionRow));
+            AddFontSubstitutionCommand = new DelegateCommand(_ =>
+                FontSubstitutions.Add(new FontSubstitutionRow(string.Empty, string.Empty))
+            );
+            RemoveFontSubstitutionCommand = new DelegateCommand(p =>
+                FontSubstitutions.Remove(p as FontSubstitutionRow)
+            );
             AddSupportFolderCommand = new DelegateCommand(p => SupportFolders.Add(new FontFolderRow(p as string)));
             RemoveSupportFolderCommand = new DelegateCommand(p => SupportFolders.Remove(p as FontFolderRow));
-            ApplyCommand =new DelegateCommand(_ => Apply(), _ => !HasErrors);
+            ApplyCommand = new DelegateCommand(_ => Apply(), _ => !HasErrors);
             OkCommand = new DelegateCommand(_ => Ok(), _ => !HasErrors);
             CancelCommand = new DelegateCommand(_ => CloseRequested?.Invoke(this, false));
             Load(_model.Settings.Clone());
-            _category = Categories.FirstOrDefault(c => string.Equals(c.Name, category, StringComparison.OrdinalIgnoreCase)) ?? Categories[0];
+            _category = Categories.FirstOrDefault(c =>
+                string.Equals(c.Name, category, StringComparison.OrdinalIgnoreCase)
+            ) ?? Categories[0];
         }
 
         /// <summary>Raised when the dialog is to close: true after OK, false after Cancel.</summary>
@@ -575,7 +685,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string Intro => _category.Intro;
 
         /// <summary>Gets the sections of the page shown.</summary>
-        public IReadOnlyList<GlobalSettingSection> Sections => _pages.TryGetValue(_category.Name, out IReadOnlyList<GlobalSettingSection> page) ? page : Array.Empty<GlobalSettingSection>();
+        public IReadOnlyList<GlobalSettingSection> Sections =>
+            _pages.TryGetValue(_category.Name, out IReadOnlyList<GlobalSettingSection> page)
+                ? page
+                : Array.Empty<GlobalSettingSection>();
 
         /// <summary>Gets whether the layer table is shown.</summary>
         public bool IsLayersPage => _category.Name == "Layers, colours and lines";
@@ -596,7 +709,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public ObservableCollection<FontFolderRow> FontFolders { get; } = new ObservableCollection<FontFolderRow>();
 
         /// <summary>Gets the fonts drawn in others, edited in place; a row of a blank name is left out.</summary>
-        public ObservableCollection<FontSubstitutionRow> FontSubstitutions { get; } = new ObservableCollection<FontSubstitutionRow>();
+        public ObservableCollection<FontSubstitutionRow> FontSubstitutions { get; } =
+            new ObservableCollection<FontSubstitutionRow>();
 
         /// <summary>Gets the command of Add folder: the folder given, else a blank row to type it in.</summary>
         public ICommand AddFontFolderCommand { get; }
@@ -623,7 +737,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public IReadOnlyList<CadSourceInfo> Sources => _model.SettingsSources;
 
         /// <summary>Gets the commands of the Shortcuts page, as the search finds them.</summary>
-        public ObservableCollection<ShortcutRowViewModel> Shortcuts { get; } = new ObservableCollection<ShortcutRowViewModel>();
+        public ObservableCollection<ShortcutRowViewModel> Shortcuts { get; } =
+            new ObservableCollection<ShortcutRowViewModel>();
 
         /// <summary>Gets or sets the search of the Shortcuts page: a command, an alias or a key, in part.</summary>
         public string ShortcutSearch
@@ -639,7 +754,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets whether a value is refused or a shortcut clashes, so that Apply and OK wait.</summary>
-        public bool HasErrors => _pages.Values.SelectMany(p => p).SelectMany(s => s.Rows).Any(r => r.HasError) || _allShortcuts.Any(r => r.HasConflict);
+        public bool HasErrors =>
+            _pages.Values.SelectMany(p => p).SelectMany(s => s.Rows).Any(r => r.HasError)
+            || _allShortcuts.Any(r => r.HasConflict);
 
         /// <summary>Gets a line at the foot: what Apply or OK did, or why not.</summary>
         public string Notice
@@ -676,8 +793,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="category">The category's name.</param>
         /// <param name="label">The row's label.</param>
         /// <returns>The row, or null.</returns>
-        public GlobalSettingRow Row(string category, string label)
-            => _pages.TryGetValue(category, out IReadOnlyList<GlobalSettingSection> page) ? page.SelectMany(s => s.Rows).FirstOrDefault(r => r.Label == label) : null;
+        public GlobalSettingRow Row(string category, string label) =>
+            _pages.TryGetValue(category, out IReadOnlyList<GlobalSettingSection> page)
+                ? page.SelectMany(s => s.Rows).FirstOrDefault(r => r.Label == label)
+                : null;
 
         /// <summary>Gives the window the settings edited, at once; nothing is saved.</summary>
         /// <returns>Whether they were applied: false while a value is refused, a layer does not read or a shortcut clashes.</returns>
@@ -706,7 +825,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 _working.Save(_model.SettingsPath);
             }
-            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+            catch (Exception ex)
+                when (ex is IOException
+                    || ex is UnauthorizedAccessException
+                    || ex is ArgumentException
+                    || ex is NotSupportedException
+                )
             {
                 Notice = "Applied, but not saved: " + ex.Message;
                 return false;
@@ -792,10 +916,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _working.Layers = layers;
                 _working.FontSearchFolders = FontFolders.Select(r => r.Folder).ToList();
                 _working.SupportSearchFolders = SupportFolders.Select(r => r.Folder).ToList();
-                _working.SetFontSubstitutions(FontSubstitutions.Select(r => new KeyValuePair<string, string>(r.Font, r.DrawnIn)));
+                _working.SetFontSubstitutions(
+                    FontSubstitutions.Select(r => new KeyValuePair<string, string>(r.Font, r.DrawnIn))
+                );
                 _working.SetShortcuts(
-                    _allShortcuts.SelectMany(r => r.AliasList.Select(a => new KeyValuePair<string, string>(a, r.Command))),
-                    _allShortcuts.SelectMany(r => r.KeyList.Select(k => new KeyValuePair<string, string>(k, r.Command))));
+                    _allShortcuts.SelectMany(r =>
+                        r.AliasList.Select(a => new KeyValuePair<string, string>(a, r.Command))
+                    ),
+                    _allShortcuts.SelectMany(r => r.KeyList.Select(k => new KeyValuePair<string, string>(k, r.Command)))
+                );
             }
             catch (ArgumentException ex)
             {
@@ -811,76 +940,153 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             GlobalSettings s = _working;
             _pages["Appearance"] = new[]
             {
-                new GlobalSettingSection("Colours", new[]
-                {
-                    Info("Mode", "Dark (Light comes later)"),
-                    Colour("Canvas background", () => s.CanvasBackground, v => s.CanvasBackground = v),
-                    Colour("Paper", () => s.Paper, v => s.Paper = v),
-                    Colour("Block Editor background", () => s.BlockEditorBackground, v => s.BlockEditorBackground = v),
-                    Colour("Visible lines on dark", () => s.VisibleLines, v => s.VisibleLines = v),
-                    Colour("Hidden lines", () => s.HiddenLines, v => s.HiddenLines = v),
-                    Colour("Selected objects", () => s.Selection, v => s.Selection = v),
-                    Colour("Grip", () => s.Grip, v => s.Grip = v),
-                }),
-                new GlobalSettingSection("Cursor", new[]
-                {
-                    Number("Crosshair size", "% of screen", () => s.CrosshairPercent, v => s.CrosshairPercent = v),
-                    Number("Pickbox", "px", () => s.PickboxPixels, v => s.PickboxPixels = Whole(v)),
-                }),
-                new GlobalSettingSection("Display", new[]
-                {
-                    Toggle("Grid", () => s.Grid, v => s.Grid = v),
-                    Toggle("Show lineweights", () => s.ShowLineWeights, v => s.ShowLineWeights = v),
-                }),
+                new GlobalSettingSection(
+                    "Colours",
+                    new[]
+                    {
+                        Info("Mode", "Dark (Light comes later)"),
+                        Colour("Canvas background", () => s.CanvasBackground, v => s.CanvasBackground = v),
+                        Colour("Paper", () => s.Paper, v => s.Paper = v),
+                        Colour(
+                            "Block Editor background",
+                            () => s.BlockEditorBackground,
+                            v => s.BlockEditorBackground = v
+                        ),
+                        Colour("Visible lines on dark", () => s.VisibleLines, v => s.VisibleLines = v),
+                        Colour("Hidden lines", () => s.HiddenLines, v => s.HiddenLines = v),
+                        Colour("Selected objects", () => s.Selection, v => s.Selection = v),
+                        Colour("Grip", () => s.Grip, v => s.Grip = v),
+                    }
+                ),
+                new GlobalSettingSection(
+                    "Cursor",
+                    new[]
+                    {
+                        Number("Crosshair size", "% of screen", () => s.CrosshairPercent, v => s.CrosshairPercent = v),
+                        Number("Pickbox", "px", () => s.PickboxPixels, v => s.PickboxPixels = Whole(v)),
+                    }
+                ),
+                new GlobalSettingSection(
+                    "Display",
+                    new[]
+                    {
+                        Toggle("Grid", () => s.Grid, v => s.Grid = v),
+                        Toggle("Show lineweights", () => s.ShowLineWeights, v => s.ShowLineWeights = v),
+                    }
+                ),
             };
 
             CadSnapModes[] snaps =
             {
-                CadSnapModes.Endpoint, CadSnapModes.Midpoint, CadSnapModes.Center, CadSnapModes.Quadrant, CadSnapModes.Intersection, CadSnapModes.Perpendicular, CadSnapModes.Tangent, CadSnapModes.Nearest,
-                CadSnapModes.Node, CadSnapModes.GeometricCenter, CadSnapModes.Extension, CadSnapModes.Insertion, CadSnapModes.ApparentIntersection, CadSnapModes.Parallel,
+                CadSnapModes.Endpoint,
+                CadSnapModes.Midpoint,
+                CadSnapModes.Center,
+                CadSnapModes.Quadrant,
+                CadSnapModes.Intersection,
+                CadSnapModes.Perpendicular,
+                CadSnapModes.Tangent,
+                CadSnapModes.Nearest,
+                CadSnapModes.Node,
+                CadSnapModes.GeometricCenter,
+                CadSnapModes.Extension,
+                CadSnapModes.Insertion,
+                CadSnapModes.ApparentIntersection,
+                CadSnapModes.Parallel,
             };
             _pages["Canvas and cursor"] = new[]
             {
-                new GlobalSettingSection("Zoom and pan", new[]
-                {
-                    Number("Wheel zoom factor", "×", () => s.WheelZoomFactor, v => s.WheelZoomFactor = v),
-                    Info("Zoom about the cursor", "Always"),
-                    Info("Middle double-click", "Zoom extents"),
-                }),
-                new GlobalSettingSection("Selection", new[]
-                {
-                    Info("Window, left to right", "On"),
-                    Info("Crossing, right to left", "On"),
-                    Info("Select first, then command", "On"),
-                    Toggle("Select by dragging", () => s.SelectByDragging, v => s.SelectByDragging = v),
-                }),
-                new GlobalSettingSection("Object snaps", new[]
-                {
-                    new GlobalSettingRow(GlobalSettingKind.Checks, "Snap to", null, () => string.Empty, null, Changed, checks: snaps.Select(m => new GlobalSettingCheck(m == CadSnapModes.Center ? "Centre" : m == CadSnapModes.GeometricCenter ? "Geometric centre" : m == CadSnapModes.ApparentIntersection ? "Apparent intersection" : m.ToString(),
-                        () => (s.Snaps & m) != 0, on => { s.Snaps = on ? s.Snaps | m : s.Snaps & ~m; Changed(); })).ToList()),
-                    Number("Aperture", "px", () => s.AperturePixels, v => s.AperturePixels = Whole(v)),
-                    Number("Polar angle", "°", () => s.PolarAngle, v => s.PolarAngle = v),
-                    Toggle("F3 toggles snaps", () => s.F3TogglesSnaps, v => s.F3TogglesSnaps = v),
-                }),
-                new GlobalSettingSection("Input", new[]
-                {
-                    Toggle("Dynamic input at the cursor (DYN, F12)", () => s.DynamicInput, v => s.DynamicInput = v),
-                    Info("Command line", "Ctrl+9 shows or hides it"),
-                }),
+                new GlobalSettingSection(
+                    "Zoom and pan",
+                    new[]
+                    {
+                        Number("Wheel zoom factor", "×", () => s.WheelZoomFactor, v => s.WheelZoomFactor = v),
+                        Info("Zoom about the cursor", "Always"),
+                        Info("Middle double-click", "Zoom extents"),
+                    }
+                ),
+                new GlobalSettingSection(
+                    "Selection",
+                    new[]
+                    {
+                        Info("Window, left to right", "On"),
+                        Info("Crossing, right to left", "On"),
+                        Info("Select first, then command", "On"),
+                        Toggle("Select by dragging", () => s.SelectByDragging, v => s.SelectByDragging = v),
+                    }
+                ),
+                new GlobalSettingSection(
+                    "Object snaps",
+                    new[]
+                    {
+                        new GlobalSettingRow(
+                            GlobalSettingKind.Checks,
+                            "Snap to",
+                            null,
+                            () => string.Empty,
+                            null,
+                            Changed,
+                            checks: snaps
+                                .Select(m => new GlobalSettingCheck(
+                                    m == CadSnapModes.Center ? "Centre"
+                                        : m == CadSnapModes.GeometricCenter ? "Geometric centre"
+                                        : m == CadSnapModes.ApparentIntersection ? "Apparent intersection"
+                                        : m.ToString(),
+                                    () => (s.Snaps & m) != 0,
+                                    on =>
+                                    {
+                                        s.Snaps = on ? s.Snaps | m : s.Snaps & ~m;
+                                        Changed();
+                                    }
+                                ))
+                                .ToList()
+                        ),
+                        Number("Aperture", "px", () => s.AperturePixels, v => s.AperturePixels = Whole(v)),
+                        Number("Polar angle", "°", () => s.PolarAngle, v => s.PolarAngle = v),
+                        Toggle("F3 toggles snaps", () => s.F3TogglesSnaps, v => s.F3TogglesSnaps = v),
+                    }
+                ),
+                new GlobalSettingSection(
+                    "Input",
+                    new[]
+                    {
+                        Toggle("Dynamic input at the cursor (DYN, F12)", () => s.DynamicInput, v => s.DynamicInput = v),
+                        Info("Command line", "Ctrl+9 shows or hides it"),
+                    }
+                ),
             };
 
             _pages["Drawing defaults"] = new[]
             {
-                new GlobalSettingSection("New drawings", new[]
-                {
-                    Choice("Preset", GlobalSettings.Presets, () => s.DefaultPreset, v => s.DefaultPreset = v),
-                    Choice("Sheet size", GlobalSettings.SheetSizes, () => s.DefaultSheetSize, v => s.DefaultSheetSize = v),
-                    Choice("Orientation", new[] { "Landscape", "Portrait" }, () => s.DefaultOrientation, v => s.DefaultOrientation = v),
-                    Choice("Projection", new[] { "Third angle", "First angle" }, () => s.DefaultProjection, v => s.DefaultProjection = v),
-                }),
+                new GlobalSettingSection(
+                    "New drawings",
+                    new[]
+                    {
+                        Choice("Preset", GlobalSettings.Presets, () => s.DefaultPreset, v => s.DefaultPreset = v),
+                        Choice(
+                            "Sheet size",
+                            GlobalSettings.SheetSizes,
+                            () => s.DefaultSheetSize,
+                            v => s.DefaultSheetSize = v
+                        ),
+                        Choice(
+                            "Orientation",
+                            new[] { "Landscape", "Portrait" },
+                            () => s.DefaultOrientation,
+                            v => s.DefaultOrientation = v
+                        ),
+                        Choice(
+                            "Projection",
+                            new[] { "Third angle", "First angle" },
+                            () => s.DefaultProjection,
+                            v => s.DefaultProjection = v
+                        ),
+                    }
+                ),
             };
 
-            GlobalSettingRow lengthExample = Info("Example", null, () => s.FormatNumber(12345.678, s.CoordinateDecimals) + " mm");
+            GlobalSettingRow lengthExample = Info("Example", null, () =>
+                s.FormatNumber(12345.678, s.CoordinateDecimals) + " mm"
+            );
             GlobalSettingRow angleExample = Info("Example", null, () => s.FormatNumber(30.0, s.AngleDecimals) + "°");
             Action examples = () =>
             {
@@ -889,83 +1095,150 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             };
             _pages["Units and rounding"] = new[]
             {
-                new GlobalSettingSection("Lengths", new[]
-                {
-                    Info("Unit", "mm"),
-                    Number("Coordinate decimals", null, () => s.CoordinateDecimals, v => s.CoordinateDecimals = Whole(v), examples),
-                    Number("Dimension decimals", null, () => s.DimensionDecimals, v => s.DimensionDecimals = Whole(v), examples),
-                    Choice("Thousands separator", GlobalSettings.ThousandsSeparators, () => s.ThousandsSeparator, v => s.ThousandsSeparator = v, examples),
-                    Choice("Decimal separator", new[] { "Point", "Comma" }, () => s.DecimalSeparator, v => s.DecimalSeparator = v, examples),
-                    lengthExample,
-                }),
-                new GlobalSettingSection("Angles", new[]
-                {
-                    Info("Format", "Degrees"),
-                    Number("Decimals", null, () => s.AngleDecimals, v => s.AngleDecimals = Whole(v), examples),
-                    angleExample,
-                }),
+                new GlobalSettingSection(
+                    "Lengths",
+                    new[]
+                    {
+                        Info("Unit", "mm"),
+                        Number(
+                            "Coordinate decimals",
+                            null,
+                            () => s.CoordinateDecimals,
+                            v => s.CoordinateDecimals = Whole(v),
+                            examples
+                        ),
+                        Number(
+                            "Dimension decimals",
+                            null,
+                            () => s.DimensionDecimals,
+                            v => s.DimensionDecimals = Whole(v),
+                            examples
+                        ),
+                        Choice(
+                            "Thousands separator",
+                            GlobalSettings.ThousandsSeparators,
+                            () => s.ThousandsSeparator,
+                            v => s.ThousandsSeparator = v,
+                            examples
+                        ),
+                        Choice(
+                            "Decimal separator",
+                            new[] { "Point", "Comma" },
+                            () => s.DecimalSeparator,
+                            v => s.DecimalSeparator = v,
+                            examples
+                        ),
+                        lengthExample,
+                    }
+                ),
+                new GlobalSettingSection(
+                    "Angles",
+                    new[]
+                    {
+                        Info("Format", "Degrees"),
+                        Number("Decimals", null, () => s.AngleDecimals, v => s.AngleDecimals = Whole(v), examples),
+                        angleExample,
+                    }
+                ),
             };
 
             _pages["Text and fonts"] = new[]
             {
-                new GlobalSettingSection("Interface", new[]
-                {
-                    Text("UI font", () => s.UiFont, v => s.UiFont = v),
-                }),
-                new GlobalSettingSection("Drawing text", new[]
-                {
-                    Text("Font where a style's is missing", () => s.DrawingFont, v => s.DrawingFont = v),
-                    Number("Text height", "mm", () => s.TextHeight, v => s.TextHeight = v),
-                    Number("Title text height", "mm", () => s.TitleTextHeight, v => s.TitleTextHeight = v),
-                    Number("Width factor", null, () => s.WidthFactor, v => s.WidthFactor = v),
-                }),
-                new GlobalSettingSection("Hidden messages", new[]
-                {
-                    // AutoCAD's Hidden Message Settings: the answer Always perform my current choice keeps, Ask to be asked again.
-                    Choice("Esc in the MTEXT editor with changes", new[] { "Ask", "Yes, save the changes", "No, discard the changes" },
-                        () => s.MTextUnsavedChanges == "Yes" ? "Yes, save the changes" : s.MTextUnsavedChanges == "No" ? "No, discard the changes" : "Ask",
-                        v => s.MTextUnsavedChanges = v.StartsWith("Yes", StringComparison.Ordinal) ? "Yes" : v.StartsWith("No", StringComparison.Ordinal) ? "No" : "Ask"),
-                }),
+                new GlobalSettingSection("Interface", new[] { Text("UI font", () => s.UiFont, v => s.UiFont = v) }),
+                new GlobalSettingSection(
+                    "Drawing text",
+                    new[]
+                    {
+                        Text("Font where a style's is missing", () => s.DrawingFont, v => s.DrawingFont = v),
+                        Number("Text height", "mm", () => s.TextHeight, v => s.TextHeight = v),
+                        Number("Title text height", "mm", () => s.TitleTextHeight, v => s.TitleTextHeight = v),
+                        Number("Width factor", null, () => s.WidthFactor, v => s.WidthFactor = v),
+                    }
+                ),
+                new GlobalSettingSection(
+                    "Hidden messages",
+                    new[]
+                    {
+                        // AutoCAD's Hidden Message Settings: the answer Always perform my current choice keeps, Ask to be asked again.
+                        Choice(
+                            "Esc in the MTEXT editor with changes",
+                            new[] { "Ask", "Yes, save the changes", "No, discard the changes" },
+                            () =>
+                                s.MTextUnsavedChanges == "Yes" ? "Yes, save the changes"
+                                : s.MTextUnsavedChanges == "No" ? "No, discard the changes"
+                                : "Ask",
+                            v =>
+                                s.MTextUnsavedChanges =
+                                    v.StartsWith("Yes", StringComparison.Ordinal) ? "Yes"
+                                    : v.StartsWith("No", StringComparison.Ordinal) ? "No"
+                                    : "Ask"
+                        ),
+                    }
+                ),
             };
 
             _pages["Fonts"] = new[]
             {
-                new GlobalSettingSection("Font not found", new[]
-                {
-                    Text("Replacement font (FONTALT)", () => s.ReplacementFont, v => s.ReplacementFont = v),
-                    Info("Where it is not found either", "Font where a style's is missing (Text and fonts)"),
-                }),
-                new GlobalSettingSection("Font mapping", new[]
-                {
-                    Text("Font mapping file (FONTMAP)", () => s.FontMapFile, v => s.FontMapFile = v),
-                }),
+                new GlobalSettingSection(
+                    "Font not found",
+                    new[]
+                    {
+                        Text("Replacement font (FONTALT)", () => s.ReplacementFont, v => s.ReplacementFont = v),
+                        Info("Where it is not found either", "Font where a style's is missing (Text and fonts)"),
+                    }
+                ),
+                new GlobalSettingSection(
+                    "Font mapping",
+                    new[] { Text("Font mapping file (FONTMAP)", () => s.FontMapFile, v => s.FontMapFile = v) }
+                ),
             };
 
             _pages["Data sources"] = new[]
             {
-                new GlobalSettingSection("Model changes", new[]
-                {
-                    Toggle("Check for model changes", () => s.CheckForModelChanges, v => s.CheckForModelChanges = v),
-                    Number("Check every", "s", () => s.CheckEverySeconds, v => s.CheckEverySeconds = Whole(v)),
-                }),
+                new GlobalSettingSection(
+                    "Model changes",
+                    new[]
+                    {
+                        Toggle(
+                            "Check for model changes",
+                            () => s.CheckForModelChanges,
+                            v => s.CheckForModelChanges = v
+                        ),
+                        Number("Check every", "s", () => s.CheckEverySeconds, v => s.CheckEverySeconds = Whole(v)),
+                    }
+                ),
             };
 
             _pages["Save and export"] = new[]
             {
-                new GlobalSettingSection("Saving", new[]
-                {
-                    Text("Save folder", () => s.SaveFolder, v => s.SaveFolder = v),
-                    Number("Autosave every", "min", () => s.AutosaveMinutes, v => s.AutosaveMinutes = Whole(v)),
-                    Number("Backups kept", null, () => s.BackupsKept, v => s.BackupsKept = Whole(v)),
-                }),
-                new GlobalSettingSection("DXF export", new[]
-                {
-                    Choice("Layout", new[] { "Layout + viewports (like MVIEW)", "Sheet in model space" },
-                        () => s.ExportLayout == "SheetInModelSpace" ? "Sheet in model space" : "Layout + viewports (like MVIEW)",
-                        v => s.ExportLayout = v == "Sheet in model space" ? "SheetInModelSpace" : "LayoutAndViewports"),
-                    Info("Version", "AutoCAD 2013 (AC1027)"),
-                    Toggle("Open the folder after export", () => s.OpenAfterExport, v => s.OpenAfterExport = v),
-                }),
+                new GlobalSettingSection(
+                    "Saving",
+                    new[]
+                    {
+                        Text("Save folder", () => s.SaveFolder, v => s.SaveFolder = v),
+                        Number("Autosave every", "min", () => s.AutosaveMinutes, v => s.AutosaveMinutes = Whole(v)),
+                        Number("Backups kept", null, () => s.BackupsKept, v => s.BackupsKept = Whole(v)),
+                    }
+                ),
+                new GlobalSettingSection(
+                    "DXF export",
+                    new[]
+                    {
+                        Choice(
+                            "Layout",
+                            new[] { "Layout + viewports (like MVIEW)", "Sheet in model space" },
+                            () =>
+                                s.ExportLayout == "SheetInModelSpace"
+                                    ? "Sheet in model space"
+                                    : "Layout + viewports (like MVIEW)",
+                            v =>
+                                s.ExportLayout =
+                                    v == "Sheet in model space" ? "SheetInModelSpace" : "LayoutAndViewports"
+                        ),
+                        Info("Version", "AutoCAD 2013 (AC1027)"),
+                        Toggle("Open the folder after export", () => s.OpenAfterExport, v => s.OpenAfterExport = v),
+                    }
+                ),
             };
         }
 
@@ -973,18 +1246,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void FillShortcuts(bool autoCad)
         {
             CadShortcuts current = _model.CurrentShortcuts();
-            IReadOnlyDictionary<string, string> aliases = Merge(current.Aliases, autoCad ? CadShortcuts.Default.Aliases : _working.Aliases, CadShortcuts.Default.Aliases);
-            IReadOnlyDictionary<string, string> keys = Merge(current.Keys, autoCad ? CadShortcuts.Default.Keys : _working.Keys, CadShortcuts.Default.Keys);
+            IReadOnlyDictionary<string, string> aliases = Merge(
+                current.Aliases,
+                autoCad ? CadShortcuts.Default.Aliases : _working.Aliases,
+                CadShortcuts.Default.Aliases
+            );
+            IReadOnlyDictionary<string, string> keys = Merge(
+                current.Keys,
+                autoCad ? CadShortcuts.Default.Keys : _working.Keys,
+                CadShortcuts.Default.Keys
+            );
             var commands = new SortedSet<string>(_model.CommandNames(), StringComparer.OrdinalIgnoreCase);
             commands.UnionWith(Toggles);
             commands.UnionWith(aliases.Values);
             commands.UnionWith(keys.Values);
-            _allShortcuts = commands.Select(c => new ShortcutRowViewModel(
-                c,
-                string.Join(", ", aliases.Where(a => string.Equals(a.Value, c, StringComparison.OrdinalIgnoreCase)).Select(a => a.Key)),
-                string.Join(", ", keys.Where(k => string.Equals(k.Value, c, StringComparison.OrdinalIgnoreCase)).Select(k => k.Key)),
-                Descriptions.TryGetValue(c, out string d) ? d : string.Empty,
-                OnShortcutChanged)).ToList();
+            _allShortcuts = commands
+                .Select(c => new ShortcutRowViewModel(
+                    c,
+                    string.Join(
+                        ", ",
+                        aliases
+                            .Where(a => string.Equals(a.Value, c, StringComparison.OrdinalIgnoreCase))
+                            .Select(a => a.Key)
+                    ),
+                    string.Join(
+                        ", ",
+                        keys.Where(k => string.Equals(k.Value, c, StringComparison.OrdinalIgnoreCase))
+                            .Select(k => k.Key)
+                    ),
+                    Descriptions.TryGetValue(c, out string d) ? d : string.Empty,
+                    OnShortcutChanged
+                ))
+                .ToList();
             FindConflicts();
             FilterShortcuts();
 
@@ -995,7 +1288,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>The aliases or keys: those the settings hold, and those of the command line that AutoCAD's table has not.</summary>
-        private static IReadOnlyDictionary<string, string> Merge(IReadOnlyDictionary<string, string> current, IReadOnlyDictionary<string, string> settings, IReadOnlyDictionary<string, string> autoCad)
+        private static IReadOnlyDictionary<string, string> Merge(
+            IReadOnlyDictionary<string, string> current,
+            IReadOnlyDictionary<string, string> settings,
+            IReadOnlyDictionary<string, string> autoCad
+        )
         {
             var merged = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
@@ -1046,11 +1343,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             foreach (ShortcutRowViewModel row in _allShortcuts)
             {
-                string key = row.KeyList.FirstOrDefault(k => !string.Equals(keyOwners[k], row.Command, StringComparison.OrdinalIgnoreCase));
-                string alias = row.AliasList.FirstOrDefault(a => !string.Equals(aliasOwners[a], row.Command, StringComparison.OrdinalIgnoreCase)
-                                                                 || (names.Contains(a) && !string.Equals(a, row.Command, StringComparison.OrdinalIgnoreCase)));
-                row.Conflict = key != null ? key + " is already used by " + keyOwners[key]
-                    : alias != null ? (names.Contains(alias) ? alias + " is the name of a command" : alias + " is already used by " + aliasOwners[alias])
+                string key = row.KeyList.FirstOrDefault(k =>
+                    !string.Equals(keyOwners[k], row.Command, StringComparison.OrdinalIgnoreCase)
+                );
+                string alias = row.AliasList.FirstOrDefault(a =>
+                    !string.Equals(aliasOwners[a], row.Command, StringComparison.OrdinalIgnoreCase)
+                    || (names.Contains(a) && !string.Equals(a, row.Command, StringComparison.OrdinalIgnoreCase))
+                );
+                row.Conflict =
+                    key != null ? key + " is already used by " + keyOwners[key]
+                    : alias != null
+                        ? (
+                            names.Contains(alias)
+                                ? alias + " is the name of a command"
+                                : alias + " is already used by " + aliasOwners[alias]
+                        )
                     : string.Empty;
             }
         }
@@ -1059,10 +1366,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             Shortcuts.Clear();
 
-            foreach (ShortcutRowViewModel row in _allShortcuts.Where(r => _search.Length == 0
-                         || r.Command.IndexOf(_search, StringComparison.OrdinalIgnoreCase) >= 0
-                         || r.Aliases.IndexOf(_search, StringComparison.OrdinalIgnoreCase) >= 0
-                         || r.Keys.IndexOf(_search, StringComparison.OrdinalIgnoreCase) >= 0))
+            foreach (
+                ShortcutRowViewModel row in _allShortcuts.Where(r =>
+                    _search.Length == 0
+                    || r.Command.IndexOf(_search, StringComparison.OrdinalIgnoreCase) >= 0
+                    || r.Aliases.IndexOf(_search, StringComparison.OrdinalIgnoreCase) >= 0
+                    || r.Keys.IndexOf(_search, StringComparison.OrdinalIgnoreCase) >= 0
+                )
+            )
             {
                 Shortcuts.Add(row);
             }
@@ -1072,12 +1383,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             int n = 1;
 
-            while (Layers.Any(l => string.Equals(l.Name, "Layer" + n.ToString(CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase)))
+            while (
+                Layers.Any(l =>
+                    string.Equals(
+                        l.Name,
+                        "Layer" + n.ToString(CultureInfo.InvariantCulture),
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+            )
             {
                 n++;
             }
 
-            Layers.Add(new GlobalLayerRow(new GlobalLayer("Layer" + n.ToString(CultureInfo.InvariantCulture), 0xFFFFFF, "Continuous", 0.25)));
+            Layers.Add(
+                new GlobalLayerRow(
+                    new GlobalLayer("Layer" + n.ToString(CultureInfo.InvariantCulture), 0xFFFFFF, "Continuous", 0.25)
+                )
+            );
         }
 
         private void RemoveLayer(GlobalLayerRow row)
@@ -1110,35 +1433,85 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             RaiseErrors();
         }
 
-        private static int Whole(double value) => value == Math.Floor(value) && Math.Abs(value) < int.MaxValue ? (int)value : throw new ArgumentException("A whole number is needed.");
+        private static int Whole(double value) =>
+            value == Math.Floor(value) && Math.Abs(value) < int.MaxValue
+                ? (int)value
+                : throw new ArgumentException("A whole number is needed.");
 
-        private static string Plain(double value) => Math.Round(value, 6).ToString("0.######", CultureInfo.InvariantCulture);
+        private static string Plain(double value) =>
+            Math.Round(value, 6).ToString("0.######", CultureInfo.InvariantCulture);
 
-        private GlobalSettingRow Toggle(string label, Func<bool> get, Action<bool> set)
-            => new GlobalSettingRow(GlobalSettingKind.Toggle, label, null, () => get() ? "1" : "0", v => set(v == "1"), Changed);
+        private GlobalSettingRow Toggle(string label, Func<bool> get, Action<bool> set) =>
+            new GlobalSettingRow(
+                GlobalSettingKind.Toggle,
+                label,
+                null,
+                () => get() ? "1" : "0",
+                v => set(v == "1"),
+                Changed
+            );
 
-        private GlobalSettingRow Number(string label, string unit, Func<double> get, Action<double> set, Action also = null)
-            => new GlobalSettingRow(GlobalSettingKind.Number, label, unit, () => Plain(get()), v => set(double.Parse(v.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture)), () =>
-            {
-                Changed();
-                also?.Invoke();
-            });
+        private GlobalSettingRow Number(
+            string label,
+            string unit,
+            Func<double> get,
+            Action<double> set,
+            Action also = null
+        ) =>
+            new GlobalSettingRow(
+                GlobalSettingKind.Number,
+                label,
+                unit,
+                () => Plain(get()),
+                v => set(double.Parse(v.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture)),
+                () =>
+                {
+                    Changed();
+                    also?.Invoke();
+                }
+            );
 
-        private GlobalSettingRow Text(string label, Func<string> get, Action<string> set)
-            => new GlobalSettingRow(GlobalSettingKind.Text, label, null, get, set, Changed);
+        private GlobalSettingRow Text(string label, Func<string> get, Action<string> set) =>
+            new GlobalSettingRow(GlobalSettingKind.Text, label, null, get, set, Changed);
 
-        private GlobalSettingRow Choice(string label, IReadOnlyList<string> options, Func<string> get, Action<string> set, Action also = null)
-            => new GlobalSettingRow(GlobalSettingKind.Choice, label, null, get, set, () =>
-            {
-                Changed();
-                also?.Invoke();
-            }, options);
+        private GlobalSettingRow Choice(
+            string label,
+            IReadOnlyList<string> options,
+            Func<string> get,
+            Action<string> set,
+            Action also = null
+        ) =>
+            new GlobalSettingRow(
+                GlobalSettingKind.Choice,
+                label,
+                null,
+                get,
+                set,
+                () =>
+                {
+                    Changed();
+                    also?.Invoke();
+                },
+                options
+            );
 
-        private GlobalSettingRow Colour(string label, Func<int> get, Action<int> set)
-            => new GlobalSettingRow(GlobalSettingKind.Colour, label, null, () => GlobalSettings.Hex(get()),
-                v => set(GlobalSettings.TryParseHex(v, out int rgb) ? rgb : throw new FormatException("A colour is written #RRGGBB.")), Changed, NamedColours);
+        private GlobalSettingRow Colour(string label, Func<int> get, Action<int> set) =>
+            new GlobalSettingRow(
+                GlobalSettingKind.Colour,
+                label,
+                null,
+                () => GlobalSettings.Hex(get()),
+                v =>
+                    set(
+                        GlobalSettings.TryParseHex(v, out int rgb)
+                            ? rgb
+                            : throw new FormatException("A colour is written #RRGGBB.")
+                    ),
+                Changed,
+                NamedColours
+            );
 
-        private static GlobalSettingRow Info(string label, string value, Func<string> get = null)
-            => new GlobalSettingRow(GlobalSettingKind.Info, label, null, get ?? (() => value), null, null);
+        private static GlobalSettingRow Info(string label, string value, Func<string> get = null) =>
+            new GlobalSettingRow(GlobalSettingKind.Info, label, null, get ?? (() => value), null, null);
     }
 }

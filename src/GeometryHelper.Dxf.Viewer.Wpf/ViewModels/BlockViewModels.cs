@@ -84,7 +84,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _copy = _copy ?? DxfDatabase.Parse(_source.ToText());
                 return CadStylePreview.Block(_copy, name, _fonts, _width, _height);
             }
-            catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException || exception is FormatException)
+            catch (Exception exception)
+                when (exception is ArgumentException
+                    || exception is InvalidOperationException
+                    || exception is FormatException
+                )
             {
                 GeometryHelperLog.Debug("BlockPictures: the block " + name + " was not drawn: " + exception.Message);
                 return null;
@@ -99,13 +103,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         internal static string Plain(double value) => value.ToString("0.####", CultureInfo.InvariantCulture);
 
-        internal static bool TryRead(string text, out double value)
-            => double.TryParse((text ?? string.Empty).Replace(" ", string.Empty), NumberStyles.Float, CultureInfo.InvariantCulture, out value) && !double.IsNaN(value) && !double.IsInfinity(value);
+        internal static bool TryRead(string text, out double value) =>
+            double.TryParse(
+                (text ?? string.Empty).Replace(" ", string.Empty),
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out value
+            )
+            && !double.IsNaN(value)
+            && !double.IsInfinity(value);
 
         internal static readonly DxfUnits[] Units =
         {
-            DxfUnits.Undefined, DxfUnits.Inches, DxfUnits.Feet, DxfUnits.Millimeters, DxfUnits.Centimeters, DxfUnits.Decimeters, DxfUnits.Meters,
-            DxfUnits.Kilometers, DxfUnits.Yards, DxfUnits.Microns,
+            DxfUnits.Undefined,
+            DxfUnits.Inches,
+            DxfUnits.Feet,
+            DxfUnits.Millimeters,
+            DxfUnits.Centimeters,
+            DxfUnits.Decimeters,
+            DxfUnits.Meters,
+            DxfUnits.Kilometers,
+            DxfUnits.Yards,
+            DxfUnits.Microns,
         };
 
         /// <summary>A unit as the dialogs name it, AutoCAD's names in British spelling: Millimetres, Unitless.</summary>
@@ -113,13 +132,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             switch (unit)
             {
-                case DxfUnits.Undefined: return "Unitless";
-                case DxfUnits.Millimeters: return "Millimetres";
-                case DxfUnits.Centimeters: return "Centimetres";
-                case DxfUnits.Decimeters: return "Decimetres";
-                case DxfUnits.Meters: return "Metres";
-                case DxfUnits.Kilometers: return "Kilometres";
-                default: return unit.ToString();
+                case DxfUnits.Undefined:
+                    return "Unitless";
+                case DxfUnits.Millimeters:
+                    return "Millimetres";
+                case DxfUnits.Centimeters:
+                    return "Centimetres";
+                case DxfUnits.Decimeters:
+                    return "Decimetres";
+                case DxfUnits.Meters:
+                    return "Metres";
+                case DxfUnits.Kilometers:
+                    return "Kilometres";
+                default:
+                    return unit.ToString();
             }
         }
 
@@ -179,13 +205,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets whether a block of the name is in the drawing already, which OK asks to define again.</summary>
-        public bool Exists => Names.Any(n => string.Equals(n, (_name ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase));
+        public bool Exists =>
+            Names.Any(n => string.Equals(n, (_name ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase));
 
         /// <summary>
         /// Gets the picture of the block of the name, where the drawing has one; for a new one, of the objects selected, as the
         /// block made of them would look; null where there are none, or they are asked after OK.
         /// </summary>
-        public ImageSource Preview => Exists ? _pictures.Draw(Names.First(n => string.Equals(n, _name.Trim(), StringComparison.OrdinalIgnoreCase))) : Selection();
+        public ImageSource Preview =>
+            Exists
+                ? _pictures.Draw(Names.First(n => string.Equals(n, _name.Trim(), StringComparison.OrdinalIgnoreCase)))
+                : Selection();
 
         /// <summary>Gets or sets X of the base point, as typed.</summary>
         public string BaseX
@@ -269,7 +299,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 int count = Request.Objects?.Count ?? 0;
-                return count == 0 ? "No objects selected" : count.ToString(CultureInfo.InvariantCulture) + (count == 1 ? " object selected" : " objects selected");
+                return count == 0
+                    ? "No objects selected"
+                    : count.ToString(CultureInfo.InvariantCulture)
+                        + (count == 1 ? " object selected" : " objects selected");
             }
         }
 
@@ -320,7 +353,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets whether OK may be pressed: a name AutoCAD takes and the base point's numbers read.</summary>
-        public bool CanOk => CadBlocks.IsName((_name ?? string.Empty).Trim()) && (Request.SpecifyBasePointOnScreen || (BlockNumbers.TryRead(_x, out _) && BlockNumbers.TryRead(_y, out _) && BlockNumbers.TryRead(_z, out _)));
+        public bool CanOk =>
+            CadBlocks.IsName((_name ?? string.Empty).Trim())
+            && (
+                Request.SpecifyBasePointOnScreen
+                || (
+                    BlockNumbers.TryRead(_x, out _)
+                    && BlockNumbers.TryRead(_y, out _)
+                    && BlockNumbers.TryRead(_z, out _)
+                )
+            );
 
         /// <summary>Closes the dialog with an action, the values written into the request.</summary>
         /// <param name="action">OK, Cancel, Pick point or Select objects.</param>
@@ -329,7 +371,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             Request.Name = (_name ?? string.Empty).Trim();
 
-            if (BlockNumbers.TryRead(_x, out double x) && BlockNumbers.TryRead(_y, out double y) && BlockNumbers.TryRead(_z, out double z))
+            if (
+                BlockNumbers.TryRead(_x, out double x)
+                && BlockNumbers.TryRead(_y, out double y)
+                && BlockNumbers.TryRead(_z, out double z)
+            )
             {
                 Request.BasePoint = new GeoPoint3(x, y, z);
             }
@@ -378,7 +424,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 foreach (string handle in objects)
                 {
-                    if (copy.TryGetObject(handle, out DxfDBObject found) && found is DxfEntity entity && !entity.IsErased)
+                    if (
+                        copy.TryGetObject(handle, out DxfDBObject found)
+                        && found is DxfEntity entity
+                        && !entity.IsErased
+                    )
                     {
                         entities.Add(entity);
                     }
@@ -401,16 +451,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 copy.WblockCloneObjects(entities, record);
                 _selection = CadStylePreview.Block(copy, name, Request.Document.Fonts, 44, 44);
             }
-            catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException || exception is FormatException)
+            catch (Exception exception)
+                when (exception is ArgumentException
+                    || exception is InvalidOperationException
+                    || exception is FormatException
+                )
             {
-                GeometryHelperLog.Debug("BlockDefinitionViewModel: the objects selected were not drawn: " + exception.Message);
+                GeometryHelperLog.Debug(
+                    "BlockDefinitionViewModel: the objects selected were not drawn: " + exception.Message
+                );
                 _selection = null;
             }
 
             return _selection;
         }
 
-        private void SetNumber(ref string field, string value, [System.Runtime.CompilerServices.CallerMemberName] string name = null)
+        private void SetNumber(
+            ref string field,
+            string value,
+            [System.Runtime.CompilerServices.CallerMemberName] string name = null
+        )
         {
             if (Set(ref field, value ?? string.Empty, name))
             {
@@ -445,7 +505,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Request = request ?? throw new ArgumentNullException(nameof(request));
             _recent = recent ?? Array.Empty<string>();
             var pictures = new BlockPictures(request.Document.Database, request.Document.Fonts, 72, 56);
-            _current = CadBlocks.Named(request.Document.Database).Select(b => new BlockTileViewModel(b.Name, b.Comments, pictures.Draw)).ToList();
+            _current = CadBlocks
+                .Named(request.Document.Database)
+                .Select(b => new BlockTileViewModel(b.Name, b.Comments, pictures.Draw))
+                .ToList();
             Tiles = new ObservableCollection<BlockTileViewModel>();
             Refill();
         }
@@ -494,9 +557,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             get
             {
-                string file = IsOtherDrawing ? (_otherFile == null ? "No drawing chosen: Browse… picks one" : Path.GetFileName(_otherFile)) : Path.GetFileName(Request.Document.FileName ?? string.Empty);
-                int count = IsOtherDrawing ? _other.Count : _tab == "Recent" ? Tiles.Count : _current.Count;
-                return file + " · " + count.ToString(CultureInfo.InvariantCulture) + (count == 1 ? " block" : " blocks");
+                string file = IsOtherDrawing
+                    ? (_otherFile == null ? "No drawing chosen: Browse… picks one" : Path.GetFileName(_otherFile))
+                    : Path.GetFileName(Request.Document.FileName ?? string.Empty);
+                int count =
+                    IsOtherDrawing ? _other.Count
+                    : _tab == "Recent" ? Tiles.Count
+                    : _current.Count;
+                return file
+                    + " · "
+                    + count.ToString(CultureInfo.InvariantCulture)
+                    + (count == 1 ? " block" : " blocks");
             }
         }
 
@@ -514,7 +585,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 other = DxfDatabase.Open(path);
             }
-            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException || exception is NotSupportedException || exception is FormatException || exception is InvalidDataException)
+            catch (Exception exception)
+                when (exception is IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is ArgumentException
+                    || exception is NotSupportedException
+                    || exception is FormatException
+                    || exception is InvalidDataException
+                )
             {
                 GeometryHelperLog.Warn("BlocksPaletteViewModel: the drawing " + path + " was not read.", exception);
                 return false;
@@ -522,8 +600,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             _otherFile = path;
             var pictures = new BlockPictures(other, Request.Document.Fonts, 72, 56);
-            _other = new List<BlockTileViewModel> { new BlockTileViewModel(string.Empty, "The whole drawing, as one block of its name", n => null) };
-            _other.AddRange(CadBlocks.Named(other).Select(b => new BlockTileViewModel(b.Name, b.Comments, pictures.Draw)));
+            _other = new List<BlockTileViewModel>
+            {
+                new BlockTileViewModel(string.Empty, "The whole drawing, as one block of its name", n => null),
+            };
+            _other.AddRange(
+                CadBlocks.Named(other).Select(b => new BlockTileViewModel(b.Name, b.Comments, pictures.Draw))
+            );
             Tab = "Other drawing";
             Refill();
             return true;
@@ -603,7 +686,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>Whether the palette closes.</returns>
         public bool Choose(BlockTileViewModel tile)
         {
-            if (tile == null || !BlockNumbers.TryRead(_scale, out double scale) || scale == 0.0 || !BlockNumbers.TryRead(_rotation, out double degrees))
+            if (
+                tile == null
+                || !BlockNumbers.TryRead(_scale, out double scale)
+                || scale == 0.0
+                || !BlockNumbers.TryRead(_rotation, out double degrees)
+            )
             {
                 return false;
             }
@@ -631,7 +719,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             else if (_tab == "Recent")
             {
-                source = _recent.Select(n => _current.FirstOrDefault(t => string.Equals(t.Name, n, StringComparison.OrdinalIgnoreCase))).Where(t => t != null);
+                source = _recent
+                    .Select(n =>
+                        _current.FirstOrDefault(t => string.Equals(t.Name, n, StringComparison.OrdinalIgnoreCase))
+                    )
+                    .Where(t => t != null);
             }
             else
             {
@@ -642,7 +734,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             foreach (BlockTileViewModel tile in source)
             {
-                if (_filter.Length == 0 || (tile.Name.Length == 0 ? "whole drawing" : tile.Name).IndexOf(_filter, StringComparison.OrdinalIgnoreCase) >= 0)
+                if (
+                    _filter.Length == 0
+                    || (tile.Name.Length == 0 ? "whole drawing" : tile.Name).IndexOf(
+                        _filter,
+                        StringComparison.OrdinalIgnoreCase
+                    ) >= 0
+                )
                 {
                     Tiles.Add(tile);
                 }
@@ -683,7 +781,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (string.IsNullOrEmpty(request.FileName))
             {
                 string folder = Path.GetDirectoryName(request.Document.FileName ?? string.Empty);
-                request.FileName = Path.Combine(string.IsNullOrEmpty(folder) ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) : folder, "new block.dxf");
+                request.FileName = Path.Combine(
+                    string.IsNullOrEmpty(folder)
+                        ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                        : folder,
+                    "new block.dxf"
+                );
             }
         }
 
@@ -773,7 +876,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get
             {
                 int count = Request.Objects?.Count ?? 0;
-                return count == 0 ? "No objects selected" : count.ToString(CultureInfo.InvariantCulture) + (count == 1 ? " object selected" : " objects selected");
+                return count == 0
+                    ? "No objects selected"
+                    : count.ToString(CultureInfo.InvariantCulture)
+                        + (count == 1 ? " object selected" : " objects selected");
             }
         }
 
@@ -803,15 +909,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets whether OK may be pressed: a file named, objects given where they are written, the base point read.</summary>
-        public bool CanOk => !string.IsNullOrWhiteSpace(Request.FileName)
-            && (Request.Source != CadWriteBlockSource.Objects || (HasObjects && BlockNumbers.TryRead(_x, out _) && BlockNumbers.TryRead(_y, out _) && BlockNumbers.TryRead(_z, out _)))
+        public bool CanOk =>
+            !string.IsNullOrWhiteSpace(Request.FileName)
+            && (
+                Request.Source != CadWriteBlockSource.Objects
+                || (
+                    HasObjects
+                    && BlockNumbers.TryRead(_x, out _)
+                    && BlockNumbers.TryRead(_y, out _)
+                    && BlockNumbers.TryRead(_z, out _)
+                )
+            )
             && (Request.Source != CadWriteBlockSource.Block || !string.IsNullOrEmpty(Request.BlockName));
 
         /// <summary>Closes the dialog with an action, the values written into the request.</summary>
         /// <param name="action">OK, Cancel, Pick point or Select objects.</param>
         public void Close(CadDialogAction action)
         {
-            if (BlockNumbers.TryRead(_x, out double x) && BlockNumbers.TryRead(_y, out double y) && BlockNumbers.TryRead(_z, out double z))
+            if (
+                BlockNumbers.TryRead(_x, out double x)
+                && BlockNumbers.TryRead(_y, out double y)
+                && BlockNumbers.TryRead(_z, out double z)
+            )
             {
                 Request.BasePoint = new GeoPoint3(x, y, z);
             }
@@ -847,7 +966,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(IsDelete));
         }
 
-        private void SetText(ref string field, string value, [System.Runtime.CompilerServices.CallerMemberName] string name = null)
+        private void SetText(
+            ref string field,
+            string value,
+            [System.Runtime.CompilerServices.CallerMemberName] string name = null
+        )
         {
             if (Set(ref field, value ?? string.Empty, name))
             {
@@ -876,38 +999,119 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Request = request ?? throw new ArgumentNullException(nameof(request));
             _height = BlockNumbers.Plain(request.Height);
             _rotation = BlockNumbers.Plain(request.Rotation * 180.0 / Math.PI);
-            Styles = request.Document.Database.TextStyleTable.Select(s => s.Name).Where(n => n.Length > 0).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ThenBy(n => n, StringComparer.Ordinal).ToList();
+            Styles = request
+                .Document.Database.TextStyleTable.Select(s => s.Name)
+                .Where(n => n.Length > 0)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(n => n, StringComparer.Ordinal)
+                .ToList();
         }
 
         /// <summary>Gets the request.</summary>
         public CadAttributeDefinitionRequest Request { get; }
 
         /// <summary>Gets or sets Invisible.</summary>
-        public bool Invisible { get => Request.Invisible; set { Request.Invisible = value; Raise(nameof(Invisible)); } }
+        public bool Invisible
+        {
+            get => Request.Invisible;
+            set
+            {
+                Request.Invisible = value;
+                Raise(nameof(Invisible));
+            }
+        }
 
         /// <summary>Gets or sets Constant.</summary>
-        public bool Constant { get => Request.Constant; set { Request.Constant = value; Raise(nameof(Constant)); } }
+        public bool Constant
+        {
+            get => Request.Constant;
+            set
+            {
+                Request.Constant = value;
+                Raise(nameof(Constant));
+            }
+        }
 
         /// <summary>Gets or sets Verify.</summary>
-        public bool Verify { get => Request.Verify; set { Request.Verify = value; Raise(nameof(Verify)); } }
+        public bool Verify
+        {
+            get => Request.Verify;
+            set
+            {
+                Request.Verify = value;
+                Raise(nameof(Verify));
+            }
+        }
 
         /// <summary>Gets or sets Preset.</summary>
-        public bool Preset { get => Request.Preset; set { Request.Preset = value; Raise(nameof(Preset)); } }
+        public bool Preset
+        {
+            get => Request.Preset;
+            set
+            {
+                Request.Preset = value;
+                Raise(nameof(Preset));
+            }
+        }
 
         /// <summary>Gets or sets Lock position.</summary>
-        public bool LockPosition { get => Request.LockPosition; set { Request.LockPosition = value; Raise(nameof(LockPosition)); } }
+        public bool LockPosition
+        {
+            get => Request.LockPosition;
+            set
+            {
+                Request.LockPosition = value;
+                Raise(nameof(LockPosition));
+            }
+        }
 
         /// <summary>Gets or sets Multiple lines.</summary>
-        public bool MultipleLines { get => Request.MultipleLines; set { Request.MultipleLines = value; Raise(nameof(MultipleLines)); } }
+        public bool MultipleLines
+        {
+            get => Request.MultipleLines;
+            set
+            {
+                Request.MultipleLines = value;
+                Raise(nameof(MultipleLines));
+            }
+        }
 
         /// <summary>Gets or sets the tag.</summary>
-        public string Tag { get => Request.Tag; set { Request.Tag = value ?? string.Empty; Raise(nameof(Tag)); Raise(nameof(CanOk)); Raise(nameof(Note)); } }
+        public string Tag
+        {
+            get => Request.Tag;
+            set
+            {
+                Request.Tag = value ?? string.Empty;
+                Raise(nameof(Tag));
+                Raise(nameof(CanOk));
+                Raise(nameof(Note));
+            }
+        }
 
         /// <summary>Gets or sets the prompt.</summary>
-        public string Prompt { get => Request.Prompt; set { Request.Prompt = value ?? string.Empty; Raise(nameof(Prompt)); Raise(nameof(Note)); } }
+        public string Prompt
+        {
+            get => Request.Prompt;
+            set
+            {
+                Request.Prompt = value ?? string.Empty;
+                Raise(nameof(Prompt));
+                Raise(nameof(Note));
+            }
+        }
 
         /// <summary>Gets or sets the default value.</summary>
-        public string Default { get => Request.Default; set { Request.Default = value ?? string.Empty; Raise(nameof(Default)); Raise(nameof(Note)); } }
+        public string Default
+        {
+            get => Request.Default;
+            set
+            {
+                Request.Default = value ?? string.Empty;
+                Raise(nameof(Default));
+                Raise(nameof(Note));
+            }
+        }
 
         /// <summary>Gets or sets whether the insertion point is asked after OK, the boxes then disabled.</summary>
         public bool SpecifyOnScreen
@@ -925,13 +1129,37 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool IsPointTyped => !Request.SpecifyOnScreen;
 
         /// <summary>Gets or sets X of the insertion point, as typed.</summary>
-        public string X { get => _x; set { Set(ref _x, value ?? string.Empty); Raise(nameof(CanOk)); } }
+        public string X
+        {
+            get => _x;
+            set
+            {
+                Set(ref _x, value ?? string.Empty);
+                Raise(nameof(CanOk));
+            }
+        }
 
         /// <summary>Gets or sets Y of the insertion point, as typed.</summary>
-        public string Y { get => _y; set { Set(ref _y, value ?? string.Empty); Raise(nameof(CanOk)); } }
+        public string Y
+        {
+            get => _y;
+            set
+            {
+                Set(ref _y, value ?? string.Empty);
+                Raise(nameof(CanOk));
+            }
+        }
 
         /// <summary>Gets or sets Z of the insertion point, as typed.</summary>
-        public string Z { get => _z; set { Set(ref _z, value ?? string.Empty); Raise(nameof(CanOk)); } }
+        public string Z
+        {
+            get => _z;
+            set
+            {
+                Set(ref _z, value ?? string.Empty);
+                Raise(nameof(CanOk));
+            }
+        }
 
         /// <summary>Gets the justifications the box offers, by AutoCAD's names: Left, Center, Right, Middle, Top left and the rest.</summary>
         public IReadOnlyList<string> Justifications { get; } = JustificationNames.All;
@@ -962,18 +1190,51 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets or sets the text height, as typed.</summary>
-        public string Height { get => _height; set { Set(ref _height, value ?? string.Empty); Raise(nameof(CanOk)); } }
+        public string Height
+        {
+            get => _height;
+            set
+            {
+                Set(ref _height, value ?? string.Empty);
+                Raise(nameof(CanOk));
+            }
+        }
 
         /// <summary>Gets or sets the rotation in degrees, as typed.</summary>
-        public string Rotation { get => _rotation; set { Set(ref _rotation, value ?? string.Empty); Raise(nameof(CanOk)); } }
+        public string Rotation
+        {
+            get => _rotation;
+            set
+            {
+                Set(ref _rotation, value ?? string.Empty);
+                Raise(nameof(CanOk));
+            }
+        }
 
         /// <summary>Gets what OK then does, as the board's note says.</summary>
-        public string Note => "OK asks for the start point on the canvas. The tag " + (string.IsNullOrEmpty(Request.Tag) ? "TAG" : Request.Tag.ToUpperInvariant())
-            + " shows on the canvas until the definition goes into a block with BLOCK; INSERT then asks \"" + (string.IsNullOrEmpty(Request.Prompt) ? Request.Tag : Request.Prompt) + " <" + Request.Default + ">:\".";
+        public string Note =>
+            "OK asks for the start point on the canvas. The tag "
+            + (string.IsNullOrEmpty(Request.Tag) ? "TAG" : Request.Tag.ToUpperInvariant())
+            + " shows on the canvas until the definition goes into a block with BLOCK; INSERT then asks \""
+            + (string.IsNullOrEmpty(Request.Prompt) ? Request.Tag : Request.Prompt)
+            + " <"
+            + Request.Default
+            + ">:\".";
 
         /// <summary>Gets whether OK may be pressed: a tag of one word, a height above nought and the numbers read.</summary>
-        public bool CanOk => CadBlocks.IsTag((Request.Tag ?? string.Empty).Trim()) && BlockNumbers.TryRead(_height, out double h) && h > 0.0 && BlockNumbers.TryRead(_rotation, out _)
-            && (Request.SpecifyOnScreen || (BlockNumbers.TryRead(_x, out _) && BlockNumbers.TryRead(_y, out _) && BlockNumbers.TryRead(_z, out _)));
+        public bool CanOk =>
+            CadBlocks.IsTag((Request.Tag ?? string.Empty).Trim())
+            && BlockNumbers.TryRead(_height, out double h)
+            && h > 0.0
+            && BlockNumbers.TryRead(_rotation, out _)
+            && (
+                Request.SpecifyOnScreen
+                || (
+                    BlockNumbers.TryRead(_x, out _)
+                    && BlockNumbers.TryRead(_y, out _)
+                    && BlockNumbers.TryRead(_z, out _)
+                )
+            );
 
         /// <summary>Closes the dialog with an action, the values written into the request.</summary>
         /// <param name="action">OK, Cancel, or the height or rotation to pick.</param>
@@ -989,7 +1250,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Request.Rotation = degrees * Math.PI / 180.0;
             }
 
-            if (BlockNumbers.TryRead(_x, out double x) && BlockNumbers.TryRead(_y, out double y) && BlockNumbers.TryRead(_z, out double z))
+            if (
+                BlockNumbers.TryRead(_x, out double x)
+                && BlockNumbers.TryRead(_y, out double y)
+                && BlockNumbers.TryRead(_z, out double z)
+            )
             {
                 Request.Point = new GeoPoint3(x, y, z);
             }
@@ -1020,9 +1285,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         internal static IReadOnlyList<string> All { get; } = Names.Select(n => n.Key).ToList();
 
-        internal static string Of(DxfAttachmentPoint point) => Names.FirstOrDefault(n => n.Value == point).Key ?? point.ToString();
+        internal static string Of(DxfAttachmentPoint point) =>
+            Names.FirstOrDefault(n => n.Value == point).Key ?? point.ToString();
 
-        internal static DxfAttachmentPoint From(string name) => Names.FirstOrDefault(n => n.Key == name).Key == null ? DxfAttachmentPoint.BaseLeft : Names.First(n => n.Key == name).Value;
+        internal static DxfAttachmentPoint From(string name) =>
+            Names.FirstOrDefault(n => n.Key == name).Key == null
+                ? DxfAttachmentPoint.BaseLeft
+                : Names.First(n => n.Key == name).Value;
     }
 
     /// <summary>One attribute of the Enhanced Attribute Editor's list: its tag, prompt and value, and its text options and properties as typed.</summary>
@@ -1052,43 +1321,155 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string Prompt => Row.Prompt;
 
         /// <summary>Gets or sets the value.</summary>
-        public string Value { get => Row.Value; set { Row.Value = value ?? string.Empty; Raise(nameof(Value)); } }
+        public string Value
+        {
+            get => Row.Value;
+            set
+            {
+                Row.Value = value ?? string.Empty;
+                Raise(nameof(Value));
+            }
+        }
 
         /// <summary>Gets or sets the text style.</summary>
-        public string TextStyle { get => Row.TextStyle; set { Row.TextStyle = value; Raise(nameof(TextStyle)); } }
+        public string TextStyle
+        {
+            get => Row.TextStyle;
+            set
+            {
+                Row.TextStyle = value;
+                Raise(nameof(TextStyle));
+            }
+        }
 
         /// <summary>Gets or sets the justification, by its name.</summary>
-        public string Justification { get => JustificationNames.Of(Row.Justification); set { Row.Justification = JustificationNames.From(value); Raise(nameof(Justification)); } }
+        public string Justification
+        {
+            get => JustificationNames.Of(Row.Justification);
+            set
+            {
+                Row.Justification = JustificationNames.From(value);
+                Raise(nameof(Justification));
+            }
+        }
 
         /// <summary>Gets or sets the height, as typed.</summary>
-        public string Height { get => _height; set { if (Set(ref _height, value ?? string.Empty) && BlockNumbers.TryRead(_height, out double h)) { Row.Height = h; } } }
+        public string Height
+        {
+            get => _height;
+            set
+            {
+                if (Set(ref _height, value ?? string.Empty) && BlockNumbers.TryRead(_height, out double h))
+                {
+                    Row.Height = h;
+                }
+            }
+        }
 
         /// <summary>Gets or sets the rotation in degrees, as typed.</summary>
-        public string Rotation { get => _rotation; set { if (Set(ref _rotation, value ?? string.Empty) && BlockNumbers.TryRead(_rotation, out double d)) { Row.Rotation = d * Math.PI / 180.0; } } }
+        public string Rotation
+        {
+            get => _rotation;
+            set
+            {
+                if (Set(ref _rotation, value ?? string.Empty) && BlockNumbers.TryRead(_rotation, out double d))
+                {
+                    Row.Rotation = d * Math.PI / 180.0;
+                }
+            }
+        }
 
         /// <summary>Gets or sets whether the text is written backwards.</summary>
-        public bool Backwards { get => Row.Backwards; set { Row.Backwards = value; Raise(nameof(Backwards)); } }
+        public bool Backwards
+        {
+            get => Row.Backwards;
+            set
+            {
+                Row.Backwards = value;
+                Raise(nameof(Backwards));
+            }
+        }
 
         /// <summary>Gets or sets whether the text is upside down.</summary>
-        public bool UpsideDown { get => Row.UpsideDown; set { Row.UpsideDown = value; Raise(nameof(UpsideDown)); } }
+        public bool UpsideDown
+        {
+            get => Row.UpsideDown;
+            set
+            {
+                Row.UpsideDown = value;
+                Raise(nameof(UpsideDown));
+            }
+        }
 
         /// <summary>Gets or sets the width factor, as typed.</summary>
-        public string WidthFactor { get => _width; set { if (Set(ref _width, value ?? string.Empty) && BlockNumbers.TryRead(_width, out double w)) { Row.WidthFactor = w; } } }
+        public string WidthFactor
+        {
+            get => _width;
+            set
+            {
+                if (Set(ref _width, value ?? string.Empty) && BlockNumbers.TryRead(_width, out double w))
+                {
+                    Row.WidthFactor = w;
+                }
+            }
+        }
 
         /// <summary>Gets or sets the oblique angle in degrees, as typed.</summary>
-        public string Oblique { get => _oblique; set { if (Set(ref _oblique, value ?? string.Empty) && BlockNumbers.TryRead(_oblique, out double d)) { Row.Oblique = d * Math.PI / 180.0; } } }
+        public string Oblique
+        {
+            get => _oblique;
+            set
+            {
+                if (Set(ref _oblique, value ?? string.Empty) && BlockNumbers.TryRead(_oblique, out double d))
+                {
+                    Row.Oblique = d * Math.PI / 180.0;
+                }
+            }
+        }
 
         /// <summary>Gets or sets the layer.</summary>
-        public string Layer { get => Row.Layer; set { Row.Layer = value; Raise(nameof(Layer)); } }
+        public string Layer
+        {
+            get => Row.Layer;
+            set
+            {
+                Row.Layer = value;
+                Raise(nameof(Layer));
+            }
+        }
 
         /// <summary>Gets or sets the linetype.</summary>
-        public string Linetype { get => Row.Linetype; set { Row.Linetype = value; Raise(nameof(Linetype)); } }
+        public string Linetype
+        {
+            get => Row.Linetype;
+            set
+            {
+                Row.Linetype = value;
+                Raise(nameof(Linetype));
+            }
+        }
 
         /// <summary>Gets or sets the colour by its name: ByLayer, ByBlock, Red to White, or Color n.</summary>
-        public string Color { get => AttributeEditorViewModel.ColorName(Row.ColorIndex); set { Row.ColorIndex = AttributeEditorViewModel.ColorIndex(value, Row.ColorIndex); Raise(nameof(Color)); } }
+        public string Color
+        {
+            get => AttributeEditorViewModel.ColorName(Row.ColorIndex);
+            set
+            {
+                Row.ColorIndex = AttributeEditorViewModel.ColorIndex(value, Row.ColorIndex);
+                Raise(nameof(Color));
+            }
+        }
 
         /// <summary>Gets or sets the lineweight by its name: ByLayer, ByBlock, Default, or millimetres.</summary>
-        public string LineWeight { get => AttributeEditorViewModel.WeightName(Row.LineWeight); set { Row.LineWeight = AttributeEditorViewModel.Weight(value, Row.LineWeight); Raise(nameof(LineWeight)); } }
+        public string LineWeight
+        {
+            get => AttributeEditorViewModel.WeightName(Row.LineWeight);
+            set
+            {
+                Row.LineWeight = AttributeEditorViewModel.Weight(value, Row.LineWeight);
+                Raise(nameof(LineWeight));
+            }
+        }
     }
 
     /// <summary>
@@ -1099,7 +1480,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </summary>
     public sealed class AttributeEditorViewModel : ObservableObject
     {
-        private static readonly string[] ColorNames = { "ByBlock", "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White" };
+        private static readonly string[] ColorNames =
+        {
+            "ByBlock",
+            "Red",
+            "Yellow",
+            "Green",
+            "Cyan",
+            "Blue",
+            "Magenta",
+            "White",
+        };
         private string _tab = "Attribute";
         private AttributeRowViewModel _selected;
 
@@ -1119,9 +1510,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             DxfDatabase database = request.Document.Database;
-            Styles = database.TextStyleTable.Select(s => s.Name).Where(n => n.Length > 0).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ThenBy(n => n, StringComparer.Ordinal).ToList();
-            Layers = database.LayerTable.Select(l => l.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ThenBy(n => n, StringComparer.Ordinal).ToList();
-            Linetypes = database.LinetypeTable.Select(l => l.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ThenBy(n => n, StringComparer.Ordinal).ToList();
+            Styles = database
+                .TextStyleTable.Select(s => s.Name)
+                .Where(n => n.Length > 0)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(n => n, StringComparer.Ordinal)
+                .ToList();
+            Layers = database
+                .LayerTable.Select(l => l.Name)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(n => n, StringComparer.Ordinal)
+                .ToList();
+            Linetypes = database
+                .LinetypeTable.Select(l => l.Name)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(n => n, StringComparer.Ordinal)
+                .ToList();
         }
 
         /// <summary>Gets the request.</summary>
@@ -1192,7 +1596,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public IReadOnlyList<string> Colors { get; } = new[] { "ByLayer" }.Concat(ColorNames).ToList();
 
         /// <summary>Gets the lineweights offered: ByLayer, ByBlock, Default and AutoCAD's widths in millimetres.</summary>
-        public IReadOnlyList<string> LineWeights { get; } = new[] { "ByLayer", "ByBlock", "Default" }.Concat(new[] { 0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53, 60, 70, 80, 90, 100, 106, 120, 140, 158, 200, 211 }.Select(w => (w / 100.0).ToString("0.00", CultureInfo.InvariantCulture) + " mm")).ToList();
+        public IReadOnlyList<string> LineWeights { get; } =
+            new[] { "ByLayer", "ByBlock", "Default" }
+                .Concat(
+                    new[]
+                    {
+                        0,
+                        5,
+                        9,
+                        13,
+                        15,
+                        18,
+                        20,
+                        25,
+                        30,
+                        35,
+                        40,
+                        50,
+                        53,
+                        60,
+                        70,
+                        80,
+                        90,
+                        100,
+                        106,
+                        120,
+                        140,
+                        158,
+                        200,
+                        211,
+                    }.Select(w => (w / 100.0).ToString("0.00", CultureInfo.InvariantCulture) + " mm")
+                )
+                .ToList();
 
         /// <summary>Closes the editor with an action: OK keeps what was typed, Cancel takes back what Apply did not keep.</summary>
         /// <param name="action">OK, Cancel, Apply or Select block.</param>
@@ -1201,7 +1636,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Apply: what was typed is kept, the editor staying open, so that a Cancel after it takes back only what is typed after it.</summary>
         public void Apply() => Request.Apply();
 
-        internal static string ColorName(int index) => index == 256 ? "ByLayer" : index >= 0 && index <= 7 ? ColorNames[index] : "Color " + index.ToString(CultureInfo.InvariantCulture);
+        internal static string ColorName(int index) =>
+            index == 256 ? "ByLayer"
+            : index >= 0 && index <= 7 ? ColorNames[index]
+            : "Color " + index.ToString(CultureInfo.InvariantCulture);
 
         internal static int ColorIndex(string name, int fallback)
         {
@@ -1217,21 +1655,35 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return at;
             }
 
-            return name != null && name.StartsWith("Color ", StringComparison.Ordinal) && int.TryParse(name.Substring(6), NumberStyles.Integer, CultureInfo.InvariantCulture, out int index) ? index : fallback;
+            return
+                name != null
+                && name.StartsWith("Color ", StringComparison.Ordinal)
+                && int.TryParse(name.Substring(6), NumberStyles.Integer, CultureInfo.InvariantCulture, out int index)
+                ? index
+                : fallback;
         }
 
-        internal static string WeightName(int weight) => weight == -1 ? "ByLayer" : weight == -2 ? "ByBlock" : weight == -3 ? "Default" : (weight / 100.0).ToString("0.00", CultureInfo.InvariantCulture) + " mm";
+        internal static string WeightName(int weight) =>
+            weight == -1 ? "ByLayer"
+            : weight == -2 ? "ByBlock"
+            : weight == -3 ? "Default"
+            : (weight / 100.0).ToString("0.00", CultureInfo.InvariantCulture) + " mm";
 
         internal static int Weight(string name, int fallback)
         {
             switch (name)
             {
-                case "ByLayer": return -1;
-                case "ByBlock": return -2;
-                case "Default": return -3;
+                case "ByLayer":
+                    return -1;
+                case "ByBlock":
+                    return -2;
+                case "Default":
+                    return -3;
             }
 
-            return name != null && BlockNumbers.TryRead(name.Replace(" mm", string.Empty), out double mm) ? (int)Math.Round(mm * 100.0) : fallback;
+            return name != null && BlockNumbers.TryRead(name.Replace(" mm", string.Empty), out double mm)
+                ? (int)Math.Round(mm * 100.0)
+                : fallback;
         }
     }
 }

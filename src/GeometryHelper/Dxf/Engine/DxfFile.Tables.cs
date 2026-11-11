@@ -141,7 +141,15 @@ namespace GeometryHelper.Dxf
             {
                 for (int i = section.First + 1; section.Name == "TABLES" && i < section.Last && end < 0; i++)
                 {
-                    if (head < 0 && _types[i] == "TABLE" && string.Equals(DxfReader.NameOf(Record(Original(i)).Text(2) ?? string.Empty), table, StringComparison.OrdinalIgnoreCase))
+                    if (
+                        head < 0
+                        && _types[i] == "TABLE"
+                        && string.Equals(
+                            DxfReader.NameOf(Record(Original(i)).Text(2) ?? string.Empty),
+                            table,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
                     {
                         head = i;
                     }
@@ -168,7 +176,15 @@ namespace GeometryHelper.Dxf
                 Rec header = Current(head, head + 1)[0];
                 int count = FirstWhole(header, PairsOf(header), 70);
 
-                if (WithGroup(header, 70, Math.Max(0, count - 1).ToString(CultureInfo.InvariantCulture), false, out Rec counted))
+                if (
+                    WithGroup(
+                        header,
+                        70,
+                        Math.Max(0, count - 1).ToString(CultureInfo.InvariantCulture),
+                        false,
+                        out Rec counted
+                    )
+                )
                 {
                     Put(head, new List<Piece> { new Piece(new List<Rec> { counted }) });
                 }
@@ -203,7 +219,14 @@ namespace GeometryHelper.Dxf
         /// <c>7</c>, then <c>1000</c> the name, in ACAD's DSTYLE); every record not about it keeping its bytes. What is read of
         /// the entities is read again. The number of records written anew.
         /// </summary>
-        internal int Rename(ICollection<string> sections, Func<string, int, bool> names, int dataCode, string from, string to, bool arrows = false)
+        internal int Rename(
+            ICollection<string> sections,
+            Func<string, int, bool> names,
+            int dataCode,
+            string from,
+            string to,
+            bool arrows = false
+        )
         {
             int written = 0;
 
@@ -236,9 +259,28 @@ namespace GeometryHelper.Dxf
                         {
                             braced = Text(record, pair).Trim().StartsWith("{", StringComparison.Ordinal);
                         }
-                        else if ((i > 0 && ((i < data && !braced && names(record.Type, pair.Code)) || (i >= data && pair.Code == dataCode))
-                            && string.Equals(DxfReader.NameOf(Text(record, pair)), from, StringComparison.OrdinalIgnoreCase))
-                            || (overrides && string.Equals(OverrideArrow(record, pairs, i), from, StringComparison.OrdinalIgnoreCase)))
+                        else if (
+                            (
+                                i > 0
+                                && (
+                                    (i < data && !braced && names(record.Type, pair.Code))
+                                    || (i >= data && pair.Code == dataCode)
+                                )
+                                && string.Equals(
+                                    DxfReader.NameOf(Text(record, pair)),
+                                    from,
+                                    StringComparison.OrdinalIgnoreCase
+                                )
+                            )
+                            || (
+                                overrides
+                                && string.Equals(
+                                    OverrideArrow(record, pairs, i),
+                                    from,
+                                    StringComparison.OrdinalIgnoreCase
+                                )
+                            )
+                        )
                         {
                             b.Raw(record, pair.Start, pair.ValueStart);
                             b.Value(to);
@@ -288,10 +330,12 @@ namespace GeometryHelper.Dxf
         internal sealed class Usage
         {
             /// <summary>The names an INSERT, a dimension or a table draws by, letters of either case the same.</summary>
-            internal Dictionary<string, int> Drawn { get; } = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            internal Dictionary<string, int> Drawn { get; } =
+                new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
             /// <summary>The names a dimension style or the override of a dimension gives as an arrow, letters of either case the same.</summary>
-            internal Dictionary<string, int> Arrows { get; } = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            internal Dictionary<string, int> Arrows { get; } =
+                new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
             /// <summary>The handles pointed at.</summary>
             internal Dictionary<ulong, int> Pointed { get; } = new Dictionary<ulong, int>();
@@ -303,7 +347,8 @@ namespace GeometryHelper.Dxf
             internal bool MayBeArrow(string name) => Arrows.ContainsKey(name);
 
             /// <summary>Whether a record may point at a handle, as <see cref="PointedAt"/> finds one; false where none does.</summary>
-            internal bool MayPointAt(string handle) => !TryHex(handle.Trim(), out ulong wanted) || Pointed.ContainsKey(wanted);
+            internal bool MayPointAt(string handle) =>
+                !TryHex(handle.Trim(), out ulong wanted) || Pointed.ContainsKey(wanted);
 
             /// <summary>Counts a use on, or off.</summary>
             internal static void Count<T>(Dictionary<T, int> uses, T key, int by)
@@ -426,7 +471,12 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                bool pointer = (pair.Code >= 320 && pair.Code <= 369) || (pair.Code >= 390 && pair.Code <= 399) || pair.Code == 480 || pair.Code == 481 || pair.Code == 1005;
+                bool pointer =
+                    (pair.Code >= 320 && pair.Code <= 369)
+                    || (pair.Code >= 390 && pair.Code <= 399)
+                    || pair.Code == 480
+                    || pair.Code == 481
+                    || pair.Code == 1005;
 
                 if (pointer && TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong value))
                 {
@@ -460,7 +510,15 @@ namespace GeometryHelper.Dxf
                         {
                             braced = Text(record, pairs[i]).Trim().StartsWith("{", StringComparison.Ordinal);
                         }
-                        else if (!braced && names(record.Type, pairs[i].Code) && string.Equals(DxfReader.NameOf(Text(record, pairs[i])), name, StringComparison.OrdinalIgnoreCase))
+                        else if (
+                            !braced
+                            && names(record.Type, pairs[i].Code)
+                            && string.Equals(
+                                DxfReader.NameOf(Text(record, pairs[i])),
+                                name,
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                        )
                         {
                             return true;
                         }
@@ -516,9 +574,18 @@ namespace GeometryHelper.Dxf
                             continue;
                         }
 
-                        bool pointer = (pair.Code >= 320 && pair.Code <= 369) || (pair.Code >= 390 && pair.Code <= 399) || pair.Code == 480 || pair.Code == 481 || pair.Code == 1005;
+                        bool pointer =
+                            (pair.Code >= 320 && pair.Code <= 369)
+                            || (pair.Code >= 390 && pair.Code <= 399)
+                            || pair.Code == 480
+                            || pair.Code == 481
+                            || pair.Code == 1005;
 
-                        if (pointer && TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong value) && value == wanted)
+                        if (
+                            pointer
+                            && TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong value)
+                            && value == wanted
+                        )
                         {
                             return true;
                         }
@@ -537,7 +604,12 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <returns>The handles pointed at, of those given, as they were given, each with the handle of the first record of the
         /// file that points at it (empty for one of no handle).</returns>
-        internal Dictionary<string, string> PointedAmong(IEnumerable<string> handles, IEnumerable<string> recordsAside, ICollection<string> typesAside, out Dictionary<string, string> named)
+        internal Dictionary<string, string> PointedAmong(
+            IEnumerable<string> handles,
+            IEnumerable<string> recordsAside,
+            ICollection<string> typesAside,
+            out Dictionary<string, string> named
+        )
         {
             named = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var wanted = new Dictionary<ulong, string>();
@@ -584,7 +656,11 @@ namespace GeometryHelper.Dxf
                     List<Pair> pairs = PairsOf(record);
                     bool handled = pairs.Count > 1 && pairs[1].Code == 5;
 
-                    if (handled && TryHex(record.Bytes, pairs[1].ValueStart, pairs[1].ValueEnd, out ulong own) && leftAside.Contains(own))
+                    if (
+                        handled
+                        && TryHex(record.Bytes, pairs[1].ValueStart, pairs[1].ValueEnd, out ulong own)
+                        && leftAside.Contains(own)
+                    )
                     {
                         continue;
                     }
@@ -613,15 +689,33 @@ namespace GeometryHelper.Dxf
                             continue;
                         }
 
-                        bool pointer = (pair.Code >= 320 && pair.Code <= 369) || (pair.Code >= 390 && pair.Code <= 399) || pair.Code == 480 || pair.Code == 481 || pair.Code == 1005;
+                        bool pointer =
+                            (pair.Code >= 320 && pair.Code <= 369)
+                            || (pair.Code >= 390 && pair.Code <= 399)
+                            || pair.Code == 480
+                            || pair.Code == 481
+                            || pair.Code == 1005;
 
-                        if (pointer && TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong value) && wanted.TryGetValue(value, out string given) && !found.ContainsKey(given))
+                        if (
+                            pointer
+                            && TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong value)
+                            && wanted.TryGetValue(value, out string given)
+                            && !found.ContainsKey(given)
+                        )
                         {
                             found.Add(given, handled ? Text(record, pairs[1]).Trim() : string.Empty);
                         }
 
                         // The first FIELD that names it as one of its own fields (360), which can own it.
-                        if (pointer && pair.Code == 360 && handled && record.Type == "FIELD" && TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong child) && wanted.TryGetValue(child, out string owned) && !named.ContainsKey(owned))
+                        if (
+                            pointer
+                            && pair.Code == 360
+                            && handled
+                            && record.Type == "FIELD"
+                            && TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong child)
+                            && wanted.TryGetValue(child, out string owned)
+                            && !named.ContainsKey(owned)
+                        )
                         {
                             named.Add(owned, Text(record, pairs[1]).Trim());
                         }
@@ -836,7 +930,12 @@ namespace GeometryHelper.Dxf
             item.Space?.Removed();
 
             var piece = new Piece(moved);
-            var to = new DxfItem(this, piece, moved[0].Type) { Home = Place(space, piece), IsPaper = paper, Block = space.Block?.Name };
+            var to = new DxfItem(this, piece, moved[0].Type)
+            {
+                Home = Place(space, piece),
+                IsPaper = paper,
+                Block = space.Block?.Name,
+            };
             TakeFollowers(item, to);
             space.Append(to);
 
@@ -917,7 +1016,13 @@ namespace GeometryHelper.Dxf
                             changed = true;
                         }
 
-                        if (leaves && i > body && i < data && pairs[i].Code == 331 && string.Equals(Text(record, pairs[i]).Trim(), entity, StringComparison.OrdinalIgnoreCase))
+                        if (
+                            leaves
+                            && i > body
+                            && i < data
+                            && pairs[i].Code == 331
+                            && string.Equals(Text(record, pairs[i]).Trim(), entity, StringComparison.OrdinalIgnoreCase)
+                        )
                         {
                             changed = true;
 
@@ -962,7 +1067,14 @@ namespace GeometryHelper.Dxf
 
                 foreach (Rec record in Inside(section))
                 {
-                    if (record.Type == "CLASS" && string.Equals((Record(record).Text(1) ?? string.Empty).Trim(), dxfName, StringComparison.OrdinalIgnoreCase))
+                    if (
+                        record.Type == "CLASS"
+                        && string.Equals(
+                            (Record(record).Text(1) ?? string.Empty).Trim(),
+                            dxfName,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
                     {
                         return true;
                     }
@@ -980,7 +1092,12 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal string KeptRootDictionaryHandle()
         {
-            if (_keptRoot == null || !(ObjectItem(_keptRoot) is DxfItem item) || item.IsRemoved || item.Type != "DICTIONARY")
+            if (
+                _keptRoot == null
+                || !(ObjectItem(_keptRoot) is DxfItem item)
+                || item.IsRemoved
+                || item.Type != "DICTIONARY"
+            )
             {
                 _keptRoot = RootDictionaryHandle();
             }
@@ -993,7 +1110,9 @@ namespace GeometryHelper.Dxf
         internal string RootDictionaryHandle()
         {
             Rec? root = RootDictionary();
-            return root != null && HandleOf(root.Value, out ulong handle) ? handle.ToString("X", CultureInfo.InvariantCulture) : null;
+            return root != null && HandleOf(root.Value, out ulong handle)
+                ? handle.ToString("X", CultureInfo.InvariantCulture)
+                : null;
         }
 
         #endregion

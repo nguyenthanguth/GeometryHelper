@@ -13,8 +13,8 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
 {
     public class SymbolsWeldTests
     {
-        private static IReadOnlyList<WeldSymbol> Find(params DrawingObject[] objects)
-            => WeldSymbol.Find(Project(objects, Front), objects, Front, new SymbolSettings(), 10);
+        private static IReadOnlyList<WeldSymbol> Find(params DrawingObject[] objects) =>
+            WeldSymbol.Find(Project(objects, Front), objects, Front, new SymbolSettings(), 10);
 
         /// <summary>Writes a symbol at 1:10 at the origin and gives the drawing.</summary>
         private static DxfDatabase Write(WeldSymbol symbol)
@@ -55,7 +55,12 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             Assert.Equal(new[] { "a5", "200" }, database.ModelSpace.OfType<DxfMText>().Select(t => t.Contents));
 
             // The triangle stands on the continuous line, 8 up on the sheet, and rises from it.
-            Assert.All(lines.Where(l => l.Linetype != "HIDDEN" && Math.Abs(l.StartPoint.X - l.EndPoint.X) < 1E-9 && l.StartPoint.X > 15), l => Assert.True(Math.Min(l.StartPoint.Y, l.EndPoint.Y) >= 8 - 1E-9));
+            Assert.All(
+                lines.Where(l =>
+                    l.Linetype != "HIDDEN" && Math.Abs(l.StartPoint.X - l.EndPoint.X) < 1E-9 && l.StartPoint.X > 15
+                ),
+                l => Assert.True(Math.Min(l.StartPoint.Y, l.EndPoint.Y) >= 8 - 1E-9)
+            );
             Assert.All(database.ModelSpace, e => Assert.Equal(SymbolSettings.Layer, e.Layer));
         }
 
@@ -68,7 +73,12 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
 
             DxfDatabase otherDrawn = Write(symbols[0]);
             DxfLine dashed = Assert.Single(otherDrawn.ModelSpace.OfType<DxfLine>(), l => l.Linetype == "HIDDEN");
-            DxfLine[] vee = otherDrawn.ModelSpace.OfType<DxfLine>().Where(l => Math.Abs(l.StartPoint.Y - l.EndPoint.Y) > 1E-9 && l.StartPoint.X > symbols[0].Knee.X / 10 + 1E-9).ToArray();
+            DxfLine[] vee = otherDrawn
+                .ModelSpace.OfType<DxfLine>()
+                .Where(l =>
+                    Math.Abs(l.StartPoint.Y - l.EndPoint.Y) > 1E-9 && l.StartPoint.X > symbols[0].Knee.X / 10 + 1E-9
+                )
+                .ToArray();
             Assert.Equal(2, vee.Length);
             Assert.All(vee, l => Assert.True(Math.Max(l.StartPoint.Y, l.EndPoint.Y) <= dashed.StartPoint.Y + 1E-9));
 
@@ -98,7 +108,10 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         [Fact]
         public void AWeldOfNoKindIsAFilletAndOneOfAKindNotKnownGetsNoSymbol()
         {
-            IReadOnlyList<WeldSymbol> symbols = Find(Weld("W-1", new GeoPoint3(0, 0, 0), null, null, null, null), Weld("W-2", new GeoPoint3(300, 0, 0), "Plug", null, null, null));
+            IReadOnlyList<WeldSymbol> symbols = Find(
+                Weld("W-1", new GeoPoint3(0, 0, 0), null, null, null, null),
+                Weld("W-2", new GeoPoint3(300, 0, 0), "Plug", null, null, null)
+            );
 
             WeldSymbol symbol = Assert.Single(symbols);
             Assert.Equal("W-1", symbol.WeldId);
@@ -111,7 +124,15 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         {
             DrawingObject[] objects = { Weld("W-1", new GeoPoint3(0, 0, 0), "Fillet", "Arrow", "a5", null) };
 
-            NotSupportedException error = Assert.Throws<NotSupportedException>(() => WeldSymbol.Find(Project(objects, Front), objects, Front, new SymbolSettings { WeldStandard = WeldStandard.AwsA24 }, 10));
+            NotSupportedException error = Assert.Throws<NotSupportedException>(() =>
+                WeldSymbol.Find(
+                    Project(objects, Front),
+                    objects,
+                    Front,
+                    new SymbolSettings { WeldStandard = WeldStandard.AwsA24 },
+                    10
+                )
+            );
             Assert.Contains("Q3", error.Message);
         }
     }

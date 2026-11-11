@@ -114,7 +114,9 @@ namespace GeometryHelper.Dwg
                 for (int i = 0; i < order.Length; i++)
                 {
                     byte b = data[at + order[i]];
-                    crc = mirrored ? Table64Mirrored[(crc ^ b) & 0xFF] ^ (crc >> 8) : Table64[(b ^ (crc >> 56)) & 0xFF] ^ (crc << 8);
+                    crc = mirrored
+                        ? Table64Mirrored[(crc ^ b) & 0xFF] ^ (crc >> 8)
+                        : Table64[(b ^ (crc >> 56)) & 0xFF] ^ (crc << 8);
                 }
 
                 at += order.Length;

@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -41,7 +41,7 @@ namespace GeometryHelper.Geometry
         /// one from (300, 0, 0), also 50 long. The tolerance is taken so that this reads like every other shape; it
         /// changes nothing here.
         /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance)
-            => Ellipse3.GetShortestLineTo(this, point, tolerance);
+        public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance) =>
+            Ellipse3.GetShortestLineTo(this, point, tolerance);
     }
 }

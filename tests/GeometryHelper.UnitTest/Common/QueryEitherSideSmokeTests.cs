@@ -19,11 +19,18 @@ namespace GeometryHelper.UnitTest.Common
         {
             // A chain in z = 0 along x to (400, 0), then up to (400, 200), through a triangle standing across x = 200.
             var chain = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0));
-            var triangle = new GeoTriangle3(new GeoPoint3(200, -100, -100), new GeoPoint3(200, 100, -100), new GeoPoint3(200, 0, 100));
+            var triangle = new GeoTriangle3(
+                new GeoPoint3(200, -100, -100),
+                new GeoPoint3(200, 100, -100),
+                new GeoPoint3(200, 0, 100)
+            );
 
             Assert.Equal(chain.CollidesWith(triangle, Tol), triangle.CollidesWith(chain, Tol));
             Assert.Equal(chain.GetIntersections(triangle, Tol), triangle.GetIntersections(chain, Tol));
-            Assert.Equal(chain.TryIntersectWith(triangle, out GeoPoint3[] fromChain, Tol), triangle.TryIntersectWith(chain, out GeoPoint3[] fromTriangle, Tol));
+            Assert.Equal(
+                chain.TryIntersectWith(triangle, out GeoPoint3[] fromChain, Tol),
+                triangle.TryIntersectWith(chain, out GeoPoint3[] fromTriangle, Tol)
+            );
             Assert.Equal(fromChain, fromTriangle);
             Assert.Single(fromTriangle);
         }
@@ -43,7 +50,9 @@ namespace GeometryHelper.UnitTest.Common
         [Fact]
         public void APointIsAsFarFromACurvedChainAsTheChainIsFromIt()
         {
-            var chain = new GeoPolylineArc3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0) });
+            var chain = new GeoPolylineArc3(
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0) }
+            );
             var point = new GeoPoint3(150, 30, 40);
 
             Assert.Equal(chain.DistanceTo(point, Tol), point.DistanceTo(chain, Tol));
@@ -54,7 +63,15 @@ namespace GeometryHelper.UnitTest.Common
         public void TheShortestLineToACurvedLoopIsTheLoopsLineTurnedRound()
         {
             // A square 100 by 100 in z = 0, and a point 40 above a place 30 outside its right side.
-            var loop = new GeoPolygonArc3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0) });
+            var loop = new GeoPolygonArc3(
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    new GeoPoint3(100, 100, 0),
+                    new GeoPoint3(0, 100, 0),
+                }
+            );
             var point = new GeoPoint3(130, 50, 40);
 
             GeoLine3 fromLoop = loop.GetShortestLineTo(point, Tol);
@@ -69,10 +86,20 @@ namespace GeometryHelper.UnitTest.Common
         public void AnArcMeetsAFaceAtTheSamePointsFromEitherSide()
         {
             // A square 100 by 100 with a quarter circle of radius 100 round its corner at the origin running across it.
-            var face = new GeoFace2(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100)));
+            var face = new GeoFace2(
+                new GeoPolygon2(
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(100, 0),
+                    new GeoPoint2(100, 100),
+                    new GeoPoint2(0, 100)
+                )
+            );
             var arc = new GeoArc2(new GeoPoint2(0, 0), 100, 0.0, Math.PI / 2);
 
-            Assert.Equal(face.TryIntersectWith(arc, out GeoPoint2[] fromFace, Tol), arc.TryIntersectWith(face, out GeoPoint2[] fromArc, Tol));
+            Assert.Equal(
+                face.TryIntersectWith(arc, out GeoPoint2[] fromFace, Tol),
+                arc.TryIntersectWith(face, out GeoPoint2[] fromArc, Tol)
+            );
             Assert.Equal(fromFace, fromArc);
             Assert.NotEmpty(fromArc);
         }
@@ -82,7 +109,9 @@ namespace GeometryHelper.UnitTest.Common
         {
             var arc = new GeoArc2(new GeoPoint2(0, 0), 100, 0.0, Math.PI / 2);
 
-            ArgumentNullException refused = Assert.Throws<ArgumentNullException>(() => arc.TryIntersectWith((GeoFace2)null, out GeoPoint2[] _, Tol));
+            ArgumentNullException refused = Assert.Throws<ArgumentNullException>(() =>
+                arc.TryIntersectWith((GeoFace2)null, out GeoPoint2[] _, Tol)
+            );
 
             Assert.Equal("face", refused.ParamName);
         }
@@ -93,7 +122,10 @@ namespace GeometryHelper.UnitTest.Common
             var point = new GeoPoint2(130, 40);
             var line = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0));
             var polyline = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100));
-            var chain = new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) }, new[] { 0.0, 0.5, 0.0 });
+            var chain = new GeoPolylineArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) },
+                new[] { 0.0, 0.5, 0.0 }
+            );
             var edge = new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), 1.0);
 
             GeoLine2 fromLine = line.GetShortestLineTo(point, Tol);
@@ -125,7 +157,12 @@ namespace GeometryHelper.UnitTest.Common
         public void TheShortestLineFromARegionRunsFromItsBoundaryEvenForAPointInside()
         {
             // The square 100 by 100 on the origin: (50, 30) is 30 inside its bottom edge, (50, -40) is 40 below it.
-            var square = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+            var square = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(0, 100)
+            );
             var inside = new GeoPoint2(50, 30);
             var outside = new GeoPoint2(50, -40);
 

@@ -18,7 +18,17 @@ namespace GeometryHelper.Drawing.Annotation
         private readonly DimensionPoint _toBelow;
         private readonly GeoVector3 _along;
 
-        public DimensionCandidate(DimensionKind kind, int axis, GeoVector3 along, DimensionPoint fromAbove, DimensionPoint toAbove, DimensionPoint fromBelow, DimensionPoint toBelow, int count, string text)
+        public DimensionCandidate(
+            DimensionKind kind,
+            int axis,
+            GeoVector3 along,
+            DimensionPoint fromAbove,
+            DimensionPoint toAbove,
+            DimensionPoint fromBelow,
+            DimensionPoint toBelow,
+            int count,
+            string text
+        )
         {
             Kind = kind;
             Axis = axis;
@@ -130,7 +140,8 @@ namespace GeometryHelper.Drawing.Annotation
             {
                 // Its axis, and its side as its text stands by the middle of the box: above or right first, as Place has them.
                 int axis = kept.Direction.X > 0.5 ? 0 : 1;
-                bool first = axis == 0 ? kept.TextBox.Center.Y >= bounds.Center.Y : kept.TextBox.Center.X >= bounds.Center.X;
+                bool first =
+                    axis == 0 ? kept.TextBox.Center.Y >= bounds.Center.Y : kept.TextBox.Center.X >= bounds.Center.X;
                 int index = 2 * axis + (first ? 0 : 1);
                 _kept.Add(DimensionShape.Of(kept));
                 _outer[index] = Math.Max(_outer[index], kept.Tier);
@@ -304,16 +315,35 @@ namespace GeometryHelper.Drawing.Annotation
                 if (alongX)
                 {
                     var leader = new GeoLine2(p.X, p.Y + side * _offPoint, p.X, line);
-                    return new DimensionShape(null, new[] { leader }, p.X - 0.5 * h, start, p.X + 0.5 * h, start + w, 0.5 * Math.PI, h);
+                    return new DimensionShape(
+                        null,
+                        new[] { leader },
+                        p.X - 0.5 * h,
+                        start,
+                        p.X + 0.5 * h,
+                        start + w,
+                        0.5 * Math.PI,
+                        h
+                    );
                 }
                 else
                 {
                     var leader = new GeoLine2(p.X + side * _offPoint, p.Y, line, p.Y);
-                    return new DimensionShape(null, new[] { leader }, start, p.Y - 0.5 * h, start + w, p.Y + 0.5 * h, 0.0, h);
+                    return new DimensionShape(
+                        null,
+                        new[] { leader },
+                        start,
+                        p.Y - 0.5 * h,
+                        start + w,
+                        p.Y + 0.5 * h,
+                        0.0,
+                        h
+                    );
                 }
             }
 
-            double lo = c.Along(c.FromOn(side)), hi = c.Along(c.ToOn(side));
+            double lo = c.Along(c.FromOn(side)),
+                hi = c.Along(c.ToOn(side));
             double textLow;
 
             switch (option)
@@ -334,7 +364,8 @@ namespace GeometryHelper.Drawing.Annotation
                     break;
             }
 
-            GeoPoint2 a = c.FromOn(side).ViewPoint, b = c.ToOn(side).ViewPoint;
+            GeoPoint2 a = c.FromOn(side).ViewPoint,
+                b = c.ToOn(side).ViewPoint;
 
             if (alongX)
             {
@@ -346,7 +377,16 @@ namespace GeometryHelper.Drawing.Annotation
                 };
 
                 // The text stands above its line, read from below, whichever side of the view the line is on.
-                return new DimensionShape(dimensionLine, extensions, textLow, line + _gap, textLow + w, line + _gap + h, 0.0, h);
+                return new DimensionShape(
+                    dimensionLine,
+                    extensions,
+                    textLow,
+                    line + _gap,
+                    textLow + w,
+                    line + _gap + h,
+                    0.0,
+                    h
+                );
             }
             else
             {
@@ -358,7 +398,16 @@ namespace GeometryHelper.Drawing.Annotation
                 };
 
                 // Read from the right, the text's top is towards -X: it stands on the left of its line.
-                return new DimensionShape(dimensionLine, extensions, line - _gap - h, textLow, line - _gap, textLow + w, 0.5 * Math.PI, h);
+                return new DimensionShape(
+                    dimensionLine,
+                    extensions,
+                    line - _gap - h,
+                    textLow,
+                    line - _gap,
+                    textLow + w,
+                    0.5 * Math.PI,
+                    h
+                );
             }
         }
     }

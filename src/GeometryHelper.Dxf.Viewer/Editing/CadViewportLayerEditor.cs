@@ -41,8 +41,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (string handle in handles)
             {
-                return handles.Count == 1 && document.FindEntity(handle) is DxfViewport viewport && viewport.Number != 1
-                    && ReferenceEquals(document.FindSpace(handle), document.CurrentSpace) ? viewport : null;
+                return
+                    handles.Count == 1
+                    && document.FindEntity(handle) is DxfViewport viewport
+                    && viewport.Number != 1
+                    && ReferenceEquals(document.FindSpace(handle), document.CurrentSpace)
+                    ? viewport
+                    : null;
             }
 
             return null;
@@ -95,7 +100,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="name">The name of the undo step, as LAYER or VPLAYER.</param>
         /// <returns>What came of it; refused for a viewport or a layer the drawing has not.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document, the handles, the names or the step's name are null.</exception>
-        public static CadEditResult SetFrozen(CadDocument document, IEnumerable<string> viewports, IEnumerable<string> layers, bool frozen, string name = "LAYER")
+        public static CadEditResult SetFrozen(
+            CadDocument document,
+            IEnumerable<string> viewports,
+            IEnumerable<string> layers,
+            bool frozen,
+            string name = "LAYER"
+        )
         {
             if (document == null)
             {
@@ -140,7 +151,15 @@ namespace GeometryHelper.Dxf.Viewer
                 if (changes && !targets.Contains(viewport.Handle))
                 {
                     targets.Add(viewport.Handle);
-                    records.Add(new CadEditRecord(CadEditRecordKind.PropertyChanged, viewport.Handle, "VP Freeze", was, Joined(Planned(viewport, names, frozen))));
+                    records.Add(
+                        new CadEditRecord(
+                            CadEditRecordKind.PropertyChanged,
+                            viewport.Handle,
+                            "VP Freeze",
+                            was,
+                            Joined(Planned(viewport, names, frozen))
+                        )
+                    );
                 }
             }
 
@@ -185,7 +204,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="frozen">Whether they are to be frozen.</param>
         /// <returns>What came of it.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document or the names are null.</exception>
-        public static CadEditResult SetFrozenInAllViewports(CadDocument document, IEnumerable<string> layers, bool frozen)
+        public static CadEditResult SetFrozenInAllViewports(
+            CadDocument document,
+            IEnumerable<string> layers,
+            bool frozen
+        )
         {
             var handles = new List<string>();
 
@@ -207,7 +230,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="name">The name of the undo step.</param>
         /// <returns>What came of it.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
-        public static CadEditResult SetFrozenInNewViewports(CadDocument document, string layer, bool frozen, string name = "LAYER")
+        public static CadEditResult SetFrozenInNewViewports(
+            CadDocument document,
+            string layer,
+            bool frozen,
+            string name = "LAYER"
+        )
         {
             DxfLayerTableRecord record = Layer(document, layer, out CadEditResult refused);
 
@@ -217,8 +245,19 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string layerName = record.Name;
-            var change = new CadEditRecord(CadEditRecordKind.TableChanged, null, "New VP Freeze " + layerName, record.ViewportVisibilityDefault ? "Yes" : "No", frozen ? "Yes" : "No") { IsLayerLook = true };
-            return document.ApplyEdit(name ?? "LAYER", new[] { change }, s => s.Database.LayerTable[layerName].ViewportVisibilityDefault = frozen);
+            var change = new CadEditRecord(
+                CadEditRecordKind.TableChanged,
+                null,
+                "New VP Freeze " + layerName,
+                record.ViewportVisibilityDefault ? "Yes" : "No",
+                frozen ? "Yes" : "No"
+            )
+            {
+                IsLayerLook = true,
+            };
+            return document.ApplyEdit(name ?? "LAYER", new[] { change }, s =>
+                s.Database.LayerTable[layerName].ViewportVisibilityDefault = frozen
+            );
         }
 
         /// <summary>
@@ -249,13 +288,24 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse("Layer \"" + trimmed + "\" already exists.");
             }
 
-            var records = new List<CadEditRecord> { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New layer", null, trimmed) };
+            var records = new List<CadEditRecord>
+            {
+                new CadEditRecord(CadEditRecordKind.TableChanged, null, "New layer", null, trimmed),
+            };
             var handles = new List<string>();
 
             foreach (DxfViewport viewport in LayoutViewports(document))
             {
                 handles.Add(viewport.Handle);
-                records.Add(new CadEditRecord(CadEditRecordKind.PropertyChanged, viewport.Handle, "VP Freeze", Frozen(viewport), Joined(Planned(viewport, new List<string> { trimmed }, true))));
+                records.Add(
+                    new CadEditRecord(
+                        CadEditRecordKind.PropertyChanged,
+                        viewport.Handle,
+                        "VP Freeze",
+                        Frozen(viewport),
+                        Joined(Planned(viewport, new List<string> { trimmed }, true))
+                    )
+                );
             }
 
             return document.ApplyEdit(name ?? "LAYER", records, s =>
@@ -284,15 +334,27 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (color == null || (!color.IsByAci && !color.IsByColor))
             {
-                return CadEditResult.Refuse("A layer's colour in a viewport is one of the index, 1 to 255, or a true colour; not ByLayer or ByBlock.");
+                return CadEditResult.Refuse(
+                    "A layer's colour in a viewport is one of the index, 1 to 255, or a true colour; not ByLayer or ByBlock."
+                );
             }
 
             if (color.IsByColor && string.CompareOrdinal(document?.Database.Version, "AC1018") < 0)
             {
-                return CadEditResult.Refuse("A drawing older than AutoCAD 2004 has no true colours: pick a colour of the index.");
+                return CadEditResult.Refuse(
+                    "A drawing older than AutoCAD 2004 has no true colours: pick a colour of the index."
+                );
             }
 
-            return Override(document, viewport, layer, "VP Color", l => l.Color.ToString(), color.ToString(), l => l.Color = color);
+            return Override(
+                document,
+                viewport,
+                layer,
+                "VP Color",
+                l => l.Color.ToString(),
+                color.ToString(),
+                l => l.Color = color
+            );
         }
 
         /// <summary>Overrides a layer's linetype in a viewport, as the VP Linetype column: one the drawing has.</summary>
@@ -306,17 +368,33 @@ namespace GeometryHelper.Dxf.Viewer
         {
             string wanted = (linetype ?? string.Empty).Trim();
 
-            if (wanted.Length == 0 || string.Equals(wanted, "ByLayer", StringComparison.OrdinalIgnoreCase) || string.Equals(wanted, "ByBlock", StringComparison.OrdinalIgnoreCase))
+            if (
+                wanted.Length == 0
+                || string.Equals(wanted, "ByLayer", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(wanted, "ByBlock", StringComparison.OrdinalIgnoreCase)
+            )
             {
-                return CadEditResult.Refuse("A layer's linetype in a viewport is one of the drawing's linetypes, not ByLayer or ByBlock.");
+                return CadEditResult.Refuse(
+                    "A layer's linetype in a viewport is one of the drawing's linetypes, not ByLayer or ByBlock."
+                );
             }
 
             if (document != null && !document.Database.LinetypeTable.Has(wanted))
             {
-                return CadEditResult.Refuse("The drawing has no linetype \"" + wanted + "\": load it into the drawing first.");
+                return CadEditResult.Refuse(
+                    "The drawing has no linetype \"" + wanted + "\": load it into the drawing first."
+                );
             }
 
-            return Override(document, viewport, layer, "VP Linetype", l => l.Linetype, wanted, l => l.Linetype = wanted);
+            return Override(
+                document,
+                viewport,
+                layer,
+                "VP Linetype",
+                l => l.Linetype,
+                wanted,
+                l => l.Linetype = wanted
+            );
         }
 
         /// <summary>Overrides a layer's lineweight in a viewport, as the VP Lineweight column: Default or one of AutoCAD's widths.</summary>
@@ -326,14 +404,34 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="lineWeight">The lineweight.</param>
         /// <returns>What came of it.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
-        public static CadEditResult SetLineWeight(CadDocument document, string viewport, string layer, DxfLineWeight lineWeight)
+        public static CadEditResult SetLineWeight(
+            CadDocument document,
+            string viewport,
+            string layer,
+            DxfLineWeight lineWeight
+        )
         {
-            if (lineWeight == DxfLineWeight.ByLayer || lineWeight == DxfLineWeight.ByBlock || lineWeight == DxfLineWeight.ByDIPs || !Enum.IsDefined(typeof(DxfLineWeight), lineWeight))
+            if (
+                lineWeight == DxfLineWeight.ByLayer
+                || lineWeight == DxfLineWeight.ByBlock
+                || lineWeight == DxfLineWeight.ByDIPs
+                || !Enum.IsDefined(typeof(DxfLineWeight), lineWeight)
+            )
             {
-                return CadEditResult.Refuse("A layer's lineweight in a viewport is Default or one of AutoCAD's widths, not ByLayer or ByBlock.");
+                return CadEditResult.Refuse(
+                    "A layer's lineweight in a viewport is Default or one of AutoCAD's widths, not ByLayer or ByBlock."
+                );
             }
 
-            return Override(document, viewport, layer, "VP Lineweight", l => l.LineWeight.ToString(), lineWeight.ToString(), l => l.LineWeight = lineWeight);
+            return Override(
+                document,
+                viewport,
+                layer,
+                "VP Lineweight",
+                l => l.LineWeight.ToString(),
+                lineWeight.ToString(),
+                l => l.LineWeight = lineWeight
+            );
         }
 
         /// <summary>Overrides a layer's transparency in a viewport, as the VP Transparency column: by alpha, in a drawing of AutoCAD 2004 on.</summary>
@@ -343,7 +441,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="transparency">The transparency.</param>
         /// <returns>What came of it.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
-        public static CadEditResult SetTransparency(CadDocument document, string viewport, string layer, DxfTransparency transparency)
+        public static CadEditResult SetTransparency(
+            CadDocument document,
+            string viewport,
+            string layer,
+            DxfTransparency transparency
+        )
         {
             if (!transparency.IsByAlpha)
             {
@@ -355,7 +458,15 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse("A drawing older than AutoCAD 2004 has no transparency.");
             }
 
-            return Override(document, viewport, layer, "VP Transparency", l => l.Transparency.ToString(), transparency.ToString(), l => l.Transparency = transparency);
+            return Override(
+                document,
+                viewport,
+                layer,
+                "VP Transparency",
+                l => l.Transparency.ToString(),
+                transparency.ToString(),
+                l => l.Transparency = transparency
+            );
         }
 
         /// <summary>
@@ -372,7 +483,9 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (document != null && document.Database.PlotStyleMode)
             {
-                return CadEditResult.Refuse("The drawing plots by colour (a CTB table): a layer takes no plot style of its own.");
+                return CadEditResult.Refuse(
+                    "The drawing plots by colour (a CTB table): a layer takes no plot style of its own."
+                );
             }
 
             string wanted = (plotStyle ?? string.Empty).Trim();
@@ -383,7 +496,15 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse("The drawing has no plot style \"" + wanted + "\".");
             }
 
-            return Override(document, viewport, layer, "VP Plot Style", l => l.PlotStyleName, wanted, l => l.PlotStyleName = wanted);
+            return Override(
+                document,
+                viewport,
+                layer,
+                "VP Plot Style",
+                l => l.PlotStyleName,
+                wanted,
+                l => l.PlotStyleName = wanted
+            );
         }
 
         /// <summary>
@@ -419,7 +540,15 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (only == null ? record.HasOverrides : record.HasViewportOverrides(only))
                 {
-                    records.Add(new CadEditRecord(CadEditRecordKind.TableChanged, null, "Remove viewport overrides of " + record.Name, viewport ?? "All viewports", null));
+                    records.Add(
+                        new CadEditRecord(
+                            CadEditRecordKind.TableChanged,
+                            null,
+                            "Remove viewport overrides of " + record.Name,
+                            viewport ?? "All viewports",
+                            null
+                        )
+                    );
                 }
             }
 
@@ -489,7 +618,15 @@ namespace GeometryHelper.Dxf.Viewer
         private static string Joined(IEnumerable<string> names) => string.Join(",", names);
 
         /// <summary>An override of a layer in a viewport, one undo step of one record.</summary>
-        private static CadEditResult Override(CadDocument document, string viewport, string layer, string what, Func<DxfLayerViewportProperties, string> old, string value, Action<DxfLayerViewportProperties> write)
+        private static CadEditResult Override(
+            CadDocument document,
+            string viewport,
+            string layer,
+            string what,
+            Func<DxfLayerViewportProperties, string> old,
+            string value,
+            Action<DxfLayerViewportProperties> write
+        )
         {
             DxfLayerTableRecord record = Layer(document, layer, out CadEditResult refused);
 
@@ -500,12 +637,24 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!(document.FindEntity(viewport) is DxfViewport target) || target.IsErased || target.Number == 1)
             {
-                return CadEditResult.Refuse("The drawing has no viewport " + viewport + " of a layout to override a layer in.");
+                return CadEditResult.Refuse(
+                    "The drawing has no viewport " + viewport + " of a layout to override a layer in."
+                );
             }
 
             string layerName = record.Name;
-            var change = new CadEditRecord(CadEditRecordKind.TableChanged, null, what + " of " + layerName + " in " + target.Handle, old(record.GetViewportOverrides(target)), value);
-            return document.ApplyEdit("LAYER", new[] { change }, s => write(s.Database.LayerTable[layerName].GetViewportOverrides((DxfViewport)s.Document.FindEntity(viewport))));
+            var change = new CadEditRecord(
+                CadEditRecordKind.TableChanged,
+                null,
+                what + " of " + layerName + " in " + target.Handle,
+                old(record.GetViewportOverrides(target)),
+                value
+            );
+            return document.ApplyEdit("LAYER", new[] { change }, s =>
+                write(
+                    s.Database.LayerTable[layerName].GetViewportOverrides((DxfViewport)s.Document.FindEntity(viewport))
+                )
+            );
         }
 
         /// <summary>The names of layers as the table has them, each once, in the order given; null with the refusal where one is missing.</summary>
@@ -549,7 +698,10 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(document));
             }
 
-            DxfLayerTableRecord layer = string.IsNullOrWhiteSpace(name) || !document.Database.LayerTable.Has(name.Trim()) ? null : document.Database.LayerTable[name.Trim()];
+            DxfLayerTableRecord layer =
+                string.IsNullOrWhiteSpace(name) || !document.Database.LayerTable.Has(name.Trim())
+                    ? null
+                    : document.Database.LayerTable[name.Trim()];
             refused = layer == null ? CadEditResult.Refuse("Cannot find layer \"" + name + "\".") : null;
             return layer;
         }

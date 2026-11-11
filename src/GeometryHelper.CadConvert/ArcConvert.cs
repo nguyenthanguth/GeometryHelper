@@ -46,7 +46,8 @@ namespace GeometryHelper.CadConvert
             {
                 throw new ArgumentException(
                     "This AutoCAD arc sweeps nothing or a whole turn; a whole turn is a Circle, and ToGeoCircle2 or ToGeoCircle3 reads it.",
-                    nameof(arc));
+                    nameof(arc)
+                );
             }
         }
 
@@ -65,7 +66,8 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentException">Thrown when the arc is tilted out of the XY plane, or sweeps a whole turn.</exception>
         public static GeoArc2 ToGeoArc2(this Arc arc)
         {
-            if (arc == null) throw new ArgumentNullException(nameof(arc));
+            if (arc == null)
+                throw new ArgumentNullException(nameof(arc));
 
             RequireOpenSweep(arc);
 
@@ -73,7 +75,8 @@ namespace GeometryHelper.CadConvert
             {
                 throw new ArgumentException(
                     "This AutoCAD arc is tilted out of the XY plane, so in plan it is an ellipse; ToGeoArc3 reads it as it is, or read the whole Circle as an ellipse with ToGeoEllipse2.",
-                    nameof(arc));
+                    nameof(arc)
+                );
             }
 
             GeoPoint3 middle = GetMiddlePoint(arc);
@@ -82,7 +85,8 @@ namespace GeometryHelper.CadConvert
                 arc.StartPoint.ToGeoPoint2(),
                 new GeoPoint2(middle.X, middle.Y),
                 arc.EndPoint.ToGeoPoint2(),
-                Exactly);
+                Exactly
+            );
         }
 
         /// <summary>
@@ -129,7 +133,8 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentException">Thrown when the arc sweeps nothing or a whole turn.</exception>
         public static GeoArc3 ToGeoArc3(this Arc arc)
         {
-            if (arc == null) throw new ArgumentNullException(nameof(arc));
+            if (arc == null)
+                throw new ArgumentNullException(nameof(arc));
 
             RequireOpenSweep(arc);
 
@@ -137,7 +142,8 @@ namespace GeometryHelper.CadConvert
                 arc.StartPoint.ToGeoPoint3(),
                 GetMiddlePoint(arc),
                 arc.EndPoint.ToGeoPoint3(),
-                Exactly);
+                Exactly
+            );
         }
 
         /// <summary>
@@ -216,7 +222,8 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="circle"/> is null.</exception>
         public static GeoCircle3 ToGeoCircle3(this Circle circle)
         {
-            if (circle == null) throw new ArgumentNullException(nameof(circle));
+            if (circle == null)
+                throw new ArgumentNullException(nameof(circle));
 
             return new GeoCircle3(circle.Center.ToGeoPoint3(), circle.Normal.ToGeoVector3(), circle.Radius);
         }
@@ -226,7 +233,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="circles">The sequence of AutoCAD Circles to convert.</param>
         /// <returns>A list of converted <see cref="GeoCircle3"/>.</returns>
-        public static List<GeoCircle3> ToGeoCircle3(this IEnumerable<Circle> circles) => circles.Select(ToGeoCircle3).ToList();
+        public static List<GeoCircle3> ToGeoCircle3(this IEnumerable<Circle> circles) =>
+            circles.Select(ToGeoCircle3).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper 2D circle to an AutoCAD Circle in the XY plane.
@@ -235,7 +243,11 @@ namespace GeometryHelper.CadConvert
         /// <returns>The converted AutoCAD <see cref="Circle"/>.</returns>
         public static Circle ToAcadCircle(this GeoCircle2 geoCircle)
         {
-            return new Circle(new Point3d(geoCircle.Center.X, geoCircle.Center.Y, 0.0), Vector3d.ZAxis, geoCircle.Radius);
+            return new Circle(
+                new Point3d(geoCircle.Center.X, geoCircle.Center.Y, 0.0),
+                Vector3d.ZAxis,
+                geoCircle.Radius
+            );
         }
 
         /// <summary>
@@ -243,7 +255,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="circles">The sequence of GeometryHelper 2D circles to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Circle"/>.</returns>
-        public static List<Circle> ToAcadCircle(this IEnumerable<GeoCircle2> circles) => circles.Select(ToAcadCircle).ToList();
+        public static List<Circle> ToAcadCircle(this IEnumerable<GeoCircle2> circles) =>
+            circles.Select(ToAcadCircle).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper 3D circle to an AutoCAD Circle in its own plane.
@@ -260,6 +273,7 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="circles">The sequence of GeometryHelper 3D circles to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Circle"/>.</returns>
-        public static List<Circle> ToAcadCircle(this IEnumerable<GeoCircle3> circles) => circles.Select(ToAcadCircle).ToList();
+        public static List<Circle> ToAcadCircle(this IEnumerable<GeoCircle3> circles) =>
+            circles.Select(ToAcadCircle).ToList();
     }
 }

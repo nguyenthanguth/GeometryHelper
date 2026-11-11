@@ -75,7 +75,10 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return Prompt.Kind == CadPromptKind.Point
-                || ((Prompt.Kind == CadPromptKind.Distance || Prompt.Kind == CadPromptKind.Angle) && Prompt.BasePoint.HasValue);
+                || (
+                    (Prompt.Kind == CadPromptKind.Distance || Prompt.Kind == CadPromptKind.Angle)
+                    && Prompt.BasePoint.HasValue
+                );
         }
 
         private static bool TryModifier(string typed, out ModifierKind kind, out string filter)
@@ -242,11 +245,16 @@ namespace GeometryHelper.Dxf.Viewer
         {
             GeoPoint2 a = Ucs.ToUcs(from);
             GeoPoint2 b = Ucs.ToUcs(toward);
-            return Ucs.ToWorld(Math.Abs(b.X - a.X) >= Math.Abs(b.Y - a.Y) ? new GeoPoint2(b.X, a.Y) : new GeoPoint2(a.X, b.Y));
+            return Ucs.ToWorld(
+                Math.Abs(b.X - a.X) >= Math.Abs(b.Y - a.Y) ? new GeoPoint2(b.X, a.Y) : new GeoPoint2(a.X, b.Y)
+            );
         }
 
         /// <summary>Whether the prompt waiting is TK's "Next point", whose distances typed run along an axis.</summary>
-        private bool IsTrackingOn() => _modifiers.Count > 0 && _modifiers[_modifiers.Count - 1].Kind == ModifierKind.Tracking && _modifiers[_modifiers.Count - 1].First.HasValue;
+        private bool IsTrackingOn() =>
+            _modifiers.Count > 0
+            && _modifiers[_modifiers.Count - 1].Kind == ModifierKind.Tracking
+            && _modifiers[_modifiers.Count - 1].First.HasValue;
 
         /// <summary>
         /// The coordinates typed at "(need YZ):" of a point filter, as many numbers as letters asked, in the order X, Y, Z of

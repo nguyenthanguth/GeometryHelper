@@ -22,7 +22,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
         /// <returns>The name.</returns>
-        public static string CellName(int row, int column) => ColumnName(column) + (row + 1).ToString(CultureInfo.InvariantCulture);
+        public static string CellName(int row, int column) =>
+            ColumnName(column) + (row + 1).ToString(CultureInfo.InvariantCulture);
 
         /// <summary>Gets the letters AutoCAD gives a column: A to Z, then AA, AB and on.</summary>
         /// <param name="column">The column, from nought.</param>
@@ -55,7 +56,10 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            DxfTableHitTestInfo hit = table.HitTest(new GeoPoint3(point.X, point.Y, 0.0), new GeoVector3(0.0, 0.0, -1.0));
+            DxfTableHitTestInfo hit = table.HitTest(
+                new GeoPoint3(point.X, point.Y, 0.0),
+                new GeoVector3(0.0, 0.0, -1.0)
+            );
 
             if (hit.Type != DxfTableHitTestType.Cell)
             {
@@ -139,7 +143,10 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(table));
             }
 
-            int top = range.TopRow, left = range.LeftColumn, bottom = range.BottomRow, right = range.RightColumn;
+            int top = range.TopRow,
+                left = range.LeftColumn,
+                bottom = range.BottomRow,
+                right = range.RightColumn;
             bool grew = true;
 
             while (grew)
@@ -152,7 +159,12 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         DxfCellRange block = table.GetMergeRange(r, c);
 
-                        if (block.TopRow < top || block.LeftColumn < left || block.BottomRow > bottom || block.RightColumn > right)
+                        if (
+                            block.TopRow < top
+                            || block.LeftColumn < left
+                            || block.BottomRow > bottom
+                            || block.RightColumn > right
+                        )
                         {
                             top = Math.Min(top, block.TopRow);
                             left = Math.Min(left, block.LeftColumn);
@@ -273,10 +285,23 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (row < 0 || row >= table.NumRows || !table.CanInsertRow(at))
             {
-                return CadEditResult.Refuse("A row cannot be put in " + (below ? "below" : "above") + " row " + (row + 1).ToString(CultureInfo.InvariantCulture) + ".");
+                return CadEditResult.Refuse(
+                    "A row cannot be put in "
+                        + (below ? "below" : "above")
+                        + " row "
+                        + (row + 1).ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
 
-            return Edit(document, handle, below ? "Insert Below" : "Insert Above", null, (row + 1).ToString(CultureInfo.InvariantCulture), t => t.InsertRowsAndInherit(at, row, 1));
+            return Edit(
+                document,
+                handle,
+                below ? "Insert Below" : "Insert Above",
+                null,
+                (row + 1).ToString(CultureInfo.InvariantCulture),
+                t => t.InsertRowsAndInherit(at, row, 1)
+            );
         }
 
         /// <summary>Takes out rows, as Delete Row(s) does; refused where no row would be left.</summary>
@@ -299,7 +324,9 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse("Those rows cannot be deleted: a table keeps a row at least.");
             }
 
-            return Edit(document, handle, "Delete Rows", (row + 1).ToString(CultureInfo.InvariantCulture), null, t => t.DeleteRows(row, count));
+            return Edit(document, handle, "Delete Rows", (row + 1).ToString(CultureInfo.InvariantCulture), null, t =>
+                t.DeleteRows(row, count)
+            );
         }
 
         /// <summary>Puts in a column left or right of a column, of its look, as Insert Left and Insert Right do.</summary>
@@ -321,10 +348,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (column < 0 || column >= table.NumColumns || !table.CanInsertColumn(at))
             {
-                return CadEditResult.Refuse("A column cannot be put in " + (right ? "right" : "left") + " of column " + ColumnName(column) + ".");
+                return CadEditResult.Refuse(
+                    "A column cannot be put in " + (right ? "right" : "left") + " of column " + ColumnName(column) + "."
+                );
             }
 
-            return Edit(document, handle, right ? "Insert Right" : "Insert Left", null, ColumnName(column), t => t.InsertColumnsAndInherit(at, column, 1));
+            return Edit(document, handle, right ? "Insert Right" : "Insert Left", null, ColumnName(column), t =>
+                t.InsertColumnsAndInherit(at, column, 1)
+            );
         }
 
         /// <summary>Takes out columns, as Delete Column(s) does; refused where no column would be left.</summary>
@@ -347,7 +378,9 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse("Those columns cannot be deleted: a table keeps a column at least.");
             }
 
-            return Edit(document, handle, "Delete Columns", ColumnName(column), null, t => t.DeleteColumns(column, count));
+            return Edit(document, handle, "Delete Columns", ColumnName(column), null, t =>
+                t.DeleteColumns(column, count)
+            );
         }
 
         /// <summary>Merges the cells of a range into one, as Merge All does: its text that of its top left cell.</summary>
@@ -369,7 +402,9 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse("Select two cells or more to merge.");
             }
 
-            return Edit(document, handle, "Merge Cells", null, Name(range), t => t.MergeCells(new DxfCellRange(range.TopRow, range.LeftColumn, range.BottomRow, range.RightColumn)));
+            return Edit(document, handle, "Merge Cells", null, Name(range), t =>
+                t.MergeCells(new DxfCellRange(range.TopRow, range.LeftColumn, range.BottomRow, range.RightColumn))
+            );
         }
 
         /// <summary>Unmerges every block of merged cells a range meets, as Unmerge Cells does.</summary>
@@ -401,7 +436,9 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Done(Array.Empty<CadEditRecord>());
             }
 
-            return Edit(document, handle, "Unmerge Cells", Name(range), null, t => t.UnmergeCells(new DxfCellRange(range.TopRow, range.LeftColumn, range.BottomRow, range.RightColumn)));
+            return Edit(document, handle, "Unmerge Cells", Name(range), null, t =>
+                t.UnmergeCells(new DxfCellRange(range.TopRow, range.LeftColumn, range.BottomRow, range.RightColumn))
+            );
         }
 
         /// <summary>Sets where the content of the cells of a range stands, as the alignment of Cell Styles does.</summary>
@@ -410,7 +447,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="range">The cells.</param>
         /// <param name="alignment">The alignment.</param>
         /// <returns>What came of it.</returns>
-        public static CadEditResult SetAlignment(CadDocument document, string handle, DxfCellRange range, DxfCellAlignment alignment)
+        public static CadEditResult SetAlignment(
+            CadDocument document,
+            string handle,
+            DxfCellRange range,
+            DxfCellAlignment alignment
+        )
         {
             DxfTable table = Find(document, handle, out CadEditResult refused);
 
@@ -419,7 +461,9 @@ namespace GeometryHelper.Dxf.Viewer
                 return refused;
             }
 
-            return Edit(document, handle, "Alignment", Name(range), alignment.ToString(), t => Each(range, (r, c) => t.SetAlignment(r, c, alignment)));
+            return Edit(document, handle, "Alignment", Name(range), alignment.ToString(), t =>
+                Each(range, (r, c) => t.SetAlignment(r, c, alignment))
+            );
         }
 
         /// <summary>Fills the cells of a range with a colour, or leaves them unfilled, as the fill of Cell Styles does.</summary>
@@ -428,7 +472,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="range">The cells.</param>
         /// <param name="color">The colour, of the index, by layer or by block; null for none.</param>
         /// <returns>What came of it.</returns>
-        public static CadEditResult SetBackground(CadDocument document, string handle, DxfCellRange range, DxfColor color)
+        public static CadEditResult SetBackground(
+            CadDocument document,
+            string handle,
+            DxfCellRange range,
+            DxfColor color
+        )
         {
             DxfTable table = Find(document, handle, out CadEditResult refused);
 
@@ -442,19 +491,26 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse("A cell is filled with a colour of AutoCAD's index.");
             }
 
-            return Edit(document, handle, "Background fill", Name(range), color == null ? "None" : color.ColorIndex.ToString(CultureInfo.InvariantCulture), t => Each(range, (r, c) =>
-            {
-                if (color == null)
-                {
-                    t.SetBackgroundColorNone(r, c, true);
-                }
-                else
-                {
-                    // The colour, and the fill turned on (283 0), as AutoCAD writes a cell filled.
-                    t.SetBackgroundColor(r, c, color);
-                    t.SetBackgroundColorNone(r, c, false);
-                }
-            }));
+            return Edit(
+                document,
+                handle,
+                "Background fill",
+                Name(range),
+                color == null ? "None" : color.ColorIndex.ToString(CultureInfo.InvariantCulture),
+                t => Each(range, (r, c) =>
+                    {
+                        if (color == null)
+                        {
+                            t.SetBackgroundColorNone(r, c, true);
+                        }
+                        else
+                        {
+                            // The colour, and the fill turned on (283 0), as AutoCAD writes a cell filled.
+                            t.SetBackgroundColor(r, c, color);
+                            t.SetBackgroundColorNone(r, c, false);
+                        }
+                    })
+            );
         }
 
         /// <summary>
@@ -467,7 +523,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="lines">The lines of the range, one or more of the six.</param>
         /// <param name="visible">Whether they are drawn.</param>
         /// <returns>What came of it.</returns>
-        public static CadEditResult SetBorders(CadDocument document, string handle, DxfCellRange range, DxfGridLineType lines, bool visible)
+        public static CadEditResult SetBorders(
+            CadDocument document,
+            string handle,
+            DxfCellRange range,
+            DxfGridLineType lines,
+            bool visible
+        )
         {
             DxfTable table = Find(document, handle, out CadEditResult refused);
 
@@ -494,22 +556,43 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Done(Array.Empty<CadEditRecord>());
             }
 
-            var property = new DxfGridPropertyParameter { PropertyMask = DxfGridProperties.Visibility, Visible = visible };
-            return Edit(document, handle, "Cell borders", Name(range), (visible ? "Show " : "Hide ") + inRange, t => t.SetGridProperty(new DxfCellRange(range.TopRow, range.LeftColumn, range.BottomRow, range.RightColumn), inRange, property));
+            var property = new DxfGridPropertyParameter
+            {
+                PropertyMask = DxfGridProperties.Visibility,
+                Visible = visible,
+            };
+            return Edit(document, handle, "Cell borders", Name(range), (visible ? "Show " : "Hide ") + inRange, t =>
+                t.SetGridProperty(
+                    new DxfCellRange(range.TopRow, range.LeftColumn, range.BottomRow, range.RightColumn),
+                    inRange,
+                    property
+                )
+            );
         }
 
         /// <summary>One edit of a table: planned as a change of its property, written, and its block drawn anew.</summary>
-        private static CadEditResult Edit(CadDocument document, string handle, string property, string oldValue, string newValue, Action<DxfTable> change)
-            => document.ApplyEdit("TABLEDIT", new[] { new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, property, oldValue, newValue) }, s =>
-            {
-                if (s.IsHandled(handle) || !(s.Document.FindEntity(handle) is DxfTable table))
+        private static CadEditResult Edit(
+            CadDocument document,
+            string handle,
+            string property,
+            string oldValue,
+            string newValue,
+            Action<DxfTable> change
+        ) =>
+            document.ApplyEdit(
+                "TABLEDIT",
+                new[] { new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, property, oldValue, newValue) },
+                s =>
                 {
-                    return;
-                }
+                    if (s.IsHandled(handle) || !(s.Document.FindEntity(handle) is DxfTable table))
+                    {
+                        return;
+                    }
 
-                change(table);
-                Redraw(table, s.Document);
-            });
+                    change(table);
+                    Redraw(table, s.Document);
+                }
+            );
 
         /// <summary>
         /// Draws a table anew in its block as AutoCAD lays it out: each row first grown to hold the tallest of its cells
@@ -558,7 +641,11 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     DxfCellRange block = table.GetMergeRange(r, c);
 
-                    if (block.TopRow != r || block.LeftColumn != c || table.CellType(r, c) == DxfTableCellType.BlockCell)
+                    if (
+                        block.TopRow != r
+                        || block.LeftColumn != c
+                        || table.CellType(r, c) == DxfTableCellType.BlockCell
+                    )
                     {
                         continue;
                     }
@@ -602,10 +689,23 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The height a cell's content needs, margins left out: its words laid out as an MTEXT as wide as the cell less its margins, one line of its text height at least.</summary>
-        private static double CellNeeds(CadDocument document, DxfTable table, DxfTableStyle style, int row, int column, DxfCellRange block, double hMargin)
+        private static double CellNeeds(
+            CadDocument document,
+            DxfTable table,
+            DxfTableStyle style,
+            int row,
+            int column,
+            DxfCellRange block,
+            double hMargin
+        )
         {
             DxfRowType kind = table.RowType(row);
-            double height = table.TextHeight(row, column) ?? (style != null ? style.TextHeight(kind) : kind == DxfRowType.TitleRow ? 6.0 : 4.5);
+            double height = table.TextHeight(row, column)
+                ?? (
+                    style != null ? style.TextHeight(kind)
+                    : kind == DxfRowType.TitleRow ? 6.0
+                    : 4.5
+                );
             double oneLine = height * 4.0 / 3.0;
             string words = table.TextString(row, column);
 
@@ -621,7 +721,12 @@ namespace GeometryHelper.Dxf.Viewer
                 width += table.ColumnWidth(c);
             }
 
-            var text = new DxfMText { Contents = words, TextHeight = height, Width = Math.Max(0.0, width - 2.0 * hMargin) };
+            var text = new DxfMText
+            {
+                Contents = words,
+                TextHeight = height,
+                Width = Math.Max(0.0, width - 2.0 * hMargin),
+            };
             string styleName = table.TextStyle(row, column)?.Name ?? style?.TextStyleName(kind);
 
             if (!string.IsNullOrEmpty(styleName))
@@ -640,11 +745,13 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             var table = document.FindEntity(handle) as DxfTable;
-            refused = table == null ? CadEditResult.Refuse("The object " + (handle ?? "(none)") + " is not a table.") : null;
+            refused =
+                table == null ? CadEditResult.Refuse("The object " + (handle ?? "(none)") + " is not a table.") : null;
             return table;
         }
 
-        private static bool InTable(DxfTable table, int row, int column) => row >= 0 && column >= 0 && row < table.NumRows && column < table.NumColumns;
+        private static bool InTable(DxfTable table, int row, int column) =>
+            row >= 0 && column >= 0 && row < table.NumRows && column < table.NumColumns;
 
         private static bool InTable(DxfTable table, DxfCellRange range, out CadEditResult refused)
         {
@@ -653,8 +760,11 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(range));
             }
 
-            bool inside = InTable(table, range.TopRow, range.LeftColumn) && InTable(table, range.BottomRow, range.RightColumn)
-                && range.TopRow <= range.BottomRow && range.LeftColumn <= range.RightColumn;
+            bool inside =
+                InTable(table, range.TopRow, range.LeftColumn)
+                && InTable(table, range.BottomRow, range.RightColumn)
+                && range.TopRow <= range.BottomRow
+                && range.LeftColumn <= range.RightColumn;
             refused = inside ? null : CadEditResult.Refuse("The cells " + Name(range) + " are not all of the table.");
             return inside;
         }
@@ -670,8 +780,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static string Name(DxfCellRange range)
-            => range.TopRow == range.BottomRow && range.LeftColumn == range.RightColumn ? CellName(range.TopRow, range.LeftColumn)
+        private static string Name(DxfCellRange range) =>
+            range.TopRow == range.BottomRow && range.LeftColumn == range.RightColumn
+                ? CellName(range.TopRow, range.LeftColumn)
                 : CellName(range.TopRow, range.LeftColumn) + ":" + CellName(range.BottomRow, range.RightColumn);
 
         private static GeoPoint2 P(GeoPoint3 point) => new GeoPoint2(point.X, point.Y);

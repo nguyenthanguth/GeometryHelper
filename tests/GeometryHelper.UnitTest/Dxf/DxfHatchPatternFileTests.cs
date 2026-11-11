@@ -24,7 +24,13 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static readonly Tolerance Close = new Tolerance(1E-9, 1E-9);
 
-        private static readonly GeoPoint2[] Square = { new GeoPoint2(0, 0), new GeoPoint2(30, 0), new GeoPoint2(30, 20), new GeoPoint2(0, 20) };
+        private static readonly GeoPoint2[] Square =
+        {
+            new GeoPoint2(0, 0),
+            new GeoPoint2(30, 0),
+            new GeoPoint2(30, 20),
+            new GeoPoint2(0, 20),
+        };
 
         /// <summary>A folder of its own holding the pattern files given, each a name and its text; deleted after the test.</summary>
         private static void InFolder(Action<string> test, params string[] files)
@@ -51,14 +57,19 @@ namespace GeometryHelper.UnitTest.Dxf
         private static DxfDatabase Drawing(string folder, DxfMeasurementValue measurement = DxfMeasurementValue.Metric)
         {
             var db = new DxfDatabase("AC1032");
-            db.Measurement = measurement == DxfMeasurementValue.Metric ? DxfMeasurementValue.English : DxfMeasurementValue.Metric;
+            db.Measurement =
+                measurement == DxfMeasurementValue.Metric ? DxfMeasurementValue.English : DxfMeasurementValue.Metric;
             db.Measurement = measurement;
             db.PatternSearchPath = folder;
             return db;
         }
 
         /// <summary>A HATCH on the square 30 by 20 added to model space, then given the pattern.</summary>
-        private static DxfHatch Hatch(DxfDatabase db, string name, DxfHatchPatternType type = DxfHatchPatternType.PreDefined)
+        private static DxfHatch Hatch(
+            DxfDatabase db,
+            string name,
+            DxfHatchPatternType type = DxfHatchPatternType.PreDefined
+        )
         {
             var hatch = new DxfHatch();
             hatch.AppendLoop(DxfHatchLoopTypes.External, Square, null);
@@ -67,15 +78,37 @@ namespace GeometryHelper.UnitTest.Dxf
             return hatch;
         }
 
-        private static void Is(double expected, double actual) => Assert.True(Math.Abs(expected - actual) <= Near, "expected " + expected.ToString("R", CultureInfo.InvariantCulture) + ", got " + actual.ToString("R", CultureInfo.InvariantCulture));
+        private static void Is(double expected, double actual) =>
+            Assert.True(
+                Math.Abs(expected - actual) <= Near,
+                "expected "
+                    + expected.ToString("R", CultureInfo.InvariantCulture)
+                    + ", got "
+                    + actual.ToString("R", CultureInfo.InvariantCulture)
+            );
 
         /// <summary>A line of the pattern is the one given: its angle in degrees, base point, offset and dashes.</summary>
-        private static void Line(DxfHatch hatch, int index, double degrees, double baseX, double baseY, double offsetX, double offsetY, params double[] dashes)
+        private static void Line(
+            DxfHatch hatch,
+            int index,
+            double degrees,
+            double baseX,
+            double baseY,
+            double offsetX,
+            double offsetY,
+            params double[] dashes
+        )
         {
             DxfPatternDefinition line = hatch.GetPatternDefinitionAt(index);
             Is(degrees, line.Angle * 180.0 / Math.PI);
-            Assert.True(new GeoPoint2(baseX, baseY).IsEqualTo(new GeoPoint2(line.BaseX, line.BaseY), Close), "base (" + line.BaseX + ", " + line.BaseY + ")");
-            Assert.True(new GeoPoint2(offsetX, offsetY).IsEqualTo(new GeoPoint2(line.OffsetX, line.OffsetY), Close), "offset (" + line.OffsetX + ", " + line.OffsetY + ")");
+            Assert.True(
+                new GeoPoint2(baseX, baseY).IsEqualTo(new GeoPoint2(line.BaseX, line.BaseY), Close),
+                "base (" + line.BaseX + ", " + line.BaseY + ")"
+            );
+            Assert.True(
+                new GeoPoint2(offsetX, offsetY).IsEqualTo(new GeoPoint2(line.OffsetX, line.OffsetY), Close),
+                "offset (" + line.OffsetX + ", " + line.OffsetY + ")"
+            );
             Assert.Equal(dashes.Length, line.GetDashes().Count);
 
             for (int i = 0; i < dashes.Length; i++)
@@ -131,7 +164,8 @@ namespace GeometryHelper.UnitTest.Dxf
                     Line(turned, 1, 330, 1, 1, 1, 1.7320508075688772);
                 },
                 "acadiso.pat",
-                ";; the tests' own patterns\r\n;;\r\n\r\n*GHE\r\n; a comment line inside\r\n0, 0,0, 0,2 ; an inline comment\r\n\r\n   45 ,  1 , 2 ,  0 , 3 , 1.5, -.5, 0, -.5\r\n\t90,\t0,0,0,4\r\n*XK, k\r\n720, 0,0, 0,2\r\n-30, 1,1, 0,2\r\n");
+                ";; the tests' own patterns\r\n;;\r\n\r\n*GHE\r\n; a comment line inside\r\n0, 0,0, 0,2 ; an inline comment\r\n\r\n   45 ,  1 , 2 ,  0 , 3 , 1.5, -.5, 0, -.5\r\n\t90,\t0,0,0,4\r\n*XK, k\r\n720, 0,0, 0,2\r\n-30, 1,1, 0,2\r\n"
+            );
         }
 
         [Fact]
@@ -167,7 +201,8 @@ namespace GeometryHelper.UnitTest.Dxf
                     Line(second, 1, 0, 3.5355339059327378, -3.5355339059327378, 0, 7.5, 2.5);
                 },
                 "acadiso.pat",
-                "*XI, i\r\n0, 0,0, 0,2, -1, 1\r\n*GHT, t\r\n45, 0,0, 0,3\r\n45, 2,0, 0,3, 1\r\n");
+                "*XI, i\r\n0, 0,0, 0,2, -1, 1\r\n*GHT, t\r\n45, 0,0, 0,3\r\n45, 2,0, 0,3, 1\r\n"
+            );
         }
 
         [Fact]
@@ -196,7 +231,8 @@ namespace GeometryHelper.UnitTest.Dxf
                     Assert.Equal(lines.Count, filed.Explode().Count);
                 },
                 "acadiso.pat",
-                "*GH45, test\r\n45, 0,0, 0,3\r\n");
+                "*GH45, test\r\n45, 0,0, 0,3\r\n"
+            );
         }
 
         // ---- which file -------------------------------------------------------------------------------------------------------
@@ -218,7 +254,8 @@ namespace GeometryHelper.UnitTest.Dxf
                 "acadiso.pat",
                 "*GHZ, first\r\n0, 0,0, 0,2\r\n*GHZ, second\r\n90, 0,0, 0,5\r\n",
                 "acad.pat",
-                "*GHZ, first\r\n0, 0,0, 0,2.5\r\n");
+                "*GHZ, first\r\n0, 0,0, 0,2.5\r\n"
+            );
         }
 
         [Fact]
@@ -255,7 +292,8 @@ namespace GeometryHelper.UnitTest.Dxf
                 "GHA.pat",
                 "*GHA, custom\r\n0, 0,0, 0,4\r\n",
                 "BAD.pat",
-                "*BAD\r\n0,0,0,0,9\r\n");
+                "*BAD\r\n0,0,0,0,9\r\n"
+            );
         }
 
         [Fact]
@@ -264,22 +302,25 @@ namespace GeometryHelper.UnitTest.Dxf
             // AutoCAD 2021 (GHP4CS): an acadiso.pat of the current folder, lacking ANSI33, is taken before the support path's,
             // which has it, and ANSI33 is not found.
             InFolder(
-                first => InFolder(
-                    second =>
-                    {
-                        DxfDatabase db = Drawing(first + ";" + second);
-                        Line(Hatch(db, "GHF"), 0, 0, 0, 0, 0, 2);
-                        Assert.Equal(0, Hatch(db, "GHS").NumberOfPatternDefinitions);
-                        Line(Hatch(db, "GHO"), 0, 0, 0, 0, 0, 5);
-                    },
-                    "acadiso.pat",
-                    "*GHF\r\n0,0,0,0,3\r\n*GHS\r\n0,0,0,0,3\r\n",
-                    "GHO.pat",
-                    "*GHO\r\n0,0,0,0,6\r\n"),
+                first =>
+                    InFolder(
+                        second =>
+                        {
+                            DxfDatabase db = Drawing(first + ";" + second);
+                            Line(Hatch(db, "GHF"), 0, 0, 0, 0, 0, 2);
+                            Assert.Equal(0, Hatch(db, "GHS").NumberOfPatternDefinitions);
+                            Line(Hatch(db, "GHO"), 0, 0, 0, 0, 0, 5);
+                        },
+                        "acadiso.pat",
+                        "*GHF\r\n0,0,0,0,3\r\n*GHS\r\n0,0,0,0,3\r\n",
+                        "GHO.pat",
+                        "*GHO\r\n0,0,0,0,6\r\n"
+                    ),
                 "acadiso.pat",
                 "*GHF\n0,0,0,0,2\n",
                 "GHO.pat",
-                "*GHO\r\n0,0,0,0,5\r\n");
+                "*GHO\r\n0,0,0,0,5\r\n"
+            );
         }
 
         // ---- how a file is read -----------------------------------------------------------------------------------------------
@@ -326,7 +367,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             for (int i = 0; i < want.Length; i++)
             {
-                double[] numbers = want[i].Split(' ').Select(s => double.Parse(s, CultureInfo.InvariantCulture)).ToArray();
+                double[] numbers = want[i]
+                    .Split(' ')
+                    .Select(s => double.Parse(s, CultureInfo.InvariantCulture))
+                    .ToArray();
                 Assert.Equal(numbers.Length, lines[i].Length);
 
                 for (int k = 0; k < numbers.Length; k++)
@@ -371,7 +415,8 @@ namespace GeometryHelper.UnitTest.Dxf
                     Assert.Equal(2, logged.Count);
                 },
                 "acadiso.pat",
-                "*GHI, a short line\r\n0, 0,0, 0\r\n");
+                "*GHI, a short line\r\n0, 0,0, 0\r\n"
+            );
         }
 
         [Fact]
@@ -430,43 +475,47 @@ namespace GeometryHelper.UnitTest.Dxf
                     Assert.Equal(0, copy.NumberOfPatternDefinitions);
                 },
                 "acadiso.pat",
-                "*XI, i\r\n0, 0,0, 0,2, -1, 1\r\n");
+                "*XI, i\r\n0, 0,0, 0,2, -1, 1\r\n"
+            );
         }
 
         [Fact]
         public void AHatchReadFromAFile_KeepsTheLinesItHolds_UntilItsPatternIsGivenAgain()
         {
             InFolder(
-                other => InFolder(
-                    folder =>
-                    {
-                        // Written with no folders, GHZ of no lines; with another file, XI of its lines.
-                        var made = new DxfDatabase("AC1032");
-                        string none = Hatch(made, "GHZ").Handle;
-                        made.PatternSearchPath = other;
-                        string held = Hatch(made, "XI").Handle;
+                other =>
+                    InFolder(
+                        folder =>
+                        {
+                            // Written with no folders, GHZ of no lines; with another file, XI of its lines.
+                            var made = new DxfDatabase("AC1032");
+                            string none = Hatch(made, "GHZ").Handle;
+                            made.PatternSearchPath = other;
+                            string held = Hatch(made, "XI").Handle;
 
-                        DxfDatabase db = DxfDatabase.Parse(made.ToText());
-                        db.PatternSearchPath = folder;
-                        DxfHatch unfilled = DxfModel.ByHandle<DxfHatch>(db, none);
-                        DxfHatch kept = DxfModel.ByHandle<DxfHatch>(db, held);
-                        Assert.Equal(0, unfilled.NumberOfPatternDefinitions);
-                        Line(kept, 0, 0, 0, 0, 0, 1);
+                            DxfDatabase db = DxfDatabase.Parse(made.ToText());
+                            db.PatternSearchPath = folder;
+                            DxfHatch unfilled = DxfModel.ByHandle<DxfHatch>(db, none);
+                            DxfHatch kept = DxfModel.ByHandle<DxfHatch>(db, held);
+                            Assert.Equal(0, unfilled.NumberOfPatternDefinitions);
+                            Line(kept, 0, 0, 0, 0, 0, 1);
 
-                        // Given again, the one of no lines is given them; the one of lines keeps them, as a property set to the value it has.
-                        unfilled.SetHatchPattern(DxfHatchPatternType.PreDefined, "GHZ");
-                        kept.SetHatchPattern(DxfHatchPatternType.PreDefined, "XI");
-                        Line(unfilled, 0, 0, 0, 0, 0, 2);
-                        Line(kept, 0, 0, 0, 0, 0, 1);
+                            // Given again, the one of no lines is given them; the one of lines keeps them, as a property set to the value it has.
+                            unfilled.SetHatchPattern(DxfHatchPatternType.PreDefined, "GHZ");
+                            kept.SetHatchPattern(DxfHatchPatternType.PreDefined, "XI");
+                            Line(unfilled, 0, 0, 0, 0, 0, 2);
+                            Line(kept, 0, 0, 0, 0, 0, 1);
 
-                        // Its scale set, the lines are written anew from the file.
-                        kept.PatternScale = 2;
-                        Line(kept, 0, 0, 0, 0, 0, 4, -2, 2);
-                    },
-                    "acadiso.pat",
-                    "*GHZ\r\n0, 0,0, 0,2\r\n*XI, i\r\n0, 0,0, 0,2, -1, 1\r\n"),
+                            // Its scale set, the lines are written anew from the file.
+                            kept.PatternScale = 2;
+                            Line(kept, 0, 0, 0, 0, 0, 4, -2, 2);
+                        },
+                        "acadiso.pat",
+                        "*GHZ\r\n0, 0,0, 0,2\r\n*XI, i\r\n0, 0,0, 0,2, -1, 1\r\n"
+                    ),
                 "acadiso.pat",
-                "*XI, another\r\n0, 0,0, 0,1\r\n");
+                "*XI, another\r\n0, 0,0, 0,1\r\n"
+            );
         }
 
         // ---- files that are no pattern files ------------------------------------------------------------------------------------
@@ -474,7 +523,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void EveryPatternFileCutShort_OrOfABytePutWrong_IsReadOrRefused_AndNeverThrows()
         {
-            byte[] whole = Encoding.ASCII.GetBytes(";; header\r\n*GHE, e\r\n0, 0,0, 0,2 ; c\r\n\r\n45, 1, 2, 0, 3, 1.5, -.5, 0, -.5\r\n*XK\r\n720, 0,0, 0,2\r\n-30, 1,1, 0,2\r\n*GHF,lf\n0, 0,0, 0,2, 1,-1\n90, 0,0, 0,2\n");
+            byte[] whole = Encoding.ASCII.GetBytes(
+                ";; header\r\n*GHE, e\r\n0, 0,0, 0,2 ; c\r\n\r\n45, 1, 2, 0, 3, 1.5, -.5, 0, -.5\r\n*XK\r\n720, 0,0, 0,2\r\n-30, 1,1, 0,2\r\n*GHF,lf\n0, 0,0, 0,2, 1,-1\n90, 0,0, 0,2\n"
+            );
             var random = new Random(20261104);
             Assert.Equal(3, DxfPatterns.Read(whole).Count);
 
@@ -498,24 +549,29 @@ namespace GeometryHelper.UnitTest.Dxf
             // Through a drawing too: a file of every byte, and one that is a folder.
             var bytes = new byte[4096];
             random.NextBytes(bytes);
-            InFolder(
-                folder =>
-                {
-                    Directory.CreateDirectory(Path.Combine(folder, "GHD.pat"));
-                    File.WriteAllBytes(Path.Combine(folder, "acadiso.pat"), bytes);
-                    DxfDatabase db = Drawing(folder);
+            InFolder(folder =>
+            {
+                Directory.CreateDirectory(Path.Combine(folder, "GHD.pat"));
+                File.WriteAllBytes(Path.Combine(folder, "acadiso.pat"), bytes);
+                DxfDatabase db = Drawing(folder);
 
-                    foreach (string name in new[] { "GHE", "GHD", "A:B", "..", new string('x', 300) })
-                    {
-                        Assert.Equal(0, Hatch(db, name).NumberOfPatternDefinitions);
-                    }
-                });
+                foreach (string name in new[] { "GHE", "GHD", "A:B", "..", new string('x', 300) })
+                {
+                    Assert.Equal(0, Hatch(db, name).NumberOfPatternDefinitions);
+                }
+            });
 
             void Read(byte[] file)
             {
                 foreach (List<double[]> lines in DxfPatterns.Read(file).Values)
                 {
-                    Assert.True(lines == null || (lines.Count > 0 && lines.All(l => l.Length >= 5 && l.Length <= 11 && l.All(Guard.IsFinite))));
+                    Assert.True(
+                        lines == null
+                            || (
+                                lines.Count > 0
+                                && lines.All(l => l.Length >= 5 && l.Length <= 11 && l.All(Guard.IsFinite))
+                            )
+                    );
                 }
             }
         }

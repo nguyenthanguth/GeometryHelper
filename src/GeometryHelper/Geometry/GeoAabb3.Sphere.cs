@@ -37,7 +37,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>The segment of <see cref="GeoSphere3.GetShortestLineTo(GeoAabb3, Tolerance)"/> turned round, so that it leaves this axis-aligned box and lands on the surface of the ball.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty, which has no point to leave from.</exception>
-        public GeoLine3 GetShortestLineTo(GeoSphere3 sphere, Tolerance tolerance) => sphere.GetShortestLineTo(this, tolerance).Reverse();
+        public GeoLine3 GetShortestLineTo(GeoSphere3 sphere, Tolerance tolerance) =>
+            sphere.GetShortestLineTo(this, tolerance).Reverse();
 
         #endregion
     }

@@ -154,11 +154,13 @@ namespace GeometryHelper.UnitTest.Plane
             var outer = new GeoCircle2(new GeoPoint2(0, 0), 100);
             var inner = new GeoCircle2(new GeoPoint2(0.0593, 0), 99.94);
 
-            foreach (GeoPoint2[] found in new[]
-            {
-                Intersection2.GetIntersections(outer, inner, tolerance),
-                Intersection2.GetIntersections(inner, outer, tolerance),
-            })
+            foreach (
+                GeoPoint2[] found in new[]
+                {
+                    Intersection2.GetIntersections(outer, inner, tolerance),
+                    Intersection2.GetIntersections(inner, outer, tolerance),
+                }
+            )
             {
                 GeoPoint2 touch = Assert.Single(found);
                 Assert.Equal(99.99965, touch.X, 9);
@@ -211,13 +213,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void PolygonLine_ConvexAndConcaveCrossings()
         {
-            var poly = new GeoPolygon2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(20, 0),
-                new GeoPoint2(20, 20),
-                new GeoPoint2(0, 20)
-            });
+            var poly = new GeoPolygon2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(20, 0), new GeoPoint2(20, 20), new GeoPoint2(0, 20) }
+            );
 
             // Line crossing through polygon (2 points)
             var lCross = new GeoLine2(new GeoPoint2(10, -5), new GeoPoint2(10, 25));
@@ -232,13 +230,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void PolylineLine_CrossingMultipleSegments()
         {
-            var pl = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10),
-                new GeoPoint2(20, 10)
-            });
+            var pl = new GeoPolyline2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(20, 10) }
+            );
 
             // Line crossing first horizontal segment at (5, 0)
             var l1 = new GeoLine2(new GeoPoint2(5, -5), new GeoPoint2(5, 5));
@@ -256,19 +250,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void PolylinePolyline_ZigzagIntersections()
         {
-            var pl1 = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(10, 10),
-                new GeoPoint2(20, 0)
-            });
+            var pl1 = new GeoPolyline2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 10), new GeoPoint2(20, 0) });
 
-            var pl2 = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(0, 10),
-                new GeoPoint2(10, 0),
-                new GeoPoint2(20, 10)
-            });
+            var pl2 = new GeoPolyline2(new[] { new GeoPoint2(0, 10), new GeoPoint2(10, 0), new GeoPoint2(20, 10) });
 
             // Crosses twice: at (5, 5) and (15, 5)
             var pts = Intersection2.GetIntersections(pl1, pl2);

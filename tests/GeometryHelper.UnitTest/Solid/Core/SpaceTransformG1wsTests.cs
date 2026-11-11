@@ -16,14 +16,22 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class SpaceTransformG1wsTests
     {
-        private static readonly Tolerance Millionth = new Tolerance(1E-6, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-6);
+        private static readonly Tolerance Millionth = new Tolerance(
+            1E-6,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-6
+        );
 
         private static GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
 
         [Fact]
         public void ARectangleStandingInSpaceFilletedAtFiveTenThousandthsAtAMillionthFlattened_KeepsItsEightCorners()
         {
-            GeoPolygonArc3 rounded = new GeoPolygon3(P(20, 0, 0), P(20, 100, 0), P(20, 100, 50), P(20, 0, 50)).Fillet(0.0005, Millionth);
+            GeoPolygonArc3 rounded = new GeoPolygon3(P(20, 0, 0), P(20, 100, 0), P(20, 100, 50), P(20, 0, 50)).Fillet(
+                0.0005,
+                Millionth
+            );
 
             GeoPolygon3 flat = rounded.Flatten();
 
@@ -39,7 +47,10 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AChainInSpaceFilletedAtFiveTenThousandthsAtAMillionthFlattened_TurnsAtBothEndsOfItsArc()
         {
-            GeoPolylineArc3 rounded = new GeoPolyline3(new[] { P(0, 0, 0), P(10, 0, 0), P(10, 0, 10) }).Fillet(0.0005, Millionth);
+            GeoPolylineArc3 rounded = new GeoPolyline3(new[] { P(0, 0, 0), P(10, 0, 0), P(10, 0, 10) }).Fillet(
+                0.0005,
+                Millionth
+            );
 
             GeoPolyline3 flat = rounded.Flatten();
 
@@ -73,16 +84,29 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoCoordinateSystem3 small = system.TransformBy(GeoTransform3.Scaling(P(0, 0, 0), 1E-7));
 
-            Assert.True(small.Origin.IsEqualTo(P(1E-7, 2E-7, 3E-7), new Tolerance(1E-15, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-15)));
-            Assert.True(small.XAxis.IsEqualTo(system.XAxis, new Tolerance(1E-12, 1E-12, Tolerance.DefaultEqualAngleRad, 1E-12)));
-            Assert.True(small.YAxis.IsEqualTo(system.YAxis, new Tolerance(1E-12, 1E-12, Tolerance.DefaultEqualAngleRad, 1E-12)));
-            Assert.True(small.ZAxis.IsEqualTo(system.ZAxis, new Tolerance(1E-12, 1E-12, Tolerance.DefaultEqualAngleRad, 1E-12)));
+            Assert.True(
+                small.Origin.IsEqualTo(
+                    P(1E-7, 2E-7, 3E-7),
+                    new Tolerance(1E-15, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-15)
+                )
+            );
+            Assert.True(
+                small.XAxis.IsEqualTo(system.XAxis, new Tolerance(1E-12, 1E-12, Tolerance.DefaultEqualAngleRad, 1E-12))
+            );
+            Assert.True(
+                small.YAxis.IsEqualTo(system.YAxis, new Tolerance(1E-12, 1E-12, Tolerance.DefaultEqualAngleRad, 1E-12))
+            );
+            Assert.True(
+                small.ZAxis.IsEqualTo(system.ZAxis, new Tolerance(1E-12, 1E-12, Tolerance.DefaultEqualAngleRad, 1E-12))
+            );
         }
 
         [Fact]
         public void ACoordinateSystemInSpaceWithAnXAxisOfNoLength_IsRefused()
         {
-            Assert.Throws<ArgumentException>(() => new GeoCoordinateSystem3(P(1, 2, 3), new GeoVector3(0, 0, 0), new GeoVector3(1, 0, 0)));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoCoordinateSystem3(P(1, 2, 3), new GeoVector3(0, 0, 0), new GeoVector3(1, 0, 0))
+            );
         }
     }
 }

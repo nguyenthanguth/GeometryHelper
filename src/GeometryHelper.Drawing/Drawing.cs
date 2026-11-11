@@ -46,7 +46,9 @@ namespace GeometryHelper.Drawing
         private double _scale;
         private List<DrawingElement> _views = new List<DrawingElement>();
         private List<DrawingElement> _annotations = new List<DrawingElement>();
-        private Dictionary<string, DrawingElement> _elements = new Dictionary<string, DrawingElement>(StringComparer.Ordinal);
+        private Dictionary<string, DrawingElement> _elements = new Dictionary<string, DrawingElement>(
+            StringComparer.Ordinal
+        );
         private List<DrawingEdit> _edits = new List<DrawingEdit>();
         private List<DrawingPluginRun> _runs = new List<DrawingPluginRun>();
         private List<IReadOnlyList<DxfTypedValue>> _unknown = new List<IReadOnlyList<DxfTypedValue>>();
@@ -56,7 +58,13 @@ namespace GeometryHelper.Drawing
         // before one of them is not applied over it.
         private int _generation;
 
-        internal Drawing(string id, DrawingSource source, DrawingSettings settings, Tolerance tolerance, DrawingContent content)
+        internal Drawing(
+            string id,
+            DrawingSource source,
+            DrawingSettings settings,
+            Tolerance tolerance,
+            DrawingContent content
+        )
         {
             Id = id;
             _source = source;
@@ -68,7 +76,14 @@ namespace GeometryHelper.Drawing
             DrawingDocumentStore.Write(_database, Records());
         }
 
-        private Drawing(string id, DrawingSource source, DrawingSettings settings, Tolerance tolerance, DxfDatabase database, DrawingDocumentRecords records)
+        private Drawing(
+            string id,
+            DrawingSource source,
+            DrawingSettings settings,
+            Tolerance tolerance,
+            DxfDatabase database,
+            DrawingDocumentRecords records
+        )
         {
             Id = id;
             _source = source;
@@ -81,7 +96,15 @@ namespace GeometryHelper.Drawing
             {
                 foreach (KeyValuePair<string, string> value in view.Values)
                 {
-                    if (value.Key == "Scale" && double.TryParse(value.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double scale))
+                    if (
+                        value.Key == "Scale"
+                        && double.TryParse(
+                            value.Value,
+                            NumberStyles.Float,
+                            CultureInfo.InvariantCulture,
+                            out double scale
+                        )
+                    )
                     {
                         _scale = scale;
                         break;
@@ -114,7 +137,8 @@ namespace GeometryHelper.Drawing
         /// Gets the views, with their lines, dimensions and marks; empty for a drawing opened from a file and not updated since,
         /// whose lines are in its DXF and whose views are in <see cref="Elements"/>.
         /// </summary>
-        public IReadOnlyList<DrawingView> Views => _content == null ? (IReadOnlyList<DrawingView>)new DrawingView[0] : _content.Views.AsReadOnly();
+        public IReadOnlyList<DrawingView> Views =>
+            _content == null ? (IReadOnlyList<DrawingView>)new DrawingView[0] : _content.Views.AsReadOnly();
 
         /// <summary>Gets the sheet; null for a drawing opened from a file and not updated since.</summary>
         public DrawingSheet Sheet => _content?.Sheet;
@@ -202,13 +226,25 @@ namespace GeometryHelper.Drawing
                 throw new ArgumentNullException(nameof(document));
             }
 
-            Drawing drawing = Read(document.Database, document.FileName ?? document.Title, source, tolerance, nameof(document));
+            Drawing drawing = Read(
+                document.Database,
+                document.FileName ?? document.Title,
+                source,
+                tolerance,
+                nameof(document)
+            );
             drawing.Follow(document);
             return drawing;
         }
 
         /// <summary>The drawing a DXF holds; an <see cref="ArgumentException"/> of the parameter named where it holds none.</summary>
-        private static Drawing Read(DxfDatabase database, string path, DrawingSource source, Tolerance tolerance, string parameter)
+        private static Drawing Read(
+            DxfDatabase database,
+            string path,
+            DrawingSource source,
+            Tolerance tolerance,
+            string parameter
+        )
         {
             DrawingDocumentRecords records = DrawingDocumentStore.Read(database);
 
@@ -228,7 +264,9 @@ namespace GeometryHelper.Drawing
                 }
             }
 
-            string id = string.IsNullOrEmpty(records.DrawingId) ? Path.GetFileNameWithoutExtension(path) : records.DrawingId;
+            string id = string.IsNullOrEmpty(records.DrawingId)
+                ? Path.GetFileNameWithoutExtension(path)
+                : records.DrawingId;
             var drawing = new Drawing(id, source, settings, tolerance, database, records);
             GeometryHelperLog.Info("Drawing.Open: " + records + " read from " + path + ".");
             return drawing;
@@ -312,7 +350,8 @@ namespace GeometryHelper.Drawing
         /// above nought, or ask for a sheet of its own size with no width or height.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the presenter refuses or fails the update; the drawing is then
         /// left as it was.</exception>
-        public UpdateReport Update(DrawingSource newSource, DrawingSettings settings) => Apply(Prepare(newSource, settings));
+        public UpdateReport Update(DrawingSource newSource, DrawingSettings settings) =>
+            Apply(Prepare(newSource, settings));
 
         /// <summary>
         /// Makes the drawing again from a source with settings, without writing it: the slow part of an update, which touches
@@ -328,10 +367,16 @@ namespace GeometryHelper.Drawing
         /// The plugin runs the drawing keeps are run here again on the views made, with the plugins of <see cref="Plugins"/>,
         /// on the thread that prepares.
         /// </remarks>
-        public PreparedUpdate Prepare(DrawingSource newSource, DrawingSettings settings) => PrepareWith(newSource, settings, null, null);
+        public PreparedUpdate Prepare(DrawingSource newSource, DrawingSettings settings) =>
+            PrepareWith(newSource, settings, null, null);
 
         /// <summary>An update prepared, the runs kept run again, and a run added with its plugin where given.</summary>
-        private PreparedUpdate PrepareWith(DrawingSource newSource, DrawingSettings settings, DrawingPluginRun added, DrawingPlugin addedPlugin)
+        private PreparedUpdate PrepareWith(
+            DrawingSource newSource,
+            DrawingSettings settings,
+            DrawingPluginRun added,
+            DrawingPlugin addedPlugin
+        )
         {
             if (newSource == null)
             {
@@ -341,9 +386,26 @@ namespace GeometryHelper.Drawing
             int generation = System.Threading.Volatile.Read(ref _generation);
             DrawingSettings copy = (settings ?? _settings).Clone();
             DrawingContent content = DrawingBuilder.Make(newSource, copy, Tolerance);
-            DrawingPluginRuns runs = DrawingPluginRunner.Run(_runs.ToArray(), added, addedPlugin, Plugins, content, newSource, copy, Tolerance);
-            DrawingBuilder.Elements(content, copy, out List<DrawingElement> views, out List<DrawingElement> annotations);
-            return new PreparedUpdate(this, newSource, copy, content, views, annotations, runs) { Generation = generation };
+            DrawingPluginRuns runs = DrawingPluginRunner.Run(
+                _runs.ToArray(),
+                added,
+                addedPlugin,
+                Plugins,
+                content,
+                newSource,
+                copy,
+                Tolerance
+            );
+            DrawingBuilder.Elements(
+                content,
+                copy,
+                out List<DrawingElement> views,
+                out List<DrawingElement> annotations
+            );
+            return new PreparedUpdate(this, newSource, copy, content, views, annotations, runs)
+            {
+                Generation = generation,
+            };
         }
 
         /// <summary>
@@ -369,7 +431,12 @@ namespace GeometryHelper.Drawing
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a setting's value is outside its range.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the drawing was opened and not updated, the plugin throws
         /// (the drawing is then left as it was, and the error logged), or the presenter refuses the step.</exception>
-        public UpdateReport RunPlugin(DrawingPlugin plugin, string viewId, IEnumerable<string> objectIds = null, IEnumerable<KeyValuePair<string, double>> settings = null)
+        public UpdateReport RunPlugin(
+            DrawingPlugin plugin,
+            string viewId,
+            IEnumerable<string> objectIds = null,
+            IEnumerable<KeyValuePair<string, double>> settings = null
+        )
         {
             if (plugin == null)
             {
@@ -379,7 +446,14 @@ namespace GeometryHelper.Drawing
             // A drawing that has views has the source they were made from.
             KindOf(viewId);
             var ids = new List<string>(objectIds ?? new string[0]);
-            var run = new DrawingPluginRun(NextRunId(), plugin.Name, plugin.Version, viewId, new DrawingLinks(ids), RunSettings(plugin, settings));
+            var run = new DrawingPluginRun(
+                NextRunId(),
+                plugin.Name,
+                plugin.Version,
+                viewId,
+                new DrawingLinks(ids),
+                RunSettings(plugin, settings)
+            );
             string missing = DrawingPluginRunner.Missing(run, _source);
 
             if (missing != null)
@@ -391,7 +465,14 @@ namespace GeometryHelper.Drawing
 
             if (update.Runs.Failure != null)
             {
-                throw new InvalidOperationException("The plugin " + plugin.Name + " failed: " + update.Runs.Failure.Message + " The drawing is left as it was.", update.Runs.Failure);
+                throw new InvalidOperationException(
+                    "The plugin "
+                        + plugin.Name
+                        + " failed: "
+                        + update.Runs.Failure.Message
+                        + " The drawing is left as it was.",
+                    update.Runs.Failure
+                );
             }
 
             return Apply(update);
@@ -404,7 +485,11 @@ namespace GeometryHelper.Drawing
 
             foreach (DrawingPluginRun run in _runs)
             {
-                if (run.Id.StartsWith("R-", StringComparison.Ordinal) && int.TryParse(run.Id.Substring(2), NumberStyles.None, CultureInfo.InvariantCulture, out int n) && n > last)
+                if (
+                    run.Id.StartsWith("R-", StringComparison.Ordinal)
+                    && int.TryParse(run.Id.Substring(2), NumberStyles.None, CultureInfo.InvariantCulture, out int n)
+                    && n > last
+                )
                 {
                     last = n;
                 }
@@ -414,7 +499,10 @@ namespace GeometryHelper.Drawing
         }
 
         /// <summary>Every setting a plugin declares with the value given, or its default, written to the bit.</summary>
-        private static List<KeyValuePair<string, string>> RunSettings(DrawingPlugin plugin, IEnumerable<KeyValuePair<string, double>> given)
+        private static List<KeyValuePair<string, string>> RunSettings(
+            DrawingPlugin plugin,
+            IEnumerable<KeyValuePair<string, double>> given
+        )
         {
             var input = new DrawingPluginInput();
 
@@ -424,8 +512,14 @@ namespace GeometryHelper.Drawing
             }
             catch (Exception exception)
             {
-                GeometryHelperLog.Warn("Drawing.RunPlugin: the plugin " + plugin.Name + " failed to say what it needs.", exception);
-                throw new InvalidOperationException("The plugin " + plugin.Name + " failed to say what it needs: " + exception.Message, exception);
+                GeometryHelperLog.Warn(
+                    "Drawing.RunPlugin: the plugin " + plugin.Name + " failed to say what it needs.",
+                    exception
+                );
+                throw new InvalidOperationException(
+                    "The plugin " + plugin.Name + " failed to say what it needs: " + exception.Message,
+                    exception
+                );
             }
 
             var values = new Dictionary<string, double>(StringComparer.Ordinal);
@@ -441,12 +535,19 @@ namespace GeometryHelper.Drawing
 
                 if (setting == null)
                 {
-                    throw new ArgumentException("The plugin " + plugin.Name + " has no setting \"" + value.Key + "\".", "settings");
+                    throw new ArgumentException(
+                        "The plugin " + plugin.Name + " has no setting \"" + value.Key + "\".",
+                        "settings"
+                    );
                 }
 
                 if (!(value.Value >= setting.Minimum && value.Value <= setting.Maximum))
                 {
-                    throw new ArgumentOutOfRangeException("settings", value.Value, "The setting " + value.Key + " of " + plugin.Name + " is outside its range.");
+                    throw new ArgumentOutOfRangeException(
+                        "settings",
+                        value.Value,
+                        "The setting " + value.Key + " of " + plugin.Name + " is outside its range."
+                    );
                 }
 
                 values[value.Key] = value.Value;
@@ -457,7 +558,9 @@ namespace GeometryHelper.Drawing
             foreach (DrawingPluginSetting setting in input.Settings)
             {
                 double value = values.TryGetValue(setting.Name, out double v) ? v : setting.Default;
-                written.Add(new KeyValuePair<string, string>(setting.Name, value.ToString("R", CultureInfo.InvariantCulture)));
+                written.Add(
+                    new KeyValuePair<string, string>(setting.Name, value.ToString("R", CultureInfo.InvariantCulture))
+                );
             }
 
             return written;
@@ -500,12 +603,15 @@ namespace GeometryHelper.Drawing
 
             if (update.Generation != _generation)
             {
-                throw new InvalidOperationException("The drawing was made again while this update was prepared, and applying it would take that back: make the change again.");
+                throw new InvalidOperationException(
+                    "The drawing was made again while this update was prepared, and applying it would take that back: make the change again."
+                );
             }
 
             DrawingSource newSource = update.Source;
             DrawingContent content = update.Content;
-            List<DrawingElement> views = update.Views, annotations = update.Annotations;
+            List<DrawingElement> views = update.Views,
+                annotations = update.Annotations;
             var next = Index(views, annotations);
             var objectIds = new HashSet<string>(StringComparer.Ordinal);
 
@@ -603,7 +709,8 @@ namespace GeometryHelper.Drawing
         /// <exception cref="ArgumentException">Thrown when the drawing has no view of the id.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the drawing was opened and not updated, so that it has no
         /// source to make it from, or the presenter refuses the step.</exception>
-        public UpdateReport ReDimension(string viewId) => ForView(viewId, s => AddOnce(s.Views.DimensionedViews, viewId));
+        public UpdateReport ReDimension(string viewId) =>
+            ForView(viewId, s => AddOnce(s.Views.DimensionedViews, viewId));
 
         /// <summary>
         /// Marks one view as the settings mark the first, and keeps it marked through later updates
@@ -649,9 +756,17 @@ namespace GeometryHelper.Drawing
         /// refuses the step.</exception>
         public UpdateReport AddView(ViewKind kind)
         {
-            if (kind == ViewKind.Section || kind == ViewKind.Detail || kind == ViewKind.Free || !Enum.IsDefined(typeof(ViewKind), kind))
+            if (
+                kind == ViewKind.Section
+                || kind == ViewKind.Detail
+                || kind == ViewKind.Free
+                || !Enum.IsDefined(typeof(ViewKind), kind)
+            )
             {
-                throw new ArgumentException("A view added is one along the axes or the isometric one; a section or a detail is added by its own call.", nameof(kind));
+                throw new ArgumentException(
+                    "A view added is one along the axes or the isometric one; a section or a detail is added by its own call.",
+                    nameof(kind)
+                );
             }
 
             return Change(s => AddOnce(s.Views.Kinds, kind));
@@ -712,7 +827,11 @@ namespace GeometryHelper.Drawing
 
             if (!(scale > 0.0) || double.IsInfinity(scale))
             {
-                throw new ArgumentOutOfRangeException(nameof(scale), scale, "A scale has to be a finite number above nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(scale),
+                    scale,
+                    "A scale has to be a finite number above nought."
+                );
             }
 
             var request = new DetailViewRequest(name, kind, area, ViewScale(viewId) / scale);
@@ -725,7 +844,9 @@ namespace GeometryHelper.Drawing
         {
             if (_source == null)
             {
-                throw new InvalidOperationException("A drawing opened from a file is changed once it is updated from its source.");
+                throw new InvalidOperationException(
+                    "A drawing opened from a file is changed once it is updated from its source."
+                );
             }
 
             DrawingSettings settings = _settings.Clone();
@@ -750,7 +871,9 @@ namespace GeometryHelper.Drawing
 
             if (_content == null)
             {
-                throw new InvalidOperationException("A drawing opened from a file is changed once it is updated from its source.");
+                throw new InvalidOperationException(
+                    "A drawing opened from a file is changed once it is updated from its source."
+                );
             }
 
             foreach (DrawingView view in _content.Views)
@@ -791,7 +914,12 @@ namespace GeometryHelper.Drawing
 
         private static void NewName(string name, List<string> names)
         {
-            if (name != null && names.Exists(n => string.Equals(ViewBuilder.Clean(n), ViewBuilder.Clean(name), StringComparison.Ordinal)))
+            if (
+                name != null
+                && names.Exists(n =>
+                    string.Equals(ViewBuilder.Clean(n), ViewBuilder.Clean(name), StringComparison.Ordinal)
+                )
+            )
             {
                 throw new ArgumentException("The drawing has a view named " + name + " already.", nameof(name));
             }
@@ -834,7 +962,8 @@ namespace GeometryHelper.Drawing
         }
 
         /// <summary>The document as records, for the store.</summary>
-        internal DrawingDocumentRecords Records() => new DrawingDocumentRecords(Id, _views, _annotations, _edits, _runs, _unknown);
+        internal DrawingDocumentRecords Records() =>
+            new DrawingDocumentRecords(Id, _views, _annotations, _edits, _runs, _unknown);
 
         /// <summary>Finds an element of the document by its id.</summary>
         internal bool TryGetElement(string id, out DrawingElement element) => _elements.TryGetValue(id, out element);
@@ -857,7 +986,10 @@ namespace GeometryHelper.Drawing
         }
 
         /// <summary>The views elements by id, as an update and the owner find them.</summary>
-        private static Dictionary<string, DrawingElement> Index(List<DrawingElement> views, List<DrawingElement> annotations)
+        private static Dictionary<string, DrawingElement> Index(
+            List<DrawingElement> views,
+            List<DrawingElement> annotations
+        )
         {
             var index = new Dictionary<string, DrawingElement>(StringComparer.Ordinal);
 
@@ -896,7 +1028,10 @@ namespace GeometryHelper.Drawing
         /// <summary>After an undo or redo in the presenter, the document read back from the DXF it now stands at.</summary>
         private void OnPresenterChanged(object sender, CadDocumentChangedEventArgs e)
         {
-            if (!ReferenceEquals(sender, _presenter) || (e.Kind != CadChangeKind.Undo && e.Kind != CadChangeKind.Redo && e.Kind != CadChangeKind.Rollback))
+            if (
+                !ReferenceEquals(sender, _presenter)
+                || (e.Kind != CadChangeKind.Undo && e.Kind != CadChangeKind.Redo && e.Kind != CadChangeKind.Rollback)
+            )
             {
                 return;
             }
@@ -939,7 +1074,15 @@ namespace GeometryHelper.Drawing
         /// <summary>What a drawing is made of but its hand edits: its source, settings, views and the elements of its document.</summary>
         private sealed class State
         {
-            public State(DrawingSource source, DrawingSettings settings, DrawingContent content, List<DrawingElement> views, List<DrawingElement> annotations, List<string> warnings, double scale)
+            public State(
+                DrawingSource source,
+                DrawingSettings settings,
+                DrawingContent content,
+                List<DrawingElement> views,
+                List<DrawingElement> annotations,
+                List<string> warnings,
+                double scale
+            )
             {
                 Source = source;
                 Settings = settings;
@@ -1055,7 +1198,8 @@ namespace GeometryHelper.Drawing
 
                     if (edit.Kind != CadEditKind.Move)
                     {
-                        return "a dimension keeps a move, a text override or its erasing, not a " + edit.Kind.ToString().ToLowerInvariant();
+                        return "a dimension keeps a move, a text override or its erasing, not a "
+                            + edit.Kind.ToString().ToLowerInvariant();
                     }
 
                     break;
@@ -1064,11 +1208,19 @@ namespace GeometryHelper.Drawing
                     return "the " + element.Kind.ToLowerInvariant() + " " + element.Id + " is not edited by hand";
             }
 
-            return DrawingDxfWriter.TryReadMove(edit.NewValue, out _) ? null : "the move " + (edit.NewValue ?? "(none)") + " does not read as dx,dy";
+            return DrawingDxfWriter.TryReadMove(edit.NewValue, out _)
+                ? null
+                : "the move " + (edit.NewValue ?? "(none)") + " does not read as dx,dy";
         }
 
         /// <summary>What an update changes: the objects of the model and the elements of the drawing, each list in the order of the ids.</summary>
-        private UpdateReport Compare(DrawingSource newSource, Dictionary<string, DrawingElement> next, List<DrawingEdit> kept, List<DroppedEdit> dropped, DrawingPluginRuns runs)
+        private UpdateReport Compare(
+            DrawingSource newSource,
+            Dictionary<string, DrawingElement> next,
+            List<DrawingEdit> kept,
+            List<DroppedEdit> dropped,
+            DrawingPluginRuns runs
+        )
         {
             var before = new SortedSet<string>(StringComparer.Ordinal);
             var after = new SortedSet<string>(StringComparer.Ordinal);
@@ -1106,7 +1258,12 @@ namespace GeometryHelper.Drawing
                 {
                     addedObjects.Add(id);
                 }
-                else if (_source != null && _source.TryGetObject(id, out DrawingObject old) && newSource.TryGetObject(id, out DrawingObject now) && !ObjectComparer.Same(old, now))
+                else if (
+                    _source != null
+                    && _source.TryGetObject(id, out DrawingObject old)
+                    && newSource.TryGetObject(id, out DrawingObject now)
+                    && !ObjectComparer.Same(old, now)
+                )
                 {
                     changedObjects.Add(id);
                 }
@@ -1157,7 +1314,8 @@ namespace GeometryHelper.Drawing
                 dropped.AsReadOnly(),
                 runs.Waiting.AsReadOnly(),
                 runs.Ran.AsReadOnly(),
-                runs.Dropped.AsReadOnly());
+                runs.Dropped.AsReadOnly()
+            );
         }
     }
 
@@ -1166,18 +1324,29 @@ namespace GeometryHelper.Drawing
     {
         public static bool Same(DrawingObject a, DrawingObject b)
         {
-            if (a.Kind != b.Kind || a.IsMain != b.IsMain
-                || !string.Equals(a.Name, b.Name, StringComparison.Ordinal) || !string.Equals(a.Mark, b.Mark, StringComparison.Ordinal)
-                || !string.Equals(a.Profile, b.Profile, StringComparison.Ordinal) || !string.Equals(a.Material, b.Material, StringComparison.Ordinal)
-                || !string.Equals(a.ParentId, b.ParentId, StringComparison.Ordinal) || a.Attributes.Count != b.Attributes.Count
-                || !Same(a.Frame.Origin, b.Frame.Origin) || !Same(a.Frame.XAxis, b.Frame.XAxis) || !Same(a.Frame.YAxis, b.Frame.YAxis))
+            if (
+                a.Kind != b.Kind
+                || a.IsMain != b.IsMain
+                || !string.Equals(a.Name, b.Name, StringComparison.Ordinal)
+                || !string.Equals(a.Mark, b.Mark, StringComparison.Ordinal)
+                || !string.Equals(a.Profile, b.Profile, StringComparison.Ordinal)
+                || !string.Equals(a.Material, b.Material, StringComparison.Ordinal)
+                || !string.Equals(a.ParentId, b.ParentId, StringComparison.Ordinal)
+                || a.Attributes.Count != b.Attributes.Count
+                || !Same(a.Frame.Origin, b.Frame.Origin)
+                || !Same(a.Frame.XAxis, b.Frame.XAxis)
+                || !Same(a.Frame.YAxis, b.Frame.YAxis)
+            )
             {
                 return false;
             }
 
             foreach (KeyValuePair<string, string> attribute in a.Attributes)
             {
-                if (!b.Attributes.TryGetValue(attribute.Key, out string value) || !string.Equals(value, attribute.Value, StringComparison.Ordinal))
+                if (
+                    !b.Attributes.TryGetValue(attribute.Key, out string value)
+                    || !string.Equals(value, attribute.Value, StringComparison.Ordinal)
+                )
                 {
                     return false;
                 }
@@ -1250,6 +1419,7 @@ namespace GeometryHelper.Drawing
 
         private static bool Same(GeoVector3 a, GeoVector3 b) => Bits(a.X, b.X) && Bits(a.Y, b.Y) && Bits(a.Z, b.Z);
 
-        private static bool Bits(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
+        private static bool Bits(double a, double b) =>
+            BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
     }
 }

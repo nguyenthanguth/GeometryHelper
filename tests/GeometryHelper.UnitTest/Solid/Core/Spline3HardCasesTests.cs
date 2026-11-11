@@ -42,22 +42,35 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static GeoCoordinateSystem3 Frame(string name)
         {
-            GeoPoint3 origin = name == "floor" || name == "tilted" ? P(0, 0, 0) : name == "a million out" ? P(1E6, -2E6, 1E6) : P(1E5, -2E5, 1E5);
+            GeoPoint3 origin =
+                name == "floor" || name == "tilted" ? P(0, 0, 0)
+                : name == "a million out" ? P(1E6, -2E6, 1E6)
+                : P(1E5, -2E5, 1E5);
 
             return name == "floor"
                 ? new GeoCoordinateSystem3(origin, GeoVector3.XAxis, GeoVector3.YAxis)
-                : new GeoCoordinateSystem3(origin, new GeoVector3(1.0 / 3.0, 2.0 / 3.0, 2.0 / 3.0), new GeoVector3(-2.0 / 3.0, -1.0 / 3.0, 2.0 / 3.0));
+                : new GeoCoordinateSystem3(
+                    origin,
+                    new GeoVector3(1.0 / 3.0, 2.0 / 3.0, 2.0 / 3.0),
+                    new GeoVector3(-2.0 / 3.0, -1.0 / 3.0, 2.0 / 3.0)
+                );
         }
 
         /// <summary>Gets the point of a frame at two numbers.</summary>
-        private static GeoPoint3 At(GeoCoordinateSystem3 frame, double x, double y) => frame.ToGlobal(new GeoPoint3(x, y, 0.0));
+        private static GeoPoint3 At(GeoCoordinateSystem3 frame, double x, double y) =>
+            frame.ToGlobal(new GeoPoint3(x, y, 0.0));
 
-        private static GeoPoint3 At(GeoCoordinateSystem3 frame, double x, double y, double z) => frame.ToGlobal(new GeoPoint3(x, y, z));
+        private static GeoPoint3 At(GeoCoordinateSystem3 frame, double x, double y, double z) =>
+            frame.ToGlobal(new GeoPoint3(x, y, z));
 
-        private static GeoSpline3 Ring(GeoCoordinateSystem3 frame, double x, double y, double r) => GeoSpline2.FromCircle(new GeoCircle2(new GeoPoint2(x, y), r)).ToSpline3(frame);
+        private static GeoSpline3 Ring(GeoCoordinateSystem3 frame, double x, double y, double r) =>
+            GeoSpline2.FromCircle(new GeoCircle2(new GeoPoint2(x, y), r)).ToSpline3(frame);
 
-        private static GeoSpline3 Through(int degree, GeoCoordinateSystem3 frame, params double[] xy)
-            => GeoSpline3.FromControlPoints(degree, Enumerable.Range(0, xy.Length / 2).Select(i => At(frame, xy[2 * i], xy[2 * i + 1])));
+        private static GeoSpline3 Through(int degree, GeoCoordinateSystem3 frame, params double[] xy) =>
+            GeoSpline3.FromControlPoints(
+                degree,
+                Enumerable.Range(0, xy.Length / 2).Select(i => At(frame, xy[2 * i], xy[2 * i + 1]))
+            );
 
         private static double Where(GeoCoordinateSystem3 frame, GeoPoint3 p, out double y)
         {
@@ -86,14 +99,29 @@ namespace GeometryHelper.UnitTest.Solid
 
         [Theory]
         [MemberData(nameof(CrossingsBehindTheEnds))]
-        public void ACrossingBehindAnApproachAtTheStart_IsFoundInSpace_AndTheDistanceIsNought(string name, double length, double tolerance)
+        public void ACrossingBehindAnApproachAtTheStart_IsFoundInSpace_AndTheDistanceIsNought(
+            string name,
+            double length,
+            double tolerance
+        )
         {
             // A line and a cubic that starts 0.5E-8 of its length off it, the nearest it comes within the first look, then arches away and
             // falls through the line: the start is 0.005 off the line at a million, and the crossing is well beyond it.
             GeoCoordinateSystem3 frame = Frame(name);
             var tol = new Tolerance(tolerance, 1E-5);
             GeoSpline3 line = Through(1, frame, 0, 0, length, 0);
-            GeoSpline3 cubic = Through(3, frame, 0, 0.5E-8 * length, length / 3, length / 1000, 2 * length / 3, length / 1000, length, -length / 1000);
+            GeoSpline3 cubic = Through(
+                3,
+                frame,
+                0,
+                0.5E-8 * length,
+                length / 3,
+                length / 1000,
+                2 * length / 3,
+                length / 1000,
+                length,
+                -length / 1000
+            );
 
             GeoPoint3[] crossings = line.GetIntersections(cubic, tol);
 
@@ -146,15 +174,31 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoCoordinateSystem3 frame = Frame(name);
             GeoSpline3 ring = Ring(frame, 0, 0, 1000);
-            var points = Enumerable.Range(0, pieces).Select(i => At(frame, -500 + 1000.0 * i / (pieces - 1), 1000)).ToArray();
+            var points = Enumerable
+                .Range(0, pieces)
+                .Select(i => At(frame, -500 + 1000.0 * i / (pieces - 1), 1000))
+                .ToArray();
             GeoSpline3 line = GeoSpline3.FromPolyline(new GeoPolyline3(points));
             var segment = new GeoLine3(points[0], points[pieces - 1]);
             GeoPoint3 touch = At(frame, 0, 1000);
 
-            foreach (GeoPoint3[] places in new[] { line.GetIntersections(ring, Strict), ring.GetIntersections(line, Strict), ring.GetIntersections(segment, Strict), segment.GetIntersections(ring, Strict) })
+            foreach (
+                GeoPoint3[] places in new[]
+                {
+                    line.GetIntersections(ring, Strict),
+                    ring.GetIntersections(line, Strict),
+                    ring.GetIntersections(segment, Strict),
+                    segment.GetIntersections(ring, Strict),
+                }
+            )
             {
-                Assert.True(places.Length >= 1 && places.Length <= 3, places.Length + " places " + string.Join(" ", places));
-                Assert.All(places, p => Assert.True(p.DistanceTo(touch) <= (name == "a million out" ? 0.04 : 0.01), "the touch is at " + p));
+                Assert.True(
+                    places.Length >= 1 && places.Length <= 3,
+                    places.Length + " places " + string.Join(" ", places)
+                );
+                Assert.All(places, p =>
+                    Assert.True(p.DistanceTo(touch) <= (name == "a million out" ? 0.04 : 0.01), "the touch is at " + p)
+                );
             }
 
             Assert.True(ring.DistanceTo(line, Strict) <= 1E-6);
@@ -216,7 +260,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(2, places.Length);
             Assert.Equal(2, back.Length);
-            Assert.All(places, p => Assert.True(Math.Abs(Math.Abs(Where(frame, p, out _)) - 0.5 * chord) <= 1E-4, "a crossing at " + p));
+            Assert.All(places, p =>
+                Assert.True(Math.Abs(Math.Abs(Where(frame, p, out _)) - 0.5 * chord) <= 1E-4, "a crossing at " + p)
+            );
             Assert.Equal(0.0, ring.DistanceTo(line, Strict), 6);
         }
 
@@ -280,7 +326,9 @@ namespace GeometryHelper.UnitTest.Solid
                 }
             }
 
-            GeoSpline3 near = GeoSpline3.FromPolyline(new GeoPolyline3(vertices.Select(v => At(frame, v[0], v[1])).ToArray()));
+            GeoSpline3 near = GeoSpline3.FromPolyline(
+                new GeoPolyline3(vertices.Select(v => At(frame, v[0], v[1])).ToArray())
+            );
 
             GeoPoint3[] places = line.GetIntersections(near, Strict);
             GeoPoint3[] back = near.GetIntersections(line, Strict);
@@ -301,11 +349,19 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>The corners of a polyline spline that runs out along the axis, up, out and back.</summary>
         private static readonly double[] Corners = { 0, 0, 100, 0, 100, 100, 200, 150, 150, 300 };
 
-        private static GeoSpline2 Flat(double dx, double dy) => GeoSpline2.FromControlPoints(1, Enumerable.Range(0, Corners.Length / 2).Select(i => new GeoPoint2(Corners[2 * i] + dx, Corners[2 * i + 1] + dy)));
+        private static GeoSpline2 Flat(double dx, double dy) =>
+            GeoSpline2.FromControlPoints(
+                1,
+                Enumerable
+                    .Range(0, Corners.Length / 2)
+                    .Select(i => new GeoPoint2(Corners[2 * i] + dx, Corners[2 * i + 1] + dy))
+            );
 
         [Theory]
         [MemberData(nameof(Frames))]
-        public void APolylineSplineAndItsCopyMovedHalfAThousandthAlongItsPlane_CrossAtTheThreeCornersAsInThePlane(string name)
+        public void APolylineSplineAndItsCopyMovedHalfAThousandthAlongItsPlane_CrossAtTheThreeCornersAsInThePlane(
+            string name
+        )
         {
             // The copy is moved (0.0003, 0.0004) along the plane: the two lie along each other within the tolerance all the way, and cross
             // where an edge of one passes a corner of the other, at (100, 0.0004), (100.0003, 100.00015) and (199.99993, 150.00021), the
@@ -325,13 +381,24 @@ namespace GeometryHelper.UnitTest.Solid
             for (int i = 0; i < places.Length; i++)
             {
                 GeoPoint3 local = frame.ToLocal(places[i]);
-                Assert.True(Math.Abs(local.X - inPlane[i].X) <= 1E-6 && Math.Abs(local.Y - inPlane[i].Y) <= 1E-6 && Math.Abs(local.Z) <= 1E-6, "the place " + local + " and the plane's " + inPlane[i]);
+                Assert.True(
+                    Math.Abs(local.X - inPlane[i].X) <= 1E-6
+                        && Math.Abs(local.Y - inPlane[i].Y) <= 1E-6
+                        && Math.Abs(local.Z) <= 1E-6,
+                    "the place " + local + " and the plane's " + inPlane[i]
+                );
 
                 // In the floor the two are the plane's numbers, and the places are the plane's to the bit.
                 if (name == "floor")
                 {
-                    Assert.Equal(BitConverter.DoubleToInt64Bits(inPlane[i].X), BitConverter.DoubleToInt64Bits(places[i].X));
-                    Assert.Equal(BitConverter.DoubleToInt64Bits(inPlane[i].Y), BitConverter.DoubleToInt64Bits(places[i].Y));
+                    Assert.Equal(
+                        BitConverter.DoubleToInt64Bits(inPlane[i].X),
+                        BitConverter.DoubleToInt64Bits(places[i].X)
+                    );
+                    Assert.Equal(
+                        BitConverter.DoubleToInt64Bits(inPlane[i].Y),
+                        BitConverter.DoubleToInt64Bits(places[i].Y)
+                    );
                 }
             }
 
@@ -347,7 +414,12 @@ namespace GeometryHelper.UnitTest.Solid
             // the edges between, so the three corners are where the distance is least, the places in space, as the polylines' are.
             GeoCoordinateSystem3 frame = Frame(name);
             GeoSpline3 spline = Through(1, frame, Corners);
-            GeoSpline3 lifted = GeoSpline3.FromControlPoints(1, Enumerable.Range(0, Corners.Length / 2).Select(i => At(frame, Corners[2 * i] + 0.0003, Corners[2 * i + 1] + 0.0004, 0.0002)));
+            GeoSpline3 lifted = GeoSpline3.FromControlPoints(
+                1,
+                Enumerable
+                    .Range(0, Corners.Length / 2)
+                    .Select(i => At(frame, Corners[2 * i] + 0.0003, Corners[2 * i + 1] + 0.0004, 0.0002))
+            );
             double[][] near = { new[] { 100, 0.0004 }, new[] { 100.0003, 100.00015 }, new[] { 199.99993, 150.00021 } };
 
             GeoPoint3[] places = spline.GetIntersections(lifted, Strict);
@@ -359,7 +431,10 @@ namespace GeometryHelper.UnitTest.Solid
             for (int i = 0; i < 3; i++)
             {
                 GeoPoint3 local = frame.ToLocal(places[i]);
-                Assert.True(Math.Abs(local.X - near[i][0]) <= 1E-4 && Math.Abs(local.Y - near[i][1]) <= 1E-4, "the place " + local);
+                Assert.True(
+                    Math.Abs(local.X - near[i][0]) <= 1E-4 && Math.Abs(local.Y - near[i][1]) <= 1E-4,
+                    "the place " + local
+                );
             }
 
             Assert.InRange(spline.DistanceTo(lifted, Strict), 0.0002 - 1E-9, 0.0002 + 1E-9);
@@ -369,14 +444,33 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>A degree-four spline of ten control points with a turn tighter than a millimetre, about 30 across.</summary>
         private static readonly double[] TightTurn =
         {
-            -3.78640374206479, -6.7904581755800333, 0.45539147937324209, -11.537363396347109, -6.0850957702112511, -10.041782731811548,
-            -9.3524846592728039, -15.657021793663404, -9.6258942831918457, -22.783004975266234, -8.4912876109286213, -17.490137122364434,
-            -7.6106566528480339, -18.467368414307558, -2.1744017624320922, -11.570168377506185, 4.4797817131940931, -8.3688637077908687,
-            -1.7386922377114802, -11.833547111904171,
+            -3.78640374206479,
+            -6.7904581755800333,
+            0.45539147937324209,
+            -11.537363396347109,
+            -6.0850957702112511,
+            -10.041782731811548,
+            -9.3524846592728039,
+            -15.657021793663404,
+            -9.6258942831918457,
+            -22.783004975266234,
+            -8.4912876109286213,
+            -17.490137122364434,
+            -7.6106566528480339,
+            -18.467368414307558,
+            -2.1744017624320922,
+            -11.570168377506185,
+            4.4797817131940931,
+            -8.3688637077908687,
+            -1.7386922377114802,
+            -11.833547111904171,
         };
 
-        private static GeoSpline3 TightCopy(GeoCoordinateSystem3 frame, double dx, double dy, double lift)
-            => GeoSpline3.FromControlPoints(4, Enumerable.Range(0, 10).Select(i => At(frame, TightTurn[2 * i] + dx, TightTurn[2 * i + 1] + dy, lift)));
+        private static GeoSpline3 TightCopy(GeoCoordinateSystem3 frame, double dx, double dy, double lift) =>
+            GeoSpline3.FromControlPoints(
+                4,
+                Enumerable.Range(0, 10).Select(i => At(frame, TightTurn[2 * i] + dx, TightTurn[2 * i + 1] + dy, lift))
+            );
 
         [Theory]
         [InlineData(0.0)]
@@ -387,12 +481,21 @@ namespace GeometryHelper.UnitTest.Solid
             // and (-2, 1, 0) / sqrt 5 the first round took 51 s for the places, the boxes of its parts lying across the axes and fat, and the
             // floor 0.27 s. Lifted, the two give the same places in either plane, the leasts of the distance where the one turns across the
             // other, which the first round did not give at all.
-            var turned = new GeoCoordinateSystem3(P(0, 0, 0), new GeoVector3(1.0 / 3.0, 2.0 / 3.0, 2.0 / 3.0), new GeoVector3(-2.0 / Math.Sqrt(5.0), 1.0 / Math.Sqrt(5.0), 0.0));
+            var turned = new GeoCoordinateSystem3(
+                P(0, 0, 0),
+                new GeoVector3(1.0 / 3.0, 2.0 / 3.0, 2.0 / 3.0),
+                new GeoVector3(-2.0 / Math.Sqrt(5.0), 1.0 / Math.Sqrt(5.0), 0.0)
+            );
             var watch = Stopwatch.StartNew();
-            GeoPoint3[] floor = TightCopy(Frame("floor"), 0, 0, 0).GetIntersections(TightCopy(Frame("floor"), -0.00012038380891121747, -0.0007341883646949654, lift), Strict);
+            GeoPoint3[] floor = TightCopy(Frame("floor"), 0, 0, 0)
+                .GetIntersections(
+                    TightCopy(Frame("floor"), -0.00012038380891121747, -0.0007341883646949654, lift),
+                    Strict
+                );
             double inFloor = watch.Elapsed.TotalSeconds;
             watch.Restart();
-            GeoPoint3[] tilted = TightCopy(turned, 0, 0, 0).GetIntersections(TightCopy(turned, -0.00012038380891121747, -0.0007341883646949654, lift), Strict);
+            GeoPoint3[] tilted = TightCopy(turned, 0, 0, 0)
+                .GetIntersections(TightCopy(turned, -0.00012038380891121747, -0.0007341883646949654, lift), Strict);
             double inTilted = watch.Elapsed.TotalSeconds;
 
             Assert.True(inFloor < 10.0, "took " + inFloor + " s in the floor");
@@ -421,13 +524,22 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         /// <summary>Gets the places of a circle spline and a rim of the plane, in the plane and with both lifted into a frame.</summary>
-        private static void Rim(GeoSpline2 flat, GeoCoordinateSystem3 frame, string kind, out GeoPoint2[] inPlane, out GeoPoint3[] places)
+        private static void Rim(
+            GeoSpline2 flat,
+            GeoCoordinateSystem3 frame,
+            string kind,
+            out GeoPoint2[] inPlane,
+            out GeoPoint3[] places
+        )
         {
             GeoSpline3 spline = flat.ToSpline3(frame);
             var arc = new GeoArc2(new GeoPoint2(0, 0), 100, 0.3, 4.0);
             var clockwise = new GeoArc2(new GeoPoint2(0, 0), 100, 4.0, 0.3, true);
             var ellipse = new GeoEllipse2(new GeoPoint2(0, 0), new GeoVector2(0.6, 0.8), 100, 90);
-            var chain = new GeoPolylineArc2(new[] { new GeoPoint2(-100, -200), new GeoPoint2(-100, 0), new GeoPoint2(100, 0) }, new[] { 0.0, -1.0, 0.0 });
+            var chain = new GeoPolylineArc2(
+                new[] { new GeoPoint2(-100, -200), new GeoPoint2(-100, 0), new GeoPoint2(100, 0) },
+                new[] { 0.0, -1.0, 0.0 }
+            );
 
             switch (kind)
             {
@@ -449,11 +561,17 @@ namespace GeometryHelper.UnitTest.Solid
                     break;
                 case "edge":
                     inPlane = flat.GetIntersections(new GeoEdge2(arc), Strict);
-                    places = spline.GetIntersections(GeometryHelper.Core.PlanarMap.ToEdge3(frame, new GeoEdge2(arc)), Strict);
+                    places = spline.GetIntersections(
+                        GeometryHelper.Core.PlanarMap.ToEdge3(frame, new GeoEdge2(arc)),
+                        Strict
+                    );
                     break;
                 default:
                     inPlane = flat.GetIntersections(chain, Strict);
-                    places = spline.GetIntersections(GeometryHelper.Core.PlanarMap.ToPolylineArc3(frame, chain), Strict);
+                    places = spline.GetIntersections(
+                        GeometryHelper.Core.PlanarMap.ToPolylineArc3(frame, chain),
+                        Strict
+                    );
                     break;
             }
         }
@@ -477,13 +595,20 @@ namespace GeometryHelper.UnitTest.Solid
             foreach (GeoPoint2 p in inPlane)
             {
                 GeoPoint3 lifted = At(frame, p.X, p.Y);
-                Assert.True(places.Min(q => q.DistanceTo(lifted)) <= 1E-4, "the plane's place " + p + " is not one in space");
+                Assert.True(
+                    places.Min(q => q.DistanceTo(lifted)) <= 1E-4,
+                    "the plane's place " + p + " is not one in space"
+                );
 
                 // In the floor the numbers of a circle and an ellipse are the plane's, and so are the places, to the bit. An arc in space keeps
                 // its start as a point, and the angle read back from it is the plane's to rounding.
                 if (name == "floor" && (kind == "circle" || kind == "ellipse"))
                 {
-                    Assert.Contains(places, q => BitConverter.DoubleToInt64Bits(q.X) == BitConverter.DoubleToInt64Bits(p.X) && BitConverter.DoubleToInt64Bits(q.Y) == BitConverter.DoubleToInt64Bits(p.Y) && q.Z == 0.0);
+                    Assert.Contains(places, q =>
+                        BitConverter.DoubleToInt64Bits(q.X) == BitConverter.DoubleToInt64Bits(p.X)
+                        && BitConverter.DoubleToInt64Bits(q.Y) == BitConverter.DoubleToInt64Bits(p.Y)
+                        && q.Z == 0.0
+                    );
                 }
             }
         }
@@ -499,7 +624,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             foreach (double lift in new[] { 0.0, 3E-11, 6.06E-11, 1E-8, 1E-6, 1E-4 })
             {
-                GeoSpline3 copy = GeoSpline3.FromControlPoints(3, points.Select((p, i) => P(p.X, p.Y + 0.0005 + (i % 2 == 0 ? 0.0001 : -0.0001), lift)));
+                GeoSpline3 copy = GeoSpline3.FromControlPoints(
+                    3,
+                    points.Select((p, i) => P(p.X, p.Y + 0.0005 + (i % 2 == 0 ? 0.0001 : -0.0001), lift))
+                );
 
                 Assert.Empty(spline.GetIntersections(copy, Strict));
                 Assert.Empty(copy.GetIntersections(spline, Strict));
@@ -514,9 +642,17 @@ namespace GeometryHelper.UnitTest.Solid
             // A cubic winding round and up through 600 points and its copy moved 0.0009 along (0.48, 0.6, 0.64): the two lie along each
             // other within the tolerance the whole way, and every least was read for a place by cutting the pair further, 20 s and two
             // million pairs of parts. Inside the stretch along, a least is looked at once, on its own.
-            GeoPoint3[] points = Enumerable.Range(0, 600).Select(i => P(100 * Math.Cos(0.37 * i) + 7 * i, 80 * Math.Sin(0.23 * i), 60 * Math.Cos(0.11 * i) + 3 * i)).ToArray();
+            GeoPoint3[] points = Enumerable
+                .Range(0, 600)
+                .Select(i =>
+                    P(100 * Math.Cos(0.37 * i) + 7 * i, 80 * Math.Sin(0.23 * i), 60 * Math.Cos(0.11 * i) + 3 * i)
+                )
+                .ToArray();
             GeoSpline3 spline = GeoSpline3.FromControlPoints(3, points);
-            GeoSpline3 copy = GeoSpline3.FromControlPoints(3, points.Select(p => P(p.X + 0.000432, p.Y + 0.00054, p.Z + 0.000576)));
+            GeoSpline3 copy = GeoSpline3.FromControlPoints(
+                3,
+                points.Select(p => P(p.X + 0.000432, p.Y + 0.00054, p.Z + 0.000576))
+            );
             var watch = Stopwatch.StartNew();
 
             GeoPoint3[] places = spline.GetIntersections(copy, Strict);
@@ -525,7 +661,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(seconds < 5.0, "took " + seconds + " s");
             Assert.Equal(places.Length, back.Length);
-            Assert.All(places, p => Assert.True(spline.DistanceTo(p) <= 1E-9 && copy.DistanceTo(p) <= 1E-3 + 1E-9, "the place " + p));
+            Assert.All(places, p =>
+                Assert.True(spline.DistanceTo(p) <= 1E-9 && copy.DistanceTo(p) <= 1E-3 + 1E-9, "the place " + p)
+            );
         }
 
         [Fact]
@@ -536,18 +674,64 @@ namespace GeometryHelper.UnitTest.Solid
             // that a least was settled at -3.5843 on its slope and given as a fourth place, 90 from the first.
             double[] xyz =
             {
-                950.3743, -155.2232, 412.5745, -189.8038, -260.696, -307.254, -709.5205, -615.6945, -803.5523, -398.0145, -161.1518, 819.0686,
-                -597.2508, 854.1051, -294.6801, 508.42, -623.2203, 71.1448, -476.275, -307.1767, -846.4116, 614.4399, -363.8709, -950.0663,
+                950.3743,
+                -155.2232,
+                412.5745,
+                -189.8038,
+                -260.696,
+                -307.254,
+                -709.5205,
+                -615.6945,
+                -803.5523,
+                -398.0145,
+                -161.1518,
+                819.0686,
+                -597.2508,
+                854.1051,
+                -294.6801,
+                508.42,
+                -623.2203,
+                71.1448,
+                -476.275,
+                -307.1767,
+                -846.4116,
+                614.4399,
+                -363.8709,
+                -950.0663,
             };
             double end = -0.16699999999999982;
-            double[] knots = { -4.377, -4.377, -4.377, -4.377, -3.9077766196042258, -3.0106095666397321, -1.874461715161464, -1.1716514388797794, end, end, end, end };
-            var spline = new GeoSpline3(3, Enumerable.Range(0, 8).Select(i => P(xyz[3 * i], xyz[3 * i + 1], xyz[3 * i + 2])), knots, new[] { 0.986, 1.553, 0.204, 3.875, 0.849, 4.006, 4.232, 4.479 });
-            GeoSpline3 copy = spline + new GeoVector3(0.43642229281940431 * 1E-4, -0.079547599395239421 * 1E-4, 0.896218590390039 * 1E-4);
+            double[] knots =
+            {
+                -4.377,
+                -4.377,
+                -4.377,
+                -4.377,
+                -3.9077766196042258,
+                -3.0106095666397321,
+                -1.874461715161464,
+                -1.1716514388797794,
+                end,
+                end,
+                end,
+                end,
+            };
+            var spline = new GeoSpline3(
+                3,
+                Enumerable.Range(0, 8).Select(i => P(xyz[3 * i], xyz[3 * i + 1], xyz[3 * i + 2])),
+                knots,
+                new[] { 0.986, 1.553, 0.204, 3.875, 0.849, 4.006, 4.232, 4.479 }
+            );
+            GeoSpline3 copy =
+                spline
+                + new GeoVector3(0.43642229281940431 * 1E-4, -0.079547599395239421 * 1E-4, 0.896218590390039 * 1E-4);
 
             GeoPoint3[] places = spline.GetIntersections(copy, Strict);
             GeoPoint3[] back = copy.GetIntersections(spline, Strict);
 
-            Assert.Equal(new[] { -3.4974, -2.6392, -0.8081 }, places.Select(p => Math.Round(spline.GetKnotAtPoint(p), 4)).ToArray());
+            Assert.Equal(
+                new[] { -3.4974, -2.6392, -0.8081 },
+                places.Select(p => Math.Round(spline.GetKnotAtPoint(p), 4)).ToArray()
+            );
             Assert.Equal(places.Length, back.Length);
         }
 
@@ -557,14 +741,19 @@ namespace GeometryHelper.UnitTest.Solid
 
         [Theory]
         [MemberData(nameof(Frames))]
-        public void ALineThroughAPointOfACubicAMillionthOfARadianOffItsTangent_CrossesItThere_AndIsNoughtFromIt(string name)
+        public void ALineThroughAPointOfACubicAMillionthOfARadianOffItsTangent_CrossesItThere_AndIsNoughtFromIt(
+            string name
+        )
         {
             // The line through (90, 31.5), a point of the cubic, turned a millionth of a radian off its tangent there: it crosses the cubic
             // there and again a few ten-thousandths on, one place. The square of the offset has a double root at each crossing, which the
             // rounding lumped, and the distance read 1.6E-10 with no place; the signed offset in the plane of the two has a simple one.
             GeoCoordinateSystem3 frame = Frame(name);
             GeoSpline3 cubic = Through(3, frame, 0, 0, 100, 50, 200, 50, 300, 0);
-            var line = new GeoXLine3(At(frame, 90, 31.5), frame.ToGlobal(new GeoVector3(0.98058087180656506, 0.19611515455741033, 0)));
+            var line = new GeoXLine3(
+                At(frame, 90, 31.5),
+                frame.ToGlobal(new GeoVector3(0.98058087180656506, 0.19611515455741033, 0))
+            );
 
             GeoPoint3[] places = cubic.GetIntersections(line, Strict);
 
@@ -625,8 +814,16 @@ namespace GeometryHelper.UnitTest.Solid
             GeoVector3 along = normal.CrossProduct(GeoVector3.XAxis).Normalize();
             GeoVector3 up = normal.CrossProduct(along);
             GeoPoint3 origin = P(far, 0.5 * far, -0.2 * far);
-            Func<double, double, GeoPoint3> at = (x, y) => P(origin.X + x * along.X + y * up.X, origin.Y + x * along.Y + y * up.Y, origin.Z + x * along.Z + y * up.Z);
-            GeoSpline3 parabola = GeoSpline3.FromControlPoints(2, new[] { at(0, 100 - 1E-6), at(400, -100 - 1E-6), at(800, 100 - 1E-6) });
+            Func<double, double, GeoPoint3> at = (x, y) =>
+                P(
+                    origin.X + x * along.X + y * up.X,
+                    origin.Y + x * along.Y + y * up.Y,
+                    origin.Z + x * along.Z + y * up.Z
+                );
+            GeoSpline3 parabola = GeoSpline3.FromControlPoints(
+                2,
+                new[] { at(0, 100 - 1E-6), at(400, -100 - 1E-6), at(800, 100 - 1E-6) }
+            );
             var plane = new GeoPlane3(origin, up);
 
             GeoPoint3[] places = parabola.GetIntersections(plane, Strict);
@@ -660,7 +857,10 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ASplineOfAHundredThousandSpans_AgainstAPlaneAndALine_IsAsFastAsAPointQuery()
         {
-            var points = Enumerable.Range(0, 100000).Select(i => P(0.01 * i * Math.Cos(i * 0.05), 0.01 * i * Math.Sin(i * 0.05), 0.001 * i)).ToArray();
+            var points = Enumerable
+                .Range(0, 100000)
+                .Select(i => P(0.01 * i * Math.Cos(i * 0.05), 0.01 * i * Math.Sin(i * 0.05), 0.001 * i))
+                .ToArray();
             GeoSpline3 spiral = GeoSpline3.FromControlPoints(3, points);
             GeoPlane3 plane = new GeoPlane3(P(0, 0, 50), GeoVector3.ZAxis);
             var line = new GeoLine3(P(-2000, 1, 40), P(2000, 1, 40));
@@ -682,8 +882,17 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void APolylineOfAHundredThousandEdges_AgainstASpline_IsLinear()
         {
-            GeoSpline3 arch = new GeoSpline3(3, new[] { P(0, 0, 0), P(100, 0, 150), P(200, 0, 150), P(300, 0, 0) }, new double[] { 0, 0, 0, 0, 1, 1, 1, 1 });
-            var polyline = new GeoPolyline3(Enumerable.Range(0, 100000).Select(i => P(300.0 * i / 99999, 20 + 5 * Math.Sin(i * 0.01), 60 + 40 * Math.Cos(i * 0.007))).ToArray());
+            GeoSpline3 arch = new GeoSpline3(
+                3,
+                new[] { P(0, 0, 0), P(100, 0, 150), P(200, 0, 150), P(300, 0, 0) },
+                new double[] { 0, 0, 0, 0, 1, 1, 1, 1 }
+            );
+            var polyline = new GeoPolyline3(
+                Enumerable
+                    .Range(0, 100000)
+                    .Select(i => P(300.0 * i / 99999, 20 + 5 * Math.Sin(i * 0.01), 60 + 40 * Math.Cos(i * 0.007)))
+                    .ToArray()
+            );
             var watch = Stopwatch.StartNew();
 
             double distance = arch.DistanceTo(polyline, Strict);
@@ -709,8 +918,16 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(2, through.GetIntersections(ball, Strict).Length);
             Assert.Equal(0.0, inside.DistanceTo(ball, Strict));
             Assert.Empty(inside.GetIntersections(ball, Strict));
-            Assert.InRange(inside.GetShortestLineTo(ball, Strict).Length, 50 - Math.Sqrt(105) - 0.01, 50 - Math.Sqrt(105) + 0.01);
-            Assert.InRange(outside.DistanceTo(ball, Strict), Math.Sqrt(70 * 70 + 16) - 50 - 0.01, Math.Sqrt(70 * 70 + 16) - 50 + 0.01);
+            Assert.InRange(
+                inside.GetShortestLineTo(ball, Strict).Length,
+                50 - Math.Sqrt(105) - 0.01,
+                50 - Math.Sqrt(105) + 0.01
+            );
+            Assert.InRange(
+                outside.DistanceTo(ball, Strict),
+                Math.Sqrt(70 * 70 + 16) - 50 - 0.01,
+                Math.Sqrt(70 * 70 + 16) - 50 + 0.01
+            );
             Assert.True(watch.Elapsed.TotalSeconds < 60.0, "took " + watch.Elapsed.TotalSeconds + " s");
         }
 

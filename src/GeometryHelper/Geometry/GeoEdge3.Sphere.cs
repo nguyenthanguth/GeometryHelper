@@ -41,14 +41,16 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the points where this edge crosses the surface of a ball, within a tolerance.
         /// </summary>
-        public GeoPoint3[] GetIntersections(GeoSphere3 sphere, Tolerance tolerance) => sphere.GetIntersections(this, tolerance);
+        public GeoPoint3[] GetIntersections(GeoSphere3 sphere, Tolerance tolerance) =>
+            sphere.GetIntersections(this, tolerance);
 
         /// <summary>
         /// Tries to find where this edge crosses the surface of a ball, using the default tolerance.
         /// </summary>
         /// <param name="sphere">The ball.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoSphere3 sphere, out GeoPoint3[] intersections) => TryIntersectWith(sphere, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoSphere3 sphere, out GeoPoint3[] intersections) =>
+            TryIntersectWith(sphere, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this edge crosses the surface of a ball, within a tolerance.
@@ -56,7 +58,8 @@ namespace GeometryHelper.Geometry
         /// <param name="sphere">The ball.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool TryIntersectWith(GeoSphere3 sphere, out GeoPoint3[] intersections, Tolerance tolerance) => sphere.TryIntersectWith(this, out intersections, tolerance);
+        public bool TryIntersectWith(GeoSphere3 sphere, out GeoPoint3[] intersections, Tolerance tolerance) =>
+            sphere.TryIntersectWith(this, out intersections, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this edge and landing on a ball, using the default tolerance.
@@ -67,7 +70,8 @@ namespace GeometryHelper.Geometry
         /// Gets the shortest segment leaving this edge and landing on a ball, within a tolerance.
         /// </summary>
         /// <returns>The segment of <see cref="GeoSphere3.GetShortestLineTo(GeoEdge3, Tolerance)"/> turned round, so that it leaves this edge and lands on the surface of the ball.</returns>
-        public GeoLine3 GetShortestLineTo(GeoSphere3 sphere, Tolerance tolerance) => sphere.GetShortestLineTo(this, tolerance).Reverse();
+        public GeoLine3 GetShortestLineTo(GeoSphere3 sphere, Tolerance tolerance) =>
+            sphere.GetShortestLineTo(this, tolerance).Reverse();
 
         #endregion
     }

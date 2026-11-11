@@ -69,8 +69,8 @@ namespace GeometryHelper.Geometry
         /// }
         /// </code>
         /// </remarks>
-        public bool TryClose(out GeoSolid3 closed, SolidClosingOptions options, out SolidClosing3 report)
-            => Closing3.TryClose(this, out closed, options, out report);
+        public bool TryClose(out GeoSolid3 closed, SolidClosingOptions options, out SolidClosing3 report) =>
+            Closing3.TryClose(this, out closed, options, out report);
 
         /// <summary>
         /// Closes this body where corners standing apart, or a corner standing off an edge, are no further apart than a gap,
@@ -85,8 +85,8 @@ namespace GeometryHelper.Geometry
         /// This is <see cref="TryClose(out GeoSolid3, SolidClosingOptions, out SolidClosing3)"/> with options that fill no
         /// hole, <see cref="FillStrategy.None"/>, and the report not kept.
         /// </remarks>
-        public bool TryClose(out GeoSolid3 closed, Tolerance tolerance, double maxGap)
-            => TryClose(out closed, new SolidClosingOptions(tolerance, maxGap, 0.0, 0.0, FillStrategy.None), out _);
+        public bool TryClose(out GeoSolid3 closed, Tolerance tolerance, double maxGap) =>
+            TryClose(out closed, new SolidClosingOptions(tolerance, maxGap, 0.0, 0.0, FillStrategy.None), out _);
 
         #endregion
     }

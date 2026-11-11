@@ -55,7 +55,10 @@ namespace GeometryHelper.Drawing
                 throw new ArgumentNullException(nameof(entity));
             }
 
-            if (!DrawingEntityTags.TryRead(entity, out string id, out _) || !_drawing.TryGetElement(id, out DrawingElement element))
+            if (
+                !DrawingEntityTags.TryRead(entity, out string id, out _)
+                || !_drawing.TryGetElement(id, out DrawingElement element)
+            )
             {
                 return CadEditRule.ReadOnly;
             }
@@ -95,7 +98,11 @@ namespace GeometryHelper.Drawing
 
             DxfEntity entity = document.FindEntity(edit.Handle);
 
-            if (entity == null || !DrawingEntityTags.TryRead(entity, out string id, out _) || !_drawing.TryGetElement(id, out DrawingElement element))
+            if (
+                entity == null
+                || !DrawingEntityTags.TryRead(entity, out string id, out _)
+                || !_drawing.TryGetElement(id, out DrawingElement element)
+            )
             {
                 return false;
             }
@@ -112,22 +119,38 @@ namespace GeometryHelper.Drawing
             switch (edit.Kind)
             {
                 case CadEditKind.Move:
-                    planned = new CadEditRecord(CadEditRecordKind.Transformed, edit.Handle, "Move", null, edit.NewValue);
+                    planned = new CadEditRecord(
+                        CadEditRecordKind.Transformed,
+                        edit.Handle,
+                        "Move",
+                        null,
+                        edit.NewValue
+                    );
                     break;
                 case CadEditKind.Erase:
                     planned = new CadEditRecord(CadEditRecordKind.Erased, edit.Handle);
                     break;
                 default:
-                    planned = new CadEditRecord(CadEditRecordKind.PropertyChanged, edit.Handle, edit.Property, edit.OldValue, edit.NewValue);
+                    planned = new CadEditRecord(
+                        CadEditRecordKind.PropertyChanged,
+                        edit.Handle,
+                        edit.Property,
+                        edit.OldValue,
+                        edit.NewValue
+                    );
                     break;
             }
 
             _drawing.AddEdit(record);
-            CadEditResult result = document.ApplyEdit(element.Kind.ToUpperInvariant() + " " + edit.Kind.ToString().ToUpperInvariant(), new[] { planned }, scope =>
-            {
-                Apply(scope, element, record);
-                DrawingDocumentStore.Write(scope.Database, _drawing.Records());
-            });
+            CadEditResult result = document.ApplyEdit(
+                element.Kind.ToUpperInvariant() + " " + edit.Kind.ToString().ToUpperInvariant(),
+                new[] { planned },
+                scope =>
+                {
+                    Apply(scope, element, record);
+                    DrawingDocumentStore.Write(scope.Database, _drawing.Records());
+                }
+            );
 
             if (!result.Succeeded)
             {
@@ -153,7 +176,12 @@ namespace GeometryHelper.Drawing
                     {
                         if (entity is DxfDimension dimension)
                         {
-                            DrawingDxfWriter.ApplyDimensionEdit(database, dimension, record, ValueOf(element, "Text") ?? string.Empty);
+                            DrawingDxfWriter.ApplyDimensionEdit(
+                                database,
+                                dimension,
+                                record,
+                                ValueOf(element, "Text") ?? string.Empty
+                            );
                         }
                     }
 
@@ -161,7 +189,9 @@ namespace GeometryHelper.Drawing
 
                 case "View":
                     DrawingDxfWriter.TryReadMove(record.NewValue, out GeoVector2 move);
-                    DxfBlockTableRecord sheetSpace = layout ? DrawingDxfWriter.SheetLayout(database).BlockTableRecord : database.ModelSpace;
+                    DxfBlockTableRecord sheetSpace = layout
+                        ? DrawingDxfWriter.SheetLayout(database).BlockTableRecord
+                        : database.ModelSpace;
                     var shift = GeoTransform3.Translation(new GeoVector3(move.X, move.Y, 0.0));
 
                     foreach (DxfEntity entity in Tagged(sheetSpace, null, element.Id))
@@ -174,9 +204,15 @@ namespace GeometryHelper.Drawing
                 case "Mark":
                     DrawingMark mark = DrawingMark.FromElement(element);
 
-                    if (mark == null || !_drawing.TryGetElement(element.ViewId ?? string.Empty, out DrawingElement view) || !ViewPlace(view, out GeoPoint2 sheetOrigin, out GeoPoint2 modelOrigin, out double scale))
+                    if (
+                        mark == null
+                        || !_drawing.TryGetElement(element.ViewId ?? string.Empty, out DrawingElement view)
+                        || !ViewPlace(view, out GeoPoint2 sheetOrigin, out GeoPoint2 modelOrigin, out double scale)
+                    )
                     {
-                        throw new InvalidOperationException("The mark " + element.Id + " cannot be drawn again: its values or its view do not read.");
+                        throw new InvalidOperationException(
+                            "The mark " + element.Id + " cannot be drawn again: its values or its view do not read."
+                        );
                     }
 
                     foreach (DxfEntity entity in Tagged(database.ModelSpace, element.Id, null))
@@ -211,7 +247,10 @@ namespace GeometryHelper.Drawing
                     continue;
                 }
 
-                if ((id != null && string.Equals(objectId, id, StringComparison.Ordinal)) || (viewId != null && string.Equals(inView, viewId, StringComparison.Ordinal)))
+                if (
+                    (id != null && string.Equals(objectId, id, StringComparison.Ordinal))
+                    || (viewId != null && string.Equals(inView, viewId, StringComparison.Ordinal))
+                )
                 {
                     found.Add(entity);
                 }
@@ -221,12 +260,18 @@ namespace GeometryHelper.Drawing
         }
 
         /// <summary>Where a view stands, read from its element: its origin on the sheet and in model space, and its scale.</summary>
-        private static bool ViewPlace(DrawingElement view, out GeoPoint2 sheetOrigin, out GeoPoint2 modelOrigin, out double scale)
+        private static bool ViewPlace(
+            DrawingElement view,
+            out GeoPoint2 sheetOrigin,
+            out GeoPoint2 modelOrigin,
+            out double scale
+        )
         {
             sheetOrigin = new GeoPoint2(0.0, 0.0);
             modelOrigin = new GeoPoint2(0.0, 0.0);
             scale = 0.0;
-            bool sheet = false, model = false;
+            bool sheet = false,
+                model = false;
 
             foreach (KeyValuePair<string, string> value in view.Values)
             {
@@ -239,7 +284,12 @@ namespace GeometryHelper.Drawing
                         model = TryPoint(value.Value, out modelOrigin);
                         break;
                     case "Scale":
-                        double.TryParse(value.Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out scale);
+                        double.TryParse(
+                            value.Value,
+                            System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            out scale
+                        );
                         break;
                 }
             }

@@ -30,9 +30,11 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class Sphere3OracleFuzzTests
     {
-        private static int Cases => int.TryParse(Environment.GetEnvironmentVariable("SPHERE3_FUZZ"), out int n) ? n : 1000;
+        private static int Cases =>
+            int.TryParse(Environment.GetEnvironmentVariable("SPHERE3_FUZZ"), out int n) ? n : 1000;
 
-        private static int Seed => int.TryParse(Environment.GetEnvironmentVariable("SPHERE3_SEED"), out int n) ? n : 20261020;
+        private static int Seed =>
+            int.TryParse(Environment.GetEnvironmentVariable("SPHERE3_SEED"), out int n) ? n : 20261020;
 
         private static double Between(Random r, double lo, double hi) => lo + (hi - lo) * r.NextDouble();
 
@@ -53,7 +55,7 @@ namespace GeometryHelper.UnitTest.Solid
             Anywhere,
             About,
             Gap,
-            Around
+            Around,
         }
 
         /// <summary>What a run has judged, for it to say it looked at something.</summary>
@@ -71,8 +73,7 @@ namespace GeometryHelper.UnitTest.Solid
             do
             {
                 specimen = XLine3Gen.Make(kind, random);
-            }
-            while (!Sphere3Oracle.IsSound(specimen));
+            } while (!Sphere3Oracle.IsSound(specimen));
 
             return specimen;
         }
@@ -141,36 +142,75 @@ namespace GeometryHelper.UnitTest.Solid
                 }
                 catch (Exception e)
                 {
-                    failures.Add(kind + " #" + i + " " + layout + ": " + e.Message + "\n   shape " + specimen.Shape + "\n   ball  " + ball);
+                    failures.Add(
+                        kind
+                            + " #"
+                            + i
+                            + " "
+                            + layout
+                            + ": "
+                            + e.Message
+                            + "\n   shape "
+                            + specimen.Shape
+                            + "\n   ball  "
+                            + ball
+                    );
                 }
             }
 
-            Assert.True(failures.Count == 0, failures.Count + " of " + Cases + " pairs of " + kind + " went wrong:\n" + string.Join("\n", failures.Take(8)));
+            Assert.True(
+                failures.Count == 0,
+                failures.Count
+                    + " of "
+                    + Cases
+                    + " pairs of "
+                    + kind
+                    + " went wrong:\n"
+                    + string.Join("\n", failures.Take(8))
+            );
 
             // The run asked what it meant to: a good share of the pairs touch, cross and are measured, so that it is not judging balls
             // that all miss.
-            Assert.True(tally.Collided >= Cases / 10, kind + ": only " + tally.Collided + " of " + Cases + " pairs collided");
+            Assert.True(
+                tally.Collided >= Cases / 10,
+                kind + ": only " + tally.Collided + " of " + Cases + " pairs collided"
+            );
 
             if (Sphere3Oracle.Elements(XLine3Gen.Make(kind, new Random(1))) != null)
             {
-                Assert.True(tally.Judged >= Cases / 4, kind + ": only " + tally.Judged + " of " + Cases + " pairs had their crossings judged");
-                Assert.True(tally.Crossed >= Cases / 20, kind + ": only " + tally.Crossed + " pairs of " + Cases + " crossed with the crossings judged");
+                Assert.True(
+                    tally.Judged >= Cases / 4,
+                    kind + ": only " + tally.Judged + " of " + Cases + " pairs had their crossings judged"
+                );
+                Assert.True(
+                    tally.Crossed >= Cases / 20,
+                    kind + ": only " + tally.Crossed + " pairs of " + Cases + " crossed with the crossings judged"
+                );
             }
         }
 
         private static void AssertSamePoints(GeoPoint3[] expected, GeoPoint3[] actual, string what)
         {
-            Assert.True(expected.Length == actual.Length, what + ": " + actual.Length + " points against " + expected.Length);
+            Assert.True(
+                expected.Length == actual.Length,
+                what + ": " + actual.Length + " points against " + expected.Length
+            );
 
             for (int i = 0; i < expected.Length; i++)
             {
-                Assert.True(expected[i].Equals(actual[i]), what + ": point " + i + " " + actual[i] + " against " + expected[i]);
+                Assert.True(
+                    expected[i].Equals(actual[i]),
+                    what + ": point " + i + " " + actual[i] + " against " + expected[i]
+                );
             }
         }
 
         private static void AssertSameLine(GeoLine3 line, GeoLine3 turned, string what)
         {
-            Assert.True(line.StartPoint.Equals(turned.EndPoint) && line.EndPoint.Equals(turned.StartPoint), what + ": " + line + " against " + turned + " turned round");
+            Assert.True(
+                line.StartPoint.Equals(turned.EndPoint) && line.EndPoint.Equals(turned.StartPoint),
+                what + ": " + line + " against " + turned + " turned round"
+            );
         }
 
         private static void Check(XLineSpecimen specimen, GeoSphere3 ball, Tally tally)
@@ -189,10 +229,15 @@ namespace GeometryHelper.UnitTest.Solid
 
             if (Answers(ball, "DistanceTo", shape))
             {
-                Assert.True(distance.Equals(Distance(ball, shape, Strict)), "the form with a tolerance gives another distance");
-                Assert.True(distance.Equals(Distance(shape, ball, Strict)), "the form with a tolerance gives another distance from the shape");
+                Assert.True(
+                    distance.Equals(Distance(ball, shape, Strict)),
+                    "the form with a tolerance gives another distance"
+                );
+                Assert.True(
+                    distance.Equals(Distance(shape, ball, Strict)),
+                    "the form with a tolerance gives another distance from the shape"
+                );
             }
-
 
             // The collision.
             tally.Collided += shape is GeoPoint3 && gap <= 1E-3 ? 1 : 0;
@@ -208,7 +253,10 @@ namespace GeometryHelper.UnitTest.Solid
 
                 Assert.True(collides == Collides(shape, ball, Strict), "the collision is not the same from the shape");
                 Assert.True(collides == Collides(ball, shape), "the form without a tolerance collides otherwise");
-                Assert.True(collides == Collides(shape, ball), "the form without a tolerance collides otherwise from the shape");
+                Assert.True(
+                    collides == Collides(shape, ball),
+                    "the form without a tolerance collides otherwise from the shape"
+                );
 
                 tally.Collided += collides ? 1 : 0;
             }
@@ -227,14 +275,30 @@ namespace GeometryHelper.UnitTest.Solid
 
             if (gap > 1E-6)
             {
-                Assert.True(Math.Abs(Vec.Of(line.StartPoint).DistanceTo(center) - ball.Radius) <= 1E-9 * Math.Max(1.0, ball.Radius), "the line does not start on the surface");
-                Assert.True(Sphere3Oracle.Reading(specimen, Vec.Of(line.EndPoint)) <= beyond, "the line does not end on the shape");
-                Assert.True(Math.Abs(line.Length - gap) <= slack + beyond, "the line is " + line.Length + " long against a gap of " + gap);
+                Assert.True(
+                    Math.Abs(Vec.Of(line.StartPoint).DistanceTo(center) - ball.Radius)
+                        <= 1E-9 * Math.Max(1.0, ball.Radius),
+                    "the line does not start on the surface"
+                );
+                Assert.True(
+                    Sphere3Oracle.Reading(specimen, Vec.Of(line.EndPoint)) <= beyond,
+                    "the line does not end on the shape"
+                );
+                Assert.True(
+                    Math.Abs(line.Length - gap) <= slack + beyond,
+                    "the line is " + line.Length + " long against a gap of " + gap
+                );
             }
             else if (reading < ball.Radius - 1E-6)
             {
-                Assert.True(line.Length == 0.0, "the line has a length of " + line.Length + " where the shape reaches into the ball");
-                Assert.True(Sphere3Oracle.Reading(specimen, Vec.Of(line.StartPoint)) <= beyond, "the line of no length does not lie on the shape");
+                Assert.True(
+                    line.Length == 0.0,
+                    "the line has a length of " + line.Length + " where the shape reaches into the ball"
+                );
+                Assert.True(
+                    Sphere3Oracle.Reading(specimen, Vec.Of(line.StartPoint)) <= beyond,
+                    "the line of no length does not lie on the shape"
+                );
             }
 
             // The crossings.
@@ -251,14 +315,26 @@ namespace GeometryHelper.UnitTest.Solid
             AssertSamePoints(crossings, Crossings(shape, ball, Strict), "the crossings from the shape");
             AssertSamePoints(crossings, Crossings(ball, shape), "the crossings without a tolerance");
             AssertSamePoints(crossings, Crossings(shape, ball), "the crossings from the shape without a tolerance");
-            Assert.True(Try(ball, shape, out GeoPoint3[] tried, Strict) == crossings.Length > 0, "TryIntersectWith disagrees with the crossings");
+            Assert.True(
+                Try(ball, shape, out GeoPoint3[] tried, Strict) == crossings.Length > 0,
+                "TryIntersectWith disagrees with the crossings"
+            );
             AssertSamePoints(crossings, tried, "TryIntersectWith");
-            Assert.True(Try(shape, ball, out tried, Strict) == crossings.Length > 0, "TryIntersectWith from the shape disagrees with the crossings");
-            Assert.True(Try(ball, shape, out tried) == crossings.Length > 0, "TryIntersectWith without a tolerance disagrees with the crossings");
+            Assert.True(
+                Try(shape, ball, out tried, Strict) == crossings.Length > 0,
+                "TryIntersectWith from the shape disagrees with the crossings"
+            );
+            Assert.True(
+                Try(ball, shape, out tried) == crossings.Length > 0,
+                "TryIntersectWith without a tolerance disagrees with the crossings"
+            );
 
             foreach (GeoPoint3 point in crossings)
             {
-                Assert.True(Math.Abs(Vec.Of(point).DistanceTo(center) - ball.Radius) <= 1E-3 + 1E-9, "a crossing lies " + Math.Abs(Vec.Of(point).DistanceTo(center) - ball.Radius) + " off the surface");
+                Assert.True(
+                    Math.Abs(Vec.Of(point).DistanceTo(center) - ball.Radius) <= 1E-3 + 1E-9,
+                    "a crossing lies " + Math.Abs(Vec.Of(point).DistanceTo(center) - ball.Radius) + " off the surface"
+                );
             }
 
             Vec[] expected = Sphere3Oracle.Crossings(elements, center, ball.Radius, out bool delicate);
@@ -271,16 +347,25 @@ namespace GeometryHelper.UnitTest.Solid
             tally.Judged++;
             tally.Crossed += expected.Length > 0 ? 1 : 0;
 
-            Assert.True(expected.Length == crossings.Length, crossings.Length + " crossings against " + expected.Length + ": " + string.Join(" ", crossings));
+            Assert.True(
+                expected.Length == crossings.Length,
+                crossings.Length + " crossings against " + expected.Length + ": " + string.Join(" ", crossings)
+            );
 
             foreach (Vec point in expected)
             {
-                Assert.True(crossings.Any(c => Vec.Of(c).DistanceTo(point) <= 1E-6), "the crossing " + point.ToPoint() + " is not found");
+                Assert.True(
+                    crossings.Any(c => Vec.Of(c).DistanceTo(point) <= 1E-6),
+                    "the crossing " + point.ToPoint() + " is not found"
+                );
             }
 
             foreach (GeoPoint3 point in crossings)
             {
-                Assert.True(expected.Any(e => e.DistanceTo(Vec.Of(point)) <= 1E-6), "the crossing " + point + " is not one");
+                Assert.True(
+                    expected.Any(e => e.DistanceTo(Vec.Of(point)) <= 1E-6),
+                    "the crossing " + point + " is not one"
+                );
             }
         }
     }

@@ -37,7 +37,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // Two triangular prisms meeting along the edge at (500, 0): the section touches itself there, and the side at
             // x = 500 runs on past the edge, one face for both.
-            var section = new GeoPolygon3(P(0, -1000, 0), P(500, 0, 0), P(100, 900, 0), P(500, 1000, 0), P(500, -1000, 0));
+            var section = new GeoPolygon3(
+                P(0, -1000, 0),
+                P(500, 0, 0),
+                P(100, 900, 0),
+                P(500, 1000, 0),
+                P(500, -1000, 0)
+            );
             GeoSolid3 body = GeoSolid3.Extrude(section, new GeoVector3(0, 0, 600), Tolerance);
 
             Assert.True(body.TrySplitBy(AtY(0), out GeoSolid3 above, out GeoSolid3 below, Tolerance));

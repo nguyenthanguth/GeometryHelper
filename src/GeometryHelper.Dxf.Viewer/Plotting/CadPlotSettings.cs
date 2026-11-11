@@ -51,7 +51,12 @@ namespace GeometryHelper.Dxf.Viewer
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
 
-            if (!(paperUnits > 0.0) || !(drawingUnits > 0.0) || double.IsInfinity(paperUnits) || double.IsInfinity(drawingUnits))
+            if (
+                !(paperUnits > 0.0)
+                || !(drawingUnits > 0.0)
+                || double.IsInfinity(paperUnits)
+                || double.IsInfinity(drawingUnits)
+            )
             {
                 throw new ArgumentException("A scale is of finite numbers above nought.", nameof(paperUnits));
             }
@@ -96,10 +101,18 @@ namespace GeometryHelper.Dxf.Viewer
                 GeometryHelperLog.Warn("CadPlotScale: the drawing's list of scales could not be read.", exception);
             }
 
-            foreach (DxfObjectContext context in (IEnumerable<DxfObjectContext>)scales ?? Array.Empty<DxfObjectContext>())
+            foreach (
+                DxfObjectContext context in (IEnumerable<DxfObjectContext>)scales ?? Array.Empty<DxfObjectContext>()
+            )
             {
-                if (context is DxfAnnotationScale scale && scale.PaperUnits > 0.0 && scale.DrawingUnits > 0.0
-                    && !list.Exists(s => CadPlotSettings.SameRatio(s.PaperUnits, s.DrawingUnits, scale.PaperUnits, scale.DrawingUnits)))
+                if (
+                    context is DxfAnnotationScale scale
+                    && scale.PaperUnits > 0.0
+                    && scale.DrawingUnits > 0.0
+                    && !list.Exists(s =>
+                        CadPlotSettings.SameRatio(s.PaperUnits, s.DrawingUnits, scale.PaperUnits, scale.DrawingUnits)
+                    )
+                )
                 {
                     list.Add(new CadPlotScale(scale.Name, scale.PaperUnits, scale.DrawingUnits));
                 }
@@ -140,8 +153,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets whether a plotter's name is one of the raster devices, either case.</summary>
         /// <param name="name">The name, as "GeometryHelper PNG".</param>
         /// <returns>True for GeometryHelper PNG and GeometryHelper JPG.</returns>
-        public static bool IsRasterDevice(string name)
-            => string.Equals(name, PngDevice, StringComparison.OrdinalIgnoreCase) || string.Equals(name, JpgDevice, StringComparison.OrdinalIgnoreCase);
+        public static bool IsRasterDevice(string name) =>
+            string.Equals(name, PngDevice, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, JpgDevice, StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
         /// Chooses the plotter, as the Name list of the Plot dialog does. A raster device moving from the PDF one starts on
@@ -157,7 +171,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!raster && !string.Equals(name, PdfDevice, StringComparison.OrdinalIgnoreCase))
             {
-                throw new ArgumentException("The presenter plots with " + PdfDevice + ", " + PngDevice + " or " + JpgDevice + ".", nameof(name));
+                throw new ArgumentException(
+                    "The presenter plots with " + PdfDevice + ", " + PngDevice + " or " + JpgDevice + ".",
+                    nameof(name)
+                );
             }
 
             if (raster && !_paper.IsPixels)
@@ -176,7 +193,9 @@ namespace GeometryHelper.Dxf.Viewer
                 StyleTable = CadPlotStyleTable.Monochrome;
             }
 
-            DeviceName = raster ? (string.Equals(name, JpgDevice, StringComparison.OrdinalIgnoreCase) ? JpgDevice : PngDevice) : PdfDevice;
+            DeviceName = raster
+                ? (string.Equals(name, JpgDevice, StringComparison.OrdinalIgnoreCase) ? JpgDevice : PngDevice)
+                : PdfDevice;
         }
 
         private CadPaper _paper = CadPaper.Default;
@@ -336,7 +355,11 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(name));
             }
 
-            foreach (KeyValuePair<string, DxfPlotSettings> pair in PageSetups(document ?? throw new ArgumentNullException(nameof(document))))
+            foreach (
+                KeyValuePair<string, DxfPlotSettings> pair in PageSetups(
+                    document ?? throw new ArgumentNullException(nameof(document))
+                )
+            )
             {
                 if (string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase))
                 {
@@ -356,9 +379,16 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 DxfDBDictionary dictionary = document.Database.PlotSettingsDictionary;
 
-                foreach (DxfDBDictionaryEntry entry in (IEnumerable<DxfDBDictionaryEntry>)dictionary ?? Array.Empty<DxfDBDictionaryEntry>())
+                foreach (
+                    DxfDBDictionaryEntry entry in (IEnumerable<DxfDBDictionaryEntry>)dictionary
+                        ?? Array.Empty<DxfDBDictionaryEntry>()
+                )
                 {
-                    if (entry.Value is DxfPlotSettings settings && !(entry.Value is DxfLayout) && !string.IsNullOrEmpty(entry.Key))
+                    if (
+                        entry.Value is DxfPlotSettings settings
+                        && !(entry.Value is DxfLayout)
+                        && !string.IsNullOrEmpty(entry.Key)
+                    )
                     {
                         found.Add(new KeyValuePair<string, DxfPlotSettings>(entry.Key, settings));
                     }
@@ -369,11 +399,13 @@ namespace GeometryHelper.Dxf.Viewer
                 GeometryHelperLog.Warn("CadPlotSettings: the drawing's page setups could not be read.", exception);
             }
 
-            found.Sort((a, b) =>
-            {
-                int byName = string.Compare(a.Key, b.Key, StringComparison.OrdinalIgnoreCase);
-                return byName != 0 ? byName : string.CompareOrdinal(a.Key, b.Key);
-            });
+            found.Sort(
+                (a, b) =>
+                {
+                    int byName = string.Compare(a.Key, b.Key, StringComparison.OrdinalIgnoreCase);
+                    return byName != 0 ? byName : string.CompareOrdinal(a.Key, b.Key);
+                }
+            );
             return found;
         }
 
@@ -399,14 +431,29 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 size = layout.PlotPaperSize;
                 DxfExtents2d margins = layout.PlotPaperMargins;
                 // A raster device's plot settings keep the image's size in pixels (group 72 = 2), as AutoCAD's PublishToWeb PNG.
-                bool pixels = layout.PlotPaperUnits == DxfPlotPaperUnit.Pixels && IsRasterDevice(layout.PlotConfigurationName);
+                bool pixels =
+                    layout.PlotPaperUnits == DxfPlotPaperUnit.Pixels && IsRasterDevice(layout.PlotConfigurationName);
                 CadPaper paper = pixels
                     ? CadPaper.Pixels((int)Math.Round(size.X), (int)Math.Round(size.Y))
-                    : CadPaper.FromLayout(layout.CanonicalMediaName, size.X, size.Y, margins.MinPoint.X, margins.MinPoint.Y, margins.MaxPoint.X, margins.MaxPoint.Y);
+                    : CadPaper.FromLayout(
+                        layout.CanonicalMediaName,
+                        size.X,
+                        size.Y,
+                        margins.MinPoint.X,
+                        margins.MinPoint.Y,
+                        margins.MaxPoint.X,
+                        margins.MaxPoint.Y
+                    );
 
                 if (pixels)
                 {
-                    settings.DeviceName = string.Equals(layout.PlotConfigurationName, JpgDevice, StringComparison.OrdinalIgnoreCase) ? JpgDevice : PngDevice;
+                    settings.DeviceName = string.Equals(
+                        layout.PlotConfigurationName,
+                        JpgDevice,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                        ? JpgDevice
+                        : PngDevice;
                 }
 
                 if (paper != null)
@@ -442,13 +489,19 @@ namespace GeometryHelper.Dxf.Viewer
                     Math.Min(window.MinPoint.X, window.MaxPoint.X),
                     Math.Min(window.MinPoint.Y, window.MaxPoint.Y),
                     Math.Max(window.MinPoint.X, window.MaxPoint.X),
-                    Math.Max(window.MinPoint.Y, window.MaxPoint.Y));
+                    Math.Max(window.MinPoint.Y, window.MaxPoint.Y)
+                );
 
                 settings.FitToPaper = layout.UseStandardScale && layout.StdScaleType == DxfStdScaleType.ScaleToFit;
                 DxfCustomScale custom = layout.CustomPrintScale;
                 double inch = layout.PlotPaperUnits == DxfPlotPaperUnit.Inches ? 25.4 : 1.0;
 
-                if (custom.Numerator > 0.0 && custom.Denominator > 0.0 && !double.IsInfinity(custom.Numerator * inch) && !double.IsInfinity(custom.Denominator))
+                if (
+                    custom.Numerator > 0.0
+                    && custom.Denominator > 0.0
+                    && !double.IsInfinity(custom.Numerator * inch)
+                    && !double.IsInfinity(custom.Denominator)
+                )
                 {
                     settings.PaperUnits = custom.Numerator * inch;
                     settings.DrawingUnits = custom.Denominator;
@@ -459,16 +512,20 @@ namespace GeometryHelper.Dxf.Viewer
                 settings.OffsetX = origin.X;
                 settings.OffsetY = origin.Y;
                 string table = layout.CurrentStyleSheet ?? string.Empty;
-                settings.StyleTable = table.IndexOf("monochrome", StringComparison.OrdinalIgnoreCase) >= 0
-                    ? CadPlotStyleTable.Monochrome
-                    : table.IndexOf("grayscale", StringComparison.OrdinalIgnoreCase) >= 0 ? CadPlotStyleTable.Grayscale : CadPlotStyleTable.None;
+                settings.StyleTable =
+                    table.IndexOf("monochrome", StringComparison.OrdinalIgnoreCase) >= 0 ? CadPlotStyleTable.Monochrome
+                    : table.IndexOf("grayscale", StringComparison.OrdinalIgnoreCase) >= 0 ? CadPlotStyleTable.Grayscale
+                    : CadPlotStyleTable.None;
                 settings.PlotWithPlotStyles = layout.PlotPlotStyles;
                 settings.PlotLineweights = layout.PrintLineweights;
                 settings.ScaleLineweights = layout.ScaleLineweights;
             }
             catch (Exception exception)
             {
-                GeometryHelperLog.Warn("CadPlotSettings: the plot settings of " + what + " could not be read; the defaults are taken.", exception);
+                GeometryHelperLog.Warn(
+                    "CadPlotSettings: the plot settings of " + what + " could not be read; the defaults are taken.",
+                    exception
+                );
             }
 
             return settings;
@@ -508,8 +565,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The change a page setup written to a space plans: a setting of the drawing, named by the space.</summary>
-        internal static IReadOnlyList<CadEditRecord> Planned(CadSpace space)
-            => new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "Page setup", null, space.Name) };
+        internal static IReadOnlyList<CadEditRecord> Planned(CadSpace space) =>
+            new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "Page setup", null, space.Name) };
 
         /// <summary>The edit that writes a copy of the settings as they are now into a space's LAYOUT, found again by name in the drawing the edit sees.</summary>
         internal Action<CadEditScope> EditOf(CadSpace space)
@@ -523,13 +580,20 @@ namespace GeometryHelper.Dxf.Viewer
 
                 foreach (CadSpace each in scope.Document.Spaces)
                 {
-                    if (target == null && string.Equals(each.Name, name, StringComparison.OrdinalIgnoreCase) && each.IsModel == isModel)
+                    if (
+                        target == null
+                        && string.Equals(each.Name, name, StringComparison.OrdinalIgnoreCase)
+                        && each.IsModel == isModel
+                    )
                     {
                         target = each;
                     }
                 }
 
-                settings.Write(LayoutOf(scope.Document, target) ?? throw new InvalidOperationException("The space " + name + " has no LAYOUT."));
+                settings.Write(
+                    LayoutOf(scope.Document, target)
+                        ?? throw new InvalidOperationException("The space " + name + " has no LAYOUT.")
+                );
                 target.ForgetPaper();
             };
         }
@@ -559,7 +623,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfLayout layout in document.Database.Layouts)
             {
-                if (found == null && (layout.ModelType || string.Equals(layout.LayoutName, "Model", StringComparison.OrdinalIgnoreCase)))
+                if (
+                    found == null
+                    && (
+                        layout.ModelType
+                        || string.Equals(layout.LayoutName, "Model", StringComparison.OrdinalIgnoreCase)
+                    )
+                )
                 {
                     found = layout;
                 }
@@ -576,10 +646,19 @@ namespace GeometryHelper.Dxf.Viewer
             layout.PlotPaperUnits = paper.IsPixels ? DxfPlotPaperUnit.Pixels : DxfPlotPaperUnit.Millimeters;
 
             // The margins first, checked against the sheet the layout has, then the sheet: margins of 5 fit any sheet listed.
-            var margins = new DxfExtents2d(new GeoPoint2(paper.MarginLeft, paper.MarginBottom), new GeoPoint2(paper.MarginRight, paper.MarginTop));
+            var margins = new DxfExtents2d(
+                new GeoPoint2(paper.MarginLeft, paper.MarginBottom),
+                new GeoPoint2(paper.MarginRight, paper.MarginTop)
+            );
             GeoPoint2 size = layout.PlotPaperSize;
 
-            if (size.X > 0.0 && size.Y > 0.0 && !(margins.MinPoint.X + margins.MaxPoint.X < size.X && margins.MinPoint.Y + margins.MaxPoint.Y < size.Y))
+            if (
+                size.X > 0.0
+                && size.Y > 0.0
+                && !(
+                    margins.MinPoint.X + margins.MaxPoint.X < size.X && margins.MinPoint.Y + margins.MaxPoint.Y < size.Y
+                )
+            )
             {
                 layout.CanonicalMediaName = paper.CanonicalName;
                 layout.PlotPaperMargins = margins;
@@ -614,7 +693,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!Window.IsEmpty)
             {
-                layout.PlotWindowArea = new DxfExtents2d(new GeoPoint2(Window.MinX, Window.MinY), new GeoPoint2(Window.MaxX, Window.MaxY));
+                layout.PlotWindowArea = new DxfExtents2d(
+                    new GeoPoint2(Window.MinX, Window.MinY),
+                    new GeoPoint2(Window.MaxX, Window.MaxY)
+                );
             }
 
             layout.CustomPrintScale = new DxfCustomScale(PaperUnits, DrawingUnits);
@@ -628,7 +710,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             layout.UseStandardScale = isStandard;
             layout.PlotCentered = Centered && Area != CadPlotArea.Layout;
-            layout.CurrentStyleSheet = StyleTable == CadPlotStyleTable.Monochrome ? "monochrome.ctb" : StyleTable == CadPlotStyleTable.Grayscale ? "grayscale.ctb" : string.Empty;
+            layout.CurrentStyleSheet =
+                StyleTable == CadPlotStyleTable.Monochrome ? "monochrome.ctb"
+                : StyleTable == CadPlotStyleTable.Grayscale ? "grayscale.ctb"
+                : string.Empty;
             layout.PlotPlotStyles = PlotWithPlotStyles;
             layout.PrintLineweights = PlotLineweights;
             layout.ScaleLineweights = ScaleLineweights;
@@ -674,7 +759,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (!(value > 0.0) || double.IsInfinity(value))
             {
-                throw new ArgumentOutOfRangeException(nameof(value), value, "A unit of a scale is a finite number above nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    "A unit of a scale is a finite number above nought."
+                );
             }
 
             return value;

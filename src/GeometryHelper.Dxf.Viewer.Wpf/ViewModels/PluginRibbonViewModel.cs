@@ -16,7 +16,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Description = command.Description ?? string.Empty;
             Plugin = plugin;
             Label = Description.Length > 0 && Description.Length <= 24 ? Description : command.Name;
-            ToolTip = command.Name + (string.IsNullOrEmpty(Alias) ? string.Empty : " (" + Alias + ")") + (Description.Length == 0 ? string.Empty : ": " + Description) + " · " + plugin;
+            ToolTip =
+                command.Name
+                + (string.IsNullOrEmpty(Alias) ? string.Empty : " (" + Alias + ")")
+                + (Description.Length == 0 ? string.Empty : ": " + Description)
+                + " · "
+                + plugin;
         }
 
         /// <summary>Gets the command's name, as NUMCIRCLES.</summary>
@@ -54,10 +59,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         internal PluginRibbonViewModel(MainViewModel model)
         {
             _model = model;
-            RunCommand = new DelegateCommand(p => _model.StartCommand((p as PluginCommandButton)?.Name), _ => _model.HasDocument);
+            RunCommand = new DelegateCommand(
+                p => _model.StartCommand((p as PluginCommandButton)?.Name),
+                _ => _model.HasDocument
+            );
             LoadCommand = new DelegateCommand(_ => _model.RequestPluginLoad(), _ => HasManager);
-            ReloadCommand = new DelegateCommand(_ => OnOne(p => _model.ReloadPlugin(p.Name)), _ => HasManager && _model.Plugins.Plugins.Count > 0);
-            UnloadCommand = new DelegateCommand(_ => OnOne(p => _model.UnloadPlugin(p.Name)), _ => HasManager && _model.Plugins.Plugins.Any(p => p.IsLoaded));
+            ReloadCommand = new DelegateCommand(
+                _ => OnOne(p => _model.ReloadPlugin(p.Name)),
+                _ => HasManager && _model.Plugins.Plugins.Count > 0
+            );
+            UnloadCommand = new DelegateCommand(
+                _ => OnOne(p => _model.UnloadPlugin(p.Name)),
+                _ => HasManager && _model.Plugins.Plugins.Any(p => p.IsLoaded)
+            );
             ManagerCommand = new DelegateCommand(_ => _model.RequestPluginManager(), _ => HasManager);
             _model.PropertyChanged += (s, e) =>
             {
@@ -118,7 +132,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Commands = buttons;
             Raise(nameof(HasManager));
 
-            foreach (ICommand command in new[] { RunCommand, LoadCommand, ReloadCommand, UnloadCommand, ManagerCommand })
+            foreach (
+                ICommand command in new[] { RunCommand, LoadCommand, ReloadCommand, UnloadCommand, ManagerCommand }
+            )
             {
                 ((DelegateCommand)command).RaiseCanExecuteChanged();
             }
@@ -129,7 +145,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             List<CadLoadedPlugin> loaded = _model.Plugins.Plugins.Where(p => p.IsLoaded).ToList();
             List<CadLoadedPlugin> all = _model.Plugins.Plugins.ToList();
-            CadLoadedPlugin one = loaded.Count == 1 ? loaded[0] : loaded.Count == 0 && all.Count == 1 ? all[0] : null;
+            CadLoadedPlugin one =
+                loaded.Count == 1 ? loaded[0]
+                : loaded.Count == 0 && all.Count == 1 ? all[0]
+                : null;
 
             if (one != null)
             {

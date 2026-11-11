@@ -3,11 +3,16 @@
 // A mesh is a flat shape cut into faces that share their corners, so the corner points are drawn once and every shared edge
 // is the very same line in two faces.
 
-GeoPoint2[] L(double dx, double dy) => new[]
-{
-    new GeoPoint2(dx + 0, dy + 0), new GeoPoint2(dx + 60, dy + 0), new GeoPoint2(dx + 60, dy + 20),
-    new GeoPoint2(dx + 20, dy + 20), new GeoPoint2(dx + 20, dy + 60), new GeoPoint2(dx + 0, dy + 60),
-};
+GeoPoint2[] L(double dx, double dy) =>
+    new[]
+    {
+        new GeoPoint2(dx + 0, dy + 0),
+        new GeoPoint2(dx + 60, dy + 0),
+        new GeoPoint2(dx + 60, dy + 20),
+        new GeoPoint2(dx + 20, dy + 20),
+        new GeoPoint2(dx + 20, dy + 60),
+        new GeoPoint2(dx + 0, dy + 60),
+    };
 
 GeoMesh2 triangles = new GeoPolygon2(L(0, 0)).ToMesh(MeshKind.Triangles);
 GeoMesh2 convex = new GeoPolygon2(L(80, 0)).ToMesh(MeshKind.Convex);
@@ -19,9 +24,26 @@ Show(grid, layer: "grid", name: "grid of 12", color: "#2CA02C", props: new { fac
 
 // The plate in space: lifted to z = 40 and tilted about the X axis by 25 degrees.
 double tilt = 25.0 * Math.PI / 180.0;
+
 GeoPoint3 Lift(GeoPoint2 p) => new GeoPoint3(p.X + 240, p.Y * Math.Cos(tilt), 40 + p.Y * Math.Sin(tilt));
 
 GeoMesh3 tilted = new GeoPolygon3(L(0, 0).Select(Lift)).ToMesh(MeshKind.Triangles);
-Show(tilted, layer: "in space", name: "tilted plate", color: "#9467BD", props: new { faces = tilted.FaceCount, area = tilted.Area });
+Show(
+    tilted,
+    layer: "in space",
+    name: "tilted plate",
+    color: "#9467BD",
+    props: new { faces = tilted.FaceCount, area = tilted.Area }
+);
 
-Note("faces: " + triangles.FaceCount + " triangles, " + convex.FaceCount + " convex pieces, " + grid.FaceCount + " grid faces, " + tilted.FaceCount + " in space");
+Note(
+    "faces: "
+        + triangles.FaceCount
+        + " triangles, "
+        + convex.FaceCount
+        + " convex pieces, "
+        + grid.FaceCount
+        + " grid faces, "
+        + tilted.FaceCount
+        + " in space"
+);

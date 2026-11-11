@@ -18,14 +18,26 @@ namespace GeometryHelper.Viewer.Tests
         /// <summary>
         /// A list of points as the JSON of a scene, from x, y pairs.
         /// </summary>
-        internal static string Pts2(params double[] xy)
-            => "[" + string.Join(",", Enumerable.Range(0, xy.Length / 2).Select(i => "[" + N(xy[2 * i]) + "," + N(xy[2 * i + 1]) + "]")) + "]";
+        internal static string Pts2(params double[] xy) =>
+            "["
+            + string.Join(
+                ",",
+                Enumerable.Range(0, xy.Length / 2).Select(i => "[" + N(xy[2 * i]) + "," + N(xy[2 * i + 1]) + "]")
+            )
+            + "]";
 
         /// <summary>
         /// A list of points as the JSON of a scene, from x, y, z triples.
         /// </summary>
-        internal static string Pts3(params double[] xyz)
-            => "[" + string.Join(",", Enumerable.Range(0, xyz.Length / 3).Select(i => "[" + N(xyz[3 * i]) + "," + N(xyz[3 * i + 1]) + "," + N(xyz[3 * i + 2]) + "]")) + "]";
+        internal static string Pts3(params double[] xyz) =>
+            "["
+            + string.Join(
+                ",",
+                Enumerable
+                    .Range(0, xyz.Length / 3)
+                    .Select(i => "[" + N(xyz[3 * i]) + "," + N(xyz[3 * i + 1]) + "," + N(xyz[3 * i + 2]) + "]")
+            )
+            + "]";
 
         /// <summary>
         /// An item written by hand, with the numbers exactly as given: the library would merge two vertices a thousandth apart, and the
@@ -35,13 +47,21 @@ namespace GeometryHelper.Viewer.Tests
         {
             using (JsonDocument document = JsonDocument.Parse(json))
             {
-                return new SceneItem { Kind = kind, Data = document.RootElement.Clone(), Name = name ?? kind, Layer = layer };
+                return new SceneItem
+                {
+                    Kind = kind,
+                    Data = document.RootElement.Clone(),
+                    Name = name ?? kind,
+                    Layer = layer,
+                };
             }
         }
 
-        internal static SceneItem Polygon2(string name, params double[] xy) => Raw("GeoPolygon2", "{\"points\":" + Pts2(xy) + "}", name);
+        internal static SceneItem Polygon2(string name, params double[] xy) =>
+            Raw("GeoPolygon2", "{\"points\":" + Pts2(xy) + "}", name);
 
-        internal static SceneItem Face3(string name, params double[] xyz) => Raw("GeoFace3", "{\"outer\":" + Pts3(xyz) + ",\"holes\":[]}", name);
+        internal static SceneItem Face3(string name, params double[] xyz) =>
+            Raw("GeoFace3", "{\"outer\":" + Pts3(xyz) + ",\"holes\":[]}", name);
 
         internal static Scene SceneOf(params SceneItem[] items)
         {
@@ -61,28 +81,49 @@ namespace GeometryHelper.Viewer.Tests
             return scene;
         }
 
-        internal static DiagnosticReport Run(Scene scene, DiagnosticChecks checks, bool useLibrary = true, params int[] items)
+        internal static DiagnosticReport Run(
+            Scene scene,
+            DiagnosticChecks checks,
+            bool useLibrary = true,
+            params int[] items
+        )
         {
             Primitives primitives = Primitives.Build(scene);
             ExactGeometry geometry = ExactGeometry.Build(scene, primitives);
             var options = new DiagnosticOptions { Checks = checks, UseLibrary = useLibrary };
-            return SceneDiagnostics.Run(scene, primitives, geometry, items.Length == 0 ? null : items, options, CancellationToken.None);
+            return SceneDiagnostics.Run(
+                scene,
+                primitives,
+                geometry,
+                items.Length == 0 ? null : items,
+                options,
+                CancellationToken.None
+            );
         }
 
-        internal static IEnumerable<DiagnosticFinding> Of(DiagnosticReport report, DiagnosticKind kind) => report.Findings.Where(f => f.Kind == kind);
+        internal static IEnumerable<DiagnosticFinding> Of(DiagnosticReport report, DiagnosticKind kind) =>
+            report.Findings.Where(f => f.Kind == kind);
 
         internal static int Count(DiagnosticReport report, DiagnosticKind kind) => Of(report, kind).Count();
 
         /// <summary>
         /// The strokes of a colour in the overlay of a report.
         /// </summary>
-        internal static int Strokes(DiagnosticReport report, string color) => report.Overlay.Strokes.Count(s => s.Color == color);
+        internal static int Strokes(DiagnosticReport report, string color) =>
+            report.Overlay.Strokes.Count(s => s.Color == color);
 
         /// <summary>
         /// A face from the corners given, counter-clockwise seen from the normal.
         /// </summary>
-        internal static GeoFace3 Face(params double[] xyz)
-            => new GeoFace3(new GeoPolygon3(Enumerable.Range(0, xyz.Length / 3).Select(i => new GeoPoint3(xyz[3 * i], xyz[3 * i + 1], xyz[3 * i + 2]))), null);
+        internal static GeoFace3 Face(params double[] xyz) =>
+            new GeoFace3(
+                new GeoPolygon3(
+                    Enumerable
+                        .Range(0, xyz.Length / 3)
+                        .Select(i => new GeoPoint3(xyz[3 * i], xyz[3 * i + 1], xyz[3 * i + 2]))
+                ),
+                null
+            );
 
         /// <summary>
         /// A box 10 by 10 by 10 with its top left out.

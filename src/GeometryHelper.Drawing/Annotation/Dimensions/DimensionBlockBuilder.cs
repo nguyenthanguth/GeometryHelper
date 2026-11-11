@@ -28,7 +28,11 @@ namespace GeometryHelper.Drawing.Annotation
         /// <summary>
         /// Makes the block that draws a dimension, placed on the sheet as the placement puts its view.
         /// </summary>
-        internal static DxfBlockTableRecord Build(DxfDatabase database, DrawingDimension dimension, ViewPlacement2 placement)
+        internal static DxfBlockTableRecord Build(
+            DxfDatabase database,
+            DrawingDimension dimension,
+            ViewPlacement2 placement
+        )
         {
             var block = new DxfBlockTableRecord { Name = "*D", Origin = new GeoPoint3(0.0, 0.0, 0.0) };
             database.BlockTable.Add(block);
@@ -36,7 +40,10 @@ namespace GeometryHelper.Drawing.Annotation
 
             foreach (GeoLine2 extension in dimension.ExtensionLines)
             {
-                Append(block, new DxfLine(placement.ToSheet(extension.StartPoint), placement.ToSheet(extension.EndPoint)));
+                Append(
+                    block,
+                    new DxfLine(placement.ToSheet(extension.StartPoint), placement.ToSheet(extension.EndPoint))
+                );
             }
 
             if (dimension.DimensionLine.HasValue)

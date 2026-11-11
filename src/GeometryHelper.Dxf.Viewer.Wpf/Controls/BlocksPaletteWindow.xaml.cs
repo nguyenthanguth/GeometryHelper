@@ -62,11 +62,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnBrowse(object sender, RoutedEventArgs e)
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Drawing files (*.dxf)|*.dxf|All files (*.*)|*.*", Title = "Select Drawing File" };
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "Drawing files (*.dxf)|*.dxf|All files (*.*)|*.*",
+                Title = "Select Drawing File",
+            };
 
             if (dialog.ShowDialog(this) == true && !Model.OpenOther(dialog.FileName))
             {
-                MessageBox.Show(this, "The drawing " + dialog.FileName + " cannot be read.", "Blocks", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(
+                    this,
+                    "The drawing " + dialog.FileName + " cannot be read.",
+                    "Blocks",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning
+                );
             }
 
             OtherTab.IsChecked = Model.IsOtherDrawing;

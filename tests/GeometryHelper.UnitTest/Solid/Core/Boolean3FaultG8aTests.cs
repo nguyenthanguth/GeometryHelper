@@ -11,15 +11,60 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     public class Boolean3FaultG8aTests
     {
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoObb3(new GeoPoint3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), x1 - x0, y1 - y0, z1 - z0).ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoObb3(
+                new GeoPoint3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2),
+                x1 - x0,
+                y1 - y0,
+                z1 - z0
+            ).ToSolid();
 
         [Theory]
-        [InlineData(0.045782150489176665, -0.19460321343252585, -0.037744915993299766, 4.0049806060292665, 239.2036772515642, 344.8615182865698, false)]
-        [InlineData(0.045782150489176665, -0.19460321343252585, -0.037744915993299766, 4.0049806060292665, 239.2036772515642, 344.8615182865698, true)]
-        [InlineData(-0.426282864029651, 0.06595052618810471, -0.36435328294399816, 2.0168732954267754, 115.52392743319456, 258.02756890562716, false)]
-        [InlineData(-0.426282864029651, 0.06595052618810471, -0.36435328294399816, 2.0168732954267754, 115.52392743319456, 258.02756890562716, true)]
-        public void ABeamRunningExactlyAThousandthIntoAColumn_IsJoined(double ax, double ay, double az, double angle, double w, double h, bool beamFirst)
+        [InlineData(
+            0.045782150489176665,
+            -0.19460321343252585,
+            -0.037744915993299766,
+            4.0049806060292665,
+            239.2036772515642,
+            344.8615182865698,
+            false
+        )]
+        [InlineData(
+            0.045782150489176665,
+            -0.19460321343252585,
+            -0.037744915993299766,
+            4.0049806060292665,
+            239.2036772515642,
+            344.8615182865698,
+            true
+        )]
+        [InlineData(
+            -0.426282864029651,
+            0.06595052618810471,
+            -0.36435328294399816,
+            2.0168732954267754,
+            115.52392743319456,
+            258.02756890562716,
+            false
+        )]
+        [InlineData(
+            -0.426282864029651,
+            0.06595052618810471,
+            -0.36435328294399816,
+            2.0168732954267754,
+            115.52392743319456,
+            258.02756890562716,
+            true
+        )]
+        public void ABeamRunningExactlyAThousandthIntoAColumn_IsJoined(
+            double ax,
+            double ay,
+            double az,
+            double angle,
+            double w,
+            double h,
+            bool beamFirst
+        )
         {
             // A column 300 by 300 by 1 000 and a beam from 299.999 to 2 000 along x, turned about the origin. The union came
             // out open and, closed, held the two less 13.75 and 4.97, and was not made: sharing nothing at the tolerance, it
@@ -33,16 +78,66 @@ namespace GeometryHelper.UnitTest.Solid
             double slab = d * w * h;
 
             GeoSolid3 union;
-            Assert.True(beamFirst ? beam.TryUnion(column, out union, tolerance) : column.TryUnion(beam, out union, tolerance));
+            Assert.True(
+                beamFirst ? beam.TryUnion(column, out union, tolerance) : column.TryUnion(beam, out union, tolerance)
+            );
             Assert.True(union.Validate(tolerance).IsValid, union.Validate(tolerance).ToString());
             Assert.InRange(union.GetVolume(tolerance), two - slab - 1E-3, two + 1E-3);
         }
 
         [Theory]
-        [InlineData(-0.21499471260001635, -0.21264074403449928, -0.2137702689817037, 42.2151892875392, 0.19047016100514225, 0.001, -20, 30, 20, 60, false)]
-        [InlineData(-0.21499471260001635, -0.21264074403449928, -0.2137702689817037, 42.2151892875392, 0.19047016100514225, 0.001, -20, 30, 20, 60, true)]
-        [InlineData(-0.013161964022164241, -0.4819161952389014, -0.10200243767118194, 7.0752715026378965, 3.503710397288068, 0.001, -20, -20, 20, 20, false)]
-        public void ABlockRunningExactlyTheToleranceIntoACubesTop_IsJoined(double ax, double ay, double az, double ox, double angle, double tol, double x0, double y0, double x1, double y1, bool blockFirst)
+        [InlineData(
+            -0.21499471260001635,
+            -0.21264074403449928,
+            -0.2137702689817037,
+            42.2151892875392,
+            0.19047016100514225,
+            0.001,
+            -20,
+            30,
+            20,
+            60,
+            false
+        )]
+        [InlineData(
+            -0.21499471260001635,
+            -0.21264074403449928,
+            -0.2137702689817037,
+            42.2151892875392,
+            0.19047016100514225,
+            0.001,
+            -20,
+            30,
+            20,
+            60,
+            true
+        )]
+        [InlineData(
+            -0.013161964022164241,
+            -0.4819161952389014,
+            -0.10200243767118194,
+            7.0752715026378965,
+            3.503710397288068,
+            0.001,
+            -20,
+            -20,
+            20,
+            20,
+            false
+        )]
+        public void ABlockRunningExactlyTheToleranceIntoACubesTop_IsJoined(
+            double ax,
+            double ay,
+            double az,
+            double ox,
+            double angle,
+            double tol,
+            double x0,
+            double y0,
+            double x1,
+            double y1,
+            bool blockFirst
+        )
         {
             // A cube of 100 and a block 50 high whose foot runs exactly the tolerance into the cube's top over its edge, or its
             // corner, turned. The union came out open and, closed, held the two less 0.2, and less 0.67, and was not made; the
@@ -55,7 +150,9 @@ namespace GeometryHelper.UnitTest.Solid
             double slab = tol * x1 * (y1 - System.Math.Max(0, y0));
 
             GeoSolid3 union;
-            Assert.True(blockFirst ? block.TryUnion(cube, out union, tolerance) : cube.TryUnion(block, out union, tolerance));
+            Assert.True(
+                blockFirst ? block.TryUnion(cube, out union, tolerance) : cube.TryUnion(block, out union, tolerance)
+            );
             Assert.True(union.Validate(tolerance).IsValid, union.Validate(tolerance).ToString());
 
             // Over the edge the union holds between the two less the slab and the two. At the corner it holds the two less
@@ -65,10 +162,42 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Theory]
-        [InlineData(0.1350835569366271, 0.4313071984477841, -0.4327822054204448, 32.51210343209659, 4.569126457240957, 0.001, 0.001)]
-        [InlineData(-0.41481209635492977, 0.22046442456565074, 0.4379260156233451, 18.52324999334442, 0.5034039982144739, 0.001, 0.001)]
-        [InlineData(0.4187595988245493, 0.2226362706733105, -0.28656169219853433, 45.17612014672538, 2.6073217348229707, 0.01, -0.01)]
-        public void TwoCubesExactlyTheToleranceApartOrIntoEachOther_AreJoined(double ax, double ay, double az, double ox, double angle, double tol, double gap)
+        [InlineData(
+            0.1350835569366271,
+            0.4313071984477841,
+            -0.4327822054204448,
+            32.51210343209659,
+            4.569126457240957,
+            0.001,
+            0.001
+        )]
+        [InlineData(
+            -0.41481209635492977,
+            0.22046442456565074,
+            0.4379260156233451,
+            18.52324999334442,
+            0.5034039982144739,
+            0.001,
+            0.001
+        )]
+        [InlineData(
+            0.4187595988245493,
+            0.2226362706733105,
+            -0.28656169219853433,
+            45.17612014672538,
+            2.6073217348229707,
+            0.01,
+            -0.01
+        )]
+        public void TwoCubesExactlyTheToleranceApartOrIntoEachOther_AreJoined(
+            double ax,
+            double ay,
+            double az,
+            double ox,
+            double angle,
+            double tol,
+            double gap
+        )
         {
             // Two cubes of 100 side by side, turned, the second the tolerance clear of the first, or into it. The union came out
             // open and, closed, held the two and 5 and 6.67 of the gap's 10, and the two less the slab of 100, and was not

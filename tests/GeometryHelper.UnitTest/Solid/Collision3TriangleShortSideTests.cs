@@ -18,7 +18,8 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static GeoTriangle3 AcrossIt(double x) => new GeoTriangle3(P(x, 0, -10), P(x, 0, 10), P(x + 20, 0, 0));
 
-        private static GeoTriangle3 AcrossItTilted(double x) => new GeoTriangle3(P(x, 0, -10), P(x, 0, 10), P(x + 20, 5, 3));
+        private static GeoTriangle3 AcrossItTilted(double x) =>
+            new GeoTriangle3(P(x, 0, -10), P(x, 0, 10), P(x + 20, 5, 3));
 
         [Theory]
         [InlineData(0.0005)]

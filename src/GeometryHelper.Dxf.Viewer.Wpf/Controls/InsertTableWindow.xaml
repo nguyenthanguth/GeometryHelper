@@ -1,22 +1,48 @@
-<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.InsertTableWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
-        Title="Insert Table" Width="760" Height="580" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" Background="#262B33">
-
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.InsertTableWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Insert Table"
+    Width="760"
+    Height="580"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
     <Window.Resources>
         <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
     </Window.Resources>
 
-    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
-            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
-            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
         <DockPanel>
             <!-- Header: the title, dragged to move the dialog, and the close button (Cancel). -->
-            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Command="{Binding CancelCommand}" ToolTip="Close" />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Command="{Binding CancelCommand}"
+                        ToolTip="Close"
+                    />
                     <TextBlock Text="Insert Table" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>
@@ -24,8 +50,21 @@
             <!-- Footer: Cancel and OK. -->
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Command="{Binding CancelCommand}" IsCancel="True" />
-                    <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Command="{Binding OkCommand}" IsDefault="True" />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Cancel"
+                        Padding="14,5"
+                        Margin="0,0,8,0"
+                        Command="{Binding CancelCommand}"
+                        IsCancel="True"
+                    />
+                    <Button
+                        Style="{StaticResource StylePrimaryButton}"
+                        Content="OK"
+                        Padding="14,5"
+                        Command="{Binding OkCommand}"
+                        IsDefault="True"
+                    />
                 </StackPanel>
             </Border>
 
@@ -39,22 +78,72 @@
                 <StackPanel Grid.Column="0">
                     <TextBlock Style="{StaticResource StyleGroup}" Text="Table style" />
                     <DockPanel Margin="0,0,0,12">
-                        <Button DockPanel.Dock="Right" Style="{StaticResource StyleSideButton}" Width="30" Margin="6,0,0,0" Click="OnTableStyles" ToolTip="Launch the Table Style dialog">
-                            <Path Data="M3 5h18v14H3zM3 10h18M9 5v14" Stroke="#C9D1DB" StrokeThickness="1.8" Width="14" Height="14" Stretch="Uniform" />
+                        <Button
+                            DockPanel.Dock="Right"
+                            Style="{StaticResource StyleSideButton}"
+                            Width="30"
+                            Margin="6,0,0,0"
+                            Click="OnTableStyles"
+                            ToolTip="Launch the Table Style dialog"
+                        >
+                            <Path
+                                Data="M3 5h18v14H3zM3 10h18M9 5v14"
+                                Stroke="#C9D1DB"
+                                StrokeThickness="1.8"
+                                Width="14"
+                                Height="14"
+                                Stretch="Uniform"
+                            />
                         </Button>
-                        <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding TableStyles}" SelectedItem="{Binding TableStyle, Mode=TwoWay}" />
+                        <ComboBox
+                            Style="{StaticResource GhComboBox}"
+                            ItemsSource="{Binding TableStyles}"
+                            SelectedItem="{Binding TableStyle, Mode=TwoWay}"
+                        />
                     </DockPanel>
 
                     <TextBlock Style="{StaticResource StyleGroup}" Text="Insert options" />
-                    <RadioButton Foreground="{StaticResource GhText}" Content="Start from empty table" IsChecked="True" Margin="0,0,0,6" />
-                    <RadioButton Foreground="{StaticResource GhTextMuted}" Content="From a data link" IsEnabled="False" Margin="0,0,0,6" />
-                    <RadioButton Foreground="{StaticResource GhTextMuted}" Content="From object data in the drawing (Data Extraction)" IsEnabled="False" Margin="0,0,0,6" />
-                    <TextBlock Text="Data links (Excel, CSV) and Data Extraction are not offered: shown greyed for parity." Foreground="{StaticResource GhTextMuted}"
-                               FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12" />
+                    <RadioButton
+                        Foreground="{StaticResource GhText}"
+                        Content="Start from empty table"
+                        IsChecked="True"
+                        Margin="0,0,0,6"
+                    />
+                    <RadioButton
+                        Foreground="{StaticResource GhTextMuted}"
+                        Content="From a data link"
+                        IsEnabled="False"
+                        Margin="0,0,0,6"
+                    />
+                    <RadioButton
+                        Foreground="{StaticResource GhTextMuted}"
+                        Content="From object data in the drawing (Data Extraction)"
+                        IsEnabled="False"
+                        Margin="0,0,0,6"
+                    />
+                    <TextBlock
+                        Text="Data links (Excel, CSV) and Data Extraction are not offered: shown greyed for parity."
+                        Foreground="{StaticResource GhTextMuted}"
+                        FontSize="11"
+                        TextWrapping="Wrap"
+                        Margin="0,0,0,12"
+                    />
 
                     <TextBlock Style="{StaticResource StyleGroup}" Text="Insertion behavior" />
-                    <RadioButton Foreground="{StaticResource GhText}" GroupName="Place" Content="Specify insertion point" IsChecked="{Binding ByPoint, Mode=TwoWay}" Margin="0,0,0,6" />
-                    <RadioButton Foreground="{StaticResource GhText}" GroupName="Place" Content="Specify window" IsChecked="{Binding ByWindow, Mode=TwoWay}" Margin="0,0,0,12" />
+                    <RadioButton
+                        Foreground="{StaticResource GhText}"
+                        GroupName="Place"
+                        Content="Specify insertion point"
+                        IsChecked="{Binding ByPoint, Mode=TwoWay}"
+                        Margin="0,0,0,6"
+                    />
+                    <RadioButton
+                        Foreground="{StaticResource GhText}"
+                        GroupName="Place"
+                        Content="Specify window"
+                        IsChecked="{Binding ByWindow, Mode=TwoWay}"
+                        Margin="0,0,0,12"
+                    />
 
                     <TextBlock Style="{StaticResource StyleGroup}" Text="Column and row settings" />
                     <Grid>
@@ -70,14 +159,47 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource StyleLabel}" Text="Columns:" />
-                        <TextBox Grid.Row="0" Grid.Column="1" Style="{StaticResource StyleBox}" Text="{Binding Columns, UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBlock Grid.Row="0" Grid.Column="2" Style="{StaticResource StyleLabel}" Text="Column width:" Margin="8,0,0,0" />
-                        <TextBox Grid.Row="0" Grid.Column="3" Style="{StaticResource StyleBox}" Width="70" HorizontalAlignment="Left" Text="{Binding ColumnWidth, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Style="{StaticResource StyleBox}"
+                            Text="{Binding Columns, UpdateSourceTrigger=PropertyChanged}"
+                        />
+                        <TextBlock
+                            Grid.Row="0"
+                            Grid.Column="2"
+                            Style="{StaticResource StyleLabel}"
+                            Text="Column width:"
+                            Margin="8,0,0,0"
+                        />
+                        <TextBox
+                            Grid.Row="0"
+                            Grid.Column="3"
+                            Style="{StaticResource StyleBox}"
+                            Width="70"
+                            HorizontalAlignment="Left"
+                            Text="{Binding ColumnWidth, UpdateSourceTrigger=PropertyChanged}"
+                        />
                         <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource StyleLabel}" Text="Data rows:" />
-                        <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource StyleBox}" Text="{Binding DataRows, UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBlock Grid.Row="2" Grid.Column="2" Style="{StaticResource StyleLabel}" Text="Row height:" Margin="8,0,0,0" />
+                        <TextBox
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Style="{StaticResource StyleBox}"
+                            Text="{Binding DataRows, UpdateSourceTrigger=PropertyChanged}"
+                        />
+                        <TextBlock
+                            Grid.Row="2"
+                            Grid.Column="2"
+                            Style="{StaticResource StyleLabel}"
+                            Text="Row height:"
+                            Margin="8,0,0,0"
+                        />
                         <StackPanel Grid.Row="2" Grid.Column="3" Orientation="Horizontal">
-                            <TextBox Style="{StaticResource StyleBox}" Width="40" Text="{Binding RowLines, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBox
+                                Style="{StaticResource StyleBox}"
+                                Width="40"
+                                Text="{Binding RowLines, UpdateSourceTrigger=PropertyChanged}"
+                            />
                             <TextBlock Style="{StaticResource StyleLabel}" Text="line(s)" Margin="4,0,0,0" />
                         </StackPanel>
                     </Grid>
@@ -85,7 +207,14 @@
 
                 <StackPanel Grid.Column="2">
                     <TextBlock Style="{StaticResource StyleLabel}" Text="Preview" Margin="0,0,0,4" />
-                    <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Height="200" Margin="0,0,0,12" ClipToBounds="True">
+                    <Border
+                        BorderBrush="{StaticResource GhBorder}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Height="200"
+                        Margin="0,0,0,12"
+                        ClipToBounds="True"
+                    >
                         <local:TableStylePreview Settings="{Binding Preview}" />
                     </Border>
 
@@ -104,17 +233,45 @@
                         </Grid.RowDefinitions>
                         <!-- A table of a DXF of R2000 to R2018 holds its title first, its header next and data after: the other choices are greyed. -->
                         <TextBlock Grid.Row="0" Style="{StaticResource StyleLabel}" Text="First row cell style:" />
-                        <ComboBox Grid.Row="0" Grid.Column="1" Style="{StaticResource GhComboBox}" ItemsSource="{Binding CellStyles}" SelectedItem="{Binding FirstRowStyle, Mode=OneWay}" IsEnabled="False"
-                                  ToolTip="The first row is the title, as a table of a DXF file holds it" ToolTipService.ShowOnDisabled="True" />
+                        <ComboBox
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Style="{StaticResource GhComboBox}"
+                            ItemsSource="{Binding CellStyles}"
+                            SelectedItem="{Binding FirstRowStyle, Mode=OneWay}"
+                            IsEnabled="False"
+                            ToolTip="The first row is the title, as a table of a DXF file holds it"
+                            ToolTipService.ShowOnDisabled="True"
+                        />
                         <TextBlock Grid.Row="2" Style="{StaticResource StyleLabel}" Text="Second row cell style:" />
-                        <ComboBox Grid.Row="2" Grid.Column="1" Style="{StaticResource GhComboBox}" ItemsSource="{Binding CellStyles}" SelectedItem="{Binding SecondRowStyle, Mode=OneWay}" IsEnabled="False"
-                                  ToolTip="The second row is the header, as a table of a DXF file holds it" ToolTipService.ShowOnDisabled="True" />
+                        <ComboBox
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Style="{StaticResource GhComboBox}"
+                            ItemsSource="{Binding CellStyles}"
+                            SelectedItem="{Binding SecondRowStyle, Mode=OneWay}"
+                            IsEnabled="False"
+                            ToolTip="The second row is the header, as a table of a DXF file holds it"
+                            ToolTipService.ShowOnDisabled="True"
+                        />
                         <TextBlock Grid.Row="4" Style="{StaticResource StyleLabel}" Text="All other row cell styles:" />
-                        <ComboBox Grid.Row="4" Grid.Column="1" Style="{StaticResource GhComboBox}" ItemsSource="{Binding CellStyles}" SelectedItem="{Binding OtherRowStyle, Mode=OneWay}" IsEnabled="False"
-                                  ToolTip="The other rows are data, as a table of a DXF file holds them" ToolTipService.ShowOnDisabled="True" />
+                        <ComboBox
+                            Grid.Row="4"
+                            Grid.Column="1"
+                            Style="{StaticResource GhComboBox}"
+                            ItemsSource="{Binding CellStyles}"
+                            SelectedItem="{Binding OtherRowStyle, Mode=OneWay}"
+                            IsEnabled="False"
+                            ToolTip="The other rows are data, as a table of a DXF file holds them"
+                            ToolTipService.ShowOnDisabled="True"
+                        />
                     </Grid>
-                    <TextBlock Text="OK asks &quot;Specify insertion point:&quot; and opens the first cell for typing, with the Text Editor tab." Foreground="{StaticResource GhTextMuted}"
-                               TextWrapping="Wrap" Margin="0,12,0,0" />
+                    <TextBlock
+                        Text="OK asks &quot;Specify insertion point:&quot; and opens the first cell for typing, with the Text Editor tab."
+                        Foreground="{StaticResource GhTextMuted}"
+                        TextWrapping="Wrap"
+                        Margin="0,12,0,0"
+                    />
                 </StackPanel>
             </Grid>
         </DockPanel>

@@ -25,7 +25,13 @@ namespace GeometryHelper.Core
         /// <param name="moveSecond">How far to move the second curve sideways.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>Every crossing, which may be none, one or two.</returns>
-        internal static List<GeoPoint2> Where(GeoEdge2 first, double moveFirst, GeoEdge2 second, double moveSecond, Tolerance tolerance)
+        internal static List<GeoPoint2> Where(
+            GeoEdge2 first,
+            double moveFirst,
+            GeoEdge2 second,
+            double moveSecond,
+            Tolerance tolerance
+        )
         {
             var found = new List<GeoPoint2>();
 
@@ -34,8 +40,10 @@ namespace GeometryHelper.Core
 
             if (firstCurves && secondCurves)
             {
-                if (TryCircle(first, moveFirst, tolerance, out GeoPoint2 oneCentre, out double oneRadius) &&
-                    TryCircle(second, moveSecond, tolerance, out GeoPoint2 otherCentre, out double otherRadius))
+                if (
+                    TryCircle(first, moveFirst, tolerance, out GeoPoint2 oneCentre, out double oneRadius)
+                    && TryCircle(second, moveSecond, tolerance, out GeoPoint2 otherCentre, out double otherRadius)
+                )
                 {
                     Circles(found, oneCentre, oneRadius, otherCentre, otherRadius, tolerance);
                 }
@@ -50,8 +58,10 @@ namespace GeometryHelper.Core
                 double moveCurved = firstCurves ? moveFirst : moveSecond;
                 double moveStraight = firstCurves ? moveSecond : moveFirst;
 
-                if (TryCircle(curved, moveCurved, tolerance, out GeoPoint2 centre, out double radius) &&
-                    TryLine(straight, moveStraight, out GeoLine2 line))
+                if (
+                    TryCircle(curved, moveCurved, tolerance, out GeoPoint2 centre, out double radius)
+                    && TryLine(straight, moveStraight, out GeoLine2 line)
+                )
                 {
                     CircleAndLine(found, centre, radius, line, tolerance);
                 }
@@ -98,7 +108,13 @@ namespace GeometryHelper.Core
         /// Moving an arc sideways to the left means toward its centre when it runs counter-clockwise and
         /// away from it when it runs clockwise, which is the same rule the offset itself follows.
         /// </remarks>
-        internal static bool TryCircle(GeoEdge2 edge, double distance, Tolerance tolerance, out GeoPoint2 centre, out double radius)
+        internal static bool TryCircle(
+            GeoEdge2 edge,
+            double distance,
+            Tolerance tolerance,
+            out GeoPoint2 centre,
+            out double radius
+        )
         {
             centre = default(GeoPoint2);
             radius = 0.0;
@@ -162,7 +178,13 @@ namespace GeometryHelper.Core
         /// broke in two, where the same chain 64 times larger, offset and read 64 times further, is one chain of eight corners,
         /// as this one is now.
         /// </remarks>
-        internal static void CircleAndLine(List<GeoPoint2> found, GeoPoint2 centre, double radius, GeoLine2 line, Tolerance tolerance)
+        internal static void CircleAndLine(
+            List<GeoPoint2> found,
+            GeoPoint2 centre,
+            double radius,
+            GeoLine2 line,
+            Tolerance tolerance
+        )
         {
             GeoVector2 along = line.StartPoint.GetVectorTo(line.EndPoint);
 
@@ -197,12 +219,23 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Adds where two circles cross.
         /// </summary>
-        internal static void Circles(List<GeoPoint2> found, GeoPoint2 first, double firstRadius, GeoPoint2 second, double secondRadius, Tolerance tolerance)
+        internal static void Circles(
+            List<GeoPoint2> found,
+            GeoPoint2 first,
+            double firstRadius,
+            GeoPoint2 second,
+            double secondRadius,
+            Tolerance tolerance
+        )
         {
             GeoVector2 between = first.GetVectorTo(second);
             double apart = between.Length;
 
-            if (apart <= tolerance.EqualPoint || apart > firstRadius + secondRadius || apart < Math.Abs(firstRadius - secondRadius))
+            if (
+                apart <= tolerance.EqualPoint
+                || apart > firstRadius + secondRadius
+                || apart < Math.Abs(firstRadius - secondRadius)
+            )
             {
                 return;
             }
@@ -215,7 +248,8 @@ namespace GeometryHelper.Core
 
             if (secondRadius < firstRadius)
             {
-                double back = ((secondRadius - firstRadius) * (secondRadius + firstRadius) + apart * apart) / (2.0 * apart);
+                double back =
+                    ((secondRadius - firstRadius) * (secondRadius + firstRadius) + apart * apart) / (2.0 * apart);
                 double remaining = secondRadius * secondRadius - back * back;
                 double half = remaining <= 0.0 ? 0.0 : Math.Sqrt(remaining);
                 double footX = second.X - unit.X * back;
@@ -231,7 +265,8 @@ namespace GeometryHelper.Core
                 return;
             }
 
-            double along = ((firstRadius - secondRadius) * (firstRadius + secondRadius) + apart * apart) / (2.0 * apart);
+            double along =
+                ((firstRadius - secondRadius) * (firstRadius + secondRadius) + apart * apart) / (2.0 * apart);
             double square = firstRadius * firstRadius - along * along;
             double across = square <= 0.0 ? 0.0 : Math.Sqrt(square);
 

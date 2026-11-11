@@ -42,7 +42,17 @@ namespace GeometryHelper.Dxf
         /// <param name="controlPointTolerance">The tolerance of the control points (group 43 of a SPLINE).</param>
         /// <param name="knotTolerance">The tolerance of the knots (group 42).</param>
         /// <exception cref="ArgumentNullException">Thrown when the control points or the knots are null.</exception>
-        public DxfNurbsData(int degree, bool rational, bool closed, bool periodic, IEnumerable<GeoPoint3> controlPoints, IEnumerable<double> knots, IEnumerable<double> weights, double controlPointTolerance, double knotTolerance)
+        public DxfNurbsData(
+            int degree,
+            bool rational,
+            bool closed,
+            bool periodic,
+            IEnumerable<GeoPoint3> controlPoints,
+            IEnumerable<double> knots,
+            IEnumerable<double> weights,
+            double controlPointTolerance,
+            double knotTolerance
+        )
         {
             if (controlPoints == null)
             {
@@ -113,7 +123,12 @@ namespace GeometryHelper.Dxf
         /// <returns>Whether they are the same.</returns>
         public bool IsEqualTo(DxfNurbsData other, Tolerance tolerance)
         {
-            if (Degree != other.Degree || Rational != other.Rational || Closed != other.Closed || Periodic != other.Periodic)
+            if (
+                Degree != other.Degree
+                || Rational != other.Rational
+                || Closed != other.Closed
+                || Periodic != other.Periodic
+            )
             {
                 return false;
             }
@@ -134,13 +149,20 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return SameNumbers(GetKnots(), other.GetKnots(), tolerance) && SameNumbers(GetWeights(), other.GetWeights(), tolerance);
+            return SameNumbers(GetKnots(), other.GetKnots(), tolerance)
+                && SameNumbers(GetWeights(), other.GetWeights(), tolerance);
         }
 
         /// <summary>Gives the data as a line for debugging: its degree and counts.</summary>
         /// <returns>The data as a line, such as <c>degree 3, 4 control points, 8 knots</c>.</returns>
-        public override string ToString()
-            => "degree " + Degree.ToString(CultureInfo.InvariantCulture) + ", " + GetControlPoints().Count.ToString(CultureInfo.InvariantCulture) + " control points, " + GetKnots().Count.ToString(CultureInfo.InvariantCulture) + " knots";
+        public override string ToString() =>
+            "degree "
+            + Degree.ToString(CultureInfo.InvariantCulture)
+            + ", "
+            + GetControlPoints().Count.ToString(CultureInfo.InvariantCulture)
+            + " control points, "
+            + GetKnots().Count.ToString(CultureInfo.InvariantCulture)
+            + " knots";
 
         private static bool SameNumbers(IReadOnlyList<double> a, IReadOnlyList<double> b, Tolerance tolerance)
         {

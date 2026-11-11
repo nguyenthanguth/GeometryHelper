@@ -23,15 +23,23 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            return string.Equals(extension, ".png", StringComparison.OrdinalIgnoreCase) || string.Equals(extension, ".jpg", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(extension, ".jpeg", StringComparison.OrdinalIgnoreCase) || string.Equals(extension, ".bmp", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(extension, ".png", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(extension, ".jpg", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(extension, ".jpeg", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(extension, ".bmp", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
         /// Reads the pixels across and up of a picture and the millimetres a pixel is across and up, nought where the file
         /// gives no resolution: a PNG of 40 by 30 pixels saved at 3 779 pixels a metre is 0.26462 mm a pixel.
         /// </summary>
-        internal static bool TryRead(string path, out int width, out int height, out double millimetresX, out double millimetresY)
+        internal static bool TryRead(
+            string path,
+            out int width,
+            out int height,
+            out double millimetresX,
+            out double millimetresY
+        )
         {
             width = 0;
             height = 0;
@@ -60,12 +68,18 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
             }
-            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException || exception is NotSupportedException)
+            catch (Exception exception)
+                when (exception is IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is ArgumentException
+                    || exception is NotSupportedException
+                )
             {
                 return false;
             }
 
-            bool read2 = Png(head, ref width, ref height, ref millimetresX, ref millimetresY)
+            bool read2 =
+                Png(head, ref width, ref height, ref millimetresX, ref millimetresY)
                 || Jpeg(head, ref width, ref height, ref millimetresX, ref millimetresY)
                 || Bmp(head, ref width, ref height, ref millimetresX, ref millimetresY);
             return read2 && width > 0 && height > 0;
@@ -144,12 +158,23 @@ namespace GeometryHelper.Dxf.Viewer
                 int length = (b[at + 2] << 8) | b[at + 3];
 
                 // JFIF: its density, in dots an inch (1) or a centimetre (2); 0 gives the aspect alone.
-                if (marker == 0xE0 && length >= 14 && at + 16 <= b.Length && b[at + 4] == 'J' && b[at + 5] == 'F' && b[at + 6] == 'I' && b[at + 7] == 'F')
+                if (
+                    marker == 0xE0
+                    && length >= 14
+                    && at + 16 <= b.Length
+                    && b[at + 4] == 'J'
+                    && b[at + 5] == 'F'
+                    && b[at + 6] == 'I'
+                    && b[at + 7] == 'F'
+                )
                 {
                     int units = b[at + 11];
                     int x = (b[at + 12] << 8) | b[at + 13];
                     int y = (b[at + 14] << 8) | b[at + 15];
-                    double per = units == 1 ? 25.4 : units == 2 ? 10.0 : 0.0;
+                    double per =
+                        units == 1 ? 25.4
+                        : units == 2 ? 10.0
+                        : 0.0;
                     mx = per > 0.0 && x > 0 ? per / x : 0.0;
                     my = per > 0.0 && y > 0 ? per / y : 0.0;
                 }
@@ -203,8 +228,10 @@ namespace GeometryHelper.Dxf.Viewer
             return true;
         }
 
-        private static int BigEndian(byte[] b, int at) => (b[at] << 24) | (b[at + 1] << 16) | (b[at + 2] << 8) | b[at + 3];
+        private static int BigEndian(byte[] b, int at) =>
+            (b[at] << 24) | (b[at + 1] << 16) | (b[at + 2] << 8) | b[at + 3];
 
-        private static int LittleEndian(byte[] b, int at) => b[at] | (b[at + 1] << 8) | (b[at + 2] << 16) | (b[at + 3] << 24);
+        private static int LittleEndian(byte[] b, int at) =>
+            b[at] | (b[at + 1] << 8) | (b[at + 2] << 16) | (b[at + 3] << 24);
     }
 }

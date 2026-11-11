@@ -16,15 +16,24 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class ShortSegmentG1wgTests
     {
-        private static readonly Tolerance Hundredth = new Tolerance(1E-2, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-2);
+        private static readonly Tolerance Hundredth = new Tolerance(
+            1E-2,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-2
+        );
 
         private static readonly GeoPoint2 Beside = new GeoPoint2(10.03, 0.003);
 
-        private static GeoPolygonArc2 Loop()
-            => new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 0.006), new GeoPoint2(0, 10) });
+        private static GeoPolygonArc2 Loop() =>
+            new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 0.006), new GeoPoint2(0, 10) }
+            );
 
-        private static GeoPolylineArc2 Hairpin()
-            => new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 0.006), new GeoPoint2(0, 0.006) });
+        private static GeoPolylineArc2 Hairpin() =>
+            new GeoPolylineArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 0.006), new GeoPoint2(0, 0.006) }
+            );
 
         [Fact]
         public void TheClosestPointOfALoopOrAChain_BesideItsShortSide_IsOnTheSideAsItIs()
@@ -44,7 +53,11 @@ namespace GeometryHelper.UnitTest.Plane
         {
             Assert.Equal(0.03, Loop().GetShortestLineTo(Beside, Hundredth).Length, 12);
             Assert.Equal(0.03, Hairpin().GetShortestLineTo(Beside, Hundredth).Length, 12);
-            Assert.Equal(Hairpin().DistanceTo(Beside, Hundredth), Hairpin().GetShortestLineTo(Beside, Hundredth).Length, 12);
+            Assert.Equal(
+                Hairpin().DistanceTo(Beside, Hundredth),
+                Hairpin().GetShortestLineTo(Beside, Hundredth).Length,
+                12
+            );
         }
 
         [Fact]

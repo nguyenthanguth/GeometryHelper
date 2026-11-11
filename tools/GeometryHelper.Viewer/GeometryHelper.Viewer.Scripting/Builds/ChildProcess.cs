@@ -195,7 +195,8 @@ namespace GeometryHelper.Viewer.Builds
             Action<string> onOutput,
             Action<string> onError,
             CancellationToken cancel,
-            IDictionary<string, string> environment = null)
+            IDictionary<string, string> environment = null
+        )
         {
             var info = new ProcessStartInfo(file)
             {
@@ -266,14 +267,23 @@ namespace GeometryHelper.Viewer.Builds
                     {
                         process.Kill(true);
                     }
-                    catch (Exception e) when (e is InvalidOperationException || e is Win32Exception || e is NotSupportedException)
+                    catch (Exception e)
+                        when (e is InvalidOperationException || e is Win32Exception || e is NotSupportedException)
                     {
                         // It ended by itself in the meantime.
                     }
                 }
 
-                using (var limit = timeout > TimeSpan.Zero ? new CancellationTokenSource(timeout) : new CancellationTokenSource())
-                using (CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(cancel, limit.Token))
+                using (
+                    var limit =
+                        timeout > TimeSpan.Zero ? new CancellationTokenSource(timeout) : new CancellationTokenSource()
+                )
+                using (
+                    CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(
+                        cancel,
+                        limit.Token
+                    )
+                )
                 using (linked.Token.Register(Kill))
                 {
                     await exited.Task.ConfigureAwait(false);
@@ -285,7 +295,8 @@ namespace GeometryHelper.Viewer.Builds
 
                     using (linked.Token.Register(() => stopped.TrySetResult(true)))
                     {
-                        Task first = await Task.WhenAny(flushed, stopped.Task, Task.Delay(OutputGrace)).ConfigureAwait(false);
+                        Task first = await Task.WhenAny(flushed, stopped.Task, Task.Delay(OutputGrace))
+                            .ConfigureAwait(false);
 
                         if (!ReferenceEquals(first, flushed))
                         {
@@ -294,7 +305,12 @@ namespace GeometryHelper.Viewer.Builds
                     }
 
                     // Where the job could not be made the kill reached only the process; a descendant may still hold the pipe, and the wait does not go on for it.
-                    if (!ReferenceEquals(await Task.WhenAny(flushed, Task.Delay(TimeSpan.FromSeconds(3))).ConfigureAwait(false), flushed))
+                    if (
+                        !ReferenceEquals(
+                            await Task.WhenAny(flushed, Task.Delay(TimeSpan.FromSeconds(3))).ConfigureAwait(false),
+                            flushed
+                        )
+                    )
                     {
                         try
                         {

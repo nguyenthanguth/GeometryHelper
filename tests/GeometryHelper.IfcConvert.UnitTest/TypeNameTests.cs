@@ -5,7 +5,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
     [Collection("IfcEngine")]
     public class TypeNameTests
     {
-        private static readonly string WallAndBeam = IfcTestFile.CommonHeader() + @"
+        private static readonly string WallAndBeam =
+            IfcTestFile.CommonHeader()
+            + @"
 #20=IFCRECTANGLEPROFILEDEF(.AREA.,$,#5,1.,0.5);
 #21=IFCEXTRUDEDAREASOLID(#20,#8,#9,2.);
 #22=IFCSHAPEREPRESENTATION(#11,'Body','SweptSolid',(#21));

@@ -50,11 +50,7 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ToGeoLine3s_KeepsTheThirdDimension()
         {
-            var points = new List<GeoPoint3>
-            {
-                new GeoPoint3(0.0, 0.0, 0.0),
-                new GeoPoint3(0.0, 0.0, 4.0),
-            };
+            var points = new List<GeoPoint3> { new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(0.0, 0.0, 4.0) };
 
             List<GeoLine3> segments = points.ToGeoLine3s();
 
@@ -124,8 +120,7 @@ namespace GeometryHelper.UnitTest.Solid
         {
             Tolerance tolerance = Tol(1.0);
 
-            List<GeoPoint3> result = OnX(0.0, 0.1, 0.2, 0.3, 5.0, 5.05, 9.0)
-                .RemoveConsecutiveNearPoints(tolerance);
+            List<GeoPoint3> result = OnX(0.0, 0.1, 0.2, 0.3, 5.0, 5.05, 9.0).RemoveConsecutiveNearPoints(tolerance);
 
             for (int i = 1; i < result.Count; i++)
             {
@@ -138,11 +133,7 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The two points share X and Y and differ only in Z, so a purely planar comparison would
             // wrongly fuse them.
-            var points = new List<GeoPoint3>
-            {
-                new GeoPoint3(0.0, 0.0, 0.0),
-                new GeoPoint3(0.0, 0.0, 5.0),
-            };
+            var points = new List<GeoPoint3> { new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(0.0, 0.0, 5.0) };
 
             Assert.Equal(2, points.RemoveConsecutiveNearPoints(Tol(1.0)).Count);
         }
@@ -217,8 +208,7 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void RemoveConsecutiveNearPoints_RejectsNull()
         {
-            Assert.Throws<ArgumentNullException>(
-                () => ((List<GeoPoint3>)null).RemoveConsecutiveNearPoints(Tol(1.0)));
+            Assert.Throws<ArgumentNullException>(() => ((List<GeoPoint3>)null).RemoveConsecutiveNearPoints(Tol(1.0)));
         }
 
         [Fact]

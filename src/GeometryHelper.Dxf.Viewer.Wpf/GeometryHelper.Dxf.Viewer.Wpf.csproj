@@ -1,35 +1,33 @@
 <Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFrameworks>net48;net8.0-windows</TargetFrameworks>
+        <UseWPF>true</UseWPF>
+        <PlatformTarget>x64</PlatformTarget>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <RootNamespace>GeometryHelper.Dxf.Viewer.Wpf</RootNamespace>
+        <AssemblyName>GeometryHelper.Dxf.Viewer.Wpf</AssemblyName>
+        <Description>The controls of the GeometryHelper 2D presenter: the canvas drawn with SkiaSharp, the file list, Properties, the layer box, the command line and the status bar.</Description>
+        <IsPackable>false</IsPackable>
+        <NoWarn>$(NoWarn);MSB3277</NoWarn>
+    </PropertyGroup>
 
-  <PropertyGroup>
-    <TargetFrameworks>net48;net8.0-windows</TargetFrameworks>
-    <UseWPF>true</UseWPF>
-    <PlatformTarget>x64</PlatformTarget>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <RootNamespace>GeometryHelper.Dxf.Viewer.Wpf</RootNamespace>
-    <AssemblyName>GeometryHelper.Dxf.Viewer.Wpf</AssemblyName>
-    <Description>The controls of the GeometryHelper 2D presenter: the canvas drawn with SkiaSharp, the file list, Properties, the layer box, the command line and the status bar.</Description>
-    <IsPackable>false</IsPackable>
-    <NoWarn>$(NoWarn);MSB3277</NoWarn>
-  </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\GeometryHelper.Dxf.Viewer\GeometryHelper.Dxf.Viewer.csproj" />
+        <ProjectReference Include="..\GeometryHelper\GeometryHelper.csproj" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\GeometryHelper.Dxf.Viewer\GeometryHelper.Dxf.Viewer.csproj" />
-    <ProjectReference Include="..\GeometryHelper\GeometryHelper.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <InternalsVisibleTo Include="GeometryHelper.Dxf.Viewer.UnitTest" />
+        <InternalsVisibleTo Include="GeometryHelper.Dxf.Viewer.Wpf.UnitTest" />
+        <InternalsVisibleTo Include="GeometryHelper.Drawing.Wpf.UnitTest" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <InternalsVisibleTo Include="GeometryHelper.Dxf.Viewer.UnitTest" />
-    <InternalsVisibleTo Include="GeometryHelper.Dxf.Viewer.Wpf.UnitTest" />
-    <InternalsVisibleTo Include="GeometryHelper.Drawing.Wpf.UnitTest" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="SkiaSharp" Version="4.155.0" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="SkiaSharp" Version="4.155.0" />
-  </ItemGroup>
-
-  <!-- The printers of Windows the Plot dialog lists; .NET 8's WPF brings System.Printing itself. -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
-    <Reference Include="System.Printing" />
-  </ItemGroup>
-
+    <!-- The printers of Windows the Plot dialog lists; .NET 8's WPF brings System.Printing itself. -->
+    <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+        <Reference Include="System.Printing" />
+    </ItemGroup>
 </Project>

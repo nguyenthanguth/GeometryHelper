@@ -25,31 +25,40 @@ namespace GeometryHelper.Core
         /// Clipper, which is why it can keep the arcs at all.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance) => Offset(loop, distance, OffsetOptions.Default, Tolerance.Global);
+        public static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance) =>
+            Offset(loop, distance, OffsetOptions.Default, Tolerance.Global);
 
         /// <summary>
         /// Offsets a loop that may curve, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance, Tolerance tolerance) => Offset(loop, distance, OffsetOptions.Default, tolerance);
+        public static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance, Tolerance tolerance) =>
+            Offset(loop, distance, OffsetOptions.Default, tolerance);
 
         /// <summary>
         /// Offsets a loop that may curve, filling opened corners a given way.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance, OffsetJoin join) => Offset(loop, distance, new OffsetOptions(join), Tolerance.Global);
+        public static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance, OffsetJoin join) =>
+            Offset(loop, distance, new OffsetOptions(join), Tolerance.Global);
 
         /// <summary>
         /// Offsets a loop that may curve, filling opened corners a given way, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance, OffsetJoin join, Tolerance tolerance) => Offset(loop, distance, new OffsetOptions(join), tolerance);
+        public static GeoPolygonArc2[] Offset(
+            GeoPolygonArc2 loop,
+            double distance,
+            OffsetJoin join,
+            Tolerance tolerance
+        ) => Offset(loop, distance, new OffsetOptions(join), tolerance);
 
         /// <summary>
         /// Offsets a loop that may curve, with options.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop or the options are null.</exception>
-        public static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance, OffsetOptions options) => Offset(loop, distance, options, Tolerance.Global);
+        public static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance, OffsetOptions options) =>
+            Offset(loop, distance, options, Tolerance.Global);
 
         /// <summary>
         /// Offsets a loop that may curve, with options, within a tolerance.
@@ -159,10 +168,17 @@ namespace GeometryHelper.Core
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop or the options are null.</exception>
-        public static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance, OffsetOptions options, Tolerance tolerance)
+        public static GeoPolygonArc2[] Offset(
+            GeoPolygonArc2 loop,
+            double distance,
+            OffsetOptions options,
+            Tolerance tolerance
+        )
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (options == null)
+                throw new ArgumentNullException(nameof(options));
 
             return Offset(loop, distance, options, tolerance, true);
         }
@@ -182,10 +198,18 @@ namespace GeometryHelper.Core
         /// offset of a DXF polyline does, whose unlimited miter would run a tip on as far as its sides take it.
         /// </param>
         /// <returns>The offset loops.</returns>
-        internal static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance, OffsetOptions options, Tolerance tolerance, bool asTheRegion)
+        internal static GeoPolygonArc2[] Offset(
+            GeoPolygonArc2 loop,
+            double distance,
+            OffsetOptions options,
+            Tolerance tolerance,
+            bool asTheRegion
+        )
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (options == null)
+                throw new ArgumentNullException(nameof(options));
 
             // Corners filled with miters or chamfers are read as the region has them: grown, each tip of the region where two
             // lobes of it cross is a corner of its own, which its miter or its chamfer fills.
@@ -208,12 +232,25 @@ namespace GeometryHelper.Core
             // A loop that crosses itself is read even-odd, as the straight offsets read one: cut at its crossings into the
             // simple loops they make, each running with the region on its left, which is then moved to its right whatever
             // way the loop ran, and the loops that come of it wound the way the loop ran.
-            bool crossing = ArcOffset2.TrySplitAtCrossings(edges, tolerance, out List<List<GeoEdge2>> region, out List<List<GeoEdge2>> bounds, out int crossings, tipsApart, out int coarse);
+            bool crossing = ArcOffset2.TrySplitAtCrossings(
+                edges,
+                tolerance,
+                out List<List<GeoEdge2>> region,
+                out List<List<GeoEdge2>> bounds,
+                out int crossings,
+                tipsApart,
+                out int coarse
+            );
 
             // The tolerance, a hundredth of it and a ten-thousandth of it: a loop it reads in finer steps where the tolerance is
             // coarse beside the shape. One crossing itself at more than 2 000 places is read within the tolerance only, since the
             // offset of a loop cut at so many grows faster than their square where they bunch.
-            var ladder = new[] { tolerance, ArcOffset2.Finer(tolerance), ArcOffset2.Finer(ArcOffset2.Finer(tolerance)) };
+            var ladder = new[]
+            {
+                tolerance,
+                ArcOffset2.Finer(tolerance),
+                ArcOffset2.Finer(ArcOffset2.Finer(tolerance)),
+            };
             bool finely = tolerance.EqualPoint > 0.0 && crossings <= ArcOffset2.MostCrossingsRetried;
             int used = 0;
 
@@ -224,7 +261,15 @@ namespace GeometryHelper.Core
             while (!crossing && crossings > 0 && finely && used + 1 < ladder.Length)
             {
                 used++;
-                crossing = ArcOffset2.TrySplitAtCrossings(edges, ladder[used], out region, out bounds, out crossings, tipsApart, out coarse);
+                crossing = ArcOffset2.TrySplitAtCrossings(
+                    edges,
+                    ladder[used],
+                    out region,
+                    out bounds,
+                    out crossings,
+                    tipsApart,
+                    out coarse
+                );
                 finely = crossings <= ArcOffset2.MostCrossingsRetried;
                 crossing = crossing && finely;
             }
@@ -239,8 +284,18 @@ namespace GeometryHelper.Core
 
             for (int step = used + 1; crossing && coarse > 0 && filled && finely && step < ladder.Length; step++)
             {
-                if (!ArcOffset2.TrySplitAtCrossings(edges, ladder[step], out List<List<GeoEdge2>> fineRegion, out List<List<GeoEdge2>> fineBounds, out int fineCrossings, tipsApart, out int fineCoarse)
-                    || fineCrossings > ArcOffset2.MostCrossingsRetried)
+                if (
+                    !ArcOffset2.TrySplitAtCrossings(
+                        edges,
+                        ladder[step],
+                        out List<List<GeoEdge2>> fineRegion,
+                        out List<List<GeoEdge2>> fineBounds,
+                        out int fineCrossings,
+                        tipsApart,
+                        out int fineCoarse
+                    )
+                    || fineCrossings > ArcOffset2.MostCrossingsRetried
+                )
                 {
                     continue;
                 }
@@ -274,7 +329,15 @@ namespace GeometryHelper.Core
             // where it leaves fewer runs open and no fewer loops, a loop of it finer than the tolerance and all.
             for (int step = used + 1; open > 0 && finely && step < ladder.Length; step++)
             {
-                bool cut = ArcOffset2.TrySplitAtCrossings(edges, ladder[step], out List<List<GeoEdge2>> fineRegion, out List<List<GeoEdge2>> fineBounds, out int fineCrossings, tipsApart)
+                bool cut =
+                    ArcOffset2.TrySplitAtCrossings(
+                        edges,
+                        ladder[step],
+                        out List<List<GeoEdge2>> fineRegion,
+                        out List<List<GeoEdge2>> fineBounds,
+                        out int fineCrossings,
+                        tipsApart
+                    )
                     && fineCrossings <= ArcOffset2.MostCrossingsRetried;
 
                 if (!cut && fineCrossings > 0)
@@ -338,31 +401,40 @@ namespace GeometryHelper.Core
         /// <param name="distance">How far to move it, to the left of the way it runs when positive.</param>
         /// <returns>The offset chains, which may be none when nothing survives.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPolylineArc2[] Offset(GeoPolylineArc2 chain, double distance) => Offset(chain, distance, OffsetOptions.Default, Tolerance.Global);
+        public static GeoPolylineArc2[] Offset(GeoPolylineArc2 chain, double distance) =>
+            Offset(chain, distance, OffsetOptions.Default, Tolerance.Global);
 
         /// <summary>
         /// Offsets a chain that may curve, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPolylineArc2[] Offset(GeoPolylineArc2 chain, double distance, Tolerance tolerance) => Offset(chain, distance, OffsetOptions.Default, tolerance);
+        public static GeoPolylineArc2[] Offset(GeoPolylineArc2 chain, double distance, Tolerance tolerance) =>
+            Offset(chain, distance, OffsetOptions.Default, tolerance);
 
         /// <summary>
         /// Offsets a chain that may curve, filling opened corners a given way.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPolylineArc2[] Offset(GeoPolylineArc2 chain, double distance, OffsetJoin join) => Offset(chain, distance, new OffsetOptions(join), Tolerance.Global);
+        public static GeoPolylineArc2[] Offset(GeoPolylineArc2 chain, double distance, OffsetJoin join) =>
+            Offset(chain, distance, new OffsetOptions(join), Tolerance.Global);
 
         /// <summary>
         /// Offsets a chain that may curve, filling opened corners a given way, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPolylineArc2[] Offset(GeoPolylineArc2 chain, double distance, OffsetJoin join, Tolerance tolerance) => Offset(chain, distance, new OffsetOptions(join), tolerance);
+        public static GeoPolylineArc2[] Offset(
+            GeoPolylineArc2 chain,
+            double distance,
+            OffsetJoin join,
+            Tolerance tolerance
+        ) => Offset(chain, distance, new OffsetOptions(join), tolerance);
 
         /// <summary>
         /// Offsets a chain that may curve, with options.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain or the options are null.</exception>
-        public static GeoPolylineArc2[] Offset(GeoPolylineArc2 chain, double distance, OffsetOptions options) => Offset(chain, distance, options, Tolerance.Global);
+        public static GeoPolylineArc2[] Offset(GeoPolylineArc2 chain, double distance, OffsetOptions options) =>
+            Offset(chain, distance, options, Tolerance.Global);
 
         /// <summary>
         /// Offsets a chain that may curve, with options, within a tolerance.
@@ -400,17 +472,31 @@ namespace GeometryHelper.Core
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain or the options are null.</exception>
-        public static GeoPolylineArc2[] Offset(GeoPolylineArc2 chain, double distance, OffsetOptions options, Tolerance tolerance)
+        public static GeoPolylineArc2[] Offset(
+            GeoPolylineArc2 chain,
+            double distance,
+            OffsetOptions options,
+            Tolerance tolerance
+        )
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (options == null)
+                throw new ArgumentNullException(nameof(options));
 
             if (Math.Abs(distance) <= tolerance.EqualPoint)
             {
                 return new[] { chain.Clone() };
             }
 
-            List<List<GeoEdge2>> runs = ArcOffset2.Offset(ArcChain2.EdgesOf(chain), false, distance, options, tolerance, out _);
+            List<List<GeoEdge2>> runs = ArcOffset2.Offset(
+                ArcChain2.EdgesOf(chain),
+                false,
+                distance,
+                options,
+                tolerance,
+                out _
+            );
             var results = new List<GeoPolylineArc2>(runs.Count);
 
             foreach (List<GeoEdge2> run in runs)
@@ -455,7 +541,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         private static void DropSpikes(List<GeoEdge2> edges, Tolerance tolerance)
         {
-            for (int i = 0; i < edges.Count && edges.Count > 3;)
+            for (int i = 0; i < edges.Count && edges.Count > 3; )
             {
                 int next = (i + 1) % edges.Count;
                 GeoEdge2 into = edges[i];
@@ -496,7 +582,13 @@ namespace GeometryHelper.Core
         /// longest arc is halved to give it one. A lens running against the loop it came from is a fold turned inside
         /// out, or a hole, which <paramref name="turned"/> says for the caller to tell apart.
         /// </remarks>
-        private static bool TryLoop(List<GeoEdge2> run, bool clockwise, Tolerance tolerance, out GeoPolygonArc2 loop, out bool turned)
+        private static bool TryLoop(
+            List<GeoEdge2> run,
+            bool clockwise,
+            Tolerance tolerance,
+            out GeoPolygonArc2 loop,
+            out bool turned
+        )
         {
             turned = false;
 
@@ -515,7 +607,10 @@ namespace GeometryHelper.Core
                 }
             }
 
-            if (longest < 0 || !run[longest].TrySplitAtParameter(0.5, out GeoEdge2 first, out GeoEdge2 second, tolerance))
+            if (
+                longest < 0
+                || !run[longest].TrySplitAtParameter(0.5, out GeoEdge2 first, out GeoEdge2 second, tolerance)
+            )
             {
                 return false;
             }

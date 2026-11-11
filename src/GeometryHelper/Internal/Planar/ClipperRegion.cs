@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using GeometryHelper.Clipper;
 using GeometryHelper;
+using GeometryHelper.Clipper;
 using GeometryHelper.Geometry;
 using GeometryHelper.Internal.Planar;
 
@@ -57,7 +57,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Resolves a region given by loops under a fill rule and groups the result.
         /// </summary>
-        public static List<LoopGroup> Resolve(IEnumerable<IReadOnlyList<GeoPoint2>> loops, Clipper.FillRule rule, int precision, Tolerance tolerance)
+        public static List<LoopGroup> Resolve(
+            IEnumerable<IReadOnlyList<GeoPoint2>> loops,
+            Clipper.FillRule rule,
+            int precision,
+            Tolerance tolerance
+        )
         {
             return Execute(ClipType.Union, loops, null, rule, precision, tolerance);
         }
@@ -71,7 +76,8 @@ namespace GeometryHelper.Core
             IEnumerable<IReadOnlyList<GeoPoint2>> clip,
             Clipper.FillRule rule,
             int precision,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             List<IReadOnlyList<GeoPoint2>> inputs = new List<IReadOnlyList<GeoPoint2>>(subject);
             ClipperD clipper = new ClipperD(precision);
@@ -118,7 +124,8 @@ namespace GeometryHelper.Core
             IEnumerable<IReadOnlyList<GeoPoint2>> subject,
             IEnumerable<IReadOnlyList<GeoPoint2>> clip,
             Clipper.FillRule rule,
-            int precision)
+            int precision
+        )
         {
             List<IReadOnlyList<GeoPoint2>> inputs = new List<IReadOnlyList<GeoPoint2>>(subject);
             ClipperD clipper = new ClipperD(precision) { PreserveCollinear = false };
@@ -220,7 +227,11 @@ namespace GeometryHelper.Core
         /// points kept, so that each edge still lies along the input edge it came from. The vertices get their
         /// full precision back, but nothing is merged or dropped.
         /// </summary>
-        public static List<List<GeoPoint2>> ResolveOutline(IEnumerable<IReadOnlyList<GeoPoint2>> loops, Clipper.FillRule rule, int precision)
+        public static List<List<GeoPoint2>> ResolveOutline(
+            IEnumerable<IReadOnlyList<GeoPoint2>> loops,
+            Clipper.FillRule rule,
+            int precision
+        )
         {
             List<IReadOnlyList<GeoPoint2>> inputs = new List<IReadOnlyList<GeoPoint2>>(loops);
             ClipperD clipper = new ClipperD(precision) { PreserveCollinear = true };
@@ -257,7 +268,9 @@ namespace GeometryHelper.Core
             if (!clipper.Execute(clipType, rule, solution))
             {
                 solution.Clear();
-                GeometryHelperLog.Warn($"Planar region: Clipper2 failed to resolve a {clipType} under the {rule} fill rule, so it is left empty.");
+                GeometryHelperLog.Warn(
+                    $"Planar region: Clipper2 failed to resolve a {clipType} under the {rule} fill rule, so it is left empty."
+                );
             }
 
             return solution;
@@ -269,9 +282,16 @@ namespace GeometryHelper.Core
         /// The loops of a polygon's region, read under the even-odd rule as <see cref="Containment2"/> reads it,
         /// resolved into boundary loops with the region on their left.
         /// </summary>
-        public static List<List<GeoPoint2>> RegionOf(GeoPolygon2 polygon, GeoPoint2 origin, int precision, Tolerance tolerance)
+        public static List<List<GeoPoint2>> RegionOf(
+            GeoPolygon2 polygon,
+            GeoPoint2 origin,
+            int precision,
+            Tolerance tolerance
+        )
         {
-            return Flatten(Resolve(new[] { ToLocal(polygon.Vertices, origin) }, Clipper.FillRule.EvenOdd, precision, tolerance));
+            return Flatten(
+                Resolve(new[] { ToLocal(polygon.Vertices, origin) }, Clipper.FillRule.EvenOdd, precision, tolerance)
+            );
         }
 
         /// <summary>
@@ -279,7 +299,12 @@ namespace GeometryHelper.Core
         /// even-odd rule. The boundary's loops keep their winding and the holes' loops are reversed, so under the
         /// positive rule a point counts once for the boundary and loses one for every hole it lies in.
         /// </summary>
-        public static List<List<GeoPoint2>> RegionOf(GeoFace2 face, GeoPoint2 origin, int precision, Tolerance tolerance)
+        public static List<List<GeoPoint2>> RegionOf(
+            GeoFace2 face,
+            GeoPoint2 origin,
+            int precision,
+            Tolerance tolerance
+        )
         {
             List<List<GeoPoint2>> loops = RegionOf(face.Boundary, origin, precision, tolerance);
 
@@ -557,9 +582,12 @@ namespace GeometryHelper.Core
                 // finer than lets the edges fill sixteen of them an edge on the whole, and never coarser than the 64: 16 000
                 // strips 100 000 long and 1 wide, side by side, filed under square cells as many as the edges, were filed 600
                 // million times and took 4 GB.
-                double minX = double.PositiveInfinity, minY = double.PositiveInfinity;
-                double maxX = double.NegativeInfinity, maxY = double.NegativeInfinity;
-                double acrossX = 0.0, acrossY = 0.0;
+                double minX = double.PositiveInfinity,
+                    minY = double.PositiveInfinity;
+                double maxX = double.NegativeInfinity,
+                    maxY = double.NegativeInfinity;
+                double acrossX = 0.0,
+                    acrossY = 0.0;
                 long count = 0;
 
                 foreach (IReadOnlyList<GeoPoint2> loop in loops)
@@ -568,7 +596,8 @@ namespace GeometryHelper.Core
                     {
                         GeoPoint2 point = loop[i];
                         GeoPoint2 next = loop[(i + 1) % loop.Count];
-                        double dx = Math.Abs(next.X - point.X), dy = Math.Abs(next.Y - point.Y);
+                        double dx = Math.Abs(next.X - point.X),
+                            dy = Math.Abs(next.Y - point.Y);
                         minX = Math.Min(minX, point.X);
                         minY = Math.Min(minY, point.Y);
                         maxX = Math.Max(maxX, point.X);
@@ -586,7 +615,8 @@ namespace GeometryHelper.Core
                 double width = count > 0 ? maxX - minX : 0.0;
                 double height = count > 0 ? maxY - minY : 0.0;
                 double edges = Math.Max(count, 1);
-                double fineX, fineY;
+                double fineX,
+                    fineY;
 
                 if (width > 0.0 && height > 0.0 && acrossX > 0.0 && acrossY > 0.0)
                 {
@@ -712,9 +742,14 @@ namespace GeometryHelper.Core
                 {
                     int id = _fileEdges ? candidates[k] : k;
 
-                    if ((_fileEdges || FiledUnder(id, column, row))
-                        && _wide[4 * id] <= x && x <= _wide[4 * id + 1] && _wide[4 * id + 2] <= y && y <= _wide[4 * id + 3]
-                        && DistanceToSegment(rounded, _from[id], _to[id]) <= reach)
+                    if (
+                        (_fileEdges || FiledUnder(id, column, row))
+                        && _wide[4 * id] <= x
+                        && x <= _wide[4 * id + 1]
+                        && _wide[4 * id + 2] <= y
+                        && y <= _wide[4 * id + 3]
+                        && DistanceToSegment(rounded, _from[id], _to[id]) <= reach
+                    )
                     {
                         close.Add(id);
                     }
@@ -870,7 +905,18 @@ namespace GeometryHelper.Core
                 double margin = _steps * _grid;
                 double wide = 2.0 * margin + 1E-12 * (Math.Abs(_minX) + Math.Abs(_minY) + Math.Abs(sa) + Math.Abs(ta));
 
-                return new Filing(alongX, sa, sb, ta, tb, wide, alongX ? _columns : _rows, alongX ? _rows : _columns, alongX ? _fineX : _fineY, alongX ? _fineY : _fineX);
+                return new Filing(
+                    alongX,
+                    sa,
+                    sb,
+                    ta,
+                    tb,
+                    wide,
+                    alongX ? _columns : _rows,
+                    alongX ? _rows : _columns,
+                    alongX ? _fineX : _fineY,
+                    alongX ? _fineY : _fineX
+                );
             }
 
             /// <summary>
@@ -890,7 +936,18 @@ namespace GeometryHelper.Core
                 private readonly double _lowS;
                 private readonly double _highS;
 
-                internal Filing(bool alongX, double sa, double sb, double ta, double tb, double wide, long limitS, long limitT, double cellS, double cellT)
+                internal Filing(
+                    bool alongX,
+                    double sa,
+                    double sb,
+                    double ta,
+                    double tb,
+                    double wide,
+                    long limitS,
+                    long limitT,
+                    double cellS,
+                    double cellT
+                )
                 {
                     AlongX = alongX;
                     _sa = sa;
@@ -915,8 +972,22 @@ namespace GeometryHelper.Core
 
                 internal void Across(long s, out long first, out long last)
                 {
-                    double t1 = ClipperRegion.ExactPoints.Across(Math.Max(s * _cellS - _wide, _lowS), _sa, _sb, _ta, _tb, 0.0);
-                    double t2 = ClipperRegion.ExactPoints.Across(Math.Min((s + 1) * _cellS + _wide, _highS), _sa, _sb, _ta, _tb, 1.0);
+                    double t1 = ClipperRegion.ExactPoints.Across(
+                        Math.Max(s * _cellS - _wide, _lowS),
+                        _sa,
+                        _sb,
+                        _ta,
+                        _tb,
+                        0.0
+                    );
+                    double t2 = ClipperRegion.ExactPoints.Across(
+                        Math.Min((s + 1) * _cellS + _wide, _highS),
+                        _sa,
+                        _sb,
+                        _ta,
+                        _tb,
+                        1.0
+                    );
 
                     first = Fine(Math.Min(t1, t2) - _wide, _cellT, _limitT);
                     last = Fine(Math.Max(t1, t2) + _wide, _cellT, _limitT);
@@ -936,7 +1007,8 @@ namespace GeometryHelper.Core
             /// <summary>
             /// The fine cell a distance from the corner of the box falls in, kept within four cells of the box.
             /// </summary>
-            private static long Fine(double offset, double cell, long limit) => Math.Max(-4L, Math.Min(limit + 4L, (long)Math.Floor(offset / cell)));
+            private static long Fine(double offset, double cell, long limit) =>
+                Math.Max(-4L, Math.Min(limit + 4L, (long)Math.Floor(offset / cell)));
 
             private static long FineKey(long column, long row) => ((column + 4L) << 32) | (uint)(row + 4L);
 
@@ -961,15 +1033,20 @@ namespace GeometryHelper.Core
                 return true;
             }
 
-            private (long, long) Key(GeoPoint2 point) => ((long)Math.Floor(point.X / (_grid * 4.0)), (long)Math.Floor(point.Y / (_grid * 4.0)));
+            private (long, long) Key(GeoPoint2 point) =>
+                ((long)Math.Floor(point.X / (_grid * 4.0)), (long)Math.Floor(point.Y / (_grid * 4.0)));
 
-            private (long, long) CellOf(GeoPoint2 point) => ((long)Math.Floor(point.X / _cell), (long)Math.Floor(point.Y / _cell));
+            private (long, long) CellOf(GeoPoint2 point) =>
+                ((long)Math.Floor(point.X / _cell), (long)Math.Floor(point.Y / _cell));
 
             private static double DistanceToSegment(GeoPoint2 point, GeoPoint2 a, GeoPoint2 b)
             {
                 GeoVector2 direction = b - a;
                 double lengthSquared = direction.LengthSquared;
-                double t = lengthSquared > 0.0 ? Math.Max(0.0, Math.Min(1.0, (point - a).Dot(direction) / lengthSquared)) : 0.0;
+                double t =
+                    lengthSquared > 0.0
+                        ? Math.Max(0.0, Math.Min(1.0, (point - a).Dot(direction) / lengthSquared))
+                        : 0.0;
                 return point.DistanceTo(a + direction * t);
             }
         }

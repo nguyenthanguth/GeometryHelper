@@ -28,11 +28,15 @@ namespace GeometryHelper.UnitTest.Solid
             /// <summary>The gap is exact to rounding: 4E-14 of the largest coordinate, 60 on the floor and 3 500 out there.</summary>
             public double Allowance;
 
-            public GeoPoint3 P(double x, double y, double h = 0) => new GeoPoint3(
-                O.X + x * X.X + y * Y.X + h * N.X, O.Y + x * X.Y + y * Y.Y + h * N.Y, O.Z + x * X.Z + y * Y.Z + h * N.Z);
+            public GeoPoint3 P(double x, double y, double h = 0) =>
+                new GeoPoint3(
+                    O.X + x * X.X + y * Y.X + h * N.X,
+                    O.Y + x * X.Y + y * Y.Y + h * N.Y,
+                    O.Z + x * X.Z + y * Y.Z + h * N.Z
+                );
 
-            public GeoVector3 V(double x, double y, double h = 0) => new GeoVector3(
-                x * X.X + y * Y.X + h * N.X, x * X.Y + y * Y.Y + h * N.Y, x * X.Z + y * Y.Z + h * N.Z);
+            public GeoVector3 V(double x, double y, double h = 0) =>
+                new GeoVector3(x * X.X + y * Y.X + h * N.X, x * X.Y + y * Y.Y + h * N.Y, x * X.Z + y * Y.Z + h * N.Z);
         }
 
         /// <summary>The floor z = 0, or a plane turned 0.6 rad about Z and 0.8 about X, through (3000.25, -1500.5, 800.125).</summary>
@@ -40,10 +44,20 @@ namespace GeometryHelper.UnitTest.Solid
         {
             if (plane == "floor")
             {
-                return new Frame { O = new GeoPoint3(0, 0, 0), X = GeoVector3.XAxis, Y = GeoVector3.YAxis, N = GeoVector3.ZAxis, Allowance = 2.4E-12 };
+                return new Frame
+                {
+                    O = new GeoPoint3(0, 0, 0),
+                    X = GeoVector3.XAxis,
+                    Y = GeoVector3.YAxis,
+                    N = GeoVector3.ZAxis,
+                    Allowance = 2.4E-12,
+                };
             }
 
-            double ca = Math.Cos(0.6), sa = Math.Sin(0.6), cb = Math.Cos(0.8), sb = Math.Sin(0.8);
+            double ca = Math.Cos(0.6),
+                sa = Math.Sin(0.6),
+                cb = Math.Cos(0.8),
+                sb = Math.Sin(0.8);
             return new Frame
             {
                 O = new GeoPoint3(3000.25, -1500.5, 800.125),
@@ -75,7 +89,11 @@ namespace GeometryHelper.UnitTest.Solid
         /// Both ways round the distance is the gap and the same to the bit, and both ways round they collide exactly where it
         /// is within the tolerance.
         /// </summary>
-        private static void AssertMeasured(Tolerance t, double allowance, (double Gap, double There, double Back, bool Collides, bool CollidesBack) m)
+        private static void AssertMeasured(
+            Tolerance t,
+            double allowance,
+            (double Gap, double There, double Back, bool Collides, bool CollidesBack) m
+        )
         {
             AssertGap(m.Gap, m.There, allowance);
             Assert.Equal(m.There, m.Back);
@@ -84,7 +102,12 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         private static (double, double, bool, bool) Measure(GeoLine3 line, GeoRay3 ray, Tolerance t) =>
-            (Within(t, () => line.DistanceTo(ray)), Within(t, () => ray.DistanceTo(line)), line.CollidesWith(ray, t), ray.CollidesWith(line, t));
+            (
+                Within(t, () => line.DistanceTo(ray)),
+                Within(t, () => ray.DistanceTo(line)),
+                line.CollidesWith(ray, t),
+                ray.CollidesWith(line, t)
+            );
 
         #region T8: a segment and a ray whose origin is near it
 
@@ -92,11 +115,16 @@ namespace GeometryHelper.UnitTest.Solid
         {
             foreach (string plane in new[] { "floor", "turned" })
             {
-                foreach (string kind in new[]
-                {
-                    "ray through the segment's end", "ray passing 0.00028 off the end", "the same 0.0003 up",
-                    "ray from 0.0005 below, up through the side", "the same 0.0009 up, over the side",
-                })
+                foreach (
+                    string kind in new[]
+                    {
+                        "ray through the segment's end",
+                        "ray passing 0.00028 off the end",
+                        "the same 0.0003 up",
+                        "ray from 0.0005 below, up through the side",
+                        "the same 0.0009 up, over the side",
+                    }
+                )
                 {
                     yield return new object[] { kind, plane };
                 }
@@ -113,7 +141,8 @@ namespace GeometryHelper.UnitTest.Solid
             var line = new GeoLine3(f.P(0, 0), f.P(60, 0));
             double h = 0.0005;
             double r = Math.Sqrt(0.5);
-            double ox = 60 - h * r, oy = -h * r;
+            double ox = 60 - h * r,
+                oy = -h * r;
             double gap;
             GeoRay3 ray;
 
@@ -129,7 +158,8 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     // The same origin, the ray turned 0.6 rad down from the diagonal: it passes the end h r (dx - dy) away,
                     // 0.00028, nearer than its origin (h) is.
-                    double dx = Math.Cos(Math.PI / 4 - 0.6), dy = Math.Sin(Math.PI / 4 - 0.6);
+                    double dx = Math.Cos(Math.PI / 4 - 0.6),
+                        dy = Math.Sin(Math.PI / 4 - 0.6);
                     ray = new GeoRay3(f.P(ox, oy), f.V(dx, dy));
                     gap = h * r * (dx - dy);
                     break;
@@ -137,7 +167,8 @@ namespace GeometryHelper.UnitTest.Solid
 
                 case "the same 0.0003 up":
                 {
-                    double dx = Math.Cos(Math.PI / 4 - 0.6), dy = Math.Sin(Math.PI / 4 - 0.6);
+                    double dx = Math.Cos(Math.PI / 4 - 0.6),
+                        dy = Math.Sin(Math.PI / 4 - 0.6);
                     ray = new GeoRay3(f.P(ox, oy, 0.0003), f.V(dx, dy));
                     double inPlane = h * r * (dx - dy);
                     gap = Math.Sqrt(inPlane * inPlane + 0.0003 * 0.0003);
@@ -156,7 +187,17 @@ namespace GeometryHelper.UnitTest.Solid
                     break;
             }
 
-            AssertMeasured(t, f.Allowance, (gap, Measure(line, ray, t).Item1, Measure(line, ray, t).Item2, line.CollidesWith(ray, t), ray.CollidesWith(line, t)));
+            AssertMeasured(
+                t,
+                f.Allowance,
+                (
+                    gap,
+                    Measure(line, ray, t).Item1,
+                    Measure(line, ray, t).Item2,
+                    line.CollidesWith(ray, t),
+                    ray.CollidesWith(line, t)
+                )
+            );
         }
 
         [Fact]
@@ -195,9 +236,12 @@ namespace GeometryHelper.UnitTest.Solid
         {
             switch (kind)
             {
-                case "ending on it": return (new GeoPoint3(0.0005 - 60, 0, -60 * slope), new GeoPoint3(0.0005, 0, 0), 0.0);
-                case "crossing it": return (new GeoPoint3(0, 0, -30 * slope), new GeoPoint3(60, 0, 30 * slope), 0.0);
-                default: return (new GeoPoint3(0.0005 - 60, 0.0005, -60 * slope), new GeoPoint3(0.0005, 0.0005, 0), 0.0005);
+                case "ending on it":
+                    return (new GeoPoint3(0.0005 - 60, 0, -60 * slope), new GeoPoint3(0.0005, 0, 0), 0.0);
+                case "crossing it":
+                    return (new GeoPoint3(0, 0, -30 * slope), new GeoPoint3(60, 0, 30 * slope), 0.0);
+                default:
+                    return (new GeoPoint3(0.0005 - 60, 0.0005, -60 * slope), new GeoPoint3(0.0005, 0.0005, 0), 0.0005);
             }
         }
 
@@ -210,8 +254,17 @@ namespace GeometryHelper.UnitTest.Solid
             (GeoPoint3 s, GeoPoint3 e, double gap) = Slanted(kind, slope);
             var other = new GeoLine3(s, e);
 
-            AssertMeasured(t, 2.4E-12, (gap, Within(t, () => line.DistanceTo(other)), Within(t, () => other.DistanceTo(line)),
-                line.CollidesWith(other, t), other.CollidesWith(line, t)));
+            AssertMeasured(
+                t,
+                2.4E-12,
+                (
+                    gap,
+                    Within(t, () => line.DistanceTo(other)),
+                    Within(t, () => other.DistanceTo(line)),
+                    line.CollidesWith(other, t),
+                    other.CollidesWith(line, t)
+                )
+            );
         }
 
         /// <summary>
@@ -223,21 +276,46 @@ namespace GeometryHelper.UnitTest.Solid
         {
             switch (name)
             {
-                case "segment": return new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(60, 0, 0));
-                case "polyline": return new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(40, 0, 0), new GeoPoint3(65, 30, 0), new GeoPoint3(100, 30, 0));
+                case "segment":
+                    return new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(60, 0, 0));
+                case "polyline":
+                    return new GeoPolyline3(
+                        new GeoPoint3(0, 0, 0),
+                        new GeoPoint3(40, 0, 0),
+                        new GeoPoint3(65, 30, 0),
+                        new GeoPoint3(100, 30, 0)
+                    );
                 case "segment ending on its start":
-                    return new GeoLine3(new GeoPoint3(-59.999499997916665, 0, -0.000499999999994213), new GeoPoint3(0.0005, 0, 0));
+                    return new GeoLine3(
+                        new GeoPoint3(-59.999499997916665, 0, -0.000499999999994213),
+                        new GeoPoint3(0.0005, 0, 0)
+                    );
                 case "segment ending on its end":
-                    return new GeoLine3(new GeoPoint3(119.99949999791667, 6.0641744252141e-50, -0.000499999999994213), new GeoPoint3(59.9995, 0, 0));
+                    return new GeoLine3(
+                        new GeoPoint3(119.99949999791667, 6.0641744252141e-50, -0.000499999999994213),
+                        new GeoPoint3(59.9995, 0, 0)
+                    );
                 case "polyline starting on its end":
-                    return new GeoPolyline3(new GeoPoint3(59.9995, 0, 0), new GeoPoint3(99.99949999861111, 0, -0.00033333333332947535),
-                        new GeoPoint3(124.99949999774306, 30, -0.0005416666666603974), new GeoPoint3(159.9994999965278, 30, -0.0008333333333236883));
+                    return new GeoPolyline3(
+                        new GeoPoint3(59.9995, 0, 0),
+                        new GeoPoint3(99.99949999861111, 0, -0.00033333333332947535),
+                        new GeoPoint3(124.99949999774306, 30, -0.0005416666666603974),
+                        new GeoPoint3(159.9994999965278, 30, -0.0008333333333236883)
+                    );
                 case "polyline ending on its start":
-                    return new GeoPolyline3(new GeoPoint3(-99.99949999652777, -30, -0.0008333333333236883), new GeoPoint3(-59.999499997916665, -30, -0.000499999999994213),
-                        new GeoPoint3(-34.99949999878472, 0, -0.0002916666666632909), new GeoPoint3(0.0005, 0, 0));
+                    return new GeoPolyline3(
+                        new GeoPoint3(-99.99949999652777, -30, -0.0008333333333236883),
+                        new GeoPoint3(-59.999499997916665, -30, -0.000499999999994213),
+                        new GeoPoint3(-34.99949999878472, 0, -0.0002916666666632909),
+                        new GeoPoint3(0.0005, 0, 0)
+                    );
                 default:
-                    return new GeoPolyline3(new GeoPoint3(99.9995, 30, 0), new GeoPoint3(139.9994999986111, 30, -0.00033333333332947535),
-                        new GeoPoint3(164.99949999774304, 60, -0.0005416666666603974), new GeoPoint3(199.9994999965278, 60, -0.0008333333333236883));
+                    return new GeoPolyline3(
+                        new GeoPoint3(99.9995, 30, 0),
+                        new GeoPoint3(139.9994999986111, 30, -0.00033333333332947535),
+                        new GeoPoint3(164.99949999774304, 60, -0.0005416666666603974),
+                        new GeoPoint3(199.9994999965278, 60, -0.0008333333333236883)
+                    );
             }
         }
 
@@ -247,13 +325,18 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData("segment", "polyline starting on its end")]
         [InlineData("polyline", "polyline ending on its start")]
         [InlineData("polyline", "polyline starting on its end, the polyline's")]
-        public void AShapeTiltedOutOfTheFloorEndingOnAnother_IsNoughtAwayTheSameBothWaysRound(string first, string second)
+        public void AShapeTiltedOutOfTheFloorEndingOnAnother_IsNoughtAwayTheSameBothWaysRound(
+            string first,
+            string second
+        )
         {
             Tolerance t = Tol;
             object a = TiltedShape(first);
             object b = TiltedShape(second);
-            double there, back;
-            bool c1, c2;
+            double there,
+                back;
+            bool c1,
+                c2;
 
             if (a is GeoLine3 la && b is GeoLine3 lb)
             {
@@ -331,24 +414,51 @@ namespace GeometryHelper.UnitTest.Solid
                 case "segments crossing in plan 0.0005 apart":
                 {
                     var other = new GeoLine3(f.P(5, -5, 0.0005), f.P(5, 5, 0.0005));
-                    AssertMeasured(t, f.Allowance, (0.0005, Within(t, () => line.DistanceTo(other)), Within(t, () => other.DistanceTo(line)),
-                        line.CollidesWith(other, t), other.CollidesWith(line, t)));
+                    AssertMeasured(
+                        t,
+                        f.Allowance,
+                        (
+                            0.0005,
+                            Within(t, () => line.DistanceTo(other)),
+                            Within(t, () => other.DistanceTo(line)),
+                            line.CollidesWith(other, t),
+                            other.CollidesWith(line, t)
+                        )
+                    );
                     break;
                 }
 
                 case "segments end to end 0.0012 apart":
                 {
                     var other = new GeoLine3(f.P(60.0012, 0), f.P(100, 0));
-                    AssertMeasured(t, f.Allowance, (60.0012 - 60, Within(t, () => line.DistanceTo(other)), Within(t, () => other.DistanceTo(line)),
-                        line.CollidesWith(other, t), other.CollidesWith(line, t)));
+                    AssertMeasured(
+                        t,
+                        f.Allowance,
+                        (
+                            60.0012 - 60,
+                            Within(t, () => line.DistanceTo(other)),
+                            Within(t, () => other.DistanceTo(line)),
+                            line.CollidesWith(other, t),
+                            other.CollidesWith(line, t)
+                        )
+                    );
                     break;
                 }
 
                 default:
                 {
                     var other = new GeoLine3(f.P(60, 0), f.P(100, 0));
-                    AssertMeasured(t, f.Allowance, (0.0, Within(t, () => line.DistanceTo(other)), Within(t, () => other.DistanceTo(line)),
-                        line.CollidesWith(other, t), other.CollidesWith(line, t)));
+                    AssertMeasured(
+                        t,
+                        f.Allowance,
+                        (
+                            0.0,
+                            Within(t, () => line.DistanceTo(other)),
+                            Within(t, () => other.DistanceTo(line)),
+                            line.CollidesWith(other, t),
+                            other.CollidesWith(line, t)
+                        )
+                    );
                     break;
                 }
             }

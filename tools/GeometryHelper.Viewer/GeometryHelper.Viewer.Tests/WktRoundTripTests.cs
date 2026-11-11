@@ -147,8 +147,24 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AFaceInSpaceWithAHole_IsAFace_TheHoleRunningTheOtherWayRoundFromHowItIsHeld()
         {
-            var outer = new GeoPolygon3(new[] { new GeoPoint3(0.1, 0.2, 5), new GeoPoint3(100.1, 0.2, 5), new GeoPoint3(100.1, 100.2, 5), new GeoPoint3(0.1, 100.2, 5) });
-            var hole = new GeoPolygon3(new[] { new GeoPoint3(20.1, 20.2, 5), new GeoPoint3(40.1, 20.2, 5), new GeoPoint3(40.1, 40.2, 5), new GeoPoint3(20.1, 40.2, 5) });
+            var outer = new GeoPolygon3(
+                new[]
+                {
+                    new GeoPoint3(0.1, 0.2, 5),
+                    new GeoPoint3(100.1, 0.2, 5),
+                    new GeoPoint3(100.1, 100.2, 5),
+                    new GeoPoint3(0.1, 100.2, 5),
+                }
+            );
+            var hole = new GeoPolygon3(
+                new[]
+                {
+                    new GeoPoint3(20.1, 20.2, 5),
+                    new GeoPoint3(40.1, 20.2, 5),
+                    new GeoPoint3(40.1, 40.2, 5),
+                    new GeoPoint3(20.1, 40.2, 5),
+                }
+            );
             var face = new GeoFace3(outer, new[] { hole });
 
             SceneItem item = Imp.Only(Read(Wkt.Write(face)));
@@ -166,8 +182,19 @@ namespace GeometryHelper.Viewer.Tests
         {
             GeoFace2[] faces =
             {
-                new GeoFace2(new GeoPolygon2(new GeoPoint2(0.1, 0.2), new GeoPoint2(10.1, 0.2), new GeoPoint2(10.1, 10.2)), null),
-                new GeoFace2(new GeoPolygon2(new GeoPoint2(20.1, 0.2), new GeoPoint2(30.1, 0.2), new GeoPoint2(30.1, 10.2), new GeoPoint2(20.1, 10.2)), null),
+                new GeoFace2(
+                    new GeoPolygon2(new GeoPoint2(0.1, 0.2), new GeoPoint2(10.1, 0.2), new GeoPoint2(10.1, 10.2)),
+                    null
+                ),
+                new GeoFace2(
+                    new GeoPolygon2(
+                        new GeoPoint2(20.1, 0.2),
+                        new GeoPoint2(30.1, 0.2),
+                        new GeoPoint2(30.1, 10.2),
+                        new GeoPoint2(20.1, 10.2)
+                    ),
+                    null
+                ),
             };
 
             Scene scene = Read(Wkt.Write(faces));
@@ -252,8 +279,16 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void SeveralSegmentsAndChains_AreSeveralItems()
         {
-            var lines = new[] { new GeoLine2(new GeoPoint2(0.1, 0.2), new GeoPoint2(3.1, 4.2)), new GeoLine2(new GeoPoint2(5.1, 6.2), new GeoPoint2(7.1, 8.2)) };
-            var chains = new[] { (GeoPolyline3)SampleShapes.Make("GeoPolyline3", 1), (GeoPolyline3)SampleShapes.Make("GeoPolyline3", 2) };
+            var lines = new[]
+            {
+                new GeoLine2(new GeoPoint2(0.1, 0.2), new GeoPoint2(3.1, 4.2)),
+                new GeoLine2(new GeoPoint2(5.1, 6.2), new GeoPoint2(7.1, 8.2)),
+            };
+            var chains = new[]
+            {
+                (GeoPolyline3)SampleShapes.Make("GeoPolyline3", 1),
+                (GeoPolyline3)SampleShapes.Make("GeoPolyline3", 2),
+            };
 
             Scene a = Read(Wkt.Write(lines));
             Scene b = Read(Wkt.Write(chains));
@@ -272,7 +307,16 @@ namespace GeometryHelper.Viewer.Tests
 
             Assert.Equal("GeoPolygon2", item.Kind);
             Assert.True(points.Length > 20);
-            Assert.All(points, p => Assert.InRange(Math.Sqrt(((p.X - circle.Center.X) * (p.X - circle.Center.X)) + ((p.Y - circle.Center.Y) * (p.Y - circle.Center.Y))) / circle.Radius, 1.0 - 1E-9, 1.0 + 1E-9));
+            Assert.All(points, p =>
+                Assert.InRange(
+                    Math.Sqrt(
+                        ((p.X - circle.Center.X) * (p.X - circle.Center.X))
+                            + ((p.Y - circle.Center.Y) * (p.Y - circle.Center.Y))
+                    ) / circle.Radius,
+                    1.0 - 1E-9,
+                    1.0 + 1E-9
+                )
+            );
         }
 
         [Fact]
@@ -283,8 +327,14 @@ namespace GeometryHelper.Viewer.Tests
             Vec3[] points = DataJson.Points(item.Data, "points", 2);
 
             Assert.Equal("GeoPolyline2", item.Kind);
-            Assert.True(Math.Abs(points[0].X - arc.StartPoint.X) < 1E-9 * arc.Radius && Math.Abs(points[0].Y - arc.StartPoint.Y) < 1E-9 * arc.Radius);
-            Assert.True(Math.Abs(points[points.Length - 1].X - arc.EndPoint.X) < 1E-9 * arc.Radius && Math.Abs(points[points.Length - 1].Y - arc.EndPoint.Y) < 1E-9 * arc.Radius);
+            Assert.True(
+                Math.Abs(points[0].X - arc.StartPoint.X) < 1E-9 * arc.Radius
+                    && Math.Abs(points[0].Y - arc.StartPoint.Y) < 1E-9 * arc.Radius
+            );
+            Assert.True(
+                Math.Abs(points[points.Length - 1].X - arc.EndPoint.X) < 1E-9 * arc.Radius
+                    && Math.Abs(points[points.Length - 1].Y - arc.EndPoint.Y) < 1E-9 * arc.Radius
+            );
         }
 
         [Fact]
@@ -304,8 +354,14 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ChainsWithArcs_AreChainsAndPolygonsOfChords()
         {
-            var chain = new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(200, 40) }, new[] { 0.4, 0.0, 0.0 });
-            var loop = new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) }, new[] { 0.0, 0.5, 0.0, 0.0 });
+            var chain = new GeoPolylineArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(200, 40) },
+                new[] { 0.4, 0.0, 0.0 }
+            );
+            var loop = new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
+                new[] { 0.0, 0.5, 0.0, 0.0 }
+            );
 
             SceneItem a = Imp.Only(Read(Wkt.Write(chain, 0.05)));
             SceneItem b = Imp.Only(Read(Wkt.Write(loop, 0.05)));
@@ -332,8 +388,22 @@ namespace GeometryHelper.Viewer.Tests
             var ray = (GeoRay3)SampleShapes.Make("GeoRay3", 3);
             var arc = (GeoArc3)SampleShapes.Make("GeoArc3", 3);
             var up = new GeoVector3(0.0, 0.0, 1.0);
-            var chain = new GeoPolylineArc3(new[] { new GeoPoint3(0, 0, 5), new GeoPoint3(100, 0, 5), new GeoPoint3(200, 40, 5) }, new[] { 0.4, 0.0, 0.0 }, new[] { up, up, up });
-            var loop = new GeoPolygonArc3(new[] { new GeoPoint3(0, 0, 5), new GeoPoint3(100, 0, 5), new GeoPoint3(100, 100, 5), new GeoPoint3(0, 100, 5) }, new[] { 0.0, 0.5, 0.0, 0.0 }, new[] { up, up, up, up });
+            var chain = new GeoPolylineArc3(
+                new[] { new GeoPoint3(0, 0, 5), new GeoPoint3(100, 0, 5), new GeoPoint3(200, 40, 5) },
+                new[] { 0.4, 0.0, 0.0 },
+                new[] { up, up, up }
+            );
+            var loop = new GeoPolygonArc3(
+                new[]
+                {
+                    new GeoPoint3(0, 0, 5),
+                    new GeoPoint3(100, 0, 5),
+                    new GeoPoint3(100, 100, 5),
+                    new GeoPoint3(0, 100, 5),
+                },
+                new[] { 0.0, 0.5, 0.0, 0.0 },
+                new[] { up, up, up, up }
+            );
 
             SceneItem a = Imp.Only(Read(Wkt.Write(ray, 300.0)));
             SceneItem b = Imp.Only(Read(Wkt.Write(arc, 0.1)));
@@ -351,12 +421,30 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ManyOfEachKind_AreManyItems_InThePlaneAndInSpace()
         {
-            var lines3 = new[] { (GeoLine3)SampleShapes.Make("GeoLine3", 1), (GeoLine3)SampleShapes.Make("GeoLine3", 2) };
-            var chains2 = new[] { (GeoPolyline2)SampleShapes.Make("GeoPolyline2", 1), (GeoPolyline2)SampleShapes.Make("GeoPolyline2", 2) };
+            var lines3 = new[]
+            {
+                (GeoLine3)SampleShapes.Make("GeoLine3", 1),
+                (GeoLine3)SampleShapes.Make("GeoLine3", 2),
+            };
+            var chains2 = new[]
+            {
+                (GeoPolyline2)SampleShapes.Make("GeoPolyline2", 1),
+                (GeoPolyline2)SampleShapes.Make("GeoPolyline2", 2),
+            };
             GeoFace3[] faces3 =
             {
-                new GeoFace3(new GeoPolygon3(new[] { new GeoPoint3(0.1, 0.2, 5), new GeoPoint3(10.1, 0.2, 5), new GeoPoint3(10.1, 10.2, 5) }), null),
-                new GeoFace3(new GeoPolygon3(new[] { new GeoPoint3(20.1, 0.2, 5), new GeoPoint3(30.1, 0.2, 5), new GeoPoint3(30.1, 10.2, 5) }), null),
+                new GeoFace3(
+                    new GeoPolygon3(
+                        new[] { new GeoPoint3(0.1, 0.2, 5), new GeoPoint3(10.1, 0.2, 5), new GeoPoint3(10.1, 10.2, 5) }
+                    ),
+                    null
+                ),
+                new GeoFace3(
+                    new GeoPolygon3(
+                        new[] { new GeoPoint3(20.1, 0.2, 5), new GeoPoint3(30.1, 0.2, 5), new GeoPoint3(30.1, 10.2, 5) }
+                    ),
+                    null
+                ),
             };
 
             Scene a = Read(Wkt.Write(lines3));
@@ -374,7 +462,12 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AWrittenScene_IsAValidScene()
         {
-            var text = string.Join("\n", Wkt.Write((GeoPolyline3)SampleShapes.Make("GeoPolyline3", 9)), Wkt.Write(SampleShapes.Box(10.0, 10.0, 10.0, false)), Wkt.Write(new GeoPoint2(1.0, 2.0)));
+            var text = string.Join(
+                "\n",
+                Wkt.Write((GeoPolyline3)SampleShapes.Make("GeoPolyline3", 9)),
+                Wkt.Write(SampleShapes.Box(10.0, 10.0, 10.0, false)),
+                Wkt.Write(new GeoPoint2(1.0, 2.0))
+            );
             Scene scene = Read(text);
 
             Assert.Equal(3, scene.Items.Count);

@@ -9,11 +9,19 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 {
     public class EditingPropertyTests
     {
-        private static string Shown(CadDocument document, string handle, string label)
-            => CadProperties.Describe(document, null, new[] { handle }).Groups.SelectMany(g => g.Rows).Single(r => r.Label == label).Value;
+        private static string Shown(CadDocument document, string handle, string label) =>
+            CadProperties
+                .Describe(document, null, new[] { handle })
+                .Groups.SelectMany(g => g.Rows)
+                .Single(r => r.Label == label)
+                .Value;
 
-        private static List<string> Rows(CadDocument document, string handle)
-            => CadProperties.Describe(document, null, new[] { handle }).Groups.SelectMany(g => g.Rows).Select(r => r.Label + "=" + r.Value).ToList();
+        private static List<string> Rows(CadDocument document, string handle) =>
+            CadProperties
+                .Describe(document, null, new[] { handle })
+                .Groups.SelectMany(g => g.Rows)
+                .Select(r => r.Label + "=" + r.Value)
+                .ToList();
 
         [Theory]
         [InlineData("A1")]
@@ -25,7 +33,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Plan();
             List<string> before = Rows(document, handle);
 
-            foreach (CadPropertyRow row in CadProperties.Describe(document, null, new[] { handle }).Groups.SelectMany(g => g.Rows).Where(r => !r.IsReadOnly))
+            foreach (
+                CadPropertyRow row in CadProperties
+                    .Describe(document, null, new[] { handle })
+                    .Groups.SelectMany(g => g.Rows)
+                    .Where(r => !r.IsReadOnly)
+            )
             {
                 CadEditResult result = CadPropertyEditor.Set(document, new[] { handle }, row.Label, row.Value);
                 Assert.True(result.Succeeded, row.Label + ": " + result.Message);
@@ -40,7 +53,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Blank();
             Run(Session(document), "DLI", P(0, 0), P(300, 0), P(150, -30));
             string handle = Assert.Single(All<DxfRotatedDimension>(document.ModelSpace)).Handle;
-            string Words() => Entity<DxfRotatedDimension>(document, handle).DimBlock.OfType<DxfMText>().Single().Contents;
+            string Words() =>
+                Entity<DxfRotatedDimension>(document, handle).DimBlock.OfType<DxfMText>().Single().Contents;
             string measured = Words();
 
             CadEditResult result = CadPropertyEditor.Set(document, new[] { handle }, "Text override", "<> TYP");
@@ -105,8 +119,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             var view = new CadView(1000, 500);
             view.ZoomTo(new DisplayBox(50, 25, 150, 75), 0.0);
 
-            CadPropertyGroup shown = CadProperties.Describe(document, document.ModelSpace, null, view).Groups.Single(g => g.Title == "View");
-            CadPropertyGroup drawn = CadProperties.Describe(document, document.ModelSpace, null).Groups.Single(g => g.Title == "View");
+            CadPropertyGroup shown = CadProperties
+                .Describe(document, document.ModelSpace, null, view)
+                .Groups.Single(g => g.Title == "View");
+            CadPropertyGroup drawn = CadProperties
+                .Describe(document, document.ModelSpace, null)
+                .Groups.Single(g => g.Title == "View");
 
             Assert.Equal("100.0000", shown.Rows.Single(r => r.Label == "Center X").Value);
             Assert.Equal("50.0000", shown.Rows.Single(r => r.Label == "Center Y").Value);
@@ -148,7 +166,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Plan();
             string start = document.Database.ToText();
 
-            Assert.Equal("The drawing has no layer \"Nope\".", CadPropertyEditor.Set(document, new[] { "A1" }, "Layer", "Nope").Message);
+            Assert.Equal(
+                "The drawing has no layer \"Nope\".",
+                CadPropertyEditor.Set(document, new[] { "A1" }, "Layer", "Nope").Message
+            );
             Assert.True(CadPropertyEditor.Set(document, new[] { "A3" }, "Radius", "-2").Refused);
             Assert.True(CadPropertyEditor.Set(document, new[] { "A1" }, "Length", "20").Refused);
             Assert.True(CadPropertyEditor.Set(document, new[] { "A1" }, "Lineweight", "0.33").Refused);
@@ -170,7 +191,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfLine made = All<DxfLine>(document.ModelSpace).Last();
             Assert.Equal("Steel", made.Layer);
             Assert.Equal(3, made.ColorIndex);
-            Assert.Equal("Steel", CadProperties.Describe(document, null, null).Groups[0].Rows.Single(r => r.Label == "Layer").Value);
+            Assert.Equal(
+                "Steel",
+                CadProperties.Describe(document, null, null).Groups[0].Rows.Single(r => r.Label == "Layer").Value
+            );
         }
     }
 }

@@ -11,7 +11,8 @@ namespace GeometryHelper.Viewer.Tests
     /// </summary>
     public class ArcArcCrossingTests
     {
-        private static ExactGeometry Exact(SceneWriter writer) => ExactGeometry.Build(writer.Scene, Primitives.Build(writer.Scene));
+        private static ExactGeometry Exact(SceneWriter writer) =>
+            ExactGeometry.Build(writer.Scene, Primitives.Build(writer.Scene));
 
         /// <summary>
         /// Where two arcs on chords of length L cross, one along X and one along Y, both through the origin with their middles bowed out by their bulges, worked
@@ -46,9 +47,29 @@ namespace GeometryHelper.Viewer.Tests
             // Radii from 7.5E12 down to 3E5; the centres are as far away as the radii, 100 000 from the origin for the arcs themselves.
             double length = 60000.0;
             var centre = new GeoPoint2(100000.0, 100000.0);
-            ExactGeometry g = Exact(new SceneWriter()
-                .Add(new GeoPolylineArc2(new[] { new GeoPoint2(centre.X - 30000.0, centre.Y), new GeoPoint2(centre.X + 30000.0, centre.Y) }, new[] { bulgeAlongX, 0.0 }))
-                .Add(new GeoPolylineArc2(new[] { new GeoPoint2(centre.X, centre.Y - 30000.0), new GeoPoint2(centre.X, centre.Y + 30000.0) }, new[] { bulgeAlongY, 0.0 })));
+            ExactGeometry g = Exact(
+                new SceneWriter()
+                    .Add(
+                        new GeoPolylineArc2(
+                            new[]
+                            {
+                                new GeoPoint2(centre.X - 30000.0, centre.Y),
+                                new GeoPoint2(centre.X + 30000.0, centre.Y),
+                            },
+                            new[] { bulgeAlongX, 0.0 }
+                        )
+                    )
+                    .Add(
+                        new GeoPolylineArc2(
+                            new[]
+                            {
+                                new GeoPoint2(centre.X, centre.Y - 30000.0),
+                                new GeoPoint2(centre.X, centre.Y + 30000.0),
+                            },
+                            new[] { bulgeAlongY, 0.0 }
+                        )
+                    )
+            );
 
             Vec3 hit = Assert.Single(CurveIntersections.Find(g.Curves[0], g.Curves[1], 1E-3));
             Vec3 expected = new Vec3(centre.X, centre.Y, 0.0) + Expected(length, bulgeAlongX, bulgeAlongY);
@@ -64,9 +85,21 @@ namespace GeometryHelper.Viewer.Tests
             double r = 1E12;
             double chord = 2000.0;
             double bulge = chord / (4.0 * r);
-            ExactGeometry g = Exact(new SceneWriter()
-                .Add(new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(chord, 0) }, new[] { bulge, 0.0 }))
-                .Add(new GeoPolylineArc2(new[] { new GeoPoint2(0, -0.01), new GeoPoint2(chord, 0.01) }, new[] { bulge, 0.0 })));
+            ExactGeometry g = Exact(
+                new SceneWriter()
+                    .Add(
+                        new GeoPolylineArc2(
+                            new[] { new GeoPoint2(0, 0), new GeoPoint2(chord, 0) },
+                            new[] { bulge, 0.0 }
+                        )
+                    )
+                    .Add(
+                        new GeoPolylineArc2(
+                            new[] { new GeoPoint2(0, -0.01), new GeoPoint2(chord, 0.01) },
+                            new[] { bulge, 0.0 }
+                        )
+                    )
+            );
 
             Vec3[] hits = CurveIntersections.Find(g.Curves[0], g.Curves[1], 1E-3).ToArray();
 
@@ -82,13 +115,22 @@ namespace GeometryHelper.Viewer.Tests
         [InlineData(1E-5)]
         [InlineData(1E-6)]
         [InlineData(1E-7)]
-        public void AnArcOnAChordOf60000AndACircleOfRadius1DippingATenthBelowIt_CrossTwiceAtPlusAndMinus0Point4359(double bulge)
+        public void AnArcOnAChordOf60000AndACircleOfRadius1DippingATenthBelowIt_CrossTwiceAtPlusAndMinus0Point4359(
+            double bulge
+        )
         {
             // The arc's radius is 1.5E7 to 1.5E11; its centre is as far off, and the two crossings, 0.87 apart, are found from the start of the arc and the circle's own centre.
             double sagitta = bulge * 30000.0;
-            ExactGeometry g = Exact(new SceneWriter()
-                .Add(new GeoPolylineArc2(new[] { new GeoPoint2(-30000, 0), new GeoPoint2(30000, 0) }, new[] { bulge, 0.0 }))
-                .Add(new GeoCircle2(new GeoPoint2(0, -sagitta + 0.9), 1.0)));
+            ExactGeometry g = Exact(
+                new SceneWriter()
+                    .Add(
+                        new GeoPolylineArc2(
+                            new[] { new GeoPoint2(-30000, 0), new GeoPoint2(30000, 0) },
+                            new[] { bulge, 0.0 }
+                        )
+                    )
+                    .Add(new GeoCircle2(new GeoPoint2(0, -sagitta + 0.9), 1.0))
+            );
 
             Vec3[] hits = CurveIntersections.Find(g.Curves[0], g.Curves[1], 1E-3).OrderBy(h => h.X).ToArray();
 

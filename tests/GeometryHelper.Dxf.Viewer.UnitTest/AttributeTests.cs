@@ -22,12 +22,117 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 TestDrawings.Line(100, 0, 100, 30),
                 TestDrawings.Line(100, 30, 0, 30),
                 TestDrawings.Line(0, 30, 0, 0),
-                TestDrawings.Entity("ATTDEF", "0", 256, null, "10", 5.0, "20", 18.0, "30", 0.0, "40", 5.0, "1", "TITLE?", "3", "Title", "2", "TITLE", "70", 0),
-                TestDrawings.Entity("ATTDEF", "0", 256, null, "10", 5.0, "20", 6.0, "30", 0.0, "40", 3.5, "1", "NAME?", "3", "Drawn", "2", "DRAWN", "70", 0));
-            string insert = "0\nINSERT\n5\nB1\n8\n0\n66\n1\n2\nTB\n10\n20\n20\n20\n30\n0\n41\n" + insertScale + "\n42\n" + insertScale + "\n43\n1\n"
-                + TestDrawings.Entity("ATTRIB", "0", 1, "B2", "10", 25.0, "20", 38.0, "30", 0.0, "40", 5.0, "1", "BEAM B-12", "2", "TITLE", "70", 0)
-                + TestDrawings.Entity("ATTRIB", "0", 256, "B3", "10", 25.0, "20", 26.0, "30", 0.0, "40", 3.5, "1", "NGUYEN", "2", "DRAWN", "70", 0)
-                + TestDrawings.Entity("ATTRIB", "0", 256, "B4", "10", 60.0, "20", 26.0, "30", 0.0, "40", 3.5, "1", "HIDDEN", "2", "SECRET", "70", 1)
+                TestDrawings.Entity(
+                    "ATTDEF",
+                    "0",
+                    256,
+                    null,
+                    "10",
+                    5.0,
+                    "20",
+                    18.0,
+                    "30",
+                    0.0,
+                    "40",
+                    5.0,
+                    "1",
+                    "TITLE?",
+                    "3",
+                    "Title",
+                    "2",
+                    "TITLE",
+                    "70",
+                    0
+                ),
+                TestDrawings.Entity(
+                    "ATTDEF",
+                    "0",
+                    256,
+                    null,
+                    "10",
+                    5.0,
+                    "20",
+                    6.0,
+                    "30",
+                    0.0,
+                    "40",
+                    3.5,
+                    "1",
+                    "NAME?",
+                    "3",
+                    "Drawn",
+                    "2",
+                    "DRAWN",
+                    "70",
+                    0
+                )
+            );
+            string insert =
+                "0\nINSERT\n5\nB1\n8\n0\n66\n1\n2\nTB\n10\n20\n20\n20\n30\n0\n41\n"
+                + insertScale
+                + "\n42\n"
+                + insertScale
+                + "\n43\n1\n"
+                + TestDrawings.Entity(
+                    "ATTRIB",
+                    "0",
+                    1,
+                    "B2",
+                    "10",
+                    25.0,
+                    "20",
+                    38.0,
+                    "30",
+                    0.0,
+                    "40",
+                    5.0,
+                    "1",
+                    "BEAM B-12",
+                    "2",
+                    "TITLE",
+                    "70",
+                    0
+                )
+                + TestDrawings.Entity(
+                    "ATTRIB",
+                    "0",
+                    256,
+                    "B3",
+                    "10",
+                    25.0,
+                    "20",
+                    26.0,
+                    "30",
+                    0.0,
+                    "40",
+                    3.5,
+                    "1",
+                    "NGUYEN",
+                    "2",
+                    "DRAWN",
+                    "70",
+                    0
+                )
+                + TestDrawings.Entity(
+                    "ATTRIB",
+                    "0",
+                    256,
+                    "B4",
+                    "10",
+                    60.0,
+                    "20",
+                    26.0,
+                    "30",
+                    0.0,
+                    "40",
+                    3.5,
+                    "1",
+                    "HIDDEN",
+                    "2",
+                    "SECRET",
+                    "70",
+                    1
+                )
                 + "0\nSEQEND\n5\nB5\n8\n0\n";
             return CadDocument.From(TestDrawings.Drawing(null, block, insert), "titleblock.dxf");
         }
@@ -86,7 +191,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             }
 
             Assert.True(red > 50, "red pixels of the title: " + red);
-            Assert.DoesNotContain(document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>(), t => t.Text == "HIDDEN" || t.Text == "TITLE?" || t.Text == "NAME?");
+            Assert.DoesNotContain(document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>(), t =>
+                t.Text == "HIDDEN" || t.Text == "TITLE?" || t.Text == "NAME?"
+            );
         }
     }
 }

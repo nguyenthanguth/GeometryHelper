@@ -77,9 +77,12 @@ namespace GeometryHelper.UnitTest.Common
             // EqualPlanar follows EqualPoint on this constructor, because coplanarity is measured as a
             // distance. The plane library never reads it; it is here because Tolerance is shared with
             // the solid half, which does.
-            Assert.Equal("(EqualPoint: 0.5, EqualVector: 0.25, EqualAngleRad: 0.017, EqualPlanar: 0.5)", tolerance.ToString());
+            Assert.Equal(
+                "(EqualPoint: 0.5, EqualVector: 0.25, EqualAngleRad: 0.017, EqualPlanar: 0.5)",
+                tolerance.ToString()
+            );
         }
-    
+
         #region Cases that came from the solid half's copy of this type
 
         [Fact]
@@ -108,7 +111,11 @@ namespace GeometryHelper.UnitTest.Common
         public void DefaultDoesNotFollowTheToleranceInUse()
         {
             var defaults = new Tolerance(
-                Tolerance.DefaultEqualPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, Tolerance.DefaultEqualPlanar);
+                Tolerance.DefaultEqualPoint,
+                Tolerance.DefaultEqualVector,
+                Tolerance.DefaultEqualAngleRad,
+                Tolerance.DefaultEqualPlanar
+            );
 
             using (Tolerance.Use(new Tolerance(0.5, 0.5)))
             {

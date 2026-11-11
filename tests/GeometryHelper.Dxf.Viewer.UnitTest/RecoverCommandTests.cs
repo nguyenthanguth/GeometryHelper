@@ -17,7 +17,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             var db = new DxfDatabase("AC1027");
             db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)));
-            db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0)) { Layer = "WALLS" });
+            db.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0)) { Layer = "WALLS" }
+            );
             return db.ToText();
         }
 
@@ -26,7 +28,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             string text = TwoLines();
             string path = Path.Combine(Path.GetTempPath(), "recover-" + Guid.NewGuid().ToString("N") + ".dxf");
-            File.WriteAllText(path, text.Substring(0, text.IndexOf("  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS", StringComparison.Ordinal)), new UTF8Encoding(false));
+            File.WriteAllText(
+                path,
+                text.Substring(0, text.IndexOf("  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS", StringComparison.Ordinal)),
+                new UTF8Encoding(false)
+            );
 
             try
             {
@@ -49,7 +55,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 Assert.Equal(2, shown.EntityCount);
                 Assert.Contains("2 errors found, 1 fixed.", session.History);
                 Assert.Contains(session.History, l => l.StartsWith("The file ends on line ", StringComparison.Ordinal));
-                Assert.Contains("The file has no OBJECTS section, though its records are of R13 or later: what it held is lost.", session.History);
+                Assert.Contains(
+                    "The file has no OBJECTS section, though its records are of R13 or later: what it held is lost.",
+                    session.History
+                );
             }
             finally
             {
@@ -85,7 +94,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "AUDIT", "Yes");
 
             Assert.Contains("1 error found, 1 fixed.", session.History);
-            Assert.Contains(session.History, l => l.StartsWith("The layer WALLS, named by 1 entity (the first: the LINE ", StringComparison.Ordinal) && l.EndsWith("; it was added.", StringComparison.Ordinal));
+            Assert.Contains(session.History, l =>
+                l.StartsWith("The layer WALLS, named by 1 entity (the first: the LINE ", StringComparison.Ordinal)
+                && l.EndsWith("; it was added.", StringComparison.Ordinal)
+            );
             Assert.True(document.Database.LayerTable.Has("WALLS"));
             Assert.Equal("AUDIT", document.NextUndo.Name);
 

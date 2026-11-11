@@ -32,7 +32,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="sphere">The ball.</param>
         /// <param name="circle">The circle when the method returns true; default otherwise.</param>
-        public bool TryGetIntersectionCircle(GeoSphere3 sphere, out GeoCircle3 circle) => sphere.TryGetIntersectionCircle(this, out circle);
+        public bool TryGetIntersectionCircle(GeoSphere3 sphere, out GeoCircle3 circle) =>
+            sphere.TryGetIntersectionCircle(this, out circle);
 
         /// <summary>
         /// Tries to find the circle this plane cuts from the surface of a ball, within a tolerance.
@@ -40,14 +41,16 @@ namespace GeometryHelper.Geometry
         /// <param name="sphere">The ball.</param>
         /// <param name="circle">The circle when the method returns true; default otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool TryGetIntersectionCircle(GeoSphere3 sphere, out GeoCircle3 circle, Tolerance tolerance) => sphere.TryGetIntersectionCircle(this, out circle, tolerance);
+        public bool TryGetIntersectionCircle(GeoSphere3 sphere, out GeoCircle3 circle, Tolerance tolerance) =>
+            sphere.TryGetIntersectionCircle(this, out circle, tolerance);
 
         /// <summary>
         /// Tries to find the point where this plane only touches the surface of a ball, using the default tolerance.
         /// </summary>
         /// <param name="sphere">The ball.</param>
         /// <param name="point">The point when the method returns true; default otherwise.</param>
-        public bool TryGetTangentPoint(GeoSphere3 sphere, out GeoPoint3 point) => sphere.TryGetTangentPoint(this, out point);
+        public bool TryGetTangentPoint(GeoSphere3 sphere, out GeoPoint3 point) =>
+            sphere.TryGetTangentPoint(this, out point);
 
         /// <summary>
         /// Tries to find the point where this plane only touches the surface of a ball, within a tolerance.
@@ -55,7 +58,8 @@ namespace GeometryHelper.Geometry
         /// <param name="sphere">The ball.</param>
         /// <param name="point">The point when the method returns true; default otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool TryGetTangentPoint(GeoSphere3 sphere, out GeoPoint3 point, Tolerance tolerance) => sphere.TryGetTangentPoint(this, out point, tolerance);
+        public bool TryGetTangentPoint(GeoSphere3 sphere, out GeoPoint3 point, Tolerance tolerance) =>
+            sphere.TryGetTangentPoint(this, out point, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this plane and landing on a ball, using the default tolerance.
@@ -66,7 +70,8 @@ namespace GeometryHelper.Geometry
         /// Gets the shortest segment leaving this plane and landing on a ball, within a tolerance.
         /// </summary>
         /// <returns>The segment of <see cref="GeoSphere3.GetShortestLineTo(GeoPlane3, Tolerance)"/> turned round, so that it leaves this plane and lands on the surface of the ball.</returns>
-        public GeoLine3 GetShortestLineTo(GeoSphere3 sphere, Tolerance tolerance) => sphere.GetShortestLineTo(this, tolerance).Reverse();
+        public GeoLine3 GetShortestLineTo(GeoSphere3 sphere, Tolerance tolerance) =>
+            sphere.GetShortestLineTo(this, tolerance).Reverse();
 
         #endregion
     }

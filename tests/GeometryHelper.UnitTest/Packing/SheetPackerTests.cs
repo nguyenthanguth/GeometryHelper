@@ -14,10 +14,11 @@ namespace GeometryHelper.UnitTest.Packing
     public class SheetPackerTests
     {
         // A box of a size, somewhere off the sheets, as a view is before it is packed.
-        private static GeoRectangle2 Box(double width, double height, double angle = 0.0)
-            => new GeoRectangle2(new GeoPoint2(-5000.0 + width, 3000.0 - height), width, height, angle);
+        private static GeoRectangle2 Box(double width, double height, double angle = 0.0) =>
+            new GeoRectangle2(new GeoPoint2(-5000.0 + width, 3000.0 - height), width, height, angle);
 
-        private static List<GeoRectangle2[]> OneEach(params GeoRectangle2[] boxes) => boxes.Select(b => new[] { b }).ToList();
+        private static List<GeoRectangle2[]> OneEach(params GeoRectangle2[] boxes) =>
+            boxes.Select(b => new[] { b }).ToList();
 
         [Fact]
         public void FourA4Boxes_FillAnA2SheetExactly_RowByRowFromTheUpperLeft()
@@ -59,12 +60,23 @@ namespace GeometryHelper.UnitTest.Packing
         [Fact]
         public void TheFirstBox_GoesToTheUpperLeftOfTheUsableArea()
         {
-            var sheet = new Sheet(PaperSize.A3) { Scale = 10.0, OffsetLeft = 20, OffsetRight = 10, OffsetTop = 10, OffsetBottom = 10, Origin = new GeoPoint2(500, 500) };
+            var sheet = new Sheet(PaperSize.A3)
+            {
+                Scale = 10.0,
+                OffsetLeft = 20,
+                OffsetRight = 10,
+                OffsetTop = 10,
+                OffsetBottom = 10,
+                Origin = new GeoPoint2(500, 500),
+            };
 
             PackResult result = SheetPacker.Pack(OneEach(Box(1000, 500)), sheet);
 
             GeoRectangle2 usable = result.Sheets[0].UsableArea;
-            Assert.True(result.Placements[0][0].ViewBox.UpperLeft.IsEqualTo(usable.UpperLeft), result.Placements[0][0].ViewBox.UpperLeft.ToString());
+            Assert.True(
+                result.Placements[0][0].ViewBox.UpperLeft.IsEqualTo(usable.UpperLeft),
+                result.Placements[0][0].ViewBox.UpperLeft.ToString()
+            );
             Assert.True(usable.LowerLeft.IsEqualTo(new GeoPoint2(500 + 200, 500 + 100)));
         }
 
@@ -78,7 +90,15 @@ namespace GeometryHelper.UnitTest.Packing
         [InlineData(SheetDirection.Bottom, 0.0, -1.0)]
         public void WhenASheetIsFull_TheNextGoesBesideIt(SheetDirection direction, double alongX, double alongY)
         {
-            var sheet = new Sheet(PaperSize.A4) { NewSheet = direction, SheetSpacing = 50.0, OffsetLeft = 10, OffsetRight = 10, OffsetTop = 10, OffsetBottom = 10 };
+            var sheet = new Sheet(PaperSize.A4)
+            {
+                NewSheet = direction,
+                SheetSpacing = 50.0,
+                OffsetLeft = 10,
+                OffsetRight = 10,
+                OffsetTop = 10,
+                OffsetBottom = 10,
+            };
 
             PackResult result = SheetPacker.Pack(OneEach(Box(200, 150), Box(200, 150), Box(200, 150)), sheet);
 
@@ -114,13 +134,21 @@ namespace GeometryHelper.UnitTest.Packing
             PackResult result = SheetPacker.Pack(groups, new Sheet(PaperSize.A3), options);
 
             // The box round each group.
-            (double MinX, double MinY, double MaxX, double MaxY) Round(IReadOnlyList<PackPlacement> group)
-                => (group.Min(p => p.ViewBox.LowerLeft.X), group.Min(p => p.ViewBox.LowerLeft.Y), group.Max(p => p.ViewBox.UpperRight.X), group.Max(p => p.ViewBox.UpperRight.Y));
+            (double MinX, double MinY, double MaxX, double MaxY) Round(IReadOnlyList<PackPlacement> group) =>
+                (
+                    group.Min(p => p.ViewBox.LowerLeft.X),
+                    group.Min(p => p.ViewBox.LowerLeft.Y),
+                    group.Max(p => p.ViewBox.UpperRight.X),
+                    group.Max(p => p.ViewBox.UpperRight.Y)
+                );
 
             var first = Round(result.Placements[0]);
             var second = Round(result.Placements[1]);
-            bool apart = first.MaxX + 20.0 <= second.MinX + 1e-9 || second.MaxX + 20.0 <= first.MinX + 1e-9
-                || first.MaxY + 20.0 <= second.MinY + 1e-9 || second.MaxY + 20.0 <= first.MinY + 1e-9;
+            bool apart =
+                first.MaxX + 20.0 <= second.MinX + 1e-9
+                || second.MaxX + 20.0 <= first.MinX + 1e-9
+                || first.MaxY + 20.0 <= second.MinY + 1e-9
+                || second.MaxY + 20.0 <= first.MinY + 1e-9;
             Assert.True(apart, $"{first} and {second}");
             Assert.All(result.Placements.SelectMany(g => g), p => Assert.Equal(0, p.SheetIndex));
         }
@@ -175,7 +203,11 @@ namespace GeometryHelper.UnitTest.Packing
             var overlapping = new GeoRectangle2(-700, 450, 60, 50);
             var groups = new List<GeoRectangle2[]> { new[] { view, section, overlapping } };
 
-            PackResult result = SheetPacker.Pack(groups, new Sheet(PaperSize.A3), new PackOptions { GroupLayout = GroupLayout.Keep });
+            PackResult result = SheetPacker.Pack(
+                groups,
+                new Sheet(PaperSize.A3),
+                new PackOptions { GroupLayout = GroupLayout.Keep }
+            );
 
             IReadOnlyList<PackPlacement> placed = result.Placements[0];
             Assert.All(placed, p => Assert.True(p.Placed));
@@ -227,17 +259,29 @@ namespace GeometryHelper.UnitTest.Packing
 
             Assert.True(placement.Placed);
             Assert.Equal(Math.PI / 6.0, placement.ViewBox.AngleRad);
-            Assert.All(placement.ViewBox.GetVertices(), v => Assert.True(v.X >= -1e-9 && v.Y >= -1e-9 && v.X <= 300 + 1e-9 && v.Y <= 300 + 1e-9, v.ToString()));
+            Assert.All(placement.ViewBox.GetVertices(), v =>
+                Assert.True(v.X >= -1e-9 && v.Y >= -1e-9 && v.X <= 300 + 1e-9 && v.Y <= 300 + 1e-9, v.ToString())
+            );
             Assert.Equal(300.0, placement.ViewBox.GetVertices().Max(v => v.Y), 9);
         }
 
         [Fact]
         public void TheScale_TurnsTheSheetIntoTheUnitsOfTheBoxes()
         {
-            var sheet = new Sheet(PaperSize.A1) { Scale = 50.0, OffsetLeft = 20, OffsetRight = 10, OffsetTop = 10, OffsetBottom = 10 };
+            var sheet = new Sheet(PaperSize.A1)
+            {
+                Scale = 50.0,
+                OffsetLeft = 20,
+                OffsetRight = 10,
+                OffsetTop = 10,
+                OffsetBottom = 10,
+            };
 
             // Four views 10 m by 7 m of the model, at 1:50 200 by 140 mm of paper: four across an A1 fit, less its offsets.
-            PackResult result = SheetPacker.Pack(OneEach(Box(10000, 7000), Box(10000, 7000), Box(10000, 7000), Box(10000, 7000)), sheet);
+            PackResult result = SheetPacker.Pack(
+                OneEach(Box(10000, 7000), Box(10000, 7000), Box(10000, 7000), Box(10000, 7000)),
+                sheet
+            );
 
             Assert.All(result.Placements, g => Assert.Equal(0, g[0].SheetIndex));
             Assert.True(result.Placements[3][0].ViewBox.UpperRight.X <= (841 - 10) * 50.0 + 1e-6);
@@ -275,7 +319,9 @@ namespace GeometryHelper.UnitTest.Packing
             Assert.Throws<ArgumentNullException>(() => SheetPacker.Pack(null, sheet));
             Assert.Throws<ArgumentNullException>(() => SheetPacker.Pack(groups, null));
             Assert.Throws<ArgumentNullException>(() => SheetPacker.Pack(groups, sheet, null));
-            Assert.Throws<ArgumentException>(() => SheetPacker.Pack(groups, new Sheet(PaperSize.A4) { OffsetTop = 200, OffsetBottom = 10 }));
+            Assert.Throws<ArgumentException>(() =>
+                SheetPacker.Pack(groups, new Sheet(PaperSize.A4) { OffsetTop = 200, OffsetBottom = 10 })
+            );
 
             var options = new PackOptions();
             Assert.Throws<ArgumentOutOfRangeException>(() => options.Spacing = -1.0);
@@ -287,11 +333,23 @@ namespace GeometryHelper.UnitTest.Packing
         public void TheSameBoxes_GiveTheSameResult_AndAreOnlyRead()
         {
             var random = new Random(11);
-            var groups = Enumerable.Range(0, 30)
-                .Select(g => Enumerable.Range(0, 1 + random.Next(4)).Select(i => Box(10 + random.Next(120), 10 + random.Next(80))).ToArray())
+            var groups = Enumerable
+                .Range(0, 30)
+                .Select(g =>
+                    Enumerable
+                        .Range(0, 1 + random.Next(4))
+                        .Select(i => Box(10 + random.Next(120), 10 + random.Next(80)))
+                        .ToArray()
+                )
                 .ToList();
             var copy = groups.Select(g => g.ToArray()).ToList();
-            var sheet = new Sheet(PaperSize.A3) { OffsetLeft = 20, OffsetRight = 10, OffsetTop = 10, OffsetBottom = 10 };
+            var sheet = new Sheet(PaperSize.A3)
+            {
+                OffsetLeft = 20,
+                OffsetRight = 10,
+                OffsetTop = 10,
+                OffsetBottom = 10,
+            };
             var options = new PackOptions { Spacing = 3, GroupSpacing = 8 };
 
             PackResult first = SheetPacker.Pack(groups, sheet, options);

@@ -21,23 +21,43 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A plate a hundred square lying in the XY plane, with a twenty-wide hole in the middle.
         /// </summary>
-        private static GeoFace3 Pierced() => new GeoFace3(
-            new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0)),
-            new[]
-            {
+        private static GeoFace3 Pierced() =>
+            new GeoFace3(
                 new GeoPolygon3(
-                    new GeoPoint3(40, 40, 0), new GeoPoint3(60, 40, 0), new GeoPoint3(60, 60, 0), new GeoPoint3(40, 60, 0))
-            });
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    new GeoPoint3(100, 100, 0),
+                    new GeoPoint3(0, 100, 0)
+                ),
+                new[]
+                {
+                    new GeoPolygon3(
+                        new GeoPoint3(40, 40, 0),
+                        new GeoPoint3(60, 40, 0),
+                        new GeoPoint3(60, 60, 0),
+                        new GeoPoint3(40, 60, 0)
+                    ),
+                }
+            );
 
-        private static GeoFace2 PiercedFlat() => new GeoFace2(
-            new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100)),
-            new[]
-            {
+        private static GeoFace2 PiercedFlat() =>
+            new GeoFace2(
                 new GeoPolygon2(
-                    new GeoPoint2(40, 40), new GeoPoint2(60, 40), new GeoPoint2(60, 60), new GeoPoint2(40, 60))
-            });
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(100, 0),
+                    new GeoPoint2(100, 100),
+                    new GeoPoint2(0, 100)
+                ),
+                new[]
+                {
+                    new GeoPolygon2(
+                        new GeoPoint2(40, 40),
+                        new GeoPoint2(60, 40),
+                        new GeoPoint2(60, 60),
+                        new GeoPoint2(40, 60)
+                    ),
+                }
+            );
 
         [Fact]
         public void EveryShapeInSpaceCanBeMovedSideways()
@@ -46,13 +66,24 @@ namespace GeometryHelper.UnitTest.Solid
             GeoTransform3 same = GeoTransform3.Translation(by);
 
             // Each moves the way the transformation would move it, which is the only thing Translate promises.
-            Assert.True(new GeoPoint3(1, 2, 3).Translate(by).IsEqualTo(new GeoPoint3(1, 2, 3).TransformBy(same), Tight));
-            Assert.True(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)).Translate(by)
-                .IsEqualTo(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)).TransformBy(same), Tight));
-            Assert.True(new GeoRay3(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0)).Translate(by)
-                .Origin.IsEqualTo(new GeoPoint3(0, 0, 0).Add(by), Tight));
-            Assert.True(new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(0, 10, 0))
-                .Translate(by).A.IsEqualTo(new GeoPoint3(0, 0, 0).Add(by), Tight));
+            Assert.True(
+                new GeoPoint3(1, 2, 3).Translate(by).IsEqualTo(new GeoPoint3(1, 2, 3).TransformBy(same), Tight)
+            );
+            Assert.True(
+                new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0))
+                    .Translate(by)
+                    .IsEqualTo(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)).TransformBy(same), Tight)
+            );
+            Assert.True(
+                new GeoRay3(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0))
+                    .Translate(by)
+                    .Origin.IsEqualTo(new GeoPoint3(0, 0, 0).Add(by), Tight)
+            );
+            Assert.True(
+                new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(0, 10, 0))
+                    .Translate(by)
+                    .A.IsEqualTo(new GeoPoint3(0, 0, 0).Add(by), Tight)
+            );
 
             var arc = new GeoArc3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 50.0, 0.0, Math.PI / 2);
 
@@ -85,7 +116,11 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 cube = new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 100, 100)).ToObb().ToSolid();
             GeoObb3 obb = new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 100, 100)).ToObb();
             var polygon = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 100, 0),
+                new GeoPoint3(0, 100, 0)
+            );
             var chain = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0));
             GeoFace3 face = Pierced();
 
@@ -111,7 +146,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             // Over the material: straight down onto it.
             Assert.Equal(25.0, face.DistanceTo(new GeoPoint3(20, 20, 25)), 9);
-            Assert.True(face.GetClosestPointOnBoundary(new GeoPoint3(20, 20, 25)).IsEqualTo(new GeoPoint3(20, 20, 0), Loose));
+            Assert.True(
+                face.GetClosestPointOnBoundary(new GeoPoint3(20, 20, 25)).IsEqualTo(new GeoPoint3(20, 20, 0), Loose)
+            );
 
             // Over the hole: over nothing, so the nearest material is the rim and not the surface behind it.
             GeoPoint3 nearest = face.GetClosestPointOnBoundary(new GeoPoint3(50, 50, 0));
@@ -122,11 +159,21 @@ namespace GeometryHelper.UnitTest.Solid
 
             // Off the face altogether: the outline.
             Assert.Equal(20.0, face.DistanceTo(new GeoPoint3(120, 50, 0)), 9);
-            Assert.True(face.GetClosestPointOnBoundary(new GeoPoint3(120, 50, 0)).IsEqualTo(new GeoPoint3(100, 50, 0), Loose));
+            Assert.True(
+                face.GetClosestPointOnBoundary(new GeoPoint3(120, 50, 0)).IsEqualTo(new GeoPoint3(100, 50, 0), Loose)
+            );
 
             // Both ways of asking agree, and the tolerance forms with the ones that take none.
-            Assert.Equal(Distance3.DistanceTo(face, new GeoPoint3(50, 50, 0)), face.DistanceTo(new GeoPoint3(50, 50, 0)), 9);
-            Assert.Equal(face.DistanceTo(new GeoPoint3(50, 50, 0)), face.DistanceTo(new GeoPoint3(50, 50, 0), Tolerance.Global), 9);
+            Assert.Equal(
+                Distance3.DistanceTo(face, new GeoPoint3(50, 50, 0)),
+                face.DistanceTo(new GeoPoint3(50, 50, 0)),
+                9
+            );
+            Assert.Equal(
+                face.DistanceTo(new GeoPoint3(50, 50, 0)),
+                face.DistanceTo(new GeoPoint3(50, 50, 0), Tolerance.Global),
+                9
+            );
             Assert.True(Projection3.ProjectToFace(face, new GeoPoint3(50, 50, 0)).IsEqualTo(nearest, Loose));
         }
 
@@ -145,18 +192,25 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(face.GetClosestPointOnBoundary(new GeoPoint2(50, 45)).IsEqualTo(new GeoPoint2(50, 40), Loose));
 
             // Off the face, a point of the outline.
-            Assert.True(face.GetClosestPointOnBoundary(new GeoPoint2(150, 50)).IsEqualTo(new GeoPoint2(100, 50), Loose));
+            Assert.True(
+                face.GetClosestPointOnBoundary(new GeoPoint2(150, 50)).IsEqualTo(new GeoPoint2(100, 50), Loose)
+            );
 
             // The magnitude of the signed distance is how far that point is, which ties the two together.
             foreach (GeoPoint2 probe in new[] { new GeoPoint2(10, 50), new GeoPoint2(50, 45), new GeoPoint2(150, 50) })
             {
                 Assert.Equal(
                     probe.DistanceTo(face.GetClosestPointOnBoundary(probe)),
-                    Math.Abs(face.SignedDistanceTo(probe)), 7);
+                    Math.Abs(face.SignedDistanceTo(probe)),
+                    7
+                );
             }
 
-            Assert.True(Projection2.ProjectToFace(face, new GeoPoint2(10, 50))
-                .IsEqualTo(face.GetClosestPointOnBoundary(new GeoPoint2(10, 50), Tolerance.Global), Loose));
+            Assert.True(
+                Projection2
+                    .ProjectToFace(face, new GeoPoint2(10, 50))
+                    .IsEqualTo(face.GetClosestPointOnBoundary(new GeoPoint2(10, 50), Tolerance.Global), Loose)
+            );
 
             // Where two pieces of the boundary are equally near, the earlier one is kept, as everywhere else
             // in this library: (20, 20) stands twenty from the bottom, twenty from the left and twenty from
@@ -169,23 +223,32 @@ namespace GeometryHelper.UnitTest.Solid
         {
             var plane = new GeoPlane3(new GeoPoint3(0, 0, 10), new GeoVector3(0, 0, 1));
 
-            Assert.True(plane.GetClosestPointOnBoundary(new GeoPoint3(30, 40, 60)).IsEqualTo(new GeoPoint3(30, 40, 10), Loose));
-            Assert.True(plane.GetClosestPointOnBoundary(new GeoPoint3(30, 40, -60)).IsEqualTo(new GeoPoint3(30, 40, 10), Loose));
+            Assert.True(
+                plane.GetClosestPointOnBoundary(new GeoPoint3(30, 40, 60)).IsEqualTo(new GeoPoint3(30, 40, 10), Loose)
+            );
+            Assert.True(
+                plane.GetClosestPointOnBoundary(new GeoPoint3(30, 40, -60)).IsEqualTo(new GeoPoint3(30, 40, 10), Loose)
+            );
 
             // A plane is endless, so the nearest point never falls back to an edge; the side is in the sign.
             Assert.Equal(50.0, plane.DistanceTo(new GeoPoint3(30, 40, 60)), 9);
             Assert.Equal(50.0, plane.SignedDistanceTo(new GeoPoint3(30, 40, 60)), 9);
             Assert.Equal(-70.0, plane.SignedDistanceTo(new GeoPoint3(30, 40, -60)), 9);
 
-            Assert.True(plane.GetClosestPointOnBoundary(new GeoPoint3(30, 40, 60), Tolerance.Global)
-                .IsEqualTo(plane.GetClosestPointOnBoundary(new GeoPoint3(30, 40, 60)), Loose));
+            Assert.True(
+                plane
+                    .GetClosestPointOnBoundary(new GeoPoint3(30, 40, 60), Tolerance.Global)
+                    .IsEqualTo(plane.GetClosestPointOnBoundary(new GeoPoint3(30, 40, 60)), Loose)
+            );
         }
 
         [Fact]
         public void NothingIsAskedOfNothing()
         {
             Assert.Throws<ArgumentNullException>(() => Projection3.ProjectToFace(null, GeoPoint3.Origin));
-            Assert.Throws<ArgumentNullException>(() => Projection3.ProjectToFace(null, GeoPoint3.Origin, Tolerance.Global));
+            Assert.Throws<ArgumentNullException>(() =>
+                Projection3.ProjectToFace(null, GeoPoint3.Origin, Tolerance.Global)
+            );
             Assert.Throws<ArgumentNullException>(() => Projection2.ProjectToFace(null, new GeoPoint2(0, 0)));
             Assert.Throws<ArgumentNullException>(() => Distance3.DistanceTo((GeoFace3)null, GeoPoint3.Origin));
         }

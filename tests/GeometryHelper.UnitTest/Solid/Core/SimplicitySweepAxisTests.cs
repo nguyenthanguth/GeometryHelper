@@ -38,7 +38,12 @@ namespace GeometryHelper.UnitTest.Solid
         /// <param name="teeth">How many teeth.</param>
         /// <param name="shear">How far up the teeth run for each along them.</param>
         /// <param name="change">What one tooth is made: given the corners so far, its bottom and top, and its index, it adds its tip and top corners and returns true, or returns false for a plain tooth.</param>
-        private static List<GeoPoint3> Comb(char axis, int teeth, double shear, Func<Action<double, double>, double, double, int, bool> change)
+        private static List<GeoPoint3> Comb(
+            char axis,
+            int teeth,
+            double shear,
+            Func<Action<double, double>, double, double, int, bool> change
+        )
         {
             var corners = new List<GeoPoint3>();
 
@@ -52,7 +57,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < teeth; i++)
             {
-                double bottom = 10.0 * i, top = bottom + 5.0;
+                double bottom = 10.0 * i,
+                    top = bottom + 5.0;
                 Add(Length, bottom);
 
                 if (change == null || !change(Add, bottom, top, i))
@@ -76,8 +82,8 @@ namespace GeometryHelper.UnitTest.Solid
         /// A comb whose twentieth tooth is a sliver: from the tip of its bottom edge a hair out to the right and up to a
         /// height, then back along that height for a run.
         /// </summary>
-        private static List<GeoPoint3> Sliver(char axis, double shear, double run, double height)
-            => Comb(axis, 40, shear, (add, bottom, top, i) =>
+        private static List<GeoPoint3> Sliver(char axis, double shear, double run, double height) =>
+            Comb(axis, 40, shear, (add, bottom, top, i) =>
             {
                 if (i != 20)
                 {
@@ -93,8 +99,7 @@ namespace GeometryHelper.UnitTest.Solid
         /// A comb whose twentieth tooth has its top edge pushed down half way along to a height over the next tooth's
         /// bottom edge.
         /// </summary>
-        private static List<GeoPoint3> Pushed(char axis, double under)
-            => Comb(axis, 40, 0.25, (add, bottom, top, i) =>
+        private static List<GeoPoint3> Pushed(char axis, double under) => Comb(axis, 40, 0.25, (add, bottom, top, i) =>
             {
                 if (i != 20)
                 {
@@ -109,8 +114,7 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A comb whose twentieth tooth folds its tip back over its bottom edge, or nearly.
         /// </summary>
-        private static List<GeoPoint3> Folded(char axis, double rise)
-            => Comb(axis, 40, 0.25, (add, bottom, top, i) =>
+        private static List<GeoPoint3> Folded(char axis, double rise) => Comb(axis, 40, 0.25, (add, bottom, top, i) =>
             {
                 if (i != 20)
                 {
@@ -144,8 +148,16 @@ namespace GeometryHelper.UnitTest.Solid
                     // stretched along x.
                     double s = (i + 0.2 + 0.6 * random.NextDouble()) * 8.0 / count;
                     double r = 50.0 + 50.0 * random.NextDouble();
-                    double u = s < 2.0 ? 1.0 : s < 4.0 ? 3.0 - s : s < 6.0 ? -1.0 : s - 7.0;
-                    double v = s < 2.0 ? s - 1.0 : s < 4.0 ? 1.0 : s < 6.0 ? 5.0 - s : -1.0;
+                    double u =
+                        s < 2.0 ? 1.0
+                        : s < 4.0 ? 3.0 - s
+                        : s < 6.0 ? -1.0
+                        : s - 7.0;
+                    double v =
+                        s < 2.0 ? s - 1.0
+                        : s < 4.0 ? 1.0
+                        : s < 6.0 ? 5.0 - s
+                        : -1.0;
                     flat.Add((40.0 * r * u, r * v));
                 }
 
@@ -153,21 +165,29 @@ namespace GeometryHelper.UnitTest.Solid
 
                 if (pick == 0)
                 {
-                    int a = random.Next(count), b = (a + 2 + random.Next(count - 3)) % count;
+                    int a = random.Next(count),
+                        b = (a + 2 + random.Next(count - 3)) % count;
                     (flat[a], flat[b]) = (flat[b], flat[a]);
                 }
                 else if (pick == 1)
                 {
                     // Corner a pulled onto the line through the middle of the edge two ahead, then off it by a whisker.
                     int a = random.Next(count);
-                    (double X, double Y) p = flat[(a + 2) % count], q = flat[(a + 3) % count];
+                    (double X, double Y) p = flat[(a + 2) % count],
+                        q = flat[(a + 3) % count];
                     double whisker = random.Next(2) == 0 ? 0.0006 : 0.0014;
-                    double mx = 0.5 * (p.X + q.X), my = 0.5 * (p.Y + q.Y);
-                    double nx = q.Y - p.Y, ny = p.X - q.X, n = Math.Sqrt(nx * nx + ny * ny);
+                    double mx = 0.5 * (p.X + q.X),
+                        my = 0.5 * (p.Y + q.Y);
+                    double nx = q.Y - p.Y,
+                        ny = p.X - q.X,
+                        n = Math.Sqrt(nx * nx + ny * ny);
                     flat[a] = (mx + whisker * nx / n, my + whisker * ny / n);
                 }
 
-                polygons.Add(flat.Select(p => SweepAxisText.Along(axis, new GeoPoint3(p.X, p.Y, 0.25 * p.X + 0.5 * p.Y))).ToList());
+                polygons.Add(
+                    flat.Select(p => SweepAxisText.Along(axis, new GeoPoint3(p.X, p.Y, 0.25 * p.X + 0.5 * p.Y)))
+                        .ToList()
+                );
             }
 
             return polygons;
@@ -195,7 +215,8 @@ namespace GeometryHelper.UnitTest.Solid
                     lengths[i] = 2000.0 + random.Next(8001);
                 }
 
-                int special = random.Next(teeth), kind = random.Next(3);
+                int special = random.Next(teeth),
+                    kind = random.Next(3);
                 double whisker = whiskers[random.Next(whiskers.Length)];
                 var corners = new List<GeoPoint3>();
 
@@ -209,7 +230,9 @@ namespace GeometryHelper.UnitTest.Solid
 
                 for (int i = 0; i < teeth; i++)
                 {
-                    double bottom = 10.0 * i, top = bottom + 5.0, length = lengths[i];
+                    double bottom = 10.0 * i,
+                        top = bottom + 5.0,
+                        length = lengths[i];
                     Add(length, bottom);
 
                     if (i == special && kind == 0 && i + 1 < teeth)
@@ -238,7 +261,8 @@ namespace GeometryHelper.UnitTest.Solid
 
                 if (random.Next(6) == 0)
                 {
-                    int a = random.Next(corners.Count), b = (a + 2 + random.Next(corners.Count - 3)) % corners.Count;
+                    int a = random.Next(corners.Count),
+                        b = (a + 2 + random.Next(corners.Count - 3)) % corners.Count;
                     (corners[a], corners[b]) = (corners[b], corners[a]);
                 }
 
@@ -284,7 +308,6 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 // The edge further along X comes first, and the two are within the tolerance; the other way round, not.
                 Sliver(axis, 0.254, 1029.0, 200.0009297935259),
-
                 // Both edges start at x 20, the first of them as the sort of their starts along X left them decides.
                 Sliver(axis, 0.251, 9980.0, 200.00092897847128),
                 Sliver(axis, 0.25, 4000.0, 200.0005),
@@ -301,23 +324,27 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData('X', 200.0015, true)]
         [InlineData('Y', 200.0015, true)]
         [InlineData('Z', 200.0015, true)]
-        public void AToothRunningAlongItselfLevelAcrossTheSweep_IsSimpleOnlyWhereItStandsFurtherOffThanTheTolerance(char axis, double height, bool simple)
+        public void AToothRunningAlongItselfLevelAcrossTheSweep_IsSimpleOnlyWhereItStandsFurtherOffThanTheTolerance(
+            char axis,
+            double height,
+            bool simple
+        )
         {
             // Not sheared, the bottom edge of the tooth spans nothing across the teeth, and its top edge comes down to
             // run along it for 3 900, 0.00056 or 0.00168 over it on the sloping plane: the sweep across has to keep the
             // bottom edge open past where it ends for those to be measured.
             GeoPolygon3 polygon = Polygon(Comb(axis, 40, 0.0, (add, bottom, top, i) =>
-            {
-                if (i != 20)
                 {
-                    return false;
-                }
+                    if (i != 20)
+                    {
+                        return false;
+                    }
 
-                add(Length, bottom + 3.0);
-                add(Length - 100.0, height);
-                add(Length - 4000.0, height);
-                return true;
-            }));
+                    add(Length, bottom + 3.0);
+                    add(Length - 100.0, height);
+                    add(Length - 4000.0, height);
+                    return true;
+                }));
 
             Assert.Equal(simple, Intersection3.IsSimple(polygon, Within));
             Assert.Equal(simple, EveryPair(polygon, Within));
@@ -343,9 +370,18 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Theory]
-        [InlineData('X', "FTTFFTTFTFTTTTTTFTTTTTFTFTTFFFTFFFTFTTTTTTTTFFFFTFTFFFTFTFTTFFTTFTTFTTTFTTFTTFTFFTFFTFFTFFTFTFTFTTTFFTFFTTFTTTTTTTTFTTTT")]
-        [InlineData('Y', "FTTFFTTFTFTTTTTTFTTTTTFTFTTFFFTFFFTFTTTTTTTTFFFFTFTFFFTFTFTTFFTTFTTFTTTFTTFTTFTFFTFFTFFTFFTFTFTFTTTFFTFFTTFTTTTTTTTFTTTT")]
-        [InlineData('Z', "FTTFFTTFTFTTTTTTFTTTTTFTFTTFFFTFFFTFTTTTTTTTFFFFTFTFFFTFTFTTFFTTFTTFTTTFTTFTTFTFFTFFTFFTFFTFTFTFTTTFFTFFTTFTTTTTTTTFTTTT")]
+        [InlineData(
+            'X',
+            "FTTFFTTFTFTTTTTTFTTTTTFTFTTFFFTFFFTFTTTTTTTTFFFFTFTFFFTFTFTTFFTTFTTFTTTFTTFTTFTFFTFFTFFTFFTFTFTFTTTFFTFFTTFTTTTTTTTFTTTT"
+        )]
+        [InlineData(
+            'Y',
+            "FTTFFTTFTFTTTTTTFTTTTTFTFTTFFFTFFFTFTTTTTTTTFFFFTFTFFFTFTFTTFFTTFTTFTTTFTTFTTFTFFTFFTFFTFFTFTFTFTTTFFTFFTTFTTTTTTTTFTTTT"
+        )]
+        [InlineData(
+            'Z',
+            "FTTFFTTFTFTTTTTTFTTTTTFTFTTFFFTFFFTFTTTTTTTTFFFFTFTFFFTFTFTTFFTTFTTFTTTFTTFTTFTFFTFFTFFTFFTFTFTFTTTFFTFFTTFTTTTTTTTFTTTT"
+        )]
         public void ScatteredPolygons_AreAsSimpleAsBeforeTheAxisWasChosen(char axis, string expected)
         {
             Assert.Equal(expected, Simple(Scattered(axis)));
@@ -390,10 +426,14 @@ namespace GeometryHelper.UnitTest.Solid
         {
             switch (swap)
             {
-                case "XY": return new GeoPoint3(p.Y, p.X, p.Z);
-                case "YZ": return new GeoPoint3(p.X, p.Z, p.Y);
-                case "XZ": return new GeoPoint3(p.Z, p.Y, p.X);
-                default: return p;
+                case "XY":
+                    return new GeoPoint3(p.Y, p.X, p.Z);
+                case "YZ":
+                    return new GeoPoint3(p.X, p.Z, p.Y);
+                case "XZ":
+                    return new GeoPoint3(p.Z, p.Y, p.X);
+                default:
+                    return p;
             }
         }
 
@@ -407,7 +447,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < 20; i++)
             {
-                double bottom = 10.0 * i, top = bottom + 5.0;
+                double bottom = 10.0 * i,
+                    top = bottom + 5.0;
                 corners.Add(new GeoPoint3(1000, bottom, 0));
                 corners.Add(new GeoPoint3(1000, top, 0));
 
@@ -420,7 +461,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             corners.Add(new GeoPoint3(0, 195, 0));
 
-            return Polygon(corners.Select(p => Swapped(swap, p)).ToList()).GetEdges().Select(e => e.GetAabb()).ToArray();
+            return Polygon(corners.Select(p => Swapped(swap, p)).ToList())
+                .GetEdges()
+                .Select(e => e.GetAabb())
+                .ToArray();
         }
 
         [Theory]
@@ -436,15 +480,29 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ASquareIsSweptAlongX_WhereYLeavesAsManyPairs()
         {
-            var square = Polygon(new List<GeoPoint3> { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0) });
+            var square = Polygon(
+                new List<GeoPoint3>
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(0, 10, 0),
+                }
+            );
 
-            Assert.Equal(0, Intersection3.SweepAxis(square.GetEdges().Select(e => e.GetAabb()).ToArray(), Within.EqualPoint));
+            Assert.Equal(
+                0,
+                Intersection3.SweepAxis(square.GetEdges().Select(e => e.GetAabb()).ToArray(), Within.EqualPoint)
+            );
         }
 
         [Fact]
         public void BoxesUpTheDiagonalAreSweptAlongX_WhereEveryAxisLeavesAsManyPairs()
         {
-            GeoAabb3[] boxes = Enumerable.Range(0, 10).Select(i => new GeoAabb3(new GeoPoint3(i, i, i), new GeoPoint3(i + 1.5, i + 1.5, i + 1.5))).ToArray();
+            GeoAabb3[] boxes = Enumerable
+                .Range(0, 10)
+                .Select(i => new GeoAabb3(new GeoPoint3(i, i, i), new GeoPoint3(i + 1.5, i + 1.5, i + 1.5)))
+                .ToArray();
 
             Assert.Equal(0, Intersection3.SweepAxis(boxes, Within.EqualPoint));
         }
@@ -488,16 +546,25 @@ namespace GeometryHelper.UnitTest.Solid
             // Laid along X, the sweep along X looks at more pairs than it is let before it chooses, and chooses another
             // axis, as it does for the sheared slivers; laid along Y or Z, X is the axis to sweep, and it never chooses.
             // Sheared, laid along Y or Z, the teeth run across X too, and no axis is much better than another.
-            List<GeoPoint3>[] polygons = axis == 'X'
-                ? new[] { Comb(axis, 40, 0.0, null), Sliver(axis, 0.254, 1029.0, 200.0009297935259), Sliver(axis, 0.251, 9980.0, 200.00092897847128) }
-                : new[] { Comb(axis, 40, 0.0, null) };
+            List<GeoPoint3>[] polygons =
+                axis == 'X'
+                    ? new[]
+                    {
+                        Comb(axis, 40, 0.0, null),
+                        Sliver(axis, 0.254, 1029.0, 200.0009297935259),
+                        Sliver(axis, 0.251, 9980.0, 200.00092897847128),
+                    }
+                    : new[] { Comb(axis, 40, 0.0, null) };
 
             foreach (List<GeoPoint3> corners in polygons)
             {
                 GeoPolygon3 polygon = Polygon(corners);
                 GeoAabb3[] bounds = polygon.GetEdges().Select(e => e.GetAabb()).ToArray();
 
-                Assert.Equal(across, PairsAlongX(bounds, Within.EqualPoint) > Intersection3.SweepAxisPairs * bounds.Length);
+                Assert.Equal(
+                    across,
+                    PairsAlongX(bounds, Within.EqualPoint) > Intersection3.SweepAxisPairs * bounds.Length
+                );
                 Assert.Equal(across, Intersection3.SweepAxis(bounds, Within.EqualPoint) != 0);
             }
         }
@@ -559,11 +626,16 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 for (int q = p + 1; q < count; q++)
                 {
-                    int i = rank[p] > rank[q] ? p : q, j = i == p ? q : p;
+                    int i = rank[p] > rank[q] ? p : q,
+                        j = i == p ? q : p;
 
-                    if (bounds[j].Max.X < bounds[i].Min.X - slack
-                        || bounds[j].Max.Y < bounds[i].Min.Y - slack || bounds[j].Min.Y > bounds[i].Max.Y + slack
-                        || bounds[j].Max.Z < bounds[i].Min.Z - slack || bounds[j].Min.Z > bounds[i].Max.Z + slack)
+                    if (
+                        bounds[j].Max.X < bounds[i].Min.X - slack
+                        || bounds[j].Max.Y < bounds[i].Min.Y - slack
+                        || bounds[j].Min.Y > bounds[i].Max.Y + slack
+                        || bounds[j].Max.Z < bounds[i].Min.Z - slack
+                        || bounds[j].Min.Z > bounds[i].Max.Z + slack
+                    )
                     {
                         continue;
                     }
@@ -576,12 +648,17 @@ namespace GeometryHelper.UnitTest.Solid
                         GeoLine3 incoming = iThenJ ? edges[i] : edges[j];
                         GeoLine3 outgoing = iThenJ ? edges[j] : edges[i];
 
-                        if (Containment3.IsPointOn(outgoing, incoming.StartPoint, tolerance) || Containment3.IsPointOn(incoming, outgoing.EndPoint, tolerance))
+                        if (
+                            Containment3.IsPointOn(outgoing, incoming.StartPoint, tolerance)
+                            || Containment3.IsPointOn(incoming, outgoing.EndPoint, tolerance)
+                        )
                         {
                             return false;
                         }
                     }
-                    else if (Projection3.GetShortestLineTo(edges[i], edges[j], tolerance).Length <= tolerance.EqualPoint)
+                    else if (
+                        Projection3.GetShortestLineTo(edges[i], edges[j], tolerance).Length <= tolerance.EqualPoint
+                    )
                     {
                         return false;
                     }

@@ -22,13 +22,30 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Empty(db.UcsTable);
 
             // A quarter turn about Z at (100, 50, 0).
-            db.UcsTable.Add(new DxfUcsTableRecord { Name = "Slab", Origin = new GeoPoint3(100.0, 50.0, 0.0), XAxis = new GeoVector3(0.0, 1.0, 0.0), YAxis = new GeoVector3(-1.0, 0.0, 0.0) });
+            db.UcsTable.Add(
+                new DxfUcsTableRecord
+                {
+                    Name = "Slab",
+                    Origin = new GeoPoint3(100.0, 50.0, 0.0),
+                    XAxis = new GeoVector3(0.0, 1.0, 0.0),
+                    YAxis = new GeoVector3(-1.0, 0.0, 0.0),
+                }
+            );
             db.Ucsname = "Slab";
             string saved = db.ToText();
 
-            Assert.Contains(Head + "  2\nSlab\n 70\n0\n 10\n100\n 20\n50\n 30\n0\n 11\n0\n 21\n1\n 31\n0\n 12\n-1\n 22\n0\n 32\n0\n 79\n0\n146\n0\n  0\n", saved, StringComparison.Ordinal);
+            Assert.Contains(
+                Head
+                    + "  2\nSlab\n 70\n0\n 10\n100\n 20\n50\n 30\n0\n 11\n0\n 21\n1\n 31\n0\n 12\n-1\n 22\n0\n 32\n0\n 79\n0\n146\n0\n  0\n",
+                saved,
+                StringComparison.Ordinal
+            );
             Assert.Contains("  2\nUCS\n  5\n", saved, StringComparison.Ordinal);
-            Assert.Contains("AcDbSymbolTable\n 70\n1\n", saved.Substring(saved.IndexOf("  2\nUCS\n", StringComparison.Ordinal)), StringComparison.Ordinal);
+            Assert.Contains(
+                "AcDbSymbolTable\n 70\n1\n",
+                saved.Substring(saved.IndexOf("  2\nUCS\n", StringComparison.Ordinal)),
+                StringComparison.Ordinal
+            );
 
             DxfDatabase again = DxfDatabase.Parse(saved);
             DxfUcsTableRecord slab = again.UcsTable["SLAB"];
@@ -90,7 +107,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.True(at > 0);
             Assert.DoesNotContain("AcDbUCSTableRecord", saved, StringComparison.Ordinal);
-            Assert.StartsWith("  2\nR12\n 70\n0\n 10\n1\n 20\n2\n 30\n3\n 11\n1\n 21\n0\n 31\n0\n 12\n0\n 22\n1\n 32\n0\n  0\n", saved.Substring(at), StringComparison.Ordinal);
+            Assert.StartsWith(
+                "  2\nR12\n 70\n0\n 10\n1\n 20\n2\n 30\n3\n 11\n1\n 21\n0\n 31\n0\n 12\n0\n 22\n1\n 32\n0\n  0\n",
+                saved.Substring(at),
+                StringComparison.Ordinal
+            );
             Assert.Equal(new GeoPoint3(1.0, 2.0, 3.0), DxfDatabase.Parse(saved).UcsTable["R12"].Origin);
             Assert.Throws<ArgumentException>(() => db.UcsTable.Add(new DxfUcsTableRecord { Name = "r12" }));
         }

@@ -21,7 +21,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             var settings = new GlobalSettings();
 
             Assert.Empty(settings.FontSearchFolders);
-            Assert.DoesNotContain(settings.ToFonts().Folders, f => f.IndexOf("Autodesk", StringComparison.OrdinalIgnoreCase) >= 0);
+            Assert.DoesNotContain(settings.ToFonts().Folders, f =>
+                f.IndexOf("Autodesk", StringComparison.OrdinalIgnoreCase) >= 0
+            );
             Assert.Equal(CadFonts.BuiltInName, settings.ReplacementFont);
             Assert.Equal(string.Empty, settings.FontMapFile);
             Assert.Empty(settings.FontSubstitutions);
@@ -66,7 +68,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 FontSearchFolders = new[] { @"D:\Fonts", " ", @"d:\fonts", @"E:\Shared ""fonts""" },
                 ReplacementFont = " txt.shx ",
             };
-            settings.SetFontSubstitutions(new[] { new KeyValuePair<string, string>("romans.shx", "isocp.shx"), new KeyValuePair<string, string>("Arial", "simplex"), new KeyValuePair<string, string>(" ", "x") });
+            settings.SetFontSubstitutions(
+                new[]
+                {
+                    new KeyValuePair<string, string>("romans.shx", "isocp.shx"),
+                    new KeyValuePair<string, string>("Arial", "simplex"),
+                    new KeyValuePair<string, string>(" ", "x"),
+                }
+            );
             string path = Path.Combine(_folder.FullPath, "settings.json");
 
             settings.Save(path);
@@ -118,11 +127,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         public void ADrawingOpenIsGivenTheFontsAndAFontNotFoundIsSaidOnTheCommandLine()
         {
             var model = new MainViewModel();
-            var settings = new GlobalSettings { FontSearchFolders = new[] { _folder.FullPath }, ReplacementFont = "nofont.shx" };
+            var settings = new GlobalSettings
+            {
+                FontSearchFolders = new[] { _folder.FullPath },
+                ReplacementFont = "nofont.shx",
+            };
             model.ApplySettings(settings);
             var database = new DxfDatabase("AC1018");
             database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "GH_ROMANS", FileName = "romans.shx" });
-            var text = new DxfDBText { TextString = "A", Position = new GeoPoint3(0, 0, 0), Height = 5 };
+            var text = new DxfDBText
+            {
+                TextString = "A",
+                Position = new GeoPoint3(0, 0, 0),
+                Height = 5,
+            };
             database.ModelSpace.AppendEntity(text);
             text.TextStyleName = "GH_ROMANS";
             CadDocument document = CadDocument.From(database);
@@ -132,9 +150,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             Assert.Equal(new[] { _folder.FullPath }, document.Fonts.Folders);
             Assert.Equal("nofont.shx", document.Fonts.Replacement);
-            Assert.Contains("Missing SHX files: romans.shx drawn in the drawing font; txt drawn in the drawing font.", model.History);
+            Assert.Contains(
+                "Missing SHX files: romans.shx drawn in the drawing font; txt drawn in the drawing font.",
+                model.History
+            );
 
-            model.ApplySettings(new GlobalSettings { FontSearchFolders = Array.Empty<string>(), ReplacementFont = string.Empty });
+            model.ApplySettings(
+                new GlobalSettings { FontSearchFolders = Array.Empty<string>(), ReplacementFont = string.Empty }
+            );
             Assert.True(document.Fonts.IsOff);
         }
     }

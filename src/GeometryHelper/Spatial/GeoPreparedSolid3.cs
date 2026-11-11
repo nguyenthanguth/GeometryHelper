@@ -45,7 +45,7 @@ namespace GeometryHelper.Spatial
             new GeoVector3(-0.2672612419124244, 0.5345224838248488, 0.8017837257372732),
             new GeoVector3(0.8017837257372732, -0.2672612419124244, 0.5345224838248488),
             new GeoVector3(0.4082482904638631, 0.8164965809277261, -0.4082482904638631),
-            new GeoVector3(-0.6666666666666666, 0.3333333333333333, 0.6666666666666666)
+            new GeoVector3(-0.6666666666666666, 0.3333333333333333, 0.6666666666666666),
         };
 
         private readonly GeoTriangle3[] _surface;
@@ -62,9 +62,8 @@ namespace GeometryHelper.Spatial
         /// </summary>
         /// <param name="solid">The body.</param>
         /// <exception cref="ArgumentNullException">Thrown when the body is null.</exception>
-        public GeoPreparedSolid3(GeoSolid3 solid) : this(solid, Tolerance.Global)
-        {
-        }
+        public GeoPreparedSolid3(GeoSolid3 solid)
+            : this(solid, Tolerance.Global) { }
 
         /// <summary>
         /// Prepares a body, within a tolerance.
@@ -113,7 +112,8 @@ namespace GeometryHelper.Spatial
         public GeoBvh3 Index { get; }
 
         /// <inheritdoc/>
-        public override string ToString() => $"GeoPreparedSolid3[{_surface.Length} triangles, {Solid.Openings.Count} openings cut]";
+        public override string ToString() =>
+            $"GeoPreparedSolid3[{_surface.Length} triangles, {Solid.Openings.Count} openings cut]";
 
         #region A point
 
@@ -244,7 +244,8 @@ namespace GeometryHelper.Spatial
         /// <summary>
         /// Gets the point where the material ends nearest a point, using the default tolerance.
         /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => GetClosestPointOnBoundary(point, Tolerance.Global);
+        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) =>
+            GetClosestPointOnBoundary(point, Tolerance.Global);
 
         /// <summary>
         /// Gets the point where the material ends nearest a point, within a tolerance.
@@ -254,7 +255,9 @@ namespace GeometryHelper.Spatial
             // A body far out is asked in its frame, the point moved in and the one it gives moved out; see TryFramed.
             if (TryFramed(tolerance, out Boolean3.FarBody far, out GeoPreparedSolid3 framed))
             {
-                return far.Out(Boolean3.FarFrame.Inside(() => framed.GetClosestPointOnBoundary(far.In(point), tolerance)));
+                return far.Out(
+                    Boolean3.FarFrame.Inside(() => framed.GetClosestPointOnBoundary(far.In(point), tolerance))
+                );
             }
 
             return Index.GetClosestPoint(point, tolerance);
@@ -312,8 +315,11 @@ namespace GeometryHelper.Spatial
 
             // Starting where the material ends, as Locate reads it, within the point tolerance of the surface, and crossing no
             // triangle, the ray touches the material at its origin, as CollidesWith reads it.
-            if (hits.Count == 0 && !(Box.DistanceTo(ray.Origin) > tolerance.EqualPoint)
-                && Index.DistanceTo(ray.Origin, tolerance) <= tolerance.EqualPoint)
+            if (
+                hits.Count == 0
+                && !(Box.DistanceTo(ray.Origin) > tolerance.EqualPoint)
+                && Index.DistanceTo(ray.Origin, tolerance) <= tolerance.EqualPoint
+            )
             {
                 hits.Add(ray.Origin);
             }
@@ -338,7 +344,8 @@ namespace GeometryHelper.Spatial
                 return Boolean3.FarFrame.Inside(() => framed.CollidesWith(far.In(ray), tolerance));
             }
 
-            return LocateHere(ray.Origin, tolerance) != PointLocation.OutSide || Index.GetIntersections(ray, tolerance).Length > 0;
+            return LocateHere(ray.Origin, tolerance) != PointLocation.OutSide
+                || Index.GetIntersections(ray, tolerance).Length > 0;
         }
 
         /// <summary>
@@ -389,7 +396,9 @@ namespace GeometryHelper.Spatial
 
             // Below the rounding a seam is one crossing to eight times it, as a ray's is, and a line whose origin stands further
             // off than the body is large is measured from a diagonal short of the body, before it or past it, as a ray is read.
-            GeoPoint3 near = Intersection3.CastNear(new GeoRay3(xline.Origin, xline.Direction.Negate(), true), Box).Origin;
+            GeoPoint3 near = Intersection3
+                .CastNear(new GeoRay3(xline.Origin, xline.Direction.Negate(), true), Box)
+                .Origin;
             near = Intersection3.CastNear(new GeoRay3(near, xline.Direction, true), Box).Origin;
             double rounding = Intersection3.Rounding(Box, near);
             double once = Intersection3.SeamWidth(rounding, tolerance);
@@ -434,7 +443,8 @@ namespace GeometryHelper.Spatial
                 return Boolean3.FarFrame.Inside(() => framed.CollidesWith(far.In(xline), tolerance));
             }
 
-            return LocateHere(xline.Origin, tolerance) != PointLocation.OutSide || Index.GetIntersections(xline, tolerance).Length > 0;
+            return LocateHere(xline.Origin, tolerance) != PointLocation.OutSide
+                || Index.GetIntersections(xline, tolerance).Length > 0;
         }
 
         /// <summary>
@@ -518,7 +528,8 @@ namespace GeometryHelper.Spatial
         /// <summary>
         /// Checks whether this body and a body not prepared touch or overlap, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoSolid3 other, Tolerance tolerance) => Collision3.CollidesWith(Material, other, tolerance);
+        public bool CollidesWith(GeoSolid3 other, Tolerance tolerance) =>
+            Collision3.CollidesWith(Material, other, tolerance);
 
         /// <summary>
         /// Gets how far this body is from another, using the default tolerance.
@@ -547,7 +558,8 @@ namespace GeometryHelper.Spatial
         /// <summary>
         /// Gets how far this body is from a body not prepared, within a tolerance.
         /// </summary>
-        public double DistanceTo(GeoSolid3 other, Tolerance tolerance) => Distance3.DistanceTo(Material, other, tolerance);
+        public double DistanceTo(GeoSolid3 other, Tolerance tolerance) =>
+            Distance3.DistanceTo(Material, other, tolerance);
 
         /// <summary>
         /// Gets the shortest segment from this body to another, using the default tolerance.
@@ -594,8 +606,12 @@ namespace GeometryHelper.Spatial
         /// bodies farther apart than the reach cost no more than the test of their outer boxes. It measures surface
         /// to surface: the caller settles first whether the bodies touch or one holds the other.
         /// </remarks>
-        internal bool TryGetShortestLineWithin(GeoPreparedSolid3 other, double reach, Tolerance tolerance, out GeoLine3 line)
-            => Index.TryGetShortestLineTo(other.Index, reach, tolerance, out line);
+        internal bool TryGetShortestLineWithin(
+            GeoPreparedSolid3 other,
+            double reach,
+            Tolerance tolerance,
+            out GeoLine3 line
+        ) => Index.TryGetShortestLineTo(other.Index, reach, tolerance, out line);
 
         /// <summary>
         /// Gets one body per region this body shares with another, using the default tolerance.
@@ -637,7 +653,9 @@ namespace GeometryHelper.Spatial
         {
             shared = null;
 
-            return _convex && other._convex && Boolean3.TryIntersectConvex(Material, other.Material, tolerance, out shared);
+            return _convex
+                && other._convex
+                && Boolean3.TryIntersectConvex(Material, other.Material, tolerance, out shared);
         }
 
         /// <summary>
@@ -671,9 +689,12 @@ namespace GeometryHelper.Spatial
             }
 
             double slack = 1E-3 * tolerance.EqualPoint;
-            double lowX = Math.Max(Box.Min.X, other.Box.Min.X), highX = Math.Min(Box.Max.X, other.Box.Max.X);
-            double lowY = Math.Max(Box.Min.Y, other.Box.Min.Y), highY = Math.Min(Box.Max.Y, other.Box.Max.Y);
-            double lowZ = Math.Max(Box.Min.Z, other.Box.Min.Z), highZ = Math.Min(Box.Max.Z, other.Box.Max.Z);
+            double lowX = Math.Max(Box.Min.X, other.Box.Min.X),
+                highX = Math.Min(Box.Max.X, other.Box.Max.X);
+            double lowY = Math.Max(Box.Min.Y, other.Box.Min.Y),
+                highY = Math.Min(Box.Max.Y, other.Box.Max.Y);
+            double lowZ = Math.Max(Box.Min.Z, other.Box.Min.Z),
+                highZ = Math.Min(Box.Max.Z, other.Box.Max.Z);
 
             if (highX - lowX <= slack || highY - lowY <= slack || highZ - lowZ <= slack)
             {
@@ -691,7 +712,10 @@ namespace GeometryHelper.Spatial
             GeoPoint3[] mine = PartWithin(sides, overlap, boxCorners, near);
             GeoPoint3[] theirs = other.PartWithin(sides, overlap, boxCorners, near);
 
-            if (HasPartingFace(this, mine, theirs, overlap, tolerance, slack) || HasPartingFace(other, theirs, mine, overlap, tolerance, slack))
+            if (
+                HasPartingFace(this, mine, theirs, overlap, tolerance, slack)
+                || HasPartingFace(other, theirs, mine, overlap, tolerance, slack)
+            )
             {
                 return true;
             }
@@ -701,14 +725,30 @@ namespace GeometryHelper.Spatial
             // turned askew reaching a column's web has a box overlapping the flanges too. That part is the other
             // body's faces clipped by the convex body's planes as well, and the corners of the convex body's own part
             // that the other body holds.
-            if (other._convex
-                && HasPartingFace(this, PartWithin(Concat(sides, other.FacePlanes()), overlap, theirs, near), theirs, overlap, tolerance, slack))
+            if (
+                other._convex
+                && HasPartingFace(
+                    this,
+                    PartWithin(Concat(sides, other.FacePlanes()), overlap, theirs, near),
+                    theirs,
+                    overlap,
+                    tolerance,
+                    slack
+                )
+            )
             {
                 return true;
             }
 
             return _convex
-                && HasPartingFace(other, other.PartWithin(Concat(sides, FacePlanes()), overlap, mine, near), mine, overlap, tolerance, slack);
+                && HasPartingFace(
+                    other,
+                    other.PartWithin(Concat(sides, FacePlanes()), overlap, mine, near),
+                    mine,
+                    overlap,
+                    tolerance,
+                    slack
+                );
         }
 
         /// <summary>
@@ -741,9 +781,12 @@ namespace GeometryHelper.Spatial
         {
             return new[]
             {
-                new GeoPlane3(box.Max, GeoVector3.XAxis), new GeoPlane3(box.Min, GeoVector3.XAxis.Multiply(-1)),
-                new GeoPlane3(box.Max, GeoVector3.YAxis), new GeoPlane3(box.Min, GeoVector3.YAxis.Multiply(-1)),
-                new GeoPlane3(box.Max, GeoVector3.ZAxis), new GeoPlane3(box.Min, GeoVector3.ZAxis.Multiply(-1)),
+                new GeoPlane3(box.Max, GeoVector3.XAxis),
+                new GeoPlane3(box.Min, GeoVector3.XAxis.Multiply(-1)),
+                new GeoPlane3(box.Max, GeoVector3.YAxis),
+                new GeoPlane3(box.Min, GeoVector3.YAxis.Multiply(-1)),
+                new GeoPlane3(box.Max, GeoVector3.ZAxis),
+                new GeoPlane3(box.Min, GeoVector3.ZAxis.Multiply(-1)),
             };
         }
 
@@ -751,7 +794,14 @@ namespace GeometryHelper.Spatial
         /// Checks whether a face of one body near the overlap has that body's part of it behind its plane and the
         /// other body's part in front.
         /// </summary>
-        private static bool HasPartingFace(GeoPreparedSolid3 near, GeoPoint3[] nearCorners, GeoPoint3[] farCorners, GeoAabb3 overlap, Tolerance tolerance, double slack)
+        private static bool HasPartingFace(
+            GeoPreparedSolid3 near,
+            GeoPoint3[] nearCorners,
+            GeoPoint3[] farCorners,
+            GeoAabb3 overlap,
+            Tolerance tolerance,
+            double slack
+        )
         {
             foreach (GeoFace3 face in near.Material.Faces)
             {
@@ -832,7 +882,12 @@ namespace GeometryHelper.Spatial
             return true;
         }
 
-        private static void AddClipped(IReadOnlyList<GeoPoint3> ring, GeoPlane3[] sides, double on, List<GeoPoint3> corners)
+        private static void AddClipped(
+            IReadOnlyList<GeoPoint3> ring,
+            GeoPlane3[] sides,
+            double on,
+            List<GeoPoint3> corners
+        )
         {
             IReadOnlyList<GeoPoint3> clipped = ring;
 
@@ -872,7 +927,8 @@ namespace GeometryHelper.Spatial
         /// <summary>
         /// Gets where this body and another lie against each other, face to face, using the default tolerance.
         /// </summary>
-        public bool TryGetContact(GeoPreparedSolid3 other, out GeoFace3[] contact) => TryGetContact(other, out contact, Tolerance.Global);
+        public bool TryGetContact(GeoPreparedSolid3 other, out GeoFace3[] contact) =>
+            TryGetContact(other, out contact, Tolerance.Global);
 
         /// <summary>
         /// Gets where this body and another lie against each other, face to face, within a tolerance.

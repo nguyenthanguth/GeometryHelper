@@ -33,7 +33,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             SolidClosing3 report = AssertFilled(body, OffFlat(0.01), out GeoSolid3 closed);
             AssertOneFillOfTriangles(body, report, closed, 4, 300.0);
-            Assert.InRange(closed.GetVolume(Fine), 3000.0 + (0.005 / 3.0 * 100.0) - 1E-6, 3000.0 + (0.005 / 3.0 * 250.0) + 1E-6);
+            Assert.InRange(
+                closed.GetVolume(Fine),
+                3000.0 + (0.005 / 3.0 * 100.0) - 1E-6,
+                3000.0 + (0.005 / 3.0 * 250.0) + 1E-6
+            );
             AssertVolume(3000.0 + (0.005 / 3.0 * 150.0), closed);
         }
 
@@ -53,7 +57,12 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // A guard: a square 20 by 20 has no notch to fold over, and its two ways differ by 0.005 / 3 of 200, 0.33, within
             // the bound of 0.4. The least area lays the diagonal away from the lifted corner.
-            GeoSolid3 body = ClosingTestBodies.PrismWithoutItsTopLifted(ClosingTestBodies.Rectangle(0, 0, 20, 20), 10, 2, 0.005);
+            GeoSolid3 body = ClosingTestBodies.PrismWithoutItsTopLifted(
+                ClosingTestBodies.Rectangle(0, 0, 20, 20),
+                10,
+                2,
+                0.005
+            );
 
             SolidClosing3 report = AssertFilled(body, OffFlat(0.01), out GeoSolid3 closed);
             AssertOneFillOfTriangles(body, report, closed, 2, 400.0);
@@ -70,7 +79,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             SolidClosing3 report = AssertFilled(body, OffFlat(0.01), out GeoSolid3 closed);
             AssertOneFillOfTriangles(body, report, closed, 6, 500.0);
-            Assert.InRange(closed.GetVolume(Fine), 5000.0 + (0.005 / 3.0 * 100.0) - 1E-6, 5000.0 + (0.005 / 3.0 * 150.0) + 1E-6);
+            Assert.InRange(
+                closed.GetVolume(Fine),
+                5000.0 + (0.005 / 3.0 * 100.0) - 1E-6,
+                5000.0 + (0.005 / 3.0 * 150.0) + 1E-6
+            );
             AssertVolume(5000.0 + (0.005 / 3.0 * 150.0), closed);
         }
 
@@ -88,11 +101,19 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         // Welds within five thousandths, fills a hole of any size out of flat by no more than given, as the strategy says.
-        private static SolidClosingOptions OffFlat(double maxOffFlat, FillStrategy fill = FillStrategy.WhenUnambiguous)
-            => new SolidClosingOptions(Fine, 0.005, double.PositiveInfinity, maxOffFlat, fill);
+        private static SolidClosingOptions OffFlat(
+            double maxOffFlat,
+            FillStrategy fill = FillStrategy.WhenUnambiguous
+        ) => new SolidClosingOptions(Fine, 0.005, double.PositiveInfinity, maxOffFlat, fill);
 
         // One Fill of a little more than the area given, made of as many triangles as given on the corners of the rim.
-        private static void AssertOneFillOfTriangles(GeoSolid3 body, SolidClosing3 report, GeoSolid3 closed, int triangles, double area)
+        private static void AssertOneFillOfTriangles(
+            GeoSolid3 body,
+            SolidClosing3 report,
+            GeoSolid3 closed,
+            int triangles,
+            double area
+        )
         {
             SolidRepair3 fill = Assert.Single(report.Repairs);
             Assert.Equal(SolidRepairKind.Fill, fill.Kind);
@@ -133,7 +154,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         // Within a millionth of what it should hold.
-        private static void AssertVolume(double expected, GeoSolid3 closed)
-            => Assert.InRange(closed.GetVolume(Fine), expected * (1.0 - 1E-6), expected * (1.0 + 1E-6));
+        private static void AssertVolume(double expected, GeoSolid3 closed) =>
+            Assert.InRange(closed.GetVolume(Fine), expected * (1.0 - 1E-6), expected * (1.0 + 1E-6));
     }
 }

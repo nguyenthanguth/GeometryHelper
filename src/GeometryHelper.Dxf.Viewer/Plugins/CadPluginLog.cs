@@ -28,7 +28,15 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
     /// <summary>One line of the load log the Plugin manager shows: when, which plugin, what, from where, whether trusted, and what came of it.</summary>
     public sealed class CadPluginLogEntry
     {
-        internal CadPluginLogEntry(DateTime time, string plugin, CadPluginAction action, string path, bool trusted, bool succeeded, string result)
+        internal CadPluginLogEntry(
+            DateTime time,
+            string plugin,
+            CadPluginAction action,
+            string path,
+            bool trusted,
+            bool succeeded,
+            string result
+        )
         {
             Time = time;
             Plugin = plugin;
@@ -61,8 +69,16 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
         public string Result { get; }
 
         /// <inheritdoc/>
-        public override string ToString()
-            => Time.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) + " " + Action + " " + Plugin + " " + Path + (Trusted ? " (trusted) " : " (not trusted) ") + Result;
+        public override string ToString() =>
+            Time.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+            + " "
+            + Action
+            + " "
+            + Plugin
+            + " "
+            + Path
+            + (Trusted ? " (trusted) " : " (not trusted) ")
+            + Result;
     }
 
     /// <summary>What came of a load, unload, reload, install or uninstall: whether it was done, the sentence the command line writes, and what was left out.</summary>
@@ -136,7 +152,14 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
         {
             get
             {
-                if (Manifest?.Icon == null || string.Equals(System.IO.Path.GetExtension(Path), CadPluginPackage.Extension, StringComparison.OrdinalIgnoreCase))
+                if (
+                    Manifest?.Icon == null
+                    || string.Equals(
+                        System.IO.Path.GetExtension(Path),
+                        CadPluginPackage.Extension,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
                 {
                     return null;
                 }

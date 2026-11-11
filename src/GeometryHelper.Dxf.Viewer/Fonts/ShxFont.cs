@@ -71,7 +71,15 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly int _cellWidth;
         private readonly int _cellHeight;
 
-        private ShxFont(ShxFontKind kind, int above, int below, Dictionary<int, byte[]> codes, int[] leads, int cellWidth, int cellHeight)
+        private ShxFont(
+            ShxFontKind kind,
+            int above,
+            int below,
+            Dictionary<int, byte[]> codes,
+            int[] leads,
+            int cellWidth,
+            int cellHeight
+        )
         {
             Kind = kind;
 
@@ -120,7 +128,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             try
             {
-                if (header.StartsWith("AutoCAD-86 shapes 1.0", StringComparison.Ordinal) || header.StartsWith("AutoCAD-86 shapes 1.1", StringComparison.Ordinal))
+                if (
+                    header.StartsWith("AutoCAD-86 shapes 1.0", StringComparison.Ordinal)
+                    || header.StartsWith("AutoCAD-86 shapes 1.1", StringComparison.Ordinal)
+                )
                 {
                     return Shapes(bytes, end + 1);
                 }
@@ -130,7 +141,9 @@ namespace GeometryHelper.Dxf.Viewer
                     return Unifont(bytes, end + 1);
                 }
 
-                return header.StartsWith("AutoCAD-86 bigfont 1.0", StringComparison.Ordinal) ? Big(bytes, end + 1) : null;
+                return header.StartsWith("AutoCAD-86 bigfont 1.0", StringComparison.Ordinal)
+                    ? Big(bytes, end + 1)
+                    : null;
             }
             catch (Exception e) when (e is IndexOutOfRangeException || e is ArgumentException)
             {
@@ -295,7 +308,9 @@ namespace GeometryHelper.Dxf.Viewer
                 int entry = at + (i * 8);
                 int number = U16(bytes, entry);
                 int length = U16(bytes, entry + 2);
-                long place = (uint)(bytes[entry + 4] | (bytes[entry + 5] << 8) | (bytes[entry + 6] << 16) | (bytes[entry + 7] << 24));
+                long place = (uint)(
+                    bytes[entry + 4] | (bytes[entry + 5] << 8) | (bytes[entry + 6] << 16) | (bytes[entry + 7] << 24)
+                );
 
                 if (length == 0 && place == 0)
                 {
@@ -331,7 +346,15 @@ namespace GeometryHelper.Dxf.Viewer
 
             // An extended big font gives five bytes: its height, 0, its modes, the width of its cell and 0.
             bool extended = head.Length >= 5;
-            return new ShxFont(ShxFontKind.BigFont, head[0], extended ? 0 : head[1], codes, leads, extended ? head[3] : 0, extended ? head[0] : 0);
+            return new ShxFont(
+                ShxFontKind.BigFont,
+                head[0],
+                extended ? 0 : head[1],
+                codes,
+                leads,
+                extended ? head[3] : 0,
+                extended ? head[0] : 0
+            );
         }
 
         private static int U16(byte[] bytes, int at) => bytes[at] | (bytes[at + 1] << 8);
@@ -533,7 +556,11 @@ namespace GeometryHelper.Dxf.Viewer
                     if (!skip && (Kind != ShxFontKind.BigFont || count != 0))
                     {
                         double start = ((size >> 4) & 7) * Math.PI / 4.0;
-                        pen.Arc(radius * pen.Scale, start, (octant >= 0 ? 1 : -1) * (count == 0 ? 8 : count) * Math.PI / 4.0);
+                        pen.Arc(
+                            radius * pen.Scale,
+                            start,
+                            (octant >= 0 ? 1 : -1) * (count == 0 ? 8 : count) * Math.PI / 4.0
+                        );
                     }
                 }
                 else if (code == 11)
@@ -551,8 +578,12 @@ namespace GeometryHelper.Dxf.Viewer
                         int count = size & 7;
                         double part = 45.0 / 256.0;
                         double ends = endOffset == 0 ? 256 : endOffset;
-                        double start = octant >= 0 ? (first * 45.0) + (startOffset * part) : (first * 45.0) - (startOffset * part);
-                        double stop = octant >= 0 ? ((first + count - 1) * 45.0) + (ends * part) : ((first - count + 1) * 45.0) - (ends * part);
+                        double start =
+                            octant >= 0 ? (first * 45.0) + (startOffset * part) : (first * 45.0) - (startOffset * part);
+                        double stop =
+                            octant >= 0
+                                ? ((first + count - 1) * 45.0) + (ends * part)
+                                : ((first - count + 1) * 45.0) - (ends * part);
                         start = Math.Round(start);
                         stop = Math.Round(stop);
                         pen.Arc(radius * pen.Scale, start * Math.PI / 180.0, (stop - start) * Math.PI / 180.0);

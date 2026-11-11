@@ -13,7 +13,15 @@ namespace GeometryHelper
     {
         private static readonly int[] NoFaces = new int[0];
 
-        private SolidIssue3(SolidIssueKind kind, GeoLine3? edge, int[] faces, GeoPoint3 location, double size, int forward, int backward)
+        private SolidIssue3(
+            SolidIssueKind kind,
+            GeoLine3? edge,
+            int[] faces,
+            GeoPoint3 location,
+            double size,
+            int forward,
+            int backward
+        )
         {
             Kind = kind;
             Edge = edge;
@@ -74,44 +82,106 @@ namespace GeometryHelper
         /// </summary>
         public int Backward { get; }
 
-        internal static SolidIssue3 OnEdge(SolidIssueKind kind, GeoLine3 stretch, int[] faces, int forward, int backward)
-            => new SolidIssue3(kind, stretch, faces, Middle(stretch), stretch.StartPoint.DistanceTo(stretch.EndPoint), forward, backward);
+        internal static SolidIssue3 OnEdge(
+            SolidIssueKind kind,
+            GeoLine3 stretch,
+            int[] faces,
+            int forward,
+            int backward
+        ) =>
+            new SolidIssue3(
+                kind,
+                stretch,
+                faces,
+                Middle(stretch),
+                stretch.StartPoint.DistanceTo(stretch.EndPoint),
+                forward,
+                backward
+            );
 
-        internal static SolidIssue3 ShortOf(int face, GeoLine3 edge)
-            => new SolidIssue3(SolidIssueKind.ShortEdge, edge, new[] { face }, Middle(edge), edge.StartPoint.DistanceTo(edge.EndPoint), 0, 0);
+        internal static SolidIssue3 ShortOf(int face, GeoLine3 edge) =>
+            new SolidIssue3(
+                SolidIssueKind.ShortEdge,
+                edge,
+                new[] { face },
+                Middle(edge),
+                edge.StartPoint.DistanceTo(edge.EndPoint),
+                0,
+                0
+            );
 
-        internal static SolidIssue3 OfFace(SolidIssueKind kind, int face, GeoPoint3 centroid, double size)
-            => new SolidIssue3(kind, null, new[] { face }, centroid, size, 0, 0);
+        internal static SolidIssue3 OfFace(SolidIssueKind kind, int face, GeoPoint3 centroid, double size) =>
+            new SolidIssue3(kind, null, new[] { face }, centroid, size, 0, 0);
 
-        internal static SolidIssue3 OfBody(SolidIssueKind kind, GeoPoint3 middle, double volume)
-            => new SolidIssue3(kind, null, NoFaces, middle, volume, 0, 0);
+        internal static SolidIssue3 OfBody(SolidIssueKind kind, GeoPoint3 middle, double volume) =>
+            new SolidIssue3(kind, null, NoFaces, middle, volume, 0, 0);
 
-        private static GeoPoint3 Middle(GeoLine3 line)
-            => new GeoPoint3(
+        private static GeoPoint3 Middle(GeoLine3 line) =>
+            new GeoPoint3(
                 (line.StartPoint.X + line.EndPoint.X) * 0.5,
                 (line.StartPoint.Y + line.EndPoint.Y) * 0.5,
-                (line.StartPoint.Z + line.EndPoint.Z) * 0.5);
+                (line.StartPoint.Z + line.EndPoint.Z) * 0.5
+            );
 
         /// <summary>
         /// Says what it is and where, in invariant culture.
         /// </summary>
         public override string ToString()
         {
-            string at = string.Format(CultureInfo.InvariantCulture, "({0:0.###}, {1:0.###}, {2:0.###})", Location.X, Location.Y, Location.Z);
-            string faces = Faces.Count == 1 ? "face " + Faces[0].ToString(CultureInfo.InvariantCulture) : "faces " + string.Join(", ", Faces);
+            string at = string.Format(
+                CultureInfo.InvariantCulture,
+                "({0:0.###}, {1:0.###}, {2:0.###})",
+                Location.X,
+                Location.Y,
+                Location.Z
+            );
+            string faces =
+                Faces.Count == 1
+                    ? "face " + Faces[0].ToString(CultureInfo.InvariantCulture)
+                    : "faces " + string.Join(", ", Faces);
 
             switch (Kind)
             {
                 case SolidIssueKind.OpenEdge:
                 case SolidIssueKind.SameWayEdge:
                 case SolidIssueKind.NonManifoldEdge:
-                    return string.Format(CultureInfo.InvariantCulture, "SolidIssue3[{0} {1:G4} long at {2}, {3}; {4} one way, {5} the other]", Kind, Size, at, faces, Forward, Backward);
+                    return string.Format(
+                        CultureInfo.InvariantCulture,
+                        "SolidIssue3[{0} {1:G4} long at {2}, {3}; {4} one way, {5} the other]",
+                        Kind,
+                        Size,
+                        at,
+                        faces,
+                        Forward,
+                        Backward
+                    );
                 case SolidIssueKind.ShortEdge:
-                    return string.Format(CultureInfo.InvariantCulture, "SolidIssue3[{0} {1:G4} long at {2}, {3}]", Kind, Size, at, faces);
+                    return string.Format(
+                        CultureInfo.InvariantCulture,
+                        "SolidIssue3[{0} {1:G4} long at {2}, {3}]",
+                        Kind,
+                        Size,
+                        at,
+                        faces
+                    );
                 case SolidIssueKind.SliverFace:
-                    return string.Format(CultureInfo.InvariantCulture, "SolidIssue3[{0} {1:G4} wide at {2}, {3}]", Kind, Size, at, faces);
+                    return string.Format(
+                        CultureInfo.InvariantCulture,
+                        "SolidIssue3[{0} {1:G4} wide at {2}, {3}]",
+                        Kind,
+                        Size,
+                        at,
+                        faces
+                    );
                 case SolidIssueKind.NotFlatFace:
-                    return string.Format(CultureInfo.InvariantCulture, "SolidIssue3[{0} {1:G4} off flat at {2}, {3}]", Kind, Size, at, faces);
+                    return string.Format(
+                        CultureInfo.InvariantCulture,
+                        "SolidIssue3[{0} {1:G4} off flat at {2}, {3}]",
+                        Kind,
+                        Size,
+                        at,
+                        faces
+                    );
                 default:
                     return string.Format(CultureInfo.InvariantCulture, "SolidIssue3[{0}, volume {1:G6}]", Kind, Size);
             }

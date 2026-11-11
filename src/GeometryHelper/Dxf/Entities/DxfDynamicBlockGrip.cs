@@ -46,7 +46,13 @@ namespace GeometryHelper.Dxf
     {
         private readonly string[] _names;
 
-        internal DxfDynamicBlockGrip(DxfDynamicBlockGripType gripType, GeoPoint3 position, GeoPoint3 basePoint, GeoVector3 direction, IEnumerable<string> names)
+        internal DxfDynamicBlockGrip(
+            DxfDynamicBlockGripType gripType,
+            GeoPoint3 position,
+            GeoPoint3 basePoint,
+            GeoVector3 direction,
+            IEnumerable<string> names
+        )
         {
             GripType = gripType;
             Position = position;

@@ -23,7 +23,12 @@ namespace GeometryHelper.Core
             return GetIntersections(ellipse, XLine2.CutPast(xline, ellipse, tolerance), tolerance);
         }
 
-        internal static bool TryIntersectWith(GeoEllipse2 ellipse, GeoXLine2 xline, out GeoPoint2[] intersections, Tolerance tolerance)
+        internal static bool TryIntersectWith(
+            GeoEllipse2 ellipse,
+            GeoXLine2 xline,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             return TryIntersectWith(ellipse, XLine2.CutPast(xline, ellipse, tolerance), out intersections, tolerance);
         }

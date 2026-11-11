@@ -18,12 +18,16 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A bar bent twice, out along X, across in Y, then up in Z, with a fifty bending radius.
         /// </summary>
-        private static GeoPolylineArc3 Bar() => new GeoPolyline3(
-            new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0),
-            new GeoPoint3(300, 300, 0), new GeoPoint3(300, 300, 300)).Fillet(50.0);
+        private static GeoPolylineArc3 Bar() =>
+            new GeoPolyline3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(300, 300, 0),
+                new GeoPoint3(300, 300, 300)
+            ).Fillet(50.0);
 
-        private static GeoSolid3 SlabAt(double x) => new GeoAabb3(
-            new GeoPoint3(x, -500, -500), new GeoPoint3(x + 100, 500, 500)).ToObb().ToSolid();
+        private static GeoSolid3 SlabAt(double x) =>
+            new GeoAabb3(new GeoPoint3(x, -500, -500), new GeoPoint3(x + 100, 500, 500)).ToObb().ToSolid();
 
         [Fact]
         public void AStraightChainCanNowBeMeasuredAgainstWhatIsAroundIt()
@@ -34,9 +38,17 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoSolid3 slab = SlabAt(300);
             var line = new GeoLine3(new GeoPoint3(300, 0, 0), new GeoPoint3(300, 100, 0));
-            var triangle = new GeoTriangle3(new GeoPoint3(300, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(300, 100, 0));
+            var triangle = new GeoTriangle3(
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(300, 100, 0)
+            );
             var polygon = new GeoPolygon3(
-                new GeoPoint3(300, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 100, 0), new GeoPoint3(300, 100, 0));
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(400, 100, 0),
+                new GeoPoint3(300, 100, 0)
+            );
             var plane = new GeoPlane3(new GeoPoint3(300, 0, 0), new GeoVector3(1, 0, 0));
             var obb = new GeoAabb3(new GeoPoint3(300, 0, 0), new GeoPoint3(400, 100, 100)).ToObb();
             var aabb = new GeoAabb3(new GeoPoint3(300, 0, 0), new GeoPoint3(400, 100, 100));
@@ -49,7 +61,11 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(200.0, chain.DistanceTo(plane), 9);
             Assert.Equal(200.0, chain.DistanceTo(obb), 9);
             Assert.Equal(200.0, chain.DistanceTo(aabb), 9);
-            Assert.Equal(200.0, chain.DistanceTo(new GeoPolyline3(new GeoPoint3(300, 0, 0), new GeoPoint3(300, 100, 0))), 9);
+            Assert.Equal(
+                200.0,
+                chain.DistanceTo(new GeoPolyline3(new GeoPoint3(300, 0, 0), new GeoPoint3(300, 100, 0))),
+                9
+            );
 
             Assert.False(chain.CollidesWith(slab));
             Assert.True(chain.CollidesWith(SlabAt(50)));
@@ -86,7 +102,9 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPolylineArc3 bar = Bar();
 
             // A slab set so that the nearest point of the bar is on a bend rather than on a straight run.
-            GeoSolid3 slab = new GeoAabb3(new GeoPoint3(400, 400, -500), new GeoPoint3(900, 900, 500)).ToObb().ToSolid();
+            GeoSolid3 slab = new GeoAabb3(new GeoPoint3(400, 400, -500), new GeoPoint3(900, 900, 500))
+                .ToObb()
+                .ToSolid();
 
             double onTheBar = bar.DistanceTo(bar.GetClosestPointOnBoundary(new GeoPoint3(400, 400, 0)));
 
@@ -137,9 +155,14 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The loop has ToPolygon3 for the same job, and a loop that is flat can also be measured in its
             // own plane, which is exact.
-            var tie = new GeoPolygonArc3(new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0),
-                new GeoPoint3(300, 200, 0), new GeoPoint3(0, 200, 0))).Fillet(40.0);
+            var tie = new GeoPolygonArc3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(300, 0, 0),
+                    new GeoPoint3(300, 200, 0),
+                    new GeoPoint3(0, 200, 0)
+                )
+            ).Fillet(40.0);
 
             GeoSolid3 slab = SlabAt(500);
 

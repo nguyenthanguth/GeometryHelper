@@ -35,7 +35,10 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
 
                 bench.Model.Execute("VS");
 
-                Assert.Contains("B1 was opened from its file: it is made again from Test bodies first, then the points are picked.", bench.Model.History);
+                Assert.Contains(
+                    "B1 was opened from its file: it is made again from Test bodies first, then the points are picked.",
+                    bench.Model.History
+                );
                 Assert.False(bench.Model.IsCommandRunning);
                 Run(later);
                 Assert.Equal(3, opened.Drawing.Views.Count);
@@ -45,8 +48,12 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
 
                 GeoRectangle2 front = opened.Drawing.Views.Single(v => v.Kind == ViewKind.Front).SheetBox;
                 string x = front.Center.X.ToString("R", CultureInfo.InvariantCulture);
-                bench.Model.Execute(x + "," + (front.Center.Y + 0.4 * front.Height).ToString("R", CultureInfo.InvariantCulture));
-                bench.Model.Execute(x + "," + (front.Center.Y - 0.4 * front.Height).ToString("R", CultureInfo.InvariantCulture));
+                bench.Model.Execute(
+                    x + "," + (front.Center.Y + 0.4 * front.Height).ToString("R", CultureInfo.InvariantCulture)
+                );
+                bench.Model.Execute(
+                    x + "," + (front.Center.Y - 0.4 * front.Height).ToString("R", CultureInfo.InvariantCulture)
+                );
                 bench.Model.Execute("100");
                 Run(later);
 
@@ -107,7 +114,11 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             {
                 string path = await SavedAndClosedAsync(new Bench(), folder);
                 var model = new MainViewModel();
-                var workspace = new DrawingWorkspace(model, new IDrawingSourceProvider[] { UnconnectedSourceProvider.TeklaStructures }, Bench.Tol);
+                var workspace = new DrawingWorkspace(
+                    model,
+                    new IDrawingSourceProvider[] { UnconnectedSourceProvider.TeklaStructures },
+                    Bench.Tol
+                );
                 var later = new List<Action>();
                 workspace.Deferrer = later.Add;
                 Assert.True(model.Open(path));
@@ -117,7 +128,13 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
                 model.Execute("VS");
                 model.Execute("VD");
 
-                Assert.Equal(2, model.History.Count(l => l == "B1 was opened from its file, and the source it was made from is not at hand: pick its source in Update from model first."));
+                Assert.Equal(
+                    2,
+                    model.History.Count(l =>
+                        l
+                        == "B1 was opened from its file, and the source it was made from is not at hand: pick its source in Update from model first."
+                    )
+                );
                 Assert.False(model.IsCommandRunning);
                 Assert.Empty(later);
                 Assert.Empty(opened.Drawing.Views);
@@ -165,7 +182,11 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
 
                 // The source of the name the file keeps gives the beam with a stiffener added to the assembly drawn whole.
                 var model = new MainViewModel();
-                var workspace = new DrawingWorkspace(model, new IDrawingSourceProvider[] { new Named("Test bodies", bench.Changed) }, Bench.Tol);
+                var workspace = new DrawingWorkspace(
+                    model,
+                    new IDrawingSourceProvider[] { new Named("Test bodies", bench.Changed) },
+                    Bench.Tol
+                );
                 Assert.True(model.Open(path));
                 ModelDrawing opened = workspace.Current;
                 int entities = DrawingEntityTags.Find(opened.Document.Database).Count;
@@ -181,7 +202,11 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
 
                 // The source as it was when the drawing was made: up to date.
                 var same = new MainViewModel();
-                var sameWorkspace = new DrawingWorkspace(same, new IDrawingSourceProvider[] { bench.Original }, Bench.Tol);
+                var sameWorkspace = new DrawingWorkspace(
+                    same,
+                    new IDrawingSourceProvider[] { bench.Original },
+                    Bench.Tol
+                );
                 Assert.True(same.Open(path));
                 sameWorkspace.CheckSources();
                 Assert.False(sameWorkspace.Current.IsOutOfDate);
@@ -201,7 +226,15 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             {
                 string path = await SavedAndClosedAsync(new Bench(), folder);
                 var model = new MainViewModel();
-                var workspace = new DrawingWorkspace(model, new IDrawingSourceProvider[] { UnconnectedSourceProvider.TeklaStructures, new Named("Other model", new TestBodiesSourceProvider(Bench.Tol, changed: true)) }, Bench.Tol);
+                var workspace = new DrawingWorkspace(
+                    model,
+                    new IDrawingSourceProvider[]
+                    {
+                        UnconnectedSourceProvider.TeklaStructures,
+                        new Named("Other model", new TestBodiesSourceProvider(Bench.Tol, changed: true)),
+                    },
+                    Bench.Tol
+                );
                 Assert.True(model.Open(path));
 
                 workspace.CheckSources();
@@ -231,14 +264,21 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
 
                 Assert.True(bench.Model.Open(plain));
 
-                Assert.Equal(new[] { "plain.dxf", "B1" }, bench.Model.FileRows.Where(r => !r.IsHeader).Select(r => r.Label));
-                Assert.DoesNotContain(bench.Model.FileRows, r => string.Equals(r.Path, made.Document.FileName, StringComparison.OrdinalIgnoreCase));
+                Assert.Equal(
+                    new[] { "plain.dxf", "B1" },
+                    bench.Model.FileRows.Where(r => !r.IsHeader).Select(r => r.Label)
+                );
+                Assert.DoesNotContain(bench.Model.FileRows, r =>
+                    string.Equals(r.Path, made.Document.FileName, StringComparison.OrdinalIgnoreCase)
+                );
                 Assert.Equal("All 2", bench.Model.AllChipText);
                 Assert.Equal("DXF 1", bench.Model.DxfChipText);
 
                 // Closed, the drawing's file is listed as a file of the folder again.
                 Assert.True(bench.Model.CloseDocument(made.Document));
-                Assert.Contains(bench.Model.FileRows, r => string.Equals(r.Path, made.Document.FileName, StringComparison.OrdinalIgnoreCase));
+                Assert.Contains(bench.Model.FileRows, r =>
+                    string.Equals(r.Path, made.Document.FileName, StringComparison.OrdinalIgnoreCase)
+                );
             }
             finally
             {
@@ -292,11 +332,11 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             }
         }
 
-        private static string Point(double x, double y)
-            => x.ToString("R", CultureInfo.InvariantCulture) + "," + y.ToString("R", CultureInfo.InvariantCulture);
+        private static string Point(double x, double y) =>
+            x.ToString("R", CultureInfo.InvariantCulture) + "," + y.ToString("R", CultureInfo.InvariantCulture);
 
-        private static string Row(MainViewModel model, string label)
-            => model.PropertyGroups.SelectMany(g => g.Rows).Single(r => r.Label == label).Value;
+        private static string Row(MainViewModel model, string label) =>
+            model.PropertyGroups.SelectMany(g => g.Rows).Single(r => r.Label == label).Value;
 
         /// <summary>A source of another name over the objects of one.</summary>
         private sealed class Named : IDrawingSourceProvider

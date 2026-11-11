@@ -16,12 +16,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ConsecutiveCollinearSegmentsBecomeOne()
         {
-            GeoLine3[] merged = Merge3.ConsecutiveLines(new[]
-            {
-                new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0)),
-                new GeoLine3(new GeoPoint3(3, 0, 0), new GeoPoint3(7, 0, 0)),
-                new GeoLine3(new GeoPoint3(7, 0, 0), new GeoPoint3(10, 0, 0))
-            });
+            GeoLine3[] merged = Merge3.ConsecutiveLines(
+                new[]
+                {
+                    new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0)),
+                    new GeoLine3(new GeoPoint3(3, 0, 0), new GeoPoint3(7, 0, 0)),
+                    new GeoLine3(new GeoPoint3(7, 0, 0), new GeoPoint3(10, 0, 0)),
+                }
+            );
 
             Assert.Single(merged);
             Assert.Equal(10.0, merged[0].Length, 9);
@@ -30,11 +32,13 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ATurnBreaksTheRun()
         {
-            GeoLine3[] merged = Merge3.ConsecutiveLines(new[]
-            {
-                new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0)),
-                new GeoLine3(new GeoPoint3(3, 0, 0), new GeoPoint3(3, 4, 0))
-            });
+            GeoLine3[] merged = Merge3.ConsecutiveLines(
+                new[]
+                {
+                    new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0)),
+                    new GeoLine3(new GeoPoint3(3, 0, 0), new GeoPoint3(3, 4, 0)),
+                }
+            );
 
             Assert.Equal(2, merged.Length);
         }
@@ -42,11 +46,13 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AGapBreaksTheRunEvenWhenTheDirectionsAgree()
         {
-            GeoLine3[] merged = Merge3.ConsecutiveLines(new[]
-            {
-                new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0)),
-                new GeoLine3(new GeoPoint3(5, 0, 0), new GeoPoint3(8, 0, 0))
-            });
+            GeoLine3[] merged = Merge3.ConsecutiveLines(
+                new[]
+                {
+                    new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0)),
+                    new GeoLine3(new GeoPoint3(5, 0, 0), new GeoPoint3(8, 0, 0)),
+                }
+            );
 
             Assert.Equal(2, merged.Length);
         }
@@ -54,11 +60,13 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ASegmentDoublingBackIsNotMerged()
         {
-            GeoLine3[] merged = Merge3.ConsecutiveLines(new[]
-            {
-                new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)),
-                new GeoLine3(new GeoPoint3(10, 0, 0), new GeoPoint3(4, 0, 0))
-            });
+            GeoLine3[] merged = Merge3.ConsecutiveLines(
+                new[]
+                {
+                    new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)),
+                    new GeoLine3(new GeoPoint3(10, 0, 0), new GeoPoint3(4, 0, 0)),
+                }
+            );
 
             Assert.Equal(2, merged.Length);
         }
@@ -66,11 +74,13 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void PolylinesMeetingEndToStartConcatenate()
         {
-            GeoPolyline3 merged = Merge3.Polylines(new[]
-            {
-                new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0)),
-                new GeoPolyline3(new GeoPoint3(3, 0, 0), new GeoPoint3(3, 4, 0))
-            });
+            GeoPolyline3 merged = Merge3.Polylines(
+                new[]
+                {
+                    new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0)),
+                    new GeoPolyline3(new GeoPoint3(3, 0, 0), new GeoPoint3(3, 4, 0)),
+                }
+            );
 
             Assert.Equal(3, merged.VertexCount);
             Assert.Equal(7.0, merged.Length, 9);
@@ -79,21 +89,27 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TheStrictFormRefusesAGap()
         {
-            Assert.Throws<ArgumentException>(() => Merge3.Polylines(new[]
-            {
-                new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0)),
-                new GeoPolyline3(new GeoPoint3(9, 0, 0), new GeoPoint3(9, 4, 0))
-            }));
+            Assert.Throws<ArgumentException>(() =>
+                Merge3.Polylines(
+                    new[]
+                    {
+                        new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0)),
+                        new GeoPolyline3(new GeoPoint3(9, 0, 0), new GeoPoint3(9, 4, 0)),
+                    }
+                )
+            );
         }
 
         [Fact]
         public void TheForgivingFormStartsANewChainAtAGap()
         {
-            GeoPolyline3[] merged = Merge3.ConsecutivePolylines(new[]
-            {
-                new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0)),
-                new GeoPolyline3(new GeoPoint3(9, 0, 0), new GeoPoint3(9, 4, 0))
-            });
+            GeoPolyline3[] merged = Merge3.ConsecutivePolylines(
+                new[]
+                {
+                    new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0)),
+                    new GeoPolyline3(new GeoPoint3(9, 0, 0), new GeoPoint3(9, 4, 0)),
+                }
+            );
 
             Assert.Equal(2, merged.Length);
         }
@@ -102,12 +118,14 @@ namespace GeometryHelper.UnitTest.Solid
         public void JoinReassemblesAShuffledAndReversedSetIntoOneChain()
         {
             // The three pieces of a single path, given out of order and some running backwards.
-            GeoPolyline3[] joined = Merge3.Join(new[]
-            {
-                new GeoPolyline3(new GeoPoint3(3, 4, 0), new GeoPoint3(3, 0, 0)),   // reversed middle
-                new GeoPolyline3(new GeoPoint3(3, 4, 0), new GeoPoint3(8, 4, 0)),   // last
-                new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0))    // reversed first
-            });
+            GeoPolyline3[] joined = Merge3.Join(
+                new[]
+                {
+                    new GeoPolyline3(new GeoPoint3(3, 4, 0), new GeoPoint3(3, 0, 0)), // reversed middle
+                    new GeoPolyline3(new GeoPoint3(3, 4, 0), new GeoPoint3(8, 4, 0)), // last
+                    new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0)), // reversed first
+                }
+            );
 
             Assert.Single(joined);
             Assert.Equal(4, joined[0].VertexCount);
@@ -117,12 +135,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void JoinLeavesDisconnectedSetsAsSeparateChains()
         {
-            GeoPolyline3[] joined = Merge3.Join(new[]
-            {
-                new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)),
-                new GeoLine3(new GeoPoint3(1, 0, 0), new GeoPoint3(2, 0, 0)),
-                new GeoLine3(new GeoPoint3(50, 0, 0), new GeoPoint3(51, 0, 0))
-            });
+            GeoPolyline3[] joined = Merge3.Join(
+                new[]
+                {
+                    new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)),
+                    new GeoLine3(new GeoPoint3(1, 0, 0), new GeoPoint3(2, 0, 0)),
+                    new GeoLine3(new GeoPoint3(50, 0, 0), new GeoPoint3(51, 0, 0)),
+                }
+            );
 
             Assert.Equal(2, joined.Length);
         }
@@ -135,7 +155,7 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)),
                 new GeoLine3(new GeoPoint3(1, 0, 0), new GeoPoint3(2, 0, 0)),
                 new GeoLine3(new GeoPoint3(2, 0, 0), new GeoPoint3(3, 0, 0)),
-                new GeoLine3(new GeoPoint3(10, 0, 0), new GeoPoint3(11, 0, 0))
+                new GeoLine3(new GeoPoint3(10, 0, 0), new GeoPoint3(11, 0, 0)),
             };
 
             double totalIn = 0.0;
@@ -248,7 +268,10 @@ namespace GeometryHelper.UnitTest.Solid
         public void APolylineSplitsAtACornerAndAlongASegment()
         {
             GeoPolyline3 chain = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0), new GeoPoint3(3, 4, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(3, 0, 0),
+                new GeoPoint3(3, 4, 0)
+            );
 
             Assert.True(chain.TrySplitAtDistance(3.0, out GeoPolyline3[] atCorner));
             Assert.Equal(2, atCorner.Length);
@@ -265,7 +288,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void SplittingAPolylineKeepsItsTotalLength()
         {
             GeoPolyline3 chain = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, 0), new GeoPoint3(3, 4, 0), new GeoPoint3(3, 4, 12));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(3, 0, 0),
+                new GeoPoint3(3, 4, 0),
+                new GeoPoint3(3, 4, 12)
+            );
 
             GeoPolyline3[] pieces = chain.SplitAtDistances(new[] { 1.0, 3.0, 6.0, 15.0 });
 
@@ -287,7 +314,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0, 0, -2),
                 new GeoPoint3(1, 0, 2),
                 new GeoPoint3(2, 0, -2),
-                new GeoPoint3(3, 0, 2));
+                new GeoPoint3(3, 0, 2)
+            );
 
             Assert.True(zigzag.TrySplitBy(GeoPlane3.XY, out GeoPolyline3[] pieces));
             Assert.Equal(4, pieces.Length);
@@ -305,7 +333,10 @@ namespace GeometryHelper.UnitTest.Solid
         public void APlaneMissingAChainDoesNotCutIt()
         {
             GeoPolyline3 chain = new GeoPolyline3(
-                new GeoPoint3(0, 0, 5), new GeoPoint3(3, 0, 5), new GeoPoint3(3, 4, 5));
+                new GeoPoint3(0, 0, 5),
+                new GeoPoint3(3, 0, 5),
+                new GeoPoint3(3, 4, 5)
+            );
 
             Assert.False(chain.TrySplitBy(GeoPlane3.XY, out GeoPolyline3[] pieces));
             Assert.Single(pieces);
@@ -320,8 +351,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void AConvexPolygonSplitsIntoOnePiecePerSide()
         {
             GeoPolygon3 square = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
             // A vertical plane through the middle, its normal pointing along +X.
             GeoPlane3 cutter = new GeoPlane3(new GeoPoint3(5, 0, 0), GeoVector3.XAxis);
@@ -337,8 +371,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void ThePiecesOfASplitPolygonAddUpToTheOriginal()
         {
             GeoPolygon3 square = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
             GeoPlane3 cutter = new GeoPlane3(new GeoPoint3(3, 0, 0), new GeoVector3(1, 1, 0));
 
@@ -362,8 +399,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void EveryPieceKeepsTheOrientationOfTheSubject()
         {
             GeoPolygon3 square = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
             GeoPlane3 cutter = new GeoPlane3(new GeoPoint3(5, 0, 0), GeoVector3.XAxis);
 
@@ -384,8 +424,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void EachPieceLandsOnTheSideItIsReportedOn()
         {
             GeoPolygon3 square = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
             GeoPlane3 cutter = new GeoPlane3(new GeoPoint3(5, 0, 0), GeoVector3.XAxis);
 
@@ -408,7 +451,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(6, 4, 0),
                 new GeoPoint3(3, 4, 0),
                 new GeoPoint3(3, 10, 0),
-                new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 10, 0)
+            );
 
             GeoPlane3 cutter = new GeoPlane3(new GeoPoint3(0, 7, 0), GeoVector3.YAxis);
 
@@ -441,8 +485,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void APlaneMissingAPolygonHandsItBackWholeOnTheSideItLiesOn()
         {
             GeoPolygon3 square = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
             GeoPlane3 farAway = new GeoPlane3(new GeoPoint3(-50, 0, 0), GeoVector3.XAxis);
 
@@ -456,8 +503,7 @@ namespace GeometryHelper.UnitTest.Solid
 
         #region Splitting a solid
 
-        private static GeoSolid3 MakeBoxSolid(GeoPoint3 min, GeoPoint3 max) =>
-            new GeoAabb3(min, max).ToObb().ToSolid();
+        private static GeoSolid3 MakeBoxSolid(GeoPoint3 min, GeoPoint3 max) => new GeoAabb3(min, max).ToObb().ToSolid();
 
         [Fact]
         public void AConvexSolidSplitsIntoTwoClosedHalves()
@@ -708,13 +754,15 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0, 0, 0),
                 new GeoPoint3(10, 0, 0),
                 new GeoPoint3(10, 10, 0),
-                new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 10, 0)
+            );
 
             GeoPolygon3 hole = new GeoPolygon3(
                 new GeoPoint3(4, 4, 0),
                 new GeoPoint3(6, 4, 0),
                 new GeoPoint3(6, 6, 0),
-                new GeoPoint3(4, 6, 0));
+                new GeoPoint3(4, 6, 0)
+            );
 
             return new GeoFace3(boundary, new[] { hole });
         }
@@ -779,8 +827,7 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 int next = (i + 1) % profile.Length;
 
-                faces.Add(new GeoFace3(new GeoPolygon3(
-                    profile[i], profile[next], top[next], top[i])));
+                faces.Add(new GeoFace3(new GeoPolygon3(profile[i], profile[next], top[next], top[i])));
             }
 
             return new GeoSolid3(faces);
@@ -791,15 +838,18 @@ namespace GeometryHelper.UnitTest.Solid
         /// </summary>
         private static GeoSolid3 MakeLShapedSolid()
         {
-            return MakePrism(new[]
-            {
-                new GeoPoint3(0, 0, 0),
-                new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 4, 0),
-                new GeoPoint3(4, 4, 0),
-                new GeoPoint3(4, 10, 0),
-                new GeoPoint3(0, 10, 0)
-            }, 6.0);
+            return MakePrism(
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 4, 0),
+                    new GeoPoint3(4, 4, 0),
+                    new GeoPoint3(4, 10, 0),
+                    new GeoPoint3(0, 10, 0),
+                },
+                6.0
+            );
         }
 
         /// <summary>
@@ -807,17 +857,20 @@ namespace GeometryHelper.UnitTest.Solid
         /// </summary>
         private static GeoSolid3 MakeUShapedSolid()
         {
-            return MakePrism(new[]
-            {
-                new GeoPoint3(0, 0, 0),
-                new GeoPoint3(9, 0, 0),
-                new GeoPoint3(9, 10, 0),
-                new GeoPoint3(6, 10, 0),
-                new GeoPoint3(6, 4, 0),
-                new GeoPoint3(3, 4, 0),
-                new GeoPoint3(3, 10, 0),
-                new GeoPoint3(0, 10, 0)
-            }, 5.0);
+            return MakePrism(
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(9, 0, 0),
+                    new GeoPoint3(9, 10, 0),
+                    new GeoPoint3(6, 10, 0),
+                    new GeoPoint3(6, 4, 0),
+                    new GeoPoint3(3, 4, 0),
+                    new GeoPoint3(3, 10, 0),
+                    new GeoPoint3(0, 10, 0),
+                },
+                5.0
+            );
         }
 
         /// <summary>
@@ -835,7 +888,7 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0, 0, 0),
                 new GeoPoint3(10, 0, 0),
                 new GeoPoint3(10, 10, 0),
-                new GeoPoint3(0, 10, 0)
+                new GeoPoint3(0, 10, 0),
             };
 
             GeoPoint3[] inner =
@@ -843,7 +896,7 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(3, 3, 0),
                 new GeoPoint3(7, 3, 0),
                 new GeoPoint3(7, 7, 0),
-                new GeoPoint3(3, 7, 0)
+                new GeoPoint3(3, 7, 0),
             };
 
             const double height = 10.0;
@@ -855,9 +908,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPoint3[] bottomOuter = { outer[3], outer[2], outer[1], outer[0] };
             GeoPoint3[] bottomInner = { inner[3], inner[2], inner[1], inner[0] };
 
-            faces.Add(new GeoFace3(
-                new GeoPolygon3(bottomOuter),
-                new[] { new GeoPolygon3(bottomInner) }));
+            faces.Add(new GeoFace3(new GeoPolygon3(bottomOuter), new[] { new GeoPolygon3(bottomInner) }));
 
             GeoPoint3[] topOuter = new GeoPoint3[4];
             GeoPoint3[] topInner = new GeoPoint3[4];
@@ -867,21 +918,17 @@ namespace GeometryHelper.UnitTest.Solid
                 topInner[i] = inner[i].Add(up);
             }
 
-            faces.Add(new GeoFace3(
-                new GeoPolygon3(topOuter),
-                new[] { new GeoPolygon3(topInner) }));
+            faces.Add(new GeoFace3(new GeoPolygon3(topOuter), new[] { new GeoPolygon3(topInner) }));
 
             for (int i = 0; i < 4; i++)
             {
                 int next = (i + 1) % 4;
 
-                faces.Add(new GeoFace3(new GeoPolygon3(
-                    outer[i], outer[next], outer[next].Add(up), outer[i].Add(up))));
+                faces.Add(new GeoFace3(new GeoPolygon3(outer[i], outer[next], outer[next].Add(up), outer[i].Add(up))));
 
                 // The inner walls run the other way round, so their normals point into the shaft, which is
                 // out of the material.
-                faces.Add(new GeoFace3(new GeoPolygon3(
-                    inner[next], inner[i], inner[i].Add(up), inner[next].Add(up))));
+                faces.Add(new GeoFace3(new GeoPolygon3(inner[next], inner[i], inner[i].Add(up), inner[next].Add(up))));
             }
 
             return new GeoSolid3(faces);

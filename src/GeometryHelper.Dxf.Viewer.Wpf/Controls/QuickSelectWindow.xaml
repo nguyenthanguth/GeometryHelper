@@ -1,10 +1,17 @@
-<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.QuickSelectWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
-        Title="Quick Select" Width="520" Height="620" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" Background="#262B33">
-
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.QuickSelectWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Quick Select"
+    Width="520"
+    Height="620"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -16,21 +23,53 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
-            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
-            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
         <DockPanel>
-            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
                     <TextBlock Text="Quick Select" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>
 
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Click="OnCancel" IsCancel="True" />
-                    <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="22,5" Click="OnOk" IsDefault="True" />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Cancel"
+                        Padding="14,5"
+                        Margin="0,0,8,0"
+                        Click="OnCancel"
+                        IsCancel="True"
+                    />
+                    <Button
+                        Style="{StaticResource StylePrimaryButton}"
+                        Content="OK"
+                        Padding="22,5"
+                        Click="OnOk"
+                        IsDefault="True"
+                    />
                 </StackPanel>
             </Border>
 
@@ -50,43 +89,151 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Text="Apply to:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
-                <ComboBox Grid.Row="0" Grid.Column="1" Style="{StaticResource GhComboBox}" Margin="0,0,0,8" AutomationProperties.Name="Apply to"
-                          ItemsSource="{Binding ApplyToOptions}" SelectedItem="{Binding ApplyTo, Mode=TwoWay}" />
+                <TextBlock
+                    Grid.Row="0"
+                    Text="Apply to:"
+                    Foreground="{StaticResource GhTextMuted}"
+                    VerticalAlignment="Center"
+                />
+                <ComboBox
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Style="{StaticResource GhComboBox}"
+                    Margin="0,0,0,8"
+                    AutomationProperties.Name="Apply to"
+                    ItemsSource="{Binding ApplyToOptions}"
+                    SelectedItem="{Binding ApplyTo, Mode=TwoWay}"
+                />
 
-                <TextBlock Grid.Row="1" Text="Object type:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
-                <ComboBox Grid.Row="1" Grid.Column="1" Style="{StaticResource GhComboBox}" Margin="0,0,0,8" AutomationProperties.Name="Object type"
-                          ItemsSource="{Binding ObjectTypes}" SelectedItem="{Binding ObjectType, Mode=TwoWay}" />
+                <TextBlock
+                    Grid.Row="1"
+                    Text="Object type:"
+                    Foreground="{StaticResource GhTextMuted}"
+                    VerticalAlignment="Center"
+                />
+                <ComboBox
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Style="{StaticResource GhComboBox}"
+                    Margin="0,0,0,8"
+                    AutomationProperties.Name="Object type"
+                    ItemsSource="{Binding ObjectTypes}"
+                    SelectedItem="{Binding ObjectType, Mode=TwoWay}"
+                />
 
-                <TextBlock Grid.Row="2" Text="Properties:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Top" Margin="0,4,0,0" />
-                <ListBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,8" Background="{StaticResource GhInput}" BorderBrush="{StaticResource GhBorder}"
-                         Foreground="{StaticResource GhText}" ItemContainerStyle="{StaticResource StyleListItem}" AutomationProperties.Name="Properties"
-                         ItemsSource="{Binding Properties}" SelectedItem="{Binding Property, Mode=TwoWay}" />
+                <TextBlock
+                    Grid.Row="2"
+                    Text="Properties:"
+                    Foreground="{StaticResource GhTextMuted}"
+                    VerticalAlignment="Top"
+                    Margin="0,4,0,0"
+                />
+                <ListBox
+                    Grid.Row="2"
+                    Grid.Column="1"
+                    Margin="0,0,0,8"
+                    Background="{StaticResource GhInput}"
+                    BorderBrush="{StaticResource GhBorder}"
+                    Foreground="{StaticResource GhText}"
+                    ItemContainerStyle="{StaticResource StyleListItem}"
+                    AutomationProperties.Name="Properties"
+                    ItemsSource="{Binding Properties}"
+                    SelectedItem="{Binding Property, Mode=TwoWay}"
+                />
 
-                <TextBlock Grid.Row="3" Text="Operator:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
-                <ComboBox Grid.Row="3" Grid.Column="1" Style="{StaticResource GhComboBox}" Margin="0,0,0,8" AutomationProperties.Name="Operator"
-                          ItemsSource="{Binding Operators}" SelectedItem="{Binding Operator, Mode=TwoWay}" />
+                <TextBlock
+                    Grid.Row="3"
+                    Text="Operator:"
+                    Foreground="{StaticResource GhTextMuted}"
+                    VerticalAlignment="Center"
+                />
+                <ComboBox
+                    Grid.Row="3"
+                    Grid.Column="1"
+                    Style="{StaticResource GhComboBox}"
+                    Margin="0,0,0,8"
+                    AutomationProperties.Name="Operator"
+                    ItemsSource="{Binding Operators}"
+                    SelectedItem="{Binding Operator, Mode=TwoWay}"
+                />
 
-                <TextBlock Grid.Row="4" Text="Value:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                <TextBlock
+                    Grid.Row="4"
+                    Text="Value:"
+                    Foreground="{StaticResource GhTextMuted}"
+                    VerticalAlignment="Center"
+                />
                 <Grid Grid.Row="4" Grid.Column="1" Margin="0,0,0,8" IsEnabled="{Binding IsValueShown}">
-                    <ComboBox Style="{StaticResource GhComboBox}" AutomationProperties.Name="Value" ItemsSource="{Binding Values}"
-                              SelectedItem="{Binding Value, Mode=TwoWay}" Visibility="{Binding IsValueListed, Converter={StaticResource Shown}}" />
-                    <TextBox Style="{StaticResource StyleBox}" Padding="6,3" AutomationProperties.Name="Value typed"
-                             Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsValueListed, Converter={StaticResource Hidden}}" />
+                    <ComboBox
+                        Style="{StaticResource GhComboBox}"
+                        AutomationProperties.Name="Value"
+                        ItemsSource="{Binding Values}"
+                        SelectedItem="{Binding Value, Mode=TwoWay}"
+                        Visibility="{Binding IsValueListed, Converter={StaticResource Shown}}"
+                    />
+                    <TextBox
+                        Style="{StaticResource StyleBox}"
+                        Padding="6,3"
+                        AutomationProperties.Name="Value typed"
+                        Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        Visibility="{Binding IsValueListed, Converter={StaticResource Hidden}}"
+                    />
                 </Grid>
 
-                <TextBlock Grid.Row="5" Text="How to apply:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                <TextBlock
+                    Grid.Row="5"
+                    Text="How to apply:"
+                    Foreground="{StaticResource GhTextMuted}"
+                    VerticalAlignment="Top"
+                    Margin="0,2,0,0"
+                />
                 <StackPanel Grid.Row="5" Grid.Column="1" Margin="0,0,0,8">
-                    <RadioButton Style="{StaticResource BlockRadio}" GroupName="QsApply" Content="Include in new selection set" IsChecked="{Binding Include, Mode=TwoWay}" Margin="0,0,0,5" />
-                    <RadioButton Style="{StaticResource BlockRadio}" GroupName="QsApply" Content="Exclude from new selection set" IsChecked="{Binding Exclude, Mode=TwoWay}" />
+                    <RadioButton
+                        Style="{StaticResource BlockRadio}"
+                        GroupName="QsApply"
+                        Content="Include in new selection set"
+                        IsChecked="{Binding Include, Mode=TwoWay}"
+                        Margin="0,0,0,5"
+                    />
+                    <RadioButton
+                        Style="{StaticResource BlockRadio}"
+                        GroupName="QsApply"
+                        Content="Exclude from new selection set"
+                        IsChecked="{Binding Exclude, Mode=TwoWay}"
+                    />
                 </StackPanel>
 
-                <CheckBox Grid.Row="6" Grid.Column="1" Style="{StaticResource GhCheckBox}" Content="Append to current selection set" IsChecked="{Binding Append, Mode=TwoWay}" Margin="0,0,0,10" />
+                <CheckBox
+                    Grid.Row="6"
+                    Grid.Column="1"
+                    Style="{StaticResource GhCheckBox}"
+                    Content="Append to current selection set"
+                    IsChecked="{Binding Append, Mode=TwoWay}"
+                    Margin="0,0,0,10"
+                />
 
-                <Border Grid.Row="7" Grid.ColumnSpan="2" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Padding="10,8">
+                <Border
+                    Grid.Row="7"
+                    Grid.ColumnSpan="2"
+                    BorderBrush="{StaticResource GhBorder}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="10,8"
+                >
                     <DockPanel>
-                        <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Fill="{StaticResource GhAccent}" VerticalAlignment="Top" Margin="0,4,8,0" />
-                        <TextBlock Text="{Binding Note}" TextWrapping="Wrap" Foreground="{StaticResource GhTextMuted}" />
+                        <Ellipse
+                            DockPanel.Dock="Left"
+                            Width="8"
+                            Height="8"
+                            Fill="{StaticResource GhAccent}"
+                            VerticalAlignment="Top"
+                            Margin="0,4,8,0"
+                        />
+                        <TextBlock
+                            Text="{Binding Note}"
+                            TextWrapping="Wrap"
+                            Foreground="{StaticResource GhTextMuted}"
+                        />
                     </DockPanel>
                 </Border>
             </Grid>

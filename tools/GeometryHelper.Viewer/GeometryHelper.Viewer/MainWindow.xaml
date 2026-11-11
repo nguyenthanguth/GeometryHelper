@@ -1,10 +1,18 @@
-<Window x:Class="GeometryHelper.Viewer.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:hx="http://helix-toolkit.org/wpf/SharpDX"
-        xmlns:v="clr-namespace:GeometryHelper.Viewer.Views"
-        Title="GeometryHelper Viewer" Width="1400" Height="850" AllowDrop="True"
-        PreviewKeyDown="OnPreviewKeyDown" Drop="OnDrop" Closing="OnClosing" Loaded="OnLoaded">
+<Window
+    x:Class="GeometryHelper.Viewer.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:hx="http://helix-toolkit.org/wpf/SharpDX"
+    xmlns:v="clr-namespace:GeometryHelper.Viewer.Views"
+    Title="GeometryHelper Viewer"
+    Width="1400"
+    Height="850"
+    AllowDrop="True"
+    PreviewKeyDown="OnPreviewKeyDown"
+    Drop="OnDrop"
+    Closing="OnClosing"
+    Loaded="OnLoaded"
+>
     <Window.Resources>
         <Style x:Key="PaneHeader" TargetType="TextBlock">
             <Setter Property="Background" Value="#FFE6E8EC" />
@@ -42,7 +50,14 @@
                 <MenuItem Header="Show a_ll" Tag="ShowAll" Click="OnMenuAction" />
                 <Separator />
                 <MenuItem x:Name="GridMenu" Header="Gri_d on the work plane" IsCheckable="True" Click="OnGridToggled" />
-                <MenuItem x:Name="PropertiesMenu" Header="_Properties pane" IsCheckable="True" IsChecked="True" Tag="Properties" Click="OnPropertiesToggled" />
+                <MenuItem
+                    x:Name="PropertiesMenu"
+                    Header="_Properties pane"
+                    IsCheckable="True"
+                    IsChecked="True"
+                    Tag="Properties"
+                    Click="OnPropertiesToggled"
+                />
             </MenuItem>
             <MenuItem Header="_Tools">
                 <MenuItem Header="Set _rotation centre" Tag="SetRotationCentre" Click="OnMenuAction" />
@@ -52,11 +67,41 @@
                 <MenuItem Header="Measure _angle" Tag="MeasureAngle" Click="OnMenuAction" />
                 <MenuItem Header="Measure _radius" Tag="MeasureRadius" Click="OnMenuAction" />
                 <Separator />
-                <MenuItem x:Name="SnapEndMenu" Header="Snap to _end" Tag="SnapEnd" IsCheckable="True" Click="OnSnapMenu" />
-                <MenuItem x:Name="SnapMidMenu" Header="Snap to _middle" Tag="SnapMid" IsCheckable="True" Click="OnSnapMenu" />
-                <MenuItem x:Name="SnapIntersectionMenu" Header="Snap to _intersection" Tag="SnapIntersection" IsCheckable="True" Click="OnSnapMenu" />
-                <MenuItem x:Name="SnapCentreMenu" Header="Snap to _centre" Tag="SnapCentre" IsCheckable="True" Click="OnSnapMenu" />
-                <MenuItem x:Name="SnapNearestMenu" Header="Snap to _nearest" Tag="SnapNearest" IsCheckable="True" Click="OnSnapMenu" />
+                <MenuItem
+                    x:Name="SnapEndMenu"
+                    Header="Snap to _end"
+                    Tag="SnapEnd"
+                    IsCheckable="True"
+                    Click="OnSnapMenu"
+                />
+                <MenuItem
+                    x:Name="SnapMidMenu"
+                    Header="Snap to _middle"
+                    Tag="SnapMid"
+                    IsCheckable="True"
+                    Click="OnSnapMenu"
+                />
+                <MenuItem
+                    x:Name="SnapIntersectionMenu"
+                    Header="Snap to _intersection"
+                    Tag="SnapIntersection"
+                    IsCheckable="True"
+                    Click="OnSnapMenu"
+                />
+                <MenuItem
+                    x:Name="SnapCentreMenu"
+                    Header="Snap to _centre"
+                    Tag="SnapCentre"
+                    IsCheckable="True"
+                    Click="OnSnapMenu"
+                />
+                <MenuItem
+                    x:Name="SnapNearestMenu"
+                    Header="Snap to _nearest"
+                    Tag="SnapNearest"
+                    IsCheckable="True"
+                    Click="OnSnapMenu"
+                />
                 <Separator />
                 <MenuItem Header="E_xport test..." Tag="ExportTest" Click="OnMenuAction" />
             </MenuItem>
@@ -64,7 +109,13 @@
                 <MenuItem Header="_One view" Tag="ViewLayout1" Click="OnMenuAction" />
                 <MenuItem Header="_Two views" Tag="ViewLayout2" Click="OnMenuAction" />
                 <MenuItem Header="_Four views: plan, front, right, iso" Tag="ViewLayout4" Click="OnMenuAction" />
-                <MenuItem x:Name="LinkMenu" Header="_Link this view to the others that are linked" Tag="LinkViews" IsCheckable="True" Click="OnLinkMenu" />
+                <MenuItem
+                    x:Name="LinkMenu"
+                    Header="_Link this view to the others that are linked"
+                    Tag="LinkViews"
+                    IsCheckable="True"
+                    Click="OnLinkMenu"
+                />
                 <Separator />
                 <MenuItem Header="_Save this view as..." Tag="SaveView" Click="OnMenuAction" />
                 <MenuItem x:Name="SavedViewsMenu" Header="Sa_ved views" />
@@ -72,7 +123,11 @@
                 <MenuItem Header="S_creenshot..." Tag="Screenshot" Click="OnMenuAction" />
             </MenuItem>
             <MenuItem Header="Work _plane">
-                <MenuItem Header="By _three points: origin, x direction, plane" Tag="WorkPlaneThreePoints" Click="OnMenuAction" />
+                <MenuItem
+                    Header="By _three points: origin, x direction, plane"
+                    Tag="WorkPlaneThreePoints"
+                    Click="OnMenuAction"
+                />
                 <MenuItem Header="On a _face" Tag="WorkPlaneFromFace" Click="OnMenuAction" />
                 <MenuItem Header="On the _view" Tag="WorkPlaneFromView" Click="OnMenuAction" />
                 <MenuItem Header="_Global" Tag="WorkPlaneGlobal" Click="OnMenuAction" />
@@ -84,11 +139,23 @@
                 <MenuItem Header="_Flip the selected plane" Tag="ClipFlip" Click="OnMenuAction" />
                 <MenuItem Header="_Remove every plane" Tag="ClipClear" Click="OnMenuAction" />
                 <Separator />
-                <MenuItem x:Name="ClipCapsMenu" Header="Fill the _sections (caps)" IsCheckable="True" IsChecked="True" Click="OnClipCapsToggled" />
+                <MenuItem
+                    x:Name="ClipCapsMenu"
+                    Header="Fill the _sections (caps)"
+                    IsCheckable="True"
+                    IsChecked="True"
+                    Click="OnClipCapsToggled"
+                />
                 <MenuItem Header="Clip planes _pane" Tag="ToggleClipPane" Click="OnMenuAction" />
             </MenuItem>
             <MenuItem Header="_Diagnostics">
-                <MenuItem x:Name="DiagnosticsMenu" Header="_Pane" Tag="ToggleDiagnostics" IsCheckable="True" Click="OnDiagnosticsPaneMenu" />
+                <MenuItem
+                    x:Name="DiagnosticsMenu"
+                    Header="_Pane"
+                    Tag="ToggleDiagnostics"
+                    IsCheckable="True"
+                    Click="OnDiagnosticsPaneMenu"
+                />
                 <MenuItem Header="_Run the ticked checks" Click="OnDiagRun" />
                 <MenuItem Header="_Cancel the run" Click="OnDiagCancel" />
                 <MenuItem Header="C_lear the findings and the drawing" Click="OnDiagClear" />
@@ -99,7 +166,13 @@
                 <MenuItem Header="_Both" Tag="CompareBoth" Click="OnMenuAction" />
                 <Separator />
                 <MenuItem Header="Run _again" Click="OnCompareRerun" />
-                <MenuItem x:Name="CompareWatchMenu" Header="Run a side again when its _DLL changes" IsCheckable="True" IsChecked="True" Click="OnCompareWatchToggled" />
+                <MenuItem
+                    x:Name="CompareWatchMenu"
+                    Header="Run a side again when its _DLL changes"
+                    IsCheckable="True"
+                    IsChecked="True"
+                    Click="OnCompareWatchToggled"
+                />
                 <MenuItem Header="_Leave the comparison" Click="OnCompareLeave" />
             </MenuItem>
             <MenuItem Header="_Script">
@@ -107,7 +180,12 @@
                 <MenuItem Header="Run _again" Tag="RerunScript" Click="OnMenuAction" />
                 <MenuItem Header="_Stop" Tag="Cancel" Click="OnMenuAction" />
                 <Separator />
-                <MenuItem x:Name="WatchMenu" Header="Run again when the file is _saved" IsCheckable="True" Click="OnWatchToggled" />
+                <MenuItem
+                    x:Name="WatchMenu"
+                    Header="Run again when the file is _saved"
+                    IsCheckable="True"
+                    Click="OnWatchToggled"
+                />
             </MenuItem>
             <MenuItem Header="_Help">
                 <MenuItem Header="_Keys" Click="OnShowKeys" />
@@ -115,7 +193,12 @@
         </Menu>
         <ToolBar DockPanel.Dock="Top" ToolBarTray.IsLocked="True">
             <Button Content="Open" Tag="OpenFile" Click="OnMenuAction" />
-            <Button Content="Run" Tag="RerunScript" Click="OnMenuAction" ToolTip="Run the script again, or read the scene file again" />
+            <Button
+                Content="Run"
+                Tag="RerunScript"
+                Click="OnMenuAction"
+                ToolTip="Run the script again, or read the scene file again"
+            />
             <Separator />
             <Button Content="Fit" Tag="FitAll" Click="OnMenuAction" />
             <Button Content="3D / plan" Tag="TogglePlan" Click="OnMenuAction" />
@@ -130,20 +213,36 @@
             <Button Content="Glass" Tag="RenderTransparent" Click="OnMenuAction" />
         </ToolBar>
         <StatusBar DockPanel.Dock="Bottom">
-            <StatusBarItem><TextBlock x:Name="CursorText" MinWidth="330" Text="x -   y -   z -" /></StatusBarItem>
+            <StatusBarItem>
+                <TextBlock x:Name="CursorText" MinWidth="330" Text="x -   y -   z -" />
+            </StatusBarItem>
             <Separator />
-            <StatusBarItem><TextBlock x:Name="SnapText" MinWidth="240" Text="snap: none" /></StatusBarItem>
-            <StatusBarItem><TextBlock x:Name="SnapsText" Text="snaps -----" /></StatusBarItem>
+            <StatusBarItem>
+                <TextBlock x:Name="SnapText" MinWidth="240" Text="snap: none" />
+            </StatusBarItem>
+            <StatusBarItem>
+                <TextBlock x:Name="SnapsText" Text="snaps -----" />
+            </StatusBarItem>
             <Separator />
             <Separator />
-            <StatusBarItem><TextBlock x:Name="WorkPlaneText" Text="work plane: global" /></StatusBarItem>
+            <StatusBarItem>
+                <TextBlock x:Name="WorkPlaneText" Text="work plane: global" />
+            </StatusBarItem>
             <Separator />
-            <StatusBarItem><TextBlock x:Name="SelectionText" Text="0 selected" /></StatusBarItem>
+            <StatusBarItem>
+                <TextBlock x:Name="SelectionText" Text="0 selected" />
+            </StatusBarItem>
             <Separator />
-            <StatusBarItem><TextBlock x:Name="ToleranceText" Text="EqualPoint -" /></StatusBarItem>
+            <StatusBarItem>
+                <TextBlock x:Name="ToleranceText" Text="EqualPoint -" />
+            </StatusBarItem>
             <Separator />
-            <StatusBarItem><TextBlock x:Name="ModeText" Text="" /></StatusBarItem>
-            <StatusBarItem HorizontalAlignment="Right"><TextBlock x:Name="MessageText" Text="" /></StatusBarItem>
+            <StatusBarItem>
+                <TextBlock x:Name="ModeText" Text="" />
+            </StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
+                <TextBlock x:Name="MessageText" Text="" />
+            </StatusBarItem>
         </StatusBar>
         <Grid>
             <Grid.ColumnDefinitions>
@@ -169,7 +268,14 @@
                         <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                             <StackPanel Orientation="Horizontal">
                                 <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" VerticalAlignment="Center" />
-                                <Rectangle Width="10" Height="10" Margin="4,0" Fill="{Binding Swatch}" Stroke="#FF808080" StrokeThickness="0.5" />
+                                <Rectangle
+                                    Width="10"
+                                    Height="10"
+                                    Margin="4,0"
+                                    Fill="{Binding Swatch}"
+                                    Stroke="#FF808080"
+                                    StrokeThickness="0.5"
+                                />
                                 <TextBlock Text="{Binding Header}" />
                             </StackPanel>
                         </HierarchicalDataTemplate>
@@ -188,37 +294,105 @@
                     <!-- The views are made in code, one to four of them, each with its own viewport; the panel puts them where the layout says. The graphics card
                          clears a view to one colour; a gradient behind a see-through view came out black in a picture of the window. -->
                     <v:ViewHostPanel x:Name="Panes" />
-                    <TextBlock x:Name="BusyText" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,12,0,0"
-                               Padding="12,5" Background="#E0FFFFFF" FontSize="14" Text="Running the script... Esc to stop" />
+                    <TextBlock
+                        x:Name="BusyText"
+                        Visibility="Collapsed"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Top"
+                        Margin="0,12,0,0"
+                        Padding="12,5"
+                        Background="#E0FFFFFF"
+                        FontSize="14"
+                        Text="Running the script... Esc to stop"
+                    />
                 </Grid>
                 <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" />
                 <TabControl x:Name="BottomTabs" Grid.Row="2" Padding="0" BorderThickness="0,1,0,0">
                     <TabItem x:Name="OutputTab" Header="Output">
-                        <TextBox x:Name="Output" IsReadOnly="True" BorderThickness="0" FontFamily="Consolas" FontSize="12" TextWrapping="NoWrap"
-                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
+                        <TextBox
+                            x:Name="Output"
+                            IsReadOnly="True"
+                            BorderThickness="0"
+                            FontFamily="Consolas"
+                            FontSize="12"
+                            TextWrapping="NoWrap"
+                            VerticalScrollBarVisibility="Auto"
+                            HorizontalScrollBarVisibility="Auto"
+                        />
                     </TabItem>
                     <TabItem x:Name="ClipTab" Header="Clip planes">
                         <DockPanel>
                             <WrapPanel DockPanel.Dock="Top" Margin="4,4,4,2">
-                                <Button Content="Through a point (K)" Padding="10,2" Margin="0,0,4,2" Click="OnClipAddView" ToolTip="Click a point; the plane goes through it square to the view and cuts away what is nearer the eye" />
-                                <Button Content="On a face (Ctrl+K)" Padding="10,2" Margin="0,0,4,2" Click="OnClipAddFace" ToolTip="Click a face; the plane lies on it and cuts away what is in front of it" />
-                                <Button Content="Box round the selection (Ctrl+B)" Padding="10,2" Margin="0,0,12,2" Click="OnClipBox" ToolTip="Six planes round the selected items, or round everything shown where none is selected" />
+                                <Button
+                                    Content="Through a point (K)"
+                                    Padding="10,2"
+                                    Margin="0,0,4,2"
+                                    Click="OnClipAddView"
+                                    ToolTip="Click a point; the plane goes through it square to the view and cuts away what is nearer the eye"
+                                />
+                                <Button
+                                    Content="On a face (Ctrl+K)"
+                                    Padding="10,2"
+                                    Margin="0,0,4,2"
+                                    Click="OnClipAddFace"
+                                    ToolTip="Click a face; the plane lies on it and cuts away what is in front of it"
+                                />
+                                <Button
+                                    Content="Box round the selection (Ctrl+B)"
+                                    Padding="10,2"
+                                    Margin="0,0,12,2"
+                                    Click="OnClipBox"
+                                    ToolTip="Six planes round the selected items, or round everything shown where none is selected"
+                                />
                                 <TextBlock Text="Offset" VerticalAlignment="Center" Margin="0,0,4,2" />
-                                <TextBox x:Name="ClipOffsetBox" Width="90" Margin="0,0,4,2" KeyDown="OnClipOffsetKey" ToolTip="How far the selected plane lies along its normal from where it was made; Enter sets it" />
+                                <TextBox
+                                    x:Name="ClipOffsetBox"
+                                    Width="90"
+                                    Margin="0,0,4,2"
+                                    KeyDown="OnClipOffsetKey"
+                                    ToolTip="How far the selected plane lies along its normal from where it was made; Enter sets it"
+                                />
                                 <Button Content="Set" Padding="10,2" Margin="0,0,12,2" Click="OnClipOffsetSet" />
-                                <Button Content="Flip" Padding="10,2" Margin="0,0,4,2" Click="OnClipFlip" ToolTip="Turn the selected plane over: the other side stays" />
+                                <Button
+                                    Content="Flip"
+                                    Padding="10,2"
+                                    Margin="0,0,4,2"
+                                    Click="OnClipFlip"
+                                    ToolTip="Turn the selected plane over: the other side stays"
+                                />
                                 <Button Content="On / off" Padding="10,2" Margin="0,0,4,2" Click="OnClipToggle" />
                                 <Button Content="Remove" Padding="10,2" Margin="0,0,4,2" Click="OnClipRemove" />
                                 <Button Content="Remove all" Padding="10,2" Margin="0,0,4,2" Click="OnClipClearAll" />
                             </WrapPanel>
-                            <ListView x:Name="ClipList" BorderThickness="0,1,0,0" SelectionMode="Single" SelectionChanged="OnClipSelected">
+                            <ListView
+                                x:Name="ClipList"
+                                BorderThickness="0,1,0,0"
+                                SelectionMode="Single"
+                                SelectionChanged="OnClipSelected"
+                            >
                                 <ListView.View>
                                     <GridView>
                                         <GridViewColumn Header="#" Width="36" DisplayMemberBinding="{Binding Number}" />
-                                        <GridViewColumn Header="State" Width="60" DisplayMemberBinding="{Binding State}" />
-                                        <GridViewColumn Header="Plane passes through" Width="300" DisplayMemberBinding="{Binding Through}" />
-                                        <GridViewColumn Header="Normal, the side that stays" Width="300" DisplayMemberBinding="{Binding Normal}" />
-                                        <GridViewColumn Header="Offset" Width="120" DisplayMemberBinding="{Binding Offset}" />
+                                        <GridViewColumn
+                                            Header="State"
+                                            Width="60"
+                                            DisplayMemberBinding="{Binding State}"
+                                        />
+                                        <GridViewColumn
+                                            Header="Plane passes through"
+                                            Width="300"
+                                            DisplayMemberBinding="{Binding Through}"
+                                        />
+                                        <GridViewColumn
+                                            Header="Normal, the side that stays"
+                                            Width="300"
+                                            DisplayMemberBinding="{Binding Normal}"
+                                        />
+                                        <GridViewColumn
+                                            Header="Offset"
+                                            Width="120"
+                                            DisplayMemberBinding="{Binding Offset}"
+                                        />
                                     </GridView>
                                 </ListView.View>
                             </ListView>
@@ -227,15 +401,50 @@
                     <TabItem x:Name="CompareTab" Header="Compare" Visibility="Collapsed">
                         <DockPanel>
                             <WrapPanel DockPanel.Dock="Top" Margin="4,4,4,2">
-                                <TextBlock x:Name="CompareSummary" VerticalAlignment="Center" Margin="0,0,12,2" Text="" />
-                                <Button Content="Left (1)" Padding="10,2" Margin="0,0,4,2" Click="OnCompareLeft" ToolTip="Show the left side and what both sides share" />
-                                <Button Content="Right (2)" Padding="10,2" Margin="0,0,4,2" Click="OnCompareRight" ToolTip="Show the right side and what both sides share" />
-                                <Button Content="Both (3)" Padding="10,2" Margin="0,0,12,2" Click="OnCompareBoth" ToolTip="Show both sides over each other" />
+                                <TextBlock
+                                    x:Name="CompareSummary"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,12,2"
+                                    Text=""
+                                />
+                                <Button
+                                    Content="Left (1)"
+                                    Padding="10,2"
+                                    Margin="0,0,4,2"
+                                    Click="OnCompareLeft"
+                                    ToolTip="Show the left side and what both sides share"
+                                />
+                                <Button
+                                    Content="Right (2)"
+                                    Padding="10,2"
+                                    Margin="0,0,4,2"
+                                    Click="OnCompareRight"
+                                    ToolTip="Show the right side and what both sides share"
+                                />
+                                <Button
+                                    Content="Both (3)"
+                                    Padding="10,2"
+                                    Margin="0,0,12,2"
+                                    Click="OnCompareBoth"
+                                    ToolTip="Show both sides over each other"
+                                />
                                 <Button Content="Run again" Padding="10,2" Margin="0,0,4,2" Click="OnCompareRerun" />
-                                <Button Content="Leave" Padding="10,2" Margin="0,0,4,2" Click="OnCompareLeave" ToolTip="Stop comparing; the scene stays as it is" />
+                                <Button
+                                    Content="Leave"
+                                    Padding="10,2"
+                                    Margin="0,0,4,2"
+                                    Click="OnCompareLeave"
+                                    ToolTip="Stop comparing; the scene stays as it is"
+                                />
                             </WrapPanel>
-                            <ListView x:Name="CompareList" BorderThickness="0,1,0,0" SelectionMode="Single" SelectionChanged="OnCompareRowSelected"
-                                      PreviewMouseLeftButtonDown="OnCompareMouseDown" PreviewMouseLeftButtonUp="OnCompareMouseUp">
+                            <ListView
+                                x:Name="CompareList"
+                                BorderThickness="0,1,0,0"
+                                SelectionMode="Single"
+                                SelectionChanged="OnCompareRowSelected"
+                                PreviewMouseLeftButtonDown="OnCompareMouseDown"
+                                PreviewMouseLeftButtonUp="OnCompareMouseUp"
+                            >
                                 <ListView.ItemContainerStyle>
                                     <Style TargetType="ListViewItem">
                                         <Setter Property="Foreground" Value="{Binding Foreground}" />
@@ -245,19 +454,71 @@
                                 <ListView.View>
                                     <GridView>
                                         <GridViewColumn Header="#" Width="36" DisplayMemberBinding="{Binding Number}" />
-                                        <GridViewColumn Header="Status" Width="190" DisplayMemberBinding="{Binding Status}" />
-                                        <GridViewColumn Header="Layer" Width="90" DisplayMemberBinding="{Binding Layer}" />
-                                        <GridViewColumn Header="Item" Width="150" DisplayMemberBinding="{Binding Item}" />
-                                        <GridViewColumn Header="Kind" Width="100" DisplayMemberBinding="{Binding Kind}" />
-                                        <GridViewColumn Header="Vertices L / R" Width="90" DisplayMemberBinding="{Binding Vertices}" />
-                                        <GridViewColumn Header="Length L" Width="90" DisplayMemberBinding="{Binding LengthLeft}" />
-                                        <GridViewColumn Header="Length R" Width="90" DisplayMemberBinding="{Binding LengthRight}" />
-                                        <GridViewColumn Header="Area L" Width="90" DisplayMemberBinding="{Binding AreaLeft}" />
-                                        <GridViewColumn Header="Area R" Width="90" DisplayMemberBinding="{Binding AreaRight}" />
-                                        <GridViewColumn Header="Volume L" Width="90" DisplayMemberBinding="{Binding VolumeLeft}" />
-                                        <GridViewColumn Header="Volume R" Width="90" DisplayMemberBinding="{Binding VolumeRight}" />
-                                        <GridViewColumn Header="Bit-identical" Width="80" DisplayMemberBinding="{Binding Identical}" />
-                                        <GridViewColumn Header="Difference" Width="600" DisplayMemberBinding="{Binding Difference}" />
+                                        <GridViewColumn
+                                            Header="Status"
+                                            Width="190"
+                                            DisplayMemberBinding="{Binding Status}"
+                                        />
+                                        <GridViewColumn
+                                            Header="Layer"
+                                            Width="90"
+                                            DisplayMemberBinding="{Binding Layer}"
+                                        />
+                                        <GridViewColumn
+                                            Header="Item"
+                                            Width="150"
+                                            DisplayMemberBinding="{Binding Item}"
+                                        />
+                                        <GridViewColumn
+                                            Header="Kind"
+                                            Width="100"
+                                            DisplayMemberBinding="{Binding Kind}"
+                                        />
+                                        <GridViewColumn
+                                            Header="Vertices L / R"
+                                            Width="90"
+                                            DisplayMemberBinding="{Binding Vertices}"
+                                        />
+                                        <GridViewColumn
+                                            Header="Length L"
+                                            Width="90"
+                                            DisplayMemberBinding="{Binding LengthLeft}"
+                                        />
+                                        <GridViewColumn
+                                            Header="Length R"
+                                            Width="90"
+                                            DisplayMemberBinding="{Binding LengthRight}"
+                                        />
+                                        <GridViewColumn
+                                            Header="Area L"
+                                            Width="90"
+                                            DisplayMemberBinding="{Binding AreaLeft}"
+                                        />
+                                        <GridViewColumn
+                                            Header="Area R"
+                                            Width="90"
+                                            DisplayMemberBinding="{Binding AreaRight}"
+                                        />
+                                        <GridViewColumn
+                                            Header="Volume L"
+                                            Width="90"
+                                            DisplayMemberBinding="{Binding VolumeLeft}"
+                                        />
+                                        <GridViewColumn
+                                            Header="Volume R"
+                                            Width="90"
+                                            DisplayMemberBinding="{Binding VolumeRight}"
+                                        />
+                                        <GridViewColumn
+                                            Header="Bit-identical"
+                                            Width="80"
+                                            DisplayMemberBinding="{Binding Identical}"
+                                        />
+                                        <GridViewColumn
+                                            Header="Difference"
+                                            Width="600"
+                                            DisplayMemberBinding="{Binding Difference}"
+                                        />
                                     </GridView>
                                 </ListView.View>
                             </ListView>
@@ -279,19 +540,51 @@
                 </ListView>
             </DockPanel>
 
-            <GridSplitter x:Name="DiagnosticsSplitter" Grid.Column="5" Width="5" HorizontalAlignment="Stretch" Visibility="Collapsed" />
+            <GridSplitter
+                x:Name="DiagnosticsSplitter"
+                Grid.Column="5"
+                Width="5"
+                HorizontalAlignment="Stretch"
+                Visibility="Collapsed"
+            />
             <DockPanel x:Name="DiagnosticsPane" Grid.Column="6" Visibility="Collapsed">
                 <TextBlock DockPanel.Dock="Top" Style="{StaticResource PaneHeader}" Text="Diagnostics" />
                 <WrapPanel DockPanel.Dock="Top" Margin="4,4,4,0">
-                    <Button x:Name="DiagRunButton" Content="Run" Padding="14,2" Margin="0,0,4,4" Click="OnDiagRun"
-                            ToolTip="Run the ticked checks on the selected items, or on every item when none is selected" />
-                    <Button x:Name="DiagCancelButton" Content="Cancel" Padding="10,2" Margin="0,0,4,4" IsEnabled="False" Click="OnDiagCancel" ToolTip="Stop the run (Esc)" />
-                    <Button Content="Clear" Padding="10,2" Margin="0,0,8,4" Click="OnDiagClear" ToolTip="Take the findings and what they draw off the view" />
+                    <Button
+                        x:Name="DiagRunButton"
+                        Content="Run"
+                        Padding="14,2"
+                        Margin="0,0,4,4"
+                        Click="OnDiagRun"
+                        ToolTip="Run the ticked checks on the selected items, or on every item when none is selected"
+                    />
+                    <Button
+                        x:Name="DiagCancelButton"
+                        Content="Cancel"
+                        Padding="10,2"
+                        Margin="0,0,4,4"
+                        IsEnabled="False"
+                        Click="OnDiagCancel"
+                        ToolTip="Stop the run (Esc)"
+                    />
+                    <Button
+                        Content="Clear"
+                        Padding="10,2"
+                        Margin="0,0,8,4"
+                        Click="OnDiagClear"
+                        ToolTip="Take the findings and what they draw off the view"
+                    />
                     <TextBlock x:Name="DiagStatus" VerticalAlignment="Center" Margin="0,0,0,4" Text="nothing run yet" />
                 </WrapPanel>
                 <WrapPanel x:Name="DiagTicks" DockPanel.Dock="Top" Margin="4,0,4,4" />
-                <ListView x:Name="DiagList" BorderThickness="0,1,0,0" SelectionMode="Single" SelectionChanged="OnDiagSelected"
-                          PreviewMouseLeftButtonDown="OnDiagMouseDown" PreviewMouseLeftButtonUp="OnDiagMouseUp">
+                <ListView
+                    x:Name="DiagList"
+                    BorderThickness="0,1,0,0"
+                    SelectionMode="Single"
+                    SelectionChanged="OnDiagSelected"
+                    PreviewMouseLeftButtonDown="OnDiagMouseDown"
+                    PreviewMouseLeftButtonUp="OnDiagMouseUp"
+                >
                     <ListView.ItemContainerStyle>
                         <Style TargetType="ListViewItem">
                             <Setter Property="Foreground" Value="{Binding Foreground}" />
@@ -303,7 +596,11 @@
                             <GridViewColumn Header="#" Width="40" DisplayMemberBinding="{Binding Number}" />
                             <GridViewColumn Header="Item" Width="100" DisplayMemberBinding="{Binding Item}" />
                             <GridViewColumn Header="Kind" Width="120" DisplayMemberBinding="{Binding Kind}" />
-                            <GridViewColumn Header="Finding, and what gave it" Width="900" DisplayMemberBinding="{Binding Text}" />
+                            <GridViewColumn
+                                Header="Finding, and what gave it"
+                                Width="900"
+                                DisplayMemberBinding="{Binding Text}"
+                            />
                         </GridView>
                     </ListView.View>
                 </ListView>

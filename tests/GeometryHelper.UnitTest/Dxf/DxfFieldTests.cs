@@ -35,16 +35,50 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDBDictionary fields = (DxfDBDictionary)grid.ExtensionDictionary.GetAt("ACAD_FIELD");
 
             string saved = db.ToText();
-            OnlyTheseChanged(text, saved, "64", grid.ExtensionDictionary.Handle, fields.Handle, field.Handle, child.Handle, null);
-            Assert.Equal("  0\nDICTIONARY\n  5\n" + fields.Handle + "\n102\n{ACAD_REACTORS\n330\n" + grid.ExtensionDictionary.Handle + "\n102\n}\n330\n" + grid.ExtensionDictionary.Handle
-                + "\n100\nAcDbDictionary\n280\n1\n281\n1\n  3\nTEXT\n360\n" + field.Handle + "\n", Records(saved).Single(r => HandleOf(r) == fields.Handle));
-            Assert.Equal("  0\nFIELD\n  5\n" + field.Handle + "\n102\n{ACAD_REACTORS\n330\n" + fields.Handle + "\n102\n}\n330\n" + fields.Handle
-                + "\n100\nAcDbField\n  1\n_text\n  2\nDrawn %<\\_FldIdx 0>%\n 90\n1\n360\n" + child.Handle
-                + "\n 97\n0\n 91\n63\n 92\n0\n 94\n0\n 95\n1\n 96\n0\n300\n\n 93\n0\n  7\nACFD_FIELD_VALUE\n 93\n1\n 90\n0\n 94\n0\n300\n\n302\n\n304\nACVALUE_END\n301\n\n 98\n0\n",
-                Records(saved).Single(r => HandleOf(r) == field.Handle));
-            Assert.Contains("100\nAcDbField\n  1\nAcVar\n  2\n\\AcVar Date \\f \"dd/MM/yyyy\"\n 90\n0\n 97\n0\n", Records(saved).Single(r => HandleOf(r) == child.Handle), StringComparison.Ordinal);
+            OnlyTheseChanged(
+                text,
+                saved,
+                "64",
+                grid.ExtensionDictionary.Handle,
+                fields.Handle,
+                field.Handle,
+                child.Handle,
+                null
+            );
+            Assert.Equal(
+                "  0\nDICTIONARY\n  5\n"
+                    + fields.Handle
+                    + "\n102\n{ACAD_REACTORS\n330\n"
+                    + grid.ExtensionDictionary.Handle
+                    + "\n102\n}\n330\n"
+                    + grid.ExtensionDictionary.Handle
+                    + "\n100\nAcDbDictionary\n280\n1\n281\n1\n  3\nTEXT\n360\n"
+                    + field.Handle
+                    + "\n",
+                Records(saved).Single(r => HandleOf(r) == fields.Handle)
+            );
+            Assert.Equal(
+                "  0\nFIELD\n  5\n"
+                    + field.Handle
+                    + "\n102\n{ACAD_REACTORS\n330\n"
+                    + fields.Handle
+                    + "\n102\n}\n330\n"
+                    + fields.Handle
+                    + "\n100\nAcDbField\n  1\n_text\n  2\nDrawn %<\\_FldIdx 0>%\n 90\n1\n360\n"
+                    + child.Handle
+                    + "\n 97\n0\n 91\n63\n 92\n0\n 94\n0\n 95\n1\n 96\n0\n300\n\n 93\n0\n  7\nACFD_FIELD_VALUE\n 93\n1\n 90\n0\n 94\n0\n300\n\n302\n\n304\nACVALUE_END\n301\n\n 98\n0\n",
+                Records(saved).Single(r => HandleOf(r) == field.Handle)
+            );
+            Assert.Contains(
+                "100\nAcDbField\n  1\nAcVar\n  2\n\\AcVar Date \\f \"dd/MM/yyyy\"\n 90\n0\n 97\n0\n",
+                Records(saved).Single(r => HandleOf(r) == child.Handle),
+                StringComparison.Ordinal
+            );
             Assert.Equal(field.Handle, child.OwnerHandle);
-            Assert.Equal("  0\nCLASS\n  1\nFIELD\n  2\nAcDbField\n  3\nObjectDBX Classes\n 90\n1152\n 91\n0\n280\n0\n281\n0\n", Records(saved).Single(r => r.StartsWith("  0\nCLASS\n  1\nFIELD\n", StringComparison.Ordinal)));
+            Assert.Equal(
+                "  0\nCLASS\n  1\nFIELD\n  2\nAcDbField\n  3\nObjectDBX Classes\n 90\n1152\n 91\n0\n280\n0\n281\n0\n",
+                Records(saved).Single(r => r.StartsWith("  0\nCLASS\n  1\nFIELD\n", StringComparison.Ordinal))
+            );
 
             DxfDatabase again = DxfDatabase.Parse(saved);
             DxfField read = ByHandle<DxfDBText>(again, "64").GetField();
@@ -59,7 +93,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // A second field keeps the class listed once.
             ByHandle<DxfMText>(again, "73").SetField(new DxfField("%<\\AcVar Login>%"));
-            Assert.Single(Records(again.ToText()), r => r.StartsWith("  0\nCLASS\n  1\nFIELD\n", StringComparison.Ordinal));
+            Assert.Single(Records(again.ToText()), r =>
+                r.StartsWith("  0\nCLASS\n  1\nFIELD\n", StringComparison.Ordinal)
+            );
         }
 
         [Fact]
@@ -68,15 +104,27 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1018"));
             DxfField field = ByHandle<DxfDBText>(db, "64").SetField(new DxfField("%<\\AcVar Login>%"));
 
-            Assert.Contains("  7\nACFD_FIELD_VALUE\n 90\n0\n301\n\n 98\n0\n", Records(db.ToText()).Single(r => HandleOf(r) == field.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "  7\nACFD_FIELD_VALUE\n 90\n0\n301\n\n 98\n0\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == field.Handle),
+                StringComparison.Ordinal
+            );
             Assert.Empty(field.GetChildren());
             Assert.Equal("%<\\AcVar Login>%", ByHandle<DxfDBText>(db, "64").GetTextWithFieldCodes());
 
             DxfDatabase r2000 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
             string before = r2000.ToText();
-            Assert.Throws<InvalidOperationException>(() => r2000.ModelSpace.OfType<DxfDBText>().First().SetField(new DxfField("%<\\AcVar Login>%")));
+            Assert.Throws<InvalidOperationException>(() =>
+                r2000.ModelSpace.OfType<DxfDBText>().First().SetField(new DxfField("%<\\AcVar Login>%"))
+            );
             Assert.Equal(before, r2000.ToText());
-            Assert.Throws<InvalidOperationException>(() => DxfDatabase.Parse(DxfFileEzdxfDrawings.R12).ModelSpace.OfType<DxfDBText>().First().SetField(new DxfField("%<\\AcVar Login>%")));
+            Assert.Throws<InvalidOperationException>(() =>
+                DxfDatabase
+                    .Parse(DxfFileEzdxfDrawings.R12)
+                    .ModelSpace.OfType<DxfDBText>()
+                    .First()
+                    .SetField(new DxfField("%<\\AcVar Login>%"))
+            );
             Assert.Throws<InvalidOperationException>(() => new DxfDBText().SetField(new DxfField("%<\\AcVar Login>%")));
             Assert.Null(new DxfDBText().GetField());
             Assert.Null(new DxfDBText().RemoveField());
@@ -85,11 +133,17 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AFieldMadeInCode_ReadsItsCodeAsAutoCADDoes()
         {
-            var text = new DxfField("Made %<\\AcVar Date>% by %<\\AcObjProp.16.2 Object(%<\\_ObjId 2130>%).Length \\f \"%lu2\">%!", true);
+            var text = new DxfField(
+                "Made %<\\AcVar Date>% by %<\\AcObjProp.16.2 Object(%<\\_ObjId 2130>%).Length \\f \"%lu2\">%!",
+                true
+            );
             Assert.Equal("_text", text.EvaluatorId);
             Assert.Equal("Made %<\\_FldIdx 0>% by %<\\_FldIdx 1>%!", text.GetFieldCode());
             Assert.Equal(new[] { "AcVar", "AcObjProp" }, text.GetChildren().Select(c => c.EvaluatorId));
-            Assert.Equal("\\AcObjProp.16.2 Object(%<\\_ObjId 2130>%).Length \\f \"%lu2\"", text.GetChildren()[1].GetFieldCode());
+            Assert.Equal(
+                "\\AcObjProp.16.2 Object(%<\\_ObjId 2130>%).Length \\f \"%lu2\"",
+                text.GetChildren()[1].GetFieldCode()
+            );
             Assert.Null(text.Handle);
             Assert.Equal(string.Empty, text.GetStringValue());
 
@@ -198,7 +252,8 @@ namespace GeometryHelper.UnitTest.Dxf
         public void AFieldAsAutoCADKeepsIt_GivesItsValueAndItsCodesAtEveryDepth()
         {
             DxfDatabase made = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
-            DxfField top = ByHandle<DxfMText>(made, "73").SetField(new DxfField("%<\\AcVar Date>% and %<\\AcExpr (%<\\AcVar Login>%)>%", true));
+            DxfField top = ByHandle<DxfMText>(made, "73")
+                .SetField(new DxfField("%<\\AcVar Date>% and %<\\AcExpr (%<\\AcVar Login>%)>%", true));
             DxfField date = top.GetChildren()[0];
             string saved = made.ToText();
 
@@ -207,22 +262,52 @@ namespace GeometryHelper.UnitTest.Dxf
             string dateRecord = Records(saved).Single(r => HandleOf(r) == date.Handle);
             string expression = Records(saved).Single(r => HandleOf(r) == top.GetChildren()[1].Handle);
             string edited = saved
-                .Replace(topRecord, topRecord.Replace("  2\n%<\\_FldIdx 0>% and %<\\_FldIdx 1>%\n", "  2\n%<\\_FldIdx 0>% a\n  3\nnd %<\\_FldIdx 1>% %<\\_FldIdx 7>%\n"))
-                .Replace(dateRecord, dateRecord.Replace(" 93\n1\n 90\n0\n 94\n0\n300\n\n302\n\n", " 93\n0\n 90\n4\n  1\n27/10/2026\n 94\n0\n300\n\n302\n27/10/2026\n"))
-                .Replace(expression, expression.Replace("  2\n\\AcExpr (%<\\AcVar Login>%)\n 90\n0\n", "  2\n\\AcExpr (%<\\_FldIdx 0>%)\n 90\n1\n360\n" + date.Handle + "\n"));
+                .Replace(
+                    topRecord,
+                    topRecord.Replace(
+                        "  2\n%<\\_FldIdx 0>% and %<\\_FldIdx 1>%\n",
+                        "  2\n%<\\_FldIdx 0>% a\n  3\nnd %<\\_FldIdx 1>% %<\\_FldIdx 7>%\n"
+                    )
+                )
+                .Replace(
+                    dateRecord,
+                    dateRecord.Replace(
+                        " 93\n1\n 90\n0\n 94\n0\n300\n\n302\n\n",
+                        " 93\n0\n 90\n4\n  1\n27/10/2026\n 94\n0\n300\n\n302\n27/10/2026\n"
+                    )
+                )
+                .Replace(
+                    expression,
+                    expression.Replace(
+                        "  2\n\\AcExpr (%<\\AcVar Login>%)\n 90\n0\n",
+                        "  2\n\\AcExpr (%<\\_FldIdx 0>%)\n 90\n1\n360\n" + date.Handle + "\n"
+                    )
+                );
 
             DxfDatabase db = DxfDatabase.Parse(edited);
             DxfMText mtext = ByHandle<DxfMText>(db, "73");
             DxfField read = mtext.GetField();
             Assert.Equal("%<\\_FldIdx 0>% and %<\\_FldIdx 1>% %<\\_FldIdx 7>%", read.GetFieldCode());
             Assert.Equal("27/10/2026", read.GetChildren()[0].GetStringValue());
-            Assert.Equal("%<\\AcVar Date>% and %<\\AcExpr (%<\\AcVar Date>%)>% %<\\_FldIdx 7>%", mtext.GetMTextWithFieldCodes());
+            Assert.Equal(
+                "%<\\AcVar Date>% and %<\\AcExpr (%<\\AcVar Date>%)>% %<\\_FldIdx 7>%",
+                mtext.GetMTextWithFieldCodes()
+            );
             Assert.Equal(edited, db.ToText());
 
             // The value AutoCAD wrote reads without its 302 from its text alone.
             string bare = edited.Replace("302\n27/10/2026\n", "302\n\n");
-            Assert.Equal(string.Empty, ByHandle<DxfMText>(DxfDatabase.Parse(bare), "73").GetField().GetChildren()[0].GetStringValue().Trim());
-            Assert.Equal("27/10/2026", ByHandle<DxfMText>(DxfDatabase.Parse(edited.Replace("302\n27/10/2026\n", string.Empty)), "73").GetField().GetChildren()[0].GetStringValue());
+            Assert.Equal(
+                string.Empty,
+                ByHandle<DxfMText>(DxfDatabase.Parse(bare), "73").GetField().GetChildren()[0].GetStringValue().Trim()
+            );
+            Assert.Equal(
+                "27/10/2026",
+                ByHandle<DxfMText>(DxfDatabase.Parse(edited.Replace("302\n27/10/2026\n", string.Empty)), "73")
+                    .GetField()
+                    .GetChildren()[0]
+                    .GetStringValue()
+            );
         }
 
         [Fact]
@@ -232,7 +317,9 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDimension dimension = ByHandle<DxfDimension>(db, "75");
             DxfMText mtext = ByHandle<DxfMText>(db, "73");
             DxfMText inBlock = ByHandle<DxfMText>(db, "85");
-            DxfField source = mtext.SetField(new DxfField("%<\\AcObjProp Object(%<\\_ObjId 2130>%).Length>% long", true));
+            DxfField source = mtext.SetField(
+                new DxfField("%<\\AcObjProp Object(%<\\_ObjId 2130>%).Length>% long", true)
+            );
 
             dimension.FieldFromMText(mtext);
             DxfField copy = dimension.GetField();
@@ -243,7 +330,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("<>", dimension.DimensionText);
             string copied = Records(db.ToText()).Single(r => HandleOf(r) == copy.GetChildren()[0].Handle);
             string original = Records(db.ToText()).Single(r => HandleOf(r) == source.GetChildren()[0].Handle);
-            Assert.Equal(original.Substring(original.IndexOf("100\nAcDbField", StringComparison.Ordinal)), copied.Substring(copied.IndexOf("100\nAcDbField", StringComparison.Ordinal)));
+            Assert.Equal(
+                original.Substring(original.IndexOf("100\nAcDbField", StringComparison.Ordinal)),
+                copied.Substring(copied.IndexOf("100\nAcDbField", StringComparison.Ordinal))
+            );
 
             dimension.FieldToMText(inBlock);
             Assert.Equal("%<\\AcObjProp Object(%<\\_ObjId 2130>%).Length>% long", inBlock.GetMTextWithFieldCodes());
@@ -266,7 +356,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Throws<ArgumentNullException>(() => dimension.FieldFromMText(null));
             Assert.Throws<ArgumentException>(() => dimension.FieldFromMText(new DxfMText()));
-            Assert.Throws<ArgumentException>(() => dimension.FieldToMText(ByHandle<DxfMText>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018), "73")));
+            Assert.Throws<ArgumentException>(() =>
+                dimension.FieldToMText(ByHandle<DxfMText>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018), "73"))
+            );
         }
 
         [Fact]
@@ -303,7 +395,17 @@ namespace GeometryHelper.UnitTest.Dxf
             string code = field.GetFieldCode();
 
             Assert.Equal(615, code.Length);
-            Assert.Contains("  2\n" + code.Substring(0, 250) + "\n  3\n" + code.Substring(250, 250) + "\n  3\n" + code.Substring(500) + "\n 90\n1\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                "  2\n"
+                    + code.Substring(0, 250)
+                    + "\n  3\n"
+                    + code.Substring(250, 250)
+                    + "\n  3\n"
+                    + code.Substring(500)
+                    + "\n 90\n1\n",
+                record,
+                StringComparison.Ordinal
+            );
             DxfMText read = ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73");
             Assert.Equal(code, read.GetField().GetFieldCode());
             Assert.Equal(words, read.GetMTextWithFieldCodes());
@@ -319,7 +421,13 @@ namespace GeometryHelper.UnitTest.Dxf
             string record = Records(saved).Single(r => HandleOf(r) == expression.Handle);
 
             // The expression names the text field as its child, and the text field it: a ring.
-            string ring = saved.Replace(record, record.Replace("  2\n\\AcExpr (1)\n 90\n0\n", "  2\n\\AcExpr (%<\\_FldIdx 0>%)\n 90\n1\n360\n" + top.Handle + "\n"));
+            string ring = saved.Replace(
+                record,
+                record.Replace(
+                    "  2\n\\AcExpr (1)\n 90\n0\n",
+                    "  2\n\\AcExpr (%<\\_FldIdx 0>%)\n 90\n1\n360\n" + top.Handle + "\n"
+                )
+            );
             DxfMText mtext = ByHandle<DxfMText>(DxfDatabase.Parse(ring), "73");
 
             Assert.Equal("x %<\\AcExpr (%<\\_FldIdx 0>%)>% y", mtext.GetMTextWithFieldCodes());
@@ -329,7 +437,8 @@ namespace GeometryHelper.UnitTest.Dxf
         public void AChildTheFileHasNot_KeepsItsPlace_AndACopyKeepsThePlaceholdersTrue()
         {
             DxfDatabase made = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
-            DxfField top = ByHandle<DxfMText>(made, "73").SetField(new DxfField("%<\\AcVar Date>% and %<\\AcVar Login>%", true));
+            DxfField top = ByHandle<DxfMText>(made, "73")
+                .SetField(new DxfField("%<\\AcVar Date>% and %<\\AcVar Login>%", true));
             DxfField date = top.GetChildren()[0];
             string saved = made.ToText();
             string record = Records(saved).Single(r => HandleOf(r) == date.Handle);
@@ -349,10 +458,20 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfField copy = dimension.GetField();
             Assert.Equal(new[] { "AcVar" }, copy.GetChildren().Select(c => c.EvaluatorId));
             Assert.Equal("%<\\_FldIdx 1>% and %<\\_FldIdx 0>%", copy.GetFieldCode());
-            Assert.Contains(" 90\n1\n360\n" + copy.GetChildren()[0].Handle + "\n 97\n", Records(db.ToText()).Single(r => HandleOf(r) == copy.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                " 90\n1\n360\n" + copy.GetChildren()[0].Handle + "\n 97\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == copy.Handle),
+                StringComparison.Ordinal
+            );
 
             string fields = Records(saved).Single(r => r.Contains("\n  3\nTEXT\n360\n" + top.Handle + "\n"));
-            string owned = saved.Replace(record, record.Replace("330\n" + top.Handle + "\n100\nAcDbField", "330\n" + HandleOf(fields) + "\n100\nAcDbField"));
+            string owned = saved.Replace(
+                record,
+                record.Replace(
+                    "330\n" + top.Handle + "\n100\nAcDbField",
+                    "330\n" + HandleOf(fields) + "\n100\nAcDbField"
+                )
+            );
             DxfDatabase other = DxfDatabase.Parse(owned);
             DxfMText text = ByHandle<DxfMText>(other, "73");
             ByHandle<DxfDimension>(other, "75").FieldFromMText(text);
@@ -377,13 +496,26 @@ namespace GeometryHelper.UnitTest.Dxf
 
             for (int k = 0; k < depth; k++)
             {
-                string handle = k == 0 ? first.Handle : "FF0" + k.ToString("X2", System.Globalization.CultureInfo.InvariantCulture);
-                string owner = k == 0 ? top.Handle : "FF0" + (k - 1).ToString("X2", System.Globalization.CultureInfo.InvariantCulture);
+                string handle =
+                    k == 0 ? first.Handle : "FF0" + k.ToString("X2", System.Globalization.CultureInfo.InvariantCulture);
+                string owner =
+                    k == 0
+                        ? top.Handle
+                        : "FF0" + (k - 1).ToString("X2", System.Globalization.CultureInfo.InvariantCulture);
                 string next = "FF0" + (k + 1).ToString("X2", System.Globalization.CultureInfo.InvariantCulture);
                 bool last = k == depth - 1;
-                chain.Append("  0\nFIELD\n  5\n").Append(handle).Append("\n330\n").Append(owner).Append("\n100\nAcDbField\n  1\nAcExpr\n  2\n")
-                    .Append(last ? "\\AcExpr (1)" : "\\AcExpr (%<\\_FldIdx 0>% + %<\\_FldIdx 1>%)").Append("\n 90\n").Append(last ? "0" : "2").Append('\n')
-                    .Append(last ? string.Empty : "360\n" + next + "\n360\n" + next + "\n").Append(" 97\n0\n");
+                chain
+                    .Append("  0\nFIELD\n  5\n")
+                    .Append(handle)
+                    .Append("\n330\n")
+                    .Append(owner)
+                    .Append("\n100\nAcDbField\n  1\nAcExpr\n  2\n")
+                    .Append(last ? "\\AcExpr (1)" : "\\AcExpr (%<\\_FldIdx 0>% + %<\\_FldIdx 1>%)")
+                    .Append("\n 90\n")
+                    .Append(last ? "0" : "2")
+                    .Append('\n')
+                    .Append(last ? string.Empty : "360\n" + next + "\n360\n" + next + "\n")
+                    .Append(" 97\n0\n");
             }
 
             DxfDatabase db = DxfDatabase.Parse(saved.Replace(record, chain.ToString()));
@@ -397,7 +529,11 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfField copy = ByHandle<DxfDimension>(db, "75").GetField().GetChildren()[0];
             Assert.Equal("\\AcExpr (%<\\_FldIdx 0>% + %<\\_FldIdx 2>%)", copy.GetFieldCode());
             Assert.Single(copy.GetChildren());
-            Assert.Contains(" 90\n1\n360\n" + copy.GetChildren()[0].Handle + "\n 97\n", Records(db.ToText()).Single(r => HandleOf(r) == copy.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                " 90\n1\n360\n" + copy.GetChildren()[0].Handle + "\n 97\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == copy.Handle),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]

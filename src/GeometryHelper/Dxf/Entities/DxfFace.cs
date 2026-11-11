@@ -23,15 +23,15 @@ namespace GeometryHelper.Dxf
     public sealed class DxfFace : DxfEntity
     {
         // The groups of AcDbFace in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 10, 20, 30, 11, 21, 31, 12, 22, 32, 13, 23, 33, 70 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 10, 20, 30, 11, 21, 31, 12, 22, 32, 13, 23, 33, 70 }
+        );
 
         private static readonly GeoPoint3 Origin = new GeoPoint3(0.0, 0.0, 0.0);
 
         /// <summary>Initializes a face whose four corners are at the origin, as AutoCAD's <c>new Face()</c>, on layer 0 in no file; give it its corners with <see cref="SetVertexAt(short, GeoPoint3)"/>.</summary>
         public DxfFace()
-            : this(Origin, Origin, Origin, Origin, true, true, true, true)
-        {
-        }
+            : this(Origin, Origin, Origin, Origin, true, true, true, true) { }
 
         /// <summary>
         /// Initializes a face of three corners, as AutoCAD's <c>new Face(pointer1, pointer2, pointer3, value1, value2, value3,
@@ -45,10 +45,16 @@ namespace GeometryHelper.Dxf
         /// <param name="value3">Whether edge 2 is drawn.</param>
         /// <param name="value4">Whether edge 3, of no length on a triangle, is drawn.</param>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
-        public DxfFace(GeoPoint3 pointer1, GeoPoint3 pointer2, GeoPoint3 pointer3, bool value1, bool value2, bool value3, bool value4)
-            : this(pointer1, pointer2, pointer3, pointer3, value1, value2, value3, value4)
-        {
-        }
+        public DxfFace(
+            GeoPoint3 pointer1,
+            GeoPoint3 pointer2,
+            GeoPoint3 pointer3,
+            bool value1,
+            bool value2,
+            bool value3,
+            bool value4
+        )
+            : this(pointer1, pointer2, pointer3, pointer3, value1, value2, value3, value4) { }
 
         /// <summary>
         /// Initializes a face of four corners, as AutoCAD's <c>new Face(pointer1, pointer2, pointer3, pointer4, value1, value2,
@@ -63,15 +69,26 @@ namespace GeometryHelper.Dxf
         /// <param name="value3">Whether edge 2 is drawn.</param>
         /// <param name="value4">Whether edge 3 is drawn.</param>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
-        public DxfFace(GeoPoint3 pointer1, GeoPoint3 pointer2, GeoPoint3 pointer3, GeoPoint3 pointer4, bool value1, bool value2, bool value3, bool value4)
-            : base("3DFACE", Groups(new[] { pointer1, pointer2, pointer3, pointer4 }, (value1 ? 0 : 1) | (value2 ? 0 : 2) | (value3 ? 0 : 4) | (value4 ? 0 : 8)))
-        {
-        }
+        public DxfFace(
+            GeoPoint3 pointer1,
+            GeoPoint3 pointer2,
+            GeoPoint3 pointer3,
+            GeoPoint3 pointer4,
+            bool value1,
+            bool value2,
+            bool value3,
+            bool value4
+        )
+            : base(
+                "3DFACE",
+                Groups(
+                    new[] { pointer1, pointer2, pointer3, pointer4 },
+                    (value1 ? 0 : 1) | (value2 ? 0 : 2) | (value3 ? 0 : 4) | (value4 ? 0 : 8)
+                )
+            ) { }
 
         private DxfFace(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets a corner of the face in the world (groups 10 + index, 20 + index, 30 + index), as AutoCAD's <c>GetVertexAt</c>:
@@ -172,7 +189,10 @@ namespace GeometryHelper.Dxf
 
                 if (corner.Z != 0.0)
                 {
-                    throw new InvalidOperationException(TypeAndHandle + " does not lie on the floor, the XY plane at height nought, as ToGeoPolygon2 asks: ToGeoPolygon3 gives it in space.");
+                    throw new InvalidOperationException(
+                        TypeAndHandle
+                            + " does not lie on the floor, the XY plane at height nought, as ToGeoPolygon2 asks: ToGeoPolygon3 gives it in space."
+                    );
                 }
 
                 plan[i] = new GeoPoint2(corner.X, corner.Y);
@@ -184,7 +204,12 @@ namespace GeometryHelper.Dxf
         /// <summary>The polygon of the face as the reader reads it within a tolerance: its face's boundary, or its triangle's corners.</summary>
         private GeoPolygon3 Polygon(string method, Tolerance tolerance)
         {
-            object shape = ShapeAs<object>(method, false, tolerance, kind: read => TypeAndHandle + " is no one polygon: the reader cuts it into two triangles, which GetGeometry gives, " + WhyCut(read, tolerance) + ".");
+            object shape = ShapeAs<object>(method, false, tolerance, kind: read =>
+                TypeAndHandle
+                + " is no one polygon: the reader cuts it into two triangles, which GetGeometry gives, "
+                + WhyCut(read, tolerance)
+                + "."
+            );
 
             if (shape is GeoFace3 face)
             {
@@ -199,7 +224,9 @@ namespace GeometryHelper.Dxf
             }
             catch (ArgumentException)
             {
-                throw new InvalidOperationException(TypeAndHandle + " encloses no area within the tolerance: its corners are on one line.");
+                throw new InvalidOperationException(
+                    TypeAndHandle + " encloses no area within the tolerance: its corners are on one line."
+                );
             }
         }
 
@@ -249,7 +276,11 @@ namespace GeometryHelper.Dxf
 
             for (short i = 0; i < 4; i++)
             {
-                parts[i] = PointGroups(10 + i, transform.Transform(GetVertexAt(i)), i == 3 ? GetPoint(12, Origin) : Origin);
+                parts[i] = PointGroups(
+                    10 + i,
+                    transform.Transform(GetVertexAt(i)),
+                    i == 3 ? GetPoint(12, Origin) : Origin
+                );
             }
 
             SetGroups(Join(parts));
@@ -277,7 +308,10 @@ namespace GeometryHelper.Dxf
             {
                 if (!corners[i].IsValid)
                 {
-                    throw new ArgumentException("A corner has to be of finite numbers: " + corners[i] + " is not.", "pointer" + (i + 1).ToString(CultureInfo.InvariantCulture));
+                    throw new ArgumentException(
+                        "A corner has to be of finite numbers: " + corners[i] + " is not.",
+                        "pointer" + (i + 1).ToString(CultureInfo.InvariantCulture)
+                    );
                 }
 
                 groups.Add(new DxfTypedValue(10 + i, Numbers.Exact(corners[i].X + 0.0)));

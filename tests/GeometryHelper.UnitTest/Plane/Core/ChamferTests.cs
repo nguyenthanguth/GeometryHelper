@@ -14,8 +14,13 @@ namespace GeometryHelper.UnitTest.Plane
     /// </summary>
     public class ChamferTests
     {
-        private static GeoPolygon2 Rectangle(double width = 100, double height = 60) => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(width, 0), new GeoPoint2(width, height), new GeoPoint2(0, height));
+        private static GeoPolygon2 Rectangle(double width = 100, double height = 60) =>
+            new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(width, 0),
+                new GeoPoint2(width, height),
+                new GeoPoint2(0, height)
+            );
 
         [Fact]
         public void ARectangleChamferedAtEveryCornerComesBackAnOctagon()
@@ -56,7 +61,11 @@ namespace GeometryHelper.UnitTest.Plane
         public void AChainKeepsItsEndPointsAndCutsOnlyWhereItTurns()
         {
             var chain = new GeoPolyline2(
-                new GeoPoint2(0, 0), new GeoPoint2(50, 0), new GeoPoint2(50, 40), new GeoPoint2(90, 40));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(50, 0),
+                new GeoPoint2(50, 40),
+                new GeoPoint2(90, 40)
+            );
 
             GeoPolyline2 cut = chain.Chamfer(10.0);
 
@@ -73,7 +82,11 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The short edge is 8 long, so a cut of 10 cannot be measured along it.
             var chain = new GeoPolyline2(
-                new GeoPoint2(0, 0), new GeoPoint2(50, 0), new GeoPoint2(50, 8), new GeoPoint2(100, 8));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(50, 0),
+                new GeoPoint2(50, 8),
+                new GeoPoint2(100, 8)
+            );
 
             GeoPolyline2 cut = chain.Chamfer(10.0);
 
@@ -87,8 +100,12 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The middle edge is 30 long; two cuts of 20 would need 40 of it.
             var chain = new GeoPolyline2(
-                new GeoPoint2(0, 0), new GeoPoint2(60, 0), new GeoPoint2(60, 30), new GeoPoint2(0, 30),
-                new GeoPoint2(0, 90));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(60, 0),
+                new GeoPoint2(60, 30),
+                new GeoPoint2(0, 30),
+                new GeoPoint2(0, 90)
+            );
 
             GeoPolyline2 cut = chain.Chamfer(20.0);
 
@@ -108,7 +125,11 @@ namespace GeometryHelper.UnitTest.Plane
         public void AStraightCornerHasNothingToCutOff()
         {
             var chain = new GeoPolyline2(
-                new GeoPoint2(0, 0), new GeoPoint2(50, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 50));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(50, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 50)
+            );
 
             GeoPolyline2 cut = chain.Chamfer(10.0);
 
@@ -122,8 +143,13 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // A shape with corners that compete for the same edges, so the dropping rule has work to do.
             var shape = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(40, 0), new GeoPoint2(55, 0), new GeoPoint2(70, 0),
-                new GeoPoint2(70, 50), new GeoPoint2(0, 50));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(40, 0),
+                new GeoPoint2(55, 0),
+                new GeoPoint2(70, 0),
+                new GeoPoint2(70, 50),
+                new GeoPoint2(0, 50)
+            );
 
             GeoPolygon2 first = shape.Chamfer(12.0);
 
@@ -141,7 +167,11 @@ namespace GeometryHelper.UnitTest.Plane
             // Corners 12 apart along one edge, cut 5 each: both fit on the original edge (5 + 5 <= 12),
             // and neither measurement is taken on an edge the other has already shortened.
             var chain = new GeoPolyline2(
-                new GeoPoint2(0, 0), new GeoPoint2(0, 20), new GeoPoint2(12, 20), new GeoPoint2(12, 0));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(0, 20),
+                new GeoPoint2(12, 20),
+                new GeoPoint2(12, 0)
+            );
 
             GeoPolyline2 cut = chain.Chamfer(5.0);
 
@@ -193,7 +223,9 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.True(Corner2.Chamfer(rectangle, 8.0).IsEqualTo(rectangle.Chamfer(8.0)));
             Assert.True(Corner2.Chamfer(rectangle, 8.0, 4.0).IsEqualTo(rectangle.Chamfer(8.0, 4.0)));
-            Assert.True(Corner2.Chamfer(rectangle, 8.0, Tolerance.Global).IsEqualTo(rectangle.Chamfer(8.0, Tolerance.Global)));
+            Assert.True(
+                Corner2.Chamfer(rectangle, 8.0, Tolerance.Global).IsEqualTo(rectangle.Chamfer(8.0, Tolerance.Global))
+            );
         }
 
         [Fact]
@@ -203,13 +235,18 @@ namespace GeometryHelper.UnitTest.Plane
             // operations, with no flattening and no tolerance to choose.
             GeoPolygon2 plate = Rectangle(200, 120).Chamfer(15.0);
             var opening = new GeoPolygon2(
-                new GeoPoint2(50, 40), new GeoPoint2(80, 40), new GeoPoint2(80, 70), new GeoPoint2(50, 70));
+                new GeoPoint2(50, 40),
+                new GeoPoint2(80, 40),
+                new GeoPoint2(80, 70),
+                new GeoPoint2(50, 70)
+            );
 
             GeoFace2[] pierced = Boolean2.Subtract(plate, opening);
 
             Assert.Single(pierced);
             Assert.Equal(plate.Area - 900.0, pierced[0].Area, 6);
         }
+
         [Fact]
         public void AChamferThatFitsExactlyIsNotLostToRounding()
         {

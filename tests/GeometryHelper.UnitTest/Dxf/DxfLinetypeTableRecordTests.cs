@@ -28,7 +28,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 db.LinetypeTable.Add(gas);
 
                 string saved = db.ToText();
-                Assert.Contains(" 49\n0.5\n 74\n0\n 49\n-0.2\n 74\n3\n 75\n0\n340\n29\n 46\n0.1\n 50\n29.999999999999996\n 44\n-0.1\n 45\n-0.05\n  9\nGAS\n 49\n-0.25\n 74\n0\n", Records(saved).Single(r => r.Contains("\nGH_GAS\n")), StringComparison.Ordinal);
+                Assert.Contains(
+                    " 49\n0.5\n 74\n0\n 49\n-0.2\n 74\n3\n 75\n0\n340\n29\n 46\n0.1\n 50\n29.999999999999996\n 44\n-0.1\n 45\n-0.05\n  9\nGAS\n 49\n-0.25\n 74\n0\n",
+                    Records(saved).Single(r => r.Contains("\nGH_GAS\n")),
+                    StringComparison.Ordinal
+                );
                 DxfLinetypeTableRecord read = DxfDatabase.Parse(saved).LinetypeTable["GH_GAS"];
                 Assert.Equal(3, read.NumDashes);
                 Assert.Equal("29", read.ShapeStyleAt(1).Handle);
@@ -75,7 +79,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, gas.Handle);
-            Assert.Contains(" 49\n0.75\n 74\n0\n 49\n-0.2\n 74\n2\n 75\n0\n340\n29\n 46\n0.1\n 50\n90\n 44\n-0.1\n 45\n-0.05\n  9\nHW\n 49\n-0.25\n 74\n0\n", Records(saved).Single(r => HandleOf(r) == gas.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                " 49\n0.75\n 74\n0\n 49\n-0.2\n 74\n2\n 75\n0\n340\n29\n 46\n0.1\n 50\n90\n 44\n-0.1\n 45\n-0.05\n  9\nHW\n 49\n-0.25\n 74\n0\n",
+                Records(saved).Single(r => HandleOf(r) == gas.Handle),
+                StringComparison.Ordinal
+            );
 
             // A shape in the place of the text: the shape's number, the dash one of a shape (74 of 4), its text gone.
             gas.SetTextAt(1, string.Empty);
@@ -83,11 +91,17 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfLinetypeTableRecord read = DxfDatabase.Parse(db.ToText()).LinetypeTable["GH_GAS"];
             Assert.Equal(132, read.ShapeNumberAt(1));
             Assert.Equal(string.Empty, read.TextAt(1));
-            Assert.Contains(" 74\n4\n 75\n132\n", Records(db.ToText()).Single(r => HandleOf(r) == gas.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                " 74\n4\n 75\n132\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == gas.Handle),
+                StringComparison.Ordinal
+            );
 
             Assert.Throws<ArgumentOutOfRangeException>(() => gas.SetTextAt(3, "X"));
             Assert.Throws<ArgumentOutOfRangeException>(() => gas.SetShapeNumberAt(0, -1));
-            Assert.Throws<ArgumentException>(() => gas.SetShapeStyleAt(0, new DxfTextStyleTableRecord { Name = "free" }));
+            Assert.Throws<ArgumentException>(() =>
+                gas.SetShapeStyleAt(0, new DxfTextStyleTableRecord { Name = "free" })
+            );
             Assert.Throws<InvalidOperationException>(() => gas.NumDashes = 4);
         }
 
@@ -103,7 +117,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<InvalidOperationException>(() => dashed.SetTextAt(0, "X"));
             Assert.Throws<InvalidOperationException>(() => dashed.SetShapeScaleAt(0, 2.0));
             dashed.SetDashLengthAt(1, -0.5);
-            Assert.Contains(" 49\n0.5\n 49\n-0.5\n", Records(db.ToText()).Single(r => r.Contains("\nGH_DASHED\n")), StringComparison.Ordinal);
+            Assert.Contains(
+                " 49\n0.5\n 49\n-0.5\n",
+                Records(db.ToText()).Single(r => r.Contains("\nGH_DASHED\n")),
+                StringComparison.Ordinal
+            );
 
             DxfDatabase other = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             Assert.Throws<ArgumentException>(() => db.LinetypeTable.Add(Gas(other.TextStyleTable["Standard"])));
@@ -142,7 +160,12 @@ namespace GeometryHelper.UnitTest.Dxf
         /// <summary>AutoCAD's gas line: a dash 0.5, the text GAS in a style 0.1 high, 0.1 back and 0.05 down, turned 30 degrees from the x axis, and a gap.</summary>
         private static DxfLinetypeTableRecord Gas(DxfTextStyleTableRecord style)
         {
-            var gas = new DxfLinetypeTableRecord { Name = "GH_GAS", AsciiDescription = "Gas ----GAS----", NumDashes = 3 };
+            var gas = new DxfLinetypeTableRecord
+            {
+                Name = "GH_GAS",
+                AsciiDescription = "Gas ----GAS----",
+                NumDashes = 3,
+            };
             gas.SetDashLengthAt(0, 0.5);
             gas.SetDashLengthAt(1, -0.2);
             gas.SetTextAt(1, "GAS");

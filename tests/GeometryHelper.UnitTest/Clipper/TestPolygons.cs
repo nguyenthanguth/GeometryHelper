@@ -12,7 +12,9 @@ namespace GeometryHelper.UnitTest.Clipper
     {
         private static bool IsInList(int num, int[] list)
         {
-            foreach (int i in list) if (i == num) return true;
+            foreach (int i in list)
+                if (i == num)
+                    return true;
             return false;
         }
 
@@ -24,12 +26,26 @@ namespace GeometryHelper.UnitTest.Clipper
             {
                 testNum++;
                 Clipper64 c64 = new();
-                Paths64 subj = new(), subj_open = new(), clip = new();
-                Paths64 solution = new(), solution_open = new();
+                Paths64 subj = new(),
+                    subj_open = new(),
+                    clip = new();
+                Paths64 solution = new(),
+                    solution_open = new();
 
-                if (!ClipperFileIO.LoadTestNum(TestFile.Of("Polygons.txt"),
-                  testNum, subj, subj_open, clip, out ClipType clipType, out FillRule fillrule,
-                  out long storedArea, out int storedCount, out _))
+                if (
+                    !ClipperFileIO.LoadTestNum(
+                        TestFile.Of("Polygons.txt"),
+                        testNum,
+                        subj,
+                        subj_open,
+                        clip,
+                        out ClipType clipType,
+                        out FillRule fillrule,
+                        out long storedArea,
+                        out int storedCount,
+                        out _
+                    )
+                )
                 {
                     Assert.True(testNum > 180, string.Format("Loading test polygon {0} failed.", testNum));
                     break;
@@ -84,7 +100,6 @@ namespace GeometryHelper.UnitTest.Clipper
                     else
                         Assert.True(areaDiffRatio <= 0.01, area);
                 }
-
             } //bottom of num loop
         }
 
@@ -95,16 +110,32 @@ namespace GeometryHelper.UnitTest.Clipper
         /// FixSelfIntersects for it after the release (4da1564, #1067); this copy does not take the change, which puts
         /// the union of TestCasesFoundHere 1.2 % over its area.
         /// </summary>
-        [Fact(Skip = "Clipper2 2.0.0 joins the two pieces of test 16 into one. Upstream's fix, 4da1564 (#1067), is not taken: it puts the union of TestCasesFoundHere 1.2 % over.")]
+        [Fact(
+            Skip = "Clipper2 2.0.0 joins the two pieces of test 16 into one. Upstream's fix, 4da1564 (#1067), is not taken: it puts the union of TestCasesFoundHere 1.2 % over."
+        )]
         public void TestClosedPath16()
         {
             Clipper64 c64 = new();
-            Paths64 subj = new(), subj_open = new(), clip = new();
-            Paths64 solution = new(), solution_open = new();
+            Paths64 subj = new(),
+                subj_open = new(),
+                clip = new();
+            Paths64 solution = new(),
+                solution_open = new();
 
-            Assert.True(ClipperFileIO.LoadTestNum(TestFile.Of("Polygons.txt"),
-              16, subj, subj_open, clip, out ClipType clipType, out FillRule fillrule,
-              out long storedArea, out int storedCount, out _));
+            Assert.True(
+                ClipperFileIO.LoadTestNum(
+                    TestFile.Of("Polygons.txt"),
+                    16,
+                    subj,
+                    subj_open,
+                    clip,
+                    out ClipType clipType,
+                    out FillRule fillrule,
+                    out long storedArea,
+                    out int storedCount,
+                    out _
+                )
+            );
 
             c64.AddSubject(subj);
             c64.AddOpenSubject(subj_open);
@@ -113,7 +144,10 @@ namespace GeometryHelper.UnitTest.Clipper
             long measuredArea = (long)Clipper2.Area(solution);
 
             Assert.Equal(storedCount, solution.Count);
-            Assert.True(Math.Abs(storedArea - measuredArea) <= 0.075 * storedArea, $"area {measuredArea}, {storedArea} stored");
+            Assert.True(
+                Math.Abs(storedArea - measuredArea) <= 0.075 * storedArea,
+                $"area {measuredArea}, {storedArea} stored"
+            );
         }
     }
 }

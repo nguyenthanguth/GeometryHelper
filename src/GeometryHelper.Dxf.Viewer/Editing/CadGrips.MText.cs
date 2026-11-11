@@ -11,7 +11,16 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var location = new GeoPoint2(text.Location.X, text.Location.Y);
 
-            if (!IsPlan(text.Normal) || !CadMTextEdit.TryGetGripBox(text, out double left, out double bottom, out double right, out double top))
+            if (
+                !IsPlan(text.Normal)
+                || !CadMTextEdit.TryGetGripBox(
+                    text,
+                    out double left,
+                    out double bottom,
+                    out double right,
+                    out double top
+                )
+            )
             {
                 add(CadGripKind.Insertion, location);
                 return;
@@ -40,7 +49,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// An MTEXT's box with a corner (0 top left, 1 top right, 2 bottom left, 3 bottom right) taken to a point: its width
         /// and defined height the box's, its location at the point of the box its attachment names.
         /// </summary>
-        private static CadEditResult ResizeMText(CadDocument document, DxfMText text, string handle, string property, string was, string went, int corner, GeoPoint2 to)
+        private static CadEditResult ResizeMText(
+            CadDocument document,
+            DxfMText text,
+            string handle,
+            string property,
+            string was,
+            string went,
+            int corner,
+            GeoPoint2 to
+        )
         {
             if (!CadMTextEdit.TryGetGripBox(text, out double left, out double bottom, out double right, out double top))
             {

@@ -15,7 +15,15 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     public sealed class DxfBlockFlipParameter
     {
-        internal DxfBlockFlipParameter(DxfBlockTableRecord block, int node, string handle, string name, string description, GeoPoint3 basePoint, GeoPoint3 endPoint)
+        internal DxfBlockFlipParameter(
+            DxfBlockTableRecord block,
+            int node,
+            string handle,
+            string name,
+            string description,
+            GeoPoint3 basePoint,
+            GeoPoint3 endPoint
+        )
         {
             Block = block;
             Node = node;

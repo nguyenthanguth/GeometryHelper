@@ -1,11 +1,11 @@
 using System;
 using System.IO;
 using System.Linq;
+using GeometryHelper.Geometry;
 using GeometryHelper.IfcConvert.Converters.Internal;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Core.Internal;
 using GeometryHelper.IfcConvert.Models;
-using GeometryHelper.Geometry;
 using Xbim.Ifc;
 using Xbim.Ifc4.Interfaces;
 using Xunit;
@@ -20,7 +20,8 @@ namespace GeometryHelper.IfcConvert.UnitTest
     public class ConvertOptionsTests
     {
         // Two walls at different positions
-        private const string TwoWallsStep = @"ISO-10303-21;
+        private const string TwoWallsStep =
+            @"ISO-10303-21;
 HEADER;
 FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');
 FILE_NAME('two_walls.ifc','2026-09-18T00:00:00',('Tester'),('TestOrg'),'xBIM','xBIM','');
@@ -77,7 +78,10 @@ END-ISO-10303-21;
                     Assert.True(geom.IsEmpty, "Skipped product should produce empty geometry");
                 }
             }
-            finally { TryDelete(tempFile); }
+            finally
+            {
+                TryDelete(tempFile);
+            }
         }
 
         [Fact]
@@ -105,7 +109,10 @@ END-ISO-10303-21;
                     Assert.NotEmpty(geom.Solids);
                 }
             }
-            finally { TryDelete(tempFile); }
+            finally
+            {
+                TryDelete(tempFile);
+            }
         }
 
         [Fact]
@@ -117,7 +124,10 @@ END-ISO-10303-21;
                 var options = new IfcConvertOptions();
                 options.OnlyNames.Add("Wall_B");
 
-                Assert.True(cache.GetGeometry(WallAGuid, options).IsEmpty, "A product not named should produce empty geometry");
+                Assert.True(
+                    cache.GetGeometry(WallAGuid, options).IsEmpty,
+                    "A product not named should produce empty geometry"
+                );
                 Assert.NotEmpty(cache.GetGeometry(WallBGuid, options).Solids);
             });
         }
@@ -170,11 +180,15 @@ END-ISO-10303-21;
             {
                 // The same product read with two lists: the cache must not hand one list's result to the other.
                 Assert.True(cache.GetGeometry(WallAGuid, new IfcConvertOptions { OnlyNames = { "Wall_B" } }).IsEmpty);
-                Assert.NotEmpty(cache.GetGeometry(WallAGuid, new IfcConvertOptions { OnlyNames = { "Wall_A" } }).Solids);
+                Assert.NotEmpty(
+                    cache.GetGeometry(WallAGuid, new IfcConvertOptions { OnlyNames = { "Wall_A" } }).Solids
+                );
                 Assert.True(cache.GetGeometry(WallAGuid, new IfcConvertOptions { SkipNames = { "Wall_A" } }).IsEmpty);
 
                 // Model-wide, every product is still visited, and those not named come back empty.
-                var byGuid = cache.EnumerateGeometries(new IfcConvertOptions { OnlyNames = { "Wall_B" } }).ToDictionary(g => g.GlobalId);
+                var byGuid = cache
+                    .EnumerateGeometries(new IfcConvertOptions { OnlyNames = { "Wall_B" } })
+                    .ToDictionary(g => g.GlobalId);
                 Assert.True(byGuid[WallAGuid].IsEmpty);
                 Assert.NotEmpty(byGuid[WallBGuid].Solids);
             });
@@ -211,7 +225,10 @@ END-ISO-10303-21;
                     test(cache);
                 }
             }
-            finally { TryDelete(tempFile); }
+            finally
+            {
+                TryDelete(tempFile);
+            }
         }
 
         [Fact]
@@ -241,7 +258,10 @@ END-ISO-10303-21;
                     Assert.True(centroid.Z > 1.0, $"Global Z centroid should be ~6, but was {centroid.Z}");
                 }
             }
-            finally { TryDelete(tempFile); }
+            finally
+            {
+                TryDelete(tempFile);
+            }
         }
 
         [Fact]
@@ -271,7 +291,10 @@ END-ISO-10303-21;
                     Assert.True(Math.Abs(centroid.X) < 2.0, $"Local X centroid should be near 0, but was {centroid.X}");
                 }
             }
-            finally { TryDelete(tempFile); }
+            finally
+            {
+                TryDelete(tempFile);
+            }
         }
 
         [Fact]
@@ -290,17 +313,23 @@ END-ISO-10303-21;
                     var optsLocal = new IfcConvertOptions { CoordinateSpace = CoordinateSpace.Local };
 
                     GeoSolid3 globalSolid = model.GetSolid(WallBGuid, optsGlobal);
-                    GeoSolid3 localSolid  = model.GetSolid(WallBGuid, optsLocal);
+                    GeoSolid3 localSolid = model.GetSolid(WallBGuid, optsLocal);
 
                     Assert.NotNull(globalSolid);
                     Assert.NotNull(localSolid);
 
                     // The X centroids must differ because placement offset is (10, 0, 5)
                     double deltaX = Math.Abs(globalSolid.GetCentroid().X - localSolid.GetCentroid().X);
-                    Assert.True(deltaX > 5.0, $"Centroid X difference between Global and Local should be large (>5), was {deltaX}");
+                    Assert.True(
+                        deltaX > 5.0,
+                        $"Centroid X difference between Global and Local should be large (>5), was {deltaX}"
+                    );
                 }
             }
-            finally { TryDelete(tempFile); }
+            finally
+            {
+                TryDelete(tempFile);
+            }
         }
 
         // ─── IfcProductMetadata ───────────────────────────────────────────────────
@@ -367,7 +396,10 @@ END-ISO-10303-21;
                     Assert.Equal(guids.Count, guids.Distinct().Count());
                 }
             }
-            finally { TryDelete(tempFile); }
+            finally
+            {
+                TryDelete(tempFile);
+            }
         }
 
         [Fact]
@@ -387,12 +419,20 @@ END-ISO-10303-21;
                     Assert.All(geometries, g => Assert.Equal("IfcWall", g.IfcType));
                 }
             }
-            finally { TryDelete(tempFile); }
+            finally
+            {
+                TryDelete(tempFile);
+            }
         }
 
         private static void TryDelete(string path)
         {
-            try { if (File.Exists(path)) File.Delete(path); } catch { }
+            try
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
+            }
+            catch { }
         }
     }
 }

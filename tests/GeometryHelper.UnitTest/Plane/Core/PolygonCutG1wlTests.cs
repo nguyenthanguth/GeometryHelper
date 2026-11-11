@@ -15,9 +15,15 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class PolygonCutG1wlTests
     {
-        private static readonly Tolerance Hundredth = new Tolerance(1E-2, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-2);
+        private static readonly Tolerance Hundredth = new Tolerance(
+            1E-2,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-2
+        );
 
-        private static GeoPolygon2 Plate() => new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+        private static GeoPolygon2 Plate() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
 
         [Fact]
         public void AChainStartingWithinTheToleranceOfACorner_StartsBothPiecesOnTheCorner()

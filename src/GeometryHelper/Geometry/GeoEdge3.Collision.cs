@@ -1,6 +1,6 @@
 using System;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -19,8 +19,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="box">The axis-aligned box.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoAabb3 box, Tolerance tolerance)
-            => IsArc ? ToArc().CollidesWith(box, tolerance) : ToLine().CollidesWith(box, tolerance);
+        public bool CollidesWith(GeoAabb3 box, Tolerance tolerance) =>
+            IsArc ? ToArc().CollidesWith(box, tolerance) : ToLine().CollidesWith(box, tolerance);
 
         /// <summary>
         /// Checks whether this edge touches an arc.
@@ -32,8 +32,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="arc">The arc.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoArc3 arc, Tolerance tolerance)
-            => IsArc ? ToArc().CollidesWith(arc, tolerance) : ToLine().CollidesWith(arc, tolerance);
+        public bool CollidesWith(GeoArc3 arc, Tolerance tolerance) =>
+            IsArc ? ToArc().CollidesWith(arc, tolerance) : ToLine().CollidesWith(arc, tolerance);
 
         /// <summary>
         /// Checks whether this edge touches a circle.
@@ -45,8 +45,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="circle">The circle.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoCircle3 circle, Tolerance tolerance)
-            => IsArc ? ToArc().CollidesWith(circle, tolerance) : ToLine().CollidesWith(circle, tolerance);
+        public bool CollidesWith(GeoCircle3 circle, Tolerance tolerance) =>
+            IsArc ? ToArc().CollidesWith(circle, tolerance) : ToLine().CollidesWith(circle, tolerance);
 
         /// <summary>
         /// Checks whether this edge touches a face.
@@ -58,8 +58,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="face">The face.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoFace3 face, Tolerance tolerance)
-            => IsArc ? ToArc().CollidesWith(face, tolerance) : ToLine().CollidesWith(face, tolerance);
+        public bool CollidesWith(GeoFace3 face, Tolerance tolerance) =>
+            IsArc ? ToArc().CollidesWith(face, tolerance) : ToLine().CollidesWith(face, tolerance);
 
         /// <summary>
         /// Checks whether this edge touches an oriented box.
@@ -71,8 +71,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="box">The oriented box.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoObb3 box, Tolerance tolerance)
-            => IsArc ? ToArc().CollidesWith(box, tolerance) : ToLine().CollidesWith(box, tolerance);
+        public bool CollidesWith(GeoObb3 box, Tolerance tolerance) =>
+            IsArc ? ToArc().CollidesWith(box, tolerance) : ToLine().CollidesWith(box, tolerance);
 
         /// <summary>
         /// Checks whether this edge touches a polygon.
@@ -84,8 +84,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="polygon">The polygon.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance)
-            => IsArc ? ToArc().CollidesWith(polygon, tolerance) : ToLine().CollidesWith(polygon, tolerance);
+        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) =>
+            IsArc ? ToArc().CollidesWith(polygon, tolerance) : ToLine().CollidesWith(polygon, tolerance);
 
         /// <summary>
         /// Checks whether this edge touches a solid.
@@ -97,8 +97,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="solid">The solid.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance)
-            => IsArc ? ToArc().CollidesWith(solid, tolerance) : ToLine().CollidesWith(solid, tolerance);
+        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) =>
+            IsArc ? ToArc().CollidesWith(solid, tolerance) : ToLine().CollidesWith(solid, tolerance);
 
         /// <summary>
         /// Checks whether this edge touches a triangle.
@@ -110,8 +110,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="triangle">The triangle.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance)
-            => IsArc ? ToArc().CollidesWith(triangle, tolerance) : ToLine().CollidesWith(triangle, tolerance);
+        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) =>
+            IsArc ? ToArc().CollidesWith(triangle, tolerance) : ToLine().CollidesWith(triangle, tolerance);
 
         /// <summary>
         /// Checks whether this edge touches a plane.
@@ -124,9 +124,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="plane">The plane.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance)
-            => IsArc ? ToArc().CollidesWith(plane, tolerance) : ToLine().CollidesWith(plane, tolerance);
-
+        public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance) =>
+            IsArc ? ToArc().CollidesWith(plane, tolerance) : ToLine().CollidesWith(plane, tolerance);
 
         /// <summary>
         /// Determines whether this edge touches a segment.
@@ -138,8 +137,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="line">The segment.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoLine3 line, Tolerance tolerance)
-            => IsArc ? ToArc().CollidesWith(line, tolerance) : ToLine().CollidesWith(line, tolerance);
+        public bool CollidesWith(GeoLine3 line, Tolerance tolerance) =>
+            IsArc ? ToArc().CollidesWith(line, tolerance) : ToLine().CollidesWith(line, tolerance);
 
         /// <summary>
         /// Determines whether this edge touches a ray.
@@ -151,8 +150,9 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="ray">The ray.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoRay3 ray, Tolerance tolerance)
-            => IsArc ? ToArc().CollidesWith(ray, tolerance) : ToLine().CollidesWith(ray, tolerance);
+        public bool CollidesWith(GeoRay3 ray, Tolerance tolerance) =>
+            IsArc ? ToArc().CollidesWith(ray, tolerance) : ToLine().CollidesWith(ray, tolerance);
+
         /// <summary>
         /// Determines whether this edge touches another edge.
         /// </summary>
@@ -167,8 +167,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="other">The other edge.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoEdge3 other, Tolerance tolerance)
-            => other.IsArc ? CollidesWith(other.ToArc(), tolerance) : CollidesWith(other.ToLine(), tolerance);
+        public bool CollidesWith(GeoEdge3 other, Tolerance tolerance) =>
+            other.IsArc ? CollidesWith(other.ToArc(), tolerance) : CollidesWith(other.ToLine(), tolerance);
 
         /// <summary>
         /// Checks whether this edge touches a straight chain: a bend is asked as an arc and a straight edge as a segment.
@@ -192,8 +192,8 @@ namespace GeometryHelper.Geometry
         /// 0) at the origin.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance)
-            => IsArc ? ToArc().CollidesWith(polyline, tolerance) : ToLine().CollidesWith(polyline, tolerance);
+        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance) =>
+            IsArc ? ToArc().CollidesWith(polyline, tolerance) : ToLine().CollidesWith(polyline, tolerance);
 
         /// <summary>
         /// Checks whether this edge touches a curved chain: a bend is asked as an arc and a straight edge as a segment.
@@ -217,8 +217,8 @@ namespace GeometryHelper.Geometry
         /// origin to (100, 100, 0) at (35.36, 35.36, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance)
-            => IsArc ? ToArc().CollidesWith(chain, tolerance) : ToLine().CollidesWith(chain, tolerance);
+        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance) =>
+            IsArc ? ToArc().CollidesWith(chain, tolerance) : ToLine().CollidesWith(chain, tolerance);
 
         /// <summary>
         /// Checks whether this edge touches a curved loop: a bend is asked as an arc and a straight edge as a segment.
@@ -242,7 +242,7 @@ namespace GeometryHelper.Geometry
         /// with a corner at the origin at (50, 0, 0) and (0, 50, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance)
-            => IsArc ? ToArc().CollidesWith(loop, tolerance) : ToLine().CollidesWith(loop, tolerance);
+        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance) =>
+            IsArc ? ToArc().CollidesWith(loop, tolerance) : ToLine().CollidesWith(loop, tolerance);
     }
 }

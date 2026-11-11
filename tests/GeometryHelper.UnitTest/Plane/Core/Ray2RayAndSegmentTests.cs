@@ -295,11 +295,21 @@ namespace GeometryHelper.UnitTest.Plane
         {
             GeoRay2 ray = AlongX();
 
-            foreach (GeoRay2 other in new[] { new GeoRay2(P(50, -50), GeoVector2.YAxis), new GeoRay2(P(50, 30), GeoVector2.YAxis), new GeoRay2(P(10, 10), -GeoVector2.XAxis) })
+            foreach (
+                GeoRay2 other in new[]
+                {
+                    new GeoRay2(P(50, -50), GeoVector2.YAxis),
+                    new GeoRay2(P(50, 30), GeoVector2.YAxis),
+                    new GeoRay2(P(10, 10), -GeoVector2.XAxis),
+                }
+            )
             {
                 Assert.Equal(ray.CollidesWith(other, Tolerance.Global), ray.CollidesWith(other));
                 Assert.Equal(ray.DistanceTo(other, Tolerance.Global), ray.DistanceTo(other));
-                Assert.Equal(ray.TryIntersectWith(other, out GeoPoint2 within, Tolerance.Global), ray.TryIntersectWith(other, out GeoPoint2 plain));
+                Assert.Equal(
+                    ray.TryIntersectWith(other, out GeoPoint2 within, Tolerance.Global),
+                    ray.TryIntersectWith(other, out GeoPoint2 plain)
+                );
                 Assert.Equal(within, plain);
                 Assert.Equal(ray.GetShortestLineTo(other, Tolerance.Global), ray.GetShortestLineTo(other));
             }
@@ -350,7 +360,9 @@ namespace GeometryHelper.UnitTest.Plane
             // origin; at x = -0.002 it is not, and the segment is 0.002 from the origin.
             GeoRay2 ray = AlongX();
 
-            Assert.True(ray.TryIntersectWith(new GeoLine2(P(-0.0005, -10), P(-0.0005, 10)), out GeoPoint2 crossing, Strict));
+            Assert.True(
+                ray.TryIntersectWith(new GeoLine2(P(-0.0005, -10), P(-0.0005, 10)), out GeoPoint2 crossing, Strict)
+            );
             AssertNear(P(0, 0), crossing);
             Assert.True(ray.CollidesWith(new GeoLine2(P(-0.0005, -10), P(-0.0005, 10)), Strict));
 
@@ -478,11 +490,21 @@ namespace GeometryHelper.UnitTest.Plane
         {
             GeoRay2 ray = AlongX();
 
-            foreach (GeoLine2 segment in new[] { new GeoLine2(P(50, -10), P(50, 10)), new GeoLine2(P(10, 5), P(60, 5)), new GeoLine2(P(-30, -10), P(-30, 10)) })
+            foreach (
+                GeoLine2 segment in new[]
+                {
+                    new GeoLine2(P(50, -10), P(50, 10)),
+                    new GeoLine2(P(10, 5), P(60, 5)),
+                    new GeoLine2(P(-30, -10), P(-30, 10)),
+                }
+            )
             {
                 Assert.Equal(ray.CollidesWith(segment, Tolerance.Global), ray.CollidesWith(segment));
                 Assert.Equal(ray.DistanceTo(segment, Tolerance.Global), ray.DistanceTo(segment));
-                Assert.Equal(ray.TryIntersectWith(segment, out GeoPoint2 within, Tolerance.Global), ray.TryIntersectWith(segment, out GeoPoint2 plain));
+                Assert.Equal(
+                    ray.TryIntersectWith(segment, out GeoPoint2 within, Tolerance.Global),
+                    ray.TryIntersectWith(segment, out GeoPoint2 plain)
+                );
                 Assert.Equal(within, plain);
                 Assert.Equal(ray.GetShortestLineTo(segment, Tolerance.Global), ray.GetShortestLineTo(segment));
             }

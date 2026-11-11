@@ -40,7 +40,8 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             return made;
         }
 
-        private static List<DrawingElement> RunDimensions(ModelDrawing made) => made.Drawing.Elements.Where(e => e.Kind == "Dimension" && e.Id.Contains("/R-1/")).ToList();
+        private static List<DrawingElement> RunDimensions(ModelDrawing made) =>
+            made.Drawing.Elements.Where(e => e.Kind == "Dimension" && e.Id.Contains("/R-1/")).ToList();
 
         [Fact]
         public async Task RunPluginListsTheBoltsOfTheViewTickedAndRunsThePluginAsOneUndoStep()
@@ -52,7 +53,9 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             Assert.True(bench.Workspace.RunPluginCommand.CanExecute(null));
             bench.Workspace.RunPluginCommand.Execute(null);
 
-            DrawingDialogRequestEventArgs request = Assert.Single(bench.Requests, r => r.Kind == DrawingDialogKind.RunPlugin);
+            DrawingDialogRequestEventArgs request = Assert.Single(bench.Requests, r =>
+                r.Kind == DrawingDialogKind.RunPlugin
+            );
             var dialog = Assert.IsType<PluginRunViewModel>(request.Model);
             Assert.Equal("Bolt pitches", dialog.Plugin.Name);
             Assert.Equal(made.Drawing.Views.Select(v => v.Id), dialog.Views.Select(v => v.Id));
@@ -62,7 +65,10 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             Assert.All(dialog.Objects, o => Assert.True(o.IsChecked));
             Assert.Equal("4 of 4 ticked: every one of the view, those an update adds too.", dialog.ObjectsText);
             PluginValueRow rounding = Assert.Single(dialog.Settings);
-            Assert.Equal(("Rounding", "1", "1 by default, from 0.01 to 100"), (rounding.Name, rounding.Text, rounding.RangeText));
+            Assert.Equal(
+                ("Rounding", "1", "1 by default, from 0.01 to 100"),
+                (rounding.Name, rounding.Text, rounding.RangeText)
+            );
 
             rounding.Text = "500";
             Assert.Equal("Rounding has to be a number from 0.01 to 100.", rounding.Error);
@@ -80,7 +86,12 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             Assert.Equal(new[] { new KeyValuePair<string, string>("Rounding", "5") }, run.Settings);
             Assert.NotEmpty(RunDimensions(made));
             Assert.Equal(elements + RunDimensions(made).Count, made.Drawing.Elements.Count);
-            Assert.Contains(bench.Model.History, l => l.StartsWith("Bolt pitches in V-FRONT: " + RunDimensions(made).Count + " elements added, 0 changed", StringComparison.Ordinal));
+            Assert.Contains(bench.Model.History, l =>
+                l.StartsWith(
+                    "Bolt pitches in V-FRONT: " + RunDimensions(made).Count + " elements added, 0 changed",
+                    StringComparison.Ordinal
+                )
+            );
             Assert.Equal("UPDATE", made.Document.NextUndo.Name);
             Assert.Equal("Assembly", made.PresetName);
 
@@ -102,14 +113,21 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             Assert.Equal("3 of 4 ticked: those only.", dialog.ObjectsText);
             Assert.NotNull(dialog.Run());
 
-            Assert.Equal(dialog.Objects.Skip(1).Select(o => o.Id), Assert.Single(made.Drawing.PluginRuns).Inputs.ObjectIds);
+            Assert.Equal(
+                dialog.Objects.Skip(1).Select(o => o.Id),
+                Assert.Single(made.Drawing.PluginRuns).Inputs.ObjectIds
+            );
         }
 
         [Fact]
         public async Task APluginThatFailsIsSaidUnderTheDialogAndOnTheCommandLineAndTheDrawingIsLeftAsItWas()
         {
             var bench = new Bench();
-            ModelDrawing made = await ColumnAsync(bench, new BoltPitches { Fails = true }, new BoltPitches { Name2 = "Broken input", FailsToSay = true });
+            ModelDrawing made = await ColumnAsync(
+                bench,
+                new BoltPitches { Fails = true },
+                new BoltPitches { Name2 = "Broken input", FailsToSay = true }
+            );
             IReadOnlyList<DrawingElement> before = made.Drawing.Elements;
             string undo = made.Document.NextUndo?.Name;
             PluginRunViewModel dialog = bench.Workspace.ShowRunPlugin();
@@ -140,11 +158,16 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             var gate = new TaskCompletionSource<bool>();
             DrawingSettings settings = made.Drawing.Settings;
             settings.Views.Kinds.Add(ViewKind.Isometric);
-            Task<UpdateReport> slow = bench.Workspace.ApplySettingsAsync(made, settings, "Changed", async (text, work) =>
-            {
-                await gate.Task;
-                return work();
-            });
+            Task<UpdateReport> slow = bench.Workspace.ApplySettingsAsync(
+                made,
+                settings,
+                "Changed",
+                async (text, work) =>
+                {
+                    await gate.Task;
+                    return work();
+                }
+            );
 
             Assert.Null(dialog.Run());
 
@@ -168,7 +191,10 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             bench.Model.Execute("PLUGIN");
             Assert.Equal("Plugin name [Bolt pitches] <Bolt pitches>:", bench.Model.Prompt);
             bench.Model.Execute(string.Empty);
-            Assert.StartsWith("View [" + string.Join("/", made.Drawing.Views.Select(v => v.Id)) + "] <", bench.Model.Prompt);
+            Assert.StartsWith(
+                "View [" + string.Join("/", made.Drawing.Views.Select(v => v.Id)) + "] <",
+                bench.Model.Prompt
+            );
             bench.Model.Execute("V-FRONT");
             Assert.Equal("Rounding, from 0.01 to 100 <1>:", bench.Model.Prompt);
             bench.Model.Execute("500");
@@ -185,7 +211,9 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             Assert.Equal(("Bolt pitches", "V-FRONT"), (kept.Plugin, kept.ViewId));
             Assert.Equal(new[] { new KeyValuePair<string, string>("Rounding", "2") }, kept.Settings);
             Assert.Equal("UPDATE", made.Document.NextUndo.Name);
-            Assert.Contains(bench.Model.History, l => l.StartsWith("Bolt pitches in V-FRONT: ", StringComparison.Ordinal));
+            Assert.Contains(bench.Model.History, l =>
+                l.StartsWith("Bolt pitches in V-FRONT: ", StringComparison.Ordinal)
+            );
         }
 
         [Fact]
@@ -197,7 +225,10 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             bench.Model.Execute("PLUGIN");
 
             Assert.False(bench.Model.IsCommandRunning);
-            Assert.Contains("No drawing plugin is loaded: load one with PLUGINLOAD, or in the Plugin manager.", bench.Model.History);
+            Assert.Contains(
+                "No drawing plugin is loaded: load one with PLUGINLOAD, or in the Plugin manager.",
+                bench.Model.History
+            );
             Assert.Null(bench.Workspace.ShowRunPlugin());
             Assert.DoesNotContain(bench.Requests, r => r.Kind == DrawingDialogKind.RunPlugin);
         }
@@ -247,7 +278,15 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
                 settings.Rounding = context.Setting("Rounding");
                 settings.Overall = settings.Chain = settings.Cumulative = settings.Ordinate = false;
                 settings.HolesByGroup = true;
-                context.AddDimensions(Annotator.Dimension(context.View.Lines, objects, context.View.Frame.CoordinateSystem, settings, context.Tolerance));
+                context.AddDimensions(
+                    Annotator.Dimension(
+                        context.View.Lines,
+                        objects,
+                        context.View.Frame.CoordinateSystem,
+                        settings,
+                        context.Tolerance
+                    )
+                );
             }
         }
     }

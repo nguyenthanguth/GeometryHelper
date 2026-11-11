@@ -56,7 +56,12 @@ namespace GeometryHelper.Dxf
         /// its edge flag (172) taken out, then the line's put in with their flags and the edge flag; the groups as they are
         /// where it held none and is given none.
         /// </summary>
-        private static List<KeyValuePair<int, string>> WithLine(List<KeyValuePair<int, string>> groups, int edge, CellLine line, bool valued)
+        private static List<KeyValuePair<int, string>> WithLine(
+            List<KeyValuePair<int, string>> groups,
+            int edge,
+            CellLine line,
+            bool valued
+        )
         {
             CellView cell = View(groups);
             int mask = CellView.EdgeFlags(edge);
@@ -102,7 +107,10 @@ namespace GeometryHelper.Dxf
 
             if (flags.HasValue && (flags.Value | flagged) != flags.Value)
             {
-                cell.SetHead(cell.Head(91) != null ? 91 : 177, (flags.Value | flagged).ToString(CultureInfo.InvariantCulture));
+                cell.SetHead(
+                    cell.Head(91) != null ? 91 : 177,
+                    (flags.Value | flagged).ToString(CultureInfo.InvariantCulture)
+                );
                 cell = View(cell.Groups.List);
             }
 
@@ -136,8 +144,14 @@ namespace GeometryHelper.Dxf
             internal CellLine RightOfCorner { get; set; }
 
             /// <summary>A new cell of a column put in, given the title's top line in the title's row and the line under it in the next.</summary>
-            internal List<KeyValuePair<int, string>> NewCell(List<KeyValuePair<int, string>> cell, int row, bool valued)
-                => row == 0 ? WithLine(cell, 0, Top, valued) : row == 1 ? WithLine(cell, 0, Under, valued) : cell;
+            internal List<KeyValuePair<int, string>> NewCell(
+                List<KeyValuePair<int, string>> cell,
+                int row,
+                bool valued
+            ) =>
+                row == 0 ? WithLine(cell, 0, Top, valued)
+                : row == 1 ? WithLine(cell, 0, Under, valued)
+                : cell;
         }
 
         /// <summary>The title merged across the table merged anew, as <see cref="TitleMerge"/> tells it.</summary>
@@ -179,17 +193,28 @@ namespace GeometryHelper.Dxf
         /// new row across as its row 2 or its title was, and its <c>InsertColumnsAndInherit</c> the new column down as its (1, 1)
         /// was (D28d m1 to m3, i1, i3, i4); those copied, as they stand in the table after.
         /// </summary>
-        private static List<DxfCellRange> MergesAlong(List<DxfCellRange> found, bool rowsOf, int inheritFrom, int at, int count, List<DxfCellRange> blocks)
+        private static List<DxfCellRange> MergesAlong(
+            List<DxfCellRange> found,
+            bool rowsOf,
+            int inheritFrom,
+            int at,
+            int count,
+            List<DxfCellRange> blocks
+        )
         {
             var copied = new List<DxfCellRange>();
 
             foreach (DxfCellRange b in found)
             {
-                bool along = rowsOf ? b.TopRow == inheritFrom && b.BottomRow == inheritFrom : b.LeftColumn == inheritFrom && b.RightColumn == inheritFrom;
+                bool along = rowsOf
+                    ? b.TopRow == inheritFrom && b.BottomRow == inheritFrom
+                    : b.LeftColumn == inheritFrom && b.RightColumn == inheritFrom;
 
                 for (int line = at; along && line < at + count; line++)
                 {
-                    var block = rowsOf ? new DxfCellRange(line, b.LeftColumn, line, b.RightColumn) : new DxfCellRange(b.TopRow, line, b.BottomRow, line);
+                    var block = rowsOf
+                        ? new DxfCellRange(line, b.LeftColumn, line, b.RightColumn)
+                        : new DxfCellRange(b.TopRow, line, b.BottomRow, line);
 
                     if (!blocks.Exists(other => Meets(other, block)))
                     {
@@ -220,7 +245,16 @@ namespace GeometryHelper.Dxf
         /// again (D28e s4). The cells are changed in place; the head is written after the record
         /// (<see cref="RowKinds.WriteHead"/>). Null where nothing changes.
         /// </summary>
-        private RowKinds Kinds(Layout layout, List<KeyValuePair<int, string>>[] cells, int columns, int at, int count, int inheritFrom, bool valued, bool mayDrop = true)
+        private RowKinds Kinds(
+            Layout layout,
+            List<KeyValuePair<int, string>>[] cells,
+            int columns,
+            int at,
+            int count,
+            int inheritFrom,
+            bool valued,
+            bool mayDrop = true
+        )
         {
             bool titleOn = !IsTitleSuppressed;
             bool headerOn = !IsHeaderSuppressed;
@@ -237,7 +271,11 @@ namespace GeometryHelper.Dxf
 
             for (int r = 0; r < rows; r++)
             {
-                kinds[r] = r < at ? kept[r] : r >= at + count ? kept[r - count] : inheritFrom >= 0 ? kept[inheritFrom] : NewKind(layout.Rows, r - at);
+                kinds[r] =
+                    r < at ? kept[r]
+                    : r >= at + count ? kept[r - count]
+                    : inheritFrom >= 0 ? kept[inheritFrom]
+                    : NewKind(layout.Rows, r - at);
             }
 
             bool titleNow = kinds[0] == 0;
@@ -249,10 +287,23 @@ namespace GeometryHelper.Dxf
             // was in its place; one out of it already has them, as AutoCAD gave them when it went out.
             Func<int, bool> movedOut = r =>
             {
-                int place = titleNow && r == 0 ? 0 : headerNow && r == headerAt ? 1 : 2;
+                int place =
+                    titleNow && r == 0 ? 0
+                    : headerNow && r == headerAt ? 1
+                    : 2;
                 int old = r < at ? r : r - count;
                 bool added = r >= at && r < at + count;
-                return kinds[r] != 2 && kinds[r] != place && (added || kinds[r] == (titleOn && old == 0 ? 0 : headerOn && old == (titleOn ? 1 : 0) ? 1 : 2));
+                return kinds[r] != 2
+                    && kinds[r] != place
+                    && (
+                        added
+                        || kinds[r]
+                            == (
+                                titleOn && old == 0 ? 0
+                                : headerOn && old == (titleOn ? 1 : 0) ? 1
+                                : 2
+                            )
+                    );
             };
 
             for (int r = 0; r < rows && !outOfPlace; r++)
@@ -260,7 +311,8 @@ namespace GeometryHelper.Dxf
                 outOfPlace = movedOut(r);
             }
 
-            List<KeyValuePair<int, string>>[] own = (mayDrop && inheritFrom < 0 && at <= firstData) || outOfPlace ? OwnLooks(layout) : null;
+            List<KeyValuePair<int, string>>[] own =
+                (mayDrop && inheritFrom < 0 && at <= firstData) || outOfPlace ? OwnLooks(layout) : null;
             bool drop = own != null && mayDrop && inheritFrom < 0 && at <= firstData && own[2].Count > 0;
 
             if (!outOfPlace && !drop && titleNow == titleOn && headerNow == headerOn)
@@ -277,7 +329,10 @@ namespace GeometryHelper.Dxf
             {
                 bool added = r >= at && r < at + count;
                 bool keepsTables = !added && RowLooksOf(layout, r < at ? r : r - count) == null;
-                List<KeyValuePair<int, string>> give = movedOut(r) ? looks[kinds[r]] ?? (looks[kinds[r]] = KindLooks(kinds[r], own)) : drop && kinds[r] == 2 && keepsTables ? own[2] : null;
+                List<KeyValuePair<int, string>> give =
+                    movedOut(r) ? looks[kinds[r]] ?? (looks[kinds[r]] = KindLooks(kinds[r], own))
+                    : drop && kinds[r] == 2 && keepsTables ? own[2]
+                    : null;
 
                 for (int c = 0; give != null && give.Count > 0 && c < columns; c++)
                 {
@@ -294,7 +349,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The looks a row keeps of its own (<see cref="_rowLooks"/>), by its place in the layout; null where it keeps the table's own of its kind.</summary>
-        private List<KeyValuePair<int, string>> RowLooksOf(Layout layout, int row) => _rowLooks != null && _rowLooks.Length == layout.Rows ? _rowLooks[row] : null;
+        private List<KeyValuePair<int, string>> RowLooksOf(Layout layout, int row) =>
+            _rowLooks != null && _rowLooks.Length == layout.Rows ? _rowLooks[row] : null;
 
         /// <summary>
         /// Moves the looks each row keeps of its own (<see cref="_rowLooks"/>) with the rows of a table of the rows given, as
@@ -315,7 +371,10 @@ namespace GeometryHelper.Dxf
 
             for (int r = 0; r < moved.Length; r++)
             {
-                moved[r] = r < at ? old?[r] : r < at + put ? looks : old?[r - put + taken];
+                moved[r] =
+                    r < at ? old?[r]
+                    : r < at + put ? looks
+                    : old?[r - put + taken];
             }
 
             _rowLooks = moved;
@@ -327,7 +386,11 @@ namespace GeometryHelper.Dxf
         /// row in its kind's place that keeps looks of its own (<see cref="_rowLooks"/>) given those instead, as AutoCAD 2021
         /// gave each cell the looks of its row (D33g); null where no row has looks.
         /// </summary>
-        private List<KeyValuePair<int, string>>[] WithRowLooks(Layout layout, List<KeyValuePair<int, string>>[] looks, bool[] moved)
+        private List<KeyValuePair<int, string>>[] WithRowLooks(
+            Layout layout,
+            List<KeyValuePair<int, string>>[] looks,
+            bool[] moved
+        )
         {
             for (int r = 0; _rowLooks != null && _rowLooks.Length == layout.Rows && r < layout.Rows; r++)
             {
@@ -386,7 +449,10 @@ namespace GeometryHelper.Dxf
             for (int r = 0; r < kept.Length; r++)
             {
                 string style = styles[r];
-                kept[r] = style == "1" ? 0 : style == "2" ? 1 : 2;
+                kept[r] =
+                    style == "1" ? 0
+                    : style == "2" ? 1
+                    : 2;
             }
 
             bool keptTitle = kept.Length > 0 && kept[0] == 0;
@@ -406,7 +472,13 @@ namespace GeometryHelper.Dxf
             DxfFile.Rec record = file.RecordAt(content, 0);
             ContentKinds kept = _contentKinds;
 
-            if (kept != null && ReferenceEquals(kept.File, file) && ReferenceEquals(kept.Bytes, record.Bytes) && kept.Start == record.Start && kept.End == record.End)
+            if (
+                kept != null
+                && ReferenceEquals(kept.File, file)
+                && ReferenceEquals(kept.Bytes, record.Bytes)
+                && kept.Start == record.Start
+                && kept.End == record.End
+            )
             {
                 return kept;
             }
@@ -481,7 +553,10 @@ namespace GeometryHelper.Dxf
 
             for (int r = 0; r < rows; r++)
             {
-                kinds[r] = titleOn && r == 0 ? 0 : headerOn && r == (titleOn ? 1 : 0) ? 1 : 2;
+                kinds[r] =
+                    titleOn && r == 0 ? 0
+                    : headerOn && r == (titleOn ? 1 : 0) ? 1
+                    : 2;
             }
 
             return kinds;
@@ -500,10 +575,17 @@ namespace GeometryHelper.Dxf
         /// own in <paramref name="cells"/>, the cells of the table after, of the columns given (D33g k02, k05, k06). Null where
         /// nothing changes.
         /// </summary>
-        private RowKinds DeletedKinds(Layout layout, int at, int count, List<KeyValuePair<int, string>>[] cells, int columns)
+        private RowKinds DeletedKinds(
+            Layout layout,
+            int at,
+            int count,
+            List<KeyValuePair<int, string>>[] cells,
+            int columns
+        )
         {
             List<KeyValuePair<int, string>>[] own = OwnLooks(layout);
-            bool keepsOwn = _rowLooks != null && _rowLooks.Length == layout.Rows && Array.Exists(_rowLooks, looks => looks != null);
+            bool keepsOwn =
+                _rowLooks != null && _rowLooks.Length == layout.Rows && Array.Exists(_rowLooks, looks => looks != null);
 
             // Rows taken out after the first two leave the title and the header as they are: the TABLECONTENT is read only where
             // the table has looks of its own a kind could take with it, or a row keeps looks of its own.
@@ -570,16 +652,32 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return drop == 0 && dropped == null && titleNow == titleOn && headerNow == headerOn ? null
-                : new RowKinds(titleOn, titleNow, headerOn, headerNow, drop, dropped, own[2], dropped == null ? null : nextLooks, next - count);
+            return drop == 0 && dropped == null && titleNow == titleOn && headerNow == headerOn
+                ? null
+                : new RowKinds(
+                    titleOn,
+                    titleNow,
+                    headerOn,
+                    headerNow,
+                    drop,
+                    dropped,
+                    own[2],
+                    dropped == null ? null : nextLooks,
+                    next - count
+                );
         }
 
         /// <summary>Whether two lists of looks give the same, each code of the one value, whatever their order.</summary>
-        private static bool SameLooks(List<KeyValuePair<int, string>> a, List<KeyValuePair<int, string>> b)
-            => a.Count == b.Count && a.TrueForAll(look => b.Exists(other => other.Key == look.Key && SameLook(other.Value, look.Value)));
+        private static bool SameLooks(List<KeyValuePair<int, string>> a, List<KeyValuePair<int, string>> b) =>
+            a.Count == b.Count
+            && a.TrueForAll(look => b.Exists(other => other.Key == look.Key && SameLook(other.Value, look.Value)));
 
         /// <summary>A cell's groups given as its own each look given that it has not of its own.</summary>
-        private static List<KeyValuePair<int, string>> WithMissing(List<KeyValuePair<int, string>> groups, List<KeyValuePair<int, string>> looks, bool valued)
+        private static List<KeyValuePair<int, string>> WithMissing(
+            List<KeyValuePair<int, string>> groups,
+            List<KeyValuePair<int, string>> looks,
+            bool valued
+        )
         {
             CellView cell = View(groups);
 
@@ -673,7 +771,15 @@ namespace GeometryHelper.Dxf
 
             for (int rowKind = 0; rowKind < 3; rowKind++)
             {
-                looks[rowKind] = new[] { rowKind == 2 ? "2" : "5", "Standard", "7", "1", "0", ContentNumber(Numbers.Exact(heights[rowKind] + 0.0)) };
+                looks[rowKind] = new[]
+                {
+                    rowKind == 2 ? "2" : "5",
+                    "Standard",
+                    "7",
+                    "1",
+                    "0",
+                    ContentNumber(Numbers.Exact(heights[rowKind] + 0.0)),
+                };
             }
 
             DxfItem style = IsResident ? StyleItem() : null;
@@ -697,7 +803,13 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                int slot = group.TypeCode == 170 ? 0 : group.TypeCode == 7 ? 1 : group.TypeCode == 63 ? 2 : group.TypeCode == 283 ? 3 : group.TypeCode == 62 ? 4 : -1;
+                int slot =
+                    group.TypeCode == 170 ? 0
+                    : group.TypeCode == 7 ? 1
+                    : group.TypeCode == 63 ? 2
+                    : group.TypeCode == 283 ? 3
+                    : group.TypeCode == 62 ? 4
+                    : -1;
 
                 if (slot >= 0)
                 {
@@ -726,7 +838,17 @@ namespace GeometryHelper.Dxf
             private readonly List<KeyValuePair<int, string>> _restore;
             private readonly int _first;
 
-            internal RowKinds(bool titleWas, bool titleNow, bool headerWas, bool headerNow, int drop, bool[] dropped = null, List<KeyValuePair<int, string>> dataLooks = null, List<KeyValuePair<int, string>> restore = null, int first = -1)
+            internal RowKinds(
+                bool titleWas,
+                bool titleNow,
+                bool headerWas,
+                bool headerNow,
+                int drop,
+                bool[] dropped = null,
+                List<KeyValuePair<int, string>> dataLooks = null,
+                List<KeyValuePair<int, string>> restore = null,
+                int first = -1
+            )
             {
                 _titleWas = titleWas;
                 _titleNow = titleNow;
@@ -777,7 +899,12 @@ namespace GeometryHelper.Dxf
             /// </summary>
             internal void WriteHead(DxfTable table)
             {
-                if (_titleWas == _titleNow && _headerWas == _headerNow && _drop == 0 && (_restore == null || _restore.Count == 0))
+                if (
+                    _titleWas == _titleNow
+                    && _headerWas == _headerNow
+                    && _drop == 0
+                    && (_restore == null || _restore.Count == 0)
+                )
                 {
                     return;
                 }
@@ -840,12 +967,22 @@ namespace GeometryHelper.Dxf
                     int[] tail = TailRanks(g, headTo, cellsEnd, out int to);
                     int[] head = HeadRanks(g, headTo, out int ownFrom, out int ownTo);
                     bool inTail = ownTo == ownFrom && Array.Exists(tail, k => k >= 0);
-                    g.Insert(inTail ? PlaceOf(g, tail, cellsEnd, to, look.Key, rank) : PlaceOf(g, head, ownFrom, ownTo, look.Key, rank), look);
+                    g.Insert(
+                        inTail
+                            ? PlaceOf(g, tail, cellsEnd, to, look.Key, rank)
+                            : PlaceOf(g, head, ownFrom, ownTo, look.Key, rank),
+                        look
+                    );
                     headTo += inTail ? 0 : 1;
                     cellsEnd += inTail ? 0 : 1;
                     var range = new DxfDimGroups.Range(g.Sub.From, headTo);
                     bool had = g.Find(93, range) >= 0;
-                    g.Set(93, (g.Whole(93, range, 0) | (1 << rank)).ToString(CultureInfo.InvariantCulture), range, Order);
+                    g.Set(
+                        93,
+                        (g.Whole(93, range, 0) | (1 << rank)).ToString(CultureInfo.InvariantCulture),
+                        range,
+                        Order
+                    );
                     headTo += had ? 0 : 1;
                     cellsEnd += had ? 0 : 1;
                 }
@@ -865,7 +1002,10 @@ namespace GeometryHelper.Dxf
                     int[] head = HeadRanks(g, headTo, out int ownFrom, out int ownTo);
                     int inTail = Array.IndexOf(tail, wanted);
                     int inHead = Array.IndexOf(head, wanted);
-                    int at = inTail >= 0 ? cellsEnd + inTail : inHead >= 0 ? ownFrom + inHead : -1;
+                    int at =
+                        inTail >= 0 ? cellsEnd + inTail
+                        : inHead >= 0 ? ownFrom + inHead
+                        : -1;
                     var range = new DxfDimGroups.Range(g.Sub.From, headTo);
 
                     if (now)
@@ -900,7 +1040,12 @@ namespace GeometryHelper.Dxf
                     cellsEnd++;
                     range = new DxfDimGroups.Range(g.Sub.From, headTo);
                     bool had = g.Find(93, range) >= 0;
-                    g.Set(93, (g.Whole(93, range, 0) | (1 << wanted)).ToString(CultureInfo.InvariantCulture), range, Order);
+                    g.Set(
+                        93,
+                        (g.Whole(93, range, 0) | (1 << wanted)).ToString(CultureInfo.InvariantCulture),
+                        range,
+                        Order
+                    );
                     headTo += had ? 0 : 1;
                     cellsEnd += had ? 0 : 1;
                 }

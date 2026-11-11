@@ -34,7 +34,12 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
         private readonly PropertyInfo _property;
         private readonly object _target;
 
-        internal CadPluginSetting(PropertyInfo property, object target, CadSettingAttribute attribute, CadSettingKind kind)
+        internal CadPluginSetting(
+            PropertyInfo property,
+            object target,
+            CadSettingAttribute attribute,
+            CadSettingKind kind
+        )
         {
             _property = property;
             _target = target;
@@ -86,12 +91,12 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 object value = _property.GetValue(_target, null);
                 return Kind == CadSettingKind.Choice ? value?.ToString() : value;
             }
-
             set => _property.SetValue(_target, Convert(value), null);
         }
 
         /// <inheritdoc/>
-        public override string ToString() => Label + " = " + System.Convert.ToString(Value, CultureInfo.InvariantCulture);
+        public override string ToString() =>
+            Label + " = " + System.Convert.ToString(Value, CultureInfo.InvariantCulture);
 
         /// <summary>The kind of a property's type, or null where a setting cannot have it.</summary>
         internal static CadSettingKind? KindOf(Type type)
@@ -140,7 +145,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
                     if (whole != Math.Floor(whole) || whole < int.MinValue || whole > int.MaxValue)
                     {
-                        throw new ArgumentException("The setting " + Label + " is a whole number, not " + Text(value) + ".", nameof(value));
+                        throw new ArgumentException(
+                            "The setting " + Label + " is a whole number, not " + Text(value) + ".",
+                            nameof(value)
+                        );
                     }
 
                     return (int)whole;
@@ -155,7 +163,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                         return flag;
                     }
 
-                    throw new ArgumentException("The setting " + Label + " is yes or no, not " + Text(value) + ".", nameof(value));
+                    throw new ArgumentException(
+                        "The setting " + Label + " is yes or no, not " + Text(value) + ".",
+                        nameof(value)
+                    );
                 case CadSettingKind.Text:
                     return Text(value);
                 default:
@@ -169,7 +180,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                         }
                     }
 
-                    throw new ArgumentException("The setting " + Label + " is one of " + string.Join(", ", Choices) + ", not " + name + ".", nameof(value));
+                    throw new ArgumentException(
+                        "The setting " + Label + " is one of " + string.Join(", ", Choices) + ", not " + name + ".",
+                        nameof(value)
+                    );
             }
         }
 
@@ -187,7 +201,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             }
             else if (!double.TryParse(Text(value), NumberStyles.Float, CultureInfo.InvariantCulture, out number))
             {
-                throw new ArgumentException("The setting " + Label + " is a number, not " + Text(value) + ".", nameof(value));
+                throw new ArgumentException(
+                    "The setting " + Label + " is a number, not " + Text(value) + ".",
+                    nameof(value)
+                );
             }
 
             return number;
@@ -197,7 +214,11 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
         {
             if (double.IsNaN(number) || double.IsInfinity(number) || number < Minimum || number > Maximum)
             {
-                throw new ArgumentOutOfRangeException(nameof(Value), number, "The setting " + Label + " lies from " + Text(Minimum) + " to " + Text(Maximum) + ".");
+                throw new ArgumentOutOfRangeException(
+                    nameof(Value),
+                    number,
+                    "The setting " + Label + " lies from " + Text(Minimum) + " to " + Text(Maximum) + "."
+                );
             }
 
             return number;

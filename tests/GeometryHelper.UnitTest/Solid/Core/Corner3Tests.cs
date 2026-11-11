@@ -20,15 +20,20 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A right-angled bend in the XY plane, each leg three hundred long.
         /// </summary>
-        private static GeoPolyline3 Elbow() => new GeoPolyline3(
-            new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0), new GeoPoint3(300, 300, 0));
+        private static GeoPolyline3 Elbow() =>
+            new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0), new GeoPoint3(300, 300, 0));
 
         /// <summary>
         /// A bar that turns twice, and the second turn leaves the plane of the first: along X, then along Y,
         /// then up Z. Every leg three hundred long.
         /// </summary>
-        private static GeoPolyline3 Stirrup() => new GeoPolyline3(
-            new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0), new GeoPoint3(300, 300, 0), new GeoPoint3(300, 300, 300));
+        private static GeoPolyline3 Stirrup() =>
+            new GeoPolyline3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(300, 300, 0),
+                new GeoPoint3(300, 300, 300)
+            );
 
         [Fact]
         public void ARightAngledBendBecomesAQuarterTurnOfTheRadiusAsked()
@@ -94,11 +99,21 @@ namespace GeometryHelper.UnitTest.Solid
             // The binding promise: where the chain is flat, space and the plane agree exactly.
             GeoPolylineArc3 space = Stirrup().Fillet(50.0);
             GeoPolyline3 flatInput = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0), new GeoPoint3(300, 300, 0), new GeoPoint3(0, 300, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(300, 300, 0),
+                new GeoPoint3(0, 300, 0)
+            );
 
             GeoPolylineArc3 rounded = flatInput.Fillet(50.0);
-            GeoPolylineArc2 plane = new GeoPolylineArc2(new GeoPolyline2(
-                new GeoPoint2(0, 0), new GeoPoint2(300, 0), new GeoPoint2(300, 300), new GeoPoint2(0, 300))).Fillet(50.0);
+            GeoPolylineArc2 plane = new GeoPolylineArc2(
+                new GeoPolyline2(
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(300, 0),
+                    new GeoPoint2(300, 300),
+                    new GeoPoint2(0, 300)
+                )
+            ).Fillet(50.0);
 
             Assert.Equal(plane.EdgeCount, rounded.EdgeCount);
             Assert.Equal(plane.Length, rounded.Length, 7);
@@ -208,22 +223,31 @@ namespace GeometryHelper.UnitTest.Solid
             var radii = new[] { 0.0, 40.0, 30.0, 0.0 };
 
             Assert.True(Corner3.Fillet(stirrup, 50.0).IsEqualTo(stirrup.Fillet(50.0), Tight));
-            Assert.True(Corner3.Fillet(stirrup, 50.0, Tolerance.Global).IsEqualTo(stirrup.Fillet(50.0, Tolerance.Global), Tight));
+            Assert.True(
+                Corner3.Fillet(stirrup, 50.0, Tolerance.Global).IsEqualTo(stirrup.Fillet(50.0, Tolerance.Global), Tight)
+            );
             Assert.True(Corner3.Fillet(stirrup, radii).IsEqualTo(stirrup.Fillet(radii), Tight));
 
             GeoPolylineArc3 widened = new GeoPolylineArc3(stirrup);
 
             Assert.True(Corner3.Fillet(widened, 50.0).IsEqualTo(widened.Fillet(50.0), Tight));
-            Assert.True(Corner3.Fillet(widened, radii, Tolerance.Global).IsEqualTo(widened.Fillet(radii, Tolerance.Global), Tight));
+            Assert.True(
+                Corner3
+                    .Fillet(widened, radii, Tolerance.Global)
+                    .IsEqualTo(widened.Fillet(radii, Tolerance.Global), Tight)
+            );
 
             Assert.Equal(
                 Corner3.TryFilletAt(stirrup, 1, 50.0, out GeoPolylineArc3 fromStatic),
-                stirrup.TryFilletAt(1, 50.0, out GeoPolylineArc3 fromInstance));
+                stirrup.TryFilletAt(1, 50.0, out GeoPolylineArc3 fromInstance)
+            );
             Assert.True(fromStatic.IsEqualTo(fromInstance, Tight));
 
             Assert.Throws<ArgumentNullException>(() => Corner3.Fillet((GeoPolyline3)null, 50.0));
             Assert.Throws<ArgumentNullException>(() => Corner3.Fillet((GeoPolylineArc3)null, 50.0));
-            Assert.Throws<ArgumentNullException>(() => Corner3.Fillet(stirrup, (System.Collections.Generic.IReadOnlyList<double>)null));
+            Assert.Throws<ArgumentNullException>(() =>
+                Corner3.Fillet(stirrup, (System.Collections.Generic.IReadOnlyList<double>)null)
+            );
             Assert.Throws<ArgumentOutOfRangeException>(() => stirrup.Fillet(0.0));
             Assert.Throws<ArgumentOutOfRangeException>(() => stirrup.Fillet(-1.0));
             Assert.Throws<ArgumentOutOfRangeException>(() => stirrup.Fillet(new[] { 10.0, -5.0 }));

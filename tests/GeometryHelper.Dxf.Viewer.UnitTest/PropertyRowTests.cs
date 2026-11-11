@@ -35,36 +35,67 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             polyline.Closed = true;
             db.ModelSpace.AppendEntity(polyline);
 
-            db.ModelSpace.AppendEntity(new DxfEllipse(new GeoPoint3(100, 0, 0), Up, new GeoVector3(20, 0, 0), 0.5, 0, 2 * Math.PI));
+            db.ModelSpace.AppendEntity(
+                new DxfEllipse(new GeoPoint3(100, 0, 0), Up, new GeoVector3(20, 0, 0), 0.5, 0, 2 * Math.PI)
+            );
 
             var hatch = new DxfHatch();
             hatch.SetHatchPattern(DxfHatchPatternType.UserDefined, "_USER");
             hatch.PatternSpace = 3.0;
-            hatch.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(200, 0), new GeoPoint2(230, 0), new GeoPoint2(230, 20), new GeoPoint2(200, 20) }, null);
+            hatch.AppendLoop(
+                DxfHatchLoopTypes.External,
+                new[] { new GeoPoint2(200, 0), new GeoPoint2(230, 0), new GeoPoint2(230, 20), new GeoPoint2(200, 20) },
+                null
+            );
             db.ModelSpace.AppendEntity(hatch);
 
-            db.ModelSpace.AppendEntity(new DxfMText { Contents = "NOTE", TextHeight = 2.5, Location = new GeoPoint3(0, 100, 0) });
-            db.ModelSpace.AppendEntity(new DxfDBText { TextString = "A", Height = 7, Position = new GeoPoint3(0, 400, 0), Oblique = 0.2, WidthFactor = 0.8 });
+            db.ModelSpace.AppendEntity(
+                new DxfMText
+                {
+                    Contents = "NOTE",
+                    TextHeight = 2.5,
+                    Location = new GeoPoint3(0, 100, 0),
+                }
+            );
+            db.ModelSpace.AppendEntity(
+                new DxfDBText
+                {
+                    TextString = "A",
+                    Height = 7,
+                    Position = new GeoPoint3(0, 400, 0),
+                    Oblique = 0.2,
+                    WidthFactor = 0.8,
+                }
+            );
 
             var block = new DxfBlockTableRecord { Name = "TAG" };
             db.BlockTable.Add(block);
             block.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)));
             var insert = new DxfBlockReference(new GeoPoint3(300, 0, 0), db.BlockTable["TAG"]);
             db.ModelSpace.AppendEntity(insert);
-            insert.AttributeCollection.AppendAttribute(new DxfAttributeReference(new GeoPoint3(300, 0, 0), "B-12", "MARK", null));
+            insert.AttributeCollection.AppendAttribute(
+                new DxfAttributeReference(new GeoPoint3(300, 0, 0), "B-12", "MARK", null)
+            );
 
             return CadDocument.From(DxfDatabase.Parse(db.ToText()), "kinds.dxf");
         }
 
         private static string Handle<T>(CadDocument document)
-            where T : DxfEntity
-            => All<T>(document.ModelSpace).First().Handle;
+            where T : DxfEntity => All<T>(document.ModelSpace).First().Handle;
 
-        private static string Shown(CadDocument document, string handle, string label)
-            => CadProperties.Describe(document, null, new[] { handle }).Groups.SelectMany(g => g.Rows).Single(r => r.Label == label).Value;
+        private static string Shown(CadDocument document, string handle, string label) =>
+            CadProperties
+                .Describe(document, null, new[] { handle })
+                .Groups.SelectMany(g => g.Rows)
+                .Single(r => r.Label == label)
+                .Value;
 
-        private static List<string> Rows(CadDocument document, string handle)
-            => CadProperties.Describe(document, null, new[] { handle }).Groups.SelectMany(g => g.Rows).Select(r => r.Label + "=" + r.Value).ToList();
+        private static List<string> Rows(CadDocument document, string handle) =>
+            CadProperties
+                .Describe(document, null, new[] { handle })
+                .Groups.SelectMany(g => g.Rows)
+                .Select(r => r.Label + "=" + r.Value)
+                .ToList();
 
         private static void Set(CadDocument document, string handle, string label, string value)
         {
@@ -72,17 +103,34 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(result.Succeeded, label + ": " + result.Message);
         }
 
-        public static IEnumerable<object[]> KindNames => new[] { "Polyline", "Ellipse", "Hatch", "MText", "Block Reference", "Rotated Dimension", "Multileader" }.Select(k => new object[] { k });
+        public static IEnumerable<object[]> KindNames =>
+            new[]
+            {
+                "Polyline",
+                "Ellipse",
+                "Hatch",
+                "MText",
+                "Block Reference",
+                "Rotated Dimension",
+                "Multileader",
+            }.Select(k => new object[] { k });
 
         [Theory]
         [MemberData(nameof(KindNames))]
         public void EveryRowThatCanBeEdited_TakesBackTheTextItShows_AndShowsTheSame(string kind)
         {
             CadDocument document = Kinds();
-            string handle = All<DxfEntity>(document.ModelSpace).First(e => CadProperties.Describe(document, null, new[] { e.Handle }).Label == kind + " (1)").Handle;
+            string handle = All<DxfEntity>(document.ModelSpace)
+                .First(e => CadProperties.Describe(document, null, new[] { e.Handle }).Label == kind + " (1)")
+                .Handle;
             List<string> before = Rows(document, handle);
 
-            foreach (CadPropertyRow row in CadProperties.Describe(document, null, new[] { handle }).Groups.SelectMany(g => g.Rows).Where(r => !r.IsReadOnly))
+            foreach (
+                CadPropertyRow row in CadProperties
+                    .Describe(document, null, new[] { handle })
+                    .Groups.SelectMany(g => g.Rows)
+                    .Where(r => !r.IsReadOnly)
+            )
             {
                 Set(document, handle, row.Label, row.Value);
             }
@@ -96,10 +144,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = LayoutTests.TwoViewports();
             CadSpace plan = document.Spaces.Single(s => s.Name == "Plan");
-            string handle = document.GetDisplay(plan).Items.OfType<DisplayViewport2>().OrderBy(v => v.CenterX).First().Handle;
+            string handle = document
+                .GetDisplay(plan)
+                .Items.OfType<DisplayViewport2>()
+                .OrderBy(v => v.CenterX)
+                .First()
+                .Handle;
             List<string> before = Rows(document, handle);
 
-            foreach (CadPropertyRow row in CadProperties.Describe(document, null, new[] { handle }).Groups.SelectMany(g => g.Rows).Where(r => !r.IsReadOnly))
+            foreach (
+                CadPropertyRow row in CadProperties
+                    .Describe(document, null, new[] { handle })
+                    .Groups.SelectMany(g => g.Rows)
+                    .Where(r => !r.IsReadOnly)
+            )
             {
                 Set(document, handle, row.Label, row.Value);
             }
@@ -181,7 +239,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Kinds();
             string handle = Handle<DxfHatch>(document);
 
-            Assert.True(CadProperties.Describe(document, null, new[] { handle }).Groups.SelectMany(g => g.Rows).Single(r => r.Label == "Scale").IsReadOnly);
+            Assert.True(
+                CadProperties
+                    .Describe(document, null, new[] { handle })
+                    .Groups.SelectMany(g => g.Rows)
+                    .Single(r => r.Label == "Scale")
+                    .IsReadOnly
+            );
             Assert.True(CadPropertyEditor.Set(document, new[] { handle }, "Scale", "2").Refused);
 
             Set(document, handle, "Spacing", "5");
@@ -205,7 +269,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             // ANSI31's two lines 3.175 apart, as the drawing has no pattern files to give them: the origin moves both.
             hatch = Entity<DxfHatch>(document, handle);
-            hatch.SetPatternDefinitions(new[] { new DxfPatternDefinition(Math.PI / 4, 0, 0, -2.245, 2.245, Array.Empty<double>()), new DxfPatternDefinition(Math.PI / 4, 1, 0, -2.245, 2.245, Array.Empty<double>()) });
+            hatch.SetPatternDefinitions(
+                new[]
+                {
+                    new DxfPatternDefinition(Math.PI / 4, 0, 0, -2.245, 2.245, Array.Empty<double>()),
+                    new DxfPatternDefinition(Math.PI / 4, 1, 0, -2.245, 2.245, Array.Empty<double>()),
+                }
+            );
             Set(document, handle, "Origin X", "2");
 
             hatch = Entity<DxfHatch>(document, handle);
@@ -222,7 +292,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string handle = Handle<DxfRotatedDimension>(document);
             var dimension = Entity<DxfRotatedDimension>(document, handle);
             string style = dimension.DimensionStyleName;
-            string Words() => Entity<DxfRotatedDimension>(document, handle).DimBlock.OfType<DxfMText>().Single().Contents;
+            string Words() =>
+                Entity<DxfRotatedDimension>(document, handle).DimBlock.OfType<DxfMText>().Single().Contents;
             string before = Words();
 
             Set(document, handle, "Suppress trailing zeros", "No");
@@ -237,7 +308,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(dimension.Dimsah);
             Assert.Equal("Architectural tick", CadArrowheads.NameOf(dimension.Dimblk1));
             Assert.Equal("Architectural tick", Shown(document, handle, "Arrow 1"));
-            Assert.Equal(CadArrowheads.NameOf(document.Database.DimStyleTable[style].Dimblk), Shown(document, handle, "Arrow 2"));
+            Assert.Equal(
+                CadArrowheads.NameOf(document.Database.DimStyleTable[style].Dimblk),
+                Shown(document, handle, "Arrow 2")
+            );
             Assert.Equal("Above", Shown(document, handle, "Text pos vert"));
             Assert.Equal(style, dimension.DimensionStyleName);
             Assert.NotEqual(3, document.Database.DimStyleTable[style].Dimdec);
@@ -281,7 +355,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string handle = Handle<DxfBlockReference>(document);
             CadSelectionInfo info = CadProperties.Describe(document, null, new[] { handle });
 
-            Assert.Equal("B-12", info.Groups.Single(g => g.Title == "Attributes").Rows.Single(r => r.Label == "MARK").Value);
+            Assert.Equal(
+                "B-12",
+                info.Groups.Single(g => g.Title == "Attributes").Rows.Single(r => r.Label == "MARK").Value
+            );
             Assert.True(info.Groups.SelectMany(g => g.Rows).Single(r => r.Label == "Name").IsReadOnly);
 
             Set(document, handle, "MARK", "B-13");
@@ -300,7 +377,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = LayoutTests.TwoViewports();
             CadSpace plan = document.Spaces.Single(s => s.Name == "Plan");
-            string handle = document.GetDisplay(plan).Items.OfType<DisplayViewport2>().OrderBy(v => v.CenterX).First().Handle;
+            string handle = document
+                .GetDisplay(plan)
+                .Items.OfType<DisplayViewport2>()
+                .OrderBy(v => v.CenterX)
+                .First()
+                .Handle;
 
             Set(document, handle, "Standard scale", "1:50");
             Set(document, handle, "Display locked", "Yes");
@@ -347,7 +429,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             CadSelectionInfo info = CadProperties.Describe(document, null, new[] { first, second });
 
-            Assert.Equal(CadPropertyRow.VariesText, info.Groups.SelectMany(g => g.Rows).Single(r => r.Label == "Elevation").Value);
+            Assert.Equal(
+                CadPropertyRow.VariesText,
+                info.Groups.SelectMany(g => g.Rows).Single(r => r.Label == "Elevation").Value
+            );
             Assert.Equal("Polyline (2)", info.Label);
         }
 
@@ -416,7 +501,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "MA", new[] { text.Handle }, new[] { mtext }, Enter);
 
             Assert.Equal(3, Entity<DxfRotatedDimension>(document, copy).Dimdec);
-            Assert.Equal("300.000", Entity<DxfRotatedDimension>(document, copy).DimBlock.OfType<DxfMText>().Single().Contents);
+            Assert.Equal(
+                "300.000",
+                Entity<DxfRotatedDimension>(document, copy).DimBlock.OfType<DxfMText>().Single().Contents
+            );
             Assert.Equal(2.0, Entity<DxfPolyline>(document, other).ConstantWidth);
             Assert.True(Entity<DxfPolyline>(document, other).Plinegen);
             Assert.Equal(6.0, Entity<DxfHatch>(document, fill).PatternSpace);
@@ -431,7 +519,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = LayoutTests.TwoViewports();
             CadSpace plan = document.Spaces.Single(s => s.Name == "Plan");
-            List<string> handles = document.GetDisplay(plan).Items.OfType<DisplayViewport2>().OrderBy(v => v.CenterX).Select(v => v.Handle).ToList();
+            List<string> handles = document
+                .GetDisplay(plan)
+                .Items.OfType<DisplayViewport2>()
+                .OrderBy(v => v.CenterX)
+                .Select(v => v.Handle)
+                .ToList();
             Set(document, handles[1], "Display locked", "Yes");
             var session = new CadCommandSession(document) { PickAperture = 1.0 };
 

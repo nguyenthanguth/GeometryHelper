@@ -20,7 +20,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("R2018")]
         public void TheGroupsOfADrawing_AreReadAsEzdxfReadsThem(string version)
         {
-            DxfDatabase db = DxfDatabase.Parse(version == "R2000" ? DxfObjectsEzdxfDrawings.R2000 : DxfObjectsEzdxfDrawings.R2018);
+            DxfDatabase db = DxfDatabase.Parse(
+                version == "R2000" ? DxfObjectsEzdxfDrawings.R2000 : DxfObjectsEzdxfDrawings.R2018
+            );
             DxfDBDictionary groups = db.GroupDictionary;
 
             // ezdxf: BEAMS 37 'Beams of grid A' selectable 1 unnamed 0 [33, 34]; *A1 38 '' selectable 0 unnamed 1 [35]
@@ -61,8 +63,17 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "C", "36", group.Handle);
-            Assert.Equal("  0\nGROUP\n  5\n" + group.Handle + "\n102\n{ACAD_REACTORS\n330\nC\n102\n}\n330\nC\n100\nAcDbGroup\n300\nHidden lines\n 70\n0\n 71\n0\n340\n36\n", Records(saved).Single(r => HandleOf(r) == group.Handle));
-            Assert.StartsWith("  0\nLINE\n  5\n36\n102\n{ACAD_REACTORS\n330\n" + group.Handle + "\n102\n}\n330\n17\n", Records(saved).Single(r => HandleOf(r) == "36"), StringComparison.Ordinal);
+            Assert.Equal(
+                "  0\nGROUP\n  5\n"
+                    + group.Handle
+                    + "\n102\n{ACAD_REACTORS\n330\nC\n102\n}\n330\nC\n100\nAcDbGroup\n300\nHidden lines\n 70\n0\n 71\n0\n340\n36\n",
+                Records(saved).Single(r => HandleOf(r) == group.Handle)
+            );
+            Assert.StartsWith(
+                "  0\nLINE\n  5\n36\n102\n{ACAD_REACTORS\n330\n" + group.Handle + "\n102\n}\n330\n17\n",
+                Records(saved).Single(r => HandleOf(r) == "36"),
+                StringComparison.Ordinal
+            );
 
             DxfDatabase again = DxfDatabase.Parse(saved);
             var read = (DxfGroup)again.GroupDictionary["HIDDEN"];
@@ -125,8 +136,16 @@ namespace GeometryHelper.UnitTest.Dxf
             beams.Replace(circle, hidden);
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "37", "34", "36");
-            Assert.DoesNotContain("ACAD_REACTORS", Records(saved).Single(r => HandleOf(r) == "34"), StringComparison.Ordinal);
-            Assert.Contains("{ACAD_REACTORS\n330\n37\n102\n}\n", Records(saved).Single(r => HandleOf(r) == "36"), StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "ACAD_REACTORS",
+                Records(saved).Single(r => HandleOf(r) == "34"),
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "{ACAD_REACTORS\n330\n37\n102\n}\n",
+                Records(saved).Single(r => HandleOf(r) == "36"),
+                StringComparison.Ordinal
+            );
 
             // A named group left empty is kept when the drawing is saved, as AutoCAD 2021 keeps it.
             beams.Clear();
@@ -135,7 +154,11 @@ namespace GeometryHelper.UnitTest.Dxf
             saved = db.ToText();
             Assert.False(beams.IsErased);
             Assert.Contains(Records(saved), r => HandleOf(r) == "37");
-            Assert.DoesNotContain("ACAD_REACTORS", Records(saved).Single(r => HandleOf(r) == "33"), StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "ACAD_REACTORS",
+                Records(saved).Single(r => HandleOf(r) == "33"),
+                StringComparison.Ordinal
+            );
             Assert.Equal(0, ((DxfGroup)DxfDatabase.Parse(saved).GroupDictionary["BEAMS"]).NumEntities);
         }
 
@@ -160,10 +183,17 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.False(made.IsErased);
             Assert.False(anonymous.IsErased);
             DxfDatabase reread = DxfDatabase.Parse(saved);
-            Assert.Equal(new[] { "*A1", "BEAMS", "EMPTY" }, reread.GroupDictionary.Select(e => e.Key).OrderBy(k => k, StringComparer.Ordinal));
+            Assert.Equal(
+                new[] { "*A1", "BEAMS", "EMPTY" },
+                reread.GroupDictionary.Select(e => e.Key).OrderBy(k => k, StringComparer.Ordinal)
+            );
             Assert.Equal(0, ((DxfGroup)reread.GroupDictionary["*A1"]).NumEntities);
             Assert.True(((DxfGroup)reread.GroupDictionary["*A1"]).IsAnonymous);
-            Assert.DoesNotContain("ACAD_REACTORS", Records(saved).Single(r => HandleOf(r) == "35"), StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "ACAD_REACTORS",
+                Records(saved).Single(r => HandleOf(r) == "35"),
+                StringComparison.Ordinal
+            );
 
             // A group emptied and filled again before the drawing is saved is kept.
             DxfDatabase again = DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2018);
@@ -185,7 +215,10 @@ namespace GeometryHelper.UnitTest.Dxf
             // Each line appended to the drawing, then to the group, as a loop that builds both does.
             for (int i = 0; i < 4000; i++)
             {
-                var line = new DxfLine(new GeometryHelper.Geometry.GeoPoint3(i, 0, 0), new GeometryHelper.Geometry.GeoPoint3(i, 1, 0));
+                var line = new DxfLine(
+                    new GeometryHelper.Geometry.GeoPoint3(i, 0, 0),
+                    new GeometryHelper.Geometry.GeoPoint3(i, 1, 0)
+                );
                 db.ModelSpace.AppendEntity(line);
                 group.Append(line);
             }
@@ -304,7 +337,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<InvalidOperationException>(() => beams.Append(ByHandle<DxfLine>(db, "36")));
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "C", "37", "33", "34");
-            Assert.DoesNotContain("ACAD_REACTORS", Records(saved).Single(r => HandleOf(r) == "33"), StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "ACAD_REACTORS",
+                Records(saved).Single(r => HandleOf(r) == "33"),
+                StringComparison.Ordinal
+            );
             Assert.NotNull(ByHandle<DxfLine>(DxfDatabase.Parse(saved), "33"));
         }
 

@@ -277,7 +277,10 @@ namespace GeometryHelper.Internal.Nurbs
 
                 for (int i = 0; i <= n; i++)
                 {
-                    int sign = k[i] > 0.0 ? 1 : k[i] < 0.0 ? -1 : 0;
+                    int sign =
+                        k[i] > 0.0 ? 1
+                        : k[i] < 0.0 ? -1
+                        : 0;
 
                     if (sign == 0)
                     {

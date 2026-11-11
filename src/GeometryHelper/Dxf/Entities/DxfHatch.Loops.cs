@@ -46,7 +46,14 @@ namespace GeometryHelper.Dxf
             {
                 if (loop.IsPolyline)
                 {
-                    return new DxfHatchLoop(flags, PolylineShape(loop, normal, elevation), new object[0], groups, normal, elevation);
+                    return new DxfHatchLoop(
+                        flags,
+                        PolylineShape(loop, normal, elevation),
+                        new object[0],
+                        groups,
+                        normal,
+                        elevation
+                    );
                 }
 
                 var curves = new List<object>(loop.Edges.Count);
@@ -60,7 +67,13 @@ namespace GeometryHelper.Dxf
             }
             catch (ArgumentException e)
             {
-                throw new InvalidOperationException("The loop " + loopIndex.ToString(CultureInfo.InvariantCulture) + " of the HATCH has an edge that is no shape: " + e.Message, e);
+                throw new InvalidOperationException(
+                    "The loop "
+                        + loopIndex.ToString(CultureInfo.InvariantCulture)
+                        + " of the HATCH has an edge that is no shape: "
+                        + e.Message,
+                    e
+                );
             }
         }
 
@@ -87,7 +100,11 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when there are fewer than two vertices, a coordinate or bulge is not a finite
         /// number, or the bulges are not as many as the vertices.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the HATCH is erased.</exception>
-        public void AppendLoop(DxfHatchLoopTypes loopType, IReadOnlyList<GeoPoint2> vertexCollection, IReadOnlyList<double> bulgeCollection)
+        public void AppendLoop(
+            DxfHatchLoopTypes loopType,
+            IReadOnlyList<GeoPoint2> vertexCollection,
+            IReadOnlyList<double> bulgeCollection
+        )
         {
             if (vertexCollection == null)
             {
@@ -101,7 +118,10 @@ namespace GeometryHelper.Dxf
 
             if (bulgeCollection != null && bulgeCollection.Count != vertexCollection.Count)
             {
-                throw new ArgumentException("A loop of a polyline has a bulge for each vertex.", nameof(bulgeCollection));
+                throw new ArgumentException(
+                    "A loop of a polyline has a bulge for each vertex.",
+                    nameof(bulgeCollection)
+                );
             }
 
             var vertices = new List<double[]>(vertexCollection.Count);
@@ -113,13 +133,24 @@ namespace GeometryHelper.Dxf
 
                 if (!p.IsValid || !Guard.IsFinite(bulge))
                 {
-                    throw new ArgumentException("A vertex and its bulge have to be finite numbers: " + p + " and " + bulge.ToString("R", CultureInfo.InvariantCulture) + " are not.", nameof(vertexCollection));
+                    throw new ArgumentException(
+                        "A vertex and its bulge have to be finite numbers: "
+                            + p
+                            + " and "
+                            + bulge.ToString("R", CultureInfo.InvariantCulture)
+                            + " are not.",
+                        nameof(vertexCollection)
+                    );
                 }
 
                 vertices.Add(new[] { p.X, p.Y, bulge });
             }
 
-            List<KeyValuePair<int, string>> made = PolylineGroups((int)(loopType | DxfHatchLoopTypes.Polyline), vertices, true);
+            List<KeyValuePair<int, string>> made = PolylineGroups(
+                (int)(loopType | DxfHatchLoopTypes.Polyline),
+                vertices,
+                true
+            );
 
             if (SpliceLoops(NumberOfLoops, 0, made))
             {
@@ -160,10 +191,21 @@ namespace GeometryHelper.Dxf
 
             if (loopIndex < 0 || loopIndex > count)
             {
-                throw new ArgumentOutOfRangeException(nameof(loopIndex), loopIndex, "A loop goes in from nought to the count of the loops, " + count.ToString(CultureInfo.InvariantCulture) + ".");
+                throw new ArgumentOutOfRangeException(
+                    nameof(loopIndex),
+                    loopIndex,
+                    "A loop goes in from nought to the count of the loops, "
+                        + count.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
 
-            List<KeyValuePair<int, string>> made = Encoded(hatchLoop, snapshot.Normal, snapshot.Elevation, Item.File.Supports(1024));
+            List<KeyValuePair<int, string>> made = Encoded(
+                hatchLoop,
+                snapshot.Normal,
+                snapshot.Elevation,
+                Item.File.Supports(1024)
+            );
 
             if (SpliceLoops(loopIndex, 0, made))
             {
@@ -212,7 +254,6 @@ namespace GeometryHelper.Dxf
         public bool Associative
         {
             get => Whole(Record().Text(71), 0) != 0;
-
             set
             {
                 if (value == Associative)
@@ -261,7 +302,8 @@ namespace GeometryHelper.Dxf
         /// <param name="loopIndex">The index of the loop, from nought.</param>
         /// <returns>The entities.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the HATCH has no loop of the index.</exception>
-        public IReadOnlyList<DxfEntity> GetAssociatedObjectsAt(int loopIndex) => Entities(LoopData.Read(SnapLoop(loopIndex)).Sources);
+        public IReadOnlyList<DxfEntity> GetAssociatedObjectsAt(int loopIndex) =>
+            Entities(LoopData.Read(SnapLoop(loopIndex)).Sources);
 
         /// <summary>
         /// Takes the objects the loops follow away, as AutoCAD's <c>RemoveAssociatedObjectIds</c>: the handles of every loop out,
@@ -300,14 +342,23 @@ namespace GeometryHelper.Dxf
 
             if (!IsResident || IsErased)
             {
-                throw new InvalidOperationException("The HATCH follows objects of its own drawing: add it to one first.");
+                throw new InvalidOperationException(
+                    "The HATCH follows objects of its own drawing: add it to one first."
+                );
             }
 
             int count = NumberOfLoops;
 
             if (objects.Count != count)
             {
-                throw new ArgumentException("The HATCH has " + count.ToString(CultureInfo.InvariantCulture) + " loops, and is given the objects of " + objects.Count.ToString(CultureInfo.InvariantCulture) + ".", nameof(objects));
+                throw new ArgumentException(
+                    "The HATCH has "
+                        + count.ToString(CultureInfo.InvariantCulture)
+                        + " loops, and is given the objects of "
+                        + objects.Count.ToString(CultureInfo.InvariantCulture)
+                        + ".",
+                    nameof(objects)
+                );
             }
 
             foreach (IReadOnlyList<DxfEntity> loop in objects)
@@ -326,7 +377,10 @@ namespace GeometryHelper.Dxf
 
                     if (!entity.IsResident || entity.IsErased || entity.Item.File != Item.File)
                     {
-                        throw new ArgumentException("A HATCH follows entities of its own drawing that are not erased.", nameof(objects));
+                        throw new ArgumentException(
+                            "A HATCH follows entities of its own drawing that are not erased.",
+                            nameof(objects)
+                        );
                     }
                 }
             }
@@ -475,7 +529,13 @@ namespace GeometryHelper.Dxf
                     }
                     catch (ArgumentException e)
                     {
-                        throw new InvalidOperationException("The loop " + i.ToString(CultureInfo.InvariantCulture) + " of the HATCH has an edge that is no shape: " + e.Message, e);
+                        throw new InvalidOperationException(
+                            "The loop "
+                                + i.ToString(CultureInfo.InvariantCulture)
+                                + " of the HATCH has an edge that is no shape: "
+                                + e.Message,
+                            e
+                        );
                     }
                 }
 
@@ -494,8 +554,11 @@ namespace GeometryHelper.Dxf
             for (int j = 0; j < snapshot.Loops.Count; j++)
             {
                 // Two loops each within the other, as one loop given twice, count once: the later within the earlier.
-                if (j != i && Within(snapshot.Outlines[i], snapshot.Outlines[j], tolerance)
-                    && (j < i || !Within(snapshot.Outlines[j], snapshot.Outlines[i], tolerance)))
+                if (
+                    j != i
+                    && Within(snapshot.Outlines[i], snapshot.Outlines[j], tolerance)
+                    && (j < i || !Within(snapshot.Outlines[j], snapshot.Outlines[i], tolerance))
+                )
                 {
                     depth++;
                 }
@@ -548,7 +611,12 @@ namespace GeometryHelper.Dxf
             DxfFile.Rec record = Item.File.RecordAt(Item, 0);
             Snapshot snapshot = _snapshot;
 
-            if (snapshot != null && ReferenceEquals(record.Bytes, snapshot.Bytes) && record.Start == snapshot.Start && record.End == snapshot.End)
+            if (
+                snapshot != null
+                && ReferenceEquals(record.Bytes, snapshot.Bytes)
+                && record.Start == snapshot.Start
+                && record.End == snapshot.End
+            )
             {
                 return snapshot;
             }
@@ -559,8 +627,13 @@ namespace GeometryHelper.Dxf
             var parts = new Parts(run);
             snapshot = new Snapshot
             {
-                Bytes = record.Bytes, Start = record.Start, End = record.End, Loops = Loops(parts), Elevation = Num(parts.Text(30), 0.0),
-                Normal = GetNormal(), Associative = Whole(parts.Text(71), 0) != 0,
+                Bytes = record.Bytes,
+                Start = record.Start,
+                End = record.End,
+                Loops = Loops(parts),
+                Elevation = Num(parts.Text(30), 0.0),
+                Normal = GetNormal(),
+                Associative = Whole(parts.Text(71), 0) != 0,
             };
             Placed(snapshot, run, own.Count - run.Count, places, parts.Part(Kind.Paths));
             _snapshot = snapshot;
@@ -571,7 +644,13 @@ namespace GeometryHelper.Dxf
         /// Keeps where the count of the loops (91) and each loop stand in the bytes of the record, for <see cref="SpliceLoops"/>:
         /// only where they are one run of bytes, each loop from its 92, as the loops were read.
         /// </summary>
-        private static void Placed(Snapshot snapshot, List<KeyValuePair<int, string>> run, int skip, List<int> places, List<KeyValuePair<int, string>> paths)
+        private static void Placed(
+            Snapshot snapshot,
+            List<KeyValuePair<int, string>> run,
+            int skip,
+            List<int> places,
+            List<KeyValuePair<int, string>> paths
+        )
         {
             int head = run.FindIndex(g => g.Key == 91);
 
@@ -630,7 +709,14 @@ namespace GeometryHelper.Dxf
             int from = starts[index];
             int to = starts[index + remove];
             int expected = snapshot.End - snapshot.Start - (to - from);
-            int written = Item.File.SpliceRecord(Item, 0, from, to, made ?? new List<KeyValuePair<int, string>>(), true);
+            int written = Item.File.SpliceRecord(
+                Item,
+                0,
+                from,
+                to,
+                made ?? new List<KeyValuePair<int, string>>(),
+                true
+            );
             expected += written;
             starts.RemoveRange(index + 1, remove);
             snapshot.Loops.RemoveRange(index, remove);
@@ -647,7 +733,14 @@ namespace GeometryHelper.Dxf
             }
 
             // The count stands before the loops: written anew, it moves them all.
-            int length = Item.File.SpliceRecord(Item, 0, snapshot.CountFrom, snapshot.CountTo, new[] { G(91, snapshot.Loops.Count) }, false);
+            int length = Item.File.SpliceRecord(
+                Item,
+                0,
+                snapshot.CountFrom,
+                snapshot.CountTo,
+                new[] { G(91, snapshot.Loops.Count) },
+                false
+            );
             int by = length - (snapshot.CountTo - snapshot.CountFrom);
 
             for (int i = 0; i < starts.Count; i++)
@@ -725,7 +818,11 @@ namespace GeometryHelper.Dxf
             {
                 _fromFiles = false;
 
-                if (!IsSolidFill && Lines(record).Count == 0 && FromFiles(record, file.Database, Num(record.Text(52), 0.0), Num(record.Text(41), 1.0), true))
+                if (
+                    !IsSolidFill
+                    && Lines(record).Count == 0
+                    && FromFiles(record, file.Database, Num(record.Text(52), 0.0), Num(record.Text(41), 1.0), true)
+                )
                 {
                     changed = true;
                 }
@@ -764,7 +861,11 @@ namespace GeometryHelper.Dxf
 
             if (index < 0 || index >= loops.Count)
             {
-                throw new ArgumentOutOfRangeException(nameof(index), index, "The HATCH has " + loops.Count.ToString(CultureInfo.InvariantCulture) + " loops, from nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(index),
+                    index,
+                    "The HATCH has " + loops.Count.ToString(CultureInfo.InvariantCulture) + " loops, from nought."
+                );
             }
 
             return loops[index];
@@ -815,7 +916,11 @@ namespace GeometryHelper.Dxf
 
             if (index < 0 || index >= loops.Count)
             {
-                throw new ArgumentOutOfRangeException(nameof(index), index, "The HATCH has " + loops.Count.ToString(CultureInfo.InvariantCulture) + " loops, from nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(index),
+                    index,
+                    "The HATCH has " + loops.Count.ToString(CultureInfo.InvariantCulture) + " loops, from nought."
+                );
             }
 
             return loops[index];
@@ -957,8 +1062,14 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private static bool Within(Outline inner, Outline outer, double tolerance)
         {
-            if (outer.Points.Count < 3 || inner.Points.Count == 0 || inner.MinX < outer.MinX - tolerance || inner.MinY < outer.MinY - tolerance
-                || inner.MaxX > outer.MaxX + tolerance || inner.MaxY > outer.MaxY + tolerance)
+            if (
+                outer.Points.Count < 3
+                || inner.Points.Count == 0
+                || inner.MinX < outer.MinX - tolerance
+                || inner.MinY < outer.MinY - tolerance
+                || inner.MaxX > outer.MaxX + tolerance
+                || inner.MaxY > outer.MaxY + tolerance
+            )
             {
                 return false;
             }
@@ -989,7 +1100,9 @@ namespace GeometryHelper.Dxf
             }
 
             GeoPoint2? point = InteriorPoint(inner);
-            return point.HasValue && !OnEdge(point.Value, outer.Points, tolerance) && EvenOdd(point.Value, outer.Points);
+            return point.HasValue
+                && !OnEdge(point.Value, outer.Points, tolerance)
+                && EvenOdd(point.Value, outer.Points);
         }
 
         /// <summary>Whether a point lies inside a polygon by the even-odd rule.</summary>
@@ -1021,7 +1134,8 @@ namespace GeometryHelper.Dxf
                 double dx = b.X - a.X;
                 double dy = b.Y - a.Y;
                 double length = dx * dx + dy * dy;
-                double t = length > 0.0 ? Math.Max(0.0, Math.Min(1.0, ((p.X - a.X) * dx + (p.Y - a.Y) * dy) / length)) : 0.0;
+                double t =
+                    length > 0.0 ? Math.Max(0.0, Math.Min(1.0, ((p.X - a.X) * dx + (p.Y - a.Y) * dy) / length)) : 0.0;
                 double ex = a.X + t * dx - p.X;
                 double ey = a.Y + t * dy - p.Y;
 
@@ -1137,9 +1251,20 @@ namespace GeometryHelper.Dxf
                 edges[i].Ends(out GeoPoint2 _, out GeoPoint2 last);
                 edges[(i + 1) % edges.Count].Ends(out GeoPoint2 next, out GeoPoint2 _);
 
-                if (Math.Sqrt((last.X - next.X) * (last.X - next.X) + (last.Y - next.Y) * (last.Y - next.Y)) > tolerance)
+                if (
+                    Math.Sqrt((last.X - next.X) * (last.X - next.X) + (last.Y - next.Y) * (last.Y - next.Y)) > tolerance
+                )
                 {
-                    throw new ArgumentException("The edges of a loop run end to end: the edge " + i.ToString(CultureInfo.InvariantCulture) + " ends at " + last + " in the plane of the HATCH, and the next starts at " + next + ".", "hatchLoop");
+                    throw new ArgumentException(
+                        "The edges of a loop run end to end: the edge "
+                            + i.ToString(CultureInfo.InvariantCulture)
+                            + " ends at "
+                            + last
+                            + " in the plane of the HATCH, and the next starts at "
+                            + next
+                            + ".",
+                        "hatchLoop"
+                    );
                 }
             }
         }
@@ -1163,7 +1288,10 @@ namespace GeometryHelper.Dxf
 
             if (loop.Closed && points.Count == 2)
             {
-                int arc = bulges[0] != 0.0 ? 0 : bulges[1] != 0.0 ? 1 : -1;
+                int arc =
+                    bulges[0] != 0.0 ? 0
+                    : bulges[1] != 0.0 ? 1
+                    : -1;
 
                 if (arc >= 0)
                 {
@@ -1219,11 +1347,25 @@ namespace GeometryHelper.Dxf
         /// bit, its handles left out; else those of its shapes, in the system of the normal.
         /// </summary>
         /// <exception cref="ArgumentException">Thrown when a shape does not lie in the plane of the HATCH.</exception>
-        private static List<KeyValuePair<int, string>> Encoded(DxfHatchLoop loop, GeoVector3 normal, double elevation, bool fitCount)
+        private static List<KeyValuePair<int, string>> Encoded(
+            DxfHatchLoop loop,
+            GeoVector3 normal,
+            double elevation,
+            bool fitCount
+        )
         {
-            if (loop.Groups != null && Same(loop.Normal.X, normal.X) && Same(loop.Normal.Y, normal.Y) && Same(loop.Normal.Z, normal.Z) && Same(loop.Elevation, elevation))
+            if (
+                loop.Groups != null
+                && Same(loop.Normal.X, normal.X)
+                && Same(loop.Normal.Y, normal.Y)
+                && Same(loop.Normal.Z, normal.Z)
+                && Same(loop.Elevation, elevation)
+            )
             {
-                List<KeyValuePair<int, string>> kept = FitCounts(loop.Groups.GetRange(0, LoopData.Body(loop.Groups)), fitCount);
+                List<KeyValuePair<int, string>> kept = FitCounts(
+                    loop.Groups.GetRange(0, LoopData.Body(loop.Groups)),
+                    fitCount
+                );
                 kept.Add(G(97, "0"));
                 return kept;
             }
@@ -1233,11 +1375,17 @@ namespace GeometryHelper.Dxf
             switch (loop.Polyline)
             {
                 case GeoPolygonArc3 polygon:
-                    return PolylineGroups((int)loop.LoopType, plane.Vertices(polygon.Vertices, polygon.Bulges, polygon.Normals), true);
+                    return PolylineGroups(
+                        (int)loop.LoopType,
+                        plane.Vertices(polygon.Vertices, polygon.Bulges, polygon.Normals),
+                        true
+                    );
 
                 case GeoPolylineArc3 chain:
                     List<double[]> vertices = plane.Vertices(chain.Vertices, chain.Bulges, chain.Normals);
-                    bool closed = vertices.Count > 2 && chain.Vertices[0].IsEqualTo(chain.Vertices[chain.Vertices.Count - 1], Tolerance.Default);
+                    bool closed =
+                        vertices.Count > 2
+                        && chain.Vertices[0].IsEqualTo(chain.Vertices[chain.Vertices.Count - 1], Tolerance.Default);
 
                     if (closed)
                     {
@@ -1266,7 +1414,13 @@ namespace GeometryHelper.Dxf
         private static List<KeyValuePair<int, string>> PolylineGroups(int flags, List<double[]> vertices, bool closed)
         {
             bool bulged = vertices.Exists(v => v[2] != 0.0);
-            var groups = new List<KeyValuePair<int, string>> { G(92, flags | 2), G(72, bulged ? "1" : "0"), G(73, closed ? "1" : "0"), G(93, vertices.Count) };
+            var groups = new List<KeyValuePair<int, string>>
+            {
+                G(92, flags | 2),
+                G(72, bulged ? "1" : "0"),
+                G(73, closed ? "1" : "0"),
+                G(93, vertices.Count),
+            };
 
             foreach (double[] v in vertices)
             {
@@ -1288,7 +1442,12 @@ namespace GeometryHelper.Dxf
         /// control point taken through it at the elevation, each radius and axis scaled and turned, the angles of the arcs turned,
         /// those of the ellipses measured anew from their turned axes; the handles kept.
         /// </summary>
-        private static List<KeyValuePair<int, string>> MovedLoop(List<KeyValuePair<int, string>> groups, DxfOcsTransform ocs, double elevation, bool conformal)
+        private static List<KeyValuePair<int, string>> MovedLoop(
+            List<KeyValuePair<int, string>> groups,
+            DxfOcsTransform ocs,
+            double elevation,
+            bool conformal
+        )
         {
             var moved = new List<KeyValuePair<int, string>>(groups.Count);
             LoopData loop = LoopData.Read(groups);
@@ -1305,7 +1464,9 @@ namespace GeometryHelper.Dxf
                 {
                     if (moved[i].Key == 10 && i + 1 < moved.Count && moved[i + 1].Key == 20)
                     {
-                        GeoPoint3 p = ocs.TransformVertex(new GeoPoint3(Num(moved[i].Value, 0.0), Num(moved[i + 1].Value, 0.0), elevation));
+                        GeoPoint3 p = ocs.TransformVertex(
+                            new GeoPoint3(Num(moved[i].Value, 0.0), Num(moved[i + 1].Value, 0.0), elevation)
+                        );
                         moved[i] = G(10, p.X);
                         moved[i + 1] = G(20, p.Y);
                     }

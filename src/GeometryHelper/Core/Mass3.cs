@@ -38,7 +38,9 @@ namespace GeometryHelper.Core
                 return Nothing(density, method, origin, surface);
             }
 
-            double cx = sums[1] / volume, cy = sums[2] / volume, cz = sums[3] / volume;
+            double cx = sums[1] / volume,
+                cy = sums[2] / volume,
+                cz = sums[3] / volume;
 
             double ixx = density * (sums[5] + sums[6] - volume * (cy * cy + cz * cz));
             double iyy = density * (sums[4] + sums[6] - volume * (cz * cz + cx * cx));
@@ -56,29 +58,60 @@ namespace GeometryHelper.Core
 
             Eigen(tensor, out double[] moments, out GeoVector3[] axes);
 
-            return new MassProperties3(density, method, volume, origin.Add(new GeoVector3(cx, cy, cz)), surface,
-                ixx, iyy, izz, ixy, iyz, izx, moments, axes);
+            return new MassProperties3(
+                density,
+                method,
+                volume,
+                origin.Add(new GeoVector3(cx, cy, cz)),
+                surface,
+                ixx,
+                iyy,
+                izz,
+                ixy,
+                iyz,
+                izx,
+                moments,
+                axes
+            );
         }
 
         /// <summary>
         /// The mass properties of no material at all: no volume, at a point.
         /// </summary>
-        internal static MassProperties3 Nothing(double density, VolumeMethod method, GeoPoint3 at, double surface)
-            => new MassProperties3(density, method, 0.0, at, surface, 0, 0, 0, 0, 0, 0, new double[3],
-                new[] { GeoVector3.XAxis, GeoVector3.YAxis, GeoVector3.ZAxis });
+        internal static MassProperties3 Nothing(double density, VolumeMethod method, GeoPoint3 at, double surface) =>
+            new MassProperties3(
+                density,
+                method,
+                0.0,
+                at,
+                surface,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                new double[3],
+                new[] { GeoVector3.XAxis, GeoVector3.YAxis, GeoVector3.ZAxis }
+            );
 
         /// <summary>
         /// The ten volume integrals of the triangles of a surface about a point: the volume, its first moments and its
         /// second, signed so that the volume comes out positive whichever way the surface is wound.
         /// </summary>
-        internal static double[] Integrate(IEnumerable<(GeoPoint3 A, GeoPoint3 B, GeoPoint3 C)> triangles, GeoPoint3 origin)
+        internal static double[] Integrate(
+            IEnumerable<(GeoPoint3 A, GeoPoint3 B, GeoPoint3 C)> triangles,
+            GeoPoint3 origin
+        )
         {
             var sums = new double[10];
             double volume = 0.0;
 
             foreach ((GeoPoint3 a, GeoPoint3 b, GeoPoint3 c) in triangles)
             {
-                GeoVector3 p0 = origin.GetVectorTo(a), p1 = origin.GetVectorTo(b), p2 = origin.GetVectorTo(c);
+                GeoVector3 p0 = origin.GetVectorTo(a),
+                    p1 = origin.GetVectorTo(b),
+                    p2 = origin.GetVectorTo(c);
                 Accumulate(sums, p0, p1, p2);
                 volume += p0.TripleProduct(p1, p2);
             }
@@ -88,7 +121,19 @@ namespace GeometryHelper.Core
             // faces read flat each on its own leave it, the volume is the one Measure3.Volume measures.
             sums[0] = volume;
 
-            double[] scale = { 1.0 / 6, 1.0 / 24, 1.0 / 24, 1.0 / 24, 1.0 / 60, 1.0 / 60, 1.0 / 60, 1.0 / 120, 1.0 / 120, 1.0 / 120 };
+            double[] scale =
+            {
+                1.0 / 6,
+                1.0 / 24,
+                1.0 / 24,
+                1.0 / 24,
+                1.0 / 60,
+                1.0 / 60,
+                1.0 / 60,
+                1.0 / 120,
+                1.0 / 120,
+                1.0 / 120,
+            };
 
             // A surface wound inwards integrates to the negative of everything; the body is the same body.
             double sign = sums[0] < 0.0 ? -1.0 : 1.0;
@@ -119,7 +164,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// The triangles a method reads a body's faces as, each wound as its face is, a hole's taken away.
         /// </summary>
-        internal static IEnumerable<(GeoPoint3 A, GeoPoint3 B, GeoPoint3 C)> Triangles(GeoSolid3 body, VolumeMethod method, Tolerance tolerance)
+        internal static IEnumerable<(GeoPoint3 A, GeoPoint3 B, GeoPoint3 C)> Triangles(
+            GeoSolid3 body,
+            VolumeMethod method,
+            Tolerance tolerance
+        )
         {
             switch (method)
             {
@@ -130,7 +179,11 @@ namespace GeometryHelper.Core
                 case VolumeMethod.FlatFaces:
                     return Flattened(body, tolerance);
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(method), method, "Unknown way of reading the faces of a body.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(method),
+                        method,
+                        "Unknown way of reading the faces of a body."
+                    );
             }
         }
 
@@ -184,7 +237,11 @@ namespace GeometryHelper.Core
 
                 foreach (GeoTriangle3 triangle in triangles)
                 {
-                    yield return (Lay(triangle.A, middle, normal), Lay(triangle.B, middle, normal), Lay(triangle.C, middle, normal));
+                    yield return (
+                        Lay(triangle.A, middle, normal),
+                        Lay(triangle.B, middle, normal),
+                        Lay(triangle.C, middle, normal)
+                    );
                 }
             }
         }
@@ -236,23 +293,57 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Lays a point onto a plane along its normal.
         /// </summary>
-        private static GeoPoint3 Lay(GeoPoint3 point, GeoPoint3 middle, GeoVector3 normal)
-            => point.Add(normal.Multiply(-middle.GetVectorTo(point).DotProduct(normal)));
+        private static GeoPoint3 Lay(GeoPoint3 point, GeoPoint3 middle, GeoVector3 normal) =>
+            point.Add(normal.Multiply(-middle.GetVectorTo(point).DotProduct(normal)));
 
         /// <summary>
         /// Adds one triangle's share of the ten volume integrals, before their constant factors.
         /// </summary>
         private static void Accumulate(double[] sums, GeoVector3 p0, GeoVector3 p1, GeoVector3 p2)
         {
-            double a1 = p1.X - p0.X, b1 = p1.Y - p0.Y, c1 = p1.Z - p0.Z;
-            double a2 = p2.X - p0.X, b2 = p2.Y - p0.Y, c2 = p2.Z - p0.Z;
+            double a1 = p1.X - p0.X,
+                b1 = p1.Y - p0.Y,
+                c1 = p1.Z - p0.Z;
+            double a2 = p2.X - p0.X,
+                b2 = p2.Y - p0.Y,
+                c2 = p2.Z - p0.Z;
             double d0 = b1 * c2 - b2 * c1;
             double d1 = a2 * c1 - a1 * c2;
             double d2 = a1 * b2 - a2 * b1;
 
-            Terms(p0.X, p1.X, p2.X, out double f1x, out double f2x, out double f3x, out double g0x, out double g1x, out double g2x);
-            Terms(p0.Y, p1.Y, p2.Y, out _, out double f2y, out double f3y, out double g0y, out double g1y, out double g2y);
-            Terms(p0.Z, p1.Z, p2.Z, out _, out double f2z, out double f3z, out double g0z, out double g1z, out double g2z);
+            Terms(
+                p0.X,
+                p1.X,
+                p2.X,
+                out double f1x,
+                out double f2x,
+                out double f3x,
+                out double g0x,
+                out double g1x,
+                out double g2x
+            );
+            Terms(
+                p0.Y,
+                p1.Y,
+                p2.Y,
+                out _,
+                out double f2y,
+                out double f3y,
+                out double g0y,
+                out double g1y,
+                out double g2y
+            );
+            Terms(
+                p0.Z,
+                p1.Z,
+                p2.Z,
+                out _,
+                out double f2z,
+                out double f3z,
+                out double g0z,
+                out double g1z,
+                out double g2z
+            );
 
             sums[0] += d0 * f1x;
             sums[1] += d0 * f2x;
@@ -266,7 +357,17 @@ namespace GeometryHelper.Core
             sums[9] += d2 * (p0.X * g0z + p1.X * g1z + p2.X * g2z);
         }
 
-        private static void Terms(double w0, double w1, double w2, out double f1, out double f2, out double f3, out double g0, out double g1, out double g2)
+        private static void Terms(
+            double w0,
+            double w1,
+            double w2,
+            out double f1,
+            out double f2,
+            out double f3,
+            out double g0,
+            out double g1,
+            out double g2
+        )
         {
             double t0 = w0 + w1;
             f1 = t0 + w2;
@@ -286,7 +387,12 @@ namespace GeometryHelper.Core
         private static void Eigen(double[,] matrix, out double[] values, out GeoVector3[] vectors)
         {
             var a = (double[,])matrix.Clone();
-            var v = new double[,] { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
+            var v = new double[,]
+            {
+                { 1, 0, 0 },
+                { 0, 1, 0 },
+                { 0, 0, 1 },
+            };
             double size = Math.Abs(a[0, 0]) + Math.Abs(a[1, 1]) + Math.Abs(a[2, 2]);
 
             for (int sweep = 0; sweep < 64; sweep++)
@@ -306,27 +412,31 @@ namespace GeometryHelper.Core
                     }
 
                     double theta = (a[q, q] - a[p, p]) / (2.0 * a[p, q]);
-                    double t = Math.Sign(theta == 0.0 ? 1.0 : theta) / (Math.Abs(theta) + Math.Sqrt(theta * theta + 1.0));
+                    double t =
+                        Math.Sign(theta == 0.0 ? 1.0 : theta) / (Math.Abs(theta) + Math.Sqrt(theta * theta + 1.0));
                     double c = 1.0 / Math.Sqrt(t * t + 1.0);
                     double s = t * c;
 
                     for (int k = 0; k < 3; k++)
                     {
-                        double akp = a[k, p], akq = a[k, q];
+                        double akp = a[k, p],
+                            akq = a[k, q];
                         a[k, p] = c * akp - s * akq;
                         a[k, q] = s * akp + c * akq;
                     }
 
                     for (int k = 0; k < 3; k++)
                     {
-                        double apk = a[p, k], aqk = a[q, k];
+                        double apk = a[p, k],
+                            aqk = a[q, k];
                         a[p, k] = c * apk - s * aqk;
                         a[q, k] = s * apk + c * aqk;
                     }
 
                     for (int k = 0; k < 3; k++)
                     {
-                        double vkp = v[k, p], vkq = v[k, q];
+                        double vkp = v[k, p],
+                            vkq = v[k, q];
                         v[k, p] = c * vkp - s * vkq;
                         v[k, q] = s * vkp + c * vkq;
                     }

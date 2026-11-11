@@ -38,25 +38,39 @@ namespace GeometryHelper.UnitTest.Solid
                 _origin = origin;
             }
 
-            private GeoPoint3 At(double x, double y, double z) => _origin.Add(_along.Multiply(x)).Add(_across.Multiply(y)).Add(_up.Multiply(z));
+            private GeoPoint3 At(double x, double y, double z) =>
+                _origin.Add(_along.Multiply(x)).Add(_across.Multiply(y)).Add(_up.Multiply(z));
 
             /// <summary>The plate.</summary>
-            public GeoSolid3 Plate()
-                => GeoSolid3.Extrude(
-                    new GeoPolygon3(Enumerable.Range(0, RoundingLevelG1xTests.Plate.Length / 2).Select(i => At(RoundingLevelG1xTests.Plate[2 * i], RoundingLevelG1xTests.Plate[2 * i + 1], 0)).ToArray()),
+            public GeoSolid3 Plate() =>
+                GeoSolid3.Extrude(
+                    new GeoPolygon3(
+                        Enumerable
+                            .Range(0, RoundingLevelG1xTests.Plate.Length / 2)
+                            .Select(i =>
+                                At(RoundingLevelG1xTests.Plate[2 * i], RoundingLevelG1xTests.Plate[2 * i + 1], 0)
+                            )
+                            .ToArray()
+                    ),
                     _up.Multiply(3),
-                    Tolerance.Default);
+                    Tolerance.Default
+                );
 
             /// <summary>A box from and to a length, a width and a height in the frame.</summary>
-            public GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-                => GeoSolid3.Extrude(new GeoPolygon3(At(x0, y0, z0), At(x1, y0, z0), At(x1, y1, z0), At(x0, y1, z0)), _up.Multiply(z1 - z0), Tolerance.Default);
+            public GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+                GeoSolid3.Extrude(
+                    new GeoPolygon3(At(x0, y0, z0), At(x1, y0, z0), At(x1, y1, z0), At(x0, y1, z0)),
+                    _up.Multiply(z1 - z0),
+                    Tolerance.Default
+                );
         }
 
         /// <summary>A tolerance of a number of roundings of the coordinates of a body, a quadrillionth of the largest of them.</summary>
         private static Tolerance Roundings(GeoSolid3 body, double count)
         {
             GeoAabb3 box = body.GetAabb();
-            double rounding = 1E-15 * new[] { box.Min.X, box.Min.Y, box.Min.Z, box.Max.X, box.Max.Y, box.Max.Z }.Max(Math.Abs);
+            double rounding =
+                1E-15 * new[] { box.Min.X, box.Min.Y, box.Min.Z, box.Max.X, box.Max.Y, box.Max.Z }.Max(Math.Abs);
 
             return new Tolerance(count * rounding, count * rounding, count * rounding, count * rounding);
         }
@@ -65,25 +79,29 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly Frame HundredThousandOut = new Frame(
             new GeoVector3(0.5092589940624794, -0.042439272485513636, 0.8595662773267528),
             new GeoVector3(0.9388021143056186, 0.34429947634992636, 0.010414449599808872),
-            new GeoPoint3(35357.806149571115, -59718.80720915217, -94690.75156128535));
+            new GeoPoint3(35357.806149571115, -59718.80720915217, -94690.75156128535)
+        );
 
         /// <summary>A hundred million out.</summary>
         private static readonly Frame HundredMillionOut = new Frame(
             new GeoVector3(-0.10835418780431474, -0.6823614471167708, 0.7229399874636714),
             new GeoVector3(0.7216048511268258, -0.6888882078267337, -0.06869844210389839),
-            new GeoPoint3(-33434566.731301397, -10632728.18486799, 48622304.92225956));
+            new GeoPoint3(-33434566.731301397, -10632728.18486799, 48622304.92225956)
+        );
 
         /// <summary>A million out.</summary>
         private static readonly Frame MillionOut = new Frame(
             new GeoVector3(-0.1243591260351397, -0.613569631445631, -0.7797865830722204),
             new GeoVector3(-0.3166215227442763, 0.11928498764860565, -0.9410217335730178),
-            new GeoPoint3(-301412.54947586573, -683055.8943017647, -614917.595691475));
+            new GeoPoint3(-301412.54947586573, -683055.8943017647, -614917.595691475)
+        );
 
         /// <summary>A thousand out.</summary>
         private static readonly Frame ThousandOut = new Frame(
             new GeoVector3(0.0013332455674188487, 0.798042809225385, -0.6025992840187522),
             new GeoVector3(-0.43360272631941693, 0.21250335107216525, -0.8756888725520434),
-            new GeoPoint3(554.2731227140283, -899.0416647396245, -775.2947992530161));
+            new GeoPoint3(554.2731227140283, -899.0416647396245, -775.2947992530161)
+        );
 
         [Fact]
         public void APlateAHundredThousandOutLessASlotAcrossIt_AtTheRounding_LeavesTheTwoPieces()

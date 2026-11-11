@@ -1,19 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+        <!-- 1. Configure NuGet Package generation and XML Documentation -->
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
-    <!-- 1. Configure NuGet Package generation and XML Documentation -->
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-
-    <!-- 2. NuGet Package Metadata Info -->
-    <PackageId>GeometryHelper</PackageId>
-    <Description>A geometry library for engineering drawings and models, in two dimensions and in three. Points, vectors, lines, polylines, polygons, faces with holes, circles and oriented rectangles in the plane; points, planes, triangles, polygons, faces, solids, boxes, coordinate systems and transformations in space. Over both: distance, projection, containment, intersection, collision, parallelism, parametrization, merging, splitting, extending and trimming, offsetting, and boolean operations. It also reads, writes and edits DXF drawings with AutoCAD's names, carries the label placement that arranges drawing labels clear of each other and of blocked regions, and packs boxes such as drawing views onto sheets of paper. Every comparison is tolerance-aware, because coordinates that come out of a BIM model are never exact.</Description>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>icon.png</PackageIcon>
-    <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
-    <PackageReleaseNotes>
+        <!-- 2. NuGet Package Metadata Info -->
+        <PackageId>GeometryHelper</PackageId>
+        <Description>A geometry library for engineering drawings and models, in two dimensions and in three. Points, vectors, lines, polylines, polygons, faces with holes, circles and oriented rectangles in the plane; points, planes, triangles, polygons, faces, solids, boxes, coordinate systems and transformations in space. Over both: distance, projection, containment, intersection, collision, parallelism, parametrization, merging, splitting, extending and trimming, offsetting, and boolean operations. It also reads, writes and edits DXF drawings with AutoCAD's names, carries the label placement that arranges drawing labels clear of each other and of blocked regions, and packs boxes such as drawing views onto sheets of paper. Every comparison is tolerance-aware, because coordinates that come out of a BIM model are never exact.</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageIcon>icon.png</PackageIcon>
+        <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
+        <PackageReleaseNotes>
       NEW IN 13.11.0
 
       A minor release: public types and members added, none removed or renamed. A drawing only read and saved is
@@ -46,17 +45,15 @@
       Earlier releases: https://github.com/nguyenthanguth/GeometryHelper/blob/main/CHANGELOG.md
     </PackageReleaseNotes>
 
-    <!-- 3. Embed source code and Debug symbols into DLL to support F12 original code viewing -->
-    <DebugType>embedded</DebugType>
-    <EmbedAllSources>true</EmbedAllSources>
-    <GenerateDependencyFile>false</GenerateDependencyFile>
+        <!-- 3. Embed source code and Debug symbols into DLL to support F12 original code viewing -->
+        <DebugType>embedded</DebugType>
+        <EmbedAllSources>true</EmbedAllSources>
+        <GenerateDependencyFile>false</GenerateDependencyFile>
+    </PropertyGroup>
 
-  </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
-    <None Include="icon.png" Pack="true" PackagePath="\" />
-    <None Include="THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
-
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+        <None Include="icon.png" Pack="true" PackagePath="\" />
+        <None Include="THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
 </Project>

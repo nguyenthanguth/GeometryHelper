@@ -26,7 +26,15 @@ namespace GeometryHelper.Dxf
         /// Writes a linear parameter with its two grips, each with its two location components: seven nodes, and the six edges
         /// AutoCAD writes for them (the parameter to each component, each grip to the parameter).
         /// </summary>
-        internal static DxfBlockLinearParameter AddLinear(DxfBlockTableRecord block, string name, string description, GeoPoint3 basePoint, GeoPoint3 endPoint, double labelOffset, DxfBlockParameterValueSet valueSet)
+        internal static DxfBlockLinearParameter AddLinear(
+            DxfBlockTableRecord block,
+            string name,
+            string description,
+            GeoPoint3 basePoint,
+            GeoPoint3 endPoint,
+            double labelOffset,
+            DxfBlockParameterValueSet valueSet
+        )
         {
             Graph graph = Graph.Of(block);
             DxfFile file = graph.File;
@@ -64,15 +72,34 @@ namespace GeometryHelper.Dxf
             // The label stands off the middle of the line to its left, looking from the base to the end, by the offset.
             double flat = Math.Sqrt(along.X * along.X + along.Y * along.Y);
             GeoPoint3 middle = basePoint.GetMiddlePoint(endPoint);
-            GeoPoint3 label = flat > 0.0 ? new GeoPoint3(middle.X - along.Y / flat * labelOffset, middle.Y + along.X / flat * labelOffset, middle.Z) : middle;
+            GeoPoint3 label =
+                flat > 0.0
+                    ? new GeoPoint3(
+                        middle.X - along.Y / flat * labelOffset,
+                        middle.Y + along.X / flat * labelOffset,
+                        middle.Z
+                    )
+                    : middle;
             DxfDBObject.OfObject(parameter).XData = new[]
             {
-                new DxfTypedValue(1001, "ACAUTHENVIRON"), new DxfTypedValue(1010, Real(label.X)), new DxfTypedValue(1020, Real(label.Y)), new DxfTypedValue(1030, Real(label.Z)),
+                new DxfTypedValue(1001, "ACAUTHENVIRON"),
+                new DxfTypedValue(1010, Real(label.X)),
+                new DxfTypedValue(1020, Real(label.Y)),
+                new DxfTypedValue(1030, Real(label.Z)),
             };
 
             graph.Add(p, parameter.Handle);
             Grip(graph, p, p + 1, "End Grip", endPoint, along, Unset, "UpdatedEnd");
-            Grip(graph, p, p + 4, "Base Grip", basePoint, new GeoVector3(-along.X, -along.Y, -along.Z), "0.0", "UpdatedBase");
+            Grip(
+                graph,
+                p,
+                p + 4,
+                "Base Grip",
+                basePoint,
+                new GeoVector3(-along.X, -along.Y, -along.Z),
+                "0.0",
+                "UpdatedBase"
+            );
             graph.Link(p, p + 2, 1);
             graph.Link(p, p + 3, 1);
             graph.Link(p + 1, p, 2);
@@ -84,7 +111,17 @@ namespace GeometryHelper.Dxf
             file.AddClass("BLOCKLINEARPARAMETER", "AcDbBlockLinearParameter", 1153);
             file.AddClass("BLOCKLINEARGRIP", "AcDbBlockLinearGrip", 1153);
             file.AddClass("BLOCKGRIPLOCATIONCOMPONENT", "AcDbBlockGripExpr", 1153);
-            return new DxfBlockLinearParameter(block, p, parameter.Handle, name, description, basePoint, endPoint, labelOffset, valueSet);
+            return new DxfBlockLinearParameter(
+                block,
+                p,
+                parameter.Handle,
+                name,
+                description,
+                basePoint,
+                endPoint,
+                labelOffset,
+                valueSet
+            );
         }
 
         /// <summary>
@@ -92,7 +129,12 @@ namespace GeometryHelper.Dxf
         /// AutoCAD writes for them (the parameter to each component, the grip to the parameter), as AutoCAD saved the point
         /// parameter of ACadSharp's sample; the label at the point.
         /// </summary>
-        internal static DxfBlockPointParameter AddPoint(DxfBlockTableRecord block, string name, string description, GeoPoint3 location)
+        internal static DxfBlockPointParameter AddPoint(
+            DxfBlockTableRecord block,
+            string name,
+            string description,
+            GeoPoint3 location
+        )
         {
             Graph graph = Graph.Of(block);
             DxfFile file = graph.File;
@@ -141,13 +183,25 @@ namespace GeometryHelper.Dxf
         /// at the radius and the angle from the base point, the base angle point at the radius along the block's x axis, the
         /// angle's value set (96, 141 to 144, 175), of none the flags 3, nought to a whole turn.
         /// </summary>
-        internal static DxfBlockRotationParameter AddRotation(DxfBlockTableRecord block, string name, string description, GeoPoint3 basePoint, double radius, double angle, DxfBlockParameterValueSet valueSet)
+        internal static DxfBlockRotationParameter AddRotation(
+            DxfBlockTableRecord block,
+            string name,
+            string description,
+            GeoPoint3 basePoint,
+            double radius,
+            double angle,
+            DxfBlockParameterValueSet valueSet
+        )
         {
             Graph graph = Graph.Of(block);
             DxfFile file = graph.File;
             int p = graph.NextId;
             string element = graph.FreeName("Rotation");
-            var endPoint = new GeoPoint3(basePoint.X + radius * Math.Cos(angle), basePoint.Y + radius * Math.Sin(angle), basePoint.Z);
+            var endPoint = new GeoPoint3(
+                basePoint.X + radius * Math.Cos(angle),
+                basePoint.Y + radius * Math.Sin(angle),
+                basePoint.Z
+            );
             var baseAngle = new GeoPoint3(basePoint.X + radius, basePoint.Y, basePoint.Z);
 
             DxfItem parameter = file.AddObject("BLOCKROTATIONPARAMETER", null, b =>
@@ -190,7 +244,17 @@ namespace GeometryHelper.Dxf
             file.AddClass("BLOCKROTATIONPARAMETER", "AcDbBlockRotationParameter", 1153);
             file.AddClass("BLOCKROTATIONGRIP", "AcDbBlockRotationGrip", 1153);
             file.AddClass("BLOCKGRIPLOCATIONCOMPONENT", "AcDbBlockGripExpr", 1153);
-            return new DxfBlockRotationParameter(block, p, parameter.Handle, name, description, basePoint, radius, angle, valueSet);
+            return new DxfBlockRotationParameter(
+                block,
+                p,
+                parameter.Handle,
+                name,
+                description,
+                basePoint,
+                radius,
+                angle,
+                valueSet
+            );
         }
 
         /// <summary>
@@ -199,7 +263,13 @@ namespace GeometryHelper.Dxf
         /// reflection line from the base point to the end point, the states labelled Not flipped and Flipped, the label and
         /// the grip at the line's end point.
         /// </summary>
-        internal static DxfBlockFlipParameter AddFlip(DxfBlockTableRecord block, string name, string description, GeoPoint3 basePoint, GeoPoint3 endPoint)
+        internal static DxfBlockFlipParameter AddFlip(
+            DxfBlockTableRecord block,
+            string name,
+            string description,
+            GeoPoint3 basePoint,
+            GeoPoint3 endPoint
+        )
         {
             Graph graph = Graph.Of(block);
             DxfFile file = graph.File;
@@ -238,13 +308,24 @@ namespace GeometryHelper.Dxf
 
             Environ(parameter, endPoint);
             graph.Add(p, parameter.Handle);
-            GripOf(graph, "BLOCKFLIPGRIP", "AcDbBlockFlipGrip", p + 1, "Grip", endPoint, "0", b =>
-            {
-                b.Group(140, Real(along.X));
-                b.Group(141, Real(along.Y));
-                b.Group(142, Real(along.Z));
-                b.Group(93, Int(p + 2));
-            }, p + 3, p + 4);
+            GripOf(
+                graph,
+                "BLOCKFLIPGRIP",
+                "AcDbBlockFlipGrip",
+                p + 1,
+                "Grip",
+                endPoint,
+                "0",
+                b =>
+                {
+                    b.Group(140, Real(along.X));
+                    b.Group(141, Real(along.Y));
+                    b.Group(142, Real(along.Z));
+                    b.Group(93, Int(p + 2));
+                },
+                p + 3,
+                p + 4
+            );
 
             DxfItem state = file.AddObject("BLOCKGRIPLOCATIONCOMPONENT", null, b =>
             {
@@ -278,8 +359,17 @@ namespace GeometryHelper.Dxf
         /// parameter of ACadSharp's sample: the labels of y and x at 305 and 306, their descriptions at 307 and 308, the label
         /// offsets nought, the value set of y (97, 146 to 149, 176) and then of x (96, 142 to 145, 175), of none the flags 1.
         /// </summary>
-        internal static DxfBlockXYParameter AddXY(DxfBlockTableRecord block, string xName, string xDescription, string yName, string yDescription, GeoPoint3 basePoint, GeoPoint3 endPoint,
-            DxfBlockParameterValueSet xValueSet, DxfBlockParameterValueSet yValueSet)
+        internal static DxfBlockXYParameter AddXY(
+            DxfBlockTableRecord block,
+            string xName,
+            string xDescription,
+            string yName,
+            string yDescription,
+            GeoPoint3 basePoint,
+            GeoPoint3 endPoint,
+            DxfBlockParameterValueSet xValueSet,
+            DxfBlockParameterValueSet yValueSet
+        )
         {
             Graph graph = Graph.Of(block);
             DxfFile file = graph.File;
@@ -324,10 +414,28 @@ namespace GeometryHelper.Dxf
             Components(graph, p, p + 1, Unset, "UpdatedEnd");
             GripOf(graph, "BLOCKXYGRIP", "AcDbBlockXYGrip", p + 4, "Base Grip", basePoint, "1", null);
             Components(graph, p, p + 4, "0.0", "UpdatedBase");
-            GripOf(graph, "BLOCKXYGRIP", "AcDbBlockXYGrip", p + 7, "BaseX-EndY Grip", new GeoPoint3(basePoint.X, endPoint.Y, basePoint.Z), "1", null);
+            GripOf(
+                graph,
+                "BLOCKXYGRIP",
+                "AcDbBlockXYGrip",
+                p + 7,
+                "BaseX-EndY Grip",
+                new GeoPoint3(basePoint.X, endPoint.Y, basePoint.Z),
+                "1",
+                null
+            );
             Component(graph, p, p + 8, "0.0", "UpdatedBaseX");
             Component(graph, p, p + 9, Unset, "UpdatedEndY");
-            GripOf(graph, "BLOCKXYGRIP", "AcDbBlockXYGrip", p + 10, "BaseY-EndX Grip", new GeoPoint3(endPoint.X, basePoint.Y, basePoint.Z), "1", null);
+            GripOf(
+                graph,
+                "BLOCKXYGRIP",
+                "AcDbBlockXYGrip",
+                p + 10,
+                "BaseY-EndX Grip",
+                new GeoPoint3(endPoint.X, basePoint.Y, basePoint.Z),
+                "1",
+                null
+            );
             Component(graph, p, p + 11, Unset, "UpdatedEndX");
             Component(graph, p, p + 12, "0.0", "UpdatedBaseY");
 
@@ -342,7 +450,19 @@ namespace GeometryHelper.Dxf
             file.AddClass("BLOCKXYPARAMETER", "AcDbBlockXYParameter", 1153);
             file.AddClass("BLOCKXYGRIP", "AcDbBlockXYGrip", 1153);
             file.AddClass("BLOCKGRIPLOCATIONCOMPONENT", "AcDbBlockGripExpr", 1153);
-            return new DxfBlockXYParameter(block, p, parameter.Handle, xName, xDescription, yName, yDescription, basePoint, endPoint, xValueSet, yValueSet);
+            return new DxfBlockXYParameter(
+                block,
+                p,
+                parameter.Handle,
+                xName,
+                xDescription,
+                yName,
+                yDescription,
+                basePoint,
+                endPoint,
+                xValueSet,
+                yValueSet
+            );
         }
 
         /// <summary>
@@ -352,8 +472,18 @@ namespace GeometryHelper.Dxf
         /// the label offset (140), the distance's value set (96, 141 to 144, 175), of none the flags 1, and the angle's (97, 145
         /// to 148, 176), of none the flags 3, nought to a whole turn.
         /// </summary>
-        internal static DxfBlockPolarParameter AddPolar(DxfBlockTableRecord block, string distanceName, string distanceDescription, string angleName, string angleDescription,
-            GeoPoint3 basePoint, GeoPoint3 endPoint, double labelOffset, DxfBlockParameterValueSet distanceValueSet, DxfBlockParameterValueSet angleValueSet)
+        internal static DxfBlockPolarParameter AddPolar(
+            DxfBlockTableRecord block,
+            string distanceName,
+            string distanceDescription,
+            string angleName,
+            string angleDescription,
+            GeoPoint3 basePoint,
+            GeoPoint3 endPoint,
+            double labelOffset,
+            DxfBlockParameterValueSet distanceValueSet,
+            DxfBlockParameterValueSet angleValueSet
+        )
         {
             Graph graph = Graph.Of(block);
             DxfFile file = graph.File;
@@ -395,7 +525,14 @@ namespace GeometryHelper.Dxf
             // The label stands off the middle of the line to its left, looking from the base to the end, by the offset.
             double flat = Math.Sqrt(along.X * along.X + along.Y * along.Y);
             GeoPoint3 middle = basePoint.GetMiddlePoint(endPoint);
-            Environ(parameter, new GeoPoint3(middle.X - along.Y / flat * labelOffset, middle.Y + along.X / flat * labelOffset, middle.Z));
+            Environ(
+                parameter,
+                new GeoPoint3(
+                    middle.X - along.Y / flat * labelOffset,
+                    middle.Y + along.X / flat * labelOffset,
+                    middle.Z
+                )
+            );
             graph.Add(p, parameter.Handle);
             GripOf(graph, "BLOCKPOLARGRIP", "AcDbBlockPolarGrip", p + 1, "End Grip", endPoint, "1", null);
             Components(graph, p, p + 1, Unset, "UpdatedEnd");
@@ -412,7 +549,20 @@ namespace GeometryHelper.Dxf
             file.AddClass("BLOCKPOLARPARAMETER", "AcDbBlockPolarParameter", 1153);
             file.AddClass("BLOCKPOLARGRIP", "AcDbBlockPolarGrip", 1153);
             file.AddClass("BLOCKGRIPLOCATIONCOMPONENT", "AcDbBlockGripExpr", 1153);
-            return new DxfBlockPolarParameter(block, p, parameter.Handle, distanceName, distanceDescription, angleName, angleDescription, basePoint, endPoint, labelOffset, distanceValueSet, angleValueSet);
+            return new DxfBlockPolarParameter(
+                block,
+                p,
+                parameter.Handle,
+                distanceName,
+                distanceDescription,
+                angleName,
+                angleDescription,
+                basePoint,
+                endPoint,
+                labelOffset,
+                distanceValueSet,
+                angleValueSet
+            );
         }
 
         /// <summary>
@@ -424,7 +574,13 @@ namespace GeometryHelper.Dxf
         /// parameter (of six connections). An entity to turn only is not among the 330s: AutoCAD 2021 turned and moved a tick
         /// named there too, and turned it alone named among the 331s only (plugin D25).
         /// </summary>
-        internal static void AddPolarStretch(DxfBlockPolarParameter parameter, GeoPoint2 low, GeoPoint2 high, List<KeyValuePair<DxfEntity, List<int>>> held, List<DxfEntity> turned)
+        internal static void AddPolarStretch(
+            DxfBlockPolarParameter parameter,
+            GeoPoint2 low,
+            GeoPoint2 high,
+            List<KeyValuePair<DxfEntity, List<int>>> held,
+            List<DxfEntity> turned
+        )
         {
             Graph graph = Graph.Of(parameter.Block);
             Known(graph, parameter.Block, parameter.Node, parameter.DistanceName);
@@ -434,7 +590,14 @@ namespace GeometryHelper.Dxf
             List<DxfEntity> selected = held.ConvertAll(h => h.Key);
             DxfItem action = graph.File.AddObject("BLOCKPOLARSTRETCHACTION", null, b =>
             {
-                ActionHead(b, graph, s, element, selected, new GeoPoint3((low.X + high.X) / 2.0, (low.Y + high.Y) / 2.0, 0.0));
+                ActionHead(
+                    b,
+                    graph,
+                    s,
+                    element,
+                    selected,
+                    new GeoPoint3((low.X + high.X) / 2.0, (low.Y + high.Y) / 2.0, 0.0)
+                );
                 b.Group(100, "AcDbBlockPolarStretchAction");
                 b.Group(92, Int(p));
                 b.Group(301, "EndXDelta");
@@ -481,7 +644,16 @@ namespace GeometryHelper.Dxf
         /// two corners, each entity with the indices of its points inside the frame, its distance multiplier and angle offset;
         /// one node, and the edge from the parameter.
         /// </summary>
-        internal static void AddStretch(DxfBlockTableRecord block, int node, string name, GeoPoint2 low, GeoPoint2 high, List<KeyValuePair<DxfEntity, List<int>>> held, double multiplier, double angle)
+        internal static void AddStretch(
+            DxfBlockTableRecord block,
+            int node,
+            string name,
+            GeoPoint2 low,
+            GeoPoint2 high,
+            List<KeyValuePair<DxfEntity, List<int>>> held,
+            double multiplier,
+            double angle
+        )
         {
             Graph graph = Graph.Of(block);
             Known(graph, block, node, name);
@@ -537,7 +709,17 @@ namespace GeometryHelper.Dxf
         /// XDelta and YDelta of a point parameter), as AutoCAD saved the move of ACadSharp's point sample: the entities it
         /// moves, its distance multiplier and angle offset; one node, and the edge from the parameter.
         /// </summary>
-        internal static void AddMove(DxfBlockTableRecord block, int node, string name, string x, string y, GeoPoint3 at, List<DxfEntity> entities, double multiplier, double angle)
+        internal static void AddMove(
+            DxfBlockTableRecord block,
+            int node,
+            string name,
+            string x,
+            string y,
+            GeoPoint3 at,
+            List<DxfEntity> entities,
+            double multiplier,
+            double angle
+        )
         {
             Graph graph = Graph.Of(block);
             Known(graph, block, node, name);
@@ -656,7 +838,15 @@ namespace GeometryHelper.Dxf
         /// entities it copies, its connections Base, End, UpdatedBase and UpdatedEnd, the row offset (140) and the column
         /// offset (141); one node, and the edge from the parameter (of four connections).
         /// </summary>
-        internal static void AddArray(DxfBlockTableRecord block, int node, string name, GeoPoint3 at, List<DxfEntity> entities, double rows, double columns)
+        internal static void AddArray(
+            DxfBlockTableRecord block,
+            int node,
+            string name,
+            GeoPoint3 at,
+            List<DxfEntity> entities,
+            double rows,
+            double columns
+        )
         {
             Graph graph = Graph.Of(block);
             Known(graph, block, node, name);
@@ -694,7 +884,14 @@ namespace GeometryHelper.Dxf
         /// parameter, a pair of edges each way between it and the action, of as many connections as the table reads of it,
         /// each edge naming its pair and of the flags 4, as AutoCAD writes them.
         /// </summary>
-        internal static void AddLookup(DxfBlockTableRecord block, string name, string description, GeoPoint3 location, List<DxfBlockLookupInput> inputs, List<DxfBlockLookupRow> rows)
+        internal static void AddLookup(
+            DxfBlockTableRecord block,
+            string name,
+            string description,
+            GeoPoint3 location,
+            List<DxfBlockLookupInput> inputs,
+            List<DxfBlockLookupRow> rows
+        )
         {
             Graph graph = Graph.Of(block);
             inputs.ForEach(i => Known(graph, block, i.Node, i.Name));
@@ -787,7 +984,12 @@ namespace GeometryHelper.Dxf
         /// AcadBPTGraphNodeId naming the table. Each attribute definition of a column has the table among its reactors, as
         /// AutoCAD writes it, and so has each parameter.
         /// </summary>
-        internal static void AddPropertiesTable(DxfBlockTableRecord block, GeoPoint3 location, List<DxfBlockPropertiesTableColumn> columns, List<DxfBlockPropertiesTableRow> rows)
+        internal static void AddPropertiesTable(
+            DxfBlockTableRecord block,
+            GeoPoint3 location,
+            List<DxfBlockPropertiesTableColumn> columns,
+            List<DxfBlockPropertiesTableRow> rows
+        )
         {
             Graph graph = Graph.Of(block);
             columns.FindAll(c => c.Definition == null).ForEach(c => Known(graph, block, c.Node, c.Name));
@@ -916,7 +1118,15 @@ namespace GeometryHelper.Dxf
         /// units of its values (96: 2 a distance, 1 an angle, nought none, as AutoCAD's samples write a distance and a text),
         /// whether it is looked up (282), its label of no match, whether it looks back (281), its connection.
         /// </summary>
-        private static void Column(DxfFile.Builder b, int node, string type, string kind, string lookedUp, string reverse, string connection)
+        private static void Column(
+            DxfFile.Builder b,
+            int node,
+            string type,
+            string kind,
+            string lookedUp,
+            string reverse,
+            string connection
+        )
         {
             b.Group(303, string.Empty);
             b.Group(94, Int(node));
@@ -937,7 +1147,11 @@ namespace GeometryHelper.Dxf
         {
             if (Has(block, "BLOCKALIGNMENTPARAMETER"))
             {
-                throw new InvalidOperationException("The block " + block.Name + " has an alignment parameter already, and AutoCAD's Block Editor gives a block one.");
+                throw new InvalidOperationException(
+                    "The block "
+                        + block.Name
+                        + " has an alignment parameter already, and AutoCAD's Block Editor gives a block one."
+                );
             }
 
             Graph graph = Graph.Of(block);
@@ -996,7 +1210,11 @@ namespace GeometryHelper.Dxf
         {
             if (Has(block, "BLOCKBASEPOINTPARAMETER"))
             {
-                throw new InvalidOperationException("The block " + block.Name + " has a base point parameter already, and AutoCAD's Block Editor gives a block one.");
+                throw new InvalidOperationException(
+                    "The block "
+                        + block.Name
+                        + " has a base point parameter already, and AutoCAD's Block Editor gives a block one."
+                );
             }
 
             Graph graph = Graph.Of(block);
@@ -1030,12 +1248,22 @@ namespace GeometryHelper.Dxf
         {
             if (!graph.HasNode(node))
             {
-                throw new ArgumentException("The parameter " + name + " is no longer in the evaluation graph of the block " + block.Name + ".", "parameter");
+                throw new ArgumentException(
+                    "The parameter " + name + " is no longer in the evaluation graph of the block " + block.Name + ".",
+                    "parameter"
+                );
             }
         }
 
         /// <summary>The head of an action: its node's head, then the entities it works on (330) and where it is shown (1010).</summary>
-        private static void ActionHead(DxfFile.Builder b, Graph graph, int id, string element, List<DxfEntity> entities, GeoPoint3 at)
+        private static void ActionHead(
+            DxfFile.Builder b,
+            Graph graph,
+            int id,
+            string element,
+            List<DxfEntity> entities,
+            GeoPoint3 at
+        )
         {
             Head(b, graph.Handle, id, element);
             b.Group(100, "AcDbBlockAction");
@@ -1067,7 +1295,10 @@ namespace GeometryHelper.Dxf
         {
             DxfDBObject.OfObject(parameter).XData = new[]
             {
-                new DxfTypedValue(1001, "ACAUTHENVIRON"), new DxfTypedValue(1010, Real(at.X)), new DxfTypedValue(1020, Real(at.Y)), new DxfTypedValue(1030, Real(at.Z)),
+                new DxfTypedValue(1001, "ACAUTHENVIRON"),
+                new DxfTypedValue(1010, Real(at.X)),
+                new DxfTypedValue(1020, Real(at.Y)),
+                new DxfTypedValue(1030, Real(at.Z)),
             };
         }
 
@@ -1077,11 +1308,21 @@ namespace GeometryHelper.Dxf
         /// visibility parameter of ACadSharp's sample. The entities the states name are governed, in the order of the block;
         /// each of them not shown in the first state is made invisible, as AutoCAD keeps the block in that state.
         /// </summary>
-        internal static void AddVisibility(DxfBlockTableRecord block, string name, string description, GeoPoint3 location, List<DxfBlockVisibilityState> states)
+        internal static void AddVisibility(
+            DxfBlockTableRecord block,
+            string name,
+            string description,
+            GeoPoint3 location,
+            List<DxfBlockVisibilityState> states
+        )
         {
             if (Has(block, "BLOCKVISIBILITYPARAMETER"))
             {
-                throw new InvalidOperationException("The block " + block.Name + " has a visibility parameter already, and AutoCAD's Block Editor gives a block one.");
+                throw new InvalidOperationException(
+                    "The block "
+                        + block.Name
+                        + " has a visibility parameter already, and AutoCAD's Block Editor gives a block one."
+                );
             }
 
             var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -1181,7 +1422,10 @@ namespace GeometryHelper.Dxf
         {
             var handles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             DxfDBDictionary dictionary = block.ExtensionDictionary;
-            DxfItem item = dictionary != null && dictionary.Contains("ACAD_ENHANCEDBLOCK") ? dictionary.GetAt("ACAD_ENHANCEDBLOCK")?.Item : null;
+            DxfItem item =
+                dictionary != null && dictionary.Contains("ACAD_ENHANCEDBLOCK")
+                    ? dictionary.GetAt("ACAD_ENHANCEDBLOCK")?.Item
+                    : null;
 
             if (item == null || item.Type != "ACAD_EVALUATION_GRAPH")
             {
@@ -1203,7 +1447,9 @@ namespace GeometryHelper.Dxf
                     }
 
                     // A polar stretch names the entities it turns only (331) apart from its selection too.
-                    foreach (DxfTypedValue acted in DxfDynamicProperties.Section(node.Groups, "AcDbBlockPolarStretchAction"))
+                    foreach (
+                        DxfTypedValue acted in DxfDynamicProperties.Section(node.Groups, "AcDbBlockPolarStretchAction")
+                    )
                     {
                         if (acted.TypeCode == 331)
                         {
@@ -1229,7 +1475,10 @@ namespace GeometryHelper.Dxf
         private static DxfItem NodeOf(DxfBlockTableRecord block, Func<string, bool> types)
         {
             DxfDBDictionary dictionary = block.ExtensionDictionary;
-            DxfItem item = dictionary != null && dictionary.Contains("ACAD_ENHANCEDBLOCK") ? dictionary.GetAt("ACAD_ENHANCEDBLOCK")?.Item : null;
+            DxfItem item =
+                dictionary != null && dictionary.Contains("ACAD_ENHANCEDBLOCK")
+                    ? dictionary.GetAt("ACAD_ENHANCEDBLOCK")?.Item
+                    : null;
 
             if (item == null || item.Type != "ACAD_EVALUATION_GRAPH")
             {
@@ -1250,7 +1499,16 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A grip of a linear parameter and its two location components, the nodes after it.</summary>
-        private static void Grip(Graph graph, int parameter, int id, string name, GeoPoint3 at, GeoVector3 direction, string value, string connection)
+        private static void Grip(
+            Graph graph,
+            int parameter,
+            int id,
+            string name,
+            GeoPoint3 at,
+            GeoVector3 direction,
+            string value,
+            string connection
+        )
         {
             DxfItem grip = graph.File.AddObject("BLOCKLINEARGRIP", null, b =>
             {
@@ -1275,7 +1533,18 @@ namespace GeometryHelper.Dxf
         /// A grip of a type other than linear: its two location components (by default the nodes after it), its location, its
         /// cycling flag (280) and what its own subclass holds.
         /// </summary>
-        private static void GripOf(Graph graph, string type, string subclass, int id, string name, GeoPoint3 at, string cycling, Action<DxfFile.Builder> tail, int x = -1, int y = -1)
+        private static void GripOf(
+            Graph graph,
+            string type,
+            string subclass,
+            int id,
+            string name,
+            GeoPoint3 at,
+            string cycling,
+            Action<DxfFile.Builder> tail,
+            int x = -1,
+            int y = -1
+        )
         {
             DxfItem grip = graph.File.AddObject(type, null, b =>
             {
@@ -1318,7 +1587,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Two connections of a parameter's point to grips: their count (2), then each grip's id and what it gives.</summary>
-        private static void Connections(DxfFile.Builder b, int count, int node, int first, int second, string connection)
+        private static void Connections(
+            DxfFile.Builder b,
+            int count,
+            int node,
+            int first,
+            int second,
+            string connection
+        )
         {
             b.Group(count, "2");
             b.Group(node, Int(first));
@@ -1358,7 +1634,8 @@ namespace GeometryHelper.Dxf
         /// The value set of a distance: its flags (96), minimum, maximum and increment (141 to 143), and the list counted by 175;
         /// the flags 1 and noughts where there is none, as AutoCAD writes a set of None.
         /// </summary>
-        private static void Values(DxfFile.Builder b, DxfBlockParameterValueSet set) => Values(b, 96, 141, 175, set, "1", "0", "0");
+        private static void Values(DxfFile.Builder b, DxfBlockParameterValueSet set) =>
+            Values(b, 96, 141, 175, set, "1", "0", "0");
 
         /// <summary>
         /// A value set as AutoCAD writes one: its flags (of the code given), minimum, maximum and increment (the three codes from
@@ -1366,7 +1643,16 @@ namespace GeometryHelper.Dxf
         /// and a list of the flags 8, of a distance or an angle. Where there is none, the flags, the minimum and the maximum given,
         /// as AutoCAD's samples write a set of None: 1 and noughts for a distance, 3 from nought to a whole turn for an angle.
         /// </summary>
-        private static void Values(DxfFile.Builder b, int flags, int first, int count, DxfBlockParameterValueSet set, string none, string least, string most)
+        private static void Values(
+            DxfFile.Builder b,
+            int flags,
+            int first,
+            int count,
+            DxfBlockParameterValueSet set,
+            string none,
+            string least,
+            string most
+        )
         {
             if (set == null)
             {
@@ -1401,7 +1687,10 @@ namespace GeometryHelper.Dxf
         private static string Real(double value) => Numbers.Exact(value + 0.0);
 
         /// <summary>A distance multiplier or an angle offset: 1 and nought as AutoCAD writes them (1.0, 0.0), another as a real.</summary>
-        private static string Factor(double value) => value == 1.0 ? "1.0" : value == 0.0 ? "0.0" : Real(value);
+        private static string Factor(double value) =>
+            value == 1.0 ? "1.0"
+            : value == 0.0 ? "0.0"
+            : Real(value);
 
         private static string Int(int value) => value.ToString(CultureInfo.InvariantCulture);
 
@@ -1414,9 +1703,9 @@ namespace GeometryHelper.Dxf
         private sealed class Graph
         {
             private readonly DxfItem _item;
-            private readonly List<int[]> _nodes = new List<int[]>();          // flags, id
+            private readonly List<int[]> _nodes = new List<int[]>(); // flags, id
             private readonly List<string> _handles = new List<string>();
-            private readonly List<int[]> _edges = new List<int[]>();          // flags, kind, from index, to index, index of its pair
+            private readonly List<int[]> _edges = new List<int[]>(); // flags, kind, from index, to index, index of its pair
             private readonly HashSet<string> _names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             private int _last;
 
@@ -1451,7 +1740,9 @@ namespace GeometryHelper.Dxf
                 DxfFile file = block.File;
                 block.CreateExtensionDictionary();
                 DxfDBDictionary dictionary = block.ExtensionDictionary;
-                DxfItem item = dictionary.Contains("ACAD_ENHANCEDBLOCK") ? dictionary.GetAt("ACAD_ENHANCEDBLOCK")?.Item : null;
+                DxfItem item = dictionary.Contains("ACAD_ENHANCEDBLOCK")
+                    ? dictionary.GetAt("ACAD_ENHANCEDBLOCK")?.Item
+                    : null;
 
                 if (item == null || item.Type != "ACAD_EVALUATION_GRAPH")
                 {
@@ -1464,11 +1755,15 @@ namespace GeometryHelper.Dxf
 
                     if (!dictionary.Contains("AcDbDynamicBlockRoundTripPurgePreventer"))
                     {
-                        dictionary.Add("AcDbDynamicBlockRoundTripPurgePreventer", "ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION", b =>
-                        {
-                            b.Group(100, "AcDbDynamicBlockPurgePreventer");
-                            b.Group(70, "1");
-                        });
+                        dictionary.Add(
+                            "AcDbDynamicBlockRoundTripPurgePreventer",
+                            "ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION",
+                            b =>
+                            {
+                                b.Group(100, "AcDbDynamicBlockPurgePreventer");
+                                b.Group(70, "1");
+                            }
+                        );
                     }
 
                     file.AddClass("ACAD_EVALUATION_GRAPH", "AcDbEvalGraph", 1153);
@@ -1507,7 +1802,13 @@ namespace GeometryHelper.Dxf
 
                 foreach (DxfEntity entity in untagged)
                 {
-                    entity.XData = new[] { new DxfTypedValue(1001, "AcDbBlockRepETag"), new DxfTypedValue(1070, "1"), new DxfTypedValue(1071, Int(next++)), new DxfTypedValue(1005, entity.Handle) };
+                    entity.XData = new[]
+                    {
+                        new DxfTypedValue(1001, "AcDbBlockRepETag"),
+                        new DxfTypedValue(1070, "1"),
+                        new DxfTypedValue(1071, Int(next++)),
+                        new DxfTypedValue(1005, entity.Handle),
+                    };
                 }
 
                 var data = new List<DxfTypedValue>();
@@ -1521,7 +1822,12 @@ namespace GeometryHelper.Dxf
                 if (block.GetXDataForApplication("AcDbDynamicBlockGUID") == null)
                 {
                     data.Add(new DxfTypedValue(1001, "AcDbDynamicBlockGUID"));
-                    data.Add(new DxfTypedValue(1000, Guid.NewGuid().ToString("B", CultureInfo.InvariantCulture).ToUpperInvariant()));
+                    data.Add(
+                        new DxfTypedValue(
+                            1000,
+                            Guid.NewGuid().ToString("B", CultureInfo.InvariantCulture).ToUpperInvariant()
+                        )
+                    );
                 }
 
                 data.Add(new DxfTypedValue(1001, "AcDbBlockRepETag"));
@@ -1535,7 +1841,15 @@ namespace GeometryHelper.Dxf
             {
                 foreach (DxfTypedValue group in data ?? (IReadOnlyList<DxfTypedValue>)new DxfTypedValue[0])
                 {
-                    if (group.TypeCode == 1071 && int.TryParse(group.Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int tag))
+                    if (
+                        group.TypeCode == 1071
+                        && int.TryParse(
+                            group.Value?.Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out int tag
+                        )
+                    )
                     {
                         return tag;
                     }
@@ -1548,7 +1862,12 @@ namespace GeometryHelper.Dxf
             internal bool HasNode(int id) => _nodes.Exists(n => n[1] == id);
 
             /// <summary>Gives the graph's record the extended data of an application naming a node by its id (1071), as AutoCAD names its block properties table (AcadBPTGraphNodeId).</summary>
-            internal void Name(string application, int id) => DxfDBObject.OfObject(_item).XData = new[] { new DxfTypedValue(1001, application), new DxfTypedValue(1071, Int(id)) };
+            internal void Name(string application, int id) =>
+                DxfDBObject.OfObject(_item).XData = new[]
+                {
+                    new DxfTypedValue(1001, application),
+                    new DxfTypedValue(1071, Int(id)),
+                };
 
             /// <summary>The first of a name, then of the name with 1, 2 and on after it, that no element of the graph has, as AutoCAD names its parameters and actions.</summary>
             internal string FreeName(string name)
@@ -1571,7 +1890,10 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>An edge from one node to another, by their ids, of a kind (94): 1 to a grip's component, 2 to a parameter or an action.</summary>
-            internal void Link(int from, int to, int kind) => _edges.Add(new[] { 0, kind, _nodes.FindIndex(n => n[1] == from), _nodes.FindIndex(n => n[1] == to), -1 });
+            internal void Link(int from, int to, int kind) =>
+                _edges.Add(
+                    new[] { 0, kind, _nodes.FindIndex(n => n[1] == from), _nodes.FindIndex(n => n[1] == to), -1 }
+                );
 
             /// <summary>
             /// Two edges between two nodes, by their ids, one each way, of a kind (the connections the action reads or sets), each
@@ -1613,14 +1935,24 @@ namespace GeometryHelper.Dxf
 
                 while (at + 9 < groups.Count && groups[at].TypeCode == 92)
                 {
-                    _edges.Add(new[] { Number(groups[at + 1].Value), Number(groups[at + 2].Value), Number(groups[at + 3].Value), Number(groups[at + 4].Value), Number(groups[at + 9].Value) });
+                    _edges.Add(
+                        new[]
+                        {
+                            Number(groups[at + 1].Value),
+                            Number(groups[at + 2].Value),
+                            Number(groups[at + 3].Value),
+                            Number(groups[at + 4].Value),
+                            Number(groups[at + 9].Value),
+                        }
+                    );
                     at += 10;
                 }
 
                 foreach (string handle in _handles)
                 {
                     DxfItem node = File.ObjectItem(handle);
-                    IReadOnlyList<DxfTypedValue> own = node?.Groups ?? (IReadOnlyList<DxfTypedValue>)new DxfTypedValue[0];
+                    IReadOnlyList<DxfTypedValue> own = node?.Groups
+                        ?? (IReadOnlyList<DxfTypedValue>)new DxfTypedValue[0];
                     int marker = -1;
 
                     for (int i = 0; i < own.Count; i++)
@@ -1700,9 +2032,13 @@ namespace GeometryHelper.Dxf
                 return found;
             }
 
-            private static KeyValuePair<int, string> Pair(int code, string value) => new KeyValuePair<int, string>(code, value);
+            private static KeyValuePair<int, string> Pair(int code, string value) =>
+                new KeyValuePair<int, string>(code, value);
 
-            private static int Number(string text) => int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : 0;
+            private static int Number(string text) =>
+                int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                    ? value
+                    : 0;
         }
     }
 }

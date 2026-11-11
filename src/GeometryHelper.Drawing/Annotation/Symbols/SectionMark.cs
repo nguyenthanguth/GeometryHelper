@@ -44,12 +44,16 @@ namespace GeometryHelper.Drawing.Annotation
                 throw new ArgumentException("The cut line has to have a length.", nameof(cutLine));
             }
 
-            double ux = (cutLine.EndPoint.X - cutLine.StartPoint.X) / length, uy = (cutLine.EndPoint.Y - cutLine.StartPoint.Y) / length;
+            double ux = (cutLine.EndPoint.X - cutLine.StartPoint.X) / length,
+                uy = (cutLine.EndPoint.Y - cutLine.StartPoint.Y) / length;
             double across = lookDirection.X * -uy + lookDirection.Y * ux;
 
             if (!(Math.Abs(across) > 0.0) || double.IsNaN(across) || double.IsInfinity(across))
             {
-                throw new ArgumentException("The direction has to have a part square to the cut line.", nameof(lookDirection));
+                throw new ArgumentException(
+                    "The direction has to have a part square to the cut line.",
+                    nameof(lookDirection)
+                );
             }
 
             CutLine = cutLine;
@@ -75,7 +79,8 @@ namespace GeometryHelper.Drawing.Annotation
         /// Gets the boxes of the two letters, at the start of the cut line first, square to the view's axes: each as wide as the
         /// letters are high for each character.
         /// </summary>
-        public IReadOnlyList<GeoRectangle2> LetterBoxes => new[] { LetterBox(CutLine.StartPoint), LetterBox(CutLine.EndPoint) };
+        public IReadOnlyList<GeoRectangle2> LetterBoxes =>
+            new[] { LetterBox(CutLine.StartPoint), LetterBox(CutLine.EndPoint) };
 
         /// <summary>
         /// Writes the mark into the model space of a drawing: the cut line as a thin LINE with the linetype CENTER and a thick
@@ -107,7 +112,8 @@ namespace GeometryHelper.Drawing.Annotation
             SymbolDxf.SymbolLayer(database);
             SymbolDxf.CentreLayer(database);
             string layer = SymbolSettings.Layer;
-            GeoPoint2 a = CutLine.StartPoint, b = CutLine.EndPoint;
+            GeoPoint2 a = CutLine.StartPoint,
+                b = CutLine.EndPoint;
             double length = CutLine.Length;
             var along = new GeoVector2((b.X - a.X) / length, (b.Y - a.Y) / length);
             DxfLine chain = SymbolDxf.Line(database, placement, a, b, layer, id);
@@ -115,9 +121,18 @@ namespace GeometryHelper.Drawing.Annotation
             chain.LinetypeScale = SymbolChecks.PatternScale(TextHeight, placement);
             double stroke = Math.Min(TextHeight, 0.5 * length);
 
-            foreach ((GeoPoint2 end, GeoVector2 inward) in new[] { (a, along), (b, new GeoVector2(-along.X, -along.Y)) })
+            foreach (
+                (GeoPoint2 end, GeoVector2 inward) in new[] { (a, along), (b, new GeoVector2(-along.X, -along.Y)) }
+            )
             {
-                DxfLine thick = SymbolDxf.Line(database, placement, end, new GeoPoint2(end.X + inward.X * stroke, end.Y + inward.Y * stroke), layer, id);
+                DxfLine thick = SymbolDxf.Line(
+                    database,
+                    placement,
+                    end,
+                    new GeoPoint2(end.X + inward.X * stroke, end.Y + inward.Y * stroke),
+                    layer,
+                    id
+                );
                 thick.LineWeight = DxfLineWeight.LineWeight050;
                 var tip = new GeoPoint2(end.X + Direction.X * 2.0 * TextHeight, end.Y + Direction.Y * 2.0 * TextHeight);
                 SymbolDxf.Line(database, placement, end, tip, layer, id);
@@ -133,8 +148,15 @@ namespace GeometryHelper.Drawing.Annotation
         private GeoRectangle2 LetterBox(GeoPoint2 end)
         {
             double width = SymbolDxf.TextWidth(Letter, TextHeight);
-            double reach = 2.0 * TextHeight + 0.4 * TextHeight + 0.5 * Math.Max(width * Math.Abs(Direction.X), TextHeight * Math.Abs(Direction.Y));
-            return new GeoRectangle2(new GeoPoint2(end.X + Direction.X * reach, end.Y + Direction.Y * reach), width, TextHeight);
+            double reach =
+                2.0 * TextHeight
+                + 0.4 * TextHeight
+                + 0.5 * Math.Max(width * Math.Abs(Direction.X), TextHeight * Math.Abs(Direction.Y));
+            return new GeoRectangle2(
+                new GeoPoint2(end.X + Direction.X * reach, end.Y + Direction.Y * reach),
+                width,
+                TextHeight
+            );
         }
     }
 }

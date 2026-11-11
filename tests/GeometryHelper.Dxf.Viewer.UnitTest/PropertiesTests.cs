@@ -13,13 +13,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return CadProperties.Describe(document, document.ModelSpace, handles);
         }
 
-        private static CadPropertyRow Row(CadSelectionInfo info, string group, string label)
-            => info.Groups.Single(g => g.Title == group).Rows.Single(r => r.Label == label);
+        private static CadPropertyRow Row(CadSelectionInfo info, string group, string label) =>
+            info.Groups.Single(g => g.Title == group).Rows.Single(r => r.Label == label);
 
         [Fact]
         public void NothingSelectedShowsTheCurrentSettingsThePlotStyleTheViewOfTheExtentsAndMisc()
         {
-            DxfDatabase database = TestDrawings.Drawing(TestDrawings.Layer("Steel", 1), null, TestDrawings.Line(0, 0, 300, 400, handle: "A1"));
+            DxfDatabase database = TestDrawings.Drawing(
+                TestDrawings.Layer("Steel", 1),
+                null,
+                TestDrawings.Line(0, 0, 300, 400, handle: "A1")
+            );
             database.Clayer = "Steel";
             database.Cecolor = DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1);
 
@@ -27,7 +31,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.Equal("No selection", info.Label);
             Assert.Equal(new[] { "General", "Plot style", "View", "Misc" }, info.Groups.Select(g => g.Title));
-            Assert.Equal(new[] { "Color", "Layer", "Linetype", "Linetype scale", "Lineweight", "Transparency" }, info.Groups[0].Rows.Select(r => r.Label));
+            Assert.Equal(
+                new[] { "Color", "Layer", "Linetype", "Linetype scale", "Lineweight", "Transparency" },
+                info.Groups[0].Rows.Select(r => r.Label)
+            );
             Assert.Equal("Red", Row(info, "General", "Color").Value);
             Assert.Equal("Steel", Row(info, "General", "Layer").Value);
             Assert.Equal("ByLayer", Row(info, "General", "Linetype").Value);
@@ -44,7 +51,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ALineSelectedReadsLine1WithItsLayerColourEndsLengthAndAngle()
         {
-            DxfDatabase database = TestDrawings.Drawing(TestDrawings.Layer("Steel", 1), null, TestDrawings.Line(0, 0, 300, 400, "Steel", 3, "A1"));
+            DxfDatabase database = TestDrawings.Drawing(
+                TestDrawings.Layer("Steel", 1),
+                null,
+                TestDrawings.Line(0, 0, 300, 400, "Steel", 3, "A1")
+            );
             database.Auprec = 0;
 
             CadSelectionInfo info = Describe(database, "A1");
@@ -70,7 +81,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 TestDrawings.Line(0, 0, 1, 0, handle: "A1"),
                 TestDrawings.Line(0, 0, 1, 0, color: 0, handle: "A2"),
                 TestDrawings.Line(0, 0, 1, 0, color: 5, handle: "A3"),
-                TestDrawings.Line(0, 0, 1, 0, color: 8, handle: "A4"));
+                TestDrawings.Line(0, 0, 1, 0, color: 8, handle: "A4")
+            );
             var modern = new DxfDatabase("AC1018");
             var orange = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0));
             modern.ModelSpace.AppendEntity(orange);
@@ -90,7 +102,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 TestDrawings.Layer("Steel", 1) + TestDrawings.Layer("Bolts", 3),
                 null,
                 TestDrawings.Line(0, 0, 10, 0, "Steel", 2, "A1"),
-                TestDrawings.Line(0, 5, 10, 5, "Bolts", 2, "A2"));
+                TestDrawings.Line(0, 5, 10, 5, "Bolts", 2, "A2")
+            );
 
             CadSelectionInfo info = Describe(database, "A1", "A2");
 
@@ -105,7 +118,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ALineAndACircleReadAll2AndShowOnlyTheGeneralGroup()
         {
-            DxfDatabase database = TestDrawings.Drawing(null, null, TestDrawings.Line(0, 0, 10, 0, handle: "A1"), TestDrawings.Circle(0, 0, 5, handle: "A2"));
+            DxfDatabase database = TestDrawings.Drawing(
+                null,
+                null,
+                TestDrawings.Line(0, 0, 10, 0, handle: "A1"),
+                TestDrawings.Circle(0, 0, 5, handle: "A2")
+            );
 
             CadSelectionInfo info = Describe(database, "A2", "A1");
 
@@ -117,7 +135,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ACircleAndAnArcGiveTheirCentreRadiusAnglesAndLengths()
         {
-            DxfDatabase database = TestDrawings.Drawing(null, null, TestDrawings.Circle(10, 20, 5, handle: "A1"), TestDrawings.Arc(0, 0, 10, 0, 90, handle: "A2"));
+            DxfDatabase database = TestDrawings.Drawing(
+                null,
+                null,
+                TestDrawings.Circle(10, 20, 5, handle: "A1"),
+                TestDrawings.Arc(0, 0, 10, 0, 90, handle: "A2")
+            );
             database.Auprec = 0;
 
             CadSelectionInfo circle = Describe(database, "A1");
@@ -137,7 +160,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void AClosedPolylineGivesItsVerticesLengthAndArea()
         {
-            DxfDatabase database = TestDrawings.Drawing(null, null, TestDrawings.Polyline("0", "A1", true, 0, 0, 0, 30, 0, 0, 30, 20, 0, 0, 20, 0));
+            DxfDatabase database = TestDrawings.Drawing(
+                null,
+                null,
+                TestDrawings.Polyline("0", "A1", true, 0, 0, 0, 30, 0, 0, 30, 20, 0, 0, 20, 0)
+            );
 
             CadSelectionInfo info = Describe(database, "A1");
 
@@ -152,7 +179,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void ATextAndAnInsertGiveTheirContentsHeightNamePositionAndScale()
         {
             string block = TestDrawings.Block("MARK", TestDrawings.Line(0, 0, 10, 0));
-            DxfDatabase database = TestDrawings.Drawing(null, block, TestDrawings.Text(5, 6, 2.5, "45%%d", handle: "T1"), TestDrawings.Insert("MARK", 100, 200, 2.0, 90.0, handle: "B1"));
+            DxfDatabase database = TestDrawings.Drawing(
+                null,
+                block,
+                TestDrawings.Text(5, 6, 2.5, "45%%d", handle: "T1"),
+                TestDrawings.Insert("MARK", 100, 200, 2.0, 90.0, handle: "B1")
+            );
             database.Auprec = 0;
 
             CadSelectionInfo text = Describe(database, "T1");
@@ -176,7 +208,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             var hatch = new DxfHatch();
             hatch.SetHatchPattern(DxfHatchPatternType.UserDefined, "_USER");
             hatch.PatternSpace = 3.175;
-            hatch.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(0, 0), new GeoPoint2(30, 0), new GeoPoint2(30, 20), new GeoPoint2(0, 20) }, null);
+            hatch.AppendLoop(
+                DxfHatchLoopTypes.External,
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(30, 0), new GeoPoint2(30, 20), new GeoPoint2(0, 20) },
+                null
+            );
             database.ModelSpace.AppendEntity(hatch);
 
             CadSelectionInfo info = Describe(database, hatch.Handle);
@@ -191,7 +227,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = LayoutTests.TwoViewports();
             CadSpace plan = document.Spaces.Single(s => s.Name == "Plan");
-            string handle = document.GetDisplay(plan).Items.OfType<DisplayViewport2>().OrderBy(v => v.CenterX).First().Handle;
+            string handle = document
+                .GetDisplay(plan)
+                .Items.OfType<DisplayViewport2>()
+                .OrderBy(v => v.CenterX)
+                .First()
+                .Handle;
 
             CadSelectionInfo info = CadProperties.Describe(document, plan, new[] { handle });
 

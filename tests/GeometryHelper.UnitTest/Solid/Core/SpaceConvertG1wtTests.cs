@@ -17,17 +17,29 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class SpaceConvertG1wtTests
     {
-        private static readonly Tolerance Millionth = new Tolerance(1E-6, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-6);
+        private static readonly Tolerance Millionth = new Tolerance(
+            1E-6,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-6
+        );
 
-        private static readonly Tolerance Hundredth = new Tolerance(1E-2, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-2);
+        private static readonly Tolerance Hundredth = new Tolerance(
+            1E-2,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-2
+        );
 
         private static GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
 
         // The triangle (0, 0, 0), (10, 0, 0), (10, 0, 10) with every corner cut by 0.0003 at a millionth: six corners.
-        private static GeoPolygon3 Cut() => new GeoPolygon3(P(0, 0, 0), P(10, 0, 0), P(10, 0, 10)).Chamfer(0.0003, Millionth);
+        private static GeoPolygon3 Cut() =>
+            new GeoPolygon3(P(0, 0, 0), P(10, 0, 0), P(10, 0, 10)).Chamfer(0.0003, Millionth);
 
         // The chain (0, 0, 0), (10, 0, 0), (10, 0, 10) with its corner cut by 0.0003 at a millionth: four vertices.
-        private static GeoPolyline3 CutChain() => new GeoPolyline3(P(0, 0, 0), P(10, 0, 0), P(10, 0, 10)).Chamfer(0.0003, Millionth);
+        private static GeoPolyline3 CutChain() =>
+            new GeoPolyline3(P(0, 0, 0), P(10, 0, 0), P(10, 0, 10)).Chamfer(0.0003, Millionth);
 
         private static void AssertWhereTheTransformPutsThem(GeoTransform3 transform, GeoPolygon3 from, GeoPolygon3 to)
         {
@@ -61,7 +73,10 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ASquareBuiltAtAHundredthWithACornerFiveThousandthsOffFlatReversed_KeepsItsCornersTheOtherWayRound()
         {
-            var square = new GeoPolygon3(new[] { P(0, 0, 0), P(100, 0, 0), P(100, 100, 0.005), P(0, 100, 0) }, Hundredth);
+            var square = new GeoPolygon3(
+                new[] { P(0, 0, 0), P(100, 0, 0), P(100, 100, 0.005), P(0, 100, 0) },
+                Hundredth
+            );
 
             GeoPolygon3 reversed = square.Reverse();
 
@@ -124,8 +139,8 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         // The square 10 across from (100, 100, 0), as a chain ending a gap off its start along x.
-        private static GeoPolyline3 SquareEndingOff(double gap)
-            => new GeoPolyline3(P(100, 100, 0), P(110, 100, 0), P(110, 110, 0), P(100, 110, 0), P(100 + gap, 100, 0));
+        private static GeoPolyline3 SquareEndingOff(double gap) =>
+            new GeoPolyline3(P(100, 100, 0), P(110, 100, 0), P(110, 110, 0), P(100, 110, 0), P(100 + gap, 100, 0));
 
         [Fact]
         public void AChainInSpaceRoundASquareEndingAMillionthOfAMillionthOffItsStart_IsThatSquare()
@@ -160,7 +175,9 @@ namespace GeometryHelper.UnitTest.Solid
         public void AChainInSpaceCutAtItsCornerTurnedAndMoved_TurnsAtBothEndsOfTheCut()
         {
             GeoPolyline3 cut = CutChain();
-            GeoTransform3 rigid = GeoTransform3.Translation(new GeoVector3(5, 7, -3)) * GeoTransform3.RotationAxis(P(3, 4, 5), new GeoVector3(1, 2, 2), 0.7);
+            GeoTransform3 rigid =
+                GeoTransform3.Translation(new GeoVector3(5, 7, -3))
+                * GeoTransform3.RotationAxis(P(3, 4, 5), new GeoVector3(1, 2, 2), 0.7);
 
             GeoPolyline3 moved = cut.TransformBy(rigid);
 
@@ -200,7 +217,15 @@ namespace GeometryHelper.UnitTest.Solid
         public void ATriangleInSpaceCutByThreeTenThousandthsSheared_KeepsItsSixCornersWhereTheShearPutsThem()
         {
             GeoPolygon3 cut = Cut();
-            var shear = new GeoTransform3(new double[,] { { 1, 0, 0.3, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } });
+            var shear = new GeoTransform3(
+                new double[,]
+                {
+                    { 1, 0, 0.3, 0 },
+                    { 0, 1, 0, 0 },
+                    { 0, 0, 1, 0 },
+                    { 0, 0, 0, 1 },
+                }
+            );
 
             GeoPolygon3 sheared = cut.TransformBy(shear);
 
@@ -219,7 +244,10 @@ namespace GeometryHelper.UnitTest.Solid
         public void AFaceInSpaceWithTheCutTriangleForAHoleScaledByTwo_KeepsTheSixCornersOfItsHole()
         {
             GeoPolygon3 hole = Cut();
-            var face = new GeoFace3(new GeoPolygon3(P(-20, 0, -20), P(30, 0, -20), P(30, 0, 30), P(-20, 0, 30)), new[] { hole });
+            var face = new GeoFace3(
+                new GeoPolygon3(P(-20, 0, -20), P(30, 0, -20), P(30, 0, 30), P(-20, 0, 30)),
+                new[] { hole }
+            );
             GeoTransform3 scaling = GeoTransform3.Scaling(P(1, 2, 3), 2.0);
 
             GeoFace3 scaled = face.TransformBy(scaling);

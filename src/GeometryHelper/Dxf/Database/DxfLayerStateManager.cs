@@ -43,7 +43,9 @@ namespace GeometryHelper.Dxf
             get
             {
                 DxfDBDictionary extension = _database.LayerTable.ExtensionDictionary;
-                return extension != null && extension.Contains("ACAD_LAYERSTATES") ? extension.GetAt("ACAD_LAYERSTATES") as DxfDBDictionary : null;
+                return extension != null && extension.Contains("ACAD_LAYERSTATES")
+                    ? extension.GetAt("ACAD_LAYERSTATES") as DxfDBDictionary
+                    : null;
             }
         }
 
@@ -100,7 +102,15 @@ namespace GeometryHelper.Dxf
 
                     foreach (DxfTypedValue group in data)
                     {
-                        if (group.TypeCode == 91 && int.TryParse(group.Value.Trim(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int mask))
+                        if (
+                            group.TypeCode == 91
+                            && int.TryParse(
+                                group.Value.Trim(),
+                                System.Globalization.NumberStyles.Integer,
+                                System.Globalization.CultureInfo.InvariantCulture,
+                                out int mask
+                            )
+                        )
                         {
                             hidden |= (mask & 0x8000) != 0;
                         }
@@ -129,6 +139,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gives the manager as a line for debugging: how many layer states the drawing has.</summary>
         /// <returns>The line, such as <c>2 layer states</c>.</returns>
-        public override string ToString() => GetLayerStateNames().Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " layer states";
+        public override string ToString() =>
+            GetLayerStateNames().Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " layer states";
     }
 }

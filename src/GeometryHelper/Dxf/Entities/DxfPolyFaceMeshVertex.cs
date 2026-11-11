@@ -22,22 +22,16 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Initializes a point of a mesh at the origin, as AutoCAD's <c>new PolyFaceMeshVertex()</c>, in no mesh.</summary>
         public DxfPolyFaceMeshVertex()
-            : this(Origin)
-        {
-        }
+            : this(Origin) { }
 
         /// <summary>Initializes a point of a mesh, as AutoCAD's <c>new PolyFaceMeshVertex(point)</c>, in no mesh until it is appended to one.</summary>
         /// <param name="position">The point, in the world.</param>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
         public DxfPolyFaceMeshVertex(GeoPoint3 position)
-            : base(Groups(position))
-        {
-        }
+            : base(Groups(position)) { }
 
         private DxfPolyFaceMeshVertex(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets the point (groups 10, 20, 30), in the world, as AutoCAD's <c>Position</c>.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
@@ -66,8 +60,10 @@ namespace GeometryHelper.Dxf
         }
 
         [DxfType("VERTEX")]
-        internal static DxfEntity Create(DxfItem item)
-            => item.Parent != null && (ParentFlags(item) & 64) != 0 && (DxfPolyline2d.Flags(item) & 64) != 0 ? new DxfPolyFaceMeshVertex(item) : null;
+        internal static DxfEntity Create(DxfItem item) =>
+            item.Parent != null && (ParentFlags(item) & 64) != 0 && (DxfPolyline2d.Flags(item) & 64) != 0
+                ? new DxfPolyFaceMeshVertex(item)
+                : null;
 
         /// <inheritdoc/>
         private protected override IReadOnlyList<int> GroupOrder => Order;
@@ -76,7 +72,10 @@ namespace GeometryHelper.Dxf
         {
             if (!position.IsValid)
             {
-                throw new ArgumentException("A point has to be of finite numbers: " + position + " is not.", nameof(position));
+                throw new ArgumentException(
+                    "A point has to be of finite numbers: " + position + " is not.",
+                    nameof(position)
+                );
             }
 
             return new[]

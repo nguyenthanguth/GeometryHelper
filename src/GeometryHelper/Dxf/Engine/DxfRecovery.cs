@@ -20,12 +20,62 @@ namespace GeometryHelper.Dxf
         // AutoCAD's own entities, by the name of their group 0; any other is known only by the CLASSES section.
         private static readonly HashSet<string> Entities = new HashSet<string>(StringComparer.Ordinal)
         {
-            "3DFACE", "3DSOLID", "ACAD_PROXY_ENTITY", "ACAD_TABLE", "ARC", "ARC_DIMENSION", "ATTDEF", "ATTRIB", "BODY", "CIRCLE",
-            "DGNUNDERLAY", "DIMENSION", "DWFUNDERLAY", "ELLIPSE", "EXTRUDEDSURFACE", "HATCH", "HELIX", "IMAGE", "INSERT",
-            "LARGE_RADIAL_DIMENSION", "LEADER", "LIGHT", "LINE", "LOFTEDSURFACE", "LWPOLYLINE", "MESH", "MLINE", "MPOLYGON",
-            "MTEXT", "MULTILEADER", "NURBSURFACE", "OLE2FRAME", "OLEFRAME", "PDFUNDERLAY", "PLANESURFACE", "POINT", "POINTCLOUD",
-            "POINTCLOUDEX", "POLYLINE", "RAY", "REGION", "REVOLVEDSURFACE", "SEQEND", "SHAPE", "SOLID", "SPLINE", "SUN",
-            "SURFACE", "SWEPTSURFACE", "TEXT", "TOLERANCE", "TRACE", "VERTEX", "VIEWPORT", "WIPEOUT", "XLINE",
+            "3DFACE",
+            "3DSOLID",
+            "ACAD_PROXY_ENTITY",
+            "ACAD_TABLE",
+            "ARC",
+            "ARC_DIMENSION",
+            "ATTDEF",
+            "ATTRIB",
+            "BODY",
+            "CIRCLE",
+            "DGNUNDERLAY",
+            "DIMENSION",
+            "DWFUNDERLAY",
+            "ELLIPSE",
+            "EXTRUDEDSURFACE",
+            "HATCH",
+            "HELIX",
+            "IMAGE",
+            "INSERT",
+            "LARGE_RADIAL_DIMENSION",
+            "LEADER",
+            "LIGHT",
+            "LINE",
+            "LOFTEDSURFACE",
+            "LWPOLYLINE",
+            "MESH",
+            "MLINE",
+            "MPOLYGON",
+            "MTEXT",
+            "MULTILEADER",
+            "NURBSURFACE",
+            "OLE2FRAME",
+            "OLEFRAME",
+            "PDFUNDERLAY",
+            "PLANESURFACE",
+            "POINT",
+            "POINTCLOUD",
+            "POINTCLOUDEX",
+            "POLYLINE",
+            "RAY",
+            "REGION",
+            "REVOLVEDSURFACE",
+            "SEQEND",
+            "SHAPE",
+            "SOLID",
+            "SPLINE",
+            "SUN",
+            "SURFACE",
+            "SWEPTSURFACE",
+            "TEXT",
+            "TOLERANCE",
+            "TRACE",
+            "VERTEX",
+            "VIEWPORT",
+            "WIPEOUT",
+            "XLINE",
         };
 
         private static readonly string[] Order = { "HEADER", "CLASSES", "TABLES", "BLOCKS", "ENTITIES", "OBJECTS" };
@@ -224,17 +274,33 @@ namespace GeometryHelper.Dxf
             return tag < 0 ? null : Text(tag).Trim();
         }
 
-        private void Report(DxfRepairKind kind, string problem, string fix, int line, string handle = null, bool fixable = true)
+        private void Report(
+            DxfRepairKind kind,
+            string problem,
+            string fix,
+            int line,
+            string handle = null,
+            bool fixable = true
+        )
         {
             bool done = _fix && fixable;
-            _repairs.Add(new DxfRepair(kind, problem + (done && fix != null ? "; " + fix : string.Empty) + ".", line, handle, done));
+            _repairs.Add(
+                new DxfRepair(
+                    kind,
+                    problem + (done && fix != null ? "; " + fix : string.Empty) + ".",
+                    line,
+                    handle,
+                    done
+                )
+            );
         }
 
         private static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);
 
         private static string Hex(ulong value) => value.ToString("X", CultureInfo.InvariantCulture);
 
-        private static string Said(string text) => "'" + (text.Length > 24 ? text.Substring(0, 24) + "..." : text) + "'";
+        private static string Said(string text) =>
+            "'" + (text.Length > 24 ? text.Substring(0, 24) + "..." : text) + "'";
 
         #endregion
 
@@ -256,7 +322,12 @@ namespace GeometryHelper.Dxf
 
             if (!feeds && Array.IndexOf(_bytes, (byte)'\r', _start, _length - _start) >= 0)
             {
-                Report(DxfRepairKind.LineEnds, "The lines of the file end with a carriage return alone", "they were read as lines and written with line feeds", 0);
+                Report(
+                    DxfRepairKind.LineEnds,
+                    "The lines of the file end with a carriage return alone",
+                    "they were read as lines and written with line feeds",
+                    0
+                );
                 _changed = true;
             }
 
@@ -288,7 +359,19 @@ namespace GeometryHelper.Dxf
             {
                 if (badFirst > 0)
                 {
-                    Report(DxfRepairKind.BadGroupCode, badFirst == badLast ? "Line " + Number(badFirst) + " is not a group code (" + badText + ")" : "Lines " + Number(badFirst) + " to " + Number(badLast) + " are not group codes, the first " + badText, badFirst == badLast ? "it was left out" : "they were left out", badFirst);
+                    Report(
+                        DxfRepairKind.BadGroupCode,
+                        badFirst == badLast
+                            ? "Line " + Number(badFirst) + " is not a group code (" + badText + ")"
+                            : "Lines "
+                                + Number(badFirst)
+                                + " to "
+                                + Number(badLast)
+                                + " are not group codes, the first "
+                                + badText,
+                        badFirst == badLast ? "it was left out" : "they were left out",
+                        badFirst
+                    );
                     badFirst = 0;
                     _changed = true;
                 }
@@ -319,7 +402,16 @@ namespace GeometryHelper.Dxf
 
                 if (!NextLine(out int valueStart, out int valueEnd))
                 {
-                    Report(DxfRepairKind.MissingValue, "The group code " + Number(code) + " on line " + Number(codeLine) + ", the last line, has no value", "it was left out", codeLine);
+                    Report(
+                        DxfRepairKind.MissingValue,
+                        "The group code "
+                            + Number(code)
+                            + " on line "
+                            + Number(codeLine)
+                            + ", the last line, has no value",
+                        "it was left out",
+                        codeLine
+                    );
                     _changed = true;
                     break;
                 }
@@ -394,23 +486,26 @@ namespace GeometryHelper.Dxf
                 new UTF8Encoding(false, true).GetCharCount(_bytes, _start, _length - _start);
                 return;
             }
-            catch (DecoderFallbackException)
-            {
-            }
+            catch (DecoderFallbackException) { }
 
             Encoding read = Encoding.GetEncoding(28591);
-            string named = page != null && page.StartsWith("ANSI_", StringComparison.OrdinalIgnoreCase) ? page.Substring(5) : "1252";
+            string named =
+                page != null && page.StartsWith("ANSI_", StringComparison.OrdinalIgnoreCase)
+                    ? page.Substring(5)
+                    : "1252";
 
             try
             {
-                if (int.TryParse(named, NumberStyles.None, CultureInfo.InvariantCulture, out int number) && number != 1252 && number != 65001)
+                if (
+                    int.TryParse(named, NumberStyles.None, CultureInfo.InvariantCulture, out int number)
+                    && number != 1252
+                    && number != 65001
+                )
                 {
                     read = Encoding.GetEncoding(number);
                 }
             }
-            catch (Exception e) when (e is ArgumentException || e is NotSupportedException)
-            {
-            }
+            catch (Exception e) when (e is ArgumentException || e is NotSupportedException) { }
 
             int count = 0;
 
@@ -429,7 +524,18 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            Report(DxfRepairKind.Encoding, "The file is of " + (version ?? "a version") + ", whose text is UTF-8, but " + Number(count) + " of its values are not UTF-8", "they were read in the code page " + (read.CodePage == 28591 ? "ISO-8859-1" : "ANSI_" + Number(read.CodePage)) + " and written as UTF-8", 0);
+            Report(
+                DxfRepairKind.Encoding,
+                "The file is of "
+                    + (version ?? "a version")
+                    + ", whose text is UTF-8, but "
+                    + Number(count)
+                    + " of its values are not UTF-8",
+                "they were read in the code page "
+                    + (read.CodePage == 28591 ? "ISO-8859-1" : "ANSI_" + Number(read.CodePage))
+                    + " and written as UTF-8",
+                0
+            );
             _changed = true;
         }
 
@@ -464,13 +570,25 @@ namespace GeometryHelper.Dxf
 
             if (before > 0)
             {
-                Report(DxfRepairKind.SectionStructure, Number(before) + " groups stand before the first record of the file", "they were left out", 1);
+                Report(
+                    DxfRepairKind.SectionStructure,
+                    Number(before) + " groups stand before the first record of the file",
+                    "they were left out",
+                    1
+                );
                 _changed = true;
             }
 
             if (records.Count == 0)
             {
-                Report(DxfRepairKind.Unreadable, "Nothing of a DXF was found in the file, not one record: the drawing is empty", null, 0, null, false);
+                Report(
+                    DxfRepairKind.Unreadable,
+                    "Nothing of a DXF was found in the file, not one record: the drawing is empty",
+                    null,
+                    0,
+                    null,
+                    false
+                );
             }
 
             Section open = null;
@@ -486,7 +604,17 @@ namespace GeometryHelper.Dxf
                     case "SECTION":
                         if (open != null)
                         {
-                            Report(DxfRepairKind.SectionStructure, "The section " + open.Name + " opened on line " + Number(open.Head.Line) + " has no ENDSEC before the SECTION on line " + Number(record.Line), "it was closed there", record.Line);
+                            Report(
+                                DxfRepairKind.SectionStructure,
+                                "The section "
+                                    + open.Name
+                                    + " opened on line "
+                                    + Number(open.Head.Line)
+                                    + " has no ENDSEC before the SECTION on line "
+                                    + Number(record.Line),
+                                "it was closed there",
+                                record.Line
+                            );
                             _changed = true;
                         }
 
@@ -496,7 +624,12 @@ namespace GeometryHelper.Dxf
                     case "ENDSEC":
                         if (open == null)
                         {
-                            Report(DxfRepairKind.SectionStructure, "The ENDSEC on line " + Number(record.Line) + " closes no section", "it was left out", record.Line);
+                            Report(
+                                DxfRepairKind.SectionStructure,
+                                "The ENDSEC on line " + Number(record.Line) + " closes no section",
+                                "it was left out",
+                                record.Line
+                            );
                             _changed = true;
                         }
 
@@ -513,7 +646,12 @@ namespace GeometryHelper.Dxf
                         else
                         {
                             bool entity = Entities.Contains(record.Type);
-                            Report(DxfRepairKind.SectionStructure, "The " + record.Type + " on line " + Number(record.Line) + " stands in no section", entity ? "it was moved into ENTITIES" : "it was left out", record.Line);
+                            Report(
+                                DxfRepairKind.SectionStructure,
+                                "The " + record.Type + " on line " + Number(record.Line) + " stands in no section",
+                                entity ? "it was moved into ENTITIES" : "it was left out",
+                                record.Line
+                            );
                             _changed = true;
 
                             if (entity)
@@ -529,12 +667,33 @@ namespace GeometryHelper.Dxf
             if (!ended)
             {
                 int last = _tags.Count > 0 ? _tags[_tags.Count - 1].Line + 1 : 0;
-                Report(DxfRepairKind.Truncated, "The file ends on line " + Number(last) + " without the EOF that closes a DXF" + (open != null ? ", inside the section " + open.Name + " opened on line " + Number(open.Head.Line) : string.Empty), open != null ? "the section was closed and the EOF written" : "the EOF was written", last);
+                Report(
+                    DxfRepairKind.Truncated,
+                    "The file ends on line "
+                        + Number(last)
+                        + " without the EOF that closes a DXF"
+                        + (
+                            open != null
+                                ? ", inside the section " + open.Name + " opened on line " + Number(open.Head.Line)
+                                : string.Empty
+                        ),
+                    open != null ? "the section was closed and the EOF written" : "the EOF was written",
+                    last
+                );
                 _changed = true;
             }
             else if (open != null)
             {
-                Report(DxfRepairKind.SectionStructure, "The section " + open.Name + " opened on line " + Number(open.Head.Line) + " has no ENDSEC before the EOF", "it was closed there", open.Head.Line);
+                Report(
+                    DxfRepairKind.SectionStructure,
+                    "The section "
+                        + open.Name
+                        + " opened on line "
+                        + Number(open.Head.Line)
+                        + " has no ENDSEC before the EOF",
+                    "it was closed there",
+                    open.Head.Line
+                );
                 _changed = true;
             }
 
@@ -554,9 +713,20 @@ namespace GeometryHelper.Dxf
             }
 
             string type = first?.Type;
-            string name = Find(head, 9) >= 0 ? "HEADER" : type == "TABLE" ? "TABLES" : type == "BLOCK" ? "BLOCKS" : type == "CLASS" ? "CLASSES"
-                : type == "DICTIONARY" ? "OBJECTS" : type != null && Entities.Contains(type) ? "ENTITIES" : null;
-            Report(DxfRepairKind.SectionStructure, "The SECTION on line " + Number(head.Line) + " has no name", name != null ? "it was named " + name + " from what it holds" : "it was left out with what it holds", head.Line);
+            string name =
+                Find(head, 9) >= 0 ? "HEADER"
+                : type == "TABLE" ? "TABLES"
+                : type == "BLOCK" ? "BLOCKS"
+                : type == "CLASS" ? "CLASSES"
+                : type == "DICTIONARY" ? "OBJECTS"
+                : type != null && Entities.Contains(type) ? "ENTITIES"
+                : null;
+            Report(
+                DxfRepairKind.SectionStructure,
+                "The SECTION on line " + Number(head.Line) + " has no name",
+                name != null ? "it was named " + name + " from what it holds" : "it was left out with what it holds",
+                head.Line
+            );
             _changed = true;
 
             if (name != null)
@@ -582,7 +752,12 @@ namespace GeometryHelper.Dxf
 
             if (_markers && !_sections.Exists(s => s.Name == "HEADER"))
             {
-                Report(DxfRepairKind.MissingSection, "The file has no HEADER, though its records are of R13 or later", "one naming R2000 (AC1015) was added", 0);
+                Report(
+                    DxfRepairKind.MissingSection,
+                    "The file has no HEADER, though its records are of R13 or later",
+                    "one naming R2000 (AC1015) was added",
+                    0
+                );
                 Section header = MadeSection("HEADER");
                 header.Head.Tags.Add(NewTag(9, "$ACADVER", 0));
                 header.Head.Tags.Add(NewTag(1, "AC1015", 0));
@@ -595,7 +770,16 @@ namespace GeometryHelper.Dxf
                 {
                     if (!_sections.Exists(s => s.Name == name))
                     {
-                        Report(DxfRepairKind.MissingSection, "The file has no " + name + " section, though its records are of R13 or later: what it held is lost", null, 0, null, false);
+                        Report(
+                            DxfRepairKind.MissingSection,
+                            "The file has no "
+                                + name
+                                + " section, though its records are of R13 or later: what it held is lost",
+                            null,
+                            0,
+                            null,
+                            false
+                        );
                     }
                 }
             }
@@ -624,10 +808,18 @@ namespace GeometryHelper.Dxf
                     sorted.Add(new KeyValuePair<int, Section>(i, _sections[i]));
                 }
 
-                sorted.Sort((a, b) => Rank(a.Value) != Rank(b.Value) ? Rank(a.Value).CompareTo(Rank(b.Value)) : a.Key.CompareTo(b.Key));
+                sorted.Sort(
+                    (a, b) =>
+                        Rank(a.Value) != Rank(b.Value) ? Rank(a.Value).CompareTo(Rank(b.Value)) : a.Key.CompareTo(b.Key)
+                );
                 _sections.Clear();
                 sorted.ForEach(p => _sections.Add(p.Value));
-                Report(DxfRepairKind.SectionOrder, "The sections are not in AutoCAD's order", "they were put as HEADER, CLASSES, TABLES, BLOCKS, ENTITIES, OBJECTS", 0);
+                Report(
+                    DxfRepairKind.SectionOrder,
+                    "The sections are not in AutoCAD's order",
+                    "they were put as HEADER, CLASSES, TABLES, BLOCKS, ENTITIES, OBJECTS",
+                    0
+                );
                 _changed = true;
             }
         }
@@ -640,7 +832,11 @@ namespace GeometryHelper.Dxf
             var section = new Section(name, head);
             int at = 0;
 
-            while (at < _sections.Count && Array.IndexOf(Order, _sections[at].Name) >= 0 && Array.IndexOf(Order, _sections[at].Name) < Array.IndexOf(Order, name))
+            while (
+                at < _sections.Count
+                && Array.IndexOf(Order, _sections[at].Name) >= 0
+                && Array.IndexOf(Order, _sections[at].Name) < Array.IndexOf(Order, name)
+            )
             {
                 at++;
             }
@@ -656,13 +852,29 @@ namespace GeometryHelper.Dxf
         /// <summary>Whether a group code holds a number: 1 a real, 2 a whole number, 0 not, as the DXF reference types them.</summary>
         internal static int NumberKind(int code)
         {
-            if ((code >= 10 && code <= 59) || (code >= 110 && code <= 149) || (code >= 210 && code <= 239) || (code >= 460 && code <= 469) || (code >= 1010 && code <= 1059))
+            if (
+                (code >= 10 && code <= 59)
+                || (code >= 110 && code <= 149)
+                || (code >= 210 && code <= 239)
+                || (code >= 460 && code <= 469)
+                || (code >= 1010 && code <= 1059)
+            )
             {
                 return 1;
             }
 
-            return (code >= 60 && code <= 79) || (code >= 90 && code <= 99) || (code >= 160 && code <= 179) || (code >= 270 && code <= 299) || (code >= 370 && code <= 389)
-                || (code >= 400 && code <= 409) || (code >= 420 && code <= 429) || (code >= 440 && code <= 459) || (code >= 1060 && code <= 1071) ? 2 : 0;
+            return
+                (code >= 60 && code <= 79)
+                || (code >= 90 && code <= 99)
+                || (code >= 160 && code <= 179)
+                || (code >= 270 && code <= 299)
+                || (code >= 370 && code <= 389)
+                || (code >= 400 && code <= 409)
+                || (code >= 420 && code <= 429)
+                || (code >= 440 && code <= 459)
+                || (code >= 1060 && code <= 1071)
+                ? 2
+                : 0;
         }
 
         /// <summary>
@@ -720,7 +932,11 @@ namespace GeometryHelper.Dxf
             string trimmed = text.Trim();
             value = "0";
 
-            if (real ? Numbers.TryRead(trimmed, out double read) : long.TryParse(trimmed, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out _))
+            if (
+                real
+                    ? Numbers.TryRead(trimmed, out double read)
+                    : long.TryParse(trimmed, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out _)
+            )
             {
                 value = trimmed;
                 return 0;
@@ -728,7 +944,10 @@ namespace GeometryHelper.Dxf
 
             string upper = trimmed.ToUpperInvariant();
 
-            if (real && (upper.Contains("NAN") || upper.Contains("INF") || upper.Contains("#IND") || IsNumberText(trimmed)))
+            if (
+                real
+                && (upper.Contains("NAN") || upper.Contains("INF") || upper.Contains("#IND") || IsNumberText(trimmed))
+            )
             {
                 return 2;
             }
@@ -740,14 +959,24 @@ namespace GeometryHelper.Dxf
                     int from = i > 0 && (trimmed[i - 1] == '-' || trimmed[i - 1] == '+') ? i - 1 : i;
                     int to = i;
 
-                    while (to < trimmed.Length && ((trimmed[to] >= '0' && trimmed[to] <= '9') || (real && trimmed[to] == '.' && trimmed.IndexOf('.', from, to - from) < 0)))
+                    while (
+                        to < trimmed.Length
+                        && (
+                            (trimmed[to] >= '0' && trimmed[to] <= '9')
+                            || (real && trimmed[to] == '.' && trimmed.IndexOf('.', from, to - from) < 0)
+                        )
+                    )
                     {
                         to++;
                     }
 
                     string found = trimmed.Substring(from, to - from);
 
-                    if (real ? Numbers.TryRead(found, out _) : long.TryParse(found, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out _))
+                    if (
+                        real
+                            ? Numbers.TryRead(found, out _)
+                            : long.TryParse(found, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out _)
+                    )
                     {
                         value = found;
                     }
@@ -771,7 +1000,8 @@ namespace GeometryHelper.Dxf
 
             byte[] mantissa = Encoding.ASCII.GetBytes(text.Substring(0, e));
             byte[] exponent = Encoding.ASCII.GetBytes(text.Substring(e + 1));
-            return IsPlainNumber(mantissa, 0, mantissa.Length, true) && IsPlainNumber(exponent, 0, exponent.Length, false);
+            return IsPlainNumber(mantissa, 0, mantissa.Length, true)
+                && IsPlainNumber(exponent, 0, exponent.Length, false);
         }
 
         /// <summary>
@@ -779,10 +1009,18 @@ namespace GeometryHelper.Dxf
         /// its vertices (group 10), of a HATCH its group 91 against its boundary paths (each opened by a group 92 before the
         /// style, group 75). The index among the groups given and the number it should hold; -1 where the count is right.
         /// </summary>
-        internal static int WrongCount(string type, IReadOnlyList<int> codes, IReadOnlyList<string> values, out int should)
+        internal static int WrongCount(
+            string type,
+            IReadOnlyList<int> codes,
+            IReadOnlyList<string> values,
+            out int should
+        )
         {
             should = 0;
-            int countCode = type == "LWPOLYLINE" ? 90 : type == "HATCH" ? 91 : 0;
+            int countCode =
+                type == "LWPOLYLINE" ? 90
+                : type == "HATCH" ? 91
+                : 0;
             int at = -1;
 
             for (int i = 0; i < codes.Count && countCode != 0; i++)
@@ -805,7 +1043,19 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return at >= 0 && (!int.TryParse(values[at].Trim(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int given) || given != should) ? at : -1;
+            return
+                at >= 0
+                && (
+                    !int.TryParse(
+                        values[at].Trim(),
+                        NumberStyles.AllowLeadingSign,
+                        CultureInfo.InvariantCulture,
+                        out int given
+                    )
+                    || given != should
+                )
+                ? at
+                : -1;
         }
 
         /// <summary>
@@ -863,7 +1113,8 @@ namespace GeometryHelper.Dxf
         private bool CheckRecord(Record record, bool entity)
         {
             string handle = record.Type == "SECTION" ? null : Value(record, record.Type == "DIMSTYLE" ? 105 : 5);
-            string name = record.Type == "SECTION" ? "header" : record.Type + (handle != null ? " " + handle : string.Empty);
+            string name =
+                record.Type == "SECTION" ? "header" : record.Type + (handle != null ? " " + handle : string.Empty);
 
             for (int i = 1; i < record.Tags.Count; i++)
             {
@@ -881,14 +1132,46 @@ namespace GeometryHelper.Dxf
 
                 if (verdict == 2 && entity)
                 {
-                    Report(DxfRepairKind.NonFiniteNumber, "The " + name + " on line " + Number(record.Line) + " has a number that is not finite, " + Said(text) + " in its group " + Number(t.Code), "it was left out" + (record.Type == "POLYLINE" ? " with its vertices" : record.Type == "INSERT" ? " with its attributes" : string.Empty), t.Line, handle);
+                    Report(
+                        DxfRepairKind.NonFiniteNumber,
+                        "The "
+                            + name
+                            + " on line "
+                            + Number(record.Line)
+                            + " has a number that is not finite, "
+                            + Said(text)
+                            + " in its group "
+                            + Number(t.Code),
+                        "it was left out"
+                            + (
+                                record.Type == "POLYLINE" ? " with its vertices"
+                                : record.Type == "INSERT" ? " with its attributes"
+                                : string.Empty
+                            ),
+                        t.Line,
+                        handle
+                    );
                     _changed = true;
                     return true;
                 }
 
                 if (verdict != 0)
                 {
-                    Report(verdict == 2 ? DxfRepairKind.NonFiniteNumber : DxfRepairKind.BadNumber, "The group " + Number(t.Code) + " of the " + name + " on line " + Number(t.Line) + " is " + (verdict == 2 ? "not a finite number, " : "no number, ") + Said(text), "it was read as " + value, t.Line, handle);
+                    Report(
+                        verdict == 2 ? DxfRepairKind.NonFiniteNumber : DxfRepairKind.BadNumber,
+                        "The group "
+                            + Number(t.Code)
+                            + " of the "
+                            + name
+                            + " on line "
+                            + Number(t.Line)
+                            + " is "
+                            + (verdict == 2 ? "not a finite number, " : "no number, ")
+                            + Said(text),
+                        "it was read as " + value,
+                        t.Line,
+                        handle
+                    );
                     SetValue(tag, value);
                 }
             }
@@ -901,7 +1184,11 @@ namespace GeometryHelper.Dxf
                 for (int i = 1; i < record.Tags.Count; i++)
                 {
                     codes.Add(_tags[record.Tags[i]].Code);
-                    values.Add(_tags[record.Tags[i]].Code == 90 || _tags[record.Tags[i]].Code == 91 ? Text(record.Tags[i]) : null);
+                    values.Add(
+                        _tags[record.Tags[i]].Code == 90 || _tags[record.Tags[i]].Code == 91
+                            ? Text(record.Tags[i])
+                            : null
+                    );
                 }
 
                 int at = WrongCount(record.Type, codes, values, out int should);
@@ -909,7 +1196,20 @@ namespace GeometryHelper.Dxf
                 if (at >= 0)
                 {
                     int tag = record.Tags[at + 1];
-                    Report(record.Type == "HATCH" ? DxfRepairKind.WrongLoopCount : DxfRepairKind.WrongVertexCount, "The " + name + " on line " + Number(record.Line) + " counts " + Text(tag).Trim() + (record.Type == "HATCH" ? " boundary paths and has " : " vertices and has ") + Number(should), "the count was set to " + Number(should), _tags[tag].Line, handle);
+                    Report(
+                        record.Type == "HATCH" ? DxfRepairKind.WrongLoopCount : DxfRepairKind.WrongVertexCount,
+                        "The "
+                            + name
+                            + " on line "
+                            + Number(record.Line)
+                            + " counts "
+                            + Text(tag).Trim()
+                            + (record.Type == "HATCH" ? " boundary paths and has " : " vertices and has ")
+                            + Number(should),
+                        "the count was set to " + Number(should),
+                        _tags[tag].Line,
+                        handle
+                    );
                     SetValue(tag, Number(should));
                 }
             }
@@ -932,7 +1232,12 @@ namespace GeometryHelper.Dxf
 
             foreach (Section section in _sections)
             {
-                if (section.Name == "TABLES" || section.Name == "BLOCKS" || section.Name == "ENTITIES" || section.Name == "OBJECTS")
+                if (
+                    section.Name == "TABLES"
+                    || section.Name == "BLOCKS"
+                    || section.Name == "ENTITIES"
+                    || section.Name == "OBJECTS"
+                )
                 {
                     records.AddRange(section.Records.FindAll(r => r.Type != "ENDTAB"));
                 }
@@ -974,7 +1279,13 @@ namespace GeometryHelper.Dxf
                     record.Handle = _next++;
                     _renamed[record] = old;
                     Handles.Add(record.Handle);
-                    Report(DxfRepairKind.DuplicateHandle, "The handle " + Hex(old) + " of the " + name + " is that of a record before it", "it was given the handle " + Hex(record.Handle), record.Line, Hex(old));
+                    Report(
+                        DxfRepairKind.DuplicateHandle,
+                        "The handle " + Hex(old) + " of the " + name + " is that of a record before it",
+                        "it was given the handle " + Hex(record.Handle),
+                        record.Line,
+                        Hex(old)
+                    );
                     SetValue(tags[i], Hex(record.Handle));
                     continue;
                 }
@@ -986,7 +1297,18 @@ namespace GeometryHelper.Dxf
 
                 record.Handle = _next++;
                 Handles.Add(record.Handle);
-                Report(DxfRepairKind.MissingHandle, "The " + name + (tags[i] >= 0 ? " has a handle that is not hexadecimal, " + Said(Text(tags[i])) : " has no handle"), "it was given the handle " + Hex(record.Handle), record.Line);
+                Report(
+                    DxfRepairKind.MissingHandle,
+                    "The "
+                        + name
+                        + (
+                            tags[i] >= 0
+                                ? " has a handle that is not hexadecimal, " + Said(Text(tags[i]))
+                                : " has no handle"
+                        ),
+                    "it was given the handle " + Hex(record.Handle),
+                    record.Line
+                );
 
                 if (tags[i] >= 0)
                 {
@@ -1023,7 +1345,17 @@ namespace GeometryHelper.Dxf
 
                     if (section.Name == "BLOCKS" && (record == null || record.Type == "BLOCK") && block != null)
                     {
-                        Report(DxfRepairKind.MissingEndBlk, "The BLOCK " + (Value(block, 2) ?? string.Empty) + " on line " + Number(block.Line) + " has no ENDBLK", "one was written", block.Line, block.Handle != 0 ? Hex(block.Handle) : null);
+                        Report(
+                            DxfRepairKind.MissingEndBlk,
+                            "The BLOCK "
+                                + (Value(block, 2) ?? string.Empty)
+                                + " on line "
+                                + Number(block.Line)
+                                + " has no ENDBLK",
+                            "one was written",
+                            block.Line,
+                            block.Handle != 0 ? Hex(block.Handle) : null
+                        );
                         records.Insert(r++, Made("ENDBLK", block, Value(block, 330), "AcDbBlockEnd"));
                         _changed = true;
                     }
@@ -1033,8 +1365,14 @@ namespace GeometryHelper.Dxf
                         break;
                     }
 
-                    block = record.Type == "BLOCK" ? record : record.Type == "ENDBLK" ? null : block;
-                    string part = record.Type == "POLYLINE" ? "VERTEX" : record.Type == "INSERT" && Value(record, 66) == "1" ? "ATTRIB" : null;
+                    block =
+                        record.Type == "BLOCK" ? record
+                        : record.Type == "ENDBLK" ? null
+                        : block;
+                    string part =
+                        record.Type == "POLYLINE" ? "VERTEX"
+                        : record.Type == "INSERT" && Value(record, 66) == "1" ? "ATTRIB"
+                        : null;
 
                     if (part == null)
                     {
@@ -1050,8 +1388,22 @@ namespace GeometryHelper.Dxf
 
                     if (next >= records.Count || records[next].Type != "SEQEND")
                     {
-                        Report(DxfRepairKind.MissingSeqEnd, "The " + record.Type + " on line " + Number(record.Line) + " has no SEQEND after its " + (part == "VERTEX" ? "vertices" : "attributes"), "one was written", record.Line, record.Handle != 0 ? Hex(record.Handle) : null);
-                        records.Insert(next, Made("SEQEND", record, record.Handle != 0 ? Hex(record.Handle) : null, null));
+                        Report(
+                            DxfRepairKind.MissingSeqEnd,
+                            "The "
+                                + record.Type
+                                + " on line "
+                                + Number(record.Line)
+                                + " has no SEQEND after its "
+                                + (part == "VERTEX" ? "vertices" : "attributes"),
+                            "one was written",
+                            record.Line,
+                            record.Handle != 0 ? Hex(record.Handle) : null
+                        );
+                        records.Insert(
+                            next,
+                            Made("SEQEND", record, record.Handle != 0 ? Hex(record.Handle) : null, null)
+                        );
                         _changed = true;
                     }
 
@@ -1126,7 +1478,10 @@ namespace GeometryHelper.Dxf
             Record Block(string name)
             {
                 name = name ?? string.Empty;
-                name = string.Equals(name, "$MODEL_SPACE", StringComparison.OrdinalIgnoreCase) ? "*Model_Space" : string.Equals(name, "$PAPER_SPACE", StringComparison.OrdinalIgnoreCase) ? "*Paper_Space" : name;
+                name =
+                    string.Equals(name, "$MODEL_SPACE", StringComparison.OrdinalIgnoreCase) ? "*Model_Space"
+                    : string.Equals(name, "$PAPER_SPACE", StringComparison.OrdinalIgnoreCase) ? "*Paper_Space"
+                    : name;
                 return blockRecords.TryGetValue(name, out Record found) ? found : null;
             }
 
@@ -1141,15 +1496,26 @@ namespace GeometryHelper.Dxf
 
                     if (section.Name == "TABLES")
                     {
-                        holder = record.Type == "TABLE" ? record : record.Type == "ENDTAB" ? null : holder;
+                        holder =
+                            record.Type == "TABLE" ? record
+                            : record.Type == "ENDTAB" ? null
+                            : holder;
                         place = record.Type == "TABLE" ? null : holder;
                     }
                     else if (section.Name == "BLOCKS" || section.Name == "ENTITIES")
                     {
                         holder = record.Type == "BLOCK" ? Block(Value(record, 2)) : holder;
-                        bool follows = head != null && (record.Type == "VERTEX" || record.Type == "ATTRIB" || record.Type == "SEQEND");
-                        place = follows ? head : section.Name == "BLOCKS" ? holder : Block(Value(record, 67) == "1" ? "*Paper_Space" : "*Model_Space");
-                        head = record.Type == "POLYLINE" || record.Type == "INSERT" ? record : follows && record.Type != "SEQEND" ? head : null;
+                        bool follows =
+                            head != null
+                            && (record.Type == "VERTEX" || record.Type == "ATTRIB" || record.Type == "SEQEND");
+                        place =
+                            follows ? head
+                            : section.Name == "BLOCKS" ? holder
+                            : Block(Value(record, 67) == "1" ? "*Paper_Space" : "*Model_Space");
+                        head =
+                            record.Type == "POLYLINE" || record.Type == "INSERT" ? record
+                            : follows && record.Type != "SEQEND" ? head
+                            : null;
                     }
 
                     CheckOwner(record, place);
@@ -1176,7 +1542,10 @@ namespace GeometryHelper.Dxf
                     break;
                 }
 
-                depth += t.Code == 102 ? (Text(record.Tags[i]).Trim().StartsWith("{", StringComparison.Ordinal) ? 1 : -1) : 0;
+                depth +=
+                    t.Code == 102
+                        ? (Text(record.Tags[i]).Trim().StartsWith("{", StringComparison.Ordinal) ? 1 : -1)
+                        : 0;
                 tag = t.Code == 330 && depth == 0 ? record.Tags[i] : -1;
             }
 
@@ -1185,13 +1554,34 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            string name = record.Type + (record.Handle != 0 ? " " + Hex(record.Handle) : string.Empty) + " on line " + Number(record.Line);
+            string name =
+                record.Type
+                + (record.Handle != 0 ? " " + Hex(record.Handle) : string.Empty)
+                + " on line "
+                + Number(record.Line);
 
             if (Handles.Contains(owner))
             {
-                if (place != null && _renamed.TryGetValue(place, out ulong old) && old == owner && place.Handle != owner)
+                if (
+                    place != null
+                    && _renamed.TryGetValue(place, out ulong old)
+                    && old == owner
+                    && place.Handle != owner
+                )
                 {
-                    Report(DxfRepairKind.BadOwner, "The " + name + " names as its owner the handle " + Hex(old) + ", which its " + place.Type + " shared with a record before it", "it now names " + Hex(place.Handle) + ", the " + place.Type + "'s new handle", record.Line, record.Handle != 0 ? Hex(record.Handle) : null);
+                    Report(
+                        DxfRepairKind.BadOwner,
+                        "The "
+                            + name
+                            + " names as its owner the handle "
+                            + Hex(old)
+                            + ", which its "
+                            + place.Type
+                            + " shared with a record before it",
+                        "it now names " + Hex(place.Handle) + ", the " + place.Type + "'s new handle",
+                        record.Line,
+                        record.Handle != 0 ? Hex(record.Handle) : null
+                    );
                     SetValue(tag, Hex(place.Handle));
                 }
 
@@ -1199,7 +1589,14 @@ namespace GeometryHelper.Dxf
             }
 
             bool known = place != null && place.Handle != 0;
-            Report(DxfRepairKind.BadOwner, "The " + name + " names as its owner the handle " + Text(tag).Trim() + ", which no record has", known ? "it now names " + Hex(place.Handle) + ", its " + place.Type : null, record.Line, record.Handle != 0 ? Hex(record.Handle) : null, known);
+            Report(
+                DxfRepairKind.BadOwner,
+                "The " + name + " names as its owner the handle " + Text(tag).Trim() + ", which no record has",
+                known ? "it now names " + Hex(place.Handle) + ", its " + place.Type : null,
+                record.Line,
+                record.Handle != 0 ? Hex(record.Handle) : null,
+                known
+            );
 
             if (known)
             {
@@ -1236,7 +1633,17 @@ namespace GeometryHelper.Dxf
             // A seed above every handle the file had is raised above those the repairs gave without a word: it was right.
             if (!read || seed <= _most)
             {
-                Report(DxfRepairKind.HandseedTooLow, given == null ? "The header has no $HANDSEED" : "The $HANDSEED " + given + " of the header is not above every handle of the file, the greatest " + Hex(_most), "it was set to " + Hex(most + 1), 0);
+                Report(
+                    DxfRepairKind.HandseedTooLow,
+                    given == null
+                        ? "The header has no $HANDSEED"
+                        : "The $HANDSEED "
+                            + given
+                            + " of the header is not above every handle of the file, the greatest "
+                            + Hex(_most),
+                    "it was set to " + Hex(most + 1),
+                    0
+                );
             }
 
             if (tag >= 0)
@@ -1302,7 +1709,9 @@ namespace GeometryHelper.Dxf
 
             void Pair(int code, int tag, byte[] value)
             {
-                string written = _padded ? code.ToString(CultureInfo.InvariantCulture).PadLeft(3) : code.ToString(CultureInfo.InvariantCulture);
+                string written = _padded
+                    ? code.ToString(CultureInfo.InvariantCulture).PadLeft(3)
+                    : code.ToString(CultureInfo.InvariantCulture);
                 byte[] codeBytes = Encoding.ASCII.GetBytes(written);
                 output.Write(codeBytes, 0, codeBytes.Length);
                 output.Write(end, 0, end.Length);

@@ -65,7 +65,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(Bits(30.0 * (Math.PI / 180.0)), Bits(user.PatternAngle));
                 Assert.True(user.PatternDouble);
                 Assert.Equal(5.0, user.Elevation);
-                Assert.Equal(Bits(new GeoVector3(0.26690419858597586, -0.5348080383651577, 0.8017122369511335)), Bits(user.Normal));
+                Assert.Equal(
+                    Bits(new GeoVector3(0.26690419858597586, -0.5348080383651577, 0.8017122369511335)),
+                    Bits(user.Normal)
+                );
                 Assert.Equal(2, user.NumberOfPatternDefinitions);
 
                 DxfHatch solid = ByHandle<DxfHatch>(db, "AD");
@@ -119,19 +122,44 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.False(loop.IsPolyline);
             Assert.Null(loop.Polyline);
-            Assert.Equal(new[] { typeof(GeoLine3), typeof(GeoArc3), typeof(GeoLine3), typeof(GeoArc3), typeof(GeoLine3), typeof(GeoSpline3), typeof(GeoSpline3) }, loop.Curves.Select(c => c.GetType()));
+            Assert.Equal(
+                new[]
+                {
+                    typeof(GeoLine3),
+                    typeof(GeoArc3),
+                    typeof(GeoLine3),
+                    typeof(GeoArc3),
+                    typeof(GeoLine3),
+                    typeof(GeoSpline3),
+                    typeof(GeoSpline3),
+                },
+                loop.Curves.Select(c => c.GetType())
+            );
 
             var ends = loop.Curves.Select(Ends).ToList();
 
             for (int i = 0; i < ends.Count; i++)
             {
-                Assert.True(ends[i][1].IsEqualTo(ends[(i + 1) % ends.Count][0], Tol), "Edge " + i + " ends at " + ends[i][1] + ", the next starts at " + ends[(i + 1) % ends.Count][0] + ".");
+                Assert.True(
+                    ends[i][1].IsEqualTo(ends[(i + 1) % ends.Count][0], Tol),
+                    "Edge "
+                        + i
+                        + " ends at "
+                        + ends[i][1]
+                        + ", the next starts at "
+                        + ends[(i + 1) % ends.Count][0]
+                        + "."
+                );
             }
 
             var notch = (GeoArc3)loop.Curves[3];
             Assert.True(notch.MidPoint.IsEqualTo(new GeoPoint3(225, 15, 0), Tol));
             var ellipse = (GeoSpline3)loop.Curves[5];
-            Assert.True(ellipse.GetPointAtKnot((ellipse.DomainStart + ellipse.DomainEnd) / 2).IsEqualTo(new GeoPoint3(210, 22.5, 0), Tol));
+            Assert.True(
+                ellipse
+                    .GetPointAtKnot((ellipse.DomainStart + ellipse.DomainEnd) / 2)
+                    .IsEqualTo(new GeoPoint3(210, 22.5, 0), Tol)
+            );
 
             GeoPolygonArc3 island = Assert.IsType<GeoPolygonArc3>(hatch.GetLoopAt(1).Polyline);
             Assert.Equal(50.0, island.Area, 9);
@@ -182,7 +210,17 @@ namespace GeometryHelper.UnitTest.Dxf
 
             foreach (double half in new[] { 15.0, 10.0, 5.0 })
             {
-                hatch.AppendLoop(DxfHatchLoopTypes.Default, new[] { new GeoPoint2(-half, -half), new GeoPoint2(half, -half), new GeoPoint2(half, half), new GeoPoint2(-half, half) }, null);
+                hatch.AppendLoop(
+                    DxfHatchLoopTypes.Default,
+                    new[]
+                    {
+                        new GeoPoint2(-half, -half),
+                        new GeoPoint2(half, -half),
+                        new GeoPoint2(half, half),
+                        new GeoPoint2(-half, half),
+                    },
+                    null
+                );
             }
 
             Assert.Equal(600.0, hatch.Area, 12);
@@ -314,7 +352,14 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void TheAssociation_IsTakenAway_WithTheHandles_WhenSetFalseOrTheLoopsChange()
         {
-            foreach (Action<DxfHatch> change in new Action<DxfHatch>[] { h => h.Associative = false, h => h.RemoveAssociatedObjects(), h => h.RemoveLoopAt(0) })
+            foreach (
+                Action<DxfHatch> change in new Action<DxfHatch>[]
+                {
+                    h => h.Associative = false,
+                    h => h.RemoveAssociatedObjects(),
+                    h => h.RemoveLoopAt(0),
+                }
+            )
             {
                 string text = DxfHatchLeaderDrawings.R2018;
                 DxfDatabase db = DxfDatabase.Parse(text);
@@ -327,8 +372,16 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.DoesNotContain("\n330\nAB\n", record, StringComparison.Ordinal);
 
                 // The circle it followed no longer has it among its reactors, as AutoCAD takes it out: its list, left empty, gone.
-                Assert.Contains("{ACAD_REACTORS", Records(text).Single(r => HandleOf(r) == "AB"), StringComparison.Ordinal);
-                Assert.DoesNotContain("{ACAD_REACTORS", Records(db.ToText()).Single(r => HandleOf(r) == "AB"), StringComparison.Ordinal);
+                Assert.Contains(
+                    "{ACAD_REACTORS",
+                    Records(text).Single(r => HandleOf(r) == "AB"),
+                    StringComparison.Ordinal
+                );
+                Assert.DoesNotContain(
+                    "{ACAD_REACTORS",
+                    Records(db.ToText()).Single(r => HandleOf(r) == "AB"),
+                    StringComparison.Ordinal
+                );
 
                 DxfHatch back = ByHandle<DxfHatch>(DxfDatabase.Parse(db.ToText()), "AC");
                 Assert.False(back.Associative);
@@ -352,16 +405,42 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Contains(loop + " 75\n0\n", after, StringComparison.Ordinal);
 
             // A circle of radius 2 inside the island and a square of shapes outside: the circle an island of the island.
-            hatch.InsertLoopAt(0, new DxfHatchLoop(DxfHatchLoopTypes.Default, new object[] { new GeoCircle3(new GeoPoint3(215, 7.5, 0), new GeoVector3(0, 0, 1), 2) }));
+            hatch.InsertLoopAt(
+                0,
+                new DxfHatchLoop(
+                    DxfHatchLoopTypes.Default,
+                    new object[] { new GeoCircle3(new GeoPoint3(215, 7.5, 0), new GeoVector3(0, 0, 1), 2) }
+                )
+            );
             hatch.RemoveLoopAt(3);
-            hatch.AppendLoop(new DxfHatchLoop(DxfHatchLoopTypes.External, new GeoPolygonArc3(new[] { new GeoPoint3(300, 0, 0), new GeoPoint3(310, 0, 0), new GeoPoint3(310, 10, 0), new GeoPoint3(300, 10, 0) })));
+            hatch.AppendLoop(
+                new DxfHatchLoop(
+                    DxfHatchLoopTypes.External,
+                    new GeoPolygonArc3(
+                        new[]
+                        {
+                            new GeoPoint3(300, 0, 0),
+                            new GeoPoint3(310, 0, 0),
+                            new GeoPoint3(310, 10, 0),
+                            new GeoPoint3(300, 10, 0),
+                        }
+                    )
+                )
+            );
             OnlyTheseChanged(text, db.ToText(), "AD");
 
             DxfHatch back = ByHandle<DxfHatch>(DxfDatabase.Parse(db.ToText()), "AD");
             Assert.Equal(4, back.NumberOfLoops);
             Assert.Equal(DxfHatchLoopTypes.External | DxfHatchLoopTypes.Polyline, back.LoopTypeAt(3));
             Assert.Equal(755.25 + 43.75 * Math.PI - 50.0 + 4.0 * Math.PI + 100.0, back.Area, 9);
-            Assert.Throws<ArgumentException>(() => back.AppendLoop(new DxfHatchLoop(DxfHatchLoopTypes.Default, new object[] { new GeoLine3(new GeoPoint3(0, 0, 1), new GeoPoint3(1, 0, 1)) })));
+            Assert.Throws<ArgumentException>(() =>
+                back.AppendLoop(
+                    new DxfHatchLoop(
+                        DxfHatchLoopTypes.Default,
+                        new object[] { new GeoLine3(new GeoPoint3(0, 0, 1), new GeoPoint3(1, 0, 1)) }
+                    )
+                )
+            );
         }
 
         [Fact]
@@ -372,7 +451,13 @@ namespace GeometryHelper.UnitTest.Dxf
 
             hatch.SetGradient(DxfGradientPatternType.PreDefinedGradient, "spherical");
             hatch.GradientAngle = 1.0;
-            hatch.SetGradientColors(new[] { new DxfGradientColor(DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1), 0f), new DxfGradientColor(DxfColor.FromRgb(0, 128, 0), 1f) });
+            hatch.SetGradientColors(
+                new[]
+                {
+                    new DxfGradientColor(DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1), 0f),
+                    new DxfGradientColor(DxfColor.FromRgb(0, 128, 0), 1f),
+                }
+            );
             hatch.GradientOneColorMode = true;
 
             DxfHatch back = ByHandle<DxfHatch>(DxfDatabase.Parse(db.ToText()), "AC");
@@ -386,14 +471,18 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(1, colours[0].Color.ColorIndex);
             Assert.Equal(0x008000, colours[1].Color.ColorValue);
             Assert.Equal(0, back.NumberOfPatternDefinitions);
-            Assert.Throws<ArgumentException>(() => back.SetGradient(DxfGradientPatternType.PreDefinedGradient, "RAINBOW"));
+            Assert.Throws<ArgumentException>(() =>
+                back.SetGradient(DxfGradientPatternType.PreDefinedGradient, "RAINBOW")
+            );
 
             back.HatchObjectType = DxfHatchObjectType.HatchObject;
             Assert.False(back.IsGradient);
             Assert.Equal("SOLID", back.PatternName);
 
             DxfHatch old = ByHandle<DxfHatch>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2000), "AC");
-            Assert.Throws<InvalidOperationException>(() => old.SetGradient(DxfGradientPatternType.PreDefinedGradient, "LINEAR"));
+            Assert.Throws<InvalidOperationException>(() =>
+                old.SetGradient(DxfGradientPatternType.PreDefinedGradient, "LINEAR")
+            );
             Assert.Throws<InvalidOperationException>(() => old.GradientAngle = 1.0);
         }
 
@@ -414,7 +503,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfHatch again = ByHandle<DxfHatch>(back, "AC");
             Assert.Equal(DxfColorMethod.ByAci, again.BackgroundColor.ColorMethod);
             Assert.Equal(3, again.BackgroundColor.ColorIndex);
-            Assert.Equal(new[] { new GeoPoint2(120, 5), new GeoPoint2(101, 1) }, Enumerable.Range(0, again.NumSeedPoints).Select(again.GetSeedPointAt));
+            Assert.Equal(
+                new[] { new GeoPoint2(120, 5), new GeoPoint2(101, 1) },
+                Enumerable.Range(0, again.NumSeedPoints).Select(again.GetSeedPointAt)
+            );
             Assert.True(ByHandle<DxfHatch>(back, "B0").BackgroundColor.IsNone);
             Assert.Null(ByHandle<DxfHatch>(back, "B0").GetXDataForApplication("HATCHBACKGROUNDCOLOR"));
         }
@@ -426,13 +518,29 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AHatchMadeInCode_IsAppendedFromR2000On_AndRefusedByR12()
         {
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R12,
+                    DxfFileEzdxfDrawings.R2000,
+                    DxfFileEzdxfDrawings.R2018,
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
                 var hatch = new DxfHatch { Layer = "steel", ColorIndex = 4 };
                 hatch.SetHatchPattern(DxfHatchPatternType.PreDefined, "ANSI31");
-                hatch.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(0, 0), new GeoPoint2(30, 0), new GeoPoint2(30, 20), new GeoPoint2(0, 20) }, new[] { 0.0, 0.0, 0.0, 0.0 });
-                hatch.AppendLoop(new DxfHatchLoop(DxfHatchLoopTypes.Default, new object[] { new GeoCircle3(new GeoPoint3(15, 10, 0), new GeoVector3(0, 0, 1), 5) }));
+                hatch.AppendLoop(
+                    DxfHatchLoopTypes.External,
+                    new[] { new GeoPoint2(0, 0), new GeoPoint2(30, 0), new GeoPoint2(30, 20), new GeoPoint2(0, 20) },
+                    new[] { 0.0, 0.0, 0.0, 0.0 }
+                );
+                hatch.AppendLoop(
+                    new DxfHatchLoop(
+                        DxfHatchLoopTypes.Default,
+                        new object[] { new GeoCircle3(new GeoPoint3(15, 10, 0), new GeoVector3(0, 0, 1), 5) }
+                    )
+                );
 
                 if (text == DxfFileEzdxfDrawings.R12)
                 {
@@ -474,14 +582,27 @@ namespace GeometryHelper.UnitTest.Dxf
             // Turned 30 degrees, scaled 2 and moved by (5, -7, 3): ezdxf's transform() gives the same groups but for the seed
             // points, which ezdxf leaves, and the gradient's angle, which it does not turn (the A3b oracle, cmptransform.py).
             double c = Math.Sqrt(3.0);
-            var transform = new GeoTransform3(new double[,] { { c, -1, 0, 5 }, { 1, c, 0, -7 }, { 0, 0, 2, 3 }, { 0, 0, 0, 1 } });
+            var transform = new GeoTransform3(
+                new double[,]
+                {
+                    { c, -1, 0, 5 },
+                    { 1, c, 0, -7 },
+                    { 0, 0, 2, 3 },
+                    { 0, 0, 0, 1 },
+                }
+            );
 
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                var areas = db.ModelSpace.OfType<DxfHatch>().ToDictionary(h => h.Handle, h => h.Area, StringComparer.Ordinal);
+                var areas = db
+                    .ModelSpace.OfType<DxfHatch>()
+                    .ToDictionary(h => h.Handle, h => h.Area, StringComparer.Ordinal);
                 DxfHatch hatch = ByHandle<DxfHatch>(db, "AD");
-                List<GeoPoint3> starts = hatch.GetLoopAt(0).Curves.Select(e => transform.Transform(Ends(e)[0])).ToList();
+                List<GeoPoint3> starts = hatch
+                    .GetLoopAt(0)
+                    .Curves.Select(e => transform.Transform(Ends(e)[0]))
+                    .ToList();
 
                 foreach (DxfHatch each in db.ModelSpace.OfType<DxfHatch>().ToList())
                 {
@@ -494,7 +615,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 for (int i = 0; i < starts.Count; i++)
                 {
-                    Assert.True(starts[i].IsEqualTo(now[i], Tol), "Edge " + i + " starts at " + now[i] + ", not " + starts[i] + ".");
+                    Assert.True(
+                        starts[i].IsEqualTo(now[i], Tol),
+                        "Edge " + i + " starts at " + now[i] + ", not " + starts[i] + "."
+                    );
                 }
 
                 foreach (DxfHatch each in back.ModelSpace.OfType<DxfHatch>())
@@ -514,7 +638,15 @@ namespace GeometryHelper.UnitTest.Dxf
         public void AHatchScaledUnlikeAlongItsAxes_HasItsArcsMadeEllipses_AndItsAreaScaledSo()
         {
             // Twice as wide: each hatch on the floor fills twice its area, its arcs and bulges ellipse edges, as ezdxf makes them.
-            var transform = new GeoTransform3(new double[,] { { 2, 0, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } });
+            var transform = new GeoTransform3(
+                new double[,]
+                {
+                    { 2, 0, 0, 0 },
+                    { 0, 1, 0, 0 },
+                    { 0, 0, 1, 0 },
+                    { 0, 0, 0, 1 },
+                }
+            );
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
 
             foreach (string handle in new[] { "74", "AC", "AD", "AF", "B0" })
@@ -540,7 +672,15 @@ namespace GeometryHelper.UnitTest.Dxf
             // ellipse, and every area doubles (the determinant is 2). The ellipse of B0 (major 8 along y, ratio 0.25) becomes the
             // one whose half axes are the singular values of the map of its half diameters.
             double h = Math.Sqrt(0.5);
-            var transform = new GeoTransform3(new double[,] { { 2 * h, -2 * h, 0, 0 }, { h, h, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } });
+            var transform = new GeoTransform3(
+                new double[,]
+                {
+                    { 2 * h, -2 * h, 0, 0 },
+                    { h, h, 0, 0 },
+                    { 0, 0, 1, 0 },
+                    { 0, 0, 0, 1 },
+                }
+            );
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
 
             foreach (string handle in new[] { "74", "AC", "AD", "AF", "B0" })
@@ -553,7 +693,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal(200.0 * Math.PI, ByHandle<DxfHatch>(db, "AF").Area, 8);
             var ellipse = Assert.IsType<GeoEllipse3>(Assert.Single(ByHandle<DxfHatch>(db, "B0").GetLoopAt(0).Curves));
-            Assert.Equal(Ratio(transform, new GeoVector3(0, 8, 0), new GeoVector3(-2, 0, 0)), ellipse.MinorRadius / ellipse.MajorRadius, 9);
+            Assert.Equal(
+                Ratio(transform, new GeoVector3(0, 8, 0), new GeoVector3(-2, 0, 0)),
+                ellipse.MinorRadius / ellipse.MajorRadius,
+                9
+            );
             Assert.Equal(0.195, ellipse.MinorRadius / ellipse.MajorRadius, 3);
 
             // AD's half ellipse, major (5, 0) and ratio 0.5, its third ellipse edge after its two arcs made ellipses: the major
@@ -590,13 +734,41 @@ namespace GeometryHelper.UnitTest.Dxf
             var islands = new Dictionary<string, GeoPoint2[]>(StringComparer.Ordinal)
             {
                 ["triangle"] = new[] { new GeoPoint2(10, 5), new GeoPoint2(5, 10), new GeoPoint2(5, 5) },
-                ["notch"] = new[] { new GeoPoint2(3, 10), new GeoPoint2(3, 8), new GeoPoint2(8, 8), new GeoPoint2(8, 10) },
-                ["corner"] = new[] { new GeoPoint2(5, 5), new GeoPoint2(10, 5), new GeoPoint2(10, 10), new GeoPoint2(5, 10) },
-                ["diamond"] = new[] { new GeoPoint2(5, 0), new GeoPoint2(10, 5), new GeoPoint2(5, 10), new GeoPoint2(0, 5) },
-                ["crossing"] = new[] { new GeoPoint2(5, 5), new GeoPoint2(15, 5), new GeoPoint2(15, 15), new GeoPoint2(5, 15) },
+                ["notch"] = new[]
+                {
+                    new GeoPoint2(3, 10),
+                    new GeoPoint2(3, 8),
+                    new GeoPoint2(8, 8),
+                    new GeoPoint2(8, 10),
+                },
+                ["corner"] = new[]
+                {
+                    new GeoPoint2(5, 5),
+                    new GeoPoint2(10, 5),
+                    new GeoPoint2(10, 10),
+                    new GeoPoint2(5, 10),
+                },
+                ["diamond"] = new[]
+                {
+                    new GeoPoint2(5, 0),
+                    new GeoPoint2(10, 5),
+                    new GeoPoint2(5, 10),
+                    new GeoPoint2(0, 5),
+                },
+                ["crossing"] = new[]
+                {
+                    new GeoPoint2(5, 5),
+                    new GeoPoint2(15, 5),
+                    new GeoPoint2(15, 15),
+                    new GeoPoint2(5, 15),
+                },
             };
             var hatch = new DxfHatch();
-            hatch.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10) }, null);
+            hatch.AppendLoop(
+                DxfHatchLoopTypes.External,
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10) },
+                null
+            );
             hatch.AppendLoop(DxfHatchLoopTypes.Default, islands[island], null);
 
             Assert.Equal(area, hatch.Area, 12);
@@ -611,8 +783,17 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfEntity entity = hatch;
             Assert.Throws<InvalidOperationException>(() => entity.GeometricExtents);
 
-            hatch.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(0, 0), new GeoPoint2(30, 0), new GeoPoint2(30, 20), new GeoPoint2(0, 20) }, null);
-            hatch.AppendLoop(new DxfHatchLoop(DxfHatchLoopTypes.Default, new object[] { new GeoCircle3(new GeoPoint3(15, 10, 5), new GeoVector3(0, 0, 1), 5) }));
+            hatch.AppendLoop(
+                DxfHatchLoopTypes.External,
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(30, 0), new GeoPoint2(30, 20), new GeoPoint2(0, 20) },
+                null
+            );
+            hatch.AppendLoop(
+                new DxfHatchLoop(
+                    DxfHatchLoopTypes.Default,
+                    new object[] { new GeoCircle3(new GeoPoint3(15, 10, 5), new GeoVector3(0, 0, 1), 5) }
+                )
+            );
             GeoAabb3 box = entity.GeometricExtents;
             Assert.True(box.Min.IsEqualTo(new GeoPoint3(0, 0, 5), Tol));
             Assert.True(box.Max.IsEqualTo(new GeoPoint3(30, 20, 5), Tol));
@@ -622,7 +803,12 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(5.0, plane.SignedDistanceTo(new GeoPoint3(0, 0, 10)), 12);
 
             // The circle's top at y 15 reaches past nothing; one of radius 12 past the square's top, to y 22.
-            hatch.AppendLoop(new DxfHatchLoop(DxfHatchLoopTypes.Default, new object[] { new GeoCircle3(new GeoPoint3(15, 10, 5), new GeoVector3(0, 0, 1), 12) }));
+            hatch.AppendLoop(
+                new DxfHatchLoop(
+                    DxfHatchLoopTypes.Default,
+                    new object[] { new GeoCircle3(new GeoPoint3(15, 10, 5), new GeoVector3(0, 0, 1), 12) }
+                )
+            );
             Assert.Equal(22.0, entity.GeometricExtents.Max.Y, 9);
         }
 
@@ -631,13 +817,33 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // A square 1000 by 1000 round a thousand squares 10 by 10 on a grid: 1 000 000 less 100 000.
             var hatch = new DxfHatch();
-            hatch.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(0, 0), new GeoPoint2(1000, 0), new GeoPoint2(1000, 1000), new GeoPoint2(0, 1000) }, null);
+            hatch.AppendLoop(
+                DxfHatchLoopTypes.External,
+                new[]
+                {
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(1000, 0),
+                    new GeoPoint2(1000, 1000),
+                    new GeoPoint2(0, 1000),
+                },
+                null
+            );
 
             for (int i = 0; i < 1000; i++)
             {
                 double x = 20 + (i % 40) * 24;
                 double y = 20 + (i / 40) * 24;
-                hatch.AppendLoop(DxfHatchLoopTypes.Default, new[] { new GeoPoint2(x, y), new GeoPoint2(x + 10, y), new GeoPoint2(x + 10, y + 10), new GeoPoint2(x, y + 10) }, null);
+                hatch.AppendLoop(
+                    DxfHatchLoopTypes.Default,
+                    new[]
+                    {
+                        new GeoPoint2(x, y),
+                        new GeoPoint2(x + 10, y),
+                        new GeoPoint2(x + 10, y + 10),
+                        new GeoPoint2(x, y + 10),
+                    },
+                    null
+                );
             }
 
             var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -662,23 +868,52 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfDatabase r2018 = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             ByHandle<DxfHatch>(r2018, "74").AppendLoop(old);
-            Assert.Contains("\n 10\n200.0\n 20\n0.0\n 97\n0\n 97\n0\n 75\n", Records(r2018.ToText()).Single(r => HandleOf(r) == "74"), StringComparison.Ordinal);
+            Assert.Contains(
+                "\n 10\n200.0\n 20\n0.0\n 97\n0\n 97\n0\n 75\n",
+                Records(r2018.ToText()).Single(r => HandleOf(r) == "74"),
+                StringComparison.Ordinal
+            );
 
             DxfDatabase r2000 = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2000);
             ByHandle<DxfHatch>(r2000, "74").AppendLoop(late);
-            Assert.Contains("\n 10\n200.0\n 20\n0.0\n 97\n0\n 75\n", Records(r2000.ToText()).Single(r => HandleOf(r) == "74"), StringComparison.Ordinal);
-            Assert.Equal(ByHandle<DxfHatch>(r2000, "74").Area, ByHandle<DxfHatch>(DxfDatabase.Parse(r2018.ToText()), "74").Area, 9);
+            Assert.Contains(
+                "\n 10\n200.0\n 20\n0.0\n 97\n0\n 75\n",
+                Records(r2000.ToText()).Single(r => HandleOf(r) == "74"),
+                StringComparison.Ordinal
+            );
+            Assert.Equal(
+                ByHandle<DxfHatch>(r2000, "74").Area,
+                ByHandle<DxfHatch>(DxfDatabase.Parse(r2018.ToText()), "74").Area,
+                9
+            );
         }
 
         [Fact]
         public void ALoopOfEdgesThatDoNotRunEndToEnd_IsRefused()
         {
             var hatch = new DxfHatch();
-            var apart = new DxfHatchLoop(DxfHatchLoopTypes.Default, new object[] { new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)), new GeoLine3(new GeoPoint3(10, 1, 0), new GeoPoint3(0, 0, 0)) });
+            var apart = new DxfHatchLoop(
+                DxfHatchLoopTypes.Default,
+                new object[]
+                {
+                    new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)),
+                    new GeoLine3(new GeoPoint3(10, 1, 0), new GeoPoint3(0, 0, 0)),
+                }
+            );
             Assert.Throws<ArgumentException>(() => hatch.AppendLoop(apart));
             Assert.Equal(0, hatch.NumberOfLoops);
 
-            hatch.AppendLoop(new DxfHatchLoop(DxfHatchLoopTypes.Default, new object[] { new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)), new GeoLine3(new GeoPoint3(10, 0.0004, 0), new GeoPoint3(0, 5, 0)), new GeoLine3(new GeoPoint3(0, 5, 0), new GeoPoint3(0, 0, 0)) }));
+            hatch.AppendLoop(
+                new DxfHatchLoop(
+                    DxfHatchLoopTypes.Default,
+                    new object[]
+                    {
+                        new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)),
+                        new GeoLine3(new GeoPoint3(10, 0.0004, 0), new GeoPoint3(0, 5, 0)),
+                        new GeoLine3(new GeoPoint3(0, 5, 0), new GeoPoint3(0, 0, 0)),
+                    }
+                )
+            );
             Assert.Equal(25.0, hatch.Area, 2);
         }
 
@@ -704,7 +939,13 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // A square 10 by 10 given twice fills nothing; round an island 2 by 2 given twice it fills 100; AD given its outer
             // loop again fills what its inner loop fills alone.
-            var square = new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10) };
+            var square = new[]
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10),
+            };
             var island = new[] { new GeoPoint2(2, 2), new GeoPoint2(4, 2), new GeoPoint2(4, 4), new GeoPoint2(2, 4) };
 
             var twice = new DxfHatch();
@@ -733,14 +974,34 @@ namespace GeometryHelper.UnitTest.Dxf
             // a few seconds, where writing every group anew each time took 24 s; a loop put in and taken out again leaves the
             // record as it was, byte for byte.
             var hatch = new DxfHatch();
-            hatch.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(0, 0), new GeoPoint2(1400, 0), new GeoPoint2(1400, 1400), new GeoPoint2(0, 1400) }, null);
+            hatch.AppendLoop(
+                DxfHatchLoopTypes.External,
+                new[]
+                {
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(1400, 0),
+                    new GeoPoint2(1400, 1400),
+                    new GeoPoint2(0, 1400),
+                },
+                null
+            );
             var watch = System.Diagnostics.Stopwatch.StartNew();
 
             for (int i = 0; i < 3000; i++)
             {
                 double x = 20 + (i % 55) * 24;
                 double y = 20 + (i / 55) * 24;
-                hatch.AppendLoop(DxfHatchLoopTypes.Default, new[] { new GeoPoint2(x, y), new GeoPoint2(x + 10, y), new GeoPoint2(x + 10, y + 10), new GeoPoint2(x, y + 10) }, null);
+                hatch.AppendLoop(
+                    DxfHatchLoopTypes.Default,
+                    new[]
+                    {
+                        new GeoPoint2(x, y),
+                        new GeoPoint2(x + 10, y),
+                        new GeoPoint2(x + 10, y + 10),
+                        new GeoPoint2(x, y + 10),
+                    },
+                    null
+                );
             }
 
             Assert.True(watch.Elapsed.TotalSeconds < 10.0, "Three thousand islands took " + watch.Elapsed + ".");
@@ -776,12 +1037,20 @@ namespace GeometryHelper.UnitTest.Dxf
             r2000.ModelSpace.AppendEntity(gradient);
             string earlier = Records(r2000.ToText()).Single(r => HandleOf(r) == fromNew.Handle);
             Assert.Contains("\n 10\n200.0\n 20\n0.0\n 97\n0\n 92\n", earlier, StringComparison.Ordinal);
-            Assert.Equal(ByHandle<DxfHatch>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2000), "AD").Area, ByHandle<DxfHatch>(DxfDatabase.Parse(r2018.ToText()), fromOld.Handle).Area, 9);
+            Assert.Equal(
+                ByHandle<DxfHatch>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2000), "AD").Area,
+                ByHandle<DxfHatch>(DxfDatabase.Parse(r2018.ToText()), fromOld.Handle).Area,
+                9
+            );
 
             DxfHatch solid = ByHandle<DxfHatch>(DxfDatabase.Parse(r2000.ToText()), gradient.Handle);
             Assert.False(solid.IsGradient);
             Assert.True(solid.IsSolidFill);
-            Assert.DoesNotContain("\n450\n", Records(r2000.ToText()).Single(r => HandleOf(r) == gradient.Handle), StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "\n450\n",
+                Records(r2000.ToText()).Single(r => HandleOf(r) == gradient.Handle),
+                StringComparison.Ordinal
+            );
 
             DxfDatabase same = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             var kept = (DxfHatch)ByHandle<DxfHatch>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018), "AF").Clone();
@@ -796,12 +1065,18 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             switch (curve)
             {
-                case GeoLine3 l: return new[] { l.StartPoint, l.EndPoint };
-                case GeoArc3 a: return new[] { a.StartPoint, a.EndPoint };
-                case GeoSpline3 s: return new[] { s.GetPointAtKnot(s.DomainStart), s.GetPointAtKnot(s.DomainEnd) };
-                case GeoCircle3 c: return new[] { c.GetPointAtDistance(0), c.GetPointAtDistance(0) };
-                case GeoEllipse3 e: return new[] { e.Center, e.Center };
-                default: throw new ArgumentException(curve.GetType().Name);
+                case GeoLine3 l:
+                    return new[] { l.StartPoint, l.EndPoint };
+                case GeoArc3 a:
+                    return new[] { a.StartPoint, a.EndPoint };
+                case GeoSpline3 s:
+                    return new[] { s.GetPointAtKnot(s.DomainStart), s.GetPointAtKnot(s.DomainEnd) };
+                case GeoCircle3 c:
+                    return new[] { c.GetPointAtDistance(0), c.GetPointAtDistance(0) };
+                case GeoEllipse3 e:
+                    return new[] { e.Center, e.Center };
+                default:
+                    throw new ArgumentException(curve.GetType().Name);
             }
         }
     }

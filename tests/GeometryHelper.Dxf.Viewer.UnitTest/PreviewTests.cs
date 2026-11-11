@@ -70,13 +70,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             foreach (double n in numbers)
             {
                 double rounded = Math.Round(n, 6);
-                text.Append(' ').Append((rounded == 0.0 ? 0.0 : rounded).ToString("0.000000", CultureInfo.InvariantCulture));
+                text.Append(' ')
+                    .Append((rounded == 0.0 ? 0.0 : rounded).ToString("0.000000", CultureInfo.InvariantCulture));
             }
         }
 
         /// <summary>The handles of the entities of model space.</summary>
-        private static HashSet<string> Handles(CadDocument document)
-            => new HashSet<string>(All<DxfEntity>(document.ModelSpace).Select(e => e.Handle), StringComparer.OrdinalIgnoreCase);
+        private static HashSet<string> Handles(CadDocument document) =>
+            new HashSet<string>(
+                All<DxfEntity>(document.ModelSpace).Select(e => e.Handle),
+                StringComparer.OrdinalIgnoreCase
+            );
 
         /// <summary>
         /// Checks that the prompt waiting previews, with the cursor at a point, what picking the point there (and the inputs
@@ -93,7 +97,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             session.Cursor = cursor;
             Run(session, cursor);
             Run(session, after);
-            List<string> made = Shapes(document.GetDisplay(document.ModelSpace).Items.Where(i => i.Handle != null && !before.Contains(i.Handle)));
+            List<string> made = Shapes(
+                document
+                    .GetDisplay(document.ModelSpace)
+                    .Items.Where(i => i.Handle != null && !before.Contains(i.Handle))
+            );
             Assert.Equal(made, previewed);
             return previewed;
         }
@@ -115,7 +123,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             List<string> shapes = PreviewMakes(session, P(30, 20));
 
-            Assert.Equal("DisplayPolyline2 closed 0.000000 0.000000 30.000000 0.000000 30.000000 20.000000 0.000000 20.000000", Assert.Single(shapes));
+            Assert.Equal(
+                "DisplayPolyline2 closed 0.000000 0.000000 30.000000 0.000000 30.000000 20.000000 0.000000 20.000000",
+                Assert.Single(shapes)
+            );
         }
 
         [Fact]
@@ -129,7 +140,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, P(30, 20));
 
             Assert.Equal(made + 1, session.Document.GetDisplay(session.Document.ModelSpace).Items.Count);
-            Assert.Equal(session.Document.GetDisplay(session.Document.ModelSpace).Items.Last().Style.Rgb, item.Style.Rgb);
+            Assert.Equal(
+                session.Document.GetDisplay(session.Document.ModelSpace).Items.Last().Style.Rgb,
+                item.Style.Rgb
+            );
             Assert.Equal("Steel", item.Layer);
             Assert.NotNull(steel);
         }
@@ -168,7 +182,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void CircleTtrAndTanTanTan_PreviewTheCircleTouchingTheObjects()
         {
-            CadCommandSession session = Started("LINE", P(0, 0), P(100, 0), Enter, "LINE", P(0, 0), P(0, 100), Enter, "LINE", P(100, 0), P(0, 100), Enter);
+            CadCommandSession session = Started(
+                "LINE",
+                P(0, 0),
+                P(100, 0),
+                Enter,
+                "LINE",
+                P(0, 0),
+                P(0, 100),
+                Enter,
+                "LINE",
+                P(100, 0),
+                P(0, 100),
+                Enter
+            );
             Run(session, "CIRCLE", "T", P(50, 0), P(0, 50));
             Assert.StartsWith("Specify radius of circle", session.PromptText);
             PreviewMakes(session, P(0, 60));
@@ -300,18 +327,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadCommandSession session = Started();
 
-            foreach (object[] steps in new[]
-            {
-                new object[] { "A", "A", "90" },
-                new object[] { "A", "A", "90", "CE" },
-                new object[] { "A", "CE", P(0, 50) },
-                new object[] { "A", "CE", P(0, 50), "A" },
-                new object[] { "A", "CE", P(0, 50), "L" },
-                new object[] { "A", "D", "90" },
-                new object[] { "A", "R", "60" },
-                new object[] { "A", "R", "60", "A", "90" },
-                new object[] { "A", "S", P(30, 30) },
-            })
+            foreach (
+                object[] steps in new[]
+                {
+                    new object[] { "A", "A", "90" },
+                    new object[] { "A", "A", "90", "CE" },
+                    new object[] { "A", "CE", P(0, 50) },
+                    new object[] { "A", "CE", P(0, 50), "A" },
+                    new object[] { "A", "CE", P(0, 50), "L" },
+                    new object[] { "A", "D", "90" },
+                    new object[] { "A", "R", "60" },
+                    new object[] { "A", "R", "60", "A", "90" },
+                    new object[] { "A", "S", P(30, 30) },
+                }
+            )
             {
                 Run(session, "PLINE", P(0, 0));
                 Run(session, steps);
@@ -328,7 +357,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             {
                 var line = (DxfLine)document.FindEntity(handle);
                 var text = new StringBuilder();
-                Numbers(text, new[] { m.X(line.StartPoint.X, line.StartPoint.Y), m.Y(line.StartPoint.X, line.StartPoint.Y), m.X(line.EndPoint.X, line.EndPoint.Y), m.Y(line.EndPoint.X, line.EndPoint.Y) });
+                Numbers(
+                    text,
+                    new[]
+                    {
+                        m.X(line.StartPoint.X, line.StartPoint.Y),
+                        m.Y(line.StartPoint.X, line.StartPoint.Y),
+                        m.X(line.EndPoint.X, line.EndPoint.Y),
+                        m.Y(line.EndPoint.X, line.EndPoint.Y),
+                    }
+                );
                 ends.Add(text.ToString());
             }
 
@@ -397,11 +435,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             IReadOnlyList<Affine2> moves = session.Prompt.Preview.Moves(P(0, 0));
             Assert.Equal(11, moves.Count);
             HashSet<string> before = Handles(session.Document);
-            List<string> previewed = moves.SelectMany(m => Ends(session.Document, new[] { line }, m)).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            List<string> previewed = moves
+                .SelectMany(m => Ends(session.Document, new[] { line }, m))
+                .OrderBy(s => s, StringComparer.Ordinal)
+                .ToList();
 
             Run(session, Enter);
 
-            List<string> made = Ends(session.Document, Handles(session.Document).Where(h => !before.Contains(h)), Affine2.Identity).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            List<string> made = Ends(
+                    session.Document,
+                    Handles(session.Document).Where(h => !before.Contains(h)),
+                    Affine2.Identity
+                )
+                .OrderBy(s => s, StringComparer.Ordinal)
+                .ToList();
             Assert.Equal(made, previewed);
         }
 
@@ -435,11 +482,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             IReadOnlyList<Affine2> moves = session.Prompt.Preview.Moves(P(0, 0));
             Assert.Equal(5, moves.Count);
             HashSet<string> before = Handles(session.Document);
-            List<string> previewed = moves.SelectMany(m => Ends(session.Document, new[] { line }, m)).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            List<string> previewed = moves
+                .SelectMany(m => Ends(session.Document, new[] { line }, m))
+                .OrderBy(s => s, StringComparer.Ordinal)
+                .ToList();
 
             Run(session, Enter);
 
-            List<string> made = Ends(session.Document, Handles(session.Document).Where(h => !before.Contains(h)), Affine2.Identity).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            List<string> made = Ends(
+                    session.Document,
+                    Handles(session.Document).Where(h => !before.Contains(h)),
+                    Affine2.Identity
+                )
+                .OrderBy(s => s, StringComparer.Ordinal)
+                .ToList();
             Assert.Equal(made, previewed);
         }
 
@@ -458,7 +514,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void Stretch_PreviewsTheObjectsStretched()
         {
-            CadCommandSession session = Started("PLINE", P(0, 0), P(100, 0), P(100, 50), Enter, "LINE", P(200, 0), P(220, 0), Enter);
+            CadCommandSession session = Started(
+                "PLINE",
+                P(0, 0),
+                P(100, 0),
+                P(100, 50),
+                Enter,
+                "LINE",
+                P(200, 0),
+                P(220, 0),
+                Enter
+            );
             Run(session, "STRETCH", "C", P(90, -10), P(230, 60), Enter, P(100, 0));
             CadPreview preview = session.Prompt.Preview;
             List<string> previewed = Shapes(preview.Items(P(130, 10)));
@@ -474,7 +540,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadCommandSession session = Started("DIMLINEAR", P(0, 0), P(100, 30));
             Assert.StartsWith("Specify dimension line location", session.PromptText);
-            Assert.Contains(PreviewMakes(session, P(50, 60)), s => s.StartsWith("DisplayText2 100", StringComparison.Ordinal));
+            Assert.Contains(PreviewMakes(session, P(50, 60)), s =>
+                s.StartsWith("DisplayText2 100", StringComparison.Ordinal)
+            );
 
             Run(session, "DIMLINEAR", P(0, 0), P(100, 30), "V");
             PreviewMakes(session, P(150, 10));
@@ -520,7 +588,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Started("MTEXT", P(10, 10));
             Assert.StartsWith("Specify opposite corner", session.PromptText);
 
-            Assert.Equal("DisplayPolyline2 closed 10.000000 10.000000 60.000000 10.000000 60.000000 40.000000 10.000000 40.000000", Assert.Single(Shapes(session.Prompt.Preview.Items(P(60, 40)))));
+            Assert.Equal(
+                "DisplayPolyline2 closed 10.000000 10.000000 60.000000 10.000000 60.000000 40.000000 10.000000 40.000000",
+                Assert.Single(Shapes(session.Prompt.Preview.Items(P(60, 40))))
+            );
         }
 
         [Fact]
@@ -555,7 +626,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void FilletHoveringTheSecondLine_PreviewsBothLinesTrimmedAndTheArc()
         {
-            CadCommandSession session = Started("LINE", P(-50, 0), P(100, 0), Enter, "LINE", P(0, -50), P(0, 100), Enter);
+            CadCommandSession session = Started(
+                "LINE",
+                P(-50, 0),
+                P(100, 0),
+                Enter,
+                "LINE",
+                P(0, -50),
+                P(0, 100),
+                Enter
+            );
             Run(session, "FILLET", "R", "12", P(60, 0));
             Assert.StartsWith("Select second object", session.PromptText);
 
@@ -577,7 +657,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void FilletHoveringNothingOrTheFirstLineAgain_PreviewsNothing_AndWritesNothing()
         {
-            CadCommandSession session = Started("LINE", P(-50, 0), P(100, 0), Enter, "LINE", P(0, -50), P(0, 100), Enter);
+            CadCommandSession session = Started(
+                "LINE",
+                P(-50, 0),
+                P(100, 0),
+                Enter,
+                "LINE",
+                P(0, -50),
+                P(0, 100),
+                Enter
+            );
             Run(session, "FILLET", "R", "12", P(60, 0));
             int lines = session.History.Count;
 
@@ -589,7 +678,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ChamferHoveringTheSecondLine_PreviewsBothLinesCutAndTheChamferLine()
         {
-            CadCommandSession session = Started("LINE", P(-50, 0), P(100, 0), Enter, "LINE", P(0, -50), P(0, 100), Enter);
+            CadCommandSession session = Started(
+                "LINE",
+                P(-50, 0),
+                P(100, 0),
+                Enter,
+                "LINE",
+                P(0, -50),
+                P(0, 100),
+                Enter
+            );
             Run(session, "CHAMFER", "D", "10", "5", P(60, 0));
             Assert.StartsWith("Select second line", session.PromptText);
 
@@ -600,13 +698,27 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         /// <summary>The items model space draws for one object.</summary>
-        private static List<string> ShapesOf(CadDocument document, string handle)
-            => Shapes(document.GetDisplay(document.ModelSpace).Items.Where(i => string.Equals(i.Handle, handle, StringComparison.OrdinalIgnoreCase)));
+        private static List<string> ShapesOf(CadDocument document, string handle) =>
+            Shapes(
+                document
+                    .GetDisplay(document.ModelSpace)
+                    .Items.Where(i => string.Equals(i.Handle, handle, StringComparison.OrdinalIgnoreCase))
+            );
 
         [Fact]
         public void QuickTrim_PreviewsThePieceTheCutTakesOut_Faded()
         {
-            CadCommandSession session = Started("LINE", P(-50, 0), P(100, 0), Enter, "LINE", P(0, -50), P(0, 100), Enter, "TRIM");
+            CadCommandSession session = Started(
+                "LINE",
+                P(-50, 0),
+                P(100, 0),
+                Enter,
+                "LINE",
+                P(0, -50),
+                P(0, 100),
+                Enter,
+                "TRIM"
+            );
             Assert.StartsWith("Select object to trim", session.PromptText);
             CadPreview preview = session.Prompt.Preview;
             Assert.True(preview.Fades);
@@ -618,13 +730,26 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.Equal("DisplayPolyline2 open -50.000000 0.000000 0.000000 0.000000", Assert.Single(gone));
             Assert.Equal("DisplayPolyline2 open -50.000000 0.000000 100.000000 0.000000", Assert.Single(whole));
-            Assert.Equal("DisplayPolyline2 open 0.000000 0.000000 100.000000 0.000000", Assert.Single(ShapesOf(session.Document, first)));
+            Assert.Equal(
+                "DisplayPolyline2 open 0.000000 0.000000 100.000000 0.000000",
+                Assert.Single(ShapesOf(session.Document, first))
+            );
         }
 
         [Fact]
         public void QuickTrimOfAnObjectNothingCuts_PreviewsAllOfIt_AsItIsErased()
         {
-            CadCommandSession session = Started("LINE", P(0, 0), P(100, 0), Enter, "LINE", P(0, 50), P(100, 50), Enter, "TRIM");
+            CadCommandSession session = Started(
+                "LINE",
+                P(0, 0),
+                P(100, 0),
+                Enter,
+                "LINE",
+                P(0, 50),
+                P(100, 50),
+                Enter,
+                "TRIM"
+            );
             string first = All<DxfLine>(session.Document.ModelSpace).First().Handle;
             List<string> whole = ShapesOf(session.Document, first);
 
@@ -636,7 +761,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void QuickExtend_PreviewsTheObjectRunOnToTheEdge()
         {
-            CadCommandSession session = Started("LINE", P(0, 0), P(50, 0), Enter, "LINE", P(100, -50), P(100, 50), Enter, "EXTEND");
+            CadCommandSession session = Started(
+                "LINE",
+                P(0, 0),
+                P(50, 0),
+                Enter,
+                "LINE",
+                P(100, -50),
+                P(100, 50),
+                Enter,
+                "EXTEND"
+            );
             Assert.StartsWith("Select object to extend", session.PromptText);
             Assert.False(session.Prompt.Preview.Fades);
             string first = All<DxfLine>(session.Document.ModelSpace).First().Handle;
@@ -652,7 +787,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void StandardTrim_PreviewsThePieceUpToTheCuttingEdgeChosen_AndNothingWhereNoneCuts()
         {
             // Two walls cross the line; only the one at 60 is a cutting edge, so the cut runs from the end to it.
-            CadCommandSession session = Started("LINE", P(-50, 0), P(100, 0), Enter, "LINE", P(0, -50), P(0, 100), Enter, "LINE", P(60, -50), P(60, 100), Enter);
+            CadCommandSession session = Started(
+                "LINE",
+                P(-50, 0),
+                P(100, 0),
+                Enter,
+                "LINE",
+                P(0, -50),
+                P(0, 100),
+                Enter,
+                "LINE",
+                P(60, -50),
+                P(60, 100),
+                Enter
+            );
             string first = All<DxfLine>(session.Document.ModelSpace).First().Handle;
             string wall = All<DxfLine>(session.Document.ModelSpace).Last().Handle;
             Run(session, "TRIM", "O", "Standard", new[] { wall }, Enter);
@@ -667,13 +815,29 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, P(-25, 0));
 
             Assert.Equal("DisplayPolyline2 open -50.000000 0.000000 60.000000 0.000000", Assert.Single(gone));
-            Assert.Equal("DisplayPolyline2 open 60.000000 0.000000 100.000000 0.000000", Assert.Single(ShapesOf(session.Document, first)));
+            Assert.Equal(
+                "DisplayPolyline2 open 60.000000 0.000000 100.000000 0.000000",
+                Assert.Single(ShapesOf(session.Document, first))
+            );
         }
 
         [Fact]
         public void StandardExtend_PreviewsTheObjectRunOnToTheBoundaryChosen()
         {
-            CadCommandSession session = Started("LINE", P(0, 0), P(50, 0), Enter, "LINE", P(100, -50), P(100, 50), Enter, "LINE", P(150, -50), P(150, 50), Enter);
+            CadCommandSession session = Started(
+                "LINE",
+                P(0, 0),
+                P(50, 0),
+                Enter,
+                "LINE",
+                P(100, -50),
+                P(100, 50),
+                Enter,
+                "LINE",
+                P(150, -50),
+                P(150, 50),
+                Enter
+            );
             string first = All<DxfLine>(session.Document.ModelSpace).First().Handle;
             string far = All<DxfLine>(session.Document.ModelSpace).Last().Handle;
             Run(session, "EXTEND", "O", "Standard", new[] { far }, Enter);
@@ -690,7 +854,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ShiftHeldInTrim_PreviewsTheExtension_AndInExtendThePieceTrimmed()
         {
-            CadCommandSession session = Started("LINE", P(0, 0), P(50, 0), Enter, "LINE", P(100, -50), P(100, 50), Enter, "TRIM");
+            CadCommandSession session = Started(
+                "LINE",
+                P(0, 0),
+                P(50, 0),
+                Enter,
+                "LINE",
+                P(100, -50),
+                P(100, 50),
+                Enter,
+                "TRIM"
+            );
             string first = All<DxfLine>(session.Document.ModelSpace).First().Handle;
             CadPreview preview = session.Prompt.Preview;
             Assert.True(preview.Fades);
@@ -715,7 +889,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             session.Feed(P(140, 0), true);
 
             Assert.Equal("DisplayPolyline2 open 100.000000 0.000000 150.000000 0.000000", Assert.Single(gone));
-            Assert.Equal("DisplayPolyline2 open 0.000000 0.000000 100.000000 0.000000", Assert.Single(ShapesOf(session.Document, first)));
+            Assert.Equal(
+                "DisplayPolyline2 open 0.000000 0.000000 100.000000 0.000000",
+                Assert.Single(ShapesOf(session.Document, first))
+            );
         }
 
         [Fact]
@@ -724,16 +901,30 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Started("LINE", P(0, 0), P(100, 0), Enter, "LENGTHEN", "DY", P(90, 0));
             Assert.StartsWith("Specify new end point", session.PromptText);
 
-            Assert.Equal("DisplayPolyline2 open 0.000000 0.000000 150.000000 0.000000", Assert.Single(PreviewReshapes(session, P(150, 10))));
+            Assert.Equal(
+                "DisplayPolyline2 open 0.000000 0.000000 150.000000 0.000000",
+                Assert.Single(PreviewReshapes(session, P(150, 10)))
+            );
 
             Run(session, P(140, 0));
-            Assert.Equal("DisplayPolyline2 open 0.000000 0.000000 60.000000 0.000000", Assert.Single(PreviewReshapes(session, P(60, -5), Esc)));
+            Assert.Equal(
+                "DisplayPolyline2 open 0.000000 0.000000 60.000000 0.000000",
+                Assert.Single(PreviewReshapes(session, P(60, -5), Esc))
+            );
         }
 
         [Fact]
         public void HatchPickingPoints_PreviewsTheHatchOfTheAreaUnderTheCursor_WithThosePickedBefore()
         {
-            CadCommandSession session = Started("RECTANG", P(0, 0), P(100, 100), "RECTANG", P(200, 0), P(300, 100), "HATCH");
+            CadCommandSession session = Started(
+                "RECTANG",
+                P(0, 0),
+                P(100, 100),
+                "RECTANG",
+                P(200, 0),
+                P(300, 100),
+                "HATCH"
+            );
             Assert.StartsWith("Pick internal point", session.PromptText);
             CadPreview preview = session.Prompt.Preview;
 
@@ -754,10 +945,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.StartsWith("Specify height", session.PromptText);
             Assert.True(session.Prompt.Preview.ShowsBand);
 
-            Assert.Equal("DisplayPolyline2 closed 10.000000 10.000000 15.000000 10.000000 15.000000 15.000000 10.000000 15.000000", Assert.Single(Shapes(session.Prompt.Preview.Items(P(10, 15)))));
+            Assert.Equal(
+                "DisplayPolyline2 closed 10.000000 10.000000 15.000000 10.000000 15.000000 15.000000 10.000000 15.000000",
+                Assert.Single(Shapes(session.Prompt.Preview.Items(P(10, 15))))
+            );
             Run(session, P(10, 15));
             Assert.StartsWith("Specify rotation angle", session.PromptText);
-            Assert.Equal("DisplayPolyline2 closed 10.000000 10.000000 10.000000 15.000000 5.000000 15.000000 5.000000 10.000000", Assert.Single(Shapes(session.Prompt.Preview.Items(P(10, 30)))));
+            Assert.Equal(
+                "DisplayPolyline2 closed 10.000000 10.000000 10.000000 15.000000 5.000000 15.000000 5.000000 10.000000",
+                Assert.Single(Shapes(session.Prompt.Preview.Items(P(10, 30))))
+            );
             Run(session, P(10, 30), "AB", Enter);
 
             DxfDBText text = Assert.Single(All<DxfDBText>(session.Document.ModelSpace));
@@ -778,7 +975,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadCommandSession session = Started("TEXT", "J", justify, P(10, 10));
             Assert.StartsWith("Specify height", session.PromptText);
-            Assert.Equal("DisplayPolyline2 closed " + box, Assert.Single(Shapes(session.Prompt.Preview.Items(P(10, 15)))));
+            Assert.Equal(
+                "DisplayPolyline2 closed " + box,
+                Assert.Single(Shapes(session.Prompt.Preview.Items(P(10, 15))))
+            );
         }
 
         [Fact]
@@ -786,7 +986,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadCommandSession session = Started("TEXT", "J", "F", P(10, 10), P(40, 10));
             Assert.StartsWith("Specify height", session.PromptText);
-            Assert.Equal("DisplayPolyline2 closed 10.000000 10.000000 40.000000 10.000000 40.000000 15.000000 10.000000 15.000000", Assert.Single(Shapes(session.Prompt.Preview.Items(P(10, 15)))));
+            Assert.Equal(
+                "DisplayPolyline2 closed 10.000000 10.000000 40.000000 10.000000 40.000000 15.000000 10.000000 15.000000",
+                Assert.Single(Shapes(session.Prompt.Preview.Items(P(10, 15))))
+            );
         }
 
         [Theory]
@@ -830,12 +1033,22 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfTable table = Assert.Single(All<DxfTable>(session.Document.ModelSpace));
             DisplayBox box = DisplayBox.Empty;
 
-            foreach (DisplayItem2 item in session.Document.GetDisplay(session.Document.ModelSpace).Items.Where(i => i.Handle == table.Handle))
+            foreach (
+                DisplayItem2 item in session
+                    .Document.GetDisplay(session.Document.ModelSpace)
+                    .Items.Where(i => i.Handle == table.Handle)
+            )
             {
                 box = box.Union(item.Bounds);
             }
 
-            var around = new DisplayPolyline2(new[] { box.MinX, box.MaxY, box.MaxX, box.MaxY, box.MaxX, box.MinY, box.MinX, box.MinY }, true, null, null, null);
+            var around = new DisplayPolyline2(
+                new[] { box.MinX, box.MaxY, box.MaxX, box.MaxY, box.MaxX, box.MinY, box.MinX, box.MinY },
+                true,
+                null,
+                null,
+                null
+            );
             Assert.Equal(Assert.Single(Shapes(new DisplayItem2[] { around })), outline);
             Assert.StartsWith("DisplayPolyline2 closed 10.000000 20.000000 130.000000 20.000000", outline);
         }
@@ -851,7 +1064,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, P(30, 20), "B-12");
 
             DxfMLeader mleader = Assert.Single(All<DxfMLeader>(document.ModelSpace));
-            List<string> made = Shapes(document.GetDisplay(document.ModelSpace).Items.Where(i => i.Handle == mleader.Handle && !(i is DisplayText2)));
+            List<string> made = Shapes(
+                document
+                    .GetDisplay(document.ModelSpace)
+                    .Items.Where(i => i.Handle == mleader.Handle && !(i is DisplayText2))
+            );
             Assert.NotEmpty(previewed);
             Assert.Equal(made, previewed);
         }
@@ -859,7 +1076,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void QuickDimension_PreviewsTheRowAtTheCursor_InEachMode()
         {
-            CadCommandSession session = Started("LINE", P(0, 0), P(100, 0), P(100, 50), Enter, "LINE", P(250, 0), P(400, 50), Enter);
+            CadCommandSession session = Started(
+                "LINE",
+                P(0, 0),
+                P(100, 0),
+                P(100, 50),
+                Enter,
+                "LINE",
+                P(250, 0),
+                P(400, 50),
+                Enter
+            );
             string[] lines = All<DxfLine>(session.Document.ModelSpace).Select(l => l.Handle).ToArray();
             Run(session, "QDIM", lines, Enter);
             Assert.StartsWith("Specify dimension line position", session.PromptText);
@@ -891,11 +1118,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             IReadOnlyList<Affine2> moves = session.Prompt.Preview.Moves(P(40, 25));
             Assert.Equal(5, moves.Count);
             HashSet<string> before = Handles(session.Document);
-            List<string> previewed = moves.SelectMany(m => Ends(session.Document, new[] { line }, m)).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            List<string> previewed = moves
+                .SelectMany(m => Ends(session.Document, new[] { line }, m))
+                .OrderBy(s => s, StringComparer.Ordinal)
+                .ToList();
 
             Run(session, P(40, 25));
 
-            List<string> made = Ends(session.Document, Handles(session.Document).Where(h => !before.Contains(h)), Affine2.Identity).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            List<string> made = Ends(
+                    session.Document,
+                    Handles(session.Document).Where(h => !before.Contains(h)),
+                    Affine2.Identity
+                )
+                .OrderBy(s => s, StringComparer.Ordinal)
+                .ToList();
             Assert.Equal(made, previewed);
         }
 
@@ -910,12 +1146,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             IReadOnlyList<Affine2> moves = preview.Moves(cursor);
             HashSet<string> before = Handles(session.Document);
             int history = session.History.Count;
-            List<string> previewed = moves.SelectMany(m => Ends(session.Document, new[] { line }, m)).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            List<string> previewed = moves
+                .SelectMany(m => Ends(session.Document, new[] { line }, m))
+                .OrderBy(s => s, StringComparer.Ordinal)
+                .ToList();
             Assert.Equal(history, session.History.Count);
 
             Run(session, then);
 
-            List<string> made = Ends(session.Document, Handles(session.Document).Where(h => !before.Contains(h)), Affine2.Identity).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            List<string> made = Ends(
+                    session.Document,
+                    Handles(session.Document).Where(h => !before.Contains(h)),
+                    Affine2.Identity
+                )
+                .OrderBy(s => s, StringComparer.Ordinal)
+                .ToList();
             Assert.Equal(made, previewed);
             return moves.Count;
         }
@@ -961,12 +1206,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.StartsWith("Specify second break point", session.PromptText);
             Assert.True(session.Prompt.Preview.Fades);
 
-            Assert.Equal("DisplayPolyline2 open 20.000000 0.000000 60.000000 0.000000", Assert.Single(Shapes(session.Prompt.Preview.Items(P(60, 5)))));
+            Assert.Equal(
+                "DisplayPolyline2 open 20.000000 0.000000 60.000000 0.000000",
+                Assert.Single(Shapes(session.Prompt.Preview.Items(P(60, 5))))
+            );
             Run(session, P(60, 5));
 
             Assert.Equal(
-                new[] { "DisplayPolyline2 open 0.000000 0.000000 20.000000 0.000000", "DisplayPolyline2 open 60.000000 0.000000 100.000000 0.000000" },
-                Shapes(session.Document.GetDisplay(session.Document.ModelSpace).Items).OrderBy(s => s, StringComparer.Ordinal));
+                new[]
+                {
+                    "DisplayPolyline2 open 0.000000 0.000000 20.000000 0.000000",
+                    "DisplayPolyline2 open 60.000000 0.000000 100.000000 0.000000",
+                },
+                Shapes(session.Document.GetDisplay(session.Document.ModelSpace).Items)
+                    .OrderBy(s => s, StringComparer.Ordinal)
+            );
         }
 
         [Fact]

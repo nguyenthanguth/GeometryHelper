@@ -17,9 +17,19 @@ namespace GeometryHelper.UnitTest.Plane
     {
         private static readonly Tolerance None = new Tolerance(0, 0);
 
-        private static readonly GeoArc2 First = new GeoArc2(new GeoPoint2(100088.95804145791, 100006.53604744306), 8633.1064176964137, 3.9342288857097403, 3.9342288857097403 + 0.6);
+        private static readonly GeoArc2 First = new GeoArc2(
+            new GeoPoint2(100088.95804145791, 100006.53604744306),
+            8633.1064176964137,
+            3.9342288857097403,
+            3.9342288857097403 + 0.6
+        );
 
-        private static readonly GeoArc2 Second = new GeoArc2(new GeoPoint2(100088.19029470639, 100006.93718500438), 8633.10933243961, 4.2343292227485634, 4.2343292227485634 + 0.3);
+        private static readonly GeoArc2 Second = new GeoArc2(
+            new GeoPoint2(100088.19029470639, 100006.93718500438),
+            8633.10933243961,
+            4.2343292227485634,
+            4.2343292227485634 + 0.3
+        );
 
         [Fact]
         public void ArcsThatCrossAtNoTolerance_AreNoDistanceApart()

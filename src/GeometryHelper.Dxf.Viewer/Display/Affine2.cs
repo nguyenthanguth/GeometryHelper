@@ -88,10 +88,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the transformation that does this one first and then another.</summary>
         /// <param name="then">The transformation done after this one.</param>
         /// <returns>The combined transformation.</returns>
-        public Affine2 Then(Affine2 then) => new Affine2(
-            then.A * A + then.C * B, then.B * A + then.D * B,
-            then.A * C + then.C * D, then.B * C + then.D * D,
-            then.A * E + then.C * F + then.E, then.B * E + then.D * F + then.F);
+        public Affine2 Then(Affine2 then) =>
+            new Affine2(
+                then.A * A + then.C * B,
+                then.B * A + then.D * B,
+                then.A * C + then.C * D,
+                then.B * C + then.D * D,
+                then.A * E + then.C * F + then.E,
+                then.B * E + then.D * F + then.F
+            );
 
         /// <summary>Makes a translation.</summary>
         /// <param name="dx">The shift in X.</param>

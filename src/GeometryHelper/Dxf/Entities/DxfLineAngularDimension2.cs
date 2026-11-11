@@ -18,13 +18,21 @@ namespace GeometryHelper.Dxf
     public sealed class DxfLineAngularDimension2 : DxfDimension
     {
         // The groups of AcDb2LineAngularDimension in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 13, 23, 33, 14, 24, 34, 15, 25, 35, 16, 26, 36 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 13, 23, 33, 14, 24, 34, 15, 25, 35, 16, 26, 36 }
+        );
 
         /// <summary>Initializes an angular dimension of two lines of no length at the origin, as AutoCAD's <c>new LineAngularDimension2()</c>, in the style Standard.</summary>
         public DxfLineAngularDimension2()
-            : this(new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(0.0, 0.0, 0.0), string.Empty, null)
-        {
-        }
+            : this(
+                new GeoPoint3(0.0, 0.0, 0.0),
+                new GeoPoint3(0.0, 0.0, 0.0),
+                new GeoPoint3(0.0, 0.0, 0.0),
+                new GeoPoint3(0.0, 0.0, 0.0),
+                new GeoPoint3(0.0, 0.0, 0.0),
+                string.Empty,
+                null
+            ) { }
 
         /// <summary>
         /// Initializes an angular dimension of two lines, as AutoCAD's <c>new LineAngularDimension2(line1Start, line1End,
@@ -39,40 +47,71 @@ namespace GeometryHelper.Dxf
         /// <param name="dimensionText">The text, as <see cref="DxfDimension.DimensionText"/>; empty or null for the measurement.</param>
         /// <param name="dimensionStyle">The style it is drawn in, by its name; null for Standard.</param>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
-        public DxfLineAngularDimension2(GeoPoint3 line1Start, GeoPoint3 line1End, GeoPoint3 line2Start, GeoPoint3 line2End, GeoPoint3 arcPoint, string dimensionText, DxfDimStyleTableRecord dimensionStyle)
-            : base("DIMENSION", 2, line2End, dimensionText, dimensionStyle, Groups(line1Start, line1End, line2Start, arcPoint))
-        {
-        }
+        public DxfLineAngularDimension2(
+            GeoPoint3 line1Start,
+            GeoPoint3 line1End,
+            GeoPoint3 line2Start,
+            GeoPoint3 line2End,
+            GeoPoint3 arcPoint,
+            string dimensionText,
+            DxfDimStyleTableRecord dimensionStyle
+        )
+            : base(
+                "DIMENSION",
+                2,
+                line2End,
+                dimensionText,
+                dimensionStyle,
+                Groups(line1Start, line1End, line2Start, arcPoint)
+            ) { }
 
         internal DxfLineAngularDimension2(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets the start of the first line (groups 13, 23, 33), as AutoCAD's <c>XLine1Start</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 XLine1Start { get => SubPoint(13); set => SetSubPoint(13, value); }
+        public GeoPoint3 XLine1Start
+        {
+            get => SubPoint(13);
+            set => SetSubPoint(13, value);
+        }
 
         /// <summary>Gets or sets the end of the first line (groups 14, 24, 34), as AutoCAD's <c>XLine1End</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 XLine1End { get => SubPoint(14); set => SetSubPoint(14, value); }
+        public GeoPoint3 XLine1End
+        {
+            get => SubPoint(14);
+            set => SetSubPoint(14, value);
+        }
 
         /// <summary>Gets or sets the start of the second line (groups 15, 25, 35), as AutoCAD's <c>XLine2Start</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 XLine2Start { get => SubPoint(15); set => SetSubPoint(15, value); }
+        public GeoPoint3 XLine2Start
+        {
+            get => SubPoint(15);
+            set => SetSubPoint(15, value);
+        }
 
         /// <summary>Gets or sets the end of the second line (groups 10, 20, 30), as AutoCAD's <c>XLine2End</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 XLine2End { get => DefinitionPoint; set => SetDefinitionPoint(value); }
+        public GeoPoint3 XLine2End
+        {
+            get => DefinitionPoint;
+            set => SetDefinitionPoint(value);
+        }
 
         /// <summary>Gets or sets a point of the dimension's arc (groups 16, 26, 36, written in the system of the normal), as AutoCAD's <c>ArcPoint</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 ArcPoint { get => SubPlanePoint(16); set => SetSubPlanePoint(16, value); }
+        public GeoPoint3 ArcPoint
+        {
+            get => SubPlanePoint(16);
+            set => SetSubPlanePoint(16, value);
+        }
 
         /// <summary>
         /// Gets the angle measured, as AutoCAD's <c>Measurement</c>: in radians, of the four the two lines make where they meet,
@@ -93,7 +132,13 @@ namespace GeometryHelper.Dxf
                 }
 
                 double at = AngleOf(meet.GetVectorTo(ArcPoint));
-                var rays = new List<double> { AngleOf(first), AngleOf(first.Negate()), AngleOf(second), AngleOf(second.Negate()) };
+                var rays = new List<double>
+                {
+                    AngleOf(first),
+                    AngleOf(first.Negate()),
+                    AngleOf(second),
+                    AngleOf(second.Negate()),
+                };
                 rays.Sort();
 
                 for (int i = 0; i < 4; i++)
@@ -119,7 +164,10 @@ namespace GeometryHelper.Dxf
         private GeoPoint3 Meeting(GeoPoint3 a, GeoVector3 da, GeoPoint3 b, GeoVector3 db, out bool found)
         {
             OcsAxes(Normal, out GeoVector3 u, out GeoVector3 v);
-            double ax = da.DotProduct(u), ay = da.DotProduct(v), bx = db.DotProduct(u), by = db.DotProduct(v);
+            double ax = da.DotProduct(u),
+                ay = da.DotProduct(v),
+                bx = db.DotProduct(u),
+                by = db.DotProduct(v);
             double cross = ax * by - ay * bx;
             double scale = Math.Sqrt((ax * ax + ay * ay) * (bx * bx + by * by));
             found = scale > 0.0 && Math.Abs(cross) > 1E-12 * scale;
@@ -134,7 +182,12 @@ namespace GeometryHelper.Dxf
             return a.Add(da.Multiply(t));
         }
 
-        private static IEnumerable<DxfTypedValue> Groups(GeoPoint3 line1Start, GeoPoint3 line1End, GeoPoint3 line2Start, GeoPoint3 arcPoint)
+        private static IEnumerable<DxfTypedValue> Groups(
+            GeoPoint3 line1Start,
+            GeoPoint3 line1End,
+            GeoPoint3 line2Start,
+            GeoPoint3 arcPoint
+        )
         {
             var groups = new List<DxfTypedValue> { new DxfTypedValue(100, "AcDb2LineAngularDimension") };
             groups.AddRange(PointGroups(13, line1Start));

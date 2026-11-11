@@ -34,7 +34,13 @@ namespace GeometryHelper.Drawing.Projection
         /// <summary>
         /// Initializes a view from its lines and faces, each list in its order already.
         /// </summary>
-        internal ProjectedView2(ProjectedEdge2[] visible, ProjectedEdge2[] hidden, ProjectedFace2[] sections, GeoRectangle2 bounds, bool isEmpty)
+        internal ProjectedView2(
+            ProjectedEdge2[] visible,
+            ProjectedEdge2[] hidden,
+            ProjectedFace2[] sections,
+            GeoRectangle2 bounds,
+            bool isEmpty
+        )
         {
             _visible = visible;
             _hidden = hidden;
@@ -105,7 +111,11 @@ namespace GeometryHelper.Drawing.Projection
 
             if (!(hatchScale > 0.0) || double.IsInfinity(hatchScale))
             {
-                throw new ArgumentOutOfRangeException(nameof(hatchScale), hatchScale, "The scale of the hatching has to be a finite number above nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(hatchScale),
+                    hatchScale,
+                    "The scale of the hatching has to be a finite number above nought."
+                );
             }
 
             AddLinetype(database, "HIDDEN", "__ __ __ __ __ __ __ __", 6.35, -3.175);
@@ -142,7 +152,8 @@ namespace GeometryHelper.Drawing.Projection
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"View2(Visible: {_visible.Length}, Hidden: {_hidden.Length}, Sections: {_sections.Length})";
+        public override string ToString() =>
+            $"View2(Visible: {_visible.Length}, Hidden: {_hidden.Length}, Sections: {_sections.Length})";
 
         private static void Append(DxfDatabase database, ProjectedEdge2 edge, string layer)
         {
@@ -151,7 +162,10 @@ namespace GeometryHelper.Drawing.Projection
             if (!edge.IsArc)
             {
                 GeoLine2 line = edge.Line;
-                entity = new DxfLine(new GeoPoint3(line.StartPoint.X, line.StartPoint.Y, 0.0), new GeoPoint3(line.EndPoint.X, line.EndPoint.Y, 0.0));
+                entity = new DxfLine(
+                    new GeoPoint3(line.StartPoint.X, line.StartPoint.Y, 0.0),
+                    new GeoPoint3(line.EndPoint.X, line.EndPoint.Y, 0.0)
+                );
             }
             else
             {
@@ -173,7 +187,12 @@ namespace GeometryHelper.Drawing.Projection
                 return;
             }
 
-            var linetype = new DxfLinetypeTableRecord { Name = name, AsciiDescription = description, NumDashes = dashes.Length };
+            var linetype = new DxfLinetypeTableRecord
+            {
+                Name = name,
+                AsciiDescription = description,
+                NumDashes = dashes.Length,
+            };
 
             for (int i = 0; i < dashes.Length; i++)
             {

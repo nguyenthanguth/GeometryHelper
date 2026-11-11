@@ -14,14 +14,32 @@ namespace GeometryHelper.UnitTest.Solid
     {
         internal static readonly string[] Kinds =
         {
-            "segment", "ray", "xline", "plane", "polyline", "polygon", "triangle", "face", "aabb", "obb", "solid", "sphere", "arc", "circle", "ellipse", "edge", "chain", "loop"
+            "segment",
+            "ray",
+            "xline",
+            "plane",
+            "polyline",
+            "polygon",
+            "triangle",
+            "face",
+            "aabb",
+            "obb",
+            "solid",
+            "sphere",
+            "arc",
+            "circle",
+            "ellipse",
+            "edge",
+            "chain",
+            "loop",
         };
 
         private static double Between(Random r, double lo, double hi) => lo + (hi - lo) * r.NextDouble();
 
         private static GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
 
-        internal static double[] Cross(double[] a, double[] b) => new[] { a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0] };
+        internal static double[] Cross(double[] a, double[] b) =>
+            new[] { a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0] };
 
         internal static double[] Unit(double[] a)
         {
@@ -45,7 +63,10 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>Gets two unit directions square to a unit normal and to each other.</summary>
         internal static void Frame(double[] n, out double[] u, out double[] v)
         {
-            double[] helper = Math.Abs(n[0]) <= Math.Abs(n[1]) && Math.Abs(n[0]) <= Math.Abs(n[2]) ? new[] { 1.0, 0.0, 0.0 } : Math.Abs(n[1]) <= Math.Abs(n[2]) ? new[] { 0.0, 1.0, 0.0 } : new[] { 0.0, 0.0, 1.0 };
+            double[] helper =
+                Math.Abs(n[0]) <= Math.Abs(n[1]) && Math.Abs(n[0]) <= Math.Abs(n[2]) ? new[] { 1.0, 0.0, 0.0 }
+                : Math.Abs(n[1]) <= Math.Abs(n[2]) ? new[] { 0.0, 1.0, 0.0 }
+                : new[] { 0.0, 0.0, 1.0 };
             u = Unit(Cross(n, helper));
             v = Cross(n, u);
         }
@@ -91,7 +112,12 @@ namespace GeometryHelper.UnitTest.Solid
             // The centre is on the left of the chord, looking down the normal, for a counter-clockwise arc.
             double offset = radius * Math.Cos(Math.Abs(angle) / 2.0) * (bulge > 0.0 ? 1.0 : -1.0);
             double[] left = Cross(n, dir);
-            double[] centre = { 0.5 * (a.X + b.X) + left[0] * offset, 0.5 * (a.Y + b.Y) + left[1] * offset, 0.5 * (a.Z + b.Z) + left[2] * offset };
+            double[] centre =
+            {
+                0.5 * (a.X + b.X) + left[0] * offset,
+                0.5 * (a.Y + b.Y) + left[1] * offset,
+                0.5 * (a.Z + b.Z) + left[2] * offset,
+            };
             double[] s = Unit(new[] { a.X - centre[0], a.Y - centre[1], a.Z - centre[2] });
 
             return new Meet3Arc(centre, s, Cross(n, s), radius, angle);
@@ -112,7 +138,12 @@ namespace GeometryHelper.UnitTest.Solid
         internal static Meet3Shape Draw(Random r, string kind, double cx, double cy, double cz, double size)
         {
             var shape = new Meet3Shape { Kind = kind };
-            var origin = new[] { cx + Between(r, -size, size), cy + Between(r, -size, size), cz + Between(r, -size, size) };
+            var origin = new[]
+            {
+                cx + Between(r, -size, size),
+                cy + Between(r, -size, size),
+                cz + Between(r, -size, size),
+            };
             double[] n = Direction(r);
             Frame(n, out double[] u, out double[] v);
             double radius = Between(r, 0.15, 1.0) * size;
@@ -134,7 +165,9 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     double[] d = Direction(r);
                     shape.Shape = new GeoRay3(P(origin[0], origin[1], origin[2]), V(d));
-                    shape.Parts.Add(new Meet3Segment(origin[0], origin[1], origin[2], d[0], d[1], d[2], 0.0, true, false));
+                    shape.Parts.Add(
+                        new Meet3Segment(origin[0], origin[1], origin[2], d[0], d[1], d[2], 0.0, true, false)
+                    );
                     break;
                 }
 
@@ -142,7 +175,9 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     double[] d = Direction(r);
                     shape.Shape = new GeoXLine3(P(origin[0], origin[1], origin[2]), V(d));
-                    shape.Parts.Add(new Meet3Segment(origin[0], origin[1], origin[2], d[0], d[1], d[2], 0.0, false, true));
+                    shape.Parts.Add(
+                        new Meet3Segment(origin[0], origin[1], origin[2], d[0], d[1], d[2], 0.0, false, true)
+                    );
                     break;
                 }
 
@@ -158,7 +193,11 @@ namespace GeometryHelper.UnitTest.Solid
 
                     for (int i = 0; i < count; i++)
                     {
-                        points[i] = P(origin[0] + Between(r, -radius, radius), origin[1] + Between(r, -radius, radius), origin[2] + Between(r, -radius, radius));
+                        points[i] = P(
+                            origin[0] + Between(r, -radius, radius),
+                            origin[1] + Between(r, -radius, radius),
+                            origin[2] + Between(r, -radius, radius)
+                        );
                     }
 
                     shape.Shape = new GeoPolyline3(points);
@@ -183,14 +222,29 @@ namespace GeometryHelper.UnitTest.Solid
                 case "triangle":
                 {
                     var a = new[] { origin[0], origin[1], origin[2] };
-                    double[] b = { a[0] + Between(r, -radius, radius), a[1] + Between(r, -radius, radius), a[2] + Between(r, -radius, radius) };
-                    double[] c = { a[0] + Between(r, -radius, radius), a[1] + Between(r, -radius, radius), a[2] + Between(r, -radius, radius) };
+                    double[] b =
+                    {
+                        a[0] + Between(r, -radius, radius),
+                        a[1] + Between(r, -radius, radius),
+                        a[2] + Between(r, -radius, radius),
+                    };
+                    double[] c =
+                    {
+                        a[0] + Between(r, -radius, radius),
+                        a[1] + Between(r, -radius, radius),
+                        a[2] + Between(r, -radius, radius),
+                    };
                     double[] ab = { b[0] - a[0], b[1] - a[1], b[2] - a[2] };
                     double[] ac = { c[0] - a[0], c[1] - a[1], c[2] - a[2] };
                     double[] tu = Unit(ab);
                     double[] tn = Unit(Cross(tu, ac));
                     double[] tv = Cross(tn, tu);
-                    var ring = new[] { new GeoPoint2(0.0, 0.0), new GeoPoint2(Math.Sqrt(Dot(ab, ab)), 0.0), new GeoPoint2(Dot(ac, tu), Dot(ac, tv)) };
+                    var ring = new[]
+                    {
+                        new GeoPoint2(0.0, 0.0),
+                        new GeoPoint2(Math.Sqrt(Dot(ab, ab)), 0.0),
+                        new GeoPoint2(Dot(ac, tu), Dot(ac, tv)),
+                    };
                     shape.Parts.Add(new Meet3Flat(a, tu, tv, new List<GeoPoint2[]> { ring }));
                     shape.Shape = new GeoTriangle3(P(a[0], a[1], a[2]), P(b[0], b[1], b[2]), P(c[0], c[1], c[2]));
                     break;
@@ -204,7 +258,10 @@ namespace GeometryHelper.UnitTest.Solid
                     GeoPoint2[] hole = Star(r, 0.0, 0.0, radius * 0.14, 0.5, 3 + r.Next(3));
                     var flat = new Meet3Flat(origin, u, v, new List<GeoPoint2[]> { outer, hole });
                     shape.Parts.Add(flat);
-                    shape.Shape = new GeoFace3(new GeoPolygon3(Lift(flat, outer)), new[] { new GeoPolygon3(Lift(flat, hole)) });
+                    shape.Shape = new GeoFace3(
+                        new GeoPolygon3(Lift(flat, outer)),
+                        new[] { new GeoPolygon3(Lift(flat, hole)) }
+                    );
                     break;
                 }
 
@@ -213,8 +270,16 @@ namespace GeometryHelper.UnitTest.Solid
                     double hx = Between(r, 0.1, 1.0) * size;
                     double hy = Between(r, 0.1, 1.0) * size;
                     double hz = Between(r, 0.1, 1.0) * size;
-                    shape.Shape = new GeoAabb3(P(origin[0] - hx, origin[1] - hy, origin[2] - hz), P(origin[0] + hx, origin[1] + hy, origin[2] + hz));
-                    AddBlock(shape, origin, new[] { new[] { 1.0, 0.0, 0.0 }, new[] { 0.0, 1.0, 0.0 }, new[] { 0.0, 0.0, 1.0 } }, new[] { hx, hy, hz });
+                    shape.Shape = new GeoAabb3(
+                        P(origin[0] - hx, origin[1] - hy, origin[2] - hz),
+                        P(origin[0] + hx, origin[1] + hy, origin[2] + hz)
+                    );
+                    AddBlock(
+                        shape,
+                        origin,
+                        new[] { new[] { 1.0, 0.0, 0.0 }, new[] { 0.0, 1.0, 0.0 }, new[] { 0.0, 0.0, 1.0 } },
+                        new[] { hx, hy, hz }
+                    );
                     break;
                 }
 
@@ -233,14 +298,26 @@ namespace GeometryHelper.UnitTest.Solid
                 case "sphere":
                     shape.Shape = new GeoSphere3(P(origin[0], origin[1], origin[2]), radius);
                     shape.Parts.Add(new Meet3Sphere(origin[0], origin[1], origin[2], radius));
-                    shape.Inside = (x, y, z) => Math.Sqrt((x - origin[0]) * (x - origin[0]) + (y - origin[1]) * (y - origin[1]) + (z - origin[2]) * (z - origin[2])) <= radius;
+                    shape.Inside = (x, y, z) =>
+                        Math.Sqrt(
+                            (x - origin[0]) * (x - origin[0])
+                                + (y - origin[1]) * (y - origin[1])
+                                + (z - origin[2]) * (z - origin[2])
+                        ) <= radius;
                     break;
 
                 case "arc":
                 {
                     double sweep = Between(r, 0.3, 2.0 * Math.PI - 0.3) * (r.Next(2) == 0 ? 1.0 : -1.0);
                     double start = Between(r, 0.0, 2.0 * Math.PI);
-                    var arc = new GeoArc3(P(origin[0], origin[1], origin[2]), V(n), radius, start, start + sweep, sweep < 0.0);
+                    var arc = new GeoArc3(
+                        P(origin[0], origin[1], origin[2]),
+                        V(n),
+                        radius,
+                        start,
+                        start + sweep,
+                        sweep < 0.0
+                    );
                     shape.Shape = arc;
                     shape.Parts.Add(OfArc(arc));
                     break;
@@ -255,7 +332,12 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     double b = radius * Between(r, 0.1, 1.0);
                     double angle = Between(r, 0.0, 2.0 * Math.PI);
-                    double[] major = { Math.Cos(angle) * u[0] + Math.Sin(angle) * v[0], Math.Cos(angle) * u[1] + Math.Sin(angle) * v[1], Math.Cos(angle) * u[2] + Math.Sin(angle) * v[2] };
+                    double[] major =
+                    {
+                        Math.Cos(angle) * u[0] + Math.Sin(angle) * v[0],
+                        Math.Cos(angle) * u[1] + Math.Sin(angle) * v[1],
+                        Math.Cos(angle) * u[2] + Math.Sin(angle) * v[2],
+                    };
                     double[] minor = Cross(n, major);
                     shape.Shape = new GeoEllipse3(P(origin[0], origin[1], origin[2]), V(n), V(major), radius, b);
                     AddDisc(shape, origin, major, minor, radius, b);
@@ -287,7 +369,11 @@ namespace GeometryHelper.UnitTest.Solid
 
                     for (int i = 0; i < count; i++)
                     {
-                        points[i] = P(origin[0] + Between(r, -radius, radius), origin[1] + Between(r, -radius, radius), origin[2] + Between(r, -radius, radius));
+                        points[i] = P(
+                            origin[0] + Between(r, -radius, radius),
+                            origin[1] + Between(r, -radius, radius),
+                            origin[2] + Between(r, -radius, radius)
+                        );
                     }
 
                     var bulges = new double[count - 1];
@@ -297,7 +383,14 @@ namespace GeometryHelper.UnitTest.Solid
                     {
                         bulges[i] = r.Next(3) == 0 ? 0.0 : Between(r, -1.2, 1.2);
                         normals[i] = SquareTo(r, points[i], points[i + 1]);
-                        shape.Parts.Add(OfBulge(points[i], points[i + 1], bulges[i], new[] { normals[i].X, normals[i].Y, normals[i].Z }));
+                        shape.Parts.Add(
+                            OfBulge(
+                                points[i],
+                                points[i + 1],
+                                bulges[i],
+                                new[] { normals[i].X, normals[i].Y, normals[i].Z }
+                            )
+                        );
                     }
 
                     shape.Shape = new GeoPolylineArc3(points, bulges, normals);

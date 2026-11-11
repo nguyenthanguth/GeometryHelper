@@ -46,14 +46,22 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void ABoxMissingItsTop_WithLessThanItsAreaAllowed_IsAHoleTooLarge_InTheHole()
         {
             // 599.9 may be filled, and the hole is 600.
-            GeoPoint3 at = AssertRefused(ClosingTestBodies.BoxWithout(ClosingTestBodies.Top), Filling(599.9), ClosingFailure.HoleTooLarge);
+            GeoPoint3 at = AssertRefused(
+                ClosingTestBodies.BoxWithout(ClosingTestBodies.Top),
+                Filling(599.9),
+                ClosingFailure.HoleTooLarge
+            );
             AssertInTheTop(at);
         }
 
         [Fact]
         public void ABoxMissingItsTop_FilledByNone_IsAHoleTooLarge_HoweverLargeAHoleIsAllowed()
         {
-            GeoPoint3 at = AssertRefused(ClosingTestBodies.BoxWithout(ClosingTestBodies.Top), Filling(double.PositiveInfinity, FillStrategy.None), ClosingFailure.HoleTooLarge);
+            GeoPoint3 at = AssertRefused(
+                ClosingTestBodies.BoxWithout(ClosingTestBodies.Top),
+                Filling(double.PositiveInfinity, FillStrategy.None),
+                ClosingFailure.HoleTooLarge
+            );
             AssertInTheTop(at);
         }
 
@@ -62,7 +70,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // Two loops 10 apart, each flat and each filled by a face of its own; the four sides given hold 4 000 measured
             // from the middle.
-            GeoSolid3 body = ClosingTestBodies.WithoutFaces(ClosingTestBodies.Box(), ClosingTestBodies.Top, ClosingTestBodies.Bottom);
+            GeoSolid3 body = ClosingTestBodies.WithoutFaces(
+                ClosingTestBodies.Box(),
+                ClosingTestBodies.Top,
+                ClosingTestBodies.Bottom
+            );
 
             SolidClosing3 report = AssertFilled(body, Filling(600.0), out GeoSolid3 closed);
             Assert.Equal(2, report.Repairs.Count);
@@ -86,7 +98,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.Equal(SolidRepairKind.Fill, fill.Kind);
             Assert.Equal(800.0, fill.Size, 9);
             Assert.Equal(800.0, report.AddedArea, 9);
-            Assert.Equal(800.0, closed.Faces.Where(face => face.Normal.Z > 0.999 && Math.Abs(face.Boundary[0].Z - 10.0) <= 1E-9).Sum(face => face.Area), 9);
+            Assert.Equal(
+                800.0,
+                closed
+                    .Faces.Where(face => face.Normal.Z > 0.999 && Math.Abs(face.Boundary[0].Z - 10.0) <= 1E-9)
+                    .Sum(face => face.Area),
+                9
+            );
             Assert.Equal(800.0 * 5.0 / 3.0, report.VolumeChange, 6);
             AssertVolume(8000.0, closed);
         }
@@ -113,7 +131,12 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // The box's corner over (30, 20) raised 0.0004 in the right and the back, its top left out: the rim stands off
             // flat by less than the planar tolerance, a thousandth, and one face fills it, a few hundredths of a unit of
             // volume more than the box.
-            GeoSolid3 raised = ClosingTestBodies.BoxWithCornerMoved(6, new GeoVector3(0, 0, 0.0004), ClosingTestBodies.Right, ClosingTestBodies.Back);
+            GeoSolid3 raised = ClosingTestBodies.BoxWithCornerMoved(
+                6,
+                new GeoVector3(0, 0, 0.0004),
+                ClosingTestBodies.Right,
+                ClosingTestBodies.Back
+            );
             GeoSolid3 body = ClosingTestBodies.WithoutFaces(raised, ClosingTestBodies.Top);
 
             SolidClosing3 report = AssertFilled(body, Filling(601.0), out GeoSolid3 closed);
@@ -129,17 +152,31 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // The bottom's corner under (30, 0) moved 0.003 out in the bottom's plane, and the top left out: the thin loop at
             // the corner is a gap, welded first, and the rim of the top a hole, filled after.
-            GeoSolid3 moved = ClosingTestBodies.BoxWithCornerMoved(1, new GeoVector3(1, -1, 0).Multiply(0.003 / Math.Sqrt(2.0)), ClosingTestBodies.Bottom);
+            GeoSolid3 moved = ClosingTestBodies.BoxWithCornerMoved(
+                1,
+                new GeoVector3(1, -1, 0).Multiply(0.003 / Math.Sqrt(2.0)),
+                ClosingTestBodies.Bottom
+            );
             GeoSolid3 body = ClosingTestBodies.WithoutFaces(moved, ClosingTestBodies.Top);
 
             SolidClosing3 report = AssertFilled(body, Filling(600.0), out GeoSolid3 closed);
-            int weld = report.Repairs.ToList().FindIndex(repair => repair.Kind == SolidRepairKind.Weld && repair.Size >= 0.0029 && repair.Size <= 0.0031);
-            int fill = report.Repairs.ToList().FindIndex(repair => repair.Kind == SolidRepairKind.Fill && Math.Abs(repair.Size - 600.0) <= 1E-6);
+            int weld = report
+                .Repairs.ToList()
+                .FindIndex(repair =>
+                    repair.Kind == SolidRepairKind.Weld && repair.Size >= 0.0029 && repair.Size <= 0.0031
+                );
+            int fill = report
+                .Repairs.ToList()
+                .FindIndex(repair => repair.Kind == SolidRepairKind.Fill && Math.Abs(repair.Size - 600.0) <= 1E-6);
             Assert.InRange(weld, 0, report.Repairs.Count - 1);
             Assert.InRange(fill, weld + 1, report.Repairs.Count - 1);
             Assert.Equal(600.0, report.AddedArea, 6);
             Assert.Equal(6, closed.Faces.Count);
-            Assert.InRange(closed.GetVolume(Fine), Volume - 0.003 * ClosingTestBodies.Area, Volume + 0.003 * ClosingTestBodies.Area);
+            Assert.InRange(
+                closed.GetVolume(Fine),
+                Volume - 0.003 * ClosingTestBodies.Area,
+                Volume + 0.003 * ClosingTestBodies.Area
+            );
         }
 
         [Fact]
@@ -178,7 +215,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.Equal(missing.Area, fill.Size, 9);
             Assert.Equal(missing.Area, report.AddedArea, 9);
             Assert.Equal(1000.0, report.VolumeChange, 6);
-            Assert.Contains(closed.Faces, face => face.Normal.DotProduct(missing.Normal) > 0.999 && Math.Abs(face.Area - missing.Area) <= 1E-9);
+            Assert.Contains(closed.Faces, face =>
+                face.Normal.DotProduct(missing.Normal) > 0.999 && Math.Abs(face.Area - missing.Area) <= 1E-9
+            );
             Assert.Equal(6, closed.Faces.Count);
             AssertVolume(Volume, closed);
         }
@@ -222,9 +261,18 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // holds nothing. The face pairs with nothing along any edge and lies back to back with the top, a sheet of no
             // thickness: it is dropped, and the box is as it was. Measured from the middle of the box, it took 100 times 5
             // over 3 off what the faces given held.
-            GeoFace3 stray = ClosingTestBodies.Face(new GeoPoint3(10, 5, 10), new GeoPoint3(10, 15, 10), new GeoPoint3(20, 15, 10), new GeoPoint3(20, 5, 10));
+            GeoFace3 stray = ClosingTestBodies.Face(
+                new GeoPoint3(10, 5, 10),
+                new GeoPoint3(10, 15, 10),
+                new GeoPoint3(20, 15, 10),
+                new GeoPoint3(20, 5, 10)
+            );
             var body = new GeoSolid3(ClosingTestBodies.Box().Faces.Concat(new[] { stray }));
-            Assert.Equal(4, body.Validate(Fine).Issues.Count(issue => issue.Kind == SolidIssueKind.OpenEdge && issue.Faces.Count == 1));
+            Assert.Equal(
+                4,
+                body.Validate(Fine)
+                    .Issues.Count(issue => issue.Kind == SolidIssueKind.OpenEdge && issue.Faces.Count == 1)
+            );
 
             SolidClosing3 report = AssertFilled(body, Filling(double.PositiveInfinity), out GeoSolid3 closed);
             SolidRepair3 drop = Assert.Single(report.Repairs);
@@ -242,13 +290,19 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // The five faces left are wound alike, all into the box. Their sign, decided again on the body closed, says turn
             // them, 1 600 of them, and the top then fills facing out, 600.
-            GeoSolid3 body = new GeoSolid3(ClosingTestBodies.BoxWithout(ClosingTestBodies.Top).Faces.Select(face => face.Flip()));
+            GeoSolid3 body = new GeoSolid3(
+                ClosingTestBodies.BoxWithout(ClosingTestBodies.Top).Faces.Select(face => face.Flip())
+            );
             Assert.True(body.Validate(Fine).IsWoundAlike);
 
             SolidClosing3 report = AssertFilled(body, Filling(600.0), out GeoSolid3 closed);
             Assert.Equal(6, report.Repairs.Count);
             Assert.Equal(5, report.Repairs.Count(repair => repair.Kind == SolidRepairKind.Flip));
-            Assert.Equal(1600.0, report.Repairs.Where(repair => repair.Kind == SolidRepairKind.Flip).Sum(repair => repair.Size), 9);
+            Assert.Equal(
+                1600.0,
+                report.Repairs.Where(repair => repair.Kind == SolidRepairKind.Flip).Sum(repair => repair.Size),
+                9
+            );
             Assert.Equal(600.0, Assert.Single(report.Repairs, repair => repair.Kind == SolidRepairKind.Fill).Size, 9);
             Assert.Equal(1000.0, report.VolumeChange, 6);
             Assert.Equal(6, closed.Faces.Count);
@@ -266,9 +320,15 @@ namespace GeometryHelper.UnitTest.Solid.Core
             GeoSolid3 body = ClosingTestBodies.BoxOfMovedCopies(seed, 0.002);
 
             SolidClosing3 report = AssertFilled(body, Filling(double.PositiveInfinity), out GeoSolid3 closed);
-            Assert.All(report.Repairs, repair => Assert.Contains(repair.Kind, new[] { SolidRepairKind.Weld, SolidRepairKind.SplitEdge }));
+            Assert.All(report.Repairs, repair =>
+                Assert.Contains(repair.Kind, new[] { SolidRepairKind.Weld, SolidRepairKind.SplitEdge })
+            );
             Assert.Equal(0.0, report.AddedArea);
-            Assert.InRange(closed.GetVolume(Fine), Volume - 0.002 * ClosingTestBodies.Area, Volume + 0.002 * ClosingTestBodies.Area);
+            Assert.InRange(
+                closed.GetVolume(Fine),
+                Volume - 0.002 * ClosingTestBodies.Area,
+                Volume + 0.002 * ClosingTestBodies.Area
+            );
         }
 
         [Fact]
@@ -278,9 +338,15 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // Validate finds along the rim stand a rounding, a few 1E-15, off its corners. The face filling it stands on the
             // corners themselves, bit for bit.
             GeoPoint3[] corners = ClosingTestBodies.TurnedCorners(0.3, new GeoVector3(0.1, 0.2, 0.3));
-            GeoSolid3 body = ClosingTestBodies.WithoutFaces(new GeoSolid3(ClosingTestBodies.BoxFaces(corners)), ClosingTestBodies.Top);
+            GeoSolid3 body = ClosingTestBodies.WithoutFaces(
+                new GeoSolid3(ClosingTestBodies.BoxFaces(corners)),
+                ClosingTestBodies.Top
+            );
             var given = new HashSet<GeoPoint3>(body.Faces.SelectMany(face => face.Boundary.Vertices));
-            Assert.Contains(body.Validate(Fine).Issues, issue => issue.Edge.HasValue && !(given.Contains(issue.Edge.Value.StartPoint) && given.Contains(issue.Edge.Value.EndPoint)));
+            Assert.Contains(body.Validate(Fine).Issues, issue =>
+                issue.Edge.HasValue
+                && !(given.Contains(issue.Edge.Value.StartPoint) && given.Contains(issue.Edge.Value.EndPoint))
+            );
 
             AssertFilled(body, Filling(601.0), out GeoSolid3 closed);
             GeoFace3 fill = Assert.Single(closed.Faces, face => !body.Faces.Contains(face));
@@ -305,8 +371,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         // Welds within five thousandths, and fills a hole of no more than given, as the strategy says.
-        private static SolidClosingOptions Filling(double maxHoleArea, FillStrategy fill = FillStrategy.WhenUnambiguous)
-            => new SolidClosingOptions(Fine, 0.005, maxHoleArea, 0.0, fill);
+        private static SolidClosingOptions Filling(
+            double maxHoleArea,
+            FillStrategy fill = FillStrategy.WhenUnambiguous
+        ) => new SolidClosingOptions(Fine, 0.005, maxHoleArea, 0.0, fill);
 
         // Filled: another body, valid, with no needle and no skin of no thickness, nothing gone wrong.
         private static SolidClosing3 AssertFilled(GeoSolid3 body, SolidClosingOptions options, out GeoSolid3 closed)
@@ -345,7 +413,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         // Within a millionth of what it should hold.
-        private static void AssertVolume(double expected, GeoSolid3 closed)
-            => Assert.InRange(closed.GetVolume(Fine), expected * (1.0 - 1E-6), expected * (1.0 + 1E-6));
+        private static void AssertVolume(double expected, GeoSolid3 closed) =>
+            Assert.InRange(closed.GetVolume(Fine), expected * (1.0 - 1E-6), expected * (1.0 + 1E-6));
     }
 }

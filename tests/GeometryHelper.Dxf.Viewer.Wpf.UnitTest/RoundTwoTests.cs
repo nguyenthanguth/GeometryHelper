@@ -15,11 +15,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         private static MainViewModel Open(TestFolder folder, out string bottom, out string viewport)
         {
             var model = new MainViewModel();
-            Assert.True(model.Open(folder.Write("room.dxf", TestFiles.RoomWithViewport(folder, out bottom, out viewport))));
+            Assert.True(
+                model.Open(folder.Write("room.dxf", TestFiles.RoomWithViewport(folder, out bottom, out viewport)))
+            );
             return model;
         }
 
-        private static string Row(MainViewModel model, string label) => model.PropertyGroups.SelectMany(g => g.Rows).Single(r => r.Label == label).Value;
+        private static string Row(MainViewModel model, string label) =>
+            model.PropertyGroups.SelectMany(g => g.Rows).Single(r => r.Label == label).Value;
 
         [Fact]
         public void TheLayerManagerDeletesAnUnusedLayerAndRefusesOneInUseSayingWhy()
@@ -106,7 +109,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 model.NotifyViewChangedByUser();
 
                 Assert.NotEqual(before, Row(model, "Center X"));
-                double shown = double.Parse(Row(model, "Center X").Replace(" ", string.Empty), System.Globalization.CultureInfo.InvariantCulture);
+                double shown = double.Parse(
+                    Row(model, "Center X").Replace(" ", string.Empty),
+                    System.Globalization.CultureInfo.InvariantCulture
+                );
                 Assert.Equal(model.View.CenterX, shown, 3);
             }
         }

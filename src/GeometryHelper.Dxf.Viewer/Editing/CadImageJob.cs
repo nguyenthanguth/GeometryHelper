@@ -40,7 +40,10 @@ namespace GeometryHelper.Dxf.Viewer
         public CadImageFormat Format { get; }
 
         /// <summary>Gets the extension of the file, with its dot: .png, .jpg or .bmp.</summary>
-        public string Extension => Format == CadImageFormat.Png ? ".png" : Format == CadImageFormat.Jpeg ? ".jpg" : ".bmp";
+        public string Extension =>
+            Format == CadImageFormat.Png ? ".png"
+            : Format == CadImageFormat.Jpeg ? ".jpg"
+            : ".bmp";
 
         /// <summary>Gets the space shown.</summary>
         public CadSpace Space { get; }

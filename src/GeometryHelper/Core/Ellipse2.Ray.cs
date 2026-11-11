@@ -19,7 +19,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether an ellipse touches a ray, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse2 ellipse, GeoRay2 ray) => CollidesWith(ellipse, ray, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse2 ellipse, GeoRay2 ray) =>
+            CollidesWith(ellipse, ray, Tolerance.Global);
 
         /// <summary>
         /// Determines whether an ellipse touches a ray, within a tolerance.
@@ -50,7 +51,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the points where a ray crosses the rim of an ellipse, using the default tolerance.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoRay2 ray) => GetIntersections(ellipse, ray, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoRay2 ray) =>
+            GetIntersections(ellipse, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a ray crosses the rim of an ellipse, within a tolerance.
@@ -66,8 +68,8 @@ namespace GeometryHelper.Core
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="ray">The ray.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
-        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoRay2 ray, out GeoPoint2[] intersections)
-            => TryIntersectWith(ellipse, ray, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoRay2 ray, out GeoPoint2[] intersections) =>
+            TryIntersectWith(ellipse, ray, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a ray crosses the rim of an ellipse, within a tolerance.
@@ -76,7 +78,12 @@ namespace GeometryHelper.Core
         /// <param name="ray">The ray.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoRay2 ray, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoEllipse2 ellipse,
+            GeoRay2 ray,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             return TryIntersectWith(ellipse, Ray2.CutPast(ray, ellipse, tolerance), out intersections, tolerance);
         }
@@ -84,7 +91,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment leaving the rim of an ellipse and landing on a ray, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoRay2 ray) => GetShortestLineTo(ellipse, ray, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoRay2 ray) =>
+            GetShortestLineTo(ellipse, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving the rim of an ellipse and landing on a ray, within a tolerance.

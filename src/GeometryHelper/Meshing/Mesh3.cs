@@ -32,18 +32,21 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Breaks a polygon into faces as the options say, its grid level, using the default tolerance.
         /// </summary>
-        public static GeoMesh3 ToMesh(GeoPolygon3 polygon, MeshOptions options) => ToMesh(polygon, options, MeshPlacement3.World, Tolerance.Global);
+        public static GeoMesh3 ToMesh(GeoPolygon3 polygon, MeshOptions options) =>
+            ToMesh(polygon, options, MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks a polygon into faces as the options say, its grid level, within a tolerance.
         /// </summary>
-        public static GeoMesh3 ToMesh(GeoPolygon3 polygon, MeshOptions options, Tolerance tolerance) => ToMesh(polygon, options, MeshPlacement3.World, tolerance);
+        public static GeoMesh3 ToMesh(GeoPolygon3 polygon, MeshOptions options, Tolerance tolerance) =>
+            ToMesh(polygon, options, MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Breaks a polygon into faces as the options say, its grid standing as the placement says, using the default
         /// tolerance.
         /// </summary>
-        public static GeoMesh3 ToMesh(GeoPolygon3 polygon, MeshOptions options, MeshPlacement3 placement) => ToMesh(polygon, options, placement, Tolerance.Global);
+        public static GeoMesh3 ToMesh(GeoPolygon3 polygon, MeshOptions options, MeshPlacement3 placement) =>
+            ToMesh(polygon, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Breaks a polygon into faces as the options say, its grid standing as the placement says, within a tolerance.
@@ -58,7 +61,12 @@ namespace GeometryHelper.Meshing
         /// Thrown when the options give an origin of the plane, a grid's cell is no larger than the point tolerance, the grid
         /// would lay more cells over the shape than a mesh may have, or the placement's direction stands square to the plane.
         /// </exception>
-        public static GeoMesh3 ToMesh(GeoPolygon3 polygon, MeshOptions options, MeshPlacement3 placement, Tolerance tolerance)
+        public static GeoMesh3 ToMesh(
+            GeoPolygon3 polygon,
+            MeshOptions options,
+            MeshPlacement3 placement,
+            Tolerance tolerance
+        )
         {
             if (polygon == null)
             {
@@ -66,7 +74,14 @@ namespace GeometryHelper.Meshing
             }
 
             Check(options, placement);
-            return MeshRings(polygon.Vertices, new IReadOnlyList<GeoPoint3>[0], polygon.Normal, options, placement, tolerance);
+            return MeshRings(
+                polygon.Vertices,
+                new IReadOnlyList<GeoPoint3>[0],
+                polygon.Normal,
+                options,
+                placement,
+                tolerance
+            );
         }
 
         #endregion
@@ -76,18 +91,21 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Breaks a face into faces with no hole as the options say, its grid level, using the default tolerance.
         /// </summary>
-        public static GeoMesh3 ToMesh(GeoFace3 face, MeshOptions options) => ToMesh(face, options, MeshPlacement3.World, Tolerance.Global);
+        public static GeoMesh3 ToMesh(GeoFace3 face, MeshOptions options) =>
+            ToMesh(face, options, MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks a face into faces with no hole as the options say, its grid level, within a tolerance.
         /// </summary>
-        public static GeoMesh3 ToMesh(GeoFace3 face, MeshOptions options, Tolerance tolerance) => ToMesh(face, options, MeshPlacement3.World, tolerance);
+        public static GeoMesh3 ToMesh(GeoFace3 face, MeshOptions options, Tolerance tolerance) =>
+            ToMesh(face, options, MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Breaks a face into faces with no hole as the options say, its grid standing as the placement says, using the
         /// default tolerance.
         /// </summary>
-        public static GeoMesh3 ToMesh(GeoFace3 face, MeshOptions options, MeshPlacement3 placement) => ToMesh(face, options, placement, Tolerance.Global);
+        public static GeoMesh3 ToMesh(GeoFace3 face, MeshOptions options, MeshPlacement3 placement) =>
+            ToMesh(face, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Breaks a face into faces with no hole as the options say, its grid standing as the placement says, within a
@@ -126,20 +144,23 @@ namespace GeometryHelper.Meshing
         /// Breaks a loop with arcs into faces as the options say, its grid level, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
-        public static GeoMesh3 ToMesh(GeoPolygonArc3 loop, MeshOptions options) => ToMesh(loop, options, MeshPlacement3.World, Tolerance.Global);
+        public static GeoMesh3 ToMesh(GeoPolygonArc3 loop, MeshOptions options) =>
+            ToMesh(loop, options, MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks a loop with arcs into faces as the options say, its grid level, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
-        public static GeoMesh3 ToMesh(GeoPolygonArc3 loop, MeshOptions options, Tolerance tolerance) => ToMesh(loop, options, MeshPlacement3.World, tolerance);
+        public static GeoMesh3 ToMesh(GeoPolygonArc3 loop, MeshOptions options, Tolerance tolerance) =>
+            ToMesh(loop, options, MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Breaks a loop with arcs into faces as the options say, its grid standing as the placement says, using the default
         /// tolerance.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
-        public static GeoMesh3 ToMesh(GeoPolygonArc3 loop, MeshOptions options, MeshPlacement3 placement) => ToMesh(loop, options, placement, Tolerance.Global);
+        public static GeoMesh3 ToMesh(GeoPolygonArc3 loop, MeshOptions options, MeshPlacement3 placement) =>
+            ToMesh(loop, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Breaks a loop with arcs into faces as the options say, its grid standing as the placement says, within a tolerance,
@@ -159,7 +180,12 @@ namespace GeometryHelper.Meshing
         /// would lay more cells over the shape than a mesh may have, or the placement's direction stands square to the plane.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
-        public static GeoMesh3 ToMesh(GeoPolygonArc3 loop, MeshOptions options, MeshPlacement3 placement, Tolerance tolerance)
+        public static GeoMesh3 ToMesh(
+            GeoPolygonArc3 loop,
+            MeshOptions options,
+            MeshPlacement3 placement,
+            Tolerance tolerance
+        )
         {
             if (loop == null)
             {
@@ -226,19 +252,22 @@ namespace GeometryHelper.Meshing
         /// Breaks a disc into faces as the options say, its grid level, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
-        public static GeoMesh3 ToMesh(GeoCircle3 circle, MeshOptions options) => ToMesh(circle, options, MeshPlacement3.World, Tolerance.Global);
+        public static GeoMesh3 ToMesh(GeoCircle3 circle, MeshOptions options) =>
+            ToMesh(circle, options, MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks a disc into faces as the options say, its grid level, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
-        public static GeoMesh3 ToMesh(GeoCircle3 circle, MeshOptions options, Tolerance tolerance) => ToMesh(circle, options, MeshPlacement3.World, tolerance);
+        public static GeoMesh3 ToMesh(GeoCircle3 circle, MeshOptions options, Tolerance tolerance) =>
+            ToMesh(circle, options, MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Breaks a disc into faces as the options say, its grid standing as the placement says, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
-        public static GeoMesh3 ToMesh(GeoCircle3 circle, MeshOptions options, MeshPlacement3 placement) => ToMesh(circle, options, placement, Tolerance.Global);
+        public static GeoMesh3 ToMesh(GeoCircle3 circle, MeshOptions options, MeshPlacement3 placement) =>
+            ToMesh(circle, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Breaks a disc into faces as the options say, its grid standing as the placement says, within a tolerance, its rim
@@ -258,42 +287,70 @@ namespace GeometryHelper.Meshing
         /// would lay more cells over the shape than a mesh may have, or the placement's direction stands square to the plane.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
-        public static GeoMesh3 ToMesh(GeoCircle3 circle, MeshOptions options, MeshPlacement3 placement, Tolerance tolerance)
+        public static GeoMesh3 ToMesh(
+            GeoCircle3 circle,
+            MeshOptions options,
+            MeshPlacement3 placement,
+            Tolerance tolerance
+        )
         {
             Check(options, placement);
 
             // A disc of no size has no plane to speak of, as the default circle's normal says: no frame is laid on it.
             if (!(circle.Radius > tolerance.EqualPoint) || !(circle.Normal.LengthSquared > 0.5))
             {
-                return new GeoMesh3(Mesh2.Empty(options.Kind, tolerance), new GeoPoint3[0], GeoCoordinateSystem3.Global.WithOrigin(circle.Center));
+                return new GeoMesh3(
+                    Mesh2.Empty(options.Kind, tolerance),
+                    new GeoPoint3[0],
+                    GeoCoordinateSystem3.Global.WithOrigin(circle.Center)
+                );
             }
 
-            GeoCoordinateSystem3 frame = placement.FrameOnPlane(circle.Center, circle.Normal, new[] { circle.Center }, options.AngleRad ?? 0.0, tolerance);
+            GeoCoordinateSystem3 frame = placement.FrameOnPlane(
+                circle.Center,
+                circle.Normal,
+                new[] { circle.Center },
+                options.AngleRad ?? 0.0,
+                tolerance
+            );
 
             // The rim has no corners of its own, so its points go onto the plane, where the circle is.
-            GeoMesh2 flat = Mesh2.ToMesh(new GeoCircle2(new GeoPoint2(0.0, 0.0), circle.Radius), options.InFrame(Anchor(options, placement, frame, tolerance)), tolerance);
+            GeoMesh2 flat = Mesh2.ToMesh(
+                new GeoCircle2(new GeoPoint2(0.0, 0.0), circle.Radius),
+                options.InFrame(Anchor(options, placement, frame, tolerance)),
+                tolerance
+            );
 
-            return Lifted(flat, frame, new[] { (IReadOnlyList<GeoPoint3>)new[] { circle.Center } }, new[] { new[] { new GeoPoint2(0.0, 0.0) } }, false);
+            return Lifted(
+                flat,
+                frame,
+                new[] { (IReadOnlyList<GeoPoint3>)new[] { circle.Center } },
+                new[] { new[] { new GeoPoint2(0.0, 0.0) } },
+                false
+            );
         }
 
         /// <summary>
         /// Breaks an elliptical disc into faces as the options say, its grid level, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
-        public static GeoMesh3 ToMesh(GeoEllipse3 ellipse, MeshOptions options) => ToMesh(ellipse, options, MeshPlacement3.World, Tolerance.Global);
+        public static GeoMesh3 ToMesh(GeoEllipse3 ellipse, MeshOptions options) =>
+            ToMesh(ellipse, options, MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks an elliptical disc into faces as the options say, its grid level, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
-        public static GeoMesh3 ToMesh(GeoEllipse3 ellipse, MeshOptions options, Tolerance tolerance) => ToMesh(ellipse, options, MeshPlacement3.World, tolerance);
+        public static GeoMesh3 ToMesh(GeoEllipse3 ellipse, MeshOptions options, Tolerance tolerance) =>
+            ToMesh(ellipse, options, MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Breaks an elliptical disc into faces as the options say, its grid standing as the placement says, using the
         /// default tolerance.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
-        public static GeoMesh3 ToMesh(GeoEllipse3 ellipse, MeshOptions options, MeshPlacement3 placement) => ToMesh(ellipse, options, placement, Tolerance.Global);
+        public static GeoMesh3 ToMesh(GeoEllipse3 ellipse, MeshOptions options, MeshPlacement3 placement) =>
+            ToMesh(ellipse, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Breaks an elliptical disc into faces as the options say, its grid standing as the placement says, within a
@@ -319,28 +376,59 @@ namespace GeometryHelper.Meshing
         /// its grid runs level, as a circle's does.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
-        public static GeoMesh3 ToMesh(GeoEllipse3 ellipse, MeshOptions options, MeshPlacement3 placement, Tolerance tolerance)
+        public static GeoMesh3 ToMesh(
+            GeoEllipse3 ellipse,
+            MeshOptions options,
+            MeshPlacement3 placement,
+            Tolerance tolerance
+        )
         {
             Check(options, placement);
 
             // A disc of no size has no plane to speak of, as the default ellipse's normal says: no frame is laid on it.
             if (!(ellipse.MinorRadius > tolerance.EqualPoint) || !(ellipse.Normal.LengthSquared > 0.5))
             {
-                return new GeoMesh3(Mesh2.Empty(options.Kind, tolerance), new GeoPoint3[0], GeoCoordinateSystem3.Global.WithOrigin(ellipse.Center));
+                return new GeoMesh3(
+                    Mesh2.Empty(options.Kind, tolerance),
+                    new GeoPoint3[0],
+                    GeoCoordinateSystem3.Global.WithOrigin(ellipse.Center)
+                );
             }
 
             // Its own axis is the major one; the circle's own frame, read from its centre alone, runs level.
-            MeshPlacement3 axes = placement.Axes == MeshAxes.Own && !ellipse.IsCircle(tolerance)
-                ? MeshPlacement3.Along(MeshPlacement3.Canonical(ellipse.MajorAxis))
-                : placement;
-            GeoCoordinateSystem3 frame = axes.FrameOnPlane(ellipse.Center, ellipse.Normal, new[] { ellipse.Center }, options.AngleRad ?? 0.0, tolerance);
+            MeshPlacement3 axes =
+                placement.Axes == MeshAxes.Own && !ellipse.IsCircle(tolerance)
+                    ? MeshPlacement3.Along(MeshPlacement3.Canonical(ellipse.MajorAxis))
+                    : placement;
+            GeoCoordinateSystem3 frame = axes.FrameOnPlane(
+                ellipse.Center,
+                ellipse.Normal,
+                new[] { ellipse.Center },
+                options.AngleRad ?? 0.0,
+                tolerance
+            );
             GeoVector3 axis = frame.ToLocal(ellipse.MajorAxis);
 
             // The rim has no corners of its own, so its points go onto the plane, where the ellipse is.
-            var laid = new GeoEllipse2(new GeoPoint2(0.0, 0.0), new GeoVector2(axis.X, axis.Y), ellipse.MajorRadius, ellipse.MinorRadius);
-            GeoMesh2 flat = Mesh2.ToMesh(laid, options.InFrame(Anchor(options, placement, frame, tolerance)), tolerance);
+            var laid = new GeoEllipse2(
+                new GeoPoint2(0.0, 0.0),
+                new GeoVector2(axis.X, axis.Y),
+                ellipse.MajorRadius,
+                ellipse.MinorRadius
+            );
+            GeoMesh2 flat = Mesh2.ToMesh(
+                laid,
+                options.InFrame(Anchor(options, placement, frame, tolerance)),
+                tolerance
+            );
 
-            return Lifted(flat, frame, new[] { (IReadOnlyList<GeoPoint3>)new[] { ellipse.Center } }, new[] { new[] { new GeoPoint2(0.0, 0.0) } }, false);
+            return Lifted(
+                flat,
+                frame,
+                new[] { (IReadOnlyList<GeoPoint3>)new[] { ellipse.Center } },
+                new[] { new[] { new GeoPoint2(0.0, 0.0) } },
+                false
+            );
         }
 
         #endregion
@@ -350,18 +438,21 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Breaks a triangle into faces as the options say, its grid level, using the default tolerance.
         /// </summary>
-        public static GeoMesh3 ToMesh(GeoTriangle3 triangle, MeshOptions options) => ToMesh(triangle, options, MeshPlacement3.World, Tolerance.Global);
+        public static GeoMesh3 ToMesh(GeoTriangle3 triangle, MeshOptions options) =>
+            ToMesh(triangle, options, MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks a triangle into faces as the options say, its grid level, within a tolerance.
         /// </summary>
-        public static GeoMesh3 ToMesh(GeoTriangle3 triangle, MeshOptions options, Tolerance tolerance) => ToMesh(triangle, options, MeshPlacement3.World, tolerance);
+        public static GeoMesh3 ToMesh(GeoTriangle3 triangle, MeshOptions options, Tolerance tolerance) =>
+            ToMesh(triangle, options, MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Breaks a triangle into faces as the options say, its grid standing as the placement says, using the default
         /// tolerance.
         /// </summary>
-        public static GeoMesh3 ToMesh(GeoTriangle3 triangle, MeshOptions options, MeshPlacement3 placement) => ToMesh(triangle, options, placement, Tolerance.Global);
+        public static GeoMesh3 ToMesh(GeoTriangle3 triangle, MeshOptions options, MeshPlacement3 placement) =>
+            ToMesh(triangle, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Breaks a triangle into faces as the options say, its grid standing as the placement says, within a tolerance.
@@ -376,11 +467,19 @@ namespace GeometryHelper.Meshing
         /// Thrown when the options give an origin of the plane, a grid's cell is no larger than the point tolerance, the grid
         /// would lay more cells over the shape than a mesh may have, or the placement's direction stands square to the plane.
         /// </exception>
-        public static GeoMesh3 ToMesh(GeoTriangle3 triangle, MeshOptions options, MeshPlacement3 placement, Tolerance tolerance)
+        public static GeoMesh3 ToMesh(
+            GeoTriangle3 triangle,
+            MeshOptions options,
+            MeshPlacement3 placement,
+            Tolerance tolerance
+        )
         {
             Check(options, placement);
 
-            if (triangle.IsDegenerateByArea(tolerance) || !triangle.GetAreaVector().TryGetNormal(out GeoVector3 normal, tolerance))
+            if (
+                triangle.IsDegenerateByArea(tolerance)
+                || !triangle.GetAreaVector().TryGetNormal(out GeoVector3 normal, tolerance)
+            )
             {
                 GeoCoordinateSystem3 anywhere = GeoCoordinateSystem3.Global.WithOrigin(triangle.A);
                 return new GeoMesh3(Mesh2.Empty(options.Kind, tolerance), new GeoPoint3[0], anywhere);
@@ -397,17 +496,20 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Cuts a body into cells as the options say, along the world's axes, using the default tolerance.
         /// </summary>
-        public static GeoCellGrid3 ToCells(GeoSolid3 solid, CellOptions3 options) => ToCells(solid, options, MeshPlacement3.World, Tolerance.Global);
+        public static GeoCellGrid3 ToCells(GeoSolid3 solid, CellOptions3 options) =>
+            ToCells(solid, options, MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Cuts a body into cells as the options say, along the world's axes, within a tolerance.
         /// </summary>
-        public static GeoCellGrid3 ToCells(GeoSolid3 solid, CellOptions3 options, Tolerance tolerance) => ToCells(solid, options, MeshPlacement3.World, tolerance);
+        public static GeoCellGrid3 ToCells(GeoSolid3 solid, CellOptions3 options, Tolerance tolerance) =>
+            ToCells(solid, options, MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Cuts a body into cells as the options say, its grid standing as the placement says, using the default tolerance.
         /// </summary>
-        public static GeoCellGrid3 ToCells(GeoSolid3 solid, CellOptions3 options, MeshPlacement3 placement) => ToCells(solid, options, placement, Tolerance.Global);
+        public static GeoCellGrid3 ToCells(GeoSolid3 solid, CellOptions3 options, MeshPlacement3 placement) =>
+            ToCells(solid, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Cuts a body into cells as the options say, its grid standing as the placement says, within a tolerance.
@@ -477,7 +579,12 @@ namespace GeometryHelper.Meshing
         /// cell; each holds what it holds at the origin now, to 2.1E-5.
         /// </para>
         /// </remarks>
-        public static GeoCellGrid3 ToCells(GeoSolid3 solid, CellOptions3 options, MeshPlacement3 placement, Tolerance tolerance)
+        public static GeoCellGrid3 ToCells(
+            GeoSolid3 solid,
+            CellOptions3 options,
+            MeshPlacement3 placement,
+            Tolerance tolerance
+        )
         {
             if (solid == null)
             {
@@ -488,12 +595,18 @@ namespace GeometryHelper.Meshing
 
             if (!solid.IsClosed(tolerance))
             {
-                throw new ArgumentException("The body is not closed, so it holds no volume to cut into cells; mend it first, as GeoSolid3.IsClosed says.", nameof(solid));
+                throw new ArgumentException(
+                    "The body is not closed, so it holds no volume to cut into cells; mend it first, as GeoSolid3.IsClosed says.",
+                    nameof(solid)
+                );
             }
 
             if (!solid.ClosesByCorners(tolerance))
             {
-                throw new ArgumentException("The body is closed along its edges, as GeoSolid3.IsClosed reads it, but not by its corners within the tolerance its cells are cut within, as a body closed only to the rounding of its coordinates is; give a larger tolerance, or mend the body.", nameof(solid));
+                throw new ArgumentException(
+                    "The body is closed along its edges, as GeoSolid3.IsClosed reads it, but not by its corners within the tolerance its cells are cut within, as a body closed only to the rounding of its coordinates is; give a larger tolerance, or mend the body.",
+                    nameof(solid)
+                );
             }
 
             // A body far out is moved near the origin with its openings, and the placement's origin with it, cut into cells
@@ -514,7 +627,12 @@ namespace GeometryHelper.Meshing
         /// Cuts a closed body into cells where it stands, as <see cref="ToCells(GeoSolid3, CellOptions3, MeshPlacement3, Tolerance)"/>
         /// does near the origin.
         /// </summary>
-        private static GeoCellGrid3 ToCellsHere(GeoSolid3 solid, CellOptions3 options, MeshPlacement3 placement, Tolerance tolerance)
+        private static GeoCellGrid3 ToCellsHere(
+            GeoSolid3 solid,
+            CellOptions3 options,
+            MeshPlacement3 placement,
+            Tolerance tolerance
+        )
         {
             solid = solid.TurnOutwards();
             GeoSolid3 material = solid;
@@ -556,17 +674,20 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Cuts a box into cells as the options say, along its own axes, using the default tolerance.
         /// </summary>
-        public static GeoCellGrid3 ToCells(GeoObb3 box, CellOptions3 options) => ToCells(box, options, MeshPlacement3.Own, Tolerance.Global);
+        public static GeoCellGrid3 ToCells(GeoObb3 box, CellOptions3 options) =>
+            ToCells(box, options, MeshPlacement3.Own, Tolerance.Global);
 
         /// <summary>
         /// Cuts a box into cells as the options say, along its own axes, within a tolerance.
         /// </summary>
-        public static GeoCellGrid3 ToCells(GeoObb3 box, CellOptions3 options, Tolerance tolerance) => ToCells(box, options, MeshPlacement3.Own, tolerance);
+        public static GeoCellGrid3 ToCells(GeoObb3 box, CellOptions3 options, Tolerance tolerance) =>
+            ToCells(box, options, MeshPlacement3.Own, tolerance);
 
         /// <summary>
         /// Cuts a box into cells as the options say, its grid standing as the placement says, using the default tolerance.
         /// </summary>
-        public static GeoCellGrid3 ToCells(GeoObb3 box, CellOptions3 options, MeshPlacement3 placement) => ToCells(box, options, placement, Tolerance.Global);
+        public static GeoCellGrid3 ToCells(GeoObb3 box, CellOptions3 options, MeshPlacement3 placement) =>
+            ToCells(box, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Cuts a box into cells as the options say, its grid standing as the placement says, within a tolerance.
@@ -588,7 +709,12 @@ namespace GeometryHelper.Meshing
         /// nought a box 100 by 60 by 40 turned about in space, cut into cells 37 by 41 by 43 along the world's axes, came out
         /// one cell, where the grid lays 19 through it.
         /// </remarks>
-        public static GeoCellGrid3 ToCells(GeoObb3 box, CellOptions3 options, MeshPlacement3 placement, Tolerance tolerance)
+        public static GeoCellGrid3 ToCells(
+            GeoObb3 box,
+            CellOptions3 options,
+            MeshPlacement3 placement,
+            Tolerance tolerance
+        )
         {
             if (box == null)
             {
@@ -608,23 +734,35 @@ namespace GeometryHelper.Meshing
             // Below the rounding of the coordinates the box is cut within it, as a body is.
             GeoSolid3 solid = CellGrid3.BoxSolid(box);
             Splition3.BelowTheRounding(solid, tolerance, out Tolerance within);
-            return CellGrid3.OfSolid(solid, solid, new GeoSolid3[0], axes, options, placement.Origin, within, tolerance);
+            return CellGrid3.OfSolid(
+                solid,
+                solid,
+                new GeoSolid3[0],
+                axes,
+                options,
+                placement.Origin,
+                within,
+                tolerance
+            );
         }
 
         /// <summary>
         /// Cuts a box into cells as the options say, along the world's axes, using the default tolerance.
         /// </summary>
-        public static GeoCellGrid3 ToCells(GeoAabb3 box, CellOptions3 options) => ToCells(box, options, MeshPlacement3.World, Tolerance.Global);
+        public static GeoCellGrid3 ToCells(GeoAabb3 box, CellOptions3 options) =>
+            ToCells(box, options, MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Cuts a box into cells as the options say, along the world's axes, within a tolerance.
         /// </summary>
-        public static GeoCellGrid3 ToCells(GeoAabb3 box, CellOptions3 options, Tolerance tolerance) => ToCells(box, options, MeshPlacement3.World, tolerance);
+        public static GeoCellGrid3 ToCells(GeoAabb3 box, CellOptions3 options, Tolerance tolerance) =>
+            ToCells(box, options, MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Cuts a box into cells as the options say, its grid standing as the placement says, using the default tolerance.
         /// </summary>
-        public static GeoCellGrid3 ToCells(GeoAabb3 box, CellOptions3 options, MeshPlacement3 placement) => ToCells(box, options, placement, Tolerance.Global);
+        public static GeoCellGrid3 ToCells(GeoAabb3 box, CellOptions3 options, MeshPlacement3 placement) =>
+            ToCells(box, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Cuts a box into cells as the options say, its grid standing as the placement says, within a tolerance.
@@ -639,7 +777,12 @@ namespace GeometryHelper.Meshing
         /// Thrown when a cell is no larger than the point tolerance along an axis it divides, or the grid would lay more cells
         /// through the box than a grid may have.
         /// </exception>
-        public static GeoCellGrid3 ToCells(GeoAabb3 box, CellOptions3 options, MeshPlacement3 placement, Tolerance tolerance)
+        public static GeoCellGrid3 ToCells(
+            GeoAabb3 box,
+            CellOptions3 options,
+            MeshPlacement3 placement,
+            Tolerance tolerance
+        )
         {
             Check(options, placement);
 
@@ -678,7 +821,12 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Meshes a face of straight edges: laid out in the frame its placement gives, meshed in the plane, lifted back.
         /// </summary>
-        private static GeoMesh3 MeshFace(GeoFace3 face, MeshOptions options, MeshPlacement3 placement, Tolerance tolerance)
+        private static GeoMesh3 MeshFace(
+            GeoFace3 face,
+            MeshOptions options,
+            MeshPlacement3 placement,
+            Tolerance tolerance
+        )
         {
             Check(options, placement);
 
@@ -692,9 +840,22 @@ namespace GeometryHelper.Meshing
             return MeshRings(face.Boundary.Vertices, holes, face.Normal, options, placement, tolerance);
         }
 
-        private static GeoMesh3 MeshRings(IReadOnlyList<GeoPoint3> boundary, IReadOnlyList<GeoPoint3>[] holes, GeoVector3 normal, MeshOptions options, MeshPlacement3 placement, Tolerance tolerance)
+        private static GeoMesh3 MeshRings(
+            IReadOnlyList<GeoPoint3> boundary,
+            IReadOnlyList<GeoPoint3>[] holes,
+            GeoVector3 normal,
+            MeshOptions options,
+            MeshPlacement3 placement,
+            Tolerance tolerance
+        )
         {
-            GeoCoordinateSystem3 frame = placement.FrameOnPlane(boundary[0], normal, boundary, options.AngleRad ?? 0.0, tolerance);
+            GeoCoordinateSystem3 frame = placement.FrameOnPlane(
+                boundary[0],
+                normal,
+                boundary,
+                options.AngleRad ?? 0.0,
+                tolerance
+            );
             var rings = new List<IReadOnlyList<GeoPoint3>>(holes.Length + 1) { boundary };
             rings.AddRange(holes);
 
@@ -723,12 +884,22 @@ namespace GeometryHelper.Meshing
                 return new GeoMesh3(Mesh2.Empty(options.Kind, tolerance), new GeoPoint3[0], frame);
             }
 
-            GeoMesh2 mesh = Mesh2.Mesh(new GeoFace2(outline, openings), options.InFrame(Anchor(options, placement, frame, tolerance)), 0.0, tolerance);
+            GeoMesh2 mesh = Mesh2.Mesh(
+                new GeoFace2(outline, openings),
+                options.InFrame(Anchor(options, placement, frame, tolerance)),
+                0.0,
+                tolerance
+            );
             return Lifted(mesh, frame, rings, laid, true);
         }
 
-        private static GeoMesh3 Lifted(GeoMesh2 flat, GeoCoordinateSystem3 frame, IReadOnlyList<IReadOnlyList<GeoPoint3>> rings, IReadOnlyList<GeoPoint2[]> laid, bool straight)
-            => new GeoMesh3(flat, MeshLift3.Lift(flat, frame, rings, laid, straight), frame);
+        private static GeoMesh3 Lifted(
+            GeoMesh2 flat,
+            GeoCoordinateSystem3 frame,
+            IReadOnlyList<IReadOnlyList<GeoPoint3>> rings,
+            IReadOnlyList<GeoPoint2[]> laid,
+            bool straight
+        ) => new GeoMesh3(flat, MeshLift3.Lift(flat, frame, rings, laid, straight), frame);
 
         private static void Check(MeshOptions options, MeshPlacement3 placement)
         {
@@ -746,7 +917,8 @@ namespace GeometryHelper.Meshing
             {
                 throw new ArgumentException(
                     "In space a grid's origin is a point of space: give it with MeshPlacement3.At(origin) rather than as MeshOptions.Origin.",
-                    nameof(options));
+                    nameof(options)
+                );
             }
         }
 
@@ -760,7 +932,12 @@ namespace GeometryHelper.Meshing
         /// before Y before Z: a wall facing +Y runs its rows along -X, and laid from the origin along that, a cell ending
         /// there, its joints stood a joint off those of the faces beside it.
         /// </remarks>
-        private static GeoPoint2? Anchor(MeshOptions options, MeshPlacement3 placement, GeoCoordinateSystem3 frame, Tolerance tolerance)
+        private static GeoPoint2? Anchor(
+            MeshOptions options,
+            MeshPlacement3 placement,
+            GeoCoordinateSystem3 frame,
+            Tolerance tolerance
+        )
         {
             if (options.Kind != MeshKind.Grid || !placement.Origin.HasValue)
             {
@@ -773,8 +950,12 @@ namespace GeometryHelper.Meshing
             double joint = options.Joint > tolerance.EqualPoint ? options.Joint : 0.0;
             double pitchU = options.CellWidth + joint;
             double pitchV = options.CellHeight + joint;
-            double u = MeshPlacement3.Canonical(frame.XAxis).Equals(frame.XAxis) ? local.X : local.X - options.CellWidth;
-            double v = MeshPlacement3.Canonical(frame.YAxis).Equals(frame.YAxis) ? local.Y : local.Y - options.CellHeight;
+            double u = MeshPlacement3.Canonical(frame.XAxis).Equals(frame.XAxis)
+                ? local.X
+                : local.X - options.CellWidth;
+            double v = MeshPlacement3.Canonical(frame.YAxis).Equals(frame.YAxis)
+                ? local.Y
+                : local.Y - options.CellHeight;
 
             return new GeoPoint2(u - Math.Round(u / pitchU) * pitchU, v - Math.Round(v / pitchV) * pitchV);
         }

@@ -1,4 +1,4 @@
-﻿namespace GeometryHelper.IfcConvert.Core
+namespace GeometryHelper.IfcConvert.Core
 {
     /// <summary>
     /// Specifies target length units for automatic scaling.
@@ -18,6 +18,6 @@
         /// <summary>
         /// Scales coordinates to meters (m).
         /// </summary>
-        Meters = 2
+        Meters = 2,
     }
 }

@@ -53,7 +53,10 @@ namespace GeometryHelper.Dxf.Viewer
             if (viewport == null)
             {
                 yield return CadPrompt.ForEntity("Select a viewport");
-                viewport = c.Input.Kind == CadInputKind.Selection ? c.Document.FindEntity(c.Input.Handles[0]) as DxfViewport : null;
+                viewport =
+                    c.Input.Kind == CadInputKind.Selection
+                        ? c.Document.FindEntity(c.Input.Handles[0]) as DxfViewport
+                        : null;
             }
 
             if (viewport == null || viewport.Number == 1 || !(viewport.Height > 0.0) || !(viewport.ViewHeight > 0.0))
@@ -80,7 +83,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             c.OpenUndoStep();
-            CadEditResult result = CadPropertyEditor.Set(c.Document, new[] { viewport.Handle }, "Custom scale", scale.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+            CadEditResult result = CadPropertyEditor.Set(
+                c.Document,
+                new[] { viewport.Handle },
+                "Custom scale",
+                scale.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+            );
 
             if (!result.Succeeded)
             {

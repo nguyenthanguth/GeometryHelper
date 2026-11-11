@@ -20,7 +20,9 @@ namespace GeometryHelper.Dxf
     public sealed class DxfArcDimension : DxfDimension
     {
         // The groups of AcDbArcDimension in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 13, 23, 33, 14, 24, 34, 15, 25, 35, 40, 41, 70, 71, 16, 26, 36, 17, 27, 37 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 13, 23, 33, 14, 24, 34, 15, 25, 35, 40, 41, 70, 71, 16, 26, 36, 17, 27, 37 }
+        );
 
         private static readonly IReadOnlyList<int> World = Array.AsReadOnly(new[] { 13, 14, 15, 16, 17 });
 
@@ -36,70 +38,124 @@ namespace GeometryHelper.Dxf
         /// <param name="dimensionText">The text, as <see cref="DxfDimension.DimensionText"/>; empty or null for the measurement.</param>
         /// <param name="dimensionStyle">The style it is drawn in, by its name; null for Standard.</param>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
-        public DxfArcDimension(GeoPoint3 centerPoint, GeoPoint3 xLine1Point, GeoPoint3 xLine2Point, GeoPoint3 arcPoint, string dimensionText, DxfDimStyleTableRecord dimensionStyle)
-            : base("ARC_DIMENSION", 8, arcPoint, dimensionText, dimensionStyle, Groups(xLine1Point, xLine2Point, centerPoint))
-        {
-        }
+        public DxfArcDimension(
+            GeoPoint3 centerPoint,
+            GeoPoint3 xLine1Point,
+            GeoPoint3 xLine2Point,
+            GeoPoint3 arcPoint,
+            string dimensionText,
+            DxfDimStyleTableRecord dimensionStyle
+        )
+            : base(
+                "ARC_DIMENSION",
+                8,
+                arcPoint,
+                dimensionText,
+                dimensionStyle,
+                Groups(xLine1Point, xLine2Point, centerPoint)
+            ) { }
 
         private DxfArcDimension(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets the centre of the arc (groups 15, 25, 35), as AutoCAD's <c>CenterPoint</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 CenterPoint { get => SubPoint(15); set => SetSubPoint(15, value); }
+        public GeoPoint3 CenterPoint
+        {
+            get => SubPoint(15);
+            set => SetSubPoint(15, value);
+        }
 
         /// <summary>Gets or sets the point of the arc where the length starts (groups 13, 23, 33), as AutoCAD's <c>XLine1Point</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 XLine1Point { get => SubPoint(13); set => SetSubPoint(13, value); }
+        public GeoPoint3 XLine1Point
+        {
+            get => SubPoint(13);
+            set => SetSubPoint(13, value);
+        }
 
         /// <summary>Gets or sets the point of the arc where the length ends (groups 14, 24, 34), as AutoCAD's <c>XLine2Point</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 XLine2Point { get => SubPoint(14); set => SetSubPoint(14, value); }
+        public GeoPoint3 XLine2Point
+        {
+            get => SubPoint(14);
+            set => SetSubPoint(14, value);
+        }
 
         /// <summary>Gets or sets a point of the dimension's arc (groups 10, 20, 30), as AutoCAD's <c>ArcPoint</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 ArcPoint { get => DefinitionPoint; set => SetDefinitionPoint(value); }
+        public GeoPoint3 ArcPoint
+        {
+            get => DefinitionPoint;
+            set => SetDefinitionPoint(value);
+        }
 
         /// <summary>Gets or sets the parameter of the arc where a partial length starts (group 40 of AcDbArcDimension), as AutoCAD's <c>ArcStartParam</c>; nought where the record gives none.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double ArcStartParam { get => SubReal(40, 0.0); set => SetSubReal(40, value, ArcStartParam); }
+        public double ArcStartParam
+        {
+            get => SubReal(40, 0.0);
+            set => SetSubReal(40, value, ArcStartParam);
+        }
 
         /// <summary>Gets or sets the parameter of the arc where a partial length ends (group 41 of AcDbArcDimension), as AutoCAD's <c>ArcEndParam</c>; nought where the record gives none.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double ArcEndParam { get => SubReal(41, 0.0); set => SetSubReal(41, value, ArcEndParam); }
+        public double ArcEndParam
+        {
+            get => SubReal(41, 0.0);
+            set => SetSubReal(41, value, ArcEndParam);
+        }
 
         /// <summary>Gets or sets whether the length is of a part of the arc (group 70 of AcDbArcDimension), as AutoCAD's <c>IsPartial</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public bool IsPartial { get => SubWhole(70, 0) != 0; set => SetSubWhole(70, value ? 1 : 0, IsPartial ? 1 : 0); }
+        public bool IsPartial
+        {
+            get => SubWhole(70, 0) != 0;
+            set => SetSubWhole(70, value ? 1 : 0, IsPartial ? 1 : 0);
+        }
 
         /// <summary>Gets or sets whether a leader is drawn to the arc (group 71 of AcDbArcDimension), as AutoCAD's <c>HasLeader</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public bool HasLeader { get => SubWhole(71, 0) != 0; set => SetSubWhole(71, value ? 1 : 0, HasLeader ? 1 : 0); }
+        public bool HasLeader
+        {
+            get => SubWhole(71, 0) != 0;
+            set => SetSubWhole(71, value ? 1 : 0, HasLeader ? 1 : 0);
+        }
 
         /// <summary>Gets or sets the first point of the leader (groups 16, 26, 36), as AutoCAD's <c>Leader1Point</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 Leader1Point { get => SubPoint(16); set => SetSubPoint(16, value); }
+        public GeoPoint3 Leader1Point
+        {
+            get => SubPoint(16);
+            set => SetSubPoint(16, value);
+        }
 
         /// <summary>Gets or sets the second point of the leader (groups 17, 27, 37), as AutoCAD's <c>Leader2Point</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 Leader2Point { get => SubPoint(17); set => SetSubPoint(17, value); }
+        public GeoPoint3 Leader2Point
+        {
+            get => SubPoint(17);
+            set => SetSubPoint(17, value);
+        }
 
         /// <summary>
         /// Gets or sets where the arc symbol stands, as AutoCAD's <c>ArcSymbolType</c>: the dimension's <see cref="DxfDimension.Dimarcsym"/>,
         /// 0 before the text, 1 above it, 2 none.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
-        public int ArcSymbolType { get => Dimarcsym; set => Dimarcsym = value; }
+        public int ArcSymbolType
+        {
+            get => Dimarcsym;
+            set => Dimarcsym = value;
+        }
 
         /// <summary>
         /// Gets the length of the arc between the two points, as AutoCAD's <c>Measurement</c>: its radius, from the centre to the
@@ -111,7 +167,12 @@ namespace GeometryHelper.Dxf
             get
             {
                 GeoPoint3 center = CenterPoint;
-                return center.DistanceTo(XLine1Point) * Sweep(center.GetVectorTo(XLine1Point), center.GetVectorTo(XLine2Point), center.GetVectorTo(ArcPoint));
+                return center.DistanceTo(XLine1Point)
+                    * Sweep(
+                        center.GetVectorTo(XLine1Point),
+                        center.GetVectorTo(XLine2Point),
+                        center.GetVectorTo(ArcPoint)
+                    );
             }
         }
 

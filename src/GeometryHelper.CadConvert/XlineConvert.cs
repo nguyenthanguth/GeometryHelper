@@ -29,7 +29,8 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentException">Thrown when the Xline has a unit direction of no length.</exception>
         public static GeoXLine3 ToGeoXLine3(this Xline xline)
         {
-            if (xline == null) throw new ArgumentNullException(nameof(xline));
+            if (xline == null)
+                throw new ArgumentNullException(nameof(xline));
             return new GeoXLine3(xline.BasePoint.ToGeoPoint3(), xline.UnitDir.ToGeoVector3());
         }
 
@@ -38,7 +39,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="xlines">The sequence of AutoCAD Xlines to convert.</param>
         /// <returns>A list of converted <see cref="GeoXLine3"/>.</returns>
-        public static List<GeoXLine3> ToGeoXLine3(this IEnumerable<Xline> xlines) => xlines.Select(ToGeoXLine3).ToList();
+        public static List<GeoXLine3> ToGeoXLine3(this IEnumerable<Xline> xlines) =>
+            xlines.Select(ToGeoXLine3).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper line without ends in space to an AutoCAD Xline.
@@ -48,8 +50,16 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentException">Thrown when the line has no direction, as a <c>default</c> one has, or holds a number that is not finite.</exception>
         public static Xline ToAcadXline(this GeoXLine3 geoXLine)
         {
-            if (!geoXLine.IsValid) throw new ArgumentException("A line with no direction, or a number that is not finite, has no Xline.", nameof(geoXLine));
-            return new Xline { BasePoint = geoXLine.Origin.ToAcadPoint3(), UnitDir = geoXLine.Direction.ToAcadVector3() };
+            if (!geoXLine.IsValid)
+                throw new ArgumentException(
+                    "A line with no direction, or a number that is not finite, has no Xline.",
+                    nameof(geoXLine)
+                );
+            return new Xline
+            {
+                BasePoint = geoXLine.Origin.ToAcadPoint3(),
+                UnitDir = geoXLine.Direction.ToAcadVector3(),
+            };
         }
 
         /// <summary>
@@ -57,6 +67,7 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="xlines">The sequence of GeometryHelper lines to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Xline"/>.</returns>
-        public static List<Xline> ToAcadXline(this IEnumerable<GeoXLine3> xlines) => xlines.Select(ToAcadXline).ToList();
+        public static List<Xline> ToAcadXline(this IEnumerable<GeoXLine3> xlines) =>
+            xlines.Select(ToAcadXline).ToList();
     }
 }

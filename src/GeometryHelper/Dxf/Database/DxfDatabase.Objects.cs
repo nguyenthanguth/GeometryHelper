@@ -97,12 +97,14 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                layouts.Sort((a, b) =>
-                {
-                    int order = a.TabOrder.CompareTo(b.TabOrder);
-                    order = order != 0 ? order : string.CompareOrdinal(a.LayoutName, b.LayoutName);
-                    return order != 0 ? order : CompareHandles(a.Handle, b.Handle);
-                });
+                layouts.Sort(
+                    (a, b) =>
+                    {
+                        int order = a.TabOrder.CompareTo(b.TabOrder);
+                        order = order != 0 ? order : string.CompareOrdinal(a.LayoutName, b.LayoutName);
+                        return order != 0 ? order : CompareHandles(a.Handle, b.Handle);
+                    }
+                );
 
                 return layouts.AsReadOnly();
             }
@@ -195,7 +197,11 @@ namespace GeometryHelper.Dxf
 
                 if (properties == null)
                 {
-                    string[] texts = HeaderTexts.Select(name => name == null || File.HeaderOf(name) == null ? null : TextOf(name, 1, string.Empty)).ToArray();
+                    string[] texts = HeaderTexts
+                        .Select(name =>
+                            name == null || File.HeaderOf(name) == null ? null : TextOf(name, 1, string.Empty)
+                        )
+                        .ToArray();
                     List<KeyValuePair<string, string>> custom = HeaderCustomProperties();
                     return texts.All(t => t == null) && hyperlinkBase.Length == 0 && custom.Count == 0
                         ? DxfDatabaseSummaryInfo.Empty
@@ -205,7 +211,6 @@ namespace GeometryHelper.Dxf
                 DxfDatabaseSummaryInfo read = DxfDatabaseSummaryInfo.Read(properties.Data);
                 return hyperlinkBase.Length == 0 ? read : read.WithHyperlinkBase(hyperlinkBase);
             }
-
             set
             {
                 if (value == null)
@@ -224,18 +229,33 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                DxfDBDictionary root = NamedObjectsDictionary ?? throw new InvalidOperationException("A DXF " + (Version ?? "with no version") + " has no named object dictionary to hold DWGPROPS: R13 (AC1012) brought it.");
+                DxfDBDictionary root = NamedObjectsDictionary
+                    ?? throw new InvalidOperationException(
+                        "A DXF "
+                            + (Version ?? "with no version")
+                            + " has no named object dictionary to hold DWGPROPS: R13 (AC1012) brought it."
+                    );
                 DxfXrecord properties = DwgProps();
 
                 foreach (KeyValuePair<string, string> property in value.CustomProperties)
                 {
                     if (property.Key.IndexOf('=') >= 0)
                     {
-                        throw new ArgumentException("The name of a custom property has no equals sign in it, which ends it in DWGPROPS: '" + property.Key + "' has one.", nameof(value));
+                        throw new ArgumentException(
+                            "The name of a custom property has no equals sign in it, which ends it in DWGPROPS: '"
+                                + property.Key
+                                + "' has one.",
+                            nameof(value)
+                        );
                     }
                 }
 
-                List<DxfTypedValue> data = value.Written(properties?.Data, Header("$TDINDWG"), Header("$TDCREATE"), Header("$TDUPDATE"));
+                List<DxfTypedValue> data = value.Written(
+                    properties?.Data,
+                    Header("$TDINDWG"),
+                    Header("$TDCREATE"),
+                    Header("$TDUPDATE")
+                );
 
                 if (properties != null)
                 {
@@ -310,12 +330,16 @@ namespace GeometryHelper.Dxf
             value = null;
             string key = handle.Trim();
 
-            if (!ulong.TryParse(key, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong number) || number == 0)
+            if (
+                !ulong.TryParse(key, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong number)
+                || number == 0
+            )
             {
                 return false;
             }
 
-            value = (DxfDBObject)EntityByHandle(key) ?? (File.HoldsObjects && File.ObjectItem(key) is DxfItem item ? DxfDBObject.OfObject(item) : null)
+            value = (DxfDBObject)EntityByHandle(key)
+                ?? (File.HoldsObjects && File.ObjectItem(key) is DxfItem item ? DxfDBObject.OfObject(item) : null)
                 ?? OtherByHandle(key);
 
             if (value != null && value.IsErased)
@@ -407,7 +431,16 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            foreach (DxfSymbolTable table in new DxfSymbolTable[] { LayerTable, LinetypeTable, TextStyleTable, DimStyleTable, BlockTable })
+            foreach (
+                DxfSymbolTable table in new DxfSymbolTable[]
+                {
+                    LayerTable,
+                    LinetypeTable,
+                    TextStyleTable,
+                    DimStyleTable,
+                    BlockTable,
+                }
+            )
             {
                 Keep(table.Handle, table);
 
@@ -540,7 +573,16 @@ namespace GeometryHelper.Dxf
         /// (<c>$LASTSAVEDBY</c>) is none of them here: ezdxf writes its own name there in every drawing, and AutoCAD 2021 does
         /// not carry that into the properties it saves.
         /// </summary>
-        private static readonly string[] HeaderTexts = { "$TITLE", "$SUBJECT", "$AUTHOR", "$COMMENTS", "$KEYWORDS", null, "$REVISIONNUMBER" };
+        private static readonly string[] HeaderTexts =
+        {
+            "$TITLE",
+            "$SUBJECT",
+            "$AUTHOR",
+            "$COMMENTS",
+            "$KEYWORDS",
+            null,
+            "$REVISIONNUMBER",
+        };
 
         /// <summary>
         /// The texts of <see cref="HeaderTexts"/> in the order the header of R2004 or later is given them, by their place among
@@ -550,7 +592,17 @@ namespace GeometryHelper.Dxf
         private static readonly int[] HeaderTextOrder = { 0, 1, 2, 4, 3, 6 };
 
         /// <summary>The variables of the header the properties of a drawing of R2004 or later are written in, each taken out before they are.</summary>
-        private static readonly string[] SummaryVariables = { "$TITLE", "$SUBJECT", "$AUTHOR", "$KEYWORDS", "$COMMENTS", "$REVISIONNUMBER", "$CUSTOMPROPERTYTAG", "$CUSTOMPROPERTY" };
+        private static readonly string[] SummaryVariables =
+        {
+            "$TITLE",
+            "$SUBJECT",
+            "$AUTHOR",
+            "$KEYWORDS",
+            "$COMMENTS",
+            "$REVISIONNUMBER",
+            "$CUSTOMPROPERTYTAG",
+            "$CUSTOMPROPERTY",
+        };
 
         /// <summary>
         /// The custom properties of the header, each the value of a <c>$CUSTOMPROPERTYTAG</c> and of the
@@ -563,7 +615,8 @@ namespace GeometryHelper.Dxf
 
             foreach (KeyValuePair<string, IReadOnlyList<DxfTypedValue>> variable in File.HeaderInOrder())
             {
-                string text = variable.Value.Count > 0 ? DxfReader.Decode(variable.Value[0].Value ?? string.Empty) : string.Empty;
+                string text =
+                    variable.Value.Count > 0 ? DxfReader.Decode(variable.Value[0].Value ?? string.Empty) : string.Empty;
 
                 if (variable.Key == "$CUSTOMPROPERTYTAG")
                 {
@@ -609,17 +662,36 @@ namespace GeometryHelper.Dxf
 
                 if (texts[i].Length > 0)
                 {
-                    run.Add(new KeyValuePair<string, IReadOnlyList<DxfTypedValue>>(HeaderTexts[i], new[] { new DxfTypedValue(1, texts[i]) }));
+                    run.Add(
+                        new KeyValuePair<string, IReadOnlyList<DxfTypedValue>>(
+                            HeaderTexts[i],
+                            new[] { new DxfTypedValue(1, texts[i]) }
+                        )
+                    );
                 }
             }
 
             foreach (KeyValuePair<string, string> property in value.CustomProperties)
             {
-                run.Add(new KeyValuePair<string, IReadOnlyList<DxfTypedValue>>("$CUSTOMPROPERTYTAG", new[] { new DxfTypedValue(1, property.Key) }));
-                run.Add(new KeyValuePair<string, IReadOnlyList<DxfTypedValue>>("$CUSTOMPROPERTY", new[] { new DxfTypedValue(1, property.Value) }));
+                run.Add(
+                    new KeyValuePair<string, IReadOnlyList<DxfTypedValue>>(
+                        "$CUSTOMPROPERTYTAG",
+                        new[] { new DxfTypedValue(1, property.Key) }
+                    )
+                );
+                run.Add(
+                    new KeyValuePair<string, IReadOnlyList<DxfTypedValue>>(
+                        "$CUSTOMPROPERTY",
+                        new[] { new DxfTypedValue(1, property.Value) }
+                    )
+                );
             }
 
-            File.SetHeaderRun(saved != null ? SummaryVariables.Concat(new[] { "$LASTSAVEDBY" }).ToArray() : SummaryVariables, run, new[] { "$DWGCODEPAGE", "$LASTSAVEDBY" });
+            File.SetHeaderRun(
+                saved != null ? SummaryVariables.Concat(new[] { "$LASTSAVEDBY" }).ToArray() : SummaryVariables,
+                run,
+                new[] { "$DWGCODEPAGE", "$LASTSAVEDBY" }
+            );
             HyperlinkBase = value.HyperlinkBase;
             DxfDBDictionary root = NamedObjectsDictionary;
 

@@ -18,8 +18,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
         private static GeoPoint3 Pt(double x, double y, double z) => new GeoPoint3(x, y, z);
 
-        private static GeoPolygon3 Square(double x0, double y0, double x1, double y1, double z)
-            => new GeoPolygon3(Pt(x0, y0, z), Pt(x1, y0, z), Pt(x1, y1, z), Pt(x0, y1, z));
+        private static GeoPolygon3 Square(double x0, double y0, double x1, double y1, double z) =>
+            new GeoPolygon3(Pt(x0, y0, z), Pt(x1, y0, z), Pt(x1, y1, z), Pt(x0, y1, z));
 
         // Tilted by an angle about the line y = 50 at the given height: y = 50 stays where it is, the side towards +y rises.
         private static GeoPoint3 Tilt(GeoPoint3 p, double degrees, double height)
@@ -31,13 +31,22 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         // The square 40 by 40 about (50, 50), tilted about y = 50 at the given height.
-        private static GeoPoint3[] TiltedSquare(double degrees, double height)
-            => new[] { Pt(30, 30, 0), Pt(70, 30, 0), Pt(70, 70, 0), Pt(30, 70, 0) }.Select(p => Tilt(p, degrees, height)).ToArray();
+        private static GeoPoint3[] TiltedSquare(double degrees, double height) =>
+            new[] { Pt(30, 30, 0), Pt(70, 30, 0), Pt(70, 70, 0), Pt(30, 70, 0) }
+                .Select(p => Tilt(p, degrees, height))
+                .ToArray();
 
         // A regular polygon of the given number of corners and radius about (50, 50), tilted about y = 50.
-        private static GeoPoint3[] TiltedRound(int corners, double radius, double degrees, double height)
-            => Enumerable.Range(0, corners)
-                .Select(i => Pt(50 + radius * Math.Cos(2 * Math.PI * i / corners), 50 + radius * Math.Sin(2 * Math.PI * i / corners), 0))
+        private static GeoPoint3[] TiltedRound(int corners, double radius, double degrees, double height) =>
+            Enumerable
+                .Range(0, corners)
+                .Select(i =>
+                    Pt(
+                        50 + radius * Math.Cos(2 * Math.PI * i / corners),
+                        50 + radius * Math.Sin(2 * Math.PI * i / corners),
+                        0
+                    )
+                )
                 .Select(p => Tilt(p, degrees, height))
                 .ToArray();
 
@@ -134,7 +143,12 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // Rule R (item 5): within the point tolerance the shapes collide, and their distance is the gap, not nought.
             GeoPolygon3 floor = Square(0, 0, 100, 100, 0);
-            var tilted = new GeoPolygon3(Pt(25, 25, 0.0002), Pt(75, 25, 0.0002), Pt(75, 75, 0.0011), Pt(25, 75, 0.0011));
+            var tilted = new GeoPolygon3(
+                Pt(25, 25, 0.0002),
+                Pt(75, 25, 0.0002),
+                Pt(75, 75, 0.0011),
+                Pt(25, 75, 0.0011)
+            );
             GeoPolygon3 level = Square(25, 25, 75, 75, 0.0009);
 
             Assert.True(floor.CollidesWith(level, Tol));
@@ -151,7 +165,12 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // Tilted about a diagonal, so that no side runs level: the corner at (25, 25) stands 0.0005 up and every side
             // climbs 0.005 from it, which the segment test reads end-on only within the tolerance along the side.
             Func<double, double, double> h = (x, y) => 0.0005 + 0.0001 * ((x - 25) + (y - 25));
-            var plate = new GeoPolygon3(Pt(25, 25, h(25, 25)), Pt(75, 25, h(75, 25)), Pt(75, 75, h(75, 75)), Pt(25, 75, h(25, 75)));
+            var plate = new GeoPolygon3(
+                Pt(25, 25, h(25, 25)),
+                Pt(75, 25, h(75, 25)),
+                Pt(75, 75, h(75, 75)),
+                Pt(25, 75, h(25, 75))
+            );
             var plateTriangle = new GeoTriangle3(Pt(25, 25, h(25, 25)), Pt(75, 25, h(75, 25)), Pt(25, 75, h(25, 75)));
             GeoPolygon3 floor = Square(0, 0, 100, 100, 0);
             var floorFace = new GeoFace3(floor, new[] { Square(40, 40, 60, 60, 0) });
@@ -183,7 +202,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.Equal(0.0005, box.DistanceTo(triangle, Tol), 9);
             Assert.True(triangle.CollidesWith(box, Tol));
             Assert.True(box.CollidesWith(triangle, Tol));
-            Assert.False(new GeoTriangle3(Pt(150, 50, 150), Pt(50, 50, 100.004), Pt(150, 60, 150)).CollidesWith(box, Tol));
+            Assert.False(
+                new GeoTriangle3(Pt(150, 50, 150), Pt(50, 50, 100.004), Pt(150, 60, 150)).CollidesWith(box, Tol)
+            );
         }
 
         [Fact]
@@ -192,15 +213,32 @@ namespace GeometryHelper.UnitTest.Solid.Core
             var fine = new Tolerance(1e-7, 1e-9, 1e-6, 1e-7);
             double s = 0.0005;
             var a = new GeoPolygon3(new[] { Pt(0, 0, 0), Pt(s, 0, 0), Pt(s, s, 0), Pt(0, s, 0) }, fine);
-            var b = new GeoPolygon3(new[] { Pt(s / 2, s / 2, 0), Pt(2 * s, s / 2, 0), Pt(2 * s, 2 * s, 0), Pt(s / 2, 2 * s, 0) }, fine);
-            var holed = new GeoFace3(a, new[] { new GeoPolygon3(new[] { Pt(s / 8, s / 8, 0), Pt(s / 4, s / 8, 0), Pt(s / 4, s / 4, 0), Pt(s / 8, s / 4, 0) }, fine) });
+            var b = new GeoPolygon3(
+                new[] { Pt(s / 2, s / 2, 0), Pt(2 * s, s / 2, 0), Pt(2 * s, 2 * s, 0), Pt(s / 2, 2 * s, 0) },
+                fine
+            );
+            var holed = new GeoFace3(
+                a,
+                new[]
+                {
+                    new GeoPolygon3(
+                        new[] { Pt(s / 8, s / 8, 0), Pt(s / 4, s / 8, 0), Pt(s / 4, s / 4, 0), Pt(s / 8, s / 4, 0) },
+                        fine
+                    ),
+                }
+            );
 
             Assert.True(a.CollidesWith(b, fine));
             Assert.Equal(2, a.GetIntersections(b, fine).Length);
             Assert.Equal(0.0, a.DistanceTo(b, fine));
             Assert.True(holed.CollidesWith(b, fine));
             Assert.Equal(2, holed.GetIntersections(b, fine).Length);
-            Assert.True(new GeoTriangle3(Pt(s / 2, s / 2, 0), Pt(2 * s, s / 2, 0), Pt(s / 2, 2 * s, 0)).CollidesWith(holed, fine));
+            Assert.True(
+                new GeoTriangle3(Pt(s / 2, s / 2, 0), Pt(2 * s, s / 2, 0), Pt(s / 2, 2 * s, 0)).CollidesWith(
+                    holed,
+                    fine
+                )
+            );
         }
 
         [Fact]

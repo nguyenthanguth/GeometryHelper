@@ -14,7 +14,12 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     public sealed class DxfBlockPropertiesTable
     {
-        internal DxfBlockPropertiesTable(string name, bool mustMatch, List<string> columns, List<DxfBlockPropertiesTableRow> rows)
+        internal DxfBlockPropertiesTable(
+            string name,
+            bool mustMatch,
+            List<string> columns,
+            List<DxfBlockPropertiesTableRow> rows
+        )
         {
             Name = name;
             MustMatch = mustMatch;

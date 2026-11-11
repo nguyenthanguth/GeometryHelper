@@ -128,7 +128,8 @@ namespace GeometryHelper
                 "(Tolerance: {0}, Contact: {1}, Fallback: {2})",
                 Tolerance,
                 Contact,
-                Fallback.HasValue ? Fallback.Value.ToString() : "none");
+                Fallback.HasValue ? Fallback.Value.ToString() : "none"
+            );
         }
     }
 }

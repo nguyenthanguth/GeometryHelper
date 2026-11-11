@@ -13,7 +13,8 @@ namespace GeometryHelper.Drawing.Wpf
     /// </summary>
     public sealed partial class DrawingWorkspace
     {
-        private const string NoPluginText = "No drawing plugin is loaded: load one with PLUGINLOAD, or in the Plugin manager.";
+        private const string NoPluginText =
+            "No drawing plugin is loaded: load one with PLUGINLOAD, or in the Plugin manager.";
 
         /// <summary>Asks the window for the Run plugin dialog of the drawing shown; null, said on the command line, with no model drawing shown or no drawing plugin loaded.</summary>
         /// <returns>The dialog's view model, or null.</returns>
@@ -50,11 +51,21 @@ namespace GeometryHelper.Drawing.Wpf
         /// While the drawing is being made again it says <c>C1 is being made again; wait for it.</c> and runs nothing.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the plugin or the view's id is null.</exception>
-        public UpdateReport RunPlugin(DrawingPlugin plugin, string viewId, IEnumerable<string> objectIds = null, IEnumerable<KeyValuePair<string, double>> settings = null)
-            => RunPlugin(plugin, viewId, objectIds, settings, out _);
+        public UpdateReport RunPlugin(
+            DrawingPlugin plugin,
+            string viewId,
+            IEnumerable<string> objectIds = null,
+            IEnumerable<KeyValuePair<string, double>> settings = null
+        ) => RunPlugin(plugin, viewId, objectIds, settings, out _);
 
         /// <summary>Runs a drawing plugin as <see cref="RunPlugin(DrawingPlugin, string, IEnumerable{string}, IEnumerable{KeyValuePair{string, double}})"/> does, giving the words of why it was not run.</summary>
-        internal UpdateReport RunPlugin(DrawingPlugin plugin, string viewId, IEnumerable<string> objectIds, IEnumerable<KeyValuePair<string, double>> settings, out string failure)
+        internal UpdateReport RunPlugin(
+            DrawingPlugin plugin,
+            string viewId,
+            IEnumerable<string> objectIds,
+            IEnumerable<KeyValuePair<string, double>> settings,
+            out string failure
+        )
         {
             if (plugin == null)
             {
@@ -67,27 +78,35 @@ namespace GeometryHelper.Drawing.Wpf
             }
 
             ModelDrawing entry = _current;
-            string error = entry == null ? "No model drawing is shown." : _busy.Contains(entry) ? BusyText(entry) : null;
+            string error =
+                entry == null ? "No model drawing is shown."
+                : _busy.Contains(entry) ? BusyText(entry)
+                : null;
             string what = plugin.Name + " in " + viewId;
-            UpdateReport report = Run(what, (e, provider) =>
-            {
-                try
+            UpdateReport report = Run(
+                what,
+                (e, provider) =>
                 {
-                    return e.Drawing.RunPlugin(plugin, viewId, objectIds, settings);
-                }
-                catch (Exception ex) when (!(ex is OutOfMemoryException))
-                {
-                    error = what + " not made: " + ex.Message.Split('\n')[0].Trim();
-                    throw;
-                }
-            }, entry?.PresetName ?? "Changed");
+                    try
+                    {
+                        return e.Drawing.RunPlugin(plugin, viewId, objectIds, settings);
+                    }
+                    catch (Exception ex) when (!(ex is OutOfMemoryException))
+                    {
+                        error = what + " not made: " + ex.Message.Split('\n')[0].Trim();
+                        throw;
+                    }
+                },
+                entry?.PresetName ?? "Changed"
+            );
 
             failure = report == null ? error ?? what + " not made." : null;
             return report;
         }
 
         /// <summary>The drawing plugins at hand, in the catalog's order; none without a catalog.</summary>
-        internal IReadOnlyList<DrawingPlugin> LoadedPlugins => _plugins?.Plugins ?? (IReadOnlyList<DrawingPlugin>)Array.Empty<DrawingPlugin>();
+        internal IReadOnlyList<DrawingPlugin> LoadedPlugins =>
+            _plugins?.Plugins ?? (IReadOnlyList<DrawingPlugin>)Array.Empty<DrawingPlugin>();
 
         /// <summary>What a plugin needs, as its <see cref="DrawingPlugin.DefineInput"/> says; null, with the words of why, where it throws.</summary>
         internal static DrawingPluginInput InputOf(DrawingPlugin plugin, out string failure)
@@ -102,8 +121,12 @@ namespace GeometryHelper.Drawing.Wpf
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
-                GeometryHelperLog.Warn("DrawingWorkspace: the plugin " + plugin.Name + " failed to say what it needs.", ex);
-                failure = "The plugin " + plugin.Name + " failed to say what it needs: " + ex.Message.Split('\n')[0].Trim();
+                GeometryHelperLog.Warn(
+                    "DrawingWorkspace: the plugin " + plugin.Name + " failed to say what it needs.",
+                    ex
+                );
+                failure =
+                    "The plugin " + plugin.Name + " failed to say what it needs: " + ex.Message.Split('\n')[0].Trim();
                 return null;
             }
         }
@@ -114,7 +137,8 @@ namespace GeometryHelper.Drawing.Wpf
         /// <summary>A setting's range in words: ", from 0.01 to 100", ", at least 0", or nothing where it has none.</summary>
         internal static string RangeOf(DrawingPluginSetting setting)
         {
-            bool low = !double.IsInfinity(setting.Minimum), high = !double.IsInfinity(setting.Maximum);
+            bool low = !double.IsInfinity(setting.Minimum),
+                high = !double.IsInfinity(setting.Maximum);
             return low && high ? ", from " + Exact(setting.Minimum) + " to " + Exact(setting.Maximum)
                 : low ? ", at least " + Exact(setting.Minimum)
                 : high ? ", at most " + Exact(setting.Maximum)
@@ -187,7 +211,12 @@ namespace GeometryHelper.Drawing.Wpf
 
                 while (true)
                 {
-                    yield return CadPrompt.ForDistance(setting.Name + RangeOf(setting), null, null, Exact(setting.Default));
+                    yield return CadPrompt.ForDistance(
+                        setting.Name + RangeOf(setting),
+                        null,
+                        null,
+                        Exact(setting.Default)
+                    );
 
                     if (c.Input.Kind == CadInputKind.None)
                     {
@@ -206,7 +235,10 @@ namespace GeometryHelper.Drawing.Wpf
                     }
 
                     string range = RangeOf(setting);
-                    c.Write(setting.Name + (range.Length == 0 ? " has to be a number." : " has to be" + range.Substring(1) + "."));
+                    c.Write(
+                        setting.Name
+                            + (range.Length == 0 ? " has to be a number." : " has to be" + range.Substring(1) + ".")
+                    );
                 }
 
                 values.Add(new KeyValuePair<string, double>(setting.Name, value));

@@ -18,10 +18,18 @@ namespace GeometryHelper.Core
             : base(
                 ellipse.Center.X,
                 ellipse.Center.Y,
-                ellipse.MajorAxis.X * ellipse.MajorAxis.X / (ellipse.MajorRadius * ellipse.MajorRadius) + ellipse.MajorAxis.Y * ellipse.MajorAxis.Y / (ellipse.MinorRadius * ellipse.MinorRadius),
-                ellipse.MajorAxis.X * ellipse.MajorAxis.Y * (1.0 / (ellipse.MajorRadius * ellipse.MajorRadius) - 1.0 / (ellipse.MinorRadius * ellipse.MinorRadius)),
-                ellipse.MajorAxis.Y * ellipse.MajorAxis.Y / (ellipse.MajorRadius * ellipse.MajorRadius) + ellipse.MajorAxis.X * ellipse.MajorAxis.X / (ellipse.MinorRadius * ellipse.MinorRadius),
-                1.0)
+                ellipse.MajorAxis.X * ellipse.MajorAxis.X / (ellipse.MajorRadius * ellipse.MajorRadius)
+                    + ellipse.MajorAxis.Y * ellipse.MajorAxis.Y / (ellipse.MinorRadius * ellipse.MinorRadius),
+                ellipse.MajorAxis.X
+                    * ellipse.MajorAxis.Y
+                    * (
+                        1.0 / (ellipse.MajorRadius * ellipse.MajorRadius)
+                        - 1.0 / (ellipse.MinorRadius * ellipse.MinorRadius)
+                    ),
+                ellipse.MajorAxis.Y * ellipse.MajorAxis.Y / (ellipse.MajorRadius * ellipse.MajorRadius)
+                    + ellipse.MajorAxis.X * ellipse.MajorAxis.X / (ellipse.MinorRadius * ellipse.MinorRadius),
+                1.0
+            )
         {
             _ellipse = ellipse;
             _scale = Math.Max(Math.Abs(ellipse.Center.X), Math.Abs(ellipse.Center.Y)) + ellipse.MajorRadius;
@@ -31,7 +39,15 @@ namespace GeometryHelper.Core
 
         internal override double Extent => 2.0 * _ellipse.MajorRadius;
 
-        internal override double Gap(double px, double py, double pz, out double qx, out double qy, out double qz, out double other)
+        internal override double Gap(
+            double px,
+            double py,
+            double pz,
+            out double qx,
+            out double qy,
+            out double qz,
+            out double other
+        )
         {
             GeoPoint2 rim = Ellipse2.GetClosestPointOnBoundary(_ellipse, new GeoPoint2(px, py));
             qx = rim.X;
@@ -75,17 +91,41 @@ namespace GeometryHelper.Core
                 acrossHigh = Math.Max(acrossHigh, across);
             }
 
-            double gx = alongLow > 0.0 ? alongLow : alongHigh < 0.0 ? -alongHigh : 0.0;
-            double gy = acrossLow > 0.0 ? acrossLow : acrossHigh < 0.0 ? -acrossHigh : 0.0;
+            double gx =
+                alongLow > 0.0 ? alongLow
+                : alongHigh < 0.0 ? -alongHigh
+                : 0.0;
+            double gy =
+                acrossLow > 0.0 ? acrossLow
+                : acrossHigh < 0.0 ? -acrossHigh
+                : 0.0;
             double fx = Math.Max(Math.Abs(alongLow), Math.Abs(alongHigh));
             double fy = Math.Max(Math.Abs(acrossLow), Math.Abs(acrossHigh));
-            double bound = Math.Max(Math.Sqrt(gx * gx + gy * gy) - 1.0, 1.0 - Math.Sqrt(fx * fx + fy * fy)) * Math.Min(a, b);
-            double slack = 1E-13 * (Math.Abs(Cx) + Math.Abs(Cy) + Math.Abs(min[at]) + Math.Abs(max[at]) + Math.Abs(min[at + 1]) + Math.Abs(max[at + 1]) + a);
+            double bound =
+                Math.Max(Math.Sqrt(gx * gx + gy * gy) - 1.0, 1.0 - Math.Sqrt(fx * fx + fy * fy)) * Math.Min(a, b);
+            double slack =
+                1E-13
+                * (
+                    Math.Abs(Cx)
+                    + Math.Abs(Cy)
+                    + Math.Abs(min[at])
+                    + Math.Abs(max[at])
+                    + Math.Abs(min[at + 1])
+                    + Math.Abs(max[at + 1])
+                    + a
+                );
 
             return bound - slack > 0.0 ? bound - slack : 0.0;
         }
 
-        internal override void GetBox(out double minX, out double minY, out double minZ, out double maxX, out double maxY, out double maxZ)
+        internal override void GetBox(
+            out double minX,
+            out double minY,
+            out double minZ,
+            out double maxX,
+            out double maxY,
+            out double maxZ
+        )
         {
             minX = Cx - _ellipse.MajorRadius;
             maxX = Cx + _ellipse.MajorRadius;
@@ -95,7 +135,18 @@ namespace GeometryHelper.Core
             maxZ = 0.0;
         }
 
-        internal override bool TryGetFrame(double qx, double qy, double qz, double other, out double r1x, out double r1y, out double r1z, out double r2x, out double r2y, out double r2z)
+        internal override bool TryGetFrame(
+            double qx,
+            double qy,
+            double qz,
+            double other,
+            out double r1x,
+            out double r1y,
+            out double r1z,
+            out double r2x,
+            out double r2y,
+            out double r2z
+        )
         {
             // By the angle of the unit circle the ellipse is made from: the point is the centre plus a cos t times the major axis and
             // b sin t times the minor, so the first derivative is -a sin t times the first and b cos t times the second, and the second
@@ -124,10 +175,19 @@ namespace GeometryHelper.Core
             // approaches from the rim as a spline of its own, which finds those the polynomial leaves to rounding.
             base.Find(curve, hunt);
 
-            var rim = new SplinePartner(NurbsCurve.FromEllipse(Cx, Cy, _ellipse.MajorAxis.X, _ellipse.MajorAxis.Y, _ellipse.MajorRadius, _ellipse.MinorRadius))
+            var rim = new SplinePartner(
+                NurbsCurve.FromEllipse(
+                    Cx,
+                    Cy,
+                    _ellipse.MajorAxis.X,
+                    _ellipse.MajorAxis.Y,
+                    _ellipse.MajorRadius,
+                    _ellipse.MinorRadius
+                )
+            )
             {
                 Along = this,
-                Position = Position
+                Position = Position,
             };
 
             rim.Find(curve, hunt);

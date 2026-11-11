@@ -76,8 +76,13 @@ namespace GeometryHelper.Dwg
                     int candidate = last[key];
                     last[key] = at;
 
-                    if (candidate >= start && at - candidate <= 0x4000 && input[candidate] == input[at]
-                        && input[candidate + 1] == input[at + 1] && input[candidate + 2] == input[at + 2])
+                    if (
+                        candidate >= start
+                        && at - candidate <= 0x4000
+                        && input[candidate] == input[at]
+                        && input[candidate + 1] == input[at + 1]
+                        && input[candidate + 2] == input[at + 2]
+                    )
                     {
                         length = 3;
 
@@ -137,7 +142,8 @@ namespace GeometryHelper.Dwg
             return output.ToArray();
         }
 
-        private static int Key(byte[] input, int at) => ((input[at] << 8) ^ (input[at + 1] << 4) ^ input[at + 2] ^ (input[at] >> 4)) & 0xFFFF;
+        private static int Key(byte[] input, int at) =>
+            ((input[at] << 8) ^ (input[at + 1] << 4) ^ input[at + 2] ^ (input[at] >> 4)) & 0xFFFF;
 
         /// <summary>The run of literal bytes a page starts with: 1 to 3 as 0x12 to 0x14, 4 to 18 as 1 to 15, more as 0 and a long length.</summary>
         private static void FirstLiteral(System.IO.Stream output, byte[] input, int from, int count)

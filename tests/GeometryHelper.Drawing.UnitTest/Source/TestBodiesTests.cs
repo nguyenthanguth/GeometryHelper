@@ -9,21 +9,31 @@ namespace GeometryHelper.Drawing.UnitTest
     {
         private static readonly Tolerance Tolerance = Tolerance.Default;
 
-        public static IEnumerable<object[]> Bodies => new[] { "TC1", "TC2", "TC3", "TC4", "TC5", "TC6", "TC7", "TC8", "TC9" }.Select(n => new object[] { n });
+        public static IEnumerable<object[]> Bodies =>
+            new[] { "TC1", "TC2", "TC3", "TC4", "TC5", "TC6", "TC7", "TC8", "TC9" }.Select(n => new object[] { n });
 
         private static TestBody Make(string name)
         {
             switch (name)
             {
-                case "TC1": return TestBodies.TC1();
-                case "TC2": return TestBodies.TC2();
-                case "TC3": return TestBodies.TC3();
-                case "TC4": return TestBodies.TC4();
-                case "TC5": return TestBodies.TC5();
-                case "TC6": return TestBodies.TC6();
-                case "TC7": return TestBodies.TC7();
-                case "TC8": return TestBodies.TC8();
-                default: return TestBodies.TC9();
+                case "TC1":
+                    return TestBodies.TC1();
+                case "TC2":
+                    return TestBodies.TC2();
+                case "TC3":
+                    return TestBodies.TC3();
+                case "TC4":
+                    return TestBodies.TC4();
+                case "TC5":
+                    return TestBodies.TC5();
+                case "TC6":
+                    return TestBodies.TC6();
+                case "TC7":
+                    return TestBodies.TC7();
+                case "TC8":
+                    return TestBodies.TC8();
+                default:
+                    return TestBodies.TC9();
             }
         }
 
@@ -107,7 +117,10 @@ namespace GeometryHelper.Drawing.UnitTest
             // The last is the stiffener on the web's -Y side of the assembly in the far corner of the grid.
             GeoAabb3 box = source.Objects[1999].Solid.GetAabb();
             Assert.True(box.Min.IsEqualTo(new GeoPoint3(6000 * 19 - 5, 6000 * 9 - 200, 25), Tolerance), box.ToString());
-            Assert.True(box.Max.IsEqualTo(new GeoPoint3(6000 * 19 + 5, 6000 * 9 - 4.5, 175), Tolerance), box.ToString());
+            Assert.True(
+                box.Max.IsEqualTo(new GeoPoint3(6000 * 19 + 5, 6000 * 9 - 4.5, 175), Tolerance),
+                box.ToString()
+            );
             Assert.Equal(200 * TestBodies.TC5().Volume, frame.Volume, 1);
         }
 

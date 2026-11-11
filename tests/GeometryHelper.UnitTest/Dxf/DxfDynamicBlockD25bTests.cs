@@ -38,9 +38,18 @@ namespace GeometryHelper.UnitTest.Dxf
             return entity;
         }
 
-        private static DxfBlockReference Place(DxfDatabase db, DxfBlockTableRecord block, double rotation = 0, double scale = 1)
+        private static DxfBlockReference Place(
+            DxfDatabase db,
+            DxfBlockTableRecord block,
+            double rotation = 0,
+            double scale = 1
+        )
         {
-            var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), block) { Rotation = rotation, ScaleFactors = new GeoVector3(scale, scale, scale) };
+            var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), block)
+            {
+                Rotation = rotation,
+                ScaleFactors = new GeoVector3(scale, scale, scale),
+            };
             db.ModelSpace.AppendEntity(insert);
             return insert;
         }
@@ -61,11 +70,13 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static DxfBlockReference TheInsert(DxfDatabase db) => db.ModelSpace.OfType<DxfBlockReference>().First();
 
-        private static DxfDynamicBlockReferenceProperty Property(DxfBlockReference insert, string name) => insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name);
+        private static DxfDynamicBlockReferenceProperty Property(DxfBlockReference insert, string name) =>
+            insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name);
 
         private static object ValueOf(DxfBlockReference insert, string name) => Property(insert, name).Value;
 
-        private static List<DxfEntity> Shown(DxfBlockReference insert) => insert.BlockTableRecord.Cast<DxfEntity>().ToList();
+        private static List<DxfEntity> Shown(DxfBlockReference insert) =>
+            insert.BlockTableRecord.Cast<DxfEntity>().ToList();
 
         private static bool At(GeoPoint3 point, double x, double y) => point.IsEqualTo(new GeoPoint3(x, y, 0), Exact);
 
@@ -79,7 +90,10 @@ namespace GeometryHelper.UnitTest.Dxf
         private static List<DxfItem> Nodes(DxfBlockTableRecord block)
         {
             DxfDBObject graph = block.ExtensionDictionary.GetAt("ACAD_ENHANCEDBLOCK");
-            return graph.Item.Groups.Where(g => g.TypeCode == 360).Select(g => graph.Item.File.ObjectItem(g.Value)).ToList();
+            return graph
+                .Item.Groups.Where(g => g.TypeCode == 360)
+                .Select(g => graph.Item.File.ObjectItem(g.Value))
+                .ToList();
         }
 
         /// <summary>The values of the groups of a code after a subclass marker, up to the next marker.</summary>
@@ -122,7 +136,14 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Drawing("GH_PANEL", out block);
             DxfLine edge = Add(block, new DxfLine(new GeoPoint3(own, 0, 0), new GeoPoint3(own, 50, 0)));
             DxfLine top = Add(block, new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(own, 50, 0)));
-            DxfBlockLinearParameter width = block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(own, 0, 0), -20, set);
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(own, 0, 0),
+                -20,
+                set
+            );
             block.AddStretchAction(width, new GeoPoint2(own - 5, -10), new GeoPoint2(own + 5, 60), new[] { edge, top });
             Place(db, block);
             return db;
@@ -140,7 +161,12 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData(300.0, 50.0, 275.0, 300.0)]
         [InlineData(50.0, 300.0, 75.0, 50.0)]
         [InlineData(50.0, 50.0, 125.0, 100.0)]
-        public void ALinearListTie_GoesToTheBlocksOwnValueWhereItIsOneOfTheTwo_ElseToTheLesser(double own, double from, double asked, double taken)
+        public void ALinearListTie_GoesToTheBlocksOwnValueWhereItIsOneOfTheTwo_ElseToTheLesser(
+            double own,
+            double from,
+            double asked,
+            double taken
+        )
         {
             DxfDatabase db = Panel(own, DxfBlockParameterValueSet.List(Six), out _);
 
@@ -163,7 +189,12 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData(new[] { 100.0, 140, 180, 220, 260 }, 180.0, 160.0, 180.0)]
         [InlineData(new[] { 100.0, 140, 180, 220, 260 }, 180.0, 200.0, 180.0)]
         [InlineData(new[] { 100.0, 140, 180, 220, 260 }, 180.0, 240.0, 220.0)]
-        public void ATieOfAListOfThreeToFiveValues_EvenOrUneven_FollowsTheSameRule(double[] list, double own, double asked, double taken)
+        public void ATieOfAListOfThreeToFiveValues_EvenOrUneven_FollowsTheSameRule(
+            double[] list,
+            double own,
+            double asked,
+            double taken
+        )
         {
             DxfDatabase db = Panel(own, DxfBlockParameterValueSet.List(list), out _);
 
@@ -175,8 +206,16 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             foreach (double before in Six)
             {
-                Assert.Equal(200.0, After(Panel(200, DxfBlockParameterValueSet.List(Six), out _), "Width", before, 175), Close);
-                Assert.Equal(100.0, After(Panel(200, DxfBlockParameterValueSet.List(Six), out _), "Width", before, 125), Close);
+                Assert.Equal(
+                    200.0,
+                    After(Panel(200, DxfBlockParameterValueSet.List(Six), out _), "Width", before, 175),
+                    Close
+                );
+                Assert.Equal(
+                    100.0,
+                    After(Panel(200, DxfBlockParameterValueSet.List(Six), out _), "Width", before, 125),
+                    Close
+                );
             }
         }
 
@@ -186,7 +225,9 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Panel(200, DxfBlockParameterValueSet.List(Six), out DxfBlockTableRecord block);
             DxfItem linear = Nodes(block)[0];
             DxfFile file = linear.File;
-            var groups = file.TailOf(linear, 0).Select(g => new KeyValuePair<int, string>(g.TypeCode, g.Value)).ToList();
+            var groups = file.TailOf(linear, 0)
+                .Select(g => new KeyValuePair<int, string>(g.TypeCode, g.Value))
+                .ToList();
             List<int> listed = Enumerable.Range(0, groups.Count).Where(i => groups[i].Key == 144).ToList();
             List<string> values = listed.Select(i => groups[i].Value).Reverse().ToList();
 
@@ -213,9 +254,17 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData(2.5, 450.0, 500.0)]
         [InlineData(2.5, 150.0, 100.0)]
         [InlineData(2.5, 550.0, 500.0)]
-        public void AnInsertScaledBy2_TakesItsTiesToTheBlocksOwnValueScaled(double ownOverHundred, double asked, double taken)
+        public void AnInsertScaledBy2_TakesItsTiesToTheBlocksOwnValueScaled(
+            double ownOverHundred,
+            double asked,
+            double taken
+        )
         {
-            DxfDatabase db = Panel(100 * ownOverHundred, DxfBlockParameterValueSet.List(Six), out DxfBlockTableRecord block);
+            DxfDatabase db = Panel(
+                100 * ownOverHundred,
+                DxfBlockParameterValueSet.List(Six),
+                out DxfBlockTableRecord block
+            );
             TheInsert(db).Erase();
             Place(db, block, Deg(30), 2);
 
@@ -235,8 +284,16 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Drawing("GH_XY", out DxfBlockTableRecord block);
             DxfPolyline outline = Add(block, Poly(0, 0, 250, 0, 250, 150, 0, 150));
             outline.Closed = true;
-            DxfBlockXYParameter xy = block.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(250, 150, 0),
-                DxfBlockParameterValueSet.List(Six), DxfBlockParameterValueSet.List(new[] { 50.0, 80, 120, 150 }));
+            DxfBlockXYParameter xy = block.AddXYParameter(
+                "Width",
+                null,
+                "Depth",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(250, 150, 0),
+                DxfBlockParameterValueSet.List(Six),
+                DxfBlockParameterValueSet.List(new[] { 50.0, 80, 120, 150 })
+            );
             block.AddStretchAction(xy, new GeoPoint2(245, 145), new GeoPoint2(255, 155), new[] { outline });
             Place(db, block);
 
@@ -254,9 +311,24 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = Drawing("GH_POINTER", out DxfBlockTableRecord block);
             DxfLine line = Add(block, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(own, 0, 0)));
-            DxfBlockPolarParameter polar = block.AddPolarParameter("Length", null, "Angle", null, new GeoPoint3(0, 0, 0), new GeoPoint3(own, 0, 0), -20,
-                DxfBlockParameterValueSet.List(new[] { 50.0, 100, 150, 200 }), null);
-            block.AddPolarStretchAction(polar, new GeoPoint2(own - 5, -5), new GeoPoint2(own + 5, 5), new[] { line }, new DxfEntity[0]);
+            DxfBlockPolarParameter polar = block.AddPolarParameter(
+                "Length",
+                null,
+                "Angle",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(own, 0, 0),
+                -20,
+                DxfBlockParameterValueSet.List(new[] { 50.0, 100, 150, 200 }),
+                null
+            );
+            block.AddPolarStretchAction(
+                polar,
+                new GeoPoint2(own - 5, -5),
+                new GeoPoint2(own + 5, 5),
+                new[] { line },
+                new DxfEntity[0]
+            );
             Place(db, block);
 
             Assert.Equal(taken, After(db, "Length", 50, asked), Close);
@@ -270,7 +342,11 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData(195.0, 190.0)]
         public void AnIncrementTie_GoesToTheStepBelow_EvenWhereTheBlocksOwnIsTheStepAbove(double asked, double taken)
         {
-            Assert.Equal(taken, After(Panel(100, DxfBlockParameterValueSet.Increments(50, 300, 10), out _), "Width", 300, asked), Close);
+            Assert.Equal(
+                taken,
+                After(Panel(100, DxfBlockParameterValueSet.Increments(50, 300, 10), out _), "Width", 300, asked),
+                Close
+            );
         }
 
         // ---- 2. a stretch and a move tied to a polar parameter ---------------------------------------------------------------
@@ -286,19 +362,55 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Drawing("GH_PMOVE", out block);
             DxfLine shaft = Add(block, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)));
             DxfCircle tip = Add(block, new DxfCircle(new GeoPoint3(100, 0, 0), GeoVector3.ZAxis, 5));
-            DxfDBText label = Add(block, new DxfDBText { Position = new GeoPoint3(95, 3, 0), Height = 2.5, TextString = "A" });
+            DxfDBText label = Add(
+                block,
+                new DxfDBText
+                {
+                    Position = new GeoPoint3(95, 3, 0),
+                    Height = 2.5,
+                    TextString = "A",
+                }
+            );
             DxfCircle half = Add(block, new DxfCircle(new GeoPoint3(50, 0, 0), GeoVector3.ZAxis, 3));
             DxfCircle turned = Add(block, new DxfCircle(new GeoPoint3(100, 20, 0), GeoVector3.ZAxis, 2));
             DxfLine right = Add(block, new DxfLine(new GeoPoint3(100, 30, 0), new GeoPoint3(100, 50, 0)));
             DxfLine top = Add(block, new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0)));
             DxfPolyline under = Add(block, Poly(60, -10, 100, -10, 100, -20));
-            polar = block.AddPolarParameter("Length", null, "Angle", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null, null);
-            block.AddPolarStretchAction(polar, new GeoPoint2(90, -5), new GeoPoint2(110, 5), new DxfEntity[] { shaft }, new DxfEntity[0]);
+            polar = block.AddPolarParameter(
+                "Length",
+                null,
+                "Angle",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                null,
+                null
+            );
+            block.AddPolarStretchAction(
+                polar,
+                new GeoPoint2(90, -5),
+                new GeoPoint2(110, 5),
+                new DxfEntity[] { shaft },
+                new DxfEntity[0]
+            );
             block.AddMoveAction(polar, new DxfEntity[] { tip, label });
             block.AddMoveAction(polar, new DxfEntity[] { half }, 0.5, 0);
             block.AddMoveAction(polar, new DxfEntity[] { turned }, 1, Math.PI / 2);
-            block.AddStretchAction(polar, new GeoPoint2(90, 25), new GeoPoint2(110, 60), new DxfEntity[] { right, top });
-            block.AddStretchAction(polar, new GeoPoint2(90, -25), new GeoPoint2(110, -15), new DxfEntity[] { under }, 0.5, 0);
+            block.AddStretchAction(
+                polar,
+                new GeoPoint2(90, 25),
+                new GeoPoint2(110, 60),
+                new DxfEntity[] { right, top }
+            );
+            block.AddStretchAction(
+                polar,
+                new GeoPoint2(90, -25),
+                new GeoPoint2(110, -15),
+                new DxfEntity[] { under },
+                0.5,
+                0
+            );
             Place(db, block);
             return db;
         }
@@ -317,7 +429,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(At(((DxfCircle)shown[4]).Center, 100, 70));
             Assert.True(Is(shown[5], 150, 30, 150, 50));
             Assert.True(Is(shown[6], 0, 50, 150, 50));
-            Assert.True(At(((DxfPolyline)shown[7]).GetPoint3dAt(2), 125, -20) && At(((DxfPolyline)shown[7]).GetPoint3dAt(1), 100, -10));
+            Assert.True(
+                At(((DxfPolyline)shown[7]).GetPoint3dAt(2), 125, -20)
+                    && At(((DxfPolyline)shown[7]).GetPoint3dAt(1), 100, -10)
+            );
 
             Property(TheInsert(db), "Angle").Value = Math.PI / 2;
             shown = Shown(TheInsert(Reopened(db)));
@@ -370,7 +485,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new[] { "EndYDelta" }, Of(move, "AcDbBlockMoveAction", 302));
             Assert.Equal(new[] { id }, Of(stretch, "AcDbBlockStretchAction", 93));
             Assert.Equal(new[] { "EndXDelta" }, Of(stretch, "AcDbBlockStretchAction", 301));
-            Assert.Equal(new[] { "Move", "Move1", "Move2" }, nodes.Where(n => n.Type == "BLOCKMOVEACTION").Select(n => Of(n, "AcDbBlockElement", 300).Single()));
+            Assert.Equal(
+                new[] { "Move", "Move1", "Move2" },
+                nodes.Where(n => n.Type == "BLOCKMOVEACTION").Select(n => Of(n, "AcDbBlockElement", 300).Single())
+            );
         }
 
         [Fact]
@@ -381,9 +499,23 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfLine bottom = Add(block, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)));
             DxfLine top = Add(block, new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0)));
             Add(block, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0)));
-            DxfBlockPolarParameter polar = block.AddPolarParameter("Reach", "How far", "Turn", "Which way", new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), 20,
-                DxfBlockParameterValueSet.Increments(50, 300, 10), DxfBlockParameterValueSet.Increments(0, 2 * Math.PI, Math.PI / 12));
-            block.AddStretchAction(polar, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new DxfEntity[] { right, bottom, top });
+            DxfBlockPolarParameter polar = block.AddPolarParameter(
+                "Reach",
+                "How far",
+                "Turn",
+                "Which way",
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                20,
+                DxfBlockParameterValueSet.Increments(50, 300, 10),
+                DxfBlockParameterValueSet.Increments(0, 2 * Math.PI, Math.PI / 12)
+            );
+            block.AddStretchAction(
+                polar,
+                new GeoPoint2(90, -10),
+                new GeoPoint2(110, 60),
+                new DxfEntity[] { right, bottom, top }
+            );
             DxfBlockReference insert = Place(db, block);
 
             Property(insert, "Reach").Value = 150.0;
@@ -408,13 +540,33 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Drawing("GH_ONE", out DxfBlockTableRecord block);
             DxfLine line = Add(block, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)));
             DxfCircle tip = Add(block, new DxfCircle(new GeoPoint3(100, 0, 0), GeoVector3.ZAxis, 5));
-            DxfBlockPolarParameter polar = block.AddPolarParameter("Length", null, "Angle", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), 0, null, null);
-            block.AddPolarStretchAction(polar, new GeoPoint2(90, -10), new GeoPoint2(110, 10), new[] { line }, new DxfEntity[0]);
+            DxfBlockPolarParameter polar = block.AddPolarParameter(
+                "Length",
+                null,
+                "Angle",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                0,
+                null,
+                null
+            );
+            block.AddPolarStretchAction(
+                polar,
+                new GeoPoint2(90, -10),
+                new GeoPoint2(110, 10),
+                new[] { line },
+                new DxfEntity[0]
+            );
             string before = db.ToText();
 
             Assert.Throws<NotSupportedException>(() => block.AddMoveAction(polar, new[] { line }));
-            Assert.Throws<NotSupportedException>(() => block.AddStretchAction(polar, new GeoPoint2(90, -10), new GeoPoint2(110, 10), new[] { line }));
-            Assert.Throws<ArgumentNullException>(() => block.AddMoveAction((DxfBlockPolarParameter)null, new[] { tip }));
+            Assert.Throws<NotSupportedException>(() =>
+                block.AddStretchAction(polar, new GeoPoint2(90, -10), new GeoPoint2(110, 10), new[] { line })
+            );
+            Assert.Throws<ArgumentNullException>(() =>
+                block.AddMoveAction((DxfBlockPolarParameter)null, new[] { tip })
+            );
             Assert.Throws<ArgumentOutOfRangeException>(() => block.AddMoveAction(polar, new[] { tip }, double.NaN, 0));
             Assert.Equal(before, db.ToText());
 
@@ -425,31 +577,94 @@ namespace GeometryHelper.UnitTest.Dxf
 
         // ---- 3. lookup columns of an XY, a polar and a rotation parameter -------------------------------------------------------
 
-        private static DxfDatabase Looked(out DxfBlockTableRecord xyBlock, out DxfBlockTableRecord polarBlock, out DxfBlockTableRecord rotationBlock)
+        private static DxfDatabase Looked(
+            out DxfBlockTableRecord xyBlock,
+            out DxfBlockTableRecord polarBlock,
+            out DxfBlockTableRecord rotationBlock
+        )
         {
             DxfDatabase db = Drawing("GH_LXY", out xyBlock);
             DxfPolyline outline = Add(xyBlock, Poly(0, 0, 100, 0, 100, 50, 0, 50));
             outline.Closed = true;
-            DxfBlockXYParameter xy = xyBlock.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 50, 0));
+            DxfBlockXYParameter xy = xyBlock.AddXYParameter(
+                "Width",
+                null,
+                "Depth",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 50, 0)
+            );
             xyBlock.AddStretchAction(xy, new GeoPoint2(90, 40), new GeoPoint2(110, 60), new[] { outline });
-            xyBlock.AddLookupParameter("Size", null, new GeoPoint3(50, -20, 0), new[] { DxfBlockLookupInput.X(xy), DxfBlockLookupInput.Y(xy) },
-                new[] { new DxfBlockLookupRow("Small", 100, 50), new DxfBlockLookupRow("Large", 200, 80), new DxfBlockLookupRow("Deep", 100, 120) });
+            xyBlock.AddLookupParameter(
+                "Size",
+                null,
+                new GeoPoint3(50, -20, 0),
+                new[] { DxfBlockLookupInput.X(xy), DxfBlockLookupInput.Y(xy) },
+                new[]
+                {
+                    new DxfBlockLookupRow("Small", 100, 50),
+                    new DxfBlockLookupRow("Large", 200, 80),
+                    new DxfBlockLookupRow("Deep", 100, 120),
+                }
+            );
 
             polarBlock = new DxfBlockTableRecord { Name = "GH_LPOLAR", Origin = new GeoPoint3(0, 0, 0) };
             db.BlockTable.Add(polarBlock);
             DxfLine line = Add(polarBlock, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)));
-            DxfBlockPolarParameter polar = polarBlock.AddPolarParameter("Length", null, "Angle", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null, null);
-            polarBlock.AddPolarStretchAction(polar, new GeoPoint2(90, -5), new GeoPoint2(110, 5), new DxfEntity[] { line }, new DxfEntity[0]);
-            polarBlock.AddLookupParameter("Pick", null, new GeoPoint3(50, -30, 0), new[] { DxfBlockLookupInput.Distance(polar), DxfBlockLookupInput.Angle(polar) },
-                new[] { new DxfBlockLookupRow("A", 100, 0), new DxfBlockLookupRow("B", 150, Math.PI / 2), new DxfBlockLookupRow("C", 80, Math.PI / 4) });
+            DxfBlockPolarParameter polar = polarBlock.AddPolarParameter(
+                "Length",
+                null,
+                "Angle",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                null,
+                null
+            );
+            polarBlock.AddPolarStretchAction(
+                polar,
+                new GeoPoint2(90, -5),
+                new GeoPoint2(110, 5),
+                new DxfEntity[] { line },
+                new DxfEntity[0]
+            );
+            polarBlock.AddLookupParameter(
+                "Pick",
+                null,
+                new GeoPoint3(50, -30, 0),
+                new[] { DxfBlockLookupInput.Distance(polar), DxfBlockLookupInput.Angle(polar) },
+                new[]
+                {
+                    new DxfBlockLookupRow("A", 100, 0),
+                    new DxfBlockLookupRow("B", 150, Math.PI / 2),
+                    new DxfBlockLookupRow("C", 80, Math.PI / 4),
+                }
+            );
 
             rotationBlock = new DxfBlockTableRecord { Name = "GH_LROT", Origin = new GeoPoint3(0, 0, 0) };
             db.BlockTable.Add(rotationBlock);
             DxfLine needle = Add(rotationBlock, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(30, 0, 0)));
-            DxfBlockRotationParameter angle = rotationBlock.AddRotationParameter("Angle", null, new GeoPoint3(0, 0, 0), 30, 0);
+            DxfBlockRotationParameter angle = rotationBlock.AddRotationParameter(
+                "Angle",
+                null,
+                new GeoPoint3(0, 0, 0),
+                30,
+                0
+            );
             rotationBlock.AddRotateAction(angle, new[] { needle });
-            rotationBlock.AddLookupParameter("Way", null, new GeoPoint3(0, -20, 0), new[] { DxfBlockLookupInput.Angle(angle) },
-                new[] { new DxfBlockLookupRow("East", 0), new DxfBlockLookupRow("North", Math.PI / 2), new DxfBlockLookupRow("West", Math.PI) });
+            rotationBlock.AddLookupParameter(
+                "Way",
+                null,
+                new GeoPoint3(0, -20, 0),
+                new[] { DxfBlockLookupInput.Angle(angle) },
+                new[]
+                {
+                    new DxfBlockLookupRow("East", 0),
+                    new DxfBlockLookupRow("North", Math.PI / 2),
+                    new DxfBlockLookupRow("West", Math.PI),
+                }
+            );
             return db;
         }
 
@@ -521,7 +736,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("West", ValueOf(insert, "Way"));
             Property(insert, "Angle").Value = 1.0;
             Assert.Equal("Custom", ValueOf(TheInsert(Reopened(db)), "Way"));
-            Assert.Equal(new object[] { "East", "North", "West", "Custom" }, Property(insert, "Way").GetAllowedValues());
+            Assert.Equal(
+                new object[] { "East", "North", "West", "Custom" },
+                Property(insert, "Way").GetAllowedValues()
+            );
             Property(insert, "Way").Value = "East";
             Assert.Equal(0.0, (double)ValueOf(insert, "Angle"), Close);
             Assert.True(Is(Shown(insert)[0], 0, 0, 30, 0));
@@ -530,20 +748,32 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void TheColumnsOfAnXYAPolarAndARotationParameter_AreWrittenOfTheirConnectionsAndUnits()
         {
-            Looked(out DxfBlockTableRecord xyBlock, out DxfBlockTableRecord polarBlock, out DxfBlockTableRecord rotationBlock);
+            Looked(
+                out DxfBlockTableRecord xyBlock,
+                out DxfBlockTableRecord polarBlock,
+                out DxfBlockTableRecord rotationBlock
+            );
 
             DxfItem xy = Nodes(xyBlock).Last(n => n.Type == "BLOCKLOOKUPACTION");
             DxfItem polar = Nodes(polarBlock).Last(n => n.Type == "BLOCKLOOKUPACTION");
             DxfItem rotation = Nodes(rotationBlock).Last(n => n.Type == "BLOCKLOOKUPACTION");
 
-            Assert.Equal(new[] { "UpdatedDistanceX", "UpdatedDistanceY", "lookupString" }, Of(xy, "AcDbBlockLookupAction", 304));
+            Assert.Equal(
+                new[] { "UpdatedDistanceX", "UpdatedDistanceY", "lookupString" },
+                Of(xy, "AcDbBlockLookupAction", 304)
+            );
             Assert.Equal(new[] { "2", "2", "0" }, Of(xy, "AcDbBlockLookupAction", 96));
-            Assert.Equal(new[] { "UpdatedDistance", "UpdatedAngle", "lookupString" }, Of(polar, "AcDbBlockLookupAction", 304));
+            Assert.Equal(
+                new[] { "UpdatedDistance", "UpdatedAngle", "lookupString" },
+                Of(polar, "AcDbBlockLookupAction", 304)
+            );
             Assert.Equal(new[] { "2", "1", "0" }, Of(polar, "AcDbBlockLookupAction", 96));
             Assert.Equal(new[] { "UpdatedAngle", "lookupString" }, Of(rotation, "AcDbBlockLookupAction", 304));
             Assert.Equal(new[] { "1", "0" }, Of(rotation, "AcDbBlockLookupAction", 96));
-            Assert.Contains(Of(rotation, "AcDbBlockLookupAction", 302), v => v.StartsWith("3.14159", StringComparison.Ordinal)
-                && Math.Abs(double.Parse(v, CultureInfo.InvariantCulture) - Math.PI) <= Close);
+            Assert.Contains(Of(rotation, "AcDbBlockLookupAction", 302), v =>
+                v.StartsWith("3.14159", StringComparison.Ordinal)
+                && Math.Abs(double.Parse(v, CultureInfo.InvariantCulture) - Math.PI) <= Close
+            );
         }
 
         [Fact]
@@ -551,24 +781,57 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = Drawing("GH_ONE", out DxfBlockTableRecord block);
             DxfLine needle = Add(block, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(30, 0, 0)));
-            DxfBlockRotationParameter angle = block.AddRotationParameter("Angle", null, new GeoPoint3(0, 0, 0), 30, 0, DxfBlockParameterValueSet.Increments(0, 2 * Math.PI, Math.PI / 12));
+            DxfBlockRotationParameter angle = block.AddRotationParameter(
+                "Angle",
+                null,
+                new GeoPoint3(0, 0, 0),
+                30,
+                0,
+                DxfBlockParameterValueSet.Increments(0, 2 * Math.PI, Math.PI / 12)
+            );
             block.AddRotateAction(angle, new[] { needle });
             DxfPolyline outline = Add(block, Poly(0, 0, 100, 0, 100, 50, 0, 50));
-            DxfBlockXYParameter xy = block.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 50, 0));
+            DxfBlockXYParameter xy = block.AddXYParameter(
+                "Width",
+                null,
+                "Depth",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 50, 0)
+            );
             block.AddStretchAction(xy, new GeoPoint2(90, 40), new GeoPoint2(110, 60), new[] { outline });
             string before = db.ToText();
 
-            Assert.Throws<ArgumentException>(() => block.AddLookupParameter("Way", null, new GeoPoint3(0, 0, 0), new[] { DxfBlockLookupInput.Angle(angle) },
-                new[] { new DxfBlockLookupRow("Odd", Deg(10)) }));
-            Assert.Throws<ArgumentException>(() => block.AddLookupParameter("Size", null, new GeoPoint3(0, 0, 0), new[] { DxfBlockLookupInput.X(xy) },
-                new[] { new DxfBlockLookupRow("Flat", 0) }));
+            Assert.Throws<ArgumentException>(() =>
+                block.AddLookupParameter(
+                    "Way",
+                    null,
+                    new GeoPoint3(0, 0, 0),
+                    new[] { DxfBlockLookupInput.Angle(angle) },
+                    new[] { new DxfBlockLookupRow("Odd", Deg(10)) }
+                )
+            );
+            Assert.Throws<ArgumentException>(() =>
+                block.AddLookupParameter(
+                    "Size",
+                    null,
+                    new GeoPoint3(0, 0, 0),
+                    new[] { DxfBlockLookupInput.X(xy) },
+                    new[] { new DxfBlockLookupRow("Flat", 0) }
+                )
+            );
             Assert.Throws<ArgumentNullException>(() => DxfBlockLookupInput.Angle((DxfBlockRotationParameter)null));
             Assert.Equal(before, db.ToText());
 
             // A turn of 2 pi less a step, or of a whole turn, is of the set; a whole turn sets nought, which no row of 2 pi
             // matches, as AutoCAD 2021 read Custom (plugin D25b).
-            block.AddLookupParameter("Way", null, new GeoPoint3(0, 0, 0), new[] { DxfBlockLookupInput.Angle(angle) },
-                new[] { new DxfBlockLookupRow("Back", Deg(345)), new DxfBlockLookupRow("Round", 2 * Math.PI) });
+            block.AddLookupParameter(
+                "Way",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new[] { DxfBlockLookupInput.Angle(angle) },
+                new[] { new DxfBlockLookupRow("Back", Deg(345)), new DxfBlockLookupRow("Round", 2 * Math.PI) }
+            );
             DxfBlockReference insert = Place(db, block);
             Assert.Equal("Custom", ValueOf(insert, "Way"));
             Property(insert, "Way").Value = "Round";
@@ -585,17 +848,52 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Drawing("GH_DUP", out DxfBlockTableRecord block);
             DxfPolyline outline = Add(block, Poly(0, 0, 100, 0, 100, 50, 0, 50));
             outline.Closed = true;
-            DxfBlockXYParameter xy = block.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 50, 0));
+            DxfBlockXYParameter xy = block.AddXYParameter(
+                "Width",
+                null,
+                "Depth",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 50, 0)
+            );
             block.AddStretchAction(xy, new GeoPoint2(90, 40), new GeoPoint2(110, 60), new[] { outline });
-            block.AddLookupParameter("Size", null, new GeoPoint3(50, -20, 0), new[] { DxfBlockLookupInput.X(xy), DxfBlockLookupInput.Y(xy) },
-                new[] { new DxfBlockLookupRow("Small", 100, 50), new DxfBlockLookupRow("Twin", 100, 50), new DxfBlockLookupRow("Large", 200, 80), new DxfBlockLookupRow("Big", 200, 80) });
+            block.AddLookupParameter(
+                "Size",
+                null,
+                new GeoPoint3(50, -20, 0),
+                new[] { DxfBlockLookupInput.X(xy), DxfBlockLookupInput.Y(xy) },
+                new[]
+                {
+                    new DxfBlockLookupRow("Small", 100, 50),
+                    new DxfBlockLookupRow("Twin", 100, 50),
+                    new DxfBlockLookupRow("Large", 200, 80),
+                    new DxfBlockLookupRow("Big", 200, 80),
+                }
+            );
             DxfBlockTableRecord turning = new DxfBlockTableRecord { Name = "GH_DOWN", Origin = new GeoPoint3(0, 0, 0) };
             db.BlockTable.Add(turning);
             DxfLine needle = Add(turning, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(30, 0, 0)));
-            DxfBlockRotationParameter angle = turning.AddRotationParameter("Angle", null, new GeoPoint3(0, 0, 0), 30, 0);
+            DxfBlockRotationParameter angle = turning.AddRotationParameter(
+                "Angle",
+                null,
+                new GeoPoint3(0, 0, 0),
+                30,
+                0
+            );
             turning.AddRotateAction(angle, new[] { needle });
-            turning.AddLookupParameter("Way", null, new GeoPoint3(0, -20, 0), new[] { DxfBlockLookupInput.Angle(angle) },
-                new[] { new DxfBlockLookupRow("East", 0), new DxfBlockLookupRow("Zero", 0), new DxfBlockLookupRow("Down", -Math.PI / 2), new DxfBlockLookupRow("South", 1.5 * Math.PI) });
+            turning.AddLookupParameter(
+                "Way",
+                null,
+                new GeoPoint3(0, -20, 0),
+                new[] { DxfBlockLookupInput.Angle(angle) },
+                new[]
+                {
+                    new DxfBlockLookupRow("East", 0),
+                    new DxfBlockLookupRow("Zero", 0),
+                    new DxfBlockLookupRow("Down", -Math.PI / 2),
+                    new DxfBlockLookupRow("South", 1.5 * Math.PI),
+                }
+            );
             DxfBlockReference plate = Place(db, block);
             DxfBlockReference dial = Place(db, turning);
 

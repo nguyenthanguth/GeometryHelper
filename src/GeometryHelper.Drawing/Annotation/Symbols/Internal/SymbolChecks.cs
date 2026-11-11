@@ -38,7 +38,12 @@ namespace GeometryHelper.Drawing.Annotation
         /// <summary>A point of finite numbers.</summary>
         internal static Geometry.GeoPoint2 Finite(Geometry.GeoPoint2 point, string name)
         {
-            if (double.IsNaN(point.X) || double.IsInfinity(point.X) || double.IsNaN(point.Y) || double.IsInfinity(point.Y))
+            if (
+                double.IsNaN(point.X)
+                || double.IsInfinity(point.X)
+                || double.IsNaN(point.Y)
+                || double.IsInfinity(point.Y)
+            )
             {
                 throw new ArgumentException("The point has to be of finite numbers.", name);
             }
@@ -50,6 +55,7 @@ namespace GeometryHelper.Drawing.Annotation
         /// The linetype scale that makes one round of CENTER twice the text's height long where it is drawn: about a tenth
         /// for a text 2.5 high on paper.
         /// </summary>
-        internal static double PatternScale(double textHeight, ViewPlacement2 placement) => 2.0 * textHeight / placement.Scale / CentrePattern;
+        internal static double PatternScale(double textHeight, ViewPlacement2 placement) =>
+            2.0 * textHeight / placement.Scale / CentrePattern;
     }
 }

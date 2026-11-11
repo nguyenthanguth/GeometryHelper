@@ -7,9 +7,7 @@ namespace GeometryHelper.Dxf
     internal sealed class DxfUnknownObject : DxfDBObject
     {
         internal DxfUnknownObject(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gives the object as a line for debugging: its type and its handle.</summary>
         /// <returns>The line, such as <c>XRECORD 2F</c>.</returns>

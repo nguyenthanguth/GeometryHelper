@@ -21,12 +21,11 @@ namespace GeometryHelper.Core
     /// </remarks>
     public static partial class Intersection3
     {
-
         /// <summary>
         /// Gets every point where a straight chain crosses a plane.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoPlane3 plane)
-            => GetIntersections(polyline, plane, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoPlane3 plane) =>
+            GetIntersections(polyline, plane, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a straight chain crosses a plane, within a tolerance.
@@ -60,8 +59,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where a straight chain crosses a plane.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoPlane3 plane, out GeoPoint3[] intersections)
-            => TryIntersectWith(polyline, plane, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoPlane3 plane, out GeoPoint3[] intersections) =>
+            TryIntersectWith(polyline, plane, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a plane, within a tolerance.
@@ -72,7 +71,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoPlane3 plane, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolyline3 polyline,
+            GeoPlane3 plane,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(polyline, plane, tolerance);
 
@@ -82,8 +86,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a straight chain crosses a segment.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoLine3 line)
-            => GetIntersections(polyline, line, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoLine3 line) =>
+            GetIntersections(polyline, line, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a straight chain crosses a segment, within a tolerance.
@@ -98,8 +102,10 @@ namespace GeometryHelper.Core
         /// of the chain are the sides they are however short.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoLine3 line, Tolerance tolerance)
-            => Stub3.ReadsAsStart(line, tolerance) ? CrossingsOfStub(polyline, line, tolerance) : Crossings(polyline, line, tolerance);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoLine3 line, Tolerance tolerance) =>
+            Stub3.ReadsAsStart(line, tolerance)
+                ? CrossingsOfStub(polyline, line, tolerance)
+                : Crossings(polyline, line, tolerance);
 
         /// <summary>
         /// Gets where a segment no longer than the tolerance, read as its start unless it truly crosses, meets a straight chain.
@@ -122,14 +128,14 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a straight chain crosses a segment, each side met as the sides of shapes meet one.
         /// </summary>
-        internal static GeoPoint3[] Crossings(GeoPolyline3 polyline, GeoLine3 line, Tolerance tolerance)
-            => CrossingsOfSegments(polyline, segment => OfSide(segment, line, tolerance), tolerance);
+        internal static GeoPoint3[] Crossings(GeoPolyline3 polyline, GeoLine3 line, Tolerance tolerance) =>
+            CrossingsOfSegments(polyline, segment => OfSide(segment, line, tolerance), tolerance);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a segment.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoLine3 line, out GeoPoint3[] intersections)
-            => TryIntersectWith(polyline, line, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoLine3 line, out GeoPoint3[] intersections) =>
+            TryIntersectWith(polyline, line, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a segment, within a tolerance.
@@ -140,7 +146,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoLine3 line, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolyline3 polyline,
+            GeoLine3 line,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(polyline, line, tolerance);
 
@@ -150,8 +161,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a straight chain crosses a ray.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoRay3 ray)
-            => GetIntersections(polyline, ray, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoRay3 ray) =>
+            GetIntersections(polyline, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a straight chain crosses a ray, within a tolerance.
@@ -161,14 +172,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>Every place they meet, each named once.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoRay3 ray, Tolerance tolerance)
-            => CrossingsOfSegments(polyline, segment => OfSide(segment, ray, tolerance), tolerance);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoRay3 ray, Tolerance tolerance) =>
+            CrossingsOfSegments(polyline, segment => OfSide(segment, ray, tolerance), tolerance);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a ray.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoRay3 ray, out GeoPoint3[] intersections)
-            => TryIntersectWith(polyline, ray, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoRay3 ray, out GeoPoint3[] intersections) =>
+            TryIntersectWith(polyline, ray, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a ray, within a tolerance.
@@ -179,7 +190,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoRay3 ray, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolyline3 polyline,
+            GeoRay3 ray,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(polyline, ray, tolerance);
 
@@ -189,8 +205,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a straight chain crosses an arc.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoArc3 arc)
-            => GetIntersections(polyline, arc, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoArc3 arc) =>
+            GetIntersections(polyline, arc, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a straight chain crosses an arc, within a tolerance.
@@ -200,14 +216,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>Every place they meet, each named once.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoArc3 arc, Tolerance tolerance)
-            => CrossingsOfSegments(polyline, segment => OfSide(segment, arc, tolerance), tolerance);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoArc3 arc, Tolerance tolerance) =>
+            CrossingsOfSegments(polyline, segment => OfSide(segment, arc, tolerance), tolerance);
 
         /// <summary>
         /// Tries to find where a straight chain crosses an arc.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoArc3 arc, out GeoPoint3[] intersections)
-            => TryIntersectWith(polyline, arc, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoArc3 arc, out GeoPoint3[] intersections) =>
+            TryIntersectWith(polyline, arc, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a straight chain crosses an arc, within a tolerance.
@@ -218,7 +234,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoArc3 arc, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolyline3 polyline,
+            GeoArc3 arc,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(polyline, arc, tolerance);
 
@@ -228,8 +249,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a straight chain crosses a circle.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoCircle3 circle)
-            => GetIntersections(polyline, circle, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoCircle3 circle) =>
+            GetIntersections(polyline, circle, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a straight chain crosses a circle, within a tolerance.
@@ -239,14 +260,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>Every place they meet, each named once.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoCircle3 circle, Tolerance tolerance)
-            => CrossingsOfSegments(polyline, segment => OfSide(segment, circle, tolerance), tolerance);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoCircle3 circle, Tolerance tolerance) =>
+            CrossingsOfSegments(polyline, segment => OfSide(segment, circle, tolerance), tolerance);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a circle.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoCircle3 circle, out GeoPoint3[] intersections)
-            => TryIntersectWith(polyline, circle, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoCircle3 circle, out GeoPoint3[] intersections) =>
+            TryIntersectWith(polyline, circle, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a circle, within a tolerance.
@@ -257,7 +278,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoCircle3 circle, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolyline3 polyline,
+            GeoCircle3 circle,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(polyline, circle, tolerance);
 
@@ -267,8 +293,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a straight chain crosses a triangle.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoTriangle3 triangle)
-            => GetIntersections(polyline, triangle, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoTriangle3 triangle) =>
+            GetIntersections(polyline, triangle, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a straight chain crosses a triangle, within a tolerance.
@@ -283,14 +309,17 @@ namespace GeometryHelper.Core
         /// of the triangle is given the corner.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoTriangle3 triangle, Tolerance tolerance)
-            => CrossingsOfSegments(polyline, segment => Meeting(segment, triangle, false, tolerance), tolerance);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoTriangle3 triangle, Tolerance tolerance) =>
+            CrossingsOfSegments(polyline, segment => Meeting(segment, triangle, false, tolerance), tolerance);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a triangle.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoTriangle3 triangle, out GeoPoint3[] intersections)
-            => TryIntersectWith(polyline, triangle, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(
+            GeoPolyline3 polyline,
+            GeoTriangle3 triangle,
+            out GeoPoint3[] intersections
+        ) => TryIntersectWith(polyline, triangle, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a triangle, within a tolerance.
@@ -301,7 +330,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoTriangle3 triangle, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolyline3 polyline,
+            GeoTriangle3 triangle,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(polyline, triangle, tolerance);
 
@@ -311,8 +345,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a straight chain crosses a polygon.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoPolygon3 polygon)
-            => GetIntersections(polyline, polygon, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoPolygon3 polygon) =>
+            GetIntersections(polyline, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a straight chain crosses a polygon, within a tolerance.
@@ -327,14 +361,17 @@ namespace GeometryHelper.Core
         /// of the polygon is given the corner.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoPolygon3 polygon, Tolerance tolerance)
-            => CrossingsOfSegments(polyline, segment => Meeting(segment, polygon, false, tolerance), tolerance);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoPolygon3 polygon, Tolerance tolerance) =>
+            CrossingsOfSegments(polyline, segment => Meeting(segment, polygon, false, tolerance), tolerance);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a polygon.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoPolygon3 polygon, out GeoPoint3[] intersections)
-            => TryIntersectWith(polyline, polygon, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(
+            GeoPolyline3 polyline,
+            GeoPolygon3 polygon,
+            out GeoPoint3[] intersections
+        ) => TryIntersectWith(polyline, polygon, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a polygon, within a tolerance.
@@ -345,7 +382,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoPolygon3 polygon, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolyline3 polyline,
+            GeoPolygon3 polygon,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(polyline, polygon, tolerance);
 
@@ -355,8 +397,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a straight chain crosses a face.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoFace3 face)
-            => GetIntersections(polyline, face, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoFace3 face) =>
+            GetIntersections(polyline, face, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a straight chain crosses a face, within a tolerance.
@@ -371,14 +413,14 @@ namespace GeometryHelper.Core
         /// of the face is given the corner.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoFace3 face, Tolerance tolerance)
-            => CrossingsOfSegments(polyline, segment => Meeting(segment, face, false, tolerance), tolerance);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoFace3 face, Tolerance tolerance) =>
+            CrossingsOfSegments(polyline, segment => Meeting(segment, face, false, tolerance), tolerance);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a face.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoFace3 face, out GeoPoint3[] intersections)
-            => TryIntersectWith(polyline, face, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoFace3 face, out GeoPoint3[] intersections) =>
+            TryIntersectWith(polyline, face, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a face, within a tolerance.
@@ -389,7 +431,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoFace3 face, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolyline3 polyline,
+            GeoFace3 face,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(polyline, face, tolerance);
 
@@ -399,8 +446,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a straight chain crosses a box.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoObb3 box)
-            => GetIntersections(polyline, box, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoObb3 box) =>
+            GetIntersections(polyline, box, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a straight chain crosses a box, within a tolerance.
@@ -410,14 +457,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>Every place they meet, each named once.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoObb3 box, Tolerance tolerance)
-            => CrossingsOfSegments(polyline, segment => OfSide(segment, box, tolerance), tolerance);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoObb3 box, Tolerance tolerance) =>
+            CrossingsOfSegments(polyline, segment => OfSide(segment, box, tolerance), tolerance);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a box.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoObb3 box, out GeoPoint3[] intersections)
-            => TryIntersectWith(polyline, box, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoObb3 box, out GeoPoint3[] intersections) =>
+            TryIntersectWith(polyline, box, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a box, within a tolerance.
@@ -428,7 +475,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoObb3 box, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolyline3 polyline,
+            GeoObb3 box,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(polyline, box, tolerance);
 
@@ -438,8 +490,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a straight chain crosses a square box.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoAabb3 box)
-            => GetIntersections(polyline, box, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoAabb3 box) =>
+            GetIntersections(polyline, box, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a straight chain crosses a square box, within a tolerance.
@@ -449,14 +501,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>Every place they meet, each named once.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoAabb3 box, Tolerance tolerance)
-            => CrossingsOfSegments(polyline, segment => OfSide(segment, box, tolerance), tolerance);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoAabb3 box, Tolerance tolerance) =>
+            CrossingsOfSegments(polyline, segment => OfSide(segment, box, tolerance), tolerance);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a square box.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoAabb3 box, out GeoPoint3[] intersections)
-            => TryIntersectWith(polyline, box, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoAabb3 box, out GeoPoint3[] intersections) =>
+            TryIntersectWith(polyline, box, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a square box, within a tolerance.
@@ -467,7 +519,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoAabb3 box, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolyline3 polyline,
+            GeoAabb3 box,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(polyline, box, tolerance);
 
@@ -477,8 +534,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a straight chain crosses a body.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoSolid3 solid)
-            => GetIntersections(polyline, solid, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoSolid3 solid) =>
+            GetIntersections(polyline, solid, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a straight chain crosses a body, within a tolerance.
@@ -515,8 +572,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where a straight chain crosses a body.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoSolid3 solid, out GeoPoint3[] intersections)
-            => TryIntersectWith(polyline, solid, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoSolid3 solid, out GeoPoint3[] intersections) =>
+            TryIntersectWith(polyline, solid, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a body, within a tolerance.
@@ -527,7 +584,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoSolid3 solid, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolyline3 polyline,
+            GeoSolid3 solid,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(polyline, solid, tolerance);
 
@@ -537,8 +599,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where two straight chains cross.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoPolyline3 other)
-            => GetIntersections(polyline, other, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoPolyline3 other) =>
+            GetIntersections(polyline, other, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where two straight chains cross, within a tolerance.
@@ -593,8 +655,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where two straight chains cross.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoPolyline3 other, out GeoPoint3[] intersections)
-            => TryIntersectWith(polyline, other, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoPolyline3 other, out GeoPoint3[] intersections) =>
+            TryIntersectWith(polyline, other, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where two straight chains cross, within a tolerance.
@@ -605,7 +667,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolyline3 polyline, GeoPolyline3 other, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolyline3 polyline,
+            GeoPolyline3 other,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(polyline, other, tolerance);
 
@@ -615,7 +682,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gathers what each segment of a chain answers, naming each place once.
         /// </summary>
-        private static GeoPoint3[] CrossingsOfSegments(GeoPolyline3 polyline, Func<GeoLine3, GeoPoint3[]> of, Tolerance tolerance)
+        private static GeoPoint3[] CrossingsOfSegments(
+            GeoPolyline3 polyline,
+            Func<GeoLine3, GeoPoint3[]> of,
+            Tolerance tolerance
+        )
         {
             RequireChain(polyline, nameof(polyline));
 

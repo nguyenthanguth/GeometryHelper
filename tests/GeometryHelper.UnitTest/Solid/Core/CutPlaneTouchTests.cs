@@ -26,14 +26,20 @@ namespace GeometryHelper.UnitTest.Solid
         private static double AreaOf(GeoPolygon3[] pieces)
         {
             double total = 0.0;
-            foreach (GeoPolygon3 p in pieces) { total += p.Area; }
+            foreach (GeoPolygon3 p in pieces)
+            {
+                total += p.Area;
+            }
             return total;
         }
 
         private static double AreaOf(GeoFace3[] pieces)
         {
             double total = 0.0;
-            foreach (GeoFace3 f in pieces) { total += f.Area; }
+            foreach (GeoFace3 f in pieces)
+            {
+                total += f.Area;
+            }
             return total;
         }
 
@@ -65,12 +71,16 @@ namespace GeometryHelper.UnitTest.Solid
         /// A rectangle straddling the cut line, with a spur to the right whose tip rests exactly on it at
         /// (1, 0) and turns back up. The tip is on the plane but the outline never passes through it.
         /// </summary>
-        private static GeoPoint3[] TangentialVertexProfile() => new[]
-        {
-            new GeoPoint3(-5, 4, 0), new GeoPoint3(-5, -4, 0),
-            new GeoPoint3(-1, -4, 0), new GeoPoint3(-1, 4, 0),
-            new GeoPoint3(1, 0, 0), new GeoPoint3(3, 4, 0)
-        };
+        private static GeoPoint3[] TangentialVertexProfile() =>
+            new[]
+            {
+                new GeoPoint3(-5, 4, 0),
+                new GeoPoint3(-5, -4, 0),
+                new GeoPoint3(-1, -4, 0),
+                new GeoPoint3(-1, 4, 0),
+                new GeoPoint3(1, 0, 0),
+                new GeoPoint3(3, 4, 0),
+            };
 
         #region A vertex resting on the plane
 
@@ -113,11 +123,16 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 body = Prism(TangentialVertexProfile(), 3.0);
 
             // A tool filling everything below the cut, its top face exactly on the plane the tip rests on.
-            GeoSolid3 tool = Prism(new[]
-            {
-                new GeoPoint3(-6, -6, -1), new GeoPoint3(6, -6, -1),
-                new GeoPoint3(6, 0, -1), new GeoPoint3(-6, 0, -1)
-            }, 5.0);
+            GeoSolid3 tool = Prism(
+                new[]
+                {
+                    new GeoPoint3(-6, -6, -1),
+                    new GeoPoint3(6, -6, -1),
+                    new GeoPoint3(6, 0, -1),
+                    new GeoPoint3(-6, 0, -1),
+                },
+                5.0
+            );
 
             Assert.True(Boolean3.TrySubtract(body, tool, out GeoSolid3 rest));
 
@@ -131,8 +146,13 @@ namespace GeometryHelper.UnitTest.Solid
             // The control for the case above: the cut line passes through two vertices, but the outline
             // genuinely passes through to the other side at each of them.
             GeoPolygon3 poly = new GeoPolygon3(
-                new GeoPoint3(-5, 4, 0), new GeoPoint3(-5, 0, 0), new GeoPoint3(-5, -4, 0),
-                new GeoPoint3(-1, -4, 0), new GeoPoint3(-1, 0, 0), new GeoPoint3(-1, 4, 0));
+                new GeoPoint3(-5, 4, 0),
+                new GeoPoint3(-5, 0, 0),
+                new GeoPoint3(-5, -4, 0),
+                new GeoPoint3(-1, -4, 0),
+                new GeoPoint3(-1, 0, 0),
+                new GeoPoint3(-1, 4, 0)
+            );
 
             Assert.True(poly.TrySplitBy(CutAtY(0), out GeoPolygon3[] above, out GeoPolygon3[] below));
 
@@ -148,9 +168,14 @@ namespace GeometryHelper.UnitTest.Solid
         public void AnOutlineEdgeLyingAlongTheCut_ConservesArea()
         {
             GeoPolygon3 poly = new GeoPolygon3(
-                new GeoPoint3(-5, 4, 0), new GeoPoint3(-5, -4, 0),
-                new GeoPoint3(-1, -4, 0), new GeoPoint3(-1, 4, 0),
-                new GeoPoint3(1, 0, 0), new GeoPoint3(3, 0, 0), new GeoPoint3(4, 4, 0));
+                new GeoPoint3(-5, 4, 0),
+                new GeoPoint3(-5, -4, 0),
+                new GeoPoint3(-1, -4, 0),
+                new GeoPoint3(-1, 4, 0),
+                new GeoPoint3(1, 0, 0),
+                new GeoPoint3(3, 0, 0),
+                new GeoPoint3(4, 4, 0)
+            );
 
             Assert.True(poly.TrySplitBy(CutAtY(0), out GeoPolygon3[] above, out GeoPolygon3[] below));
 
@@ -164,11 +189,18 @@ namespace GeometryHelper.UnitTest.Solid
             // The two halves meet the plane over different stretches: the foot reaches x = 10 along it,
             // the upright only x = 4. Taking one reach for both would leave the other half with a spur of
             // zero width.
-            GeoSolid3 body = Prism(new[]
-            {
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 4, 0),
-                new GeoPoint3(4, 4, 0), new GeoPoint3(4, 10, 0), new GeoPoint3(0, 10, 0)
-            }, 6.0);
+            GeoSolid3 body = Prism(
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 4, 0),
+                    new GeoPoint3(4, 4, 0),
+                    new GeoPoint3(4, 10, 0),
+                    new GeoPoint3(0, 10, 0),
+                },
+                6.0
+            );
 
             Assert.Equal(384.0, body.GetVolume(), 9);
             Assert.True(body.TrySplitBy(CutAtY(4), out GeoSolid3 above, out GeoSolid3 below));
@@ -191,12 +223,18 @@ namespace GeometryHelper.UnitTest.Solid
         private static GeoFace3 SquareWithHole(double z)
         {
             GeoPolygon3 outer = new GeoPolygon3(
-                new GeoPoint3(0, 0, z), new GeoPoint3(10, 0, z),
-                new GeoPoint3(10, 10, z), new GeoPoint3(0, 10, z));
+                new GeoPoint3(0, 0, z),
+                new GeoPoint3(10, 0, z),
+                new GeoPoint3(10, 10, z),
+                new GeoPoint3(0, 10, z)
+            );
 
             GeoPolygon3 hole = new GeoPolygon3(
-                new GeoPoint3(1, 1, z), new GeoPoint3(3, 1, z),
-                new GeoPoint3(3, 3, z), new GeoPoint3(1, 3, z));
+                new GeoPoint3(1, 1, z),
+                new GeoPoint3(3, 1, z),
+                new GeoPoint3(3, 3, z),
+                new GeoPoint3(1, 3, z)
+            );
 
             return new GeoFace3(outer, new[] { hole });
         }
@@ -235,17 +273,27 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ABodyCutAlongTheWallOfItsOwnCavity_ConservesVolume()
         {
-            GeoSolid3 slab = Prism(new[]
-            {
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0)
-            }, 4.0);
+            GeoSolid3 slab = Prism(
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(0, 10, 0),
+                },
+                4.0
+            );
 
-            GeoSolid3 cavity = Prism(new[]
-            {
-                new GeoPoint3(1, 1, 1), new GeoPoint3(3, 1, 1),
-                new GeoPoint3(3, 3, 1), new GeoPoint3(1, 3, 1)
-            }, 2.0);
+            GeoSolid3 cavity = Prism(
+                new[]
+                {
+                    new GeoPoint3(1, 1, 1),
+                    new GeoPoint3(3, 1, 1),
+                    new GeoPoint3(3, 3, 1),
+                    new GeoPoint3(1, 3, 1),
+                },
+                2.0
+            );
 
             Assert.True(Boolean3.TrySubtract(slab, cavity, out GeoSolid3 hollow));
             Assert.Equal(392.0, hollow.GetVolume(), 9);
@@ -261,23 +309,38 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TakingASecondBodyOutOfOneThatAlreadyHasACavity()
         {
-            GeoSolid3 slab = Prism(new[]
-            {
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0)
-            }, 4.0);
+            GeoSolid3 slab = Prism(
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(0, 10, 0),
+                },
+                4.0
+            );
 
-            GeoSolid3 first = Prism(new[]
-            {
-                new GeoPoint3(1, 1, 1), new GeoPoint3(3, 1, 1),
-                new GeoPoint3(3, 3, 1), new GeoPoint3(1, 3, 1)
-            }, 2.0);
+            GeoSolid3 first = Prism(
+                new[]
+                {
+                    new GeoPoint3(1, 1, 1),
+                    new GeoPoint3(3, 1, 1),
+                    new GeoPoint3(3, 3, 1),
+                    new GeoPoint3(1, 3, 1),
+                },
+                2.0
+            );
 
-            GeoSolid3 second = Prism(new[]
-            {
-                new GeoPoint3(5, 5, 0.5), new GeoPoint3(7, 5, 0.5),
-                new GeoPoint3(7, 7, 0.5), new GeoPoint3(5, 7, 0.5)
-            }, 3.0);
+            GeoSolid3 second = Prism(
+                new[]
+                {
+                    new GeoPoint3(5, 5, 0.5),
+                    new GeoPoint3(7, 5, 0.5),
+                    new GeoPoint3(7, 7, 0.5),
+                    new GeoPoint3(5, 7, 0.5),
+                },
+                3.0
+            );
 
             Assert.True(Boolean3.TrySubtract(slab, first, out GeoSolid3 once));
             Assert.Equal(400.0 - 8.0, once.GetVolume(), 9);
@@ -297,11 +360,16 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void APlaneTakingACornerOffJustPastIt_StillCuts()
         {
-            GeoSolid3 cube = Prism(new[]
-            {
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0)
-            }, 10.0);
+            GeoSolid3 cube = Prism(
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(0, 10, 0),
+                },
+                10.0
+            );
             // Past the default planar tolerance of a hundredth, with slivers some a tenth long and under the hundredth
             // a polygon refuses as an area.
             double depth = 0.06;

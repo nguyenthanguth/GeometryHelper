@@ -41,7 +41,13 @@ namespace GeometryHelper.Viewer
         /// <returns>The triangles; none where no line closes.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the lines or the plane are null.</exception>
         /// <exception cref="OperationCanceledException">Thrown when the work is cancelled.</exception>
-        public static List<DrawTriangle> Build(IReadOnlyList<DrawPolyline> chains, ClipPlane plane, Tolerance tolerance, out int refused, CancellationToken cancel = default(CancellationToken))
+        public static List<DrawTriangle> Build(
+            IReadOnlyList<DrawPolyline> chains,
+            ClipPlane plane,
+            Tolerance tolerance,
+            out int refused,
+            CancellationToken cancel = default(CancellationToken)
+        )
         {
             if (chains == null)
             {
@@ -87,7 +93,12 @@ namespace GeometryHelper.Viewer
 
                 for (int j = 0; j < loops.Length; j++)
                 {
-                    if (j != i && loops[j].Area > loops[i].Area && loops[j].Holds(loops[i]) && (parent[i] < 0 || loops[j].Area < loops[parent[i]].Area))
+                    if (
+                        j != i
+                        && loops[j].Area > loops[i].Area
+                        && loops[j].Holds(loops[i])
+                        && (parent[i] < 0 || loops[j].Area < loops[parent[i]].Area)
+                    )
                     {
                         parent[i] = j;
                     }
@@ -136,7 +147,14 @@ namespace GeometryHelper.Viewer
 
                         foreach (GeoTriangle3 t in cut)
                         {
-                            triangles.Add(new DrawTriangle(new Vec3(t.A.X, t.A.Y, t.A.Z), new Vec3(t.B.X, t.B.Y, t.B.Z), new Vec3(t.C.X, t.C.Y, t.C.Z), facing));
+                            triangles.Add(
+                                new DrawTriangle(
+                                    new Vec3(t.A.X, t.A.Y, t.A.Z),
+                                    new Vec3(t.B.X, t.B.Y, t.B.Z),
+                                    new Vec3(t.C.X, t.C.Y, t.C.Z),
+                                    facing
+                                )
+                            );
                         }
                     }
                     catch (Exception e) when (!(e is OutOfMemoryException) && !(e is OperationCanceledException))
@@ -149,7 +167,8 @@ namespace GeometryHelper.Viewer
             return triangles;
         }
 
-        private static GeoPolygon3 Polygon(Vec3[] points) => new GeoPolygon3(points.Select(p => new GeoPoint3(p.X, p.Y, p.Z)));
+        private static GeoPolygon3 Polygon(Vec3[] points) =>
+            new GeoPolygon3(points.Select(p => new GeoPoint3(p.X, p.Y, p.Z)));
 
         /// <summary>
         /// A closed line laid in the plane: its corners across and up the plane, and its area.
@@ -204,7 +223,12 @@ namespace GeometryHelper.Viewer
                     // The box of a loop inside another is inside its box, but for the rounding of the corners they share.
                     double slack = 1E-9 * Math.Max(_maxX - _minX, _maxY - _minY);
 
-                    if (other._minX < _minX - slack || other._maxX > _maxX + slack || other._minY < _minY - slack || other._maxY > _maxY + slack)
+                    if (
+                        other._minX < _minX - slack
+                        || other._maxX > _maxX + slack
+                        || other._minY < _minY - slack
+                        || other._maxY > _maxY + slack
+                    )
                     {
                         return false;
                     }

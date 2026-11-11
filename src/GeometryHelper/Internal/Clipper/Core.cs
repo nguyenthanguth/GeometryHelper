@@ -26,8 +26,8 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public Point64(Point64 pt, double scale)
         {
-            X = (long) Math.Round(pt.X * scale, MidpointRounding.AwayFromZero);
-            Y = (long) Math.Round(pt.Y * scale, MidpointRounding.AwayFromZero);
+            X = (long)Math.Round(pt.X * scale, MidpointRounding.AwayFromZero);
+            Y = (long)Math.Round(pt.Y * scale, MidpointRounding.AwayFromZero);
         }
 
         /// <summary>
@@ -44,8 +44,8 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public Point64(double x, double y)
         {
-            X = (long) Math.Round(x, MidpointRounding.AwayFromZero);
-            Y = (long) Math.Round(y, MidpointRounding.AwayFromZero);
+            X = (long)Math.Round(x, MidpointRounding.AwayFromZero);
+            Y = (long)Math.Round(y, MidpointRounding.AwayFromZero);
         }
 
         /// <summary>
@@ -53,8 +53,8 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public Point64(PointD pt)
         {
-            X = (long) Math.Round(pt.x, MidpointRounding.AwayFromZero);
-            Y = (long) Math.Round(pt.y, MidpointRounding.AwayFromZero);
+            X = (long)Math.Round(pt.x, MidpointRounding.AwayFromZero);
+            Y = (long)Math.Round(pt.y, MidpointRounding.AwayFromZero);
         }
 
         /// <summary>
@@ -62,8 +62,8 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public Point64(PointD pt, double scale)
         {
-            X = (long) Math.Round(pt.x * scale, MidpointRounding.AwayFromZero);
-            Y = (long) Math.Round(pt.y * scale, MidpointRounding.AwayFromZero);
+            X = (long)Math.Round(pt.x * scale, MidpointRounding.AwayFromZero);
+            Y = (long)Math.Round(pt.y * scale, MidpointRounding.AwayFromZero);
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace GeometryHelper.Clipper
         /// <summary>
         /// The point as text: x, a comma, y, and a space after it.
         /// </summary>
-        public readonly override string ToString()
+        public override readonly string ToString()
         {
             return $"{X},{Y} ";
         }
@@ -109,7 +109,7 @@ namespace GeometryHelper.Clipper
         /// <summary>
         /// Whether the object is a point with the same coordinates.
         /// </summary>
-        public readonly override bool Equals(object obj)
+        public override readonly bool Equals(object obj)
         {
             if (obj != null && obj is Point64 p)
                 return this == p;
@@ -119,11 +119,13 @@ namespace GeometryHelper.Clipper
         /// <summary>
         /// A hash code made of the two coordinates.
         /// </summary>
-        public readonly override int GetHashCode()
+        public override readonly int GetHashCode()
         {
-            unchecked { return (X.GetHashCode() * 397) ^ Y.GetHashCode(); }
+            unchecked
+            {
+                return (X.GetHashCode() * 397) ^ Y.GetHashCode();
+            }
         }
-
     }
 
     /// <summary>
@@ -196,7 +198,7 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public readonly string ToString(int precision = 2)
         {
-            return string.Format($"{{0:F{precision}}},{{1:F{precision}}}", x,y);
+            return string.Format($"{{0:F{precision}}},{{1:F{precision}}}", x, y);
         }
 
         /// <summary>
@@ -218,7 +220,7 @@ namespace GeometryHelper.Clipper
         /// <summary>
         /// Whether the object is a point with the same coordinates.
         /// </summary>
-        public readonly override bool Equals(object obj)
+        public override readonly bool Equals(object obj)
         {
             if (obj != null && obj is PointD p)
                 return this == p;
@@ -228,16 +230,22 @@ namespace GeometryHelper.Clipper
         /// <summary>
         /// Turns the point round the origin: both coordinates change sign.
         /// </summary>
-        public void Negate() { x = -x; y = -y; }
+        public void Negate()
+        {
+            x = -x;
+            y = -y;
+        }
 
         /// <summary>
         /// A hash code made of the two coordinates, the same for equal points.
         /// </summary>
-        public readonly override int GetHashCode()
+        public override readonly int GetHashCode()
         {
-            unchecked { return (x.GetHashCode() * 397) ^ y.GetHashCode(); }
+            unchecked
+            {
+                return (x.GetHashCode() * 397) ^ y.GetHashCode();
+            }
         }
-
     }
 
     /// <summary>
@@ -271,12 +279,17 @@ namespace GeometryHelper.Clipper
         {
             if (isValid)
             {
-                left = 0; top = 0; right = 0; bottom = 0;
+                left = 0;
+                top = 0;
+                right = 0;
+                bottom = 0;
             }
             else
             {
-                left = long.MaxValue; top = long.MaxValue;
-                right = long.MinValue; bottom = long.MinValue;
+                left = long.MaxValue;
+                top = long.MaxValue;
+                right = long.MinValue;
+                bottom = long.MinValue;
             }
         }
 
@@ -295,7 +308,8 @@ namespace GeometryHelper.Clipper
         /// Its width, right less left; setting it moves the right edge.
         /// </summary>
         public long Width
-        { readonly get => right - left;
+        {
+            readonly get => right - left;
             set => right = left + value;
         }
 
@@ -303,7 +317,8 @@ namespace GeometryHelper.Clipper
         /// Its height, bottom less top; setting it moves the bottom edge.
         /// </summary>
         public long Height
-        { readonly get => bottom - top;
+        {
+            readonly get => bottom - top;
             set => bottom = top + value;
         }
 
@@ -329,7 +344,7 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public readonly Point64 MidPoint()
         {
-            return new Point64((left + right) /2, (top + bottom)/2);
+            return new Point64((left + right) / 2, (top + bottom) / 2);
         }
 
         /// <summary>
@@ -337,8 +352,7 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public readonly bool Contains(Point64 pt)
         {
-            return pt.X > left && pt.X < right &&
-                pt.Y > top && pt.Y < bottom;
+            return pt.X > left && pt.X < right && pt.Y > top && pt.Y < bottom;
         }
 
         /// <summary>
@@ -346,8 +360,7 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public readonly bool Contains(Rect64 rec)
         {
-            return rec.left >= left && rec.right <= right &&
-                rec.top >= top && rec.bottom <= bottom;
+            return rec.left >= left && rec.right <= right && rec.top >= top && rec.bottom <= bottom;
         }
 
         /// <summary>
@@ -355,8 +368,8 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public readonly bool Intersects(Rect64 rec)
         {
-            return (Math.Max(left, rec.left) <= Math.Min(right, rec.right)) &&
-                (Math.Max(top, rec.top) <= Math.Min(bottom, rec.bottom));
+            return (Math.Max(left, rec.left) <= Math.Min(right, rec.right))
+                && (Math.Max(top, rec.top) <= Math.Min(bottom, rec.bottom));
         }
 
         /// <summary>
@@ -369,11 +382,10 @@ namespace GeometryHelper.Clipper
                 new Point64(left, top),
                 new Point64(right, top),
                 new Point64(right, bottom),
-                new Point64(left, bottom)
+                new Point64(left, bottom),
             };
             return result;
         }
-
     }
 
     /// <summary>
@@ -417,12 +429,17 @@ namespace GeometryHelper.Clipper
         {
             if (isValid)
             {
-                left = 0; top = 0; right = 0; bottom = 0;
+                left = 0;
+                top = 0;
+                right = 0;
+                bottom = 0;
             }
             else
             {
-                left = double.MaxValue; top = double.MaxValue;
-                right = -double.MaxValue; bottom = -double.MaxValue;
+                left = double.MaxValue;
+                top = double.MaxValue;
+                right = -double.MaxValue;
+                bottom = -double.MaxValue;
             }
         }
 
@@ -430,7 +447,8 @@ namespace GeometryHelper.Clipper
         /// Its width, right less left; setting it moves the right edge.
         /// </summary>
         public double Width
-        { readonly get => right - left;
+        {
+            readonly get => right - left;
             set => right = left + value;
         }
 
@@ -438,7 +456,8 @@ namespace GeometryHelper.Clipper
         /// Its height, bottom less top; setting it moves the bottom edge.
         /// </summary>
         public double Height
-        { readonly get => bottom - top;
+        {
+            readonly get => bottom - top;
             set => bottom = top + value;
         }
 
@@ -463,8 +482,7 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public readonly bool Contains(PointD pt)
         {
-            return pt.x > left && pt.x < right &&
-                pt.y > top && pt.y < bottom;
+            return pt.x > left && pt.x < right && pt.y > top && pt.y < bottom;
         }
 
         /// <summary>
@@ -472,8 +490,7 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public readonly bool Contains(RectD rec)
         {
-            return rec.left >= left && rec.right <= right &&
-                rec.top >= top && rec.bottom <= bottom;
+            return rec.left >= left && rec.right <= right && rec.top >= top && rec.bottom <= bottom;
         }
 
         /// <summary>
@@ -482,8 +499,8 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public readonly bool Intersects(RectD rec)
         {
-            return (Math.Max(left, rec.left) < Math.Min(right, rec.right)) &&
-                (Math.Max(top, rec.top) < Math.Min(bottom, rec.bottom));
+            return (Math.Max(left, rec.left) < Math.Min(right, rec.right))
+                && (Math.Max(top, rec.top) < Math.Min(bottom, rec.bottom));
         }
 
         /// <summary>
@@ -496,11 +513,10 @@ namespace GeometryHelper.Clipper
                 new PointD(left, top),
                 new PointD(right, top),
                 new PointD(right, bottom),
-                new PointD(left, bottom)
+                new PointD(left, bottom),
             };
             return result;
         }
-
     }
 
     /// <summary>
@@ -511,17 +527,20 @@ namespace GeometryHelper.Clipper
         /// <summary>
         /// An empty path.
         /// </summary>
-        public Path64() : base() { }
+        public Path64()
+            : base() { }
 
         /// <summary>
         /// An empty path with room for <c>capacity</c> points.
         /// </summary>
-        public Path64(int capacity = 0) : base(capacity) { }
+        public Path64(int capacity = 0)
+            : base(capacity) { }
 
         /// <summary>
         /// A path of the points, copied.
         /// </summary>
-        public Path64(IEnumerable<Point64> path) : base(path) { }
+        public Path64(IEnumerable<Point64> path)
+            : base(path) { }
 
         /// <summary>
         /// The points as text, joined by a comma and a space.
@@ -540,17 +559,20 @@ namespace GeometryHelper.Clipper
         /// <summary>
         /// No paths.
         /// </summary>
-        public Paths64() : base() { }
+        public Paths64()
+            : base() { }
 
         /// <summary>
         /// No paths, with room for <c>capacity</c> of them.
         /// </summary>
-        public Paths64(int capacity = 0) : base(capacity) { }
+        public Paths64(int capacity = 0)
+            : base(capacity) { }
 
         /// <summary>
         /// A list of the paths themselves, not of copies of them.
         /// </summary>
-        public Paths64(IEnumerable<Path64> paths) : base(paths) { }
+        public Paths64(IEnumerable<Path64> paths)
+            : base(paths) { }
 
         /// <summary>
         /// The paths as text, a line for each.
@@ -569,17 +591,20 @@ namespace GeometryHelper.Clipper
         /// <summary>
         /// An empty path.
         /// </summary>
-        public PathD() : base() { }
+        public PathD()
+            : base() { }
 
         /// <summary>
         /// An empty path with room for <c>capacity</c> points.
         /// </summary>
-        public PathD(int capacity = 0) : base(capacity) { }
+        public PathD(int capacity = 0)
+            : base(capacity) { }
 
         /// <summary>
         /// A path of the points, copied.
         /// </summary>
-        public PathD(IEnumerable<PointD> path) : base(path) { }
+        public PathD(IEnumerable<PointD> path)
+            : base(path) { }
 
         /// <summary>
         /// The points as text with <c>precision</c> decimal places, two unless given, joined by a comma and a space.
@@ -598,17 +623,20 @@ namespace GeometryHelper.Clipper
         /// <summary>
         /// No paths.
         /// </summary>
-        public PathsD() : base() { }
+        public PathsD()
+            : base() { }
 
         /// <summary>
         /// No paths, with room for <c>capacity</c> of them.
         /// </summary>
-        public PathsD(int capacity = 0) : base(capacity) { }
+        public PathsD(int capacity = 0)
+            : base(capacity) { }
 
         /// <summary>
         /// A list of the paths themselves, not of copies of them.
         /// </summary>
-        public PathsD(IEnumerable<PathD> paths) : base(paths) { }
+        public PathsD(IEnumerable<PathD> paths)
+            : base(paths) { }
 
         /// <summary>
         /// The paths as text with <c>precision</c> decimal places, two unless given, a line for each.
@@ -629,7 +657,7 @@ namespace GeometryHelper.Clipper
         Intersection,
         Union,
         Difference,
-        Xor
+        Xor,
     }
 
     /// <summary>
@@ -638,7 +666,7 @@ namespace GeometryHelper.Clipper
     internal enum PathType
     {
         Subject,
-        Clip
+        Clip,
     }
 
     /// <summary>
@@ -651,7 +679,7 @@ namespace GeometryHelper.Clipper
         EvenOdd,
         NonZero,
         Positive,
-        Negative
+        Negative,
     }
 
     /// <summary>
@@ -669,8 +697,7 @@ namespace GeometryHelper.Clipper
         internal const double floatingPointTolerance = 1E-12;
         internal const double defaultMinimumEdgeLength = 0.1;
 
-        private static readonly string
-            precision_range_error = "Error: Precision is out of range.";
+        private static readonly string precision_range_error = "Error: Precision is out of range.";
 
         /// <summary>
         /// The cross product of the edge from pt1 to pt2 and the edge from pt2 to pt3, in doubles so that it cannot
@@ -680,8 +707,7 @@ namespace GeometryHelper.Clipper
         public static double CrossProduct(Point64 pt1, Point64 pt2, Point64 pt3)
         {
             // typecast to double to avoid potential int overflow
-            return ((double) (pt2.X - pt1.X) * (pt3.Y - pt2.Y) -
-                            (double) (pt2.Y - pt1.Y) * (pt3.X - pt2.X));
+            return ((double)(pt2.X - pt1.X) * (pt3.Y - pt2.Y) - (double)(pt2.Y - pt1.Y) * (pt3.X - pt2.X));
         }
 
         /// <summary>
@@ -694,8 +720,8 @@ namespace GeometryHelper.Clipper
             long b = pt3.Y - pt2.Y;
             long c = pt2.Y - pt1.Y;
             long d = pt3.X - pt2.X;
-            UInt128Struct ab = MultiplyUInt64((ulong) Math.Abs(a), (ulong) Math.Abs(b));
-            UInt128Struct cd = MultiplyUInt64((ulong) Math.Abs(c), (ulong) Math.Abs(d));
+            UInt128Struct ab = MultiplyUInt64((ulong)Math.Abs(a), (ulong)Math.Abs(b));
+            UInt128Struct cd = MultiplyUInt64((ulong)Math.Abs(c), (ulong)Math.Abs(d));
             int signAB = TriSign(a) * TriSign(b);
             int signCD = TriSign(c) * TriSign(d);
 
@@ -704,10 +730,12 @@ namespace GeometryHelper.Clipper
                 int result;
                 if (ab.hi64 == cd.hi64)
                 {
-                    if (ab.lo64 == cd.lo64) return 0;
+                    if (ab.lo64 == cd.lo64)
+                        return 0;
                     result = (ab.lo64 > cd.lo64) ? 1 : -1;
                 }
-                else result = (ab.hi64 > cd.hi64) ? 1 : -1;
+                else
+                    result = (ab.hi64 > cd.hi64) ? 1 : -1;
                 return (signAB > 0) ? result : -result;
             }
             return (signAB > signCD) ? 1 : -1;
@@ -739,7 +767,9 @@ namespace GeometryHelper.Clipper
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static int TriSign(long x)
         {
-            return (x < 0) ? -1 : (x > 0) ? 1 : 0;
+            return (x < 0) ? -1
+                : (x > 0) ? 1
+                : 0;
         }
 
         /// <summary>
@@ -773,10 +803,10 @@ namespace GeometryHelper.Clipper
         internal static bool ProductsAreEqual(long a, long b, long c, long d)
         {
             // nb: the magnitudes are multiplied unsigned, by MultiplyUInt64, and the signs compared apart
-            ulong absA = (ulong) Math.Abs(a);
-            ulong absB = (ulong) Math.Abs(b);
-            ulong absC = (ulong) Math.Abs(c);
-            ulong absD = (ulong) Math.Abs(d);
+            ulong absA = (ulong)Math.Abs(a);
+            ulong absB = (ulong)Math.Abs(b);
+            ulong absC = (ulong)Math.Abs(c);
+            ulong absD = (ulong)Math.Abs(d);
 
             UInt128Struct mul_ab = MultiplyUInt64(absA, absB);
             UInt128Struct mul_cd = MultiplyUInt64(absC, absD);
@@ -812,8 +842,7 @@ namespace GeometryHelper.Clipper
         internal static double DotProduct(Point64 pt1, Point64 pt2, Point64 pt3)
         {
             // typecast to double to avoid potential int overflow
-            return ((double) (pt2.X - pt1.X) * (pt3.X - pt2.X) +
-                            (double) (pt2.Y - pt1.Y) * (pt3.Y - pt2.Y));
+            return ((double)(pt2.X - pt1.X) * (pt3.X - pt2.X) + (double)(pt2.Y - pt1.Y) * (pt3.Y - pt2.Y));
         }
 
         /// <summary>
@@ -843,7 +872,8 @@ namespace GeometryHelper.Clipper
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static long CheckCastInt64(double val)
         {
-            if ((val >= max_coord) || (val <= min_coord)) return Invalid64;
+            if ((val >= max_coord) || (val <= min_coord))
+                return Invalid64;
             return (long)Math.Round(val, MidpointRounding.AwayFromZero);
         }
 
@@ -854,8 +884,7 @@ namespace GeometryHelper.Clipper
         /// integers, toward nought, not rounded.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool GetLineIntersectPt(Point64 ln1a,
-            Point64 ln1b, Point64 ln2a, Point64 ln2b, out Point64 ip)
+        public static bool GetLineIntersectPt(Point64 ln1a, Point64 ln1b, Point64 ln2a, Point64 ln2b, out Point64 ip)
         {
             double dy1 = (ln1b.Y - ln1a.Y);
             double dx1 = (ln1b.X - ln1a.X);
@@ -869,13 +898,15 @@ namespace GeometryHelper.Clipper
             }
 
             double t = ((ln1a.X - ln2a.X) * dy2 - (ln1a.Y - ln2a.Y) * dx2) / det;
-            if (t <= 0.0) ip = ln1a;
-            else if (t >= 1.0) ip = ln1b;
+            if (t <= 0.0)
+                ip = ln1a;
+            else if (t >= 1.0)
+                ip = ln1b;
             else
             {
                 // avoid using constructor (and rounding too) as they affect performance //664
-                ip.X = (long) (ln1a.X + t * dx1);
-                ip.Y = (long) (ln1a.Y + t * dy1);
+                ip.X = (long)(ln1a.X + t * dx1);
+                ip.Y = (long)(ln1a.Y + t * dy1);
             }
             return true;
         }
@@ -886,8 +917,7 @@ namespace GeometryHelper.Clipper
         /// when the crossing lies beyond, but it may lie outside the second segment.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool GetLineIntersectPt(PointD ln1a,
-            PointD ln1b, PointD ln2a, PointD ln2b, out PointD ip)
+        public static bool GetLineIntersectPt(PointD ln1a, PointD ln1b, PointD ln2a, PointD ln2b, out PointD ip)
         {
             double dy1 = (ln1b.y - ln1a.y);
             double dx1 = (ln1b.x - ln1a.x);
@@ -901,8 +931,10 @@ namespace GeometryHelper.Clipper
             }
 
             double t = ((ln1a.x - ln2a.x) * dy2 - (ln1a.y - ln2a.y) * dx2) / det;
-            if (t <= 0.0) ip = ln1a;
-            else if (t >= 1.0) ip = ln1b;
+            if (t <= 0.0)
+                ip = ln1a;
+            else if (t >= 1.0)
+                ip = ln1b;
             else
             {
                 // avoid using constructor (and rounding too) as they affect performance //664
@@ -918,15 +950,21 @@ namespace GeometryHelper.Clipper
         /// not count; with inclusive they do. Clipper2 2.0.0, its C++ as well, counted with inclusive seg1a lying
         /// anywhere on the line through the second segment, even beyond its ends; that is mended here.
         /// </summary>
-        internal static bool SegsIntersect(Point64 seg1a,
-            Point64 seg1b, Point64 seg2a, Point64 seg2b, bool inclusive = false)
+        internal static bool SegsIntersect(
+            Point64 seg1a,
+            Point64 seg1b,
+            Point64 seg2a,
+            Point64 seg2b,
+            bool inclusive = false
+        )
         {
             double dy1 = (seg1b.Y - seg1a.Y);
             double dx1 = (seg1b.X - seg1a.X);
             double dy2 = (seg2b.Y - seg2a.Y);
             double dx2 = (seg2b.X - seg2a.X);
             double cp = dy1 * dx2 - dy2 * dx1;
-            if (cp == 0) return false; // ie parallel segments
+            if (cp == 0)
+                return false; // ie parallel segments
 
             if (inclusive)
             {
@@ -935,30 +973,41 @@ namespace GeometryHelper.Clipper
                 // t == 0 only puts seg1a on the line through seg2; the test along seg2 below says whether it is on seg2
                 if (t > 0)
                 {
-                    if (cp < 0 || t > cp) return false;
+                    if (cp < 0 || t > cp)
+                        return false;
                 }
-                else if (t < 0 && (cp > 0 || t < cp)) return false; // false when t more neg. than cp
+                else if (t < 0 && (cp > 0 || t < cp))
+                    return false; // false when t more neg. than cp
 
                 t = ((seg1a.X - seg2a.X) * dy1 - (seg1a.Y - seg2a.Y) * dx1);
-                if (t == 0) return true;
-                if (t > 0) return (cp > 0 && t <= cp);
-                else return (cp < 0 && t >= cp);        // true when t less neg. than cp
+                if (t == 0)
+                    return true;
+                if (t > 0)
+                    return (cp > 0 && t <= cp);
+                else
+                    return (cp < 0 && t >= cp); // true when t less neg. than cp
             }
             else
             {
                 //result **excludes** segments that touch at an end point
                 double t = ((seg1a.X - seg2a.X) * dy2 - (seg1a.Y - seg2a.Y) * dx2);
-                if (t == 0) return false;
+                if (t == 0)
+                    return false;
                 if (t > 0)
                 {
-                    if (cp < 0 || t >= cp) return false;
+                    if (cp < 0 || t >= cp)
+                        return false;
                 }
-                else if (cp > 0 || t <= cp) return false; // false when t more neg. than cp
+                else if (cp > 0 || t <= cp)
+                    return false; // false when t more neg. than cp
 
                 t = ((seg1a.X - seg2a.X) * dy1 - (seg1a.Y - seg2a.Y) * dx1);
-                if (t == 0) return false;
-                if (t > 0) return (cp > 0 && t < cp);
-                else return (cp < 0 && t > cp); // true when t less neg. than cp
+                if (t == 0)
+                    return false;
+                if (t > 0)
+                    return (cp > 0 && t < cp);
+                else
+                    return (cp < 0 && t > cp); // true when t less neg. than cp
             }
         }
 
@@ -968,14 +1017,19 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public static Rect64 GetBounds(Path64 path)
         {
-            if (path.Count == 0) return new Rect64();
+            if (path.Count == 0)
+                return new Rect64();
             Rect64 result = Clipper2.InvalidRect64;
             foreach (Point64 pt in path)
             {
-                if (pt.X < result.left) result.left = pt.X;
-                if (pt.X > result.right) result.right = pt.X;
-                if (pt.Y < result.top) result.top = pt.Y;
-                if (pt.Y > result.bottom) result.bottom = pt.Y;
+                if (pt.X < result.left)
+                    result.left = pt.X;
+                if (pt.X > result.right)
+                    result.right = pt.X;
+                if (pt.Y < result.top)
+                    result.top = pt.Y;
+                if (pt.Y > result.bottom)
+                    result.bottom = pt.Y;
             }
             return result;
         }
@@ -984,15 +1038,17 @@ namespace GeometryHelper.Clipper
         /// The point of the segment from seg1 to seg2 nearest offPt, rounded half to even as nearbyint rounds in
         /// Clipper2's C++; seg1 when the segment has no length.
         /// </summary>
-        public static Point64 GetClosestPtOnSegment(Point64 offPt,
-            Point64 seg1, Point64 seg2)
+        public static Point64 GetClosestPtOnSegment(Point64 offPt, Point64 seg1, Point64 seg2)
         {
-            if (seg1.X == seg2.X && seg1.Y == seg2.Y) return seg1;
+            if (seg1.X == seg2.X && seg1.Y == seg2.Y)
+                return seg1;
             double dx = (seg2.X - seg1.X);
             double dy = (seg2.Y - seg1.Y);
-            double q = ((offPt.X - seg1.X) * dx +
-                (offPt.Y - seg1.Y) * dy) / ((dx*dx) + (dy*dy));
-            if (q < 0) q = 0; else if (q > 1) q = 1;
+            double q = ((offPt.X - seg1.X) * dx + (offPt.Y - seg1.Y) * dy) / ((dx * dx) + (dy * dy));
+            if (q < 0)
+                q = 0;
+            else if (q > 1)
+                q = 1;
             return new Point64(
                 // use MidpointRounding.ToEven in order to explicitly match the nearbyint behaviour on the C++ side
                 seg1.X + Math.Round(q * dx, MidpointRounding.ToEven),
@@ -1007,45 +1063,59 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public static PointInPolygonResult PointInPolygon(Point64 pt, Path64 polygon)
         {
-            int len = polygon.Count, start = 0;
-            if (len < 3) return PointInPolygonResult.IsOutside;
+            int len = polygon.Count,
+                start = 0;
+            if (len < 3)
+                return PointInPolygonResult.IsOutside;
 
-            while (start < len && polygon[start].Y == pt.Y) start++;
-            if (start == len) return PointInPolygonResult.IsOutside;
+            while (start < len && polygon[start].Y == pt.Y)
+                start++;
+            if (start == len)
+                return PointInPolygonResult.IsOutside;
 
-            bool isAbove = polygon[start].Y < pt.Y, startingAbove = isAbove;
-            int val = 0, i = start + 1, end = len;
+            bool isAbove = polygon[start].Y < pt.Y,
+                startingAbove = isAbove;
+            int val = 0,
+                i = start + 1,
+                end = len;
             while (true)
             {
                 if (i == end)
                 {
-                    if (end == 0 || start == 0) break;
+                    if (end == 0 || start == 0)
+                        break;
                     end = start;
                     i = 0;
                 }
 
                 if (isAbove)
                 {
-                    while (i < end && polygon[i].Y < pt.Y) i++;
+                    while (i < end && polygon[i].Y < pt.Y)
+                        i++;
                 }
                 else
                 {
-                    while (i < end && polygon[i].Y > pt.Y) i++;
+                    while (i < end && polygon[i].Y > pt.Y)
+                        i++;
                 }
 
-                if (i == end) continue;
+                if (i == end)
+                    continue;
 
-                Point64 curr = polygon[i], prev;
-                if (i > 0) prev = polygon[i - 1];
-                else prev = polygon[len - 1];
+                Point64 curr = polygon[i],
+                    prev;
+                if (i > 0)
+                    prev = polygon[i - 1];
+                else
+                    prev = polygon[len - 1];
 
                 if (curr.Y == pt.Y)
                 {
-                    if (curr.X == pt.X || (curr.Y == prev.Y &&
-                        ((pt.X < prev.X) != (pt.X < curr.X))))
+                    if (curr.X == pt.X || (curr.Y == prev.Y && ((pt.X < prev.X) != (pt.X < curr.X))))
                         return PointInPolygonResult.IsOn;
                     i++;
-                    if (i == start) break;
+                    if (i == start)
+                        break;
                     continue;
                 }
 
@@ -1060,8 +1130,10 @@ namespace GeometryHelper.Clipper
                 else
                 {
                     int cps2 = CrossProductSign(prev, curr, pt);
-                    if (cps2 == 0) return PointInPolygonResult.IsOn;
-                    if ((cps2 < 0) == isAbove) val = 1 - val;
+                    if (cps2 == 0)
+                        return PointInPolygonResult.IsOn;
+                    if ((cps2 < 0) == isAbove)
+                        val = 1 - val;
                 }
                 isAbove = !isAbove;
                 i++;
@@ -1069,13 +1141,17 @@ namespace GeometryHelper.Clipper
 
             if (isAbove == startingAbove)
                 return val == 0 ? PointInPolygonResult.IsOutside : PointInPolygonResult.IsInside;
-            if (i == len) i = 0;
-            int cps = (i == 0) ?
-                CrossProductSign(polygon[len - 1], polygon[0], pt) :
-                CrossProductSign(polygon[i - 1], polygon[i], pt);
+            if (i == len)
+                i = 0;
+            int cps =
+                (i == 0)
+                    ? CrossProductSign(polygon[len - 1], polygon[0], pt)
+                    : CrossProductSign(polygon[i - 1], polygon[i], pt);
 
-            if (cps == 0) return PointInPolygonResult.IsOn;
-            if ((cps < 0) == isAbove) val = 1 - val;
+            if (cps == 0)
+                return PointInPolygonResult.IsOn;
+            if ((cps < 0) == isAbove)
+                val = 1 - val;
             return val == 0 ? PointInPolygonResult.IsOutside : PointInPolygonResult.IsInside;
         }
 
@@ -1094,21 +1170,22 @@ namespace GeometryHelper.Clipper
                 switch (PointInPolygon(pt, path2))
                 {
                     case PointInPolygonResult.IsOutside:
-                        if (pip == PointInPolygonResult.IsOutside) return false;
+                        if (pip == PointInPolygonResult.IsOutside)
+                            return false;
                         pip = PointInPolygonResult.IsOutside;
                         break;
                     case PointInPolygonResult.IsInside:
-                        if (pip == PointInPolygonResult.IsInside) return true;
+                        if (pip == PointInPolygonResult.IsInside)
+                            return true;
                         pip = PointInPolygonResult.IsInside;
                         break;
-                    default: break;
+                    default:
+                        break;
                 }
             }
             // since path1's location is still equivocal, check its midpoint
             Point64 mp = GetBounds(path1).MidPoint();
             return InternalClipper.PointInPolygon(mp, path2) != PointInPolygonResult.IsOutside;
         }
-
     } // InternalClipper
-
 } // namespace

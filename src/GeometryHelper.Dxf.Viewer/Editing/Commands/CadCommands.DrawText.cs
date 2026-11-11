@@ -13,22 +13,60 @@ namespace GeometryHelper.Dxf.Viewer
     internal static partial class CadCommands
     {
         /// <summary>TEXT's justifications as its Justify option lists them, each with the point it asks for and its DXF justification.</summary>
-        private static readonly string[] DTextJustifications = { "Left", "Center", "Right", "Align", "Middle", "Fit", "TL", "TC", "TR", "ML", "MC", "MR", "BL", "BC", "BR" };
+        private static readonly string[] DTextJustifications =
+        {
+            "Left",
+            "Center",
+            "Right",
+            "Align",
+            "Middle",
+            "Fit",
+            "TL",
+            "TC",
+            "TR",
+            "ML",
+            "MC",
+            "MR",
+            "BL",
+            "BC",
+            "BR",
+        };
 
         private static readonly DxfAttachmentPoint[] TextPoints =
         {
-            DxfAttachmentPoint.BaseLeft, DxfAttachmentPoint.BaseCenter, DxfAttachmentPoint.BaseRight, DxfAttachmentPoint.BaseAlign,
-            DxfAttachmentPoint.BaseMid, DxfAttachmentPoint.BaseFit, DxfAttachmentPoint.TopLeft, DxfAttachmentPoint.TopCenter,
-            DxfAttachmentPoint.TopRight, DxfAttachmentPoint.MiddleLeft, DxfAttachmentPoint.MiddleCenter, DxfAttachmentPoint.MiddleRight,
-            DxfAttachmentPoint.BottomLeft, DxfAttachmentPoint.BottomCenter, DxfAttachmentPoint.BottomRight,
+            DxfAttachmentPoint.BaseLeft,
+            DxfAttachmentPoint.BaseCenter,
+            DxfAttachmentPoint.BaseRight,
+            DxfAttachmentPoint.BaseAlign,
+            DxfAttachmentPoint.BaseMid,
+            DxfAttachmentPoint.BaseFit,
+            DxfAttachmentPoint.TopLeft,
+            DxfAttachmentPoint.TopCenter,
+            DxfAttachmentPoint.TopRight,
+            DxfAttachmentPoint.MiddleLeft,
+            DxfAttachmentPoint.MiddleCenter,
+            DxfAttachmentPoint.MiddleRight,
+            DxfAttachmentPoint.BottomLeft,
+            DxfAttachmentPoint.BottomCenter,
+            DxfAttachmentPoint.BottomRight,
         };
 
         private static readonly string[] TextPointPrompts =
         {
-            "Specify start point of text", "Specify center point of text", "Specify right endpoint of text baseline", null,
-            "Specify middle point of text", null, "Specify top-left point of text", "Specify top-center point of text",
-            "Specify top-right point of text", "Specify middle-left point of text", "Specify middle point of text",
-            "Specify middle-right point of text", "Specify bottom-left point of text", "Specify bottom-center point of text",
+            "Specify start point of text",
+            "Specify center point of text",
+            "Specify right endpoint of text baseline",
+            null,
+            "Specify middle point of text",
+            null,
+            "Specify top-left point of text",
+            "Specify top-center point of text",
+            "Specify top-right point of text",
+            "Specify middle-left point of text",
+            "Specify middle point of text",
+            "Specify middle-right point of text",
+            "Specify bottom-left point of text",
+            "Specify bottom-center point of text",
             "Specify bottom-right point of text",
         };
 
@@ -52,7 +90,13 @@ namespace GeometryHelper.Dxf.Viewer
                 record = StyleRecord(c, style);
                 fixedHeight = record != null && record.TextSize > 0.0 ? record.TextSize : 0.0;
                 height = fixedHeight > 0.0 ? fixedHeight : c.Remembered("text.height", TextSize(c));
-                c.Write("Current text style:  \"" + (style ?? "Standard") + "\"  Text height:  " + Length(height) + "  Annotative:  No  Justify:  Left");
+                c.Write(
+                    "Current text style:  \""
+                        + (style ?? "Standard")
+                        + "\"  Text height:  "
+                        + Length(height)
+                        + "  Annotative:  No  Justify:  Left"
+                );
                 yield return CadPrompt.ForPoint("Specify start point of text", null, new[] { "Justify", "Style" });
 
                 if (c.Input.Is("Style"))
@@ -88,7 +132,9 @@ namespace GeometryHelper.Dxf.Viewer
                         yield break;
                     }
 
-                    yield return CadPrompt.ForPoint(TextPointPrompts[justify] ?? "Specify first endpoint of text baseline");
+                    yield return CadPrompt.ForPoint(
+                        TextPointPrompts[justify] ?? "Specify first endpoint of text baseline"
+                    );
                 }
 
                 break;
@@ -110,7 +156,9 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 at = c.Input.Point;
-                bool twoPoints = TextPoints[justify] == DxfAttachmentPoint.BaseAlign || TextPoints[justify] == DxfAttachmentPoint.BaseFit;
+                bool twoPoints =
+                    TextPoints[justify] == DxfAttachmentPoint.BaseAlign
+                    || TextPoints[justify] == DxfAttachmentPoint.BaseFit;
 
                 if (twoPoints)
                 {
@@ -129,9 +177,26 @@ namespace GeometryHelper.Dxf.Viewer
                 if (fixedHeight <= 0.0 && TextPoints[justify] != DxfAttachmentPoint.BaseAlign)
                 {
                     GeoPoint2 start = at;
-                    double turned = twoPoints ? Math.Atan2(second.Y - at.Y, second.X - at.X) : c.Session.Ucs.AngleToWorld(c.Remembered("text.rotation", 0.0));
-                    yield return CadPrompt.ForDistance("Specify height", at, null, Length(height))
-                        .Previewing(CadPreview.MakingOne(c, input => TextBox(c, start, input.Number, turned, TextPoints[justify], (second - start).Length), true));
+                    double turned = twoPoints
+                        ? Math.Atan2(second.Y - at.Y, second.X - at.X)
+                        : c.Session.Ucs.AngleToWorld(c.Remembered("text.rotation", 0.0));
+                    yield return CadPrompt
+                        .ForDistance("Specify height", at, null, Length(height))
+                        .Previewing(
+                            CadPreview.MakingOne(
+                                c,
+                                input =>
+                                    TextBox(
+                                        c,
+                                        start,
+                                        input.Number,
+                                        turned,
+                                        TextPoints[justify],
+                                        (second - start).Length
+                                    ),
+                                true
+                            )
+                        );
 
                     if (c.Input.Kind == CadInputKind.Number)
                     {
@@ -155,8 +220,22 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     GeoPoint2 start = at;
                     double tall = height;
-                    yield return CadPrompt.ForAngle("Specify rotation angle of text", at, null, Counted(c, rotation))
-                        .Previewing(CadPreview.MakingOne(c, input => TextBox(c, start, tall, c.Session.Ucs.AngleToWorld(input.Number), TextPoints[justify]), true));
+                    yield return CadPrompt
+                        .ForAngle("Specify rotation angle of text", at, null, Counted(c, rotation))
+                        .Previewing(
+                            CadPreview.MakingOne(
+                                c,
+                                input =>
+                                    TextBox(
+                                        c,
+                                        start,
+                                        tall,
+                                        c.Session.Ucs.AngleToWorld(input.Number),
+                                        TextPoints[justify]
+                                    ),
+                                true
+                            )
+                        );
 
                     if (c.Input.Kind == CadInputKind.Number)
                     {
@@ -191,7 +270,14 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 end = second;
 
                 {
-                    var text = new DxfDBText { Position = P3(line), Height = height, Rotation = angle, TextString = words, WidthFactor = widthFactor };
+                    var text = new DxfDBText
+                    {
+                        Position = P3(line),
+                        Height = height,
+                        Rotation = angle,
+                        TextString = words,
+                        WidthFactor = widthFactor,
+                    };
 
                     if (style != null)
                     {
@@ -217,7 +303,11 @@ namespace GeometryHelper.Dxf.Viewer
                     if (justification != DxfAttachmentPoint.BaseLeft)
                     {
                         text.Justify = justification;
-                        text.AlignmentPoint = P3(justification == DxfAttachmentPoint.BaseAlign || justification == DxfAttachmentPoint.BaseFit ? end : line);
+                        text.AlignmentPoint = P3(
+                            justification == DxfAttachmentPoint.BaseAlign || justification == DxfAttachmentPoint.BaseFit
+                                ? end
+                                : line
+                        );
                     }
 
                     return Current(c, text);
@@ -227,7 +317,11 @@ namespace GeometryHelper.Dxf.Viewer
             while (true)
             {
                 // The words typed so far are drawn where the line will stand, as AutoCAD writes them in place.
-                yield return CadPrompt.ForString("Enter text").Previewing(CadPreview.MakingOne(c, input => string.IsNullOrEmpty(input.Text) ? null : Line(input.Text)));
+                yield return CadPrompt
+                    .ForString("Enter text")
+                    .Previewing(
+                        CadPreview.MakingOne(c, input => string.IsNullOrEmpty(input.Text) ? null : Line(input.Text))
+                    );
 
                 if (c.Input.Kind != CadInputKind.Text || c.Input.Text.Length == 0)
                 {
@@ -257,7 +351,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// of the point, Middle and MC about it, the Top ones below it. A text fitted between two points gives the box as long
         /// as they are apart.
         /// </summary>
-        private static DxfPolyline TextBox(CadCommandContext c, GeoPoint2 at, double height, double angle, DxfAttachmentPoint justification = DxfAttachmentPoint.BaseLeft, double span = 0.0)
+        private static DxfPolyline TextBox(
+            CadCommandContext c,
+            GeoPoint2 at,
+            double height,
+            double angle,
+            DxfAttachmentPoint justification = DxfAttachmentPoint.BaseLeft,
+            double span = 0.0
+        )
         {
             if (!(height > c.Session.Tolerance.EqualPoint))
             {
@@ -352,8 +453,14 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     DxfTextStyleTableRecord style = c.Database.TextStyleTable[name];
                     c.Write("Style name: \"" + name + "\"  Font files: " + style.FileName);
-                    c.Write("   Height: " + Length(style.TextSize) + "  Width factor: " + Length(style.XScale) + "  Obliquing angle: "
-                        + Number(style.ObliquingAngle * 180.0 / Math.PI));
+                    c.Write(
+                        "   Height: "
+                            + Length(style.TextSize)
+                            + "  Width factor: "
+                            + Length(style.XScale)
+                            + "  Obliquing angle: "
+                            + Number(style.ObliquingAngle * 180.0 / Math.PI)
+                    );
                 }
 
                 c.Write("Current text style: \"" + current + "\"");
@@ -373,7 +480,10 @@ namespace GeometryHelper.Dxf.Viewer
             if (!string.Equals(set, TextStyle(c), StringComparison.Ordinal))
             {
                 string old = c.Database.Textstyle;
-                c.Apply(new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$TEXTSTYLE", old, set) }, s => s.Database.Textstyle = set);
+                c.Apply(
+                    new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$TEXTSTYLE", old, set) },
+                    s => s.Database.Textstyle = set
+                );
             }
         }
 
@@ -381,8 +491,15 @@ namespace GeometryHelper.Dxf.Viewer
         {
             string style = TextStyle(c);
             DxfTextStyleTableRecord record = StyleRecord(c, style);
-            double height = record != null && record.TextSize > 0.0 ? record.TextSize : c.Remembered("text.height", TextSize(c));
-            c.Write("Current text style:  \"" + (style ?? "Standard") + "\"  Text height:  " + Length(height) + "  Annotative:  No");
+            double height =
+                record != null && record.TextSize > 0.0 ? record.TextSize : c.Remembered("text.height", TextSize(c));
+            c.Write(
+                "Current text style:  \""
+                    + (style ?? "Standard")
+                    + "\"  Text height:  "
+                    + Length(height)
+                    + "  Annotative:  No"
+            );
             yield return CadPrompt.ForPoint("Specify first corner");
 
             if (!c.Input.IsPoint)
@@ -409,22 +526,24 @@ namespace GeometryHelper.Dxf.Viewer
                 // The frame of the text the opposite corner at the cursor would give, square to the text's rotation in the UCS,
                 // as AutoCAD 2021 draws it while the corner is asked.
                 double framed = rotation;
-                yield return CadPrompt.ForPoint("Specify opposite corner", a, options).Previewing(CadPreview.MakingOne(c, input =>
-                {
-                    GeoPoint2 from = ucs.ToUcs(a);
-                    GeoVector2 way = ucs.ToUcs(input.Point) - from;
-                    var along = new GeoVector2(Math.Cos(framed), Math.Sin(framed));
-                    var up = new GeoVector2(-along.Y, along.X);
-                    double w = way.X * along.X + way.Y * along.Y;
-                    double h = way.X * up.X + way.Y * up.Y;
-                    var frame = new DxfPolyline();
-                    frame.AddVertexAt(0, ucs.ToWorld(from), 0.0, 0.0, 0.0);
-                    frame.AddVertexAt(1, ucs.ToWorld(from + along * w), 0.0, 0.0, 0.0);
-                    frame.AddVertexAt(2, ucs.ToWorld(from + along * w + up * h), 0.0, 0.0, 0.0);
-                    frame.AddVertexAt(3, ucs.ToWorld(from + up * h), 0.0, 0.0, 0.0);
-                    frame.Closed = true;
-                    return Current(c, frame);
-                }));
+                yield return CadPrompt
+                    .ForPoint("Specify opposite corner", a, options)
+                    .Previewing(CadPreview.MakingOne(c, input =>
+                        {
+                            GeoPoint2 from = ucs.ToUcs(a);
+                            GeoVector2 way = ucs.ToUcs(input.Point) - from;
+                            var along = new GeoVector2(Math.Cos(framed), Math.Sin(framed));
+                            var up = new GeoVector2(-along.Y, along.X);
+                            double w = way.X * along.X + way.Y * along.Y;
+                            double h = way.X * up.X + way.Y * up.Y;
+                            var frame = new DxfPolyline();
+                            frame.AddVertexAt(0, ucs.ToWorld(from), 0.0, 0.0, 0.0);
+                            frame.AddVertexAt(1, ucs.ToWorld(from + along * w), 0.0, 0.0, 0.0);
+                            frame.AddVertexAt(2, ucs.ToWorld(from + along * w + up * h), 0.0, 0.0, 0.0);
+                            frame.AddVertexAt(3, ucs.ToWorld(from + up * h), 0.0, 0.0, 0.0);
+                            frame.Closed = true;
+                            return Current(c, frame);
+                        }));
 
                 if (c.Input.Is("Height"))
                 {
@@ -446,7 +565,11 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (c.Input.Is("Line spacing"))
                 {
-                    yield return CadPrompt.ForKeyword("Enter line spacing type", new[] { "At least", "Exactly" }, spacing);
+                    yield return CadPrompt.ForKeyword(
+                        "Enter line spacing type",
+                        new[] { "At least", "Exactly" },
+                        spacing
+                    );
 
                     if (c.Input.Kind == CadInputKind.Keyword)
                     {
@@ -461,7 +584,15 @@ namespace GeometryHelper.Dxf.Viewer
                         string typed = c.Input.Text.Trim();
                         bool times = typed.EndsWith("x", StringComparison.OrdinalIgnoreCase);
 
-                        if (double.TryParse(times ? typed.Substring(0, typed.Length - 1) : typed, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && value > 0.0)
+                        if (
+                            double.TryParse(
+                                times ? typed.Substring(0, typed.Length - 1) : typed,
+                                NumberStyles.Float,
+                                CultureInfo.InvariantCulture,
+                                out double value
+                            )
+                            && value > 0.0
+                        )
                         {
                             double asked = times ? value : value / (height * 5.0 / 3.0);
 
@@ -512,7 +643,11 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (c.Input.Is("Columns"))
                 {
-                    yield return CadPrompt.ForKeyword("Enter column type", new[] { "Dynamic", "Static", "No columns" }, "Dynamic");
+                    yield return CadPrompt.ForKeyword(
+                        "Enter column type",
+                        new[] { "Dynamic", "Static", "No columns" },
+                        "Dynamic"
+                    );
 
                     if (c.Input.Is("No columns"))
                     {
@@ -539,18 +674,21 @@ namespace GeometryHelper.Dxf.Viewer
                         yield return CadPrompt.ForDistance("Specify total width:", a, null, Length(total));
                         total = c.Input.Kind == CadInputKind.Number && c.Input.Number > 0.0 ? c.Input.Number : total;
                         yield return CadPrompt.ForInteger("Specify number of columns:", null, "2");
-                        count = c.Input.Kind == CadInputKind.Number && c.Input.Number >= 1.0 ? (int)c.Input.Number : count;
+                        count =
+                            c.Input.Kind == CadInputKind.Number && c.Input.Number >= 1.0 ? (int)c.Input.Number : count;
                     }
                     else
                     {
                         yield return CadPrompt.ForDistance("Specify column width:", a, null, Length(columnWidth));
-                        columnWidth = c.Input.Kind == CadInputKind.Number && c.Input.Number > 0.0 ? c.Input.Number : columnWidth;
+                        columnWidth =
+                            c.Input.Kind == CadInputKind.Number && c.Input.Number > 0.0 ? c.Input.Number : columnWidth;
                     }
 
                     yield return CadPrompt.ForDistance("Specify gutter width:", a, null, Length(gutter));
                     gutter = c.Input.Kind == CadInputKind.Number && c.Input.Number >= 0.0 ? c.Input.Number : gutter;
                     yield return CadPrompt.ForDistance("Specify column height:", a, null, Length(columnHeight));
-                    columnHeight = c.Input.Kind == CadInputKind.Number && c.Input.Number > 0.0 ? c.Input.Number : columnHeight;
+                    columnHeight =
+                        c.Input.Kind == CadInputKind.Number && c.Input.Number > 0.0 ? c.Input.Number : columnHeight;
 
                     if (fixedCount)
                     {
@@ -596,7 +734,17 @@ namespace GeometryHelper.Dxf.Viewer
             var attachment = (DxfAttachmentPoint)(place + 1);
 
             // The window writes the words in the MTEXT editor over the box; the command line takes them typed.
-            var edit = new CadInPlaceEdit(CadInPlaceKind.MText, null, string.Empty, corner, height, ucs.IsWorld && rotation == 0.0 ? 0.0 : turn, boxWidth, style, place + 1);
+            var edit = new CadInPlaceEdit(
+                CadInPlaceKind.MText,
+                null,
+                string.Empty,
+                corner,
+                height,
+                ucs.IsWorld && rotation == 0.0 ? 0.0 : turn,
+                boxWidth,
+                style,
+                place + 1
+            );
             yield return CadPrompt.ForInPlaceEdit("Enter text", edit);
 
             if (c.Input.Kind != CadInputKind.Text || c.Input.Text.Length == 0)
@@ -610,15 +758,24 @@ namespace GeometryHelper.Dxf.Viewer
             // Letters of another width open the words with the code AutoCAD writes for them, \W0.8000; for 0.8.
             if (Math.Abs(widthFactor - 1.0) > 1E-9)
             {
-                words = DxfMText.WidthChange + widthFactor.ToString("0.0000", CultureInfo.InvariantCulture) + ";" + words;
+                words =
+                    DxfMText.WidthChange + widthFactor.ToString("0.0000", CultureInfo.InvariantCulture) + ";" + words;
             }
 
             c.Remember("text.height", height);
             string styleName = style;
-            DxfLineSpacingStyle lineSpacing = spacing == "Exactly" ? DxfLineSpacingStyle.Exactly : DxfLineSpacingStyle.AtLeast;
+            DxfLineSpacingStyle lineSpacing =
+                spacing == "Exactly" ? DxfLineSpacingStyle.Exactly : DxfLineSpacingStyle.AtLeast;
             c.Apply(null, s =>
             {
-                var text = new DxfMText { Location = P3(location), TextHeight = height, Width = boxWidth, Attachment = attachment, Contents = words };
+                var text = new DxfMText
+                {
+                    Location = P3(location),
+                    TextHeight = height,
+                    Width = boxWidth,
+                    Attachment = attachment,
+                    Contents = words,
+                };
 
                 if (!ucs.IsWorld || rotation != 0.0)
                 {

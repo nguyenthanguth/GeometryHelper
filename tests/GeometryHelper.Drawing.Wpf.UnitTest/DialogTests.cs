@@ -18,7 +18,12 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             var bench = new Bench();
             ModelDrawing made = await bench.MakeAsync();
             string dimension = Bench.FirstOf(made, "Dimension");
-            Assert.True(made.Document.Owners.TryApply(made.Document, new CadEdit(dimension, CadEditKind.Move, null, null, "0,25")));
+            Assert.True(
+                made.Document.Owners.TryApply(
+                    made.Document,
+                    new CadEdit(dimension, CadEditKind.Move, null, null, "0,25")
+                )
+            );
 
             UpdateFromModelViewModel dialog = bench.Workspace.ShowUpdate();
             Assert.Equal("B1 · Beam B1", dialog.Title);
@@ -29,8 +34,12 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             Assert.True(dialog.HasChanges);
             Assert.StartsWith("The model changed since ", dialog.Summary);
             Assert.Contains(": 2 changed, 1 added, 0 removed.", dialog.Summary);
-            Assert.Contains(dialog.Changes, c => c.Object == "B1 · Beam" && c.Change == ModelChangeKind.Changed && c.Detail == "Length 3 000 → 3 500");
-            Assert.Contains(dialog.Changes, c => c.Object == "P1 · End plate" && c.Change == ModelChangeKind.Changed && c.Detail == "Moved 500");
+            Assert.Contains(dialog.Changes, c =>
+                c.Object == "B1 · Beam" && c.Change == ModelChangeKind.Changed && c.Detail == "Length 3 000 → 3 500"
+            );
+            Assert.Contains(dialog.Changes, c =>
+                c.Object == "P1 · End plate" && c.Change == ModelChangeKind.Changed && c.Detail == "Moved 500"
+            );
             Assert.Contains(dialog.Changes, c => c.Object == "S1 · Stiffener" && c.Change == ModelChangeKind.Added);
             HandEditRow edit = Assert.Single(dialog.Edits);
             Assert.True(edit.IsKept);
@@ -59,9 +68,23 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             ModelDrawing made = await bench.MakeAsync();
             Drawing first = made.Drawing;
             string dimension = Bench.FirstOf(made, "Dimension");
-            Assert.True(made.Document.Owners.TryApply(made.Document, new CadEdit(dimension, CadEditKind.Move, null, null, "0,25")));
+            Assert.True(
+                made.Document.Owners.TryApply(
+                    made.Document,
+                    new CadEdit(dimension, CadEditKind.Move, null, null, "0,25")
+                )
+            );
             CadDocument document = made.Document;
-            Assert.True(document.ApplyEdit("LINE", null, scope => scope.Append(document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(500, 700, 0)))).Succeeded);
+            Assert.True(
+                document
+                    .ApplyEdit("LINE", null, scope =>
+                        scope.Append(
+                            document.ModelSpace,
+                            new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(500, 700, 0))
+                        )
+                    )
+                    .Succeeded
+            );
 
             DrawingSettingsViewModel dialog = bench.Workspace.ShowSettings();
             Assert.Equal("B1 · Beam B1 · preset Assembly", dialog.Title);
@@ -81,15 +104,21 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             Assert.Same(made.Document, bench.Model.Document);
             Assert.False(dialog.IsDirty);
             Assert.Equal("Made again: 1 hand edit kept.", dialog.Notice);
-            Assert.Contains(made.Document.Database.ModelSpace.Cast<DxfEntity>(), e => e is DxfLine line && !e.IsErased
-                && !DrawingEntityTags.TryRead(e, out _, out _) && Math.Abs(line.EndPoint.Y - 700.0) < Bench.Tol.EqualPoint);
+            Assert.Contains(made.Document.Database.ModelSpace.Cast<DxfEntity>(), e =>
+                e is DxfLine line
+                && !e.IsErased
+                && !DrawingEntityTags.TryRead(e, out _, out _)
+                && Math.Abs(line.EndPoint.Y - 700.0) < Bench.Tol.EqualPoint
+            );
             Assert.Equal("Changed", made.PresetName);
 
             // Undo takes the step back: the settings, the views and the document as they were, the hand edit with them.
             Assert.True(bench.Model.Undo());
             Assert.DoesNotContain(ViewKind.Isometric, made.Drawing.Settings.Views.Kinds);
             Assert.Single(made.Drawing.Edits);
-            Assert.Contains(made.Document.Database.ModelSpace.Cast<DxfEntity>(), e => e is DxfLine && !e.IsErased && !DrawingEntityTags.TryRead(e, out _, out _));
+            Assert.Contains(made.Document.Database.ModelSpace.Cast<DxfEntity>(), e =>
+                e is DxfLine && !e.IsErased && !DrawingEntityTags.TryRead(e, out _, out _)
+            );
         }
 
         [Fact]
@@ -174,7 +203,12 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             var bench = new Bench();
             ModelDrawing made = await bench.MakeAsync();
             string dimension = Bench.FirstOf(made, "Dimension");
-            Assert.True(made.Document.Owners.TryApply(made.Document, new CadEdit(dimension, CadEditKind.Move, null, null, "0,25")));
+            Assert.True(
+                made.Document.Owners.TryApply(
+                    made.Document,
+                    new CadEdit(dimension, CadEditKind.Move, null, null, "0,25")
+                )
+            );
             Drawing shown = made.Drawing;
             string folder = Bench.NewFolder();
 

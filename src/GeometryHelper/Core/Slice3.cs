@@ -69,7 +69,12 @@ namespace GeometryHelper.Core
         /// true when the volume could be worked out; false where a body is null, a section is crossed an odd number of
         /// times, or a number is not finite.
         /// </returns>
-        internal static bool TryVolume(GeoSolid3 subject, IReadOnlyList<GeoSolid3> within, IReadOnlyList<GeoSolid3> outside, out double volume)
+        internal static bool TryVolume(
+            GeoSolid3 subject,
+            IReadOnlyList<GeoSolid3> within,
+            IReadOnlyList<GeoSolid3> outside,
+            out double volume
+        )
         {
             volume = 0.0;
 
@@ -133,7 +138,8 @@ namespace GeometryHelper.Core
 
             for (int k = 0; k + 1 < levels.Count; k++)
             {
-                double low = levels[k], height = levels[k + 1] - levels[k];
+                double low = levels[k],
+                    height = levels[k + 1] - levels[k];
                 double layer = 0.0;
 
                 for (int s = 0; s < MilneAt.Length; s++)
@@ -163,7 +169,13 @@ namespace GeometryHelper.Core
         /// every body and opening that reaches it, in a frame.
         /// </summary>
         /// <returns>false where the region is empty: the volume is nought.</returns>
-        private static bool Prepare(List<GeoSolid3> bodies, List<Role> roles, Frame frame, out Extent region, out List<Shape> shapes)
+        private static bool Prepare(
+            List<GeoSolid3> bodies,
+            List<Role> roles,
+            Frame frame,
+            out Extent region,
+            out List<Shape> shapes
+        )
         {
             Extent around = Extent.Empty;
 
@@ -265,7 +277,10 @@ namespace GeometryHelper.Core
                 {
                     foreach (Face face in shape.Near)
                     {
-                        cost += Math.Max(0, FirstAbove(levels, face.Box.Max(axis)) - FirstAbove(levels, face.Box.Min(axis)));
+                        cost += Math.Max(
+                            0,
+                            FirstAbove(levels, face.Box.Max(axis)) - FirstAbove(levels, face.Box.Min(axis))
+                        );
                     }
                 }
 
@@ -284,7 +299,8 @@ namespace GeometryHelper.Core
         /// </summary>
         private static int FirstAbove(List<double> sorted, double value)
         {
-            int below = 0, above = sorted.Count;
+            int below = 0,
+                above = sorted.Count;
 
             while (below < above)
             {
@@ -303,8 +319,13 @@ namespace GeometryHelper.Core
             return below;
         }
 
-        private static bool Finite(GeoAabb3 box)
-            =>Finite(box.Min.X) && Finite(box.Min.Y) && Finite(box.Min.Z) && Finite(box.Max.X) && Finite(box.Max.Y) && Finite(box.Max.Z);
+        private static bool Finite(GeoAabb3 box) =>
+            Finite(box.Min.X)
+            && Finite(box.Min.Y)
+            && Finite(box.Min.Z)
+            && Finite(box.Max.X)
+            && Finite(box.Max.Y)
+            && Finite(box.Max.Z);
 
         private static bool Finite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
@@ -437,9 +458,15 @@ namespace GeometryHelper.Core
         private static void AddMeeting(Face f1, Face f2, Face f3, Extent shared, Extent region, List<double> heights)
         {
             // Cramer's rule on n1.p = d1, n2.p = d2, n3.p = d3. Planes all but parallel meet far off, out of every box.
-            double c23x = f2.Ny * f3.Nz - f2.Nz * f3.Ny, c23y = f2.Nz * f3.Nx - f2.Nx * f3.Nz, c23z = f2.Nx * f3.Ny - f2.Ny * f3.Nx;
-            double c31x = f3.Ny * f1.Nz - f3.Nz * f1.Ny, c31y = f3.Nz * f1.Nx - f3.Nx * f1.Nz, c31z = f3.Nx * f1.Ny - f3.Ny * f1.Nx;
-            double c12x = f1.Ny * f2.Nz - f1.Nz * f2.Ny, c12y = f1.Nz * f2.Nx - f1.Nx * f2.Nz, c12z = f1.Nx * f2.Ny - f1.Ny * f2.Nx;
+            double c23x = f2.Ny * f3.Nz - f2.Nz * f3.Ny,
+                c23y = f2.Nz * f3.Nx - f2.Nx * f3.Nz,
+                c23z = f2.Nx * f3.Ny - f2.Ny * f3.Nx;
+            double c31x = f3.Ny * f1.Nz - f3.Nz * f1.Ny,
+                c31y = f3.Nz * f1.Nx - f3.Nx * f1.Nz,
+                c31z = f3.Nx * f1.Ny - f3.Ny * f1.Nx;
+            double c12x = f1.Ny * f2.Nz - f1.Nz * f2.Ny,
+                c12y = f1.Nz * f2.Nx - f1.Nx * f2.Nz,
+                c12z = f1.Nx * f2.Ny - f1.Ny * f2.Nx;
             double det = f1.Nx * c23x + f1.Ny * c23y + f1.Nz * c23z;
 
             if (det == 0.0)
@@ -479,7 +506,8 @@ namespace GeometryHelper.Core
             }
 
             // The strips run across the subject's section within the region; outside either there is nothing to measure.
-            double lo = double.PositiveInfinity, hi = double.NegativeInfinity;
+            double lo = double.PositiveInfinity,
+                hi = double.NegativeInfinity;
 
             foreach (Segment segment in segments)
             {
@@ -538,7 +566,8 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                double middle = 0.5 * (before + x), width = x - before;
+                double middle = 0.5 * (before + x),
+                    width = x - before;
                 before = x;
 
                 while (next < count && segments[order[next]].X1 < middle)
@@ -578,7 +607,11 @@ namespace GeometryHelper.Core
             foreach (Face face in work.Shapes[index].Faces)
             {
                 // Only a face a line of constant x within the region can cross adds to the counts along it.
-                if (!(face.Box.MinZ < z && z <= face.Box.MaxZ) || face.Box.MaxX < region.MinX - Reach || face.Box.MinX > region.MaxX + Reach)
+                if (
+                    !(face.Box.MinZ < z && z <= face.Box.MaxZ)
+                    || face.Box.MaxX < region.MinX - Reach
+                    || face.Box.MinX > region.MaxX + Reach
+                )
                 {
                     continue;
                 }
@@ -600,7 +633,8 @@ namespace GeometryHelper.Core
 
                         // The ends in one order whichever face the edge is read from, so that the two faces sharing it
                         // put its crossing at the same point to the last bit, and the section closes.
-                        int p = i, q = j;
+                        int p = i,
+                            q = j;
 
                         if (Before(loop, j, i))
                         {
@@ -630,14 +664,17 @@ namespace GeometryHelper.Core
 
                 for (int i = 0; i < points.Count; i += 2)
                 {
-                    Point a = points[i], b = points[i + 1];
+                    Point a = points[i],
+                        b = points[i + 1];
 
                     if (a.X == b.X && a.Y == b.Y)
                     {
                         continue;
                     }
 
-                    work.Segments.Add(a.X <= b.X ? new Segment(a.X, a.Y, b.X, b.Y, index) : new Segment(b.X, b.Y, a.X, a.Y, index));
+                    work.Segments.Add(
+                        a.X <= b.X ? new Segment(a.X, a.Y, b.X, b.Y, index) : new Segment(b.X, b.Y, a.X, a.Y, index)
+                    );
                 }
             }
 
@@ -743,7 +780,8 @@ namespace GeometryHelper.Core
             for (int p = 0; p < count; p++)
             {
                 double end = axis == 0 ? segments[order[p]].X2 : segments[order[p]].YHigh;
-                int below = p + 1, above = count;
+                int below = p + 1,
+                    above = count;
 
                 // The first segment after p starting beyond its end.
                 while (below < above)
@@ -772,7 +810,10 @@ namespace GeometryHelper.Core
         private static bool TryCross(Segment a, Segment c, out double x)
         {
             x = 0.0;
-            double rx = a.X2 - a.X1, ry = a.Y2 - a.Y1, sx = c.X2 - c.X1, sy = c.Y2 - c.Y1;
+            double rx = a.X2 - a.X1,
+                ry = a.Y2 - a.Y1,
+                sx = c.X2 - c.X1,
+                sy = c.Y2 - c.Y1;
             double den = rx * sy - ry * sx;
 
             if (den == 0.0)
@@ -902,12 +943,15 @@ namespace GeometryHelper.Core
             internal double Z(GeoPoint3 point) => Moved(point, _up);
 
             /// <summary>A box of the world as the frame reads it.</summary>
-            internal Extent Of(GeoAabb3 box) => box.IsEmpty
-                ? Extent.Empty
-                : new Extent(X(box.Min), Y(box.Min), Z(box.Min), X(box.Max), Y(box.Max), Z(box.Max));
+            internal Extent Of(GeoAabb3 box) =>
+                box.IsEmpty
+                    ? Extent.Empty
+                    : new Extent(X(box.Min), Y(box.Min), Z(box.Min), X(box.Max), Y(box.Max), Z(box.Max));
 
-            private double Moved(GeoPoint3 point, int axis)
-                => axis == 0 ? point.X - _origin.X : axis == 1 ? point.Y - _origin.Y : point.Z - _origin.Z;
+            private double Moved(GeoPoint3 point, int axis) =>
+                axis == 0 ? point.X - _origin.X
+                : axis == 1 ? point.Y - _origin.Y
+                : point.Z - _origin.Z;
         }
 
         /// <summary>
@@ -915,7 +959,12 @@ namespace GeometryHelper.Core
         /// </summary>
         private readonly struct Extent
         {
-            internal readonly double MinX, MinY, MinZ, MaxX, MaxY, MaxZ;
+            internal readonly double MinX,
+                MinY,
+                MinZ,
+                MaxX,
+                MaxY,
+                MaxZ;
 
             internal Extent(double minX, double minY, double minZ, double maxX, double maxY, double maxZ)
             {
@@ -927,31 +976,63 @@ namespace GeometryHelper.Core
                 MaxZ = maxZ;
             }
 
-            internal static Extent Empty => new Extent(
-                double.PositiveInfinity, double.PositiveInfinity, double.PositiveInfinity,
-                double.NegativeInfinity, double.NegativeInfinity, double.NegativeInfinity);
+            internal static Extent Empty =>
+                new Extent(
+                    double.PositiveInfinity,
+                    double.PositiveInfinity,
+                    double.PositiveInfinity,
+                    double.NegativeInfinity,
+                    double.NegativeInfinity,
+                    double.NegativeInfinity
+                );
 
             internal bool IsEmpty => !(MinX <= MaxX && MinY <= MaxY && MinZ <= MaxZ);
 
-            internal double Min(int axis) => axis == 0 ? MinX : axis == 1 ? MinY : MinZ;
+            internal double Min(int axis) =>
+                axis == 0 ? MinX
+                : axis == 1 ? MinY
+                : MinZ;
 
-            internal double Max(int axis) => axis == 0 ? MaxX : axis == 1 ? MaxY : MaxZ;
+            internal double Max(int axis) =>
+                axis == 0 ? MaxX
+                : axis == 1 ? MaxY
+                : MaxZ;
 
-            internal Extent Union(Extent other) => new Extent(
-                Math.Min(MinX, other.MinX), Math.Min(MinY, other.MinY), Math.Min(MinZ, other.MinZ),
-                Math.Max(MaxX, other.MaxX), Math.Max(MaxY, other.MaxY), Math.Max(MaxZ, other.MaxZ));
+            internal Extent Union(Extent other) =>
+                new Extent(
+                    Math.Min(MinX, other.MinX),
+                    Math.Min(MinY, other.MinY),
+                    Math.Min(MinZ, other.MinZ),
+                    Math.Max(MaxX, other.MaxX),
+                    Math.Max(MaxY, other.MaxY),
+                    Math.Max(MaxZ, other.MaxZ)
+                );
 
-            internal Extent Intersect(Extent other) => new Extent(
-                Math.Max(MinX, other.MinX), Math.Max(MinY, other.MinY), Math.Max(MinZ, other.MinZ),
-                Math.Min(MaxX, other.MaxX), Math.Min(MaxY, other.MaxY), Math.Min(MaxZ, other.MaxZ));
+            internal Extent Intersect(Extent other) =>
+                new Extent(
+                    Math.Max(MinX, other.MinX),
+                    Math.Max(MinY, other.MinY),
+                    Math.Max(MinZ, other.MinZ),
+                    Math.Min(MaxX, other.MaxX),
+                    Math.Min(MaxY, other.MaxY),
+                    Math.Min(MaxZ, other.MaxZ)
+                );
 
-            internal bool Meets(Extent other, double reach)
-                => other.MinX <= MaxX + reach && other.MaxX >= MinX - reach
-                && other.MinY <= MaxY + reach && other.MaxY >= MinY - reach
-                && other.MinZ <= MaxZ + reach && other.MaxZ >= MinZ - reach;
+            internal bool Meets(Extent other, double reach) =>
+                other.MinX <= MaxX + reach
+                && other.MaxX >= MinX - reach
+                && other.MinY <= MaxY + reach
+                && other.MaxY >= MinY - reach
+                && other.MinZ <= MaxZ + reach
+                && other.MaxZ >= MinZ - reach;
 
-            internal bool Holds(double x, double y, double z, double reach)
-                => x >= MinX - reach && x <= MaxX + reach && y >= MinY - reach && y <= MaxY + reach && z >= MinZ - reach && z <= MaxZ + reach;
+            internal bool Holds(double x, double y, double z, double reach) =>
+                x >= MinX - reach
+                && x <= MaxX + reach
+                && y >= MinY - reach
+                && y <= MaxY + reach
+                && z >= MinZ - reach
+                && z <= MaxZ + reach;
         }
 
         /// <summary>
@@ -1011,7 +1092,9 @@ namespace GeometryHelper.Core
                 {
                     for (int i = 0; i < loop.Length; i += 3)
                     {
-                        box = box.Union(new Extent(loop[i], loop[i + 1], loop[i + 2], loop[i], loop[i + 1], loop[i + 2]));
+                        box = box.Union(
+                            new Extent(loop[i], loop[i + 1], loop[i + 2], loop[i], loop[i + 1], loop[i + 2])
+                        );
                     }
                 }
 
@@ -1020,7 +1103,12 @@ namespace GeometryHelper.Core
                 // Newell's normal of the boundary, and the plane through the boundary's mean corner.
                 double[] outer = Loops[0];
                 int count = outer.Length / 3;
-                double nx = 0.0, ny = 0.0, nz = 0.0, cx = 0.0, cy = 0.0, cz = 0.0;
+                double nx = 0.0,
+                    ny = 0.0,
+                    nz = 0.0,
+                    cx = 0.0,
+                    cy = 0.0,
+                    cz = 0.0;
 
                 for (int i = 0; i < count; i++)
                 {
@@ -1084,7 +1172,9 @@ namespace GeometryHelper.Core
         /// </summary>
         private readonly struct Point
         {
-            internal readonly double X, Y, Along;
+            internal readonly double X,
+                Y,
+                Along;
 
             internal Point(double x, double y, double along)
             {
@@ -1099,7 +1189,12 @@ namespace GeometryHelper.Core
         /// </summary>
         private readonly struct Segment
         {
-            internal readonly double X1, Y1, X2, Y2, YLow, YHigh;
+            internal readonly double X1,
+                Y1,
+                X2,
+                Y2,
+                YLow,
+                YHigh;
 
             internal readonly int Shape;
 
@@ -1156,16 +1251,20 @@ namespace GeometryHelper.Core
                 _holes = new int[_roles.Length];
                 _solid = new bool[_roles.Length];
                 Counts = new int[shapes.Count];
-                ByStart = Comparer<int>.Create((i, j) =>
-                {
-                    int x = Segments[i].X1.CompareTo(Segments[j].X1);
-                    return x != 0 ? x : i.CompareTo(j);
-                });
-                ByLow = Comparer<int>.Create((i, j) =>
-                {
-                    int y = Segments[i].YLow.CompareTo(Segments[j].YLow);
-                    return y != 0 ? y : i.CompareTo(j);
-                });
+                ByStart = Comparer<int>.Create(
+                    (i, j) =>
+                    {
+                        int x = Segments[i].X1.CompareTo(Segments[j].X1);
+                        return x != 0 ? x : i.CompareTo(j);
+                    }
+                );
+                ByLow = Comparer<int>.Create(
+                    (i, j) =>
+                    {
+                        int y = Segments[i].YLow.CompareTo(Segments[j].YLow);
+                        return y != 0 ? y : i.CompareTo(j);
+                    }
+                );
             }
 
             internal List<Shape> Shapes { get; }
@@ -1195,7 +1294,8 @@ namespace GeometryHelper.Core
             internal int[] Order(int count) => Places(ref _order, count);
 
             /// <summary>The places 0, 1, ... of as many segments, to sort along an axis for the sweep that finds crossings.</summary>
-            internal int[] Sweep(int axis, int count) => axis == 0 ? Places(ref _sweepX, count) : Places(ref _sweepY, count);
+            internal int[] Sweep(int axis, int count) =>
+                axis == 0 ? Places(ref _sweepX, count) : Places(ref _sweepY, count);
 
             /// <summary>The places of the segments as the last sort along an axis left them.</summary>
             internal int[] Swept(int axis) => axis == 0 ? _sweepX : _sweepY;

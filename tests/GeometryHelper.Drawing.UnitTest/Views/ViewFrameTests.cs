@@ -10,7 +10,16 @@ namespace GeometryHelper.Drawing.UnitTest
     {
         private static readonly Tolerance Tolerance = Tolerance.Default;
 
-        private static readonly ViewKind[] Standard = { ViewKind.Front, ViewKind.Top, ViewKind.Bottom, ViewKind.Left, ViewKind.Right, ViewKind.Back, ViewKind.Isometric };
+        private static readonly ViewKind[] Standard =
+        {
+            ViewKind.Front,
+            ViewKind.Top,
+            ViewKind.Bottom,
+            ViewKind.Left,
+            ViewKind.Right,
+            ViewKind.Back,
+            ViewKind.Isometric,
+        };
 
         private static void AssertView(ViewFrame3 view, GeoPoint3 point, double x, double y, double depth)
         {
@@ -27,7 +36,12 @@ namespace GeometryHelper.Drawing.UnitTest
         [InlineData(ViewKind.Bottom, 30, 10, -20)]
         [InlineData(ViewKind.Left, 10, 20, -30)]
         [InlineData(ViewKind.Right, -10, 20, 30)]
-        public void TheFarCornerOfABoxComesOutWhereADraughtsmanDrawsItInEachViewAlongTheAxes(ViewKind kind, double x, double y, double depth)
+        public void TheFarCornerOfABoxComesOutWhereADraughtsmanDrawsItInEachViewAlongTheAxes(
+            ViewKind kind,
+            double x,
+            double y,
+            double depth
+        )
         {
             // A box 30 by 20 by 10 from the origin of the world, drawn in the world's frame: X along its 30, Y up its 20,
             // its front at Z = 10. Its near corner stays at the origin of every view.
@@ -51,8 +65,17 @@ namespace GeometryHelper.Drawing.UnitTest
         [Fact]
         public void EveryStandardViewIsRightHandedAndShowsTheFaceTurnedToItAnticlockwiseAsFromOutside()
         {
-            GeoSolid3 box = GeoSolid3.Extrude(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(30, 0), new GeoPoint2(30, 20), new GeoPoint2(0, 20)), GeoCoordinateSystem3.Global, 10, Tolerance);
-            var skew = new GeoCoordinateSystem3(new GeoPoint3(7, -3, 2), new GeoVector3(1, 2, 3), new GeoVector3(-2, 1, 0));
+            GeoSolid3 box = GeoSolid3.Extrude(
+                new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(30, 0), new GeoPoint2(30, 20), new GeoPoint2(0, 20)),
+                GeoCoordinateSystem3.Global,
+                10,
+                Tolerance
+            );
+            var skew = new GeoCoordinateSystem3(
+                new GeoPoint3(7, -3, 2),
+                new GeoVector3(1, 2, 3),
+                new GeoVector3(-2, 1, 0)
+            );
 
             foreach (GeoCoordinateSystem3 frame in new[] { GeoCoordinateSystem3.Global, skew })
             {
@@ -64,11 +87,16 @@ namespace GeometryHelper.Drawing.UnitTest
                     GeoCoordinateSystem3 system = view.CoordinateSystem;
 
                     Assert.True(system.IsValid, kind.ToString());
-                    Assert.True(system.XAxis.CrossProduct(system.YAxis).IsEqualTo(system.ZAxis, Tolerance), kind.ToString());
+                    Assert.True(
+                        system.XAxis.CrossProduct(system.YAxis).IsEqualTo(system.ZAxis, Tolerance),
+                        kind.ToString()
+                    );
                     Assert.True(view.Direction.IsEqualTo(system.ZAxis.Negate(), Tolerance), kind.ToString());
 
                     // Every face turned towards the viewer, its outline wound outwards, runs anticlockwise in the view.
-                    GeoFace3[] facing = placed.Faces.Where(f => f.Normal.DotProduct(system.ZAxis) > Tolerance.EqualVector).ToArray();
+                    GeoFace3[] facing = placed
+                        .Faces.Where(f => f.Normal.DotProduct(system.ZAxis) > Tolerance.EqualVector)
+                        .ToArray();
                     Assert.NotEmpty(facing);
                     foreach (GeoFace3 face in facing)
                     {
@@ -104,7 +132,9 @@ namespace GeometryHelper.Drawing.UnitTest
         public void ASectionADetailAndAFreeViewHaveNoFrameOfTheirOwn(ViewKind kind)
         {
             Assert.Throws<ArgumentException>(() => StandardViews.GetFrame(GeoCoordinateSystem3.Global, kind));
-            Assert.Throws<ArgumentException>(() => StandardViews.GetSlot(kind, ProjectionMethod.ThirdAngle, out _, out _));
+            Assert.Throws<ArgumentException>(() =>
+                StandardViews.GetSlot(kind, ProjectionMethod.ThirdAngle, out _, out _)
+            );
         }
 
         [Theory]
@@ -114,7 +144,13 @@ namespace GeometryHelper.Drawing.UnitTest
         [InlineData(ViewKind.Left, -1, 0, 1, 0)]
         [InlineData(ViewKind.Right, 1, 0, -1, 0)]
         [InlineData(ViewKind.Back, 2, 0, 2, 0)]
-        public void ThirdAnglePutsEachViewOnTheSideItLooksFromAndFirstAngleOnTheOther(ViewKind kind, int thirdColumn, int thirdRow, int firstColumn, int firstRow)
+        public void ThirdAnglePutsEachViewOnTheSideItLooksFromAndFirstAngleOnTheOther(
+            ViewKind kind,
+            int thirdColumn,
+            int thirdRow,
+            int firstColumn,
+            int firstRow
+        )
         {
             StandardViews.GetSlot(kind, default(ProjectionMethod), out int column, out int row);
             Assert.Equal(thirdColumn, column);
@@ -135,7 +171,14 @@ namespace GeometryHelper.Drawing.UnitTest
         public void ASectionLooksAlongItsDirectionAndSeesOnlyBehindItsCutAsDeepAsItIsSet()
         {
             // A section across a beam along X, cut at 1 000 and looking back towards the origin, 200 deep.
-            var section = new ViewFrame3(new GeoPoint3(1000, 0, 0), new GeoVector3(-5, 0, 0), GeoVector3.ZAxis, 0, 200, Tolerance);
+            var section = new ViewFrame3(
+                new GeoPoint3(1000, 0, 0),
+                new GeoVector3(-5, 0, 0),
+                GeoVector3.ZAxis,
+                0,
+                200,
+                Tolerance
+            );
 
             Assert.True(section.Direction.IsEqualTo(GeoVector3.XAxis.Negate(), Tolerance));
             Assert.True(section.CutPlane.Normal.IsEqualTo(GeoVector3.XAxis, Tolerance));
@@ -146,13 +189,22 @@ namespace GeometryHelper.Drawing.UnitTest
             Assert.False(section.IsWithinDepth(0.002, Tolerance));
             Assert.True(section.IsWithinDepth(-200.0005, Tolerance));
             Assert.False(section.IsWithinDepth(-200.002, Tolerance));
-            Assert.True(StandardViews.GetFrame(GeoCoordinateSystem3.Global, ViewKind.Front).IsWithinDepth(-1E9, Tolerance));
+            Assert.True(
+                StandardViews.GetFrame(GeoCoordinateSystem3.Global, ViewKind.Front).IsWithinDepth(-1E9, Tolerance)
+            );
         }
 
         [Fact]
         public void AnUpNotSquareToTheDirectionIsTakenAsItsPartSquareToIt()
         {
-            var view = new ViewFrame3(GeoPoint3.Origin, GeoVector3.YAxis, new GeoVector3(0, 3, 4), double.PositiveInfinity, double.PositiveInfinity, Tolerance);
+            var view = new ViewFrame3(
+                GeoPoint3.Origin,
+                GeoVector3.YAxis,
+                new GeoVector3(0, 3, 4),
+                double.PositiveInfinity,
+                double.PositiveInfinity,
+                Tolerance
+            );
 
             Assert.True(view.CoordinateSystem.YAxis.IsEqualTo(GeoVector3.ZAxis, Tolerance));
             Assert.True(view.CoordinateSystem.XAxis.IsEqualTo(GeoVector3.XAxis, Tolerance));
@@ -161,11 +213,21 @@ namespace GeometryHelper.Drawing.UnitTest
         [Fact]
         public void ANoDirectionAnUpAlongItOrANegativeDepthIsRefused()
         {
-            Assert.Throws<ArgumentException>(() => new ViewFrame3(GeoPoint3.Origin, GeoVector3.Zero, GeoVector3.ZAxis, 0, 0, Tolerance));
-            Assert.Throws<ArgumentException>(() => new ViewFrame3(GeoPoint3.Origin, GeoVector3.XAxis, new GeoVector3(-2, 1E-9, 0), 0, 0, Tolerance));
-            Assert.Throws<ArgumentException>(() => new ViewFrame3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.Zero, 0, 0, Tolerance));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new ViewFrame3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.ZAxis, -1, 0, Tolerance));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new ViewFrame3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.ZAxis, 0, double.NaN, Tolerance));
+            Assert.Throws<ArgumentException>(() =>
+                new ViewFrame3(GeoPoint3.Origin, GeoVector3.Zero, GeoVector3.ZAxis, 0, 0, Tolerance)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new ViewFrame3(GeoPoint3.Origin, GeoVector3.XAxis, new GeoVector3(-2, 1E-9, 0), 0, 0, Tolerance)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new ViewFrame3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.Zero, 0, 0, Tolerance)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new ViewFrame3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.ZAxis, -1, 0, Tolerance)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new ViewFrame3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.ZAxis, 0, double.NaN, Tolerance)
+            );
         }
 
         [Fact]
@@ -176,9 +238,13 @@ namespace GeometryHelper.Drawing.UnitTest
 
             var placements = new[]
             {
-                new GeoCoordinateSystem3(new GeoPoint3(0, 5000, 0), GeoVector3.YAxis, GeoVector3.XAxis.Negate()),       // along Y
-                new GeoCoordinateSystem3(new GeoPoint3(-200, 0, 3000), GeoVector3.ZAxis, GeoVector3.XAxis),             // standing along Z
-                new GeoCoordinateSystem3(new GeoPoint3(12345, -6789, 432), new GeoVector3(1, 2, 3), new GeoVector3(-2, 1, 0)), // skew
+                new GeoCoordinateSystem3(new GeoPoint3(0, 5000, 0), GeoVector3.YAxis, GeoVector3.XAxis.Negate()), // along Y
+                new GeoCoordinateSystem3(new GeoPoint3(-200, 0, 3000), GeoVector3.ZAxis, GeoVector3.XAxis), // standing along Z
+                new GeoCoordinateSystem3(
+                    new GeoPoint3(12345, -6789, 432),
+                    new GeoVector3(1, 2, 3),
+                    new GeoVector3(-2, 1, 0)
+                ), // skew
             };
 
             foreach (GeoCoordinateSystem3 placement in placements)
@@ -192,7 +258,10 @@ namespace GeometryHelper.Drawing.UnitTest
 
                     for (int i = 0; i < seen.Count; i++)
                     {
-                        Assert.True(seen[i].IsEqualTo(expected[k][i], Tolerance), Standard[k] + ": " + seen[i] + " against " + expected[k][i]);
+                        Assert.True(
+                            seen[i].IsEqualTo(expected[k][i], Tolerance),
+                            Standard[k] + ": " + seen[i] + " against " + expected[k][i]
+                        );
                     }
                 }
             }
@@ -201,7 +270,10 @@ namespace GeometryHelper.Drawing.UnitTest
         [Fact]
         public void TheFrontViewOfTC2ShowsTheBeamAcrossTheSheetAndItsEndPlateAtItsRight()
         {
-            DrawingSource source = TestBodies.TC2().MovedTo(new GeoCoordinateSystem3(new GeoPoint3(0, 5000, 0), GeoVector3.YAxis, GeoVector3.ZAxis)).ToSource();
+            DrawingSource source = TestBodies
+                .TC2()
+                .MovedTo(new GeoCoordinateSystem3(new GeoPoint3(0, 5000, 0), GeoVector3.YAxis, GeoVector3.ZAxis))
+                .ToSource();
             ViewFrame3 front = StandardViews.GetFrame(source.Frame, ViewKind.Front);
 
             source.TryGetObject("TC2-beam", out DrawingObject beam);
@@ -211,9 +283,19 @@ namespace GeometryHelper.Drawing.UnitTest
             AssertBox(front, plate, 3000, -170, 3020, 170);
         }
 
-        private static void AssertBox(ViewFrame3 view, DrawingObject item, double minX, double minY, double maxX, double maxY)
+        private static void AssertBox(
+            ViewFrame3 view,
+            DrawingObject item,
+            double minX,
+            double minY,
+            double maxX,
+            double maxY
+        )
         {
-            GeoPoint2[] seen = item.Solid.Faces.SelectMany(f => f.Boundary.Vertices).Select(p => view.ToView(p, out _)).ToArray();
+            GeoPoint2[] seen = item
+                .Solid.Faces.SelectMany(f => f.Boundary.Vertices)
+                .Select(p => view.ToView(p, out _))
+                .ToArray();
             Assert.Equal(minX, seen.Min(p => p.X), 6);
             Assert.Equal(minY, seen.Min(p => p.Y), 6);
             Assert.Equal(maxX, seen.Max(p => p.X), 6);

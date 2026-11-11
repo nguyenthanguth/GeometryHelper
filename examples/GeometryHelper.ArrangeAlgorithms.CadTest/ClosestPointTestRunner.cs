@@ -3,9 +3,9 @@ using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
+using GeometryHelper.CadConvert;
 using GeometryHelper.Core;
 using GeometryHelper.Geometry;
-using GeometryHelper.CadConvert;
 
 namespace GeometryHelper.ArrangeAlgorithms.CadTest
 {
@@ -14,7 +14,8 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
         public void RunClosestPointTest()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
-            if (doc == null) return;
+            if (doc == null)
+                return;
             Editor ed = doc.Editor;
             Database db = doc.Database;
 
@@ -48,8 +49,8 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
             {
                 try
                 {
-                    BlockTableRecord modelSpace = (BlockTableRecord)tr.GetObject(
-                        SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForWrite);
+                    BlockTableRecord modelSpace = (BlockTableRecord)
+                        tr.GetObject(SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForWrite);
 
                     DBObject selectedObj = tr.GetObject(selectRes.ObjectId, OpenMode.ForRead);
 
@@ -110,7 +111,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
 
                     double distance = pickedPoint3d.DistanceTo(closestPoint3d);
                     ed.WriteMessage($"\n[Test] Đối tượng biên được chọn: {objTypeStr}");
-                    ed.WriteMessage($"\n[Test] Điểm gần nhất trên biên tìm được tại: ({closestPoint3d.X:F2}, {closestPoint3d.Y:F2})");
+                    ed.WriteMessage(
+                        $"\n[Test] Điểm gần nhất trên biên tìm được tại: ({closestPoint3d.X:F2}, {closestPoint3d.Y:F2})"
+                    );
                     ed.WriteMessage($"\n[Test] Khoảng cách ngắn nhất đến biên: {distance:F2}");
 
                     tr.Commit();

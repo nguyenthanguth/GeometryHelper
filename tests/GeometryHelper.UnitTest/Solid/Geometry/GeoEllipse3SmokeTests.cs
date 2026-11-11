@@ -19,7 +19,11 @@ namespace GeometryHelper.UnitTest.Solid
         {
             while (true)
             {
-                var v = new GeoVector3(2 * random.NextDouble() - 1, 2 * random.NextDouble() - 1, 2 * random.NextDouble() - 1);
+                var v = new GeoVector3(
+                    2 * random.NextDouble() - 1,
+                    2 * random.NextDouble() - 1,
+                    2 * random.NextDouble() - 1
+                );
                 double length = v.Length;
 
                 if (length > 0.1 && length <= 1.0)
@@ -31,7 +35,11 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static GeoPoint3 RandomPoint(Random random, double reach)
         {
-            return new GeoPoint3(reach * (2 * random.NextDouble() - 1), reach * (2 * random.NextDouble() - 1), reach * (2 * random.NextDouble() - 1));
+            return new GeoPoint3(
+                reach * (2 * random.NextDouble() - 1),
+                reach * (2 * random.NextDouble() - 1),
+                reach * (2 * random.NextDouble() - 1)
+            );
         }
 
         private static void Near(GeoPoint3 expected, GeoPoint3 actual, double scale)
@@ -61,21 +69,39 @@ namespace GeometryHelper.UnitTest.Solid
 
                     double parameter = 3 * random.NextDouble() - 1;
                     Near(circle.GetPointAtParameter(parameter), ellipse.GetPointAtParameter(parameter), scale);
-                    Assert.Equal(circle.GetDistanceAtParameter(parameter), ellipse.GetDistanceAtParameter(parameter), 1E-12 * circle.Length);
+                    Assert.Equal(
+                        circle.GetDistanceAtParameter(parameter),
+                        ellipse.GetDistanceAtParameter(parameter),
+                        1E-12 * circle.Length
+                    );
 
                     double distance = 3 * circle.Length * random.NextDouble() - circle.Length;
                     Near(circle.GetPointAtDistance(distance), ellipse.GetPointAtDistance(distance), scale);
-                    Assert.Equal(circle.GetParameterAtDistance(distance), ellipse.GetParameterAtDistance(distance), 1E-12);
+                    Assert.Equal(
+                        circle.GetParameterAtDistance(distance),
+                        ellipse.GetParameterAtDistance(distance),
+                        1E-12
+                    );
 
                     GeoPoint3 point = circle.Center.Add(RandomPoint(random, 2 * radius).GetVectorTo(GeoPoint3.Origin));
-                    Near(circle.GetClosestPointOnBoundary(point), ellipse.GetClosestPointOnBoundary(point), scale + 2 * radius);
-                    Near(circle.GetClosestPointOnSurface(point), ellipse.GetClosestPointOnSurface(point), scale + 2 * radius);
+                    Near(
+                        circle.GetClosestPointOnBoundary(point),
+                        ellipse.GetClosestPointOnBoundary(point),
+                        scale + 2 * radius
+                    );
+                    Near(
+                        circle.GetClosestPointOnSurface(point),
+                        ellipse.GetClosestPointOnSurface(point),
+                        scale + 2 * radius
+                    );
                     Assert.Equal(circle.DistanceTo(point), ellipse.DistanceTo(point), 1E-12 * (scale + 2 * radius));
                     Assert.Equal(circle.GetParameterAtPoint(point, Tol), ellipse.GetParameterAtPoint(point), 1E-12);
 
                     // A point on the disc, on the rim and a hair off the plane are read alike.
                     GeoPoint3 onRim = circle.GetPointAtAngle(angle);
-                    GeoPoint3 inside = circle.Center.Add(circle.Center.GetVectorTo(onRim).Multiply(random.NextDouble() * 0.99));
+                    GeoPoint3 inside = circle.Center.Add(
+                        circle.Center.GetVectorTo(onRim).Multiply(random.NextDouble() * 0.99)
+                    );
                     GeoPoint3 above = inside.Add(circle.Normal.Multiply(0.002));
                     Assert.Equal(circle.Locate(onRim, Tol), ellipse.Locate(onRim, Tol));
                     Assert.Equal(circle.Locate(inside, Tol), ellipse.Locate(inside, Tol));
@@ -109,7 +135,11 @@ namespace GeometryHelper.UnitTest.Solid
                 for (int k = 0; k < 8; k++)
                 {
                     GeoPoint3 point = circle.Center.Add(RandomPoint(random, 2 * radius).GetVectorTo(GeoPoint3.Origin));
-                    Near(circle.GetClosestPointOnBoundary(point), ellipse.GetClosestPointOnBoundary(point), scale + 2 * radius);
+                    Near(
+                        circle.GetClosestPointOnBoundary(point),
+                        ellipse.GetClosestPointOnBoundary(point),
+                        scale + 2 * radius
+                    );
                     Assert.Equal(circle.DistanceTo(point), ellipse.DistanceTo(point), 1E-12 * (scale + 2 * radius));
                 }
 
@@ -122,7 +152,11 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // Tilted about the Y axis: the rim keeps its full width along Y and is foreshortened along X by cos 60°.
             double tilt = Math.PI / 3;
-            var circle = new GeoCircle3(new GeoPoint3(10, 20, 30), new GeoVector3(Math.Sin(tilt), 0, Math.Cos(tilt)), 300);
+            var circle = new GeoCircle3(
+                new GeoPoint3(10, 20, 30),
+                new GeoVector3(Math.Sin(tilt), 0, Math.Cos(tilt)),
+                300
+            );
             var plan = new GeoPlane3(GeoPoint3.Origin, GeoVector3.ZAxis);
 
             GeoEllipse3 seen = circle.ProjectToPlane(plan);
@@ -179,7 +213,12 @@ namespace GeometryHelper.UnitTest.Solid
                 double a = 1 + 999 * random.NextDouble();
                 double b = a / (1 + 999 * random.NextDouble());
                 double angle = 2 * Math.PI * random.NextDouble();
-                var flat = new GeoEllipse2(new GeoPoint2(3000 * random.NextDouble(), -3000 * random.NextDouble()), new GeoVector2(Math.Cos(angle), Math.Sin(angle)), a, b);
+                var flat = new GeoEllipse2(
+                    new GeoPoint2(3000 * random.NextDouble(), -3000 * random.NextDouble()),
+                    new GeoVector2(Math.Cos(angle), Math.Sin(angle)),
+                    a,
+                    b
+                );
 
                 GeoEllipse3 lifted = flat.ToEllipse3(frame);
 
@@ -281,7 +320,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             // An ellipse in the plan mirrored in the plan faces down.
             var plan = new GeoEllipse3(new GeoPoint3(0, 0, 5), GeoVector3.ZAxis, GeoVector3.XAxis, 300, 100);
-            GeoEllipse3 down = plan.TransformBy(GeoTransform3.Mirror(new GeoPlane3(GeoPoint3.Origin, GeoVector3.ZAxis)));
+            GeoEllipse3 down = plan.TransformBy(
+                GeoTransform3.Mirror(new GeoPlane3(GeoPoint3.Origin, GeoVector3.ZAxis))
+            );
             Assert.Equal(-1.0, down.Normal.Z, 1E-15);
             Assert.Equal(-5.0, down.Center.Z, 1E-12);
             Assert.Equal(300.0, down.MajorRadius, 1E-9);
@@ -291,7 +332,13 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TranslateKeepsEveryFieldButTheCentreExactly()
         {
-            var ellipse = new GeoEllipse3(new GeoPoint3(1, 2, 3), new GeoVector3(1, 2, 3), new GeoVector3(3, -1, 0.2), 300, 100);
+            var ellipse = new GeoEllipse3(
+                new GeoPoint3(1, 2, 3),
+                new GeoVector3(1, 2, 3),
+                new GeoVector3(3, -1, 0.2),
+                300,
+                100
+            );
             GeoEllipse3 moved = ellipse.Translate(new GeoVector3(10, 20, 30));
 
             Assert.Equal(ellipse.Normal, moved.Normal);
@@ -312,7 +359,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             // Refused wherever the circle's plane is, even flattened along Z, which would keep the plane (B3).
             Assert.Throws<InvalidOperationException>(() => plan.TransformBy(GeoTransform3.Scaling(1, 1, 0)));
-            Assert.Throws<InvalidOperationException>(() => new GeoCircle3(GeoPoint3.Origin, GeoVector3.ZAxis, 100).TransformBy(GeoTransform3.Scaling(1, 1, 0)));
+            Assert.Throws<InvalidOperationException>(() =>
+                new GeoCircle3(GeoPoint3.Origin, GeoVector3.ZAxis, 100).TransformBy(GeoTransform3.Scaling(1, 1, 0))
+            );
 
             // A squash that can be undone gives a thin ellipse.
             GeoEllipse3 squashed = plan.TransformBy(GeoTransform3.Scaling(1, 1E-4, 1));
@@ -323,7 +372,11 @@ namespace GeometryHelper.UnitTest.Solid
             var wall = new GeoPlane3(GeoPoint3.Origin, GeoVector3.YAxis);
             Assert.Throws<InvalidOperationException>(() => plan.ProjectToPlane(wall));
             Assert.Throws<InvalidOperationException>(() => plan.ProjectToEllipse2(new GeoCoordinateSystem3(wall)));
-            Assert.Throws<InvalidOperationException>(() => new GeoCircle3(GeoPoint3.Origin, GeoVector3.XAxis, 5).ProjectToPlane(new GeoPlane3(GeoPoint3.Origin, GeoVector3.ZAxis)));
+            Assert.Throws<InvalidOperationException>(() =>
+                new GeoCircle3(GeoPoint3.Origin, GeoVector3.XAxis, 5).ProjectToPlane(
+                    new GeoPlane3(GeoPoint3.Origin, GeoVector3.ZAxis)
+                )
+            );
 
             // Tilted a hair off edge-on it is a thin ellipse, not a refusal.
             var nearly = new GeoEllipse3(GeoPoint3.Origin, new GeoVector3(0, 1, 1E-6), GeoVector3.XAxis, 300, 100);
@@ -335,12 +388,24 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TheConstructorRefusesWhatDrawsNoEllipse()
         {
-            Assert.Throws<ArgumentException>(() => new GeoEllipse3(GeoPoint3.Origin, GeoVector3.Zero, GeoVector3.XAxis, 3, 1));
-            Assert.Throws<ArgumentException>(() => new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, GeoVector3.Zero, 3, 1));
-            Assert.Throws<ArgumentException>(() => new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, new GeoVector3(0, 0, 5), 3, 1));
-            Assert.Throws<ArgumentException>(() => new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, new GeoVector3(double.NaN, 0, 0), 3, 1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, GeoVector3.XAxis, 1, 3));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, GeoVector3.XAxis, 3, 0));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoEllipse3(GeoPoint3.Origin, GeoVector3.Zero, GeoVector3.XAxis, 3, 1)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, GeoVector3.Zero, 3, 1)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, new GeoVector3(0, 0, 5), 3, 1)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, new GeoVector3(double.NaN, 0, 0), 3, 1)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, GeoVector3.XAxis, 1, 3)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, GeoVector3.XAxis, 3, 0)
+            );
             Assert.False(default(GeoEllipse3).IsValid);
 
             // A tilted axis is laid into the plane.
@@ -422,7 +487,13 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < 2000; i++)
             {
-                var ellipse = new GeoEllipse3(RandomPoint(random, 1000), RandomUnit(random), RandomUnit(random), 300, i % 2 == 0 ? 100 : 300);
+                var ellipse = new GeoEllipse3(
+                    RandomPoint(random, 1000),
+                    RandomUnit(random),
+                    RandomUnit(random),
+                    300,
+                    i % 2 == 0 ? 100 : 300
+                );
 
                 GeoPoint3 aboveCentre = ellipse.Center.Add(ellipse.Normal.Multiply(50));
                 Assert.Equal(Math.PI / 2, ellipse.GetAngleAtPoint(aboveCentre), 1E-12);
@@ -434,7 +505,9 @@ namespace GeometryHelper.UnitTest.Solid
                 }
 
                 // Above the major axis inside, two points of the rim are equally near; the one on the positive side is given.
-                GeoPoint3 aboveAxis = ellipse.Center.Add(ellipse.MajorAxis.Multiply(50)).Add(ellipse.Normal.Multiply(-20));
+                GeoPoint3 aboveAxis = ellipse
+                    .Center.Add(ellipse.MajorAxis.Multiply(50))
+                    .Add(ellipse.Normal.Multiply(-20));
                 GeoPoint3 closest = ellipse.GetClosestPointOnBoundary(aboveAxis);
                 Assert.True(ellipse.Center.GetVectorTo(closest).DotProduct(ellipse.MinorAxis) > 0.0);
             }
@@ -443,7 +516,13 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void LengthAndParameterWrapRoundTheRimAsTheCirclesDo()
         {
-            var ellipse = new GeoEllipse3(new GeoPoint3(1, 2, 3), new GeoVector3(1, 1, 1), new GeoVector3(1, -1, 0), 300, 100);
+            var ellipse = new GeoEllipse3(
+                new GeoPoint3(1, 2, 3),
+                new GeoVector3(1, 1, 1),
+                new GeoVector3(1, -1, 0),
+                300,
+                100
+            );
             var flat = new GeoEllipse2(new GeoPoint2(0, 0), GeoVector2.XAxis, 300, 100);
             double length = ellipse.Length;
 
@@ -454,7 +533,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(ellipse.GetParameterAtDistance(400), ellipse.GetParameterAtDistance(400 + length), 1E-12);
 
             // A foot within the vector tolerance of the centre is read at the centre, the end of the minor axis.
-            GeoPoint3 nearCentre = ellipse.Center.Add(ellipse.MajorAxis.Multiply(5E-6)).Add(ellipse.Normal.Multiply(30));
+            GeoPoint3 nearCentre = ellipse
+                .Center.Add(ellipse.MajorAxis.Multiply(5E-6))
+                .Add(ellipse.Normal.Multiply(30));
             Assert.Equal(0.25, ellipse.GetParameterAtPoint(nearCentre, Tol));
             Assert.Equal(0.25 * length, ellipse.GetDistanceAtPoint(nearCentre, Tol), 1E-9);
         }
@@ -479,7 +560,11 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TheFlatteningAndTheMeshAreThoseOfThePlaneLiftedIntoTheEllipsesPlane()
         {
-            var frame = new GeoCoordinateSystem3(new GeoPoint3(100, 200, 300), new GeoVector3(1, 1, 0.3), new GeoVector3(-1, 1, 2));
+            var frame = new GeoCoordinateSystem3(
+                new GeoPoint3(100, 200, 300),
+                new GeoVector3(1, 1, 0.3),
+                new GeoVector3(-1, 1, 2)
+            );
             var flat = new GeoEllipse2(new GeoPoint2(0, 0), new GeoVector2(1, 0), 1000, 1);
             GeoEllipse3 ellipse = flat.ToEllipse3(frame);
 
@@ -490,7 +575,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < polygon2.Vertices.Count; i++)
             {
-                Near(frame.ToGlobal(new GeoPoint3(polygon2.Vertices[i].X, polygon2.Vertices[i].Y, 0)), polygon3.Vertices[i], 2000);
+                Near(
+                    frame.ToGlobal(new GeoPoint3(polygon2.Vertices[i].X, polygon2.Vertices[i].Y, 0)),
+                    polygon3.Vertices[i],
+                    2000
+                );
             }
 
             Assert.True(polygon3.Normal.IsEqualTo(ellipse.Normal, Tol));
@@ -503,14 +592,24 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(round.ToPolygon().Area, mesh.Area, 1E-6 * round.Area);
 
             var sliver = new GeoEllipse3(GeoPoint3.Origin, GeoVector3.ZAxis, GeoVector3.XAxis, 300, 0.0005);
-            Assert.Equal(0, sliver.ToMesh(new GeometryHelper.Meshing.MeshOptions(GeometryHelper.Meshing.MeshKind.Triangles), GeometryHelper.Meshing.MeshPlacement3.World, Tol).FaceCount);
+            Assert.Equal(
+                0,
+                sliver
+                    .ToMesh(
+                        new GeometryHelper.Meshing.MeshOptions(GeometryHelper.Meshing.MeshKind.Triangles),
+                        GeometryHelper.Meshing.MeshPlacement3.World,
+                        Tol
+                    )
+                    .FaceCount
+            );
         }
 
         [Fact]
         public void AGridLaidOnTheEllipsesOwnAxesRunsAlongItsMajorAxisAsOverItsFlattenedOutline()
         {
             // The ellipse 1000 by 200 in the plan with its axis along (1, 1, 0), turned 0.5 rad about X.
-            double cos = Math.Cos(0.5), sin = Math.Sin(0.5);
+            double cos = Math.Cos(0.5),
+                sin = Math.Sin(0.5);
             var normal = new GeoVector3(0, -sin, cos);
             var axis = new GeoVector3(1, cos, sin).Multiply(1 / Math.Sqrt(2));
             var ellipse = new GeoEllipse3(new GeoPoint3(10, 20, 30), normal, axis, 1000, 200);
@@ -520,13 +619,21 @@ namespace GeometryHelper.UnitTest.Solid
             GeometryHelper.Meshing.GeoMesh3 mesh = ellipse.ToMesh(grid, own, Tol);
             GeometryHelper.Meshing.GeoMesh3 outline = ellipse.ToPolygon().ToMesh(grid, own, Tol);
 
-            Assert.True(Math.Abs(mesh.Frame.XAxis.DotProduct(ellipse.MajorAxis)) >= 1 - 1E-12, $"{mesh.Frame.XAxis} against {ellipse.MajorAxis}");
+            Assert.True(
+                Math.Abs(mesh.Frame.XAxis.DotProduct(ellipse.MajorAxis)) >= 1 - 1E-12,
+                $"{mesh.Frame.XAxis} against {ellipse.MajorAxis}"
+            );
             Assert.Equal(outline.FaceCount, mesh.FaceCount);
             Assert.Equal(20, mesh.FaceCount);
 
             // A circle has no axis of its own, and its grid runs level, as a circle's does.
             var circle = new GeoCircle3(new GeoPoint3(10, 20, 30), normal, 500);
-            Assert.True(GeoEllipse3.FromCircle(circle).ToMesh(grid, own, Tol).Frame.XAxis.IsEqualTo(circle.ToMesh(grid, own, Tol).Frame.XAxis, Tol));
+            Assert.True(
+                GeoEllipse3
+                    .FromCircle(circle)
+                    .ToMesh(grid, own, Tol)
+                    .Frame.XAxis.IsEqualTo(circle.ToMesh(grid, own, Tol).Frame.XAxis, Tol)
+            );
         }
     }
 }

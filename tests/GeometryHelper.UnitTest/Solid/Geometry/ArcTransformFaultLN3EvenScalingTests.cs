@@ -38,8 +38,8 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly GeoPoint3 Centre = new GeoPoint3(10, 20, 30);
         private static readonly GeoVector3 Normal = new GeoVector3(0.2, -0.1, 1);
 
-        private static GeoArc3 Arc(double radius, double shortOfATurn)
-            => new GeoArc3(Centre, Normal, radius, 0.3, 0.3 + 2.0 * Math.PI - shortOfATurn);
+        private static GeoArc3 Arc(double radius, double shortOfATurn) =>
+            new GeoArc3(Centre, Normal, radius, 0.3, 0.3 + 2.0 * Math.PI - shortOfATurn);
 
         [Theory]
         [InlineData(1E-3)]

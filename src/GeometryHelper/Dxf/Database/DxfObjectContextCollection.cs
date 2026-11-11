@@ -49,7 +49,6 @@ namespace GeometryHelper.Dxf
         public DxfObjectContext CurrentContext
         {
             get => Find(_database, _database.Cannoscale);
-
             set
             {
                 if (value == null)
@@ -107,19 +106,30 @@ namespace GeometryHelper.Dxf
 
             if (!(context is DxfAnnotationScale scale))
             {
-                throw new ArgumentException("The list of scales takes a DxfAnnotationScale: a " + context.GetType().Name + " is not added.", nameof(context));
+                throw new ArgumentException(
+                    "The list of scales takes a DxfAnnotationScale: a " + context.GetType().Name + " is not added.",
+                    nameof(context)
+                );
             }
 
             if (scale.Item != null)
             {
-                throw new ArgumentException("A scale is added made in code and in no file yet: the " + scale + " is in one.", nameof(context));
+                throw new ArgumentException(
+                    "A scale is added made in code and in no file yet: the " + scale + " is in one.",
+                    nameof(context)
+                );
             }
 
             DxfAnnotationScale.CheckName(scale.Name, nameof(context));
 
             if (Find(_database, scale.Name) != null)
             {
-                throw new ArgumentException("The drawing's list of scales has a scale named " + scale.Name + " already, as AutoCAD answers eDuplicateKey.", nameof(context));
+                throw new ArgumentException(
+                    "The drawing's list of scales has a scale named "
+                        + scale.Name
+                        + " already, as AutoCAD answers eDuplicateKey.",
+                    nameof(context)
+                );
             }
 
             DxfDBDictionary list = List(true);
@@ -129,17 +139,21 @@ namespace GeometryHelper.Dxf
 
             // A scale of as many units of the paper as of the drawing is the unit scale where the list has none, as AutoCAD
             // keeps one in every list.
-            string unit = BitConverter.DoubleToInt64Bits(scale.PaperUnits) == BitConverter.DoubleToInt64Bits(scale.DrawingUnits) && !Scales(_database).Exists(s => s.IsUnitScale) ? "1" : "0";
+            string unit =
+                BitConverter.DoubleToInt64Bits(scale.PaperUnits) == BitConverter.DoubleToInt64Bits(scale.DrawingUnits)
+                && !Scales(_database).Exists(s => s.IsUnitScale)
+                    ? "1"
+                    : "0";
             _database.File.AddClass("SCALE", "AcDbScale", 1153);
             scale.Bind(list.Add(NewKey(list), "SCALE", b =>
-            {
-                b.Group(100, "AcDbScale");
-                b.Group(70, "0");
-                b.Group(300, name);
-                b.Group(140, paper);
-                b.Group(141, drawing);
-                b.Group(290, unit);
-            }));
+                {
+                    b.Group(100, "AcDbScale");
+                    b.Group(70, "0");
+                    b.Group(300, name);
+                    b.Group(140, paper);
+                    b.Group(141, drawing);
+                    b.Group(290, unit);
+                }));
         }
 
         /// <summary>
@@ -191,19 +205,31 @@ namespace GeometryHelper.Dxf
 
             if (scale.IsUnitScale)
             {
-                throw new InvalidOperationException("The scale " + scale.Name + " is the drawing's unit scale, which AutoCAD keeps in every list.");
+                throw new InvalidOperationException(
+                    "The scale " + scale.Name + " is the drawing's unit scale, which AutoCAD keeps in every list."
+                );
             }
 
             if (string.Equals(scale.Name, _database.Cannoscale?.Trim(), StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException("The scale " + scale.Name + " is the current annotation scale (CANNOSCALE), which AutoCAD keeps: make another current first.");
+                throw new InvalidOperationException(
+                    "The scale "
+                        + scale.Name
+                        + " is the current annotation scale (CANNOSCALE), which AutoCAD keeps: make another current first."
+                );
             }
 
             int uses = _database.File.CountUses().OfHandle(scale.Handle);
 
             if (uses > 0)
             {
-                throw new InvalidOperationException("The scale " + scale.Name + " is in use, " + uses.ToString(CultureInfo.InvariantCulture) + " objects pointing at it, and AutoCAD keeps a scale in use: take it from them first.");
+                throw new InvalidOperationException(
+                    "The scale "
+                        + scale.Name
+                        + " is in use, "
+                        + uses.ToString(CultureInfo.InvariantCulture)
+                        + " objects pointing at it, and AutoCAD keeps a scale in use: take it from them first."
+                );
             }
 
             DxfDBDictionary list = List(false);
@@ -264,15 +290,23 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A scale of this drawing's list, given as a context; refused where it is not one.</summary>
-        internal DxfAnnotationScale Listed(DxfObjectContext context, string parameter)
-            => Listed(_database, context, parameter);
+        internal DxfAnnotationScale Listed(DxfObjectContext context, string parameter) =>
+            Listed(_database, context, parameter);
 
         /// <summary>A scale of a drawing's list, given as a context: a SCALE of its file, not erased; refused where it is not one.</summary>
         internal static DxfAnnotationScale Listed(DxfDatabase database, DxfObjectContext context, string parameter)
         {
-            if (!(context is DxfAnnotationScale scale) || scale.Item == null || scale.Item.File != database.File || scale.Item.IsRemoved)
+            if (
+                !(context is DxfAnnotationScale scale)
+                || scale.Item == null
+                || scale.Item.File != database.File
+                || scale.Item.IsRemoved
+            )
             {
-                throw new ArgumentException("The context is to be a scale of the drawing's list of scales: the " + context + " is not one.", parameter);
+                throw new ArgumentException(
+                    "The context is to be a scale of the drawing's list of scales: the " + context + " is not one.",
+                    parameter
+                );
             }
 
             return scale;
@@ -299,17 +333,25 @@ namespace GeometryHelper.Dxf
 
             if (root == null)
             {
-                throw new InvalidOperationException("A DXF " + (_database.Version ?? "with no version") + " has no OBJECTS section to hold a list of scales: R13 (AC1012) brought it.");
+                throw new InvalidOperationException(
+                    "A DXF "
+                        + (_database.Version ?? "with no version")
+                        + " has no OBJECTS section to hold a list of scales: R13 (AC1012) brought it."
+                );
             }
 
             if (root.Contains(ScaleList))
             {
-                throw new InvalidOperationException("The named object dictionary holds an ACAD_SCALELIST that is not a dictionary, which the scales are kept in.");
+                throw new InvalidOperationException(
+                    "The named object dictionary holds an ACAD_SCALELIST that is not a dictionary, which the scales are kept in."
+                );
             }
 
             if (!_database.File.Supports(1021))
             {
-                throw new InvalidOperationException("A DXF older than R2007 (AC1021) has no list of scales: AutoCAD 2008, which saves R2007, brought it.");
+                throw new InvalidOperationException(
+                    "A DXF older than R2007 (AC1021) has no list of scales: AutoCAD 2008, which saves R2007, brought it."
+                );
             }
 
             root.SetAt(ScaleList, new DxfDBDictionary());
@@ -329,8 +371,12 @@ namespace GeometryHelper.Dxf
             {
                 string key = entry.Key.Trim();
 
-                if (key.Length > 2 && key.StartsWith("*A", StringComparison.OrdinalIgnoreCase)
-                    && long.TryParse(key.Substring(2), NumberStyles.None, CultureInfo.InvariantCulture, out long n) && n > highest)
+                if (
+                    key.Length > 2
+                    && key.StartsWith("*A", StringComparison.OrdinalIgnoreCase)
+                    && long.TryParse(key.Substring(2), NumberStyles.None, CultureInfo.InvariantCulture, out long n)
+                    && n > highest
+                )
                 {
                     highest = n;
                 }

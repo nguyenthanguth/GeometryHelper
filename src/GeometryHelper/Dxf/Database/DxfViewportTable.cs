@@ -56,8 +56,10 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        private protected override void AddRecord(DxfSymbolTableRecord record)
-            => throw new InvalidOperationException("The VPORT table is read and changed in place: no viewport is added to it yet.");
+        private protected override void AddRecord(DxfSymbolTableRecord record) =>
+            throw new InvalidOperationException(
+                "The VPORT table is read and changed in place: no viewport is added to it yet."
+            );
     }
 
     /// <summary>
@@ -76,17 +78,79 @@ namespace GeometryHelper.Dxf
     public sealed class DxfViewportTableRecord : DxfSymbolTableRecord
     {
         // The groups of AcDbViewportTableRecord in the order AutoCAD 2021 gives them, after AcDbSymbolTableRecord.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[]
-        {
-            100, 100, 2, 70, 10, 20, 11, 21, 12, 22, 13, 23, 14, 24, 15, 25, 16, 26, 36, 17, 27, 37, 40, 41, 42, 43, 44, 50, 51, 71, 72,
-            73, 74, 75, 76, 77, 78, 281, 65, 110, 120, 130, 111, 121, 131, 112, 122, 132, 79, 146, 345, 346, 348, 60, 61, 292, 282,
-            141, 142, 63, 421, 431, 332, 333, 361,
-        });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[]
+            {
+                100,
+                100,
+                2,
+                70,
+                10,
+                20,
+                11,
+                21,
+                12,
+                22,
+                13,
+                23,
+                14,
+                24,
+                15,
+                25,
+                16,
+                26,
+                36,
+                17,
+                27,
+                37,
+                40,
+                41,
+                42,
+                43,
+                44,
+                50,
+                51,
+                71,
+                72,
+                73,
+                74,
+                75,
+                76,
+                77,
+                78,
+                281,
+                65,
+                110,
+                120,
+                130,
+                111,
+                121,
+                131,
+                112,
+                122,
+                132,
+                79,
+                146,
+                345,
+                346,
+                348,
+                60,
+                61,
+                292,
+                282,
+                141,
+                142,
+                63,
+                421,
+                431,
+                332,
+                333,
+                361,
+            }
+        );
 
         private DxfViewportTableRecord(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets whether the snap is on (group 75 of 1), as AutoCAD's <c>SnapEnabled</c> and SNAPMODE; off where the record gives none.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the viewport is erased.</exception>
@@ -135,19 +199,24 @@ namespace GeometryHelper.Dxf
         public GeoPoint2 SnapBase
         {
             get => new GeoPoint2(Real(13, 0.0), Real(23, 0.0));
-
             set
             {
                 if (!(Guard.IsFinite(value.X) && Guard.IsFinite(value.Y)))
                 {
-                    throw new ArgumentException("A point has to be of finite numbers: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "A point has to be of finite numbers: " + value + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 GeoPoint2 now = SnapBase;
 
                 if (!(Same(value.X, now.X) && Same(value.Y, now.Y)))
                 {
-                    SetValues(new KeyValuePair<int, string>(13, Numbers.Exact(value.X + 0.0)), new KeyValuePair<int, string>(23, Numbers.Exact(value.Y + 0.0)));
+                    SetValues(
+                        new KeyValuePair<int, string>(13, Numbers.Exact(value.X + 0.0)),
+                        new KeyValuePair<int, string>(23, Numbers.Exact(value.Y + 0.0))
+                    );
                 }
             }
         }
@@ -161,12 +230,16 @@ namespace GeometryHelper.Dxf
         public double SnapAngle
         {
             get => Real(50, 0.0) * Math.PI / 180.0;
-
             set
             {
                 if (!Guard.IsFinite(value))
                 {
-                    throw new ArgumentException("An angle has to be a finite number: " + value.ToString("R", CultureInfo.InvariantCulture) + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "An angle has to be a finite number: "
+                            + value.ToString("R", CultureInfo.InvariantCulture)
+                            + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 if (!Same(value, SnapAngle))
@@ -193,7 +266,6 @@ namespace GeometryHelper.Dxf
         public int SnapPair
         {
             get => Whole(78, 0);
-
             set
             {
                 if (value < 0 || value > 2)
@@ -231,13 +303,24 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The object of a VPORT record, made once.</summary>
-        internal static DxfViewportTableRecord Of(DxfItem item) => item.Wrapper as DxfViewportTableRecord ?? (DxfViewportTableRecord)item.KeepWrapper(new DxfViewportTableRecord(item));
+        internal static DxfViewportTableRecord Of(DxfItem item) =>
+            item.Wrapper as DxfViewportTableRecord
+            ?? (DxfViewportTableRecord)item.KeepWrapper(new DxfViewportTableRecord(item));
 
         private void SetSince2007(int code, int value, int least, int most, int now, string name)
         {
             if (value < least || value > most)
             {
-                throw new ArgumentOutOfRangeException(nameof(value), value, name + " is " + least.ToString(CultureInfo.InvariantCulture) + " to " + most.ToString(CultureInfo.InvariantCulture) + ".");
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    name
+                        + " is "
+                        + least.ToString(CultureInfo.InvariantCulture)
+                        + " to "
+                        + most.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
 
             if (value != now)
@@ -253,13 +336,23 @@ namespace GeometryHelper.Dxf
             {
                 if (!Guard.IsFinite(v) || v < 0.0 || (v == 0.0 && !noughtTaken))
                 {
-                    throw new ArgumentException("A spacing has to be a finite number " + (noughtTaken ? "not below" : "above") + " nought: " + v.ToString("R", CultureInfo.InvariantCulture) + " is not.", "value");
+                    throw new ArgumentException(
+                        "A spacing has to be a finite number "
+                            + (noughtTaken ? "not below" : "above")
+                            + " nought: "
+                            + v.ToString("R", CultureInfo.InvariantCulture)
+                            + " is not.",
+                        "value"
+                    );
                 }
             }
 
             if (!(Same(x, nowX) && Same(y, nowY)))
             {
-                SetValues(new KeyValuePair<int, string>(codeX, Numbers.Exact(x + 0.0)), new KeyValuePair<int, string>(codeY, Numbers.Exact(y + 0.0)));
+                SetValues(
+                    new KeyValuePair<int, string>(codeX, Numbers.Exact(x + 0.0)),
+                    new KeyValuePair<int, string>(codeY, Numbers.Exact(y + 0.0))
+                );
             }
         }
 
@@ -281,11 +374,22 @@ namespace GeometryHelper.Dxf
             Item.File.SetValues(Item, values, Order, false);
         }
 
-        private int Whole(int code, int fallback)
-            => int.TryParse(Item.File.ValueOf(Item, code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+        private int Whole(int code, int fallback) =>
+            int.TryParse(
+                Item.File.ValueOf(Item, code)?.Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int value
+            )
+                ? value
+                : fallback;
 
-        private double Real(int code, double fallback) => Numbers.TryRead(Item.File.ValueOf(Item, code), out double value) && Guard.IsFinite(value) ? value : fallback;
+        private double Real(int code, double fallback) =>
+            Numbers.TryRead(Item.File.ValueOf(Item, code), out double value) && Guard.IsFinite(value)
+                ? value
+                : fallback;
 
-        private static bool Same(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
+        private static bool Same(double a, double b) =>
+            BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
     }
 }

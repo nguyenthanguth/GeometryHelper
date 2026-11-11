@@ -33,7 +33,15 @@ namespace GeometryHelper.Dxf.Viewer
 
             for (int i = 1; data != null && i < data.Count; i++)
             {
-                if (data[i].TypeCode == 1071 && int.TryParse(data[i].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int bits))
+                if (
+                    data[i].TypeCode == 1071
+                    && int.TryParse(
+                        data[i].Value,
+                        System.Globalization.NumberStyles.Integer,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out int bits
+                    )
+                )
                 {
                     return bits;
                 }
@@ -85,7 +93,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (write)
                 {
-                    var made = new DxfLinetypeTableRecord { Name = name, AsciiDescription = linetype.AsciiDescription, NumDashes = linetype.NumDashes };
+                    var made = new DxfLinetypeTableRecord
+                    {
+                        Name = name,
+                        AsciiDescription = linetype.AsciiDescription,
+                        NumDashes = linetype.NumDashes,
+                    };
 
                     // The dashes by their lengths: a shape or a text of a dash is drawn from the drawing referenced, whose text
                     // styles AutoCAD writes no record of here.
@@ -164,7 +177,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfLinetypeTableRecord linetype in host.LinetypeTable)
             {
-                if (linetype.Name.StartsWith(prefix, System.StringComparison.OrdinalIgnoreCase) && linetype.IsDependent && linetype.IsResolved)
+                if (
+                    linetype.Name.StartsWith(prefix, System.StringComparison.OrdinalIgnoreCase)
+                    && linetype.IsDependent
+                    && linetype.IsResolved
+                )
                 {
                     changes = true;
 
@@ -177,7 +194,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfLayerTableRecord layer in host.LayerTable)
             {
-                if (layer.Name.StartsWith(prefix, System.StringComparison.OrdinalIgnoreCase) && layer.IsDependent && layer.IsResolved)
+                if (
+                    layer.Name.StartsWith(prefix, System.StringComparison.OrdinalIgnoreCase)
+                    && layer.IsDependent
+                    && layer.IsResolved
+                )
                 {
                     changes = true;
 
@@ -240,7 +261,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// alone, or says whether any differs (<paramref name="write"/> false). What a drawing of its version holds, as AutoCAD
         /// writes it: lineweights and plotting from R2000, true colours and transparency from R2004; one older keeps none of them.
         /// </summary>
-        private static bool Copy(DxfDatabase host, string xref, DxfLayerTableRecord layer, DxfLayerTableRecord record, bool write)
+        private static bool Copy(
+            DxfDatabase host,
+            string xref,
+            DxfLayerTableRecord layer,
+            DxfLayerTableRecord record,
+            bool write
+        )
         {
             string linetype = layer.LinetypeName ?? "Continuous";
 
@@ -250,16 +277,31 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             bool differs = false;
-            Change(ref differs, write, record.ColorIndex != layer.ColorIndex, () => record.ColorIndex = layer.ColorIndex);
+            Change(ref differs, write, record.ColorIndex != layer.ColorIndex, () =>
+                record.ColorIndex = layer.ColorIndex
+            );
             Change(ref differs, write, record.TrueColor != layer.TrueColor, () => record.TrueColor = layer.TrueColor);
-            Change(ref differs, write, !string.Equals(record.LinetypeName, linetype, System.StringComparison.OrdinalIgnoreCase), () => record.LinetypeName = linetype);
+            Change(
+                ref differs,
+                write,
+                !string.Equals(record.LinetypeName, linetype, System.StringComparison.OrdinalIgnoreCase),
+                () => record.LinetypeName = linetype
+            );
             Change(ref differs, write, record.IsOff != layer.IsOff, () => record.IsOff = layer.IsOff);
             Change(ref differs, write, record.IsFrozen != layer.IsFrozen, () => record.IsFrozen = layer.IsFrozen);
             Change(ref differs, write, record.IsLocked != layer.IsLocked, () => record.IsLocked = layer.IsLocked);
-            Change(ref differs, write, record.LineWeight != layer.LineWeight, () => record.LineWeight = layer.LineWeight);
-            Change(ref differs, write, record.IsPlottable != layer.IsPlottable, () => record.IsPlottable = layer.IsPlottable);
-            Change(ref differs, write, record.Transparency != layer.Transparency, () => record.Transparency = layer.Transparency);
-            Change(ref differs, write, record.Description != layer.Description, () => record.Description = layer.Description);
+            Change(ref differs, write, record.LineWeight != layer.LineWeight, () =>
+                record.LineWeight = layer.LineWeight
+            );
+            Change(ref differs, write, record.IsPlottable != layer.IsPlottable, () =>
+                record.IsPlottable = layer.IsPlottable
+            );
+            Change(ref differs, write, record.Transparency != layer.Transparency, () =>
+                record.Transparency = layer.Transparency
+            );
+            Change(ref differs, write, record.Description != layer.Description, () =>
+                record.Description = layer.Description
+            );
             return differs;
         }
 
@@ -295,7 +337,9 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     catch (System.InvalidOperationException e)
                     {
-                        GeometryHelperLog.Debug("CadXrefLayers: " + record.Name + " is kept, flagged unresolved: " + e.Message);
+                        GeometryHelperLog.Debug(
+                            "CadXrefLayers: " + record.Name + " is kept, flagged unresolved: " + e.Message
+                        );
                     }
                 }
             }
@@ -331,13 +375,17 @@ namespace GeometryHelper.Dxf.Viewer
             }
             catch (System.InvalidOperationException e)
             {
-                GeometryHelperLog.Debug("CadXrefLayers: a property of a layer of an external reference is not written in a drawing of this version: " + e.Message);
+                GeometryHelperLog.Debug(
+                    "CadXrefLayers: a property of a layer of an external reference is not written in a drawing of this version: "
+                        + e.Message
+                );
             }
         }
 
         /// <summary>The linetypes every drawing has, which an external reference names as they are.</summary>
-        private static bool IsAutoCadsLinetype(string name)
-            => string.Equals(name, "ByBlock", System.StringComparison.OrdinalIgnoreCase) || string.Equals(name, "ByLayer", System.StringComparison.OrdinalIgnoreCase)
+        private static bool IsAutoCadsLinetype(string name) =>
+            string.Equals(name, "ByBlock", System.StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "ByLayer", System.StringComparison.OrdinalIgnoreCase)
             || string.Equals(name, "Continuous", System.StringComparison.OrdinalIgnoreCase);
 
         /// <summary>Sets the bits of a change made to a layer of an external reference; a layer of the drawing's own is left as it is.</summary>
@@ -349,7 +397,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             int now = (Overrides(layer) ?? 0) | bits;
-            layer.XData = new[] { new DxfTypedValue(1001, Application), new DxfTypedValue(1071, now.ToString(System.Globalization.CultureInfo.InvariantCulture)) };
+            layer.XData = new[]
+            {
+                new DxfTypedValue(1001, Application),
+                new DxfTypedValue(1071, now.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+            };
         }
     }
 }

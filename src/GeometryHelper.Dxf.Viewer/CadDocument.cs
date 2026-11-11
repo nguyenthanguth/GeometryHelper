@@ -101,7 +101,9 @@ namespace GeometryHelper.Dxf.Viewer
                     double unit = Layout.PlotPaperUnits == DxfPlotPaperUnit.Inches ? 1.0 / 25.4 : 1.0;
                     DxfExtents2d margins = Layout.PlotPaperMargins;
                     GeoPoint2 origin = Layout.PlotOrigin;
-                    bool turned = Layout.PlotRotation == DxfPlotRotation.Degrees090 || Layout.PlotRotation == DxfPlotRotation.Degrees270;
+                    bool turned =
+                        Layout.PlotRotation == DxfPlotRotation.Degrees090
+                        || Layout.PlotRotation == DxfPlotRotation.Degrees270;
                     double width = (turned ? size.Y : size.X) * unit;
                     double height = (turned ? size.X : size.Y) * unit;
                     double left = ((turned ? margins.MinPoint.Y : margins.MinPoint.X) + origin.X) * unit;
@@ -185,20 +187,23 @@ namespace GeometryHelper.Dxf.Viewer
 
         // The document that shows each drawing, which the grips and the pieces of an MTEXT ask its layout of: looked up only,
         // and weak, so that a drawing let go lets its document go.
-        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<DxfDatabase, CadDocument> ShownBy
-            = new System.Runtime.CompilerServices.ConditionalWeakTable<DxfDatabase, CadDocument>();
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<DxfDatabase, CadDocument> ShownBy =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<DxfDatabase, CadDocument>();
 
         /// <summary>The document last made of a drawing; null for a drawing no document shows.</summary>
-        internal static CadDocument Showing(DxfDatabase database) => ShownBy.TryGetValue(database, out CadDocument document) ? document : null;
+        internal static CadDocument Showing(DxfDatabase database) =>
+            ShownBy.TryGetValue(database, out CadDocument document) ? document : null;
 
         /// <summary>The layout of an MTEXT's words as the display draws them, in the document's fonts.</summary>
         internal CadMTextLayout LayoutOf(DxfMText text) => _builder.LayoutOf(text);
 
         /// <summary>The layout of the words of an MTEXT being edited, with where each place of the editor stands.</summary>
-        internal CadMTextLayout EditorLayoutOf(DxfMText text, CadMTextContent content) => _builder.EditorLayoutOf(text, content);
+        internal CadMTextLayout EditorLayoutOf(DxfMText text, CadMTextContent content) =>
+            _builder.EditorLayoutOf(text, content);
 
         /// <summary>The parts of an MTEXT being edited as the canvas draws them, in the MTEXT's own frame.</summary>
-        internal List<DisplayItem2> EditorParts(DxfMText text, CadMTextLayout layout, int rgb, int layerRgb) => _builder.EditorParts(text, layout, rgb, layerRgb);
+        internal List<DisplayItem2> EditorParts(DxfMText text, CadMTextLayout layout, int rgb, int layerRgb) =>
+            _builder.EditorParts(text, layout, rgb, layerRgb);
 
         private void ShowDatabase(DxfDatabase database)
         {
@@ -232,17 +237,22 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfLayout layout in database.Layouts)
             {
-                if (!string.Equals(layout.LayoutName, "Model", StringComparison.OrdinalIgnoreCase) && layout.BlockTableRecord != null)
+                if (
+                    !string.Equals(layout.LayoutName, "Model", StringComparison.OrdinalIgnoreCase)
+                    && layout.BlockTableRecord != null
+                )
                 {
                     layouts.Add(layout);
                 }
             }
 
-            layouts.Sort((a, b) =>
-            {
-                int byTab = a.TabOrder.CompareTo(b.TabOrder);
-                return byTab != 0 ? byTab : string.CompareOrdinal(a.LayoutName, b.LayoutName);
-            });
+            layouts.Sort(
+                (a, b) =>
+                {
+                    int byTab = a.TabOrder.CompareTo(b.TabOrder);
+                    return byTab != 0 ? byTab : string.CompareOrdinal(a.LayoutName, b.LayoutName);
+                }
+            );
             return layouts;
         }
 
@@ -369,7 +379,13 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     // Only what the edits since the list was made changed is drawn again.
                     _stale.Remove(space);
-                    list = _builder.Patch(space.Block, ReferenceEquals(space, ModelSpace), stale.List, stale.Handles, stale.List.LayerMask(stale.Layers));
+                    list = _builder.Patch(
+                        space.Block,
+                        ReferenceEquals(space, ModelSpace),
+                        stale.List,
+                        stale.Handles,
+                        stale.List.LayerMask(stale.Layers)
+                    );
                 }
                 else
                 {
@@ -414,7 +430,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="cancellationToken">Stops the drawing, looked at every 4 096 entities; nothing drawn so far is kept.</param>
         /// <exception cref="ArgumentNullException">Thrown when the space is null.</exception>
         /// <exception cref="OperationCanceledException">Thrown when stopped.</exception>
-        public void PrepareDisplay(CadSpace space, IProgress<double> progress, System.Threading.CancellationToken cancellationToken)
+        public void PrepareDisplay(
+            CadSpace space,
+            IProgress<double> progress,
+            System.Threading.CancellationToken cancellationToken
+        )
         {
             if (space == null)
             {
@@ -477,7 +497,9 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            return _blockByHandle.TryGetValue(handle, out DxfBlockTableRecord block) ? AllSpaces.Find(s => ReferenceEquals(s.Block, block)) : null;
+            return _blockByHandle.TryGetValue(handle, out DxfBlockTableRecord block)
+                ? AllSpaces.Find(s => ReferenceEquals(s.Block, block))
+                : null;
         }
 
         private void IndexHandles()
@@ -502,7 +524,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// of the spaces given (their tab order) wins. Made on a worker thread too, for a drawing of the undo list read ahead,
         /// which <paramref name="stop"/>, asked every 4 096 entities, stops; false where it stopped.
         /// </summary>
-        private static bool IndexHandles(List<DxfBlockTableRecord> blocks, out Dictionary<string, DxfEntity> byHandle, out Dictionary<string, DxfBlockTableRecord> blockByHandle, Func<bool> stop = null)
+        private static bool IndexHandles(
+            List<DxfBlockTableRecord> blocks,
+            out Dictionary<string, DxfEntity> byHandle,
+            out Dictionary<string, DxfBlockTableRecord> blockByHandle,
+            Func<bool> stop = null
+        )
         {
             byHandle = new Dictionary<string, DxfEntity>(StringComparer.OrdinalIgnoreCase);
             blockByHandle = new Dictionary<string, DxfBlockTableRecord>(StringComparer.OrdinalIgnoreCase);

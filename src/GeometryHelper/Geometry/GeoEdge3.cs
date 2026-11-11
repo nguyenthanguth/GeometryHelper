@@ -82,9 +82,7 @@ namespace GeometryHelper.Geometry
         /// a chord of nought: an edge 1E-6 long is an arc, where the vector tolerance read against its length refused it.
         /// </remarks>
         public GeoEdge3(GeoPoint3 startPoint, GeoPoint3 endPoint, double bulge, GeoVector3 normal)
-            : this(startPoint, endPoint, bulge, normal, Tolerance.Global)
-        {
-        }
+            : this(startPoint, endPoint, bulge, normal, Tolerance.Global) { }
 
         /// <summary>
         /// A tolerance of nought, against which a vector has a direction wherever it has a length.
@@ -123,7 +121,10 @@ namespace GeometryHelper.Geometry
 
             if (!normal.TryGetNormal(out GeoVector3 unit, tolerance))
             {
-                throw new ArgumentException("An arc needs a plane to bulge in, so its normal cannot be of no length.", nameof(normal));
+                throw new ArgumentException(
+                    "An arc needs a plane to bulge in, so its normal cannot be of no length.",
+                    nameof(normal)
+                );
             }
 
             GeoVector3 chord = startPoint.GetVectorTo(endPoint);
@@ -137,7 +138,10 @@ namespace GeometryHelper.Geometry
 
             if (!unit.IsPerpendicularTo(along, tolerance))
             {
-                throw new ArgumentException("The chord of an arc lies in its plane, so the normal has to be square to it.", nameof(normal));
+                throw new ArgumentException(
+                    "The chord of an arc lies in its plane, so the normal has to be square to it.",
+                    nameof(normal)
+                );
             }
 
             Bulge = bulge;
@@ -164,7 +168,10 @@ namespace GeometryHelper.Geometry
             // tolerance, which refused every arc with a chord of 1E-5 or less; ends that are one point have no chord either.
             if (Math.Abs(Math.Abs(arc.SweptAngle) - Math.PI * 2.0) <= 1E-12 || !chord.TryGetNormal(out _, NoLength))
             {
-                throw new ArgumentException("An arc sweeping a whole turn has no chord, so it is not one edge of a chain.", nameof(arc));
+                throw new ArgumentException(
+                    "An arc sweeping a whole turn has no chord, so it is not one edge of a chain.",
+                    nameof(arc)
+                );
             }
 
             StartPoint = arc.StartPoint;
@@ -198,12 +205,20 @@ namespace GeometryHelper.Geometry
         /// middle, so the reach is no more than that middle's plus three radii, and up to a half turn no more than the middle's
         /// plus 1.5 l / |b|. Past a half turn the sag is more than half the chord, and plain.
         /// </remarks>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining
+        )]
         private bool BowsPlainly()
         {
             double magnitude = Math.Abs(Bulge);
-            double along = Math.Abs(EndPoint.X - StartPoint.X) + Math.Abs(EndPoint.Y - StartPoint.Y) + Math.Abs(EndPoint.Z - StartPoint.Z);
-            double middle = Math.Abs(StartPoint.X + EndPoint.X) + Math.Abs(StartPoint.Y + EndPoint.Y) + Math.Abs(StartPoint.Z + EndPoint.Z);
+            double along =
+                Math.Abs(EndPoint.X - StartPoint.X)
+                + Math.Abs(EndPoint.Y - StartPoint.Y)
+                + Math.Abs(EndPoint.Z - StartPoint.Z);
+            double middle =
+                Math.Abs(StartPoint.X + EndPoint.X)
+                + Math.Abs(StartPoint.Y + EndPoint.Y)
+                + Math.Abs(StartPoint.Z + EndPoint.Z);
 
             return !(magnitude <= 1.0)
                 || magnitude * magnitude * along * 0.28 > (magnitude * middle * 0.5 + 1.5 * along) * Arc2.FlatFraction;
@@ -225,7 +240,11 @@ namespace GeometryHelper.Geometry
             GeoArc3 arc = ToArc();
             GeoPoint3 centre = arc.Center;
 
-            return Arc2.IsFlat(Math.Abs(Bulge) * chord * 0.5, new GeoPoint2(centre.X, Math.Abs(centre.Y) + Math.Abs(centre.Z)), arc.Radius);
+            return Arc2.IsFlat(
+                Math.Abs(Bulge) * chord * 0.5,
+                new GeoPoint2(centre.X, Math.Abs(centre.Y) + Math.Abs(centre.Z)),
+                arc.Radius
+            );
         }
 
         /// <summary>
@@ -246,7 +265,9 @@ namespace GeometryHelper.Geometry
         {
             if (IsArc)
             {
-                throw new InvalidOperationException("This edge curves, so a straight segment is not it. Ask GetChord for the line between its ends.");
+                throw new InvalidOperationException(
+                    "This edge curves, so a straight segment is not it. Ask GetChord for the line between its ends."
+                );
             }
 
             return new GeoLine3(StartPoint, EndPoint);
@@ -288,7 +309,10 @@ namespace GeometryHelper.Geometry
                 return ToArc().GetPointAtParameter(parameter);
             }
 
-            double held = parameter < 0.0 ? 0.0 : parameter > 1.0 ? 1.0 : parameter;
+            double held =
+                parameter < 0.0 ? 0.0
+                : parameter > 1.0 ? 1.0
+                : parameter;
 
             return StartPoint.Add(StartPoint.GetVectorTo(EndPoint).Multiply(held));
         }
@@ -318,7 +342,9 @@ namespace GeometryHelper.Geometry
             GeoVector3 along = StartPoint.GetVectorTo(EndPoint);
             double reach = StartPoint.GetVectorTo(point).DotProduct(along) / (length * length);
 
-            return reach < 0.0 ? 0.0 : reach > 1.0 ? 1.0 : reach;
+            return reach < 0.0 ? 0.0
+                : reach > 1.0 ? 1.0
+                : reach;
         }
 
         /// <summary>
@@ -329,8 +355,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Says where a point sits relative to the edge, within a tolerance.
         /// </summary>
-        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance)
-            => DistanceTo(point, tolerance) <= tolerance.EqualPoint ? PointLocation.OnSide : PointLocation.OutSide;
+        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) =>
+            DistanceTo(point, tolerance) <= tolerance.EqualPoint ? PointLocation.OnSide : PointLocation.OutSide;
 
         /// <summary>
         /// Determines whether a point lies on the edge.
@@ -340,7 +366,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether a point lies on the edge, within a tolerance.
         /// </summary>
-        public bool IsPointOn(GeoPoint3 point, Tolerance tolerance) => DistanceTo(point, tolerance) <= tolerance.EqualPoint;
+        public bool IsPointOn(GeoPoint3 point, Tolerance tolerance) =>
+            DistanceTo(point, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Gets the smallest axis-aligned box holding the edge.
@@ -359,7 +386,9 @@ namespace GeometryHelper.Geometry
         {
             if (!IsArc)
             {
-                throw new InvalidOperationException("A straight segment lies in any number of planes, so it names none.");
+                throw new InvalidOperationException(
+                    "A straight segment lies in any number of planes, so it names none."
+                );
             }
 
             return new GeoPlane3(StartPoint, Normal);
@@ -373,19 +402,20 @@ namespace GeometryHelper.Geometry
         /// turns over a bulge in the plane. Turning the normal over as well would put the arc back on the
         /// side it started from, which draws the mirror of the curve rather than the curve.
         /// </remarks>
-        public GeoEdge3 Reverse()
-            => IsArc ? new GeoEdge3(EndPoint, StartPoint, -Bulge, Normal) : new GeoEdge3(EndPoint, StartPoint);
+        public GeoEdge3 Reverse() =>
+            IsArc ? new GeoEdge3(EndPoint, StartPoint, -Bulge, Normal) : new GeoEdge3(EndPoint, StartPoint);
 
         /// <summary>
         /// Creates a copy of this edge.
         /// </summary>
-        public GeoEdge3 Clone() => IsArc ? new GeoEdge3(StartPoint, EndPoint, Bulge, Normal) : new GeoEdge3(StartPoint, EndPoint);
+        public GeoEdge3 Clone() =>
+            IsArc ? new GeoEdge3(StartPoint, EndPoint, Bulge, Normal) : new GeoEdge3(StartPoint, EndPoint);
 
         /// <summary>
         /// Moves the edge by a vector.
         /// </summary>
-        public GeoEdge3 Translate(GeoVector3 vector)
-            => IsArc
+        public GeoEdge3 Translate(GeoVector3 vector) =>
+            IsArc
                 ? new GeoEdge3(StartPoint.Add(vector), EndPoint.Add(vector), Bulge, Normal)
                 : new GeoEdge3(StartPoint.Add(vector), EndPoint.Add(vector));
 
@@ -435,7 +465,14 @@ namespace GeometryHelper.Geometry
             GeoVector3 bow = side.Multiply(Bulge > 0.0 ? 1.0 : -1.0);
             GeoVector3 toMiddle = chord.Multiply(0.5).Add(bow.Multiply(Math.Abs(Bulge) * chord.Length * 0.5));
 
-            if (!Arc3.TryBulgeThrough(start.GetVectorTo(end), transform.Transform(toMiddle), out double bulge, out GeoVector3 normal))
+            if (
+                !Arc3.TryBulgeThrough(
+                    start.GetVectorTo(end),
+                    transform.Transform(toMiddle),
+                    out double bulge,
+                    out GeoVector3 normal
+                )
+            )
             {
                 throw new InvalidOperationException("Three points on one line have no arc through them.");
             }
@@ -452,8 +489,12 @@ namespace GeometryHelper.Geometry
             // is judged where the circle it lies on would not be carried.
             GeoArc3 arc = ToArc();
 
-            if (!(GeoTransform3.KeepsRound(movedAlong, movedSide) && GeoTransform3.KeepsCircles(movedAlong, movedSide, arc.Radius))
-                && !arc.LandsWithin(transform, through.ToArc()))
+            if (
+                !(
+                    GeoTransform3.KeepsRound(movedAlong, movedSide)
+                    && GeoTransform3.KeepsCircles(movedAlong, movedSide, arc.Radius)
+                ) && !arc.LandsWithin(transform, through.ToArc())
+            )
             {
                 throw new InvalidOperationException("This transformation stretches the arc into part of an ellipse.");
             }
@@ -522,18 +563,17 @@ namespace GeometryHelper.Geometry
                 return true;
             }
 
-            return Math.Abs(Bulge - other.Bulge) <= tolerance.EqualVector
-                && Normal.IsEqualTo(other.Normal, tolerance);
+            return Math.Abs(Bulge - other.Bulge) <= tolerance.EqualVector && Normal.IsEqualTo(other.Normal, tolerance);
         }
 
         /// <summary>
         /// Indicates whether the current edge is equal to another edge.
         /// </summary>
-        public bool Equals(GeoEdge3 other)
-            => StartPoint.Equals(other.StartPoint)
-               && EndPoint.Equals(other.EndPoint)
-               && Bulge.Equals(other.Bulge)
-               && Normal.Equals(other.Normal);
+        public bool Equals(GeoEdge3 other) =>
+            StartPoint.Equals(other.StartPoint)
+            && EndPoint.Equals(other.EndPoint)
+            && Bulge.Equals(other.Bulge)
+            && Normal.Equals(other.Normal);
 
         /// <summary>
         /// Indicates whether this instance and a specified object are equal.
@@ -572,21 +612,30 @@ namespace GeometryHelper.Geometry
         /// the <c>out</c> of a <c>Try</c> method holds when the method said false — may not be, and answers
         /// questions without complaint all the same.
         /// </remarks>
-        public bool IsValid => StartPoint.IsValid && EndPoint.IsValid && Guard.IsFinite(Bulge) && (!IsArc || Guard.IsUnit(Normal));
+        public bool IsValid =>
+            StartPoint.IsValid && EndPoint.IsValid && Guard.IsFinite(Bulge) && (!IsArc || Guard.IsUnit(Normal));
 
         /// <summary>
         /// Returns a string describing the edge.
         /// </summary>
-        public override string ToString()
-            => IsArc
+        public override string ToString() =>
+            IsArc
                 ? string.Format(
                     System.Globalization.CultureInfo.InvariantCulture,
                     "GeoEdge3[{0} -> {1}, bulge {2:0.###} about ({3:0.###}, {4:0.###}, {5:0.###})]",
-                    StartPoint, EndPoint, Bulge, Normal.X, Normal.Y, Normal.Z)
+                    StartPoint,
+                    EndPoint,
+                    Bulge,
+                    Normal.X,
+                    Normal.Y,
+                    Normal.Z
+                )
                 : string.Format(
                     System.Globalization.CultureInfo.InvariantCulture,
                     "GeoEdge3[{0} -> {1}]",
-                    StartPoint, EndPoint);
+                    StartPoint,
+                    EndPoint
+                );
 
         /// <summary>
         /// Gets the frame the bulge is read in: standing on the start point, X along the chord, Z the normal.
@@ -602,6 +651,7 @@ namespace GeometryHelper.Geometry
 
             return GeoCoordinateSystem3.Spanning(StartPoint, along, Normal.CrossProduct(along));
         }
+
         #region Extending and trimming
 
         /// <summary>
@@ -658,7 +708,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Shortens the edge at one end back to a point on it.
         /// </summary>
-        public bool TryTrimTo(GeoPoint3 point, LineEnd end, out GeoEdge3 result) => TryTrimTo(point, end, out result, Tolerance.Global);
+        public bool TryTrimTo(GeoPoint3 point, LineEnd end, out GeoEdge3 result) =>
+            TryTrimTo(point, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Shortens the edge at one end back to a point on it, within a tolerance.
@@ -687,6 +738,5 @@ namespace GeometryHelper.Geometry
         }
 
         #endregion
-
     }
 }

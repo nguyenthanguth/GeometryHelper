@@ -16,14 +16,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         private static CadDocument Plan()
         {
             DxfDatabase database = CadTemplate.CreateMetric();
-            var door = new DxfBlockTableRecord { Name = "DOOR_900", Origin = new GeoPoint3(0, 0, 0), Comments = "Single-leaf door, 900 clear opening." };
+            var door = new DxfBlockTableRecord
+            {
+                Name = "DOOR_900",
+                Origin = new GeoPoint3(0, 0, 0),
+                Comments = "Single-leaf door, 900 clear opening.",
+            };
             database.BlockTable.Add(door);
             door.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(900, 0, 0)));
             door.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 900, 0)));
             var bubble = new DxfBlockTableRecord { Name = "GRID_BUBBLE", Origin = new GeoPoint3(0, 0, 0) };
             database.BlockTable.Add(bubble);
             bubble.AppendEntity(new DxfCircle(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 5.0));
-            bubble.AppendEntity(new DxfAttributeDefinition(new GeoPoint3(0, 0, 0), "A", "GRID", "Grid letter", (DxfTextStyleTableRecord)null));
+            bubble.AppendEntity(
+                new DxfAttributeDefinition(
+                    new GeoPoint3(0, 0, 0),
+                    "A",
+                    "GRID",
+                    "Grid letter",
+                    (DxfTextStyleTableRecord)null
+                )
+            );
             database.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(1000, 0, 0), door));
             return CadDocument.From(database, "plan-level2.dxf");
         }
@@ -41,7 +54,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             CadDocument document = Plan();
             var dialog = new BlockEditViewModel(new CadBlockEditRequest(document, "Edit Block Definition", "DOOR_900"));
 
-            Assert.Equal(new[] { CadBlockEditor.CurrentDrawing, "DOOR_900", "GRID_BUBBLE" }, dialog.Rows.Select(r => r.Name));
+            Assert.Equal(
+                new[] { CadBlockEditor.CurrentDrawing, "DOOR_900", "GRID_BUBBLE" },
+                dialog.Rows.Select(r => r.Name)
+            );
             Assert.Equal("attributes", dialog.Rows[2].Tag);
             Assert.Equal("DOOR_900", dialog.Selected.Name);
             Assert.Equal("Single-leaf door, 900 clear opening.", dialog.Description);

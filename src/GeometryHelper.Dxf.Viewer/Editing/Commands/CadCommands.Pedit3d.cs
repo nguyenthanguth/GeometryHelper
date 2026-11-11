@@ -9,9 +9,37 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>PEDIT of a 3D polyline, as AutoCAD 2021 asks it and stores what it makes (checked in AutoCAD's own console).</summary>
     internal static partial class CadCommands
     {
-        private static readonly string[] Pedit3dOpenOptions = { "Close", "Join", "Edit vertex", "Spline curve", "Decurve", "Reverse", "Undo" };
-        private static readonly string[] Pedit3dClosedOptions = { "Open", "Join", "Edit vertex", "Spline curve", "Decurve", "Reverse", "Undo" };
-        private static readonly string[] Pedit3dVertexOptions = { "Next", "Previous", "Break", "Insert", "Move", "Regen", "Straighten", "eXit" };
+        private static readonly string[] Pedit3dOpenOptions =
+        {
+            "Close",
+            "Join",
+            "Edit vertex",
+            "Spline curve",
+            "Decurve",
+            "Reverse",
+            "Undo",
+        };
+        private static readonly string[] Pedit3dClosedOptions =
+        {
+            "Open",
+            "Join",
+            "Edit vertex",
+            "Spline curve",
+            "Decurve",
+            "Reverse",
+            "Undo",
+        };
+        private static readonly string[] Pedit3dVertexOptions =
+        {
+            "Next",
+            "Previous",
+            "Break",
+            "Insert",
+            "Move",
+            "Regen",
+            "Straighten",
+            "eXit",
+        };
 
         /// <summary>
         /// PEDIT of a 3D polyline: Close or Open, Join, Edit vertex, Spline curve, Decurve, Reverse and Undo, until eXit or Enter.
@@ -26,7 +54,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (c.Document.FindEntity(handle) is DxfPolyline3d polyline)
             {
-                yield return CadPrompt.ForKeywordOrText("Enter an option", polyline.Closed ? Pedit3dClosedOptions : Pedit3dOpenOptions, null);
+                yield return CadPrompt.ForKeywordOrText(
+                    "Enter an option",
+                    polyline.Closed ? Pedit3dClosedOptions : Pedit3dOpenOptions,
+                    null
+                );
 
                 if (c.Input.IsNone || PeditExit(c.Input))
                 {
@@ -100,7 +132,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// takes out the vertices between them; Insert puts a vertex after the marked one, Move moves it, at the point picked.
         /// A fitted polyline is edited on its frame and fitted again. The whole of it is one step of the run that Undo takes back.
         /// </summary>
-        private static IEnumerable<CadPrompt> Pedit3dVertex(CadCommandContext c, string handle, List<CadGroupMark> marks)
+        private static IEnumerable<CadPrompt> Pedit3dVertex(
+            CadCommandContext c,
+            string handle,
+            List<CadGroupMark> marks
+        )
         {
             var polyline = (DxfPolyline3d)c.Document.FindEntity(handle);
             List<GeoPoint3> frame = Pedit3dFrame(polyline);
@@ -126,7 +162,9 @@ namespace GeometryHelper.Dxf.Viewer
                 polyline = own;
                 frame = Pedit3dFrame(polyline);
                 at = Math.Max(0, Math.Min(at, frame.Count - 1));
-                yield return CadPrompt.ForKeyword("Enter a vertex editing option", Pedit3dVertexOptions, way).Marking(Flat(frame[at]));
+                yield return CadPrompt
+                    .ForKeyword("Enter a vertex editing option", Pedit3dVertexOptions, way)
+                    .Marking(Flat(frame[at]));
 
                 if (c.Input.Is("eXit") || c.Input.Kind != CadInputKind.Keyword)
                 {
@@ -142,7 +180,10 @@ namespace GeometryHelper.Dxf.Viewer
                 else if (c.Input.Is("Move") || c.Input.Is("Insert"))
                 {
                     bool insert = c.Input.Is("Insert");
-                    yield return CadPrompt.ForPoint(insert ? "Specify location for new vertex" : "Specify new location for marked vertex", Flat(frame[at]));
+                    yield return CadPrompt.ForPoint(
+                        insert ? "Specify location for new vertex" : "Specify new location for marked vertex",
+                        Flat(frame[at])
+                    );
 
                     if (!c.Input.IsPoint)
                     {
@@ -178,7 +219,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                     while (true)
                     {
-                        yield return CadPrompt.ForKeyword("Enter an option", PeditGoOptions, go).Marking(Flat(frame[other]));
+                        yield return CadPrompt
+                            .ForKeyword("Enter an option", PeditGoOptions, go)
+                            .Marking(Flat(frame[other]));
 
                         if (c.Input.Is("Next") || c.Input.Is("Previous"))
                         {
@@ -260,7 +303,11 @@ namespace GeometryHelper.Dxf.Viewer
                     var piece = new DxfPolyline3d(DxfPoly3dType.SimplePoly, made, false);
                     piece.SetPropertiesFrom(polyline);
 
-                    if (s.Append(s.Document.FindSpace(handle), piece) is DxfPolyline3d added && type != DxfPoly3dType.SimplePoly && made.Count >= 3)
+                    if (
+                        s.Append(s.Document.FindSpace(handle), piece) is DxfPolyline3d added
+                        && type != DxfPoly3dType.SimplePoly
+                        && made.Count >= 3
+                    )
                     {
                         added.ConvertToPolyType(type);
                     }
@@ -269,8 +316,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The frame of a 3D polyline: its vertices, those of a fitted one it is fitted on, in the world.</summary>
-        private static List<GeoPoint3> Pedit3dFrame(DxfPolyline3d polyline)
-            => polyline.Where(v => v.VertexType != DxfVertex3dType.FitVertex).Select(v => v.Position).ToList();
+        private static List<GeoPoint3> Pedit3dFrame(DxfPolyline3d polyline) =>
+            polyline.Where(v => v.VertexType != DxfVertex3dType.FitVertex).Select(v => v.Position).ToList();
 
         /// <summary>
         /// Writes a frame into a 3D polyline, closed or not, and fits it as given: straightened, its vertices set, taken out or

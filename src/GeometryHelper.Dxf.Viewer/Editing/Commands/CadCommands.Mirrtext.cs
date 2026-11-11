@@ -19,7 +19,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// middle of its height; an MTEXT about its point, its attachment then turned over too, left for right or top for
         /// bottom. A text whose plane is not the drawing's is mirrored as it is.
         /// </summary>
-        private static ReadableMirror Readable(CadDocument document, DxfEntity entity, GeoTransform3 mirror, Tolerance tolerance)
+        private static ReadableMirror Readable(
+            CadDocument document,
+            DxfEntity entity,
+            GeoTransform3 mirror,
+            Tolerance tolerance
+        )
         {
             switch (entity)
             {
@@ -47,7 +52,12 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The turn-over of a TEXT, attribute or definition in its own plane before the mirror; null where its plane is not the drawing's.</summary>
-        private static GeoTransform3 TextFlip(CadDocument document, DxfDBText text, GeoTransform3 mirror, Tolerance tolerance)
+        private static GeoTransform3 TextFlip(
+            CadDocument document,
+            DxfDBText text,
+            GeoTransform3 mirror,
+            Tolerance tolerance
+        )
         {
             if (!Flat(text.Normal, tolerance))
             {
@@ -76,17 +86,26 @@ namespace GeometryHelper.Dxf.Viewer
         {
             DxfTextHorizontalMode mode = text.HorizontalMode;
 
-            if ((mode == DxfTextHorizontalMode.TextAlign || mode == DxfTextHorizontalMode.TextFit) && text.VerticalMode == DxfTextVerticalMode.TextBase)
+            if (
+                (mode == DxfTextHorizontalMode.TextAlign || mode == DxfTextHorizontalMode.TextFit)
+                && text.VerticalMode == DxfTextVerticalMode.TextBase
+            )
             {
                 GeoPoint3 first = text.Position;
                 GeoPoint3 second = text.AlignmentPoint;
-                return new GeoPoint3((first.X + second.X) / 2.0, (first.Y + second.Y) / 2.0, (first.Z + second.Z) / 2.0);
+                return new GeoPoint3(
+                    (first.X + second.X) / 2.0,
+                    (first.Y + second.Y) / 2.0,
+                    (first.Z + second.Z) / 2.0
+                );
             }
 
             GeoPoint3 at = text.IsDefaultAlignment ? text.Position : text.AlignmentPoint;
             double width = document.TextWidth(text);
-            double from = mode == DxfTextHorizontalMode.TextCenter || mode == DxfTextHorizontalMode.TextMid ? 0.0
-                : mode == DxfTextHorizontalMode.TextRight ? -width / 2.0 : width / 2.0;
+            double from =
+                mode == DxfTextHorizontalMode.TextCenter || mode == DxfTextHorizontalMode.TextMid ? 0.0
+                : mode == DxfTextHorizontalMode.TextRight ? -width / 2.0
+                : width / 2.0;
             return at.Add(along.Multiply(from));
         }
 
@@ -137,12 +156,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// Whether a direction reads in the right half of the circle, from just past -90 degrees to 90, as AutoCAD 2021 halves it:
         /// one straight up is in it, one straight down is not.
         /// </summary>
-        private static bool RightHalf(GeoVector3 along, Tolerance tolerance)
-            => along.X > tolerance.EqualVector || (Math.Abs(along.X) <= tolerance.EqualVector && along.Y > 0.0);
+        private static bool RightHalf(GeoVector3 along, Tolerance tolerance) =>
+            along.X > tolerance.EqualVector || (Math.Abs(along.X) <= tolerance.EqualVector && along.Y > 0.0);
 
         /// <summary>Whether a normal is the drawing's, up the Z axis, to the tolerance.</summary>
-        private static bool Flat(GeoVector3 normal, Tolerance tolerance)
-            => Math.Abs(normal.X) <= tolerance.EqualVector && Math.Abs(normal.Y) <= tolerance.EqualVector && normal.Z > 0.0;
+        private static bool Flat(GeoVector3 normal, Tolerance tolerance) =>
+            Math.Abs(normal.X) <= tolerance.EqualVector
+            && Math.Abs(normal.Y) <= tolerance.EqualVector
+            && normal.Z > 0.0;
 
         /// <summary>What MIRROR does to one object it keeps readable: the transformation, the attachment of an MTEXT, and the transformation of each attribute of an INSERT after it.</summary>
         private sealed class ReadableMirror
@@ -150,7 +171,11 @@ namespace GeometryHelper.Dxf.Viewer
             private readonly DxfAttachmentPoint? _attachment;
             private readonly List<GeoTransform3> _attributes;
 
-            public ReadableMirror(GeoTransform3 transform, DxfAttachmentPoint? attachment, List<GeoTransform3> attributes)
+            public ReadableMirror(
+                GeoTransform3 transform,
+                DxfAttachmentPoint? attachment,
+                List<GeoTransform3> attributes
+            )
             {
                 Transform = transform;
                 _attachment = attachment;
@@ -172,7 +197,9 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     int i = 0;
 
-                    foreach (DxfAttributeReference attribute in new List<DxfAttributeReference>(insert.AttributeCollection))
+                    foreach (
+                        DxfAttributeReference attribute in new List<DxfAttributeReference>(insert.AttributeCollection)
+                    )
                     {
                         if (i < _attributes.Count && _attributes[i] != null)
                         {

@@ -23,12 +23,17 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class ShortSegmentG1wcTests
     {
-        private static readonly Tolerance Thousandth = new Tolerance(1E-3, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-3);
+        private static readonly Tolerance Thousandth = new Tolerance(
+            1E-3,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-3
+        );
 
         private static GeoLine2 AlongX() => new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0));
 
-        private static GeoPolygon2 Square()
-            => new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+        private static GeoPolygon2 Square() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
 
         private static GeoArc2 UpperHalf() => new GeoArc2(new GeoPoint2(0, 0), 50, 0, Math.PI);
 
@@ -164,7 +169,14 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Equal(0.0015, AlongX().DistanceTo(edge, Thousandth), 12);
             Assert.False(AlongX().CollidesWith(edge, Thousandth));
-            Assert.Equal(0.0015, new GeoFace2(Square()).DistanceTo(new GeoEdge2(new GeoPoint2(5, -0.0015), new GeoPoint2(5, -0.0006)), Thousandth), 12);
+            Assert.Equal(
+                0.0015,
+                new GeoFace2(Square()).DistanceTo(
+                    new GeoEdge2(new GeoPoint2(5, -0.0015), new GeoPoint2(5, -0.0006)),
+                    Thousandth
+                ),
+                12
+            );
             Assert.Single(AlongX().GetIntersections(new GeoEdge2(Across().StartPoint, Across().EndPoint), Thousandth));
         }
     }

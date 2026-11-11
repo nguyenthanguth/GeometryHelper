@@ -18,11 +18,11 @@ namespace GeometryHelper.UnitTest.Arranging
         private static readonly Tolerance Tol = Tolerance.Default;
 
         /// <summary>The places the scene is moved to: a hundred, none of them a round number, out to 1.2 million.</summary>
-        private static IEnumerable<GeoVector2> Moves()
-            => Enumerable.Range(1, 100).Select(k => new GeoVector2(k * 12345.6789 * (k % 2 == 0 ? 1 : -1), k * 9876.5432));
+        private static IEnumerable<GeoVector2> Moves() =>
+            Enumerable.Range(1, 100).Select(k => new GeoVector2(k * 12345.6789 * (k % 2 == 0 ? 1 : -1), k * 9876.5432));
 
-        private static ArrangeItem Moved(ArrangeItem item, GeoVector2 move)
-            => new ArrangeItem
+        private static ArrangeItem Moved(ArrangeItem item, GeoVector2 move) =>
+            new ArrangeItem
             {
                 Leader = new GeoLine2(item.Leader.StartPoint + move, item.Leader.EndPoint + move),
                 Box = new GeoRectangle2(item.Box.Center + move, item.Box.Width, item.Box.Height, item.Box.AngleRad),
@@ -35,8 +35,10 @@ namespace GeometryHelper.UnitTest.Arranging
         {
             for (int i = 0; i < home.Length; i++)
             {
-                Assert.True(home[i].Placed == moved[i].Placed && (home[i].Translation - moved[i].Translation).Length <= 1E-6,
-                    $"label {i} {where}: {home[i]} and {moved[i]}");
+                Assert.True(
+                    home[i].Placed == moved[i].Placed && (home[i].Translation - moved[i].Translation).Length <= 1E-6,
+                    $"label {i} {where}: {home[i]} and {moved[i]}"
+                );
             }
         }
 
@@ -47,7 +49,12 @@ namespace GeometryHelper.UnitTest.Arranging
             // its height came to a hair under 10 at some places, and it was left where it stood, with no places at all.
             var options = new ArrangeOptions { Tolerance = Tol };
             var leader = new GeoLine2(0.0, 0.0, 60.0 * Math.Cos(0.3), 60.0 * Math.Sin(0.3));
-            var label = new ArrangeItem { Leader = leader, Box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0, 0.3), Offset = 5.0 };
+            var label = new ArrangeItem
+            {
+                Leader = leader,
+                Box = new GeoRectangle2(leader.MidPoint, 20.0, 10.0, 0.3),
+                Offset = 5.0,
+            };
 
             int home = label.GetPlacePoints(options).Count;
 
@@ -70,8 +77,20 @@ namespace GeometryHelper.UnitTest.Arranging
             var upper = new GeoLine2(0.0, 10.6, 30.0, 10.6);
             var labels = new[]
             {
-                new ArrangeItem { Leader = lower, Box = new GeoRectangle2(lower.MidPoint, 24.0, 10.0), Offset = 0.3, Side = ArrangeSide.Top },
-                new ArrangeItem { Leader = upper, Box = new GeoRectangle2(upper.MidPoint, 24.0, 10.0), Offset = 0.3, Side = ArrangeSide.Bottom },
+                new ArrangeItem
+                {
+                    Leader = lower,
+                    Box = new GeoRectangle2(lower.MidPoint, 24.0, 10.0),
+                    Offset = 0.3,
+                    Side = ArrangeSide.Top,
+                },
+                new ArrangeItem
+                {
+                    Leader = upper,
+                    Box = new GeoRectangle2(upper.MidPoint, 24.0, 10.0),
+                    Offset = 0.3,
+                    Side = ArrangeSide.Bottom,
+                },
             };
 
             ArrangeResult[] home = Arranger.Run(labels, options);
@@ -80,7 +99,11 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.Equal(-26.4, home[1].Translation.X, 9);
             foreach (GeoVector2 move in Moves())
             {
-                AssertArrangedAlike(home, Arranger.Run(labels.Select(label => Moved(label, move)).ToArray(), options), $"moved by {move}");
+                AssertArrangedAlike(
+                    home,
+                    Arranger.Run(labels.Select(label => Moved(label, move)).ToArray(), options),
+                    $"moved by {move}"
+                );
             }
         }
 
@@ -95,7 +118,11 @@ namespace GeometryHelper.UnitTest.Arranging
 
             foreach (double dx in new[] { 1000.0, 1E5, 1E6 })
             {
-                AssertArrangedAlike(home, Arranger.Run(Dense(dx), new ArrangeOptions { Tolerance = Tol }), $"moved by {dx} along X");
+                AssertArrangedAlike(
+                    home,
+                    Arranger.Run(Dense(dx), new ArrangeOptions { Tolerance = Tol }),
+                    $"moved by {dx} along X"
+                );
             }
         }
 
@@ -107,21 +134,52 @@ namespace GeometryHelper.UnitTest.Arranging
             // 0.0005 from the box of the left one: half the tolerance, a collision. The final layout judged the left one
             // only against labels whose boxes overlap its own, and called it placed, so that two labels touching were
             // judged one way or the other as the rounding of where the scene lay left their boxes.
-            var options = new ArrangeOptions { MaximumCandidates = 1, PlaceMostConstrainedFirst = false, PlaceFromInsideOut = false, Tolerance = Tol };
+            var options = new ArrangeOptions
+            {
+                MaximumCandidates = 1,
+                PlaceMostConstrainedFirst = false,
+                PlaceFromInsideOut = false,
+                Tolerance = Tol,
+            };
             var lower = new GeoLine2(0.0, 0.0, 100.0, 0.0);
             var upper = new GeoLine2(0.1, 30.0005, 100.1, 30.0005);
-            var region = new[] { new GeoPolygon2(new GeoPoint2(45.0, 20.0), new GeoPoint2(55.0, 20.0), new GeoPoint2(55.0, 40.0), new GeoPoint2(45.0, 40.0)) };
+            var region = new[]
+            {
+                new GeoPolygon2(
+                    new GeoPoint2(45.0, 20.0),
+                    new GeoPoint2(55.0, 20.0),
+                    new GeoPoint2(55.0, 40.0),
+                    new GeoPoint2(45.0, 40.0)
+                ),
+            };
             var labels = new[]
             {
-                new ArrangeItem { Leader = lower, Box = new GeoRectangle2(lower.MidPoint, 20.0, 10.0), Offset = 5.0, Side = ArrangeSide.Top },
-                new ArrangeItem { Leader = upper, Box = new GeoRectangle2(upper.MidPoint, 20.0, 10.0), Offset = 5.0, Side = ArrangeSide.Bottom, BlockPolygons = region },
+                new ArrangeItem
+                {
+                    Leader = lower,
+                    Box = new GeoRectangle2(lower.MidPoint, 20.0, 10.0),
+                    Offset = 5.0,
+                    Side = ArrangeSide.Top,
+                },
+                new ArrangeItem
+                {
+                    Leader = upper,
+                    Box = new GeoRectangle2(upper.MidPoint, 20.0, 10.0),
+                    Offset = 5.0,
+                    Side = ArrangeSide.Bottom,
+                    BlockPolygons = region,
+                },
             };
 
             ArrangeResult[] results = Arranger.Run(labels, options);
 
             Assert.Equal(new GeoVector2(0.0, 10.0), results[0].Translation);
             Assert.Equal(-10.0, results[1].Translation.Y, 9);
-            Assert.True(labels[0].Box.Translate(results[0].Translation).CollidesWith(labels[1].Box.Translate(results[1].Translation), Tol));
+            Assert.True(
+                labels[0]
+                    .Box.Translate(results[0].Translation)
+                    .CollidesWith(labels[1].Box.Translate(results[1].Translation), Tol)
+            );
             Assert.False(results[0].Placed);
             Assert.False(results[1].Placed);
         }
@@ -138,7 +196,8 @@ namespace GeometryHelper.UnitTest.Arranging
             {
                 for (int j = 0; j < 20; j++)
                 {
-                    double x = 28.0 * i + random.Next(10) + dx, y = 28.0 * j + random.Next(10);
+                    double x = 28.0 * i + random.Next(10) + dx,
+                        y = 28.0 * j + random.Next(10);
                     leaders.Add(random.Next(2) == 0 ? new GeoLine2(x, y, x + 30, y) : new GeoLine2(x, y, x, y + 30));
                 }
             }
@@ -146,19 +205,30 @@ namespace GeometryHelper.UnitTest.Arranging
             var regions = new List<GeoPolygon2>();
             for (int k = 0; k < 6; k++)
             {
-                double x = random.Next(530) + dx, y = random.Next(530);
-                double w = 20 + random.Next(30), h = 20 + random.Next(30);
-                regions.Add(new GeoPolygon2(new GeoPoint2(x, y), new GeoPoint2(x + w, y), new GeoPoint2(x + w, y + h), new GeoPoint2(x, y + h)));
+                double x = random.Next(530) + dx,
+                    y = random.Next(530);
+                double w = 20 + random.Next(30),
+                    h = 20 + random.Next(30);
+                regions.Add(
+                    new GeoPolygon2(
+                        new GeoPoint2(x, y),
+                        new GeoPoint2(x + w, y),
+                        new GeoPoint2(x + w, y + h),
+                        new GeoPoint2(x, y + h)
+                    )
+                );
             }
 
-            return leaders.Select(leader => new ArrangeItem
-            {
-                Leader = leader,
-                Box = new GeoRectangle2(leader.MidPoint, 24.0, 10.0),
-                Offset = 3.0,
-                BlockPolygons = regions,
-                BlockLines = leaders,
-            }).ToList();
+            return leaders
+                .Select(leader => new ArrangeItem
+                {
+                    Leader = leader,
+                    Box = new GeoRectangle2(leader.MidPoint, 24.0, 10.0),
+                    Offset = 3.0,
+                    BlockPolygons = regions,
+                    BlockLines = leaders,
+                })
+                .ToList();
         }
     }
 }

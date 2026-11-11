@@ -15,8 +15,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
         private static GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
 
-        private static GeoSolid3 Slab(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(P(x0, y0, z0), P(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Slab(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(P(x0, y0, z0), P(x1, y1, z1)).ToObb().ToSolid();
 
         [Fact]
         public void APointOfAThinBodyNearItsSideIsInside()
@@ -32,7 +32,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.True(slab.Contains(point, Tolerance));
 
             // Turned and moved far out, as the cell was found.
-            GeoTransform3 placed = GeoTransform3.Translation(new GeoVector3(995161, 1827838, -43283)) * GeoTransform3.RotationZ(0.3);
+            GeoTransform3 placed =
+                GeoTransform3.Translation(new GeoVector3(995161, 1827838, -43283)) * GeoTransform3.RotationZ(0.3);
             Assert.Equal(PointLocation.Inside, slab.TransformBy(placed).Locate(point.TransformBy(placed), Tolerance));
 
             // Beyond the side, and beyond the top, it is outside; within the tolerance of either, on the side.
@@ -49,7 +50,12 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // refused, is in no material.
             GeoSolid3 outer = Slab(-10, -10, -10, 110, 110, 10);
             GeoSolid3 cavity = Slab(0, 0, -0.00175, 100, 100, 0.00175);
-            var hollow = new GeoSolid3(System.Linq.Enumerable.Concat(outer.Faces, System.Linq.Enumerable.Select(cavity.Faces, f => new GeoFace3(f.Boundary.Flip()))));
+            var hollow = new GeoSolid3(
+                System.Linq.Enumerable.Concat(
+                    outer.Faces,
+                    System.Linq.Enumerable.Select(cavity.Faces, f => new GeoFace3(f.Boundary.Flip()))
+                )
+            );
             GeoPoint3 point = P(50, 100 - 0.0013, 0.00175 - 0.00108);
 
             Assert.Equal(PointLocation.OutSide, hollow.Locate(point, Tolerance));

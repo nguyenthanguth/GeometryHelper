@@ -79,7 +79,13 @@ namespace GeometryHelper.Viewer
 
             if (!IsImportable(path))
             {
-                throw new FormatException("The viewer opens " + string.Join(", ", _extensions) + " files; '" + Path.GetFileName(path) + "' is not one.");
+                throw new FormatException(
+                    "The viewer opens "
+                        + string.Join(", ", _extensions)
+                        + " files; '"
+                        + Path.GetFileName(path)
+                        + "' is not one."
+                );
             }
 
             if (format == ".dxf")
@@ -104,7 +110,12 @@ namespace GeometryHelper.Viewer
         /// <returns>The scene.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the text or the format is null.</exception>
         /// <exception cref="FormatException">Thrown when the format is not one of the four, or the text is not of the format.</exception>
-        public static Scene ReadText(string text, string format, string title = null, CancellationToken cancel = default(CancellationToken))
+        public static Scene ReadText(
+            string text,
+            string format,
+            string title = null,
+            CancellationToken cancel = default(CancellationToken)
+        )
         {
             if (text == null)
             {
@@ -118,11 +129,16 @@ namespace GeometryHelper.Viewer
 
             switch (format.TrimStart('.').ToLowerInvariant())
             {
-                case "obj": return ObjReader.Read(text, title, cancel);
-                case "dxf": return DxfReader.Read(text, title, cancel);
-                case "wkt": return WktReader.Read(text, title, cancel);
-                case "svg": return SvgReader.Read(text, title, cancel);
-                default: throw new FormatException("The viewer reads obj, dxf, wkt and svg; '" + format + "' is not one.");
+                case "obj":
+                    return ObjReader.Read(text, title, cancel);
+                case "dxf":
+                    return DxfReader.Read(text, title, cancel);
+                case "wkt":
+                    return WktReader.Read(text, title, cancel);
+                case "svg":
+                    return SvgReader.Read(text, title, cancel);
+                default:
+                    throw new FormatException("The viewer reads obj, dxf, wkt and svg; '" + format + "' is not one.");
             }
         }
 

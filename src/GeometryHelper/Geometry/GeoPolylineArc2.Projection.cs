@@ -32,7 +32,8 @@ namespace GeometryHelper.Geometry
         /// where it was (10, 0), 0.0301496 away.
         /// </para>
         /// </remarks>
-        public GeoPoint2 GetClosestPointOnBoundary(GeoPoint2 point, Tolerance tolerance) => Projection2.ProjectToPolylineArc(this, point, tolerance);
+        public GeoPoint2 GetClosestPointOnBoundary(GeoPoint2 point, Tolerance tolerance) =>
+            Projection2.ProjectToPolylineArc(this, point, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this chain and landing on a point.
@@ -60,7 +61,8 @@ namespace GeometryHelper.Geometry
         /// where it ran from (10, 0), 0.0301496 long.
         /// </para>
         /// </remarks>
-        public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance) => Projection2.GetShortestLineTo(this, point, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, point, tolerance);
 
         /// <summary>
         /// Gets the edge of this chain nearest a point.
@@ -70,7 +72,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the edge of this chain nearest a point, within a tolerance.
         /// </summary>
-        public GeoEdge2 GetClosestEdge(GeoPoint2 point, Tolerance tolerance) => ClosestEdge2.GetClosestEdge(this, point, tolerance);
+        public GeoEdge2 GetClosestEdge(GeoPoint2 point, Tolerance tolerance) =>
+            ClosestEdge2.GetClosestEdge(this, point, tolerance);
 
         /// <summary>
         /// Gets the edge of this chain nearest a segment.
@@ -84,7 +87,8 @@ namespace GeometryHelper.Geometry
         /// The answer is a <see cref="GeoEdge2"/> rather than a segment, because the nearest piece
         /// of this chain may be an arc.
         /// </remarks>
-        public GeoEdge2 GetClosestEdge(GeoLine2 line, Tolerance tolerance) => ClosestEdge2.GetClosestEdge(this, line, tolerance);
+        public GeoEdge2 GetClosestEdge(GeoLine2 line, Tolerance tolerance) =>
+            ClosestEdge2.GetClosestEdge(this, line, tolerance);
 
         /// <summary>
         /// Gets the edge of this chain nearest a circle.
@@ -94,7 +98,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the edge of this chain nearest a circle, within a tolerance.
         /// </summary>
-        public GeoEdge2 GetClosestEdge(GeoCircle2 circle, Tolerance tolerance) => ClosestEdge2.GetClosestEdge(this, circle, tolerance);
+        public GeoEdge2 GetClosestEdge(GeoCircle2 circle, Tolerance tolerance) =>
+            ClosestEdge2.GetClosestEdge(this, circle, tolerance);
 
         /// <summary>
         /// Gets the edge of this chain nearest an arc.
@@ -104,7 +109,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the edge of this chain nearest an arc, within a tolerance.
         /// </summary>
-        public GeoEdge2 GetClosestEdge(GeoArc2 arc, Tolerance tolerance) => ClosestEdge2.GetClosestEdge(this, arc, tolerance);
+        public GeoEdge2 GetClosestEdge(GeoArc2 arc, Tolerance tolerance) =>
+            ClosestEdge2.GetClosestEdge(this, arc, tolerance);
 
         /// <summary>
         /// Gets the shortest segment joining this curved chain to a segment.
@@ -120,7 +126,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment joining this curved chain to a segment, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoLine2 line, Tolerance tolerance) => Projection2.GetShortestLineTo(this, line, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoLine2 line, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, line, tolerance);
 
         /// <summary>
         /// Gets the shortest segment joining this curved chain to an arc.
@@ -130,7 +137,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment joining this curved chain to an arc, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoArc2 arc, Tolerance tolerance) => Projection2.GetShortestLineTo(this, arc, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoArc2 arc, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, arc, tolerance);
 
         /// <summary>
         /// Gets the shortest segment joining this curved chain to a circle.
@@ -140,7 +148,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment joining this curved chain to a circle, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoCircle2 circle, Tolerance tolerance) => Projection2.GetShortestLineTo(this, circle, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoCircle2 circle, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, circle, tolerance);
 
         /// <summary>
         /// Gets the shortest segment joining this curved chain to a polygon.
@@ -150,7 +159,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment joining this curved chain to a polygon, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoPolygon2 polygon, Tolerance tolerance) => Projection2.GetShortestLineTo(this, polygon, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoPolygon2 polygon, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, polygon, tolerance);
 
         /// <summary>
         /// Gets the shortest segment joining this curved chain to a polyline.
@@ -160,7 +170,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment joining this curved chain to a polyline, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, Tolerance tolerance) => Projection2.GetShortestLineTo(this, polyline, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, polyline, tolerance);
 
         /// <summary>
         /// Gets the shortest segment joining this curved chain to a curved loop.
@@ -170,7 +181,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment joining this curved chain to a curved loop, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, Tolerance tolerance) => Projection2.GetShortestLineTo(this, loop, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, loop, tolerance);
 
         /// <summary>
         /// Gets the shortest segment joining this curved chain to another curved chain.
@@ -180,7 +192,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment joining this curved chain to another curved chain, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 other, Tolerance tolerance) => Projection2.GetShortestLineTo(this, other, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 other, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, other, tolerance);
 
         /// <summary>
         /// Gets the shortest segment joining this curved chain to a rectangle.
@@ -190,7 +203,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment joining this curved chain to a rectangle, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect, Tolerance tolerance) => Projection2.GetShortestLineTo(rect, this, tolerance).Reverse();
+        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(rect, this, tolerance).Reverse();
 
         /// <summary>
         /// Gets the shortest segment leaving this curved chain and landing on the boundary of a face, using the default tolerance.
@@ -200,7 +214,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment leaving this curved chain and landing on the boundary of a face, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoFace2 face, Tolerance tolerance) => Face2.GetShortestLineTo(face, this, tolerance).Reverse();
+        public GeoLine2 GetShortestLineTo(GeoFace2 face, Tolerance tolerance) =>
+            Face2.GetShortestLineTo(face, this, tolerance).Reverse();
 
         /// <summary>
         /// Gets the edge of this curved chain nearest an edge.
@@ -210,10 +225,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the edge of this curved chain nearest an edge, within a tolerance.
         /// </summary>
-        public GeoEdge2 GetClosestEdge(GeoEdge2 edge, Tolerance tolerance)
-            => edge.IsArc
-                ? GetClosestEdge(edge.ToArc(), tolerance)
-                : GetClosestEdge(edge.ToLine(), tolerance);
+        public GeoEdge2 GetClosestEdge(GeoEdge2 edge, Tolerance tolerance) =>
+            edge.IsArc ? GetClosestEdge(edge.ToArc(), tolerance) : GetClosestEdge(edge.ToLine(), tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this curved chain and landing on an edge.
@@ -223,22 +236,22 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment leaving this curved chain and landing on an edge, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoEdge2 edge, Tolerance tolerance)
-            => edge.IsArc
-                ? GetShortestLineTo(edge.ToArc(), tolerance)
-                : GetShortestLineTo(edge.ToLine(), tolerance);
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge, Tolerance tolerance) =>
+            edge.IsArc ? GetShortestLineTo(edge.ToArc(), tolerance) : GetShortestLineTo(edge.ToLine(), tolerance);
 
         #region Triangles
 
         /// <summary>
         /// Gets the shortest segment leaving this curved chain and landing on a triangle, using the default tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoTriangle2 triangle) => Triangle2.GetShortestLineTo(triangle, this).Reverse();
+        public GeoLine2 GetShortestLineTo(GeoTriangle2 triangle) =>
+            Triangle2.GetShortestLineTo(triangle, this).Reverse();
 
         /// <summary>
         /// Gets the shortest segment leaving this curved chain and landing on a triangle, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.GetShortestLineTo(triangle, this, tolerance).Reverse();
+        public GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, Tolerance tolerance) =>
+            Triangle2.GetShortestLineTo(triangle, this, tolerance).Reverse();
 
         #endregion
 
@@ -252,7 +265,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment leaving this curved chain and landing on a ray, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoRay2 ray, Tolerance tolerance) => Projection2.GetShortestLineTo(this, ray, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoRay2 ray, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, ray, tolerance);
 
         #endregion
 
@@ -266,7 +280,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment leaving this curved chain and landing on an infinite line, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoXLine2 xline, Tolerance tolerance) => Projection2.GetShortestLineTo(this, xline, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoXLine2 xline, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, xline, tolerance);
 
         #endregion
     }

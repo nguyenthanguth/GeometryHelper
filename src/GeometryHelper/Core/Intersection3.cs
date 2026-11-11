@@ -51,7 +51,12 @@ namespace GeometryHelper.Core
         /// given its start, too short for the vector tolerance to read a direction in.
         /// </para>
         /// </remarks>
-        public static bool TryIntersectWith(GeoLine3 line1, GeoLine3 line2, out GeoPoint3 intersection, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoLine3 line1,
+            GeoLine3 line2,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        )
         {
             return Stub3.ReadsAsStart(line1, tolerance) || Stub3.ReadsAsStart(line2, tolerance)
                 ? TryCrossStub(line1, line2, out intersection, tolerance)
@@ -63,9 +68,14 @@ namespace GeometryHelper.Core
         /// two truly cross.
         /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static bool TryCrossStub(GeoLine3 line1, GeoLine3 line2, out GeoPoint3 intersection, Tolerance tolerance)
-            => TryCross(line1, line2, out intersection, Stub3.AsItIs(line1, line2, tolerance))
-                || Stub3.AtStart(line1, line2, tolerance, out intersection);
+        private static bool TryCrossStub(
+            GeoLine3 line1,
+            GeoLine3 line2,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        ) =>
+            TryCross(line1, line2, out intersection, Stub3.AsItIs(line1, line2, tolerance))
+            || Stub3.AtStart(line1, line2, tolerance, out intersection);
 
         /// <summary>
         /// Tries to find where two segments meet by their closest approach, as the sides of shapes meet, either no longer than
@@ -116,7 +126,12 @@ namespace GeometryHelper.Core
         /// Tries to find the point where two line segments meet, reading either or both as the infinite line
         /// carrying it, using the default tolerance.
         /// </summary>
-        public static bool TryIntersectWith(GeoLine3 line1, GeoLine3 line2, LineExtension extension, out GeoPoint3 intersection)
+        public static bool TryIntersectWith(
+            GeoLine3 line1,
+            GeoLine3 line2,
+            LineExtension extension,
+            out GeoPoint3 intersection
+        )
         {
             return TryIntersectWith(line1, line2, extension, out intersection, Tolerance.Global);
         }
@@ -138,18 +153,31 @@ namespace GeometryHelper.Core
         /// segment bridging them. Parallel lines are refused.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the extension is not a defined value.</exception>
-        public static bool TryIntersectWith(GeoLine3 line1, GeoLine3 line2, LineExtension extension, out GeoPoint3 intersection, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoLine3 line1,
+            GeoLine3 line2,
+            LineExtension extension,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        )
         {
             intersection = GeoPoint3.Origin;
 
-            if (extension != LineExtension.None && extension != LineExtension.First &&
-                extension != LineExtension.Second && extension != LineExtension.Both)
+            if (
+                extension != LineExtension.None
+                && extension != LineExtension.First
+                && extension != LineExtension.Second
+                && extension != LineExtension.Both
+            )
             {
                 throw new ArgumentOutOfRangeException(nameof(extension), "Unknown line extension.");
             }
 
             // Neither extended, a segment no longer than the tolerance is read as it is without an extension.
-            if (extension == LineExtension.None && (Stub3.ReadsAsStart(line1, tolerance) || Stub3.ReadsAsStart(line2, tolerance)))
+            if (
+                extension == LineExtension.None
+                && (Stub3.ReadsAsStart(line1, tolerance) || Stub3.ReadsAsStart(line2, tolerance))
+            )
             {
                 return TryCrossStub(line1, line2, out intersection, tolerance);
             }
@@ -165,9 +193,10 @@ namespace GeometryHelper.Core
             }
 
             // Not extended, the bridge is the one TryIntersectWith(GeoLine3, GeoLine3) takes.
-            GeoLine3 bridge = extension == LineExtension.None
-                ? Projection3.Closest(line1, line2, tolerance)
-                : Projection3.GetShortestLineTo(line1, line2, extension, tolerance);
+            GeoLine3 bridge =
+                extension == LineExtension.None
+                    ? Projection3.Closest(line1, line2, tolerance)
+                    : Projection3.GetShortestLineTo(line1, line2, extension, tolerance);
 
             if (bridge.Length > tolerance.EqualPoint)
             {
@@ -191,7 +220,12 @@ namespace GeometryHelper.Core
         /// Gets the point where two line segments meet, reading either or both as the infinite line carrying
         /// it, or null when they do not, within a tolerance.
         /// </summary>
-        public static GeoPoint3? GetIntersection(GeoLine3 line1, GeoLine3 line2, LineExtension extension, Tolerance tolerance)
+        public static GeoPoint3? GetIntersection(
+            GeoLine3 line1,
+            GeoLine3 line2,
+            LineExtension extension,
+            Tolerance tolerance
+        )
         {
             return TryIntersectWith(line1, line2, extension, out GeoPoint3 point, tolerance) ? point : (GeoPoint3?)null;
         }
@@ -203,7 +237,9 @@ namespace GeometryHelper.Core
         /// tolerance where that is the finer, so that a segment longer than a fine point tolerance, or one read as it is
         /// (<see cref="Stub3.AsItIs(GeoLine3, Tolerance)"/>), crosses where it truly does however short.
         /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining
+        )]
         private static bool IsPoint(GeoLine3 line, Tolerance tolerance)
         {
             double least = Math.Min(tolerance.EqualVector, tolerance.EqualPoint);
@@ -228,7 +264,8 @@ namespace GeometryHelper.Core
                 extension == LineExtension.Second || extension == LineExtension.Both,
                 length1,
                 length2,
-                tolerance);
+                tolerance
+            );
         }
 
         #region Line - Plane
@@ -252,8 +289,13 @@ namespace GeometryHelper.Core
         /// crosses the floor at (5, 5, 0), the one from (5, 5, 0.0008) to (5, 5, 0.0002) meets it at its start, within the
         /// planar tolerance of it, and the one from (5, 5, 0.0015) to (5, 5, 0.0006) meets it nowhere.
         /// </remarks>
-        public static bool TryIntersectWith(GeoLine3 line, GeoPlane3 plane, out GeoPoint3 intersection, Tolerance tolerance)
-            => Stub3.ReadsAsStart(line, tolerance)
+        public static bool TryIntersectWith(
+            GeoLine3 line,
+            GeoPlane3 plane,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        ) =>
+            Stub3.ReadsAsStart(line, tolerance)
                 ? TryCrossStub(line, plane, out intersection, tolerance)
                 : TryCross(line, plane, out intersection, tolerance);
 
@@ -261,9 +303,18 @@ namespace GeometryHelper.Core
         /// Tries to find where a segment no longer than the tolerance, read as its start unless it truly crosses, meets a plane.
         /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static bool TryCrossStub(GeoLine3 line, GeoPlane3 plane, out GeoPoint3 intersection, Tolerance tolerance)
-            => TryCross(line, plane, out intersection, Stub3.AsItIs(line, tolerance))
-                || Stub3.AtStart(line, Math.Abs(plane.SignedDistanceTo(line.StartPoint)) <= tolerance.EqualPlanar, out intersection);
+        private static bool TryCrossStub(
+            GeoLine3 line,
+            GeoPlane3 plane,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        ) =>
+            TryCross(line, plane, out intersection, Stub3.AsItIs(line, tolerance))
+            || Stub3.AtStart(
+                line,
+                Math.Abs(plane.SignedDistanceTo(line.StartPoint)) <= tolerance.EqualPlanar,
+                out intersection
+            );
 
         /// <summary>
         /// Tries to find where a segment crosses a plane as the sides of shapes cross one, a segment no longer than the point
@@ -347,7 +398,12 @@ namespace GeometryHelper.Core
 
             if ((atStart < 0.0 && atEnd > 0.0) || (atStart > 0.0 && atEnd < 0.0))
             {
-                return new[] { line.StartPoint.Add(line.StartPoint.GetVectorTo(line.EndPoint).Multiply(atStart / (atStart - atEnd))) };
+                return new[]
+                {
+                    line.StartPoint.Add(
+                        line.StartPoint.GetVectorTo(line.EndPoint).Multiply(atStart / (atStart - atEnd))
+                    ),
+                };
             }
 
             if (startOn || endOn)
@@ -377,8 +433,12 @@ namespace GeometryHelper.Core
         /// along (1, 0, -0.01) crosses the floor at (5.04, 5, 0), and along (1, 0, 0.01) touches it at
         /// (5, 5, 0.0004). A ray starting off the plane reaches it at one point at any angle but none at all.
         /// </remarks>
-        public static bool TryIntersectWith(GeoRay3 ray, GeoPlane3 plane, out GeoPoint3 intersection, Tolerance tolerance)
-            => TryCrossPlane(ray, plane, out intersection, tolerance, false);
+        public static bool TryIntersectWith(
+            GeoRay3 ray,
+            GeoPlane3 plane,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        ) => TryCrossPlane(ray, plane, out intersection, tolerance, false);
 
         /// <summary>
         /// The sine below which a ray starting within the planar tolerance of a plane reads as level with it: rounding,
@@ -399,8 +459,14 @@ namespace GeometryHelper.Core
         /// rests on it. The ray members of the index and the prepared solid, which the clash's bars cut their centre
         /// lines by, name crossings rather than count them, and read a ray as the public members do.
         /// </remarks>
-        internal static bool TryCrossPlane(GeoRay3 ray, GeoPlane3 plane, out GeoPoint3 intersection, Tolerance tolerance, bool countingCrossings)
-            => countingCrossings
+        internal static bool TryCrossPlane(
+            GeoRay3 ray,
+            GeoPlane3 plane,
+            out GeoPoint3 intersection,
+            Tolerance tolerance,
+            bool countingCrossings
+        ) =>
+            countingCrossings
                 ? TryCastThroughPlane(ray, plane, out intersection, tolerance)
                 : TryReachPlane(ray, plane, out intersection, tolerance);
 
@@ -436,7 +502,12 @@ namespace GeometryHelper.Core
         /// The reading of <see cref="TryCrossPlane(GeoRay3, GeoPlane3, out GeoPoint3, Tolerance, bool)"/> the ray casts
         /// that count crossings keep, and the public one off the planar tolerance.
         /// </summary>
-        private static bool TryCastThroughPlane(GeoRay3 ray, GeoPlane3 plane, out GeoPoint3 intersection, Tolerance tolerance)
+        private static bool TryCastThroughPlane(
+            GeoRay3 ray,
+            GeoPlane3 plane,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        )
         {
             intersection = GeoPoint3.Origin;
 
@@ -449,7 +520,11 @@ namespace GeometryHelper.Core
             // any angle but none at all, however far along: refusing every crossing under a degree lost the
             // far side of a long member to the ray cast behind Locate, which then called a point inside the
             // member outside.
-            if (Math.Abs(rise) <= tolerance.EqualPlanar ? Math.Abs(denominator) <= tolerance.EqualAngleSin : denominator == 0.0)
+            if (
+                Math.Abs(rise) <= tolerance.EqualPlanar
+                    ? Math.Abs(denominator) <= tolerance.EqualAngleSin
+                    : denominator == 0.0
+            )
             {
                 return false;
             }
@@ -510,8 +585,13 @@ namespace GeometryHelper.Core
         /// as <see cref="TryIntersectWith(GeoLine3, GeoPlane3, out GeoPoint3, Tolerance)"/> reads one against a plane.
         /// </para>
         /// </remarks>
-        public static bool TryIntersectWith(GeoLine3 line, GeoTriangle3 triangle, out GeoPoint3 intersection, Tolerance tolerance)
-            => Stub3.ReadsAsStart(line, tolerance)
+        public static bool TryIntersectWith(
+            GeoLine3 line,
+            GeoTriangle3 triangle,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        ) =>
+            Stub3.ReadsAsStart(line, tolerance)
                 ? TryCrossStub(line, triangle, out intersection, tolerance)
                 : TryCross(line, triangle, out intersection, tolerance);
 
@@ -520,22 +600,41 @@ namespace GeometryHelper.Core
         /// triangle.
         /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static bool TryCrossStub(GeoLine3 line, GeoTriangle3 triangle, out GeoPoint3 intersection, Tolerance tolerance)
-            => TryCross(line, triangle, out intersection, Stub3.AsItIs(line, tolerance))
-                || Stub3.AtStart(line, Gap3.Region.Of(triangle).PointGap(line.StartPoint) <= tolerance.EqualPoint, out intersection);
+        private static bool TryCrossStub(
+            GeoLine3 line,
+            GeoTriangle3 triangle,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        ) =>
+            TryCross(line, triangle, out intersection, Stub3.AsItIs(line, tolerance))
+            || Stub3.AtStart(
+                line,
+                Gap3.Region.Of(triangle).PointGap(line.StartPoint) <= tolerance.EqualPoint,
+                out intersection
+            );
 
         /// <summary>
         /// Tries to find where a segment crosses a triangle as the sides of shapes cross one, a segment no longer than the
         /// point tolerance not read as one you give.
         /// </summary>
-        internal static bool TryCross(GeoLine3 line, GeoTriangle3 triangle, out GeoPoint3 intersection, Tolerance tolerance)
+        internal static bool TryCross(
+            GeoLine3 line,
+            GeoTriangle3 triangle,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        )
         {
             // Below the rounding of the coordinates the triangle holds a crossing within it, and a segment from far off is read
             // from near the triangle, along its line, so that what the triangle holds is worked out from numbers its size.
             double limit = ToleratedSize(tolerance);
 
-            if (Beyond(triangle.A, limit) || Beyond(triangle.B, limit) || Beyond(triangle.C, limit)
-                || Beyond(line.StartPoint, limit) || Beyond(line.EndPoint, limit))
+            if (
+                Beyond(triangle.A, limit)
+                || Beyond(triangle.B, limit)
+                || Beyond(triangle.C, limit)
+                || Beyond(line.StartPoint, limit)
+                || Beyond(line.EndPoint, limit)
+            )
             {
                 GeoAabb3 box = new GeoAabb3(triangle.A, triangle.B).Union(triangle.C);
                 GeoLine3 near = CastNear(line, box);
@@ -586,7 +685,13 @@ namespace GeometryHelper.Core
         /// <param name="holding">The tolerance the triangle holds the crossing within; see <see cref="Holding"/>.</param>
         /// <param name="below">Whether the holding is raised above the tolerance, the coordinates reaching its rounding.</param>
         internal static bool TryIntersectWith(
-            GeoLine3 line, GeoTriangle3 triangle, out GeoPoint3 intersection, Tolerance tolerance, Tolerance holding, bool below)
+            GeoLine3 line,
+            GeoTriangle3 triangle,
+            out GeoPoint3 intersection,
+            Tolerance tolerance,
+            Tolerance holding,
+            bool below
+        )
         {
             intersection = GeoPoint3.Origin;
 
@@ -607,7 +712,11 @@ namespace GeometryHelper.Core
             // CollidesWith reads the touch: the crossing of the plane, worked out to the rounding, falls either side of the end.
             if (below && TryGetEndOn(line, triangle, holding, out bool atStart))
             {
-                return TouchesAtEnd(Collision3.CollidesWith(line, triangle, tolerance), atStart ? line.StartPoint : line.EndPoint, out intersection);
+                return TouchesAtEnd(
+                    Collision3.CollidesWith(line, triangle, tolerance),
+                    atStart ? line.StartPoint : line.EndPoint,
+                    out intersection
+                );
             }
 
             if (!TryCross(line, triangle.GetPlane(), out GeoPoint3 candidate, tolerance))
@@ -656,12 +765,20 @@ namespace GeometryHelper.Core
             GeoVector3 normal = region.UnitNormal;
             GeoPoint3 origin = region.PlaneOrigin;
 
-            if (endNear && !(region.PointGap(line.EndPoint) > band) && Math.Abs(normal.DotProduct(origin.GetVectorTo(line.StartPoint))) > band)
+            if (
+                endNear
+                && !(region.PointGap(line.EndPoint) > band)
+                && Math.Abs(normal.DotProduct(origin.GetVectorTo(line.StartPoint))) > band
+            )
             {
                 return true;
             }
 
-            if (startNear && !(region.PointGap(line.StartPoint) > band) && Math.Abs(normal.DotProduct(origin.GetVectorTo(line.EndPoint))) > band)
+            if (
+                startNear
+                && !(region.PointGap(line.StartPoint) > band)
+                && Math.Abs(normal.DotProduct(origin.GetVectorTo(line.EndPoint))) > band
+            )
             {
                 atStart = true;
                 return true;
@@ -726,9 +843,9 @@ namespace GeometryHelper.Core
         /// passed over by before a face is read for the gap
         /// (<see cref="TryGetEndOn(GeoLine3, Gap3.Region, Tolerance, out bool)"/>).
         /// </summary>
-        private static bool EndNear(GeoLine3 line, GeoAabb3 box, Tolerance holding)
-            => !(Gap3.BoxGap(line.StartPoint, line.StartPoint, box) > holding.EqualPoint)
-                || !(Gap3.BoxGap(line.EndPoint, line.EndPoint, box) > holding.EqualPoint);
+        private static bool EndNear(GeoLine3 line, GeoAabb3 box, Tolerance holding) =>
+            !(Gap3.BoxGap(line.StartPoint, line.StartPoint, box) > holding.EqualPoint)
+            || !(Gap3.BoxGap(line.EndPoint, line.EndPoint, box) > holding.EqualPoint);
 
         /// <summary>
         /// Gives the end a segment touches a triangle or face at, and false with the origin where it touches it nowhere.
@@ -759,15 +876,24 @@ namespace GeometryHelper.Core
         /// where it was given its crossing of the floor at (60, 20, 0) while the list gave none; the ray from (20, 20, 10)
         /// pointing straight down crosses it at (20, 20, 0).
         /// </remarks>
-        public static bool TryIntersectWith(GeoRay3 ray, GeoTriangle3 triangle, out GeoPoint3 intersection, Tolerance tolerance)
-            => First(Meeting(ray, triangle, tolerance), out intersection);
+        public static bool TryIntersectWith(
+            GeoRay3 ray,
+            GeoTriangle3 triangle,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        ) => First(Meeting(ray, triangle, tolerance), out intersection);
 
         /// <summary>
         /// Tries to find the point where a ray crosses a triangle, with the plane read as
         /// <see cref="TryCrossPlane(GeoRay3, GeoPlane3, out GeoPoint3, Tolerance, bool)"/> reads it.
         /// </summary>
-        internal static bool TryCrossTriangle(GeoRay3 ray, GeoTriangle3 triangle, out GeoPoint3 intersection, Tolerance tolerance, bool countingCrossings)
-            => TryCrossTriangle(ray, triangle, out intersection, tolerance, tolerance, countingCrossings);
+        internal static bool TryCrossTriangle(
+            GeoRay3 ray,
+            GeoTriangle3 triangle,
+            out GeoPoint3 intersection,
+            Tolerance tolerance,
+            bool countingCrossings
+        ) => TryCrossTriangle(ray, triangle, out intersection, tolerance, tolerance, countingCrossings);
 
         /// <summary>
         /// Tries to find the point where a ray crosses a triangle, as
@@ -780,7 +906,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance the plane is crossed within, ahead of the origin or behind it.</param>
         /// <param name="holding">The tolerance the triangle holds the crossing within; see <see cref="Holding"/>.</param>
         /// <param name="countingCrossings">Whether the plane is read as the rays that count crossings read it.</param>
-        internal static bool TryCrossTriangle(GeoRay3 ray, GeoTriangle3 triangle, out GeoPoint3 intersection, Tolerance tolerance, Tolerance holding, bool countingCrossings)
+        internal static bool TryCrossTriangle(
+            GeoRay3 ray,
+            GeoTriangle3 triangle,
+            out GeoPoint3 intersection,
+            Tolerance tolerance,
+            Tolerance holding,
+            bool countingCrossings
+        )
         {
             intersection = GeoPoint3.Origin;
 
@@ -831,10 +964,15 @@ namespace GeometryHelper.Core
         /// rounded a hair outside both, was held by neither, and the ray from a point on the axis of a cylinder through the
         /// seam of two of its sides crossed nothing. At every tolerance at or above the rounding nothing changes, bit for bit.
         /// </remarks>
-        internal static Tolerance Holding(double rounding, Tolerance tolerance)
-            => tolerance.EqualPlanar >= rounding && tolerance.EqualPoint >= rounding
+        internal static Tolerance Holding(double rounding, Tolerance tolerance) =>
+            tolerance.EqualPlanar >= rounding && tolerance.EqualPoint >= rounding
                 ? tolerance
-                : new Tolerance(Math.Max(tolerance.EqualPoint, rounding), tolerance.EqualVector, tolerance.EqualAngleRad, Math.Max(tolerance.EqualPlanar, rounding));
+                : new Tolerance(
+                    Math.Max(tolerance.EqualPoint, rounding),
+                    tolerance.EqualVector,
+                    tolerance.EqualAngleRad,
+                    Math.Max(tolerance.EqualPlanar, rounding)
+                );
 
         /// <summary>
         /// Gets a ray cast from far off at the triangles or faces in a box, moved along its line to stand a diagonal of the box
@@ -852,7 +990,9 @@ namespace GeometryHelper.Core
             double diagonal = box.Min.DistanceTo(box.Max);
             double ahead = ray.Origin.GetVectorTo(box.Center).DotProduct(ray.Direction) - diagonal;
 
-            return ahead > diagonal ? new GeoRay3(Parametrization3.GetPointAtDistance(ray, ahead), ray.Direction, true) : ray;
+            return ahead > diagonal
+                ? new GeoRay3(Parametrization3.GetPointAtDistance(ray, ahead), ray.Direction, true)
+                : ray;
         }
 
         /// <summary>
@@ -881,7 +1021,8 @@ namespace GeometryHelper.Core
             GeoPoint3 end = CastNear(new GeoRay3(line.EndPoint, unit.Negate(), true), box).Origin;
 
             // Moved past each other, the ends stand either side of a segment that ends a diagonal short of the box's middle.
-            return line.StartPoint.GetVectorTo(end).DotProduct(unit) > line.StartPoint.GetVectorTo(start).DotProduct(unit)
+            return
+                line.StartPoint.GetVectorTo(end).DotProduct(unit) > line.StartPoint.GetVectorTo(start).DotProduct(unit)
                 ? new GeoLine3(start, end)
                 : line;
         }
@@ -920,7 +1061,10 @@ namespace GeometryHelper.Core
         /// <param name="line">The segment, moved by <see cref="CastNear(GeoLine3, GeoAabb3)"/> where it reaches from far off.</param>
         internal static double Rounding(GeoAabb3 box, GeoLine3 line)
         {
-            double size = Math.Max(Math.Max(Largest(box.Min), Largest(box.Max)), Math.Max(Largest(line.StartPoint), Largest(line.EndPoint)));
+            double size = Math.Max(
+                Math.Max(Largest(box.Min), Largest(box.Max)),
+                Math.Max(Largest(line.StartPoint), Largest(line.EndPoint))
+            );
 
             return size < double.PositiveInfinity ? 1E-15 * size : 0.0;
         }
@@ -930,13 +1074,14 @@ namespace GeometryHelper.Core
         /// point and planar tolerances hold: where no coordinate of a segment and a triangle or face is larger, the tolerance
         /// is the holding, and nothing need be worked out to know it.
         /// </summary>
-        private static double ToleratedSize(Tolerance tolerance) => 1E15 * Math.Min(tolerance.EqualPoint, tolerance.EqualPlanar);
+        private static double ToleratedSize(Tolerance tolerance) =>
+            1E15 * Math.Min(tolerance.EqualPoint, tolerance.EqualPlanar);
 
         /// <summary>
         /// Determines whether a coordinate of a point, read without its sign, is larger than a size.
         /// </summary>
-        private static bool Beyond(GeoPoint3 point, double size)
-            => Math.Abs(point.X) > size || Math.Abs(point.Y) > size || Math.Abs(point.Z) > size;
+        private static bool Beyond(GeoPoint3 point, double size) =>
+            Math.Abs(point.X) > size || Math.Abs(point.Y) > size || Math.Abs(point.Z) > size;
 
         /// <summary>
         /// Gets how near each other along a ray two crossings of a seam are taken for one: the point tolerance, or, where the
@@ -951,13 +1096,16 @@ namespace GeometryHelper.Core
         /// is 4.9E-14, and at 7E-16 of the coordinates 20 of 49 such rays were. At every tolerance at or above the rounding it
         /// is the point tolerance, bit for bit.
         /// </remarks>
-        internal static double SeamWidth(double rounding, Tolerance tolerance)
-            => Holding(rounding, tolerance).Equals(tolerance) ? tolerance.EqualPoint : Math.Max(tolerance.EqualPoint, 8.0 * rounding);
+        internal static double SeamWidth(double rounding, Tolerance tolerance) =>
+            Holding(rounding, tolerance).Equals(tolerance)
+                ? tolerance.EqualPoint
+                : Math.Max(tolerance.EqualPoint, 8.0 * rounding);
 
         /// <summary>
         /// Gets the largest coordinate of a point, read without its sign.
         /// </summary>
-        private static double Largest(GeoPoint3 point) => Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z)));
+        private static double Largest(GeoPoint3 point) =>
+            Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z)));
 
         /// <summary>
         /// Gets the sides of a triangle with no area, the longest first and then the others in their order round it: the
@@ -1011,7 +1159,12 @@ namespace GeometryHelper.Core
         /// the intersection line closest to the world origin, which makes the result depend only on the
         /// two planes and not on where their own origins happen to sit.
         /// </remarks>
-        public static bool TryIntersectWith(GeoPlane3 plane1, GeoPlane3 plane2, out GeoRay3 intersection, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPlane3 plane1,
+            GeoPlane3 plane2,
+            out GeoRay3 intersection,
+            Tolerance tolerance
+        )
         {
             // Two planes have no size, so there is nothing to measure how far they draw apart over: they go by
             // the angle.
@@ -1037,7 +1190,13 @@ namespace GeometryHelper.Core
         /// under a degree, a face poking five hundredths through a cutting plane went uncut, and a box corner
         /// poking into another was counted twice by the union.
         /// </remarks>
-        internal static bool TryGetMeetingLine(GeoPlane3 plane1, GeoPlane3 plane2, double extent, out GeoRay3 intersection, Tolerance tolerance)
+        internal static bool TryGetMeetingLine(
+            GeoPlane3 plane1,
+            GeoPlane3 plane2,
+            double extent,
+            out GeoRay3 intersection,
+            Tolerance tolerance
+        )
         {
             intersection = default;
 
@@ -1093,8 +1252,13 @@ namespace GeometryHelper.Core
         /// of its points inside the outline would be a crossing. A segment no longer than the point tolerance is read as its
         /// start where it does not truly cross the polygon, as against a triangle.
         /// </remarks>
-        public static bool TryIntersectWith(GeoLine3 line, GeoPolygon3 polygon, out GeoPoint3 intersection, Tolerance tolerance)
-            => Stub3.ReadsAsStart(line, tolerance)
+        public static bool TryIntersectWith(
+            GeoLine3 line,
+            GeoPolygon3 polygon,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        ) =>
+            Stub3.ReadsAsStart(line, tolerance)
                 ? TryCrossStub(line, polygon, out intersection, tolerance)
                 : TryCross(line, polygon, out intersection, tolerance);
 
@@ -1103,15 +1267,29 @@ namespace GeometryHelper.Core
         /// polygon.
         /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static bool TryCrossStub(GeoLine3 line, GeoPolygon3 polygon, out GeoPoint3 intersection, Tolerance tolerance)
-            => TryCross(line, polygon, out intersection, Stub3.AsItIs(line, tolerance))
-                || Stub3.AtStart(line, Gap3.Region.Of(polygon).PointGap(line.StartPoint) <= tolerance.EqualPoint, out intersection);
+        private static bool TryCrossStub(
+            GeoLine3 line,
+            GeoPolygon3 polygon,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        ) =>
+            TryCross(line, polygon, out intersection, Stub3.AsItIs(line, tolerance))
+            || Stub3.AtStart(
+                line,
+                Gap3.Region.Of(polygon).PointGap(line.StartPoint) <= tolerance.EqualPoint,
+                out intersection
+            );
 
         /// <summary>
         /// Tries to find where a segment crosses a polygon as the sides of shapes cross one, a segment no longer than the point
         /// tolerance crossing nothing.
         /// </summary>
-        internal static bool TryCross(GeoLine3 line, GeoPolygon3 polygon, out GeoPoint3 intersection, Tolerance tolerance)
+        internal static bool TryCross(
+            GeoLine3 line,
+            GeoPolygon3 polygon,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        )
         {
             intersection = GeoPoint3.Origin;
 
@@ -1155,14 +1333,23 @@ namespace GeometryHelper.Core
         /// straight down crosses it at (20, 20, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static bool TryIntersectWith(GeoRay3 ray, GeoPolygon3 polygon, out GeoPoint3 intersection, Tolerance tolerance)
-            => First(Meeting(ray, polygon, tolerance), out intersection);
+        public static bool TryIntersectWith(
+            GeoRay3 ray,
+            GeoPolygon3 polygon,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        ) => First(Meeting(ray, polygon, tolerance), out intersection);
 
         /// <summary>
         /// Tries to find the point where a ray crosses a polygon by its crossing of the polygon's plane, held by the polygon: the
         /// reading the library's own questions start from, before the ray is read as its line.
         /// </summary>
-        internal static bool TryCrossPolygon(GeoRay3 ray, GeoPolygon3 polygon, out GeoPoint3 intersection, Tolerance tolerance)
+        internal static bool TryCrossPolygon(
+            GeoRay3 ray,
+            GeoPolygon3 polygon,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        )
         {
             intersection = GeoPoint3.Origin;
 
@@ -1192,7 +1379,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Finds where a line segment enters and leaves an oriented box, using the default tolerance.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoObb3 box) => GetIntersections(line, box, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoObb3 box) =>
+            GetIntersections(line, box, Tolerance.Global);
 
         /// <summary>
         /// Finds where a line segment enters and leaves an oriented box, within a tolerance.
@@ -1227,25 +1415,29 @@ namespace GeometryHelper.Core
         /// than the point tolerance is read as its start where it does not truly cross a face: it is given its start where
         /// that lies within the point tolerance of a face, inside the box or out, and nothing where it does not.
         /// </remarks>
-        public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoObb3 box, Tolerance tolerance)
-            => Stub3.ReadsAsStart(line, tolerance) ? CrossingsOfStub(line, box, tolerance) : SlabCrossings(line, box, tolerance, true);
+        public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoObb3 box, Tolerance tolerance) =>
+            Stub3.ReadsAsStart(line, tolerance)
+                ? CrossingsOfStub(line, box, tolerance)
+                : SlabCrossings(line, box, tolerance, true);
 
         /// <summary>
         /// Gets where a segment no longer than the tolerance, read as its start unless it truly crosses a face, meets a box.
         /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static GeoPoint3[] CrossingsOfStub(GeoLine3 line, GeoObb3 box, Tolerance tolerance)
-            => Stub3.Meeting(
+        private static GeoPoint3[] CrossingsOfStub(GeoLine3 line, GeoObb3 box, Tolerance tolerance) =>
+            Stub3.Meeting(
                 line,
                 SlabCrossings(line, box, Stub3.AsItIs(line, tolerance), true),
-                Projection3.ProjectToObbSurface(box, line.StartPoint).DistanceTo(line.StartPoint) <= tolerance.EqualPoint);
+                Projection3.ProjectToObbSurface(box, line.StartPoint).DistanceTo(line.StartPoint)
+                    <= tolerance.EqualPoint
+            );
 
         /// <summary>
         /// Gets where a segment crosses the faces of a box, and nothing where it only touches the box: the places the
         /// splitting of a segment or a chain by a box cuts at, since a touch cuts nothing.
         /// </summary>
-        internal static GeoPoint3[] CrossingsOf(GeoLine3 line, GeoObb3 box, Tolerance tolerance)
-            => SlabCrossings(line, box, tolerance, false);
+        internal static GeoPoint3[] CrossingsOf(GeoLine3 line, GeoObb3 box, Tolerance tolerance) =>
+            SlabCrossings(line, box, tolerance, false);
 
         /// <summary>
         /// Gets where a segment crosses the faces of a box, by the slabs, and where it touches the box without crossing a
@@ -1284,7 +1476,9 @@ namespace GeometryHelper.Core
 
                     if (held > extent + tolerance.EqualPoint)
                     {
-                        return touching && MayTouch(origins, steps, extents, tolerance) ? Touch(line, box, tolerance) : new GeoPoint3[0];
+                        return touching && MayTouch(origins, steps, extents, tolerance)
+                            ? Touch(line, box, tolerance)
+                            : new GeoPoint3[0];
                     }
 
                     // Held, either end may stand outside the slab, the one it starts at or the one it ends at.
@@ -1307,13 +1501,18 @@ namespace GeometryHelper.Core
 
                 if (enter > exit)
                 {
-                    return touching && MayTouch(origins, steps, extents, tolerance) ? Touch(line, box, tolerance) : new GeoPoint3[0];
+                    return touching && MayTouch(origins, steps, extents, tolerance)
+                        ? Touch(line, box, tolerance)
+                        : new GeoPoint3[0];
                 }
             }
 
             // Held within slabs it runs outside of, by up to the tolerance on each, it may stand further than the tolerance
             // off an edge or a corner: rule R, the crossings only where it touches.
-            if (heldOutside && !new Gap3.Block(box).Within(line.StartPoint, line.EndPoint, tolerance, Collision3.Reach(tolerance)))
+            if (
+                heldOutside
+                && !new Gap3.Block(box).Within(line.StartPoint, line.EndPoint, tolerance, Collision3.Reach(tolerance))
+            )
             {
                 return new GeoPoint3[0];
             }
@@ -1352,7 +1551,12 @@ namespace GeometryHelper.Core
             // box: it is given the point of it nearest the box, as one held in no slab is.
             if (touching && hits.Count == 0 && heldOutside)
             {
-                return new Gap3.Block(box).TryTouchAlone(line.StartPoint, line.EndPoint, tolerance.EqualPlanar, out GeoPoint3 alone)
+                return new Gap3.Block(box).TryTouchAlone(
+                    line.StartPoint,
+                    line.EndPoint,
+                    tolerance.EqualPlanar,
+                    out GeoPoint3 alone
+                )
                     ? new[] { alone }
                     : new GeoPoint3[0];
             }
@@ -1377,7 +1581,10 @@ namespace GeometryHelper.Core
                 double extent = extents[axis];
                 double low = from < to ? from : to;
                 double high = from < to ? to : from;
-                double off = low > extent ? low - extent : high < -extent ? -extent - high : 0.0;
+                double off =
+                    low > extent ? low - extent
+                    : high < -extent ? -extent - high
+                    : 0.0;
 
                 squared += off * off;
                 scale += Math.Abs(from) + Math.Abs(steps[axis]) + extent;
@@ -1398,7 +1605,8 @@ namespace GeometryHelper.Core
         {
             var block = new Gap3.Block(box);
 
-            return block.Within(line.StartPoint, line.EndPoint, tolerance, Collision3.Reach(tolerance))
+            return
+                block.Within(line.StartPoint, line.EndPoint, tolerance, Collision3.Reach(tolerance))
                 && block.TryTouchAlone(line.StartPoint, line.EndPoint, tolerance.EqualPlanar, out GeoPoint3 alone)
                 ? new[] { alone }
                 : new GeoPoint3[0];
@@ -1431,8 +1639,10 @@ namespace GeometryHelper.Core
                 return hits;
             }
 
-            if (block.TryTouchAlone(line.StartPoint, line.EndPoint, tolerance.EqualPlanar, out GeoPoint3 nearest)
-                && !kept.Exists(hit => hit.IsEqualTo(nearest, tolerance)))
+            if (
+                block.TryTouchAlone(line.StartPoint, line.EndPoint, tolerance.EqualPlanar, out GeoPoint3 nearest)
+                && !kept.Exists(hit => hit.IsEqualTo(nearest, tolerance))
+            )
             {
                 // In order along the segment: put before the first crossing that lies further along.
                 double along = DistanceAlong(line, nearest);
@@ -1451,7 +1661,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Finds where a plane cuts the edges of a solid, using the default tolerance.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPlane3 plane, GeoSolid3 solid) => GetIntersections(plane, solid, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPlane3 plane, GeoSolid3 solid) =>
+            GetIntersections(plane, solid, Tolerance.Global);
 
         /// <summary>
         /// Finds where a plane cuts the edges of a solid, within a tolerance.
@@ -1532,8 +1743,13 @@ namespace GeometryHelper.Core
         /// rounding refused 928 of 1 000 such faces. A segment no longer than the point tolerance is read as its start where
         /// it does not truly cross the material, as against a triangle.
         /// </remarks>
-        public static bool TryIntersectWith(GeoLine3 line, GeoFace3 face, out GeoPoint3 intersection, Tolerance tolerance)
-            => Stub3.ReadsAsStart(line, tolerance)
+        public static bool TryIntersectWith(
+            GeoLine3 line,
+            GeoFace3 face,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        ) =>
+            Stub3.ReadsAsStart(line, tolerance)
                 ? TryCrossStub(line, face, out intersection, tolerance)
                 : TryCross(line, face, out intersection, tolerance);
 
@@ -1542,9 +1758,18 @@ namespace GeometryHelper.Core
         /// material of a face.
         /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static bool TryCrossStub(GeoLine3 line, GeoFace3 face, out GeoPoint3 intersection, Tolerance tolerance)
-            => TryCross(line, face, out intersection, Stub3.AsItIs(line, tolerance))
-                || Stub3.AtStart(line, Gap3.Region.Of(face).PointGap(line.StartPoint) <= tolerance.EqualPoint, out intersection);
+        private static bool TryCrossStub(
+            GeoLine3 line,
+            GeoFace3 face,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        ) =>
+            TryCross(line, face, out intersection, Stub3.AsItIs(line, tolerance))
+            || Stub3.AtStart(
+                line,
+                Gap3.Region.Of(face).PointGap(line.StartPoint) <= tolerance.EqualPoint,
+                out intersection
+            );
 
         /// <summary>
         /// Tries to find where a segment crosses the material of a face as the sides of shapes cross it, a segment no longer
@@ -1563,7 +1788,12 @@ namespace GeometryHelper.Core
             GeoAabb3 box = face.GetAabb();
             double limit = ToleratedSize(tolerance);
 
-            if (Beyond(box.Min, limit) || Beyond(box.Max, limit) || Beyond(line.StartPoint, limit) || Beyond(line.EndPoint, limit))
+            if (
+                Beyond(box.Min, limit)
+                || Beyond(box.Max, limit)
+                || Beyond(line.StartPoint, limit)
+                || Beyond(line.EndPoint, limit)
+            )
             {
                 GeoLine3 near = CastNear(line, box);
                 Tolerance holding = Holding(Rounding(box, near), tolerance);
@@ -1572,9 +1802,16 @@ namespace GeometryHelper.Core
                 {
                     // An end within the rounding of the face is where the segment reaches the face or nowhere, as CollidesWith
                     // reads the touch, as for a triangle.
-                    if (EndNear(near, box, holding) && TryGetEndOn(near, Gap3.Region.Of(face), holding, out bool atStart))
+                    if (
+                        EndNear(near, box, holding)
+                        && TryGetEndOn(near, Gap3.Region.Of(face), holding, out bool atStart)
+                    )
                     {
-                        return TouchesAtEnd(Collision3.CollidesWith(near, face, tolerance), atStart ? near.StartPoint : near.EndPoint, out intersection);
+                        return TouchesAtEnd(
+                            Collision3.CollidesWith(near, face, tolerance),
+                            atStart ? near.StartPoint : near.EndPoint,
+                            out intersection
+                        );
                     }
 
                     return CrossesFace(near, face, out intersection, tolerance, holding);
@@ -1605,7 +1842,13 @@ namespace GeometryHelper.Core
         /// <param name="intersection">The crossing when the method returns true.</param>
         /// <param name="tolerance">The tolerance the plane is crossed within, between the ends of the segment.</param>
         /// <param name="holding">The tolerance the face holds the crossing within; see <see cref="Holding"/>.</param>
-        private static bool CrossesFace(GeoLine3 line, GeoFace3 face, out GeoPoint3 intersection, Tolerance tolerance, Tolerance holding)
+        private static bool CrossesFace(
+            GeoLine3 line,
+            GeoFace3 face,
+            out GeoPoint3 intersection,
+            Tolerance tolerance,
+            Tolerance holding
+        )
         {
             intersection = GeoPoint3.Origin;
 
@@ -1644,8 +1887,12 @@ namespace GeometryHelper.Core
         /// straight down through a hole 40 by 40 in the middle of the square crosses nothing.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static bool TryIntersectWith(GeoRay3 ray, GeoFace3 face, out GeoPoint3 intersection, Tolerance tolerance)
-            => First(Meeting(ray, face, tolerance), out intersection);
+        public static bool TryIntersectWith(
+            GeoRay3 ray,
+            GeoFace3 face,
+            out GeoPoint3 intersection,
+            Tolerance tolerance
+        ) => First(Meeting(ray, face, tolerance), out intersection);
 
         /// <summary>
         /// Gives the first of the points of a list, and false where it holds none, the point then the origin.
@@ -1660,8 +1907,13 @@ namespace GeometryHelper.Core
         /// Tries to find the point where a ray crosses the material of a face, with the plane read as
         /// <see cref="TryCrossPlane(GeoRay3, GeoPlane3, out GeoPoint3, Tolerance, bool)"/> reads it.
         /// </summary>
-        internal static bool TryCrossFace(GeoRay3 ray, GeoFace3 face, out GeoPoint3 intersection, Tolerance tolerance, bool countingCrossings)
-            => TryCrossFace(ray, face, out intersection, tolerance, tolerance, countingCrossings);
+        internal static bool TryCrossFace(
+            GeoRay3 ray,
+            GeoFace3 face,
+            out GeoPoint3 intersection,
+            Tolerance tolerance,
+            bool countingCrossings
+        ) => TryCrossFace(ray, face, out intersection, tolerance, tolerance, countingCrossings);
 
         /// <summary>
         /// Tries to find the point where a ray crosses the material of a face, as
@@ -1674,7 +1926,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance the plane is crossed within, ahead of the origin or behind it.</param>
         /// <param name="holding">The tolerance the face holds the crossing within; see <see cref="Holding"/>.</param>
         /// <param name="countingCrossings">Whether the plane is read as the rays that count crossings read it.</param>
-        internal static bool TryCrossFace(GeoRay3 ray, GeoFace3 face, out GeoPoint3 intersection, Tolerance tolerance, Tolerance holding, bool countingCrossings)
+        internal static bool TryCrossFace(
+            GeoRay3 ray,
+            GeoFace3 face,
+            out GeoPoint3 intersection,
+            Tolerance tolerance,
+            Tolerance holding,
+            bool countingCrossings
+        )
         {
             intersection = GeoPoint3.Origin;
 
@@ -1700,7 +1959,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Finds every point where a line segment crosses the surface of a solid, using the default tolerance.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoSolid3 solid) => GetIntersections(line, solid, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoSolid3 solid) =>
+            GetIntersections(line, solid, Tolerance.Global);
 
         /// <summary>
         /// Finds every point where a line segment crosses the surface of a solid, within a tolerance.
@@ -1738,7 +1998,9 @@ namespace GeometryHelper.Core
                 return far.Out(Boolean3.FarFrame.Inside(() => GetIntersections(far.In(line), far.Moved, tolerance)));
             }
 
-            return Stub3.ReadsAsStart(line, tolerance) ? CrossingsOfStub(line, solid, tolerance) : Crossings(line, solid, true, tolerance);
+            return Stub3.ReadsAsStart(line, tolerance)
+                ? CrossingsOfStub(line, solid, tolerance)
+                : Crossings(line, solid, true, tolerance);
         }
 
         /// <summary>
@@ -1762,7 +2024,11 @@ namespace GeometryHelper.Core
 
             if (found.Count == 0)
             {
-                return Stub3.Meeting(line, new GeoPoint3[0], Gap3.SurfacePoint(material, line.StartPoint) <= tolerance.EqualPoint);
+                return Stub3.Meeting(
+                    line,
+                    new GeoPoint3[0],
+                    Gap3.SurfacePoint(material, line.StartPoint) <= tolerance.EqualPoint
+                );
             }
 
             GeoVector3 along = line.Direction;
@@ -1775,7 +2041,12 @@ namespace GeometryHelper.Core
         /// Gathers where a segment crosses the faces of a body and of its openings, each crossing within the tolerance of
         /// another named once.
         /// </summary>
-        private static void AddCrossingsOfStub(GeoLine3 line, GeoSolid3 solid, Tolerance tolerance, List<GeoPoint3> found)
+        private static void AddCrossingsOfStub(
+            GeoLine3 line,
+            GeoSolid3 solid,
+            Tolerance tolerance,
+            List<GeoPoint3> found
+        )
         {
             foreach (GeoFace3 face in solid.Faces)
             {
@@ -1823,7 +2094,12 @@ namespace GeometryHelper.Core
         /// face as the side it is however short, where one no longer than the tolerance crossed none.
         /// </param>
         /// <param name="tolerance">The tolerance.</param>
-        internal static GeoPoint3[] Crossings(GeoLine3 line, GeoSolid3 solid, bool readShortAsPoint, Tolerance tolerance)
+        internal static GeoPoint3[] Crossings(
+            GeoLine3 line,
+            GeoSolid3 solid,
+            bool readShortAsPoint,
+            Tolerance tolerance
+        )
         {
             if (solid == null)
             {
@@ -1853,8 +2129,20 @@ namespace GeometryHelper.Core
 
             // A side no longer than the point tolerance, which crosses no plane at it, crosses each face where it truly does:
             // the plane met to the rounding of the side, the place held to the face at the tolerance.
-            Tolerance crossing = !readShortAsPoint && cast.Length <= tolerance.EqualPoint ? AsSide(cast, tolerance) : tolerance;
-            CollectSolidCrossings(cast, solid, tolerance, crossing, holding, !holding.Equals(tolerance), readShortAsPoint, distances, ref startOn, ref endOn);
+            Tolerance crossing =
+                !readShortAsPoint && cast.Length <= tolerance.EqualPoint ? AsSide(cast, tolerance) : tolerance;
+            CollectSolidCrossings(
+                cast,
+                solid,
+                tolerance,
+                crossing,
+                holding,
+                !holding.Equals(tolerance),
+                readShortAsPoint,
+                distances,
+                ref startOn,
+                ref endOn
+            );
 
             // Below the rounding an end within it of a face meets the surface there where it touches the body as CollidesWith
             // reads it, and nowhere where it does not.
@@ -1893,8 +2181,8 @@ namespace GeometryHelper.Core
         /// Gets how far along a segment the point on it nearest a point lies, the segment measured as it is however short,
         /// where the global tolerance read one no longer than it as its start whatever tolerance was asked.
         /// </summary>
-        private static double DistanceAlong(GeoLine3 line, GeoPoint3 point)
-            => Parametrization3.GetParameterAtPoint(line, point, default(Tolerance)) * line.Length;
+        private static double DistanceAlong(GeoLine3 line, GeoPoint3 point) =>
+            Parametrization3.GetParameterAtPoint(line, point, default(Tolerance)) * line.Length;
 
         /// <summary>
         /// Gets the tolerance a side no longer than the point tolerance crosses a plane at: the one given, its point and planar
@@ -1916,8 +2204,17 @@ namespace GeometryHelper.Core
         /// marked, for the body to decide.
         /// </remarks>
         private static void CollectSolidCrossings(
-            GeoLine3 line, GeoSolid3 solid, Tolerance tolerance, Tolerance crossing, Tolerance holding, bool below, bool readShortAsPoint,
-            List<double> distances, ref bool startOn, ref bool endOn)
+            GeoLine3 line,
+            GeoSolid3 solid,
+            Tolerance tolerance,
+            Tolerance crossing,
+            Tolerance holding,
+            bool below,
+            bool readShortAsPoint,
+            List<double> distances,
+            ref bool startOn,
+            ref bool endOn
+        )
         {
             IReadOnlyList<GeoFace3> faces = solid.Faces;
 
@@ -1928,7 +2225,16 @@ namespace GeometryHelper.Core
 
                 if (region != null && TryGetEndOn(line, region, holding, out bool atStart))
                 {
-                    if (Gap3.Segment(region, line.StartPoint, line.EndPoint, readShortAsPoint, tolerance, tolerance.EqualPoint) <= tolerance.EqualPoint)
+                    if (
+                        Gap3.Segment(
+                            region,
+                            line.StartPoint,
+                            line.EndPoint,
+                            readShortAsPoint,
+                            tolerance,
+                            tolerance.EqualPoint
+                        ) <= tolerance.EqualPoint
+                    )
                     {
                         distances.Add(atStart ? 0.0 : DistanceAlong(line, line.EndPoint));
                     }
@@ -1946,7 +2252,18 @@ namespace GeometryHelper.Core
 
             foreach (GeoSolid3 opening in solid.Openings)
             {
-                CollectSolidCrossings(line, opening, tolerance, crossing, holding, below, readShortAsPoint, distances, ref startOn, ref endOn);
+                CollectSolidCrossings(
+                    line,
+                    opening,
+                    tolerance,
+                    crossing,
+                    holding,
+                    below,
+                    readShortAsPoint,
+                    distances,
+                    ref startOn,
+                    ref endOn
+                );
             }
         }
 
@@ -1960,13 +2277,14 @@ namespace GeometryHelper.Core
         /// corners by more, and the body holds a point by that plane: the segment ending 3.6E-11 off a side of a cylinder turned
         /// about in space a million out, whose plane stands 4.1E-9 off its corners, does not touch it, and is given no point.
         /// </remarks>
-        private static bool EndTouches(GeoSolid3 material, GeoPoint3 end, Tolerance tolerance)
-            => !(Gap3.SurfacePoint(material, end) > tolerance.EqualPoint) || Gap3.Holds(material, end);
+        private static bool EndTouches(GeoSolid3 material, GeoPoint3 end, Tolerance tolerance) =>
+            !(Gap3.SurfacePoint(material, end) > tolerance.EqualPoint) || Gap3.Holds(material, end);
 
         /// <summary>
         /// Finds where a line segment enters and leaves an axis-aligned box, using the default tolerance.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoAabb3 box) => GetIntersections(line, box, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoAabb3 box) =>
+            GetIntersections(line, box, Tolerance.Global);
 
         /// <summary>
         /// Finds where a line segment enters and leaves an axis-aligned box, within a tolerance.
@@ -1984,7 +2302,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Finds where a ray enters and leaves an oriented box, using the default tolerance.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoObb3 box) => GetIntersections(ray, box, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoObb3 box) =>
+            GetIntersections(ray, box, Tolerance.Global);
 
         /// <summary>
         /// Finds where a ray enters and leaves an oriented box, within a tolerance.
@@ -2027,10 +2346,22 @@ namespace GeometryHelper.Core
             // reach of the tolerance is plainly clear of the box and is not asked.
             double round = Math.Sqrt(box.ExtentX * box.ExtentX + box.ExtentY * box.ExtentY + box.ExtentZ * box.ExtentZ);
 
-            if (hits.Length == 0 && !(Gap3.PointToSegment(box.Center, line.StartPoint, line.EndPoint) > round + Collision3.Reach(tolerance))
-                && Collision3.CollidesWith(ray, box, tolerance) && !LiesAlong(ray, box, tolerance))
+            if (
+                hits.Length == 0
+                && !(
+                    Gap3.PointToSegment(box.Center, line.StartPoint, line.EndPoint)
+                    > round + Collision3.Reach(tolerance)
+                )
+                && Collision3.CollidesWith(ray, box, tolerance)
+                && !LiesAlong(ray, box, tolerance)
+            )
             {
-                new Gap3.Block(box).TryTouchAlone(line.StartPoint, line.EndPoint, tolerance.EqualPlanar, out GeoPoint3 nearest);
+                new Gap3.Block(box).TryTouchAlone(
+                    line.StartPoint,
+                    line.EndPoint,
+                    tolerance.EqualPlanar,
+                    out GeoPoint3 nearest
+                );
 
                 return new[] { nearest };
             }
@@ -2038,7 +2369,11 @@ namespace GeometryHelper.Core
             // A crossing the slabs give at a tolerance below the rounding of the numbers, of a ray a hair off a face, is given only
             // where the ray touches the box as CollidesWith reads it, asked where a crossing does not plainly stand within the
             // point tolerance of both.
-            if (hits.Length > 0 && !PlainlyOn(ray, box, hits, tolerance) && !Collision3.CollidesWith(ray, box, tolerance))
+            if (
+                hits.Length > 0
+                && !PlainlyOn(ray, box, hits, tolerance)
+                && !Collision3.CollidesWith(ray, box, tolerance)
+            )
             {
                 return new GeoPoint3[0];
             }
@@ -2059,7 +2394,8 @@ namespace GeometryHelper.Core
                 GeoVector3 offset = ray.Origin.GetVectorTo(point);
                 double along = offset.DotProduct(ray.Direction);
                 double off = along > 0.0 ? offset.Subtract(ray.Direction.Multiply(along)).Length : offset.Length;
-                double rounding = 1E-12 * (1.0 + Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z))));
+                double rounding =
+                    1E-12 * (1.0 + Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z))));
 
                 if (block.Distance(point) + off + rounding > tolerance.EqualPoint)
                 {
@@ -2093,7 +2429,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Finds where a ray enters and leaves an axis-aligned box, using the default tolerance.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoAabb3 box) => GetIntersections(ray, box, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoAabb3 box) =>
+            GetIntersections(ray, box, Tolerance.Global);
 
         /// <summary>
         /// Finds where a ray enters and leaves an axis-aligned box, within a tolerance.
@@ -2179,8 +2516,12 @@ namespace GeometryHelper.Core
 
                 foreach (int j in active)
                 {
-                    if (bounds[j].Max.Y < bounds[i].Min.Y - slack || bounds[j].Min.Y > bounds[i].Max.Y + slack ||
-                        bounds[j].Max.Z < bounds[i].Min.Z - slack || bounds[j].Min.Z > bounds[i].Max.Z + slack)
+                    if (
+                        bounds[j].Max.Y < bounds[i].Min.Y - slack
+                        || bounds[j].Min.Y > bounds[i].Max.Y + slack
+                        || bounds[j].Max.Z < bounds[i].Min.Z - slack
+                        || bounds[j].Min.Z > bounds[i].Max.Z + slack
+                    )
                     {
                         continue;
                     }
@@ -2195,8 +2536,10 @@ namespace GeometryHelper.Core
                         GeoLine3 incoming = iThenJ ? edges[i] : edges[j];
                         GeoLine3 outgoing = iThenJ ? edges[j] : edges[i];
 
-                        if (Containment3.IsPointOn(outgoing, incoming.StartPoint, tolerance) ||
-                            Containment3.IsPointOn(incoming, outgoing.EndPoint, tolerance))
+                        if (
+                            Containment3.IsPointOn(outgoing, incoming.StartPoint, tolerance)
+                            || Containment3.IsPointOn(incoming, outgoing.EndPoint, tolerance)
+                        )
                         {
                             return false;
                         }
@@ -2272,7 +2615,13 @@ namespace GeometryHelper.Core
         /// other way round. So whichever of two edges this sweep comes to second, they are measured the way round the
         /// sweep along X took them. An open edge is let go once it is clear of the one swept in either way round.
         /// </remarks>
-        private static bool IsSimpleAlong(int axis, GeoLine3[] edges, GeoAabb3[] bounds, int[] order, Tolerance tolerance)
+        private static bool IsSimpleAlong(
+            int axis,
+            GeoLine3[] edges,
+            GeoAabb3[] bounds,
+            int[] order,
+            Tolerance tolerance
+        )
         {
             int count = edges.Length;
             double slack = tolerance.EqualPoint;
@@ -2314,9 +2663,13 @@ namespace GeometryHelper.Core
                     int i = rank[edge] > rank[o] ? edge : o;
                     int j = i == edge ? o : edge;
 
-                    if (bounds[j].Max.X < bounds[i].Min.X - slack ||
-                        bounds[j].Max.Y < bounds[i].Min.Y - slack || bounds[j].Min.Y > bounds[i].Max.Y + slack ||
-                        bounds[j].Max.Z < bounds[i].Min.Z - slack || bounds[j].Min.Z > bounds[i].Max.Z + slack)
+                    if (
+                        bounds[j].Max.X < bounds[i].Min.X - slack
+                        || bounds[j].Max.Y < bounds[i].Min.Y - slack
+                        || bounds[j].Min.Y > bounds[i].Max.Y + slack
+                        || bounds[j].Max.Z < bounds[i].Min.Z - slack
+                        || bounds[j].Min.Z > bounds[i].Max.Z + slack
+                    )
                     {
                         continue;
                     }
@@ -2329,8 +2682,10 @@ namespace GeometryHelper.Core
                         GeoLine3 incoming = iThenJ ? edges[i] : edges[j];
                         GeoLine3 outgoing = iThenJ ? edges[j] : edges[i];
 
-                        if (Containment3.IsPointOn(outgoing, incoming.StartPoint, tolerance) ||
-                            Containment3.IsPointOn(incoming, outgoing.EndPoint, tolerance))
+                        if (
+                            Containment3.IsPointOn(outgoing, incoming.StartPoint, tolerance)
+                            || Containment3.IsPointOn(incoming, outgoing.EndPoint, tolerance)
+                        )
                         {
                             return false;
                         }
@@ -2348,7 +2703,10 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>A coordinate of a point: 0 for X, 1 for Y and 2 for Z.</summary>
-        private static double Along(GeoPoint3 point, int axis) => axis == 0 ? point.X : axis == 1 ? point.Y : point.Z;
+        private static double Along(GeoPoint3 point, int axis) =>
+            axis == 0 ? point.X
+            : axis == 1 ? point.Y
+            : point.Z;
 
         #endregion
     }

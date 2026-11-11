@@ -231,7 +231,13 @@ namespace GeometryHelper.Viewer.Views
             Vec3 origin = Origin;
             Primitives drawn = _drawn;
             TimeSpan before = clock.Elapsed;
-            _lease = _model.Geometry.Take(_model.Generation, clip, origin, () => MakeAll(drawn, clip, origin, null, null, default(Vec3)), true);
+            _lease = _model.Geometry.Take(
+                _model.Generation,
+                clip,
+                origin,
+                () => MakeAll(drawn, clip, origin, null, null, default(Vec3)),
+                true
+            );
             _applied = clip;
             ItemGeometry[] made = _lease.Made.Result;
             _model.GeometryMilliseconds.Add((clock.Elapsed - before).TotalMilliseconds);
@@ -283,14 +289,25 @@ namespace GeometryHelper.Viewer.Views
         /// <param name="before">The geometry already made for the same scene at the same origin for the cut before, or null; an item that the cut left as it was takes its geometry from here.</param>
         /// <param name="beforeClip">The cut before.</param>
         /// <param name="beforeOrigin">The render origin of the geometry before.</param>
-        private static ItemGeometry[] MakeAll(Primitives drawn, ClipResult clip, Vec3 origin, ItemGeometry[] before, ClipResult beforeClip, Vec3 beforeOrigin)
+        private static ItemGeometry[] MakeAll(
+            Primitives drawn,
+            ClipResult clip,
+            Vec3 origin,
+            ItemGeometry[] before,
+            ClipResult beforeClip,
+            Vec3 beforeOrigin
+        )
         {
             var made = new ItemGeometry[drawn.Items.Count];
-            bool sameOrigin = before != null && beforeClip != null && beforeOrigin.Equals(origin) && before.Length == made.Length;
+            bool sameOrigin =
+                before != null && beforeClip != null && beforeOrigin.Equals(origin) && before.Length == made.Length;
 
             for (int i = 0; i < made.Length; i++)
             {
-                made[i] = sameOrigin && Unchanged(beforeClip, clip, i) ? before[i] : MakeGeometry(drawn.Items[i], origin, clip.Sections[i], clip.Caps[i]);
+                made[i] =
+                    sameOrigin && Unchanged(beforeClip, clip, i)
+                        ? before[i]
+                        : MakeGeometry(drawn.Items[i], origin, clip.Sections[i], clip.Caps[i]);
             }
 
             return made;
@@ -305,15 +322,25 @@ namespace GeometryHelper.Viewer.Views
             ItemPrimitives a = before.Clipped.Items[i];
             ItemPrimitives b = after.Clipped.Items[i];
 
-            if (ReferenceEquals(a, b) && ReferenceEquals(before.Sections[i], after.Sections[i]) && ReferenceEquals(before.Caps[i], after.Caps[i]))
+            if (
+                ReferenceEquals(a, b)
+                && ReferenceEquals(before.Sections[i], after.Sections[i])
+                && ReferenceEquals(before.Caps[i], after.Caps[i])
+            )
             {
                 return true;
             }
 
-            return IsBare(a) && IsBare(b) && before.Sections[i].Count == 0 && after.Sections[i].Count == 0 && before.Caps[i].Count == 0 && after.Caps[i].Count == 0;
+            return IsBare(a)
+                && IsBare(b)
+                && before.Sections[i].Count == 0
+                && after.Sections[i].Count == 0
+                && before.Caps[i].Count == 0
+                && after.Caps[i].Count == 0;
         }
 
-        private static bool IsBare(ItemPrimitives p) => p.Points.Count == 0 && p.Polylines.Count == 0 && p.Triangles.Count == 0 && p.Labels.Count == 0;
+        private static bool IsBare(ItemPrimitives p) =>
+            p.Points.Count == 0 && p.Polylines.Count == 0 && p.Triangles.Count == 0 && p.Labels.Count == 0;
 
         /// <summary>
         /// Gives every label the height it is drawn at for a view, so that it can be read at any zoom: a label with no height of its own
@@ -343,7 +370,12 @@ namespace GeometryHelper.Viewer.Views
 
             foreach (ItemVisual visual in _visuals)
             {
-                if (visual.Labels != null && visual.Labels.Geometry is BillboardText3D text && text.BillboardVertices != null && text.BillboardVertices.Count > 0)
+                if (
+                    visual.Labels != null
+                    && visual.Labels.Geometry is BillboardText3D text
+                    && text.BillboardVertices != null
+                    && text.BillboardVertices.Count > 0
+                )
                 {
                     heights.Add(text.BillboardVertices.Max(v => v.OffTL.Y - v.OffBR.Y));
                 }
@@ -359,7 +391,9 @@ namespace GeometryHelper.Viewer.Views
             for (int k = 0; k < p.Labels.Count && k < text.TextInfo.Count; k++)
             {
                 DrawLabel label = p.Labels[k];
-                float scale = (float)(LabelSize.Pixels(label.Height, map == null ? 0.0 : map.PixelSizeAt(label.At)) / LabelFontPixels);
+                float scale = (float)(
+                    LabelSize.Pixels(label.Height, map == null ? 0.0 : map.PixelSizeAt(label.At)) / LabelFontPixels
+                );
 
                 if (text.TextInfo[k].Scale != scale)
                 {
@@ -375,7 +409,12 @@ namespace GeometryHelper.Viewer.Views
             }
         }
 
-        private static ItemGeometry MakeGeometry(ItemPrimitives p, Vec3 origin, IReadOnlyList<DrawPolyline> section, IReadOnlyList<DrawTriangle> cap)
+        private static ItemGeometry MakeGeometry(
+            ItemPrimitives p,
+            Vec3 origin,
+            IReadOnlyList<DrawPolyline> section,
+            IReadOnlyList<DrawTriangle> cap
+        )
         {
             var geometry = new ItemGeometry();
             Vector3 Rel(Vec3 v)
@@ -432,7 +471,12 @@ namespace GeometryHelper.Viewer.Views
                 normals.Add(n);
             }
 
-            return new MeshGeometry3D { Positions = positions, Normals = normals, Indices = indices };
+            return new MeshGeometry3D
+            {
+                Positions = positions,
+                Normals = normals,
+                Indices = indices,
+            };
         }
 
         private static LineGeometry3D Lines(IReadOnlyList<DrawPolyline> polylines, Func<Vec3, Vector3> rel)
@@ -474,12 +518,17 @@ namespace GeometryHelper.Viewer.Views
             foreach (DrawLabel label in p.Labels)
             {
                 Vec3F f = RenderSpace.Relative(label.At, origin);
-                text.TextInfo.Add(new TextInfo(label.Text, new Vector3(f.X, f.Y, f.Z))
-                {
-                    Foreground = new Color4(color.R / 255f, color.G / 255f, color.B / 255f, 1f),
-                    Background = new Color4(1f, 1f, 1f, 0.6f),
-                    Scale = (float)(LabelSize.Pixels(label.Height, _labelMap == null ? 0.0 : _labelMap.PixelSizeAt(label.At)) / LabelFontPixels),
-                });
+                text.TextInfo.Add(
+                    new TextInfo(label.Text, new Vector3(f.X, f.Y, f.Z))
+                    {
+                        Foreground = new Color4(color.R / 255f, color.G / 255f, color.B / 255f, 1f),
+                        Background = new Color4(1f, 1f, 1f, 0.6f),
+                        Scale = (float)(
+                            LabelSize.Pixels(label.Height, _labelMap == null ? 0.0 : _labelMap.PixelSizeAt(label.At))
+                            / LabelFontPixels
+                        ),
+                    }
+                );
             }
 
             return text;
@@ -505,7 +554,13 @@ namespace GeometryHelper.Viewer.Views
                     visual.Cap = new MeshGeometryModel3D
                     {
                         Geometry = g.Cap,
-                        Material = new PhongMaterial { DiffuseColor = C4(CapColor(visual.BaseColor)), AmbientColor = C4(CapColor(visual.BaseColor)), SpecularColor = C4(Color.FromRgb(20, 20, 20)), SpecularShininess = 10f },
+                        Material = new PhongMaterial
+                        {
+                            DiffuseColor = C4(CapColor(visual.BaseColor)),
+                            AmbientColor = C4(CapColor(visual.BaseColor)),
+                            SpecularColor = C4(Color.FromRgb(20, 20, 20)),
+                            SpecularShininess = 10f,
+                        },
                         CullMode = SharpDX.Direct3D11.CullMode.None,
                         DepthBias = _depthBias,
                         SlopeScaledDepthBias = 1f,
@@ -526,7 +581,13 @@ namespace GeometryHelper.Viewer.Views
                     visual.Mesh = new MeshGeometryModel3D
                     {
                         Geometry = g.Mesh,
-                        Material = new PhongMaterial { DiffuseColor = C4(visual.BaseColor), AmbientColor = C4(visual.BaseColor), SpecularColor = C4(Color.FromRgb(40, 40, 40)), SpecularShininess = 20f },
+                        Material = new PhongMaterial
+                        {
+                            DiffuseColor = C4(visual.BaseColor),
+                            AmbientColor = C4(visual.BaseColor),
+                            SpecularColor = C4(Color.FromRgb(40, 40, 40)),
+                            SpecularShininess = 20f,
+                        },
                         CullMode = SharpDX.Direct3D11.CullMode.None,
                         DepthBias = _depthBias,
                         SlopeScaledDepthBias = 1f,
@@ -616,7 +677,6 @@ namespace GeometryHelper.Viewer.Views
             }
         }
 
-
         private void Attach(ItemVisual visual, Element3D element)
         {
             visual.Elements.Add(element);
@@ -663,10 +723,17 @@ namespace GeometryHelper.Viewer.Views
 
                     // Another view with this origin and this cut is making the same geometry, or has made it: it is waited for, and none is made again. An item that this cut leaves
                     // as the one before did keeps the geometry it has.
-                    ItemGeometry[] before = _lease != null && _lease.Made.IsCompletedSuccessfully ? _lease.Made.Result : null;
+                    ItemGeometry[] before =
+                        _lease != null && _lease.Made.IsCompletedSuccessfully ? _lease.Made.Result : null;
                     ClipResult beforeClip = _applied;
                     Vec3 beforeOrigin = Origin;
-                    GeometryCache<ItemGeometry[]>.Entry entry = _model.Geometry.Take(generation, clip, origin, () => MakeAll(drawn, clip, origin, before, beforeClip, beforeOrigin), false);
+                    GeometryCache<ItemGeometry[]>.Entry entry = _model.Geometry.Take(
+                        generation,
+                        clip,
+                        origin,
+                        () => MakeAll(drawn, clip, origin, before, beforeClip, beforeOrigin),
+                        false
+                    );
                     ItemGeometry[] made;
 
                     try
@@ -733,8 +800,7 @@ namespace GeometryHelper.Viewer.Views
                     }
 
                     swapped = true;
-                }
-                while (_again);
+                } while (_again);
 
                 return swapped;
             }
@@ -772,7 +838,8 @@ namespace GeometryHelper.Viewer.Views
             }
         }
 
-        private static Color4 C4(Color color) => new Color4(color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f);
+        private static Color4 C4(Color color) =>
+            new Color4(color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f);
 
         private Color ColorOf(SceneItem item)
         {
@@ -801,7 +868,10 @@ namespace GeometryHelper.Viewer.Views
             bool shown = _model.IsVisible(visual.Index);
             bool selected = _model.Selected.Contains(visual.Index);
             bool hovered = !selected && visual.Index == _model.Hover;
-            Color color = selected ? SelectionColor : hovered ? Mix(visual.BaseColor, HoverColor, 0.55) : visual.BaseColor;
+            Color color =
+                selected ? SelectionColor
+                : hovered ? Mix(visual.BaseColor, HoverColor, 0.55)
+                : visual.BaseColor;
             bool hasSurface = visual.HasMesh;
 
             if (visual.Mesh != null)
@@ -817,9 +887,9 @@ namespace GeometryHelper.Viewer.Views
                 }
 
                 var material = (PhongMaterial)visual.Mesh.Material;
-                material.DiffuseColor = C4(_mode == RenderMode.Transparent
-                    ? Color.FromArgb(90, color.R, color.G, color.B)
-                    : color);
+                material.DiffuseColor = C4(
+                    _mode == RenderMode.Transparent ? Color.FromArgb(90, color.R, color.G, color.B) : color
+                );
             }
 
             if (visual.Cap != null)
@@ -832,16 +902,27 @@ namespace GeometryHelper.Viewer.Views
                     node.IsTransparent = _mode == RenderMode.Transparent;
                 }
 
-                Color fill = selected ? Mix(CapColor(visual.BaseColor), SelectionColor, 0.5) : CapColor(visual.BaseColor);
-                ((PhongMaterial)visual.Cap.Material).DiffuseColor = C4(_mode == RenderMode.Transparent ? Color.FromArgb(120, fill.R, fill.G, fill.B) : fill);
+                Color fill = selected
+                    ? Mix(CapColor(visual.BaseColor), SelectionColor, 0.5)
+                    : CapColor(visual.BaseColor);
+                ((PhongMaterial)visual.Cap.Material).DiffuseColor = C4(
+                    _mode == RenderMode.Transparent ? Color.FromArgb(120, fill.R, fill.G, fill.B) : fill
+                );
             }
 
             if (visual.Lines != null)
             {
                 bool see = _mode != RenderMode.Shaded || !hasSurface;
-                visual.Lines.Visibility = visual.HasLines && shown && (see || selected || hovered) ? Visibility.Visible : Visibility.Collapsed;
-                visual.Lines.Color = _mode == RenderMode.Wireframe || !hasSurface ? color : Darker(color, selected || hovered);
-                visual.Lines.Thickness = selected ? SelectedLineThickness : hovered ? HoverLineThickness : LineThickness;
+                visual.Lines.Visibility =
+                    visual.HasLines && shown && (see || selected || hovered)
+                        ? Visibility.Visible
+                        : Visibility.Collapsed;
+                visual.Lines.Color =
+                    _mode == RenderMode.Wireframe || !hasSurface ? color : Darker(color, selected || hovered);
+                visual.Lines.Thickness =
+                    selected ? SelectedLineThickness
+                    : hovered ? HoverLineThickness
+                    : LineThickness;
             }
 
             if (visual.Section != null)
@@ -865,16 +946,20 @@ namespace GeometryHelper.Viewer.Views
         /// <summary>
         /// Gets a colour part of the way from one to another: a hovered item is its own colour warmed, so it can still be told apart.
         /// </summary>
-        private static Color Mix(Color from, Color to, double share)
-            => Color.FromRgb((byte)(from.R + (to.R - from.R) * share), (byte)(from.G + (to.G - from.G) * share), (byte)(from.B + (to.B - from.B) * share));
+        private static Color Mix(Color from, Color to, double share) =>
+            Color.FromRgb(
+                (byte)(from.R + (to.R - from.R) * share),
+                (byte)(from.G + (to.G - from.G) * share),
+                (byte)(from.B + (to.B - from.B) * share)
+            );
 
         /// <summary>
         /// Gets the colour a section is filled with: the item's own, a fifth of the way to white, so that the cut face stands out from the surfaces round it.
         /// </summary>
         private static Color CapColor(Color color) => Mix(color, Colors.White, 0.2);
 
-        private static Color Darker(Color color, bool selected)
-            => selected ? color : Color.FromRgb((byte)(color.R * 0.55), (byte)(color.G * 0.55), (byte)(color.B * 0.55));
+        private static Color Darker(Color color, bool selected) =>
+            selected ? color : Color.FromRgb((byte)(color.R * 0.55), (byte)(color.G * 0.55), (byte)(color.B * 0.55));
 
         private void RebuildGrid()
         {

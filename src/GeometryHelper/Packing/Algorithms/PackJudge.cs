@@ -33,8 +33,12 @@ namespace GeometryHelper.Packing.Algorithms
                 }
 
                 Footprint box = spots[s].Box;
-                faults[s] = !(box.MinX >= area.MinX - tolerance && box.MinY >= area.MinY - tolerance
-                    && box.MaxX <= area.MaxX + tolerance && box.MaxY <= area.MaxY + tolerance);
+                faults[s] = !(
+                    box.MinX >= area.MinX - tolerance
+                    && box.MinY >= area.MinY - tolerance
+                    && box.MaxX <= area.MaxX + tolerance
+                    && box.MaxY <= area.MaxY + tolerance
+                );
             }
 
             // Sheet by sheet, the boxes left to right: a box is only compared with those that begin before it ends.
@@ -52,8 +56,11 @@ namespace GeometryHelper.Packing.Algorithms
                             continue;
                         }
 
-                        if (first.Box.MinX < second.Box.MaxX - tolerance
-                            && first.Box.MinY < second.Box.MaxY - tolerance && second.Box.MinY < first.Box.MaxY - tolerance)
+                        if (
+                            first.Box.MinX < second.Box.MaxX - tolerance
+                            && first.Box.MinY < second.Box.MaxY - tolerance
+                            && second.Box.MinY < first.Box.MaxY - tolerance
+                        )
                         {
                             faults[order[a]] = true;
                             faults[order[b]] = true;

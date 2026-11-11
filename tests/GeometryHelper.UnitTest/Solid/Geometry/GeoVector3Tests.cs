@@ -84,7 +84,7 @@ namespace GeometryHelper.UnitTest.Solid
                 GeoVector3.YAxis,
                 GeoVector3.ZAxis,
                 new GeoVector3(1.0, 2.0, 3.0),
-                new GeoVector3(-5.0, 0.0, 0.001)
+                new GeoVector3(-5.0, 0.0, 0.001),
             };
 
             foreach (GeoVector3 v in samples)

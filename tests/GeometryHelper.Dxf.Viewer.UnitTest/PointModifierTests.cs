@@ -28,8 +28,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfLine line = All<DxfLine>(document.ModelSpace).Single();
             Near(new GeoPoint3(130, 70, 0), line.StartPoint);
             Near(new GeoPoint3(230, 70, 0), line.EndPoint);
-            Assert.Equal(new[] { "Specify first point: FROM", "Base point: 100,50", "<Offset>: @30,20", "Specify next point or [Undo]: @100<0" },
-                session.History.SkipWhile(l => l != "Specify first point: FROM").Take(4));
+            Assert.Equal(
+                new[]
+                {
+                    "Specify first point: FROM",
+                    "Base point: 100,50",
+                    "<Offset>: @30,20",
+                    "Specify next point or [Undo]: @100<0",
+                },
+                session.History.SkipWhile(l => l != "Specify first point: FROM").Take(4)
+            );
         }
 
         [Fact]
@@ -82,8 +90,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "10");
             DxfCircle circle = All<DxfCircle>(document.ModelSpace).Single();
             Near(new GeoPoint3(100, 50, 0), circle.Center);
-            Assert.Equal(new[] { "Specify center point for circle or [3P/2P/Ttr (tan tan radius)]: TK", "First tracking point: 100,0", "Next point (Press ENTER to end tracking):" },
-                session.History.SkipWhile(l => !l.EndsWith(": TK", System.StringComparison.Ordinal)).Take(3));
+            Assert.Equal(
+                new[]
+                {
+                    "Specify center point for circle or [3P/2P/Ttr (tan tan radius)]: TK",
+                    "First tracking point: 100,0",
+                    "Next point (Press ENTER to end tracking):",
+                },
+                session.History.SkipWhile(l => !l.EndsWith(": TK", System.StringComparison.Ordinal)).Take(3)
+            );
         }
 
         [Fact]

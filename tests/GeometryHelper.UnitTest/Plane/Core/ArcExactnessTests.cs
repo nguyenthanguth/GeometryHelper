@@ -22,15 +22,19 @@ namespace GeometryHelper.UnitTest.Plane
         /// An arc that turns its back on a far-off segment. The point of its circle facing that segment
         /// lies a third of a degree past the end of the arc.
         /// </summary>
-        private static GeoArc2 TurnedAway() => new GeoArc2(
-            new GeoPoint2(106.613242210175, 167.196175999565),
-            105.215687332775,
-            2.65100934993475,
-            2.65100934993475 + 0.540859308513576);
+        private static GeoArc2 TurnedAway() =>
+            new GeoArc2(
+                new GeoPoint2(106.613242210175, 167.196175999565),
+                105.215687332775,
+                2.65100934993475,
+                2.65100934993475 + 0.540859308513576
+            );
 
-        private static GeoLine2 FarOff() => new GeoLine2(
-            new GeoPoint2(-125.347395392762, -167.432944275175),
-            new GeoPoint2(-140.12959969236, 153.860483297082));
+        private static GeoLine2 FarOff() =>
+            new GeoLine2(
+                new GeoPoint2(-125.347395392762, -167.432944275175),
+                new GeoPoint2(-140.12959969236, 153.860483297082)
+            );
 
         /// <summary>
         /// Walks an arc and reports the least distance any of its points stands from a segment.
@@ -84,19 +88,22 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoPoint2(-174.945561389879, 174.317677493355),
                 64.4248551779542,
                 1.74034633861525,
-                1.74034633861525 + 5.70359477699884);
+                1.74034633861525 + 5.70359477699884
+            );
 
             var second = new GeoArc2(
                 new GeoPoint2(-114.858829562952, 66.2477894994653),
                 112.608687368971,
                 1.54518810745785,
-                1.54518810745785 + 3.35263869779607);
+                1.54518810745785 + 3.35263869779607
+            );
 
             // A whole turn is an arc like any other, so the circles carrying these two can be asked the
             // same question. They cross twice.
             GeoPoint2[] onTheCircles = Arc2.GetIntersections(
                 new GeoArc2(first.Center, first.Radius, 0.0, 0.0),
-                new GeoArc2(second.Center, second.Radius, 0.0, 0.0));
+                new GeoArc2(second.Center, second.Radius, 0.0, 0.0)
+            );
 
             Assert.Equal(2, onTheCircles.Length);
 
@@ -136,11 +143,13 @@ namespace GeometryHelper.UnitTest.Plane
                     new GeoPoint2(random.NextDouble() * 300 - 150, random.NextDouble() * 300 - 150),
                     5.0 + random.NextDouble() * 120.0,
                     start,
-                    start + (random.NextDouble() * 2.0 - 1.0) * Math.PI * 1.9);
+                    start + (random.NextDouble() * 2.0 - 1.0) * Math.PI * 1.9
+                );
 
                 lines[i] = new GeoLine2(
                     new GeoPoint2(random.NextDouble() * 300 - 150, random.NextDouble() * 300 - 150),
-                    new GeoPoint2(random.NextDouble() * 300 - 150, random.NextDouble() * 300 - 150));
+                    new GeoPoint2(random.NextDouble() * 300 - 150, random.NextDouble() * 300 - 150)
+                );
             }
 
             int found = 0;

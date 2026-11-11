@@ -32,13 +32,14 @@ namespace GeometryHelper.Extension
         /// at a fork there is no geometric reason to prefer one branch. The answer is the same every time for
         /// a given input, but reordering the input can move a branch from one run to another.
         /// </remarks>
-        public static GeoPolyline2[] Join(this IEnumerable<GeoLine2> lines, Tolerance tolerance)
-            => Merge2.Join(lines, tolerance);
+        public static GeoPolyline2[] Join(this IEnumerable<GeoLine2> lines, Tolerance tolerance) =>
+            Merge2.Join(lines, tolerance);
 
         /// <summary>
         /// Rejoins segments already in order along a run, where one ends and the next begins.
         /// </summary>
-        public static GeoLine2[] MergeConsecutive(this IEnumerable<GeoLine2> segments) => Merge2.ConsecutiveLines(segments);
+        public static GeoLine2[] MergeConsecutive(this IEnumerable<GeoLine2> segments) =>
+            Merge2.ConsecutiveLines(segments);
 
         /// <summary>
         /// Rejoins segments already in order along a run, where one ends and the next begins, within a tolerance.
@@ -52,14 +53,14 @@ namespace GeometryHelper.Extension
         /// order is already known, which is what splitting hands back: it walks the list once instead of
         /// searching, and it will not reverse anything to make it fit.
         /// </remarks>
-        public static GeoLine2[] MergeConsecutive(this IEnumerable<GeoLine2> segments, Tolerance tolerance)
-            => Merge2.ConsecutiveLines(segments, tolerance);
+        public static GeoLine2[] MergeConsecutive(this IEnumerable<GeoLine2> segments, Tolerance tolerance) =>
+            Merge2.ConsecutiveLines(segments, tolerance);
 
         /// <summary>
         /// Rejoins chains already in order along a run, where one ends and the next begins.
         /// </summary>
-        public static GeoPolyline2[] MergeConsecutive(this IEnumerable<GeoPolyline2> polylines)
-            => Merge2.ConsecutivePolylines(polylines);
+        public static GeoPolyline2[] MergeConsecutive(this IEnumerable<GeoPolyline2> polylines) =>
+            Merge2.ConsecutivePolylines(polylines);
 
         /// <summary>
         /// Rejoins chains already in order along a run, where one ends and the next begins, within a tolerance.
@@ -68,13 +69,14 @@ namespace GeometryHelper.Extension
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>One chain per unbroken stretch, in order.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="polylines"/> is null.</exception>
-        public static GeoPolyline2[] MergeConsecutive(this IEnumerable<GeoPolyline2> polylines, Tolerance tolerance)
-            => Merge2.ConsecutivePolylines(polylines, tolerance);
+        public static GeoPolyline2[] MergeConsecutive(this IEnumerable<GeoPolyline2> polylines, Tolerance tolerance) =>
+            Merge2.ConsecutivePolylines(polylines, tolerance);
 
         /// <summary>
         /// Joins this chain to another if this one ends where the other begins.
         /// </summary>
-        public static GeoPolyline2 MergeWith(this GeoPolyline2 first, GeoPolyline2 second) => Merge2.Polylines(first, second);
+        public static GeoPolyline2 MergeWith(this GeoPolyline2 first, GeoPolyline2 second) =>
+            Merge2.Polylines(first, second);
 
         /// <summary>
         /// Joins this chain to another if this one ends where the other begins, within a tolerance.
@@ -88,7 +90,7 @@ namespace GeometryHelper.Extension
         /// Null rather than an exception, because not meeting is the ordinary case: walking the pieces of a
         /// cut run, this is exactly what tells one stretch from the next.
         /// </remarks>
-        public static GeoPolyline2 MergeWith(this GeoPolyline2 first, GeoPolyline2 second, Tolerance tolerance)
-            => Merge2.Polylines(first, second, tolerance);
+        public static GeoPolyline2 MergeWith(this GeoPolyline2 first, GeoPolyline2 second, Tolerance tolerance) =>
+            Merge2.Polylines(first, second, tolerance);
     }
 }

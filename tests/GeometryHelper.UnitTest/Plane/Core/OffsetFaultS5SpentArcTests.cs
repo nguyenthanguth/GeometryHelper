@@ -41,7 +41,8 @@ namespace GeometryHelper.UnitTest.Plane
             int n = loop.VertexCount;
             return new GeoPolygonArc2(
                 Enumerable.Range(0, n).Select(i => loop.Vertices[(i + start) % n]),
-                Enumerable.Range(0, n).Select(i => loop.Bulges[(i + start) % n]));
+                Enumerable.Range(0, n).Select(i => loop.Bulges[(i + start) % n])
+            );
         }
 
         /// <summary>The same loop run the other way: vertex i comes from n - 1 - i, and edge i is edge n - 2 - i reversed.</summary>
@@ -50,7 +51,8 @@ namespace GeometryHelper.UnitTest.Plane
             int n = loop.VertexCount;
             return new GeoPolygonArc2(
                 Enumerable.Range(0, n).Select(i => loop.Vertices[n - 1 - i]),
-                Enumerable.Range(0, n).Select(i => -loop.Bulges[((n - 2 - i) % n + n) % n]));
+                Enumerable.Range(0, n).Select(i => -loop.Bulges[((n - 2 - i) % n + n) % n])
+            );
         }
 
         /// <summary>The loop begun from every vertex, and run the other way.</summary>
@@ -70,7 +72,8 @@ namespace GeometryHelper.UnitTest.Plane
             int n = chain.VertexCount;
             return new GeoPolylineArc2(
                 Enumerable.Range(0, n).Select(i => chain.Vertices[n - 1 - i]),
-                Enumerable.Range(0, n).Select(i => i < n - 1 ? -chain.Bulges[n - 2 - i] : 0.0));
+                Enumerable.Range(0, n).Select(i => i < n - 1 ? -chain.Bulges[n - 2 - i] : 0.0)
+            );
         }
 
         /// <summary>How near the answer comes to the source, over 25 points a piece.</summary>
@@ -92,7 +95,13 @@ namespace GeometryHelper.UnitTest.Plane
         /// Holds a loop's offset to the oracle's reading from every vertex and both ways: one loop, nothing nearer than
         /// the distance, the point on it, and one area.
         /// </summary>
-        private static void AssertOneLoopEveryWay(GeoPolygonArc2 source, double distance, OffsetOptions options, Tolerance tolerance, GeoPoint2 onIt)
+        private static void AssertOneLoopEveryWay(
+            GeoPolygonArc2 source,
+            double distance,
+            OffsetOptions options,
+            Tolerance tolerance,
+            GeoPoint2 onIt
+        )
         {
             double area = double.NaN;
 
@@ -122,14 +131,30 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolygonArc2 source = Loop(
                 new[]
                 {
-                    P(86.599909020618355, 42.541093657196484), P(77.254510766822335, 31.792613079980093),
-                    P(73.481982550741847, 23.351300746392063), P(81.481282980552763, 19.998997294721079),
-                    P(94.4075905344884, 15.955555821220791), P(100.79629506502833, 29.744013488297355),
+                    P(86.599909020618355, 42.541093657196484),
+                    P(77.254510766822335, 31.792613079980093),
+                    P(73.481982550741847, 23.351300746392063),
+                    P(81.481282980552763, 19.998997294721079),
+                    P(94.4075905344884, 15.955555821220791),
+                    P(100.79629506502833, 29.744013488297355),
                     P(100.90765793699708, 39.347132073683511),
                 },
-                0.48, -0.03, 0.03, 0.24, 0.0, 0.12, 0.03);
+                0.48,
+                -0.03,
+                0.03,
+                0.24,
+                0.0,
+                0.12,
+                0.03
+            );
 
-            AssertOneLoopEveryWay(source, -10.0, OffsetOptions.Default, TenThousandth, P(88.473116726302, 27.148421108693942));
+            AssertOneLoopEveryWay(
+                source,
+                -10.0,
+                OffsetOptions.Default,
+                TenThousandth,
+                P(88.473116726302, 27.148421108693942)
+            );
         }
 
         [Fact]
@@ -139,11 +164,25 @@ namespace GeometryHelper.UnitTest.Plane
             // (0.080344, 0.204670), grows to 3.03024: its start (2.38973, -1.75724) is the point the oracle found missing,
             // and a quarter of the way round it passes (0.19084, -2.82355).
             GeoPolygonArc2 source = Loop(
-                new[] { P(0, 0), P(0.27675024081339111, 0.037815865676107036), P(-0.0832558703393812, 0.40379518812798743) },
-                0.3, -1.0936498917144024, 0.0);
+                new[]
+                {
+                    P(0, 0),
+                    P(0.27675024081339111, 0.037815865676107036),
+                    P(-0.0832558703393812, 0.40379518812798743),
+                },
+                0.3,
+                -1.0936498917144024,
+                0.0
+            );
             var options = new OffsetOptions(OffsetJoin.Miter, 2.0);
 
-            AssertOneLoopEveryWay(source, 2.7725246864243061, options, Thousandth, P(2.3897299297651293, -1.7572356575146937));
+            AssertOneLoopEveryWay(
+                source,
+                2.7725246864243061,
+                options,
+                Thousandth,
+                P(2.3897299297651293, -1.7572356575146937)
+            );
 
             GeoPolygonArc2 one = Assert.Single(Offset2.Offset(source, 2.7725246864243061, options, Thousandth));
             Assert.True(DistanceTo(PiecesOf(one), 0.1908416050689537, -2.8235518664866595) <= 1E-9);
@@ -156,13 +195,28 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolygonArc2 source = Loop(
                 new[]
                 {
-                    P(30.347361874528612, -40.471679110477979), P(-46.912102794524543, -103.96163988422022),
-                    P(-79.116496453599481, -64.772858165511238), P(-68.140787607186866, -55.628199204337051),
-                    P(-56.748510670114968, -46.990452316982541), P(-44.915392347073265, -38.889155115041518),
-                    P(-34.953967124717877, -28.510237873310047), P(-23.478583547120635, -19.97362153445772),
-                    P(-12.527056455067306, -10.799536355755784), P(-1.6199040605512947, -1.5714526340589621),
+                    P(30.347361874528612, -40.471679110477979),
+                    P(-46.912102794524543, -103.96163988422022),
+                    P(-79.116496453599481, -64.772858165511238),
+                    P(-68.140787607186866, -55.628199204337051),
+                    P(-56.748510670114968, -46.990452316982541),
+                    P(-44.915392347073265, -38.889155115041518),
+                    P(-34.953967124717877, -28.510237873310047),
+                    P(-23.478583547120635, -19.97362153445772),
+                    P(-12.527056455067306, -10.799536355755784),
+                    P(-1.6199040605512947, -1.5714526340589621),
                 },
-                0.0, 0.0, -0.3, 0.0, -1.0, 0.0, 0.5, -0.001, -0.001, 0.0);
+                0.0,
+                0.0,
+                -0.3,
+                0.0,
+                -1.0,
+                0.0,
+                0.5,
+                -0.001,
+                -0.001,
+                0.0
+            );
 
             AssertOneLoopEveryWay(source, 80.0, OffsetOptions.Default, Tenth, P(81.1393304935224, -102.2792508457205));
         }
@@ -176,15 +230,27 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolygonArc2 source = Loop(
                 new[]
                 {
-                    P(-10.321723325822894, 17.895212520097925), P(-12.99241113774551, 17.696037768522981),
-                    P(-15.338646079245283, 15.872138844556581), P(-17.371615612290036, 13.089182083795558),
-                    P(-15.526173935203436, 13.320297160738711), P(-17.279296698105437, 12.627511082052539),
-                    P(-13.118362236585062, 11.1117758004299), P(-12.890286694365003, 11.000208441907493),
-                    P(-12.771978187177895, 9.0342584247543485), P(-8.45682082730249, 12.642700428279863),
+                    P(-10.321723325822894, 17.895212520097925),
+                    P(-12.99241113774551, 17.696037768522981),
+                    P(-15.338646079245283, 15.872138844556581),
+                    P(-17.371615612290036, 13.089182083795558),
+                    P(-15.526173935203436, 13.320297160738711),
+                    P(-17.279296698105437, 12.627511082052539),
+                    P(-13.118362236585062, 11.1117758004299),
+                    P(-12.890286694365003, 11.000208441907493),
+                    P(-12.771978187177895, 9.0342584247543485),
+                    P(-8.45682082730249, 12.642700428279863),
                     P(-11.022980483517122, 14.677339995816471),
-                });
+                }
+            );
 
-            AssertOneLoopEveryWay(source, 1.0, new OffsetOptions(OffsetJoin.Miter), Thousandth, P(-10.396094862855739, 18.892443122556237));
+            AssertOneLoopEveryWay(
+                source,
+                1.0,
+                new OffsetOptions(OffsetJoin.Miter),
+                Thousandth,
+                P(-10.396094862855739, 18.892443122556237)
+            );
         }
 
         [Fact]
@@ -195,13 +261,26 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolylineArc2 chain = Chain(
                 new[]
                 {
-                    P(13.915731170573718, -6.9915071547593417), P(29.983907952449233, -2.565253138671717),
-                    P(46.069494962411326, 1.797562410191377), P(62.110311754948889, 6.3235093067081465),
-                    P(78.208720304327073, 10.63960640915163), P(94.301787983069261, 14.975164293217622),
-                    P(110.32532027013544, 19.564091555550824), P(97.1175340629847, 67.68992358052779),
+                    P(13.915731170573718, -6.9915071547593417),
+                    P(29.983907952449233, -2.565253138671717),
+                    P(46.069494962411326, 1.797562410191377),
+                    P(62.110311754948889, 6.3235093067081465),
+                    P(78.208720304327073, 10.63960640915163),
+                    P(94.301787983069261, 14.975164293217622),
+                    P(110.32532027013544, 19.564091555550824),
+                    P(97.1175340629847, 67.68992358052779),
                     P(0.683269050802588, 41.224237654026091),
                 },
-                0.0, 0.0, 0.0, 0.0, 0.09, -0.6, 0.0, 0.09, 0.0);
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.09,
+                -0.6,
+                0.0,
+                0.09,
+                0.0
+            );
 
             Assert.Empty(Offset2.Offset(chain, 80.0, OffsetOptions.Default, Thousandth));
             Assert.Empty(Offset2.Offset(Reversed(chain), -80.0, OffsetOptions.Default, Thousandth));

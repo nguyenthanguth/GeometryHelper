@@ -46,10 +46,15 @@ namespace GeometryHelper.UnitTest.Plane
         {
             GeoCoordinateSystem2 frame = Placed();
 
-            foreach (GeoPoint2 point in new[]
-            {
-                new GeoPoint2(0, 0), new GeoPoint2(1000, -400), new GeoPoint2(-37, 512), new GeoPoint2(1e5, 1e5)
-            })
+            foreach (
+                GeoPoint2 point in new[]
+                {
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(1000, -400),
+                    new GeoPoint2(-37, 512),
+                    new GeoPoint2(1e5, 1e5),
+                }
+            )
             {
                 Assert.True(frame.ToGlobal(frame.ToLocal(point)).IsEqualTo(point, Tight));
                 Assert.True(frame.ToLocal(frame.ToGlobal(point)).IsEqualTo(point, Tight));
@@ -102,7 +107,9 @@ namespace GeometryHelper.UnitTest.Plane
             // A point keeps the same local coordinates when the frame and the point move together.
             var point = new GeoPoint2(77, -13);
 
-            Assert.True(moved.ToLocal(turn.Transform(point)).IsEqualTo(frame.ToLocal(point), new Tolerance(1E-8, 1E-8)));
+            Assert.True(
+                moved.ToLocal(turn.Transform(point)).IsEqualTo(frame.ToLocal(point), new Tolerance(1E-8, 1E-8))
+            );
 
             Assert.Throws<ArgumentNullException>(() => frame.TransformBy(null));
             Assert.Throws<InvalidOperationException>(() => frame.TransformBy(GeoTransform2.Scaling(0.0)));
@@ -157,7 +164,11 @@ namespace GeometryHelper.UnitTest.Plane
         public void ALoopCanBeTurnedRoundTheOtherWay()
         {
             var square = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
 
             GeoPolygon2 other = square.Reverse();
 
@@ -166,8 +177,7 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.NotEqual(square.IsClockwise, other.IsClockwise);
             Assert.True(other.Reverse().IsEqualTo(square));
 
-            var inSpace = new GeoPolygon3(
-                new GeoPoint3(0, 0, 5), new GeoPoint3(10, 0, 5), new GeoPoint3(10, 10, 5));
+            var inSpace = new GeoPolygon3(new GeoPoint3(0, 0, 5), new GeoPoint3(10, 0, 5), new GeoPoint3(10, 10, 5));
 
             GeoPolygon3 turned = inSpace.Reverse();
 

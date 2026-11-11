@@ -28,16 +28,28 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A stirrup: a two hundred square loop in z = 0 with its corners rounded by thirty.
         /// </summary>
-        private static GeoPolygonArc3 Stirrup() => new GeoPolygonArc3(new GeoPolygon3(
-            new GeoPoint3(0, 0, 0), new GeoPoint3(200, 0, 0),
-            new GeoPoint3(200, 200, 0), new GeoPoint3(0, 200, 0))).Fillet(30.0);
+        private static GeoPolygonArc3 Stirrup() =>
+            new GeoPolygonArc3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(200, 0, 0),
+                    new GeoPoint3(200, 200, 0),
+                    new GeoPoint3(0, 200, 0)
+                )
+            ).Fillet(30.0);
 
         /// <summary>
         /// A plain square loop in z = 0, so that a second shape is easy to place in the same plane.
         /// </summary>
-        private static GeoPolygonArc3 Square(double x, double y, double size) => new GeoPolygonArc3(new GeoPolygon3(
-            new GeoPoint3(x, y, 0), new GeoPoint3(x + size, y, 0),
-            new GeoPoint3(x + size, y + size, 0), new GeoPoint3(x, y + size, 0)));
+        private static GeoPolygonArc3 Square(double x, double y, double size) =>
+            new GeoPolygonArc3(
+                new GeoPolygon3(
+                    new GeoPoint3(x, y, 0),
+                    new GeoPoint3(x + size, y, 0),
+                    new GeoPoint3(x + size, y + size, 0),
+                    new GeoPoint3(x, y + size, 0)
+                )
+            );
 
         [Fact]
         public void TwoLoopsInOnePlaneCanBeJoinedAndCutFromEachOther()
@@ -88,15 +100,23 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Throws<ArgumentException>(() => flat.Xor(above));
 
             // Standing upright is refused the same way, and so is a polygon out of the plane.
-            GeoPolygonArc3 upright = new GeoPolygonArc3(new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0),
-                new GeoPoint3(100, 0, 100), new GeoPoint3(0, 0, 100)));
+            GeoPolygonArc3 upright = new GeoPolygonArc3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    new GeoPoint3(100, 0, 100),
+                    new GeoPoint3(0, 0, 100)
+                )
+            );
 
             Assert.Throws<ArgumentException>(() => flat.Union(upright));
 
             var raised = new GeoPolygon3(
-                new GeoPoint3(0, 0, 50), new GeoPoint3(100, 0, 50),
-                new GeoPoint3(100, 100, 50), new GeoPoint3(0, 100, 50));
+                new GeoPoint3(0, 0, 50),
+                new GeoPoint3(100, 0, 50),
+                new GeoPoint3(100, 100, 50),
+                new GeoPoint3(0, 100, 50)
+            );
 
             Assert.Throws<ArgumentException>(() => flat.Union(raised));
             Assert.Throws<ArgumentException>(() => flat.Intersect(raised));
@@ -114,8 +134,11 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoPolygonArc3 loop = Square(0, 0, 100);
             var polygon = new GeoPolygon3(
-                new GeoPoint3(50, 50, 0), new GeoPoint3(150, 50, 0),
-                new GeoPoint3(150, 150, 0), new GeoPoint3(50, 150, 0));
+                new GeoPoint3(50, 50, 0),
+                new GeoPoint3(150, 50, 0),
+                new GeoPoint3(150, 150, 0),
+                new GeoPoint3(50, 150, 0)
+            );
 
             Assert.Single(loop.Union(polygon));
             Assert.Equal(50 * 50, loop.Intersect(polygon)[0].Area, 6);
@@ -194,7 +217,12 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(stirrup.Length, opened[0].Length, 6);
 
             // A plane the stirrup never reaches leaves it whole, handed back as one open chain.
-            Assert.False(stirrup.TrySplitBy(new GeoPlane3(new GeoPoint3(0, 0, 500), GeoVector3.ZAxis), out GeoPolylineArc3[] whole));
+            Assert.False(
+                stirrup.TrySplitBy(
+                    new GeoPlane3(new GeoPoint3(0, 0, 500), GeoVector3.ZAxis),
+                    out GeoPolylineArc3[] whole
+                )
+            );
             Assert.Single(whole);
             Assert.Equal(stirrup.Length, whole[0].Length, 6);
         }
@@ -228,18 +256,26 @@ namespace GeometryHelper.UnitTest.Solid
             var plane = new GeoPlane3(new GeoPoint3(100, 0, 0), new GeoVector3(1, 0, 0));
 
             var polygon = new GeoPolygon3(
-                new GeoPoint3(50, 50, 0), new GeoPoint3(150, 50, 0),
-                new GeoPoint3(150, 150, 0), new GeoPoint3(50, 150, 0));
+                new GeoPoint3(50, 50, 0),
+                new GeoPoint3(150, 50, 0),
+                new GeoPoint3(150, 150, 0),
+                new GeoPoint3(50, 150, 0)
+            );
 
             Assert.Equal(loop.Union(other).Length, loop.Union(other, global).Length);
             Assert.Equal(loop.Xor(polygon).Length, loop.Xor(polygon, global).Length);
             Assert.Equal(loop.Intersect(other)[0].Area, loop.Intersect(other, global)[0].Area, 6);
             Assert.Equal(loop.Chamfer(10.0).Area, loop.Chamfer(10.0, global).Area, 6);
-            Assert.Equal(loop.SignedDistanceTo(new GeoPoint3(10, 50, 0)), loop.SignedDistanceTo(new GeoPoint3(10, 50, 0), global), 9);
+            Assert.Equal(
+                loop.SignedDistanceTo(new GeoPoint3(10, 50, 0)),
+                loop.SignedDistanceTo(new GeoPoint3(10, 50, 0), global),
+                9
+            );
 
             Assert.Equal(
                 stirrup.TrySplitBy(plane, out GeoPolylineArc3[] a),
-                stirrup.TrySplitBy(plane, out GeoPolylineArc3[] b, global));
+                stirrup.TrySplitBy(plane, out GeoPolylineArc3[] b, global)
+            );
             Assert.Equal(a.Length, b.Length);
 
             Assert.Throws<ArgumentNullException>(() => stirrup.SplitAtDistances(null, out _));

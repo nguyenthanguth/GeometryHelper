@@ -75,7 +75,10 @@ namespace GeometryHelper.Dwg
             T(group.Text(300));
             _data.BitShort(group.Int(70));
             _data.BitShort(group.Int(71, 1));
-            List<ulong> members = group.Each(340).ConvertAll(DwgRecord.Hex).FindAll(handle => _written.Contains(handle));
+            List<ulong> members = group
+                .Each(340)
+                .ConvertAll(DwgRecord.Hex)
+                .FindAll(handle => _written.Contains(handle));
             _data.BitLong(members.Count);
 
             foreach (ulong member in members)
@@ -88,8 +91,15 @@ namespace GeometryHelper.Dwg
         {
             DwgGroups style = _record.Of("AcDbMlineStyle");
             int dxf = style.Int(70);
-            int flags = ((dxf & 2) != 0 ? 1 : 0) | ((dxf & 1) != 0 ? 2 : 0) | (dxf & 16) | ((dxf & 64) != 0 ? 32 : 0)
-                | ((dxf & 32) != 0 ? 64 : 0) | (dxf & 256) | ((dxf & 1024) != 0 ? 512 : 0) | ((dxf & 512) != 0 ? 1024 : 0);
+            int flags =
+                ((dxf & 2) != 0 ? 1 : 0)
+                | ((dxf & 1) != 0 ? 2 : 0)
+                | (dxf & 16)
+                | ((dxf & 64) != 0 ? 32 : 0)
+                | ((dxf & 32) != 0 ? 64 : 0)
+                | (dxf & 256)
+                | ((dxf & 1024) != 0 ? 512 : 0)
+                | ((dxf & 512) != 0 ? 1024 : 0);
             T(style.Text(2));
             T(style.Text(3));
             _data.BitShort(flags);
@@ -125,7 +135,10 @@ namespace GeometryHelper.Dwg
                 {
                     H(5, _drawing.HandleOf("LTYPE", linetype));
                 }
-                else if (linetype.Equals("BYLAYER", StringComparison.OrdinalIgnoreCase) || linetype.Equals("BYBLOCK", StringComparison.OrdinalIgnoreCase))
+                else if (
+                    linetype.Equals("BYLAYER", StringComparison.OrdinalIgnoreCase)
+                    || linetype.Equals("BYBLOCK", StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     _data.BitShort(linetype.Equals("BYBLOCK", StringComparison.OrdinalIgnoreCase) ? 32766 : 32767);
                 }
@@ -140,7 +153,10 @@ namespace GeometryHelper.Dwg
                     {
                         string recordName = record.Of(null).Text(2).Trim();
 
-                        if (recordName.Equals("ByBlock", StringComparison.OrdinalIgnoreCase) || recordName.Equals("ByLayer", StringComparison.OrdinalIgnoreCase))
+                        if (
+                            recordName.Equals("ByBlock", StringComparison.OrdinalIgnoreCase)
+                            || recordName.Equals("ByLayer", StringComparison.OrdinalIgnoreCase)
+                        )
                         {
                             continue;
                         }
@@ -189,8 +205,15 @@ namespace GeometryHelper.Dwg
                     bytes.Add((byte)chunk.Length);
                     bytes.AddRange(chunk);
                 }
-                else if ((code >= 0 && code <= 9) || (code >= 100 && code <= 105) || (code >= 300 && code <= 309) || (code >= 410 && code <= 419)
-                    || (code >= 430 && code <= 439) || (code >= 470 && code <= 479) || (code >= 1000 && code <= 1003))
+                else if (
+                    (code >= 0 && code <= 9)
+                    || (code >= 100 && code <= 105)
+                    || (code >= 300 && code <= 309)
+                    || (code >= 410 && code <= 419)
+                    || (code >= 430 && code <= 439)
+                    || (code >= 470 && code <= 479)
+                    || (code >= 1000 && code <= 1003)
+                )
                 {
                     string text = value;
 
@@ -212,23 +235,41 @@ namespace GeometryHelper.Dwg
                 else if (code >= 10 && code <= 39)
                 {
                     double x = DwgRecord.Double(value);
-                    double y = i + 1 < body.Count && body[i + 1].Key == code + 10 ? DwgRecord.Double(body[++i].Value) : 0.0;
-                    double z = i + 1 < body.Count && body[i + 1].Key == code + 20 ? DwgRecord.Double(body[++i].Value) : 0.0;
+                    double y =
+                        i + 1 < body.Count && body[i + 1].Key == code + 10 ? DwgRecord.Double(body[++i].Value) : 0.0;
+                    double z =
+                        i + 1 < body.Count && body[i + 1].Key == code + 20 ? DwgRecord.Double(body[++i].Value) : 0.0;
                     bytes.AddRange(BitConverter.GetBytes(x));
                     bytes.AddRange(BitConverter.GetBytes(y));
                     bytes.AddRange(BitConverter.GetBytes(z));
                 }
-                else if ((code >= 40 && code <= 59) || (code >= 110 && code <= 149) || (code >= 210 && code <= 239) || (code >= 460 && code <= 469)
-                    || (code >= 1010 && code <= 1059))
+                else if (
+                    (code >= 40 && code <= 59)
+                    || (code >= 110 && code <= 149)
+                    || (code >= 210 && code <= 239)
+                    || (code >= 460 && code <= 469)
+                    || (code >= 1010 && code <= 1059)
+                )
                 {
                     bytes.AddRange(BitConverter.GetBytes(DwgRecord.Double(value)));
                 }
-                else if ((code >= 60 && code <= 79) || (code >= 170 && code <= 179) || (code >= 270 && code <= 279) || (code >= 370 && code <= 389)
-                    || (code >= 400 && code <= 409) || (code >= 1060 && code <= 1070))
+                else if (
+                    (code >= 60 && code <= 79)
+                    || (code >= 170 && code <= 179)
+                    || (code >= 270 && code <= 279)
+                    || (code >= 370 && code <= 389)
+                    || (code >= 400 && code <= 409)
+                    || (code >= 1060 && code <= 1070)
+                )
                 {
                     bytes.AddRange(BitConverter.GetBytes((short)DwgRecord.Int(value)));
                 }
-                else if ((code >= 90 && code <= 99) || (code >= 420 && code <= 429) || (code >= 440 && code <= 459) || code == 1071)
+                else if (
+                    (code >= 90 && code <= 99)
+                    || (code >= 420 && code <= 429)
+                    || (code >= 440 && code <= 459)
+                    || code == 1071
+                )
                 {
                     bytes.AddRange(BitConverter.GetBytes(DwgRecord.Int(value)));
                 }
@@ -353,11 +394,13 @@ namespace GeometryHelper.Dwg
         private List<DwgRecord> ViewportsOf(ulong block)
         {
             List<DwgRecord> viewports = OwnedBy(block).FindAll(entity => entity.Type == "VIEWPORT");
-            viewports.Sort((a, b) =>
-            {
-                int byNumber = a.Of("AcDbViewport").Int(69).CompareTo(b.Of("AcDbViewport").Int(69));
-                return byNumber != 0 ? byNumber : a.Handle.CompareTo(b.Handle);
-            });
+            viewports.Sort(
+                (a, b) =>
+                {
+                    int byNumber = a.Of("AcDbViewport").Int(69).CompareTo(b.Of("AcDbViewport").Int(69));
+                    return byNumber != 0 ? byNumber : a.Handle.CompareTo(b.Handle);
+                }
+            );
             return viewports;
         }
     }

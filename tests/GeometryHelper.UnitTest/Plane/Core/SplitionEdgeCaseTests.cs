@@ -18,11 +18,11 @@ namespace GeometryHelper.UnitTest.Plane
         private static readonly Tolerance Tol = new Tolerance(1E-4, 1E-4);
 
         // An L: 10 along X, then 10 up. The corner sits at (10, 0), arc length 10.
-        private static GeoPolyline2 Corner() => new GeoPolyline2(
-            new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10));
+        private static GeoPolyline2 Corner() =>
+            new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10));
 
-        private static GeoPolygon2 Square() => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+        private static GeoPolygon2 Square() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
 
         #region A cut landing exactly on a vertex, by each route that can produce one
 
@@ -32,7 +32,15 @@ namespace GeometryHelper.UnitTest.Plane
             // Splitting by distance at a corner is covered elsewhere. This is the other route: the point
             // is handed in directly, and its arc length has to be resolved from geometry, where the two
             // edges meeting at the corner are both at distance zero from it.
-            Assert.True(Splition2.TrySplitBy(Corner(), new GeoPoint2(10, 0), out GeoPolyline2 first, out GeoPolyline2 second, Tol));
+            Assert.True(
+                Splition2.TrySplitBy(
+                    Corner(),
+                    new GeoPoint2(10, 0),
+                    out GeoPolyline2 first,
+                    out GeoPolyline2 second,
+                    Tol
+                )
+            );
 
             Assert.Equal(2, first.VertexCount);
             Assert.True(first[0].IsEqualTo(new GeoPoint2(0, 0)));
@@ -67,7 +75,9 @@ namespace GeometryHelper.UnitTest.Plane
             // vertex of both shapes at once.
             var path = new GeoPolyline2(new GeoPoint2(5, -5), new GeoPoint2(10, 0), new GeoPoint2(5, 5));
 
-            Assert.True(Splition2.TrySplitBy(path, Square(), out GeoPolyline2[] inside, out GeoPolyline2[] outside, Tol));
+            Assert.True(
+                Splition2.TrySplitBy(path, Square(), out GeoPolyline2[] inside, out GeoPolyline2[] outside, Tol)
+            );
 
             Assert.Equal(path.Length, inside.Sum(p => p.Length) + outside.Sum(p => p.Length), 9);
             Assert.NotEmpty(inside);
@@ -96,7 +106,15 @@ namespace GeometryHelper.UnitTest.Plane
             // edge behind, shorter than the tolerance that is supposed to rule such things out.
             var wide = new Tolerance(0.5, 0.5);
 
-            Assert.True(Splition2.TrySplitBy(Corner(), new GeoPoint2(9.8, 0), out GeoPolyline2 first, out GeoPolyline2 second, wide));
+            Assert.True(
+                Splition2.TrySplitBy(
+                    Corner(),
+                    new GeoPoint2(9.8, 0),
+                    out GeoPolyline2 first,
+                    out GeoPolyline2 second,
+                    wide
+                )
+            );
 
             Assert.Equal(2, first.VertexCount);
             Assert.True(first[1].IsEqualTo(new GeoPoint2(10, 0)));
@@ -167,7 +185,9 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(2, pathPieces.Length);
             Assert.Equal(3, Splition2.SplitAtDistances(path, new[] { 3.0, 7.0 }, Tol).Length);
 
-            Assert.True(Splition2.TrySplitBy(path, Square(), out GeoPolyline2[] inside, out GeoPolyline2[] outside, Tol));
+            Assert.True(
+                Splition2.TrySplitBy(path, Square(), out GeoPolyline2[] inside, out GeoPolyline2[] outside, Tol)
+            );
             Assert.Single(inside);
             Assert.Equal(10.0, inside[0].Length, 9);
             Assert.Equal(path.Length, inside.Sum(p => p.Length) + outside.Sum(p => p.Length), 9);
@@ -180,7 +200,9 @@ namespace GeometryHelper.UnitTest.Plane
             // strictly inside, never strictly outside, on the boundary throughout.
             var path = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10));
 
-            Assert.False(Splition2.TrySplitBy(path, Square(), out GeoPolyline2[] inside, out GeoPolyline2[] outside, Tol));
+            Assert.False(
+                Splition2.TrySplitBy(path, Square(), out GeoPolyline2[] inside, out GeoPolyline2[] outside, Tol)
+            );
 
             Assert.Single(inside);
             Assert.Equal(path.VertexCount, inside[0].VertexCount);
@@ -231,14 +253,18 @@ namespace GeometryHelper.UnitTest.Plane
             var spike = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(0, 0));
 
             Assert.Equal(20.0, spike.Length, 9);
-            Assert.True(Splition2.TrySplitBy(spike, new GeoPoint2(5, 0), out GeoPolyline2 first, out GeoPolyline2 second, Tol));
+            Assert.True(
+                Splition2.TrySplitBy(spike, new GeoPoint2(5, 0), out GeoPolyline2 first, out GeoPolyline2 second, Tol)
+            );
 
             // The outbound leg wins, so the cut is at arc length 5 rather than 15.
             Assert.Equal(5.0, first.Length, 9);
             Assert.Equal(15.0, second.Length, 9);
 
             // Splitting at the far arc length reaches the return leg, which the point form cannot.
-            Assert.True(Splition2.TrySplitAtDistance(spike, 15.0, out GeoPolyline2 farFirst, out GeoPolyline2 farSecond, Tol));
+            Assert.True(
+                Splition2.TrySplitAtDistance(spike, 15.0, out GeoPolyline2 farFirst, out GeoPolyline2 farSecond, Tol)
+            );
             Assert.Equal(15.0, farFirst.Length, 9);
             Assert.Equal(5.0, farSecond.Length, 9);
         }
@@ -285,7 +311,8 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 var line = new GeoLine2(
                     new GeoPoint2(random.NextDouble() * 30 - 10, random.NextDouble() * 30 - 10),
-                    new GeoPoint2(random.NextDouble() * 30 - 10, random.NextDouble() * 30 - 10));
+                    new GeoPoint2(random.NextDouble() * 30 - 10, random.NextDouble() * 30 - 10)
+                );
                 var flipped = new GeoLine2(line.EndPoint, line.StartPoint);
 
                 bool a = Splition2.TrySplitBy(line, Square(), out GeoLine2[] inA, out GeoLine2[] outA, Tol);
@@ -318,7 +345,10 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(first.EndPoint.IsEqualTo(new GeoPoint2(ox + 40.0, oy), Tol));
 
             var path = new GeoPolyline2(
-                new GeoPoint2(ox, oy), new GeoPoint2(ox + 100.0, oy), new GeoPoint2(ox + 100.0, oy + 100.0));
+                new GeoPoint2(ox, oy),
+                new GeoPoint2(ox + 100.0, oy),
+                new GeoPoint2(ox + 100.0, oy + 100.0)
+            );
             var cutter = new GeoLine2(new GeoPoint2(ox + 60.0, oy - 50.0), new GeoPoint2(ox + 60.0, oy + 50.0));
 
             Assert.True(Splition2.TrySplitBy(path, cutter, out GeoPolyline2[] pieces, Tol));

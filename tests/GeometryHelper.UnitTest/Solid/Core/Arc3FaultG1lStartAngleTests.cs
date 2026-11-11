@@ -16,7 +16,12 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class Arc3FaultG1lStartAngleTests
     {
-        private static readonly Tolerance Tight = new Tolerance(1E-9, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-9);
+        private static readonly Tolerance Tight = new Tolerance(
+            1E-9,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-9
+        );
 
         private static readonly GeoVector3 Up = new GeoVector3(0, 0, 1);
 
@@ -33,7 +38,10 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 GeoPoint3 expected = transform.Transform(arc.GetPointAtParameter(eighth / 8.0));
 
-                Assert.True(moved.GetPointAtParameter(eighth / 8.0).IsEqualTo(expected, Tight), $"{eighth} eighths along");
+                Assert.True(
+                    moved.GetPointAtParameter(eighth / 8.0).IsEqualTo(expected, Tight),
+                    $"{eighth} eighths along"
+                );
             }
         }
 
@@ -59,7 +67,12 @@ namespace GeometryHelper.UnitTest.Solid
         public void TheHalfCircleThroughThreePointsOnItsLowerHalf_StartsWithinATurn()
         {
             // From (100, 0, 0), a quarter turn below the zero angle on Y: it started at -1.57.
-            GeoArc3 arc = GeoArc3.FromThreePoints(new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0), new GeoPoint3(-100, 0, 0), Tight);
+            GeoArc3 arc = GeoArc3.FromThreePoints(
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(0, 100, 0),
+                new GeoPoint3(-100, 0, 0),
+                Tight
+            );
 
             AssertWithinATurn(arc);
             Assert.InRange(arc.StartAngle, 1.5 * Math.PI - 1E-12, 1.5 * Math.PI + 1E-12);

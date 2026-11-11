@@ -30,7 +30,10 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string group in groups.Split(' '))
             {
                 int at = group.IndexOf('=');
-                text.Append(group.Substring(0, at).PadLeft(3)).Append('\n').Append(group.Substring(at + 1)).Append('\n');
+                text.Append(group.Substring(0, at).PadLeft(3))
+                    .Append('\n')
+                    .Append(group.Substring(at + 1))
+                    .Append('\n');
             }
 
             return text.ToString();
@@ -39,8 +42,14 @@ namespace GeometryHelper.UnitTest.Dxf
         /// <summary>ezdxf's drawing of R2018 with entities of their own put last in its ENTITIES section, the handles from C00 free.</summary>
         private static string With(string entities)
         {
-            string text = DxfFileEzdxfDrawings.R2018.Replace("\r\n", "\n").Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nC00\n");
-            int end = text.IndexOf("  0\nENDSEC\n", text.IndexOf("\nENTITIES\n", StringComparison.Ordinal), StringComparison.Ordinal);
+            string text = DxfFileEzdxfDrawings
+                .R2018.Replace("\r\n", "\n")
+                .Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nC00\n");
+            int end = text.IndexOf(
+                "  0\nENDSEC\n",
+                text.IndexOf("\nENTITIES\n", StringComparison.Ordinal),
+                StringComparison.Ordinal
+            );
             return text.Insert(end, entities);
         }
 
@@ -69,7 +78,9 @@ namespace GeometryHelper.UnitTest.Dxf
         /// <summary>A MESH C01 of its vertices and faces, each face its corners' numbers, as the library writes one.</summary>
         private static DxfEntity Mesh(GeoPoint3[] points, params int[][] faces)
         {
-            var groups = new StringBuilder("5=C01 330=17 100=AcDbEntity 8=0 100=AcDbSubDMesh 71=2 72=0 91=0 92=" + points.Length);
+            var groups = new StringBuilder(
+                "5=C01 330=17 100=AcDbEntity 8=0 100=AcDbSubDMesh 71=2 72=0 91=0 92=" + points.Length
+            );
 
             foreach (GeoPoint3 p in points)
             {
@@ -100,13 +111,23 @@ namespace GeometryHelper.UnitTest.Dxf
                 for (short k = 0; k < 4; k++)
                 {
                     GeoPoint3 wanted = points[faces[f][Math.Min((int)k, faces[f].Length - 1)]];
-                    Assert.True(wanted.IsEqualTo(face.GetVertexAt(k), Tol), "face " + f + " corner " + k + ": " + face.GetVertexAt(k));
+                    Assert.True(
+                        wanted.IsEqualTo(face.GetVertexAt(k), Tol),
+                        "face " + f + " corner " + k + ": " + face.GetVertexAt(k)
+                    );
                 }
             }
         }
 
         /// <summary>The square pyramid of 64x's MESH A5: its base 20 by 20 at the height 0 round (250, 0), its apex 10 above.</summary>
-        private static readonly GeoPoint3[] Square = { P3(240, -10, 0), P3(260, -10, 0), P3(260, 10, 0), P3(240, 10, 0), P3(250, 0, 10) };
+        private static readonly GeoPoint3[] Square =
+        {
+            P3(240, -10, 0),
+            P3(260, -10, 0),
+            P3(260, 10, 0),
+            P3(240, 10, 0),
+            P3(250, 0, 10),
+        };
 
         [Fact]
         public void ASquarePyramidWithItsBaseAndOneSideFacingIn_ExplodesThatQuadAndThatTriangleTurned_AsAutoCadExplodedMeshA5()
@@ -114,9 +135,25 @@ namespace GeometryHelper.UnitTest.Dxf
             // Plugin v6, 64x-a, MESH A5: the base (0, 1, 2, 3) faces up, into the pyramid, and so does the side (0, 3, 4); the
             // other three sides face out. AutoCAD 2021's Explode gave the quad (3, 2, 1, 0) and the triangle (4, 3, 0), each
             // read from its last corner back, and the three sides as they are held.
-            IReadOnlyList<DxfEntity> parts = Mesh(Square, new[] { 0, 1, 2, 3 }, new[] { 0, 1, 4 }, new[] { 1, 2, 4 }, new[] { 2, 3, 4 }, new[] { 0, 3, 4 }).Explode();
+            IReadOnlyList<DxfEntity> parts = Mesh(
+                    Square,
+                    new[] { 0, 1, 2, 3 },
+                    new[] { 0, 1, 4 },
+                    new[] { 1, 2, 4 },
+                    new[] { 2, 3, 4 },
+                    new[] { 0, 3, 4 }
+                )
+                .Explode();
 
-            AreFaces(Square, parts, new[] { 3, 2, 1, 0 }, new[] { 0, 1, 4 }, new[] { 1, 2, 4 }, new[] { 2, 3, 4 }, new[] { 4, 3, 0 });
+            AreFaces(
+                Square,
+                parts,
+                new[] { 3, 2, 1, 0 },
+                new[] { 0, 1, 4 },
+                new[] { 1, 2, 4 },
+                new[] { 2, 3, 4 },
+                new[] { 4, 3, 0 }
+            );
         }
 
         [Fact]
@@ -124,9 +161,25 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // The pyramid of A5 with its base held (3, 2, 1, 0) and its side (4, 3, 0), as AutoCAD keeps them once it has read
             // A5: every face faces out, and each 3DFACE has the corners of its face in their order.
-            IReadOnlyList<DxfEntity> parts = Mesh(Square, new[] { 3, 2, 1, 0 }, new[] { 0, 1, 4 }, new[] { 1, 2, 4 }, new[] { 2, 3, 4 }, new[] { 4, 3, 0 }).Explode();
+            IReadOnlyList<DxfEntity> parts = Mesh(
+                    Square,
+                    new[] { 3, 2, 1, 0 },
+                    new[] { 0, 1, 4 },
+                    new[] { 1, 2, 4 },
+                    new[] { 2, 3, 4 },
+                    new[] { 4, 3, 0 }
+                )
+                .Explode();
 
-            AreFaces(Square, parts, new[] { 3, 2, 1, 0 }, new[] { 0, 1, 4 }, new[] { 1, 2, 4 }, new[] { 2, 3, 4 }, new[] { 4, 3, 0 });
+            AreFaces(
+                Square,
+                parts,
+                new[] { 3, 2, 1, 0 },
+                new[] { 0, 1, 4 },
+                new[] { 1, 2, 4 },
+                new[] { 2, 3, 4 },
+                new[] { 4, 3, 0 }
+            );
         }
 
         [Fact]
@@ -153,7 +206,18 @@ namespace GeometryHelper.UnitTest.Dxf
 
             IReadOnlyList<DxfEntity> parts = Mesh(points, faces.ToArray()).Explode();
 
-            AreFaces(points, parts, new[] { 4, 3, 0 }, new[] { 2, 0, 3 }, new[] { 0, 2, 1 }, new[] { 5, 0, 1 }, new[] { 5, 1, 2 }, new[] { 5, 2, 3 }, new[] { 5, 3, 4 }, new[] { 5, 4, 0 });
+            AreFaces(
+                points,
+                parts,
+                new[] { 4, 3, 0 },
+                new[] { 2, 0, 3 },
+                new[] { 0, 2, 1 },
+                new[] { 5, 0, 1 },
+                new[] { 5, 1, 2 },
+                new[] { 5, 2, 3 },
+                new[] { 5, 3, 4 },
+                new[] { 5, 4, 0 }
+            );
         }
 
         #endregion
@@ -165,7 +229,12 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             definition = db.BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single();
-            definition.MTextAttributeDefinition = new DxfMText { Contents = "LINE ONE\\PLINE TWO\\PLINE THREE", Location = new GeoPoint3(0, -1, 0), TextHeight = 2.5 };
+            definition.MTextAttributeDefinition = new DxfMText
+            {
+                Contents = "LINE ONE\\PLINE TWO\\PLINE THREE",
+                Location = new GeoPoint3(0, -1, 0),
+                TextHeight = 2.5,
+            };
             DxfBlockReference bolt = Bolt(db);
             mark = bolt.AttributeCollection.Single();
             mark.SetAttributeFromBlock(definition, bolt.BlockTransform);
@@ -173,8 +242,10 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The INSERT of BOLT in the model space of ezdxf's drawing.</summary>
-        private static DxfBlockReference Bolt(DxfDatabase db)
-            => Everything(db).OfType<DxfBlockReference>().Single(b => b.Owner == db.ModelSpace && b.Name == "BOLT" && !(b is DxfMInsertBlock));
+        private static DxfBlockReference Bolt(DxfDatabase db) =>
+            Everything(db)
+                .OfType<DxfBlockReference>()
+                .Single(b => b.Owner == db.ModelSpace && b.Name == "BOLT" && !(b is DxfMInsertBlock));
 
         /// <summary>The ATTRIB of the INSERT of BOLT.</summary>
         private static DxfAttributeReference Mark(DxfDatabase db) => Bolt(db).AttributeCollection.Single();
@@ -249,15 +320,81 @@ namespace GeometryHelper.UnitTest.Dxf
             switch (name)
             {
                 case "one span":
-                    return new DxfSpline(3, false, false, false, new[] { P3(0, 0, 0), P3(10, 10, 0), P3(20, 10, 0), P3(30, 0, 0) }, new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 }, null, 0.0, 0.0);
+                    return new DxfSpline(
+                        3,
+                        false,
+                        false,
+                        false,
+                        new[] { P3(0, 0, 0), P3(10, 10, 0), P3(20, 10, 0), P3(30, 0, 0) },
+                        new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 },
+                        null,
+                        0.0,
+                        0.0
+                    );
                 case "two spans":
-                    return new DxfSpline(3, false, false, false, new[] { P3(0, 40, 0), P3(10, 50, 0), P3(20, 50, 0), P3(30, 40, 0), P3(40, 30, 0) }, new[] { 0.0, 0, 0, 0, 1, 2, 2, 2, 2 }, null, 0.0, 0.0);
+                    return new DxfSpline(
+                        3,
+                        false,
+                        false,
+                        false,
+                        new[] { P3(0, 40, 0), P3(10, 50, 0), P3(20, 50, 0), P3(30, 40, 0), P3(40, 30, 0) },
+                        new[] { 0.0, 0, 0, 0, 1, 2, 2, 2, 2 },
+                        null,
+                        0.0,
+                        0.0
+                    );
                 case "three spans":
-                    return new DxfSpline(3, false, false, false, new[] { P3(0, -40, 0), P3(10, -30, 0), P3(20, -30, 0), P3(30, -40, 0), P3(40, -50, 0), P3(50, -40, 0) }, new[] { 0.0, 0, 0, 0, 1, 2, 3, 3, 3, 3 }, null, 0.0, 0.0);
+                    return new DxfSpline(
+                        3,
+                        false,
+                        false,
+                        false,
+                        new[]
+                        {
+                            P3(0, -40, 0),
+                            P3(10, -30, 0),
+                            P3(20, -30, 0),
+                            P3(30, -40, 0),
+                            P3(40, -50, 0),
+                            P3(50, -40, 0),
+                        },
+                        new[] { 0.0, 0, 0, 0, 1, 2, 3, 3, 3, 3 },
+                        null,
+                        0.0,
+                        0.0
+                    );
                 case "degree 2":
-                    return new DxfSpline(2, false, false, false, new[] { P3(0, -120, 0), P3(10, -110, 0), P3(20, -110, 0), P3(30, -120, 0), P3(40, -130, 0) }, new[] { 0.0, 0, 0, 1, 2, 3, 3, 3 }, null, 0.0, 0.0);
+                    return new DxfSpline(
+                        2,
+                        false,
+                        false,
+                        false,
+                        new[] { P3(0, -120, 0), P3(10, -110, 0), P3(20, -110, 0), P3(30, -120, 0), P3(40, -130, 0) },
+                        new[] { 0.0, 0, 0, 1, 2, 3, 3, 3 },
+                        null,
+                        0.0,
+                        0.0
+                    );
                 default:
-                    return new DxfSpline(3, false, false, false, new[] { P3(0, -200, 0), P3(10, -190, 0), P3(20, -190, 0), P3(30, -200, 0), P3(40, -210, 0), P3(50, -200, 0) }, new[] { 0.0, 0, 0, 0, 1, 1, 2, 2, 2, 2 }, null, 0.0, 0.0);
+                    return new DxfSpline(
+                        3,
+                        false,
+                        false,
+                        false,
+                        new[]
+                        {
+                            P3(0, -200, 0),
+                            P3(10, -190, 0),
+                            P3(20, -190, 0),
+                            P3(30, -200, 0),
+                            P3(40, -210, 0),
+                            P3(50, -200, 0),
+                        },
+                        new[] { 0.0, 0, 0, 0, 1, 1, 2, 2, 2, 2 },
+                        null,
+                        0.0,
+                        0.0
+                    );
             }
         }
 
@@ -267,7 +404,10 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("three spans", "0:78 10:835 99:7562")]
         [InlineData("degree 2", "0:29 10:342 99:2732")]
         [InlineData("double knot", "0:76 10:933 99:8011")]
-        public void ASplineMadeAPolylineOfArcs_HasTheVerticesOfItsPolylineOfLines_AsAutoCadGivesThem(string name, string counts)
+        public void ASplineMadeAPolylineOfArcs_HasTheVerticesOfItsPolylineOfLines_AsAutoCadGivesThem(
+            string name,
+            string counts
+        )
         {
             // Plugin v6, 17-b: AutoCAD 2021's ToPolylineWithPrecision(p, true, true) of each spline had as many vertices as
             // ToPolylineWithPrecision(p, false, true), at the same points: 33, 257 and 4 097 for the cubic of one span at 0, 10
@@ -282,24 +422,42 @@ namespace GeometryHelper.UnitTest.Dxf
                 var lines = Assert.IsType<DxfPolyline>(spline.ToPolylineWithPrecision(precision, false, true));
                 var arcs = Assert.IsType<DxfPolyline>(spline.ToPolylineWithPrecision(precision, true, true));
 
-                Assert.Equal(name + " at " + precision + ": " + wanted + ", " + wanted, name + " at " + precision + ": " + lines.NumberOfVertices + ", " + arcs.NumberOfVertices);
+                Assert.Equal(
+                    name + " at " + precision + ": " + wanted + ", " + wanted,
+                    name + " at " + precision + ": " + lines.NumberOfVertices + ", " + arcs.NumberOfVertices
+                );
 
                 for (int i = 0; i < wanted; i++)
                 {
                     Assert.Equal(0.0, lines.GetBulgeAt(i));
-                    Assert.True(arcs.GetPoint2dAt(i).IsEqualTo(lines.GetPoint2dAt(i), Tol), name + " at " + precision + ", vertex " + i);
+                    Assert.True(
+                        arcs.GetPoint2dAt(i).IsEqualTo(lines.GetPoint2dAt(i), Tol),
+                        name + " at " + precision + ", vertex " + i
+                    );
                 }
             }
         }
 
         [Theory]
-        [InlineData("one span", 0, "0:-0.008061895260693201 1:-0.00858053090783035 15:-0.015605969239118582 16:-0.015605969239118582 31:-0.008061895260693201 32:0")]
+        [InlineData(
+            "one span",
+            0,
+            "0:-0.008061895260693201 1:-0.00858053090783035 15:-0.015605969239118582 16:-0.015605969239118582 31:-0.008061895260693201 32:0"
+        )]
         [InlineData("one span", 10, "1:-0.0009880764463862885 128:-0.001953087748404437 255:-0.00098038744529271")]
-        [InlineData("two spans", 0, "0:-0.004063404428971927 10:-0.008943032331517952 25:-0.018207241047351882 48:-3.149011194866816E-05")]
+        [InlineData(
+            "two spans",
+            0,
+            "0:-0.004063404428971927 10:-0.008943032331517952 25:-0.018207241047351882 48:-3.149011194866816E-05"
+        )]
         [InlineData("three spans", 0, "0:-0.003005579246705369 40:-0.008187364639020476 76:0.006058887650709392")]
         [InlineData("degree 2", 0, "0:-0.006301269729154377 12:-0.04466212890204985 13:-0.04021233903382102 27:0")]
         [InlineData("double knot", 0, "0:-0.007936008093456638 30:-0.015590751321220033 74:0.007965474087371752")]
-        public void EachArcOfASplineMadeAPolyline_IsBentByAQuarterOfTheTurnOfTheSplinesTangentAlongIt_AsAutoCadBendsIt(string name, int precision, string bulges)
+        public void EachArcOfASplineMadeAPolyline_IsBentByAQuarterOfTheTurnOfTheSplinesTangentAlongIt_AsAutoCadBendsIt(
+            string name,
+            int precision,
+            string bulges
+        )
         {
             // Plugin v6, 17-b: the bulges of AutoCAD 2021's ToPolylineWithPrecision(p, true, true), each the tangent of a quarter
             // of the angle the spline's tangent turns through from the segment's start to its end: on the cubic of one span at

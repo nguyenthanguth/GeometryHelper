@@ -57,7 +57,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private double _lineSpacing;
         private bool _boxChanged;
 
-        internal TextEditorViewModel(MainViewModel model, CadInPlaceEdit edit, string styleFont, bool styleIsShx, double lineSpacing)
+        internal TextEditorViewModel(
+            MainViewModel model,
+            CadInPlaceEdit edit,
+            string styleFont,
+            bool styleIsShx,
+            double lineSpacing
+        )
         {
             _model = model;
             Edit = edit;
@@ -69,37 +75,71 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             int column = (edit.Attachment - 1) % 3;
             Editor = new CadMTextEditor(edit.Value, edit.Height, styleFont, styleIsShx, "lcr"[column]);
             Editor.Changed += (s, e) => Refresh();
-            Fonts = new[] { styleFont ?? "Arial" }.Concat(CadTrueTypeFonts.Families).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            Fonts = new[] { styleFont ?? "Arial" }
+                .Concat(CadTrueTypeFonts.Families)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
             Colors = new[]
             {
-                Color("ByLayer", 256, -1), Color("ByBlock", 0, -1), Color("Red", 1), Color("Yellow", 2), Color("Green", 3), Color("Cyan", 4),
-                Color("Blue", 5), Color("Magenta", 6), Color("White", 7),
+                Color("ByLayer", 256, -1),
+                Color("ByBlock", 0, -1),
+                Color("Red", 1),
+                Color("Yellow", 2),
+                Color("Green", 3),
+                Color("Cyan", 4),
+                Color("Blue", 5),
+                Color("Magenta", 6),
+                Color("White", 7),
             };
             Symbols = new[]
             {
-                new TextEditorChoice("Degree", "%%d", new[] { "°", "%%d" }), new TextEditorChoice("Plus/Minus", "%%p", new[] { "±", "%%p" }),
-                new TextEditorChoice("Diameter", "%%c", new[] { "Ø", "%%c" }), new TextEditorChoice("Almost Equal", "\\U+2248", new[] { "≈", "\\U+2248" }),
-                new TextEditorChoice("Angle", "\\U+2220", new[] { "∠", "\\U+2220" }), new TextEditorChoice("Centre Line", "\\U+2104", new[] { "℄", "\\U+2104" }),
-                new TextEditorChoice("Delta", "\\U+0394", new[] { "Δ", "\\U+0394" }), new TextEditorChoice("Not Equal", "\\U+2260", new[] { "≠", "\\U+2260" }),
-                new TextEditorChoice("Square", "\\U+00B2", new[] { "²", "\\U+00B2" }), new TextEditorChoice("Non-breaking Space", "Ctrl+Shift+Space", new[] { " ", null }),
+                new TextEditorChoice("Degree", "%%d", new[] { "°", "%%d" }),
+                new TextEditorChoice("Plus/Minus", "%%p", new[] { "±", "%%p" }),
+                new TextEditorChoice("Diameter", "%%c", new[] { "Ø", "%%c" }),
+                new TextEditorChoice("Almost Equal", "\\U+2248", new[] { "≈", "\\U+2248" }),
+                new TextEditorChoice("Angle", "\\U+2220", new[] { "∠", "\\U+2220" }),
+                new TextEditorChoice("Centre Line", "\\U+2104", new[] { "℄", "\\U+2104" }),
+                new TextEditorChoice("Delta", "\\U+0394", new[] { "Δ", "\\U+0394" }),
+                new TextEditorChoice("Not Equal", "\\U+2260", new[] { "≠", "\\U+2260" }),
+                new TextEditorChoice("Square", "\\U+00B2", new[] { "²", "\\U+00B2" }),
+                new TextEditorChoice("Non-breaking Space", "Ctrl+Shift+Space", new[] { " ", null }),
             };
             Justifications = new[]
             {
-                new TextEditorChoice("Top Left TL", string.Empty, 1), new TextEditorChoice("Top Center TC", string.Empty, 2), new TextEditorChoice("Top Right TR", string.Empty, 3),
-                new TextEditorChoice("Middle Left ML", string.Empty, 4), new TextEditorChoice("Middle Center MC", string.Empty, 5), new TextEditorChoice("Middle Right MR", string.Empty, 6),
-                new TextEditorChoice("Bottom Left BL", string.Empty, 7), new TextEditorChoice("Bottom Center BC", string.Empty, 8), new TextEditorChoice("Bottom Right BR", string.Empty, 9),
+                new TextEditorChoice("Top Left TL", string.Empty, 1),
+                new TextEditorChoice("Top Center TC", string.Empty, 2),
+                new TextEditorChoice("Top Right TR", string.Empty, 3),
+                new TextEditorChoice("Middle Left ML", string.Empty, 4),
+                new TextEditorChoice("Middle Center MC", string.Empty, 5),
+                new TextEditorChoice("Middle Right MR", string.Empty, 6),
+                new TextEditorChoice("Bottom Left BL", string.Empty, 7),
+                new TextEditorChoice("Bottom Center BC", string.Empty, 8),
+                new TextEditorChoice("Bottom Right BR", string.Empty, 9),
             };
-            LineSpacings = new[] { 1.0, 1.5, 2.0, 2.5 }.Select(f => new TextEditorChoice(f.ToString("0.0", CultureInfo.InvariantCulture) + "x", string.Empty, f)).ToList();
+            LineSpacings = new[] { 1.0, 1.5, 2.0, 2.5 }
+                .Select(f => new TextEditorChoice(
+                    f.ToString("0.0", CultureInfo.InvariantCulture) + "x",
+                    string.Empty,
+                    f
+                ))
+                .ToList();
 
             ToggleCommand = new DelegateCommand(p => Toggle(p as string));
-            CaseCommand = new DelegateCommand(p => Editor.ChangeCase(string.Equals(p as string, "Upper", StringComparison.Ordinal)));
+            CaseCommand = new DelegateCommand(p =>
+                Editor.ChangeCase(string.Equals(p as string, "Upper", StringComparison.Ordinal))
+            );
             ClearCommand = new DelegateCommand(_ => Editor.ClearFormatting());
             AlignCommand = new DelegateCommand(p => Editor.SetAlignment(((string)p)[0]));
             SymbolCommand = new DelegateCommand(p => InsertSymbol(p as TextEditorChoice));
             JustifyCommand = new DelegateCommand(p => Justify(p as TextEditorChoice));
             LineSpacingCommand = new DelegateCommand(p => SetLineSpacing(p as TextEditorChoice));
-            FindNextCommand = new DelegateCommand(_ => FindMessage = Editor.FindNext(_find, _matchCase) ? string.Empty : "\"" + _find + "\" was not found.");
-            ReplaceAllCommand = new DelegateCommand(_ => FindMessage = Editor.ReplaceAll(_find, _replace, _matchCase).ToString(CultureInfo.InvariantCulture) + " replaced.");
+            FindNextCommand = new DelegateCommand(_ =>
+                FindMessage = Editor.FindNext(_find, _matchCase) ? string.Empty : "\"" + _find + "\" was not found."
+            );
+            ReplaceAllCommand = new DelegateCommand(_ =>
+                FindMessage =
+                    Editor.ReplaceAll(_find, _replace, _matchCase).ToString(CultureInfo.InvariantCulture) + " replaced."
+            );
             UndoCommand = new DelegateCommand(_ => Editor.Undo());
             RedoCommand = new DelegateCommand(_ => Editor.Redo());
             CloseCommand = new DelegateCommand(_ => _model.CloseTextEditor(true));
@@ -203,7 +243,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 int index = Editor.CurrentLook.ColorIndex ?? 256;
                 return Colors.FirstOrDefault(c => (int)c.Value == index) ?? Colors[0];
             }
-
             set
             {
                 if (value != null && (int)value.Value != (Editor.CurrentLook.ColorIndex ?? 256))
@@ -383,18 +422,57 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             switch (name)
             {
                 case "Symbol":
-                    return Symbols.Select(s => new CadMenuItemViewModel(s.Name + "    " + s.Detail, () => InsertSymbol(s)))
-                        .Concat(new[] { new CadMenuItemViewModel(string.Empty, null), new CadMenuItemViewModel("Other…", () => { }, false, "The character map is not built yet") }).ToList();
+                    return Symbols
+                        .Select(s => new CadMenuItemViewModel(s.Name + "    " + s.Detail, () => InsertSymbol(s)))
+                        .Concat(
+                            new[]
+                            {
+                                new CadMenuItemViewModel(string.Empty, null),
+                                new CadMenuItemViewModel(
+                                    "Other…",
+                                    () => { },
+                                    false,
+                                    "The character map is not built yet"
+                                ),
+                            }
+                        )
+                        .ToList();
                 case "Justification":
-                    return Justifications.Select(j => new CadMenuItemViewModel(j.Name, () => Justify(j), true, null, (int)j.Value == _attachment)).ToList();
+                    return Justifications
+                        .Select(j => new CadMenuItemViewModel(
+                            j.Name,
+                            () => Justify(j),
+                            true,
+                            null,
+                            (int)j.Value == _attachment
+                        ))
+                        .ToList();
                 case "LineSpacing":
-                    return LineSpacings.Select(l => new CadMenuItemViewModel(l.Name, () => SetLineSpacing(l), true, null, (double)l.Value == _lineSpacing)).ToList();
+                    return LineSpacings
+                        .Select(l => new CadMenuItemViewModel(
+                            l.Name,
+                            () => SetLineSpacing(l),
+                            true,
+                            null,
+                            (double)l.Value == _lineSpacing
+                        ))
+                        .ToList();
                 case "Case":
-                    return new[] { new CadMenuItemViewModel("UPPERCASE", () => Editor.ChangeCase(true)), new CadMenuItemViewModel("lowercase", () => Editor.ChangeCase(false)) };
+                    return new[]
+                    {
+                        new CadMenuItemViewModel("UPPERCASE", () => Editor.ChangeCase(true)),
+                        new CadMenuItemViewModel("lowercase", () => Editor.ChangeCase(false)),
+                    };
                 case "Clear":
-                    return new[] { new CadMenuItemViewModel("Remove Character Formatting", () => Editor.ClearFormatting()) };
+                    return new[]
+                    {
+                        new CadMenuItemViewModel("Remove Character Formatting", () => Editor.ClearFormatting()),
+                    };
                 case "Bullets":
-                    return new[] { new CadMenuItemViewModel("Bullets and numbering are not built yet", () => { }, false) };
+                    return new[]
+                    {
+                        new CadMenuItemViewModel("Bullets and numbering are not built yet", () => { }, false),
+                    };
                 default:
                     return Array.Empty<CadMenuItemViewModel>();
             }
@@ -486,24 +564,54 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void Refresh()
         {
-            foreach (string name in new[]
-            {
-                nameof(HeightText), nameof(IsBold), nameof(IsItalic), nameof(IsStrikethrough), nameof(IsUnderline), nameof(IsOverline), nameof(CanBold),
-                nameof(Font), nameof(IsShxFont), nameof(SelectedColor), nameof(ObliqueText), nameof(TrackingText), nameof(WidthFactorText), nameof(Alignment),
-                nameof(IsAlignedLeft), nameof(IsAlignedCentre), nameof(IsAlignedRight), nameof(IsJustified), nameof(IsDistributed),
-                nameof(CanUndo), nameof(CanRedo), nameof(IsModified),
-            })
+            foreach (
+                string name in new[]
+                {
+                    nameof(HeightText),
+                    nameof(IsBold),
+                    nameof(IsItalic),
+                    nameof(IsStrikethrough),
+                    nameof(IsUnderline),
+                    nameof(IsOverline),
+                    nameof(CanBold),
+                    nameof(Font),
+                    nameof(IsShxFont),
+                    nameof(SelectedColor),
+                    nameof(ObliqueText),
+                    nameof(TrackingText),
+                    nameof(WidthFactorText),
+                    nameof(Alignment),
+                    nameof(IsAlignedLeft),
+                    nameof(IsAlignedCentre),
+                    nameof(IsAlignedRight),
+                    nameof(IsJustified),
+                    nameof(IsDistributed),
+                    nameof(CanUndo),
+                    nameof(CanRedo),
+                    nameof(IsModified),
+                }
+            )
             {
                 Raise(name);
             }
         }
 
-        private static TextEditorChoice Color(string name, int index, int rgb = int.MinValue)
-            => new TextEditorChoice(name, string.Empty, index, rgb == int.MinValue ? DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)index).ColorValue & 0xFFFFFF : rgb);
+        private static TextEditorChoice Color(string name, int index, int rgb = int.MinValue) =>
+            new TextEditorChoice(
+                name,
+                string.Empty,
+                index,
+                rgb == int.MinValue
+                    ? DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)index).ColorValue & 0xFFFFFF
+                    : rgb
+            );
 
-        private static string Number(double value, string format = "0.####") => value.ToString(format, CultureInfo.InvariantCulture);
+        private static string Number(double value, string format = "0.####") =>
+            value.ToString(format, CultureInfo.InvariantCulture);
 
-        private static bool TryNumber(string text, out double value)
-            => double.TryParse((text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value) && !double.IsNaN(value) && !double.IsInfinity(value);
+        private static bool TryNumber(string text, out double value) =>
+            double.TryParse((text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+            && !double.IsNaN(value)
+            && !double.IsInfinity(value);
     }
 }

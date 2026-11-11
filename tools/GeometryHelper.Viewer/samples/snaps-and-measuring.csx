@@ -7,13 +7,31 @@
 // radius, 20; select the plate and the hole with Shift+click and press F2 for what the library says of the two.
 
 var plate = new GeoPolygonArc2(
-    new[] { new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 100), new GeoPoint2(180, 120), new GeoPoint2(0, 120) },
-    new[] { 0.0, 0.0, Math.Tan(Math.PI / 8.0), 0.0, 0.0 });
+    new[]
+    {
+        new GeoPoint2(0, 0),
+        new GeoPoint2(200, 0),
+        new GeoPoint2(200, 100),
+        new GeoPoint2(180, 120),
+        new GeoPoint2(0, 120),
+    },
+    new[] { 0.0, 0.0, Math.Tan(Math.PI / 8.0), 0.0, 0.0 }
+);
 
 Show(plate, layer: "plate", name: "plate with a rounded corner", color: "#1F77B4");
 Show(new GeoCircle2(new GeoPoint2(60, 60), 20), layer: "plate", name: "hole", color: "#1F77B4");
-Show(new GeoLine2(new GeoPoint2(20, 20), new GeoPoint2(180, 100)), layer: "lines", name: "diagonal up", color: "#D62728");
-Show(new GeoLine2(new GeoPoint2(20, 100), new GeoPoint2(180, 20)), layer: "lines", name: "diagonal down", color: "#D62728");
+Show(
+    new GeoLine2(new GeoPoint2(20, 20), new GeoPoint2(180, 100)),
+    layer: "lines",
+    name: "diagonal up",
+    color: "#D62728"
+);
+Show(
+    new GeoLine2(new GeoPoint2(20, 100), new GeoPoint2(180, 20)),
+    layer: "lines",
+    name: "diagonal down",
+    color: "#D62728"
+);
 Show(new GeoArc2(new GeoPoint2(150, 60), 30, -0.8, 0.8), layer: "lines", name: "arc", color: "#2CA02C");
 Scene.Text(new GeoPoint3(100, -14, 0), "plate 200 x 120", 8.0, layer: "notes");
 

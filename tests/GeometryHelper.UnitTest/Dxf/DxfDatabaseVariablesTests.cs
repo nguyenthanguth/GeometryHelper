@@ -67,11 +67,31 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase again = DxfDatabase.Parse(saved);
             var root = (DxfDBDictionary)DxfDBObject.OfObject(again.File.ObjectItem(again.File.RootDictionaryHandle()));
             var variables = (DxfDBDictionary)root["AcDbVariableDictionary"];
-            Assert.Equal(new[] { "CETRANSPARENCY", "ANNOALLVISIBLE", "TSTACKSIZE", "FACETRES", "PELLIPSE" }, variables.Select(e => e.Key));
-            Assert.Contains("  3\nAcDbVariableDictionary\n350\n" + variables.Handle + "\n", Records(saved).Single(r => HandleOf(r) == root.Handle), StringComparison.Ordinal);
+            Assert.Equal(
+                new[] { "CETRANSPARENCY", "ANNOALLVISIBLE", "TSTACKSIZE", "FACETRES", "PELLIPSE" },
+                variables.Select(e => e.Key)
+            );
+            Assert.Contains(
+                "  3\nAcDbVariableDictionary\n350\n" + variables.Handle + "\n",
+                Records(saved).Single(r => HandleOf(r) == root.Handle),
+                StringComparison.Ordinal
+            );
             string size = variables["TSTACKSIZE"].Handle;
-            Assert.Equal("  0\nDICTIONARYVAR\n  5\n" + size + "\n102\n{ACAD_REACTORS\n330\n" + variables.Handle + "\n102\n}\n330\n" + variables.Handle + "\n100\nDictionaryVariables\n280\n0\n  1\n55\n", Records(saved).Single(r => HandleOf(r) == size));
-            Assert.Contains("\n  1\n33554559\n", Records(saved).Single(r => HandleOf(r) == variables["CETRANSPARENCY"].Handle), StringComparison.Ordinal);
+            Assert.Equal(
+                "  0\nDICTIONARYVAR\n  5\n"
+                    + size
+                    + "\n102\n{ACAD_REACTORS\n330\n"
+                    + variables.Handle
+                    + "\n102\n}\n330\n"
+                    + variables.Handle
+                    + "\n100\nDictionaryVariables\n280\n0\n  1\n55\n",
+                Records(saved).Single(r => HandleOf(r) == size)
+            );
+            Assert.Contains(
+                "\n  1\n33554559\n",
+                Records(saved).Single(r => HandleOf(r) == variables["CETRANSPARENCY"].Handle),
+                StringComparison.Ordinal
+            );
 
             Assert.Equal(new DxfTransparency(127), again.Cetransparency);
             Assert.False(again.AnnoAllVisible);
@@ -109,7 +129,8 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // AutoCAD 2021's RXClass of AcDbDictionaryVar: DXF name DICTIONARYVAR, ObjectDBX Classes, proxy flags 0; counted
             // once from R2004 on, as AutoCAD passes over every object of a class it counts 0.
-            const string Listed = "  0\nCLASS\n  1\nDICTIONARYVAR\n  2\nAcDbDictionaryVar\n  3\nObjectDBX Classes\n 90\n0\n 91\n1\n280\n0\n281\n0\n";
+            const string Listed =
+                "  0\nCLASS\n  1\nDICTIONARYVAR\n  2\nAcDbDictionaryVar\n  3\nObjectDBX Classes\n 90\n0\n 91\n1\n280\n0\n281\n0\n";
             var db = new DxfDatabase("AC1027");
             Assert.DoesNotContain("DICTIONARYVAR", db.ToText(), StringComparison.Ordinal);
             db.NamedObjectsDictionary.SetAt("ACAD_MLEADERSTYLE", new DxfDBDictionary());
@@ -129,7 +150,9 @@ namespace GeometryHelper.UnitTest.Dxf
             // R2000 counts no class.
             var r2000 = new DxfDatabase("AC1015");
             r2000.AnnoAllVisible = false;
-            Assert.Single(Records(r2000.ToText().Replace("\r\n", "\n")), r => r == Listed.Replace(" 91\n1\n", string.Empty));
+            Assert.Single(Records(r2000.ToText().Replace("\r\n", "\n")), r =>
+                r == Listed.Replace(" 91\n1\n", string.Empty)
+            );
             Assert.False(DxfDatabase.Parse(r2000.ToText()).AnnoAllVisible);
         }
 
@@ -139,7 +162,10 @@ namespace GeometryHelper.UnitTest.Dxf
             string text = DxfFileEzdxfDrawings.R2018;
             DxfDatabase db = DxfDatabase.Parse(text);
 
-            Assert.Equal(new[] { 8, 6, 6, 6, 6 }, new[] { db.Splinesegs, db.Splinetype, db.Surftype, db.Surfu, db.Surfv });
+            Assert.Equal(
+                new[] { 8, 6, 6, 6, 6 },
+                new[] { db.Splinesegs, db.Splinetype, db.Surftype, db.Surfu, db.Surfv }
+            );
             db.Splinesegs = db.Splinesegs;
             db.Splinetype = db.Splinetype;
             db.Surftype = db.Surftype;
@@ -157,7 +183,10 @@ namespace GeometryHelper.UnitTest.Dxf
             OnlyTheseChanged(text, saved);
             Assert.Contains("$SPLINETYPE\n 70\n5\n  9\n$SPLINESEGS\n 70\n-12\n", saved, StringComparison.Ordinal);
             DxfDatabase again = DxfDatabase.Parse(saved);
-            Assert.Equal(new[] { -12, 5, 8, 20, 30 }, new[] { again.Splinesegs, again.Splinetype, again.Surftype, again.Surfu, again.Surfv });
+            Assert.Equal(
+                new[] { -12, 5, 8, 20, 30 },
+                new[] { again.Splinesegs, again.Splinetype, again.Surftype, again.Surfu, again.Surfv }
+            );
             Assert.Throws<ArgumentOutOfRangeException>(() => db.Splinesegs = 0);
             Assert.Throws<ArgumentOutOfRangeException>(() => db.Splinetype = 7);
             Assert.Throws<ArgumentOutOfRangeException>(() => db.Surftype = 7);
@@ -168,11 +197,15 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TheAnnotationScale_IsOneOfTheDrawingsListOfScales()
         {
             const string ScaleList = "  0\nDICTIONARY\n  5\n14\n330\nA\n100\nAcDbDictionary\n281\n1\n";
-            const string Scale = "  0\nSCALE\n  5\nF0\n330\n14\n100\nAcDbScale\n 70\n0\n300\n1:50\n140\n1.0\n141\n50.0\n290\n0\n";
+            const string Scale =
+                "  0\nSCALE\n  5\nF0\n330\n14\n100\nAcDbScale\n 70\n0\n300\n1:50\n140\n1.0\n141\n50.0\n290\n0\n";
             string text = DxfFileEzdxfDrawings.R2018;
             Assert.Contains(ScaleList, text, StringComparison.Ordinal);
             int end = text.LastIndexOf("  0\nENDSEC\n", StringComparison.Ordinal);
-            string scaled = (text.Substring(0, end) + Scale + text.Substring(end)).Replace(ScaleList, ScaleList + "  3\nA0\n350\nF0\n");
+            string scaled = (text.Substring(0, end) + Scale + text.Substring(end)).Replace(
+                ScaleList,
+                ScaleList + "  3\nA0\n350\nF0\n"
+            );
             DxfDatabase db = DxfDatabase.Parse(scaled);
 
             db.Cannoscale = "1:50";

@@ -69,14 +69,26 @@ namespace GeometryHelper.UnitTest.Dxf
             // BLOCK, ENDBLK and LAYOUT added, the BLOCK_RECORD naming the layout and the layout the BLOCK_RECORD.
             string saved = db.ToText();
             Differ(text, saved, out List<string> gone, out List<string> come);
-            Assert.Equal(new[] { db.LayoutDictionary.Handle, db.BlockTable.Handle }.OrderBy(h => h, StringComparer.Ordinal), gone.Where(r => !r.Contains("\nHEADER\n")).Select(HandleOf).OrderBy(h => h, StringComparer.Ordinal));
-            Assert.Equal(new[] { "BLOCK", "BLOCK_RECORD", "DICTIONARY", "ENDBLK", "LAYOUT", "TABLE" }, come.Where(r => !r.Contains("\nHEADER\n")).Select(r => r.Split('\n')[1]).OrderBy(t => t, StringComparer.Ordinal));
+            Assert.Equal(
+                new[] { db.LayoutDictionary.Handle, db.BlockTable.Handle }.OrderBy(h => h, StringComparer.Ordinal),
+                gone.Where(r => !r.Contains("\nHEADER\n")).Select(HandleOf).OrderBy(h => h, StringComparer.Ordinal)
+            );
+            Assert.Equal(
+                new[] { "BLOCK", "BLOCK_RECORD", "DICTIONARY", "ENDBLK", "LAYOUT", "TABLE" },
+                come.Where(r => !r.Contains("\nHEADER\n"))
+                    .Select(r => r.Split('\n')[1])
+                    .OrderBy(t => t, StringComparer.Ordinal)
+            );
             string record = Records(saved).Single(r => HandleOf(r) == block.Handle);
             Assert.Contains("  2\n*Paper_Space1\n340\n" + plan.Handle + "\n", record, StringComparison.Ordinal);
             string layout = Records(saved).Single(r => HandleOf(r) == plan.Handle);
             Assert.Contains("100\nAcDbLayout\n  1\nPlan 1-50\n 70\n1\n 71\n4\n", layout, StringComparison.Ordinal);
             Assert.EndsWith(" 76\n1\n330\n" + block.Handle + "\n", layout, StringComparison.Ordinal);
-            Assert.Contains("  3\nPlan 1-50\n350\n" + plan.Handle + "\n", Records(saved).Single(r => HandleOf(r) == db.LayoutDictionary.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "  3\nPlan 1-50\n350\n" + plan.Handle + "\n",
+                Records(saved).Single(r => HandleOf(r) == db.LayoutDictionary.Handle),
+                StringComparison.Ordinal
+            );
 
             DxfDatabase again = DxfDatabase.Parse(saved);
             DxfLayout read = again.Layouts[3];
@@ -116,12 +128,22 @@ namespace GeometryHelper.UnitTest.Dxf
             string record = Records(saved).Single(r => HandleOf(r) == sheet.Handle);
             Assert.Contains(" 68\n1\n 69\n1\n", record, StringComparison.Ordinal);
             Assert.Contains(" 90\n557088\n", record, StringComparison.Ordinal);
-            Assert.EndsWith("330\n" + plan.BlockTableRecord.Handle + "\n331\n" + sheet.Handle + "\n", Records(saved).Single(r => HandleOf(r) == plan.Handle), StringComparison.Ordinal);
+            Assert.EndsWith(
+                "330\n" + plan.BlockTableRecord.Handle + "\n331\n" + sheet.Handle + "\n",
+                Records(saved).Single(r => HandleOf(r) == plan.Handle),
+                StringComparison.Ordinal
+            );
 
             // Initialized again, nothing is written; a viewport appended after it is the layout's 2.
             Assert.Same(sheet, plan.Initialize());
             Assert.Equal(saved, db.ToText());
-            var detail = new DxfViewport { CenterPoint = new GeoPoint3(200, 130, 0), Width = 300, Height = 200, ViewHeight = 10000 };
+            var detail = new DxfViewport
+            {
+                CenterPoint = new GeoPoint3(200, 130, 0),
+                Width = 300,
+                Height = 200,
+                ViewHeight = 10000,
+            };
             plan.BlockTableRecord.AppendEntity(detail);
             Assert.Equal(-1, detail.Number);
             detail.On = true;
@@ -159,21 +181,34 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ABlockOfPaperSpaceNoLayoutHas_IsTakenAsTheNewLayoutsBlock_AndOthersAreRefused()
         {
             // Sheet A taken out of the layout dictionary, its block *Paper_Space0 naming no layout (340 of 0).
-            string text = DxfObjectsEzdxfDrawings.R2018.Replace("*Paper_Space0\n340\n3E\n", "*Paper_Space0\n340\n0\n").Replace("  3\nSheet A\n350\n3E\n", string.Empty);
+            string text = DxfObjectsEzdxfDrawings
+                .R2018.Replace("*Paper_Space0\n340\n3E\n", "*Paper_Space0\n340\n0\n")
+                .Replace("  3\nSheet A\n350\n3E\n", string.Empty);
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfBlockTableRecord free = db.BlockTable["*Paper_Space0"];
             Assert.Equal(new[] { "Model", "Layout1" }, db.Layouts.Select(l => l.LayoutName));
 
-            Assert.Throws<ArgumentException>(() => new DxfLayout { LayoutName = "Plan" }.AddToLayoutDictionary(db, db.ModelSpace));
-            Assert.Throws<ArgumentException>(() => new DxfLayout { LayoutName = "Plan" }.AddToLayoutDictionary(db, db.PaperSpace));
-            Assert.Throws<ArgumentException>(() => new DxfLayout { LayoutName = "Plan" }.AddToLayoutDictionary(db, DxfDatabase.Parse(text).BlockTable["*Paper_Space0"]));
+            Assert.Throws<ArgumentException>(() =>
+                new DxfLayout { LayoutName = "Plan" }.AddToLayoutDictionary(db, db.ModelSpace)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new DxfLayout { LayoutName = "Plan" }.AddToLayoutDictionary(db, db.PaperSpace)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new DxfLayout { LayoutName = "Plan" }.AddToLayoutDictionary(
+                    db,
+                    DxfDatabase.Parse(text).BlockTable["*Paper_Space0"]
+                )
+            );
             Assert.Equal(text, db.ToText());
 
             // A block of a name of its own is not a layout's.
             DxfDatabase other = DxfDatabase.Parse(text);
             other.BlockTable.Add(new DxfBlockTableRecord { Name = "TITLE" });
             string titled = other.ToText();
-            Assert.Throws<ArgumentException>(() => new DxfLayout { LayoutName = "Plan" }.AddToLayoutDictionary(other, other.BlockTable["TITLE"]));
+            Assert.Throws<ArgumentException>(() =>
+                new DxfLayout { LayoutName = "Plan" }.AddToLayoutDictionary(other, other.BlockTable["TITLE"])
+            );
             Assert.Equal(titled, other.ToText());
 
             var plan = new DxfLayout { LayoutName = "Plan" };
@@ -185,10 +220,16 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new[] { "3F", "40", "41" }, plan.GetViewports().Select(v => v.Handle));
             Assert.Equal("3F", plan.Initialize().Handle);
             Assert.DoesNotContain("*Paper_Space1", db.ToText(), StringComparison.Ordinal);
-            Assert.Contains("*Paper_Space0\n340\n" + plan.Handle + "\n", Records(db.ToText()).Single(r => HandleOf(r) == "3B"), StringComparison.Ordinal);
+            Assert.Contains(
+                "*Paper_Space0\n340\n" + plan.Handle + "\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "3B"),
+                StringComparison.Ordinal
+            );
 
             // Now a layout's, it is not taken again.
-            Assert.Throws<ArgumentException>(() => new DxfLayout { LayoutName = "Plan 2" }.AddToLayoutDictionary(db, free));
+            Assert.Throws<ArgumentException>(() =>
+                new DxfLayout { LayoutName = "Plan 2" }.AddToLayoutDictionary(db, free)
+            );
         }
 
         [Fact]
@@ -197,13 +238,24 @@ namespace GeometryHelper.UnitTest.Dxf
             string text = DxfObjectsEzdxfDrawings.R2018;
             DxfDatabase db = DxfDatabase.Parse(text);
 
-            Assert.Throws<ArgumentNullException>(() => new DxfLayout { LayoutName = "Plan" }.AddToLayoutDictionary(null, null));
+            Assert.Throws<ArgumentNullException>(() =>
+                new DxfLayout { LayoutName = "Plan" }.AddToLayoutDictionary(null, null)
+            );
             Assert.Throws<InvalidOperationException>(() => new DxfLayout().AddToLayoutDictionary(db, null));
-            Assert.Throws<ArgumentException>(() => new DxfLayout { LayoutName = "layout1" }.AddToLayoutDictionary(db, null));
-            Assert.Throws<ArgumentException>(() => new DxfLayout { LayoutName = "model" }.AddToLayoutDictionary(db, null));
+            Assert.Throws<ArgumentException>(() =>
+                new DxfLayout { LayoutName = "layout1" }.AddToLayoutDictionary(db, null)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new DxfLayout { LayoutName = "model" }.AddToLayoutDictionary(db, null)
+            );
             Assert.Throws<ArgumentException>(() => new DxfLayout { LayoutName = "a|b" });
             Assert.Throws<ArgumentNullException>(() => new DxfLayout { LayoutName = null });
-            Assert.Throws<InvalidOperationException>(() => new DxfLayout { LayoutName = "Plan" }.AddToLayoutDictionary(DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R12), null));
+            Assert.Throws<InvalidOperationException>(() =>
+                new DxfLayout { LayoutName = "Plan" }.AddToLayoutDictionary(
+                    DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R12),
+                    null
+                )
+            );
             Assert.Throws<InvalidOperationException>(() => db.Layouts[1].AddToLayoutDictionary(db, null));
             Assert.Equal(text, db.ToText());
 
@@ -221,7 +273,13 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2018);
             DxfViewport sheet = db.Layouts[1].Initialize();
-            var detail = new DxfViewport { CenterPoint = new GeoPoint3(150, 100, 0), Width = 200, Height = 150, ViewHeight = 7500 };
+            var detail = new DxfViewport
+            {
+                CenterPoint = new GeoPoint3(150, 100, 0),
+                Width = 200,
+                Height = 150,
+                ViewHeight = 7500,
+            };
             db.PaperSpace.AppendEntity(detail);
 
             // $TILEMODE 1: model space is shown, its viewports the VPORT table's, which have no class.
@@ -237,7 +295,10 @@ namespace GeometryHelper.UnitTest.Dxf
             // A viewport of R12, in paper space, kept in its extended data MVIEW.
             DxfDatabase r12 = DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R12);
             r12.TileMode = false;
-            Assert.Equal(r12.PaperSpace.OfType<DxfViewport>().Select(v => v.Handle), r12.GetViewports(true).Select(v => v.Handle));
+            Assert.Equal(
+                r12.PaperSpace.OfType<DxfViewport>().Select(v => v.Handle),
+                r12.GetViewports(true).Select(v => v.Handle)
+            );
             Assert.NotEmpty(r12.GetViewports(true));
         }
 
@@ -246,11 +307,21 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2018);
             DxfLayout layout1 = db.Layouts[1];
-            var detail = new DxfViewport { CenterPoint = new GeoPoint3(100, 80, 0), Width = 50, Height = 40, ViewHeight = 400 };
+            var detail = new DxfViewport
+            {
+                CenterPoint = new GeoPoint3(100, 80, 0),
+                Width = 50,
+                Height = 40,
+                ViewHeight = 400,
+            };
             db.PaperSpace.AppendEntity(detail);
             detail.On = true;
             Assert.Equal(2, detail.Number);
-            Assert.Contains(" 68\n1\n 69\n2\n", Records(db.ToText()).Single(r => HandleOf(r) == detail.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                " 68\n1\n 69\n2\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == detail.Handle),
+                StringComparison.Ordinal
+            );
 
             DxfViewport sheet = layout1.Initialize();
 
@@ -259,9 +330,20 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new[] { sheet, detail }, layout1.GetViewports());
             Assert.Equal(new[] { 1, 2 }, layout1.GetViewports().Select(v => v.Number));
             string saved = db.ToText();
-            Assert.Contains(" 68\n1\n 69\n1\n", Records(saved).Single(r => HandleOf(r) == sheet.Handle), StringComparison.Ordinal);
-            Assert.Contains(" 68\n2\n 69\n2\n", Records(saved).Single(r => HandleOf(r) == detail.Handle), StringComparison.Ordinal);
-            Assert.True(saved.IndexOf("\n  5\n" + sheet.Handle + "\n", StringComparison.Ordinal) < saved.IndexOf("\n  5\n" + detail.Handle + "\n", StringComparison.Ordinal));
+            Assert.Contains(
+                " 68\n1\n 69\n1\n",
+                Records(saved).Single(r => HandleOf(r) == sheet.Handle),
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                " 68\n2\n 69\n2\n",
+                Records(saved).Single(r => HandleOf(r) == detail.Handle),
+                StringComparison.Ordinal
+            );
+            Assert.True(
+                saved.IndexOf("\n  5\n" + sheet.Handle + "\n", StringComparison.Ordinal)
+                    < saved.IndexOf("\n  5\n" + detail.Handle + "\n", StringComparison.Ordinal)
+            );
 
             DxfDatabase again = DxfDatabase.Parse(saved);
             Assert.Equal(new[] { sheet.Handle, detail.Handle }, again.Layouts[1].GetViewports().Select(v => v.Handle));
@@ -294,7 +376,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("AC1027")]
         public void ALayoutMadeInCode_IsAddedAndInitialized_InADrawingOfR2004ToR2013(string version)
         {
-            DxfDatabase db = DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2018.Replace("$ACADVER\n  1\nAC1032\n", "$ACADVER\n  1\n" + version + "\n"));
+            DxfDatabase db = DxfDatabase.Parse(
+                DxfObjectsEzdxfDrawings.R2018.Replace("$ACADVER\n  1\nAC1032\n", "$ACADVER\n  1\n" + version + "\n")
+            );
             Assert.Equal(version, db.Version);
             var plan = new DxfLayout { LayoutName = "Plan 1-50" };
 
@@ -330,14 +414,33 @@ namespace GeometryHelper.UnitTest.Dxf
             // *Paper_Space0 is Sheet A's: its entities are in paper space (67 of 1), as the viewports ezdxf wrote there are; a
             // block's and model space's are not. A copy of one that has its 67 has it once.
             string saved = db.ToText();
-            Assert.Contains("100\nAcDbEntity\n 67\n1\n  8\n0\n", Records(saved).Single(r => HandleOf(r) == inSheet.Handle), StringComparison.Ordinal);
-            Assert.Contains("100\nAcDbEntity\n 67\n1\n", Records(saved).Single(r => HandleOf(r) == moved.Handle), StringComparison.Ordinal);
-            Assert.DoesNotContain(" 67\n", Records(saved).Single(r => HandleOf(r) == inBlock.Handle), StringComparison.Ordinal);
-            Assert.DoesNotContain(" 67\n", Records(saved).Single(r => HandleOf(r) == inModel.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "100\nAcDbEntity\n 67\n1\n  8\n0\n",
+                Records(saved).Single(r => HandleOf(r) == inSheet.Handle),
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "100\nAcDbEntity\n 67\n1\n",
+                Records(saved).Single(r => HandleOf(r) == moved.Handle),
+                StringComparison.Ordinal
+            );
+            Assert.DoesNotContain(
+                " 67\n",
+                Records(saved).Single(r => HandleOf(r) == inBlock.Handle),
+                StringComparison.Ordinal
+            );
+            Assert.DoesNotContain(
+                " 67\n",
+                Records(saved).Single(r => HandleOf(r) == inModel.Handle),
+                StringComparison.Ordinal
+            );
             DxfEntity copy = ByHandle<DxfViewport>(db, "41").Clone();
             sheetA.AppendEntity(copy);
             string copied = Records(db.ToText()).Single(r => HandleOf(r) == copy.Handle);
-            Assert.Equal(copied.IndexOf(" 67\n", StringComparison.Ordinal), copied.LastIndexOf(" 67\n", StringComparison.Ordinal));
+            Assert.Equal(
+                copied.IndexOf(" 67\n", StringComparison.Ordinal),
+                copied.LastIndexOf(" 67\n", StringComparison.Ordinal)
+            );
             Assert.Contains(" 67\n1\n", copied, StringComparison.Ordinal);
         }
 
@@ -345,12 +448,74 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ABlockOfPaperSpaceWhoseRecordGivesNoGroup340_IsFree_AndIsGivenOne()
         {
             // An unused *Paper_Space7: its BLOCK_RECORD with no 340, its BLOCK and ENDBLK.
-            string text = DxfObjectsEzdxfDrawings.R2018
-                .Replace("*Paper_Space0\n340\n3E\n 70\n0\n280\n1\n281\n0\n", "*Paper_Space0\n340\n3E\n 70\n0\n280\n1\n281\n0\n"
-                    + DxfLines.G(0, "BLOCK_RECORD", 5, "F07", 330, "9", 100, "AcDbSymbolTableRecord", 100, "AcDbBlockTableRecord", 2, "*Paper_Space7", 70, 0, 280, 1, 281, 0))
-                .Replace("  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n", DxfLines.G(
-                    0, "BLOCK", 5, "F08", 330, "F07", 100, "AcDbEntity", 8, "0", 100, "AcDbBlockBegin", 2, "*Paper_Space7", 70, 0, 10, "0.0", 20, "0.0", 30, "0.0", 3, "*Paper_Space7", 1, string.Empty,
-                    0, "ENDBLK", 5, "F09", 330, "F07", 100, "AcDbEntity", 8, "0", 100, "AcDbBlockEnd") + "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n");
+            string text = DxfObjectsEzdxfDrawings
+                .R2018.Replace(
+                    "*Paper_Space0\n340\n3E\n 70\n0\n280\n1\n281\n0\n",
+                    "*Paper_Space0\n340\n3E\n 70\n0\n280\n1\n281\n0\n"
+                        + DxfLines.G(
+                            0,
+                            "BLOCK_RECORD",
+                            5,
+                            "F07",
+                            330,
+                            "9",
+                            100,
+                            "AcDbSymbolTableRecord",
+                            100,
+                            "AcDbBlockTableRecord",
+                            2,
+                            "*Paper_Space7",
+                            70,
+                            0,
+                            280,
+                            1,
+                            281,
+                            0
+                        )
+                )
+                .Replace(
+                    "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n",
+                    DxfLines.G(
+                        0,
+                        "BLOCK",
+                        5,
+                        "F08",
+                        330,
+                        "F07",
+                        100,
+                        "AcDbEntity",
+                        8,
+                        "0",
+                        100,
+                        "AcDbBlockBegin",
+                        2,
+                        "*Paper_Space7",
+                        70,
+                        0,
+                        10,
+                        "0.0",
+                        20,
+                        "0.0",
+                        30,
+                        "0.0",
+                        3,
+                        "*Paper_Space7",
+                        1,
+                        string.Empty,
+                        0,
+                        "ENDBLK",
+                        5,
+                        "F09",
+                        330,
+                        "F07",
+                        100,
+                        "AcDbEntity",
+                        8,
+                        "0",
+                        100,
+                        "AcDbBlockEnd"
+                    ) + "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n"
+                );
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfBlockTableRecord free = db.BlockTable["*Paper_Space7"];
             Assert.DoesNotContain("\n340\n", Records(text).Single(r => HandleOf(r) == "F07"), StringComparison.Ordinal);
@@ -360,9 +525,18 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // The block is the layout's, its BLOCK_RECORD given the 340 that names it after its name, where AutoCAD writes it.
             Assert.Same(free, plan.BlockTableRecord);
-            Assert.Contains("  2\n*Paper_Space7\n340\n" + plan.Handle + "\n 70\n0\n", Records(db.ToText()).Single(r => HandleOf(r) == "F07"), StringComparison.Ordinal);
-            Assert.Equal("*Paper_Space7", DxfDatabase.Parse(db.ToText()).Layouts.Single(l => l.LayoutName == "Plan").BlockTableRecord.Name);
-            Assert.Throws<ArgumentException>(() => new DxfLayout { LayoutName = "Plan 2" }.AddToLayoutDictionary(db, free));
+            Assert.Contains(
+                "  2\n*Paper_Space7\n340\n" + plan.Handle + "\n 70\n0\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "F07"),
+                StringComparison.Ordinal
+            );
+            Assert.Equal(
+                "*Paper_Space7",
+                DxfDatabase.Parse(db.ToText()).Layouts.Single(l => l.LayoutName == "Plan").BlockTableRecord.Name
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new DxfLayout { LayoutName = "Plan 2" }.AddToLayoutDictionary(db, free)
+            );
         }
 
         [Fact]
@@ -370,8 +544,29 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // Sheet A's viewport 1 renumbered 5, so that it has none of id 1; a SORTENTSTABLE of its block giving 3F the sort
             // handle 99 and 40 the sort handle 98.
-            string table = DxfLines.G(0, "SORTENTSTABLE", 5, "F10", 330, "A", 100, "AcDbSortentsTable", 330, "3B", 331, "3F", 5, "99", 331, "40", 5, "98");
-            string text = DxfObjectsEzdxfDrawings.R2018.Replace(" 68\n1\n 69\n1\n", " 68\n1\n 69\n5\n").Replace("  0\nENDSEC\n  0\nEOF\n", table + "  0\nENDSEC\n  0\nEOF\n");
+            string table = DxfLines.G(
+                0,
+                "SORTENTSTABLE",
+                5,
+                "F10",
+                330,
+                "A",
+                100,
+                "AcDbSortentsTable",
+                330,
+                "3B",
+                331,
+                "3F",
+                5,
+                "99",
+                331,
+                "40",
+                5,
+                "98"
+            );
+            string text = DxfObjectsEzdxfDrawings
+                .R2018.Replace(" 68\n1\n 69\n1\n", " 68\n1\n 69\n5\n")
+                .Replace("  0\nENDSEC\n  0\nEOF\n", table + "  0\nENDSEC\n  0\nEOF\n");
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfLayout sheet = db.Layouts[2];
 
@@ -394,7 +589,9 @@ namespace GeometryHelper.UnitTest.Dxf
             var appended = new DxfPolyline2d(DxfPoly2dType.SimplePoly, points, 0, false, 0, 0, null);
             db.ModelSpace.AppendEntity(polyline);
             db.ModelSpace.AppendEntity(insert);
-            insert.AttributeCollection.AppendAttribute(new DxfAttributeReference(new GeoPoint3(10, 19, 0), "B-99", "MARK", null));
+            insert.AttributeCollection.AppendAttribute(
+                new DxfAttributeReference(new GeoPoint3(10, 19, 0), "B-99", "MARK", null)
+            );
             db.ModelSpace.AppendEntity(shown);
             sheetA.AppendEntity(appended);
 
@@ -410,10 +607,13 @@ namespace GeometryHelper.UnitTest.Dxf
                 int at = records.FindIndex(r => HandleOf(r) == entity.Handle);
                 int end = records.FindIndex(at, r => r.StartsWith("  0\nSEQEND\n", StringComparison.Ordinal));
                 Assert.Equal(entity is DxfBlockReference ? 3 : 5, end - at + 1);
-                Assert.All(records.GetRange(at, end - at + 1), r => Assert.Contains("100\nAcDbEntity\n 67\n1\n", r, StringComparison.Ordinal));
+                Assert.All(records.GetRange(at, end - at + 1), r =>
+                    Assert.Contains("100\nAcDbEntity\n 67\n1\n", r, StringComparison.Ordinal)
+                );
             }
         }
 
-        private static string Drawing(string version) => version == "R2000" ? DxfObjectsEzdxfDrawings.R2000 : DxfObjectsEzdxfDrawings.R2018;
+        private static string Drawing(string version) =>
+            version == "R2000" ? DxfObjectsEzdxfDrawings.R2000 : DxfObjectsEzdxfDrawings.R2018;
     }
 }

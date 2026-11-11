@@ -34,48 +34,88 @@ namespace GeometryHelper.UnitTest.Plane
         private static readonly OffsetOptions Miter = new OffsetOptions(OffsetJoin.Miter);
 
         /// <summary>The loop 1:152 of the item 6 fuzz: ten corners about the origin, most edges arcs, crossing itself at nine places.</summary>
-        private static GeoPolygonArc2 Random1Of152() => new GeoPolygonArc2(
-            new[]
-            {
-                P(4.136973616730874, 8.956718760988078), P(-1.0251323650708102, 1.9965966567381273), P(0.40688016936503324, 3.0274458755866824),
-                P(9.407229516379175, 0.13935977133892408), P(-6.38526230882167, -0.4872193329442389), P(-3.743948244370497, -4.524095866141885),
-                P(-6.351106295525612, 1.1171229887367815), P(-2.227404011519348, 8.4150139607559), P(-0.3370376445059833, -4.391043882067801),
-                P(-2.5245364999978506, -4.373737775894692),
-            },
-            new[]
-            {
-                0.0, -0.2517930292299916, 0.0, -0.2968465164289095, -0.25827591566288655, -0.11854640665396421, 0.0, 0.20608063801474885,
-                0.40553933480081117, 0.500978422724166,
-            });
+        private static GeoPolygonArc2 Random1Of152() =>
+            new GeoPolygonArc2(
+                new[]
+                {
+                    P(4.136973616730874, 8.956718760988078),
+                    P(-1.0251323650708102, 1.9965966567381273),
+                    P(0.40688016936503324, 3.0274458755866824),
+                    P(9.407229516379175, 0.13935977133892408),
+                    P(-6.38526230882167, -0.4872193329442389),
+                    P(-3.743948244370497, -4.524095866141885),
+                    P(-6.351106295525612, 1.1171229887367815),
+                    P(-2.227404011519348, 8.4150139607559),
+                    P(-0.3370376445059833, -4.391043882067801),
+                    P(-2.5245364999978506, -4.373737775894692),
+                },
+                new[]
+                {
+                    0.0,
+                    -0.2517930292299916,
+                    0.0,
+                    -0.2968465164289095,
+                    -0.25827591566288655,
+                    -0.11854640665396421,
+                    0.0,
+                    0.20608063801474885,
+                    0.40553933480081117,
+                    0.500978422724166,
+                }
+            );
 
         /// <summary>
         /// The loop 3:106 of the item 6 fuzz: eight corners, crossing itself at thirteen places, two of them where the arc
         /// leaving (9.104, 2.814) dips 0.04 through the edge from (9.772, 1.219) to (4.622, -2.141), 2.3 degrees to it.
         /// </summary>
-        private static GeoPolygonArc2 Random3Of106() => new GeoPolygonArc2(
-            new[]
-            {
-                P(6.9202171531134375, 4.597090331184255), P(9.772298876090115, 1.2190479185520893), P(4.621967000245101, -2.141028983584153),
-                P(-5.676463141886733, 8.989394204220453), P(9.104171078234991, 2.81400720254239), P(-9.432066669423165, 3.487811886466952),
-                P(-2.7981192864468873, 7.285228826704074), P(-7.69980831895946, -8.938388097536931),
-            },
-            new[] { -0.17932155201179978, 0.0, 0.6486618450603734, 0.12622283102302945, -0.6918214069641294, 0.0, -0.5231888607252337, -0.1773908118146429 });
+        private static GeoPolygonArc2 Random3Of106() =>
+            new GeoPolygonArc2(
+                new[]
+                {
+                    P(6.9202171531134375, 4.597090331184255),
+                    P(9.772298876090115, 1.2190479185520893),
+                    P(4.621967000245101, -2.141028983584153),
+                    P(-5.676463141886733, 8.989394204220453),
+                    P(9.104171078234991, 2.81400720254239),
+                    P(-9.432066669423165, 3.487811886466952),
+                    P(-2.7981192864468873, 7.285228826704074),
+                    P(-7.69980831895946, -8.938388097536931),
+                },
+                new[]
+                {
+                    -0.17932155201179978,
+                    0.0,
+                    0.6486618450603734,
+                    0.12622283102302945,
+                    -0.6918214069641294,
+                    0.0,
+                    -0.5231888607252337,
+                    -0.1773908118146429,
+                }
+            );
 
         /// <summary>
         /// A bow tie crossing itself at the origin: a lobe 10 long whose back is an arc of bulge -0.25 from (-10, -2) to
         /// (-10, 2), and a lobe 1 long whose back is the segment from (1, -0.2) to (1, 0.2).
         /// </summary>
-        private static GeoPolygonArc2 BowTieWithASmallLobe() => new GeoPolygonArc2(
-            new[] { P(-10, 2), P(1, -0.2), P(1, 0.2), P(-10, -2) },
-            new[] { 0.0, 0.0, 0.0, -0.25 });
+        private static GeoPolygonArc2 BowTieWithASmallLobe() =>
+            new GeoPolygonArc2(new[] { P(-10, 2), P(1, -0.2), P(1, 0.2), P(-10, -2) }, new[] { 0.0, 0.0, 0.0, -0.25 });
 
         /// <summary>
         /// The loop 1:146 of the item 6 fuzz: four corners in a box 13.28 by 10, three of its edges arcs, its first and last
         /// edges crossing at (5.723, 5.984), 1.3 degrees apart.
         /// </summary>
-        private static GeoPolygonArc2 Random1Of146() => new GeoPolygonArc2(
-            new[] { P(7.011740746447696, 7.296606226496682), P(6.363612989133042, -2.6293578709612406), P(-4.669512098035548, 5.333382978724959), P(8.606849628783227, -2.7051721199905367) },
-            new[] { 0.4527450044419361, 0.0, 0.41989703183988913, -0.6106898295277217 });
+        private static GeoPolygonArc2 Random1Of146() =>
+            new GeoPolygonArc2(
+                new[]
+                {
+                    P(7.011740746447696, 7.296606226496682),
+                    P(6.363612989133042, -2.6293578709612406),
+                    P(-4.669512098035548, 5.333382978724959),
+                    P(8.606849628783227, -2.7051721199905367),
+                },
+                new[] { 0.4527450044419361, 0.0, 0.41989703183988913, -0.6106898295277217 }
+            );
 
         [Fact]
         public void Loop1Of146GrownByThreeWithChamfers_KeepsTheChamfersAtItsTips()
@@ -85,7 +125,9 @@ namespace GeometryHelper.UnitTest.Plane
             // (4.3, 8.9) and (2.4, 6.3), and the offset was 211.2289.
             GeoPolygonArc2 loop = Random1Of146();
 
-            GeoPolygonArc2 grown = Assert.Single(Offset2.Offset(loop, 3.0, new OffsetOptions(OffsetJoin.Chamfer), Thousandth));
+            GeoPolygonArc2 grown = Assert.Single(
+                Offset2.Offset(loop, 3.0, new OffsetOptions(OffsetJoin.Chamfer), Thousandth)
+            );
 
             Assert.Equal(212.0581, grown.Area, 1E-3);
         }
@@ -138,7 +180,10 @@ namespace GeometryHelper.UnitTest.Plane
             // (5, 1.667). The two quarters of the region there are one piece, round the hole the loop makes, and no tips: the
             // straight path and the oracle give 253.2631 within x = -3 to 13. Mitered as two tips, they grew horns out to
             // (-4.487, 1.667) and (14.487, 1.667), 254.7369.
-            var loop = new GeoPolygonArc2(new[] { P(0, 0), P(6, 2), P(4, 2), P(10, 0), P(10, 10), P(0, 10) }, new double[6]);
+            var loop = new GeoPolygonArc2(
+                new[] { P(0, 0), P(6, 2), P(4, 2), P(10, 0), P(10, 10), P(0, 10) },
+                new double[6]
+            );
 
             GeoPolygonArc2 grown = Assert.Single(Offset2.Offset(loop, 3.0, Miter, Thousandth));
 
@@ -158,12 +203,23 @@ namespace GeometryHelper.UnitTest.Plane
             var loop = new GeoPolygonArc2(
                 new[]
                 {
-                    P(-6.983785, -5.099169), P(4.909302, -3.467134), P(-0.411188, -2.037612), P(1.351476, 0.139131), P(-3.289377, 6.23748),
-                    P(1.235113, -9.385043), P(0.148585, 9.876023), P(-8.358244, 0.839152), P(3.179253, -2.439366), P(-1.390652, -7.176731),
+                    P(-6.983785, -5.099169),
+                    P(4.909302, -3.467134),
+                    P(-0.411188, -2.037612),
+                    P(1.351476, 0.139131),
+                    P(-3.289377, 6.23748),
+                    P(1.235113, -9.385043),
+                    P(0.148585, 9.876023),
+                    P(-8.358244, 0.839152),
+                    P(3.179253, -2.439366),
+                    P(-1.390652, -7.176731),
                 },
-                new[] { -0.2465, 0.0, 0.3284, -0.4442, 0.2506, -0.6906, -0.022, 0.5543, 0.0, -0.4561 });
+                new[] { -0.2465, 0.0, 0.3284, -0.4442, 0.2506, -0.6906, -0.022, 0.5543, 0.0, -0.4561 }
+            );
 
-            GeoPolygonArc2 grown = Assert.Single(Offset2.Offset(loop, 3.0, new OffsetOptions(OffsetJoin.Chamfer), new Tolerance(1E-2, 1E-4)));
+            GeoPolygonArc2 grown = Assert.Single(
+                Offset2.Offset(loop, 3.0, new OffsetOptions(OffsetJoin.Chamfer), new Tolerance(1E-2, 1E-4))
+            );
 
             Assert.Equal(301.4205, grown.Area, 0.02);
         }
@@ -202,10 +258,19 @@ namespace GeometryHelper.UnitTest.Plane
             var loop = new GeoPolygonArc2(
                 new[]
                 {
-                    P(5.980264, 8.391616), P(3.700746, 8.905191), P(8.34025, -8.144685), P(-6.255616, -7.038972), P(-4.003168, 0.894665),
-                    P(-4.250402, 6.639121), P(-0.920583, -6.939917), P(-9.319689, -2.912664), P(-3.707002, 4.442028), P(-0.823001, -0.58429),
+                    P(5.980264, 8.391616),
+                    P(3.700746, 8.905191),
+                    P(8.34025, -8.144685),
+                    P(-6.255616, -7.038972),
+                    P(-4.003168, 0.894665),
+                    P(-4.250402, 6.639121),
+                    P(-0.920583, -6.939917),
+                    P(-9.319689, -2.912664),
+                    P(-3.707002, 4.442028),
+                    P(-0.823001, -0.58429),
                 },
-                new double[10]);
+                new double[10]
+            );
 
             GeoPolygonArc2 grown = Assert.Single(Offset2.Offset(loop, 3.0, Miter, new Tolerance(1E-2, 1E-4)));
 
@@ -221,8 +286,14 @@ namespace GeometryHelper.UnitTest.Plane
             // off.
             GeoPoint2[] corners =
             {
-                P(-4.440205, 0.634499), P(-7.525558, 0.548613), P(-1.395223, 4.321708), P(-6.659873, 3.26902), P(7.496569, 4.079338),
-                P(8.378131, 1.650867), P(-5.781848, 5.066835), P(0.795296, -3.79884),
+                P(-4.440205, 0.634499),
+                P(-7.525558, 0.548613),
+                P(-1.395223, 4.321708),
+                P(-6.659873, 3.26902),
+                P(7.496569, 4.079338),
+                P(8.378131, 1.650867),
+                P(-5.781848, 5.066835),
+                P(0.795296, -3.79884),
             };
 
             foreach (bool reversed in new[] { false, true })
@@ -230,7 +301,10 @@ namespace GeometryHelper.UnitTest.Plane
                 for (int start = 0; start < corners.Length; start++)
                 {
                     GeoPoint2[] drawn = (reversed ? corners.Reverse() : corners).ToArray();
-                    var loop = new GeoPolygonArc2(drawn.Skip(start).Concat(drawn.Take(start)), new double[drawn.Length]);
+                    var loop = new GeoPolygonArc2(
+                        drawn.Skip(start).Concat(drawn.Take(start)),
+                        new double[drawn.Length]
+                    );
 
                     GeoPolygonArc2 grown = Assert.Single(Offset2.Offset(loop, 1.0, Miter, Thousandth));
 
@@ -255,7 +329,14 @@ namespace GeometryHelper.UnitTest.Plane
                 points.Insert(1, P(0.0048296, -0.0012941));
             }
 
-            GeoPolygonArc2 grown = Assert.Single(Offset2.Offset(new GeoPolygonArc2(points, new double[points.Count]), 1.0, Miter, new Tolerance(1E-2, 1E-4)));
+            GeoPolygonArc2 grown = Assert.Single(
+                Offset2.Offset(
+                    new GeoPolygonArc2(points, new double[points.Count]),
+                    1.0,
+                    Miter,
+                    new Tolerance(1E-2, 1E-4)
+                )
+            );
 
             Assert.Equal(59.9696, grown.Area, 1E-3);
         }
@@ -263,7 +344,10 @@ namespace GeometryHelper.UnitTest.Plane
         [Theory]
         [InlineData(1E-2, 0.005)]
         [InlineData(1E-3, 0.0005)]
-        public void TheBowTieWithAVertexOnItsEdgeBesideTheCrossing_KeepsTheMiterOfItsLongLobe(double tolerance, double beside)
+        public void TheBowTieWithAVertexOnItsEdgeBesideTheCrossing_KeepsTheMiterOfItsLongLobe(
+            double tolerance,
+            double beside
+        )
         {
             // A vertex on the edge from (-10, 2) to (1, -0.2), the given distance from the crossing at the origin, within the
             // tolerance of it: the loop runs straight on through it, and the bow tie grown by 1 is the same as without it,
@@ -273,7 +357,8 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolygonArc2 plain = BowTieWithASmallLobe();
             var withVertex = new GeoPolygonArc2(
                 new[] { P(-10, 2), P(along, -0.2 * along), P(1, -0.2), P(1, 0.2), P(-10, -2) },
-                new[] { 0.0, 0.0, 0.0, 0.0, -0.25 });
+                new[] { 0.0, 0.0, 0.0, 0.0, -0.25 }
+            );
 
             GeoPolygonArc2 expected = Assert.Single(Offset2.Offset(plain, 1.0, Miter, t));
             GeoPolygonArc2 grown = Assert.Single(Offset2.Offset(withVertex, 1.0, Miter, t));

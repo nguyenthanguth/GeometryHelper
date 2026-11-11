@@ -28,11 +28,11 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>The tolerance the mesh is turned into faces with, so that no small triangle is refused as collinear.</summary>
         private static readonly Tolerance Fine = new Tolerance(1E-12, 1E-15);
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
-        private static bool MeshIsClosed(IEnumerable<GeoTriangle3> triangles)
-            => new GeoSolid3(triangles.Select(triangle => triangle.ToFace3(Fine))).IsClosed(Tolerance);
+        private static bool MeshIsClosed(IEnumerable<GeoTriangle3> triangles) =>
+            new GeoSolid3(triangles.Select(triangle => triangle.ToFace3(Fine))).IsClosed(Tolerance);
 
         /// <summary>Runs an action and gives back what it wrote about the mesh, as the level and the line.</summary>
         private static List<string> Written(Action action)
@@ -72,12 +72,27 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 // Each corner stirred by up to 5E-6 either way, as a modeller leaves them.
                 double stir(int axis) => hair * (((i * 7 + axis * 3) % 5) - 2) / 4.0;
-                corners[i] = new GeoPoint3((i & 1) * 100.0 + stir(0), ((i >> 1) & 1) * 100.0 + stir(1), ((i >> 2) & 1) * height + stir(2));
+                corners[i] = new GeoPoint3(
+                    (i & 1) * 100.0 + stir(0),
+                    ((i >> 1) & 1) * 100.0 + stir(1),
+                    ((i >> 2) & 1) * height + stir(2)
+                );
             }
 
-            GeoFace3 Face(params int[] at) => new GeoFace3(new GeoPolygon3(at.Select(i => corners[i]).ToArray(), within), null, within);
+            GeoFace3 Face(params int[] at) =>
+                new GeoFace3(new GeoPolygon3(at.Select(i => corners[i]).ToArray(), within), null, within);
 
-            return new GeoSolid3(new[] { Face(0, 2, 3, 1), Face(4, 5, 7, 6), Face(0, 1, 5, 4), Face(1, 3, 7, 5), Face(3, 2, 6, 7), Face(2, 0, 4, 6) });
+            return new GeoSolid3(
+                new[]
+                {
+                    Face(0, 2, 3, 1),
+                    Face(4, 5, 7, 6),
+                    Face(0, 1, 5, 4),
+                    Face(1, 3, 7, 5),
+                    Face(3, 2, 6, 7),
+                    Face(2, 0, 4, 6),
+                }
+            );
         }
 
         [Theory]
@@ -112,7 +127,8 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ABoxWithAVoidTwoThousandthsFromItsCorner_MeshesToTheAreaOfItsSixSidesAndTheVoidsSix()
         {
-            GeoSolid3 body = Box(0, 0, 0, 100, 60, 40).WithOpenings(new[] { Box(2E-3, 2E-3, 2E-3, 20.002, 20.002, 20.002) });
+            GeoSolid3 body = Box(0, 0, 0, 100, 60, 40)
+                .WithOpenings(new[] { Box(2E-3, 2E-3, 2E-3, 20.002, 20.002, 20.002) });
 
             GeoTriangle3[] mesh = body.TriangulateSurface(Tolerance);
 
@@ -126,7 +142,20 @@ namespace GeometryHelper.UnitTest.Solid
         public void AFaceTwoThousandthsSquare_IsItsTwoTriangles()
         {
             // Built within 1E-12: a polygon of 4E-6 square units is refused as collinear by a vector tolerance of 1E-5.
-            var small = new GeoFace3(new GeoPolygon3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(2E-3, 0, 0), new GeoPoint3(2E-3, 2E-3, 0), new GeoPoint3(0, 2E-3, 0) }, Fine), null, Fine);
+            var small = new GeoFace3(
+                new GeoPolygon3(
+                    new[]
+                    {
+                        new GeoPoint3(0, 0, 0),
+                        new GeoPoint3(2E-3, 0, 0),
+                        new GeoPoint3(2E-3, 2E-3, 0),
+                        new GeoPoint3(0, 2E-3, 0),
+                    },
+                    Fine
+                ),
+                null,
+                Fine
+            );
 
             GeoTriangle3[] mesh = small.TriangulateSurface(Tolerance);
 
@@ -137,7 +166,20 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ATriangleOfASmallFace_HasItsNormalInItsAreaVector()
         {
-            var small = new GeoFace3(new GeoPolygon3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(2E-3, 0, 0), new GeoPoint3(2E-3, 2E-3, 0), new GeoPoint3(0, 2E-3, 0) }, Fine), null, Fine);
+            var small = new GeoFace3(
+                new GeoPolygon3(
+                    new[]
+                    {
+                        new GeoPoint3(0, 0, 0),
+                        new GeoPoint3(2E-3, 0, 0),
+                        new GeoPoint3(2E-3, 2E-3, 0),
+                        new GeoPoint3(0, 2E-3, 0),
+                    },
+                    Fine
+                ),
+                null,
+                Fine
+            );
 
             GeoTriangle3 triangle = small.TriangulateSurface(Tolerance)[0];
 
@@ -207,7 +249,11 @@ namespace GeometryHelper.UnitTest.Solid
             // The two blocks, turned together 0.7 radians, leave between them a wall 2.3 by 0.001 by 40, exactly the
             // tolerance thick: the booleans, the preparing of a body and its volume mesh it themselves, and have nothing to
             // say.
-            GeoTransform3 turn = GeoTransform3.RotationAxis(new GeoPoint3(10, 30, 20), new GeoVector3(0.3, -0.2, 1), 0.7);
+            GeoTransform3 turn = GeoTransform3.RotationAxis(
+                new GeoPoint3(10, 30, 20),
+                new GeoVector3(0.3, -0.2, 1),
+                0.7
+            );
             GeoSolid3 a = Box(0, 0, 0, 20, 60, 40).TransformBy(turn);
             GeoSolid3 b = Box(17.7, -0.0001, 0, 37.7, -0.0001 + 59.9991, 40).TransformBy(turn);
             GeoSolid3 pierced = a.WithOpenings(new[] { b });
@@ -243,8 +289,20 @@ namespace GeometryHelper.UnitTest.Solid
             // of the fin, 0.0008 by 40, thinner than the tolerance. The booleans with the other block, the preparing of the
             // body and its volume mesh it themselves, and have nothing to say.
             var within = new Tolerance(1E-5, 1E-5);
-            GeoTransform3 turn = GeoTransform3.RotationAxis(new GeoPoint3(10, 30, 20), new GeoVector3(0.3, -0.2, 1), 0.7);
-            double[][] plan = { new[] { 0.0, 0.0 }, new[] { 17.7, 0.0 }, new[] { 17.7, 59.9992 }, new[] { 20.0, 59.9992 }, new[] { 20.0, 60.0 }, new[] { 0.0, 60.0 } };
+            GeoTransform3 turn = GeoTransform3.RotationAxis(
+                new GeoPoint3(10, 30, 20),
+                new GeoVector3(0.3, -0.2, 1),
+                0.7
+            );
+            double[][] plan =
+            {
+                new[] { 0.0, 0.0 },
+                new[] { 17.7, 0.0 },
+                new[] { 17.7, 59.9992 },
+                new[] { 20.0, 59.9992 },
+                new[] { 20.0, 60.0 },
+                new[] { 0.0, 60.0 },
+            };
             GeoPoint3 At(int i, double z) => new GeoPoint3(plan[i % 6][0], plan[i % 6][1], z);
             GeoFace3 Face(params GeoPoint3[] corners) => new GeoFace3(new GeoPolygon3(corners, within), null, within);
             var faces = new List<GeoFace3>
@@ -294,15 +352,42 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 Collision3.CollidesWith(slab, crossing, Tolerance);
                 Distance3.DistanceTo(slab, above, Tolerance);
-                Intersection3.GetIntersections(new GeoRay3(new GeoPoint3(50, 50, -5), GeoVector3.ZAxis), slab, Tolerance);
+                Intersection3.GetIntersections(
+                    new GeoRay3(new GeoPoint3(50, 50, -5), GeoVector3.ZAxis),
+                    slab,
+                    Tolerance
+                );
                 Projection3.GetShortestLineTo(slab, new GeoLine3(over, new GeoPoint3(60, 50, 3)), Tolerance);
-                Projection3.GetShortestLineTo(slab, new GeoTriangle3(over, new GeoPoint3(60, 50, 3), new GeoPoint3(50, 60, 3)), Tolerance);
+                Projection3.GetShortestLineTo(
+                    slab,
+                    new GeoTriangle3(over, new GeoPoint3(60, 50, 3), new GeoPoint3(50, 60, 3)),
+                    Tolerance
+                );
                 Projection3.GetShortestLineTo(slab, above, Tolerance);
-                Projection3.GetShortestLineTo(slab, new GeoPolyline3(over, new GeoPoint3(60, 50, 3), new GeoPoint3(60, 60, 3)), Tolerance);
-                Projection3.GetShortestLineTo(slab, new GeoPolygon3(over, new GeoPoint3(60, 50, 3), new GeoPoint3(60, 60, 3), new GeoPoint3(50, 60, 3)), Tolerance);
+                Projection3.GetShortestLineTo(
+                    slab,
+                    new GeoPolyline3(over, new GeoPoint3(60, 50, 3), new GeoPoint3(60, 60, 3)),
+                    Tolerance
+                );
+                Projection3.GetShortestLineTo(
+                    slab,
+                    new GeoPolygon3(over, new GeoPoint3(60, 50, 3), new GeoPoint3(60, 60, 3), new GeoPoint3(50, 60, 3)),
+                    Tolerance
+                );
                 Projection3.GetShortestLineTo(slab, new GeoPlane3(over, GeoVector3.ZAxis), Tolerance);
                 Projection3.GetShortestLineTo(slab, new GeoRay3(over, GeoVector3.XAxis), Tolerance);
-                Projection3.GetShortestLineTo(slab, new GeoFace3(new GeoPolygon3(over, new GeoPoint3(60, 50, 3), new GeoPoint3(60, 60, 3), new GeoPoint3(50, 60, 3))), Tolerance);
+                Projection3.GetShortestLineTo(
+                    slab,
+                    new GeoFace3(
+                        new GeoPolygon3(
+                            over,
+                            new GeoPoint3(60, 50, 3),
+                            new GeoPoint3(60, 60, 3),
+                            new GeoPoint3(50, 60, 3)
+                        )
+                    ),
+                    Tolerance
+                );
             });
 
             Assert.Empty(written);
@@ -316,9 +401,31 @@ namespace GeometryHelper.UnitTest.Solid
             // in pieces of 0.003 by 0.003 and 0.003 by 0.006, whose doubled areas, 9E-6 and 1.8E-5, a length tolerance of
             // 1E-5 read as nothing for the first.
             var face = new GeoFace3(
-                new GeoPolygon3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(0.006, 0, 0), new GeoPoint3(0.006, 0.006, 0), new GeoPoint3(0, 0.006, 0) }, Fine),
-                new[] { new GeoPolygon3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(0.003, 0, 0), new GeoPoint3(0.003, 0.003, 0), new GeoPoint3(0, 0.003, 0) }, Fine) },
-                Fine);
+                new GeoPolygon3(
+                    new[]
+                    {
+                        new GeoPoint3(0, 0, 0),
+                        new GeoPoint3(0.006, 0, 0),
+                        new GeoPoint3(0.006, 0.006, 0),
+                        new GeoPoint3(0, 0.006, 0),
+                    },
+                    Fine
+                ),
+                new[]
+                {
+                    new GeoPolygon3(
+                        new[]
+                        {
+                            new GeoPoint3(0, 0, 0),
+                            new GeoPoint3(0.003, 0, 0),
+                            new GeoPoint3(0.003, 0.003, 0),
+                            new GeoPoint3(0, 0.003, 0),
+                        },
+                        Fine
+                    ),
+                },
+                Fine
+            );
 
             GeoTriangle3[] mesh = face.TriangulateSurface(Tolerance);
 
@@ -331,10 +438,18 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(0.002, 0.002, false)]
         [InlineData(100.0, 1E-10, true)]
         [InlineData(100.0, 0.0, true)]
-        public void ATriangleIsNothingOnlyWhenItsNarrowestWidthIsAMillionthOfTheTolerance(double length, double width, bool collapsed)
+        public void ATriangleIsNothingOnlyWhenItsNarrowestWidthIsAMillionthOfTheTolerance(
+            double length,
+            double width,
+            bool collapsed
+        )
         {
             // A right triangle with its long leg along X, its narrowest width the altitude to the hypotenuse.
-            var triangle = new GeoTriangle3(GeoPoint3.Origin, new GeoPoint3(length, 0, 0), new GeoPoint3(length, width, 0));
+            var triangle = new GeoTriangle3(
+                GeoPoint3.Origin,
+                new GeoPoint3(length, 0, 0),
+                new GeoPoint3(length, width, 0)
+            );
 
             Assert.Equal(collapsed, EarClipping.IsCollapsed(triangle, Tolerance));
         }
@@ -343,7 +458,20 @@ namespace GeometryHelper.UnitTest.Solid
         public void ASliverWithNoWidthAtAll_IsStillLeftOutOfTheMesh()
         {
             var within = new Tolerance(1E-12, 1E-12);
-            var needle = new GeoFace3(new GeoPolygon3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 1E-10, 0), new GeoPoint3(0, 1E-10, 0) }, within), null, within);
+            var needle = new GeoFace3(
+                new GeoPolygon3(
+                    new[]
+                    {
+                        new GeoPoint3(0, 0, 0),
+                        new GeoPoint3(100, 0, 0),
+                        new GeoPoint3(100, 1E-10, 0),
+                        new GeoPoint3(0, 1E-10, 0),
+                    },
+                    within
+                ),
+                null,
+                within
+            );
 
             Assert.Empty(needle.TriangulateSurface(Tolerance));
         }

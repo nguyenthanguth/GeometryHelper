@@ -43,7 +43,8 @@ namespace GeometryHelper.TeklaConvert
             this IEnumerable<TSG.Point> points,
             bool closed = false,
             ControlObjectColorEnum color = ControlObjectColorEnum.RED,
-            ControlObjectLineType lineType = ControlObjectLineType.SolidLine)
+            ControlObjectLineType lineType = ControlObjectLineType.SolidLine
+        )
         {
             if (points == null)
             {
@@ -58,11 +59,7 @@ namespace GeometryHelper.TeklaConvert
 
             try
             {
-                ControlPolycurve polycurve = new ControlPolycurve(geometry)
-                {
-                    Color = color,
-                    LineType = lineType
-                };
+                ControlPolycurve polycurve = new ControlPolycurve(geometry) { Color = color, LineType = lineType };
 
                 if (polycurve.Insert())
                 {
@@ -92,7 +89,8 @@ namespace GeometryHelper.TeklaConvert
             this IEnumerable<GeoPoint3> points,
             bool closed = false,
             ControlObjectColorEnum color = ControlObjectColorEnum.RED,
-            ControlObjectLineType lineType = ControlObjectLineType.SolidLine)
+            ControlObjectLineType lineType = ControlObjectLineType.SolidLine
+        )
         {
             if (points == null)
             {
@@ -113,7 +111,8 @@ namespace GeometryHelper.TeklaConvert
         public static ControlPolycurve DrawToTekla(
             this GeoPolyline3 polyline,
             ControlObjectColorEnum color = ControlObjectColorEnum.RED,
-            ControlObjectLineType lineType = ControlObjectLineType.SolidLine)
+            ControlObjectLineType lineType = ControlObjectLineType.SolidLine
+        )
         {
             if (polyline == null)
             {
@@ -134,7 +133,8 @@ namespace GeometryHelper.TeklaConvert
         public static ControlPolycurve DrawToTekla(
             this GeoPolygon3 polygon,
             ControlObjectColorEnum color = ControlObjectColorEnum.RED,
-            ControlObjectLineType lineType = ControlObjectLineType.SolidLine)
+            ControlObjectLineType lineType = ControlObjectLineType.SolidLine
+        )
         {
             if (polygon == null)
             {
@@ -160,7 +160,8 @@ namespace GeometryHelper.TeklaConvert
         public static ControlPolycurve DrawToTekla(
             this GeoArc3 arc,
             ControlObjectColorEnum color = ControlObjectColorEnum.RED,
-            ControlObjectLineType lineType = ControlObjectLineType.SolidLine)
+            ControlObjectLineType lineType = ControlObjectLineType.SolidLine
+        )
         {
             if (arc == null)
             {
@@ -185,7 +186,8 @@ namespace GeometryHelper.TeklaConvert
         public static ControlPolycurve DrawToTekla(
             this GeoCircle3 circle,
             ControlObjectColorEnum color = ControlObjectColorEnum.RED,
-            ControlObjectLineType lineType = ControlObjectLineType.SolidLine)
+            ControlObjectLineType lineType = ControlObjectLineType.SolidLine
+        )
         {
             if (circle == null)
             {
@@ -208,7 +210,8 @@ namespace GeometryHelper.TeklaConvert
             this GeoFace3 face,
             ControlObjectColorEnum boundaryColor = ControlObjectColorEnum.RED,
             ControlObjectColorEnum holeColor = ControlObjectColorEnum.WHITE,
-            ControlObjectLineType lineType = ControlObjectLineType.SolidLine)
+            ControlObjectLineType lineType = ControlObjectLineType.SolidLine
+        )
         {
             if (face == null)
             {
@@ -235,7 +238,8 @@ namespace GeometryHelper.TeklaConvert
             this GeoSolid3 solid,
             ControlObjectColorEnum boundaryColor = ControlObjectColorEnum.RED,
             ControlObjectColorEnum holeColor = ControlObjectColorEnum.WHITE,
-            ControlObjectLineType lineType = ControlObjectLineType.SolidLine)
+            ControlObjectLineType lineType = ControlObjectLineType.SolidLine
+        )
         {
             if (solid == null)
             {
@@ -259,7 +263,8 @@ namespace GeometryHelper.TeklaConvert
             this IEnumerable<GeoSolid3> solids,
             ControlObjectColorEnum boundaryColor = ControlObjectColorEnum.RED,
             ControlObjectColorEnum holeColor = ControlObjectColorEnum.WHITE,
-            ControlObjectLineType lineType = ControlObjectLineType.SolidLine)
+            ControlObjectLineType lineType = ControlObjectLineType.SolidLine
+        )
         {
             if (solids == null)
             {
@@ -276,7 +281,10 @@ namespace GeometryHelper.TeklaConvert
         /// The rings of a face in the order they are drawn, each with its colour: the outer boundary, then the holes.
         /// </summary>
         internal static IEnumerable<(GeoPolygon3 Ring, ControlObjectColorEnum Color)> FaceRings(
-            GeoFace3 face, ControlObjectColorEnum boundaryColor, ControlObjectColorEnum holeColor)
+            GeoFace3 face,
+            ControlObjectColorEnum boundaryColor,
+            ControlObjectColorEnum holeColor
+        )
         {
             yield return (face.Boundary, boundaryColor);
 
@@ -303,7 +311,10 @@ namespace GeometryHelper.TeklaConvert
             }
             catch (Exception exception)
             {
-                GeometryHelperLog.Warn($"Tekla could not build a polycurve through {outline.Count} points; it is left out.", exception);
+                GeometryHelperLog.Warn(
+                    $"Tekla could not build a polycurve through {outline.Count} points; it is left out.",
+                    exception
+                );
                 return null;
             }
         }

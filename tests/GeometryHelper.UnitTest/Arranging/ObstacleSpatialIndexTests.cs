@@ -41,7 +41,10 @@ namespace GeometryHelper.UnitTest.Arranging
                 }
 
                 Bounds region = RandomRegion(random);
-                List<int> expected = Enumerable.Range(0, added.Count).Where(o => region.Overlaps(added[o].Box)).ToList();
+                List<int> expected = Enumerable
+                    .Range(0, added.Count)
+                    .Where(o => region.Overlaps(added[o].Box))
+                    .ToList();
 
                 index.Query(region, found);
                 Assert.Equal(expected, found);
@@ -95,12 +98,14 @@ namespace GeometryHelper.UnitTest.Arranging
         [Fact]
         public void AnObstacleWhoseBoxIsNotANumber_IsNumberedButNeverFound()
         {
-            var index = new ObstacleSpatialIndex(new[]
-            {
-                new Obstacle(new GeoLine2(0, 0, 10, 10)),
-                new Obstacle(new GeoLine2(double.NaN, 0, 10, 10)),
-                new Obstacle(new GeoLine2(5, 5, 6, 6)),
-            });
+            var index = new ObstacleSpatialIndex(
+                new[]
+                {
+                    new Obstacle(new GeoLine2(0, 0, 10, 10)),
+                    new Obstacle(new GeoLine2(double.NaN, 0, 10, 10)),
+                    new Obstacle(new GeoLine2(5, 5, 6, 6)),
+                }
+            );
             var found = new List<int>();
 
             index.Query(Bounds.Of(new GeoLine2(-1E300, -1E300, 1E300, 1E300)), found);
@@ -116,7 +121,8 @@ namespace GeometryHelper.UnitTest.Arranging
         /// </summary>
         private static Obstacle RandomObstacle(Random random, List<Obstacle> added)
         {
-            double x = random.NextDouble() * 20000 - 5000, y = random.NextDouble() * 12000 - 3000;
+            double x = random.NextDouble() * 20000 - 5000,
+                y = random.NextDouble() * 12000 - 3000;
             switch (random.Next(12))
             {
                 case 0:
@@ -124,13 +130,23 @@ namespace GeometryHelper.UnitTest.Arranging
                 case 1:
                     return new Obstacle(new GeoLine2(x, y, x + random.NextDouble() * 1E-6, y));
                 case 2:
-                    return new Obstacle(new GeoLine2(x, y, x + random.NextDouble() * 30000, y + random.NextDouble() * 2));
+                    return new Obstacle(
+                        new GeoLine2(x, y, x + random.NextDouble() * 30000, y + random.NextDouble() * 2)
+                    );
                 case 3:
-                    return new Obstacle(new GeoPolygon2(new GeoPoint2(x, y), new GeoPoint2(x + 15000, y), new GeoPoint2(x + 15000, y + 9000)));
+                    return new Obstacle(
+                        new GeoPolygon2(
+                            new GeoPoint2(x, y),
+                            new GeoPoint2(x + 15000, y),
+                            new GeoPoint2(x + 15000, y + 9000)
+                        )
+                    );
                 case 4:
                     return new Obstacle(new GeoLine2(-1E12, -1E12, 1E12, 1E12));
                 case 5:
-                    return added.Count == 0 ? new Obstacle(new GeoLine2(x, y, x + 1, y + 1)) : added[random.Next(added.Count)];
+                    return added.Count == 0
+                        ? new Obstacle(new GeoLine2(x, y, x + 1, y + 1))
+                        : added[random.Next(added.Count)];
                 case 6:
                     return new Obstacle(new GeoRectangle2(new GeoPoint2(x + 1E8, y), 20, 10));
                 case 7:
@@ -138,7 +154,14 @@ namespace GeometryHelper.UnitTest.Arranging
                         ? new Obstacle(new GeoLine2(double.NaN, y, x, y))
                         : new Obstacle(new GeoLine2(x, y, double.PositiveInfinity, y));
                 default:
-                    return new Obstacle(new GeoRectangle2(new GeoPoint2(x, y), 10 + random.NextDouble() * 50, 8 + random.NextDouble() * 12, random.NextDouble() * Math.PI));
+                    return new Obstacle(
+                        new GeoRectangle2(
+                            new GeoPoint2(x, y),
+                            10 + random.NextDouble() * 50,
+                            8 + random.NextDouble() * 12,
+                            random.NextDouble() * Math.PI
+                        )
+                    );
             }
         }
 
@@ -148,7 +171,8 @@ namespace GeometryHelper.UnitTest.Arranging
         /// </summary>
         private static Bounds RandomRegion(Random random)
         {
-            double x = random.NextDouble() * 20000 - 5000, y = random.NextDouble() * 12000 - 3000;
+            double x = random.NextDouble() * 20000 - 5000,
+                y = random.NextDouble() * 12000 - 3000;
             Bounds reach = Bounds.Of(new GeoLine2(x, y, x + random.NextDouble() * 400, y + random.NextDouble() * 300));
             switch (random.Next(8))
             {

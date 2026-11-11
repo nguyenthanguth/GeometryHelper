@@ -26,7 +26,17 @@ namespace GeometryHelper.Dxf
         /// domain where the spline has no corner; past corners, from the spline's start over the length along the offset.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the spline runs along the normal somewhere, or stands still.</exception>
-        internal static void Offset(DxfNurbs nurbs, IReadOnlyList<double> knots, int degree, bool closed, GeoVector3 normal, double distance, out List<GeoPoint3> points, out List<double> knotsOut, out bool closedOut)
+        internal static void Offset(
+            DxfNurbs nurbs,
+            IReadOnlyList<double> knots,
+            int degree,
+            bool closed,
+            GeoVector3 normal,
+            double distance,
+            out List<GeoPoint3> points,
+            out List<double> knotsOut,
+            out bool closedOut
+        )
         {
             var corners = new List<double> { nurbs.Start };
             var spans = new List<double> { nurbs.Start };
@@ -47,7 +57,12 @@ namespace GeometryHelper.Dxf
 
                     // A knot standing as many times as the degree may be a corner; it is one where the directions on either side
                     // differ, not where the curve runs on smoothly through it, as the pieces of a circle's spline do.
-                    if (times >= degree && !Direction(nurbs, knot, -1).Normalize().IsEqualTo(Direction(nurbs, knot, 1).Normalize(), Tolerance.Default))
+                    if (
+                        times >= degree
+                        && !Direction(nurbs, knot, -1)
+                            .Normalize()
+                            .IsEqualTo(Direction(nurbs, knot, 1).Normalize(), Tolerance.Default)
+                    )
                     {
                         corners.Add(knot);
                     }
@@ -153,7 +168,11 @@ namespace GeometryHelper.Dxf
 
             if (!(length > 0.0))
             {
-                throw new InvalidOperationException("The spline runs along the normal at " + t.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + ", where it has no side to be offset to.");
+                throw new InvalidOperationException(
+                    "The spline runs along the normal at "
+                        + t.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                        + ", where it has no side to be offset to."
+                );
             }
 
             return at.Add(across.Multiply(distance / length));
@@ -190,7 +209,17 @@ namespace GeometryHelper.Dxf
 
                 for (int i = 0; i < t.Count; i++)
                 {
-                    piece.P.Add(Moved(nurbs, t[i], i == 0 ? 1 : i == t.Count - 1 ? -1 : 0, normal, distance));
+                    piece.P.Add(
+                        Moved(
+                            nurbs,
+                            t[i],
+                            i == 0 ? 1
+                                : i == t.Count - 1 ? -1
+                                : 0,
+                            normal,
+                            distance
+                        )
+                    );
                 }
 
                 GeoSpline3 fit = Fit(nurbs, piece);
@@ -199,7 +228,9 @@ namespace GeometryHelper.Dxf
                 {
                     if (piece.Fit == null)
                     {
-                        throw new InvalidOperationException("The spline's offset stands still: no curve passes through its points.");
+                        throw new InvalidOperationException(
+                            "The spline's offset stands still: no curve passes through its points."
+                        );
                     }
 
                     return piece;
@@ -296,7 +327,13 @@ namespace GeometryHelper.Dxf
 
             try
             {
-                return GeoSpline3.Interpolate(p, Direction(nurbs, t[0], 1), Direction(nurbs, t[t.Count - 1], -1), 3, Tolerance.Default);
+                return GeoSpline3.Interpolate(
+                    p,
+                    Direction(nurbs, t[0], 1),
+                    Direction(nurbs, t[t.Count - 1], -1),
+                    3,
+                    Tolerance.Default
+                );
             }
             catch (ArgumentException)
             {
@@ -328,7 +365,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>How far a point is from the true offset between two parameters, by golden-section steps along it.</summary>
-        private static double Nearest(DxfNurbs nurbs, GeoPoint3 q, double a, double b, GeoVector3 normal, double distance)
+        private static double Nearest(
+            DxfNurbs nurbs,
+            GeoPoint3 q,
+            double a,
+            double b,
+            GeoVector3 normal,
+            double distance
+        )
         {
             double ratio = (Math.Sqrt(5.0) - 1.0) / 2.0;
             double x1 = b - ratio * (b - a);
@@ -407,7 +451,10 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private static bool Cross(Piece a, Piece b, GeoVector3 normal)
         {
-            GeoVector3 u = Math.Abs(normal.X) < 0.9 ? new GeoVector3(1, 0, 0).CrossProduct(normal).Normalize() : new GeoVector3(0, 1, 0).CrossProduct(normal).Normalize();
+            GeoVector3 u =
+                Math.Abs(normal.X) < 0.9
+                    ? new GeoVector3(1, 0, 0).CrossProduct(normal).Normalize()
+                    : new GeoVector3(0, 1, 0).CrossProduct(normal).Normalize();
             GeoVector3 v = normal.Normalize().CrossProduct(u);
 
             for (int i = a.P.Count - 2; i >= 0; i--)
@@ -440,14 +487,26 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether two segments cross in a plane of axes u and v, and the share along each where they do.</summary>
-        private static bool Crossing(GeoPoint3 p1, GeoPoint3 p2, GeoPoint3 q1, GeoPoint3 q2, GeoVector3 u, GeoVector3 v, out double fa, out double fb)
+        private static bool Crossing(
+            GeoPoint3 p1,
+            GeoPoint3 p2,
+            GeoPoint3 q1,
+            GeoPoint3 q2,
+            GeoVector3 u,
+            GeoVector3 v,
+            out double fa,
+            out double fb
+        )
         {
             GeoVector3 r = p1.GetVectorTo(p2);
             GeoVector3 s = q1.GetVectorTo(q2);
             GeoVector3 w = p1.GetVectorTo(q1);
-            double rx = r.DotProduct(u), ry = r.DotProduct(v);
-            double sx = s.DotProduct(u), sy = s.DotProduct(v);
-            double wx = w.DotProduct(u), wy = w.DotProduct(v);
+            double rx = r.DotProduct(u),
+                ry = r.DotProduct(v);
+            double sx = s.DotProduct(u),
+                sy = s.DotProduct(v);
+            double wx = w.DotProduct(u),
+                wy = w.DotProduct(v);
             double den = rx * sy - ry * sx;
             fa = 0.0;
             fb = 0.0;
@@ -476,7 +535,10 @@ namespace GeometryHelper.Dxf
                 knots.Add(knot * length);
             }
 
-            return new KeyValuePair<List<double>, List<double[]>>(knots, DxfNurbsEdit.Homogeneous(fit.ControlPoints, null));
+            return new KeyValuePair<List<double>, List<double[]>>(
+                knots,
+                DxfNurbsEdit.Homogeneous(fit.ControlPoints, null)
+            );
         }
 
         /// <summary>A straight cubic from one point to another, over its length.</summary>
@@ -490,7 +552,10 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Two clamped cubics joined where the first ends, the second's knots moved on to follow the first's.</summary>
-        private static KeyValuePair<List<double>, List<double[]>> Join(KeyValuePair<List<double>, List<double[]>> a, KeyValuePair<List<double>, List<double[]>> b)
+        private static KeyValuePair<List<double>, List<double[]>> Join(
+            KeyValuePair<List<double>, List<double[]>> a,
+            KeyValuePair<List<double>, List<double[]>> b
+        )
         {
             const int P = 3;
             List<double> ua = a.Key;

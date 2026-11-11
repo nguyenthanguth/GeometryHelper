@@ -46,7 +46,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>A row of the manager's grid: an attribute definition of the block, its cells in the columns shown, and whether its tag is given twice.</summary>
     public sealed class AttributeManagerRowViewModel : ObservableObject
     {
-        internal AttributeManagerRowViewModel(CadAttributeDefinitionRow row, IReadOnlyList<AttributeCellViewModel> cells, bool duplicate)
+        internal AttributeManagerRowViewModel(
+            CadAttributeDefinitionRow row,
+            IReadOnlyList<AttributeCellViewModel> cells,
+            bool duplicate
+        )
         {
             Row = row;
             Cells = cells;
@@ -74,7 +78,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </summary>
     public sealed class BlockAttributeManagerViewModel : ObservableObject
     {
-        private readonly ObservableCollection<AttributeManagerRowViewModel> _rows = new ObservableCollection<AttributeManagerRowViewModel>();
+        private readonly ObservableCollection<AttributeManagerRowViewModel> _rows =
+            new ObservableCollection<AttributeManagerRowViewModel>();
         private AttributeManagerRowViewModel _selected;
         private IReadOnlyList<AttributeColumnViewModel> _columns = Array.Empty<AttributeColumnViewModel>();
 
@@ -256,17 +261,45 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The columns and rows made again from the request, the row at an index chosen.</summary>
         private void Rebuild(int choose)
         {
-            List<string> shown = CadAttributeManagerSettings.AllColumns.Where(c => c == "Tag" || Request.Settings.Columns.Contains(c)).ToList();
+            List<string> shown = CadAttributeManagerSettings
+                .AllColumns.Where(c => c == "Tag" || Request.Settings.Columns.Contains(c))
+                .ToList();
             double fixedWidth = shown.Where(c => c != "Prompt").Sum(Width);
-            var columns = shown.Select(c => new AttributeColumnViewModel(c, c == "Prompt" ? Math.Max(120.0, 552.0 - fixedWidth) : Width(c))).ToList();
+            var columns = shown
+                .Select(c => new AttributeColumnViewModel(
+                    c,
+                    c == "Prompt" ? Math.Max(120.0, 552.0 - fixedWidth) : Width(c)
+                ))
+                .ToList();
             _columns = columns;
-            var tags = Request.Rows.GroupBy(r => r.Tag ?? string.Empty, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+            var tags = Request
+                .Rows.GroupBy(r => r.Tag ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
             _rows.Clear();
 
             foreach (CadAttributeDefinitionRow row in Request.Rows)
             {
-                bool duplicate = Request.Settings.EmphasizeDuplicateTags && tags.Contains(row.Tag ?? string.Empty, StringComparer.OrdinalIgnoreCase);
-                _rows.Add(new AttributeManagerRowViewModel(row, columns.Select(c => new AttributeCellViewModel(Cell(row, c.Name), c.Width, c.Name != "Prompt" && c.Name != "Style" && c.Name != "Justification" && c.Name != "Layer")).ToList(), duplicate));
+                bool duplicate =
+                    Request.Settings.EmphasizeDuplicateTags
+                    && tags.Contains(row.Tag ?? string.Empty, StringComparer.OrdinalIgnoreCase);
+                _rows.Add(
+                    new AttributeManagerRowViewModel(
+                        row,
+                        columns
+                            .Select(c => new AttributeCellViewModel(
+                                Cell(row, c.Name),
+                                c.Width,
+                                c.Name != "Prompt"
+                                    && c.Name != "Style"
+                                    && c.Name != "Justification"
+                                    && c.Name != "Layer"
+                            ))
+                            .ToList(),
+                        duplicate
+                    )
+                );
             }
 
             _selected = _rows.Count == 0 ? null : _rows[Math.Max(0, Math.Min(choose, _rows.Count - 1))];
@@ -290,15 +323,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             switch (column)
             {
-                case "Tag": return 120.0;
-                case "Default": return 120.0;
-                case "Modes": return 70.0;
-                case "Annotative": return 80.0;
-                case "Justification": return 110.0;
+                case "Tag":
+                    return 120.0;
+                case "Default":
+                    return 120.0;
+                case "Modes":
+                    return 70.0;
+                case "Annotative":
+                    return 80.0;
+                case "Justification":
+                    return 110.0;
                 case "Width Factor":
                 case "Oblique Angle":
-                case "Boundary Width": return 100.0;
-                default: return 90.0;
+                case "Boundary Width":
+                    return 100.0;
+                default:
+                    return 90.0;
             }
         }
 
@@ -307,23 +347,40 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             switch (column)
             {
-                case "Tag": return row.Tag;
-                case "Prompt": return row.Prompt;
-                case "Default": return row.Default;
-                case "Modes": return row.Modes;
-                case "Annotative": return "No";
-                case "Style": return row.TextStyle ?? "Standard";
-                case "Justification": return JustificationNames.Of(row.Justification);
-                case "Height": return BlockNumbers.Plain(row.Height);
-                case "Rotation": return BlockNumbers.Plain(row.Rotation * 180.0 / Math.PI);
-                case "Width Factor": return BlockNumbers.Plain(row.WidthFactor);
-                case "Oblique Angle": return BlockNumbers.Plain(row.Oblique * 180.0 / Math.PI);
-                case "Boundary Width": return BlockNumbers.Plain(row.BoundaryWidth);
-                case "Layer": return row.Layer;
-                case "Linetype": return row.Linetype;
-                case "Color": return AttributeEditorViewModel.ColorName(row.ColorIndex);
-                case "Lineweight": return AttributeEditorViewModel.WeightName(row.LineWeight);
-                default: return "ByColor";
+                case "Tag":
+                    return row.Tag;
+                case "Prompt":
+                    return row.Prompt;
+                case "Default":
+                    return row.Default;
+                case "Modes":
+                    return row.Modes;
+                case "Annotative":
+                    return "No";
+                case "Style":
+                    return row.TextStyle ?? "Standard";
+                case "Justification":
+                    return JustificationNames.Of(row.Justification);
+                case "Height":
+                    return BlockNumbers.Plain(row.Height);
+                case "Rotation":
+                    return BlockNumbers.Plain(row.Rotation * 180.0 / Math.PI);
+                case "Width Factor":
+                    return BlockNumbers.Plain(row.WidthFactor);
+                case "Oblique Angle":
+                    return BlockNumbers.Plain(row.Oblique * 180.0 / Math.PI);
+                case "Boundary Width":
+                    return BlockNumbers.Plain(row.BoundaryWidth);
+                case "Layer":
+                    return row.Layer;
+                case "Linetype":
+                    return row.Linetype;
+                case "Color":
+                    return AttributeEditorViewModel.ColorName(row.ColorIndex);
+                case "Lineweight":
+                    return AttributeEditorViewModel.WeightName(row.LineWeight);
+                default:
+                    return "ByColor";
             }
         }
     }
@@ -362,9 +419,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _width = BlockNumbers.Plain(_row.WidthFactor);
             _oblique = BlockNumbers.Plain(_row.Oblique * 180.0 / Math.PI);
             DxfDatabase database = document.Database;
-            Styles = database.TextStyleTable.Select(s => s.Name).Where(n => n.Length > 0).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ThenBy(n => n, StringComparer.Ordinal).ToList();
-            Layers = database.LayerTable.Select(l => l.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ThenBy(n => n, StringComparer.Ordinal).ToList();
-            Linetypes = database.LinetypeTable.Select(l => l.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ThenBy(n => n, StringComparer.Ordinal).ToList();
+            Styles = database
+                .TextStyleTable.Select(s => s.Name)
+                .Where(n => n.Length > 0)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(n => n, StringComparer.Ordinal)
+                .ToList();
+            Layers = database
+                .LayerTable.Select(l => l.Name)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(n => n, StringComparer.Ordinal)
+                .ToList();
+            Linetypes = database
+                .LinetypeTable.Select(l => l.Name)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(n => n, StringComparer.Ordinal)
+                .ToList();
         }
 
         /// <summary>Gets the name of the block, which the dialog shows as Active Block.</summary>
@@ -401,28 +471,84 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool IsPropertiesTab => _tab == "Properties";
 
         /// <summary>Gets or sets the tag.</summary>
-        public string Tag { get => _row.Tag; set { _row.Tag = value ?? string.Empty; Raise(nameof(Tag)); } }
+        public string Tag
+        {
+            get => _row.Tag;
+            set
+            {
+                _row.Tag = value ?? string.Empty;
+                Raise(nameof(Tag));
+            }
+        }
 
         /// <summary>Gets or sets the prompt.</summary>
-        public string Prompt { get => _row.Prompt; set { _row.Prompt = value ?? string.Empty; Raise(nameof(Prompt)); } }
+        public string Prompt
+        {
+            get => _row.Prompt;
+            set
+            {
+                _row.Prompt = value ?? string.Empty;
+                Raise(nameof(Prompt));
+            }
+        }
 
         /// <summary>Gets or sets the default value.</summary>
-        public string Default { get => _row.Default; set { _row.Default = value ?? string.Empty; Raise(nameof(Default)); } }
+        public string Default
+        {
+            get => _row.Default;
+            set
+            {
+                _row.Default = value ?? string.Empty;
+                Raise(nameof(Default));
+            }
+        }
 
         /// <summary>Gets or sets whether the attribute is not shown.</summary>
-        public bool Invisible { get => _row.Invisible; set { _row.Invisible = value; Raise(nameof(Invisible)); } }
+        public bool Invisible
+        {
+            get => _row.Invisible;
+            set
+            {
+                _row.Invisible = value;
+                Raise(nameof(Invisible));
+            }
+        }
 
         /// <summary>Gets whether its value is constant, which only ATTDEF sets.</summary>
         public bool Constant => _row.Constant;
 
         /// <summary>Gets or sets whether its value is asked twice.</summary>
-        public bool Verify { get => _row.Verify; set { _row.Verify = value; Raise(nameof(Verify)); } }
+        public bool Verify
+        {
+            get => _row.Verify;
+            set
+            {
+                _row.Verify = value;
+                Raise(nameof(Verify));
+            }
+        }
 
         /// <summary>Gets or sets whether its default is taken without asking.</summary>
-        public bool Preset { get => _row.Preset; set { _row.Preset = value; Raise(nameof(Preset)); } }
+        public bool Preset
+        {
+            get => _row.Preset;
+            set
+            {
+                _row.Preset = value;
+                Raise(nameof(Preset));
+            }
+        }
 
         /// <summary>Gets or sets whether it keeps its place in the block.</summary>
-        public bool LockPosition { get => _row.LockPosition; set { _row.LockPosition = value; Raise(nameof(LockPosition)); } }
+        public bool LockPosition
+        {
+            get => _row.LockPosition;
+            set
+            {
+                _row.LockPosition = value;
+                Raise(nameof(LockPosition));
+            }
+        }
 
         /// <summary>Gets whether it is of several lines, which only ATTDEF sets.</summary>
         public bool MultipleLines => _row.MultipleLines;
@@ -440,52 +566,168 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public IReadOnlyList<string> Linetypes { get; }
 
         /// <summary>Gets the colours offered: ByLayer, ByBlock and the seven named.</summary>
-        public IReadOnlyList<string> Colors { get; } = new[] { "ByLayer", "ByBlock", "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White" };
+        public IReadOnlyList<string> Colors { get; } =
+            new[] { "ByLayer", "ByBlock", "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White" };
 
         /// <summary>Gets the lineweights offered: ByLayer, ByBlock, Default and AutoCAD's widths in millimetres.</summary>
-        public IReadOnlyList<string> LineWeights { get; } = new[] { "ByLayer", "ByBlock", "Default" }.Concat(new[] { 0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53, 60, 70, 80, 90, 100, 106, 120, 140, 158, 200, 211 }.Select(w => (w / 100.0).ToString("0.00", CultureInfo.InvariantCulture) + " mm")).ToList();
+        public IReadOnlyList<string> LineWeights { get; } =
+            new[] { "ByLayer", "ByBlock", "Default" }
+                .Concat(
+                    new[]
+                    {
+                        0,
+                        5,
+                        9,
+                        13,
+                        15,
+                        18,
+                        20,
+                        25,
+                        30,
+                        35,
+                        40,
+                        50,
+                        53,
+                        60,
+                        70,
+                        80,
+                        90,
+                        100,
+                        106,
+                        120,
+                        140,
+                        158,
+                        200,
+                        211,
+                    }.Select(w => (w / 100.0).ToString("0.00", CultureInfo.InvariantCulture) + " mm")
+                )
+                .ToList();
 
         /// <summary>Gets or sets the text style.</summary>
-        public string TextStyle { get => _row.TextStyle; set { _row.TextStyle = value; Raise(nameof(TextStyle)); } }
+        public string TextStyle
+        {
+            get => _row.TextStyle;
+            set
+            {
+                _row.TextStyle = value;
+                Raise(nameof(TextStyle));
+            }
+        }
 
         /// <summary>Gets or sets the justification, by its name.</summary>
-        public string Justification { get => JustificationNames.Of(_row.Justification); set { _row.Justification = JustificationNames.From(value); Raise(nameof(Justification)); } }
+        public string Justification
+        {
+            get => JustificationNames.Of(_row.Justification);
+            set
+            {
+                _row.Justification = JustificationNames.From(value);
+                Raise(nameof(Justification));
+            }
+        }
 
         /// <summary>Gets or sets the height, as typed.</summary>
-        public string Height { get => _height; set => Set(ref _height, value ?? string.Empty); }
+        public string Height
+        {
+            get => _height;
+            set => Set(ref _height, value ?? string.Empty);
+        }
 
         /// <summary>Gets or sets the rotation in degrees, as typed.</summary>
-        public string Rotation { get => _rotation; set => Set(ref _rotation, value ?? string.Empty); }
+        public string Rotation
+        {
+            get => _rotation;
+            set => Set(ref _rotation, value ?? string.Empty);
+        }
 
         /// <summary>Gets or sets whether the text is written backwards.</summary>
-        public bool Backwards { get => _row.Backwards; set { _row.Backwards = value; Raise(nameof(Backwards)); } }
+        public bool Backwards
+        {
+            get => _row.Backwards;
+            set
+            {
+                _row.Backwards = value;
+                Raise(nameof(Backwards));
+            }
+        }
 
         /// <summary>Gets or sets whether the text is upside down.</summary>
-        public bool UpsideDown { get => _row.UpsideDown; set { _row.UpsideDown = value; Raise(nameof(UpsideDown)); } }
+        public bool UpsideDown
+        {
+            get => _row.UpsideDown;
+            set
+            {
+                _row.UpsideDown = value;
+                Raise(nameof(UpsideDown));
+            }
+        }
 
         /// <summary>Gets or sets the width factor, as typed.</summary>
-        public string WidthFactor { get => _width; set => Set(ref _width, value ?? string.Empty); }
+        public string WidthFactor
+        {
+            get => _width;
+            set => Set(ref _width, value ?? string.Empty);
+        }
 
         /// <summary>Gets or sets the oblique angle in degrees, as typed.</summary>
-        public string Oblique { get => _oblique; set => Set(ref _oblique, value ?? string.Empty); }
+        public string Oblique
+        {
+            get => _oblique;
+            set => Set(ref _oblique, value ?? string.Empty);
+        }
 
         /// <summary>Gets the boundary width, which the dialog shows greyed: the width of an attribute of several lines, nought for one line.</summary>
         public string BoundaryWidth => BlockNumbers.Plain(_row.BoundaryWidth);
 
         /// <summary>Gets or sets the layer.</summary>
-        public string Layer { get => _row.Layer; set { _row.Layer = value; Raise(nameof(Layer)); } }
+        public string Layer
+        {
+            get => _row.Layer;
+            set
+            {
+                _row.Layer = value;
+                Raise(nameof(Layer));
+            }
+        }
 
         /// <summary>Gets or sets the linetype.</summary>
-        public string Linetype { get => _row.Linetype; set { _row.Linetype = value; Raise(nameof(Linetype)); } }
+        public string Linetype
+        {
+            get => _row.Linetype;
+            set
+            {
+                _row.Linetype = value;
+                Raise(nameof(Linetype));
+            }
+        }
 
         /// <summary>Gets or sets the colour by its name: ByLayer, ByBlock, Red to White, or Color n.</summary>
-        public string Color { get => AttributeEditorViewModel.ColorName(_row.ColorIndex); set { _row.ColorIndex = AttributeEditorViewModel.ColorIndex(value, _row.ColorIndex); Raise(nameof(Color)); } }
+        public string Color
+        {
+            get => AttributeEditorViewModel.ColorName(_row.ColorIndex);
+            set
+            {
+                _row.ColorIndex = AttributeEditorViewModel.ColorIndex(value, _row.ColorIndex);
+                Raise(nameof(Color));
+            }
+        }
 
         /// <summary>Gets or sets the lineweight by its name: ByLayer, ByBlock, Default, or millimetres.</summary>
-        public string LineWeight { get => AttributeEditorViewModel.WeightName(_row.LineWeight); set { _row.LineWeight = AttributeEditorViewModel.Weight(value, _row.LineWeight); Raise(nameof(LineWeight)); } }
+        public string LineWeight
+        {
+            get => AttributeEditorViewModel.WeightName(_row.LineWeight);
+            set
+            {
+                _row.LineWeight = AttributeEditorViewModel.Weight(value, _row.LineWeight);
+                Raise(nameof(LineWeight));
+            }
+        }
 
         /// <summary>Gets what OK said where it kept the dialog open, as "Value must be positive and nonzero."; empty otherwise.</summary>
-        public string Message { get => _message; private set => Set(ref _message, value ?? string.Empty); }
+        public string Message
+        {
+            get => _message;
+            private set => Set(ref _message, value ?? string.Empty);
+        }
 
         /// <summary>
         /// OK: the row as typed put in <see cref="Edited"/>. A tag of more than one word, or a number that does not read, a
@@ -500,8 +742,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
-            if (!BlockNumbers.TryRead(_height, out double height) || !BlockNumbers.TryRead(_rotation, out double rotation)
-                || !BlockNumbers.TryRead(_width, out double width) || !BlockNumbers.TryRead(_oblique, out double oblique))
+            if (
+                !BlockNumbers.TryRead(_height, out double height)
+                || !BlockNumbers.TryRead(_rotation, out double rotation)
+                || !BlockNumbers.TryRead(_width, out double width)
+                || !BlockNumbers.TryRead(_oblique, out double oblique)
+            )
             {
                 Message = "Requires a number.";
                 return false;
@@ -544,7 +790,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 throw new ArgumentNullException(nameof(settings));
             }
 
-            Columns = CadAttributeManagerSettings.AllColumns.Select(c => new AttributeSettingColumnViewModel(c, c == "Tag" || settings.Columns.Contains(c), c != "Tag" && c != "Plot style")).ToList();
+            Columns = CadAttributeManagerSettings
+                .AllColumns.Select(c => new AttributeSettingColumnViewModel(
+                    c,
+                    c == "Tag" || settings.Columns.Contains(c),
+                    c != "Tag" && c != "Plot style"
+                ))
+                .ToList();
             _emphasize = settings.EmphasizeDuplicateTags;
             _apply = settings.ApplyToExistingReferences;
         }
@@ -553,10 +805,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public IReadOnlyList<AttributeSettingColumnViewModel> Columns { get; }
 
         /// <summary>Gets or sets whether a tag given twice is drawn in red.</summary>
-        public bool EmphasizeDuplicateTags { get => _emphasize; set => Set(ref _emphasize, value); }
+        public bool EmphasizeDuplicateTags
+        {
+            get => _emphasize;
+            set => Set(ref _emphasize, value);
+        }
 
         /// <summary>Gets or sets whether Apply and OK bring the INSERTs of the block in line at once.</summary>
-        public bool ApplyToExistingReferences { get => _apply; set => Set(ref _apply, value); }
+        public bool ApplyToExistingReferences
+        {
+            get => _apply;
+            set => Set(ref _apply, value);
+        }
 
         /// <summary>Select All: every column that may be chosen checked.</summary>
         public void SelectAll() => Columns.Where(c => c.IsEnabled).ToList().ForEach(c => c.IsChecked = true);
@@ -602,7 +862,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string Name { get; }
 
         /// <summary>Gets or sets whether the grid shows it.</summary>
-        public bool IsChecked { get => _checked; set => Set(ref _checked, IsEnabled ? value : _checked); }
+        public bool IsChecked
+        {
+            get => _checked;
+            set => Set(ref _checked, IsEnabled ? value : _checked);
+        }
 
         /// <summary>Gets whether it may be changed: not Tag, which is always shown, nor Plot style, which the presenter has not.</summary>
         public bool IsEnabled { get; }
@@ -657,7 +921,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets "Page 1 of 2".</summary>
-        public string PageText => "Page " + (_page + 1).ToString(CultureInfo.InvariantCulture) + " of " + Pages.ToString(CultureInfo.InvariantCulture);
+        public string PageText =>
+            "Page "
+            + (_page + 1).ToString(CultureInfo.InvariantCulture)
+            + " of "
+            + Pages.ToString(CultureInfo.InvariantCulture);
 
         /// <summary>Gets whether there is a page before.</summary>
         public bool CanPrevious => _page > 0;

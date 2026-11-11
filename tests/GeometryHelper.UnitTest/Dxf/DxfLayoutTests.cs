@@ -18,7 +18,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("R2018")]
         public void TheLayoutsOfADrawing_AreReadAsEzdxfReadsThem_InTheOrderOfTheirTabs(string version)
         {
-            DxfDatabase db = DxfDatabase.Parse(version == "R2000" ? DxfObjectsEzdxfDrawings.R2000 : DxfObjectsEzdxfDrawings.R2018);
+            DxfDatabase db = DxfDatabase.Parse(
+                version == "R2000" ? DxfObjectsEzdxfDrawings.R2000 : DxfObjectsEzdxfDrawings.R2018
+            );
 
             Assert.Equal(new[] { "Model", "Layout1", "Sheet A" }, db.Layouts.Select(l => l.LayoutName));
             Assert.Equal(new[] { 0, 1, 3 }, db.Layouts.Select(l => l.TabOrder));
@@ -102,7 +104,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "D", "3E");
-            Assert.Contains("100\nAcDbLayout\n  1\nPlan 1-50\n", Records(saved).Single(r => HandleOf(r) == "3E"), StringComparison.Ordinal);
+            Assert.Contains(
+                "100\nAcDbLayout\n  1\nPlan 1-50\n",
+                Records(saved).Single(r => HandleOf(r) == "3E"),
+                StringComparison.Ordinal
+            );
             Assert.Contains("  1\n\n", Records(saved).Single(r => HandleOf(r) == "3E"), StringComparison.Ordinal);
             DxfDatabase again = DxfDatabase.Parse(saved);
             Assert.Equal(new[] { "Model", "Layout1", "Plan 1-50" }, again.LayoutDictionary.Select(e => e.Key));

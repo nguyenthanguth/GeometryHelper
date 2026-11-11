@@ -38,34 +38,42 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static GeoRectangle2 Plate() => new GeoRectangle2(0, 0, 100, 100);
 
-        private static GeoPolygon2 Square() => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+        private static GeoPolygon2 Square() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
 
         /// <summary>
         /// The square with its right-hand side swelled into a half circle of radius fifty about (100, 50),
         /// reaching out to x = 150.
         /// </summary>
-        private static GeoPolygonArc2 Slot() => new GeoPolygonArc2(
-            new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
-            new[] { 0.0, 1.0, 0.0, 0.0 });
+        private static GeoPolygonArc2 Slot() =>
+            new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
+                new[] { 0.0, 1.0, 0.0, 0.0 }
+            );
 
         /// <summary>
         /// The square with a twenty-wide hole in the middle of it.
         /// </summary>
-        private static GeoFace2 Pierced() => new GeoFace2(
-            Square(),
-            new[]
-            {
-                new GeoPolygon2(
-                    new GeoPoint2(40, 40), new GeoPoint2(60, 40), new GeoPoint2(60, 60), new GeoPoint2(40, 60))
-            });
+        private static GeoFace2 Pierced() =>
+            new GeoFace2(
+                Square(),
+                new[]
+                {
+                    new GeoPolygon2(
+                        new GeoPoint2(40, 40),
+                        new GeoPoint2(60, 40),
+                        new GeoPoint2(60, 60),
+                        new GeoPoint2(40, 60)
+                    ),
+                }
+            );
 
         /// <summary>
         /// Gets the distance from a point to the nearest edge of a polygon, without going through any of the
         /// projection code the answer under test is built on.
         /// </summary>
-        private static double ToEdges(GeoPolygon2 poly, GeoPoint2 point)
-            => poly.GetEdges().Min(edge => Distance2.DistanceTo(edge, point));
+        private static double ToEdges(GeoPolygon2 poly, GeoPoint2 point) =>
+            poly.GetEdges().Min(edge => Distance2.DistanceTo(edge, point));
 
         [Fact]
         public void ThePlainNumbersAreWhatTheDrawingSays()
@@ -112,7 +120,11 @@ namespace GeometryHelper.UnitTest.Plane
 
             GeoEdge2 bulge = slot.GetEdges().Single(edge => edge.IsArc);
 
-            Assert.Equal(20.0, Math.Abs(new GeoPoint2(30, 50).DistanceTo(bulge.ToArc().Center) - bulge.ToArc().Radius), 9);
+            Assert.Equal(
+                20.0,
+                Math.Abs(new GeoPoint2(30, 50).DistanceTo(bulge.ToArc().Center) - bulge.ToArc().Radius),
+                9
+            );
             Assert.Equal(Math.Sqrt(70.0 * 70.0 + 50.0 * 50.0), bulge.DistanceTo(new GeoPoint2(30, 50)), 9);
         }
 
@@ -163,23 +175,50 @@ namespace GeometryHelper.UnitTest.Plane
                 {
                     var point = new GeoPoint2(i * 7.0, j * 7.0);
 
-                    Check(circle.SignedDistanceTo(point), circle.Locate(point),
+                    Check(
+                        circle.SignedDistanceTo(point),
+                        circle.Locate(point),
                         Math.Abs(point.DistanceTo(circle.Center) - circle.Radius),
-                        ref inside, ref outside, ref onBoundary);
+                        ref inside,
+                        ref outside,
+                        ref onBoundary
+                    );
 
-                    Check(plate.SignedDistanceTo(point), plate.Locate(point),
-                        ToEdges(plate.ToPolygon(), point), ref inside, ref outside, ref onBoundary);
+                    Check(
+                        plate.SignedDistanceTo(point),
+                        plate.Locate(point),
+                        ToEdges(plate.ToPolygon(), point),
+                        ref inside,
+                        ref outside,
+                        ref onBoundary
+                    );
 
-                    Check(square.SignedDistanceTo(point), square.Locate(point),
-                        ToEdges(square, point), ref inside, ref outside, ref onBoundary);
+                    Check(
+                        square.SignedDistanceTo(point),
+                        square.Locate(point),
+                        ToEdges(square, point),
+                        ref inside,
+                        ref outside,
+                        ref onBoundary
+                    );
 
-                    Check(slot.SignedDistanceTo(point), slot.Locate(point),
+                    Check(
+                        slot.SignedDistanceTo(point),
+                        slot.Locate(point),
                         slot.GetEdges().Min(edge => edge.DistanceTo(point)),
-                        ref inside, ref outside, ref onBoundary);
+                        ref inside,
+                        ref outside,
+                        ref onBoundary
+                    );
 
-                    Check(face.SignedDistanceTo(point), face.Locate(point),
+                    Check(
+                        face.SignedDistanceTo(point),
+                        face.Locate(point),
                         Math.Min(ToEdges(face.Boundary, point), ToEdges(hole, point)),
-                        ref inside, ref outside, ref onBoundary);
+                        ref inside,
+                        ref outside,
+                        ref onBoundary
+                    );
                 }
             }
 
@@ -195,7 +234,8 @@ namespace GeometryHelper.UnitTest.Plane
             double toBoundary,
             ref int inside,
             ref int outside,
-            ref int onBoundary)
+            ref int onBoundary
+        )
         {
             Assert.Equal(toBoundary, Math.Abs(signed), 7);
 
@@ -223,27 +263,39 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var probes = new List<GeoPoint2>
             {
-                new GeoPoint2(50, 50), new GeoPoint2(10, 20), new GeoPoint2(-30, 140),
-                new GeoPoint2(0, 0), new GeoPoint2(99, 1), new GeoPoint2(130, 50)
+                new GeoPoint2(50, 50),
+                new GeoPoint2(10, 20),
+                new GeoPoint2(-30, 140),
+                new GeoPoint2(0, 0),
+                new GeoPoint2(99, 1),
+                new GeoPoint2(130, 50),
             };
 
             foreach (GeoPoint2 point in probes)
             {
                 Assert.Equal(
                     point.DistanceTo(Plate().GetClosestPointOnBoundary(point)),
-                    Math.Abs(Plate().SignedDistanceTo(point)), 7);
+                    Math.Abs(Plate().SignedDistanceTo(point)),
+                    7
+                );
 
                 Assert.Equal(
                     point.DistanceTo(Square().GetClosestPointOnBoundary(point)),
-                    Math.Abs(Square().SignedDistanceTo(point)), 7);
+                    Math.Abs(Square().SignedDistanceTo(point)),
+                    7
+                );
 
                 Assert.Equal(
                     point.DistanceTo(Circle().GetClosestPointOnBoundary(point)),
-                    Math.Abs(Circle().SignedDistanceTo(point)), 7);
+                    Math.Abs(Circle().SignedDistanceTo(point)),
+                    7
+                );
 
                 Assert.Equal(
                     point.DistanceTo(Slot().GetClosestPointOnBoundary(point)),
-                    Math.Abs(Slot().SignedDistanceTo(point)), 7);
+                    Math.Abs(Slot().SignedDistanceTo(point)),
+                    7
+                );
             }
         }
 
@@ -276,7 +328,11 @@ namespace GeometryHelper.UnitTest.Plane
             // A bowtie: the two lobes are traced the opposite way round, so the even-odd rule reads the
             // crossing point as boundary and both lobes as inside.
             var bowtie = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(100, 100), new GeoPoint2(100, 0), new GeoPoint2(0, 100));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(0, 100)
+            );
 
             Assert.False(bowtie.IsSimple());
 

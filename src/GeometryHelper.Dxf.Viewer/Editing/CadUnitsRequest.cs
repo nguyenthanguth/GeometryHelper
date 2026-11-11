@@ -59,7 +59,8 @@ namespace GeometryHelper.Dxf.Viewer
         public string SampleLength => Length(1.5) + "," + Length(2.0) + "," + Length(0.0);
 
         /// <summary>Gets the second line of Sample Output, 3 at 45 degrees: 3.00&lt;45,0.00 in decimal to two places and whole degrees.</summary>
-        public string SampleAngle => Length(3.0) + "<" + CadUnits.Angle(Math.PI / 4.0, AngleUnits, AnglePrecision) + "," + Length(0.0);
+        public string SampleAngle =>
+            Length(3.0) + "<" + CadUnits.Angle(Math.PI / 4.0, AngleUnits, AnglePrecision) + "," + Length(0.0);
 
         private string Length(double value) => CadUnits.Length(value, LengthUnits, LengthPrecision);
     }

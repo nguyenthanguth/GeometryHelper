@@ -14,8 +14,13 @@ namespace GeometryHelper.UnitTest.Solid
     {
         internal static string Number(double value) => value.ToString("R", CultureInfo.InvariantCulture);
 
-        internal static void Append(StringBuilder text, GeoPoint3 point)
-            => text.Append(Number(point.X)).Append(',').Append(Number(point.Y)).Append(',').Append(Number(point.Z)).Append(' ');
+        internal static void Append(StringBuilder text, GeoPoint3 point) =>
+            text.Append(Number(point.X))
+                .Append(',')
+                .Append(Number(point.Y))
+                .Append(',')
+                .Append(Number(point.Z))
+                .Append(' ');
 
         internal static void Append(StringBuilder text, GeoTriangle3[] triangles)
         {
@@ -68,12 +73,16 @@ namespace GeometryHelper.UnitTest.Solid
         {
             switch (axis)
             {
-                case 'X': return p;
-                case 'Y': return new GeoPoint3(p.Y, p.X, p.Z);
-                default: return new GeoPoint3(p.Z, p.Y, p.X);
+                case 'X':
+                    return p;
+                case 'Y':
+                    return new GeoPoint3(p.Y, p.X, p.Z);
+                default:
+                    return new GeoPoint3(p.Z, p.Y, p.X);
             }
         }
 
-        internal static GeoAabb3 Along(char axis, GeoAabb3 box) => new GeoAabb3(Along(axis, box.Min), Along(axis, box.Max));
+        internal static GeoAabb3 Along(char axis, GeoAabb3 box) =>
+            new GeoAabb3(Along(axis, box.Min), Along(axis, box.Max));
     }
 }

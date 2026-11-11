@@ -35,7 +35,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void EachTextEdited_IsAnUndoStepOfItsOwn_AndUndoTakesTheLastBack()
         {
-            CadDocument document = CadDocument.From(TestDrawings.Drawing(null, null, TestDrawings.Text(0, 0, 5, "ONE", handle: "B1"), TestDrawings.Text(0, 100, 5, "TWO", handle: "B2")), "two.dxf");
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(
+                    null,
+                    null,
+                    TestDrawings.Text(0, 0, 5, "ONE", handle: "B1"),
+                    TestDrawings.Text(0, 100, 5, "TWO", handle: "B2")
+                ),
+                "two.dxf"
+            );
             CadCommandSession session = Session(document);
 
             Run(session, "TEXTEDIT", new[] { "B1" }, "UNO", new[] { "B2" }, "DOS");

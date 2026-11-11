@@ -21,7 +21,10 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly GeoAabb3 Box = new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 10));
 
         // Across the edge where the faces y = 10 and z = 10 meet, 0.0005 off it at its nearest.
-        private static readonly GeoLine3 PastTheEdge = new GeoLine3(new GeoPoint3(5, 10.1, 9.9007), new GeoPoint3(5, 9.9007, 10.1));
+        private static readonly GeoLine3 PastTheEdge = new GeoLine3(
+            new GeoPoint3(5, 10.1, 9.9007),
+            new GeoPoint3(5, 9.9007, 10.1)
+        );
 
         [Fact]
         public void ASegmentPassingWithinTheToleranceOfAnEdge_TouchesItWhereItIsNearest()
@@ -35,7 +38,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Single(Box.GetIntersections(new GeoLine3(PastTheEdge.EndPoint, PastTheEdge.StartPoint), Default));
             Assert.Single(Box.GetIntersections(new GeoRay3(PastTheEdge.StartPoint, PastTheEdge.Direction), Default));
             Assert.Single(new GeoXLine3(PastTheEdge.StartPoint, PastTheEdge.Direction).GetIntersections(Box, Default));
-            Assert.Single(Box.GetIntersections(new GeoPolyline3(new[] { PastTheEdge.StartPoint, PastTheEdge.EndPoint }), Default));
+            Assert.Single(
+                Box.GetIntersections(new GeoPolyline3(new[] { PastTheEdge.StartPoint, PastTheEdge.EndPoint }), Default)
+            );
         }
 
         [Fact]
@@ -62,14 +67,25 @@ namespace GeometryHelper.UnitTest.Solid
         {
             var back = new GeoLine3(PastTheEdge.EndPoint, PastTheEdge.StartPoint);
 
-            Assert.Equal(Assert.Single(Box.GetIntersections(PastTheEdge, Default)), Assert.Single(Box.GetIntersections(back, Default)));
+            Assert.Equal(
+                Assert.Single(Box.GetIntersections(PastTheEdge, Default)),
+                Assert.Single(Box.GetIntersections(back, Default))
+            );
         }
 
         [Fact]
         public void AChainLevelOverAFace_LiesAlongItAndCrossesNothing()
         {
             // 0.0005 over the top face, as the body of the box and an arc in the same place read it.
-            var chain = new GeoPolyline3(new[] { new GeoPoint3(2, 2, 10.0005), new GeoPoint3(5, 3, 10.0005), new GeoPoint3(8, 2, 10.0005), new GeoPoint3(8, 8, 10.0005) });
+            var chain = new GeoPolyline3(
+                new[]
+                {
+                    new GeoPoint3(2, 2, 10.0005),
+                    new GeoPoint3(5, 3, 10.0005),
+                    new GeoPoint3(8, 2, 10.0005),
+                    new GeoPoint3(8, 8, 10.0005),
+                }
+            );
             var segment = new GeoLine3(new GeoPoint3(2, 2, 10.0005), new GeoPoint3(5, 3, 10.0005));
 
             Assert.True(Box.CollidesWith(chain, Default));
@@ -99,7 +115,11 @@ namespace GeometryHelper.UnitTest.Solid
                 double[] at = { random.NextDouble() * 10, random.NextDouble() * 10, random.NextDouble() * 10 };
                 int axis = random.Next(3);
                 at[axis] = (random.Next(2) == 0 ? 0 : 10) + (random.NextDouble() * 2 - 1) * 0.003;
-                var direction = new GeoVector3(random.NextDouble() * 2 - 1, random.NextDouble() * 2 - 1, random.NextDouble() * 2 - 1);
+                var direction = new GeoVector3(
+                    random.NextDouble() * 2 - 1,
+                    random.NextDouble() * 2 - 1,
+                    random.NextDouble() * 2 - 1
+                );
 
                 if (direction.Length < 0.1)
                 {
@@ -124,7 +144,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AChainTouchingTheBox_IsNotCutWhereItTouches()
         {
-            var chain = new GeoPolyline3(new[] { new GeoPoint3(5, 10.1, 9.9007), new GeoPoint3(5, 9.9007, 10.1), new GeoPoint3(5, 9.5, 12) });
+            var chain = new GeoPolyline3(
+                new[] { new GeoPoint3(5, 10.1, 9.9007), new GeoPoint3(5, 9.9007, 10.1), new GeoPoint3(5, 9.5, 12) }
+            );
 
             Assert.False(chain.TrySplitBy(Box, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Default));
             Assert.Empty(inside);
@@ -139,9 +161,12 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < 5000; i++)
             {
-                double y0 = 10 + (random.NextDouble() * 2 - 1) * 0.0015, z0 = 10 + (random.NextDouble() * 2 - 1) * 0.0015;
-                double y1 = y0 + (random.NextDouble() * 2 - 1) * 0.0015, z1 = z0 + (random.NextDouble() * 2 - 1) * 0.0015;
-                double x0 = -20 + random.NextDouble() * 15, x1 = x0 + random.NextDouble() * 30;
+                double y0 = 10 + (random.NextDouble() * 2 - 1) * 0.0015,
+                    z0 = 10 + (random.NextDouble() * 2 - 1) * 0.0015;
+                double y1 = y0 + (random.NextDouble() * 2 - 1) * 0.0015,
+                    z1 = z0 + (random.NextDouble() * 2 - 1) * 0.0015;
+                double x0 = -20 + random.NextDouble() * 15,
+                    x1 = x0 + random.NextDouble() * 30;
                 var segment = new GeoLine3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1));
                 bool collides = box.CollidesWith(segment, Default);
 
@@ -149,17 +174,30 @@ namespace GeometryHelper.UnitTest.Solid
                 // edge at both its ends (since LN4, a length and not an angle), collides and crosses nothing; any other crosses
                 // exactly where it collides.
                 double near = Default.EqualPlanar * (1 + 1E-9);
-                bool along = (Math.Abs(z0 - 10) <= near && Math.Abs(z1 - 10) <= near)
+                bool along =
+                    (Math.Abs(z0 - 10) <= near && Math.Abs(z1 - 10) <= near)
                     || (Math.Abs(y0 - 10) <= near && Math.Abs(y1 - 10) <= near)
-                    || (Math.Sqrt((y0 - 10) * (y0 - 10) + (z0 - 10) * (z0 - 10)) <= near && Math.Sqrt((y1 - 10) * (y1 - 10) + (z1 - 10) * (z1 - 10)) <= near);
+                    || (
+                        Math.Sqrt((y0 - 10) * (y0 - 10) + (z0 - 10) * (z0 - 10)) <= near
+                        && Math.Sqrt((y1 - 10) * (y1 - 10) + (z1 - 10) * (z1 - 10)) <= near
+                    );
                 bool expected = collides && !along;
                 int forward = box.GetIntersections(segment, Default).Length;
 
                 Assert.True(forward == 0 || collides);
                 Assert.True(!expected || forward > 0);
                 Assert.Equal(forward > 0, Box.GetIntersections(segment, Default).Length > 0);
-                Assert.Equal(forward > 0, box.GetIntersections(new GeoLine3(segment.EndPoint, segment.StartPoint), Default).Length > 0);
-                Assert.Equal(forward > 0, Box.GetIntersections(new GeoPolyline3(new[] { segment.StartPoint, segment.EndPoint }), Default).Length > 0);
+                Assert.Equal(
+                    forward > 0,
+                    box.GetIntersections(new GeoLine3(segment.EndPoint, segment.StartPoint), Default).Length > 0
+                );
+                Assert.Equal(
+                    forward > 0,
+                    Box.GetIntersections(
+                        new GeoPolyline3(new[] { segment.StartPoint, segment.EndPoint }),
+                        Default
+                    ).Length > 0
+                );
 
                 var ray = new GeoRay3(segment.StartPoint, segment.Direction);
                 var line = new GeoXLine3(segment.StartPoint, segment.Direction);

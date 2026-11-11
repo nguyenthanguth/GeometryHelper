@@ -57,38 +57,262 @@ namespace GeometryHelper.Dxf
         // the same as EntityColor.LookUpRgb); 0, BYBLOCK, has none and is held as black.
         private static readonly int[] Palette =
         {
-            0x000000, 0xFF0000, 0xFFFF00, 0x00FF00, 0x00FFFF, 0x0000FF, 0xFF00FF, 0xFFFFFF,
-            0x808080, 0xC0C0C0, 0xFF0000, 0xFF7F7F, 0xCC0000, 0xCC6666, 0x990000, 0x994C4C,
-            0x7F0000, 0x7F3F3F, 0x4C0000, 0x4C2626, 0xFF3F00, 0xFF9F7F, 0xCC3300, 0xCC7F66,
-            0x992600, 0x995F4C, 0x7F1F00, 0x7F4F3F, 0x4C1300, 0x4C2F26, 0xFF7F00, 0xFFBF7F,
-            0xCC6600, 0xCC9966, 0x994C00, 0x99724C, 0x7F3F00, 0x7F5F3F, 0x4C2600, 0x4C3926,
-            0xFFBF00, 0xFFDF7F, 0xCC9900, 0xCCB266, 0x997200, 0x99854C, 0x7F5F00, 0x7F6F3F,
-            0x4C3900, 0x4C4226, 0xFFFF00, 0xFFFF7F, 0xCCCC00, 0xCCCC66, 0x999900, 0x99994C,
-            0x7F7F00, 0x7F7F3F, 0x4C4C00, 0x4C4C26, 0xBFFF00, 0xDFFF7F, 0x99CC00, 0xB2CC66,
-            0x729900, 0x85994C, 0x5F7F00, 0x6F7F3F, 0x394C00, 0x424C26, 0x7FFF00, 0xBFFF7F,
-            0x66CC00, 0x99CC66, 0x4C9900, 0x72994C, 0x3F7F00, 0x5F7F3F, 0x264C00, 0x394C26,
-            0x3FFF00, 0x9FFF7F, 0x33CC00, 0x7FCC66, 0x269900, 0x5F994C, 0x1F7F00, 0x4F7F3F,
-            0x134C00, 0x2F4C26, 0x00FF00, 0x7FFF7F, 0x00CC00, 0x66CC66, 0x009900, 0x4C994C,
-            0x007F00, 0x3F7F3F, 0x004C00, 0x264C26, 0x00FF3F, 0x7FFF9F, 0x00CC33, 0x66CC7F,
-            0x009926, 0x4C995F, 0x007F1F, 0x3F7F4F, 0x004C13, 0x264C2F, 0x00FF7F, 0x7FFFBF,
-            0x00CC66, 0x66CC99, 0x00994C, 0x4C9972, 0x007F3F, 0x3F7F5F, 0x004C26, 0x264C39,
-            0x00FFBF, 0x7FFFDF, 0x00CC99, 0x66CCB2, 0x009972, 0x4C9985, 0x007F5F, 0x3F7F6F,
-            0x004C39, 0x264C42, 0x00FFFF, 0x7FFFFF, 0x00CCCC, 0x66CCCC, 0x009999, 0x4C9999,
-            0x007F7F, 0x3F7F7F, 0x004C4C, 0x264C4C, 0x00BFFF, 0x7FDFFF, 0x0099CC, 0x66B2CC,
-            0x007299, 0x4C8599, 0x005F7F, 0x3F6F7F, 0x00394C, 0x26424C, 0x007FFF, 0x7FBFFF,
-            0x0066CC, 0x6699CC, 0x004C99, 0x4C7299, 0x003F7F, 0x3F5F7F, 0x00264C, 0x26394C,
-            0x003FFF, 0x7F9FFF, 0x0033CC, 0x667FCC, 0x002699, 0x4C5F99, 0x001F7F, 0x3F4F7F,
-            0x00134C, 0x262F4C, 0x0000FF, 0x7F7FFF, 0x0000CC, 0x6666CC, 0x000099, 0x4C4C99,
-            0x00007F, 0x3F3F7F, 0x00004C, 0x26264C, 0x3F00FF, 0x9F7FFF, 0x3300CC, 0x7F66CC,
-            0x260099, 0x5F4C99, 0x1F007F, 0x4F3F7F, 0x13004C, 0x2F264C, 0x7F00FF, 0xBF7FFF,
-            0x6600CC, 0x9966CC, 0x4C0099, 0x724C99, 0x3F007F, 0x5F3F7F, 0x26004C, 0x39264C,
-            0xBF00FF, 0xDF7FFF, 0x9900CC, 0xB266CC, 0x720099, 0x854C99, 0x5F007F, 0x6F3F7F,
-            0x39004C, 0x42264C, 0xFF00FF, 0xFF7FFF, 0xCC00CC, 0xCC66CC, 0x990099, 0x994C99,
-            0x7F007F, 0x7F3F7F, 0x4C004C, 0x4C264C, 0xFF00BF, 0xFF7FDF, 0xCC0099, 0xCC66B2,
-            0x990072, 0x994C85, 0x7F005F, 0x7F3F6F, 0x4C0039, 0x4C2642, 0xFF007F, 0xFF7FBF,
-            0xCC0066, 0xCC6699, 0x99004C, 0x994C72, 0x7F003F, 0x7F3F5F, 0x4C0026, 0x4C2639,
-            0xFF003F, 0xFF7F9F, 0xCC0033, 0xCC667F, 0x990026, 0x994C5F, 0x7F001F, 0x7F3F4F,
-            0x4C0013, 0x4C262F, 0x333333, 0x5B5B5B, 0x848484, 0xADADAD, 0xD6D6D6, 0xFFFFFF,
+            0x000000,
+            0xFF0000,
+            0xFFFF00,
+            0x00FF00,
+            0x00FFFF,
+            0x0000FF,
+            0xFF00FF,
+            0xFFFFFF,
+            0x808080,
+            0xC0C0C0,
+            0xFF0000,
+            0xFF7F7F,
+            0xCC0000,
+            0xCC6666,
+            0x990000,
+            0x994C4C,
+            0x7F0000,
+            0x7F3F3F,
+            0x4C0000,
+            0x4C2626,
+            0xFF3F00,
+            0xFF9F7F,
+            0xCC3300,
+            0xCC7F66,
+            0x992600,
+            0x995F4C,
+            0x7F1F00,
+            0x7F4F3F,
+            0x4C1300,
+            0x4C2F26,
+            0xFF7F00,
+            0xFFBF7F,
+            0xCC6600,
+            0xCC9966,
+            0x994C00,
+            0x99724C,
+            0x7F3F00,
+            0x7F5F3F,
+            0x4C2600,
+            0x4C3926,
+            0xFFBF00,
+            0xFFDF7F,
+            0xCC9900,
+            0xCCB266,
+            0x997200,
+            0x99854C,
+            0x7F5F00,
+            0x7F6F3F,
+            0x4C3900,
+            0x4C4226,
+            0xFFFF00,
+            0xFFFF7F,
+            0xCCCC00,
+            0xCCCC66,
+            0x999900,
+            0x99994C,
+            0x7F7F00,
+            0x7F7F3F,
+            0x4C4C00,
+            0x4C4C26,
+            0xBFFF00,
+            0xDFFF7F,
+            0x99CC00,
+            0xB2CC66,
+            0x729900,
+            0x85994C,
+            0x5F7F00,
+            0x6F7F3F,
+            0x394C00,
+            0x424C26,
+            0x7FFF00,
+            0xBFFF7F,
+            0x66CC00,
+            0x99CC66,
+            0x4C9900,
+            0x72994C,
+            0x3F7F00,
+            0x5F7F3F,
+            0x264C00,
+            0x394C26,
+            0x3FFF00,
+            0x9FFF7F,
+            0x33CC00,
+            0x7FCC66,
+            0x269900,
+            0x5F994C,
+            0x1F7F00,
+            0x4F7F3F,
+            0x134C00,
+            0x2F4C26,
+            0x00FF00,
+            0x7FFF7F,
+            0x00CC00,
+            0x66CC66,
+            0x009900,
+            0x4C994C,
+            0x007F00,
+            0x3F7F3F,
+            0x004C00,
+            0x264C26,
+            0x00FF3F,
+            0x7FFF9F,
+            0x00CC33,
+            0x66CC7F,
+            0x009926,
+            0x4C995F,
+            0x007F1F,
+            0x3F7F4F,
+            0x004C13,
+            0x264C2F,
+            0x00FF7F,
+            0x7FFFBF,
+            0x00CC66,
+            0x66CC99,
+            0x00994C,
+            0x4C9972,
+            0x007F3F,
+            0x3F7F5F,
+            0x004C26,
+            0x264C39,
+            0x00FFBF,
+            0x7FFFDF,
+            0x00CC99,
+            0x66CCB2,
+            0x009972,
+            0x4C9985,
+            0x007F5F,
+            0x3F7F6F,
+            0x004C39,
+            0x264C42,
+            0x00FFFF,
+            0x7FFFFF,
+            0x00CCCC,
+            0x66CCCC,
+            0x009999,
+            0x4C9999,
+            0x007F7F,
+            0x3F7F7F,
+            0x004C4C,
+            0x264C4C,
+            0x00BFFF,
+            0x7FDFFF,
+            0x0099CC,
+            0x66B2CC,
+            0x007299,
+            0x4C8599,
+            0x005F7F,
+            0x3F6F7F,
+            0x00394C,
+            0x26424C,
+            0x007FFF,
+            0x7FBFFF,
+            0x0066CC,
+            0x6699CC,
+            0x004C99,
+            0x4C7299,
+            0x003F7F,
+            0x3F5F7F,
+            0x00264C,
+            0x26394C,
+            0x003FFF,
+            0x7F9FFF,
+            0x0033CC,
+            0x667FCC,
+            0x002699,
+            0x4C5F99,
+            0x001F7F,
+            0x3F4F7F,
+            0x00134C,
+            0x262F4C,
+            0x0000FF,
+            0x7F7FFF,
+            0x0000CC,
+            0x6666CC,
+            0x000099,
+            0x4C4C99,
+            0x00007F,
+            0x3F3F7F,
+            0x00004C,
+            0x26264C,
+            0x3F00FF,
+            0x9F7FFF,
+            0x3300CC,
+            0x7F66CC,
+            0x260099,
+            0x5F4C99,
+            0x1F007F,
+            0x4F3F7F,
+            0x13004C,
+            0x2F264C,
+            0x7F00FF,
+            0xBF7FFF,
+            0x6600CC,
+            0x9966CC,
+            0x4C0099,
+            0x724C99,
+            0x3F007F,
+            0x5F3F7F,
+            0x26004C,
+            0x39264C,
+            0xBF00FF,
+            0xDF7FFF,
+            0x9900CC,
+            0xB266CC,
+            0x720099,
+            0x854C99,
+            0x5F007F,
+            0x6F3F7F,
+            0x39004C,
+            0x42264C,
+            0xFF00FF,
+            0xFF7FFF,
+            0xCC00CC,
+            0xCC66CC,
+            0x990099,
+            0x994C99,
+            0x7F007F,
+            0x7F3F7F,
+            0x4C004C,
+            0x4C264C,
+            0xFF00BF,
+            0xFF7FDF,
+            0xCC0099,
+            0xCC66B2,
+            0x990072,
+            0x994C85,
+            0x7F005F,
+            0x7F3F6F,
+            0x4C0039,
+            0x4C2642,
+            0xFF007F,
+            0xFF7FBF,
+            0xCC0066,
+            0xCC6699,
+            0x99004C,
+            0x994C72,
+            0x7F003F,
+            0x7F3F5F,
+            0x4C0026,
+            0x4C2639,
+            0xFF003F,
+            0xFF7F9F,
+            0xCC0033,
+            0xCC667F,
+            0x990026,
+            0x994C5F,
+            0x7F001F,
+            0x7F3F4F,
+            0x4C0013,
+            0x4C262F,
+            0x333333,
+            0x5B5B5B,
+            0x848484,
+            0xADADAD,
+            0xD6D6D6,
+            0xFFFFFF,
         };
 
         private readonly int _rgb;
@@ -174,12 +398,20 @@ namespace GeometryHelper.Dxf
                 case DxfColorMethod.ByAci:
                     if (colorIndex < 0 || colorIndex > 256)
                     {
-                        throw new ArgumentOutOfRangeException(nameof(colorIndex), colorIndex, "A colour of AutoCAD's index runs from 1 to 255.");
+                        throw new ArgumentOutOfRangeException(
+                            nameof(colorIndex),
+                            colorIndex,
+                            "A colour of AutoCAD's index runs from 1 to 255."
+                        );
                     }
 
                     return OfIndex(colorIndex);
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(colorMethod), colorMethod, "A colour of an index is by layer, by block, by the index, the foreground or none.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(colorMethod),
+                        colorMethod,
+                        "A colour of an index is by layer, by block, by the index, the foreground or none."
+                    );
             }
         }
 
@@ -191,7 +423,8 @@ namespace GeometryHelper.Dxf
         /// <param name="green">The green, 0 to 255.</param>
         /// <param name="blue">The blue, 0 to 255.</param>
         /// <returns>The colour.</returns>
-        public static DxfColor FromRgb(byte red, byte green, byte blue) => OfRgb((red << 16) | (green << 8) | blue, null);
+        public static DxfColor FromRgb(byte red, byte green, byte blue) =>
+            OfRgb((red << 16) | (green << 8) | blue, null);
 
         /// <summary>The colour of an index: BYBLOCK for 0, BYLAYER for 256 and beyond, the index's below; turned off, as a layer's below nought, the same.</summary>
         internal static DxfColor OfIndex(int index)
@@ -247,8 +480,12 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets whether this colour is another, by method, index, red, green, blue and name.</summary>
         /// <param name="other">The other colour.</param>
         /// <returns>Whether they are equal.</returns>
-        public bool Equals(DxfColor other)
-            => other != null && ColorMethod == other.ColorMethod && ColorIndex == other.ColorIndex && _rgb == other._rgb && string.Equals(ColorName, other.ColorName, StringComparison.Ordinal);
+        public bool Equals(DxfColor other) =>
+            other != null
+            && ColorMethod == other.ColorMethod
+            && ColorIndex == other.ColorIndex
+            && _rgb == other._rgb
+            && string.Equals(ColorName, other.ColorName, StringComparison.Ordinal);
 
         /// <summary>Gets whether this colour is another object, a colour equal to it.</summary>
         /// <param name="obj">The object.</param>
@@ -265,11 +502,21 @@ namespace GeometryHelper.Dxf
         {
             switch (ColorMethod)
             {
-                case DxfColorMethod.ByLayer: return "BYLAYER";
-                case DxfColorMethod.ByBlock: return "BYBLOCK";
-                case DxfColorMethod.ByColor: return ColorName ?? Red.ToString(CultureInfo.InvariantCulture) + "," + Green.ToString(CultureInfo.InvariantCulture) + "," + Blue.ToString(CultureInfo.InvariantCulture);
-                case DxfColorMethod.None: return "None";
-                default: return ColorIndex.ToString(CultureInfo.InvariantCulture);
+                case DxfColorMethod.ByLayer:
+                    return "BYLAYER";
+                case DxfColorMethod.ByBlock:
+                    return "BYBLOCK";
+                case DxfColorMethod.ByColor:
+                    return ColorName
+                        ?? Red.ToString(CultureInfo.InvariantCulture)
+                            + ","
+                            + Green.ToString(CultureInfo.InvariantCulture)
+                            + ","
+                            + Blue.ToString(CultureInfo.InvariantCulture);
+                case DxfColorMethod.None:
+                    return "None";
+                default:
+                    return ColorIndex.ToString(CultureInfo.InvariantCulture);
             }
         }
     }

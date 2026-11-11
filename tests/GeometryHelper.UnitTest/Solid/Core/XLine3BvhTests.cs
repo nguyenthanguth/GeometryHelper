@@ -21,7 +21,8 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Strict = new Tolerance(1E-3, 1E-5);
 
-        private static GeoSolid3 Box(double x, double y, double z) => new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(x, y, z)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x, double y, double z) =>
+            new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(x, y, z)).ToObb().ToSolid();
 
         private static GeoSolid3 Cylinder(int segments, double radius, double height)
         {
@@ -83,8 +84,14 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 var xline = new GeoXLine3(new GeoPoint3(3, 6, z), GeoVector3.ZAxis);
 
-                AssertSamePoints(new[] { new GeoPoint3(3, 6, 0), new GeoPoint3(3, 6, 10) }, tree.GetIntersections(xline, Strict));
-                AssertSamePoints(new[] { new GeoPoint3(3, 6, 0), new GeoPoint3(3, 6, 10) }, tree.GetIntersections(xline.Reverse(), Strict));
+                AssertSamePoints(
+                    new[] { new GeoPoint3(3, 6, 0), new GeoPoint3(3, 6, 10) },
+                    tree.GetIntersections(xline, Strict)
+                );
+                AssertSamePoints(
+                    new[] { new GeoPoint3(3, 6, 0), new GeoPoint3(3, 6, 10) },
+                    tree.GetIntersections(xline.Reverse(), Strict)
+                );
             }
         }
 
@@ -104,7 +111,9 @@ namespace GeometryHelper.UnitTest.Solid
             GeoBvh3 tree = GeoBvh3.FromSolid(Box(10, 10, 10));
 
             Assert.Empty(tree.GetIntersections(new GeoXLine3(new GeoPoint3(50, 50, -20), GeoVector3.ZAxis), Strict));
-            Assert.Empty(tree.GetIntersections(new GeoXLine3(new GeoPoint3(0, 0, 20), new GeoVector3(1, 1, 0)), Strict));
+            Assert.Empty(
+                tree.GetIntersections(new GeoXLine3(new GeoPoint3(0, 0, 20), new GeoVector3(1, 1, 0)), Strict)
+            );
         }
 
         [Fact]
@@ -115,8 +124,14 @@ namespace GeometryHelper.UnitTest.Solid
             var xline = new GeoXLine3(new GeoPoint3(5, 5, -20), GeoVector3.ZAxis);
 
             Assert.Equal(4, tree.GetIntersections(xline, Strict).Length);
-            Assert.Equal(tree.GetIntersections(new GeoRay3(xline.Origin, xline.Direction), Strict).Length, tree.GetIntersections(xline, Strict).Length);
-            Assert.Equal(4, tree.GetIntersections(new GeoXLine3(new GeoPoint3(5, 5, 40), GeoVector3.ZAxis), Strict).Length);
+            Assert.Equal(
+                tree.GetIntersections(new GeoRay3(xline.Origin, xline.Direction), Strict).Length,
+                tree.GetIntersections(xline, Strict).Length
+            );
+            Assert.Equal(
+                4,
+                tree.GetIntersections(new GeoXLine3(new GeoPoint3(5, 5, 40), GeoVector3.ZAxis), Strict).Length
+            );
         }
 
         [Fact]
@@ -134,7 +149,7 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoXLine3(new GeoPoint3(-30, 0.7, 6), GeoVector3.XAxis),
                 new GeoXLine3(new GeoPoint3(30, 0.7, 6), GeoVector3.XAxis),
                 new GeoXLine3(new GeoPoint3(-30, -30, 3), new GeoVector3(1, 1, 0.1)),
-                new GeoXLine3(new GeoPoint3(0, 0, 40), new GeoVector3(0.1, 0.03, 1))
+                new GeoXLine3(new GeoPoint3(0, 0, 40), new GeoVector3(0.1, 0.03, 1)),
             };
 
             foreach (GeoXLine3 xline in lines)
@@ -157,8 +172,16 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int k = 0; k < 300; k++)
             {
-                var origin = new GeoPoint3(random.NextDouble() * 16 - 8, random.NextDouble() * 16 - 8, random.NextDouble() * 18 - 3);
-                var direction = new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5);
+                var origin = new GeoPoint3(
+                    random.NextDouble() * 16 - 8,
+                    random.NextDouble() * 16 - 8,
+                    random.NextDouble() * 18 - 3
+                );
+                var direction = new GeoVector3(
+                    random.NextDouble() - 0.5,
+                    random.NextDouble() - 0.5,
+                    random.NextDouble() - 0.5
+                );
                 var xline = new GeoXLine3(origin, direction);
 
                 GeoPoint3[] scanned = Scan(mesh, xline, Strict);
@@ -192,7 +215,15 @@ namespace GeometryHelper.UnitTest.Solid
 
             foreach (double dz in new[] { 0.0004, -0.0004, 0.002, -0.002 })
             {
-                foreach (GeoVector3 direction in new[] { new GeoVector3(1, 0, -0.01), new GeoVector3(1, 0, 0.01), GeoVector3.XAxis, new GeoVector3(1, 0.2, 0.001) })
+                foreach (
+                    GeoVector3 direction in new[]
+                    {
+                        new GeoVector3(1, 0, -0.01),
+                        new GeoVector3(1, 0, 0.01),
+                        GeoVector3.XAxis,
+                        new GeoVector3(1, 0.2, 0.001),
+                    }
+                )
                 {
                     var xline = new GeoXLine3(new GeoPoint3(-5, 5, 10 + dz), direction);
 
@@ -226,7 +257,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Empty(prepared.GetIntersections(new GeoRay3(new GeoPoint3(3, 6, 30), GeoVector3.ZAxis), Strict));
             Assert.False(prepared.CollidesWith(new GeoXLine3(new GeoPoint3(50, 50, 5), GeoVector3.ZAxis), Strict));
             Assert.Empty(prepared.GetIntersections(new GeoXLine3(new GeoPoint3(50, 50, 5), GeoVector3.ZAxis), Strict));
-            Assert.Equal(prepared.GetIntersections(new GeoXLine3(new GeoPoint3(3, 6, 4), GeoVector3.ZAxis)), prepared.GetIntersections(new GeoXLine3(new GeoPoint3(3, 6, 4), GeoVector3.ZAxis), Tolerance.Global));
+            Assert.Equal(
+                prepared.GetIntersections(new GeoXLine3(new GeoPoint3(3, 6, 4), GeoVector3.ZAxis)),
+                prepared.GetIntersections(new GeoXLine3(new GeoPoint3(3, 6, 4), GeoVector3.ZAxis), Tolerance.Global)
+            );
         }
 
         [Fact]
@@ -239,8 +273,15 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int k = 0; k < 300; k++)
             {
-                var origin = new GeoPoint3(random.NextDouble() * 16 - 8, random.NextDouble() * 16 - 8, random.NextDouble() * 18 - 3);
-                var xline = new GeoXLine3(origin, new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5));
+                var origin = new GeoPoint3(
+                    random.NextDouble() * 16 - 8,
+                    random.NextDouble() * 16 - 8,
+                    random.NextDouble() * 18 - 3
+                );
+                var xline = new GeoXLine3(
+                    origin,
+                    new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5)
+                );
 
                 GeoPoint3[] body = cylinder.GetIntersections(xline, Strict);
                 GeoPoint3[] found = prepared.GetIntersections(xline, Strict);
@@ -254,7 +295,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             // Along the diagonal two cap triangles share, a ray is named by both, and the prepared body names the place once.
             GeoPreparedSolid3 boxPrepared = Box(10, 10, 10).Prepare();
-            Assert.Equal(2, boxPrepared.GetIntersections(new GeoXLine3(new GeoPoint3(5, 5, -20), GeoVector3.ZAxis), Strict).Length);
+            Assert.Equal(
+                2,
+                boxPrepared.GetIntersections(new GeoXLine3(new GeoPoint3(5, 5, -20), GeoVector3.ZAxis), Strict).Length
+            );
         }
 
         [Fact]

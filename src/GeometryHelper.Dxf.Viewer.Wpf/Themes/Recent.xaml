@@ -1,7 +1,8 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf">
-
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+>
     <!--
     What Recent Documents shows of a file, in the application menu and on the start screen: the tooltip of a row (its preview
     picture, name, path, version, date and size, read only when the pointer rests on it) and the pin.
@@ -15,19 +16,51 @@
     <local:BoolToVisibilityConverter x:Key="RecentHidden" Invert="True" />
 
     <!-- The tooltip of a recent file: the preview on black, the name, then Path, Version, Modified and Size. -->
-    <ToolTip x:Key="RecentDocumentToolTip" x:Shared="False" Placement="Right" HorizontalOffset="8" Padding="0" BorderThickness="0" Background="Transparent">
-        <Border Width="300" Padding="10" Background="{StaticResource GhInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4"
-                TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhTextMuted}">
+    <ToolTip
+        x:Key="RecentDocumentToolTip"
+        x:Shared="False"
+        Placement="Right"
+        HorizontalOffset="8"
+        Padding="0"
+        BorderThickness="0"
+        Background="Transparent"
+    >
+        <Border
+            Width="300"
+            Padding="10"
+            Background="{StaticResource GhInput}"
+            BorderBrush="{StaticResource GhBorder}"
+            BorderThickness="1"
+            CornerRadius="4"
+            TextElement.FontFamily="{StaticResource GhFont}"
+            TextElement.FontSize="12"
+            TextElement.Foreground="{StaticResource GhTextMuted}"
+        >
             <StackPanel>
                 <Border Height="150" Background="Black" BorderBrush="{StaticResource GhBorder}" BorderThickness="1">
                     <Grid>
-                        <Image Source="{Binding Thumbnail}" Stretch="Uniform" Margin="4" RenderOptions.BitmapScalingMode="HighQuality"
-                               Visibility="{Binding HasThumbnail, Converter={StaticResource RecentShown}}" />
-                        <TextBlock Text="No preview kept in the file" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   Visibility="{Binding HasThumbnail, Converter={StaticResource RecentHidden}}" />
+                        <Image
+                            Source="{Binding Thumbnail}"
+                            Stretch="Uniform"
+                            Margin="4"
+                            RenderOptions.BitmapScalingMode="HighQuality"
+                            Visibility="{Binding HasThumbnail, Converter={StaticResource RecentShown}}"
+                        />
+                        <TextBlock
+                            Text="No preview kept in the file"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Visibility="{Binding HasThumbnail, Converter={StaticResource RecentHidden}}"
+                        />
                     </Grid>
                 </Border>
-                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{StaticResource GhText}" Margin="0,8,0,8" TextTrimming="CharacterEllipsis" />
+                <TextBlock
+                    Text="{Binding Name}"
+                    FontWeight="SemiBold"
+                    Foreground="{StaticResource GhText}"
+                    Margin="0,8,0,8"
+                    TextTrimming="CharacterEllipsis"
+                />
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="74" />
@@ -40,14 +73,39 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Text="Path" Margin="0,1" />
-                    <TextBlock Grid.Column="1" Text="{Binding Path}" Foreground="{StaticResource GhText}" FontFamily="{StaticResource GhMonoFont}" FontSize="11"
-                               TextWrapping="Wrap" Margin="0,1" />
+                    <TextBlock
+                        Grid.Column="1"
+                        Text="{Binding Path}"
+                        Foreground="{StaticResource GhText}"
+                        FontFamily="{StaticResource GhMonoFont}"
+                        FontSize="11"
+                        TextWrapping="Wrap"
+                        Margin="0,1"
+                    />
                     <TextBlock Grid.Row="1" Text="Version" Margin="0,1" />
-                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding VersionText}" Foreground="{StaticResource GhText}" Margin="0,1" />
+                    <TextBlock
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Text="{Binding VersionText}"
+                        Foreground="{StaticResource GhText}"
+                        Margin="0,1"
+                    />
                     <TextBlock Grid.Row="2" Text="Modified" Margin="0,1" />
-                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ModifiedText}" Foreground="{StaticResource GhText}" Margin="0,1" />
+                    <TextBlock
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        Text="{Binding ModifiedText}"
+                        Foreground="{StaticResource GhText}"
+                        Margin="0,1"
+                    />
                     <TextBlock Grid.Row="3" Text="Size" Margin="0,1" />
-                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SizeText}" Foreground="{StaticResource GhText}" Margin="0,1" />
+                    <TextBlock
+                        Grid.Row="3"
+                        Grid.Column="1"
+                        Text="{Binding SizeText}"
+                        Foreground="{StaticResource GhText}"
+                        Margin="0,1"
+                    />
                 </Grid>
             </StackPanel>
         </Border>
@@ -61,8 +119,19 @@
         <Setter Property="ContentTemplate">
             <Setter.Value>
                 <DataTemplate>
-                    <Path x:Name="Pin" Width="13" Height="13" Stretch="Uniform" Data="{StaticResource GhIconPin}" Stroke="#5B6573" StrokeThickness="1.8"
-                          StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" />
+                    <Path
+                        x:Name="Pin"
+                        Width="13"
+                        Height="13"
+                        Stretch="Uniform"
+                        Data="{StaticResource GhIconPin}"
+                        Stroke="#5B6573"
+                        StrokeThickness="1.8"
+                        StrokeLineJoin="Round"
+                        StrokeStartLineCap="Round"
+                        StrokeEndLineCap="Round"
+                        Fill="Transparent"
+                    />
                     <DataTemplate.Triggers>
                         <DataTrigger Binding="{Binding IsPinned}" Value="True">
                             <Setter TargetName="Pin" Property="Stroke" Value="{StaticResource GhAccent}" />

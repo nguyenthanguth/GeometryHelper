@@ -107,9 +107,18 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                own = own == null
-                    ? new[] { box.Min.X, box.Min.Y, box.Min.Z, box.Max.X, box.Max.Y, box.Max.Z }
-                    : new[] { Math.Min(own[0], box.Min.X), Math.Min(own[1], box.Min.Y), Math.Min(own[2], box.Min.Z), Math.Max(own[3], box.Max.X), Math.Max(own[4], box.Max.Y), Math.Max(own[5], box.Max.Z) };
+                own =
+                    own == null
+                        ? new[] { box.Min.X, box.Min.Y, box.Min.Z, box.Max.X, box.Max.Y, box.Max.Z }
+                        : new[]
+                        {
+                            Math.Min(own[0], box.Min.X),
+                            Math.Min(own[1], box.Min.Y),
+                            Math.Min(own[2], box.Min.Z),
+                            Math.Max(own[3], box.Max.X),
+                            Math.Max(own[4], box.Max.Y),
+                            Math.Max(own[5], box.Max.Z),
+                        };
             }
 
             if (own == null)
@@ -125,7 +134,15 @@ namespace GeometryHelper.Dxf
 
             for (int corner = 0; corner < 8; corner++)
             {
-                GeoVector3 c = placed.Transform(new GeoPoint3(own[(corner & 1) * 3], own[1 + ((corner >> 1) & 1) * 3], own[2 + ((corner >> 2) & 1) * 3])).ToVector();
+                GeoVector3 c = placed
+                    .Transform(
+                        new GeoPoint3(
+                            own[(corner & 1) * 3],
+                            own[1 + ((corner >> 1) & 1) * 3],
+                            own[2 + ((corner >> 2) & 1) * 3]
+                        )
+                    )
+                    .ToVector();
                 left = Math.Min(left, c.DotProduct(x));
                 right = Math.Max(right, c.DotProduct(x));
                 low = Math.Min(low, c.DotProduct(y));
@@ -140,7 +157,9 @@ namespace GeometryHelper.Dxf
             // The line along x the leader meets the block on, through the middle of the box or the block's position.
             double along = atBase ? position.DotProduct(x) : middle;
             double up = atBase ? position.DotProduct(y) : (low + high) / 2.0;
-            GeoVector3 across = position.Subtract(x.Multiply(position.DotProduct(x))).Subtract(y.Multiply(position.DotProduct(y)));
+            GeoVector3 across = position
+                .Subtract(x.Multiply(position.DotProduct(x)))
+                .Subtract(y.Multiply(position.DotProduct(y)));
             GeoPoint3 Point(double u) => Pt(across.Add(x.Multiply(u)).Add(y.Multiply(up)));
             double reach = right - left + Math.Abs(along - middle) + 1.0;
             var line = new DxfLine(Point(Math.Min(left, along) - reach), Point(Math.Max(right, along) + reach));
@@ -191,7 +210,14 @@ namespace GeometryHelper.Dxf
             if (at >= 0)
             {
                 GeoPoint3 drawn = PointAt(ctx.Head, at);
-                PutPoint(ctx.Head, 16, new GeoPoint3(drawn.X * factor, drawn.Y * factor, drawn.Z * factor), ContextOrder, from, to);
+                PutPoint(
+                    ctx.Head,
+                    16,
+                    new GeoPoint3(drawn.X * factor, drawn.Y * factor, drawn.Z * factor),
+                    ContextOrder,
+                    from,
+                    to
+                );
                 Section(ctx.Head, 296, BlockCodes, out from, out to);
             }
 
@@ -215,7 +241,8 @@ namespace GeometryHelper.Dxf
                 LeaderPart leader = ctx.Leaders.Find(l => Side(l, x) != 0);
                 int side = Side(leader, x);
                 GeoVector3 dogleg = Unit(PointOf(leader.Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
-                GeoPoint3 target = PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0)).Add(dogleg.Multiply(Num(Text(leader.Head, 40), 0.0)));
+                GeoPoint3 target = PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0))
+                    .Add(dogleg.Multiply(Num(Text(leader.Head, 40), 0.0)));
 
                 if (BlockMeets(rec, ctx, side * double.MaxValue, out _, out GeoPoint3 end))
                 {
@@ -288,7 +315,14 @@ namespace GeometryHelper.Dxf
                 int side = Side(leader, x);
                 GeoPoint3 end = side > 0 ? rightMeet : wordsMeet;
 
-                if (side == 0 || (block ? !BlockMeets(rec, ctx, side * double.MaxValue, out _, out end) : side > 0 ? !right : !words))
+                if (
+                    side == 0
+                    || (
+                        block ? !BlockMeets(rec, ctx, side * double.MaxValue, out _, out end)
+                        : side > 0 ? !right
+                        : !words
+                    )
+                )
                 {
                     continue;
                 }
@@ -399,7 +433,10 @@ namespace GeometryHelper.Dxf
 
             int held = Whole(Text(m, 171), 1);
             double gap = Num(Text(ctx.Head, 145), 2.0);
-            double past = along.Subtract(x).Length > 1E-9 || held == 3 ? gap : held == 2 ? (width / 2.0) + gap : width + gap;
+            double past =
+                along.Subtract(x).Length > 1E-9 || held == 3 ? gap
+                : held == 2 ? (width / 2.0) + gap
+                : width + gap;
             meet = PointOf(m, 12, new GeoPoint3(0.0, 0.0, 0.0)).Add(x.Multiply(past)).Add(y.Multiply(-below));
             return true;
         }
@@ -449,8 +486,13 @@ namespace GeometryHelper.Dxf
             List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
             string handle = styleHandle ?? Text(m, 340)?.Trim();
 
-            if (handle == null || !database.TryGetObject(handle, out DxfDBObject found) || !(found is DxfTextStyleTableRecord style)
-                || !Same(style.XScale, 1.0) || style.ObliquingAngle != 0.0)
+            if (
+                handle == null
+                || !database.TryGetObject(handle, out DxfDBObject found)
+                || !(found is DxfTextStyleTableRecord style)
+                || !Same(style.XScale, 1.0)
+                || style.ObliquingAngle != 0.0
+            )
             {
                 return null;
             }
@@ -485,7 +527,8 @@ namespace GeometryHelper.Dxf
             }
 
             GeoVector3 dogleg = Unit(PointOf(leader.Head, 11, new GeoPoint3(-1.0, 0.0, 0.0)).ToVector());
-            GeoPoint3 end = PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0)).Add(dogleg.Multiply(Num(Text(leader.Head, 40), 0.0)));
+            GeoPoint3 end = PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0))
+                .Add(dogleg.Multiply(Num(Text(leader.Head, 40), 0.0)));
             GeoVector3 by = meet.GetVectorTo(end);
             double along = by.DotProduct(x) - gapChange;
             MoveContent(ctx, by, x.Multiply(widened == 0.0 ? along : along - widened));
@@ -560,12 +603,15 @@ namespace GeometryHelper.Dxf
             }
 
             GeoVector3 x = Unit(PointOf(ctx.Head, 111, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
-            GeoVector3 along = Unit(PointOf(ctx.Head.GetRange(from, to - from), 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
+            GeoVector3 along = Unit(
+                PointOf(ctx.Head.GetRange(from, to - from), 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector()
+            );
             return along.Add(x).Length <= 1E-9;
         }
 
         /// <summary>Whether the words run along the plane's x axis, or against it as they say (<see cref="Reversed"/>).</summary>
-        private static bool AlongPlane(Ctx ctx, GeoVector3 along, GeoVector3 x) => along.Subtract(x).Length <= 1E-9 || Reversed(ctx);
+        private static bool AlongPlane(Ctx ctx, GeoVector3 along, GeoVector3 x) =>
+            along.Subtract(x).Length <= 1E-9 || Reversed(ctx);
 
         /// <summary>
         /// How much more the words are now wide than at a height before, where they run against the plane's x axis
@@ -599,7 +645,9 @@ namespace GeometryHelper.Dxf
             GeoVector3 dogleg = PointOf(leader.Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector();
             double length = dogleg.Length;
             double along = length > 0.0 ? dogleg.DotProduct(x) / length : 0.0;
-            return along >= 1.0 - 1E-9 ? -1 : along <= -1.0 + 1E-9 ? 1 : 0;
+            return along >= 1.0 - 1E-9 ? -1
+                : along <= -1.0 + 1E-9 ? 1
+                : 0;
         }
 
         /// <summary>How many leaders meet the content on its left and on its right (<see cref="Side"/>).</summary>
@@ -633,7 +681,9 @@ namespace GeometryHelper.Dxf
             if (from >= 0)
             {
                 Axes(ctx, out GeoVector3 x, out _);
-                GeoVector3 along = Unit(PointOf(ctx.Head.GetRange(from, to - from), 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
+                GeoVector3 along = Unit(
+                    PointOf(ctx.Head.GetRange(from, to - from), 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector()
+                );
                 return AlongPlane(ctx, along, x);
             }
 
@@ -671,16 +721,26 @@ namespace GeometryHelper.Dxf
 
             switch (attachment)
             {
-                case 0: return 0.0;
-                case 1: return line / 2.0;
-                case 2: return whole / 2.0;
-                case 3: return whole - (line / 2.0);
-                case 4: return whole;
-                case 5: return depth > 0.0 ? Math.Max(whole, height + (height / 5.0)) : whole + (height / 5.0);
-                case 6: return depth > 0.0 ? Math.Max(line, height + (height / 5.0)) : height + (height / 5.0);
-                case 7: return line;
-                case 8: return depth > 0.0 ? Math.Max(line, height + (height / 5.0)) : height + (height / 5.0);
-                default: return double.NaN;
+                case 0:
+                    return 0.0;
+                case 1:
+                    return line / 2.0;
+                case 2:
+                    return whole / 2.0;
+                case 3:
+                    return whole - (line / 2.0);
+                case 4:
+                    return whole;
+                case 5:
+                    return depth > 0.0 ? Math.Max(whole, height + (height / 5.0)) : whole + (height / 5.0);
+                case 6:
+                    return depth > 0.0 ? Math.Max(line, height + (height / 5.0)) : height + (height / 5.0);
+                case 7:
+                    return line;
+                case 8:
+                    return depth > 0.0 ? Math.Max(line, height + (height / 5.0)) : height + (height / 5.0);
+                default:
+                    return double.NaN;
             }
         }
 
@@ -714,7 +774,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Moves the point a leader's dogleg starts at (its 10) along a vector.</summary>
-        private static void MoveLanding(LeaderPart leader, GeoVector3 by) => MovePoint(leader.Head, 10, p => p.Add(by), LeaderOrder, 0, -1);
+        private static void MoveLanding(LeaderPart leader, GeoVector3 by) =>
+            MovePoint(leader.Head, 10, p => p.Add(by), LeaderOrder, 0, -1);
 
         /// <summary>
         /// The words moved as AutoCAD 2021 moves them when the landing gap changes by a length: along x by it, with the leaders on
@@ -942,7 +1003,11 @@ namespace GeometryHelper.Dxf
 
             if (left > 0 && right == 0 && !double.IsNaN(change))
             {
-                MoveContent(ctx, widened == 0.0 ? y.Multiply(change) : y.Multiply(change).Add(x.Multiply(widened)), new GeoVector3(0.0, 0.0, 0.0));
+                MoveContent(
+                    ctx,
+                    widened == 0.0 ? y.Multiply(change) : y.Multiply(change).Add(x.Multiply(widened)),
+                    new GeoVector3(0.0, 0.0, 0.0)
+                );
                 Landed(rec, ctx);
             }
             else if (right > 0 && WordsWidth(ctx, out _))
@@ -955,7 +1020,11 @@ namespace GeometryHelper.Dxf
                 }
                 else if (!double.IsNaN(change))
                 {
-                    MoveContent(ctx, widened == 0.0 ? y.Multiply(change) : y.Multiply(change).Add(x.Multiply(widened)), new GeoVector3(0.0, 0.0, 0.0));
+                    MoveContent(
+                        ctx,
+                        widened == 0.0 ? y.Multiply(change) : y.Multiply(change).Add(x.Multiply(widened)),
+                        new GeoVector3(0.0, 0.0, 0.0)
+                    );
                     Landed(rec, ctx);
                 }
             }
@@ -973,7 +1042,13 @@ namespace GeometryHelper.Dxf
         /// the left, stand at (131.33, 52, 0) at a scale of 2. Words of no leader move to meet the base point again, by the gap
         /// and up, as AutoCAD 2021 moves them (check D38b): "ABC" at (100, 50, 0) stand at (102, 52, 0) at a scale of 2.
         /// </summary>
-        private void Rescaled(Rec rec, Ctx ctx, List<KeyValuePair<LeaderPart, double>> before, double gapChange, double wasHeight)
+        private void Rescaled(
+            Rec rec,
+            Ctx ctx,
+            List<KeyValuePair<LeaderPart, double>> before,
+            double gapChange,
+            double wasHeight
+        )
         {
             if (!Kept(rec, ctx, true))
             {
@@ -1077,7 +1152,16 @@ namespace GeometryHelper.Dxf
 
             if (left > 0 && right == 0 && !double.IsNaN(change))
             {
-                PutPoint(ctx.Head, 12, widened == 0.0 ? wasAt.Add(y.Multiply(change)) : wasAt.Add(y.Multiply(change)).Add(x.Multiply(widened)), ContextOrder, from, to);
+                PutPoint(
+                    ctx.Head,
+                    12,
+                    widened == 0.0
+                        ? wasAt.Add(y.Multiply(change))
+                        : wasAt.Add(y.Multiply(change)).Add(x.Multiply(widened)),
+                    ContextOrder,
+                    from,
+                    to
+                );
             }
             else if (right > 0 && string.Equals(look, wasLook, StringComparison.Ordinal))
             {
@@ -1094,7 +1178,16 @@ namespace GeometryHelper.Dxf
                 }
                 else if (!double.IsNaN(change))
                 {
-                    PutPoint(ctx.Head, 12, widened == 0.0 ? wasAt.Add(y.Multiply(change)) : wasAt.Add(y.Multiply(change)).Add(x.Multiply(widened)), ContextOrder, from, to);
+                    PutPoint(
+                        ctx.Head,
+                        12,
+                        widened == 0.0
+                            ? wasAt.Add(y.Multiply(change))
+                            : wasAt.Add(y.Multiply(change)).Add(x.Multiply(widened)),
+                        ContextOrder,
+                        from,
+                        to
+                    );
                     Landed(rec, ctx);
                 }
             }
@@ -1121,7 +1214,11 @@ namespace GeometryHelper.Dxf
             List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
             string now = Text(m, 340)?.Trim();
 
-            if (now == null || Whole(Text(m, 171), 1) != 1 || string.Equals(now, wasStyle.Trim(), StringComparison.OrdinalIgnoreCase))
+            if (
+                now == null
+                || Whole(Text(m, 171), 1) != 1
+                || string.Equals(now, wasStyle.Trim(), StringComparison.OrdinalIgnoreCase)
+            )
             {
                 return;
             }
@@ -1158,12 +1255,19 @@ namespace GeometryHelper.Dxf
             Section(ctx.Head, 290, MTextCodes, out int from, out int to);
             List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
             GeoVector3 x = Unit(PointOf(ctx.Head, 111, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
-            GeoVector3 normal = Unit(DxfOcsTransform.Cross(x, Unit(PointOf(ctx.Head, 112, new GeoPoint3(0.0, 1.0, 0.0)).ToVector())));
+            GeoVector3 normal = Unit(
+                DxfOcsTransform.Cross(x, Unit(PointOf(ctx.Head, 112, new GeoPoint3(0.0, 1.0, 0.0)).ToVector()))
+            );
             GeoVector3 along = Unit(PointOf(m, 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
             GeoVector3 facing = Unit(PointOf(m, 11, new GeoPoint3(0.0, 0.0, 1.0)).ToVector());
 
-            if (!(along.Length > 0.0) || !(normal.Length > 0.0) || facing.Subtract(normal).Length > 1E-9 || Math.Abs(along.DotProduct(normal)) > 1E-9
-                || along.Subtract(x).Length <= 1E-9)
+            if (
+                !(along.Length > 0.0)
+                || !(normal.Length > 0.0)
+                || facing.Subtract(normal).Length > 1E-9
+                || Math.Abs(along.DotProduct(normal)) > 1E-9
+                || along.Subtract(x).Length <= 1E-9
+            )
             {
                 return;
             }
@@ -1194,7 +1298,14 @@ namespace GeometryHelper.Dxf
             DxfTextLine words = Measured(ctx, Height(ctx), null, database);
             double below = Below(ctx, AttachmentOf(rec, true), Height(ctx), words);
 
-            if (Reversed(ctx) || along.Subtract(x).Length > 1E-9 || held < 1 || held > 3 || double.IsNaN(below) || Whole(Text(rec.After, 271), 0) != 0)
+            if (
+                Reversed(ctx)
+                || along.Subtract(x).Length > 1E-9
+                || held < 1
+                || held > 3
+                || double.IsNaN(below)
+                || Whole(Text(rec.After, 271), 0) != 0
+            )
             {
                 if (first)
                 {
@@ -1206,10 +1317,22 @@ namespace GeometryHelper.Dxf
 
             if (held != 1 && words != null)
             {
-                PutPoint(ctx.Head, 12, at.Add(x.Multiply(held == 3 ? words.ActualWidth : words.ActualWidth / 2.0)), ContextOrder, from, to);
+                PutPoint(
+                    ctx.Head,
+                    12,
+                    at.Add(x.Multiply(held == 3 ? words.ActualWidth : words.ActualWidth / 2.0)),
+                    ContextOrder,
+                    from,
+                    to
+                );
             }
 
-            PutPoint(ctx.Head, 10, at.Add(x.Multiply(-Num(Text(ctx.Head, 145), 2.0))).Add(y.Multiply(-below)), ContextOrder);
+            PutPoint(
+                ctx.Head,
+                10,
+                at.Add(x.Multiply(-Num(Text(ctx.Head, 145), 2.0))).Add(y.Multiply(-below)),
+                ContextOrder
+            );
         }
 
         /// <summary>
@@ -1230,11 +1353,19 @@ namespace GeometryHelper.Dxf
             GeoVector3 along = Unit(PointOf(m, 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
             int held = Whole(Text(m, 171), 1);
 
-            if (leader != null && !Reversed(ctx) && along.Subtract(x).Length <= 1E-9 && held >= 1 && held <= 3 && Whole(Text(rec.After, 271), 0) == 0)
+            if (
+                leader != null
+                && !Reversed(ctx)
+                && along.Subtract(x).Length <= 1E-9
+                && held >= 1
+                && held <= 3
+                && Whole(Text(rec.After, 271), 0) == 0
+            )
             {
                 int side = Side(leader, x);
                 GeoVector3 dogleg = Unit(PointOf(leader.Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
-                GeoPoint3 end = PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0)).Add(dogleg.Multiply(Num(Text(leader.Head, 40), 0.0)));
+                GeoPoint3 end = PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0))
+                    .Add(dogleg.Multiply(Num(Text(leader.Head, 40), 0.0)));
                 double gap = Num(Text(ctx.Head, 145), 2.0);
                 double below = Below(ctx, AttachmentOf(rec, side < 0), Height(ctx));
                 double left = Below(ctx, AttachmentOf(rec, true), Height(ctx));
@@ -1245,7 +1376,20 @@ namespace GeometryHelper.Dxf
                     // Their left edge, then the point they are held by.
                     GeoPoint3 edge = end.Add(x.Multiply(side < 0 ? gap : -(gap + width))).Add(y.Multiply(below - left));
                     GeoPoint3 top = edge.Add(y.Multiply(left));
-                    PutPoint(ctx.Head, 12, top.Add(x.Multiply(held == 3 ? width : held == 2 ? width / 2.0 : 0.0)), ContextOrder, from, to);
+                    PutPoint(
+                        ctx.Head,
+                        12,
+                        top.Add(
+                            x.Multiply(
+                                held == 3 ? width
+                                : held == 2 ? width / 2.0
+                                : 0.0
+                            )
+                        ),
+                        ContextOrder,
+                        from,
+                        to
+                    );
                     PutPoint(ctx.Head, 10, edge.Add(x.Multiply(-gap)), ContextOrder);
                     return;
                 }
@@ -1258,9 +1402,17 @@ namespace GeometryHelper.Dxf
         private static string WordsLook(Ctx ctx)
         {
             Section(ctx.Head, 290, MTextCodes, out int from, out int to);
-            List<KeyValuePair<int, string>> m = from < 0 ? new List<KeyValuePair<int, string>>() : ctx.Head.GetRange(from, to - from);
-            return Text(m, 304) + "|" + Real(Num(Text(m, 43), 0.0)) + "|" + Real(Num(Text(m, 45), 1.0)) + "|" + Whole(Text(m, 170), 1).ToString(System.Globalization.CultureInfo.InvariantCulture)
-                + "|" + Real(Height(ctx));
+            List<KeyValuePair<int, string>> m =
+                from < 0 ? new List<KeyValuePair<int, string>>() : ctx.Head.GetRange(from, to - from);
+            return Text(m, 304)
+                + "|"
+                + Real(Num(Text(m, 43), 0.0))
+                + "|"
+                + Real(Num(Text(m, 45), 1.0))
+                + "|"
+                + Whole(Text(m, 170), 1).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + "|"
+                + Real(Height(ctx));
         }
 
         #endregion
@@ -1333,7 +1485,12 @@ namespace GeometryHelper.Dxf
         {
             string handle = Text(rec.After, 340)?.Trim();
 
-            if (handle == null || database == null || !database.TryGetObject(handle, out DxfDBObject found) || !(found is DxfMLeaderStyle style))
+            if (
+                handle == null
+                || database == null
+                || !database.TryGetObject(handle, out DxfDBObject found)
+                || !(found is DxfMLeaderStyle style)
+            )
             {
                 return;
             }

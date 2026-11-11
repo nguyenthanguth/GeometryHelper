@@ -35,7 +35,8 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The network the block's network is an action of.</summary>
-        private static DxfItem TopOf(DxfItem network) => network.File.ObjectItem(Section(network, "AcDbAssocAction")[2].Value.Trim());
+        private static DxfItem TopOf(DxfItem network) =>
+            network.File.ObjectItem(Section(network, "AcDbAssocAction")[2].Value.Trim());
 
         /// <summary>The groups of a subclass of an object.</summary>
         private static List<DxfTypedValue> Section(DxfItem item, string marker)
@@ -72,14 +73,20 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The object a dependency depends on (its first 330 after its marker).</summary>
-        private static string DependsOn(DxfItem dependency) => Section(dependency, "AcDbAssocDependency")[7].Value.Trim();
+        private static string DependsOn(DxfItem dependency) =>
+            Section(dependency, "AcDbAssocDependency")[7].Value.Trim();
 
         /// <summary>The expression and the value of a variable of a network, by name, as "expression = code:value".</summary>
         private static string VariableOf(DxfItem network, string name)
         {
-            DxfItem variable = Tree(network).First(i => i.Type == "ACDBASSOCVARIABLE" && Section(i, "AcDbAssocVariable")[1].Value.Trim() == name);
+            DxfItem variable = Tree(network)
+                .First(i => i.Type == "ACDBASSOCVARIABLE" && Section(i, "AcDbAssocVariable")[1].Value.Trim() == name);
             List<DxfTypedValue> held = Section(variable, "AcDbAssocVariable");
-            return held[2].Value.Trim() + " = " + held[5].TypeCode.ToString(CultureInfo.InvariantCulture) + ":" + held[5].Value.Trim();
+            return held[2].Value.Trim()
+                + " = "
+                + held[5].TypeCode.ToString(CultureInfo.InvariantCulture)
+                + ":"
+                + held[5].Value.Trim();
         }
 
         /// <summary>
@@ -94,13 +101,21 @@ namespace GeometryHelper.UnitTest.Dxf
                 b.Group(100, "AcDbDictionary");
                 b.Group(281, "1");
             });
-            DxfItem top = ((DxfDBDictionary)DxfDBObject.OfObject(entry)).Add("ACAD_ASSOCNETWORK", "ACDBASSOCNETWORK", b =>
-            {
-                b.Group(100, "AcDbAssocAction");
-                Array.ForEach(new[] { "90:1", "90:0", "330:0", "360:0", "90:0", "90:0", "90:0" }, s => b.Group(int.Parse(s.Split(':')[0], CultureInfo.InvariantCulture), s.Split(':')[1]));
-                b.Group(100, "AcDbAssocNetwork");
-                Array.ForEach(new[] { "90:0", "90:1", "90:1", "330:" + network.Handle, "90:0" }, s => b.Group(int.Parse(s.Split(':')[0], CultureInfo.InvariantCulture), s.Split(':')[1]));
-            });
+            DxfItem top = ((DxfDBDictionary)DxfDBObject.OfObject(entry)).Add(
+                "ACAD_ASSOCNETWORK",
+                "ACDBASSOCNETWORK",
+                b =>
+                {
+                    b.Group(100, "AcDbAssocAction");
+                    Array.ForEach(new[] { "90:1", "90:0", "330:0", "360:0", "90:0", "90:0", "90:0" }, s =>
+                        b.Group(int.Parse(s.Split(':')[0], CultureInfo.InvariantCulture), s.Split(':')[1])
+                    );
+                    b.Group(100, "AcDbAssocNetwork");
+                    Array.ForEach(new[] { "90:0", "90:1", "90:1", "330:" + network.Handle, "90:0" }, s =>
+                        b.Group(int.Parse(s.Split(':')[0], CultureInfo.InvariantCulture), s.Split(':')[1])
+                    );
+                }
+            );
             Edit(network, groups =>
             {
                 int at = groups.FindIndex(g => g.Key == 100 && g.Value == "AcDbAssocAction");
@@ -110,7 +125,8 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The constraint group of the rectangle's network.</summary>
-        private static DxfItem GroupOf(DxfDatabase db) => Tree(NetworkOf(db.BlockTable["RECT"])).First(i => i.Type == "ACDBASSOC2DCONSTRAINTGROUP");
+        private static DxfItem GroupOf(DxfDatabase db) =>
+            Tree(NetworkOf(db.BlockTable["RECT"])).First(i => i.Type == "ACDBASSOC2DCONSTRAINTGROUP");
 
         /// <summary>Lists objects among the dependencies of the group (360 before its node count), its count of them taken on.</summary>
         private static void Owns(DxfItem group, params string[] handles)
@@ -125,7 +141,12 @@ namespace GeometryHelper.UnitTest.Dxf
                     count--;
                 }
 
-                groups[count] = new KeyValuePair<int, string>(90, (int.Parse(groups[count].Value, CultureInfo.InvariantCulture) + handles.Length).ToString(CultureInfo.InvariantCulture));
+                groups[count] = new KeyValuePair<int, string>(
+                    90,
+                    (int.Parse(groups[count].Value, CultureInfo.InvariantCulture) + handles.Length).ToString(
+                        CultureInfo.InvariantCulture
+                    )
+                );
                 groups.InsertRange(last + 1, handles.Select(h => new KeyValuePair<int, string>(360, h)));
             });
         }
@@ -161,7 +182,18 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfBlockTableRecord block = db.BlockTable["RECT"];
             var picture = new DxfBlockTableRecord { Name = "W1DIM", Origin = new GeoPoint3(0, 0, 0) };
             db.BlockTable.Add(picture);
-            var dimension = new DxfRotatedDimension(0.0, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(50, -20, 0), "100", null) { DimBlock = picture, Visible = false };
+            var dimension = new DxfRotatedDimension(
+                0.0,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(50, -20, 0),
+                "100",
+                null
+            )
+            {
+                DimBlock = picture,
+                Visible = false,
+            };
             block.AppendEntity(dimension);
             DxfItem network = NetworkOf(block);
             DxfItem group = GroupOf(db);
@@ -213,8 +245,18 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfItem copy = NetworkOf(read.BlockTableRecord);
                 Assert.NotNull(copy);
                 List<DxfItem> tree = Tree(copy);
-                List<string> lines = read.BlockTableRecord.OfType<DxfLine>().Select(l => l.Handle).OrderBy(h => h, StringComparer.Ordinal).ToList();
-                Assert.Equal(lines, tree.Where(i => i.Type == "ACDBASSOCGEOMDEPENDENCY").Select(DependsOn).OrderBy(h => h, StringComparer.Ordinal).ToList());
+                List<string> lines = read
+                    .BlockTableRecord.OfType<DxfLine>()
+                    .Select(l => l.Handle)
+                    .OrderBy(h => h, StringComparer.Ordinal)
+                    .ToList();
+                Assert.Equal(
+                    lines,
+                    tree.Where(i => i.Type == "ACDBASSOCGEOMDEPENDENCY")
+                        .Select(DependsOn)
+                        .OrderBy(h => h, StringComparer.Ordinal)
+                        .ToList()
+                );
                 Assert.Equal("150 = 90:150", VariableOf(copy, "Width"));
                 Assert.Equal(" = 40:50", VariableOf(copy, "Height"));
                 Assert.Equal(Lines150, Drawn(read));
@@ -222,7 +264,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 // Each line of the anonymous block names its dependency among its reactors.
                 foreach (DxfItem dependency in tree.Where(i => i.Type == "ACDBASSOCGEOMDEPENDENCY"))
                 {
-                    DxfEntity line = read.BlockTableRecord.OfType<DxfLine>().Single(l => l.Handle == DependsOn(dependency));
+                    DxfEntity line = read
+                        .BlockTableRecord.OfType<DxfLine>()
+                        .Single(l => l.Handle == DependsOn(dependency));
                     Assert.Contains(line.Item.Groups, g => g.TypeCode == 330 && g.Value.Trim() == dependency.Handle);
                 }
 
@@ -247,11 +291,15 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Property(insert, "Width").Value = 150.0;
 
-            DxfItem own = Tree(NetworkOf(db.BlockTable["RECT"])).Single(i => i.Type == "ACDBASSOCDEPENDENCY" && DependsOn(i) == width.Handle);
-            DxfItem copied = Tree(NetworkOf(insert.BlockTableRecord)).Single(i => i.Type == "ACDBASSOCDEPENDENCY" && DependsOn(i) == width.Handle);
+            DxfItem own = Tree(NetworkOf(db.BlockTable["RECT"]))
+                .Single(i => i.Type == "ACDBASSOCDEPENDENCY" && DependsOn(i) == width.Handle);
+            DxfItem copied = Tree(NetworkOf(insert.BlockTableRecord))
+                .Single(i => i.Type == "ACDBASSOCDEPENDENCY" && DependsOn(i) == width.Handle);
             Assert.Equal(copied.Handle, Section(own, "AcDbAssocDependency")[10].Value.Trim());
             Assert.Equal(own.Handle, Section(copied, "AcDbAssocDependency")[9].Value.Trim());
-            Assert.Contains(width.File.ObjectItem(width.Handle).Groups, g => g.TypeCode == 330 && g.Value.Trim() == copied.Handle);
+            Assert.Contains(width.File.ObjectItem(width.Handle).Groups, g =>
+                g.TypeCode == 330 && g.Value.Trim() == copied.Handle
+            );
         }
 
         [Fact]
@@ -274,7 +322,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("2", listed[2].Value.Trim());
             Assert.Equal(copy.Handle, listed[4].Value.Trim());
 
-            DxfItem own = Tree(NetworkOf(db.BlockTable["RECT"])).Single(i => i.Type == "ACDBASSOCDEPENDENCY" && DependsOn(i) == width.Handle);
+            DxfItem own = Tree(NetworkOf(db.BlockTable["RECT"]))
+                .Single(i => i.Type == "ACDBASSOCDEPENDENCY" && DependsOn(i) == width.Handle);
             DxfItem copied = Tree(copy).Single(i => i.Type == "ACDBASSOCDEPENDENCY" && DependsOn(i) == width.Handle);
             Assert.Equal(copied.Handle, Section(own, "AcDbAssocDependency")[10].Value.Trim());
             IReadOnlyList<DxfTypedValue> reactors = width.File.ObjectItem(width.Handle).Groups;
@@ -329,7 +378,12 @@ namespace GeometryHelper.UnitTest.Dxf
             // AutoCAD 2021 read width*cos(60) of its Fluorescent sample as half the width, height-h3*2*tan(45) as
             // height-h3*2, width-W3*2*asin(1)/90 as width-W3*2, kept sqrt(625) real and abs(-25) and round(99.6) whole, and
             // Length-30 whole and DIA/2 real (plugin D27b f1, a1).
-            var values = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase) { ["Width"] = 1000, ["Length"] = 50, ["DIA"] = 10 };
+            var values = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Width"] = 1000,
+                ["Length"] = 50,
+                ["DIA"] = 10,
+            };
             Func<string, double> read = name => values[name];
             Func<string, bool> whole = name => true;
 
@@ -426,20 +480,26 @@ namespace GeometryHelper.UnitTest.Dxf
             string value = Value(file, group.Handle, angle.Handle, 90);
             DxfItem tie = Add(file, "ACDBASSOCDEPENDENCY", group.Handle, b => Dependency(b, "0", "0"));
             Owns(group, value, tie.Handle);
-            Append(group, b =>
-            {
-                Head(b, "AcConstrained2PointsConstructionLine", group.Handle, 31, 32, 33);
-                b.Group(330, "0");
-                b.Group(90, "0");
-                Point(b, 10, 0, 0);
-                Point(b, 10, 100, 0);
-            }, b => Rule(b, "AcPointCurveConstraint", group.Handle, 32, 2, 31), b => Rule(b, "AcPointCurveConstraint", group.Handle, 33, 3, 31), b =>
-            {
-                Rule(b, "Ac3PointAngleConstraint", group.Handle, 34, 2, 3, 11);
-                b.Group(340, value);
-                b.Group(340, tie.Handle);
-                b.Group(280, "0");
-            });
+            Append(
+                group,
+                b =>
+                {
+                    Head(b, "AcConstrained2PointsConstructionLine", group.Handle, 31, 32, 33);
+                    b.Group(330, "0");
+                    b.Group(90, "0");
+                    Point(b, 10, 0, 0);
+                    Point(b, 10, 100, 0);
+                },
+                b => Rule(b, "AcPointCurveConstraint", group.Handle, 32, 2, 31),
+                b => Rule(b, "AcPointCurveConstraint", group.Handle, 33, 3, 31),
+                b =>
+                {
+                    Rule(b, "Ac3PointAngleConstraint", group.Handle, 34, 2, 3, 11);
+                    b.Group(340, value);
+                    b.Group(340, tie.Handle);
+                    b.Group(280, "0");
+                }
+            );
             db = Reopened(db);
             DxfBlockReference insert = Insert(db);
 
@@ -449,7 +509,8 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The constraint group of the rectangle, its network owned by none.</summary>
-        private static DxfItem GroupOfPlain(DxfDatabase db) => Tree(NetworkOf(db.BlockTable["RECT"])).First(i => i.Type == "ACDBASSOC2DCONSTRAINTGROUP");
+        private static DxfItem GroupOfPlain(DxfDatabase db) =>
+            Tree(NetworkOf(db.BlockTable["RECT"])).First(i => i.Type == "ACDBASSOC2DCONSTRAINTGROUP");
 
         /// <summary>
         /// Rewrites a group of R2010 as R2018 writes it: the next id and the count of nodes (the two 90s before the first node)
@@ -468,7 +529,7 @@ namespace GeometryHelper.UnitTest.Dxf
             var listed = new List<KeyValuePair<int, string>>();
             var records = new List<KeyValuePair<int, string>>();
 
-            for (int i = first; i < groups.Count;)
+            for (int i = first; i < groups.Count; )
             {
                 int next = groups.FindIndex(i + 1, g => g.Key == 1);
                 next = next < 0 ? groups.Count : next;

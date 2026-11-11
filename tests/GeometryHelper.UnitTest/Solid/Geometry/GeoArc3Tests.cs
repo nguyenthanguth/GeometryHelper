@@ -16,8 +16,8 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static GeoArc3 Quarter() => new GeoArc3(GeoPoint3.Origin, GeoVector3.ZAxis, 10.0, 0.0, Math.PI / 2.0);
 
-        private static GeoArc3 Tilted() => new GeoArc3(
-            new GeoPoint3(12, -8, 30), new GeoVector3(1, 1, 1), 250.0, 0.3, 2.4);
+        private static GeoArc3 Tilted() =>
+            new GeoArc3(new GeoPoint3(12, -8, 30), new GeoVector3(1, 1, 1), 250.0, 0.3, 2.4);
 
         [Fact]
         public void AnArcLiesInItsOwnPlane()
@@ -87,8 +87,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void FromThreePoints_RefusesPointsOnOneLine()
         {
-            Assert.Throws<InvalidOperationException>(() => GeoArc3.FromThreePoints(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(2, 2, 2), new GeoPoint3(5, 5, 5)));
+            Assert.Throws<InvalidOperationException>(() =>
+                GeoArc3.FromThreePoints(new GeoPoint3(0, 0, 0), new GeoPoint3(2, 2, 2), new GeoPoint3(5, 5, 5))
+            );
         }
 
         [Fact]
@@ -101,7 +102,9 @@ namespace GeometryHelper.UnitTest.Solid
             GeoVector3 outward = arc.Center.GetVectorTo(arc.MidPoint);
 
             // Straight out through the middle of the arc.
-            Assert.True(arc.GetClosestPointOnBoundary(arc.Center.Add(outward.Multiply(10.0))).IsEqualTo(arc.MidPoint, Tight));
+            Assert.True(
+                arc.GetClosestPointOnBoundary(arc.Center.Add(outward.Multiply(10.0))).IsEqualTo(arc.MidPoint, Tight)
+            );
 
             // Round past the end: the nearer end answers, not the far side of the circle.
             GeoPoint3 pastTheEnd = arc.GetPointAtParameter(1.4);
@@ -144,7 +147,8 @@ namespace GeometryHelper.UnitTest.Solid
         public void ARigidMotionLeavesEveryMeasurementAlone()
         {
             GeoArc3 arc = Tilted();
-            GeoTransform3 motion = GeoTransform3.Translation(new GeoVector3(100, -40, 15))
+            GeoTransform3 motion = GeoTransform3
+                .Translation(new GeoVector3(100, -40, 15))
                 .Multiply(GeoTransform3.RotationAxis(new GeoPoint3(5, 5, 5), new GeoVector3(1, 2, 3), 0.9));
 
             GeoArc3 moved = arc.TransformBy(motion);
@@ -217,8 +221,12 @@ namespace GeometryHelper.UnitTest.Solid
         public void TheArgumentsAreCheckedAndEqualityComparesTheCurve()
         {
             Assert.Throws<ArgumentException>(() => new GeoArc3(GeoPoint3.Origin, GeoVector3.Zero, 5.0, 0.0, 1.0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoArc3(GeoPoint3.Origin, GeoVector3.ZAxis, 0.0, 0.0, 1.0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoArc3(GeoPoint3.Origin, GeoVector3.ZAxis, 5.0, double.NaN, 1.0));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new GeoArc3(GeoPoint3.Origin, GeoVector3.ZAxis, 0.0, 0.0, 1.0)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new GeoArc3(GeoPoint3.Origin, GeoVector3.ZAxis, 5.0, double.NaN, 1.0)
+            );
 
             GeoArc3 arc = Tilted();
 
@@ -240,7 +248,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoArc3 quarter = GeoArc3.FromThreePoints(
                 new GeoPoint3(10, 0, 0),
                 new GeoPoint3(10 / Math.Sqrt(2.0), 10 / Math.Sqrt(2.0), 0),
-                new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 10, 0)
+            );
 
             GeoAabb3 box = quarter.GetAabb();
 

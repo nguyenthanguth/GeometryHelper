@@ -29,7 +29,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (!c.Session.Request("DIMSTYLE"))
             {
-                c.Write("Current dimension style:  " + (CadDimStyleEditor.Current(c.Database) ?? "none") + ". The Dimension Style Manager is shown by the window.");
+                c.Write(
+                    "Current dimension style:  "
+                        + (CadDimStyleEditor.Current(c.Database) ?? "none")
+                        + ". The Dimension Style Manager is shown by the window."
+                );
             }
 
             yield break;
@@ -43,7 +47,8 @@ namespace GeometryHelper.Dxf.Viewer
         {
             string current = CadTextStyleEditor.Current(c.Database);
             yield return CadPrompt.ForString("Enter name of text style or [?]", current);
-            string name = c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim() : current;
+            string name =
+                c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim() : current;
 
             if (name == "?")
             {
@@ -54,7 +59,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             bool exists = c.Database.TextStyleTable.Has(name);
             c.Write(exists ? "Existing style." : "New style.");
-            CadTextStyleSettings settings = exists ? CadTextStyleSettings.Of(c.Database.TextStyleTable[name]) : CadTextStyleSettings.Of(c.Database.TextStyleTable[current]);
+            CadTextStyleSettings settings = exists
+                ? CadTextStyleSettings.Of(c.Database.TextStyleTable[name])
+                : CadTextStyleSettings.Of(c.Database.TextStyleTable[current]);
             string font = settings.Font.TypeFace.Length > 0 ? settings.Font.TypeFace : settings.FileName;
             yield return CadPrompt.ForString("Specify full font name or font filename (TTF or SHX)", font);
 
@@ -83,7 +90,9 @@ namespace GeometryHelper.Dxf.Viewer
                 settings.WidthFactor = c.Input.Number;
             }
 
-            yield return CadPrompt.ForAngle("Specify obliquing angle", null, null, Number(settings.ObliqueAngle * 180.0 / Math.PI)).Plain();
+            yield return CadPrompt
+                .ForAngle("Specify obliquing angle", null, null, Number(settings.ObliqueAngle * 180.0 / Math.PI))
+                .Plain();
 
             if (c.Input.Kind == CadInputKind.Number)
             {
@@ -103,10 +112,16 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             c.OpenUndoStep();
-            CadEditResult result = exists ? CadEditResult.Done(Array.Empty<CadEditRecord>()) : CadTextStyleEditor.Add(c.Document, name, current);
+            CadEditResult result = exists
+                ? CadEditResult.Done(Array.Empty<CadEditRecord>())
+                : CadTextStyleEditor.Add(c.Document, name, current);
             result = result.Succeeded ? CadTextStyleEditor.Apply(c.Document, name, settings) : result;
             result = result.Succeeded ? CadTextStyleEditor.SetCurrent(c.Document, name) : result;
-            c.Write(result.Succeeded ? "\"" + c.Database.TextStyleTable[name].Name + "\" is now the current text style." : result.Message);
+            c.Write(
+                result.Succeeded
+                    ? "\"" + c.Database.TextStyleTable[name].Name + "\" is now the current text style."
+                    : result.Message
+            );
         }
 
         /// <summary>
@@ -116,7 +131,15 @@ namespace GeometryHelper.Dxf.Viewer
         private static void Font(CadCommandContext c, CadTextStyleSettings settings, string typed)
         {
             string extension = Path.GetExtension(typed).ToLowerInvariant();
-            bool shx = extension == ".shx" || (extension.Length == 0 && (CadFonts.IsBuiltIn(typed) || c.Document.Fonts.Locate(typed + ".shx", c.Document.FontFolder) != null));
+            bool shx =
+                extension == ".shx"
+                || (
+                    extension.Length == 0
+                    && (
+                        CadFonts.IsBuiltIn(typed)
+                        || c.Document.Fonts.Locate(typed + ".shx", c.Document.FontFolder) != null
+                    )
+                );
 
             if (shx)
             {
@@ -138,7 +161,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             foreach (DxfTextStyleTableRecord style in CadTextStyleEditor.Styles(c.Database))
             {
-                string files = style.Font.TypeFace.Length > 0 ? style.Font.TypeFace : style.FileName + (style.BigFontFileName.Length > 0 ? ", " + style.BigFontFileName : string.Empty);
+                string files =
+                    style.Font.TypeFace.Length > 0
+                        ? style.Font.TypeFace
+                        : style.FileName
+                            + (style.BigFontFileName.Length > 0 ? ", " + style.BigFontFileName : string.Empty);
                 var generation = new List<string>();
 
                 if ((style.FlagBits & 2) != 0)
@@ -157,8 +184,14 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 c.Write("Style name: \"" + style.Name + "\"  Font files: " + files);
-                c.Write("   Height: " + style.TextSize.ToString("0.0000", CultureInfo.InvariantCulture) + "  Width factor: " + style.XScale.ToString("0.0000", CultureInfo.InvariantCulture)
-                    + "  Obliquing angle: " + Number(style.ObliquingAngle * 180.0 / Math.PI));
+                c.Write(
+                    "   Height: "
+                        + style.TextSize.ToString("0.0000", CultureInfo.InvariantCulture)
+                        + "  Width factor: "
+                        + style.XScale.ToString("0.0000", CultureInfo.InvariantCulture)
+                        + "  Obliquing angle: "
+                        + Number(style.ObliquingAngle * 180.0 / Math.PI)
+                );
                 c.Write("   Generation: " + (generation.Count == 0 ? "Normal" : string.Join(", ", generation)));
             }
 

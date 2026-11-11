@@ -72,20 +72,41 @@ namespace GeometryHelper.Viewer
 
             try
             {
-                using (JsonDocument document = JsonDocument.Parse(File.ReadAllText(path, Encoding.UTF8), new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip }))
+                using (
+                    JsonDocument document = JsonDocument.Parse(
+                        File.ReadAllText(path, Encoding.UTF8),
+                        new JsonDocumentOptions
+                        {
+                            AllowTrailingCommas = true,
+                            CommentHandling = JsonCommentHandling.Skip,
+                        }
+                    )
+                )
                 {
-                    if (document.RootElement.ValueKind == JsonValueKind.Object && document.RootElement.TryGetProperty("views", out JsonElement list) && list.ValueKind == JsonValueKind.Array)
+                    if (
+                        document.RootElement.ValueKind == JsonValueKind.Object
+                        && document.RootElement.TryGetProperty("views", out JsonElement list)
+                        && list.ValueKind == JsonValueKind.Array
+                    )
                     {
                         SceneFile.ReadViews(list, views, warnings, Path.GetFileName(path));
                     }
                     else
                     {
                         readable = false;
-                        warnings.Add(Path.GetFileName(path) + " is not a file of views (it has no list called views), and its views are left out");
+                        warnings.Add(
+                            Path.GetFileName(path)
+                                + " is not a file of views (it has no list called views), and its views are left out"
+                        );
                     }
                 }
             }
-            catch (Exception e) when (e is JsonException || e is IOException || e is UnauthorizedAccessException || e is InvalidOperationException)
+            catch (Exception e)
+                when (e is JsonException
+                    || e is IOException
+                    || e is UnauthorizedAccessException
+                    || e is InvalidOperationException
+                )
             {
                 readable = false;
                 warnings.Add(Path.GetFileName(path) + " could not be read, and its views are left out: " + e.Message);
@@ -177,7 +198,12 @@ namespace GeometryHelper.Viewer
 
             if (!readable)
             {
-                warnings.Add(Path.GetFileName(path) + " was left as it is, and the view '" + view.Name + "' was not kept in it: mend or remove the file to keep views beside the script");
+                warnings.Add(
+                    Path.GetFileName(path)
+                        + " was left as it is, and the view '"
+                        + view.Name
+                        + "' was not kept in it: mend or remove the file to keep views beside the script"
+                );
                 return false;
             }
 

@@ -23,7 +23,11 @@ namespace GeometryHelper.Core
         /// Makes the faces that cover a boundary less its holes.
         /// </summary>
         /// <remarks>See <see cref="GeoFace3.FromLoops(IEnumerable{GeoPoint3}, IEnumerable{IEnumerable{GeoPoint3}}, Tolerance)"/>.</remarks>
-        internal static GeoFace3[] ToFaces(IEnumerable<GeoPoint3> boundary, IEnumerable<IEnumerable<GeoPoint3>> holes, Tolerance tolerance)
+        internal static GeoFace3[] ToFaces(
+            IEnumerable<GeoPoint3> boundary,
+            IEnumerable<IEnumerable<GeoPoint3>> holes,
+            Tolerance tolerance
+        )
         {
             if (boundary == null)
             {
@@ -124,7 +128,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Makes one face of the loops as the constructors would, when every loop lies flat on the plane of the boundary.
         /// </summary>
-        private static bool TryFlat(List<GeoPoint3> outer, List<IReadOnlyList<GeoPoint3>> rings, Tolerance tolerance, out GeoFace3 face)
+        private static bool TryFlat(
+            List<GeoPoint3> outer,
+            List<IReadOnlyList<GeoPoint3>> rings,
+            Tolerance tolerance,
+            out GeoFace3 face
+        )
         {
             face = null;
 

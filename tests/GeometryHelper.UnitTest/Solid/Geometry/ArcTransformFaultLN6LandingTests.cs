@@ -20,8 +20,16 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly GeoVector3 Tilt = new GeoVector3(0, 0.6, 0.8);
 
-        private static GeoTransform3 Stretch(double scale, double share)
-            => new GeoTransform3(new double[,] { { scale * (1 + share), 0, 0, 5 }, { 0, scale, 0, 7 }, { 0, 0, scale, 9 }, { 0, 0, 0, 1 } });
+        private static GeoTransform3 Stretch(double scale, double share) =>
+            new GeoTransform3(
+                new double[,]
+                {
+                    { scale * (1 + share), 0, 0, 5 },
+                    { 0, scale, 0, 7 },
+                    { 0, 0, scale, 9 },
+                    { 0, 0, 0, 1 },
+                }
+            );
 
         /// <summary>The farthest any of 4 097 points of the arc, moved, stands off the moved arc's circle.</summary>
         private static double Worst(GeoArc3 arc, GeoTransform3 map, GeoArc3 moved)
@@ -80,9 +88,15 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ACircleAndABallUnderTheSame_AreRefused()
         {
-            Assert.Throws<InvalidOperationException>(() => new GeoCircle3(new GeoPoint3(3, 4, 5), GeoVector3.ZAxis, 1E5).TransformBy(Stretch(1000, 4E-10)));
-            Assert.Throws<InvalidOperationException>(() => new GeoSphere3(new GeoPoint3(3, 4, 5), 1E5).TransformBy(Stretch(1000, 4E-10)));
-            Assert.Throws<InvalidOperationException>(() => new GeoSphere3(new GeoPoint3(3, 4, 5), 1E8).TransformBy(Stretch(1, 4E-10)));
+            Assert.Throws<InvalidOperationException>(() =>
+                new GeoCircle3(new GeoPoint3(3, 4, 5), GeoVector3.ZAxis, 1E5).TransformBy(Stretch(1000, 4E-10))
+            );
+            Assert.Throws<InvalidOperationException>(() =>
+                new GeoSphere3(new GeoPoint3(3, 4, 5), 1E5).TransformBy(Stretch(1000, 4E-10))
+            );
+            Assert.Throws<InvalidOperationException>(() =>
+                new GeoSphere3(new GeoPoint3(3, 4, 5), 1E8).TransformBy(Stretch(1, 4E-10))
+            );
         }
 
         [Fact]

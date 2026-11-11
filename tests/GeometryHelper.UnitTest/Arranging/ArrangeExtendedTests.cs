@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GeometryHelper.Arranging;
 using GeometryHelper.Geometry;
 using Xunit;
-using GeometryHelper.Arranging;
 
 namespace GeometryHelper.UnitTest.Arranging
 {
@@ -172,9 +172,17 @@ namespace GeometryHelper.UnitTest.Arranging
             // Two nested polygon obstacles — the label must escape both layers
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var innerBox = new GeoPolygon2(
-                new GeoPoint2(-30, 5), new GeoPoint2(70, 5), new GeoPoint2(70, 20), new GeoPoint2(-30, 20));
+                new GeoPoint2(-30, 5),
+                new GeoPoint2(70, 5),
+                new GeoPoint2(70, 20),
+                new GeoPoint2(-30, 20)
+            );
             var outerBox = new GeoPolygon2(
-                new GeoPoint2(-50, 2), new GeoPoint2(90, 2), new GeoPoint2(90, 25), new GeoPoint2(-50, 25));
+                new GeoPoint2(-50, 2),
+                new GeoPoint2(90, 2),
+                new GeoPoint2(90, 25),
+                new GeoPoint2(-50, 25)
+            );
 
             var label = LabelOn(leader);
             label.BlockPolygons = new List<GeoPolygon2> { innerBox, outerBox };
@@ -199,7 +207,7 @@ namespace GeometryHelper.UnitTest.Arranging
             label.BlockLines = new List<GeoLine2>
             {
                 new GeoLine2(-100, 8.0, 100, 8.0),
-                new GeoLine2(-100, 12.0, 100, 12.0)
+                new GeoLine2(-100, 12.0, 100, 12.0),
             };
 
             ArrangeResult result = Arranger.Run(new List<ArrangeItem> { label }, OptionsFor())[0];
@@ -217,7 +225,11 @@ namespace GeometryHelper.UnitTest.Arranging
             // A wide obstacle covering the entire top region forces the label to the bottom side
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var topBlock = new GeoPolygon2(
-                new GeoPoint2(-200, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(-200, 200));
+                new GeoPoint2(-200, 0),
+                new GeoPoint2(200, 0),
+                new GeoPoint2(200, 200),
+                new GeoPoint2(-200, 200)
+            );
 
             var label = LabelOn(leader);
             label.BlockPolygons = new List<GeoPolygon2> { topBlock };
@@ -239,9 +251,17 @@ namespace GeometryHelper.UnitTest.Arranging
             // Obstacles form a cross pattern; the label must place into one of the four open corners
             var leader = new GeoLine2(0.0, 0.0, 80.0, 0.0);
             var horizontalBar = new GeoPolygon2(
-                new GeoPoint2(-200, -3), new GeoPoint2(200, -3), new GeoPoint2(200, 3), new GeoPoint2(-200, 3));
+                new GeoPoint2(-200, -3),
+                new GeoPoint2(200, -3),
+                new GeoPoint2(200, 3),
+                new GeoPoint2(-200, 3)
+            );
             var verticalBar = new GeoPolygon2(
-                new GeoPoint2(37, -200), new GeoPoint2(43, -200), new GeoPoint2(43, 200), new GeoPoint2(37, 200));
+                new GeoPoint2(37, -200),
+                new GeoPoint2(43, -200),
+                new GeoPoint2(43, 200),
+                new GeoPoint2(37, 200)
+            );
 
             var label = LabelOn(leader);
             label.BlockPolygons = new List<GeoPolygon2> { horizontalBar, verticalBar };
@@ -274,9 +294,7 @@ namespace GeometryHelper.UnitTest.Arranging
 
             ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { a, b, c }, options);
 
-            var boxes = new[] { a, b, c }
-                .Select((l, i) => MovedBox(l, results[i].Translation))
-                .ToArray();
+            var boxes = new[] { a, b, c }.Select((l, i) => MovedBox(l, results[i].Translation)).ToArray();
 
             // Pairwise collision check: no two placed labels may overlap each other
             for (int i = 0; i < boxes.Length; i++)
@@ -367,12 +385,12 @@ namespace GeometryHelper.UnitTest.Arranging
             failedA.BlockLines = new List<GeoLine2>
             {
                 new GeoLine2(-100, 10.0, 100, 10.0),
-                new GeoLine2(-100, -10.0, 100, -10.0)
+                new GeoLine2(-100, -10.0, 100, -10.0),
             };
             failedB.BlockLines = new List<GeoLine2>
             {
                 new GeoLine2(100, 10.0, 300, 10.0),
-                new GeoLine2(100, -10.0, 300, -10.0)
+                new GeoLine2(100, -10.0, 300, -10.0),
             };
 
             var options = OptionsFor();
@@ -398,7 +416,7 @@ namespace GeometryHelper.UnitTest.Arranging
             failedLabel.BlockLines = new List<GeoLine2>
             {
                 new GeoLine2(400, 10.0, 600, 10.0),
-                new GeoLine2(400, -10.0, 600, -10.0)
+                new GeoLine2(400, -10.0, 600, -10.0),
             };
 
             var options = OptionsFor();
@@ -419,10 +437,7 @@ namespace GeometryHelper.UnitTest.Arranging
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var successLabel = LabelOn(leader);
             var failedLabel = LabelOn(leader);
-            failedLabel.BlockLines = new List<GeoLine2>
-            {
-                new GeoLine2(-100, 10.0, 100, 10.0)
-            };
+            failedLabel.BlockLines = new List<GeoLine2> { new GeoLine2(-100, 10.0, 100, 10.0) };
 
             var options = OptionsFor();
             options.PerpendicularLevels = 3;
@@ -538,13 +553,16 @@ namespace GeometryHelper.UnitTest.Arranging
             var label = LabelOn(leader);
             label.BlockLines = new List<GeoLine2>
             {
-                new GeoLine2(-100, 10.0, 200, 10.0) // Blocks upper level 1
+                new GeoLine2(-100, 10.0, 200, 10.0), // Blocks upper level 1
             };
             label.BlockPolygons = new List<GeoPolygon2>
             {
                 new GeoPolygon2(
-                    new GeoPoint2(-100, -20), new GeoPoint2(200, -20),
-                    new GeoPoint2(200, -5), new GeoPoint2(-100, -5)) // Blocks lower level 1
+                    new GeoPoint2(-100, -20),
+                    new GeoPoint2(200, -20),
+                    new GeoPoint2(200, -5),
+                    new GeoPoint2(-100, -5)
+                ), // Blocks lower level 1
             };
 
             var options = OptionsFor();
@@ -566,8 +584,8 @@ namespace GeometryHelper.UnitTest.Arranging
             var label = LabelOn(leader);
             label.BlockLines = new List<GeoLine2>
             {
-                new GeoLine2(0, 5, 30, 30),   // Diagonal line from left
-                new GeoLine2(60, 5, 30, 30)    // Diagonal line from right
+                new GeoLine2(0, 5, 30, 30), // Diagonal line from left
+                new GeoLine2(60, 5, 30, 30), // Diagonal line from right
             };
 
             var options = OptionsFor();
@@ -702,8 +720,11 @@ namespace GeometryHelper.UnitTest.Arranging
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var label = LabelOn(leader);
             var farObstacle = new GeoPolygon2(
-                new GeoPoint2(10000, 10000), new GeoPoint2(10100, 10000),
-                new GeoPoint2(10100, 10100), new GeoPoint2(10000, 10100));
+                new GeoPoint2(10000, 10000),
+                new GeoPoint2(10100, 10000),
+                new GeoPoint2(10100, 10100),
+                new GeoPoint2(10000, 10100)
+            );
             label.BlockPolygons = new List<GeoPolygon2> { farObstacle };
 
             var options = OptionsFor();

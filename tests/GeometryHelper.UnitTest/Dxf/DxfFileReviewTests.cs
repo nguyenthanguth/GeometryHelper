@@ -21,12 +21,36 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static List<string> Records(string text) => DxfModel.Records(text);
 
-        private static string Record(DxfFile file, string handle) => Records(file.ToText()).Single(r => DxfModel.HandleOf(r) == handle);
+        private static string Record(DxfFile file, string handle) =>
+            Records(file.ToText()).Single(r => DxfModel.HandleOf(r) == handle);
 
         [Fact]
         public void ACircleWhoseMarkerComesLate_IsGivenTheNewCircle_TheOldGroupsGone()
         {
-            DxfFile file = DxfFile.Parse(R2000(G(0, "CIRCLE", 5, "2A", 100, "AcDbEntity", 8, "0", 10, "1", 20, "2", 30, "0", 40, "5", 100, "AcDbCircle")));
+            DxfFile file = DxfFile.Parse(
+                R2000(
+                    G(
+                        0,
+                        "CIRCLE",
+                        5,
+                        "2A",
+                        100,
+                        "AcDbEntity",
+                        8,
+                        "0",
+                        10,
+                        "1",
+                        20,
+                        "2",
+                        30,
+                        "0",
+                        40,
+                        "5",
+                        100,
+                        "AcDbCircle"
+                    )
+                )
+            );
             DxfItem circle = file.ModelSpace[0];
 
             circle.Shape = new GeoCircle3(new GeoPoint3(50, 60, 0), new GeoVector3(0, 0, 1), 7);
@@ -40,25 +64,119 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ARecordOfR2000WithNoMarkers_GivenANewShape_GetsTheMarkerAcDbEntity()
         {
-            string text = R2000(G(0, "LWPOLYLINE", 5, "2A", 8, "0", 90, "2", 70, "0", 10, "0", 20, "0", 10, "5", 20, "0") + G(0, "LINE", 5, "2B", 8, "0", 10, "0", 20, "0", 11, "1", 21, "0"));
+            string text = R2000(
+                G(0, "LWPOLYLINE", 5, "2A", 8, "0", 90, "2", 70, "0", 10, "0", 20, "0", 10, "5", 20, "0")
+                    + G(0, "LINE", 5, "2B", 8, "0", 10, "0", 20, "0", 11, "1", 21, "0")
+            );
             DxfFile file = DxfFile.Parse(text);
 
-            file.ModelSpace[0].Shape = new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10) }, new[] { 0.5, 0.0 });
-            file.ModelSpace[1].Shape = new DxfText(new GeoPoint3(1, 2, 0), new GeoVector3(0, 0, 1), 2.5, 0, "note\nmore", true);
+            file.ModelSpace[0].Shape = new GeoPolylineArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10) },
+                new[] { 0.5, 0.0 }
+            );
+            file.ModelSpace[1].Shape = new DxfText(
+                new GeoPoint3(1, 2, 0),
+                new GeoVector3(0, 0, 1),
+                2.5,
+                0,
+                "note\nmore",
+                true
+            );
 
-            Assert.StartsWith("  0\nLWPOLYLINE\n  5\n2A\n100\nAcDbEntity\n  8\n0\n100\nAcDbPolyline\n", Record(file, "2A"), StringComparison.Ordinal);
-            Assert.StartsWith("  0\nMTEXT\n  5\n2B\n100\nAcDbEntity\n  8\n0\n100\nAcDbMText\n", Record(file, "2B"), StringComparison.Ordinal);
+            Assert.StartsWith(
+                "  0\nLWPOLYLINE\n  5\n2A\n100\nAcDbEntity\n  8\n0\n100\nAcDbPolyline\n",
+                Record(file, "2A"),
+                StringComparison.Ordinal
+            );
+            Assert.StartsWith(
+                "  0\nMTEXT\n  5\n2B\n100\nAcDbEntity\n  8\n0\n100\nAcDbMText\n",
+                Record(file, "2B"),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
         public void ATextJustified_GivenANewText_KeepsItsJustification_AtTheNewPlace()
         {
-            string text = R2000(G(0, "TEXT", 5, "2A", 100, "AcDbEntity", 8, "0", 100, "AcDbText", 10, "100.0", 20, "50.0", 30, "0.0", 40, "5", 1, "Centred", 72, "1", 11, "200.0", 21, "50.0", 31, "0.0", 100, "AcDbText", 73, "2")
-                + G(0, "MTEXT", 5, "2B", 100, "AcDbEntity", 8, "0", 100, "AcDbMText", 10, "0", 20, "0", 30, "0", 40, "2.5", 71, "5", 72, "1", 1, "Middle"));
+            string text = R2000(
+                G(
+                    0,
+                    "TEXT",
+                    5,
+                    "2A",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "0",
+                    100,
+                    "AcDbText",
+                    10,
+                    "100.0",
+                    20,
+                    "50.0",
+                    30,
+                    "0.0",
+                    40,
+                    "5",
+                    1,
+                    "Centred",
+                    72,
+                    "1",
+                    11,
+                    "200.0",
+                    21,
+                    "50.0",
+                    31,
+                    "0.0",
+                    100,
+                    "AcDbText",
+                    73,
+                    "2"
+                )
+                    + G(
+                        0,
+                        "MTEXT",
+                        5,
+                        "2B",
+                        100,
+                        "AcDbEntity",
+                        8,
+                        "0",
+                        100,
+                        "AcDbMText",
+                        10,
+                        "0",
+                        20,
+                        "0",
+                        30,
+                        "0",
+                        40,
+                        "2.5",
+                        71,
+                        "5",
+                        72,
+                        "1",
+                        1,
+                        "Middle"
+                    )
+            );
             DxfFile file = DxfFile.Parse(text);
 
-            file.ModelSpace[0].Shape = new DxfText(new GeoPoint3(300, 60, 0), new GeoVector3(0, 0, 1), 5, 0, "Centred and more");
-            file.ModelSpace[1].Shape = new DxfText(new GeoPoint3(1, 2, 0), new GeoVector3(0, 0, 1), 2.5, 0, "Middle\nmore", true);
+            file.ModelSpace[0].Shape = new DxfText(
+                new GeoPoint3(300, 60, 0),
+                new GeoVector3(0, 0, 1),
+                5,
+                0,
+                "Centred and more"
+            );
+            file.ModelSpace[1].Shape = new DxfText(
+                new GeoPoint3(1, 2, 0),
+                new GeoVector3(0, 0, 1),
+                2.5,
+                0,
+                "Middle\nmore",
+                true
+            );
 
             string centred = Record(file, "2A");
             Assert.Contains(" 72\n1\n", centred, StringComparison.Ordinal);
@@ -70,7 +188,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string middle = Record(file, "2B");
             Assert.Contains(" 71\n5\n", middle, StringComparison.Ordinal);
-            Assert.Equal(1, Records(file.ToText()).Single(r => DxfModel.HandleOf(r) == "2B").Split('\n').Count(l => l == " 71"));
+            Assert.Equal(
+                1,
+                Records(file.ToText()).Single(r => DxfModel.HandleOf(r) == "2B").Split('\n').Count(l => l == " 71")
+            );
         }
 
         [Fact]
@@ -103,16 +224,74 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             Assert.True(file.LayerTableReadings - before <= 1, (file.LayerTableReadings - before) + " readings");
-            Assert.Equal(50, DxfFile.Parse(file.ToText()).LayerTable.Count(l => l.Name.StartsWith("L", StringComparison.Ordinal) && l.Name.Length <= 3));
+            Assert.Equal(
+                50,
+                DxfFile
+                    .Parse(file.ToText())
+                    .LayerTable.Count(l => l.Name.StartsWith("L", StringComparison.Ordinal) && l.Name.Length <= 3)
+            );
         }
 
         [Fact]
         public void AHandleSomethingPointsAt_IsNotGivenToANewEntity()
         {
             // The GROUP 20 lists the handle 3F, which no record has: the new entity is not given it.
-            string text = G(0, "SECTION", 2, "HEADER", 9, "$ACADVER", 1, "AC1015", 9, "$HANDSEED", 5, "21", 0, "ENDSEC")
-                + G(0, "SECTION", 2, "ENTITIES", 0, "LINE", 5, "1F", 100, "AcDbEntity", 8, "0", 100, "AcDbLine", 10, "0", 20, "0", 30, "0", 11, "1", 21, "0", 31, "0", 0, "ENDSEC")
-                + G(0, "SECTION", 2, "OBJECTS", 0, "GROUP", 5, "20", 100, "AcDbGroup", 300, "", 70, "1", 71, "1", 340, "3F", 0, "ENDSEC", 0, "EOF");
+            string text =
+                G(0, "SECTION", 2, "HEADER", 9, "$ACADVER", 1, "AC1015", 9, "$HANDSEED", 5, "21", 0, "ENDSEC")
+                + G(
+                    0,
+                    "SECTION",
+                    2,
+                    "ENTITIES",
+                    0,
+                    "LINE",
+                    5,
+                    "1F",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "0",
+                    100,
+                    "AcDbLine",
+                    10,
+                    "0",
+                    20,
+                    "0",
+                    30,
+                    "0",
+                    11,
+                    "1",
+                    21,
+                    "0",
+                    31,
+                    "0",
+                    0,
+                    "ENDSEC"
+                )
+                + G(
+                    0,
+                    "SECTION",
+                    2,
+                    "OBJECTS",
+                    0,
+                    "GROUP",
+                    5,
+                    "20",
+                    100,
+                    "AcDbGroup",
+                    300,
+                    "",
+                    70,
+                    "1",
+                    71,
+                    "1",
+                    340,
+                    "3F",
+                    0,
+                    "ENDSEC",
+                    0,
+                    "EOF"
+                );
             DxfFile file = DxfFile.Parse(text);
 
             DxfItem added = file.ModelSpace.Add(new GeoPoint3(1, 2, 3));
@@ -143,16 +322,50 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             Assert.Equal("AÃ©", DxfReader.NameOf(again.ModelSpace[0].Layer));
-            Assert.Equal("AÃ©", again.LayerTable.Count == 0 ? DxfReader.NameOf(again.ModelSpace[0].Layer) : again.LayerTable.Last().Name);
+            Assert.Equal(
+                "AÃ©",
+                again.LayerTable.Count == 0 ? DxfReader.NameOf(again.ModelSpace[0].Layer) : again.LayerTable.Last().Name
+            );
         }
 
         [Fact]
         public void AFileThatNamesNoVersion_ButWritesSubclassMarkers_IsWrittenInTheFormsOfR2000()
         {
-            string text = G(0, "SECTION", 2, "ENTITIES", 0, "LINE", 100, "AcDbEntity", 8, "0", 100, "AcDbLine", 10, "0", 20, "0", 30, "0", 11, "1", 21, "0", 31, "0", 0, "ENDSEC", 0, "EOF");
+            string text = G(
+                0,
+                "SECTION",
+                2,
+                "ENTITIES",
+                0,
+                "LINE",
+                100,
+                "AcDbEntity",
+                8,
+                "0",
+                100,
+                "AcDbLine",
+                10,
+                "0",
+                20,
+                "0",
+                30,
+                "0",
+                11,
+                "1",
+                21,
+                "0",
+                31,
+                "0",
+                0,
+                "ENDSEC",
+                0,
+                "EOF"
+            );
             DxfFile file = DxfFile.Parse(text);
 
-            DxfItem added = file.ModelSpace.Add(new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0) }, new[] { 0.5 }));
+            DxfItem added = file.ModelSpace.Add(
+                new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0) }, new[] { 0.5 })
+            );
 
             Assert.Equal("LWPOLYLINE", added.Type);
             Assert.Contains(added.Groups, g => g.TypeCode == 100 && g.Value == "AcDbEntity");

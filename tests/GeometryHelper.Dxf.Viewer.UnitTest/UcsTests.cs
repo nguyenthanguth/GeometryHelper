@@ -19,7 +19,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         /// <summary>Saves a document into a folder of its own under %TEMP%\gk\drawing\ucs-tests and reads the file back.</summary>
         private static DxfDatabase Saved(CadDocument document)
         {
-            string folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "ucs-tests", Guid.NewGuid().ToString("N"));
+            string folder = Path.Combine(
+                Path.GetTempPath(),
+                "gk",
+                "drawing",
+                "ucs-tests",
+                Guid.NewGuid().ToString("N")
+            );
             Directory.CreateDirectory(folder);
 
             try
@@ -51,7 +57,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             // A system whose Y axis stands up out of the plan is not one the view from above can work in.
             Assert.False(new CadUcs(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.ZAxis).IsPlanar);
-            Assert.Throws<ArgumentException>(() => new CadUcs(GeoPoint3.Origin, GeoVector3.XAxis, new GeoVector3(2, 0, 0)));
+            Assert.Throws<ArgumentException>(() =>
+                new CadUcs(GeoPoint3.Origin, GeoVector3.XAxis, new GeoVector3(2, 0, 0))
+            );
         }
 
         [Fact]
@@ -86,7 +94,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "ID", P(100, 60));
             Assert.Equal("X = 10.0000     Y = 0.0000     Z = 0.0000", session.History.Last());
             Run(session, "DIST", P(100, 50), P(100, 60));
-            Assert.Contains(session.History, l => l.StartsWith("Delta X = 10.0000,  Delta Y = 0.0000", StringComparison.Ordinal));
+            Assert.Contains(session.History, l =>
+                l.StartsWith("Delta X = 10.0000,  Delta Y = 0.0000", StringComparison.Ordinal)
+            );
         }
 
         [Fact]
@@ -110,7 +120,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument blank = Blank();
             PickIndex index = blank.GetPickIndex(blank.ModelSpace);
             CadUcs ucs = CadUcs.InPlane(P(0, 0), Math.PI / 6.0);
-            var snap = new ObjectSnap(Tight) { IsOn = false, Ortho = true, Ucs = ucs };
+            var snap = new ObjectSnap(Tight)
+            {
+                IsOn = false,
+                Ortho = true,
+                Ucs = ucs,
+            };
 
             CadSnapResult held = snap.Snap(index, ucs.ToWorld(P(100, 10)), 1.0, ucs.ToWorld(P(0, 0)));
             Assert.Equal(CadSnapKind.Ortho, held.Kind);
@@ -126,7 +141,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             snap.Polar = true;
             snap.PolarAngle = Math.PI / 4.0;
             double off = 44.0 * Math.PI / 180.0;
-            CadSnapResult tracked = snap.Snap(index, ucs.ToWorld(P(100 * Math.Cos(off), 100 * Math.Sin(off))), 5.0, ucs.ToWorld(P(0, 0)));
+            CadSnapResult tracked = snap.Snap(
+                index,
+                ucs.ToWorld(P(100 * Math.Cos(off), 100 * Math.Sin(off))),
+                5.0,
+                ucs.ToWorld(P(0, 0))
+            );
             double along = 100 * Math.Cos(Math.PI / 180.0);
             Assert.Equal(CadSnapKind.Polar, tracked.Kind);
             Near(ucs.ToWorld(P(along * Math.Cos(Math.PI / 4.0), along * Math.Sin(Math.PI / 4.0))), tracked.Point);
@@ -239,7 +259,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ANamedUcs_IsSavedAsAutoCadWritesIt_AndReadBack()
         {
-            string folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "ucs-tests", Guid.NewGuid().ToString("N"));
+            string folder = Path.Combine(
+                Path.GetTempPath(),
+                "gk",
+                "drawing",
+                "ucs-tests",
+                Guid.NewGuid().ToString("N")
+            );
             Directory.CreateDirectory(folder);
 
             try
@@ -252,7 +278,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 Assert.False(document.IsModified);
 
                 string text = string.Join("\n", File.ReadAllLines(path).Select(l => l.Trim()));
-                Assert.Contains("AcDbSymbolTableRecord\n100\nAcDbUCSTableRecord\n2\nSlab\n70\n0\n10\n100\n20\n50\n30\n0\n11\n0.866025403784", text, StringComparison.Ordinal);
+                Assert.Contains(
+                    "AcDbSymbolTableRecord\n100\nAcDbUCSTableRecord\n2\nSlab\n70\n0\n10\n100\n20\n50\n30\n0\n11\n0.866025403784",
+                    text,
+                    StringComparison.Ordinal
+                );
                 Assert.Contains("\n79\n0\n146\n0\n0\n", text, StringComparison.Ordinal);
                 Assert.Contains("$UCSNAME\n2\nSlab\n", text, StringComparison.Ordinal);
 
@@ -296,7 +326,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void AUcsOfTheFileOutOfThePlan_IsListedAndKept_NotMadeCurrent()
         {
             var database = new DxfDatabase("AC1027");
-            database.UcsTable.Add(new DxfUcsTableRecord { Name = "Front", XAxis = GeoVector3.XAxis, YAxis = GeoVector3.ZAxis });
+            database.UcsTable.Add(
+                new DxfUcsTableRecord
+                {
+                    Name = "Front",
+                    XAxis = GeoVector3.XAxis,
+                    YAxis = GeoVector3.ZAxis,
+                }
+            );
             database.Ucs = new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.ZAxis);
             database.Ucsname = "Front";
             string before = database.ToText();

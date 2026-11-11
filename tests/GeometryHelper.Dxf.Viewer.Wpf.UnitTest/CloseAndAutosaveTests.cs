@@ -70,7 +70,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         [Fact]
         public void ClosingLetsThePluginsGoAndTheRowsXClosesItsDrawing()
         {
-            using (var plugins = new CadPluginManager(new CadPluginAssemblyLoader(), Path.Combine(_folder.FullPath, "plugins"), Path.Combine(_folder.FullPath, "plugins.json"), Path.Combine(_folder.FullPath, "copies")))
+            using (
+                var plugins = new CadPluginManager(
+                    new CadPluginAssemblyLoader(),
+                    Path.Combine(_folder.FullPath, "plugins"),
+                    Path.Combine(_folder.FullPath, "plugins.json"),
+                    Path.Combine(_folder.FullPath, "copies")
+                )
+            )
             {
                 var model = new MainViewModel();
                 model.UsePlugins(plugins, loadAtStart: false);
@@ -173,7 +180,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             var database = new DxfDatabase("AC1027");
             database.LayerTable.Add(new DxfLayerTableRecord { Name = "Hidden", ColorIndex = 7 });
-            database.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)) { Layer = "Hidden" });
+            database.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)) { Layer = "Hidden" }
+            );
             database.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0)));
             CadDocument document = CadDocument.From(database, "lines.dxf");
             var view = new CadView(200, 200);
@@ -196,7 +205,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         [Fact]
         public void TheCrosshairHidesTheSystemCursorAndTheGripsTakeTheirColour()
         {
-            Cursor with = null, without = null;
+            Cursor with = null,
+                without = null;
             Exception failure = null;
             var thread = new Thread(() =>
             {
@@ -250,7 +260,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         private static void AddLine(MainViewModel model)
         {
             CadDocument document = model.Document;
-            Assert.True(document.ApplyEdit("LINE", null, scope => scope.Append(document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 0)))).Succeeded);
+            Assert.True(
+                document
+                    .ApplyEdit("LINE", null, scope =>
+                        scope.Append(document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 0)))
+                    )
+                    .Succeeded
+            );
         }
     }
 }

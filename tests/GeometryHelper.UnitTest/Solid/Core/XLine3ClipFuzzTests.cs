@@ -21,7 +21,8 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Strict = new Tolerance(1E-3, 1E-5);
 
-        private static int Cases => int.TryParse(Environment.GetEnvironmentVariable("XLINE3_FUZZ"), out int n) ? Math.Max(n, 20000) : 20000;
+        private static int Cases =>
+            int.TryParse(Environment.GetEnvironmentVariable("XLINE3_FUZZ"), out int n) ? Math.Max(n, 20000) : 20000;
 
         [Fact]
         public void ALineClippedToABox_IsTheStretchBetweenItsFirstAndLastPiercingOfTheFaces()
@@ -35,7 +36,10 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 XLineSpecimen specimen = XLine3Gen.Make("Aabb3", random);
                 var box = (GeoAabb3)specimen.Shape;
-                var layout = i % 4 == 3 ? XLine3Gen.Layout.Axis : i % 4 == 2 ? XLine3Gen.Layout.Random : XLine3Gen.Layout.Through;
+                var layout =
+                    i % 4 == 3 ? XLine3Gen.Layout.Axis
+                    : i % 4 == 2 ? XLine3Gen.Layout.Random
+                    : XLine3Gen.Layout.Through;
                 GeoXLine3 line = XLine3Gen.MakeLine(random, specimen, layout);
 
                 if (i % 2 == 1)
@@ -64,14 +68,24 @@ namespace GeometryHelper.UnitTest.Solid
                         GeoVector3 along = cut.Value.StartPoint.GetVectorTo(cut.Value.EndPoint);
 
                         Assert.True(along.DotProduct(line.Direction) >= -1E-9, "runs against the line");
-                        Assert.True(oracleLine.Perp(Vec.Of(cut.Value.StartPoint)).Length <= 1E-6 && oracleLine.Perp(Vec.Of(cut.Value.EndPoint)).Length <= 1E-6, "off the line");
+                        Assert.True(
+                            oracleLine.Perp(Vec.Of(cut.Value.StartPoint)).Length <= 1E-6
+                                && oracleLine.Perp(Vec.Of(cut.Value.EndPoint)).Length <= 1E-6,
+                            "off the line"
+                        );
                         Assert.True(box.DistanceTo(cut.Value.MidPoint) <= 1E-6, "the middle is outside the box");
 
                         // Piercing it, the ends are the first and the last of the places the line pierces the faces, or the same place.
                         if (piercings.Length >= 2 && !specimen.Delicate(oracleLine))
                         {
-                            Assert.True(Vec.Of(cut.Value.StartPoint).DistanceTo(piercings[0]) <= 1E-5, "starts at " + cut.Value.StartPoint + ", not " + piercings[0].ToPoint());
-                            Assert.True(Vec.Of(cut.Value.EndPoint).DistanceTo(piercings[piercings.Length - 1]) <= 1E-5, "ends at " + cut.Value.EndPoint + ", not " + piercings[piercings.Length - 1].ToPoint());
+                            Assert.True(
+                                Vec.Of(cut.Value.StartPoint).DistanceTo(piercings[0]) <= 1E-5,
+                                "starts at " + cut.Value.StartPoint + ", not " + piercings[0].ToPoint()
+                            );
+                            Assert.True(
+                                Vec.Of(cut.Value.EndPoint).DistanceTo(piercings[piercings.Length - 1]) <= 1E-5,
+                                "ends at " + cut.Value.EndPoint + ", not " + piercings[piercings.Length - 1].ToPoint()
+                            );
                         }
                     }
                 }
@@ -81,8 +95,14 @@ namespace GeometryHelper.UnitTest.Solid
                 }
             }
 
-            Assert.True(failures.Count == 0, failures.Count + " of " + Cases + " went wrong:\n" + string.Join("\n", failures.Take(8)));
-            Assert.True(clipped > Cases / 4 && missed > Cases / 20, clipped + " clipped and " + missed + " missed: the run did not meet both");
+            Assert.True(
+                failures.Count == 0,
+                failures.Count + " of " + Cases + " went wrong:\n" + string.Join("\n", failures.Take(8))
+            );
+            Assert.True(
+                clipped > Cases / 4 && missed > Cases / 20,
+                clipped + " clipped and " + missed + " missed: the run did not meet both"
+            );
         }
     }
 }

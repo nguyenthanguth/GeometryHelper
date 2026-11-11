@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using GeometryHelper.IfcConvert.Converters.Internal;
@@ -13,7 +13,8 @@ namespace GeometryHelper.IfcConvert.UnitTest
     [Collection("IfcEngine")]
     public class OpeningVoidConvertTests
     {
-        private const string IfcWallWithOpeningStep = @"ISO-10303-21;
+        private const string IfcWallWithOpeningStep =
+            @"ISO-10303-21;
 HEADER;
 FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');
 FILE_NAME('test_wall_opening.ifc','2026-09-17T23:00:00',('Tester'),('TestOrg'),'xBIM','xBIM','');
@@ -73,7 +74,11 @@ END-ISO-10303-21;
             {
                 if (File.Exists(tempFile))
                 {
-                    try { File.Delete(tempFile); } catch { }
+                    try
+                    {
+                        File.Delete(tempFile);
+                    }
+                    catch { }
                 }
             }
         }
@@ -108,7 +113,11 @@ END-ISO-10303-21;
             {
                 if (File.Exists(tempFile))
                 {
-                    try { File.Delete(tempFile); } catch { }
+                    try
+                    {
+                        File.Delete(tempFile);
+                    }
+                    catch { }
                 }
             }
         }

@@ -35,7 +35,13 @@ namespace GeometryHelper.Dxf.Viewer
                 if (region == null || !ReferenceEquals(index, regionIndex) || !Within(region, input.Point))
                 {
                     regionIndex = index;
-                    region = CadBoundaryFinder.Find(c.Document, c.Space, input.Point, c.Session.Tolerance, c.Session.WorkView?.VisibleBox);
+                    region = CadBoundaryFinder.Find(
+                        c.Document,
+                        c.Space,
+                        input.Point,
+                        c.Session.Tolerance,
+                        c.Session.WorkView?.VisibleBox
+                    );
                 }
 
                 if (region == null)
@@ -66,14 +72,21 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Pick internal point", null, new[] { "Select objects", "Undo", "seTtings" })
+                yield return CadPrompt
+                    .ForPoint("Pick internal point", null, new[] { "Select objects", "Undo", "seTtings" })
                     .Previewing(CadPreview.Making(c, Previewed));
 
                 if (c.Input.IsPoint)
                 {
                     c.Write("Analyzing the selected data...");
                     c.Write("Analyzing internal islands...");
-                    IReadOnlyList<CadBoundaryLoop> loops = CadBoundaryFinder.Find(c.Document, c.Space, c.Input.Point, c.Session.Tolerance, c.Session.WorkView?.VisibleBox);
+                    IReadOnlyList<CadBoundaryLoop> loops = CadBoundaryFinder.Find(
+                        c.Document,
+                        c.Space,
+                        c.Input.Point,
+                        c.Session.Tolerance,
+                        c.Session.WorkView?.VisibleBox
+                    );
 
                     if (loops == null)
                     {
@@ -105,11 +118,20 @@ namespace GeometryHelper.Dxf.Viewer
                 else if (c.Input.Is("Select objects"))
                 {
                     yield return CadPrompt.ForSelection();
-                    IReadOnlyList<CadBoundaryLoop> loops = CadBoundaryFinder.FromObjects(c.Document, c.Input.Handles, c.Session.Tolerance, out int passed);
+                    IReadOnlyList<CadBoundaryLoop> loops = CadBoundaryFinder.FromObjects(
+                        c.Document,
+                        c.Input.Handles,
+                        c.Session.Tolerance,
+                        out int passed
+                    );
 
                     if (passed > 0)
                     {
-                        c.Write(passed.ToString(System.Globalization.CultureInfo.InvariantCulture) + (passed == 1 ? " object is" : " objects are") + " not closed and cannot be a hatch boundary.");
+                        c.Write(
+                            passed.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                + (passed == 1 ? " object is" : " objects are")
+                                + " not closed and cannot be a hatch boundary."
+                        );
                     }
 
                     if (loops.Count > 0)
@@ -156,11 +178,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> HatchPropertiesTyped(CadCommandContext c, CadHatchSettings settings)
         {
-            string offered = settings.Type == CadHatchType.Solid ? "SOLID" : settings.Type == CadHatchType.UserDefined ? "_USER" : settings.Type == CadHatchType.Gradient ? settings.GradientName : settings.PatternName;
+            string offered =
+                settings.Type == CadHatchType.Solid ? "SOLID"
+                : settings.Type == CadHatchType.UserDefined ? "_USER"
+                : settings.Type == CadHatchType.Gradient ? settings.GradientName
+                : settings.PatternName;
 
             while (true)
             {
-                yield return CadPrompt.ForKeywordOrText("Enter a pattern name or", new[] { "?", "Solid", "User defined", "Gradient" }, offered);
+                yield return CadPrompt.ForKeywordOrText(
+                    "Enter a pattern name or",
+                    new[] { "?", "Solid", "User defined", "Gradient" },
+                    offered
+                );
 
                 if (c.Input.Is("?"))
                 {
@@ -184,7 +214,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Kind == CadInputKind.Text)
                 {
-                    string name = CadHatchSettings.GradientNames.FirstOrDefault(n => string.Equals(n, c.Input.Text.Trim(), StringComparison.OrdinalIgnoreCase));
+                    string name = CadHatchSettings.GradientNames.FirstOrDefault(n =>
+                        string.Equals(n, c.Input.Text.Trim(), StringComparison.OrdinalIgnoreCase)
+                    );
 
                     if (name == null)
                     {
@@ -214,7 +246,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (settings.Type == CadHatchType.Pattern)
             {
-                yield return CadPrompt.ForDistance("Specify a scale for the pattern", null, null, Length(settings.Scale));
+                yield return CadPrompt.ForDistance(
+                    "Specify a scale for the pattern",
+                    null,
+                    null,
+                    Length(settings.Scale)
+                );
 
                 if (c.Input.Kind == CadInputKind.Number && c.Input.Number > 0.0)
                 {
@@ -222,7 +259,12 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            yield return CadPrompt.ForAngle("Specify an angle for the pattern", null, null, Counted(c, settings.Angle * Math.PI / 180.0));
+            yield return CadPrompt.ForAngle(
+                "Specify an angle for the pattern",
+                null,
+                null,
+                Counted(c, settings.Angle * Math.PI / 180.0)
+            );
 
             if (c.Input.Kind == CadInputKind.Number)
             {
@@ -234,14 +276,23 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForDistance("Specify spacing between the lines", null, null, Length(settings.Spacing));
+            yield return CadPrompt.ForDistance(
+                "Specify spacing between the lines",
+                null,
+                null,
+                Length(settings.Spacing)
+            );
 
             if (c.Input.Kind == CadInputKind.Number && c.Input.Number > 0.0)
             {
                 settings.Spacing = c.Input.Number;
             }
 
-            yield return CadPrompt.ForKeyword("Double hatch area?", new[] { "Yes", "No" }, settings.Double ? "Yes" : "No");
+            yield return CadPrompt.ForKeyword(
+                "Double hatch area?",
+                new[] { "Yes", "No" },
+                settings.Double ? "Yes" : "No"
+            );
 
             if (c.Input.Is("Yes") || c.Input.Is("No"))
             {
@@ -255,7 +306,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// outer loop is flagged External and the islands with none: a loop flagged Derived (picked) makes AutoCAD 2021 expect
         /// the pixel size (group 47), which the library does not write, and refuse the file ("expected group code 47").
         /// </summary>
-        private static void MakeHatch(CadCommandContext c, List<IReadOnlyList<CadBoundaryLoop>> picks, CadHatchSettings settings)
+        private static void MakeHatch(
+            CadCommandContext c,
+            List<IReadOnlyList<CadBoundaryLoop>> picks,
+            CadHatchSettings settings
+        )
         {
             List<CadBoundaryLoop> loops = KeptLoops(picks, settings);
             string fault = null;
@@ -290,7 +345,10 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The loops of the picks a hatch is made of, each pick's as its island style keeps them.</summary>
-        private static List<CadBoundaryLoop> KeptLoops(List<IReadOnlyList<CadBoundaryLoop>> picks, CadHatchSettings settings)
+        private static List<CadBoundaryLoop> KeptLoops(
+            List<IReadOnlyList<CadBoundaryLoop>> picks,
+            CadHatchSettings settings
+        )
         {
             var loops = new List<CadBoundaryLoop>();
 
@@ -432,7 +490,13 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                IReadOnlyList<CadBoundaryLoop> loops = CadBoundaryFinder.Find(c.Document, c.Space, c.Input.Point, c.Session.Tolerance, c.Session.WorkView?.VisibleBox);
+                IReadOnlyList<CadBoundaryLoop> loops = CadBoundaryFinder.Find(
+                    c.Document,
+                    c.Space,
+                    c.Input.Point,
+                    c.Session.Tolerance,
+                    c.Session.WorkView?.VisibleBox
+                );
 
                 if (loops == null)
                 {
@@ -456,7 +520,11 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 });
 
-                c.Write(result.Succeeded ? "BOUNDARY created " + Count(loops.Count, "polyline", "polylines") : result.Message);
+                c.Write(
+                    result.Succeeded
+                        ? "BOUNDARY created " + Count(loops.Count, "polyline", "polylines")
+                        : result.Message
+                );
             }
         }
     }

@@ -87,7 +87,8 @@ namespace GeometryHelper.Dxf.Viewer
         };
 
         /// <summary>The dictionary of the states; null where the drawing has none.</summary>
-        internal static DxfDBDictionary Dictionary(DxfDatabase database) => database.LayerStateManager.LayerStatesDictionary;
+        internal static DxfDBDictionary Dictionary(DxfDatabase database) =>
+            database.LayerStateManager.LayerStatesDictionary;
 
         /// <summary>The XRECORD of a state, letters of either case the same; null where there is none.</summary>
         internal static DxfXrecord Find(DxfDatabase database, string name)
@@ -114,7 +115,9 @@ namespace GeometryHelper.Dxf.Viewer
         internal static string NameOf(DxfDatabase database, string name)
         {
             DxfDBDictionary states = Dictionary(database);
-            return states?.Select(e => e.Key).FirstOrDefault(k => string.Equals(k, name, StringComparison.OrdinalIgnoreCase));
+            return states
+                ?.Select(e => e.Key)
+                .FirstOrDefault(k => string.Equals(k, name, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>
@@ -131,7 +134,10 @@ namespace GeometryHelper.Dxf.Viewer
                 return rows;
             }
 
-            var listed = new HashSet<string>(database.LayerStateManager.GetLayerStateNames(false, includeXref), StringComparer.Ordinal);
+            var listed = new HashSet<string>(
+                database.LayerStateManager.GetLayerStateNames(false, includeXref),
+                StringComparer.Ordinal
+            );
 
             foreach (DxfDBDictionaryEntry entry in states)
             {
@@ -142,20 +148,31 @@ namespace GeometryHelper.Dxf.Viewer
 
                 IReadOnlyList<DxfTypedValue> data = record.Data;
                 int mask = MaskOf(data);
-                rows.Add(new CadLayerStateRow(entry.Key, Text(data, 301), Whole(data, 290) > 0, Same(database, data, mask), mask));
+                rows.Add(
+                    new CadLayerStateRow(
+                        entry.Key,
+                        Text(data, 301),
+                        Whole(data, 290) > 0,
+                        Same(database, data, mask),
+                        mask
+                    )
+                );
             }
 
-            rows.Sort((a, b) =>
-            {
-                int order = StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name);
-                return order != 0 ? order : string.CompareOrdinal(a.Name, b.Name);
-            });
+            rows.Sort(
+                (a, b) =>
+                {
+                    int order = StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name);
+                    return order != 0 ? order : string.CompareOrdinal(a.Name, b.Name);
+                }
+            );
 
             return rows;
         }
 
         /// <summary>Whether a name is one AutoCAD takes for a layer state: not empty, of 255 letters at most, none of &lt;&gt;/\":;?*|,=`.</summary>
-        internal static bool IsName(string name) => !string.IsNullOrEmpty(name) && name.Length <= 255 && name.IndexOfAny("<>/\\\":;?*|,=`".ToCharArray()) < 0;
+        internal static bool IsName(string name) =>
+            !string.IsNullOrEmpty(name) && name.Length <= 255 && name.IndexOfAny("<>/\\\":;?*|,=`".ToCharArray()) < 0;
 
         /// <summary>The mask of a state's data (91); every property where it has none.</summary>
         internal static int MaskOf(IReadOnlyList<DxfTypedValue> data)
@@ -218,14 +235,26 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A layer's properties after its handle or name: 90, 62, 370, 331, 1, 440 and, of a true colour, 92.</summary>
-        private static void AddLayer(List<DxfTypedValue> data, DxfDatabase database, string name, DxfLayerTableRecord layer)
+        private static void AddLayer(
+            List<DxfTypedValue> data,
+            DxfDatabase database,
+            string name,
+            DxfLayerTableRecord layer
+        )
         {
-            int flags = (layer.IsOff ? 1 : 0) | (layer.IsFrozen ? 2 : 0) | (layer.IsLocked ? 4 : 0) | (layer.IsPlottable ? 8 : 0) | (layer.ViewportVisibilityDefault ? 16 : 0);
+            int flags =
+                (layer.IsOff ? 1 : 0)
+                | (layer.IsFrozen ? 2 : 0)
+                | (layer.IsLocked ? 4 : 0)
+                | (layer.IsPlottable ? 8 : 0)
+                | (layer.ViewportVisibilityDefault ? 16 : 0);
             int index = Math.Abs(layer.ColorIndex);
             data.Add(new DxfTypedValue(90, Int(flags)));
             data.Add(new DxfTypedValue(62, Int(index)));
             data.Add(new DxfTypedValue(370, Int((int)layer.LineWeight)));
-            string linetype = database.LinetypeTable.Has(layer.LinetypeName) ? database.LinetypeTable[layer.LinetypeName].Handle : null;
+            string linetype = database.LinetypeTable.Has(layer.LinetypeName)
+                ? database.LinetypeTable[layer.LinetypeName].Handle
+                : null;
 
             if (linetype != null)
             {
@@ -237,15 +266,21 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (layer.TrueColor.HasValue)
             {
-                data.Add(new DxfTypedValue(92, Int(unchecked((int)(0xC2000000u | (uint)(layer.TrueColor.Value & 0xFFFFFF))))));
+                data.Add(
+                    new DxfTypedValue(92, Int(unchecked((int)(0xC2000000u | (uint)(layer.TrueColor.Value & 0xFFFFFF)))))
+                );
             }
         }
 
         /// <summary>A layer's transparency as a state writes it: nought for solid, else 0x020000TT.</summary>
-        private static int TransparencyValue(DxfTransparency transparency) => transparency.IsSolid || !transparency.IsByAlpha ? 0 : 0x02000000 | transparency.Alpha;
+        private static int TransparencyValue(DxfTransparency transparency) =>
+            transparency.IsSolid || !transparency.IsByAlpha ? 0 : 0x02000000 | transparency.Alpha;
 
         /// <summary>The layers of a state, each its name in the drawing (or as the state names it, where the drawing has no such layer) and its groups.</summary>
-        internal static List<KeyValuePair<string, List<DxfTypedValue>>> Layers(DxfDatabase database, IReadOnlyList<DxfTypedValue> data)
+        internal static List<KeyValuePair<string, List<DxfTypedValue>>> Layers(
+            DxfDatabase database,
+            IReadOnlyList<DxfTypedValue> data
+        )
         {
             var layers = new List<KeyValuePair<string, List<DxfTypedValue>>>();
             List<DxfTypedValue> current = null;
@@ -267,8 +302,10 @@ namespace GeometryHelper.Dxf.Viewer
             return layers;
         }
 
-        private static string LayerOfHandle(DxfDatabase database, string handle)
-            => database.TryGetObject(handle ?? string.Empty, out DxfDBObject found) && found is DxfLayerTableRecord layer ? layer.Name : null;
+        private static string LayerOfHandle(DxfDatabase database, string handle) =>
+            database.TryGetObject(handle ?? string.Empty, out DxfDBObject found) && found is DxfLayerTableRecord layer
+                ? layer.Name
+                : null;
 
         /// <summary>Whether every layer of the state is as the drawing has it, in the properties of the mask.</summary>
         private static bool Same(DxfDatabase database, IReadOnlyList<DxfTypedValue> data, int mask)
@@ -289,7 +326,12 @@ namespace GeometryHelper.Dxf.Viewer
             return true;
         }
 
-        private static bool Differs(DxfDatabase database, DxfLayerTableRecord layer, List<DxfTypedValue> groups, int mask)
+        private static bool Differs(
+            DxfDatabase database,
+            DxfLayerTableRecord layer,
+            List<DxfTypedValue> groups,
+            int mask
+        )
         {
             int flags = Whole(groups, 90);
             flags = flags == int.MinValue ? 8 : flags;
@@ -300,9 +342,24 @@ namespace GeometryHelper.Dxf.Viewer
                 || ((mask & Plot) != 0 && layer.IsPlottable != ((flags & 8) != 0))
                 || ((mask & NewViewportFrozen) != 0 && layer.ViewportVisibilityDefault != ((flags & 16) != 0))
                 || ((mask & Color) != 0 && !ColorOf(groups).Equals(layer.Color))
-                || ((mask & Linetype) != 0 && !string.Equals(LinetypeOf(database, groups) ?? layer.LinetypeName, layer.LinetypeName, StringComparison.OrdinalIgnoreCase))
-                || ((mask & LineWeight) != 0 && Whole(groups, 370) != int.MinValue && Whole(groups, 370) != (int)layer.LineWeight)
-                || ((mask & Transparency) != 0 && Whole(groups, 440) != int.MinValue && Whole(groups, 440) != TransparencyValue(layer.Transparency));
+                || (
+                    (mask & Linetype) != 0
+                    && !string.Equals(
+                        LinetypeOf(database, groups) ?? layer.LinetypeName,
+                        layer.LinetypeName,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                || (
+                    (mask & LineWeight) != 0
+                    && Whole(groups, 370) != int.MinValue
+                    && Whole(groups, 370) != (int)layer.LineWeight
+                )
+                || (
+                    (mask & Transparency) != 0
+                    && Whole(groups, 440) != int.MinValue
+                    && Whole(groups, 440) != TransparencyValue(layer.Transparency)
+                );
         }
 
         private static DxfColor ColorOf(List<DxfTypedValue> groups)
@@ -315,14 +372,21 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             int index = Whole(groups, 62);
-            return DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)(index == int.MinValue || index == 0 ? 7 : Math.Min(255, Math.Abs(index))));
+            return DxfColor.FromColorIndex(
+                DxfColorMethod.ByAci,
+                (short)(index == int.MinValue || index == 0 ? 7 : Math.Min(255, Math.Abs(index)))
+            );
         }
 
         private static string LinetypeOf(DxfDatabase database, List<DxfTypedValue> groups)
         {
             foreach (DxfTypedValue group in groups)
             {
-                if (group.TypeCode == 331 && database.TryGetObject(group.Value ?? string.Empty, out DxfDBObject found) && found is DxfLinetypeTableRecord linetype)
+                if (
+                    group.TypeCode == 331
+                    && database.TryGetObject(group.Value ?? string.Empty, out DxfDBObject found)
+                    && found is DxfLinetypeTableRecord linetype
+                )
                 {
                     return linetype.Name;
                 }
@@ -366,11 +430,20 @@ namespace GeometryHelper.Dxf.Viewer
             // The current layer first, so that a layer the state freezes is not the current one when it is frozen.
             if (!string.IsNullOrEmpty(current) && database.LayerTable.Has(current))
             {
-                List<DxfTypedValue> its = layers.Where(l => string.Equals(l.Key, current, StringComparison.OrdinalIgnoreCase)).Select(l => l.Value).FirstOrDefault();
+                List<DxfTypedValue> its = layers
+                    .Where(l => string.Equals(l.Key, current, StringComparison.OrdinalIgnoreCase))
+                    .Select(l => l.Value)
+                    .FirstOrDefault();
                 int flags = its == null ? 0 : Whole(its, 90);
-                bool frozen = (mask & Frozen) != 0 ? flags != int.MinValue && (flags & 2) != 0 : database.LayerTable[current].IsFrozen;
+                bool frozen =
+                    (mask & Frozen) != 0
+                        ? flags != int.MinValue && (flags & 2) != 0
+                        : database.LayerTable[current].IsFrozen;
 
-                if (!frozen && !string.Equals(database.Clayer, database.LayerTable[current].Name, StringComparison.Ordinal))
+                if (
+                    !frozen
+                    && !string.Equals(database.Clayer, database.LayerTable[current].Name, StringComparison.Ordinal)
+                )
                 {
                     database.Clayer = database.LayerTable[current].Name;
                 }
@@ -419,7 +492,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// where <paramref name="turnOffMissing"/> says so, and the state is marked as the one restored last.
         /// </summary>
         /// <returns>The names of the layers changed in the viewport, in ordinal order.</returns>
-        internal static List<string> RestoreAsOverrides(DxfDatabase database, string name, DxfViewport viewport, bool turnOffMissing)
+        internal static List<string> RestoreAsOverrides(
+            DxfDatabase database,
+            string name,
+            DxfViewport viewport,
+            bool turnOffMissing
+        )
         {
             DxfXrecord record = Find(database, name);
             var changed = new SortedSet<string>(StringComparer.Ordinal);
@@ -459,7 +537,9 @@ namespace GeometryHelper.Dxf.Viewer
                         touched |= there.IsColorOverridden;
                         there.RemoveColorOverride();
                     }
-                    else if ((trueColors || !color.IsByColor) && !(there.IsColorOverridden && color.Equals(there.Color)))
+                    else if (
+                        (trueColors || !color.IsByColor) && !(there.IsColorOverridden && color.Equals(there.Color))
+                    )
                     {
                         there.Color = color;
                         touched = true;
@@ -475,7 +555,12 @@ namespace GeometryHelper.Dxf.Viewer
                         touched |= there.IsLinetypeOverridden;
                         there.RemoveLinetypeOverride();
                     }
-                    else if (!(there.IsLinetypeOverridden && string.Equals(linetype, there.Linetype, StringComparison.OrdinalIgnoreCase)))
+                    else if (
+                        !(
+                            there.IsLinetypeOverridden
+                            && string.Equals(linetype, there.Linetype, StringComparison.OrdinalIgnoreCase)
+                        )
+                    )
                     {
                         there.Linetype = linetype;
                         touched = true;
@@ -484,8 +569,14 @@ namespace GeometryHelper.Dxf.Viewer
 
                 int weight = Whole(groups, 370);
 
-                if ((mask & LineWeight) != 0 && weight != int.MinValue && Enum.IsDefined(typeof(DxfLineWeight), weight) && weight != (int)DxfLineWeight.ByLayer && weight != (int)DxfLineWeight.ByBlock
-                    && weight != (int)DxfLineWeight.ByDIPs)
+                if (
+                    (mask & LineWeight) != 0
+                    && weight != int.MinValue
+                    && Enum.IsDefined(typeof(DxfLineWeight), weight)
+                    && weight != (int)DxfLineWeight.ByLayer
+                    && weight != (int)DxfLineWeight.ByBlock
+                    && weight != (int)DxfLineWeight.ByDIPs
+                )
                 {
                     if (weight == (int)layer.LineWeight)
                     {
@@ -503,14 +594,22 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if ((mask & Transparency) != 0 && transparency != int.MinValue && trueColors)
                 {
-                    var wanted = (transparency & 0x02000000) != 0 ? new DxfTransparency((byte)(transparency & 0xFF)) : new DxfTransparency(255);
+                    var wanted =
+                        (transparency & 0x02000000) != 0
+                            ? new DxfTransparency((byte)(transparency & 0xFF))
+                            : new DxfTransparency(255);
 
                     if (TransparencyValue(wanted) == TransparencyValue(layer.Transparency))
                     {
                         touched |= there.IsTransparencyOverridden;
                         there.RemoveTransparencyOverride();
                     }
-                    else if (!(there.IsTransparencyOverridden && TransparencyValue(wanted) == TransparencyValue(there.Transparency)))
+                    else if (
+                        !(
+                            there.IsTransparencyOverridden
+                            && TransparencyValue(wanted) == TransparencyValue(there.Transparency)
+                        )
+                    )
                     {
                         there.Transparency = wanted;
                         touched = true;
@@ -612,7 +711,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             int weight = Whole(groups, 370);
 
-            if ((mask & LineWeight) != 0 && weight != int.MinValue && Enum.IsDefined(typeof(DxfLineWeight), weight) && weight != (int)DxfLineWeight.ByLayer && weight != (int)DxfLineWeight.ByBlock)
+            if (
+                (mask & LineWeight) != 0
+                && weight != int.MinValue
+                && Enum.IsDefined(typeof(DxfLineWeight), weight)
+                && weight != (int)DxfLineWeight.ByLayer
+                && weight != (int)DxfLineWeight.ByBlock
+            )
             {
                 layer.LineWeight = (DxfLineWeight)weight;
             }
@@ -621,7 +726,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             if ((mask & Transparency) != 0 && transparency != int.MinValue)
             {
-                layer.Transparency = (transparency & 0x02000000) != 0 ? new DxfTransparency((byte)(transparency & 0xFF)) : new DxfTransparency(255);
+                layer.Transparency =
+                    (transparency & 0x02000000) != 0
+                        ? new DxfTransparency((byte)(transparency & 0xFF))
+                        : new DxfTransparency(255);
             }
         }
 
@@ -633,7 +741,10 @@ namespace GeometryHelper.Dxf.Viewer
                 if (entry.Value is DxfXrecord record)
                 {
                     int mask = MaskOf(record.Data);
-                    int wanted = ReferenceEquals(record, restored) || record.Handle == restored.Handle ? mask | LastRestored : mask & ~LastRestored;
+                    int wanted =
+                        ReferenceEquals(record, restored) || record.Handle == restored.Handle
+                            ? mask | LastRestored
+                            : mask & ~LastRestored;
 
                     if (wanted != mask)
                     {
@@ -647,7 +758,8 @@ namespace GeometryHelper.Dxf.Viewer
         internal static void SetMask(DxfXrecord record, int mask) => Replace(record, 91, Int(mask));
 
         /// <summary>A state's description written, its other groups kept.</summary>
-        internal static void SetDescription(DxfXrecord record, string description) => Replace(record, 301, description ?? string.Empty);
+        internal static void SetDescription(DxfXrecord record, string description) =>
+            Replace(record, 301, description ?? string.Empty);
 
         private static void Replace(DxfXrecord record, int code, string value)
         {
@@ -802,7 +914,11 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else if (code == 8)
                     {
-                        body.Add(database.LayerTable.Has(value) ? new DxfTypedValue(330, database.LayerTable[value].Handle) : new DxfTypedValue(8, value));
+                        body.Add(
+                            database.LayerTable.Has(value)
+                                ? new DxfTypedValue(330, database.LayerTable[value].Handle)
+                                : new DxfTypedValue(8, value)
+                        );
                     }
                     else if (code == 6)
                     {
@@ -848,7 +964,11 @@ namespace GeometryHelper.Dxf.Viewer
             return names;
         }
 
-        private static int Order(int code) => code == 91 ? 0 : code == 301 ? 1 : code == 290 ? 2 : 3;
+        private static int Order(int code) =>
+            code == 91 ? 0
+            : code == 301 ? 1
+            : code == 290 ? 2
+            : 3;
 
         /// <summary>A file name given for a .las file: its extension added where it has none, a relative one beside the drawing.</summary>
         internal static string LasPath(CadDocument document, string typed)
@@ -864,8 +984,11 @@ namespace GeometryHelper.Dxf.Viewer
             return name;
         }
 
-        private static void Pair(StringBuilder text, int code, string value)
-            => text.Append(code.ToString(CultureInfo.InvariantCulture).PadLeft(3)).Append("\r\n").Append(value ?? string.Empty).Append("\r\n");
+        private static void Pair(StringBuilder text, int code, string value) =>
+            text.Append(code.ToString(CultureInfo.InvariantCulture).PadLeft(3))
+                .Append("\r\n")
+                .Append(value ?? string.Empty)
+                .Append("\r\n");
 
         private static string Int(int value) => value.ToString(CultureInfo.InvariantCulture);
 
@@ -889,7 +1012,14 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 if (group.TypeCode == code)
                 {
-                    return int.TryParse((group.Value ?? string.Empty).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : int.MinValue;
+                    return int.TryParse(
+                        (group.Value ?? string.Empty).Trim(),
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int value
+                    )
+                        ? value
+                        : int.MinValue;
                 }
             }
 

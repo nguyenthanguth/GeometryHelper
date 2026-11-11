@@ -50,8 +50,14 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(DxfLineWeight.ByBlock, words.LeaderLineWeight);
                 Assert.True(words.TextColor.IsByBlock);
                 Assert.Equal(DxfTextAttachmentType.AttachmentMiddleOfTop, words.TextAttachmentType);
-                Assert.Equal(DxfTextAttachmentType.AttachmentMiddleOfTop, words.GetTextAttachmentType(DxfLeaderDirectionType.RightLeader));
-                Assert.Equal(DxfTextAttachmentType.AttachmentCenter, words.GetTextAttachmentType(DxfLeaderDirectionType.TopLeader));
+                Assert.Equal(
+                    DxfTextAttachmentType.AttachmentMiddleOfTop,
+                    words.GetTextAttachmentType(DxfLeaderDirectionType.RightLeader)
+                );
+                Assert.Equal(
+                    DxfTextAttachmentType.AttachmentCenter,
+                    words.GetTextAttachmentType(DxfLeaderDirectionType.TopLeader)
+                );
                 Assert.Equal(DxfTextAlignmentType.LeftAlignment, words.TextAlignmentType);
                 Assert.Equal(DxfTextAngleType.HorizontalAngle, words.TextAngleType);
                 Assert.Equal(DxfTextAttachmentDirection.AttachmentHorizontal, words.TextAttachmentDirection);
@@ -87,10 +93,14 @@ namespace GeometryHelper.UnitTest.Dxf
                 // Drawn turned by 15 degrees (46), its own turn nought (43), which AutoCAD 2021's BlockRotation reads (D31d,
                 // z-rot46only).
                 Assert.Equal(Bits(0.0), Bits(block.BlockRotation));
-                Assert.Equal(Bits(0.2617993877991494), Bits(block.Explode().OfType<DxfBlockReference>().Single().Rotation));
+                Assert.Equal(
+                    Bits(0.2617993877991494),
+                    Bits(block.Explode().OfType<DxfBlockReference>().Single().Rotation)
+                );
                 Assert.Equal(1, block.BlockColor.ColorIndex);
                 Assert.Equal(DxfBlockConnectionType.ConnectExtents, block.BlockConnectionType);
-                var definition = (DxfAttributeDefinition)db.BlockTable["GKTAG"].Single(e => e is DxfAttributeDefinition);
+                var definition = (DxfAttributeDefinition)
+                    db.BlockTable["GKTAG"].Single(e => e is DxfAttributeDefinition);
                 DxfAttributeReference attribute = block.GetBlockAttribute(definition);
                 Assert.Equal("NUM", attribute.Tag);
                 // ezdxf writes the values of a block's attributes from R2007 on: the drawing of R2000 gives the definition's own.
@@ -138,7 +148,15 @@ namespace GeometryHelper.UnitTest.Dxf
                     m.BlockColor = m.BlockColor;
                     m.BlockConnectionType = m.BlockConnectionType;
 
-                    foreach (DxfLeaderDirectionType side in new[] { DxfLeaderDirectionType.LeftLeader, DxfLeaderDirectionType.RightLeader, DxfLeaderDirectionType.TopLeader, DxfLeaderDirectionType.BottomLeader })
+                    foreach (
+                        DxfLeaderDirectionType side in new[]
+                        {
+                            DxfLeaderDirectionType.LeftLeader,
+                            DxfLeaderDirectionType.RightLeader,
+                            DxfLeaderDirectionType.TopLeader,
+                            DxfLeaderDirectionType.BottomLeader,
+                        }
+                    )
                     {
                         m.SetTextAttachmentType(m.GetTextAttachmentType(side), side);
                     }
@@ -216,7 +234,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(DxfTextAlignmentType.CenterAlignment, back.TextAlignmentType);
                 Assert.Equal(DxfAttachmentPoint.TopCenter, back.MText.Attachment);
                 // The left alone, as AutoCAD 2021's TextAttachmentType sets it (D31c, m2-both-att4).
-                Assert.Equal(DxfTextAttachmentType.AttachmentMiddle, back.GetTextAttachmentType(DxfLeaderDirectionType.LeftLeader));
+                Assert.Equal(
+                    DxfTextAttachmentType.AttachmentMiddle,
+                    back.GetTextAttachmentType(DxfLeaderDirectionType.LeftLeader)
+                );
                 Assert.Equal(right, back.GetTextAttachmentType(DxfLeaderDirectionType.RightLeader));
                 Assert.True(back.EnableFrameText);
                 Assert.Equal(1.0, back.LandingGap);
@@ -232,7 +253,11 @@ namespace GeometryHelper.UnitTest.Dxf
             var mleader = new DxfMLeader();
             db.ModelSpace.AppendEntity(mleader);
             mleader.ArrowSize = 3.0;
-            Assert.Contains("\n 90\n512\n", Records(db.ToText()).Single(r => HandleOf(r) == mleader.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "\n 90\n512\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == mleader.Handle),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -315,7 +340,12 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfMLeader words = ByHandle<DxfMLeader>(db, "B4");
             DxfMLeader block = ByHandle<DxfMLeader>(db, "BA");
 
-            var mtext = new DxfMText { Contents = "new", Location = new GeoPoint3(805, 1, 0), TextHeight = 5.0 };
+            var mtext = new DxfMText
+            {
+                Contents = "new",
+                Location = new GeoPoint3(805, 1, 0),
+                TextHeight = 5.0,
+            };
             words.MText = mtext;
             block.MText = mtext;
             words.BlockContent = db.BlockTable["GKTAG"];
@@ -355,10 +385,23 @@ namespace GeometryHelper.UnitTest.Dxf
             block.SetBlockAttribute(definition, new DxfAttributeReference { TextString = "43" });
             OnlyTheseChanged(text, db.ToText(), "BA");
             DxfDatabase back = DxfDatabase.Parse(db.ToText());
-            Assert.Equal("43", ByHandle<DxfMLeader>(back, "BA").GetBlockAttribute((DxfAttributeDefinition)back.BlockTable["GKTAG"].Single(e => e is DxfAttributeDefinition)).TextString);
+            Assert.Equal(
+                "43",
+                ByHandle<DxfMLeader>(back, "BA")
+                    .GetBlockAttribute(
+                        (DxfAttributeDefinition)back.BlockTable["GKTAG"].Single(e => e is DxfAttributeDefinition)
+                    )
+                    .TextString
+            );
 
             DxfDatabase old = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2000);
-            Assert.Throws<InvalidOperationException>(() => ByHandle<DxfMLeader>(old, "BA").SetBlockAttribute((DxfAttributeDefinition)old.BlockTable["GKTAG"].Single(e => e is DxfAttributeDefinition), new DxfAttributeReference { TextString = "43" }));
+            Assert.Throws<InvalidOperationException>(() =>
+                ByHandle<DxfMLeader>(old, "BA")
+                    .SetBlockAttribute(
+                        (DxfAttributeDefinition)old.BlockTable["GKTAG"].Single(e => e is DxfAttributeDefinition),
+                        new DxfAttributeReference { TextString = "43" }
+                    )
+            );
         }
 
         #endregion
@@ -368,11 +411,23 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AMultileaderMadeInCode_TakesTheDrawingsStyles_AndIsRefusedByR12()
         {
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R12,
+                    DxfFileEzdxfDrawings.R2000,
+                    DxfFileEzdxfDrawings.R2018,
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
                 var mleader = new DxfMLeader { Layer = "steel" };
-                mleader.MText = new DxfMText { Contents = "A-1", Location = new GeoPoint3(10, 5, 0), TextHeight = 2.5 };
+                mleader.MText = new DxfMText
+                {
+                    Contents = "A-1",
+                    Location = new GeoPoint3(10, 5, 0),
+                    TextHeight = 2.5,
+                };
                 int line = mleader.AddLeaderLine(new GeoPoint3(0, 0, 0));
 
                 if (text == DxfFileEzdxfDrawings.R12)
@@ -418,7 +473,15 @@ namespace GeometryHelper.UnitTest.Dxf
             // and turned 45 degrees (D31d, s2-k-transform2, k-transform-rot90); scaled unlike along its axes, refused, as ezdxf
             // refuses it.
             double c = Math.Sqrt(3.0);
-            var transform = new GeoTransform3(new double[,] { { c, -1, 0, 5 }, { 1, c, 0, -7 }, { 0, 0, 2, 3 }, { 0, 0, 0, 1 } });
+            var transform = new GeoTransform3(
+                new double[,]
+                {
+                    { c, -1, 0, 5 },
+                    { 1, c, 0, -7 },
+                    { 0, 0, 2, 3 },
+                    { 0, 0, 0, 1 },
+                }
+            );
 
             foreach (string text in Drawings)
             {
@@ -449,7 +512,19 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             DxfMLeader refused = ByHandle<DxfMLeader>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018), "B4");
-            Assert.Throws<ArgumentException>(() => refused.TransformBy(new GeoTransform3(new double[,] { { 2, 0, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } })));
+            Assert.Throws<ArgumentException>(() =>
+                refused.TransformBy(
+                    new GeoTransform3(
+                        new double[,]
+                        {
+                            { 2, 0, 0, 0 },
+                            { 0, 1, 0, 0 },
+                            { 0, 0, 1, 0 },
+                            { 0, 0, 0, 1 },
+                        }
+                    )
+                )
+            );
         }
 
         [Fact]
@@ -457,7 +532,14 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             var by = new GeoVector3(1, 2, 0);
 
-            foreach (DxfMoveType type in new[] { DxfMoveType.MoveAllPoints, DxfMoveType.MoveAllExceptArrowHeaderPoints, DxfMoveType.MoveContentAndDoglegPoints })
+            foreach (
+                DxfMoveType type in new[]
+                {
+                    DxfMoveType.MoveAllPoints,
+                    DxfMoveType.MoveAllExceptArrowHeaderPoints,
+                    DxfMoveType.MoveContentAndDoglegPoints,
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
                 DxfMLeader mleader = ByHandle<DxfMLeader>(db, "B4");
@@ -466,8 +548,18 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfMLeader back = ByHandle<DxfMLeader>(DxfDatabase.Parse(db.ToText()), "B4");
                 Assert.Equal(Bits(new GeoPoint3(801, 2, 0)), Bits(back.TextLocation));
                 Assert.Equal(Bits(new GeoPoint3(791, 0.75, 0)), Bits(back.GetLastVertex(0)));
-                Assert.Equal(Bits(type == DxfMoveType.MoveAllPoints ? new GeoPoint3(781, -8, 0) : new GeoPoint3(780, -10, 0)), Bits(back.GetFirstVertex(0)));
-                Assert.Equal(Bits(type == DxfMoveType.MoveContentAndDoglegPoints ? new GeoPoint3(790, -5, 0) : new GeoPoint3(791, -3, 0)), Bits(back.GetVertex(0, 1)));
+                Assert.Equal(
+                    Bits(type == DxfMoveType.MoveAllPoints ? new GeoPoint3(781, -8, 0) : new GeoPoint3(780, -10, 0)),
+                    Bits(back.GetFirstVertex(0))
+                );
+                Assert.Equal(
+                    Bits(
+                        type == DxfMoveType.MoveContentAndDoglegPoints
+                            ? new GeoPoint3(790, -5, 0)
+                            : new GeoPoint3(791, -3, 0)
+                    ),
+                    Bits(back.GetVertex(0, 1))
+                );
             }
         }
 
@@ -482,7 +574,15 @@ namespace GeometryHelper.UnitTest.Dxf
             // multileader's own 6 (42), as AutoCAD 2021's TransformBy leaves it (D31, g5), read back 12, as drawn, as AutoCAD reads
             // it (D31c, s2-arrow-read-transform); set to 5, both 5.
             double c = Math.Sqrt(3.0);
-            var transform = new GeoTransform3(new double[,] { { c, -1, 0, 5 }, { 1, c, 0, -7 }, { 0, 0, 2, 3 }, { 0, 0, 0, 1 } });
+            var transform = new GeoTransform3(
+                new double[,]
+                {
+                    { c, -1, 0, 5 },
+                    { 1, c, 0, -7 },
+                    { 0, 0, 2, 3 },
+                    { 0, 0, 0, 1 },
+                }
+            );
 
             foreach (string text in Drawings)
             {
@@ -519,7 +619,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             block.MoveMLeader(new GeoVector3(1, 2, 3), DxfMoveType.MoveAllPoints);
             Assert.Equal(new[] { 911.0, 7.0, 3.0 }, Translation(db, "BA"));
-            Assert.Equal(Bits(new GeoPoint3(911, 7, 3)), Bits(ByHandle<DxfMLeader>(DxfDatabase.Parse(db.ToText()), "BA").BlockPosition));
+            Assert.Equal(
+                Bits(new GeoPoint3(911, 7, 3)),
+                Bits(ByHandle<DxfMLeader>(DxfDatabase.Parse(db.ToText()), "BA").BlockPosition)
+            );
         }
 
         [Fact]
@@ -547,7 +650,20 @@ namespace GeometryHelper.UnitTest.Dxf
             string text = DxfHatchLeaderDrawings.R2018;
             DxfDatabase db = DxfDatabase.Parse(text);
 
-            Assert.Throws<ArgumentException>(() => ByHandle<DxfMLeader>(db, "B4").TransformBy(new GeoTransform3(new double[,] { { 2 * h, -2 * h, 0, 0 }, { h, h, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } })));
+            Assert.Throws<ArgumentException>(() =>
+                ByHandle<DxfMLeader>(db, "B4")
+                    .TransformBy(
+                        new GeoTransform3(
+                            new double[,]
+                            {
+                                { 2 * h, -2 * h, 0, 0 },
+                                { h, h, 0, 0 },
+                                { 0, 0, 1, 0 },
+                                { 0, 0, 0, 1 },
+                            }
+                        )
+                    )
+            );
             Assert.Equal(text, db.ToText());
         }
 
@@ -599,7 +715,10 @@ namespace GeometryHelper.UnitTest.Dxf
         private static double After(string text, string code)
         {
             int from = text.IndexOf(code, StringComparison.Ordinal) + code.Length;
-            return double.Parse(text.Substring(from, text.IndexOf('\n', from) - from), System.Globalization.CultureInfo.InvariantCulture);
+            return double.Parse(
+                text.Substring(from, text.IndexOf('\n', from) - from),
+                System.Globalization.CultureInfo.InvariantCulture
+            );
         }
 
         #endregion

@@ -25,7 +25,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // side's own wall.
             var outline = new GeoPolygon3(P(0, 0, 0), P(1000, 0, 0), P(1000, 1000, 0), P(0, 1000, 0));
             var hole = new GeoPolygon3(P(400, 400, 0), P(600, 400, 0), P(600, 620, 0), P(400, 430, 0));
-            GeoSolid3 plate = GeoSolid3.Extrude(new GeoFace3(outline, new[] { hole }, Tolerance), new GeoVector3(0, 0, 200), Tolerance);
+            GeoSolid3 plate = GeoSolid3.Extrude(
+                new GeoFace3(outline, new[] { hole }, Tolerance),
+                new GeoVector3(0, 0, 200),
+                Tolerance
+            );
 
             Assert.Equal(PointLocation.Inside, plate.Locate(P(350, 375, 50.069), Tolerance));
             Assert.True(plate.Contains(P(350, 375, 50.069), Tolerance));
@@ -45,15 +49,28 @@ namespace GeometryHelper.UnitTest.Solid.Core
             var up = new GeoVector3(0, 0, 200);
             var faces = new System.Collections.Generic.List<GeoFace3>
             {
-                new GeoFace3(new GeoPolygon3(new[] { outer[0], outer[3], outer[2], outer[1] }, tolerance), new[] { new GeoPolygon3(new[] { low[0], low[3], low[2], low[1] }, tolerance) }, tolerance),
-                new GeoFace3(new GeoPolygon3(System.Array.ConvertAll(outer, p => p.Add(up)), tolerance), new[] { new GeoPolygon3(high, tolerance) }, tolerance),
+                new GeoFace3(
+                    new GeoPolygon3(new[] { outer[0], outer[3], outer[2], outer[1] }, tolerance),
+                    new[] { new GeoPolygon3(new[] { low[0], low[3], low[2], low[1] }, tolerance) },
+                    tolerance
+                ),
+                new GeoFace3(
+                    new GeoPolygon3(System.Array.ConvertAll(outer, p => p.Add(up)), tolerance),
+                    new[] { new GeoPolygon3(high, tolerance) },
+                    tolerance
+                ),
             };
 
             for (int k = 0; k < 4; k++)
             {
-                GeoPoint3 a = outer[k], b = outer[(k + 1) % 4];
+                GeoPoint3 a = outer[k],
+                    b = outer[(k + 1) % 4];
                 faces.Add(new GeoFace3(new GeoPolygon3(new[] { a, b, b.Add(up), a.Add(up) }, tolerance)));
-                faces.Add(new GeoFace3(new GeoPolygon3(new[] { low[(k + 1) % 4], low[k], high[k], high[(k + 1) % 4] }, tolerance)));
+                faces.Add(
+                    new GeoFace3(
+                        new GeoPolygon3(new[] { low[(k + 1) % 4], low[k], high[k], high[(k + 1) % 4] }, tolerance)
+                    )
+                );
             }
 
             var plate = new GeoSolid3(faces);

@@ -43,7 +43,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// about the location as the attachment says. False for an MTEXT of no width, in columns, or in no drawing, which has
         /// the grip at its location alone.
         /// </summary>
-        internal static bool TryGetGripBox(DxfMText text, out double left, out double bottom, out double right, out double top)
+        internal static bool TryGetGripBox(
+            DxfMText text,
+            out double left,
+            out double bottom,
+            out double right,
+            out double top
+        )
         {
             left = bottom = right = top = 0.0;
             double width = text.Width;
@@ -80,7 +86,8 @@ namespace GeometryHelper.Dxf.Viewer
         {
             GeoVector3 direction = text.Direction;
             double length = Math.Sqrt((direction.X * direction.X) + (direction.Y * direction.Y));
-            along = length > 0.0 ? new GeoVector2(direction.X / length, direction.Y / length) : new GeoVector2(1.0, 0.0);
+            along =
+                length > 0.0 ? new GeoVector2(direction.X / length, direction.Y / length) : new GeoVector2(1.0, 0.0);
 
             // The normal crossed with the direction: to the left of it seen from above, to the right seen from below.
             up = text.Normal.Z < 0.0 ? new GeoVector2(along.Y, -along.X) : new GeoVector2(-along.Y, along.X);
@@ -118,7 +125,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 double a = x / alongLength;
                 double u = y / upLength;
-                return new GeoPoint3(location.X + (along.X * a) + (up.X * u), location.Y + (along.Y * a) + (up.Y * u), location.Z + (along.Z * a) + (up.Z * u));
+                return new GeoPoint3(
+                    location.X + (along.X * a) + (up.X * u),
+                    location.Y + (along.Y * a) + (up.Y * u),
+                    location.Z + (along.Z * a) + (up.Z * u)
+                );
             }
 
             var pieces = new List<DxfEntity>(layout.Pieces.Count);
@@ -132,7 +143,10 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                string marks = (piece.Look.Underline ? "%%U" : string.Empty) + (piece.Look.Overline ? "%%O" : string.Empty) + (piece.Look.Strikethrough ? "%%K" : string.Empty);
+                string marks =
+                    (piece.Look.Underline ? "%%U" : string.Empty)
+                    + (piece.Look.Overline ? "%%O" : string.Empty)
+                    + (piece.Look.Strikethrough ? "%%K" : string.Empty);
                 var made = new DxfDBText();
                 made.SetPropertiesFrom(text);
                 made.Normal = normal;

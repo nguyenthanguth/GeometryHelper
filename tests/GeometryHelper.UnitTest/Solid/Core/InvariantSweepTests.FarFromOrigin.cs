@@ -23,10 +23,10 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>The distances a model realistically sits at, in millimetres.</summary>
         public static IEnumerable<object[]> Offsets()
         {
-            yield return new object[] { 0.0 };          // at the origin
-            yield return new object[] { 1.0E4 };        // ten metres
-            yield return new object[] { 1.0E6 };        // a kilometre
-            yield return new object[] { 1.0E7 };        // ten kilometres
+            yield return new object[] { 0.0 }; // at the origin
+            yield return new object[] { 1.0E4 }; // ten metres
+            yield return new object[] { 1.0E6 }; // a kilometre
+            yield return new object[] { 1.0E7 }; // ten kilometres
         }
 
         [Theory]
@@ -41,12 +41,22 @@ namespace GeometryHelper.UnitTest.Solid
                 GeoPoint3[] near = Star(rng, 4 + rng.Next(5), true);
 
                 GeoPoint3[] far = new GeoPoint3[near.Length];
-                for (int i = 0; i < near.Length; i++) { far[i] = near[i].Add(shift); }
+                for (int i = 0; i < near.Length; i++)
+                {
+                    far[i] = near[i].Add(shift);
+                }
 
                 GeoSolid3 here;
                 GeoSolid3 there;
-                try { here = Prism(near, 4.0); there = Prism(far, 4.0); }
-                catch (ArgumentException) { continue; }
+                try
+                {
+                    here = Prism(near, 4.0);
+                    there = Prism(far, 4.0);
+                }
+                catch (ArgumentException)
+                {
+                    continue;
+                }
 
                 // Moving a body does not change how big it is.
                 Assert.Equal(here.GetVolume(), there.GetVolume(), 6);
@@ -55,8 +65,10 @@ namespace GeometryHelper.UnitTest.Solid
 
                 // Nor where its middle is, relative to itself.
                 GeoPoint3 expected = here.GetCentroid().Add(shift);
-                Assert.True(there.GetCentroid().IsEqualTo(expected, Tol),
-                            $"centroid drifted by {there.GetCentroid().DistanceTo(expected):0.#########} at {offset:0.###e0}");
+                Assert.True(
+                    there.GetCentroid().IsEqualTo(expected, Tol),
+                    $"centroid drifted by {there.GetCentroid().DistanceTo(expected):0.#########} at {offset:0.###e0}"
+                );
 
                 // Cutting it in half is the same operation wherever it sits.
                 var cutHere = new GeoPlane3(GeoPoint3.Origin, GeoVector3.YAxis);
@@ -101,11 +113,21 @@ namespace GeometryHelper.UnitTest.Solid
             // Cutting the square down the middle gives two halves of the same size.
             var cutter = new GeoPlane3(new GeoPoint3(0.5, 0, 0).Add(shift), GeoVector3.XAxis);
 
-            Assert.True(square.TrySplitBy(cutter, out GeoPolygon3[] above, out GeoPolygon3[] below),
-                        $"the cut stopped working at {offset:0.###e0}");
+            Assert.True(
+                square.TrySplitBy(cutter, out GeoPolygon3[] above, out GeoPolygon3[] below),
+                $"the cut stopped working at {offset:0.###e0}"
+            );
 
-            double up = 0.0; foreach (GeoPolygon3 p in above) { up += p.Area; }
-            double down = 0.0; foreach (GeoPolygon3 p in below) { down += p.Area; }
+            double up = 0.0;
+            foreach (GeoPolygon3 p in above)
+            {
+                up += p.Area;
+            }
+            double down = 0.0;
+            foreach (GeoPolygon3 p in below)
+            {
+                down += p.Area;
+            }
 
             Assert.Equal(0.5, up, 6);
             Assert.Equal(0.5, down, 6);
@@ -122,8 +144,10 @@ namespace GeometryHelper.UnitTest.Solid
                 var origin = new GeoPoint3(offset, offset, offset);
                 var oneAway = new GeoPoint3(offset + 1.0, offset, offset);
 
-                Assert.False(origin.IsEqualTo(oneAway, Tol),
-                             $"a millimetre apart already reads as the same point at {offset:0.###e0}");
+                Assert.False(
+                    origin.IsEqualTo(oneAway, Tol),
+                    $"a millimetre apart already reads as the same point at {offset:0.###e0}"
+                );
 
                 Assert.Equal(1.0, origin.DistanceTo(oneAway), 6);
             }
@@ -134,8 +158,10 @@ namespace GeometryHelper.UnitTest.Solid
                 var origin = new GeoPoint3(offset, offset, offset);
                 var barelyAway = new GeoPoint3(offset + Tolerance.DefaultEqualPoint / 10.0, offset, offset);
 
-                Assert.True(origin.IsEqualTo(barelyAway, Tol),
-                            $"two points well within tolerance read as different at {offset:0.###e0}");
+                Assert.True(
+                    origin.IsEqualTo(barelyAway, Tol),
+                    $"two points well within tolerance read as different at {offset:0.###e0}"
+                );
             }
         }
     }

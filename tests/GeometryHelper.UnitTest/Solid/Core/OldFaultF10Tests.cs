@@ -25,8 +25,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
         private static GeoPoint3 Pt(double x, double y, double z) => new GeoPoint3(x, y, z);
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(Pt(x0, y0, z0), Pt(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(Pt(x0, y0, z0), Pt(x1, y1, z1)).ToObb().ToSolid();
 
         private static GeoSolid3 Block() => Box(0, 0, -10, 10, 10, 0);
 
@@ -42,7 +42,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             for (int i = 0; i < expected.Length; i++)
             {
-                Assert.True(expected[i].DistanceTo(prepared[i]) <= Tol.EqualPoint, $"{expected[i]} against {prepared[i]}");
+                Assert.True(
+                    expected[i].DistanceTo(prepared[i]) <= Tol.EqualPoint,
+                    $"{expected[i]} against {prepared[i]}"
+                );
             }
         }
 
@@ -54,7 +57,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             Assert.True(prepared.GetIntersections(ray, Tol)[0].DistanceTo(Pt(5.04, 5, 0)) <= 1E-9);
             Assert.True(prepared.CollidesWith(ray, Tol));
-            Assert.Contains(new GeoBvh3(Block().Triangulate(Tol)).GetIntersections(ray, Tol), p => p.DistanceTo(Pt(5.04, 5, 0)) <= 1E-9);
+            Assert.Contains(new GeoBvh3(Block().Triangulate(Tol)).GetIntersections(ray, Tol), p =>
+                p.DistanceTo(Pt(5.04, 5, 0)) <= 1E-9
+            );
             AssertSameCrossings(ray, Block());
         }
 
@@ -87,7 +92,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             GeoSolid3 pierced = Box(0, 0, -10, 20, 10, 0).WithOpenings(new[] { Box(8, -5, -15, 12, 15, 5) });
             var ray = new GeoRay3(Pt(2, 5, 0.0004), new GeoVector3(1, 0, -0.01));
 
-            Assert.True(new GeoPreparedSolid3(pierced, Tol).GetIntersections(ray, Tol)[0].DistanceTo(Pt(2.04, 5, 0)) <= 1E-9);
+            Assert.True(
+                new GeoPreparedSolid3(pierced, Tol).GetIntersections(ray, Tol)[0].DistanceTo(Pt(2.04, 5, 0)) <= 1E-9
+            );
             AssertSameCrossings(ray, pierced);
         }
 
@@ -126,7 +133,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             Assert.Equal(400.0, clash.LengthInside, 3);
             double expected = 10 + (0.0009 / Math.Sin(angle) + 400) / 2 * Math.Cos(angle);
-            Assert.True(Math.Abs(clash.Location.X - expected) <= Tol.EqualPoint, clash.Location.X.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+            Assert.True(
+                Math.Abs(clash.Location.X - expected) <= Tol.EqualPoint,
+                clash.Location.X.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+            );
         }
     }
 }

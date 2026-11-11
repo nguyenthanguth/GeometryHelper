@@ -130,7 +130,9 @@ namespace GeometryHelper.Internal.Nurbs
 
                             for (int c = 0; c < stride; c++)
                             {
-                                q[nb * width + k * stride + c] = alpha * q[nb * width + k * stride + c] + (1.0 - alpha) * q[nb * width + (k - 1) * stride + c];
+                                q[nb * width + k * stride + c] =
+                                    alpha * q[nb * width + k * stride + c]
+                                    + (1.0 - alpha) * q[nb * width + (k - 1) * stride + c];
                             }
                         }
 
@@ -240,7 +242,15 @@ namespace GeometryHelper.Internal.Nurbs
         /// Cuts a rational piece in halves, recursively, until the weights of each part are no more than two to one apart,
         /// and adds the parts in order.
         /// </summary>
-        private void Balance(double[] hw, double from, double to, List<double[]> pieces, List<double> froms, List<double> tos, int depth)
+        private void Balance(
+            double[] hw,
+            double from,
+            double to,
+            List<double[]> pieces,
+            List<double> froms,
+            List<double> tos,
+            int depth
+        )
         {
             int p = Degree;
             int stride = Stride;
@@ -371,12 +381,19 @@ namespace GeometryHelper.Internal.Nurbs
 
                     for (int c = 0; c < stride; c++)
                     {
-                        work[i * stride + c] = alpha * work[(i + 1) * stride + c] + (1.0 - alpha) * work[i * stride + c];
+                        work[i * stride + c] =
+                            alpha * work[(i + 1) * stride + c] + (1.0 - alpha) * work[i * stride + c];
                     }
                 }
 
                 Array.Copy(work, 0, homogeneous, last * stride, stride);
-                Array.Copy(work, (p - j - multiplicity) * stride, homogeneous, (k + r - j - multiplicity) * stride, stride);
+                Array.Copy(
+                    work,
+                    (p - j - multiplicity) * stride,
+                    homogeneous,
+                    (k + r - j - multiplicity) * stride,
+                    stride
+                );
             }
 
             for (int i = last + 1; i < k - multiplicity; i++)
@@ -450,7 +467,15 @@ namespace GeometryHelper.Internal.Nurbs
         /// Builds one of the two parts of a cut curve from a range of its control points and its knots, the knot at the
         /// cut repeated one time more than the curve has it so that the part starts or ends there.
         /// </summary>
-        private NurbsCurve Piece(int fromPoint, int toPoint, double[] knots, double[] homogeneous, int fromKnot, double t, bool endsAtT)
+        private NurbsCurve Piece(
+            int fromPoint,
+            int toPoint,
+            double[] knots,
+            double[] homogeneous,
+            int fromKnot,
+            double t,
+            bool endsAtT
+        )
         {
             int pointCount = toPoint - fromPoint + 1;
             int stride = Stride;

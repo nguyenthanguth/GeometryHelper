@@ -29,7 +29,10 @@ namespace GeometryHelper.UnitTest.Solid
         [Theory]
         [InlineData(0.5, 0.0005)]
         [InlineData(0.0019, 0.0009)]
-        public void APlaneAskedAboutASegmentEndingAHairOverIt_TouchesItAtThatEndAsTheSegmentAsksIt(double startHeight, double endHeight)
+        public void APlaneAskedAboutASegmentEndingAHairOverIt_TouchesItAtThatEndAsTheSegmentAsksIt(
+            double startHeight,
+            double endHeight
+        )
         {
             // Asked from the plane, the segment and its edge were given no point where asked from the segment they were.
             var segment = new GeoLine3(new GeoPoint3(-50, 0, startHeight), new GeoPoint3(50, 0, endHeight));
@@ -45,13 +48,28 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The first segment ends 0.0005 over the plane and touches it there; the second crosses it 0.0007 from that corner.
             // The two are one place, and it is the crossing, as the chain was given before segments touched planes.
-            var corners = new[] { new GeoPoint3(-50, 0, 0.5), new GeoPoint3(0, 0, 0.0005), new GeoPoint3(0.5, 0, -0.5) };
-            GeoPoint3 crossing = Assert.Single(new GeoLine3(corners[1], corners[2]).GetIntersections(Floor, Thousandth));
+            var corners = new[]
+            {
+                new GeoPoint3(-50, 0, 0.5),
+                new GeoPoint3(0, 0, 0.0005),
+                new GeoPoint3(0.5, 0, -0.5),
+            };
+            GeoPoint3 crossing = Assert.Single(
+                new GeoLine3(corners[1], corners[2]).GetIntersections(Floor, Thousandth)
+            );
             var up = new GeoVector3(0, 1, 0);
 
             Assert.Equal(crossing, Assert.Single(new GeoPolyline3(corners).GetIntersections(Floor, Thousandth)));
             Assert.Equal(crossing, Assert.Single(Floor.GetIntersections(new GeoPolyline3(corners), Thousandth)));
-            Assert.Equal(crossing, Assert.Single(new GeoPolylineArc3(corners, new[] { 0.0, 0.0 }, new[] { up, up }).GetIntersections(Floor, Thousandth)));
+            Assert.Equal(
+                crossing,
+                Assert.Single(
+                    new GeoPolylineArc3(corners, new[] { 0.0, 0.0 }, new[] { up, up }).GetIntersections(
+                        Floor,
+                        Thousandth
+                    )
+                )
+            );
         }
 
         [Fact]

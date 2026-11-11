@@ -55,7 +55,12 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             const string Head = " 93\n0\n 94\n0\n 95\n0\n 96\n0\n141\n10.0\n";
             Assert.Contains(Head, DxfDimensionDrawings.R2018, StringComparison.Ordinal);
-            DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018.Replace(Head, " 93\n6886016\n 94\n0\n 95\n0\n 96\n0\n  7\nGH_TXT\n140\n9.0\n170\n1\n 63\n3\n 64\n1\n140\n9.0\n283\n0\n141\n10.0\n"));
+            DxfDatabase db = DxfDatabase.Parse(
+                DxfDimensionDrawings.R2018.Replace(
+                    Head,
+                    " 93\n6886016\n 94\n0\n 95\n0\n 96\n0\n  7\nGH_TXT\n140\n9.0\n170\n1\n 63\n3\n 64\n1\n140\n9.0\n283\n0\n141\n10.0\n"
+                )
+            );
             DxfTable table = Table(db);
 
             for (int column = 0; column < 2; column++)
@@ -97,9 +102,31 @@ namespace GeometryHelper.UnitTest.Dxf
             {
                 (t => t.InsertRows(2, 9.0, 1), new[] { 4, 5 }),
                 (t => t.MergeCells(new DxfCellRange(1, 0, 1, 1)), new[] { 3 }),
-                (t => { t.SetSize(4, 2); t.ResetValue(3, 0); t.DeleteRows(2, 1); }, new[] { 4, 5 }),
-                (t => { t.ResetValue(2, 0); t.InsertColumns(0, 20.0, 1); }, new[] { 1, 2, 3, 6, 7 }),
-                (t => { t.MergeCells(new DxfCellRange(1, 0, 1, 1)); t.UnmergeCells(new DxfCellRange(1, 0, 1, 1)); }, new[] { 3 }),
+                (
+                    t =>
+                    {
+                        t.SetSize(4, 2);
+                        t.ResetValue(3, 0);
+                        t.DeleteRows(2, 1);
+                    },
+                    new[] { 4, 5 }
+                ),
+                (
+                    t =>
+                    {
+                        t.ResetValue(2, 0);
+                        t.InsertColumns(0, 20.0, 1);
+                    },
+                    new[] { 1, 2, 3, 6, 7 }
+                ),
+                (
+                    t =>
+                    {
+                        t.MergeCells(new DxfCellRange(1, 0, 1, 1));
+                        t.UnmergeCells(new DxfCellRange(1, 0, 1, 1));
+                    },
+                    new[] { 3 }
+                ),
             };
 
             foreach (int options in new[] { 0, 2 })
@@ -132,7 +159,13 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(NoneRead, Values(grown)[7]);
 
             // c01, c02: one reset, or given an empty text, while the drawing is open is emptied in the session all the same.
-            foreach (Action<DxfTable> edit in new Action<DxfTable>[] { t => t.ResetValue(3, 0), t => t.SetTextString(3, 0, string.Empty) })
+            foreach (
+                Action<DxfTable> edit in new Action<DxfTable>[]
+                {
+                    t => t.ResetValue(3, 0),
+                    t => t.SetTextString(3, 0, string.Empty),
+                }
+            )
             {
                 DxfDatabase read = Drawn();
                 Table(read).SetSize(4, 2);
@@ -254,7 +287,13 @@ namespace GeometryHelper.UnitTest.Dxf
             Table(looks).ResetValue(2, 1);
             DxfTable kept = Reread(looks);
             Assert.Equal(DxfTableCellType.TextCell, kept.CellType(2, 1));
-            Assert.Equal(DxfCellProperties.Alignment | DxfCellProperties.ContentColor | DxfCellProperties.TextStyle | DxfCellProperties.TextHeight, kept.GetOverrides(2, 1, 0));
+            Assert.Equal(
+                DxfCellProperties.Alignment
+                    | DxfCellProperties.ContentColor
+                    | DxfCellProperties.TextStyle
+                    | DxfCellProperties.TextHeight,
+                kept.GetOverrides(2, 1, 0)
+            );
             Assert.Equal(9.0, kept.TextHeight(2, 1));
         }
 
@@ -268,18 +307,20 @@ namespace GeometryHelper.UnitTest.Dxf
             // D33c e02 and e05: AutoCAD 2021 wrote the title it merged on load merged after the table's colour was changed, as it
             // writes it after any edit; the library merged it at an edit of the table's cells or structure alone, and wrote it
             // unmerged after a change of the look the table has as an entity.
-            foreach (Action<DxfTable> edit in new Action<DxfTable>[]
-            {
-                t => t.ColorIndex = 1,
-                t => t.Color = Aci(3),
-                t => t.TrueColor = 0xFF8000,
-                t => t.Layer = "GH_TABLES",
-                t => t.Linetype = "ByBlock",
-                t => t.LinetypeScale = 2.0,
-                t => t.LineWeight = DxfLineWeight.LineWeight050,
-                t => t.Visible = false,
-                t => t.Transparency = DxfTransparency.ByBlock,
-            })
+            foreach (
+                Action<DxfTable> edit in new Action<DxfTable>[]
+                {
+                    t => t.ColorIndex = 1,
+                    t => t.Color = Aci(3),
+                    t => t.TrueColor = 0xFF8000,
+                    t => t.Layer = "GH_TABLES",
+                    t => t.Linetype = "ByBlock",
+                    t => t.LinetypeScale = 2.0,
+                    t => t.LineWeight = DxfLineWeight.LineWeight050,
+                    t => t.Visible = false,
+                    t => t.Transparency = DxfTransparency.ByBlock,
+                }
+            )
             {
                 DxfDatabase db = Unmerged();
                 edit(Table(db));

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using GeometryHelper.Clipper;
 using GeometryHelper;
+using GeometryHelper.Clipper;
 using GeometryHelper.Geometry;
 using GeometryHelper.Internal.Planar;
 using GeometryHelper.Meshing;
@@ -40,21 +40,33 @@ namespace GeometryHelper.Core
         /// Thrown when a cell is no larger than the point tolerance, or the grid would lay more than
         /// <see cref="MaxCells"/> cells over the shape.
         /// </exception>
-        public static void Add(GeoFace2 face, MeshOptions options, double angleRad, Tolerance tolerance, MeshBuilder2 builder)
+        public static void Add(
+            GeoFace2 face,
+            MeshOptions options,
+            double angleRad,
+            Tolerance tolerance,
+            MeshBuilder2 builder
+        )
         {
             double width = options.CellWidth;
             double height = options.CellHeight;
 
             if (!(width > tolerance.EqualPoint) || !(height > tolerance.EqualPoint))
             {
-                throw new ArgumentException("A grid cell has to be larger than the point tolerance both ways.", nameof(options));
+                throw new ArgumentException(
+                    "A grid cell has to be larger than the point tolerance both ways.",
+                    nameof(options)
+                );
             }
 
             // A joint no wider than the tolerance is none: the cells meet.
             double joint = options.Joint > tolerance.EqualPoint ? options.Joint : 0.0;
             var grid = new Grid(angleRad, options.Origin ?? face.Boundary[0]);
 
-            double uMin = double.MaxValue, uMax = double.MinValue, vMin = double.MaxValue, vMax = double.MinValue;
+            double uMin = double.MaxValue,
+                uMax = double.MinValue,
+                vMin = double.MaxValue,
+                vMax = double.MinValue;
 
             foreach (GeoPoint2 corner in face.Boundary.Vertices)
             {
@@ -80,7 +92,8 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentException(
                     $"A grid of {columns.Count} by {rows.Count} cells over the shape is more than the {MaxCells} cells a mesh may have; the cells are far smaller than the shape.",
-                    nameof(options));
+                    nameof(options)
+                );
             }
 
             if (columns.Count == 0 || rows.Count == 0)
@@ -120,7 +133,13 @@ namespace GeometryHelper.Core
 
                 // Half a cell past the row each way, so that the band's own sides come near none of its cells.
                 List<GeoPoint2> band = grid.Loop(uMin - width, uMax + width, y0 - 0.5 * height, y1 + 0.5 * height);
-                List<LoopGroup> banded = ClipperRegion.ExecuteExact(ClipType.Intersection, region, new[] { band }, Clipper.FillRule.Positive, precision);
+                List<LoopGroup> banded = ClipperRegion.ExecuteExact(
+                    ClipType.Intersection,
+                    region,
+                    new[] { band },
+                    Clipper.FillRule.Positive,
+                    precision
+                );
 
                 if (banded.Count == 0)
                 {
@@ -156,7 +175,15 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Marks the columns of a row that an edge of the region comes within a distance of.
         /// </summary>
-        private static void Mark(List<List<GeoPoint2>> loops, Grid grid, Axis columns, double y0, double y1, double near, bool[] touched)
+        private static void Mark(
+            List<List<GeoPoint2>> loops,
+            Grid grid,
+            Axis columns,
+            double y0,
+            double y1,
+            double near,
+            bool[] touched
+        )
         {
             double low = y0 - near;
             double high = y1 + near;
@@ -173,7 +200,8 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    double from, to;
+                    double from,
+                        to;
 
                     if (ta == tb)
                     {
@@ -264,7 +292,8 @@ namespace GeometryHelper.Core
             /// <summary>
             /// Where a point of the plane stands along the axes.
             /// </summary>
-            public void Measure(GeoPoint2 point, out double s, out double t) => MeasureLocal(new GeoPoint2(point.X - Anchor.X, point.Y - Anchor.Y), out s, out t);
+            public void Measure(GeoPoint2 point, out double s, out double t) =>
+                MeasureLocal(new GeoPoint2(point.X - Anchor.X, point.Y - Anchor.Y), out s, out t);
 
             /// <summary>
             /// Where a point laid out from the anchor stands along the axes.
@@ -284,8 +313,8 @@ namespace GeometryHelper.Core
             /// <summary>
             /// The rectangle between two places along each axis, counter-clockwise, laid out from the anchor.
             /// </summary>
-            public List<GeoPoint2> Loop(double s0, double s1, double t0, double t1)
-                => new List<GeoPoint2> { Local(s0, t0), Local(s1, t0), Local(s1, t1), Local(s0, t1) };
+            public List<GeoPoint2> Loop(double s0, double s1, double t0, double t1) =>
+                new List<GeoPoint2> { Local(s0, t0), Local(s1, t0), Local(s1, t1), Local(s0, t1) };
 
             /// <summary>
             /// A loop laid out from the anchor, put back in the plane.
@@ -341,7 +370,15 @@ namespace GeometryHelper.Core
             /// <param name="anchored">Whether a cell starts at nought, the anchor being the origin asked for.</param>
             /// <param name="alignment">Where the cells stand against the span when not anchored.</param>
             /// <param name="reach">How far a cell has to reach into the span to be laid.</param>
-            public static Axis Lay(double min, double max, double size, double joint, bool anchored, GridAlignment alignment, double reach)
+            public static Axis Lay(
+                double min,
+                double max,
+                double size,
+                double joint,
+                bool anchored,
+                GridAlignment alignment,
+                double reach
+            )
             {
                 double pitch = size + joint;
                 double middle = 0.5 * (min + max);
@@ -450,7 +487,14 @@ namespace GeometryHelper.Core
             private readonly Tolerance _tolerance;
             private readonly MeshBuilder2 _builder;
 
-            public Cutter(Grid grid, double width, double height, int precision, Tolerance tolerance, MeshBuilder2 builder)
+            public Cutter(
+                Grid grid,
+                double width,
+                double height,
+                int precision,
+                Tolerance tolerance,
+                MeshBuilder2 builder
+            )
             {
                 _grid = grid;
                 _width = width;
@@ -460,9 +504,22 @@ namespace GeometryHelper.Core
                 _builder = builder;
             }
 
-            public void Cut(List<List<GeoPoint2>> strip, List<GeoPoint2> cell, double x0, double x1, double y0, double y1)
+            public void Cut(
+                List<List<GeoPoint2>> strip,
+                List<GeoPoint2> cell,
+                double x0,
+                double x1,
+                double y0,
+                double y1
+            )
             {
-                List<LoopGroup> pieces = ClipperRegion.ExecuteExact(ClipType.Intersection, strip, new[] { cell }, Clipper.FillRule.Positive, _precision);
+                List<LoopGroup> pieces = ClipperRegion.ExecuteExact(
+                    ClipType.Intersection,
+                    strip,
+                    new[] { cell },
+                    Clipper.FillRule.Positive,
+                    _precision
+                );
 
                 // An edge that only came near, or ran along a side, or cut off no more than the tolerance, leaves the cell
                 // whole; it keeps the shape the cutting gave it, which stays within the material and meets its neighbours.
@@ -502,7 +559,12 @@ namespace GeometryHelper.Core
 
                     if (--splits < 0)
                     {
-                        foreach (GeoTriangle2 triangle in Triangulation2.Triangulate(ClipperRegion.ToFaces(new List<LoopGroup> { next }, _grid.Anchor, false)[0], _tolerance))
+                        foreach (
+                            GeoTriangle2 triangle in Triangulation2.Triangulate(
+                                ClipperRegion.ToFaces(new List<LoopGroup> { next }, _grid.Anchor, false)[0],
+                                _tolerance
+                            )
+                        )
                         {
                             _builder.Add(new[] { triangle.A, triangle.B, triangle.C }, false);
                         }
@@ -510,7 +572,8 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    double from = double.MaxValue, to = double.MinValue;
+                    double from = double.MaxValue,
+                        to = double.MinValue;
 
                     foreach (GeoPoint2 point in next.Holes[0])
                     {
@@ -528,7 +591,15 @@ namespace GeometryHelper.Core
                     {
                         List<GeoPoint2> half = _grid.Loop(low, high, y0 - _height, y1 + _height);
 
-                        foreach (LoopGroup part in ClipperRegion.ExecuteExact(ClipType.Intersection, loops, new[] { half }, Clipper.FillRule.Positive, _precision))
+                        foreach (
+                            LoopGroup part in ClipperRegion.ExecuteExact(
+                                ClipType.Intersection,
+                                loops,
+                                new[] { half },
+                                Clipper.FillRule.Positive,
+                                _precision
+                            )
+                        )
                         {
                             pending.Push(part);
                         }
@@ -584,7 +655,10 @@ namespace GeometryHelper.Core
                 double dx = b.X - a.X;
                 double dy = b.Y - a.Y;
                 double lengthSquared = dx * dx + dy * dy;
-                double t = lengthSquared > 0.0 ? Math.Max(0.0, Math.Min(1.0, ((point.X - a.X) * dx + (point.Y - a.Y) * dy) / lengthSquared)) : 0.0;
+                double t =
+                    lengthSquared > 0.0
+                        ? Math.Max(0.0, Math.Min(1.0, ((point.X - a.X) * dx + (point.Y - a.Y) * dy) / lengthSquared))
+                        : 0.0;
                 double ox = a.X + t * dx - point.X;
                 double oy = a.Y + t * dy - point.Y;
                 return Math.Sqrt(ox * ox + oy * oy);

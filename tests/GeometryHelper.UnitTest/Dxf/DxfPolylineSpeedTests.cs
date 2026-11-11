@@ -28,7 +28,10 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             watch.Stop();
-            Assert.True(watch.Elapsed.TotalSeconds < 2.5, "10 000 vertices took " + watch.Elapsed.TotalSeconds.ToString(CultureInfo.InvariantCulture) + " s.");
+            Assert.True(
+                watch.Elapsed.TotalSeconds < 2.5,
+                "10 000 vertices took " + watch.Elapsed.TotalSeconds.ToString(CultureInfo.InvariantCulture) + " s."
+            );
             Assert.Equal(10000, polyline.NumberOfVertices);
             Assert.True(polyline.GetPoint2dAt(9999).IsEqualTo(new GeoPoint2(9999, 3), Tolerance.Default));
         }

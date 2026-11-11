@@ -15,7 +15,12 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
         {
             public List<string[]> Calls { get; } = new List<string[]>();
 
-            public ProjectedView2 Project(IEnumerable<ProjectionInput> inputs, GeoCoordinateSystem3 frame, ProjectionOptions options, Tolerance tolerance)
+            public ProjectedView2 Project(
+                IEnumerable<ProjectionInput> inputs,
+                GeoCoordinateSystem3 frame,
+                ProjectionOptions options,
+                Tolerance tolerance
+            )
             {
                 ProjectionInput[] list = inputs.ToArray();
                 Calls.Add(list.Select(i => i.Id).ToArray());
@@ -61,7 +66,14 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
             Assert.Same(views[1].Lines, scaled.Lines);
             Assert.Equal(20.0, scaled.Scale);
 
-            var frame = new ViewFrame3(GeoPoint3.Origin, new GeoVector3(1, 1, -1), GeoVector3.ZAxis, double.PositiveInfinity, double.PositiveInfinity, Tol);
+            var frame = new ViewFrame3(
+                GeoPoint3.Origin,
+                new GeoVector3(1, 1, -1),
+                GeoVector3.ZAxis,
+                double.PositiveInfinity,
+                double.PositiveInfinity,
+                Tol
+            );
             DrawingView turned = builder.WithDirection(views[2], frame);
 
             Assert.Equal(4, projector.Calls.Count);
@@ -83,7 +95,9 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
 
             Assert.Equal(4, projector.Calls.Count);
             Assert.Equal(100.0, shallow.Frame.DepthInFront);
-            Assert.DoesNotContain(shallow.Lines.VisibleEdges.Concat(shallow.Lines.HiddenEdges), e => e.ObjectId == "TC2-endplate");
+            Assert.DoesNotContain(shallow.Lines.VisibleEdges.Concat(shallow.Lines.HiddenEdges), e =>
+                e.ObjectId == "TC2-endplate"
+            );
             Assert.Contains(right.Lines.VisibleEdges, e => e.ObjectId == "TC2-endplate");
         }
 
@@ -101,16 +115,22 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
             ProjectedFace2 cut = Assert.Single(section.Lines.SectionFaces);
             Assert.Equal("TC2-beam", cut.ObjectId);
             Assert.Equal(2 * 150 * 12 + 276 * 8, cut.Face.Area, 6);
-            Assert.DoesNotContain(section.Lines.VisibleEdges.Concat(section.Lines.HiddenEdges), e => e.ObjectId == "TC2-endplate");
+            Assert.DoesNotContain(section.Lines.VisibleEdges.Concat(section.Lines.HiddenEdges), e =>
+                e.ObjectId == "TC2-endplate"
+            );
         }
 
         [Fact]
         public void ADetailOfTheEndOfTheBeamIsTakenFromTheFrontViewAndSeesOnlyWhatItsRectangleMeets()
         {
             DrawingSettings settings = DrawingSettings.Assembly;
-            settings.Views.Details.Add(new DetailViewRequest("B", ViewKind.Front, new GeoRectangle2(2800, -200, 300, 400), 4));
+            settings.Views.Details.Add(
+                new DetailViewRequest("B", ViewKind.Front, new GeoRectangle2(2800, -200, 300, 400), 4)
+            );
 
-            DrawingView detail = new ViewBuilder(TC2(extra: true), settings, Tol).Build().Single(v => v.Kind == ViewKind.Detail);
+            DrawingView detail = new ViewBuilder(TC2(extra: true), settings, Tol)
+                .Build()
+                .Single(v => v.Kind == ViewKind.Detail);
 
             Assert.Equal("V-DETAIL-B", detail.Id);
             Assert.Equal("V-FRONT", detail.ParentViewId);
@@ -133,7 +153,9 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
         public void AViewWithNoLinesIsNotMade()
         {
             DrawingSettings settings = DrawingSettings.Assembly;
-            settings.Views.Details.Add(new DetailViewRequest("C", ViewKind.Front, new GeoRectangle2(-5000, 5000, 100, 100), 2));
+            settings.Views.Details.Add(
+                new DetailViewRequest("C", ViewKind.Front, new GeoRectangle2(-5000, 5000, 100, 100), 2)
+            );
 
             IReadOnlyList<DrawingView> views = new ViewBuilder(TC2(), settings, Tol).Build();
 

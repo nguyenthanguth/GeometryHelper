@@ -21,7 +21,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private volatile string _versionText;
         private volatile ImageSource _thumbnail;
 
-        internal RecentDocumentViewModel(GlobalRecentFile file, Func<DateTime> now, Action<RecentDocumentViewModel> open, Action<RecentDocumentViewModel> pin)
+        internal RecentDocumentViewModel(
+            GlobalRecentFile file,
+            Func<DateTime> now,
+            Action<RecentDocumentViewModel> open,
+            Action<RecentDocumentViewModel> pin
+        )
         {
             Path = file.Path;
             IsPinned = file.IsPinned;
@@ -77,7 +82,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets when the file was last written, as "2026-11-10 09:14"; "not found" where the file is gone.</summary>
-        public string ModifiedText => File.Exists(Path) ? File.GetLastWriteTime(Path).ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) : "not found";
+        public string ModifiedText =>
+            File.Exists(Path)
+                ? File.GetLastWriteTime(Path).ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)
+                : "not found";
 
         /// <summary>Gets the size of the file, as "1.2 MB" or "412 KB"; empty where the file is gone.</summary>
         public string SizeText
@@ -90,7 +98,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 long bytes = new FileInfo(Path).Length;
-                return bytes >= 1024 * 1024 ? (bytes / (1024.0 * 1024.0)).ToString("0.0", CultureInfo.InvariantCulture) + " MB"
+                return bytes >= 1024 * 1024
+                    ? (bytes / (1024.0 * 1024.0)).ToString("0.0", CultureInfo.InvariantCulture) + " MB"
                     : Math.Max(1L, (bytes + 1023) / 1024).ToString(CultureInfo.InvariantCulture) + " KB";
             }
         }
@@ -148,14 +157,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         using (var stream = new MemoryStream(header.Thumbnail))
                         {
-                            BitmapFrame frame = BitmapFrame.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                            BitmapFrame frame = BitmapFrame.Create(
+                                stream,
+                                BitmapCreateOptions.None,
+                                BitmapCacheOption.OnLoad
+                            );
                             frame.Freeze();
                             thumbnail = frame;
                         }
                     }
-                    catch (Exception exception) when (exception is NotSupportedException || exception is FileFormatException || exception is ArgumentException || exception is InvalidOperationException)
+                    catch (Exception exception)
+                        when (exception is NotSupportedException
+                            || exception is FileFormatException
+                            || exception is ArgumentException
+                            || exception is InvalidOperationException
+                        )
                     {
-                        GeometryHelperLog.Debug("RecentDocumentViewModel: the preview of " + Path + " does not read: " + exception.Message);
+                        GeometryHelperLog.Debug(
+                            "RecentDocumentViewModel: the preview of " + Path + " does not read: " + exception.Message
+                        );
                     }
                 }
 
@@ -176,7 +196,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     {
         private bool _isShown;
 
-        internal AppMenuItemViewModel(string key, string name, string iconKey, string description, Action run, bool isEnabled = true, IReadOnlyList<AppMenuItemViewModel> items = null)
+        internal AppMenuItemViewModel(
+            string key,
+            string name,
+            string iconKey,
+            string description,
+            Action run,
+            bool isEnabled = true,
+            IReadOnlyList<AppMenuItemViewModel> items = null
+        )
         {
             Key = key;
             Name = name ?? string.Empty;
@@ -184,7 +212,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Description = description ?? string.Empty;
             IsEnabled = isEnabled && (run != null || (items != null && items.Any(i => i.IsEnabled)));
             Items = items ?? Array.Empty<AppMenuItemViewModel>();
-            Command = new DelegateCommand(_ => (run ?? Items.FirstOrDefault(i => i.IsEnabled)?.Run)?.Invoke(), _ => IsEnabled);
+            Command = new DelegateCommand(
+                _ => (run ?? Items.FirstOrDefault(i => i.IsEnabled)?.Run)?.Invoke(),
+                _ => IsEnabled
+            );
             Run = run;
         }
 
@@ -241,22 +272,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     public sealed class AppMenuViewModel : ObservableObject
     {
         // The icons of the design (AppMenu), as path data on a grid of 24.
-        private const string IconNew = "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M12 11v6M9 14h6";
+        private const string IconNew =
+            "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M12 11v6M9 14h6";
         private const string IconOpen = "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z";
         private const string IconSave = "M5 3h11l3 3v15H5zM8 3v5h7V3M8 21v-7h8v7";
         private const string IconSaveAs = "M5 3h11l3 3v7M8 3v5h7V3M5 3v18h7M15 21l6-6-2-2-6 6v2z";
         private const string IconExport = "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4M14 3v5h5v4M15 18h7M19 15l3 3-3 3";
-        private const string IconPrint = "M7 9V3h10v6M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v7H7z";
-        private const string IconClose = "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9.5 12.5l5 5M14.5 12.5l-5 5";
-        private const string IconDxf = "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M12 11v6M9 14l3 3 3-3";
-        private const string IconPdf = "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h6";
+        private const string IconPrint =
+            "M7 9V3h10v6M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v7H7z";
+        private const string IconClose =
+            "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9.5 12.5l5 5M14.5 12.5l-5 5";
+        private const string IconDxf =
+            "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M12 11v6M9 14l3 3 3-3";
+        private const string IconPdf =
+            "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h6";
         private const string IconImage = "M4 5h16v14H4zM4 15l5-5 4 4 3-3 4 4M15 9h.01";
         private const string IconBlock = "M4 7l8-4 8 4v10l-8 4-8-4zM4 7l8 4 8-4M12 11v10";
         private const string IconOther = "M5 12h.01M12 12h.01M19 12h.01";
         private const string IconPreview = "M10 10m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0M14.5 14.5 20 20";
         private const string IconSetup = "M4 4h16v16H4zM8 8h8M8 12h8M8 16h5";
         private const string IconBatch = "M7 3h12v14M4 6h12v15H4z";
-        private const string IconStyles = "M12 3a9 9 0 1 0 0 18c1 0 2-1 1-2-1-2 0-3 2-3h3a3 3 0 0 0 3-3 9 9 0 0 0-9-10zM7 12h.01M9 7h.01M15 7h.01";
+        private const string IconStyles =
+            "M12 3a9 9 0 1 0 0 18c1 0 2-1 1-2-1-2 0-3 2-3h3a3 3 0 0 0 3-3 9 9 0 0 0-9-10zM7 12h.01M9 7h.01M15 7h.01";
 
         private readonly MainViewModel _model;
         private string _searchText = string.Empty;
@@ -271,41 +308,177 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Items = new[]
             {
                 new AppMenuItemViewModel("new", "New", IconNew, null, null, true, NewItems(model)),
-                new AppMenuItemViewModel("open", "Open", IconOpen, null, null, true, new[]
-                {
-                    Entry("Drawing", IconOpen, "Open a DXF file (OPEN, Ctrl+O)", () => model.OpenCommand.Execute(null)),
-                }),
-                new AppMenuItemViewModel("save", "Save", IconSave, "Save the drawing (QSAVE, Ctrl+S)", () => model.Save(), open),
-                new AppMenuItemViewModel("saveas", "Save As", IconSaveAs, null, null, true, new[]
-                {
-                    Entry("Drawing", IconDxf, "Save the drawing as a DXF file, choosing its version (R12 to 2018) (SAVEAS)", Start("SAVEAS"), open),
-                    Entry("Drawing Template", IconSaveAs, "Save as a template for new drawings (not built yet)", null),
-                    Entry("Other Formats", IconOther, "Save in another format (EXPORT, not built yet)", null),
-                }),
+                new AppMenuItemViewModel(
+                    "open",
+                    "Open",
+                    IconOpen,
+                    null,
+                    null,
+                    true,
+                    new[]
+                    {
+                        Entry("Drawing", IconOpen, "Open a DXF file (OPEN, Ctrl+O)", () =>
+                            model.OpenCommand.Execute(null)
+                        ),
+                    }
+                ),
+                new AppMenuItemViewModel(
+                    "save",
+                    "Save",
+                    IconSave,
+                    "Save the drawing (QSAVE, Ctrl+S)",
+                    () => model.Save(),
+                    open
+                ),
+                new AppMenuItemViewModel(
+                    "saveas",
+                    "Save As",
+                    IconSaveAs,
+                    null,
+                    null,
+                    true,
+                    new[]
+                    {
+                        Entry(
+                            "Drawing",
+                            IconDxf,
+                            "Save the drawing as a DXF file, choosing its version (R12 to 2018) (SAVEAS)",
+                            Start("SAVEAS"),
+                            open
+                        ),
+                        Entry(
+                            "Drawing Template",
+                            IconSaveAs,
+                            "Save as a template for new drawings (not built yet)",
+                            null
+                        ),
+                        Entry("Other Formats", IconOther, "Save in another format (EXPORT, not built yet)", null),
+                    }
+                ),
                 Rule(),
-                new AppMenuItemViewModel("export", "Export", IconExport, null, null, true, new[]
-                {
-                    Entry("PDF", IconPdf, "A PDF of the model or a layout, through GeometryHelper PDF (PLOT)", Start("PLOT"), open),
-                    Entry("PNG", IconImage, "An image of the drawing area as shown (PNGOUT)", Start("PNGOUT"), open),
-                    Entry("JPG", IconImage, "An image of the drawing area as shown (JPGOUT)", Start("JPGOUT"), open),
-                    Entry("BMP", IconImage, "An image of the drawing area as shown (BMPOUT)", Start("BMPOUT"), open),
-                    Entry("Block or objects to a DXF", IconBlock, "Write a block or the objects selected to a new file (WBLOCK)", Start("WBLOCK"), open),
-                    Entry("Other Formats", IconOther, "Export to another format: Bitmap here; the rest of AutoCAD's list is refused (EXPORT)", Start("EXPORT"), open),
-                }),
-                new AppMenuItemViewModel("print", "Print", IconPrint, null, null, true, new[]
-                {
-                    Entry("Plot", IconPrint, "Plot the model or a layout to a printer or a file (PLOT)", Start("PLOT"), open),
-                    Entry("Batch Plot", IconBatch, "Plot several drawings and layouts at once (not built yet)", null),
-                    Entry("Plot Preview", IconPreview, "See the drawing as it will be plotted (PREVIEW)", Start("PREVIEW"), open),
-                    Entry("Page Setup", IconSetup, "Control the page layout, plot device, paper size of each layout (PAGESETUP)", Start("PAGESETUP"), open),
-                    Entry("Manage Plot Styles", IconStyles, "Plot style tables: Monochrome, Grayscale, None are built in (not editable yet)", null),
-                }),
+                new AppMenuItemViewModel(
+                    "export",
+                    "Export",
+                    IconExport,
+                    null,
+                    null,
+                    true,
+                    new[]
+                    {
+                        Entry(
+                            "PDF",
+                            IconPdf,
+                            "A PDF of the model or a layout, through GeometryHelper PDF (PLOT)",
+                            Start("PLOT"),
+                            open
+                        ),
+                        Entry(
+                            "PNG",
+                            IconImage,
+                            "An image of the drawing area as shown (PNGOUT)",
+                            Start("PNGOUT"),
+                            open
+                        ),
+                        Entry(
+                            "JPG",
+                            IconImage,
+                            "An image of the drawing area as shown (JPGOUT)",
+                            Start("JPGOUT"),
+                            open
+                        ),
+                        Entry(
+                            "BMP",
+                            IconImage,
+                            "An image of the drawing area as shown (BMPOUT)",
+                            Start("BMPOUT"),
+                            open
+                        ),
+                        Entry(
+                            "Block or objects to a DXF",
+                            IconBlock,
+                            "Write a block or the objects selected to a new file (WBLOCK)",
+                            Start("WBLOCK"),
+                            open
+                        ),
+                        Entry(
+                            "Other Formats",
+                            IconOther,
+                            "Export to another format: Bitmap here; the rest of AutoCAD's list is refused (EXPORT)",
+                            Start("EXPORT"),
+                            open
+                        ),
+                    }
+                ),
+                new AppMenuItemViewModel(
+                    "print",
+                    "Print",
+                    IconPrint,
+                    null,
+                    null,
+                    true,
+                    new[]
+                    {
+                        Entry(
+                            "Plot",
+                            IconPrint,
+                            "Plot the model or a layout to a printer or a file (PLOT)",
+                            Start("PLOT"),
+                            open
+                        ),
+                        Entry(
+                            "Batch Plot",
+                            IconBatch,
+                            "Plot several drawings and layouts at once (not built yet)",
+                            null
+                        ),
+                        Entry(
+                            "Plot Preview",
+                            IconPreview,
+                            "See the drawing as it will be plotted (PREVIEW)",
+                            Start("PREVIEW"),
+                            open
+                        ),
+                        Entry(
+                            "Page Setup",
+                            IconSetup,
+                            "Control the page layout, plot device, paper size of each layout (PAGESETUP)",
+                            Start("PAGESETUP"),
+                            open
+                        ),
+                        Entry(
+                            "Manage Plot Styles",
+                            IconStyles,
+                            "Plot style tables: Monochrome, Grayscale, None are built in (not editable yet)",
+                            null
+                        ),
+                    }
+                ),
                 Rule(),
-                new AppMenuItemViewModel("close", "Close", IconClose, null, null, true, new[]
-                {
-                    Entry("Current Drawing", IconClose, "Close the drawing shown (CLOSE)", () => model.CloseDocument(), open),
-                    Entry("All Drawings", IconClose, "Close every drawing open, asking once about those not saved (CLOSEALL)", () => model.CloseAllDocuments(), open),
-                }),
+                new AppMenuItemViewModel(
+                    "close",
+                    "Close",
+                    IconClose,
+                    null,
+                    null,
+                    true,
+                    new[]
+                    {
+                        Entry(
+                            "Current Drawing",
+                            IconClose,
+                            "Close the drawing shown (CLOSE)",
+                            () => model.CloseDocument(),
+                            open
+                        ),
+                        Entry(
+                            "All Drawings",
+                            IconClose,
+                            "Close every drawing open, asking once about those not saved (CLOSEALL)",
+                            () => model.CloseAllDocuments(),
+                            open
+                        ),
+                    }
+                ),
             };
             OptionsCommand = new DelegateCommand(_ => Done(() => model.RequestSettings(null)));
             ExitCommand = new DelegateCommand(_ => Done(() => ExitRequested?.Invoke(this, EventArgs.Empty)));
@@ -378,7 +551,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 if (Set(ref _searchText, (value ?? string.Empty).Trim()))
                 {
-                    SearchResults = _searchText.Length == 0 ? Array.Empty<CommandSuggestionViewModel>() : _model.SearchCommands(_searchText);
+                    SearchResults =
+                        _searchText.Length == 0
+                            ? Array.Empty<CommandSuggestionViewModel>()
+                            : _model.SearchCommands(_searchText);
                     Raise(nameof(IsSearching));
                     Raise(nameof(IsRecentShown));
                 }
@@ -443,16 +619,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (model.CanMakeFromModel)
             {
-                items.Add(Entry("Drawing from a model", "GhIconModel", "Make a drawing from the objects of a model (DRAWINGNEW)", () => model.NewFromModelCommand.Execute(null)));
+                items.Add(
+                    Entry(
+                        "Drawing from a model",
+                        "GhIconModel",
+                        "Make a drawing from the objects of a model (DRAWINGNEW)",
+                        () => model.NewFromModelCommand.Execute(null)
+                    )
+                );
             }
 
             return items;
         }
 
-        private static AppMenuItemViewModel Entry(string name, string icon, string description, Action run, bool isEnabled = true)
-            => new AppMenuItemViewModel(null, name, icon, description, run, isEnabled);
+        private static AppMenuItemViewModel Entry(
+            string name,
+            string icon,
+            string description,
+            Action run,
+            bool isEnabled = true
+        ) => new AppMenuItemViewModel(null, name, icon, description, run, isEnabled);
 
-        private static AppMenuItemViewModel Rule() => new AppMenuItemViewModel(null, string.Empty, null, null, null, false);
+        private static AppMenuItemViewModel Rule() =>
+            new AppMenuItemViewModel(null, string.Empty, null, null, null, false);
 
         private Action Start(string command) => () => _model.StartCommand(command);
 
@@ -478,10 +667,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public IReadOnlyList<RecentDocumentViewModel> RecentDocuments => _recentDocuments;
 
         /// <summary>Gets the pinned files of <see cref="RecentDocuments"/>.</summary>
-        public IReadOnlyList<RecentDocumentViewModel> PinnedDocuments => _recentDocuments.Where(d => d.IsPinned).ToList();
+        public IReadOnlyList<RecentDocumentViewModel> PinnedDocuments =>
+            _recentDocuments.Where(d => d.IsPinned).ToList();
 
         /// <summary>Gets the files of <see cref="RecentDocuments"/> not pinned.</summary>
-        public IReadOnlyList<RecentDocumentViewModel> UnpinnedDocuments => _recentDocuments.Where(d => !d.IsPinned).ToList();
+        public IReadOnlyList<RecentDocumentViewModel> UnpinnedDocuments =>
+            _recentDocuments.Where(d => !d.IsPinned).ToList();
 
         /// <summary>Gets whether a file is pinned, so that the PINNED heading shows.</summary>
         public bool HasPinnedDocuments => _recentDocuments.Any(d => d.IsPinned);
@@ -500,10 +691,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets the command of the start screen's list button: Recent Documents as a list.</summary>
-        public ICommand ShowRecentAsListCommand => _recentListCommand ?? (_recentListCommand = new DelegateCommand(_ => IsRecentLarge = false));
+        public ICommand ShowRecentAsListCommand =>
+            _recentListCommand ?? (_recentListCommand = new DelegateCommand(_ => IsRecentLarge = false));
 
         /// <summary>Gets the command of the start screen's pictures button: Recent Documents as large pictures.</summary>
-        public ICommand ShowRecentLargeCommand => _recentLargeCommand ?? (_recentLargeCommand = new DelegateCommand(_ => IsRecentLarge = true));
+        public ICommand ShowRecentLargeCommand =>
+            _recentLargeCommand ?? (_recentLargeCommand = new DelegateCommand(_ => IsRecentLarge = true));
 
         private DelegateCommand _recentListCommand;
         private DelegateCommand _recentLargeCommand;
@@ -529,7 +722,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
-            bool open = _files.Values.Any(f => f.Document != null && (SamePath(f.Path, document.Path) || SamePath(f.Document.FileName, document.Path)));
+            bool open = _files.Values.Any(f =>
+                f.Document != null && (SamePath(f.Path, document.Path) || SamePath(f.Document.FileName, document.Path))
+            );
 
             if (!open && !System.IO.File.Exists(document.Path))
             {
@@ -567,8 +762,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool CloseAllDocuments() => CloseFiles(_files.Values.ToList());
 
         /// <summary>The commands and variables whose name holds a text, as the application menu's search lists them.</summary>
-        internal IReadOnlyList<CommandSuggestionViewModel> SearchCommands(string text)
-            => _current == null ? Array.Empty<CommandSuggestionViewModel>() : Suggest(_current.Session.Registry, text.Trim());
+        internal IReadOnlyList<CommandSuggestionViewModel> SearchCommands(string text) =>
+            _current == null
+                ? Array.Empty<CommandSuggestionViewModel>()
+                : Suggest(_current.Session.Registry, text.Trim());
 
         /// <summary>A file opened: first among the recent files, kept in the settings file.</summary>
         private void NoteRecentFile(string full)
@@ -582,8 +779,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void RebuildRecent()
         {
             int pinned = _settings.RecentFiles.Count(f => f.IsPinned);
-            _recentDocuments = _settings.RecentFiles.Where(f => f.IsPinned)
-                .Concat(_settings.RecentFiles.Where(f => !f.IsPinned).Take(Math.Max(0, GlobalSettings.RecentFilesShown - pinned)))
+            _recentDocuments = _settings
+                .RecentFiles.Where(f => f.IsPinned)
+                .Concat(
+                    _settings
+                        .RecentFiles.Where(f => !f.IsPinned)
+                        .Take(Math.Max(0, GlobalSettings.RecentFilesShown - pinned))
+                )
                 .Select(f => new RecentDocumentViewModel(f, Now, d => OpenRecent(d), d => PinRecent(d, !d.IsPinned)))
                 .ToList();
 

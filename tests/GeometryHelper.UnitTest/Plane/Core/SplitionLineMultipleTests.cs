@@ -21,7 +21,7 @@ namespace GeometryHelper.UnitTest.Plane
             var cutters = new[]
             {
                 new GeoLine2(new GeoPoint2(3, -5), new GeoPoint2(3, 5)),
-                new GeoLine2(new GeoPoint2(7, -5), new GeoPoint2(7, 5))
+                new GeoLine2(new GeoPoint2(7, -5), new GeoPoint2(7, 5)),
             };
 
             Assert.True(subject.TrySplitBy(cutters, out GeoLine2[] pieces));
@@ -48,7 +48,7 @@ namespace GeometryHelper.UnitTest.Plane
             var cutters = new[]
             {
                 new GeoLine2(new GeoPoint2(-5, -5), new GeoPoint2(-5, 5)),
-                new GeoLine2(new GeoPoint2(15, -5), new GeoPoint2(15, 5))
+                new GeoLine2(new GeoPoint2(15, -5), new GeoPoint2(15, 5)),
             };
 
             Assert.False(subject.TrySplitBy(cutters, out GeoLine2[] pieces));
@@ -96,7 +96,7 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 new GeoPoint2(4, 0),
                 new GeoPoint2(6, 0),
-                new GeoPoint2(12, 0) // Outside, should be ignored
+                new GeoPoint2(12, 0), // Outside, should be ignored
             };
 
             Assert.True(subject.TrySplitBy(points, out GeoLine2[] pieces));
@@ -114,15 +114,25 @@ namespace GeometryHelper.UnitTest.Plane
         public void Line_SplitByMultiplePolygons_SplitsCorrectly()
         {
             var subject = new GeoLine2(new GeoPoint2(-5, 0), new GeoPoint2(15, 0));
-            
+
             // Two 2x2 squares along the X-axis
-            var poly1 = new GeoPolygon2(new GeoPoint2(0, -1), new GeoPoint2(2, -1), new GeoPoint2(2, 1), new GeoPoint2(0, 1));
-            var poly2 = new GeoPolygon2(new GeoPoint2(8, -1), new GeoPoint2(10, -1), new GeoPoint2(10, 1), new GeoPoint2(8, 1));
-            
+            var poly1 = new GeoPolygon2(
+                new GeoPoint2(0, -1),
+                new GeoPoint2(2, -1),
+                new GeoPoint2(2, 1),
+                new GeoPoint2(0, 1)
+            );
+            var poly2 = new GeoPolygon2(
+                new GeoPoint2(8, -1),
+                new GeoPoint2(10, -1),
+                new GeoPoint2(10, 1),
+                new GeoPoint2(8, 1)
+            );
+
             Assert.True(subject.TrySplitBy(new[] { poly1, poly2 }, out GeoLine2[] inside, out GeoLine2[] outside));
             Assert.Equal(2, inside.Length);
             Assert.Equal(3, outside.Length);
-            
+
             Assert.True(outside[0].StartPoint.IsEqualTo(new GeoPoint2(-5, 0), Tol));
             Assert.True(outside[0].EndPoint.IsEqualTo(new GeoPoint2(0, 0), Tol));
             Assert.True(inside[0].StartPoint.IsEqualTo(new GeoPoint2(0, 0), Tol));
@@ -133,7 +143,7 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(inside[1].EndPoint.IsEqualTo(new GeoPoint2(10, 0), Tol));
             Assert.True(outside[2].StartPoint.IsEqualTo(new GeoPoint2(10, 0), Tol));
             Assert.True(outside[2].EndPoint.IsEqualTo(new GeoPoint2(15, 0), Tol));
-            
+
             Assert.Equal(subject.Length, inside.Sum(p => p.Length) + outside.Sum(p => p.Length), 9);
         }
 
@@ -141,18 +151,28 @@ namespace GeometryHelper.UnitTest.Plane
         public void Line_SplitByOverlappingPolygons_MergesCorrectly()
         {
             var subject = new GeoLine2(new GeoPoint2(-5, 0), new GeoPoint2(15, 0));
-            
+
             // Two 2x2 squares sharing a boundary at X = 2
-            var poly1 = new GeoPolygon2(new GeoPoint2(0, -1), new GeoPoint2(2, -1), new GeoPoint2(2, 1), new GeoPoint2(0, 1));
-            var poly2 = new GeoPolygon2(new GeoPoint2(2, -1), new GeoPoint2(4, -1), new GeoPoint2(4, 1), new GeoPoint2(2, 1));
-            
+            var poly1 = new GeoPolygon2(
+                new GeoPoint2(0, -1),
+                new GeoPoint2(2, -1),
+                new GeoPoint2(2, 1),
+                new GeoPoint2(0, 1)
+            );
+            var poly2 = new GeoPolygon2(
+                new GeoPoint2(2, -1),
+                new GeoPoint2(4, -1),
+                new GeoPoint2(4, 1),
+                new GeoPoint2(2, 1)
+            );
+
             Assert.True(subject.TrySplitBy(new[] { poly1, poly2 }, out GeoLine2[] inside, out GeoLine2[] outside));
-            
+
             // Do kề sát nhau, phần inside từ 0 đến 4 được gộp thành 1 đoạn duy nhất
             Assert.Single(inside);
             Assert.True(inside[0].StartPoint.IsEqualTo(new GeoPoint2(0, 0), Tol));
             Assert.True(inside[0].EndPoint.IsEqualTo(new GeoPoint2(4, 0), Tol));
-            
+
             // Phần outside gồm [-5, 0] và [4, 15]
             Assert.Equal(2, outside.Length);
             Assert.True(outside[0].StartPoint.IsEqualTo(new GeoPoint2(-5, 0), Tol));
@@ -165,13 +185,13 @@ namespace GeometryHelper.UnitTest.Plane
         public void Line_SplitByMultiplePolylines_SplitsCorrectly()
         {
             var subject = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0));
-            
+
             var polyline1 = new GeoPolyline2(new GeoPoint2(3, -2), new GeoPoint2(3, 2));
             var polyline2 = new GeoPolyline2(new GeoPoint2(7, -2), new GeoPoint2(7, 2));
 
             Assert.True(subject.TrySplitBy(new[] { polyline1, polyline2 }, out GeoLine2[] pieces));
             Assert.Equal(3, pieces.Length);
-            
+
             Assert.True(pieces[0].StartPoint.IsEqualTo(new GeoPoint2(0, 0), Tol));
             Assert.True(pieces[0].EndPoint.IsEqualTo(new GeoPoint2(3, 0), Tol));
             Assert.True(pieces[1].StartPoint.IsEqualTo(new GeoPoint2(3, 0), Tol));

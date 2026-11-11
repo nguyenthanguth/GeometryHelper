@@ -31,7 +31,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether two axis-aligned boxes overlap, within a tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoAabb3 box1, GeoAabb3 box2, Tolerance tolerance) => box1.CollidesWith(box2, tolerance);
+        public static bool CollidesWith(GeoAabb3 box1, GeoAabb3 box2, Tolerance tolerance) =>
+            box1.CollidesWith(box2, tolerance);
 
         #endregion
 
@@ -95,7 +96,7 @@ namespace GeometryHelper.Core
             {
                 between.DotProduct(box1.AxisX),
                 between.DotProduct(box1.AxisY),
-                between.DotProduct(box1.AxisZ)
+                between.DotProduct(box1.AxisZ),
             };
 
             double slack = tolerance.EqualPoint;
@@ -188,7 +189,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether two triangles overlap, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoTriangle3 triangle1, GeoTriangle3 triangle2) => CollidesWith(triangle1, triangle2, Tolerance.Global);
+        public static bool CollidesWith(GeoTriangle3 triangle1, GeoTriangle3 triangle2) =>
+            CollidesWith(triangle1, triangle2, Tolerance.Global);
 
         /// <summary>
         /// Checks whether two triangles overlap, within a tolerance.
@@ -209,7 +211,8 @@ namespace GeometryHelper.Core
             if (triangle1.IsDegenerate(tolerance) || triangle2.IsDegenerate(tolerance))
             {
                 return triangle1.GetAabb().DistanceTo(triangle2.GetAabb()) <= Reach(tolerance)
-                    && Gap3.Regions(Gap3.Region.Of(triangle1), Gap3.Region.Of(triangle2), tolerance.EqualPoint) <= tolerance.EqualPoint;
+                    && Gap3.Regions(Gap3.Region.Of(triangle1), Gap3.Region.Of(triangle2), tolerance.EqualPoint)
+                        <= tolerance.EqualPoint;
             }
 
             if (IsClearOf(triangle1, triangle2, tolerance) || IsClearOf(triangle2, triangle1, tolerance))
@@ -219,8 +222,10 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < 3; i++)
             {
-                if (Intersection3.TryCross(triangle1.GetEdgeAt(i), triangle2, out _, tolerance) ||
-                    Intersection3.TryCross(triangle2.GetEdgeAt(i), triangle1, out _, tolerance))
+                if (
+                    Intersection3.TryCross(triangle1.GetEdgeAt(i), triangle2, out _, tolerance)
+                    || Intersection3.TryCross(triangle2.GetEdgeAt(i), triangle1, out _, tolerance)
+                )
                 {
                     return true;
                 }
@@ -234,16 +239,20 @@ namespace GeometryHelper.Core
             // In one plane as two flat regions are (Intersection3.Flat.InOnePlane): either lies wholly in the
             // other's plane. One corner of the second against the first's plane read the pair one way round only,
             // so two triangles a hundred-thousandth of a radian apart touched or not by which was asked first.
-            if (!Boolean3.LiesIn(triangle1.GetPlane(), new[] { triangle2.A, triangle2.B, triangle2.C }, tolerance) &&
-                !Boolean3.LiesIn(triangle2.GetPlane(), new[] { triangle1.A, triangle1.B, triangle1.C }, tolerance))
+            if (
+                !Boolean3.LiesIn(triangle1.GetPlane(), new[] { triangle2.A, triangle2.B, triangle2.C }, tolerance)
+                && !Boolean3.LiesIn(triangle2.GetPlane(), new[] { triangle1.A, triangle1.B, triangle1.C }, tolerance)
+            )
             {
                 return ComeWithin(triangle1, triangle2, tolerance);
             }
 
             for (int i = 0; i < 3; i++)
             {
-                if (Containment3.Contains(triangle2, triangle1[i], tolerance) ||
-                    Containment3.Contains(triangle1, triangle2[i], tolerance))
+                if (
+                    Containment3.Contains(triangle2, triangle1[i], tolerance)
+                    || Containment3.Contains(triangle1, triangle2[i], tolerance)
+                )
                 {
                     return true;
                 }
@@ -275,10 +284,37 @@ namespace GeometryHelper.Core
             // exactly the tolerance apart, which the distances below take.
             double clear = near * (1.0 + 1E-6);
 
-            if (StandsClear(triangle1.GetPlane(), triangle2, clear) || StandsClear(triangle2.GetPlane(), triangle1, clear) ||
-                Apart(triangle1.A.X, triangle1.B.X, triangle1.C.X, triangle2.A.X, triangle2.B.X, triangle2.C.X, clear) ||
-                Apart(triangle1.A.Y, triangle1.B.Y, triangle1.C.Y, triangle2.A.Y, triangle2.B.Y, triangle2.C.Y, clear) ||
-                Apart(triangle1.A.Z, triangle1.B.Z, triangle1.C.Z, triangle2.A.Z, triangle2.B.Z, triangle2.C.Z, clear))
+            if (
+                StandsClear(triangle1.GetPlane(), triangle2, clear)
+                || StandsClear(triangle2.GetPlane(), triangle1, clear)
+                || Apart(
+                    triangle1.A.X,
+                    triangle1.B.X,
+                    triangle1.C.X,
+                    triangle2.A.X,
+                    triangle2.B.X,
+                    triangle2.C.X,
+                    clear
+                )
+                || Apart(
+                    triangle1.A.Y,
+                    triangle1.B.Y,
+                    triangle1.C.Y,
+                    triangle2.A.Y,
+                    triangle2.B.Y,
+                    triangle2.C.Y,
+                    clear
+                )
+                || Apart(
+                    triangle1.A.Z,
+                    triangle1.B.Z,
+                    triangle1.C.Z,
+                    triangle2.A.Z,
+                    triangle2.B.Z,
+                    triangle2.C.Z,
+                    clear
+                )
+            )
             {
                 return false;
             }
@@ -292,7 +328,10 @@ namespace GeometryHelper.Core
                     GeoLine3 side = triangle1.GetEdgeAt(i);
                     GeoLine3 against = triangle2.GetEdgeAt(j);
 
-                    if (Gap3.SegmentToSegment(side.StartPoint, side.EndPoint, against.StartPoint, against.EndPoint) <= near)
+                    if (
+                        Gap3.SegmentToSegment(side.StartPoint, side.EndPoint, against.StartPoint, against.EndPoint)
+                        <= near
+                    )
                     {
                         return true;
                     }
@@ -301,8 +340,10 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < 3; i++)
             {
-                if (Distance3.DistanceTo(triangle2, triangle1[i]) <= near ||
-                    Distance3.DistanceTo(triangle1, triangle2[i]) <= near)
+                if (
+                    Distance3.DistanceTo(triangle2, triangle1[i]) <= near
+                    || Distance3.DistanceTo(triangle1, triangle2[i]) <= near
+                )
                 {
                     return true;
                 }
@@ -343,9 +384,9 @@ namespace GeometryHelper.Core
         /// Determines whether the spans of two triangles along one axis, given by their corners, stand more than a
         /// distance apart.
         /// </summary>
-        private static bool Apart(double a1, double b1, double c1, double a2, double b2, double c2, double clear)
-            => Math.Min(a1, Math.Min(b1, c1)) - clear > Math.Max(a2, Math.Max(b2, c2)) ||
-               Math.Min(a2, Math.Min(b2, c2)) - clear > Math.Max(a1, Math.Max(b1, c1));
+        private static bool Apart(double a1, double b1, double c1, double a2, double b2, double c2, double clear) =>
+            Math.Min(a1, Math.Min(b1, c1)) - clear > Math.Max(a2, Math.Max(b2, c2))
+            || Math.Min(a2, Math.Min(b2, c2)) - clear > Math.Max(a1, Math.Max(b1, c1));
 
         /// <summary>
         /// Determines whether every corner of a triangle stands more than a distance to one side of a plane.
@@ -366,7 +407,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether two solids overlap, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoSolid3 solid1, GeoSolid3 solid2) => CollidesWith(solid1, solid2, Tolerance.Global);
+        public static bool CollidesWith(GeoSolid3 solid1, GeoSolid3 solid2) =>
+            CollidesWith(solid1, solid2, Tolerance.Global);
 
         /// <summary>
         /// Checks whether two solids overlap, within a tolerance.
@@ -544,7 +586,8 @@ namespace GeometryHelper.Core
         /// and so does the one from 1E-7 over the top of that box a thousand million out at nought, where the boxes were asked at
         /// the tolerance given and they touched nothing.
         /// </remarks>
-        public static bool CollidesWith(GeoLine3 line, GeoSolid3 solid, Tolerance tolerance) => CollidesWith(line, solid, true, tolerance);
+        public static bool CollidesWith(GeoLine3 line, GeoSolid3 solid, Tolerance tolerance) =>
+            CollidesWith(line, solid, true, tolerance);
 
         /// <summary>
         /// Determines whether a segment touches a solid, read as a segment you give or as a side of a shape, the side it is
@@ -564,16 +607,22 @@ namespace GeometryHelper.Core
             // A body far out is asked near the origin, the segment moved in with it; see Boolean3.FarBody.
             if (Boolean3.FarBody.TryFor(solid, tolerance, out Boolean3.FarBody far))
             {
-                return Boolean3.FarFrame.Inside(() => CollidesWith(far.In(line), far.Moved, readShortAsPoint, tolerance));
+                return Boolean3.FarFrame.Inside(() =>
+                    CollidesWith(far.In(line), far.Moved, readShortAsPoint, tolerance)
+                );
             }
 
             GeoAabb3 reach = line.GetAabb();
 
             // An end the body holds, to a billionth or 1E-15 of the coordinates, can stand that far outside its box; a segment
             // with a coordinate that is not a number is as clear of it as the boxes say.
-            if (!solid.GetAabb().CollidesWith(reach, tolerance)
-                && !(Gap3.BoxGap(line.StartPoint, line.EndPoint, solid.GetAabb())
-                    <= Math.Max(Gap3.Fine(solid, line.StartPoint), Gap3.Fine(solid, line.EndPoint))))
+            if (
+                !solid.GetAabb().CollidesWith(reach, tolerance)
+                && !(
+                    Gap3.BoxGap(line.StartPoint, line.EndPoint, solid.GetAabb())
+                    <= Math.Max(Gap3.Fine(solid, line.StartPoint), Gap3.Fine(solid, line.EndPoint))
+                )
+            )
             {
                 return false;
             }
@@ -581,14 +630,24 @@ namespace GeometryHelper.Core
             // The faces run straight across every opening; read the material the segment can reach instead.
             solid = Material3.Near(solid, reach, tolerance);
 
-            return Gap3.SurfaceSegment(solid, line.StartPoint, line.EndPoint, readShortAsPoint, tolerance, Reach(tolerance), tolerance.EqualPoint) <= tolerance.EqualPoint
-                || Gap3.Holds(solid, line.StartPoint) || Gap3.Holds(solid, line.EndPoint);
+            return Gap3.SurfaceSegment(
+                    solid,
+                    line.StartPoint,
+                    line.EndPoint,
+                    readShortAsPoint,
+                    tolerance,
+                    Reach(tolerance),
+                    tolerance.EqualPoint
+                ) <= tolerance.EqualPoint
+                || Gap3.Holds(solid, line.StartPoint)
+                || Gap3.Holds(solid, line.EndPoint);
         }
 
         /// <summary>
         /// Checks whether a polyline reaches into a solid, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoSolid3 solid) => CollidesWith(polyline, solid, Tolerance.Global);
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoSolid3 solid) =>
+            CollidesWith(polyline, solid, Tolerance.Global);
 
         /// <summary>
         /// Checks whether a polyline reaches into a solid, within a tolerance.
@@ -623,7 +682,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a polygon overlaps a solid, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoPolygon3 polygon, GeoSolid3 solid) => CollidesWith(polygon, solid, Tolerance.Global);
+        public static bool CollidesWith(GeoPolygon3 polygon, GeoSolid3 solid) =>
+            CollidesWith(polygon, solid, Tolerance.Global);
 
         /// <summary>
         /// Checks whether a polygon overlaps a solid, within a tolerance.
@@ -666,7 +726,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a polygon overlaps an oriented box, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoPolygon3 polygon, GeoObb3 box) => CollidesWith(polygon, box, Tolerance.Global);
+        public static bool CollidesWith(GeoPolygon3 polygon, GeoObb3 box) =>
+            CollidesWith(polygon, box, Tolerance.Global);
 
         /// <summary>
         /// Checks whether a polygon overlaps an oriented box, within a tolerance.
@@ -736,7 +797,11 @@ namespace GeometryHelper.Core
         /// the point tolerance.
         /// </summary>
         internal static bool ReachesMaterial(
-            Gap3.Region region, IEnumerable<GeoPoint3> corners, GeoSolid3 material, Tolerance tolerance)
+            Gap3.Region region,
+            IEnumerable<GeoPoint3> corners,
+            GeoSolid3 material,
+            Tolerance tolerance
+        )
         {
             if (Gap3.SurfaceRegion(material, region, Reach(tolerance), tolerance.EqualPoint) <= tolerance.EqualPoint)
             {

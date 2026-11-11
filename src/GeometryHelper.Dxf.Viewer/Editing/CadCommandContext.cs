@@ -85,7 +85,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="planned">The changes planned to existing entities; null or empty where it only adds.</param>
         /// <param name="apply">Writes the change.</param>
         /// <returns>What came of it.</returns>
-        public CadEditResult Apply(IReadOnlyList<CadEditRecord> planned, Action<CadEditScope> apply) => Session.Apply(Command.Name, planned, apply);
+        public CadEditResult Apply(IReadOnlyList<CadEditRecord> planned, Action<CadEditScope> apply) =>
+            Session.Apply(Command.Name, planned, apply);
 
         /// <summary>
         /// Opens the command's undo step now, so that edits made through the document's own methods (<see cref="CadLayerEditor"/>,
@@ -103,7 +104,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="key">The name it is kept under.</param>
         /// <param name="fallback">The value where none is kept.</param>
         /// <returns>The number.</returns>
-        public double Remembered(string key, double fallback) => Session.Remembered.TryGetValue(key, out double value) ? value : fallback;
+        public double Remembered(string key, double fallback) =>
+            Session.Remembered.TryGetValue(key, out double value) ? value : fallback;
 
         /// <summary>Keeps a number for the next run of a command.</summary>
         /// <param name="key">The name it is kept under.</param>
@@ -113,7 +115,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Writes a length as the command line writes one: to 4 places.</summary>
         /// <param name="value">The length.</param>
         /// <returns>The text.</returns>
-        public static string Length(double value) => (Math.Abs(value) < 5E-5 ? 0.0 : value).ToString("0.0000", CultureInfo.InvariantCulture);
+        public static string Length(double value) =>
+            (Math.Abs(value) < 5E-5 ? 0.0 : value).ToString("0.0000", CultureInfo.InvariantCulture);
 
         /// <summary>The handles of entities not on a locked layer, saying how many were.</summary>
         private IReadOnlyList<string> Unlocked(IReadOnlyList<string> handles)
@@ -141,7 +144,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (locked > 0)
             {
-                Write(locked.ToString(CultureInfo.InvariantCulture) + (locked == 1 ? " was" : " were") + " on a locked layer.");
+                Write(
+                    locked.ToString(CultureInfo.InvariantCulture)
+                        + (locked == 1 ? " was" : " were")
+                        + " on a locked layer."
+                );
             }
 
             kept.Sort(StringComparer.OrdinalIgnoreCase);

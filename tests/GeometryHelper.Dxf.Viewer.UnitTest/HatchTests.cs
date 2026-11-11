@@ -7,7 +7,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 {
     public class HatchTests
     {
-        private static readonly GeoPoint2[] Square = { new GeoPoint2(0, 0), new GeoPoint2(30, 0), new GeoPoint2(30, 20), new GeoPoint2(0, 20) };
+        private static readonly GeoPoint2[] Square =
+        {
+            new GeoPoint2(0, 0),
+            new GeoPoint2(30, 0),
+            new GeoPoint2(30, 20),
+            new GeoPoint2(0, 20),
+        };
 
         /// <summary>A square 30 by 20 hatched with lines of its own at 45 degrees, the spacing given.</summary>
         private static DisplayList2 UserHatch(double spacing, Action<DxfHatch> more = null)

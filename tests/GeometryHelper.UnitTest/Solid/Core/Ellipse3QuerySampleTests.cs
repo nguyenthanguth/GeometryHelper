@@ -79,9 +79,21 @@ namespace GeometryHelper.UnitTest.Solid
                 QueryCase c = MakeCase(kind, random, true);
                 GeoCircle3 circle = AsCircle(c.Ellipse);
                 double agree = 1E-12 * (c.Ellipse.Center.DistanceTo(GeoPoint3.Origin) + c.Ellipse.A);
-                GeoEllipse3 turned = new GeoEllipse3(circle.Center, circle.Normal, c.Ellipse.U.Multiply(Math.Cos(0.4)).Add(c.Ellipse.V.Multiply(Math.Sin(0.4))), c.Ellipse.A, c.Ellipse.A);
+                GeoEllipse3 turned = new GeoEllipse3(
+                    circle.Center,
+                    circle.Normal,
+                    c.Ellipse.U.Multiply(Math.Cos(0.4)).Add(c.Ellipse.V.Multiply(Math.Sin(0.4))),
+                    c.Ellipse.A,
+                    c.Ellipse.A
+                );
 
-                foreach (KeyValuePair<string, GeoEllipse3> ellipse in new Dictionary<string, GeoEllipse3> { ["from the circle"] = GeoEllipse3.FromCircle(circle), ["turned"] = turned })
+                foreach (
+                    KeyValuePair<string, GeoEllipse3> ellipse in new Dictionary<string, GeoEllipse3>
+                    {
+                        ["from the circle"] = GeoEllipse3.FromCircle(circle),
+                        ["turned"] = turned,
+                    }
+                )
                 {
                     string which = $"case {i}, {ellipse.Key}";
                     Check(c, ellipse.Value, which);

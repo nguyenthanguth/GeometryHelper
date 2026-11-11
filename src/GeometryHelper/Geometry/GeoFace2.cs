@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -30,9 +30,7 @@ namespace GeometryHelper.Geometry
         /// <param name="boundary">The outer boundary.</param>
         /// <exception cref="ArgumentNullException">Thrown when the boundary is null.</exception>
         public GeoFace2(GeoPolygon2 boundary)
-            : this(boundary, null)
-        {
-        }
+            : this(boundary, null) { }
 
         /// <summary>
         /// Initializes a face with holes.
@@ -153,7 +151,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Locates a point relative to this face within tolerance.
         /// </summary>
-        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) => Containment2.Locate(this, point, tolerance);
+        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) =>
+            Containment2.Locate(this, point, tolerance);
 
         /// <summary>
         /// Checks whether this face holds a point, on its outline included, using default tolerance.
@@ -173,37 +172,43 @@ namespace GeometryHelper.Geometry
         /// Grows the face by a distance, or shrinks it when the distance is negative, with sharp corners, using
         /// default tolerance. The holes shrink as the boundary grows. See <see cref="Offset2"/>.
         /// </summary>
-        public GeoFace2[] Offset(double distance) => Offset2.Offset(this, distance, OffsetOptions.Default, Tolerance.Global);
+        public GeoFace2[] Offset(double distance) =>
+            Offset2.Offset(this, distance, OffsetOptions.Default, Tolerance.Global);
 
         /// <summary>
         /// Grows the face by a distance, or shrinks it when the distance is negative, with sharp corners, within
         /// tolerance.
         /// </summary>
-        public GeoFace2[] Offset(double distance, Tolerance tolerance) => Offset2.Offset(this, distance, OffsetOptions.Default, tolerance);
+        public GeoFace2[] Offset(double distance, Tolerance tolerance) =>
+            Offset2.Offset(this, distance, OffsetOptions.Default, tolerance);
 
         /// <summary>
         /// Grows the face by a distance, or shrinks it when the distance is negative, with the given corners,
         /// using default tolerance.
         /// </summary>
-        public GeoFace2[] Offset(double distance, OffsetJoin join) => Offset2.Offset(this, distance, new OffsetOptions(join), Tolerance.Global);
+        public GeoFace2[] Offset(double distance, OffsetJoin join) =>
+            Offset2.Offset(this, distance, new OffsetOptions(join), Tolerance.Global);
 
         /// <summary>
         /// Grows the face by a distance, or shrinks it when the distance is negative, with the given corners,
         /// within tolerance.
         /// </summary>
-        public GeoFace2[] Offset(double distance, OffsetJoin join, Tolerance tolerance) => Offset2.Offset(this, distance, new OffsetOptions(join), tolerance);
+        public GeoFace2[] Offset(double distance, OffsetJoin join, Tolerance tolerance) =>
+            Offset2.Offset(this, distance, new OffsetOptions(join), tolerance);
 
         /// <summary>
         /// Grows the face by a distance, or shrinks it when the distance is negative, as the options say, using
         /// default tolerance.
         /// </summary>
-        public GeoFace2[] Offset(double distance, OffsetOptions options) => Offset2.Offset(this, distance, options, Tolerance.Global);
+        public GeoFace2[] Offset(double distance, OffsetOptions options) =>
+            Offset2.Offset(this, distance, options, Tolerance.Global);
 
         /// <summary>
         /// Grows the face by a distance, or shrinks it when the distance is negative, as the options say, within
         /// tolerance.
         /// </summary>
-        public GeoFace2[] Offset(double distance, OffsetOptions options, Tolerance tolerance) => Offset2.Offset(this, distance, options, tolerance);
+        public GeoFace2[] Offset(double distance, OffsetOptions options, Tolerance tolerance) =>
+            Offset2.Offset(this, distance, options, tolerance);
 
         #endregion
 
@@ -247,7 +252,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the region of this face with every one of a set of faces taken out of it, within tolerance.
         /// </summary>
-        public GeoFace2[] Subtract(IEnumerable<GeoFace2> tools, Tolerance tolerance) => Boolean2.Subtract(this, tools, tolerance);
+        public GeoFace2[] Subtract(IEnumerable<GeoFace2> tools, Tolerance tolerance) =>
+            Boolean2.Subtract(this, tools, tolerance);
 
         /// <summary>
         /// Gets the region covered by exactly one of this face and another, using default tolerance.
@@ -271,14 +277,14 @@ namespace GeometryHelper.Geometry
         /// length is ignored: a segment crossing half the face cuts all of it. Left and right are read from the
         /// segment's own direction, so reversing it swaps the two answers and nothing else.
         /// </remarks>
-        public bool TrySplitBy(GeoLine2 cutter, out GeoFace2[] left, out GeoFace2[] right)
-            => Splition2.TrySplitBy(this, cutter, out left, out right);
+        public bool TrySplitBy(GeoLine2 cutter, out GeoFace2[] left, out GeoFace2[] right) =>
+            Splition2.TrySplitBy(this, cutter, out left, out right);
 
         /// <summary>
         /// Cuts the face by the straight line through a segment, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoLine2 cutter, out GeoFace2[] left, out GeoFace2[] right, Tolerance tolerance)
-            => Splition2.TrySplitBy(this, cutter, out left, out right, tolerance);
+        public bool TrySplitBy(GeoLine2 cutter, out GeoFace2[] left, out GeoFace2[] right, Tolerance tolerance) =>
+            Splition2.TrySplitBy(this, cutter, out left, out right, tolerance);
 
         #endregion
 
@@ -390,14 +396,16 @@ namespace GeometryHelper.Geometry
         /// <param name="kind">The kind of faces.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
         /// <exception cref="ArgumentException">Thrown for <see cref="Meshing.MeshKind.Grid"/>, which needs the size of its cells.</exception>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshKind kind) => Meshing.Mesh2.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Tolerance.Global);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshKind kind) =>
+            Meshing.Mesh2.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Tolerance.Global);
 
         /// <summary>
         /// Breaks the face into faces as the options say, using the default tolerance.
         /// </summary>
         /// <param name="options">How to break it up.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options) => Meshing.Mesh2.ToMesh(this, options, Tolerance.Global);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options) =>
+            Meshing.Mesh2.ToMesh(this, options, Tolerance.Global);
 
         /// <summary>
         /// Breaks the face into faces as the options say, within a tolerance: triangles, the cells of a grid, strips or
@@ -414,7 +422,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Its holes are left open: a cell of a grid holding one whole is split across, through the middle of it.
         /// </remarks>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) => Meshing.Mesh2.ToMesh(this, options, tolerance);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) =>
+            Meshing.Mesh2.ToMesh(this, options, tolerance);
 
         /// <summary>
         /// Puts this face of the plane back into space, holes and all, on the plane of a frame.
@@ -544,6 +553,7 @@ namespace GeometryHelper.Geometry
 
             return true;
         }
+
         /// <summary>
         /// Builds a spatial index over the boundary of this face, the rim of every hole included, for asking it many questions.
         /// </summary>
@@ -562,6 +572,5 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         /// <returns>The hierarchy; it is a snapshot and holds no reference back to this shape.</returns>
         public Spatial.GeoBvh2 BuildIndex() => Spatial.GeoBvh2.FromFace(this);
-
     }
 }

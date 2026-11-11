@@ -57,8 +57,11 @@ namespace GeometryHelper.Packing.Algorithms
             for (int i = 0; i < _free.Count; i++)
             {
                 Free free = _free[i];
-                if (width <= free.Width + _slack && height <= free.Height + _slack
-                    && (free.MaxY > bestTop || (free.MaxY == bestTop && free.MinX < bestLeft)))
+                if (
+                    width <= free.Width + _slack
+                    && height <= free.Height + _slack
+                    && (free.MaxY > bestTop || (free.MaxY == bestTop && free.MinX < bestLeft))
+                )
                 {
                     best = i;
                     bestTop = free.MaxY;
@@ -90,7 +93,12 @@ namespace GeometryHelper.Packing.Algorithms
             var split = new List<Free>();
             foreach (Free free in _free)
             {
-                if (placed.MinX >= free.MaxX || placed.MaxX <= free.MinX || placed.MinY >= free.MaxY || placed.MaxY <= free.MinY)
+                if (
+                    placed.MinX >= free.MaxX
+                    || placed.MaxX <= free.MinX
+                    || placed.MinY >= free.MaxY
+                    || placed.MaxY <= free.MinY
+                )
                 {
                     kept.Add(free);
                     continue;
@@ -175,8 +183,8 @@ namespace GeometryHelper.Packing.Algorithms
 
             internal double Height => MaxY - MinY;
 
-            internal bool Holds(Free other)
-                => other.MinX >= MinX && other.MinY >= MinY && other.MaxX <= MaxX && other.MaxY <= MaxY;
+            internal bool Holds(Free other) =>
+                other.MinX >= MinX && other.MinY >= MinY && other.MaxX <= MaxX && other.MaxY <= MaxY;
         }
     }
 }

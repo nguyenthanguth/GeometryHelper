@@ -50,7 +50,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(CadTrueTypeFonts.FileOf("Arial"), style.FileName);
             Assert.Equal("Arial", style.Font.TypeFace);
             Assert.Equal(2.5, style.TextSize);
-            Assert.Contains("1001\nACAD\n1000\nArial\n1071\n34\n", document.Database.ToText(), StringComparison.Ordinal);
+            Assert.Contains(
+                "1001\nACAD\n1000\nArial\n1071\n34\n",
+                document.Database.ToText(),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -131,7 +135,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             dimension = Entity<DxfRotatedDimension>(document, handle);
             Assert.Equal(2, dimension.DimBlock.OfType<DxfPolyline>().Count(p => p.ConstantWidth > 0.0));
             Assert.Equal(2, solids);
-            DxfLine line = dimension.DimBlock.OfType<DxfLine>().Single(l => Math.Abs(l.StartPoint.Y - l.EndPoint.Y) < 1E-9 && l.StartPoint.Y < -1.0);
+            DxfLine line = dimension
+                .DimBlock.OfType<DxfLine>()
+                .Single(l => Math.Abs(l.StartPoint.Y - l.EndPoint.Y) < 1E-9 && l.StartPoint.Y < -1.0);
             Assert.Equal(300.0 + 2.0 * 1.25 * Scale(record), Math.Abs(line.EndPoint.X - line.StartPoint.X), 9);
             Assert.Contains("_ArchTick", document.Database.ToText(), StringComparison.Ordinal);
             AssertReopens(document);
@@ -147,7 +153,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Session(document);
             string start = CadDimStyleEditor.Current(document.Database);
 
-            Assert.True(CadDimStyleEditor.Add(document, "GH_25", start, new Dictionary<string, object> { ["Dimdec"] = 1, ["Dimclrd"] = DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1) }).Succeeded);
+            Assert.True(
+                CadDimStyleEditor
+                    .Add(
+                        document,
+                        "GH_25",
+                        start,
+                        new Dictionary<string, object>
+                        {
+                            ["Dimdec"] = 1,
+                            ["Dimclrd"] = DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1),
+                        }
+                    )
+                    .Succeeded
+            );
             Assert.True(CadDimStyleEditor.Add(document, "gh_25", start, null).Refused);
             Assert.True(CadDimStyleEditor.SetCurrent(document, "GH_25").Succeeded);
             Run(session, "DLI", P(0, 0), P(300, 0), P(150, -30));
@@ -158,8 +177,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(1, document.Database.Dimdec);
             Assert.Contains(dimension.DimBlock.OfType<DxfLine>(), l => l.Color.ColorIndex == 1);
             Assert.Equal("300.0", dimension.DimBlock.OfType<DxfMText>().Single().Contents);
-            Assert.Empty(CadDimStyleEditor.Compare(CadDimStyleEditor.Read(document.Database.DimStyleTable["GH_25"]), CadDimStyleEditor.Read(document.Database.DimStyleTable["GH_25"])));
-            Assert.Equal(new[] { "Dimclrd", "Dimdec" }, CadDimStyleEditor.Compare(CadDimStyleEditor.Read(document.Database.DimStyleTable[start]), CadDimStyleEditor.Read(document.Database.DimStyleTable["GH_25"])).Select(d => d.Key));
+            Assert.Empty(
+                CadDimStyleEditor.Compare(
+                    CadDimStyleEditor.Read(document.Database.DimStyleTable["GH_25"]),
+                    CadDimStyleEditor.Read(document.Database.DimStyleTable["GH_25"])
+                )
+            );
+            Assert.Equal(
+                new[] { "Dimclrd", "Dimdec" },
+                CadDimStyleEditor
+                    .Compare(
+                        CadDimStyleEditor.Read(document.Database.DimStyleTable[start]),
+                        CadDimStyleEditor.Read(document.Database.DimStyleTable["GH_25"])
+                    )
+                    .Select(d => d.Key)
+            );
             Assert.True(CadDimStyleEditor.Delete(document, "GH_25").Refused);
             AssertReopens(document);
         }
@@ -174,8 +206,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "DLI", P(0, 0), P(300, 0), P(150, -30));
             DxfRotatedDimension dimension = Assert.Single(All<DxfRotatedDimension>(document.ModelSpace));
 
-            Assert.True(CadDimStyleEditor.Override(document, Array.Empty<string>(), new Dictionary<string, object> { ["Dimasz"] = 7.0 }).Refused);
-            CadEditResult result = CadDimStyleEditor.Override(document, new[] { dimension.Handle }, new Dictionary<string, object> { ["Dimasz"] = 7.0 });
+            Assert.True(
+                CadDimStyleEditor
+                    .Override(document, Array.Empty<string>(), new Dictionary<string, object> { ["Dimasz"] = 7.0 })
+                    .Refused
+            );
+            CadEditResult result = CadDimStyleEditor.Override(
+                document,
+                new[] { dimension.Handle },
+                new Dictionary<string, object> { ["Dimasz"] = 7.0 }
+            );
 
             Assert.True(result.Succeeded, result.Message);
             dimension = Entity<DxfRotatedDimension>(document, dimension.Handle);
@@ -189,7 +229,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void TheSamplesOfThePreview_AreDimensionsDrawnByTheCommandsBuilders()
         {
             CadDocument document = Blank();
-            SortedDictionary<string, object> values = CadDimStyleEditor.Read(document.Database.DimStyleTable[CadDimStyleEditor.Current(document.Database)]);
+            SortedDictionary<string, object> values = CadDimStyleEditor.Read(
+                document.Database.DimStyleTable[CadDimStyleEditor.Current(document.Database)]
+            );
             values["Dimblk"] = "Dot";
 
             DxfDatabase samples = CadDimStyleEditor.Samples(document.Database, values);
@@ -212,7 +254,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("DIMSTYLE", session.Registry.Find("DDIM").Name);
             Run(session, "D");
 
-            Assert.Contains(session.History, l => l.EndsWith("The Dimension Style Manager is shown by the window.", StringComparison.Ordinal));
+            Assert.Contains(session.History, l =>
+                l.EndsWith("The Dimension Style Manager is shown by the window.", StringComparison.Ordinal)
+            );
         }
 
         private static double Scale(DxfDimStyleTableRecord record) => record.Dimscale > 0.0 ? record.Dimscale : 1.0;

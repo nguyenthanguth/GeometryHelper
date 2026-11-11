@@ -22,16 +22,20 @@ namespace GeometryHelper.Drawing.Wpf
         }
 
         /// <summary>Gets Tekla Structures, not connected, as the design names it.</summary>
-        public static UnconnectedSourceProvider TeklaStructures => new UnconnectedSourceProvider(
-            "Tekla Structures",
-            "Pick the objects in Tekla; their parts, bolts and welds are read through TeklaConvert",
-            "Not connected · no Tekla Structures bridge in this app yet");
+        public static UnconnectedSourceProvider TeklaStructures =>
+            new UnconnectedSourceProvider(
+                "Tekla Structures",
+                "Pick the objects in Tekla; their parts, bolts and welds are read through TeklaConvert",
+                "Not connected · no Tekla Structures bridge in this app yet"
+            );
 
         /// <summary>Gets an IFC file, not connected, as the design names it.</summary>
-        public static UnconnectedSourceProvider IfcFile => new UnconnectedSourceProvider(
-            "IFC file…",
-            "Choose an .ifc file; its objects are read through IfcConvert",
-            "Not connected · no IFC bridge in this app yet");
+        public static UnconnectedSourceProvider IfcFile =>
+            new UnconnectedSourceProvider(
+                "IFC file…",
+                "Choose an .ifc file; its objects are read through IfcConvert",
+                "Not connected · no IFC bridge in this app yet"
+            );
 
         /// <inheritdoc/>
         public string Name { get; }
@@ -48,6 +52,7 @@ namespace GeometryHelper.Drawing.Wpf
         /// <summary>Gives no objects, the source not being connected.</summary>
         /// <returns>Never returns.</returns>
         /// <exception cref="InvalidOperationException">Always: the source is not connected.</exception>
-        public IReadOnlyList<DrawingObject> CreateObjects() => throw new InvalidOperationException(Name + " is not connected: " + AvailabilityText + ".");
+        public IReadOnlyList<DrawingObject> CreateObjects() =>
+            throw new InvalidOperationException(Name + " is not connected: " + AvailabilityText + ".");
     }
 }

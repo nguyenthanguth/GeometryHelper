@@ -20,19 +20,32 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         internal static CadDocument Plan()
         {
             var database = new DxfDatabase("AC1027");
-            var corners = new[] { new GeoPoint3(120, 60, 0), new GeoPoint3(7620, 60, 0), new GeoPoint3(7620, 5360, 0), new GeoPoint3(120, 5360, 0) };
+            var corners = new[]
+            {
+                new GeoPoint3(120, 60, 0),
+                new GeoPoint3(7620, 60, 0),
+                new GeoPoint3(7620, 5360, 0),
+                new GeoPoint3(120, 5360, 0),
+            };
 
             for (int i = 0; i < 4; i++)
             {
                 database.ModelSpace.AppendEntity(new DxfLine(corners[i], corners[(i + 1) % 4]));
             }
 
-            database.ModelSpace.AppendEntity(new DxfDBText { TextString = "ROOM 1", Position = new GeoPoint3(1500, 2500, 0), Height = 250 });
+            database.ModelSpace.AppendEntity(
+                new DxfDBText
+                {
+                    TextString = "ROOM 1",
+                    Position = new GeoPoint3(1500, 2500, 0),
+                    Height = 250,
+                }
+            );
             return CadDocument.From(database, "plan-level2.dxf");
         }
 
-        private static CadPlotSettings Window(double drawingUnits)
-            => new CadPlotSettings
+        private static CadPlotSettings Window(double drawingUnits) =>
+            new CadPlotSettings
             {
                 Area = CadPlotArea.Window,
                 Window = new DisplayBox(120, 60, 7620, 5360),
@@ -117,7 +130,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             document.Database.Limmax = new GeoPoint2(8400, 5940);
             var settings = new CadPlotSettings { Area = CadPlotArea.Extents };
 
-            Assert.Equal(new DisplayBox(120, 60, 7620, 5360), CadPlotPage.Compute(document, document.ModelSpace, settings, DisplayBox.Empty).Area);
+            Assert.Equal(
+                new DisplayBox(120, 60, 7620, 5360),
+                CadPlotPage.Compute(document, document.ModelSpace, settings, DisplayBox.Empty).Area
+            );
 
             settings.Area = CadPlotArea.Limits;
             CadPlotPage limits = CadPlotPage.Compute(document, document.ModelSpace, settings, DisplayBox.Empty);
@@ -127,7 +143,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(287.0 / 5940.0, limits.Scale, 15);
 
             settings.Area = CadPlotArea.Display;
-            Assert.Equal(new DisplayBox(0, 0, 1000, 500), CadPlotPage.Compute(document, document.ModelSpace, settings, new DisplayBox(0, 0, 1000, 500)).Area);
+            Assert.Equal(
+                new DisplayBox(0, 0, 1000, 500),
+                CadPlotPage.Compute(document, document.ModelSpace, settings, new DisplayBox(0, 0, 1000, 500)).Area
+            );
         }
 
         [Fact]
@@ -247,12 +266,24 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void TheScaleList_IsOneToOneToOneToAThousand_ThenTheDrawingsOwnNotAlreadyListed()
         {
             var database = new DxfDatabase("AC1027");
-            DxfObjectContextCollection scales = database.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES");
-            scales.AddContext(new DxfAnnotationScale { Name = "1:25", PaperUnits = 1, DrawingUnits = 25 });
+            DxfObjectContextCollection scales = database.ObjectContextManager.GetContextCollection(
+                "ACDB_ANNOTATIONSCALES"
+            );
+            scales.AddContext(
+                new DxfAnnotationScale
+                {
+                    Name = "1:25",
+                    PaperUnits = 1,
+                    DrawingUnits = 25,
+                }
+            );
 
             var names = CadPlotScale.ListFor(database).Select(s => s.Name).ToArray();
 
-            Assert.Equal(new[] { "1:1", "1:2", "1:5", "1:10", "1:20", "1:50", "1:100", "1:200", "1:500", "1:1000" }, names.Take(10).ToArray());
+            Assert.Equal(
+                new[] { "1:1", "1:2", "1:5", "1:10", "1:20", "1:50", "1:100", "1:200", "1:500", "1:1000" },
+                names.Take(10).ToArray()
+            );
             Assert.Contains("1:25", names);
             Assert.Single(names, n => n == "1:20");
             Assert.Equal(names.Length, names.Distinct().Count());
@@ -301,7 +332,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "1=20");
             Assert.StartsWith("Enter plot offset (x,y) or [Center] <", session.PromptText);
             Run(session, "C", "Y", "monochrome", "Y");
-            Assert.Equal("Enter shade plot setting [As displayed/legacy Wireframe/legacy Hidden/Visual styles/Rendered] <As displayed>:", session.PromptText);
+            Assert.Equal(
+                "Enter shade plot setting [As displayed/legacy Wireframe/legacy Hidden/Visual styles/Rendered] <As displayed>:",
+                session.PromptText
+            );
             Run(session, Enter);
             Assert.StartsWith("Enter file name <", session.PromptText);
             Run(session, file);
@@ -400,7 +434,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("Page setup \"A3 plan\" not found.", session.History.Last());
             Run(session, Enter, Enter, Enter, Enter, Enter);
             Assert.False(session.IsRunning);
-            Assert.Equal("Plotting to a file needs the window's PDF writer: nothing was written.", session.History.Last());
+            Assert.Equal(
+                "Plotting to a file needs the window's PDF writer: nothing was written.",
+                session.History.Last()
+            );
 
             Run(session, "PREVIEW");
             Assert.Equal("PREVIEW is shown by the window.", session.History.Last());

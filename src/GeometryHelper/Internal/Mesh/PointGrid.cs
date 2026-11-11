@@ -49,7 +49,9 @@ namespace GeometryHelper.Core
         {
             found.Clear();
 
-            long x = Cell(point.X), y = Cell(point.Y), z = Cell(point.Z);
+            long x = Cell(point.X),
+                y = Cell(point.Y),
+                z = Cell(point.Z);
 
             for (long dx = -1; dx <= 1; dx++)
             {

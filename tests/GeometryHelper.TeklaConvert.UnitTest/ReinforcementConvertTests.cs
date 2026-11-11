@@ -96,7 +96,11 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             Assert.True(there.ToGeoPolyline3().IsEqualTo(chain, Loose));
 
             var loop = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0), new GeoPoint3(300, 200, 0), new GeoPoint3(0, 200, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(300, 200, 0),
+                new GeoPoint3(0, 200, 0)
+            );
 
             Assert.Equal(loop.Area, loop.ToTeklaPolygon().ToGeoPolygon3().Area, 6);
         }
@@ -104,10 +108,16 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         [Fact]
         public void NothingIsAskedOfNothing()
         {
-            Assert.Throws<ArgumentNullException>(() => ReinforcementConvert.ToGeoPolylineArc3s((TSM.Reinforcement)null));
+            Assert.Throws<ArgumentNullException>(() =>
+                ReinforcementConvert.ToGeoPolylineArc3s((TSM.Reinforcement)null)
+            );
             Assert.Throws<ArgumentNullException>(() => ReinforcementConvert.ToGeoPolylineArc3s((TSM.RebarSet)null));
-            Assert.Throws<ArgumentNullException>(() => ReinforcementConvert.ToGeoPolylineArc3s((IEnumerable<TSM.Reinforcement>)null));
-            Assert.Throws<ArgumentNullException>(() => ReinforcementConvert.ToGeoPolylineArc3s((IEnumerable<TSM.Reinforcement>)null, Tolerance.Global));
+            Assert.Throws<ArgumentNullException>(() =>
+                ReinforcementConvert.ToGeoPolylineArc3s((IEnumerable<TSM.Reinforcement>)null)
+            );
+            Assert.Throws<ArgumentNullException>(() =>
+                ReinforcementConvert.ToGeoPolylineArc3s((IEnumerable<TSM.Reinforcement>)null, Tolerance.Global)
+            );
             Assert.Throws<ArgumentNullException>(() => PolygonConvert.ToGeoPolyline3((TSM.Polygon)null));
             Assert.Throws<ArgumentNullException>(() => PolygonConvert.ToTeklaPolygon((GeoPolyline3)null));
             Assert.Throws<ArgumentNullException>(() => PolygonConvert.ToTeklaPolygon((GeoPolygon3)null));

@@ -37,16 +37,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return session.Document.ModelSpace.Block.Cast<DxfEntity>().Last().Handle;
         }
 
-        private static DxfRadialDimensionLarge Made(CadCommandSession session) => session.Document.ModelSpace.Block.OfType<DxfRadialDimensionLarge>().Last();
+        private static DxfRadialDimensionLarge Made(CadCommandSession session) =>
+            session.Document.ModelSpace.Block.OfType<DxfRadialDimensionLarge>().Last();
 
-        private static List<DxfLine> Lines(DxfDimension dimension) => dimension.DimBlock.OfType<DxfLine>().Where(l => !l.IsErased).ToList();
+        private static List<DxfLine> Lines(DxfDimension dimension) =>
+            dimension.DimBlock.OfType<DxfLine>().Where(l => !l.IsErased).ToList();
 
         private static GeoPoint2 P2(GeoPoint3 p) => new GeoPoint2(p.X, p.Y);
 
         private static bool Same(GeoPoint2 a, GeoPoint2 b) => (a - b).Length <= 1E-3;
 
-        private static void HasLine(DxfDimension dimension, GeoPoint2 a, GeoPoint2 b)
-            => Assert.Contains(Lines(dimension), l => (Same(P2(l.StartPoint), a) && Same(P2(l.EndPoint), b)) || (Same(P2(l.StartPoint), b) && Same(P2(l.EndPoint), a)));
+        private static void HasLine(DxfDimension dimension, GeoPoint2 a, GeoPoint2 b) =>
+            Assert.Contains(Lines(dimension), l =>
+                (Same(P2(l.StartPoint), a) && Same(P2(l.EndPoint), b))
+                || (Same(P2(l.StartPoint), b) && Same(P2(l.EndPoint), a))
+            );
 
         [Fact]
         public void DimJogged_AsksAsAutoCadAsks_AndSaysWhenTheObjectIsNoCircle()
@@ -141,7 +146,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfRadialDimensionLarge jogged = Made(session);
 
             IReadOnlyList<CadGrip> grips = CadGrips.Of(jogged);
-            Assert.Equal(new[] { CadGripKind.DefinitionPoint, CadGripKind.DefinitionPoint, CadGripKind.Jog, CadGripKind.Text }, grips.Select(g => g.Kind));
+            Assert.Equal(
+                new[] { CadGripKind.DefinitionPoint, CadGripKind.DefinitionPoint, CadGripKind.Jog, CadGripKind.Text },
+                grips.Select(g => g.Kind)
+            );
             Near(P(15, -50), grips[2].Point, 1E-9);
 
             // The jog dragged 20 down is put back on the middle line, as the command puts it.

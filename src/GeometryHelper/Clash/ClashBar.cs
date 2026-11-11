@@ -33,9 +33,7 @@ namespace GeometryHelper.Clash
         /// <exception cref="ArgumentNullException">Thrown when the centre line is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not a positive number.</exception>
         public ClashBar(GeoPolylineArc3 centreLine, double radius)
-            : this(centreLine, radius, radius * 1E-3)
-        {
-        }
+            : this(centreLine, radius, radius * 1E-3) { }
 
         /// <summary>
         /// Initializes a bar from its centre line and its radius, its bends followed to a chord tolerance.
@@ -74,9 +72,7 @@ namespace GeometryHelper.Clash
         /// <exception cref="ArgumentNullException">Thrown when the centre line is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not a positive number.</exception>
         public ClashBar(GeoPolyline3 centreLine, double radius)
-            : this(new GeoPolylineArc3(centreLine ?? throw new ArgumentNullException(nameof(centreLine))), radius)
-        {
-        }
+            : this(new GeoPolylineArc3(centreLine ?? throw new ArgumentNullException(nameof(centreLine))), radius) { }
 
         /// <summary>
         /// Gets the centre line, with its bends as arcs.

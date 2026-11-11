@@ -21,7 +21,9 @@ namespace GeometryHelper.Dxf
             get
             {
                 DxfDBDictionary extension = ModelSpace?.ExtensionDictionary;
-                return extension != null && extension.Contains("ACAD_GEOGRAPHICDATA") ? extension.GetAt("ACAD_GEOGRAPHICDATA") as DxfGeoData : null;
+                return extension != null && extension.Contains("ACAD_GEOGRAPHICDATA")
+                    ? extension.GetAt("ACAD_GEOGRAPHICDATA") as DxfGeoData
+                    : null;
             }
         }
 
@@ -39,11 +41,17 @@ namespace GeometryHelper.Dxf
                 DxfDBDictionary extension = LayerTable.ExtensionDictionary;
 
                 // AutoCAD 2005 and later: property filters and groups, each an XRECORD named by its 300.
-                if (extension != null && extension.Contains("ACLYDICTIONARY") && extension.GetAt("ACLYDICTIONARY") is DxfDBDictionary kept)
+                if (
+                    extension != null
+                    && extension.Contains("ACLYDICTIONARY")
+                    && extension.GetAt("ACLYDICTIONARY") is DxfDBDictionary kept
+                )
                 {
                     foreach (DxfDBDictionaryEntry entry in kept)
                     {
-                        string name = entry.Value is DxfXrecord record ? record.Data.Where(g => g.TypeCode == 300).Select(g => g.Value).FirstOrDefault() : null;
+                        string name = entry.Value is DxfXrecord record
+                            ? record.Data.Where(g => g.TypeCode == 300).Select(g => g.Value).FirstOrDefault()
+                            : null;
 
                         if (!string.IsNullOrEmpty(name) && !root.Nests(name))
                         {
@@ -52,7 +60,11 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                if (extension != null && extension.Contains("ACAD_LAYERFILTERS") && extension.GetAt("ACAD_LAYERFILTERS") is DxfDBDictionary filters)
+                if (
+                    extension != null
+                    && extension.Contains("ACAD_LAYERFILTERS")
+                    && extension.GetAt("ACAD_LAYERFILTERS") is DxfDBDictionary filters
+                )
                 {
                     foreach (DxfDBDictionaryEntry entry in filters)
                     {
@@ -77,6 +89,7 @@ namespace GeometryHelper.Dxf
         /// ACAD_LAYERSTATES of the layer table's extension dictionary, read and listed as <see cref="DxfLayerStateManager"/>
         /// says; the same manager each time.
         /// </summary>
-        public DxfLayerStateManager LayerStateManager => _layerStateManager ?? (_layerStateManager = new DxfLayerStateManager(this));
+        public DxfLayerStateManager LayerStateManager =>
+            _layerStateManager ?? (_layerStateManager = new DxfLayerStateManager(this));
     }
 }

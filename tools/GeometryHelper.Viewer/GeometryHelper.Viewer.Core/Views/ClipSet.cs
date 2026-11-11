@@ -37,9 +37,7 @@ namespace GeometryHelper.Viewer
         /// <exception cref="ArgumentNullException">Thrown when the planes or one of them is null.</exception>
         /// <exception cref="ArgumentException">Thrown when there are more than <see cref="MaxPlanes"/>.</exception>
         public ClipSet(IEnumerable<ClipPlane> planes)
-            : this(planes, 0.0)
-        {
-        }
+            : this(planes, 0.0) { }
 
         private ClipSet(IEnumerable<ClipPlane> planes, double slack)
         {
@@ -52,7 +50,10 @@ namespace GeometryHelper.Viewer
 
             if (_planes.Length > MaxPlanes)
             {
-                throw new ArgumentException("A set holds at most " + MaxPlanes + " clip planes, not " + _planes.Length + ".", nameof(planes));
+                throw new ArgumentException(
+                    "A set holds at most " + MaxPlanes + " clip planes, not " + _planes.Length + ".",
+                    nameof(planes)
+                );
             }
 
             if (_planes.Any(p => p == null))
@@ -103,7 +104,8 @@ namespace GeometryHelper.Viewer
 
             double largest = Math.Max(
                 Math.Max(Math.Max(Math.Abs(scene.Min.X), Math.Abs(scene.Min.Y)), Math.Abs(scene.Min.Z)),
-                Math.Max(Math.Max(Math.Abs(scene.Max.X), Math.Abs(scene.Max.Y)), Math.Abs(scene.Max.Z)));
+                Math.Max(Math.Max(Math.Abs(scene.Max.X), Math.Abs(scene.Max.Y)), Math.Abs(scene.Max.Z))
+            );
             return 1E-9 * (1.0 + scene.Size.Length) + 1E-12 * largest;
         }
 
@@ -143,7 +145,9 @@ namespace GeometryHelper.Viewer
 
             if (_planes.Length >= MaxPlanes)
             {
-                throw new InvalidOperationException("The set holds " + MaxPlanes + " clip planes already; remove one first.");
+                throw new InvalidOperationException(
+                    "The set holds " + MaxPlanes + " clip planes already; remove one first."
+                );
             }
 
             return new ClipSet(_planes.Concat(new[] { plane }), _slack);
@@ -204,19 +208,24 @@ namespace GeometryHelper.Viewer
 
             if (!(margin >= 0.0) || double.IsInfinity(margin))
             {
-                throw new ArgumentException("The margin of a clip box must be a finite number not below nought.", nameof(margin));
+                throw new ArgumentException(
+                    "The margin of a clip box must be a finite number not below nought.",
+                    nameof(margin)
+                );
             }
 
             Vec3 c = box.Center;
-            return new ClipSet(new[]
-            {
-                new ClipPlane(new Vec3(box.Min.X, c.Y, c.Z), new Vec3(1.0, 0.0, 0.0), -margin),
-                new ClipPlane(new Vec3(box.Max.X, c.Y, c.Z), new Vec3(-1.0, 0.0, 0.0), -margin),
-                new ClipPlane(new Vec3(c.X, box.Min.Y, c.Z), new Vec3(0.0, 1.0, 0.0), -margin),
-                new ClipPlane(new Vec3(c.X, box.Max.Y, c.Z), new Vec3(0.0, -1.0, 0.0), -margin),
-                new ClipPlane(new Vec3(c.X, c.Y, box.Min.Z), new Vec3(0.0, 0.0, 1.0), -margin),
-                new ClipPlane(new Vec3(c.X, c.Y, box.Max.Z), new Vec3(0.0, 0.0, -1.0), -margin),
-            });
+            return new ClipSet(
+                new[]
+                {
+                    new ClipPlane(new Vec3(box.Min.X, c.Y, c.Z), new Vec3(1.0, 0.0, 0.0), -margin),
+                    new ClipPlane(new Vec3(box.Max.X, c.Y, c.Z), new Vec3(-1.0, 0.0, 0.0), -margin),
+                    new ClipPlane(new Vec3(c.X, box.Min.Y, c.Z), new Vec3(0.0, 1.0, 0.0), -margin),
+                    new ClipPlane(new Vec3(c.X, box.Max.Y, c.Z), new Vec3(0.0, -1.0, 0.0), -margin),
+                    new ClipPlane(new Vec3(c.X, c.Y, box.Min.Z), new Vec3(0.0, 0.0, 1.0), -margin),
+                    new ClipPlane(new Vec3(c.X, c.Y, box.Max.Z), new Vec3(0.0, 0.0, -1.0), -margin),
+                }
+            );
         }
 
         /// <summary>
@@ -322,7 +331,8 @@ namespace GeometryHelper.Viewer
         /// <param name="plane">The number of the plane left out, in <see cref="Planes"/>.</param>
         /// <returns>The corners of what is kept; none where all is cut away.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the corners are null.</exception>
-        public List<Vec3> ClipPolygonExcept(IReadOnlyList<Vec3> corners, int plane) => Without(plane).ClipPolygon(corners);
+        public List<Vec3> ClipPolygonExcept(IReadOnlyList<Vec3> corners, int plane) =>
+            Without(plane).ClipPolygon(corners);
 
         /// <summary>
         /// Cuts what one item is drawn with: the points and labels outside are dropped, the lines are cut to the parts inside, and the triangles
@@ -359,7 +369,14 @@ namespace GeometryHelper.Viewer
                 return ForScene(item.Bounds).Apply(item, cancel);
             }
 
-            var kept = new ItemPrimitives { ItemIndex = item.ItemIndex, Bounds = item.Bounds, Warning = item.Warning, BoundsCoverAll = item.BoundsCoverAll, IsClosedBody = item.IsClosedBody };
+            var kept = new ItemPrimitives
+            {
+                ItemIndex = item.ItemIndex,
+                Bounds = item.Bounds,
+                Warning = item.Warning,
+                BoundsCoverAll = item.BoundsCoverAll,
+                IsClosedBody = item.IsClosedBody,
+            };
             kept.LibraryLog.AddRange(item.LibraryLog);
 
             // An item whose box lies wholly on the kept side of every plane is kept whole, and one whose box lies wholly beyond a plane is cut away whole, whatever it is drawn with:
@@ -448,18 +465,31 @@ namespace GeometryHelper.Viewer
         {
             double largest = Math.Max(
                 Math.Max(Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Min.Y)), Math.Abs(box.Min.Z)),
-                Math.Max(Math.Max(Math.Abs(box.Max.X), Math.Abs(box.Max.Y)), Math.Abs(box.Max.Z)));
+                Math.Max(Math.Max(Math.Abs(box.Max.X), Math.Abs(box.Max.Y)), Math.Abs(box.Max.Z))
+            );
             bool kept = true;
 
             foreach (ClipPlane plane in _active)
             {
-                double margin = 1E-12 * (1.0 + largest + Math.Max(Math.Max(Math.Abs(plane.Point.X), Math.Abs(plane.Point.Y)), Math.Abs(plane.Point.Z)));
+                double margin =
+                    1E-12
+                    * (
+                        1.0
+                        + largest
+                        + Math.Max(Math.Max(Math.Abs(plane.Point.X), Math.Abs(plane.Point.Y)), Math.Abs(plane.Point.Z))
+                    );
                 double lowest = double.PositiveInfinity;
                 double highest = double.NegativeInfinity;
 
                 for (int i = 0; i < 8; i++)
                 {
-                    double d = plane.SignedDistance(new Vec3((i & 1) == 0 ? box.Min.X : box.Max.X, (i & 2) == 0 ? box.Min.Y : box.Max.Y, (i & 4) == 0 ? box.Min.Z : box.Max.Z));
+                    double d = plane.SignedDistance(
+                        new Vec3(
+                            (i & 1) == 0 ? box.Min.X : box.Max.X,
+                            (i & 2) == 0 ? box.Min.Y : box.Max.Y,
+                            (i & 4) == 0 ? box.Min.Z : box.Max.Z
+                        )
+                    );
                     lowest = Math.Min(lowest, d);
                     highest = Math.Max(highest, d);
                 }
@@ -636,7 +666,14 @@ namespace GeometryHelper.Viewer
             Flush();
 
             // The line began and ended in kept parts of one piece: the last run and the first are one run across the start of the loop.
-            if (line.Closed && runs.Count > 1 && firstStartKept && lastEndKept && runs[0][0].Equals(points[0]) && runs[runs.Count - 1][runs[runs.Count - 1].Count - 1].Equals(points[0]))
+            if (
+                line.Closed
+                && runs.Count > 1
+                && firstStartKept
+                && lastEndKept
+                && runs[0][0].Equals(points[0])
+                && runs[runs.Count - 1][runs[runs.Count - 1].Count - 1].Equals(points[0])
+            )
             {
                 List<Vec3> last = runs[runs.Count - 1];
                 last.AddRange(runs[0].Skip(1));
@@ -714,7 +751,11 @@ namespace GeometryHelper.Viewer
                 if (inA != inB)
                 {
                     double t = Crossing(da, db);
-                    Add(t == 0.0 ? a : t == 1.0 ? b : a + (b - a) * t);
+                    Add(
+                        t == 0.0 ? a
+                        : t == 1.0 ? b
+                        : a + (b - a) * t
+                    );
                 }
             }
 

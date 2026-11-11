@@ -70,11 +70,21 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets whether two settings write the same style.</summary>
         /// <param name="other">The other.</param>
         /// <returns>True where every value is the same, the font file and big font letters of either case the same.</returns>
-        public bool SameAs(CadTextStyleSettings other)
-            => other != null && string.Equals(FileName, other.FileName, StringComparison.OrdinalIgnoreCase)
-                && string.Equals(BigFontFileName ?? string.Empty, other.BigFontFileName ?? string.Empty, StringComparison.OrdinalIgnoreCase)
-                && Font == other.Font && Height.Equals(other.Height) && WidthFactor.Equals(other.WidthFactor) && ObliqueAngle.Equals(other.ObliqueAngle)
-                && Backwards == other.Backwards && UpsideDown == other.UpsideDown && Vertical == other.Vertical;
+        public bool SameAs(CadTextStyleSettings other) =>
+            other != null
+            && string.Equals(FileName, other.FileName, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(
+                BigFontFileName ?? string.Empty,
+                other.BigFontFileName ?? string.Empty,
+                StringComparison.OrdinalIgnoreCase
+            )
+            && Font == other.Font
+            && Height.Equals(other.Height)
+            && WidthFactor.Equals(other.WidthFactor)
+            && ObliqueAngle.Equals(other.ObliqueAngle)
+            && Backwards == other.Backwards
+            && UpsideDown == other.UpsideDown
+            && Vertical == other.Vertical;
     }
 
     /// <summary>
@@ -104,7 +114,10 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 foreach (DxfEntity entity in block)
                 {
-                    string style = entity is DxfDBText text ? text.TextStyleName : entity is DxfMText mtext ? mtext.TextStyleName : null;
+                    string style =
+                        entity is DxfDBText text ? text.TextStyleName
+                        : entity is DxfMText mtext ? mtext.TextStyleName
+                        : null;
                     count += style != null && string.Equals(style, name, StringComparison.OrdinalIgnoreCase) ? 1 : 0;
                 }
             }
@@ -128,7 +141,9 @@ namespace GeometryHelper.Dxf.Viewer
                 name = null;
             }
 
-            return !string.IsNullOrEmpty(name) && database.TextStyleTable.Has(name) ? database.TextStyleTable[name].Name : "Standard";
+            return !string.IsNullOrEmpty(name) && database.TextStyleTable.Has(name)
+                ? database.TextStyleTable[name].Name
+                : "Standard";
         }
 
         /// <summary>Makes a style current (<c>$TEXTSTYLE</c>), as Set Current and the style box do.</summary>
@@ -151,7 +166,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             string set = style.Name;
             string old = Current(document.Database);
-            return document.ApplyEdit("STYLE", new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$TEXTSTYLE", old, set) }, s => s.Database.Textstyle = set);
+            return document.ApplyEdit(
+                "STYLE",
+                new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$TEXTSTYLE", old, set) },
+                s => s.Database.Textstyle = set
+            );
         }
 
         /// <summary>
@@ -182,12 +201,17 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             DxfTextStyleTableRecord source = Find(document, from ?? "Standard", out _);
-            CadTextStyleSettings settings = source == null ? new CadTextStyleSettings() : CadTextStyleSettings.Of(source);
-            return document.ApplyEdit("STYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New text style", null, trimmed) }, s =>
-            {
-                s.Database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = trimmed });
-                Write(s.Database.TextStyleTable[trimmed], settings);
-            });
+            CadTextStyleSettings settings =
+                source == null ? new CadTextStyleSettings() : CadTextStyleSettings.Of(source);
+            return document.ApplyEdit(
+                "STYLE",
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New text style", null, trimmed) },
+                s =>
+                {
+                    s.Database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = trimmed });
+                    Write(s.Database.TextStyleTable[trimmed], settings);
+                }
+            );
         }
 
         /// <summary>
@@ -233,7 +257,20 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string set = style.Name;
-            return document.ApplyEdit("STYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Text style " + set, null, settings.FileName) }, s => Write(s.Database.TextStyleTable[set], settings));
+            return document.ApplyEdit(
+                "STYLE",
+                new[]
+                {
+                    new CadEditRecord(
+                        CadEditRecordKind.TableChanged,
+                        null,
+                        "Text style " + set,
+                        null,
+                        settings.FileName
+                    ),
+                },
+                s => Write(s.Database.TextStyleTable[set], settings)
+            );
         }
 
         /// <summary>
@@ -268,10 +305,21 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (uses > 0)
             {
-                return CadEditResult.Refuse("Style \"" + set + "\" is in use by " + uses + (uses == 1 ? " text" : " texts") + ", and cannot be deleted.");
+                return CadEditResult.Refuse(
+                    "Style \""
+                        + set
+                        + "\" is in use by "
+                        + uses
+                        + (uses == 1 ? " text" : " texts")
+                        + ", and cannot be deleted."
+                );
             }
 
-            return document.ApplyEdit("STYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Delete text style", set, null) }, s => s.Database.TextStyleTable[set].Erase());
+            return document.ApplyEdit(
+                "STYLE",
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Delete text style", set, null) },
+                s => s.Database.TextStyleTable[set].Erase()
+            );
         }
 
         /// <summary>Renames a style with every text written in it, as the Text Style dialog's Rename; Standard keeps its name, as in AutoCAD.</summary>
@@ -301,12 +349,19 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse("A text style needs a name.");
             }
 
-            if (!string.Equals(trimmed, set, StringComparison.OrdinalIgnoreCase) && document.Database.TextStyleTable.Has(trimmed))
+            if (
+                !string.Equals(trimmed, set, StringComparison.OrdinalIgnoreCase)
+                && document.Database.TextStyleTable.Has(trimmed)
+            )
             {
                 return CadEditResult.Refuse("Text style \"" + trimmed + "\" already exists.");
             }
 
-            return document.ApplyEdit("STYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Rename text style", set, trimmed) }, s => s.Database.TextStyleTable[set].Name = trimmed);
+            return document.ApplyEdit(
+                "STYLE",
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Rename text style", set, trimmed) },
+                s => s.Database.TextStyleTable[set].Name = trimmed
+            );
         }
 
         /// <summary>Gets the styles of a drawing that are of letters, not shapes, in the order of the table.</summary>

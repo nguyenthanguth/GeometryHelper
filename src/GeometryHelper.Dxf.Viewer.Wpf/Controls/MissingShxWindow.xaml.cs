@@ -31,7 +31,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="owner">The window it is shown over; null for none.</param>
         /// <param name="model">The view model.</param>
         /// <returns>True when OK was pressed.</returns>
-        public static bool Show(Window owner, MissingShxViewModel model) => new MissingShxWindow(model) { Owner = owner }.ShowDialog() == true;
+        public static bool Show(Window owner, MissingShxViewModel model) =>
+            new MissingShxWindow(model) { Owner = owner }.ShowDialog() == true;
 
         private void OnHeaderDown(object sender, MouseButtonEventArgs e)
         {
@@ -44,12 +45,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Browse… of a replacement list: an SHX or TrueType file; null where none was chosen.</summary>
         private string PickFont()
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Font files (*.shx;*.ttf;*.ttc;*.otf)|*.shx;*.ttf;*.ttc;*.otf|All files (*.*)|*.*", Title = "Select Font File" };
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "Font files (*.shx;*.ttf;*.ttc;*.otf)|*.shx;*.ttf;*.ttc;*.otf|All files (*.*)|*.*",
+                Title = "Select Font File",
+            };
             return dialog.ShowDialog(this) == true ? dialog.FileName : null;
         }
 
         /// <summary>A click on the words Do not show again ticks its box, as on a label.</summary>
-        private void OnDoNotShowAgainText(object sender, MouseButtonEventArgs e) => Model.DoNotShowAgain = !Model.DoNotShowAgain;
+        private void OnDoNotShowAgainText(object sender, MouseButtonEventArgs e) =>
+            Model.DoNotShowAgain = !Model.DoNotShowAgain;
 
         private void OnOk(object sender, RoutedEventArgs e) => DialogResult = true;
 

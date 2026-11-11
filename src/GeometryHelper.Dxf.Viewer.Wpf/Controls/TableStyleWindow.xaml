@@ -1,21 +1,47 @@
-<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.TableStyleWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
-        Title="Table Style" Width="720" Height="500" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" Background="#262B33">
-
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.TableStyleWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Table Style"
+    Width="720"
+    Height="500"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
     <Window.Resources>
         <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
     </Window.Resources>
 
-    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
-            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
-            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
         <DockPanel>
-            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Command="{Binding CloseCommand}" ToolTip="Close" />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Command="{Binding CloseCommand}"
+                        ToolTip="Close"
+                    />
                     <TextBlock Text="Table Style" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>
@@ -23,8 +49,20 @@
             <!-- Footer: what a button refused, then Close in orange-red. -->
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhCloseButton}" Content="Close" Padding="14,5" Command="{Binding CloseCommand}" IsCancel="True" />
-                    <TextBlock Text="{Binding Message}" Foreground="{StaticResource GhWarn}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhCloseButton}"
+                        Content="Close"
+                        Padding="14,5"
+                        Command="{Binding CloseCommand}"
+                        IsCancel="True"
+                    />
+                    <TextBlock
+                        Text="{Binding Message}"
+                        Foreground="{StaticResource GhWarn}"
+                        VerticalAlignment="Center"
+                        TextTrimming="CharacterEllipsis"
+                    />
                 </DockPanel>
             </Border>
 
@@ -39,20 +77,51 @@
 
                 <DockPanel Grid.Column="0">
                     <TextBlock DockPanel.Dock="Top" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,6">
-                        <Run Text="Current table style: " /><Run Text="{Binding CurrentStyle, Mode=OneWay}" Foreground="{StaticResource GhText}" FontWeight="SemiBold" />
+                        <Run Text="Current table style: " /><Run
+                            Text="{Binding CurrentStyle, Mode=OneWay}"
+                            Foreground="{StaticResource GhText}"
+                            FontWeight="SemiBold"
+                        />
                     </TextBlock>
-                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource StyleLabel}" Text="Styles:" Margin="0,0,0,6" />
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        Style="{StaticResource StyleLabel}"
+                        Text="Styles:"
+                        Margin="0,0,0,6"
+                    />
                     <StackPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
                         <TextBlock Style="{StaticResource StyleLabel}" Text="List:" Margin="0,0,0,3" />
-                        <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding Filters}" SelectedItem="{Binding Filter, Mode=TwoWay}" />
+                        <ComboBox
+                            Style="{StaticResource GhComboBox}"
+                            ItemsSource="{Binding Filters}"
+                            SelectedItem="{Binding Filter, Mode=TwoWay}"
+                        />
                     </StackPanel>
-                    <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Background="{StaticResource GhInput}" Padding="0,4">
-                        <ListBox ItemsSource="{Binding Styles}" SelectedItem="{Binding SelectedStyle, Mode=TwoWay}" Background="Transparent" BorderThickness="0"
-                                 Foreground="{StaticResource GhText}" ItemContainerStyle="{StaticResource StyleListItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <Border
+                        BorderBrush="{StaticResource GhBorder}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Background="{StaticResource GhInput}"
+                        Padding="0,4"
+                    >
+                        <ListBox
+                            ItemsSource="{Binding Styles}"
+                            SelectedItem="{Binding SelectedStyle, Mode=TwoWay}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="{StaticResource GhText}"
+                            ItemContainerStyle="{StaticResource StyleListItem}"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                        >
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <DockPanel>
-                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Hint}" Foreground="{StaticResource GhTextMuted}" Margin="6,0,0,0" />
+                                        <TextBlock
+                                            DockPanel.Dock="Right"
+                                            Text="{Binding Hint}"
+                                            Foreground="{StaticResource GhTextMuted}"
+                                            Margin="6,0,0,0"
+                                        />
                                         <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                                     </DockPanel>
                                 </DataTemplate>
@@ -62,19 +131,53 @@
                 </DockPanel>
 
                 <DockPanel Grid.Column="2">
-                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource StyleLabel}" Text="{Binding PreviewTitle}" Margin="0,0,0,6" />
-                    <TextBlock DockPanel.Dock="Bottom" Text="Delete is greyed for Standard, for the current style and for a style a table uses." Foreground="{StaticResource GhTextMuted}"
-                               TextWrapping="Wrap" Margin="0,6,0,0" />
-                    <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" ClipToBounds="True">
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        Style="{StaticResource StyleLabel}"
+                        Text="{Binding PreviewTitle}"
+                        Margin="0,0,0,6"
+                    />
+                    <TextBlock
+                        DockPanel.Dock="Bottom"
+                        Text="Delete is greyed for Standard, for the current style and for a style a table uses."
+                        Foreground="{StaticResource GhTextMuted}"
+                        TextWrapping="Wrap"
+                        Margin="0,6,0,0"
+                    />
+                    <Border
+                        BorderBrush="{StaticResource GhBorder}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        ClipToBounds="True"
+                    >
                         <local:TableStylePreview Settings="{Binding Preview}" />
                     </Border>
                 </DockPanel>
 
                 <StackPanel Grid.Column="4" Margin="0,38,0,0">
-                    <Button Style="{StaticResource StyleSideButton}" Content="Set Current" Command="{Binding SetCurrentCommand}" Margin="0,0,0,8" />
-                    <Button Style="{StaticResource StyleSideButton}" Content="New…" Command="{Binding NewCommand}" Margin="0,0,0,8" />
-                    <Button Style="{StaticResource StyleSideButton}" Content="Modify…" Command="{Binding ModifyCommand}" Margin="0,0,0,8" />
-                    <Button Style="{StaticResource StyleSideButton}" Content="Delete" Command="{Binding DeleteCommand}" />
+                    <Button
+                        Style="{StaticResource StyleSideButton}"
+                        Content="Set Current"
+                        Command="{Binding SetCurrentCommand}"
+                        Margin="0,0,0,8"
+                    />
+                    <Button
+                        Style="{StaticResource StyleSideButton}"
+                        Content="New…"
+                        Command="{Binding NewCommand}"
+                        Margin="0,0,0,8"
+                    />
+                    <Button
+                        Style="{StaticResource StyleSideButton}"
+                        Content="Modify…"
+                        Command="{Binding ModifyCommand}"
+                        Margin="0,0,0,8"
+                    />
+                    <Button
+                        Style="{StaticResource StyleSideButton}"
+                        Content="Delete"
+                        Command="{Binding DeleteCommand}"
+                    />
                 </StackPanel>
             </Grid>
         </DockPanel>

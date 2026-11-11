@@ -22,7 +22,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// <exception cref="ArgumentNullException">Thrown when the name is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the name is blank, a size is not a finite number above nought, a
         /// margin is not a finite number of nought or more, or the margins leave no room on the sheet.</exception>
-        public CadPaper(string name, double width, double height, double marginLeft, double marginBottom, double marginRight, double marginTop)
+        public CadPaper(
+            string name,
+            double width,
+            double height,
+            double marginLeft,
+            double marginBottom,
+            double marginRight,
+            double marginTop
+        )
         {
             if (name == null)
             {
@@ -36,20 +44,37 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!(width > 0.0) || !(height > 0.0) || double.IsInfinity(width) || double.IsInfinity(height))
             {
-                throw new ArgumentException("A sheet is of finite sizes above nought: " + width.ToString(CultureInfo.InvariantCulture) + " by " + height.ToString(CultureInfo.InvariantCulture) + ".", nameof(width));
+                throw new ArgumentException(
+                    "A sheet is of finite sizes above nought: "
+                        + width.ToString(CultureInfo.InvariantCulture)
+                        + " by "
+                        + height.ToString(CultureInfo.InvariantCulture)
+                        + ".",
+                    nameof(width)
+                );
             }
 
             foreach (double margin in new[] { marginLeft, marginBottom, marginRight, marginTop })
             {
                 if (!(margin >= 0.0) || double.IsInfinity(margin))
                 {
-                    throw new ArgumentException("A margin is a finite number of millimetres, nought or more.", nameof(marginLeft));
+                    throw new ArgumentException(
+                        "A margin is a finite number of millimetres, nought or more.",
+                        nameof(marginLeft)
+                    );
                 }
             }
 
             if (!(marginLeft + marginRight < width) || !(marginBottom + marginTop < height))
             {
-                throw new ArgumentException("The margins leave no room on a sheet " + width.ToString(CultureInfo.InvariantCulture) + " by " + height.ToString(CultureInfo.InvariantCulture) + ".", nameof(marginLeft));
+                throw new ArgumentException(
+                    "The margins leave no room on a sheet "
+                        + width.ToString(CultureInfo.InvariantCulture)
+                        + " by "
+                        + height.ToString(CultureInfo.InvariantCulture)
+                        + ".",
+                    nameof(marginLeft)
+                );
             }
 
             Name = name.Trim();
@@ -72,7 +97,18 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>A size of an image: its sides in pixels, no margins.</summary>
         private CadPaper(int width, int height, string note)
-            : this(width.ToString(CultureInfo.InvariantCulture) + " x " + height.ToString(CultureInfo.InvariantCulture) + " Pixels", width, height, 0.0, 0.0, 0.0, 0.0)
+            : this(
+                width.ToString(CultureInfo.InvariantCulture)
+                    + " x "
+                    + height.ToString(CultureInfo.InvariantCulture)
+                    + " Pixels",
+                width,
+                height,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            )
         {
             IsPixels = true;
             _note = note;
@@ -106,7 +142,10 @@ namespace GeometryHelper.Dxf.Viewer
         public double MarginTop { get; }
 
         /// <summary>Gets the name as the Paper size list shows it: <c>ISO A3 (420.00 x 297.00 MM)</c>, or for an image <c>1920 x 1080 Pixels (Full HD)</c>.</summary>
-        public string Label => _custom ? "Custom…" : IsPixels ? Name + " (" + _note + ")" : Name + " (" + Mm(Width) + " x " + Mm(Height) + " MM)";
+        public string Label =>
+            _custom ? "Custom…"
+            : IsPixels ? Name + " (" + _note + ")"
+            : Name + " (" + Mm(Width) + " x " + Mm(Height) + " MM)";
 
         /// <summary>
         /// Gets the name as a DXF keeps it in a layout's group 4, AutoCAD's <c>CanonicalMediaName</c>: the name's spaces as
@@ -120,20 +159,24 @@ namespace GeometryHelper.Dxf.Viewer
         /// Gets the sizes of an image the raster devices offer, in the order of the list: 1280 by 720 (HD), 1600 by 1200
         /// (UXGA), 1920 by 1080 (Full HD), 2560 by 1440 (QHD) and 3840 by 2160 (4K UHD).
         /// </summary>
-        public static IReadOnlyList<CadPaper> PixelSizes { get; } = Array.AsReadOnly(new[]
-        {
-            new CadPaper(1280, 720, "HD"),
-            new CadPaper(1600, 1200, "UXGA"),
-            new CadPaper(1920, 1080, "Full HD"),
-            new CadPaper(2560, 1440, "QHD"),
-            new CadPaper(3840, 2160, "4K UHD"),
-        });
+        public static IReadOnlyList<CadPaper> PixelSizes { get; } =
+            Array.AsReadOnly(
+                new[]
+                {
+                    new CadPaper(1280, 720, "HD"),
+                    new CadPaper(1600, 1200, "UXGA"),
+                    new CadPaper(1920, 1080, "Full HD"),
+                    new CadPaper(2560, 1440, "QHD"),
+                    new CadPaper(3840, 2160, "4K UHD"),
+                }
+            );
 
         /// <summary>Gets the size of an image a raster device starts on: 1920 by 1080 pixels, Full HD.</summary>
         public static CadPaper DefaultPixels => PixelSizes[2];
 
         /// <summary>Gets the last entry of the Paper size list of a raster device, "Custom…", which asks for a width and a height; it is no size to plot on.</summary>
-        public static CadPaper CustomPixelsChoice { get; } = new CadPaper(MinPixels, MinPixels, null) { _custom = true };
+        public static CadPaper CustomPixelsChoice { get; } =
+            new CadPaper(MinPixels, MinPixels, null) { _custom = true };
 
         // Whether this is the Custom… entry.
         private bool _custom;
@@ -152,12 +195,20 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (width < MinPixels || width > MaxPixels)
             {
-                throw new ArgumentOutOfRangeException(nameof(width), width, "A side of an image is 16 to 8 000 pixels.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(width),
+                    width,
+                    "A side of an image is 16 to 8 000 pixels."
+                );
             }
 
             if (height < MinPixels || height > MaxPixels)
             {
-                throw new ArgumentOutOfRangeException(nameof(height), height, "A side of an image is 16 to 8 000 pixels.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(height),
+                    height,
+                    "A side of an image is 16 to 8 000 pixels."
+                );
             }
 
             foreach (CadPaper listed in PixelSizes)
@@ -175,19 +226,22 @@ namespace GeometryHelper.Dxf.Viewer
         /// Gets the sheets the built-in PDF plotter offers, in the order of the list: ISO A0 to A4 (1 189 by 841 to 297 by 210)
         /// and ANSI A to E (279.4 by 215.9 to 1 117.6 by 863.6), each on its side, with margins of 5 all round.
         /// </summary>
-        public static IReadOnlyList<CadPaper> Standard { get; } = Array.AsReadOnly(new[]
-        {
-            Sheet("ISO A0", 1189.0, 841.0),
-            Sheet("ISO A1", 841.0, 594.0),
-            Sheet("ISO A2", 594.0, 420.0),
-            Sheet("ISO A3", 420.0, 297.0),
-            Sheet("ISO A4", 297.0, 210.0),
-            Sheet("ANSI A", 279.4, 215.9),
-            Sheet("ANSI B", 431.8, 279.4),
-            Sheet("ANSI C", 558.8, 431.8),
-            Sheet("ANSI D", 863.6, 558.8),
-            Sheet("ANSI E", 1117.6, 863.6),
-        });
+        public static IReadOnlyList<CadPaper> Standard { get; } =
+            Array.AsReadOnly(
+                new[]
+                {
+                    Sheet("ISO A0", 1189.0, 841.0),
+                    Sheet("ISO A1", 841.0, 594.0),
+                    Sheet("ISO A2", 594.0, 420.0),
+                    Sheet("ISO A3", 420.0, 297.0),
+                    Sheet("ISO A4", 297.0, 210.0),
+                    Sheet("ANSI A", 279.4, 215.9),
+                    Sheet("ANSI B", 431.8, 279.4),
+                    Sheet("ANSI C", 558.8, 431.8),
+                    Sheet("ANSI D", 863.6, 558.8),
+                    Sheet("ANSI E", 1117.6, 863.6),
+                }
+            );
 
         /// <summary>Gets the sheet of a plot when nothing else is given: ISO A3.</summary>
         public static CadPaper Default => Standard[3];
@@ -200,9 +254,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>True when it is.</returns>
         public bool IsSameAs(CadPaper other)
         {
-            return other != null && IsPixels == other.IsPixels && _custom == other._custom && string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase)
-                && Near(Width, other.Width) && Near(Height, other.Height) && Near(MarginLeft, other.MarginLeft)
-                && Near(MarginBottom, other.MarginBottom) && Near(MarginRight, other.MarginRight) && Near(MarginTop, other.MarginTop);
+            return other != null
+                && IsPixels == other.IsPixels
+                && _custom == other._custom
+                && string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase)
+                && Near(Width, other.Width)
+                && Near(Height, other.Height)
+                && Near(MarginLeft, other.MarginLeft)
+                && Near(MarginBottom, other.MarginBottom)
+                && Near(MarginRight, other.MarginRight)
+                && Near(MarginTop, other.MarginTop);
         }
 
         /// <inheritdoc/>
@@ -213,7 +274,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// read off the group 4 it keeps (<c>ISO_full_bleed_A3_(420.00_x_297.00_MM)</c> as "ISO full bleed A3"); null where the
         /// layout gives no size.
         /// </summary>
-        internal static CadPaper FromLayout(string canonical, double width, double height, double left, double bottom, double right, double top)
+        internal static CadPaper FromLayout(
+            string canonical,
+            double width,
+            double height,
+            double left,
+            double bottom,
+            double right,
+            double top
+        )
         {
             if (!(width > 0.0) || !(height > 0.0))
             {
@@ -241,11 +310,14 @@ namespace GeometryHelper.Dxf.Viewer
             catch (ArgumentException)
             {
                 // Margins that leave no room, as a layout of another plotter may give: the sheet's own margins of 5.
-                return width > 10.0 && height > 10.0 ? new CadPaper(name.Length == 0 ? "Custom" : name, width, height, 5.0, 5.0, 5.0, 5.0) : null;
+                return width > 10.0 && height > 10.0
+                    ? new CadPaper(name.Length == 0 ? "Custom" : name, width, height, 5.0, 5.0, 5.0, 5.0)
+                    : null;
             }
         }
 
-        private static CadPaper Sheet(string name, double width, double height) => new CadPaper(name, width, height, 5.0, 5.0, 5.0, 5.0);
+        private static CadPaper Sheet(string name, double width, double height) =>
+            new CadPaper(name, width, height, 5.0, 5.0, 5.0, 5.0);
 
         private static string Mm(double value) => value.ToString("0.00", CultureInfo.InvariantCulture);
 

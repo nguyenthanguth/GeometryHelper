@@ -40,7 +40,12 @@ namespace GeometryHelper.UnitTest.Dxf
 
             style.Annotative = DxfAnnotativeStates.True;
 
-            string record = DxfModel.Records(Lf(db.ToText())).Single(r => r.StartsWith("  0\nMLEADERSTYLE\n", StringComparison.Ordinal) && r.Contains("\n  5\n" + style.Handle + "\n"));
+            string record = DxfModel
+                .Records(Lf(db.ToText()))
+                .Single(r =>
+                    r.StartsWith("  0\nMLEADERSTYLE\n", StringComparison.Ordinal)
+                    && r.Contains("\n  5\n" + style.Handle + "\n")
+                );
             Assert.Contains("\n296\n1\n", record, StringComparison.Ordinal);
             Assert.DoesNotContain("1001", record, StringComparison.Ordinal);
             var again = (DxfMLeaderStyle)DxfDatabase.Parse(db.ToText()).MLeaderStyleDictionary["GH_NOTES"];
@@ -48,7 +53,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             style.Annotative = DxfAnnotativeStates.False;
             Assert.Equal(DxfAnnotativeStates.False, style.Annotative);
-            Assert.Contains("\n296\n0\n", DxfModel.Records(Lf(db.ToText())).Single(r => r.Contains("\n  5\n" + style.Handle + "\n")), StringComparison.Ordinal);
+            Assert.Contains(
+                "\n296\n0\n",
+                DxfModel.Records(Lf(db.ToText())).Single(r => r.Contains("\n  5\n" + style.Handle + "\n")),
+                StringComparison.Ordinal
+            );
             Assert.Throws<InvalidOperationException>(() => new DxfMLeaderStyle().Annotative = DxfAnnotativeStates.True);
         }
 
@@ -63,8 +72,16 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.NotNull(style.Handle);
 
             string text = Lf(db.ToText());
-            Assert.Contains("100\nAcDbMLeaderStyle\n179\n2\n170\n2\n171\n1\n172\n0\n 90\n2\n 40\n0.0\n 41\n0.0\n173\n1\n 91\n-1056964608\n 92\n-2\n290\n1\n 42\n2.0\n291\n1\n 43\n8.0\n  3\n\n 44\n2.5\n300\n\n174\n1\n178\n1\n175\n1\n176\n0\n 93\n-1056964608\n 45\n2.5\n", text, StringComparison.Ordinal);
-            Assert.Contains("142\n1.0\n295\n0\n296\n0\n143\n3.75\n271\n0\n272\n9\n273\n9\n298\n0\n", text, StringComparison.Ordinal);
+            Assert.Contains(
+                "100\nAcDbMLeaderStyle\n179\n2\n170\n2\n171\n1\n172\n0\n 90\n2\n 40\n0.0\n 41\n0.0\n173\n1\n 91\n-1056964608\n 92\n-2\n290\n1\n 42\n2.0\n291\n1\n 43\n8.0\n  3\n\n 44\n2.5\n300\n\n174\n1\n178\n1\n175\n1\n176\n0\n 93\n-1056964608\n 45\n2.5\n",
+                text,
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "142\n1.0\n295\n0\n296\n0\n143\n3.75\n271\n0\n272\n9\n273\n9\n298\n0\n",
+                text,
+                StringComparison.Ordinal
+            );
 
             var read = (DxfMLeaderStyle)DxfDatabase.Parse(text).MLeaderStyleDictionary["Standard"];
             Assert.Equal(2.5, read.TextHeight);
@@ -80,7 +97,11 @@ namespace GeometryHelper.UnitTest.Dxf
             db.MLeaderStyleDictionary.SetAt("Standard", new DxfMLeaderStyle());
 
             string text = Lf(db.ToText());
-            Assert.Contains("  0\nCLASS\n  1\nMLEADERSTYLE\n  2\nAcDbMLeaderStyle\n  3\nACDB_MLEADERSTYLE_CLASS\n 90\n4095\n 91\n1\n", text, StringComparison.Ordinal);
+            Assert.Contains(
+                "  0\nCLASS\n  1\nMLEADERSTYLE\n  2\nAcDbMLeaderStyle\n  3\nACDB_MLEADERSTYLE_CLASS\n 90\n4095\n 91\n1\n",
+                text,
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -110,7 +131,10 @@ namespace GeometryHelper.UnitTest.Dxf
             style.TextAngleType = DxfTextAngleType.InsertAngle;
             style.TextAttachmentDirection = DxfTextAttachmentDirection.AttachmentVertical;
             style.SetTextAttachmentType(DxfTextAttachmentType.AttachmentLinedCenter, DxfLeaderDirectionType.TopLeader);
-            style.SetTextAttachmentType(DxfTextAttachmentType.AttachmentBottomOfTop, DxfLeaderDirectionType.RightLeader);
+            style.SetTextAttachmentType(
+                DxfTextAttachmentType.AttachmentBottomOfTop,
+                DxfLeaderDirectionType.RightLeader
+            );
             style.ContentType = DxfContentType.NoneContent;
 
             string text = Lf(db.ToText());
@@ -136,8 +160,14 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(read.TextAlignAlwaysLeft);
             Assert.Equal(DxfTextAngleType.InsertAngle, read.TextAngleType);
             Assert.Equal(DxfTextAttachmentDirection.AttachmentVertical, read.TextAttachmentDirection);
-            Assert.Equal(DxfTextAttachmentType.AttachmentLinedCenter, read.GetTextAttachmentType(DxfLeaderDirectionType.TopLeader));
-            Assert.Equal(DxfTextAttachmentType.AttachmentBottomOfTop, read.GetTextAttachmentType(DxfLeaderDirectionType.RightLeader));
+            Assert.Equal(
+                DxfTextAttachmentType.AttachmentLinedCenter,
+                read.GetTextAttachmentType(DxfLeaderDirectionType.TopLeader)
+            );
+            Assert.Equal(
+                DxfTextAttachmentType.AttachmentBottomOfTop,
+                read.GetTextAttachmentType(DxfLeaderDirectionType.RightLeader)
+            );
             Assert.Equal(DxfContentType.NoneContent, read.ContentType);
         }
 
@@ -166,7 +196,11 @@ namespace GeometryHelper.UnitTest.Dxf
         public void AStyleInNoFile_GivenRecordsOfTheDrawing_IsWrittenWithThem_AndOthersLeftOut()
         {
             DxfDatabase db = Drawing();
-            var style = new DxfMLeaderStyle { TextStyle = db.TextStyleTable["Standard"], LeaderLineLinetype = db.LinetypeTable["ByBlock"] };
+            var style = new DxfMLeaderStyle
+            {
+                TextStyle = db.TextStyleTable["Standard"],
+                LeaderLineLinetype = db.LinetypeTable["ByBlock"],
+            };
             db.MLeaderStyleDictionary.SetAt("GH_NOTES", style);
 
             Assert.Equal("Standard", style.TextStyle.Name);
@@ -188,7 +222,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<ArgumentOutOfRangeException>(() => style.MaxLeaderSegmentsPoints = 1);
             Assert.Throws<ArgumentOutOfRangeException>(() => style.FirstSegmentAngleConstraint = (DxfAngleConstraint)5);
             Assert.Throws<ArgumentOutOfRangeException>(() => style.ContentType = DxfContentType.ToleranceContent);
-            Assert.Throws<ArgumentOutOfRangeException>(() => style.SetTextAttachmentType((DxfTextAttachmentType)11, DxfLeaderDirectionType.LeftLeader));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                style.SetTextAttachmentType((DxfTextAttachmentType)11, DxfLeaderDirectionType.LeftLeader)
+            );
         }
 
         [Fact]
@@ -207,10 +243,27 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // CMLEADERSTYLE is not set in the drawing: the multileader takes Standard.
             DxfDatabase db = Drawing();
-            db.MLeaderStyleDictionary.SetAt("Standard", new DxfMLeaderStyle { TextHeight = 2.5, ArrowSize = 2.5, LandingGap = 2, DoglegLength = 8 });
+            db.MLeaderStyleDictionary.SetAt(
+                "Standard",
+                new DxfMLeaderStyle
+                {
+                    TextHeight = 2.5,
+                    ArrowSize = 2.5,
+                    LandingGap = 2,
+                    DoglegLength = 8,
+                }
+            );
             db.MLeaderStyleDictionary.SetAt("GH_NOTES", new DxfMLeaderStyle { TextHeight = 3.5, ArrowSize = 3 });
 
-            var mleader = new DxfMLeader { MText = new DxfMText { Contents = "ABC", Location = new GeoPoint3(100, 50, 0), TextHeight = 2.5 } };
+            var mleader = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = "ABC",
+                    Location = new GeoPoint3(100, 50, 0),
+                    TextHeight = 2.5,
+                },
+            };
             mleader.AddLeaderLine(new GeoPoint3(80, 30, 0));
             db.ModelSpace.AppendEntity(mleader);
 

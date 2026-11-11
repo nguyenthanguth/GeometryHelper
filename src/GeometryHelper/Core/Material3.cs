@@ -62,8 +62,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// The whole material of a body, every opening cut in.
         /// </summary>
-        internal static GeoSolid3 Whole(GeoSolid3 solid, Tolerance tolerance)
-            => Near(solid, opening => true, ToRounding(solid, tolerance));
+        internal static GeoSolid3 Whole(GeoSolid3 solid, Tolerance tolerance) =>
+            Near(solid, opening => true, ToRounding(solid, tolerance));
 
         /// <summary>
         /// Gets the tolerance the openings of a body are chosen and cut within, here and by

@@ -35,13 +35,19 @@ namespace GeometryHelper.UnitTest.Solid
             return corners;
         }
 
-        private static double[] Sides(GeoObb3 box) => new[] { box.SizeX, box.SizeY, box.SizeZ }.OrderBy(side => side).ToArray();
+        private static double[] Sides(GeoObb3 box) =>
+            new[] { box.SizeX, box.SizeY, box.SizeZ }.OrderBy(side => side).ToArray();
 
         [Theory]
         [InlineData(10.0, 10.0, 14.4, 30.0)]
         [InlineData(16.0, 14.4, 16.0, 30.0)]
         [InlineData(40.0, 14.4, 30.0, 40.0)]
-        public void APrismOnATriangle_IsFittedTheThinnestOfTheBoxesAsSmall(double length, double least, double middle, double longest)
+        public void APrismOnATriangle_IsFittedTheThinnestOfTheBoxesAsSmall(
+            double length,
+            double least,
+            double middle,
+            double longest
+        )
         {
             List<GeoPoint3> corners = Prism(length);
 
@@ -62,10 +68,15 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // A block 18 by 24 by 40 and a prism on its corner's triangle running past both its ends share the prism 40 long.
             GeoSolid3 block = new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(18, 24, 40)).ToObb().ToSolid();
-            var bottom = new GeoPolygon3(new[] { new GeoPoint3(0, 0, -10), new GeoPoint3(0, 24, -10), new GeoPoint3(18, 0, -10) }, Default);
+            var bottom = new GeoPolygon3(
+                new[] { new GeoPoint3(0, 0, -10), new GeoPoint3(0, 24, -10), new GeoPoint3(18, 0, -10) },
+                Default
+            );
             GeoSolid3 prism = GeoSolid3.Extrude(bottom, new GeoVector3(0, 0, 60), Default);
 
-            ClashResult clash = Assert.Single(Clash3.Find(new[] { block }, new[] { prism }, ClashOptions.Default, Default));
+            ClashResult clash = Assert.Single(
+                Clash3.Find(new[] { block }, new[] { prism }, ClashOptions.Default, Default)
+            );
 
             Assert.Equal(18.0 * 24.0 / 2.0 * 40.0, clash.Volume, 6);
             Assert.Equal(14.4, clash.Depth, 6);

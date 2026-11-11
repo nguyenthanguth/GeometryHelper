@@ -19,8 +19,8 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Loose = new Tolerance(1E-7, 1E-7);
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
         [Fact]
         public void AColumnOnAFootingBearsOverItsWholeFootprint()
@@ -121,7 +121,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(
                 footing.TryGetContact(column, out GeoFace3[] a),
-                footing.TryGetContact(column, out GeoFace3[] b, Tolerance.Global));
+                footing.TryGetContact(column, out GeoFace3[] b, Tolerance.Global)
+            );
             Assert.Equal(a.Length, b.Length);
 
             Assert.Throws<ArgumentNullException>(() => Boolean3.TryGetContact(null, column, out _));

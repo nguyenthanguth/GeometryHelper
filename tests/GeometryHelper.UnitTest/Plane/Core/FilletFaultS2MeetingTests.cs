@@ -33,7 +33,10 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>Rounding cuts corners off, so with no stub running back along an edge the chain gets no longer.</summary>
         private static void AssertNoLonger(GeoPolylineArc2 source, GeoPolylineArc2 result)
         {
-            Assert.True(result.Length <= source.Length, "the rounded chain is " + result.Length + " long, the source " + source.Length);
+            Assert.True(
+                result.Length <= source.Length,
+                "the rounded chain is " + result.Length + " long, the source " + source.Length
+            );
         }
 
         [Fact]
@@ -55,27 +58,49 @@ namespace GeometryHelper.UnitTest.Plane
         public void AHairpinFilletedAtATenThousandthAtATenth_DoesNotThrowAndKeepsItsEnds()
         {
             // Two long legs 10 apart joined by a turning edge 0.1 long, the tolerance itself.
-            var hairpin = new GeoPolyline2(P(14.984265650678289, -0.98837158913957635), P(6.6118449764712821, 4.4799528392489849),
-                P(6.6665282207551684, 4.5636770459910547), P(15.038948894962175, -0.90464738239750631));
+            var hairpin = new GeoPolyline2(
+                P(14.984265650678289, -0.98837158913957635),
+                P(6.6118449764712821, 4.4799528392489849),
+                P(6.6665282207551684, 4.5636770459910547),
+                P(15.038948894962175, -0.90464738239750631)
+            );
 
             GeoPolylineArc2 rounded = Corner2.Fillet(hairpin, 0.0001, Tenth);
 
             // The turning edge goes, and the two fillets meet midway along it, within the tolerance of where it was.
             AssertChainEndsKept(new GeoPolylineArc2(hairpin), rounded);
             Assert.Equal(5, rounded.VertexCount);
-            Assert.True(rounded[2].IsEqualTo(P((6.6118449764712821 + 6.6665282207551684) / 2, (4.4799528392489849 + 4.5636770459910547) / 2), new Tolerance(1E-4, 1E-6)));
+            Assert.True(
+                rounded[2]
+                    .IsEqualTo(
+                        P((6.6118449764712821 + 6.6665282207551684) / 2, (4.4799528392489849 + 4.5636770459910547) / 2),
+                        new Tolerance(1E-4, 1E-6)
+                    )
+            );
         }
 
         [Fact]
         public void AStarWhoseStraightBetweenTwoFilletsIsShorterThanTheTolerance_DoesNotThrow()
         {
             var star = new GeoPolyline2(
-                P(-16.752634443739773, 19.369716686033485), P(-14.450877130710158, 18.008830092806512), P(-14.824450841954166, 17.109260215551963),
-                P(-17.267887329402875, 15.045746025435575), P(-18.082375608259721, 17.4728719492298), P(-18.747142850616939, 15.741459321134577),
-                P(-19.547227854969627, 15.127637211878604), P(-19.044743787490514, 17.705678736775649), P(-22.395372677312942, 19.98346329692405),
-                P(-20.753832117755703, 20.686109074508057), P(-18.306165077593565, 21.083502603545838), P(-17.815216894810941, 20.987196038745914),
-                P(-16.943545532833063, 22.713619407430379), P(-16.00001815373906, 21.927500423841245), P(-14.88611822243719, 21.196939366216355),
-                P(-14.157536612246712, 20.500741042226718), P(-16.519993075493367, 19.792942745764137));
+                P(-16.752634443739773, 19.369716686033485),
+                P(-14.450877130710158, 18.008830092806512),
+                P(-14.824450841954166, 17.109260215551963),
+                P(-17.267887329402875, 15.045746025435575),
+                P(-18.082375608259721, 17.4728719492298),
+                P(-18.747142850616939, 15.741459321134577),
+                P(-19.547227854969627, 15.127637211878604),
+                P(-19.044743787490514, 17.705678736775649),
+                P(-22.395372677312942, 19.98346329692405),
+                P(-20.753832117755703, 20.686109074508057),
+                P(-18.306165077593565, 21.083502603545838),
+                P(-17.815216894810941, 20.987196038745914),
+                P(-16.943545532833063, 22.713619407430379),
+                P(-16.00001815373906, 21.927500423841245),
+                P(-14.88611822243719, 21.196939366216355),
+                P(-14.157536612246712, 20.500741042226718),
+                P(-16.519993075493367, 19.792942745764137)
+            );
 
             GeoPolylineArc2 rounded = Corner2.Fillet(star, 0.5, Tenth);
 
@@ -118,8 +143,16 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // A loop 10 long and 0.02 wide asked for radii of nought: there is nothing to round, and the loop comes back
             // as it went in.
-            var loop = new GeoPolygonArc2(new[] { P(-17.29143972875875, 3.6101964286048527), P(-22.2486991572574, -5.0745936643427747),
-                P(-22.266068737443295, -5.064679145485778), P(-17.308809308944646, 3.62011094746185) }, null);
+            var loop = new GeoPolygonArc2(
+                new[]
+                {
+                    P(-17.29143972875875, 3.6101964286048527),
+                    P(-22.2486991572574, -5.0745936643427747),
+                    P(-22.266068737443295, -5.064679145485778),
+                    P(-17.308809308944646, 3.62011094746185),
+                },
+                null
+            );
 
             GeoPolygonArc2 rounded = Corner2.Fillet(loop, new[] { 0.0, 0.0, 0.0 }, Tenth);
 

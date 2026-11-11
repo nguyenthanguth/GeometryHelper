@@ -17,6 +17,6 @@ namespace GeometryHelper.Enums
         /// <summary>
         /// The end point of the segment.
         /// </summary>
-        End
+        End,
     }
 }

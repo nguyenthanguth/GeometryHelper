@@ -82,8 +82,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "SC", new[] { h["E"] }, Enter, P(0, 20), "2");
             Run(session, "MI", new[] { h["E"] }, Enter, P(0, 0), P(0, 50), "Y");
 
-            Assert.Equal(new[] { CadEditKind.Rotate, CadEditKind.Scale, CadEditKind.Mirror }, owner.Taken.Select(e => e.Kind));
-            Assert.Equal("0,20," + (Math.PI / 2.0).ToString("R", CultureInfo.InvariantCulture), owner.Taken[0].NewValue);
+            Assert.Equal(
+                new[] { CadEditKind.Rotate, CadEditKind.Scale, CadEditKind.Mirror },
+                owner.Taken.Select(e => e.Kind)
+            );
+            Assert.Equal(
+                "0,20," + (Math.PI / 2.0).ToString("R", CultureInfo.InvariantCulture),
+                owner.Taken[0].NewValue
+            );
             Assert.Equal("0,20,2", owner.Taken[1].NewValue);
             Assert.Equal("0,0,0,50", owner.Taken[2].NewValue);
         }
@@ -129,8 +135,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(document.GripDrag(h["M"], 0, P(-5, 0)).Refused);
 
             Assert.Equal(2, owner.Taken.Count);
-            Assert.Equal(new CadEdit(h["E"], CadEditKind.Grip, "1", "100,20", "100,40").ToString(), owner.Taken[0].ToString());
-            Assert.Equal(new CadEdit(h["M"], CadEditKind.Move, null, null, "5,5").ToString(), owner.Taken[1].ToString());
+            Assert.Equal(
+                new CadEdit(h["E"], CadEditKind.Grip, "1", "100,20", "100,40").ToString(),
+                owner.Taken[0].ToString()
+            );
+            Assert.Equal(
+                new CadEdit(h["M"], CadEditKind.Move, null, null, "5,5").ToString(),
+                owner.Taken[1].ToString()
+            );
             Near(new GeoPoint3(100, 40, 0), Entity<DxfLine>(document, h["E"]).EndPoint);
             Near(new GeoPoint3(5, 15, 0), Entity<DxfLine>(document, h["M"]).StartPoint);
         }
@@ -172,8 +184,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Owned(out FakeOwner owner, out Dictionary<string, string> h);
             string mark = h["M"];
 
-            CadEditResult moved = document.ApplyEdit("MOVE", new[] { new CadEditRecord(CadEditRecordKind.Transformed, mark, "Move") }, s =>
-                s.Document.FindEntity(mark).TransformBy(GeoTransform3.Translation(new GeoVector3(40, 0, 0))));
+            CadEditResult moved = document.ApplyEdit(
+                "MOVE",
+                new[] { new CadEditRecord(CadEditRecordKind.Transformed, mark, "Move") },
+                s => s.Document.FindEntity(mark).TransformBy(GeoTransform3.Translation(new GeoVector3(40, 0, 0)))
+            );
 
             Assert.True(moved.Succeeded);
             Assert.Equal("40,0", Assert.Single(owner.Taken).NewValue);
@@ -194,7 +209,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             public CadEditRule GetEditRule(DxfEntity entity)
             {
                 CadOwnerTag.TryRead(entity, out CadOwnerTag tag);
-                return tag.ObjectId.StartsWith("MOVE", StringComparison.Ordinal) ? CadEditRule.MoveOnly : CadEditRule.Edit;
+                return tag.ObjectId.StartsWith("MOVE", StringComparison.Ordinal)
+                    ? CadEditRule.MoveOnly
+                    : CadEditRule.Edit;
             }
 
             public bool TryApply(CadDocument document, CadEdit edit)
@@ -208,13 +225,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 }
 
                 // As Part B's owner plans it: a move as a move, an erase as an erase, anything else as a change of a property.
-                var planned = edit.Kind == CadEditKind.Move ? new CadEditRecord(CadEditRecordKind.Transformed, edit.Handle, "Move", null, edit.NewValue)
+                var planned =
+                    edit.Kind == CadEditKind.Move
+                        ? new CadEditRecord(CadEditRecordKind.Transformed, edit.Handle, "Move", null, edit.NewValue)
                     : edit.Kind == CadEditKind.Erase ? new CadEditRecord(CadEditRecordKind.Erased, edit.Handle)
                     : new CadEditRecord(CadEditRecordKind.PropertyChanged, edit.Handle, "Owner " + edit.Kind);
                 CadEditResult result = document.ApplyEdit("OWNER", new[] { planned }, s =>
                 {
                     DxfEntity owned = s.Document.FindEntity(edit.Handle);
-                    double[] v = edit.NewValue == null || edit.Kind == CadEditKind.Property ? new double[0] : edit.NewValue.Split(',').Select(t => double.Parse(t, CultureInfo.InvariantCulture)).ToArray();
+                    double[] v =
+                        edit.NewValue == null || edit.Kind == CadEditKind.Property
+                            ? new double[0]
+                            : edit
+                                .NewValue.Split(',')
+                                .Select(t => double.Parse(t, CultureInfo.InvariantCulture))
+                                .ToArray();
 
                     switch (edit.Kind)
                     {
@@ -222,14 +247,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                             owned.TransformBy(GeoTransform3.Translation(new GeoVector3(v[0], v[1], 0)));
                             break;
                         case CadEditKind.Rotate:
-                            owned.TransformBy(GeoTransform3.RotationAxis(new GeoPoint3(v[0], v[1], 0), new GeoVector3(0, 0, 1), v[2]));
+                            owned.TransformBy(
+                                GeoTransform3.RotationAxis(new GeoPoint3(v[0], v[1], 0), new GeoVector3(0, 0, 1), v[2])
+                            );
                             break;
                         case CadEditKind.Scale:
                             owned.TransformBy(GeoTransform3.Scaling(new GeoPoint3(v[0], v[1], 0), v[2]));
                             break;
                         case CadEditKind.Mirror:
                             var normal = new GeoVector3(-(v[3] - v[1]), v[2] - v[0], 0).Normalize();
-                            owned.TransformBy(GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(v[0], v[1], 0), normal)));
+                            owned.TransformBy(
+                                GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(v[0], v[1], 0), normal))
+                            );
                             break;
                         case CadEditKind.Property:
                             owned.Layer = edit.NewValue;
@@ -242,7 +271,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                             return;
                     }
 
-                    owned.XData = new[] { new DxfTypedValue(1001, "GH_TESTREC"), new DxfTypedValue(1000, edit.ToString()) };
+                    owned.XData = new[]
+                    {
+                        new DxfTypedValue(1001, "GH_TESTREC"),
+                        new DxfTypedValue(1000, edit.ToString()),
+                    };
                 });
 
                 if (result.Succeeded)

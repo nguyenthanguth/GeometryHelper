@@ -50,11 +50,13 @@ namespace GeometryHelper.UnitTest.Plane
 
         public static TheoryData<string> Rows() => Names(Table.Value.Select(r => r.Name));
 
-        public static TheoryData<string> RowsWithAnOtherSide() => Names(Table.Value.Where(r => r.OtherDistance != null).Select(r => r.Name));
+        public static TheoryData<string> RowsWithAnOtherSide() =>
+            Names(Table.Value.Where(r => r.OtherDistance != null).Select(r => r.Name));
 
         public static TheoryData<string> FacePairs() => Names(Pairs.Value.Select(p => p.Name));
 
-        public static TheoryData<string> PinnedFacePairs() => Names(Pairs.Value.Where(p => p.Start.HasValue).Select(p => p.Name));
+        public static TheoryData<string> PinnedFacePairs() =>
+            Names(Pairs.Value.Where(p => p.Start.HasValue).Select(p => p.Name));
 
         #region A face against each shape
 
@@ -149,7 +151,12 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Equal(pair.Expected, distance, Bound);
             Assert.Equal(pair.Expected, pair.Second.DistanceTo(pair.First, Within), Bound);
-            Assert.Equal(pair.First.CollidesWith(pair.Second, Within) ? 0.0 : pair.First.GetShortestLineTo(pair.Second, Within).Length, distance);
+            Assert.Equal(
+                pair.First.CollidesWith(pair.Second, Within)
+                    ? 0.0
+                    : pair.First.GetShortestLineTo(pair.Second, Within).Length,
+                distance
+            );
 
             (bool meets, double nearest) = Oracle(pair.First, Rings(pair.Second), pair.Second, Within);
 
@@ -171,14 +178,27 @@ namespace GeometryHelper.UnitTest.Plane
             GeoLine2 line = pair.First.GetShortestLineTo(pair.Second, Within);
 
             // As short as the nearest pair of rings, outline and holes of each, whichever face holds the other.
-            double nearest = RingsOf(pair.First).SelectMany(r => RingsOf(pair.Second), (r, s) => r.GetShortestLineTo(s, Within).Length).Min();
+            double nearest = RingsOf(pair.First)
+                .SelectMany(r => RingsOf(pair.Second), (r, s) => r.GetShortestLineTo(s, Within).Length)
+                .Min();
 
             Assert.Equal(nearest, line.Length, Bound);
-            Assert.InRange(RingsOf(pair.First).Min(r => r.GetClosestPointOnBoundary(line.StartPoint).DistanceTo(line.StartPoint)), 0.0, OnBound);
-            Assert.InRange(RingsOf(pair.Second).Min(r => r.GetClosestPointOnBoundary(line.EndPoint).DistanceTo(line.EndPoint)), 0.0, OnBound);
+            Assert.InRange(
+                RingsOf(pair.First).Min(r => r.GetClosestPointOnBoundary(line.StartPoint).DistanceTo(line.StartPoint)),
+                0.0,
+                OnBound
+            );
+            Assert.InRange(
+                RingsOf(pair.Second).Min(r => r.GetClosestPointOnBoundary(line.EndPoint).DistanceTo(line.EndPoint)),
+                0.0,
+                OnBound
+            );
 
             Assert.Equal(nearest, pair.Second.GetShortestLineTo(pair.First, Within).Length, Bound);
-            MirrorTable.Same(pair.First.GetShortestLineTo(pair.Second, Tolerance.Global), pair.First.GetShortestLineTo(pair.Second));
+            MirrorTable.Same(
+                pair.First.GetShortestLineTo(pair.Second, Tolerance.Global),
+                pair.First.GetShortestLineTo(pair.Second)
+            );
         }
 
         [Theory]
@@ -199,14 +219,23 @@ namespace GeometryHelper.UnitTest.Plane
             FacePair pair = Pairs.Value.Single(p => p.Name == name);
 
             // The outline and then the holes of the first, each against the outline and then the holes of the second.
-            GeoPoint2[] expected = RingsOf(pair.First).SelectMany(r => RingsOf(pair.Second), (r, s) => r.GetIntersections(s, Within)).SelectMany(p => p).ToArray();
+            GeoPoint2[] expected = RingsOf(pair.First)
+                .SelectMany(r => RingsOf(pair.Second), (r, s) => r.GetIntersections(s, Within))
+                .SelectMany(p => p)
+                .ToArray();
             GeoPoint2[] crossings = pair.First.GetIntersections(pair.Second, Within);
 
             Assert.Equal(pair.Crossings, crossings.Length);
             MirrorTable.Same(expected, crossings);
-            MirrorTable.Same(pair.First.GetIntersections(pair.Second, Tolerance.Global), pair.First.GetIntersections(pair.Second));
+            MirrorTable.Same(
+                pair.First.GetIntersections(pair.Second, Tolerance.Global),
+                pair.First.GetIntersections(pair.Second)
+            );
 
-            GeoPoint2[] back = RingsOf(pair.Second).SelectMany(r => RingsOf(pair.First), (r, s) => r.GetIntersections(s, Within)).SelectMany(p => p).ToArray();
+            GeoPoint2[] back = RingsOf(pair.Second)
+                .SelectMany(r => RingsOf(pair.First), (r, s) => r.GetIntersections(s, Within))
+                .SelectMany(p => p)
+                .ToArray();
             MirrorTable.Same(back, pair.Second.GetIntersections(pair.First, Within));
         }
 
@@ -218,69 +247,197 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var rows = new List<Row>();
 
-            Add(rows, "GeoArc2", (f, s, t) => f.DistanceTo(s, t), f => s => f.DistanceTo(s), (s, f, t) => s.DistanceTo(f, t), s => f => s.DistanceTo(f), (f, s, t) => f.CollidesWith(s, t), (f, s, t) => f.GetShortestLineTo(s, t), s => Curve(s.GetPointAtParameter, s.Length, false, true), s => null,
+            Add(
+                rows,
+                "GeoArc2",
+                (f, s, t) => f.DistanceTo(s, t),
+                f => s => f.DistanceTo(s),
+                (s, f, t) => s.DistanceTo(f, t),
+                s => f => s.DistanceTo(f),
+                (f, s, t) => f.CollidesWith(s, t),
+                (f, s, t) => f.GetShortestLineTo(s, t),
+                s => Curve(s.GetPointAtParameter, s.Length, false, true),
+                s => null,
                 Case("on the material", new GeoArc2(P(45, 30), 5, 0, Math.PI), 0),
                 // The left half of a circle of radius 4 about (18, 30) reaches x = 14, 4 from the rim at x = 10.
                 Case("in a hole", new GeoArc2(P(18, 30), 4, Math.PI / 2, 3 * Math.PI / 2), 4),
-                Case("touching the hole's rim from inside it", new GeoArc2(P(14, 30), 4, Math.PI / 2, 3 * Math.PI / 2), 0),
+                Case(
+                    "touching the hole's rim from inside it",
+                    new GeoArc2(P(14, 30), 4, Math.PI / 2, 3 * Math.PI / 2),
+                    0
+                ),
                 Case("outside the outline", new GeoArc2(P(115, 30), 5, Math.PI / 2, 3 * Math.PI / 2), 10),
                 // Radius 70 about the middle of the face, 0 to 1.9 pi: past all four corners, sqrt(3400) out.
-                Case("round the whole face", new GeoArc2(P(50, 30), 70, 0, 1.9 * Math.PI), RoundTheCorners));
+                Case("round the whole face", new GeoArc2(P(50, 30), 70, 0, 1.9 * Math.PI), RoundTheCorners)
+            );
 
-            Add(rows, "GeoCircle2", (f, s, t) => f.DistanceTo(s, t), f => s => f.DistanceTo(s), (s, f, t) => s.DistanceTo(f, t), s => f => s.DistanceTo(f), (f, s, t) => f.CollidesWith(s, t), (f, s, t) => f.GetShortestLineTo(s, t), s => Curve(d => P(s.Center.X + s.Radius * Math.Cos(d / s.Radius), s.Center.Y + s.Radius * Math.Sin(d / s.Radius)), s.Length, true, false), s => Polygon(Curve(d => P(s.Center.X + s.Radius * Math.Cos(d / s.Radius), s.Center.Y + s.Radius * Math.Sin(d / s.Radius)), s.Length, true, false)),
+            Add(
+                rows,
+                "GeoCircle2",
+                (f, s, t) => f.DistanceTo(s, t),
+                f => s => f.DistanceTo(s),
+                (s, f, t) => s.DistanceTo(f, t),
+                s => f => s.DistanceTo(f),
+                (f, s, t) => f.CollidesWith(s, t),
+                (f, s, t) => f.GetShortestLineTo(s, t),
+                s =>
+                    Curve(
+                        d =>
+                            P(
+                                s.Center.X + s.Radius * Math.Cos(d / s.Radius),
+                                s.Center.Y + s.Radius * Math.Sin(d / s.Radius)
+                            ),
+                        s.Length,
+                        true,
+                        false
+                    ),
+                s =>
+                    Polygon(
+                        Curve(
+                            d =>
+                                P(
+                                    s.Center.X + s.Radius * Math.Cos(d / s.Radius),
+                                    s.Center.Y + s.Radius * Math.Sin(d / s.Radius)
+                                ),
+                            s.Length,
+                            true,
+                            false
+                        )
+                    ),
                 Case("on the material", new GeoCircle2(P(45, 30), 5), 0),
                 Case("in a hole", new GeoCircle2(P(18, 30), 4), 4),
                 Case("touching the hole's rim from inside it", new GeoCircle2(P(14, 30), 4), 0),
                 Case("outside the outline", new GeoCircle2(P(115, 30), 5), 10),
-                Case("holding the whole face", new GeoCircle2(P(50, 30), 70), 0));
+                Case("holding the whole face", new GeoCircle2(P(50, 30), 70), 0)
+            );
 
-            Add(rows, "GeoEdge2", (f, s, t) => f.DistanceTo(s, t), f => s => f.DistanceTo(s), (s, f, t) => s.DistanceTo(f, t), s => f => s.DistanceTo(f), (f, s, t) => f.CollidesWith(s, t), (f, s, t) => f.GetShortestLineTo(s, t), s => Curve(d => s.GetPointAtParameter(d / s.Length), s.Length, false, false), s => null,
+            Add(
+                rows,
+                "GeoEdge2",
+                (f, s, t) => f.DistanceTo(s, t),
+                f => s => f.DistanceTo(s),
+                (s, f, t) => s.DistanceTo(f, t),
+                s => f => s.DistanceTo(f),
+                (f, s, t) => f.CollidesWith(s, t),
+                (f, s, t) => f.GetShortestLineTo(s, t),
+                s => Curve(d => s.GetPointAtParameter(d / s.Length), s.Length, false, false),
+                s => null,
                 Case("on the material", new GeoEdge2(P(40, 30), P(50, 30)), 0),
                 Case("in a hole", new GeoEdge2(P(14, 20), P(14, 40)), 4),
                 // Turning clockwise from (14, 26) to (14, 34), so through (10, 30) on the rim.
                 Case("touching the hole's rim from inside it", new GeoEdge2(P(14, 26), P(14, 34), -1), 0),
                 Case("outside the outline", new GeoEdge2(P(110, 20), P(110, 40)), 10),
                 // The top half of the ring of radius 70, past the two top corners.
-                Case("round the top of the face", new GeoEdge2(P(120, 30), P(-20, 30), 1), RoundTheCorners));
+                Case("round the top of the face", new GeoEdge2(P(120, 30), P(-20, 30), 1), RoundTheCorners)
+            );
 
-            Add(rows, "GeoFace2", (f, s, t) => f.DistanceTo(s, t), f => s => f.DistanceTo(s), (s, f, t) => s.DistanceTo(f, t), s => f => s.DistanceTo(f), (f, s, t) => f.CollidesWith(s, t), (f, s, t) => f.GetShortestLineTo(s, t), s => Rings(s), s => s,
+            Add(
+                rows,
+                "GeoFace2",
+                (f, s, t) => f.DistanceTo(s, t),
+                f => s => f.DistanceTo(s),
+                (s, f, t) => s.DistanceTo(f, t),
+                s => f => s.DistanceTo(f),
+                (f, s, t) => f.CollidesWith(s, t),
+                (f, s, t) => f.GetShortestLineTo(s, t),
+                s => Rings(s),
+                s => s,
                 Case("on the material", new GeoFace2(Box(40, 25, 50, 35)), 0),
                 Case("in a hole", new GeoFace2(Box(14, 14, 26, 46)), 4),
                 Case("touching the hole's rim from inside it", new GeoFace2(Box(10, 20, 20, 30)), 0),
                 Case("outside the outline", new GeoFace2(Box(110, 0, 130, 60)), 10),
-                Case("holding the whole face", new GeoFace2(Box(-20, -20, 120, 80)), 0));
+                Case("holding the whole face", new GeoFace2(Box(-20, -20, 120, 80)), 0)
+            );
 
-            Add(rows, "GeoLine2", (f, s, t) => f.DistanceTo(s, t), f => s => f.DistanceTo(s), (s, f, t) => s.DistanceTo(f, t), s => f => s.DistanceTo(f), (f, s, t) => f.CollidesWith(s, t), (f, s, t) => f.GetShortestLineTo(s, t), s => Segments(false, s.StartPoint, s.EndPoint), s => null,
+            Add(
+                rows,
+                "GeoLine2",
+                (f, s, t) => f.DistanceTo(s, t),
+                f => s => f.DistanceTo(s),
+                (s, f, t) => s.DistanceTo(f, t),
+                s => f => s.DistanceTo(f),
+                (f, s, t) => f.CollidesWith(s, t),
+                (f, s, t) => f.GetShortestLineTo(s, t),
+                s => Segments(false, s.StartPoint, s.EndPoint),
+                s => null,
                 Case("on the material", new GeoLine2(40, 30, 50, 30), 0),
                 Case("in a hole", new GeoLine2(14, 20, 14, 40), 4),
                 Case("touching the hole's rim from inside it", new GeoLine2(10, 30, 20, 30), 0),
                 Case("outside the outline", new GeoLine2(110, 20, 110, 40), 10),
-                Case("running past the whole face", new GeoLine2(-50, -10, 150, -10), 10));
+                Case("running past the whole face", new GeoLine2(-50, -10, 150, -10), 10)
+            );
 
-            Add(rows, "GeoPolygon2", (f, s, t) => f.DistanceTo(s, t), f => s => f.DistanceTo(s), (s, f, t) => s.DistanceTo(f, t), s => f => s.DistanceTo(f), (f, s, t) => f.CollidesWith(s, t), (f, s, t) => f.GetShortestLineTo(s, t), s => Segments(true, s.Vertices.ToArray()), s => s,
+            Add(
+                rows,
+                "GeoPolygon2",
+                (f, s, t) => f.DistanceTo(s, t),
+                f => s => f.DistanceTo(s),
+                (s, f, t) => s.DistanceTo(f, t),
+                s => f => s.DistanceTo(f),
+                (f, s, t) => f.CollidesWith(s, t),
+                (f, s, t) => f.GetShortestLineTo(s, t),
+                s => Segments(true, s.Vertices.ToArray()),
+                s => s,
                 Case("on the material", Box(40, 25, 50, 35), 0),
                 Case("in a hole", Box(14, 14, 26, 46), 4),
                 Case("touching the hole's rim from inside it", Box(10, 20, 20, 30), 0),
                 Case("outside the outline", Box(110, 0, 130, 60), 10),
-                Case("holding the whole face", Box(-10, -10, 110, 70), 0));
+                Case("holding the whole face", Box(-10, -10, 110, 70), 0)
+            );
 
-            Add(rows, "GeoPolygonArc2", (f, s, t) => f.DistanceTo(s, t), f => s => f.DistanceTo(s), (s, f, t) => s.DistanceTo(f, t), s => f => s.DistanceTo(f), (f, s, t) => f.CollidesWith(s, t), (f, s, t) => f.GetShortestLineTo(s, t), s => Curve(s.GetPointAtDistance, s.Length, true, false), s => Polygon(Curve(s.GetPointAtDistance, s.Length, true, false)),
+            Add(
+                rows,
+                "GeoPolygonArc2",
+                (f, s, t) => f.DistanceTo(s, t),
+                f => s => f.DistanceTo(s),
+                (s, f, t) => s.DistanceTo(f, t),
+                s => f => s.DistanceTo(f),
+                (f, s, t) => f.CollidesWith(s, t),
+                (f, s, t) => f.GetShortestLineTo(s, t),
+                s => Curve(s.GetPointAtDistance, s.Length, true, false),
+                s => Polygon(Curve(s.GetPointAtDistance, s.Length, true, false)),
                 Case("on the material", Loop(Corners(40, 25, 50, 35), 0, 0, 0.2, 0), 0),
                 // The left side, from (14, 46) down to (14, 14), bowed out by 32 / 2 * 0.125 = 2 to x = 12.
                 Case("in a hole", Loop(Corners(14, 14, 26, 46), 0, 0, 0, 0.125), 2),
                 Case("touching the hole's rim from inside it", Loop(Corners(10, 20, 20, 30), 0, 0.3, 0, 0), 0),
                 // The left side, from (110, 60) down to (110, 0), bowed out by 60 / 2 * 0.2 = 6 to x = 104.
                 Case("outside the outline", Loop(Corners(110, 0, 130, 60), 0, 0, 0, 0.2), 4),
-                Case("holding the whole face", Loop(Corners(-10, -10, 110, 70), 0.1, 0, 0, 0), 0));
+                Case("holding the whole face", Loop(Corners(-10, -10, 110, 70), 0.1, 0, 0, 0), 0)
+            );
 
-            Add(rows, "GeoPolyline2", (f, s, t) => f.DistanceTo(s, t), f => s => f.DistanceTo(s), (s, f, t) => s.DistanceTo(f, t), s => f => s.DistanceTo(f), (f, s, t) => f.CollidesWith(s, t), (f, s, t) => f.GetShortestLineTo(s, t), s => Segments(false, s.Vertices.ToArray()), s => null,
+            Add(
+                rows,
+                "GeoPolyline2",
+                (f, s, t) => f.DistanceTo(s, t),
+                f => s => f.DistanceTo(s),
+                (s, f, t) => s.DistanceTo(f, t),
+                s => f => s.DistanceTo(f),
+                (f, s, t) => f.CollidesWith(s, t),
+                (f, s, t) => f.GetShortestLineTo(s, t),
+                s => Segments(false, s.Vertices.ToArray()),
+                s => null,
                 Case("on the material", new GeoPolyline2(P(40, 30), P(45, 32), P(50, 30)), 0),
                 Case("in a hole", new GeoPolyline2(P(14, 20), P(14, 40), P(20, 40)), 4),
                 Case("touching the hole's rim from inside it", new GeoPolyline2(P(20, 30), P(10, 30), P(15, 40)), 0),
                 Case("outside the outline", new GeoPolyline2(P(110, 20), P(110, 40), P(120, 40)), 10),
-                Case("round the whole face", new GeoPolyline2(P(-10, -10), P(110, -10), P(110, 70), P(-10, 70), P(-10, -10)), 10));
+                Case(
+                    "round the whole face",
+                    new GeoPolyline2(P(-10, -10), P(110, -10), P(110, 70), P(-10, 70), P(-10, -10)),
+                    10
+                )
+            );
 
-            Add(rows, "GeoPolylineArc2", (f, s, t) => f.DistanceTo(s, t), f => s => f.DistanceTo(s), (s, f, t) => s.DistanceTo(f, t), s => f => s.DistanceTo(f), (f, s, t) => f.CollidesWith(s, t), (f, s, t) => f.GetShortestLineTo(s, t), s => Curve(s.GetPointAtDistance, s.Length, false, false), s => null,
+            Add(
+                rows,
+                "GeoPolylineArc2",
+                (f, s, t) => f.DistanceTo(s, t),
+                f => s => f.DistanceTo(s),
+                (s, f, t) => s.DistanceTo(f, t),
+                s => f => s.DistanceTo(f),
+                (f, s, t) => f.CollidesWith(s, t),
+                (f, s, t) => f.GetShortestLineTo(s, t),
+                s => Curve(s.GetPointAtDistance, s.Length, false, false),
+                s => null,
                 Case("on the material", Chain(new[] { P(40, 30), P(50, 30) }, 0.2), 0),
                 // Down from (14, 40) to (14, 20) turning counter-clockwise, bowed out by 20 / 2 * 0.2 = 2 to x = 12.
                 Case("in a hole", Chain(new[] { P(14, 40), P(14, 20) }, 0.2), 2),
@@ -288,32 +445,70 @@ namespace GeometryHelper.UnitTest.Plane
                 Case("touching the hole's rim from inside it", Chain(new[] { P(14, 26), P(14, 34) }, -1), 0),
                 // Down from (110, 40) to (110, 20), bowed out by 20 / 2 * 0.4 = 4 to x = 106.
                 Case("outside the outline", Chain(new[] { P(110, 40), P(110, 20) }, 0.4), 6),
-                Case("round the whole face", Chain(new[] { P(120, 30), P(-20, 30), P(120, 30) }, 1, 1), RoundTheCorners));
+                Case("round the whole face", Chain(new[] { P(120, 30), P(-20, 30), P(120, 30) }, 1, 1), RoundTheCorners)
+            );
 
-            Add(rows, "GeoRectangle2", (f, s, t) => f.DistanceTo(s, t), f => s => f.DistanceTo(s), (s, f, t) => s.DistanceTo(f, t), s => f => s.DistanceTo(f), (f, s, t) => f.CollidesWith(s, t), (f, s, t) => f.GetShortestLineTo(s, t), s => Segments(true, s.ToPolygon().Vertices.ToArray()), s => s.ToPolygon(),
+            Add(
+                rows,
+                "GeoRectangle2",
+                (f, s, t) => f.DistanceTo(s, t),
+                f => s => f.DistanceTo(s),
+                (s, f, t) => s.DistanceTo(f, t),
+                s => f => s.DistanceTo(f),
+                (f, s, t) => f.CollidesWith(s, t),
+                (f, s, t) => f.GetShortestLineTo(s, t),
+                s => Segments(true, s.ToPolygon().Vertices.ToArray()),
+                s => s.ToPolygon(),
                 Case("on the material", new GeoRectangle2(40, 25, 10, 10), 0),
                 Case("in a hole", new GeoRectangle2(14, 14, 12, 32), 4),
                 Case("touching the hole's rim from inside it", new GeoRectangle2(10, 20, 10, 10), 0),
                 Case("outside the outline", new GeoRectangle2(110, 0, 20, 60), 10),
-                Case("holding the whole face", new GeoRectangle2(-10, -10, 120, 80), 0));
+                Case("holding the whole face", new GeoRectangle2(-10, -10, 120, 80), 0)
+            );
 
-            Add(rows, "GeoTriangle2", (f, s, t) => f.DistanceTo(s, t), f => s => f.DistanceTo(s), (s, f, t) => s.DistanceTo(f, t), s => f => s.DistanceTo(f), (f, s, t) => f.CollidesWith(s, t), (f, s, t) => f.GetShortestLineTo(s, t), s => Segments(true, s.A, s.B, s.C), s => s.ToPolygon(),
+            Add(
+                rows,
+                "GeoTriangle2",
+                (f, s, t) => f.DistanceTo(s, t),
+                f => s => f.DistanceTo(s),
+                (s, f, t) => s.DistanceTo(f, t),
+                s => f => s.DistanceTo(f),
+                (f, s, t) => f.CollidesWith(s, t),
+                (f, s, t) => f.GetShortestLineTo(s, t),
+                s => Segments(true, s.A, s.B, s.C),
+                s => s.ToPolygon(),
                 Case("on the material", new GeoTriangle2(P(40, 25), P(50, 25), P(45, 35)), 0),
                 Case("in a hole", new GeoTriangle2(P(14, 14), P(26, 14), P(14, 46)), 4),
                 Case("touching the hole's rim from inside it", new GeoTriangle2(P(10, 20), P(20, 25), P(10, 30)), 0),
                 Case("outside the outline", new GeoTriangle2(P(110, 0), P(130, 30), P(110, 60)), 10),
                 // Its sides pass at least 5 outside each corner of the face.
-                Case("holding the whole face", new GeoTriangle2(P(-50, -10), P(150, -10), P(50, 150)), 0));
+                Case("holding the whole face", new GeoTriangle2(P(-50, -10), P(150, -10), P(50, 150)), 0)
+            );
 
             // The ellipse is asked: nothing goes on the face for it.
-            Add(rows, "GeoEllipse2", (f, s, t) => s.DistanceTo(f, t), f => s => s.DistanceTo(f), null, null, (f, s, t) => s.CollidesWith(f, t), (f, s, t) => s.GetShortestLineTo(f, t).Reverse(), s => Curve(s.GetPointAtDistance, s.Length, true, false), s => Polygon(Curve(s.GetPointAtDistance, s.Length, true, false)),
+            Add(
+                rows,
+                "GeoEllipse2",
+                (f, s, t) => s.DistanceTo(f, t),
+                f => s => s.DistanceTo(f),
+                null,
+                null,
+                (f, s, t) => s.CollidesWith(f, t),
+                (f, s, t) => s.GetShortestLineTo(f, t).Reverse(),
+                s => Curve(s.GetPointAtDistance, s.Length, true, false),
+                s => Polygon(Curve(s.GetPointAtDistance, s.Length, true, false)),
                 Case("on the material", new GeoEllipse2(P(45, 30), new GeoVector2(1, 0), 4, 2), 0),
                 // Major radius 6 upright, minor 4 across: from x = 14 to 22, 4 from the rim at x = 10.
                 Case("in a hole", new GeoEllipse2(P(18, 30), new GeoVector2(0, 1), 6, 4), 4),
-                Case("touching the hole's rim from inside it", new GeoEllipse2(P(14, 30), new GeoVector2(0, 1), 6, 4), 0),
+                Case(
+                    "touching the hole's rim from inside it",
+                    new GeoEllipse2(P(14, 30), new GeoVector2(0, 1), 6, 4),
+                    0
+                ),
                 Case("outside the outline", new GeoEllipse2(P(115, 30), new GeoVector2(1, 0), 5, 3), 10),
                 // (0, 0) is 0.39 + 0.36 = 0.75 of the way out, so every corner is inside.
-                Case("holding the whole face", new GeoEllipse2(P(50, 30), new GeoVector2(1, 0), 80, 50), 0));
+                Case("holding the whole face", new GeoEllipse2(P(50, 30), new GeoVector2(1, 0), 80, 50), 0)
+            );
 
             return rows;
         }
@@ -331,7 +526,17 @@ namespace GeometryHelper.UnitTest.Plane
                 Pair("the first in the hole of the second", plate, Frame(-20, -20, 120, 80, -10, -10, 110, 70), 10, 0),
                 // 10 from the first hole's rim at x = 30 and 10 from the second's at x = 60; 25 from the outline.
                 // The first hole is the earlier ring, so the line runs from (30, 30), the middle of the run.
-                Pinned(Pair("on the material of the first, as near two holes", plate, new GeoFace2(Box(40, 25, 50, 35)), 0, 0), P(30, 30), P(40, 30)),
+                Pinned(
+                    Pair(
+                        "on the material of the first, as near two holes",
+                        plate,
+                        new GeoFace2(Box(40, 25, 50, 35)),
+                        0,
+                        0
+                    ),
+                    P(30, 30),
+                    P(40, 30)
+                ),
                 Pair("the first on the material of the second", plate, new GeoFace2(Box(-20, -20, 120, 80)), 0, 0),
                 Pair("touching the outline", plate, new GeoFace2(Box(100, 20, 120, 40)), 0, 2),
                 Pair("touching a hole's rim from inside it", plate, new GeoFace2(Box(10, 20, 20, 30)), 0, 2),
@@ -340,14 +545,32 @@ namespace GeometryHelper.UnitTest.Plane
                 Pair("apart", plate, new GeoFace2(Box(110, 0, 130, 60)), 10, 0),
                 // A frame whose hole, from (5, 5) to (95, 55), lies inside the plate's outline: no ring crosses
                 // another, yet the two materials share the band from 0 to 5 all round.
-                Pair("frames sharing a band with no ring crossing", plate, Frame(-10, -10, 110, 70, 5, 5, 95, 55), 0, 0),
-                Pair("the first in the hole of a frame, 5 clear", plate, Frame(-10, -10, 110, 70, -5, -5, 105, 65), 5, 0),
+                Pair(
+                    "frames sharing a band with no ring crossing",
+                    plate,
+                    Frame(-10, -10, 110, 70, 5, 5, 95, 55),
+                    0,
+                    0
+                ),
+                Pair(
+                    "the first in the hole of a frame, 5 clear",
+                    plate,
+                    Frame(-10, -10, 110, 70, -5, -5, 105, 65),
+                    5,
+                    0
+                ),
                 // A frame round the strip between the holes, its own hole 5 wide.
                 Pair("a frame on the material", plate, Frame(35, 20, 55, 40, 40, 25, 50, 35), 0, 0),
                 // A frame from (-6, 15) to (16, 45) with a hole from (-3, 20) to (13, 40): each of its rings
                 // crosses the outline at x = 0 and the first hole's rim at x = 10, twice each, so the eight
                 // crossings come from four pairs of rings and their order shows which ring was walked first.
-                Pair("a frame across the outline and a hole, its own hole across both", plate, Frame(-6, 15, 16, 45, -3, 20, 13, 40), 0, 8)
+                Pair(
+                    "a frame across the outline and a hole, its own hole across both",
+                    plate,
+                    Frame(-6, 15, 16, 45, -3, 20, 13, 40),
+                    0,
+                    8
+                ),
             };
         }
 
@@ -381,7 +604,8 @@ namespace GeometryHelper.UnitTest.Plane
             internal GeoPoint2? End;
         }
 
-        private static (string Name, T Shape, double Expected) Case<T>(string name, T shape, double expected) => (name, shape, expected);
+        private static (string Name, T Shape, double Expected) Case<T>(string name, T shape, double expected) =>
+            (name, shape, expected);
 
         private static void Add<T>(
             List<Row> rows,
@@ -394,29 +618,45 @@ namespace GeometryHelper.UnitTest.Plane
             Func<GeoFace2, T, Tolerance, GeoLine2> line,
             Func<T, GeoPoint2[]> boundary,
             Func<T, object> region,
-            params (string Name, T Shape, double Expected)[] cases)
+            params (string Name, T Shape, double Expected)[] cases
+        )
         {
             foreach ((string Name, T Shape, double Expected) c in cases)
             {
-                rows.Add(new Row
-                {
-                    Name = type + ": " + c.Name,
-                    Faces = typeof(T) == typeof(GeoFace2),
-                    Expected = c.Expected,
-                    Distance = (f, t) => distance(f, c.Shape, t),
-                    PlainDistance = f => plainDistance(f)(c.Shape),
-                    OtherDistance = otherDistance == null ? null : (Func<GeoFace2, Tolerance, double>)((f, t) => otherDistance(c.Shape, f, t)),
-                    PlainOtherDistance = plainOtherDistance == null ? null : (Func<GeoFace2, double>)(f => plainOtherDistance(c.Shape)(f)),
-                    Collides = (f, t) => collides(f, c.Shape, t),
-                    Line = (f, t) => line(f, c.Shape, t),
-                    Boundary = () => boundary(c.Shape),
-                    Region = () => region(c.Shape)
-                });
+                rows.Add(
+                    new Row
+                    {
+                        Name = type + ": " + c.Name,
+                        Faces = typeof(T) == typeof(GeoFace2),
+                        Expected = c.Expected,
+                        Distance = (f, t) => distance(f, c.Shape, t),
+                        PlainDistance = f => plainDistance(f)(c.Shape),
+                        OtherDistance =
+                            otherDistance == null
+                                ? null
+                                : (Func<GeoFace2, Tolerance, double>)((f, t) => otherDistance(c.Shape, f, t)),
+                        PlainOtherDistance =
+                            plainOtherDistance == null
+                                ? null
+                                : (Func<GeoFace2, double>)(f => plainOtherDistance(c.Shape)(f)),
+                        Collides = (f, t) => collides(f, c.Shape, t),
+                        Line = (f, t) => line(f, c.Shape, t),
+                        Boundary = () => boundary(c.Shape),
+                        Region = () => region(c.Shape),
+                    }
+                );
             }
         }
 
-        private static FacePair Pair(string name, GeoFace2 first, GeoFace2 second, double expected, int crossings)
-            => new FacePair { Name = "GeoFace2-GeoFace2: " + name, First = first, Second = second, Expected = expected, Crossings = crossings };
+        private static FacePair Pair(string name, GeoFace2 first, GeoFace2 second, double expected, int crossings) =>
+            new FacePair
+            {
+                Name = "GeoFace2-GeoFace2: " + name,
+                First = first,
+                Second = second,
+                Expected = expected,
+                Crossings = crossings,
+            };
 
         private static FacePair Pinned(FacePair pair, GeoPoint2 start, GeoPoint2 end)
         {
@@ -446,7 +686,12 @@ namespace GeometryHelper.UnitTest.Plane
         /// A shape with a region meets the material where a boolean of the two leaves area; a curve meets it
         /// where one of its samples falls in the material by an even-odd count over every ring.
         /// </summary>
-        private static (bool Meets, double Nearest) Oracle(GeoFace2 face, GeoPoint2[] boundary, object region, Tolerance tolerance)
+        private static (bool Meets, double Nearest) Oracle(
+            GeoFace2 face,
+            GeoPoint2[] boundary,
+            object region,
+            Tolerance tolerance
+        )
         {
             GeoPoint2[] rim = Rings(face);
             double nearest = double.MaxValue;
@@ -455,7 +700,8 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 foreach (GeoPoint2 q in boundary)
                 {
-                    double dx = p.X - q.X, dy = p.Y - q.Y;
+                    double dx = p.X - q.X,
+                        dy = p.Y - q.Y;
                     nearest = Math.Min(nearest, dx * dx + dy * dy);
                 }
             }
@@ -489,8 +735,10 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int i = 0, j = ring.Count - 1; i < ring.Count; j = i++)
             {
-                if ((ring[i].Y > point.Y) != (ring[j].Y > point.Y)
-                    && point.X < (ring[j].X - ring[i].X) * (point.Y - ring[i].Y) / (ring[j].Y - ring[i].Y) + ring[i].X)
+                if (
+                    (ring[i].Y > point.Y) != (ring[j].Y > point.Y)
+                    && point.X < (ring[j].X - ring[i].X) * (point.Y - ring[i].Y) / (ring[j].Y - ring[i].Y) + ring[i].X
+                )
                 {
                     inside = !inside;
                 }
@@ -522,7 +770,8 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int i = 0; i < edges; i++)
             {
-                GeoPoint2 s = corners[i], e = corners[(i + 1) % corners.Length];
+                GeoPoint2 s = corners[i],
+                    e = corners[(i + 1) % corners.Length];
                 int n = Math.Max(1, (int)Math.Ceiling(s.DistanceTo(e) / Spacing));
 
                 for (int k = 0; k < n; k++)
@@ -543,7 +792,8 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static IEnumerable<GeoPolygon2> RingsOf(GeoFace2 face) => new[] { face.Boundary }.Concat(face.Holes);
 
-        private static GeoPoint2[] Rings(GeoFace2 face) => RingsOf(face).SelectMany(r => Segments(true, r.Vertices.ToArray())).ToArray();
+        private static GeoPoint2[] Rings(GeoFace2 face) =>
+            RingsOf(face).SelectMany(r => Segments(true, r.Vertices.ToArray())).ToArray();
 
         #endregion
 
@@ -551,23 +801,36 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
-        private static GeoPoint2[] Corners(double left, double bottom, double right, double top)
-            => new[] { P(left, bottom), P(right, bottom), P(right, top), P(left, top) };
+        private static GeoPoint2[] Corners(double left, double bottom, double right, double top) =>
+            new[] { P(left, bottom), P(right, bottom), P(right, top), P(left, top) };
 
-        private static GeoPolygon2 Box(double left, double bottom, double right, double top) => new GeoPolygon2(Corners(left, bottom, right, top));
+        private static GeoPolygon2 Box(double left, double bottom, double right, double top) =>
+            new GeoPolygon2(Corners(left, bottom, right, top));
 
-        private static GeoFace2 Frame(double left, double bottom, double right, double top, double holeLeft, double holeBottom, double holeRight, double holeTop)
-            => new GeoFace2(Box(left, bottom, right, top), new[] { Box(holeLeft, holeBottom, holeRight, holeTop) });
+        private static GeoFace2 Frame(
+            double left,
+            double bottom,
+            double right,
+            double top,
+            double holeLeft,
+            double holeBottom,
+            double holeRight,
+            double holeTop
+        ) => new GeoFace2(Box(left, bottom, right, top), new[] { Box(holeLeft, holeBottom, holeRight, holeTop) });
 
         /// <summary>A loop round the corners given, counter-clockwise, with a bulge on each side in turn.</summary>
-        private static GeoPolygonArc2 Loop(GeoPoint2[] corners, params double[] bulges) => new GeoPolygonArc2(corners, bulges);
+        private static GeoPolygonArc2 Loop(GeoPoint2[] corners, params double[] bulges) =>
+            new GeoPolygonArc2(corners, bulges);
 
-        private static GeoPolylineArc2 Chain(GeoPoint2[] vertices, params double[] bulges) => new GeoPolylineArc2(vertices, bulges);
+        private static GeoPolylineArc2 Chain(GeoPoint2[] vertices, params double[] bulges) =>
+            new GeoPolylineArc2(vertices, bulges);
 
         /// <summary>The face: 100 by 60, a hole from (10, 10) to (30, 50) and a hole from (60, 20) to (80, 40).</summary>
-        private static GeoFace2 Plate() => new GeoFace2(Box(0, 0, 100, 60), new[] { Box(10, 10, 30, 50), Box(60, 20, 80, 40) });
+        private static GeoFace2 Plate() =>
+            new GeoFace2(Box(0, 0, 100, 60), new[] { Box(10, 10, 30, 50), Box(60, 20, 80, 40) });
 
-        private static GeoFace2 PlateHolesSwapped() => new GeoFace2(Box(0, 0, 100, 60), new[] { Box(60, 20, 80, 40), Box(10, 10, 30, 50) });
+        private static GeoFace2 PlateHolesSwapped() =>
+            new GeoFace2(Box(0, 0, 100, 60), new[] { Box(60, 20, 80, 40), Box(10, 10, 30, 50) });
 
         #endregion
     }

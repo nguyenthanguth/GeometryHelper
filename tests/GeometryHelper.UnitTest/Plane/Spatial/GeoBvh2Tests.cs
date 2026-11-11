@@ -71,7 +71,8 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 var knife = new GeoLine2(
                     new GeoPoint2(-200 * Math.Cos(angle), -200 * Math.Sin(angle)),
-                    new GeoPoint2(200 * Math.Cos(angle), 200 * Math.Sin(angle)));
+                    new GeoPoint2(200 * Math.Cos(angle), 200 * Math.Sin(angle))
+                );
 
                 GeoPoint2[] fromIndex = index.GetIntersections(knife);
                 GeoPoint2[] fromWalk = cog.GetIntersections(knife);
@@ -90,7 +91,8 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var slot = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 50), new GeoPoint2(0, 50) },
-                new[] { 0.0, 1.0, 0.0, 1.0 });
+                new[] { 0.0, 1.0, 0.0, 1.0 }
+            );
 
             GeoRectangle2 bounds = GeoBvh2.FromPolygonArc(slot).Bounds;
 
@@ -123,7 +125,11 @@ namespace GeometryHelper.UnitTest.Plane
 
             // The straight shapes go in as readily as the curved ones.
             var plate = new GeoPolygon2(
-                new GeoPoint2(300, -20), new GeoPoint2(340, -20), new GeoPoint2(340, 20), new GeoPoint2(300, 20));
+                new GeoPoint2(300, -20),
+                new GeoPoint2(340, -20),
+                new GeoPoint2(340, 20),
+                new GeoPoint2(300, 20)
+            );
 
             Assert.Equal(first.DistanceTo(plate), one.DistanceTo(GeoBvh2.FromPolygon(plate)), 8);
         }
@@ -132,7 +138,11 @@ namespace GeometryHelper.UnitTest.Plane
         public void AStraightChainGoesInAndComesBackUnchanged()
         {
             var chain = new GeoPolyline2(
-                new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(200, 100));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(200, 100)
+            );
 
             GeoBvh2 index = GeoBvh2.FromPolyline(chain);
 

@@ -17,8 +17,19 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     public sealed class DxfBlockXYParameter
     {
-        internal DxfBlockXYParameter(DxfBlockTableRecord block, int node, string handle, string xName, string xDescription, string yName, string yDescription, GeoPoint3 basePoint, GeoPoint3 endPoint,
-            DxfBlockParameterValueSet xValueSet, DxfBlockParameterValueSet yValueSet)
+        internal DxfBlockXYParameter(
+            DxfBlockTableRecord block,
+            int node,
+            string handle,
+            string xName,
+            string xDescription,
+            string yName,
+            string yDescription,
+            GeoPoint3 basePoint,
+            GeoPoint3 endPoint,
+            DxfBlockParameterValueSet xValueSet,
+            DxfBlockParameterValueSet yValueSet
+        )
         {
             XValueSet = xValueSet;
             YValueSet = yValueSet;

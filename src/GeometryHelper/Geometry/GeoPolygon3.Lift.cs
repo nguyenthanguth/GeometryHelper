@@ -32,8 +32,8 @@ namespace GeometryHelper.Geometry
         /// Parallel is not enough: two parallel planes a metre apart share nothing at all. Ask this before
         /// combining two shapes, which refuses a second shape lying anywhere else.
         /// </remarks>
-        public bool SharesPlaneWith(GeoPlane3 other, Tolerance tolerance)
-            => Boolean3.LiesIn(other, Vertices, tolerance);
+        public bool SharesPlaneWith(GeoPlane3 other, Tolerance tolerance) =>
+            Boolean3.LiesIn(other, Vertices, tolerance);
 
         /// <summary>
         /// Joins this polygon to a polygon.
@@ -78,7 +78,8 @@ namespace GeometryHelper.Geometry
         /// <returns>The pieces the two make, in the plane they share.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the curved loop is null.</exception>
         /// <exception cref="ArgumentException">Thrown when it lies in another plane.</exception>
-        public GeoFace3[] Union(GeoPolygonArc3 other, Tolerance tolerance) => new GeoPolygonArc3(this).Union(other, tolerance);
+        public GeoFace3[] Union(GeoPolygonArc3 other, Tolerance tolerance) =>
+            new GeoPolygonArc3(this).Union(other, tolerance);
 
         /// <summary>
         /// Keeps what this polygon and a polygon both cover.
@@ -93,7 +94,8 @@ namespace GeometryHelper.Geometry
         /// <returns>The pieces the two make, in the plane they share.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         /// <exception cref="ArgumentException">Thrown when it lies in another plane.</exception>
-        public GeoFace3[] Intersect(GeoPolygon3 other, Tolerance tolerance) => Boolean3.Intersect(this, other, tolerance);
+        public GeoFace3[] Intersect(GeoPolygon3 other, Tolerance tolerance) =>
+            Boolean3.Intersect(this, other, tolerance);
 
         /// <summary>
         /// Keeps what this polygon and a face both cover.
@@ -123,7 +125,8 @@ namespace GeometryHelper.Geometry
         /// <returns>The pieces the two make, in the plane they share.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the curved loop is null.</exception>
         /// <exception cref="ArgumentException">Thrown when it lies in another plane.</exception>
-        public GeoFace3[] Intersect(GeoPolygonArc3 other, Tolerance tolerance) => new GeoPolygonArc3(this).Intersect(other, tolerance);
+        public GeoFace3[] Intersect(GeoPolygonArc3 other, Tolerance tolerance) =>
+            new GeoPolygonArc3(this).Intersect(other, tolerance);
 
         /// <summary>
         /// Takes a polygon out of this polygon.
@@ -168,7 +171,8 @@ namespace GeometryHelper.Geometry
         /// <returns>The pieces the two make, in the plane they share.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the curved loop is null.</exception>
         /// <exception cref="ArgumentException">Thrown when it lies in another plane.</exception>
-        public GeoFace3[] Subtract(GeoPolygonArc3 tool, Tolerance tolerance) => new GeoPolygonArc3(this).Subtract(tool, tolerance);
+        public GeoFace3[] Subtract(GeoPolygonArc3 tool, Tolerance tolerance) =>
+            new GeoPolygonArc3(this).Subtract(tool, tolerance);
 
         /// <summary>
         /// Keeps what this polygon and a polygon cover between them but do not share.
@@ -213,7 +217,8 @@ namespace GeometryHelper.Geometry
         /// <returns>The pieces the two make, in the plane they share.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the curved loop is null.</exception>
         /// <exception cref="ArgumentException">Thrown when it lies in another plane.</exception>
-        public GeoFace3[] Xor(GeoPolygonArc3 other, Tolerance tolerance) => new GeoPolygonArc3(this).Xor(other, tolerance);
+        public GeoFace3[] Xor(GeoPolygonArc3 other, Tolerance tolerance) =>
+            new GeoPolygonArc3(this).Xor(other, tolerance);
 
         #endregion
     }

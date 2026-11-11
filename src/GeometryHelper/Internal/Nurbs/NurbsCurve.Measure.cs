@@ -291,7 +291,17 @@ namespace GeometryHelper.Internal.Nurbs
             return true;
         }
 
-        private double Refine(BezierPieces pieces, int piece, double a, double b, double whole, double accuracy, int depth, ref int budget, double[] work)
+        private double Refine(
+            BezierPieces pieces,
+            int piece,
+            double a,
+            double b,
+            double whole,
+            double accuracy,
+            int depth,
+            ref int budget,
+            double[] work
+        )
         {
             double middle = 0.5 * (a + b);
             double left = Gauss(pieces, piece, a, middle, work);

@@ -72,8 +72,13 @@ namespace Tekla2025Test
         /// </param>
         /// <param name="barOwners">The reinforcement each bar belongs to, by the bar's index.</param>
         /// <param name="bodyOwners">The IFC product each body belongs to, by the body's index.</param>
-        public ClashReportForm(string title, string summary, IReadOnlyList<ClashResult> clashes,
-            IReadOnlyList<Reinforcement> barOwners, IReadOnlyList<IfcProductGeometry> bodyOwners)
+        public ClashReportForm(
+            string title,
+            string summary,
+            IReadOnlyList<ClashResult> clashes,
+            IReadOnlyList<Reinforcement> barOwners,
+            IReadOnlyList<IfcProductGeometry> bodyOwners
+        )
         {
             InitializeComponent();
 
@@ -101,15 +106,23 @@ namespace Tekla2025Test
                     Measured(clash.LengthInside),
                     Measured(clash.ContactArea),
                     Measured(clash.Distance),
-                    string.Format(CultureInfo.InvariantCulture, "{0:0}, {1:0}, {2:0}", clash.Location.X, clash.Location.Y, clash.Location.Z),
-                    clash.Error == null ? null : clash.Error.GetType().Name + ": " + clash.Error.Message);
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "{0:0}, {1:0}, {2:0}",
+                        clash.Location.X,
+                        clash.Location.Y,
+                        clash.Location.Z
+                    ),
+                    clash.Error == null ? null : clash.Error.GetType().Name + ": " + clash.Error.Message
+                );
 
                 clashGrid.Rows[row].Tag = i;
             }
 
-            statusLabel.Text = clashes.Count > 0
-                ? "Pick a row to show its clash in the model; picking another, or closing this window, takes it out again."
-                : "Nothing clashes.";
+            statusLabel.Text =
+                clashes.Count > 0
+                    ? "Pick a row to show its clash in the model; picking another, or closing this window, takes it out again."
+                    : "Nothing clashes.";
         }
 
         /// <summary>
@@ -157,7 +170,11 @@ namespace Tekla2025Test
         /// </summary>
         private void clashGrid_SelectionChanged(object sender, EventArgs e)
         {
-            int[] picked = clashGrid.SelectedRows.Cast<DataGridViewRow>().Select(row => (int)row.Tag).OrderBy(i => i).ToArray();
+            int[] picked = clashGrid
+                .SelectedRows.Cast<DataGridViewRow>()
+                .Select(row => (int)row.Tag)
+                .OrderBy(i => i)
+                .ToArray();
 
             if (!picked.SequenceEqual(shownClashes))
             {
@@ -172,7 +189,9 @@ namespace Tekla2025Test
         {
             if (e.RowIndex >= 0 && shown.Count > 0)
             {
-                statusLabel.Text = ZoomAndSelect() ? "Zoomed to what is shown again." : "Tekla did not zoom: open a model view and try again.";
+                statusLabel.Text = ZoomAndSelect()
+                    ? "Zoomed to what is shown again."
+                    : "Tekla did not zoom: open a model view and try again.";
             }
         }
 
@@ -238,9 +257,10 @@ namespace Tekla2025Test
                 }
 
                 bool zoomed = ZoomAndSelect();
-                statusLabel.Text = $"{which.Length} clash(es) shown by {shown.Count} control line(s) in {showing.ElapsedMilliseconds} ms" +
-                    (refused > 0 ? $"; Tekla refused {refused}" : string.Empty) +
-                    (zoomed ? "." : "; open a model view to zoom to them.");
+                statusLabel.Text =
+                    $"{which.Length} clash(es) shown by {shown.Count} control line(s) in {showing.ElapsedMilliseconds} ms"
+                    + (refused > 0 ? $"; Tekla refused {refused}" : string.Empty)
+                    + (zoomed ? "." : "; open a model view to zoom to them.");
             }
             catch (Exception ex)
             {
@@ -347,10 +367,14 @@ namespace Tekla2025Test
                 // touching for being too shallow or too small keeps its volume, and is shown by it too.
                 if (clash.Overlaps.Sum(overlap => overlap.Faces.Count) <= MostFacesOutlined)
                 {
-                    return clash.Overlaps.SelectMany(overlap => overlap.Faces).SelectMany(face => Edges(face.Boundary.Vertices));
+                    return clash
+                        .Overlaps.SelectMany(overlap => overlap.Faces)
+                        .SelectMany(face => Edges(face.Boundary.Vertices));
                 }
 
-                IEnumerable<GeoPoint3> corners = clash.Overlaps.SelectMany(overlap => new[] { overlap.GetAabb().Min, overlap.GetAabb().Max });
+                IEnumerable<GeoPoint3> corners = clash.Overlaps.SelectMany(overlap =>
+                    new[] { overlap.GetAabb().Min, overlap.GetAabb().Max }
+                );
                 return BoxEdges(GeoAabb3.FromPoints(corners));
             }
 
@@ -394,8 +418,12 @@ namespace Tekla2025Test
         /// </summary>
         private static IEnumerable<(GeoPoint3 From, GeoPoint3 To)> BoxEdges(GeoAabb3 box)
         {
-            GeoPoint3 Corner(int x, int y, int z)
-                => new GeoPoint3(x == 0 ? box.Min.X : box.Max.X, y == 0 ? box.Min.Y : box.Max.Y, z == 0 ? box.Min.Z : box.Max.Z);
+            GeoPoint3 Corner(int x, int y, int z) =>
+                new GeoPoint3(
+                    x == 0 ? box.Min.X : box.Max.X,
+                    y == 0 ? box.Min.Y : box.Max.Y,
+                    z == 0 ? box.Min.Z : box.Max.Z
+                );
 
             var edges = new List<(GeoPoint3 From, GeoPoint3 To)>();
 
@@ -435,8 +463,12 @@ namespace Tekla2025Test
             return a.CompareTo(b) <= 0 ? (a, b) : (b, a);
         }
 
-        private static (long, long, long) Rounded(GeoPoint3 point)
-            => ((long)Math.Round(point.X * 1000.0), (long)Math.Round(point.Y * 1000.0), (long)Math.Round(point.Z * 1000.0));
+        private static (long, long, long) Rounded(GeoPoint3 point) =>
+            (
+                (long)Math.Round(point.X * 1000.0),
+                (long)Math.Round(point.Y * 1000.0),
+                (long)Math.Round(point.Z * 1000.0)
+            );
 
         /// <summary>
         /// The colour a kind of clash is shown in: hard red, touching yellow, too near orange, unresolved magenta.

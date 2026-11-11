@@ -43,7 +43,8 @@ namespace GeometryHelper.UnitTest.Plane
             int n = loop.VertexCount;
             return new GeoPolygonArc2(
                 Enumerable.Range(0, n).Select(i => loop.Vertices[(i + start) % n]),
-                Enumerable.Range(0, n).Select(i => loop.Bulges[(i + start) % n]));
+                Enumerable.Range(0, n).Select(i => loop.Bulges[(i + start) % n])
+            );
         }
 
         /// <summary>The same loop run the other way: vertex i comes from n - 1 - i, and edge i is edge n - 2 - i reversed.</summary>
@@ -52,7 +53,8 @@ namespace GeometryHelper.UnitTest.Plane
             int n = loop.VertexCount;
             return new GeoPolygonArc2(
                 Enumerable.Range(0, n).Select(i => loop.Vertices[n - 1 - i]),
-                Enumerable.Range(0, n).Select(i => -loop.Bulges[((n - 2 - i) % n + n) % n]));
+                Enumerable.Range(0, n).Select(i => -loop.Bulges[((n - 2 - i) % n + n) % n])
+            );
         }
 
         private static void AssertGrownRectangle(GeoPolygonArc2[] grown, GeoPolygonArc2 source)

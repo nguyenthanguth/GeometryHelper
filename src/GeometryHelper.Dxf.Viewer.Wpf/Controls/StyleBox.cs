@@ -11,8 +11,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     public static class StyleBox
     {
         /// <summary>Whether a combo box opens its list when clicked on its box.</summary>
-        public static readonly DependencyProperty OpensOnClickProperty =
-            DependencyProperty.RegisterAttached("OpensOnClick", typeof(bool), typeof(StyleBox), new PropertyMetadata(false, OnOpensOnClickChanged));
+        public static readonly DependencyProperty OpensOnClickProperty = DependencyProperty.RegisterAttached(
+            "OpensOnClick",
+            typeof(bool),
+            typeof(StyleBox),
+            new PropertyMetadata(false, OnOpensOnClickChanged)
+        );
 
         /// <summary>Gets whether a combo box opens its list when clicked.</summary>
         /// <param name="element">The combo box.</param>
@@ -22,7 +26,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Sets whether a combo box opens its list when clicked.</summary>
         /// <param name="element">The combo box.</param>
         /// <param name="value">Whether it does.</param>
-        public static void SetOpensOnClick(DependencyObject element, bool value) => element.SetValue(OpensOnClickProperty, value);
+        public static void SetOpensOnClick(DependencyObject element, bool value) =>
+            element.SetValue(OpensOnClickProperty, value);
 
         private static void OnOpensOnClickChanged(DependencyObject element, DependencyPropertyChangedEventArgs e)
         {

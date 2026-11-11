@@ -50,7 +50,10 @@ namespace GeometryHelper.Core
             // A millionth of the point tolerance; for points far out, a few hundred steps of their last digit; and for
             // pieces cut by Clipper2, as many steps of the grid it rounds to as a crossing it computed is restored from.
             double clipped = 16.0 * Math.Pow(10.0, -ClipperRegion.GetPrecision(extent));
-            _rounding = Math.Max(Math.Max(tolerance.EqualPoint * 1E-6, Math.Abs(scale) * 1E-14), Math.Max(clipped, 1E-12));
+            _rounding = Math.Max(
+                Math.Max(tolerance.EqualPoint * 1E-6, Math.Abs(scale) * 1E-14),
+                Math.Max(clipped, 1E-12)
+            );
             _cell = 2.0 * _rounding;
         }
 
@@ -286,7 +289,12 @@ namespace GeometryHelper.Core
                         behind.Add(loop[(i + m) % n]);
                     }
 
-                    if (ahead.Count >= 3 && behind.Count >= 3 && HasArea(ahead, SignedArea(ahead)) && HasArea(behind, SignedArea(behind)))
+                    if (
+                        ahead.Count >= 3
+                        && behind.Count >= 3
+                        && HasArea(ahead, SignedArea(ahead))
+                        && HasArea(behind, SignedArea(behind))
+                    )
                     {
                         SplitAtTouches(ahead, pieces);
                         SplitAtTouches(behind, pieces);
@@ -439,7 +447,10 @@ namespace GeometryHelper.Core
             }
         }
 
-        private static List<(int From, int To, int Face)> About(Dictionary<int, List<(int From, int To, int Face)>> about, int vertex)
+        private static List<(int From, int To, int Face)> About(
+            Dictionary<int, List<(int From, int To, int Face)>> about,
+            int vertex
+        )
         {
             if (!about.TryGetValue(vertex, out List<(int From, int To, int Face)> list))
             {
@@ -462,7 +473,8 @@ namespace GeometryHelper.Core
             Dictionary<(long, long), List<int>> cells,
             Dictionary<int, List<(int From, int To, int Face)>> about,
             HashSet<int> own,
-            List<(double T, int Vertex)> found)
+            List<(double T, int Vertex)> found
+        )
         {
             found.Clear();
 
@@ -683,18 +695,20 @@ namespace GeometryHelper.Core
                 }
             }
 
-            shared.Sort((left, right) =>
-            {
-                int byLength = right.Length.CompareTo(left.Length);
-
-                if (byLength != 0)
+            shared.Sort(
+                (left, right) =>
                 {
-                    return byLength;
-                }
+                    int byLength = right.Length.CompareTo(left.Length);
 
-                int byA = left.A.CompareTo(right.A);
-                return byA != 0 ? byA : left.B.CompareTo(right.B);
-            });
+                    if (byLength != 0)
+                    {
+                        return byLength;
+                    }
+
+                    int byA = left.A.CompareTo(right.A);
+                    return byA != 0 ? byA : left.B.CompareTo(right.B);
+                }
+            );
 
             var alive = new bool[_faces.Count];
 
@@ -705,7 +719,11 @@ namespace GeometryHelper.Core
 
             foreach ((int a, int b, double _) in shared)
             {
-                if (!owner.TryGetValue((a, b), out int first) || !owner.TryGetValue((b, a), out int second) || first == second)
+                if (
+                    !owner.TryGetValue((a, b), out int first)
+                    || !owner.TryGetValue((b, a), out int second)
+                    || first == second
+                )
                 {
                     continue;
                 }
@@ -800,7 +818,8 @@ namespace GeometryHelper.Core
 
             double chordX = next.X - previous.X;
             double chordY = next.Y - previous.Y;
-            double cross = (corner.X - previous.X) * (next.Y - corner.Y) - (corner.Y - previous.Y) * (next.X - corner.X);
+            double cross =
+                (corner.X - previous.X) * (next.Y - corner.Y) - (corner.Y - previous.Y) * (next.X - corner.X);
 
             // How far the corner stands inside the line between its neighbours, times the length of that line.
             return cross >= -_tolerance.EqualPoint * Math.Sqrt(chordX * chordX + chordY * chordY);

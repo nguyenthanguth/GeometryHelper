@@ -44,7 +44,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void TheSquareWithABowedSideGrownByTwoWithChamfers_RunsTheArcOnAlongItsTangentToTheCut()
         {
-            GeoPolygonArc2 one = Assert.Single(Offset2.Offset(SquareWithItsRightSideBowedOut(), 2.0, Chamfer, Thousandth));
+            GeoPolygonArc2 one = Assert.Single(
+                Offset2.Offset(SquareWithItsRightSideBowedOut(), 2.0, Chamfer, Thousandth)
+            );
 
             Assert.Equal(10, one.VertexCount);
             Assert.Contains(one.Vertices, v => v.DistanceTo(P(10.606693367214685, -2)) <= 1E-9);
@@ -56,7 +58,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void TheTipWithAnArcLegOffsetByOne_IsSquaredOffAtTenWithTheArcRunRoundItsCircle()
         {
-            GeoPolylineArc2 one = Assert.Single(Offset2.Offset(TenDegreeTipWithAnArcLeg(), 1.0, OffsetOptions.Default, Thousandth));
+            GeoPolylineArc2 one = Assert.Single(
+                Offset2.Offset(TenDegreeTipWithAnArcLeg(), 1.0, OffsetOptions.Default, Thousandth)
+            );
 
             Assert.Equal(4, one.VertexCount);
             Assert.Equal(0.0, one.Vertices[1].DistanceTo(P(-9.95070971190755, -1)), 1E-9);
@@ -67,7 +71,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AStraightIntoATightArcOffsetPastWhereItsCircleReaches_IsRoundedAtTheDistance()
         {
-            GeoPolylineArc2 one = Assert.Single(Offset2.Offset(StraightIntoATightArc(), -20.0, OffsetOptions.Default, Thousandth));
+            GeoPolylineArc2 one = Assert.Single(
+                Offset2.Offset(StraightIntoATightArc(), -20.0, OffsetOptions.Default, Thousandth)
+            );
 
             Assert.Equal(4, one.VertexCount);
             Assert.Equal(0.0, one.Vertices[1].DistanceTo(P(100, -20)), 1E-9);

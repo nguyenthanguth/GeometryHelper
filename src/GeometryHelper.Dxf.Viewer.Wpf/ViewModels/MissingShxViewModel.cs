@@ -69,7 +69,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private readonly MissingShxViewModel _owner;
         private MissingShxOption _replacement;
 
-        internal MissingShxRowViewModel(MissingShxViewModel owner, CadMissingFont font, string styles, IEnumerable<MissingShxOption> options)
+        internal MissingShxRowViewModel(
+            MissingShxViewModel owner,
+            CadMissingFont font,
+            string styles,
+            IEnumerable<MissingShxOption> options
+        )
         {
             _owner = owner;
             File = font.Name;
@@ -97,9 +102,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the Drawn in column while the missing files are ignored: the font as a file is named (simplex.shx, ghsimplex for
         /// GeometryHelper Simplex), or the drawing font, or question marks for a big font.
         /// </summary>
-        public string DrawnInText
-            => DrawnInNow.Length == 0 ? (IsBigFont ? "question marks" : "the drawing font")
-               : string.Equals(DrawnInNow, CadFonts.BuiltInTitle, StringComparison.OrdinalIgnoreCase) ? CadFonts.BuiltInName : DrawnInNow;
+        public string DrawnInText =>
+            DrawnInNow.Length == 0 ? (IsBigFont ? "question marks" : "the drawing font")
+            : string.Equals(DrawnInNow, CadFonts.BuiltInTitle, StringComparison.OrdinalIgnoreCase)
+                ? CadFonts.BuiltInName
+            : DrawnInNow;
 
         /// <summary>Gets whether the FONTALT replacement draws it now, so that "(FONTALT)" is shown after it.</summary>
         public bool IsDrawnByFontAlt => DrawnInNow.Length > 0;
@@ -117,7 +124,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get => _replacement;
             set
             {
-                if (value == null || value == _replacement || value.Kind == MissingShxOptionKind.Heading || value.Kind == MissingShxOptionKind.Separator)
+                if (
+                    value == null
+                    || value == _replacement
+                    || value.Kind == MissingShxOptionKind.Heading
+                    || value.Kind == MissingShxOptionKind.Separator
+                )
                 {
                     Raise(nameof(Replacement));
                     return;
@@ -133,8 +145,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         return;
                     }
 
-                    value = Options.FirstOrDefault(o => o.Kind == MissingShxOptionKind.Font && string.Equals(o.Font, path, StringComparison.OrdinalIgnoreCase))
-                        ?? AddFile(path);
+                    value = Options.FirstOrDefault(o =>
+                        o.Kind == MissingShxOptionKind.Font
+                        && string.Equals(o.Font, path, StringComparison.OrdinalIgnoreCase)
+                    ) ?? AddFile(path);
                 }
 
                 Set(ref _replacement, value);
@@ -157,7 +171,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 name = path;
             }
 
-            var option = new MissingShxOption(MissingShxOptionKind.Font, name, MissingShxViewModel.IsBigFontFile(path) ? "big font" : string.Empty, path);
+            var option = new MissingShxOption(
+                MissingShxOptionKind.Font,
+                name,
+                MissingShxViewModel.IsBigFontFile(path) ? "big font" : string.Empty,
+                path
+            );
             int separator = Options.IndexOf(Options.FirstOrDefault(o => o.Kind == MissingShxOptionKind.Separator));
             Options.Insert(separator < 0 ? Options.Count : separator, option);
             return option;
@@ -173,10 +192,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return null;
             }
 
-            string wanted = string.Equals(drawn, CadFonts.BuiltInTitle, StringComparison.OrdinalIgnoreCase) ? CadFonts.BuiltInName : drawn;
-            MissingShxOption found = Options.FirstOrDefault(o => o.Kind == MissingShxOptionKind.Font
-                && (string.Equals(o.Font, wanted, StringComparison.OrdinalIgnoreCase) || string.Equals(o.Name, wanted, StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(o.Name, wanted + ".shx", StringComparison.OrdinalIgnoreCase)));
+            string wanted = string.Equals(drawn, CadFonts.BuiltInTitle, StringComparison.OrdinalIgnoreCase)
+                ? CadFonts.BuiltInName
+                : drawn;
+            MissingShxOption found = Options.FirstOrDefault(o =>
+                o.Kind == MissingShxOptionKind.Font
+                && (
+                    string.Equals(o.Font, wanted, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(o.Name, wanted, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(o.Name, wanted + ".shx", StringComparison.OrdinalIgnoreCase)
+                )
+            );
 
             if (found != null)
             {
@@ -217,7 +243,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             Title = "Missing SHX files · " + document.Title;
             List<MissingShxOption> options = Options(document);
-            Rows = missing.Where(f => f != null).Select(f => new MissingShxRowViewModel(this, f, StylesOf(document.Database, f), options)).ToList().AsReadOnly();
+            Rows = missing
+                .Where(f => f != null)
+                .Select(f => new MissingShxRowViewModel(this, f, StylesOf(document.Database, f), options))
+                .ToList()
+                .AsReadOnly();
         }
 
         /// <summary>Gets the document.</summary>
@@ -233,9 +263,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the words beside the warning: "This drawing uses 3 SHX font files that are not in the font search folders
         /// (Global settings › Fonts). Until you choose otherwise, text in those styles is drawn in the replacement shown."
         /// </summary>
-        public string Explanation
-            => "This drawing uses " + (Rows.Count == 1 ? "1 SHX font file that is" : Rows.Count.ToString(CultureInfo.InvariantCulture) + " SHX font files that are")
-               + " not in the font search folders (Global settings › Fonts). Until you choose otherwise, text in those styles is drawn in the replacement shown.";
+        public string Explanation =>
+            "This drawing uses "
+            + (
+                Rows.Count == 1
+                    ? "1 SHX font file that is"
+                    : Rows.Count.ToString(CultureInfo.InvariantCulture) + " SHX font files that are"
+            )
+            + " not in the font search folders (Global settings › Fonts). Until you choose otherwise, text in those styles is drawn in the replacement shown.";
 
         /// <summary>
         /// Gets the words of the second choice: "Text stays in the FONTALT replacement, GeometryHelper Simplex, and gbcbig.shx
@@ -249,10 +284,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 int comma = replacement.IndexOf(',');
                 string font = (comma < 0 ? replacement : replacement.Substring(0, comma)).Trim();
                 string big = comma < 0 ? string.Empty : replacement.Substring(comma + 1).Trim();
-                font = font.Length == 0 ? "the drawing font"
-                    : string.Equals(font, CadFonts.BuiltInName, StringComparison.OrdinalIgnoreCase) || string.Equals(font, CadFonts.BuiltInName + ".shx", StringComparison.OrdinalIgnoreCase) ? CadFonts.BuiltInTitle
+                font =
+                    font.Length == 0 ? "the drawing font"
+                    : string.Equals(font, CadFonts.BuiltInName, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(font, CadFonts.BuiltInName + ".shx", StringComparison.OrdinalIgnoreCase)
+                        ? CadFonts.BuiltInTitle
                     : font;
-                return "Text stays in the FONTALT replacement, " + font + (big.Length > 0 ? ", and " + big + " for big fonts." : "; a big font's letters are drawn as question marks.");
+                return "Text stays in the FONTALT replacement, "
+                    + font
+                    + (
+                        big.Length > 0
+                            ? ", and " + big + " for big fonts."
+                            : "; a big font's letters are drawn as question marks."
+                    );
             }
         }
 
@@ -306,10 +350,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             foreach (MissingShxRowViewModel row in Rows)
             {
-                if (row.Replacement != null && row.Replacement != row.Original && !string.IsNullOrWhiteSpace(row.Replacement.Font))
+                if (
+                    row.Replacement != null
+                    && row.Replacement != row.Original
+                    && !string.IsNullOrWhiteSpace(row.Replacement.Font)
+                )
                 {
                     // By the name without .shx, which a style's romand and another's romand.shx both reach.
-                    string name = row.File.EndsWith(".shx", StringComparison.OrdinalIgnoreCase) ? row.File.Substring(0, row.File.Length - 4) : row.File;
+                    string name = row.File.EndsWith(".shx", StringComparison.OrdinalIgnoreCase)
+                        ? row.File.Substring(0, row.File.Length - 4)
+                        : row.File;
                     fonts = fonts.WithSubstitution(name, row.Replacement.Font);
                     made.Add(new KeyValuePair<string, string>(name, row.Replacement.Font));
                 }
@@ -332,10 +382,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     var head = new byte[18];
                     int read = stream.Read(head, 0, head.Length);
-                    return Encoding.ASCII.GetString(head, 0, read).StartsWith("AutoCAD-86 bigfont", StringComparison.Ordinal);
+                    return Encoding
+                        .ASCII.GetString(head, 0, read)
+                        .StartsWith("AutoCAD-86 bigfont", StringComparison.Ordinal);
                 }
             }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException || e is NotSupportedException)
+            catch (Exception e)
+                when (e is IOException
+                    || e is UnauthorizedAccessException
+                    || e is ArgumentException
+                    || e is NotSupportedException
+                )
             {
                 return false;
             }
@@ -353,9 +410,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 new MissingShxOption(MissingShxOptionKind.Font, CadFonts.BuiltInName, "built-in", CadFonts.BuiltInName),
             };
             var found = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            string own = string.IsNullOrEmpty(document.FileName) || !Path.IsPathRooted(document.FileName) ? null : Path.GetDirectoryName(document.FileName);
+            string own =
+                string.IsNullOrEmpty(document.FileName) || !Path.IsPathRooted(document.FileName)
+                    ? null
+                    : Path.GetDirectoryName(document.FileName);
 
-            foreach (string folder in new[] { own }.Concat(document.Fonts.Folders).Where(f => !string.IsNullOrWhiteSpace(f)))
+            foreach (
+                string folder in new[] { own }.Concat(document.Fonts.Folders).Where(f => !string.IsNullOrWhiteSpace(f))
+            )
             {
                 try
                 {
@@ -364,23 +426,49 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         continue;
                     }
 
-                    foreach (string path in Directory.GetFiles(folder, "*.shx").OrderBy(p => p, StringComparer.OrdinalIgnoreCase).ThenBy(p => p, StringComparer.Ordinal))
+                    foreach (
+                        string path in Directory
+                            .GetFiles(folder, "*.shx")
+                            .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                            .ThenBy(p => p, StringComparer.Ordinal)
+                    )
                     {
                         string name = Path.GetFileName(path);
 
-                        if (!found.ContainsKey(name) && !string.Equals(Path.GetFileNameWithoutExtension(name), CadFonts.BuiltInName, StringComparison.OrdinalIgnoreCase))
+                        if (
+                            !found.ContainsKey(name)
+                            && !string.Equals(
+                                Path.GetFileNameWithoutExtension(name),
+                                CadFonts.BuiltInName,
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                        )
                         {
                             found.Add(name, path);
                         }
                     }
                 }
-                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException || e is NotSupportedException)
+                catch (Exception e)
+                    when (e is IOException
+                        || e is UnauthorizedAccessException
+                        || e is ArgumentException
+                        || e is NotSupportedException
+                    )
                 {
-                    GeometryHelperLog.Debug("MissingShxViewModel: the font folder " + folder + " was not listed (" + e.Message + ").");
+                    GeometryHelperLog.Debug(
+                        "MissingShxViewModel: the font folder " + folder + " was not listed (" + e.Message + ")."
+                    );
                 }
             }
 
-            options.AddRange(found.Select(f => new MissingShxOption(MissingShxOptionKind.Font, f.Key, IsBigFontFile(f.Value) ? "big font" : string.Empty, f.Key)));
+            options.AddRange(
+                found.Select(f => new MissingShxOption(
+                    MissingShxOptionKind.Font,
+                    f.Key,
+                    IsBigFontFile(f.Value) ? "big font" : string.Empty,
+                    f.Key
+                ))
+            );
             options.Add(new MissingShxOption(MissingShxOptionKind.Separator, string.Empty, null, null));
             options.Add(new MissingShxOption(MissingShxOptionKind.Browse, "Browse…", null, null));
             return options;
@@ -392,7 +480,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             string Bare(string name)
             {
                 string trimmed = (name ?? string.Empty).Trim();
-                return trimmed.EndsWith(".shx", StringComparison.OrdinalIgnoreCase) ? trimmed.Substring(0, trimmed.Length - 4) : trimmed;
+                return trimmed.EndsWith(".shx", StringComparison.OrdinalIgnoreCase)
+                    ? trimmed.Substring(0, trimmed.Length - 4)
+                    : trimmed;
             }
 
             string wanted = Bare(font.Name);
@@ -405,7 +495,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     continue;
                 }
 
-                string named = font.IsBigFont ? style.BigFontFileName : string.IsNullOrEmpty(style.Font.TypeFace) ? style.FileName : null;
+                string named =
+                    font.IsBigFont ? style.BigFontFileName
+                    : string.IsNullOrEmpty(style.Font.TypeFace) ? style.FileName
+                    : null;
 
                 if (named != null && string.Equals(Bare(named), wanted, StringComparison.OrdinalIgnoreCase))
                 {

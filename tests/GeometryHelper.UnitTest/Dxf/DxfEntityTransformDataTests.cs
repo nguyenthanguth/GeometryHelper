@@ -15,12 +15,16 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfEntityTransformDataTests
     {
-        private static readonly GeoTransform3 MovedAndDoubled = GeoTransform3.Translation(new GeoVector3(10, 0, 0)) * GeoTransform3.Scaling(2);
+        private static readonly GeoTransform3 MovedAndDoubled =
+            GeoTransform3.Translation(new GeoVector3(10, 0, 0)) * GeoTransform3.Scaling(2);
 
         private static readonly DxfTypedValue[] World =
         {
-            new DxfTypedValue(1001, "GHPROBE"), new DxfTypedValue(1000, "kept"),
-            new DxfTypedValue(1011, "1"), new DxfTypedValue(1021, "2"), new DxfTypedValue(1031, "3"),
+            new DxfTypedValue(1001, "GHPROBE"),
+            new DxfTypedValue(1000, "kept"),
+            new DxfTypedValue(1011, "1"),
+            new DxfTypedValue(1021, "2"),
+            new DxfTypedValue(1031, "3"),
             new DxfTypedValue(1041, "2.5"),
         };
 
@@ -38,7 +42,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new[] { "GHPROBE", "kept", "12", "4", "6", "5" }, line.XData.Select(g => g.Value));
             Assert.Equal(Bits(new GeoPoint3(10, 0, 0)), Bits(line.StartPoint));
             OnlyTheseChanged(before, db.ToText(), "3E");
-            Assert.Equal(new[] { "GHPROBE", "kept", "12", "4", "6", "5" }, ByHandle<DxfLine>(DxfDatabase.Parse(db.ToText()), "3E").XData.Select(g => g.Value));
+            Assert.Equal(
+                new[] { "GHPROBE", "kept", "12", "4", "6", "5" },
+                ByHandle<DxfLine>(DxfDatabase.Parse(db.ToText()), "3E").XData.Select(g => g.Value)
+            );
         }
 
         [Fact]
@@ -84,7 +91,15 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new[] { "GHPROBE", "kept", "12", "4", "6", "5" }, mtext.XData.Select(g => g.Value));
 
             string before = db.ToText();
-            var shear = new GeoTransform3(new double[,] { { 1, 0.5, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } });
+            var shear = new GeoTransform3(
+                new double[,]
+                {
+                    { 1, 0.5, 0, 0 },
+                    { 0, 1, 0, 0 },
+                    { 0, 0, 1, 0 },
+                    { 0, 0, 0, 1 },
+                }
+            );
             Assert.Throws<ArgumentException>(() => insert.TransformBy(shear));
             Assert.Equal(before, db.ToText());
             Assert.Equal("12", insert.XData[2].Value);
@@ -97,7 +112,9 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             DxfPolyline3d polyline = db.ModelSpace.OfType<DxfPolyline3d>().First();
             DxfEntity vertex = polyline.Cast<DxfEntity>().First();
-            DxfBlockReference insert = db.ModelSpace.OfType<DxfBlockReference>().First(b => b.AttributeCollection.Cast<object>().Any());
+            DxfBlockReference insert = db
+                .ModelSpace.OfType<DxfBlockReference>()
+                .First(b => b.AttributeCollection.Cast<object>().Any());
             DxfEntity attribute = insert.AttributeCollection.Cast<DxfEntity>().First();
             vertex.XData = World;
             attribute.XData = World;
@@ -115,7 +132,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new[] { "GHPROBE", "kept", "34", "8", "12", "10" }, attribute.XData.Select(g => g.Value));
 
             DxfDatabase again = DxfDatabase.Parse(db.ToText());
-            Assert.Equal(new[] { "GHPROBE", "kept", "34", "8", "12", "10" }, again.ModelSpace.OfType<DxfPolyline3d>().First().Cast<DxfEntity>().First().XData.Select(g => g.Value));
+            Assert.Equal(
+                new[] { "GHPROBE", "kept", "34", "8", "12", "10" },
+                again.ModelSpace.OfType<DxfPolyline3d>().First().Cast<DxfEntity>().First().XData.Select(g => g.Value)
+            );
         }
     }
 }

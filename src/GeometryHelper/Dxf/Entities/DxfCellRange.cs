@@ -20,7 +20,10 @@ namespace GeometryHelper.Dxf
         {
             if (topRow < 0 || leftColumn < 0 || bottomRow < topRow || rightColumn < leftColumn)
             {
-                throw new ArgumentOutOfRangeException(nameof(topRow), "A range runs from its top row and left column, from nought, to its bottom row and right column.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(topRow),
+                    "A range runs from its top row and left column, from nought, to its bottom row and right column."
+                );
             }
 
             TopRow = topRow;
@@ -63,12 +66,23 @@ namespace GeometryHelper.Dxf
             {
                 if (Table == null)
                 {
-                    throw new InvalidOperationException("The range " + ToString() + " is of no table: take a cell from a table's Cells.");
+                    throw new InvalidOperationException(
+                        "The range " + ToString() + " is of no table: take a cell from a table's Cells."
+                    );
                 }
 
                 if (row < TopRow || row > BottomRow || column < LeftColumn || column > RightColumn)
                 {
-                    throw new ArgumentOutOfRangeException(row < TopRow || row > BottomRow ? nameof(row) : nameof(column), "The cell (" + row.ToString(CultureInfo.InvariantCulture) + ", " + column.ToString(CultureInfo.InvariantCulture) + ") is not in the range " + ToString() + ".");
+                    throw new ArgumentOutOfRangeException(
+                        row < TopRow || row > BottomRow ? nameof(row) : nameof(column),
+                        "The cell ("
+                            + row.ToString(CultureInfo.InvariantCulture)
+                            + ", "
+                            + column.ToString(CultureInfo.InvariantCulture)
+                            + ") is not in the range "
+                            + ToString()
+                            + "."
+                    );
                 }
 
                 return new DxfCell(Table, row, column);
@@ -81,8 +95,12 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets whether the range is of the same rows and columns as another.</summary>
         /// <param name="other">The other range.</param>
         /// <returns>Whether they are the same.</returns>
-        public bool Equals(DxfCellRange other)
-            => other != null && other.TopRow == TopRow && other.LeftColumn == LeftColumn && other.BottomRow == BottomRow && other.RightColumn == RightColumn;
+        public bool Equals(DxfCellRange other) =>
+            other != null
+            && other.TopRow == TopRow
+            && other.LeftColumn == LeftColumn
+            && other.BottomRow == BottomRow
+            && other.RightColumn == RightColumn;
 
         /// <summary>Gets whether an object is a range of the same rows and columns.</summary>
         /// <param name="obj">The object.</param>
@@ -91,11 +109,19 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gets a hash of the rows and columns.</summary>
         /// <returns>The hash.</returns>
-        public override int GetHashCode() => unchecked((((TopRow * 397) ^ LeftColumn) * 397 ^ BottomRow) * 397 ^ RightColumn);
+        public override int GetHashCode() =>
+            unchecked((((TopRow * 397) ^ LeftColumn) * 397 ^ BottomRow) * 397 ^ RightColumn);
 
         /// <summary>Gives the range as a line for debugging: <c>(0, 0)-(0, 1)</c>.</summary>
         /// <returns>The range as a line.</returns>
-        public override string ToString()
-            => string.Format(CultureInfo.InvariantCulture, "({0}, {1})-({2}, {3})", TopRow, LeftColumn, BottomRow, RightColumn);
+        public override string ToString() =>
+            string.Format(
+                CultureInfo.InvariantCulture,
+                "({0}, {1})-({2}, {3})",
+                TopRow,
+                LeftColumn,
+                BottomRow,
+                RightColumn
+            );
     }
 }

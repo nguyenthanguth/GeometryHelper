@@ -57,12 +57,47 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         private static readonly string[] DimensionalCommands =
         {
-            "LINE", "PLINE", "ARC", "CIRCLE", "ELLIPSE", "POLYGON", "XLINE", "RAY", "MOVE", "COPY", "STRETCH", "OFFSET",
-            "MIRROR", "ROTATE", "SCALE", "ALIGN", "BREAK", "DIST", "AREA", "MEASUREGEOM", "TEXT", "DIMLINEAR", "DIMALIGNED",
-            "DIMANGULAR", "DIMCONTINUE", "DIMBASELINE", "REVCLOUD",
+            "LINE",
+            "PLINE",
+            "ARC",
+            "CIRCLE",
+            "ELLIPSE",
+            "POLYGON",
+            "XLINE",
+            "RAY",
+            "MOVE",
+            "COPY",
+            "STRETCH",
+            "OFFSET",
+            "MIRROR",
+            "ROTATE",
+            "SCALE",
+            "ALIGN",
+            "BREAK",
+            "DIST",
+            "AREA",
+            "MEASUREGEOM",
+            "TEXT",
+            "DIMLINEAR",
+            "DIMALIGNED",
+            "DIMANGULAR",
+            "DIMCONTINUE",
+            "DIMBASELINE",
+            "REVCLOUD",
         };
 
-        private static readonly string[] CurrentColorNames = { "ByLayer", "ByBlock", "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White" };
+        private static readonly string[] CurrentColorNames =
+        {
+            "ByLayer",
+            "ByBlock",
+            "Red",
+            "Yellow",
+            "Green",
+            "Cyan",
+            "Blue",
+            "Magenta",
+            "White",
+        };
 
         private bool _commandLineShown = true;
         private IReadOnlyList<DynamicInputOptionViewModel> _dynamicOptions = Array.Empty<DynamicInputOptionViewModel>();
@@ -96,7 +131,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// in place, or DYN on at the Command prompt once something is typed ("REC"); with nothing typed and no command, nothing
         /// is shown.
         /// </summary>
-        public bool IsDynamicInputShown => DynamicInput.IsOn && _current != null
+        public bool IsDynamicInputShown =>
+            DynamicInput.IsOn
+            && _current != null
             && (IsCommandRunning ? Prompt.Length > 0 && Session.Prompt?.InPlace == null : CommandText.Length > 0);
 
         /// <summary>
@@ -125,7 +162,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets whether the prompt in the box has options, drawn as the ↓ that opens their menu (<see cref="OpenDynamicInputMenu"/>).</summary>
-        public bool HasDynamicInputOptions => IsDynamicInputShown && IsCommandRunning && Session.Prompt != null && Session.Prompt.Keywords.Count > 0;
+        public bool HasDynamicInputOptions =>
+            IsDynamicInputShown && IsCommandRunning && Session.Prompt != null && Session.Prompt.Keywords.Count > 0;
 
         /// <summary>Gets whether the options menu of dynamic input is open under the box: the keywords of the prompt, one per row.</summary>
         public bool IsDynamicInputMenuOpen => _dynamicOptions.Count > 0;
@@ -163,7 +201,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 CadPrompt prompt = Session.Prompt;
 
-                if (prompt.Kind != CadPromptKind.Point && prompt.Kind != CadPromptKind.Distance && prompt.Kind != CadPromptKind.Angle)
+                if (
+                    prompt.Kind != CadPromptKind.Point
+                    && prompt.Kind != CadPromptKind.Distance
+                    && prompt.Kind != CadPromptKind.Angle
+                )
                 {
                     return string.Empty;
                 }
@@ -172,14 +214,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (!prompt.BasePoint.HasValue)
                 {
                     GeoPoint2 shown = Ucs.ToUcs(_bandAt);
-                    return _settings.FormatNumber(shown.X, _settings.CoordinateDecimals) + ", " + _settings.FormatNumber(shown.Y, _settings.CoordinateDecimals);
+                    return _settings.FormatNumber(shown.X, _settings.CoordinateDecimals)
+                        + ", "
+                        + _settings.FormatNumber(shown.Y, _settings.CoordinateDecimals);
                 }
 
                 GeoVector2 way = Ucs.ToUcs(_bandAt - prompt.BasePoint.Value);
                 double dx = way.X;
                 double dy = way.Y;
                 double degrees = Session.CountAngle(Math.Atan2(dy, dx)) * 180.0 / Math.PI;
-                return _settings.FormatNumber(Math.Sqrt(dx * dx + dy * dy), _settings.CoordinateDecimals) + " < " + _settings.FormatNumber(degrees, _settings.AngleDecimals) + "°";
+                return _settings.FormatNumber(Math.Sqrt(dx * dx + dy * dy), _settings.CoordinateDecimals)
+                    + " < "
+                    + _settings.FormatNumber(degrees, _settings.AngleDecimals)
+                    + "°";
             }
         }
 
@@ -194,7 +241,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// A point prompt that also takes text, as ZOOM's takes a scale 2X, keeps the one box: a number typed there is not an X.
         /// CIRCLE's 3P points are fields all the same, the text they take being _tan alone, never a number.
         /// </remarks>
-        public bool IsDynamicInputFields => IsDynamicInputShown && Session?.Prompt?.Kind == CadPromptKind.Point
+        public bool IsDynamicInputFields =>
+            IsDynamicInputShown
+            && Session?.Prompt?.Kind == CadPromptKind.Point
             && (!Session.Prompt.AcceptsText || Session.Current?.Name == "CIRCLE");
 
         /// <summary>
@@ -206,8 +255,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// rubber band and the angle in one near the base point, with no dimension line or arc drawn. RECTANG's other corner
         /// keeps X and Y, its two sizes, as do the other corners of a box and a dimension line's location.
         /// </summary>
-        public bool IsDynamicInputPolar => IsDynamicInputFields && Session.Prompt.BasePoint.HasValue && !Session.Prompt.Tracks
-            && (Session.IsGripEditing || (Array.IndexOf(DimensionalCommands, Session.Current?.Name) >= 0 && !CornerOrLocation(Session.Prompt.Message)));
+        public bool IsDynamicInputPolar =>
+            IsDynamicInputFields
+            && Session.Prompt.BasePoint.HasValue
+            && !Session.Prompt.Tracks
+            && (
+                Session.IsGripEditing
+                || (
+                    Array.IndexOf(DimensionalCommands, Session.Current?.Name) >= 0
+                    && !CornerOrLocation(Session.Prompt.Message)
+                )
+            );
 
         /// <summary>
         /// Gets whether the canvas shows the length in a field beside the middle of the rubber band: with the angle
@@ -245,7 +303,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool IsDynamicInputSecondLocked => FieldLocked(true);
 
         /// <summary>Gets whether what is typed goes into the first field.</summary>
-        public bool IsDynamicInputFirstActive => (IsDynamicInputFields && !SecondTyped()) || Alone(CadPromptKind.Distance);
+        public bool IsDynamicInputFirstActive =>
+            (IsDynamicInputFields && !SecondTyped()) || Alone(CadPromptKind.Distance);
 
         /// <summary>Gets whether what is typed goes into the second field: after Tab, or after the comma or the &lt; of a coordinate typed whole.</summary>
         public bool IsDynamicInputSecondActive => (IsDynamicInputFields && SecondTyped()) || Alone(CadPromptKind.Angle);
@@ -258,7 +317,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string CurrentColor
         {
             get => _current == null ? string.Empty : SelectColorViewModel.Text(_current.Document.Database.Cecolor);
-
             set
             {
                 if (_current == null || value == null || value == CurrentColor)
@@ -313,16 +371,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 DxfColor color = _current.Document.Database.Cecolor;
-                return color.IsByLayer ? CurrentLayer?.Rgb ?? 0xFFFFFF : color.IsByBlock ? 0xFFFFFF : color.ColorValue & 0xFFFFFF;
+                return color.IsByLayer ? CurrentLayer?.Rgb ?? 0xFFFFFF
+                    : color.IsByBlock ? 0xFFFFFF
+                    : color.ColorValue & 0xFFFFFF;
             }
         }
 
         /// <summary>Gets the command of the swatch of the colour box: the Select Color dialog for the colour of new objects, as <see cref="MoreColorsOption"/>.</summary>
-        public ICommand SelectCurrentColorCommand => _selectCurrentColor ?? (_selectCurrentColor = new DelegateCommand(_ =>
-        {
-            PickCurrentColor();
-            RaiseCurrentColor();
-        }));
+        public ICommand SelectCurrentColorCommand =>
+            _selectCurrentColor
+            ?? (
+                _selectCurrentColor = new DelegateCommand(_ =>
+                {
+                    PickCurrentColor();
+                    RaiseCurrentColor();
+                })
+            );
 
         /// <summary>
         /// ↓ with the box of dynamic input shown: opens the menu of the prompt's options, the first highlighted.
@@ -350,7 +414,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            int index = Math.Max(0, Math.Min(_dynamicOptions.Count - 1, _dynamicOptions.ToList().FindIndex(o => o.IsSelected) + step));
+            int index = Math.Max(
+                0,
+                Math.Min(_dynamicOptions.Count - 1, _dynamicOptions.ToList().FindIndex(o => o.IsSelected) + step)
+            );
 
             for (int i = 0; i < _dynamicOptions.Count; i++)
             {
@@ -438,7 +505,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (length || Alone(CadPromptKind.Angle))
             {
-                return IsNumber(typed) ? FieldPoint(length ? typed : null, length ? null : typed, true, false, cursor) : (GeoPoint2?)null;
+                return IsNumber(typed)
+                    ? FieldPoint(length ? typed : null, length ? null : typed, true, false, cursor)
+                    : (GeoPoint2?)null;
             }
 
             if (!IsDynamicInputFields || (typed.Length > 0 && !IsNumber(typed)))
@@ -454,7 +523,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return null;
             }
 
-            return FieldPoint(first, second, IsDynamicInputPolar, _absolute || CommandText.TrimStart().StartsWith("#", StringComparison.Ordinal), cursor);
+            return FieldPoint(
+                first,
+                second,
+                IsDynamicInputPolar,
+                _absolute || CommandText.TrimStart().StartsWith("#", StringComparison.Ordinal),
+                cursor
+            );
         }
 
         /// <summary>
@@ -465,8 +540,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public Func<SelectColorViewModel, bool> PickColor { get; set; }
 
         /// <summary>The toggle of the status bar of a name, DYN among them; null for none.</summary>
-        private StatusToggleViewModel FindToggle(string name)
-            => string.Equals(name, DynamicInput.Name, StringComparison.OrdinalIgnoreCase) ? DynamicInput : Toggles.FirstOrDefault(t => string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase));
+        private StatusToggleViewModel FindToggle(string name) =>
+            string.Equals(name, DynamicInput.Name, StringComparison.OrdinalIgnoreCase)
+                ? DynamicInput
+                : Toggles.FirstOrDefault(t => string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase));
 
         /// <summary>DYN switched: the settings in use follow it, and the box is shown or hidden; the AutoComplete list moves between the cursor and the command line.</summary>
         private void OnDynamicInputChanged(object sender, PropertyChangedEventArgs e)
@@ -655,7 +732,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 // The angle box counts as the drawing does: from ANGBASE, clockwise with ANGDIR 1.
-                double angle = CadUnits.ToDirection(Number(second) * Math.PI / 180.0, Session.Document.Database.Angbase, Session.Document.Database.Angdir);
+                double angle = CadUnits.ToDirection(
+                    Number(second) * Math.PI / 180.0,
+                    Session.Document.Database.Angbase,
+                    Session.Document.Database.Angdir
+                );
                 return from + ucs.ToWorld(new GeoVector2(length * Math.Cos(angle), length * Math.Sin(angle)));
             }
 
@@ -663,11 +744,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 // Relative, as DYNPIFORMAT 0: the X and the Y from the base point, the one not typed the cursor's.
                 GeoVector2 way = ucs.ToUcs(at - basePoint.Value);
-                return basePoint.Value + ucs.ToWorld(new GeoVector2(first != null ? Number(first) : way.X, second != null ? Number(second) : way.Y));
+                return basePoint.Value
+                    + ucs.ToWorld(
+                        new GeoVector2(first != null ? Number(first) : way.X, second != null ? Number(second) : way.Y)
+                    );
             }
 
             GeoPoint2 cursor = ucs.ToUcs(at);
-            return ucs.ToWorld(new GeoPoint2(first != null ? Number(first) : cursor.X, second != null ? Number(second) : cursor.Y));
+            return ucs.ToWorld(
+                new GeoPoint2(first != null ? Number(first) : cursor.X, second != null ? Number(second) : cursor.Y)
+            );
         }
 
         /// <summary>
@@ -696,7 +782,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return;
                 }
 
-                CadEditResult result = CadPropertyEditor.Set(_current.Document, null, "Color", SelectColorViewModel.Text(dialog.Color));
+                CadEditResult result = CadPropertyEditor.Set(
+                    _current.Document,
+                    null,
+                    "Color",
+                    SelectColorViewModel.Text(dialog.Color)
+                );
 
                 if (!result.Succeeded)
                 {
@@ -764,7 +855,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return _settings.FormatNumber(Math.Sqrt(dx * dx + dy * dy), _settings.CoordinateDecimals);
             }
 
-            return _settings.FormatNumber(Session.CountAngle(Math.Atan2(dy, dx)) * 180.0 / Math.PI, _settings.AngleDecimals);
+            return _settings.FormatNumber(
+                Session.CountAngle(Math.Atan2(dy, dx)) * 180.0 / Math.PI,
+                _settings.AngleDecimals
+            );
         }
 
         private bool FieldLocked(bool second)
@@ -784,21 +878,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return (second ? after : before).Trim().Length > 0;
             }
 
-            return (CommandText.Length > 0 && second == _secondActive) || (second ? _lockedSecond : _lockedFirst) != null;
+            return (CommandText.Length > 0 && second == _secondActive)
+                || (second ? _lockedSecond : _lockedFirst) != null;
         }
 
         /// <summary>Whether the prompt asks a distance or an angle from a base point, shown in the one field of its kind on the canvas; a scale factor is not.</summary>
         private bool Alone(CadPromptKind kind)
         {
             CadPrompt prompt = IsDynamicInputShown && IsCommandRunning ? Session.Prompt : null;
-            return prompt != null && prompt.Kind == kind && prompt.BasePoint.HasValue && prompt.Message != "Specify scale factor";
+            return prompt != null
+                && prompt.Kind == kind
+                && prompt.BasePoint.HasValue
+                && prompt.Message != "Specify scale factor";
         }
 
         private bool SecondTyped() => Parted(out _, out _) || _secondActive;
 
         /// <summary>Whether a prompt asks the corner of a box, "Specify opposite corner", or a location, "Specify dimension line location": no second point of a line from the base point, it keeps X and Y.</summary>
-        private static bool CornerOrLocation(string message)
-            => message.IndexOf("corner", StringComparison.OrdinalIgnoreCase) >= 0 || message.IndexOf("location", StringComparison.OrdinalIgnoreCase) >= 0;
+        private static bool CornerOrLocation(string message) =>
+            message.IndexOf("corner", StringComparison.OrdinalIgnoreCase) >= 0
+            || message.IndexOf("location", StringComparison.OrdinalIgnoreCase) >= 0;
 
         /// <summary>What is typed parted at its &lt; or its comma into the two fields, an @ before it left out; false where it has neither.</summary>
         private bool Parted(out string before, out string after)
@@ -819,7 +918,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>A field's text without the # or @ typed first, which say absolute or relative.</summary>
-        private static string Bare(string text) => text.Length > 0 && (text[0] == '#' || text[0] == '@') ? text.Substring(1).Trim() : text;
+        private static string Bare(string text) =>
+            text.Length > 0 && (text[0] == '#' || text[0] == '@') ? text.Substring(1).Trim() : text;
 
         /// <summary>
         /// A coordinate typed whole into the fields as the command line reads it: "#x,y" absolute as "x,y", "@x,y" as typed, and
@@ -836,11 +936,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return null;
             }
 
-            return text[0] == '#' ? text.Substring(1).Trim() : text[0] == '@' || !based ? text : "@" + text;
+            return text[0] == '#' ? text.Substring(1).Trim()
+                : text[0] == '@' || !based ? text
+                : "@" + text;
         }
 
-        private static bool IsNumber(string text) => double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && !double.IsNaN(value) && !double.IsInfinity(value);
+        private static bool IsNumber(string text) =>
+            double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+            && !double.IsNaN(value)
+            && !double.IsInfinity(value);
 
-        private static double Number(string text) => double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
+        private static double Number(string text) =>
+            double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
     }
 }

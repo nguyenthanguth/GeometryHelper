@@ -58,16 +58,32 @@ namespace GeometryHelper.UnitTest.Plane
 
             while (index <= Steps)
             {
-                if (!inside[index]) { index++; continue; }
+                if (!inside[index])
+                {
+                    index++;
+                    continue;
+                }
 
                 int first = index;
-                while (index <= Steps && inside[index]) { index++; }
+                while (index <= Steps && inside[index])
+                {
+                    index++;
+                }
                 int last = index - 1;
 
-                if (last - first + 1 < Sustained) { continue; }
+                if (last - first + 1 < Sustained)
+                {
+                    continue;
+                }
 
-                if (first > 0) { crossings++; }
-                if (last < Steps) { crossings++; }
+                if (first > 0)
+                {
+                    crossings++;
+                }
+                if (last < Steps)
+                {
+                    crossings++;
+                }
             }
 
             return crossings;
@@ -77,7 +93,9 @@ namespace GeometryHelper.UnitTest.Plane
         public void EveryTimeASegmentEntersOrLeavesACircleThereIsACrossing()
         {
             Random rng = new Random(7001);
-            int cases = 0, withCrossings = 0, short_ = 0;
+            int cases = 0,
+                withCrossings = 0,
+                short_ = 0;
 
             for (int t = 0; t < 600; t++)
             {
@@ -86,16 +104,26 @@ namespace GeometryHelper.UnitTest.Plane
                 // Thrown through the middle, so entering and leaving is the common case.
                 var line = new GeoLine2(
                     new GeoPoint2(circle.Center.X + rng.Next(-9, 10), circle.Center.Y + rng.Next(-9, 10)),
-                    new GeoPoint2(circle.Center.X + rng.Next(-9, 10), circle.Center.Y + rng.Next(-9, 10)));
+                    new GeoPoint2(circle.Center.X + rng.Next(-9, 10), circle.Center.Y + rng.Next(-9, 10))
+                );
 
-                if (line.Length < 1E-6) { continue; }
+                if (line.Length < 1E-6)
+                {
+                    continue;
+                }
 
                 cases++;
 
                 int crossings = CountSustainedCrossings(line, p => p.DistanceTo(circle.Center) < circle.Radius);
-                if (crossings > 0) { withCrossings++; }
+                if (crossings > 0)
+                {
+                    withCrossings++;
+                }
 
-                if (Intersection2.GetIntersections(circle, line, Tol).Length < crossings) { short_++; }
+                if (Intersection2.GetIntersections(circle, line, Tol).Length < crossings)
+                {
+                    short_++;
+                }
             }
 
             Assert.True(cases > 400, $"only {cases} segments");
@@ -107,24 +135,40 @@ namespace GeometryHelper.UnitTest.Plane
         public void EveryTimeASegmentEntersOrLeavesARectangleThereIsACrossing()
         {
             Random rng = new Random(7002);
-            int cases = 0, withCrossings = 0, short_ = 0;
+            int cases = 0,
+                withCrossings = 0,
+                short_ = 0;
 
             for (int t = 0; t < 600; t++)
             {
-                var rect = new GeoRectangle2(new GeoPoint2(rng.Next(-6, 7), rng.Next(-6, 7)), 2 + rng.Next(1, 6), 2 + rng.Next(1, 6));
+                var rect = new GeoRectangle2(
+                    new GeoPoint2(rng.Next(-6, 7), rng.Next(-6, 7)),
+                    2 + rng.Next(1, 6),
+                    2 + rng.Next(1, 6)
+                );
 
                 var line = new GeoLine2(
                     new GeoPoint2(rect.Center.X + rng.Next(-9, 10), rect.Center.Y + rng.Next(-9, 10)),
-                    new GeoPoint2(rect.Center.X + rng.Next(-9, 10), rect.Center.Y + rng.Next(-9, 10)));
+                    new GeoPoint2(rect.Center.X + rng.Next(-9, 10), rect.Center.Y + rng.Next(-9, 10))
+                );
 
-                if (line.Length < 1E-6) { continue; }
+                if (line.Length < 1E-6)
+                {
+                    continue;
+                }
 
                 cases++;
 
                 int crossings = CountSustainedCrossings(line, p => Containment2.Contains(rect, p, Tol));
-                if (crossings > 0) { withCrossings++; }
+                if (crossings > 0)
+                {
+                    withCrossings++;
+                }
 
-                if (Intersection2.GetIntersections(rect, line, Tol).Length < crossings) { short_++; }
+                if (Intersection2.GetIntersections(rect, line, Tol).Length < crossings)
+                {
+                    short_++;
+                }
             }
 
             Assert.True(cases > 400, $"only {cases} segments");
@@ -136,7 +180,10 @@ namespace GeometryHelper.UnitTest.Plane
         public void EveryTimeASegmentEntersOrLeavesAPolygonThereIsACrossing()
         {
             Random rng = new Random(7003);
-            int cases = 0, withCrossings = 0, short_ = 0, shortChain = 0;
+            int cases = 0,
+                withCrossings = 0,
+                short_ = 0,
+                shortChain = 0;
 
             for (int t = 0; t < 400; t++)
             {
@@ -151,23 +198,39 @@ namespace GeometryHelper.UnitTest.Plane
                     var closed = new List<GeoPoint2>(profile) { profile[0] };
                     chain = new GeoPolyline2(closed);
                 }
-                catch (ArgumentException) { continue; }
+                catch (ArgumentException)
+                {
+                    continue;
+                }
 
                 var line = new GeoLine2(
                     new GeoPoint2(rng.Next(-12, 13), rng.Next(-12, 13)),
-                    new GeoPoint2(rng.Next(-12, 13), rng.Next(-12, 13)));
+                    new GeoPoint2(rng.Next(-12, 13), rng.Next(-12, 13))
+                );
 
-                if (line.Length < 1E-6) { continue; }
+                if (line.Length < 1E-6)
+                {
+                    continue;
+                }
 
                 cases++;
 
                 int crossings = CountSustainedCrossings(line, p => Containment2.Contains(poly, p, Tol));
-                if (crossings > 0) { withCrossings++; }
+                if (crossings > 0)
+                {
+                    withCrossings++;
+                }
 
-                if (Intersection2.GetIntersections(poly, line, Tol).Length < crossings) { short_++; }
+                if (Intersection2.GetIntersections(poly, line, Tol).Length < crossings)
+                {
+                    short_++;
+                }
 
                 // The outline as a chain must find the same crossings the outline as a region does.
-                if (Intersection2.GetIntersections(chain, line, Tol).Length < crossings) { shortChain++; }
+                if (Intersection2.GetIntersections(chain, line, Tol).Length < crossings)
+                {
+                    shortChain++;
+                }
             }
 
             Assert.True(cases > 250, $"only {cases} segments");
@@ -180,7 +243,9 @@ namespace GeometryHelper.UnitTest.Plane
         public void TwoCirclesThatOverlapAlwaysMeet()
         {
             Random rng = new Random(7004);
-            int overlapping = 0, missed = 0, offRim = 0;
+            int overlapping = 0,
+                missed = 0,
+                offRim = 0;
 
             for (int t = 0; t < 2000; t++)
             {
@@ -194,19 +259,32 @@ namespace GeometryHelper.UnitTest.Plane
                 double lower = Math.Abs(one.Radius - two.Radius);
                 double upper = one.Radius + two.Radius;
 
-                if (apart <= lower + 1E-3 || apart >= upper - 1E-3) { continue; }
+                if (apart <= lower + 1E-3 || apart >= upper - 1E-3)
+                {
+                    continue;
+                }
 
                 overlapping++;
 
                 GeoPoint2[] found = Intersection2.GetIntersections(one, two, Tol);
 
                 // Two rims that properly cross meet at two points.
-                if (found.Length < 2) { missed++; continue; }
+                if (found.Length < 2)
+                {
+                    missed++;
+                    continue;
+                }
 
                 foreach (GeoPoint2 hit in found)
                 {
-                    if (Math.Abs(hit.DistanceTo(one.Center) - one.Radius) > 1E-6) { offRim++; }
-                    if (Math.Abs(hit.DistanceTo(two.Center) - two.Radius) > 1E-6) { offRim++; }
+                    if (Math.Abs(hit.DistanceTo(one.Center) - one.Radius) > 1E-6)
+                    {
+                        offRim++;
+                    }
+                    if (Math.Abs(hit.DistanceTo(two.Center) - two.Radius) > 1E-6)
+                    {
+                        offRim++;
+                    }
                 }
             }
 
@@ -219,19 +297,27 @@ namespace GeometryHelper.UnitTest.Plane
         public void TwoSegmentsThatCrossAlwaysMeet()
         {
             Random rng = new Random(7005);
-            int crossing = 0, missed = 0, offSegment = 0, nearlyParallel = 0;
+            int crossing = 0,
+                missed = 0,
+                offSegment = 0,
+                nearlyParallel = 0;
 
             for (int t = 0; t < 4000; t++)
             {
                 var a = new GeoLine2(
                     new GeoPoint2(rng.Next(-9, 10), rng.Next(-9, 10)),
-                    new GeoPoint2(rng.Next(-9, 10), rng.Next(-9, 10)));
+                    new GeoPoint2(rng.Next(-9, 10), rng.Next(-9, 10))
+                );
 
                 var b = new GeoLine2(
                     new GeoPoint2(rng.Next(-9, 10), rng.Next(-9, 10)),
-                    new GeoPoint2(rng.Next(-9, 10), rng.Next(-9, 10)));
+                    new GeoPoint2(rng.Next(-9, 10), rng.Next(-9, 10))
+                );
 
-                if (a.Length < 1E-6 || b.Length < 1E-6) { continue; }
+                if (a.Length < 1E-6 || b.Length < 1E-6)
+                {
+                    continue;
+                }
 
                 // Each segment strictly straddles the line the other runs along, worked out from the
                 // signs of the cross products rather than from anything the library computes.
@@ -240,8 +326,14 @@ namespace GeometryHelper.UnitTest.Plane
                 double d3 = Side(b, a.StartPoint);
                 double d4 = Side(b, a.EndPoint);
 
-                if (!(d1 * d2 < 0 && d3 * d4 < 0)) { continue; }
-                if (Math.Min(Math.Min(Math.Abs(d1), Math.Abs(d2)), Math.Min(Math.Abs(d3), Math.Abs(d4))) < 1E-3) { continue; }
+                if (!(d1 * d2 < 0 && d3 * d4 < 0))
+                {
+                    continue;
+                }
+                if (Math.Min(Math.Min(Math.Abs(d1), Math.Abs(d2)), Math.Min(Math.Abs(d3), Math.Abs(d4))) < 1E-3)
+                {
+                    continue;
+                }
 
                 // Segments within the angle tolerance of parallel are counted too: they cross, so they meet.
                 // They used to be refused as parallel, which made the crossing disagree with CollidesWith.
@@ -252,9 +344,16 @@ namespace GeometryHelper.UnitTest.Plane
 
                 crossing++;
 
-                if (!Intersection2.TryIntersectWith(a, b, out GeoPoint2 hit, Tol)) { missed++; continue; }
+                if (!Intersection2.TryIntersectWith(a, b, out GeoPoint2 hit, Tol))
+                {
+                    missed++;
+                    continue;
+                }
 
-                if (!Containment2.IsPointOn(a, hit, Tol) || !Containment2.IsPointOn(b, hit, Tol)) { offSegment++; }
+                if (!Containment2.IsPointOn(a, hit, Tol) || !Containment2.IsPointOn(b, hit, Tol))
+                {
+                    offSegment++;
+                }
             }
 
             Assert.True(crossing > 300, $"only {crossing} pairs properly crossed");
@@ -267,7 +366,7 @@ namespace GeometryHelper.UnitTest.Plane
         private static double Side(GeoLine2 line, GeoPoint2 point)
         {
             return (line.EndPoint.X - line.StartPoint.X) * (point.Y - line.StartPoint.Y)
-                 - (line.EndPoint.Y - line.StartPoint.Y) * (point.X - line.StartPoint.X);
+                - (line.EndPoint.Y - line.StartPoint.Y) * (point.X - line.StartPoint.X);
         }
     }
 }

@@ -33,7 +33,11 @@ namespace GeometryHelper.UnitTest.Solid
             // The measured example: on 300 by 100 along X, t = 45° is (212.1, 70.7) from the centre, 18.4° off the axis
             // seen from the centre.
             GeoEllipse3 level = Ellipse3Oracle.Upright(300, 100).Build();
-            Assert.True(level.GetPointAtAngle(Math.PI / 4).IsEqualTo(new GeoPoint3(40 + 212.13203435596427, -25 + 70.71067811865476, 60), Tight));
+            Assert.True(
+                level
+                    .GetPointAtAngle(Math.PI / 4)
+                    .IsEqualTo(new GeoPoint3(40 + 212.13203435596427, -25 + 70.71067811865476, 60), Tight)
+            );
         }
 
         [Fact]
@@ -60,7 +64,15 @@ namespace GeometryHelper.UnitTest.Solid
 
             // Off the rim, in the plane or not, it is the 2D ellipse's angle at the foot.
             GeoEllipse2 flat = specimen.Flat();
-            foreach (GeoPoint3 point in new[] { specimen.At(150, 40, 0), specimen.At(-420, 260, 55), specimen.At(250, -10, -30), specimen.At(5, -90, 300) })
+            foreach (
+                GeoPoint3 point in new[]
+                {
+                    specimen.At(150, 40, 0),
+                    specimen.At(-420, 260, 55),
+                    specimen.At(250, -10, -30),
+                    specimen.At(5, -90, 300),
+                }
+            )
             {
                 Assert.Equal(flat.GetAngleAtPoint(specimen.Foot(point)), ellipse.GetAngleAtPoint(point), 1E-12);
             }
@@ -71,7 +83,9 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // 2D decision 9 and A1: the centre's nearest rim point is the end of the minor axis on its positive side, t =
             // π/2, a circle's too. GeoCircle3 gives parameter 0 there instead (Parametrization3.cs:487-490).
-            foreach (Ellipse3Oracle.Specimen specimen in new[] { Ellipse3Oracle.Tilted(), Ellipse3Oracle.Tilted(200, 200) })
+            foreach (
+                Ellipse3Oracle.Specimen specimen in new[] { Ellipse3Oracle.Tilted(), Ellipse3Oracle.Tilted(200, 200) }
+            )
             {
                 GeoEllipse3 ellipse = specimen.Build();
 
@@ -192,8 +206,16 @@ namespace GeometryHelper.UnitTest.Solid
 
             foreach (double d in new[] { 0.0, 120.0, 334.0, 777.0, 1300.0 })
             {
-                Assert.True(ellipse.GetPointAtDistance(d).IsEqualTo(specimen.Lift(flat.GetPointAtDistance(d)), Tight), $"d = {d}");
-                Assert.True(ellipse.GetPointAtDistance(d + flat.Length).IsEqualTo(specimen.Lift(flat.GetPointAtDistance(d)), Tight), $"d = {d} + L");
+                Assert.True(
+                    ellipse.GetPointAtDistance(d).IsEqualTo(specimen.Lift(flat.GetPointAtDistance(d)), Tight),
+                    $"d = {d}"
+                );
+                Assert.True(
+                    ellipse
+                        .GetPointAtDistance(d + flat.Length)
+                        .IsEqualTo(specimen.Lift(flat.GetPointAtDistance(d)), Tight),
+                    $"d = {d} + L"
+                );
             }
         }
 
@@ -205,7 +227,15 @@ namespace GeometryHelper.UnitTest.Solid
             GeoEllipse3 ellipse = specimen.Build();
             GeoEllipse2 flat = specimen.Flat();
 
-            foreach (GeoPoint3 point in new[] { specimen.At(150, 40, 0), specimen.At(-420, 260, 55), specimen.At(250, -10, -30), specimen.Rim(4.0) })
+            foreach (
+                GeoPoint3 point in new[]
+                {
+                    specimen.At(150, 40, 0),
+                    specimen.At(-420, 260, 55),
+                    specimen.At(250, -10, -30),
+                    specimen.Rim(4.0),
+                }
+            )
             {
                 GeoPoint2 foot = specimen.Foot(point);
 

@@ -23,8 +23,14 @@ namespace GeometryHelper.Viewer
 
         private static readonly KeyValuePair<DiagnosticChecks, string>[] CheckLabels =
         {
-            new KeyValuePair<DiagnosticChecks, string>(DiagnosticChecks.Edges, "Open, non-manifold and same-way edges (bodies, meshes)"),
-            new KeyValuePair<DiagnosticChecks, string>(DiagnosticChecks.Report, "Body report: Validate(), IsClosed(), volume"),
+            new KeyValuePair<DiagnosticChecks, string>(
+                DiagnosticChecks.Edges,
+                "Open, non-manifold and same-way edges (bodies, meshes)"
+            ),
+            new KeyValuePair<DiagnosticChecks, string>(
+                DiagnosticChecks.Report,
+                "Body report: Validate(), IsClosed(), volume"
+            ),
             new KeyValuePair<DiagnosticChecks, string>(DiagnosticChecks.Normals, "Face normals as arrows"),
             new KeyValuePair<DiagnosticChecks, string>(DiagnosticChecks.Flatness, "Faces not flat"),
             new KeyValuePair<DiagnosticChecks, string>(DiagnosticChecks.Crossings, "Loops crossing themselves"),
@@ -34,17 +40,25 @@ namespace GeometryHelper.Viewer
             new KeyValuePair<DiagnosticChecks, string>(DiagnosticChecks.Slivers, "Slivers"),
             new KeyValuePair<DiagnosticChecks, string>(DiagnosticChecks.Gap, "Gap between two items, magnified"),
             new KeyValuePair<DiagnosticChecks, string>(DiagnosticChecks.Spheres, "Tolerance spheres at the vertices"),
-            new KeyValuePair<DiagnosticChecks, string>(DiagnosticChecks.Pieces, "Pieces of a layer, coloured one by one"),
-            new KeyValuePair<DiagnosticChecks, string>(DiagnosticChecks.Clash, "Clash between bodies: volume shared, touching"),
+            new KeyValuePair<DiagnosticChecks, string>(
+                DiagnosticChecks.Pieces,
+                "Pieces of a layer, coloured one by one"
+            ),
+            new KeyValuePair<DiagnosticChecks, string>(
+                DiagnosticChecks.Clash,
+                "Clash between bodies: volume shared, touching"
+            ),
         };
 
         private readonly ObservableCollection<FindingRow> _findings = new ObservableCollection<FindingRow>();
-        private readonly List<KeyValuePair<DiagnosticChecks, CheckBox>> _ticks = new List<KeyValuePair<DiagnosticChecks, CheckBox>>();
+        private readonly List<KeyValuePair<DiagnosticChecks, CheckBox>> _ticks =
+            new List<KeyValuePair<DiagnosticChecks, CheckBox>>();
         private CancellationTokenSource _diagCts;
         private int _diagGeneration;
         private DiagnosticReport _diagReport;
         private bool _syncingDiag;
         private DispatcherTimer _lensTimer;
+
         // The scale of the gap lens in each view, which each view works out from its own zoom; -1 for a view with no lens.
         private readonly double[] _lensScales = { -1.0, -1.0, -1.0, -1.0 };
 
@@ -71,11 +85,19 @@ namespace GeometryHelper.Viewer
         private void BuildDiagnosticsPane()
         {
             DiagList.ItemsSource = _findings;
-            DiagnosticChecks ticked = _settings.DiagnosticsTicked.HasValue ? (DiagnosticChecks)_settings.DiagnosticsTicked.Value & DiagnosticChecks.All : new DiagnosticOptions().Checks;
+            DiagnosticChecks ticked = _settings.DiagnosticsTicked.HasValue
+                ? (DiagnosticChecks)_settings.DiagnosticsTicked.Value & DiagnosticChecks.All
+                : new DiagnosticOptions().Checks;
 
             foreach (KeyValuePair<DiagnosticChecks, string> label in CheckLabels)
             {
-                var box = new CheckBox { Content = label.Value, IsChecked = (ticked & label.Key) != 0, Margin = new Thickness(0, 0, 12, 2), ToolTip = ToolTipOf(label.Key) };
+                var box = new CheckBox
+                {
+                    Content = label.Value,
+                    IsChecked = (ticked & label.Key) != 0,
+                    Margin = new Thickness(0, 0, 12, 2),
+                    ToolTip = ToolTipOf(label.Key),
+                };
                 _ticks.Add(new KeyValuePair<DiagnosticChecks, CheckBox>(label.Key, box));
                 DiagTicks.Children.Add(box);
             }
@@ -87,23 +109,31 @@ namespace GeometryHelper.Viewer
         {
             switch (check)
             {
-                case DiagnosticChecks.Edges: return "Red: used by one face. Magenta: used by three or more. Orange: both faces run it the same way. Where the library reads a body (Validate) it is asked first.";
-                case DiagnosticChecks.Report: return "What GeoSolid3.Validate(), IsClosed() and the volume say of each body";
-                case DiagnosticChecks.Gap: return "Select exactly two items: the library's DistanceTo and GetShortestLineTo, and the gap drawn larger so it is about 40 pixels";
-                case DiagnosticChecks.Pieces: return "The items of each layer, in the order of the scene, coloured one by one with their number and area";
-                case DiagnosticChecks.Clash: return "The library's clash check (Clash3.Find) between the selected bodies, or between one selected body and the rest; a finding selects both bodies";
-                default: return null;
+                case DiagnosticChecks.Edges:
+                    return "Red: used by one face. Magenta: used by three or more. Orange: both faces run it the same way. Where the library reads a body (Validate) it is asked first.";
+                case DiagnosticChecks.Report:
+                    return "What GeoSolid3.Validate(), IsClosed() and the volume say of each body";
+                case DiagnosticChecks.Gap:
+                    return "Select exactly two items: the library's DistanceTo and GetShortestLineTo, and the gap drawn larger so it is about 40 pixels";
+                case DiagnosticChecks.Pieces:
+                    return "The items of each layer, in the order of the scene, coloured one by one with their number and area";
+                case DiagnosticChecks.Clash:
+                    return "The library's clash check (Clash3.Find) between the selected bodies, or between one selected body and the rest; a finding selects both bodies";
+                default:
+                    return null;
             }
         }
 
-        private DiagnosticChecks TickedChecks()
-            => _ticks.Where(t => t.Value.IsChecked == true).Aggregate(DiagnosticChecks.None, (all, t) => all | t.Key);
+        private DiagnosticChecks TickedChecks() =>
+            _ticks.Where(t => t.Value.IsChecked == true).Aggregate(DiagnosticChecks.None, (all, t) => all | t.Key);
 
         private void SetDiagnosticsPane(bool show)
         {
             DiagnosticsPane.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
             DiagnosticsSplitter.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-            DiagnosticsColumn.Width = show ? new GridLength(Math.Max(240.0, _settings.DiagnosticsWidth)) : new GridLength(0.0);
+            DiagnosticsColumn.Width = show
+                ? new GridLength(Math.Max(240.0, _settings.DiagnosticsWidth))
+                : new GridLength(0.0);
             DiagnosticsColumn.MinWidth = show ? 240.0 : 0.0;
             DiagnosticsSplitterColumn.Width = show ? new GridLength(5.0) : new GridLength(0.0);
             DiagnosticsMenu.IsChecked = show;
@@ -111,7 +141,8 @@ namespace GeometryHelper.Viewer
 
         private void ToggleDiagnosticsPane() => SetDiagnosticsPane(DiagnosticsPane.Visibility != Visibility.Visible);
 
-        private void OnDiagnosticsPaneMenu(object sender, RoutedEventArgs e) => SetDiagnosticsPane(DiagnosticsMenu.IsChecked == true);
+        private void OnDiagnosticsPaneMenu(object sender, RoutedEventArgs e) =>
+            SetDiagnosticsPane(DiagnosticsMenu.IsChecked == true);
 
         private void OnDiagRun(object sender, RoutedEventArgs e)
         {
@@ -126,7 +157,10 @@ namespace GeometryHelper.Viewer
         private void SaveDiagnosticsSettings()
         {
             _settings.ShowDiagnostics = DiagnosticsPane.Visibility == Visibility.Visible;
-            _settings.DiagnosticsWidth = DiagnosticsPane.Visibility == Visibility.Visible ? DiagnosticsColumn.ActualWidth : _settings.DiagnosticsWidth;
+            _settings.DiagnosticsWidth =
+                DiagnosticsPane.Visibility == Visibility.Visible
+                    ? DiagnosticsColumn.ActualWidth
+                    : _settings.DiagnosticsWidth;
             _settings.DiagnosticsTicked = (int)TickedChecks();
         }
 
@@ -166,13 +200,19 @@ namespace GeometryHelper.Viewer
             int generation = ++_diagGeneration;
             DiagRunButton.IsEnabled = false;
             DiagCancelButton.IsEnabled = true;
-            DiagStatus.Text = "running on " + (items.Length == 0 ? scene.Items.Count : items.Length).ToString(CultureInfo.InvariantCulture) + " item(s)...";
+            DiagStatus.Text =
+                "running on "
+                + (items.Length == 0 ? scene.Items.Count : items.Length).ToString(CultureInfo.InvariantCulture)
+                + " item(s)...";
             var clock = Stopwatch.StartNew();
 
             try
             {
                 var options = new DiagnosticOptions { Checks = wanted, UseLibrary = !own };
-                DiagnosticReport report = await Task.Run(() => SceneDiagnostics.Run(scene, primitives, geometry, items, options, cts.Token), cts.Token);
+                DiagnosticReport report = await Task.Run(
+                    () => SceneDiagnostics.Run(scene, primitives, geometry, items, options, cts.Token),
+                    cts.Token
+                );
 
                 if (generation == _diagGeneration)
                 {
@@ -242,15 +282,17 @@ namespace GeometryHelper.Viewer
 
                 foreach (DiagnosticFinding f in report.Findings)
                 {
-                    _findings.Add(new FindingRow
-                    {
-                        Number = f.Number,
-                        Item = f.ItemName ?? string.Empty,
-                        Kind = f.Kind.ToString(),
-                        Text = f.Message + "   [" + f.Source + "]",
-                        Foreground = f.IsFault ? fault : fact,
-                        Finding = f,
-                    });
+                    _findings.Add(
+                        new FindingRow
+                        {
+                            Number = f.Number,
+                            Item = f.ItemName ?? string.Empty,
+                            Kind = f.Kind.ToString(),
+                            Text = f.Message + "   [" + f.Source + "]",
+                            Foreground = f.IsFault ? fault : fact,
+                            Finding = f,
+                        }
+                    );
                 }
             }
             finally
@@ -261,8 +303,15 @@ namespace GeometryHelper.Viewer
             _overlay.SetMarker(null);
             _overlay.SetDiagnostics(report.Overlay);
             RefreshLens(true);
-            string summary = report.Findings.Count.ToString(CultureInfo.InvariantCulture) + " finding(s), " + report.FaultCount.ToString(CultureInfo.InvariantCulture) + " fault(s), "
-                + report.Items.Count.ToString(CultureInfo.InvariantCulture) + " item(s), " + took.TotalSeconds.ToString("0.00", CultureInfo.InvariantCulture) + " s";
+            string summary =
+                report.Findings.Count.ToString(CultureInfo.InvariantCulture)
+                + " finding(s), "
+                + report.FaultCount.ToString(CultureInfo.InvariantCulture)
+                + " fault(s), "
+                + report.Items.Count.ToString(CultureInfo.InvariantCulture)
+                + " item(s), "
+                + took.TotalSeconds.ToString("0.00", CultureInfo.InvariantCulture)
+                + " s";
             DiagStatus.Text = summary;
             Log("diagnostics: " + summary);
 
@@ -273,7 +322,11 @@ namespace GeometryHelper.Viewer
 
             if (report.Findings.Count > MaxLoggedFindings)
             {
-                Log("  ... and " + (report.Findings.Count - MaxLoggedFindings).ToString(CultureInfo.InvariantCulture) + " more, in the diagnostics pane");
+                Log(
+                    "  ... and "
+                        + (report.Findings.Count - MaxLoggedFindings).ToString(CultureInfo.InvariantCulture)
+                        + " more, in the diagnostics pane"
+                );
             }
         }
 
@@ -316,7 +369,9 @@ namespace GeometryHelper.Viewer
 
         // A click on the finding already selected selects nothing new, so the list says nothing; it zooms to it again, which is what is wanted
         // after the view has been moved away.
-        private void OnDiagMouseDown(object sender, MouseButtonEventArgs e) => _rowPressed = RowUnder(DiagList, e) is FindingRow row && ReferenceEquals(row, DiagList.SelectedItem) ? row : null;
+        private void OnDiagMouseDown(object sender, MouseButtonEventArgs e) =>
+            _rowPressed =
+                RowUnder(DiagList, e) is FindingRow row && ReferenceEquals(row, DiagList.SelectedItem) ? row : null;
 
         private void OnDiagMouseUp(object sender, MouseButtonEventArgs e)
         {

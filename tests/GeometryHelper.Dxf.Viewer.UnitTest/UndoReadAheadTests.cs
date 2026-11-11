@@ -19,7 +19,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             DxfDatabase database = DxfDatabase.Parse(BigDrawing.Text(2000));
             database.LayerTable.Add(new DxfLayerTableRecord { Name = "Unused" });
-            var text = new DxfMText { Contents = "BEAM B-1", Location = new GeoPoint3(10, -40, 0), TextHeight = 2.5, Layer = "Notes" };
+            var text = new DxfMText
+            {
+                Contents = "BEAM B-1",
+                Location = new GeoPoint3(10, -40, 0),
+                TextHeight = 2.5,
+                Layer = "Notes",
+            };
             database.ModelSpace.AppendEntity(text);
             mtext = text.Handle;
             return CadDocument.From(DxfDatabase.Parse(database.ToText()), "undo-read-ahead.dxf");
@@ -32,8 +38,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return stream.ToArray();
         }
 
-        private static string[] Handles(CadDocument document, int from, int count)
-            => document.ModelSpace.Block.Cast<DxfEntity>().Where(e => !e.IsErased).Skip(from).Take(count).Select(e => e.Handle).ToArray();
+        private static string[] Handles(CadDocument document, int from, int count) =>
+            document
+                .ModelSpace.Block.Cast<DxfEntity>()
+                .Where(e => !e.IsErased)
+                .Skip(from)
+                .Take(count)
+                .Select(e => e.Handle)
+                .ToArray();
 
         /// <summary>
         /// MOVE, ERASE, COPY, a layer changed, a block edited, PURGE, a grip stretched and an MTEXT edited, each saved as it
@@ -130,8 +142,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string[] handles = Handles(document, 0, 3);
             byte[] start = Saved(document);
 
-            CadEditResult Move(string handle, double dx)
-                => document.ApplyEdit("MOVE", new[] { new CadEditRecord(CadEditRecordKind.Transformed, handle) }, s => s.Document.FindEntity(handle).TransformBy(GeoTransform3.Translation(new GeoVector3(dx, 0, 0))));
+            CadEditResult Move(string handle, double dx) =>
+                document.ApplyEdit("MOVE", new[] { new CadEditRecord(CadEditRecordKind.Transformed, handle) }, s =>
+                    s.Document.FindEntity(handle).TransformBy(GeoTransform3.Translation(new GeoVector3(dx, 0, 0)))
+                );
 
             Assert.True(Move(handles[0], 5).Succeeded);
             byte[] first = Saved(document);

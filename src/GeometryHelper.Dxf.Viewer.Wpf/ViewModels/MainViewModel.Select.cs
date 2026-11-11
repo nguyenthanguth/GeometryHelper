@@ -103,7 +103,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            ShowFindReplace(new FindReplaceViewModel(document, _current?.Session, e.Payload as IReadOnlyList<string>, ZoomToObjects));
+            ShowFindReplace(
+                new FindReplaceViewModel(document, _current?.Session, e.Payload as IReadOnlyList<string>, ZoomToObjects)
+            );
             e.Handled = true;
         }
     }

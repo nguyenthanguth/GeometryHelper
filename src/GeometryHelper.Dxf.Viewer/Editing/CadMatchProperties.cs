@@ -59,7 +59,21 @@ namespace GeometryHelper.Dxf.Viewer
         Multileader = 8192,
 
         /// <summary>Every property above, as AutoCAD checks them all until they are changed.</summary>
-        All = Color | Layer | Linetype | LinetypeScale | Lineweight | Transparency | Thickness | Dimension | Text | Hatch | Polyline | Viewport | Table | Multileader,
+        All =
+            Color
+            | Layer
+            | Linetype
+            | LinetypeScale
+            | Lineweight
+            | Transparency
+            | Thickness
+            | Dimension
+            | Text
+            | Hatch
+            | Polyline
+            | Viewport
+            | Table
+            | Multileader,
     }
 
     /// <summary>Copies the properties of one object onto another, as MATCHPROP does.</summary>
@@ -144,7 +158,11 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            if ((which & CadMatchProperties.Dimension) != 0 && from is DxfDimension dimension && to is DxfDimension other)
+            if (
+                (which & CadMatchProperties.Dimension) != 0
+                && from is DxfDimension dimension
+                && to is DxfDimension other
+            )
             {
                 CadDimStyleEditor.Match(db, dimension, other);
             }
@@ -177,14 +195,24 @@ namespace GeometryHelper.Dxf.Viewer
                 view.FreezeLayersInViewport(viewport.GetFrozenLayers());
             }
 
-            if ((which & CadMatchProperties.Table) != 0 && from is DxfTable table && to is DxfTable grid && table.TableStyle != null
-                && !ReferenceEquals(table.TableStyle, grid.TableStyle))
+            if (
+                (which & CadMatchProperties.Table) != 0
+                && from is DxfTable table
+                && to is DxfTable grid
+                && table.TableStyle != null
+                && !ReferenceEquals(table.TableStyle, grid.TableStyle)
+            )
             {
                 grid.TableStyle = table.TableStyle;
                 CadTableEditor.Redraw(grid, CadDocument.Showing(db));
             }
 
-            if ((which & CadMatchProperties.Multileader) != 0 && from is DxfMLeader mleader && to is DxfMLeader leader && mleader.MLeaderStyle != null)
+            if (
+                (which & CadMatchProperties.Multileader) != 0
+                && from is DxfMLeader mleader
+                && to is DxfMLeader leader
+                && mleader.MLeaderStyle != null
+            )
             {
                 leader.MLeaderStyle = mleader.MLeaderStyle;
             }
@@ -192,8 +220,12 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static PropertyInfo Thickness(DxfEntity entity)
         {
-            PropertyInfo property = entity.GetType().GetProperty("Thickness", BindingFlags.Public | BindingFlags.Instance);
-            return property != null && property.PropertyType == typeof(double) && property.CanRead && property.CanWrite ? property : null;
+            PropertyInfo property = entity
+                .GetType()
+                .GetProperty("Thickness", BindingFlags.Public | BindingFlags.Instance);
+            return property != null && property.PropertyType == typeof(double) && property.CanRead && property.CanWrite
+                ? property
+                : null;
         }
 
         /// <summary>The text style and height between texts and MTEXTs, the oblique angle and width factor from a text to a text.</summary>
@@ -289,7 +321,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             for (int i = 0; i < from.NumberOfVertices; i++)
             {
-                if (Math.Abs(from.GetStartWidthAt(i) - width) > tolerance || Math.Abs(from.GetEndWidthAt(i) - width) > tolerance)
+                if (
+                    Math.Abs(from.GetStartWidthAt(i) - width) > tolerance
+                    || Math.Abs(from.GetEndWidthAt(i) - width) > tolerance
+                )
                 {
                     return;
                 }

@@ -18,7 +18,8 @@ namespace GeometryHelper.UnitTest.Solid
         private static GeoSpline3 Line(GeoPoint3 a, GeoPoint3 b) => GeoSpline3.FromPolyline(new GeoPolyline3(a, b));
 
         /// <summary>The circle of radius 50 about the origin in the floor, from (50, 0, 0) counter-clockwise.</summary>
-        private static GeoSpline3 Ring() => GeoSpline2.FromCircle(new GeoCircle2(new GeoPoint2(0, 0), 50)).ToSpline3(GeoCoordinateSystem3.Global);
+        private static GeoSpline3 Ring() =>
+            GeoSpline2.FromCircle(new GeoCircle2(new GeoPoint2(0, 0), 50)).ToSpline3(GeoCoordinateSystem3.Global);
 
         [Fact]
         public void ASpline_AgainstASegmentOfNoLength_IsAgainstItsPoint()
@@ -66,7 +67,11 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AnEndOfASplineOnAShape_IsAPlaceOfItsOwn()
         {
-            GeoSpline3 arch = new GeoSpline3(3, new[] { P(0, 0, 0), P(100, 0, 150), P(200, 0, 150), P(300, 0, 0) }, new double[] { 0, 0, 0, 0, 1, 1, 1, 1 });
+            GeoSpline3 arch = new GeoSpline3(
+                3,
+                new[] { P(0, 0, 0), P(100, 0, 150), P(200, 0, 150), P(300, 0, 0) },
+                new double[] { 0, 0, 0, 0, 1, 1, 1, 1 }
+            );
 
             // The floor meets the arch at its two ends and nowhere between, the plane z = -5 at neither, and a ball about the start at the start.
             GeoPoint3[] floor = arch.GetIntersections(GeoPlane3.XY, Strict);
@@ -96,7 +101,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             // Along an edge: on the box's skin all the way and nought from it; where it lies along the skin it crosses nothing.
             Assert.Equal(0.0, along.DistanceTo(box, Strict), 9);
-            Assert.All(along.GetIntersections(box, Strict), p => Assert.True(p.Y == 0.0 && p.Z == 0.0 || (Math.Abs(p.Y) <= 1E-9 && Math.Abs(p.Z) <= 1E-9)));
+            Assert.All(along.GetIntersections(box, Strict), p =>
+                Assert.True(p.Y == 0.0 && p.Z == 0.0 || (Math.Abs(p.Y) <= 1E-9 && Math.Abs(p.Z) <= 1E-9))
+            );
 
             // Across the middle of two faces it meets the edge between them.
             GeoPoint3[] edge = grazing.GetIntersections(box, Strict);
@@ -117,7 +124,10 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPoint3[] pierced = ring.GetIntersections(ball, Strict);
 
             Assert.Equal(2, cut.Length);
-            Assert.True(cut[0].DistanceTo(P(1E6 + 30, 1E6 + 40, 1E6)) <= 1E-6 && cut[1].DistanceTo(P(1E6 + 30, 1E6 - 40, 1E6)) <= 1E-6);
+            Assert.True(
+                cut[0].DistanceTo(P(1E6 + 30, 1E6 + 40, 1E6)) <= 1E-6
+                    && cut[1].DistanceTo(P(1E6 + 30, 1E6 - 40, 1E6)) <= 1E-6
+            );
             Assert.Equal(2, pierced.Length);
             Assert.True(pierced[0].DistanceTo(P(1E6 + 49, 1E6 + Math.Sqrt(99), 1E6)) <= 1E-6);
             Assert.Equal(0.0, ring.DistanceTo(plane, Strict), 9);
@@ -145,7 +155,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ASplineInTheMiddleOfAnOpeningOfASolid_IsNotInItsMaterial()
         {
-            GeoSolid3 plate = new GeoObb3(P(0, 0, 0), 100, 100, 10).ToSolid().WithOpenings(new[] { new GeoObb3(P(0, 0, 0), 20, 20, 12).ToSolid() });
+            GeoSolid3 plate = new GeoObb3(P(0, 0, 0), 100, 100, 10)
+                .ToSolid()
+                .WithOpenings(new[] { new GeoObb3(P(0, 0, 0), 20, 20, 12).ToSolid() });
             GeoSpline3 inside = Line(P(0, 0, -2), P(0, 0, 2));
             GeoSpline3 across = Line(P(30, 0, -2), P(30, 0, 2));
 
@@ -170,7 +182,11 @@ namespace GeometryHelper.UnitTest.Solid
             // The spline and the arc lie in one plane, and are crossed as the plane crosses them: the spline runs along the circle the arc
             // is of, past the arc's ends as well, and meets it nowhere, as the circle spline of the plane meets an arc of its own circle.
             Assert.Empty(spline.GetIntersections(arc, Strict));
-            Assert.Empty(GeoSpline2.FromCircle(new GeoCircle2(new GeoPoint2(10, 20), 70)).GetIntersections(new GeoArc2(new GeoPoint2(10, 20), 70, 0.5, 2.5), Strict));
+            Assert.Empty(
+                GeoSpline2
+                    .FromCircle(new GeoCircle2(new GeoPoint2(10, 20), 70))
+                    .GetIntersections(new GeoArc2(new GeoPoint2(10, 20), 70, 0.5, 2.5), Strict)
+            );
             Assert.True(spline.CollidesWith(arc, Strict));
             Assert.Equal(spline.DistanceTo(arc, Strict), arc.DistanceTo(spline, Strict));
         }
@@ -179,7 +195,16 @@ namespace GeometryHelper.UnitTest.Solid
         public void ASplineAgainstAShapeBothWaysRound_IsRefusedForNothingButNull()
         {
             GeoSpline3 ring = Ring();
-            Type[] classes = { typeof(GeoPolyline3), typeof(GeoPolygon3), typeof(GeoFace3), typeof(GeoObb3), typeof(GeoSolid3), typeof(GeoPolylineArc3), typeof(GeoPolygonArc3) };
+            Type[] classes =
+            {
+                typeof(GeoPolyline3),
+                typeof(GeoPolygon3),
+                typeof(GeoFace3),
+                typeof(GeoObb3),
+                typeof(GeoSolid3),
+                typeof(GeoPolylineArc3),
+                typeof(GeoPolygonArc3),
+            };
 
             Assert.Throws<ArgumentNullException>(() => ring.DistanceTo((GeoPolyline3)null));
             Assert.Throws<ArgumentNullException>(() => ring.GetIntersections((GeoSolid3)null, Strict));

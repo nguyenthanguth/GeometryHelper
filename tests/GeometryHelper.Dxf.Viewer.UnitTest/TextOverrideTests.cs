@@ -20,8 +20,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(result.Succeeded, result.Message);
             Assert.Contains(result.Records, r => r.Handle == handle && r.NewValue == " ");
             Assert.Equal(" ", Entity<DxfRotatedDimension>(document, handle).DimensionText);
-            Assert.Equal(string.Empty, Entity<DxfRotatedDimension>(document, handle).DimBlock.OfType<DxfMText>().Single().Contents);
-            Assert.Equal(" ", CadProperties.Describe(document, null, new[] { handle }).Groups.SelectMany(g => g.Rows).Single(r => r.Label == "Text override").Value);
+            Assert.Equal(
+                string.Empty,
+                Entity<DxfRotatedDimension>(document, handle).DimBlock.OfType<DxfMText>().Single().Contents
+            );
+            Assert.Equal(
+                " ",
+                CadProperties
+                    .Describe(document, null, new[] { handle })
+                    .Groups.SelectMany(g => g.Rows)
+                    .Single(r => r.Label == "Text override")
+                    .Value
+            );
 
             DxfDatabase again = DxfDatabase.Parse(document.Database.ToText());
             Assert.Equal(" ", again.ModelSpace.OfType<DxfRotatedDimension>().Single().DimensionText);

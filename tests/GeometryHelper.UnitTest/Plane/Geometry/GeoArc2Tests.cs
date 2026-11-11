@@ -94,23 +94,28 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(under.MidPoint.Y < 0);
 
             // A middle that is nearly at one end gives the long way round.
-            GeoArc2 long_ = GeoArc2.FromThreePoints(start, new GeoPoint2(0, -10), new GeoPoint2(10.0 * Math.Cos(0.2), 10.0 * Math.Sin(0.2)));
+            GeoArc2 long_ = GeoArc2.FromThreePoints(
+                start,
+                new GeoPoint2(0, -10),
+                new GeoPoint2(10.0 * Math.Cos(0.2), 10.0 * Math.Sin(0.2))
+            );
             Assert.True(Math.Abs(long_.SweptAngle) > Math.PI);
         }
 
         [Fact]
         public void FromThreePoints_RefusesPointsOnOneLine()
         {
-            Assert.Throws<InvalidOperationException>(() => GeoArc2.FromThreePoints(
-                new GeoPoint2(0, 0), new GeoPoint2(5, 5), new GeoPoint2(10, 10)));
+            Assert.Throws<InvalidOperationException>(() =>
+                GeoArc2.FromThreePoints(new GeoPoint2(0, 0), new GeoPoint2(5, 5), new GeoPoint2(10, 10))
+            );
         }
 
         [Theory]
-        [InlineData(1.0)]            // a half turn counter-clockwise
-        [InlineData(-1.0)]           // a half turn clockwise
-        [InlineData(0.4142135623730951)]   // a quarter turn: tan(22.5 degrees)
+        [InlineData(1.0)] // a half turn counter-clockwise
+        [InlineData(-1.0)] // a half turn clockwise
+        [InlineData(0.4142135623730951)] // a quarter turn: tan(22.5 degrees)
         [InlineData(-0.2)]
-        [InlineData(2.5)]            // more than a half turn
+        [InlineData(2.5)] // more than a half turn
         public void FromBulge_AgreesWithTheBulgeItReportsBack(double bulge)
         {
             var start = new GeoPoint2(3, 4);
@@ -149,9 +154,15 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void FromBulge_RefusesWhatIsNotAnArc()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => GeoArc2.FromBulge(new GeoPoint2(0, 0), new GeoPoint2(10, 0), 0.0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => GeoArc2.FromBulge(new GeoPoint2(0, 0), new GeoPoint2(10, 0), double.NaN));
-            Assert.Throws<InvalidOperationException>(() => GeoArc2.FromBulge(new GeoPoint2(4, 4), new GeoPoint2(4, 4), 0.5));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                GeoArc2.FromBulge(new GeoPoint2(0, 0), new GeoPoint2(10, 0), 0.0)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                GeoArc2.FromBulge(new GeoPoint2(0, 0), new GeoPoint2(10, 0), double.NaN)
+            );
+            Assert.Throws<InvalidOperationException>(() =>
+                GeoArc2.FromBulge(new GeoPoint2(4, 4), new GeoPoint2(4, 4), 0.5)
+            );
         }
 
         [Fact]
@@ -242,7 +253,9 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(arc.Length * 3.0, scaled.Length, 9);
 
             // A mirror reverses the way it sweeps but keeps its ends and its length.
-            GeoArc2 mirrored = arc.TransformBy(GeoTransform2.Mirror(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(1, 0))));
+            GeoArc2 mirrored = arc.TransformBy(
+                GeoTransform2.Mirror(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(1, 0)))
+            );
             Assert.NotEqual(arc.IsClockwise, mirrored.IsClockwise);
             Assert.Equal(arc.Length, mirrored.Length, 9);
             Assert.True(mirrored.StartPoint.IsEqualTo(new GeoPoint2(10, 0), new Tolerance(1E-8, 1E-8)));
@@ -260,7 +273,7 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolyline2 automatic = arc.ToPolyline();
             Assert.True(automatic[0].IsEqualTo(arc.StartPoint, Tight));
             Assert.True(automatic[automatic.VertexCount - 1].IsEqualTo(arc.EndPoint, Tight));
-            Assert.InRange(automatic.VertexCount, 10, 20);   // a quarter of about fifty
+            Assert.InRange(automatic.VertexCount, 10, 20); // a quarter of about fifty
 
             GeoPolyline2 spaced = arc.ToPolylineBySpacing(100.0);
             Assert.True(arc.Length / (spaced.VertexCount - 1) <= 100.0 + 1E-9);

@@ -76,7 +76,7 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(0, 0)),
                 new GeoLine2(new GeoPoint2(5, 5), new GeoPoint2(5, 5)),
-                new GeoLine2(new GeoPoint2(9, 1), new GeoPoint2(9, 1))
+                new GeoLine2(new GeoPoint2(9, 1), new GeoPoint2(9, 1)),
             };
 
             var result = Merge2.Join(segments, Tolerance.Global);
@@ -90,8 +90,8 @@ namespace GeometryHelper.UnitTest.Plane
             var segments = new[]
             {
                 new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
-                new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(5, 0)),   // sits on the junction
-                new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(5, 5))
+                new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(5, 0)), // sits on the junction
+                new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(5, 5)),
             };
 
             var result = Merge2.Join(segments, Tolerance.Global);
@@ -128,21 +128,21 @@ namespace GeometryHelper.UnitTest.Plane
                 new[]
                 {
                     new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
-                    new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(0, 0))      // straight back on itself
+                    new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(0, 0)), // straight back on itself
                 },
                 new[]
                 {
                     new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0)),
-                    new GeoLine2(new GeoPoint2(10, 0), new GeoPoint2(4, 0)),    // folds back
-                    new GeoLine2(new GeoPoint2(4, 0), new GeoPoint2(4, 4))
+                    new GeoLine2(new GeoPoint2(10, 0), new GeoPoint2(4, 0)), // folds back
+                    new GeoLine2(new GeoPoint2(4, 0), new GeoPoint2(4, 4)),
                 },
                 new[]
                 {
                     new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(4, 0)),
                     new GeoLine2(new GeoPoint2(4, 0), new GeoPoint2(4, 4)),
-                    new GeoLine2(new GeoPoint2(4, 4), new GeoPoint2(0, 0)),     // closes the loop
-                    new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(0, 0))      // degenerate on the seam
-                }
+                    new GeoLine2(new GeoPoint2(4, 4), new GeoPoint2(0, 0)), // closes the loop
+                    new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(0, 0)), // degenerate on the seam
+                },
             };
 
             foreach (var segments in awkward)
@@ -154,7 +154,8 @@ namespace GeometryHelper.UnitTest.Plane
                     {
                         Assert.False(
                             polyline[i].IsEqualTo(polyline[i - 1], Tolerance.Global),
-                            "vertices " + (i - 1) + " and " + i + " coincide: " + polyline[i]);
+                            "vertices " + (i - 1) + " and " + i + " coincide: " + polyline[i]
+                        );
                     }
                 }
             }
@@ -172,13 +173,19 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(5, 5)),
                 new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
-                new GeoLine2(new GeoPoint2(5, 5), new GeoPoint2(10, 5))
+                new GeoLine2(new GeoPoint2(5, 5), new GeoPoint2(10, 5)),
             };
 
             var result = Merge2.Join(segments, Tolerance.Global);
 
             Assert.Single(result);
-            AssertVertices(result[0], new GeoPoint2(0, 0), new GeoPoint2(5, 0), new GeoPoint2(5, 5), new GeoPoint2(10, 5));
+            AssertVertices(
+                result[0],
+                new GeoPoint2(0, 0),
+                new GeoPoint2(5, 0),
+                new GeoPoint2(5, 5),
+                new GeoPoint2(10, 5)
+            );
         }
 
         [Fact]
@@ -189,13 +196,19 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
                 new GeoLine2(new GeoPoint2(5, 5), new GeoPoint2(5, 0)),
-                new GeoLine2(new GeoPoint2(10, 5), new GeoPoint2(5, 5))
+                new GeoLine2(new GeoPoint2(10, 5), new GeoPoint2(5, 5)),
             };
 
             var result = Merge2.Join(segments, Tolerance.Global);
 
             Assert.Single(result);
-            AssertVertices(result[0], new GeoPoint2(0, 0), new GeoPoint2(5, 0), new GeoPoint2(5, 5), new GeoPoint2(10, 5));
+            AssertVertices(
+                result[0],
+                new GeoPoint2(0, 0),
+                new GeoPoint2(5, 0),
+                new GeoPoint2(5, 5),
+                new GeoPoint2(10, 5)
+            );
         }
 
         [Fact]
@@ -206,7 +219,7 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0)),
                 new GeoLine2(new GeoPoint2(10, 0), new GeoPoint2(10, 10)),
                 new GeoLine2(new GeoPoint2(10, 10), new GeoPoint2(0, 10)),
-                new GeoLine2(new GeoPoint2(0, 10), new GeoPoint2(0, 0))
+                new GeoLine2(new GeoPoint2(0, 10), new GeoPoint2(0, 0)),
             };
 
             var result = Merge2.Join(segments, Tolerance.Global);
@@ -233,7 +246,10 @@ namespace GeometryHelper.UnitTest.Plane
                     {
                         foreach (var b in Ends(result[j]))
                         {
-                            Assert.False(a.IsEqualTo(b, Tolerance.Global), "runs " + i + " and " + j + " still meet at " + a);
+                            Assert.False(
+                                a.IsEqualTo(b, Tolerance.Global),
+                                "runs " + i + " and " + j + " still meet at " + a
+                            );
                         }
                     }
                 }
@@ -249,7 +265,7 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
                 new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(10, 0)),
-                new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(5, 5))
+                new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(5, 5)),
             };
 
             var first = Describe(Merge2.Join(segments, Tolerance.Global));
@@ -272,7 +288,7 @@ namespace GeometryHelper.UnitTest.Plane
             var segments = new[]
             {
                 new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
-                new GeoLine2(new GeoPoint2(5.5, 0), new GeoPoint2(5.5, 5))   // 0.5 away from the first end
+                new GeoLine2(new GeoPoint2(5.5, 0), new GeoPoint2(5.5, 5)), // 0.5 away from the first end
             };
 
             Assert.Single(Merge2.Join(segments, new Tolerance(1.0, 1.0)));
@@ -287,12 +303,12 @@ namespace GeometryHelper.UnitTest.Plane
             var exact = new[]
             {
                 new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
-                new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(5, 5))
+                new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(5, 5)),
             };
             var nearMiss = new[]
             {
                 new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
-                new GeoLine2(new GeoPoint2(5, 1E-12), new GeoPoint2(5, 5))
+                new GeoLine2(new GeoPoint2(5, 1E-12), new GeoPoint2(5, 5)),
             };
 
             Assert.Single(Merge2.Join(exact, new Tolerance(0.0, 0.0)));
@@ -308,12 +324,12 @@ namespace GeometryHelper.UnitTest.Plane
             var throughOrigin = new[]
             {
                 new GeoLine2(new GeoPoint2(-5, 0), new GeoPoint2(0, 0)),
-                new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(0, 5))
+                new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(0, 5)),
             };
             var awayFromOrigin = new[]
             {
                 new GeoLine2(new GeoPoint2(7, 3), new GeoPoint2(12, 3)),
-                new GeoLine2(new GeoPoint2(12, 3), new GeoPoint2(12, 8))
+                new GeoLine2(new GeoPoint2(12, 3), new GeoPoint2(12, 8)),
             };
 
             Assert.Single(Merge2.Join(throughOrigin, zero));
@@ -348,7 +364,8 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(count + 1, result[0].VertexCount);
             Assert.True(
                 watch.Elapsed < TimeSpan.FromSeconds(3),
-                "joining " + count + " segments at a zero tolerance took " + watch.ElapsedMilliseconds + " ms");
+                "joining " + count + " segments at a zero tolerance took " + watch.ElapsedMilliseconds + " ms"
+            );
         }
 
         [Fact]
@@ -359,16 +376,14 @@ namespace GeometryHelper.UnitTest.Plane
             var tolerance = new Tolerance(1.0, 1.0);
             for (int step = 0; step <= 20; step++)
             {
-                double x = step * 0.1;   // walks across several cell boundaries
+                double x = step * 0.1; // walks across several cell boundaries
                 var segments = new[]
                 {
                     new GeoLine2(new GeoPoint2(x - 4, 0), new GeoPoint2(x, 0)),
-                    new GeoLine2(new GeoPoint2(x + 0.4, 0), new GeoPoint2(x + 0.4, 5))  // 0.4 away, inside tolerance
+                    new GeoLine2(new GeoPoint2(x + 0.4, 0), new GeoPoint2(x + 0.4, 5)), // 0.4 away, inside tolerance
                 };
 
-                Assert.True(
-                    Merge2.Join(segments, tolerance).Length == 1,
-                    "the pair at x=" + x + " was not joined");
+                Assert.True(Merge2.Join(segments, tolerance).Length == 1, "the pair at x=" + x + " was not joined");
             }
         }
 
@@ -403,7 +418,8 @@ namespace GeometryHelper.UnitTest.Plane
 
                 Assert.True(
                     outstanding.Remove(forward) || outstanding.Remove(Describe(backward)),
-                    "unexpected run: " + forward);
+                    "unexpected run: " + forward
+                );
             }
 
             Assert.Empty(outstanding);
@@ -455,7 +471,8 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(count + 1, result[0].VertexCount);
             Assert.True(
                 watch.Elapsed < TimeSpan.FromSeconds(5),
-                "joining " + count + " segments took " + watch.ElapsedMilliseconds + " ms");
+                "joining " + count + " segments took " + watch.ElapsedMilliseconds + " ms"
+            );
         }
 
         [Fact]
@@ -469,7 +486,9 @@ namespace GeometryHelper.UnitTest.Plane
             for (int i = 0; i < spokes; i++)
             {
                 double angle = 2.0 * Math.PI * i / spokes;
-                segments.Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(Math.Cos(angle) * 100.0, Math.Sin(angle) * 100.0)));
+                segments.Add(
+                    new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(Math.Cos(angle) * 100.0, Math.Sin(angle) * 100.0))
+                );
             }
 
             var watch = Stopwatch.StartNew();
@@ -480,7 +499,8 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(spokes / 2, result.Length);
             Assert.True(
                 watch.Elapsed < TimeSpan.FromSeconds(5),
-                "joining " + spokes + " spokes took " + watch.ElapsedMilliseconds + " ms");
+                "joining " + spokes + " spokes took " + watch.ElapsedMilliseconds + " ms"
+            );
         }
 
         #endregion
@@ -513,9 +533,11 @@ namespace GeometryHelper.UnitTest.Plane
                 for (int v = 1; v < vertices.Count; v++)
                 {
                     // Half the segments are stored backwards, so joining has to turn them round.
-                    built.Add(random.Next(2) == 0
-                        ? new GeoLine2(vertices[v - 1], vertices[v])
-                        : new GeoLine2(vertices[v], vertices[v - 1]));
+                    built.Add(
+                        random.Next(2) == 0
+                            ? new GeoLine2(vertices[v - 1], vertices[v])
+                            : new GeoLine2(vertices[v], vertices[v - 1])
+                    );
                 }
 
                 expected.Add(vertices);
@@ -592,7 +614,8 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 Assert.True(
                     expected[i].IsEqualTo(polyline[i], Tolerance.Global),
-                    "vertex " + i + ": expected " + expected[i] + " but found " + polyline[i]);
+                    "vertex " + i + ": expected " + expected[i] + " but found " + polyline[i]
+                );
             }
         }
 

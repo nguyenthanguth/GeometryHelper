@@ -23,7 +23,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="points">The sequence of AutoCAD 2D points to convert.</param>
         /// <returns>A list of converted <see cref="GeoPoint2"/>.</returns>
-        public static List<GeoPoint2> ToGeoPoint2(this IEnumerable<Point2d> points) => points.Select(ToGeoPoint2).ToList();
+        public static List<GeoPoint2> ToGeoPoint2(this IEnumerable<Point2d> points) =>
+            points.Select(ToGeoPoint2).ToList();
 
         /// <summary>
         /// Converts a AutoCAD 3D point to a GeometryHelper 2D point (discarding the Z coordinate).
@@ -37,7 +38,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="points">The sequence of AutoCAD 3D points to convert.</param>
         /// <returns>A list of converted <see cref="GeoPoint2"/>.</returns>
-        public static List<GeoPoint2> ToGeoPoint2(this IEnumerable<Point3d> points) => points.Select(ToGeoPoint2).ToList();
+        public static List<GeoPoint2> ToGeoPoint2(this IEnumerable<Point3d> points) =>
+            points.Select(ToGeoPoint2).ToList();
 
         /// <summary>
         /// Converts a AutoCAD 3D point to a GeometryHelper 3D point.
@@ -51,7 +53,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="points">The sequence of AutoCAD 3D points to convert.</param>
         /// <returns>A list of converted <see cref="GeoPoint3"/>.</returns>
-        public static List<GeoPoint3> ToGeoPoint3(this IEnumerable<Point3d> points) => points.Select(ToGeoPoint3).ToList();
+        public static List<GeoPoint3> ToGeoPoint3(this IEnumerable<Point3d> points) =>
+            points.Select(ToGeoPoint3).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper 2D point to a AutoCAD 2D point.
@@ -65,7 +68,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="points">The sequence of GeometryHelper 2D points to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Point2d"/>.</returns>
-        public static List<Point2d> ToAcadPoint2(this IEnumerable<GeoPoint2> points) => points.Select(ToAcadPoint2).ToList();
+        public static List<Point2d> ToAcadPoint2(this IEnumerable<GeoPoint2> points) =>
+            points.Select(ToAcadPoint2).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper 2D point to a AutoCAD 3D point (with Z = 0).
@@ -79,7 +83,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="points">The sequence of GeometryHelper 2D points to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Point3d"/>.</returns>
-        public static List<Point3d> ToAcadPoint3(this IEnumerable<GeoPoint2> points) => points.Select(ToAcadPoint3).ToList();
+        public static List<Point3d> ToAcadPoint3(this IEnumerable<GeoPoint2> points) =>
+            points.Select(ToAcadPoint3).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper 3D point to a AutoCAD 3D point.
@@ -93,6 +98,7 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="points">The sequence of GeometryHelper 3D points to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Point3d"/>.</returns>
-        public static List<Point3d> ToAcadPoint3(this IEnumerable<GeoPoint3> points) => points.Select(ToAcadPoint3).ToList();
+        public static List<Point3d> ToAcadPoint3(this IEnumerable<GeoPoint3> points) =>
+            points.Select(ToAcadPoint3).ToList();
     }
 }

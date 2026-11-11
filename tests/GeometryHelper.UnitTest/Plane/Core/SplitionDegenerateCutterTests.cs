@@ -21,8 +21,8 @@ namespace GeometryHelper.UnitTest.Plane
         private static readonly Tolerance Tol = new Tolerance(1E-4, 1E-4);
 
         // A bowtie: the edges (0,0)->(10,10) and (10,0)->(0,10) cross at (5, 5).
-        private static GeoPolygon2 Bowtie() => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(10, 10), new GeoPoint2(10, 0), new GeoPoint2(0, 10));
+        private static GeoPolygon2 Bowtie() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 10), new GeoPoint2(10, 0), new GeoPoint2(0, 10));
 
         [Fact]
         public void SelfIntersectingCutter_SplitsUnderTheEvenOddRule()
@@ -61,10 +61,18 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The extra vertex at (5, 0) carries no corner. It must not change any answer.
             var plain = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
             var withExtra = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(5, 0), new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(5, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
 
             Assert.Equal(5, withExtra.VertexCount);
             Assert.Equal(plain.Area, withExtra.Area, 9);
@@ -84,21 +92,25 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // Not a benchmark, a guard: the walk is meant to touch each vertex and each cut once, so a
             // subject and a cut list this size must not take a noticeable amount of time.
-            var path = new GeoPolyline2(Enumerable.Range(0, 500)
-                .Select(i => new GeoPoint2(i, i % 2 == 0 ? 0 : 1)).ToArray());
+            var path = new GeoPolyline2(
+                Enumerable.Range(0, 500).Select(i => new GeoPoint2(i, i % 2 == 0 ? 0 : 1)).ToArray()
+            );
 
-            double[] cuts = Enumerable.Range(1, 5000)
-                .Select(i => path.Length * i / 5001.0).ToArray();
+            double[] cuts = Enumerable.Range(1, 5000).Select(i => path.Length * i / 5001.0).ToArray();
 
             GeoPolyline2[] pieces = Splition2.SplitAtDistances(path, cuts, Tol);
 
             Assert.Equal(5001, pieces.Length);
             Assert.Equal(path.Length, pieces.Sum(p => p.Length), 6);
 
-            GeoPolygon2[] polygons = Enumerable.Range(0, 50)
+            GeoPolygon2[] polygons = Enumerable
+                .Range(0, 50)
                 .Select(i => new GeoPolygon2(
-                    new GeoPoint2(i * 10, -1), new GeoPoint2(i * 10 + 5, -1),
-                    new GeoPoint2(i * 10 + 5, 2), new GeoPoint2(i * 10, 2)))
+                    new GeoPoint2(i * 10, -1),
+                    new GeoPoint2(i * 10 + 5, -1),
+                    new GeoPoint2(i * 10 + 5, 2),
+                    new GeoPoint2(i * 10, 2)
+                ))
                 .ToArray();
 
             Assert.True(path.TrySplitBy(polygons, out GeoPolyline2[] inside, out GeoPolyline2[] outside, Tol));

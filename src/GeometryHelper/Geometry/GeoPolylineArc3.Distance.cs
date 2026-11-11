@@ -34,7 +34,8 @@ namespace GeometryHelper.Geometry
         /// start: the chain built of the straight edges from (0, 0, 0) to (10, 0, 0) and on to (10, 0.0006, 0) is 0.0009 from
         /// (10.0009, 0.0006, 0), and the point is on it, where the start of that last edge is 0.00108 away.
         /// </remarks>
-        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => ArcChain3.DistanceTo(ArcChain3.EdgesOf(this), point);
+        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) =>
+            ArcChain3.DistanceTo(ArcChain3.EdgesOf(this), point);
 
         /// <summary>
         /// Gets the point of the chain its distance to a point is measured to, a point near the centre of a bend not carried

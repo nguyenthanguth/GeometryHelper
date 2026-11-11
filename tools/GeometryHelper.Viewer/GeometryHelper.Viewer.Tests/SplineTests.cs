@@ -20,19 +20,44 @@ namespace GeometryHelper.Viewer.Tests
         /// <summary>The chord tolerance of a scene at the default point tolerance: a tenth of it.</summary>
         private const double Chord = 1E-4;
 
-        private static GeoSpline2 Arch() => new GeoSpline2(3, new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 150), new GeoPoint2(200, 150), new GeoPoint2(300, 0) }, new double[] { 0, 0, 0, 0, 1, 1, 1, 1 });
+        private static GeoSpline2 Arch() =>
+            new GeoSpline2(
+                3,
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 150), new GeoPoint2(200, 150), new GeoPoint2(300, 0) },
+                new double[] { 0, 0, 0, 0, 1, 1, 1, 1 }
+            );
 
         // A cubic of four pieces with a corner: the knot 3.1 is there three times, so the curve passes through (180, 95.75) with a kink.
-        private static GeoSpline2 Kinked() => new GeoSpline2(
-            3,
-            new[] { new GeoPoint2(10.125, -3.5), new GeoPoint2(60, 80.25), new GeoPoint2(120.5, -40), new GeoPoint2(180, 95.75), new GeoPoint2(240.25, -10), new GeoPoint2(300, 60), new GeoPoint2(355.5, 5) },
-            new[] { 2.0, 2.0, 2.0, 2.0, 3.1, 3.1, 3.1, 5.0, 5.0, 5.0, 5.0 });
+        private static GeoSpline2 Kinked() =>
+            new GeoSpline2(
+                3,
+                new[]
+                {
+                    new GeoPoint2(10.125, -3.5),
+                    new GeoPoint2(60, 80.25),
+                    new GeoPoint2(120.5, -40),
+                    new GeoPoint2(180, 95.75),
+                    new GeoPoint2(240.25, -10),
+                    new GeoPoint2(300, 60),
+                    new GeoPoint2(355.5, 5),
+                },
+                new[] { 2.0, 2.0, 2.0, 2.0, 3.1, 3.1, 3.1, 5.0, 5.0, 5.0, 5.0 }
+            );
 
-        private static GeoSpline3 Rational3() => new GeoSpline3(
-            3,
-            new[] { new GeoPoint3(13.5, -168.25, 2), new GeoPoint3(100, 0, 40), new GeoPoint3(100, 100, 0), new GeoPoint3(190, 120.75, 85.5), new GeoPoint3(220, 30, 10) },
-            new[] { 0, 0, 0, 0, 0.4, 1, 1, 1, 1 },
-            new[] { 1.0, 0.7, 2.5, 0.9, 1.3 });
+        private static GeoSpline3 Rational3() =>
+            new GeoSpline3(
+                3,
+                new[]
+                {
+                    new GeoPoint3(13.5, -168.25, 2),
+                    new GeoPoint3(100, 0, 40),
+                    new GeoPoint3(100, 100, 0),
+                    new GeoPoint3(190, 120.75, 85.5),
+                    new GeoPoint3(220, 30, 10),
+                },
+                new[] { 0, 0, 0, 0, 0.4, 1, 1, 1, 1 },
+                new[] { 1.0, 0.7, 2.5, 0.9, 1.3 }
+            );
 
         private static Scene Read(DxfWriter writer) => SceneImport.ReadText(writer.ToString(), "dxf");
 
@@ -69,7 +94,10 @@ namespace GeometryHelper.Viewer.Tests
             Scene scene = new SceneWriter().Add(Arch(), name: "flat").Add(Rational3(), name: "solid").Scene;
 
             Assert.Equal(new[] { "GeoSpline2", "GeoSpline3" }, scene.Items.Select(i => i.Kind).ToArray());
-            Assert.Equal(new[] { 3.0, 0, 0, 100, 150, 200, 150, 300, 0, 0, 0, 0, 0, 1, 1, 1, 1 }, Imp.Of(scene.Items[0]));
+            Assert.Equal(
+                new[] { 3.0, 0, 0, 100, 150, 200, 150, 300, 0, 0, 0, 0, 0, 1, 1, 1, 1 },
+                Imp.Of(scene.Items[0])
+            );
             Assert.False(scene.Items[0].Data.TryGetProperty("weights", out _));
             Assert.Equal(new[] { 1.0, 0.7, 2.5, 0.9, 1.3 }, DataJson.Weights(scene.Items[1].Data));
         }
@@ -156,11 +184,18 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheNumbersOfASpline_AreItsDegreeControlPointsWeightsDomainAndLength()
         {
-            Scene scene = new SceneWriter().Add(Kinked()).Add(GeoSpline3.FromCircle(new GeoCircle3(new GeoPoint3(1, 2, 3), new GeoVector3(0, 0, 1), 10))).Scene;
+            Scene scene = new SceneWriter()
+                .Add(Kinked())
+                .Add(GeoSpline3.FromCircle(new GeoCircle3(new GeoPoint3(1, 2, 3), new GeoVector3(0, 0, 1), 10)))
+                .Scene;
             Primitives primitives = Primitives.Build(scene);
 
-            var flat = ItemMeasures.Describe(scene.Items[0], scene, primitives.Items[0]).ToDictionary(p => p.Key, p => p.Value);
-            var solid = ItemMeasures.Describe(scene.Items[1], scene, primitives.Items[1]).ToDictionary(p => p.Key, p => p.Value);
+            var flat = ItemMeasures
+                .Describe(scene.Items[0], scene, primitives.Items[0])
+                .ToDictionary(p => p.Key, p => p.Value);
+            var solid = ItemMeasures
+                .Describe(scene.Items[1], scene, primitives.Items[1])
+                .ToDictionary(p => p.Key, p => p.Value);
 
             Assert.Equal("3", flat["Degree"]);
             Assert.Equal("7", flat["Control points"]);
@@ -181,27 +216,62 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ASplineIsClosedInItsNumbersOnlyWhereItsEndsAreOnePointExactly()
         {
-            GeoPoint2[] loop = { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100), new GeoPoint2(0, 0) };
+            GeoPoint2[] loop =
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(0, 100),
+                new GeoPoint2(0, 0),
+            };
             var closed = new GeoSpline2(2, loop, new double[] { 0, 0, 0, 1, 2, 3, 3, 3 });
             loop[4] = new GeoPoint2(0, 1E-6);
             var near = new GeoSpline2(2, loop, new double[] { 0, 0, 0, 1, 2, 3, 3, 3 });
             Scene scene = new SceneWriter().Add(closed).Add(near).Scene;
 
-            Assert.Equal("yes", ItemMeasures.Describe(scene.Items[0], scene, null).ToDictionary(p => p.Key, p => p.Value)["Closed"]);
-            Assert.Equal("no", ItemMeasures.Describe(scene.Items[1], scene, null).ToDictionary(p => p.Key, p => p.Value)["Closed"]);
+            Assert.Equal(
+                "yes",
+                ItemMeasures.Describe(scene.Items[0], scene, null).ToDictionary(p => p.Key, p => p.Value)["Closed"]
+            );
+            Assert.Equal(
+                "no",
+                ItemMeasures.Describe(scene.Items[1], scene, null).ToDictionary(p => p.Key, p => p.Value)["Closed"]
+            );
         }
 
         [Fact]
         public void TheEndsOfASplineWhoseEndPiecesHaveNoLength_StillSnap()
         {
             // Three control points on one point make the first piece a point; so do three at the far end.
-            var s = new GeoSpline2(2, new[] { new GeoPoint2(0, 0), new GeoPoint2(0, 0), new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(10, 10), new GeoPoint2(10, 10) }, new double[] { 0, 0, 0, 1, 2, 3, 4, 5, 5, 5 });
+            var s = new GeoSpline2(
+                2,
+                new[]
+                {
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(10, 0),
+                    new GeoPoint2(10, 10),
+                    new GeoPoint2(10, 10),
+                    new GeoPoint2(10, 10),
+                },
+                new double[] { 0, 0, 0, 1, 2, 3, 4, 5, 5, 5 }
+            );
             var view = ViewFixture.Top(new SceneWriter().Add(s));
 
             foreach (Vec3 end in new[] { new Vec3(0, 0, 0), new Vec3(10, 10, 0) })
             {
                 (double x, double y) = view.Pixel(end);
-                SnapHit hit = SnapEngine.Find(view.Geometry, view.Map, x + 1.5, y - 1.0, SnapKinds.End, SnapEngine.DefaultRadius, view.Scene.EqualPoint, null);
+                SnapHit hit = SnapEngine.Find(
+                    view.Geometry,
+                    view.Map,
+                    x + 1.5,
+                    y - 1.0,
+                    SnapKinds.End,
+                    SnapEngine.DefaultRadius,
+                    view.Scene.EqualPoint,
+                    null
+                );
 
                 Assert.NotNull(hit);
                 Assert.Equal("end", hit.Name);
@@ -215,7 +285,10 @@ namespace GeometryHelper.Viewer.Tests
             // Each knot is reached once by the cut into pieces, and the pieces are cut once for the count of the scene and its drawing: a cubic of
             // 40 000 points 10 apart takes under a second, where it took 71 s when each knot was inserted into the whole list.
             var random = new Random(5);
-            GeoSpline2 spline = GeoSpline2.FromControlPoints(3, Enumerable.Range(0, 40000).Select(i => new GeoPoint2(i * 10.0, random.NextDouble() * 10)));
+            GeoSpline2 spline = GeoSpline2.FromControlPoints(
+                3,
+                Enumerable.Range(0, 40000).Select(i => new GeoPoint2(i * 10.0, random.NextDouble() * 10))
+            );
             var watch = System.Diagnostics.Stopwatch.StartNew();
             Primitives primitives = Primitives.Build(new SceneWriter().Add(spline).Scene);
             watch.Stop();
@@ -228,9 +301,14 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ASplineCutShortOfTheRule_SaysItIsABezierPieceThatIsCapped()
         {
-            Primitives primitives = Primitives.Build(new SceneWriter().Add(GeoSpline2.FromCircle(new GeoCircle2(new GeoPoint2(0, 0), 1E7))).Scene);
+            Primitives primitives = Primitives.Build(
+                new SceneWriter().Add(GeoSpline2.FromCircle(new GeoCircle2(new GeoPoint2(0, 0), 1E7))).Scene
+            );
 
-            Assert.Contains("a Bézier piece of the spline would take more than 65536 chords at a chord tolerance of 0.0001 and is cut in that many", primitives.Items[0].Warning);
+            Assert.Contains(
+                "a Bézier piece of the spline would take more than 65536 chords at a chord tolerance of 0.0001 and is cut in that many",
+                primitives.Items[0].Warning
+            );
         }
 
         [Fact]
@@ -240,9 +318,27 @@ namespace GeometryHelper.Viewer.Tests
             DrawPolyline drawn = Assert.Single(view.Primitives.Items[0].Polylines);
 
             (double sx, double sy) = view.Pixel(new Vec3(0, 0, 0));
-            SnapHit start = SnapEngine.Find(view.Geometry, view.Map, sx + 2.0, sy - 1.0, SnapKinds.End, SnapEngine.DefaultRadius, view.Scene.EqualPoint, null);
+            SnapHit start = SnapEngine.Find(
+                view.Geometry,
+                view.Map,
+                sx + 2.0,
+                sy - 1.0,
+                SnapKinds.End,
+                SnapEngine.DefaultRadius,
+                view.Scene.EqualPoint,
+                null
+            );
             (double ex, double ey) = view.Pixel(new Vec3(300, 0, 0));
-            SnapHit end = SnapEngine.Find(view.Geometry, view.Map, ex - 2.0, ey - 1.0, SnapKinds.End | SnapKinds.Mid, SnapEngine.DefaultRadius, view.Scene.EqualPoint, null);
+            SnapHit end = SnapEngine.Find(
+                view.Geometry,
+                view.Map,
+                ex - 2.0,
+                ey - 1.0,
+                SnapKinds.End | SnapKinds.Mid,
+                SnapEngine.DefaultRadius,
+                view.Scene.EqualPoint,
+                null
+            );
 
             Assert.Equal(new Vec3(0, 0, 0), start.Point);
             Assert.Equal("end", start.Name);
@@ -250,7 +346,18 @@ namespace GeometryHelper.Viewer.Tests
 
             // The top of the arch is a corner of the drawing, and neither an end nor the middle of anything.
             (double tx, double ty) = view.Pixel(drawn.Points[drawn.Points.Length / 2]);
-            Assert.Null(SnapEngine.Find(view.Geometry, view.Map, tx, ty, SnapKinds.End | SnapKinds.Mid, SnapEngine.DefaultRadius, view.Scene.EqualPoint, null));
+            Assert.Null(
+                SnapEngine.Find(
+                    view.Geometry,
+                    view.Map,
+                    tx,
+                    ty,
+                    SnapKinds.End | SnapKinds.Mid,
+                    SnapEngine.DefaultRadius,
+                    view.Scene.EqualPoint,
+                    null
+                )
+            );
         }
 
         [Fact]
@@ -260,7 +367,16 @@ namespace GeometryHelper.Viewer.Tests
             var view = ViewFixture.Top(new SceneWriter().Add(arch));
 
             (double x, double y) = view.Pixel(V(arch.GetPointAtParameter(0.3)));
-            SnapHit hit = SnapEngine.Find(view.Geometry, view.Map, x + 1.0, y + 2.0, SnapKinds.Nearest, SnapEngine.DefaultRadius, view.Scene.EqualPoint, null);
+            SnapHit hit = SnapEngine.Find(
+                view.Geometry,
+                view.Map,
+                x + 1.0,
+                y + 2.0,
+                SnapKinds.Nearest,
+                SnapEngine.DefaultRadius,
+                view.Scene.EqualPoint,
+                null
+            );
 
             Assert.Equal("nearest", hit.Name);
             Assert.Equal(0, hit.ItemIndex);
@@ -271,7 +387,9 @@ namespace GeometryHelper.Viewer.Tests
         public void ASplineIsPickedOnItsLine_WithinAFewPixels_AndNotFurther()
         {
             GeoSpline2 arch = Arch();
-            var view = ViewFixture.Top(new SceneWriter().Add(new GeoLine2(new GeoPoint2(0, -100), new GeoPoint2(300, -100))).Add(arch));
+            var view = ViewFixture.Top(
+                new SceneWriter().Add(new GeoLine2(new GeoPoint2(0, -100), new GeoPoint2(300, -100))).Add(arch)
+            );
 
             (double x, double y) = view.Pixel(V(arch.GetPointAtParameter(0.7)));
             PickHit near = PickEngine.Pick(view.Primitives, view.Geometry, view.Map, x, y + 3.0, null, true);
@@ -345,8 +463,16 @@ namespace GeometryHelper.Viewer.Tests
                 }
 
                 knots.AddRange(Enumerable.Repeat(at + random.NextDouble() + 1E-6, degree + 1));
-                double[] weights = round % 3 == 0 ? null : Enumerable.Range(0, count).Select(i => 0.1 + random.NextDouble() * 4.0).ToArray();
-                var spline = new GeoSpline3(degree, Enumerable.Range(0, count).Select(i => new GeoPoint3(R(), R(), R())), knots, weights);
+                double[] weights =
+                    round % 3 == 0
+                        ? null
+                        : Enumerable.Range(0, count).Select(i => 0.1 + random.NextDouble() * 4.0).ToArray();
+                var spline = new GeoSpline3(
+                    degree,
+                    Enumerable.Range(0, count).Select(i => new GeoPoint3(R(), R(), R())),
+                    knots,
+                    weights
+                );
 
                 SceneItem item = Assert.Single(Read(new DxfWriter().Add(spline)).Items);
                 Assert.Equal(spline, (GeoSpline3)item.ToGeometry());
@@ -356,8 +482,16 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ASplineInSpaceLyingOnTheFloor_ComesBackInThePlane_AsAnEllipseOnItDoes()
         {
-            var lying = new GeoSpline3(2, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(50, 80, 0), new GeoPoint3(100, 0, 0) }, new double[] { 0, 0, 0, 1, 1, 1 });
-            var raised = new GeoSpline3(2, new[] { new GeoPoint3(0, 0, 5), new GeoPoint3(50, 80, 5), new GeoPoint3(100, 0, 5) }, new double[] { 0, 0, 0, 1, 1, 1 });
+            var lying = new GeoSpline3(
+                2,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(50, 80, 0), new GeoPoint3(100, 0, 0) },
+                new double[] { 0, 0, 0, 1, 1, 1 }
+            );
+            var raised = new GeoSpline3(
+                2,
+                new[] { new GeoPoint3(0, 0, 5), new GeoPoint3(50, 80, 5), new GeoPoint3(100, 0, 5) },
+                new double[] { 0, 0, 0, 1, 1, 1 }
+            );
 
             Assert.Equal("GeoSpline2", Assert.Single(Read(new DxfWriter().Add(lying)).Items).Kind);
             Assert.Equal("GeoSpline3", Assert.Single(Read(new DxfWriter().Add(raised)).Items).Kind);
@@ -369,41 +503,111 @@ namespace GeometryHelper.Viewer.Tests
 
             for (int i = 0; i < pairs.Length; i += 2)
             {
-                text.Append(pairs[i]).Append('\n').Append(Convert.ToString(pairs[i + 1], CultureInfo.InvariantCulture)).Append('\n');
+                text.Append(pairs[i])
+                    .Append('\n')
+                    .Append(Convert.ToString(pairs[i + 1], CultureInfo.InvariantCulture))
+                    .Append('\n');
             }
 
             return text.ToString();
         }
 
-        private static Scene ReadEntities(string entities)
-            => SceneImport.ReadText(G(0, "SECTION", 2, "ENTITIES") + entities + G(0, "ENDSEC", 0, "EOF"), "dxf");
+        private static Scene ReadEntities(string entities) =>
+            SceneImport.ReadText(G(0, "SECTION", 2, "ENTITIES") + entities + G(0, "ENDSEC", 0, "EOF"), "dxf");
 
         [Fact]
         public void ASplineGivenByItsFitPointsAlone_IsTheSplineThroughThem_AndSaid()
         {
             // The library passes AutoCAD's cubic through the fit points, whatever degree the file asks (D32).
-            string fit = G(0, "SPLINE", 8, "0", 100, "AcDbSpline", 70, 8, 71, 3, 72, 0, 73, 0, 74, 3, 11, 0, 21, 0, 31, 0, 11, 50, 21, 40, 31, 0, 11, 100, 21, 0, 31, 0);
+            string fit = G(
+                0,
+                "SPLINE",
+                8,
+                "0",
+                100,
+                "AcDbSpline",
+                70,
+                8,
+                71,
+                3,
+                72,
+                0,
+                73,
+                0,
+                74,
+                3,
+                11,
+                0,
+                21,
+                0,
+                31,
+                0,
+                11,
+                50,
+                21,
+                40,
+                31,
+                0,
+                11,
+                100,
+                21,
+                0,
+                31,
+                0
+            );
             Scene scene = ReadEntities(fit + G(0, "POINT", 10, 1, 20, 2));
 
             Assert.Equal(new[] { "GeoSpline2", "GeoPoint2" }, scene.Items.Select(i => i.Kind).ToArray());
             var spline = (GeoSpline2)scene.Items[0].ToGeometry();
             Assert.Equal(new GeoPoint2(0, 0), spline.StartPoint);
             Assert.Equal(new GeoPoint2(100, 0), spline.EndPoint);
-            Assert.Contains(scene.LoadWarnings, w => w.Contains("1 SPLINE given by its fit points alone was read as the cubic AutoCAD 2021 fits through them"));
+            Assert.Contains(scene.LoadWarnings, w =>
+                w.Contains(
+                    "1 SPLINE given by its fit points alone was read as the cubic AutoCAD 2021 fits through them"
+                )
+            );
         }
 
         [Fact]
         public void APeriodicSpline_IsReadClamped_OnTheSameCurve()
         {
             // A closed periodic cubic of AutoCAD's: its knots run evenly past both ends, not clamped.
-            var groups = new List<object> { 0, "SPLINE", 8, "0", 100, "AcDbSpline", 70, 11, 71, 3, 72, 10, 73, 6, 74, 0 };
+            var groups = new List<object>
+            {
+                0,
+                "SPLINE",
+                8,
+                "0",
+                100,
+                "AcDbSpline",
+                70,
+                11,
+                71,
+                3,
+                72,
+                10,
+                73,
+                6,
+                74,
+                0,
+            };
 
             for (int k = 0; k < 10; k++)
             {
                 groups.AddRange(new object[] { 40, k - 3 });
             }
 
-            foreach ((double x, double y) in new[] { (0.0, 0.0), (100.0, 0.0), (100.0, 100.0), (0.0, 100.0), (0.0, 0.0), (100.0, 0.0) })
+            foreach (
+                (double x, double y) in new[]
+                {
+                    (0.0, 0.0),
+                    (100.0, 0.0),
+                    (100.0, 100.0),
+                    (0.0, 100.0),
+                    (0.0, 0.0),
+                    (100.0, 0.0),
+                }
+            )
             {
                 groups.AddRange(new object[] { 10, x, 20, y, 30, 0 });
             }
@@ -421,11 +625,66 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ASplineWithTooFewWeights_IsLeftOutAndSaid()
         {
-            string few = G(0, "SPLINE", 8, "0", 100, "AcDbSpline", 70, 12, 71, 2, 72, 6, 73, 3, 74, 0, 40, 0, 40, 0, 40, 0, 40, 1, 40, 1, 40, 1, 41, 1, 41, 0.5, 10, 0, 20, 0, 30, 0, 10, 50, 20, 50, 30, 0, 10, 100, 20, 0, 30, 0);
+            string few = G(
+                0,
+                "SPLINE",
+                8,
+                "0",
+                100,
+                "AcDbSpline",
+                70,
+                12,
+                71,
+                2,
+                72,
+                6,
+                73,
+                3,
+                74,
+                0,
+                40,
+                0,
+                40,
+                0,
+                40,
+                0,
+                40,
+                1,
+                40,
+                1,
+                40,
+                1,
+                41,
+                1,
+                41,
+                0.5,
+                10,
+                0,
+                20,
+                0,
+                30,
+                0,
+                10,
+                50,
+                20,
+                50,
+                30,
+                0,
+                10,
+                100,
+                20,
+                0,
+                30,
+                0
+            );
             Scene scene = ReadEntities(few);
 
             Assert.Empty(scene.Items);
-            Assert.Contains(scene.LoadWarnings, w => w.Contains("1 SPLINE was not read: its degree, knots, weights or fit points do not make a spline the library takes"));
+            Assert.Contains(scene.LoadWarnings, w =>
+                w.Contains(
+                    "1 SPLINE was not read: its degree, knots, weights or fit points do not make a spline the library takes"
+                )
+            );
         }
     }
 }

@@ -73,9 +73,7 @@ namespace GeometryHelper.Core
 
                 if (distance <= walked + length)
                 {
-                    return length <= 0.0
-                        ? edge.StartPoint
-                        : edge.GetPointAtParameter((distance - walked) / length);
+                    return length <= 0.0 ? edge.StartPoint : edge.GetPointAtParameter((distance - walked) / length);
                 }
 
                 walked += length;
@@ -116,9 +114,11 @@ namespace GeometryHelper.Core
         /// Gets the point of an edge nearest another point: on a bend the one found at the tolerance, the snap kept; on a
         /// straight edge the one found at a tolerance of nought, the edge as it is however short.
         /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        private static GeoPoint3 Nearest(GeoEdge3 edge, GeoPoint3 point, Tolerance tolerance)
-            => edge.IsArc
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining
+        )]
+        private static GeoPoint3 Nearest(GeoEdge3 edge, GeoPoint3 point, Tolerance tolerance) =>
+            edge.IsArc
                 ? edge.ToArc().GetClosestPointOnBoundary(point, tolerance)
                 : edge.GetPointAtParameter(edge.GetParameterAtPoint(point, Exactly));
 

@@ -83,7 +83,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             else
             {
                 var pictures = new BlockPictures(document.Database, document.Fonts, 72, 48);
-                _gallery = CadBlocks.Named(document.Database).Select(b => new BlockTileViewModel(b.Name, b.Comments, pictures.Draw)).ToList();
+                _gallery = CadBlocks
+                    .Named(document.Database)
+                    .Select(b => new BlockTileViewModel(b.Name, b.Comments, pictures.Draw))
+                    .ToList();
             }
 
             Raise(nameof(Gallery));
@@ -122,7 +125,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _model = model;
             RunCommand = new DelegateCommand(p => model.RunCommandLine(p as string));
             ModelSpaceCommand = new DelegateCommand(_ => model.SelectSpace(model.Document?.ModelSpace));
-            LayoutCommand = new DelegateCommand(_ => model.SelectSpace(model.Document?.Spaces.FirstOrDefault(s => !s.IsModel)));
+            LayoutCommand = new DelegateCommand(_ =>
+                model.SelectSpace(model.Document?.Spaces.FirstOrDefault(s => !s.IsModel))
+            );
         }
 
         /// <summary>Gets the window's view model.</summary>
@@ -227,10 +232,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public ICommand NewCommand => _newCommand ?? (_newCommand = new DelegateCommand(_ => NewDrawing()));
 
         /// <summary>Gets the command that runs SAVEAS (the quick access Save As).</summary>
-        public ICommand SaveAsCommand => _saveAsCommand ?? (_saveAsCommand = new DelegateCommand(_ => StartCommand("SAVEAS")));
+        public ICommand SaveAsCommand =>
+            _saveAsCommand ?? (_saveAsCommand = new DelegateCommand(_ => StartCommand("SAVEAS")));
 
         /// <summary>Gets the command of the + after the layout tabs: LAYOUT New, the layout named as offered (Layout2 after Layout1).</summary>
-        public ICommand NewLayoutCommand => _newLayoutCommand ?? (_newLayoutCommand = new DelegateCommand(_ => NewLayout()));
+        public ICommand NewLayoutCommand =>
+            _newLayoutCommand ?? (_newLayoutCommand = new DelegateCommand(_ => NewLayout()));
 
         /// <summary>
         /// Gets the command a split button's choice runs, given the command and its option, as "DRAWORDER F": the command is
@@ -238,8 +245,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// picked by the user, as AutoCAD's ribbon macro <c>_draworder;\_f</c> does. "TEXTTOFRONT T" brings the text to the
         /// front at once; "DRAWORDER B" asks for the objects, then sends them to the back.
         /// </summary>
-        public ICommand StartCommandWithOptionCommand => _startCommandWithOptionCommand
-            ?? (_startCommandWithOptionCommand = new DelegateCommand(p => StartCommandWithOption(p as string), _ => HasDocument));
+        public ICommand StartCommandWithOptionCommand =>
+            _startCommandWithOptionCommand
+            ?? (
+                _startCommandWithOptionCommand = new DelegateCommand(
+                    p => StartCommandWithOption(p as string),
+                    _ => HasDocument
+                )
+            );
 
         /// <summary>
         /// Gets or sets whether a pick takes a selectable group whole (PICKSTYLE 1), as Home › Groups › Group Selection On/Off
@@ -287,8 +300,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 _newDrawings++;
                 name = "Drawing" + _newDrawings.ToString(CultureInfo.InvariantCulture) + ".dxf";
-            }
-            while (_files.ContainsKey(name) || _files.Values.Any(f => f.Document != null && string.Equals(f.Document.Title, name, StringComparison.OrdinalIgnoreCase)));
+            } while (
+                _files.ContainsKey(name)
+                || _files.Values.Any(f =>
+                    f.Document != null && string.Equals(f.Document.Title, name, StringComparison.OrdinalIgnoreCase)
+                )
+            );
 
             // The template's GRIDMODE is the window's, so that a new drawing shows the grid as Global settings say.
             DxfDatabase database = CadTemplate.CreateMetric();
@@ -437,7 +454,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             string offered = c.Document.FileName ?? c.Document.Title;
             yield return CadPrompt.ForString("Save drawing as", offered);
-            string path = c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim() : offered;
+            string path =
+                c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim() : offered;
             _afterCommand = () => SaveAs(path);
         }
 

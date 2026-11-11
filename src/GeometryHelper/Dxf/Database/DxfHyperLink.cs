@@ -52,11 +52,15 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gives the hyperlink as a line for debugging: what is shown for it and its address.</summary>
         /// <returns>The line, such as <c>Plate B-12 (https://example.com/B-12.pdf)</c>.</returns>
-        public override string ToString() => DisplayString + (DisplayString == _name ? string.Empty : " (" + _name + ")");
+        public override string ToString() =>
+            DisplayString + (DisplayString == _name ? string.Empty : " (" + _name + ")");
 
         /// <summary>Whether two hyperlinks have the same address, description and sub-location, letter for letter.</summary>
-        internal static bool Same(DxfHyperLink a, DxfHyperLink b)
-            => a != null && b != null && string.Equals(a._name, b._name, StringComparison.Ordinal) && string.Equals(a._description, b._description, StringComparison.Ordinal)
-                && string.Equals(a._subLocation, b._subLocation, StringComparison.Ordinal);
+        internal static bool Same(DxfHyperLink a, DxfHyperLink b) =>
+            a != null
+            && b != null
+            && string.Equals(a._name, b._name, StringComparison.Ordinal)
+            && string.Equals(a._description, b._description, StringComparison.Ordinal)
+            && string.Equals(a._subLocation, b._subLocation, StringComparison.Ordinal);
     }
 }

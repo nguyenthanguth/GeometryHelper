@@ -32,7 +32,18 @@ namespace GeometryHelper.Viewer
             // The clash is the library's reading alone: the viewer has none of its own to put in its place.
             if (!_options.UseLibrary)
             {
-                Add(DiagnosticChecks.Clash, DiagnosticKind.Note, false, targets.Count > 0 ? targets[0] : -1, null, "the clash check is the library's alone (Clash3.Find) and is not made with the library left out", "viewer", default(Vec3), 0.0, 0.0);
+                Add(
+                    DiagnosticChecks.Clash,
+                    DiagnosticKind.Note,
+                    false,
+                    targets.Count > 0 ? targets[0] : -1,
+                    null,
+                    "the clash check is the library's alone (Clash3.Find) and is not made with the library left out",
+                    "viewer",
+                    default(Vec3),
+                    0.0,
+                    0.0
+                );
                 return;
             }
 
@@ -43,7 +54,10 @@ namespace GeometryHelper.Viewer
             // One item selected is checked against the rest of the scene; two or more, or none, against each other. Against the rest, only the items whose
             // boxes come within the tolerance of the one selected are rebuilt: the others cannot clash with it.
             IEnumerable<int> pool = single ? Enumerable.Range(0, _scene.Items.Count) : targets;
-            Bounds3 targetBox = single && targetItem < _primitives.Items.Count ? _primitives.Items[targetItem].Bounds : default(Bounds3);
+            Bounds3 targetBox =
+                single && targetItem < _primitives.Items.Count
+                    ? _primitives.Items[targetItem].Bounds
+                    : default(Bounds3);
             var bodies = new List<ClashBody>();
             int notBodies = 0;
 
@@ -79,18 +93,52 @@ namespace GeometryHelper.Viewer
 
                     foreach (GeoSolid3 solid in solids)
                     {
-                        bodies.Add(new ClashBody { Item = index, Name = name, Solid = solid });
+                        bodies.Add(
+                            new ClashBody
+                            {
+                                Item = index,
+                                Name = name,
+                                Solid = solid,
+                            }
+                        );
                     }
                 }
                 catch (Exception e) when (!(e is OutOfMemoryException) && !(e is OperationCanceledException))
                 {
-                    Add(DiagnosticChecks.Clash, DiagnosticKind.Note, false, index, name, "left out of the clash check, it could not be rebuilt: " + e.GetType().Name + ": " + e.Message, "viewer", default(Vec3), 0.0, 0.0);
+                    Add(
+                        DiagnosticChecks.Clash,
+                        DiagnosticKind.Note,
+                        false,
+                        index,
+                        name,
+                        "left out of the clash check, it could not be rebuilt: " + e.GetType().Name + ": " + e.Message,
+                        "viewer",
+                        default(Vec3),
+                        0.0,
+                        0.0
+                    );
                 }
             }
 
             if (notBodies > 0)
             {
-                Add(DiagnosticChecks.Clash, DiagnosticKind.Note, false, targets.Count > 0 ? targets[0] : -1, null, Count(notBodies, "item") + " " + (notBodies == 1 ? "is" : "are") + " not a body (a solid, a closed mesh or a box) and " + (notBodies == 1 ? "was" : "were") + " not checked", "viewer", default(Vec3), 0.0, 0.0);
+                Add(
+                    DiagnosticChecks.Clash,
+                    DiagnosticKind.Note,
+                    false,
+                    targets.Count > 0 ? targets[0] : -1,
+                    null,
+                    Count(notBodies, "item")
+                        + " "
+                        + (notBodies == 1 ? "is" : "are")
+                        + " not a body (a solid, a closed mesh or a box) and "
+                        + (notBodies == 1 ? "was" : "were")
+                        + " not checked",
+                    "viewer",
+                    default(Vec3),
+                    0.0,
+                    0.0
+                );
             }
 
             ClashPrepare(bodies, tolerance);
@@ -98,7 +146,21 @@ namespace GeometryHelper.Viewer
 
             if (bodies.Count < 2 || (single && !bodies.Any(b => b.Item == targetItem)))
             {
-                Add(DiagnosticChecks.Clash, DiagnosticKind.Note, false, targets.Count > 0 ? targets[0] : -1, null, "the clash check needs two bodies; " + bodies.Count.ToString(CultureInfo.InvariantCulture) + (bodies.Count == 1 ? " body" : " bodies") + " could be checked", "viewer", default(Vec3), 0.0, 0.0);
+                Add(
+                    DiagnosticChecks.Clash,
+                    DiagnosticKind.Note,
+                    false,
+                    targets.Count > 0 ? targets[0] : -1,
+                    null,
+                    "the clash check needs two bodies; "
+                        + bodies.Count.ToString(CultureInfo.InvariantCulture)
+                        + (bodies.Count == 1 ? " body" : " bodies")
+                        + " could be checked",
+                    "viewer",
+                    default(Vec3),
+                    0.0,
+                    0.0
+                );
                 return;
             }
 
@@ -118,21 +180,47 @@ namespace GeometryHelper.Viewer
             }
 
             var pairs = new List<(int, int)>();
-            Sweep.Pairs(lo, hi, bodies.Count, tolerance.EqualPoint, (i, j) =>
-            {
-                // Two pieces of one item are not a pair; and with one item selected, only the pairs it is in.
-                if (bodies[i].Item != bodies[j].Item && (!single || bodies[i].Item == targetItem || bodies[j].Item == targetItem))
+            Sweep.Pairs(
+                lo,
+                hi,
+                bodies.Count,
+                tolerance.EqualPoint,
+                (i, j) =>
                 {
-                    pairs.Add((i, j));
-                }
-            }, _cancel);
+                    // Two pieces of one item are not a pair; and with one item selected, only the pairs it is in.
+                    if (
+                        bodies[i].Item != bodies[j].Item
+                        && (!single || bodies[i].Item == targetItem || bodies[j].Item == targetItem)
+                    )
+                    {
+                        pairs.Add((i, j));
+                    }
+                },
+                _cancel
+            );
             pairs.Sort((a, b) => a.Item1 != b.Item1 ? a.Item1.CompareTo(b.Item1) : a.Item2.CompareTo(b.Item2));
 
             int cap = Math.Max(1, _options.MaxClashPairs);
 
             if (pairs.Count > cap)
             {
-                Add(DiagnosticChecks.Clash, DiagnosticKind.Note, false, bodies[pairs[cap].Item1].Item, bodies[pairs[cap].Item1].Name, (pairs.Count - cap).ToString(CultureInfo.InvariantCulture) + " of " + pairs.Count.ToString(CultureInfo.InvariantCulture) + " pairs of bodies whose boxes meet are not checked: only the first " + cap.ToString(CultureInfo.InvariantCulture) + " in the order of the scene are", "viewer", default(Vec3), 0.0, 0.0);
+                Add(
+                    DiagnosticChecks.Clash,
+                    DiagnosticKind.Note,
+                    false,
+                    bodies[pairs[cap].Item1].Item,
+                    bodies[pairs[cap].Item1].Name,
+                    (pairs.Count - cap).ToString(CultureInfo.InvariantCulture)
+                        + " of "
+                        + pairs.Count.ToString(CultureInfo.InvariantCulture)
+                        + " pairs of bodies whose boxes meet are not checked: only the first "
+                        + cap.ToString(CultureInfo.InvariantCulture)
+                        + " in the order of the scene are",
+                    "viewer",
+                    default(Vec3),
+                    0.0,
+                    0.0
+                );
                 pairs.RemoveRange(cap, pairs.Count - cap);
             }
 
@@ -140,12 +228,16 @@ namespace GeometryHelper.Viewer
             ClashReport(bodies, pairs, results);
         }
 
-        private static bool Meet(Bounds3 a, Bounds3 b, double reach)
-            => a.Min.X <= b.Max.X + reach && b.Min.X <= a.Max.X + reach
-                && a.Min.Y <= b.Max.Y + reach && b.Min.Y <= a.Max.Y + reach
-                && a.Min.Z <= b.Max.Z + reach && b.Min.Z <= a.Max.Z + reach;
+        private static bool Meet(Bounds3 a, Bounds3 b, double reach) =>
+            a.Min.X <= b.Max.X + reach
+            && b.Min.X <= a.Max.X + reach
+            && a.Min.Y <= b.Max.Y + reach
+            && b.Min.Y <= a.Max.Y + reach
+            && a.Min.Z <= b.Max.Z + reach
+            && b.Min.Z <= a.Max.Z + reach;
 
-        private static bool IsBody(string kind) => kind == "GeoSolid3" || kind == "GeoAabb3" || kind == "GeoObb3" || kind == "GeoMesh3";
+        private static bool IsBody(string kind) =>
+            kind == "GeoSolid3" || kind == "GeoAabb3" || kind == "GeoObb3" || kind == "GeoMesh3";
 
         /// <summary>
         /// The library solids an item stands for: a solid as it is, a box as its six faces, a mesh as the bodies its faces close into, each with the
@@ -173,7 +265,18 @@ namespace GeometryHelper.Viewer
                 case GeoAabb3 box:
                     if (box.IsEmpty)
                     {
-                        Add(DiagnosticChecks.Clash, DiagnosticKind.Note, false, index, name, "left out of the clash check: an empty box has no volume", "viewer", default(Vec3), 0.0, 0.0);
+                        Add(
+                            DiagnosticChecks.Clash,
+                            DiagnosticKind.Note,
+                            false,
+                            index,
+                            name,
+                            "left out of the clash check: an empty box has no volume",
+                            "viewer",
+                            default(Vec3),
+                            0.0,
+                            0.0
+                        );
                     }
                     else
                     {
@@ -212,8 +315,15 @@ namespace GeometryHelper.Viewer
                 // it is built as it is and the library says whether it closes.
                 try
                 {
-                    GeoFace3[] outer = piece.Outer.Select(f => Face(points, faces[f], false)).Where(f => f != null).ToArray();
-                    GeoSolid3[] voids = piece.Voids.Select(shell => new GeoSolid3(shell.Select(f => Face(points, faces[f], true)).Where(f => f != null))).ToArray();
+                    GeoFace3[] outer = piece
+                        .Outer.Select(f => Face(points, faces[f], false))
+                        .Where(f => f != null)
+                        .ToArray();
+                    GeoSolid3[] voids = piece
+                        .Voids.Select(shell => new GeoSolid3(
+                            shell.Select(f => Face(points, faces[f], true)).Where(f => f != null)
+                        ))
+                        .ToArray();
                     var solid = new GeoSolid3(outer, voids);
 
                     if (solid.IsClosed(tolerance))
@@ -232,12 +342,50 @@ namespace GeometryHelper.Viewer
 
             if (insideOut > 0)
             {
-                Add(DiagnosticChecks.Clash, DiagnosticKind.Note, false, index, name, "left out of the clash check: " + (insideOut == 1 ? "an inside-out shell" : insideOut.ToString(CultureInfo.InvariantCulture) + " inside-out shells") + " with no body round " + (insideOut == 1 ? "it" : "them") + " (a void of nothing is no body)", "viewer", default(Vec3), 0.0, 0.0);
+                Add(
+                    DiagnosticChecks.Clash,
+                    DiagnosticKind.Note,
+                    false,
+                    index,
+                    name,
+                    "left out of the clash check: "
+                        + (
+                            insideOut == 1
+                                ? "an inside-out shell"
+                                : insideOut.ToString(CultureInfo.InvariantCulture) + " inside-out shells"
+                        )
+                        + " with no body round "
+                        + (insideOut == 1 ? "it" : "them")
+                        + " (a void of nothing is no body)",
+                    "viewer",
+                    default(Vec3),
+                    0.0,
+                    0.0
+                );
             }
 
             if (open > 0)
             {
-                Add(DiagnosticChecks.Clash, DiagnosticKind.Note, false, index, name, "left out of the clash check: " + (open == 1 ? "the mesh is" : open.ToString(CultureInfo.InvariantCulture) + " pieces of the mesh are") + " not closed (the Edges check finds where it is open), so " + (open == 1 ? "it bounds" : "they bound") + " no volume", "viewer", default(Vec3), 0.0, 0.0);
+                Add(
+                    DiagnosticChecks.Clash,
+                    DiagnosticKind.Note,
+                    false,
+                    index,
+                    name,
+                    "left out of the clash check: "
+                        + (
+                            open == 1
+                                ? "the mesh is"
+                                : open.ToString(CultureInfo.InvariantCulture) + " pieces of the mesh are"
+                        )
+                        + " not closed (the Edges check finds where it is open), so "
+                        + (open == 1 ? "it bounds" : "they bound")
+                        + " no volume",
+                    "viewer",
+                    default(Vec3),
+                    0.0,
+                    0.0
+                );
             }
         }
 
@@ -253,13 +401,35 @@ namespace GeometryHelper.Viewer
             {
                 var p = new GeoPoint3(points[i].X, points[i].Y, points[i].Z);
 
-                if (corners.Count == 0 || !new BitKey(points[i]).Equals(new BitKey(new Vec3(corners[corners.Count - 1].X, corners[corners.Count - 1].Y, corners[corners.Count - 1].Z))))
+                if (
+                    corners.Count == 0
+                    || !new BitKey(points[i]).Equals(
+                        new BitKey(
+                            new Vec3(
+                                corners[corners.Count - 1].X,
+                                corners[corners.Count - 1].Y,
+                                corners[corners.Count - 1].Z
+                            )
+                        )
+                    )
+                )
                 {
                     corners.Add(p);
                 }
             }
 
-            if (corners.Count > 1 && new BitKey(new Vec3(corners[0].X, corners[0].Y, corners[0].Z)).Equals(new BitKey(new Vec3(corners[corners.Count - 1].X, corners[corners.Count - 1].Y, corners[corners.Count - 1].Z))))
+            if (
+                corners.Count > 1
+                && new BitKey(new Vec3(corners[0].X, corners[0].Y, corners[0].Z)).Equals(
+                    new BitKey(
+                        new Vec3(
+                            corners[corners.Count - 1].X,
+                            corners[corners.Count - 1].Y,
+                            corners[corners.Count - 1].Z
+                        )
+                    )
+                )
+            )
             {
                 corners.RemoveAt(corners.Count - 1);
             }
@@ -310,7 +480,18 @@ namespace GeometryHelper.Viewer
             {
                 if (failure[i] != null)
                 {
-                    Add(DiagnosticChecks.Clash, DiagnosticKind.Note, false, bodies[i].Item, bodies[i].Name, "left out of the clash check, the library could not prepare it: " + failure[i], "GeoPreparedSolid3", default(Vec3), 0.0, 0.0);
+                    Add(
+                        DiagnosticChecks.Clash,
+                        DiagnosticKind.Note,
+                        false,
+                        bodies[i].Item,
+                        bodies[i].Name,
+                        "left out of the clash check, the library could not prepare it: " + failure[i],
+                        "GeoPreparedSolid3",
+                        default(Vec3),
+                        0.0,
+                        0.0
+                    );
                 }
             }
         }
@@ -345,7 +526,23 @@ namespace GeometryHelper.Viewer
 
             if (dropped > 0)
             {
-                _all.Add(new DiagnosticFinding(DiagnosticChecks.Clash, DiagnosticKind.Note, false, -1, null, dropped.ToString(CultureInfo.InvariantCulture) + " more pairs of bodies are not listed: only the first " + cap.ToString(CultureInfo.InvariantCulture) + " findings, clashes before touches, in order of place, are kept", "viewer", default(Vec3), 0.0, 20.0 * Math.Max(_tol, 1E-9)));
+                _all.Add(
+                    new DiagnosticFinding(
+                        DiagnosticChecks.Clash,
+                        DiagnosticKind.Note,
+                        false,
+                        -1,
+                        null,
+                        dropped.ToString(CultureInfo.InvariantCulture)
+                            + " more pairs of bodies are not listed: only the first "
+                            + cap.ToString(CultureInfo.InvariantCulture)
+                            + " findings, clashes before touches, in order of place, are kept",
+                        "viewer",
+                        default(Vec3),
+                        0.0,
+                        20.0 * Math.Max(_tol, 1E-9)
+                    )
+                );
             }
 
             _pending.Clear();
@@ -367,7 +564,12 @@ namespace GeometryHelper.Viewer
                 {
                     using (Tolerance.Use(tolerance))
                     {
-                        ClashResult[] found = Clash3.Find(new[] { bodies[pairs[k].Item1].Prepared }, new[] { bodies[pairs[k].Item2].Prepared }, options, tolerance);
+                        ClashResult[] found = Clash3.Find(
+                            new[] { bodies[pairs[k].Item1].Prepared },
+                            new[] { bodies[pairs[k].Item2].Prepared },
+                            options,
+                            tolerance
+                        );
                         results[k] = found.Length > 0 ? found[0] : null;
                     }
                 });
@@ -409,7 +611,8 @@ namespace GeometryHelper.Viewer
 
                 ClashBody a = bodies[pairs[k].Item1];
                 ClashBody b = bodies[pairs[k].Item2];
-                string who = "item " + Number(a.Item) + " '" + a.Name + "' and item " + Number(b.Item) + " '" + b.Name + "'";
+                string who =
+                    "item " + Number(a.Item) + " '" + a.Name + "' and item " + Number(b.Item) + " '" + b.Name + "'";
                 Vec3 at = new Vec3(r.Location.X, r.Location.Y, r.Location.Z);
                 DiagnosticFinding f;
 
@@ -417,7 +620,16 @@ namespace GeometryHelper.Viewer
                 {
                     case ClashKind.Hard:
                     {
-                        string text = who + " clash: they share a volume of " + N(r.Volume) + " in " + Count(r.Overlaps.Count, "piece") + ", " + N(r.Depth) + " deep, at " + Where(at);
+                        string text =
+                            who
+                            + " clash: they share a volume of "
+                            + N(r.Volume)
+                            + " in "
+                            + Count(r.Overlaps.Count, "piece")
+                            + ", "
+                            + N(r.Depth)
+                            + " deep, at "
+                            + Where(at);
                         double radius = 0.0;
                         var drawn = new DiagnosticOverlay();
                         int faces = 0;
@@ -425,7 +637,11 @@ namespace GeometryHelper.Viewer
                         foreach (GeoSolid3 overlap in r.Overlaps)
                         {
                             GeoAabb3 box = overlap.GetAabb();
-                            radius = Math.Max(radius, new Vec3(box.Max.X - box.Min.X, box.Max.Y - box.Min.Y, box.Max.Z - box.Min.Z).Length * 0.6);
+                            radius = Math.Max(
+                                radius,
+                                new Vec3(box.Max.X - box.Min.X, box.Max.Y - box.Min.Y, box.Max.Z - box.Min.Z).Length
+                                    * 0.6
+                            );
 
                             foreach (GeoFace3 face in overlap.Faces)
                             {
@@ -438,7 +654,18 @@ namespace GeometryHelper.Viewer
                             }
                         }
 
-                        f = Add(DiagnosticChecks.Clash, DiagnosticKind.HardClash, true, a.Item, a.Name, text, "Clash3.Find: ClashResult.Volume, Depth, Overlaps", at, r.Volume, radius);
+                        f = Add(
+                            DiagnosticChecks.Clash,
+                            DiagnosticKind.HardClash,
+                            true,
+                            a.Item,
+                            a.Name,
+                            text,
+                            "Clash3.Find: ClashResult.Volume, Depth, Overlaps",
+                            at,
+                            r.Volume,
+                            radius
+                        );
                         f.Drawing.Strokes.AddRange(drawn.Strokes);
                         f.Drawing.Dots.Add(new DiagnosticDot(at, DiagnosticColors.Clash, 9.0));
                         break;
@@ -446,7 +673,25 @@ namespace GeometryHelper.Viewer
 
                     case ClashKind.Touch:
                     {
-                        string text = who + " touch " + (r.Contact.Count > 0 ? "face to face over " + N(r.ContactArea) : "along an edge or at a corner, sharing no volume") + (r.Overlaps.Count > 0 ? "; they share " + N(r.Volume) + " of volume, " + N(r.Depth) + " deep, too little to count" : string.Empty) + ", at " + Where(at);
+                        string text =
+                            who
+                            + " touch "
+                            + (
+                                r.Contact.Count > 0
+                                    ? "face to face over " + N(r.ContactArea)
+                                    : "along an edge or at a corner, sharing no volume"
+                            )
+                            + (
+                                r.Overlaps.Count > 0
+                                    ? "; they share "
+                                        + N(r.Volume)
+                                        + " of volume, "
+                                        + N(r.Depth)
+                                        + " deep, too little to count"
+                                    : string.Empty
+                            )
+                            + ", at "
+                            + Where(at);
                         var drawn = new DiagnosticOverlay();
                         double radius = 0.0;
                         int faces = 0;
@@ -454,7 +699,11 @@ namespace GeometryHelper.Viewer
                         foreach (GeoFace3 face in r.Contact)
                         {
                             GeoAabb3 box = face.GetAabb();
-                            radius = Math.Max(radius, new Vec3(box.Max.X - box.Min.X, box.Max.Y - box.Min.Y, box.Max.Z - box.Min.Z).Length * 0.6);
+                            radius = Math.Max(
+                                radius,
+                                new Vec3(box.Max.X - box.Min.X, box.Max.Y - box.Min.Y, box.Max.Z - box.Min.Z).Length
+                                    * 0.6
+                            );
 
                             if (faces++ < MaxFacesDrawnPerPair)
                             {
@@ -462,14 +711,42 @@ namespace GeometryHelper.Viewer
                             }
                         }
 
-                        f = Add(DiagnosticChecks.Clash, DiagnosticKind.TouchingBodies, false, a.Item, a.Name, text, "Clash3.Find: ClashResult.Contact, ContactArea", at, r.ContactArea, radius);
+                        f = Add(
+                            DiagnosticChecks.Clash,
+                            DiagnosticKind.TouchingBodies,
+                            false,
+                            a.Item,
+                            a.Name,
+                            text,
+                            "Clash3.Find: ClashResult.Contact, ContactArea",
+                            at,
+                            r.ContactArea,
+                            radius
+                        );
                         f.Drawing.Strokes.AddRange(drawn.Strokes);
                         f.Drawing.Dots.Add(new DiagnosticDot(at, DiagnosticColors.Touch, 9.0));
                         break;
                     }
 
                     default:
-                        f = Add(DiagnosticChecks.Clash, DiagnosticKind.UnresolvedClash, true, a.Item, a.Name, who + " could not be checked: " + (r.Error != null ? r.Error.GetType().Name + ": " + r.Error.Message : r.Kind.ToString()), "Clash3.Find: ClashResult.Error", at, 0.0, 0.0);
+                        f = Add(
+                            DiagnosticChecks.Clash,
+                            DiagnosticKind.UnresolvedClash,
+                            true,
+                            a.Item,
+                            a.Name,
+                            who
+                                + " could not be checked: "
+                                + (
+                                    r.Error != null
+                                        ? r.Error.GetType().Name + ": " + r.Error.Message
+                                        : r.Kind.ToString()
+                                ),
+                            "Clash3.Find: ClashResult.Error",
+                            at,
+                            0.0,
+                            0.0
+                        );
                         break;
                 }
 

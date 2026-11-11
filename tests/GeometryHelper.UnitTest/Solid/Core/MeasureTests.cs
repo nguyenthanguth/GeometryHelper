@@ -17,12 +17,17 @@ namespace GeometryHelper.UnitTest.Solid.Core
     {
         private static readonly Tolerance Tolerance = Tolerance.Default;
 
-        private static readonly VolumeMethod[] Methods = { VolumeMethod.Fan, VolumeMethod.Surface, VolumeMethod.FlatFaces };
+        private static readonly VolumeMethod[] Methods =
+        {
+            VolumeMethod.Fan,
+            VolumeMethod.Surface,
+            VolumeMethod.FlatFaces,
+        };
 
         private static GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(P(x0, y0, z0), P(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(P(x0, y0, z0), P(x1, y1, z1)).ToObb().ToSolid();
 
         /// <summary>
         /// A box 100 by 100 by 10 whose top corner over (100, 100) is lifted, its top face's loop starting at a corner: the
@@ -50,11 +55,24 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void EveryMethodGivesTheMeasuresOfAFlatBody(double far)
         {
             // An L, its notch making one face concave, moved out as far as a coordinate of a site plan goes.
-            var outline = new GeoPolygon3(P(0, 0, 0), P(100, 0, 0), P(100, 40, 0), P(40, 40, 0), P(40, 60, 0), P(0, 60, 0));
-            GeoSolid3 l = GeoSolid3.Extrude(outline, new GeoVector3(0, 0, 20), Tolerance).TransformBy(GeoTransform3.Translation(new GeoVector3(far, -far, 0.5 * far)));
+            var outline = new GeoPolygon3(
+                P(0, 0, 0),
+                P(100, 0, 0),
+                P(100, 40, 0),
+                P(40, 40, 0),
+                P(40, 60, 0),
+                P(0, 60, 0)
+            );
+            GeoSolid3 l = GeoSolid3
+                .Extrude(outline, new GeoVector3(0, 0, 20), Tolerance)
+                .TransformBy(GeoTransform3.Translation(new GeoVector3(far, -far, 0.5 * far)));
             double volume = (100.0 * 40 + 40 * 20) * 20;
             double area = 2 * (100.0 * 40 + 40 * 20) + 20 * (100 + 40 + 60 + 20 + 40 + 60);
-            GeoPoint3 centroid = P(far + (100.0 * 40 * 50 + 40 * 20 * 20) / (100 * 40 + 40 * 20), -far + (100.0 * 40 * 20 + 40 * 20 * 50) / (100 * 40 + 40 * 20), 0.5 * far + 10);
+            GeoPoint3 centroid = P(
+                far + (100.0 * 40 * 50 + 40 * 20 * 20) / (100 * 40 + 40 * 20),
+                -far + (100.0 * 40 * 20 + 40 * 20 * 50) / (100 * 40 + 40 * 20),
+                0.5 * far + 10
+            );
 
             foreach (VolumeMethod method in Methods)
             {
@@ -80,23 +98,34 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // A plate with a hole 20 square through it, its walls 20 deep.
             GeoSolid3 plate = Box(0, 0, 0, 100, 100, 20).WithOpenings(new[] { Box(60, 40, -1, 80, 60, 21) });
-            double gross = 100.0 * 100 * 20, hole = 20.0 * 20 * 20, net = gross - hole;
+            double gross = 100.0 * 100 * 20,
+                hole = 20.0 * 20 * 20,
+                net = gross - hole;
 
             foreach (VolumeMethod method in Methods)
             {
                 Assert.Equal(net, Measure3.Volume(plate, method, Tolerance), 6);
-                Assert.True(Measure3.Centroid(plate, method, Tolerance).DistanceTo(P((gross * 50 - hole * 70) / net, 50, 10)) < 1E-9);
+                Assert.True(
+                    Measure3.Centroid(plate, method, Tolerance).DistanceTo(P((gross * 50 - hole * 70) / net, 50, 10))
+                        < 1E-9
+                );
             }
 
             foreach (AreaMethod method in new[] { AreaMethod.Faces, AreaMethod.Surface })
             {
-                Assert.Equal(2 * (10000.0 - 400) + 4 * 100 * 20 + 4 * 20 * 20, Measure3.SurfaceArea(plate, method, Tolerance), 6);
+                Assert.Equal(
+                    2 * (10000.0 - 400) + 4 * 100 * 20 + 4 * 20 * 20,
+                    Measure3.SurfaceArea(plate, method, Tolerance),
+                    6
+                );
             }
 
             // The body measures the same material: its fan, and its faces read flat.
             Assert.Equal(plate.GetVolume(Tolerance), Measure3.Volume(plate, VolumeMethod.Fan, Tolerance), 6);
             Assert.Equal(plate.GetSurfaceArea(Tolerance), Measure3.SurfaceArea(plate, AreaMethod.Faces, Tolerance), 9);
-            Assert.True(plate.GetCentroid(Tolerance).DistanceTo(Measure3.Centroid(plate, VolumeMethod.Fan, Tolerance)) < 1E-9);
+            Assert.True(
+                plate.GetCentroid(Tolerance).DistanceTo(Measure3.Centroid(plate, VolumeMethod.Fan, Tolerance)) < 1E-9
+            );
         }
 
         [Fact]
@@ -106,8 +135,15 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // and every measure after it is of the same material, the hole out and the broken opening left in.
             List<GeoFace3> faces = Box(10, 10, -1, 30, 30, 21).Faces.ToList();
             int top = faces.FindIndex(f => f.Boundary.Normal.Z > 0.5);
-            faces[top] = new GeoFace3(GeoPolygon3.FromValidated(faces[top].Boundary.Vertices.ToArray(), new GeoVector3(0, 0, 0), faces[top].Area));
-            GeoSolid3 plate = Box(0, 0, 0, 100, 100, 20).WithOpenings(new[] { new GeoSolid3(faces), Box(60, 40, -1, 80, 60, 21) });
+            faces[top] = new GeoFace3(
+                GeoPolygon3.FromValidated(
+                    faces[top].Boundary.Vertices.ToArray(),
+                    new GeoVector3(0, 0, 0),
+                    faces[top].Area
+                )
+            );
+            GeoSolid3 plate = Box(0, 0, 0, 100, 100, 20)
+                .WithOpenings(new[] { new GeoSolid3(faces), Box(60, 40, -1, 80, 60, 21) });
             var warnings = new List<string>();
             bool enabled = GeometryHelperLog.Enable;
             GeometryHelperLog.Enable = true;
@@ -128,7 +164,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
                 Assert.Contains("openings not cut", compared.ToString());
                 Assert.Equal(192000.0, compared.GetVolume(VolumeMethod.Surface), 6);
                 Assert.Equal(192000.0 * 7.85E-6, Measure3.Mass(plate, 7.85E-6, VolumeMethod.Fan, Tolerance), 9);
-                Assert.Equal(plate.GetSurfaceArea(Tolerance), Measure3.SurfaceArea(plate, AreaMethod.Faces, Tolerance), 9);
+                Assert.Equal(
+                    plate.GetSurfaceArea(Tolerance),
+                    Measure3.SurfaceArea(plate, AreaMethod.Faces, Tolerance),
+                    9
+                );
                 Assert.Equal(192000.0, plate.GetMassProperties(1.0, Tolerance).Volume, 6);
                 Assert.Single(warnings);
             }
@@ -150,7 +190,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // the other diagonal when it starts at (100, 0).
             const double lift = 0.0008;
             GeoSolid3 box = LiftedBox(lift, start);
-            double third = 1E4 * lift / 3, sixth = 1E4 * lift / 6, quarter = 1E4 * lift / 4;
+            double third = 1E4 * lift / 3,
+                sixth = 1E4 * lift / 6,
+                quarter = 1E4 * lift / 4;
 
             Assert.True(box.IsClosed(Tolerance));
             Assert.Equal(1E5 + (start == 0 ? third : sixth), Measure3.Volume(box, VolumeMethod.Fan, Tolerance), 6);
@@ -159,11 +201,15 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             // The fan reads the top flat through its first corner, which stands a quarter of the lift off the top's middle
             // plane, above it from (0, 0) and below it from (100, 0): a third of that times the area apart from flat.
-            double fan = Measure3.Volume(box, VolumeMethod.Fan, Tolerance), flat = Measure3.Volume(box, VolumeMethod.FlatFaces, Tolerance);
+            double fan = Measure3.Volume(box, VolumeMethod.Fan, Tolerance),
+                flat = Measure3.Volume(box, VolumeMethod.FlatFaces, Tolerance);
             Assert.Equal((start == 0 ? 1 : -1) * 1E4 * (lift / 4) / 3, fan - flat, 6);
 
             double surface = Measure3.Volume(box, VolumeMethod.Surface, Tolerance);
-            Assert.True(Math.Abs(surface - (1E5 + third)) < 1E-6 || Math.Abs(surface - (1E5 + sixth)) < 1E-6, $"{surface} is neither split");
+            Assert.True(
+                Math.Abs(surface - (1E5 + third)) < 1E-6 || Math.Abs(surface - (1E5 + sixth)) < 1E-6,
+                $"{surface} is neither split"
+            );
 
             // The comparison sets them side by side: a sixth of the lift times the area apart, and the faces still close.
             MeasureComparison3 compared = Measure3.Compare(box, Tolerance);
@@ -184,9 +230,12 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // faces are split into the triangles lying in them, and every reading holds the piece.
             var hundredth = new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01);
             GeoSolid3 piece = CapAHairOffThePlaneTests.Piece();
-            Assert.True(piece.TrySplitBy(CapAHairOffThePlaneTests.Plane(), out GeoSolid3 above, out GeoSolid3 below, hundredth));
+            Assert.True(
+                piece.TrySplitBy(CapAHairOffThePlaneTests.Plane(), out GeoSolid3 above, out GeoSolid3 below, hundredth)
+            );
 
-            double Sum(VolumeMethod method) => Measure3.Volume(above, method, hundredth) + Measure3.Volume(below, method, hundredth);
+            double Sum(VolumeMethod method) =>
+                Measure3.Volume(above, method, hundredth) + Measure3.Volume(below, method, hundredth);
             double whole = Measure3.Volume(piece, VolumeMethod.Surface, hundredth);
 
             Assert.InRange(Sum(VolumeMethod.Surface) / whole, 1 - 1E-7, 1 + 1E-7);
@@ -198,10 +247,18 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.True(Measure3.Compare(above, hundredth).VolumeSpread > 100);
             Assert.True(Measure3.Compare(below, hundredth).VolumeSpread > 100);
 
-            Assert.True(piece.TrySplitBy(CapAHairOffThePlaneTests.Plane(), out GeoSolid3 fineAbove, out GeoSolid3 fineBelow, Tolerance));
+            Assert.True(
+                piece.TrySplitBy(
+                    CapAHairOffThePlaneTests.Plane(),
+                    out GeoSolid3 fineAbove,
+                    out GeoSolid3 fineBelow,
+                    Tolerance
+                )
+            );
             foreach (VolumeMethod method in Methods)
             {
-                double sum = Measure3.Volume(fineAbove, method, Tolerance) + Measure3.Volume(fineBelow, method, Tolerance);
+                double sum =
+                    Measure3.Volume(fineAbove, method, Tolerance) + Measure3.Volume(fineBelow, method, Tolerance);
                 Assert.InRange(sum / whole, 1 - 1E-7, 1 + 1E-7);
             }
         }
@@ -230,7 +287,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
                 Assert.True(Measure3.Centroid(inwards, method, Tolerance).DistanceTo(P(50, 30, 10)) < 1E-9);
             }
 
-            Assert.Equal(Measure3.MassProperties(box, 1.0, VolumeMethod.Surface, Tolerance).Izz, Measure3.MassProperties(inwards, 1.0, VolumeMethod.Surface, Tolerance).Izz, 3);
+            Assert.Equal(
+                Measure3.MassProperties(box, 1.0, VolumeMethod.Surface, Tolerance).Izz,
+                Measure3.MassProperties(inwards, 1.0, VolumeMethod.Surface, Tolerance).Izz,
+                3
+            );
         }
 
         [Fact]
@@ -282,13 +343,21 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.Throws<ArgumentOutOfRangeException>(() => Measure3.Volume(box, (VolumeMethod)7, Tolerance));
             Assert.Throws<ArgumentOutOfRangeException>(() => Measure3.Volume(box, (VolumeMethod)(-1), Tolerance));
             Assert.Throws<ArgumentOutOfRangeException>(() => Measure3.SurfaceArea(box, (AreaMethod)5, Tolerance));
-            Assert.Throws<ArgumentOutOfRangeException>(() => Measure3.Compare(box, Tolerance).GetVolume((VolumeMethod)3));
-            Assert.Throws<ArgumentOutOfRangeException>(() => Measure3.Compare(box, Tolerance).GetSurfaceArea((AreaMethod)2));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                Measure3.Compare(box, Tolerance).GetVolume((VolumeMethod)3)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                Measure3.Compare(box, Tolerance).GetSurfaceArea((AreaMethod)2)
+            );
 
             foreach (double density in new[] { 0.0, -1.0, double.NaN, double.PositiveInfinity })
             {
-                Assert.Throws<ArgumentOutOfRangeException>(() => Measure3.Mass(box, density, VolumeMethod.Fan, Tolerance));
-                Assert.Throws<ArgumentOutOfRangeException>(() => Measure3.MassProperties(box, density, VolumeMethod.Fan, Tolerance));
+                Assert.Throws<ArgumentOutOfRangeException>(() =>
+                    Measure3.Mass(box, density, VolumeMethod.Fan, Tolerance)
+                );
+                Assert.Throws<ArgumentOutOfRangeException>(() =>
+                    Measure3.MassProperties(box, density, VolumeMethod.Fan, Tolerance)
+                );
             }
         }
 

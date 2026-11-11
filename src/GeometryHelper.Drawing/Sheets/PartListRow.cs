@@ -40,6 +40,7 @@ namespace GeometryHelper.Drawing
         public string Name { get; }
 
         /// <inheritdoc/>
-        public override string ToString() => FormattableString.Invariant($"{Mark} {Quantity} {Profile} {Material} {Length} {Name}");
+        public override string ToString() =>
+            FormattableString.Invariant($"{Mark} {Quantity} {Profile} {Material} {Length} {Name}");
     }
 }

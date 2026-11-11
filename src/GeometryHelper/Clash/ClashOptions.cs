@@ -30,9 +30,7 @@ namespace GeometryHelper.Clash
         /// The constructor as it was before the minimums, kept so that code built against it runs as it did.
         /// </remarks>
         public ClashOptions(double clearance, bool includeTouching, int maxDegreeOfParallelism)
-            : this(clearance, includeTouching, maxDegreeOfParallelism, 0.0, 0.0)
-        {
-        }
+            : this(clearance, includeTouching, maxDegreeOfParallelism, 0.0, 0.0) { }
 
         /// <summary>
         /// Initializes the options.
@@ -55,15 +53,33 @@ namespace GeometryHelper.Clash
         /// Thrown when the clearance, the minimum depth or the minimum volume is negative, NaN or infinite, or the
         /// parallelism is neither -1 nor positive.
         /// </exception>
-        public ClashOptions(double clearance = 0.0, bool includeTouching = true, int maxDegreeOfParallelism = -1, double minimumDepth = 0.0, double minimumVolume = 0.0)
+        public ClashOptions(
+            double clearance = 0.0,
+            bool includeTouching = true,
+            int maxDegreeOfParallelism = -1,
+            double minimumDepth = 0.0,
+            double minimumVolume = 0.0
+        )
         {
             Guard.NonNegative(clearance, nameof(clearance), "A clearance has to be a number, and cannot be negative.");
-            Guard.NonNegative(minimumDepth, nameof(minimumDepth), "A minimum depth has to be a number, and cannot be negative.");
-            Guard.NonNegative(minimumVolume, nameof(minimumVolume), "A minimum volume has to be a number, and cannot be negative.");
+            Guard.NonNegative(
+                minimumDepth,
+                nameof(minimumDepth),
+                "A minimum depth has to be a number, and cannot be negative."
+            );
+            Guard.NonNegative(
+                minimumVolume,
+                nameof(minimumVolume),
+                "A minimum volume has to be a number, and cannot be negative."
+            );
 
             if (maxDegreeOfParallelism == 0 || maxDegreeOfParallelism < -1)
             {
-                throw new ArgumentOutOfRangeException(nameof(maxDegreeOfParallelism), maxDegreeOfParallelism, "Use -1 for every processor, or a positive count.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(maxDegreeOfParallelism),
+                    maxDegreeOfParallelism,
+                    "Use -1 for every processor, or a positive count."
+                );
             }
 
             Clearance = clearance;
@@ -149,7 +165,8 @@ namespace GeometryHelper.Clash
                 IncludeTouching,
                 MaxDegreeOfParallelism,
                 MinimumDepth,
-                MinimumVolume);
+                MinimumVolume
+            );
         }
     }
 }

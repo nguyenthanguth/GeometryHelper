@@ -19,7 +19,8 @@ namespace GeometryHelper.UnitTest.Dxf
     {
         private static readonly double Close = 1E-9;
 
-        private static void Near(double expected, double actual) => Assert.InRange(actual, expected - Close, expected + Close);
+        private static void Near(double expected, double actual) =>
+            Assert.InRange(actual, expected - Close, expected + Close);
 
         private static void Near(GeoPoint3 expected, GeoPoint3 actual)
         {
@@ -28,7 +29,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(expected.Z, actual.Z);
         }
 
-        private static void Near(GeoVector3 expected, GeoVector3 actual) => Near(new GeoPoint3(expected.X, expected.Y, expected.Z), new GeoPoint3(actual.X, actual.Y, actual.Z));
+        private static void Near(GeoVector3 expected, GeoVector3 actual) =>
+            Near(new GeoPoint3(expected.X, expected.Y, expected.Z), new GeoPoint3(actual.X, actual.Y, actual.Z));
 
         private static void Near(IReadOnlyList<GeoPoint3> expected, IReadOnlyList<GeoPoint3> actual)
         {
@@ -58,7 +60,8 @@ namespace GeometryHelper.UnitTest.Dxf
             return groups.ToArray();
         }
 
-        private static string After(string[] groups, string code) => string.Join(" ", groups.SkipWhile(g => !g.StartsWith(code + "=", StringComparison.Ordinal)));
+        private static string After(string[] groups, string code) =>
+            string.Join(" ", groups.SkipWhile(g => !g.StartsWith(code + "=", StringComparison.Ordinal)));
 
         [Fact]
         public void AnImageAndAWipeoutReadFromAFile_AreOfTheirOwnClasses_AsAutoCadNamesThem()
@@ -72,14 +75,23 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.IsType<DxfWipeout>(ByHandle<DxfEntity>(db, "C14"));
                 Assert.IsType<DxfRasterImageDef>(db.GetObject("8D"));
                 Assert.IsType<DxfRasterVariables>(db.NamedObjectsDictionary.GetAt("ACAD_IMAGE_VARS"));
-                Assert.DoesNotContain(db.ModelSpace, e => e is DxfUnknownEntity unknown && (unknown.DxfName == "IMAGE" || unknown.DxfName == "WIPEOUT"));
+                Assert.DoesNotContain(db.ModelSpace, e =>
+                    e is DxfUnknownEntity unknown && (unknown.DxfName == "IMAGE" || unknown.DxfName == "WIPEOUT")
+                );
             }
         }
 
         [Fact]
         public void EverySetterGivenTheValueItGives_LeavesTheFileByteForByte()
         {
-            foreach (string text in new[] { DxfRasterImageDrawings.R2000, DxfRasterImageDrawings.R2018, DxfFileEzdxfDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfRasterImageDrawings.R2000,
+                    DxfRasterImageDrawings.R2018,
+                    DxfFileEzdxfDrawings.R2018,
+                }
+            )
             {
                 SettingWhatItHasChangesNothing<DxfRasterImage>(text, image =>
                 {
@@ -119,7 +131,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(4.0, image.ImageWidth);
             Assert.Equal(3.0, image.ImageHeight);
             Assert.Equal(0.0, image.Rotation);
-            Assert.Equal(DxfImageDisplayOptions.Show | DxfImageDisplayOptions.ShowUnaligned | DxfImageDisplayOptions.Clip, image.DisplayOptions);
+            Assert.Equal(
+                DxfImageDisplayOptions.Show | DxfImageDisplayOptions.ShowUnaligned | DxfImageDisplayOptions.Clip,
+                image.DisplayOptions
+            );
             Assert.True(image.IsClipped);
             Assert.False(image.IsClipInverted);
             Assert.Equal(50, image.Brightness);
@@ -129,7 +144,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(P(15, 45, 0), image.PixelToModelTransform.Transform(P(0, 0, 0)));
             Near(P(10, 50, 0), image.PixelToModelTransform.Transform(P(-0.5, -0.5, 0)));
             Near(new[] { P(10, 20, 0), P(10, 50, 0), P(50, 50, 0), P(50, 20, 0), P(10, 20, 0) }, image.GetVertices());
-            Assert.Equal(new[] { Q(-0.5, -0.5), Q(-0.5, 2.5), Q(3.5, 2.5), Q(3.5, -0.5), Q(-0.5, -0.5) }, image.GetClipBoundary());
+            Assert.Equal(
+                new[] { Q(-0.5, -0.5), Q(-0.5, 2.5), Q(3.5, 2.5), Q(3.5, -0.5), Q(-0.5, -0.5) },
+                image.GetClipBoundary()
+            );
         }
 
         [Fact]
@@ -138,14 +156,26 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(DxfRasterImageDrawings.R2018);
 
             // The triangle in its order; the rectangle from its least corner up its x, as AutoCAD 2021 reads them back.
-            Near(new[] { P(15, 45, 0), P(45, 45, 0), P(30, 20, 0), P(15, 45, 0) }, ByHandle<DxfRasterImage>(db, "C11").GetVertices());
+            Near(
+                new[] { P(15, 45, 0), P(45, 45, 0), P(30, 20, 0), P(15, 45, 0) },
+                ByHandle<DxfRasterImage>(db, "C11").GetVertices()
+            );
             Assert.Equal(DxfClipBoundaryType.Poly, ByHandle<DxfRasterImage>(db, "C11").ClipBoundaryType);
-            Near(new[] { P(20, 40, 0), P(20, 30, 0), P(40, 30, 0), P(40, 40, 0), P(20, 40, 0) }, ByHandle<DxfRasterImage>(db, "C12").GetVertices());
-            Assert.Equal(new[] { Q(0.5, 0.5), Q(0.5, 1.5), Q(2.5, 1.5), Q(2.5, 0.5), Q(0.5, 0.5) }, ByHandle<DxfRasterImage>(db, "C12").GetClipBoundary());
+            Near(
+                new[] { P(20, 40, 0), P(20, 30, 0), P(40, 30, 0), P(40, 40, 0), P(20, 40, 0) },
+                ByHandle<DxfRasterImage>(db, "C12").GetVertices()
+            );
+            Assert.Equal(
+                new[] { Q(0.5, 0.5), Q(0.5, 1.5), Q(2.5, 1.5), Q(2.5, 0.5), Q(0.5, 0.5) },
+                ByHandle<DxfRasterImage>(db, "C12").GetClipBoundary()
+            );
 
             // Display options of 3 do not clip, whatever the record holds, as AutoCAD 2021 shows its frame.
             Assert.False(ByHandle<DxfRasterImage>(db, "C15").IsClipped);
-            Near(new[] { P(10, 20, 0), P(10, 50, 0), P(50, 50, 0), P(50, 20, 0), P(10, 20, 0) }, ByHandle<DxfRasterImage>(db, "C15").GetVertices());
+            Near(
+                new[] { P(10, 20, 0), P(10, 50, 0), P(50, 50, 0), P(50, 20, 0), P(10, 20, 0) },
+                ByHandle<DxfRasterImage>(db, "C15").GetVertices()
+            );
         }
 
         [Fact]
@@ -155,7 +185,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfRasterImage image = ByHandle<DxfRasterImage>(db, "C10");
 
-            image.SetClipBoundary(DxfClipBoundaryType.Rectangle, new[] { Q(0.5, 0.5), Q(2.5, 0.5), Q(2.5, 1.5), Q(0.5, 1.5), Q(0.5, 0.5) });
+            image.SetClipBoundary(
+                DxfClipBoundaryType.Rectangle,
+                new[] { Q(0.5, 0.5), Q(2.5, 0.5), Q(2.5, 1.5), Q(0.5, 1.5), Q(0.5, 0.5) }
+            );
             string after = db.ToText();
 
             // AutoCAD 2021 wrote this rectangle given either way round as 71 of 1 and its corners (0.5, 0.5) and (2.5, 1.5), 280 of 1.
@@ -165,16 +198,28 @@ namespace GeometryHelper.UnitTest.Dxf
             OnlyTheseChanged(text, after, "C10");
 
             // Held the other way round, (2.5, 1.5) first, it reads back from its least corner, as AutoCAD 2021 reads it.
-            image.SetClipBoundary(DxfClipBoundaryType.Rectangle, new[] { Q(2.5, 1.5), Q(2.5, 0.5), Q(0.5, 0.5), Q(0.5, 1.5), Q(2.5, 1.5) });
+            image.SetClipBoundary(
+                DxfClipBoundaryType.Rectangle,
+                new[] { Q(2.5, 1.5), Q(2.5, 0.5), Q(0.5, 0.5), Q(0.5, 1.5), Q(2.5, 1.5) }
+            );
             Assert.Equal("71=1 91=2 14=2.5 24=1.5 14=0.5 24=0.5", After(Groups(db.ToText(), "C10"), "71"));
-            Assert.Equal(new[] { Q(0.5, 0.5), Q(0.5, 1.5), Q(2.5, 1.5), Q(2.5, 0.5), Q(0.5, 0.5) }, image.GetClipBoundary());
+            Assert.Equal(
+                new[] { Q(0.5, 0.5), Q(0.5, 1.5), Q(2.5, 1.5), Q(2.5, 0.5), Q(0.5, 0.5) },
+                image.GetClipBoundary()
+            );
             Near(new[] { P(20, 40, 0), P(20, 30, 0), P(40, 30, 0), P(40, 40, 0), P(20, 40, 0) }, image.GetVertices());
             after = db.ToText();
 
             // Refused as AutoCAD refuses them: a rectangle of two corners, a polygon not closed, a kind of none.
-            Assert.Throws<ArgumentException>(() => image.SetClipBoundary(DxfClipBoundaryType.Rectangle, new[] { Q(0.5, 0.5), Q(2.5, 1.5) }));
-            Assert.Throws<ArgumentException>(() => image.SetClipBoundary(DxfClipBoundaryType.Poly, new[] { Q(0, 0), Q(3, 0), Q(1.5, 2.5) }));
-            Assert.Throws<ArgumentException>(() => image.SetClipBoundary(DxfClipBoundaryType.Invalid, new[] { Q(0, 0), Q(3, 0), Q(1.5, 2.5), Q(0, 0) }));
+            Assert.Throws<ArgumentException>(() =>
+                image.SetClipBoundary(DxfClipBoundaryType.Rectangle, new[] { Q(0.5, 0.5), Q(2.5, 1.5) })
+            );
+            Assert.Throws<ArgumentException>(() =>
+                image.SetClipBoundary(DxfClipBoundaryType.Poly, new[] { Q(0, 0), Q(3, 0), Q(1.5, 2.5) })
+            );
+            Assert.Throws<ArgumentException>(() =>
+                image.SetClipBoundary(DxfClipBoundaryType.Invalid, new[] { Q(0, 0), Q(3, 0), Q(1.5, 2.5), Q(0, 0) })
+            );
             Assert.Equal(after, db.ToText());
         }
 
@@ -185,7 +230,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfRasterImage image = ByHandle<DxfRasterImage>(db, "C10");
 
             image.SetClipBoundary(DxfClipBoundaryType.Poly, new[] { Q(0, 0), Q(3, 0), Q(1.5, 2.5), Q(0, 0) });
-            Assert.Equal("71=2 91=4 14=0 24=0 14=3 24=0 14=1.5 24=2.5 14=0 24=0", After(Groups(db.ToText(), "C10"), "71"));
+            Assert.Equal(
+                "71=2 91=4 14=0 24=0 14=3 24=0 14=1.5 24=2.5 14=0 24=0",
+                After(Groups(db.ToText(), "C10"), "71")
+            );
             Near(new[] { P(15, 45, 0), P(45, 45, 0), P(30, 20, 0), P(15, 45, 0) }, image.GetVertices());
 
             // As AutoCAD 2021: IsClipped false takes flag 4 off and keeps the boundary, 280 at 1; the frame is shown.
@@ -269,7 +317,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfWipeout wipeout = ByHandle<DxfWipeout>(db, "C14");
 
             // AutoCAD 2021: the rectangle (200, 100) to (230, 110) in the square of side 230 at the origin.
-            wipeout.SetFrom(new[] { Q(200, 100), Q(230, 100), Q(230, 110), Q(200, 110), Q(200, 100) }, new GeoVector3(0, 0, 1));
+            wipeout.SetFrom(
+                new[] { Q(200, 100), Q(230, 100), Q(230, 110), Q(200, 110), Q(200, 100) },
+                new GeoVector3(0, 0, 1)
+            );
             wipeout.GetOrientation(out GeoPoint3 origin, out GeoVector3 u, out GeoVector3 v);
             Near(P(0, 0, 0), origin);
             Near(new GeoVector3(230, 0, 0), u);
@@ -278,11 +329,18 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(5, boundary.Count);
             Near(0.3695652173913043, boundary[0].X);
             Near(0.0652173913043479, boundary[0].Y);
-            Near(new[] { P(200, 100, 0), P(230, 100, 0), P(230, 110, 0), P(200, 110, 0), P(200, 100, 0) }, wipeout.GetVertices());
+            Near(
+                new[] { P(200, 100, 0), P(230, 100, 0), P(230, 110, 0), P(200, 110, 0), P(200, 100, 0) },
+                wipeout.GetVertices()
+            );
 
             // The rectangle (-30, -10) to (10, 20): the square of side 40 at (-30, -10), as the file has it, to the byte.
             DxfDatabase again = DxfDatabase.Parse(text);
-            ByHandle<DxfWipeout>(again, "C14").SetFrom(new[] { Q(-30, -10), Q(10, -10), Q(10, 20), Q(-30, 20), Q(-30, -10) }, new GeoVector3(0, 0, 2));
+            ByHandle<DxfWipeout>(again, "C14")
+                .SetFrom(
+                    new[] { Q(-30, -10), Q(10, -10), Q(10, 20), Q(-30, 20), Q(-30, -10) },
+                    new GeoVector3(0, 0, 2)
+                );
             Assert.Equal(text, again.ToText());
 
             // Upright, its normal (0, -1, 0): its frame along x and z, as AutoCAD 2021 laid it.
@@ -291,9 +349,15 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(new GeoVector3(20, 0, 0), u);
             Near(new GeoVector3(0, 0, 20), v);
 
-            Assert.Throws<ArgumentException>(() => wipeout.SetFrom(new[] { Q(0, 0), Q(30, 0), Q(15, 20) }, new GeoVector3(0, 0, 1)));
-            Assert.Throws<ArgumentException>(() => wipeout.SetFrom(new[] { Q(0, 0), Q(30, 0), Q(60, 0), Q(0, 0) }, new GeoVector3(0, 0, 1)));
-            Assert.Throws<ArgumentException>(() => wipeout.SetFrom(new[] { Q(0, 0), Q(30, 0), Q(15, 20), Q(0, 0) }, new GeoVector3(0, 0, 0)));
+            Assert.Throws<ArgumentException>(() =>
+                wipeout.SetFrom(new[] { Q(0, 0), Q(30, 0), Q(15, 20) }, new GeoVector3(0, 0, 1))
+            );
+            Assert.Throws<ArgumentException>(() =>
+                wipeout.SetFrom(new[] { Q(0, 0), Q(30, 0), Q(60, 0), Q(0, 0) }, new GeoVector3(0, 0, 1))
+            );
+            Assert.Throws<ArgumentException>(() =>
+                wipeout.SetFrom(new[] { Q(0, 0), Q(30, 0), Q(15, 20), Q(0, 0) }, new GeoVector3(0, 0, 0))
+            );
         }
 
         [Fact]
@@ -330,7 +394,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<ArgumentOutOfRangeException>(() => variables.ImageFrame = DxfFrameSetting.ImageFrameInvalid);
 
             definition.SourceFileName = @"C:\pictures\photo.jpg";
-            Assert.Equal(@"C:\pictures\photo.jpg", ((DxfRasterImageDef)DxfDatabase.Parse(db.ToText()).GetObject("8D")).SourceFileName);
+            Assert.Equal(
+                @"C:\pictures\photo.jpg",
+                ((DxfRasterImageDef)DxfDatabase.Parse(db.ToText()).GetObject("8D")).SourceFileName
+            );
             OnlyTheseChanged(text, db.ToText(), variables.Handle, "8D");
         }
 

@@ -17,7 +17,10 @@ namespace GeometryHelper.UnitTest.Plane
     {
         private const double Eps = 2.220446049250313E-16;
 
-        private static readonly int Multiplier = int.TryParse(Environment.GetEnvironmentVariable("SPLINE_FUZZ_DRAWS"), out int asked) && asked > 0 ? asked : 1;
+        private static readonly int Multiplier =
+            int.TryParse(Environment.GetEnvironmentVariable("SPLINE_FUZZ_DRAWS"), out int asked) && asked > 0
+                ? asked
+                : 1;
 
         private readonly ITestOutputHelper _output;
 
@@ -41,7 +44,18 @@ namespace GeometryHelper.UnitTest.Plane
             return data;
         }
 
-        private static string Name(SplineOracle o, string kind, int draw) => kind + " draw " + draw + ": degree " + o.Degree + ", points " + string.Join(" ", o.Points.Select(x => x.ToString("R"))) + ", knots " + string.Join(" ", o.Knots.Select(x => x.ToString("R"))) + ", weights " + string.Join(" ", o.Weights);
+        private static string Name(SplineOracle o, string kind, int draw) =>
+            kind
+            + " draw "
+            + draw
+            + ": degree "
+            + o.Degree
+            + ", points "
+            + string.Join(" ", o.Points.Select(x => x.ToString("R")))
+            + ", knots "
+            + string.Join(" ", o.Knots.Select(x => x.ToString("R")))
+            + ", weights "
+            + string.Join(" ", o.Weights);
 
         [Theory]
         [MemberData(nameof(Cases))]
@@ -75,17 +89,36 @@ namespace GeometryHelper.UnitTest.Plane
 
                 for (int c = 0; c < dim; c++)
                 {
-                    double error = Math.Max(Math.Abs(box[0][c] - min[c]), Math.Abs(box[1][c] - max[c])) / (o.Scale * Eps);
+                    double error =
+                        Math.Max(Math.Abs(box[0][c] - min[c]), Math.Abs(box[1][c] - max[c])) / (o.Scale * Eps);
                     worstBox = Math.Max(worstBox, error);
 
-                    Assert.True(error <= 40.0, at + ": axis " + c + " runs " + box[0][c] + " to " + box[1][c] + ", the oracle says " + min[c] + " to " + max[c]);
+                    Assert.True(
+                        error <= 40.0,
+                        at
+                            + ": axis "
+                            + c
+                            + " runs "
+                            + box[0][c]
+                            + " to "
+                            + box[1][c]
+                            + ", the oracle says "
+                            + min[c]
+                            + " to "
+                            + max[c]
+                    );
                 }
 
                 // The length of the curve is not asked of a cusp: the speed has a corner there, and the answer is good to less.
                 double expected = kind == "WeightsAThousandfoldApart" ? 0.0 : o.Length();
                 double length = s.Length();
                 // The oracle samples a span a millionth wide at parameters rounded to the last place of numbers near 4, which is 4E-10 of the span.
-                double allowed = Math.Max(kind == "ACusp" ? 1E-9 : kind == "SpansAMillionthWide" ? 1E-11 : 1E-12, 16 * Eps * o.Scale / Math.Max(expected, 1E-300));
+                double allowed = Math.Max(
+                    kind == "ACusp" ? 1E-9
+                        : kind == "SpansAMillionthWide" ? 1E-11
+                        : 1E-12,
+                    16 * Eps * o.Scale / Math.Max(expected, 1E-300)
+                );
 
                 if (kind == "WeightsAThousandfoldApart")
                 {
@@ -94,7 +127,13 @@ namespace GeometryHelper.UnitTest.Plane
                     // would be without cutting the piece where the weights change. The length of a chain inscribed within a millionth
                     // of the size of the spline is a length the curve cannot be shorter than and comes within a millionth of.
                     double extent = o.Points.Max() - o.Points.Min();
-                    var curve = new GeometryHelper.Internal.Nurbs.NurbsCurve(dim, o.Degree, o.Points.ToArray(), o.Knots.ToArray(), o.Weights.ToArray());
+                    var curve = new GeometryHelper.Internal.Nurbs.NurbsCurve(
+                        dim,
+                        o.Degree,
+                        o.Points.ToArray(),
+                        o.Knots.ToArray(),
+                        o.Weights.ToArray()
+                    );
                     var corners = new List<double>();
                     curve.Flatten(extent * 1E-6, corners);
                     expected = 0.0;
@@ -112,7 +151,14 @@ namespace GeometryHelper.UnitTest.Plane
                     }
 
                     allowed = 2E-6;
-                    Assert.True(length >= expected * (1.0 - 1E-12), at + ": the length " + length.ToString("R") + " is less than the chain inscribed in it, " + expected.ToString("R"));
+                    Assert.True(
+                        length >= expected * (1.0 - 1E-12),
+                        at
+                            + ": the length "
+                            + length.ToString("R")
+                            + " is less than the chain inscribed in it, "
+                            + expected.ToString("R")
+                    );
                 }
 
                 double relative = Math.Abs(length - expected) / Math.Max(expected, 1E-300);
@@ -120,10 +166,23 @@ namespace GeometryHelper.UnitTest.Plane
 
                 // A curve a hundred long at three times ten to the seventh from the origin is known to 6E-9 by its coordinates alone, which is
                 // 4E-11 of its length: the length is held to that, and to a trillionth where the curve is near the origin.
-                Assert.True(relative <= allowed, at + ": length " + length.ToString("R") + ", the oracle says " + expected.ToString("R"));
+                Assert.True(
+                    relative <= allowed,
+                    at + ": length " + length.ToString("R") + ", the oracle says " + expected.ToString("R")
+                );
             }
 
-            _output.WriteLine(kind + " in " + dim + " dimensions: worst point " + worstPoint.ToString("0.0") + ", worst box " + worstBox.ToString("0.0") + " units of rounding, worst length " + worstLength.ToString("0.0E+0"));
+            _output.WriteLine(
+                kind
+                    + " in "
+                    + dim
+                    + " dimensions: worst point "
+                    + worstPoint.ToString("0.0")
+                    + ", worst box "
+                    + worstBox.ToString("0.0")
+                    + " units of rounding, worst length "
+                    + worstLength.ToString("0.0E+0")
+            );
         }
 
         [Theory]
@@ -148,15 +207,37 @@ namespace GeometryHelper.UnitTest.Plane
                     worst = Math.Max(worst, error);
 
                     // The library may find a nearer point than the sampling did, and not a farther one.
-                    Assert.True(error <= 40.0, at + ", query " + string.Join(", ", q) + ": distance " + distance + ", the oracle says " + expected + " (" + error + " units off)");
+                    Assert.True(
+                        error <= 40.0,
+                        at
+                            + ", query "
+                            + string.Join(", ", q)
+                            + ": distance "
+                            + distance
+                            + ", the oracle says "
+                            + expected
+                            + " ("
+                            + error
+                            + " units off)"
+                    );
 
                     double t = s.ParameterAtPoint(q);
                     Assert.InRange(t, o.Start, o.End);
-                    Assert.True(SplineUnderTest.Distance(o.Point(t), q) <= expected + 40 * Eps * o.Scale + 1E-9 * expected, at + ": the parameter " + t + " is not a nearest point");
+                    Assert.True(
+                        SplineUnderTest.Distance(o.Point(t), q) <= expected + 40 * Eps * o.Scale + 1E-9 * expected,
+                        at + ": the parameter " + t + " is not a nearest point"
+                    );
                 }
             }
 
-            _output.WriteLine(kind + " in " + dim + " dimensions: the nearest point was at worst " + worst.ToString("0.0") + " units of rounding too far");
+            _output.WriteLine(
+                kind
+                    + " in "
+                    + dim
+                    + " dimensions: the nearest point was at worst "
+                    + worst.ToString("0.0")
+                    + " units of rounding too far"
+            );
         }
 
         [Theory]
@@ -185,10 +266,15 @@ namespace GeometryHelper.UnitTest.Plane
                 {
                     for (int i = 0; i <= 300; i++)
                     {
-                        double[] p = o.FastPoint(Math.Min(breaks[span] + (breaks[span + 1] - breaks[span]) * i / 300.0, breaks[span + 1]));
+                        double[] p = o.FastPoint(
+                            Math.Min(breaks[span] + (breaks[span + 1] - breaks[span]) * i / 300.0, breaks[span + 1])
+                        );
                         double gap = DistanceToChain(chain, p);
 
-                        Assert.True(gap <= tolerance * (1.0 + 1E-9), at + ": a point of the curve is " + gap + " from the chain, the tolerance " + tolerance);
+                        Assert.True(
+                            gap <= tolerance * (1.0 + 1E-9),
+                            at + ": a point of the curve is " + gap + " from the chain, the tolerance " + tolerance
+                        );
                     }
                 }
 
@@ -215,8 +301,14 @@ namespace GeometryHelper.UnitTest.Plane
                         double v = o.Start + (u - o.Start) * random.NextDouble();
                         double w = u + (o.End - u) * random.NextDouble();
 
-                        Assert.True(SplineUnderTest.Distance(o.Point(v), pieces[0].PointAt(v)) <= 60 * Eps * o.Scale, at + ": the first piece strays at " + v + " of a cut at " + u);
-                        Assert.True(SplineUnderTest.Distance(o.Point(w), pieces[1].PointAt(w)) <= 60 * Eps * o.Scale, at + ": the second piece strays at " + w + " of a cut at " + u);
+                        Assert.True(
+                            SplineUnderTest.Distance(o.Point(v), pieces[0].PointAt(v)) <= 60 * Eps * o.Scale,
+                            at + ": the first piece strays at " + v + " of a cut at " + u
+                        );
+                        Assert.True(
+                            SplineUnderTest.Distance(o.Point(w), pieces[1].PointAt(w)) <= 60 * Eps * o.Scale,
+                            at + ": the second piece strays at " + w + " of a cut at " + u
+                        );
                     }
                 }
             }

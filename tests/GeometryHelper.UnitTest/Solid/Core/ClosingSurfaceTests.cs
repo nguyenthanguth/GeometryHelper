@@ -28,7 +28,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
         private static readonly SolidClosingOptions NoFill = new SolidClosingOptions(Fine, 0.005);
 
         // Fills a hole of any size, out of flat by up to half a millimetre, by the least area whatever else would.
-        private static readonly SolidClosingOptions AnyFill = new SolidClosingOptions(Fine, 0.005, double.PositiveInfinity, 0.5, FillStrategy.MinArea);
+        private static readonly SolidClosingOptions AnyFill = new SolidClosingOptions(
+            Fine,
+            0.005,
+            double.PositiveInfinity,
+            0.5,
+            FillStrategy.MinArea
+        );
 
         [Fact]
         public void Options_RefuseAMaxGapThatIsNoDistance()
@@ -36,7 +42,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // A gap is closed by moving corners up to that far: nought closes nothing, and no distance is endless.
             foreach (double gap in new[] { 0.0, -0.005, double.NaN, double.PositiveInfinity, double.NegativeInfinity })
             {
-                ArgumentOutOfRangeException thrown = Assert.Throws<ArgumentOutOfRangeException>(() => new SolidClosingOptions(Fine, gap));
+                ArgumentOutOfRangeException thrown = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                    new SolidClosingOptions(Fine, gap)
+                );
                 Assert.Equal("maxGap", thrown.ParamName);
             }
 
@@ -49,11 +57,16 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // Nought fills no hole and infinity fills any; less than nought is no area.
             foreach (double area in new[] { -1.0, double.NaN, double.NegativeInfinity })
             {
-                ArgumentOutOfRangeException thrown = Assert.Throws<ArgumentOutOfRangeException>(() => new SolidClosingOptions(Fine, 0.005, area));
+                ArgumentOutOfRangeException thrown = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                    new SolidClosingOptions(Fine, 0.005, area)
+                );
                 Assert.Equal("maxHoleArea", thrown.ParamName);
             }
 
-            Assert.Equal(double.PositiveInfinity, new SolidClosingOptions(Fine, 0.005, double.PositiveInfinity).MaxHoleArea);
+            Assert.Equal(
+                double.PositiveInfinity,
+                new SolidClosingOptions(Fine, 0.005, double.PositiveInfinity).MaxHoleArea
+            );
             Assert.Equal(0.0, new SolidClosingOptions(Fine, 0.005, 0.0).MaxHoleArea);
         }
 
@@ -63,7 +76,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // How far a hole may stand off flat and still be filled: nought fills flat holes only, and no distance is endless.
             foreach (double off in new[] { -0.001, double.NaN, double.PositiveInfinity, double.NegativeInfinity })
             {
-                ArgumentOutOfRangeException thrown = Assert.Throws<ArgumentOutOfRangeException>(() => new SolidClosingOptions(Fine, 0.005, 100.0, off));
+                ArgumentOutOfRangeException thrown = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                    new SolidClosingOptions(Fine, 0.005, 100.0, off)
+                );
                 Assert.Equal("maxOffFlat", thrown.ParamName);
             }
 
@@ -76,7 +91,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // Numbers cast to the strategy that name none of its three ways.
             foreach (FillStrategy fill in new[] { (FillStrategy)3, (FillStrategy)(-1), (FillStrategy)99 })
             {
-                ArgumentOutOfRangeException thrown = Assert.Throws<ArgumentOutOfRangeException>(() => new SolidClosingOptions(Fine, 0.005, 100.0, 0.1, fill));
+                ArgumentOutOfRangeException thrown = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                    new SolidClosingOptions(Fine, 0.005, 100.0, 0.1, fill)
+                );
                 Assert.Equal("fill", thrown.ParamName);
             }
         }
@@ -113,7 +130,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.Equal((object)options, (object)same);
             Assert.Equal(options.GetHashCode(), same.GetHashCode());
 
-            Assert.NotEqual(options, new SolidClosingOptions(new Tolerance(0.01, 1E-5), 0.005, 250.0, 0.5, FillStrategy.MinArea));
+            Assert.NotEqual(
+                options,
+                new SolidClosingOptions(new Tolerance(0.01, 1E-5), 0.005, 250.0, 0.5, FillStrategy.MinArea)
+            );
             Assert.NotEqual(options, new SolidClosingOptions(Fine, 0.006, 250.0, 0.5, FillStrategy.MinArea));
             Assert.NotEqual(options, new SolidClosingOptions(Fine, 0.005, 251.0, 0.5, FillStrategy.MinArea));
             Assert.NotEqual(options, new SolidClosingOptions(Fine, 0.005, 250.0, 0.4, FillStrategy.MinArea));
@@ -150,12 +170,16 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // A null for the options is the caller's mistake, not the body's.
             GeoSolid3 box = ClosingTestBodies.Box();
 
-            ArgumentNullException none = Assert.Throws<ArgumentNullException>(() => box.TryClose(out _, (SolidClosingOptions)null, out _));
+            ArgumentNullException none = Assert.Throws<ArgumentNullException>(() =>
+                box.TryClose(out _, (SolidClosingOptions)null, out _)
+            );
             Assert.Equal("options", none.ParamName);
 
             // The short form makes its options of what it is given, and refuses a gap that is no distance as they do, valid
             // as the body is.
-            ArgumentOutOfRangeException noGap = Assert.Throws<ArgumentOutOfRangeException>(() => box.TryClose(out _, Fine, 0.0));
+            ArgumentOutOfRangeException noGap = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                box.TryClose(out _, Fine, 0.0)
+            );
             Assert.Equal("maxGap", noGap.ParamName);
         }
 
@@ -170,7 +194,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void ABoxMadeOfAnAxisAlignedBox_IsTakenAsItIs()
         {
             // The six faces an axis-aligned box 2 000 by 500 by 300 gives as a solid.
-            AssertTakenAsItIs(new GeoAabb3(new GeoPoint3(-500, 200, 0), new GeoPoint3(1500, 700, 300)).ToObb().ToSolid());
+            AssertTakenAsItIs(
+                new GeoAabb3(new GeoPoint3(-500, 200, 0), new GeoPoint3(1500, 700, 300)).ToObb().ToSolid()
+            );
         }
 
         [Fact]
@@ -214,7 +240,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void ABoxWithACavity_IsTakenAsItIs()
         {
             // A shell wound inwards inside another is a cavity, 2 by 2 by 2 in the middle of the box.
-            var body = new GeoSolid3(ClosingTestBodies.BoxFaces(ClosingTestBodies.Corners()).Concat(ClosingTestBodies.CavityFaces()));
+            var body = new GeoSolid3(
+                ClosingTestBodies.BoxFaces(ClosingTestBodies.Corners()).Concat(ClosingTestBodies.CavityFaces())
+            );
             Assert.Equal(5992.0, body.GetVolume(Fine), 6);
 
             AssertTakenAsItIs(body);
@@ -271,7 +299,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // The front, 30 by 10, given twice the same way round: three faces on each of its edges, two running it one way,
             // and read so they are open. One of the two goes, and the box is as it was.
             GeoSolid3 body = ClosingTestBodies.BoxWithFaceTwice(ClosingTestBodies.Front);
-            Assert.Contains(body.Validate(Fine).Issues, issue => issue.Kind == SolidIssueKind.OpenEdge && issue.Faces.Count == 3);
+            Assert.Contains(body.Validate(Fine).Issues, issue =>
+                issue.Kind == SolidIssueKind.OpenEdge && issue.Faces.Count == 3
+            );
 
             SolidClosing3 report = AssertClosed(body, NoFill, out GeoSolid3 closed);
             SolidRepair3 drop = Assert.Single(report.Repairs);
@@ -291,7 +321,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             foreach (bool copyFirst in new[] { false, true })
             {
                 GeoSolid3 body = ClosingTestBodies.BoxWithFaceAndItsFlip(ClosingTestBodies.Front, copyFirst);
-                Assert.Contains(body.Validate(Fine).Issues, issue => issue.Kind == SolidIssueKind.OpenEdge && issue.Faces.Count == 3);
+                Assert.Contains(body.Validate(Fine).Issues, issue =>
+                    issue.Kind == SolidIssueKind.OpenEdge && issue.Faces.Count == 3
+                );
 
                 SolidClosing3 report = AssertClosed(body, NoFill, out GeoSolid3 closed);
                 SolidRepair3 drop = Assert.Single(report.Repairs);
@@ -329,7 +361,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // Wound one each way, the two hold nothing together and read as a body of no volume. The one wound inwards lies
             // within no other, so it is no cavity: it is turned, and the first keeps its faces.
             List<GeoFace3> first = ClosingTestBodies.BoxFaces(ClosingTestBodies.Corners());
-            IEnumerable<GeoFace3> second = ClosingTestBodies.BoxFaces(ClosingTestBodies.Corners(100, 0, 0, 130, 20, 10)).Select(face => face.Flip());
+            IEnumerable<GeoFace3> second = ClosingTestBodies
+                .BoxFaces(ClosingTestBodies.Corners(100, 0, 0, 130, 20, 10))
+                .Select(face => face.Flip());
             var body = new GeoSolid3(first.Concat(second));
             Assert.Contains(body.Validate(Fine).Issues, issue => issue.Kind == SolidIssueKind.NoVolume);
 
@@ -365,10 +399,18 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // Measured from the middle of the box, each of its faces holds a sixth of it, 1 000. Listed twice, the front holds
             // that twice over, and the faces given 7 000; turned over, the right holds it the other way, and they 4 000.
-            SolidClosing3 dropped = AssertClosed(ClosingTestBodies.BoxWithFaceTwice(ClosingTestBodies.Front), NoFill, out _);
+            SolidClosing3 dropped = AssertClosed(
+                ClosingTestBodies.BoxWithFaceTwice(ClosingTestBodies.Front),
+                NoFill,
+                out _
+            );
             Assert.Equal(-1000.0, dropped.VolumeChange, 6);
 
-            SolidClosing3 turned = AssertClosed(ClosingTestBodies.BoxWithFaceFlipped(ClosingTestBodies.Right), NoFill, out _);
+            SolidClosing3 turned = AssertClosed(
+                ClosingTestBodies.BoxWithFaceFlipped(ClosingTestBodies.Right),
+                NoFill,
+                out _
+            );
             Assert.Equal(2000.0, turned.VolumeChange, 6);
         }
 
@@ -380,7 +422,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // reads as closed; the fin stops the closing before any fill is looked at.
             GeoPoint3[] c = ClosingTestBodies.Corners();
             GeoSolid3 body = ClosingTestBodies.BoxWithFin(4, 5, new GeoVector3(0, -5, 5));
-            Assert.Contains(body.Validate(Fine).Issues, issue => issue.Kind == SolidIssueKind.OpenEdge && issue.Faces.Count == 3);
+            Assert.Contains(body.Validate(Fine).Issues, issue =>
+                issue.Kind == SolidIssueKind.OpenEdge && issue.Faces.Count == 3
+            );
 
             foreach (SolidClosingOptions options in new[] { NoFill, AnyFill })
             {

@@ -37,17 +37,29 @@ namespace GeometryHelper.Drawing
 
             if (of == ViewKind.Section || of == ViewKind.Detail || of == ViewKind.Free)
             {
-                throw new ArgumentException("A detail is taken from a view along the axes or the isometric view.", nameof(of));
+                throw new ArgumentException(
+                    "A detail is taken from a view along the axes or the isometric view.",
+                    nameof(of)
+                );
             }
 
-            if (!(area.Width > 0.0) || !(area.Height > 0.0) || double.IsInfinity(area.Width) || double.IsInfinity(area.Height))
+            if (
+                !(area.Width > 0.0)
+                || !(area.Height > 0.0)
+                || double.IsInfinity(area.Width)
+                || double.IsInfinity(area.Height)
+            )
             {
                 throw new ArgumentException("The rectangle of a detail has a width and a height.", nameof(area));
             }
 
             if (!(enlargement >= 1.0) || double.IsInfinity(enlargement))
             {
-                throw new ArgumentOutOfRangeException(nameof(enlargement), enlargement, "The enlargement has to be a finite number of one or more.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(enlargement),
+                    enlargement,
+                    "The enlargement has to be a finite number of one or more."
+                );
             }
 
             Name = name;

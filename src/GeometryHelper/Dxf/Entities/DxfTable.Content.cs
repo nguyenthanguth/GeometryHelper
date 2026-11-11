@@ -44,64 +44,97 @@ namespace GeometryHelper.Dxf
         /// 10.0, as AutoCAD writes it. Where the title of a table of the columns given (more than none) is merged across them all,
         /// the range of the title, (0, 0) to (0, last), grows by the columns put in wherever they go, as AutoCAD 2021 listed it.
         /// </summary>
-        private void ContentInserted(bool rowsOf, int at, int count, string size, int inheritFrom, int titleColumns = 0, bool headerFirst = false)
+        private void ContentInserted(
+            bool rowsOf,
+            int at,
+            int count,
+            string size,
+            int inheritFrom,
+            int titleColumns = 0,
+            bool headerFirst = false
+        )
         {
             size = ContentNumber(size);
-            Func<int[], int[]> title = titleColumns <= 0 || rowsOf ? (Func<int[], int[]>)null
-                : m => m[0] == 0 && m[1] == 0 && m[2] == 0 && m[3] == titleColumns - 1 ? new[] { 0, 0, 0, m[3] + count } : null;
+            Func<int[], int[]> title =
+                titleColumns <= 0 || rowsOf
+                    ? (Func<int[], int[]>)null
+                    : m =>
+                        m[0] == 0 && m[1] == 0 && m[2] == 0 && m[3] == titleColumns - 1
+                            ? new[] { 0, 0, 0, m[3] + count }
+                            : null;
 
-            EditContent(rowsOf, (first, last) => new[] { at <= first ? first + count : first, at <= last ? last + count : last }, grid =>
-            {
-                if (rowsOf)
+            EditContent(
+                rowsOf,
+                (first, last) => new[] { at <= first ? first + count : first, at <= last ? last + count : last },
+                grid =>
                 {
-                    if (at > grid.Rows.Count)
+                    if (rowsOf)
                     {
-                        return;
-                    }
-
-                    ContentRow source = inheritFrom >= 0 && inheritFrom < grid.Rows.Count ? grid.Rows[inheritFrom] : null;
-                    string style = source != null ? StyleOf(source) ?? "3" : "3";
-
-                    for (int k = 0; k < count; k++)
-                    {
-                        // Each goes in before the one put in before it: the last put in is the first, the header of a table of one row.
-                        ContentRow row = NewRow(grid.Columns.Count, headerFirst && k == count - 1 ? "2" : style, size);
-
-                        for (int c = 0; source != null && c < row.Cells.Count && c < source.Cells.Count; c++)
+                        if (at > grid.Rows.Count)
                         {
-                            row.Cells[c] = new ContentGridCell(InheritedCellGroups(source.Cells[c].Groups, true));
+                            return;
                         }
 
-                        grid.Rows.Insert(at, row);
-                    }
-                }
-                else
-                {
-                    if (at > grid.Columns.Count)
-                    {
-                        return;
-                    }
+                        ContentRow source =
+                            inheritFrom >= 0 && inheritFrom < grid.Rows.Count ? grid.Rows[inheritFrom] : null;
+                        string style = source != null ? StyleOf(source) ?? "3" : "3";
 
-                    for (int k = 0; k < count; k++)
-                    {
-                        grid.Columns.Insert(at, ColumnGroups(size));
-                    }
-
-                    for (int r = 0; r < grid.Rows.Count; r++)
-                    {
-                        ContentRow row = grid.Rows[r];
-                        List<KeyValuePair<int, string>> source = inheritFrom >= 0 && inheritFrom < row.Cells.Count ? row.Cells[inheritFrom].Groups : null;
-
-                        for (int k = 0; at <= row.Cells.Count && k < count; k++)
+                        for (int k = 0; k < count; k++)
                         {
-                            // A cell the title merged across the table takes in holds no content, as AutoCAD 2021 wrote it.
-                            row.Cells.Insert(at, new ContentGridCell(source == null ? CellGroups("0.0") : InheritedCellGroups(source, r > 0 || titleColumns <= 0)));
+                            // Each goes in before the one put in before it: the last put in is the first, the header of a table of one row.
+                            ContentRow row = NewRow(
+                                grid.Columns.Count,
+                                headerFirst && k == count - 1 ? "2" : style,
+                                size
+                            );
+
+                            for (int c = 0; source != null && c < row.Cells.Count && c < source.Cells.Count; c++)
+                            {
+                                row.Cells[c] = new ContentGridCell(InheritedCellGroups(source.Cells[c].Groups, true));
+                            }
+
+                            grid.Rows.Insert(at, row);
                         }
                     }
-                }
+                    else
+                    {
+                        if (at > grid.Columns.Count)
+                        {
+                            return;
+                        }
 
-                grid.Changed = true;
-            }, title);
+                        for (int k = 0; k < count; k++)
+                        {
+                            grid.Columns.Insert(at, ColumnGroups(size));
+                        }
+
+                        for (int r = 0; r < grid.Rows.Count; r++)
+                        {
+                            ContentRow row = grid.Rows[r];
+                            List<KeyValuePair<int, string>> source =
+                                inheritFrom >= 0 && inheritFrom < row.Cells.Count
+                                    ? row.Cells[inheritFrom].Groups
+                                    : null;
+
+                            for (int k = 0; at <= row.Cells.Count && k < count; k++)
+                            {
+                                // A cell the title merged across the table takes in holds no content, as AutoCAD 2021 wrote it.
+                                row.Cells.Insert(
+                                    at,
+                                    new ContentGridCell(
+                                        source == null
+                                            ? CellGroups("0.0")
+                                            : InheritedCellGroups(source, r > 0 || titleColumns <= 0)
+                                    )
+                                );
+                            }
+                        }
+                    }
+
+                    grid.Changed = true;
+                },
+                title
+            );
         }
 
         /// <summary>
@@ -112,43 +145,53 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private void ContentDeleted(bool rowsOf, int at, int count)
         {
-            EditContent(rowsOf, (first, last) =>
-            {
-                int newFirst = first < at ? first : first >= at + count ? first - count : at;
-                int newLast = last < at ? last : last >= at + count ? last - count : at - 1;
-                return newLast < newFirst ? null : new[] { newFirst, newLast };
-            }, grid =>
-            {
-                if (rowsOf)
+            EditContent(
+                rowsOf,
+                (first, last) =>
                 {
-                    for (int r = Math.Min(at + count, grid.Rows.Count) - 1; r >= at; r--)
+                    int newFirst =
+                        first < at ? first
+                        : first >= at + count ? first - count
+                        : at;
+                    int newLast =
+                        last < at ? last
+                        : last >= at + count ? last - count
+                        : at - 1;
+                    return newLast < newFirst ? null : new[] { newFirst, newLast };
+                },
+                grid =>
+                {
+                    if (rowsOf)
                     {
-                        grid.Rows[r].Cells.ForEach(c => c.Gone = true);
-                        grid.Rows[r].Cells.ForEach(c => grid.Dropped.AddRange(FieldsOf(c.Groups)));
-                        grid.Rows.RemoveAt(r);
+                        for (int r = Math.Min(at + count, grid.Rows.Count) - 1; r >= at; r--)
+                        {
+                            grid.Rows[r].Cells.ForEach(c => c.Gone = true);
+                            grid.Rows[r].Cells.ForEach(c => grid.Dropped.AddRange(FieldsOf(c.Groups)));
+                            grid.Rows.RemoveAt(r);
+                            grid.Changed = true;
+                        }
+
+                        return;
+                    }
+
+                    for (int c = Math.Min(at + count, grid.Columns.Count) - 1; c >= at; c--)
+                    {
+                        grid.Columns.RemoveAt(c);
                         grid.Changed = true;
                     }
 
-                    return;
-                }
-
-                for (int c = Math.Min(at + count, grid.Columns.Count) - 1; c >= at; c--)
-                {
-                    grid.Columns.RemoveAt(c);
-                    grid.Changed = true;
-                }
-
-                foreach (ContentRow row in grid.Rows)
-                {
-                    for (int c = Math.Min(at + count, row.Cells.Count) - 1; c >= at; c--)
+                    foreach (ContentRow row in grid.Rows)
                     {
-                        row.Cells[c].Gone = true;
-                        grid.Dropped.AddRange(FieldsOf(row.Cells[c].Groups));
-                        row.Cells.RemoveAt(c);
-                        grid.Changed = true;
+                        for (int c = Math.Min(at + count, row.Cells.Count) - 1; c >= at; c--)
+                        {
+                            row.Cells[c].Gone = true;
+                            grid.Dropped.AddRange(FieldsOf(row.Cells[c].Groups));
+                            row.Cells.RemoveAt(c);
+                            grid.Changed = true;
+                        }
                     }
                 }
-            });
+            );
         }
 
         /// <summary>
@@ -166,7 +209,9 @@ namespace GeometryHelper.Dxf
                 {
                     for (int c = range.LeftColumn; c <= range.RightColumn && c < grid.Rows[r].Cells.Count; c++)
                     {
-                        grid.Changed |= (r != range.TopRow || c != range.LeftColumn) && EmptyContent(grid, grid.Rows[r].Cells[c].Groups);
+                        grid.Changed |=
+                            (r != range.TopRow || c != range.LeftColumn)
+                            && EmptyContent(grid, grid.Rows[r].Cells[c].Groups);
                     }
                 }
 
@@ -175,7 +220,9 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                var kept = grid.Merges.FindAll(m => m[0] > range.BottomRow || m[2] < range.TopRow || m[1] > range.RightColumn || m[3] < range.LeftColumn);
+                var kept = grid.Merges.FindAll(m =>
+                    m[0] > range.BottomRow || m[2] < range.TopRow || m[1] > range.RightColumn || m[3] < range.LeftColumn
+                );
 
                 if (merged)
                 {
@@ -213,7 +260,12 @@ namespace GeometryHelper.Dxf
         /// of the record where anything changed. Nothing where the table has no TABLECONTENT, or one not in the form AutoCAD
         /// writes, which is left as it is.
         /// </summary>
-        private void EditContent(bool rowsOf, Func<int, int, int[]> lines, Action<ContentGrid> edit, Func<int[], int[]> map = null)
+        private void EditContent(
+            bool rowsOf,
+            Func<int, int, int[]> lines,
+            Action<ContentGrid> edit,
+            Func<int[], int[]> map = null
+        )
         {
             DxfItem content = IsResident ? ContentItem() : null;
             ContentGrid grid = content == null ? null : ContentGrid.Read(Item.File, content);
@@ -234,7 +286,12 @@ namespace GeometryHelper.Dxf
 
                     if (run != null)
                     {
-                        links.Add(new KeyValuePair<ContentGridCell, int[]>(grid.Rows[r].Cells[c], new[] { r, c, run[0], run[1] }));
+                        links.Add(
+                            new KeyValuePair<ContentGridCell, int[]>(
+                                grid.Rows[r].Cells[c],
+                                new[] { r, c, run[0], run[1] }
+                            )
+                        );
                     }
                 }
             }
@@ -262,7 +319,9 @@ namespace GeometryHelper.Dxf
 
                         if (span != null)
                         {
-                            moved.Add(rowsOf ? new[] { span[0], m[1], span[1], m[3] } : new[] { m[0], span[0], m[2], span[1] });
+                            moved.Add(
+                                rowsOf ? new[] { span[0], m[1], span[1], m[3] } : new[] { m[0], span[0], m[2], span[1] }
+                            );
                         }
                     }
 
@@ -282,7 +341,8 @@ namespace GeometryHelper.Dxf
 
                     int first = rowsOf ? link.Value[0] : link.Value[1];
                     int[] span = lines(first, first + (rowsOf ? link.Value[2] : link.Value[3]) - 1);
-                    grid.Changed |= span != null && SetLinkCount(link.Key.Groups, rowsOf ? 93 : 94, span[1] - span[0] + 1);
+                    grid.Changed |=
+                        span != null && SetLinkCount(link.Key.Groups, rowsOf ? 93 : 94, span[1] - span[0] + 1);
                 }
             }
 
@@ -319,7 +379,13 @@ namespace GeometryHelper.Dxf
             {
                 DxfItem field = Item.File.ObjectItem(handle);
 
-                if (field != null && !field.IsRemoved && field.Type == "FIELD" && string.Equals(Item.File.OwnerOf(field), content.Handle, StringComparison.OrdinalIgnoreCase) && !owned.Contains(field))
+                if (
+                    field != null
+                    && !field.IsRemoved
+                    && field.Type == "FIELD"
+                    && string.Equals(Item.File.OwnerOf(field), content.Handle, StringComparison.OrdinalIgnoreCase)
+                    && !owned.Contains(field)
+                )
                 {
                     owned.Add(field);
                 }
@@ -375,7 +441,13 @@ namespace GeometryHelper.Dxf
 
             for (int i = 0; i + 2 < cell.Count; i++)
             {
-                if (cell[i].Key == 1 && cell[i].Value.Trim() == "CELLCONTENT_BEGIN" && cell[i + 1].Key == 90 && cell[i + 1].Value.Trim() == "2" && cell[i + 2].Key == 340)
+                if (
+                    cell[i].Key == 1
+                    && cell[i].Value.Trim() == "CELLCONTENT_BEGIN"
+                    && cell[i + 1].Key == 90
+                    && cell[i + 1].Value.Trim() == "2"
+                    && cell[i + 2].Key == 340
+                )
                 {
                     fields.Add(cell[i + 2].Value.Trim());
                 }
@@ -441,7 +513,16 @@ namespace GeometryHelper.Dxf
                 return -1;
             }
 
-            return int.TryParse(cell[end + 1].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int linked) && (linked & 1) != 0 ? end + 1 : -1;
+            return
+                int.TryParse(
+                    cell[end + 1].Value.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int linked
+                )
+                && (linked & 1) != 0
+                ? end + 1
+                : -1;
         }
 
         /// <summary>
@@ -472,7 +553,10 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            cell.Insert(code == 93 ? at : place, new KeyValuePair<int, string>(code, count.ToString(CultureInfo.InvariantCulture)));
+            cell.Insert(
+                code == 93 ? at : place,
+                new KeyValuePair<int, string>(code, count.ToString(CultureInfo.InvariantCulture))
+            );
             return true;
         }
 
@@ -584,7 +668,11 @@ namespace GeometryHelper.Dxf
 
             if (!file.Supports(1021))
             {
-                throw new InvalidOperationException("The table " + Handle + " is of a drawing before R2007 (AC1021), which holds no TABLECONTENT to name a link in.");
+                throw new InvalidOperationException(
+                    "The table "
+                        + Handle
+                        + " is of a drawing before R2007 (AC1021), which holds no TABLECONTENT to name a link in."
+                );
             }
 
             Layout layout = Structured();
@@ -629,7 +717,8 @@ namespace GeometryHelper.Dxf
                 at++;
             }
 
-            List<KeyValuePair<int, string>> tail = file.TailOf(record, at).ConvertAll(g => new KeyValuePair<int, string>(g.TypeCode, g.Value));
+            List<KeyValuePair<int, string>> tail = file.TailOf(record, at)
+                .ConvertAll(g => new KeyValuePair<int, string>(g.TypeCode, g.Value));
             tail[0] = new KeyValuePair<int, string>(360, content.Handle);
             file.ReplaceTail(record, at, tail);
             Recompose(style);
@@ -684,13 +773,33 @@ namespace GeometryHelper.Dxf
 
                     if (wide > 1 || high > 1)
                     {
-                        merges.Add(new[] { r, c, Math.Min(layout.Rows - 1, r + Math.Max(1, high) - 1), Math.Min(layout.Columns - 1, c + Math.Max(1, wide) - 1) });
+                        merges.Add(
+                            new[]
+                            {
+                                r,
+                                c,
+                                Math.Min(layout.Rows - 1, r + Math.Max(1, high) - 1),
+                                Math.Min(layout.Columns - 1, c + Math.Max(1, wide) - 1),
+                            }
+                        );
                     }
                 }
 
                 DxfRowType type = RowType(r);
-                string kind = type == DxfRowType.TitleRow ? "1" : type == DxfRowType.HeaderRow ? "2" : "3";
-                var row = new ContentRow(new List<KeyValuePair<int, string>> { new KeyValuePair<int, string>(301, "ROW"), new KeyValuePair<int, string>(1, "LINKEDTABLEDATAROW_BEGIN") }, null, cells, RowTail(kind, ContentNumber(layout.Groups.List[layout.RowAt[r]].Value)));
+                string kind =
+                    type == DxfRowType.TitleRow ? "1"
+                    : type == DxfRowType.HeaderRow ? "2"
+                    : "3";
+                var row = new ContentRow(
+                    new List<KeyValuePair<int, string>>
+                    {
+                        new KeyValuePair<int, string>(301, "ROW"),
+                        new KeyValuePair<int, string>(1, "LINKEDTABLEDATAROW_BEGIN"),
+                    },
+                    null,
+                    cells,
+                    RowTail(kind, ContentNumber(layout.Groups.List[layout.RowAt[r]].Value))
+                );
                 row.AddTo(groups);
             }
 
@@ -847,41 +956,95 @@ namespace GeometryHelper.Dxf
 
         #region The groups AutoCAD 2021 writes
 
-        private static KeyValuePair<int, string> G(int code, int value) => new KeyValuePair<int, string>(code, value.ToString(CultureInfo.InvariantCulture));
+        private static KeyValuePair<int, string> G(int code, int value) =>
+            new KeyValuePair<int, string>(code, value.ToString(CultureInfo.InvariantCulture));
 
         /// <summary>A column of a TABLECONTENT as AutoCAD 2021 writes one: of no custom data, its formats of nought, its style 0 and its width.</summary>
-        private static List<KeyValuePair<int, string>> ColumnGroups(string width) => new List<KeyValuePair<int, string>>
-        {
-            new KeyValuePair<int, string>(300, "COLUMN"), new KeyValuePair<int, string>(1, "LINKEDTABLEDATACOLUMN_BEGIN"), new KeyValuePair<int, string>(300, string.Empty),
-            G(91, 0), new KeyValuePair<int, string>(301, "CUSTOMDATA"), new KeyValuePair<int, string>(1, "DATAMAP_BEGIN"), G(90, 0),
-            new KeyValuePair<int, string>(309, "DATAMAP_END"), new KeyValuePair<int, string>(309, "LINKEDTABLEDATACOLUMN_END"),
-            new KeyValuePair<int, string>(1, "FORMATTEDTABLEDATACOLUMN_BEGIN"), new KeyValuePair<int, string>(300, "COLUMNTABLEFORMAT"),
-            new KeyValuePair<int, string>(1, "TABLEFORMAT_BEGIN"), G(90, 3), G(170, 0), new KeyValuePair<int, string>(309, "TABLEFORMAT_END"),
-            new KeyValuePair<int, string>(309, "FORMATTEDTABLEDATACOLUMN_END"), new KeyValuePair<int, string>(1, "TABLECOLUMN_BEGIN"), G(90, 0),
-            new KeyValuePair<int, string>(40, width), new KeyValuePair<int, string>(309, "TABLECOLUMN_END"),
-        };
+        private static List<KeyValuePair<int, string>> ColumnGroups(string width) =>
+            new List<KeyValuePair<int, string>>
+            {
+                new KeyValuePair<int, string>(300, "COLUMN"),
+                new KeyValuePair<int, string>(1, "LINKEDTABLEDATACOLUMN_BEGIN"),
+                new KeyValuePair<int, string>(300, string.Empty),
+                G(91, 0),
+                new KeyValuePair<int, string>(301, "CUSTOMDATA"),
+                new KeyValuePair<int, string>(1, "DATAMAP_BEGIN"),
+                G(90, 0),
+                new KeyValuePair<int, string>(309, "DATAMAP_END"),
+                new KeyValuePair<int, string>(309, "LINKEDTABLEDATACOLUMN_END"),
+                new KeyValuePair<int, string>(1, "FORMATTEDTABLEDATACOLUMN_BEGIN"),
+                new KeyValuePair<int, string>(300, "COLUMNTABLEFORMAT"),
+                new KeyValuePair<int, string>(1, "TABLEFORMAT_BEGIN"),
+                G(90, 3),
+                G(170, 0),
+                new KeyValuePair<int, string>(309, "TABLEFORMAT_END"),
+                new KeyValuePair<int, string>(309, "FORMATTEDTABLEDATACOLUMN_END"),
+                new KeyValuePair<int, string>(1, "TABLECOLUMN_BEGIN"),
+                G(90, 0),
+                new KeyValuePair<int, string>(40, width),
+                new KeyValuePair<int, string>(309, "TABLECOLUMN_END"),
+            };
 
         /// <summary>
         /// A cell of a TABLECONTENT as AutoCAD 2021 writes one of no content (the cells of the row it put in): of the state 0,
         /// its custom data of one checksum, the one given, its 92 of 0, no content, its format of nought.
         /// </summary>
-        private static List<KeyValuePair<int, string>> CellGroups(string checksum) => new List<KeyValuePair<int, string>>
-        {
-            new KeyValuePair<int, string>(300, "CELL"), new KeyValuePair<int, string>(1, "LINKEDTABLEDATACELL_BEGIN"), G(90, 0),
-            new KeyValuePair<int, string>(300, string.Empty), G(91, 0), new KeyValuePair<int, string>(301, "CUSTOMDATA"),
-            new KeyValuePair<int, string>(1, "DATAMAP_BEGIN"), G(90, 1), new KeyValuePair<int, string>(300, "ACAD_ROUNDTRIP_2008_CELL_CHECKSUM"),
-            new KeyValuePair<int, string>(301, "DATAMAP_VALUE"), G(93, 2), G(90, 2), new KeyValuePair<int, string>(140, checksum), G(94, 0),
-            new KeyValuePair<int, string>(300, string.Empty), new KeyValuePair<int, string>(302, string.Empty), new KeyValuePair<int, string>(304, "ACVALUE_END"),
-            new KeyValuePair<int, string>(309, "DATAMAP_END"), G(92, 0), G(95, 0), new KeyValuePair<int, string>(309, "LINKEDTABLEDATACELL_END"),
-            new KeyValuePair<int, string>(1, "FORMATTEDTABLEDATACELL_BEGIN"), new KeyValuePair<int, string>(300, "CELLTABLEFORMAT"),
-            new KeyValuePair<int, string>(1, "TABLEFORMAT_BEGIN"), G(90, 1), G(170, 1), G(91, 0), G(92, 0), G(62, 257), G(93, 1),
-            new KeyValuePair<int, string>(300, "CONTENTFORMAT"), new KeyValuePair<int, string>(1, "CONTENTFORMAT_BEGIN"), G(90, 0), G(91, 0), G(92, 512),
-            G(93, 0), new KeyValuePair<int, string>(300, string.Empty), new KeyValuePair<int, string>(40, "0.0"), new KeyValuePair<int, string>(140, "1.0"),
-            G(94, 1), G(62, 0), new KeyValuePair<int, string>(340, "0"), new KeyValuePair<int, string>(144, "0.18"),
-            new KeyValuePair<int, string>(309, "CONTENTFORMAT_END"), G(171, 0), G(94, 0), new KeyValuePair<int, string>(309, "TABLEFORMAT_END"),
-            new KeyValuePair<int, string>(309, "FORMATTEDTABLEDATACELL_END"), new KeyValuePair<int, string>(1, "TABLECELL_BEGIN"), G(90, 0), G(91, 0),
-            new KeyValuePair<int, string>(309, "TABLECELL_END"),
-        };
+        private static List<KeyValuePair<int, string>> CellGroups(string checksum) =>
+            new List<KeyValuePair<int, string>>
+            {
+                new KeyValuePair<int, string>(300, "CELL"),
+                new KeyValuePair<int, string>(1, "LINKEDTABLEDATACELL_BEGIN"),
+                G(90, 0),
+                new KeyValuePair<int, string>(300, string.Empty),
+                G(91, 0),
+                new KeyValuePair<int, string>(301, "CUSTOMDATA"),
+                new KeyValuePair<int, string>(1, "DATAMAP_BEGIN"),
+                G(90, 1),
+                new KeyValuePair<int, string>(300, "ACAD_ROUNDTRIP_2008_CELL_CHECKSUM"),
+                new KeyValuePair<int, string>(301, "DATAMAP_VALUE"),
+                G(93, 2),
+                G(90, 2),
+                new KeyValuePair<int, string>(140, checksum),
+                G(94, 0),
+                new KeyValuePair<int, string>(300, string.Empty),
+                new KeyValuePair<int, string>(302, string.Empty),
+                new KeyValuePair<int, string>(304, "ACVALUE_END"),
+                new KeyValuePair<int, string>(309, "DATAMAP_END"),
+                G(92, 0),
+                G(95, 0),
+                new KeyValuePair<int, string>(309, "LINKEDTABLEDATACELL_END"),
+                new KeyValuePair<int, string>(1, "FORMATTEDTABLEDATACELL_BEGIN"),
+                new KeyValuePair<int, string>(300, "CELLTABLEFORMAT"),
+                new KeyValuePair<int, string>(1, "TABLEFORMAT_BEGIN"),
+                G(90, 1),
+                G(170, 1),
+                G(91, 0),
+                G(92, 0),
+                G(62, 257),
+                G(93, 1),
+                new KeyValuePair<int, string>(300, "CONTENTFORMAT"),
+                new KeyValuePair<int, string>(1, "CONTENTFORMAT_BEGIN"),
+                G(90, 0),
+                G(91, 0),
+                G(92, 512),
+                G(93, 0),
+                new KeyValuePair<int, string>(300, string.Empty),
+                new KeyValuePair<int, string>(40, "0.0"),
+                new KeyValuePair<int, string>(140, "1.0"),
+                G(94, 1),
+                G(62, 0),
+                new KeyValuePair<int, string>(340, "0"),
+                new KeyValuePair<int, string>(144, "0.18"),
+                new KeyValuePair<int, string>(309, "CONTENTFORMAT_END"),
+                G(171, 0),
+                G(94, 0),
+                new KeyValuePair<int, string>(309, "TABLEFORMAT_END"),
+                new KeyValuePair<int, string>(309, "FORMATTEDTABLEDATACELL_END"),
+                new KeyValuePair<int, string>(1, "TABLECELL_BEGIN"),
+                G(90, 0),
+                G(91, 0),
+                new KeyValuePair<int, string>(309, "TABLECELL_END"),
+            };
 
         /// <summary>
         /// A cell of a TABLECONTENT as AutoCAD 2021's <c>InsertRowsAndInherit</c> and <c>InsertColumnsAndInherit</c> write one
@@ -891,10 +1054,16 @@ namespace GeometryHelper.Dxf
         /// (FORMATTEDCELLCONTENT), else no content; the other's format (FORMATTEDTABLEDATACELL), its margins and lines, as it
         /// stands. A cell of no format in the form AutoCAD writes gives a cell of no content (<see cref="CellGroups"/>).
         /// </summary>
-        private static List<KeyValuePair<int, string>> InheritedCellGroups(List<KeyValuePair<int, string>> other, bool content)
+        private static List<KeyValuePair<int, string>> InheritedCellGroups(
+            List<KeyValuePair<int, string>> other,
+            bool content
+        )
         {
             int formatFrom = other.FindIndex(g => g.Key == 1 && g.Value.Trim() == "FORMATTEDTABLEDATACELL_BEGIN");
-            int formatTo = formatFrom < 0 ? -1 : other.FindIndex(formatFrom, g => g.Key == 309 && g.Value.Trim() == "FORMATTEDTABLEDATACELL_END");
+            int formatTo =
+                formatFrom < 0
+                    ? -1
+                    : other.FindIndex(formatFrom, g => g.Key == 309 && g.Value.Trim() == "FORMATTEDTABLEDATACELL_END");
 
             if (formatTo < 0)
             {
@@ -916,19 +1085,40 @@ namespace GeometryHelper.Dxf
             // The kind of the other's value, where its content is one (90 1, 300 VALUE, 93, 90 its kind).
             string kind = "4";
 
-            if (contentAt + 5 < formatFrom && other[contentAt + 1].Value.Trim() == "1" && other[contentAt + 2].Value.Trim() == "VALUE" && other[contentAt + 4].Key == 90)
+            if (
+                contentAt + 5 < formatFrom
+                && other[contentAt + 1].Value.Trim() == "1"
+                && other[contentAt + 2].Value.Trim() == "VALUE"
+                && other[contentAt + 4].Key == 90
+            )
             {
                 kind = InheritedKind(other[contentAt + 4].Value.Trim());
             }
 
-            int lookFrom = other.FindIndex(contentAt, formatFrom - contentAt, g => g.Key == 1 && g.Value.Trim() == "FORMATTEDCELLCONTENT_BEGIN");
-            int lookTo = lookFrom < 0 ? -1 : other.FindIndex(lookFrom, formatFrom - lookFrom, g => g.Key == 309 && g.Value.Trim() == "FORMATTEDCELLCONTENT_END");
+            int lookFrom = other.FindIndex(contentAt, formatFrom - contentAt, g =>
+                g.Key == 1 && g.Value.Trim() == "FORMATTEDCELLCONTENT_BEGIN"
+            );
+            int lookTo =
+                lookFrom < 0
+                    ? -1
+                    : other.FindIndex(lookFrom, formatFrom - lookFrom, g =>
+                        g.Key == 309 && g.Value.Trim() == "FORMATTEDCELLCONTENT_END"
+                    );
             var made = new List<KeyValuePair<int, string>>
             {
-                G(95, 1), new KeyValuePair<int, string>(302, "CONTENT"), new KeyValuePair<int, string>(1, "CELLCONTENT_BEGIN"), G(90, 1),
-                new KeyValuePair<int, string>(300, "VALUE"), G(93, 5), new KeyValuePair<int, string>(90, kind), G(94, 0),
-                new KeyValuePair<int, string>(300, string.Empty), new KeyValuePair<int, string>(302, string.Empty),
-                new KeyValuePair<int, string>(304, "ACVALUE_END"), G(91, 0), new KeyValuePair<int, string>(309, "CELLCONTENT_END"),
+                G(95, 1),
+                new KeyValuePair<int, string>(302, "CONTENT"),
+                new KeyValuePair<int, string>(1, "CELLCONTENT_BEGIN"),
+                G(90, 1),
+                new KeyValuePair<int, string>(300, "VALUE"),
+                G(93, 5),
+                new KeyValuePair<int, string>(90, kind),
+                G(94, 0),
+                new KeyValuePair<int, string>(300, string.Empty),
+                new KeyValuePair<int, string>(302, string.Empty),
+                new KeyValuePair<int, string>(304, "ACVALUE_END"),
+                G(91, 0),
+                new KeyValuePair<int, string>(309, "CELLCONTENT_END"),
             };
 
             if (lookTo >= 0)
@@ -943,15 +1133,27 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The end of a row of a TABLECONTENT as AutoCAD 2021 writes it, after its cells: no custom data, its format of nought, its style and height.</summary>
-        private static List<KeyValuePair<int, string>> RowTail(string style, string height) => new List<KeyValuePair<int, string>>
-        {
-            G(91, 0), new KeyValuePair<int, string>(301, "CUSTOMDATA"), new KeyValuePair<int, string>(1, "DATAMAP_BEGIN"), G(90, 0),
-            new KeyValuePair<int, string>(309, "DATAMAP_END"), new KeyValuePair<int, string>(309, "LINKEDTABLEDATAROW_END"),
-            new KeyValuePair<int, string>(1, "FORMATTEDTABLEDATAROW_BEGIN"), new KeyValuePair<int, string>(300, "ROWTABLEFORMAT"),
-            new KeyValuePair<int, string>(1, "TABLEFORMAT_BEGIN"), G(90, 2), G(170, 0), new KeyValuePair<int, string>(309, "TABLEFORMAT_END"),
-            new KeyValuePair<int, string>(309, "FORMATTEDTABLEDATAROW_END"), new KeyValuePair<int, string>(1, "TABLEROW_BEGIN"),
-            new KeyValuePair<int, string>(90, style), new KeyValuePair<int, string>(40, height), new KeyValuePair<int, string>(309, "TABLEROW_END"),
-        };
+        private static List<KeyValuePair<int, string>> RowTail(string style, string height) =>
+            new List<KeyValuePair<int, string>>
+            {
+                G(91, 0),
+                new KeyValuePair<int, string>(301, "CUSTOMDATA"),
+                new KeyValuePair<int, string>(1, "DATAMAP_BEGIN"),
+                G(90, 0),
+                new KeyValuePair<int, string>(309, "DATAMAP_END"),
+                new KeyValuePair<int, string>(309, "LINKEDTABLEDATAROW_END"),
+                new KeyValuePair<int, string>(1, "FORMATTEDTABLEDATAROW_BEGIN"),
+                new KeyValuePair<int, string>(300, "ROWTABLEFORMAT"),
+                new KeyValuePair<int, string>(1, "TABLEFORMAT_BEGIN"),
+                G(90, 2),
+                G(170, 0),
+                new KeyValuePair<int, string>(309, "TABLEFORMAT_END"),
+                new KeyValuePair<int, string>(309, "FORMATTEDTABLEDATAROW_END"),
+                new KeyValuePair<int, string>(1, "TABLEROW_BEGIN"),
+                new KeyValuePair<int, string>(90, style),
+                new KeyValuePair<int, string>(40, height),
+                new KeyValuePair<int, string>(309, "TABLEROW_END"),
+            };
 
         /// <summary>A row of a TABLECONTENT of empty cells as AutoCAD 2021 writes the rows it puts in.</summary>
         private static ContentRow NewRow(int columns, string style, string height)
@@ -963,7 +1165,16 @@ namespace GeometryHelper.Dxf
                 cells.Add(new ContentGridCell(CellGroups("0.0")));
             }
 
-            return new ContentRow(new List<KeyValuePair<int, string>> { new KeyValuePair<int, string>(301, "ROW"), new KeyValuePair<int, string>(1, "LINKEDTABLEDATAROW_BEGIN") }, null, cells, RowTail(style, height));
+            return new ContentRow(
+                new List<KeyValuePair<int, string>>
+                {
+                    new KeyValuePair<int, string>(301, "ROW"),
+                    new KeyValuePair<int, string>(1, "LINKEDTABLEDATAROW_BEGIN"),
+                },
+                null,
+                cells,
+                RowTail(style, height)
+            );
         }
 
         #endregion
@@ -983,7 +1194,12 @@ namespace GeometryHelper.Dxf
         /// <summary>A row of the TABLECONTENT: its 301 and its LINKEDTABLEDATAROW_BEGIN, its count of cells as read, its cells, and the rest to its TABLEROW_END.</summary>
         private sealed class ContentRow
         {
-            internal ContentRow(List<KeyValuePair<int, string>> head, KeyValuePair<int, string>? count, List<ContentGridCell> cells, List<KeyValuePair<int, string>> tail)
+            internal ContentRow(
+                List<KeyValuePair<int, string>> head,
+                KeyValuePair<int, string>? count,
+                List<ContentGridCell> cells,
+                List<KeyValuePair<int, string>> tail
+            )
             {
                 Head = head;
                 ReadCount = count;
@@ -1025,7 +1241,8 @@ namespace GeometryHelper.Dxf
 
             internal int From { get; private set; }
 
-            internal List<List<KeyValuePair<int, string>>> Columns { get; } = new List<List<KeyValuePair<int, string>>>();
+            internal List<List<KeyValuePair<int, string>>> Columns { get; } =
+                new List<List<KeyValuePair<int, string>>>();
 
             internal List<ContentRow> Rows { get; } = new List<ContentRow>();
 
@@ -1055,7 +1272,11 @@ namespace GeometryHelper.Dxf
                     end++;
                 }
 
-                var kept = _tail.GetRange(1, end - 1).FindAll(g => !fields.Exists(f => string.Equals(f, g.Value.Trim(), StringComparison.OrdinalIgnoreCase)));
+                var kept = _tail
+                    .GetRange(1, end - 1)
+                    .FindAll(g =>
+                        !fields.Exists(f => string.Equals(f, g.Value.Trim(), StringComparison.OrdinalIgnoreCase))
+                    );
 
                 if (kept.Count == end - 1)
                 {
@@ -1115,7 +1336,12 @@ namespace GeometryHelper.Dxf
 
                 for (int r = 0; r < rows; r++)
                 {
-                    if (i + 2 >= g.Count || !Is(g[i], 301, "ROW") || !Is(g[i + 1], 1, "LINKEDTABLEDATAROW_BEGIN") || g[i + 2].Key != 90)
+                    if (
+                        i + 2 >= g.Count
+                        || !Is(g[i], 301, "ROW")
+                        || !Is(g[i + 1], 1, "LINKEDTABLEDATAROW_BEGIN")
+                        || g[i + 2].Key != 90
+                    )
                     {
                         return null;
                     }
@@ -1178,10 +1404,14 @@ namespace GeometryHelper.Dxf
                 return -1;
             }
 
-            private static bool Is(KeyValuePair<int, string> group, int code, string value) => group.Key == code && group.Value.Trim() == value;
+            private static bool Is(KeyValuePair<int, string> group, int code, string value) =>
+                group.Key == code && group.Value.Trim() == value;
 
             /// <summary>A count as written, nought or more; -1 where it is none.</summary>
-            private static int Number(string text) => int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int n) && n >= 0 ? n : -1;
+            private static int Number(string text) =>
+                int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int n) && n >= 0
+                    ? n
+                    : -1;
 
             /// <summary>Reads the merged ranges of what follows the rows, where they stand as AutoCAD writes them.</summary>
             private void ReadMerges()
@@ -1212,7 +1442,15 @@ namespace GeometryHelper.Dxf
                     {
                         KeyValuePair<int, string> group = _tail[end + 2 + 4 * k + j];
 
-                        if (group.Key != 91 + j || !int.TryParse(group.Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out m[j]))
+                        if (
+                            group.Key != 91 + j
+                            || !int.TryParse(
+                                group.Value.Trim(),
+                                NumberStyles.Integer,
+                                CultureInfo.InvariantCulture,
+                                out m[j]
+                            )
+                        )
                         {
                             return;
                         }
@@ -1284,8 +1522,15 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>A count, the group as it was read where it gives the same number, else written anew.</summary>
-            internal static KeyValuePair<int, string> Counted(KeyValuePair<int, string>? read, int code, int count)
-                => read.HasValue && int.TryParse(read.Value.Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int was) && was == count
+            internal static KeyValuePair<int, string> Counted(KeyValuePair<int, string>? read, int code, int count) =>
+                read.HasValue
+                && int.TryParse(
+                    read.Value.Value.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int was
+                )
+                && was == count
                     ? read.Value
                     : new KeyValuePair<int, string>(code, count.ToString(CultureInfo.InvariantCulture));
         }

@@ -44,7 +44,12 @@ namespace GeometryHelper.Viewer
 
             foreach (Entry entry in _entries)
             {
-                if (entry.Generation == generation && ReferenceEquals(entry.Clip, clip) && entry.Origin.Equals(origin) && (!now || entry.Made.Status == TaskStatus.RanToCompletion))
+                if (
+                    entry.Generation == generation
+                    && ReferenceEquals(entry.Clip, clip)
+                    && entry.Origin.Equals(origin)
+                    && (!now || entry.Made.Status == TaskStatus.RanToCompletion)
+                )
                 {
                     entry.Users++;
                     return entry;
@@ -52,7 +57,10 @@ namespace GeometryHelper.Viewer
             }
 
             Builds++;
-            var made = new Entry(generation, clip, origin, now ? Task.FromResult(make()) : Task.Run(make)) { Users = 1 };
+            var made = new Entry(generation, clip, origin, now ? Task.FromResult(make()) : Task.Run(make))
+            {
+                Users = 1,
+            };
             _entries.Add(made);
             return made;
         }

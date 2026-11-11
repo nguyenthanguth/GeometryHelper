@@ -35,7 +35,12 @@ namespace GeometryHelper.Viewer
         /// </returns>
         public static double Pixels(double worldHeight, double pixelSize)
         {
-            if (!(worldHeight > 0.0) || double.IsInfinity(worldHeight) || !(pixelSize > 0.0) || double.IsInfinity(pixelSize))
+            if (
+                !(worldHeight > 0.0)
+                || double.IsInfinity(worldHeight)
+                || !(pixelSize > 0.0)
+                || double.IsInfinity(pixelSize)
+            )
             {
                 return DefaultPixels;
             }

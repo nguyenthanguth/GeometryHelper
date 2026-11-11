@@ -33,12 +33,16 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>Whether the line passes so near an end or a tangent of the piece that a tolerance may decide the answer.</summary>
         internal abstract bool Delicate(GeoXLine2 line, double margin);
 
-        internal static double Signed(GeoXLine2 line, GeoPoint2 p) => -line.Direction.Y * (p.X - line.Origin.X) + line.Direction.X * (p.Y - line.Origin.Y);
+        internal static double Signed(GeoXLine2 line, GeoPoint2 p) =>
+            -line.Direction.Y * (p.X - line.Origin.X) + line.Direction.X * (p.Y - line.Origin.Y);
 
         /// <summary>The sine of the angle tolerance of the tolerance the tests ask under, a degree.</summary>
         internal static readonly double AngleSine = XLine2Probe.Strict.EqualAngleSin;
 
-        internal static double Gap(double lo, double hi) => lo > 0 ? lo : hi < 0 ? -hi : 0.0;
+        internal static double Gap(double lo, double hi) =>
+            lo > 0 ? lo
+            : hi < 0 ? -hi
+            : 0.0;
     }
 
     internal sealed class SegmentPiece : OraclePiece
@@ -83,8 +87,8 @@ namespace GeometryHelper.UnitTest.Plane
             return Math.Sqrt(Math.Pow(p.X - (_a.X + t * dx), 2) + Math.Pow(p.Y - (_a.Y + t * dy), 2));
         }
 
-        internal override bool Delicate(GeoXLine2 line, double margin)
-            => Math.Abs(Signed(line, _a)) < margin || Math.Abs(Signed(line, _b)) < margin;
+        internal override bool Delicate(GeoXLine2 line, double margin) =>
+            Math.Abs(Signed(line, _a)) < margin || Math.Abs(Signed(line, _b)) < margin;
     }
 
     /// <summary>
@@ -120,7 +124,12 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>The arc about a centre from a start angle through a positive sweep, whole at a turn.</summary>
         internal static ArcPiece About(GeoPoint2 center, double radius, double start, double sweep)
         {
-            return new ArcPiece(new GeoPoint2(center.X + radius * Math.Cos(start), center.Y + radius * Math.Sin(start)), radius, start + Math.PI / 2, sweep);
+            return new ArcPiece(
+                new GeoPoint2(center.X + radius * Math.Cos(start), center.Y + radius * Math.Sin(start)),
+                radius,
+                start + Math.PI / 2,
+                sweep
+            );
         }
 
         private GeoPoint2 At(double turn)
@@ -309,7 +318,8 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 yield return new GeoPoint2(
                     _c.X + _a * Math.Cos(t) * _u.X + _b * Math.Sin(t) * _v.X,
-                    _c.Y + _a * Math.Cos(t) * _u.Y + _b * Math.Sin(t) * _v.Y);
+                    _c.Y + _a * Math.Cos(t) * _u.Y + _b * Math.Sin(t) * _v.Y
+                );
             }
         }
 
@@ -529,7 +539,8 @@ namespace GeometryHelper.UnitTest.Plane
         /// How far the library's own picture of the shape can be from the true one: an arc is kept as a centre and a radius, and
         /// on a circle of a radius of 1E8 a double places a point to within a few times 1E-8.
         /// </summary>
-        internal double Imprecision => Pieces.OfType<ArcPiece>().Select(a => a.Radius).DefaultIfEmpty(0.0).Max() * 4E-16;
+        internal double Imprecision =>
+            Pieces.OfType<ArcPiece>().Select(a => a.Radius).DefaultIfEmpty(0.0).Max() * 4E-16;
 
         internal bool Delicate(GeoXLine2 line, double margin) => Pieces.Any(p => p.Delicate(line, margin));
 
@@ -600,13 +611,21 @@ namespace GeometryHelper.UnitTest.Plane
         {
             if (random.Next(3) == 0)
             {
-                bulges[random.Next(bulges.Length)] = (random.Next(2) == 0 ? 1.0 : -1.0) * Math.Pow(10.0, Between(random, -10, -3));
+                bulges[random.Next(bulges.Length)] =
+                    (random.Next(2) == 0 ? 1.0 : -1.0) * Math.Pow(10.0, Between(random, -10, -3));
             }
         }
 
         private static OracleShape Make(string kind, object geo, GeoPoint2 center, double radius, bool closed)
         {
-            return new OracleShape { Kind = kind, Geo = geo, Center = center, Radius = radius, Closed = closed };
+            return new OracleShape
+            {
+                Kind = kind,
+                Geo = geo,
+                Center = center,
+                Radius = radius,
+                Closed = closed,
+            };
         }
 
         private static GeoPoint2 Anywhere(Random random) => P(Between(random, -60, 60), Between(random, -60, 60));
@@ -614,8 +633,22 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>The kinds of shape the line is asked about, in the order the fuzz walks them.</summary>
         internal static readonly string[] Kinds =
         {
-            "Point2", "Line2", "Ray2", "XLine2", "Arc2", "Circle2", "Ellipse2", "Edge2 straight", "Edge2 curved", "Polyline2", "Polygon2",
-            "PolylineArc2", "PolygonArc2", "Rectangle2", "Triangle2", "Face2"
+            "Point2",
+            "Line2",
+            "Ray2",
+            "XLine2",
+            "Arc2",
+            "Circle2",
+            "Ellipse2",
+            "Edge2 straight",
+            "Edge2 curved",
+            "Polyline2",
+            "Polygon2",
+            "PolylineArc2",
+            "PolygonArc2",
+            "Rectangle2",
+            "Triangle2",
+            "Face2",
         };
 
         internal static OracleShape Draw(string kind, Random random)
@@ -639,7 +672,13 @@ namespace GeometryHelper.UnitTest.Plane
                     double angle = Between(random, 0, 2 * Math.PI);
                     double length = Between(random, 5, 150);
                     GeoPoint2 q = P(c.X + length * Math.Cos(angle), c.Y + length * Math.Sin(angle));
-                    OracleShape s = Make(kind, new GeoLine2(c, q), P((c.X + q.X) / 2, (c.Y + q.Y) / 2), length / 2, false);
+                    OracleShape s = Make(
+                        kind,
+                        new GeoLine2(c, q),
+                        P((c.X + q.X) / 2, (c.Y + q.Y) / 2),
+                        length / 2,
+                        false
+                    );
 
                     s.Pieces.Add(new SegmentPiece(c, q));
                     return s;
@@ -707,7 +746,13 @@ namespace GeometryHelper.UnitTest.Plane
                 {
                     double start = Between(random, -Math.PI, Math.PI);
                     double sweep = Between(random, 0.4, 2 * Math.PI - 0.4);
-                    OracleShape s = Make(kind, new GeoEdge2(new GeoArc2(c, radius, start, start + sweep)), c, radius, false);
+                    OracleShape s = Make(
+                        kind,
+                        new GeoEdge2(new GeoArc2(c, radius, start, start + sweep)),
+                        c,
+                        radius,
+                        false
+                    );
 
                     s.Pieces.Add(ArcPiece.About(c, radius, start, sweep));
                     return s;
@@ -795,9 +840,19 @@ namespace GeometryHelper.UnitTest.Plane
                     double angle = Between(random, 0, Math.PI);
                     double cos = Math.Cos(angle);
                     double sin = Math.Sin(angle);
-                    GeoPoint2 Corner(double sx, double sy) => P(c.X + sx * width / 2 * cos - sy * height / 2 * sin, c.Y + sx * width / 2 * sin + sy * height / 2 * cos);
+                    GeoPoint2 Corner(double sx, double sy) =>
+                        P(
+                            c.X + sx * width / 2 * cos - sy * height / 2 * sin,
+                            c.Y + sx * width / 2 * sin + sy * height / 2 * cos
+                        );
                     GeoPoint2[] corners = { Corner(-1, -1), Corner(1, -1), Corner(1, 1), Corner(-1, 1) };
-                    OracleShape s = Make(kind, new GeoRectangle2(c, width, height, angle), c, Math.Sqrt(width * width + height * height) / 2, true);
+                    OracleShape s = Make(
+                        kind,
+                        new GeoRectangle2(c, width, height, angle),
+                        c,
+                        Math.Sqrt(width * width + height * height) / 2,
+                        true
+                    );
 
                     Ring(s.Pieces, corners, true);
                     return s;
@@ -809,9 +864,18 @@ namespace GeometryHelper.UnitTest.Plane
 
                     do
                     {
-                        ring = new[] { P(c.X + Between(random, -80, 80), c.Y + Between(random, -80, 80)), P(c.X + Between(random, -80, 80), c.Y + Between(random, -80, 80)), P(c.X + Between(random, -80, 80), c.Y + Between(random, -80, 80)) };
-                    }
-                    while (Math.Abs((ring[1].X - ring[0].X) * (ring[2].Y - ring[0].Y) - (ring[1].Y - ring[0].Y) * (ring[2].X - ring[0].X)) < 500);
+                        ring = new[]
+                        {
+                            P(c.X + Between(random, -80, 80), c.Y + Between(random, -80, 80)),
+                            P(c.X + Between(random, -80, 80), c.Y + Between(random, -80, 80)),
+                            P(c.X + Between(random, -80, 80), c.Y + Between(random, -80, 80)),
+                        };
+                    } while (
+                        Math.Abs(
+                            (ring[1].X - ring[0].X) * (ring[2].Y - ring[0].Y)
+                                - (ring[1].Y - ring[0].Y) * (ring[2].X - ring[0].X)
+                        ) < 500
+                    );
 
                     OracleShape s = Make(kind, new GeoTriangle2(ring[0], ring[1], ring[2]), c, 120, true);
 
@@ -825,7 +889,13 @@ namespace GeometryHelper.UnitTest.Plane
                     // a fifth of the radius of the centre and the hole, within a seventh of it, stays inside.
                     GeoPoint2[] outer = Star(random, c, radius, random.Next(5, 9));
                     GeoPoint2[] hole = Star(random, c, radius * 0.14, random.Next(3, 6));
-                    OracleShape s = Make(kind, new GeoFace2(new GeoPolygon2(outer), new[] { new GeoPolygon2(hole) }), c, radius, true);
+                    OracleShape s = Make(
+                        kind,
+                        new GeoFace2(new GeoPolygon2(outer), new[] { new GeoPolygon2(hole) }),
+                        c,
+                        radius,
+                        true
+                    );
 
                     Ring(s.Pieces, outer, true);
                     Ring(s.Pieces, hole, true);
@@ -851,14 +921,23 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 case 0:
                     // Anywhere in the neighbourhood.
-                    return new GeoXLine2(P(shape.Center.X + Between(random, -150, 150), shape.Center.Y + Between(random, -150, 150)), direction);
+                    return new GeoXLine2(
+                        P(shape.Center.X + Between(random, -150, 150), shape.Center.Y + Between(random, -150, 150)),
+                        direction
+                    );
 
                 case 1:
                 {
                     // Beside the shape: a gap of its reach and a little more, on either side.
                     double gap = (shape.Radius + Between(random, 0.5, 80)) * (random.Next(2) == 0 ? 1 : -1);
 
-                    return new GeoXLine2(P(shape.Center.X + gap * normal.X + along * direction.X, shape.Center.Y + gap * normal.Y + along * direction.Y), direction);
+                    return new GeoXLine2(
+                        P(
+                            shape.Center.X + gap * normal.X + along * direction.X,
+                            shape.Center.Y + gap * normal.Y + along * direction.Y
+                        ),
+                        direction
+                    );
                 }
 
                 case 2:
@@ -867,7 +946,13 @@ namespace GeometryHelper.UnitTest.Plane
                     double far = Between(random, 1E3, 1E6) * (random.Next(2) == 0 ? 1 : -1);
                     double off = Between(random, -0.6, 0.6) * shape.Radius;
 
-                    return new GeoXLine2(P(shape.Center.X + off * normal.X + far * direction.X, shape.Center.Y + off * normal.Y + far * direction.Y), direction);
+                    return new GeoXLine2(
+                        P(
+                            shape.Center.X + off * normal.X + far * direction.X,
+                            shape.Center.Y + off * normal.Y + far * direction.Y
+                        ),
+                        direction
+                    );
                 }
 
                 default:
@@ -875,7 +960,10 @@ namespace GeometryHelper.UnitTest.Plane
                     // Near the shape, either side of a hair.
                     double gap = (shape.Radius * Between(random, 0.2, 1.4)) * (random.Next(2) == 0 ? 1 : -1);
 
-                    return new GeoXLine2(P(shape.Center.X + gap * normal.X, shape.Center.Y + gap * normal.Y), direction);
+                    return new GeoXLine2(
+                        P(shape.Center.X + gap * normal.X, shape.Center.Y + gap * normal.Y),
+                        direction
+                    );
                 }
             }
         }

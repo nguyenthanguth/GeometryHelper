@@ -27,7 +27,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(4, shares.Count);
             Assert.Equal(4096.0 / 20000.0, shares[0]);
             Assert.Equal(16384.0 / 20000.0, shares[3]);
-            Assert.Equal(DisplayPatchTests.Describe(plain.GetDisplay(plain.ModelSpace)), DisplayPatchTests.Describe(ahead.GetDisplay(ahead.ModelSpace)));
+            Assert.Equal(
+                DisplayPatchTests.Describe(plain.GetDisplay(plain.ModelSpace)),
+                DisplayPatchTests.Describe(ahead.GetDisplay(ahead.ModelSpace))
+            );
             Assert.Same(ahead.GetDisplay(ahead.ModelSpace), ahead.GetPickIndex(ahead.ModelSpace).List);
         }
 
@@ -40,10 +43,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             using (var stop = new CancellationTokenSource())
             {
-                Assert.Throws<OperationCanceledException>(() => document.PrepareDisplay(document.ModelSpace, new Told(share => stop.Cancel()), stop.Token));
+                Assert.Throws<OperationCanceledException>(() =>
+                    document.PrepareDisplay(document.ModelSpace, new Told(share => stop.Cancel()), stop.Token)
+                );
             }
 
-            Assert.Equal(DisplayPatchTests.Describe(plain.GetDisplay(plain.ModelSpace)), DisplayPatchTests.Describe(document.GetDisplay(document.ModelSpace)));
+            Assert.Equal(
+                DisplayPatchTests.Describe(plain.GetDisplay(plain.ModelSpace)),
+                DisplayPatchTests.Describe(document.GetDisplay(document.ModelSpace))
+            );
         }
 
         /// <summary>Tells each share as it is reported, on the thread drawing.</summary>

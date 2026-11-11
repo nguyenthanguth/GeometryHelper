@@ -42,21 +42,29 @@ namespace GeometryHelper.Dxf
         {
             if (IsGradient)
             {
-                throw new NotSupportedException("A gradient fill is not broken into other entities by the library: what AutoCAD's EXPLODE makes of one is not worked out.");
+                throw new NotSupportedException(
+                    "A gradient fill is not broken into other entities by the library: what AutoCAD's EXPLODE makes of one is not worked out."
+                );
             }
 
             Parts record = Record();
 
             if (Whole(record.Text(70), 1) == 1)
             {
-                throw new NotSupportedException("A solid fill is not broken into other entities by the library: what AutoCAD's EXPLODE makes of one is not worked out.");
+                throw new NotSupportedException(
+                    "A solid fill is not broken into other entities by the library: what AutoCAD's EXPLODE makes of one is not worked out."
+                );
             }
 
             List<double[]> definitions = Lines(record);
 
             if (definitions.Count == 0)
             {
-                throw new NotSupportedException("The pattern " + PatternName + " of the HATCH holds no lines: they are in AutoCAD's own pattern file, which the library does not have.");
+                throw new NotSupportedException(
+                    "The pattern "
+                        + PatternName
+                        + " of the HATCH holds no lines: they are in AutoCAD's own pattern file, which the library does not have."
+                );
             }
 
             Snapshot snapshot = Snap();
@@ -68,12 +76,17 @@ namespace GeometryHelper.Dxf
 
             foreach (Stretches stretches in sets)
             {
-                stretches.Lay((a, b) =>
-                {
-                    var line = new DxfLine(OcsToWorld(normal, new GeoPoint3(a.X, a.Y, elevation)), OcsToWorld(normal, new GeoPoint3(b.X, b.Y, elevation)));
-                    look.GiveTo(line);
-                    parts.Add(line);
-                });
+                stretches.Lay(
+                    (a, b) =>
+                    {
+                        var line = new DxfLine(
+                            OcsToWorld(normal, new GeoPoint3(a.X, a.Y, elevation)),
+                            OcsToWorld(normal, new GeoPoint3(b.X, b.Y, elevation))
+                        );
+                        look.GiveTo(line);
+                        parts.Add(line);
+                    }
+                );
             }
 
             return parts.AsReadOnly();
@@ -124,7 +137,11 @@ namespace GeometryHelper.Dxf
 
             if (index < 0 || index >= lines.Length)
             {
-                throw new ArgumentOutOfRangeException(nameof(index), index, "The pattern draws " + lines.Length.ToString(CultureInfo.InvariantCulture) + " lines, from nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(index),
+                    index,
+                    "The pattern draws " + lines.Length.ToString(CultureInfo.InvariantCulture) + " lines, from nought."
+                );
             }
 
             return lines[index];
@@ -165,7 +182,11 @@ namespace GeometryHelper.Dxf
 
                 if (definitions.Count == 0)
                 {
-                    throw new NotSupportedException("The pattern " + PatternName + " of the HATCH holds no lines: they are in AutoCAD's own pattern file, which the library does not have.");
+                    throw new NotSupportedException(
+                        "The pattern "
+                            + PatternName
+                            + " of the HATCH holds no lines: they are in AutoCAD's own pattern file, which the library does not have."
+                    );
                 }
 
                 List<Stretches> sets = Stretched(snapshot, definitions, out long count);
@@ -201,7 +222,13 @@ namespace GeometryHelper.Dxf
 
                 if (count > most)
                 {
-                    throw new InvalidOperationException("The pattern of the HATCH " + (Handle ?? string.Empty) + " would give more than " + most.ToString(CultureInfo.InvariantCulture) + " entities, the bound of DxfReadOptions.MaxPlacedEntities.");
+                    throw new InvalidOperationException(
+                        "The pattern of the HATCH "
+                            + (Handle ?? string.Empty)
+                            + " would give more than "
+                            + most.ToString(CultureInfo.InvariantCulture)
+                            + " entities, the bound of DxfReadOptions.MaxPlacedEntities."
+                    );
                 }
 
                 sets.Add(stretches);
@@ -229,13 +256,19 @@ namespace GeometryHelper.Dxf
 
             // The loops the style takes by their flags, external (1) or outermost (16), where any is flagged so.
             int wanted = style == DxfHatchStyle.Outer ? 17 : 1;
-            bool flagged = style != DxfHatchStyle.Normal && snapshot.Loops.Exists(l => (LoopData.Read(l).Flags & wanted) != 0);
+            bool flagged =
+                style != DxfHatchStyle.Normal && snapshot.Loops.Exists(l => (LoopData.Read(l).Flags & wanted) != 0);
 
             for (int i = 0; i < snapshot.Loops.Count; i++)
             {
                 LoopData loop = LoopData.Read(snapshot.Loops[i]);
 
-                if (flagged ? (loop.Flags & wanted) == 0 : style != DxfHatchStyle.Normal && Depth(snapshot, i, tolerance) > (style == DxfHatchStyle.Outer ? 1 : 0))
+                if (
+                    flagged
+                        ? (loop.Flags & wanted) == 0
+                        : style != DxfHatchStyle.Normal
+                            && Depth(snapshot, i, tolerance) > (style == DxfHatchStyle.Outer ? 1 : 0)
+                )
                 {
                     continue;
                 }
@@ -258,7 +291,13 @@ namespace GeometryHelper.Dxf
                 }
                 catch (ArgumentException e)
                 {
-                    throw new InvalidOperationException("The loop " + i.ToString(CultureInfo.InvariantCulture) + " of the HATCH has an edge that is no shape: " + e.Message, e);
+                    throw new InvalidOperationException(
+                        "The loop "
+                            + i.ToString(CultureInfo.InvariantCulture)
+                            + " of the HATCH has an edge that is no shape: "
+                            + e.Message,
+                        e
+                    );
                 }
 
                 for (int c = 0; c < curves.Count; c++)
@@ -351,11 +390,38 @@ namespace GeometryHelper.Dxf
 
             internal static PatternCurve Line(GeoPoint2 start, GeoPoint2 end) => new PatternCurve(start, end);
 
-            internal static PatternCurve Conic(GeoPoint2 start, GeoPoint2 end, double cx, double cy, double ux, double uy, double vx, double vy, double from, double to)
-                => new PatternCurve(start, end) { IsConic = true, _cx = cx, _cy = cy, _ux = ux, _uy = uy, _vx = vx, _vy = vy, From = from, To = to };
+            internal static PatternCurve Conic(
+                GeoPoint2 start,
+                GeoPoint2 end,
+                double cx,
+                double cy,
+                double ux,
+                double uy,
+                double vx,
+                double vy,
+                double from,
+                double to
+            ) =>
+                new PatternCurve(start, end)
+                {
+                    IsConic = true,
+                    _cx = cx,
+                    _cy = cy,
+                    _ux = ux,
+                    _uy = uy,
+                    _vx = vx,
+                    _vy = vy,
+                    From = from,
+                    To = to,
+                };
 
-            internal static PatternCurve Of(GeoPoint2 start, GeoPoint2 end, GeoSpline2 spline)
-                => new PatternCurve(start, end) { _spline = spline, From = spline.DomainStart, To = spline.DomainEnd };
+            internal static PatternCurve Of(GeoPoint2 start, GeoPoint2 end, GeoSpline2 spline) =>
+                new PatternCurve(start, end)
+                {
+                    _spline = spline,
+                    From = spline.DomainStart,
+                    To = spline.DomainEnd,
+                };
 
             /// <summary>Its point at a parameter.</summary>
             internal GeoPoint2 At(double t)
@@ -528,14 +594,22 @@ namespace GeometryHelper.Dxf
 
                             if (!(Math.Abs(piece.Ua) <= Farthest) || !(Math.Abs(piece.Ub) <= Farthest))
                             {
-                                throw new InvalidOperationException("The loops of the HATCH lie more than 2^52 of its pattern's spacings from the pattern's base point, where one line cannot be told from the next.");
+                                throw new InvalidOperationException(
+                                    "The loops of the HATCH lie more than 2^52 of its pattern's spacings from the pattern's base point, where one line cannot be told from the next."
+                                );
                             }
 
-                            crossings += Math.Ceiling(Math.Max(piece.Ua, piece.Ub)) - Math.Ceiling(Math.Min(piece.Ua, piece.Ub));
+                            crossings +=
+                                Math.Ceiling(Math.Max(piece.Ua, piece.Ub)) - Math.Ceiling(Math.Min(piece.Ua, piece.Ub));
                             pieces.Add(piece);
                             double k = Math.Round(piece.Ua);
 
-                            if (!curve.IsConic && !curve.IsSpline && Math.Abs(piece.Ua - k) * Math.Abs(_apart) <= tolerance && Math.Abs(piece.Ub - k) * Math.Abs(_apart) <= tolerance)
+                            if (
+                                !curve.IsConic
+                                && !curve.IsSpline
+                                && Math.Abs(piece.Ua - k) * Math.Abs(_apart) <= tolerance
+                                && Math.Abs(piece.Ub - k) * Math.Abs(_apart) <= tolerance
+                            )
                             {
                                 double sa = _dx * (a.X - (_bx + k * _ox)) + _dy * (a.Y - (_by + k * _oy));
                                 double sb = _dx * (b.X - (_bx + k * _ox)) + _dy * (b.Y - (_by + k * _oy));
@@ -555,7 +629,11 @@ namespace GeometryHelper.Dxf
                 // A bound of memory, not of the parts: each crossing takes 16 bytes, so 32 000 000 of them half a gigabyte.
                 if (crossings > MostCrossings)
                 {
-                    throw new InvalidOperationException("The pattern of the HATCH would cross its loops more than " + MostCrossings.ToString("0", CultureInfo.InvariantCulture) + " times, which the library does not hold in memory.");
+                    throw new InvalidOperationException(
+                        "The pattern of the HATCH would cross its loops more than "
+                            + MostCrossings.ToString("0", CultureInfo.InvariantCulture)
+                            + " times, which the library does not hold in memory."
+                    );
                 }
 
                 var found = new List<KeyValuePair<long, double>>((int)crossings);
@@ -574,7 +652,7 @@ namespace GeometryHelper.Dxf
 
                 found.Sort((p, q) => p.Key != q.Key ? p.Key.CompareTo(q.Key) : p.Value.CompareTo(q.Value));
 
-                for (int i = 0; i < found.Count;)
+                for (int i = 0; i < found.Count; )
                 {
                     int j = i;
 
@@ -610,7 +688,11 @@ namespace GeometryHelper.Dxf
 
                     for (int t = first; t < _from.Count; t++)
                     {
-                        long count = edgesAlong != null && edgesAlong.Exists(e => _from[t] >= e[0] - tolerance && _to[t] <= e[1] + tolerance) ? 0 : Count(_from[t], _to[t], most - _parts);
+                        long count =
+                            edgesAlong != null
+                            && edgesAlong.Exists(e => _from[t] >= e[0] - tolerance && _to[t] <= e[1] + tolerance)
+                                ? 0
+                                : Count(_from[t], _to[t], most - _parts);
 
                         if (count > 0)
                         {
@@ -623,7 +705,11 @@ namespace GeometryHelper.Dxf
 
                         if (_parts > most)
                         {
-                            throw new InvalidOperationException("The pattern of the HATCH would give more than " + new DxfReadOptions().MaxPlacedEntities.ToString(CultureInfo.InvariantCulture) + " entities, the bound of DxfReadOptions.MaxPlacedEntities.");
+                            throw new InvalidOperationException(
+                                "The pattern of the HATCH would give more than "
+                                    + new DxfReadOptions().MaxPlacedEntities.ToString(CultureInfo.InvariantCulture)
+                                    + " entities, the bound of DxfReadOptions.MaxPlacedEntities."
+                            );
                         }
                     }
 
@@ -708,7 +794,9 @@ namespace GeometryHelper.Dxf
 
                 if (!(Math.Abs(first) <= Farthest) || !(Math.Abs(last) <= Farthest))
                 {
-                    throw new InvalidOperationException("A line of the HATCH's pattern runs more than 2^52 lengths of its dashes from its base point, where one length cannot be told from the next.");
+                    throw new InvalidOperationException(
+                        "A line of the HATCH's pattern runs more than 2^52 lengths of its dashes from its base point, where one length cannot be told from the next."
+                    );
                 }
 
                 return first;
@@ -764,7 +852,10 @@ namespace GeometryHelper.Dxf
                 if (!piece.Curve.IsConic && !piece.Curve.IsSpline)
                 {
                     double f = (k - piece.Ua) / (piece.Ub - piece.Ua);
-                    return new GeoPoint2(piece.A.X + (piece.B.X - piece.A.X) * f, piece.A.Y + (piece.B.Y - piece.A.Y) * f);
+                    return new GeoPoint2(
+                        piece.A.X + (piece.B.X - piece.A.X) * f,
+                        piece.A.Y + (piece.B.Y - piece.A.Y) * f
+                    );
                 }
 
                 double lo = piece.Ta;

@@ -64,7 +64,6 @@ namespace GeometryHelper.Dxf
         public string FontSearchPath
         {
             get => _fontSearchPath;
-
             set
             {
                 if (value == null)

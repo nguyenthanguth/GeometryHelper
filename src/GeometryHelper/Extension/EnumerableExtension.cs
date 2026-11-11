@@ -13,7 +13,11 @@ namespace GeometryHelper.Extension
         /// <summary>
         /// Returns the element that yields the maximum value for a selector function.
         /// </summary>
-        public static TSource MaxBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> selector, IComparer<TKey> comparer = null)
+        public static TSource MaxBy<TSource, TKey>(
+            this IEnumerable<TSource> source,
+            Func<TSource, TKey> selector,
+            IComparer<TKey> comparer = null
+        )
         {
             if (source == null)
             {
@@ -51,7 +55,11 @@ namespace GeometryHelper.Extension
         /// <summary>
         /// Returns the element that yields the minimum value for a selector function.
         /// </summary>
-        public static TSource MinBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> selector, IComparer<TKey> comparer = null)
+        public static TSource MinBy<TSource, TKey>(
+            this IEnumerable<TSource> source,
+            Func<TSource, TKey> selector,
+            IComparer<TKey> comparer = null
+        )
         {
             if (source == null)
             {

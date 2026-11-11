@@ -11,11 +11,20 @@ namespace GeometryHelper.Dxf
 
         // The entries of an extension dictionary copied: those that make a block dynamic, and the one that makes an anonymous
         // block or an INSERT stand for a dynamic block.
-        private static readonly string[] DefinitionEntries = { "ACAD_ENHANCEDBLOCK", "AcDbDynamicBlockRoundTripPurgePreventer" };
+        private static readonly string[] DefinitionEntries =
+        {
+            "ACAD_ENHANCEDBLOCK",
+            "AcDbDynamicBlockRoundTripPurgePreventer",
+        };
         private static readonly string[] RepresentationEntries = { "AcDbBlockRepresentation" };
 
         // The applications of the extended data of a dynamic block's record, and of an anonymous block standing for one.
-        private static readonly string[] DefinitionData = { "AcDbDynamicBlockTrueName", "AcDbDynamicBlockGUID", "AcDbBlockRepETag" };
+        private static readonly string[] DefinitionData =
+        {
+            "AcDbDynamicBlockTrueName",
+            "AcDbDynamicBlockGUID",
+            "AcDbBlockRepETag",
+        };
         private static readonly string[] RepresentationData = { "AcDbBlockRepBTag" };
 
         /// <summary>
@@ -53,7 +62,9 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            IReadOnlyList<DxfTypedValue> tags = IsAnonymous(block.Name) ? record.GetXDataForApplication("AcDbBlockRepBTag") : null;
+            IReadOnlyList<DxfTypedValue> tags = IsAnonymous(block.Name)
+                ? record.GetXDataForApplication("AcDbBlockRepBTag")
+                : null;
             string tag = null;
 
             foreach (DxfTypedValue group in tags ?? new DxfTypedValue[0])
@@ -67,7 +78,11 @@ namespace GeometryHelper.Dxf
 
             DxfBlockTableRecord dynamic = tag == null ? null : table.ByHandle(tag);
 
-            if (dynamic == null || !dynamic.KeepsDynamicData || !origin.Blocks.TryGetValue(dynamic.Name, out DxfFileBlock brought))
+            if (
+                dynamic == null
+                || !dynamic.KeepsDynamicData
+                || !origin.Blocks.TryGetValue(dynamic.Name, out DxfFileBlock brought)
+            )
             {
                 return null;
             }
@@ -115,7 +130,9 @@ namespace GeometryHelper.Dxf
             // WblockCloneObjects, which may copy one INSERT at a time from a drawing of thousands of blocks, gives those its
             // copies brought and the dynamic blocks they place, in the order of their handles; a pointer to any other block is
             // taken to the block of its name here, as a record of a table is.
-            List<DxfBlockTableRecord> blocks = copies.BringsDynamicBlocks ? Named(source, copies) : new List<DxfBlockTableRecord>(source.BlockTable);
+            List<DxfBlockTableRecord> blocks = copies.BringsDynamicBlocks
+                ? Named(source, copies)
+                : new List<DxfBlockTableRecord>(source.BlockTable);
 
             if (!blocks.Exists(b => b.KeepsDynamicData))
             {
@@ -130,7 +147,12 @@ namespace GeometryHelper.Dxf
                 bool copied = copies.Blocks.TryGetValue(block.Name, out List<string> names);
                 string name = copied ? names[0] : block.Name;
 
-                if (!TryHex(block.Handle ?? string.Empty, out ulong handle) || handle == 0 || (!copied && IsAnonymous(block.Name)) || !target.BlockTable.Has(name))
+                if (
+                    !TryHex(block.Handle ?? string.Empty, out ulong handle)
+                    || handle == 0
+                    || (!copied && IsAnonymous(block.Name))
+                    || !target.BlockTable.Has(name)
+                )
                 {
                     continue;
                 }
@@ -179,13 +201,15 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            blocks.Sort((a, b) =>
-            {
-                TryHex(a.Handle ?? string.Empty, out ulong x);
-                TryHex(b.Handle ?? string.Empty, out ulong y);
-                int byHandle = x.CompareTo(y);
-                return byHandle != 0 ? byHandle : string.CompareOrdinal(a.Name, b.Name);
-            });
+            blocks.Sort(
+                (a, b) =>
+                {
+                    TryHex(a.Handle ?? string.Empty, out ulong x);
+                    TryHex(b.Handle ?? string.Empty, out ulong y);
+                    int byHandle = x.CompareTo(y);
+                    return byHandle != 0 ? byHandle : string.CompareOrdinal(a.Name, b.Name);
+                }
+            );
 
             return blocks;
         }
@@ -194,7 +218,13 @@ namespace GeometryHelper.Dxf
         /// Copies what makes the dynamic blocks of the other drawing dynamic, as <see cref="CopyDynamicBlocks(DxfFile, InsertCopies)"/>
         /// says, given its blocks, the records here its block records are taken to, and those of its dynamic blocks.
         /// </summary>
-        private void CopyDynamicBlocks(DxfFile origin, InsertCopies copies, List<DxfBlockTableRecord> blocks, Dictionary<ulong, string> records, Dictionary<ulong, string> dynamic)
+        private void CopyDynamicBlocks(
+            DxfFile origin,
+            InsertCopies copies,
+            List<DxfBlockTableRecord> blocks,
+            Dictionary<ulong, string> records,
+            Dictionary<ulong, string> dynamic
+        )
         {
             DxfDatabase source = origin.Database;
             DxfDatabase target = Database;
@@ -204,7 +234,10 @@ namespace GeometryHelper.Dxf
             // Each copy of a block that is dynamic, or stands for one that is dynamic here.
             foreach (DxfBlockTableRecord block in blocks)
             {
-                if (!copies.Blocks.TryGetValue(block.Name, out List<string> names) || !TryHex(block.Handle ?? string.Empty, out ulong handle))
+                if (
+                    !copies.Blocks.TryGetValue(block.Name, out List<string> names)
+                    || !TryHex(block.Handle ?? string.Empty, out ulong handle)
+                )
                 {
                     continue;
                 }
@@ -223,7 +256,11 @@ namespace GeometryHelper.Dxf
                 {
                     foreach (DxfTypedValue group in block.GetXDataForApplication(application) ?? new DxfTypedValue[0])
                     {
-                        data.Add(group.TypeCode == 1005 ? new DxfTypedValue(1005, Mapped(group.Value, none, none, records, origin, copies)) : group);
+                        data.Add(
+                            group.TypeCode == 1005
+                                ? new DxfTypedValue(1005, Mapped(group.Value, none, none, records, origin, copies))
+                                : group
+                        );
                     }
                 }
 
@@ -244,19 +281,24 @@ namespace GeometryHelper.Dxf
 
             // Each INSERT copied that stands for a block dynamic here, in the order of the copies.
             var inserts = new List<KeyValuePair<ulong, string>>(copies.Entities);
-            inserts.Sort((a, b) =>
-            {
-                TryHex(a.Value, out ulong x);
-                TryHex(b.Value, out ulong y);
-                int byCopy = x.CompareTo(y);
-                return byCopy != 0 ? byCopy : a.Key.CompareTo(b.Key);
-            });
+            inserts.Sort(
+                (a, b) =>
+                {
+                    TryHex(a.Value, out ulong x);
+                    TryHex(b.Value, out ulong y);
+                    int byCopy = x.CompareTo(y);
+                    return byCopy != 0 ? byCopy : a.Key.CompareTo(b.Key);
+                }
+            );
 
             foreach (KeyValuePair<ulong, string> copy in inserts)
             {
                 DxfItem was = source.ItemByHandle(copy.Key.ToString("X", CultureInfo.InvariantCulture));
                 string stood = was == null || was.Type != "INSERT" ? null : origin.Represented(was);
-                DxfItem now = stood != null && TryHex(stood, out ulong of) && dynamic.ContainsKey(of) ? target.ItemByHandle(copy.Value) : null;
+                DxfItem now =
+                    stood != null && TryHex(stood, out ulong of) && dynamic.ContainsKey(of)
+                        ? target.ItemByHandle(copy.Value)
+                        : null;
 
                 if (now != null && !now.IsRemoved)
                 {
@@ -287,7 +329,17 @@ namespace GeometryHelper.Dxf
             {
                 foreach (DxfItem item in unit.Order)
                 {
-                    Rec record = CopiedObject(origin, item, item == unit.Root ? unit.Kept : null, unit.Made, first, records, copies, applications, ref nulled);
+                    Rec record = CopiedObject(
+                        origin,
+                        item,
+                        item == unit.Root ? unit.Kept : null,
+                        unit.Made,
+                        first,
+                        records,
+                        copies,
+                        applications,
+                        ref nulled
+                    );
                     TryHex(item.Handle, out ulong was);
                     AddCopiedObject(record, unit.Made[was]);
                     written++;
@@ -312,12 +364,21 @@ namespace GeometryHelper.Dxf
                 origin.CopyClass(this, type);
             }
 
-            GeometryHelperLog.Info("DxfFile: " + dynamic.Count.ToString(CultureInfo.InvariantCulture) + " dynamic blocks of the drawing inserted stay dynamic, with "
-                + written.ToString(CultureInfo.InvariantCulture) + " objects copied.");
+            GeometryHelperLog.Info(
+                "DxfFile: "
+                    + dynamic.Count.ToString(CultureInfo.InvariantCulture)
+                    + " dynamic blocks of the drawing inserted stay dynamic, with "
+                    + written.ToString(CultureInfo.InvariantCulture)
+                    + " objects copied."
+            );
 
             if (nulled > 0)
             {
-                GeometryHelperLog.Debug("DxfFile: " + nulled.ToString(CultureInfo.InvariantCulture) + " handles of the dynamic blocks' objects copied named nothing copied nor of a name here, and are null.");
+                GeometryHelperLog.Debug(
+                    "DxfFile: "
+                        + nulled.ToString(CultureInfo.InvariantCulture)
+                        + " handles of the dynamic blocks' objects copied named nothing copied nor of a name here, and are null."
+                );
             }
         }
 
@@ -330,7 +391,11 @@ namespace GeometryHelper.Dxf
         {
             DxfItem root = origin.ObjectItem(xdictionary);
 
-            if (root == null || root.Type != "DICTIONARY" || !Array.Exists(entries, e => origin.Entry(origin.RecordAt(root, 0), e) != null))
+            if (
+                root == null
+                || root.Type != "DICTIONARY"
+                || !Array.Exists(entries, e => origin.Entry(origin.RecordAt(root, 0), e) != null)
+            )
             {
                 return;
             }
@@ -367,7 +432,11 @@ namespace GeometryHelper.Dxf
                 {
                     skipped = Array.IndexOf(kept, origin.Text(record, pairs[i]).Trim()) < 0;
                 }
-                else if ((code == 350 || code == 360) && !skipped && origin.ObjectItem(origin.Text(record, pairs[i])) is DxfItem owned)
+                else if (
+                    (code == 350 || code == 360)
+                    && !skipped
+                    && origin.ObjectItem(origin.Text(record, pairs[i])) is DxfItem owned
+                )
                 {
                     Collect(origin, owned, null, unit);
                 }
@@ -380,7 +449,17 @@ namespace GeometryHelper.Dxf
         /// <see cref="Mapped"/> gives it, a reactor naming nothing left out; of a dictionary whose entries are chosen
         /// (<paramref name="kept"/>), only those. The applications of its extended data are added to those to register.
         /// </summary>
-        private Rec CopiedObject(DxfFile origin, DxfItem item, string[] kept, Dictionary<ulong, string> own, Dictionary<ulong, string> first, Dictionary<ulong, string> records, InsertCopies copies, List<string> applications, ref int nulled)
+        private Rec CopiedObject(
+            DxfFile origin,
+            DxfItem item,
+            string[] kept,
+            Dictionary<ulong, string> own,
+            Dictionary<ulong, string> first,
+            Dictionary<ulong, string> records,
+            InsertCopies copies,
+            List<string> applications,
+            ref int nulled
+        )
         {
             Rec record = origin.RecordAt(item, 0);
             List<Pair> pairs = PairsOf(record);
@@ -460,14 +539,26 @@ namespace GeometryHelper.Dxf
         /// first copy; of an entity copied; of a block record (the block copied, or this drawing's own of the name); else of a
         /// record of a table or an object of the named object dictionary of the same name; null (0) where there is none.
         /// </summary>
-        private string Mapped(string pointer, Dictionary<ulong, string> own, Dictionary<ulong, string> first, Dictionary<ulong, string> records, DxfFile origin, InsertCopies copies)
+        private string Mapped(
+            string pointer,
+            Dictionary<ulong, string> own,
+            Dictionary<ulong, string> first,
+            Dictionary<ulong, string> records,
+            DxfFile origin,
+            InsertCopies copies
+        )
         {
             if (!TryHex(pointer.Trim(), out ulong handle) || handle == 0)
             {
                 return pointer.Trim();
             }
 
-            if (own.TryGetValue(handle, out string copy) || first.TryGetValue(handle, out copy) || copies.Entities.TryGetValue(handle, out copy) || records.TryGetValue(handle, out copy))
+            if (
+                own.TryGetValue(handle, out string copy)
+                || first.TryGetValue(handle, out copy)
+                || copies.Entities.TryGetValue(handle, out copy)
+                || records.TryGetValue(handle, out copy)
+            )
             {
                 return copy;
             }
@@ -494,7 +585,11 @@ namespace GeometryHelper.Dxf
 
             for (int i = 1; i + 1 < data; i++)
             {
-                if (pairs[i].Code == 102 && Text(record, pairs[i]).Trim() == "{ACAD_XDICTIONARY" && pairs[i + 1].Code == 360)
+                if (
+                    pairs[i].Code == 102
+                    && Text(record, pairs[i]).Trim() == "{ACAD_XDICTIONARY"
+                    && pairs[i + 1].Code == 360
+                )
                 {
                     return Text(record, pairs[i + 1]).Trim();
                 }
@@ -518,7 +613,11 @@ namespace GeometryHelper.Dxf
             {
                 if (pairs[i].Code == 1001)
                 {
-                    tag = string.Equals(Text(record, pairs[i]).Trim(), "AcDbBlockRepBTag", StringComparison.OrdinalIgnoreCase);
+                    tag = string.Equals(
+                        Text(record, pairs[i]).Trim(),
+                        "AcDbBlockRepBTag",
+                        StringComparison.OrdinalIgnoreCase
+                    );
                 }
                 else if (tag && pairs[i].Code == 1005)
                 {
@@ -527,8 +626,10 @@ namespace GeometryHelper.Dxf
             }
 
             DxfItem dictionary = ObjectItem(Xdictionary(item));
-            DxfItem representation = dictionary == null ? null : ObjectItem(Entry(RecordAt(dictionary, 0), "AcDbBlockRepresentation"));
-            DxfItem data = representation == null ? null : ObjectItem(Entry(RecordAt(representation, 0), "AcDbRepData"));
+            DxfItem representation =
+                dictionary == null ? null : ObjectItem(Entry(RecordAt(dictionary, 0), "AcDbBlockRepresentation"));
+            DxfItem data =
+                representation == null ? null : ObjectItem(Entry(RecordAt(representation, 0), "AcDbRepData"));
             return data == null ? null : ValueOf(data, 340)?.Trim();
         }
 
@@ -546,10 +647,29 @@ namespace GeometryHelper.Dxf
                 {
                     DxfReader.Record read = Record(record);
 
-                    if (record.Type == "CLASS" && string.Equals((read.Text(1) ?? string.Empty).Trim(), dxfName, StringComparison.OrdinalIgnoreCase))
+                    if (
+                        record.Type == "CLASS"
+                        && string.Equals(
+                            (read.Text(1) ?? string.Empty).Trim(),
+                            dxfName,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
                     {
-                        int flags = int.TryParse(read.Text(90)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : 0;
-                        target.AddClass(dxfName, (read.Text(2) ?? string.Empty).Trim(), flags, (read.Text(3) ?? "ObjectDBX Classes").Trim());
+                        int flags = int.TryParse(
+                            read.Text(90)?.Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out int value
+                        )
+                            ? value
+                            : 0;
+                        target.AddClass(
+                            dxfName,
+                            (read.Text(2) ?? string.Empty).Trim(),
+                            flags,
+                            (read.Text(3) ?? "ObjectDBX Classes").Trim()
+                        );
                         return;
                     }
                 }
@@ -605,7 +725,8 @@ namespace GeometryHelper.Dxf
             /// The name there of each block copied, letters of either case the same, with the names of its copies here in the
             /// order they were made: an anonymous block placed by two INSERTs is copied once for the call, as AutoCAD keeps one.
             /// </summary>
-            internal Dictionary<string, List<string>> Blocks { get; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            internal Dictionary<string, List<string>> Blocks { get; } =
+                new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
             /// <summary>
             /// Whether an INSERT copied brings the dynamic block its anonymous block stands for, as <c>WblockCloneObjects</c>
@@ -629,7 +750,8 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>Notes the copy of an entity, by the two items, their handles read when <see cref="Entities"/> is first asked for.</summary>
-            internal void Entity(DxfItem was, DxfItem copy) => _pending.Add(new KeyValuePair<DxfItem, DxfItem>(was, copy));
+            internal void Entity(DxfItem was, DxfItem copy) =>
+                _pending.Add(new KeyValuePair<DxfItem, DxfItem>(was, copy));
 
             /// <summary>Notes a copy of a block, by its name there and the name of the copy.</summary>
             internal void Block(string was, string copy)

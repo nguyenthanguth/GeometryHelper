@@ -15,10 +15,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
     /// </summary>
     public class PlotDialogTests
     {
-        private static PlotDialogViewModel Dialog(CadDocument document, CadPlotSettings settings = null, bool isPageSetup = false)
+        private static PlotDialogViewModel Dialog(
+            CadDocument document,
+            CadPlotSettings settings = null,
+            bool isPageSetup = false
+        )
         {
-            var job = new CadPlotJob(document.ModelSpace, settings ?? CadPlotSettings.Read(document, document.ModelSpace), DisplayBox.Empty, null);
-            var printers = new[] { new KeyValuePair<string, bool>(@"\\print\HP LaserJet M507", true), new KeyValuePair<string, bool>("Microsoft Print to PDF", false) };
+            var job = new CadPlotJob(
+                document.ModelSpace,
+                settings ?? CadPlotSettings.Read(document, document.ModelSpace),
+                DisplayBox.Empty,
+                null
+            );
+            var printers = new[]
+            {
+                new KeyValuePair<string, bool>(@"\\print\HP LaserJet M507", true),
+                new KeyValuePair<string, bool>("Microsoft Print to PDF", false),
+            };
             return new PlotDialogViewModel(document, job, isPageSetup, printers);
         }
 
@@ -30,9 +43,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal("Plot - Model", dialog.Title);
             Assert.Equal("plan-level2.dxf · Model", dialog.Footer);
             // The raster devices of design PlotRaster follow the PDF one: GeometryHelper PNG and JPG.
-            Assert.Equal(new[] { "None", "GeometryHelper PDF", "GeometryHelper PNG", "GeometryHelper JPG", "Microsoft Print to PDF", @"\\print\HP LaserJet M507" }, dialog.Devices.Select(d => d.Name).ToArray());
-            Assert.Equal(new[] { false, true, true, true, false, false }, dialog.Devices.Select(d => d.IsEnabled).ToArray());
-            Assert.Equal(new[] { string.Empty, "built in, vector", "built in, raster", "built in, raster", "Windows", "Windows · network" }, dialog.Devices.Select(d => d.Kind).ToArray());
+            Assert.Equal(
+                new[]
+                {
+                    "None",
+                    "GeometryHelper PDF",
+                    "GeometryHelper PNG",
+                    "GeometryHelper JPG",
+                    "Microsoft Print to PDF",
+                    @"\\print\HP LaserJet M507",
+                },
+                dialog.Devices.Select(d => d.Name).ToArray()
+            );
+            Assert.Equal(
+                new[] { false, true, true, true, false, false },
+                dialog.Devices.Select(d => d.IsEnabled).ToArray()
+            );
+            Assert.Equal(
+                new[]
+                {
+                    string.Empty,
+                    "built in, vector",
+                    "built in, raster",
+                    "built in, raster",
+                    "Windows",
+                    "Windows · network",
+                },
+                dialog.Devices.Select(d => d.Kind).ToArray()
+            );
             Assert.True(dialog.Devices[4].StartsGroup);
             Assert.Same(dialog.Devices[1], dialog.Device);
             dialog.Device = dialog.Devices[5];
@@ -53,7 +91,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal("297", dialog.SheetHeightText);
             Assert.Equal(92.0, dialog.SheetPictureWidth, 9);
             Assert.Equal(92.0 * 297 / 420, dialog.SheetPictureHeight, 9);
-            Assert.Equal(new[] { "Display", "Extents", "Limits", "Window" }, dialog.Areas.Select(a => a.Name).ToArray());
+            Assert.Equal(
+                new[] { "Display", "Extents", "Limits", "Window" },
+                dialog.Areas.Select(a => a.Name).ToArray()
+            );
             Assert.Equal("Window", dialog.Area.Name);
             Assert.True(dialog.IsWindow);
             Assert.Equal("From (120, 60) to (7 620, 5 360)", dialog.WindowText);
@@ -173,7 +214,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         public void ThePreviewShowsTheWholeSheet_PansAndZooms_AndSaysWhatIsPlotted()
         {
             CadDocument document = PlotPdfTests.Plan();
-            var preview = new PlotPreviewViewModel(document, document.ModelSpace, PlotPdfTests.AtOneToTwenty(), DisplayBox.Empty);
+            var preview = new PlotPreviewViewModel(
+                document,
+                document.ModelSpace,
+                PlotPdfTests.AtOneToTwenty(),
+                DisplayBox.Empty
+            );
 
             Assert.Equal("GeometryHelper PDF · ISO A3 landscape · 1:20 · Monochrome", preview.Summary);
             Assert.Equal("Paper 420 × 297 mm · printable area dashed", preview.PaperText);
@@ -219,7 +265,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     window.Body.Arrange(new System.Windows.Rect(0, 0, 1040, 760));
                     Assert.True(window.Body.ActualWidth > 0);
 
-                    var preview = new PlotPreviewWindow(new PlotPreviewViewModel(document, document.ModelSpace, PlotPdfTests.AtOneToTwenty(), DisplayBox.Empty));
+                    var preview = new PlotPreviewWindow(
+                        new PlotPreviewViewModel(
+                            document,
+                            document.ModelSpace,
+                            PlotPdfTests.AtOneToTwenty(),
+                            DisplayBox.Empty
+                        )
+                    );
                     preview.Body.Measure(new System.Windows.Size(1400, 860));
                     preview.Body.Arrange(new System.Windows.Rect(0, 0, 1400, 860));
                     PlotPreviewCanvas sheet = preview.Sheet;

@@ -20,8 +20,8 @@ namespace GeometryHelper.UnitTest.Plane
     public class OffsetFaultS8RoundJoinTests
     {
         /// <summary>The worst gap between the grown square and the true offset by <paramref name="distance"/>.</summary>
-        private static double WorstGap(GeoPolygon2 grown, GeoPolygon2 square, double distance)
-            => WorstOffDistance(PiecesOf(grown), PiecesOf(square), distance);
+        private static double WorstGap(GeoPolygon2 grown, GeoPolygon2 square, double distance) =>
+            WorstOffDistance(PiecesOf(grown), PiecesOf(square), distance);
 
         [Fact]
         public void ASquareGrownByEightyWithAFineArcTolerance_KeepsItsCornersWithinIt()
@@ -31,7 +31,10 @@ namespace GeometryHelper.UnitTest.Plane
 
             GeoPolygon2 grown = Assert.Single(Offset2.Offset(square, 80.0, options, new Tolerance(1E-6, 1E-9)));
 
-            Assert.True(WorstGap(grown, square, 80.0) <= 1E-4 + 1E-9, "the round corners stand " + WorstGap(grown, square, 80.0) + " off the arc");
+            Assert.True(
+                WorstGap(grown, square, 80.0) <= 1E-4 + 1E-9,
+                "the round corners stand " + WorstGap(grown, square, 80.0) + " off the arc"
+            );
         }
 
         [Fact]
@@ -43,7 +46,10 @@ namespace GeometryHelper.UnitTest.Plane
 
             GeoPolygon2 grown = Assert.Single(Offset2.Offset(square, 80.0, options, new Tolerance(1E-6, 1E-9)));
 
-            Assert.True(WorstGap(grown, square, 80.0) <= 1E-3 + 1E-9, "the round corners stand " + WorstGap(grown, square, 80.0) + " off the arc");
+            Assert.True(
+                WorstGap(grown, square, 80.0) <= 1E-3 + 1E-9,
+                "the round corners stand " + WorstGap(grown, square, 80.0) + " off the arc"
+            );
         }
     }
 }

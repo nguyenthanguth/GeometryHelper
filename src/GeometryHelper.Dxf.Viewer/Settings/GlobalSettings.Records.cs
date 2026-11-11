@@ -19,7 +19,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <exception cref="ArgumentException">Thrown when the path is empty.</exception>
         public GlobalRecentFile(string path, DateTime opened, bool isPinned)
         {
-            Path = string.IsNullOrWhiteSpace(path) ? throw new ArgumentException("A recent file needs a path.", nameof(path)) : path.Trim();
+            Path = string.IsNullOrWhiteSpace(path)
+                ? throw new ArgumentException("A recent file needs a path.", nameof(path))
+                : path.Trim();
             Opened = opened.Kind == DateTimeKind.Utc ? opened : opened.ToUniversalTime();
             IsPinned = isPinned;
         }
@@ -51,9 +53,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// <exception cref="ArgumentException">Thrown when the misspelling or the command is empty, or the count below 1.</exception>
         public GlobalAutoCorrection(string typed, string command, int count)
         {
-            Typed = string.IsNullOrWhiteSpace(typed) ? throw new ArgumentException("A correction needs the name typed.", nameof(typed)) : typed.Trim().ToUpperInvariant();
-            Command = string.IsNullOrWhiteSpace(command) ? throw new ArgumentException("A correction needs a command.", nameof(command)) : command.Trim().ToUpperInvariant();
-            Count = count >= 1 ? count : throw new ArgumentException("A correction is counted at least once.", nameof(count));
+            Typed = string.IsNullOrWhiteSpace(typed)
+                ? throw new ArgumentException("A correction needs the name typed.", nameof(typed))
+                : typed.Trim().ToUpperInvariant();
+            Command = string.IsNullOrWhiteSpace(command)
+                ? throw new ArgumentException("A correction needs a command.", nameof(command))
+                : command.Trim().ToUpperInvariant();
+            Count =
+                count >= 1
+                    ? count
+                    : throw new ArgumentException("A correction is counted at least once.", nameof(count));
         }
 
         /// <summary>Gets the misspelling, in capitals.</summary>
@@ -85,7 +94,9 @@ namespace GeometryHelper.Dxf.Viewer
         private const int PendingCorrectionsKept = 100;
 
         private int _autoCompleteDelay = 300;
-        private SortedDictionary<string, int> _uses = new SortedDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        private SortedDictionary<string, int> _uses = new SortedDictionary<string, int>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private List<GlobalAutoCorrection> _corrections = new List<GlobalAutoCorrection>();
         private List<GlobalRecentFile> _recent = new List<GlobalRecentFile>();
         private List<string> _recentCommands = new List<string>();
@@ -116,7 +127,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// 10 000: 300 by default, as AutoCAD's INPUTSEARCHDELAY.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
-        public int AutoCompleteDelay { get => _autoCompleteDelay; set => _autoCompleteDelay = (int)Range(value, 100, 10000, nameof(AutoCompleteDelay)); }
+        public int AutoCompleteDelay
+        {
+            get => _autoCompleteDelay;
+            set => _autoCompleteDelay = (int)Range(value, 100, 10000, nameof(AutoCompleteDelay));
+        }
 
         // ---- Remembered between sessions
 
@@ -223,7 +238,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>True when the command is remembered for the misspelling from now on.</returns>
         public bool NoteCorrection(string typed, string command)
         {
-            if (string.IsNullOrWhiteSpace(typed) || string.IsNullOrWhiteSpace(command) || string.Equals(typed.Trim(), command.Trim(), StringComparison.OrdinalIgnoreCase))
+            if (
+                string.IsNullOrWhiteSpace(typed)
+                || string.IsNullOrWhiteSpace(command)
+                || string.Equals(typed.Trim(), command.Trim(), StringComparison.OrdinalIgnoreCase)
+            )
             {
                 return false;
             }
@@ -234,7 +253,11 @@ namespace GeometryHelper.Dxf.Viewer
             if (index >= 0)
             {
                 GlobalAutoCorrection old = _corrections[index];
-                _corrections[index] = new GlobalAutoCorrection(old.Typed, old.Command, old.Count == int.MaxValue ? old.Count : old.Count + 1);
+                _corrections[index] = new GlobalAutoCorrection(
+                    old.Typed,
+                    old.Command,
+                    old.Count == int.MaxValue ? old.Count : old.Count + 1
+                );
                 return _corrections[index].IsRemembered;
             }
 
@@ -254,9 +277,12 @@ namespace GeometryHelper.Dxf.Viewer
         public string CorrectionOf(string typed)
         {
             string key = (typed ?? string.Empty).Trim().ToUpperInvariant();
-            return _corrections.Where(c => c.IsRemembered && c.Typed == key)
-                .OrderByDescending(c => c.Count).ThenBy(c => c.Command, StringComparer.Ordinal)
-                .Select(c => c.Command).FirstOrDefault();
+            return _corrections
+                .Where(c => c.IsRemembered && c.Typed == key)
+                .OrderByDescending(c => c.Count)
+                .ThenBy(c => c.Command, StringComparer.Ordinal)
+                .Select(c => c.Command)
+                .FirstOrDefault();
         }
 
         /// <summary>
@@ -358,8 +384,11 @@ namespace GeometryHelper.Dxf.Viewer
         private void OrderRecent()
         {
             List<GlobalRecentFile> pinned = _recent.Where(f => f.IsPinned).ToList();
-            IEnumerable<GlobalRecentFile> others = _recent.Where(f => !f.IsPinned)
-                .OrderByDescending(f => f.Opened).ThenBy(f => f.Path, StringComparer.OrdinalIgnoreCase).ThenBy(f => f.Path, StringComparer.Ordinal)
+            IEnumerable<GlobalRecentFile> others = _recent
+                .Where(f => !f.IsPinned)
+                .OrderByDescending(f => f.Opened)
+                .ThenBy(f => f.Path, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(f => f.Path, StringComparer.Ordinal)
                 .Take(RecentFilesShown);
             _recent = pinned.Concat(others).ToList();
         }
@@ -418,7 +447,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (CadPaper size in _pixelSizes)
             {
-                w.Value(null, ((int)size.Width).ToString(CultureInfo.InvariantCulture) + "x" + ((int)size.Height).ToString(CultureInfo.InvariantCulture));
+                w.Value(
+                    null,
+                    ((int)size.Width).ToString(CultureInfo.InvariantCulture)
+                        + "x"
+                        + ((int)size.Height).ToString(CultureInfo.InvariantCulture)
+                );
             }
 
             w.CloseList();
@@ -431,13 +465,19 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 string name = (string)use.Attribute("item") ?? use.Name.LocalName;
 
-                if (int.TryParse(use.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int count) && count > 0 && name.Trim().Length > 0)
+                if (
+                    int.TryParse(use.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int count)
+                    && count > 0
+                    && name.Trim().Length > 0
+                )
                 {
                     _uses[name.Trim().ToUpperInvariant()] = count;
                 }
                 else
                 {
-                    GeometryHelperLog.Warn("GlobalSettings: the use count of " + name + " in " + path + " is not valid; it is left out.");
+                    GeometryHelperLog.Warn(
+                        "GlobalSettings: the use count of " + name + " in " + path + " is not valid; it is left out."
+                    );
                 }
             }
 
@@ -445,14 +485,31 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 try
                 {
-                    _corrections.Add(new GlobalAutoCorrection(
-                        item.Element("typed")?.Value,
-                        item.Element("command")?.Value,
-                        int.Parse(item.Element("count")?.Value ?? "0", NumberStyles.Integer, CultureInfo.InvariantCulture)));
+                    _corrections.Add(
+                        new GlobalAutoCorrection(
+                            item.Element("typed")?.Value,
+                            item.Element("command")?.Value,
+                            int.Parse(
+                                item.Element("count")?.Value ?? "0",
+                                NumberStyles.Integer,
+                                CultureInfo.InvariantCulture
+                            )
+                        )
+                    );
                 }
-                catch (Exception exception) when (exception is ArgumentException || exception is FormatException || exception is OverflowException)
+                catch (Exception exception)
+                    when (exception is ArgumentException
+                        || exception is FormatException
+                        || exception is OverflowException
+                    )
                 {
-                    GeometryHelperLog.Warn("GlobalSettings: a correction of " + path + " is not valid (" + exception.Message.Split('\n')[0].Trim() + "); it is left out.");
+                    GeometryHelperLog.Warn(
+                        "GlobalSettings: a correction of "
+                            + path
+                            + " is not valid ("
+                            + exception.Message.Split('\n')[0].Trim()
+                            + "); it is left out."
+                    );
                 }
             }
 
@@ -462,8 +519,13 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     var file = new GlobalRecentFile(
                         item.Element("path")?.Value,
-                        DateTime.Parse(item.Element("opened")?.Value ?? string.Empty, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
-                        string.Equals(item.Element("pinned")?.Value, "true", StringComparison.OrdinalIgnoreCase));
+                        DateTime.Parse(
+                            item.Element("opened")?.Value ?? string.Empty,
+                            CultureInfo.InvariantCulture,
+                            DateTimeStyles.RoundtripKind
+                        ),
+                        string.Equals(item.Element("pinned")?.Value, "true", StringComparison.OrdinalIgnoreCase)
+                    );
 
                     if (IndexOfRecent(file.Path) < 0)
                     {
@@ -472,7 +534,13 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 catch (Exception exception) when (exception is ArgumentException || exception is FormatException)
                 {
-                    GeometryHelperLog.Warn("GlobalSettings: a recent file of " + path + " is not valid (" + exception.Message.Split('\n')[0].Trim() + "); it is left out.");
+                    GeometryHelperLog.Warn(
+                        "GlobalSettings: a recent file of "
+                            + path
+                            + " is not valid ("
+                            + exception.Message.Split('\n')[0].Trim()
+                            + "); it is left out."
+                    );
                 }
             }
 
@@ -482,7 +550,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 string command = item.Value.Trim().ToUpperInvariant();
 
-                if (command.Length > 0 && !_recentCommands.Contains(command) && _recentCommands.Count < RecentCommandsKept)
+                if (
+                    command.Length > 0
+                    && !_recentCommands.Contains(command)
+                    && _recentCommands.Count < RecentCommandsKept
+                )
                 {
                     _recentCommands.Add(command);
                 }
@@ -492,13 +564,23 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 string[] sides = item.Value.Split('x');
 
-                if (sides.Length == 2 && int.TryParse(sides[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int width)
+                if (
+                    sides.Length == 2
+                    && int.TryParse(sides[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int width)
                     && int.TryParse(sides[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int height)
-                    && width >= CadPaper.MinPixels && width <= CadPaper.MaxPixels && height >= CadPaper.MinPixels && height <= CadPaper.MaxPixels)
+                    && width >= CadPaper.MinPixels
+                    && width <= CadPaper.MaxPixels
+                    && height >= CadPaper.MinPixels
+                    && height <= CadPaper.MaxPixels
+                )
                 {
                     CadPaper size = CadPaper.Pixels(width, height);
 
-                    if (CadPaper.PixelSizes.Contains(size) || _pixelSizes.Any(p => p.IsSameAs(size)) || _pixelSizes.Count >= CustomPixelSizesKept)
+                    if (
+                        CadPaper.PixelSizes.Contains(size)
+                        || _pixelSizes.Any(p => p.IsSameAs(size))
+                        || _pixelSizes.Count >= CustomPixelSizesKept
+                    )
                     {
                         continue;
                     }
@@ -507,7 +589,13 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else
                 {
-                    GeometryHelperLog.Warn("GlobalSettings: the image size " + item.Value + " of " + path + " is not valid; it is left out.");
+                    GeometryHelperLog.Warn(
+                        "GlobalSettings: the image size "
+                            + item.Value
+                            + " of "
+                            + path
+                            + " is not valid; it is left out."
+                    );
                 }
             }
         }

@@ -39,16 +39,31 @@ namespace GeometryHelper.UnitTest.Plane
         /// where they were, the first fillet from near <paramref name="first"/> to near <paramref name="meeting"/> on the
         /// right side, the second on to near <paramref name="last"/>, and nothing straight left on the right side.
         /// </summary>
-        private static void AssertMeetingAtOnePoint(GeoPolylineArc2 result, GeoPoint2 first, GeoPoint2 meeting, GeoPoint2 last, double tolerance)
+        private static void AssertMeetingAtOnePoint(
+            GeoPolylineArc2 result,
+            GeoPoint2 first,
+            GeoPoint2 meeting,
+            GeoPoint2 last,
+            double tolerance
+        )
         {
             Assert.Equal(0.0, result.StartPoint.X);
             Assert.Equal(0.0, result.StartPoint.Y);
             Assert.Equal(0.0, result.EndPoint.X);
             Assert.Equal(10.0, result.EndPoint.Y);
             Assert.Equal(5, result.VertexCount);
-            Assert.True(result.Vertices[1].DistanceTo(first) <= tolerance, "the first fillet starts at " + result.Vertices[1]);
-            Assert.True(result.Vertices[2].DistanceTo(meeting) <= tolerance, "the fillets meet at " + result.Vertices[2]);
-            Assert.True(result.Vertices[3].DistanceTo(last) <= tolerance, "the second fillet ends at " + result.Vertices[3]);
+            Assert.True(
+                result.Vertices[1].DistanceTo(first) <= tolerance,
+                "the first fillet starts at " + result.Vertices[1]
+            );
+            Assert.True(
+                result.Vertices[2].DistanceTo(meeting) <= tolerance,
+                "the fillets meet at " + result.Vertices[2]
+            );
+            Assert.True(
+                result.Vertices[3].DistanceTo(last) <= tolerance,
+                "the second fillet ends at " + result.Vertices[3]
+            );
             Assert.True(result.GetEdgeAt(1).IsArc && result.GetEdgeAt(2).IsArc, "the two corners are not both rounded");
         }
 
@@ -213,7 +228,10 @@ namespace GeometryHelper.UnitTest.Plane
 
             GeoPolygon2 cut = Corner2.Chamfer(square, 5.04, 5.04, Tenth);
 
-            Assert.False(CrossesItself(cut.Vertices), "the cut square " + string.Join(" ", cut.Vertices) + " crosses itself");
+            Assert.False(
+                CrossesItself(cut.Vertices),
+                "the cut square " + string.Join(" ", cut.Vertices) + " crosses itself"
+            );
             Assert.Equal(4, cut.VertexCount);
             foreach (GeoPoint2 middle in new[] { P(5, 0), P(10, 5), P(5, 10), P(0, 5) })
             {

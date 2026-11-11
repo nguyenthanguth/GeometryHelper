@@ -26,12 +26,15 @@ namespace GeometryHelper.Core
     /// </remarks>
     internal static partial class ArcChain3
     {
-
         /// <summary>
         /// Cuts a chain where it crosses a box, telling what is in from what is out.
         /// </summary>
-        public static bool TrySplitBy(GeoPolylineArc3 chain, GeoObb3 cutter, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside)
-            => TrySplitBy(chain, cutter, out inside, out outside, Tolerance.Global);
+        public static bool TrySplitBy(
+            GeoPolylineArc3 chain,
+            GeoObb3 cutter,
+            out GeoPolylineArc3[] inside,
+            out GeoPolylineArc3[] outside
+        ) => TrySplitBy(chain, cutter, out inside, out outside, Tolerance.Global);
 
         /// <summary>
         /// Cuts a chain where it crosses a box, telling what is in from what is out, within a tolerance.
@@ -52,7 +55,8 @@ namespace GeometryHelper.Core
             GeoObb3 cutter,
             out GeoPolylineArc3[] inside,
             out GeoPolylineArc3[] outside,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             if (chain == null)
             {
@@ -64,16 +68,27 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutter));
             }
 
-            var cuts = new List<GeoPoint3>(Crossings(chain.GetEdges(), edge => CutsOf(edge, cutter, tolerance), tolerance));
+            var cuts = new List<GeoPoint3>(
+                Crossings(chain.GetEdges(), edge => CutsOf(edge, cutter, tolerance), tolerance)
+            );
 
-            return Sorted(AsChains(CutRuns(chain.GetEdges(), cuts, tolerance)), point => cutter.Contains(point, tolerance), out inside, out outside);
+            return Sorted(
+                AsChains(CutRuns(chain.GetEdges(), cuts, tolerance)),
+                point => cutter.Contains(point, tolerance),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
         /// Cuts a chain where it crosses a box, telling what is in from what is out.
         /// </summary>
-        public static bool TrySplitBy(GeoPolylineArc3 chain, GeoAabb3 cutter, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside)
-            => TrySplitBy(chain, cutter, out inside, out outside, Tolerance.Global);
+        public static bool TrySplitBy(
+            GeoPolylineArc3 chain,
+            GeoAabb3 cutter,
+            out GeoPolylineArc3[] inside,
+            out GeoPolylineArc3[] outside
+        ) => TrySplitBy(chain, cutter, out inside, out outside, Tolerance.Global);
 
         /// <summary>
         /// Cuts a chain where it crosses a box, telling what is in from what is out, within a tolerance.
@@ -94,7 +109,8 @@ namespace GeometryHelper.Core
             GeoAabb3 cutter,
             out GeoPolylineArc3[] inside,
             out GeoPolylineArc3[] outside,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             if (chain == null)
             {
@@ -106,16 +122,27 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutter));
             }
 
-            var cuts = new List<GeoPoint3>(Crossings(chain.GetEdges(), edge => CutsOf(edge, cutter, tolerance), tolerance));
+            var cuts = new List<GeoPoint3>(
+                Crossings(chain.GetEdges(), edge => CutsOf(edge, cutter, tolerance), tolerance)
+            );
 
-            return Sorted(AsChains(CutRuns(chain.GetEdges(), cuts, tolerance)), point => cutter.Contains(point, tolerance), out inside, out outside);
+            return Sorted(
+                AsChains(CutRuns(chain.GetEdges(), cuts, tolerance)),
+                point => cutter.Contains(point, tolerance),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
         /// Cuts a chain where it crosses several bodies, telling what is in from what is out.
         /// </summary>
-        public static bool TrySplitBy(GeoPolylineArc3 chain, GeoSolid3[] cutters, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside)
-            => TrySplitBy(chain, cutters, out inside, out outside, Tolerance.Global);
+        public static bool TrySplitBy(
+            GeoPolylineArc3 chain,
+            GeoSolid3[] cutters,
+            out GeoPolylineArc3[] inside,
+            out GeoPolylineArc3[] outside
+        ) => TrySplitBy(chain, cutters, out inside, out outside, Tolerance.Global);
 
         /// <summary>
         /// Cuts a chain where it crosses several bodies, telling what is in from what is out, within a tolerance.
@@ -136,7 +163,8 @@ namespace GeometryHelper.Core
             GeoSolid3[] cutters,
             out GeoPolylineArc3[] inside,
             out GeoPolylineArc3[] outside,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             if (chain == null)
             {
@@ -148,16 +176,39 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutters));
             }
 
-            var cuts = new List<GeoPoint3>(CrossingsOfAll(chain.GetEdges(), cutters, one => one == null, (edge, one) => Intersection3.OfSide(edge, one, tolerance), tolerance));
+            var cuts = new List<GeoPoint3>(
+                CrossingsOfAll(
+                    chain.GetEdges(),
+                    cutters,
+                    one => one == null,
+                    (edge, one) => Intersection3.OfSide(edge, one, tolerance),
+                    tolerance
+                )
+            );
 
-            return Sorted(AsChains(CutRuns(chain.GetEdges(), cuts, tolerance)), point => InsideAny(cutters, point, one => one == null, (body, at) => Containment3.Contains(body, at, tolerance)), out inside, out outside);
+            return Sorted(
+                AsChains(CutRuns(chain.GetEdges(), cuts, tolerance)),
+                point =>
+                    InsideAny(
+                        cutters,
+                        point,
+                        one => one == null,
+                        (body, at) => Containment3.Contains(body, at, tolerance)
+                    ),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
         /// Cuts a chain where it crosses several boxes, telling what is in from what is out.
         /// </summary>
-        public static bool TrySplitBy(GeoPolylineArc3 chain, GeoObb3[] cutters, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside)
-            => TrySplitBy(chain, cutters, out inside, out outside, Tolerance.Global);
+        public static bool TrySplitBy(
+            GeoPolylineArc3 chain,
+            GeoObb3[] cutters,
+            out GeoPolylineArc3[] inside,
+            out GeoPolylineArc3[] outside
+        ) => TrySplitBy(chain, cutters, out inside, out outside, Tolerance.Global);
 
         /// <summary>
         /// Cuts a chain where it crosses several boxes, telling what is in from what is out, within a tolerance.
@@ -178,7 +229,8 @@ namespace GeometryHelper.Core
             GeoObb3[] cutters,
             out GeoPolylineArc3[] inside,
             out GeoPolylineArc3[] outside,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             if (chain == null)
             {
@@ -190,16 +242,33 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutters));
             }
 
-            var cuts = new List<GeoPoint3>(CrossingsOfAll(chain.GetEdges(), cutters, one => one == null, (edge, one) => CutsOf(edge, one, tolerance), tolerance));
+            var cuts = new List<GeoPoint3>(
+                CrossingsOfAll(
+                    chain.GetEdges(),
+                    cutters,
+                    one => one == null,
+                    (edge, one) => CutsOf(edge, one, tolerance),
+                    tolerance
+                )
+            );
 
-            return Sorted(AsChains(CutRuns(chain.GetEdges(), cuts, tolerance)), point => InsideAny(cutters, point, one => one == null, (box, at) => box.Contains(at, tolerance)), out inside, out outside);
+            return Sorted(
+                AsChains(CutRuns(chain.GetEdges(), cuts, tolerance)),
+                point => InsideAny(cutters, point, one => one == null, (box, at) => box.Contains(at, tolerance)),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
         /// Cuts a chain where it crosses several boxes, telling what is in from what is out.
         /// </summary>
-        public static bool TrySplitBy(GeoPolylineArc3 chain, GeoAabb3[] cutters, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside)
-            => TrySplitBy(chain, cutters, out inside, out outside, Tolerance.Global);
+        public static bool TrySplitBy(
+            GeoPolylineArc3 chain,
+            GeoAabb3[] cutters,
+            out GeoPolylineArc3[] inside,
+            out GeoPolylineArc3[] outside
+        ) => TrySplitBy(chain, cutters, out inside, out outside, Tolerance.Global);
 
         /// <summary>
         /// Cuts a chain where it crosses several boxes, telling what is in from what is out, within a tolerance.
@@ -220,7 +289,8 @@ namespace GeometryHelper.Core
             GeoAabb3[] cutters,
             out GeoPolylineArc3[] inside,
             out GeoPolylineArc3[] outside,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             if (chain == null)
             {
@@ -232,16 +302,33 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutters));
             }
 
-            var cuts = new List<GeoPoint3>(CrossingsOfAll(chain.GetEdges(), cutters, one => one.IsEmpty, (edge, one) => CutsOf(edge, one, tolerance), tolerance));
+            var cuts = new List<GeoPoint3>(
+                CrossingsOfAll(
+                    chain.GetEdges(),
+                    cutters,
+                    one => one.IsEmpty,
+                    (edge, one) => CutsOf(edge, one, tolerance),
+                    tolerance
+                )
+            );
 
-            return Sorted(AsChains(CutRuns(chain.GetEdges(), cuts, tolerance)), point => InsideAny(cutters, point, one => one.IsEmpty, (box, at) => box.Contains(at, tolerance)), out inside, out outside);
+            return Sorted(
+                AsChains(CutRuns(chain.GetEdges(), cuts, tolerance)),
+                point => InsideAny(cutters, point, one => one.IsEmpty, (box, at) => box.Contains(at, tolerance)),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
         /// Cuts a loop where it crosses a box, telling what is in from what is out.
         /// </summary>
-        public static bool TrySplitBy(GeoPolygonArc3 loop, GeoObb3 cutter, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside)
-            => TrySplitBy(loop, cutter, out inside, out outside, Tolerance.Global);
+        public static bool TrySplitBy(
+            GeoPolygonArc3 loop,
+            GeoObb3 cutter,
+            out GeoPolylineArc3[] inside,
+            out GeoPolylineArc3[] outside
+        ) => TrySplitBy(loop, cutter, out inside, out outside, Tolerance.Global);
 
         /// <summary>
         /// Cuts a loop where it crosses a box, telling what is in from what is out, within a tolerance.
@@ -262,7 +349,8 @@ namespace GeometryHelper.Core
             GeoObb3 cutter,
             out GeoPolylineArc3[] inside,
             out GeoPolylineArc3[] outside,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             if (loop == null)
             {
@@ -274,16 +362,27 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutter));
             }
 
-            var cuts = new List<GeoPoint3>(Crossings(loop.GetEdges(), edge => CutsOf(edge, cutter, tolerance), tolerance));
+            var cuts = new List<GeoPoint3>(
+                Crossings(loop.GetEdges(), edge => CutsOf(edge, cutter, tolerance), tolerance)
+            );
 
-            return Sorted(CutLoop(loop, cuts, tolerance), point => cutter.Contains(point, tolerance), out inside, out outside);
+            return Sorted(
+                CutLoop(loop, cuts, tolerance),
+                point => cutter.Contains(point, tolerance),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
         /// Cuts a loop where it crosses a box, telling what is in from what is out.
         /// </summary>
-        public static bool TrySplitBy(GeoPolygonArc3 loop, GeoAabb3 cutter, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside)
-            => TrySplitBy(loop, cutter, out inside, out outside, Tolerance.Global);
+        public static bool TrySplitBy(
+            GeoPolygonArc3 loop,
+            GeoAabb3 cutter,
+            out GeoPolylineArc3[] inside,
+            out GeoPolylineArc3[] outside
+        ) => TrySplitBy(loop, cutter, out inside, out outside, Tolerance.Global);
 
         /// <summary>
         /// Cuts a loop where it crosses a box, telling what is in from what is out, within a tolerance.
@@ -304,7 +403,8 @@ namespace GeometryHelper.Core
             GeoAabb3 cutter,
             out GeoPolylineArc3[] inside,
             out GeoPolylineArc3[] outside,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             if (loop == null)
             {
@@ -316,16 +416,27 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutter));
             }
 
-            var cuts = new List<GeoPoint3>(Crossings(loop.GetEdges(), edge => CutsOf(edge, cutter, tolerance), tolerance));
+            var cuts = new List<GeoPoint3>(
+                Crossings(loop.GetEdges(), edge => CutsOf(edge, cutter, tolerance), tolerance)
+            );
 
-            return Sorted(CutLoop(loop, cuts, tolerance), point => cutter.Contains(point, tolerance), out inside, out outside);
+            return Sorted(
+                CutLoop(loop, cuts, tolerance),
+                point => cutter.Contains(point, tolerance),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
         /// Cuts a loop where it crosses several bodies, telling what is in from what is out.
         /// </summary>
-        public static bool TrySplitBy(GeoPolygonArc3 loop, GeoSolid3[] cutters, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside)
-            => TrySplitBy(loop, cutters, out inside, out outside, Tolerance.Global);
+        public static bool TrySplitBy(
+            GeoPolygonArc3 loop,
+            GeoSolid3[] cutters,
+            out GeoPolylineArc3[] inside,
+            out GeoPolylineArc3[] outside
+        ) => TrySplitBy(loop, cutters, out inside, out outside, Tolerance.Global);
 
         /// <summary>
         /// Cuts a loop where it crosses several bodies, telling what is in from what is out, within a tolerance.
@@ -346,7 +457,8 @@ namespace GeometryHelper.Core
             GeoSolid3[] cutters,
             out GeoPolylineArc3[] inside,
             out GeoPolylineArc3[] outside,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             if (loop == null)
             {
@@ -358,16 +470,39 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutters));
             }
 
-            var cuts = new List<GeoPoint3>(CrossingsOfAll(loop.GetEdges(), cutters, one => one == null, (edge, one) => Intersection3.OfSide(edge, one, tolerance), tolerance));
+            var cuts = new List<GeoPoint3>(
+                CrossingsOfAll(
+                    loop.GetEdges(),
+                    cutters,
+                    one => one == null,
+                    (edge, one) => Intersection3.OfSide(edge, one, tolerance),
+                    tolerance
+                )
+            );
 
-            return Sorted(CutLoop(loop, cuts, tolerance), point => InsideAny(cutters, point, one => one == null, (body, at) => Containment3.Contains(body, at, tolerance)), out inside, out outside);
+            return Sorted(
+                CutLoop(loop, cuts, tolerance),
+                point =>
+                    InsideAny(
+                        cutters,
+                        point,
+                        one => one == null,
+                        (body, at) => Containment3.Contains(body, at, tolerance)
+                    ),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
         /// Cuts a loop where it crosses several boxes, telling what is in from what is out.
         /// </summary>
-        public static bool TrySplitBy(GeoPolygonArc3 loop, GeoObb3[] cutters, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside)
-            => TrySplitBy(loop, cutters, out inside, out outside, Tolerance.Global);
+        public static bool TrySplitBy(
+            GeoPolygonArc3 loop,
+            GeoObb3[] cutters,
+            out GeoPolylineArc3[] inside,
+            out GeoPolylineArc3[] outside
+        ) => TrySplitBy(loop, cutters, out inside, out outside, Tolerance.Global);
 
         /// <summary>
         /// Cuts a loop where it crosses several boxes, telling what is in from what is out, within a tolerance.
@@ -388,7 +523,8 @@ namespace GeometryHelper.Core
             GeoObb3[] cutters,
             out GeoPolylineArc3[] inside,
             out GeoPolylineArc3[] outside,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             if (loop == null)
             {
@@ -400,16 +536,33 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutters));
             }
 
-            var cuts = new List<GeoPoint3>(CrossingsOfAll(loop.GetEdges(), cutters, one => one == null, (edge, one) => CutsOf(edge, one, tolerance), tolerance));
+            var cuts = new List<GeoPoint3>(
+                CrossingsOfAll(
+                    loop.GetEdges(),
+                    cutters,
+                    one => one == null,
+                    (edge, one) => CutsOf(edge, one, tolerance),
+                    tolerance
+                )
+            );
 
-            return Sorted(CutLoop(loop, cuts, tolerance), point => InsideAny(cutters, point, one => one == null, (box, at) => box.Contains(at, tolerance)), out inside, out outside);
+            return Sorted(
+                CutLoop(loop, cuts, tolerance),
+                point => InsideAny(cutters, point, one => one == null, (box, at) => box.Contains(at, tolerance)),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
         /// Cuts a loop where it crosses several boxes, telling what is in from what is out.
         /// </summary>
-        public static bool TrySplitBy(GeoPolygonArc3 loop, GeoAabb3[] cutters, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside)
-            => TrySplitBy(loop, cutters, out inside, out outside, Tolerance.Global);
+        public static bool TrySplitBy(
+            GeoPolygonArc3 loop,
+            GeoAabb3[] cutters,
+            out GeoPolylineArc3[] inside,
+            out GeoPolylineArc3[] outside
+        ) => TrySplitBy(loop, cutters, out inside, out outside, Tolerance.Global);
 
         /// <summary>
         /// Cuts a loop where it crosses several boxes, telling what is in from what is out, within a tolerance.
@@ -430,7 +583,8 @@ namespace GeometryHelper.Core
             GeoAabb3[] cutters,
             out GeoPolylineArc3[] inside,
             out GeoPolylineArc3[] outside,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             if (loop == null)
             {
@@ -442,16 +596,32 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutters));
             }
 
-            var cuts = new List<GeoPoint3>(CrossingsOfAll(loop.GetEdges(), cutters, one => one.IsEmpty, (edge, one) => CutsOf(edge, one, tolerance), tolerance));
+            var cuts = new List<GeoPoint3>(
+                CrossingsOfAll(
+                    loop.GetEdges(),
+                    cutters,
+                    one => one.IsEmpty,
+                    (edge, one) => CutsOf(edge, one, tolerance),
+                    tolerance
+                )
+            );
 
-            return Sorted(CutLoop(loop, cuts, tolerance), point => InsideAny(cutters, point, one => one.IsEmpty, (box, at) => box.Contains(at, tolerance)), out inside, out outside);
+            return Sorted(
+                CutLoop(loop, cuts, tolerance),
+                point => InsideAny(cutters, point, one => one.IsEmpty, (box, at) => box.Contains(at, tolerance)),
+                out inside,
+                out outside
+            );
         }
 
         /// <summary>
         /// Cuts a chain at a set of distances measured along it.
         /// </summary>
-        public static bool SplitAtDistances(GeoPolylineArc3 chain, IEnumerable<double> distances, out GeoPolylineArc3[] pieces)
-            => SplitAtDistances(chain, distances, out pieces, Tolerance.Global);
+        public static bool SplitAtDistances(
+            GeoPolylineArc3 chain,
+            IEnumerable<double> distances,
+            out GeoPolylineArc3[] pieces
+        ) => SplitAtDistances(chain, distances, out pieces, Tolerance.Global);
 
         /// <summary>
         /// Cuts a chain at a set of distances measured along it, within a tolerance.
@@ -466,7 +636,12 @@ namespace GeometryHelper.Core
         /// a bar into a schedule of lengths is the usual way round.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain or the list of distances is null.</exception>
-        public static bool SplitAtDistances(GeoPolylineArc3 chain, IEnumerable<double> distances, out GeoPolylineArc3[] pieces, Tolerance tolerance)
+        public static bool SplitAtDistances(
+            GeoPolylineArc3 chain,
+            IEnumerable<double> distances,
+            out GeoPolylineArc3[] pieces,
+            Tolerance tolerance
+        )
         {
             if (chain == null)
             {
@@ -507,7 +682,8 @@ namespace GeometryHelper.Core
             GeoPolylineArc3[] pieces,
             Func<GeoPoint3, bool> isInside,
             out GeoPolylineArc3[] inside,
-            out GeoPolylineArc3[] outside)
+            out GeoPolylineArc3[] outside
+        )
         {
             var within = new List<GeoPolylineArc3>();
             var without = new List<GeoPolylineArc3>();
@@ -539,8 +715,10 @@ namespace GeometryHelper.Core
         /// Gets where an edge crosses an oriented box, the places it is cut at: only where it crosses a face, since a touch cuts
         /// nothing.
         /// </summary>
-        private static GeoPoint3[] CutsOf(GeoEdge3 edge, GeoObb3 box, Tolerance tolerance)
-            => edge.IsArc ? Arc3.CutsOf(edge.ToArc(), box, tolerance) : Intersection3.CrossingsOf(edge.ToLine(), box, tolerance);
+        private static GeoPoint3[] CutsOf(GeoEdge3 edge, GeoObb3 box, Tolerance tolerance) =>
+            edge.IsArc
+                ? Arc3.CutsOf(edge.ToArc(), box, tolerance)
+                : Intersection3.CrossingsOf(edge.ToLine(), box, tolerance);
 
         /// <summary>
         /// Gets where an edge crosses an axis-aligned box, the places it is cut at: only where it crosses a face, since a touch
@@ -553,7 +731,9 @@ namespace GeometryHelper.Core
                 return new GeoPoint3[0];
             }
 
-            return edge.IsArc ? Arc3.CutsOf(edge.ToArc(), box.ToObb(), tolerance) : Intersection3.CrossingsOf(edge.ToLine(), box.ToObb(), tolerance);
+            return edge.IsArc
+                ? Arc3.CutsOf(edge.ToArc(), box.ToObb(), tolerance)
+                : Intersection3.CrossingsOf(edge.ToLine(), box.ToObb(), tolerance);
         }
 
         /// <summary>
@@ -570,7 +750,8 @@ namespace GeometryHelper.Core
             T[] cutters,
             Func<T, bool> skip,
             Func<GeoEdge3, T, GeoPoint3[]> of,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             var found = new List<GeoPoint3>();
 
@@ -600,7 +781,12 @@ namespace GeometryHelper.Core
         /// What counts as a gap is the caller's to say, because the cutters are not all reference types: a null
         /// body and an empty box both cut nothing, and only the caller knows which it is holding.
         /// </remarks>
-        private static bool InsideAny<T>(T[] cutters, GeoPoint3 point, Func<T, bool> skip, Func<T, GeoPoint3, bool> holds)
+        private static bool InsideAny<T>(
+            T[] cutters,
+            GeoPoint3 point,
+            Func<T, bool> skip,
+            Func<T, GeoPoint3, bool> holds
+        )
         {
             foreach (T cutter in cutters)
             {

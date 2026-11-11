@@ -67,20 +67,37 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 if (Settings.FitToPaper)
                 {
-                    scale = Page.IsEmpty ? "Fit" : "1:" + (1.0 / Page.Scale).ToString("0.##", CultureInfo.InvariantCulture);
+                    scale = Page.IsEmpty
+                        ? "Fit"
+                        : "1:" + (1.0 / Page.Scale).ToString("0.##", CultureInfo.InvariantCulture);
                 }
                 else
                 {
-                    scale = Settings.PaperUnits.ToString("0.####", CultureInfo.InvariantCulture) + ":" + Settings.DrawingUnits.ToString("0.####", CultureInfo.InvariantCulture);
+                    scale =
+                        Settings.PaperUnits.ToString("0.####", CultureInfo.InvariantCulture)
+                        + ":"
+                        + Settings.DrawingUnits.ToString("0.####", CultureInfo.InvariantCulture);
                 }
 
-                string table = Settings.EffectiveStyleTable == CadPlotStyleTable.None ? "No plot styles" : Settings.EffectiveStyleTable.ToString();
-                return CadPlotSettings.PdfDevice + " · " + Settings.Paper.Name + " " + (Settings.Landscape ? "landscape" : "portrait") + " · " + scale + " · " + table;
+                string table =
+                    Settings.EffectiveStyleTable == CadPlotStyleTable.None
+                        ? "No plot styles"
+                        : Settings.EffectiveStyleTable.ToString();
+                return CadPlotSettings.PdfDevice
+                    + " · "
+                    + Settings.Paper.Name
+                    + " "
+                    + (Settings.Landscape ? "landscape" : "portrait")
+                    + " · "
+                    + scale
+                    + " · "
+                    + table;
             }
         }
 
         /// <summary>Gets what the status bar says of the sheet: "Paper 420 × 297 mm · printable area dashed".</summary>
-        public string PaperText => "Paper " + Mm(Page.SheetWidth) + " × " + Mm(Page.SheetHeight) + " mm · printable area dashed";
+        public string PaperText =>
+            "Paper " + Mm(Page.SheetWidth) + " × " + Mm(Page.SheetHeight) + " mm · printable area dashed";
 
         /// <summary>Gets the words of the status bar: how to leave the preview.</summary>
         public string HelpText => "Press ESC or ENTER to exit, or right-click to display shortcut menu.";
@@ -213,8 +230,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="width">The width of the window.</param>
         /// <param name="height">The height of the window.</param>
         /// <returns>The transform.</returns>
-        public Affine2 SheetToScreen(double width, double height)
-            => new Affine2(PixelsPerMillimetre, 0.0, 0.0, -PixelsPerMillimetre, width / 2.0 - CenterX * PixelsPerMillimetre, height / 2.0 + CenterY * PixelsPerMillimetre);
+        public Affine2 SheetToScreen(double width, double height) =>
+            new Affine2(
+                PixelsPerMillimetre,
+                0.0,
+                0.0,
+                -PixelsPerMillimetre,
+                width / 2.0 - CenterX * PixelsPerMillimetre,
+                height / 2.0 + CenterY * PixelsPerMillimetre
+            );
 
         private static string Mm(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
     }

@@ -39,11 +39,50 @@ namespace GeometryHelper.Dxf
     public sealed class DxfGeoData : DxfDBObject
     {
         // The groups of AcDbGeoData in the order AutoCAD writes them, those of versions 2 and 3, which hold the same groups.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[]
-        {
-            100, 90, 330, 70, 10, 20, 30, 11, 21, 31, 40, 91, 41, 92, 210, 220, 230, 12, 22, 95, 141, 294, 142, 143, 303, 301, 302,
-            305, 306, 307, 93, 13, 23, 14, 24, 96, 97, 98, 99,
-        });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[]
+            {
+                100,
+                90,
+                330,
+                70,
+                10,
+                20,
+                30,
+                11,
+                21,
+                31,
+                40,
+                91,
+                41,
+                92,
+                210,
+                220,
+                230,
+                12,
+                22,
+                95,
+                141,
+                294,
+                142,
+                143,
+                303,
+                301,
+                302,
+                305,
+                306,
+                307,
+                93,
+                13,
+                23,
+                14,
+                24,
+                96,
+                97,
+                98,
+                99,
+            }
+        );
 
         // The groups of the coordinate system's definition, its pieces (303) and its last (301).
         private static readonly int[] Definition = { 303, 301 };
@@ -54,10 +93,31 @@ namespace GeometryHelper.Dxf
         // is posted.
         private readonly List<KeyValuePair<int, string>> _made = new List<KeyValuePair<int, string>>
         {
-            Pair(90, "3"), Pair(70, "0"), Pair(10, "0.0"), Pair(20, "0.0"), Pair(30, "0.0"), Pair(11, "0.0"), Pair(21, "0.0"),
-            Pair(31, "0.0"), Pair(40, "1.0"), Pair(91, "6"), Pair(41, "1.0"), Pair(92, "6"), Pair(210, "0.0"), Pair(220, "0.0"),
-            Pair(230, "1.0"), Pair(12, "0.0"), Pair(22, "1.0"), Pair(95, "3"), Pair(141, "1.0"), Pair(294, "0"), Pair(142, "0.0"),
-            Pair(143, "0.0"), Pair(301, string.Empty), Pair(93, "0"), Pair(96, "0"),
+            Pair(90, "3"),
+            Pair(70, "0"),
+            Pair(10, "0.0"),
+            Pair(20, "0.0"),
+            Pair(30, "0.0"),
+            Pair(11, "0.0"),
+            Pair(21, "0.0"),
+            Pair(31, "0.0"),
+            Pair(40, "1.0"),
+            Pair(91, "6"),
+            Pair(41, "1.0"),
+            Pair(92, "6"),
+            Pair(210, "0.0"),
+            Pair(220, "0.0"),
+            Pair(230, "1.0"),
+            Pair(12, "0.0"),
+            Pair(22, "1.0"),
+            Pair(95, "3"),
+            Pair(141, "1.0"),
+            Pair(294, "0"),
+            Pair(142, "0.0"),
+            Pair(143, "0.0"),
+            Pair(301, string.Empty),
+            Pair(93, "0"),
+            Pair(96, "0"),
         };
 
         private DxfBlockTableRecord _block;
@@ -68,14 +128,10 @@ namespace GeometryHelper.Dxf
         /// scale judged at the reference point; given a <see cref="BlockTableRecord"/> and added to its drawing by
         /// <see cref="PostToDb"/>.
         /// </summary>
-        public DxfGeoData()
-        {
-        }
+        public DxfGeoData() { }
 
         internal DxfGeoData(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets or sets the block whose geographic location the GEODATA gives (group 330 of AcDbGeoData), as AutoCAD's
@@ -115,7 +171,6 @@ namespace GeometryHelper.Dxf
 
                 return null;
             }
-
             set
             {
                 if (value == null)
@@ -125,12 +180,21 @@ namespace GeometryHelper.Dxf
 
                 if (Item != null)
                 {
-                    throw new InvalidOperationException("The GEODATA " + (Handle ?? string.Empty) + " is in a file, and stays with the block whose extension dictionary holds it: post a new one to another block.");
+                    throw new InvalidOperationException(
+                        "The GEODATA "
+                            + (Handle ?? string.Empty)
+                            + " is in a file, and stays with the block whose extension dictionary holds it: post a new one to another block."
+                    );
                 }
 
                 if (value.Item != null && !DxfBlockTableRecord.IsModelName(value.Name))
                 {
-                    throw new ArgumentException("A GEODATA is posted to model space alone, as AutoCAD's BlockTableRecordId takes no other block: " + value.Name + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "A GEODATA is posted to model space alone, as AutoCAD's BlockTableRecordId takes no other block: "
+                            + value.Name
+                            + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 _block = value;
@@ -146,7 +210,6 @@ namespace GeometryHelper.Dxf
         public DxfTypeOfCoordinates TypeOfCoordinates
         {
             get => (DxfTypeOfCoordinates)Whole(70, 3);
-
             set
             {
                 if (value == TypeOfCoordinates)
@@ -156,7 +219,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < DxfTypeOfCoordinates.Unknown || value > DxfTypeOfCoordinates.Geographic)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The coordinates of a geographic location are unknown (0), of a local grid (1), of a projected grid (2) or geographic (3).");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "The coordinates of a geographic location are unknown (0), of a local grid (1), of a projected grid (2) or geographic (3)."
+                    );
                 }
 
                 Set(Pair(70, ((int)value).ToString(CultureInfo.InvariantCulture)));
@@ -245,7 +312,6 @@ namespace GeometryHelper.Dxf
         public GeoVector3 UpDirection
         {
             get => new GeoVector3(Real(210, 0.0), Real(220, 0.0), Real(230, 1.0));
-
             set
             {
                 if (value.X == 0.0 && value.Y == 0.0 && value.Z == 0.0)
@@ -253,7 +319,14 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentException("The direction up has a length.", nameof(value));
                 }
 
-                SetPoint(210, value.X, value.Y, value.Z, new GeoPoint3(UpDirection.X, UpDirection.Y, UpDirection.Z), nameof(value));
+                SetPoint(
+                    210,
+                    value.X,
+                    value.Y,
+                    value.Z,
+                    new GeoPoint3(UpDirection.X, UpDirection.Y, UpDirection.Z),
+                    nameof(value)
+                );
             }
         }
 
@@ -266,7 +339,6 @@ namespace GeometryHelper.Dxf
         public GeoVector2 NorthDirectionVector
         {
             get => IsFirstVersion ? new GeoVector2(0.0, 1.0) : new GeoVector2(Real(12, 0.0), Real(22, 1.0));
-
             set
             {
                 if (value.X == 0.0 && value.Y == 0.0)
@@ -314,7 +386,6 @@ namespace GeometryHelper.Dxf
         public DxfScaleEstimationMethod ScaleEstimationMethod
         {
             get => (DxfScaleEstimationMethod)Whole(95, 1);
-
             set
             {
                 if (value == ScaleEstimationMethod)
@@ -324,7 +395,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < DxfScaleEstimationMethod.Unity || value > DxfScaleEstimationMethod.Prismoidal)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The scale of a geographic location is judged by none (1), the user's factor (2), the grid at the reference point (3) or the prismoidal method (4).");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "The scale of a geographic location is judged by none (1), the user's factor (2), the grid at the reference point (3) or the prismoidal method (4)."
+                    );
                 }
 
                 Set(Pair(95, ((int)value).ToString(CultureInfo.InvariantCulture)));
@@ -351,7 +426,6 @@ namespace GeometryHelper.Dxf
         public bool DoSeaLevelCorrection
         {
             get => Whole(294, 0) != 0;
-
             set
             {
                 if (value != DoSeaLevelCorrection)
@@ -411,7 +485,6 @@ namespace GeometryHelper.Dxf
 
                 return text.ToString().Replace("^J", "\n");
             }
-
             set
             {
                 if (value == null)
@@ -499,7 +572,11 @@ namespace GeometryHelper.Dxf
 
             if (index < 0 || index >= maps.Count)
             {
-                throw new ArgumentOutOfRangeException(nameof(index), index, "The mesh has " + maps.Count.ToString(CultureInfo.InvariantCulture) + " points.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(index),
+                    index,
+                    "The mesh has " + maps.Count.ToString(CultureInfo.InvariantCulture) + " points."
+                );
             }
 
             return maps[index];
@@ -528,7 +605,13 @@ namespace GeometryHelper.Dxf
 
             if (index < 0 || index > maps.Count)
             {
-                throw new ArgumentOutOfRangeException(nameof(index), index, "A point goes into the mesh from nought to its count, " + maps.Count.ToString(CultureInfo.InvariantCulture) + ".");
+                throw new ArgumentOutOfRangeException(
+                    nameof(index),
+                    index,
+                    "A point goes into the mesh from nought to its count, "
+                        + maps.Count.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
 
             CheckFinite(sourcePt, nameof(sourcePt));
@@ -564,7 +647,14 @@ namespace GeometryHelper.Dxf
 
             if (sources.Count != dests.Count)
             {
-                throw new ArgumentException("The mesh takes one point of the coordinate system for each of the drawing: " + sources.Count.ToString(CultureInfo.InvariantCulture) + " and " + dests.Count.ToString(CultureInfo.InvariantCulture) + " are given.", nameof(destPts));
+                throw new ArgumentException(
+                    "The mesh takes one point of the coordinate system for each of the drawing: "
+                        + sources.Count.ToString(CultureInfo.InvariantCulture)
+                        + " and "
+                        + dests.Count.ToString(CultureInfo.InvariantCulture)
+                        + " are given.",
+                    nameof(destPts)
+                );
             }
 
             var maps = new List<DxfMeshPointMap>(sources.Count);
@@ -603,19 +693,30 @@ namespace GeometryHelper.Dxf
         {
             if (Item != null)
             {
-                throw new InvalidOperationException("The GEODATA " + (Handle ?? string.Empty) + " is in a file already.");
+                throw new InvalidOperationException(
+                    "The GEODATA " + (Handle ?? string.Empty) + " is in a file already."
+                );
             }
 
-            DxfBlockTableRecord block = _block ?? throw new InvalidOperationException("The GEODATA is posted to the drawing of its block: give it its BlockTableRecord first, as AutoCAD's BlockTableRecordId.");
+            DxfBlockTableRecord block = _block
+                ?? throw new InvalidOperationException(
+                    "The GEODATA is posted to the drawing of its block: give it its BlockTableRecord first, as AutoCAD's BlockTableRecordId."
+                );
 
             if (block.Item == null || !block.IsResident || block.HasNoRecord || block.IsErased)
             {
-                throw new InvalidOperationException("The block " + block.Name + " of the GEODATA is in no file, or is erased.");
+                throw new InvalidOperationException(
+                    "The block " + block.Name + " of the GEODATA is in no file, or is erased."
+                );
             }
 
             if (!DxfBlockTableRecord.IsModelName(block.Name))
             {
-                throw new InvalidOperationException("A GEODATA is posted to model space alone, as AutoCAD's BlockTableRecordId takes no other block: " + block.Name + " is not.");
+                throw new InvalidOperationException(
+                    "A GEODATA is posted to model space alone, as AutoCAD's BlockTableRecordId takes no other block: "
+                        + block.Name
+                        + " is not."
+                );
             }
 
             DxfFile file = block.Item.File;
@@ -654,9 +755,11 @@ namespace GeometryHelper.Dxf
         /// <returns>The line, such as <c>GEODATA 2F, Local</c>.</returns>
         public override string ToString() => "GEODATA " + (Handle ?? string.Empty) + ", " + TypeOfCoordinates;
 
-        private static KeyValuePair<int, string> Pair(int code, string value) => new KeyValuePair<int, string>(code, value);
+        private static KeyValuePair<int, string> Pair(int code, string value) =>
+            new KeyValuePair<int, string>(code, value);
 
-        private static bool Same(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
+        private static bool Same(double a, double b) =>
+            BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
 
         /// <summary>Whether the GEODATA is of version 1 (group 90 below 2), whose groups 12 and 13 are the points of its mesh.</summary>
         private bool IsFirstVersion => Whole(90, 2) < 2;
@@ -702,12 +805,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A whole number of AcDbGeoData; the fallback where it has none, or not a whole number.</summary>
-        private int Whole(int code, int fallback)
-            => int.TryParse(Value(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+        private int Whole(int code, int fallback) =>
+            int.TryParse(Value(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : fallback;
 
         /// <summary>A number of AcDbGeoData; the fallback where it has none, or not a finite number.</summary>
-        private double Real(int code, double fallback)
-            => Numbers.TryRead(Value(code), out double value) && Guard.IsFinite(value) ? value : fallback;
+        private double Real(int code, double fallback) =>
+            Numbers.TryRead(Value(code), out double value) && Guard.IsFinite(value) ? value : fallback;
 
         /// <summary>A text of AcDbGeoData, its escapes read as letters; empty where it has none.</summary>
         private string Text(int code)
@@ -723,7 +828,11 @@ namespace GeometryHelper.Dxf
 
             if (nonZero && value == 0.0)
             {
-                throw new ArgumentOutOfRangeException(nameof(value), value, "The scale is a finite number other than nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    "The scale is a finite number other than nought."
+                );
             }
 
             if (!Same(value, now))
@@ -742,7 +851,11 @@ namespace GeometryHelper.Dxf
 
             if (!Enum.IsDefined(typeof(DxfUnits), value))
             {
-                throw new ArgumentOutOfRangeException(nameof(value), value, "A unit of a geographic location is one of AutoCAD's UnitsValue, 0 to 20.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    "A unit of a geographic location is one of AutoCAD's UnitsValue, 0 to 20."
+                );
             }
 
             Set(Pair(code, ((int)value).ToString(CultureInfo.InvariantCulture)));
@@ -772,7 +885,10 @@ namespace GeometryHelper.Dxf
         {
             if (!Guard.IsFinite(x) || !Guard.IsFinite(y) || !Guard.IsFinite(z))
             {
-                throw new ArgumentException("A point or a direction of a geographic location is of finite numbers.", parameter);
+                throw new ArgumentException(
+                    "A point or a direction of a geographic location is of finite numbers.",
+                    parameter
+                );
             }
 
             if (Same(x, now.X) && Same(y, now.Y) && Same(z, now.Z))
@@ -780,7 +896,11 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            Set(Pair(code, Numbers.Exact(x + 0.0)), Pair(code + 10, Numbers.Exact(y + 0.0)), Pair(code + 20, Numbers.Exact(z + 0.0)));
+            Set(
+                Pair(code, Numbers.Exact(x + 0.0)),
+                Pair(code + 10, Numbers.Exact(y + 0.0)),
+                Pair(code + 20, Numbers.Exact(z + 0.0))
+            );
         }
 
         private static void CheckFinite(GeoPoint2 point, string parameter)
@@ -796,7 +916,11 @@ namespace GeometryHelper.Dxf
         {
             if (IsFirstVersion)
             {
-                throw new InvalidOperationException("A GEODATA of version 1 (R2009) holds the points of its mesh in its groups 12 and 13, and is not given " + what + ".");
+                throw new InvalidOperationException(
+                    "A GEODATA of version 1 (R2009) holds the points of its mesh in its groups 12 and 13, and is not given "
+                        + what
+                        + "."
+                );
             }
         }
 
@@ -838,7 +962,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A number of the mesh; nought where it is not a finite number.</summary>
-        private static double Read(string text) => Numbers.TryRead(text, out double value) && Guard.IsFinite(value) ? value : 0.0;
+        private static double Read(string text) =>
+            Numbers.TryRead(text, out double value) && Guard.IsFinite(value) ? value : 0.0;
 
         /// <summary>
         /// Writes the points of the mesh, the count (93) then each point of the drawing and the point it is taken to, as ezdxf
@@ -851,8 +976,11 @@ namespace GeometryHelper.Dxf
 
             for (int i = 0; i < maps.Count && same; i++)
             {
-                same = Same(now[i].SourcePoint.X, maps[i].SourcePoint.X) && Same(now[i].SourcePoint.Y, maps[i].SourcePoint.Y)
-                    && Same(now[i].DestPoint.X, maps[i].DestPoint.X) && Same(now[i].DestPoint.Y, maps[i].DestPoint.Y);
+                same =
+                    Same(now[i].SourcePoint.X, maps[i].SourcePoint.X)
+                    && Same(now[i].SourcePoint.Y, maps[i].SourcePoint.Y)
+                    && Same(now[i].DestPoint.X, maps[i].DestPoint.X)
+                    && Same(now[i].DestPoint.Y, maps[i].DestPoint.Y);
             }
 
             // A mesh of no points with no count written is as one of a count of nought.
@@ -862,7 +990,10 @@ namespace GeometryHelper.Dxf
             }
 
             NotFirstVersion("points of its mesh");
-            var groups = new List<KeyValuePair<int, string>> { Pair(93, maps.Count.ToString(CultureInfo.InvariantCulture)) };
+            var groups = new List<KeyValuePair<int, string>>
+            {
+                Pair(93, maps.Count.ToString(CultureInfo.InvariantCulture)),
+            };
 
             foreach (DxfMeshPointMap map in maps)
             {

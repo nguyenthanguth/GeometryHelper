@@ -23,14 +23,23 @@ namespace GeometryHelper.Drawing.Annotation
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the scale is not a finite number above nought.</exception>
         public ViewPlacement2(string viewId, GeoPoint2 origin, double scale)
         {
-            if (double.IsNaN(origin.X) || double.IsInfinity(origin.X) || double.IsNaN(origin.Y) || double.IsInfinity(origin.Y))
+            if (
+                double.IsNaN(origin.X)
+                || double.IsInfinity(origin.X)
+                || double.IsNaN(origin.Y)
+                || double.IsInfinity(origin.Y)
+            )
             {
                 throw new ArgumentException("The origin has to be a point of finite numbers.", nameof(origin));
             }
 
             if (!(scale > 0.0) || double.IsInfinity(scale))
             {
-                throw new ArgumentOutOfRangeException(nameof(scale), scale, "The scale has to be a finite number above nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(scale),
+                    scale,
+                    "The scale has to be a finite number above nought."
+                );
             }
 
             ViewId = viewId;
@@ -52,9 +61,11 @@ namespace GeometryHelper.Drawing.Annotation
         /// </summary>
         /// <param name="viewPoint">The point, in view millimetres at 1:1.</param>
         /// <returns>The point on the sheet, in paper millimetres, at the height nought.</returns>
-        public GeoPoint3 ToSheet(GeoPoint2 viewPoint) => new GeoPoint3(Origin.X + viewPoint.X / Scale, Origin.Y + viewPoint.Y / Scale, 0.0);
+        public GeoPoint3 ToSheet(GeoPoint2 viewPoint) =>
+            new GeoPoint3(Origin.X + viewPoint.X / Scale, Origin.Y + viewPoint.Y / Scale, 0.0);
 
         /// <inheritdoc/>
-        public override string ToString() => $"ViewPlacement2({ViewId ?? "(no view)"} at ({Origin.X:0.###}, {Origin.Y:0.###}) 1:{Scale:0.###})";
+        public override string ToString() =>
+            $"ViewPlacement2({ViewId ?? "(no view)"} at ({Origin.X:0.###}, {Origin.Y:0.###}) 1:{Scale:0.###})";
     }
 }

@@ -21,7 +21,9 @@ namespace GeometryHelper.Dxf.Viewer
     /// </remarks>
     public sealed class CadOwnerRegistry
     {
-        private readonly Dictionary<string, ICadEntityOwner> _owners = new Dictionary<string, ICadEntityOwner>(StringComparer.Ordinal);
+        private readonly Dictionary<string, ICadEntityOwner> _owners = new Dictionary<string, ICadEntityOwner>(
+            StringComparer.Ordinal
+        );
 
         /// <summary>Gets the owners registered, in the order of their names, character by character.</summary>
         public IReadOnlyList<ICadEntityOwner> Owners
@@ -114,7 +116,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
             catch (Exception exception)
             {
-                GeometryHelperLog.Warn("CadOwnerRegistry: the owner " + tag.Owner + " failed to give the rule of entity " + entity.Handle + "; it is taken as read-only.", exception);
+                GeometryHelperLog.Warn(
+                    "CadOwnerRegistry: the owner "
+                        + tag.Owner
+                        + " failed to give the rule of entity "
+                        + entity.Handle
+                        + "; it is taken as read-only.",
+                    exception
+                );
                 return CadEditRule.ReadOnly;
             }
         }
@@ -188,7 +197,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
             catch (Exception exception)
             {
-                GeometryHelperLog.Warn("CadOwnerRegistry: the owner " + owner.Name + " failed to take the edit " + edit + "; it is refused.", exception);
+                GeometryHelperLog.Warn(
+                    "CadOwnerRegistry: the owner "
+                        + owner.Name
+                        + " failed to take the edit "
+                        + edit
+                        + "; it is refused.",
+                    exception
+                );
                 return false;
             }
             finally

@@ -10,7 +10,12 @@ namespace GeometryHelper.Drawing.UnitTest
     /// </summary>
     internal static class TestRun
     {
-        private static readonly string Root = Path.Combine(Path.GetTempPath(), "gk", "drawing", "drawing-tests-" + Guid.NewGuid().ToString("N"));
+        private static readonly string Root = Path.Combine(
+            Path.GetTempPath(),
+            "gk",
+            "drawing",
+            "drawing-tests-" + Guid.NewGuid().ToString("N")
+        );
 
         static TestRun()
         {
@@ -39,9 +44,7 @@ namespace GeometryHelper.Drawing.UnitTest
             {
                 // A file still held by the system is left for the next clean of %TEMP%.
             }
-            catch (UnauthorizedAccessException)
-            {
-            }
+            catch (UnauthorizedAccessException) { }
         }
     }
 }

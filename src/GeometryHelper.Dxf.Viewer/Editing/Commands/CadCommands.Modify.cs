@@ -31,8 +31,14 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> TrimOrExtend(CadCommandContext c, bool extend)
         {
             string[] projections = { "None", "UCS", "View" };
-            c.Write("Current settings: Projection=" + projections[(int)c.Remembered(ProjectionKey, 1.0)] + ", Edge=" + (c.Remembered(EdgeKey, 0.0) != 0.0 ? "Extend" : "None")
-                + ", Mode=" + (c.Remembered(ModeKey, 1.0) != 0.0 ? "Quick" : "Standard"));
+            c.Write(
+                "Current settings: Projection="
+                    + projections[(int)c.Remembered(ProjectionKey, 1.0)]
+                    + ", Edge="
+                    + (c.Remembered(EdgeKey, 0.0) != 0.0 ? "Extend" : "None")
+                    + ", Mode="
+                    + (c.Remembered(ModeKey, 1.0) != 0.0 ? "Quick" : "Standard")
+            );
             c.OpenUndoStep();
             var edges = new Ref<IReadOnlyList<string>>();
             var undo = new List<CadGroupMark>();
@@ -72,7 +78,12 @@ namespace GeometryHelper.Dxf.Viewer
                     keywords.Add("Undo");
                 }
 
-                CadPrompt asked = CadPrompt.ForEntity(extend ? "Select object to extend or shift-select to trim" : "Select object to trim or shift-select to extend", keywords);
+                CadPrompt asked = CadPrompt.ForEntity(
+                    extend
+                        ? "Select object to extend or shift-select to trim"
+                        : "Select object to trim or shift-select to extend",
+                    keywords
+                );
 
                 // The object under the cursor previews the piece a trim takes out, faded, or the object an extension runs on,
                 // and with Shift held what the other command does to it.
@@ -80,7 +91,11 @@ namespace GeometryHelper.Dxf.Viewer
                 Func<CadInput, IEnumerable<DxfEntity>> cut = input =>
                 {
                     var preview = new List<DxfEntity>();
-                    return input.Kind == CadInputKind.Selection && CutOne(c, input.Handles[0], input.Point, extend != input.Shift, cutting, preview) ? preview : null;
+                    return
+                        input.Kind == CadInputKind.Selection
+                        && CutOne(c, input.Handles[0], input.Point, extend != input.Shift, cutting, preview)
+                        ? preview
+                        : null;
                 };
 
                 yield return asked.Previewing(CadPreview.Cutting(c, cut, extend));
@@ -124,7 +139,11 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (c.Input.Is("mOde"))
                 {
-                    yield return CadPrompt.ForKeyword(extend ? "Enter an extend mode option" : "Enter a trim mode option", new[] { "Quick", "Standard" }, quick ? "Quick" : "Standard");
+                    yield return CadPrompt.ForKeyword(
+                        extend ? "Enter an extend mode option" : "Enter a trim mode option",
+                        new[] { "Quick", "Standard" },
+                        quick ? "Quick" : "Standard"
+                    );
 
                     if (c.Input.Is("Standard"))
                     {
@@ -150,16 +169,29 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (c.Input.Is("Project"))
                 {
-                    yield return CadPrompt.ForKeyword("Enter a projection option", new[] { "None", "Ucs", "View" }, new[] { "None", "Ucs", "View" }[(int)c.Remembered(ProjectionKey, 1.0)]);
+                    yield return CadPrompt.ForKeyword(
+                        "Enter a projection option",
+                        new[] { "None", "Ucs", "View" },
+                        new[] { "None", "Ucs", "View" }[(int)c.Remembered(ProjectionKey, 1.0)]
+                    );
 
                     if (c.Input.Kind == CadInputKind.Keyword)
                     {
-                        c.Remember(ProjectionKey, c.Input.Is("None") ? 0.0 : c.Input.Is("Ucs") ? 1.0 : 2.0);
+                        c.Remember(
+                            ProjectionKey,
+                            c.Input.Is("None") ? 0.0
+                                : c.Input.Is("Ucs") ? 1.0
+                                : 2.0
+                        );
                     }
                 }
                 else if (c.Input.Is("Edge"))
                 {
-                    yield return CadPrompt.ForKeyword("Enter an implied edge extension mode", new[] { "Extend", "No extend" }, c.Remembered(EdgeKey, 0.0) != 0.0 ? "Extend" : "No extend");
+                    yield return CadPrompt.ForKeyword(
+                        "Enter an implied edge extension mode",
+                        new[] { "Extend", "No extend" },
+                        c.Remembered(EdgeKey, 0.0) != 0.0 ? "Extend" : "No extend"
+                    );
 
                     if (c.Input.Kind == CadInputKind.Keyword)
                     {
@@ -194,7 +226,11 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Asks the cutting or boundary edges, as Standard mode and the edges option do; Enter takes every object.</summary>
-        private static IEnumerable<CadPrompt> SelectEdges(CadCommandContext c, bool extend, Ref<IReadOnlyList<string>> edges)
+        private static IEnumerable<CadPrompt> SelectEdges(
+            CadCommandContext c,
+            bool extend,
+            Ref<IReadOnlyList<string>> edges
+        )
         {
             c.Write(extend ? "Select boundary edges ..." : "Select cutting edges ...");
             yield return CadPrompt.ForSelection("Select objects or <select all>");
@@ -248,7 +284,19 @@ namespace GeometryHelper.Dxf.Viewer
 
                 var segment = new DxfLine(P3(a), P3(b));
 
-                foreach (DxfEntity entity in Near(c, new DisplayBox(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Max(a.X, b.X), Math.Max(a.Y, b.Y)).Inflate(eps), null, null))
+                foreach (
+                    DxfEntity entity in Near(
+                        c,
+                        new DisplayBox(
+                            Math.Min(a.X, b.X),
+                            Math.Min(a.Y, b.Y),
+                            Math.Max(a.X, b.X),
+                            Math.Max(a.Y, b.Y)
+                        ).Inflate(eps),
+                        null,
+                        null
+                    )
+                )
                 {
                     foreach (GeoPoint3 point in Meet(entity, segment, false))
                     {
@@ -260,7 +308,9 @@ namespace GeometryHelper.Dxf.Viewer
                 along += (b - a).Length;
             }
 
-            found.Sort((x, y) => x.Item1 != y.Item1 ? x.Item1.CompareTo(y.Item1) : string.CompareOrdinal(x.Item2, y.Item2));
+            found.Sort(
+                (x, y) => x.Item1 != y.Item1 ? x.Item1.CompareTo(y.Item1) : string.CompareOrdinal(x.Item2, y.Item2)
+            );
             picks.AddRange(found.Select(f => new KeyValuePair<string, GeoPoint2>(f.Item2, f.Item3)));
         }
 
@@ -287,8 +337,19 @@ namespace GeometryHelper.Dxf.Viewer
 
             GeoPoint2 second = c.Input.Point;
             double eps = Slack(c);
-            var box = new DisplayBox(Math.Min(first.X, second.X), Math.Min(first.Y, second.Y), Math.Max(first.X, second.X), Math.Max(first.Y, second.Y));
-            var corners = new[] { new GeoPoint2(box.MinX, box.MinY), new GeoPoint2(box.MaxX, box.MinY), new GeoPoint2(box.MaxX, box.MaxY), new GeoPoint2(box.MinX, box.MaxY) };
+            var box = new DisplayBox(
+                Math.Min(first.X, second.X),
+                Math.Min(first.Y, second.Y),
+                Math.Max(first.X, second.X),
+                Math.Max(first.Y, second.Y)
+            );
+            var corners = new[]
+            {
+                new GeoPoint2(box.MinX, box.MinY),
+                new GeoPoint2(box.MaxX, box.MinY),
+                new GeoPoint2(box.MaxX, box.MaxY),
+                new GeoPoint2(box.MinX, box.MaxY),
+            };
             var found = new List<Tuple<double, string, GeoPoint2>>();
 
             foreach (string handle in c.Document.GetPickIndex(c.Space).Crossing(box))
@@ -299,11 +360,15 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 GeoPoint3 near = curve.GetClosestPointTo(P3(first), false);
-                GeoPoint2? pick = box.Inflate(eps).Contains(near.X, near.Y) ? new GeoPoint2(near.X, near.Y) : (GeoPoint2?)null;
+                GeoPoint2? pick = box.Inflate(eps).Contains(near.X, near.Y)
+                    ? new GeoPoint2(near.X, near.Y)
+                    : (GeoPoint2?)null;
 
                 for (int i = 0; i < 4 && pick == null; i++)
                 {
-                    foreach (GeoPoint3 point in Meet(curve, new DxfLine(P3(corners[i]), P3(corners[(i + 1) % 4])), false))
+                    foreach (
+                        GeoPoint3 point in Meet(curve, new DxfLine(P3(corners[i]), P3(corners[(i + 1) % 4])), false)
+                    )
                     {
                         var flat = new GeoPoint2(point.X, point.Y);
 
@@ -320,7 +385,9 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            found.Sort((x, y) => x.Item1 != y.Item1 ? x.Item1.CompareTo(y.Item1) : string.CompareOrdinal(x.Item2, y.Item2));
+            found.Sort(
+                (x, y) => x.Item1 != y.Item1 ? x.Item1.CompareTo(y.Item1) : string.CompareOrdinal(x.Item2, y.Item2)
+            );
             picks.AddRange(found.Select(f => new KeyValuePair<string, GeoPoint2>(f.Item2, f.Item3)));
         }
 
@@ -332,9 +399,16 @@ namespace GeometryHelper.Dxf.Viewer
                 return handle;
             }
 
-            foreach (string other in c.Document.GetPickIndex(c.Space).Pick(at.X, at.Y, Math.Max(c.Session.PickAperture, Slack(c))))
+            foreach (
+                string other in c
+                    .Document.GetPickIndex(c.Space)
+                    .Pick(at.X, at.Y, Math.Max(c.Session.PickAperture, Slack(c)))
+            )
             {
-                if (c.Document.FindEntity(other) is DxfCurve curve && curve.GetClosestPointTo(P3(at), false).DistanceTo(P3(at)) <= 10.0 * Slack(c))
+                if (
+                    c.Document.FindEntity(other) is DxfCurve curve
+                    && curve.GetClosestPointTo(P3(at), false).DistanceTo(P3(at)) <= 10.0 * Slack(c)
+                )
                 {
                     return other;
                 }
@@ -344,15 +418,27 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Trims or extends one object picked at a point; false, with the reason written, where nothing was changed.</summary>
-        private static bool Cut(CadCommandContext c, string handle, GeoPoint2 at, bool extend, IReadOnlyList<string> edges)
-            => Splits(c, extend ? "extended" : "trimmed", () => CutOne(c, handle, at, extend, edges));
+        private static bool Cut(
+            CadCommandContext c,
+            string handle,
+            GeoPoint2 at,
+            bool extend,
+            IReadOnlyList<string> edges
+        ) => Splits(c, extend ? "extended" : "trimmed", () => CutOne(c, handle, at, extend, edges));
 
         /// <summary>
         /// Trims or extends one object picked at a point. Given a list to preview into, it adds to it what the preview
         /// shows instead, and changes nothing: the piece a trim takes out (the whole object where Quick erases it), or a copy of
         /// the object run on.
         /// </summary>
-        private static bool CutOne(CadCommandContext c, string handle, GeoPoint2 at, bool extend, IReadOnlyList<string> edges, List<DxfEntity> preview = null)
+        private static bool CutOne(
+            CadCommandContext c,
+            string handle,
+            GeoPoint2 at,
+            bool extend,
+            IReadOnlyList<string> edges,
+            List<DxfEntity> preview = null
+        )
         {
             if (!CanChange(c, handle, extend ? "extended" : "trimmed"))
             {
@@ -378,7 +464,9 @@ namespace GeometryHelper.Dxf.Viewer
                     return true;
                 }
 
-                return c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Extend") }, s => ((DxfCurve)s.Document.FindEntity(handle)).Extend(atStart, to)).Succeeded;
+                return c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Extend") }, s =>
+                    ((DxfCurve)s.Document.FindEntity(handle)).Extend(atStart, to)
+                ).Succeeded;
             }
 
             DisplayBox box = BoxOf(c, curve);
@@ -424,7 +512,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// a closed curve the piece between the two cuts round it. Null where no cut lies on either side. The piece taken out
         /// is given apart.
         /// </summary>
-        private static List<DxfCurve> TrimmedPieces(CadCommandContext c, DxfCurve curve, GeoPoint3 pick, IEnumerable<GeoPoint3> cuts, out DxfCurve gone)
+        private static List<DxfCurve> TrimmedPieces(
+            CadCommandContext c,
+            DxfCurve curve,
+            GeoPoint3 pick,
+            IEnumerable<GeoPoint3> cuts,
+            out DxfCurve gone
+        )
         {
             gone = null;
 
@@ -462,7 +556,9 @@ namespace GeometryHelper.Dxf.Viewer
                     return null;
                 }
 
-                IReadOnlyList<DxfCurve> pieces = curve.GetSplitCurves(new[] { curve.GetParameterAtDistance(before), curve.GetParameterAtDistance(after) });
+                IReadOnlyList<DxfCurve> pieces = curve.GetSplitCurves(
+                    new[] { curve.GetParameterAtDistance(before), curve.GetParameterAtDistance(after) }
+                );
 
                 if (pieces.Count != 2)
                 {
@@ -470,7 +566,11 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 // The piece the pick lies on goes; the nearer one, the first where both are as near.
-                int taken = pieces[1].GetClosestPointTo(near, false).DistanceTo(near) < pieces[0].GetClosestPointTo(near, false).DistanceTo(near) ? 1 : 0;
+                int taken =
+                    pieces[1].GetClosestPointTo(near, false).DistanceTo(near)
+                    < pieces[0].GetClosestPointTo(near, false).DistanceTo(near)
+                        ? 1
+                        : 0;
                 gone = pieces[taken];
                 return new List<DxfCurve> { pieces[1 - taken] };
             }
@@ -522,7 +622,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// Finds where the end of a curve nearer a point runs on to: the first edge its line, circle or ellipse meets past the
         /// end. False, with the reason written, where it meets none or is not a curve that is extended.
         /// </summary>
-        private static bool TryExtension(CadCommandContext c, DxfCurve curve, GeoPoint2 at, IReadOnlyList<string> edges, bool extendEdges, out bool atStart, out GeoPoint3 to)
+        private static bool TryExtension(
+            CadCommandContext c,
+            DxfCurve curve,
+            GeoPoint2 at,
+            IReadOnlyList<string> edges,
+            bool extendEdges,
+            out bool atStart,
+            out GeoPoint3 to
+        )
         {
             atStart = false;
             to = default;
@@ -568,7 +676,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 ((DxfCurve)curve.Clone()).Extend(atStart, to);
             }
-            catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException || exception is NotSupportedException)
+            catch (Exception exception)
+                when (exception is ArgumentException
+                    || exception is InvalidOperationException
+                    || exception is NotSupportedException
+                )
             {
                 c.Write("Cannot extend this object: " + exception.Message);
                 return false;
@@ -582,9 +694,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// polyline's arc end, the whole ellipse of an elliptical arc; with the way the end leaves and the angle the end's arc
         /// sweeps already.
         /// </summary>
-        private static DxfCurve RunOn(CadCommandContext c, DxfCurve curve, bool atStart, out GeoVector3 way, out double sweep)
+        private static DxfCurve RunOn(
+            CadCommandContext c,
+            DxfCurve curve,
+            bool atStart,
+            out GeoVector3 way,
+            out double sweep
+        )
         {
-            GeoVector3 tangent = atStart ? curve.GetFirstDerivative(curve.StartParam).Negate() : curve.GetFirstDerivative(curve.EndParam);
+            GeoVector3 tangent = atStart
+                ? curve.GetFirstDerivative(curve.StartParam).Negate()
+                : curve.GetFirstDerivative(curve.EndParam);
             way = tangent.Normalize();
             sweep = 0.0;
             GeoPoint3 end = atStart ? curve.StartPoint : curve.EndPoint;
@@ -596,7 +716,14 @@ namespace GeometryHelper.Dxf.Viewer
                     return new DxfCircle(arc.Center, arc.Normal, arc.Radius);
                 case DxfEllipse ellipse:
                     sweep = ellipse.EndParam - ellipse.StartParam;
-                    return new DxfEllipse(ellipse.Center, ellipse.Normal, ellipse.MajorAxis, ellipse.RadiusRatio, 0.0, 2.0 * Math.PI);
+                    return new DxfEllipse(
+                        ellipse.Center,
+                        ellipse.Normal,
+                        ellipse.MajorAxis,
+                        ellipse.RadiusRatio,
+                        0.0,
+                        2.0 * Math.PI
+                    );
                 case DxfPolyline polyline:
                     int segment = atStart ? 0 : polyline.NumberOfVertices - 2;
 
@@ -617,7 +744,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// How far a point lies past an end along the shape it runs on: the distance along a ray, the arc's length round a
         /// circle, the parameter round an ellipse; infinity where it lies back over the curve itself.
         /// </summary>
-        private static double Travel(DxfCurve curve, DxfCurve run, GeoPoint3 end, GeoVector3 way, double sweep, bool atStart, GeoPoint3 point)
+        private static double Travel(
+            DxfCurve curve,
+            DxfCurve run,
+            GeoPoint3 end,
+            GeoVector3 way,
+            double sweep,
+            bool atStart,
+            GeoPoint3 point
+        )
         {
             const double Turn = 2.0 * Math.PI;
 
@@ -681,12 +816,14 @@ namespace GeometryHelper.Dxf.Viewer
             // The part the second point at the cursor would take out, faded as TRIM's. AutoCAD previews the outcome
             // here too: its help for COMMANDPREVIEW names BREAK with TRIM, EXTEND and LENGTHEN.
             CadPreview Gap(GeoPoint2 from) => CadPreview.Fading(c, input =>
-            {
-                var gone = new List<DxfEntity>();
-                return BreakAt(c, handle, from, input.Point, gone) ? gone : null;
-            });
+                {
+                    var gone = new List<DxfEntity>();
+                    return BreakAt(c, handle, from, input.Point, gone) ? gone : null;
+                });
 
-            yield return CadPrompt.ForPoint("Specify second break point", null, new[] { "First point" }).Previewing(Gap(first));
+            yield return CadPrompt
+                .ForPoint("Specify second break point", null, new[] { "First point" })
+                .Previewing(Gap(first));
 
             if (c.Input.Is("First point"))
             {
@@ -737,7 +874,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// Breaks an object between two points, or in two at one. Given a list to preview into, it adds the pieces the break
         /// takes out to it instead, and changes nothing; false where it takes none out, as a break at one point takes none.
         /// </summary>
-        private static bool BreakAt(CadCommandContext c, string handle, GeoPoint2 first, GeoPoint2 second, List<DxfEntity> gone = null)
+        private static bool BreakAt(
+            CadCommandContext c,
+            string handle,
+            GeoPoint2 first,
+            GeoPoint2 second,
+            List<DxfEntity> gone = null
+        )
         {
             var curve = (DxfCurve)c.Document.FindEntity(handle);
             double eps = Slack(c);
@@ -760,11 +903,17 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (Math.Abs(a - b) <= eps)
                 {
-                    c.Write(curve is DxfCircle || curve is DxfEllipse ? "Arc cannot be full 360 degrees." : "A closed object is not broken at one point.");
+                    c.Write(
+                        curve is DxfCircle || curve is DxfEllipse
+                            ? "Arc cannot be full 360 degrees."
+                            : "A closed object is not broken at one point."
+                    );
                     return false;
                 }
 
-                pieces = curve.GetSplitCurves(new[] { curve.GetParameterAtDistance(a), curve.GetParameterAtDistance(b) });
+                pieces = curve.GetSplitCurves(
+                    new[] { curve.GetParameterAtDistance(a), curve.GetParameterAtDistance(b) }
+                );
 
                 // The piece that runs from the first point to the second goes.
                 GeoPoint3 from = curve.GetPointAtDist(a);
@@ -827,7 +976,9 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 // No cut inside the object takes all of it out.
-                gone.AddRange(pieces.Count == 0 ? new[] { (DxfCurve)curve.Clone() } : pieces.Where(p => !kept.Contains(p)));
+                gone.AddRange(
+                    pieces.Count == 0 ? new[] { (DxfCurve)curve.Clone() } : pieces.Where(p => !kept.Contains(p))
+                );
                 return gone.Count > 0;
             }
 
@@ -881,80 +1032,100 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            if (usable.Count < 2 || (source != null && !string.Equals(usable[0], source, StringComparison.OrdinalIgnoreCase)))
+            if (
+                usable.Count < 2
+                || (source != null && !string.Equals(usable[0], source, StringComparison.OrdinalIgnoreCase))
+            )
             {
-                c.Write(discarded.ToString(CultureInfo.InvariantCulture) + (discarded == 1 ? " object" : " objects") + " discarded from the operation");
+                c.Write(
+                    discarded.ToString(CultureInfo.InvariantCulture)
+                        + (discarded == 1 ? " object" : " objects")
+                        + " discarded from the operation"
+                );
                 yield break;
             }
 
             var said = new List<string>();
             var joinedAll = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            CadEditResult result = c.Apply(source != null ? new[] { new CadEditRecord(CadEditRecordKind.Reshaped, source, "Join") } : null, s =>
-            {
-                CadSpace space = s.Document.FindSpace(usable[0]);
-                var alive = new List<DxfCurve>(usable.Select(h => (DxfCurve)s.Document.FindEntity(h)));
-
-                if (source != null)
+            CadEditResult result = c.Apply(
+                source != null ? new[] { new CadEditRecord(CadEditRecordKind.Reshaped, source, "Join") } : null,
+                s =>
                 {
-                    JoinInto(s, space, alive[0], alive, null, said, joinedAll);
-                    return;
-                }
+                    CadSpace space = s.Document.FindSpace(usable[0]);
+                    var alive = new List<DxfCurve>(usable.Select(h => (DxfCurve)s.Document.FindEntity(h)));
 
-                foreach (Type kind in new[] { typeof(DxfLine), typeof(DxfArc), typeof(DxfEllipse) })
-                {
-                    foreach (DxfCurve seed in alive.Where(e => e.GetType() == kind).ToList())
+                    if (source != null)
                     {
-                        if (alive.Contains(seed))
+                        JoinInto(s, space, alive[0], alive, null, said, joinedAll);
+                        return;
+                    }
+
+                    foreach (Type kind in new[] { typeof(DxfLine), typeof(DxfArc), typeof(DxfEllipse) })
+                    {
+                        foreach (DxfCurve seed in alive.Where(e => e.GetType() == kind).ToList())
                         {
-                            JoinInto(s, space, seed, alive, kind, said, joinedAll);
+                            if (alive.Contains(seed))
+                            {
+                                JoinInto(s, space, seed, alive, kind, said, joinedAll);
+                            }
                         }
                     }
-                }
 
-                // What is left joins end to end: into a spline where a spline or an elliptical arc is among it, else a polyline.
-                foreach (DxfCurve seed in alive.Where(e => e is DxfSpline || e is DxfEllipse).Concat(alive.Where(e => e is DxfPolyline)).Concat(alive.Where(e => e is DxfLine || e is DxfArc)).ToList())
-                {
-                    if (!alive.Contains(seed))
+                    // What is left joins end to end: into a spline where a spline or an elliptical arc is among it, else a polyline.
+                    foreach (
+                        DxfCurve seed in alive
+                            .Where(e => e is DxfSpline || e is DxfEllipse)
+                            .Concat(alive.Where(e => e is DxfPolyline))
+                            .Concat(alive.Where(e => e is DxfLine || e is DxfArc))
+                            .ToList()
+                    )
                     {
-                        continue;
-                    }
-
-                    bool spline = seed is DxfEllipse;
-
-                    if (seed is DxfSpline || seed is DxfPolyline)
-                    {
-                        JoinInto(s, space, seed, alive, null, said, joinedAll);
-                    }
-                    else
-                    {
-                        DxfCurve made = spline ? seed.Spline : PolylineOf(seed);
-
-                        if (made == null)
+                        if (!alive.Contains(seed))
                         {
                             continue;
                         }
 
-                        made.SetPropertiesFrom(seed);
-                        var others = alive.Where(e => e != seed).Cast<DxfEntity>().ToList();
-                        IReadOnlyList<int> taken = made.JoinEntities(others);
+                        bool spline = seed is DxfEllipse;
 
-                        if (taken.Count == 0)
+                        if (seed is DxfSpline || seed is DxfPolyline)
                         {
-                            continue;
+                            JoinInto(s, space, seed, alive, null, said, joinedAll);
                         }
-
-                        s.Append(space, made);
-                        Gone(s, seed, alive, joinedAll);
-
-                        foreach (int i in taken)
+                        else
                         {
-                            Gone(s, (DxfCurve)others[i], alive, joinedAll);
-                        }
+                            DxfCurve made = spline ? seed.Spline : PolylineOf(seed);
 
-                        said.Add((taken.Count + 1).ToString(CultureInfo.InvariantCulture) + " objects converted to 1 " + (spline ? "spline" : "polyline"));
+                            if (made == null)
+                            {
+                                continue;
+                            }
+
+                            made.SetPropertiesFrom(seed);
+                            var others = alive.Where(e => e != seed).Cast<DxfEntity>().ToList();
+                            IReadOnlyList<int> taken = made.JoinEntities(others);
+
+                            if (taken.Count == 0)
+                            {
+                                continue;
+                            }
+
+                            s.Append(space, made);
+                            Gone(s, seed, alive, joinedAll);
+
+                            foreach (int i in taken)
+                            {
+                                Gone(s, (DxfCurve)others[i], alive, joinedAll);
+                            }
+
+                            said.Add(
+                                (taken.Count + 1).ToString(CultureInfo.InvariantCulture)
+                                    + " objects converted to 1 "
+                                    + (spline ? "spline" : "polyline")
+                            );
+                        }
                     }
                 }
-            });
+            );
 
             if (!result.Succeeded)
             {
@@ -970,14 +1141,29 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (said.Count == 0 || discarded > 0)
             {
-                c.Write(discarded.ToString(CultureInfo.InvariantCulture) + (discarded == 1 ? " object" : " objects") + " discarded from the operation");
+                c.Write(
+                    discarded.ToString(CultureInfo.InvariantCulture)
+                        + (discarded == 1 ? " object" : " objects")
+                        + " discarded from the operation"
+                );
             }
         }
 
         /// <summary>Joins into a seed what of the others it takes (of one kind where given), erasing them, and says how many.</summary>
-        private static void JoinInto(CadEditScope s, CadSpace space, DxfCurve seed, List<DxfCurve> alive, Type kind, List<string> said, HashSet<string> joinedAll)
+        private static void JoinInto(
+            CadEditScope s,
+            CadSpace space,
+            DxfCurve seed,
+            List<DxfCurve> alive,
+            Type kind,
+            List<string> said,
+            HashSet<string> joinedAll
+        )
         {
-            var others = alive.Where(e => e != seed && (kind == null || e.GetType() == kind)).Cast<DxfEntity>().ToList();
+            var others = alive
+                .Where(e => e != seed && (kind == null || e.GetType() == kind))
+                .Cast<DxfEntity>()
+                .ToList();
 
             if (others.Count == 0)
             {
@@ -1026,17 +1212,28 @@ namespace GeometryHelper.Dxf.Viewer
         {
             switch (curve)
             {
-                case DxfLine _: return "line";
-                case DxfArc _: return "arc";
-                case DxfEllipse _: return "elliptical arc";
-                case DxfSpline _: return "spline";
-                default: return "polyline";
+                case DxfLine _:
+                    return "line";
+                case DxfArc _:
+                    return "arc";
+                case DxfEllipse _:
+                    return "elliptical arc";
+                case DxfSpline _:
+                    return "spline";
+                default:
+                    return "polyline";
             }
         }
 
         /// <summary>Whether JOIN takes an object: an open line, arc, elliptical arc, polyline or spline.</summary>
-        private static bool Joinable(DxfEntity entity)
-            => (entity is DxfLine || entity is DxfArc || entity is DxfEllipse || entity is DxfPolyline || entity is DxfSpline) && !((DxfCurve)entity).Closed;
+        private static bool Joinable(DxfEntity entity) =>
+            (
+                entity is DxfLine
+                || entity is DxfArc
+                || entity is DxfEllipse
+                || entity is DxfPolyline
+                || entity is DxfSpline
+            ) && !((DxfCurve)entity).Closed;
 
         /// <summary>
         /// A polyline of one segment that is a line or an arc lying flat (its normal along Z, either way), in no file, at the
@@ -1087,14 +1284,30 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForEntity("Select an object to measure", modes, modes[(int)c.Remembered("lengthen.mode", 2.0)]);
+                yield return CadPrompt.ForEntity(
+                    "Select an object to measure",
+                    modes,
+                    modes[(int)c.Remembered("lengthen.mode", 2.0)]
+                );
 
                 if (c.Input.Kind == CadInputKind.Selection)
                 {
-                    if (c.Document.FindEntity(c.Input.Handles[0]) is DxfCurve measured && !(measured is DxfRay) && !(measured is DxfXline))
+                    if (
+                        c.Document.FindEntity(c.Input.Handles[0]) is DxfCurve measured
+                        && !(measured is DxfRay)
+                        && !(measured is DxfXline)
+                    )
                     {
                         Span(measured, out _, out double length);
-                        c.Write("Current length: " + Length(length) + (measured is DxfArc arc ? ", included angle: " + Number(arc.TotalAngle * 180.0 / Math.PI) : string.Empty));
+                        c.Write(
+                            "Current length: "
+                                + Length(length)
+                                + (
+                                    measured is DxfArc arc
+                                        ? ", included angle: " + Number(arc.TotalAngle * 180.0 / Math.PI)
+                                        : string.Empty
+                                )
+                        );
                     }
 
                     continue;
@@ -1111,11 +1324,23 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (mode == 0)
                 {
-                    yield return CadPrompt.ForDistance("Enter delta length", null, new[] { "Angle" }, Length(c.Remembered("lengthen.delta", 0.0)));
+                    yield return CadPrompt.ForDistance(
+                        "Enter delta length",
+                        null,
+                        new[] { "Angle" },
+                        Length(c.Remembered("lengthen.delta", 0.0))
+                    );
 
                     if (c.Input.Is("Angle"))
                     {
-                        yield return CadPrompt.ForAngle("Enter delta angle", null, null, Number(c.Remembered("lengthen.deltaAngle", 0.0) * 180.0 / Math.PI)).Turning();
+                        yield return CadPrompt
+                            .ForAngle(
+                                "Enter delta angle",
+                                null,
+                                null,
+                                Number(c.Remembered("lengthen.deltaAngle", 0.0) * 180.0 / Math.PI)
+                            )
+                            .Turning();
                         angle = true;
 
                         if (c.Input.Kind == CadInputKind.Number)
@@ -1130,7 +1355,12 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (mode == 1)
                 {
-                    yield return CadPrompt.ForDistance("Enter percentage length", null, null, Length(c.Remembered("lengthen.percent", 100.0)));
+                    yield return CadPrompt.ForDistance(
+                        "Enter percentage length",
+                        null,
+                        null,
+                        Length(c.Remembered("lengthen.percent", 100.0))
+                    );
 
                     if (c.Input.Kind == CadInputKind.Number)
                     {
@@ -1145,11 +1375,23 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (mode == 2)
                 {
-                    yield return CadPrompt.ForDistance("Specify total length", null, new[] { "Angle" }, Length(c.Remembered("lengthen.total", 1.0)));
+                    yield return CadPrompt.ForDistance(
+                        "Specify total length",
+                        null,
+                        new[] { "Angle" },
+                        Length(c.Remembered("lengthen.total", 1.0))
+                    );
 
                     if (c.Input.Is("Angle"))
                     {
-                        yield return CadPrompt.ForAngle("Specify total angle", null, null, Number(c.Remembered("lengthen.totalAngle", 1.0) * 180.0 / Math.PI)).Turning();
+                        yield return CadPrompt
+                            .ForAngle(
+                                "Specify total angle",
+                                null,
+                                null,
+                                Number(c.Remembered("lengthen.totalAngle", 1.0) * 180.0 / Math.PI)
+                            )
+                            .Turning();
                         angle = true;
 
                         if (c.Input.Kind == CadInputKind.Number)
@@ -1173,7 +1415,10 @@ namespace GeometryHelper.Dxf.Viewer
 
                 while (true)
                 {
-                    yield return CadPrompt.ForEntity("Select an object to change", undo.Count > 0 ? new[] { "Undo" } : null);
+                    yield return CadPrompt.ForEntity(
+                        "Select an object to change",
+                        undo.Count > 0 ? new[] { "Undo" } : null
+                    );
 
                     if (c.Input.Is("Undo"))
                     {
@@ -1197,7 +1442,16 @@ namespace GeometryHelper.Dxf.Viewer
 
                     var curve = (DxfCurve)c.Document.FindEntity(handle);
 
-                    if (curve.Closed || !(curve is DxfLine || curve is DxfArc || curve is DxfPolyline || curve is DxfEllipse || curve is DxfSpline))
+                    if (
+                        curve.Closed
+                        || !(
+                            curve is DxfLine
+                            || curve is DxfArc
+                            || curve is DxfPolyline
+                            || curve is DxfEllipse
+                            || curve is DxfSpline
+                        )
+                    )
                     {
                         c.Write("Cannot lengthen this object.");
                         continue;
@@ -1212,11 +1466,13 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         GeoPoint3 end = atStart ? curve.StartPoint : curve.EndPoint;
                         DxfCurve dragged = curve;
-                        yield return CadPrompt.ForPoint("Specify new end point", new GeoPoint2(end.X, end.Y)).Previewing(CadPreview.Making(c, input =>
-                        {
-                            var preview = new List<DxfEntity>();
-                            return MoveEnd(c, dragged, atStart, P3(input.Point), preview) ? preview : null;
-                        }));
+                        yield return CadPrompt
+                            .ForPoint("Specify new end point", new GeoPoint2(end.X, end.Y))
+                            .Previewing(CadPreview.Making(c, input =>
+                                {
+                                    var preview = new List<DxfEntity>();
+                                    return MoveEnd(c, dragged, atStart, P3(input.Point), preview) ? preview : null;
+                                }));
 
                         if (!c.Input.IsPoint)
                         {
@@ -1224,7 +1480,9 @@ namespace GeometryHelper.Dxf.Viewer
                         }
 
                         GeoPoint3 moved = P3(c.Input.Point);
-                        done = Splits(c, "lengthened", () => MoveEnd(c, (DxfCurve)c.Document.FindEntity(handle), atStart, moved));
+                        done = Splits(c, "lengthened", () =>
+                            MoveEnd(c, (DxfCurve)c.Document.FindEntity(handle), atStart, moved)
+                        );
                     }
                     else
                     {
@@ -1238,11 +1496,20 @@ namespace GeometryHelper.Dxf.Viewer
                                 continue;
                             }
 
-                            target = arc.Radius * (mode == 0 ? arc.TotalAngle + c.Remembered("lengthen.deltaAngle", 0.0) : c.Remembered("lengthen.totalAngle", 1.0));
+                            target =
+                                arc.Radius
+                                * (
+                                    mode == 0
+                                        ? arc.TotalAngle + c.Remembered("lengthen.deltaAngle", 0.0)
+                                        : c.Remembered("lengthen.totalAngle", 1.0)
+                                );
                         }
                         else
                         {
-                            target = mode == 0 ? length + c.Remembered("lengthen.delta", 0.0) : mode == 1 ? length * c.Remembered("lengthen.percent", 100.0) / 100.0 : c.Remembered("lengthen.total", 1.0);
+                            target =
+                                mode == 0 ? length + c.Remembered("lengthen.delta", 0.0)
+                                : mode == 1 ? length * c.Remembered("lengthen.percent", 100.0) / 100.0
+                                : c.Remembered("lengthen.total", 1.0);
                         }
 
                         done = Splits(c, "lengthened", () => ToLength(c, curve, atStart, target));
@@ -1260,7 +1527,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// Makes a curve a length by its end at one side, run on or cut back; false, with the reason written, where it is not.
         /// Given a list to preview into, it adds the curve as it would be to it instead, and changes nothing.
         /// </summary>
-        private static bool ToLength(CadCommandContext c, DxfCurve curve, bool atStart, double target, List<DxfEntity> preview = null)
+        private static bool ToLength(
+            CadCommandContext c,
+            DxfCurve curve,
+            bool atStart,
+            double target,
+            List<DxfEntity> preview = null
+        )
         {
             double eps = Slack(c);
             Span(curve, out _, out double length);
@@ -1274,7 +1547,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (target < length - eps)
             {
-                IReadOnlyList<DxfCurve> pieces = curve.GetSplitCurves(new[] { curve.GetParameterAtDistance(atStart ? length - target : target) });
+                IReadOnlyList<DxfCurve> pieces = curve.GetSplitCurves(
+                    new[] { curve.GetParameterAtDistance(atStart ? length - target : target) }
+                );
 
                 if (pieces.Count == 2 && preview != null)
                 {
@@ -1282,7 +1557,8 @@ namespace GeometryHelper.Dxf.Viewer
                     return true;
                 }
 
-                return pieces.Count == 2 && Replace(c, handle, new List<DxfCurve> { pieces[atStart ? 1 : 0] }, "Lengthen");
+                return pieces.Count == 2
+                    && Replace(c, handle, new List<DxfCurve> { pieces[atStart ? 1 : 0] }, "Lengthen");
             }
 
             if (target <= length + eps)
@@ -1303,7 +1579,8 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
                 case DxfPolyline polyline:
                     int segment = atStart ? 0 : polyline.NumberOfVertices - 2;
-                    double run = polyline.GetDistanceAtParameter(segment + 1) - polyline.GetDistanceAtParameter(segment);
+                    double run =
+                        polyline.GetDistanceAtParameter(segment + 1) - polyline.GetDistanceAtParameter(segment);
 
                     if (!(run > eps))
                     {
@@ -1327,7 +1604,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 tried.Extend(parameter);
             }
-            catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException || exception is NotSupportedException)
+            catch (Exception exception)
+                when (exception is ArgumentException
+                    || exception is InvalidOperationException
+                    || exception is NotSupportedException
+                )
             {
                 c.Write("Cannot lengthen this object: " + exception.Message);
                 return false;
@@ -1339,7 +1620,9 @@ namespace GeometryHelper.Dxf.Viewer
                 return true;
             }
 
-            return c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Lengthen") }, s => ((DxfCurve)s.Document.FindEntity(handle)).Extend(parameter)).Succeeded;
+            return c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Lengthen") }, s =>
+                ((DxfCurve)s.Document.FindEntity(handle)).Extend(parameter)
+            ).Succeeded;
         }
 
         /// <summary>
@@ -1348,7 +1631,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static double EllipseReach(DxfEllipse ellipse, bool atStart, double more)
         {
-            var whole = new DxfEllipse(ellipse.Center, ellipse.Normal, ellipse.MajorAxis, ellipse.RadiusRatio, 0.0, 2.0 * Math.PI);
+            var whole = new DxfEllipse(
+                ellipse.Center,
+                ellipse.Normal,
+                ellipse.MajorAxis,
+                ellipse.RadiusRatio,
+                0.0,
+                2.0 * Math.PI
+            );
             double turn = 2.0 * Math.PI;
             double total = whole.GetDistanceAtParameter(turn);
             double from = atStart ? ellipse.StartParam : ellipse.EndParam;
@@ -1361,7 +1651,9 @@ namespace GeometryHelper.Dxf.Viewer
                 double a = atStart ? from - step : from;
                 a -= turn * Math.Floor(a / turn);
                 double b = a + step;
-                return b <= turn ? whole.GetDistanceAtParameter(b) - whole.GetDistanceAtParameter(a) : total - whole.GetDistanceAtParameter(a) + whole.GetDistanceAtParameter(b - turn);
+                return b <= turn
+                    ? whole.GetDistanceAtParameter(b) - whole.GetDistanceAtParameter(a)
+                    : total - whole.GetDistanceAtParameter(a) + whole.GetDistanceAtParameter(b - turn);
             };
 
             for (int i = 0; i < 100 && high - low > 1E-15; i++)
@@ -1387,11 +1679,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// a list to preview into, it adds the curve as it would be to it instead, and changes nothing, as the end previews
         /// following the cursor.
         /// </summary>
-        private static bool MoveEnd(CadCommandContext c, DxfCurve curve, bool atStart, GeoPoint3 point, List<DxfEntity> preview = null)
+        private static bool MoveEnd(
+            CadCommandContext c,
+            DxfCurve curve,
+            bool atStart,
+            GeoPoint3 point,
+            List<DxfEntity> preview = null
+        )
         {
             double eps = Slack(c);
             DxfCurve run = RunOn(c, curve, atStart, out _, out _);
-            GeoPoint3 target = run is DxfRay ray ? new DxfLine(ray.BasePoint, ray.BasePoint.Add(ray.UnitDir)).GetClosestPointTo(point, true) : run.GetClosestPointTo(point, false);
+            GeoPoint3 target = run is DxfRay ray
+                ? new DxfLine(ray.BasePoint, ray.BasePoint.Add(ray.UnitDir)).GetClosestPointTo(point, true)
+                : run.GetClosestPointTo(point, false);
 
             if (curve.GetClosestPointTo(target, false).DistanceTo(target) <= eps)
             {
@@ -1408,7 +1708,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 moved.Extend(atStart, target);
             }
-            catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException || exception is NotSupportedException)
+            catch (Exception exception)
+                when (exception is ArgumentException
+                    || exception is InvalidOperationException
+                    || exception is NotSupportedException
+                )
             {
                 c.Write("Cannot lengthen this object: " + exception.Message);
                 return false;
@@ -1420,7 +1724,9 @@ namespace GeometryHelper.Dxf.Viewer
                 return true;
             }
 
-            return c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Lengthen") }, s => ((DxfCurve)s.Document.FindEntity(handle)).Extend(atStart, target)).Succeeded;
+            return c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Lengthen") }, s =>
+                ((DxfCurve)s.Document.FindEntity(handle)).Extend(atStart, target)
+            ).Succeeded;
         }
 
         /// <summary>
@@ -1431,8 +1737,18 @@ namespace GeometryHelper.Dxf.Viewer
         {
             DxfEntity entity = c.Document.FindEntity(handle);
             CadSpace space = c.Document.FindSpace(handle);
-            bool inPlace = kept.Count > 0 && kept[0].GetType() == entity.GetType() && (entity is DxfLine || entity is DxfArc || entity is DxfRay);
-            var planned = new[] { new CadEditRecord(inPlace ? CadEditRecordKind.Reshaped : CadEditRecordKind.Erased, handle, inPlace ? how : null) };
+            bool inPlace =
+                kept.Count > 0
+                && kept[0].GetType() == entity.GetType()
+                && (entity is DxfLine || entity is DxfArc || entity is DxfRay);
+            var planned = new[]
+            {
+                new CadEditRecord(
+                    inPlace ? CadEditRecordKind.Reshaped : CadEditRecordKind.Erased,
+                    handle,
+                    inPlace ? how : null
+                ),
+            };
 
             return c.Apply(planned, s =>
             {
@@ -1488,7 +1804,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (c.Document.Owners.GetEditRule(entity) != CadEditRule.Free)
             {
-                c.Write("This " + (entity is DxfDimension ? "dimension" : CadOwnerEditGate.Describe(entity)) + " belongs to the model and cannot be " + done + " here.");
+                c.Write(
+                    "This "
+                        + (entity is DxfDimension ? "dimension" : CadOwnerEditGate.Describe(entity))
+                        + " belongs to the model and cannot be "
+                        + done
+                        + " here."
+                );
                 return false;
             }
 
@@ -1502,7 +1824,12 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The objects near a box that may be edges, in ordinal order of their handles: those the pick index draws there, and every xline and ray; or of a list given.</summary>
-        private static List<DxfEntity> Near(CadCommandContext c, DisplayBox box, string except, IReadOnlyList<string> only)
+        private static List<DxfEntity> Near(
+            CadCommandContext c,
+            DisplayBox box,
+            string except,
+            IReadOnlyList<string> only
+        )
         {
             var handles = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -1551,9 +1878,16 @@ namespace GeometryHelper.Dxf.Viewer
         {
             try
             {
-                return curve.IntersectWith(other, extendOther ? DxfIntersect.ExtendArgument : DxfIntersect.OnBothOperands);
+                return curve.IntersectWith(
+                    other,
+                    extendOther ? DxfIntersect.ExtendArgument : DxfIntersect.OnBothOperands
+                );
             }
-            catch (Exception exception) when (exception is NotSupportedException || exception is InvalidOperationException || exception is ArgumentException)
+            catch (Exception exception)
+                when (exception is NotSupportedException
+                    || exception is InvalidOperationException
+                    || exception is ArgumentException
+                )
             {
                 return Array.Empty<GeoPoint3>();
             }
@@ -1609,10 +1943,14 @@ namespace GeometryHelper.Dxf.Viewer
         private static void Span(DxfCurve curve, out double start, out double length)
         {
             start = curve is DxfXline ? double.NegativeInfinity : 0.0;
-            length = curve is DxfRay || curve is DxfXline ? double.PositiveInfinity : curve.GetDistanceAtParameter(curve.EndParam);
+            length =
+                curve is DxfRay || curve is DxfXline
+                    ? double.PositiveInfinity
+                    : curve.GetDistanceAtParameter(curve.EndParam);
         }
 
         /// <summary>How near two points are the same: the session's point tolerance, and never finer than the library's, which splits and meets curves.</summary>
-        private static double Slack(CadCommandContext c) => Math.Max(c.Session.Tolerance.EqualPoint, Tolerance.Default.EqualPoint);
+        private static double Slack(CadCommandContext c) =>
+            Math.Max(c.Session.Tolerance.EqualPoint, Tolerance.Default.EqualPoint);
     }
 }

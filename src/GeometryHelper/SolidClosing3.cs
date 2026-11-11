@@ -27,7 +27,13 @@ namespace GeometryHelper
         /// <param name="volumeChange">The volume moved, as <see cref="VolumeChange"/> reads it.</param>
         /// <param name="failure">Why the body could not be closed; <see cref="ClosingFailure.None"/> where it was.</param>
         /// <param name="failureLocation">A point at the trouble; null where the body was closed.</param>
-        internal SolidClosing3(IReadOnlyList<SolidRepair3> repairs, double addedArea, double volumeChange, ClosingFailure failure, GeoPoint3? failureLocation)
+        internal SolidClosing3(
+            IReadOnlyList<SolidRepair3> repairs,
+            double addedArea,
+            double volumeChange,
+            ClosingFailure failure,
+            GeoPoint3? failureLocation
+        )
         {
             Repairs = repairs;
             AddedArea = addedArea;
@@ -81,7 +87,8 @@ namespace GeometryHelper
         /// </summary>
         /// <param name="failure">Why; not <see cref="ClosingFailure.None"/>.</param>
         /// <param name="at">A point at the trouble.</param>
-        internal static SolidClosing3 Failed(ClosingFailure failure, GeoPoint3 at) => new SolidClosing3(NoRepairs, 0.0, 0.0, failure, at);
+        internal static SolidClosing3 Failed(ClosingFailure failure, GeoPoint3 at) =>
+            new SolidClosing3(NoRepairs, 0.0, 0.0, failure, at);
 
         /// <summary>
         /// Says whether the body was closed, with how many changes of each kind, the area added and the volume moved, or why
@@ -99,7 +106,8 @@ namespace GeometryHelper
                     Failure,
                     at.X,
                     at.Y,
-                    at.Z);
+                    at.Z
+                );
             }
 
             if (Repairs.Count == 0)
@@ -108,14 +116,20 @@ namespace GeometryHelper
             }
 
             // In the order each kind was first made.
-            string counts = string.Join(", ", Repairs.GroupBy(r => r.Kind).Select(g => string.Format(CultureInfo.InvariantCulture, "{0} {1}", g.Key, g.Count())));
+            string counts = string.Join(
+                ", ",
+                Repairs
+                    .GroupBy(r => r.Kind)
+                    .Select(g => string.Format(CultureInfo.InvariantCulture, "{0} {1}", g.Key, g.Count()))
+            );
 
             return string.Format(
                 CultureInfo.InvariantCulture,
                 "SolidClosing3[closed; {0}; area added {1:G6}, volume moved {2:G6}]",
                 counts,
                 AddedArea,
-                VolumeChange);
+                VolumeChange
+            );
         }
     }
 }

@@ -24,7 +24,10 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static void AssertWithinThePointToleranceOf(GeoPoint3 rim, GeoPoint3 foot)
         {
-            Assert.True(foot.DistanceTo(rim) <= Within.EqualPoint, "the foot " + foot + " is " + foot.DistanceTo(rim) + " from the material");
+            Assert.True(
+                foot.DistanceTo(rim) <= Within.EqualPoint,
+                "the foot " + foot + " is " + foot.DistanceTo(rim) + " from the material"
+            );
             Assert.Equal(0.0, foot.Z, 12);
         }
 

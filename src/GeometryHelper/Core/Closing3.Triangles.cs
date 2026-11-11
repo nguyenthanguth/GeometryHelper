@@ -68,7 +68,16 @@ namespace GeometryHelper.Core
         /// anywhere.
         /// </para>
         /// </remarks>
-        private static bool TryTriangulate(Loop loop, int index, List<GeoFace3> faces, FaceBoxes boxes, SolidClosingOptions options, out Patch fill, out ClosingFailure failure, out GeoPoint3 at)
+        private static bool TryTriangulate(
+            Loop loop,
+            int index,
+            List<GeoFace3> faces,
+            FaceBoxes boxes,
+            SolidClosingOptions options,
+            out Patch fill,
+            out ClosingFailure failure,
+            out GeoPoint3 at
+        )
         {
             fill = null;
             failure = ClosingFailure.None;
@@ -109,7 +118,9 @@ namespace GeometryHelper.Core
                 for (int i = 0; i + span < count; i++)
                 {
                     int j = i + span;
-                    double best = double.PositiveInfinity, low = double.PositiveInfinity, high = double.NegativeInfinity;
+                    double best = double.PositiveInfinity,
+                        low = double.PositiveInfinity,
+                        high = double.NegativeInfinity;
                     int choice = -1;
 
                     for (int k = i + 1; k < j; k++)
@@ -124,7 +135,10 @@ namespace GeometryHelper.Core
 
                         GeoVector3 across = p[k].Subtract(p[i]).CrossProduct(p[j].Subtract(p[i]));
                         double twice = across.Length;
-                        double longest = Math.Max(length[(i * count) + j], Math.Max(length[(i * count) + k], length[(k * count) + j]));
+                        double longest = Math.Max(
+                            length[(i * count) + j],
+                            Math.Max(length[(i * count) + k], length[(k * count) + j])
+                        );
 
                         // A needle within the point tolerance; a triangle turned back against the loop, folding over the outside
                         // of a concave rim; or one back to back with a face of the body.
@@ -135,7 +149,20 @@ namespace GeometryHelper.Core
 
                         GeoVector3 normal = across.Divide(twice);
 
-                        if (normal.DotProduct(loop.Normal) < TurnedBack || LiesBackToBack(shared[(i * count) + j], on[k], normal, corners, i, k, j, faces, tolerance))
+                        if (
+                            normal.DotProduct(loop.Normal) < TurnedBack
+                            || LiesBackToBack(
+                                shared[(i * count) + j],
+                                on[k],
+                                normal,
+                                corners,
+                                i,
+                                k,
+                                j,
+                                faces,
+                                tolerance
+                            )
+                        )
                         {
                             continue;
                         }
@@ -171,7 +198,10 @@ namespace GeometryHelper.Core
 
             List<(int, int, int)> triangles = Triangles(split, count);
 
-            if (options.Fill == FillStrategy.WhenUnambiguous && most[whole] - least[whole] > loop.Area * tolerance.EqualPlanar)
+            if (
+                options.Fill == FillStrategy.WhenUnambiguous
+                && most[whole] - least[whole] > loop.Area * tolerance.EqualPlanar
+            )
             {
                 failure = ClosingFailure.HoleAmbiguous;
                 at = Largest(triangles, corners);
@@ -186,7 +216,11 @@ namespace GeometryHelper.Core
                 for (int t = 0; t < triangles.Count; t++)
                 {
                     (int i, int k, int j) = triangles[t];
-                    made[t] = new GeoFace3(new GeoPolygon3(new[] { corners[i], corners[k], corners[j] }, build), null, build);
+                    made[t] = new GeoFace3(
+                        new GeoPolygon3(new[] { corners[i], corners[k], corners[j] }, build),
+                        null,
+                        build
+                    );
                 }
             }
             catch (ArgumentException)
@@ -208,7 +242,12 @@ namespace GeometryHelper.Core
         /// <param name="faces">The faces of the body.</param>
         /// <param name="boxes">The faces filed by their boxes.</param>
         /// <param name="tolerance">The tolerance.</param>
-        private static List<int>[] FacesAtCorners(List<GeoPoint3> corners, List<GeoFace3> faces, FaceBoxes boxes, Tolerance tolerance)
+        private static List<int>[] FacesAtCorners(
+            List<GeoPoint3> corners,
+            List<GeoFace3> faces,
+            FaceBoxes boxes,
+            Tolerance tolerance
+        )
         {
             var on = new List<int>[corners.Count];
             var near = new List<int>();
@@ -268,7 +307,17 @@ namespace GeometryHelper.Core
         /// <param name="j">Its last corner.</param>
         /// <param name="faces">The faces of the body.</param>
         /// <param name="tolerance">The tolerance.</param>
-        private static bool LiesBackToBack(List<int> ends, List<int> between, GeoVector3 normal, List<GeoPoint3> corners, int i, int k, int j, List<GeoFace3> faces, Tolerance tolerance)
+        private static bool LiesBackToBack(
+            List<int> ends,
+            List<int> between,
+            GeoVector3 normal,
+            List<GeoPoint3> corners,
+            int i,
+            int k,
+            int j,
+            List<GeoFace3> faces,
+            Tolerance tolerance
+        )
         {
             if (ends == null || between == null)
             {
@@ -285,7 +334,8 @@ namespace GeometryHelper.Core
                 var middle = new GeoPoint3(
                     (corners[i].X + corners[k].X + corners[j].X) / 3.0,
                     (corners[i].Y + corners[k].Y + corners[j].Y) / 3.0,
-                    (corners[i].Z + corners[k].Z + corners[j].Z) / 3.0);
+                    (corners[i].Z + corners[k].Z + corners[j].Z) / 3.0
+                );
 
                 if (faces[g].Locate(middle, tolerance) != PointLocation.OutSide)
                 {
@@ -340,7 +390,10 @@ namespace GeometryHelper.Core
 
             foreach ((int i, int k, int j) in triangles)
             {
-                double area = corners[i].GetVectorTo(corners[k]).CrossProduct(corners[i].GetVectorTo(corners[j])).Length;
+                double area = corners[i]
+                    .GetVectorTo(corners[k])
+                    .CrossProduct(corners[i].GetVectorTo(corners[j]))
+                    .Length;
 
                 if (area > largest)
                 {
@@ -348,7 +401,8 @@ namespace GeometryHelper.Core
                     middle = new GeoPoint3(
                         (corners[i].X + corners[k].X + corners[j].X) / 3.0,
                         (corners[i].Y + corners[k].Y + corners[j].Y) / 3.0,
-                        (corners[i].Z + corners[k].Z + corners[j].Z) / 3.0);
+                        (corners[i].Z + corners[k].Z + corners[j].Z) / 3.0
+                    );
                 }
             }
 

@@ -139,7 +139,11 @@ namespace GeometryHelper.Viewer
             catch (ArgumentException e)
             {
                 // The three points do not tell a plane: they are asked for again. The message of the exception names the argument too, which is not for a person.
-                string reason = System.Text.RegularExpressions.Regex.Replace(e.Message, @" \(Parameter '[^']*'\)$", string.Empty);
+                string reason = System.Text.RegularExpressions.Regex.Replace(
+                    e.Message,
+                    @" \(Parameter '[^']*'\)$",
+                    string.Empty
+                );
                 _picked.Clear();
                 ShowPending();
                 Log("work plane: " + reason);
@@ -278,7 +282,15 @@ namespace GeometryHelper.Viewer
 
             double margin = box.Size.Length * 0.01;
             SetClips(ClipSet.FromBox(box, margin), -1);
-            Log("clip box round " + (_model.Selected.Count > 0 ? _model.Selected.Count + " selected item(s)" : "everything shown") + ": " + box + ", " + margin.ToString("G6", CultureInfo.InvariantCulture) + " out on every side.");
+            Log(
+                "clip box round "
+                    + (_model.Selected.Count > 0 ? _model.Selected.Count + " selected item(s)" : "everything shown")
+                    + ": "
+                    + box
+                    + ", "
+                    + margin.ToString("G6", CultureInfo.InvariantCulture)
+                    + " out on every side."
+            );
             SetMessage("clip box");
         }
 
@@ -353,15 +365,26 @@ namespace GeometryHelper.Viewer
                     try
                     {
                         // Under the mouse the scene is cut without its section lines and caps, which are made when the plane is let go.
-                        ClipResult result = await Task.Run(() => preview ? ClipResult.BuildPreview(primitives, clips, work.Token) : ClipResult.Build(primitives, clips, caps, work.Token));
+                        ClipResult result = await Task.Run(() =>
+                            preview
+                                ? ClipResult.BuildPreview(primitives, clips, work.Token)
+                                : ClipResult.Build(primitives, clips, caps, work.Token)
+                        );
 
-                        if (ReferenceEquals(primitives, _model.Primitives) && (preview || (!_clipAgain && ReferenceEquals(clips, _clips))))
+                        if (
+                            ReferenceEquals(primitives, _model.Primitives)
+                            && (preview || (!_clipAgain && ReferenceEquals(clips, _clips)))
+                        )
                         {
                             _model.SetClip(result);
 
                             if (result.CapsRefused > 0)
                             {
-                                Log("clip: " + result.CapsRefused + " section outline(s) not filled: the library refused to cut them into a cap, or there were too many; the section line is still drawn.");
+                                Log(
+                                    "clip: "
+                                        + result.CapsRefused
+                                        + " section outline(s) not filled: the library refused to cut them into a cap, or there were too many; the section line is still drawn."
+                                );
                             }
                         }
                     }
@@ -369,8 +392,7 @@ namespace GeometryHelper.Viewer
                     {
                         // A newer set was asked for.
                     }
-                }
-                while (_clipAgain);
+                } while (_clipAgain);
             }
             catch (Exception e) when (!(e is OutOfMemoryException))
             {
@@ -381,6 +403,7 @@ namespace GeometryHelper.Viewer
                 _clipRunning = false;
             }
         }
+
         private void RefreshClipPane()
         {
             _syncingClip = true;
@@ -392,18 +415,23 @@ namespace GeometryHelper.Viewer
                 for (int i = 0; i < _clips.Count; i++)
                 {
                     ClipPlane plane = _clips.Planes[i];
-                    _clipRows.Add(new ClipRow
-                    {
-                        Number = i + 1,
-                        State = plane.Enabled ? "on" : "off",
-                        Through = plane.Point.ToString(),
-                        Normal = plane.Normal.ToString(),
-                        Offset = plane.Offset.ToString("G10", CultureInfo.InvariantCulture),
-                    });
+                    _clipRows.Add(
+                        new ClipRow
+                        {
+                            Number = i + 1,
+                            State = plane.Enabled ? "on" : "off",
+                            Through = plane.Point.ToString(),
+                            Normal = plane.Normal.ToString(),
+                            Offset = plane.Offset.ToString("G10", CultureInfo.InvariantCulture),
+                        }
+                    );
                 }
 
                 ClipList.SelectedIndex = _clipSelected;
-                ClipOffsetBox.Text = _clipSelected >= 0 ? _clips.Planes[_clipSelected].Offset.ToString("G10", CultureInfo.InvariantCulture) : string.Empty;
+                ClipOffsetBox.Text =
+                    _clipSelected >= 0
+                        ? _clips.Planes[_clipSelected].Offset.ToString("G10", CultureInfo.InvariantCulture)
+                        : string.Empty;
             }
             finally
             {
@@ -420,7 +448,10 @@ namespace GeometryHelper.Viewer
 
             _clipSelected = ClipList.SelectedIndex;
             _overlay.SetClipPlanes(_clips, _clipSelected);
-            ClipOffsetBox.Text = _clipSelected >= 0 ? _clips.Planes[_clipSelected].Offset.ToString("G10", CultureInfo.InvariantCulture) : string.Empty;
+            ClipOffsetBox.Text =
+                _clipSelected >= 0
+                    ? _clips.Planes[_clipSelected].Offset.ToString("G10", CultureInfo.InvariantCulture)
+                    : string.Empty;
         }
 
         private void OnClipAddView(object sender, RoutedEventArgs e) => Execute("ClipAddView");
@@ -473,7 +504,16 @@ namespace GeometryHelper.Viewer
                 return;
             }
 
-            if (!double.TryParse(ClipOffsetBox.Text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double offset) || double.IsNaN(offset) || double.IsInfinity(offset))
+            if (
+                !double.TryParse(
+                    ClipOffsetBox.Text.Trim(),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out double offset
+                )
+                || double.IsNaN(offset)
+                || double.IsInfinity(offset)
+            )
             {
                 SetMessage("the offset is a number of millimetres, with a point for the decimals");
                 return;
@@ -500,7 +540,10 @@ namespace GeometryHelper.Viewer
             // The handle lies on the plane, which may be outside the others, so it is looked for in a view that cuts nothing.
             var bare = new ScreenMap(pane.Camera, scene, pane.Width, pane.Height);
 
-            if (!bare.TryProject(handle, out double hx, out double hy, out _) || (hx - p.X) * (hx - p.X) + (hy - p.Y) * (hy - p.Y) > ClipHandleRadius * ClipHandleRadius)
+            if (
+                !bare.TryProject(handle, out double hx, out double hy, out _)
+                || (hx - p.X) * (hx - p.X) + (hy - p.Y) * (hy - p.Y) > ClipHandleRadius * ClipHandleRadius
+            )
             {
                 return false;
             }
@@ -529,7 +572,12 @@ namespace GeometryHelper.Viewer
             }
 
             ClipPlane plane = _clips.Planes[_clipDragIndex];
-            var bare = new ScreenMap(pane.Camera, _model.Primitives?.Bounds ?? default(Bounds3), pane.Width, pane.Height);
+            var bare = new ScreenMap(
+                pane.Camera,
+                _model.Primitives?.Bounds ?? default(Bounds3),
+                pane.Width,
+                pane.Height
+            );
             bare.GetRay(p.X, p.Y, out Vec3 origin, out Vec3 direction);
             double now = ClipPlane.ParameterNearestRay(_clipDragHandle, plane.Normal, origin, direction);
 
@@ -540,7 +588,9 @@ namespace GeometryHelper.Viewer
 
             double offset = _clipDragStartOffset + (now - _clipDragStartParameter);
             SetClips(_clips.Replace(_clipDragIndex, plane.WithOffset(offset)), _clipDragIndex);
-            SetMessage("clip plane " + (_clipDragIndex + 1) + " offset " + offset.ToString("G6", CultureInfo.InvariantCulture));
+            SetMessage(
+                "clip plane " + (_clipDragIndex + 1) + " offset " + offset.ToString("G6", CultureInfo.InvariantCulture)
+            );
         }
 
         private void EndClipDrag()
@@ -571,7 +621,11 @@ namespace GeometryHelper.Viewer
         /// </summary>
         private void ClipCommand(string[] words)
         {
-            if (!int.TryParse(words[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) || number < 1 || number > _clips.Count)
+            if (
+                !int.TryParse(words[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int number)
+                || number < 1
+                || number > _clips.Count
+            )
             {
                 Log("--do: there is no clip plane " + words[1]);
                 return;
@@ -588,8 +642,26 @@ namespace GeometryHelper.Viewer
 
                     // Where the handle is, in the world and in the active view, so that a drag of it can be asked for by place.
                     Vec3 handle = plane.HandleFor(_model.Primitives?.Bounds ?? default(Bounds3));
-                    bool shown = new ScreenMap(Active.Camera, _model.Primitives?.Bounds ?? default(Bounds3), Active.Width, Active.Height).TryProject(handle, out double hx, out double hy, out _);
-                    Log("clip plane " + number + ": handle at " + handle + (shown ? ", in the active view at " + hx.ToString("F1", CultureInfo.InvariantCulture) + " " + hy.ToString("F1", CultureInfo.InvariantCulture) : ", out of the active view"));
+                    bool shown = new ScreenMap(
+                        Active.Camera,
+                        _model.Primitives?.Bounds ?? default(Bounds3),
+                        Active.Width,
+                        Active.Height
+                    ).TryProject(handle, out double hx, out double hy, out _);
+                    Log(
+                        "clip plane "
+                            + number
+                            + ": handle at "
+                            + handle
+                            + (
+                                shown
+                                    ? ", in the active view at "
+                                        + hx.ToString("F1", CultureInfo.InvariantCulture)
+                                        + " "
+                                        + hy.ToString("F1", CultureInfo.InvariantCulture)
+                                    : ", out of the active view"
+                            )
+                    );
                     break;
                 }
 
@@ -605,18 +677,33 @@ namespace GeometryHelper.Viewer
                     {
                         DragClip(Active, to);
                         EndClipDrag();
-                        Log("clip plane " + number + " dragged to offset " + _clips.Planes[index].Offset.ToString("G10", CultureInfo.InvariantCulture));
+                        Log(
+                            "clip plane "
+                                + number
+                                + " dragged to offset "
+                                + _clips.Planes[index].Offset.ToString("G10", CultureInfo.InvariantCulture)
+                        );
                     }
                     else
                     {
-                        Log("--do: the handle of clip plane " + number + " is not under " + from.X.ToString("F1", CultureInfo.InvariantCulture) + " " + from.Y.ToString("F1", CultureInfo.InvariantCulture));
+                        Log(
+                            "--do: the handle of clip plane "
+                                + number
+                                + " is not under "
+                                + from.X.ToString("F1", CultureInfo.InvariantCulture)
+                                + " "
+                                + from.Y.ToString("F1", CultureInfo.InvariantCulture)
+                        );
                     }
 
                     break;
                 }
 
                 case "clipoffset":
-                    SetClips(_clips.Replace(index, plane.WithOffset(double.Parse(words[2], CultureInfo.InvariantCulture))), index);
+                    SetClips(
+                        _clips.Replace(index, plane.WithOffset(double.Parse(words[2], CultureInfo.InvariantCulture))),
+                        index
+                    );
                     break;
 
                 case "clipoff":

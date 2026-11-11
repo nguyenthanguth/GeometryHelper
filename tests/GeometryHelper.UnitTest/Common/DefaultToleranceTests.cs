@@ -21,7 +21,8 @@ namespace GeometryHelper.UnitTest.Common
         /// <summary>
         /// The faces as Tekla gave them, outward, a line to a face: its boundary, then " | " before each hole.
         /// </summary>
-        private const string NotchedBeam = @"
+        private const string NotchedBeam =
+            @"
             24345.887309390986 -26134.768136094648 3000 24345.887309390986 -25734.768136094648 3000 24345.887309390982 -25734.768136094648 3800.0000000000009 24345.887309390982 -26134.768136094648 3800.0000000000009
             24945.887309390982 -26134.768136094648 3800.0000000000009 24945.887309390982 -25734.768136094648 3800.0000000000009 24945.887309390982 -25734.768136094648 3000 24945.887309390982 -26134.768136094648 3000
             24345.887309390982 -26134.768136094648 3800.0000000000009 24345.887309390982 -25734.768136094648 3800.0000000000009 24945.887309390982 -25734.768136094648 3800.0000000000009 24945.887309390982 -26134.768136094648 3800.0000000000009
@@ -54,8 +55,8 @@ namespace GeometryHelper.UnitTest.Common
         /// The top face beside the top notch: its first corner is 0.04 mm below the other three.
         /// </summary>
         private const string TopBesideTheNotch =
-            "31693.2387323195 -26134.768136094652 5999.9622326742374 48223.422337105651 -26134.768136094648 6000 " +
-            "48223.422337105651 -25734.768136094648 6000 31693.2387323195 -25734.768136094648 6000";
+            "31693.2387323195 -26134.768136094652 5999.9622326742374 48223.422337105651 -26134.768136094648 6000 "
+            + "48223.422337105651 -25734.768136094648 6000 31693.2387323195 -25734.768136094648 6000";
 
         /// <summary>
         /// Where the reference line of the beam starts: at the middle of its width, on its top.
@@ -73,7 +74,9 @@ namespace GeometryHelper.UnitTest.Common
 
             Assert.Equal(2, top.Length);
             Assert.All(top, triangle => Assert.True(triangle.Normal.IsCodirectionalTo(GeoVector3.ZAxis)));
-            Assert.All(top.SelectMany(triangle => triangle.Boundary.Vertices), corner => Assert.Contains(corner, corners));
+            Assert.All(top.SelectMany(triangle => triangle.Boundary.Vertices), corner =>
+                Assert.Contains(corner, corners)
+            );
             Assert.InRange(top.Sum(triangle => triangle.Area), 16530.18 * 400.0 * 0.99999, 16530.18 * 400.0 * 1.00001);
         }
 

@@ -65,7 +65,14 @@ namespace GeometryHelper.Benchmarks
     /// </summary>
     internal sealed class CaseResult
     {
-        internal CaseResult(BenchmarkCase benchmark, int warmup, double[] samples, string signature, bool deterministic, string note)
+        internal CaseResult(
+            BenchmarkCase benchmark,
+            int warmup,
+            double[] samples,
+            string signature,
+            bool deterministic,
+            string note
+        )
         {
             Case = benchmark;
             Warmup = warmup;

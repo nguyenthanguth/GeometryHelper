@@ -38,9 +38,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return CadDocument.From(db, "abc.dxf");
         }
 
-        private static DxfXrecord State(CadDocument document, string name) => (DxfXrecord)document.Database.LayerStateManager.LayerStatesDictionary.GetAt(name);
+        private static DxfXrecord State(CadDocument document, string name) =>
+            (DxfXrecord)document.Database.LayerStateManager.LayerStatesDictionary.GetAt(name);
 
-        private static string Groups(DxfXrecord record) => string.Join(" ", record.Data.Select(g => g.TypeCode + "=" + g.Value));
+        private static string Groups(DxfXrecord record) =>
+            string.Join(" ", record.Data.Select(g => g.TypeCode + "=" + g.Value));
 
         private static string Handle(CadDocument document, string layer) => document.Database.LayerTable[layer].Handle;
 
@@ -52,15 +54,39 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Contains("Layer state", session.History);
             Assert.Equal("Enter an option [?/Save/Restore/Edit/Name/Delete/Import/EXport]:", session.PromptText);
             Run(session, "Save", "Plan");
-            Assert.Equal("Enter states to change [On/Frozen/Lock/Plot/Newvpfreeze/Color/lineType/lineWeight/TRansparency/plotStyle]:", session.PromptText);
+            Assert.Equal(
+                "Enter states to change [On/Frozen/Lock/Plot/Newvpfreeze/Color/lineType/lineWeight/TRansparency/plotStyle]:",
+                session.PromptText
+            );
             Assert.Contains("Color               Yes", session.History);
             Run(session, Enter, Enter, Enter);
             Assert.False(session.IsRunning);
             Assert.Equal("-LAYER", document.NextUndo.Name);
 
             string continuous = document.Database.LinetypeTable["Continuous"].Handle;
-            string layer(string name, int flags, int color) => "330=" + Handle(document, name) + " 90=" + flags + " 62=" + color + " 370=-3 331=" + continuous + " 1=Color_" + color + " 440=0";
-            Assert.Equal("91=2047 301= 290=0 302=0 " + layer("C", 10, 7) + " " + layer("B", 9, 7) + " " + layer("A", 8, 1) + " " + layer("0", 8, 7), Groups(State(document, "Plan")));
+            string layer(string name, int flags, int color) =>
+                "330="
+                + Handle(document, name)
+                + " 90="
+                + flags
+                + " 62="
+                + color
+                + " 370=-3 331="
+                + continuous
+                + " 1=Color_"
+                + color
+                + " 440=0";
+            Assert.Equal(
+                "91=2047 301= 290=0 302=0 "
+                    + layer("C", 10, 7)
+                    + " "
+                    + layer("B", 9, 7)
+                    + " "
+                    + layer("A", 8, 1)
+                    + " "
+                    + layer("0", 8, 7),
+                Groups(State(document, "Plan"))
+            );
             Assert.Equal(new[] { "Plan" }, document.Database.LayerStateManager.GetLayerStateNames(false, false));
             AssertReopens(document);
 
@@ -99,7 +125,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Abc();
             Run(Session(document), "-LAYER", "stAte", "Save", "Plan", Enter, Enter, Enter);
             CadCommandSession session = Run(Session(document), "-LAYER", "stAte", "Edit", "Plan");
-            Assert.Equal("Enter states to change [On/Frozen/Lock/Plot/Newvpfreeze/Color/lineType/lineWeight/TRansparency/plotStyle]:", session.PromptText);
+            Assert.Equal(
+                "Enter states to change [On/Frozen/Lock/Plot/Newvpfreeze/Color/lineType/lineWeight/TRansparency/plotStyle]:",
+                session.PromptText
+            );
             Run(session, "Lock", Enter);
             Assert.StartsWith("91=2043 ", Groups(State(document, "Plan")));
             Run(session, "Name", "Plan");
@@ -338,7 +367,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.False(a.IsLinetypeOverridden);
             Assert.False(a.IsTransparencyOverridden);
             Assert.False(db.LayerTable["0"].HasViewportOverrides(one));
-            Assert.Equal(new[] { "B", "C" }, one.GetFrozenLayers().Select(l => l.Name).OrderBy(n => n, StringComparer.Ordinal));
+            Assert.Equal(
+                new[] { "B", "C" },
+                one.GetFrozenLayers().Select(l => l.Name).OrderBy(n => n, StringComparer.Ordinal)
+            );
 
             // The other viewport has none of it.
             Assert.False(db.LayerTable["A"].HasViewportOverrides(two));
@@ -349,7 +381,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.False(document.Database.LayerTable["A"].HasViewportOverrides(Entity<DxfViewport>(document, first)));
             Assert.Empty(Entity<DxfViewport>(document, first).GetFrozenLayers());
             Assert.True(document.Redo());
-            Assert.Equal(1, document.Database.LayerTable["A"].GetViewportOverrides(Entity<DxfViewport>(document, first)).Color.ColorIndex);
+            Assert.Equal(
+                1,
+                document
+                    .Database.LayerTable["A"]
+                    .GetViewportOverrides(Entity<DxfViewport>(document, first))
+                    .Color.ColorIndex
+            );
             Assert.Equal(2, Entity<DxfViewport>(document, first).GetFrozenLayers().Count);
         }
 
@@ -382,7 +420,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             RestorePlan(document, true, true);
 
             Assert.False(document.Database.LayerTable["LATER"].IsOff);
-            Assert.True(Entity<DxfViewport>(document, first).IsLayerFrozenInViewport(document.Database.LayerTable["LATER"]));
+            Assert.True(
+                Entity<DxfViewport>(document, first).IsLayerFrozenInViewport(document.Database.LayerTable["LATER"])
+            );
         }
 
         [Fact]

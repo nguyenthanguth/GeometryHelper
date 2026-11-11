@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -27,7 +27,8 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from this box to a polyline, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(polyline, this, tolerance);
+        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Distance3.DistanceTo(polyline, this, tolerance);
 
         /// <summary>
         /// Gets the distance from this box to a solid, using the default tolerance.
@@ -67,7 +68,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the distance from this box to a point, negative for a point within it, within a tolerance.
         /// </summary>
-        public double SignedDistanceTo(GeoPoint3 point, Tolerance tolerance) => Distance3.SignedDistanceTo(this, point, tolerance);
+        public double SignedDistanceTo(GeoPoint3 point, Tolerance tolerance) =>
+            Distance3.SignedDistanceTo(this, point, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between this oriented box and a segment: the answer of
@@ -174,7 +176,8 @@ namespace GeometryHelper.Geometry
         /// 30 from the triangle with corners (0, 0, 130), (100, 0, 130) and (0, 100, 130), and nought from one wholly
         /// inside it.
         /// </remarks>
-        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) => Distance3.DistanceTo(triangle, this, tolerance);
+        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Distance3.DistanceTo(triangle, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between this oriented box and a polygon: the answer of
@@ -206,7 +209,8 @@ namespace GeometryHelper.Geometry
         /// across it at half its height.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) => Distance3.DistanceTo(polygon, this, tolerance);
+        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Distance3.DistanceTo(polygon, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between this oriented box and a face: the answer of

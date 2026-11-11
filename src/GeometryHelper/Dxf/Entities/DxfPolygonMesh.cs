@@ -24,7 +24,9 @@ namespace GeometryHelper.Dxf
     public sealed class DxfPolygonMesh : DxfEntity, IEnumerable<DxfPolygonMeshVertex>
     {
         // The groups of AcDbPolygonMesh in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 66, 10, 20, 30, 70, 71, 72, 73, 74, 75 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 66, 10, 20, 30, 70, 71, 72, 73, 74, 75 }
+        );
 
         // The groups of a point in the order AutoCAD writes them.
         private static readonly IReadOnlyList<int> VertexOrder = Array.AsReadOnly(new[] { 100, 100, 10, 20, 30, 70 });
@@ -35,7 +37,12 @@ namespace GeometryHelper.Dxf
         public DxfPolygonMesh()
             : base("POLYLINE", Head(0, 0, false, false))
         {
-            SetFollowers(new[] { new KeyValuePair<string, KeyValuePair<int, string>[]>("SEQEND", new KeyValuePair<int, string>[0]) });
+            SetFollowers(
+                new[]
+                {
+                    new KeyValuePair<string, KeyValuePair<int, string>[]>("SEQEND", new KeyValuePair<int, string>[0]),
+                }
+            );
         }
 
         /// <summary>
@@ -52,7 +59,14 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when a coordinate is not finite, or the points are not M times N.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a size is below 2 or above 32 767.</exception>
         /// <exception cref="NotSupportedException">Thrown for a smoothed type: make the mesh simple and smooth it with <see cref="ConvertToPolyMeshType"/>.</exception>
-        public DxfPolygonMesh(DxfPolyMeshType type, int size, int sizeValue, IEnumerable<GeoPoint3> vertices, bool closedValue, bool closed)
+        public DxfPolygonMesh(
+            DxfPolyMeshType type,
+            int size,
+            int sizeValue,
+            IEnumerable<GeoPoint3> vertices,
+            bool closedValue,
+            bool closed
+        )
             : base("POLYLINE", Head(size, sizeValue, closedValue, closed))
         {
             if (vertices == null)
@@ -62,12 +76,17 @@ namespace GeometryHelper.Dxf
 
             if (type != DxfPolyMeshType.SimpleMesh)
             {
-                throw new NotSupportedException("A mesh is made in code simple: make it a SimpleMesh and smooth it with ConvertToPolyMeshType.");
+                throw new NotSupportedException(
+                    "A mesh is made in code simple: make it a SimpleMesh and smooth it with ConvertToPolyMeshType."
+                );
             }
 
             if (size < 2 || size > short.MaxValue || sizeValue < 2 || sizeValue > short.MaxValue)
             {
-                throw new ArgumentOutOfRangeException(size < 2 || size > short.MaxValue ? nameof(size) : nameof(sizeValue), "A mesh has from 2 to 32 767 rows and points in a row.");
+                throw new ArgumentOutOfRangeException(
+                    size < 2 || size > short.MaxValue ? nameof(size) : nameof(sizeValue),
+                    "A mesh has from 2 to 32 767 rows and points in a row."
+                );
             }
 
             var points = new List<DxfPolygonMeshVertex>();
@@ -79,10 +98,24 @@ namespace GeometryHelper.Dxf
 
             if (points.Count != size * sizeValue)
             {
-                throw new ArgumentException("A mesh of " + size.ToString(CultureInfo.InvariantCulture) + " by " + sizeValue.ToString(CultureInfo.InvariantCulture) + " has as many points as that makes, and was given " + points.Count.ToString(CultureInfo.InvariantCulture) + ".", nameof(vertices));
+                throw new ArgumentException(
+                    "A mesh of "
+                        + size.ToString(CultureInfo.InvariantCulture)
+                        + " by "
+                        + sizeValue.ToString(CultureInfo.InvariantCulture)
+                        + " has as many points as that makes, and was given "
+                        + points.Count.ToString(CultureInfo.InvariantCulture)
+                        + ".",
+                    nameof(vertices)
+                );
             }
 
-            SetFollowers(new[] { new KeyValuePair<string, KeyValuePair<int, string>[]>("SEQEND", new KeyValuePair<int, string>[0]) });
+            SetFollowers(
+                new[]
+                {
+                    new KeyValuePair<string, KeyValuePair<int, string>[]>("SEQEND", new KeyValuePair<int, string>[0]),
+                }
+            );
 
             for (int i = 0; i < points.Count; i++)
             {
@@ -91,9 +124,7 @@ namespace GeometryHelper.Dxf
         }
 
         private DxfPolygonMesh(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets how many rows the mesh has, M (group 71), as AutoCAD's <c>MSize</c>.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the size set is below nought.</exception>
@@ -147,7 +178,6 @@ namespace GeometryHelper.Dxf
         public DxfPolyMeshType PolyMeshType
         {
             get => (GetInt(70, 0) & 4) == 0 ? DxfPolyMeshType.SimpleMesh : (DxfPolyMeshType)GetInt(75, 0);
-
             set
             {
                 if (value != PolyMeshType)
@@ -183,7 +213,11 @@ namespace GeometryHelper.Dxf
                     break;
 
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(newVal), newVal, "A mesh is simple, or smoothed into a quadratic, cubic or Bezier surface.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(newVal),
+                        newVal,
+                        "A mesh is simple, or smoothed into a quadratic, cubic or Bezier surface."
+                    );
             }
         }
 
@@ -211,7 +245,12 @@ namespace GeometryHelper.Dxf
                 }
                 else if ((flags & 16) != 0)
                 {
-                    grid.Add(new KeyValuePair<int, KeyValuePair<int, string>[]>(vertex.Key, DxfFollowers.WholeChange(vertex.Value, 70, flags & ~16, 0)));
+                    grid.Add(
+                        new KeyValuePair<int, KeyValuePair<int, string>[]>(
+                            vertex.Key,
+                            DxfFollowers.WholeChange(vertex.Value, 70, flags & ~16, 0)
+                        )
+                    );
                 }
             }
 
@@ -224,7 +263,10 @@ namespace GeometryHelper.Dxf
 
             Item.File.RemoveFollowers(Item, made);
 
-            SetGroups(new KeyValuePair<int, string>(70, (GetInt(70, 0) & ~4).ToString(CultureInfo.InvariantCulture)), new KeyValuePair<int, string>(75, null));
+            SetGroups(
+                new KeyValuePair<int, string>(70, (GetInt(70, 0) & ~4).ToString(CultureInfo.InvariantCulture)),
+                new KeyValuePair<int, string>(75, null)
+            );
         }
 
         /// <summary>
@@ -236,7 +278,10 @@ namespace GeometryHelper.Dxf
         public void SurfaceFit()
         {
             int type = DxfPolylineFit.Header(Item, "$SURFTYPE", 6);
-            DxfPolyMeshType surface = type == 5 ? DxfPolyMeshType.QuadSurfaceMesh : type == 8 ? DxfPolyMeshType.BezierSurfaceMesh : DxfPolyMeshType.CubicSurfaceMesh;
+            DxfPolyMeshType surface =
+                type == 5 ? DxfPolyMeshType.QuadSurfaceMesh
+                : type == 8 ? DxfPolyMeshType.BezierSurfaceMesh
+                : DxfPolyMeshType.CubicSurfaceMesh;
             SurfaceFit(surface, DxfPolylineFit.Header(Item, "$SURFU", 6), DxfPolylineFit.Header(Item, "$SURFV", 6));
         }
 
@@ -259,9 +304,17 @@ namespace GeometryHelper.Dxf
         /// a Bezier grid above 11 by 11, or is erased.</exception>
         public void SurfaceFit(DxfPolyMeshType surfType, int surfU, int surfV)
         {
-            if (surfType != DxfPolyMeshType.QuadSurfaceMesh && surfType != DxfPolyMeshType.CubicSurfaceMesh && surfType != DxfPolyMeshType.BezierSurfaceMesh)
+            if (
+                surfType != DxfPolyMeshType.QuadSurfaceMesh
+                && surfType != DxfPolyMeshType.CubicSurfaceMesh
+                && surfType != DxfPolyMeshType.BezierSurfaceMesh
+            )
             {
-                throw new ArgumentOutOfRangeException(nameof(surfType), surfType, "A mesh is smoothed into a quadratic, cubic or Bezier surface.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(surfType),
+                    surfType,
+                    "A mesh is smoothed into a quadratic, cubic or Bezier surface."
+                );
             }
 
             if (surfU < 2 || surfU > 200)
@@ -271,7 +324,11 @@ namespace GeometryHelper.Dxf
 
             if (surfV < 2 || surfV > 200)
             {
-                throw new ArgumentOutOfRangeException(nameof(surfV), surfV, "A surface has from 2 to 200 points in a row.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(surfV),
+                    surfV,
+                    "A surface has from 2 to 200 points in a row."
+                );
             }
 
             Straighten();
@@ -281,14 +338,28 @@ namespace GeometryHelper.Dxf
 
             if (m < 2 || n < 2 || vertices.Count < m * n)
             {
-                throw new InvalidOperationException("The mesh of " + m.ToString(CultureInfo.InvariantCulture) + " by " + n.ToString(CultureInfo.InvariantCulture) + " has " + vertices.Count.ToString(CultureInfo.InvariantCulture) + " points, and no grid to smooth.");
+                throw new InvalidOperationException(
+                    "The mesh of "
+                        + m.ToString(CultureInfo.InvariantCulture)
+                        + " by "
+                        + n.ToString(CultureInfo.InvariantCulture)
+                        + " has "
+                        + vertices.Count.ToString(CultureInfo.InvariantCulture)
+                        + " points, and no grid to smooth."
+                );
             }
 
             bool bezier = surfType == DxfPolyMeshType.BezierSurfaceMesh;
 
             if (bezier && (m > 11 || n > 11))
             {
-                throw new InvalidOperationException("A Bezier surface is of a grid of 11 by 11 at most, as AutoCAD takes one; this mesh is " + m.ToString(CultureInfo.InvariantCulture) + " by " + n.ToString(CultureInfo.InvariantCulture) + ".");
+                throw new InvalidOperationException(
+                    "A Bezier surface is of a grid of 11 by 11 at most, as AutoCAD takes one; this mesh is "
+                        + m.ToString(CultureInfo.InvariantCulture)
+                        + " by "
+                        + n.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
 
             int degree = surfType == DxfPolyMeshType.QuadSurfaceMesh ? 2 : 3;
@@ -306,7 +377,12 @@ namespace GeometryHelper.Dxf
                     grid[k / n, k % n] = DxfFollowers.Point(own, 10, Origin);
                 }
 
-                changes.Add(new KeyValuePair<int, KeyValuePair<int, string>[]>(vertices[k].Key, DxfFollowers.WholeChange(own, 70, DxfFollowers.Whole(own, 70, 0) | 16, 0)));
+                changes.Add(
+                    new KeyValuePair<int, KeyValuePair<int, string>[]>(
+                        vertices[k].Key,
+                        DxfFollowers.WholeChange(own, 70, DxfFollowers.Whole(own, 70, 0) | 16, 0)
+                    )
+                );
             }
 
             // A density is a count of spans, as AutoCAD's PEDIT smooths: one point more than it along an open direction (SURFU
@@ -370,11 +446,19 @@ namespace GeometryHelper.Dxf
                 new KeyValuePair<int, string>(70, (GetInt(70, 0) | 4).ToString(CultureInfo.InvariantCulture)),
                 new KeyValuePair<int, string>(73, surfU.ToString(CultureInfo.InvariantCulture)),
                 new KeyValuePair<int, string>(74, surfV.ToString(CultureInfo.InvariantCulture)),
-                new KeyValuePair<int, string>(75, ((int)surfType).ToString(CultureInfo.InvariantCulture)));
+                new KeyValuePair<int, string>(75, ((int)surfType).ToString(CultureInfo.InvariantCulture))
+            );
         }
 
         /// <summary>The curve of a direction of the surface on its points: the Bernstein one of them all, the last joined to the first round a closed direction, or the uniform B-spline.</summary>
-        private static DxfNurbs Direction(List<GeoPoint3> points, bool bezier, int degree, bool closed, out double start, out double end)
+        private static DxfNurbs Direction(
+            List<GeoPoint3> points,
+            bool bezier,
+            int degree,
+            bool closed,
+            out double start,
+            out double end
+        )
         {
             if (!bezier)
             {
@@ -467,7 +551,15 @@ namespace GeometryHelper.Dxf
 
             if (m < 2 || n < 2 || grid.Count < (long)m * n)
             {
-                throw new InvalidOperationException("The mesh of " + m.ToString(CultureInfo.InvariantCulture) + " by " + n.ToString(CultureInfo.InvariantCulture) + " has " + grid.Count.ToString(CultureInfo.InvariantCulture) + " points, and no grid to break into faces.");
+                throw new InvalidOperationException(
+                    "The mesh of "
+                        + m.ToString(CultureInfo.InvariantCulture)
+                        + " by "
+                        + n.ToString(CultureInfo.InvariantCulture)
+                        + " has "
+                        + grid.Count.ToString(CultureInfo.InvariantCulture)
+                        + " points, and no grid to break into faces."
+                );
             }
 
             var faces = new List<DxfEntity>();
@@ -479,8 +571,26 @@ namespace GeometryHelper.Dxf
                     int i1 = (i + 1) % m;
                     int j1 = (j + 1) % n;
                     var face = smoothed
-                        ? new DxfFace(grid[i * n + j], grid[i * n + j1], grid[i1 * n + j1], grid[i1 * n + j], true, true, true, true)
-                        : new DxfFace(grid[i * n + j], grid[i1 * n + j], grid[i1 * n + j1], grid[i * n + j1], true, true, true, true);
+                        ? new DxfFace(
+                            grid[i * n + j],
+                            grid[i * n + j1],
+                            grid[i1 * n + j1],
+                            grid[i1 * n + j],
+                            true,
+                            true,
+                            true,
+                            true
+                        )
+                        : new DxfFace(
+                            grid[i * n + j],
+                            grid[i1 * n + j],
+                            grid[i1 * n + j1],
+                            grid[i * n + j1],
+                            true,
+                            true,
+                            true,
+                            true
+                        );
                     look.GiveTo(face);
                     faces.Add(face);
                 }
@@ -535,7 +645,10 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(vertexToAppend));
             }
 
-            InsertFollowerAt(RecordCount > 1 && RecordType(RecordCount - 1) == "SEQEND" ? RecordCount - 1 : RecordCount, vertexToAppend);
+            InsertFollowerAt(
+                RecordCount > 1 && RecordType(RecordCount - 1) == "SEQEND" ? RecordCount - 1 : RecordCount,
+                vertexToAppend
+            );
         }
 
         /// <summary>
@@ -570,17 +683,21 @@ namespace GeometryHelper.Dxf
         /// <inheritdoc/>
         private protected override IReadOnlyList<int> GroupOrder => Order;
 
-        private static IEnumerable<DxfTypedValue> Head(int m, int n, bool closedM, bool closedN) => new[]
-        {
-            new DxfTypedValue(100, "AcDbPolygonMesh"),
-            new DxfTypedValue(66, "1"),
-            new DxfTypedValue(10, "0"),
-            new DxfTypedValue(20, "0"),
-            new DxfTypedValue(30, "0"),
-            new DxfTypedValue(70, (16 | (closedM ? 1 : 0) | (closedN ? 32 : 0)).ToString(CultureInfo.InvariantCulture)),
-            new DxfTypedValue(71, m.ToString(CultureInfo.InvariantCulture)),
-            new DxfTypedValue(72, n.ToString(CultureInfo.InvariantCulture)),
-        };
+        private static IEnumerable<DxfTypedValue> Head(int m, int n, bool closedM, bool closedN) =>
+            new[]
+            {
+                new DxfTypedValue(100, "AcDbPolygonMesh"),
+                new DxfTypedValue(66, "1"),
+                new DxfTypedValue(10, "0"),
+                new DxfTypedValue(20, "0"),
+                new DxfTypedValue(30, "0"),
+                new DxfTypedValue(
+                    70,
+                    (16 | (closedM ? 1 : 0) | (closedN ? 32 : 0)).ToString(CultureInfo.InvariantCulture)
+                ),
+                new DxfTypedValue(71, m.ToString(CultureInfo.InvariantCulture)),
+                new DxfTypedValue(72, n.ToString(CultureInfo.InvariantCulture)),
+            };
 
         private void SetSize(int code, short value)
         {

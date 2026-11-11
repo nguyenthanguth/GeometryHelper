@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Core.Internal;
@@ -31,7 +31,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
                 ApplicationVersion = "3.2.0",
                 EditorsFamilyName = "Unit",
                 EditorsGivenName = "Test",
-                EditorsOrganisationName = "GeometryHelper"
+                EditorsOrganisationName = "GeometryHelper",
             };
         }
 

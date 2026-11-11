@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -56,7 +56,8 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from this triangle to a polyline, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(polyline, this, tolerance);
+        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Distance3.DistanceTo(polyline, this, tolerance);
 
         /// <summary>
         /// Gets the distance from this triangle to a solid, using the default tolerance.
@@ -86,7 +87,8 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from this triangle to a triangle, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoTriangle3 other, Tolerance tolerance) => Distance3.DistanceTo(this, other, tolerance);
+        public double DistanceTo(GeoTriangle3 other, Tolerance tolerance) =>
+            Distance3.DistanceTo(this, other, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between this triangle and a face: the answer of
@@ -138,7 +140,8 @@ namespace GeometryHelper.Geometry
         /// square crosses the triangle and is nought from it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) => Distance3.DistanceTo(this, polygon, tolerance);
+        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Distance3.DistanceTo(this, polygon, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between this triangle and a plane: the answer of

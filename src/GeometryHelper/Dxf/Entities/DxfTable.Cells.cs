@@ -27,7 +27,34 @@ namespace GeometryHelper.Dxf
         // not its 280 and 281, its title and header left out, which AutoCAD 2021 kept through a clear (D33e m01, n01).
         private static readonly HashSet<int> TableOverrides = new HashSet<int>
         {
-            70, 40, 41, 7, 140, 170, 63, 64, 65, 66, 68, 69, 283, 274, 275, 276, 277, 278, 279, 284, 285, 286, 287, 288, 289, 97, 98, 4,
+            70,
+            40,
+            41,
+            7,
+            140,
+            170,
+            63,
+            64,
+            65,
+            66,
+            68,
+            69,
+            283,
+            274,
+            275,
+            276,
+            277,
+            278,
+            279,
+            284,
+            285,
+            286,
+            287,
+            288,
+            289,
+            97,
+            98,
+            4,
         };
 
         #region The cells walked
@@ -46,7 +73,15 @@ namespace GeometryHelper.Dxf
 
                 if (layout.Rows < 1 || layout.Columns < 1)
                 {
-                    throw new InvalidOperationException("The ACAD_TABLE " + (Handle ?? string.Empty) + " has no cells: its record gives it " + layout.Rows.ToString(CultureInfo.InvariantCulture) + " rows and " + layout.Columns.ToString(CultureInfo.InvariantCulture) + " columns.");
+                    throw new InvalidOperationException(
+                        "The ACAD_TABLE "
+                            + (Handle ?? string.Empty)
+                            + " has no cells: its record gives it "
+                            + layout.Rows.ToString(CultureInfo.InvariantCulture)
+                            + " rows and "
+                            + layout.Columns.ToString(CultureInfo.InvariantCulture)
+                            + " columns."
+                    );
                 }
 
                 return new DxfCellRange(this, 0, 0, layout.Rows - 1, layout.Columns - 1);
@@ -104,12 +139,18 @@ namespace GeometryHelper.Dxf
         {
             if (!point.IsValid)
             {
-                throw new ArgumentException("A point has to be of finite numbers: " + point + " is not.", nameof(point));
+                throw new ArgumentException(
+                    "A point has to be of finite numbers: " + point + " is not.",
+                    nameof(point)
+                );
             }
 
             if (!viewVector.IsValid || viewVector.IsZeroLength(Tolerance.Default))
             {
-                throw new ArgumentException("A direction has to be of finite numbers and some length: " + viewVector + " is not.", nameof(viewVector));
+                throw new ArgumentException(
+                    "A direction has to be of finite numbers and some length: " + viewVector + " is not.",
+                    nameof(viewVector)
+                );
             }
 
             var none = new DxfTableHitTestInfo(DxfTableHitTestType.None, -1, -1);
@@ -135,7 +176,13 @@ namespace GeometryHelper.Dxf
             int column = Place(layout, layout.ColumnAt, offset.DotProduct(along), slack);
             int row = Place(layout, layout.RowAt, offset.DotProduct(down), slack);
 
-            if (row < 0 || column < 0 || row >= layout.Rows || column >= layout.Columns || row * layout.Columns + column >= layout.CellStart.Count)
+            if (
+                row < 0
+                || column < 0
+                || row >= layout.Rows
+                || column >= layout.Columns
+                || row * layout.Columns + column >= layout.CellStart.Count
+            )
             {
                 return none;
             }
@@ -165,7 +212,12 @@ namespace GeometryHelper.Dxf
 
             // The block's content is its top left cell's, as AutoCAD keeps it.
             DxfCellRange block = GetMergeRange(row, col);
-            DxfCellAlignment alignment = Alignment(block.TopRow, block.LeftColumn) ?? (RowType(block.TopRow) == DxfRowType.DataRow ? DxfCellAlignment.TopCenter : DxfCellAlignment.MiddleCenter);
+            DxfCellAlignment alignment = Alignment(block.TopRow, block.LeftColumn)
+                ?? (
+                    RowType(block.TopRow) == DxfRowType.DataRow
+                        ? DxfCellAlignment.TopCenter
+                        : DxfCellAlignment.MiddleCenter
+                );
             Frame(Read(), out _, out _, out GeoVector3 along, out GeoVector3 down);
             double width = corners[0].GetVectorTo(corners[1]).DotProduct(along);
             double height = corners[0].GetVectorTo(corners[3]).DotProduct(down);
@@ -177,8 +229,14 @@ namespace GeometryHelper.Dxf
             GeoVector3 below = up ? down.Multiply(-1.0) : down;
             int across = ((int)alignment - 1) % 3;
             int upDown = ((int)alignment - 1) / 3;
-            double x = across == 0 ? HorizontalCellMargin : across == 1 ? width / 2.0 : width - HorizontalCellMargin;
-            double y = upDown == 0 ? VerticalCellMargin : upDown == 1 ? height / 2.0 : height - VerticalCellMargin;
+            double x =
+                across == 0 ? HorizontalCellMargin
+                : across == 1 ? width / 2.0
+                : width - HorizontalCellMargin;
+            double y =
+                upDown == 0 ? VerticalCellMargin
+                : upDown == 1 ? height / 2.0
+                : height - VerticalCellMargin;
             return top.Add(along.Multiply(x)).Add(below.Multiply(y));
         }
 
@@ -187,19 +245,30 @@ namespace GeometryHelper.Dxf
         /// point, the direction of its rows and the one they follow one another in, the point and the direction read from its
         /// layout as it stands, so that a hit test of a table of 1 000 rows reads its record once.
         /// </summary>
-        private void Frame(Layout layout, out GeoVector3 normal, out GeoPoint3 origin, out GeoVector3 along, out GeoVector3 down)
+        private void Frame(
+            Layout layout,
+            out GeoVector3 normal,
+            out GeoPoint3 origin,
+            out GeoVector3 along,
+            out GeoVector3 down
+        )
         {
             DxfDimGroups g = layout.Groups;
 
             // The normal as Normal reads it, from the first 210, 220 and 230 of the table's own part, made of unit length.
-            bool any = Coordinate(g, 210, out double x) | Coordinate(g, 220, out double y) | Coordinate(g, 230, out double z);
+            bool any =
+                Coordinate(g, 210, out double x) | Coordinate(g, 220, out double y) | Coordinate(g, 230, out double z);
             double length = Math.Sqrt(x * x + y * y + z * z);
-            normal = !any || !(length > 0.0) || double.IsInfinity(length) ? new GeoVector3(0.0, 0.0, 1.0)
-                : Math.Abs(length - 1.0) <= 1E-12 ? new GeoVector3(x, y, z) : new GeoVector3(x / length, y / length, z / length);
+            normal =
+                !any || !(length > 0.0) || double.IsInfinity(length) ? new GeoVector3(0.0, 0.0, 1.0)
+                : Math.Abs(length - 1.0) <= 1E-12 ? new GeoVector3(x, y, z)
+                : new GeoVector3(x / length, y / length, z / length);
             origin = OcsToWorld(normal, g.Point(10, g.Base, Origin));
             GeoPoint3 d = g.Point(11, g.Sub, new GeoPoint3(1.0, 0.0, 0.0));
             along = DxfOcsTransform.Normalized(new GeoVector3(d.X, d.Y, d.Z));
-            down = DxfOcsTransform.Normalized(normal.CrossProduct(along).Multiply(FlowDirection == DxfFlowDirection.BottomToTop ? 1.0 : -1.0));
+            down = DxfOcsTransform.Normalized(
+                normal.CrossProduct(along).Multiply(FlowDirection == DxfFlowDirection.BottomToTop ? 1.0 : -1.0)
+            );
         }
 
         private static bool Coordinate(DxfDimGroups g, int code, out double value)
@@ -358,7 +427,14 @@ namespace GeometryHelper.Dxf
 
             object now = cell.Value();
 
-            if (KindOf(cell) == written.Kind && (SameValue(now, written.Value) || (now is string text && SameValue(DxfReader.Decode(text), written.Value))) && cell.Head(344) == null)
+            if (
+                KindOf(cell) == written.Kind
+                && (
+                    SameValue(now, written.Value)
+                    || (now is string text && SameValue(DxfReader.Decode(text), written.Value))
+                )
+                && cell.Head(344) == null
+            )
             {
                 return;
             }
@@ -366,7 +442,14 @@ namespace GeometryHelper.Dxf
             CheckEditable();
             string field = cell.Head(344);
             Typed(cell);
-            cell.WriteValue(((int)written.Kind).ToString(CultureInfo.InvariantCulture), written.Data, shown, null, string.Empty, true);
+            cell.WriteValue(
+                ((int)written.Kind).ToString(CultureInfo.InvariantCulture),
+                written.Data,
+                shown,
+                null,
+                string.Empty,
+                true
+            );
             cell.DropField();
             cell.Groups.Write(Order);
             EraseFields(new[] { field });
@@ -450,14 +533,26 @@ namespace GeometryHelper.Dxf
             if (block || HoldsContentLooks(cell))
             {
                 bool[] moved = null;
-                List<KeyValuePair<int, string>>[] looks = HoldsContentLooks(cell) ? ContentLooks(layout, out moved) : null;
-                List<KeyValuePair<int, string>> reset = Emptied(Slice(cell), looks?[row], moved != null && moved[row], Item.File.Supports(1021));
+                List<KeyValuePair<int, string>>[] looks = HoldsContentLooks(cell)
+                    ? ContentLooks(layout, out moved)
+                    : null;
+                List<KeyValuePair<int, string>> reset = Emptied(
+                    Slice(cell),
+                    looks?[row],
+                    moved != null && moved[row],
+                    Item.File.Supports(1021)
+                );
                 layout.Groups.List.RemoveRange(cell.From, cell.To - cell.From);
                 layout.Groups.List.InsertRange(cell.From, reset);
 
                 // The looks kept as the table's, marked for ClearTableStyleOverrides of 1 (0x10, 0x20, 0x08, as their flags).
                 CellView left = View(reset);
-                kept = moved != null && moved[row] ? 0 : (left.Override(7, 0x10) != null ? 0x10 : 0) | (left.Override(140, 0x20) != null ? 0x20 : 0) | (left.Override(64, 0x08) != null ? 0x08 : 0);
+                kept =
+                    moved != null && moved[row]
+                        ? 0
+                        : (left.Override(7, 0x10) != null ? 0x10 : 0)
+                            | (left.Override(140, 0x20) != null ? 0x20 : 0)
+                            | (left.Override(64, 0x08) != null ? 0x08 : 0);
             }
             else
             {
@@ -513,7 +608,14 @@ namespace GeometryHelper.Dxf
 
             CellView cell = CellToWrite(row, col);
             string now = cell.InValue(300) ?? string.Empty;
-            int flags = int.TryParse(cell.InValue(93)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) ? read : 6;
+            int flags = int.TryParse(
+                cell.InValue(93)?.Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int read
+            )
+                ? read
+                : 6;
             bool block = cell.ValueFrom >= 0 && cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell;
             bool none = cell.ValueFrom >= 0 && (flags & 1) != 0;
 
@@ -552,7 +654,15 @@ namespace GeometryHelper.Dxf
                 }
 
                 CheckEditable();
-                cell.WriteValue(kind == "0" ? "512" : kind, cell.ValueData(), cell.Text(), null, string.Empty, false, unflagged);
+                cell.WriteValue(
+                    kind == "0" ? "512" : kind,
+                    cell.ValueData(),
+                    cell.Text(),
+                    null,
+                    string.Empty,
+                    false,
+                    unflagged
+                );
                 cell.Groups.Write(Order);
                 return;
             }
@@ -633,7 +743,11 @@ namespace GeometryHelper.Dxf
 
             if (((int)unitType & ~UnitFlags) != 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(unitType), unitType, "A unit is made of the flags of DxfUnitType, as Angle | AngleNotTransformed.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(unitType),
+                    unitType,
+                    "A unit is made of the flags of DxfUnitType, as Angle | AngleNotTransformed."
+                );
             }
 
             CheckValue(cell, row, col);
@@ -649,7 +763,12 @@ namespace GeometryHelper.Dxf
 
             if (dataType != DxfDataType.String && dataType != DxfDataType.Long && dataType != DxfDataType.Double)
             {
-                throw new ArgumentException("A cell's value is written as a text, a whole number or a number: " + dataType + " is not, the library knowing no groups for it, as the DXF reference does not describe a cell's value.", nameof(dataType));
+                throw new ArgumentException(
+                    "A cell's value is written as a text, a whole number or a number: "
+                        + dataType
+                        + " is not, the library knowing no groups for it, as the DXF reference does not describe a cell's value.",
+                    nameof(dataType)
+                );
             }
 
             CheckEditable();
@@ -663,7 +782,14 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private void Turn(CellView cell, DxfDataType dataType, string unit)
         {
-            int flags = int.TryParse(cell.InValue(93)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) ? read : 6;
+            int flags = int.TryParse(
+                cell.InValue(93)?.Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int read
+            )
+                ? read
+                : 6;
             string newKind = ((int)dataType).ToString(CultureInfo.InvariantCulture);
             bool keepFlags = false;
             string format = null;
@@ -677,7 +803,15 @@ namespace GeometryHelper.Dxf
             }
             else
             {
-                cell.WriteValue(newKind, written.Data, written.Text, unit, format, false, (keepFlags ? flags : flags & ~2).ToString(CultureInfo.InvariantCulture));
+                cell.WriteValue(
+                    newKind,
+                    written.Data,
+                    written.Text,
+                    unit,
+                    format,
+                    false,
+                    (keepFlags ? flags : flags & ~2).ToString(CultureInfo.InvariantCulture)
+                );
             }
         }
 
@@ -698,14 +832,18 @@ namespace GeometryHelper.Dxf
             SetDataType(row, column, dataType.DataType, dataType.UnitType);
         }
 
-        private static DxfDataType KindOf(CellView cell)
-            => int.TryParse(cell.InValue(90)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int kind) ? (DxfDataType)kind : DxfDataType.String;
+        private static DxfDataType KindOf(CellView cell) =>
+            int.TryParse(cell.InValue(90)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int kind)
+                ? (DxfDataType)kind
+                : DxfDataType.String;
 
-        private static DxfUnitType UnitOf(CellView cell)
-            => int.TryParse(cell.InValue(94)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int unit) ? (DxfUnitType)unit : DxfUnitType.Unitless;
+        private static DxfUnitType UnitOf(CellView cell) =>
+            int.TryParse(cell.InValue(94)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int unit)
+                ? (DxfUnitType)unit
+                : DxfUnitType.Unitless;
 
-        private static bool SameValue(object now, object value)
-            => now is double a && value is double b ? Same(a, b) : Equals(now, value);
+        private static bool SameValue(object now, object value) =>
+            now is double a && value is double b ? Same(a, b) : Equals(now, value);
 
         /// <summary>A value given as one of the kinds written: a text, a whole number of 32 bits, or a finite number.</summary>
         private static Written ValueToWrite(object value, string parameter)
@@ -717,7 +855,10 @@ namespace GeometryHelper.Dxf
                 case string text:
                     if (text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0)
                     {
-                        throw new ArgumentException("A cell's text is written on one line: a new line is \\P.", parameter);
+                        throw new ArgumentException(
+                            "A cell's text is written on one line: a new line is \\P.",
+                            parameter
+                        );
                     }
 
                     return new Written(DxfDataType.String, text, CellView.Pieces(text, 2, 1), text);
@@ -730,7 +871,11 @@ namespace GeometryHelper.Dxf
                 case long whole:
                     if (whole < int.MinValue || whole > int.MaxValue)
                     {
-                        throw new ArgumentOutOfRangeException(parameter, whole, "AutoCAD's whole number of a cell holds 32 bits.");
+                        throw new ArgumentOutOfRangeException(
+                            parameter,
+                            whole,
+                            "AutoCAD's whole number of a cell holds 32 bits."
+                        );
                     }
 
                     return Whole((int)whole);
@@ -741,9 +886,17 @@ namespace GeometryHelper.Dxf
                 case DateTime _:
                 case GeoPoint2 _:
                 case GeoPoint3 _:
-                    throw new ArgumentException("A cell's value is written as a text, a whole number or a number: a date or a point is not, the library knowing no groups for it, as the DXF reference does not describe a cell's value.", parameter);
+                    throw new ArgumentException(
+                        "A cell's value is written as a text, a whole number or a number: a date or a point is not, the library knowing no groups for it, as the DXF reference does not describe a cell's value.",
+                        parameter
+                    );
                 default:
-                    throw new ArgumentException("A cell's value is given as a string, an int, a short, a byte, a long within 32 bits, a double or a float: a " + value.GetType().Name + " is none of them.", parameter);
+                    throw new ArgumentException(
+                        "A cell's value is given as a string, an int, a short, a byte, a long within 32 bits, a double or a float: a "
+                            + value.GetType().Name
+                            + " is none of them.",
+                        parameter
+                    );
             }
         }
 
@@ -763,7 +916,13 @@ namespace GeometryHelper.Dxf
             if (places == null)
             {
                 Match feet = Regex.Match(format, "^%lu4(?:%pr([0-9]))?(?:%zs([0-9]{1,2}))?$");
-                return feet.Success ? Architectural(value, feet.Groups[1].Success ? feet.Groups[1].Value[0] - '0' : 4, feet.Groups[2].Success ? int.Parse(feet.Groups[2].Value, CultureInfo.InvariantCulture) : 0) : null;
+                return feet.Success
+                    ? Architectural(
+                        value,
+                        feet.Groups[1].Success ? feet.Groups[1].Value[0] - '0' : 4,
+                        feet.Groups[2].Success ? int.Parse(feet.Groups[2].Value, CultureInfo.InvariantCulture) : 0
+                    )
+                    : null;
             }
 
             string text = Math.Abs(value).ToString("F" + places, CultureInfo.InvariantCulture);
@@ -801,7 +960,10 @@ namespace GeometryHelper.Dxf
             }
 
             string sign = count != 0 && value < 0.0 ? "-" : string.Empty;
-            string inch = fraction == 0 ? inches.ToString(CultureInfo.InvariantCulture) : inches == 0 && feet == 0 && (zeros & 1) != 0 ? fraction + "/" + under : inches + " " + fraction + "/" + under;
+            string inch =
+                fraction == 0 ? inches.ToString(CultureInfo.InvariantCulture)
+                : inches == 0 && feet == 0 && (zeros & 1) != 0 ? fraction + "/" + under
+                : inches + " " + fraction + "/" + under;
             string text;
 
             if (feet == 0 && (zeros & 1) != 0)
@@ -830,7 +992,12 @@ namespace GeometryHelper.Dxf
         {
             Guard.Finite(real, parameter, "A cell's number has to be finite.");
             string text = Numbers.Exact(real + 0.0);
-            return new Written(DxfDataType.Double, real + 0.0, new[] { new KeyValuePair<int, string>(140, AsReal(real)) }, text);
+            return new Written(
+                DxfDataType.Double,
+                real + 0.0,
+                new[] { new KeyValuePair<int, string>(140, AsReal(real)) },
+                text
+            );
         }
 
         /// <summary>
@@ -857,17 +1024,28 @@ namespace GeometryHelper.Dxf
                         return Whole(Cut(real));
                     }
 
-                    if (now is string words && int.TryParse(words.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read))
+                    if (
+                        now is string words
+                        && int.TryParse(words.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read)
+                    )
                     {
                         keepFlags = true;
                         return Whole(read);
                     }
 
-                    return now is string figures && Numbers.TryRead(figures, out double parsed) && Guard.IsFinite(parsed) ? Whole(Cut(parsed)) : null;
+                    return
+                        now is string figures && Numbers.TryRead(figures, out double parsed) && Guard.IsFinite(parsed)
+                        ? Whole(Cut(parsed))
+                        : null;
                 default:
                     if (now is int number)
                     {
-                        return new Written(DxfDataType.Double, (double)number, new[] { new KeyValuePair<int, string>(140, AsReal(number)) }, RealText(number, cell.InValue(300)) ?? RealText(number, null));
+                        return new Written(
+                            DxfDataType.Double,
+                            (double)number,
+                            new[] { new KeyValuePair<int, string>(140, AsReal(number)) },
+                            RealText(number, cell.InValue(300)) ?? RealText(number, null)
+                        );
                     }
 
                     if (!(now is string digits) || !Numbers.TryRead(digits, out double value) || !Guard.IsFinite(value))
@@ -878,7 +1056,12 @@ namespace GeometryHelper.Dxf
                     bool tens = digits.IndexOf('e') >= 0 || digits.IndexOf('E') >= 0;
                     DxfDatabase database = IsResident ? Item.File.Database : null;
                     format = tens ? "%lu1" : "%lu6";
-                    return new Written(DxfDataType.Double, value + 0.0, new[] { new KeyValuePair<int, string>(140, AsReal(value)) }, UnitsText(value, tens ? 1 : database?.Lunits ?? 2, database?.Luprec ?? 4));
+                    return new Written(
+                        DxfDataType.Double,
+                        value + 0.0,
+                        new[] { new KeyValuePair<int, string>(140, AsReal(value)) },
+                        UnitsText(value, tens ? 1 : database?.Lunits ?? 2, database?.Luprec ?? 4)
+                    );
             }
         }
 
@@ -900,9 +1083,15 @@ namespace GeometryHelper.Dxf
             switch (units)
             {
                 case 1:
-                    return value.ToString((places > 0 ? "0." + new string('0', places) : "0") + "E+00", CultureInfo.InvariantCulture);
+                    return value.ToString(
+                        (places > 0 ? "0." + new string('0', places) : "0") + "E+00",
+                        CultureInfo.InvariantCulture
+                    );
                 case 2:
-                    return value.ToString("F" + places.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+                    return value.ToString(
+                        "F" + places.ToString(CultureInfo.InvariantCulture),
+                        CultureInfo.InvariantCulture
+                    );
                 case 4:
                     return Architectural(value, Math.Min(places, 9), 0) ?? Numbers.Exact(value + 0.0);
                 default:
@@ -915,7 +1104,13 @@ namespace GeometryHelper.Dxf
         {
             if (cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell)
             {
-                throw new InvalidOperationException("The cell (" + row.ToString(CultureInfo.InvariantCulture) + ", " + col.ToString(CultureInfo.InvariantCulture) + ") holds a block, not a value.");
+                throw new InvalidOperationException(
+                    "The cell ("
+                        + row.ToString(CultureInfo.InvariantCulture)
+                        + ", "
+                        + col.ToString(CultureInfo.InvariantCulture)
+                        + ") holds a block, not a value."
+                );
             }
         }
 
@@ -924,7 +1119,13 @@ namespace GeometryHelper.Dxf
         {
             if (cell.ValueFrom < 0)
             {
-                throw new InvalidOperationException("The cell (" + row.ToString(CultureInfo.InvariantCulture) + ", " + col.ToString(CultureInfo.InvariantCulture) + ") holds its text alone, as a file before R2007 writes it, and no value (301 CELL_VALUE) to give a kind, a unit or a format.");
+                throw new InvalidOperationException(
+                    "The cell ("
+                        + row.ToString(CultureInfo.InvariantCulture)
+                        + ", "
+                        + col.ToString(CultureInfo.InvariantCulture)
+                        + ") holds its text alone, as a file before R2007 writes it, and no value (301 CELL_VALUE) to give a kind, a unit or a format."
+                );
             }
         }
 
@@ -968,14 +1169,21 @@ namespace GeometryHelper.Dxf
                 col,
                 170,
                 ((int)align).ToString(CultureInfo.InvariantCulture),
-                now => int.TryParse(now?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) && value == (int)align,
+                now =>
+                    int.TryParse(now?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                    && value == (int)align,
                 () =>
                 {
                     if (align < DxfCellAlignment.TopLeft || align > DxfCellAlignment.BottomRight)
                     {
-                        throw new ArgumentOutOfRangeException(nameof(align), align, "An alignment is one of DxfCellAlignment, 1 to 9.");
+                        throw new ArgumentOutOfRangeException(
+                            nameof(align),
+                            align,
+                            "An alignment is one of DxfCellAlignment, 1 to 9."
+                        );
                     }
-                });
+                }
+            );
         }
 
         /// <summary>
@@ -995,7 +1203,8 @@ namespace GeometryHelper.Dxf
                 140,
                 AsReal(height),
                 now => Numbers.TryRead(now, out double value) && Guard.IsFinite(value) && Same(value, height),
-                () => Guard.Positive(height, nameof(height), "A text's height has to be a finite number above nought."));
+                () => Guard.Positive(height, nameof(height), "A text's height has to be a finite number above nought.")
+            );
         }
 
         /// <summary>Sets the height of the text of a content of a cell, as AutoCAD's <c>SetTextHeight(row, column, contentIndex, height)</c>: of its one content, nought, as <see cref="SetTextHeight(int, int, double)"/>.</summary>
@@ -1028,7 +1237,14 @@ namespace GeometryHelper.Dxf
         public void SetTextStyle(int row, int col, DxfTextStyleTableRecord style)
         {
             string name = TextStyleOf(style, nameof(style));
-            SetOverride(row, col, 7, name, now => now != null && string.Equals(DxfReader.NameOf(now), name, StringComparison.OrdinalIgnoreCase), null);
+            SetOverride(
+                row,
+                col,
+                7,
+                name,
+                now => now != null && string.Equals(DxfReader.NameOf(now), name, StringComparison.OrdinalIgnoreCase),
+                null
+            );
         }
 
         /// <summary>
@@ -1072,7 +1288,8 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's.</exception>
         /// <exception cref="ArgumentException">Thrown when the colour is a true colour or none.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the table is erased.</exception>
-        public void SetBackgroundColor(int row, int col, DxfColor color) => SetColour(row, col, 63, color, nameof(color));
+        public void SetBackgroundColor(int row, int col, DxfColor color) =>
+            SetColour(row, col, 63, color, nameof(color));
 
         /// <summary>
         /// Sets whether a cell's background is left unfilled, as AutoCAD's <c>SetBackgroundColorNone(row, col, value)</c>, as
@@ -1147,7 +1364,10 @@ namespace GeometryHelper.Dxf
         private bool KindFilled(int row)
         {
             DxfRowType type = RowType(row);
-            int rowKind = type == DxfRowType.TitleRow ? 0 : type == DxfRowType.HeaderRow ? 1 : 2;
+            int rowKind =
+                type == DxfRowType.TitleRow ? 0
+                : type == DxfRowType.HeaderRow ? 1
+                : 2;
             string fill = OwnText(Read(), RowLooks[283] + rowKind) ?? StyleLooks()[rowKind][3];
             return fill.Trim() == "0";
         }
@@ -1175,7 +1395,13 @@ namespace GeometryHelper.Dxf
 
             if (type == DxfTableCellType.BlockCell)
             {
-                throw new InvalidOperationException("The cell (" + row.ToString(CultureInfo.InvariantCulture) + ", " + col.ToString(CultureInfo.InvariantCulture) + ") holds a text: a block cell is made with its block, which the library does not set.");
+                throw new InvalidOperationException(
+                    "The cell ("
+                        + row.ToString(CultureInfo.InvariantCulture)
+                        + ", "
+                        + col.ToString(CultureInfo.InvariantCulture)
+                        + ") holds a text: a block cell is made with its block, which the library does not set."
+                );
             }
 
             if (type != DxfTableCellType.TextCell)
@@ -1238,9 +1464,14 @@ namespace GeometryHelper.Dxf
                 {
                     if (rot < DxfRotationAngle.Degrees000 || rot > DxfRotationAngle.Degrees270)
                     {
-                        throw new ArgumentOutOfRangeException(nameof(rot), rot, "A cell's text turns a quarter at a time: 0, 90, 180 or 270 degrees.");
+                        throw new ArgumentOutOfRangeException(
+                            nameof(rot),
+                            rot,
+                            "A cell's text turns a quarter at a time: 0, 90, 180 or 270 degrees."
+                        );
                     }
-                });
+                }
+            );
         }
 
         /// <summary>
@@ -1257,7 +1488,14 @@ namespace GeometryHelper.Dxf
         public void SetRotation(int row, int column, int contentIndex, double angle)
         {
             CheckContent(contentIndex);
-            SetHeadNumber(row, column, 145, angle, now => Same(now, angle), () => Guard.Finite(angle, nameof(angle), "An angle has to be a finite number."));
+            SetHeadNumber(
+                row,
+                column,
+                145,
+                angle,
+                now => Same(now, angle),
+                () => Guard.Finite(angle, nameof(angle), "An angle has to be a finite number.")
+            );
         }
 
         /// <summary>Sets the scale of a content of a cell, as AutoCAD's <c>SetScale(row, column, contentIndex, scale)</c>: of its one content, nought, a block cell's, as <see cref="SetBlockScale(int, int, double)"/>.</summary>
@@ -1307,7 +1545,13 @@ namespace GeometryHelper.Dxf
 
             if (cell.Whole(171, 1) != (int)DxfTableCellType.BlockCell)
             {
-                throw new InvalidOperationException("The cell (" + row.ToString(CultureInfo.InvariantCulture) + ", " + col.ToString(CultureInfo.InvariantCulture) + ") holds a text, not a block.");
+                throw new InvalidOperationException(
+                    "The cell ("
+                        + row.ToString(CultureInfo.InvariantCulture)
+                        + ", "
+                        + col.ToString(CultureInfo.InvariantCulture)
+                        + ") holds a text, not a block."
+                );
             }
 
             if ((cell.Whole(174, 0) != 0) == autoFit)
@@ -1405,11 +1649,25 @@ namespace GeometryHelper.Dxf
                     index = color.ColorIndex;
                     break;
                 default:
-                    throw new ArgumentException("A cell's colour is written as a colour of AutoCAD's index (group " + code.ToString(CultureInfo.InvariantCulture) + "): " + color + " is not one.", parameter);
+                    throw new ArgumentException(
+                        "A cell's colour is written as a colour of AutoCAD's index (group "
+                            + code.ToString(CultureInfo.InvariantCulture)
+                            + "): "
+                            + color
+                            + " is not one.",
+                        parameter
+                    );
             }
 
             DxfColor wanted = DxfColor.OfIndex(index);
-            SetOverride(row, col, code, index.ToString(CultureInfo.InvariantCulture), now => wanted.Equals(Colour(now)), null);
+            SetOverride(
+                row,
+                col,
+                code,
+                index.ToString(CultureInfo.InvariantCulture),
+                now => wanted.Equals(Colour(now)),
+                null
+            );
         }
 
         #endregion
@@ -1464,7 +1722,9 @@ namespace GeometryHelper.Dxf
             CheckContent(contentIndex);
             CellView cell = CellToWrite(row, column);
             int now = cell.Flags ?? cell.Held();
-            int named = FlagsOf(overrides) | ((overrides & (DxfCellProperties.DataType | DxfCellProperties.DataFormat)) != 0 ? DataTypeFlag : 0);
+            int named =
+                FlagsOf(overrides)
+                | ((overrides & (DxfCellProperties.DataType | DxfCellProperties.DataFormat)) != 0 ? DataTypeFlag : 0);
             int wanted = (now & 0x07) | named;
             int flagsCode = Item.File.Supports(1021) ? 91 : 177;
 
@@ -1481,7 +1741,10 @@ namespace GeometryHelper.Dxf
             if ((added & 0x01) != 0)
             {
                 DxfRowType type = RowType(row);
-                int rowKind = type == DxfRowType.TitleRow ? 0 : type == DxfRowType.HeaderRow ? 1 : 2;
+                int rowKind =
+                    type == DxfRowType.TitleRow ? 0
+                    : type == DxfRowType.HeaderRow ? 1
+                    : 2;
                 cell.SetOverride(170, OwnText(Read(), RowLooks[170] + rowKind) ?? StyleLooks()[rowKind][0], flagsCode);
             }
 
@@ -1550,7 +1813,8 @@ namespace GeometryHelper.Dxf
             Layout layout = Read();
             CellView cell = layout.CellOf(row, column);
             bool turned = IsTurned(cell);
-            bool typed = cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell && ((cell.Flags ?? 0) & DataTypeFlag) != 0;
+            bool typed =
+                cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell && ((cell.Flags ?? 0) & DataTypeFlag) != 0;
 
             if ((((cell.Flags ?? 0) | cell.Held()) & CellOverrideFlags) == 0 && !turned && !typed)
             {
@@ -1581,7 +1845,11 @@ namespace GeometryHelper.Dxf
             // shown (D33f n07). The kinds of the rows are read of the TABLECONTENT once for its record (ContentKindsOf).
             List<KeyValuePair<int, string>>[] looks = ContentLooks(layout, out bool[] moved);
 
-            foreach (KeyValuePair<int, string> look in moved != null && moved[row] ? looks[row] : new List<KeyValuePair<int, string>>())
+            foreach (
+                KeyValuePair<int, string> look in moved != null && moved[row]
+                    ? looks[row]
+                    : new List<KeyValuePair<int, string>>()
+            )
             {
                 alone.SetOverride(look.Key, look.Value, Item.File.Supports(1021) ? 91 : 177);
                 alone = View(alone.Groups.List);
@@ -1589,7 +1857,10 @@ namespace GeometryHelper.Dxf
 
             // A cell of a row that keeps looks of its own keeps them, as AutoCAD 2021 kept GH_TXT, red, 9 and top left in B-12
             // and M12, whose row a row put in before the first took the table's own looks of the data from (D33f a01, a10, a11).
-            foreach (KeyValuePair<int, string> look in (moved == null || !moved[row] ? RowLooksOf(layout, row) : null) ?? new List<KeyValuePair<int, string>>())
+            foreach (
+                KeyValuePair<int, string> look in (moved == null || !moved[row] ? RowLooksOf(layout, row) : null)
+                    ?? new List<KeyValuePair<int, string>>()
+            )
             {
                 alone.SetOverride(look.Key, look.Value, Item.File.Supports(1021) ? 91 : 177);
                 alone = View(alone.Groups.List);
@@ -1603,7 +1874,14 @@ namespace GeometryHelper.Dxf
             var places = new List<int>();
             Item.File.OwnGroupsOf(Item, 0, places);
             int first = layout.Groups.Marked ? 1 : 0;
-            Item.File.SpliceRecord(Item, 0, places[2 * (cell.From + first)], places[2 * (cell.To - 1 + first) + 1], alone.Groups.List, false);
+            Item.File.SpliceRecord(
+                Item,
+                0,
+                places[2 * (cell.From + first)],
+                places[2 * (cell.To - 1 + first) + 1],
+                alone.Groups.List,
+                false
+            );
         }
 
         /// <summary>
@@ -1681,7 +1959,11 @@ namespace GeometryHelper.Dxf
         {
             if (options < 0 || options > 2)
             {
-                throw new ArgumentOutOfRangeException(nameof(options), options, "The options are 0 for the table and its cells, 1 for the table alone, 2 for its cells alone.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(options),
+                    options,
+                    "The options are 0 for the table and its cells, 1 for the table alone, 2 for its cells alone."
+                );
             }
 
             Layout layout = ReadToWrite();
@@ -1697,7 +1979,8 @@ namespace GeometryHelper.Dxf
             // The title's and the header's showing read of the layout, which holds the record as it stands, so that the clear
             // reads the record once.
             bool[] moved = null;
-            List<KeyValuePair<int, string>>[] looks = options != 1 ? ContentLooks(layout, out moved, options == 2, true) : null;
+            List<KeyValuePair<int, string>>[] looks =
+                options != 1 ? ContentLooks(layout, out moved, options == 2, true) : null;
 
             // Of 2, a row that keeps looks of its own gives its cells those, as AutoCAD 2021 gave each cell the looks of its row:
             // the table's own looks of the data that rows put in before the first row of data took from it, none to a row put
@@ -1737,7 +2020,21 @@ namespace GeometryHelper.Dxf
 
                     // The title and the header left out stay so, their flags (bits 0 and 1 of 93) kept with their 280 and 281,
                     // as AutoCAD 2021 kept them (D33e m01, m03, m04, n01, n02).
-                    string flags = code != 93 ? "0" : ((int.TryParse(g.List[i].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) ? read : 0) & 3).ToString(CultureInfo.InvariantCulture);
+                    string flags =
+                        code != 93
+                            ? "0"
+                            : (
+                                (
+                                    int.TryParse(
+                                        g.List[i].Value.Trim(),
+                                        NumberStyles.Integer,
+                                        CultureInfo.InvariantCulture,
+                                        out int read
+                                    )
+                                        ? read
+                                        : 0
+                                ) & 3
+                            ).ToString(CultureInfo.InvariantCulture);
 
                     if (code >= 93 && code <= 96 && g.List[i].Value.Trim() != flags)
                     {
@@ -1792,7 +2089,10 @@ namespace GeometryHelper.Dxf
                     {
                         CellView cell = cleared.CellAt(k / cleared.Columns, k % cleared.Columns);
 
-                        foreach (KeyValuePair<int, string> look in looks[k / cleared.Columns] ?? new List<KeyValuePair<int, string>>())
+                        foreach (
+                            KeyValuePair<int, string> look in looks[k / cleared.Columns]
+                                ?? new List<KeyValuePair<int, string>>()
+                        )
                         {
                             cell.SetOverride(look.Key, look.Value, flagsCode);
                         }
@@ -1827,7 +2127,8 @@ namespace GeometryHelper.Dxf
                         int bit = Layout.CellOverrides[code];
                         string held = cell.Override(code, bit);
                         int at = given.FindIndex(look => look.Key == code);
-                        mask |= held != null && (at >= 0 ? SameLook(held, given[at].Value) : (marks & bit) != 0) ? bit : 0;
+                        mask |=
+                            held != null && (at >= 0 ? SameLook(held, given[at].Value) : (marks & bit) != 0) ? bit : 0;
                     }
 
                     if (mask != 0)
@@ -1894,7 +2195,14 @@ namespace GeometryHelper.Dxf
             {
                 if (list[i].Key == 93)
                 {
-                    none = int.TryParse(list[i].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) && (read & 1) != 0;
+                    none =
+                        int.TryParse(
+                            list[i].Value.Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out int read
+                        )
+                        && (read & 1) != 0;
 
                     if (none && (read & 2) != 0)
                     {

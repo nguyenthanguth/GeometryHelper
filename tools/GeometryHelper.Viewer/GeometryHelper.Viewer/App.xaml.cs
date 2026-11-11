@@ -23,7 +23,11 @@ namespace GeometryHelper.Viewer
         /// </summary>
         private void Report(Exception exception)
         {
-            string text = DateTime.Now.ToString("s", System.Globalization.CultureInfo.InvariantCulture) + " " + exception + Environment.NewLine;
+            string text =
+                DateTime.Now.ToString("s", System.Globalization.CultureInfo.InvariantCulture)
+                + " "
+                + exception
+                + Environment.NewLine;
             Console.Error.WriteLine(text);
 
             try
@@ -31,11 +35,11 @@ namespace GeometryHelper.Viewer
                 Directory.CreateDirectory(Settings.Folder);
                 File.AppendAllText(Path.Combine(Settings.Folder, "error.log"), text);
             }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
-            {
-            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException) { }
 
-            (MainWindow as MainWindow)?.Report("Error: " + exception.Message + " (details in " + Path.Combine(Settings.Folder, "error.log") + ")");
+            (MainWindow as MainWindow)?.Report(
+                "Error: " + exception.Message + " (details in " + Path.Combine(Settings.Folder, "error.log") + ")"
+            );
         }
 
         /// <summary>
@@ -101,7 +105,10 @@ namespace GeometryHelper.Viewer
                 return 1;
             }
 
-            LoadResult result = SceneLoader.LoadAsync(path, line => Console.WriteLine("note: " + line), CancellationToken.None).GetAwaiter().GetResult();
+            LoadResult result = SceneLoader
+                .LoadAsync(path, line => Console.WriteLine("note: " + line), CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
 
             foreach (string error in result.Errors)
             {
@@ -132,9 +139,22 @@ namespace GeometryHelper.Viewer
             }
 
             Console.WriteLine(
-                "OK " + path + ": " + result.Scene.Items.Count + " item(s) on " + result.Scene.Layers.Count + " layer(s), bounds " + primitives.Bounds + ", "
-                + primitives.Items.Sum(i => i.Triangles.Count) + " triangle(s), " + primitives.Items.Sum(i => i.Polylines.Count) + " line(s), "
-                + primitives.Warnings.Count + " warning(s).");
+                "OK "
+                    + path
+                    + ": "
+                    + result.Scene.Items.Count
+                    + " item(s) on "
+                    + result.Scene.Layers.Count
+                    + " layer(s), bounds "
+                    + primitives.Bounds
+                    + ", "
+                    + primitives.Items.Sum(i => i.Triangles.Count)
+                    + " triangle(s), "
+                    + primitives.Items.Sum(i => i.Polylines.Count)
+                    + " line(s), "
+                    + primitives.Warnings.Count
+                    + " warning(s)."
+            );
             return 0;
         }
     }

@@ -1,10 +1,17 @@
-<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.PasteSpecialWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
-        Title="Paste Special" Width="560" Height="440" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" Background="#262B33">
-
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.PasteSpecialWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Paste Special"
+    Width="560"
+    Height="440"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -21,8 +28,19 @@
                         <ControlTemplate TargetType="RadioButton">
                             <StackPanel Orientation="Horizontal" Background="Transparent">
                                 <Grid Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center">
-                                    <Ellipse x:Name="Ring" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1" Fill="{StaticResource GhInput}" />
-                                    <Ellipse x:Name="Dot" Width="7" Height="7" Fill="{StaticResource GhAccent}" Visibility="Collapsed" />
+                                    <Ellipse
+                                        x:Name="Ring"
+                                        Stroke="{StaticResource GhTextMuted}"
+                                        StrokeThickness="1"
+                                        Fill="{StaticResource GhInput}"
+                                    />
+                                    <Ellipse
+                                        x:Name="Dot"
+                                        Width="7"
+                                        Height="7"
+                                        Fill="{StaticResource GhAccent}"
+                                        Visibility="Collapsed"
+                                    />
                                 </Grid>
                                 <ContentPresenter VerticalAlignment="Center" />
                             </StackPanel>
@@ -53,7 +71,11 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsSelected" Value="True">
-                                    <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
+                                    <Setter
+                                        TargetName="Row"
+                                        Property="Background"
+                                        Value="{StaticResource GhSelected}"
+                                    />
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
@@ -66,21 +88,54 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
-            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
-            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
         <DockPanel>
-            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
                     <TextBlock Text="Paste Special" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>
 
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Click="OnCancel" IsCancel="True" />
-                    <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Click="OnOk" IsDefault="True" IsEnabled="{Binding CanPaste}" />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Cancel"
+                        Padding="14,5"
+                        Margin="0,0,8,0"
+                        Click="OnCancel"
+                        IsCancel="True"
+                    />
+                    <Button
+                        Style="{StaticResource StylePrimaryButton}"
+                        Content="OK"
+                        Padding="14,5"
+                        Click="OnOk"
+                        IsDefault="True"
+                        IsEnabled="{Binding CanPaste}"
+                    />
                 </StackPanel>
             </Border>
 
@@ -95,7 +150,14 @@
                 </DockPanel>
 
                 <!-- What the way chosen gives. -->
-                <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Padding="10,8" Margin="0,10,0,0">
+                <Border
+                    DockPanel.Dock="Bottom"
+                    BorderBrush="{StaticResource GhBorder}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="10,8"
+                    Margin="0,10,0,0"
+                >
                     <DockPanel>
                         <TextBlock Text="Result" Width="50" Foreground="{StaticResource GhTextMuted}" />
                         <TextBlock Text="{Binding Result}" Foreground="#C9D1DB" TextWrapping="Wrap" />
@@ -109,16 +171,54 @@
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Margin="0,22,0,0">
-                        <RadioButton Style="{StaticResource PlainRadio}" Content="Paste" IsChecked="True" Margin="0,0,0,8" />
-                        <RadioButton Style="{StaticResource PlainRadio}" Content="Paste Link" IsEnabled="False" Margin="0,0,0,8" />
-                        <TextBlock Text="Paste Link (OLE) is not offered." Foreground="{StaticResource GhTextMuted}" FontSize="11" TextWrapping="Wrap" />
+                        <RadioButton
+                            Style="{StaticResource PlainRadio}"
+                            Content="Paste"
+                            IsChecked="True"
+                            Margin="0,0,0,8"
+                        />
+                        <RadioButton
+                            Style="{StaticResource PlainRadio}"
+                            Content="Paste Link"
+                            IsEnabled="False"
+                            Margin="0,0,0,8"
+                        />
+                        <TextBlock
+                            Text="Paste Link (OLE) is not offered."
+                            Foreground="{StaticResource GhTextMuted}"
+                            FontSize="11"
+                            TextWrapping="Wrap"
+                        />
                     </StackPanel>
                     <DockPanel Grid.Column="2">
-                        <TextBlock DockPanel.Dock="Top" Text="As:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,4" />
-                        <CheckBox DockPanel.Dock="Bottom" Content="Display As Icon" IsEnabled="False" Foreground="{StaticResource GhTextMuted}" Margin="0,4,0,0" />
-                        <Border Background="{StaticResource GhCommandInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Padding="0,4">
-                            <ListBox ItemsSource="{Binding Formats}" SelectedItem="{Binding Selected, Mode=TwoWay}" Background="Transparent" BorderThickness="0"
-                                     ItemContainerStyle="{StaticResource FormatRow}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <TextBlock
+                            DockPanel.Dock="Top"
+                            Text="As:"
+                            Foreground="{StaticResource GhTextMuted}"
+                            Margin="0,0,0,4"
+                        />
+                        <CheckBox
+                            DockPanel.Dock="Bottom"
+                            Content="Display As Icon"
+                            IsEnabled="False"
+                            Foreground="{StaticResource GhTextMuted}"
+                            Margin="0,4,0,0"
+                        />
+                        <Border
+                            Background="{StaticResource GhCommandInput}"
+                            BorderBrush="{StaticResource GhBorder}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="0,4"
+                        >
+                            <ListBox
+                                ItemsSource="{Binding Formats}"
+                                SelectedItem="{Binding Selected, Mode=TwoWay}"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                ItemContainerStyle="{StaticResource FormatRow}"
+                                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            >
                                 <ListBox.ItemTemplate>
                                     <DataTemplate DataType="{x:Type local:PasteFormatViewModel}">
                                         <TextBlock Text="{Binding Name}" />

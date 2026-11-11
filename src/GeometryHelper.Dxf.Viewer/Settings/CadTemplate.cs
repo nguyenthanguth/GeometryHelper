@@ -92,9 +92,11 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Writes a variable into the header, whether or not the library reads the same where it gives none.</summary>
-        private static void Pin(DxfDatabase database, string name, int code, string value) => database.SetHeader(name, new DxfTypedValue(code, value));
+        private static void Pin(DxfDatabase database, string name, int code, string value) =>
+            database.SetHeader(name, new DxfTypedValue(code, value));
 
-        private static void Pin(DxfDatabase database, string name, int code, double value) => Pin(database, name, code, value.ToString("R", CultureInfo.InvariantCulture));
+        private static void Pin(DxfDatabase database, string name, int code, double value) =>
+            Pin(database, name, code, value.ToString("R", CultureInfo.InvariantCulture));
 
         /// <summary>A real dimension variable: the style's and the header's.</summary>
         private static void Dim(DxfDatabase database, string name, double value, Action<double> style)

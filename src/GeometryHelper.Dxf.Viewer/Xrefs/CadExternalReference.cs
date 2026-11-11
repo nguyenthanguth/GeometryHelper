@@ -46,7 +46,16 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     public sealed class CadExternalReference
     {
-        internal CadExternalReference(string name, bool isImage, bool isOverlay, string savedPath, string foundAt, CadReferenceStatus status, string parentName = null, int depth = 0)
+        internal CadExternalReference(
+            string name,
+            bool isImage,
+            bool isOverlay,
+            string savedPath,
+            string foundAt,
+            CadReferenceStatus status,
+            string parentName = null,
+            int depth = 0
+        )
         {
             Name = name;
             ParentName = parentName;
@@ -65,7 +74,12 @@ namespace GeometryHelper.Dxf.Viewer
                     Size = info.Length;
                     Date = info.LastWriteTime;
                 }
-                catch (Exception exception) when (exception is System.IO.IOException || exception is UnauthorizedAccessException || exception is ArgumentException || exception is NotSupportedException)
+                catch (Exception exception)
+                    when (exception is System.IO.IOException
+                        || exception is UnauthorizedAccessException
+                        || exception is ArgumentException
+                        || exception is NotSupportedException
+                    )
                 {
                     Size = -1;
                 }

@@ -32,13 +32,20 @@ namespace GeometryHelper.Core
 
         private struct Box
         {
-            public double MinX, MinY, MinZ, MaxX, MaxY, MaxZ;
+            public double MinX,
+                MinY,
+                MinZ,
+                MaxX,
+                MaxY,
+                MaxZ;
 
             /// <summary>The run of <see cref="_order"/> the box holds, from the first to the one after the last.</summary>
-            public int From, To;
+            public int From,
+                To;
 
             /// <summary>The two boxes it was cut into, or -1 for a box that holds its points itself.</summary>
-            public int Left, Right;
+            public int Left,
+                Right;
         }
 
         /// <summary>
@@ -119,8 +126,13 @@ namespace GeometryHelper.Core
                 return index;
             }
 
-            double sx = box.MaxX - box.MinX, sy = box.MaxY - box.MinY, sz = box.MaxZ - box.MinZ;
-            double[] along = sx >= sy && sx >= sz ? _x : sy >= sz ? _y : _z;
+            double sx = box.MaxX - box.MinX,
+                sy = box.MaxY - box.MinY,
+                sz = box.MaxZ - box.MinZ;
+            double[] along =
+                sx >= sy && sx >= sz ? _x
+                : sy >= sz ? _y
+                : _z;
 
             Array.Sort(_order, from, to - from, new ByCoordinate(along));
 
@@ -145,7 +157,18 @@ namespace GeometryHelper.Core
         /// <param name="to">How far along it ends.</param>
         /// <param name="reach">How far off the line a point may lie.</param>
         /// <param name="found">The numbers of the points, in no particular order; cleared first.</param>
-        public void Near(double ox, double oy, double oz, double ux, double uy, double uz, double from, double to, double reach, List<int> found)
+        public void Near(
+            double ox,
+            double oy,
+            double oz,
+            double ux,
+            double uy,
+            double uz,
+            double from,
+            double to,
+            double reach,
+            List<int> found
+        )
         {
             found.Clear();
 
@@ -156,8 +179,12 @@ namespace GeometryHelper.Core
 
             // The stretch itself, which a box is asked about with its sides grown by the reach: a point within the reach of the
             // stretch lies in a box that meets it so, and the reach round the stretch is no wider than that.
-            double ax = ox + from * ux, ay = oy + from * uy, az = oz + from * uz;
-            double dx = (to - from) * ux, dy = (to - from) * uy, dz = (to - from) * uz;
+            double ax = ox + from * ux,
+                ay = oy + from * uy,
+                az = oz + from * uz;
+            double dx = (to - from) * ux,
+                dy = (to - from) * uy,
+                dz = (to - from) * uz;
             double reachSquared = reach * reach;
 
             var stack = new int[64];
@@ -168,9 +195,11 @@ namespace GeometryHelper.Core
             {
                 Box box = _boxes[stack[--top]];
 
-                if (!MeetsFirst(ax, dx, box.MinX - reach, box.MaxX + reach, out double low, out double high)
+                if (
+                    !MeetsFirst(ax, dx, box.MinX - reach, box.MaxX + reach, out double low, out double high)
                     || !Meets(ay, dy, box.MinY - reach, box.MaxY + reach, ref low, ref high)
-                    || !Meets(az, dz, box.MinZ - reach, box.MaxZ + reach, ref low, ref high))
+                    || !Meets(az, dz, box.MinZ - reach, box.MaxZ + reach, ref low, ref high)
+                )
                 {
                     continue;
                 }
@@ -185,7 +214,9 @@ namespace GeometryHelper.Core
                 for (int i = box.From; i < box.To; i++)
                 {
                     int p = _order[i];
-                    double wx = _x[p] - ox, wy = _y[p] - oy, wz = _z[p] - oz;
+                    double wx = _x[p] - ox,
+                        wy = _y[p] - oy,
+                        wz = _z[p] - oz;
                     double along = wx * ux + wy * uy + wz * uz;
 
                     if (along < from || along > to)
@@ -193,7 +224,9 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    double cx = wy * uz - wz * uy, cy = wz * ux - wx * uz, cz = wx * uy - wy * ux;
+                    double cx = wy * uz - wz * uy,
+                        cy = wz * ux - wx * uz,
+                        cz = wx * uy - wy * ux;
 
                     if (cx * cx + cy * cy + cz * cz <= reachSquared)
                     {
@@ -207,7 +240,14 @@ namespace GeometryHelper.Core
         /// Whether a segment, running from its start by a step, passes through the slab between two heights along one axis,
         /// taking the whole of the segment, the parameters 0 to 1, as what is left to pass through it.
         /// </summary>
-        private static bool MeetsFirst(double start, double step, double low, double high, out double from, out double to)
+        private static bool MeetsFirst(
+            double start,
+            double step,
+            double low,
+            double high,
+            out double from,
+            out double to
+        )
         {
             from = 0.0;
             to = 1.0;

@@ -26,16 +26,23 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static readonly DxfTypedValue[] AnnotativeXData =
         {
-            new DxfTypedValue(1001, "AcadAnnotative"), new DxfTypedValue(1000, "AnnotativeData"), new DxfTypedValue(1002, "{"),
-            new DxfTypedValue(1070, "1"), new DxfTypedValue(1070, "1"), new DxfTypedValue(1002, "}"),
+            new DxfTypedValue(1001, "AcadAnnotative"),
+            new DxfTypedValue(1000, "AnnotativeData"),
+            new DxfTypedValue(1002, "{"),
+            new DxfTypedValue(1070, "1"),
+            new DxfTypedValue(1070, "1"),
+            new DxfTypedValue(1002, "}"),
         };
 
         // The groups after the scale of each kind of context, as AutoCAD 2021 wrote them (plugin D35e r1).
-        private static readonly Dictionary<string, string> Groups = new Dictionary<string, string>(StringComparer.Ordinal)
+        private static readonly Dictionary<string, string> Groups = new Dictionary<string, string>(
+            StringComparer.Ordinal
+        )
         {
             [TextContext] = " 70\n0\n 50\n0.0\n 10\n11.0\n 20\n12.0\n 11\n0.0\n 21\n0.0\n",
             [AttributeContext] = " 70\n0\n 50\n0.0\n 10\n15.0\n 20\n66.0\n 11\n0.0\n 21\n0.0\n290\n0\n",
-            [MTextContext] = " 70\n1\n 10\n1.0\n 20\n0.0\n 30\n0.0\n 11\n14.0\n 21\n44.0\n 31\n0.0\n 40\n0.0\n 41\n0.0\n 42\n0.0\n 43\n0.0\n 71\n0\n",
+            [MTextContext] =
+                " 70\n1\n 10\n1.0\n 20\n0.0\n 30\n0.0\n 11\n14.0\n 21\n44.0\n 31\n0.0\n 40\n0.0\n 41\n0.0\n 42\n0.0\n 43\n0.0\n 71\n0\n",
             [InsertContext] = " 50\n0.0\n 10\n100.0\n 20\n100.0\n 30\n0.0\n 41\n1.0\n 42\n1.0\n 43\n1.0\n",
             [HatchContext] = string.Empty,
         };
@@ -46,22 +53,43 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static DxfDBText Grid(DxfDatabase db) => ByHandle<DxfDBText>(db, "64");
 
-        private static DxfObjectContextCollection Scales(DxfDatabase db) => db.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES");
+        private static DxfObjectContextCollection Scales(DxfDatabase db) =>
+            db.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES");
 
-        private static string[] ShownAt(DxfDatabase db, DxfDBObject o)
-            => Scales(db).Where(s => o.HasContext(s)).Select(s => s.Name).OrderBy(s => s, StringComparer.Ordinal).ToArray();
+        private static string[] ShownAt(DxfDatabase db, DxfDBObject o) =>
+            Scales(db)
+                .Where(s => o.HasContext(s))
+                .Select(s => s.Name)
+                .OrderBy(s => s, StringComparer.Ordinal)
+                .ToArray();
 
-        private static string Scale(string handle, string name, string paper, string drawing, string unit)
-            => "  0\nSCALE\n  5\n" + handle + "\n102\n{ACAD_REACTORS\n330\n14\n102\n}\n330\n14\n100\nAcDbScale\n 70\n0\n300\n" + name + "\n140\n" + paper + "\n141\n" + drawing + "\n290\n" + unit + "\n";
+        private static string Scale(string handle, string name, string paper, string drawing, string unit) =>
+            "  0\nSCALE\n  5\n"
+            + handle
+            + "\n102\n{ACAD_REACTORS\n330\n14\n102\n}\n330\n14\n100\nAcDbScale\n 70\n0\n300\n"
+            + name
+            + "\n140\n"
+            + paper
+            + "\n141\n"
+            + drawing
+            + "\n290\n"
+            + unit
+            + "\n";
 
         /// <summary>The ezdxf drawing with the scales 1:1 (F0), 1:2 (F1) and 1:4 (F2), named A0, A1 and A2 as AutoCAD names its own.</summary>
         private static DxfDatabase Scaled()
         {
             string text = DxfFileEzdxfDrawings.R2018;
             Assert.Contains(ScaleList, text, StringComparison.Ordinal);
-            string scales = Scale("F0", "1:1", "1", "1", "1") + Scale("F1", "1:2", "1", "2", "0") + Scale("F2", "1:4", "1", "4", "0");
+            string scales =
+                Scale("F0", "1:1", "1", "1", "1")
+                + Scale("F1", "1:2", "1", "2", "0")
+                + Scale("F2", "1:4", "1", "4", "0");
             int end = text.LastIndexOf("  0\nENDSEC\n", StringComparison.Ordinal);
-            text = (text.Substring(0, end) + scales + text.Substring(end)).Replace(ScaleList, ScaleList + "  3\nA0\n350\nF0\n  3\nA1\n350\nF1\n  3\nA2\n350\nF2\n");
+            text = (text.Substring(0, end) + scales + text.Substring(end)).Replace(
+                ScaleList,
+                ScaleList + "  3\nA0\n350\nF0\n  3\nA1\n350\nF1\n  3\nA2\n350\nF2\n"
+            );
             return DxfDatabase.Parse(text);
         }
 
@@ -107,9 +135,25 @@ namespace GeometryHelper.UnitTest.Dxf
                 for (int i = 0; i < 2; i++)
                 {
                     string handle = (next++).ToString("X", CultureInfo.InvariantCulture);
-                    records.Append("  0\n" + owner.Value + "\n  5\n" + handle + "\n102\n{ACAD_REACTORS\n330\n" + owner.Key + "\n102\n}\n330\n" + owner.Key
-                        + "\n100\nAcDbObjectContextData\n 70\n4\n290\n" + (i == 1 ? "1" : "0") + "\n100\nAcDbAnnotScaleObjectContextData\n340\n" + scales[i] + "\n" + Groups[owner.Value]);
-                    entries.Append("  3\n*A" + (i + 1).ToString(CultureInfo.InvariantCulture) + "\n350\n" + handle + "\n");
+                    records.Append(
+                        "  0\n"
+                            + owner.Value
+                            + "\n  5\n"
+                            + handle
+                            + "\n102\n{ACAD_REACTORS\n330\n"
+                            + owner.Key
+                            + "\n102\n}\n330\n"
+                            + owner.Key
+                            + "\n100\nAcDbObjectContextData\n 70\n4\n290\n"
+                            + (i == 1 ? "1" : "0")
+                            + "\n100\nAcDbAnnotScaleObjectContextData\n340\n"
+                            + scales[i]
+                            + "\n"
+                            + Groups[owner.Value]
+                    );
+                    entries.Append(
+                        "  3\n*A" + (i + 1).ToString(CultureInfo.InvariantCulture) + "\n350\n" + handle + "\n"
+                    );
                 }
 
                 int end = text.LastIndexOf("  0\nENDSEC\n", StringComparison.Ordinal);
@@ -131,7 +175,8 @@ namespace GeometryHelper.UnitTest.Dxf
                 return new string[0];
             }
 
-            var scales = (DxfDBDictionary)((DxfDBDictionary)extension.GetAt("AcDbContextDataManager")).GetAt("ACDB_ANNOTATIONSCALES");
+            var scales = (DxfDBDictionary)
+                ((DxfDBDictionary)extension.GetAt("AcDbContextDataManager")).GetAt("ACDB_ANNOTATIONSCALES");
             List<string> records = Records(db.ToText());
             return scales.Select(e => records.Single(r => HandleOf(r) == e.Value.Handle).Split('\n')[1]).ToArray();
         }
@@ -140,12 +185,22 @@ namespace GeometryHelper.UnitTest.Dxf
         private static string[] ScaleKeys(DxfDatabase db)
         {
             var list = (DxfDBDictionary)db.NamedObjectsDictionary.GetAt("ACAD_SCALELIST");
-            Dictionary<string, string> names = Scales(db).Cast<DxfAnnotationScale>().ToDictionary(s => s.Handle, s => s.Name, StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, string> names = Scales(db)
+                .Cast<DxfAnnotationScale>()
+                .ToDictionary(s => s.Handle, s => s.Name, StringComparer.OrdinalIgnoreCase);
             return list.Select(e => e.Key + "=" + names[e.Value.Handle]).ToArray();
         }
 
-        private static void AddScale(DxfDatabase db, string name, double drawing)
-            => Scales(db).AddContext(new DxfAnnotationScale { Name = name, PaperUnits = 1.0, DrawingUnits = drawing });
+        private static void AddScale(DxfDatabase db, string name, double drawing) =>
+            Scales(db)
+                .AddContext(
+                    new DxfAnnotationScale
+                    {
+                        Name = name,
+                        PaperUnits = 1.0,
+                        DrawingUnits = drawing,
+                    }
+                );
 
         // ---- 1. an entity handed over to one of another kind, its extension dictionary kept ----------------------------------
 
@@ -218,7 +273,13 @@ namespace GeometryHelper.UnitTest.Dxf
             // another, and are kept.
             DxfDatabase db = WithContexts(Scaled(), "64", TextContext);
             string handle = Grid(db).Handle;
-            var definition = new DxfAttributeDefinition { Tag = "MD", TextString = "VMD", Position = new GeoPoint3(15.0, 66.0, 0.0), Height = 2.5 };
+            var definition = new DxfAttributeDefinition
+            {
+                Tag = "MD",
+                TextString = "VMD",
+                Position = new GeoPoint3(15.0, 66.0, 0.0),
+                Height = 2.5,
+            };
             Grid(db).HandOverTo(definition, true, true);
             Assert.Equal(new[] { "1:1", "1:2" }, ShownAt(db, definition));
 
@@ -228,7 +289,13 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new[] { "1:1", "1:2" }, ShownAt(back, again));
 
             db = Scaled();
-            var made = new DxfAttributeDefinition { Tag = "MD", TextString = "VMD", Position = new GeoPoint3(15.0, 66.0, 0.0), Height = 2.5 };
+            var made = new DxfAttributeDefinition
+            {
+                Tag = "MD",
+                TextString = "VMD",
+                Position = new GeoPoint3(15.0, 66.0, 0.0),
+                Height = 2.5,
+            };
             db.ModelSpace.AppendEntity(made);
             db = WithContexts(db, made.Handle, AttributeContext);
             var held = ByHandle<DxfAttributeDefinition>(db, made.Handle);

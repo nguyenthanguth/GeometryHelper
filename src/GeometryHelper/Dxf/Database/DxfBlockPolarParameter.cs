@@ -18,8 +18,20 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     public sealed class DxfBlockPolarParameter
     {
-        internal DxfBlockPolarParameter(DxfBlockTableRecord block, int node, string handle, string distanceName, string distanceDescription, string angleName, string angleDescription,
-            GeoPoint3 basePoint, GeoPoint3 endPoint, double labelOffset, DxfBlockParameterValueSet distanceValueSet, DxfBlockParameterValueSet angleValueSet)
+        internal DxfBlockPolarParameter(
+            DxfBlockTableRecord block,
+            int node,
+            string handle,
+            string distanceName,
+            string distanceDescription,
+            string angleName,
+            string angleDescription,
+            GeoPoint3 basePoint,
+            GeoPoint3 endPoint,
+            double labelOffset,
+            DxfBlockParameterValueSet distanceValueSet,
+            DxfBlockParameterValueSet angleValueSet
+        )
         {
             Block = block;
             Node = node;

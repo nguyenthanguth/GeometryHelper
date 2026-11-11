@@ -43,15 +43,26 @@ namespace GeometryHelper.UnitTest.Solid
 
                     for (int i = 0; i < count; i++)
                     {
-                        points.Add(new GeoPoint3(random.NextDouble() * 100, random.NextDouble() * 100, random.NextDouble() * thick));
+                        points.Add(
+                            new GeoPoint3(
+                                random.NextDouble() * 100,
+                                random.NextDouble() * 100,
+                                random.NextDouble() * thick
+                            )
+                        );
                     }
 
                     if (random.Next(2) == 0)
                     {
                         GeoTransform3 turn = GeoTransform3.RotationAxis(
                             new GeoPoint3(random.NextDouble() * 1000, 0, 0),
-                            new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5 + 1E-3),
-                            random.NextDouble() * 6);
+                            new GeoVector3(
+                                random.NextDouble() - 0.5,
+                                random.NextDouble() - 0.5,
+                                random.NextDouble() - 0.5 + 1E-3
+                            ),
+                            random.NextDouble() * 6
+                        );
                         points = points.Select(p => p.TransformBy(turn)).ToList();
                     }
 
@@ -77,14 +88,24 @@ namespace GeometryHelper.UnitTest.Solid
 
                 foreach (GeoPoint3 point in points)
                 {
-                    Assert.InRange(hull.SignedDistanceTo(point, Thousandth), double.NegativeInfinity, Thousandth.EqualPoint);
+                    Assert.InRange(
+                        hull.SignedDistanceTo(point, Thousandth),
+                        double.NegativeInfinity,
+                        Thousandth.EqualPoint
+                    );
                 }
             }
 
             Assert.InRange(built, 900, 1000);
         }
 
-        private static readonly GeoPoint3[] Tetrahedron = { new GeoPoint3(0, 0, 0), new GeoPoint3(24, 0, 0), new GeoPoint3(0, 18, 0), new GeoPoint3(0, 0, 40) };
+        private static readonly GeoPoint3[] Tetrahedron =
+        {
+            new GeoPoint3(0, 0, 0),
+            new GeoPoint3(24, 0, 0),
+            new GeoPoint3(0, 18, 0),
+            new GeoPoint3(0, 0, 40),
+        };
 
         private static double[] Sides(GeoObb3 box)
         {
@@ -96,7 +117,11 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ATetrahedronTurned_FitsTheBoxItFitsAsItIs()
         {
-            GeoTransform3 turn = GeoTransform3.RotationAxis(new GeoPoint3(10, 30, 20), new GeoVector3(0.3, -0.2, 1), 0.7);
+            GeoTransform3 turn = GeoTransform3.RotationAxis(
+                new GeoPoint3(10, 30, 20),
+                new GeoVector3(0.3, -0.2, 1),
+                0.7
+            );
             double[] asItIs = Sides(GeoObb3.Fit(Tetrahedron, Thousandth));
             double[] turned = Sides(GeoObb3.Fit(Tetrahedron.Select(p => p.TransformBy(turn)), Thousandth));
 
@@ -119,7 +144,10 @@ namespace GeometryHelper.UnitTest.Solid
             for (int k = 0; k < 40; k++)
             {
                 GeoTransform3 turn = GeoTransform3.RotationAxis(
-                    new GeoPoint3(0, 0, 0), new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5), random.NextDouble() * 6);
+                    new GeoPoint3(0, 0, 0),
+                    new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5),
+                    random.NextDouble() * 6
+                );
                 double[] turned = Sides(GeoObb3.Fit(Tetrahedron.Select(p => p.TransformBy(turn)), Thousandth));
 
                 for (int i = 0; i < 3; i++)

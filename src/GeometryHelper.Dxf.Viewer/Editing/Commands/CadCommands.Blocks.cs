@@ -79,7 +79,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (reset > 0)
             {
-                c.Write(reset.ToString(CultureInfo.InvariantCulture) + (reset == 1 ? " block reset." : " blocks reset."));
+                c.Write(
+                    reset.ToString(CultureInfo.InvariantCulture) + (reset == 1 ? " block reset." : " blocks reset.")
+                );
             }
         }
 
@@ -188,7 +190,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (c.Database.BlockTable.Has(request.Name))
             {
-                yield return CadPrompt.ForKeyword("Block \"" + request.Name + "\" already exists. Redefine it?", new[] { "Yes", "No" }, "No");
+                yield return CadPrompt.ForKeyword(
+                    "Block \"" + request.Name + "\" already exists. Redefine it?",
+                    new[] { "Yes", "No" },
+                    "No"
+                );
 
                 if (!c.Input.Is("Yes"))
                 {
@@ -232,21 +238,32 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfBlockTableRecord block in database.BlockTable)
             {
-                if (!block.IsLayout && !block.IsAnonymous && !block.IsFromExternalReference && !block.Name.StartsWith("*", StringComparison.Ordinal))
+                if (
+                    !block.IsLayout
+                    && !block.IsAnonymous
+                    && !block.IsFromExternalReference
+                    && !block.Name.StartsWith("*", StringComparison.Ordinal)
+                )
                 {
                     blocks.Add(block);
                 }
             }
 
-            blocks.Sort((a, b) => string.CompareOrdinal(a.Name.ToUpperInvariant(), b.Name.ToUpperInvariant()) != 0
-                ? string.CompareOrdinal(a.Name.ToUpperInvariant(), b.Name.ToUpperInvariant())
-                : string.CompareOrdinal(a.Name, b.Name));
+            blocks.Sort(
+                (a, b) =>
+                    string.CompareOrdinal(a.Name.ToUpperInvariant(), b.Name.ToUpperInvariant()) != 0
+                        ? string.CompareOrdinal(a.Name.ToUpperInvariant(), b.Name.ToUpperInvariant())
+                        : string.CompareOrdinal(a.Name, b.Name)
+            );
             return blocks;
         }
 
         /// <summary>Whether AutoCAD takes a name for a block: 1 to 255 letters, none of &lt;&gt;/\":;?*|,=` and not starting with a space.</summary>
-        internal static bool IsBlockName(string name)
-            => !string.IsNullOrEmpty(name) && name.Length <= 255 && name.Trim().Length == name.Length && name.IndexOfAny("<>/\\\":;?*|,=`".ToCharArray()) < 0;
+        internal static bool IsBlockName(string name) =>
+            !string.IsNullOrEmpty(name)
+            && name.Length <= 255
+            && name.Trim().Length == name.Length
+            && name.IndexOfAny("<>/\\\":;?*|,=`".ToCharArray()) < 0;
 
         /// <summary>
         /// Makes the block a request describes, one edit: a new block, or the block of the name defined again where
@@ -265,7 +282,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             bool exists = c.Database.BlockTable.Has(name);
 
-            if (exists && (!request.Redefine || c.Database.BlockTable[name].IsLayout || c.Database.BlockTable[name].IsFromExternalReference))
+            if (
+                exists
+                && (
+                    !request.Redefine
+                    || c.Database.BlockTable[name].IsLayout
+                    || c.Database.BlockTable[name].IsFromExternalReference
+                )
+            )
             {
                 c.Write("Block \"" + name + "\" already exists.");
                 return;
@@ -282,7 +306,10 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                if (entity is DxfBlockReference reference && Places(c.Database, reference.Name, name, new HashSet<string>(StringComparer.OrdinalIgnoreCase)))
+                if (
+                    entity is DxfBlockReference reference
+                    && Places(c.Database, reference.Name, name, new HashSet<string>(StringComparer.OrdinalIgnoreCase))
+                )
                 {
                     c.Write("Block \"" + name + "\" references itself.");
                     return;
@@ -296,7 +323,16 @@ namespace GeometryHelper.Dxf.Viewer
                 c.Write("No objects selected.");
             }
 
-            var planned = new List<CadEditRecord> { new CadEditRecord(CadEditRecordKind.TableChanged, null, exists ? "Redefine block" : "New block", null, name) };
+            var planned = new List<CadEditRecord>
+            {
+                new CadEditRecord(
+                    CadEditRecordKind.TableChanged,
+                    null,
+                    exists ? "Redefine block" : "New block",
+                    null,
+                    name
+                ),
+            };
 
             if (request.ObjectAction != CadBlockObjectAction.Retain)
             {
@@ -328,10 +364,16 @@ namespace GeometryHelper.Dxf.Viewer
 
                 // A drawing older than R2000 holds no description, one older than R2007 no unit, explodability or scaling, as
                 // AutoCAD writes none there: what it cannot hold is left out, the block made all the same.
-                Keep(() => record.Comments = request.Description ?? string.Empty, record.Comments != (request.Description ?? string.Empty));
+                Keep(
+                    () => record.Comments = request.Description ?? string.Empty,
+                    record.Comments != (request.Description ?? string.Empty)
+                );
                 Keep(() => record.Units = request.Units, record.Units != request.Units);
                 Keep(() => record.Explodable = request.AllowExploding, record.Explodable != request.AllowExploding);
-                Keep(() => record.BlockScaling = request.ScaleUniformly ? DxfBlockScaling.Uniform : DxfBlockScaling.Any, record.BlockScaling != (request.ScaleUniformly ? DxfBlockScaling.Uniform : DxfBlockScaling.Any));
+                Keep(
+                    () => record.BlockScaling = request.ScaleUniformly ? DxfBlockScaling.Uniform : DxfBlockScaling.Any,
+                    record.BlockScaling != (request.ScaleUniformly ? DxfBlockScaling.Uniform : DxfBlockScaling.Any)
+                );
                 List<DxfEntity> entities = handles.Select(h => s.Document.FindEntity(h)).ToList();
 
                 if (entities.Count > 0)
@@ -359,7 +401,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (result.Succeeded && !exists)
             {
-                GeometryHelperLog.Info("CadCommands: the block " + name + " was made of " + handles.Count.ToString(CultureInfo.InvariantCulture) + " objects.");
+                GeometryHelperLog.Info(
+                    "CadCommands: the block "
+                        + name
+                        + " was made of "
+                        + handles.Count.ToString(CultureInfo.InvariantCulture)
+                        + " objects."
+                );
             }
         }
 
@@ -431,7 +479,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (locked > 0)
             {
-                c.Write(locked.ToString(CultureInfo.InvariantCulture) + (locked == 1 ? " was" : " were") + " on a locked layer.");
+                c.Write(
+                    locked.ToString(CultureInfo.InvariantCulture)
+                        + (locked == 1 ? " was" : " were")
+                        + " on a locked layer."
+                );
             }
 
             kept.Sort(StringComparer.OrdinalIgnoreCase);
@@ -443,7 +495,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// the order of the block, filled from the definition as AutoCAD fills one, with the value given or the default; one of a
         /// definition on layer 0 takes the INSERT's layer, as AutoCAD's does.
         /// </summary>
-        private static void AddAttributes(DxfBlockReference insert, DxfBlockTableRecord record, IReadOnlyList<string> values)
+        private static void AddAttributes(
+            DxfBlockReference insert,
+            DxfBlockTableRecord record,
+            IReadOnlyList<string> values
+        )
         {
             int i = 0;
 
@@ -468,8 +524,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The definitions of a block that give an INSERT an ATTRIB, those not constant, in the order of the block.</summary>
-        private static List<DxfAttributeDefinition> Definitions(DxfBlockTableRecord record)
-            => record.OfType<DxfAttributeDefinition>().Where(d => !d.Constant).ToList();
+        private static List<DxfAttributeDefinition> Definitions(DxfBlockTableRecord record) =>
+            record.OfType<DxfAttributeDefinition>().Where(d => !d.Constant).ToList();
 
         /// <summary>
         /// INSERT (I): the window's Blocks palette; the block chosen is placed with its insertion options, each asked on the
@@ -509,9 +565,24 @@ namespace GeometryHelper.Dxf.Viewer
 
             do
             {
-                var placing = new Placing { Point = request.Point, Scale = request.Scale, Rotation = request.Rotation };
+                var placing = new Placing
+                {
+                    Point = request.Point,
+                    Scale = request.Scale,
+                    Rotation = request.Rotation,
+                };
 
-                foreach (CadPrompt prompt in Place(c, name, placing, request.SpecifyPointOnScreen, request.SpecifyScaleOnScreen, request.SpecifyRotationOnScreen, request.Explode))
+                foreach (
+                    CadPrompt prompt in Place(
+                        c,
+                        name,
+                        placing,
+                        request.SpecifyPointOnScreen,
+                        request.SpecifyScaleOnScreen,
+                        request.SpecifyRotationOnScreen,
+                        request.Explode
+                    )
+                )
                 {
                     yield return prompt;
                 }
@@ -520,8 +591,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     yield break;
                 }
-            }
-            while (request.Repeat && request.SpecifyPointOnScreen);
+            } while (request.Repeat && request.SpecifyPointOnScreen);
         }
 
         /// <summary>
@@ -564,7 +634,13 @@ namespace GeometryHelper.Dxf.Viewer
                 block = typed.Substring(0, equals);
                 file = typed.Substring(equals + 1);
             }
-            else if (!c.Database.BlockTable.Has(typed) && (typed.EndsWith(".dxf", StringComparison.OrdinalIgnoreCase) || typed.IndexOfAny(new[] { '\\', '/' }) >= 0))
+            else if (
+                !c.Database.BlockTable.Has(typed)
+                && (
+                    typed.EndsWith(".dxf", StringComparison.OrdinalIgnoreCase)
+                    || typed.IndexOfAny(new[] { '\\', '/' }) >= 0
+                )
+            )
             {
                 file = typed;
                 block = Path.GetFileNameWithoutExtension(typed);
@@ -624,7 +700,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// name. Where the drawing has a block of the name, the window is asked whether to redefine it, the command line where
         /// no window answers. The name handed on is null, said why, where it cannot be.
         /// </summary>
-        private static IEnumerable<CadPrompt> BringIn(CadCommandContext c, string file, string name, Action<string> brought)
+        private static IEnumerable<CadPrompt> BringIn(
+            CadCommandContext c,
+            string file,
+            string name,
+            Action<string> brought
+        )
         {
             if (!string.IsNullOrEmpty(file))
             {
@@ -651,7 +732,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// payload, Yes its answer): Yes gives the drawing's block the other's entities, base point and unit, as one edit; No
         /// places the drawing's own.
         /// </summary>
-        private static IEnumerable<CadPrompt> BringInFile(CadCommandContext c, string file, string block, bool window, Action<string> brought)
+        private static IEnumerable<CadPrompt> BringInFile(
+            CadCommandContext c,
+            string file,
+            string block,
+            bool window,
+            Action<string> brought
+        )
         {
             brought(null);
             DxfDatabase other = OpenOther(c, file);
@@ -684,7 +771,11 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else
                 {
-                    yield return CadPrompt.ForKeyword("Block \"" + own.Name + "\" already exists. Redefine it?", new[] { "Yes", "No" }, "No");
+                    yield return CadPrompt.ForKeyword(
+                        "Block \"" + own.Name + "\" already exists. Redefine it?",
+                        new[] { "Yes", "No" },
+                        "No"
+                    );
                     redefine = c.Input.Is("Yes");
                 }
 
@@ -701,31 +792,43 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             CadSpace space = c.Space;
-            CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, redefine ? "Redefine block" : "Insert block", null, whole) }, s =>
-            {
-                if (redefine)
+            CadEditResult result = c.Apply(
+                new[]
                 {
-                    Redefine(s.Database.BlockTable[whole], other, ofFile ? null : other.BlockTable[block]);
-                    return;
-                }
-
-                if (ofFile)
+                    new CadEditRecord(
+                        CadEditRecordKind.TableChanged,
+                        null,
+                        redefine ? "Redefine block" : "Insert block",
+                        null,
+                        whole
+                    ),
+                },
+                s =>
                 {
-                    s.Database.Insert(whole, other, true);
-                    return;
-                }
+                    if (redefine)
+                    {
+                        Redefine(s.Database.BlockTable[whole], other, ofFile ? null : other.BlockTable[block]);
+                        return;
+                    }
 
-                // An INSERT of the block made in the other drawing and copied over brings the block with what it places, as
-                // AutoCAD's deep clone does; the copy itself is taken out again, the block staying.
-                var carrier = new DxfBlockReference(GeoPoint3.Origin, other.BlockTable[block]);
-                other.ModelSpace.AppendEntity(carrier);
-                IReadOnlyList<DxfEntity> copies = other.WblockCloneObjects(new[] { carrier }, space.Block);
+                    if (ofFile)
+                    {
+                        s.Database.Insert(whole, other, true);
+                        return;
+                    }
 
-                foreach (DxfEntity copy in copies)
-                {
-                    copy.Erase();
+                    // An INSERT of the block made in the other drawing and copied over brings the block with what it places, as
+                    // AutoCAD's deep clone does; the copy itself is taken out again, the block staying.
+                    var carrier = new DxfBlockReference(GeoPoint3.Origin, other.BlockTable[block]);
+                    other.ModelSpace.AppendEntity(carrier);
+                    IReadOnlyList<DxfEntity> copies = other.WblockCloneObjects(new[] { carrier }, space.Block);
+
+                    foreach (DxfEntity copy in copies)
+                    {
+                        copy.Erase();
+                    }
                 }
-            });
+            );
 
             brought(result.Succeeded && c.Database.BlockTable.Has(whole) ? c.Database.BlockTable[whole].Name : null);
         }
@@ -737,7 +840,14 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 return DxfDatabase.Open(file);
             }
-            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException || exception is NotSupportedException || exception is FormatException || exception is InvalidDataException)
+            catch (Exception exception)
+                when (exception is IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is ArgumentException
+                    || exception is NotSupportedException
+                    || exception is FormatException
+                    || exception is InvalidDataException
+                )
             {
                 c.Write("Cannot read " + file + ": " + exception.Message);
                 return null;
@@ -772,7 +882,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// asks them, then the values of its attributes (ATTREQ 1; with ATTREQ 0 their defaults), then the INSERT made, exploded
         /// where asked.
         /// </summary>
-        private static IEnumerable<CadPrompt> Place(CadCommandContext c, string name, Placing placing, bool askPoint, bool askScale, bool askRotation, bool explode)
+        private static IEnumerable<CadPrompt> Place(
+            CadCommandContext c,
+            string name,
+            Placing placing,
+            bool askPoint,
+            bool askScale,
+            bool askRotation,
+            bool explode
+        )
         {
             DxfBlockTableRecord record = c.Database.BlockTable[name];
             bool uniform = record.BlockScaling == DxfBlockScaling.Uniform || explode;
@@ -784,8 +902,18 @@ namespace GeometryHelper.Dxf.Viewer
             var items = new Lazy<IReadOnlyList<DisplayItem2>>(() => CadBlockDrag.ItemsOf(c.Document, name));
 
             // The block dragged with the cursor as each of the point, scale and rotation is asked, as AutoCAD drags it.
-            CadBlockDrag DragOf(CadBlockDragMode mode)
-                => new CadBlockDrag(name, items, mode, new GeoPoint2(placing.Point.X, placing.Point.Y), placing.Scale, c.Session.Ucs.AngleToWorld(placing.Rotation), shift, origin, unitFactor);
+            CadBlockDrag DragOf(CadBlockDragMode mode) =>
+                new CadBlockDrag(
+                    name,
+                    items,
+                    mode,
+                    new GeoPoint2(placing.Point.X, placing.Point.Y),
+                    placing.Scale,
+                    c.Session.Ucs.AngleToWorld(placing.Rotation),
+                    shift,
+                    origin,
+                    unitFactor
+                );
 
             c.Write("Units: " + UnitName(record.Units) + "   Conversion:   " + Length(UnitFactor(c.Database, record)));
 
@@ -793,7 +921,9 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 while (true)
                 {
-                    yield return CadPrompt.ForPoint("Specify insertion point", null, InsertKeywords).Dragging(DragOf(CadBlockDragMode.Point));
+                    yield return CadPrompt
+                        .ForPoint("Specify insertion point", null, InsertKeywords)
+                        .Dragging(DragOf(CadBlockDragMode.Point));
 
                     if (c.Input.IsPoint)
                     {
@@ -830,13 +960,22 @@ namespace GeometryHelper.Dxf.Viewer
                     if (c.Input.Is("Scale") || c.Input.Is("X") || c.Input.Is("Y") || c.Input.Is("Z"))
                     {
                         string axis = c.Input.Is("Scale") ? null : c.Input.Text;
-                        yield return CadPrompt.ForDistance(axis == null ? "Specify scale factor for XYZ axes" : "Specify " + axis + " scale factor", null, null, Length(1.0));
+                        yield return CadPrompt.ForDistance(
+                            axis == null ? "Specify scale factor for XYZ axes" : "Specify " + axis + " scale factor",
+                            null,
+                            null,
+                            Length(1.0)
+                        );
 
                         if (c.Input.Kind == CadInputKind.Number && c.Input.Number != 0.0)
                         {
                             double f = c.Input.Number;
                             GeoVector3 now = placing.Scale;
-                            placing.Scale = axis == null ? new GeoVector3(f, f, f) : axis == "X" ? new GeoVector3(f, now.Y, now.Z) : axis == "Y" ? new GeoVector3(now.X, f, now.Z) : new GeoVector3(now.X, now.Y, f);
+                            placing.Scale =
+                                axis == null ? new GeoVector3(f, f, f)
+                                : axis == "X" ? new GeoVector3(f, now.Y, now.Z)
+                                : axis == "Y" ? new GeoVector3(now.X, f, now.Z)
+                                : new GeoVector3(now.X, now.Y, f);
                             scaleGiven = true;
                         }
 
@@ -851,7 +990,9 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 if (uniform)
                 {
-                    yield return CadPrompt.ForDistance("Specify scale factor for XYZ axes", null, null, Length(1.0)).Dragging(DragOf(CadBlockDragMode.Scale));
+                    yield return CadPrompt
+                        .ForDistance("Specify scale factor for XYZ axes", null, null, Length(1.0))
+                        .Dragging(DragOf(CadBlockDragMode.Scale));
                     double f = c.Input.Kind == CadInputKind.Number && c.Input.Number != 0.0 ? c.Input.Number : 1.0;
                     placing.Scale = new GeoVector3(f, f, f);
                 }
@@ -859,14 +1000,24 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     GeoPoint2 at = new GeoPoint2(placing.Point.X, placing.Point.Y);
                     // No rubber band: a number typed is a scale, not a distance along it; a point picked is the opposite corner all the same.
-                    yield return CadPrompt.ForPoint("Enter X scale factor, specify opposite corner,", null, new[] { "Corner", "XYZ" }, "1", true).Dragging(DragOf(CadBlockDragMode.Corner));
+                    yield return CadPrompt
+                        .ForPoint(
+                            "Enter X scale factor, specify opposite corner,",
+                            null,
+                            new[] { "Corner", "XYZ" },
+                            "1",
+                            true
+                        )
+                        .Dragging(DragOf(CadBlockDragMode.Corner));
                     double? x = null;
                     double? y = null;
                     double? z = null;
 
                     if (c.Input.Is("Corner"))
                     {
-                        yield return CadPrompt.ForPoint("Specify opposite corner", at).Dragging(DragOf(CadBlockDragMode.Corner));
+                        yield return CadPrompt
+                            .ForPoint("Specify opposite corner", at)
+                            .Dragging(DragOf(CadBlockDragMode.Corner));
                     }
                     else if (c.Input.Is("XYZ"))
                     {
@@ -887,7 +1038,17 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else if (x == null && c.Input.Kind == CadInputKind.Text)
                     {
-                        if (!double.TryParse(c.Input.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double typed) || typed == 0.0 || double.IsInfinity(typed) || double.IsNaN(typed))
+                        if (
+                            !double.TryParse(
+                                c.Input.Text,
+                                NumberStyles.Float,
+                                CultureInfo.InvariantCulture,
+                                out double typed
+                            )
+                            || typed == 0.0
+                            || double.IsInfinity(typed)
+                            || double.IsNaN(typed)
+                        )
                         {
                             c.Write("Requires a nonzero number, a point or an option keyword.");
                             yield break;
@@ -916,7 +1077,15 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (askRotation && !rotationGiven)
             {
-                yield return CadPrompt.ForAngle("Specify rotation angle", new GeoPoint2(placing.Point.X, placing.Point.Y), null, Number(0.0)).Turning().Dragging(DragOf(CadBlockDragMode.Rotation));
+                yield return CadPrompt
+                    .ForAngle(
+                        "Specify rotation angle",
+                        new GeoPoint2(placing.Point.X, placing.Point.Y),
+                        null,
+                        Number(0.0)
+                    )
+                    .Turning()
+                    .Dragging(DragOf(CadBlockDragMode.Rotation));
 
                 if (c.Input.Kind == CadInputKind.Number)
                 {
@@ -952,7 +1121,11 @@ namespace GeometryHelper.Dxf.Viewer
             if (shift.X != 0.0 || shift.Y != 0.0 || shift.Z != 0.0)
             {
                 GeoTransform3 turn = GeoTransform3.RotationAxis(GeoPoint3.Origin, Up, angle);
-                GeoVector3 scaled = new GeoVector3(shift.X * scale.X * unitFactor, shift.Y * scale.Y * unitFactor, shift.Z * scale.Z * unitFactor);
+                GeoVector3 scaled = new GeoVector3(
+                    shift.X * scale.X * unitFactor,
+                    shift.Y * scale.Y * unitFactor,
+                    shift.Z * scale.Z * unitFactor
+                );
                 point = point + turn.Transform(scaled);
             }
 
@@ -998,7 +1171,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// attribute values", then the prompt of each definition that is not preset with its default, in the order of the block;
         /// then "Verify attribute values" and each of those that are to be verified again.
         /// </summary>
-        private static IEnumerable<CadPrompt> AttributeValues(CadCommandContext c, DxfBlockTableRecord record, List<string> values)
+        private static IEnumerable<CadPrompt> AttributeValues(
+            CadCommandContext c,
+            DxfBlockTableRecord record,
+            List<string> values
+        )
         {
             List<DxfAttributeDefinition> definitions = Definitions(record);
 
@@ -1067,7 +1244,11 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            var request = new CadAttributeValuesRequest(c.Document, record.Name, definitions.Select(d => new CadAttributeValueRow(d.Tag, PromptOf(d), d.TextString)).ToList());
+            var request = new CadAttributeValuesRequest(
+                c.Document,
+                record.Name,
+                definitions.Select(d => new CadAttributeValueRow(d.Tag, PromptOf(d), d.TextString)).ToList()
+            );
 
             if (!c.Session.Request("ATTDIA", c.Document, request))
             {
@@ -1075,11 +1256,19 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             bool ok = request.Action == CadDialogAction.Ok;
-            values.AddRange(definitions.Select((d, i) => ok ? (request.Rows[i].Value ?? string.Empty).Replace("\r", string.Empty).Replace("\n", " ") : d.TextString));
+            values.AddRange(
+                definitions.Select(
+                    (d, i) =>
+                        ok
+                            ? (request.Rows[i].Value ?? string.Empty).Replace("\r", string.Empty).Replace("\n", " ")
+                            : d.TextString
+                )
+            );
             return true;
         }
 
-        private static string PromptOf(DxfAttributeDefinition definition) => string.IsNullOrEmpty(definition.Prompt) ? definition.Tag : definition.Prompt;
+        private static string PromptOf(DxfAttributeDefinition definition) =>
+            string.IsNullOrEmpty(definition.Prompt) ? definition.Tag : definition.Prompt;
 
         /// <summary>The factor that takes a block's units to the drawing's, as AutoCAD's INSERT scales by it: 1 where either gives none.</summary>
         private static double UnitFactor(DxfDatabase database, DxfBlockTableRecord record)
@@ -1093,15 +1282,24 @@ namespace GeometryHelper.Dxf.Viewer
         {
             switch (units)
             {
-                case DxfUnits.Inches: return 25.4;
-                case DxfUnits.Feet: return 304.8;
-                case DxfUnits.Millimeters: return 1.0;
-                case DxfUnits.Centimeters: return 10.0;
-                case DxfUnits.Meters: return 1000.0;
-                case DxfUnits.Decimeters: return 100.0;
-                case DxfUnits.Kilometers: return 1E6;
-                case DxfUnits.Yards: return 914.4;
-                default: return 0.0;
+                case DxfUnits.Inches:
+                    return 25.4;
+                case DxfUnits.Feet:
+                    return 304.8;
+                case DxfUnits.Millimeters:
+                    return 1.0;
+                case DxfUnits.Centimeters:
+                    return 10.0;
+                case DxfUnits.Meters:
+                    return 1000.0;
+                case DxfUnits.Decimeters:
+                    return 100.0;
+                case DxfUnits.Kilometers:
+                    return 1E6;
+                case DxfUnits.Yards:
+                    return 914.4;
+                default:
+                    return 0.0;
             }
         }
 
@@ -1179,7 +1377,10 @@ namespace GeometryHelper.Dxf.Viewer
                 request.FileName += ".dxf";
             }
 
-            yield return CadPrompt.ForString("Enter name of existing block or [= (block=output file)/* (whole drawing)]", "define new drawing");
+            yield return CadPrompt.ForString(
+                "Enter name of existing block or [= (block=output file)/* (whole drawing)]",
+                "define new drawing"
+            );
             string answer = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim() : string.Empty;
 
             if (answer == "*")
@@ -1254,7 +1455,10 @@ namespace GeometryHelper.Dxf.Viewer
                     target.Insbase = c.Database.Insbase;
                     break;
                 default:
-                    entities = (request.Objects ?? Array.Empty<string>()).Select(h => c.Document.FindEntity(h)).Where(e => e != null).ToList();
+                    entities = (request.Objects ?? Array.Empty<string>())
+                        .Select(h => c.Document.FindEntity(h))
+                        .Where(e => e != null)
+                        .ToList();
                     shift = GeoPoint3.Origin - request.BasePoint;
 
                     if (entities.Count == 0)
@@ -1287,9 +1491,21 @@ namespace GeometryHelper.Dxf.Viewer
                 string full = Path.GetFullPath(path);
                 Directory.CreateDirectory(Path.GetDirectoryName(full));
                 target.Save(full);
-                GeometryHelperLog.Info("CadCommands: WBLOCK wrote " + entities.Count.ToString(CultureInfo.InvariantCulture) + " objects to " + full + ".");
+                GeometryHelperLog.Info(
+                    "CadCommands: WBLOCK wrote "
+                        + entities.Count.ToString(CultureInfo.InvariantCulture)
+                        + " objects to "
+                        + full
+                        + "."
+                );
             }
-            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException || exception is NotSupportedException || exception is InvalidOperationException)
+            catch (Exception exception)
+                when (exception is IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is ArgumentException
+                    || exception is NotSupportedException
+                    || exception is InvalidOperationException
+                )
             {
                 GeometryHelperLog.Warn("CadCommands: WBLOCK did not write " + path + ".", exception);
                 c.Write("Cannot write " + path + ": " + exception.Message);
@@ -1305,15 +1521,18 @@ namespace GeometryHelper.Dxf.Viewer
             if (request.ObjectAction == CadBlockObjectAction.ConvertToBlock)
             {
                 string name = Path.GetFileNameWithoutExtension(path);
-                MakeBlock(c, new CadBlockDefinitionRequest(c.Document)
-                {
-                    Name = name,
-                    BasePoint = request.BasePoint,
-                    Objects = request.Objects,
-                    ObjectAction = CadBlockObjectAction.ConvertToBlock,
-                    Units = units,
-                    Redefine = c.Database.BlockTable.Has(name),
-                });
+                MakeBlock(
+                    c,
+                    new CadBlockDefinitionRequest(c.Document)
+                    {
+                        Name = name,
+                        BasePoint = request.BasePoint,
+                        Objects = request.Objects,
+                        ObjectAction = CadBlockObjectAction.ConvertToBlock,
+                        Units = units,
+                        Redefine = c.Database.BlockTable.Has(name),
+                    }
+                );
                 return;
             }
 
@@ -1343,7 +1562,9 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                GeoPoint2? from = request.SpecifyOnScreen ? (GeoPoint2?)null : new GeoPoint2(request.Point.X, request.Point.Y);
+                GeoPoint2? from = request.SpecifyOnScreen
+                    ? (GeoPoint2?)null
+                    : new GeoPoint2(request.Point.X, request.Point.Y);
 
                 if (request.Action == CadDialogAction.PickHeight)
                 {
@@ -1356,7 +1577,12 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (request.Action == CadDialogAction.PickRotation)
                 {
-                    yield return CadPrompt.ForAngle("Specify rotation angle of text", from, null, Counted(c, request.Rotation));
+                    yield return CadPrompt.ForAngle(
+                        "Specify rotation angle of text",
+                        from,
+                        null,
+                        Counted(c, request.Rotation)
+                    );
 
                     if (c.Input.Kind == CadInputKind.Number)
                     {
@@ -1402,13 +1628,28 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> AttributeDefinitionTyped(CadCommandContext c)
         {
             string style = TextStyle(c);
-            var request = new CadAttributeDefinitionRequest(c.Document, style, AttributeHeight(c, style)) { SpecifyOnScreen = false };
+            var request = new CadAttributeDefinitionRequest(c.Document, style, AttributeHeight(c, style))
+            {
+                SpecifyOnScreen = false,
+            };
             string[] modes = { "Invisible", "Constant", "Verify", "Preset", "Lock position", "Multiple lines" };
 
             while (true)
             {
-                c.Write("Current attribute modes: Invisible=" + YesNo(request.Invisible) + " Constant=" + YesNo(request.Constant) + " Verify=" + YesNo(request.Verify)
-                    + " Preset=" + YesNo(request.Preset) + " Lock position=" + YesNo(request.LockPosition) + " Annotative=N Multiple lines=" + YesNo(request.MultipleLines));
+                c.Write(
+                    "Current attribute modes: Invisible="
+                        + YesNo(request.Invisible)
+                        + " Constant="
+                        + YesNo(request.Constant)
+                        + " Verify="
+                        + YesNo(request.Verify)
+                        + " Preset="
+                        + YesNo(request.Preset)
+                        + " Lock position="
+                        + YesNo(request.LockPosition)
+                        + " Annotative=N Multiple lines="
+                        + YesNo(request.MultipleLines)
+                );
                 yield return CadPrompt.ForKeyword("Enter an option to change", modes, "done");
 
                 if (c.Input.Is("Invisible"))
@@ -1465,12 +1706,20 @@ namespace GeometryHelper.Dxf.Viewer
                 request.Prompt = c.Input.Kind == CadInputKind.Text ? c.Input.Text : string.Empty;
             }
 
-            yield return CadPrompt.ForString(request.Constant ? "Enter attribute value" : "Enter default attribute value");
+            yield return CadPrompt.ForString(
+                request.Constant ? "Enter attribute value" : "Enter default attribute value"
+            );
             request.Default = c.Input.Kind == CadInputKind.Text ? c.Input.Text : string.Empty;
 
             while (true)
             {
-                c.Write("Current text style:  \"" + (request.TextStyle ?? "Standard") + "\"  Text height:  " + Length(request.Height) + "  Annotative:  No");
+                c.Write(
+                    "Current text style:  \""
+                        + (request.TextStyle ?? "Standard")
+                        + "\"  Text height:  "
+                        + Length(request.Height)
+                        + "  Annotative:  No"
+                );
                 yield return CadPrompt.ForPoint("Specify start point of text", null, new[] { "Justify", "Style" });
 
                 if (c.Input.IsPoint)
@@ -1482,7 +1731,9 @@ namespace GeometryHelper.Dxf.Viewer
                 if (c.Input.Is("Justify"))
                 {
                     yield return CadPrompt.ForKeyword("Enter an option", Justifications.Select(j => j.Key).ToArray());
-                    KeyValuePair<string, DxfAttachmentPoint> picked = Justifications.FirstOrDefault(j => c.Input.Is(j.Key));
+                    KeyValuePair<string, DxfAttachmentPoint> picked = Justifications.FirstOrDefault(j =>
+                        c.Input.Is(j.Key)
+                    );
 
                     if (picked.Key != null)
                     {
@@ -1543,7 +1794,8 @@ namespace GeometryHelper.Dxf.Viewer
         private static string YesNo(bool value) => value ? "Y" : "N";
 
         /// <summary>Whether a tag is one AutoCAD takes: one word, with no space or line break.</summary>
-        internal static bool IsTag(string tag) => !string.IsNullOrEmpty(tag) && tag.IndexOfAny(new[] { ' ', '\t', '\r', '\n' }) < 0;
+        internal static bool IsTag(string tag) =>
+            !string.IsNullOrEmpty(tag) && tag.IndexOfAny(new[] { ' ', '\t', '\r', '\n' }) < 0;
 
         /// <summary>Makes the attribute definition a request describes, one edit: its tag in capitals, as AutoCAD writes one.</summary>
         internal static void MakeAttributeDefinition(CadCommandContext c, CadAttributeDefinitionRequest request)
@@ -1568,7 +1820,10 @@ namespace GeometryHelper.Dxf.Viewer
             string prompt = (request.Prompt ?? string.Empty).Replace("\r", string.Empty).Replace("\n", " ");
             c.Apply(null, s =>
             {
-                DxfTextStyleTableRecord style = request.TextStyle != null && s.Database.TextStyleTable.Has(request.TextStyle) ? s.Database.TextStyleTable[request.TextStyle] : null;
+                DxfTextStyleTableRecord style =
+                    request.TextStyle != null && s.Database.TextStyleTable.Has(request.TextStyle)
+                        ? s.Database.TextStyleTable[request.TextStyle]
+                        : null;
                 var definition = new DxfAttributeDefinition(request.Point, value, tag, prompt, style);
                 s.Append(space, Current(c, definition));
                 definition.Height = request.Height;
@@ -1638,7 +1893,10 @@ namespace GeometryHelper.Dxf.Viewer
                     for (int i = 0; i < request.Rows.Count; i++)
                     {
                         CadAttributeRow row = request.Rows[i];
-                        yield return CadPrompt.ForString("Enter new value for attribute \"" + row.Tag + "\"", row.Value);
+                        yield return CadPrompt.ForString(
+                            "Enter new value for attribute \"" + row.Tag + "\"",
+                            row.Value
+                        );
 
                         if (c.Input.Kind == CadInputKind.Text)
                         {
@@ -1688,7 +1946,11 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Asks for a block with attributes until one is picked, Enter or Esc, as EATTEDIT asks: one of none says so.</summary>
-        private static IEnumerable<CadPrompt> PickAttributed(CadCommandContext c, string ask, Action<CadAttributeEditRequest> picked)
+        private static IEnumerable<CadPrompt> PickAttributed(
+            CadCommandContext c,
+            string ask,
+            Action<CadAttributeEditRequest> picked
+        )
         {
             while (true)
             {
@@ -1727,26 +1989,33 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfAttributeReference attribute in insert.AttributeCollection)
             {
-                DxfAttributeDefinition definition = record?.OfType<DxfAttributeDefinition>().FirstOrDefault(d => string.Equals(d.Tag, attribute.Tag, StringComparison.OrdinalIgnoreCase));
-                rows.Add(new CadAttributeRow
-                {
-                    Handle = attribute.Handle,
-                    Tag = attribute.Tag,
-                    Prompt = definition?.Prompt ?? string.Empty,
-                    Value = attribute.TextString,
-                    TextStyle = attribute.TextStyleName,
-                    Justification = attribute.Justify,
-                    Height = attribute.Height,
-                    Rotation = attribute.Rotation,
-                    Backwards = attribute.IsMirroredInX,
-                    UpsideDown = attribute.IsMirroredInY,
-                    WidthFactor = attribute.WidthFactor,
-                    Oblique = attribute.Oblique,
-                    Layer = attribute.Layer,
-                    Linetype = attribute.Linetype,
-                    ColorIndex = attribute.Color.IsByLayer ? 256 : attribute.Color.IsByBlock ? 0 : attribute.Color.ColorIndex,
-                    LineWeight = (int)attribute.LineWeight,
-                });
+                DxfAttributeDefinition definition = record
+                    ?.OfType<DxfAttributeDefinition>()
+                    .FirstOrDefault(d => string.Equals(d.Tag, attribute.Tag, StringComparison.OrdinalIgnoreCase));
+                rows.Add(
+                    new CadAttributeRow
+                    {
+                        Handle = attribute.Handle,
+                        Tag = attribute.Tag,
+                        Prompt = definition?.Prompt ?? string.Empty,
+                        Value = attribute.TextString,
+                        TextStyle = attribute.TextStyleName,
+                        Justification = attribute.Justify,
+                        Height = attribute.Height,
+                        Rotation = attribute.Rotation,
+                        Backwards = attribute.IsMirroredInX,
+                        UpsideDown = attribute.IsMirroredInY,
+                        WidthFactor = attribute.WidthFactor,
+                        Oblique = attribute.Oblique,
+                        Layer = attribute.Layer,
+                        Linetype = attribute.Linetype,
+                        ColorIndex =
+                            attribute.Color.IsByLayer ? 256
+                            : attribute.Color.IsByBlock ? 0
+                            : attribute.Color.ColorIndex,
+                        LineWeight = (int)attribute.LineWeight,
+                    }
+                );
             }
 
             return new CadAttributeEditRequest(document, insert.Handle, insert.Name, rows);
@@ -1756,7 +2025,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// Writes the rows of the editor that differ from what the drawing shows (<paramref name="shown"/>), which then shows
         /// them; whether any was written. Quiet, as while a value is typed, a height not above nought is passed over unsaid.
         /// </summary>
-        private static bool Show(CadCommandContext c, CadAttributeEditRequest request, List<CadAttributeRow> shown, bool quiet)
+        private static bool Show(
+            CadCommandContext c,
+            CadAttributeEditRequest request,
+            List<CadAttributeRow> shown,
+            bool quiet
+        )
         {
             if (WriteAttributes(c, request, shown, quiet) == 0)
             {
@@ -1769,10 +2043,19 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Writes what the rows changed into the INSERT's attributes, one edit; nothing where nothing changed.</summary>
-        private static void WriteAttributes(CadCommandContext c, CadAttributeEditRequest request, List<CadAttributeRow> before) => WriteAttributes(c, request, before, false);
+        private static void WriteAttributes(
+            CadCommandContext c,
+            CadAttributeEditRequest request,
+            List<CadAttributeRow> before
+        ) => WriteAttributes(c, request, before, false);
 
         /// <summary>Writes what the rows changed into the INSERT's attributes, one edit; how many rows it wrote, none where nothing changed or the edit was refused.</summary>
-        private static int WriteAttributes(CadCommandContext c, CadAttributeEditRequest request, List<CadAttributeRow> before, bool quiet)
+        private static int WriteAttributes(
+            CadCommandContext c,
+            CadAttributeEditRequest request,
+            List<CadAttributeRow> before,
+            bool quiet
+        )
         {
             var changed = new List<KeyValuePair<CadAttributeRow, CadAttributeRow>>();
 
@@ -1801,30 +2084,61 @@ namespace GeometryHelper.Dxf.Viewer
 
             // A style typed that the drawing has not would fail the edit, and with it the command's step: while a value is
             // typed it is passed over, and said only on Apply or OK.
-            if (quiet && changed.Any(p => p.Value.TextStyle != p.Key.TextStyle && p.Value.TextStyle != null && !c.Database.TextStyleTable.Has(p.Value.TextStyle)))
+            if (
+                quiet
+                && changed.Any(p =>
+                    p.Value.TextStyle != p.Key.TextStyle
+                    && p.Value.TextStyle != null
+                    && !c.Database.TextStyleTable.Has(p.Value.TextStyle)
+                )
+            )
             {
                 return 0;
             }
 
             string handle = request.Insert;
-            CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "Attributes", null, string.Join(",", changed.Select(p => p.Value.Tag))) }, s =>
-            {
-                var insert = (DxfBlockReference)s.Document.FindEntity(handle);
-
-                foreach (KeyValuePair<CadAttributeRow, CadAttributeRow> pair in changed)
+            CadEditResult result = c.Apply(
+                new[]
                 {
-                    DxfAttributeReference attribute = insert.AttributeCollection.First(a => string.Equals(a.Handle, pair.Value.Handle, StringComparison.OrdinalIgnoreCase));
-                    Write(attribute, pair.Key, pair.Value, s.Database);
+                    new CadEditRecord(
+                        CadEditRecordKind.PropertyChanged,
+                        handle,
+                        "Attributes",
+                        null,
+                        string.Join(",", changed.Select(p => p.Value.Tag))
+                    ),
+                },
+                s =>
+                {
+                    var insert = (DxfBlockReference)s.Document.FindEntity(handle);
+
+                    foreach (KeyValuePair<CadAttributeRow, CadAttributeRow> pair in changed)
+                    {
+                        DxfAttributeReference attribute = insert.AttributeCollection.First(a =>
+                            string.Equals(a.Handle, pair.Value.Handle, StringComparison.OrdinalIgnoreCase)
+                        );
+                        Write(attribute, pair.Key, pair.Value, s.Database);
+                    }
                 }
-            });
+            );
 
             return result.Succeeded ? changed.Count : 0;
         }
 
-        private static bool Same(CadAttributeRow a, CadAttributeRow b)
-            => a.Value == b.Value && a.TextStyle == b.TextStyle && a.Justification == b.Justification && a.Height.Equals(b.Height) && a.Rotation.Equals(b.Rotation)
-               && a.Backwards == b.Backwards && a.UpsideDown == b.UpsideDown && a.WidthFactor.Equals(b.WidthFactor) && a.Oblique.Equals(b.Oblique)
-               && a.Layer == b.Layer && a.Linetype == b.Linetype && a.ColorIndex == b.ColorIndex && a.LineWeight == b.LineWeight;
+        private static bool Same(CadAttributeRow a, CadAttributeRow b) =>
+            a.Value == b.Value
+            && a.TextStyle == b.TextStyle
+            && a.Justification == b.Justification
+            && a.Height.Equals(b.Height)
+            && a.Rotation.Equals(b.Rotation)
+            && a.Backwards == b.Backwards
+            && a.UpsideDown == b.UpsideDown
+            && a.WidthFactor.Equals(b.WidthFactor)
+            && a.Oblique.Equals(b.Oblique)
+            && a.Layer == b.Layer
+            && a.Linetype == b.Linetype
+            && a.ColorIndex == b.ColorIndex
+            && a.LineWeight == b.LineWeight;
 
         /// <summary>Sets on an attribute, or an attribute definition, each value of a row that differs from what it was.</summary>
         private static void Write(DxfDBText attribute, CadAttributeRow old, CadAttributeRow row, DxfDatabase database)
@@ -1836,13 +2150,16 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (row.TextStyle != old.TextStyle && row.TextStyle != null)
             {
-                attribute.TextStyleName = database.TextStyleTable.Has(row.TextStyle) ? database.TextStyleTable[row.TextStyle].Name : throw new ArgumentException("Cannot find text style \"" + row.TextStyle + "\".");
+                attribute.TextStyleName = database.TextStyleTable.Has(row.TextStyle)
+                    ? database.TextStyleTable[row.TextStyle].Name
+                    : throw new ArgumentException("Cannot find text style \"" + row.TextStyle + "\".");
             }
 
             if (row.Justification != old.Justification)
             {
                 // The text keeps the point it stands at: the new justification hangs it there.
-                GeoPoint3 at = old.Justification == DxfAttachmentPoint.BaseLeft ? attribute.Position : attribute.AlignmentPoint;
+                GeoPoint3 at =
+                    old.Justification == DxfAttachmentPoint.BaseLeft ? attribute.Position : attribute.AlignmentPoint;
                 attribute.Justify = row.Justification;
 
                 if (row.Justification == DxfAttachmentPoint.BaseLeft)
@@ -1897,7 +2214,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (row.ColorIndex != old.ColorIndex)
             {
-                attribute.Color = row.ColorIndex == 256 ? DxfColor.ByLayer : row.ColorIndex == 0 ? DxfColor.ByBlock : DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)row.ColorIndex);
+                attribute.Color =
+                    row.ColorIndex == 256 ? DxfColor.ByLayer
+                    : row.ColorIndex == 0 ? DxfColor.ByBlock
+                    : DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)row.ColorIndex);
             }
 
             if (row.LineWeight != old.LineWeight)
@@ -1942,13 +2262,26 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     // An INSERT a click picked gives the attribute clicked alone, as AutoCAD's; one a window took, those inside the
                     // window (or touched by a crossing box); one another option took whole, all of them.
-                    List<GeoPoint2> clicks = c.Input.Clicks.Where(p => string.Equals(p.Key, handle, StringComparison.OrdinalIgnoreCase)).Select(p => p.Value).ToList();
-                    List<Tuple<DisplayBox, bool>> windows = c.Input.Windows.Where(w => string.Equals(w.Item1, handle, StringComparison.OrdinalIgnoreCase)).Select(w => Tuple.Create(w.Item2, w.Item3)).ToList();
-                    HashSet<string> clicked = clicks.Count > 0 ? ClickedAttributes(c, insert, clicks) : windows.Count > 0 ? WindowedAttributes(c, insert, windows) : null;
+                    List<GeoPoint2> clicks = c
+                        .Input.Clicks.Where(p => string.Equals(p.Key, handle, StringComparison.OrdinalIgnoreCase))
+                        .Select(p => p.Value)
+                        .ToList();
+                    List<Tuple<DisplayBox, bool>> windows = c
+                        .Input.Windows.Where(w => string.Equals(w.Item1, handle, StringComparison.OrdinalIgnoreCase))
+                        .Select(w => Tuple.Create(w.Item2, w.Item3))
+                        .ToList();
+                    HashSet<string> clicked =
+                        clicks.Count > 0 ? ClickedAttributes(c, insert, clicks)
+                        : windows.Count > 0 ? WindowedAttributes(c, insert, windows)
+                        : null;
 
                     foreach (DxfAttributeReference attribute in insert.AttributeCollection)
                     {
-                        if ((clicked == null || clicked.Contains(attribute.Handle)) && tags.IsMatch(attribute.Tag) && values.IsMatch(attribute.TextString ?? string.Empty))
+                        if (
+                            (clicked == null || clicked.Contains(attribute.Handle))
+                            && tags.IsMatch(attribute.Tag)
+                            && values.IsMatch(attribute.TextString ?? string.Empty)
+                        )
                         {
                             found.Add(new KeyValuePair<string, string>(handle, attribute.Handle));
                         }
@@ -1964,20 +2297,27 @@ namespace GeometryHelper.Dxf.Viewer
                 while (true)
                 {
                     // The attribute edited marked with a cross where it stands, as AutoCAD marks it.
-                    yield return CadPrompt.ForKeyword("Enter an option", options, "Next").Marking(HeldAt(c, pair.Key, pair.Value));
+                    yield return CadPrompt
+                        .ForKeyword("Enter an option", options, "Next")
+                        .Marking(HeldAt(c, pair.Key, pair.Value));
 
                     if (c.Input.IsNone || c.Input.Is("Next"))
                     {
                         break;
                     }
 
-                    CadAttributeRow row = Rows(c.Document, pair.Key).Rows.First(r => string.Equals(r.Handle, pair.Value, StringComparison.OrdinalIgnoreCase));
+                    CadAttributeRow row = Rows(c.Document, pair.Key)
+                        .Rows.First(r => string.Equals(r.Handle, pair.Value, StringComparison.OrdinalIgnoreCase));
                     CadAttributeRow old = row.Clone();
                     string option = c.Input.Text;
 
                     if (option == "Value")
                     {
-                        yield return CadPrompt.ForKeyword("Enter type of value modification", new[] { "Change", "Replace" }, "Replace");
+                        yield return CadPrompt.ForKeyword(
+                            "Enter type of value modification",
+                            new[] { "Change", "Replace" },
+                            "Replace"
+                        );
 
                         if (c.Input.Is("Change"))
                         {
@@ -2010,12 +2350,31 @@ namespace GeometryHelper.Dxf.Viewer
                             GeoPoint2 to = c.Input.Point;
                             string insert = pair.Key;
                             string attribute = pair.Value;
-                            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.PropertyChanged, insert, "Attribute position", null, Values(to.X, to.Y)) }, s =>
-                            {
-                                DxfAttributeReference a = ((DxfBlockReference)s.Document.FindEntity(insert)).AttributeCollection.First(x => string.Equals(x.Handle, attribute, StringComparison.OrdinalIgnoreCase));
-                                GeoPoint3 now = a.Justify == DxfAttachmentPoint.BaseLeft ? a.Position : a.AlignmentPoint;
-                                a.TransformBy(GeoTransform3.Translation(new GeoVector3(to.X - now.X, to.Y - now.Y, 0.0)));
-                            });
+                            c.Apply(
+                                new[]
+                                {
+                                    new CadEditRecord(
+                                        CadEditRecordKind.PropertyChanged,
+                                        insert,
+                                        "Attribute position",
+                                        null,
+                                        Values(to.X, to.Y)
+                                    ),
+                                },
+                                s =>
+                                {
+                                    DxfAttributeReference a = (
+                                        (DxfBlockReference)s.Document.FindEntity(insert)
+                                    ).AttributeCollection.First(x =>
+                                        string.Equals(x.Handle, attribute, StringComparison.OrdinalIgnoreCase)
+                                    );
+                                    GeoPoint3 now =
+                                        a.Justify == DxfAttachmentPoint.BaseLeft ? a.Position : a.AlignmentPoint;
+                                    a.TransformBy(
+                                        GeoTransform3.Translation(new GeoVector3(to.X - now.X, to.Y - now.Y, 0.0))
+                                    );
+                                }
+                            );
                         }
 
                         continue;
@@ -2031,7 +2390,12 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else if (option == "Angle")
                     {
-                        yield return CadPrompt.ForAngle("Specify new rotation angle", null, null, Number(row.Rotation * 180.0 / Math.PI));
+                        yield return CadPrompt.ForAngle(
+                            "Specify new rotation angle",
+                            null,
+                            null,
+                            Number(row.Rotation * 180.0 / Math.PI)
+                        );
 
                         if (c.Input.Kind == CadInputKind.Number)
                         {
@@ -2066,7 +2430,12 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else if (option == "Color")
                     {
-                        yield return CadPrompt.ForString("Enter new color", row.ColorIndex == 256 ? "BYLAYER" : row.ColorIndex == 0 ? "BYBLOCK" : row.ColorIndex.ToString(CultureInfo.InvariantCulture));
+                        yield return CadPrompt.ForString(
+                            "Enter new color",
+                            row.ColorIndex == 256 ? "BYLAYER"
+                                : row.ColorIndex == 0 ? "BYBLOCK"
+                                : row.ColorIndex.ToString(CultureInfo.InvariantCulture)
+                        );
 
                         if (c.Input.Kind == CadInputKind.Text)
                         {
@@ -2080,7 +2449,11 @@ namespace GeometryHelper.Dxf.Viewer
                             {
                                 row.ColorIndex = 0;
                             }
-                            else if (int.TryParse(typed, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index) && index >= 1 && index <= 255)
+                            else if (
+                                int.TryParse(typed, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index)
+                                && index >= 1
+                                && index <= 255
+                            )
                             {
                                 row.ColorIndex = index;
                             }
@@ -2094,7 +2467,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (!Same(row, old))
                     {
-                        WriteAttributes(c, new CadAttributeEditRequest(c.Document, pair.Key, null, new[] { row }), new List<CadAttributeRow> { old });
+                        WriteAttributes(
+                            c,
+                            new CadAttributeEditRequest(c.Document, pair.Key, null, new[] { row }),
+                            new List<CadAttributeRow> { old }
+                        );
                     }
                 }
             }
@@ -2103,7 +2480,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The point an attribute of an INSERT is held by: its start on the baseline where it is aligned left there, else its alignment point.</summary>
         private static GeoPoint2 HeldAt(CadCommandContext c, string insert, string attribute)
         {
-            DxfAttributeReference a = ((DxfBlockReference)c.Document.FindEntity(insert)).AttributeCollection.First(x => string.Equals(x.Handle, attribute, StringComparison.OrdinalIgnoreCase));
+            DxfAttributeReference a = ((DxfBlockReference)c.Document.FindEntity(insert)).AttributeCollection.First(x =>
+                string.Equals(x.Handle, attribute, StringComparison.OrdinalIgnoreCase)
+            );
             GeoPoint3 at = a.Justify == DxfAttachmentPoint.BaseLeft ? a.Position : a.AlignmentPoint;
             return new GeoPoint2(at.X, at.Y);
         }
@@ -2114,7 +2493,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// the one of those it falls nearest within the pick aperture, the first of the INSERT where two are as near; a click on
         /// the block's own lines takes none.
         /// </summary>
-        private static HashSet<string> ClickedAttributes(CadCommandContext c, DxfBlockReference insert, IReadOnlyList<GeoPoint2> clicks)
+        private static HashSet<string> ClickedAttributes(
+            CadCommandContext c,
+            DxfBlockReference insert,
+            IReadOnlyList<GeoPoint2> clicks
+        )
         {
             var clicked = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             List<KeyValuePair<string, DisplayText2>> shown = Shown(c, insert);
@@ -2148,7 +2531,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// The handles of the attributes of an INSERT that windows took, as AutoCAD's -ATTEDIT takes those a window encloses or
         /// a crossing box touches and not the INSERT's others: each shown attribute judged by its text as drawn.
         /// </summary>
-        private static HashSet<string> WindowedAttributes(CadCommandContext c, DxfBlockReference insert, IReadOnlyList<Tuple<DisplayBox, bool>> windows)
+        private static HashSet<string> WindowedAttributes(
+            CadCommandContext c,
+            DxfBlockReference insert,
+            IReadOnlyList<Tuple<DisplayBox, bool>> windows
+        )
         {
             var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -2174,7 +2561,11 @@ namespace GeometryHelper.Dxf.Viewer
                 return shown;
             }
 
-            List<DisplayText2> texts = c.Document.GetDisplay(space).Items.OfType<DisplayText2>().Where(t => string.Equals(t.Handle, insert.Handle, StringComparison.OrdinalIgnoreCase)).ToList();
+            List<DisplayText2> texts = c
+                .Document.GetDisplay(space)
+                .Items.OfType<DisplayText2>()
+                .Where(t => string.Equals(t.Handle, insert.Handle, StringComparison.OrdinalIgnoreCase))
+                .ToList();
             var used = new bool[texts.Count];
 
             foreach (DxfAttributeReference attribute in insert.AttributeCollection)
@@ -2184,13 +2575,16 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                GeoPoint3 at = attribute.Justify == DxfAttachmentPoint.BaseLeft ? attribute.Position : attribute.AlignmentPoint;
+                GeoPoint3 at =
+                    attribute.Justify == DxfAttachmentPoint.BaseLeft ? attribute.Position : attribute.AlignmentPoint;
                 int best = -1;
                 double nearest = double.PositiveInfinity;
 
                 for (int i = 0; i < texts.Count; i++)
                 {
-                    double d = Math.Sqrt(((texts[i].X - at.X) * (texts[i].X - at.X)) + ((texts[i].Y - at.Y) * (texts[i].Y - at.Y)));
+                    double d = Math.Sqrt(
+                        ((texts[i].X - at.X) * (texts[i].X - at.X)) + ((texts[i].Y - at.Y) * (texts[i].Y - at.Y))
+                    );
 
                     if (!used[i] && d < nearest)
                     {
@@ -2213,7 +2607,10 @@ namespace GeometryHelper.Dxf.Viewer
         private static Regex Wildcard(string pattern)
         {
             string[] parts = (string.IsNullOrWhiteSpace(pattern) ? "*" : pattern.Trim()).Split(',');
-            string joined = string.Join("|", parts.Select(p => Regex.Escape(p.Trim()).Replace("\\*", ".*").Replace("\\?", ".")));
+            string joined = string.Join(
+                "|",
+                parts.Select(p => Regex.Escape(p.Trim()).Replace("\\*", ".*").Replace("\\?", "."))
+            );
             return new Regex("^(?:" + joined + ")$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         }
 
@@ -2255,7 +2652,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                         string typed = c.Input.Text.Trim();
 
-                        if (!c.Database.BlockTable.Has(typed) || !NamedBlocks(c.Database).Any(b => string.Equals(b.Name, typed, StringComparison.OrdinalIgnoreCase)))
+                        if (
+                            !c.Database.BlockTable.Has(typed)
+                            || !NamedBlocks(c.Database)
+                                .Any(b => string.Equals(b.Name, typed, StringComparison.OrdinalIgnoreCase))
+                        )
                         {
                             c.Write("Block \"" + typed + "\" not found.");
                             continue;
@@ -2276,7 +2677,10 @@ namespace GeometryHelper.Dxf.Viewer
                             yield break;
                         }
 
-                        if (c.Document.FindEntity(c.Input.Handles[0]) is DxfBlockReference picked && picked.BlockTableRecord != null)
+                        if (
+                            c.Document.FindEntity(c.Input.Handles[0]) is DxfBlockReference picked
+                            && picked.BlockTableRecord != null
+                        )
                         {
                             name = picked.BlockTableRecord.Name;
                             break;
@@ -2310,7 +2714,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The names of the blocks with attribute definitions, as ATTSYNC's "?" lists them.</summary>
         private static void WriteAttributedBlocks(CadCommandContext c)
         {
-            List<string> names = NamedBlocks(c.Database).Where(b => b.OfType<DxfAttributeDefinition>().Any()).Select(b => b.Name).ToList();
+            List<string> names = NamedBlocks(c.Database)
+                .Where(b => b.OfType<DxfAttributeDefinition>().Any())
+                .Select(b => b.Name)
+                .ToList();
             c.Write("Blocks with attributes:");
             names.ForEach(c.Write);
         }
@@ -2330,11 +2737,32 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (pair.Key.IsLayout && c.Document.FindEntity(pair.Value.Handle) != null)
                 {
-                    planned.Add(new CadEditRecord(CadEditRecordKind.PropertyChanged, pair.Value.Handle, "Attributes", null, name));
+                    planned.Add(
+                        new CadEditRecord(
+                            CadEditRecordKind.PropertyChanged,
+                            pair.Value.Handle,
+                            "Attributes",
+                            null,
+                            name
+                        )
+                    );
                 }
-                else if (!planned.Exists(r => r.Kind == CadEditRecordKind.TableChanged && string.Equals(r.NewValue, pair.Key.Name, StringComparison.OrdinalIgnoreCase)))
+                else if (
+                    !planned.Exists(r =>
+                        r.Kind == CadEditRecordKind.TableChanged
+                        && string.Equals(r.NewValue, pair.Key.Name, StringComparison.OrdinalIgnoreCase)
+                    )
+                )
                 {
-                    planned.Add(new CadEditRecord(CadEditRecordKind.TableChanged, null, "Attributes synchronized", null, pair.Key.Name));
+                    planned.Add(
+                        new CadEditRecord(
+                            CadEditRecordKind.TableChanged,
+                            null,
+                            "Attributes synchronized",
+                            null,
+                            pair.Key.Name
+                        )
+                    );
                 }
             }
 
@@ -2351,12 +2779,21 @@ namespace GeometryHelper.Dxf.Viewer
             if (result.Succeeded)
             {
                 c.Write("ATTSYNC complete.");
-                GeometryHelperLog.Info("CadCommands: ATTSYNC brought " + count.ToString(CultureInfo.InvariantCulture) + " INSERTs of " + name + " in line with the block.");
+                GeometryHelperLog.Info(
+                    "CadCommands: ATTSYNC brought "
+                        + count.ToString(CultureInfo.InvariantCulture)
+                        + " INSERTs of "
+                        + name
+                        + " in line with the block."
+                );
             }
         }
 
         /// <summary>The INSERTs of a block with the block or layout each stands in, in the order of the block table and of each block; external references left out.</summary>
-        private static List<KeyValuePair<DxfBlockTableRecord, DxfBlockReference>> InsertsOf(DxfDatabase database, string name)
+        private static List<KeyValuePair<DxfBlockTableRecord, DxfBlockReference>> InsertsOf(
+            DxfDatabase database,
+            string name
+        )
         {
             var inserts = new List<KeyValuePair<DxfBlockTableRecord, DxfBlockReference>>();
 
@@ -2369,7 +2806,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 foreach (DxfEntity entity in owner)
                 {
-                    if (entity is DxfBlockReference insert && !insert.IsErased && string.Equals(insert.Name, name, StringComparison.OrdinalIgnoreCase))
+                    if (
+                        entity is DxfBlockReference insert
+                        && !insert.IsErased
+                        && string.Equals(insert.Name, name, StringComparison.OrdinalIgnoreCase)
+                    )
                     {
                         inserts.Add(new KeyValuePair<DxfBlockTableRecord, DxfBlockReference>(owner, insert));
                     }
@@ -2465,7 +2906,12 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> Base(CadCommandContext c)
         {
             GeoPoint3 now = c.Database.Insbase;
-            yield return CadPrompt.ForPoint("Enter base point", null, null, Length(now.X) + "," + Length(now.Y) + "," + Length(now.Z));
+            yield return CadPrompt.ForPoint(
+                "Enter base point",
+                null,
+                null,
+                Length(now.X) + "," + Length(now.Y) + "," + Length(now.Z)
+            );
 
             if (!c.Input.IsPoint)
             {
@@ -2473,7 +2919,19 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint3 to = new GeoPoint3(c.Input.Point.X, c.Input.Point.Y, now.Z);
-            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$INSBASE", Values(now.X, now.Y, now.Z), Values(to.X, to.Y, to.Z)) }, s => s.Database.Insbase = to);
+            c.Apply(
+                new[]
+                {
+                    new CadEditRecord(
+                        CadEditRecordKind.SettingChanged,
+                        null,
+                        "$INSBASE",
+                        Values(now.X, now.Y, now.Z),
+                        Values(to.X, to.Y, to.Z)
+                    ),
+                },
+                s => s.Database.Insbase = to
+            );
         }
     }
 }

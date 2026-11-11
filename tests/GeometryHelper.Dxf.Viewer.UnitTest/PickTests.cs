@@ -16,7 +16,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void APointNearALinePicksItAndOneFartherThanTheToleranceDoesNot()
         {
-            PickIndex index = Index(TestDrawings.Line(0, 0, 100, 0, handle: "A1"), TestDrawings.Line(0, 50, 100, 50, handle: "A2"));
+            PickIndex index = Index(
+                TestDrawings.Line(0, 0, 100, 0, handle: "A1"),
+                TestDrawings.Line(0, 50, 100, 50, handle: "A2")
+            );
 
             Assert.Equal(new[] { "A1" }, index.Pick(40, 1.5, 2.0));
             Assert.Empty(index.Pick(40, 20, 2.0));
@@ -25,7 +28,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void TwoEntitiesWithinTheToleranceComeBackNearestFirst()
         {
-            PickIndex index = Index(TestDrawings.Line(0, 0, 100, 0, handle: "A1"), TestDrawings.Line(0, 1.5, 100, 1.5, handle: "A2"));
+            PickIndex index = Index(
+                TestDrawings.Line(0, 0, 100, 0, handle: "A1"),
+                TestDrawings.Line(0, 1.5, 100, 1.5, handle: "A2")
+            );
 
             Assert.Equal(new[] { "A2", "A1" }, index.Pick(40, 1.0, 3.0));
         }
@@ -54,7 +60,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             PickIndex index = Index(
                 TestDrawings.Line(10, 10, 20, 10, handle: "A1"),
                 TestDrawings.Line(10, 10, 200, 10, handle: "A2"),
-                TestDrawings.Line(500, 500, 600, 600, handle: "A3"));
+                TestDrawings.Line(500, 500, 600, 600, handle: "A3")
+            );
             var box = new DisplayBox(0, 0, 100, 100);
 
             Assert.Equal(new[] { "A1" }, index.Window(box));
@@ -74,7 +81,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void AnInsertIsSelectedAsOneEntityWhateverItsBlockHolds()
         {
             string block = TestDrawings.Block("TWO", TestDrawings.Line(0, 0, 10, 0), TestDrawings.Line(0, 5, 10, 5));
-            CadDocument document = CadDocument.From(TestDrawings.Drawing(null, block, TestDrawings.Insert("TWO", 0, 0, handle: "B1")), "test.dxf");
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(null, block, TestDrawings.Insert("TWO", 0, 0, handle: "B1")),
+                "test.dxf"
+            );
             PickIndex index = document.GetPickIndex(document.ModelSpace);
 
             Assert.Equal(new[] { "B1" }, index.Window(new DisplayBox(-1, -1, 11, 6)));
@@ -110,7 +120,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             {
                 double x = (i % 30) * 30.0;
                 double y = (i / 30) * 30.0;
-                entities.Add(i % 2 == 0 ? TestDrawings.Line(x, y, x + 20, y + 5) : TestDrawings.Circle(x + 10, y + 10, 4));
+                entities.Add(
+                    i % 2 == 0 ? TestDrawings.Line(x, y, x + 20, y + 5) : TestDrawings.Circle(x + 10, y + 10, 4)
+                );
             }
 
             entities.Add(TestDrawings.Line(-10, -10, 900, 900, handle: "BIG"));
@@ -122,7 +134,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 double x0 = random.NextDouble() * 1000 - 50;
                 double y0 = random.NextDouble() * 1000 - 50;
                 var box = new DisplayBox(x0, y0, x0 + random.NextDouble() * 300, y0 + random.NextDouble() * 300);
-                int[] expected = Enumerable.Range(0, index.List.Count).Where(i => index.List.Items[i].Bounds.Intersects(box)).ToArray();
+                int[] expected = Enumerable
+                    .Range(0, index.List.Count)
+                    .Where(i => index.List.Items[i].Bounds.Intersects(box))
+                    .ToArray();
 
                 Assert.Equal(expected, index.IndicesIn(box));
             }

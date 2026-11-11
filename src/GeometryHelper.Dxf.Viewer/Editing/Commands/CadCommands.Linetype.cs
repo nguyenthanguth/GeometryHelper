@@ -15,7 +15,8 @@ namespace GeometryHelper.Dxf.Viewer
     internal static partial class CadCommands
     {
         /// <summary>LINETYPE: the window's Linetype Manager; with no window, the prompts of -LINETYPE.</summary>
-        private static IEnumerable<CadPrompt> Linetype(CadCommandContext c) => c.Session.Request("LINETYPE", c.Document) ? Array.Empty<CadPrompt>() : LinetypeTyped(c);
+        private static IEnumerable<CadPrompt> Linetype(CadCommandContext c) =>
+            c.Session.Request("LINETYPE", c.Document) ? Array.Empty<CadPrompt>() : LinetypeTyped(c);
 
         /// <summary>
         /// -LINETYPE: "Enter an option [?/Create/Load/Set]:" until Enter. ? lists a file's linetypes; Create appends one typed
@@ -64,7 +65,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             string offered = CadSupportFiles.DefaultLinetypeFile(c.Document);
             yield return CadPrompt.ForString("Enter linetype file to list", Path.GetFileName(offered));
-            IReadOnlyList<CadLinetypeDefinition> linetypes = LinetypeFile(c, c.Input.Kind == CadInputKind.Text ? c.Input.Text : offered, out string path);
+            IReadOnlyList<CadLinetypeDefinition> linetypes = LinetypeFile(
+                c,
+                c.Input.Kind == CadInputKind.Text ? c.Input.Text : offered,
+                out string path
+            );
 
             if (linetypes == null)
             {
@@ -123,7 +128,12 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 there = File.Exists(file) ? CadLinetypeFile.Read(file) : Array.Empty<CadLinetypeDefinition>();
             }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException || e is NotSupportedException)
+            catch (Exception e)
+                when (e is IOException
+                    || e is UnauthorizedAccessException
+                    || e is ArgumentException
+                    || e is NotSupportedException
+                )
             {
                 c.Write("Cannot read linetype file \"" + file + "\": " + e.Message);
             }
@@ -142,7 +152,11 @@ namespace GeometryHelper.Dxf.Viewer
             yield return CadPrompt.ForString("Descriptive text");
             string description = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim() : string.Empty;
             yield return CadPrompt.ForString("Enter linetype pattern (on next line)", "A,");
-            CadLinetypeDefinition linetype = CadLinetypeFile.ParsePattern(name, description, c.Input.Kind == CadInputKind.Text ? c.Input.Text : string.Empty);
+            CadLinetypeDefinition linetype = CadLinetypeFile.ParsePattern(
+                name,
+                description,
+                c.Input.Kind == CadInputKind.Text ? c.Input.Text : string.Empty
+            );
 
             if (linetype.Fault != null)
             {
@@ -154,11 +168,25 @@ namespace GeometryHelper.Dxf.Viewer
 
             try
             {
-                string start = File.Exists(file) && new FileInfo(file).Length > 0 && !File.ReadAllText(file).EndsWith("\n", StringComparison.Ordinal) ? "\r\n" : string.Empty;
-                File.AppendAllText(file, start + linetype.ToString().Replace("\n", "\r\n") + "\r\n", new UTF8Encoding(false));
+                string start =
+                    File.Exists(file)
+                    && new FileInfo(file).Length > 0
+                    && !File.ReadAllText(file).EndsWith("\n", StringComparison.Ordinal)
+                        ? "\r\n"
+                        : string.Empty;
+                File.AppendAllText(
+                    file,
+                    start + linetype.ToString().Replace("\n", "\r\n") + "\r\n",
+                    new UTF8Encoding(false)
+                );
                 written = file;
             }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException || e is NotSupportedException)
+            catch (Exception e)
+                when (e is IOException
+                    || e is UnauthorizedAccessException
+                    || e is ArgumentException
+                    || e is NotSupportedException
+                )
             {
                 c.Write("Cannot write linetype file \"" + file + "\": " + e.Message);
             }
@@ -182,7 +210,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             string offered = CadSupportFiles.DefaultLinetypeFile(c.Document);
             yield return CadPrompt.ForString("Enter linetype file to search", Path.GetFileName(offered));
-            IReadOnlyList<CadLinetypeDefinition> linetypes = LinetypeFile(c, c.Input.Kind == CadInputKind.Text ? c.Input.Text : offered, out string path);
+            IReadOnlyList<CadLinetypeDefinition> linetypes = LinetypeFile(
+                c,
+                c.Input.Kind == CadInputKind.Text ? c.Input.Text : offered,
+                out string path
+            );
 
             if (linetypes == null)
             {
@@ -232,9 +264,12 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                string name = string.Equals(typed, "ByLayer", StringComparison.OrdinalIgnoreCase) ? "ByLayer"
+                string name =
+                    string.Equals(typed, "ByLayer", StringComparison.OrdinalIgnoreCase) ? "ByLayer"
                     : string.Equals(typed, "ByBlock", StringComparison.OrdinalIgnoreCase) ? "ByBlock"
-                    : c.Database.LinetypeTable.Select(l => l.Name).FirstOrDefault(n => string.Equals(n, typed, StringComparison.OrdinalIgnoreCase));
+                    : c
+                        .Database.LinetypeTable.Select(l => l.Name)
+                        .FirstOrDefault(n => string.Equals(n, typed, StringComparison.OrdinalIgnoreCase));
 
                 if (name == null)
                 {
@@ -248,7 +283,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>CELTYPE: the linetype new objects take, asked as AutoCAD asks a variable.</summary>
-        private static IEnumerable<CadPrompt> CurrentLinetype(CadCommandContext c) => LinetypeSet(c, "Enter new value for CELTYPE");
+        private static IEnumerable<CadPrompt> CurrentLinetype(CadCommandContext c) =>
+            LinetypeSet(c, "Enter new value for CELTYPE");
 
         /// <summary>LTSCALE: the scale of every linetype of the drawing ($LTSCALE), above nought; every space drawn again.</summary>
         private static IEnumerable<CadPrompt> LinetypeScale(CadCommandContext c)
@@ -258,7 +294,19 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (ScaleTyped(c, old, out double scale) && scale != old)
             {
-                CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$LTSCALE", Values(old), Values(scale)) }, s => s.Database.Ltscale = scale);
+                CadEditResult result = c.Apply(
+                    new[]
+                    {
+                        new CadEditRecord(
+                            CadEditRecordKind.SettingChanged,
+                            null,
+                            "$LTSCALE",
+                            Values(old),
+                            Values(scale)
+                        ),
+                    },
+                    s => s.Database.Ltscale = scale
+                );
 
                 if (result.Succeeded)
                 {
@@ -274,7 +322,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!string.Equals(old, name, StringComparison.Ordinal))
             {
-                c.Apply(new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$CELTYPE", old, name) }, s => s.Database.Celtype = name);
+                c.Apply(new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$CELTYPE", old, name) }, s =>
+                    s.Database.Celtype = name
+                );
             }
         }
 
@@ -299,12 +349,23 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The linetypes of a file named on the command line: the presenter's own set, or a file found on the support path; null, said, where none is.</summary>
-        private static IReadOnlyList<CadLinetypeDefinition> LinetypeFile(CadCommandContext c, string typed, out string path)
+        private static IReadOnlyList<CadLinetypeDefinition> LinetypeFile(
+            CadCommandContext c,
+            string typed,
+            out string path
+        )
         {
             string name = (typed ?? string.Empty).Trim().Trim('"');
             path = null;
 
-            if (string.Equals(name, CadLinetypeFile.BuiltInName, StringComparison.OrdinalIgnoreCase) || string.Equals(name, Path.GetFileNameWithoutExtension(CadLinetypeFile.BuiltInName), StringComparison.OrdinalIgnoreCase))
+            if (
+                string.Equals(name, CadLinetypeFile.BuiltInName, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(
+                    name,
+                    Path.GetFileNameWithoutExtension(CadLinetypeFile.BuiltInName),
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
             {
                 path = CadLinetypeFile.BuiltInName;
                 return CadLinetypeFile.BuiltIn;
@@ -356,10 +417,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Whether a name matches a pattern of AutoCAD's wildcards, * any run of letters and ? one, letters of either case the same.</summary>
         private static bool WildcardMatches(string name, string pattern)
         {
-            var regex = "^" + System.Text.RegularExpressions.Regex.Escape(pattern).Replace("\\*", ".*").Replace("\\?", ".") + "$";
-            return System.Text.RegularExpressions.Regex.IsMatch(name, regex, System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+            var regex =
+                "^"
+                + System.Text.RegularExpressions.Regex.Escape(pattern).Replace("\\*", ".*").Replace("\\?", ".")
+                + "$";
+            return System.Text.RegularExpressions.Regex.IsMatch(
+                name,
+                regex,
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+                    | System.Text.RegularExpressions.RegexOptions.CultureInvariant
+            );
         }
 
-        private static string Count(int count, string one, string many) => count.ToString(CultureInfo.InvariantCulture) + " " + (count == 1 ? one : many);
+        private static string Count(int count, string one, string many) =>
+            count.ToString(CultureInfo.InvariantCulture) + " " + (count == 1 ? one : many);
     }
 }

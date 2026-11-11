@@ -25,8 +25,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
     /// </summary>
     public class InsertRibbonTests
     {
-        private const string InsertSteps = "Reference:Medium; Block Definition:Medium; Reference:Collapsed; Block Definition:Collapsed";
-        private const string AnnotateSteps = "Leaders:Medium; Text:Medium; Dimensions:Medium; Leaders:Collapsed; Text:Collapsed";
+        private const string InsertSteps =
+            "Reference:Medium; Block Definition:Medium; Reference:Collapsed; Block Definition:Collapsed";
+        private const string AnnotateSteps =
+            "Leaders:Medium; Text:Medium; Dimensions:Medium; Leaders:Collapsed; Text:Collapsed";
         private const string ViewSteps = "Drafting:Medium; Navigate:Medium; Interface:Collapsed; Views:Collapsed";
 
         [Fact]
@@ -37,7 +39,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 ToggleButton home = Descendants(workspace).OfType<ToggleButton>().First(t => Equals(t.Content, "Home"));
                 var row = (Panel)VisualTreeHelper.GetParent(home);
                 List<UIElement> children = row.Children.Cast<UIElement>().ToList();
-                Assert.Equal(new[] { "Home", "Insert", "Annotate", "View", "Plugins", "Settings", "Text Editor", "Table Cell", "Block Editor" }, children.OfType<ToggleButton>().Select(t => (string)t.Content));
+                Assert.Equal(
+                    new[]
+                    {
+                        "Home",
+                        "Insert",
+                        "Annotate",
+                        "View",
+                        "Plugins",
+                        "Settings",
+                        "Text Editor",
+                        "Table Cell",
+                        "Block Editor",
+                    },
+                    children.OfType<ToggleButton>().Select(t => (string)t.Content)
+                );
                 ToggleButton insertTab = children.OfType<ToggleButton>().Single(t => Equals(t.Content, "Insert"));
                 Assert.True(children.IndexOf(children.OfType<ItemsControl>().Single()) < children.IndexOf(insertTab));
 
@@ -46,22 +62,53 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Layout(workspace, 1600);
 
                 RibbonStrip strip = StripOf(workspace, model.InsertTab.TabContent);
-                Assert.Equal(new[] { "Block", "Block Definition", "Reference" }, strip.Children.OfType<RibbonPanel>().Select(p => p.Title));
+                Assert.Equal(
+                    new[] { "Block", "Block Definition", "Reference" },
+                    strip.Children.OfType<RibbonPanel>().Select(p => p.Title)
+                );
 
-                List<Button> buttons = Descendants(strip).OfType<Button>().Where(b => b.CommandParameter is string).ToList();
-                string[] commands = { "INSERT", "EATTEDIT", "BLOCK", "ATTDEF", "BASE", "XATTACH", "IMAGECLIP", "EXTERNALREFERENCES", "TRANSPARENCY" };
+                List<Button> buttons = Descendants(strip)
+                    .OfType<Button>()
+                    .Where(b => b.CommandParameter is string)
+                    .ToList();
+                string[] commands =
+                {
+                    "INSERT",
+                    "EATTEDIT",
+                    "BLOCK",
+                    "ATTDEF",
+                    "BASE",
+                    "XATTACH",
+                    "IMAGECLIP",
+                    "EXTERNALREFERENCES",
+                    "TRANSPARENCY",
+                };
                 Assert.Equal(commands, buttons.Select(b => (string)b.CommandParameter));
 
                 foreach (Button button in buttons)
                 {
-                    Press(model, button.IsEnabled, () => button.Command.Execute(button.CommandParameter), (string)button.CommandParameter);
+                    Press(
+                        model,
+                        button.IsEnabled,
+                        () => button.Command.Execute(button.CommandParameter),
+                        (string)button.CommandParameter
+                    );
                 }
 
                 // INSERT opened the palette on Current drawing, BLOCK, ATTDEF and XATTACH their dialogs, ER the palette.
                 Assert.Equal(new[] { "palette Current drawing", "block", "attdef", "attach", "xref" }, shown);
 
                 // What is not built is there, greyed, its tooltip saying so.
-                foreach (string name in new[] { "Manage Attributes", "Block Editor", "Adjust", "Underlay Layers", "Snap to Underlays" })
+                foreach (
+                    string name in new[]
+                    {
+                        "Manage Attributes",
+                        "Block Editor",
+                        "Adjust",
+                        "Underlay Layers",
+                        "Snap to Underlays",
+                    }
+                )
                 {
                     Button greyed = Descendants(strip).OfType<Button>().Single(b => Equals(b.Content, name));
                     Assert.False(greyed.IsEnabled);
@@ -81,7 +128,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 Button single = Descendants(strip).OfType<Button>().Single(b => "EATTEDIT".Equals(b.CommandParameter));
                 List<MenuItem> attributes = MenuOf(SplitArrowOf(single));
-                Assert.Equal(new[] { "EATTEDIT", "ATTEDIT", null }, attributes.Select(i => i.CommandParameter as string));
+                Assert.Equal(
+                    new[] { "EATTEDIT", "ATTEDIT", null },
+                    attributes.Select(i => i.CommandParameter as string)
+                );
                 Assert.False(attributes[2].IsEnabled);
                 Pick(attributes[1]);
                 model.Escape();
@@ -99,10 +149,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 Button attach = Descendants(strip).OfType<Button>().Single(b => "XATTACH".Equals(b.CommandParameter));
                 List<MenuItem> attaches = MenuOf(SplitArrowOf(attach));
-                Assert.Equal(new[] { "XATTACH", "IMAGEATTACH" }, attaches.Where(i => i.IsEnabled).Select(i => (string)i.CommandParameter));
                 Assert.Equal(
-                    new[] { "Attach DWG…", "Attach DWF…", "Attach DGN…", "Attach PDF…", "Attach Point Cloud…", "Attach Coordination Model…" },
-                    attaches.Where(i => !i.IsEnabled).Select(i => (string)i.Header));
+                    new[] { "XATTACH", "IMAGEATTACH" },
+                    attaches.Where(i => i.IsEnabled).Select(i => (string)i.CommandParameter)
+                );
+                Assert.Equal(
+                    new[]
+                    {
+                        "Attach DWG…",
+                        "Attach DWF…",
+                        "Attach DGN…",
+                        "Attach PDF…",
+                        "Attach Point Cloud…",
+                        "Attach Coordination Model…",
+                    },
+                    attaches.Where(i => !i.IsEnabled).Select(i => (string)i.Header)
+                );
                 Pick(attaches[1]);
                 model.Escape();
                 Assert.Equal("IMAGEATTACH", attach.CommandParameter);
@@ -123,7 +185,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 // No image yet: 1 shown, and a choice refused as IMAGEFRAME refuses it.
                 Assert.Equal("Display and Plot Frames", box.SelectedValue);
                 box.SelectedValue = "Hide Frames";
-                Assert.Contains(model.History, l => l.StartsWith("IMAGEFRAME is kept with the drawing's images", StringComparison.Ordinal));
+                Assert.Contains(model.History, l =>
+                    l.StartsWith("IMAGEFRAME is kept with the drawing's images", StringComparison.Ordinal)
+                );
                 Assert.Equal("Display and Plot Frames", model.CurrentImageFrame);
 
                 // An image attached: Hide Frames sets 0, ticked; Display but Not Plot Frames 2.
@@ -135,8 +199,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 box.SelectedValue = "Hide Frames";
                 Assert.Contains("Enter new value for IMAGEFRAME <1>: 0", model.History);
                 Assert.Equal(0, (int)ImageVariables(model).ImageFrame);
-                Assert.Equal(new[] { true, false, false }, ((IEnumerable<StyleBoxItemViewModel>)box.ItemsSource).Select(i => i.IsCurrent));
-                Assert.Equal(new[] { "IMAGEFRAME 0", "IMAGEFRAME 1", "IMAGEFRAME 2" }, model.ImageFrameItems.Select(i => i.Hint));
+                Assert.Equal(
+                    new[] { true, false, false },
+                    ((IEnumerable<StyleBoxItemViewModel>)box.ItemsSource).Select(i => i.IsCurrent)
+                );
+                Assert.Equal(
+                    new[] { "IMAGEFRAME 0", "IMAGEFRAME 1", "IMAGEFRAME 2" },
+                    model.ImageFrameItems.Select(i => i.Hint)
+                );
 
                 box.SelectedValue = "Display but Not Plot Frames";
                 Assert.Equal(2, (int)ImageVariables(model).ImageFrame);
@@ -175,8 +245,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 // By name, letters of either case alike, as the Blocks palette lists them; the same again when read again.
                 List<string> names = insert.Gallery.Select(t => t.Name).ToList();
-                Assert.Equal(new[] { "Alpha", "beta", "DOOR_900", "zeta" }, names.Where(n => new[] { "zeta", "DOOR_900", "beta", "Alpha" }.Contains(n)));
-                Assert.Equal(names.OrderBy(n => n.ToUpperInvariant(), StringComparer.Ordinal).ThenBy(n => n, StringComparer.Ordinal), names);
+                Assert.Equal(
+                    new[] { "Alpha", "beta", "DOOR_900", "zeta" },
+                    names.Where(n => new[] { "zeta", "DOOR_900", "beta", "Alpha" }.Contains(n))
+                );
+                Assert.Equal(
+                    names
+                        .OrderBy(n => n.ToUpperInvariant(), StringComparer.Ordinal)
+                        .ThenBy(n => n, StringComparer.Ordinal),
+                    names
+                );
                 Assert.True(insert.HasGallery);
                 Assert.Equal("Current drawing · room.dxf", insert.GalleryTitle);
                 insert.IsGalleryOpen = false;
@@ -254,7 +332,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                         foreach (string tab in new[] { "Current drawing", "Recent", "Other drawing" })
                         {
-                            var palette = new BlocksPaletteViewModel(new CadInsertRequest(model.Document), null) { Tab = tab };
+                            var palette = new BlocksPaletteViewModel(new CadInsertRequest(model.Document), null)
+                            {
+                                Tab = tab,
+                            };
                             var window = new BlocksPaletteWindow(palette);
                             Assert.Equal(tab, palette.Tab);
                             Assert.Equal(tab == "Recent", window.RecentTab.IsChecked);
@@ -283,7 +364,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 model.SelectedTab = model.InsertTab;
                 Layout(workspace, 1600);
                 RibbonStrip strip = StripOf(workspace, model.InsertTab.TabContent);
-                List<Button> buttons = Descendants(strip).OfType<Button>().Where(b => !(b.TemplatedParent is RibbonPanel)).ToList();
+                List<Button> buttons = Descendants(strip)
+                    .OfType<Button>()
+                    .Where(b => !(b.TemplatedParent is RibbonPanel))
+                    .ToList();
 
                 Assert.Equal(18, buttons.Count);
                 Assert.All(buttons, b => Assert.False(b.IsEnabled, b.Content + " is enabled."));
@@ -294,22 +378,73 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         [Fact]
         public void InsertAtTheWidthsOfTheDesign_TakesTheStepsItLists_AndNoneAt2300()
         {
-            Steps(model => model.InsertTab, InsertSteps, new[] { "Block", "Block Definition", "Reference" },
-                new[] { (2300, 0), (1600, 0), (1280, 0), (876, 0), (875, 1), (720, 1), (719, 2), (606, 2), (605, 3), (394, 3), (393, 4) });
+            Steps(
+                model => model.InsertTab,
+                InsertSteps,
+                new[] { "Block", "Block Definition", "Reference" },
+                new[]
+                {
+                    (2300, 0),
+                    (1600, 0),
+                    (1280, 0),
+                    (876, 0),
+                    (875, 1),
+                    (720, 1),
+                    (719, 2),
+                    (606, 2),
+                    (605, 3),
+                    (394, 3),
+                    (393, 4),
+                }
+            );
         }
 
         [Fact]
         public void AnnotateAtTheWidthsOfTheDesign_TakesTheStepsItLists_AndNoneAt2300()
         {
-            Steps(model => model.AnnotateTab, AnnotateSteps, new[] { "Text", "Dimensions", "Leaders" },
-                new[] { (2300, 0), (1280, 0), (1016, 0), (1015, 1), (938, 1), (937, 2), (858, 2), (857, 3), (642, 3), (641, 4), (544, 4), (543, 5) });
+            Steps(
+                model => model.AnnotateTab,
+                AnnotateSteps,
+                new[] { "Text", "Dimensions", "Leaders" },
+                new[]
+                {
+                    (2300, 0),
+                    (1280, 0),
+                    (1016, 0),
+                    (1015, 1),
+                    (938, 1),
+                    (937, 2),
+                    (858, 2),
+                    (857, 3),
+                    (642, 3),
+                    (641, 4),
+                    (544, 4),
+                    (543, 5),
+                }
+            );
         }
 
         [Fact]
         public void ViewAtTheWidthsOfTheDesign_TakesTheStepsItLists_AndNoneAt2300()
         {
-            Steps(model => model.ViewTab, ViewSteps, new[] { "Navigate", "Views", "Interface", "Drafting" },
-                new[] { (2300, 0), (1280, 0), (694, 0), (693, 1), (598, 1), (597, 2), (476, 2), (475, 3), (410, 3), (409, 4) });
+            Steps(
+                model => model.ViewTab,
+                ViewSteps,
+                new[] { "Navigate", "Views", "Interface", "Drafting" },
+                new[]
+                {
+                    (2300, 0),
+                    (1280, 0),
+                    (694, 0),
+                    (693, 1),
+                    (598, 1),
+                    (597, 2),
+                    (476, 2),
+                    (475, 3),
+                    (410, 3),
+                    (409, 4),
+                }
+            );
         }
 
         [Fact]
@@ -325,7 +460,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Layout(workspace, 857);
                 Assert.Equal(3, strip.StepsTaken);
                 Assert.All(Descendants(strip).OfType<ComboBox>(), c => Assert.Equal(84.0, c.ActualWidth, 6));
-                Assert.DoesNotContain(Descendants(strip).OfType<TextBlock>(), t => (t.Text == "Style" || t.Text == "Height") && t.IsVisible);
+                Assert.DoesNotContain(Descendants(strip).OfType<TextBlock>(), t =>
+                    (t.Text == "Style" || t.Text == "Height") && t.IsVisible
+                );
                 Button quick = Descendants(strip).OfType<Button>().Single(b => "QDIM".Equals(b.CommandParameter));
                 Assert.Equal("Quick", AutomationProperties.GetName(quick));
                 Assert.DoesNotContain(Descendants(quick).OfType<TextBlock>(), t => t.Text == "Quick");
@@ -333,7 +470,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         /// <summary>A tab laid out at each window width given, the steps it takes and the size of each panel checked against the steps' string.</summary>
-        private static void Steps(Func<MainViewModel, CadWorkspaceExtension> tab, string steps, string[] titles, (int Window, int Steps)[] widths)
+        private static void Steps(
+            Func<MainViewModel, CadWorkspaceExtension> tab,
+            string steps,
+            string[] titles,
+            (int Window, int Steps)[] widths
+        )
         {
             OnWorkspace(2300, true, (model, workspace, shown) =>
             {
@@ -346,10 +488,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 foreach ((int window, int taken) in widths)
                 {
                     Layout(workspace, window);
-                    Assert.True(taken == strip.StepsTaken, "At " + window + " the strip took " + strip.StepsTaken + " steps, not " + taken + ".");
+                    Assert.True(
+                        taken == strip.StepsTaken,
+                        "At " + window + " the strip took " + strip.StepsTaken + " steps, not " + taken + "."
+                    );
                     Dictionary<string, RibbonPanelSize> expected = After(steps, taken, titles);
-                    Assert.Equal(expected, strip.Children.OfType<RibbonPanel>().ToDictionary(p => p.Title, p => p.Size));
-                    Assert.True(strip.DesiredSize.Width <= window - 24 + 0.01, "At " + window + " the strip is " + strip.DesiredSize.Width + " wide.");
+                    Assert.Equal(
+                        expected,
+                        strip.Children.OfType<RibbonPanel>().ToDictionary(p => p.Title, p => p.Size)
+                    );
+                    Assert.True(
+                        strip.DesiredSize.Width <= window - 24 + 0.01,
+                        "At " + window + " the strip is " + strip.DesiredSize.Width + " wide."
+                    );
                 }
             });
         }
@@ -371,7 +522,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         /// Runs a check on the window drawn offscreen at a width on a thread of its own, a room drawing open or none, every
         /// dialog the Insert tab's commands ask for stubbed, each recorded by a word.
         /// </summary>
-        private static void OnWorkspace(double width, bool open, Action<MainViewModel, CadWorkspace, List<string>> check)
+        private static void OnWorkspace(
+            double width,
+            bool open,
+            Action<MainViewModel, CadWorkspace, List<string>> check
+        )
         {
             using (var folder = new TestFolder())
             {
@@ -425,15 +580,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             return true;
         }
 
-        private static DxfRasterVariables ImageVariables(MainViewModel model)
-            => (DxfRasterVariables)model.Document.Database.NamedObjectsDictionary.GetAt("ACAD_IMAGE_VARS");
+        private static DxfRasterVariables ImageVariables(MainViewModel model) =>
+            (DxfRasterVariables)model.Document.Database.NamedObjectsDictionary.GetAt("ACAD_IMAGE_VARS");
 
         /// <summary>A picture 40 by 30 pixels, grey, written as a PNG.</summary>
         private static void WritePng(string path)
         {
             var pixels = Enumerable.Repeat((byte)128, 40 * 30 * 4).ToArray();
             var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(BitmapSource.Create(40, 30, 96, 96, PixelFormats.Bgra32, null, pixels, 40 * 4)));
+            encoder.Frames.Add(
+                BitmapFrame.Create(BitmapSource.Create(40, 30, 96, 96, PixelFormats.Bgra32, null, pixels, 40 * 4))
+            );
 
             using (FileStream stream = File.Create(path))
             {
@@ -448,11 +605,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             element.UpdateLayout();
         }
 
-        private static RibbonStrip StripOf(CadWorkspace workspace, object content)
-            => Descendants(workspace).OfType<RibbonStrip>().Single(s => ReferenceEquals(s.DataContext, content));
+        private static RibbonStrip StripOf(CadWorkspace workspace, object content) =>
+            Descendants(workspace).OfType<RibbonStrip>().Single(s => ReferenceEquals(s.DataContext, content));
 
         /// <summary>The arrow beside the button of a split, which drops its choices.</summary>
-        private static Button SplitArrowOf(Button main) => (Button)((Panel)VisualTreeHelper.GetParent(main)).Children[1];
+        private static Button SplitArrowOf(Button main) =>
+            (Button)((Panel)VisualTreeHelper.GetParent(main)).Children[1];
 
         /// <summary>The items of a button's menu, the menu taking the window's model from the button, its items bound at the dispatcher's next turn.</summary>
         private static List<MenuItem> MenuOf(Button opener)
@@ -467,7 +625,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         private static void Pick(MenuItem item)
         {
             Assert.True(item.IsEnabled, item.Header + " is not enabled.");
-            MethodInfo click = typeof(MenuItem).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic, null, Type.EmptyTypes, null);
+            MethodInfo click = typeof(MenuItem).GetMethod(
+                "OnClick",
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                Type.EmptyTypes,
+                null
+            );
             click.Invoke(item, null);
             item.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
         }
@@ -479,7 +643,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             int before = model.History.Count;
             press();
             Assert.Contains("Command: " + command, model.History.Skip(before));
-            Assert.DoesNotContain(model.History.Skip(before), l => l.StartsWith("Unknown command", StringComparison.Ordinal));
+            Assert.DoesNotContain(model.History.Skip(before), l =>
+                l.StartsWith("Unknown command", StringComparison.Ordinal)
+            );
             model.Escape();
         }
 

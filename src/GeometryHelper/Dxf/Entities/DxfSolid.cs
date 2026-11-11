@@ -25,15 +25,15 @@ namespace GeometryHelper.Dxf
     public sealed class DxfSolid : DxfEntity
     {
         // The groups of AcDbTrace in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 10, 20, 30, 11, 21, 31, 12, 22, 32, 13, 23, 33, 39, 210, 220, 230 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 10, 20, 30, 11, 21, 31, 12, 22, 32, 13, 23, 33, 39, 210, 220, 230 }
+        );
 
         private static readonly GeoPoint3 Origin = new GeoPoint3(0.0, 0.0, 0.0);
 
         /// <summary>Initializes a solid whose four corners are at the origin, as AutoCAD's <c>new Solid()</c>, on layer 0 in no file; give it its corners with <see cref="SetPointAt(short, GeoPoint3)"/>.</summary>
         public DxfSolid()
-            : this(Origin, Origin, Origin, Origin)
-        {
-        }
+            : this(Origin, Origin, Origin, Origin) { }
 
         /// <summary>Initializes a triangle, as AutoCAD's <c>new Solid(pointer1, pointer2, pointer3)</c>: the third corner written again as the fourth.</summary>
         /// <param name="pointer1">The first corner, in the plane of the normal (0, 0, 1).</param>
@@ -41,9 +41,7 @@ namespace GeometryHelper.Dxf
         /// <param name="pointer3">The third corner.</param>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
         public DxfSolid(GeoPoint3 pointer1, GeoPoint3 pointer2, GeoPoint3 pointer3)
-            : this(pointer1, pointer2, pointer3, pointer3)
-        {
-        }
+            : this(pointer1, pointer2, pointer3, pointer3) { }
 
         /// <summary>
         /// Initializes a solid of four corners, as AutoCAD's <c>new Solid(pointer1, pointer2, pointer3, pointer4)</c>, in DXF's
@@ -55,14 +53,10 @@ namespace GeometryHelper.Dxf
         /// <param name="pointer4">The fourth corner.</param>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
         public DxfSolid(GeoPoint3 pointer1, GeoPoint3 pointer2, GeoPoint3 pointer3, GeoPoint3 pointer4)
-            : base("SOLID", Groups(new[] { pointer1, pointer2, pointer3, pointer4 }))
-        {
-        }
+            : base("SOLID", Groups(new[] { pointer1, pointer2, pointer3, pointer4 })) { }
 
         private DxfSolid(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets a corner in the world, as AutoCAD's <c>GetPointAt</c>: groups 10 + index, 20 + index and 30 + index in the system
@@ -92,7 +86,10 @@ namespace GeometryHelper.Dxf
 
             if (!point.IsValid)
             {
-                throw new ArgumentException("A corner has to be of finite numbers: " + point + " is not.", nameof(point));
+                throw new ArgumentException(
+                    "A corner has to be of finite numbers: " + point + " is not.",
+                    nameof(point)
+                );
             }
 
             if (GetPointAt(index).Equals(point))
@@ -190,7 +187,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The polygon in the plane.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the solid does not lie on the floor, encloses no area within the
         /// tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoPolygon2 ToGeoPolygon2(Tolerance tolerance) => ShapeAs<GeoPolygon2>(nameof(ToGeoPolygon2), true, tolerance);
+        public GeoPolygon2 ToGeoPolygon2(Tolerance tolerance) =>
+            ShapeAs<GeoPolygon2>(nameof(ToGeoPolygon2), true, tolerance);
 
         /// <summary>
         /// Moves, turns, scales or mirrors the solid, as AutoCAD's <c>TransformBy</c>, as ezdxf carries one: each corner the record
@@ -227,7 +225,11 @@ namespace GeometryHelper.Dxf
             if (GetString(39) != null)
             {
                 double thickness = ocs.Thickness(GetThickness());
-                parts.Add(Same(thickness, GetThickness()) ? new KeyValuePair<int, string>[0] : new[] { new KeyValuePair<int, string>(39, Numbers.Exact(thickness + 0.0)) });
+                parts.Add(
+                    Same(thickness, GetThickness())
+                        ? new KeyValuePair<int, string>[0]
+                        : new[] { new KeyValuePair<int, string>(39, Numbers.Exact(thickness + 0.0)) }
+                );
             }
 
             parts.Add(NormalGroups(ocs.NewExtrusion));
@@ -268,7 +270,10 @@ namespace GeometryHelper.Dxf
             {
                 if (!corners[i].IsValid)
                 {
-                    throw new ArgumentException("A corner has to be of finite numbers: " + corners[i] + " is not.", "pointer" + (i + 1).ToString(CultureInfo.InvariantCulture));
+                    throw new ArgumentException(
+                        "A corner has to be of finite numbers: " + corners[i] + " is not.",
+                        "pointer" + (i + 1).ToString(CultureInfo.InvariantCulture)
+                    );
                 }
 
                 groups.Add(new DxfTypedValue(10 + i, Numbers.Exact(corners[i].X + 0.0)));

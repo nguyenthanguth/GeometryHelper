@@ -146,35 +146,72 @@ namespace GeometryHelper.UnitTest.Plane
         /// A loop of eight corners 2.62 by 2.37 with its arcs, that crosses itself at three places, cut at all of
         /// them at a tolerance of 0.1.
         /// </summary>
-        private static GeoPolygonArc2 EightCornersCutAtATenth() => new GeoPolygonArc2(
-            new[]
-            {
-                P(2.263565202094484, 0.9583770155264077), P(3.272434515967713, 0.1309254495032398), P(2.7391802437039647, 2.4818060732034724),
-                P(2.9312806959453113, 2.469742154380907), P(2.4127390972009852, 2.368741813347669), P(0.7980997500734023, 0.8605669269052311),
-                P(3.4139995416358255, 0.2863762706557456), P(2.4198750326563485, 2.381466076055706),
-            },
-            new[] { -0.08471363269943447, -0.14792852906879436, -0.2812996923836412, 0.15382748034495275, 0.0, -0.2148262825397897, 0.0, 0.1731052094479581 });
+        private static GeoPolygonArc2 EightCornersCutAtATenth() =>
+            new GeoPolygonArc2(
+                new[]
+                {
+                    P(2.263565202094484, 0.9583770155264077),
+                    P(3.272434515967713, 0.1309254495032398),
+                    P(2.7391802437039647, 2.4818060732034724),
+                    P(2.9312806959453113, 2.469742154380907),
+                    P(2.4127390972009852, 2.368741813347669),
+                    P(0.7980997500734023, 0.8605669269052311),
+                    P(3.4139995416358255, 0.2863762706557456),
+                    P(2.4198750326563485, 2.381466076055706),
+                },
+                new[]
+                {
+                    -0.08471363269943447,
+                    -0.14792852906879436,
+                    -0.2812996923836412,
+                    0.15382748034495275,
+                    0.0,
+                    -0.2148262825397897,
+                    0.0,
+                    0.1731052094479581,
+                }
+            );
 
         /// <summary>
         /// A loop of eight corners 1.91 by 2.01 with its arcs, that crosses itself once, within 0.1 of a corner: at
         /// a tolerance of 0.1 the pass through the corner reads as a touch, within 1E-3 as a crossing.
         /// </summary>
-        private static GeoPolygonArc2 EightCornersCrossingBesideACorner() => new GeoPolygonArc2(
-            new[]
-            {
-                P(0.8784705235958227, 1.4952340365806662), P(0.2576758179238767, 1.7114370530650422), P(1.2657891717864778, 2.076496060588267),
-                P(1.7173881125324741, 1.1935224584634672), P(2.154960179744004, 0.06472456484643802), P(0.2471181617459247, 1.375377424719411),
-                P(1.6446015045265272, 0.1838445495786179), P(2.071384343226514, 0.10783005848854982),
-            },
-            new[] { -0.24806404148603978, 0.0, -0.03758249736278435, -0.08567629427913401, -0.07503954906716923, 0.16637013371399145, -0.03587120330700244, 0.0 });
+        private static GeoPolygonArc2 EightCornersCrossingBesideACorner() =>
+            new GeoPolygonArc2(
+                new[]
+                {
+                    P(0.8784705235958227, 1.4952340365806662),
+                    P(0.2576758179238767, 1.7114370530650422),
+                    P(1.2657891717864778, 2.076496060588267),
+                    P(1.7173881125324741, 1.1935224584634672),
+                    P(2.154960179744004, 0.06472456484643802),
+                    P(0.2471181617459247, 1.375377424719411),
+                    P(1.6446015045265272, 0.1838445495786179),
+                    P(2.071384343226514, 0.10783005848854982),
+                },
+                new[]
+                {
+                    -0.24806404148603978,
+                    0.0,
+                    -0.03758249736278435,
+                    -0.08567629427913401,
+                    -0.07503954906716923,
+                    0.16637013371399145,
+                    -0.03587120330700244,
+                    0.0,
+                }
+            );
 
         /// <summary>The signed areas of an answer, largest first: positive for a loop wound as the source, negative for a hole.</summary>
-        private static double[] SignedAreas(GeoPolygonArc2[] loops, GeoPolygonArc2 source)
-            => loops.Select(l => l.IsClockwise == source.IsClockwise ? l.Area : -l.Area).OrderByDescending(a => a).ToArray();
+        private static double[] SignedAreas(GeoPolygonArc2[] loops, GeoPolygonArc2 source) =>
+            loops
+                .Select(l => l.IsClockwise == source.IsClockwise ? l.Area : -l.Area)
+                .OrderByDescending(a => a)
+                .ToArray();
 
         /// <summary>How far every point of an answer of round joins stands off the distance from the source, at worst.</summary>
-        private static double WorstOff(GeoPolygonArc2[] loops, GeoPolygonArc2 source, double distance)
-            => loops.Max(l => WorstOffDistance(PiecesOf(l), PiecesOf(source), distance));
+        private static double WorstOff(GeoPolygonArc2[] loops, GeoPolygonArc2 source, double distance) =>
+            loops.Max(l => WorstOffDistance(PiecesOf(l), PiecesOf(source), distance));
 
         [Fact]
         public void ARowOfFortyCrossingsATenthApartShrunkAtATenth_IsTwoLoopsStandingTheDistanceOff()
@@ -221,8 +258,14 @@ namespace GeometryHelper.UnitTest.Plane
             watch.Stop();
 
             long allocated = AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize - before;
-            Assert.True(watch.Elapsed < TimeSpan.FromSeconds(30), "offsetting 200 diameters took " + watch.ElapsedMilliseconds + " ms");
-            Assert.True(allocated < 400L * 1024 * 1024, "offsetting 200 diameters allocated " + allocated / (1024 * 1024) + " MB");
+            Assert.True(
+                watch.Elapsed < TimeSpan.FromSeconds(30),
+                "offsetting 200 diameters took " + watch.ElapsedMilliseconds + " ms"
+            );
+            Assert.True(
+                allocated < 400L * 1024 * 1024,
+                "offsetting 200 diameters allocated " + allocated / (1024 * 1024) + " MB"
+            );
         }
 
         [Fact]
@@ -240,7 +283,10 @@ namespace GeometryHelper.UnitTest.Plane
             watch.Stop();
 
             Assert.Equal(160173, found);
-            Assert.True(watch.Elapsed < TimeSpan.FromSeconds(15), "cutting the plus took " + watch.ElapsedMilliseconds + " ms");
+            Assert.True(
+                watch.Elapsed < TimeSpan.FromSeconds(15),
+                "cutting the plus took " + watch.ElapsedMilliseconds + " ms"
+            );
         }
 
         [Fact]
@@ -254,14 +300,23 @@ namespace GeometryHelper.UnitTest.Plane
             List<GeoEdge2> edges = ArcChain2.EdgesOf(loop);
 
             var watch = Stopwatch.StartNew();
-            bool cut = ArcOffset2.TrySplitAtCrossings(edges, Thousandth, out List<List<GeoEdge2>> region, out List<List<GeoEdge2>> bounds, out int found);
+            bool cut = ArcOffset2.TrySplitAtCrossings(
+                edges,
+                Thousandth,
+                out List<List<GeoEdge2>> region,
+                out List<List<GeoEdge2>> bounds,
+                out int found
+            );
             watch.Stop();
 
             Assert.True(cut);
             Assert.Equal(160181, found);
             Assert.Equal(160002, region.Count);
             Assert.Equal(109, bounds.Count);
-            Assert.True(watch.Elapsed < TimeSpan.FromSeconds(30), "cutting the plus took " + watch.ElapsedMilliseconds + " ms");
+            Assert.True(
+                watch.Elapsed < TimeSpan.FromSeconds(30),
+                "cutting the plus took " + watch.ElapsedMilliseconds + " ms"
+            );
         }
 
         [Fact]
@@ -279,7 +334,10 @@ namespace GeometryHelper.UnitTest.Plane
             watch.Stop();
 
             Assert.Equal(34, grown.Length);
-            Assert.True(watch.Elapsed < TimeSpan.FromSeconds(15), "growing the plus took " + watch.ElapsedMilliseconds + " ms");
+            Assert.True(
+                watch.Elapsed < TimeSpan.FromSeconds(15),
+                "growing the plus took " + watch.ElapsedMilliseconds + " ms"
+            );
         }
 
         [Fact]
@@ -304,7 +362,9 @@ namespace GeometryHelper.UnitTest.Plane
             // loop within 1E-3 it was one loop of 0.5229 at its centre, where the region read even-odd is empty. Within a tenth,
             // before, it was none.
             GeoPolygonArc2 star = StarOf37By18();
-            double point = Offset2.Offset(new GeoPolygon2(star.Vertices.ToList()), -0.3, Round, Thousandth).Max(l => l.Area);
+            double point = Offset2
+                .Offset(new GeoPolygon2(star.Vertices.ToList()), -0.3, Round, Thousandth)
+                .Max(l => l.Area);
 
             GeoPolygonArc2[] shrunk = Offset2.Offset(star, -0.3, Round, Tenth);
 
@@ -349,7 +409,8 @@ namespace GeometryHelper.UnitTest.Plane
             // The whole moved edge is a quarter circle of radius 10 counter-clockwise from (10, 0) to (0, 10); the piece is a
             // sliver 0.05 long turned backwards, from 0.05 past its end back to the end; the point is 0.02 past the end. Run
             // on from the sliver's start the way the circle runs, the piece swept 359.8 degrees, 62.8 long; it runs back 0.03.
-            GeoPoint2 At(double along) => P(10 * Math.Cos(Math.PI / 2 + along / 10), 10 * Math.Sin(Math.PI / 2 + along / 10));
+            GeoPoint2 At(double along) =>
+                P(10 * Math.Cos(Math.PI / 2 + along / 10), 10 * Math.Sin(Math.PI / 2 + along / 10));
             var whole = new GeoEdge2(P(10, 0), P(0, 10), Math.Tan(Math.PI / 8));
             var sliver = new GeoEdge2(At(0.05), At(0.0), -Math.Tan(0.005 / 4));
 

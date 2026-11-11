@@ -26,7 +26,13 @@ namespace GeometryHelper.Dxf.Viewer
         private DisplayBuilder _builder;
         private DxfDatabase _database;
 
-        private CadPreview(CadCommandSession session, Func<CadInput, IEnumerable<DxfEntity>> make, IReadOnlyList<string> handles, Func<CadInput, IReadOnlyList<Affine2>> moves, bool band)
+        private CadPreview(
+            CadCommandSession session,
+            Func<CadInput, IEnumerable<DxfEntity>> make,
+            IReadOnlyList<string> handles,
+            Func<CadInput, IReadOnlyList<Affine2>> moves,
+            bool band
+        )
         {
             _session = session;
             _make = make;
@@ -175,7 +181,9 @@ namespace GeometryHelper.Dxf.Viewer
             if (prompt != null && prompt.Kind == CadPromptKind.Entity)
             {
                 CadDocument document = _session.Document;
-                IReadOnlyList<string> picked = document.GetPickIndex(document.WorkingSpace).Pick(cursor.X, cursor.Y, _session.PickAperture);
+                IReadOnlyList<string> picked = document
+                    .GetPickIndex(document.WorkingSpace)
+                    .Pick(cursor.X, cursor.Y, _session.PickAperture);
 
                 if (picked.Count > 0 && document.FindEntity(picked[0]) != null)
                 {
@@ -188,7 +196,11 @@ namespace GeometryHelper.Dxf.Viewer
                 return new CadInput(CadInputKind.Text, cursor, 0.0, Typed ?? string.Empty, null);
             }
 
-            if (prompt == null || (prompt.Kind != CadPromptKind.Distance && prompt.Kind != CadPromptKind.Angle) || !from.HasValue)
+            if (
+                prompt == null
+                || (prompt.Kind != CadPromptKind.Distance && prompt.Kind != CadPromptKind.Angle)
+                || !from.HasValue
+            )
             {
                 return new CadInput(CadInputKind.Point, cursor, 0.0, null, null);
             }
@@ -199,19 +211,25 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A preview of entities made from the answer a point picked at the cursor gives.</summary>
-        internal static CadPreview Making(CadCommandContext c, Func<CadInput, IEnumerable<DxfEntity>> make, bool band = false)
-            => new CadPreview(c.Session, make, null, null, band);
+        internal static CadPreview Making(
+            CadCommandContext c,
+            Func<CadInput, IEnumerable<DxfEntity>> make,
+            bool band = false
+        ) => new CadPreview(c.Session, make, null, null, band);
 
         /// <summary>A preview of the pieces the answer at the cursor takes out of the drawing, drawn faded, as TRIM previews them.</summary>
-        internal static CadPreview Fading(CadCommandContext c, Func<CadInput, IEnumerable<DxfEntity>> make)
-            => new CadPreview(c.Session, make, null, null, false) { _fades = true };
+        internal static CadPreview Fading(CadCommandContext c, Func<CadInput, IEnumerable<DxfEntity>> make) =>
+            new CadPreview(c.Session, make, null, null, false) { _fades = true };
 
         /// <summary>
         /// A preview of TRIM or EXTEND, which Shift held turns into the other's: faded for the piece a trim takes out, and not
         /// for the object an extension runs on.
         /// </summary>
-        internal static CadPreview Cutting(CadCommandContext c, Func<CadInput, IEnumerable<DxfEntity>> make, bool extend)
-            => new CadPreview(c.Session, make, null, null, false) { _fades = !extend, _swaps = true };
+        internal static CadPreview Cutting(
+            CadCommandContext c,
+            Func<CadInput, IEnumerable<DxfEntity>> make,
+            bool extend
+        ) => new CadPreview(c.Session, make, null, null, false) { _fades = !extend, _swaps = true };
 
         /// <summary>
         /// A preview of the objects of another drawing, drawn by its own layers, styles and blocks under the move the answer at
@@ -221,15 +239,23 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var builder = new DisplayBuilder(from, c.Document);
             var entities = new List<DxfEntity>(from.ModelSpace);
-            return new CadPreview(c.Session, null, null, null, false) { _drawn = input => builder.BuildLoose(entities, move(input)) };
+            return new CadPreview(c.Session, null, null, null, false)
+            {
+                _drawn = input => builder.BuildLoose(entities, move(input)),
+            };
         }
 
         /// <summary>A preview of one entity made from the answer a point picked at the cursor gives; null from the maker previews nothing.</summary>
-        internal static CadPreview MakingOne(CadCommandContext c, Func<CadInput, DxfEntity> make, bool band = false)
-            => Making(c, input => One(make(input)), band);
+        internal static CadPreview MakingOne(CadCommandContext c, Func<CadInput, DxfEntity> make, bool band = false) =>
+            Making(c, input => One(make(input)), band);
 
         /// <summary>A preview of the copies of objects, each under the transformations the answer at the cursor gives.</summary>
-        internal static CadPreview Moving(CadCommandContext c, IReadOnlyList<string> handles, Func<CadInput, IReadOnlyList<Affine2>> moves, bool band = false)
+        internal static CadPreview Moving(
+            CadCommandContext c,
+            IReadOnlyList<string> handles,
+            Func<CadInput, IReadOnlyList<Affine2>> moves,
+            bool band = false
+        )
         {
             var sorted = new List<string>(handles);
             sorted.Sort(StringComparer.OrdinalIgnoreCase);
@@ -237,11 +263,16 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A preview of the copies of objects under one transformation the answer at the cursor gives; null gives none.</summary>
-        internal static CadPreview MovingOne(CadCommandContext c, IReadOnlyList<string> handles, Func<CadInput, Affine2?> move, bool band = false)
-            => Moving(c, handles, input => move(input) is Affine2 m ? new[] { m } : NoMoves, band);
+        internal static CadPreview MovingOne(
+            CadCommandContext c,
+            IReadOnlyList<string> handles,
+            Func<CadInput, Affine2?> move,
+            bool band = false
+        ) => Moving(c, handles, input => move(input) is Affine2 m ? new[] { m } : NoMoves, band);
 
         /// <summary>The transformation of the plane a transformation of space makes, its Z left out.</summary>
-        internal static Affine2 Flat(GeoTransform3 t) => new Affine2(t[0, 0], t[1, 0], t[0, 1], t[1, 1], t[0, 3], t[1, 3]);
+        internal static Affine2 Flat(GeoTransform3 t) =>
+            new Affine2(t[0, 0], t[1, 0], t[0, 1], t[1, 1], t[0, 3], t[1, 3]);
 
         private static IEnumerable<DxfEntity> One(DxfEntity entity) => entity == null ? null : new[] { entity };
     }

@@ -93,7 +93,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether three vectors lie in a common plane through the origin, using the default tolerance.
         /// </summary>
-        public static bool IsCoplanar(GeoVector3 v1, GeoVector3 v2, GeoVector3 v3) => IsCoplanar(v1, v2, v3, Tolerance.Global);
+        public static bool IsCoplanar(GeoVector3 v1, GeoVector3 v2, GeoVector3 v3) =>
+            IsCoplanar(v1, v2, v3, Tolerance.Global);
 
         /// <summary>
         /// Checks whether three vectors lie in a common plane through the origin, within an angular tolerance.
@@ -106,9 +107,11 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool IsCoplanar(GeoVector3 v1, GeoVector3 v2, GeoVector3 v3, Tolerance tolerance)
         {
-            if (!v1.TryGetNormal(out GeoVector3 u1, tolerance) ||
-                !v2.TryGetNormal(out GeoVector3 u2, tolerance) ||
-                !v3.TryGetNormal(out GeoVector3 u3, tolerance))
+            if (
+                !v1.TryGetNormal(out GeoVector3 u1, tolerance)
+                || !v2.TryGetNormal(out GeoVector3 u2, tolerance)
+                || !v3.TryGetNormal(out GeoVector3 u3, tolerance)
+            )
             {
                 return false;
             }
@@ -136,7 +139,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether two line segments are perpendicular, using the default tolerance.
         /// </summary>
-        public static bool IsPerpendicular(GeoLine3 line1, GeoLine3 line2) => IsPerpendicular(line1, line2, Tolerance.Global);
+        public static bool IsPerpendicular(GeoLine3 line1, GeoLine3 line2) =>
+            IsPerpendicular(line1, line2, Tolerance.Global);
 
         /// <summary>
         /// Checks whether two line segments are perpendicular, within an angular tolerance.
@@ -167,8 +171,10 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool IsCoplanar(GeoLine3 line1, GeoLine3 line2, Tolerance tolerance)
         {
-            if (!line1.Direction.TryGetNormal(out GeoVector3 u1, tolerance) ||
-                !line2.Direction.TryGetNormal(out GeoVector3 u2, tolerance))
+            if (
+                !line1.Direction.TryGetNormal(out GeoVector3 u1, tolerance)
+                || !line2.Direction.TryGetNormal(out GeoVector3 u2, tolerance)
+            )
             {
                 return false;
             }
@@ -206,7 +212,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a line segment is perpendicular to a vector, using the default tolerance.
         /// </summary>
-        public static bool IsPerpendicular(GeoLine3 line, GeoVector3 vector) => IsPerpendicular(line, vector, Tolerance.Global);
+        public static bool IsPerpendicular(GeoLine3 line, GeoVector3 vector) =>
+            IsPerpendicular(line, vector, Tolerance.Global);
 
         /// <summary>
         /// Checks whether a line segment is perpendicular to a vector, within an angular tolerance.
@@ -241,7 +248,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a line segment stands perpendicular to a plane, using the default tolerance.
         /// </summary>
-        public static bool IsPerpendicular(GeoLine3 line, GeoPlane3 plane) => IsPerpendicular(line, plane, Tolerance.Global);
+        public static bool IsPerpendicular(GeoLine3 line, GeoPlane3 plane) =>
+            IsPerpendicular(line, plane, Tolerance.Global);
 
         /// <summary>
         /// Checks whether a line segment stands perpendicular to a plane, within an angular tolerance.
@@ -271,7 +279,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a ray stands perpendicular to a plane, using the default tolerance.
         /// </summary>
-        public static bool IsPerpendicular(GeoRay3 ray, GeoPlane3 plane) => IsPerpendicular(ray, plane, Tolerance.Global);
+        public static bool IsPerpendicular(GeoRay3 ray, GeoPlane3 plane) =>
+            IsPerpendicular(ray, plane, Tolerance.Global);
 
         /// <summary>
         /// Checks whether a ray stands perpendicular to a plane, within an angular tolerance.
@@ -288,7 +297,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether two planes are parallel, using the default tolerance.
         /// </summary>
-        public static bool IsParallel(GeoPlane3 plane1, GeoPlane3 plane2) => IsParallel(plane1, plane2, Tolerance.Global);
+        public static bool IsParallel(GeoPlane3 plane1, GeoPlane3 plane2) =>
+            IsParallel(plane1, plane2, Tolerance.Global);
 
         /// <summary>
         /// Checks whether two planes are parallel, within an angular tolerance.
@@ -305,7 +315,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether two planes meet at right angles, using the default tolerance.
         /// </summary>
-        public static bool IsPerpendicular(GeoPlane3 plane1, GeoPlane3 plane2) => IsPerpendicular(plane1, plane2, Tolerance.Global);
+        public static bool IsPerpendicular(GeoPlane3 plane1, GeoPlane3 plane2) =>
+            IsPerpendicular(plane1, plane2, Tolerance.Global);
 
         /// <summary>
         /// Checks whether two planes meet at right angles, within an angular tolerance.
@@ -322,7 +333,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a polygon lies parallel to a plane, using the default tolerance.
         /// </summary>
-        public static bool IsParallel(GeoPolygon3 polygon, GeoPlane3 plane) => IsParallel(polygon, plane, Tolerance.Global);
+        public static bool IsParallel(GeoPolygon3 polygon, GeoPlane3 plane) =>
+            IsParallel(polygon, plane, Tolerance.Global);
 
         /// <summary>
         /// Checks whether a polygon lies parallel to a plane, within an angular tolerance.
@@ -344,7 +356,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a polygon stands perpendicular to a plane, using the default tolerance.
         /// </summary>
-        public static bool IsPerpendicular(GeoPolygon3 polygon, GeoPlane3 plane) => IsPerpendicular(polygon, plane, Tolerance.Global);
+        public static bool IsPerpendicular(GeoPolygon3 polygon, GeoPlane3 plane) =>
+            IsPerpendicular(polygon, plane, Tolerance.Global);
 
         /// <summary>
         /// Checks whether a polygon stands perpendicular to a plane, within an angular tolerance.
@@ -362,7 +375,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether two polygons lie parallel to each other, using the default tolerance.
         /// </summary>
-        public static bool IsParallel(GeoPolygon3 polygon1, GeoPolygon3 polygon2) => IsParallel(polygon1, polygon2, Tolerance.Global);
+        public static bool IsParallel(GeoPolygon3 polygon1, GeoPolygon3 polygon2) =>
+            IsParallel(polygon1, polygon2, Tolerance.Global);
 
         /// <summary>
         /// Checks whether two polygons lie parallel to each other, within an angular tolerance.
@@ -385,7 +399,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether two polygons meet at right angles, using the default tolerance.
         /// </summary>
-        public static bool IsPerpendicular(GeoPolygon3 polygon1, GeoPolygon3 polygon2) => IsPerpendicular(polygon1, polygon2, Tolerance.Global);
+        public static bool IsPerpendicular(GeoPolygon3 polygon1, GeoPolygon3 polygon2) =>
+            IsPerpendicular(polygon1, polygon2, Tolerance.Global);
 
         /// <summary>
         /// Checks whether two polygons meet at right angles, within an angular tolerance.
@@ -408,7 +423,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether two polygons lie on one common plane, using the default tolerance.
         /// </summary>
-        public static bool IsCoplanar(GeoPolygon3 polygon1, GeoPolygon3 polygon2) => IsCoplanar(polygon1, polygon2, Tolerance.Global);
+        public static bool IsCoplanar(GeoPolygon3 polygon1, GeoPolygon3 polygon2) =>
+            IsCoplanar(polygon1, polygon2, Tolerance.Global);
 
         /// <summary>
         /// Checks whether two polygons lie on one common plane, within a tolerance.

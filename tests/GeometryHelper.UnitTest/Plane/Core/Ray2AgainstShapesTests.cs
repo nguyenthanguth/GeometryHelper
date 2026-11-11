@@ -40,25 +40,135 @@ namespace GeometryHelper.UnitTest.Plane
             internal GeoLine2 Shortest;
         }
 
-        private static Answers Ask(GeoRay2 r, GeoArc2 s, Tolerance t) { bool hit = r.TryIntersectWith(s, out GeoPoint2[] p, t); return new Answers { Collides = r.CollidesWith(s, t), Distance = r.DistanceTo(s, t), Crossings = r.GetIntersections(s, t), Tried = hit, TriedPoints = p, Shortest = r.GetShortestLineTo(s, t) }; }
+        private static Answers Ask(GeoRay2 r, GeoArc2 s, Tolerance t)
+        {
+            bool hit = r.TryIntersectWith(s, out GeoPoint2[] p, t);
+            return new Answers
+            {
+                Collides = r.CollidesWith(s, t),
+                Distance = r.DistanceTo(s, t),
+                Crossings = r.GetIntersections(s, t),
+                Tried = hit,
+                TriedPoints = p,
+                Shortest = r.GetShortestLineTo(s, t),
+            };
+        }
 
-        private static Answers Ask(GeoRay2 r, GeoCircle2 s, Tolerance t) { bool hit = r.TryIntersectWith(s, out GeoPoint2[] p, t); return new Answers { Collides = r.CollidesWith(s, t), Distance = r.DistanceTo(s, t), Crossings = r.GetIntersections(s, t), Tried = hit, TriedPoints = p, Shortest = r.GetShortestLineTo(s, t) }; }
+        private static Answers Ask(GeoRay2 r, GeoCircle2 s, Tolerance t)
+        {
+            bool hit = r.TryIntersectWith(s, out GeoPoint2[] p, t);
+            return new Answers
+            {
+                Collides = r.CollidesWith(s, t),
+                Distance = r.DistanceTo(s, t),
+                Crossings = r.GetIntersections(s, t),
+                Tried = hit,
+                TriedPoints = p,
+                Shortest = r.GetShortestLineTo(s, t),
+            };
+        }
 
-        private static Answers Ask(GeoRay2 r, GeoEdge2 s, Tolerance t) => new Answers { Collides = r.CollidesWith(s, t), Distance = r.DistanceTo(s, t), Crossings = r.GetIntersections(s, t), Shortest = r.GetShortestLineTo(s, t) };
+        private static Answers Ask(GeoRay2 r, GeoEdge2 s, Tolerance t) =>
+            new Answers
+            {
+                Collides = r.CollidesWith(s, t),
+                Distance = r.DistanceTo(s, t),
+                Crossings = r.GetIntersections(s, t),
+                Shortest = r.GetShortestLineTo(s, t),
+            };
 
-        private static Answers Ask(GeoRay2 r, GeoFace2 s, Tolerance t) { bool hit = r.TryIntersectWith(s, out GeoPoint2[] p, t); return new Answers { Collides = r.CollidesWith(s, t), Distance = r.DistanceTo(s, t), Crossings = r.GetIntersections(s, t), Tried = hit, TriedPoints = p, Shortest = r.GetShortestLineTo(s, t) }; }
+        private static Answers Ask(GeoRay2 r, GeoFace2 s, Tolerance t)
+        {
+            bool hit = r.TryIntersectWith(s, out GeoPoint2[] p, t);
+            return new Answers
+            {
+                Collides = r.CollidesWith(s, t),
+                Distance = r.DistanceTo(s, t),
+                Crossings = r.GetIntersections(s, t),
+                Tried = hit,
+                TriedPoints = p,
+                Shortest = r.GetShortestLineTo(s, t),
+            };
+        }
 
-        private static Answers Ask(GeoRay2 r, GeoPolygon2 s, Tolerance t) => new Answers { Collides = r.CollidesWith(s, t), Distance = r.DistanceTo(s, t), Crossings = r.GetIntersections(s, t), Shortest = r.GetShortestLineTo(s, t) };
+        private static Answers Ask(GeoRay2 r, GeoPolygon2 s, Tolerance t) =>
+            new Answers
+            {
+                Collides = r.CollidesWith(s, t),
+                Distance = r.DistanceTo(s, t),
+                Crossings = r.GetIntersections(s, t),
+                Shortest = r.GetShortestLineTo(s, t),
+            };
 
-        private static Answers Ask(GeoRay2 r, GeoPolygonArc2 s, Tolerance t) { bool hit = r.TryIntersectWith(s, out GeoPoint2[] p, t); return new Answers { Collides = r.CollidesWith(s, t), Distance = r.DistanceTo(s, t), Crossings = r.GetIntersections(s, t), Tried = hit, TriedPoints = p, Shortest = r.GetShortestLineTo(s, t) }; }
+        private static Answers Ask(GeoRay2 r, GeoPolygonArc2 s, Tolerance t)
+        {
+            bool hit = r.TryIntersectWith(s, out GeoPoint2[] p, t);
+            return new Answers
+            {
+                Collides = r.CollidesWith(s, t),
+                Distance = r.DistanceTo(s, t),
+                Crossings = r.GetIntersections(s, t),
+                Tried = hit,
+                TriedPoints = p,
+                Shortest = r.GetShortestLineTo(s, t),
+            };
+        }
 
-        private static Answers Ask(GeoRay2 r, GeoPolyline2 s, Tolerance t) { bool hit = r.TryIntersectWith(s, out GeoPoint2[] p, t); return new Answers { Collides = r.CollidesWith(s, t), Distance = r.DistanceTo(s, t), Crossings = r.GetIntersections(s, t), Tried = hit, TriedPoints = p, Shortest = r.GetShortestLineTo(s, t) }; }
+        private static Answers Ask(GeoRay2 r, GeoPolyline2 s, Tolerance t)
+        {
+            bool hit = r.TryIntersectWith(s, out GeoPoint2[] p, t);
+            return new Answers
+            {
+                Collides = r.CollidesWith(s, t),
+                Distance = r.DistanceTo(s, t),
+                Crossings = r.GetIntersections(s, t),
+                Tried = hit,
+                TriedPoints = p,
+                Shortest = r.GetShortestLineTo(s, t),
+            };
+        }
 
-        private static Answers Ask(GeoRay2 r, GeoPolylineArc2 s, Tolerance t) { bool hit = r.TryIntersectWith(s, out GeoPoint2[] p, t); return new Answers { Collides = r.CollidesWith(s, t), Distance = r.DistanceTo(s, t), Crossings = r.GetIntersections(s, t), Tried = hit, TriedPoints = p, Shortest = r.GetShortestLineTo(s, t) }; }
+        private static Answers Ask(GeoRay2 r, GeoPolylineArc2 s, Tolerance t)
+        {
+            bool hit = r.TryIntersectWith(s, out GeoPoint2[] p, t);
+            return new Answers
+            {
+                Collides = r.CollidesWith(s, t),
+                Distance = r.DistanceTo(s, t),
+                Crossings = r.GetIntersections(s, t),
+                Tried = hit,
+                TriedPoints = p,
+                Shortest = r.GetShortestLineTo(s, t),
+            };
+        }
 
-        private static Answers Ask(GeoRay2 r, GeoRectangle2 s, Tolerance t) { bool hit = r.TryIntersectWith(s, out GeoPoint2[] p, t); return new Answers { Collides = r.CollidesWith(s, t), Distance = r.DistanceTo(s, t), Crossings = r.GetIntersections(s, t), Tried = hit, TriedPoints = p, Shortest = r.GetShortestLineTo(s, t) }; }
+        private static Answers Ask(GeoRay2 r, GeoRectangle2 s, Tolerance t)
+        {
+            bool hit = r.TryIntersectWith(s, out GeoPoint2[] p, t);
+            return new Answers
+            {
+                Collides = r.CollidesWith(s, t),
+                Distance = r.DistanceTo(s, t),
+                Crossings = r.GetIntersections(s, t),
+                Tried = hit,
+                TriedPoints = p,
+                Shortest = r.GetShortestLineTo(s, t),
+            };
+        }
 
-        private static Answers Ask(GeoRay2 r, GeoTriangle2 s, Tolerance t) { bool hit = r.TryIntersectWith(s, out GeoPoint2[] p, t); return new Answers { Collides = r.CollidesWith(s, t), Distance = r.DistanceTo(s, t), Crossings = r.GetIntersections(s, t), Tried = hit, TriedPoints = p, Shortest = r.GetShortestLineTo(s, t) }; }
+        private static Answers Ask(GeoRay2 r, GeoTriangle2 s, Tolerance t)
+        {
+            bool hit = r.TryIntersectWith(s, out GeoPoint2[] p, t);
+            return new Answers
+            {
+                Collides = r.CollidesWith(s, t),
+                Distance = r.DistanceTo(s, t),
+                Crossings = r.GetIntersections(s, t),
+                Tried = hit,
+                TriedPoints = p,
+                Shortest = r.GetShortestLineTo(s, t),
+            };
+        }
 
         private static void AssertNear(GeoPoint2 expected, GeoPoint2 actual, double within = 1E-9)
         {
@@ -140,7 +250,10 @@ namespace GeometryHelper.UnitTest.Plane
             var ray = new GeoRay2(P(-50, 50), GeoVector2.XAxis);
 
             AssertCrosses(Ask(ray, Square(), Strict), P(0, 50), P(100, 50));
-            AssertInOrder(FarAlong(ray, GeoVector2.XAxis).GetIntersections(Square(), Strict), ray.GetIntersections(Square(), Strict));
+            AssertInOrder(
+                FarAlong(ray, GeoVector2.XAxis).GetIntersections(Square(), Strict),
+                ray.GetIntersections(Square(), Strict)
+            );
         }
 
         [Fact]
@@ -183,19 +296,32 @@ namespace GeometryHelper.UnitTest.Plane
             var ray = new GeoRay2(P(-50, 50), GeoVector2.XAxis);
 
             AssertCrosses(Ask(ray, Rectangle(), Strict), P(0, 50), P(100, 50));
-            AssertInOrder(FarAlong(ray, GeoVector2.XAxis).GetIntersections(Rectangle(), Strict), ray.GetIntersections(Rectangle(), Strict));
+            AssertInOrder(
+                FarAlong(ray, GeoVector2.XAxis).GetIntersections(Rectangle(), Strict),
+                ray.GetIntersections(Rectangle(), Strict)
+            );
         }
 
         [Fact]
         public void ARayPassingTheRectanglesTopRightCorner_IsTenRootTwoFromIt()
         {
-            AssertApart(Ask(new GeoRay2(P(220, 0), V(-1, 1)), Rectangle(), Strict), 10 * Root2, P(110, 110), P(100, 100));
+            AssertApart(
+                Ask(new GeoRay2(P(220, 0), V(-1, 1)), Rectangle(), Strict),
+                10 * Root2,
+                P(110, 110),
+                P(100, 100)
+            );
         }
 
         [Fact]
         public void ARectangleBehindTheOrigin_IsMeasuredFromTheOrigin()
         {
-            AssertApart(Ask(new GeoRay2(P(150, 50), GeoVector2.XAxis), Rectangle(), Strict), 50, P(150, 50), P(100, 50));
+            AssertApart(
+                Ask(new GeoRay2(P(150, 50), GeoVector2.XAxis), Rectangle(), Strict),
+                50,
+                P(150, 50),
+                P(100, 50)
+            );
         }
 
         [Fact]
@@ -224,7 +350,10 @@ namespace GeometryHelper.UnitTest.Plane
             var ray = new GeoRay2(P(-50, 50), GeoVector2.XAxis);
 
             AssertCrosses(Ask(ray, Plate(), Strict), P(0, 50), P(30, 50), P(70, 50), P(100, 50));
-            AssertInOrder(FarAlong(ray, GeoVector2.XAxis).GetIntersections(Plate(), Strict), ray.GetIntersections(Plate(), Strict));
+            AssertInOrder(
+                FarAlong(ray, GeoVector2.XAxis).GetIntersections(Plate(), Strict),
+                ray.GetIntersections(Plate(), Strict)
+            );
         }
 
         [Fact]
@@ -242,7 +371,12 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ARayFromTheMaterialOfThePlate_CrossesTheHoleAndTheOutline()
         {
-            AssertCrosses(Ask(new GeoRay2(P(10, 50), GeoVector2.XAxis), Plate(), Strict), P(30, 50), P(70, 50), P(100, 50));
+            AssertCrosses(
+                Ask(new GeoRay2(P(10, 50), GeoVector2.XAxis), Plate(), Strict),
+                P(30, 50),
+                P(70, 50),
+                P(100, 50)
+            );
         }
 
         [Fact]
@@ -272,7 +406,10 @@ namespace GeometryHelper.UnitTest.Plane
             var ray = new GeoRay2(P(-50, 20), GeoVector2.XAxis);
 
             AssertCrosses(Ask(ray, Triangle(), Strict), P(0, 20), P(80, 20));
-            AssertInOrder(FarAlong(ray, GeoVector2.XAxis).GetIntersections(Triangle(), Strict), ray.GetIntersections(Triangle(), Strict));
+            AssertInOrder(
+                FarAlong(ray, GeoVector2.XAxis).GetIntersections(Triangle(), Strict),
+                ray.GetIntersections(Triangle(), Strict)
+            );
         }
 
         [Fact]
@@ -343,7 +480,10 @@ namespace GeometryHelper.UnitTest.Plane
             // The cut reaches the far side: centre 1000 along plus the radius.
             var ray = new GeoRay2(P(0, 0), GeoVector2.XAxis);
 
-            AssertInOrder(new[] { P(950, 0), P(1050, 0) }, ray.GetIntersections(new GeoCircle2(P(1000, 0), 50), Strict));
+            AssertInOrder(
+                new[] { P(950, 0), P(1050, 0) },
+                ray.GetIntersections(new GeoCircle2(P(1000, 0), 50), Strict)
+            );
         }
 
         [Fact]
@@ -385,7 +525,12 @@ namespace GeometryHelper.UnitTest.Plane
             // 25), √((100 - 43.30)² + 25²) = 61.97 away.
             var start = P(50 * Math.Cos(Math.PI / 6), 25);
 
-            AssertApart(Ask(new GeoRay2(P(100, 0), GeoVector2.XAxis), Arc(), Strict), P(100, 0).DistanceTo(start), P(100, 0), start);
+            AssertApart(
+                Ask(new GeoRay2(P(100, 0), GeoVector2.XAxis), Arc(), Strict),
+                P(100, 0).DistanceTo(start),
+                P(100, 0),
+                start
+            );
         }
 
         [Fact]
@@ -419,19 +564,32 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AStraightEdgeAcrossTheRay_IsCrossedAtFiftyNought()
         {
-            AssertCrosses(Ask(new GeoRay2(P(0, 0), GeoVector2.XAxis), new GeoEdge2(P(50, -10), P(50, 10)), Strict), P(50, 0));
+            AssertCrosses(
+                Ask(new GeoRay2(P(0, 0), GeoVector2.XAxis), new GeoEdge2(P(50, -10), P(50, 10)), Strict),
+                P(50, 0)
+            );
         }
 
         [Fact]
         public void AStraightEdgeBesideTheRay_IsTenFromItsNearerEnd()
         {
-            AssertApart(Ask(new GeoRay2(P(0, 20), GeoVector2.XAxis), new GeoEdge2(P(50, -10), P(50, 10)), Strict), 10, P(50, 20), P(50, 10));
+            AssertApart(
+                Ask(new GeoRay2(P(0, 20), GeoVector2.XAxis), new GeoEdge2(P(50, -10), P(50, 10)), Strict),
+                10,
+                P(50, 20),
+                P(50, 10)
+            );
         }
 
         [Fact]
         public void AStraightEdgeBehindTheOrigin_IsMeasuredFromTheOrigin()
         {
-            AssertApart(Ask(new GeoRay2(P(60, 0), GeoVector2.XAxis), new GeoEdge2(P(50, -10), P(50, 10)), Strict), 10, P(60, 0), P(50, 0));
+            AssertApart(
+                Ask(new GeoRay2(P(60, 0), GeoVector2.XAxis), new GeoEdge2(P(50, -10), P(50, 10)), Strict),
+                10,
+                P(60, 0),
+                P(50, 0)
+            );
         }
 
         [Fact]
@@ -441,7 +599,12 @@ namespace GeometryHelper.UnitTest.Plane
 
             AssertCrosses(Ask(ray, new GeoEdge2(Arc()), Strict), P(-40, 30), P(40, 30));
             AssertInOrder(new[] { P(-40, 30), P(40, 30) }, ray.GetIntersections(new GeoEdge2(Arc()), Strict));
-            AssertApart(Ask(new GeoRay2(P(-100, -30), GeoVector2.XAxis), new GeoEdge2(Arc()), Strict), 30, P(-50, -30), P(-50, 0));
+            AssertApart(
+                Ask(new GeoRay2(P(-100, -30), GeoVector2.XAxis), new GeoEdge2(Arc()), Strict),
+                30,
+                P(-50, -30),
+                P(-50, 0)
+            );
         }
 
         [Fact]
@@ -486,7 +649,12 @@ namespace GeometryHelper.UnitTest.Plane
         public void APolylineBehindTheOrigin_IsMeasuredFromTheOriginToItsStart()
         {
             // From (-30, 50) pointing away, the nearest point is (0, 0), √3400 = 58.31 away.
-            AssertApart(Ask(new GeoRay2(P(-30, 50), -GeoVector2.XAxis), Ell(), Strict), Math.Sqrt(3400), P(-30, 50), P(0, 0));
+            AssertApart(
+                Ask(new GeoRay2(P(-30, 50), -GeoVector2.XAxis), Ell(), Strict),
+                Math.Sqrt(3400),
+                P(-30, 50),
+                P(0, 0)
+            );
         }
 
         [Fact]
@@ -558,7 +726,10 @@ namespace GeometryHelper.UnitTest.Plane
             var ray = new GeoRay2(P(-100, 25), GeoVector2.XAxis);
 
             AssertCrosses(Ask(ray, Slot(), Strict), P(-25, 25), P(225, 25));
-            AssertInOrder(FarAlong(ray, GeoVector2.XAxis).GetIntersections(Slot(), Strict), ray.GetIntersections(Slot(), Strict));
+            AssertInOrder(
+                FarAlong(ray, GeoVector2.XAxis).GetIntersections(Slot(), Strict),
+                ray.GetIntersections(Slot(), Strict)
+            );
         }
 
         [Fact]

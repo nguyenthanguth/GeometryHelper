@@ -34,7 +34,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the system the whole drawing is held in: the origin, with the axes along X and Y.
         /// </summary>
-        public static GeoCoordinateSystem2 Global => new GeoCoordinateSystem2(GeoPoint2.Origin, GeoVector2.XAxis, GeoVector2.YAxis);
+        public static GeoCoordinateSystem2 Global =>
+            new GeoCoordinateSystem2(GeoPoint2.Origin, GeoVector2.XAxis, GeoVector2.YAxis);
 
         /// <summary>
         /// Initializes a system at an origin, with its X axis along a direction.
@@ -119,7 +120,8 @@ namespace GeometryHelper.Geometry
         {
             return new GeoPoint2(
                 Origin.X + XAxis.X * point.X + YAxis.X * point.Y,
-                Origin.Y + XAxis.Y * point.X + YAxis.Y * point.Y);
+                Origin.Y + XAxis.Y * point.X + YAxis.Y * point.Y
+            );
         }
 
         /// <summary>
@@ -136,9 +138,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public GeoVector2 ToGlobal(GeoVector2 vector)
         {
-            return new GeoVector2(
-                XAxis.X * vector.X + YAxis.X * vector.Y,
-                XAxis.Y * vector.X + YAxis.Y * vector.Y);
+            return new GeoVector2(XAxis.X * vector.X + YAxis.X * vector.Y, XAxis.Y * vector.X + YAxis.Y * vector.Y);
         }
 
         /// <summary>
@@ -237,7 +237,8 @@ namespace GeometryHelper.Geometry
         /// the <c>out</c> of a <c>Try</c> method holds when the method said false — may not be, and answers
         /// questions without complaint all the same. A default one has no axes, so it sends every point to its origin.
         /// </remarks>
-        public bool IsValid => Origin.IsValid && Guard.IsUnit(XAxis) && Guard.IsUnit(YAxis) && Math.Abs(XAxis.DotProduct(YAxis)) <= 1E-9;
+        public bool IsValid =>
+            Origin.IsValid && Guard.IsUnit(XAxis) && Guard.IsUnit(YAxis) && Math.Abs(XAxis.DotProduct(YAxis)) <= 1E-9;
 
         /// <summary>
         /// Describes the system.

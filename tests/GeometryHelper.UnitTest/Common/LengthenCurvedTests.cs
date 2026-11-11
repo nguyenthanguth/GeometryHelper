@@ -27,14 +27,16 @@ namespace GeometryHelper.UnitTest.Common
         private static GeoArc2 Quarter() => new GeoArc2(new GeoPoint2(0, 0), 100.0, 0.0, Math.PI / 2.0);
 
         /// <summary>The same quarter in space, built from three points so no angle convention is assumed.</summary>
-        private static GeoArc3 Quarter3() => GeoArc3.FromThreePoints(
-            new GeoPoint3(100, 0, 0),
-            new GeoPoint3(100.0 * Math.Cos(Math.PI / 4.0), 100.0 * Math.Sin(Math.PI / 4.0), 0),
-            new GeoPoint3(0, 100, 0));
+        private static GeoArc3 Quarter3() =>
+            GeoArc3.FromThreePoints(
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100.0 * Math.Cos(Math.PI / 4.0), 100.0 * Math.Sin(Math.PI / 4.0), 0),
+                new GeoPoint3(0, 100, 0)
+            );
 
         /// <summary>A bar in z = 0 with a fifty radius at its one bend.</summary>
-        private static GeoPolylineArc3 Bar() => new GeoPolyline3(
-            new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0)).Fillet(50.0);
+        private static GeoPolylineArc3 Bar() =>
+            new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0)).Fillet(50.0);
 
         #region Arcs
 
@@ -285,20 +287,24 @@ namespace GeometryHelper.UnitTest.Common
 
             Assert.True(bar.TryTrimTo(inBend, LineEnd.End, out GeoPolylineArc3 cut));
             Assert.Contains(true, cut.GetEdges().Select(edge => edge.IsArc));
-            Assert.All(cut.GetEdges().Where(edge => edge.IsArc),
-                edge => Assert.Equal(50.0, edge.ToArc().Radius, 6));
+            Assert.All(cut.GetEdges().Where(edge => edge.IsArc), edge => Assert.Equal(50.0, edge.ToArc().Radius, 6));
         }
 
         [Fact]
         public void TheStraightChainsAndTheCurvedOnesAgreeWhereThereIsNoArc()
         {
-            var setOut = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0));
+            var setOut = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0));
             var asChain = new GeoPolylineArc3(setOut);
 
             Assert.Equal(setOut.Extend(300.0, LineEnd.End).Length, asChain.Extend(300.0, LineEnd.End).Length, 6);
-            Assert.True(setOut.Extend(300.0, LineEnd.End).EndPoint.IsEqualTo(asChain.Extend(300.0, LineEnd.End).EndPoint, Loose));
-            Assert.Equal(setOut.ExtendToLength(2000.0, LineEnd.Start).Length, asChain.ExtendToLength(2000.0, LineEnd.Start).Length, 6);
+            Assert.True(
+                setOut.Extend(300.0, LineEnd.End).EndPoint.IsEqualTo(asChain.Extend(300.0, LineEnd.End).EndPoint, Loose)
+            );
+            Assert.Equal(
+                setOut.ExtendToLength(2000.0, LineEnd.Start).Length,
+                asChain.ExtendToLength(2000.0, LineEnd.Start).Length,
+                6
+            );
 
             // And the plane and space agree on the same chain laid flat.
             var flat = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(400, 0), new GeoPoint2(400, 200));
@@ -306,7 +312,9 @@ namespace GeometryHelper.UnitTest.Common
             Assert.Equal(flat.Extend(300.0, LineEnd.End).Length, setOut.Extend(300.0, LineEnd.End).Length, 6);
             Assert.Equal(
                 new GeoPolylineArc2(flat).Extend(300.0, LineEnd.End).Length,
-                asChain.Extend(300.0, LineEnd.End).Length, 6);
+                asChain.Extend(300.0, LineEnd.End).Length,
+                6
+            );
         }
 
         #endregion
@@ -322,8 +330,16 @@ namespace GeometryHelper.UnitTest.Common
 
             Assert.Equal(quarter.Extend(50.0, LineEnd.End).Length, quarter.Extend(50.0, LineEnd.End, global).Length, 9);
             Assert.Equal(quarter.Extend(10.0, 20.0).Length, quarter.Extend(10.0, 20.0, global).Length, 9);
-            Assert.Equal(quarter.ExtendToLength(200.0, LineEnd.End).Length, quarter.ExtendToLength(200.0, LineEnd.End, global).Length, 9);
-            Assert.Equal(quarter3.Extend(50.0, LineEnd.End).Length, quarter3.Extend(50.0, LineEnd.End, global).Length, 9);
+            Assert.Equal(
+                quarter.ExtendToLength(200.0, LineEnd.End).Length,
+                quarter.ExtendToLength(200.0, LineEnd.End, global).Length,
+                9
+            );
+            Assert.Equal(
+                quarter3.Extend(50.0, LineEnd.End).Length,
+                quarter3.Extend(50.0, LineEnd.End, global).Length,
+                9
+            );
             Assert.Equal(bar.Extend(50.0, LineEnd.End).Length, bar.Extend(50.0, LineEnd.End, global).Length, 9);
             Assert.Equal(flat.Extend(50.0, LineEnd.End).Length, flat.Extend(50.0, LineEnd.End, global).Length, 9);
 
@@ -331,19 +347,23 @@ namespace GeometryHelper.UnitTest.Common
 
             Assert.Equal(
                 quarter.TryTrimTo(on, LineEnd.End, out GeoArc2 a),
-                quarter.TryTrimTo(on, LineEnd.End, out GeoArc2 b, global));
+                quarter.TryTrimTo(on, LineEnd.End, out GeoArc2 b, global)
+            );
             Assert.Equal(a.Length, b.Length, 9);
 
             Assert.Equal(
                 bar.TryTrimTo(bar.GetPointAtDistance(200.0), LineEnd.End, out GeoPolylineArc3 c),
-                bar.TryTrimTo(bar.GetPointAtDistance(200.0), LineEnd.End, out GeoPolylineArc3 d, global));
+                bar.TryTrimTo(bar.GetPointAtDistance(200.0), LineEnd.End, out GeoPolylineArc3 d, global)
+            );
             Assert.Equal(c.Length, d.Length, 9);
 
             Assert.Throws<ArgumentNullException>(() => Lengthen2.Extend((GeoPolyline2)null, 10.0, LineEnd.End));
             Assert.Throws<ArgumentNullException>(() => Lengthen2.Extend((GeoPolylineArc2)null, 10.0, LineEnd.End));
             Assert.Throws<ArgumentNullException>(() => Lengthen3.Extend((GeoPolyline3)null, 10.0, LineEnd.End));
             Assert.Throws<ArgumentNullException>(() => Lengthen3.Extend((GeoPolylineArc3)null, 10.0, LineEnd.End));
-            Assert.Throws<ArgumentNullException>(() => Lengthen3.TryTrimTo((GeoPolylineArc3)null, GeoPoint3.Origin, LineEnd.End, out _));
+            Assert.Throws<ArgumentNullException>(() =>
+                Lengthen3.TryTrimTo((GeoPolylineArc3)null, GeoPoint3.Origin, LineEnd.End, out _)
+            );
         }
     }
 }

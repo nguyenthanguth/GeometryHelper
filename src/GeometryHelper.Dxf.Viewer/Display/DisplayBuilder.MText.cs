@@ -17,14 +17,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal CadMTextLayout LayoutOf(DxfMText text)
         {
-            CadMTextContent content = CadMTextContent.Parse(text.Contents, text.TextHeight, WidthFactorOf(text.TextStyleName));
+            CadMTextContent content = CadMTextContent.Parse(
+                text.Contents,
+                text.TextHeight,
+                WidthFactorOf(text.TextStyleName)
+            );
             CadFontFace styleFace = FaceOf(text.TextStyleName);
             return CadMTextLayout.Of(
                 text,
                 content,
                 look => look.Font == null ? styleFace : FaceOfFont(look.Font, look.IsShx),
                 WidthFactorOf(text.TextStyleName),
-                ObliqueOf(text.TextStyleName));
+                ObliqueOf(text.TextStyleName)
+            );
         }
 
         /// <summary>
@@ -39,7 +44,8 @@ namespace GeometryHelper.Dxf.Viewer
                 content,
                 look => look.Font == null ? styleFace : FaceOfFont(look.Font, look.IsShx),
                 WidthFactorOf(text.TextStyleName),
-                ObliqueOf(text.TextStyleName));
+                ObliqueOf(text.TextStyleName)
+            );
         }
 
         /// <summary>
@@ -63,7 +69,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// line a text of its own where the layout puts it, in its font (bold and italic faces of a TrueType font), height,
         /// width factor, slant and colour, and the lines under, over and through the runs and of the stacks.
         /// </summary>
-        private List<DisplayItem2> MTextParts(DxfMText text, CadMTextLayout layout, Frame frame, DisplayStyle style, string handle, string layerName, int? layerRgb = null)
+        private List<DisplayItem2> MTextParts(
+            DxfMText text,
+            CadMTextLayout layout,
+            Frame frame,
+            DisplayStyle style,
+            string handle,
+            string layerName,
+            int? layerRgb = null
+        )
         {
             var parts = new List<DisplayItem2>(layout.Pieces.Count + layout.Strokes.Count + 2);
             Affine2 m = frame.Matrix;
@@ -80,7 +94,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (text.BackgroundFill || text.ShowBorders)
             {
-                double grow = ((text.BackgroundFill && text.BackgroundScaleFactor > 0.0 ? text.BackgroundScaleFactor : FrameFactor) - 1.0) * text.TextHeight;
+                double grow =
+                    (
+                        (
+                            text.BackgroundFill && text.BackgroundScaleFactor > 0.0
+                                ? text.BackgroundScaleFactor
+                                : FrameFactor
+                        ) - 1.0
+                    ) * text.TextHeight;
                 double[] box = layout.TextBox;
                 double x0 = (box[0] - grow) * flip;
                 double x1 = (box[2] + grow) * flip;
@@ -88,15 +109,21 @@ namespace GeometryHelper.Dxf.Viewer
                 double y1 = (box[3] + grow) * scale;
                 var ring = new[]
                 {
-                    ox + (x0 * cos) - (y0 * sin), oy + (x0 * sin) + (y0 * cos),
-                    ox + (x1 * cos) - (y0 * sin), oy + (x1 * sin) + (y0 * cos),
-                    ox + (x1 * cos) - (y1 * sin), oy + (x1 * sin) + (y1 * cos),
-                    ox + (x0 * cos) - (y1 * sin), oy + (x0 * sin) + (y1 * cos),
+                    ox + (x0 * cos) - (y0 * sin),
+                    oy + (x0 * sin) + (y0 * cos),
+                    ox + (x1 * cos) - (y0 * sin),
+                    oy + (x1 * sin) + (y0 * cos),
+                    ox + (x1 * cos) - (y1 * sin),
+                    oy + (x1 * sin) + (y1 * cos),
+                    ox + (x0 * cos) - (y1 * sin),
+                    oy + (x0 * sin) + (y1 * cos),
                 };
 
                 if (text.BackgroundFill)
                 {
-                    DisplayStyle mask = text.UseBackgroundColor ? plain : new DisplayStyle(SafeRgb(text.BackgroundFillColor), style.LineWeight, null);
+                    DisplayStyle mask = text.UseBackgroundColor
+                        ? plain
+                        : new DisplayStyle(SafeRgb(text.BackgroundFillColor), style.LineWeight, null);
                     parts.Add(new DisplayFill2(new[] { ring }, text.UseBackgroundColor, mask, handle, layerName));
                 }
 
@@ -114,7 +141,10 @@ namespace GeometryHelper.Dxf.Viewer
                 if (!ReferenceEquals(piece.Look, last))
                 {
                     last = piece.Look;
-                    int rgb = layerRgb.HasValue && last.ColorIndex >= 256 && !last.TrueColor.HasValue ? layerRgb.Value : RgbOf(last, style, layerName);
+                    int rgb =
+                        layerRgb.HasValue && last.ColorIndex >= 256 && !last.TrueColor.HasValue
+                            ? layerRgb.Value
+                            : RgbOf(last, style, layerName);
                     lastStyle = rgb == style.Rgb ? plain : new DisplayStyle(rgb, style.LineWeight, null);
                 }
 
@@ -127,12 +157,42 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (piece.Face.Shx != null)
                 {
-                    drawn = Text(piece.Face, piece.Text, wx, wy, h, turn, piece.WidthFactor, 0, 0, lastStyle, handle, layerName, piece.Slant, backward);
+                    drawn = Text(
+                        piece.Face,
+                        piece.Text,
+                        wx,
+                        wy,
+                        h,
+                        turn,
+                        piece.WidthFactor,
+                        0,
+                        0,
+                        lastStyle,
+                        handle,
+                        layerName,
+                        piece.Slant,
+                        backward
+                    );
                 }
                 else
                 {
                     // The canvas sets its letters by the em, the layout by the file's capital: the width factor makes the two one width.
-                    drawn = new DisplayText2(piece.Text, wx, wy, h, turn, piece.WidthFactor * piece.Ink.DrawFactor, 0, 0, lastStyle, handle, layerName, piece.Face.Name, piece.Slant, backward);
+                    drawn = new DisplayText2(
+                        piece.Text,
+                        wx,
+                        wy,
+                        h,
+                        turn,
+                        piece.WidthFactor * piece.Ink.DrawFactor,
+                        0,
+                        0,
+                        lastStyle,
+                        handle,
+                        layerName,
+                        piece.Face.Name,
+                        piece.Slant,
+                        backward
+                    );
                     drawn.IsBold = piece.Bold;
                     drawn.IsItalic = piece.Italic;
 
@@ -152,7 +212,10 @@ namespace GeometryHelper.Dxf.Viewer
                 if (!ReferenceEquals(stroke.Look, last))
                 {
                     last = stroke.Look;
-                    int rgb = layerRgb.HasValue && last.ColorIndex >= 256 && !last.TrueColor.HasValue ? layerRgb.Value : RgbOf(last, style, layerName);
+                    int rgb =
+                        layerRgb.HasValue && last.ColorIndex >= 256 && !last.TrueColor.HasValue
+                            ? layerRgb.Value
+                            : RgbOf(last, style, layerName);
                     lastStyle = rgb == style.Rgb ? plain : new DisplayStyle(rgb, style.LineWeight, null);
                 }
 
@@ -160,9 +223,21 @@ namespace GeometryHelper.Dxf.Viewer
                 double y0 = stroke.Y0 * scale;
                 double x1 = stroke.X1 * flip;
                 double y1 = stroke.Y1 * scale;
-                parts.Add(new DisplayPolyline2(
-                    new[] { ox + (x0 * cos) - (y0 * sin), oy + (x0 * sin) + (y0 * cos), ox + (x1 * cos) - (y1 * sin), oy + (x1 * sin) + (y1 * cos) },
-                    false, lastStyle, handle, layerName));
+                parts.Add(
+                    new DisplayPolyline2(
+                        new[]
+                        {
+                            ox + (x0 * cos) - (y0 * sin),
+                            oy + (x0 * sin) + (y0 * cos),
+                            ox + (x1 * cos) - (y1 * sin),
+                            oy + (x1 * sin) + (y1 * cos),
+                        },
+                        false,
+                        lastStyle,
+                        handle,
+                        layerName
+                    )
+                );
             }
 
             return parts;

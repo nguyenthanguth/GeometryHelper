@@ -5,9 +5,9 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
+using GeometryHelper.Geometry;
 using GeometryHelper.IfcConvert.Converters.Internal;
 using GeometryHelper.IfcConvert.Models;
-using GeometryHelper.Geometry;
 using Xbim.Common.Configuration;
 using Xbim.Ifc;
 using Xbim.Ifc4.Interfaces;
@@ -34,12 +34,16 @@ namespace GeometryHelper.IfcConvert.Core.Internal
         // Eliminates redundant xBIM engine calls for repeated access to the same product with same options.
         // Values are Lazy so that concurrent callers asking for the same key share one conversion:
         // ConcurrentDictionary.GetOrAdd may run its factory more than once under contention.
-        private readonly ConcurrentDictionary<string, Lazy<IfcProductGeometry>> _geometryCache
-            = new ConcurrentDictionary<string, Lazy<IfcProductGeometry>>(StringComparer.Ordinal);
+        private readonly ConcurrentDictionary<string, Lazy<IfcProductGeometry>> _geometryCache =
+            new ConcurrentDictionary<string, Lazy<IfcProductGeometry>>(StringComparer.Ordinal);
 
         // Property cache: key = guid -> dict of pset name -> IfcPropertySet
-        private readonly ConcurrentDictionary<string, Lazy<IReadOnlyDictionary<string, IfcPropertySet>>> _propertyCache
-            = new ConcurrentDictionary<string, Lazy<IReadOnlyDictionary<string, IfcPropertySet>>>(StringComparer.Ordinal);
+        private readonly ConcurrentDictionary<
+            string,
+            Lazy<IReadOnlyDictionary<string, IfcPropertySet>>
+        > _propertyCache = new ConcurrentDictionary<string, Lazy<IReadOnlyDictionary<string, IfcPropertySet>>>(
+            StringComparer.Ordinal
+        );
 
         // The project's unit assignment and the property reader built on it, created on first use.
         private readonly Lazy<IfcUnits> _units;
@@ -137,7 +141,9 @@ namespace GeometryHelper.IfcConvert.Core.Internal
         private IfcProductGeometry GetCachedGeometry(string guid, IIfcProduct product, IfcConvertOptions options)
         {
             string cacheKey = guid + "|" + (options?.GetCacheKey() ?? string.Empty);
-            return _geometryCache.GetOrAdd(cacheKey, _ => new Lazy<IfcProductGeometry>(() => product.ToProductGeometry(options))).Value;
+            return _geometryCache
+                .GetOrAdd(cacheKey, _ => new Lazy<IfcProductGeometry>(() => product.ToProductGeometry(options)))
+                .Value;
         }
 
         public GeoSolid3 GetSolid(string guid, IfcConvertOptions options)
@@ -196,12 +202,16 @@ namespace GeometryHelper.IfcConvert.Core.Internal
         {
             if (string.IsNullOrWhiteSpace(guid) || !_productsByGuid.TryGetValue(guid, out IIfcProduct product))
             {
-                GeometryHelperLog.Info($"IfcStoreCache.GetSpheres: {(string.IsNullOrWhiteSpace(guid) ? "no GlobalId was given" : guid + " is not a product of the file")}; no ball.");
+                GeometryHelperLog.Info(
+                    $"IfcStoreCache.GetSpheres: {(string.IsNullOrWhiteSpace(guid) ? "no GlobalId was given" : guid + " is not a product of the file")}; no ball."
+                );
                 return Array.Empty<GeoSphere3>();
             }
 
             List<GeoSphere3> spheres = product.ToGeoSpheres(options);
-            GeometryHelperLog.Info($"IfcStoreCache.GetSpheres: {guid} ({IfcTypeNames.GetName(product)}) has {spheres.Count} ball(s).");
+            GeometryHelperLog.Info(
+                $"IfcStoreCache.GetSpheres: {guid} ({IfcTypeNames.GetName(product)}) has {spheres.Count} ball(s)."
+            );
             return spheres;
         }
 
@@ -209,12 +219,16 @@ namespace GeometryHelper.IfcConvert.Core.Internal
         {
             if (string.IsNullOrWhiteSpace(guid) || !_productsByGuid.TryGetValue(guid, out IIfcProduct product))
             {
-                GeometryHelperLog.Info($"IfcStoreCache.GetSplines: {(string.IsNullOrWhiteSpace(guid) ? "no GlobalId was given" : guid + " is not a product of the file")}; no spline.");
+                GeometryHelperLog.Info(
+                    $"IfcStoreCache.GetSplines: {(string.IsNullOrWhiteSpace(guid) ? "no GlobalId was given" : guid + " is not a product of the file")}; no spline."
+                );
                 return Array.Empty<GeoSpline3>();
             }
 
             List<GeoSpline3> splines = product.ToGeoSplines(options);
-            GeometryHelperLog.Info($"IfcStoreCache.GetSplines: {guid} ({IfcTypeNames.GetName(product)}) has {splines.Count} spline(s).");
+            GeometryHelperLog.Info(
+                $"IfcStoreCache.GetSplines: {guid} ({IfcTypeNames.GetName(product)}) has {splines.Count} spline(s)."
+            );
             return splines;
         }
 
@@ -346,11 +360,14 @@ namespace GeometryHelper.IfcConvert.Core.Internal
             {
                 string typeName = IfcTypeNames.GetName(product);
                 string tag = (product as IIfcElement)?.Tag?.ToString() ?? string.Empty;
-                catalog.Add(new IfcProductMetadata(
-                    product.GlobalId.ToString(),
-                    product.Name?.ToString() ?? string.Empty,
-                    typeName,
-                    tag));
+                catalog.Add(
+                    new IfcProductMetadata(
+                        product.GlobalId.ToString(),
+                        product.Name?.ToString() ?? string.Empty,
+                        typeName,
+                        tag
+                    )
+                );
             }
 
             return catalog;
@@ -368,11 +385,17 @@ namespace GeometryHelper.IfcConvert.Core.Internal
                 return EmptyPropertySets;
             }
 
-            return _propertyCache.GetOrAdd(guid, _ => new Lazy<IReadOnlyDictionary<string, IfcPropertySet>>(() => _propertyReader.Value.Read(product))).Value;
+            return _propertyCache
+                .GetOrAdd(guid, _ => new Lazy<IReadOnlyDictionary<string, IfcPropertySet>>(() =>
+                    _propertyReader.Value.Read(product)
+                ))
+                .Value;
         }
 
-        private static readonly IReadOnlyDictionary<string, IfcPropertySet> EmptyPropertySets
-            = new Dictionary<string, IfcPropertySet>(StringComparer.OrdinalIgnoreCase);
+        private static readonly IReadOnlyDictionary<string, IfcPropertySet> EmptyPropertySets = new Dictionary<
+            string,
+            IfcPropertySet
+        >(StringComparer.OrdinalIgnoreCase);
 
         internal IIfcProduct GetProduct(string guid)
         {
@@ -385,7 +408,8 @@ namespace GeometryHelper.IfcConvert.Core.Internal
             return product;
         }
 
-        internal IEnumerable<T> GetProducts<T>() where T : IIfcProduct
+        internal IEnumerable<T> GetProducts<T>()
+            where T : IIfcProduct
         {
             return _productsByGuid.Values.OfType<T>();
         }

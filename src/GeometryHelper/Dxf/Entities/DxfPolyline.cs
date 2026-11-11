@@ -30,7 +30,9 @@ namespace GeometryHelper.Dxf
     public sealed class DxfPolyline : DxfCurve
     {
         // The groups of AcDbPolyline in the order AutoCAD writes them, a vertex being 10, 20, 91, 40, 41 and 42.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 90, 70, 43, 38, 39, 10, 20, 91, 40, 41, 42, 210, 220, 230 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 90, 70, 43, 38, 39, 10, 20, 91, 40, 41, 42, 210, 220, 230 }
+        );
 
         // The groups of a vertex, and their order in it.
         private static readonly int[] VertexOrder = { 10, 20, 91, 40, 41, 42 };
@@ -57,9 +59,10 @@ namespace GeometryHelper.Dxf
         /// with <see cref="AddVertexAt(int, GeoPoint2, double, double, double)"/>.
         /// </summary>
         public DxfPolyline()
-            : base("LWPOLYLINE", new[] { new DxfTypedValue(100, "AcDbPolyline"), new DxfTypedValue(90, "0"), new DxfTypedValue(70, "0") })
-        {
-        }
+            : base(
+                "LWPOLYLINE",
+                new[] { new DxfTypedValue(100, "AcDbPolyline"), new DxfTypedValue(90, "0"), new DxfTypedValue(70, "0") }
+            ) { }
 
         /// <summary>
         /// Initializes a polyline of no vertices, as AutoCAD's <c>new Polyline(vertices)</c>, which only makes room for that many.
@@ -71,14 +74,16 @@ namespace GeometryHelper.Dxf
         {
             if (vertices < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(vertices), vertices, "A polyline makes room for nought vertices or more.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(vertices),
+                    vertices,
+                    "A polyline makes room for nought vertices or more."
+                );
             }
         }
 
         private DxfPolyline(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         #region The vertices
 
@@ -111,7 +116,12 @@ namespace GeometryHelper.Dxf
             Placed placed = Volatile.Read(ref _placed);
 
             // The normal and the elevation are read once for the record as it stands, not again for each vertex asked for.
-            if (placed == null || !ReferenceEquals(record.Bytes, placed.Bytes) || record.Start != placed.Start || record.End != placed.End)
+            if (
+                placed == null
+                || !ReferenceEquals(record.Bytes, placed.Bytes)
+                || record.Start != placed.Start
+                || record.End != placed.End
+            )
             {
                 placed = new Placed(Normal, Elevation, record);
                 Volatile.Write(ref _placed, placed);
@@ -204,7 +214,8 @@ namespace GeometryHelper.Dxf
         /// <param name="startWidth">The width, nought or more.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when there is no vertex of the index, or the width is below nought or not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the polyline is erased.</exception>
-        public void SetStartWidthAt(int index, double startWidth) => SetWidth(index, 40, startWidth, nameof(startWidth));
+        public void SetStartWidthAt(int index, double startWidth) =>
+            SetWidth(index, 40, startWidth, nameof(startWidth));
 
         /// <summary>Sets the width where the segment that leaves a vertex ends, as AutoCAD's <c>SetEndWidthAt</c>.</summary>
         /// <param name="index">The index of the vertex, from nought.</param>
@@ -239,7 +250,13 @@ namespace GeometryHelper.Dxf
 
             if (index < 0 || index > vertices.Count)
             {
-                throw new ArgumentOutOfRangeException(nameof(index), index, "A vertex goes in from nought to the count of the vertices, " + vertices.Count.ToString(CultureInfo.InvariantCulture) + ".");
+                throw new ArgumentOutOfRangeException(
+                    nameof(index),
+                    index,
+                    "A vertex goes in from nought to the count of the vertices, "
+                        + vertices.Count.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
 
             var vertex = new List<KeyValuePair<int, string>>
@@ -286,7 +303,11 @@ namespace GeometryHelper.Dxf
 
             if (vertices.Count <= 2)
             {
-                throw new InvalidOperationException("A polyline keeps two vertices at least, and this one has " + vertices.Count.ToString(CultureInfo.InvariantCulture) + ": erase the polyline instead.");
+                throw new InvalidOperationException(
+                    "A polyline keeps two vertices at least, and this one has "
+                        + vertices.Count.ToString(CultureInfo.InvariantCulture)
+                        + ": erase the polyline instead."
+                );
             }
 
             if (!Splice(index, 1))
@@ -309,7 +330,11 @@ namespace GeometryHelper.Dxf
         {
             if (vertices < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(vertices), vertices, "A count of vertices is nought or more.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(vertices),
+                    vertices,
+                    "A count of vertices is nought or more."
+                );
             }
 
             List<List<KeyValuePair<int, string>>> all = Vertices();
@@ -319,7 +344,11 @@ namespace GeometryHelper.Dxf
             {
                 if (keep < 2)
                 {
-                    throw new InvalidOperationException("A polyline keeps two vertices at least, and the reset would leave " + keep.ToString(CultureInfo.InvariantCulture) + ".");
+                    throw new InvalidOperationException(
+                        "A polyline keeps two vertices at least, and the reset would leave "
+                            + keep.ToString(CultureInfo.InvariantCulture)
+                            + "."
+                    );
                 }
 
                 Write(all.GetRange(0, keep));
@@ -383,7 +412,6 @@ namespace GeometryHelper.Dxf
 
                 return width;
             }
-
             set
             {
                 Guard.NonNegative(value, nameof(value), "A width has to be a finite number, nought or more.");
@@ -579,7 +607,13 @@ namespace GeometryHelper.Dxf
         public GeoArc3 GetArcSegmentAt(int index)
         {
             Segment(index, DxfSegmentType.Arc);
-            return new GeoEdge3(GetPoint3dAt(index), GetPoint3dAt((index + 1) % NumberOfVertices), GetBulgeAt(index), Normal, Tolerance.Default).ToArc();
+            return new GeoEdge3(
+                GetPoint3dAt(index),
+                GetPoint3dAt((index + 1) % NumberOfVertices),
+                GetBulgeAt(index),
+                Normal,
+                Tolerance.Default
+            ).ToArc();
         }
 
         /// <summary>Gets the arc that leaves a vertex in the system of the polyline's normal, as AutoCAD's <c>GetArcSegment2dAt</c>.</summary>
@@ -590,7 +624,11 @@ namespace GeometryHelper.Dxf
         public GeoArc2 GetArcSegment2dAt(int index)
         {
             Segment(index, DxfSegmentType.Arc);
-            return GeoArc2.FromBulge(GetPoint2dAt(index), GetPoint2dAt((index + 1) % NumberOfVertices), GetBulgeAt(index));
+            return GeoArc2.FromBulge(
+                GetPoint2dAt(index),
+                GetPoint2dAt((index + 1) % NumberOfVertices),
+                GetBulgeAt(index)
+            );
         }
 
         /// <summary>
@@ -616,9 +654,15 @@ namespace GeometryHelper.Dxf
 
             switch (type)
             {
-                case DxfSegmentType.Line: return new GeoLine2(start, end).GetClosestPointOnBoundary(pt2d).IsEqualTo(pt2d, Tolerance.Default);
-                case DxfSegmentType.Arc: return GeoArc2.FromBulge(start, end, GetBulgeAt(index)).GetClosestPointOnBoundary(pt2d).IsEqualTo(pt2d, Tolerance.Default);
-                default: return start.IsEqualTo(pt2d, Tolerance.Default);
+                case DxfSegmentType.Line:
+                    return new GeoLine2(start, end).GetClosestPointOnBoundary(pt2d).IsEqualTo(pt2d, Tolerance.Default);
+                case DxfSegmentType.Arc:
+                    return GeoArc2
+                        .FromBulge(start, end, GetBulgeAt(index))
+                        .GetClosestPointOnBoundary(pt2d)
+                        .IsEqualTo(pt2d, Tolerance.Default);
+                default:
+                    return start.IsEqualTo(pt2d, Tolerance.Default);
             }
         }
 
@@ -821,7 +865,10 @@ namespace GeometryHelper.Dxf
 
             if (!ocs.ScaleUniform && HasBulges)
             {
-                throw new ArgumentException("A polyline with arcs is scaled the same along every direction of its plane, or its arcs would be ellipses.", nameof(transform));
+                throw new ArgumentException(
+                    "A polyline with arcs is scaled the same along every direction of its plane, or its arcs would be ellipses.",
+                    nameof(transform)
+                );
             }
 
             double elevation = Elevation;
@@ -888,7 +935,14 @@ namespace GeometryHelper.Dxf
             Two(v.Count);
             double end = chain.EndParam;
             bool closed = Closed;
-            List<double> cuts = DxfCurveTools.Cuts(parameters, 0.0, end, closed, (a, b) => chain.DistanceAt(b) - chain.DistanceAt(a), x => Within(x, end, nameof(parameters)));
+            List<double> cuts = DxfCurveTools.Cuts(
+                parameters,
+                0.0,
+                end,
+                closed,
+                (a, b) => chain.DistanceAt(b) - chain.DistanceAt(a),
+                x => Within(x, end, nameof(parameters))
+            );
             List<List<DxfPolyVertex>> pieces = DxfPolylineEdit.Split(v, closed, cuts);
 
             if (pieces.Count == 0)
@@ -930,7 +984,9 @@ namespace GeometryHelper.Dxf
             Two(v.Count);
             var result = new List<DxfCurve>();
 
-            foreach (KeyValuePair<List<DxfPolyVertex>, bool> one in DxfPolylineEdit.Offset(v, Closed, offsetDist, Elevation))
+            foreach (
+                KeyValuePair<List<DxfPolyVertex>, bool> one in DxfPolylineEdit.Offset(v, Closed, offsetDist, Elevation)
+            )
             {
                 var copy = (DxfPolyline)Copy();
                 copy.WriteModel(one.Key, null, one.Value);
@@ -953,13 +1009,25 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when the normal is not along the polyline's within the vector tolerance.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the polyline has fewer than two vertices.</exception>
-        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(GeoVector3 planeNormal, double offsetDist)
+        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(
+            GeoVector3 planeNormal,
+            double offsetDist
+        )
         {
             GeoVector3 normal = Normal;
 
-            if (!planeNormal.IsValid || planeNormal.IsZeroLength(Tolerance.Default) || !planeNormal.IsParallelTo(normal, Tolerance.Default))
+            if (
+                !planeNormal.IsValid
+                || planeNormal.IsZeroLength(Tolerance.Default)
+                || !planeNormal.IsParallelTo(normal, Tolerance.Default)
+            )
             {
-                throw new ArgumentException("A polyline is offset in its own plane: the normal " + planeNormal + " is not along the polyline's.", nameof(planeNormal));
+                throw new ArgumentException(
+                    "A polyline is offset in its own plane: the normal "
+                        + planeNormal
+                        + " is not along the polyline's.",
+                    nameof(planeNormal)
+                );
             }
 
             return GetOffsetCurves(planeNormal.DotProduct(normal) < 0.0 ? -offsetDist : offsetDist);
@@ -986,7 +1054,11 @@ namespace GeometryHelper.Dxf
 
             if (newParameter >= 0.0 && newParameter <= v.Count - 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(newParameter), newParameter, "The parameter lies on the polyline: one past an end extends it.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(newParameter),
+                    newParameter,
+                    "The parameter lies on the polyline: one past an end extends it."
+                );
             }
 
             DxfPolylineEdit.Extend(v, newParameter, nameof(newParameter));
@@ -1009,11 +1081,17 @@ namespace GeometryHelper.Dxf
             List<DxfPolyVertex> v = Model();
             Open(v.Count);
             GeoPoint3 local = WorldToOcs(Normal, toPoint);
-            double share = Math.Abs(local.Z - Elevation) <= Tolerance.Default.EqualPoint ? DxfPolylineEdit.ShareOf(v, extendStart, local.X, local.Y, 0.0, true) : double.NaN;
+            double share =
+                Math.Abs(local.Z - Elevation) <= Tolerance.Default.EqualPoint
+                    ? DxfPolylineEdit.ShareOf(v, extendStart, local.X, local.Y, 0.0, true)
+                    : double.NaN;
 
             if (double.IsNaN(share))
             {
-                throw new ArgumentException("The point " + toPoint + " is not on the polyline's end segment run on.", nameof(toPoint));
+                throw new ArgumentException(
+                    "The point " + toPoint + " is not on the polyline's end segment run on.",
+                    nameof(toPoint)
+                );
             }
 
             DxfPolylineEdit.Beyond(share, extendStart, toPoint, nameof(toPoint));
@@ -1049,7 +1127,10 @@ namespace GeometryHelper.Dxf
 
             if (!(entity is DxfPolyline2d source))
             {
-                throw new ArgumentException("A polyline is converted from a DxfPolyline2d, and was given a " + entity.GetType().Name + ".", nameof(entity));
+                throw new ArgumentException(
+                    "A polyline is converted from a DxfPolyline2d, and was given a " + entity.GetType().Name + ".",
+                    nameof(entity)
+                );
             }
 
             DxfPolylineConvert.Into(source, this, transferId);
@@ -1081,7 +1162,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The chain, in world coordinates.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the polyline has an arc, has fewer than two vertices apart, a
         /// number of its record is not finite, or it is erased.</exception>
-        public GeoPolyline3 ToGeoPolyline3() => Chained<GeoPolyline3>(nameof(ToGeoPolyline3), false, Tolerance.Default, false, false);
+        public GeoPolyline3 ToGeoPolyline3() =>
+            Chained<GeoPolyline3>(nameof(ToGeoPolyline3), false, Tolerance.Default, false, false);
 
         /// <summary>
         /// Gets the polyline as a chain with arcs in the world, bulge for bulge, as <see cref="DxfReader"/> reads its vertices:
@@ -1094,7 +1176,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The chain, in world coordinates.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the polyline has fewer than two vertices apart, a number of its
         /// record is not finite, or it is erased.</exception>
-        public GeoPolylineArc3 ToGeoPolylineArc3() => Chained<GeoPolylineArc3>(nameof(ToGeoPolylineArc3), false, Tolerance.Default, false, true);
+        public GeoPolylineArc3 ToGeoPolylineArc3() =>
+            Chained<GeoPolylineArc3>(nameof(ToGeoPolylineArc3), false, Tolerance.Default, false, true);
 
         /// <summary>
         /// Gets the polyline as a loop of straight edges in the world: closed or not, its last vertex joined back to its first,
@@ -1106,7 +1189,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The loop, in world coordinates.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the polyline has an arc, encloses no area within the default
         /// tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoPolygon3 ToGeoPolygon3() => Chained<GeoPolygon3>(nameof(ToGeoPolygon3), false, Tolerance.Default, true, false);
+        public GeoPolygon3 ToGeoPolygon3() =>
+            Chained<GeoPolygon3>(nameof(ToGeoPolygon3), false, Tolerance.Default, true, false);
 
         /// <summary>
         /// Gets the polyline as a loop with arcs in the world, bulge for bulge: closed or not, its last vertex joined back to its
@@ -1119,7 +1203,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The loop, in world coordinates.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the polyline encloses no area within the default tolerance, a
         /// number of its record is not finite, or it is erased.</exception>
-        public GeoPolygonArc3 ToGeoPolygonArc3() => Chained<GeoPolygonArc3>(nameof(ToGeoPolygonArc3), false, Tolerance.Default, true, true);
+        public GeoPolygonArc3 ToGeoPolygonArc3() =>
+            Chained<GeoPolygonArc3>(nameof(ToGeoPolygonArc3), false, Tolerance.Default, true, true);
 
         /// <summary>
         /// Gets the polyline as a chain of straight segments of the plane, as <see cref="ToGeoPolyline3"/> reads it, where it
@@ -1142,7 +1227,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The chain in the plane.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the polyline does not lie on the floor, has an arc, has fewer
         /// than two vertices apart within the point tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoPolyline2 ToGeoPolyline2(Tolerance tolerance) => Chained<GeoPolyline2>(nameof(ToGeoPolyline2), true, tolerance, false, false);
+        public GeoPolyline2 ToGeoPolyline2(Tolerance tolerance) =>
+            Chained<GeoPolyline2>(nameof(ToGeoPolyline2), true, tolerance, false, false);
 
         /// <summary>
         /// Gets the polyline as a chain with arcs of the plane, as <see cref="ToGeoPolylineArc3"/> reads it, where it lies on the
@@ -1162,7 +1248,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The chain in the plane.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the polyline does not lie on the floor, has fewer than two
         /// vertices apart within the point tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoPolylineArc2 ToGeoPolylineArc2(Tolerance tolerance) => Chained<GeoPolylineArc2>(nameof(ToGeoPolylineArc2), true, tolerance, false, true);
+        public GeoPolylineArc2 ToGeoPolylineArc2(Tolerance tolerance) =>
+            Chained<GeoPolylineArc2>(nameof(ToGeoPolylineArc2), true, tolerance, false, true);
 
         /// <summary>
         /// Gets the polyline as a loop of straight edges of the plane, as <see cref="ToGeoPolygon3"/> reads it, where it lies on
@@ -1182,7 +1269,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The loop in the plane.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the polyline does not lie on the floor, has an arc, encloses no
         /// area within the tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoPolygon2 ToGeoPolygon2(Tolerance tolerance) => Chained<GeoPolygon2>(nameof(ToGeoPolygon2), true, tolerance, true, false);
+        public GeoPolygon2 ToGeoPolygon2(Tolerance tolerance) =>
+            Chained<GeoPolygon2>(nameof(ToGeoPolygon2), true, tolerance, true, false);
 
         /// <summary>
         /// Gets the polyline as a loop with arcs of the plane, as <see cref="ToGeoPolygonArc3"/> reads it, where it lies on the
@@ -1203,7 +1291,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The loop in the plane.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the polyline does not lie on the floor, encloses no area within
         /// the tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoPolygonArc2 ToGeoPolygonArc2(Tolerance tolerance) => Chained<GeoPolygonArc2>(nameof(ToGeoPolygonArc2), true, tolerance, true, true);
+        public GeoPolygonArc2 ToGeoPolygonArc2(Tolerance tolerance) =>
+            Chained<GeoPolygonArc2>(nameof(ToGeoPolygonArc2), true, tolerance, true, true);
 
         /// <summary>
         /// Gives the polyline the vertices and bulges of a chain or loop, as AutoCAD's <c>SetFromGeCurve</c>, written as
@@ -1251,7 +1340,17 @@ namespace GeometryHelper.Dxf
             foreach (List<KeyValuePair<int, string>> vertex in vertices)
             {
                 bool widths = Text(vertex, 40) != null || Text(vertex, 41) != null;
-                model.Add(new DxfPolyVertex(Value(vertex, 10, 0.0), Value(vertex, 20, 0.0), elevation, Value(vertex, 42, 0.0), Value(vertex, 40, constant), Value(vertex, 41, constant), widths));
+                model.Add(
+                    new DxfPolyVertex(
+                        Value(vertex, 10, 0.0),
+                        Value(vertex, 20, 0.0),
+                        elevation,
+                        Value(vertex, 42, 0.0),
+                        Value(vertex, 40, constant),
+                        Value(vertex, 41, constant),
+                        widths
+                    )
+                );
             }
 
             return model;
@@ -1278,7 +1377,10 @@ namespace GeometryHelper.Dxf
             for (int i = 0; i < model.Count; i++)
             {
                 DxfPolyVertex q = model[i];
-                List<KeyValuePair<int, string>> vertex = was != null && i < was.Count ? new List<KeyValuePair<int, string>>(was[i]) : new List<KeyValuePair<int, string>>();
+                List<KeyValuePair<int, string>> vertex =
+                    was != null && i < was.Count
+                        ? new List<KeyValuePair<int, string>>(was[i])
+                        : new List<KeyValuePair<int, string>>();
                 Put(vertex, 10, q.X, double.NaN, false);
                 Put(vertex, 20, q.Y, double.NaN, false);
 
@@ -1310,7 +1412,9 @@ namespace GeometryHelper.Dxf
 
             for (int i = 0; i < points.Count; i++)
             {
-                model.Add(new DxfPolyVertex(points[i].X, points[i].Y, 0.0, bulges == null ? 0.0 : bulges[i], 0.0, 0.0, false));
+                model.Add(
+                    new DxfPolyVertex(points[i].X, points[i].Y, 0.0, bulges == null ? 0.0 : bulges[i], 0.0, 0.0, false)
+                );
             }
 
             WriteModel(model, null, closed);
@@ -1321,7 +1425,15 @@ namespace GeometryHelper.Dxf
         /// closure and linetype generation, and a constant width where it is not nought (the vertices then giving none of
         /// their own), as a polyline converted from a <see cref="DxfPolyline2d"/> takes them.
         /// </summary>
-        internal void Take(List<DxfPolyVertex> vertices, bool closed, GeoVector3 normal, double elevation, double thickness, bool generation, double constantWidth)
+        internal void Take(
+            List<DxfPolyVertex> vertices,
+            bool closed,
+            GeoVector3 normal,
+            double elevation,
+            double thickness,
+            bool generation,
+            double constantWidth
+        )
         {
             var model = new List<DxfPolyVertex>(vertices.Count);
 
@@ -1353,13 +1465,24 @@ namespace GeometryHelper.Dxf
         /// marker, count, flags, constant width, elevation and thickness where not nought, its vertices, and its normal where it
         /// is not (0, 0, 1); for a polyline of the plane converted to take its place.
         /// </summary>
-        internal static List<KeyValuePair<string, List<DxfTypedValue>>> Records(List<DxfPolyVertex> model, bool closed, GeoVector3 normal, double elevation, double thickness, bool generation, double constantWidth)
+        internal static List<KeyValuePair<string, List<DxfTypedValue>>> Records(
+            List<DxfPolyVertex> model,
+            bool closed,
+            GeoVector3 normal,
+            double elevation,
+            double thickness,
+            bool generation,
+            double constantWidth
+        )
         {
             var groups = new List<DxfTypedValue>
             {
                 new DxfTypedValue(100, "AcDbPolyline"),
                 new DxfTypedValue(90, model.Count.ToString(CultureInfo.InvariantCulture)),
-                new DxfTypedValue(70, ((closed ? 1 : 0) | (generation ? 128 : 0)).ToString(CultureInfo.InvariantCulture)),
+                new DxfTypedValue(
+                    70,
+                    ((closed ? 1 : 0) | (generation ? 128 : 0)).ToString(CultureInfo.InvariantCulture)
+                ),
             };
 
             if (constantWidth != 0.0)
@@ -1401,7 +1524,10 @@ namespace GeometryHelper.Dxf
                 groups.Add(new DxfTypedValue(230, Numbers.Exact(normal.Z + 0.0)));
             }
 
-            return new List<KeyValuePair<string, List<DxfTypedValue>>> { new KeyValuePair<string, List<DxfTypedValue>>("LWPOLYLINE", groups) };
+            return new List<KeyValuePair<string, List<DxfTypedValue>>>
+            {
+                new KeyValuePair<string, List<DxfTypedValue>>("LWPOLYLINE", groups),
+            };
         }
 
         /// <summary>Refuses a polyline of fewer than two vertices, which has no segment to work on.</summary>
@@ -1409,7 +1535,9 @@ namespace GeometryHelper.Dxf
         {
             if (count < 2)
             {
-                throw new InvalidOperationException("A polyline of " + count.ToString(CultureInfo.InvariantCulture) + " vertices has no segment.");
+                throw new InvalidOperationException(
+                    "A polyline of " + count.ToString(CultureInfo.InvariantCulture) + " vertices has no segment."
+                );
             }
         }
 
@@ -1445,7 +1573,9 @@ namespace GeometryHelper.Dxf
 
             foreach (List<KeyValuePair<int, string>> vertex in Read())
             {
-                vertices.Add(OcsToWorld(normal, new GeoPoint3(Value(vertex, 10, 0.0), Value(vertex, 20, 0.0), elevation)));
+                vertices.Add(
+                    OcsToWorld(normal, new GeoPoint3(Value(vertex, 10, 0.0), Value(vertex, 20, 0.0), elevation))
+                );
             }
 
             return ChainParts(normal, vertices).AsReadOnly();
@@ -1479,7 +1609,12 @@ namespace GeometryHelper.Dxf
         {
             DxfFile.Rec record = Item.File.RecordAt(Item, 0);
 
-            if (_read != null && ReferenceEquals(record.Bytes, _readBytes) && record.Start == _readStart && record.End == _readEnd)
+            if (
+                _read != null
+                && ReferenceEquals(record.Bytes, _readBytes)
+                && record.Start == _readStart
+                && record.End == _readEnd
+            )
             {
                 return _read;
             }
@@ -1526,7 +1661,14 @@ namespace GeometryHelper.Dxf
                 {
                     counts++;
                     countAt = first < 0 ? i : -1;
-                    _count = int.TryParse(group.Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : 0;
+                    _count = int.TryParse(
+                        group.Value?.Trim(),
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int value
+                    )
+                        ? value
+                        : 0;
                 }
             }
 
@@ -1568,7 +1710,14 @@ namespace GeometryHelper.Dxf
             int from = _starts[index];
             int to = _starts[index + count];
             int expected = _readEnd - _readStart - (to - from);
-            int written = Item.File.SpliceRecord(Item, 0, from, to, made ?? new List<KeyValuePair<int, string>>(), true);
+            int written = Item.File.SpliceRecord(
+                Item,
+                0,
+                from,
+                to,
+                made ?? new List<KeyValuePair<int, string>>(),
+                true
+            );
             expected += written;
             _starts.RemoveRange(index + 1, count);
             read.RemoveRange(index, count);
@@ -1585,7 +1734,14 @@ namespace GeometryHelper.Dxf
             if (number != _count)
             {
                 // The count is no geometry, one group before the vertices.
-                int length = Item.File.SpliceRecord(Item, 0, _countFrom, _countTo, new[] { new KeyValuePair<int, string>(90, number.ToString(CultureInfo.InvariantCulture)) }, false);
+                int length = Item.File.SpliceRecord(
+                    Item,
+                    0,
+                    _countFrom,
+                    _countTo,
+                    new[] { new KeyValuePair<int, string>(90, number.ToString(CultureInfo.InvariantCulture)) },
+                    false
+                );
                 Shift(0, length - (_countTo - _countFrom));
                 expected += length - (_countTo - _countFrom);
                 _countTo = _countFrom + length;
@@ -1625,7 +1781,12 @@ namespace GeometryHelper.Dxf
             // The count is no geometry: written with no second growing of the extents by the whole polyline.
             if (vertices.Count != GetInt(90, 0))
             {
-                Item.File.SetValues(Item, new[] { new KeyValuePair<int, string>(90, vertices.Count.ToString(CultureInfo.InvariantCulture)) }, GroupOrder, false);
+                Item.File.SetValues(
+                    Item,
+                    new[] { new KeyValuePair<int, string>(90, vertices.Count.ToString(CultureInfo.InvariantCulture)) },
+                    GroupOrder,
+                    false
+                );
             }
         }
 
@@ -1655,7 +1816,15 @@ namespace GeometryHelper.Dxf
 
             if (actual != type)
             {
-                throw new InvalidOperationException("The segment that leaves the vertex " + index.ToString(CultureInfo.InvariantCulture) + " is " + actual + ", not " + type + ".");
+                throw new InvalidOperationException(
+                    "The segment that leaves the vertex "
+                        + index.ToString(CultureInfo.InvariantCulture)
+                        + " is "
+                        + actual
+                        + ", not "
+                        + type
+                        + "."
+                );
             }
         }
 
@@ -1750,8 +1919,10 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The group that sets a number of the head, none where it is the one read.</summary>
-        private KeyValuePair<int, string>[] NumberGroups(int code, double value, double fallback)
-            => Same(value, GetDouble(code, fallback)) ? new KeyValuePair<int, string>[0] : new[] { new KeyValuePair<int, string>(code, Numbers.Exact(value + 0.0)) };
+        private KeyValuePair<int, string>[] NumberGroups(int code, double value, double fallback) =>
+            Same(value, GetDouble(code, fallback))
+                ? new KeyValuePair<int, string>[0]
+                : new[] { new KeyValuePair<int, string>(code, Numbers.Exact(value + 0.0)) };
 
         private static double ParameterOn(DxfBulgeChain chain, GeoPoint3 point)
         {
@@ -1765,11 +1936,20 @@ namespace GeometryHelper.Dxf
             return parameter;
         }
 
-        private static List<KeyValuePair<int, string>> VertexAt(List<List<KeyValuePair<int, string>>> vertices, int index)
+        private static List<KeyValuePair<int, string>> VertexAt(
+            List<List<KeyValuePair<int, string>>> vertices,
+            int index
+        )
         {
             if (index < 0 || index >= vertices.Count)
             {
-                throw new ArgumentOutOfRangeException(nameof(index), index, "The polyline has " + vertices.Count.ToString(CultureInfo.InvariantCulture) + " vertices, from nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(index),
+                    index,
+                    "The polyline has "
+                        + vertices.Count.ToString(CultureInfo.InvariantCulture)
+                        + " vertices, from nought."
+                );
             }
 
             return vertices[index];
@@ -1789,14 +1969,20 @@ namespace GeometryHelper.Dxf
             return null;
         }
 
-        private static double Value(List<KeyValuePair<int, string>> vertex, int code, double fallback)
-            => Numbers.TryRead(Text(vertex, code), out double value) && Guard.IsFinite(value) ? value : fallback;
+        private static double Value(List<KeyValuePair<int, string>> vertex, int code, double fallback) =>
+            Numbers.TryRead(Text(vertex, code), out double value) && Guard.IsFinite(value) ? value : fallback;
 
         /// <summary>
         /// Gives a group of a vertex a number, in place where it has one and where its order puts it where not; takes it out
         /// where it is the fallback and asked to. False where the number read is the same to the bit.
         /// </summary>
-        private static bool Put(List<KeyValuePair<int, string>> vertex, int code, double value, double fallback, bool dropAtNought)
+        private static bool Put(
+            List<KeyValuePair<int, string>> vertex,
+            int code,
+            double value,
+            double fallback,
+            bool dropAtNought
+        )
         {
             if (Text(vertex, code) != null && Same(value, Value(vertex, code, fallback)))
             {

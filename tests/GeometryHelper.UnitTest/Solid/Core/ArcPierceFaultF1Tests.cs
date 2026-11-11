@@ -13,7 +13,8 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static readonly GeoPoint3 OnTheRim = new GeoPoint3(0, 50, 0);
 
-        private static GeoLine3 Pin(double gap) => new GeoLine3(new GeoPoint3(0, 50 + gap, 1), new GeoPoint3(0, 50 + gap, -1));
+        private static GeoLine3 Pin(double gap) =>
+            new GeoLine3(new GeoPoint3(0, 50 + gap, 1), new GeoPoint3(0, 50 + gap, -1));
 
         private static void AssertTheTouch(GeoPoint3[] places)
         {
@@ -43,7 +44,12 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(-0.0006)]
         public void ASegmentAndARayPiercingTheArcsPlaneAHairBesideItsRim_TouchItAtTheRim(double gap)
         {
-            GeoArc3 arc = GeoArc3.FromThreePoints(new GeoPoint3(50, 0, 0), OnTheRim, new GeoPoint3(-50, 0, 0), Thousandth);
+            GeoArc3 arc = GeoArc3.FromThreePoints(
+                new GeoPoint3(50, 0, 0),
+                OnTheRim,
+                new GeoPoint3(-50, 0, 0),
+                Thousandth
+            );
             GeoLine3 pin = Pin(gap);
             var ray = new GeoRay3(pin.StartPoint, new GeoVector3(0, 0, -1));
 
@@ -66,9 +72,13 @@ namespace GeometryHelper.UnitTest.Solid
             var chain = new GeoPolylineArc3(
                 new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0) },
                 new[] { bulge, 0.0 },
-                new[] { new GeoVector3(0, 0, 1), new GeoVector3(0, 0, 1) });
+                new[] { new GeoVector3(0, 0, 1), new GeoVector3(0, 0, 1) }
+            );
             GeoPoint3 middle = edge.GetPointAtParameter(0.5);
-            var pin = new GeoLine3(new GeoPoint3(middle.X, middle.Y - 0.0005, 1), new GeoPoint3(middle.X, middle.Y - 0.0005, -1));
+            var pin = new GeoLine3(
+                new GeoPoint3(middle.X, middle.Y - 0.0005, 1),
+                new GeoPoint3(middle.X, middle.Y - 0.0005, -1)
+            );
 
             Assert.True(edge.CollidesWith(pin, Thousandth));
             Assert.Equal(0.0, Assert.Single(edge.GetIntersections(pin, Thousandth)).DistanceTo(middle), 6);
@@ -90,10 +100,12 @@ namespace GeometryHelper.UnitTest.Solid
                     new GeoPoint3(-934.0436633141649, 932.1346622663968, -57.73874089928437),
                 },
                 new[] { -0.2550969892517928, 0.0 },
-                new[] { normal, normal });
+                new[] { normal, normal }
+            );
             var segment = new GeoLine3(
                 new GeoPoint3(-1091.1390035842012, 208.664687582695, -11.685215707054827),
-                new GeoPoint3(-1091.2740328997459, 207.97157256167947, -9.753591227045133));
+                new GeoPoint3(-1091.2740328997459, 207.97157256167947, -9.753591227045133)
+            );
 
             GeoPoint3[] fromArc = chain.GetEdgeAt(0).GetIntersections(segment, Thousandth);
             GeoPoint3 place = Assert.Single(chain.GetIntersections(segment, Thousandth));
@@ -113,8 +125,12 @@ namespace GeometryHelper.UnitTest.Solid
             var hairpin = new GeoPolylineArc3(
                 new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 0.0009, 0) },
                 new[] { 0.0, 0.0 },
-                new[] { up, up });
-            var segment = new GeoLine3(new GeoPoint3(50 - 0.01 / slope, -0.01, 0), new GeoPoint3(50 + 0.01 / slope, 0.0109, 0));
+                new[] { up, up }
+            );
+            var segment = new GeoLine3(
+                new GeoPoint3(50 - 0.01 / slope, -0.01, 0),
+                new GeoPoint3(50 + 0.01 / slope, 0.0109, 0)
+            );
 
             GeoPoint3[] places = hairpin.GetIntersections(segment, Thousandth);
 
@@ -137,7 +153,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoArc3 arc = new GeoEdge3(start, end, 2 * 4.9E-8 / start.DistanceTo(end), normal).ToArc();
             var segment = new GeoLine3(
                 new GeoPoint3(1116327.3417597327, -793332.7394228477, 542133.0571931278),
-                new GeoPoint3(1116329.091936263, -793330.8561671121, 542135.9621686899));
+                new GeoPoint3(1116329.091936263, -793330.8561671121, 542135.9621686899)
+            );
 
             Assert.True(arc.CollidesWith(segment, Thousandth));
             Assert.Single(arc.GetIntersections(segment, Thousandth));

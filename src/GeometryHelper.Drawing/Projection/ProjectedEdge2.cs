@@ -103,8 +103,8 @@ namespace GeometryHelper.Drawing.Projection
         public IReadOnlyList<string> ObjectIds => _objectIds;
 
         /// <inheritdoc/>
-        public override string ToString()
-            => IsArc
+        public override string ToString() =>
+            IsArc
                 ? $"Edge2({Visibility} {Kind} arc C({_arc.Center.X:0.###}, {_arc.Center.Y:0.###}) R{_arc.Radius:0.###} of {ObjectId})"
                 : $"Edge2({Visibility} {Kind} ({_line.StartPoint.X:0.###}, {_line.StartPoint.Y:0.###})-({_line.EndPoint.X:0.###}, {_line.EndPoint.Y:0.###}) of {ObjectId})";
     }

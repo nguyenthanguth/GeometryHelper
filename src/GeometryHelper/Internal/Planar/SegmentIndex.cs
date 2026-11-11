@@ -71,7 +71,10 @@ namespace GeometryHelper.Internal.Planar
 
             foreach (int id in list)
             {
-                if (DistanceToSegment(p, _from[id], _to[id]) <= margin && DistanceToSegment(q, _from[id], _to[id]) <= margin)
+                if (
+                    DistanceToSegment(p, _from[id], _to[id]) <= margin
+                    && DistanceToSegment(q, _from[id], _to[id]) <= margin
+                )
                 {
                     return true;
                 }
@@ -150,7 +153,8 @@ namespace GeometryHelper.Internal.Planar
         {
             GeoVector2 direction = b - a;
             double lengthSquared = direction.LengthSquared;
-            double t = lengthSquared > 0.0 ? Math.Max(0.0, Math.Min(1.0, (point - a).Dot(direction) / lengthSquared)) : 0.0;
+            double t =
+                lengthSquared > 0.0 ? Math.Max(0.0, Math.Min(1.0, (point - a).Dot(direction) / lengthSquared)) : 0.0;
             return point.DistanceTo(a + direction * t);
         }
 
@@ -180,7 +184,8 @@ namespace GeometryHelper.Internal.Planar
 
             for (int id = 0; id < _from.Count; id++)
             {
-                double reach = Math.Max(Math.Abs(_to[id].X - _from[id].X), Math.Abs(_to[id].Y - _from[id].Y)) + 2.0 * _margins[id];
+                double reach =
+                    Math.Max(Math.Abs(_to[id].X - _from[id].X), Math.Abs(_to[id].Y - _from[id].Y)) + 2.0 * _margins[id];
                 sum += reach * reach;
             }
 

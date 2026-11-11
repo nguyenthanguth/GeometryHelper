@@ -138,7 +138,12 @@ namespace GeometryHelper.Dxf
         private static void Pattern(string line, List<Dash> dashes)
         {
             List<object> tokens = Tokens(line);
-            int at = tokens.Count > 0 && tokens[0] is string first && string.Equals(first.Trim(), "A", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+            int at =
+                tokens.Count > 0
+                && tokens[0] is string first
+                && string.Equals(first.Trim(), "A", StringComparison.OrdinalIgnoreCase)
+                    ? 1
+                    : 0;
 
             for (; at < tokens.Count; at++)
             {
@@ -146,7 +151,11 @@ namespace GeometryHelper.Dxf
                 {
                     if (dashes.Count == 0 || dashes[dashes.Count - 1].IsComplex)
                     {
-                        throw new FormatException("A text or shape in brackets follows the dash it is drawn on: '" + line + "' has one with no dash of its own before it.");
+                        throw new FormatException(
+                            "A text or shape in brackets follows the dash it is drawn on: '"
+                                + line
+                                + "' has one with no dash of its own before it."
+                        );
                     }
 
                     Complex(complex, dashes[dashes.Count - 1], line);
@@ -232,7 +241,11 @@ namespace GeometryHelper.Dxf
         {
             if (fields.Count < 2 || fields[0].Length == 0 || fields[1].Length == 0)
             {
-                throw new FormatException("A text or shape in brackets names what it draws and its style or file of shapes: '" + line + "' does not.");
+                throw new FormatException(
+                    "A text or shape in brackets names what it draws and its style or file of shapes: '"
+                        + line
+                        + "' does not."
+                );
             }
 
             string what = fields[0];
@@ -254,7 +267,13 @@ namespace GeometryHelper.Dxf
 
                 if (equals < 1)
                 {
-                    throw new FormatException("A transform of a text or shape is a letter, = and a value: '" + fields[i] + "' of '" + line + "' is not one.");
+                    throw new FormatException(
+                        "A transform of a text or shape is a letter, = and a value: '"
+                            + fields[i]
+                            + "' of '"
+                            + line
+                            + "' is not one."
+                    );
                 }
 
                 string key = fields[i].Substring(0, equals).Trim().ToUpperInvariant();
@@ -278,7 +297,13 @@ namespace GeometryHelper.Dxf
                         dash.Absolute = key == "A";
                         break;
                     default:
-                        throw new FormatException("A text or shape is transformed by S, R, U, A, X and Y: '" + key + "' of '" + line + "' is none of them.");
+                        throw new FormatException(
+                            "A text or shape is transformed by S, R, U, A, X and Y: '"
+                                + key
+                                + "' of '"
+                                + line
+                                + "' is none of them."
+                        );
                 }
             }
         }
@@ -299,7 +324,9 @@ namespace GeometryHelper.Dxf
             char unit = value.Length > 0 ? char.ToLowerInvariant(value[value.Length - 1]) : ' ';
             bool marked = unit == 'd' || unit == 'r' || unit == 'g';
             double number = Number(marked ? value.Substring(0, value.Length - 1) : value, line);
-            return unit == 'r' ? number * 180.0 / Math.PI : unit == 'g' ? number * 0.9 : number;
+            return unit == 'r' ? number * 180.0 / Math.PI
+                : unit == 'g' ? number * 0.9
+                : number;
         }
 
         #endregion
@@ -335,7 +362,13 @@ namespace GeometryHelper.Dxf
             {
                 if (!int.TryParse(lines[at].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int code))
                 {
-                    throw new FormatException("A file of multiline styles gives a group code on line " + (at + 1).ToString(CultureInfo.InvariantCulture) + ", and '" + lines[at].Trim() + "' is not one.");
+                    throw new FormatException(
+                        "A file of multiline styles gives a group code on line "
+                            + (at + 1).ToString(CultureInfo.InvariantCulture)
+                            + ", and '"
+                            + lines[at].Trim()
+                            + "' is not one."
+                    );
                 }
 
                 string value = lines[at + 1];
@@ -375,7 +408,11 @@ namespace GeometryHelper.Dxf
         {
             int end = Array.IndexOf(bytes, (byte)0x1A, 0, Math.Min(bytes.Length, 64));
 
-            if (end < 0 || !Encoding.ASCII.GetString(bytes, 0, end).StartsWith("AutoCAD-86 shapes", StringComparison.Ordinal) || end + 7 > bytes.Length)
+            if (
+                end < 0
+                || !Encoding.ASCII.GetString(bytes, 0, end).StartsWith("AutoCAD-86 shapes", StringComparison.Ordinal)
+                || end + 7 > bytes.Length
+            )
             {
                 return null;
             }

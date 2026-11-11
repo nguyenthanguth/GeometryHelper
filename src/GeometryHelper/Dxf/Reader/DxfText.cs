@@ -41,7 +41,16 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the height or width factor is not a finite number above
         /// nought, the rotation not finite, the width not a finite number of nought or more, an MTEXT given a width factor
         /// other than 1, or a TEXT a width other than nought.</exception>
-        public DxfText(GeoPoint3 position, GeoVector3 normal, double height, double rotation, string value, bool isMultiline = false, double widthFactor = 1.0, double width = 0.0)
+        public DxfText(
+            GeoPoint3 position,
+            GeoVector3 normal,
+            double height,
+            double rotation,
+            string value,
+            bool isMultiline = false,
+            double widthFactor = 1.0,
+            double width = 0.0
+        )
         {
             if (value == null)
             {
@@ -57,31 +66,54 @@ namespace GeometryHelper.Dxf
 
             if (!(length > 0.0) || double.IsInfinity(length))
             {
-                throw new ArgumentException("The normal of a text has to be a finite vector of some length.", nameof(normal));
+                throw new ArgumentException(
+                    "The normal of a text has to be a finite vector of some length.",
+                    nameof(normal)
+                );
             }
 
             Guard.Positive(height, nameof(height), "The height of a text has to be a finite number above nought.");
             Guard.Finite(rotation, nameof(rotation), "The rotation of a text has to be a finite number.");
-            Guard.Positive(widthFactor, nameof(widthFactor), "The width factor of a text has to be a finite number above nought.");
+            Guard.Positive(
+                widthFactor,
+                nameof(widthFactor),
+                "The width factor of a text has to be a finite number above nought."
+            );
             Guard.NonNegative(width, nameof(width), "The width of a text has to be a finite number of nought or more.");
 
             if (isMultiline && widthFactor != 1.0)
             {
-                throw new ArgumentOutOfRangeException(nameof(widthFactor), widthFactor, "An MTEXT has no width factor: it is 1.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(widthFactor),
+                    widthFactor,
+                    "An MTEXT has no width factor: it is 1."
+                );
             }
 
             if (!isMultiline && width != 0.0)
             {
-                throw new ArgumentOutOfRangeException(nameof(width), width, "A TEXT does not wrap: its width is nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(width),
+                    width,
+                    "A TEXT does not wrap: its width is nought."
+                );
             }
 
             if (value.IndexOf('\r') >= 0 || (!isMultiline && value.IndexOf('\n') >= 0))
             {
-                throw new ArgumentException(isMultiline ? "The value of an MTEXT has a line feed between paragraphs, and no carriage return." : "A TEXT is one line: its value has no line feed or carriage return.", nameof(value));
+                throw new ArgumentException(
+                    isMultiline
+                        ? "The value of an MTEXT has a line feed between paragraphs, and no carriage return."
+                        : "A TEXT is one line: its value has no line feed or carriage return.",
+                    nameof(value)
+                );
             }
 
             Position = position;
-            Normal = Math.Abs(length - 1.0) <= 1E-12 ? normal : new GeoVector3(normal.X / length, normal.Y / length, normal.Z / length);
+            Normal =
+                Math.Abs(length - 1.0) <= 1E-12
+                    ? normal
+                    : new GeoVector3(normal.X / length, normal.Y / length, normal.Z / length);
             Height = height;
             Rotation = Turn(rotation);
             Value = value;
@@ -91,7 +123,16 @@ namespace GeometryHelper.Dxf
         }
 
         // A text as the reader read it, its numbers checked there; the value first, to tell it from the public one.
-        private DxfText(string value, GeoPoint3 position, GeoVector3 normal, double height, double rotation, bool isMultiline, double widthFactor, double width)
+        private DxfText(
+            string value,
+            GeoPoint3 position,
+            GeoVector3 normal,
+            double height,
+            double rotation,
+            bool isMultiline,
+            double widthFactor,
+            double width
+        )
         {
             Position = position;
             Normal = normal;
@@ -122,8 +163,16 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A text as the reader read it, its numbers checked there.</summary>
-        internal static DxfText Read(GeoPoint3 position, GeoVector3 normal, double height, double rotation, string value, bool isMultiline, double widthFactor, double width)
-            => new DxfText(value, position, normal, height, rotation, isMultiline, widthFactor, width);
+        internal static DxfText Read(
+            GeoPoint3 position,
+            GeoVector3 normal,
+            double height,
+            double rotation,
+            string value,
+            bool isMultiline,
+            double widthFactor,
+            double width
+        ) => new DxfText(value, position, normal, height, rotation, isMultiline, widthFactor, width);
 
         /// <summary>
         /// Gets where the text stands, in world coordinates: the alignment point of a TEXT, the first (group 10) where it is
@@ -186,6 +235,7 @@ namespace GeometryHelper.Dxf
         /// Gives the text as a line for debugging: its kind, its words, where it stands and its height.
         /// </summary>
         /// <returns>The text as a line, such as <c>TEXT "Grid A" at (1000, 500, 0), 2.5 high</c>.</returns>
-        public override string ToString() => $"{(IsMultiline ? "MTEXT" : "TEXT")} \"{Value}\" at {Position}, {Height:0.###} high";
+        public override string ToString() =>
+            $"{(IsMultiline ? "MTEXT" : "TEXT")} \"{Value}\" at {Position}, {Height:0.###} high";
     }
 }

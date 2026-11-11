@@ -70,7 +70,8 @@ namespace GeometryHelper.Core
         /// <param name="point">A point the parallel segment passes through, on either side.</param>
         /// <returns>The parallel segment, of the same length and running the same way.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the segment is too short to have a direction.</exception>
-        public static GeoLine2 OffsetThrough(GeoLine2 line, GeoPoint2 point) => OffsetThrough(line, point, Tolerance.Global);
+        public static GeoLine2 OffsetThrough(GeoLine2 line, GeoPoint2 point) =>
+            OffsetThrough(line, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the segment parallel to a segment that passes through a point, within tolerance.
@@ -103,7 +104,8 @@ namespace GeometryHelper.Core
         /// <param name="polygon">The polygon.</param>
         /// <param name="distance">How far the boundary moves: outward when positive, inward when negative.</param>
         /// <returns>The boundary loops of the offset region; see <see cref="Offset(GeoPolygon2, double, OffsetOptions, Tolerance)"/>.</returns>
-        public static GeoPolygon2[] Offset(GeoPolygon2 polygon, double distance) => Offset(polygon, distance, OffsetOptions.Default, Tolerance.Global);
+        public static GeoPolygon2[] Offset(GeoPolygon2 polygon, double distance) =>
+            Offset(polygon, distance, OffsetOptions.Default, Tolerance.Global);
 
         /// <summary>
         /// Grows a polygon by a distance, or shrinks it when the distance is negative, with sharp corners,
@@ -113,7 +115,8 @@ namespace GeometryHelper.Core
         /// <param name="distance">How far the boundary moves: outward when positive, inward when negative.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The boundary loops of the offset region; see <see cref="Offset(GeoPolygon2, double, OffsetOptions, Tolerance)"/>.</returns>
-        public static GeoPolygon2[] Offset(GeoPolygon2 polygon, double distance, Tolerance tolerance) => Offset(polygon, distance, OffsetOptions.Default, tolerance);
+        public static GeoPolygon2[] Offset(GeoPolygon2 polygon, double distance, Tolerance tolerance) =>
+            Offset(polygon, distance, OffsetOptions.Default, tolerance);
 
         /// <summary>
         /// Grows a polygon by a distance, or shrinks it when the distance is negative, with the given corners,
@@ -123,7 +126,8 @@ namespace GeometryHelper.Core
         /// <param name="distance">How far the boundary moves: outward when positive, inward when negative.</param>
         /// <param name="join">How the corners that open up are closed.</param>
         /// <returns>The boundary loops of the offset region; see <see cref="Offset(GeoPolygon2, double, OffsetOptions, Tolerance)"/>.</returns>
-        public static GeoPolygon2[] Offset(GeoPolygon2 polygon, double distance, OffsetJoin join) => Offset(polygon, distance, new OffsetOptions(join), Tolerance.Global);
+        public static GeoPolygon2[] Offset(GeoPolygon2 polygon, double distance, OffsetJoin join) =>
+            Offset(polygon, distance, new OffsetOptions(join), Tolerance.Global);
 
         /// <summary>
         /// Grows a polygon by a distance, or shrinks it when the distance is negative, with the given corners,
@@ -134,7 +138,12 @@ namespace GeometryHelper.Core
         /// <param name="join">How the corners that open up are closed.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The boundary loops of the offset region; see <see cref="Offset(GeoPolygon2, double, OffsetOptions, Tolerance)"/>.</returns>
-        public static GeoPolygon2[] Offset(GeoPolygon2 polygon, double distance, OffsetJoin join, Tolerance tolerance) => Offset(polygon, distance, new OffsetOptions(join), tolerance);
+        public static GeoPolygon2[] Offset(
+            GeoPolygon2 polygon,
+            double distance,
+            OffsetJoin join,
+            Tolerance tolerance
+        ) => Offset(polygon, distance, new OffsetOptions(join), tolerance);
 
         /// <summary>
         /// Grows a polygon by a distance, or shrinks it when the distance is negative, as the options say,
@@ -144,7 +153,8 @@ namespace GeometryHelper.Core
         /// <param name="distance">How far the boundary moves: outward when positive, inward when negative.</param>
         /// <param name="options">The corner shape.</param>
         /// <returns>The boundary loops of the offset region; see <see cref="Offset(GeoPolygon2, double, OffsetOptions, Tolerance)"/>.</returns>
-        public static GeoPolygon2[] Offset(GeoPolygon2 polygon, double distance, OffsetOptions options) => Offset(polygon, distance, options, Tolerance.Global);
+        public static GeoPolygon2[] Offset(GeoPolygon2 polygon, double distance, OffsetOptions options) =>
+            Offset(polygon, distance, options, Tolerance.Global);
 
         /// <summary>
         /// Grows a polygon by a distance, or shrinks it when the distance is negative, as the options say,
@@ -169,10 +179,17 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon or the options are null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
-        public static GeoPolygon2[] Offset(GeoPolygon2 polygon, double distance, OffsetOptions options, Tolerance tolerance)
+        public static GeoPolygon2[] Offset(
+            GeoPolygon2 polygon,
+            double distance,
+            OffsetOptions options,
+            Tolerance tolerance
+        )
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
+            if (options == null)
+                throw new ArgumentNullException(nameof(options));
             RequireFinite(distance, nameof(distance));
 
             if (Math.Abs(distance) <= tolerance.EqualPoint)
@@ -209,31 +226,36 @@ namespace GeometryHelper.Core
         /// Grows a face by a distance, or shrinks it when the distance is negative, with sharp corners, using
         /// the default tolerance.
         /// </summary>
-        public static GeoFace2[] Offset(GeoFace2 face, double distance) => Offset(face, distance, OffsetOptions.Default, Tolerance.Global);
+        public static GeoFace2[] Offset(GeoFace2 face, double distance) =>
+            Offset(face, distance, OffsetOptions.Default, Tolerance.Global);
 
         /// <summary>
         /// Grows a face by a distance, or shrinks it when the distance is negative, with sharp corners, within
         /// tolerance.
         /// </summary>
-        public static GeoFace2[] Offset(GeoFace2 face, double distance, Tolerance tolerance) => Offset(face, distance, OffsetOptions.Default, tolerance);
+        public static GeoFace2[] Offset(GeoFace2 face, double distance, Tolerance tolerance) =>
+            Offset(face, distance, OffsetOptions.Default, tolerance);
 
         /// <summary>
         /// Grows a face by a distance, or shrinks it when the distance is negative, with the given corners,
         /// using the default tolerance.
         /// </summary>
-        public static GeoFace2[] Offset(GeoFace2 face, double distance, OffsetJoin join) => Offset(face, distance, new OffsetOptions(join), Tolerance.Global);
+        public static GeoFace2[] Offset(GeoFace2 face, double distance, OffsetJoin join) =>
+            Offset(face, distance, new OffsetOptions(join), Tolerance.Global);
 
         /// <summary>
         /// Grows a face by a distance, or shrinks it when the distance is negative, with the given corners,
         /// within tolerance.
         /// </summary>
-        public static GeoFace2[] Offset(GeoFace2 face, double distance, OffsetJoin join, Tolerance tolerance) => Offset(face, distance, new OffsetOptions(join), tolerance);
+        public static GeoFace2[] Offset(GeoFace2 face, double distance, OffsetJoin join, Tolerance tolerance) =>
+            Offset(face, distance, new OffsetOptions(join), tolerance);
 
         /// <summary>
         /// Grows a face by a distance, or shrinks it when the distance is negative, as the options say, using
         /// the default tolerance.
         /// </summary>
-        public static GeoFace2[] Offset(GeoFace2 face, double distance, OffsetOptions options) => Offset(face, distance, options, Tolerance.Global);
+        public static GeoFace2[] Offset(GeoFace2 face, double distance, OffsetOptions options) =>
+            Offset(face, distance, options, Tolerance.Global);
 
         /// <summary>
         /// Grows a face by a distance, or shrinks it when the distance is negative, as the options say, within
@@ -256,8 +278,10 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
         public static GeoFace2[] Offset(GeoFace2 face, double distance, OffsetOptions options, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
+            if (options == null)
+                throw new ArgumentNullException(nameof(options));
             RequireFinite(distance, nameof(distance));
 
             if (Math.Abs(distance) <= tolerance.EqualPoint)
@@ -277,7 +301,12 @@ namespace GeometryHelper.Core
 
             // The material: inside the boundary and outside every hole, resolved into clean loops first, so
             // that holes overlapping each other or the boundary are offset as the outline they actually leave.
-            List<LoopGroup> material = ClipperRegion.Resolve(ClipperRegion.RegionOf(face, origin, precision, tolerance), Clipper.FillRule.Positive, precision, tolerance);
+            List<LoopGroup> material = ClipperRegion.Resolve(
+                ClipperRegion.RegionOf(face, origin, precision, tolerance),
+                Clipper.FillRule.Positive,
+                precision,
+                tolerance
+            );
             List<LoopGroup> groups = OffsetRegion(ClipperRegion.Flatten(material), distance, options, tolerance);
 
             return ClipperRegion.ToFaces(groups, origin, face.Boundary.SignedArea < 0.0);
@@ -291,31 +320,40 @@ namespace GeometryHelper.Core
         /// Gets the curve parallel to a polyline at a distance to its left, with sharp corners, using the
         /// default tolerance. A negative distance goes to the right.
         /// </summary>
-        public static GeoPolyline2[] Offset(GeoPolyline2 polyline, double distance) => Offset(polyline, distance, OffsetOptions.Default, Tolerance.Global);
+        public static GeoPolyline2[] Offset(GeoPolyline2 polyline, double distance) =>
+            Offset(polyline, distance, OffsetOptions.Default, Tolerance.Global);
 
         /// <summary>
         /// Gets the curve parallel to a polyline at a distance to its left, with sharp corners, within
         /// tolerance. A negative distance goes to the right.
         /// </summary>
-        public static GeoPolyline2[] Offset(GeoPolyline2 polyline, double distance, Tolerance tolerance) => Offset(polyline, distance, OffsetOptions.Default, tolerance);
+        public static GeoPolyline2[] Offset(GeoPolyline2 polyline, double distance, Tolerance tolerance) =>
+            Offset(polyline, distance, OffsetOptions.Default, tolerance);
 
         /// <summary>
         /// Gets the curve parallel to a polyline at a distance to its left, with the given corners, using the
         /// default tolerance. A negative distance goes to the right.
         /// </summary>
-        public static GeoPolyline2[] Offset(GeoPolyline2 polyline, double distance, OffsetJoin join) => Offset(polyline, distance, new OffsetOptions(join), Tolerance.Global);
+        public static GeoPolyline2[] Offset(GeoPolyline2 polyline, double distance, OffsetJoin join) =>
+            Offset(polyline, distance, new OffsetOptions(join), Tolerance.Global);
 
         /// <summary>
         /// Gets the curve parallel to a polyline at a distance to its left, with the given corners, within
         /// tolerance. A negative distance goes to the right.
         /// </summary>
-        public static GeoPolyline2[] Offset(GeoPolyline2 polyline, double distance, OffsetJoin join, Tolerance tolerance) => Offset(polyline, distance, new OffsetOptions(join), tolerance);
+        public static GeoPolyline2[] Offset(
+            GeoPolyline2 polyline,
+            double distance,
+            OffsetJoin join,
+            Tolerance tolerance
+        ) => Offset(polyline, distance, new OffsetOptions(join), tolerance);
 
         /// <summary>
         /// Gets the curve parallel to a polyline at a distance to its left, as the options say, using the
         /// default tolerance. A negative distance goes to the right.
         /// </summary>
-        public static GeoPolyline2[] Offset(GeoPolyline2 polyline, double distance, OffsetOptions options) => Offset(polyline, distance, options, Tolerance.Global);
+        public static GeoPolyline2[] Offset(GeoPolyline2 polyline, double distance, OffsetOptions options) =>
+            Offset(polyline, distance, options, Tolerance.Global);
 
         /// <summary>
         /// Gets the curve parallel to a polyline at a distance to its left, as the options say, within
@@ -344,10 +382,17 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polyline or the options are null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
-        public static GeoPolyline2[] Offset(GeoPolyline2 polyline, double distance, OffsetOptions options, Tolerance tolerance)
+        public static GeoPolyline2[] Offset(
+            GeoPolyline2 polyline,
+            double distance,
+            OffsetOptions options,
+            Tolerance tolerance
+        )
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
+            if (options == null)
+                throw new ArgumentNullException(nameof(options));
             RequireFinite(distance, nameof(distance));
 
             if (Math.Abs(distance) <= tolerance.EqualPoint)
@@ -393,7 +438,8 @@ namespace GeometryHelper.Core
         /// <param name="distance">How far the circumference moves: outward when positive.</param>
         /// <param name="result">The concentric circle, or the circle unchanged when the method returns false.</param>
         /// <returns>true if a circle is left; false if it shrinks to nothing.</returns>
-        public static bool TryOffset(GeoCircle2 circle, double distance, out GeoCircle2 result) => TryOffset(circle, distance, out result, Tolerance.Global);
+        public static bool TryOffset(GeoCircle2 circle, double distance, out GeoCircle2 result) =>
+            TryOffset(circle, distance, out result, Tolerance.Global);
 
         /// <summary>
         /// Grows a circle by a distance, or shrinks it when the distance is negative, within tolerance.
@@ -427,7 +473,8 @@ namespace GeometryHelper.Core
         /// <param name="distance">How far each side moves: outward when positive.</param>
         /// <param name="result">The rectangle with the same center and angle, or the rectangle unchanged when the method returns false.</param>
         /// <returns>true if a rectangle is left; false if it shrinks to nothing.</returns>
-        public static bool TryOffset(GeoRectangle2 rectangle, double distance, out GeoRectangle2 result) => TryOffset(rectangle, distance, out result, Tolerance.Global);
+        public static bool TryOffset(GeoRectangle2 rectangle, double distance, out GeoRectangle2 result) =>
+            TryOffset(rectangle, distance, out result, Tolerance.Global);
 
         /// <summary>
         /// Grows a rectangle by a distance, or shrinks it when the distance is negative, keeping its corners
@@ -440,7 +487,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance deciding when a side is too short to keep.</param>
         /// <returns>true if a rectangle is left; false if it shrinks to nothing.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
-        public static bool TryOffset(GeoRectangle2 rectangle, double distance, out GeoRectangle2 result, Tolerance tolerance)
+        public static bool TryOffset(
+            GeoRectangle2 rectangle,
+            double distance,
+            out GeoRectangle2 result,
+            Tolerance tolerance
+        )
         {
             RequireFinite(distance, nameof(distance));
             result = rectangle;
@@ -464,7 +516,12 @@ namespace GeometryHelper.Core
         /// Offsets a region given by clean loops with the region on their left, and groups the result: the
         /// corners are drawn here, and Clipper2 resolves the raw loops under the positive rule.
         /// </summary>
-        private static List<LoopGroup> OffsetRegion(List<List<GeoPoint2>> region, double distance, OffsetOptions options, Tolerance tolerance)
+        private static List<LoopGroup> OffsetRegion(
+            List<List<GeoPoint2>> region,
+            double distance,
+            OffsetOptions options,
+            Tolerance tolerance
+        )
         {
             if (region.Count == 0)
             {
@@ -488,7 +545,12 @@ namespace GeometryHelper.Core
         /// Offsets an open chain to the left by a distance (to the right when negative) and returns the pieces
         /// of the parallel curve that survive, running the same way as the chain.
         /// </summary>
-        private static List<List<GeoPoint2>> OffsetChain(List<GeoPoint2> chain, double distance, OffsetOptions options, Tolerance tolerance)
+        private static List<List<GeoPoint2>> OffsetChain(
+            List<GeoPoint2> chain,
+            double distance,
+            OffsetOptions options,
+            Tolerance tolerance
+        )
         {
             bool toLeft = distance > 0.0;
             double width = Math.Abs(distance);
@@ -503,7 +565,13 @@ namespace GeometryHelper.Core
             CornerStyle style = new CornerStyle(options.Join, options.MiterLimit, options.GetArcTolerance(width));
 
             // The shared builder offsets to the right for a positive distance, so the left takes a negative one.
-            List<GeoPoint2> raw = OffsetOutline.BuildOpenChain(path, -width, style, out List<bool> throughCorner, out List<(GeoPoint2 From, GeoPoint2 To)> pastTheOtherLeg);
+            List<GeoPoint2> raw = OffsetOutline.BuildOpenChain(
+                path,
+                -width,
+                style,
+                out List<bool> throughCorner,
+                out List<(GeoPoint2 From, GeoPoint2 To)> pastTheOtherLeg
+            );
 
             // The band the chain sweeps to its left, as one loop with the band on its left: along the chain, out
             // along the end, back along the raw offset, and in along the start.
@@ -535,7 +603,13 @@ namespace GeometryHelper.Core
 
             ChainRuns runs = new ChainRuns(path, pastTheOtherLeg, extent, match, tolerance.EqualPoint);
 
-            foreach (List<GeoPoint2> loop in ClipperRegion.ResolveOutline(new[] { band }, Clipper.FillRule.Positive, precision))
+            foreach (
+                List<GeoPoint2> loop in ClipperRegion.ResolveOutline(
+                    new[] { band },
+                    Clipper.FillRule.Positive,
+                    precision
+                )
+            )
             {
                 bool[] alongRaw = new bool[loop.Count];
 

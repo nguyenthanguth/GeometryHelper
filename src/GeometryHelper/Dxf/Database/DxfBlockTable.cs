@@ -146,7 +146,11 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Takes a block last in the order of the table into the blocks by name, where none before it has its name; its name among those of more than one where one has.</summary>
-        private static void Index(Dictionary<string, DxfBlockTableRecord> named, HashSet<string> twice, DxfBlockTableRecord record)
+        private static void Index(
+            Dictionary<string, DxfBlockTableRecord> named,
+            HashSet<string> twice,
+            DxfBlockTableRecord record
+        )
         {
             string name = record.Name;
 
@@ -164,7 +168,10 @@ namespace GeometryHelper.Dxf
         {
             if (!(record is DxfBlockTableRecord block))
             {
-                throw new ArgumentException("The block table takes a DxfBlockTableRecord, and was given a " + record.GetType().Name + ".", "value");
+                throw new ArgumentException(
+                    "The block table takes a DxfBlockTableRecord, and was given a " + record.GetType().Name + ".",
+                    "value"
+                );
             }
 
             List<DxfBlockTableRecord> records = Read();
@@ -197,8 +204,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether a name is <c>*U</c>, <c>*D</c> or <c>*T</c>, letters of either case, which AutoCAD takes for an anonymous block it names itself.</summary>
-        private protected override bool IsAnonymousName(string name)
-            => name != null && name.Length == 2 && name[0] == '*' && "UuDdTt".IndexOf(name[1]) >= 0;
+        private protected override bool IsAnonymousName(string name) =>
+            name != null && name.Length == 2 && name[0] == '*' && "UuDdTt".IndexOf(name[1]) >= 0;
 
         /// <summary>Reads the table as the drawing is opened, so that model space and paper space stand for their records from the first.</summary>
         internal void Load() => Read();
@@ -229,7 +236,14 @@ namespace GeometryHelper.Dxf
 
             // A block that alone had its name goes out of the blocks by name, as they would be made again without it; where
             // another has its name too, they are made again when next looked up.
-            if (named != null && twice != null && name != null && !twice.Contains(name) && named.TryGetValue(name, out DxfBlockTableRecord first) && ReferenceEquals(first, block))
+            if (
+                named != null
+                && twice != null
+                && name != null
+                && !twice.Contains(name)
+                && named.TryGetValue(name, out DxfBlockTableRecord first)
+                && ReferenceEquals(first, block)
+            )
             {
                 named.Remove(name);
             }
@@ -319,7 +333,13 @@ namespace GeometryHelper.Dxf
             return records;
         }
 
-        private DxfBlockTableRecord Record(DxfItem item, DxfFileBlock block, string name, ref bool model, ref bool paper)
+        private DxfBlockTableRecord Record(
+            DxfItem item,
+            DxfFileBlock block,
+            string name,
+            ref bool model,
+            ref bool paper
+        )
         {
             if (!model && DxfBlockTableRecord.IsModelName(name))
             {
@@ -365,10 +385,14 @@ namespace GeometryHelper.Dxf
         public const string PaperSpace = "*Paper_Space";
 
         // The groups of AcDbBlockBegin in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> BlockOrder = Array.AsReadOnly(new[] { 100, 2, 70, 10, 20, 30, 3, 1, 4 });
+        private static readonly IReadOnlyList<int> BlockOrder = Array.AsReadOnly(
+            new[] { 100, 2, 70, 10, 20, 30, 3, 1, 4 }
+        );
 
         // The groups of AcDbBlockTableRecord in the order AutoCAD writes them, after AcDbSymbolTableRecord.
-        private static readonly IReadOnlyList<int> RecordOrder = Array.AsReadOnly(new[] { 100, 100, 2, 340, 70, 280, 281, 310 });
+        private static readonly IReadOnlyList<int> RecordOrder = Array.AsReadOnly(
+            new[] { 100, 100, 2, 340, 70, 280, 281, 310 }
+        );
 
         // The sections and groups that name a block: INSERTs, dimensions and tables (2), its BLOCK (2 and 3), its
         // BLOCK_RECORD (2), and the arrows of a dimension style of R12 (5, 6 and 7).
@@ -391,9 +415,7 @@ namespace GeometryHelper.Dxf
         /// Initializes a block made in code, to be added to a <see cref="DxfBlockTable"/> with its
         /// <see cref="DxfSymbolTableRecord.Name"/> and <see cref="Origin"/> given.
         /// </summary>
-        public DxfBlockTableRecord()
-        {
-        }
+        public DxfBlockTableRecord() { }
 
         /// <summary>A block of a file: its BLOCK_RECORD where the file has one, and its block of the BLOCKS section.</summary>
         internal DxfBlockTableRecord(DxfFile file, DxfItem record, DxfFileBlock block)
@@ -472,7 +494,6 @@ namespace GeometryHelper.Dxf
 
                 return _block != null ? _block.Name : base.Name;
             }
-
             set
             {
                 if (_file == null)
@@ -501,8 +522,10 @@ namespace GeometryHelper.Dxf
         /// them, on a block of a file older than R2000 (AC1015), which has no descriptions, or on one erased.</exception>
         public string Comments
         {
-            get => _file == null ? _comments : _block?.Head == null ? string.Empty : _file.ValueOf(_block.Head, 4) ?? string.Empty;
-
+            get =>
+                _file == null ? _comments
+                : _block?.Head == null ? string.Empty
+                : _file.ValueOf(_block.Head, 4) ?? string.Empty;
             set
             {
                 if (value == null)
@@ -526,9 +549,17 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                DxfItem head = _block?.Head ?? throw new InvalidOperationException("The " + Name + " of this file has no BLOCK to hold a description.");
+                DxfItem head = _block?.Head
+                    ?? throw new InvalidOperationException(
+                        "The " + Name + " of this file has no BLOCK to hold a description."
+                    );
                 _file.Requires(1015, "descriptions of blocks", "R2000 (AC1015)");
-                _file.SetValues(head, new[] { new KeyValuePair<int, string>(4, value.Length == 0 ? null : value) }, BlockOrder, false);
+                _file.SetValues(
+                    head,
+                    new[] { new KeyValuePair<int, string>(4, value.Length == 0 ? null : value) },
+                    BlockOrder,
+                    false
+                );
             }
         }
 
@@ -552,7 +583,6 @@ namespace GeometryHelper.Dxf
                 int units = RecordWhole(70, 0);
                 return units >= 0 && units <= 24 ? (DxfUnits)units : DxfUnits.Undefined;
             }
-
             set
             {
                 if ((int)value < 0 || (int)value > 24)
@@ -583,7 +613,6 @@ namespace GeometryHelper.Dxf
         public bool Explodable
         {
             get => _file == null ? _explodable : RecordWhole(280, 1) != 0;
-
             set
             {
                 if (value == Explodable)
@@ -609,8 +638,10 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when set on a block of a file older than R2007 (AC1021), or on one erased.</exception>
         public DxfBlockScaling BlockScaling
         {
-            get => _file == null ? _scaling : RecordWhole(281, 0) == 1 ? DxfBlockScaling.Uniform : DxfBlockScaling.Any;
-
+            get =>
+                _file == null ? _scaling
+                : RecordWhole(281, 0) == 1 ? DxfBlockScaling.Uniform
+                : DxfBlockScaling.Any;
             set
             {
                 if (value != DxfBlockScaling.Any && value != DxfBlockScaling.Uniform)
@@ -667,7 +698,6 @@ namespace GeometryHelper.Dxf
 
                 return any ? bytes.ToArray() : null;
             }
-
             set
             {
                 byte[] now = PreviewIcon;
@@ -679,14 +709,18 @@ namespace GeometryHelper.Dxf
 
                 if (_file == null)
                 {
-                    throw new InvalidOperationException("A block made in code is given its preview once it is added to a file.");
+                    throw new InvalidOperationException(
+                        "A block made in code is given its preview once it is added to a file."
+                    );
                 }
 
                 _file.Requires(1015, "previews of blocks", "R2000 (AC1015)");
 
                 if (Item == null || Item.Type != "BLOCK_RECORD")
                 {
-                    throw new InvalidOperationException("The block " + Name + " has no BLOCK_RECORD to hold a preview.");
+                    throw new InvalidOperationException(
+                        "The block " + Name + " has no BLOCK_RECORD to hold a preview."
+                    );
                 }
 
                 var groups = new List<KeyValuePair<int, string>>();
@@ -716,7 +750,10 @@ namespace GeometryHelper.Dxf
         /// Whether the block keeps what a dynamic block is written with, its extended data <c>AcDbDynamicBlockGUID</c> or its
         /// evaluation graph: a copy brings that with it, whether or not it makes the block dynamic, as a copy keeps any data.
         /// </summary>
-        internal bool KeepsDynamicData => Item != null && Item.Type == "BLOCK_RECORD" && (GetXDataForApplication("AcDbDynamicBlockGUID") != null || HasEvaluationGraph);
+        internal bool KeepsDynamicData =>
+            Item != null
+            && Item.Type == "BLOCK_RECORD"
+            && (GetXDataForApplication("AcDbDynamicBlockGUID") != null || HasEvaluationGraph);
 
         /// <summary>
         /// Gets the hyperlinks of the block, as AutoCAD's <c>Hyperlinks</c>: those of the extended data of the application
@@ -881,7 +918,14 @@ namespace GeometryHelper.Dxf
         /// (AC1024), the oldest AutoCAD was seen to read such a block of.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a flip parameter, which is written alone in its
         /// block (<see cref="AddFlipParameter"/>). Nothing is written then.</exception>
-        public DxfBlockLinearParameter AddLinearParameter(string name, string description, GeoPoint3 basePoint, GeoPoint3 endPoint, double labelOffset, DxfBlockParameterValueSet valueSet)
+        public DxfBlockLinearParameter AddLinearParameter(
+            string name,
+            string description,
+            GeoPoint3 basePoint,
+            GeoPoint3 endPoint,
+            double labelOffset,
+            DxfBlockParameterValueSet valueSet
+        )
         {
             if (name == null)
             {
@@ -902,7 +946,10 @@ namespace GeometryHelper.Dxf
 
             if (name.Trim().Length == 0 || name.IndexOfAny(LineBreaks) >= 0)
             {
-                throw new ArgumentException("A parameter is labelled by a name of one line at least one letter long.", nameof(name));
+                throw new ArgumentException(
+                    "A parameter is labelled by a name of one line at least one letter long.",
+                    nameof(name)
+                );
             }
 
             if (description.IndexOfAny(LineBreaks) >= 0)
@@ -915,18 +962,35 @@ namespace GeometryHelper.Dxf
 
             if (!(distance > Tolerance.Default.EqualPoint))
             {
-                throw new ArgumentException("The end point of a linear parameter is apart from its base point, beyond the point tolerance.", nameof(endPoint));
+                throw new ArgumentException(
+                    "The end point of a linear parameter is apart from its base point, beyond the point tolerance.",
+                    nameof(endPoint)
+                );
             }
 
             if (valueSet != null && !valueSet.Holds(distance))
             {
-                throw new ArgumentException("The value set " + (valueSet.IsList ? "lists" : "steps through") + " no distance of "
-                    + distance.ToString("R", CultureInfo.InvariantCulture) + ", the block's own between the base point and the end point.", nameof(valueSet));
+                throw new ArgumentException(
+                    "The value set "
+                        + (valueSet.IsList ? "lists" : "steps through")
+                        + " no distance of "
+                        + distance.ToString("R", CultureInfo.InvariantCulture)
+                        + ", the block's own between the base point and the end point.",
+                    nameof(valueSet)
+                );
             }
 
             Dynamic("be given a parameter");
             Alone(false);
-            return DxfDynamicBlockWriter.AddLinear(this, name.Trim(), description, basePoint, endPoint, labelOffset, valueSet);
+            return DxfDynamicBlockWriter.AddLinear(
+                this,
+                name.Trim(),
+                description,
+                basePoint,
+                endPoint,
+                labelOffset,
+                valueSet
+            );
         }
 
         /// <summary>
@@ -981,8 +1045,12 @@ namespace GeometryHelper.Dxf
         /// array action or turned by a polar stretch, or turned or scaled by a rotate or a scale action: AutoCAD 2021 worked a flip with a stretch out from
         /// each INSERT's last state and did not flip an INSERT of such a block itself (plugins v20 and v20b), and stretched a
         /// line it turned or scaled from where its last set left it (plugin v21, 24e-g). Nothing is written then.</exception>
-        public void AddStretchAction(DxfBlockLinearParameter parameter, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities)
-            => AddStretchAction(parameter, frameCorner, oppositeCorner, entities, 1.0, 0.0);
+        public void AddStretchAction(
+            DxfBlockLinearParameter parameter,
+            GeoPoint2 frameCorner,
+            GeoPoint2 oppositeCorner,
+            IEnumerable<DxfEntity> entities
+        ) => AddStretchAction(parameter, frameCorner, oppositeCorner, entities, 1.0, 0.0);
 
         /// <summary>
         /// Gives the block a stretch action tied to a linear parameter of it, as
@@ -1015,14 +1083,30 @@ namespace GeometryHelper.Dxf
         /// <exception cref="NotSupportedException">Thrown as
         /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> says. Nothing is
         /// written then.</exception>
-        public void AddStretchAction(DxfBlockLinearParameter parameter, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities, double distanceMultiplier, double angleOffset)
+        public void AddStretchAction(
+            DxfBlockLinearParameter parameter,
+            GeoPoint2 frameCorner,
+            GeoPoint2 oppositeCorner,
+            IEnumerable<DxfEntity> entities,
+            double distanceMultiplier,
+            double angleOffset
+        )
         {
             if (parameter == null)
             {
                 throw new ArgumentNullException(nameof(parameter));
             }
 
-            Stretch(parameter.Block, parameter.Node, parameter.Name, frameCorner, oppositeCorner, entities, distanceMultiplier, angleOffset);
+            Stretch(
+                parameter.Block,
+                parameter.Node,
+                parameter.Name,
+                frameCorner,
+                oppositeCorner,
+                entities,
+                distanceMultiplier,
+                angleOffset
+            );
         }
 
         /// <summary>
@@ -1049,8 +1133,12 @@ namespace GeometryHelper.Dxf
         /// <exception cref="NotSupportedException">Thrown as
         /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> says. Nothing is
         /// written then.</exception>
-        public void AddStretchAction(DxfBlockXYParameter parameter, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities)
-            => AddStretchAction(parameter, frameCorner, oppositeCorner, entities, 1.0, 0.0);
+        public void AddStretchAction(
+            DxfBlockXYParameter parameter,
+            GeoPoint2 frameCorner,
+            GeoPoint2 oppositeCorner,
+            IEnumerable<DxfEntity> entities
+        ) => AddStretchAction(parameter, frameCorner, oppositeCorner, entities, 1.0, 0.0);
 
         /// <summary>
         /// Gives the block a stretch action tied to an XY parameter of it, as
@@ -1077,14 +1165,30 @@ namespace GeometryHelper.Dxf
         /// <exception cref="NotSupportedException">Thrown as
         /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> says. Nothing is
         /// written then.</exception>
-        public void AddStretchAction(DxfBlockXYParameter parameter, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities, double distanceMultiplier, double angleOffset)
+        public void AddStretchAction(
+            DxfBlockXYParameter parameter,
+            GeoPoint2 frameCorner,
+            GeoPoint2 oppositeCorner,
+            IEnumerable<DxfEntity> entities,
+            double distanceMultiplier,
+            double angleOffset
+        )
         {
             if (parameter == null)
             {
                 throw new ArgumentNullException(nameof(parameter));
             }
 
-            Stretch(parameter.Block, parameter.Node, parameter.XName, frameCorner, oppositeCorner, entities, distanceMultiplier, angleOffset);
+            Stretch(
+                parameter.Block,
+                parameter.Node,
+                parameter.XName,
+                frameCorner,
+                oppositeCorner,
+                entities,
+                distanceMultiplier,
+                angleOffset
+            );
         }
 
         /// <summary>
@@ -1112,8 +1216,12 @@ namespace GeometryHelper.Dxf
         /// <exception cref="NotSupportedException">Thrown as
         /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> says. Nothing is
         /// written then.</exception>
-        public void AddStretchAction(DxfBlockPolarParameter parameter, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities)
-            => AddStretchAction(parameter, frameCorner, oppositeCorner, entities, 1.0, 0.0);
+        public void AddStretchAction(
+            DxfBlockPolarParameter parameter,
+            GeoPoint2 frameCorner,
+            GeoPoint2 oppositeCorner,
+            IEnumerable<DxfEntity> entities
+        ) => AddStretchAction(parameter, frameCorner, oppositeCorner, entities, 1.0, 0.0);
 
         /// <summary>
         /// Gives the block a stretch action tied to a polar parameter of it, as
@@ -1141,18 +1249,43 @@ namespace GeometryHelper.Dxf
         /// <exception cref="NotSupportedException">Thrown as
         /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> says. Nothing is
         /// written then.</exception>
-        public void AddStretchAction(DxfBlockPolarParameter parameter, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities, double distanceMultiplier, double angleOffset)
+        public void AddStretchAction(
+            DxfBlockPolarParameter parameter,
+            GeoPoint2 frameCorner,
+            GeoPoint2 oppositeCorner,
+            IEnumerable<DxfEntity> entities,
+            double distanceMultiplier,
+            double angleOffset
+        )
         {
             if (parameter == null)
             {
                 throw new ArgumentNullException(nameof(parameter));
             }
 
-            Stretch(parameter.Block, parameter.Node, parameter.DistanceName, frameCorner, oppositeCorner, entities, distanceMultiplier, angleOffset);
+            Stretch(
+                parameter.Block,
+                parameter.Node,
+                parameter.DistanceName,
+                frameCorner,
+                oppositeCorner,
+                entities,
+                distanceMultiplier,
+                angleOffset
+            );
         }
 
         /// <summary>Writes a stretch action of a parameter of a block, by its node, once the frame and the entities are checked.</summary>
-        private void Stretch(DxfBlockTableRecord block, int node, string name, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities, double multiplier, double angle)
+        private void Stretch(
+            DxfBlockTableRecord block,
+            int node,
+            string name,
+            GeoPoint2 frameCorner,
+            GeoPoint2 oppositeCorner,
+            IEnumerable<DxfEntity> entities,
+            double multiplier,
+            double angle
+        )
         {
             if (frameCorner == null)
             {
@@ -1172,12 +1305,21 @@ namespace GeometryHelper.Dxf
             Own(block, name);
             Factors(multiplier, angle);
             double slack = Tolerance.Default.EqualPoint;
-            var low = new GeoPoint2(Math.Min(frameCorner.X, oppositeCorner.X), Math.Min(frameCorner.Y, oppositeCorner.Y));
-            var high = new GeoPoint2(Math.Max(frameCorner.X, oppositeCorner.X), Math.Max(frameCorner.Y, oppositeCorner.Y));
+            var low = new GeoPoint2(
+                Math.Min(frameCorner.X, oppositeCorner.X),
+                Math.Min(frameCorner.Y, oppositeCorner.Y)
+            );
+            var high = new GeoPoint2(
+                Math.Max(frameCorner.X, oppositeCorner.X),
+                Math.Max(frameCorner.Y, oppositeCorner.Y)
+            );
 
             if (!(high.X - low.X > slack) || !(high.Y - low.Y > slack))
             {
-                throw new ArgumentException("A stretch frame is wider and higher than the point tolerance.", nameof(oppositeCorner));
+                throw new ArgumentException(
+                    "A stretch frame is wider and higher than the point tolerance.",
+                    nameof(oppositeCorner)
+                );
             }
 
             Dynamic("be given an action");
@@ -1191,19 +1333,42 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentNullException(nameof(entities), "An entity to stretch is null.");
                 }
 
-                if (entity.IsErased || entity.Handle == null || !string.Equals(entity.OwnerHandle, Handle, StringComparison.OrdinalIgnoreCase))
+                if (
+                    entity.IsErased
+                    || entity.Handle == null
+                    || !string.Equals(entity.OwnerHandle, Handle, StringComparison.OrdinalIgnoreCase)
+                )
                 {
-                    throw new ArgumentException("The entity " + (entity.Handle ?? string.Empty) + " to stretch is not of the block " + Name + ", or is erased.", nameof(entities));
+                    throw new ArgumentException(
+                        "The entity "
+                            + (entity.Handle ?? string.Empty)
+                            + " to stretch is not of the block "
+                            + Name
+                            + ", or is erased.",
+                        nameof(entities)
+                    );
                 }
 
                 List<GeoPoint3> points = StretchPoints(entity, true)
-                    ?? throw new ArgumentException("A stretch action takes lines, polylines, arcs, circles, texts and attribute definitions held by one point, multiline texts and INSERTs; the entity " + entity.Handle + " is a " + entity.GetType().Name + " of none of those.", nameof(entities));
+                    ?? throw new ArgumentException(
+                        "A stretch action takes lines, polylines, arcs, circles, texts and attribute definitions held by one point, multiline texts and INSERTs; the entity "
+                            + entity.Handle
+                            + " is a "
+                            + entity.GetType().Name
+                            + " of none of those.",
+                        nameof(entities)
+                    );
                 Locked(entity, "stretch");
                 var inside = new List<int>();
 
                 for (int i = 0; i < points.Count; i++)
                 {
-                    if (points[i].X >= low.X - slack && points[i].X <= high.X + slack && points[i].Y >= low.Y - slack && points[i].Y <= high.Y + slack)
+                    if (
+                        points[i].X >= low.X - slack
+                        && points[i].X <= high.X + slack
+                        && points[i].Y >= low.Y - slack
+                        && points[i].Y <= high.Y + slack
+                    )
                     {
                         inside.Add(i);
                     }
@@ -1211,12 +1376,22 @@ namespace GeometryHelper.Dxf
 
                 if (inside.Count == 0)
                 {
-                    throw new ArgumentException("The entity " + entity.Handle + " has no point in the stretch frame, so nothing of it would move.", nameof(entities));
+                    throw new ArgumentException(
+                        "The entity "
+                            + entity.Handle
+                            + " has no point in the stretch frame, so nothing of it would move.",
+                        nameof(entities)
+                    );
                 }
 
                 if (entity is DxfArc arc && inside.Count < points.Count && !Flat(arc.Normal))
                 {
-                    throw new ArgumentException("The arc " + entity.Handle + " has one end only in the stretch frame and does not lie flat in the block: an arc held by one end has its normal along z.", nameof(entities));
+                    throw new ArgumentException(
+                        "The arc "
+                            + entity.Handle
+                            + " has one end only in the stretch frame and does not lie flat in the block: an arc held by one end has its normal along z.",
+                        nameof(entities)
+                    );
                 }
 
                 if (seen.Add(entity.Handle))
@@ -1238,7 +1413,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether a normal lies along z, within the vector tolerance of <see cref="Tolerance.Default"/>: the entity lies flat in the block.</summary>
-        internal static bool Flat(GeoVector3 normal) => Math.Abs(normal.X) <= Tolerance.Default.EqualVector && Math.Abs(normal.Y) <= Tolerance.Default.EqualVector;
+        internal static bool Flat(GeoVector3 normal) =>
+            Math.Abs(normal.X) <= Tolerance.Default.EqualVector && Math.Abs(normal.Y) <= Tolerance.Default.EqualVector;
 
         /// <summary>Refuses a distance multiplier or an angle offset that is not a finite number.</summary>
         private static void Factors(double multiplier, double angle)
@@ -1275,12 +1451,17 @@ namespace GeometryHelper.Dxf
                 case DxfAttributeDefinition _ when !attributes:
                     return null;
                 case DxfDBText text:
-                    if (text.HorizontalMode == DxfTextHorizontalMode.TextAlign || text.HorizontalMode == DxfTextHorizontalMode.TextFit)
+                    if (
+                        text.HorizontalMode == DxfTextHorizontalMode.TextAlign
+                        || text.HorizontalMode == DxfTextHorizontalMode.TextFit
+                    )
                     {
                         return null;
                     }
 
-                    bool left = text.HorizontalMode == DxfTextHorizontalMode.TextLeft && text.VerticalMode == DxfTextVerticalMode.TextBase;
+                    bool left =
+                        text.HorizontalMode == DxfTextHorizontalMode.TextLeft
+                        && text.VerticalMode == DxfTextVerticalMode.TextBase;
                     return new List<GeoPoint3> { left ? text.Position : text.AlignmentPoint };
                 case DxfMText mtext:
                     return new List<GeoPoint3> { mtext.Location };
@@ -1298,7 +1479,10 @@ namespace GeometryHelper.Dxf
         {
             if (block != this)
             {
-                throw new ArgumentException("The parameter " + name + " is of the block " + block.Name + ", not of " + Name + ".", "parameter");
+                throw new ArgumentException(
+                    "The parameter " + name + " is of the block " + block.Name + ", not of " + Name + ".",
+                    "parameter"
+                );
             }
         }
 
@@ -1338,7 +1522,12 @@ namespace GeometryHelper.Dxf
         /// Block Editor gives a block one, or cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a flip parameter, as <see cref="AddLinearParameter"/>
         /// says. Nothing is written then.</exception>
-        public void AddVisibilityParameter(string name, string description, GeoPoint3 location, IEnumerable<DxfBlockVisibilityState> states)
+        public void AddVisibilityParameter(
+            string name,
+            string description,
+            GeoPoint3 location,
+            IEnumerable<DxfBlockVisibilityState> states
+        )
         {
             if (name == null)
             {
@@ -1354,7 +1543,10 @@ namespace GeometryHelper.Dxf
 
             if (name.Trim().Length == 0 || name.IndexOfAny(LineBreaks) >= 0)
             {
-                throw new ArgumentException("A parameter is labelled by a name of one line at least one letter long.", nameof(name));
+                throw new ArgumentException(
+                    "A parameter is labelled by a name of one line at least one letter long.",
+                    nameof(name)
+                );
             }
 
             if (description.IndexOfAny(LineBreaks) >= 0)
@@ -1364,7 +1556,10 @@ namespace GeometryHelper.Dxf
 
             if (!location.IsValid)
             {
-                throw new ArgumentException("The location of a parameter is of finite numbers: " + location + " is not.", nameof(location));
+                throw new ArgumentException(
+                    "The location of a parameter is of finite numbers: " + location + " is not.",
+                    nameof(location)
+                );
             }
 
             var given = new List<DxfBlockVisibilityState>();
@@ -1379,14 +1574,30 @@ namespace GeometryHelper.Dxf
 
                 if (!names.Add(state.Name))
                 {
-                    throw new ArgumentException("Two visibility states are named " + state.Name + ", letters of either case the same.", nameof(states));
+                    throw new ArgumentException(
+                        "Two visibility states are named " + state.Name + ", letters of either case the same.",
+                        nameof(states)
+                    );
                 }
 
                 foreach (DxfEntity entity in state.Entities)
                 {
-                    if (entity.IsErased || entity.Handle == null || !string.Equals(entity.OwnerHandle, Handle, StringComparison.OrdinalIgnoreCase))
+                    if (
+                        entity.IsErased
+                        || entity.Handle == null
+                        || !string.Equals(entity.OwnerHandle, Handle, StringComparison.OrdinalIgnoreCase)
+                    )
                     {
-                        throw new ArgumentException("The entity " + (entity.Handle ?? string.Empty) + " of the state " + state.Name + " is not of the block " + Name + ", or is erased.", nameof(states));
+                        throw new ArgumentException(
+                            "The entity "
+                                + (entity.Handle ?? string.Empty)
+                                + " of the state "
+                                + state.Name
+                                + " is not of the block "
+                                + Name
+                                + ", or is erased.",
+                            nameof(states)
+                        );
                     }
                 }
 
@@ -1475,8 +1686,13 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a flip parameter, as <see cref="AddLinearParameter"/>
         /// says. Nothing is written then.</exception>
-        public DxfBlockRotationParameter AddRotationParameter(string name, string description, GeoPoint3 basePoint, double radius, double angle)
-            => AddRotationParameter(name, description, basePoint, radius, angle, null);
+        public DxfBlockRotationParameter AddRotationParameter(
+            string name,
+            string description,
+            GeoPoint3 basePoint,
+            double radius,
+            double angle
+        ) => AddRotationParameter(name, description, basePoint, radius, angle, null);
 
         /// <summary>
         /// Makes the block dynamic, where it is not, and gives it a rotation parameter, as
@@ -1515,21 +1731,40 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a flip parameter, as <see cref="AddLinearParameter"/>
         /// says. Nothing is written then.</exception>
-        public DxfBlockRotationParameter AddRotationParameter(string name, string description, GeoPoint3 basePoint, double radius, double angle, DxfBlockParameterValueSet valueSet)
+        public DxfBlockRotationParameter AddRotationParameter(
+            string name,
+            string description,
+            GeoPoint3 basePoint,
+            double radius,
+            double angle,
+            DxfBlockParameterValueSet valueSet
+        )
         {
             description = Labelled(name, description);
             Placed(basePoint, nameof(basePoint));
 
             if (!Guard.IsFinite(radius) || !(radius > Tolerance.Default.EqualPoint))
             {
-                throw new ArgumentOutOfRangeException(nameof(radius), radius, "The radius of a rotation parameter is a finite number above the point tolerance.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(radius),
+                    radius,
+                    "The radius of a rotation parameter is a finite number above the point tolerance."
+                );
             }
 
             Guard.Finite(angle, nameof(angle), "The angle of a rotation parameter is a finite number of radians.");
             Angled(valueSet, angle, nameof(valueSet));
             Dynamic("be given a parameter");
             Alone(false);
-            return DxfDynamicBlockWriter.AddRotation(this, name.Trim(), description, basePoint, radius, angle, valueSet);
+            return DxfDynamicBlockWriter.AddRotation(
+                this,
+                name.Trim(),
+                description,
+                basePoint,
+                radius,
+                angle,
+                valueSet
+            );
         }
 
         /// <summary>
@@ -1549,8 +1784,12 @@ namespace GeometryHelper.Dxf
 
             if (most > turn + slack)
             {
-                throw new ArgumentException("The value set of an angle lies within a turn, from nought to 2 pi radians: "
-                    + most.ToString("R", CultureInfo.InvariantCulture) + " is beyond it.", name);
+                throw new ArgumentException(
+                    "The value set of an angle lies within a turn, from nought to 2 pi radians: "
+                        + most.ToString("R", CultureInfo.InvariantCulture)
+                        + " is beyond it.",
+                    name
+                );
             }
 
             double turned = angle % turn;
@@ -1558,8 +1797,14 @@ namespace GeometryHelper.Dxf
 
             if (!HoldsAngle(set, angle))
             {
-                throw new ArgumentException("The value set " + (set.IsList ? "lists" : "steps through") + " no angle of "
-                    + turned.ToString("R", CultureInfo.InvariantCulture) + " radians, the block's own.", name);
+                throw new ArgumentException(
+                    "The value set "
+                        + (set.IsList ? "lists" : "steps through")
+                        + " no angle of "
+                        + turned.ToString("R", CultureInfo.InvariantCulture)
+                        + " radians, the block's own.",
+                    name
+                );
             }
         }
 
@@ -1609,15 +1854,30 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a parameter already, of any kind, a flip among them.
         /// Nothing is written then.</exception>
-        public DxfBlockFlipParameter AddFlipParameter(string name, string description, GeoPoint3 basePoint, GeoPoint3 endPoint)
+        public DxfBlockFlipParameter AddFlipParameter(
+            string name,
+            string description,
+            GeoPoint3 basePoint,
+            GeoPoint3 endPoint
+        )
         {
             description = Labelled(name, description);
             Placed(basePoint, nameof(basePoint));
             Placed(endPoint, nameof(endPoint));
 
-            if (!(Math.Sqrt((endPoint.X - basePoint.X) * (endPoint.X - basePoint.X) + (endPoint.Y - basePoint.Y) * (endPoint.Y - basePoint.Y)) > Tolerance.Default.EqualPoint))
+            if (
+                !(
+                    Math.Sqrt(
+                        (endPoint.X - basePoint.X) * (endPoint.X - basePoint.X)
+                            + (endPoint.Y - basePoint.Y) * (endPoint.Y - basePoint.Y)
+                    ) > Tolerance.Default.EqualPoint
+                )
+            )
             {
-                throw new ArgumentException("The end point of a reflection line is apart from its base point along x or y, beyond the point tolerance.", nameof(endPoint));
+                throw new ArgumentException(
+                    "The end point of a reflection line is apart from its base point along x or y, beyond the point tolerance.",
+                    nameof(endPoint)
+                );
             }
 
             Dynamic("be given a parameter");
@@ -1660,8 +1920,14 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a flip parameter, as <see cref="AddLinearParameter"/>
         /// says. Nothing is written then.</exception>
-        public DxfBlockXYParameter AddXYParameter(string xName, string xDescription, string yName, string yDescription, GeoPoint3 basePoint, GeoPoint3 endPoint)
-            => AddXYParameter(xName, xDescription, yName, yDescription, basePoint, endPoint, null, null);
+        public DxfBlockXYParameter AddXYParameter(
+            string xName,
+            string xDescription,
+            string yName,
+            string yDescription,
+            GeoPoint3 basePoint,
+            GeoPoint3 endPoint
+        ) => AddXYParameter(xName, xDescription, yName, yDescription, basePoint, endPoint, null, null);
 
         /// <summary>
         /// Makes the block dynamic, where it is not, and gives it an XY parameter, as
@@ -1694,8 +1960,16 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a flip parameter, as <see cref="AddLinearParameter"/>
         /// says. Nothing is written then.</exception>
-        public DxfBlockXYParameter AddXYParameter(string xName, string xDescription, string yName, string yDescription, GeoPoint3 basePoint, GeoPoint3 endPoint,
-            DxfBlockParameterValueSet xValueSet, DxfBlockParameterValueSet yValueSet)
+        public DxfBlockXYParameter AddXYParameter(
+            string xName,
+            string xDescription,
+            string yName,
+            string yDescription,
+            GeoPoint3 basePoint,
+            GeoPoint3 endPoint,
+            DxfBlockParameterValueSet xValueSet,
+            DxfBlockParameterValueSet yValueSet
+        )
         {
             xDescription = Labelled(xName, xDescription);
             yDescription = Labelled(yName, yDescription);
@@ -1705,14 +1979,27 @@ namespace GeometryHelper.Dxf
 
             if (!(Math.Abs(endPoint.X - basePoint.X) > slack) || !(Math.Abs(endPoint.Y - basePoint.Y) > slack))
             {
-                throw new ArgumentException("The end point of an XY parameter is apart from its base point along x and along y, beyond the point tolerance.", nameof(endPoint));
+                throw new ArgumentException(
+                    "The end point of an XY parameter is apart from its base point along x and along y, beyond the point tolerance.",
+                    nameof(endPoint)
+                );
             }
 
             Holding(xValueSet, Math.Abs(endPoint.X - basePoint.X), nameof(xValueSet));
             Holding(yValueSet, Math.Abs(endPoint.Y - basePoint.Y), nameof(yValueSet));
             Dynamic("be given a parameter");
             Alone(false);
-            return DxfDynamicBlockWriter.AddXY(this, xName.Trim(), xDescription, yName.Trim(), yDescription, basePoint, endPoint, xValueSet, yValueSet);
+            return DxfDynamicBlockWriter.AddXY(
+                this,
+                xName.Trim(),
+                xDescription,
+                yName.Trim(),
+                yDescription,
+                basePoint,
+                endPoint,
+                xValueSet,
+                yValueSet
+            );
         }
 
         /// <summary>Refuses a value set of a distance that does not hold the distance given, the block's own, within the point tolerance of <see cref="Tolerance.Default"/>.</summary>
@@ -1720,8 +2007,14 @@ namespace GeometryHelper.Dxf
         {
             if (set != null && !set.Holds(distance))
             {
-                throw new ArgumentException("The value set " + (set.IsList ? "lists" : "steps through") + " no distance of "
-                    + distance.ToString("R", CultureInfo.InvariantCulture) + ", the block's own.", name);
+                throw new ArgumentException(
+                    "The value set "
+                        + (set.IsList ? "lists" : "steps through")
+                        + " no distance of "
+                        + distance.ToString("R", CultureInfo.InvariantCulture)
+                        + ", the block's own.",
+                    name
+                );
             }
         }
 
@@ -1776,8 +2069,17 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a flip parameter, as <see cref="AddLinearParameter"/>
         /// says. Nothing is written then.</exception>
-        public DxfBlockPolarParameter AddPolarParameter(string distanceName, string distanceDescription, string angleName, string angleDescription, GeoPoint3 basePoint, GeoPoint3 endPoint,
-            double labelOffset, DxfBlockParameterValueSet distanceValueSet, DxfBlockParameterValueSet angleValueSet)
+        public DxfBlockPolarParameter AddPolarParameter(
+            string distanceName,
+            string distanceDescription,
+            string angleName,
+            string angleDescription,
+            GeoPoint3 basePoint,
+            GeoPoint3 endPoint,
+            double labelOffset,
+            DxfBlockParameterValueSet distanceValueSet,
+            DxfBlockParameterValueSet angleValueSet
+        )
         {
             distanceDescription = Labelled(distanceName, distanceDescription);
             angleDescription = Labelled(angleName, angleDescription);
@@ -1785,18 +2087,33 @@ namespace GeometryHelper.Dxf
             Placed(endPoint, nameof(endPoint));
             Guard.Finite(labelOffset, nameof(labelOffset), "The offset of a label is a finite number.");
             double slack = Tolerance.Default.EqualPoint;
-            double dx = endPoint.X - basePoint.X, dy = endPoint.Y - basePoint.Y;
+            double dx = endPoint.X - basePoint.X,
+                dy = endPoint.Y - basePoint.Y;
 
             if (!(Math.Sqrt(dx * dx + dy * dy) > slack) || !(Math.Abs(endPoint.Z - basePoint.Z) <= slack))
             {
-                throw new ArgumentException("The end point of a polar parameter is apart from its base point along x or y, beyond the point tolerance, and level with it along z.", nameof(endPoint));
+                throw new ArgumentException(
+                    "The end point of a polar parameter is apart from its base point along x or y, beyond the point tolerance, and level with it along z.",
+                    nameof(endPoint)
+                );
             }
 
             Holding(distanceValueSet, basePoint.GetVectorTo(endPoint).Length, nameof(distanceValueSet));
             Angled(angleValueSet, Math.Atan2(dy, dx), nameof(angleValueSet));
             Dynamic("be given a parameter");
             Alone(false);
-            return DxfDynamicBlockWriter.AddPolar(this, distanceName.Trim(), distanceDescription, angleName.Trim(), angleDescription, basePoint, endPoint, labelOffset, distanceValueSet, angleValueSet);
+            return DxfDynamicBlockWriter.AddPolar(
+                this,
+                distanceName.Trim(),
+                distanceDescription,
+                angleName.Trim(),
+                angleDescription,
+                basePoint,
+                endPoint,
+                labelOffset,
+                distanceValueSet,
+                angleValueSet
+            );
         }
 
         /// <summary>
@@ -1855,7 +2172,13 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when an entity is also worked on by another action of the block, other
         /// than a lookup: no sample of AutoCAD shows the order they would take. Nothing is written then.</exception>
-        public void AddPolarStretchAction(DxfBlockPolarParameter parameter, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities, IEnumerable<DxfEntity> rotateOnly)
+        public void AddPolarStretchAction(
+            DxfBlockPolarParameter parameter,
+            GeoPoint2 frameCorner,
+            GeoPoint2 oppositeCorner,
+            IEnumerable<DxfEntity> entities,
+            IEnumerable<DxfEntity> rotateOnly
+        )
         {
             if (parameter == null)
             {
@@ -1884,12 +2207,21 @@ namespace GeometryHelper.Dxf
 
             Own(parameter.Block, parameter.DistanceName);
             double slack = Tolerance.Default.EqualPoint;
-            var low = new GeoPoint2(Math.Min(frameCorner.X, oppositeCorner.X), Math.Min(frameCorner.Y, oppositeCorner.Y));
-            var high = new GeoPoint2(Math.Max(frameCorner.X, oppositeCorner.X), Math.Max(frameCorner.Y, oppositeCorner.Y));
+            var low = new GeoPoint2(
+                Math.Min(frameCorner.X, oppositeCorner.X),
+                Math.Min(frameCorner.Y, oppositeCorner.Y)
+            );
+            var high = new GeoPoint2(
+                Math.Max(frameCorner.X, oppositeCorner.X),
+                Math.Max(frameCorner.Y, oppositeCorner.Y)
+            );
 
             if (!(high.X - low.X > slack) || !(high.Y - low.Y > slack))
             {
-                throw new ArgumentException("A stretch frame is wider and higher than the point tolerance.", nameof(oppositeCorner));
+                throw new ArgumentException(
+                    "A stretch frame is wider and higher than the point tolerance.",
+                    nameof(oppositeCorner)
+                );
             }
 
             Dynamic("be given an action");
@@ -1903,19 +2235,42 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentNullException(nameof(entities), "An entity to stretch is null.");
                 }
 
-                if (entity.IsErased || entity.Handle == null || !string.Equals(entity.OwnerHandle, Handle, StringComparison.OrdinalIgnoreCase))
+                if (
+                    entity.IsErased
+                    || entity.Handle == null
+                    || !string.Equals(entity.OwnerHandle, Handle, StringComparison.OrdinalIgnoreCase)
+                )
                 {
-                    throw new ArgumentException("The entity " + (entity.Handle ?? string.Empty) + " to stretch is not of the block " + Name + ", or is erased.", nameof(entities));
+                    throw new ArgumentException(
+                        "The entity "
+                            + (entity.Handle ?? string.Empty)
+                            + " to stretch is not of the block "
+                            + Name
+                            + ", or is erased.",
+                        nameof(entities)
+                    );
                 }
 
                 List<GeoPoint3> points = StretchPoints(entity, true)
-                    ?? throw new ArgumentException("A polar stretch takes lines, polylines, arcs, circles, texts and attribute definitions held by one point, multiline texts and INSERTs; the entity " + entity.Handle + " is a " + entity.GetType().Name + " of none of those.", nameof(entities));
+                    ?? throw new ArgumentException(
+                        "A polar stretch takes lines, polylines, arcs, circles, texts and attribute definitions held by one point, multiline texts and INSERTs; the entity "
+                            + entity.Handle
+                            + " is a "
+                            + entity.GetType().Name
+                            + " of none of those.",
+                        nameof(entities)
+                    );
                 Locked(entity, "stretch");
                 var inside = new List<int>();
 
                 for (int i = 0; i < points.Count; i++)
                 {
-                    if (points[i].X >= low.X - slack && points[i].X <= high.X + slack && points[i].Y >= low.Y - slack && points[i].Y <= high.Y + slack)
+                    if (
+                        points[i].X >= low.X - slack
+                        && points[i].X <= high.X + slack
+                        && points[i].Y >= low.Y - slack
+                        && points[i].Y <= high.Y + slack
+                    )
                     {
                         inside.Add(i);
                     }
@@ -1923,12 +2278,22 @@ namespace GeometryHelper.Dxf
 
                 if (inside.Count == 0)
                 {
-                    throw new ArgumentException("The entity " + entity.Handle + " has no point in the stretch frame: give an entity to turn only among the entities to turn only.", nameof(entities));
+                    throw new ArgumentException(
+                        "The entity "
+                            + entity.Handle
+                            + " has no point in the stretch frame: give an entity to turn only among the entities to turn only.",
+                        nameof(entities)
+                    );
                 }
 
                 if (entity is DxfArc && inside.Count < points.Count)
                 {
-                    throw new ArgumentException("The arc " + entity.Handle + " has one end only in the stretch frame: a polar stretch holds an arc by both ends.", nameof(entities));
+                    throw new ArgumentException(
+                        "The arc "
+                            + entity.Handle
+                            + " has one end only in the stretch frame: a polar stretch holds an arc by both ends.",
+                        nameof(entities)
+                    );
                 }
 
                 if (seen.Add(entity.Handle))
@@ -1939,7 +2304,10 @@ namespace GeometryHelper.Dxf
 
             if (held.Count == 0)
             {
-                throw new ArgumentException("A polar stretch action is given one entity to stretch at least.", nameof(entities));
+                throw new ArgumentException(
+                    "A polar stretch action is given one entity to stretch at least.",
+                    nameof(entities)
+                );
             }
 
             var turned = new List<DxfEntity>();
@@ -1951,24 +2319,50 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentNullException(nameof(rotateOnly), "An entity to turn only is null.");
                 }
 
-                if (entity.IsErased || entity.Handle == null || !string.Equals(entity.OwnerHandle, Handle, StringComparison.OrdinalIgnoreCase))
+                if (
+                    entity.IsErased
+                    || entity.Handle == null
+                    || !string.Equals(entity.OwnerHandle, Handle, StringComparison.OrdinalIgnoreCase)
+                )
                 {
-                    throw new ArgumentException("The entity " + (entity.Handle ?? string.Empty) + " to turn only is not of the block " + Name + ", or is erased.", nameof(rotateOnly));
+                    throw new ArgumentException(
+                        "The entity "
+                            + (entity.Handle ?? string.Empty)
+                            + " to turn only is not of the block "
+                            + Name
+                            + ", or is erased.",
+                        nameof(rotateOnly)
+                    );
                 }
 
                 if (entity is DxfUnknownEntity || entity is DxfOle2Frame)
                 {
-                    throw new ArgumentException("The entity " + entity.Handle + " to turn only is of a type the library keeps as it is, which an action of the library does not take.", nameof(rotateOnly));
+                    throw new ArgumentException(
+                        "The entity "
+                            + entity.Handle
+                            + " to turn only is of a type the library keeps as it is, which an action of the library does not take.",
+                        nameof(rotateOnly)
+                    );
                 }
 
                 if (entity is DxfAttributeDefinition definition && !definition.LockPositionInBlock)
                 {
-                    throw new ArgumentException("The attribute definition " + definition.Tag + " (" + entity.Handle + ") to turn only is not locked in its block: lock its position (LockPositionInBlock), as AutoCAD's Block Editor asks.", nameof(rotateOnly));
+                    throw new ArgumentException(
+                        "The attribute definition "
+                            + definition.Tag
+                            + " ("
+                            + entity.Handle
+                            + ") to turn only is not locked in its block: lock its position (LockPositionInBlock), as AutoCAD's Block Editor asks.",
+                        nameof(rotateOnly)
+                    );
                 }
 
                 if (seen.Contains(entity.Handle) && !turned.Exists(e => e.Handle == entity.Handle))
                 {
-                    throw new ArgumentException("The entity " + entity.Handle + " is given to stretch and to turn only.", nameof(rotateOnly));
+                    throw new ArgumentException(
+                        "The entity " + entity.Handle + " is given to stretch and to turn only.",
+                        nameof(rotateOnly)
+                    );
                 }
 
                 if (seen.Add(entity.Handle))
@@ -1990,14 +2384,23 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private void Unpolar(IEnumerable<DxfEntity> entities, bool polar)
         {
-            HashSet<string> other = DxfDynamicBlockWriter.ActedOn(this, type => polar ? type != "BLOCKLOOKUPACTION" : type == "BLOCKPOLARSTRETCHACTION");
+            HashSet<string> other = DxfDynamicBlockWriter.ActedOn(this, type =>
+                polar ? type != "BLOCKLOOKUPACTION" : type == "BLOCKPOLARSTRETCHACTION"
+            );
 
             foreach (DxfEntity entity in entities)
             {
                 if (other.Contains(entity.Handle))
                 {
-                    throw new NotSupportedException("The entity " + entity.Handle + " is " + (polar ? "worked on by another action" : "turned by a polar stretch") + " of the block " + Name
-                        + ", and an entity a polar stretch works on is not written with another action on it: no sample of AutoCAD shows the order they would take.");
+                    throw new NotSupportedException(
+                        "The entity "
+                            + entity.Handle
+                            + " is "
+                            + (polar ? "worked on by another action" : "turned by a polar stretch")
+                            + " of the block "
+                            + Name
+                            + ", and an entity a polar stretch works on is not written with another action on it: no sample of AutoCAD shows the order they would take."
+                    );
                 }
             }
         }
@@ -2062,7 +2465,13 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a flip parameter, as <see cref="AddLinearParameter"/>
         /// says. Nothing is written then.</exception>
-        public void AddLookupParameter(string name, string description, GeoPoint3 location, IEnumerable<DxfBlockLookupInput> inputs, IEnumerable<DxfBlockLookupRow> rows)
+        public void AddLookupParameter(
+            string name,
+            string description,
+            GeoPoint3 location,
+            IEnumerable<DxfBlockLookupInput> inputs,
+            IEnumerable<DxfBlockLookupRow> rows
+        )
         {
             description = Labelled(name, description);
             Placed(location, nameof(location));
@@ -2088,7 +2497,10 @@ namespace GeometryHelper.Dxf
 
                 if (input.Block != this)
                 {
-                    throw new ArgumentException("The input " + input.Name + " is of the block " + input.Block.Name + ", not of " + Name + ".", nameof(inputs));
+                    throw new ArgumentException(
+                        "The input " + input.Name + " is of the block " + input.Block.Name + ", not of " + Name + ".",
+                        nameof(inputs)
+                    );
                 }
 
                 if (columns.Exists(c => c.Node == input.Node && c.Connection == input.Connection))
@@ -2116,26 +2528,65 @@ namespace GeometryHelper.Dxf
 
                 if (!labels.Add(row.Label))
                 {
-                    throw new ArgumentException("The label " + row.Label + " is of two rows, or is the label " + DxfDynamicBlockWriter.Unmatched + " of no row, letters of either case the same.", nameof(rows));
+                    throw new ArgumentException(
+                        "The label "
+                            + row.Label
+                            + " is of two rows, or is the label "
+                            + DxfDynamicBlockWriter.Unmatched
+                            + " of no row, letters of either case the same.",
+                        nameof(rows)
+                    );
                 }
 
                 if (row.Values.Count != columns.Count)
                 {
-                    throw new ArgumentException("The row " + row.Label + " has " + row.Values.Count.ToString(CultureInfo.InvariantCulture) + " values for " + columns.Count.ToString(CultureInfo.InvariantCulture) + " input columns.", nameof(rows));
+                    throw new ArgumentException(
+                        "The row "
+                            + row.Label
+                            + " has "
+                            + row.Values.Count.ToString(CultureInfo.InvariantCulture)
+                            + " values for "
+                            + columns.Count.ToString(CultureInfo.InvariantCulture)
+                            + " input columns.",
+                        nameof(rows)
+                    );
                 }
 
                 for (int i = 0; i < columns.Count; i++)
                 {
-                    bool distance = columns[i].Connection == "UpdatedDistance" || columns[i].Connection == "UpdatedDistanceX" || columns[i].Connection == "UpdatedDistanceY";
+                    bool distance =
+                        columns[i].Connection == "UpdatedDistance"
+                        || columns[i].Connection == "UpdatedDistanceX"
+                        || columns[i].Connection == "UpdatedDistanceY";
 
-                    if (distance && (!(row.Values[i] > Tolerance.Default.EqualPoint) || (columns[i].ValueSet != null && !columns[i].ValueSet.Holds(row.Values[i]))))
+                    if (
+                        distance
+                        && (
+                            !(row.Values[i] > Tolerance.Default.EqualPoint)
+                            || (columns[i].ValueSet != null && !columns[i].ValueSet.Holds(row.Values[i]))
+                        )
+                    )
                     {
-                        throw new ArgumentException("The row " + row.Label + " gives " + columns[i].Name + " a distance not above the point tolerance, or not of its value set.", nameof(rows));
+                        throw new ArgumentException(
+                            "The row "
+                                + row.Label
+                                + " gives "
+                                + columns[i].Name
+                                + " a distance not above the point tolerance, or not of its value set.",
+                            nameof(rows)
+                        );
                     }
 
-                    if (columns[i].IsAngle && columns[i].ValueSet != null && !HoldsAngle(columns[i].ValueSet, row.Values[i]))
+                    if (
+                        columns[i].IsAngle
+                        && columns[i].ValueSet != null
+                        && !HoldsAngle(columns[i].ValueSet, row.Values[i])
+                    )
                     {
-                        throw new ArgumentException("The row " + row.Label + " gives " + columns[i].Name + " an angle not of its value set.", nameof(rows));
+                        throw new ArgumentException(
+                            "The row " + row.Label + " gives " + columns[i].Name + " an angle not of its value set.",
+                            nameof(rows)
+                        );
                     }
                 }
 
@@ -2202,7 +2653,11 @@ namespace GeometryHelper.Dxf
         /// Block Editor gives a block one, or cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a flip parameter, as <see cref="AddLinearParameter"/>
         /// says. Nothing is written then.</exception>
-        public void AddBlockPropertiesTable(GeoPoint3 location, IEnumerable<DxfBlockPropertiesTableColumn> columns, IEnumerable<DxfBlockPropertiesTableRow> rows)
+        public void AddBlockPropertiesTable(
+            GeoPoint3 location,
+            IEnumerable<DxfBlockPropertiesTableColumn> columns,
+            IEnumerable<DxfBlockPropertiesTableRow> rows
+        )
         {
             Placed(location, nameof(location));
 
@@ -2229,22 +2684,52 @@ namespace GeometryHelper.Dxf
                 {
                     DxfAttributeDefinition definition = column.Definition;
 
-                    if (definition.IsErased || definition.Handle == null || !string.Equals(definition.OwnerHandle, Handle, StringComparison.OrdinalIgnoreCase))
+                    if (
+                        definition.IsErased
+                        || definition.Handle == null
+                        || !string.Equals(definition.OwnerHandle, Handle, StringComparison.OrdinalIgnoreCase)
+                    )
                     {
-                        throw new ArgumentException("The attribute definition " + column.Name + " is not of the block " + Name + ", or is erased.", nameof(columns));
+                        throw new ArgumentException(
+                            "The attribute definition "
+                                + column.Name
+                                + " is not of the block "
+                                + Name
+                                + ", or is erased.",
+                            nameof(columns)
+                        );
                     }
 
                     if (definition.Constant)
                     {
-                        throw new ArgumentException("The attribute definition " + column.Name + " is constant, and its attribute takes no value from a row.", nameof(columns));
+                        throw new ArgumentException(
+                            "The attribute definition "
+                                + column.Name
+                                + " is constant, and its attribute takes no value from a row.",
+                            nameof(columns)
+                        );
                     }
                 }
                 else if (column.Block != this)
                 {
-                    throw new ArgumentException("The column " + column.Name + " is of the block " + column.Block.Name + ", not of " + Name + ".", nameof(columns));
+                    throw new ArgumentException(
+                        "The column "
+                            + column.Name
+                            + " is of the block "
+                            + column.Block.Name
+                            + ", not of "
+                            + Name
+                            + ".",
+                        nameof(columns)
+                    );
                 }
 
-                if (given.Exists(c => string.Equals(c.Handle, column.Handle, StringComparison.OrdinalIgnoreCase) && c.Connection == column.Connection))
+                if (
+                    given.Exists(c =>
+                        string.Equals(c.Handle, column.Handle, StringComparison.OrdinalIgnoreCase)
+                        && c.Connection == column.Connection
+                    )
+                )
                 {
                     throw new ArgumentException("The column " + column.Name + " is given twice.", nameof(columns));
                 }
@@ -2270,7 +2755,15 @@ namespace GeometryHelper.Dxf
 
                 if (row.Values.Count != given.Count)
                 {
-                    throw new ArgumentException(at + " has " + row.Values.Count.ToString(CultureInfo.InvariantCulture) + " values for " + given.Count.ToString(CultureInfo.InvariantCulture) + " columns.", nameof(rows));
+                    throw new ArgumentException(
+                        at
+                            + " has "
+                            + row.Values.Count.ToString(CultureInfo.InvariantCulture)
+                            + " values for "
+                            + given.Count.ToString(CultureInfo.InvariantCulture)
+                            + " columns.",
+                        nameof(rows)
+                    );
                 }
 
                 for (int i = 0; i < given.Count; i++)
@@ -2282,7 +2775,10 @@ namespace GeometryHelper.Dxf
                     {
                         if (value is double)
                         {
-                            throw new ArgumentException(at + " gives the attribute " + column.Name + " a number, not a text.", nameof(rows));
+                            throw new ArgumentException(
+                                at + " gives the attribute " + column.Name + " a number, not a text.",
+                                nameof(rows)
+                            );
                         }
 
                         continue;
@@ -2292,7 +2788,13 @@ namespace GeometryHelper.Dxf
                     {
                         if (!(value is string state) || !new List<string>(column.States).Contains(state))
                         {
-                            throw new ArgumentException(at + " gives the visibility parameter " + column.Name + " no name of one of its states.", nameof(rows));
+                            throw new ArgumentException(
+                                at
+                                    + " gives the visibility parameter "
+                                    + column.Name
+                                    + " no name of one of its states.",
+                                nameof(rows)
+                            );
                         }
 
                         continue;
@@ -2300,22 +2802,43 @@ namespace GeometryHelper.Dxf
 
                     if (value == null)
                     {
-                        throw new ArgumentException(at + " leaves " + column.Name + " empty, which AutoCAD's audit of a table refuses.", nameof(rows));
+                        throw new ArgumentException(
+                            at + " leaves " + column.Name + " empty, which AutoCAD's audit of a table refuses.",
+                            nameof(rows)
+                        );
                     }
 
                     if (!(value is double number))
                     {
-                        throw new ArgumentException(at + " gives " + column.Name + " a text, not a number.", nameof(rows));
+                        throw new ArgumentException(
+                            at + " gives " + column.Name + " a text, not a number.",
+                            nameof(rows)
+                        );
                     }
 
-                    if (!column.IsAngle && (!(number > Tolerance.Default.EqualPoint) || (column.ValueSet != null && !column.ValueSet.Holds(number))))
+                    if (
+                        !column.IsAngle
+                        && (
+                            !(number > Tolerance.Default.EqualPoint)
+                            || (column.ValueSet != null && !column.ValueSet.Holds(number))
+                        )
+                    )
                     {
-                        throw new ArgumentException(at + " gives " + column.Name + " a distance not above the point tolerance, or not of its value set.", nameof(rows));
+                        throw new ArgumentException(
+                            at
+                                + " gives "
+                                + column.Name
+                                + " a distance not above the point tolerance, or not of its value set.",
+                            nameof(rows)
+                        );
                     }
 
                     if (column.IsAngle && column.ValueSet != null && !HoldsAngle(column.ValueSet, number))
                     {
-                        throw new ArgumentException(at + " gives " + column.Name + " an angle not of its value set.", nameof(rows));
+                        throw new ArgumentException(
+                            at + " gives " + column.Name + " an angle not of its value set.",
+                            nameof(rows)
+                        );
                     }
                 }
 
@@ -2334,7 +2857,11 @@ namespace GeometryHelper.Dxf
 
             if (DxfDynamicBlockWriter.Has(this, type => type == "BLOCKPROPERTIESTABLE"))
             {
-                throw new InvalidOperationException("The block " + Name + " has a block properties table already, and AutoCAD's Block Editor gives a block one.");
+                throw new InvalidOperationException(
+                    "The block "
+                        + Name
+                        + " has a block properties table already, and AutoCAD's Block Editor gives a block one."
+                );
             }
 
             Dynamic("be given a block properties table");
@@ -2352,7 +2879,8 @@ namespace GeometryHelper.Dxf
         /// as Block Table1 of the columns Width, Height and MARK and its rows, P200 the text of the row 1. AutoCAD's Fluorescent
         /// sample reads Block Table1 of Width and Height and nine rows from 500 by 250 to 2000 by 1000.
         /// </remarks>
-        public DxfBlockPropertiesTable BlockPropertiesTable => _file == null || Item == null || IsErased ? null : DxfDynamicProperties.Table(this);
+        public DxfBlockPropertiesTable BlockPropertiesTable =>
+            _file == null || Item == null || IsErased ? null : DxfDynamicProperties.Table(this);
 
         /// <summary>
         /// Gets the visibility states of the dynamic block, as AutoCAD's Block Editor lists them in its Visibility State box:
@@ -2367,10 +2895,17 @@ namespace GeometryHelper.Dxf
         /// reads back so; AutoCAD's Door - Metric sample reads Open 30º, Open 45º, Open 60º, Open 90º and Closed, four entities
         /// each.
         /// </remarks>
-        public IReadOnlyList<DxfBlockVisibilityState> GetVisibilityStates() => _file == null || Item == null || IsErased ? new List<DxfBlockVisibilityState>().AsReadOnly() : DxfDynamicProperties.VisibilityStates(this);
+        public IReadOnlyList<DxfBlockVisibilityState> GetVisibilityStates() =>
+            _file == null || Item == null || IsErased
+                ? new List<DxfBlockVisibilityState>().AsReadOnly()
+                : DxfDynamicProperties.VisibilityStates(this);
 
         /// <summary>Whether two rows of a block properties table give each column the same: numbers within the tolerance of their kind, texts alike, empty cells alike.</summary>
-        private static bool Same(DxfBlockPropertiesTableRow a, DxfBlockPropertiesTableRow b, List<DxfBlockPropertiesTableColumn> columns)
+        private static bool Same(
+            DxfBlockPropertiesTableRow a,
+            DxfBlockPropertiesTableRow b,
+            List<DxfBlockPropertiesTableColumn> columns
+        )
         {
             for (int i = 0; i < columns.Count; i++)
             {
@@ -2381,7 +2916,10 @@ namespace GeometryHelper.Dxf
                         return false;
                     }
                 }
-                else if (Math.Abs((double)a.Values[i] - (double)b.Values[i]) > (columns[i].IsAngle ? Tolerance.Default.EqualVector : Tolerance.Default.EqualPoint))
+                else if (
+                    Math.Abs((double)a.Values[i] - (double)b.Values[i])
+                    > (columns[i].IsAngle ? Tolerance.Default.EqualVector : Tolerance.Default.EqualPoint)
+                )
                 {
                     return false;
                 }
@@ -2416,9 +2954,19 @@ namespace GeometryHelper.Dxf
             Placed(basePoint, nameof(basePoint));
             Placed(endPoint, nameof(endPoint));
 
-            if (!(Math.Sqrt((endPoint.X - basePoint.X) * (endPoint.X - basePoint.X) + (endPoint.Y - basePoint.Y) * (endPoint.Y - basePoint.Y)) > Tolerance.Default.EqualPoint))
+            if (
+                !(
+                    Math.Sqrt(
+                        (endPoint.X - basePoint.X) * (endPoint.X - basePoint.X)
+                            + (endPoint.Y - basePoint.Y) * (endPoint.Y - basePoint.Y)
+                    ) > Tolerance.Default.EqualPoint
+                )
+            )
             {
-                throw new ArgumentException("The end point of an alignment line is apart from its base point along x or y, beyond the point tolerance.", nameof(endPoint));
+                throw new ArgumentException(
+                    "The end point of an alignment line is apart from its base point along x or y, beyond the point tolerance.",
+                    nameof(endPoint)
+                );
             }
 
             Dynamic("be given a parameter");
@@ -2481,7 +3029,8 @@ namespace GeometryHelper.Dxf
         /// array action or turned by a polar stretch, or turned or scaled by a rotate or a scale action: AutoCAD 2021 worked a flip with a stretch out from
         /// each INSERT's last state and did not flip an INSERT of such a block itself (plugins v20 and v20b), and stretched a
         /// line it turned or scaled from where its last set left it (plugin v21, 24e-g). Nothing is written then.</exception>
-        public void AddMoveAction(DxfBlockLinearParameter parameter, IEnumerable<DxfEntity> entities) => AddMoveAction(parameter, entities, 1.0, 0.0);
+        public void AddMoveAction(DxfBlockLinearParameter parameter, IEnumerable<DxfEntity> entities) =>
+            AddMoveAction(parameter, entities, 1.0, 0.0);
 
         /// <summary>
         /// Gives the block a move action tied to a linear parameter of it, as
@@ -2508,7 +3057,12 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
         /// says. Nothing is written then.</exception>
-        public void AddMoveAction(DxfBlockLinearParameter parameter, IEnumerable<DxfEntity> entities, double distanceMultiplier, double angleOffset)
+        public void AddMoveAction(
+            DxfBlockLinearParameter parameter,
+            IEnumerable<DxfEntity> entities,
+            double distanceMultiplier,
+            double angleOffset
+        )
         {
             if (parameter == null)
             {
@@ -2517,7 +3071,17 @@ namespace GeometryHelper.Dxf
 
             Factors(distanceMultiplier, angleOffset);
             List<DxfEntity> acted = Acted(parameter.Block, parameter.Name, entities, "move");
-            DxfDynamicBlockWriter.AddMove(this, parameter.Node, parameter.Name, "EndXDelta", "EndYDelta", parameter.EndPoint, acted, distanceMultiplier, angleOffset);
+            DxfDynamicBlockWriter.AddMove(
+                this,
+                parameter.Node,
+                parameter.Name,
+                "EndXDelta",
+                "EndYDelta",
+                parameter.EndPoint,
+                acted,
+                distanceMultiplier,
+                angleOffset
+            );
         }
 
         /// <summary>
@@ -2540,7 +3104,8 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
         /// says. Nothing is written then.</exception>
-        public void AddMoveAction(DxfBlockPointParameter parameter, IEnumerable<DxfEntity> entities) => AddMoveAction(parameter, entities, 1.0, 0.0);
+        public void AddMoveAction(DxfBlockPointParameter parameter, IEnumerable<DxfEntity> entities) =>
+            AddMoveAction(parameter, entities, 1.0, 0.0);
 
         /// <summary>
         /// Gives the block a move action tied to a point parameter of it, as
@@ -2561,7 +3126,12 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
         /// says. Nothing is written then.</exception>
-        public void AddMoveAction(DxfBlockPointParameter parameter, IEnumerable<DxfEntity> entities, double distanceMultiplier, double angleOffset)
+        public void AddMoveAction(
+            DxfBlockPointParameter parameter,
+            IEnumerable<DxfEntity> entities,
+            double distanceMultiplier,
+            double angleOffset
+        )
         {
             if (parameter == null)
             {
@@ -2570,7 +3140,17 @@ namespace GeometryHelper.Dxf
 
             Factors(distanceMultiplier, angleOffset);
             List<DxfEntity> acted = Acted(parameter.Block, parameter.Name, entities, "move");
-            DxfDynamicBlockWriter.AddMove(this, parameter.Node, parameter.Name, "XDelta", "YDelta", parameter.Location, acted, distanceMultiplier, angleOffset);
+            DxfDynamicBlockWriter.AddMove(
+                this,
+                parameter.Node,
+                parameter.Name,
+                "XDelta",
+                "YDelta",
+                parameter.Location,
+                acted,
+                distanceMultiplier,
+                angleOffset
+            );
         }
 
         /// <summary>
@@ -2590,7 +3170,8 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
         /// says. Nothing is written then.</exception>
-        public void AddMoveAction(DxfBlockXYParameter parameter, IEnumerable<DxfEntity> entities) => AddMoveAction(parameter, entities, 1.0, 0.0);
+        public void AddMoveAction(DxfBlockXYParameter parameter, IEnumerable<DxfEntity> entities) =>
+            AddMoveAction(parameter, entities, 1.0, 0.0);
 
         /// <summary>
         /// Gives the block a move action tied to an XY parameter of it, as
@@ -2612,7 +3193,12 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
         /// says. Nothing is written then.</exception>
-        public void AddMoveAction(DxfBlockXYParameter parameter, IEnumerable<DxfEntity> entities, double distanceMultiplier, double angleOffset)
+        public void AddMoveAction(
+            DxfBlockXYParameter parameter,
+            IEnumerable<DxfEntity> entities,
+            double distanceMultiplier,
+            double angleOffset
+        )
         {
             if (parameter == null)
             {
@@ -2621,7 +3207,17 @@ namespace GeometryHelper.Dxf
 
             Factors(distanceMultiplier, angleOffset);
             List<DxfEntity> acted = Acted(parameter.Block, parameter.XName, entities, "move");
-            DxfDynamicBlockWriter.AddMove(this, parameter.Node, parameter.XName, "EndXDelta", "EndYDelta", parameter.EndPoint, acted, distanceMultiplier, angleOffset);
+            DxfDynamicBlockWriter.AddMove(
+                this,
+                parameter.Node,
+                parameter.XName,
+                "EndXDelta",
+                "EndYDelta",
+                parameter.EndPoint,
+                acted,
+                distanceMultiplier,
+                angleOffset
+            );
         }
 
         /// <summary>
@@ -2642,7 +3238,8 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
         /// says. Nothing is written then.</exception>
-        public void AddMoveAction(DxfBlockPolarParameter parameter, IEnumerable<DxfEntity> entities) => AddMoveAction(parameter, entities, 1.0, 0.0);
+        public void AddMoveAction(DxfBlockPolarParameter parameter, IEnumerable<DxfEntity> entities) =>
+            AddMoveAction(parameter, entities, 1.0, 0.0);
 
         /// <summary>
         /// Gives the block a move action tied to a polar parameter of it, as
@@ -2664,7 +3261,12 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
         /// says. Nothing is written then.</exception>
-        public void AddMoveAction(DxfBlockPolarParameter parameter, IEnumerable<DxfEntity> entities, double distanceMultiplier, double angleOffset)
+        public void AddMoveAction(
+            DxfBlockPolarParameter parameter,
+            IEnumerable<DxfEntity> entities,
+            double distanceMultiplier,
+            double angleOffset
+        )
         {
             if (parameter == null)
             {
@@ -2673,7 +3275,17 @@ namespace GeometryHelper.Dxf
 
             Factors(distanceMultiplier, angleOffset);
             List<DxfEntity> acted = Acted(parameter.Block, parameter.DistanceName, entities, "move");
-            DxfDynamicBlockWriter.AddMove(this, parameter.Node, parameter.DistanceName, "EndXDelta", "EndYDelta", parameter.EndPoint, acted, distanceMultiplier, angleOffset);
+            DxfDynamicBlockWriter.AddMove(
+                this,
+                parameter.Node,
+                parameter.DistanceName,
+                "EndXDelta",
+                "EndYDelta",
+                parameter.EndPoint,
+                acted,
+                distanceMultiplier,
+                angleOffset
+            );
         }
 
         /// <summary>
@@ -2821,7 +3433,11 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a flip action, or an entity is also moved, stretched,
         /// scaled, turned or copied by another action. Nothing is written then.</exception>
-        public void AddArrayAction(DxfBlockLinearParameter parameter, IEnumerable<DxfEntity> entities, double columnSpacing)
+        public void AddArrayAction(
+            DxfBlockLinearParameter parameter,
+            IEnumerable<DxfEntity> entities,
+            double columnSpacing
+        )
         {
             if (parameter == null)
             {
@@ -2830,7 +3446,15 @@ namespace GeometryHelper.Dxf
 
             Spacing(columnSpacing, nameof(columnSpacing));
             List<DxfEntity> acted = Acted(parameter.Block, parameter.Name, entities, "copy");
-            DxfDynamicBlockWriter.AddArray(this, parameter.Node, parameter.Name, parameter.EndPoint, acted, 0.0, columnSpacing);
+            DxfDynamicBlockWriter.AddArray(
+                this,
+                parameter.Node,
+                parameter.Name,
+                parameter.EndPoint,
+                acted,
+                0.0,
+                columnSpacing
+            );
         }
 
         /// <summary>
@@ -2869,7 +3493,12 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown as
         /// <see cref="AddArrayAction(DxfBlockLinearParameter, IEnumerable{DxfEntity}, double)"/> says. Nothing is written then.</exception>
-        public void AddArrayAction(DxfBlockXYParameter parameter, IEnumerable<DxfEntity> entities, double columnSpacing, double rowSpacing)
+        public void AddArrayAction(
+            DxfBlockXYParameter parameter,
+            IEnumerable<DxfEntity> entities,
+            double columnSpacing,
+            double rowSpacing
+        )
         {
             if (parameter == null)
             {
@@ -2879,7 +3508,15 @@ namespace GeometryHelper.Dxf
             Spacing(columnSpacing, nameof(columnSpacing));
             Spacing(rowSpacing, nameof(rowSpacing));
             List<DxfEntity> acted = Acted(parameter.Block, parameter.XName, entities, "copy");
-            DxfDynamicBlockWriter.AddArray(this, parameter.Node, parameter.XName, parameter.EndPoint, acted, rowSpacing, columnSpacing);
+            DxfDynamicBlockWriter.AddArray(
+                this,
+                parameter.Node,
+                parameter.XName,
+                parameter.EndPoint,
+                acted,
+                rowSpacing,
+                columnSpacing
+            );
         }
 
         /// <summary>Refuses a spacing of an array that is not a finite number above the point tolerance.</summary>
@@ -2887,7 +3524,11 @@ namespace GeometryHelper.Dxf
         {
             if (!Guard.IsFinite(spacing) || !(spacing > Tolerance.Default.EqualPoint))
             {
-                throw new ArgumentOutOfRangeException(name, spacing, "The spacing of an array is a finite number above the point tolerance.");
+                throw new ArgumentOutOfRangeException(
+                    name,
+                    spacing,
+                    "The spacing of an array is a finite number above the point tolerance."
+                );
             }
         }
 
@@ -2901,7 +3542,10 @@ namespace GeometryHelper.Dxf
 
             if (name.Trim().Length == 0 || name.IndexOfAny(LineBreaks) >= 0)
             {
-                throw new ArgumentException("A parameter is labelled by a name of one line at least one letter long.", nameof(name));
+                throw new ArgumentException(
+                    "A parameter is labelled by a name of one line at least one letter long.",
+                    nameof(name)
+                );
             }
 
             description = description ?? string.Empty;
@@ -2928,7 +3572,12 @@ namespace GeometryHelper.Dxf
         /// able to be dynamic: each of this block, not erased, nor of a type kept as it is, and an attribute definition only one
         /// locked in the block, of a move, a scale or a turn.
         /// </summary>
-        private List<DxfEntity> Acted(DxfBlockTableRecord block, string name, IEnumerable<DxfEntity> entities, string what)
+        private List<DxfEntity> Acted(
+            DxfBlockTableRecord block,
+            string name,
+            IEnumerable<DxfEntity> entities,
+            string what
+        )
         {
             if (entities == null)
             {
@@ -2947,16 +3596,46 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentNullException(nameof(entities), "An entity to " + what + " is null.");
                 }
 
-                if (entity.IsErased || entity.Handle == null || !string.Equals(entity.OwnerHandle, Handle, StringComparison.OrdinalIgnoreCase))
+                if (
+                    entity.IsErased
+                    || entity.Handle == null
+                    || !string.Equals(entity.OwnerHandle, Handle, StringComparison.OrdinalIgnoreCase)
+                )
                 {
-                    throw new ArgumentException("The entity " + (entity.Handle ?? string.Empty) + " to " + what + " is not of the block " + Name + ", or is erased.", nameof(entities));
+                    throw new ArgumentException(
+                        "The entity "
+                            + (entity.Handle ?? string.Empty)
+                            + " to "
+                            + what
+                            + " is not of the block "
+                            + Name
+                            + ", or is erased.",
+                        nameof(entities)
+                    );
                 }
 
                 // A move, a scale and a rotate take an attribute definition locked in the block, as AutoCAD's Block Editor does; a
                 // flip one whose words the drawing's fonts measure, which it keeps readable (check D34).
-                if ((entity is DxfAttributeDefinition definition && what != "move" && what != "scale" && what != "turn" && !(what == "flip" && definition.IsMeasured)) || entity is DxfUnknownEntity || entity is DxfOle2Frame)
+                if (
+                    (
+                        entity is DxfAttributeDefinition definition
+                        && what != "move"
+                        && what != "scale"
+                        && what != "turn"
+                        && !(what == "flip" && definition.IsMeasured)
+                    )
+                    || entity is DxfUnknownEntity
+                    || entity is DxfOle2Frame
+                )
                 {
-                    throw new ArgumentException("The entity " + entity.Handle + " to " + what + " is an attribute definition or of a type the library keeps as it is, which an action of the library does not take.", nameof(entities));
+                    throw new ArgumentException(
+                        "The entity "
+                            + entity.Handle
+                            + " to "
+                            + what
+                            + " is an attribute definition or of a type the library keeps as it is, which an action of the library does not take.",
+                        nameof(entities)
+                    );
                 }
 
                 Locked(entity, what);
@@ -2994,7 +3673,16 @@ namespace GeometryHelper.Dxf
         {
             if (entity is DxfAttributeDefinition definition && !definition.LockPositionInBlock)
             {
-                throw new ArgumentException("The attribute definition " + definition.Tag + " (" + entity.Handle + ") to " + what + " is not locked in its block: lock its position (LockPositionInBlock), as AutoCAD's Block Editor asks, for AutoCAD 2021 left an unlocked one where it was.", "entities");
+                throw new ArgumentException(
+                    "The attribute definition "
+                        + definition.Tag
+                        + " ("
+                        + entity.Handle
+                        + ") to "
+                        + what
+                        + " is not locked in its block: lock its position (LockPositionInBlock), as AutoCAD's Block Editor asks, for AutoCAD 2021 left an unlocked one where it was.",
+                    "entities"
+                );
             }
         }
 
@@ -3008,10 +3696,19 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private void Alone(bool flip)
         {
-            if (DxfDynamicBlockWriter.Has(this, type => flip ? type.EndsWith("PARAMETER", StringComparison.Ordinal) : type == "BLOCKFLIPPARAMETER"))
+            if (
+                DxfDynamicBlockWriter.Has(this, type =>
+                    flip ? type.EndsWith("PARAMETER", StringComparison.Ordinal) : type == "BLOCKFLIPPARAMETER"
+                )
+            )
             {
-                throw new NotSupportedException("The block " + Name + " has " + (flip ? "a parameter" : "a flip parameter")
-                    + ", and a flip parameter is written alone in its block: AutoCAD 2021 did not flip an INSERT of a block of a flip beside another parameter.");
+                throw new NotSupportedException(
+                    "The block "
+                        + Name
+                        + " has "
+                        + (flip ? "a parameter" : "a flip parameter")
+                        + ", and a flip parameter is written alone in its block: AutoCAD 2021 did not flip an INSERT of a block of a flip beside another parameter."
+                );
             }
         }
 
@@ -3023,16 +3720,25 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private void Unturned(IEnumerable<DxfEntity> entities, bool turn)
         {
-            HashSet<string> other = DxfDynamicBlockWriter.ActedOn(this, type => turn
-                ? type == "BLOCKSTRETCHACTION" || type == "BLOCKMOVEACTION"
-                : type == "BLOCKROTATEACTION" || type == "BLOCKSCALEACTION");
+            HashSet<string> other = DxfDynamicBlockWriter.ActedOn(this, type =>
+                turn
+                    ? type == "BLOCKSTRETCHACTION" || type == "BLOCKMOVEACTION"
+                    : type == "BLOCKROTATEACTION" || type == "BLOCKSCALEACTION"
+            );
 
             foreach (DxfEntity entity in entities)
             {
                 if (other.Contains(entity.Handle))
                 {
-                    throw new NotSupportedException("The entity " + entity.Handle + " is " + (turn ? "stretched or moved" : "turned or scaled") + " by another action of the block " + Name
-                        + ", and a rotate or a scale is not written with a stretch or a move of one entity: AutoCAD 2021 worked such an entity out from its last state.");
+                    throw new NotSupportedException(
+                        "The entity "
+                            + entity.Handle
+                            + " is "
+                            + (turn ? "stretched or moved" : "turned or scaled")
+                            + " by another action of the block "
+                            + Name
+                            + ", and a rotate or a scale is not written with a stretch or a move of one entity: AutoCAD 2021 worked such an entity out from its last state."
+                    );
                 }
             }
         }
@@ -3046,12 +3752,19 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private void Unflipped(bool flip)
         {
-            HashSet<string> other = DxfDynamicBlockWriter.ActedOn(this, type => (type == "BLOCKFLIPACTION") != flip && type != "BLOCKLOOKUPACTION");
+            HashSet<string> other = DxfDynamicBlockWriter.ActedOn(this, type =>
+                (type == "BLOCKFLIPACTION") != flip && type != "BLOCKLOOKUPACTION"
+            );
 
             if (other.Count > 0)
             {
-                throw new NotSupportedException("The block " + Name + " has " + (flip ? "a stretch, move, scale, rotate or array action" : "a flip action")
-                    + ", and a flip is not written with the others: AutoCAD 2021 worked such a block out from the last state of each INSERT and did not flip an INSERT of the block itself.");
+                throw new NotSupportedException(
+                    "The block "
+                        + Name
+                        + " has "
+                        + (flip ? "a stretch, move, scale, rotate or array action" : "a flip action")
+                        + ", and a flip is not written with the others: AutoCAD 2021 worked such a block out from the last state of each INSERT and did not flip an INSERT of the block itself."
+                );
             }
         }
 
@@ -3062,14 +3775,23 @@ namespace GeometryHelper.Dxf
         private void Unarrayed(IEnumerable<DxfEntity> entities, bool array)
         {
             HashSet<string> arrayed = DxfDynamicBlockWriter.ActedOn(this, type => type == "BLOCKARRAYACTION");
-            HashSet<string> other = array ? DxfDynamicBlockWriter.ActedOn(this, type => type != "BLOCKLOOKUPACTION") : arrayed;
+            HashSet<string> other = array
+                ? DxfDynamicBlockWriter.ActedOn(this, type => type != "BLOCKLOOKUPACTION")
+                : arrayed;
 
             foreach (DxfEntity entity in entities)
             {
                 if (other.Contains(entity.Handle))
                 {
-                    throw new NotSupportedException("The entity " + entity.Handle + " is " + (array ? "worked on by another action" : "copied by an array action") + " of the block " + Name
-                        + ", and an entity an array copies is not written with another action on it: no sample of AutoCAD shows the order they would take.");
+                    throw new NotSupportedException(
+                        "The entity "
+                            + entity.Handle
+                            + " is "
+                            + (array ? "worked on by another action" : "copied by an array action")
+                            + " of the block "
+                            + Name
+                            + ", and an entity an array copies is not written with another action on it: no sample of AutoCAD shows the order they would take."
+                    );
                 }
             }
         }
@@ -3079,17 +3801,27 @@ namespace GeometryHelper.Dxf
         {
             if (_file == null || Item == null || Item.Type != "BLOCK_RECORD" || IsErased)
             {
-                throw new InvalidOperationException("The block " + Name + " is in no file of R2010 or later, or is erased, and cannot " + what + ".");
+                throw new InvalidOperationException(
+                    "The block " + Name + " is in no file of R2010 or later, or is erased, and cannot " + what + "."
+                );
             }
 
             if (IsLayout || IsAnonymous || IsFromExternalReference)
             {
-                throw new InvalidOperationException("The block " + Name + " is a layout's, anonymous or of an external reference, which AutoCAD does not make dynamic.");
+                throw new InvalidOperationException(
+                    "The block "
+                        + Name
+                        + " is a layout's, anonymous or of an external reference, which AutoCAD does not make dynamic."
+                );
             }
 
             if (!_file.Supports(1024))
             {
-                throw new InvalidOperationException("A dynamic block is written in a DXF of R2010 (AC1024) or later, the oldest AutoCAD 2021 was seen to read one of; this drawing is " + (_file.Version ?? "of R12") + ".");
+                throw new InvalidOperationException(
+                    "A dynamic block is written in a DXF of R2010 (AC1024) or later, the oldest AutoCAD 2021 was seen to read one of; this drawing is "
+                        + (_file.Version ?? "of R12")
+                        + "."
+                );
             }
         }
 
@@ -3115,7 +3847,9 @@ namespace GeometryHelper.Dxf
 
             if (space == null)
             {
-                throw new InvalidOperationException("The block " + Name + " is in no file: add it to a block table first.");
+                throw new InvalidOperationException(
+                    "The block " + Name + " is in no file: add it to a block table first."
+                );
             }
 
             var moving = new List<DxfEntity>();
@@ -3129,23 +3863,45 @@ namespace GeometryHelper.Dxf
 
                 if (entity.IsErased)
                 {
-                    throw new InvalidOperationException("The " + entity.Item.Type + " " + (entity.Handle ?? string.Empty) + " is erased, and is not moved.");
+                    throw new InvalidOperationException(
+                        "The "
+                            + entity.Item.Type
+                            + " "
+                            + (entity.Handle ?? string.Empty)
+                            + " is erased, and is not moved."
+                    );
                 }
 
                 if (!entity.IsResident || entity.Item.File != _file)
                 {
-                    throw new ArgumentException("The " + entity.Item.Type + " is not of this block's drawing: append a copy of it.", nameof(entitiesToMove));
+                    throw new ArgumentException(
+                        "The " + entity.Item.Type + " is not of this block's drawing: append a copy of it.",
+                        nameof(entitiesToMove)
+                    );
                 }
 
                 if (entity.Item.Parent != null)
                 {
-                    throw new ArgumentException("A " + entity.Item.Type + " belongs to the entity it follows, and moves with it.", nameof(entitiesToMove));
+                    throw new ArgumentException(
+                        "A " + entity.Item.Type + " belongs to the entity it follows, and moves with it.",
+                        nameof(entitiesToMove)
+                    );
                 }
 
-                if (entity is DxfBlockReference reference && !IsLayout && reference.BlockTableRecord is DxfBlockTableRecord inserted
-                    && (string.Equals(inserted.Name, Name, StringComparison.OrdinalIgnoreCase) || Holds(inserted, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { Name })))
+                if (
+                    entity is DxfBlockReference reference
+                    && !IsLayout
+                    && reference.BlockTableRecord is DxfBlockTableRecord inserted
+                    && (
+                        string.Equals(inserted.Name, Name, StringComparison.OrdinalIgnoreCase)
+                        || Holds(inserted, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { Name })
+                    )
+                )
                 {
-                    throw new ArgumentException("The INSERT of " + inserted.Name + " would make the block " + Name + " insert itself.", nameof(entitiesToMove));
+                    throw new ArgumentException(
+                        "The INSERT of " + inserted.Name + " would make the block " + Name + " insert itself.",
+                        nameof(entitiesToMove)
+                    );
                 }
 
                 if (entity.Item.Space != space && !moving.Contains(entity))
@@ -3172,7 +3928,9 @@ namespace GeometryHelper.Dxf
         {
             if (_file == null || _block == null)
             {
-                throw new InvalidOperationException("The block " + Name + " is in no file to be erased from, or is model or paper space.");
+                throw new InvalidOperationException(
+                    "The block " + Name + " is in no file to be erased from, or is model or paper space."
+                );
             }
 
             if (IsErased || (_block.Head != null && _block.Head.IsRemoved))
@@ -3184,21 +3942,40 @@ namespace GeometryHelper.Dxf
 
             if (IsLayout)
             {
-                throw new InvalidOperationException("The block " + name + " is the block of a layout, and goes with its layout.");
+                throw new InvalidOperationException(
+                    "The block " + name + " is the block of a layout, and goes with its layout."
+                );
             }
 
             // What the records use, counted, says at once that nothing uses a block erased after the blocks that did, one by one:
             // where a record may use it, the records are read for it, as before.
             DxfFile.Usage usage = _file.UsageOfRecords();
 
-            if ((usage.MayDraw(name) && _file.Names(Naming, (type, code) => code == 2 && (type == "INSERT" || type == "DIMENSION" || type == "ACAD_TABLE"), name)) || NamedAsArrow(name, usage))
+            if (
+                (
+                    usage.MayDraw(name)
+                    && _file.Names(
+                        Naming,
+                        (type, code) => code == 2 && (type == "INSERT" || type == "DIMENSION" || type == "ACAD_TABLE"),
+                        name
+                    )
+                ) || NamedAsArrow(name, usage)
+            )
             {
-                throw new InvalidOperationException("The block " + name + " is drawn by an INSERT, a dimension or a table, or named as an arrow, and is not erased, as AutoCAD erases a block only when nothing uses it.");
+                throw new InvalidOperationException(
+                    "The block "
+                        + name
+                        + " is drawn by an INSERT, a dimension or a table, or named as an arrow, and is not erased, as AutoCAD erases a block only when nothing uses it."
+                );
             }
 
             if (Handle != null && usage.MayPointAt(Handle) && _file.PointedAt(Handle))
             {
-                throw new InvalidOperationException("The block " + name + " is pointed at by an object of the file, as a dimension style's arrow, and is not erased.");
+                throw new InvalidOperationException(
+                    "The block "
+                        + name
+                        + " is pointed at by an object of the file, as a dimension style's arrow, and is not erased."
+                );
             }
 
             Remove();
@@ -3233,34 +4010,65 @@ namespace GeometryHelper.Dxf
 
             if (IsLayout || _block == null)
             {
-                throw new InvalidOperationException("The block " + old + " is the block of a layout, and is renamed with its layout.");
+                throw new InvalidOperationException(
+                    "The block " + old + " is the block of a layout, and is renamed with its layout."
+                );
             }
 
             if (old.StartsWith("*", StringComparison.Ordinal) || name.StartsWith("*", StringComparison.Ordinal))
             {
-                throw new InvalidOperationException("A block whose name begins with * is one AutoCAD names itself, and is not renamed.");
+                throw new InvalidOperationException(
+                    "A block whose name begins with * is one AutoCAD names itself, and is not renamed."
+                );
             }
 
             if (IsDependent)
             {
-                throw new InvalidOperationException("The block " + old + " comes from an external reference, and is renamed in its own drawing.");
+                throw new InvalidOperationException(
+                    "The block " + old + " comes from an external reference, and is renamed in its own drawing."
+                );
             }
 
             DxfDatabase database = _file.Database;
 
             if (database != null && database.BlockTable.Has(name) && !ReferenceEquals(database.BlockTable[name], this))
             {
-                throw new ArgumentException("The block table has a block named " + name + " already, letters of either case the same.", "value");
+                throw new ArgumentException(
+                    "The block table has a block named " + name + " already, letters of either case the same.",
+                    "value"
+                );
             }
 
-            _file.Rename(Naming, (type, code) => (code == 2 && (type == "INSERT" || type == "DIMENSION" || type == "ACAD_TABLE" || type == "BLOCK" || type == "BLOCK_RECORD"))
-                || (code == 3 && type == "BLOCK") || (type == "DIMSTYLE" && code >= 5 && code <= 7), 0, old, name, true);
+            _file.Rename(
+                Naming,
+                (type, code) =>
+                    (
+                        code == 2
+                        && (
+                            type == "INSERT"
+                            || type == "DIMENSION"
+                            || type == "ACAD_TABLE"
+                            || type == "BLOCK"
+                            || type == "BLOCK_RECORD"
+                        )
+                    )
+                    || (code == 3 && type == "BLOCK")
+                    || (type == "DIMSTYLE" && code >= 5 && code <= 7),
+                0,
+                old,
+                name,
+                true
+            );
 
             foreach (string variable in new[] { "$DIMBLK", "$DIMBLK1", "$DIMBLK2", "$DIMLDRBLK" })
             {
                 IReadOnlyList<DxfTypedValue> groups = _file.HeaderOf(variable);
 
-                if (groups != null && groups.Count == 1 && string.Equals(DxfReader.NameOf(groups[0].Value), old, StringComparison.OrdinalIgnoreCase))
+                if (
+                    groups != null
+                    && groups.Count == 1
+                    && string.Equals(DxfReader.NameOf(groups[0].Value), old, StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     _file.SetHeader(variable, new[] { new DxfTypedValue(groups[0].TypeCode, name) });
                 }
@@ -3268,7 +4076,9 @@ namespace GeometryHelper.Dxf
 
             _file.Renamed(_block, name);
             database?.BlockTable.Renamed();
-            GeometryHelperLog.Info("DxfDatabase: the block " + old + " was renamed " + name + ", with every INSERT of it.");
+            GeometryHelperLog.Info(
+                "DxfDatabase: the block " + old + " was renamed " + name + ", with every INSERT of it."
+            );
         }
 
         /// <summary>
@@ -3282,13 +4092,21 @@ namespace GeometryHelper.Dxf
             {
                 IReadOnlyList<DxfTypedValue> groups = _file.HeaderOf(variable);
 
-                if (groups != null && groups.Count > 0 && string.Equals(DxfReader.NameOf(groups[0].Value), name, StringComparison.OrdinalIgnoreCase))
+                if (
+                    groups != null
+                    && groups.Count > 0
+                    && string.Equals(DxfReader.NameOf(groups[0].Value), name, StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     return true;
                 }
             }
 
-            return usage.MayBeArrow(name) && (_file.Names(Naming, (type, code) => type == "DIMSTYLE" && code >= 5 && code <= 7, name) || _file.NamesArrowInOverrides(name));
+            return usage.MayBeArrow(name)
+                && (
+                    _file.Names(Naming, (type, code) => type == "DIMSTYLE" && code >= 5 && code <= 7, name)
+                    || _file.NamesArrowInOverrides(name)
+                );
         }
 
         /// <summary>
@@ -3358,7 +4176,10 @@ namespace GeometryHelper.Dxf
 
             for (int i = 1; tag != null && i < tag.Count; i++)
             {
-                if (tag[i].TypeCode == 1005 && string.Equals(tag[i].Value.Trim(), handle, StringComparison.OrdinalIgnoreCase))
+                if (
+                    tag[i].TypeCode == 1005
+                    && string.Equals(tag[i].Value.Trim(), handle, StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     return true;
                 }
@@ -3366,15 +4187,23 @@ namespace GeometryHelper.Dxf
 
             DxfDBDictionary extension = ExtensionDictionary;
 
-            if (extension == null || !extension.Contains("AcDbBlockRepresentation") || !(extension.GetAt("AcDbBlockRepresentation") is DxfDBDictionary representation)
-                || !representation.Contains("AcDbRepData") || !(representation.GetAt("AcDbRepData") is DxfDBObject data))
+            if (
+                extension == null
+                || !extension.Contains("AcDbBlockRepresentation")
+                || !(extension.GetAt("AcDbBlockRepresentation") is DxfDBDictionary representation)
+                || !representation.Contains("AcDbRepData")
+                || !(representation.GetAt("AcDbRepData") is DxfDBObject data)
+            )
             {
                 return false;
             }
 
             foreach (DxfTypedValue group in _file.ObjectGroupsOf(data.Item))
             {
-                if (group.TypeCode == 340 && string.Equals(group.Value.Trim(), handle, StringComparison.OrdinalIgnoreCase))
+                if (
+                    group.TypeCode == 340
+                    && string.Equals(group.Value.Trim(), handle, StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     return true;
                 }
@@ -3384,8 +4213,17 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The whole number of a group of the block's BLOCK_RECORD; the fallback where it has none or no BLOCK_RECORD.</summary>
-        private int RecordWhole(int code, int fallback)
-            => Item != null && Item.Type == "BLOCK_RECORD" && int.TryParse(_file.ValueOf(Item, code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+        private int RecordWhole(int code, int fallback) =>
+            Item != null
+            && Item.Type == "BLOCK_RECORD"
+            && int.TryParse(
+                _file.ValueOf(Item, code)?.Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int value
+            )
+                ? value
+                : fallback;
 
         /// <summary>Sets a group of the block's BLOCK_RECORD, which a file of R2007 or later has.</summary>
         private void SetRecord(int code, string value, string what)
@@ -3394,7 +4232,9 @@ namespace GeometryHelper.Dxf
 
             if (Item == null || Item.Type != "BLOCK_RECORD")
             {
-                throw new InvalidOperationException("The block " + Name + " has no BLOCK_RECORD to hold its " + what + ".");
+                throw new InvalidOperationException(
+                    "The block " + Name + " has no BLOCK_RECORD to hold its " + what + "."
+                );
             }
 
             _file.SetValues(Item, new[] { new KeyValuePair<int, string>(code, value) }, RecordOrder, false);
@@ -3419,12 +4259,14 @@ namespace GeometryHelper.Dxf
                 DxfItem head = _block?.Head;
                 return head == null ? default(GeoPoint3) : PointOf(head, 10);
             }
-
             set
             {
                 if (!value.IsValid)
                 {
-                    throw new ArgumentException("An origin has to be of finite numbers: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "An origin has to be of finite numbers: " + value + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 if (_file == null)
@@ -3440,7 +4282,10 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                DxfItem head = _block?.Head ?? throw new InvalidOperationException("The " + Name + " of this file has no BLOCK to give an origin.");
+                DxfItem head = _block?.Head
+                    ?? throw new InvalidOperationException(
+                        "The " + Name + " of this file has no BLOCK to give an origin."
+                    );
                 var groups = new List<KeyValuePair<int, string>>();
                 double[] values = { value.X, value.Y, value.Z };
 
@@ -3463,12 +4308,18 @@ namespace GeometryHelper.Dxf
             {
                 string name = Name ?? string.Empty;
 
-                if (_kind != DxfSpaceKind.Block || IsModelName(name) || name.StartsWith(PaperSpace, StringComparison.OrdinalIgnoreCase) || name.StartsWith("$Paper_Space", StringComparison.OrdinalIgnoreCase))
+                if (
+                    _kind != DxfSpaceKind.Block
+                    || IsModelName(name)
+                    || name.StartsWith(PaperSpace, StringComparison.OrdinalIgnoreCase)
+                    || name.StartsWith("$Paper_Space", StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     return true;
                 }
 
-                string layout = Item != null && Item.Type == "BLOCK_RECORD" ? Item.File.ValueOf(Item, 340)?.Trim() : null;
+                string layout =
+                    Item != null && Item.Type == "BLOCK_RECORD" ? Item.File.ValueOf(Item, 340)?.Trim() : null;
                 return !string.IsNullOrEmpty(layout) && layout != "0";
             }
         }
@@ -3507,7 +4358,6 @@ namespace GeometryHelper.Dxf
         public string PathName
         {
             get => _block?.Head == null || _file == null ? string.Empty : _file.ValueOf(_block.Head, 1) ?? string.Empty;
-
             set
             {
                 if (value == null)
@@ -3517,12 +4367,17 @@ namespace GeometryHelper.Dxf
 
                 if (value.Trim().Length == 0 || value.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0)
                 {
-                    throw new ArgumentException("The path of an external reference is given, on one line: '" + value + "' is not one.", nameof(value));
+                    throw new ArgumentException(
+                        "The path of an external reference is given, on one line: '" + value + "' is not one.",
+                        nameof(value)
+                    );
                 }
 
                 if (!IsFromExternalReference && (MadeFlags & 4) == 0)
                 {
-                    throw new InvalidOperationException("The block " + Name + " is no external reference, so it has no path.");
+                    throw new InvalidOperationException(
+                        "The block " + Name + " is no external reference, so it has no path."
+                    );
                 }
 
                 if (_file == null)
@@ -3536,7 +4391,8 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                DxfItem head = _block?.Head ?? throw new InvalidOperationException("The block " + Name + " has no BLOCK to hold a path.");
+                DxfItem head = _block?.Head
+                    ?? throw new InvalidOperationException("The block " + Name + " has no BLOCK to hold a path.");
                 _file.SetValues(head, new[] { new KeyValuePair<int, string>(1, value) }, BlockOrder, false);
             }
         }
@@ -3594,7 +4450,9 @@ namespace GeometryHelper.Dxf
                 }
 
                 string folder = drawing == null ? null : System.IO.Path.GetDirectoryName(drawing);
-                return !System.IO.Path.IsPathRooted(path) && folder != null && System.IO.File.Exists(System.IO.Path.Combine(folder, path));
+                return !System.IO.Path.IsPathRooted(path)
+                    && folder != null
+                    && System.IO.File.Exists(System.IO.Path.Combine(folder, path));
             }
             catch (ArgumentException)
             {
@@ -3656,7 +4514,12 @@ namespace GeometryHelper.Dxf
             get
             {
                 DxfDBDictionary dictionary = ExtensionDictionary;
-                return dictionary != null && dictionary.Contains(DxfDrawOrderTable.Key) && dictionary.GetAt(DxfDrawOrderTable.Key) is DxfDrawOrderTable table ? table.For(this) : null;
+                return
+                    dictionary != null
+                    && dictionary.Contains(DxfDrawOrderTable.Key)
+                    && dictionary.GetAt(DxfDrawOrderTable.Key) is DxfDrawOrderTable table
+                    ? table.For(this)
+                    : null;
             }
         }
 
@@ -3677,7 +4540,10 @@ namespace GeometryHelper.Dxf
                 return table;
             }
 
-            string block = Handle ?? throw new InvalidOperationException("The block " + Name + " has no handle to be given a draw order by.");
+            string block = Handle
+                ?? throw new InvalidOperationException(
+                    "The block " + Name + " has no handle to be given a draw order by."
+                );
             CreateExtensionDictionary();
             DxfItem made = ExtensionDictionary.Add(DxfDrawOrderTable.Key, "SORTENTSTABLE", b =>
             {
@@ -3784,14 +4650,22 @@ namespace GeometryHelper.Dxf
 
             if (entity.IsResident)
             {
-                throw new InvalidOperationException("The " + entity.Item.Type + " " + (entity.Handle ?? string.Empty) + " is in a file already: append a copy of it.");
+                throw new InvalidOperationException(
+                    "The "
+                        + entity.Item.Type
+                        + " "
+                        + (entity.Handle ?? string.Empty)
+                        + " is in a file already: append a copy of it."
+                );
             }
 
             DxfSpace space = Space;
 
             if (space == null)
             {
-                throw new InvalidOperationException("The block " + Name + " is in no file: add it to a block table first.");
+                throw new InvalidOperationException(
+                    "The block " + Name + " is in no file: add it to a block table first."
+                );
             }
 
             entity.Appending(this);
@@ -3822,7 +4696,12 @@ namespace GeometryHelper.Dxf
             // a multileader gives the block's attributes (check P4b).
             if (entity is DxfAttributeDefinition && _block?.Head != null && (Flags & 2) == 0)
             {
-                _file.SetValues(_block.Head, new[] { new KeyValuePair<int, string>(70, (Flags | 2).ToString(CultureInfo.InvariantCulture)) }, BlockOrder, false);
+                _file.SetValues(
+                    _block.Head,
+                    new[] { new KeyValuePair<int, string>(70, (Flags | 2).ToString(CultureInfo.InvariantCulture)) },
+                    BlockOrder,
+                    false
+                );
             }
 
             // A text made in code is placed about its second point by the drawing's fonts, where it has them; a copy keeps its place.
@@ -3896,7 +4775,11 @@ namespace GeometryHelper.Dxf
                         string said = group.Value.Trim();
                         listing = said == "ACAD_MTEXT_COLUMNS_BEGIN" || (listing && said != "ACAD_MTEXT_COLUMNS_END");
                     }
-                    else if (listing && group.TypeCode == 1005 && !string.Equals(group.Value.Trim(), own, StringComparison.OrdinalIgnoreCase))
+                    else if (
+                        listing
+                        && group.TypeCode == 1005
+                        && !string.Equals(group.Value.Trim(), own, StringComparison.OrdinalIgnoreCase)
+                    )
                     {
                         // Only another MTEXT's columns: one that lists itself stays an entity of the block.
                         columns = columns ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -3955,8 +4838,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether an entity is an MTEXT another lists as one of its linked columns.</summary>
-        private static bool IsColumn(DxfItem item, HashSet<string> columns)
-            => columns != null && item.Type == "MTEXT" && item.Handle != null && columns.Contains(item.Handle);
+        private static bool IsColumn(DxfItem item, HashSet<string> columns) =>
+            columns != null && item.Type == "MTEXT" && item.Handle != null && columns.Contains(item.Handle);
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 
@@ -3978,15 +4861,24 @@ namespace GeometryHelper.Dxf
 
             if (flags != Flags)
             {
-                _file.SetValues(_block.Head, new[] { new KeyValuePair<int, string>(70, flags.ToString(CultureInfo.InvariantCulture)) }, BlockOrder, false);
+                _file.SetValues(
+                    _block.Head,
+                    new[] { new KeyValuePair<int, string>(70, flags.ToString(CultureInfo.InvariantCulture)) },
+                    BlockOrder,
+                    false
+                );
             }
         }
 
         /// <summary>Whether a name is that of model space, as AutoCAD (<c>*Model_Space</c>) or ezdxf's files of R12 (<c>$Model_Space</c>) spell it.</summary>
-        internal static bool IsModelName(string name) => string.Equals(name, ModelSpace, StringComparison.OrdinalIgnoreCase) || string.Equals(name, "$Model_Space", StringComparison.OrdinalIgnoreCase);
+        internal static bool IsModelName(string name) =>
+            string.Equals(name, ModelSpace, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "$Model_Space", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>Whether a name is that of paper space, the layout last shown.</summary>
-        internal static bool IsPaperName(string name) => string.Equals(name, PaperSpace, StringComparison.OrdinalIgnoreCase) || string.Equals(name, "$Paper_Space", StringComparison.OrdinalIgnoreCase);
+        internal static bool IsPaperName(string name) =>
+            string.Equals(name, PaperSpace, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "$Paper_Space", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>Model space or paper space given its record and its block, where the file has them.</summary>
         internal DxfBlockTableRecord Joined(DxfItem record, DxfFileBlock block)
@@ -4011,17 +4903,40 @@ namespace GeometryHelper.Dxf
         /// <summary>Writes the block made in code into a file, and stands for its records from then on.</summary>
         internal void AddTo(DxfFile file)
         {
-            if ((_units != DxfUnits.Undefined || !_explodable || _scaling != DxfBlockScaling.Any) && !file.Supports(1021))
+            if (
+                (_units != DxfUnits.Undefined || !_explodable || _scaling != DxfBlockScaling.Any)
+                && !file.Supports(1021)
+            )
             {
-                throw new ArgumentException("A DXF of version " + (file.Version ?? "R12") + " has no units, explodability or scaling of a block, which came with R2007 (AC1021).", "value");
+                throw new ArgumentException(
+                    "A DXF of version "
+                        + (file.Version ?? "R12")
+                        + " has no units, explodability or scaling of a block, which came with R2007 (AC1021).",
+                    "value"
+                );
             }
 
             if (_comments.Length > 0 && !file.Supports(1015))
             {
-                throw new ArgumentException("A DXF of version " + (file.Version ?? "R12") + " has no descriptions of blocks, which came with R2000 (AC1015).", "value");
+                throw new ArgumentException(
+                    "A DXF of version "
+                        + (file.Version ?? "R12")
+                        + " has no descriptions of blocks, which came with R2000 (AC1015).",
+                    "value"
+                );
             }
 
-            DxfFileBlock block = file.AddBlock(Name, _origin, (int)_units, _explodable, _scaling == DxfBlockScaling.Uniform, _comments, out DxfItem record, MadeFlags, MadePath);
+            DxfFileBlock block = file.AddBlock(
+                Name,
+                _origin,
+                (int)_units,
+                _explodable,
+                _scaling == DxfBlockScaling.Uniform,
+                _comments,
+                out DxfItem record,
+                MadeFlags,
+                MadePath
+            );
             _file = file;
             _block = block;
             _space = block.Items;
@@ -4046,7 +4961,8 @@ namespace GeometryHelper.Dxf
             return any ? new GeoPoint3(values[0], values[1], values[2]) : default(GeoPoint3);
         }
 
-        private static bool Same(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
+        private static bool Same(double a, double b) =>
+            BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
     }
 
     internal static class Enumerables

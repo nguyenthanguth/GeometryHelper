@@ -34,8 +34,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the patches where two bodies lie against each other, face to face.
         /// </summary>
-        public static bool TryGetContact(GeoSolid3 first, GeoSolid3 second, out GeoFace3[] contact)
-            => TryGetContact(first, second, out contact, Tolerance.Global);
+        public static bool TryGetContact(GeoSolid3 first, GeoSolid3 second, out GeoFace3[] contact) =>
+            TryGetContact(first, second, out contact, Tolerance.Global);
 
         /// <summary>
         /// Gets the patches where two bodies lie against each other, face to face, within a tolerance.
@@ -80,9 +80,11 @@ namespace GeometryHelper.Core
 
                 foreach (GeoFace3 other in theirs.Faces)
                 {
-                    if (normal.DotProduct(other.Boundary.Normal) >= 0.0
+                    if (
+                        normal.DotProduct(other.Boundary.Normal) >= 0.0
                         || !faceBox.CollidesWith(other.GetAabb(), tolerance)
-                        || !LiesIn(plane, other, tolerance))
+                        || !LiesIn(plane, other, tolerance)
+                    )
                     {
                         continue;
                     }
@@ -112,7 +114,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Files a patch with the others lying in the same plane.
         /// </summary>
-        private static void Collect(List<List<GeoFace3>> byPlane, List<GeoPlane3> planes, GeoPlane3 plane, GeoFace3 patch, Tolerance tolerance)
+        private static void Collect(
+            List<List<GeoFace3>> byPlane,
+            List<GeoPlane3> planes,
+            GeoPlane3 plane,
+            GeoFace3 patch,
+            Tolerance tolerance
+        )
         {
             for (int i = 0; i < planes.Count; i++)
             {

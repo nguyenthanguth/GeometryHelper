@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using GeometryHelper;
+using GeometryHelper.Geometry;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Core.Internal;
-using GeometryHelper.Geometry;
 using Xbim.Common;
 using Xbim.Common.Geometry;
 using Xbim.Common.XbimExtensions;
@@ -78,8 +78,12 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <param name="options">Conversion options; <see cref="IfcConvertOptions.DeflectionTolerance"/> must already be resolved.</param>
         /// <param name="result">The meshed solid when the method returns true.</param>
         /// <param name="warnings">Receives a message when the solid cannot be triangulated, or null to ignore it.</param>
-        public static bool TryMeshSolid(IXbimSolid solid, IfcConvertOptions options, out GeoSolid3 result,
-            ICollection<string> warnings = null)
+        public static bool TryMeshSolid(
+            IXbimSolid solid,
+            IfcConvertOptions options,
+            out GeoSolid3 result,
+            ICollection<string> warnings = null
+        )
         {
             result = null;
             IfcConvertOptions attemptOptions = options;
@@ -167,9 +171,10 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             // Tolerances in options are in output units; the engine works in model units.
             // Without a model to resolve the automatic deflection, fall back to 0.1 % of the object's size.
             double precision = tolerance.EqualPoint / scale;
-            double deflection = options.DeflectionTolerance > 0.0
-                ? options.DeflectionTolerance / scale
-                : Math.Max(geometry.BoundingBox.Length() * 0.001, precision);
+            double deflection =
+                options.DeflectionTolerance > 0.0
+                    ? options.DeflectionTolerance / scale
+                    : Math.Max(geometry.BoundingBox.Length() * 0.001, precision);
 
             // Mesh through CreateShapeGeometry (the path xBIM's own scene builder uses). The receiver-based
             // IXbimGeometryEngine.Mesh throws inside the native engine for curved shapes in this engine build.
@@ -177,7 +182,12 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             try
             {
                 IXbimShapeGeometryData shape = IfcEngineContext.CurrentEngine.CreateShapeGeometry(
-                    geometry, precision, deflection, AngularDeflection, XbimGeometryType.PolyhedronBinary);
+                    geometry,
+                    precision,
+                    deflection,
+                    AngularDeflection,
+                    XbimGeometryType.PolyhedronBinary
+                );
 
                 using (MemoryStream stream = new MemoryStream(shape.ShapeData))
                 using (BinaryReader reader = new BinaryReader(stream))
@@ -202,9 +212,7 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                     int i1 = indices[i + 1];
                     int i2 = indices[i + 2];
 
-                    if (i0 < 0 || i0 >= nodes.Count ||
-                        i1 < 0 || i1 >= nodes.Count ||
-                        i2 < 0 || i2 >= nodes.Count)
+                    if (i0 < 0 || i0 >= nodes.Count || i1 < 0 || i1 >= nodes.Count || i2 < 0 || i2 >= nodes.Count)
                     {
                         continue;
                     }

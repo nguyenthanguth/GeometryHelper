@@ -41,7 +41,10 @@ namespace GeometryHelper.Drawing
             return value;
         }
 
-        internal static KeyValuePair<string, string>[] Values(IEnumerable<KeyValuePair<string, string>> values, string parameter)
+        internal static KeyValuePair<string, string>[] Values(
+            IEnumerable<KeyValuePair<string, string>> values,
+            string parameter
+        )
         {
             var list = new List<KeyValuePair<string, string>>();
 
@@ -58,7 +61,8 @@ namespace GeometryHelper.Drawing
             return list.ToArray();
         }
 
-        internal static bool SameBits(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
+        internal static bool SameBits(double a, double b) =>
+            BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
 
         internal static bool SameValues(KeyValuePair<string, string>[] a, KeyValuePair<string, string>[] b)
         {
@@ -69,7 +73,10 @@ namespace GeometryHelper.Drawing
 
             for (int i = 0; i < a.Length; i++)
             {
-                if (!string.Equals(a[i].Key, b[i].Key, StringComparison.Ordinal) || !string.Equals(a[i].Value, b[i].Value, StringComparison.Ordinal))
+                if (
+                    !string.Equals(a[i].Key, b[i].Key, StringComparison.Ordinal)
+                    || !string.Equals(a[i].Value, b[i].Value, StringComparison.Ordinal)
+                )
                 {
                     return false;
                 }
@@ -107,7 +114,9 @@ namespace GeometryHelper.Drawing
             string text = value.ToString("R", CultureInfo.InvariantCulture);
 
             // "R" misses the last bit of a few numbers under .NET Framework; 17 digits never do.
-            return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double read) && SameBits(read, value)
+            return
+                double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double read)
+                && SameBits(read, value)
                 ? text
                 : value.ToString("G17", CultureInfo.InvariantCulture);
         }
@@ -202,10 +211,21 @@ namespace GeometryHelper.Drawing
                 int start = wide ? i + 2 : i + 1;
                 int digits = wide ? 4 : 2;
 
-                if (start + digits > written.Length
-                    || !int.TryParse(written.Substring(start, digits), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int code))
+                if (
+                    start + digits > written.Length
+                    || !int.TryParse(
+                        written.Substring(start, digits),
+                        NumberStyles.AllowHexSpecifier,
+                        CultureInfo.InvariantCulture,
+                        out int code
+                    )
+                )
                 {
-                    throw new FormatException("A per cent sign at " + i.ToString(CultureInfo.InvariantCulture) + " of a text begins no escape.");
+                    throw new FormatException(
+                        "A per cent sign at "
+                            + i.ToString(CultureInfo.InvariantCulture)
+                            + " of a text begins no escape."
+                    );
                 }
 
                 read.Append((char)code);
@@ -244,11 +264,11 @@ namespace GeometryHelper.Drawing
                     _groups.Add(new DxfTypedValue(code, written.Substring(at, length)));
                     at += length;
                     code = 3;
-                }
-                while (at < written.Length);
+                } while (at < written.Length);
             }
 
-            internal void Integer(int value) => _groups.Add(new DxfTypedValue(90, value.ToString(CultureInfo.InvariantCulture)));
+            internal void Integer(int value) =>
+                _groups.Add(new DxfTypedValue(90, value.ToString(CultureInfo.InvariantCulture)));
 
             internal void Point(GeoPoint3 point)
             {
@@ -330,7 +350,9 @@ namespace GeometryHelper.Drawing
 
                 if (count < 0 || count > _end - _at)
                 {
-                    throw new FormatException("A count of " + count.ToString(CultureInfo.InvariantCulture) + " does not fit the groups left.");
+                    throw new FormatException(
+                        "A count of " + count.ToString(CultureInfo.InvariantCulture) + " does not fit the groups left."
+                    );
                 }
 
                 return count;
@@ -382,7 +404,11 @@ namespace GeometryHelper.Drawing
             {
                 if (_at != _end)
                 {
-                    throw new FormatException("The record has " + (_end - _at).ToString(CultureInfo.InvariantCulture) + " groups more than its layout.");
+                    throw new FormatException(
+                        "The record has "
+                            + (_end - _at).ToString(CultureInfo.InvariantCulture)
+                            + " groups more than its layout."
+                    );
                 }
             }
 
@@ -390,14 +416,22 @@ namespace GeometryHelper.Drawing
             {
                 if (_at >= _end)
                 {
-                    throw new FormatException("The record ends where a group " + code.ToString(CultureInfo.InvariantCulture) + " was due.");
+                    throw new FormatException(
+                        "The record ends where a group " + code.ToString(CultureInfo.InvariantCulture) + " was due."
+                    );
                 }
 
                 DxfTypedValue group = _groups[_at];
 
                 if (group.TypeCode != code)
                 {
-                    throw new FormatException("A group " + group.TypeCode.ToString(CultureInfo.InvariantCulture) + " stands where a group " + code.ToString(CultureInfo.InvariantCulture) + " was due.");
+                    throw new FormatException(
+                        "A group "
+                            + group.TypeCode.ToString(CultureInfo.InvariantCulture)
+                            + " stands where a group "
+                            + code.ToString(CultureInfo.InvariantCulture)
+                            + " was due."
+                    );
                 }
 
                 _at++;

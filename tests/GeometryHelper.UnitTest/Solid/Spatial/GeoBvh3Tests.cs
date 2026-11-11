@@ -50,8 +50,7 @@ namespace GeometryHelper.UnitTest.Solid
             return new GeoSolid3(faces);
         }
 
-        private static GeoSolid3 MakeBoxSolid(GeoPoint3 min, GeoPoint3 max) =>
-            new GeoAabb3(min, max).ToObb().ToSolid();
+        private static GeoSolid3 MakeBoxSolid(GeoPoint3 min, GeoPoint3 max) => new GeoAabb3(min, max).ToObb().ToSolid();
 
         [Fact]
         public void AnEmptyHierarchyHoldsNothing()
@@ -113,7 +112,7 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoRay3(new GeoPoint3(0, 0, -30), GeoVector3.ZAxis),
                 new GeoRay3(new GeoPoint3(-30, 0.7, 6), GeoVector3.XAxis),
                 new GeoRay3(new GeoPoint3(-30, -30, 3), new GeoVector3(1, 1, 0.1)),
-                new GeoRay3(new GeoPoint3(0, 0, 40), GeoVector3.ZAxis)
+                new GeoRay3(new GeoPoint3(0, 0, 40), GeoVector3.ZAxis),
             };
 
             foreach (GeoRay3 ray in rays)
@@ -144,7 +143,7 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(20, 0, 6),
                 new GeoPoint3(0, 0, 40),
                 new GeoPoint3(-13, 7, -4),
-                new GeoPoint3(4.9, 0.1, 11.9)
+                new GeoPoint3(4.9, 0.1, 11.9),
             };
 
             foreach (GeoPoint3 probe in probes)
@@ -172,7 +171,7 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoVector3(11, 0, 0),
                 new GeoVector3(0, 0, 10),
                 new GeoVector3(0, 0, 25),
-                new GeoVector3(100, 100, 100)
+                new GeoVector3(100, 100, 100),
             };
 
             GeoTriangle3[] mesh1 = first.Triangulate();
@@ -209,7 +208,8 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoBvh3 first = GeoBvh3.FromSolid(MakeCylinder(24, 4.0, 8.0));
             GeoBvh3 second = GeoBvh3.FromSolid(
-                MakeCylinder(24, 4.0, 8.0).TransformBy(GeoTransform3.Translation(new GeoVector3(6, 0, 2))));
+                MakeCylinder(24, 4.0, 8.0).TransformBy(GeoTransform3.Translation(new GeoVector3(6, 0, 2)))
+            );
 
             Assert.Equal(first.CollidesWith(second), second.CollidesWith(first));
             Assert.True(first.CollidesWith(second));

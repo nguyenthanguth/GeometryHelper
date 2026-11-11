@@ -17,7 +17,17 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     public sealed class DxfBlockLinearParameter
     {
-        internal DxfBlockLinearParameter(DxfBlockTableRecord block, int node, string handle, string name, string description, GeoPoint3 basePoint, GeoPoint3 endPoint, double labelOffset, DxfBlockParameterValueSet valueSet)
+        internal DxfBlockLinearParameter(
+            DxfBlockTableRecord block,
+            int node,
+            string handle,
+            string name,
+            string description,
+            GeoPoint3 basePoint,
+            GeoPoint3 endPoint,
+            double labelOffset,
+            DxfBlockParameterValueSet valueSet
+        )
         {
             Block = block;
             Node = node;

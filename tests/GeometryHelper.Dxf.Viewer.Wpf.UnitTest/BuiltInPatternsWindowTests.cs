@@ -20,13 +20,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 {
                     using (var folder = new TestFolder())
                     {
-                        string support = Path.GetDirectoryName(folder.WriteText("acadiso.pat", "*ANSI31,Not ours\n45, 0,0, 0,10\n*MINE,Mine\n0, 0,0, 0,5\n"));
+                        string support = Path.GetDirectoryName(
+                            folder.WriteText(
+                                "acadiso.pat",
+                                "*ANSI31,Not ours\n45, 0,0, 0,10\n*MINE,Mine\n0, 0,0, 0,5\n"
+                            )
+                        );
                         CadDocument document = CadDocument.From(new DxfDatabase("AC1027"), "blank.dxf");
                         document.SupportFolders = new[] { support };
 
                         var dialog = new HatchSettingsViewModel(document, new CadHatchSettings(), false);
-                        Assert.Equal(CadPatternFile.BuiltIn.Select(p => p.Name).Concat(new[] { "MINE" }).ToArray(), dialog.Patterns.Select(p => p.Name).ToArray());
-                        Assert.Equal(CadPatternFile.BuiltInName, dialog.Patterns.Single(p => p.Name == "ANSI31").Source);
+                        Assert.Equal(
+                            CadPatternFile.BuiltIn.Select(p => p.Name).Concat(new[] { "MINE" }).ToArray(),
+                            dialog.Patterns.Select(p => p.Name).ToArray()
+                        );
+                        Assert.Equal(
+                            CadPatternFile.BuiltInName,
+                            dialog.Patterns.Single(p => p.Name == "ANSI31").Source
+                        );
                         Assert.Contains(dialog.Patterns, p => p.Name == "AR-BRSTD");
                         Assert.Contains(dialog.Patterns, p => p.Name == "ISO02W100");
                     }

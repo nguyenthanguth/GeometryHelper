@@ -45,7 +45,8 @@ namespace GeometryHelper.Core
                 double from,
                 double sweep,
                 Func<double, GeoPoint3> at,
-                Func<GeoPoint3, bool> holds)
+                Func<GeoPoint3, bool> holds
+            )
             {
                 Center = center;
                 Along = along;
@@ -95,7 +96,8 @@ namespace GeometryHelper.Core
                     0.0,
                     2.0 * Math.PI,
                     angle => Ellipse3.GetPointAtAngle(ellipse, angle),
-                    holds);
+                    holds
+                );
             }
 
             /// <summary>
@@ -120,9 +122,14 @@ namespace GeometryHelper.Core
                         double c = radius * Math.Cos(angle);
                         double s = radius * Math.Sin(angle);
 
-                        return new GeoPoint3(center.X + c * u.X + s * v.X, center.Y + c * u.Y + s * v.Y, center.Z + c * u.Z + s * v.Z);
+                        return new GeoPoint3(
+                            center.X + c * u.X + s * v.X,
+                            center.Y + c * u.Y + s * v.Y,
+                            center.Z + c * u.Z + s * v.Z
+                        );
                     },
-                    point => arc.IsPointOn(point, tolerance));
+                    point => arc.IsPointOn(point, tolerance)
+                );
             }
         }
 
@@ -146,7 +153,8 @@ namespace GeometryHelper.Core
                 double major,
                 double minor,
                 Func<GeoPoint2, GeoPoint2> nearestFlat,
-                bool whole)
+                bool whole
+            )
             {
                 Plane = plane;
                 Normal = normal;
@@ -236,9 +244,12 @@ namespace GeometryHelper.Core
                     {
                         double reach = Math.Sqrt(point.X * point.X + point.Y * point.Y);
 
-                        return reach > 0.0 ? new GeoPoint2(point.X * radius / reach, point.Y * radius / reach) : new GeoPoint2(radius, 0.0);
+                        return reach > 0.0
+                            ? new GeoPoint2(point.X * radius / reach, point.Y * radius / reach)
+                            : new GeoPoint2(radius, 0.0);
                     },
-                    Math.Abs(arc.SweptAngle) >= 2.0 * Math.PI)
+                    Math.Abs(arc.SweptAngle) >= 2.0 * Math.PI
+                )
                 {
                     From = arc.StartAngle,
                     Sweep = arc.SweptAngle,
@@ -263,8 +274,15 @@ namespace GeometryHelper.Core
             // A hair over the tolerance, and the rounding of the heights and gaps read here besides, as an arc reads a segment.
             GeoPoint3 one = rim.Center;
             GeoPoint3 two = target.Center;
-            double size = Math.Abs(one.X) + Math.Abs(one.Y) + Math.Abs(one.Z) + Math.Abs(two.X) + Math.Abs(two.Y) + Math.Abs(two.Z)
-                + a + target.Reach;
+            double size =
+                Math.Abs(one.X)
+                + Math.Abs(one.Y)
+                + Math.Abs(one.Z)
+                + Math.Abs(two.X)
+                + Math.Abs(two.Y)
+                + Math.Abs(two.Z)
+                + a
+                + target.Reach;
             double near = tolerance.EqualPoint * (1.0 + 1E-6) + 1E-9 + 1E-15 * size;
 
             // The height is height + swing cos(t - phase); the stretches are where it is within the reach of nought.
@@ -442,7 +460,16 @@ namespace GeometryHelper.Core
             private int _splitting;
             private long _queued;
 
-            internal Search(Rim rim, Target target, double height, double swing, double phase, double limit, double near, double resolution)
+            internal Search(
+                Rim rim,
+                Target target,
+                double height,
+                double swing,
+                double phase,
+                double limit,
+                double near,
+                double resolution
+            )
             {
                 _rim = rim;
                 _target = target;
@@ -488,7 +515,18 @@ namespace GeometryHelper.Core
 
                     _readings++;
 
-                    Enqueue(queue, new Piece { From = start, To = end, AtFrom = previous, AtTo = value, FootFrom = previousFoot, FootTo = foot });
+                    Enqueue(
+                        queue,
+                        new Piece
+                        {
+                            From = start,
+                            To = end,
+                            AtFrom = previous,
+                            AtTo = value,
+                            FootFrom = previousFoot,
+                            FootTo = foot,
+                        }
+                    );
                     previous = value;
                     previousFoot = foot;
                 }
@@ -514,11 +552,27 @@ namespace GeometryHelper.Core
                     }
                 }
 
-                if (round && groups.Count > 1 && groups[0][0].From <= from && groups[groups.Count - 1][groups[groups.Count - 1].Count - 1].To >= to)
+                if (
+                    round
+                    && groups.Count > 1
+                    && groups[0][0].From <= from
+                    && groups[groups.Count - 1][groups[groups.Count - 1].Count - 1].To >= to
+                )
                 {
                     foreach (Piece piece in groups[0])
                     {
-                        groups[groups.Count - 1].Add(new Piece { From = piece.From + Turn, To = piece.To + Turn, AtFrom = piece.AtFrom, AtTo = piece.AtTo, FootFrom = piece.FootFrom, FootTo = piece.FootTo });
+                        groups[groups.Count - 1]
+                            .Add(
+                                new Piece
+                                {
+                                    From = piece.From + Turn,
+                                    To = piece.To + Turn,
+                                    AtFrom = piece.AtFrom,
+                                    AtTo = piece.AtTo,
+                                    FootFrom = piece.FootFrom,
+                                    FootTo = piece.FootTo,
+                                }
+                            );
                     }
 
                     groups.RemoveAt(0);
@@ -552,7 +606,9 @@ namespace GeometryHelper.Core
                     {
                         run.From = group[0].From;
                         run.To = group[group.Count - 1].To;
-                        runs.AddRange(Split(group, run, round && group[0].From <= from && group[group.Count - 1].To >= to));
+                        runs.AddRange(
+                            Split(group, run, round && group[0].From <= from && group[group.Count - 1].To >= to)
+                        );
                         continue;
                     }
 
@@ -569,15 +625,20 @@ namespace GeometryHelper.Core
 
                     for (int k = 0; k < angles.Count; k++)
                     {
-                        if ((k == 0 || values[k] <= values[k - 1]) && (k == angles.Count - 1 || values[k] <= values[k + 1]))
+                        if (
+                            (k == 0 || values[k] <= values[k - 1])
+                            && (k == angles.Count - 1 || values[k] <= values[k + 1])
+                        )
                         {
-                            runs.Add(new Run
-                            {
-                                From = angles[Math.Max(0, k - 1)],
-                                To = angles[Math.Min(angles.Count - 1, k + 1)],
-                                LeastAt = angles[k],
-                                Least = values[k],
-                            });
+                            runs.Add(
+                                new Run
+                                {
+                                    From = angles[Math.Max(0, k - 1)],
+                                    To = angles[Math.Min(angles.Count - 1, k + 1)],
+                                    LeastAt = angles[k],
+                                    Least = values[k],
+                                }
+                            );
                         }
                     }
                 }
@@ -626,8 +687,30 @@ namespace GeometryHelper.Core
                     double value = Read(middle, out Foot foot);
 
                     _readings++;
-                    Enqueue(queue, new Piece { From = piece.From, To = middle, AtFrom = piece.AtFrom, AtTo = value, FootFrom = piece.FootFrom, FootTo = foot });
-                    Enqueue(queue, new Piece { From = middle, To = piece.To, AtFrom = value, AtTo = piece.AtTo, FootFrom = foot, FootTo = piece.FootTo });
+                    Enqueue(
+                        queue,
+                        new Piece
+                        {
+                            From = piece.From,
+                            To = middle,
+                            AtFrom = piece.AtFrom,
+                            AtTo = value,
+                            FootFrom = piece.FootFrom,
+                            FootTo = foot,
+                        }
+                    );
+                    Enqueue(
+                        queue,
+                        new Piece
+                        {
+                            From = middle,
+                            To = piece.To,
+                            AtFrom = value,
+                            AtTo = piece.AtTo,
+                            FootFrom = foot,
+                            FootTo = piece.FootTo,
+                        }
+                    );
                 }
             }
 
@@ -656,7 +739,18 @@ namespace GeometryHelper.Core
 
                 foreach (Piece piece in group)
                 {
-                    Enqueue(queue, new Piece { From = piece.From, To = piece.To, AtFrom = piece.AtFrom, AtTo = piece.AtTo, FootFrom = piece.FootFrom, FootTo = piece.FootTo });
+                    Enqueue(
+                        queue,
+                        new Piece
+                        {
+                            From = piece.From,
+                            To = piece.To,
+                            AtFrom = piece.AtFrom,
+                            AtTo = piece.AtTo,
+                            FootFrom = piece.FootFrom,
+                            FootTo = piece.FootTo,
+                        }
+                    );
                 }
 
                 while (queue.Count > 0)
@@ -672,7 +766,12 @@ namespace GeometryHelper.Core
 
                     double reach = Speed(piece.From, piece.To) * (piece.To - piece.From);
 
-                    if (reach <= 2.0 * _near || reach <= _resolution || _splitting >= Readings || (fromWithin && toWithin && Most(piece, reach) <= _near))
+                    if (
+                        reach <= 2.0 * _near
+                        || reach <= _resolution
+                        || _splitting >= Readings
+                        || (fromWithin && toWithin && Most(piece, reach) <= _near)
+                    )
                     {
                         settled.Add(piece);
                         continue;
@@ -682,16 +781,40 @@ namespace GeometryHelper.Core
                     double value = Read(middle, out Foot foot);
 
                     _splitting++;
-                    Enqueue(queue, new Piece { From = piece.From, To = middle, AtFrom = piece.AtFrom, AtTo = value, FootFrom = piece.FootFrom, FootTo = foot });
-                    Enqueue(queue, new Piece { From = middle, To = piece.To, AtFrom = value, AtTo = piece.AtTo, FootFrom = foot, FootTo = piece.FootTo });
+                    Enqueue(
+                        queue,
+                        new Piece
+                        {
+                            From = piece.From,
+                            To = middle,
+                            AtFrom = piece.AtFrom,
+                            AtTo = value,
+                            FootFrom = piece.FootFrom,
+                            FootTo = foot,
+                        }
+                    );
+                    Enqueue(
+                        queue,
+                        new Piece
+                        {
+                            From = middle,
+                            To = piece.To,
+                            AtFrom = value,
+                            AtTo = piece.AtTo,
+                            FootFrom = foot,
+                            FootTo = piece.FootTo,
+                        }
+                    );
                 }
 
-                settled.Sort((x, y) =>
-                {
-                    int byFrom = x.From.CompareTo(y.From);
+                settled.Sort(
+                    (x, y) =>
+                    {
+                        int byFrom = x.From.CompareTo(y.From);
 
-                    return byFrom != 0 ? byFrom : x.To.CompareTo(y.To);
-                });
+                        return byFrom != 0 ? byFrom : x.To.CompareTo(y.To);
+                    }
+                );
 
                 // The readings in order of angle, a piece proved clear between two parting them as a reading above the
                 // tolerance would.
@@ -727,7 +850,12 @@ namespace GeometryHelper.Core
                     if (values[k] <= _near)
                     {
                         // A stretch of readings within the tolerance, up to a reading above it or a piece proved clear.
-                        var run = new Run { From = angles[k > 0 && !parted[k] ? k - 1 : k], LeastAt = angles[k], Least = values[k] };
+                        var run = new Run
+                        {
+                            From = angles[k > 0 && !parted[k] ? k - 1 : k],
+                            LeastAt = angles[k],
+                            Least = values[k],
+                        };
                         int end = k;
 
                         while (end < last && values[end + 1] <= _near && !parted[end + 1])
@@ -752,13 +880,15 @@ namespace GeometryHelper.Core
 
                     if ((first || values[k] <= values[k - 1]) && (final || values[k] <= values[k + 1]))
                     {
-                        dips.Add(new Run
-                        {
-                            From = angles[first ? k : k - 1],
-                            To = angles[final ? k : k + 1],
-                            LeastAt = angles[k],
-                            Least = values[k],
-                        });
+                        dips.Add(
+                            new Run
+                            {
+                                From = angles[first ? k : k - 1],
+                                To = angles[final ? k : k + 1],
+                                LeastAt = angles[k],
+                                Least = values[k],
+                            }
+                        );
                     }
                 }
 
@@ -792,12 +922,14 @@ namespace GeometryHelper.Core
                 if (runs.Count > 1)
                 {
                     runs.AddRange(dips);
-                    runs.Sort((x, y) =>
-                    {
-                        int byFrom = x.From.CompareTo(y.From);
+                    runs.Sort(
+                        (x, y) =>
+                        {
+                            int byFrom = x.From.CompareTo(y.From);
 
-                        return byFrom != 0 ? byFrom : x.To.CompareTo(y.To);
-                    });
+                            return byFrom != 0 ? byFrom : x.To.CompareTo(y.To);
+                        }
+                    );
 
                     return runs;
                 }
@@ -899,7 +1031,8 @@ namespace GeometryHelper.Core
             /// tolerance either side of its end, and the two sides of the end were two places, the smaller running within
             /// the tolerance of the larger all round its own end. Read from the points between, they are one.
             /// </remarks>
-            private bool Joined(Run one, Run two, double shift) => Joined(_rim.At(one.LeastAt), _rim.At(two.LeastAt + shift));
+            private bool Joined(Run one, Run two, double shift) =>
+                Joined(_rim.At(one.LeastAt), _rim.At(two.LeastAt + shift));
 
             /// <summary>
             /// Determines whether the other curve runs within the tolerance of the rim all the way between its points nearest
@@ -927,14 +1060,17 @@ namespace GeometryHelper.Core
                 // A step no longer than the tolerance along the other, at most 256 of them and at least 16: read at 16, the
                 // ends of two ellipses 313.85 by 4.54 and 0.001 larger, whose gap rises 0.11 tolerances above it round
                 // either end, were read as joined, and gave one place each where they touch at both sides.
-                int steps = (int)Math.Min(256.0, Math.Max(16.0, Math.Ceiling(Math.Abs(turned) * _target.Major / _limit)));
+                int steps = (int)
+                    Math.Min(256.0, Math.Max(16.0, Math.Ceiling(Math.Abs(turned) * _target.Major / _limit)));
 
                 for (int k = 1; k < steps; k++)
                 {
                     double angle = from + turned * k / steps;
                     double along = _target.Major * Math.Cos(angle);
                     double across = _target.Minor * Math.Sin(angle);
-                    GeoPoint3 point = _target.Center.Add(_target.Along.Multiply(along)).Add(_target.Across.Multiply(across));
+                    GeoPoint3 point = _target
+                        .Center.Add(_target.Along.Multiply(along))
+                        .Add(_target.Across.Multiply(across));
 
                     if (!_rim.Holds(point))
                     {
@@ -969,7 +1105,10 @@ namespace GeometryHelper.Core
             {
                 GeoVector3 offset = _target.Center.GetVectorTo(point);
 
-                return Math.Atan2(offset.DotProduct(_target.Across) / _target.Minor, offset.DotProduct(_target.Along) / _target.Major);
+                return Math.Atan2(
+                    offset.DotProduct(_target.Across) / _target.Minor,
+                    offset.DotProduct(_target.Along) / _target.Major
+                );
             }
 
             /// <summary>
@@ -977,7 +1116,8 @@ namespace GeometryHelper.Core
             /// the short way round a whole ellipse or circle and within what an arc sweeps; false where the nearest point
             /// of an arc's circle at either end lies off the arc.
             /// </summary>
-            private bool Carried(Foot start, Foot end, out double turned) => Carried(OnOther(start), OnOther(end), out turned);
+            private bool Carried(Foot start, Foot end, out double turned) =>
+                Carried(OnOther(start), OnOther(end), out turned);
 
             /// <summary>
             /// Gets the angle the other's point is carried through between two angles on its ellipse or circle, the short
@@ -1027,7 +1167,10 @@ namespace GeometryHelper.Core
                 }
                 else
                 {
-                    piece.Key = Math.Max(0.5 * (piece.AtFrom + piece.AtTo - Speed(piece.From, piece.To) * (piece.To - piece.From)), Lowest(piece.From, piece.To));
+                    piece.Key = Math.Max(
+                        0.5 * (piece.AtFrom + piece.AtTo - Speed(piece.From, piece.To) * (piece.To - piece.From)),
+                        Lowest(piece.From, piece.To)
+                    );
 
                     if (!(piece.Key > _near))
                     {
@@ -1038,7 +1181,7 @@ namespace GeometryHelper.Core
                 piece.Order = _queued++;
                 queue.Add(piece);
 
-                for (int at = queue.Count - 1; at > 0;)
+                for (int at = queue.Count - 1; at > 0; )
                 {
                     int parent = (at - 1) / 2;
 
@@ -1065,7 +1208,7 @@ namespace GeometryHelper.Core
                 queue[0] = queue[last];
                 queue.RemoveAt(last);
 
-                for (int at = 0; ;)
+                for (int at = 0; ; )
                 {
                     int left = 2 * at + 1;
                     int right = left + 1;
@@ -1143,7 +1286,10 @@ namespace GeometryHelper.Core
                     double slopeEnd = end.NormalX * chordX + end.NormalY * chordY;
 
                     // Over s from nought to one: the greater of start.Gap + s slopeStart and end.Gap - (1 - s) slopeEnd.
-                    double floor = Math.Min(Math.Max(start.Gap, end.Gap - slopeEnd), Math.Max(start.Gap + slopeStart, end.Gap));
+                    double floor = Math.Min(
+                        Math.Max(start.Gap, end.Gap - slopeEnd),
+                        Math.Max(start.Gap + slopeStart, end.Gap)
+                    );
 
                     if (slopeStart != slopeEnd)
                     {
@@ -1251,7 +1397,15 @@ namespace GeometryHelper.Core
             /// Gets the least and the greatest of mean + c cos 2t + s sin 2t between two angles: at the ends, or where twice
             /// the angle less the phase passes a whole number of half turns.
             /// </summary>
-            private static void Range(double mean, double c, double s, double from, double to, out double least, out double most)
+            private static void Range(
+                double mean,
+                double c,
+                double s,
+                double from,
+                double to,
+                out double least,
+                out double most
+            )
             {
                 double atFrom = mean + c * Math.Cos(2.0 * from) + s * Math.Sin(2.0 * from);
                 double atTo = mean + c * Math.Cos(2.0 * to) + s * Math.Sin(2.0 * to);
@@ -1350,7 +1504,6 @@ namespace GeometryHelper.Core
             }
         }
 
-
         /// <summary>
         /// Determines whether a place already named lies on a run: its angle on the rim within the run's.
         /// </summary>
@@ -1373,7 +1526,8 @@ namespace GeometryHelper.Core
                 {
                     GeoPoint2 nearest = Ellipse2.GetClosestPointOnBoundary(
                         new GeoEllipse2(new GeoPoint2(0.0, 0.0), GeoVector2.XAxis, rim.Major, rim.Minor, true),
-                        new GeoPoint2(along, across));
+                        new GeoPoint2(along, across)
+                    );
 
                     along = nearest.X;
                     across = nearest.Y;
@@ -1383,7 +1537,11 @@ namespace GeometryHelper.Core
 
                 at += Turn * Math.Ceiling((run.From - at) / Turn);
 
-                if (at <= run.To || rim.At(run.From).IsEqualTo(named, tolerance) || rim.At(run.To).IsEqualTo(named, tolerance))
+                if (
+                    at <= run.To
+                    || rim.At(run.From).IsEqualTo(named, tolerance)
+                    || rim.At(run.To).IsEqualTo(named, tolerance)
+                )
                 {
                     return true;
                 }
@@ -1391,7 +1549,6 @@ namespace GeometryHelper.Core
 
             return false;
         }
-
 
         /// <summary>
         /// Cuts stretches of angle, each no longer than a turn, to the angles an arc sweeps, each piece in order of angle,
@@ -1422,12 +1579,14 @@ namespace GeometryHelper.Core
                 }
             }
 
-            pieces.Sort((x, y) =>
-            {
-                int byStart = x[0].CompareTo(y[0]);
+            pieces.Sort(
+                (x, y) =>
+                {
+                    int byStart = x[0].CompareTo(y[0]);
 
-                return byStart != 0 ? byStart : x[1].CompareTo(y[1]);
-            });
+                    return byStart != 0 ? byStart : x[1].CompareTo(y[1]);
+                }
+            );
 
             var joined = new List<double[]>(pieces.Count);
 
@@ -1460,7 +1619,14 @@ namespace GeometryHelper.Core
         /// arc. Asked of the other curve, a circle crossing a needle 0.00013 wide still touches it once at each crossing, at
         /// places on either side 0.008 apart that the circle runs within the tolerance of the needle between.
         /// </remarks>
-        private static void AddPlace(List<GeoPoint3> found, Rim rim, Target target, GeoPoint3 onRim, Search search, Tolerance tolerance)
+        private static void AddPlace(
+            List<GeoPoint3> found,
+            Rim rim,
+            Target target,
+            GeoPoint3 onRim,
+            Search search,
+            Tolerance tolerance
+        )
         {
             GeoPoint3 onOther = target.Nearest(onRim);
             GeoPoint3 place = onRim.Add(onRim.GetVectorTo(onOther).Multiply(0.5));

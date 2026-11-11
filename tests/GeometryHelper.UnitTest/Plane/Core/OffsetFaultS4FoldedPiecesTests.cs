@@ -49,7 +49,9 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(0.0, offset[0].EndPoint.DistanceTo(P(7.27107659924183, 1)), 1E-6);
             Assert.Equal(0.0, offset[1].StartPoint.DistanceTo(P(7.484284689958933, -1)), 1E-6);
             Assert.Equal(0.0, offset[1].EndPoint.DistanceTo(P(3.450307279344803, -6.488568814846329)), 1E-6);
-            Assert.True(WorstOffDistance(offset.SelectMany(PiecesOf).ToArray(), PiecesOf(chain), 1.0) <= Thousandth.EqualPoint);
+            Assert.True(
+                WorstOffDistance(offset.SelectMany(PiecesOf).ToArray(), PiecesOf(chain), 1.0) <= Thousandth.EqualPoint
+            );
         }
 
         [Fact]

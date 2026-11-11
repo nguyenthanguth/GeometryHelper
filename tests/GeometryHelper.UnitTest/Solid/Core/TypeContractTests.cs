@@ -35,8 +35,20 @@ namespace GeometryHelper.UnitTest.Solid
             yield return new GeoCoordinateSystem3(a, GeoVector3.XAxis, GeoVector3.YAxis);
             yield return GeoTransform3.Translation(new GeoVector3(1, 2, 3));
             yield return new GeoPolyline3(a, b, c);
-            yield return new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(4, 0, 0), new GeoPoint3(4, 4, 0), new GeoPoint3(0, 4, 0));
-            yield return new GeoFace3(new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(4, 0, 0), new GeoPoint3(4, 4, 0), new GeoPoint3(0, 4, 0)));
+            yield return new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(4, 0, 0),
+                new GeoPoint3(4, 4, 0),
+                new GeoPoint3(0, 4, 0)
+            );
+            yield return new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(4, 0, 0),
+                    new GeoPoint3(4, 4, 0),
+                    new GeoPoint3(0, 4, 0)
+                )
+            );
         }
 
         /// <summary>Builds a second, separately constructed instance equal to the first.</summary>
@@ -44,21 +56,48 @@ namespace GeometryHelper.UnitTest.Solid
         {
             switch (sample)
             {
-                case GeoPoint3 _: return new GeoPoint3(1, 2, 3);
-                case GeoVector3 _: return new GeoVector3(1, 2, 3);
-                case GeoLine3 _: return new GeoLine3(new GeoPoint3(1, 2, 3), new GeoPoint3(4, -5, 6));
-                case GeoRay3 _: return new GeoRay3(new GeoPoint3(1, 2, 3), new GeoVector3(1, 1, 1));
-                case GeoPlane3 _: return new GeoPlane3(new GeoPoint3(1, 2, 3), GeoVector3.ZAxis);
-                case GeoTriangle3 _: return new GeoTriangle3(new GeoPoint3(1, 2, 3), new GeoPoint3(4, -5, 6), new GeoPoint3(-7, 8, 0));
-                case GeoCircle3 _: return new GeoCircle3(new GeoPoint3(1, 2, 3), GeoVector3.ZAxis, 5);
-                case GeoAabb3 _: return new GeoAabb3(new GeoPoint3(1, 2, 3), new GeoPoint3(4, -5, 6));
-                case GeoObb3 _: return new GeoObb3(new GeoPoint3(1, 2, 3), 2, 3, 4);
-                case GeoCoordinateSystem3 _: return new GeoCoordinateSystem3(new GeoPoint3(1, 2, 3), GeoVector3.XAxis, GeoVector3.YAxis);
-                case GeoTransform3 _: return GeoTransform3.Translation(new GeoVector3(1, 2, 3));
-                case GeoPolyline3 _: return new GeoPolyline3(new GeoPoint3(1, 2, 3), new GeoPoint3(4, -5, 6), new GeoPoint3(-7, 8, 0));
-                case GeoPolygon3 _: return new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(4, 0, 0), new GeoPoint3(4, 4, 0), new GeoPoint3(0, 4, 0));
-                case GeoFace3 _: return new GeoFace3(new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(4, 0, 0), new GeoPoint3(4, 4, 0), new GeoPoint3(0, 4, 0)));
-                default: throw new InvalidOperationException("no twin for " + sample.GetType().Name);
+                case GeoPoint3 _:
+                    return new GeoPoint3(1, 2, 3);
+                case GeoVector3 _:
+                    return new GeoVector3(1, 2, 3);
+                case GeoLine3 _:
+                    return new GeoLine3(new GeoPoint3(1, 2, 3), new GeoPoint3(4, -5, 6));
+                case GeoRay3 _:
+                    return new GeoRay3(new GeoPoint3(1, 2, 3), new GeoVector3(1, 1, 1));
+                case GeoPlane3 _:
+                    return new GeoPlane3(new GeoPoint3(1, 2, 3), GeoVector3.ZAxis);
+                case GeoTriangle3 _:
+                    return new GeoTriangle3(new GeoPoint3(1, 2, 3), new GeoPoint3(4, -5, 6), new GeoPoint3(-7, 8, 0));
+                case GeoCircle3 _:
+                    return new GeoCircle3(new GeoPoint3(1, 2, 3), GeoVector3.ZAxis, 5);
+                case GeoAabb3 _:
+                    return new GeoAabb3(new GeoPoint3(1, 2, 3), new GeoPoint3(4, -5, 6));
+                case GeoObb3 _:
+                    return new GeoObb3(new GeoPoint3(1, 2, 3), 2, 3, 4);
+                case GeoCoordinateSystem3 _:
+                    return new GeoCoordinateSystem3(new GeoPoint3(1, 2, 3), GeoVector3.XAxis, GeoVector3.YAxis);
+                case GeoTransform3 _:
+                    return GeoTransform3.Translation(new GeoVector3(1, 2, 3));
+                case GeoPolyline3 _:
+                    return new GeoPolyline3(new GeoPoint3(1, 2, 3), new GeoPoint3(4, -5, 6), new GeoPoint3(-7, 8, 0));
+                case GeoPolygon3 _:
+                    return new GeoPolygon3(
+                        new GeoPoint3(0, 0, 0),
+                        new GeoPoint3(4, 0, 0),
+                        new GeoPoint3(4, 4, 0),
+                        new GeoPoint3(0, 4, 0)
+                    );
+                case GeoFace3 _:
+                    return new GeoFace3(
+                        new GeoPolygon3(
+                            new GeoPoint3(0, 0, 0),
+                            new GeoPoint3(4, 0, 0),
+                            new GeoPoint3(4, 4, 0),
+                            new GeoPoint3(0, 4, 0)
+                        )
+                    );
+                default:
+                    throw new InvalidOperationException("no twin for " + sample.GetType().Name);
             }
         }
 
@@ -107,7 +146,10 @@ namespace GeometryHelper.UnitTest.Solid
                 // type has nothing to share, so the question does not arise for it.
                 if (!sample.GetType().IsValueType)
                 {
-                    Assert.False(ReferenceEquals(sample, copy), $"{sample.GetType().Name}: Clone returned the same object");
+                    Assert.False(
+                        ReferenceEquals(sample, copy),
+                        $"{sample.GetType().Name}: Clone returned the same object"
+                    );
                 }
 
                 checked_++;
@@ -119,14 +161,18 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TransformingLeavesTheOriginalAlone()
         {
-            GeoTransform3 move = GeoTransform3.Translation(new GeoVector3(100, -50, 25))
-                                 * GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 0.7);
+            GeoTransform3 move =
+                GeoTransform3.Translation(new GeoVector3(100, -50, 25))
+                * GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 0.7);
 
             int checked_ = 0;
 
             foreach (object sample in Samples())
             {
-                if (sample is GeoTransform3) { continue; }
+                if (sample is GeoTransform3)
+                {
+                    continue;
+                }
 
                 MethodInfo transform = sample.GetType().GetMethod("TransformBy", new[] { typeof(GeoTransform3) });
                 Assert.NotNull(transform);
@@ -136,10 +182,14 @@ namespace GeometryHelper.UnitTest.Solid
 
                 object moved = transform.Invoke(sample, new object[] { move });
 
-                Assert.True(sample.Equals(before),
-                            $"{sample.GetType().Name}: TransformBy changed the shape it was called on");
-                Assert.False(sample.Equals(moved),
-                             $"{sample.GetType().Name}: TransformBy handed back something unchanged");
+                Assert.True(
+                    sample.Equals(before),
+                    $"{sample.GetType().Name}: TransformBy changed the shape it was called on"
+                );
+                Assert.False(
+                    sample.Equals(moved),
+                    $"{sample.GetType().Name}: TransformBy handed back something unchanged"
+                );
 
                 checked_++;
             }
@@ -195,7 +245,7 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0, 0, 0),
                 new GeoPoint3(4, 0, 0),
                 new GeoPoint3(4, 4, 0),
-                new GeoPoint3(0, 4, 0)
+                new GeoPoint3(0, 4, 0),
             };
 
             var polygon = new GeoPolygon3(vertices);

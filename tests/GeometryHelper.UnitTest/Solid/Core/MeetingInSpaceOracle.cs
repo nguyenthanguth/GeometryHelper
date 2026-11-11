@@ -44,11 +44,13 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static double[] Sub(double[] a, double[] b) => new[] { a[0] - b[0], a[1] - b[1], a[2] - b[2] };
 
-        private static double[] Add(double[] a, double[] b, double s) => new[] { a[0] + b[0] * s, a[1] + b[1] * s, a[2] + b[2] * s };
+        private static double[] Add(double[] a, double[] b, double s) =>
+            new[] { a[0] + b[0] * s, a[1] + b[1] * s, a[2] + b[2] * s };
 
         private static double Dot(double[] a, double[] b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 
-        private static double[] Cross(double[] a, double[] b) => new[] { a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0] };
+        private static double[] Cross(double[] a, double[] b) =>
+            new[] { a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0] };
 
         private static double Length(double[] a) => Math.Sqrt(Dot(a, a));
 
@@ -86,7 +88,12 @@ namespace GeometryHelper.UnitTest.Solid
 
         internal static Flat Of(GeoTriangle3 triangle) => Of(new[] { new[] { triangle.A, triangle.B, triangle.C } });
 
-        internal static Flat Of(GeoFace3 face) => Of(new[] { face.Boundary.Vertices.ToArray() }.Concat(face.Holes.Select(h => h.Vertices.ToArray())).ToArray());
+        internal static Flat Of(GeoFace3 face) =>
+            Of(
+                new[] { face.Boundary.Vertices.ToArray() }
+                    .Concat(face.Holes.Select(h => h.Vertices.ToArray()))
+                    .ToArray()
+            );
 
         private static Flat Of(GeoPoint3[][] rings)
         {
@@ -109,7 +116,14 @@ namespace GeometryHelper.UnitTest.Solid
             double[] u = Unit(Sub(outline[1], outline[0]));
             u = Unit(Sub(u, Add(new double[3], normal, Dot(u, normal))));
 
-            return new Flat { Rings = r, Origin = outline[0], U = u, W = Cross(normal, u), Normal = normal };
+            return new Flat
+            {
+                Rings = r,
+                Origin = outline[0],
+                U = u,
+                W = Cross(normal, u),
+                Normal = normal,
+            };
         }
 
         private static double[] InPlane(Flat f, double[] p)
@@ -192,7 +206,10 @@ namespace GeometryHelper.UnitTest.Solid
             }
 
             double[][] q = f.Rings[0].Select(p => InPlane(f, p)).ToArray();
-            double u0 = q.Min(p => p[0]), u1 = q.Max(p => p[0]), w0 = q.Min(p => p[1]), w1 = q.Max(p => p[1]);
+            double u0 = q.Min(p => p[0]),
+                u1 = q.Max(p => p[0]),
+                w0 = q.Min(p => p[1]),
+                w1 = q.Max(p => p[1]);
 
             for (double u = u0; u <= u1; u += Spacing)
             {
@@ -246,7 +263,9 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     for (int i = 0; i < ring.Length; i++)
                     {
-                        foreach (double[] p in PiecesCrossing(ring[i], ring[(i + 1) % ring.Length], to.Origin, to.Normal))
+                        foreach (
+                            double[] p in PiecesCrossing(ring[i], ring[(i + 1) % ring.Length], to.Origin, to.Normal)
+                        )
                         {
                             if (OnRegion(to, p, 1E-7))
                             {
@@ -305,8 +324,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int k = 0; k < Pieces; k++)
             {
-                double t0 = (double)k / Pieces, t1 = (double)(k + 1) / Pieces;
-                double h0 = ha + (hb - ha) * t0, h1 = ha + (hb - ha) * t1;
+                double t0 = (double)k / Pieces,
+                    t1 = (double)(k + 1) / Pieces;
+                double h0 = ha + (hb - ha) * t0,
+                    h1 = ha + (hb - ha) * t1;
 
                 if ((h0 <= On && h1 >= -On) || (h0 >= -On && h1 <= On))
                 {
@@ -338,14 +359,30 @@ namespace GeometryHelper.UnitTest.Solid
             /// <summary>Whether a point is in the closed material: in the box, and not strictly inside a cut.</summary>
             internal bool InMaterial(double[] p)
             {
-                if (!(p[0] >= Min.X - On && p[0] <= Max.X + On && p[1] >= Min.Y - On && p[1] <= Max.Y + On && p[2] >= Min.Z - On && p[2] <= Max.Z + On))
+                if (
+                    !(
+                        p[0] >= Min.X - On
+                        && p[0] <= Max.X + On
+                        && p[1] >= Min.Y - On
+                        && p[1] <= Max.Y + On
+                        && p[2] >= Min.Z - On
+                        && p[2] <= Max.Z + On
+                    )
+                )
                 {
                     return false;
                 }
 
                 foreach ((GeoPoint3 lo, GeoPoint3 hi) in Cuts)
                 {
-                    if (p[0] > lo.X + On && p[0] < hi.X - On && p[1] > lo.Y + On && p[1] < hi.Y - On && p[2] > lo.Z + On && p[2] < hi.Z - On)
+                    if (
+                        p[0] > lo.X + On
+                        && p[0] < hi.X - On
+                        && p[1] > lo.Y + On
+                        && p[1] < hi.Y - On
+                        && p[2] > lo.Z + On
+                        && p[2] < hi.Z - On
+                    )
                     {
                         return false;
                     }
@@ -356,7 +393,8 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         /// <summary>Whether any sample of a region is in the material of a body.</summary>
-        internal static bool SampledInMaterial(Flat f, Boxes body) => Samples(f).Concat(f.Rings.SelectMany(r => r)).Any(body.InMaterial);
+        internal static bool SampledInMaterial(Flat f, Boxes body) =>
+            Samples(f).Concat(f.Rings.SelectMany(r => r)).Any(body.InMaterial);
 
         /// <summary>
         /// Where a region meets the surface of a body: where its ring edges pass in or out of the material, found on a
@@ -382,7 +420,8 @@ namespace GeometryHelper.UnitTest.Solid
 
                         if (now != was)
                         {
-                            double lo = (double)(k - 1) / Pieces, hi = t1;
+                            double lo = (double)(k - 1) / Pieces,
+                                hi = t1;
 
                             while (hi - lo > 1E-12)
                             {
@@ -444,8 +483,8 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         /// <summary>The height of a point over a plane, along its normal of unit length.</summary>
-        internal static double Height(GeoPoint3 p, GeoPlane3 plane)
-            => Dot(Sub(V(p), V(plane.Origin)), Unit(new[] { plane.Normal.X, plane.Normal.Y, plane.Normal.Z }));
+        internal static double Height(GeoPoint3 p, GeoPlane3 plane) =>
+            Dot(Sub(V(p), V(plane.Origin)), Unit(new[] { plane.Normal.X, plane.Normal.Y, plane.Normal.Z }));
 
         /// <summary>
         /// The distance from a point to a box of half sizes <paramref name="half"/> about <paramref name="centre"/>, its
@@ -489,7 +528,8 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>Points along a segment at most <paramref name="spacing"/> apart, both ends included.</summary>
         internal static IEnumerable<GeoPoint3> Along(GeoPoint3 a, GeoPoint3 b, double spacing)
         {
-            double[] pa = V(a), ab = Sub(V(b), pa);
+            double[] pa = V(a),
+                ab = Sub(V(b), pa);
             int steps = Math.Max(1, (int)Math.Ceiling(Length(ab) / spacing));
 
             for (int k = 0; k <= steps; k++)
@@ -499,7 +539,8 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         /// <summary>Points over the material of a region and along its rings, as <see cref="Samples(Flat)"/> places them.</summary>
-        internal static IEnumerable<GeoPoint3> SamplePoints(Flat f) => Samples(f).Concat(f.Rings.SelectMany(r => r)).Select(P);
+        internal static IEnumerable<GeoPoint3> SamplePoints(Flat f) =>
+            Samples(f).Concat(f.Rings.SelectMany(r => r)).Select(P);
 
         #endregion
 
@@ -515,22 +556,31 @@ namespace GeometryHelper.UnitTest.Solid
         /// The same as a polygon: an L on the XY plane, 40 by 40, with the square from (10, 10) to (40, 40) notched out. Its
         /// bottom arm, y from 0 to 10, holds the places the probes below stand over.
         /// </summary>
-        internal static GeoPolygon3 Ell() => Polygon(Pt(0, 0, 0), Pt(40, 0, 0), Pt(40, 10, 0), Pt(10, 10, 0), Pt(10, 40, 0), Pt(0, 40, 0));
+        internal static GeoPolygon3 Ell() =>
+            Polygon(Pt(0, 0, 0), Pt(40, 0, 0), Pt(40, 10, 0), Pt(10, 10, 0), Pt(10, 40, 0), Pt(0, 40, 0));
 
         /// <summary>
         /// A small kite to measure against, its tip at <paramref name="tip"/>, running 6 along <paramref name="u"/> and 4
         /// across along <paramref name="v"/>: corners (0, 0), (4, -2), (6, 0) and (4, 2) in that frame, the tip first.
         /// </summary>
-        internal static GeoPolygon3 Kite(GeoPoint3 tip, GeoVector3 u, GeoVector3 v)
-            => Polygon(At(tip, u, v, 0, 0), At(tip, u, v, 4, -2), At(tip, u, v, 6, 0), At(tip, u, v, 4, 2));
+        internal static GeoPolygon3 Kite(GeoPoint3 tip, GeoVector3 u, GeoVector3 v) =>
+            Polygon(At(tip, u, v, 0, 0), At(tip, u, v, 4, -2), At(tip, u, v, 6, 0), At(tip, u, v, 4, 2));
 
         /// <summary>The kite cut back to a triangle: corners (0, 0), (4, -2) and (4, 2), so its first edge is the kite's.</summary>
-        internal static GeoTriangle3 Dart(GeoPoint3 tip, GeoVector3 u, GeoVector3 v)
-            => Tri(At(tip, u, v, 0, 0), At(tip, u, v, 4, -2), At(tip, u, v, 4, 2));
+        internal static GeoTriangle3 Dart(GeoPoint3 tip, GeoVector3 u, GeoVector3 v) =>
+            Tri(At(tip, u, v, 0, 0), At(tip, u, v, 4, -2), At(tip, u, v, 4, 2));
 
         /// <summary>The kite as a face, with a square hole 1 by 1 about (4, 0) in its frame.</summary>
-        internal static GeoFace3 HoledKite(GeoPoint3 tip, GeoVector3 u, GeoVector3 v)
-            => Holed(Kite(tip, u, v), Polygon(At(tip, u, v, 3.5, -0.5), At(tip, u, v, 4.5, -0.5), At(tip, u, v, 4.5, 0.5), At(tip, u, v, 3.5, 0.5)));
+        internal static GeoFace3 HoledKite(GeoPoint3 tip, GeoVector3 u, GeoVector3 v) =>
+            Holed(
+                Kite(tip, u, v),
+                Polygon(
+                    At(tip, u, v, 3.5, -0.5),
+                    At(tip, u, v, 4.5, -0.5),
+                    At(tip, u, v, 4.5, 0.5),
+                    At(tip, u, v, 3.5, 0.5)
+                )
+            );
 
         /// <summary>The point <paramref name="a"/> along <paramref name="u"/> and <paramref name="b"/> along <paramref name="v"/> from <paramref name="tip"/>.</summary>
         private static GeoPoint3 At(GeoPoint3 tip, GeoVector3 u, GeoVector3 v, double a, double b)
@@ -548,19 +598,19 @@ namespace GeometryHelper.UnitTest.Solid
         internal static GeoPoint3 Pt(double x, double y, double z) => new GeoPoint3(x, y, z);
 
         /// <summary>An axis-aligned rectangle in the plane z = <paramref name="z"/>, its corners anticlockwise from (x0, y0).</summary>
-        internal static GeoPolygon3 Square(double x0, double y0, double x1, double y1, double z = 0.0)
-            => new GeoPolygon3(Pt(x0, y0, z), Pt(x1, y0, z), Pt(x1, y1, z), Pt(x0, y1, z));
+        internal static GeoPolygon3 Square(double x0, double y0, double x1, double y1, double z = 0.0) =>
+            new GeoPolygon3(Pt(x0, y0, z), Pt(x1, y0, z), Pt(x1, y1, z), Pt(x0, y1, z));
 
         /// <summary>
         /// A rectangle upright in the plane x = <paramref name="x"/>, from (y0, z0) to (y1, z1), its corners in the order
         /// (y0, z0), (y1, z0), (y1, z1), (y0, z1).
         /// </summary>
-        internal static GeoPolygon3 Upright(double x, double y0, double z0, double y1, double z1)
-            => new GeoPolygon3(Pt(x, y0, z0), Pt(x, y1, z0), Pt(x, y1, z1), Pt(x, y0, z1));
+        internal static GeoPolygon3 Upright(double x, double y0, double z0, double y1, double z1) =>
+            new GeoPolygon3(Pt(x, y0, z0), Pt(x, y1, z0), Pt(x, y1, z1), Pt(x, y0, z1));
 
         /// <summary>A rectangle upright in the plane y = <paramref name="y"/>, from (x0, z0) to (x1, z1).</summary>
-        internal static GeoPolygon3 Across(double y, double x0, double z0, double x1, double z1)
-            => new GeoPolygon3(Pt(x0, y, z0), Pt(x1, y, z0), Pt(x1, y, z1), Pt(x0, y, z1));
+        internal static GeoPolygon3 Across(double y, double x0, double z0, double x1, double z1) =>
+            new GeoPolygon3(Pt(x0, y, z0), Pt(x1, y, z0), Pt(x1, y, z1), Pt(x0, y, z1));
 
         /// <summary>A polygon through its corners.</summary>
         internal static GeoPolygon3 Polygon(params GeoPoint3[] corners) => new GeoPolygon3(corners);
@@ -580,26 +630,38 @@ namespace GeometryHelper.UnitTest.Solid
             double[] k = Unit(new[] { axis.X, axis.Y, axis.Z });
             double[] v = Sub(V(point), V(pivot));
             double angle = degrees * Math.PI / 180.0;
-            double c = Math.Cos(angle), s = Math.Sin(angle);
+            double c = Math.Cos(angle),
+                s = Math.Sin(angle);
             double[] turned = Add(Add(Add(new double[3], v, c), Cross(k, v), s), k, Dot(k, v) * (1.0 - c));
 
             return P(Add(V(pivot), turned, 1.0));
         }
 
-        internal static GeoPolygon3 Turned(GeoPolygon3 polygon, GeoPoint3 pivot, GeoVector3 axis, double degrees)
-            => new GeoPolygon3(polygon.Vertices.Select(p => Turned(p, pivot, axis, degrees)));
+        internal static GeoPolygon3 Turned(GeoPolygon3 polygon, GeoPoint3 pivot, GeoVector3 axis, double degrees) =>
+            new GeoPolygon3(polygon.Vertices.Select(p => Turned(p, pivot, axis, degrees)));
 
-        internal static GeoTriangle3 Turned(GeoTriangle3 t, GeoPoint3 pivot, GeoVector3 axis, double degrees)
-            => new GeoTriangle3(Turned(t.A, pivot, axis, degrees), Turned(t.B, pivot, axis, degrees), Turned(t.C, pivot, axis, degrees));
+        internal static GeoTriangle3 Turned(GeoTriangle3 t, GeoPoint3 pivot, GeoVector3 axis, double degrees) =>
+            new GeoTriangle3(
+                Turned(t.A, pivot, axis, degrees),
+                Turned(t.B, pivot, axis, degrees),
+                Turned(t.C, pivot, axis, degrees)
+            );
 
-        internal static GeoFace3 Turned(GeoFace3 f, GeoPoint3 pivot, GeoVector3 axis, double degrees)
-            => new GeoFace3(Turned(f.Boundary, pivot, axis, degrees), f.Holes.Select(h => Turned(h, pivot, axis, degrees)));
+        internal static GeoFace3 Turned(GeoFace3 f, GeoPoint3 pivot, GeoVector3 axis, double degrees) =>
+            new GeoFace3(
+                Turned(f.Boundary, pivot, axis, degrees),
+                f.Holes.Select(h => Turned(h, pivot, axis, degrees))
+            );
 
         /// <summary>A box as a body.</summary>
         internal static GeoSolid3 Block(GeoPoint3 min, GeoPoint3 max) => new GeoAabb3(min, max).ToObb().ToSolid();
 
         /// <summary>A body held both ways: as the library's solid and as the oracle's box less boxes.</summary>
-        internal static (GeoSolid3 Solid, Boxes Held) Body(GeoPoint3 min, GeoPoint3 max, params (GeoPoint3 Min, GeoPoint3 Max)[] cuts)
+        internal static (GeoSolid3 Solid, Boxes Held) Body(
+            GeoPoint3 min,
+            GeoPoint3 max,
+            params (GeoPoint3 Min, GeoPoint3 Max)[] cuts
+        )
         {
             GeoSolid3 solid = Block(min, max);
 
@@ -608,7 +670,15 @@ namespace GeometryHelper.UnitTest.Solid
                 solid = solid.WithOpenings(cuts.Select(c => Block(c.Min, c.Max)));
             }
 
-            return (solid, new Boxes { Min = min, Max = max, Cuts = cuts });
+            return (
+                solid,
+                new Boxes
+                {
+                    Min = min,
+                    Max = max,
+                    Cuts = cuts,
+                }
+            );
         }
 
         #endregion

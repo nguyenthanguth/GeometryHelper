@@ -20,15 +20,23 @@ namespace GeometryHelper.UnitTest.Solid
 
             var plane = new GeoPlane3(
                 new GeoPoint3(rng.NextDouble() * 200 - 100, rng.NextDouble() * 200 - 100, rng.NextDouble() * 200 - 100),
-                new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() - 0.5 + 0.01).Normalize());
+                new GeoVector3(
+                    rng.NextDouble() - 0.5,
+                    rng.NextDouble() - 0.5,
+                    rng.NextDouble() - 0.5 + 0.01
+                ).Normalize()
+            );
 
             return PlanarMap.FrameOf(plane);
         }
 
         private static GeoPolygon3 TiltedPlate(GeoCoordinateSystem3 frame, params double[] xy)
         {
-            return new GeoPolygon3(Enumerable.Range(0, xy.Length / 2)
-                .Select(i => PlanarMap.ToPoint3(frame, new GeoPoint2(xy[2 * i], xy[2 * i + 1]))));
+            return new GeoPolygon3(
+                Enumerable
+                    .Range(0, xy.Length / 2)
+                    .Select(i => PlanarMap.ToPoint3(frame, new GeoPoint2(xy[2 * i], xy[2 * i + 1])))
+            );
         }
 
         [Fact]
@@ -40,10 +48,13 @@ namespace GeometryHelper.UnitTest.Solid
             var polygon = new GeoPolygon3(
                 new[]
                 {
-                    new GeoPoint3(1000, 0, 299.99985207123785), new GeoPoint3(1000, 0, 300.00109128240945),
-                    new GeoPoint3(1449.9101963673236, 0, 300.00100723069829), new GeoPoint3(1000, 166.66666666666666, 300.00036177197825),
+                    new GeoPoint3(1000, 0, 299.99985207123785),
+                    new GeoPoint3(1000, 0, 300.00109128240945),
+                    new GeoPoint3(1449.9101963673236, 0, 300.00100723069829),
+                    new GeoPoint3(1000, 166.66666666666666, 300.00036177197825),
                 },
-                new Tolerance(1E-3, 1E-5, Tolerance.DefaultEqualAngleRad, 0.01));
+                new Tolerance(1E-3, 1E-5, Tolerance.DefaultEqualAngleRad, 0.01)
+            );
 
             GeoCoordinateSystem3 frame = PlanarMap.FrameOf(polygon);
 
@@ -96,7 +107,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             // Built from the plate itself, the frame does not depend on the plate's place in the model: the
             // plan view of a plate and of the same plate moved and turned are the same drawing.
-            GeoTransform3 motion = GeoTransform3.Translation(new GeoVector3(120, -40, 15))
+            GeoTransform3 motion = GeoTransform3
+                .Translation(new GeoVector3(120, -40, 15))
                 .Multiply(GeoTransform3.RotationAxis(new GeoPoint3(5, -3, 2), GeoVector3.XAxis, 0.7));
 
             GeoPolygon2 here = plate.ProjectToPolygon2(plate.GetFrame());
@@ -114,7 +126,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoCoordinateSystem3 frame = TiltedFrame(3);
             var face = new GeoFace3(
                 TiltedPlate(frame, 0, 0, 20, 0, 20, 20, 0, 20),
-                new[] { TiltedPlate(frame, 5, 5, 9, 5, 9, 9, 5, 9) });
+                new[] { TiltedPlate(frame, 5, 5, 9, 5, 9, 9, 5, 9) }
+            );
 
             GeoFace2 flat = face.ProjectToFace2(frame);
 
@@ -141,21 +154,28 @@ namespace GeometryHelper.UnitTest.Solid
 
             // Clear of it: refused, and the projection is what to call instead when that is what you meant.
             Assert.False(new GeoPoint3(3, 4, 5).TryToPoint2(frame, out _, tolerance));
-            Assert.True(new GeoPoint3(3, 4, 5).ProjectToPoint2(frame).IsEqualTo(new GeoPoint2(3, 4), new Tolerance(1E-9, 1E-9)));
+            Assert.True(
+                new GeoPoint3(3, 4, 5).ProjectToPoint2(frame).IsEqualTo(new GeoPoint2(3, 4), new Tolerance(1E-9, 1E-9))
+            );
         }
 
         [Fact]
         public void AFrameOfAPlaneOpposingTheShapeTurnsTheWindingRound()
         {
             var plate = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 6, 0), new GeoPoint3(0, 6, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 6, 0),
+                new GeoPoint3(0, 6, 0)
+            );
 
             // Its own frame agrees with its normal, so the plan view runs the way the polygon does.
             GeoPolygon2 agreeing = plate.ProjectToPolygon2(plate.GetFrame());
 
             // A frame whose Z axis opposes it mirrors the plan view, so the winding flips.
-            GeoCoordinateSystem3 opposed = PlanarMap.FrameOf(new GeoPlane3(GeoPoint3.Origin, plate.Normal.Multiply(-1.0)));
+            GeoCoordinateSystem3 opposed = PlanarMap.FrameOf(
+                new GeoPlane3(GeoPoint3.Origin, plate.Normal.Multiply(-1.0))
+            );
             GeoPolygon2 opposing = plate.ProjectToPolygon2(opposed);
 
             Assert.Equal(Math.Abs(agreeing.SignedArea), Math.Abs(opposing.SignedArea), 9);
@@ -169,7 +189,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             var line = new GeoLine2(new GeoPoint2(1, 2), new GeoPoint2(9, 5));
             Assert.Equal(line.Length, line.ToLine3(frame).Length, 9);
-            Assert.True(line.ToLine3(frame).ProjectToLine2(frame).StartPoint.IsEqualTo(line.StartPoint, new Tolerance(1E-9, 1E-9)));
+            Assert.True(
+                line.ToLine3(frame)
+                    .ProjectToLine2(frame)
+                    .StartPoint.IsEqualTo(line.StartPoint, new Tolerance(1E-9, 1E-9))
+            );
 
             var chain = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(4, 0), new GeoPoint2(4, 3));
             GeoPolyline3 lifted = chain.ToPolyline3(frame);
@@ -190,9 +214,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPolygon3 first = TiltedPlate(frame, 0, 0, 10, 0, 10, 10, 0, 10);
             GeoPolygon3 second = TiltedPlate(frame, 5, 5, 15, 5, 15, 15, 5, 15);
 
-            GeoFace2[] joined = Boolean2.Union(
-                first.ProjectToPolygon2(frame),
-                second.ProjectToPolygon2(frame));
+            GeoFace2[] joined = Boolean2.Union(first.ProjectToPolygon2(frame), second.ProjectToPolygon2(frame));
 
             GeoFace3 back = joined.Single().ToFace3(frame);
 

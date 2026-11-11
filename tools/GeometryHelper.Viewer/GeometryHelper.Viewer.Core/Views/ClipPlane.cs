@@ -130,7 +130,13 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Describes the plane: its point, normal, offset, and whether it is on.
         /// </summary>
-        public override string ToString()
-            => "through " + Point + ", keeping the side of " + Normal + ", offset " + Offset.ToString("G10", System.Globalization.CultureInfo.InvariantCulture) + (Enabled ? string.Empty : ", off");
+        public override string ToString() =>
+            "through "
+            + Point
+            + ", keeping the side of "
+            + Normal
+            + ", offset "
+            + Offset.ToString("G10", System.Globalization.CultureInfo.InvariantCulture)
+            + (Enabled ? string.Empty : ", off");
     }
 }

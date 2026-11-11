@@ -50,7 +50,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every separate region two bodies share, one body each.
         /// </summary>
-        public static GeoSolid3[] Intersect(GeoSolid3 first, GeoSolid3 second) => Intersect(first, second, Tolerance.Global);
+        public static GeoSolid3[] Intersect(GeoSolid3 first, GeoSolid3 second) =>
+            Intersect(first, second, Tolerance.Global);
 
         /// <summary>
         /// Gets every separate region two bodies share, one body each, within a tolerance.

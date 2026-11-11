@@ -42,7 +42,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The object type that stands for every type, as AutoCAD's Multiple.</summary>
         public const string Multiple = "Multiple";
 
-        private static readonly string[] GeneralLabels = { "Color", "Layer", "Linetype", "Linetype scale", "Lineweight" };
+        private static readonly string[] GeneralLabels =
+        {
+            "Color",
+            "Layer",
+            "Linetype",
+            "Linetype scale",
+            "Lineweight",
+        };
 
         private readonly CadDocument _document;
         private readonly List<DxfEntity> _scope = new List<DxfEntity>();
@@ -174,7 +181,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets whether Value lists the values of a property rather than taking one typed: Color, Layer, Linetype and Lineweight.</summary>
         /// <param name="property">The property.</param>
         /// <returns>Whether it is listed.</returns>
-        public static bool IsListed(string property) => property == "Color" || property == "Layer" || property == "Linetype" || property == "Lineweight";
+        public static bool IsListed(string property) =>
+            property == "Color" || property == "Layer" || property == "Linetype" || property == "Lineweight";
 
         /// <summary>
         /// Gets the objects that match: those of the type whose property compares with the value as the operator says, or with
@@ -187,12 +195,20 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="include">True for Include in new selection set, false for Exclude.</param>
         /// <param name="tolerance">The tolerance numbers are compared within: its <see cref="Tolerance.EqualPoint"/>.</param>
         /// <returns>The handles.</returns>
-        public IReadOnlyList<string> Match(string objectType, string property, CadQuickSelectOperator op, string value, bool include, Tolerance tolerance)
+        public IReadOnlyList<string> Match(
+            string objectType,
+            string property,
+            CadQuickSelectOperator op,
+            string value,
+            bool include,
+            Tolerance tolerance
+        )
         {
             var found = new List<string>();
             double within = tolerance.EqualPoint;
             bool hasNumber = TryNumber(value, out double wanted);
-            System.Text.RegularExpressions.Regex pattern = op == CadQuickSelectOperator.Wildcard ? CadWildcard.ToRegex(value ?? string.Empty, true, true) : null;
+            System.Text.RegularExpressions.Regex pattern =
+                op == CadQuickSelectOperator.Wildcard ? CadWildcard.ToRegex(value ?? string.Empty, true, true) : null;
 
             foreach (DxfEntity entity in OfType(objectType))
             {
@@ -205,7 +221,8 @@ namespace GeometryHelper.Dxf.Viewer
                 else
                 {
                     string own = ValueOf(entity, property);
-                    matches = own != null && Compare(own, op, value ?? string.Empty, hasNumber, wanted, within, pattern);
+                    matches =
+                        own != null && Compare(own, op, value ?? string.Empty, hasNumber, wanted, within, pattern);
                 }
 
                 if (matches == include)
@@ -272,7 +289,15 @@ namespace GeometryHelper.Dxf.Viewer
             return null;
         }
 
-        private static bool Compare(string own, CadQuickSelectOperator op, string value, bool hasNumber, double wanted, double within, System.Text.RegularExpressions.Regex pattern)
+        private static bool Compare(
+            string own,
+            CadQuickSelectOperator op,
+            string value,
+            bool hasNumber,
+            double wanted,
+            double within,
+            System.Text.RegularExpressions.Regex pattern
+        )
         {
             bool isNumber = TryNumber(own, out double number);
 
@@ -280,7 +305,10 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 case CadQuickSelectOperator.EqualTo:
                 case CadQuickSelectOperator.NotEqualTo:
-                    bool same = isNumber && hasNumber ? Math.Abs(number - wanted) <= within : string.Equals(own.Trim(), value.Trim(), StringComparison.OrdinalIgnoreCase);
+                    bool same =
+                        isNumber && hasNumber
+                            ? Math.Abs(number - wanted) <= within
+                            : string.Equals(own.Trim(), value.Trim(), StringComparison.OrdinalIgnoreCase);
                     return same == (op == CadQuickSelectOperator.EqualTo);
                 case CadQuickSelectOperator.GreaterThan:
                     return isNumber && hasNumber && number - wanted > within;
@@ -293,7 +321,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static bool TryNumber(string text, out double value)
-            => double.TryParse((text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value) && !double.IsNaN(value) && !double.IsInfinity(value);
+        private static bool TryNumber(string text, out double value) =>
+            double.TryParse((text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+            && !double.IsNaN(value)
+            && !double.IsInfinity(value);
     }
 }

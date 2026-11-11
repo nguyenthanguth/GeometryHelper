@@ -127,7 +127,10 @@ namespace GeometryHelper.Viewer
             Vec3 middle = (gap.From + gap.To) * 0.5;
             double pixels = pixelSize > 0.0 ? gap.Distance / pixelSize : 0.0;
             var overlay = new DiagnosticOverlay();
-            string text = "gap " + gap.Distance.ToString("G10", CultureInfo.InvariantCulture) + (scale > 1.0 ? "  drawn x" + scale.ToString("G6", CultureInfo.InvariantCulture) : string.Empty);
+            string text =
+                "gap "
+                + gap.Distance.ToString("G10", CultureInfo.InvariantCulture)
+                + (scale > 1.0 ? "  drawn x" + scale.ToString("G6", CultureInfo.InvariantCulture) : string.Empty);
 
             if (scale > 1.0)
             {
@@ -135,7 +138,10 @@ namespace GeometryHelper.Viewer
 
                 foreach (SceneCurve curve in geometry.Curves)
                 {
-                    string color = curve.ItemIndex == gap.First ? "#7A3E9D" : curve.ItemIndex == gap.Second ? "#008080" : null;
+                    string color =
+                        curve.ItemIndex == gap.First ? "#7A3E9D"
+                        : curve.ItemIndex == gap.Second ? "#008080"
+                        : null;
 
                     if (color != null)
                     {
@@ -171,7 +177,15 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Adds the part of a curve that is within a distance of a point, scaled about that point.
         /// </summary>
-        private static void ClipCurve(DiagnosticOverlay overlay, SceneCurve curve, Vec3 centre, double reach, double scale, double pixelSize, string color)
+        private static void ClipCurve(
+            DiagnosticOverlay overlay,
+            SceneCurve curve,
+            Vec3 centre,
+            double reach,
+            double scale,
+            double pixelSize,
+            string color
+        )
         {
             if (curve.Shape == CurveShape.Segment)
             {
@@ -196,7 +210,10 @@ namespace GeometryHelper.Viewer
             // leaves the sphere of the window, as an angle, out to the half turn; cut into chords no further than the sagitta allows from the
             // arc once scaled.
             double t0 = curve.ParameterOf(centre);
-            double half = Math.Min(Math.PI, Math.Asin(Math.Min(1.0, Math.Sqrt(reach * reach - near * near) / radius)) + 1E-12);
+            double half = Math.Min(
+                Math.PI,
+                Math.Asin(Math.Min(1.0, Math.Sqrt(reach * reach - near * near) / radius)) + 1E-12
+            );
             double allowed = SagittaPixels * pixelSize / (scale * radius);
             double chord = allowed >= 2.0 ? Math.PI : 2.0 * Math.Acos(Math.Max(-1.0, 1.0 - allowed));
             int count = (int)Math.Min(MaxChords, Math.Max(2.0, Math.Ceiling(2.0 * half / Math.Max(chord, 1E-9))));

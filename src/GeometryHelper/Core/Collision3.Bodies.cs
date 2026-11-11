@@ -30,7 +30,8 @@ namespace GeometryHelper.Core
         /// height and by one wholly inside it, and not by one standing 10 clear of its top.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the solid is null.</exception>
-        public static bool CollidesWith(GeoTriangle3 triangle, GeoSolid3 solid) => CollidesWith(triangle, solid, Tolerance.Global);
+        public static bool CollidesWith(GeoTriangle3 triangle, GeoSolid3 solid) =>
+            CollidesWith(triangle, solid, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a triangle touches the material of a solid, within a tolerance.
@@ -61,7 +62,12 @@ namespace GeometryHelper.Core
 
             GeoSolid3 material = Material3.Whole(solid, tolerance);
 
-            return ReachesMaterial(Gap3.Region.Of(triangle), new[] { triangle.A, triangle.B, triangle.C }, material, tolerance);
+            return ReachesMaterial(
+                Gap3.Region.Of(triangle),
+                new[] { triangle.A, triangle.B, triangle.C },
+                material,
+                tolerance
+            );
         }
 
         #endregion
@@ -76,7 +82,8 @@ namespace GeometryHelper.Core
         /// a box 100 by 100 by 100 is touched by a triangle wholly inside it and not by one 10 clear of its top.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
-        public static bool CollidesWith(GeoTriangle3 triangle, GeoObb3 box) => CollidesWith(triangle, box, Tolerance.Global);
+        public static bool CollidesWith(GeoTriangle3 triangle, GeoObb3 box) =>
+            CollidesWith(triangle, box, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a triangle touches an oriented box, within a tolerance.
@@ -86,8 +93,8 @@ namespace GeometryHelper.Core
         /// a box 100 by 100 by 100 is touched by a triangle wholly inside it and not by one 10 clear of its top.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
-        public static bool CollidesWith(GeoTriangle3 triangle, GeoObb3 box, Tolerance tolerance)
-            => CollidesWith(triangle, Intersection3.BodyOf(box), tolerance);
+        public static bool CollidesWith(GeoTriangle3 triangle, GeoObb3 box, Tolerance tolerance) =>
+            CollidesWith(triangle, Intersection3.BodyOf(box), tolerance);
 
         /// <summary>
         /// Determines whether a triangle touches an axis-aligned box, using the default tolerance.
@@ -98,7 +105,8 @@ namespace GeometryHelper.Core
         /// its top.
         /// </remarks>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
-        public static bool CollidesWith(GeoTriangle3 triangle, GeoAabb3 box) => CollidesWith(triangle, box, Tolerance.Global);
+        public static bool CollidesWith(GeoTriangle3 triangle, GeoAabb3 box) =>
+            CollidesWith(triangle, box, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a triangle touches an axis-aligned box, within a tolerance.
@@ -109,8 +117,8 @@ namespace GeometryHelper.Core
         /// its top.
         /// </remarks>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
-        public static bool CollidesWith(GeoTriangle3 triangle, GeoAabb3 box, Tolerance tolerance)
-            => CollidesWith(triangle, box.ToObb().ToSolid(), tolerance);
+        public static bool CollidesWith(GeoTriangle3 triangle, GeoAabb3 box, Tolerance tolerance) =>
+            CollidesWith(triangle, box.ToObb().ToSolid(), tolerance);
 
         /// <summary>
         /// Determines whether a polygon touches an axis-aligned box, using the default tolerance.
@@ -123,7 +131,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
-        public static bool CollidesWith(GeoPolygon3 polygon, GeoAabb3 box) => CollidesWith(polygon, box, Tolerance.Global);
+        public static bool CollidesWith(GeoPolygon3 polygon, GeoAabb3 box) =>
+            CollidesWith(polygon, box, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a polygon touches an axis-aligned box, within a tolerance.
@@ -136,8 +145,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
-        public static bool CollidesWith(GeoPolygon3 polygon, GeoAabb3 box, Tolerance tolerance)
-            => CollidesWith(polygon, box.ToObb().ToSolid(), tolerance);
+        public static bool CollidesWith(GeoPolygon3 polygon, GeoAabb3 box, Tolerance tolerance) =>
+            CollidesWith(polygon, box.ToObb().ToSolid(), tolerance);
 
         /// <summary>
         /// Determines whether the material of a face touches an oriented box, using the default tolerance.
@@ -157,8 +166,8 @@ namespace GeometryHelper.Core
         /// box 100 by 100 by 100 is touched by the square 200 by 200 lying across it at half its height.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face or the box is null.</exception>
-        public static bool CollidesWith(GeoFace3 face, GeoObb3 box, Tolerance tolerance)
-            => CollidesWith(face, Intersection3.BodyOf(box), tolerance);
+        public static bool CollidesWith(GeoFace3 face, GeoObb3 box, Tolerance tolerance) =>
+            CollidesWith(face, Intersection3.BodyOf(box), tolerance);
 
         /// <summary>
         /// Determines whether the material of a face touches an axis-aligned box, using the default tolerance.
@@ -180,8 +189,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
-        public static bool CollidesWith(GeoFace3 face, GeoAabb3 box, Tolerance tolerance)
-            => CollidesWith(face, box.ToObb().ToSolid(), tolerance);
+        public static bool CollidesWith(GeoFace3 face, GeoAabb3 box, Tolerance tolerance) =>
+            CollidesWith(face, box.ToObb().ToSolid(), tolerance);
 
         /// <summary>
         /// Determines whether an oriented box touches a plane, using the default tolerance.
@@ -203,8 +212,8 @@ namespace GeometryHelper.Core
         /// plane z = 101.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
-        public static bool CollidesWith(GeoPlane3 plane, GeoObb3 box, Tolerance tolerance)
-            => CollidesWith(plane, Intersection3.BodyOf(box), tolerance);
+        public static bool CollidesWith(GeoPlane3 plane, GeoObb3 box, Tolerance tolerance) =>
+            CollidesWith(plane, Intersection3.BodyOf(box), tolerance);
 
         /// <summary>
         /// Determines whether an axis-aligned box touches a plane, using the default tolerance.
@@ -224,8 +233,8 @@ namespace GeometryHelper.Core
         /// from the origin to (100, 100, 100) is touched by the plane z = 100 and missed by the plane z = 101.
         /// </remarks>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
-        public static bool CollidesWith(GeoPlane3 plane, GeoAabb3 box, Tolerance tolerance)
-            => CollidesWith(plane, box.ToObb().ToSolid(), tolerance);
+        public static bool CollidesWith(GeoPlane3 plane, GeoAabb3 box, Tolerance tolerance) =>
+            CollidesWith(plane, box.ToObb().ToSolid(), tolerance);
 
         #endregion
     }

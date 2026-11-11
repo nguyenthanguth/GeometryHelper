@@ -30,7 +30,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="owner">The window it is shown over; null for none.</param>
         /// <param name="model">The view model.</param>
         /// <returns>True when OK was pressed with a linetype chosen.</returns>
-        public static bool Pick(Window owner, SelectLinetypeViewModel model) => new SelectLinetypeWindow(model) { Owner = owner }.ShowDialog() == true && model.Linetype != null;
+        public static bool Pick(Window owner, SelectLinetypeViewModel model) =>
+            new SelectLinetypeWindow(model) { Owner = owner }.ShowDialog() == true && model.Linetype != null;
 
         private void OnHeaderDown(object sender, MouseButtonEventArgs e)
         {

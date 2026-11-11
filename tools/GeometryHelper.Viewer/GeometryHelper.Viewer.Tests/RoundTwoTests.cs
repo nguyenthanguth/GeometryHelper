@@ -13,7 +13,13 @@ namespace GeometryHelper.Viewer.Tests
 {
     public class MeasureDifferenceTests
     {
-        private static GeoPolygon2 Sq(double x) => new GeoPolygon2(new GeoPoint2(x, 0), new GeoPoint2(x + 10, 0), new GeoPoint2(x + 10, 10), new GeoPoint2(x, 10));
+        private static GeoPolygon2 Sq(double x) =>
+            new GeoPolygon2(
+                new GeoPoint2(x, 0),
+                new GeoPoint2(x + 10, 0),
+                new GeoPoint2(x + 10, 10),
+                new GeoPoint2(x, 10)
+            );
 
         [Fact]
         public void DataTheSame_ButTheAreaTheTwoBuildsGaveNot_IsItsOwnStatus_AndTheDifferenceIsListed()
@@ -32,7 +38,10 @@ namespace GeometryHelper.Viewer.Tests
             ComparedItem item = comparison.Items.Single();
             Assert.Equal(CompareStatus.NumbersDiffer, item.Status);
             Assert.True(item.DataIdentical);
-            Assert.Equal("Area -0.5, Volume: left '1', right none, Measure error: left none, right 'MissingMethodException: x'", item.Difference);
+            Assert.Equal(
+                "Area -0.5, Volume: left '1', right none, Measure error: left none, right 'MissingMethodException: x'",
+                item.Difference
+            );
             Assert.False(comparison.AreIdentical);
             Assert.EndsWith(", 1 with other numbers", comparison.Summary, StringComparison.Ordinal);
         }
@@ -46,14 +55,21 @@ namespace GeometryHelper.Viewer.Tests
             right.Add(Sq(0), name: "s");
             double next = BitConverter.Int64BitsToDouble(BitConverter.DoubleToInt64Bits(100.0) + 1);
             left.Scene.Items[0].Properties["measure.length"] = "100";
-            right.Scene.Items[0].Properties["measure.length"] = next.ToString("G17", System.Globalization.CultureInfo.InvariantCulture);
+            right.Scene.Items[0].Properties["measure.length"] = next.ToString(
+                "G17",
+                System.Globalization.CultureInfo.InvariantCulture
+            );
             left.Scene.Items[0].Properties["measure.note"] = "rebuilt and measured at 1E-12";
 
             ComparedItem item = SceneComparison.Compare(left.Scene, right.Scene).Items.Single();
 
             Assert.Equal(CompareStatus.NumbersDiffer, item.Status);
             Assert.Contains("Length +", item.Difference, StringComparison.Ordinal);
-            Assert.Contains("Measure note: left 'rebuilt and measured at 1E-12', right none", item.Difference, StringComparison.Ordinal);
+            Assert.Contains(
+                "Measure note: left 'rebuilt and measured at 1E-12', right none",
+                item.Difference,
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -81,7 +97,11 @@ namespace GeometryHelper.Viewer.Tests
             ComparedItem item = SceneComparison.Compare(left.Scene, right.Scene).Items.Single();
 
             Assert.Equal(CompareStatus.Changed, item.Status);
-            Assert.Contains("Measure error: left none, right 'MissingMethodException: GetVolume'", item.Difference, StringComparison.Ordinal);
+            Assert.Contains(
+                "Measure error: left none, right 'MissingMethodException: GetVolume'",
+                item.Difference,
+                StringComparison.Ordinal
+            );
             Assert.Contains("number(s) differ", item.Difference, StringComparison.Ordinal);
         }
 
@@ -95,7 +115,11 @@ namespace GeometryHelper.Viewer.Tests
             left.Scene.Items[0].Properties["measure.area"] = "100";
             right.Scene.Items[0].Properties["measure.area"] = "99";
 
-            ComparisonScene layout = ComparisonScene.Build(SceneComparison.Compare(left.Scene, right.Scene), left.Scene, right.Scene);
+            ComparisonScene layout = ComparisonScene.Build(
+                SceneComparison.Compare(left.Scene, right.Scene),
+                left.Scene,
+                right.Scene
+            );
 
             Assert.Equal(new[] { ComparisonScene.NumbersDifferLayer }, layout.Scene.Layers.Select(l => l.Name));
             Assert.Equal(ComparisonScene.NumbersDifferColor, layout.Scene.Layers.Single().Color);
@@ -111,8 +135,15 @@ namespace GeometryHelper.Viewer.Tests
             // At 1E-3 the three corners are one point and the library refuses the triangle; at 1E-12 they are three.
             var writer = new SceneWriter();
             writer.Scene.SetTolerance(new Tolerance(1E-3, 1E-5));
-            var item = new SceneItem { Name = "tiny", Layer = "default", Kind = "GeoPolygon2" };
-            item.Data = System.Text.Json.JsonDocument.Parse("{\"points\":[[0,0],[0.0004,0],[0,0.0004]]}").RootElement.Clone();
+            var item = new SceneItem
+            {
+                Name = "tiny",
+                Layer = "default",
+                Kind = "GeoPolygon2",
+            };
+            item.Data = System
+                .Text.Json.JsonDocument.Parse("{\"points\":[[0,0],[0.0004,0],[0,0.0004]]}")
+                .RootElement.Clone();
             writer.Scene.Items.Add(item);
 
             IReadOnlyList<KeyValuePair<string, string>> numbers = ItemMeasures.Numbers(item, writer.Scene);
@@ -127,7 +158,13 @@ namespace GeometryHelper.Viewer.Tests
 
     public class AutoNameTests
     {
-        private static GeoPolygon2 Sq(double x) => new GeoPolygon2(new GeoPoint2(x, 0), new GeoPoint2(x + 10, 0), new GeoPoint2(x + 10, 10), new GeoPoint2(x, 10));
+        private static GeoPolygon2 Sq(double x) =>
+            new GeoPolygon2(
+                new GeoPoint2(x, 0),
+                new GeoPoint2(x + 10, 0),
+                new GeoPoint2(x + 10, 10),
+                new GeoPoint2(x, 10)
+            );
 
         [Fact]
         public void AnItemWithNoName_IsMarkedAsAutoNamed_AndOneWithANameIsNot()
@@ -139,7 +176,10 @@ namespace GeometryHelper.Viewer.Tests
             writer.Add(new[] { Sq(80), Sq(100) }, name: "pair");
             writer.Text(new GeoPoint3(0, 0, 0), "a label");
 
-            Assert.Equal(new[] { true, false, true, true, false, false, true }, writer.Scene.Items.Select(i => i.AutoName));
+            Assert.Equal(
+                new[] { true, false, true, true, false, false, true },
+                writer.Scene.Items.Select(i => i.AutoName)
+            );
             Assert.Equal("GeoPolygon2 1", writer.Scene.Items[0].Name);
         }
 
@@ -173,8 +213,20 @@ namespace GeometryHelper.Viewer.Tests
 
             SceneComparison comparison = SceneComparison.Compare(a.Scene, b.Scene);
 
-            Assert.Equal(new[] { CompareStatus.Identical, CompareStatus.OnlyLeft, CompareStatus.Identical, CompareStatus.Identical }, comparison.Items.Select(i => i.Status));
-            Assert.Equal(new[] { CompareMatch.Data, CompareMatch.None, CompareMatch.Data, CompareMatch.Data }, comparison.Items.Select(i => i.Match));
+            Assert.Equal(
+                new[]
+                {
+                    CompareStatus.Identical,
+                    CompareStatus.OnlyLeft,
+                    CompareStatus.Identical,
+                    CompareStatus.Identical,
+                },
+                comparison.Items.Select(i => i.Status)
+            );
+            Assert.Equal(
+                new[] { CompareMatch.Data, CompareMatch.None, CompareMatch.Data, CompareMatch.Data },
+                comparison.Items.Select(i => i.Match)
+            );
             Assert.Equal(new[] { 0, 1, 2, 3 }, comparison.Items.Select(i => i.LeftIndex));
             Assert.Equal(new[] { 0, -1, 1, 2 }, comparison.Items.Select(i => i.RightIndex));
         }
@@ -192,7 +244,10 @@ namespace GeometryHelper.Viewer.Tests
             SceneComparison comparison = SceneComparison.Compare(a.Scene, b.Scene);
 
             Assert.Equal(new[] { CompareMatch.Order, CompareMatch.Data }, comparison.Items.Select(i => i.Match));
-            Assert.Equal(new[] { CompareStatus.Changed, CompareStatus.Identical }, comparison.Items.Select(i => i.Status));
+            Assert.Equal(
+                new[] { CompareStatus.Changed, CompareStatus.Identical },
+                comparison.Items.Select(i => i.Status)
+            );
         }
 
         [Fact]
@@ -214,7 +269,8 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ASceneFileWrittenBeforeTheMark_ReadsAsNamedItems()
         {
-            const string old = "{\"format\":\"ghscene\",\"version\":1,\"layers\":[{\"name\":\"L\",\"color\":\"#112233\"}],\"items\":[{\"name\":\"GeoPoint2 1\",\"layer\":\"L\",\"kind\":\"GeoPoint2\",\"data\":[1,2]}]}";
+            const string old =
+                "{\"format\":\"ghscene\",\"version\":1,\"layers\":[{\"name\":\"L\",\"color\":\"#112233\"}],\"items\":[{\"name\":\"GeoPoint2 1\",\"layer\":\"L\",\"kind\":\"GeoPoint2\",\"data\":[1,2]}]}";
 
             Assert.False(SceneReader.ReadJson(old).Items.Single().AutoName);
         }
@@ -233,7 +289,11 @@ namespace GeometryHelper.Viewer.Tests
             right.Add(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(12, 0), new GeoPoint2(0, 10)), name: "tri");
             left.Scene.Items[0].Properties["measure.area"] = "50";
             right.Scene.Items[0].Properties["measure.area"] = "60.123456789012345";
-            ComparisonScene layout = ComparisonScene.Build(SceneComparison.Compare(left.Scene, right.Scene), left.Scene, right.Scene);
+            ComparisonScene layout = ComparisonScene.Build(
+                SceneComparison.Compare(left.Scene, right.Scene),
+                left.Scene,
+                right.Scene
+            );
 
             KeyValuePair<Scene, SceneItem> leftCopy = layout.SourceOf(0);
             KeyValuePair<Scene, SceneItem> rightCopy = layout.SourceOf(1);
@@ -245,12 +305,26 @@ namespace GeometryHelper.Viewer.Tests
 
             string text = TestExporter.Export(new[] { rightCopy, leftCopy });
 
-            Assert.True(text.Contains("new Tolerance(0.050000000000000003, 1.0000000000000001E-05, 0.01, 0.070000000000000007)", StringComparison.Ordinal), text);
+            Assert.True(
+                text.Contains(
+                    "new Tolerance(0.050000000000000003, 1.0000000000000001E-05, 0.01, 0.070000000000000007)",
+                    StringComparison.Ordinal
+                ),
+                text
+            );
             Assert.Contains("new Tolerance(0.002, 1.0000000000000001E-05, 0.01, 0.02)", text, StringComparison.Ordinal);
-            Assert.Contains("the build that made the scene measured 60.123456789012345.", text, StringComparison.Ordinal);
+            Assert.Contains(
+                "the build that made the scene measured 60.123456789012345.",
+                text,
+                StringComparison.Ordinal
+            );
             Assert.Contains("the build that made the scene measured 50.", text, StringComparison.Ordinal);
             Assert.DoesNotContain("the viewer measured", text, StringComparison.Ordinal);
-            Assert.Contains("from the scene 'right', 'left'", text.Replace("Written by the GeometryHelper viewer ", string.Empty), StringComparison.Ordinal);
+            Assert.Contains(
+                "from the scene 'right', 'left'",
+                text.Replace("Written by the GeometryHelper viewer ", string.Empty),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -261,7 +335,11 @@ namespace GeometryHelper.Viewer.Tests
             left.Add(new GeoPoint2(1, 1), name: "p");
             right.Add(new GeoPoint2(1, 1), name: "p");
 
-            ComparisonScene layout = ComparisonScene.Build(SceneComparison.Compare(left.Scene, right.Scene), left.Scene, right.Scene);
+            ComparisonScene layout = ComparisonScene.Build(
+                SceneComparison.Compare(left.Scene, right.Scene),
+                left.Scene,
+                right.Scene
+            );
 
             Assert.Same(right.Scene, layout.SourceOf(0).Key);
         }
@@ -275,7 +353,11 @@ namespace GeometryHelper.Viewer.Tests
 
             string text = TestExporter.Export(writer.Scene, writer.Scene.Items);
 
-            Assert.Contains("// That build could not measure the shape: MissingMethodException: Area", text, StringComparison.Ordinal);
+            Assert.Contains(
+                "// That build could not measure the shape: MissingMethodException: Area",
+                text,
+                StringComparison.Ordinal
+            );
             Assert.Contains("Assert.Fail(", text, StringComparison.Ordinal);
         }
 
@@ -287,7 +369,11 @@ namespace GeometryHelper.Viewer.Tests
             writer.Scene.Items[0].Properties["measure.area"] = "50";
             writer.Scene.Items[0].Properties["measure.note"] = "rebuilt and measured at 1E-12";
 
-            Assert.Contains("// rebuilt and measured at 1E-12", TestExporter.Export(writer.Scene, writer.Scene.Items), StringComparison.Ordinal);
+            Assert.Contains(
+                "// rebuilt and measured at 1E-12",
+                TestExporter.Export(writer.Scene, writer.Scene.Items),
+                StringComparison.Ordinal
+            );
         }
     }
 
@@ -319,7 +405,10 @@ namespace GeometryHelper.Viewer.Tests
 
             try
             {
-                GitBuilds.ResolveAsync(Environment, repository, Commit, CancellationToken.None).GetAwaiter().GetResult();
+                GitBuilds
+                    .ResolveAsync(Environment, repository, Commit, CancellationToken.None)
+                    .GetAwaiter()
+                    .GetResult();
                 Source = BuildSource.FromCommit(Commit, repository);
             }
             catch (InvalidOperationException e)
@@ -343,9 +432,16 @@ namespace GeometryHelper.Viewer.Tests
 
         private static string FindRepository()
         {
-            for (DirectoryInfo directory = new DirectoryInfo(AppContext.BaseDirectory); directory != null; directory = directory.Parent)
+            for (
+                DirectoryInfo directory = new DirectoryInfo(AppContext.BaseDirectory);
+                directory != null;
+                directory = directory.Parent
+            )
             {
-                if (Directory.Exists(Path.Combine(directory.FullName, ".git")) || File.Exists(Path.Combine(directory.FullName, ".git")))
+                if (
+                    Directory.Exists(Path.Combine(directory.FullName, ".git"))
+                    || File.Exists(Path.Combine(directory.FullName, ".git"))
+                )
                 {
                     return directory.FullName;
                 }
@@ -373,7 +469,11 @@ namespace GeometryHelper.Viewer.Tests
                 return false;
             }
 
-            _output.WriteLine("NOT RUN: " + _fixture.Why + ". The test of a build before GeoRay2 needs the history of this repository.");
+            _output.WriteLine(
+                "NOT RUN: "
+                    + _fixture.Why
+                    + ". The test of a build before GeoRay2 needs the history of this repository."
+            );
             return true;
         }
 
@@ -388,9 +488,19 @@ namespace GeometryHelper.Viewer.Tests
             using (var folder = new TempFolder("ghviewer-oldscript"))
             {
                 string script = folder.Combine("tri.csx");
-                File.WriteAllText(script, "Tol = new Tolerance(0.01, 1E-5);\nShow(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(0, 10)), name: \"tri\");\nShow(new GeoPoint2(1, 2));");
+                File.WriteAllText(
+                    script,
+                    "Tol = new Tolerance(0.01, 1E-5);\nShow(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(0, 10)), name: \"tri\");\nShow(new GeoPoint2(1, 2));"
+                );
 
-                SideRunResult result = await SideRunner.RunAsync(_fixture.Environment, script, _fixture.Source, "old", null, CancellationToken.None);
+                SideRunResult result = await SideRunner.RunAsync(
+                    _fixture.Environment,
+                    script,
+                    _fixture.Source,
+                    "old",
+                    null,
+                    CancellationToken.None
+                );
 
                 Assert.True(result.Succeeded, string.Join("\n", result.Errors));
                 Assert.EndsWith(" 12.1.0.0", result.LibraryLine, StringComparison.Ordinal);
@@ -415,10 +525,27 @@ namespace GeometryHelper.Viewer.Tests
             using (var folder = new TempFolder("ghviewer-oldscript"))
             {
                 string script = folder.Combine("ray.csx");
-                File.WriteAllText(script, "Show(new GeoRay2(new GeoPoint2(0, 0), new GeoVector2(1, 0)), name: \"ray\");");
+                File.WriteAllText(
+                    script,
+                    "Show(new GeoRay2(new GeoPoint2(0, 0), new GeoVector2(1, 0)), name: \"ray\");"
+                );
 
-                SideRunResult old = await SideRunner.RunAsync(_fixture.Environment, script, _fixture.Source, "old", null, CancellationToken.None);
-                SideRunResult own = await SideRunner.RunAsync(_fixture.Environment, script, BuildSource.Own, "own", null, CancellationToken.None);
+                SideRunResult old = await SideRunner.RunAsync(
+                    _fixture.Environment,
+                    script,
+                    _fixture.Source,
+                    "old",
+                    null,
+                    CancellationToken.None
+                );
+                SideRunResult own = await SideRunner.RunAsync(
+                    _fixture.Environment,
+                    script,
+                    BuildSource.Own,
+                    "own",
+                    null,
+                    CancellationToken.None
+                );
 
                 Assert.False(old.Succeeded);
                 Assert.Contains("GeoRay2", string.Join("\n", old.Errors), StringComparison.Ordinal);
@@ -459,12 +586,32 @@ namespace GeometryHelper.Viewer.Tests
                     Directory.CreateDirectory(Path.GetDirectoryName(padded));
                     File.WriteAllBytes(padded, library.Concat(new[] { (byte)run }).ToArray());
 
-                    Task<SideRunResult> left = SideRunner.RunAsync(environment, script, BuildSource.Own, "left", null, CancellationToken.None);
-                    Task<SideRunResult> right = SideRunner.RunAsync(environment, script, BuildSource.FromDll(padded), "right", null, CancellationToken.None);
+                    Task<SideRunResult> left = SideRunner.RunAsync(
+                        environment,
+                        script,
+                        BuildSource.Own,
+                        "left",
+                        null,
+                        CancellationToken.None
+                    );
+                    Task<SideRunResult> right = SideRunner.RunAsync(
+                        environment,
+                        script,
+                        BuildSource.FromDll(padded),
+                        "right",
+                        null,
+                        CancellationToken.None
+                    );
                     await Task.WhenAll(left, right);
 
-                    Assert.True(left.Result.Succeeded, "run " + run + " left: " + string.Join(" / ", left.Result.Errors));
-                    Assert.True(right.Result.Succeeded, "run " + run + " right: " + string.Join(" / ", right.Result.Errors));
+                    Assert.True(
+                        left.Result.Succeeded,
+                        "run " + run + " left: " + string.Join(" / ", left.Result.Errors)
+                    );
+                    Assert.True(
+                        right.Result.Succeeded,
+                        "run " + run + " right: " + string.Join(" / ", right.Result.Errors)
+                    );
                 }
             }
         }
@@ -477,7 +624,9 @@ namespace GeometryHelper.Viewer.Tests
         {
             var writer = new SceneWriter();
 
-            ArgumentException error = Assert.Throws<ArgumentException>(() => writer.Add((object)new Foreign.GeoPoint2()));
+            ArgumentException error = Assert.Throws<ArgumentException>(() =>
+                writer.Add((object)new Foreign.GeoPoint2())
+            );
 
             Assert.Contains("Foreign.GeoPoint2", error.Message, StringComparison.Ordinal);
             Assert.Empty(writer.Scene.Items);
@@ -519,10 +668,18 @@ namespace GeometryHelper.Viewer.Tests
                 string script = folder.Combine("spawn.csx");
                 File.WriteAllText(
                     script,
-                    "var child = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(\"ping\", \"-n 40 127.0.0.1 -w 1000\") { UseShellExecute = false, CreateNoWindow = true });\nNote(\"child \" + child.Id);\nShow(new GeoPoint2(1, 2), name: \"p\");");
+                    "var child = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(\"ping\", \"-n 40 127.0.0.1 -w 1000\") { UseShellExecute = false, CreateNoWindow = true });\nNote(\"child \" + child.Id);\nShow(new GeoPoint2(1, 2), name: \"p\");"
+                );
                 var clock = Stopwatch.StartNew();
 
-                SideRunResult result = await SideRunner.RunAsync(_fixture.Environment, script, BuildSource.Own, "left", null, CancellationToken.None);
+                SideRunResult result = await SideRunner.RunAsync(
+                    _fixture.Environment,
+                    script,
+                    BuildSource.Own,
+                    "left",
+                    null,
+                    CancellationToken.None
+                );
 
                 Assert.True(result.Succeeded, string.Join("\n", result.Errors));
                 Assert.True(clock.Elapsed < TimeSpan.FromSeconds(30), clock.Elapsed.ToString());
@@ -540,9 +697,23 @@ namespace GeometryHelper.Viewer.Tests
             {
                 string script = folder.Combine("a.csx");
                 File.WriteAllText(script, "Show(new GeoPoint2(1, 2));");
-                SideRunResult first = await SideRunner.RunAsync(_fixture.Environment, script, BuildSource.Own, "left", null, CancellationToken.None);
+                SideRunResult first = await SideRunner.RunAsync(
+                    _fixture.Environment,
+                    script,
+                    BuildSource.Own,
+                    "left",
+                    null,
+                    CancellationToken.None
+                );
                 File.WriteAllText(script, "Show(new GeoPoint2(1, 3));");
-                SideRunResult second = await SideRunner.RunAsync(_fixture.Environment, script, BuildSource.Own, "left", null, CancellationToken.None);
+                SideRunResult second = await SideRunner.RunAsync(
+                    _fixture.Environment,
+                    script,
+                    BuildSource.Own,
+                    "left",
+                    null,
+                    CancellationToken.None
+                );
 
                 Assert.Equal(64, first.ScriptHash.Length);
                 Assert.NotEqual(first.ScriptHash, second.ScriptHash);

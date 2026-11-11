@@ -98,9 +98,10 @@ namespace GeometryHelper.Internal.Planar
                         GeoVector2 chord = next - previous;
                         double chordLength = chord.Length;
 
-                        bool drop = chordLength <= merge
-                            ? true
-                            : Math.Abs(chord.Cross(current - previous)) / chordLength <= straight;
+                        bool drop =
+                            chordLength <= merge
+                                ? true
+                                : Math.Abs(chord.Cross(current - previous)) / chordLength <= straight;
 
                         if (drop)
                         {
@@ -119,7 +120,8 @@ namespace GeometryHelper.Internal.Planar
             // it then, as above. Moving them took 10 of the 11 seconds a union of 40 000 squares in a row took, 80 000
             // points along two lines, on .NET 10 and .NET Framework alike.
             int count = points.Count;
-            int[] before = new int[count], after = new int[count];
+            int[] before = new int[count],
+                after = new int[count];
 
             for (int i = 0; i < count; i++)
             {
@@ -133,7 +135,7 @@ namespace GeometryHelper.Internal.Planar
             {
                 changed = false;
 
-                for (int i = first; count >= 3;)
+                for (int i = first; count >= 3; )
                 {
                     bool last = after[i] == first;
                     GeoPoint2 previous = points[before[i]];
@@ -142,9 +144,10 @@ namespace GeometryHelper.Internal.Planar
                     GeoVector2 chord = next - previous;
                     double chordLength = chord.Length;
 
-                    bool drop = chordLength <= merge
-                        ? true
-                        : Math.Abs(chord.Cross(current - previous)) / chordLength <= straight;
+                    bool drop =
+                        chordLength <= merge
+                            ? true
+                            : Math.Abs(chord.Cross(current - previous)) / chordLength <= straight;
 
                     if (drop)
                     {
@@ -227,7 +230,11 @@ namespace GeometryHelper.Internal.Planar
                     // Straight through only: the point must also lie between its neighbours.
                     double along = (current - previous).Dot(chord) / chordLength;
 
-                    if (along > 0.0 && along < chordLength && Math.Abs(chord.Cross(current - previous)) / chordLength <= straight)
+                    if (
+                        along > 0.0
+                        && along < chordLength
+                        && Math.Abs(chord.Cross(current - previous)) / chordLength <= straight
+                    )
                     {
                         points.RemoveAt(i);
                         changed = true;
@@ -251,8 +258,7 @@ namespace GeometryHelper.Internal.Planar
                 GeoPoint2 a = loop[i];
                 GeoPoint2 b = loop[j];
 
-                if ((a.Y > point.Y) != (b.Y > point.Y) &&
-                    point.X < (b.X - a.X) * (point.Y - a.Y) / (b.Y - a.Y) + a.X)
+                if ((a.Y > point.Y) != (b.Y > point.Y) && point.X < (b.X - a.X) * (point.Y - a.Y) / (b.Y - a.Y) + a.X)
                 {
                     inside = !inside;
                 }

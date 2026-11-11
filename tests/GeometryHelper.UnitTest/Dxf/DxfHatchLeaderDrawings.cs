@@ -14,18 +14,27 @@ namespace GeometryHelper.UnitTest.Dxf
     internal static class DxfHatchLeaderDrawings
     {
         /// <summary>The drawing of R2000.</summary>
-        internal static string R2000 => Spliced(DxfFileEzdxfDrawings.R2000, R2000BlockRecord, R2000Block, R2000Entities);
+        internal static string R2000 =>
+            Spliced(DxfFileEzdxfDrawings.R2000, R2000BlockRecord, R2000Block, R2000Entities);
 
         /// <summary>The drawing of R2018.</summary>
-        internal static string R2018 => Spliced(DxfFileEzdxfDrawings.R2018, R2018BlockRecord, R2018Block, R2018Entities);
+        internal static string R2018 =>
+            Spliced(DxfFileEzdxfDrawings.R2018, R2018BlockRecord, R2018Block, R2018Entities);
 
-        private static string Spliced(string text, string blockRecord, string block, string entities) => text
-            .Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nBB\n")
-            .Replace("BLOCK_RECORD\n  5\n9\n330\n0\n100\nAcDbSymbolTable\n 70\n7\n", "BLOCK_RECORD\n  5\n9\n330\n0\n100\nAcDbSymbolTable\n 70\n8\n" + blockRecord)
-            .Replace("  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n", block + "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n")
-            .Replace("  0\nDIMENSION\n  5\n75\n", entities + "  0\nDIMENSION\n  5\n75\n");
+        private static string Spliced(string text, string blockRecord, string block, string entities) =>
+            text.Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nBB\n")
+                .Replace(
+                    "BLOCK_RECORD\n  5\n9\n330\n0\n100\nAcDbSymbolTable\n 70\n7\n",
+                    "BLOCK_RECORD\n  5\n9\n330\n0\n100\nAcDbSymbolTable\n 70\n8\n" + blockRecord
+                )
+                .Replace(
+                    "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n",
+                    block + "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n"
+                )
+                .Replace("  0\nDIMENSION\n  5\n75\n", entities + "  0\nDIMENSION\n  5\n75\n");
 
-        private const string R2000BlockRecord = @"  0
+        private const string R2000BlockRecord =
+            @"  0
 BLOCK_RECORD
   5
 B5
@@ -41,7 +50,8 @@ GKTAG
 0
 ";
 
-        private const string R2000Block = @"  0
+        private const string R2000Block =
+            @"  0
 BLOCK
   5
 B6
@@ -131,7 +141,8 @@ AcDbEntity
 AcDbBlockEnd
 ";
 
-        private const string R2000Entities = @"  0
+        private const string R2000Entities =
+            @"  0
 LWPOLYLINE
   5
 AB
@@ -1363,7 +1374,8 @@ B5
 0
 ";
 
-        private const string R2018BlockRecord = @"  0
+        private const string R2018BlockRecord =
+            @"  0
 BLOCK_RECORD
   5
 B5
@@ -1385,7 +1397,8 @@ GKTAG
 0
 ";
 
-        private const string R2018Block = @"  0
+        private const string R2018Block =
+            @"  0
 BLOCK
   5
 B6
@@ -1479,7 +1492,8 @@ AcDbEntity
 AcDbBlockEnd
 ";
 
-        private const string R2018Entities = @"  0
+        private const string R2018Entities =
+            @"  0
 LWPOLYLINE
   5
 AB

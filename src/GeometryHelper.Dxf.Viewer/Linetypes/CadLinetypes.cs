@@ -8,7 +8,12 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>What came of loading linetypes: the edit, and the names loaded, already there and refused, each with why.</summary>
     public sealed class CadLinetypeLoad
     {
-        internal CadLinetypeLoad(CadEditResult result, IReadOnlyList<string> loaded, IReadOnlyList<string> present, IReadOnlyList<string> refused)
+        internal CadLinetypeLoad(
+            CadEditResult result,
+            IReadOnlyList<string> loaded,
+            IReadOnlyList<string> present,
+            IReadOnlyList<string> refused
+        )
         {
             Result = result;
             Loaded = loaded;
@@ -50,7 +55,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="stepName">The name of the undo step, as LINETYPE.</param>
         /// <returns>What came of it.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document, the linetypes or the path is null.</exception>
-        public static CadLinetypeLoad Load(CadDocument document, IEnumerable<CadLinetypeDefinition> linetypes, string path, string stepName = "LINETYPE")
+        public static CadLinetypeLoad Load(
+            CadDocument document,
+            IEnumerable<CadLinetypeDefinition> linetypes,
+            string path,
+            string stepName = "LINETYPE"
+        )
         {
             if (document == null)
             {
@@ -74,7 +84,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (CadLinetypeDefinition linetype in linetypes)
             {
-                if (linetype == null || wanted.Exists(w => string.Equals(w.Name, linetype.Name, StringComparison.OrdinalIgnoreCase)))
+                if (
+                    linetype == null
+                    || wanted.Exists(w => string.Equals(w.Name, linetype.Name, StringComparison.OrdinalIgnoreCase))
+                )
                 {
                     continue;
                 }
@@ -116,7 +129,15 @@ namespace GeometryHelper.Dxf.Viewer
                         }
 
                         loaded.Add(linetype.Name);
-                        s.Record(new CadEditRecord(CadEditRecordKind.TableChanged, null, "Load linetype", null, linetype.Name));
+                        s.Record(
+                            new CadEditRecord(
+                                CadEditRecordKind.TableChanged,
+                                null,
+                                "Load linetype",
+                                null,
+                                linetype.Name
+                            )
+                        );
                     }
                     catch (ArgumentException e)
                     {
@@ -166,10 +187,18 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (database.LinetypeTable.Has(linetype.Name))
             {
-                throw new ArgumentException("The drawing has a linetype named " + linetype.Name + " already.", nameof(linetype));
+                throw new ArgumentException(
+                    "The drawing has a linetype named " + linetype.Name + " already.",
+                    nameof(linetype)
+                );
             }
 
-            var record = new DxfLinetypeTableRecord { Name = linetype.Name, AsciiDescription = linetype.Description, NumDashes = linetype.Elements.Count };
+            var record = new DxfLinetypeTableRecord
+            {
+                Name = linetype.Name,
+                AsciiDescription = linetype.Description,
+                NumDashes = linetype.Elements.Count,
+            };
 
             for (int i = 0; i < linetype.Elements.Count; i++)
             {
@@ -178,7 +207,16 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (element.Kind == CadLinetypeElementKind.Shape)
                 {
-                    throw new ArgumentException("The linetype " + linetype.Name + " draws the shape " + element.Value + ", which is loaded from its .lin file beside " + element.Style + ".", nameof(linetype));
+                    throw new ArgumentException(
+                        "The linetype "
+                            + linetype.Name
+                            + " draws the shape "
+                            + element.Value
+                            + ", which is loaded from its .lin file beside "
+                            + element.Style
+                            + ".",
+                        nameof(linetype)
+                    );
                 }
 
                 if (element.Kind != CadLinetypeElementKind.Text)
@@ -186,11 +224,20 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                DxfTextStyleTableRecord style = database.TextStyleTable.FirstOrDefault(t => !t.IsShapeFile && string.Equals(t.Name, element.Style, StringComparison.OrdinalIgnoreCase));
+                DxfTextStyleTableRecord style = database.TextStyleTable.FirstOrDefault(t =>
+                    !t.IsShapeFile && string.Equals(t.Name, element.Style, StringComparison.OrdinalIgnoreCase)
+                );
 
                 if (style == null)
                 {
-                    throw new ArgumentException("The linetype " + linetype.Name + " writes its text in the text style " + element.Style + ", which the drawing has not.", nameof(linetype));
+                    throw new ArgumentException(
+                        "The linetype "
+                            + linetype.Name
+                            + " writes its text in the text style "
+                            + element.Style
+                            + ", which the drawing has not.",
+                        nameof(linetype)
+                    );
                 }
 
                 record.SetTextAt(i, element.Value);
@@ -231,16 +278,19 @@ namespace GeometryHelper.Dxf.Viewer
                 return true;
             }
 
-            DxfLinetypeTableRecord record = database.LinetypeTable.FirstOrDefault(l => string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase));
+            DxfLinetypeTableRecord record = database.LinetypeTable.FirstOrDefault(l =>
+                string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase)
+            );
             return record != null && database.Purge(new DxfDBObject[] { record }).Count == 0;
         }
 
         /// <summary>Gets whether a linetype is one AutoCAD keeps in every drawing: ByLayer, ByBlock or Continuous.</summary>
         /// <param name="name">The name.</param>
         /// <returns>True for one of the three.</returns>
-        public static bool IsKept(string name)
-            => string.Equals(name, "ByLayer", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "ByBlock", StringComparison.OrdinalIgnoreCase)
-               || string.Equals(name, "Continuous", StringComparison.OrdinalIgnoreCase);
+        public static bool IsKept(string name) =>
+            string.Equals(name, "ByLayer", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "ByBlock", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "Continuous", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>Gets the lengths of a linetype of the drawing, as its LTYPE holds them; none for Continuous or one the drawing has not.</summary>
         /// <param name="database">The drawing.</param>
@@ -254,7 +304,12 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(database));
             }
 
-            DxfLinetypeTableRecord record = name == null ? null : database.LinetypeTable.FirstOrDefault(l => string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase));
+            DxfLinetypeTableRecord record =
+                name == null
+                    ? null
+                    : database.LinetypeTable.FirstOrDefault(l =>
+                        string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase)
+                    );
 
             if (record == null)
             {
@@ -275,8 +330,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="database">The drawing.</param>
         /// <returns>The names.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the drawing is null.</exception>
-        public static IReadOnlyList<string> Names(DxfDatabase database)
-            => (database ?? throw new ArgumentNullException(nameof(database))).LinetypeTable.Select(l => l.Name).Where(n => !string.Equals(n, "ByLayer", StringComparison.OrdinalIgnoreCase) && !string.Equals(n, "ByBlock", StringComparison.OrdinalIgnoreCase))
-                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ThenBy(n => n, StringComparer.Ordinal).ToList();
+        public static IReadOnlyList<string> Names(DxfDatabase database) =>
+            (database ?? throw new ArgumentNullException(nameof(database)))
+                .LinetypeTable.Select(l => l.Name)
+                .Where(n =>
+                    !string.Equals(n, "ByLayer", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(n, "ByBlock", StringComparison.OrdinalIgnoreCase)
+                )
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(n => n, StringComparer.Ordinal)
+                .ToList();
     }
 }

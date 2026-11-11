@@ -247,7 +247,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             {
                 // Home: the buttons this round added start their commands.
                 Layout(workspace);
-                var home = Descendants(workspace).OfType<Button>().Where(b => b.Command == model.StartCommandCommand).ToList();
+                var home = Descendants(workspace)
+                    .OfType<Button>()
+                    .Where(b => b.Command == model.StartCommandCommand)
+                    .ToList();
                 string[] added = { "RECTANG", "ELLIPSE", "POINT", "DIST", "AREA", "ID", "LIST" };
                 Assert.Equal(added, home.Select(b => b.CommandParameter as string).Where(added.Contains));
 
@@ -259,8 +262,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 // Annotate: each button starts its command as Home's do.
                 model.SelectedTab = model.AnnotateTab;
                 Layout(workspace);
-                List<ButtonBase> annotate = ButtonsOf(workspace, model.AnnotateTab.TabContent).Where(b => b.CommandParameter is string).ToList();
-                Assert.Equal(new[] { "MTEXT", "TEXT", "DIMLINEAR", "QDIM", "DIMCONTINUE", "DIMSPACE", "DIMBREAK", "MLEADER" }, annotate.Select(b => b.CommandParameter as string));
+                List<ButtonBase> annotate = ButtonsOf(workspace, model.AnnotateTab.TabContent)
+                    .Where(b => b.CommandParameter is string)
+                    .ToList();
+                Assert.Equal(
+                    new[] { "MTEXT", "TEXT", "DIMLINEAR", "QDIM", "DIMCONTINUE", "DIMSPACE", "DIMBREAK", "MLEADER" },
+                    annotate.Select(b => b.CommandParameter as string)
+                );
 
                 foreach (ButtonBase button in annotate)
                 {
@@ -271,7 +279,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 model.SelectedTab = model.ViewTab;
                 Layout(workspace);
                 // The panels' own toggles, which a collapsed panel draws, are not the tab's buttons.
-                List<ButtonBase> view = ButtonsOf(workspace, model.ViewTab.TabContent).Where(b => !(b.TemplatedParent is RibbonPanel)).ToList();
+                List<ButtonBase> view = ButtonsOf(workspace, model.ViewTab.TabContent)
+                    .Where(b => !(b.TemplatedParent is RibbonPanel))
+                    .ToList();
                 Assert.Equal(16, view.Count);
 
                 foreach (Button button in view.OfType<Button>().Where(b => b.CommandParameter is string))
@@ -295,9 +305,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 properties.IsChecked = false;
                 Assert.False(model.IsPropertiesPanelShown);
 
-                foreach (ToggleButton toggle in view.OfType<ToggleButton>().Where(b => b != drawings && b != properties))
+                foreach (
+                    ToggleButton toggle in view.OfType<ToggleButton>().Where(b => b != drawings && b != properties)
+                )
                 {
-                    StatusToggleViewModel state = model.Toggles.Single(t => string.Equals(t.Name, (string)toggle.Content, StringComparison.OrdinalIgnoreCase));
+                    StatusToggleViewModel state = model.Toggles.Single(t =>
+                        string.Equals(t.Name, (string)toggle.Content, StringComparison.OrdinalIgnoreCase)
+                    );
                     Assert.True(toggle.IsEnabled);
                     Assert.Equal(state.IsOn, toggle.IsChecked);
                     toggle.IsChecked = !toggle.IsChecked;
@@ -331,7 +345,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             int before = model.History.Count;
             button.Command.Execute(button.CommandParameter);
             Assert.Contains("Command: " + command, model.History.Skip(before));
-            Assert.DoesNotContain(model.History.Skip(before), l => l.StartsWith("Unknown command", StringComparison.Ordinal));
+            Assert.DoesNotContain(model.History.Skip(before), l =>
+                l.StartsWith("Unknown command", StringComparison.Ordinal)
+            );
             model.Escape();
         }
 
@@ -345,7 +361,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         /// <summary>The buttons of a ribbon tab: those under the presenter of its content, in the order they are drawn.</summary>
         private static List<ButtonBase> ButtonsOf(DependencyObject root, object content)
         {
-            ContentPresenter presenter = Descendants(root).OfType<ContentPresenter>().First(p => ReferenceEquals(p.Content, content));
+            ContentPresenter presenter = Descendants(root)
+                .OfType<ContentPresenter>()
+                .First(p => ReferenceEquals(p.Content, content));
             return Descendants(presenter).OfType<ButtonBase>().ToList();
         }
 

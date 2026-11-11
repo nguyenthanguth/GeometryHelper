@@ -20,14 +20,16 @@ namespace GeometryHelper.UnitTest.Plane
             // A slot: two straight sides and a half turn at each end.
             return new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 50), new GeoPoint2(0, 50) },
-                new[] { 0.0, 1.0, 0.0, 1.0 });
+                new[] { 0.0, 1.0, 0.0, 1.0 }
+            );
         }
 
         private static GeoPolylineArc2 Chain()
         {
             return new GeoPolylineArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(200, 100) },
-                new[] { 0.5, 0.0, -0.25 });
+                new[] { 0.5, 0.0, -0.25 }
+            );
         }
 
         [Fact]
@@ -168,8 +170,10 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolyline2 flatThenMoved = chain.Flatten(0.001).TransformBy(transform);
 
             Assert.True(movedThenFlat[0].IsEqualTo(flatThenMoved[0], Loose));
-            Assert.True(movedThenFlat[movedThenFlat.VertexCount - 1]
-                .IsEqualTo(flatThenMoved[flatThenMoved.VertexCount - 1], Loose));
+            Assert.True(
+                movedThenFlat[movedThenFlat.VertexCount - 1]
+                    .IsEqualTo(flatThenMoved[flatThenMoved.VertexCount - 1], Loose)
+            );
             Assert.True(Math.Abs(movedThenFlat.Length - flatThenMoved.Length) / flatThenMoved.Length < 1E-5);
         }
 
@@ -187,8 +191,9 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(straight.TransformBy(uneven).EndPoint.IsEqualTo(new GeoPoint2(20, 30), Loose));
 
             // And a chain with no arcs goes through as well.
-            var plain = new GeoPolygonArc2(new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10)));
+            var plain = new GeoPolygonArc2(
+                new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10))
+            );
 
             Assert.Equal(300.0, plain.TransformBy(uneven).Area, 9);
 
@@ -199,7 +204,8 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AShapeComesBackUnderTheInverseOfWhatMovedIt()
         {
-            GeoTransform2 there = GeoTransform2.Rotation(new GeoPoint2(4, 9), 0.7)
+            GeoTransform2 there = GeoTransform2
+                .Rotation(new GeoPoint2(4, 9), 0.7)
                 .Multiply(GeoTransform2.Scaling(GeoPoint2.Origin, 1.75))
                 .Multiply(GeoTransform2.Translation(new GeoVector2(60, -20)));
 

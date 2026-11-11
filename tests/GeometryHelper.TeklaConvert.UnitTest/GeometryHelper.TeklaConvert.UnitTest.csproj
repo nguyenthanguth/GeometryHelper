@@ -1,32 +1,31 @@
 <Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net48</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <Deterministic>true</Deterministic>
+        <IsPackable>false</IsPackable>
+        <PlatformTarget>x64</PlatformTarget>
+    </PropertyGroup>
 
-  <PropertyGroup>
-    <TargetFramework>net48</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <Deterministic>true</Deterministic>
-    <IsPackable>false</IsPackable>
-    <PlatformTarget>x64</PlatformTarget>
-  </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+        <PackageReference Include="xunit" Version="2.9.2" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
-    <PackageReference Include="xunit" Version="2.9.2" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
-  </ItemGroup>
-
-  <!-- Coverage, on demand, as for GeometryHelper.UnitTest: dotnet test with the collector "XPlat Code Coverage"
+    <!-- Coverage, on demand, as for GeometryHelper.UnitTest: dotnet test with the collector "XPlat Code Coverage"
        writes a Cobertura file under TestResults, with a package for each library the tests load. -->
-  <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.2" PrivateAssets="all" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="coverlet.collector" Version="6.0.2" PrivateAssets="all" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\GeometryHelper.TeklaConvert\GeometryHelper.TeklaConvert.csproj" />
-    <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\GeometryHelper.TeklaConvert\GeometryHelper.TeklaConvert.csproj" />
+        <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <!-- The geometry types of the Tekla API are plain data and need no running Tekla, so the conversions
+    <ItemGroup>
+        <!-- The geometry types of the Tekla API are plain data and need no running Tekla, so the conversions
          over them can be tested here. Reading a Tekla Solid does need one, and is covered by the model
          test program instead. Private is true here, unlike in the library, because the test host has no
          Tekla installation to load them from.
@@ -45,18 +44,17 @@
 
          The assemblies come from the Lib folder of the Tekla version under test (TeklaVersion in
          Directory.Build.props), the same one the library is built against. -->
-    <Reference Include="Tekla.Structures">
-      <HintPath>..\..\src\GeometryHelper.TeklaConvert\Lib$(TeklaVersion)\Tekla.Structures.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Tekla.Structures.Datatype">
-      <HintPath>..\..\src\GeometryHelper.TeklaConvert\Lib$(TeklaVersion)\Tekla.Structures.Datatype.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Tekla.Structures.Model">
-      <HintPath>..\..\src\GeometryHelper.TeklaConvert\Lib$(TeklaVersion)\Tekla.Structures.Model.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-  </ItemGroup>
-
+        <Reference Include="Tekla.Structures">
+            <HintPath>..\..\src\GeometryHelper.TeklaConvert\Lib$(TeklaVersion)\Tekla.Structures.dll</HintPath>
+            <Private>True</Private>
+        </Reference>
+        <Reference Include="Tekla.Structures.Datatype">
+            <HintPath>..\..\src\GeometryHelper.TeklaConvert\Lib$(TeklaVersion)\Tekla.Structures.Datatype.dll</HintPath>
+            <Private>True</Private>
+        </Reference>
+        <Reference Include="Tekla.Structures.Model">
+            <HintPath>..\..\src\GeometryHelper.TeklaConvert\Lib$(TeklaVersion)\Tekla.Structures.Model.dll</HintPath>
+            <Private>True</Private>
+        </Reference>
+    </ItemGroup>
 </Project>

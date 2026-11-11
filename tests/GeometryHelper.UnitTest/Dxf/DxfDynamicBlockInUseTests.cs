@@ -44,7 +44,14 @@ namespace GeometryHelper.UnitTest.Dxf
                 Add(block, new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0))),
                 Add(block, new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(0, 0, 0))),
             };
-            DxfBlockLinearParameter width = block.AddLinearParameter("Width", "Overall width", new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, DxfBlockParameterValueSet.List(new[] { 100.0, 150, 200 }));
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                "Overall width",
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                DxfBlockParameterValueSet.List(new[] { 100.0, 150, 200 })
+            );
             block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), lines.Take(3));
             return db;
         }
@@ -59,12 +66,17 @@ namespace GeometryHelper.UnitTest.Dxf
                 Add(block, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(40, 40, 0))),
                 Add(block, new DxfLine(new GeoPoint3(10, 20, 0), new GeoPoint3(20, 10, 0))),
             };
-            block.AddVisibilityParameter("Mark", "What the sign shows", new GeoPoint3(20, -10, 0), new[]
-            {
-                new DxfBlockVisibilityState("Cross", new DxfEntity[] { lines[1] }),
-                new DxfBlockVisibilityState("Tick", new DxfEntity[] { lines[2] }),
-                new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
-            });
+            block.AddVisibilityParameter(
+                "Mark",
+                "What the sign shows",
+                new GeoPoint3(20, -10, 0),
+                new[]
+                {
+                    new DxfBlockVisibilityState("Cross", new DxfEntity[] { lines[1] }),
+                    new DxfBlockVisibilityState("Tick", new DxfEntity[] { lines[2] }),
+                    new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
+                }
+            );
             return db;
         }
 
@@ -72,11 +84,13 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static DxfBlockReference TheInsert(DxfDatabase db) => db.ModelSpace.OfType<DxfBlockReference>().First();
 
-        private static DxfDynamicBlockReferenceProperty Property(DxfBlockReference insert, string name) => insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name);
+        private static DxfDynamicBlockReferenceProperty Property(DxfBlockReference insert, string name) =>
+            insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name);
 
         private static bool At(GeoPoint3 point, double x, double y) => point.IsEqualTo(new GeoPoint3(x, y, 0), Exact);
 
-        private static bool Along(GeoVector3 vector, double x, double y) => Math.Abs(vector.X - x) <= 1E-9 && Math.Abs(vector.Y - y) <= 1E-9 && Math.Abs(vector.Z) <= 1E-9;
+        private static bool Along(GeoVector3 vector, double x, double y) =>
+            Math.Abs(vector.X - x) <= 1E-9 && Math.Abs(vector.Y - y) <= 1E-9 && Math.Abs(vector.Z) <= 1E-9;
 
         // ---- ResetBlock ----------------------------------------------------------------------------------------------------
 
@@ -120,7 +134,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfBlockReference back = TheInsert(Reopened(db));
             Assert.Equal(150.0, Assert.IsType<double>(Property(back, "Width").Value), 9);
-            Assert.Contains(back.BlockTableRecord.OfType<DxfLine>(), l => At(l.StartPoint, 150, 0) && At(l.EndPoint, 150, 50));
+            Assert.Contains(back.BlockTableRecord.OfType<DxfLine>(), l =>
+                At(l.StartPoint, 150, 0) && At(l.EndPoint, 150, 50)
+            );
         }
 
         [Fact]
@@ -192,7 +208,13 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = Drawing("GH_ARROW", out DxfBlockTableRecord block, new GeoPoint3(0, 0, 0));
             DxfLine arrow = Add(block, new DxfLine(new GeoPoint3(50, 25, 0), new GeoPoint3(80, 25, 0)));
-            DxfBlockRotationParameter angle = block.AddRotationParameter("Angle", "Turn of the arrow", new GeoPoint3(50, 25, 0), 30, 0);
+            DxfBlockRotationParameter angle = block.AddRotationParameter(
+                "Angle",
+                "Turn of the arrow",
+                new GeoPoint3(50, 25, 0),
+                30,
+                0
+            );
             block.AddRotateAction(angle, new[] { arrow });
             DxfBlockReference insert = TheInsert(db);
 
@@ -212,7 +234,12 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = Drawing("GH_DOOR", out DxfBlockTableRecord block, new GeoPoint3(0, 0, 0));
             DxfLine leaf = Add(block, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(90, 0, 0)));
-            DxfBlockFlipParameter hand = block.AddFlipParameter("Hand", "Which way the door opens", new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0));
+            DxfBlockFlipParameter hand = block.AddFlipParameter(
+                "Hand",
+                "Which way the door opens",
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(0, 50, 0)
+            );
             block.AddFlipAction(hand, new[] { leaf });
             DxfBlockReference insert = TheInsert(db);
             Assert.Equal(new[] { "Not flipped", "Flipped" }, Property(insert, "Hand").StateNames);
@@ -235,12 +262,20 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = Drawing("GH_DOOR", out DxfBlockTableRecord block, new GeoPoint3(0, 0, 0));
             DxfLine leaf = Add(block, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(90, 0, 0)));
-            DxfBlockFlipParameter hand = block.AddFlipParameter("Hand", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0));
+            DxfBlockFlipParameter hand = block.AddFlipParameter(
+                "Hand",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(0, 50, 0)
+            );
             block.AddFlipAction(hand, new[] { leaf });
 
             // AutoCAD's Block Editor lets the grip stand off the line, as its Door sample's Swing grip stands 100 below it.
             DxfDBObject graph = block.ExtensionDictionary.GetAt("ACAD_ENHANCEDBLOCK");
-            DxfItem gripNode = graph.Item.Groups.Where(g => g.TypeCode == 360).Select(g => graph.Item.File.ObjectItem(g.Value)).Single(n => n.Type == "BLOCKFLIPGRIP");
+            DxfItem gripNode = graph
+                .Item.Groups.Where(g => g.TypeCode == 360)
+                .Select(g => graph.Item.File.ObjectItem(g.Value))
+                .Single(n => n.Type == "BLOCKFLIPGRIP");
             DxfDatabase off = DxfDatabase.Parse(MoveGrip(db.ToText(), gripNode.Handle, -30, 20));
             DxfBlockReference insert = TheInsert(off);
             Assert.True(At(Assert.Single(insert.GetDynamicGrips()).Position, -30, 20));
@@ -292,7 +327,14 @@ namespace GeometryHelper.UnitTest.Dxf
         public void AParameterTheStateShownDoesNotList_IsHidden_ItsGripWithIt()
         {
             DxfDatabase db = Sign(out DxfBlockTableRecord block, out DxfLine[] lines);
-            DxfBlockLinearParameter width = block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(40, 0, 0), -10, null);
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(40, 0, 0),
+                -10,
+                null
+            );
             block.AddStretchAction(width, new GeoPoint2(30, -5), new GeoPoint2(50, 5), new[] { lines[0] });
 
             // As the library writes it, no state lists Width, and AutoCAD 2021 read such a property as not visible and showed
@@ -301,17 +343,35 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.False(Property(insert, "Width").VisibleInCurrentVisibilityState);
             Assert.True(Property(insert, "Width").Show);
             Assert.True(Property(insert, "Mark").VisibleInCurrentVisibilityState);
-            Assert.Equal(new[] { DxfDynamicBlockGripType.Visibility }, insert.GetDynamicGrips().Select(g => g.GripType));
+            Assert.Equal(
+                new[] { DxfDynamicBlockGripType.Visibility },
+                insert.GetDynamicGrips().Select(g => g.GripType)
+            );
 
             // The state Tick listing Width and its end grip, as AutoCAD's Block Editor lists them, shows both in Tick alone.
             DxfDBObject graph = block.ExtensionDictionary.GetAt("ACAD_ENHANCEDBLOCK");
-            List<DxfItem> nodes = graph.Item.Groups.Where(g => g.TypeCode == 360).Select(g => graph.Item.File.ObjectItem(g.Value)).ToList();
+            List<DxfItem> nodes = graph
+                .Item.Groups.Where(g => g.TypeCode == 360)
+                .Select(g => graph.Item.File.ObjectItem(g.Value))
+                .ToList();
             string parameter = nodes.Single(n => n.Type == "BLOCKLINEARPARAMETER").Handle;
-            string grip = nodes.First(n => n.Type == "BLOCKLINEARGRIP" && n.Groups.Any(g => g.TypeCode == 300 && g.Value == "End Grip")).Handle;
+            string grip = nodes
+                .First(n =>
+                    n.Type == "BLOCKLINEARGRIP" && n.Groups.Any(g => g.TypeCode == 300 && g.Value == "End Grip")
+                )
+                .Handle;
             string text = db.ToText();
             int tick = text.IndexOf("303\nTick\n", StringComparison.Ordinal);
             int count = text.IndexOf(" 95\n0\n", tick, StringComparison.Ordinal);
-            DxfDatabase listed = DxfDatabase.Parse(text.Substring(0, count) + " 95\n2\n333\n" + parameter + "\n333\n" + grip + "\n" + text.Substring(count + " 95\n0\n".Length));
+            DxfDatabase listed = DxfDatabase.Parse(
+                text.Substring(0, count)
+                    + " 95\n2\n333\n"
+                    + parameter
+                    + "\n333\n"
+                    + grip
+                    + "\n"
+                    + text.Substring(count + " 95\n0\n".Length)
+            );
 
             insert = TheInsert(listed);
             Assert.False(Property(insert, "Width").VisibleInCurrentVisibilityState);
@@ -320,7 +380,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Property(insert, "Mark").Value = "Tick";
 
             Assert.True(Property(insert, "Width").VisibleInCurrentVisibilityState);
-            Assert.Equal(new[] { DxfDynamicBlockGripType.Visibility, DxfDynamicBlockGripType.Linear }, insert.GetDynamicGrips().Select(g => g.GripType));
+            Assert.Equal(
+                new[] { DxfDynamicBlockGripType.Visibility, DxfDynamicBlockGripType.Linear },
+                insert.GetDynamicGrips().Select(g => g.GripType)
+            );
         }
 
         [Fact]
@@ -349,12 +412,32 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TheLookupGrip_StandsAtItsLocation_BesideTheGripsOfItsInputs()
         {
             DxfDatabase db = Panel(new GeoPoint3(0, 0, 0), out DxfBlockTableRecord block);
-            DxfBlockLinearParameter depth = block.AddLinearParameter("Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0), 20, null);
-            block.AddLookupParameter("Size", "Panel size", new GeoPoint3(50, -20, 0), new[] { DxfBlockLookupInput.Distance(depth) },
-                new[] { new DxfBlockLookupRow("Low", 50), new DxfBlockLookupRow("High", 80) });
+            DxfBlockLinearParameter depth = block.AddLinearParameter(
+                "Depth",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(0, 50, 0),
+                20,
+                null
+            );
+            block.AddLookupParameter(
+                "Size",
+                "Panel size",
+                new GeoPoint3(50, -20, 0),
+                new[] { DxfBlockLookupInput.Distance(depth) },
+                new[] { new DxfBlockLookupRow("Low", 50), new DxfBlockLookupRow("High", 80) }
+            );
 
             IReadOnlyList<DxfDynamicBlockGrip> grips = TheInsert(db).GetDynamicGrips();
-            Assert.Equal(new[] { DxfDynamicBlockGripType.Linear, DxfDynamicBlockGripType.Linear, DxfDynamicBlockGripType.Lookup }, grips.Select(g => g.GripType));
+            Assert.Equal(
+                new[]
+                {
+                    DxfDynamicBlockGripType.Linear,
+                    DxfDynamicBlockGripType.Linear,
+                    DxfDynamicBlockGripType.Lookup,
+                },
+                grips.Select(g => g.GripType)
+            );
             Assert.True(At(grips[2].Position, 50, -20));
             Assert.Equal(new[] { "Size" }, grips[2].PropertyNames);
         }

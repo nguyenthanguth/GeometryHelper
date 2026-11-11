@@ -22,22 +22,16 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Initializes a vertex at the origin, as AutoCAD's <c>new PolylineVertex3d()</c>, in no polyline.</summary>
         public DxfPolylineVertex3d()
-            : this(Origin)
-        {
-        }
+            : this(Origin) { }
 
         /// <summary>Initializes a vertex at a point, as AutoCAD's <c>new PolylineVertex3d(point)</c>, in no polyline until it is appended to one.</summary>
         /// <param name="position">The point, in the world.</param>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
         public DxfPolylineVertex3d(GeoPoint3 position)
-            : base(Groups(position))
-        {
-        }
+            : base(Groups(position)) { }
 
         private DxfPolylineVertex3d(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets the point of the vertex (groups 10, 20, 30), in the world, as AutoCAD's <c>Position</c>.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
@@ -57,7 +51,9 @@ namespace GeometryHelper.Dxf
             get
             {
                 int flags = DxfFollowers.Whole(OwnGroups(), 70, 0);
-                return (flags & 16) != 0 ? DxfVertex3dType.ControlVertex : (flags & 8) != 0 ? DxfVertex3dType.FitVertex : DxfVertex3dType.SimpleVertex;
+                return (flags & 16) != 0 ? DxfVertex3dType.ControlVertex
+                    : (flags & 8) != 0 ? DxfVertex3dType.FitVertex
+                    : DxfVertex3dType.SimpleVertex;
             }
         }
 
@@ -82,8 +78,10 @@ namespace GeometryHelper.Dxf
         internal void SetFlags(int flags) => SetGroups(DxfFollowers.WholeChange(OwnGroups(), 70, flags, 0));
 
         [DxfType("VERTEX")]
-        internal static DxfEntity Create(DxfItem item)
-            => item.Parent != null && (ParentFlags(item) & 8) != 0 && (ParentFlags(item) & (16 | 64)) == 0 ? new DxfPolylineVertex3d(item) : null;
+        internal static DxfEntity Create(DxfItem item) =>
+            item.Parent != null && (ParentFlags(item) & 8) != 0 && (ParentFlags(item) & (16 | 64)) == 0
+                ? new DxfPolylineVertex3d(item)
+                : null;
 
         /// <inheritdoc/>
         private protected override IReadOnlyList<int> GroupOrder => Order;
@@ -92,7 +90,10 @@ namespace GeometryHelper.Dxf
         {
             if (!position.IsValid)
             {
-                throw new ArgumentException("A vertex has to be of finite numbers: " + position + " is not.", nameof(position));
+                throw new ArgumentException(
+                    "A vertex has to be of finite numbers: " + position + " is not.",
+                    nameof(position)
+                );
             }
 
             return new[]

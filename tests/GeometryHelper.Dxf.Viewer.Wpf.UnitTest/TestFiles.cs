@@ -13,9 +13,7 @@ namespace System.Runtime.CompilerServices
 {
     /// <summary>Marks the method the compiler runs when the assembly is loaded; .NET Framework has no such attribute of its own.</summary>
     [AttributeUsage(AttributeTargets.Method, Inherited = false)]
-    internal sealed class ModuleInitializerAttribute : Attribute
-    {
-    }
+    internal sealed class ModuleInitializerAttribute : Attribute { }
 }
 
 namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
@@ -27,7 +25,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
     /// </summary>
     internal static class TestSettings
     {
-        private static readonly string Folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "wpf-tests", "settings-" + Guid.NewGuid().ToString("N"));
+        private static readonly string Folder = Path.Combine(
+            Path.GetTempPath(),
+            "gk",
+            "drawing",
+            "wpf-tests",
+            "settings-" + Guid.NewGuid().ToString("N")
+        );
 
         [ModuleInitializer]
         internal static void Use()
@@ -46,12 +50,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     Directory.Delete(Folder, true);
                 }
             }
-            catch (IOException)
-            {
-            }
-            catch (UnauthorizedAccessException)
-            {
-            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
     }
 
@@ -92,9 +92,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             {
                 // A file still held by the system is left for the next clean of %TEMP%.
             }
-            catch (UnauthorizedAccessException)
-            {
-            }
+            catch (UnauthorizedAccessException) { }
         }
     }
 
@@ -113,7 +111,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             db.LayerTable.Add(new DxfLayerTableRecord { Name = "COLUMNS", ColorIndex = 1 });
             db.Clayer = "WALLS";
             var line = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(4000, 0, 0)) { Layer = "WALLS" };
-            var circle = new DxfCircle(new GeoPoint3(2000, 1500, 0), new GeoVector3(0, 0, 1), 100) { Layer = "COLUMNS" };
+            var circle = new DxfCircle(new GeoPoint3(2000, 1500, 0), new GeoVector3(0, 0, 1), 100)
+            {
+                Layer = "COLUMNS",
+            };
             var top = new DxfLine(new GeoPoint3(0, 3000, 0), new GeoPoint3(4000, 3000, 0)) { Layer = "WALLS" };
             db.ModelSpace.AppendEntity(line);
             db.ModelSpace.AppendEntity(circle);
@@ -143,7 +144,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             }
 
             layout.Initialize();
-            var frame = new DxfViewport { CenterPoint = new GeoPoint3(150, 100, 0), Width = 200, Height = 150, ViewHeight = 150 * 20.0, ViewCenter = new GeoPoint2(2000, 1500) };
+            var frame = new DxfViewport
+            {
+                CenterPoint = new GeoPoint3(150, 100, 0),
+                Width = 200,
+                Height = 150,
+                ViewHeight = 150 * 20.0,
+                ViewCenter = new GeoPoint2(2000, 1500),
+            };
             layout.BlockTableRecord.AppendEntity(frame);
             frame.On = true;
             viewport = frame.Handle;

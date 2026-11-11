@@ -22,7 +22,14 @@ namespace GeometryHelper.Drawing.Wpf
         private CadDocument _document;
         private bool _isOutOfDate;
 
-        internal ModelDrawing(string key, Drawing drawing, CadDocument document, IDrawingSourceProvider provider, string presetName, IEnumerable<string> wholeAssemblies)
+        internal ModelDrawing(
+            string key,
+            Drawing drawing,
+            CadDocument document,
+            IDrawingSourceProvider provider,
+            string presetName,
+            IEnumerable<string> wholeAssemblies
+        )
         {
             Key = key;
             _drawing = drawing;
@@ -30,7 +37,10 @@ namespace GeometryHelper.Drawing.Wpf
             Provider = provider;
             SourceName = provider?.Name;
             PresetName = presetName ?? "Custom";
-            WholeAssemblies = new SortedSet<string>(wholeAssemblies ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
+            WholeAssemblies = new SortedSet<string>(
+                wholeAssemblies ?? Enumerable.Empty<string>(),
+                StringComparer.Ordinal
+            );
             LastMade = DateTime.Now;
         }
 
@@ -92,7 +102,10 @@ namespace GeometryHelper.Drawing.Wpf
         public bool IsEdited => Document.IsModified || Drawing.Edits.Count > 0;
 
         /// <summary>Gets its dot in the file list: out of date first, then edited, else up to date.</summary>
-        public CadFileState State => IsOutOfDate ? CadFileState.OutOfDate : IsEdited ? CadFileState.Edited : CadFileState.UpToDate;
+        public CadFileState State =>
+            IsOutOfDate ? CadFileState.OutOfDate
+            : IsEdited ? CadFileState.Edited
+            : CadFileState.UpToDate;
 
         /// <summary>Gets its state in words, as Properties shows it: "Up to date", "Edited · 2 hand edits", "Out of date".</summary>
         public string StatusText
@@ -105,8 +118,12 @@ namespace GeometryHelper.Drawing.Wpf
                 }
 
                 int edits = Drawing.Edits.Count;
-                return edits > 0 ? "Edited · " + edits.ToString(CultureInfo.InvariantCulture) + (edits == 1 ? " hand edit" : " hand edits")
-                    : Document.IsModified ? "Edited · not saved" : "Up to date";
+                return edits > 0
+                        ? "Edited · "
+                            + edits.ToString(CultureInfo.InvariantCulture)
+                            + (edits == 1 ? " hand edit" : " hand edits")
+                    : Document.IsModified ? "Edited · not saved"
+                    : "Up to date";
             }
         }
 

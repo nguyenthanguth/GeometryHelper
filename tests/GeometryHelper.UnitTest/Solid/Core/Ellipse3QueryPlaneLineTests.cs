@@ -37,7 +37,8 @@ namespace GeometryHelper.UnitTest.Solid
             // The plane holds the chord from the rim point at t = 0.7 to the one at t = 3.9 and leans 50 degrees from the
             // ellipse's plane about it. The two planes share the chord's line, which meets the rim at its two ends only.
             Specimen e = Tilted();
-            GeoPoint3 first = e.Rim(0.7), second = e.Rim(3.9);
+            GeoPoint3 first = e.Rim(0.7),
+                second = e.Rim(3.9);
             GeoVector3 normal = LeanAbout(e, first.GetVectorTo(second), 50 * Math.PI / 180);
             var plane = new GeoPlane3(first, normal);
             GeoEllipse3 ellipse = e.Build();
@@ -72,7 +73,10 @@ namespace GeometryHelper.UnitTest.Solid
             // times the point tolerance, clear of every graze band.
             Specimen e = Tilted();
             GeoVector3 outward = Tangent(e, 1.2).CrossProduct(e.N);
-            var plane = new GeoPlane3(e.Rim(1.2).Add(outward.Multiply(0.005)), LeanAbout(e, Tangent(e, 1.2), 40 * Math.PI / 180));
+            var plane = new GeoPlane3(
+                e.Rim(1.2).Add(outward.Multiply(0.005)),
+                LeanAbout(e, Tangent(e, 1.2), 40 * Math.PI / 180)
+            );
 
             Assert.Empty(e.Build().GetIntersections(plane, Tol));
             Assert.False(e.Build().CollidesWith(plane, Tol));
@@ -130,7 +134,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoPoint3[] crossings = e.Build().GetIntersections(plane, Tol);
 
-            SamePointsInOrder(Along(e.N.CrossProduct(normal), e.At(0, 100, 0), e.At(0, -100, 0)), crossings, 0.5 * Tol.EqualPoint);
+            SamePointsInOrder(
+                Along(e.N.CrossProduct(normal), e.At(0, 100, 0), e.At(0, -100, 0)),
+                crossings,
+                0.5 * Tol.EqualPoint
+            );
             Assert.True(e.Build().CollidesWith(plane, Tol));
         }
 
@@ -159,7 +167,11 @@ namespace GeometryHelper.UnitTest.Solid
             Specimen e = Tilted();
             var line = new GeoLine3(e.At(400, 50, 0), e.At(-400, 50, 0));
 
-            SamePointsInOrder(new[] { e.At(Across, 50, 0), e.At(-Across, 50, 0) }, e.Build().GetIntersections(line, Tol), Close);
+            SamePointsInOrder(
+                new[] { e.At(Across, 50, 0), e.At(-Across, 50, 0) },
+                e.Build().GetIntersections(line, Tol),
+                Close
+            );
         }
 
         [Fact]
@@ -259,7 +271,11 @@ namespace GeometryHelper.UnitTest.Solid
             double v = 100 * Math.Sqrt(1 - (299.995 / 300) * (299.995 / 300));
             var line = new GeoLine3(e.At(299.995, -1000, 0), e.At(299.995, 1000, 0));
 
-            SamePointsInOrder(new[] { e.At(299.995, -v, 0), e.At(299.995, v, 0) }, e.Build().GetIntersections(line, Tol), Touch);
+            SamePointsInOrder(
+                new[] { e.At(299.995, -v, 0), e.At(299.995, v, 0) },
+                e.Build().GetIntersections(line, Tol),
+                Touch
+            );
         }
 
         [Fact]
@@ -273,7 +289,11 @@ namespace GeometryHelper.UnitTest.Solid
             double y = Math.Sqrt(100 * 100 - 1);
             var line = new GeoLine3(new GeoPoint3(-2000, y, 0), new GeoPoint3(2000, y, 0));
 
-            SamePointsInOrder(new[] { new GeoPoint3(-1, y, 0), new GeoPoint3(1, y, 0) }, ellipse.GetIntersections(line, Tol), Touch);
+            SamePointsInOrder(
+                new[] { new GeoPoint3(-1, y, 0), new GeoPoint3(1, y, 0) },
+                ellipse.GetIntersections(line, Tol),
+                Touch
+            );
             Assert.True(ellipse.CollidesWith(line, Tol));
         }
 
@@ -296,7 +316,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoPoint3 point = Assert.Single(e.Build().GetIntersections(line, Tol));
 
-            Assert.True(point.DistanceTo(e.Rim(0.5)) <= Close, $"{point} is {point.DistanceTo(e.Rim(0.5)):E2} from the end");
+            Assert.True(
+                point.DistanceTo(e.Rim(0.5)) <= Close,
+                $"{point} is {point.DistanceTo(e.Rim(0.5)):E2} from the end"
+            );
         }
 
         [Fact]
@@ -317,7 +340,11 @@ namespace GeometryHelper.UnitTest.Solid
             Specimen e = Tilted();
             var line = new GeoLine3(e.At(-400, 50, 0.0004), e.At(400, 50, 0.0004));
 
-            SamePointsInOrder(new[] { e.At(-Across, 50, 0), e.At(Across, 50, 0) }, e.Build().GetIntersections(line, Tol), 0.0005);
+            SamePointsInOrder(
+                new[] { e.At(-Across, 50, 0), e.At(Across, 50, 0) },
+                e.Build().GetIntersections(line, Tol),
+                0.0005
+            );
             Assert.True(e.Build().CollidesWith(line, Tol));
         }
 

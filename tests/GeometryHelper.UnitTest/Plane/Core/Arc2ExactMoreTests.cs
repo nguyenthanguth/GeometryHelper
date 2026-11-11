@@ -12,7 +12,8 @@ namespace GeometryHelper.UnitTest.Plane
     /// </summary>
     public class Arc2ExactMoreTests
     {
-        private static Tolerance At(double equalPoint) => new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
+        private static Tolerance At(double equalPoint) =>
+            new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
 
         [Fact]
         public void AChainAndAnArcWhoseCirclesCrossNearBothEndsButWhoseEndsAre1Point2TolerancesApart_DoNotCollide()
@@ -22,8 +23,14 @@ namespace GeometryHelper.UnitTest.Plane
             Tolerance t = At(1E-4);
             var chain = new GeoPolylineArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(40, 0), new GeoPoint2(70, 25), new GeoPoint2(100, 25) },
-                new[] { 0.0, -0.35, 0.0, 0.0 });
-            var arc = new GeoArc2(new GeoPoint2(25.858140813193945, -47.95846739069786), 50.0, 5.3172292646646655, 7.5672292646646655);
+                new[] { 0.0, -0.35, 0.0, 0.0 }
+            );
+            var arc = new GeoArc2(
+                new GeoPoint2(25.858140813193945, -47.95846739069786),
+                50.0,
+                5.3172292646646655,
+                7.5672292646646655
+            );
 
             Assert.InRange(chain.DistanceTo(arc, t), 0.00012 - 1E-9, 0.00012 + 1E-9);
             Assert.InRange(arc.DistanceTo(chain, t), 0.00012 - 1E-9, 0.00012 + 1E-9);
@@ -80,7 +87,8 @@ namespace GeometryHelper.UnitTest.Plane
             Tolerance t = At(1E-3);
             var loop = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
-                new[] { 0.0, 1.0, 0.0, 0.0 });
+                new[] { 0.0, 1.0, 0.0, 0.0 }
+            );
             var ray = new GeoRay2(new GeoPoint2(150.0005, 50), new GeoVector2(1, 0));
 
             Assert.InRange(loop.DistanceTo(ray, t), 0.0005 - 1E-11, 0.0005 + 1E-11);
@@ -93,10 +101,15 @@ namespace GeometryHelper.UnitTest.Plane
             Tolerance t = At(1E-3);
             var loop = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
-                new[] { 0.0, 1.0, 0.0, 0.0 });
+                new[] { 0.0, 1.0, 0.0, 0.0 }
+            );
 
             Assert.Equal(0.0, new GeoCircle2(new GeoPoint2(50, 50), 200).DistanceTo(loop, t));
-            Assert.InRange(new GeoCircle2(new GeoPoint2(200.0005, 50), 50).DistanceTo(loop, t), 0.0005 - 1E-11, 0.0005 + 1E-11);
+            Assert.InRange(
+                new GeoCircle2(new GeoPoint2(200.0005, 50), 50).DistanceTo(loop, t),
+                0.0005 - 1E-11,
+                0.0005 + 1E-11
+            );
         }
     }
 }

@@ -37,7 +37,14 @@ namespace GeometryHelper.Dxf
                 return fallback;
             }
 
-            return int.TryParse(groups[0].Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+            return int.TryParse(
+                groups[0].Value?.Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int value
+            )
+                ? value
+                : fallback;
         }
 
         /// <summary>The degree of a spline type of the header, 5 quadratic and 6 cubic, or of a polyline's type.</summary>
@@ -47,9 +54,23 @@ namespace GeometryHelper.Dxf
         /// The curve of a uniform B-spline on a frame, as an evaluator, and the range of its parameter: clamped over an open
         /// frame, from nought to its count of spans; round a closed one, a span to each point.
         /// </summary>
-        internal static DxfNurbs Spline(IReadOnlyList<GeoPoint3> frame, int degree, bool closed, out double start, out double end)
+        internal static DxfNurbs Spline(
+            IReadOnlyList<GeoPoint3> frame,
+            int degree,
+            bool closed,
+            out double start,
+            out double end
+        )
         {
-            int q = Spline(frame, degree, closed, out List<GeoPoint3> points, out List<double> knots, out start, out end);
+            int q = Spline(
+                frame,
+                degree,
+                closed,
+                out List<GeoPoint3> points,
+                out List<double> knots,
+                out start,
+                out end
+            );
             return new DxfNurbs(q, knots, points, null);
         }
 
@@ -58,7 +79,15 @@ namespace GeometryHelper.Dxf
         /// evaluates, and its degree: an open frame's own points, clamped; a closed one's with its first points again after its
         /// last, as many as the degree.
         /// </summary>
-        internal static int Spline(IReadOnlyList<GeoPoint3> frame, int degree, bool closed, out List<GeoPoint3> points, out List<double> knots, out double start, out double end)
+        internal static int Spline(
+            IReadOnlyList<GeoPoint3> frame,
+            int degree,
+            bool closed,
+            out List<GeoPoint3> points,
+            out List<double> knots,
+            out double start,
+            out double end
+        )
         {
             int n = frame.Count;
             int q = Math.Max(1, Math.Min(degree, n - 1));
@@ -135,7 +164,11 @@ namespace GeometryHelper.Dxf
 
             for (int k = 0; k < count; k++)
             {
-                spread.Add(closed ? start + (end - start) * k / count : k == count - 1 ? end : start + (end - start) * k / (count - 1));
+                spread.Add(
+                    closed ? start + (end - start) * k / count
+                    : k == count - 1 ? end
+                    : start + (end - start) * k / (count - 1)
+                );
             }
 
             return spread;
@@ -159,7 +192,8 @@ namespace GeometryHelper.Dxf
             // AutoCAD 2021 breaks the curve only where two vertices are one point: a segment 1E-11 long is fitted as any other.
             for (int i = 0; i < segments; i++)
             {
-                GeoPoint2 a = p[i], b = p[(i + 1) % n];
+                GeoPoint2 a = p[i],
+                    b = p[(i + 1) % n];
 
                 if (a.X == b.X && a.Y == b.Y)
                 {
@@ -204,7 +238,13 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The tangents of one run of vertices, open or round a closed frame, into their places.</summary>
-        private static void Run(IReadOnlyList<GeoPoint2> p, IReadOnlyList<double?> given, List<int> run, bool cyclic, GeoVector2[] tangents)
+        private static void Run(
+            IReadOnlyList<GeoPoint2> p,
+            IReadOnlyList<double?> given,
+            List<int> run,
+            bool cyclic,
+            GeoVector2[] tangents
+        )
         {
             int m = run.Count;
             int count = cyclic ? m : m - 1;
@@ -212,7 +252,8 @@ namespace GeometryHelper.Dxf
 
             for (int k = 0; k < count; k++)
             {
-                GeoPoint2 a = p[run[k]], b = p[run[(k + 1) % m]];
+                GeoPoint2 a = p[run[k]],
+                    b = p[run[(k + 1) % m]];
                 segments[k] = new GeoVector2(b.X - a.X, b.Y - a.Y);
             }
 
@@ -238,13 +279,19 @@ namespace GeometryHelper.Dxf
                 }
                 else if (!cyclic && k == m - 1)
                 {
-                    tangents[at] = Mirrored(Blend(segments[count - 2], 1.0, segments[count - 1], 1.0), segments[count - 1]);
+                    tangents[at] = Mirrored(
+                        Blend(segments[count - 2], 1.0, segments[count - 1], 1.0),
+                        segments[count - 1]
+                    );
                 }
                 else
                 {
                     // The turns at the vertices either side, 1 past an end of an open run.
                     double after = cyclic || k + 1 < count ? Turn(segments[k % count], segments[(k + 1) % count]) : 1.0;
-                    double before = cyclic || k >= 2 ? Turn(segments[(k - 2 + count) % count], segments[(k - 1 + count) % count]) : 1.0;
+                    double before =
+                        cyclic || k >= 2
+                            ? Turn(segments[(k - 2 + count) % count], segments[(k - 1 + count) % count])
+                            : 1.0;
                     tangents[at] = Blend(segments[(k - 1 + count) % count], after, segments[k % count], before);
                 }
             }
@@ -253,7 +300,8 @@ namespace GeometryHelper.Dxf
         /// <summary>The unit direction of two segments each taken as s / |s|² and weighted; nought where they cancel.</summary>
         private static GeoVector2 Blend(GeoVector2 a, double wa, GeoVector2 b, double wb)
         {
-            double la = a.X * a.X + a.Y * a.Y, lb = b.X * b.X + b.Y * b.Y;
+            double la = a.X * a.X + a.Y * a.Y,
+                lb = b.X * b.X + b.Y * b.Y;
             return Unit(wa * a.X / la + wb * b.X / lb, wa * a.Y / la + wb * b.Y / lb);
         }
 
@@ -271,7 +319,8 @@ namespace GeometryHelper.Dxf
         /// <summary>The sine of the turn from one segment to the next, without its sign.</summary>
         private static double Turn(GeoVector2 a, GeoVector2 b)
         {
-            GeoVector2 ua = Unit(a.X, a.Y), ub = Unit(b.X, b.Y);
+            GeoVector2 ua = Unit(a.X, a.Y),
+                ub = Unit(b.X, b.Y);
             return Math.Abs(ua.X * ub.Y - ua.Y * ub.X);
         }
 
@@ -283,12 +332,21 @@ namespace GeometryHelper.Dxf
         /// the chord, the second's to the first's. False, and no arcs, where either tangent is within a millionth of a radian of
         /// the chord's line, or is nought: the segment stays straight, as AutoCAD keeps it.
         /// </summary>
-        internal static bool Biarc(GeoPoint2 p0, GeoVector2 t0, GeoPoint2 p1, GeoVector2 t1, out GeoPoint2 joint, out double first, out double second)
+        internal static bool Biarc(
+            GeoPoint2 p0,
+            GeoVector2 t0,
+            GeoPoint2 p1,
+            GeoVector2 t1,
+            out GeoPoint2 joint,
+            out double first,
+            out double second
+        )
         {
             joint = p0;
             first = 0.0;
             second = 0.0;
-            double cx = p1.X - p0.X, cy = p1.Y - p0.Y;
+            double cx = p1.X - p0.X,
+                cy = p1.Y - p0.Y;
             double length = Math.Sqrt(cx * cx + cy * cy);
 
             if (length == 0.0)
@@ -296,7 +354,8 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            double ux = cx / length, uy = cy / length;
+            double ux = cx / length,
+                uy = cy / length;
 
             // AutoCAD 2021 keeps a segment straight where the sine of either tangent's angle to it is below 1E-6 (probed to 1%).
             if (Math.Abs(ux * t0.Y - uy * t0.X) < 1E-6 || Math.Abs(ux * t1.Y - uy * t1.X) < 1E-6)
@@ -310,7 +369,8 @@ namespace GeometryHelper.Dxf
             if (a0 * a1 < 0.0)
             {
                 double reach = length * Math.Sin(0.5 * Math.Abs(a1)) / Math.Sin(0.5 * (Math.Abs(a0) + Math.Abs(a1)));
-                double cos = Math.Cos(0.5 * a0), sin = Math.Sin(0.5 * a0);
+                double cos = Math.Cos(0.5 * a0),
+                    sin = Math.Sin(0.5 * a0);
                 joint = new GeoPoint2(p0.X + reach * (ux * cos - uy * sin), p0.Y + reach * (ux * sin + uy * cos));
             }
             else
@@ -318,9 +378,14 @@ namespace GeometryHelper.Dxf
                 // The arcs' centres, either side of the curve, are their radii apart: |c0 - c1| = r0 + r1 with r1 = r0 / k.
                 double k = Math.Sin(a1) / Math.Sin(a0);
                 double side = a0 < 0.0 ? 1.0 : -1.0;
-                double n0x = -t0.Y, n0y = t0.X, n1x = -t1.Y, n1y = t1.X;
-                double wx = side * (n0x + n1x / k), wy = side * (n0y + n1y / k);
-                double dx = p0.X - p1.X, dy = p0.Y - p1.Y;
+                double n0x = -t0.Y,
+                    n0y = t0.X,
+                    n1x = -t1.Y,
+                    n1y = t1.X;
+                double wx = side * (n0x + n1x / k),
+                    wy = side * (n0y + n1y / k);
+                double dx = p0.X - p1.X,
+                    dy = p0.Y - p1.Y;
                 double qa = 2.0 * (n0x * n1x + n0y * n1y - 1.0) / k;
                 double qb = 2.0 * (dx * wx + dy * wy);
                 double qc = dx * dx + dy * dy;
@@ -342,8 +407,10 @@ namespace GeometryHelper.Dxf
                 }
 
                 double r1 = r0 / k;
-                double c0x = p0.X + side * r0 * n0x, c0y = p0.Y + side * r0 * n0y;
-                double c1x = p1.X - side * r1 * n1x, c1y = p1.Y - side * r1 * n1y;
+                double c0x = p0.X + side * r0 * n0x,
+                    c0y = p0.Y + side * r0 * n0y;
+                double c1x = p1.X - side * r1 * n1x,
+                    c1y = p1.Y - side * r1 * n1y;
                 double share = r0 / (r0 + r1);
                 joint = new GeoPoint2(c0x + (c1x - c0x) * share, c0y + (c1y - c0y) * share);
             }
@@ -354,7 +421,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The angle from one direction to another, above nought counter-clockwise.</summary>
-        private static double Signed(double ax, double ay, double bx, double by) => Math.Atan2(ax * by - ay * bx, ax * bx + ay * by);
+        private static double Signed(double ax, double ay, double bx, double by) =>
+            Math.Atan2(ax * by - ay * bx, ax * bx + ay * by);
 
         private static GeoVector2 Unit(double x, double y)
         {

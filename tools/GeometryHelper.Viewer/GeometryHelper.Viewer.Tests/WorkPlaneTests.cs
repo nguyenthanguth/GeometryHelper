@@ -8,8 +8,12 @@ namespace GeometryHelper.Viewer.Tests
 {
     public class WorkPlaneTests
     {
-        private static Vec3 RandomPoint(Random random, double scale)
-            => new Vec3((random.NextDouble() * 2.0 - 1.0) * scale, (random.NextDouble() * 2.0 - 1.0) * scale, (random.NextDouble() * 2.0 - 1.0) * scale);
+        private static Vec3 RandomPoint(Random random, double scale) =>
+            new Vec3(
+                (random.NextDouble() * 2.0 - 1.0) * scale,
+                (random.NextDouble() * 2.0 - 1.0) * scale,
+                (random.NextDouble() * 2.0 - 1.0) * scale
+            );
 
         private static void AssertNear(Vec3 expected, Vec3 actual, double tolerance)
         {
@@ -56,7 +60,11 @@ namespace GeometryHelper.Viewer.Tests
 
             for (int i = 0; i < 400; i++)
             {
-                WorkPlane plane = WorkPlane.FromThreePoints(RandomPoint(random, 1000.0), RandomPoint(random, 1000.0), RandomPoint(random, 1000.0));
+                WorkPlane plane = WorkPlane.FromThreePoints(
+                    RandomPoint(random, 1000.0),
+                    RandomPoint(random, 1000.0),
+                    RandomPoint(random, 1000.0)
+                );
                 Vec3 world = RandomPoint(random, 1000.0);
 
                 worst = Math.Max(worst, (plane.ToWorld(plane.ToLocal(world)) - world).Length);
@@ -73,9 +81,15 @@ namespace GeometryHelper.Viewer.Tests
             var a = new Vec3(0, 0, 0);
 
             Assert.Throws<ArgumentException>(() => WorkPlane.FromThreePoints(a, a, new Vec3(0, 5, 0)));
-            Assert.Throws<ArgumentException>(() => WorkPlane.FromThreePoints(a, new Vec3(10, 0, 0), new Vec3(-30, 0, 0)));
-            Assert.Throws<ArgumentException>(() => WorkPlane.FromThreePoints(a, new Vec3(10, 0, 0), new Vec3(5, 1E-12, 0)));
-            Assert.Throws<ArgumentException>(() => WorkPlane.FromThreePoints(a, new Vec3(10, 0, 0), new Vec3(double.NaN, 0, 0)));
+            Assert.Throws<ArgumentException>(() =>
+                WorkPlane.FromThreePoints(a, new Vec3(10, 0, 0), new Vec3(-30, 0, 0))
+            );
+            Assert.Throws<ArgumentException>(() =>
+                WorkPlane.FromThreePoints(a, new Vec3(10, 0, 0), new Vec3(5, 1E-12, 0))
+            );
+            Assert.Throws<ArgumentException>(() =>
+                WorkPlane.FromThreePoints(a, new Vec3(10, 0, 0), new Vec3(double.NaN, 0, 0))
+            );
         }
 
         [Fact]
@@ -108,7 +122,9 @@ namespace GeometryHelper.Viewer.Tests
             WorkPlane wall = WorkPlane.FromNormal(default(Vec3), new Vec3(1, 0, 0), default(Vec3));
             AssertNear(new Vec3(0, 1, 0), wall.XAxis, 1E-14);
 
-            Assert.Throws<ArgumentException>(() => WorkPlane.FromNormal(default(Vec3), default(Vec3), new Vec3(1, 0, 0)));
+            Assert.Throws<ArgumentException>(() =>
+                WorkPlane.FromNormal(default(Vec3), default(Vec3), new Vec3(1, 0, 0))
+            );
         }
 
         [Fact]
@@ -124,7 +140,9 @@ namespace GeometryHelper.Viewer.Tests
 
             // The camera looks along +Y from the front, so the plane faces it: its z is -forward.
             AssertNear(-camera.Forward, plane.ZAxis, 1E-14);
-            Assert.Throws<ArgumentException>(() => WorkPlane.FromView(default(Vec3), new Vec3(1, 0, 0), new Vec3(2, 0, 0)));
+            Assert.Throws<ArgumentException>(() =>
+                WorkPlane.FromView(default(Vec3), new Vec3(1, 0, 0), new Vec3(2, 0, 0))
+            );
         }
 
         [Fact]
@@ -183,7 +201,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheGridOfATiltedPlane_LiesInThePlane_OnRoundSteps_AndCoversTheScene()
         {
-            WorkPlane plane = WorkPlane.FromThreePoints(new Vec3(10, 20, 30), new Vec3(10, 120, 30), new Vec3(-5, 20, 30));
+            WorkPlane plane = WorkPlane.FromThreePoints(
+                new Vec3(10, 20, 30),
+                new Vec3(10, 120, 30),
+                new Vec3(-5, 20, 30)
+            );
             var box = new Bounds3(new Vec3(0, 0, 0), new Vec3(100, 60, 40));
 
             List<DrawPolyline> lines = plane.GridLines(box);
@@ -210,7 +232,13 @@ namespace GeometryHelper.Viewer.Tests
             // The lines reach past the scene on both sides: the corner of the box nearest the origin of the plane and the farthest are inside the grid.
             double lowX = lines.SelectMany(l => l.Points).Min(p => plane.ToLocal(p).X);
             double highX = lines.SelectMany(l => l.Points).Max(p => plane.ToLocal(p).X);
-            var corners = new[] { box.Min, box.Max, new Vec3(box.Min.X, box.Max.Y, box.Min.Z), new Vec3(box.Max.X, box.Min.Y, box.Max.Z) };
+            var corners = new[]
+            {
+                box.Min,
+                box.Max,
+                new Vec3(box.Min.X, box.Max.Y, box.Min.Z),
+                new Vec3(box.Max.X, box.Min.Y, box.Max.Z),
+            };
 
             Assert.All(corners, c => Assert.InRange(plane.ToLocal(c).X, lowX, highX));
         }
@@ -242,13 +270,51 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AClickOnNothing_LandsOnTheWorkPlane_AndOnZEqualsNoughtWhereThereIsNone()
         {
-            var view = ViewFixture.Top(new SceneWriter().Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0))).Add(new GeoPoint3(100, 80, 0)));
+            var view = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0)))
+                    .Add(new GeoPoint3(100, 80, 0))
+            );
             (double x, double y) = view.Pixel(new Vec3(50, 40, 0));
             WorkPlane raised = WorkPlane.FromNormal(new Vec3(0, 0, 7), new Vec3(0, 0, 1), new Vec3(1, 0, 0));
 
-            ResolvedPoint ground = PickEngine.ResolvePoint(view.Primitives, view.Geometry, view.Map, x, y, SnapKinds.None, 1E-3, null, true);
-            ResolvedPoint onWork = PickEngine.ResolvePoint(view.Primitives, view.Geometry, view.Map, x, y, SnapKinds.None, 1E-3, null, true, true, raised);
-            ResolvedPoint globalGiven = PickEngine.ResolvePoint(view.Primitives, view.Geometry, view.Map, x, y, SnapKinds.None, 1E-3, null, true, true, WorkPlane.Global);
+            ResolvedPoint ground = PickEngine.ResolvePoint(
+                view.Primitives,
+                view.Geometry,
+                view.Map,
+                x,
+                y,
+                SnapKinds.None,
+                1E-3,
+                null,
+                true
+            );
+            ResolvedPoint onWork = PickEngine.ResolvePoint(
+                view.Primitives,
+                view.Geometry,
+                view.Map,
+                x,
+                y,
+                SnapKinds.None,
+                1E-3,
+                null,
+                true,
+                true,
+                raised
+            );
+            ResolvedPoint globalGiven = PickEngine.ResolvePoint(
+                view.Primitives,
+                view.Geometry,
+                view.Map,
+                x,
+                y,
+                SnapKinds.None,
+                1E-3,
+                null,
+                true,
+                true,
+                WorkPlane.Global
+            );
 
             Assert.Equal("plane z = 0", ground.Source);
             Assert.Equal(0.0, ground.Point.Z, 12);
@@ -258,7 +324,19 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Equal(ground.Point, globalGiven.Point);
 
             // A point to turn about is on the plane square to the view, whatever the work plane is.
-            ResolvedPoint centre = PickEngine.ResolvePoint(view.Primitives, view.Geometry, view.Map, x, y, SnapKinds.None, 1E-3, null, true, false, raised);
+            ResolvedPoint centre = PickEngine.ResolvePoint(
+                view.Primitives,
+                view.Geometry,
+                view.Map,
+                x,
+                y,
+                SnapKinds.None,
+                1E-3,
+                null,
+                true,
+                false,
+                raised
+            );
             Assert.Equal("view plane", centre.Source);
         }
     }

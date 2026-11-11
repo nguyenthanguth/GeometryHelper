@@ -9,7 +9,15 @@ namespace GeometryHelper.Internal.Nurbs
     /// </summary>
     internal sealed class FlatFrame
     {
-        internal double Ux, Uy, Uz, Vx, Vy, Vz, Nx, Ny, Nz;
+        internal double Ux,
+            Uy,
+            Uz,
+            Vx,
+            Vy,
+            Vz,
+            Nx,
+            Ny,
+            Nz;
 
         /// <summary>The axis the plane is square to, 0, 1 or 2 for X, Y or Z, whose two others are its directions in order; -1 for none.</summary>
         internal int Square = -1;
@@ -93,7 +101,13 @@ namespace GeometryHelper.Internal.Nurbs
         /// to the bit. The curves laid in the plane keep the size of the numbers of space as the size their rounding goes by: a point a
         /// million from the origin carries the rounding of a million, whatever its numbers in the plane are.
         /// </remarks>
-        internal static bool TryLayFlat(NurbsCurve a, NurbsCurve b, out FlatFrame frame, out NurbsCurve flatA, out NurbsCurve flatB)
+        internal static bool TryLayFlat(
+            NurbsCurve a,
+            NurbsCurve b,
+            out FlatFrame frame,
+            out NurbsCurve flatA,
+            out NurbsCurve flatB
+        )
         {
             flatA = null;
             flatB = null;
@@ -113,7 +127,8 @@ namespace GeometryHelper.Internal.Nurbs
         /// Says whether two curves in space lie in one plane, to a snap of the size of their numbers, and gives the plane
         /// (<see cref="TryLayFlat"/>).
         /// </summary>
-        internal static bool InOnePlane(NurbsCurve a, NurbsCurve b, out FlatFrame frame) => InOnePlane(a.Points, b.Points, Math.Max(a.Scale, b.Scale), out frame);
+        internal static bool InOnePlane(NurbsCurve a, NurbsCurve b, out FlatFrame frame) =>
+            InOnePlane(a.Points, b.Points, Math.Max(a.Scale, b.Scale), out frame);
 
         /// <summary>
         /// Says whether two sets of points of space, three numbers each, lie in one plane, to a snap of a size of the numbers, and gives
@@ -128,7 +143,10 @@ namespace GeometryHelper.Internal.Nurbs
             double oz = first[2];
 
             // The control point furthest from the first.
-            double fx = 0.0, fy = 0.0, fz = 0.0, furthest = 0.0;
+            double fx = 0.0,
+                fy = 0.0,
+                fz = 0.0,
+                furthest = 0.0;
 
             for (int curve = 0; curve < 2; curve++)
             {
@@ -151,7 +169,9 @@ namespace GeometryHelper.Internal.Nurbs
                 }
             }
 
-            double nx, ny, nz;
+            double nx,
+                ny,
+                nz;
 
             if (!(furthest > 0.0))
             {
@@ -168,7 +188,10 @@ namespace GeometryHelper.Internal.Nurbs
                 double ez = fz / length;
 
                 // The control point furthest from the line through those two, by the cross product with its direction.
-                double cx = 0.0, cy = 0.0, cz = 0.0, across = 0.0;
+                double cx = 0.0,
+                    cy = 0.0,
+                    cz = 0.0,
+                    across = 0.0;
 
                 for (int curve = 0; curve < 2; curve++)
                 {
@@ -236,7 +259,12 @@ namespace GeometryHelper.Internal.Nurbs
 
                 for (int i = 0; i < points.Length; i += 3)
                 {
-                    if (!(Math.Abs(nx * (points[i] - ox) + ny * (points[i + 1] - oy) + nz * (points[i + 2] - oz)) <= snap))
+                    if (
+                        !(
+                            Math.Abs(nx * (points[i] - ox) + ny * (points[i + 1] - oy) + nz * (points[i + 2] - oz))
+                            <= snap
+                        )
+                    )
                     {
                         return false;
                     }
@@ -271,7 +299,17 @@ namespace GeometryHelper.Internal.Nurbs
             }
             else
             {
-                Slab.Perpendiculars(nx, ny, nz, out frame.Ux, out frame.Uy, out frame.Uz, out frame.Vx, out frame.Vy, out frame.Vz);
+                Slab.Perpendiculars(
+                    nx,
+                    ny,
+                    nz,
+                    out frame.Ux,
+                    out frame.Uy,
+                    out frame.Uz,
+                    out frame.Vx,
+                    out frame.Vy,
+                    out frame.Vz
+                );
                 frame.Nx = nx;
                 frame.Ny = ny;
                 frame.Nz = nz;

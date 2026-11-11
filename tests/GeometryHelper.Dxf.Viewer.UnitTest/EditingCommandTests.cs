@@ -28,7 +28,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(CadCommandOutcome.Completed, session.LastOutcome);
             Near(new GeoPoint3(30, 40, 0), Entity<DxfLine>(document, "A1").StartPoint);
             Assert.Equal(0, document.Selection.Count);
-            Assert.Equal(new[] { "Command: M", "MOVE", "Specify base point or [Displacement] <Displacement>:", "Specify second point or <use first point as displacement>:" }, session.History);
+            Assert.Equal(
+                new[]
+                {
+                    "Command: M",
+                    "MOVE",
+                    "Specify base point or [Displacement] <Displacement>:",
+                    "Specify second point or <use first point as displacement>:",
+                },
+                session.History
+            );
             Assert.Equal("MOVE", document.NextUndo.Name);
         }
 
@@ -92,7 +101,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void AKeywordIsFoundByItsCapitalLettersByItsWholeWordOrByALongerStart()
         {
-            CadPrompt prompt = CadPrompt.ForPoint("Specify endpoint of arc", null, new[] { "CLose", "Line", "Second pt", "mOde" });
+            CadPrompt prompt = CadPrompt.ForPoint(
+                "Specify endpoint of arc",
+                null,
+                new[] { "CLose", "Line", "Second pt", "mOde" }
+            );
 
             Assert.Equal("CLose", prompt.MatchKeyword("cl"));
             Assert.Equal("CLose", prompt.MatchKeyword("close"));
@@ -103,7 +116,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Null(prompt.MatchKeyword("c"));
             Assert.Null(prompt.MatchKeyword("x"));
             Assert.Equal("Specify endpoint of arc or [CLose/Line/Second pt/mOde]:", prompt.Text);
-            Assert.Equal("Erase source objects? [Yes/No] <No>:", CadPrompt.ForKeyword("Erase source objects?", new[] { "Yes", "No" }, "No").Text);
+            Assert.Equal(
+                "Erase source objects? [Yes/No] <No>:",
+                CadPrompt.ForKeyword("Erase source objects?", new[] { "Yes", "No" }, "No").Text
+            );
         }
 
         [Fact]
@@ -122,7 +138,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void TheShortcutsAreDataThatGlobalSettingsReplace()
         {
             CadCommandSession session = Session(Plan());
-            session.Registry.Shortcuts = new CadShortcuts(new Dictionary<string, string> { ["MM"] = "move" }, new Dictionary<string, string> { ["F5"] = "line" });
+            session.Registry.Shortcuts = new CadShortcuts(
+                new Dictionary<string, string> { ["MM"] = "move" },
+                new Dictionary<string, string> { ["F5"] = "line" }
+            );
 
             Assert.Equal("MOVE", session.Registry.Find("mm").Name);
             Assert.Null(session.Registry.Find("M"));
@@ -343,7 +362,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Session(document);
 
             Run(session, "LA");
-            Assert.Equal("Enter an option [Set/New/ON/OFF/TRansparency/Plot/Freeze/Thaw/LOck/Unlock/stAte/Description]:", session.PromptText);
+            Assert.Equal(
+                "Enter an option [Set/New/ON/OFF/TRansparency/Plot/Freeze/Thaw/LOck/Unlock/stAte/Description]:",
+                session.PromptText
+            );
             Run(session, "N", "Walls, Doors", "S", "Walls", "OFF", "Steel", "F", "Walls", "LO", "Doors", Enter);
 
             Assert.Equal("Walls", document.Database.Clayer);
@@ -495,7 +517,19 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "90");
             Near(new GeoPoint3(50, 100 * Math.Sqrt(3.0) / 2.0, 0), Entity<DxfLine>(document, "A1").EndPoint, 1E-9);
 
-            Run(session, "RO", new[] { "A1" }, Enter, P(0, 0), "R", P(0, 0), P(50, 100 * Math.Sqrt(3.0) / 2.0), "P", P(0, 0), P(0, -10));
+            Run(
+                session,
+                "RO",
+                new[] { "A1" },
+                Enter,
+                P(0, 0),
+                "R",
+                P(0, 0),
+                P(50, 100 * Math.Sqrt(3.0) / 2.0),
+                "P",
+                P(0, 0),
+                P(0, -10)
+            );
             Near(new GeoPoint3(0, -100, 0), Entity<DxfLine>(document, "A1").EndPoint, 1E-9);
         }
 

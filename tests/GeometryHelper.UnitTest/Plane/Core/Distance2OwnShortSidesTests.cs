@@ -17,7 +17,8 @@ namespace GeometryHelper.UnitTest.Plane
     {
         private const double Truth = 0.006;
 
-        private static Tolerance At(double equalPoint) => new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
+        private static Tolerance At(double equalPoint) =>
+            new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
 
         /// <summary>
         /// A shape standing under the origin whose top side runs from (0, 0) to (0.004, 0), built under the default
@@ -28,17 +29,34 @@ namespace GeometryHelper.UnitTest.Plane
             switch (kind)
             {
                 case "polyline":
-                    return new GeoPolyline2(new GeoPoint2(0, -50), new GeoPoint2(0, 0), new GeoPoint2(0.004, 0), new GeoPoint2(0.004, -50));
+                    return new GeoPolyline2(
+                        new GeoPoint2(0, -50),
+                        new GeoPoint2(0, 0),
+                        new GeoPoint2(0.004, 0),
+                        new GeoPoint2(0.004, -50)
+                    );
                 case "polygon":
-                    return new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(0, -50), new GeoPoint2(0.004, -50), new GeoPoint2(0.004, 0));
+                    return new GeoPolygon2(
+                        new GeoPoint2(0, 0),
+                        new GeoPoint2(0, -50),
+                        new GeoPoint2(0.004, -50),
+                        new GeoPoint2(0.004, 0)
+                    );
                 case "triangle":
                     return new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(0.004, 0), new GeoPoint2(0.002, -50));
                 case "rectangle":
                     return new GeoRectangle2(new GeoPoint2(0.002, -25), 0.004, 50, 0);
                 case "loop":
                     return new GeoPolygonArc2(
-                        new[] { new GeoPoint2(0, 0), new GeoPoint2(0, -50), new GeoPoint2(0.004, -50), new GeoPoint2(0.004, 0) },
-                        new[] { 0.0, 0.0, 0.0, 0.0 });
+                        new[]
+                        {
+                            new GeoPoint2(0, 0),
+                            new GeoPoint2(0, -50),
+                            new GeoPoint2(0.004, -50),
+                            new GeoPoint2(0.004, 0),
+                        },
+                        new[] { 0.0, 0.0, 0.0, 0.0 }
+                    );
                 default:
                     throw new ArgumentException(kind);
             }
@@ -80,7 +98,20 @@ namespace GeometryHelper.UnitTest.Plane
 
         public static IEnumerable<object[]> Rows()
         {
-            foreach (string other in new[] { "point", "segment", "polygon", "polyline", "ray", "triangle", "edge", "circle", "rectangle" })
+            foreach (
+                string other in new[]
+                {
+                    "point",
+                    "segment",
+                    "polygon",
+                    "polyline",
+                    "ray",
+                    "triangle",
+                    "edge",
+                    "circle",
+                    "rectangle",
+                }
+            )
             {
                 yield return new object[] { "polyline", other };
             }
@@ -111,16 +142,18 @@ namespace GeometryHelper.UnitTest.Plane
         /// </summary>
         private static double? Distance(object from, object to, Tolerance? tolerance)
         {
-            MethodInfo method = tolerance == null
-                ? from.GetType().GetMethod("DistanceTo", new[] { to.GetType() })
-                : from.GetType().GetMethod("DistanceTo", new[] { to.GetType(), typeof(Tolerance) });
+            MethodInfo method =
+                tolerance == null
+                    ? from.GetType().GetMethod("DistanceTo", new[] { to.GetType() })
+                    : from.GetType().GetMethod("DistanceTo", new[] { to.GetType(), typeof(Tolerance) });
 
             if (method == null)
             {
                 return null;
             }
 
-            return (double)method.Invoke(from, tolerance == null ? new[] { to } : new[] { to, (object)tolerance.Value });
+            return (double)
+                method.Invoke(from, tolerance == null ? new[] { to } : new[] { to, (object)tolerance.Value });
         }
 
         private static bool? Collides(object from, object to, Tolerance tolerance)
@@ -137,7 +170,10 @@ namespace GeometryHelper.UnitTest.Plane
 
         [Theory]
         [MemberData(nameof(Rows))]
-        public void AShapeWithASideOfFourThousandths_IsSixThousandthsFromAShapeTouchingOverItsMiddle_AtAGlobalToleranceOfAHundredth(string own, string other)
+        public void AShapeWithASideOfFourThousandths_IsSixThousandthsFromAShapeTouchingOverItsMiddle_AtAGlobalToleranceOfAHundredth(
+            string own,
+            string other
+        )
         {
             object a = Short(own);
             object b = Over(other);
@@ -156,7 +192,10 @@ namespace GeometryHelper.UnitTest.Plane
 
         [Theory]
         [MemberData(nameof(Rows))]
-        public void AShapeWithASideOfFourThousandths_IsSixThousandthsFromAShapeTouchingOverItsMiddle_AtAnExplicitToleranceOfAHundredth(string own, string other)
+        public void AShapeWithASideOfFourThousandths_IsSixThousandthsFromAShapeTouchingOverItsMiddle_AtAnExplicitToleranceOfAHundredth(
+            string own,
+            string other
+        )
         {
             object a = Short(own);
             object b = Over(other);
@@ -215,7 +254,10 @@ namespace GeometryHelper.UnitTest.Plane
 
         [Theory]
         [MemberData(nameof(Rows))]
-        public void AShapeWithASideOfFourThousandths_CollidesWithAShapeSixThousandthsOverItsMiddle_AtAToleranceOf62Thousandths(string own, string other)
+        public void AShapeWithASideOfFourThousandths_CollidesWithAShapeSixThousandthsOverItsMiddle_AtAToleranceOf62Thousandths(
+            string own,
+            string other
+        )
         {
             // The corner a short side would be read as is 0.00632 away, and the tolerance is 0.0062: the pair collides
             // exactly where the distance, 0.006, is at most the tolerance.

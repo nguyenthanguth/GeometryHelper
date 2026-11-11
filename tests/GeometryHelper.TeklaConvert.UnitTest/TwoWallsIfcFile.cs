@@ -13,7 +13,8 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         internal const string WallA = "0000000000000000000002";
         internal const string WallB = "0000000000000000000003";
 
-        private const string Step = @"ISO-10303-21;
+        private const string Step =
+            @"ISO-10303-21;
 HEADER;
 FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');
 FILE_NAME('two_walls.ifc','2026-09-18T00:00:00',('Tester'),('TestOrg'),'xBIM','xBIM','');
@@ -59,9 +60,7 @@ END-ISO-10303-21;
             {
                 File.Delete(FilePath);
             }
-            catch (IOException)
-            {
-            }
+            catch (IOException) { }
         }
     }
 }

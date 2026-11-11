@@ -58,13 +58,15 @@ namespace GeometryHelper.Dxf
         {
             if (!(record is DxfLinetypeTableRecord linetype))
             {
-                throw new ArgumentException("The linetype table takes a DxfLinetypeTableRecord, and was given a " + record.GetType().Name + ".", "value");
+                throw new ArgumentException(
+                    "The linetype table takes a DxfLinetypeTableRecord, and was given a " + record.GetType().Name + ".",
+                    "value"
+                );
             }
 
             linetype.AddTo(_file);
         }
     }
-
 
     /// <summary>
     /// A linetype of a DXF file, as AutoCAD's <c>LinetypeTableRecord</c>: its name, its description, the length of its
@@ -91,7 +93,9 @@ namespace GeometryHelper.Dxf
     public sealed class DxfLinetypeTableRecord : DxfSymbolTableRecord
     {
         // The groups of AcDbLinetypeTableRecord in the order AutoCAD writes them, those of each dash last.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 100, 2, 70, 3, 72, 73, 40, 49, 74, 75, 340, 46, 50, 44, 45, 9 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 100, 2, 70, 3, 72, 73, 40, 49, 74, 75, 340, 46, 50, 44, 45, 9 }
+        );
 
         // The groups of a dash, in the order AutoCAD writes them.
         private static readonly int[] DashCodes = { 49, 74, 75, 340, 46, 50, 44, 45, 9 };
@@ -108,14 +112,10 @@ namespace GeometryHelper.Dxf
         /// Initializes a linetype made in code, with no dashes: a continuous line until it is given some, to be added to a
         /// <see cref="DxfLinetypeTable"/> with its <see cref="DxfSymbolTableRecord.Name"/> given.
         /// </summary>
-        public DxfLinetypeTableRecord()
-        {
-        }
+        public DxfLinetypeTableRecord() { }
 
         private DxfLinetypeTableRecord(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets the description of the linetype (group 3), as AutoCAD's <c>AsciiDescription</c>: <c>__ __ __</c>; empty where the record gives none.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the description set is null.</exception>
@@ -123,7 +123,6 @@ namespace GeometryHelper.Dxf
         public string AsciiDescription
         {
             get => Item == null ? _description : Item.File.ValueOf(Item, 3) ?? string.Empty;
-
             set
             {
                 if (value == null)
@@ -185,7 +184,18 @@ namespace GeometryHelper.Dxf
             }
             else if ((Flags & 48) != bits)
             {
-                Item.File.SetValues(Item, new[] { new KeyValuePair<int, string>(70, ((Flags & ~48) | bits).ToString(CultureInfo.InvariantCulture)) }, Order, false);
+                Item.File.SetValues(
+                    Item,
+                    new[]
+                    {
+                        new KeyValuePair<int, string>(
+                            70,
+                            ((Flags & ~48) | bits).ToString(CultureInfo.InvariantCulture)
+                        ),
+                    },
+                    Order,
+                    false
+                );
             }
         }
 
@@ -215,9 +225,10 @@ namespace GeometryHelper.Dxf
                     return sum;
                 }
 
-                return Numbers.TryRead(Item.File.ValueOf(Item, 40), out double length) && Guard.IsFinite(length) ? length : 0.0;
+                return Numbers.TryRead(Item.File.ValueOf(Item, 40), out double length) && Guard.IsFinite(length)
+                    ? length
+                    : 0.0;
             }
-
             set
             {
                 // The length it has changes nothing, whatever the file holds.
@@ -226,7 +237,11 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                Guard.NonNegative(value, nameof(value), "The length of a pattern has to be a finite number of nought or more.");
+                Guard.NonNegative(
+                    value,
+                    nameof(value),
+                    "The length of a pattern has to be a finite number of nought or more."
+                );
 
                 if (Item == null)
                 {
@@ -234,7 +249,12 @@ namespace GeometryHelper.Dxf
                 }
                 else if (!Same(value, PatternLength))
                 {
-                    Item.File.SetValues(Item, new[] { new KeyValuePair<int, string>(40, Numbers.Exact(value + 0.0)) }, Order, false);
+                    Item.File.SetValues(
+                        Item,
+                        new[] { new KeyValuePair<int, string>(40, Numbers.Exact(value + 0.0)) },
+                        Order,
+                        false
+                    );
                 }
             }
         }
@@ -248,7 +268,6 @@ namespace GeometryHelper.Dxf
         public int NumDashes
         {
             get => Dashes().Count;
-
             set
             {
                 // The count it has changes nothing, whatever the file holds.
@@ -264,7 +283,11 @@ namespace GeometryHelper.Dxf
 
                 if (Item != null)
                 {
-                    throw new InvalidOperationException("How many dashes the linetype " + Name + " of a file has is not changed yet: a later release changes it.");
+                    throw new InvalidOperationException(
+                        "How many dashes the linetype "
+                            + Name
+                            + " of a file has is not changed yet: a later release changes it."
+                    );
                 }
 
                 while (_dashes.Count > value)
@@ -344,9 +367,15 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the linetype is erased, or of a file of R12.</exception>
         public void SetShapeStyleAt(int index, DxfTextStyleTableRecord value)
         {
-            if (value != null && (value.Item == null || value.Handle == null || (Item != null && value.Item.File != Item.File)))
+            if (
+                value != null
+                && (value.Item == null || value.Handle == null || (Item != null && value.Item.File != Item.File))
+            )
             {
-                throw new ArgumentException("A dash is drawn in a text style of the linetype's own file, which has a handle.", nameof(value));
+                throw new ArgumentException(
+                    "A dash is drawn in a text style of the linetype's own file, which has a handle.",
+                    nameof(value)
+                );
             }
 
             Change(index, d => d.Style = value?.Handle);
@@ -375,7 +404,11 @@ namespace GeometryHelper.Dxf
         {
             if (shapeNumber < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(shapeNumber), shapeNumber, "A shape is numbered from nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(shapeNumber),
+                    shapeNumber,
+                    "A shape is numbered from nought."
+                );
             }
 
             Change(index, d => d.Shape = shapeNumber);
@@ -401,7 +434,10 @@ namespace GeometryHelper.Dxf
         {
             if (!Guard.IsFinite(offset.X) || !Guard.IsFinite(offset.Y))
             {
-                throw new ArgumentException("An offset has to be of finite numbers: " + offset + " is not.", nameof(offset));
+                throw new ArgumentException(
+                    "An offset has to be of finite numbers: " + offset + " is not.",
+                    nameof(offset)
+                );
             }
 
             Change(index, d =>
@@ -527,7 +563,11 @@ namespace GeometryHelper.Dxf
 
             string name = Name;
 
-            if (string.Equals(name, "ByLayer", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "ByBlock", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "Continuous", StringComparison.OrdinalIgnoreCase))
+            if (
+                string.Equals(name, "ByLayer", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "ByBlock", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "Continuous", StringComparison.OrdinalIgnoreCase)
+            )
             {
                 throw new InvalidOperationException("The linetype " + name + " is one AutoCAD keeps.");
             }
@@ -538,25 +578,45 @@ namespace GeometryHelper.Dxf
             foreach (string variable in new[] { "$CELTYPE", "$DIMLTYPE", "$DIMLTEX1", "$DIMLTEX2" })
             {
                 IReadOnlyList<DxfTypedValue> groups = file.HeaderOf(variable);
-                named |= groups != null && groups.Count > 0 && string.Equals(DxfReader.NameOf(groups[0].Value), name, StringComparison.OrdinalIgnoreCase);
+                named |=
+                    groups != null
+                    && groups.Count > 0
+                    && string.Equals(DxfReader.NameOf(groups[0].Value), name, StringComparison.OrdinalIgnoreCase);
             }
 
             // The 6 of a dimension style names its first arrow, a block, not a linetype.
-            if (named || file.Names(Naming, (type, code) => code == 6 && type != "XRECORD" && type != "LTYPE" && type != "DIMSTYLE", name))
+            if (
+                named
+                || file.Names(
+                    Naming,
+                    (type, code) => code == 6 && type != "XRECORD" && type != "LTYPE" && type != "DIMSTYLE",
+                    name
+                )
+            )
             {
-                throw new InvalidOperationException("The linetype " + name + " is drawn with, by an entity, a layer or the header, and is not erased, as AutoCAD erases a linetype only when nothing uses it.");
+                throw new InvalidOperationException(
+                    "The linetype "
+                        + name
+                        + " is drawn with, by an entity, a layer or the header, and is not erased, as AutoCAD erases a linetype only when nothing uses it."
+                );
             }
 
             if (file.PointedAt(Handle))
             {
-                throw new InvalidOperationException("The linetype " + name + " is pointed at by an object of the file, as a dimension style, and is not erased.");
+                throw new InvalidOperationException(
+                    "The linetype "
+                        + name
+                        + " is pointed at by an object of the file, as a dimension style, and is not erased."
+                );
             }
 
             file.RemoveTableRecord(Item, "LTYPE");
         }
 
         /// <summary>The object of an LTYPE record, made once.</summary>
-        internal static DxfLinetypeTableRecord Of(DxfItem item) => item.Wrapper as DxfLinetypeTableRecord ?? (DxfLinetypeTableRecord)item.KeepWrapper(new DxfLinetypeTableRecord(item));
+        internal static DxfLinetypeTableRecord Of(DxfItem item) =>
+            item.Wrapper as DxfLinetypeTableRecord
+            ?? (DxfLinetypeTableRecord)item.KeepWrapper(new DxfLinetypeTableRecord(item));
 
         /// <summary>Writes the linetype made in code into a file's linetype table, and stands for its record from then on.</summary>
         internal void AddTo(DxfFile file)
@@ -569,12 +629,22 @@ namespace GeometryHelper.Dxf
 
                 if (_styles[i] != null && _styles[i].Item.File != file)
                 {
-                    throw new ArgumentException("The dash " + i.ToString(CultureInfo.InvariantCulture) + " is drawn in a text style of another file.", "value");
+                    throw new ArgumentException(
+                        "The dash "
+                            + i.ToString(CultureInfo.InvariantCulture)
+                            + " is drawn in a text style of another file.",
+                        "value"
+                    );
                 }
 
                 if (!file.HasMarkers && dash.IsComplex)
                 {
-                    throw new ArgumentException("A DXF of version " + (file.Version ?? "R12") + " has no complex linetypes, which came with R13 (AC1012).", "value");
+                    throw new ArgumentException(
+                        "A DXF of version "
+                            + (file.Version ?? "R12")
+                            + " has no complex linetypes, which came with R13 (AC1012).",
+                        "value"
+                    );
                 }
 
                 foreach (KeyValuePair<int, string> group in dash.Groups)
@@ -590,7 +660,9 @@ namespace GeometryHelper.Dxf
 
             if (item == null)
             {
-                throw new InvalidOperationException("The file has no linetype table to add the linetype " + Name + " to.");
+                throw new InvalidOperationException(
+                    "The file has no linetype table to add the linetype " + Name + " to."
+                );
             }
 
             Bind(item);
@@ -628,7 +700,11 @@ namespace GeometryHelper.Dxf
 
             if (index < 0 || index >= dashes.Count)
             {
-                throw new ArgumentOutOfRangeException(nameof(index), index, "The pattern has " + dashes.Count.ToString(CultureInfo.InvariantCulture) + " dashes.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(index),
+                    index,
+                    "The pattern has " + dashes.Count.ToString(CultureInfo.InvariantCulture) + " dashes."
+                );
             }
 
             return dashes[index];
@@ -655,7 +731,11 @@ namespace GeometryHelper.Dxf
 
             if (!markers && written.IsComplex)
             {
-                throw new InvalidOperationException("A DXF of version " + (Item.File.Version ?? "R12") + " has no complex linetypes, which came with R13 (AC1012).");
+                throw new InvalidOperationException(
+                    "A DXF of version "
+                        + (Item.File.Version ?? "R12")
+                        + " has no complex linetypes, which came with R13 (AC1012)."
+                );
             }
 
             dashes[index] = written;
@@ -680,7 +760,8 @@ namespace GeometryHelper.Dxf
             Item.File.ReplaceOwn(Item, 0, DashCodes, groups, Order, false);
         }
 
-        private static bool Same(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
+        private static bool Same(double a, double b) =>
+            BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
 
         /// <summary>A dash of a pattern, as the groups it is written with.</summary>
         private sealed class Dash
@@ -723,31 +804,46 @@ namespace GeometryHelper.Dxf
                 return dash;
             }
 
-            internal Values Read() => new Values
-            {
-                Length = Length,
-                Absolute = Absolute,
-                Shape = Shape,
-                Style = Style,
-                Scale = Scale,
-                Rotation = Rotation,
-                X = X,
-                Y = Y,
-                Text = Text(),
-            };
+            internal Values Read() =>
+                new Values
+                {
+                    Length = Length,
+                    Absolute = Absolute,
+                    Shape = Shape,
+                    Style = Style,
+                    Scale = Scale,
+                    Rotation = Rotation,
+                    X = X,
+                    Y = Y,
+                    Text = Text(),
+                };
 
             /// <summary>The dash written with values, each group whose value is as it was keeping its text.</summary>
             internal Dash Written(Values values, bool markers)
             {
                 bool text = values.Text.Length > 0;
-                bool complex = text || values.Shape != 0 || values.Style != null || values.Absolute || values.Scale != 0.0 || values.Rotation != 0.0 || values.X != 0.0
-                    || values.Y != 0.0 || IsComplex;
+                bool complex =
+                    text
+                    || values.Shape != 0
+                    || values.Style != null
+                    || values.Absolute
+                    || values.Scale != 0.0
+                    || values.Rotation != 0.0
+                    || values.X != 0.0
+                    || values.Y != 0.0
+                    || IsComplex;
                 var dash = new Dash();
                 dash.Real(this, 49, values.Length);
 
                 if (markers || Text(74) != null)
                 {
-                    int flags = (values.Absolute ? 1 : 0) | (text ? 2 : values.Shape != 0 ? 4 : 0);
+                    int flags =
+                        (values.Absolute ? 1 : 0)
+                        | (
+                            text ? 2
+                            : values.Shape != 0 ? 4
+                            : 0
+                        );
                     dash.Whole(this, 74, flags);
                 }
 
@@ -760,7 +856,14 @@ namespace GeometryHelper.Dxf
 
                 if (values.Style != null)
                 {
-                    dash.Groups.Add(new KeyValuePair<int, string>(340, string.Equals(Style, values.Style, StringComparison.OrdinalIgnoreCase) ? Text(340) : values.Style));
+                    dash.Groups.Add(
+                        new KeyValuePair<int, string>(
+                            340,
+                            string.Equals(Style, values.Style, StringComparison.OrdinalIgnoreCase)
+                                ? Text(340)
+                                : values.Style
+                        )
+                    );
                 }
 
                 // A dash made complex with no scale is drawn at the scale 1, as a linetype file's shape or text without S is.
@@ -786,7 +889,10 @@ namespace GeometryHelper.Dxf
 
                 for (int i = 0; i < Groups.Count; i++)
                 {
-                    if (Groups[i].Key != other.Groups[i].Key || !string.Equals(Groups[i].Value, other.Groups[i].Value, StringComparison.Ordinal))
+                    if (
+                        Groups[i].Key != other.Groups[i].Key
+                        || !string.Equals(Groups[i].Value, other.Groups[i].Value, StringComparison.Ordinal)
+                    )
                     {
                         return false;
                     }
@@ -808,21 +914,41 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            private double Real(int code, double fallback) => Numbers.TryRead(Text(code), out double value) && Guard.IsFinite(value) ? value : fallback;
+            private double Real(int code, double fallback) =>
+                Numbers.TryRead(Text(code), out double value) && Guard.IsFinite(value) ? value : fallback;
 
-            private int Whole(int code, int fallback) => int.TryParse(Text(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+            private int Whole(int code, int fallback) =>
+                int.TryParse(Text(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                    ? value
+                    : fallback;
 
             /// <summary>A number written after the groups so far: the text it had where it is the same to the bit.</summary>
             private void Real(Dash was, int code, double value)
             {
                 string text = was.Text(code);
-                Groups.Add(new KeyValuePair<int, string>(code, text != null && Numbers.TryRead(text, out double old) && DxfLinetypeTableRecord.Same(old, value) ? text : Numbers.Exact(value + 0.0)));
+                Groups.Add(
+                    new KeyValuePair<int, string>(
+                        code,
+                        text != null && Numbers.TryRead(text, out double old) && DxfLinetypeTableRecord.Same(old, value)
+                            ? text
+                            : Numbers.Exact(value + 0.0)
+                    )
+                );
             }
 
             private void Whole(Dash was, int code, int value)
             {
                 string text = was.Text(code);
-                Groups.Add(new KeyValuePair<int, string>(code, text != null && int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int old) && old == value ? text : value.ToString(CultureInfo.InvariantCulture)));
+                Groups.Add(
+                    new KeyValuePair<int, string>(
+                        code,
+                        text != null
+                        && int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int old)
+                        && old == value
+                            ? text
+                            : value.ToString(CultureInfo.InvariantCulture)
+                    )
+                );
             }
 
             /// <summary>What a dash is, to be changed and written.</summary>

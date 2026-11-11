@@ -18,46 +18,52 @@ namespace GeometryHelper.Dwg
         /// not written; <c>$ACADMAINTVER</c> is group 90 from R2018.
         /// </summary>
         private const string HeaderOrder =
-            "ACADVER 1;ACADMAINTVER 70;DWGCODEPAGE 3;REQUIREDVERSIONS 160 1027;INSBASE 10;EXTMIN 10;EXTMAX 10;" +
-            "LIMMIN 10;LIMMAX 10;ORTHOMODE 70;REGENMODE 70;FILLMODE 70;QTEXTMODE 70;MIRRTEXT 70;LTSCALE 40;ATTMODE 70;" +
-            "TEXTSIZE 40;TRACEWID 40;TEXTSTYLE 7;CLAYER 8;CELTYPE 6;CECOLOR 62;CELTSCALE 40;DISPSILH 70;DIMSCALE 40;" +
-            "DIMASZ 40;DIMEXO 40;DIMDLI 40;DIMRND 40;DIMDLE 40;DIMEXE 40;DIMTP 40;DIMTM 40;DIMTXT 40;DIMCEN 40;" +
-            "DIMTSZ 40;DIMTOL 70;DIMLIM 70;DIMTIH 70;DIMTOH 70;DIMSE1 70;DIMSE2 70;DIMTAD 70;DIMZIN 70;DIMBLK 1;" +
-            "DIMASO 70;DIMSHO 70;DIMPOST 1;DIMAPOST 1;DIMALT 70;DIMALTD 70;DIMALTF 40;DIMLFAC 40;DIMTOFL 70;DIMTVP 40;" +
-            "DIMTIX 70;DIMSOXD 70;DIMSAH 70;DIMBLK1 1;DIMBLK2 1;DIMSTYLE 2;DIMCLRD 70;DIMCLRE 70;DIMCLRT 70;DIMTFAC 40;" +
-            "DIMGAP 40;DIMJUST 70;DIMSD1 70;DIMSD2 70;DIMTOLJ 70;DIMTZIN 70;DIMALTZ 70;DIMALTTZ 70;DIMUPT 70;DIMDEC 70;" +
-            "DIMTDEC 70;DIMALTU 70;DIMALTTD 70;DIMTXSTY 7;DIMAUNIT 70;DIMADEC 70;DIMALTRND 40;DIMAZIN 70;DIMDSEP 70;" +
-            "DIMATFIT 70;DIMFRAC 70;DIMLDRBLK 1;DIMLUNIT 70;DIMLWD 70;DIMLWE 70;DIMTMOVE 70;DIMFXL 40 1021;" +
-            "DIMFXLON 70 1021;DIMJOGANG 40 1021;DIMTFILL 70 1021;DIMTFILLCLR 70 1021;DIMARCSYM 70 1021;DIMLTYPE 6 1021;" +
-            "DIMLTEX1 6 1021;DIMLTEX2 6 1021;DIMTXTDIRECTION 70 1024;LUNITS 70;LUPREC 70;SKETCHINC 40;FILLETRAD 40;" +
-            "AUNITS 70;AUPREC 70;MENU 1;ELEVATION 40;PELEVATION 40;THICKNESS 40;LIMCHECK 70;CHAMFERA 40;CHAMFERB 40;" +
-            "CHAMFERC 40;CHAMFERD 40;SKPOLY 70;TDUCREATE 40;TDUUPDATE 40;TDINDWG 40;TDUSRTIMER 40;USRTIMER 70;" +
-            "ANGBASE 50;ANGDIR 70;PDMODE 70;PDSIZE 40;PLINEWID 40;SPLFRAME 70;SPLINETYPE 70;SPLINESEGS 70;HANDSEED 5;" +
-            "SURFTAB1 70;SURFTAB2 70;SURFTYPE 70;SURFU 70;SURFV 70;UCSBASE 2;UCSNAME 2;UCSORG 10;UCSXDIR 10;UCSYDIR 10;" +
-            "UCSORTHOREF 2;UCSORTHOVIEW 70;UCSORGTOP 10;UCSORGBOTTOM 10;UCSORGLEFT 10;UCSORGRIGHT 10;UCSORGFRONT 10;" +
-            "UCSORGBACK 10;PUCSBASE 2;PUCSNAME 2;PUCSORG 10;PUCSXDIR 10;PUCSYDIR 10;PUCSORTHOREF 2;PUCSORTHOVIEW 70;" +
-            "PUCSORGTOP 10;PUCSORGBOTTOM 10;PUCSORGLEFT 10;PUCSORGRIGHT 10;PUCSORGFRONT 10;PUCSORGBACK 10;USERI1 70;" +
-            "USERI2 70;USERI3 70;USERI4 70;USERI5 70;USERR1 40;USERR2 40;USERR3 40;USERR4 40;USERR5 40;WORLDVIEW 70;" +
-            "SHADEDGE 70;SHADEDIF 70;TILEMODE 70;MAXACTVP 70;PINSBASE 10;PLIMCHECK 70;PEXTMIN 10;PEXTMAX 10;PLIMMIN 10;" +
-            "PLIMMAX 10;UNITMODE 70;VISRETAIN 70;PLINEGEN 70;PSLTSCALE 70;TREEDEPTH 70;CMLSTYLE 2;CMLJUST 70;" +
-            "CMLSCALE 40;PROXYGRAPHICS 70;MEASUREMENT 70;CELWEIGHT 370;ENDCAPS 280;JOINSTYLE 280;LWDISPLAY 290;" +
-            "INSUNITS 70;HYPERLINKBASE 1;STYLESHEET 1;XEDIT 290;CEPSNTYPE 380;PSTYLEMODE 290;FINGERPRINTGUID 2;" +
-            "VERSIONGUID 2;EXTNAMES 290;PSVPSCALE 40;OLESTARTUP 290;SORTENTS 280 1018;INDEXCTL 280 1018;" +
-            "HIDETEXT 280 1018;XCLIPFRAME 280 1018;HALOGAP 280 1018;OBSCOLOR 70 1018;OBSLTYPE 280 1018;" +
-            "INTERSECTIONDISPLAY 280 1018;INTERSECTIONCOLOR 70 1018;DIMASSOC 280 1018;PROJECTNAME 1 1018;" +
-            "CAMERADISPLAY 290 1021;LENSLENGTH 40 1021;CAMERAHEIGHT 40 1021;STEPSPERSEC 40 1021;STEPSIZE 40 1021;" +
-            "3DDWFPREC 40 1021;PSOLWIDTH 40 1021;PSOLHEIGHT 40 1021;LOFTANG1 40 1021;LOFTANG2 40 1021;LOFTMAG1 40 1021;" +
-            "LOFTMAG2 40 1021;LOFTPARAM 70 1021;LOFTNORMALS 280 1021;LATITUDE 40 1021;LONGITUDE 40 1021;" +
-            "NORTHDIRECTION 40 1021;TIMEZONE 70 1021;LIGHTGLYPHDISPLAY 280 1021;TILEMODELIGHTSYNCH 280 1021;" +
-            "CMATERIAL 347 1021;SOLIDHIST 280 1021;SHOWHIST 280 1021;DWFFRAME 280 1021;DGNFRAME 280 1021;" +
-            "REALWORLDSCALE 290 1021;INTERFERECOLOR 62 1021;INTERFEREOBJVS 345 1021;INTERFEREVPVS 346 1021;" +
-            "CSHADOW 280 1021;SHADOWPLANELOCATION 40 1021";
+            "ACADVER 1;ACADMAINTVER 70;DWGCODEPAGE 3;REQUIREDVERSIONS 160 1027;INSBASE 10;EXTMIN 10;EXTMAX 10;"
+            + "LIMMIN 10;LIMMAX 10;ORTHOMODE 70;REGENMODE 70;FILLMODE 70;QTEXTMODE 70;MIRRTEXT 70;LTSCALE 40;ATTMODE 70;"
+            + "TEXTSIZE 40;TRACEWID 40;TEXTSTYLE 7;CLAYER 8;CELTYPE 6;CECOLOR 62;CELTSCALE 40;DISPSILH 70;DIMSCALE 40;"
+            + "DIMASZ 40;DIMEXO 40;DIMDLI 40;DIMRND 40;DIMDLE 40;DIMEXE 40;DIMTP 40;DIMTM 40;DIMTXT 40;DIMCEN 40;"
+            + "DIMTSZ 40;DIMTOL 70;DIMLIM 70;DIMTIH 70;DIMTOH 70;DIMSE1 70;DIMSE2 70;DIMTAD 70;DIMZIN 70;DIMBLK 1;"
+            + "DIMASO 70;DIMSHO 70;DIMPOST 1;DIMAPOST 1;DIMALT 70;DIMALTD 70;DIMALTF 40;DIMLFAC 40;DIMTOFL 70;DIMTVP 40;"
+            + "DIMTIX 70;DIMSOXD 70;DIMSAH 70;DIMBLK1 1;DIMBLK2 1;DIMSTYLE 2;DIMCLRD 70;DIMCLRE 70;DIMCLRT 70;DIMTFAC 40;"
+            + "DIMGAP 40;DIMJUST 70;DIMSD1 70;DIMSD2 70;DIMTOLJ 70;DIMTZIN 70;DIMALTZ 70;DIMALTTZ 70;DIMUPT 70;DIMDEC 70;"
+            + "DIMTDEC 70;DIMALTU 70;DIMALTTD 70;DIMTXSTY 7;DIMAUNIT 70;DIMADEC 70;DIMALTRND 40;DIMAZIN 70;DIMDSEP 70;"
+            + "DIMATFIT 70;DIMFRAC 70;DIMLDRBLK 1;DIMLUNIT 70;DIMLWD 70;DIMLWE 70;DIMTMOVE 70;DIMFXL 40 1021;"
+            + "DIMFXLON 70 1021;DIMJOGANG 40 1021;DIMTFILL 70 1021;DIMTFILLCLR 70 1021;DIMARCSYM 70 1021;DIMLTYPE 6 1021;"
+            + "DIMLTEX1 6 1021;DIMLTEX2 6 1021;DIMTXTDIRECTION 70 1024;LUNITS 70;LUPREC 70;SKETCHINC 40;FILLETRAD 40;"
+            + "AUNITS 70;AUPREC 70;MENU 1;ELEVATION 40;PELEVATION 40;THICKNESS 40;LIMCHECK 70;CHAMFERA 40;CHAMFERB 40;"
+            + "CHAMFERC 40;CHAMFERD 40;SKPOLY 70;TDUCREATE 40;TDUUPDATE 40;TDINDWG 40;TDUSRTIMER 40;USRTIMER 70;"
+            + "ANGBASE 50;ANGDIR 70;PDMODE 70;PDSIZE 40;PLINEWID 40;SPLFRAME 70;SPLINETYPE 70;SPLINESEGS 70;HANDSEED 5;"
+            + "SURFTAB1 70;SURFTAB2 70;SURFTYPE 70;SURFU 70;SURFV 70;UCSBASE 2;UCSNAME 2;UCSORG 10;UCSXDIR 10;UCSYDIR 10;"
+            + "UCSORTHOREF 2;UCSORTHOVIEW 70;UCSORGTOP 10;UCSORGBOTTOM 10;UCSORGLEFT 10;UCSORGRIGHT 10;UCSORGFRONT 10;"
+            + "UCSORGBACK 10;PUCSBASE 2;PUCSNAME 2;PUCSORG 10;PUCSXDIR 10;PUCSYDIR 10;PUCSORTHOREF 2;PUCSORTHOVIEW 70;"
+            + "PUCSORGTOP 10;PUCSORGBOTTOM 10;PUCSORGLEFT 10;PUCSORGRIGHT 10;PUCSORGFRONT 10;PUCSORGBACK 10;USERI1 70;"
+            + "USERI2 70;USERI3 70;USERI4 70;USERI5 70;USERR1 40;USERR2 40;USERR3 40;USERR4 40;USERR5 40;WORLDVIEW 70;"
+            + "SHADEDGE 70;SHADEDIF 70;TILEMODE 70;MAXACTVP 70;PINSBASE 10;PLIMCHECK 70;PEXTMIN 10;PEXTMAX 10;PLIMMIN 10;"
+            + "PLIMMAX 10;UNITMODE 70;VISRETAIN 70;PLINEGEN 70;PSLTSCALE 70;TREEDEPTH 70;CMLSTYLE 2;CMLJUST 70;"
+            + "CMLSCALE 40;PROXYGRAPHICS 70;MEASUREMENT 70;CELWEIGHT 370;ENDCAPS 280;JOINSTYLE 280;LWDISPLAY 290;"
+            + "INSUNITS 70;HYPERLINKBASE 1;STYLESHEET 1;XEDIT 290;CEPSNTYPE 380;PSTYLEMODE 290;FINGERPRINTGUID 2;"
+            + "VERSIONGUID 2;EXTNAMES 290;PSVPSCALE 40;OLESTARTUP 290;SORTENTS 280 1018;INDEXCTL 280 1018;"
+            + "HIDETEXT 280 1018;XCLIPFRAME 280 1018;HALOGAP 280 1018;OBSCOLOR 70 1018;OBSLTYPE 280 1018;"
+            + "INTERSECTIONDISPLAY 280 1018;INTERSECTIONCOLOR 70 1018;DIMASSOC 280 1018;PROJECTNAME 1 1018;"
+            + "CAMERADISPLAY 290 1021;LENSLENGTH 40 1021;CAMERAHEIGHT 40 1021;STEPSPERSEC 40 1021;STEPSIZE 40 1021;"
+            + "3DDWFPREC 40 1021;PSOLWIDTH 40 1021;PSOLHEIGHT 40 1021;LOFTANG1 40 1021;LOFTANG2 40 1021;LOFTMAG1 40 1021;"
+            + "LOFTMAG2 40 1021;LOFTPARAM 70 1021;LOFTNORMALS 280 1021;LATITUDE 40 1021;LONGITUDE 40 1021;"
+            + "NORTHDIRECTION 40 1021;TIMEZONE 70 1021;LIGHTGLYPHDISPLAY 280 1021;TILEMODELIGHTSYNCH 280 1021;"
+            + "CMATERIAL 347 1021;SOLIDHIST 280 1021;SHOWHIST 280 1021;DWFFRAME 280 1021;DGNFRAME 280 1021;"
+            + "REALWORLDSCALE 290 1021;INTERFERECOLOR 62 1021;INTERFEREOBJVS 345 1021;INTERFEREVPVS 346 1021;"
+            + "CSHADOW 280 1021;SHADOWPLANELOCATION 40 1021";
 
         /// <summary>The tables in the order DXF writes them, each with the header's name for the handle of its control object.</summary>
         private static readonly string[][] Tables =
         {
-            new[] { "VPORT", "_VPORTS" }, new[] { "LTYPE", "_LTYPES" }, new[] { "LAYER", "_LAYERS" }, new[] { "STYLE", "_STYLES" },
-            new[] { "VIEW", "_VIEWS" }, new[] { "UCS", "_UCSS" }, new[] { "APPID", "_APPIDS" }, new[] { "DIMSTYLE", "_DIMSTYLES" },
+            new[] { "VPORT", "_VPORTS" },
+            new[] { "LTYPE", "_LTYPES" },
+            new[] { "LAYER", "_LAYERS" },
+            new[] { "STYLE", "_STYLES" },
+            new[] { "VIEW", "_VIEWS" },
+            new[] { "UCS", "_UCSS" },
+            new[] { "APPID", "_APPIDS" },
+            new[] { "DIMSTYLE", "_DIMSTYLES" },
             new[] { "BLOCK_RECORD", "_BLOCKS" },
         };
 
@@ -102,14 +108,20 @@ namespace GeometryHelper.Dwg
                     _objects.Add(one);
                     _byHandle[one.Handle] = one;
                 }
-                catch (Exception fault) when (fault is FormatException || fault is InvalidOperationException || fault is ArgumentException
-                    || fault is ArithmeticException || fault is IndexOutOfRangeException)
+                catch (Exception fault)
+                    when (fault is FormatException
+                        || fault is InvalidOperationException
+                        || fault is ArgumentException
+                        || fault is ArithmeticException
+                        || fault is IndexOutOfRangeException
+                    )
                 {
                     // A decoder refuses broken bytes with a FormatException; the geometry it hands decoded values to may
                     // refuse values no drawing has (a spline whose plane cannot be worked out) in its own way. Either is
                     // one broken object.
                     broken++;
-                    firstFault = firstFault ?? "the object " + entry.Key.ToString("X", CultureInfo.InvariantCulture) + ": " + fault.Message;
+                    firstFault = firstFault
+                        ?? "the object " + entry.Key.ToString("X", CultureInfo.InvariantCulture) + ": " + fault.Message;
                 }
             }
 
@@ -120,7 +132,12 @@ namespace GeometryHelper.Dwg
 
             if (broken > 0)
             {
-                GeometryHelperLog.Warn("DwgReader: " + broken.ToString(CultureInfo.InvariantCulture) + " broken objects were left out; the first is " + firstFault);
+                GeometryHelperLog.Warn(
+                    "DwgReader: "
+                        + broken.ToString(CultureInfo.InvariantCulture)
+                        + " broken objects were left out; the first is "
+                        + firstFault
+                );
             }
         }
 
@@ -192,7 +209,9 @@ namespace GeometryHelper.Dwg
                 else if ((block.BlockFlags & 1) != 0 && old.Length == 2 && old[0] == (byte)'*')
                 {
                     anonymous++;
-                    name = Encoding.ASCII.GetBytes("*" + (char)old[1] + anonymous.ToString(CultureInfo.InvariantCulture));
+                    name = Encoding.ASCII.GetBytes(
+                        "*" + (char)old[1] + anonymous.ToString(CultureInfo.InvariantCulture)
+                    );
                 }
                 else
                 {
@@ -235,7 +254,11 @@ namespace GeometryHelper.Dwg
             {
                 foreach (DwgObject one in _objects)
                 {
-                    if (one.Type == 0x22 && one.Decoded && (one.EntityMode == 1 || (one.EntityMode == 0 && one.Owner == active)))
+                    if (
+                        one.Type == 0x22
+                        && one.Decoded
+                        && (one.EntityMode == 1 || (one.EntityMode == 0 && one.Owner == active))
+                    )
                     {
                         order.Add(one);
                     }
@@ -254,7 +277,13 @@ namespace GeometryHelper.Dwg
             for (int i = 0; i < order.Count; i++)
             {
                 bool off = (Int(order[i], 90) & 0x20000) != 0;
-                _viewportNumbers[order[i].Handle] = new[] { i + 1, off ? 0 : _version < 1018 ? -1 : i + 1 };
+                _viewportNumbers[order[i].Handle] = new[]
+                {
+                    i + 1,
+                    off ? 0
+                    : _version < 1018 ? -1
+                    : i + 1,
+                };
             }
         }
 
@@ -288,7 +317,9 @@ namespace GeometryHelper.Dwg
         /// <summary>Whether a viewport shows the paper itself: its view centre is its centre and its view height its height.</summary>
         private static bool ShowsThePaper(DwgObject viewport)
         {
-            return Number(viewport, 12) == Number(viewport, 10) && Number(viewport, 22) == Number(viewport, 20) && Number(viewport, 45) == Number(viewport, 41);
+            return Number(viewport, 12) == Number(viewport, 10)
+                && Number(viewport, 22) == Number(viewport, 20)
+                && Number(viewport, 45) == Number(viewport, 41);
         }
 
         /// <summary>The handle a LAYOUT gives its block under group 330.</summary>
@@ -342,7 +373,8 @@ namespace GeometryHelper.Dwg
             }
         }
 
-        private DwgObject Find(ulong handle) => handle != 0 && _byHandle.TryGetValue(handle, out DwgObject found) ? found : null;
+        private DwgObject Find(ulong handle) =>
+            handle != 0 && _byHandle.TryGetValue(handle, out DwgObject found) ? found : null;
 
         /// <summary>The name of the record at <paramref name="handle"/> as the bytes of the file; null where there is none.</summary>
         private byte[] NameOf(ulong handle) => Find(handle)?.RecordName;
@@ -393,19 +425,32 @@ namespace GeometryHelper.Dwg
 
                 if (colour?.Name != null && colour.Name.Length > 0)
                 {
-                    _dxf.WriteValue(430, colour.BookName != null && colour.BookName.Length > 0 ? JoinBook(colour.BookName, colour.Name) : colour.Name);
+                    _dxf.WriteValue(
+                        430,
+                        colour.BookName != null && colour.BookName.Length > 0
+                            ? JoinBook(colour.BookName, colour.Name)
+                            : colour.Name
+                    );
                 }
             }
             else if (group.Value is DwgLinetypeIndex linetype)
             {
                 // The records of the table follow ByBlock and ByLayer, which the control lists first.
                 List<ulong> entries = Find(_header.Handle("_LTYPES"))?.Entries;
-                byte[] named = entries != null && linetype.Index >= 0 && linetype.Index + 2 < entries.Count ? NameOf(entries[linetype.Index + 2]) : null;
+                byte[] named =
+                    entries != null && linetype.Index >= 0 && linetype.Index + 2 < entries.Count
+                        ? NameOf(entries[linetype.Index + 2])
+                        : null;
                 _dxf.Write(group.Code, named ?? Encoding.ASCII.GetBytes("BYLAYER"));
             }
             else if (group.Value is DwgViewportNumber number)
             {
-                _dxf.Write(group.Code, _viewportNumbers.TryGetValue(number.Viewport, out int[] numbers) ? numbers[number.Status ? 1 : 0] : 0);
+                _dxf.Write(
+                    group.Code,
+                    _viewportNumbers.TryGetValue(number.Viewport, out int[] numbers)
+                        ? numbers[number.Status ? 1 : 0]
+                        : 0
+                );
             }
             else if (group.Code == DwgObjectReader.LongText)
             {
@@ -459,11 +504,21 @@ namespace GeometryHelper.Dwg
 
                 switch (name)
                 {
-                    case "ACADVER": value = _container.Version; break;
-                    case "ACADMAINTVER": value = _container.MaintenanceVersion; break;
-                    case "DWGCODEPAGE": value = _container.CodePage; break;
-                    case "MEASUREMENT": value = _container.Measurement; break;
-                    default: value = _header.Get(name); break;
+                    case "ACADVER":
+                        value = _container.Version;
+                        break;
+                    case "ACADMAINTVER":
+                        value = _container.MaintenanceVersion;
+                        break;
+                    case "DWGCODEPAGE":
+                        value = _container.CodePage;
+                        break;
+                    case "MEASUREMENT":
+                        value = _container.Measurement;
+                        break;
+                    default:
+                        value = _header.Get(name);
+                        break;
                 }
 
                 if (value == null)
@@ -779,12 +834,20 @@ namespace GeometryHelper.Dwg
 
             foreach (DwgObject entity in _objects)
             {
-                bool owned = entity.EntityMode == 0 ? entity.Owner == owner
+                bool owned =
+                    entity.EntityMode == 0 ? entity.Owner == owner
                     : entity.EntityMode == 2 ? owner == model
                     : owner == activePaper;
 
                 // A BLOCK, an ENDBLK and a SEQEND are not of the chain: the one who owns them writes them.
-                if (entity.IsEntity && owned && entity.Type != 0x04 && entity.Type != 0x05 && entity.Type != 0x06 && !_written.Contains(entity.Handle))
+                if (
+                    entity.IsEntity
+                    && owned
+                    && entity.Type != 0x04
+                    && entity.Type != 0x05
+                    && entity.Type != 0x06
+                    && !_written.Contains(entity.Handle)
+                )
                 {
                     WriteEntity(entity, owner, paper, nested);
                 }
@@ -793,7 +856,8 @@ namespace GeometryHelper.Dwg
 
         private bool IsPaperSpace(DwgObject block)
         {
-            return block.RecordName != null && block.RecordName.Length >= 12
+            return block.RecordName != null
+                && block.RecordName.Length >= 12
                 && Same(Slice(block.RecordName, 12), "*PAPER_SPACE");
         }
 
@@ -917,18 +981,29 @@ namespace GeometryHelper.Dwg
 
                 foreach (KeyValuePair<string, int> pair in skipped)
                 {
-                    line.Append(' ').Append(pair.Key).Append(' ').Append(pair.Value.ToString(CultureInfo.InvariantCulture));
+                    line.Append(' ')
+                        .Append(pair.Key)
+                        .Append(' ')
+                        .Append(pair.Value.ToString(CultureInfo.InvariantCulture));
                     skippedCount += pair.Value;
                 }
 
                 GeometryHelperLog.Debug(line.ToString());
             }
 
-            GeometryHelperLog.Info("DwgReader: read a DWG of " + DwgContainer.ReleaseOf(_container.Version) + " with "
-                + _container.ObjectMap.Count.ToString(CultureInfo.InvariantCulture) + " objects: "
-                + written.ToString(CultureInfo.InvariantCulture) + " turned into DXF records, "
-                + skippedCount.ToString(CultureInfo.InvariantCulture) + " of types not read yet, "
-                + Broken.ToString(CultureInfo.InvariantCulture) + " broken.");
+            GeometryHelperLog.Info(
+                "DwgReader: read a DWG of "
+                    + DwgContainer.ReleaseOf(_container.Version)
+                    + " with "
+                    + _container.ObjectMap.Count.ToString(CultureInfo.InvariantCulture)
+                    + " objects: "
+                    + written.ToString(CultureInfo.InvariantCulture)
+                    + " turned into DXF records, "
+                    + skippedCount.ToString(CultureInfo.InvariantCulture)
+                    + " of types not read yet, "
+                    + Broken.ToString(CultureInfo.InvariantCulture)
+                    + " broken."
+            );
         }
     }
 }

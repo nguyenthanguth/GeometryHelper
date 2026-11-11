@@ -25,14 +25,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     using (var folder = new TestFolder())
                     {
                         var model = new MainViewModel();
-                        model.Open(folder.Write("room.dxf", TestFiles.RoomWithViewport(folder, out _, out string viewport)));
+                        model.Open(
+                            folder.Write("room.dxf", TestFiles.RoomWithViewport(folder, out _, out string viewport))
+                        );
 
                         if (layout)
                         {
                             model.SelectSpace(model.Document.Spaces.Single(s => s.Name == "Layout1"));
                         }
 
-                        var canvas = new CadCanvas { Document = model.Document, Space = model.Space, View = model.View, Session = model.Session, Snap = model.Snap };
+                        var canvas = new CadCanvas
+                        {
+                            Document = model.Document,
+                            Space = model.Space,
+                            View = model.View,
+                            Session = model.Session,
+                            Snap = model.Snap,
+                        };
                         canvas.PixelSizeChanged += (s, e) => model.SetCanvasSize(canvas.PixelWidth, canvas.PixelHeight);
                         canvas.Measure(new Size(Width, Height));
                         canvas.Arrange(new Rect(0, 0, Width, Height));
@@ -64,7 +73,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 // The upper right corner, (250, 175), dragged to (270, 190): the lower left kept, the frame 220 by 165.
                 model.Toggles.Single(t => t.Name == "OSNAP").IsOn = false;
-                CanvasMouseTests.Drag(canvas, CanvasMouseTests.At(canvas, 250, 175), CanvasMouseTests.At(canvas, 270, 190));
+                CanvasMouseTests.Drag(
+                    canvas,
+                    CanvasMouseTests.At(canvas, 250, 175),
+                    CanvasMouseTests.At(canvas, 270, 190)
+                );
 
                 var frame = (DxfViewport)model.Document.FindEntity(viewport);
                 Assert.Equal(220.0, frame.Width, 6);

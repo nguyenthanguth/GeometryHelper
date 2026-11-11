@@ -7,7 +7,16 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>A named view of a drawing as the View Manager lists it.</summary>
     public sealed class CadViewRow
     {
-        internal CadViewRow(string name, bool paper, bool snapshot, double centerX, double centerY, double height, double width, double twist)
+        internal CadViewRow(
+            string name,
+            bool paper,
+            bool snapshot,
+            double centerX,
+            double centerY,
+            double height,
+            double width,
+            double twist
+        )
         {
             Name = name;
             IsPaperspace = paper;
@@ -119,7 +128,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="height">The height.</param>
         /// <param name="width">The width.</param>
         /// <returns>Whether it was.</returns>
-        public bool Resize(double height, double width) => Change("Size", height.ToString("R", CultureInfo.InvariantCulture), width.ToString("R", CultureInfo.InvariantCulture));
+        public bool Resize(double height, double width) =>
+            Change(
+                "Size",
+                height.ToString("R", CultureInfo.InvariantCulture),
+                width.ToString("R", CultureInfo.InvariantCulture)
+            );
 
         /// <summary>Apply: the view Set Current chose restored now, the dialog left open.</summary>
         /// <returns>Whether one was restored.</returns>

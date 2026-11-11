@@ -23,81 +23,412 @@ namespace GeometryHelper.Dxf.Viewer
 
             // The layer, colour, linetype, lineweight and linetype scale new objects take.
             registry.AddVariable(CadSystemVariable.Text("CLAYER", true, s => s.Document.Database.Clayer, CurrentLayer));
-            registry.AddVariable(CadSystemVariable.Text("CECOLOR", true, s => ColorShown(s.Document.Database.Cecolor), CurrentColorTyped).Asking(CurrentColor));
-            registry.AddVariable(CadSystemVariable.Text("CELTYPE", true, s => s.Document.Database.Celtype, CurrentLinetypeTyped).Asking(CurrentLinetype));
-            registry.AddVariable(CadSystemVariable.Whole("CELWEIGHT", true, -3, 211, s => (int)s.Document.Database.Celweight, (c, v) => c.Database.Celweight = (DxfLineWeight)v, check: LineweightRefused));
-            registry.AddVariable(CadSystemVariable.Number("CELTSCALE", true, CadSystemVariable.RealBound.Positive, false, s => s.Document.Database.Celtscale, (c, v) => c.Database.Celtscale = v));
+            registry.AddVariable(
+                CadSystemVariable
+                    .Text("CECOLOR", true, s => ColorShown(s.Document.Database.Cecolor), CurrentColorTyped)
+                    .Asking(CurrentColor)
+            );
+            registry.AddVariable(
+                CadSystemVariable
+                    .Text("CELTYPE", true, s => s.Document.Database.Celtype, CurrentLinetypeTyped)
+                    .Asking(CurrentLinetype)
+            );
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "CELWEIGHT",
+                    true,
+                    -3,
+                    211,
+                    s => (int)s.Document.Database.Celweight,
+                    (c, v) => c.Database.Celweight = (DxfLineWeight)v,
+                    check: LineweightRefused
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Number(
+                    "CELTSCALE",
+                    true,
+                    CadSystemVariable.RealBound.Positive,
+                    false,
+                    s => s.Document.Database.Celtscale,
+                    (c, v) => c.Database.Celtscale = v
+                )
+            );
 
             // The scales of linetypes.
-            registry.AddVariable(CadSystemVariable.Number("LTSCALE", true, CadSystemVariable.RealBound.Positive, false, s => s.Document.Database.Ltscale, (c, v) => c.Database.Ltscale = v).Asking(LinetypeScale));
-            registry.AddVariable(Flag("PSLTSCALE", s => s.Document.Database.Psltscale, (c, v) => c.Database.Psltscale = v, "$PSLTSCALE"));
-            registry.AddVariable(Flag("MSLTSCALE", s => s.Document.Database.MsLtScale, (c, v) => c.Database.MsLtScale = v, "MSLTSCALE"));
+            registry.AddVariable(
+                CadSystemVariable
+                    .Number(
+                        "LTSCALE",
+                        true,
+                        CadSystemVariable.RealBound.Positive,
+                        false,
+                        s => s.Document.Database.Ltscale,
+                        (c, v) => c.Database.Ltscale = v
+                    )
+                    .Asking(LinetypeScale)
+            );
+            registry.AddVariable(
+                Flag("PSLTSCALE", s => s.Document.Database.Psltscale, (c, v) => c.Database.Psltscale = v, "$PSLTSCALE")
+            );
+            registry.AddVariable(
+                Flag("MSLTSCALE", s => s.Document.Database.MsLtScale, (c, v) => c.Database.MsLtScale = v, "MSLTSCALE")
+            );
 
             // Dimensions and text.
-            registry.AddVariable(CadSystemVariable.Number("DIMSCALE", true, CadSystemVariable.RealBound.NonNegative, false, s => s.Document.Database.Dimscale, (c, v) => c.Database.Dimscale = v));
-            registry.AddVariable(CadSystemVariable.ReadOnly("DIMSTYLE", CadVariableKind.Text, s => "\"" + s.Document.Database.Dimstyle + "\""));
-            registry.AddVariable(CadSystemVariable.Number("TEXTSIZE", true, CadSystemVariable.RealBound.Positive, false, TextSizeOffered, SetTextSize));
-            registry.AddVariable(CadSystemVariable.Text("TEXTSTYLE", true, s => s.Document.Database.Textstyle, CurrentTextStyle));
-            registry.AddVariable(Flag("MIRRTEXT", s => s.Document.Database.Mirrtext, (c, v) => c.Database.Mirrtext = v, "$MIRRTEXT"));
+            registry.AddVariable(
+                CadSystemVariable.Number(
+                    "DIMSCALE",
+                    true,
+                    CadSystemVariable.RealBound.NonNegative,
+                    false,
+                    s => s.Document.Database.Dimscale,
+                    (c, v) => c.Database.Dimscale = v
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly("DIMSTYLE", CadVariableKind.Text, s =>
+                    "\"" + s.Document.Database.Dimstyle + "\""
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Number(
+                    "TEXTSIZE",
+                    true,
+                    CadSystemVariable.RealBound.Positive,
+                    false,
+                    TextSizeOffered,
+                    SetTextSize
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Text("TEXTSTYLE", true, s => s.Document.Database.Textstyle, CurrentTextStyle)
+            );
+            registry.AddVariable(
+                Flag("MIRRTEXT", s => s.Document.Database.Mirrtext, (c, v) => c.Database.Mirrtext = v, "$MIRRTEXT")
+            );
 
             // Fillets, chamfers and offsets.
-            registry.AddVariable(CadSystemVariable.Number("FILLETRAD", true, CadSystemVariable.RealBound.NonNegative, false, s => s.Document.Database.Filletrad, (c, v) => c.Database.Filletrad = v));
-            registry.AddVariable(CadSystemVariable.Number("CHAMFERA", true, CadSystemVariable.RealBound.NonNegative, false, s => s.Document.Database.Chamfera, (c, v) => c.Database.Chamfera = v));
-            registry.AddVariable(CadSystemVariable.Number("CHAMFERB", true, CadSystemVariable.RealBound.NonNegative, false, s => s.Document.Database.Chamferb, (c, v) => c.Database.Chamferb = v));
-            registry.AddVariable(CadSystemVariable.Number("OFFSETDIST", false, CadSystemVariable.RealBound.Finite, false, s => Kept(s, "offset.distance", -1.0), (c, v) => c.Remember("offset.distance", v)));
+            registry.AddVariable(
+                CadSystemVariable.Number(
+                    "FILLETRAD",
+                    true,
+                    CadSystemVariable.RealBound.NonNegative,
+                    false,
+                    s => s.Document.Database.Filletrad,
+                    (c, v) => c.Database.Filletrad = v
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Number(
+                    "CHAMFERA",
+                    true,
+                    CadSystemVariable.RealBound.NonNegative,
+                    false,
+                    s => s.Document.Database.Chamfera,
+                    (c, v) => c.Database.Chamfera = v
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Number(
+                    "CHAMFERB",
+                    true,
+                    CadSystemVariable.RealBound.NonNegative,
+                    false,
+                    s => s.Document.Database.Chamferb,
+                    (c, v) => c.Database.Chamferb = v
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Number(
+                    "OFFSETDIST",
+                    false,
+                    CadSystemVariable.RealBound.Finite,
+                    false,
+                    s => Kept(s, "offset.distance", -1.0),
+                    (c, v) => c.Remember("offset.distance", v)
+                )
+            );
 
             // Points.
-            registry.AddVariable(CadSystemVariable.Whole("PDMODE", true, short.MinValue, short.MaxValue, s => s.Document.Database.Pdmode, (c, v) => c.Database.Pdmode = v));
-            registry.AddVariable(CadSystemVariable.Number("PDSIZE", true, CadSystemVariable.RealBound.Finite, false, s => s.Document.Database.Pdsize, (c, v) => c.Database.Pdsize = v));
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "PDMODE",
+                    true,
+                    short.MinValue,
+                    short.MaxValue,
+                    s => s.Document.Database.Pdmode,
+                    (c, v) => c.Database.Pdmode = v
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Number(
+                    "PDSIZE",
+                    true,
+                    CadSystemVariable.RealBound.Finite,
+                    false,
+                    s => s.Document.Database.Pdsize,
+                    (c, v) => c.Database.Pdsize = v
+                )
+            );
 
             // Selection, which the document keeps for the presenter, not the drawing.
-            registry.AddVariable(CadSystemVariable.Whole("PICKSTYLE", false, 0, 3, s => s.Document.PickStyle, (c, v) => c.Document.PickStyle = v));
-            registry.AddVariable(CadSystemVariable.Whole("SELECTIONCYCLING", false, 0, 2, s => s.Document.SelectionCycling, (c, v) => c.Document.SelectionCycling = v));
-            registry.AddVariable(CadSystemVariable.Whole("PICKFIRST", false, 0, 1, s => s.Document.PickFirst, (c, v) => c.Document.PickFirst = v));
-            registry.AddVariable(CadSystemVariable.Whole("PICKADD", false, 0, 2, s => s.Document.PickAdd, (c, v) => c.Document.PickAdd = v));
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "PICKSTYLE",
+                    false,
+                    0,
+                    3,
+                    s => s.Document.PickStyle,
+                    (c, v) => c.Document.PickStyle = v
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "SELECTIONCYCLING",
+                    false,
+                    0,
+                    2,
+                    s => s.Document.SelectionCycling,
+                    (c, v) => c.Document.SelectionCycling = v
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "PICKFIRST",
+                    false,
+                    0,
+                    1,
+                    s => s.Document.PickFirst,
+                    (c, v) => c.Document.PickFirst = v
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "PICKADD",
+                    false,
+                    0,
+                    2,
+                    s => s.Document.PickAdd,
+                    (c, v) => c.Document.PickAdd = v
+                )
+            );
 
             // Whether INSERT asks the values of a block's attributes (1) or gives each its default (0), kept by the session.
-            registry.AddVariable(CadSystemVariable.Whole("ATTREQ", false, 0, 1, s => (int)Kept(s, "attreq", 1.0), (c, v) => c.Remember("attreq", v)));
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "ATTREQ",
+                    false,
+                    0,
+                    1,
+                    s => (int)Kept(s, "attreq", 1.0),
+                    (c, v) => c.Remember("attreq", v)
+                )
+            );
 
             // Whether INSERT asks those values in the Edit Attributes dialog (1) or on the command line (0), kept by the session.
-            registry.AddVariable(CadSystemVariable.Whole("ATTDIA", false, 0, 1, s => (int)Kept(s, "attdia", 0.0), (c, v) => c.Remember("attdia", v)));
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "ATTDIA",
+                    false,
+                    0,
+                    1,
+                    s => (int)Kept(s, "attdia", 0.0),
+                    (c, v) => c.Remember("attdia", v)
+                )
+            );
             // Whether a command asks the window for a file (FILEDIA) or shows its dialog (CMDDIA, PLOT), 1, or asks on the command line, 0.
-            registry.AddVariable(CadSystemVariable.Whole("FILEDIA", false, 0, 1, s => s.FileDialogs ? 1 : 0, (c, v) => c.Remember("filedia", v)));
-            registry.AddVariable(CadSystemVariable.Whole("CMDDIA", false, 0, 1, s => (int)Kept(s, "cmddia", 1.0), (c, v) => c.Remember("cmddia", v)));
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "FILEDIA",
+                    false,
+                    0,
+                    1,
+                    s => s.FileDialogs ? 1 : 0,
+                    (c, v) => c.Remember("filedia", v)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "CMDDIA",
+                    false,
+                    0,
+                    1,
+                    s => (int)Kept(s, "cmddia", 1.0),
+                    (c, v) => c.Remember("cmddia", v)
+                )
+            );
 
             // Whether PEDIT turns a line, an arc or a spline picked into a polyline without asking (1) or asks first (0), and
             // whether PLINE, POLYGON, DONUT and PEDIT make old-style POLYLINEs (0) or LWPOLYLINEs (1 and 2), kept by the session.
-            registry.AddVariable(CadSystemVariable.Whole("PEDITACCEPT", false, 0, 1, s => (int)Kept(s, "peditaccept", 0.0), (c, v) => c.Remember("peditaccept", v)));
-            registry.AddVariable(CadSystemVariable.Whole("PLINETYPE", false, 0, 2, s => (int)Kept(s, "plinetype", 2.0), (c, v) => c.Remember("plinetype", v)));
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "PEDITACCEPT",
+                    false,
+                    0,
+                    1,
+                    s => (int)Kept(s, "peditaccept", 0.0),
+                    (c, v) => c.Remember("peditaccept", v)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "PLINETYPE",
+                    false,
+                    0,
+                    2,
+                    s => (int)Kept(s, "plinetype", 2.0),
+                    (c, v) => c.Remember("plinetype", v)
+                )
+            );
 
             // REVCLOUD's approximate arc length (nought until set), whether its arcs vary about it (1) or keep to it (0), and the
             // type it starts with, 0 Freehand, 1 Rectangular, 2 Polygonal, kept by the session.
-            registry.AddVariable(CadSystemVariable.Number("REVCLOUDAPPROXARCLEN", false, CadSystemVariable.RealBound.NonNegative, false, s => Kept(s, "revcloud.approx", 0.0), (c, v) => c.Remember("revcloud.approx", v)));
-            registry.AddVariable(CadSystemVariable.Whole("REVCLOUDARCVARIANCE", false, 0, 1, s => (int)Kept(s, "revcloud.variance", 1.0), (c, v) => c.Remember("revcloud.variance", v)));
-            registry.AddVariable(CadSystemVariable.Whole("REVCLOUDCREATEMODE", false, 0, 2, s => (int)Kept(s, "revcloud.type", 1.0), (c, v) => c.Remember("revcloud.type", v)));
+            registry.AddVariable(
+                CadSystemVariable.Number(
+                    "REVCLOUDAPPROXARCLEN",
+                    false,
+                    CadSystemVariable.RealBound.NonNegative,
+                    false,
+                    s => Kept(s, "revcloud.approx", 0.0),
+                    (c, v) => c.Remember("revcloud.approx", v)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "REVCLOUDARCVARIANCE",
+                    false,
+                    0,
+                    1,
+                    s => (int)Kept(s, "revcloud.variance", 1.0),
+                    (c, v) => c.Remember("revcloud.variance", v)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "REVCLOUDCREATEMODE",
+                    false,
+                    0,
+                    2,
+                    s => (int)Kept(s, "revcloud.type", 1.0),
+                    (c, v) => c.Remember("revcloud.type", v)
+                )
+            );
 
             // What the drawing shows and how it sorts.
-            registry.AddVariable(Flag("ORTHOMODE", s => s.Document.Database.Orthomode, (c, v) => c.Database.Orthomode = v, "$ORTHOMODE"));
-            registry.AddVariable(Flag("LWDISPLAY", s => s.Document.Database.LineWeightDisplay, (c, v) => c.Database.LineWeightDisplay = v, "$LWDISPLAY"));
-            registry.AddVariable(CadSystemVariable.Whole("IMAGEFRAME", true, 0, 2, ImageFrameOf, (c, v) => ImageVariables(c.Database).ImageFrame = (DxfFrameSetting)v, "IMAGEFRAME", ImageFrameRefused).Recorded(CadEditRecordKind.TableChanged));
-            registry.AddVariable(CadSystemVariable.Whole("SORTENTS", true, 0, 127, s => s.Document.Database.SortEnts, (c, v) => c.Database.SortEnts = v));
-            registry.AddVariable(CadSystemVariable.Whole("TILEMODE", false, 0, 1, s => s.Document.CurrentSpace.IsModel ? 1 : 0, SetTileMode));
-            registry.AddVariable(CadSystemVariable.Text("CANNOSCALE", true, s => s.Document.Database.Cannoscale, CurrentAnnotationScale));
+            registry.AddVariable(
+                Flag("ORTHOMODE", s => s.Document.Database.Orthomode, (c, v) => c.Database.Orthomode = v, "$ORTHOMODE")
+            );
+            registry.AddVariable(
+                Flag(
+                    "LWDISPLAY",
+                    s => s.Document.Database.LineWeightDisplay,
+                    (c, v) => c.Database.LineWeightDisplay = v,
+                    "$LWDISPLAY"
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable
+                    .Whole(
+                        "IMAGEFRAME",
+                        true,
+                        0,
+                        2,
+                        ImageFrameOf,
+                        (c, v) => ImageVariables(c.Database).ImageFrame = (DxfFrameSetting)v,
+                        "IMAGEFRAME",
+                        ImageFrameRefused
+                    )
+                    .Recorded(CadEditRecordKind.TableChanged)
+            );
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "SORTENTS",
+                    true,
+                    0,
+                    127,
+                    s => s.Document.Database.SortEnts,
+                    (c, v) => c.Database.SortEnts = v
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "TILEMODE",
+                    false,
+                    0,
+                    1,
+                    s => s.Document.CurrentSpace.IsModel ? 1 : 0,
+                    SetTileMode
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Text("CANNOSCALE", true, s => s.Document.Database.Cannoscale, CurrentAnnotationScale)
+            );
 
             // The limits, the base point and the extents.
-            registry.AddVariable(CadSystemVariable.Point("INSBASE", true, s => s.Document.Database.Insbase, (c, v) => c.Database.Insbase = new GeoPoint3(v.X, v.Y, c.Database.Insbase.Z), "$INSBASE"));
-            registry.AddVariable(CadSystemVariable.Point("LIMMIN", false, s => P3(s.Document.Database.Limmin), (c, v) => c.Database.Limmin = v, "$LIMMIN"));
-            registry.AddVariable(CadSystemVariable.Point("LIMMAX", false, s => P3(s.Document.Database.Limmax), (c, v) => c.Database.Limmax = v, "$LIMMAX"));
-            registry.AddVariable(CadSystemVariable.ReadOnly("EXTMIN", CadVariableKind.Point, s => CadSystemVariable.Show(s.Document.Database.Extmin, true)));
-            registry.AddVariable(CadSystemVariable.ReadOnly("EXTMAX", CadVariableKind.Point, s => CadSystemVariable.Show(s.Document.Database.Extmax, true)));
+            registry.AddVariable(
+                CadSystemVariable.Point(
+                    "INSBASE",
+                    true,
+                    s => s.Document.Database.Insbase,
+                    (c, v) => c.Database.Insbase = new GeoPoint3(v.X, v.Y, c.Database.Insbase.Z),
+                    "$INSBASE"
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Point(
+                    "LIMMIN",
+                    false,
+                    s => P3(s.Document.Database.Limmin),
+                    (c, v) => c.Database.Limmin = v,
+                    "$LIMMIN"
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Point(
+                    "LIMMAX",
+                    false,
+                    s => P3(s.Document.Database.Limmax),
+                    (c, v) => c.Database.Limmax = v,
+                    "$LIMMAX"
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly("EXTMIN", CadVariableKind.Point, s =>
+                    CadSystemVariable.Show(s.Document.Database.Extmin, true)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly("EXTMAX", CadVariableKind.Point, s =>
+                    CadSystemVariable.Show(s.Document.Database.Extmax, true)
+                )
+            );
 
             // What the session and the file say of themselves.
-            registry.AddVariable(CadSystemVariable.ReadOnly("UCSNAME", CadVariableKind.Text, s => "\"" + (s.Ucs.Name ?? string.Empty) + "\""));
-            registry.AddVariable(CadSystemVariable.ReadOnly("UCSORG", CadVariableKind.Point, s => CadSystemVariable.Show(s.Ucs.Origin, true)));
-            registry.AddVariable(CadSystemVariable.ReadOnly("DWGNAME", CadVariableKind.Text, s => "\"" + s.Document.Title + "\""));
-            registry.AddVariable(CadSystemVariable.ReadOnly("DWGPREFIX", CadVariableKind.Text, s => "\"" + Prefix(s.Document) + "\""));
-            registry.AddVariable(CadSystemVariable.ReadOnly("DATE", CadVariableKind.Real, s => JulianDate(DateTime.Now)));
-            registry.AddVariable(CadSystemVariable.ReadOnly("CDATE", CadVariableKind.Real, s => DateTime.Now.ToString("yyyyMMdd.HHmmssfff", CultureInfo.InvariantCulture)));
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly("UCSNAME", CadVariableKind.Text, s =>
+                    "\"" + (s.Ucs.Name ?? string.Empty) + "\""
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly("UCSORG", CadVariableKind.Point, s =>
+                    CadSystemVariable.Show(s.Ucs.Origin, true)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly("DWGNAME", CadVariableKind.Text, s => "\"" + s.Document.Title + "\"")
+            );
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly("DWGPREFIX", CadVariableKind.Text, s => "\"" + Prefix(s.Document) + "\"")
+            );
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly("DATE", CadVariableKind.Real, s => JulianDate(DateTime.Now))
+            );
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly("CDATE", CadVariableKind.Real, s =>
+                    DateTime.Now.ToString("yyyyMMdd.HHmmssfff", CultureInfo.InvariantCulture)
+                )
+            );
         }
 
         /// <summary>
@@ -112,12 +443,16 @@ namespace GeometryHelper.Dxf.Viewer
             if (c.Input.Is("?"))
             {
                 yield return CadPrompt.ForString("Enter variable(s) to list", "*");
-                string pattern = c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim() : "*";
+                string pattern =
+                    c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim() : "*";
                 ListVariables(c, pattern);
                 yield break;
             }
 
-            string name = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim() : c.Input.IsNone ? last : null;
+            string name =
+                c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim()
+                : c.Input.IsNone ? last
+                : null;
 
             if (string.IsNullOrEmpty(name))
             {
@@ -161,16 +496,25 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 if (WildcardMatches(variable.Name, pattern))
                 {
-                    c.Write(variable.Name.PadRight(18) + variable.GetValue(c.Session) + (variable.IsReadOnly ? "  (read only)" : string.Empty));
+                    c.Write(
+                        variable.Name.PadRight(18)
+                            + variable.GetValue(c.Session)
+                            + (variable.IsReadOnly ? "  (read only)" : string.Empty)
+                    );
                 }
             }
         }
 
         /// <summary>A switch of the drawing, 0 or 1.</summary>
-        private static CadSystemVariable Flag(string name, Func<CadCommandSession, bool> get, Action<CadCommandContext, bool> set, string record)
-            => CadSystemVariable.Whole(name, true, 0, 1, s => get(s) ? 1 : 0, (c, v) => set(c, v != 0), record);
+        private static CadSystemVariable Flag(
+            string name,
+            Func<CadCommandSession, bool> get,
+            Action<CadCommandContext, bool> set,
+            string record
+        ) => CadSystemVariable.Whole(name, true, 0, 1, s => get(s) ? 1 : 0, (c, v) => set(c, v != 0), record);
 
-        private static double Kept(CadCommandSession session, string key, double fallback) => session.Remembered.TryGetValue(key, out double value) ? value : fallback;
+        private static double Kept(CadCommandSession session, string key, double fallback) =>
+            session.Remembered.TryGetValue(key, out double value) ? value : fallback;
 
         /// <summary>CLAYER: a layer of the drawing made current, as LAYER Set makes it, one undo step; one not found or frozen refused.</summary>
         private static string CurrentLayer(CadCommandContext c, string typed)
@@ -180,7 +524,10 @@ namespace GeometryHelper.Dxf.Viewer
             return result.Succeeded ? null : result.Message;
         }
 
-        private static string ColorShown(DxfColor color) => color.IsByLayer ? "BYLAYER" : color.IsByBlock ? "BYBLOCK" : CadPropertyEditor.ColorName(color).ToLowerInvariant();
+        private static string ColorShown(DxfColor color) =>
+            color.IsByLayer ? "BYLAYER"
+            : color.IsByBlock ? "BYBLOCK"
+            : CadPropertyEditor.ColorName(color).ToLowerInvariant();
 
         /// <summary>CECOLOR set by SETVAR: ByLayer, ByBlock, a name from red to white or an index 1 to 255, as CECOLOR takes it.</summary>
         private static string CurrentColorTyped(CadCommandContext c, string typed)
@@ -201,7 +548,19 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!color.Equals(old))
             {
-                c.Apply(new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$CECOLOR", ColorShown(old), CadPropertyEditor.ColorName(color)) }, s => s.Database.Cecolor = color);
+                c.Apply(
+                    new[]
+                    {
+                        new CadEditRecord(
+                            CadEditRecordKind.SettingChanged,
+                            null,
+                            "$CECOLOR",
+                            ColorShown(old),
+                            CadPropertyEditor.ColorName(color)
+                        ),
+                    },
+                    s => s.Database.Cecolor = color
+                );
             }
 
             return null;
@@ -210,9 +569,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>CELTYPE set by SETVAR: ByLayer, ByBlock or a linetype loaded, as CELTYPE takes it.</summary>
         private static string CurrentLinetypeTyped(CadCommandContext c, string typed)
         {
-            string name = string.Equals(typed, "ByLayer", StringComparison.OrdinalIgnoreCase) ? "ByLayer"
+            string name =
+                string.Equals(typed, "ByLayer", StringComparison.OrdinalIgnoreCase) ? "ByLayer"
                 : string.Equals(typed, "ByBlock", StringComparison.OrdinalIgnoreCase) ? "ByBlock"
-                : c.Database.LinetypeTable.Select(l => l.Name).FirstOrDefault(n => string.Equals(n, typed, StringComparison.OrdinalIgnoreCase));
+                : c
+                    .Database.LinetypeTable.Select(l => l.Name)
+                    .FirstOrDefault(n => string.Equals(n, typed, StringComparison.OrdinalIgnoreCase));
 
             if (name == null)
             {
@@ -224,11 +586,14 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A lineweight of AutoCAD's in hundredths of a millimetre, or -1 ByLayer, -2 ByBlock, -3 Default.</summary>
-        private static string LineweightRefused(CadCommandContext c, int value)
-            => c.Database.IsValidLineWeight(value) ? null : "Requires a lineweight: -1 ByLayer, -2 ByBlock, -3 Default, or one of AutoCAD's in hundredths of a millimetre, as 25.";
+        private static string LineweightRefused(CadCommandContext c, int value) =>
+            c.Database.IsValidLineWeight(value)
+                ? null
+                : "Requires a lineweight: -1 ByLayer, -2 ByBlock, -3 Default, or one of AutoCAD's in hundredths of a millimetre, as 25.";
 
         /// <summary>The height TEXT offers: the one the session remembers, as Global settings gives it, else the drawing's $TEXTSIZE.</summary>
-        private static double TextSizeOffered(CadCommandSession session) => Kept(session, "text.height", session.Document.Database.Textsize);
+        private static double TextSizeOffered(CadCommandSession session) =>
+            Kept(session, "text.height", session.Document.Database.Textsize);
 
         /// <summary>TEXTSIZE set: the drawing's $TEXTSIZE, and the height TEXT and MTEXT offer next.</summary>
         private static void SetTextSize(CadCommandContext c, double value)
@@ -240,7 +605,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>TEXTSTYLE: a text style of the drawing made current, one undo step; one not found refused.</summary>
         private static string CurrentTextStyle(CadCommandContext c, string typed)
         {
-            string name = c.Database.TextStyleTable.Select(r => r.Name).FirstOrDefault(n => string.Equals(n, typed, StringComparison.OrdinalIgnoreCase));
+            string name = c
+                .Database.TextStyleTable.Select(r => r.Name)
+                .FirstOrDefault(n => string.Equals(n, typed, StringComparison.OrdinalIgnoreCase));
 
             if (name == null)
             {
@@ -251,7 +618,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!string.Equals(old, name, StringComparison.Ordinal))
             {
-                c.Apply(new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$TEXTSTYLE", old, name) }, s => s.Database.Textstyle = name);
+                c.Apply(
+                    new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$TEXTSTYLE", old, name) },
+                    s => s.Database.Textstyle = name
+                );
             }
 
             return null;
@@ -267,7 +637,10 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "CANNOSCALE", old, typed) }, s => s.Database.Cannoscale = typed);
+            CadEditResult result = c.Apply(
+                new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "CANNOSCALE", old, typed) },
+                s => s.Database.Cannoscale = typed
+            );
             return result.Succeeded ? null : string.Empty;
         }
 
@@ -283,8 +656,10 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static DxfRasterVariables ImageVariables(DxfDatabase database)
-            => database.NamedObjectsDictionary?.Contains("ACAD_IMAGE_VARS") == true ? database.NamedObjectsDictionary.GetAt("ACAD_IMAGE_VARS") as DxfRasterVariables : null;
+        private static DxfRasterVariables ImageVariables(DxfDatabase database) =>
+            database.NamedObjectsDictionary?.Contains("ACAD_IMAGE_VARS") == true
+                ? database.NamedObjectsDictionary.GetAt("ACAD_IMAGE_VARS") as DxfRasterVariables
+                : null;
 
         private static int ImageFrameOf(CadCommandSession session)
         {
@@ -292,19 +667,25 @@ namespace GeometryHelper.Dxf.Viewer
             return variables == null ? 1 : (int)variables.ImageFrame;
         }
 
-        private static string ImageFrameRefused(CadCommandContext c, int value)
-            => ImageVariables(c.Database) == null ? "IMAGEFRAME is kept with the drawing's images: attach an image first." : null;
+        private static string ImageFrameRefused(CadCommandContext c, int value) =>
+            ImageVariables(c.Database) == null
+                ? "IMAGEFRAME is kept with the drawing's images: attach an image first."
+                : null;
 
         /// <summary>The folder of the drawing's file with its separator, as AutoCAD's DWGPREFIX; the user's documents for a drawing not saved yet.</summary>
         private static string Prefix(CadDocument document)
         {
-            string folder = document.HasFile && !string.IsNullOrEmpty(document.FileName)
-                ? Path.GetDirectoryName(Path.GetFullPath(document.FileName))
-                : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            return folder.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) ? folder : folder + Path.DirectorySeparatorChar;
+            string folder =
+                document.HasFile && !string.IsNullOrEmpty(document.FileName)
+                    ? Path.GetDirectoryName(Path.GetFullPath(document.FileName))
+                    : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            return folder.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+                ? folder
+                : folder + Path.DirectorySeparatorChar;
         }
 
         /// <summary>A time as AutoCAD's DATE gives it: the Julian day and the fraction of it, 2461355.60431713.</summary>
-        private static string JulianDate(DateTime time) => (time.ToOADate() + 2415018.5).ToString("0.00000000", CultureInfo.InvariantCulture);
+        private static string JulianDate(DateTime time) =>
+            (time.ToOADate() + 2415018.5).ToString("0.00000000", CultureInfo.InvariantCulture);
     }
 }

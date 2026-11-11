@@ -14,7 +14,12 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfAttributeDefinitionTests
     {
-        private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
+        private static readonly string[] Drawings =
+        {
+            DxfFileEzdxfDrawings.R12,
+            DxfFileEzdxfDrawings.R2000,
+            DxfFileEzdxfDrawings.R2018,
+        };
 
         [Fact]
         public void TheAttdefsOfEzdxf_AreReadAsEzdxfReadsThem()
@@ -78,11 +83,24 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfAttributeDefinition mark = db.BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single();
             string before = db.ToText();
 
-            mark.MTextAttributeDefinition = new DxfMText { Contents = "M20\\Pgrade 8.8", Location = new GeoPoint3(0, -1, 0), TextHeight = 0.5 };
+            mark.MTextAttributeDefinition = new DxfMText
+            {
+                Contents = "M20\\Pgrade 8.8",
+                Location = new GeoPoint3(0, -1, 0),
+                TextHeight = 0.5,
+            };
 
             OnlyTheseChanged(before, db.ToText(), "37");
-            Assert.Contains("AcDbAttributeDefinition\n  3\n\n  2\nMARK\n 70\n0\n 74\n3\n 71\n4\n 72\n0\n101\nEmbedded Object\n", Records(db.ToText()).Single(r => HandleOf(r) == "37"), StringComparison.Ordinal);
-            DxfAttributeDefinition again = DxfDatabase.Parse(db.ToText()).BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single();
+            Assert.Contains(
+                "AcDbAttributeDefinition\n  3\n\n  2\nMARK\n 70\n0\n 74\n3\n 71\n4\n 72\n0\n101\nEmbedded Object\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "37"),
+                StringComparison.Ordinal
+            );
+            DxfAttributeDefinition again = DxfDatabase
+                .Parse(db.ToText())
+                .BlockTable["BOLT"]
+                .OfType<DxfAttributeDefinition>()
+                .Single();
             Assert.True(again.IsMTextAttributeDefinition);
             Assert.Equal("M20 grade 8.8", again.TextString);
             Assert.Equal("M20\\Pgrade 8.8", again.MTextAttributeDefinition.Contents);
@@ -96,7 +114,14 @@ namespace GeometryHelper.UnitTest.Dxf
             mark.IsMTextAttributeDefinition = false;
             Assert.Equal("M20", mark.TextString);
             Assert.Null(mark.MTextAttributeDefinition);
-            Assert.Throws<InvalidOperationException>(() => DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000).BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single().IsMTextAttributeDefinition = true);
+            Assert.Throws<InvalidOperationException>(() =>
+                DxfDatabase
+                    .Parse(DxfFileEzdxfDrawings.R2000)
+                    .BlockTable["BOLT"]
+                    .OfType<DxfAttributeDefinition>()
+                    .Single()
+                    .IsMTextAttributeDefinition = true
+            );
         }
 
         [Fact]
@@ -122,7 +147,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 string saved = db.ToText();
                 OnlyTheseChanged(text, saved, handle);
 
-                DxfAttributeDefinition again = DxfDatabase.Parse(saved).BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single();
+                DxfAttributeDefinition again = DxfDatabase
+                    .Parse(saved)
+                    .BlockTable["BOLT"]
+                    .OfType<DxfAttributeDefinition>()
+                    .Single();
                 Assert.Equal("SIZE", again.Tag);
                 Assert.Equal("Size of the bolt", again.Prompt);
                 Assert.Equal("M20", again.TextString);
@@ -130,7 +159,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(8, again.FieldLength);
                 Assert.Equal(DxfAttachmentPoint.TopRight, again.Justify);
                 Assert.Equal(Bits(new GeoPoint3(2.0, -1.0, 0.0)), Bits(again.AlignmentPoint));
-                Assert.Contains(" 74\n3\n", Records(saved).Single(r => HandleOf(r) == handle), StringComparison.Ordinal);
+                Assert.Contains(
+                    " 74\n3\n",
+                    Records(saved).Single(r => HandleOf(r) == handle),
+                    StringComparison.Ordinal
+                );
             }
         }
 
@@ -140,19 +173,28 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                var made = new DxfAttributeDefinition(new GeoPoint3(1.0, 2.0, 0.0), "S355", "GRADE", "Grade", null) { Height = 1.25 };
+                var made = new DxfAttributeDefinition(new GeoPoint3(1.0, 2.0, 0.0), "S355", "GRADE", "Grade", null)
+                {
+                    Height = 1.25,
+                };
 
                 db.BlockTable["BOLT"].AppendEntity(made);
                 Assert.Equal("BOLT", made.BlockName);
 
-                DxfAttributeDefinition again = DxfDatabase.Parse(db.ToText()).BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single(a => a.Tag == "GRADE");
+                DxfAttributeDefinition again = DxfDatabase
+                    .Parse(db.ToText())
+                    .BlockTable["BOLT"]
+                    .OfType<DxfAttributeDefinition>()
+                    .Single(a => a.Tag == "GRADE");
                 Assert.Equal("S355", again.TextString);
                 Assert.Equal("Grade", again.Prompt);
                 Assert.Equal(1.25, again.Height);
                 Assert.Equal(Bits(new GeoPoint3(1.0, 2.0, 0.0)), Bits(again.Position));
 
                 Assert.Throws<ArgumentException>(() => db.ModelSpace.AppendEntity(new DxfAttributeDefinition()));
-                Assert.Throws<ArgumentException>(() => new DxfAttributeDefinition(new GeoPoint3(0, 0, 0), "v", "TWO WORDS", string.Empty, null));
+                Assert.Throws<ArgumentException>(() =>
+                    new DxfAttributeDefinition(new GeoPoint3(0, 0, 0), "v", "TWO WORDS", string.Empty, null)
+                );
             }
         }
 

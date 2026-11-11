@@ -8,7 +8,8 @@ namespace GeometryHelper.Viewer.Tests
 {
     public class SceneComparisonTests
     {
-        private static GeoPolygon2 Triangle(double x = 10.0) => new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(x, 0), new GeoPoint2(0, 10));
+        private static GeoPolygon2 Triangle(double x = 10.0) =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(x, 0), new GeoPoint2(0, 10));
 
         private static Scene Make(params Action<SceneWriter>[] steps)
         {
@@ -22,16 +23,22 @@ namespace GeometryHelper.Viewer.Tests
             return writer.Scene;
         }
 
-        private static Action<SceneWriter> Poly(string name, double x = 10.0, string layer = "L") => w => w.Add(Triangle(x), layer: layer, name: name);
+        private static Action<SceneWriter> Poly(string name, double x = 10.0, string layer = "L") =>
+            w => w.Add(Triangle(x), layer: layer, name: name);
 
-        private static Action<SceneWriter> Line(string name, double x2 = 5.0, string layer = "L") => w => w.Add(new GeoLine2(0, 0, x2, 5), layer: layer, name: name);
+        private static Action<SceneWriter> Line(string name, double x2 = 5.0, string layer = "L") =>
+            w => w.Add(new GeoLine2(0, 0, x2, 5), layer: layer, name: name);
 
-        private static Action<SceneWriter> Point(string name, double x = 1.0, string layer = "L") => w => w.Add(new GeoPoint2(x, 2), layer: layer, name: name);
+        private static Action<SceneWriter> Point(string name, double x = 1.0, string layer = "L") =>
+            w => w.Add(new GeoPoint2(x, 2), layer: layer, name: name);
 
         [Fact]
         public void TwoScenesOfTheSameShapes_AreIdenticalItemByItem()
         {
-            SceneComparison comparison = SceneComparison.Compare(Make(Poly("a"), Line("b"), Point("c")), Make(Poly("a"), Line("b"), Point("c")));
+            SceneComparison comparison = SceneComparison.Compare(
+                Make(Poly("a"), Line("b"), Point("c")),
+                Make(Poly("a"), Line("b"), Point("c"))
+            );
 
             Assert.True(comparison.AreIdentical);
             Assert.Equal(3, comparison.Items.Count);
@@ -45,7 +52,10 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AVertexMovedByOneTenMillionth_IsAChangedItemWithTheExactDelta()
         {
-            SceneComparison comparison = SceneComparison.Compare(Make(Poly("a"), Line("b")), Make(Poly("a", 10.0000001), Line("b")));
+            SceneComparison comparison = SceneComparison.Compare(
+                Make(Poly("a"), Line("b")),
+                Make(Poly("a", 10.0000001), Line("b"))
+            );
 
             ComparedItem moved = comparison.Items[0];
             Assert.Equal(CompareStatus.Changed, moved.Status);
@@ -82,9 +92,15 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AnExtraItemOnTheRight_IsOnlyRight_AndTheOthersAreUntouched()
         {
-            SceneComparison comparison = SceneComparison.Compare(Make(Poly("a"), Line("b")), Make(Poly("a"), Line("b"), Point("extra")));
+            SceneComparison comparison = SceneComparison.Compare(
+                Make(Poly("a"), Line("b")),
+                Make(Poly("a"), Line("b"), Point("extra"))
+            );
 
-            Assert.Equal(new[] { CompareStatus.Identical, CompareStatus.Identical, CompareStatus.OnlyRight }, comparison.Items.Select(i => i.Status));
+            Assert.Equal(
+                new[] { CompareStatus.Identical, CompareStatus.Identical, CompareStatus.OnlyRight },
+                comparison.Items.Select(i => i.Status)
+            );
             ComparedItem extra = comparison.Items[2];
             Assert.Equal(-1, extra.LeftIndex);
             Assert.Equal(2, extra.RightIndex);
@@ -98,7 +114,10 @@ namespace GeometryHelper.Viewer.Tests
         {
             SceneComparison comparison = SceneComparison.Compare(Make(Poly("a"), Line("b")), Make(Line("b")));
 
-            Assert.Equal(new[] { CompareStatus.OnlyLeft, CompareStatus.Identical }, comparison.Items.Select(i => i.Status));
+            Assert.Equal(
+                new[] { CompareStatus.OnlyLeft, CompareStatus.Identical },
+                comparison.Items.Select(i => i.Status)
+            );
             Assert.Equal(0, comparison.Items[0].LeftIndex);
             Assert.Equal(-1, comparison.Items[0].RightIndex);
         }
@@ -107,7 +126,10 @@ namespace GeometryHelper.Viewer.Tests
         public void ItemsInAnotherOrder_AreFoundByNameAndOnlyTheOneThatMovedIsFlagged()
         {
             // a b c against b c a: the climb b, c is kept in place, and a is the one that moved.
-            SceneComparison comparison = SceneComparison.Compare(Make(Poly("a"), Line("b"), Point("c")), Make(Line("b"), Point("c"), Poly("a")));
+            SceneComparison comparison = SceneComparison.Compare(
+                Make(Poly("a"), Line("b"), Point("c")),
+                Make(Line("b"), Point("c"), Poly("a"))
+            );
 
             Assert.True(comparison.AreIdentical);
             Assert.Equal(new[] { true, false, false }, comparison.Items.Select(i => i.Reordered));
@@ -119,7 +141,10 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ItemsReversed_FlagAllButOneOfThem()
         {
-            SceneComparison comparison = SceneComparison.Compare(Make(Poly("a"), Line("b"), Point("c"), Poly("d")), Make(Poly("d"), Point("c"), Line("b"), Poly("a")));
+            SceneComparison comparison = SceneComparison.Compare(
+                Make(Poly("a"), Line("b"), Point("c"), Poly("d")),
+                Make(Poly("d"), Point("c"), Line("b"), Poly("a"))
+            );
 
             Assert.True(comparison.AreIdentical);
             Assert.Equal(3, comparison.ReorderedCount);
@@ -128,7 +153,10 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ALayerRenamed_LeavesItsItemsUnpaired_OnBothSides()
         {
-            SceneComparison comparison = SceneComparison.Compare(Make(Poly("a", 10.0, "old"), Line("b", 5.0, "old")), Make(Poly("a", 10.0, "new"), Line("b", 5.0, "new")));
+            SceneComparison comparison = SceneComparison.Compare(
+                Make(Poly("a", 10.0, "old"), Line("b", 5.0, "old")),
+                Make(Poly("a", 10.0, "new"), Line("b", 5.0, "new"))
+            );
 
             Assert.Equal(2, comparison.Count(CompareStatus.OnlyLeft));
             Assert.Equal(2, comparison.Count(CompareStatus.OnlyRight));
@@ -140,7 +168,10 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AnItemRenamedOnItsLayer_IsPairedByOrderWithItsKind_AndSaysSo()
         {
-            SceneComparison comparison = SceneComparison.Compare(Make(Poly("before"), Line("kept")), Make(Poly("after", 12.0), Line("kept")));
+            SceneComparison comparison = SceneComparison.Compare(
+                Make(Poly("before"), Line("kept")),
+                Make(Poly("after", 12.0), Line("kept"))
+            );
 
             ComparedItem renamed = comparison.Items[0];
             Assert.Equal(CompareMatch.Order, renamed.Match);
@@ -152,9 +183,15 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TwoItemsOfOneNameAndLayer_ArePairedFirstWithFirstAndSecondWithSecond()
         {
-            SceneComparison comparison = SceneComparison.Compare(Make(Poly("twin", 10.0), Poly("twin", 20.0)), Make(Poly("twin", 10.0), Poly("twin", 21.0)));
+            SceneComparison comparison = SceneComparison.Compare(
+                Make(Poly("twin", 10.0), Poly("twin", 20.0)),
+                Make(Poly("twin", 10.0), Poly("twin", 21.0))
+            );
 
-            Assert.Equal(new[] { CompareStatus.Identical, CompareStatus.Changed }, comparison.Items.Select(i => i.Status));
+            Assert.Equal(
+                new[] { CompareStatus.Identical, CompareStatus.Changed },
+                comparison.Items.Select(i => i.Status)
+            );
             Assert.Equal(new[] { 0, 1 }, comparison.Items.Select(i => i.RightIndex));
         }
 
@@ -162,8 +199,16 @@ namespace GeometryHelper.Viewer.Tests
         public void ABodyOfAnotherKind_IsChanged_AndNamesBothKinds()
         {
             SceneComparison comparison = SceneComparison.Compare(
-                Make(w => w.Add(new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(1, 0), new GeoPoint2(1, 1)), name: "shape")),
-                Make(w => w.Add(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(1, 0), new GeoPoint2(1, 1)), name: "shape")));
+                Make(w =>
+                    w.Add(
+                        new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(1, 0), new GeoPoint2(1, 1)),
+                        name: "shape"
+                    )
+                ),
+                Make(w =>
+                    w.Add(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(1, 0), new GeoPoint2(1, 1)), name: "shape")
+                )
+            );
 
             ComparedItem item = comparison.Items.Single();
             Assert.Equal(CompareStatus.Changed, item.Status);
@@ -176,8 +221,20 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AVertexAdded_IsAChangeOfLayout_NotOfANumber()
         {
-            var left = Make(w => w.Add(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(0, 10)), name: "loop"));
-            var right = Make(w => w.Add(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10)), name: "loop"));
+            var left = Make(w =>
+                w.Add(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(0, 10)), name: "loop")
+            );
+            var right = Make(w =>
+                w.Add(
+                    new GeoPolygon2(
+                        new GeoPoint2(0, 0),
+                        new GeoPoint2(10, 0),
+                        new GeoPoint2(10, 10),
+                        new GeoPoint2(0, 10)
+                    ),
+                    name: "loop"
+                )
+            );
 
             ComparedItem item = SceneComparison.Compare(left, right).Items.Single();
 
@@ -237,7 +294,10 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheRows_AreNumberedFromOne_InTheOrderOfTheLeftThenTheOnlyRight()
         {
-            SceneComparison comparison = SceneComparison.Compare(Make(Poly("a"), Line("b")), Make(Point("z"), Line("b"), Poly("a")));
+            SceneComparison comparison = SceneComparison.Compare(
+                Make(Poly("a"), Line("b")),
+                Make(Point("z"), Line("b"), Poly("a"))
+            );
 
             Assert.Equal(new[] { 1, 2, 3 }, comparison.Items.Select(i => i.Number));
             Assert.Equal(new[] { "a", "b", "z" }, comparison.Items.Select(i => i.Name));
@@ -249,7 +309,10 @@ namespace GeometryHelper.Viewer.Tests
         {
             GeoSolid3 box = SampleShapes.Box(30, 20, 10, true);
 
-            SceneComparison comparison = SceneComparison.Compare(Make(w => w.Add(box, name: "box")), Make(w => w.Add(box, name: "box")));
+            SceneComparison comparison = SceneComparison.Compare(
+                Make(w => w.Add(box, name: "box")),
+                Make(w => w.Add(box, name: "box"))
+            );
 
             Assert.True(comparison.AreIdentical);
         }
@@ -267,7 +330,25 @@ namespace GeometryHelper.Viewer.Tests
             Scene left = Make(Poly("a"), Line("b"), Point("c"), Poly("a", 11.0));
             Scene right = Make(Poly("a", 11.0), Line("b", 6.0), Poly("a"), Point("d"));
 
-            string First() => string.Join("|", SceneComparison.Compare(left, right).Items.Select(i => i.Number + ":" + i.Status + ":" + i.Match + ":" + i.LeftIndex + ":" + i.RightIndex + ":" + i.Reordered));
+            string First() =>
+                string.Join(
+                    "|",
+                    SceneComparison
+                        .Compare(left, right)
+                        .Items.Select(i =>
+                            i.Number
+                            + ":"
+                            + i.Status
+                            + ":"
+                            + i.Match
+                            + ":"
+                            + i.LeftIndex
+                            + ":"
+                            + i.RightIndex
+                            + ":"
+                            + i.Reordered
+                        )
+                );
 
             Assert.Equal(First(), First());
         }
@@ -292,12 +373,22 @@ namespace GeometryHelper.Viewer.Tests
             // same, changed, only left, only right.
             Scene left = Make(
                 w => w.Add(new GeoPoint2(1, 1), name: "same"),
-                w => w.Add(new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100)), name: "moved"),
-                w => w.Add(new GeoPoint2(5, 5), name: "gone"));
+                w =>
+                    w.Add(
+                        new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100)),
+                        name: "moved"
+                    ),
+                w => w.Add(new GeoPoint2(5, 5), name: "gone")
+            );
             Scene right = Make(
                 w => w.Add(new GeoPoint2(1, 1), name: "same"),
-                w => w.Add(new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 110)), name: "moved"),
-                w => w.Add(new GeoLine2(0, 0, 9, 9), name: "new"));
+                w =>
+                    w.Add(
+                        new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 110)),
+                        name: "moved"
+                    ),
+                w => w.Add(new GeoLine2(0, 0, 9, 9), name: "new")
+            );
 
             return (left, right, ComparisonScene.Build(SceneComparison.Compare(left, right), left, right));
         }
@@ -308,14 +399,33 @@ namespace GeometryHelper.Viewer.Tests
             var (_, _, layout) = Build();
 
             Assert.Equal(
-                new[] { ComparisonScene.IdenticalLayer, ComparisonScene.ChangedLeftLayer, ComparisonScene.ChangedRightLayer, ComparisonScene.OnlyLeftLayer, ComparisonScene.OnlyRightLayer },
-                layout.Scene.Layers.Select(l => l.Name));
+                new[]
+                {
+                    ComparisonScene.IdenticalLayer,
+                    ComparisonScene.ChangedLeftLayer,
+                    ComparisonScene.ChangedRightLayer,
+                    ComparisonScene.OnlyLeftLayer,
+                    ComparisonScene.OnlyRightLayer,
+                },
+                layout.Scene.Layers.Select(l => l.Name)
+            );
             Assert.Equal(
-                new[] { ComparisonScene.IdenticalColor, ComparisonScene.ChangedLeftColor, ComparisonScene.ChangedRightColor, ComparisonScene.OnlyLeftColor, ComparisonScene.OnlyRightColor },
-                layout.Scene.Layers.Select(l => l.Color));
+                new[]
+                {
+                    ComparisonScene.IdenticalColor,
+                    ComparisonScene.ChangedLeftColor,
+                    ComparisonScene.ChangedRightColor,
+                    ComparisonScene.OnlyLeftColor,
+                    ComparisonScene.OnlyRightColor,
+                },
+                layout.Scene.Layers.Select(l => l.Color)
+            );
             Assert.Equal(5, layout.Scene.Items.Count);
             Assert.Equal(new[] { "same", "moved", "moved", "gone", "new" }, layout.Scene.Items.Select(i => i.Name));
-            Assert.Equal(new[] { CompareSide.Both, CompareSide.Left, CompareSide.Right, CompareSide.Left, CompareSide.Right }, Enumerable.Range(0, 5).Select(layout.SideOf));
+            Assert.Equal(
+                new[] { CompareSide.Both, CompareSide.Left, CompareSide.Right, CompareSide.Left, CompareSide.Right },
+                Enumerable.Range(0, 5).Select(layout.SideOf)
+            );
         }
 
         [Fact]
@@ -407,8 +517,18 @@ namespace GeometryHelper.Viewer.Tests
         public void TheDashes_ContinueAroundACorner_NotRestartThere()
         {
             // The legs are 100 and 110.8 long, so that a dash is a hundred and fiftieth of 149.25, 0.995, and the corner at 100 falls a quarter of the way into the 50th dash.
-            Scene left = Make(w => w.Add(new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 110.8)), name: "bent"));
-            Scene right = Make(w => w.Add(new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 110.9)), name: "bent"));
+            Scene left = Make(w =>
+                w.Add(
+                    new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 110.8)),
+                    name: "bent"
+                )
+            );
+            Scene right = Make(w =>
+                w.Add(
+                    new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 110.9)),
+                    name: "bent"
+                )
+            );
             ComparisonScene layout = ComparisonScene.Build(SceneComparison.Compare(left, right), left, right);
             Primitives drawn = Primitives.Build(layout.Scene);
 

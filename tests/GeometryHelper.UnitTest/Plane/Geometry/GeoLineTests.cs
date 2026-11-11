@@ -192,8 +192,8 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var l1 = new GeoLine2(0.0, 0.0, 10.0, 0.0);
 
-            Assert.True(l1.CollidesWith(new GeoLine2(5.0, -5.0, 5.0, 5.0)));   // Intersects
-            Assert.False(l1.CollidesWith(new GeoLine2(0.0, 5.0, 10.0, 5.0)));  // Parallel2
+            Assert.True(l1.CollidesWith(new GeoLine2(5.0, -5.0, 5.0, 5.0))); // Intersects
+            Assert.False(l1.CollidesWith(new GeoLine2(0.0, 5.0, 10.0, 5.0))); // Parallel2
             Assert.False(l1.CollidesWith(new GeoLine2(20.0, -5.0, 20.0, 5.0))); // Intersects extension, not segment
         }
 
@@ -302,11 +302,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Line_GetShortestLineTo_Polyline_WorksCorrectly()
         {
-            var polyline = new GeoPolyline2(
-                new GeoPoint2(0.0, 0.0),
-                new GeoPoint2(5.0, 2.0),
-                new GeoPoint2(10.0, 0.0)
-            );
+            var polyline = new GeoPolyline2(new GeoPoint2(0.0, 0.0), new GeoPoint2(5.0, 2.0), new GeoPoint2(10.0, 0.0));
 
             var line = new GeoLine2(0.0, 5.0, 10.0, 5.0);
             var closest = line.GetShortestLineTo(polyline);
@@ -320,11 +316,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Line_GetShortestLineTo_Polygon_WorksCorrectly()
         {
-            var poly = new GeoPolygon2(
-                new GeoPoint2(3.0, 0.0),
-                new GeoPoint2(7.0, 0.0),
-                new GeoPoint2(5.0, 2.0)
-            );
+            var poly = new GeoPolygon2(new GeoPoint2(3.0, 0.0), new GeoPoint2(7.0, 0.0), new GeoPoint2(5.0, 2.0));
 
             var line = new GeoLine2(0.0, 5.0, 10.0, 5.0);
             var closest = line.GetShortestLineTo(poly);
@@ -336,4 +328,3 @@ namespace GeometryHelper.UnitTest.Plane
         }
     }
 }
-

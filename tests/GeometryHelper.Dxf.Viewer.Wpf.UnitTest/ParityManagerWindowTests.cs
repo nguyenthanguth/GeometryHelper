@@ -58,7 +58,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                     // Every property ticked but plot style's greyed ones; Color unticked writes the mask.
                     Assert.All(dialog.Properties, p => Assert.True(p.IsChecked));
-                    Assert.Equal(new[] { "Visibility in current viewport", "Plot style", "New VP freeze" }, dialog.Properties.Where(p => !p.IsEnabled).Select(p => p.Name));
+                    Assert.Equal(
+                        new[] { "Visibility in current viewport", "Plot style", "New VP freeze" },
+                        dialog.Properties.Where(p => !p.IsEnabled).Select(p => p.Name)
+                    );
                     dialog.Properties.Single(p => p.Name == "Color").IsChecked = false;
                     Assert.Equal(2047 & ~0x20, dialog.Selected.Row.Mask);
                     dialog.SetAll(false);
@@ -97,7 +100,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                     if (shown == 1)
                     {
-                        Assert.Equal(new[] { "Current", "Model Views", "Layout Views", "Preset Views" }, dialog.Nodes.Select(n => n.Name));
+                        Assert.Equal(
+                            new[] { "Current", "Model Views", "Layout Views", "Preset Views" },
+                            dialog.Nodes.Select(n => n.Name)
+                        );
                         Assert.False(dialog.Nodes.Last().IsEnabled);
                         Assert.False(dialog.IsNamedChosen);
                         dialog.ShowNewView = view =>
@@ -238,17 +244,33 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         var model = new MainViewModel();
                         Assert.True(model.Open(path));
                         object shown = null;
-                        model.ShowLayerStates = d => { shown = d; return true; };
+                        model.ShowLayerStates = d =>
+                        {
+                            shown = d;
+                            return true;
+                        };
                         model.Execute("LAYERSTATE");
                         var windows = new List<Window> { new LayerStatesWindow((LayerStatesViewModel)shown) };
-                        model.ShowViewManager = d => { shown = d; return true; };
+                        model.ShowViewManager = d =>
+                        {
+                            shown = d;
+                            return true;
+                        };
                         model.Execute("VIEW");
                         windows.Add(new ViewManagerWindow((ViewManagerViewModel)shown));
                         windows.Add(new NewViewWindow(new NewViewViewModel(((ViewManagerViewModel)shown).Request)));
-                        model.ShowDrawingUnits = d => { shown = d; return true; };
+                        model.ShowDrawingUnits = d =>
+                        {
+                            shown = d;
+                            return true;
+                        };
                         model.Execute("UNITS");
                         windows.Add(new DrawingUnitsWindow((DrawingUnitsViewModel)shown));
-                        windows.Add(new DirectionControlWindow(new DirectionControlViewModel(((DrawingUnitsViewModel)shown).Request)));
+                        windows.Add(
+                            new DirectionControlWindow(
+                                new DirectionControlViewModel(((DrawingUnitsViewModel)shown).Request)
+                            )
+                        );
 
                         foreach (Window window in windows)
                         {

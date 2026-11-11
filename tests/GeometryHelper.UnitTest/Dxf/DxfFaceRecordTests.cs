@@ -36,11 +36,17 @@ namespace GeometryHelper.UnitTest.Dxf
 
             face.MakeEdgeInvisibleAt(1);
 
-            DxfFaceRecord again = ByHandle<DxfPolyFaceMesh>(DxfDatabase.Parse(db.ToText()), "4E").OfType<DxfFaceRecord>().First();
+            DxfFaceRecord again = ByHandle<DxfPolyFaceMesh>(DxfDatabase.Parse(db.ToText()), "4E")
+                .OfType<DxfFaceRecord>()
+                .First();
             Assert.Equal(face.Handle, again.Handle);
             Assert.False(again.IsEdgeVisibleAt(1));
             Assert.Equal(2, again.GetVertexAt(1));
-            Assert.Contains("\n 72\n-2\n", Records(db.ToText()).Single(r => HandleOf(r) == face.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "\n 72\n-2\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == face.Handle),
+                StringComparison.Ordinal
+            );
         }
     }
 }

@@ -155,7 +155,10 @@ namespace GeometryHelper.Viewer
 
             for (int i = 0; i < _sides.Count; i++)
             {
-                if ((view == CompareView.Left && _sides[i] == CompareSide.Right) || (view == CompareView.Right && _sides[i] == CompareSide.Left))
+                if (
+                    (view == CompareView.Left && _sides[i] == CompareSide.Right)
+                    || (view == CompareView.Right && _sides[i] == CompareSide.Left)
+                )
                 {
                     hidden.Add(i);
                 }
@@ -212,11 +215,22 @@ namespace GeometryHelper.Viewer
             {
                 switch (row.Status)
                 {
-                    case CompareStatus.Identical: used.Add(IdenticalLayer); break;
-                    case CompareStatus.NumbersDiffer: used.Add(NumbersDifferLayer); break;
-                    case CompareStatus.Changed: used.Add(ChangedLeftLayer); used.Add(ChangedRightLayer); break;
-                    case CompareStatus.OnlyLeft: used.Add(OnlyLeftLayer); break;
-                    default: used.Add(OnlyRightLayer); break;
+                    case CompareStatus.Identical:
+                        used.Add(IdenticalLayer);
+                        break;
+                    case CompareStatus.NumbersDiffer:
+                        used.Add(NumbersDifferLayer);
+                        break;
+                    case CompareStatus.Changed:
+                        used.Add(ChangedLeftLayer);
+                        used.Add(ChangedRightLayer);
+                        break;
+                    case CompareStatus.OnlyLeft:
+                        used.Add(OnlyLeftLayer);
+                        break;
+                    default:
+                        used.Add(OnlyRightLayer);
+                        break;
                 }
             }
 
@@ -260,7 +274,14 @@ namespace GeometryHelper.Viewer
             return result;
         }
 
-        private void Add(SceneItem source, string layer, CompareSide side, int rowIndex, ComparedItem row, List<int> indexes)
+        private void Add(
+            SceneItem source,
+            string layer,
+            CompareSide side,
+            int rowIndex,
+            ComparedItem row,
+            List<int> indexes
+        )
         {
             var item = new SceneItem
             {
@@ -333,7 +354,11 @@ namespace GeometryHelper.Viewer
 
             if (pieces > MaxDashes)
             {
-                return "the changed items have " + total.ToString("G6", CultureInfo.InvariantCulture) + " mm of line, " + pieces.ToString("F0", CultureInfo.InvariantCulture) + " dashes at this size of scene: they are drawn whole";
+                return "the changed items have "
+                    + total.ToString("G6", CultureInfo.InvariantCulture)
+                    + " mm of line, "
+                    + pieces.ToString("F0", CultureInfo.InvariantCulture)
+                    + " dashes at this size of scene: they are drawn whole";
             }
 
             foreach (int index in _dashed)

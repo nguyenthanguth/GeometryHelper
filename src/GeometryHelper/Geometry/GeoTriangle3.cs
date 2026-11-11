@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -70,10 +70,14 @@ namespace GeometryHelper.Geometry
             {
                 switch (index)
                 {
-                    case 0: return A;
-                    case 1: return B;
-                    case 2: return C;
-                    default: throw new ArgumentOutOfRangeException(nameof(index), "A triangle has three vertices.");
+                    case 0:
+                        return A;
+                    case 1:
+                        return B;
+                    case 2:
+                        return C;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(index), "A triangle has three vertices.");
                 }
             }
         }
@@ -86,10 +90,14 @@ namespace GeometryHelper.Geometry
         {
             switch (index)
             {
-                case 0: return new GeoLine3(A, B);
-                case 1: return new GeoLine3(B, C);
-                case 2: return new GeoLine3(C, A);
-                default: throw new ArgumentOutOfRangeException(nameof(index), "A triangle has three edges.");
+                case 0:
+                    return new GeoLine3(A, B);
+                case 1:
+                    return new GeoLine3(B, C);
+                case 2:
+                    return new GeoLine3(C, A);
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(index), "A triangle has three edges.");
             }
         }
 
@@ -136,7 +144,10 @@ namespace GeometryHelper.Geometry
 
                 // Against the two sides it is the cross product of, which the longest side squared, as IsDegenerate reads
                 // it, never falls short of: a triangle with area by that has a normal by this.
-                if (!(squared > NormalRounding * NormalRounding * ab.LengthSquared * ac.LengthSquared) || double.IsInfinity(squared))
+                if (
+                    !(squared > NormalRounding * NormalRounding * ab.LengthSquared * ac.LengthSquared)
+                    || double.IsInfinity(squared)
+                )
                 {
                     throw new InvalidOperationException("A triangle whose corners lie on one line has no normal.");
                 }
@@ -150,10 +161,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the centroid of the triangle.
         /// </summary>
-        public GeoPoint3 Centroid => new GeoPoint3(
-            (A.X + B.X + C.X) / 3.0,
-            (A.Y + B.Y + C.Y) / 3.0,
-            (A.Z + B.Z + C.Z) / 3.0);
+        public GeoPoint3 Centroid =>
+            new GeoPoint3((A.X + B.X + C.X) / 3.0, (A.Y + B.Y + C.Y) / 3.0, (A.Z + B.Z + C.Z) / 3.0);
 
         /// <summary>
         /// Gets the plane carrying the triangle.
@@ -170,6 +179,7 @@ namespace GeometryHelper.Geometry
         /// Gets the axis-aligned bounding box enclosing this triangle.
         /// </summary>
         public GeoAabb3 GetAabb() => GeoAabb3.FromPoints(new[] { A, B, C });
+
         /// <summary>
         /// Reads the triangle as a three-sided polygon.
         /// </summary>
@@ -210,7 +220,8 @@ namespace GeometryHelper.Geometry
         /// <param name="kind">The kind of faces.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
         /// <exception cref="ArgumentException">Thrown for <see cref="Meshing.MeshKind.Grid"/>, which needs the size of its cells.</exception>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshKind kind) => Meshing.Mesh3.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Meshing.MeshPlacement3.World, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshKind kind) =>
+            Meshing.Mesh3.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Meshing.MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks the triangle into faces as the options say, its grid level, with the second axis up the slope, using the
@@ -218,7 +229,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="options">How to break it up.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options) => Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options) =>
+            Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks the triangle into faces as the options say, its grid level, with the second axis up the slope, within a
@@ -227,7 +239,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How to break it up.</param>
         /// <param name="tolerance">The tolerance the shape is read within: which of its rings touch, what has no area, and for a grid which cells are whole.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) => Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, tolerance);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) =>
+            Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Breaks the triangle into faces as the options say, its grid standing as the placement says, using the default
@@ -236,7 +249,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How to break it up.</param>
         /// <param name="placement">Which way the grid or the strips run in the plane, and where a cell starts.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement) => Meshing.Mesh3.ToMesh(this, options, placement, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement) =>
+            Meshing.Mesh3.ToMesh(this, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Breaks the triangle into faces as the options say, its grid standing as the placement says, within a tolerance:
@@ -255,7 +269,11 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The mesh's normal is the triangle's, from A by B to C.
         /// </remarks>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement, Tolerance tolerance) => Meshing.Mesh3.ToMesh(this, options, placement, tolerance);
+        public Meshing.GeoMesh3 ToMesh(
+            Meshing.MeshOptions options,
+            Meshing.MeshPlacement3 placement,
+            Tolerance tolerance
+        ) => Meshing.Mesh3.ToMesh(this, options, placement, tolerance);
 
         /// <summary>
         /// Lays this triangle out in a frame, dropping each vertex's distance from the plane of that frame.
@@ -264,13 +282,13 @@ namespace GeometryHelper.Geometry
         /// <returns>The triangle in the plane of the frame.</returns>
         public GeoTriangle2 ProjectToTriangle2(GeoCoordinateSystem3 frame) => PlanarMap.ProjectToTriangle2(frame, this);
 
-
         /// <summary>
         /// Moves the triangle by a vector.
         /// </summary>
         /// <param name="vector">How far to move it, and which way.</param>
         /// <returns>The triangle in its new place.</returns>
-        public GeoTriangle3 Translate(GeoVector3 vector) => new GeoTriangle3(A.Add(vector), B.Add(vector), C.Add(vector));
+        public GeoTriangle3 Translate(GeoVector3 vector) =>
+            new GeoTriangle3(A.Add(vector), B.Add(vector), C.Add(vector));
 
         /// <summary>
         /// Applies a transformation to this triangle.
@@ -310,7 +328,8 @@ namespace GeometryHelper.Geometry
             double twiceArea = GetAreaVector().Length;
 
             // Written as what a triangle needs, so that one of NaNs has no area.
-            return !(twiceArea > tolerance.EqualPoint * Math.Sqrt(longestSquared)) || !IsFormed(twiceArea, longestSquared);
+            return !(twiceArea > tolerance.EqualPoint * Math.Sqrt(longestSquared))
+                || !IsFormed(twiceArea, longestSquared);
         }
 
         /// <summary>
@@ -328,14 +347,15 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the square of the longest side.
         /// </summary>
-        private double LongestSideSquared()
-            => Math.Max(A.GetDistanceSquaredTo(B), Math.Max(B.GetDistanceSquaredTo(C), C.GetDistanceSquaredTo(A)));
+        private double LongestSideSquared() =>
+            Math.Max(A.GetDistanceSquaredTo(B), Math.Max(B.GetDistanceSquaredTo(C), C.GetDistanceSquaredTo(A)));
 
         /// <summary>
         /// Determines whether twice the area stands clear of the rounding of the cross product it comes from, a few parts in
         /// 1E16 of the longest side squared, so that the area vector has a direction.
         /// </summary>
-        internal static bool IsFormed(double twiceArea, double longestSquared) => twiceArea > NormalRounding * longestSquared;
+        internal static bool IsFormed(double twiceArea, double longestSquared) =>
+            twiceArea > NormalRounding * longestSquared;
 
         /// <summary>
         /// The share of the longest side squared within which twice the area is the rounding of the cross product.
@@ -416,10 +436,7 @@ namespace GeometryHelper.Geometry
         /// <param name="w">Weight of vertex <see cref="C"/>.</param>
         public GeoPoint3 GetPointAtBarycentric(double u, double v, double w)
         {
-            return new GeoPoint3(
-                u * A.X + v * B.X + w * C.X,
-                u * A.Y + v * B.Y + w * C.Y,
-                u * A.Z + v * B.Z + w * C.Z);
+            return new GeoPoint3(u * A.X + v * B.X + w * C.X, u * A.Y + v * B.Y + w * C.Y, u * A.Z + v * B.Z + w * C.Z);
         }
 
         #endregion
@@ -434,7 +451,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Locates a point relative to this triangle, within a tolerance.
         /// </summary>
-        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) => Containment3.Locate(this, point, tolerance);
+        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) =>
+            Containment3.Locate(this, point, tolerance);
 
         /// <summary>
         /// Checks whether a point lies inside this triangle or on its edges, using the default tolerance.
@@ -490,9 +508,11 @@ namespace GeometryHelper.Geometry
         {
             for (int shift = 0; shift < 3; shift++)
             {
-                if (A.IsEqualTo(other[shift], tolerance) &&
-                    B.IsEqualTo(other[(shift + 1) % 3], tolerance) &&
-                    C.IsEqualTo(other[(shift + 2) % 3], tolerance))
+                if (
+                    A.IsEqualTo(other[shift], tolerance)
+                    && B.IsEqualTo(other[(shift + 1) % 3], tolerance)
+                    && C.IsEqualTo(other[(shift + 2) % 3], tolerance)
+                )
                 {
                     return true;
                 }

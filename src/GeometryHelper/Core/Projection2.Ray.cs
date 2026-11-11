@@ -26,7 +26,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment leaving a ray and landing on a point, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoPoint2 point) => GetShortestLineTo(ray, point, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoPoint2 point) =>
+            GetShortestLineTo(ray, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving a ray and landing on a point, within a tolerance.
@@ -46,7 +47,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment leaving a ray and landing on a line segment, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoLine2 line) => GetShortestLineTo(ray, line, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoLine2 line) =>
+            GetShortestLineTo(ray, line, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving a ray and landing on a line segment, within a tolerance.
@@ -60,7 +62,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment leaving one ray and landing on another, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoRay2 ray1, GeoRay2 ray2) => GetShortestLineTo(ray1, ray2, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoRay2 ray1, GeoRay2 ray2) =>
+            GetShortestLineTo(ray1, ray2, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving one ray and landing on another, within a tolerance.
@@ -93,7 +96,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment leaving a ray and landing on an arc, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoArc2 arc) => GetShortestLineTo(ray, arc, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoArc2 arc) =>
+            GetShortestLineTo(ray, arc, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving a ray and landing on an arc, within a tolerance.
@@ -106,7 +110,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment leaving a ray and landing on the circumference of a circle, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoCircle2 circle) => GetShortestLineTo(ray, circle, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoCircle2 circle) =>
+            GetShortestLineTo(ray, circle, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving a ray and landing on the circumference of a circle, within a tolerance.
@@ -120,7 +125,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a ray and landing on the boundary of a polygon, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoPolygon2 poly) => GetShortestLineTo(ray, poly, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoPolygon2 poly) =>
+            GetShortestLineTo(ray, poly, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving a ray and landing on the boundary of a polygon, within a tolerance.
@@ -128,7 +134,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoPolygon2 poly, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             return GetShortestLineTo(Ray2.CutPast(ray, poly, tolerance), poly, tolerance);
         }
@@ -137,7 +144,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a ray and landing on a curved loop, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoPolygonArc2 loop) => GetShortestLineTo(ray, loop, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoPolygonArc2 loop) =>
+            GetShortestLineTo(ray, loop, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving a ray and landing on a curved loop, within a tolerance.
@@ -145,7 +153,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoPolygonArc2 loop, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return GetShortestLineTo(Ray2.CutPast(ray, loop, tolerance), loop, tolerance);
         }
@@ -154,7 +163,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a ray and landing on a polyline, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoPolyline2 polyline) => GetShortestLineTo(ray, polyline, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoPolyline2 polyline) =>
+            GetShortestLineTo(ray, polyline, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving a ray and landing on a polyline, within a tolerance.
@@ -162,7 +172,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return GetShortestLineTo(Ray2.CutPast(ray, polyline, tolerance), polyline, tolerance);
         }
@@ -171,7 +182,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a ray and landing on a curved chain, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoPolylineArc2 chain) => GetShortestLineTo(ray, chain, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoPolylineArc2 chain) =>
+            GetShortestLineTo(ray, chain, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving a ray and landing on a curved chain, within a tolerance.
@@ -179,7 +191,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoPolylineArc2 chain, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return GetShortestLineTo(Ray2.CutPast(ray, chain, tolerance), chain, tolerance);
         }
@@ -187,7 +200,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment leaving a ray and landing on the boundary of a rectangle, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoRectangle2 rect) => GetShortestLineTo(ray, rect, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoRay2 ray, GeoRectangle2 rect) =>
+            GetShortestLineTo(ray, rect, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving a ray and landing on the boundary of a rectangle, within a tolerance.
@@ -200,7 +214,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment leaving the circumference of a circle and landing on a ray, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoCircle2 circle, GeoRay2 ray) => GetShortestLineTo(circle, ray, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoCircle2 circle, GeoRay2 ray) =>
+            GetShortestLineTo(circle, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving the circumference of a circle and landing on a ray, within a tolerance.
@@ -214,7 +229,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving the boundary of a polygon and landing on a ray, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoPolygon2 poly, GeoRay2 ray) => GetShortestLineTo(poly, ray, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolygon2 poly, GeoRay2 ray) =>
+            GetShortestLineTo(poly, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a polygon and landing on a ray, within a tolerance.
@@ -222,7 +238,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static GeoLine2 GetShortestLineTo(GeoPolygon2 poly, GeoRay2 ray, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             return GetShortestLineTo(poly, Ray2.CutPast(ray, poly, tolerance), tolerance);
         }
@@ -231,7 +248,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a curved loop and landing on a ray, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoRay2 ray) => GetShortestLineTo(loop, ray, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoRay2 ray) =>
+            GetShortestLineTo(loop, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving a curved loop and landing on a ray, within a tolerance.
@@ -239,7 +257,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoRay2 ray, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return GetShortestLineTo(loop, Ray2.CutPast(ray, loop, tolerance), tolerance);
         }
@@ -248,7 +267,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a polyline and landing on a ray, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, GeoRay2 ray) => GetShortestLineTo(polyline, ray, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, GeoRay2 ray) =>
+            GetShortestLineTo(polyline, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving a polyline and landing on a ray, within a tolerance.
@@ -256,7 +276,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, GeoRay2 ray, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return GetShortestLineTo(polyline, Ray2.CutPast(ray, polyline, tolerance), tolerance);
         }
@@ -265,7 +286,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving a curved chain and landing on a ray, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoRay2 ray) => GetShortestLineTo(chain, ray, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoRay2 ray) =>
+            GetShortestLineTo(chain, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving a curved chain and landing on a ray, within a tolerance.
@@ -273,7 +295,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoRay2 ray, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return GetShortestLineTo(chain, Ray2.CutPast(ray, chain, tolerance), tolerance);
         }
@@ -281,7 +304,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a rectangle and landing on a ray, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoRectangle2 rect, GeoRay2 ray) => GetShortestLineTo(rect, ray, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoRectangle2 rect, GeoRay2 ray) =>
+            GetShortestLineTo(rect, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a rectangle and landing on a ray, within a tolerance.

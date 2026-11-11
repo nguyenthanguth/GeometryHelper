@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using GeometryHelper;
+using GeometryHelper.Geometry;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Models;
-using GeometryHelper.Geometry;
 using Tekla.Structures.Model;
 
 namespace GeometryHelper.TeklaConvert
@@ -55,7 +55,10 @@ namespace GeometryHelper.TeklaConvert
         /// <param name="options">The conversion settings; see <see cref="ReferenceModelConvert.CreateIfcConvertOptions"/>.</param>
         /// <returns>The bodies of the object's IFC product; empty when it cannot be converted.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="referenceObject"/> is null.</exception>
-        public static GeoSolid3[] ToGeoSolids(this ReferenceModelObject referenceObject, IfcConvertOptions options = null)
+        public static GeoSolid3[] ToGeoSolids(
+            this ReferenceModelObject referenceObject,
+            IfcConvertOptions options = null
+        )
         {
             if (referenceObject == null)
             {
@@ -73,7 +76,10 @@ namespace GeometryHelper.TeklaConvert
         /// <param name="options">The conversion settings; see <see cref="ReferenceModelConvert.CreateIfcConvertOptions"/>.</param>
         /// <returns>The bodies that could be read. An IFC product can have several; see <see cref="ToIfcGeometries"/> to tell whose they are.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="referenceObjects"/> is null.</exception>
-        public static GeoSolid3[] ToGeoSolids(this IEnumerable<ReferenceModelObject> referenceObjects, IfcConvertOptions options = null)
+        public static GeoSolid3[] ToGeoSolids(
+            this IEnumerable<ReferenceModelObject> referenceObjects,
+            IfcConvertOptions options = null
+        )
         {
             return ToIfcGeometries(referenceObjects, options).SelectMany(g => g.Solids).ToArray();
         }
@@ -95,7 +101,10 @@ namespace GeometryHelper.TeklaConvert
         /// <c>ReferenceModel.GetReferenceModelObjectByExternalGuid</c>, and <see cref="IfcProductGeometry.Placement"/>
         /// is the product's own frame, carried into the current work plane as well.
         /// </remarks>
-        public static IReadOnlyList<IfcProductGeometry> ToIfcGeometries(this IEnumerable<ReferenceModelObject> referenceObjects, IfcConvertOptions options = null)
+        public static IReadOnlyList<IfcProductGeometry> ToIfcGeometries(
+            this IEnumerable<ReferenceModelObject> referenceObjects,
+            IfcConvertOptions options = null
+        )
         {
             if (referenceObjects == null)
             {
@@ -140,26 +149,39 @@ namespace GeometryHelper.TeklaConvert
                 catch (Exception exception)
                 {
                     // An object Tekla cannot describe is left out.
-                    GeometryHelperLog.Warn($"Reference object {referenceObject.Identifier.ID} could not be read from Tekla; it is left out.", exception);
+                    GeometryHelperLog.Warn(
+                        $"Reference object {referenceObject.Identifier.ID} could not be read from Tekla; it is left out.",
+                        exception
+                    );
                 }
             }
 
             // Counted rather than written one by one: a selection in a DWG reference model can hold thousands of these.
             if (withoutReferenceModel > 0)
             {
-                GeometryHelperLog.Debug($"{withoutReferenceModel} reference object(s) have no reference model; they are left out.");
+                GeometryHelperLog.Debug(
+                    $"{withoutReferenceModel} reference object(s) have no reference model; they are left out."
+                );
             }
 
             if (withoutGuid > 0)
             {
-                GeometryHelperLog.Debug($"{withoutGuid} reference object(s) have no IFC GlobalId (EXTERNAL.GUID), as the objects of a reference model that is not IFC do; they are left out.");
+                GeometryHelperLog.Debug(
+                    $"{withoutGuid} reference object(s) have no IFC GlobalId (EXTERNAL.GUID), as the objects of a reference model that is not IFC do; they are left out."
+                );
             }
 
-            Dictionary<int, ReferenceModelConvert.Frame> frames = ReferenceModelConvert.ReadFrames(referenceModels, options, false);
+            Dictionary<int, ReferenceModelConvert.Frame> frames = ReferenceModelConvert.ReadFrames(
+                referenceModels,
+                options,
+                false
+            );
 
             // Then the IFC files, which need nothing more from Tekla.
             List<IfcProductGeometry> geometries = ConvertRequests(requests, frames);
-            GeometryHelperLog.Info($"ReferenceModelObjectConvert: {geometries.Count} IFC products from {objectCount} reference objects.");
+            GeometryHelperLog.Info(
+                $"ReferenceModelObjectConvert: {geometries.Count} IFC products from {objectCount} reference objects."
+            );
             return geometries;
         }
 
@@ -170,7 +192,8 @@ namespace GeometryHelper.TeklaConvert
         /// </summary>
         internal static List<IfcProductGeometry> ConvertRequests(
             IEnumerable<(int ReferenceModelId, string Guid)> requests,
-            IReadOnlyDictionary<int, ReferenceModelConvert.Frame> frames)
+            IReadOnlyDictionary<int, ReferenceModelConvert.Frame> frames
+        )
         {
             // Each object once, in the order given, its file opened when first asked for.
             var work = new List<(string Guid, ReferenceModelConvert.Frame Frame, IfcStoreCache Cache)>();
@@ -179,9 +202,11 @@ namespace GeometryHelper.TeklaConvert
 
             foreach ((int referenceModelId, string guid) in requests)
             {
-                if (guid == null
+                if (
+                    guid == null
                     || !frames.TryGetValue(referenceModelId, out ReferenceModelConvert.Frame frame)
-                    || !done.Add((referenceModelId, guid)))
+                    || !done.Add((referenceModelId, guid))
+                )
                 {
                     continue;
                 }
@@ -231,7 +256,11 @@ namespace GeometryHelper.TeklaConvert
         /// Converts the product with one GlobalId and carries it into the work plane; null, and logged, when the file
         /// does not hold it or it fails.
         /// </summary>
-        private static IfcProductGeometry ConvertOne(string guid, ReferenceModelConvert.Frame frame, IfcStoreCache cache)
+        private static IfcProductGeometry ConvertOne(
+            string guid,
+            ReferenceModelConvert.Frame frame,
+            IfcStoreCache cache
+        )
         {
             IfcProductGeometry geometry;
             try
@@ -240,7 +269,10 @@ namespace GeometryHelper.TeklaConvert
             }
             catch (Exception exception)
             {
-                GeometryHelperLog.Warn($"{guid} in '{frame.IfcFilePath}' could not be converted; it is left out.", exception);
+                GeometryHelperLog.Warn(
+                    $"{guid} in '{frame.IfcFilePath}' could not be converted; it is left out.",
+                    exception
+                );
                 return null;
             }
 

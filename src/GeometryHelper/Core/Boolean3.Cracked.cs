@@ -42,7 +42,15 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance asked.</param>
         /// <param name="outcome">How it came out.</param>
         /// <param name="open">What came out open, for a closing to try.</param>
-        private static bool WeldedWhereRefused(Operation operation, GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome, out GeoSolid3 open)
+        private static bool WeldedWhereRefused(
+            Operation operation,
+            GeoSolid3 first,
+            GeoSolid3 second,
+            out GeoSolid3 result,
+            Tolerance tolerance,
+            out BooleanOutcome outcome,
+            out GeoSolid3 open
+        )
         {
             bool made = Operate(operation, first, second, out result, tolerance, out outcome, out open);
 
@@ -61,13 +69,25 @@ namespace GeometryHelper.Core
                 return made;
             }
 
-            if (!Operate(operation, a, b, out GeoSolid3 again, tolerance, out BooleanOutcome againOutcome, out GeoSolid3 againOpen)
-                && againOutcome == BooleanOutcome.NotWorkedOut)
+            if (
+                !Operate(
+                    operation,
+                    a,
+                    b,
+                    out GeoSolid3 again,
+                    tolerance,
+                    out BooleanOutcome againOutcome,
+                    out GeoSolid3 againOpen
+                )
+                && againOutcome == BooleanOutcome.NotWorkedOut
+            )
             {
                 return made;
             }
 
-            GeometryHelperLog.Debug("Boolean3: not worked out as the bodies came, it is worked out on a body closing only within the tolerance welded closed.");
+            GeometryHelperLog.Debug(
+                "Boolean3: not worked out as the bodies came, it is worked out on a body closing only within the tolerance welded closed."
+            );
             result = again;
             outcome = againOutcome;
             open = againOpen;
@@ -77,7 +97,15 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Works out a boolean, counted as worked out on this thread while it is.
         /// </summary>
-        private static bool Operate(Operation operation, GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome, out GeoSolid3 open)
+        private static bool Operate(
+            Operation operation,
+            GeoSolid3 first,
+            GeoSolid3 second,
+            out GeoSolid3 result,
+            Tolerance tolerance,
+            out BooleanOutcome outcome,
+            out GeoSolid3 open
+        )
         {
             _operating++;
 
@@ -117,7 +145,11 @@ namespace GeometryHelper.Core
 
             try
             {
-                if (solid.ClosesByCorners(fine) || !Shells3.Closes(solid, work) || !Weld3.TryWeld(solid, work, fine, out GeoSolid3 closed))
+                if (
+                    solid.ClosesByCorners(fine)
+                    || !Shells3.Closes(solid, work)
+                    || !Weld3.TryWeld(solid, work, fine, out GeoSolid3 closed)
+                )
                 {
                     return false;
                 }
@@ -125,8 +157,13 @@ namespace GeometryHelper.Core
                 welded = closed;
                 var merged = new GeoSolid3(Merge3.CoplanarFaces(closed.Faces, work), closed.Openings);
 
-                if (merged.Faces.Count >= 4 && merged.ClosesByCorners(fine) && Shells3.Closes(merged, work)
-                    && Math.Abs(merged.GetSignedVolume() - solid.GetSignedVolume()) <= work.EqualPoint * solid.GrossSurfaceArea)
+                if (
+                    merged.Faces.Count >= 4
+                    && merged.ClosesByCorners(fine)
+                    && Shells3.Closes(merged, work)
+                    && Math.Abs(merged.GetSignedVolume() - solid.GetSignedVolume())
+                        <= work.EqualPoint * solid.GrossSurfaceArea
+                )
                 {
                     welded = merged;
                 }

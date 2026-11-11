@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -19,7 +19,9 @@ namespace GeometryHelper.UnitTest.Solid
         public void AnOrientedBoxAgreesWithTheSolidItBecomes()
         {
             Random rng = new Random(3311);
-            int cases = 0, inside = 0, outside = 0;
+            int cases = 0,
+                inside = 0,
+                outside = 0;
 
             for (int t = 0; t < 200; t++)
             {
@@ -31,11 +33,19 @@ namespace GeometryHelper.UnitTest.Solid
                 GeoObb3 box;
                 try
                 {
-                    box = new GeoObb3(centre, sx, sy, sz,
+                    box = new GeoObb3(
+                        centre,
+                        sx,
+                        sy,
+                        sz,
                         new GeoVector3(rng.Next(-3, 4) + 0.3, rng.Next(-3, 4) + 0.7, rng.Next(-3, 4) + 0.1),
-                        new GeoVector3(rng.Next(-3, 4) + 0.9, rng.Next(-3, 4) + 0.2, rng.Next(-3, 4) + 0.5));
+                        new GeoVector3(rng.Next(-3, 4) + 0.9, rng.Next(-3, 4) + 0.2, rng.Next(-3, 4) + 0.5)
+                    );
                 }
-                catch (ArgumentException) { continue; }
+                catch (ArgumentException)
+                {
+                    continue;
+                }
 
                 cases++;
 
@@ -59,8 +69,15 @@ namespace GeometryHelper.UnitTest.Solid
                 }
 
                 // The centre of the corners is the centre of the box.
-                double cx = 0, cy = 0, cz = 0;
-                foreach (GeoPoint3 corner in corners) { cx += corner.X; cy += corner.Y; cz += corner.Z; }
+                double cx = 0,
+                    cy = 0,
+                    cz = 0;
+                foreach (GeoPoint3 corner in corners)
+                {
+                    cx += corner.X;
+                    cy += corner.Y;
+                    cz += corner.Z;
+                }
                 Assert.True(new GeoPoint3(cx / 8.0, cy / 8.0, cz / 8.0).IsEqualTo(box.Center, Tol));
 
                 // Six faces, and their areas add up to the surface the box reports.
@@ -68,7 +85,10 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.Equal(6, faces.Length);
 
                 double covered = 0.0;
-                foreach (GeoPolygon3 face in faces) { covered += face.Area; }
+                foreach (GeoPolygon3 face in faces)
+                {
+                    covered += face.Area;
+                }
                 Assert.Equal(box.SurfaceArea, covered, 6);
 
                 for (int q = 0; q < 4; q++)
@@ -79,10 +99,18 @@ namespace GeometryHelper.UnitTest.Solid
                     var probe = new GeoPoint3(
                         centre.X + (rng.NextDouble() * 2 - 1) * reach,
                         centre.Y + (rng.NextDouble() * 2 - 1) * reach,
-                        centre.Z + (rng.NextDouble() * 2 - 1) * reach);
+                        centre.Z + (rng.NextDouble() * 2 - 1) * reach
+                    );
 
                     bool inBox = Containment3.Contains(box, probe, Tol);
-                    if (inBox) { inside++; } else { outside++; }
+                    if (inBox)
+                    {
+                        inside++;
+                    }
+                    else
+                    {
+                        outside++;
+                    }
 
                     // The box and the solid it becomes must hold the same points.
                     Assert.Equal(inBox, Containment3.Contains(solid, probe, Tol));
@@ -107,12 +135,20 @@ namespace GeometryHelper.UnitTest.Solid
                 GeoCircle3 circle;
                 try
                 {
-                    circle = new GeoCircle3(centre,
+                    circle = new GeoCircle3(
+                        centre,
                         new GeoVector3(rng.Next(-3, 4) + 0.3, rng.Next(-3, 4) + 0.7, rng.Next(-3, 4) + 0.1),
-                        radius);
+                        radius
+                    );
                 }
-                catch (ArgumentException) { continue; }
-                catch (InvalidOperationException) { continue; }
+                catch (ArgumentException)
+                {
+                    continue;
+                }
+                catch (InvalidOperationException)
+                {
+                    continue;
+                }
 
                 cases++;
 
@@ -141,7 +177,9 @@ namespace GeometryHelper.UnitTest.Solid
                 }
 
                 // Moving the circle moves its rim with it and leaves the radius alone.
-                GeoTransform3 move = GeoTransform3.Translation(new GeoVector3(rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10)));
+                GeoTransform3 move = GeoTransform3.Translation(
+                    new GeoVector3(rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10))
+                );
                 GeoCircle3 moved = circle.TransformBy(move);
 
                 Assert.Equal(circle.Radius, moved.Radius, 9);
@@ -155,7 +193,8 @@ namespace GeometryHelper.UnitTest.Solid
         public void ARayRunsForwardsOnlyAndAgreesWithTheSegmentItCutsDownTo()
         {
             Random rng = new Random(5533);
-            int cases = 0, behind = 0;
+            int cases = 0,
+                behind = 0;
 
             for (int t = 0; t < 300; t++)
             {
@@ -163,9 +202,18 @@ namespace GeometryHelper.UnitTest.Solid
                 var direction = new GeoVector3(rng.Next(-5, 6) + 0.3, rng.Next(-5, 6) + 0.7, rng.Next(-5, 6) + 0.1);
 
                 GeoRay3 ray;
-                try { ray = new GeoRay3(origin, direction); }
-                catch (ArgumentException) { continue; }
-                catch (InvalidOperationException) { continue; }
+                try
+                {
+                    ray = new GeoRay3(origin, direction);
+                }
+                catch (ArgumentException)
+                {
+                    continue;
+                }
+                catch (InvalidOperationException)
+                {
+                    continue;
+                }
 
                 cases++;
 

@@ -25,7 +25,14 @@ namespace GeometryHelper.UnitTest.Meshing
         /// <param name="area">The area the faces should cover.</param>
         /// <param name="tolerance">The tolerance the mesh was made within.</param>
         /// <param name="covers">Whether every point of the material lies in a face: false for a grid with joints.</param>
-        public static void IsSound(GeoMesh3 mesh, Func<GeoPoint3, PointLocation> material, IEnumerable<GeoPoint3> corners, double area, Tolerance tolerance, bool covers = true)
+        public static void IsSound(
+            GeoMesh3 mesh,
+            Func<GeoPoint3, PointLocation> material,
+            IEnumerable<GeoPoint3> corners,
+            double area,
+            Tolerance tolerance,
+            bool covers = true
+        )
         {
             GeoCoordinateSystem3 frame = mesh.Frame;
             Assert.True(frame.IsValid, $"the frame is no frame: {frame}");
@@ -40,8 +47,15 @@ namespace GeometryHelper.UnitTest.Meshing
             for (int v = 0; v < mesh.VertexCount; v++)
             {
                 GeoPoint3 local = frame.ToLocal(mesh.Vertices[v]);
-                Assert.True(Math.Abs(local.X - flat.Vertices[v].X) <= 1E-9 * Math.Max(1.0, size) && Math.Abs(local.Y - flat.Vertices[v].Y) <= 1E-9 * Math.Max(1.0, size), $"vertex {v} stands at {local}, laid out at {flat.Vertices[v]}");
-                Assert.True(Math.Abs(local.Z) <= 2.0 * tolerance.EqualPlanar + 1E-9 * Math.Max(1.0, size), $"vertex {v} stands {local.Z} off the plane");
+                Assert.True(
+                    Math.Abs(local.X - flat.Vertices[v].X) <= 1E-9 * Math.Max(1.0, size)
+                        && Math.Abs(local.Y - flat.Vertices[v].Y) <= 1E-9 * Math.Max(1.0, size),
+                    $"vertex {v} stands at {local}, laid out at {flat.Vertices[v]}"
+                );
+                Assert.True(
+                    Math.Abs(local.Z) <= 2.0 * tolerance.EqualPlanar + 1E-9 * Math.Max(1.0, size),
+                    $"vertex {v} stands {local.Z} off the plane"
+                );
             }
 
             foreach (GeoPoint3 corner in corners ?? Enumerable.Empty<GeoPoint3>())
@@ -56,12 +70,21 @@ namespace GeometryHelper.UnitTest.Meshing
                 GeoPolygon3 face = mesh.GetFace(f);
                 Assert.Equal(mesh.GetFaceIndices(f).Length, face.VertexCount);
                 Assert.True(face.Area > 0.0, $"face {f} has no area");
-                Assert.True(face.Normal.DotProduct(mesh.Normal) > 0.999, $"face {f} runs {face.Normal}, not about {mesh.Normal}");
+                Assert.True(
+                    face.Normal.DotProduct(mesh.Normal) > 0.999,
+                    $"face {f} runs {face.Normal}, not about {mesh.Normal}"
+                );
                 sum += face.Area;
             }
 
-            Assert.True(Math.Abs(sum - mesh.Area) <= 1E-9 * Math.Max(1.0, sum), $"Area {mesh.Area} is not the faces' {sum}");
-            Assert.True(Math.Abs(area - mesh.Area) <= 1E-9 * Math.Max(1.0, area), $"the faces cover {mesh.Area:R}, not {area:R}");
+            Assert.True(
+                Math.Abs(sum - mesh.Area) <= 1E-9 * Math.Max(1.0, sum),
+                $"Area {mesh.Area} is not the faces' {sum}"
+            );
+            Assert.True(
+                Math.Abs(area - mesh.Area) <= 1E-9 * Math.Max(1.0, area),
+                $"the faces cover {mesh.Area:R}, not {area:R}"
+            );
 
             // The mesh laid out in its frame is a mesh of the plane, held to every promise of one against the shape laid out
             // there too.
@@ -71,22 +94,30 @@ namespace GeometryHelper.UnitTest.Meshing
             // The triangles are the faces' and run about the normal too.
             GeoTriangle3[] triangles = mesh.ToTriangles();
             double triangled = triangles.Sum(t => t.Area);
-            Assert.True(Math.Abs(triangled - mesh.Area) <= 1E-9 * Math.Max(1.0, mesh.Area), $"the triangles cover {triangled:R}, not {mesh.Area:R}");
+            Assert.True(
+                Math.Abs(triangled - mesh.Area) <= 1E-9 * Math.Max(1.0, mesh.Area),
+                $"the triangles cover {triangled:R}, not {mesh.Area:R}"
+            );
 
             foreach (GeoTriangle3 triangle in triangles)
             {
-                Assert.True(triangle.GetAreaVector().DotProduct(mesh.Normal) > 0.0, $"a triangle runs against the normal: {triangle}");
+                Assert.True(
+                    triangle.GetAreaVector().DotProduct(mesh.Normal) > 0.0,
+                    $"a triangle runs against the normal: {triangle}"
+                );
             }
         }
 
         /// <summary>
         /// Where a point of space stands against a face of space whose plane it lies on.
         /// </summary>
-        public static Func<GeoPoint3, PointLocation> Locate(GeoFace3 face, Tolerance tolerance) => p => face.Locate(p, tolerance);
+        public static Func<GeoPoint3, PointLocation> Locate(GeoFace3 face, Tolerance tolerance) =>
+            p => face.Locate(p, tolerance);
 
         /// <summary>
         /// Where a point of space stands against a polygon of space whose plane it lies on.
         /// </summary>
-        public static Func<GeoPoint3, PointLocation> Locate(GeoPolygon3 polygon, Tolerance tolerance) => p => polygon.Locate(p, tolerance);
+        public static Func<GeoPoint3, PointLocation> Locate(GeoPolygon3 polygon, Tolerance tolerance) =>
+            p => polygon.Locate(p, tolerance);
     }
 }

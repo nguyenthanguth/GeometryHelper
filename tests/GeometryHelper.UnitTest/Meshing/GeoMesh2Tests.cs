@@ -16,7 +16,8 @@ namespace GeometryHelper.UnitTest.Meshing
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
-        private static GeoPolygon2 Box(double x0, double y0, double x1, double y1) => new GeoPolygon2(P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1));
+        private static GeoPolygon2 Box(double x0, double y0, double x1, double y1) =>
+            new GeoPolygon2(P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1));
 
         /// <summary>Three by three cells of 100.</summary>
         private static GeoMesh2 Grid3() => Box(0, 0, 300, 300).ToMesh(MeshOptions.Grid(100, 100), Tolerance);
@@ -50,8 +51,14 @@ namespace GeometryHelper.UnitTest.Meshing
         public void TheNeighboursOfACellAreTheCellsSharingASide()
         {
             GeoMesh2 mesh = Grid3();
-            int middle = Enumerable.Range(0, mesh.FaceCount).Single(f => mesh.GetFace(f).Locate(P(150, 150), Tolerance) == GeometryHelper.Enums.PointLocation.Inside);
-            int corner = Enumerable.Range(0, mesh.FaceCount).Single(f => mesh.GetFace(f).Locate(P(50, 50), Tolerance) == GeometryHelper.Enums.PointLocation.Inside);
+            int middle = Enumerable
+                .Range(0, mesh.FaceCount)
+                .Single(f =>
+                    mesh.GetFace(f).Locate(P(150, 150), Tolerance) == GeometryHelper.Enums.PointLocation.Inside
+                );
+            int corner = Enumerable
+                .Range(0, mesh.FaceCount)
+                .Single(f => mesh.GetFace(f).Locate(P(50, 50), Tolerance) == GeometryHelper.Enums.PointLocation.Inside);
 
             Assert.Equal(4, mesh.GetAdjacentFaces(middle).Length);
             Assert.Equal(2, mesh.GetAdjacentFaces(corner).Length);
@@ -67,7 +74,14 @@ namespace GeometryHelper.UnitTest.Meshing
             // An L in strips: the lower band has a corner on its top side, so it is five corners in a row-broken rectangle.
             var l = new GeoPolygon2(P(0, 0), P(2000, 0), P(2000, 1000), P(1000, 1000), P(1000, 2000), P(0, 2000));
 
-            foreach (GeoMesh2 mesh in new[] { l.ToMesh(MeshKind.Strips), l.ToMesh(MeshKind.Convex), l.ToMesh(MeshOptions.Grid(300, 300), Tolerance) })
+            foreach (
+                GeoMesh2 mesh in new[]
+                {
+                    l.ToMesh(MeshKind.Strips),
+                    l.ToMesh(MeshKind.Convex),
+                    l.ToMesh(MeshOptions.Grid(300, 300), Tolerance),
+                }
+            )
             {
                 GeoTriangle2[] triangles = mesh.ToTriangles();
 

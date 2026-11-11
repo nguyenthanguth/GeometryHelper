@@ -21,9 +21,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Initializes an ordinate dimension along y at the origin, as AutoCAD's <c>new OrdinateDimension()</c>, in the style Standard.</summary>
         public DxfOrdinateDimension()
-            : this(false, new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(0.0, 0.0, 0.0), string.Empty, null)
-        {
-        }
+            : this(false, new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(0.0, 0.0, 0.0), string.Empty, null) { }
 
         /// <summary>
         /// Initializes an ordinate dimension, as AutoCAD's <c>new OrdinateDimension(useXAxis, definingPoint, leaderEndPoint,
@@ -36,37 +34,57 @@ namespace GeometryHelper.Dxf
         /// <param name="dimText">The text, as <see cref="DxfDimension.DimensionText"/>; empty or null for the measurement.</param>
         /// <param name="dimStyle">The style it is drawn in, by its name; null for Standard.</param>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
-        public DxfOrdinateDimension(bool useXAxis, GeoPoint3 definingPoint, GeoPoint3 leaderEndPoint, string dimText, DxfDimStyleTableRecord dimStyle)
-            : base("DIMENSION", useXAxis ? 6 | 64 : 6, new GeoPoint3(0.0, 0.0, 0.0), dimText, dimStyle, Groups(definingPoint, leaderEndPoint))
-        {
-        }
+        public DxfOrdinateDimension(
+            bool useXAxis,
+            GeoPoint3 definingPoint,
+            GeoPoint3 leaderEndPoint,
+            string dimText,
+            DxfDimStyleTableRecord dimStyle
+        )
+            : base(
+                "DIMENSION",
+                useXAxis ? 6 | 64 : 6,
+                new GeoPoint3(0.0, 0.0, 0.0),
+                dimText,
+                dimStyle,
+                Groups(definingPoint, leaderEndPoint)
+            ) { }
 
         internal DxfOrdinateDimension(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets the origin measured from (groups 10, 20, 30), as AutoCAD's <c>Origin</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 Origin { get => DefinitionPoint; set => SetDefinitionPoint(value); }
+        public GeoPoint3 Origin
+        {
+            get => DefinitionPoint;
+            set => SetDefinitionPoint(value);
+        }
 
         /// <summary>Gets or sets the point measured (groups 13, 23, 33), as AutoCAD's <c>DefiningPoint</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 DefiningPoint { get => SubPoint(13); set => SetSubPoint(13, value); }
+        public GeoPoint3 DefiningPoint
+        {
+            get => SubPoint(13);
+            set => SetSubPoint(13, value);
+        }
 
         /// <summary>Gets or sets where the leader ends (groups 14, 24, 34), as AutoCAD's <c>LeaderEndPoint</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 LeaderEndPoint { get => SubPoint(14); set => SetSubPoint(14, value); }
+        public GeoPoint3 LeaderEndPoint
+        {
+            get => SubPoint(14);
+            set => SetSubPoint(14, value);
+        }
 
         /// <summary>Gets or sets whether the dimension measures along x (flag 64 of group 70), as AutoCAD's <c>UsingXAxis</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
         public bool UsingXAxis
         {
             get => (Kind & 64) != 0;
-
             set
             {
                 if (value != UsingXAxis)

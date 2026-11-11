@@ -23,7 +23,12 @@ namespace GeometryHelper.Viewer.Tests
         /// </summary>
         private static GeoSolid3 Box(double x, double y, double z, double sx, double sy, double sz)
         {
-            var floor = new GeoPolygon3(new GeoPoint3(x, y, z), new GeoPoint3(x + sx, y, z), new GeoPoint3(x + sx, y + sy, z), new GeoPoint3(x, y + sy, z));
+            var floor = new GeoPolygon3(
+                new GeoPoint3(x, y, z),
+                new GeoPoint3(x + sx, y, z),
+                new GeoPoint3(x + sx, y + sy, z),
+                new GeoPoint3(x, y + sy, z)
+            );
             return GeoSolid3.Extrude(floor, new GeoVector3(0, 0, sz));
         }
 
@@ -39,10 +44,24 @@ namespace GeometryHelper.Viewer.Tests
             return writer.Scene;
         }
 
-        private static DiagnosticReport Run(Scene scene, params int[] items) => Diag.Run(scene, DiagnosticChecks.Clash, true, items);
+        private static DiagnosticReport Run(Scene scene, params int[] items) =>
+            Diag.Run(scene, DiagnosticChecks.Clash, true, items);
 
-        private static string Dump(DiagnosticReport report)
-            => string.Join("\n", report.Findings.Select(f => f.ToString() + " @" + f.At + " size " + f.Size.ToString("R", CultureInfo.InvariantCulture) + " other " + f.OtherItemIndex + " strokes " + f.Drawing.Strokes.Count));
+        private static string Dump(DiagnosticReport report) =>
+            string.Join(
+                "\n",
+                report.Findings.Select(f =>
+                    f.ToString()
+                    + " @"
+                    + f.At
+                    + " size "
+                    + f.Size.ToString("R", CultureInfo.InvariantCulture)
+                    + " other "
+                    + f.OtherItemIndex
+                    + " strokes "
+                    + f.Drawing.Strokes.Count
+                )
+            );
 
         [Fact]
         public void TwoBoxesThatOverlap_ClashWithTheVolumeTheyShare_AndHowDeepTheyGo()
@@ -99,7 +118,10 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Equal(report.Overlay.Strokes.Count, Diag.Strokes(report, DiagnosticColors.Clash));
             Assert.Single(report.Overlay.Dots);
             Assert.Equal(clash.At, report.Overlay.Dots[0].At);
-            Assert.True(clash.Spot.Max.X - clash.Spot.Min.X >= 10.0, "the spot to zoom to takes in the whole of the shared volume");
+            Assert.True(
+                clash.Spot.Max.X - clash.Spot.Min.X >= 10.0,
+                "the spot to zoom to takes in the whole of the shared volume"
+            );
         }
 
         [Fact]
@@ -153,11 +175,24 @@ namespace GeometryHelper.Viewer.Tests
                 Box(0, 0, 0, 10, 10, 10),
                 Box(5, 0, 0, 10, 10, 10),
                 Box(100, 0, 0, 10, 10, 10),
-                Box(105, 5, 5, 10, 10, 10));
+                Box(105, 5, 5, 10, 10, 10)
+            );
             DiagnosticReport report = Run(scene);
 
-            Assert.Equal(new[] { Tuple.Create(0, 1), Tuple.Create(2, 3) }, Diag.Of(report, DiagnosticKind.HardClash).Select(f => Tuple.Create(f.ItemIndex, f.OtherItemIndex)).OrderBy(t => t.Item1).ToArray());
-            Assert.Equal(new[] { 500.0, 5.0 * 5.0 * 5.0 }, Diag.Of(report, DiagnosticKind.HardClash).OrderBy(f => f.ItemIndex).Select(f => Math.Round(f.Size, 6)).ToArray());
+            Assert.Equal(
+                new[] { Tuple.Create(0, 1), Tuple.Create(2, 3) },
+                Diag.Of(report, DiagnosticKind.HardClash)
+                    .Select(f => Tuple.Create(f.ItemIndex, f.OtherItemIndex))
+                    .OrderBy(t => t.Item1)
+                    .ToArray()
+            );
+            Assert.Equal(
+                new[] { 500.0, 5.0 * 5.0 * 5.0 },
+                Diag.Of(report, DiagnosticKind.HardClash)
+                    .OrderBy(f => f.ItemIndex)
+                    .Select(f => Math.Round(f.Size, 6))
+                    .ToArray()
+            );
         }
 
         [Fact]
@@ -173,8 +208,12 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Empty(Pairs(Run(scene, 0, 2)));
         }
 
-        private static Tuple<int, int>[] Pairs(DiagnosticReport report)
-            => Diag.Of(report, DiagnosticKind.HardClash).Select(f => Tuple.Create(f.ItemIndex, f.OtherItemIndex)).OrderBy(t => t.Item1).ThenBy(t => t.Item2).ToArray();
+        private static Tuple<int, int>[] Pairs(DiagnosticReport report) =>
+            Diag.Of(report, DiagnosticKind.HardClash)
+                .Select(f => Tuple.Create(f.ItemIndex, f.OtherItemIndex))
+                .OrderBy(t => t.Item1)
+                .ThenBy(t => t.Item2)
+                .ToArray();
 
         [Fact]
         public void AFindingIsNumberedAndOrdered_AndTheSameWheneverItIsAsked()
@@ -184,7 +223,8 @@ namespace GeometryHelper.Viewer.Tests
                 Box(5, 0, 0, 10, 10, 10),
                 Box(8, 4, 4, 10, 10, 10),
                 Box(40, 0, 0, 10, 10, 10),
-                Box(45, 5, 0, 10, 10, 10));
+                Box(45, 5, 0, 10, 10, 10)
+            );
 
             string first = Dump(Run(scene));
             string second = Dump(Run(scene));
@@ -205,10 +245,24 @@ namespace GeometryHelper.Viewer.Tests
                 Box(45, 5, 0, 10, 10, 10),
             };
 
-            string Summary(DiagnosticReport report, Scene scene)
-                => string.Join(";", report.Findings.Where(f => f.Kind == DiagnosticKind.HardClash)
-                    .Select(f => string.Join("+", new[] { scene.Items[f.ItemIndex].Name, scene.Items[f.OtherItemIndex].Name }.OrderBy(n => n, StringComparer.Ordinal)) + "=" + f.Size.ToString("0.######", CultureInfo.InvariantCulture))
-                    .OrderBy(s => s, StringComparer.Ordinal));
+            string Summary(DiagnosticReport report, Scene scene) =>
+                string.Join(
+                    ";",
+                    report
+                        .Findings.Where(f => f.Kind == DiagnosticKind.HardClash)
+                        .Select(f =>
+                            string.Join(
+                                "+",
+                                new[] { scene.Items[f.ItemIndex].Name, scene.Items[f.OtherItemIndex].Name }.OrderBy(
+                                    n => n,
+                                    StringComparer.Ordinal
+                                )
+                            )
+                            + "="
+                            + f.Size.ToString("0.######", CultureInfo.InvariantCulture)
+                        )
+                        .OrderBy(s => s, StringComparer.Ordinal)
+                );
 
             Scene forward = SceneOf(bodies);
             var writer = new SceneWriter("reverse");
@@ -244,10 +298,22 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void PairsPastTheCap_AreNotCheckedAndTheNoteSaysHowMany()
         {
-            Scene scene = SceneOf(Box(0, 0, 0, 10, 10, 10), Box(2, 0, 0, 10, 10, 10), Box(4, 0, 0, 10, 10, 10), Box(6, 0, 0, 10, 10, 10));
+            Scene scene = SceneOf(
+                Box(0, 0, 0, 10, 10, 10),
+                Box(2, 0, 0, 10, 10, 10),
+                Box(4, 0, 0, 10, 10, 10),
+                Box(6, 0, 0, 10, 10, 10)
+            );
             Primitives primitives = Primitives.Build(scene);
             var options = new DiagnosticOptions { Checks = DiagnosticChecks.Clash, MaxClashPairs = 2 };
-            DiagnosticReport report = SceneDiagnostics.Run(scene, primitives, null, null, options, CancellationToken.None);
+            DiagnosticReport report = SceneDiagnostics.Run(
+                scene,
+                primitives,
+                null,
+                null,
+                options,
+                CancellationToken.None
+            );
 
             Assert.Equal(2, Diag.Of(report, DiagnosticKind.HardClash).Count());
             DiagnosticFinding note = Assert.Single(Diag.Of(report, DiagnosticKind.Note));
@@ -264,7 +330,16 @@ namespace GeometryHelper.Viewer.Tests
             using (var source = new CancellationTokenSource())
             {
                 source.Cancel();
-                Assert.Throws<OperationCanceledException>(() => SceneDiagnostics.Run(scene, primitives, null, null, new DiagnosticOptions { Checks = DiagnosticChecks.Clash }, source.Token));
+                Assert.Throws<OperationCanceledException>(() =>
+                    SceneDiagnostics.Run(
+                        scene,
+                        primitives,
+                        null,
+                        null,
+                        new DiagnosticOptions { Checks = DiagnosticChecks.Clash },
+                        source.Token
+                    )
+                );
             }
         }
 
@@ -274,8 +349,14 @@ namespace GeometryHelper.Viewer.Tests
             var writer = new SceneWriter("mixed");
             writer.Add(Box(0, 0, 0, 10, 10, 10), name: "solid");
             writer.Add(new GeoAabb3(new GeoPoint3(5, 0, 0), new GeoPoint3(15, 10, 10)), name: "aabb");
-            writer.Add(new GeoObb3(new GeoPoint3(12, 5, 5), 10, 10, 10, new GeoVector3(1, 0, 0), new GeoVector3(0, 1, 0)), name: "obb");
-            writer.Add(new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(5, 0, 0), new GeoPoint3(5, 5, 0)), name: "plate");
+            writer.Add(
+                new GeoObb3(new GeoPoint3(12, 5, 5), 10, 10, 10, new GeoVector3(1, 0, 0), new GeoVector3(0, 1, 0)),
+                name: "obb"
+            );
+            writer.Add(
+                new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(5, 0, 0), new GeoPoint3(5, 5, 0)),
+                name: "plate"
+            );
             writer.Add(new GeoPoint3(1, 1, 1), name: "dot");
 
             DiagnosticReport report = Run(writer.Scene);
@@ -306,7 +387,9 @@ namespace GeometryHelper.Viewer.Tests
             DiagnosticReport brokenReport = Run(broken);
 
             Assert.Empty(Diag.Of(brokenReport, DiagnosticKind.HardClash));
-            Assert.Contains(Diag.Of(brokenReport, DiagnosticKind.Note), n => n.Message.Contains("the mesh is not closed"));
+            Assert.Contains(Diag.Of(brokenReport, DiagnosticKind.Note), n =>
+                n.Message.Contains("the mesh is not closed")
+            );
         }
 
         [Fact]

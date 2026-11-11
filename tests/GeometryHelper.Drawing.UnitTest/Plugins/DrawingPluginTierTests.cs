@@ -21,7 +21,11 @@ namespace GeometryHelper.Drawing.UnitTest.Plugins
     {
         private const string SampleName = "GeometryHelper.Drawing.SamplePlugin";
         private readonly ITestOutputHelper _output;
-        private readonly string _root = Path.Combine(Path.GetTempPath(), "gk-drawing-plugin-tests", Guid.NewGuid().ToString("N"));
+        private readonly string _root = Path.Combine(
+            Path.GetTempPath(),
+            "gk-drawing-plugin-tests",
+            Guid.NewGuid().ToString("N")
+        );
 
         public DrawingPluginTierTests(ITestOutputHelper output)
         {
@@ -41,12 +45,19 @@ namespace GeometryHelper.Drawing.UnitTest.Plugins
             }
         }
 
-        private static string BuiltSample => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SamplePlugin", SampleName + ".dll");
+        private static string BuiltSample =>
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SamplePlugin", SampleName + ".dll");
 
-        private CadPluginManager Manager(Func<string, bool> confirm) => new CadPluginManager(new CadPluginAssemblyLoader(), Path.Combine(_root, "plugins"), Path.Combine(_root, "plugins.json"), Path.Combine(_root, "copies"))
-        {
-            ConfirmUntrusted = confirm,
-        };
+        private CadPluginManager Manager(Func<string, bool> confirm) =>
+            new CadPluginManager(
+                new CadPluginAssemblyLoader(),
+                Path.Combine(_root, "plugins"),
+                Path.Combine(_root, "plugins.json"),
+                Path.Combine(_root, "copies")
+            )
+            {
+                ConfirmUntrusted = confirm,
+            };
 
         [Fact]
         public void TheSamplesDimensionsOnTC5StandBeyondTheDrawingsOwnAndOverlapNoneOfThem()
@@ -55,7 +66,11 @@ namespace GeometryHelper.Drawing.UnitTest.Plugins
             {
                 var catalog = new DrawingPluginCatalog(manager);
                 Assert.True(manager.Load(BuiltSample).Succeeded);
-                Drawing drawing = DrawingBuilder.Build(new DrawingSource(TestBodies.TC5().Parts.Select(p => p.Object)), AssemblyOnA3(), Tol);
+                Drawing drawing = DrawingBuilder.Build(
+                    new DrawingSource(TestBodies.TC5().Parts.Select(p => p.Object)),
+                    AssemblyOnA3(),
+                    Tol
+                );
                 DrawingView before = drawing.Views.Single(v => v.Id == "V-FRONT");
                 List<DrawingDimension> own = before.Dimensions.ToList();
                 Assert.NotEmpty(own);
@@ -64,12 +79,16 @@ namespace GeometryHelper.Drawing.UnitTest.Plugins
                 drawing.RunPlugin(catalog.Find("Bolt dimensions"), "V-FRONT");
 
                 DrawingView view = drawing.Views.Single(v => v.Id == "V-FRONT");
-                List<DrawingDimension> added = view.Dimensions.Where(d => d.Id.StartsWith("R-1/", StringComparison.Ordinal)).ToList();
+                List<DrawingDimension> added = view
+                    .Dimensions.Where(d => d.Id.StartsWith("R-1/", StringComparison.Ordinal))
+                    .ToList();
                 Assert.Equal(new[] { "10", "15", "300", "50", "50" }, added.Select(d => d.Text));
 
                 foreach (DrawingDimension d in view.Dimensions)
                 {
-                    _output.WriteLine(d.Id + " " + d.Text + " tier " + d.Tier + " offset " + d.Offset + " line " + d.DimensionLine);
+                    _output.WriteLine(
+                        d.Id + " " + d.Text + " tier " + d.Tier + " offset " + d.Offset + " line " + d.DimensionLine
+                    );
                 }
 
                 IReadOnlyList<string> overlaps = Annotator.FindOverlaps(view.Dimensions, Tol);
@@ -84,7 +103,9 @@ namespace GeometryHelper.Drawing.UnitTest.Plugins
                 // Each of the plugin's stands on a tier beyond every one of the drawing's own along its axis, on its side.
                 foreach (DrawingDimension d in added)
                 {
-                    Assert.All(own.Where(o => o.Direction.Equals(d.Direction) && Side(o, view) == Side(d, view)), o => Assert.True(d.Tier > o.Tier, d.Id + " is on tier " + d.Tier + ", " + o.Id + " on " + o.Tier));
+                    Assert.All(own.Where(o => o.Direction.Equals(d.Direction) && Side(o, view) == Side(d, view)), o =>
+                        Assert.True(d.Tier > o.Tier, d.Id + " is on tier " + d.Tier + ", " + o.Id + " on " + o.Tier)
+                    );
                 }
             }
         }
@@ -98,11 +119,13 @@ namespace GeometryHelper.Drawing.UnitTest.Plugins
             File.Copy(BuiltSample, dll);
             var asked = new List<string>();
 
-            using (CadPluginManager manager = Manager(path =>
-            {
-                asked.Add(path);
-                return false;
-            }))
+            using (
+                CadPluginManager manager = Manager(path =>
+                {
+                    asked.Add(path);
+                    return false;
+                })
+            )
             {
                 var catalog = new DrawingPluginCatalog(manager);
 
@@ -128,7 +151,9 @@ namespace GeometryHelper.Drawing.UnitTest.Plugins
         private static int Side(DrawingDimension d, DrawingView view)
         {
             GeoLine2 line = d.DimensionLine ?? d.ExtensionLines[0];
-            return d.Direction.X > 0.5 ? (line.StartPoint.Y > view.Box.Center.Y ? 1 : -1) : (line.StartPoint.X > view.Box.Center.X ? 1 : -1);
+            return d.Direction.X > 0.5
+                ? (line.StartPoint.Y > view.Box.Center.Y ? 1 : -1)
+                : (line.StartPoint.X > view.Box.Center.X ? 1 : -1);
         }
     }
 }

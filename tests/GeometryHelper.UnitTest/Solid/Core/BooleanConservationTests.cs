@@ -53,7 +53,11 @@ namespace GeometryHelper.UnitTest.Solid
 
                 // Rounded so that vertices land on one another and on the cutting planes, which is where
                 // the awkward cases live.
-                points[i] = new GeoPoint3(Math.Round(radius * Math.Cos(angle)), Math.Round(radius * Math.Sin(angle)), 0);
+                points[i] = new GeoPoint3(
+                    Math.Round(radius * Math.Cos(angle)),
+                    Math.Round(radius * Math.Sin(angle)),
+                    0
+                );
             }
 
             return points;
@@ -79,10 +83,19 @@ namespace GeometryHelper.UnitTest.Solid
                 }
 
                 GeoSolid3 b;
-                try { b = Prism(moved.ToArray(), 4.0); }
-                catch (ArgumentException) { continue; }
+                try
+                {
+                    b = Prism(moved.ToArray(), 4.0);
+                }
+                catch (ArgumentException)
+                {
+                    continue;
+                }
 
-                if (!Boolean3.TryUnion(a, b, out GeoSolid3 union)) { continue; }
+                if (!Boolean3.TryUnion(a, b, out GeoSolid3 union))
+                {
+                    continue;
+                }
 
                 double shared = Boolean3.TryIntersect(a, b, out GeoSolid3 both) ? both.GetVolume() : 0.0;
                 double aOnly = Boolean3.TrySubtract(a, b, out GeoSolid3 left) ? left.GetVolume() : 0.0;
@@ -108,23 +121,38 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void SubtractingFromABodyWithACavityKeepsTheCavity()
         {
-            GeoSolid3 slab = Prism(new[]
-            {
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0)
-            }, 4.0);
+            GeoSolid3 slab = Prism(
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(0, 10, 0),
+                },
+                4.0
+            );
 
-            GeoSolid3 first = Prism(new[]
-            {
-                new GeoPoint3(1, 1, 1), new GeoPoint3(3, 1, 1),
-                new GeoPoint3(3, 3, 1), new GeoPoint3(1, 3, 1)
-            }, 2.0);
+            GeoSolid3 first = Prism(
+                new[]
+                {
+                    new GeoPoint3(1, 1, 1),
+                    new GeoPoint3(3, 1, 1),
+                    new GeoPoint3(3, 3, 1),
+                    new GeoPoint3(1, 3, 1),
+                },
+                2.0
+            );
 
-            GeoSolid3 second = Prism(new[]
-            {
-                new GeoPoint3(5, 5, 0.5), new GeoPoint3(7, 5, 0.5),
-                new GeoPoint3(7, 7, 0.5), new GeoPoint3(5, 7, 0.5)
-            }, 3.0);
+            GeoSolid3 second = Prism(
+                new[]
+                {
+                    new GeoPoint3(5, 5, 0.5),
+                    new GeoPoint3(7, 5, 0.5),
+                    new GeoPoint3(7, 7, 0.5),
+                    new GeoPoint3(5, 7, 0.5),
+                },
+                3.0
+            );
 
             Assert.True(Boolean3.TrySubtract(slab, first, out GeoSolid3 once));
             Assert.Equal(392.0, once.GetVolume(), 9);
@@ -138,29 +166,40 @@ namespace GeometryHelper.UnitTest.Solid
         public void MergingCoplanarFacesNeverChangesTheirTotalArea()
         {
             GeoFace3 Rect(double x0, double y0, double x1, double y1) =>
-                new GeoFace3(new GeoPolygon3(
-                    new GeoPoint3(x0, y0, 0), new GeoPoint3(x1, y0, 0),
-                    new GeoPoint3(x1, y1, 0), new GeoPoint3(x0, y1, 0)));
+                new GeoFace3(
+                    new GeoPolygon3(
+                        new GeoPoint3(x0, y0, 0),
+                        new GeoPoint3(x1, y0, 0),
+                        new GeoPoint3(x1, y1, 0),
+                        new GeoPoint3(x0, y1, 0)
+                    )
+                );
 
-            GeoFace3[][ ] arrangements =
+            GeoFace3[][] arrangements =
             {
-                new[] { Rect(0, 0, 2, 2), Rect(2, 0, 4, 2) },                                  // shared edge
-                new[] { Rect(0, 0, 2, 2), Rect(2, 0, 4, 1), Rect(2, 1, 4, 2) },                // T-junction
-                new[] { Rect(0, 0, 2, 1), Rect(0, 1, 2, 2), Rect(2, 0, 4, 2) },                // T the other way
-                new[] { Rect(0, 0, 2, 2), Rect(10, 10, 12, 12) },                              // two islands
-                new[] { Rect(0, 0, 2, 2), Rect(2, 2, 4, 4) },                                  // one shared corner
-                new[] { Rect(0, 0, 2, 2), Rect(2, 0, 4, 2), Rect(0, 2, 2, 4) },                // an L
+                new[] { Rect(0, 0, 2, 2), Rect(2, 0, 4, 2) }, // shared edge
+                new[] { Rect(0, 0, 2, 2), Rect(2, 0, 4, 1), Rect(2, 1, 4, 2) }, // T-junction
+                new[] { Rect(0, 0, 2, 1), Rect(0, 1, 2, 2), Rect(2, 0, 4, 2) }, // T the other way
+                new[] { Rect(0, 0, 2, 2), Rect(10, 10, 12, 12) }, // two islands
+                new[] { Rect(0, 0, 2, 2), Rect(2, 2, 4, 4) }, // one shared corner
+                new[] { Rect(0, 0, 2, 2), Rect(2, 0, 4, 2), Rect(0, 2, 2, 4) }, // an L
                 new[] { Rect(0, 0, 4, 1), Rect(0, 3, 4, 4), Rect(0, 1, 1, 3), Rect(3, 1, 4, 3) }, // a ring
-                new[] { Rect(0, 0, 2, 2), Rect(2, 0, 4, 1), Rect(2, 1, 3, 2), Rect(3, 1, 4, 2) }  // a staircase
+                new[] { Rect(0, 0, 2, 2), Rect(2, 0, 4, 1), Rect(2, 1, 3, 2), Rect(3, 1, 4, 2) }, // a staircase
             };
 
             foreach (GeoFace3[] arrangement in arrangements)
             {
                 double before = 0.0;
-                foreach (GeoFace3 f in arrangement) { before += f.Area; }
+                foreach (GeoFace3 f in arrangement)
+                {
+                    before += f.Area;
+                }
 
                 double after = 0.0;
-                foreach (GeoFace3 f in Merge3.CoplanarFaces(arrangement, Tolerance.Global)) { after += f.Area; }
+                foreach (GeoFace3 f in Merge3.CoplanarFaces(arrangement, Tolerance.Global))
+                {
+                    after += f.Area;
+                }
 
                 Assert.Equal(before, after, 9);
             }

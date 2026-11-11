@@ -18,16 +18,32 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class ArcLoopMeasureG1wpTests
     {
-        private static readonly Tolerance Millionth = new Tolerance(1E-6, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-6);
-        private static readonly Tolerance Tight = new Tolerance(1E-12, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-12);
+        private static readonly Tolerance Millionth = new Tolerance(
+            1E-6,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-6
+        );
+        private static readonly Tolerance Tight = new Tolerance(
+            1E-12,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-12
+        );
 
         private static GeoPoint3 P(double x, double y) => new GeoPoint3(x, y, 0);
 
-        private static GeoPolygonArc3 Loop(params GeoPoint3[] corners) => new GeoPolygonArc3(corners, null, null, Tight);
+        private static GeoPolygonArc3 Loop(params GeoPoint3[] corners) =>
+            new GeoPolygonArc3(corners, null, null, Tight);
 
         // The rectangle 100 by 50 standing in the plane x = 20.
-        private static GeoPolygonArc3 Rectangle()
-            => Loop(new GeoPoint3(20, 0, 0), new GeoPoint3(20, 100, 0), new GeoPoint3(20, 100, 50), new GeoPoint3(20, 0, 50));
+        private static GeoPolygonArc3 Rectangle() =>
+            Loop(
+                new GeoPoint3(20, 0, 0),
+                new GeoPoint3(20, 100, 0),
+                new GeoPoint3(20, 100, 50),
+                new GeoPoint3(20, 0, 50)
+            );
 
         private static int ArcsOf(GeoPolygonArc3 loop) => loop.GetEdges().Count(edge => edge.IsArc);
 

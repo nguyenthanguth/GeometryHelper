@@ -45,16 +45,25 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in new[] { DxfDimensionDrawings.R2000, DxfDimensionDrawings.R2018 })
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                DxfRotatedDimension dim = db.ModelSpace.OfType<DxfRotatedDimension>().First(d => d.GetXDataForApplication("ACAD") != null);
+                DxfRotatedDimension dim = db
+                    .ModelSpace.OfType<DxfRotatedDimension>()
+                    .First(d => d.GetXDataForApplication("ACAD") != null);
                 DxfDimStyleTableRecord style = db.DimStyleTable[dim.DimensionStyleName];
                 Assert.NotEqual(style.Dimasz, dim.Dimasz);
 
                 Assert.True(dim.SetFromStyle());
                 string saved = db.ToText();
                 OnlyTheseChanged(text, saved, dim.Handle);
-                Assert.DoesNotContain("DSTYLE", Records(saved).Single(r => HandleOf(r) == dim.Handle), StringComparison.Ordinal);
+                Assert.DoesNotContain(
+                    "DSTYLE",
+                    Records(saved).Single(r => HandleOf(r) == dim.Handle),
+                    StringComparison.Ordinal
+                );
 
-                DxfRotatedDimension back = DxfDatabase.Parse(saved).ModelSpace.OfType<DxfRotatedDimension>().Single(d => d.Handle == dim.Handle);
+                DxfRotatedDimension back = DxfDatabase
+                    .Parse(saved)
+                    .ModelSpace.OfType<DxfRotatedDimension>()
+                    .Single(d => d.Handle == dim.Handle);
                 Assert.Equal(style.Dimasz, back.Dimasz);
                 Assert.Equal(style.Dimtxt, back.Dimtxt);
                 Assert.Equal(style.Dimblk?.Name, back.Dimblk?.Name);
@@ -65,7 +74,10 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             // 4D of R2018: arrows 4.5 of its own over GH_DIM's 3.5.
-            DxfRotatedDimension four = DxfDatabase.Parse(DxfDimensionDrawings.R2018).ModelSpace.OfType<DxfRotatedDimension>().Single(d => d.Handle == "4D");
+            DxfRotatedDimension four = DxfDatabase
+                .Parse(DxfDimensionDrawings.R2018)
+                .ModelSpace.OfType<DxfRotatedDimension>()
+                .Single(d => d.Handle == "4D");
             Assert.Equal(4.5, four.Dimasz);
             four.SetFromStyle();
             Assert.Equal(3.5, four.Dimasz);
@@ -99,7 +111,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.True(leader.SetFromStyle());
                 string saved = db.ToText();
                 OnlyTheseChanged(text, saved, "B2");
-                Assert.DoesNotContain("DSTYLE", Records(saved).Single(r => HandleOf(r) == "B2"), StringComparison.Ordinal);
+                Assert.DoesNotContain(
+                    "DSTYLE",
+                    Records(saved).Single(r => HandleOf(r) == "B2"),
+                    StringComparison.Ordinal
+                );
 
                 DxfLeader back = ByHandle<DxfLeader>(DxfDatabase.Parse(saved), "B2");
                 Assert.Equal(2.5, back.Dimasz);
@@ -140,10 +156,22 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(1.0, back.Scale);
                 Assert.Equal(DxfTextAngleType.HorizontalAngle, back.TextAngleType);
                 Assert.Equal(DxfTextAlignmentType.LeftAlignment, back.TextAlignmentType);
-                Assert.Equal(DxfTextAttachmentType.AttachmentMiddleOfTop, back.GetTextAttachmentType(DxfLeaderDirectionType.RightLeader));
+                Assert.Equal(
+                    DxfTextAttachmentType.AttachmentMiddleOfTop,
+                    back.GetTextAttachmentType(DxfLeaderDirectionType.RightLeader)
+                );
                 Assert.Equal("Line one\\Ptwo", back.MText.Contents);
-                int kept = (1 << 2) | (1 << 18) | (1 << 26) | (1 << 30) | (text == DxfHatchLeaderDrawings.R2000 ? (1 << 27) | (1 << 28) | (1 << 29) : 0);
-                Assert.Contains("\n 90\n" + kept.ToString(CultureInfo.InvariantCulture) + "\n170\n", Records(saved).Single(r => HandleOf(r) == "B4"), StringComparison.Ordinal);
+                int kept =
+                    (1 << 2)
+                    | (1 << 18)
+                    | (1 << 26)
+                    | (1 << 30)
+                    | (text == DxfHatchLeaderDrawings.R2000 ? (1 << 27) | (1 << 28) | (1 << 29) : 0);
+                Assert.Contains(
+                    "\n 90\n" + kept.ToString(CultureInfo.InvariantCulture) + "\n170\n",
+                    Records(saved).Single(r => HandleOf(r) == "B4"),
+                    StringComparison.Ordinal
+                );
 
                 // Again: the values are the style's already, and nothing changes.
                 Assert.True(words.SetFromStyle());
@@ -156,20 +184,33 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             var mleader = new DxfMLeader();
-            mleader.MText = new DxfMText { Contents = "A-1", Location = new GeoPoint3(10, 5, 0), TextHeight = 4.0 };
+            mleader.MText = new DxfMText
+            {
+                Contents = "A-1",
+                Location = new GeoPoint3(10, 5, 0),
+                TextHeight = 4.0,
+            };
             mleader.AddLeaderLine(new GeoPoint3(0, 0, 0));
             db.ModelSpace.AppendEntity(mleader);
             mleader.TextHeight = 2.5;
             mleader.ArrowSize = 3.0;
             // Its content given as words (bit 10), their height (16) and the size of the arrows (9); the words' colour, BYLAYER, as
             // its text colour (15) and words given (18), as AutoCAD 2021 sets them (D38).
-            Assert.Contains("\n 90\n361984\n", Records(db.ToText()).Single(r => HandleOf(r) == mleader.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "\n 90\n361984\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == mleader.Handle),
+                StringComparison.Ordinal
+            );
 
             Assert.True(mleader.SetFromStyle());
             DxfMLeader back = ByHandle<DxfMLeader>(DxfDatabase.Parse(db.ToText()), mleader.Handle);
             Assert.Equal(4.0, back.TextHeight);
             Assert.Equal(4.0, back.ArrowSize);
-            Assert.Contains("\n 90\n0\n", Records(db.ToText()).Single(r => HandleOf(r) == mleader.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "\n 90\n0\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == mleader.Handle),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -187,7 +228,11 @@ namespace GeometryHelper.UnitTest.Dxf
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "B4");
             string record = Records(saved).Single(r => HandleOf(r) == "B4");
-            Assert.Contains("CONTEXT_DATA{\n 40\n2\n 10\n798.0\n 20\n-1.25\n 30\n0.0\n 41\n8\n140\n8\n145\n4\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                "CONTEXT_DATA{\n 40\n2\n 10\n798.0\n 20\n-1.25\n 30\n0.0\n 41\n8\n140\n8\n145\n4\n",
+                record,
+                StringComparison.Ordinal
+            );
 
             DxfMLeader back = ByHandle<DxfMLeader>(DxfDatabase.Parse(saved), "B4");
             Assert.Equal(2.0, back.Scale);
@@ -226,7 +271,9 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // Standard's arrows are the block GKTAG, which a copy in no drawing cannot be given: it keeps its closed filled arrow
             // and the bit of it, and takes the style's words 4 high; the multileader of the drawing takes the arrow too.
-            string text = Edited(DxfHatchLeaderDrawings.R2018, "2C", r => r.Replace("\n 44\n4.0\n", "\n 44\n4.0\n341\nB5\n"));
+            string text = Edited(DxfHatchLeaderDrawings.R2018, "2C", r =>
+                r.Replace("\n 44\n4.0\n", "\n 44\n4.0\n341\nB5\n")
+            );
             DxfDatabase db = DxfDatabase.Parse(text);
             Assert.Equal("GKTAG", ((DxfMLeaderStyle)db.MLeaderStyleDictionary.GetAt("Standard")).ArrowSymbol.Name);
             DxfMLeader words = ByHandle<DxfMLeader>(db, "B4");
@@ -249,7 +296,10 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // Standard names the linetype FFFE and the text style FFFF, which the drawing has not: B4 keeps its linetype 25 and
             // its text style 29, with the bits of them (2 and 11).
-            string text = Edited(DxfHatchLeaderDrawings.R2018, "2C", r => r.Replace("\n 91\n-1056964608\n", "\n 91\n-1056964608\n340\nFFFE\n").Replace("\n342\n29\n", "\n342\nFFFF\n"));
+            string text = Edited(DxfHatchLeaderDrawings.R2018, "2C", r =>
+                r.Replace("\n 91\n-1056964608\n", "\n 91\n-1056964608\n340\nFFFE\n")
+                    .Replace("\n342\n29\n", "\n342\nFFFF\n")
+            );
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfMLeader words = ByHandle<DxfMLeader>(db, "B4");
 
@@ -259,19 +309,27 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Contains("\n343\n29\n", record, StringComparison.Ordinal);
             Assert.DoesNotContain("FFF", record, StringComparison.Ordinal);
             int kept = (1 << 2) | (1 << 11) | (1 << 18) | (1 << 26) | (1 << 30);
-            Assert.Contains("\n 90\n" + kept.ToString(CultureInfo.InvariantCulture) + "\n170\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                "\n 90\n" + kept.ToString(CultureInfo.InvariantCulture) + "\n170\n",
+                record,
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
         public void ADimensionOrALeaderOfAStyleTheDrawingHasNot_AnswersFalse_AndChangesNothing()
         {
-            string text = Edited(DxfDimensionDrawings.R2018, "4D", r => r.Replace("\n  3\nGH_DIM\n", "\n  3\nNO_SUCH_STYLE\n"));
+            string text = Edited(DxfDimensionDrawings.R2018, "4D", r =>
+                r.Replace("\n  3\nGH_DIM\n", "\n  3\nNO_SUCH_STYLE\n")
+            );
             DxfDatabase db = DxfDatabase.Parse(text);
             Assert.False(ByHandle<DxfRotatedDimension>(db, "4D").SetFromStyle());
             Assert.Equal(text, db.ToText());
             Assert.False(new DxfRotatedDimension().SetFromStyle());
 
-            text = Edited(DxfHatchLeaderDrawings.R2018, "B2", r => r.Replace("\n  3\nStandard\n", "\n  3\nNO_SUCH_STYLE\n"));
+            text = Edited(DxfHatchLeaderDrawings.R2018, "B2", r =>
+                r.Replace("\n  3\nStandard\n", "\n  3\nNO_SUCH_STYLE\n")
+            );
             db = DxfDatabase.Parse(text);
             Assert.False(ByHandle<DxfLeader>(db, "B2").SetFromStyle());
             Assert.Equal(text, db.ToText());
@@ -302,9 +360,18 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Null(style.ArrowSymbol);
             Assert.Equal(4.0, style.ArrowSize);
             Assert.Equal(DxfTextAttachmentType.AttachmentMiddleOfTop, style.TextAttachmentType);
-            Assert.Equal(DxfTextAttachmentType.AttachmentMiddleOfTop, style.GetTextAttachmentType(DxfLeaderDirectionType.RightLeader));
-            Assert.Equal(DxfTextAttachmentType.AttachmentCenter, style.GetTextAttachmentType(DxfLeaderDirectionType.TopLeader));
-            Assert.Equal(DxfTextAttachmentType.AttachmentCenter, style.GetTextAttachmentType(DxfLeaderDirectionType.BottomLeader));
+            Assert.Equal(
+                DxfTextAttachmentType.AttachmentMiddleOfTop,
+                style.GetTextAttachmentType(DxfLeaderDirectionType.RightLeader)
+            );
+            Assert.Equal(
+                DxfTextAttachmentType.AttachmentCenter,
+                style.GetTextAttachmentType(DxfLeaderDirectionType.TopLeader)
+            );
+            Assert.Equal(
+                DxfTextAttachmentType.AttachmentCenter,
+                style.GetTextAttachmentType(DxfLeaderDirectionType.BottomLeader)
+            );
             Assert.Equal(DxfTextAngleType.HorizontalAngle, style.TextAngleType);
             Assert.Equal(DxfTextAlignmentType.LeftAlignment, style.TextAlignmentType);
             Assert.True(style.TextColor.IsByBlock);
@@ -337,7 +404,12 @@ namespace GeometryHelper.UnitTest.Dxf
             // drawn with has those, and the style's landing gap and dogleg; the drawing's style keeps its own.
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             var mleader = new DxfMLeader();
-            mleader.MText = new DxfMText { Contents = "A-1", Location = new GeoPoint3(10, 5, 0), TextHeight = 4.0 };
+            mleader.MText = new DxfMText
+            {
+                Contents = "A-1",
+                Location = new GeoPoint3(10, 5, 0),
+                TextHeight = 4.0,
+            };
             mleader.AddLeaderLine(new GeoPoint3(0, 0, 0));
             db.ModelSpace.AppendEntity(mleader);
             mleader.TextHeight = 2.5;
@@ -386,7 +458,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Throws<ArgumentNullException>(() => words.GetOverridedMLeaderStyle(null));
             Assert.Throws<ArgumentException>(() => words.GetOverridedMLeaderStyle(standard));
-            Assert.Throws<InvalidOperationException>(() => new DxfMLeader().GetOverridedMLeaderStyle(new DxfMLeaderStyle()));
+            Assert.Throws<InvalidOperationException>(() =>
+                new DxfMLeader().GetOverridedMLeaderStyle(new DxfMLeaderStyle())
+            );
 
             // B4 overrides everything: the style it is drawn with has its values, words 2.5 high.
             var drawn = new DxfMLeaderStyle();
@@ -430,7 +504,11 @@ namespace GeometryHelper.UnitTest.Dxf
             OnlyTheseChanged(text, saved, "B4");
 
             // In the order of the DXF reference, after the line's index: 170, 92, 171, 40, then the flags 1 + 2 + 8 + 16.
-            Assert.Contains("\n 91\n1\n170\n2\n 92\n" + Red + "\n171\n50\n 40\n2.5\n 93\n27\n305\n}\n", Records(saved).Single(r => HandleOf(r) == "B4"), StringComparison.Ordinal);
+            Assert.Contains(
+                "\n 91\n1\n170\n2\n 92\n" + Red + "\n171\n50\n 40\n2.5\n 93\n27\n305\n}\n",
+                Records(saved).Single(r => HandleOf(r) == "B4"),
+                StringComparison.Ordinal
+            );
 
             DxfMLeader back = ByHandle<DxfMLeader>(DxfDatabase.Parse(saved), "B4");
             Assert.Equal(DxfLeaderType.SplineLeader, back.GetLeaderLineType(1));
@@ -473,7 +551,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfMLeader old = ByHandle<DxfMLeader>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2000), "B4");
             Assert.Throws<InvalidOperationException>(() => old.SetLeaderLineType(1, DxfLeaderType.SplineLeader));
-            Assert.Throws<InvalidOperationException>(() => old.SetLeaderLineColor(1, DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1)));
+            Assert.Throws<InvalidOperationException>(() =>
+                old.SetLeaderLineColor(1, DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1))
+            );
             Assert.Throws<InvalidOperationException>(() => old.SetLeaderLineWeight(1, DxfLineWeight.LineWeight050));
             Assert.Throws<InvalidOperationException>(() => old.SetArrowSize(1, 2.5));
 
@@ -489,7 +569,10 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ALineOfNoFlagsWhoseColourIsNotByBlock_IsOfThatColour_AsEzdxfWritesAndDrawsIt()
         {
             // ezdxf writes a line's colour (92) and no flags: B4's second line made red so.
-            string text = DxfHatchLeaderDrawings.R2018.Replace("\n 10\n780.0\n 20\n10.0\n 30\n0.0\n 91\n1\n 92\n-1056964608\n", "\n 10\n780.0\n 20\n10.0\n 30\n0.0\n 91\n1\n 92\n" + Red + "\n");
+            string text = DxfHatchLeaderDrawings.R2018.Replace(
+                "\n 10\n780.0\n 20\n10.0\n 30\n0.0\n 91\n1\n 92\n-1056964608\n",
+                "\n 10\n780.0\n 20\n10.0\n 30\n0.0\n 91\n1\n 92\n" + Red + "\n"
+            );
             Assert.NotEqual(DxfHatchLeaderDrawings.R2018, text);
             DxfMLeader words = ByHandle<DxfMLeader>(DxfDatabase.Parse(text), "B4");
 
@@ -501,13 +584,20 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ALineOfEzdxfsColour_GivenATypeOfItsOwn_KeepsItsColour()
         {
             // The red of B4's second line is read as its own while it has no flags; given a type of its own, its flags say so.
-            string text = DxfHatchLeaderDrawings.R2018.Replace("\n 10\n780.0\n 20\n10.0\n 30\n0.0\n 91\n1\n 92\n-1056964608\n", "\n 10\n780.0\n 20\n10.0\n 30\n0.0\n 91\n1\n 92\n" + Red + "\n");
+            string text = DxfHatchLeaderDrawings.R2018.Replace(
+                "\n 10\n780.0\n 20\n10.0\n 30\n0.0\n 91\n1\n 92\n-1056964608\n",
+                "\n 10\n780.0\n 20\n10.0\n 30\n0.0\n 91\n1\n 92\n" + Red + "\n"
+            );
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfMLeader words = ByHandle<DxfMLeader>(db, "B4");
 
             words.SetLeaderLineType(1, DxfLeaderType.SplineLeader);
             Assert.Equal(1, words.GetLeaderLineColor(1).ColorIndex);
-            Assert.Contains("\n 91\n1\n170\n2\n 92\n" + Red + "\n 93\n3\n305\n}\n", Records(db.ToText()).Single(r => HandleOf(r) == "B4"), StringComparison.Ordinal);
+            Assert.Contains(
+                "\n 91\n1\n170\n2\n 92\n" + Red + "\n 93\n3\n305\n}\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "B4"),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -525,7 +615,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.DoesNotContain(leaders, e => e.Color.IsByBlock);
             Assert.Equal(2, leaders.Count(e => e.ColorIndex == 256));
             Assert.Equal(6, leaders.Count(e => e.ColorIndex == 1));
-            Assert.Contains(leaders.OfType<DxfPolyline>(), l => l.ColorIndex == 256 && l.GetPoint3dAt(l.NumberOfVertices - 1).IsEqualTo(new GeoPoint3(790, -1.25, 0), Tol) && l.GetPoint3dAt(0).Y > 0.0);
+            Assert.Contains(leaders.OfType<DxfPolyline>(), l =>
+                l.ColorIndex == 256
+                && l.GetPoint3dAt(l.NumberOfVertices - 1).IsEqualTo(new GeoPoint3(790, -1.25, 0), Tol)
+                && l.GetPoint3dAt(0).Y > 0.0
+            );
         }
 
         [Fact]
@@ -556,7 +650,12 @@ namespace GeometryHelper.UnitTest.Dxf
         private static DxfMLeader TwoLongLines(DxfDatabase db)
         {
             var mleader = new DxfMLeader();
-            mleader.MText = new DxfMText { Contents = "A-1", Location = new GeoPoint3(10, 5, 0), TextHeight = 4.0 };
+            mleader.MText = new DxfMText
+            {
+                Contents = "A-1",
+                Location = new GeoPoint3(10, 5, 0),
+                TextHeight = 4.0,
+            };
             mleader.AddLeaderLine(new GeoPoint3(-100, -50, 0));
             mleader.AddLeaderLine(new GeoPoint3(-100, 60, 0));
             db.ModelSpace.AppendEntity(mleader);
@@ -564,9 +663,24 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The lengths of the closed filled arrows a multileader explodes to, line by line: from the tip of each SOLID (its second corner) to the middle of its back, to 1E-9.</summary>
-        private static double[] DrawnArrows(DxfMLeader mleader) => mleader.Explode().OfType<DxfSolid>()
-            .Select(a => Math.Round(a.GetPointAt(1).DistanceTo(new GeoPoint3((a.GetPointAt(0).X + a.GetPointAt(2).X) / 2, (a.GetPointAt(0).Y + a.GetPointAt(2).Y) / 2, (a.GetPointAt(0).Z + a.GetPointAt(2).Z) / 2)), 9))
-            .ToArray();
+        private static double[] DrawnArrows(DxfMLeader mleader) =>
+            mleader
+                .Explode()
+                .OfType<DxfSolid>()
+                .Select(a =>
+                    Math.Round(
+                        a.GetPointAt(1)
+                            .DistanceTo(
+                                new GeoPoint3(
+                                    (a.GetPointAt(0).X + a.GetPointAt(2).X) / 2,
+                                    (a.GetPointAt(0).Y + a.GetPointAt(2).Y) / 2,
+                                    (a.GetPointAt(0).Z + a.GetPointAt(2).Z) / 2
+                                )
+                            ),
+                        9
+                    )
+                )
+                .ToArray();
 
         [Fact]
         public void ALineOfATypeWeightAndArrowOfItsOwn_IsDrawnWithThem()
@@ -589,7 +703,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(1, parts.Count(e => e.LineWeight == DxfLineWeight.LineWeight050));
             Assert.Equal(4, parts.Count(e => !(e is DxfMText) && e.LineWeight == DxfLineWeight.ByBlock));
             Assert.All(parts.OfType<DxfSolid>(), a => Assert.Equal(words.LineWeight, a.LineWeight));
-            Assert.Contains(parts.OfType<DxfPolyline>(), l => l.GetPoint3dAt(0).IsEqualTo(tip.Add(along.Multiply(2.0)), Tol) && l.LineWeight == DxfLineWeight.LineWeight050);
+            Assert.Contains(parts.OfType<DxfPolyline>(), l =>
+                l.GetPoint3dAt(0).IsEqualTo(tip.Add(along.Multiply(2.0)), Tol)
+                && l.LineWeight == DxfLineWeight.LineWeight050
+            );
 
             // Splined of its own: its arrow and one spline; invisible of its own: nothing of it.
             words.SetLeaderLineType(1, DxfLeaderType.SplineLeader);
@@ -624,7 +741,10 @@ namespace GeometryHelper.UnitTest.Dxf
             db.ModelSpace.AppendEntity(leader);
 
             leader.SetPlane(new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1)));
-            Assert.Equal(new[] { Bits(new GeoPoint3(0, 0, 0)), Bits(new GeoPoint3(10, 10, 0)), Bits(new GeoPoint3(20, 10, 0)) }, Enumerable.Range(0, 3).Select(i => Bits(leader.VertexAt(i))));
+            Assert.Equal(
+                new[] { Bits(new GeoPoint3(0, 0, 0)), Bits(new GeoPoint3(10, 10, 0)), Bits(new GeoPoint3(20, 10, 0)) },
+                Enumerable.Range(0, 3).Select(i => Bits(leader.VertexAt(i)))
+            );
             Assert.Equal(Bits(new GeoVector3(0, 0, 1)), Bits(leader.Normal));
         }
 
@@ -724,7 +844,10 @@ namespace GeometryHelper.UnitTest.Dxf
                     {
                         for (int i = 0; i < back.VerticesCount(line); i++)
                         {
-                            Assert.True(tilted.IsPointOn(back.GetVertex(line, i), Tol), back.GetVertex(line, i).ToString());
+                            Assert.True(
+                                tilted.IsPointOn(back.GetVertex(line, i), Tol),
+                                back.GetVertex(line, i).ToString()
+                            );
                         }
                     }
                 }
@@ -741,16 +864,22 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(saved, db.ToText());
             }
 
-            Assert.Throws<ArgumentException>(() => ByHandle<DxfMLeader>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018), "BA").SetPlane(default(GeoPlane3)));
+            Assert.Throws<ArgumentException>(() =>
+                ByHandle<DxfMLeader>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018), "BA").SetPlane(default(GeoPlane3))
+            );
         }
 
         [Fact]
         public void AMirroredMultileader_PutInItsOwnPlane_ChangesNothing_AndPutInATiltedOneIsMirroredThere()
         {
             // B4 mirrored in x: its x axis (-1, 0, 0), its plane turned over (297), its words seen from below, of normal -z.
-            string text = Edited(DxfHatchLeaderDrawings.R2018, "B4", r => r
-                .Replace("\n111\n1.0\n121\n0.0\n131\n0.0\n112\n0.0\n122\n1.0\n132\n0.0\n297\n0\n", "\n111\n-1.0\n121\n0.0\n131\n0.0\n112\n0.0\n122\n1.0\n132\n0.0\n297\n1\n")
-                .Replace("\n 11\n0.0\n 21\n0.0\n 31\n1.0\n340\n29\n", "\n 11\n0.0\n 21\n0.0\n 31\n-1.0\n340\n29\n"));
+            string text = Edited(DxfHatchLeaderDrawings.R2018, "B4", r =>
+                r.Replace(
+                        "\n111\n1.0\n121\n0.0\n131\n0.0\n112\n0.0\n122\n1.0\n132\n0.0\n297\n0\n",
+                        "\n111\n-1.0\n121\n0.0\n131\n0.0\n112\n0.0\n122\n1.0\n132\n0.0\n297\n1\n"
+                    )
+                    .Replace("\n 11\n0.0\n 21\n0.0\n 31\n1.0\n340\n29\n", "\n 11\n0.0\n 21\n0.0\n 31\n-1.0\n340\n29\n")
+            );
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfMLeader words = ByHandle<DxfMLeader>(db, "B4");
             Assert.True(words.Normal.IsEqualTo(new GeoVector3(0, 0, 1), Tol), words.Normal.ToString());
@@ -772,28 +901,43 @@ namespace GeometryHelper.UnitTest.Dxf
         public void AMultileaderOfSkewedAxes_PutInItsOwnPlane_KeepsThem()
         {
             // B4's y axis (0.6, 0.8, 0), in its plane but not square to its x axis, as a shear leaves it.
-            string text = Edited(DxfHatchLeaderDrawings.R2018, "B4", r => r.Replace("\n112\n0.0\n122\n1.0\n132\n0.0\n297\n0\n", "\n112\n0.6\n122\n0.8\n132\n0.0\n297\n0\n"));
+            string text = Edited(DxfHatchLeaderDrawings.R2018, "B4", r =>
+                r.Replace("\n112\n0.0\n122\n1.0\n132\n0.0\n297\n0\n", "\n112\n0.6\n122\n0.8\n132\n0.0\n297\n0\n")
+            );
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfMLeader words = ByHandle<DxfMLeader>(db, "B4");
 
             words.SetPlane(words.GetPlane());
             Assert.Equal(text, db.ToText());
             words.SetPlane(new GeoPlane3(new GeoPoint3(0, 0, 5), new GeoVector3(0, 0, 1)));
-            Assert.Contains("\n112\n0.6\n122\n0.8\n132\n0.0\n297\n0\n", Records(db.ToText()).Single(r => HandleOf(r) == "B4"), StringComparison.Ordinal);
+            Assert.Contains(
+                "\n112\n0.6\n122\n0.8\n132\n0.0\n297\n0\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "B4"),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
         public void ALeaderOfALongHookAndANormalAHairOffUnitLength_PutInItsOwnPlane_ChangesNothing()
         {
             // B2's hook (2, 0, 0), as a scale of 2 leaves it, and its normal (0, 0, 1.0000000000001), of unit length to 1E-12.
-            string text = Edited(DxfHatchLeaderDrawings.R2018, "B2", r => r.Replace("\n340\nB1\n", "\n340\nB1\n210\n0.0\n220\n0.0\n230\n1.0000000000001\n211\n2.0\n221\n0.0\n231\n0.0\n"));
+            string text = Edited(DxfHatchLeaderDrawings.R2018, "B2", r =>
+                r.Replace(
+                    "\n340\nB1\n",
+                    "\n340\nB1\n210\n0.0\n220\n0.0\n230\n1.0000000000001\n211\n2.0\n221\n0.0\n231\n0.0\n"
+                )
+            );
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfLeader leader = ByHandle<DxfLeader>(db, "B2");
 
             leader.SetPlane(leader.GetPlane());
             Assert.Equal(text, db.ToText());
             leader.SetPlane(new GeoPlane3(new GeoPoint3(0, 0, 5), new GeoVector3(0, 0, 1)));
-            Assert.Contains("\n211\n2.0\n221\n0.0\n231\n0.0\n", Records(db.ToText()).Single(r => HandleOf(r) == "B2"), StringComparison.Ordinal);
+            Assert.Contains(
+                "\n211\n2.0\n221\n0.0\n231\n0.0\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "B2"),
+                StringComparison.Ordinal
+            );
         }
 
         /// <summary>A drawing with the record of a handle edited, the edit made a change.</summary>

@@ -34,8 +34,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Cuts a loop by the straight line through a segment.
         /// </summary>
-        public static bool TrySplitBy(GeoPolygon2 polygon, GeoLine2 cutter, out GeoPolygon2[] left, out GeoPolygon2[] right)
-            => TrySplitBy(polygon, cutter, out left, out right, Tolerance.Global);
+        public static bool TrySplitBy(
+            GeoPolygon2 polygon,
+            GeoLine2 cutter,
+            out GeoPolygon2[] left,
+            out GeoPolygon2[] right
+        ) => TrySplitBy(polygon, cutter, out left, out right, Tolerance.Global);
 
         /// <summary>
         /// Cuts a loop by the straight line through a segment, within a tolerance.
@@ -61,7 +65,13 @@ namespace GeometryHelper.Core
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TrySplitBy(GeoPolygon2 polygon, GeoLine2 cutter, out GeoPolygon2[] left, out GeoPolygon2[] right, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolygon2 polygon,
+            GeoLine2 cutter,
+            out GeoPolygon2[] left,
+            out GeoPolygon2[] right,
+            Tolerance tolerance
+        )
         {
             if (polygon == null)
             {
@@ -85,7 +95,13 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            bool split = Splition3.TrySplitBy(lifted, plane, out GeoPolygon3[] above, out GeoPolygon3[] below, tolerance);
+            bool split = Splition3.TrySplitBy(
+                lifted,
+                plane,
+                out GeoPolygon3[] above,
+                out GeoPolygon3[] below,
+                tolerance
+            );
 
             left = FlattenAsTheyAre(frame, above);
             right = FlattenAsTheyAre(frame, below);
@@ -96,8 +112,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Cuts a face by the straight line through a segment.
         /// </summary>
-        public static bool TrySplitBy(GeoFace2 face, GeoLine2 cutter, out GeoFace2[] left, out GeoFace2[] right)
-            => TrySplitBy(face, cutter, out left, out right, Tolerance.Global);
+        public static bool TrySplitBy(GeoFace2 face, GeoLine2 cutter, out GeoFace2[] left, out GeoFace2[] right) =>
+            TrySplitBy(face, cutter, out left, out right, Tolerance.Global);
 
         /// <summary>
         /// Cuts a face by the straight line through a segment, within a tolerance.
@@ -118,7 +134,13 @@ namespace GeometryHelper.Core
         /// cut: false, and the face comes back whole on the left.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static bool TrySplitBy(GeoFace2 face, GeoLine2 cutter, out GeoFace2[] left, out GeoFace2[] right, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoFace2 face,
+            GeoLine2 cutter,
+            out GeoFace2[] left,
+            out GeoFace2[] right,
+            Tolerance tolerance
+        )
         {
             if (face == null)
             {
@@ -163,8 +185,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Cuts a loop in two along a chain drawn across it.
         /// </summary>
-        public static bool TrySplitBy(GeoPolygon2 subject, GeoPolyline2 cutLine, out GeoPolygon2[] pieces)
-            => TrySplitBy(subject, cutLine, out pieces, Tolerance.Global);
+        public static bool TrySplitBy(GeoPolygon2 subject, GeoPolyline2 cutLine, out GeoPolygon2[] pieces) =>
+            TrySplitBy(subject, cutLine, out pieces, Tolerance.Global);
 
         /// <summary>
         /// Cuts a loop in two along a chain drawn across it, within a tolerance.
@@ -195,7 +217,12 @@ namespace GeometryHelper.Core
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop or the chain is null.</exception>
-        public static bool TrySplitBy(GeoPolygon2 subject, GeoPolyline2 cutLine, out GeoPolygon2[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolygon2 subject,
+            GeoPolyline2 cutLine,
+            out GeoPolygon2[] pieces,
+            Tolerance tolerance
+        )
         {
             if (subject == null)
             {
@@ -280,7 +307,11 @@ namespace GeometryHelper.Core
                 return null;
             }
 
-            return GeoPolygon3.FromValidated(corners, new GeoVector3(areaVector.X / area, areaVector.Y / area, areaVector.Z / area), area);
+            return GeoPolygon3.FromValidated(
+                corners,
+                new GeoVector3(areaVector.X / area, areaVector.Y / area, areaVector.Z / area),
+                area
+            );
         }
 
         /// <summary>

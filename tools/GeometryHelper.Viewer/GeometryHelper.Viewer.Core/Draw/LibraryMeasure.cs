@@ -101,10 +101,17 @@ namespace GeometryHelper.Viewer
                 if (noteA != null || noteB != null)
                 {
                     tolerance = Scene.MinimalTolerance;
-                    result.Notes.Add("a shape was rebuilt at 1E-12 and measured at it, since the library refused it at the tolerance of the scene");
+                    result.Notes.Add(
+                        "a shape was rebuilt at 1E-12 and measured at it, since the library refused it at the tolerance of the scene"
+                    );
                 }
             }
-            catch (Exception e) when (e is ArgumentException || e is InvalidOperationException || e is NotSupportedException || e is FormatException)
+            catch (Exception e)
+                when (e is ArgumentException
+                    || e is InvalidOperationException
+                    || e is NotSupportedException
+                    || e is FormatException
+                )
             {
                 result.Notes.Add("the library cannot rebuild the shape: " + e.Message);
                 return result;
@@ -129,11 +136,21 @@ namespace GeometryHelper.Viewer
 
                 if (line is GeoLine2 l2)
                 {
-                    SetLine(result, new Vec3(l2.StartPoint.X, l2.StartPoint.Y, 0.0), new Vec3(l2.EndPoint.X, l2.EndPoint.Y, 0.0), reversedLine);
+                    SetLine(
+                        result,
+                        new Vec3(l2.StartPoint.X, l2.StartPoint.Y, 0.0),
+                        new Vec3(l2.EndPoint.X, l2.EndPoint.Y, 0.0),
+                        reversedLine
+                    );
                 }
                 else if (line is GeoLine3 l3)
                 {
-                    SetLine(result, new Vec3(l3.StartPoint.X, l3.StartPoint.Y, l3.StartPoint.Z), new Vec3(l3.EndPoint.X, l3.EndPoint.Y, l3.EndPoint.Z), reversedLine);
+                    SetLine(
+                        result,
+                        new Vec3(l3.StartPoint.X, l3.StartPoint.Y, l3.StartPoint.Z),
+                        new Vec3(l3.EndPoint.X, l3.EndPoint.Y, l3.EndPoint.Z),
+                        reversedLine
+                    );
                 }
             }
 
@@ -146,13 +163,21 @@ namespace GeometryHelper.Viewer
             result.To = reversed ? start : end;
         }
 
-        private static string Describe(SceneItem item) => item.Kind + (string.IsNullOrEmpty(item.Name) ? string.Empty : " '" + item.Name + "'");
+        private static string Describe(SceneItem item) =>
+            item.Kind + (string.IsNullOrEmpty(item.Name) ? string.Empty : " '" + item.Name + "'");
 
         /// <summary>
         /// Calls <c>name(other, tolerance)</c>, or <c>name(other)</c> under a scope of the tolerance where the library offers no overload with
         /// one, on the first shape and, where the library has none for the kinds, on the second with the first as the argument.
         /// </summary>
-        private static object Call(string name, object first, object second, Tolerance tolerance, out bool reversed, List<string> notes)
+        private static object Call(
+            string name,
+            object first,
+            object second,
+            Tolerance tolerance,
+            out bool reversed,
+            List<string> notes
+        )
         {
             reversed = false;
             MethodInfo method = Find(first.GetType(), name, second.GetType());
@@ -169,17 +194,29 @@ namespace GeometryHelper.Viewer
 
             if (method == null)
             {
-                notes.Add("the library has no " + name + " between " + first.GetType().Name + " and " + second.GetType().Name);
+                notes.Add(
+                    "the library has no " + name + " between " + first.GetType().Name + " and " + second.GetType().Name
+                );
                 return null;
             }
 
             try
             {
-                return method.Invoke(subject, method.GetParameters().Length == 2 ? new[] { argument, tolerance } : new[] { argument });
+                return method.Invoke(
+                    subject,
+                    method.GetParameters().Length == 2 ? new[] { argument, tolerance } : new[] { argument }
+                );
             }
             catch (TargetInvocationException e) when (e.InnerException != null)
             {
-                notes.Add(name + " refused the shapes (" + e.InnerException.GetType().Name + ": " + e.InnerException.Message + ")");
+                notes.Add(
+                    name
+                        + " refused the shapes ("
+                        + e.InnerException.GetType().Name
+                        + ": "
+                        + e.InnerException.Message
+                        + ")"
+                );
                 return null;
             }
         }
@@ -191,7 +228,8 @@ namespace GeometryHelper.Viewer
         /// </summary>
         private static MethodInfo Find(Type type, string name, Type other)
         {
-            IEnumerable<MethodInfo> candidates = type.GetMethods(BindingFlags.Public | BindingFlags.Instance).Where(m => m.Name == name && m.GetParameters()[0].ParameterType.IsAssignableFrom(other));
+            IEnumerable<MethodInfo> candidates = type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .Where(m => m.Name == name && m.GetParameters()[0].ParameterType.IsAssignableFrom(other));
 
             return candidates
                 .Where(m => m.GetParameters().Length == 2 && m.GetParameters()[1].ParameterType == typeof(Tolerance))

@@ -24,9 +24,18 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Thousandth = Tolerance.Default;
 
-        private static readonly GeoTriangle3 Triangle = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
+        private static readonly GeoTriangle3 Triangle = new GeoTriangle3(
+            new GeoPoint3(0, 0, 0),
+            new GeoPoint3(100, 0, 0),
+            new GeoPoint3(0, 100, 0)
+        );
 
-        private static readonly GeoPolygon3 Square = new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0));
+        private static readonly GeoPolygon3 Square = new GeoPolygon3(
+            new GeoPoint3(0, 0, 0),
+            new GeoPoint3(100, 0, 0),
+            new GeoPoint3(100, 100, 0),
+            new GeoPoint3(0, 100, 0)
+        );
 
         private static readonly GeoFace3 Plate = new GeoFace3(Square);
 
@@ -64,9 +73,14 @@ namespace GeometryHelper.UnitTest.Solid
         public void ARayLyingLevelOverATurnedTriangle_IsGivenNothing_FarOutOrNot(double offset, double angle)
         {
             // The triangle and the rays a hair either side of its plane, turned about an axis askew and moved out.
-            GeoTransform3 move = GeoTransform3.Translation(new GeoVector3(offset, -2.0 * offset, offset)).Multiply(
-                GeoTransform3.RotationAxis(new GeoPoint3(0, 0, 0), new GeoVector3(0.3, -0.5, 0.8), angle));
-            var triangle = new GeoTriangle3(new GeoPoint3(0, 0, 0).TransformBy(move), new GeoPoint3(100, 0, 0).TransformBy(move), new GeoPoint3(0, 100, 0).TransformBy(move));
+            GeoTransform3 move = GeoTransform3
+                .Translation(new GeoVector3(offset, -2.0 * offset, offset))
+                .Multiply(GeoTransform3.RotationAxis(new GeoPoint3(0, 0, 0), new GeoVector3(0.3, -0.5, 0.8), angle));
+            var triangle = new GeoTriangle3(
+                new GeoPoint3(0, 0, 0).TransformBy(move),
+                new GeoPoint3(100, 0, 0).TransformBy(move),
+                new GeoPoint3(0, 100, 0).TransformBy(move)
+            );
 
             foreach (double height in new[] { 0.0, 1E-9, -1E-9, 3E-4, -3E-4 })
             {
@@ -112,8 +126,9 @@ namespace GeometryHelper.UnitTest.Solid
             // From 0.0009 under the plane and rising 1.5E-5, the ray crosses it 60 along, and runs from -9E-4 to +3E-4 over the
             // triangle: both ends of the part over it lie within the planar tolerance, but it crosses the plane there, as the segment
             // from its origin and the line along it are seen to.
-            GeoTransform3 move = GeoTransform3.Translation(new GeoVector3(offset, -2.0 * offset, offset)).Multiply(
-                GeoTransform3.RotationAxis(new GeoPoint3(0, 0, 0), new GeoVector3(0.3, -0.5, 0.8), angle));
+            GeoTransform3 move = GeoTransform3
+                .Translation(new GeoVector3(offset, -2.0 * offset, offset))
+                .Multiply(GeoTransform3.RotationAxis(new GeoPoint3(0, 0, 0), new GeoVector3(0.3, -0.5, 0.8), angle));
             GeoPoint3 F(double x, double y, double z) => new GeoPoint3(x, y, z).TransformBy(move);
             var triangle = new GeoTriangle3(F(0, 0, 0), F(100, 0, 0), F(0, 100, 0));
             var square = new GeoPolygon3(F(0, 0, 0), F(100, 0, 0), F(100, 100, 0), F(0, 100, 0));
@@ -125,11 +140,29 @@ namespace GeometryHelper.UnitTest.Solid
                 GeoPoint3 crossing = F(x + 60, 20, 0);
                 var segment = new GeoLine3(ray.Origin, F(x + 120, 20, 0.0009));
 
-                Assert.InRange(Assert.Single(segment.GetIntersections(triangle, Thousandth)).DistanceTo(crossing), 0.0, 1E-5);
-                Assert.InRange(Assert.Single(new GeoXLine3(ray.Origin, along).GetIntersections(triangle, Thousandth)).DistanceTo(crossing), 0.0, 1E-5);
-                Assert.InRange(Assert.Single(ray.GetIntersections(triangle, Thousandth)).DistanceTo(crossing), 0.0, 1E-5);
+                Assert.InRange(
+                    Assert.Single(segment.GetIntersections(triangle, Thousandth)).DistanceTo(crossing),
+                    0.0,
+                    1E-5
+                );
+                Assert.InRange(
+                    Assert
+                        .Single(new GeoXLine3(ray.Origin, along).GetIntersections(triangle, Thousandth))
+                        .DistanceTo(crossing),
+                    0.0,
+                    1E-5
+                );
+                Assert.InRange(
+                    Assert.Single(ray.GetIntersections(triangle, Thousandth)).DistanceTo(crossing),
+                    0.0,
+                    1E-5
+                );
                 Assert.InRange(Assert.Single(ray.GetIntersections(square, Thousandth)).DistanceTo(crossing), 0.0, 1E-5);
-                Assert.InRange(Assert.Single(ray.GetIntersections(new GeoFace3(square), Thousandth)).DistanceTo(crossing), 0.0, 1E-5);
+                Assert.InRange(
+                    Assert.Single(ray.GetIntersections(new GeoFace3(square), Thousandth)).DistanceTo(crossing),
+                    0.0,
+                    1E-5
+                );
             }
         }
 
@@ -157,11 +190,28 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // Within the tolerance of the top face, from inside, from beside the box and dipping across it, and from an edge: the crossings
             // of the neighbouring faces, as the segment from the origin past the box is given them.
-            AssertPoints(new GeoRay3(new GeoPoint3(5, 5, 9.9995), GeoVector3.XAxis).GetIntersections(Box, Thousandth), new GeoPoint3(10, 5, 9.9995));
-            AssertPoints(new GeoXLine3(new GeoPoint3(5, 5, 9.9995), GeoVector3.XAxis).GetIntersections(Box, Thousandth), new GeoPoint3(0, 5, 9.9995), new GeoPoint3(10, 5, 9.9995));
-            Assert.Equal(2, new GeoRay3(new GeoPoint3(-5, 5, 10.0005), GeoVector3.XAxis).GetIntersections(Box, Thousandth).Length);
-            Assert.Equal(2, new GeoRay3(new GeoPoint3(5, 5, 10.0005), new GeoVector3(1, 0, -2E-4)).GetIntersections(Box, Thousandth).Length);
-            Assert.Single(new GeoRay3(new GeoPoint3(9.9995, 5, 9.9995), GeoVector3.YAxis).GetIntersections(Box, Thousandth));
+            AssertPoints(
+                new GeoRay3(new GeoPoint3(5, 5, 9.9995), GeoVector3.XAxis).GetIntersections(Box, Thousandth),
+                new GeoPoint3(10, 5, 9.9995)
+            );
+            AssertPoints(
+                new GeoXLine3(new GeoPoint3(5, 5, 9.9995), GeoVector3.XAxis).GetIntersections(Box, Thousandth),
+                new GeoPoint3(0, 5, 9.9995),
+                new GeoPoint3(10, 5, 9.9995)
+            );
+            Assert.Equal(
+                2,
+                new GeoRay3(new GeoPoint3(-5, 5, 10.0005), GeoVector3.XAxis).GetIntersections(Box, Thousandth).Length
+            );
+            Assert.Equal(
+                2,
+                new GeoRay3(new GeoPoint3(5, 5, 10.0005), new GeoVector3(1, 0, -2E-4))
+                    .GetIntersections(Box, Thousandth)
+                    .Length
+            );
+            Assert.Single(
+                new GeoRay3(new GeoPoint3(9.9995, 5, 9.9995), GeoVector3.YAxis).GetIntersections(Box, Thousandth)
+            );
         }
 
         [Fact]
@@ -174,7 +224,11 @@ namespace GeometryHelper.UnitTest.Solid
                 double[] at = { random.NextDouble() * 10, random.NextDouble() * 10, random.NextDouble() * 10 };
                 int axis = random.Next(3);
                 at[axis] = (random.Next(2) == 0 ? 0 : 10) + (random.NextDouble() * 2 - 1) * 0.0015;
-                var direction = new GeoVector3(random.NextDouble() * 2 - 1, random.NextDouble() * 2 - 1, (random.NextDouble() * 2 - 1) * (i % 2 == 0 ? 1E-4 : 1.0));
+                var direction = new GeoVector3(
+                    random.NextDouble() * 2 - 1,
+                    random.NextDouble() * 2 - 1,
+                    (random.NextDouble() * 2 - 1) * (i % 2 == 0 ? 1E-4 : 1.0)
+                );
 
                 if (direction.Length < 0.1)
                 {
@@ -190,7 +244,10 @@ namespace GeometryHelper.UnitTest.Solid
                 }
 
                 GeoPoint3[] fromRay = ray.GetIntersections(Box, Thousandth);
-                GeoPoint3[] fromSegment = Box.GetIntersections(ray.ToLine(Math.Max(reach, 0.0) + Thousandth.EqualPoint), Thousandth);
+                GeoPoint3[] fromSegment = Box.GetIntersections(
+                    ray.ToLine(Math.Max(reach, 0.0) + Thousandth.EqualPoint),
+                    Thousandth
+                );
 
                 Assert.Equal(fromSegment, fromRay);
             }

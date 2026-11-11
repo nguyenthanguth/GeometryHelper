@@ -21,7 +21,14 @@ namespace GeometryHelper.Viewer
         /// <param name="expand">How much each box is grown by.</param>
         /// <param name="visit">What to do with a pair.</param>
         /// <param name="cancel">Stops the sweep.</param>
-        public static void Pairs(double[] lo, double[] hi, int count, double expand, Action<int, int> visit, CancellationToken cancel)
+        public static void Pairs(
+            double[] lo,
+            double[] hi,
+            int count,
+            double expand,
+            Action<int, int> visit,
+            CancellationToken cancel
+        )
         {
             if (count < 2)
             {
@@ -65,8 +72,12 @@ namespace GeometryHelper.Viewer
                         break;
                     }
 
-                    if (lo[3 * j + other1] <= hi[3 * i + other1] + expand && lo[3 * i + other1] <= hi[3 * j + other1] + expand
-                        && lo[3 * j + other2] <= hi[3 * i + other2] + expand && lo[3 * i + other2] <= hi[3 * j + other2] + expand)
+                    if (
+                        lo[3 * j + other1] <= hi[3 * i + other1] + expand
+                        && lo[3 * i + other1] <= hi[3 * j + other1] + expand
+                        && lo[3 * j + other2] <= hi[3 * i + other2] + expand
+                        && lo[3 * i + other2] <= hi[3 * j + other2] + expand
+                    )
                     {
                         visit(Math.Min(i, j), Math.Max(i, j));
                     }
@@ -81,7 +92,11 @@ namespace GeometryHelper.Viewer
         /// <param name="distance">The distance; a pair exactly that far apart is close.</param>
         /// <param name="cancel">Stops the sweep.</param>
         /// <returns>The pairs as lower index, higher index and distance, ordered by the two indexes.</returns>
-        public static List<(int First, int Second, double Distance)> ClosePairs(Vec3[] points, double distance, CancellationToken cancel)
+        public static List<(int First, int Second, double Distance)> ClosePairs(
+            Vec3[] points,
+            double distance,
+            CancellationToken cancel
+        )
         {
             int n = points.Length;
             var lo = new double[3 * n];
@@ -110,7 +125,8 @@ namespace GeometryHelper.Viewer
                         result.Add((i, j, d));
                     }
                 },
-                cancel);
+                cancel
+            );
 
             result.Sort((a, b) => a.Item1 != b.Item1 ? a.Item1.CompareTo(b.Item1) : a.Item2.CompareTo(b.Item2));
             return result;

@@ -28,8 +28,11 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets whether two boxes have the same corners, to the bit.</summary>
         /// <param name="other">The other box.</param>
         /// <returns>Whether they have.</returns>
-        public bool Equals(DxfExtents2d other)
-            => Same(MinPoint.X, other.MinPoint.X) && Same(MinPoint.Y, other.MinPoint.Y) && Same(MaxPoint.X, other.MaxPoint.X) && Same(MaxPoint.Y, other.MaxPoint.Y);
+        public bool Equals(DxfExtents2d other) =>
+            Same(MinPoint.X, other.MinPoint.X)
+            && Same(MinPoint.Y, other.MinPoint.Y)
+            && Same(MaxPoint.X, other.MaxPoint.X)
+            && Same(MaxPoint.Y, other.MaxPoint.Y);
 
         /// <summary>Gets whether an object is a box of the same corners, to the bit.</summary>
         /// <param name="obj">The object.</param>
@@ -38,14 +41,21 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gets a hash of the corners, the same for boxes of the same corners.</summary>
         /// <returns>The hash.</returns>
-        public override int GetHashCode()
-            => (((BitConverter.DoubleToInt64Bits(MinPoint.X).GetHashCode() * 31) + BitConverter.DoubleToInt64Bits(MinPoint.Y).GetHashCode()) * 31
-                + BitConverter.DoubleToInt64Bits(MaxPoint.X).GetHashCode()) * 31 + BitConverter.DoubleToInt64Bits(MaxPoint.Y).GetHashCode();
+        public override int GetHashCode() =>
+            (
+                (
+                    (BitConverter.DoubleToInt64Bits(MinPoint.X).GetHashCode() * 31)
+                    + BitConverter.DoubleToInt64Bits(MinPoint.Y).GetHashCode()
+                ) * 31
+                + BitConverter.DoubleToInt64Bits(MaxPoint.X).GetHashCode()
+            ) * 31
+            + BitConverter.DoubleToInt64Bits(MaxPoint.Y).GetHashCode();
 
         /// <summary>Gives the box as a line for debugging: its two corners.</summary>
         /// <returns>The line, such as <c>(0, 0) to (420, 297)</c>.</returns>
         public override string ToString() => MinPoint + " to " + MaxPoint;
 
-        private static bool Same(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
+        private static bool Same(double a, double b) =>
+            BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
     }
 }

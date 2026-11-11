@@ -38,7 +38,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Makes the Table Style dialog's view model over the drawing shown.</summary>
         /// <returns>The view model; null with no drawing.</returns>
-        public TableStyleManagerViewModel CreateTableStyleManager() => _current == null ? null : new TableStyleManagerViewModel(_current.Document);
+        public TableStyleManagerViewModel CreateTableStyleManager() =>
+            _current == null ? null : new TableStyleManagerViewModel(_current.Document);
 
         /// <summary>
         /// A click on the canvas with no command running: where it falls in a cell of a table of the space shown, the cell is
@@ -49,12 +50,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>Whether a cell was selected.</returns>
         public bool SelectTableCellAt(GeoPoint2 point, bool shift)
         {
-            if (_current == null || _current.Session.IsRunning || !CadTableEditor.TryCellAt(_current.Document.CurrentSpace, point, out string handle, out int row, out int column))
+            if (
+                _current == null
+                || _current.Session.IsRunning
+                || !CadTableEditor.TryCellAt(
+                    _current.Document.CurrentSpace,
+                    point,
+                    out string handle,
+                    out int row,
+                    out int column
+                )
+            )
             {
                 return false;
             }
 
-            if (shift && _tableCell != null && string.Equals(_tableCell.Handle, handle, StringComparison.OrdinalIgnoreCase))
+            if (
+                shift
+                && _tableCell != null
+                && string.Equals(_tableCell.Handle, handle, StringComparison.OrdinalIgnoreCase)
+            )
             {
                 _tableCell.ExtendTo(row, column);
             }
@@ -74,7 +89,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             CadCommandSession session = Session;
 
-            if (session == null || session.IsRunning || !CadTableEditor.TryCellAt(_current.Document.CurrentSpace, point, out _, out _, out _))
+            if (
+                session == null
+                || session.IsRunning
+                || !CadTableEditor.TryCellAt(_current.Document.CurrentSpace, point, out _, out _, out _)
+            )
             {
                 return false;
             }

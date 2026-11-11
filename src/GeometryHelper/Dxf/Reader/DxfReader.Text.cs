@@ -46,12 +46,25 @@ namespace GeometryHelper.Dxf
                 }
 
                 int? trueColour = r.TryInt(420, out int rgb) ? rgb & 0xFFFFFF : (int?)null;
-                int? lineweight = r.TryInt(370, out int weight) && weight >= 0 && DxfShape.IsLineweight(weight) ? weight : (int?)null;
+                int? lineweight =
+                    r.TryInt(370, out int weight) && weight >= 0 && DxfShape.IsLineweight(weight) ? weight : (int?)null;
                 string linetype = Decode((r.Text(6) ?? string.Empty).Trim());
                 int flags = r.Int(70, 0);
                 bool plotted = !r.TryInt(290, out int plot) || plot != 0;
 
-                _layerTable.Add(new DxfLayer(known, colour, trueColour, linetype.Length == 0 ? null : linetype, lineweight, off, (flags & 1) != 0, (flags & 4) != 0, plotted));
+                _layerTable.Add(
+                    new DxfLayer(
+                        known,
+                        colour,
+                        trueColour,
+                        linetype.Length == 0 ? null : linetype,
+                        lineweight,
+                        off,
+                        (flags & 1) != 0,
+                        (flags & 4) != 0,
+                        plotted
+                    )
+                );
             }
 
             #endregion
@@ -99,9 +112,10 @@ namespace GeometryHelper.Dxf
 
                 if (multiline)
                 {
-                    rotation = TryDirection(r, 1, out GeoVector3 direction) && direction.Length > 0.0
-                        ? Math.Atan2(direction.DotProduct(ocs.V), direction.DotProduct(ocs.U))
-                        : r.Real(50, 0.0) * Math.PI / 180.0;
+                    rotation =
+                        TryDirection(r, 1, out GeoVector3 direction) && direction.Length > 0.0
+                            ? Math.Atan2(direction.DotProduct(ocs.V), direction.DotProduct(ocs.U))
+                            : r.Real(50, 0.0) * Math.PI / 180.0;
                     width = Math.Max(0.0, Scaled(r.Real(41, 0.0)));
                     value = MText(r);
                 }
@@ -156,13 +170,22 @@ namespace GeometryHelper.Dxf
                         widthFactor *= along / up;
                     }
 
-                    if (!(height > 0.0) || double.IsInfinity(height) || double.IsInfinity(width) || !(widthFactor > 0.0) || double.IsInfinity(widthFactor))
+                    if (
+                        !(height > 0.0)
+                        || double.IsInfinity(height)
+                        || double.IsInfinity(width)
+                        || !(widthFactor > 0.0)
+                        || double.IsInfinity(widthFactor)
+                    )
                     {
                         throw new NotFinite();
                     }
                 }
 
-                Add(record, DxfText.Read(at, normal, height, DxfText.Turn(rotation), value, multiline, widthFactor, width));
+                Add(
+                    record,
+                    DxfText.Read(at, normal, height, DxfText.Turn(rotation), value, multiline, widthFactor, width)
+                );
             }
 
             /// <summary>
@@ -184,7 +207,9 @@ namespace GeometryHelper.Dxf
                 }
 
                 text.Append(r.Text(1) ?? string.Empty);
-                return Signs(PlainMText(Decode(Carets(text.ToString()), true)), true).Replace("\r", string.Empty).Replace("\0", string.Empty);
+                return Signs(PlainMText(Decode(Carets(text.ToString()), true)), true)
+                    .Replace("\r", string.Empty)
+                    .Replace("\0", string.Empty);
             }
 
             #endregion
@@ -219,10 +244,22 @@ namespace GeometryHelper.Dxf
 
                 switch (char.ToLowerInvariant(code))
                 {
-                    case 'c': read.Append('\u2205'); i += 3; continue;
-                    case 'd': read.Append('\u00B0'); i += 3; continue;
-                    case 'p': read.Append('\u00B1'); i += 3; continue;
-                    case '%' when !multiline: read.Append('%'); i += 3; continue;
+                    case 'c':
+                        read.Append('\u2205');
+                        i += 3;
+                        continue;
+                    case 'd':
+                        read.Append('\u00B0');
+                        i += 3;
+                        continue;
+                    case 'p':
+                        read.Append('\u00B1');
+                        i += 3;
+                        continue;
+                    case '%' when !multiline:
+                        read.Append('%');
+                        i += 3;
+                        continue;
                 }
 
                 if (!multiline && i + 4 < text.Length && IsDigit(code) && IsDigit(text[i + 3]) && IsDigit(text[i + 4]))
@@ -319,8 +356,10 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The words of a TEXT on one line: a line feed a space, a carriage return left out.</summary>
-        private static string OneLine(string text)
-            => text.IndexOf('\n') < 0 && text.IndexOf('\r') < 0 ? text : text.Replace("\r", string.Empty).Replace('\n', ' ');
+        private static string OneLine(string text) =>
+            text.IndexOf('\n') < 0 && text.IndexOf('\r') < 0
+                ? text
+                : text.Replace("\r", string.Empty).Replace('\n', ' ');
 
         /// <summary>
         /// The words of an MTEXT without its formatting: <c>\P</c> is a new line and <c>\N</c>, a new column, a space, the

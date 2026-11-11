@@ -21,11 +21,11 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A quarter turn of radius fifty from (0, 0, 0) to (50, 50, 0), bulging in the XY plane.
         /// </summary>
-        private static GeoEdge3 Quarter() => new GeoEdge3(
-            new GeoPoint3(0, 0, 0), new GeoPoint3(50, 50, 0), Math.Tan(Math.PI / 8.0), Up());
+        private static GeoEdge3 Quarter() =>
+            new GeoEdge3(new GeoPoint3(0, 0, 0), new GeoPoint3(50, 50, 0), Math.Tan(Math.PI / 8.0), Up());
 
-        private static GeoEdge2 QuarterFlat() => new GeoEdge2(
-            new GeoPoint2(0, 0), new GeoPoint2(50, 50), Math.Tan(Math.PI / 8.0));
+        private static GeoEdge2 QuarterFlat() =>
+            new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(50, 50), Math.Tan(Math.PI / 8.0));
 
         [Fact]
         public void AnArcLaidFlatIsTheArcThePlaneWouldHaveMade()
@@ -81,7 +81,8 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(
                 new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), 1.0).GetPointAtParameter(0.5).Y,
                 edge.GetPointAtParameter(0.5).Y,
-                9);
+                9
+            );
         }
 
         [Fact]
@@ -90,8 +91,11 @@ namespace GeometryHelper.UnitTest.Solid
             // The same numbers about a normal pointing anywhere give the same radius and the same length.
             var normals = new[]
             {
-                new GeoVector3(0, 0, 1), new GeoVector3(0, 1, 0), new GeoVector3(1, 0, 0),
-                new GeoVector3(0, 3, 4), new GeoVector3(0, -1, 2)
+                new GeoVector3(0, 0, 1),
+                new GeoVector3(0, 1, 0),
+                new GeoVector3(1, 0, 0),
+                new GeoVector3(0, 3, 4),
+                new GeoVector3(0, -1, 2),
             };
 
             foreach (GeoVector3 normal in normals)
@@ -111,7 +115,11 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.Equal(Math.PI * 50.0, edge.Length, 8);
 
                 // The middle of a half turn stands a radius from the middle of the chord.
-                Assert.Equal(50.0, edge.GetPointAtParameter(0.5).DistanceTo(new GeoPoint3(end.X * 0.5, end.Y * 0.5, end.Z * 0.5)), 8);
+                Assert.Equal(
+                    50.0,
+                    edge.GetPointAtParameter(0.5).DistanceTo(new GeoPoint3(end.X * 0.5, end.Y * 0.5, end.Z * 0.5)),
+                    8
+                );
             }
         }
 
@@ -130,7 +138,8 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 Assert.True(
                     back.GetPointAtParameter(i / 10.0).IsEqualTo(edge.GetPointAtParameter(1.0 - i / 10.0), Tight),
-                    "at " + i);
+                    "at " + i
+                );
             }
 
             // The bulge turns over and the plane stays, as it does in the plane. Turning the normal over as
@@ -148,13 +157,15 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoEdge3 edge = Quarter();
 
-            foreach (GeoTransform3 move in new[]
-            {
-                GeoTransform3.RotationX(0.7),
-                GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 1.1),
-                GeoTransform3.Translation(new GeoVector3(10, -20, 30)),
-                GeoTransform3.Mirror(GeoPlane3.XY)
-            })
+            foreach (
+                GeoTransform3 move in new[]
+                {
+                    GeoTransform3.RotationX(0.7),
+                    GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 1.1),
+                    GeoTransform3.Translation(new GeoVector3(10, -20, 30)),
+                    GeoTransform3.Mirror(GeoPlane3.XY),
+                }
+            )
             {
                 GeoEdge3 moved = edge.TransformBy(move);
 
@@ -164,15 +175,21 @@ namespace GeometryHelper.UnitTest.Solid
 
                 // The middle of the arc goes where the transformation sends it, mirror or no mirror.
                 Assert.True(
-                    moved.GetPointAtParameter(0.5).IsEqualTo(edge.GetPointAtParameter(0.5).TransformBy(move), new Tolerance(1E-7, 1E-7)),
-                    move.ToString());
+                    moved
+                        .GetPointAtParameter(0.5)
+                        .IsEqualTo(edge.GetPointAtParameter(0.5).TransformBy(move), new Tolerance(1E-7, 1E-7)),
+                    move.ToString()
+                );
             }
 
             // Translating is the cheap path and lands in the same place.
             var by = new GeoVector3(10, -20, 30);
 
-            Assert.True(edge.Translate(by).GetPointAtParameter(0.5)
-                .IsEqualTo(edge.TransformBy(GeoTransform3.Translation(by)).GetPointAtParameter(0.5), Tight));
+            Assert.True(
+                edge.Translate(by)
+                    .GetPointAtParameter(0.5)
+                    .IsEqualTo(edge.TransformBy(GeoTransform3.Translation(by)).GetPointAtParameter(0.5), Tight)
+            );
         }
 
         [Fact]

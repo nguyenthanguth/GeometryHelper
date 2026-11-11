@@ -23,7 +23,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         [Fact]
         public void TheSettingsOfMatchProp_ShowItsDialog_AndOkLeavesOnlyTheBoxesChecked()
         {
-            var red = new DxfLine { StartPoint = new GeoPoint3(0, 0, 0), EndPoint = new GeoPoint3(100, 0, 0), Color = DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1), LinetypeScale = 2 };
+            var red = new DxfLine
+            {
+                StartPoint = new GeoPoint3(0, 0, 0),
+                EndPoint = new GeoPoint3(100, 0, 0),
+                Color = DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1),
+                LinetypeScale = 2,
+            };
             var plain = new DxfLine { StartPoint = new GeoPoint3(0, 50, 0), EndPoint = new GeoPoint3(100, 50, 0) };
             CadDocument document = Drawing(red, plain);
             var model = new MainViewModel();
@@ -54,7 +60,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         [Fact]
         public void CancelOfTheSettings_KeepsThoseMatchPropHad()
         {
-            CadDocument document = Drawing(new DxfLine { StartPoint = new GeoPoint3(0, 0, 0), EndPoint = new GeoPoint3(100, 0, 0) });
+            CadDocument document = Drawing(
+                new DxfLine { StartPoint = new GeoPoint3(0, 0, 0), EndPoint = new GeoPoint3(100, 0, 0) }
+            );
             var model = new MainViewModel();
             model.OpenDocument(document, "plan.dxf");
             model.ShowMatchPropSettings = dialog =>
@@ -73,20 +81,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         [Fact]
         public void ARowOfAList_OffersItsChoices_AndAnMTextsContentsOpenItsEditor()
         {
-            var mtext = new DxfMText { Contents = "NOTE", TextHeight = 2.5, Location = new GeoPoint3(0, 0, 0) };
+            var mtext = new DxfMText
+            {
+                Contents = "NOTE",
+                TextHeight = 2.5,
+                Location = new GeoPoint3(0, 0, 0),
+            };
             CadDocument document = Drawing(mtext);
             var model = new MainViewModel();
             model.OpenDocument(document, "plan.dxf");
             document.Selection.Set(new[] { mtext.Handle });
 
-            PropertyRowViewModel justify = model.PropertyGroups.SelectMany(g => g.Rows).Single(r => r.Label == "Justify");
+            PropertyRowViewModel justify = model
+                .PropertyGroups.SelectMany(g => g.Rows)
+                .Single(r => r.Label == "Justify");
             Assert.True(justify.HasOptions);
             Assert.Contains("Middle center", justify.Options);
 
             justify.Value = "Middle center";
             Assert.Equal(DxfAttachmentPoint.MiddleCenter, mtext.Attachment);
 
-            PropertyRowViewModel contents = model.PropertyGroups.SelectMany(g => g.Rows).Single(r => r.Label == "Contents");
+            PropertyRowViewModel contents = model
+                .PropertyGroups.SelectMany(g => g.Rows)
+                .Single(r => r.Label == "Contents");
             Assert.Contains(MainViewModel.EditMTextOption, contents.Options);
             contents.Value = MainViewModel.EditMTextOption;
 

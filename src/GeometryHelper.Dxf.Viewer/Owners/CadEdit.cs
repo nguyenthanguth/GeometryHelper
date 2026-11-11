@@ -22,7 +22,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// <exception cref="ArgumentNullException">Thrown when the handle is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the handle is empty.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the kind is not one of <see cref="CadEditKind"/>.</exception>
-        public CadEdit(string handle, CadEditKind kind, string property = null, string oldValue = null, string newValue = null)
+        public CadEdit(
+            string handle,
+            CadEditKind kind,
+            string property = null,
+            string oldValue = null,
+            string newValue = null
+        )
         {
             if (handle == null)
             {
@@ -63,6 +69,14 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gives the edit as a line for debugging.</summary>
         /// <returns>The line, such as <c>2F Property Layer: Mark -&gt; Notes</c>.</returns>
-        public override string ToString() => Handle + " " + Kind + (Property == null ? string.Empty : " " + Property) + ": " + (OldValue ?? "(none)") + " -> " + (NewValue ?? "(none)");
+        public override string ToString() =>
+            Handle
+            + " "
+            + Kind
+            + (Property == null ? string.Empty : " " + Property)
+            + ": "
+            + (OldValue ?? "(none)")
+            + " -> "
+            + (NewValue ?? "(none)");
     }
 }

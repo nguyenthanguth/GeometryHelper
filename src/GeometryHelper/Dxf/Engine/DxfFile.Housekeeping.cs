@@ -26,17 +26,32 @@ namespace GeometryHelper.Dxf
         // The types of entity drawn in a dimension style (group 3).
         private static readonly HashSet<string> DimensionStyled = new HashSet<string>(StringComparer.Ordinal)
         {
-            "DIMENSION", "ARC_DIMENSION", "LARGE_RADIAL_DIMENSION", "LEADER", "TOLERANCE",
+            "DIMENSION",
+            "ARC_DIMENSION",
+            "LARGE_RADIAL_DIMENSION",
+            "LEADER",
+            "TOLERANCE",
         };
 
         // The types of entity drawn by a block they name (group 2).
         private static readonly HashSet<string> BlockDrawn = new HashSet<string>(StringComparer.Ordinal)
         {
-            "INSERT", "DIMENSION", "ARC_DIMENSION", "LARGE_RADIAL_DIMENSION", "ACAD_TABLE",
+            "INSERT",
+            "DIMENSION",
+            "ARC_DIMENSION",
+            "LARGE_RADIAL_DIMENSION",
+            "ACAD_TABLE",
         };
 
         // The types of entity written in a text style (group 7), a cell of a table among them.
-        private static readonly HashSet<string> TextStyled = new HashSet<string>(StringComparer.Ordinal) { "TEXT", "MTEXT", "ATTRIB", "ATTDEF", "ACAD_TABLE" };
+        private static readonly HashSet<string> TextStyled = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "TEXT",
+            "MTEXT",
+            "ATTRIB",
+            "ATTDEF",
+            "ACAD_TABLE",
+        };
 
         /// <summary>
         /// What the records of a file refer to, counted in one walk of it: each handle a hard pointer or a hard owner names, and
@@ -46,21 +61,33 @@ namespace GeometryHelper.Dxf
         {
             private readonly Dictionary<ulong, int> _handles = new Dictionary<ulong, int>();
             private readonly HashSet<ulong> _pointed = new HashSet<ulong>();
-            private readonly Dictionary<string, Dictionary<string, int>> _names = new Dictionary<string, Dictionary<string, int>>(StringComparer.Ordinal);
+            private readonly Dictionary<string, Dictionary<string, int>> _names = new Dictionary<
+                string,
+                Dictionary<string, int>
+            >(StringComparer.Ordinal);
 
             /// <summary>How many hard pointers and hard owners name a handle.</summary>
-            internal int OfHandle(string handle) => handle != null && TryHex(handle.Trim(), out ulong key) && _handles.TryGetValue(key, out int count) ? count : 0;
+            internal int OfHandle(string handle) =>
+                handle != null && TryHex(handle.Trim(), out ulong key) && _handles.TryGetValue(key, out int count)
+                    ? count
+                    : 0;
 
             /// <summary>Whether any pointer names a handle, soft or hard, as <see cref="PointedAt"/> finds one.</summary>
-            internal bool IsPointedAt(string handle) => handle != null && TryHex(handle.Trim(), out ulong key) && _pointed.Contains(key);
+            internal bool IsPointedAt(string handle) =>
+                handle != null && TryHex(handle.Trim(), out ulong key) && _pointed.Contains(key);
 
             internal void Pointed(ulong handle) => _pointed.Add(handle);
 
             /// <summary>How many groups name a record of a table by its name, letters of either case the same.</summary>
-            internal int OfName(string table, string name)
-                => name != null && _names.TryGetValue(table, out Dictionary<string, int> names) && names.TryGetValue(name.Trim(), out int count) ? count : 0;
+            internal int OfName(string table, string name) =>
+                name != null
+                && _names.TryGetValue(table, out Dictionary<string, int> names)
+                && names.TryGetValue(name.Trim(), out int count)
+                    ? count
+                    : 0;
 
-            internal void Handle(ulong handle) => _handles[handle] = (_handles.TryGetValue(handle, out int count) ? count : 0) + 1;
+            internal void Handle(ulong handle) =>
+                _handles[handle] = (_handles.TryGetValue(handle, out int count) ? count : 0) + 1;
 
             internal void Name(string table, string name)
             {
@@ -135,7 +162,11 @@ namespace GeometryHelper.Dxf
                             {
                                 uses.Name("BLOCK", arrow);
                             }
-                            else if (code == 1005 && TryHex(record.Bytes, pairs[i].ValueStart, pairs[i].ValueEnd, out handle) && handle != 0)
+                            else if (
+                                code == 1005
+                                && TryHex(record.Bytes, pairs[i].ValueStart, pairs[i].ValueEnd, out handle)
+                                && handle != 0
+                            )
                             {
                                 uses.Handle(handle);
                                 uses.Pointed(handle);
@@ -177,7 +208,11 @@ namespace GeometryHelper.Dxf
                         // The soft pointers, the record's owner (its first 330) aside, as PointedAt finds them.
                         if ((code >= 320 && code <= 339) || (code >= 350 && code <= 359))
                         {
-                            if (!(code == 330 && !owner) && TryHex(record.Bytes, pairs[i].ValueStart, pairs[i].ValueEnd, out handle) && handle != 0)
+                            if (
+                                !(code == 330 && !owner)
+                                && TryHex(record.Bytes, pairs[i].ValueStart, pairs[i].ValueEnd, out handle)
+                                && handle != 0
+                            )
                             {
                                 uses.Pointed(handle);
                             }
@@ -210,7 +245,12 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A hard pointer or a hard owner: 340 to 349, 360 to 369, 390 to 399, 480 and 481, as the DXF reference names them.</summary>
-        private static bool IsHard(int code) => (code >= 340 && code <= 349) || (code >= 360 && code <= 369) || (code >= 390 && code <= 399) || code == 480 || code == 481;
+        private static bool IsHard(int code) =>
+            (code >= 340 && code <= 349)
+            || (code >= 360 && code <= 369)
+            || (code >= 390 && code <= 399)
+            || code == 480
+            || code == 481;
 
         /// <summary>The table whose record a group names by name, as <see cref="CountUses"/> counts them; null for a group that names none.</summary>
         private static string NamedTable(bool entity, string type, int code)
@@ -220,9 +260,13 @@ namespace GeometryHelper.Dxf
                 case 8:
                     return entity ? "LAYER" : null;
                 case 6:
-                    return entity || type == "LAYER" || type == "MLINESTYLE" ? "LTYPE" : type == "DIMSTYLE" ? "BLOCK" : null;
+                    return entity || type == "LAYER" || type == "MLINESTYLE" ? "LTYPE"
+                        : type == "DIMSTYLE" ? "BLOCK"
+                        : null;
                 case 7:
-                    return (entity && TextStyled.Contains(type)) || type == "TABLESTYLE" ? "STYLE" : type == "DIMSTYLE" ? "BLOCK" : null;
+                    return (entity && TextStyled.Contains(type)) || type == "TABLESTYLE" ? "STYLE"
+                        : type == "DIMSTYLE" ? "BLOCK"
+                        : null;
                 case 3:
                     return entity && DimensionStyled.Contains(type) ? "DIMSTYLE" : null;
                 case 2:
@@ -278,7 +322,10 @@ namespace GeometryHelper.Dxf
                     {
                         overrides = DimensionOverrides(record, pairs, i, overrides);
 
-                        if (overrides && string.Equals(OverrideArrow(record, pairs, i), name, StringComparison.OrdinalIgnoreCase))
+                        if (
+                            overrides
+                            && string.Equals(OverrideArrow(record, pairs, i), name, StringComparison.OrdinalIgnoreCase)
+                        )
                         {
                             return true;
                         }
@@ -302,7 +349,8 @@ namespace GeometryHelper.Dxf
         /// Copies records of a table of another drawing into this one by their names, those this drawing has not, as
         /// <see cref="Adopt"/> copies those an entity names: a layer, a linetype, a text style or a dimension style.
         /// </summary>
-        internal void CopyTableRecords(DxfFile origin, string table, List<string> names) => CopyRecords(origin, names, table);
+        internal void CopyTableRecords(DxfFile origin, string table, List<string> names) =>
+            CopyRecords(origin, names, table);
 
         /// <summary>
         /// Puts an entity not yet in a file in the place of one of this file, as AutoCAD's <c>handOverTo</c> gives an object's

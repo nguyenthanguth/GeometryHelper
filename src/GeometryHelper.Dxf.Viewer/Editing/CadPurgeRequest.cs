@@ -9,7 +9,13 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     public sealed class CadPurgeItem
     {
-        internal CadPurgeItem(string kind, string keyword, string name, IReadOnlyList<string> reasons, IReadOnlyList<string> objects)
+        internal CadPurgeItem(
+            string kind,
+            string keyword,
+            string name,
+            IReadOnlyList<string> reasons,
+            IReadOnlyList<string> objects
+        )
         {
             Kind = kind;
             Keyword = keyword;
@@ -111,6 +117,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         /// <param name="items">The objects, those checked; Purge All gives every one listed.</param>
         /// <returns>How many named objects were purged, nested ones among them.</returns>
-        public int Purge(IReadOnlyList<CadPurgeItem> items) => Purging?.Invoke(items ?? Array.Empty<CadPurgeItem>()) ?? 0;
+        public int Purge(IReadOnlyList<CadPurgeItem> items) =>
+            Purging?.Invoke(items ?? Array.Empty<CadPurgeItem>()) ?? 0;
     }
 }

@@ -24,7 +24,11 @@ namespace GeometryHelper.Viewer
         /// that says why, and the box.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the item or the scene is null.</exception>
-        public static IReadOnlyList<KeyValuePair<string, string>> Describe(SceneItem item, Scene scene, ItemPrimitives drawn)
+        public static IReadOnlyList<KeyValuePair<string, string>> Describe(
+            SceneItem item,
+            Scene scene,
+            ItemPrimitives drawn
+        )
         {
             if (item == null)
             {
@@ -42,7 +46,12 @@ namespace GeometryHelper.Viewer
 
             if (item.Kind == SceneKinds.Text)
             {
-                Add("Text", item.Data.TryGetProperty("text", out System.Text.Json.JsonElement text) ? text.GetString() : string.Empty);
+                Add(
+                    "Text",
+                    item.Data.TryGetProperty("text", out System.Text.Json.JsonElement text)
+                        ? text.GetString()
+                        : string.Empty
+                );
             }
             else if (!SceneKinds.IsKnown(item.Kind))
             {
@@ -61,7 +70,8 @@ namespace GeometryHelper.Viewer
                             Measure(shape, (name, value) => numbers.Add(new KeyValuePair<string, string>(name, value)));
                             return Tuple.Create(numbers, BoxOf(shape), RebuiltVertices(shape));
                         },
-                        out string note);
+                        out string note
+                    );
 
                     if (note != null)
                     {
@@ -74,7 +84,14 @@ namespace GeometryHelper.Viewer
                     {
                         Add(
                             "Warning",
-                            "the library keeps " + measured.Item3.Value + " of the " + raw + " vertices: the others are within " + N(note != null ? Scene.MinimalTolerance.EqualPoint : scene.EqualPoint) + " of a neighbour");
+                            "the library keeps "
+                                + measured.Item3.Value
+                                + " of the "
+                                + raw
+                                + " vertices: the others are within "
+                                + N(note != null ? Scene.MinimalTolerance.EqualPoint : scene.EqualPoint)
+                                + " of a neighbour"
+                        );
                     }
 
                     lines.AddRange(measured.Item1);
@@ -143,10 +160,13 @@ namespace GeometryHelper.Viewer
                     () =>
                     {
                         var numbers = new List<KeyValuePair<string, string>>();
-                        Measure(item.ToGeometry(), (name, value) => numbers.Add(new KeyValuePair<string, string>(name, value)));
+                        Measure(item.ToGeometry(), (name, value) =>
+                            numbers.Add(new KeyValuePair<string, string>(name, value))
+                        );
                         return numbers;
                     },
-                    out string note);
+                    out string note
+                );
 
                 // Where the library refused the shape at the tolerance of the scene and the numbers are those at 1E-12, they come with the reason.
                 if (note != null)
@@ -169,21 +189,36 @@ namespace GeometryHelper.Viewer
         {
             switch (shape.GetType().Name)
             {
-                case "GeoLine3": return BoxOf_GeoLine3(shape);
-                case "GeoPolyline3": return BoxOf_GeoPolyline3(shape);
-                case "GeoPolygon3": return BoxOf_GeoPolygon3(shape);
-                case "GeoTriangle3": return BoxOf_GeoTriangle3(shape);
-                case "GeoFace3": return BoxOf_GeoFace3(shape);
-                case "GeoSolid3": return BoxOf_GeoSolid3(shape);
-                case "GeoArc3": return BoxOf_GeoArc3(shape);
-                case "GeoCircle3": return BoxOf_GeoCircle3(shape);
-                case "GeoEllipse3": return BoxOf_GeoEllipse3(shape);
-                case "GeoSpline3": return BoxOf_GeoSpline3(shape);
-                case "GeoObb3": return BoxOf_GeoObb3(shape);
-                case "GeoSphere3": return BoxOf_GeoSphere3(shape);
-                case "GeoPolygonArc3": return BoxOf_GeoPolygonArc3(shape);
-                case "GeoPolylineArc3": return BoxOf_GeoPolylineArc3(shape);
-                default: return null;
+                case "GeoLine3":
+                    return BoxOf_GeoLine3(shape);
+                case "GeoPolyline3":
+                    return BoxOf_GeoPolyline3(shape);
+                case "GeoPolygon3":
+                    return BoxOf_GeoPolygon3(shape);
+                case "GeoTriangle3":
+                    return BoxOf_GeoTriangle3(shape);
+                case "GeoFace3":
+                    return BoxOf_GeoFace3(shape);
+                case "GeoSolid3":
+                    return BoxOf_GeoSolid3(shape);
+                case "GeoArc3":
+                    return BoxOf_GeoArc3(shape);
+                case "GeoCircle3":
+                    return BoxOf_GeoCircle3(shape);
+                case "GeoEllipse3":
+                    return BoxOf_GeoEllipse3(shape);
+                case "GeoSpline3":
+                    return BoxOf_GeoSpline3(shape);
+                case "GeoObb3":
+                    return BoxOf_GeoObb3(shape);
+                case "GeoSphere3":
+                    return BoxOf_GeoSphere3(shape);
+                case "GeoPolygonArc3":
+                    return BoxOf_GeoPolygonArc3(shape);
+                case "GeoPolylineArc3":
+                    return BoxOf_GeoPolylineArc3(shape);
+                default:
+                    return null;
             }
         }
 
@@ -236,15 +271,24 @@ namespace GeometryHelper.Viewer
         {
             switch (shape.GetType().Name)
             {
-                case "GeoPolyline2": return VertexCountOf_GeoPolyline2(shape);
-                case "GeoPolygon2": return VertexCountOf_GeoPolygon2(shape);
-                case "GeoPolyline3": return VertexCountOf_GeoPolyline3(shape);
-                case "GeoPolygon3": return VertexCountOf_GeoPolygon3(shape);
-                case "GeoPolylineArc2": return VertexCountOf_GeoPolylineArc2(shape);
-                case "GeoPolygonArc2": return VertexCountOf_GeoPolygonArc2(shape);
-                case "GeoPolylineArc3": return VertexCountOf_GeoPolylineArc3(shape);
-                case "GeoPolygonArc3": return VertexCountOf_GeoPolygonArc3(shape);
-                default: return null;
+                case "GeoPolyline2":
+                    return VertexCountOf_GeoPolyline2(shape);
+                case "GeoPolygon2":
+                    return VertexCountOf_GeoPolygon2(shape);
+                case "GeoPolyline3":
+                    return VertexCountOf_GeoPolyline3(shape);
+                case "GeoPolygon3":
+                    return VertexCountOf_GeoPolygon3(shape);
+                case "GeoPolylineArc2":
+                    return VertexCountOf_GeoPolylineArc2(shape);
+                case "GeoPolygonArc2":
+                    return VertexCountOf_GeoPolygonArc2(shape);
+                case "GeoPolylineArc3":
+                    return VertexCountOf_GeoPolylineArc3(shape);
+                case "GeoPolygonArc3":
+                    return VertexCountOf_GeoPolygonArc3(shape);
+                default:
+                    return null;
             }
         }
 
@@ -284,7 +328,11 @@ namespace GeometryHelper.Viewer
                 case "GeoPolygonArc2":
                 case "GeoPolylineArc3":
                 case "GeoPolygonArc3":
-                    return item.Data.TryGetProperty("points", out System.Text.Json.JsonElement points) && points.ValueKind == System.Text.Json.JsonValueKind.Array ? points.GetArrayLength() : 0;
+                    return
+                        item.Data.TryGetProperty("points", out System.Text.Json.JsonElement points)
+                        && points.ValueKind == System.Text.Json.JsonValueKind.Array
+                        ? points.GetArrayLength()
+                        : 0;
                 default:
                     return 0;
             }
@@ -304,7 +352,14 @@ namespace GeometryHelper.Viewer
                 {
                     int n = e.GetArrayLength();
 
-                    if ((n == 2 || n == 3) && e.EnumerateArray().All(x => x.ValueKind == System.Text.Json.JsonValueKind.Number || x.ValueKind == System.Text.Json.JsonValueKind.String))
+                    if (
+                        (n == 2 || n == 3)
+                        && e.EnumerateArray()
+                            .All(x =>
+                                x.ValueKind == System.Text.Json.JsonValueKind.Number
+                                || x.ValueKind == System.Text.Json.JsonValueKind.String
+                            )
+                    )
                     {
                         return 1;
                     }
@@ -314,7 +369,15 @@ namespace GeometryHelper.Viewer
 
                 if (e.ValueKind == System.Text.Json.JsonValueKind.Object)
                 {
-                    return e.EnumerateObject().Where(p => p.Name != "bulges" && p.Name != "normals" && p.Name != "knots" && p.Name != "weights" && !(mesh && p.Name == "faces")).Sum(p => Count(p.Value));
+                    return e.EnumerateObject()
+                        .Where(p =>
+                            p.Name != "bulges"
+                            && p.Name != "normals"
+                            && p.Name != "knots"
+                            && p.Name != "weights"
+                            && !(mesh && p.Name == "faces")
+                        )
+                        .Sum(p => Count(p.Value));
                 }
 
                 return 0;
@@ -322,6 +385,7 @@ namespace GeometryHelper.Viewer
 
             return Count(item.Data);
         }
+
         // The pane shows ten digits; the comparison of two builds keeps all seventeen, which read back as the same double.
         [ThreadStatic]
         private static bool _exact;
@@ -727,7 +791,10 @@ namespace GeometryHelper.Viewer
         {
             GeoFace2 f = (GeoFace2)shape;
             add("Holes", f.Holes.Count.ToString(CultureInfo.InvariantCulture));
-            add("Vertices", (f.Boundary.VertexCount + f.Holes.Sum(h => h.VertexCount)).ToString(CultureInfo.InvariantCulture));
+            add(
+                "Vertices",
+                (f.Boundary.VertexCount + f.Holes.Sum(h => h.VertexCount)).ToString(CultureInfo.InvariantCulture)
+            );
             add("Length", N(f.Length));
             add("Area", N(f.Area));
         }
@@ -737,7 +804,10 @@ namespace GeometryHelper.Viewer
         {
             GeoFace3 f = (GeoFace3)shape;
             add("Holes", f.Holes.Count.ToString(CultureInfo.InvariantCulture));
-            add("Vertices", (f.Boundary.VertexCount + f.Holes.Sum(h => h.VertexCount)).ToString(CultureInfo.InvariantCulture));
+            add(
+                "Vertices",
+                (f.Boundary.VertexCount + f.Holes.Sum(h => h.VertexCount)).ToString(CultureInfo.InvariantCulture)
+            );
             add("Area", N(f.Area));
             add("Normal", N(f.Normal.X) + ", " + N(f.Normal.Y) + ", " + N(f.Normal.Z));
         }
@@ -748,7 +818,11 @@ namespace GeometryHelper.Viewer
             GeoSolid3 s = (GeoSolid3)shape;
             add("Faces", s.Faces.Count.ToString(CultureInfo.InvariantCulture));
             add("Openings", s.Openings.Count.ToString(CultureInfo.InvariantCulture));
-            add("Vertices", s.Faces.Sum(f => f.Boundary.VertexCount + f.Holes.Sum(h => h.VertexCount)).ToString(CultureInfo.InvariantCulture));
+            add(
+                "Vertices",
+                s.Faces.Sum(f => f.Boundary.VertexCount + f.Holes.Sum(h => h.VertexCount))
+                    .ToString(CultureInfo.InvariantCulture)
+            );
             add("Closed", s.IsClosed() ? "yes" : "no");
             add("Volume", N(s.GetVolume()));
             add("Surface area", N(s.GetSurfaceArea()));

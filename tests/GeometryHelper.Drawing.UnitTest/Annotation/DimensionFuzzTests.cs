@@ -56,7 +56,10 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
 
                     // The same objects in another order give the same dimensions.
                     DrawingObject[] shuffled = objects.OrderBy(_ => random.Next()).ToArray();
-                    string again = string.Join("\n", Annotator.Dimension(Project(shuffled, frame), shuffled, frame, settings, Tol).Select(Signature));
+                    string again = string.Join(
+                        "\n",
+                        Annotator.Dimension(Project(shuffled, frame), shuffled, frame, settings, Tol).Select(Signature)
+                    );
 
                     if (again != string.Join("\n", made.Select(Signature)))
                     {
@@ -69,7 +72,9 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
                 }
             }
 
-            _output.WriteLine($"500 cases, {dimensions} dimensions, {watch.Elapsed.TotalSeconds:0.0} s, {failures.Count} failures");
+            _output.WriteLine(
+                $"500 cases, {dimensions} dimensions, {watch.Elapsed.TotalSeconds:0.0} s, {failures.Count} failures"
+            );
             failures.Take(20).ToList().ForEach(_output.WriteLine);
             Assert.Empty(failures);
         }
@@ -78,7 +83,13 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         /// Checks every dimension against the model: its points are where their model points fall in the view, its value is
         /// the distance of its model points along its direction, and the overall dimensions are the main box's sizes.
         /// </summary>
-        private static void Check(int seed, DrawingObject main, GeoCoordinateSystem3 frame, IReadOnlyList<DrawingDimension> made, List<string> failures)
+        private static void Check(
+            int seed,
+            DrawingObject main,
+            GeoCoordinateSystem3 frame,
+            IReadOnlyList<DrawingDimension> made,
+            List<string> failures
+        )
         {
             GeoAabb3 box = main.Solid.GetAabb();
 
@@ -91,18 +102,34 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
                 {
                     GeoPoint3 local = frame.ToLocal(p.ModelPoint);
 
-                    if (Math.Abs(local.X - p.ViewPoint.X) > Tol.EqualPoint || Math.Abs(local.Y - p.ViewPoint.Y) > Tol.EqualPoint)
+                    if (
+                        Math.Abs(local.X - p.ViewPoint.X) > Tol.EqualPoint
+                        || Math.Abs(local.Y - p.ViewPoint.Y) > Tol.EqualPoint
+                    )
                     {
                         failures.Add(seed + ": " + d.Id + " point " + p + " is not where its model point falls");
                     }
                 }
 
                 double model = Math.Abs(axis.DotProduct(d.Points[0].ModelPoint.GetVectorTo(d.Points[1].ModelPoint)));
-                double seen = alongX ? Math.Abs(d.Points[1].ViewPoint.X - d.Points[0].ViewPoint.X) : Math.Abs(d.Points[1].ViewPoint.Y - d.Points[0].ViewPoint.Y);
+                double seen = alongX
+                    ? Math.Abs(d.Points[1].ViewPoint.X - d.Points[0].ViewPoint.X)
+                    : Math.Abs(d.Points[1].ViewPoint.Y - d.Points[0].ViewPoint.Y);
 
                 if (Math.Abs(model - d.Value) > Tol.EqualPoint || Math.Abs(seen - d.Value) > Tol.EqualPoint)
                 {
-                    failures.Add(seed + ": " + d.Id + " value " + d.Value + " against " + model + " in the model and " + seen + " in the view");
+                    failures.Add(
+                        seed
+                            + ": "
+                            + d.Id
+                            + " value "
+                            + d.Value
+                            + " against "
+                            + model
+                            + " in the model and "
+                            + seen
+                            + " in the view"
+                    );
                 }
 
                 if (d.Kind == DimensionKind.Overall)
@@ -129,8 +156,12 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
 
             for (int i = 0; i < count; i++)
             {
-                int x = random.Next(0, 40) * 10, y = random.Next(0, 40) * 10, z = random.Next(0, 40) * 10;
-                int dx = random.Next(2, 60) * 10, dy = random.Next(2, 40) * 10, dz = random.Next(1, 30) * 10;
+                int x = random.Next(0, 40) * 10,
+                    y = random.Next(0, 40) * 10,
+                    z = random.Next(0, 40) * 10;
+                int dx = random.Next(2, 60) * 10,
+                    dy = random.Next(2, 40) * 10,
+                    dz = random.Next(1, 30) * 10;
                 string id = "P" + i;
 
                 if (random.Next(3) == 0 && dx >= 80 && dy >= 80)
@@ -152,20 +183,48 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
                         new GeoFace2(Rectangle(0, 0, dx, dy), centres.Select(c => Circle(c.X, c.Y, 11, 24)).ToArray()),
                         new GeoCoordinateSystem3(new GeoPoint3(x, y, z), GeoVector3.XAxis, GeoVector3.YAxis),
                         dz,
-                        Tol);
-                    objects.Add(Part(id, plate, i == 0, new GeoCoordinateSystem3(new GeoPoint3(x, y, z), GeoVector3.XAxis, GeoVector3.YAxis)));
+                        Tol
+                    );
+                    objects.Add(
+                        Part(
+                            id,
+                            plate,
+                            i == 0,
+                            new GeoCoordinateSystem3(new GeoPoint3(x, y, z), GeoVector3.XAxis, GeoVector3.YAxis)
+                        )
+                    );
 
                     if (centres.Count > 0 && random.Next(2) == 0)
                     {
                         GeoPoint2 c = centres[0];
                         var start = new GeoPoint3(x + c.X, y + c.Y, z - 15);
-                        GeoSolid3 bolt = GeoSolid3.Cylinder(start, new GeoPoint3(x + c.X, y + c.Y, z + dz + 15), 10, 24, Tol);
-                        objects.Add(new DrawingObject(id + "-bolt", DrawingObjectKind.Bolt, bolt, new GeoCoordinateSystem3(start, GeoVector3.ZAxis, GeoVector3.XAxis)));
+                        GeoSolid3 bolt = GeoSolid3.Cylinder(
+                            start,
+                            new GeoPoint3(x + c.X, y + c.Y, z + dz + 15),
+                            10,
+                            24,
+                            Tol
+                        );
+                        objects.Add(
+                            new DrawingObject(
+                                id + "-bolt",
+                                DrawingObjectKind.Bolt,
+                                bolt,
+                                new GeoCoordinateSystem3(start, GeoVector3.ZAxis, GeoVector3.XAxis)
+                            )
+                        );
                     }
                 }
                 else
                 {
-                    objects.Add(Part(id, Box(x, y, z, x + dx, y + dy, z + dz), i == 0, new GeoCoordinateSystem3(new GeoPoint3(x, y, z), GeoVector3.XAxis, GeoVector3.YAxis)));
+                    objects.Add(
+                        Part(
+                            id,
+                            Box(x, y, z, x + dx, y + dy, z + dz),
+                            i == 0,
+                            new GeoCoordinateSystem3(new GeoPoint3(x, y, z), GeoVector3.XAxis, GeoVector3.YAxis)
+                        )
+                    );
                 }
             }
 
@@ -176,8 +235,32 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         private static string Signature(DrawingDimension d)
         {
             string Bits(double v) => BitConverter.DoubleToInt64Bits(v).ToString("X16");
-            return d.Id + " " + d.Kind + " " + d.Text + " " + Bits(d.Value) + " " + d.Tier + " " + Bits(d.TextPosition.X) + " " + Bits(d.TextPosition.Y)
-                + " " + string.Join(",", d.Points.Select(p => p.ObjectId + " " + p.Kind + " " + Bits(p.ModelPoint.X) + Bits(p.ModelPoint.Y) + Bits(p.ModelPoint.Z)));
+            return d.Id
+                + " "
+                + d.Kind
+                + " "
+                + d.Text
+                + " "
+                + Bits(d.Value)
+                + " "
+                + d.Tier
+                + " "
+                + Bits(d.TextPosition.X)
+                + " "
+                + Bits(d.TextPosition.Y)
+                + " "
+                + string.Join(
+                    ",",
+                    d.Points.Select(p =>
+                        p.ObjectId
+                        + " "
+                        + p.Kind
+                        + " "
+                        + Bits(p.ModelPoint.X)
+                        + Bits(p.ModelPoint.Y)
+                        + Bits(p.ModelPoint.Z)
+                    )
+                );
         }
     }
 }

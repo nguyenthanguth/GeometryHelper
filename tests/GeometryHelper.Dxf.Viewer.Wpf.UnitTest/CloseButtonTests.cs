@@ -50,9 +50,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Layout(cross);
                 IconView icon = Descendants(cross).OfType<IconView>().Single();
                 Assert.Equal(Rgb(0xF2, 0x6B, 0x3A), ((SolidColorBrush)icon.Stroke).Color);
-                Assert.Equal(Colors.Transparent, ((SolidColorBrush)Descendants(cross).OfType<Border>().First().Background).Color);
+                Assert.Equal(
+                    Colors.Transparent,
+                    ((SolidColorBrush)Descendants(cross).OfType<Border>().First().Background).Color
+                );
                 Assert.Equal(Rgb(0xC2, 0x41, 0x0C), BackgroundSetBy(cross.Template, "IsMouseOver"));
-                Setter white = SettersOf(cross.Template, "IsMouseOver").Single(s => s.TargetName == "Cross" && s.Property == IconView.StrokeProperty);
+                Setter white = SettersOf(cross.Template, "IsMouseOver")
+                    .Single(s => s.TargetName == "Cross" && s.Property == IconView.StrokeProperty);
                 Assert.Equal(Colors.White, ((SolidColorBrush)white.Value).Color);
             });
         }
@@ -92,11 +96,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     workspace.Arrange(new Rect(0, 0, 1600, 960));
                     workspace.UpdateLayout();
 
-                    List<IconView> crosses = Descendants(workspace).OfType<IconView>().Where(i => i.Name == "CloseCross" && i.DataContext is FileRowViewModel row && row.IsOpen).ToList();
+                    List<IconView> crosses = Descendants(workspace)
+                        .OfType<IconView>()
+                        .Where(i => i.Name == "CloseCross" && i.DataContext is FileRowViewModel row && row.IsOpen)
+                        .ToList();
                     Assert.Equal(2, crosses.Count);
                     IconView current = Assert.Single(crosses, i => ((FileRowViewModel)i.DataContext).IsCurrent);
                     Assert.Equal(Rgb(0xFF, 0x9A, 0x6E), ((SolidColorBrush)current.Stroke).Color);
-                    Assert.Equal(Rgb(0xF2, 0x6B, 0x3A), ((SolidColorBrush)crosses.Single(i => i != current).Stroke).Color);
+                    Assert.Equal(
+                        Rgb(0xF2, 0x6B, 0x3A),
+                        ((SolidColorBrush)crosses.Single(i => i != current).Stroke).Color
+                    );
                 }
             });
         }
@@ -109,12 +119,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 _ = PackUriHelper.UriSchemePack;
 
                 using (var folder = new TestFolder())
-                using (var plugins = new CadPluginManager(new CadPluginAssemblyLoader(), Path.Combine(folder.FullPath, "plugins"), Path.Combine(folder.FullPath, "plugins.json"), Path.Combine(folder.FullPath, "copies")))
+                using (
+                    var plugins = new CadPluginManager(
+                        new CadPluginAssemblyLoader(),
+                        Path.Combine(folder.FullPath, "plugins"),
+                        Path.Combine(folder.FullPath, "plugins.json"),
+                        Path.Combine(folder.FullPath, "copies")
+                    )
+                )
                 {
                     string dev = Path.Combine(folder.FullPath, "dev");
                     Directory.CreateDirectory(dev);
                     string sample = Path.Combine(dev, SampleName + ".dll");
-                    File.Copy(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SamplePlugin", SampleName + ".dll"), sample, true);
+                    File.Copy(
+                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SamplePlugin", SampleName + ".dll"),
+                        sample,
+                        true
+                    );
                     plugins.AddTrustedFolder(dev);
                     Assert.True(plugins.Load(sample).Succeeded);
 
@@ -157,7 +178,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                             List<Button> crosses = buttons.Where(b => b.Style == title).ToList();
                             Assert.Equal(hasCross ? 1 : 0, crosses.Count);
                             Assert.All(crosses, b => Assert.Equal("Close", b.ToolTip));
-                            Assert.All(crosses, b => Assert.Equal(Rgb(0xF2, 0x6B, 0x3A), ((SolidColorBrush)Descendants(b).OfType<IconView>().Single().Stroke).Color));
+                            Assert.All(crosses, b =>
+                                Assert.Equal(
+                                    Rgb(0xF2, 0x6B, 0x3A),
+                                    ((SolidColorBrush)Descendants(b).OfType<IconView>().Single().Stroke).Color
+                                )
+                            );
                             window.Close();
                         }
                     }
@@ -169,17 +195,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             // Registers the pack scheme, which the theme is loaded through, with no Application running.
             _ = PackUriHelper.UriSchemePack;
-            return (ResourceDictionary)Application.LoadComponent(new Uri("/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml", UriKind.Relative));
+            return (ResourceDictionary)
+                Application.LoadComponent(
+                    new Uri("/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml", UriKind.Relative)
+                );
         }
 
         private static Color BackgroundSetBy(ControlTemplate template, string property)
         {
-            Setter setter = SettersOf(template, property).Single(s => s.TargetName == "Chrome" && s.Property == Border.BackgroundProperty);
+            Setter setter = SettersOf(template, property)
+                .Single(s => s.TargetName == "Chrome" && s.Property == Border.BackgroundProperty);
             return ((SolidColorBrush)setter.Value).Color;
         }
 
         private static IEnumerable<Setter> SettersOf(ControlTemplate template, string property) =>
-            template.Triggers.OfType<MultiTrigger>()
+            template
+                .Triggers.OfType<MultiTrigger>()
                 .Where(t => t.Conditions.Any(c => c.Property.Name == property))
                 .SelectMany(t => t.Setters.OfType<Setter>());
 

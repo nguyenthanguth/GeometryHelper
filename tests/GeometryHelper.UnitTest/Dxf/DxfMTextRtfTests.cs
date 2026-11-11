@@ -35,7 +35,18 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(@"\L", DxfMText.UnderlineOn);
             Assert.Equal(@"\W", DxfMText.WidthChange);
 
-            var mtext = new DxfMText { Contents = "B-12" + DxfMText.ParagraphBreak + DxfMText.BlockBegin + DxfMText.HeightChange + "2x;" + DxfMText.UnderlineOn + "M16" + DxfMText.BlockEnd };
+            var mtext = new DxfMText
+            {
+                Contents =
+                    "B-12"
+                    + DxfMText.ParagraphBreak
+                    + DxfMText.BlockBegin
+                    + DxfMText.HeightChange
+                    + "2x;"
+                    + DxfMText.UnderlineOn
+                    + "M16"
+                    + DxfMText.BlockEnd,
+            };
             Assert.Equal("B-12\nM16", mtext.Text);
         }
 
@@ -43,12 +54,19 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TheWordsOfAnMText_AreWrittenAsRtf_TheCodesRtfHasCarriedOver()
         {
             var mtext = new DxfMText { Contents = @"B-12\P{\C1;\LM16\l}" };
-            Assert.Equal(@"{\rtf1\ansi\deff0{\fonttbl{\f0{\*\ghfontfile}txt;}}{\colortbl ;\red255\green0\blue0;}B-12\par {\cf1 \ul M16\ulnone }\par}", mtext.ContentsRTF);
+            Assert.Equal(
+                @"{\rtf1\ansi\deff0{\fonttbl{\f0{\*\ghfontfile}txt;}}{\colortbl ;\red255\green0\blue0;}B-12\par {\cf1 \ul M16\ulnone }\par}",
+                mtext.ContentsRTF
+            );
 
-            mtext.Contents = @"{\fArial|b1|i0|c0|p34;Bold} {\Fromans.shx;shx} {\fArial|b0|i1;it} \S1^2; %%d %%C \U+00E9 a\~b \H2x;\W0.8;\Q15;\T1.2;\A1;\pxqc;big \Oover\o \Kgone\k " + "\t" + @"tab \\ \{x\} \C256;\X\Nnext \M+1A4A1";
+            mtext.Contents =
+                @"{\fArial|b1|i0|c0|p34;Bold} {\Fromans.shx;shx} {\fArial|b0|i1;it} \S1^2; %%d %%C \U+00E9 a\~b \H2x;\W0.8;\Q15;\T1.2;\A1;\pxqc;big \Oover\o \Kgone\k "
+                + "\t"
+                + @"tab \\ \{x\} \C256;\X\Nnext \M+1A4A1";
             Assert.Equal(
                 @"{\rtf1\ansi\deff0{\fonttbl{\f0{\*\ghfontfile}txt;}{\f1 Arial;}{\f2{\*\ghfontfile}romans.shx;}}{\f1\b\i0 Bold} {\f2 shx} {\f1\b0\i it} 1/2 %%d %%C \u233? a\~b big over \strike gone\strike0  \tab tab \\ \{x\} \cf0 \line \column next \\M+1A4A1\par}",
-                mtext.ContentsRTF);
+                mtext.ContentsRTF
+            );
         }
 
         [Fact]
@@ -58,7 +76,11 @@ namespace GeometryHelper.UnitTest.Dxf
             string[][] contents =
             {
                 new[] { @"B-12\P{\C1;\LM16\l}", @"B-12\P\C1;\LM16" },
-                new[] { @"{\fArial|b1|i0;Bold} plain {\Fromans.shx;shx} \Kstruck\k end", @"\fArial|b1|i0;Bold\Ftxt; plain \Fromans.shx;shx\Ftxt; \Kstruck\k end" },
+                new[]
+                {
+                    @"{\fArial|b1|i0;Bold} plain {\Fromans.shx;shx} \Kstruck\k end",
+                    @"\fArial|b1|i0;Bold\Ftxt; plain \Fromans.shx;shx\Ftxt; \Kstruck\k end",
+                },
                 new[] { @"a\~b \\ \{c\} ^Itab é", @"a\~b \\ \{c\} ^Itab é" },
                 new[] { string.Empty, string.Empty },
                 new[] { @"abc\P", @"abc\P" },
@@ -94,7 +116,10 @@ namespace GeometryHelper.UnitTest.Dxf
             string rtf = mtext.ContentsRTF;
             watch.Stop();
 
-            Assert.True(watch.ElapsedMilliseconds < 2000, "ContentsRTF of 1 280 000 letters took " + watch.ElapsedMilliseconds + " ms.");
+            Assert.True(
+                watch.ElapsedMilliseconds < 2000,
+                "ContentsRTF of 1 280 000 letters took " + watch.ElapsedMilliseconds + " ms."
+            );
             Assert.EndsWith(@"ab\par \par}", rtf, StringComparison.Ordinal);
             Assert.Equal(mtext.Contents.Length, mtext.SetContentsRtf(rtf));
         }
@@ -105,9 +130,26 @@ namespace GeometryHelper.UnitTest.Dxf
             var mtext = new DxfMText();
             string[] broken =
             {
-                string.Empty, "{", "}", "}}}{", @"\", @"{\rtf1", @"{\rtf1 \'", @"{\rtf1 \'z9 a}", @"{\rtf1 \u", @"{\rtf1 \u-", @"{\rtf1 \u99999999999 x}",
-                @"{\rtf1 \uc-5 \u233 ab}", @"{\rtf1{\fonttbl{\f99999999999 a;}}\f99999999999 x}", @"{\rtf1{\colortbl;\red999\green-4;}\cf1 x\cf9 y\cf-1 z}",
-                @"{\rtf1{\fonttbl{\f0 a", @"{\*", @"{\rtf1 \par\par\par", @"plain words", @"{\rtf1\b-\i- x}", "{\\rtf1 \\\r\n x}",
+                string.Empty,
+                "{",
+                "}",
+                "}}}{",
+                @"\",
+                @"{\rtf1",
+                @"{\rtf1 \'",
+                @"{\rtf1 \'z9 a}",
+                @"{\rtf1 \u",
+                @"{\rtf1 \u-",
+                @"{\rtf1 \u99999999999 x}",
+                @"{\rtf1 \uc-5 \u233 ab}",
+                @"{\rtf1{\fonttbl{\f99999999999 a;}}\f99999999999 x}",
+                @"{\rtf1{\colortbl;\red999\green-4;}\cf1 x\cf9 y\cf-1 z}",
+                @"{\rtf1{\fonttbl{\f0 a",
+                @"{\*",
+                @"{\rtf1 \par\par\par",
+                @"plain words",
+                @"{\rtf1\b-\i- x}",
+                "{\\rtf1 \\\r\n x}",
             };
 
             foreach (string rtf in broken)
@@ -125,18 +167,25 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             DxfMText mtext = ByHandle<DxfMText>(db, "73");
-            string rtf = "{\\rtf1\\ansi\\ansicpg1252\\deff0\\nouicompat{\\fonttbl{\\f0\\fnil\\fcharset0 Calibri;}{\\f1\\fswiss{\\*\\panose 020b0604020202020204}Arial;}}\r\n"
+            string rtf =
+                "{\\rtf1\\ansi\\ansicpg1252\\deff0\\nouicompat{\\fonttbl{\\f0\\fnil\\fcharset0 Calibri;}{\\f1\\fswiss{\\*\\panose 020b0604020202020204}Arial;}}\r\n"
                 + "{\\colortbl ;\\red255\\green0\\blue0;\\red0\\green0\\blue255;}\r\n{\\*\\generator Riched20 10.0.22621}{\\info{\\author GH}}\\viewkind4\\uc1 \r\n"
                 + "\\pard\\sa200\\sl276\\slmult1\\f0\\fs22\\lang9 Plain \\b bold\\b0  \\i italic\\i0  \\ul under\\ulnone  \\strike strike\\strike0\\par\r\n"
                 + "\\cf1 red\\cf0  \\cf2 blue\\cf0  \\f1 arial\\f0  caf\\'e9 \\u8364? \\'80 \\emdash\\~x\\tab y \\{z\\} \\\\ a^b\\line end\\par\r\n}";
 
             int length = mtext.SetContentsRtf(rtf);
 
-            string expected = @"\fCalibri|b0|i0;Plain \fCalibri|b1|i0;bold\fCalibri|b0|i0; \fCalibri|b0|i1;italic\fCalibri|b0|i0; \Lunder\l \Kstrike\P"
-                + @"\C1;\kred\C256; \C5;blue\C256; \fArial|b0|i0;arial\fCalibri|b0|i0; café € € —\~x" + "\t" + @"y \{z\} \\ a^b\Pend";
+            string expected =
+                @"\fCalibri|b0|i0;Plain \fCalibri|b1|i0;bold\fCalibri|b0|i0; \fCalibri|b0|i1;italic\fCalibri|b0|i0; \Lunder\l \Kstrike\P"
+                + @"\C1;\kred\C256; \C5;blue\C256; \fArial|b0|i0;arial\fCalibri|b0|i0; café € € —\~x"
+                + "\t"
+                + @"y \{z\} \\ a^b\Pend";
             Assert.Equal(expected, mtext.Contents);
             Assert.Equal(expected.Length, length);
-            Assert.Equal("Plain bold italic under strike\nred blue arial café € € —\u00A0x\ty {z} \\ a^b\nend", mtext.Text);
+            Assert.Equal(
+                "Plain bold italic under strike\nred blue arial café € € —\u00A0x\ty {z} \\ a^b\nend",
+                mtext.Text
+            );
 
             // The style's font is written by no code; a font's file by \F.
             mtext.SetContentsRtf(@"{\rtf1{\fonttbl{\f0 txt;}{\f1 romans.shx;}}\f0 one {\f1 two} {\b three}}");

@@ -71,7 +71,12 @@ namespace GeometryHelper.Core
         /// <param name="report">Each change made, or why the body could not be closed and where.</param>
         /// <returns>true when what comes out is valid within the options' tolerance; otherwise false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the body or the options are null.</exception>
-        internal static bool TryClose(GeoSolid3 solid, out GeoSolid3 closed, SolidClosingOptions options, out SolidClosing3 report)
+        internal static bool TryClose(
+            GeoSolid3 solid,
+            out GeoSolid3 closed,
+            SolidClosingOptions options,
+            out SolidClosing3 report
+        )
         {
             if (solid == null)
             {
@@ -90,7 +95,10 @@ namespace GeometryHelper.Core
             }
             catch (Exception exception) when (Boolean3.IsUnworkable(exception))
             {
-                GeometryHelperLog.Warn($"GeoSolid3: closing a body within {solid.GetAabb()} could not be worked out, and it is reported as still open.", exception);
+                GeometryHelperLog.Warn(
+                    $"GeoSolid3: closing a body within {solid.GetAabb()} could not be worked out, and it is reported as still open.",
+                    exception
+                );
                 return Fail(ClosingFailure.StillOpen, solid.GetAabb().Center, out closed, out report);
             }
         }
@@ -103,7 +111,12 @@ namespace GeometryHelper.Core
         /// <param name="closed">The body closed; null when the method returns false.</param>
         /// <param name="report">What was done, or why not and where.</param>
         /// <returns>true when what comes out is valid within the options' tolerance.</returns>
-        private static bool Close(GeoSolid3 solid, SolidClosingOptions options, out GeoSolid3 closed, out SolidClosing3 report)
+        private static bool Close(
+            GeoSolid3 solid,
+            SolidClosingOptions options,
+            out GeoSolid3 closed,
+            out SolidClosing3 report
+        )
         {
             SolidValidation3 check = solid.ValidateForWork(options.Tolerance);
 
@@ -159,7 +172,9 @@ namespace GeometryHelper.Core
             }
 
             // What is left open, followed round into loops.
-            if (!TryChainLoops(rims, work.Tolerance, out List<Loop> loops, out ClosingFailure failure, out GeoPoint3 at))
+            if (
+                !TryChainLoops(rims, work.Tolerance, out List<Loop> loops, out ClosingFailure failure, out GeoPoint3 at)
+            )
             {
                 work.Refuse(failure, at);
                 return Refused(work, out closed, out report);
@@ -172,7 +187,8 @@ namespace GeometryHelper.Core
                 return Refused(work, out closed, out report);
             }
 
-            return TryFillHoles(work, faces, origins, loops, out closed, out report) || Refused(work, out closed, out report);
+            return TryFillHoles(work, faces, origins, loops, out closed, out report)
+                || Refused(work, out closed, out report);
         }
 
         /// <summary>
@@ -218,7 +234,13 @@ namespace GeometryHelper.Core
             }
 
             closed = body;
-            report = new SolidClosing3(work.Repairs.ToArray(), work.AddedArea, VolumeChange(work.Solid, body), ClosingFailure.None, null);
+            report = new SolidClosing3(
+                work.Repairs.ToArray(),
+                work.AddedArea,
+                VolumeChange(work.Solid, body),
+                ClosingFailure.None,
+                null
+            );
             return true;
         }
 
@@ -280,8 +302,8 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="given">The body as it was given.</param>
         /// <param name="result">The body closed.</param>
-        internal static double VolumeChange(GeoSolid3 given, GeoSolid3 result)
-            => Math.Abs(SignedVolumeOf(result.Faces)) - Math.Abs(SignedVolumeOf(given.Faces));
+        internal static double VolumeChange(GeoSolid3 given, GeoSolid3 result) =>
+            Math.Abs(SignedVolumeOf(result.Faces)) - Math.Abs(SignedVolumeOf(given.Faces));
 
         /// <summary>
         /// The volume faces enclose measured from the middle of their box: each the fan of its boundary from its first
@@ -298,7 +320,8 @@ namespace GeometryHelper.Core
         /// coordinates. Faces that do not close enclose a volume only from where they are measured, and the middle of their
         /// box is a point the same faces give in whatever order they come.
         /// </remarks>
-        internal static double SignedVolumeOf(IReadOnlyList<GeoFace3> faces) => SignedVolumeAbout(faces, BoxOf(faces).Center);
+        internal static double SignedVolumeOf(IReadOnlyList<GeoFace3> faces) =>
+            SignedVolumeAbout(faces, BoxOf(faces).Center);
 
         /// <summary>
         /// The volume faces enclose measured from a point, as <see cref="SignedVolumeOf"/> measures it from the middle of

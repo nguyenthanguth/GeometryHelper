@@ -50,7 +50,15 @@ namespace GeometryHelper.Viewer
     /// </summary>
     public sealed class SnapHit
     {
-        internal SnapHit(Vec3 point, SnapKinds kind, string name, int itemIndex, int otherItemIndex, SceneCurve curve, double pixelDistance)
+        internal SnapHit(
+            Vec3 point,
+            SnapKinds kind,
+            string name,
+            int itemIndex,
+            int otherItemIndex,
+            SceneCurve curve,
+            double pixelDistance
+        )
         {
             Point = point;
             Kind = kind;
@@ -130,7 +138,16 @@ namespace GeometryHelper.Viewer
         /// null when there is none.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the geometry or the map is null.</exception>
-        public static SnapHit Find(ExactGeometry geometry, ScreenMap map, double x, double y, SnapKinds enabled, double radiusPixels, double tolerance, Func<int, bool> visible)
+        public static SnapHit Find(
+            ExactGeometry geometry,
+            ScreenMap map,
+            double x,
+            double y,
+            SnapKinds enabled,
+            double radiusPixels,
+            double tolerance,
+            Func<int, bool> visible
+        )
         {
             if (geometry == null)
             {
@@ -240,7 +257,10 @@ namespace GeometryHelper.Viewer
                 if ((enabled & (SnapKinds.Nearest | SnapKinds.Intersection)) != 0)
                 {
                     double gap = curve.DistanceToLine(origin, direction, forward, out Vec3 onCurve);
-                    double pixels = double.IsInfinity(gap) || !map.IsInDepth(onCurve) ? double.PositiveInfinity : gap / map.PixelSizeAt(onCurve);
+                    double pixels =
+                        double.IsInfinity(gap) || !map.IsInDepth(onCurve)
+                            ? double.PositiveInfinity
+                            : gap / map.PixelSizeAt(onCurve);
 
                     if (!(pixels <= radiusPixels))
                     {
@@ -257,11 +277,13 @@ namespace GeometryHelper.Viewer
 
             if ((enabled & SnapKinds.Intersection) != 0 && near.Count > 1)
             {
-                near.Sort((a, b) =>
-                {
-                    int c = a.Pixels.CompareTo(b.Pixels);
-                    return c != 0 ? c : a.Index.CompareTo(b.Index);
-                });
+                near.Sort(
+                    (a, b) =>
+                    {
+                        int c = a.Pixels.CompareTo(b.Pixels);
+                        return c != 0 ? c : a.Index.CompareTo(b.Index);
+                    }
+                );
 
                 int count = Math.Min(near.Count, MaxCrossingCurves);
 
@@ -280,7 +302,10 @@ namespace GeometryHelper.Viewer
                         foreach (Vec3 p in CurveIntersections.Find(first, second, tolerance))
                         {
                             // A crossing at the end of a curve is that end, and is offered as one while ends are snapped to.
-                            if ((enabled & SnapKinds.End) != 0 && (AtAnEnd(first, p, tolerance) || AtAnEnd(second, p, tolerance)))
+                            if (
+                                (enabled & SnapKinds.End) != 0
+                                && (AtAnEnd(first, p, tolerance) || AtAnEnd(second, p, tolerance))
+                            )
                             {
                                 continue;
                             }
@@ -300,7 +325,11 @@ namespace GeometryHelper.Viewer
             {
                 var hit = new SnapHit(n.Point, SnapKinds.Nearest, "nearest", n.Curve.ItemIndex, -1, n.Curve, n.Pixels);
 
-                if (nearest == null || n.Pixels < nearest.PixelDistance - 1E-9 || (Math.Abs(n.Pixels - nearest.PixelDistance) <= 1E-9 && Compare(hit, nearest) < 0))
+                if (
+                    nearest == null
+                    || n.Pixels < nearest.PixelDistance - 1E-9
+                    || (Math.Abs(n.Pixels - nearest.PixelDistance) <= 1E-9 && Compare(hit, nearest) < 0)
+                )
                 {
                     nearest = hit;
                 }
@@ -309,8 +338,12 @@ namespace GeometryHelper.Viewer
             return nearest;
         }
 
-        private static bool AtAnEnd(SceneCurve curve, Vec3 point, double tolerance)
-            => curve.HasEnds && ((curve.StartIsEnd && (curve.Start - point).Length <= tolerance) || (curve.EndIsEnd && (curve.End - point).Length <= tolerance));
+        private static bool AtAnEnd(SceneCurve curve, Vec3 point, double tolerance) =>
+            curve.HasEnds
+            && (
+                (curve.StartIsEnd && (curve.Start - point).Length <= tolerance)
+                || (curve.EndIsEnd && (curve.End - point).Length <= tolerance)
+            );
 
         private static bool Better(SnapHit hit, SnapHit than)
         {
@@ -342,18 +375,25 @@ namespace GeometryHelper.Viewer
             }
 
             c = a.Point.X.CompareTo(b.Point.X);
-            return c != 0 ? c : a.Point.Y != b.Point.Y ? a.Point.Y.CompareTo(b.Point.Y) : a.Point.Z.CompareTo(b.Point.Z);
+            return c != 0 ? c
+                : a.Point.Y != b.Point.Y ? a.Point.Y.CompareTo(b.Point.Y)
+                : a.Point.Z.CompareTo(b.Point.Z);
         }
 
         private static int Rank(SnapKinds kind)
         {
             switch (kind)
             {
-                case SnapKinds.End: return 0;
-                case SnapKinds.Intersection: return 1;
-                case SnapKinds.Mid: return 2;
-                case SnapKinds.Centre: return 3;
-                default: return 4;
+                case SnapKinds.End:
+                    return 0;
+                case SnapKinds.Intersection:
+                    return 1;
+                case SnapKinds.Mid:
+                    return 2;
+                case SnapKinds.Centre:
+                    return 3;
+                default:
+                    return 4;
             }
         }
 

@@ -13,11 +13,49 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     /// </summary>
     public class XlineRaySnapTests
     {
-        private static string Xline(double x, double y, double dx, double dy, string handle = null)
-            => TestDrawings.Entity("XLINE", "0", 256, handle, 100, "AcDbXline", 10, x, 20, y, 30, 0.0, 11, dx, 21, dy, 31, 0.0);
+        private static string Xline(double x, double y, double dx, double dy, string handle = null) =>
+            TestDrawings.Entity(
+                "XLINE",
+                "0",
+                256,
+                handle,
+                100,
+                "AcDbXline",
+                10,
+                x,
+                20,
+                y,
+                30,
+                0.0,
+                11,
+                dx,
+                21,
+                dy,
+                31,
+                0.0
+            );
 
-        private static string Ray(double x, double y, double dx, double dy, string handle = null)
-            => TestDrawings.Entity("RAY", "0", 256, handle, 100, "AcDbRay", 10, x, 20, y, 30, 0.0, 11, dx, 21, dy, 31, 0.0);
+        private static string Ray(double x, double y, double dx, double dy, string handle = null) =>
+            TestDrawings.Entity(
+                "RAY",
+                "0",
+                256,
+                handle,
+                100,
+                "AcDbRay",
+                10,
+                x,
+                20,
+                y,
+                30,
+                0.0,
+                11,
+                dx,
+                21,
+                dy,
+                31,
+                0.0
+            );
 
         private static PickIndex Index(params string[] entities)
         {
@@ -51,13 +89,32 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             PickIndex index = Index(Xline(200, 300, 1, 0, "B1"), Ray(-50, -20, 0, 1, "B2"));
 
-            Snapped(new ObjectSnap(Tight) { Modes = CadSnapModes.Endpoint }.Snap(index, P(-49.7, -19.8), 1.0), CadSnapKind.Endpoint, -50, -20);
-            Assert.Equal(CadSnapKind.None, new ObjectSnap(Tight) { Modes = CadSnapModes.Endpoint }.Snap(index, P(200.3, 300.2), 1.0).Kind);
+            Snapped(
+                new ObjectSnap(Tight) { Modes = CadSnapModes.Endpoint }.Snap(index, P(-49.7, -19.8), 1.0),
+                CadSnapKind.Endpoint,
+                -50,
+                -20
+            );
+            Assert.Equal(
+                CadSnapKind.None,
+                new ObjectSnap(Tight) { Modes = CadSnapModes.Endpoint }
+                    .Snap(index, P(200.3, 300.2), 1.0)
+                    .Kind
+            );
 
-            CadSnapResult root = new ObjectSnap(Tight) { Modes = CadSnapModes.Midpoint }.Snap(index, P(200.3, 300.2), 1.0);
+            CadSnapResult root = new ObjectSnap(Tight) { Modes = CadSnapModes.Midpoint }.Snap(
+                index,
+                P(200.3, 300.2),
+                1.0
+            );
             Snapped(root, CadSnapKind.Midpoint, 200, 300);
             Assert.Equal("B1", root.Handle);
-            Assert.Equal(CadSnapKind.None, new ObjectSnap(Tight) { Modes = CadSnapModes.Midpoint }.Snap(index, P(-49.7, -19.8), 1.0).Kind);
+            Assert.Equal(
+                CadSnapKind.None,
+                new ObjectSnap(Tight) { Modes = CadSnapModes.Midpoint }
+                    .Snap(index, P(-49.7, -19.8), 1.0)
+                    .Kind
+            );
         }
 
         [Fact]
@@ -89,7 +146,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 Ray(0, 2000, 1, 0, "B3"),
                 Ray(3000, 0, 0, 1, "B4"),
                 Xline(0, -0.5, 1, 0, "B5"),
-                TestDrawings.Arc(3005, 500, 10, 90, 270, handle: "A3"));
+                TestDrawings.Arc(3005, 500, 10, 90, 270, handle: "A3")
+            );
             var snap = new ObjectSnap(Tight) { Modes = CadSnapModes.Intersection };
 
             CadSnapResult xlineLine = snap.Snap(index, P(100.3, 99.8), 1.0);
@@ -131,9 +189,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // A ray along -X from (98, 0) points away from the line x = 100 that starts at (100, 2): run on, they meet at (100, 0).
             PickIndex index = Index(Ray(98, 0, -1, 0, "B1"), TestDrawings.Line(100, 2, 100, 50, handle: "A1"));
 
-            CadSnapResult apparent = new ObjectSnap(Tight) { Modes = CadSnapModes.ApparentIntersection }.Snap(index, P(99.5, 0.6), 2.5);
+            CadSnapResult apparent = new ObjectSnap(Tight) { Modes = CadSnapModes.ApparentIntersection }.Snap(
+                index,
+                P(99.5, 0.6),
+                2.5
+            );
             Snapped(apparent, CadSnapKind.ApparentIntersection, 100, 0);
-            Assert.Equal(CadSnapKind.None, new ObjectSnap(Tight) { Modes = CadSnapModes.Intersection }.Snap(index, P(99.5, 0.6), 2.5).Kind);
+            Assert.Equal(
+                CadSnapKind.None,
+                new ObjectSnap(Tight) { Modes = CadSnapModes.Intersection }
+                    .Snap(index, P(99.5, 0.6), 2.5)
+                    .Kind
+            );
         }
     }
 }

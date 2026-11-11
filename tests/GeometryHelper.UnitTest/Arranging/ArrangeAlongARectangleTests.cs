@@ -14,18 +14,32 @@ namespace GeometryHelper.UnitTest.Arranging
     /// </summary>
     public class ArrangeAlongARectangleTests : ArrangeTestKit
     {
-        private static readonly ArrangeOptions Options = new ArrangeOptions { RowGap = 10.0, PerpendicularLevels = 2, Tolerance = Tolerance.Default };
+        private static readonly ArrangeOptions Options = new ArrangeOptions
+        {
+            RowGap = 10.0,
+            PerpendicularLevels = 2,
+            Tolerance = Tolerance.Default,
+        };
 
-        private static ArrangeItem Label(GeoRectangle2? rectangle, double offset = 50.0, double width = 100.0, double height = 40.0)
-            => new ArrangeItem
+        private static ArrangeItem Label(
+            GeoRectangle2? rectangle,
+            double offset = 50.0,
+            double width = 100.0,
+            double height = 40.0
+        ) =>
+            new ArrangeItem
             {
                 Rectangle = rectangle,
-                Box = new GeoRectangle2(rectangle.HasValue ? rectangle.Value.Center : new GeoPoint2(0.0, 0.0), width, height),
+                Box = new GeoRectangle2(
+                    rectangle.HasValue ? rectangle.Value.Center : new GeoPoint2(0.0, 0.0),
+                    width,
+                    height
+                ),
                 Offset = offset,
             };
 
-        private static double[] Rows(IEnumerable<GeoPoint2> points, Func<GeoPoint2, double> across)
-            => points.Select(p => Math.Round(across(p), 6)).Distinct().OrderBy(y => y).ToArray();
+        private static double[] Rows(IEnumerable<GeoPoint2> points, Func<GeoPoint2, double> across) =>
+            points.Select(p => Math.Round(across(p), 6)).Distinct().OrderBy(y => y).ToArray();
 
         /// <summary>
         /// A rectangle 2 000 by 300 and a label 100 by 40 with the gap 50: the first rows stand 150 + 50 + 20 off the middle
@@ -112,7 +126,12 @@ namespace GeometryHelper.UnitTest.Arranging
             double expected = 100.0 + 50.0 + labelAcross * 0.5;
 
             List<GeoPoint2> points = label.GetPlacePoints(Options);
-            double[] across = points.Select(p => new GeoVector2(p.X - 300.0, p.Y - 200.0).DotProduct(perpendicular)).Select(a => Math.Round(Math.Abs(a), 6)).Distinct().OrderBy(a => a).ToArray();
+            double[] across = points
+                .Select(p => new GeoVector2(p.X - 300.0, p.Y - 200.0).DotProduct(perpendicular))
+                .Select(a => Math.Round(Math.Abs(a), 6))
+                .Distinct()
+                .OrderBy(a => a)
+                .ToArray();
 
             Assert.Equal(expected, across[0], 6);
             Assert.Equal(expected + labelAcross + 10.0, across[1], 6);
@@ -134,7 +153,10 @@ namespace GeometryHelper.UnitTest.Arranging
             ArrangeItem label = Label(new GeoRectangle2(new GeoPoint2(0.0, 0.0), 2000.0, 300.0));
             label.Leader = new GeoLine2(5000.0, 5000.0, 5000.0, 9000.0);
 
-            Assert.Equal(Rows(Label(label.Rectangle).GetPlacePoints(Options), p => p.Y), Rows(label.GetPlacePoints(Options), p => p.Y));
+            Assert.Equal(
+                Rows(Label(label.Rectangle).GetPlacePoints(Options), p => p.Y),
+                Rows(label.GetPlacePoints(Options), p => p.Y)
+            );
             Assert.All(label.GetPlacePoints(Options), p => Assert.True(Math.Abs(p.X) <= 2000.0));
         }
 

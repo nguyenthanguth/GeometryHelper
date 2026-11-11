@@ -22,7 +22,9 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly GeoVector3 Up = Unit(new GeoVector3(0.3, -0.4, 0.866));
 
         /// <summary>The plate's length, square to its up.</summary>
-        private static readonly GeoVector3 Along = Unit(new GeoVector3(1, 0.2, 0).Subtract(Up.Multiply(new GeoVector3(1, 0.2, 0).DotProduct(Up))));
+        private static readonly GeoVector3 Along = Unit(
+            new GeoVector3(1, 0.2, 0).Subtract(Up.Multiply(new GeoVector3(1, 0.2, 0).DotProduct(Up)))
+        );
 
         /// <summary>The plate's width.</summary>
         private static readonly GeoVector3 Across = Up.CrossProduct(Along);
@@ -30,8 +32,8 @@ namespace GeometryHelper.UnitTest.Solid
         private static GeoVector3 Unit(GeoVector3 vector) => vector.Multiply(1 / vector.Length);
 
         /// <summary>The point at a length, a width and a height in the turned frame standing at (out, out, out).</summary>
-        private static GeoPoint3 At(double far, double x, double y, double z)
-            => new GeoPoint3(far, far, far).Add(Along.Multiply(x)).Add(Across.Multiply(y)).Add(Up.Multiply(z));
+        private static GeoPoint3 At(double far, double x, double y, double z) =>
+            new GeoPoint3(far, far, far).Add(Along.Multiply(x)).Add(Across.Multiply(y)).Add(Up.Multiply(z));
 
         /// <summary>
         /// The plate 200 by 100 by 3 standing in the turned frame, with openings each given as its length from and to, its width
@@ -48,9 +50,18 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoSolid3 body = GeoSolid3.Extrude(new GeoPolygon3(corners.ToArray()), Up.Multiply(3), Tolerance.Default);
             GeoSolid3[] openings = holes
-                .Select(h => GeoSolid3.Extrude(
-                    new GeoPolygon3(At(far, h[0], h[1], h[4]), At(far, h[2], h[1], h[4]), At(far, h[2], h[3], h[4]), At(far, h[0], h[3], h[4])),
-                    Up.Multiply(h[5] - h[4]), Tolerance.Default))
+                .Select(h =>
+                    GeoSolid3.Extrude(
+                        new GeoPolygon3(
+                            At(far, h[0], h[1], h[4]),
+                            At(far, h[2], h[1], h[4]),
+                            At(far, h[2], h[3], h[4]),
+                            At(far, h[0], h[3], h[4])
+                        ),
+                        Up.Multiply(h[5] - h[4]),
+                        Tolerance.Default
+                    )
+                )
                 .ToArray();
 
             return holes.Length == 0 ? body : body.WithOpenings(openings);
@@ -62,7 +73,9 @@ namespace GeometryHelper.UnitTest.Solid
         /// </summary>
         private static GeoCellGrid3 TurnedPlateCells(GeoSolid3 plate, double far)
         {
-            MeshPlacement3 placement = MeshPlacement3.Frame(new GeoCoordinateSystem3(At(far, 0, 0, 0), Along, Across)).At(At(far, -10, -10, -2));
+            MeshPlacement3 placement = MeshPlacement3
+                .Frame(new GeoCoordinateSystem3(At(far, 0, 0, 0), Along, Across))
+                .At(At(far, -10, -10, -2));
 
             return Mesh3.ToCells(plate, CellOptions3.Grid(60, 40, 10), placement, Nought);
         }
@@ -139,7 +152,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(usual.CellCount, grid.CellCount);
             Assert.Equal(240_000, grid.Cells.Sum(c => c.Volume), 1E-6 * 240_000);
-            Assert.All(grid.Cells.Zip(usual.Cells, (c, u) => (c, u)), p => Assert.Equal(p.u.Volume, p.c.Volume, 1E-6 * 240_000));
+            Assert.All(grid.Cells.Zip(usual.Cells, (c, u) => (c, u)), p =>
+                Assert.Equal(p.u.Volume, p.c.Volume, 1E-6 * 240_000)
+            );
             Assert.All(grid.Cells, c => Assert.True(c.Solid.IsClosed(Nought)));
         }
     }

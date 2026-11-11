@@ -83,13 +83,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
-            if (!string.Equals(key, "Enter", StringComparison.OrdinalIgnoreCase) && !string.Equals(key, "Return", StringComparison.OrdinalIgnoreCase))
+            if (
+                !string.Equals(key, "Enter", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(key, "Return", StringComparison.OrdinalIgnoreCase)
+            )
             {
                 return false;
             }
 
             List<FileRowViewModel> selected = SelectedFileRows.ToList();
-            FileRowViewModel row = selected.FirstOrDefault(r => Same(r.Path, _anchorPath)) ?? (selected.Count == 1 ? selected[0] : null);
+            FileRowViewModel row = selected.FirstOrDefault(r => Same(r.Path, _anchorPath))
+                ?? (selected.Count == 1 ? selected[0] : null);
 
             if (row != null)
             {
@@ -116,7 +120,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             KnownFile file = Known(row.Path);
             List<KnownFile> open = _files.Values.Where(f => f.Document != null).ToList();
-            List<KnownFile> selected = SelectedFileRows.Select(r => Known(r.Path)).Where(f => f?.Document != null).ToList();
+            List<KnownFile> selected = SelectedFileRows
+                .Select(r => Known(r.Path))
+                .Where(f => f?.Document != null)
+                .ToList();
             List<KnownFile> others = open.Where(f => f != file).ToList();
             return new[]
             {
@@ -150,8 +157,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private KnownFile Known(string path) => path != null && _files.TryGetValue(path, out KnownFile file) ? file : null;
+        private KnownFile Known(string path) =>
+            path != null && _files.TryGetValue(path, out KnownFile file) ? file : null;
 
-        private static bool Same(string a, string b) => a != null && b != null && string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+        private static bool Same(string a, string b) =>
+            a != null && b != null && string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
     }
 }

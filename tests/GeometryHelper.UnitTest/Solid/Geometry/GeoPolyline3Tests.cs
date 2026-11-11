@@ -9,10 +9,8 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     public class GeoPolyline3Tests
     {
-        private static GeoPolyline3 MakeLShape() => new GeoPolyline3(
-            new GeoPoint3(0.0, 0.0, 0.0),
-            new GeoPoint3(3.0, 0.0, 0.0),
-            new GeoPoint3(3.0, 4.0, 0.0));
+        private static GeoPolyline3 MakeLShape() =>
+            new GeoPolyline3(new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(3.0, 0.0, 0.0), new GeoPoint3(3.0, 4.0, 0.0));
 
         [Fact]
         public void LengthIsTheSumOfTheSegments()
@@ -29,7 +27,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(1.0, 0.0, 0.0),
-                new GeoPoint3(1.0, 0.0, 1E-9));
+                new GeoPoint3(1.0, 0.0, 1E-9)
+            );
 
             Assert.Equal(2, polyline.VertexCount);
             Assert.Equal(1.0, polyline.Length, 9);
@@ -39,10 +38,12 @@ namespace GeometryHelper.UnitTest.Solid
         public void FewerThanTwoDistinctVerticesAreRefused()
         {
             Assert.Throws<ArgumentException>(() => new GeoPolyline3(new GeoPoint3(1.0, 1.0, 1.0)));
-            Assert.Throws<ArgumentException>(() => new GeoPolyline3(
-                new GeoPoint3(1.0, 1.0, 1.0),
-                new GeoPoint3(1.0, 1.0, 1.0)));
-            Assert.Throws<ArgumentNullException>(() => new GeoPolyline3((System.Collections.Generic.IEnumerable<GeoPoint3>)null));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoPolyline3(new GeoPoint3(1.0, 1.0, 1.0), new GeoPoint3(1.0, 1.0, 1.0))
+            );
+            Assert.Throws<ArgumentNullException>(() =>
+                new GeoPolyline3((System.Collections.Generic.IEnumerable<GeoPoint3>)null)
+            );
         }
 
         [Fact]
@@ -51,7 +52,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPolyline3 polyline = new GeoPolyline3(
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(0.0, 0.0, 0.0),
-                new GeoPoint3(5.0, 0.0, 0.0));
+                new GeoPoint3(5.0, 0.0, 0.0)
+            );
 
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
@@ -113,7 +115,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(10.0, 0.0, 0.0),
                 new GeoPoint3(10.0, 10.0, 0.0),
                 new GeoPoint3(0.0, 10.0, 0.0),
-                new GeoPoint3(0.0, 0.0, 0.0));
+                new GeoPoint3(0.0, 0.0, 0.0)
+            );
 
             GeoPoint3 middle = new GeoPoint3(5.0, 5.0, 0.0);
 
@@ -132,7 +135,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(1.0, 0.0, 0.0),
                 new GeoPoint3(1.0, 1.0, 0.0),
-                new GeoPoint3(1.0, 1.0, 1.0));
+                new GeoPoint3(1.0, 1.0, 1.0)
+            );
 
             Assert.False(skew.IsPlanar());
             Assert.False(skew.TryGetPlane(out _));
@@ -158,7 +162,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPolyline3 straight = new GeoPolyline3(
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(1.0, 1.0, 1.0),
-                new GeoPoint3(2.0, 2.0, 2.0));
+                new GeoPoint3(2.0, 2.0, 2.0)
+            );
 
             Assert.False(straight.TryGetPlane(out _));
         }
@@ -200,12 +205,9 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The span from (0, 0, 0) to (1E308, 1E308, 0) is too long for a double, which left the spanning
             // plane's normal of length nought and divided by it.
-            GeoPolyline3 polyline = new GeoPolyline3(new[]
-            {
-                new GeoPoint3(0.0, 0.0, 0.0),
-                new GeoPoint3(1E308, 0.0, 0.0),
-                new GeoPoint3(1E308, 1E308, 0.0),
-            });
+            GeoPolyline3 polyline = new GeoPolyline3(
+                new[] { new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(1E308, 0.0, 0.0), new GeoPoint3(1E308, 1E308, 0.0) }
+            );
 
             Assert.False(polyline.TryGetPlane(out _, Tolerance.Default));
         }

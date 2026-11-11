@@ -36,9 +36,20 @@ namespace GeometryHelper.Dxf
 
             foreach (object value in values)
             {
-                if (value != null && !(value is double number && Guard.IsFinite(number)) && !(value is string text && text.IndexOfAny(LineBreaks) < 0))
+                if (
+                    value != null
+                    && !(value is double number && Guard.IsFinite(number))
+                    && !(value is string text && text.IndexOfAny(LineBreaks) < 0)
+                )
                 {
-                    throw new ArgumentException("A value of a row of a block properties table is a finite double or a string of one line; a " + value.GetType().Name + " " + value + " is not.", nameof(values));
+                    throw new ArgumentException(
+                        "A value of a row of a block properties table is a finite double or a string of one line; a "
+                            + value.GetType().Name
+                            + " "
+                            + value
+                            + " is not.",
+                        nameof(values)
+                    );
                 }
             }
 
@@ -52,7 +63,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A row read from a table, its values kept as read, an empty cell as null.</summary>
-        internal static DxfBlockPropertiesTableRow Read(object[] values) => new DxfBlockPropertiesTableRow(new List<object>(values));
+        internal static DxfBlockPropertiesTableRow Read(object[] values) =>
+            new DxfBlockPropertiesTableRow(new List<object>(values));
 
         /// <summary>
         /// Gets the value of each column, in the order of the columns: a <see cref="double"/> or a <see cref="string"/>; null for

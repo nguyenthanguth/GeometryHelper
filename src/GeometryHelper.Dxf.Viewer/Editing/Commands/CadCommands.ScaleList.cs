@@ -22,7 +22,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             while (true)
             {
-                yield return CadPrompt.ForKeyword("Enter option", new[] { "?", "Add", "Delete", "Reset", "Exit" }, "Add");
+                yield return CadPrompt.ForKeyword(
+                    "Enter option",
+                    new[] { "?", "Add", "Delete", "Reset", "Exit" },
+                    "Add"
+                );
 
                 if (c.Input.Is("Exit"))
                 {
@@ -73,12 +77,17 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                DxfAnnotationScale existing = Scales(c.Database).FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
+                DxfAnnotationScale existing = Scales(c.Database)
+                    .FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
 
                 if (existing != null)
                 {
                     c.Write(string.Empty);
-                    yield return CadPrompt.ForKeyword(name + " already exists.  Redefine scale?", new[] { "Yes", "No" }, "No");
+                    yield return CadPrompt.ForKeyword(
+                        name + " already exists.  Redefine scale?",
+                        new[] { "Yes", "No" },
+                        "No"
+                    );
 
                     if (!c.Input.Is("Yes"))
                     {
@@ -111,7 +120,8 @@ namespace GeometryHelper.Dxf.Viewer
                 double drawingUnits = drawing;
                 CadEditResult result = c.Apply(ScaleListRecord(scaleName), s =>
                 {
-                    DxfAnnotationScale same = Scales(s.Database).FirstOrDefault(x => string.Equals(x.Name, scaleName, StringComparison.OrdinalIgnoreCase));
+                    DxfAnnotationScale same = Scales(s.Database)
+                        .FirstOrDefault(x => string.Equals(x.Name, scaleName, StringComparison.OrdinalIgnoreCase));
 
                     if (same != null)
                     {
@@ -120,7 +130,15 @@ namespace GeometryHelper.Dxf.Viewer
                         return;
                     }
 
-                    ScaleList(s.Database).AddContext(new DxfAnnotationScale { Name = scaleName, PaperUnits = paperUnits, DrawingUnits = drawingUnits });
+                    ScaleList(s.Database)
+                        .AddContext(
+                            new DxfAnnotationScale
+                            {
+                                Name = scaleName,
+                                PaperUnits = paperUnits,
+                                DrawingUnits = drawingUnits,
+                            }
+                        );
                 });
 
                 if (!result.Succeeded)
@@ -141,9 +159,14 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 number++;
                 string paper = scale.PaperUnits.ToString("0.0000", CultureInfo.InvariantCulture);
-                c.Write(number.ToString(CultureInfo.InvariantCulture).PadLeft(2) + ": " + scale.Name + paper.PadLeft(Math.Max(34 - scale.Name.Length, paper.Length + 1))
-                    + scale.DrawingUnits.ToString("0.0000", CultureInfo.InvariantCulture).PadLeft(14)
-                    + scale.Scale.ToString("0.0000", CultureInfo.InvariantCulture).PadLeft(14));
+                c.Write(
+                    number.ToString(CultureInfo.InvariantCulture).PadLeft(2)
+                        + ": "
+                        + scale.Name
+                        + paper.PadLeft(Math.Max(34 - scale.Name.Length, paper.Length + 1))
+                        + scale.DrawingUnits.ToString("0.0000", CultureInfo.InvariantCulture).PadLeft(14)
+                        + scale.Scale.ToString("0.0000", CultureInfo.InvariantCulture).PadLeft(14)
+                );
             }
         }
 
@@ -161,7 +184,11 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     c.Apply(ScaleListRecord("*"), s =>
                     {
-                        foreach (DxfAnnotationScale scale in Scales(s.Database).Where(x => Removable(s.Database, x.Name)).ToList())
+                        foreach (
+                            DxfAnnotationScale scale in Scales(s.Database)
+                                .Where(x => Removable(s.Database, x.Name))
+                                .ToList()
+                        )
                         {
                             ScaleList(s.Database).RemoveContext(scale.Name);
                         }
@@ -171,7 +198,8 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            DxfAnnotationScale found = Scales(c.Database).FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
+            DxfAnnotationScale found = Scales(c.Database)
+                .FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
 
             if (found == null)
             {
@@ -208,12 +236,14 @@ namespace GeometryHelper.Dxf.Viewer
                 if (!list.HasContext(name) && CadViewports.TryReadScale(name, out _))
                 {
                     string[] parts = name.Split(':');
-                    list.AddContext(new DxfAnnotationScale
-                    {
-                        Name = name,
-                        PaperUnits = double.Parse(parts[0], CultureInfo.InvariantCulture),
-                        DrawingUnits = double.Parse(parts[1], CultureInfo.InvariantCulture),
-                    });
+                    list.AddContext(
+                        new DxfAnnotationScale
+                        {
+                            Name = name,
+                            PaperUnits = double.Parse(parts[0], CultureInfo.InvariantCulture),
+                            DrawingUnits = double.Parse(parts[1], CultureInfo.InvariantCulture),
+                        }
+                    );
                 }
             }
         }
@@ -241,14 +271,17 @@ namespace GeometryHelper.Dxf.Viewer
             return parts.Length == 2
                 && double.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out paper)
                 && double.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out drawing)
-                && paper > 0.0 && drawing > 0.0 && !double.IsInfinity(paper) && !double.IsInfinity(drawing);
+                && paper > 0.0
+                && drawing > 0.0
+                && !double.IsInfinity(paper)
+                && !double.IsInfinity(drawing);
         }
 
-        private static IReadOnlyList<CadEditRecord> ScaleListRecord(string what)
-            => new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "Scale list", null, what) };
+        private static IReadOnlyList<CadEditRecord> ScaleListRecord(string what) =>
+            new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "Scale list", null, what) };
 
-        private static DxfObjectContextCollection ScaleList(DxfDatabase database)
-            => database.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES");
+        private static DxfObjectContextCollection ScaleList(DxfDatabase database) =>
+            database.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES");
 
         private static List<DxfAnnotationScale> Scales(DxfDatabase database)
         {

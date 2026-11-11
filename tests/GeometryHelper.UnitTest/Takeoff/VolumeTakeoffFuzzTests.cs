@@ -24,7 +24,11 @@ namespace GeometryHelper.UnitTest.Takeoff
         // Even seeds run the boolean as it comes, odd ones with the contact and fallback of a hundredth.
         private static readonly SolidBooleanOptions Plain = new SolidBooleanOptions(Tolerance.Default);
 
-        private static readonly SolidBooleanOptions Contact = new SolidBooleanOptions(Tolerance.Default, 0.01, new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01));
+        private static readonly SolidBooleanOptions Contact = new SolidBooleanOptions(
+            Tolerance.Default,
+            0.01,
+            new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01)
+        );
 
         [Fact]
         public void TwoThousandRandomSetsOfBoxes_AgreeWithTheOracle_AndOneThreadWithEveryProcessorBitForBit()
@@ -37,11 +41,16 @@ namespace GeometryHelper.UnitTest.Takeoff
                 VolumeItem[] items = set.ToItems();
                 SolidBooleanOptions boolean = seed % 2 == 0 ? Plain : Contact;
 
-                IReadOnlyList<VolumeTakeoffResult> every = VolumeTakeoff.Run(items, new VolumeTakeoffOptions(boolean, -1));
+                IReadOnlyList<VolumeTakeoffResult> every = VolumeTakeoff.Run(
+                    items,
+                    new VolumeTakeoffOptions(boolean, -1)
+                );
                 IReadOnlyList<VolumeTakeoffResult> one = VolumeTakeoff.Run(items, new VolumeTakeoffOptions(boolean, 1));
 
                 List<string> wrong = Disagreements(items, every, Oracle.Of(set));
-                wrong.AddRange(Differences(one, every).Select(difference => "one thread against every processor, " + difference));
+                wrong.AddRange(
+                    Differences(one, every).Select(difference => "one thread against every processor, " + difference)
+                );
                 if (wrong.Count > 0)
                 {
                     failures.Add($"seed {seed}, contact {boolean.Contact}:\n{set}  " + string.Join("\n  ", wrong));

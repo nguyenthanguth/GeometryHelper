@@ -9,6 +9,7 @@ namespace GeometryHelper.UnitTest.Clipper
     /// </summary>
     internal static class TestFile
     {
-        public static string Of(string name) => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Clipper", "Data", name);
+        public static string Of(string name) =>
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Clipper", "Data", name);
     }
 }

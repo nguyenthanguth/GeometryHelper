@@ -29,7 +29,10 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string group in groups.Split(' '))
             {
                 int at = group.IndexOf('=');
-                text.Append(group.Substring(0, at).PadLeft(3)).Append('\n').Append(group.Substring(at + 1)).Append('\n');
+                text.Append(group.Substring(0, at).PadLeft(3))
+                    .Append('\n')
+                    .Append(group.Substring(at + 1))
+                    .Append('\n');
             }
 
             return text.ToString();
@@ -38,17 +41,26 @@ namespace GeometryHelper.UnitTest.Dxf
         /// <summary>ezdxf's drawing of R2018 with entities of their own put last in its ENTITIES section, the handles from C00 free.</summary>
         private static DxfDatabase With(string entities)
         {
-            string text = DxfFileEzdxfDrawings.R2018.Replace("\r\n", "\n").Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nC00\n");
-            int end = text.IndexOf("  0\nENDSEC\n", text.IndexOf("\nENTITIES\n", StringComparison.Ordinal), StringComparison.Ordinal);
+            string text = DxfFileEzdxfDrawings
+                .R2018.Replace("\r\n", "\n")
+                .Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nC00\n");
+            int end = text.IndexOf(
+                "  0\nENDSEC\n",
+                text.IndexOf("\nENTITIES\n", StringComparison.Ordinal),
+                StringComparison.Ordinal
+            );
             return DxfDatabase.Parse(text.Insert(end, entities));
         }
 
         /// <summary>The record of a type naming a value (a name or a handle) among its groups, in a text of a drawing.</summary>
-        private static string RecordOf(string text, string type, string value)
-            => Records(text).Single(r => r.StartsWith("  0\n" + type + "\n", StringComparison.Ordinal) && r.Contains("\n" + value + "\n"));
+        private static string RecordOf(string text, string type, string value) =>
+            Records(text)
+                .Single(r =>
+                    r.StartsWith("  0\n" + type + "\n", StringComparison.Ordinal) && r.Contains("\n" + value + "\n")
+                );
 
-        private static void Near(GeoPoint3 expected, GeoPoint3 actual)
-            => Assert.True(expected.DistanceTo(actual) <= 1E-5, "expected " + expected + ", got " + actual);
+        private static void Near(GeoPoint3 expected, GeoPoint3 actual) =>
+            Assert.True(expected.DistanceTo(actual) <= 1E-5, "expected " + expected + ", got " + actual);
 
         private static GeoPoint3 P(double x, double y, double z = 0.0) => new GeoPoint3(x, y, z);
 
@@ -71,8 +83,14 @@ namespace GeometryHelper.UnitTest.Dxf
             source.WblockCloneObjects(new DxfEntity[] { ByHandle<DxfEntity>(source, "4D"), line }, target.ModelSpace);
 
             string text = target.ToText();
-            string placeholder = HandleOf(Records(text).Single(r => r.StartsWith("  0\nACDBPLACEHOLDER\n", StringComparison.Ordinal)));
-            Assert.Contains("\n390\n" + placeholder + "\n", RecordOf(text, "LAYER", layerName), StringComparison.Ordinal);
+            string placeholder = HandleOf(
+                Records(text).Single(r => r.StartsWith("  0\nACDBPLACEHOLDER\n", StringComparison.Ordinal))
+            );
+            Assert.Contains(
+                "\n390\n" + placeholder + "\n",
+                RecordOf(text, "LAYER", layerName),
+                StringComparison.Ordinal
+            );
             Assert.True(DxfDatabase.Parse(text).LayerTable.Has(layerName));
         }
 
@@ -108,8 +126,17 @@ namespace GeometryHelper.UnitTest.Dxf
             string record = Records(db.ToText()).Single(r => HandleOf(r) == face.Handle);
 
             Assert.DoesNotContain("AcDbVertex", record, StringComparison.Ordinal);
-            Assert.Contains("100\nAcDbEntity\n  8\n0\n100\nAcDbFaceRecord\n 10\n0\n 20\n0\n 30\n0\n 70\n128\n 71\n1\n 72\n2\n 73\n-3\n", record, StringComparison.Ordinal);
-            DxfFaceRecord read = DxfDatabase.Parse(db.ToText()).ModelSpace.OfType<DxfPolyFaceMesh>().Single(m => m.Handle == mesh.Handle).OfType<DxfFaceRecord>().Single();
+            Assert.Contains(
+                "100\nAcDbEntity\n  8\n0\n100\nAcDbFaceRecord\n 10\n0\n 20\n0\n 30\n0\n 70\n128\n 71\n1\n 72\n2\n 73\n-3\n",
+                record,
+                StringComparison.Ordinal
+            );
+            DxfFaceRecord read = DxfDatabase
+                .Parse(db.ToText())
+                .ModelSpace.OfType<DxfPolyFaceMesh>()
+                .Single(m => m.Handle == mesh.Handle)
+                .OfType<DxfFaceRecord>()
+                .Single();
             Assert.Equal(3, (int)read.GetVertexAt(2));
             Assert.False(read.IsEdgeVisibleAt(2));
         }
@@ -127,11 +154,21 @@ namespace GeometryHelper.UnitTest.Dxf
             db.Cetransparency = new DxfTransparency(100);
 
             string text = db.ToText();
-            Assert.Contains("\n  1\n33554532\n", Records(text).Single(r => r.StartsWith("  0\nDICTIONARYVAR\n", StringComparison.Ordinal) && r.Contains("33554532")), StringComparison.Ordinal);
+            Assert.Contains(
+                "\n  1\n33554532\n",
+                Records(text)
+                    .Single(r =>
+                        r.StartsWith("  0\nDICTIONARYVAR\n", StringComparison.Ordinal) && r.Contains("33554532")
+                    ),
+                StringComparison.Ordinal
+            );
             Assert.Equal(new DxfTransparency(100), DxfDatabase.Parse(text).Cetransparency);
             db.Cetransparency = DxfTransparency.ByBlock;
             Assert.Equal(DxfTransparency.ByBlock, DxfDatabase.Parse(db.ToText()).Cetransparency);
-            Assert.Equal(DxfTransparency.ByLayer, DxfDatabase.Parse(text.Replace("\n  1\n33554532\n", "\n  1\n61\n")).Cetransparency);
+            Assert.Equal(
+                DxfTransparency.ByLayer,
+                DxfDatabase.Parse(text.Replace("\n  1\n33554532\n", "\n  1\n61\n")).Cetransparency
+            );
         }
 
         [Fact]
@@ -140,7 +177,12 @@ namespace GeometryHelper.UnitTest.Dxf
             // AutoCAD read no custom property of the list after group 90, and the hyperlink base from $HYPERLINKBASE alone. A
             // drawing of R2000: AutoCAD 2021 saves one of R2018 with its properties in the header (D15).
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
-            var builder = new DxfDatabaseSummaryInfoBuilder { Title = "Plate B-12", Author = "GeometryHelper", HyperlinkBase = "https://example.com/plates/" };
+            var builder = new DxfDatabaseSummaryInfoBuilder
+            {
+                Title = "Plate B-12",
+                Author = "GeometryHelper",
+                HyperlinkBase = "https://example.com/plates/",
+            };
             builder.CustomPropertyTable.Add(new KeyValuePair<string, string>("Project", "P4 checks"));
             builder.CustomPropertyTable.Add(new KeyValuePair<string, string>("Checked by", "GH"));
 
@@ -155,7 +197,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(23, props.Data.Count);
             Assert.Contains("$HYPERLINKBASE\n  1\nhttps://example.com/plates/\n", text, StringComparison.Ordinal);
             DxfDatabaseSummaryInfo read = DxfDatabase.Parse(text).SummaryInfo;
-            Assert.Equal(new[] { "Project=P4 checks", "Checked by=GH" }, read.CustomProperties.Select(p => p.Key + "=" + p.Value));
+            Assert.Equal(
+                new[] { "Project=P4 checks", "Checked by=GH" },
+                read.CustomProperties.Select(p => p.Key + "=" + p.Value)
+            );
             Assert.Equal("https://example.com/plates/", read.HyperlinkBase);
         }
 
@@ -164,8 +209,12 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // AutoCAD 2021 saved 26-a with $TITLE and $AUTHOR after $DWGCODEPAGE, and no DWGPROPS.
             string text = DxfFileEzdxfDrawings.R2018.Replace("\r\n", "\n");
-            int after = text.IndexOf("$DWGCODEPAGE\n  3\nANSI_1252\n", StringComparison.Ordinal) + "$DWGCODEPAGE\n  3\nANSI_1252\n".Length;
-            DxfDatabase db = DxfDatabase.Parse(text.Insert(after, "  9\n$TITLE\n  1\nPlate B-12\n  9\n$AUTHOR\n  1\nGeometryHelper\n"));
+            int after =
+                text.IndexOf("$DWGCODEPAGE\n  3\nANSI_1252\n", StringComparison.Ordinal)
+                + "$DWGCODEPAGE\n  3\nANSI_1252\n".Length;
+            DxfDatabase db = DxfDatabase.Parse(
+                text.Insert(after, "  9\n$TITLE\n  1\nPlate B-12\n  9\n$AUTHOR\n  1\nGeometryHelper\n")
+            );
 
             DxfDatabaseSummaryInfo info = db.SummaryInfo;
 
@@ -243,8 +292,16 @@ namespace GeometryHelper.UnitTest.Dxf
             geo.PostToDb();
 
             string text = db.ToText();
-            Assert.Contains("\n100\nAcDbGeoData\n 90\n3\n", Records(text).Single(r => HandleOf(r) == geo.Handle), StringComparison.Ordinal);
-            Assert.Contains("  0\nCLASS\n  1\nGEODATA\n  2\nAcDbGeoData\n  3\nObjectDBX Classes\n 90\n4095\n 91\n1\n", text, StringComparison.Ordinal);
+            Assert.Contains(
+                "\n100\nAcDbGeoData\n 90\n3\n",
+                Records(text).Single(r => HandleOf(r) == geo.Handle),
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "  0\nCLASS\n  1\nGEODATA\n  2\nAcDbGeoData\n  3\nObjectDBX Classes\n 90\n4095\n 91\n1\n",
+                text,
+                StringComparison.Ordinal
+            );
             Assert.NotNull(DxfDatabase.Parse(text).GeoDataObject);
         }
 
@@ -338,7 +395,14 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.IsType<DxfSolid>(parts[0]);
             DxfNurbsData data = Assert.IsType<DxfSpline>(parts[1]).NurbsData;
-            GeoPoint3[] expected = { P(1.767767, 1.767767), P(4.511845, 4.511845), P(8.476311, 12.357023), P(16.666667, 10), P(20, 10) };
+            GeoPoint3[] expected =
+            {
+                P(1.767767, 1.767767),
+                P(4.511845, 4.511845),
+                P(8.476311, 12.357023),
+                P(16.666667, 10),
+                P(20, 10),
+            };
             Assert.Equal(expected.Length, data.GetControlPoints().Count);
 
             for (int i = 0; i < expected.Length; i++)
@@ -361,7 +425,15 @@ namespace GeometryHelper.UnitTest.Dxf
             // 61, multileader 8E: MText, the dogleg Line, a Polyline and a Solid, a Spline and a Solid; BYBLOCK made the
             // multileader's own colour (256), the lines of the leader's lineweight BYBLOCK, the arrows and words BYLAYER.
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
-            var mleader = new DxfMLeader { MText = new DxfMText { Contents = "TWO LEADERS", Location = P(30, 12), TextHeight = 2.5 } };
+            var mleader = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = "TWO LEADERS",
+                    Location = P(30, 12),
+                    TextHeight = 2.5,
+                },
+            };
             int first = mleader.AddLeaderLine(P(0, 0));
             db.ModelSpace.AppendEntity(mleader);
 
@@ -374,7 +446,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             IReadOnlyList<DxfEntity> parts = mleader.Explode();
 
-            Assert.Equal(new[] { "DxfMText", "DxfLine", "DxfPolyline", "DxfSolid", "DxfSpline", "DxfSolid" }, parts.Select(p => p.GetType().Name));
+            Assert.Equal(
+                new[] { "DxfMText", "DxfLine", "DxfPolyline", "DxfSolid", "DxfSpline", "DxfSolid" },
+                parts.Select(p => p.GetType().Name)
+            );
             var dogleg = (DxfLine)parts[1];
             Near(P(30, 12), dogleg.StartPoint);
             Near(P(38, 12), dogleg.EndPoint);
@@ -387,7 +462,14 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(P(0, 0), arrow.GetPointAt(1));
             Near(P(3.466313, 2.104547), arrow.GetPointAt(2));
             DxfNurbsData spline = ((DxfSpline)parts[4]).NurbsData;
-            GeoPoint3[] expected = { P(3.713907, 23.485563), P(5.809271, 24.323708), P(15.910821, 30.963532), P(21.862296, 12), P(30, 12) };
+            GeoPoint3[] expected =
+            {
+                P(3.713907, 23.485563),
+                P(5.809271, 24.323708),
+                P(15.910821, 30.963532),
+                P(21.862296, 12),
+                P(30, 12),
+            };
 
             for (int i = 0; i < expected.Length; i++)
             {
@@ -397,14 +479,30 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(31.183441, spline.GetKnots()[spline.GetKnots().Count - 1], 5);
             Assert.Equal(6.770330, spline.GetKnots()[4], 5);
             Assert.All(parts, p => Assert.Equal(256, p.ColorIndex));
-            Assert.Equal(new[] { DxfLineWeight.ByLayer, DxfLineWeight.ByBlock, DxfLineWeight.ByBlock, DxfLineWeight.ByLayer, DxfLineWeight.ByBlock, DxfLineWeight.ByLayer }, parts.Select(p => p.LineWeight));
+            Assert.Equal(
+                new[]
+                {
+                    DxfLineWeight.ByLayer,
+                    DxfLineWeight.ByBlock,
+                    DxfLineWeight.ByBlock,
+                    DxfLineWeight.ByLayer,
+                    DxfLineWeight.ByBlock,
+                    DxfLineWeight.ByLayer,
+                },
+                parts.Select(p => p.LineWeight)
+            );
         }
 
         [Fact]
         public void AHatchOfDotsExploded_GivesNoDotOnAnEdgeItsLinesRunAlong_AsAutoCadGivesNone()
         {
             // 60, hatch 8A: DOTS 1.5875 apart in a square 30 by 20 from its corner: AutoCAD 228 dots, none on the bottom edge.
-            DxfDatabase db = With(Rec("HATCH", "5=C01 330=17 100=AcDbEntity 8=0 62=1 100=AcDbHatch 10=0.0 20=0.0 30=0.0 210=0.0 220=0.0 230=1.0 2=DOTS 70=0 71=0 91=1 92=3 72=0 73=1 93=4 10=0.0 20=0.0 10=30.0 20=0.0 10=30.0 20=20.0 10=0.0 20=20.0 97=0 75=1 76=1 52=0.0 41=1.0 77=0 78=1 53=0.0 43=0.0 44=0.0 45=0.79375 46=1.5875 79=2 49=0.0 49=-1.5875 98=0"));
+            DxfDatabase db = With(
+                Rec(
+                    "HATCH",
+                    "5=C01 330=17 100=AcDbEntity 8=0 62=1 100=AcDbHatch 10=0.0 20=0.0 30=0.0 210=0.0 220=0.0 230=1.0 2=DOTS 70=0 71=0 91=1 92=3 72=0 73=1 93=4 10=0.0 20=0.0 10=30.0 20=0.0 10=30.0 20=20.0 10=0.0 20=20.0 97=0 75=1 76=1 52=0.0 41=1.0 77=0 78=1 53=0.0 43=0.0 44=0.0 45=0.79375 46=1.5875 79=2 49=0.0 49=-1.5875 98=0"
+                )
+            );
             var hatch = ByHandle<DxfHatch>(db, "C01");
 
             DxfLine[] dots = hatch.Explode().Cast<DxfLine>().ToArray();
@@ -420,14 +518,21 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // 60, hatch 8B: ANSI31 in the outer style round circles of radius 7 and 3, both flagged outermost (16): AutoCAD's
             // 17 lines, one of them inside the circle of radius 3.
-            DxfDatabase db = With(Rec("HATCH", "5=C01 330=17 100=AcDbEntity 8=0 62=3 100=AcDbHatch 10=0.0 20=0.0 30=0.0 210=0.0 220=0.0 230=1.0 2=ANSI31 70=0 71=0 91=3 92=3 72=0 73=1 93=4 10=40.0 20=0.0 10=70.0 20=0.0 10=70.0 20=20.0 10=40.0 20=20.0 97=0 92=16 93=1 72=2 10=55.0 20=10.0 40=7 50=0 51=360 73=1 97=0 92=16 93=1 72=2 10=55.0 20=10.0 40=3 50=0 51=360 73=1 97=0 75=1 76=1 52=0.0 41=1.0 77=0 78=1 53=45.0 43=0.0 44=0.0 45=-2.2450640303 46=2.2450640303 79=0 98=0"));
+            DxfDatabase db = With(
+                Rec(
+                    "HATCH",
+                    "5=C01 330=17 100=AcDbEntity 8=0 62=3 100=AcDbHatch 10=0.0 20=0.0 30=0.0 210=0.0 220=0.0 230=1.0 2=ANSI31 70=0 71=0 91=3 92=3 72=0 73=1 93=4 10=40.0 20=0.0 10=70.0 20=0.0 10=70.0 20=20.0 10=40.0 20=20.0 97=0 92=16 93=1 72=2 10=55.0 20=10.0 40=7 50=0 51=360 73=1 97=0 92=16 93=1 72=2 10=55.0 20=10.0 40=3 50=0 51=360 73=1 97=0 75=1 76=1 52=0.0 41=1.0 77=0 78=1 53=45.0 43=0.0 44=0.0 45=-2.2450640303 46=2.2450640303 79=0 98=0"
+                )
+            );
             var hatch = ByHandle<DxfHatch>(db, "C01");
 
             DxfLine[] lines = hatch.Explode().Cast<DxfLine>().ToArray();
 
             Assert.Equal(17, lines.Length);
             GeoPoint3 centre = P(55, 10);
-            Assert.Single(lines, l => P((l.StartPoint.X + l.EndPoint.X) / 2, (l.StartPoint.Y + l.EndPoint.Y) / 2).DistanceTo(centre) < 3.0);
+            Assert.Single(lines, l =>
+                P((l.StartPoint.X + l.EndPoint.X) / 2, (l.StartPoint.Y + l.EndPoint.Y) / 2).DistanceTo(centre) < 3.0
+            );
         }
 
         [Fact]
@@ -435,8 +540,14 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // 64: the base 0 1 2 3 4 of the pyramid 8B gave AutoCAD's triangles (4, 3, 0), (2, 0, 3), (0, 2, 1); the face 0
             // given red (its subentity 1) gave a red 3DFACE.
-            string pentagon = Rec("MESH", "5=C01 330=17 100=AcDbEntity 8=0 100=AcDbSubDMesh 71=2 72=0 91=0 92=6 10=30 20=0 30=0 10=40 20=0 30=0 10=43 20=9 30=0 10=35 20=15 30=0 10=27 20=9 30=0 10=35 20=7 30=8 93=26 90=5 90=0 90=1 90=2 90=3 90=4 90=3 90=0 90=1 90=5 90=3 90=1 90=2 90=5 90=3 90=2 90=3 90=5 90=3 90=3 90=4 90=5 90=3 90=4 90=0 90=5 94=0 95=0 90=0");
-            string coloured = Rec("MESH", "5=C02 330=17 100=AcDbEntity 8=0 100=AcDbSubDMesh 71=2 72=0 91=0 92=5 10=60 20=0 30=0 10=70 20=0 30=0 10=70 20=10 30=0 10=60 20=10 30=0 10=65 20=5 30=6 93=21 90=4 90=0 90=3 90=2 90=1 90=3 90=0 90=1 90=4 90=3 90=1 90=2 90=4 90=3 90=2 90=3 90=4 90=3 90=3 90=0 90=4 94=0 95=0 90=1 91=1 92=1 90=0 63=1");
+            string pentagon = Rec(
+                "MESH",
+                "5=C01 330=17 100=AcDbEntity 8=0 100=AcDbSubDMesh 71=2 72=0 91=0 92=6 10=30 20=0 30=0 10=40 20=0 30=0 10=43 20=9 30=0 10=35 20=15 30=0 10=27 20=9 30=0 10=35 20=7 30=8 93=26 90=5 90=0 90=1 90=2 90=3 90=4 90=3 90=0 90=1 90=5 90=3 90=1 90=2 90=5 90=3 90=2 90=3 90=5 90=3 90=3 90=4 90=5 90=3 90=4 90=0 90=5 94=0 95=0 90=0"
+            );
+            string coloured = Rec(
+                "MESH",
+                "5=C02 330=17 100=AcDbEntity 8=0 100=AcDbSubDMesh 71=2 72=0 91=0 92=5 10=60 20=0 30=0 10=70 20=0 30=0 10=70 20=10 30=0 10=60 20=10 30=0 10=65 20=5 30=6 93=21 90=4 90=0 90=3 90=2 90=1 90=3 90=0 90=1 90=4 90=3 90=1 90=2 90=4 90=3 90=2 90=3 90=4 90=3 90=3 90=0 90=4 94=0 95=0 90=1 91=1 92=1 90=0 63=1"
+            );
             DxfDatabase db = With(pentagon + coloured);
 
             DxfFace[] faces = ByHandle<DxfUnknownEntity>(db, "C01").Explode().Cast<DxfFace>().ToArray();

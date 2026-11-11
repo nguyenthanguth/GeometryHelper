@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using GeometryHelper;
 using GeometryHelper.Core;
@@ -19,7 +19,8 @@ namespace GeometryHelper.UnitTest.Plane
         {
             return new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
-                bulges);
+                bulges
+            );
         }
 
         /// <summary>
@@ -92,13 +93,19 @@ namespace GeometryHelper.UnitTest.Plane
 
             // A rounded corner takes a little off the square: the square of the radius less its quarter disc.
             double perCorner = 100.0 - Math.PI * 100.0 * 0.25;
-            Assert.InRange(rounded.Flatten(0.001).Area, 10000.0 - 4.0 * perCorner - 1.0, 10000.0 - 4.0 * perCorner + 0.01);
+            Assert.InRange(
+                rounded.Flatten(0.001).Area,
+                10000.0 - 4.0 * perCorner - 1.0,
+                10000.0 - 4.0 * perCorner + 0.01
+            );
         }
 
         [Fact]
         public void FilletingAnOpenChainLeavesItsTwoFreeEndsWhereTheyWere()
         {
-            var chain = new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) });
+            var chain = new GeoPolylineArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) }
+            );
 
             GeoPolylineArc2 rounded = chain.Fillet(10.0);
 
@@ -191,14 +198,18 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(loop.Fillet(10.0, Tolerance.Global).IsEqualTo(loop.Fillet(10.0)));
             Assert.True(loop.Chamfer(10.0, 10.0, Tolerance.Global).IsEqualTo(loop.Chamfer(10.0)));
 
-            var chain = new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) });
+            var chain = new GeoPolylineArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) }
+            );
 
             Assert.True(Corner2.Fillet(chain, 10.0, Tolerance.Global).IsEqualTo(chain.Fillet(10.0)));
             Assert.True(Corner2.Chamfer(chain, 10.0, 10.0, Tolerance.Global).IsEqualTo(chain.Chamfer(10.0)));
 
             // Nothing to work with is refused rather than guessed at.
             Assert.Throws<ArgumentNullException>(() => Corner2.Fillet((GeoPolygonArc2)null, 10.0, Tolerance.Global));
-            Assert.Throws<ArgumentNullException>(() => Corner2.Chamfer((GeoPolylineArc2)null, 10.0, 10.0, Tolerance.Global));
+            Assert.Throws<ArgumentNullException>(() =>
+                Corner2.Chamfer((GeoPolylineArc2)null, 10.0, 10.0, Tolerance.Global)
+            );
             Assert.Throws<ArgumentOutOfRangeException>(() => loop.Fillet(0.0));
             Assert.Throws<ArgumentOutOfRangeException>(() => loop.Chamfer(-1.0));
         }
@@ -206,7 +217,12 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ChamferingACurvelessLoopAgreesWithTheStraightWorld()
         {
-            var straight = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+            var straight = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(0, 100)
+            );
 
             GeoPolygon2 cutStraight = straight.Chamfer(10.0);
             GeoPolygonArc2 cutWide = new GeoPolygonArc2(straight).Chamfer(10.0);
@@ -214,6 +230,7 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.False(cutWide.HasArcs);
             Assert.True(cutWide.Flatten().IsEqualTo(cutStraight));
         }
+
         [Fact]
         public void AFilletThatEatsAWholeSideStillLeavesTheArcsBehind()
         {

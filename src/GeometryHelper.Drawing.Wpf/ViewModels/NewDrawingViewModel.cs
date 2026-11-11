@@ -201,7 +201,8 @@ namespace GeometryHelper.Drawing.Wpf
         public int Step => _step;
 
         /// <summary>Gets the steps of the header.</summary>
-        public IReadOnlyList<StepItem> Steps => new[] { "Source", "Objects", "Settings" }.Select((n, i) => new StepItem(i, n, _step)).ToList();
+        public IReadOnlyList<StepItem> Steps =>
+            new[] { "Source", "Objects", "Settings" }.Select((n, i) => new StepItem(i, n, _step)).ToList();
 
         /// <summary>Gets whether the source step is shown.</summary>
         public bool IsSourceStep => _step == 0;
@@ -241,7 +242,14 @@ namespace GeometryHelper.Drawing.Wpf
         }
 
         /// <summary>Gets the line over the objects: "Source: Test bodies · Built in · 3 assemblies, 16 objects. Tick the objects to draw."</summary>
-        public string SourceLine => _source == null ? string.Empty : "Source: " + _source.Name + " · " + _source.Availability + ". Tick the objects to draw; the preset ticks its default.";
+        public string SourceLine =>
+            _source == null
+                ? string.Empty
+                : "Source: "
+                    + _source.Name
+                    + " · "
+                    + _source.Availability
+                    + ". Tick the objects to draw; the preset ticks its default.";
 
         /// <summary>Gets what is ticked, in words: "Picked: 1 assembly · 3 parts".</summary>
         public string PickedText
@@ -249,8 +257,18 @@ namespace GeometryHelper.Drawing.Wpf
             get
             {
                 List<DrawingObject> ticked = Ticked();
-                int assemblies = ticked.Where(o => o.ParentId != null).Select(o => o.ParentId).Distinct(StringComparer.Ordinal).Count();
-                return "Picked: " + (assemblies == 0 ? string.Empty : DrawingWorkspace.Count(assemblies, "assembly", "assemblies") + " · ") + DrawingProperties.Objects(ticked);
+                int assemblies = ticked
+                    .Where(o => o.ParentId != null)
+                    .Select(o => o.ParentId)
+                    .Distinct(StringComparer.Ordinal)
+                    .Count();
+                return "Picked: "
+                    + (
+                        assemblies == 0
+                            ? string.Empty
+                            : DrawingWorkspace.Count(assemblies, "assembly", "assemblies") + " · "
+                    )
+                    + DrawingProperties.Objects(ticked);
             }
         }
 
@@ -351,14 +369,24 @@ namespace GeometryHelper.Drawing.Wpf
             get
             {
                 DrawingSettings settings = PresetSettings(_preset);
-                var names = settings.Views.Kinds.Select(k => k == ViewKind.Right ? "Right end" : k == ViewKind.Left ? "Left end" : k.ToString()).ToList();
+                var names = settings
+                    .Views.Kinds.Select(k =>
+                        k == ViewKind.Right ? "Right end"
+                        : k == ViewKind.Left ? "Left end"
+                        : k.ToString()
+                    )
+                    .ToList();
                 names.AddRange(settings.Views.Sections.Select(s => "section " + s.Name));
                 return string.Join(", ", names);
             }
         }
 
         /// <summary>Gets the summary's sheet line: "A2 landscape, scale chosen to fit".</summary>
-        public string SummarySheet => _sheetSize + " " + _workspace.Model.Settings.DefaultOrientation.ToLowerInvariant() + ", scale chosen to fit";
+        public string SummarySheet =>
+            _sheetSize
+            + " "
+            + _workspace.Model.Settings.DefaultOrientation.ToLowerInvariant()
+            + ", scale chosen to fit";
 
         /// <summary>Gets a line under the steps: why Create stopped, or what was not right.</summary>
         public string Notice
@@ -382,7 +410,13 @@ namespace GeometryHelper.Drawing.Wpf
         /// <summary>Gets the command that chooses a preset, given its name.</summary>
         public ICommand PresetCommand { get; }
 
-        private bool CanGoNext => !IsBusy && (_step == 0 ? _source != null && _source.IsAvailable : _step == 1 ? Objects.Any(o => o.IsChecked) : Objects.Any(o => o.IsChecked) && _number.Trim().Length > 0);
+        private bool CanGoNext =>
+            !IsBusy
+            && (
+                _step == 0 ? _source != null && _source.IsAvailable
+                : _step == 1 ? Objects.Any(o => o.IsChecked)
+                : Objects.Any(o => o.IsChecked) && _number.Trim().Length > 0
+            );
 
         /// <summary>Goes to the next step, reading the source's objects on the way to the second; on the last, makes the drawing.</summary>
         /// <returns>The drawing made on the last step; null otherwise, or where nothing was made.</returns>
@@ -436,7 +470,9 @@ namespace GeometryHelper.Drawing.Wpf
                 return;
             }
 
-            DrawingObject focus = _focused?.Object ?? Objects.Select(o => o.Object).FirstOrDefault(o => o.IsMain) ?? Objects[0].Object;
+            DrawingObject focus = _focused?.Object
+                ?? Objects.Select(o => o.Object).FirstOrDefault(o => o.IsMain)
+                ?? Objects[0].Object;
             _ticking = true;
 
             foreach (ObjectRow row in Objects)
@@ -446,14 +482,22 @@ namespace GeometryHelper.Drawing.Wpf
                 switch (_preset)
                 {
                     case "Part":
-                        DrawingObject part = focus.Kind == DrawingObjectKind.Part ? focus : Objects.Select(o => o.Object).First(o => o.Kind == DrawingObjectKind.Part || o == focus);
+                        DrawingObject part =
+                            focus.Kind == DrawingObjectKind.Part
+                                ? focus
+                                : Objects
+                                    .Select(o => o.Object)
+                                    .First(o => o.Kind == DrawingObjectKind.Part || o == focus);
                         tick = row.Object == part;
                         break;
                     case "General":
                         tick = true;
                         break;
                     default:
-                        tick = focus.ParentId == null ? row.Object == focus : string.Equals(row.Object.ParentId, focus.ParentId, StringComparison.Ordinal);
+                        tick =
+                            focus.ParentId == null
+                                ? row.Object == focus
+                                : string.Equals(row.Object.ParentId, focus.ParentId, StringComparison.Ordinal);
                         break;
                 }
 
@@ -486,7 +530,9 @@ namespace GeometryHelper.Drawing.Wpf
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
-                _workspace.ShowMessage(MessageViewModel.Failure("Objects not read", provider.Name + " could not give its objects.", ex));
+                _workspace.ShowMessage(
+                    MessageViewModel.Failure("Objects not read", provider.Name + " could not give its objects.", ex)
+                );
                 return false;
             }
 
@@ -511,9 +557,18 @@ namespace GeometryHelper.Drawing.Wpf
             List<DrawingObject> ticked = Ticked();
             DrawingSettings settings = PresetSettings(_preset);
             settings.Sheet.Size = (PaperSize)Enum.Parse(typeof(PaperSize), _sheetSize);
-            settings.Sheet.Orientation = _workspace.Model.Settings.DefaultOrientation == "Portrait" ? SheetOrientation.Portrait : SheetOrientation.Landscape;
-            settings.ProjectionMethod = _workspace.Model.Settings.DefaultProjection == "First angle" ? ProjectionMethod.FirstAngle : ProjectionMethod.ThirdAngle;
-            settings.ExportMode = _workspace.Model.Settings.ExportLayout == "SheetInModelSpace" ? DrawingExportMode.SheetInModelSpace : DrawingExportMode.LayoutAndViewports;
+            settings.Sheet.Orientation =
+                _workspace.Model.Settings.DefaultOrientation == "Portrait"
+                    ? SheetOrientation.Portrait
+                    : SheetOrientation.Landscape;
+            settings.ProjectionMethod =
+                _workspace.Model.Settings.DefaultProjection == "First angle"
+                    ? ProjectionMethod.FirstAngle
+                    : ProjectionMethod.ThirdAngle;
+            settings.ExportMode =
+                _workspace.Model.Settings.ExportLayout == "SheetInModelSpace"
+                    ? DrawingExportMode.SheetInModelSpace
+                    : DrawingExportMode.LayoutAndViewports;
             settings.Sheet.TitleBlock.DrawingNumber = _number.Trim();
             settings.Sheet.TitleBlock.Title = _name.Trim();
             settings.Sheet.TitleBlock.Revision = _revision.Trim();
@@ -523,7 +578,9 @@ namespace GeometryHelper.Drawing.Wpf
 
             try
             {
-                drawing = await RunAsync("Making the views, dimensions and sheet of " + _number.Trim() + "…", () => DrawingBuilder.Build(source, settings, tolerance));
+                drawing = await RunAsync("Making the views, dimensions and sheet of " + _number.Trim() + "…", () =>
+                    DrawingBuilder.Build(source, settings, tolerance)
+                );
             }
             catch (OperationCanceledException)
             {
@@ -532,13 +589,27 @@ namespace GeometryHelper.Drawing.Wpf
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
-                _workspace.ShowMessage(MessageViewModel.Failure("Drawing not made", _number.Trim() + " could not be made from " + DrawingProperties.Objects(ticked) + ".", ex));
+                _workspace.ShowMessage(
+                    MessageViewModel.Failure(
+                        "Drawing not made",
+                        _number.Trim() + " could not be made from " + DrawingProperties.Objects(ticked) + ".",
+                        ex
+                    )
+                );
                 return null;
             }
 
             // An assembly is drawn whole when every object of it is ticked: a fitting added to it later is drawn on update too.
-            var whole = ticked.Where(o => o.ParentId != null).Select(o => o.ParentId).Distinct(StringComparer.Ordinal)
-                .Where(p => Objects.Where(r => string.Equals(r.Object.ParentId, p, StringComparison.Ordinal)).All(r => r.IsChecked)).ToList();
+            var whole = ticked
+                .Where(o => o.ParentId != null)
+                .Select(o => o.ParentId)
+                .Distinct(StringComparer.Ordinal)
+                .Where(p =>
+                    Objects
+                        .Where(r => string.Equals(r.Object.ParentId, p, StringComparison.Ordinal))
+                        .All(r => r.IsChecked)
+                )
+                .ToList();
             ModelDrawing before = _workspace.Current;
             FileRowViewModel shown = _workspace.Model.FileRows.FirstOrDefault(r => r.IsCurrent);
             ModelDrawing entry = _workspace.Open(drawing, provider, _preset, whole);
@@ -560,11 +631,16 @@ namespace GeometryHelper.Drawing.Wpf
             return entry;
         }
 
-        private static DrawingSettings PresetSettings(string preset) => preset == "Part" ? DrawingSettings.Part : preset == "General" ? DrawingSettings.General : DrawingSettings.Assembly;
+        private static DrawingSettings PresetSettings(string preset) =>
+            preset == "Part" ? DrawingSettings.Part
+            : preset == "General" ? DrawingSettings.General
+            : DrawingSettings.Assembly;
 
         /// <summary>The sheet of a preset: Global settings' default sheet for the default preset, the preset's own for the others.</summary>
-        private string SheetSizeOf(string preset)
-            => string.Equals(preset, _workspace.Model.Settings.DefaultPreset, StringComparison.Ordinal) ? _workspace.Model.Settings.DefaultSheetSize : PresetSettings(preset).Sheet.Size.ToString();
+        private string SheetSizeOf(string preset) =>
+            string.Equals(preset, _workspace.Model.Settings.DefaultPreset, StringComparison.Ordinal)
+                ? _workspace.Model.Settings.DefaultSheetSize
+                : PresetSettings(preset).Sheet.Size.ToString();
 
         private List<DrawingObject> Ticked() => Objects.Where(o => o.IsChecked).Select(o => o.Object).ToList();
 
@@ -602,13 +678,21 @@ namespace GeometryHelper.Drawing.Wpf
             {
                 if (!_numberByHand)
                 {
-                    _number = _preset == "General" && Ticked().Select(o => o.ParentId).Distinct(StringComparer.Ordinal).Count() > 1 ? "GA-1" : main.Mark.Length > 0 ? main.Mark : main.Id;
+                    _number =
+                        _preset == "General"
+                        && Ticked().Select(o => o.ParentId).Distinct(StringComparer.Ordinal).Count() > 1
+                            ? "GA-1"
+                        : main.Mark.Length > 0 ? main.Mark
+                        : main.Id;
                     Raise(nameof(Number));
                 }
 
                 if (!_nameByHand)
                 {
-                    _name = _number == "GA-1" ? "General arrangement" : TitleCase(main.Name) + (main.Mark.Length > 0 ? " " + main.Mark : string.Empty);
+                    _name =
+                        _number == "GA-1"
+                            ? "General arrangement"
+                            : TitleCase(main.Name) + (main.Mark.Length > 0 ? " " + main.Mark : string.Empty);
                     Raise(nameof(Name));
                 }
             }
@@ -618,7 +702,10 @@ namespace GeometryHelper.Drawing.Wpf
             RaiseNext();
         }
 
-        private static string TitleCase(string name) => name.Length == 0 ? "Drawing" : name.Substring(0, 1).ToUpperInvariant() + name.Substring(1).ToLowerInvariant();
+        private static string TitleCase(string name) =>
+            name.Length == 0
+                ? "Drawing"
+                : name.Substring(0, 1).ToUpperInvariant() + name.Substring(1).ToLowerInvariant();
 
         private void GoTo(int step)
         {

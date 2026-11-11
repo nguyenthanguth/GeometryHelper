@@ -23,7 +23,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static GeoPoint3 P3(double x, double y, double z) => new GeoPoint3(x, y, z);
 
-        private static string G(int code, string value) => code.ToString(CultureInfo.InvariantCulture).PadLeft(3) + "\n" + value + "\n";
+        private static string G(int code, string value) =>
+            code.ToString(CultureInfo.InvariantCulture).PadLeft(3) + "\n" + value + "\n";
 
         private static string G(int code, double value) => G(code, value.ToString("R", CultureInfo.InvariantCulture));
 
@@ -31,7 +32,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static string Record(string text, string handle) => DxfAutoCadChecksD16Tests.Record(text, handle);
 
-        private static string Linked(int rows = 3, bool formula = false) => DxfAutoCadChecksD16Tests.LinkedByAutoCad(DxfDimensionDrawings.R2018, rows, formula);
+        private static string Linked(int rows = 3, bool formula = false) =>
+            DxfAutoCadChecksD16Tests.LinkedByAutoCad(DxfDimensionDrawings.R2018, rows, formula);
 
         #region Point 78b: a formula of the TABLECONTENT alone, its link taken away
 
@@ -59,7 +61,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 string handle = FieldOfMark(Record(saved, "F6"));
                 Assert.NotEqual("B09", handle);
                 string field = Record(saved, handle);
-                Assert.Contains(G(330, "F6") + G(100, "AcDbField") + G(1, "AcExpr") + G(2, "\\AcExpr (1+2)"), field, StringComparison.Ordinal);
+                Assert.Contains(
+                    G(330, "F6") + G(100, "AcDbField") + G(1, "AcExpr") + G(2, "\\AcExpr (1+2)"),
+                    field,
+                    StringComparison.Ordinal
+                );
                 Assert.Equal("=1+2", Table(again).GetFormula(1, 0, 0));
                 Assert.Empty(Table(again).GetDataLink());
 
@@ -169,8 +175,16 @@ namespace GeometryHelper.UnitTest.Dxf
             table.SetDataLink(new DxfCellRange(1, 0, 2, 1), link);
 
             string saved = db.ToText();
-            Assert.Contains(G(92, "1") + G(340, "B06") + G(93, "2") + G(94, "2") + G(96, "1") + G(95, "0"), Record(saved, "B03"), StringComparison.Ordinal);
-            Assert.Contains(G(304, string.Empty) + G(94, "2") + G(330, "F6") + G(330, "B03") + G(360, "0"), Record(saved, "B06"), StringComparison.Ordinal);
+            Assert.Contains(
+                G(92, "1") + G(340, "B06") + G(93, "2") + G(94, "2") + G(96, "1") + G(95, "0"),
+                Record(saved, "B03"),
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                G(304, string.Empty) + G(94, "2") + G(330, "F6") + G(330, "B03") + G(360, "0"),
+                Record(saved, "B06"),
+                StringComparison.Ordinal
+            );
             DxfTable again = Table(DxfDatabase.Parse(saved));
             Assert.Equal(new DxfCellRange(1, 0, 2, 1), again.GetDataLinkRange(2, 1));
             Assert.False(again.IsLinked(0, 1));
@@ -186,7 +200,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // A range that meets one linked already, a link of another drawing, a cell outside the table, none.
             Assert.Throws<InvalidOperationException>(() => table.SetDataLink(new DxfCellRange(0, 0, 1, 1), link));
-            Assert.Throws<ArgumentException>(() => table.SetDataLink(2, 1, (DxfDataLink)DxfDatabase.Parse(text).DataLinkDictionary["GH_PARTS"]));
+            Assert.Throws<ArgumentException>(() =>
+                table.SetDataLink(2, 1, (DxfDataLink)DxfDatabase.Parse(text).DataLinkDictionary["GH_PARTS"])
+            );
             Assert.Throws<ArgumentOutOfRangeException>(() => table.SetDataLink(3, 0, link));
             Assert.Throws<ArgumentOutOfRangeException>(() => table.SetDataLink(new DxfCellRange(2, 0, 2, 2), link));
             Assert.Throws<ArgumentNullException>(() => table.SetDataLink(2, 1, null));
@@ -194,7 +210,12 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(text, db.ToText());
 
             // A table of no TABLECONTENT, as a program other than AutoCAD writes one, is given one (D28, DxfTableD28Tests).
-            DxfDatabase bare = DxfDatabase.Parse(text.Replace("  0\nACAD_TABLE\n  5\nF6\n102\n{ACAD_XDICTIONARY\n360\nB01\n102\n}\n", "  0\nACAD_TABLE\n  5\nF6\n"));
+            DxfDatabase bare = DxfDatabase.Parse(
+                text.Replace(
+                    "  0\nACAD_TABLE\n  5\nF6\n102\n{ACAD_XDICTIONARY\n360\nB01\n102\n}\n",
+                    "  0\nACAD_TABLE\n  5\nF6\n"
+                )
+            );
             Table(bare).SetDataLink(2, 1, (DxfDataLink)bare.DataLinkDictionary["GH_PARTS"]);
             Assert.True(Table(bare).IsLinked(2, 1));
         }
@@ -207,7 +228,8 @@ namespace GeometryHelper.UnitTest.Dxf
         /// The R2000 drawing of ezdxf with the MTEXT 73 given the column data the library wrote in 09-d, with no column MTEXTs
         /// linked: as given.
         /// </summary>
-        private static string WithColumnData(string data) => DxfFileEzdxfDrawings.R2000.Replace("line two é\n  0\n", "line two é\n1001\nACAD\n" + data + "  0\n");
+        private static string WithColumnData(string data) =>
+            DxfFileEzdxfDrawings.R2000.Replace("line two é\n  0\n", "line two é\n1001\nACAD\n" + data + "  0\n");
 
         private static string Data(params object[] groups)
         {
@@ -215,7 +237,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             for (int i = 0; i < groups.Length; i += 2)
             {
-                text.Append(Convert.ToString(groups[i], CultureInfo.InvariantCulture)).Append('\n').Append(Convert.ToString(groups[i + 1], CultureInfo.InvariantCulture)).Append('\n');
+                text.Append(Convert.ToString(groups[i], CultureInfo.InvariantCulture))
+                    .Append('\n')
+                    .Append(Convert.ToString(groups[i + 1], CultureInfo.InvariantCulture))
+                    .Append('\n');
             }
 
             return text.ToString();
@@ -230,9 +255,98 @@ namespace GeometryHelper.UnitTest.Dxf
             string end = "1000\nACAD_MTEXT_COLUMN_INFO_END\n";
             string[] data =
             {
-                info + Data(1070, 75, 1070, 1, 1070, 79, 1070, 0, 1070, 76, 1070, 2, 1070, 78, 1070, 0, 1070, 48, 1040, 50, 1070, 49, 1040, 10) + end,
-                info + Data(1070, 75, 1070, 2, 1070, 79, 1070, 1, 1070, 76, 1070, 1, 1070, 78, 1070, 0, 1070, 48, 1040, 50, 1070, 49, 1040, 10) + end,
-                info + Data(1070, 75, 1070, 2, 1070, 79, 1070, 0, 1070, 76, 1070, 2, 1070, 78, 1070, 0, 1070, 48, 1040, 50, 1070, 49, 1040, 10, 1070, 50, 1070, 2, 1040, 15, 1040, 25) + end
+                info
+                    + Data(
+                        1070,
+                        75,
+                        1070,
+                        1,
+                        1070,
+                        79,
+                        1070,
+                        0,
+                        1070,
+                        76,
+                        1070,
+                        2,
+                        1070,
+                        78,
+                        1070,
+                        0,
+                        1070,
+                        48,
+                        1040,
+                        50,
+                        1070,
+                        49,
+                        1040,
+                        10
+                    )
+                    + end,
+                info
+                    + Data(
+                        1070,
+                        75,
+                        1070,
+                        2,
+                        1070,
+                        79,
+                        1070,
+                        1,
+                        1070,
+                        76,
+                        1070,
+                        1,
+                        1070,
+                        78,
+                        1070,
+                        0,
+                        1070,
+                        48,
+                        1040,
+                        50,
+                        1070,
+                        49,
+                        1040,
+                        10
+                    )
+                    + end,
+                info
+                    + Data(
+                        1070,
+                        75,
+                        1070,
+                        2,
+                        1070,
+                        79,
+                        1070,
+                        0,
+                        1070,
+                        76,
+                        1070,
+                        2,
+                        1070,
+                        78,
+                        1070,
+                        0,
+                        1070,
+                        48,
+                        1040,
+                        50,
+                        1070,
+                        49,
+                        1040,
+                        10,
+                        1070,
+                        50,
+                        1070,
+                        2,
+                        1040,
+                        15,
+                        1040,
+                        25
+                    )
+                    + end
                     + "1000\nACAD_MTEXT_DEFINED_HEIGHT_BEGIN\n1070\n46\n1040\n15\n1000\nACAD_MTEXT_DEFINED_HEIGHT_END\n",
             };
             double[] heights = { 0.0, 0.0, 15.0 };
@@ -288,10 +402,23 @@ namespace GeometryHelper.UnitTest.Dxf
         private static DxfSpline SavedByAutoCad(int flags, double[] knots, GeoPoint3[] points)
         {
             var record = new StringBuilder();
-            record.Append(G(0, "SPLINE")).Append(G(5, "F00")).Append(G(330, "17")).Append(G(100, "AcDbEntity")).Append(G(8, "0")).Append(G(100, "AcDbSpline"))
-                .Append(G(210, "0.0")).Append(G(220, "0.0")).Append(G(230, "1.0")).Append(G(70, flags.ToString(CultureInfo.InvariantCulture))).Append(G(71, "3"))
-                .Append(G(72, knots.Length.ToString(CultureInfo.InvariantCulture))).Append(G(73, points.Length.ToString(CultureInfo.InvariantCulture)))
-                .Append(G(74, "0")).Append(G(42, "0.000000001")).Append(G(43, "0.0000000001"));
+            record
+                .Append(G(0, "SPLINE"))
+                .Append(G(5, "F00"))
+                .Append(G(330, "17"))
+                .Append(G(100, "AcDbEntity"))
+                .Append(G(8, "0"))
+                .Append(G(100, "AcDbSpline"))
+                .Append(G(210, "0.0"))
+                .Append(G(220, "0.0"))
+                .Append(G(230, "1.0"))
+                .Append(G(70, flags.ToString(CultureInfo.InvariantCulture)))
+                .Append(G(71, "3"))
+                .Append(G(72, knots.Length.ToString(CultureInfo.InvariantCulture)))
+                .Append(G(73, points.Length.ToString(CultureInfo.InvariantCulture)))
+                .Append(G(74, "0"))
+                .Append(G(42, "0.000000001"))
+                .Append(G(43, "0.0000000001"));
 
             foreach (double knot in knots)
             {
@@ -303,8 +430,13 @@ namespace GeometryHelper.UnitTest.Dxf
                 record.Append(G(10, point.X)).Append(G(20, point.Y)).Append(G(30, point.Z));
             }
 
-            string text = DxfFileEzdxfDrawings.R2018.Replace("\r\n", "\n").Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nF01\n")
-                .Replace("  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n", record + "  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n");
+            string text = DxfFileEzdxfDrawings
+                .R2018.Replace("\r\n", "\n")
+                .Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nF01\n")
+                .Replace(
+                    "  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n",
+                    record + "  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n"
+                );
             return ByHandle<DxfSpline>(DxfDatabase.Parse(text), "F00");
         }
 
@@ -312,8 +444,12 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static readonly GeoPoint3[] HalfwayPoints =
         {
-            P3(0.0000000000000007, -0.0000000000000004, 0), P3(1.9696772796188, -6.041152263374485, 0), P3(33.61425167857916, -10.88065843621399, 0),
-            P3(33.34423507327991, 17.56241426611796, 0), P3(14.65605371453325, 14.81893004115226, 0), P3(-1.641397733015665, 5.03429355281207, 0),
+            P3(0.0000000000000007, -0.0000000000000004, 0),
+            P3(1.9696772796188, -6.041152263374485, 0),
+            P3(33.61425167857916, -10.88065843621399, 0),
+            P3(33.34423507327991, 17.56241426611796, 0),
+            P3(14.65605371453325, 14.81893004115226, 0),
+            P3(-1.641397733015665, 5.03429355281207, 0),
             P3(0.0000000000000007, -0.0000000000000004, 0),
         };
 
@@ -330,10 +466,39 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfSpline near = SavedByAutoCad(
                 3115,
-                new[] { 0.0, 0, 0, 0, 40, 40.70710678118654, 71.69904121581001, 112.0103299573027, 138.9361539929752, 138.9361539929752, 138.9361539929752, 138.9361539929752 },
-                new[] { P3(0.0000000000000004, 0.0000000000000022, 0), P3(5.581908864552045, -9.637933498405571, 0), P3(30.82057656148167, -9.244936922688699, 0), P3(47.57923142560183, 7.619549683548036, 0), P3(61.79166624560641, 41.95179922457442, 0), P3(8.605513742194279, 34.03076806443996, 0), P3(-3.757437396752223, 6.487732536139555, 0), P3(0.0000000000000004, 0.0000000000000022, 0) });
+                new[]
+                {
+                    0.0,
+                    0,
+                    0,
+                    0,
+                    40,
+                    40.70710678118654,
+                    71.69904121581001,
+                    112.0103299573027,
+                    138.9361539929752,
+                    138.9361539929752,
+                    138.9361539929752,
+                    138.9361539929752,
+                },
+                new[]
+                {
+                    P3(0.0000000000000004, 0.0000000000000022, 0),
+                    P3(5.581908864552045, -9.637933498405571, 0),
+                    P3(30.82057656148167, -9.244936922688699, 0),
+                    P3(47.57923142560183, 7.619549683548036, 0),
+                    P3(61.79166624560641, 41.95179922457442, 0),
+                    P3(8.605513742194279, 34.03076806443996, 0),
+                    P3(-3.757437396752223, 6.487732536139555, 0),
+                    P3(0.0000000000000004, 0.0000000000000022, 0),
+                }
+            );
 
-            DxfAutoCadChecksD16Tests.AtParameters(near, 0, new[] { 0.0, 40.70710678118654, 71.69904121581001, 112.0103299573027, 138.9361539929752 });
+            DxfAutoCadChecksD16Tests.AtParameters(
+                near,
+                0,
+                new[] { 0.0, 40.70710678118654, 71.69904121581001, 112.0103299573027, 138.9361539929752 }
+            );
         }
 
         [Fact]

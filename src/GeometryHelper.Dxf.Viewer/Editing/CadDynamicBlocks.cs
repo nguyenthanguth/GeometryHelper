@@ -32,12 +32,24 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfDynamicBlockReferenceProperty property in PropertiesOf(insert))
             {
-                if (string.IsNullOrEmpty(property.PropertyName) || !property.Show || !property.VisibleInCurrentVisibilityState || rows.Exists(r => r.Label == property.PropertyName))
+                if (
+                    string.IsNullOrEmpty(property.PropertyName)
+                    || !property.Show
+                    || !property.VisibleInCurrentVisibilityState
+                    || rows.Exists(r => r.Label == property.PropertyName)
+                )
                 {
                     continue;
                 }
 
-                rows.Add(new CadPropertyRow(property.PropertyName, TextOf(property, angle), property.ReadOnly, ChoicesOf(property)));
+                rows.Add(
+                    new CadPropertyRow(
+                        property.PropertyName,
+                        TextOf(property, angle),
+                        property.ReadOnly,
+                        ChoicesOf(property)
+                    )
+                );
             }
 
             return rows;
@@ -58,7 +70,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// or the text is not a value of the property; failed, the drawing as it was, where the library does not work the block
         /// out (its message said).</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document, the handles, the name or the text is null.</exception>
-        public static CadEditResult SetProperty(CadDocument document, IReadOnlyCollection<string> handles, string name, string text)
+        public static CadEditResult SetProperty(
+            CadDocument document,
+            IReadOnlyCollection<string> handles,
+            string name,
+            string text
+        )
         {
             if (document == null)
             {
@@ -87,7 +104,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (string handle in sorted)
             {
-                if (!(document.FindEntity(handle) is DxfBlockReference insert) || !(Find(insert, name) is DxfDynamicBlockReferenceProperty property) || values.ContainsKey(handle))
+                if (
+                    !(document.FindEntity(handle) is DxfBlockReference insert)
+                    || !(Find(insert, name) is DxfDynamicBlockReferenceProperty property)
+                    || values.ContainsKey(handle)
+                )
                 {
                     continue;
                 }
@@ -105,7 +126,9 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 values.Add(handle, value);
-                planned.Add(new CadEditRecord(CadEditRecordKind.Reshaped, handle, name, TextOf(property, Degrees), text.Trim()));
+                planned.Add(
+                    new CadEditRecord(CadEditRecordKind.Reshaped, handle, name, TextOf(property, Degrees), text.Trim())
+                );
             }
 
             if (planned.Count == 0)
@@ -150,7 +173,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (string handle in sorted)
             {
-                if (!(document.FindEntity(handle) is DxfBlockReference insert) || !IsDynamic(insert) || planned.Exists(r => string.Equals(r.Handle, handle, StringComparison.OrdinalIgnoreCase)))
+                if (
+                    !(document.FindEntity(handle) is DxfBlockReference insert)
+                    || !IsDynamic(insert)
+                    || planned.Exists(r => string.Equals(r.Handle, handle, StringComparison.OrdinalIgnoreCase))
+                )
                 {
                     continue;
                 }
@@ -160,7 +187,15 @@ namespace GeometryHelper.Dxf.Viewer
                     return CadEditResult.Refuse("The block reference " + handle + " is on a locked layer.");
                 }
 
-                planned.Add(new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Reset block", insert.Name, insert.DynamicBlockTableRecord.Name));
+                planned.Add(
+                    new CadEditRecord(
+                        CadEditRecordKind.Reshaped,
+                        handle,
+                        "Reset block",
+                        insert.Name,
+                        insert.DynamicBlockTableRecord.Name
+                    )
+                );
             }
 
             if (planned.Count == 0)
@@ -208,8 +243,14 @@ namespace GeometryHelper.Dxf.Viewer
             string name = grip.Custom.PropertyNames[0];
             object now = Find(insert, name)?.Value;
             short flipped = now is short state && state == 1 ? (short)0 : (short)1;
-            return Apply(document, handle, "Grip " + gripIndex, Convert.ToString(now, CultureInfo.InvariantCulture), flipped.ToString(CultureInfo.InvariantCulture),
-                i => Set(i, name, flipped));
+            return Apply(
+                document,
+                handle,
+                "Grip " + gripIndex,
+                Convert.ToString(now, CultureInfo.InvariantCulture),
+                flipped.ToString(CultureInfo.InvariantCulture),
+                i => Set(i, name, flipped)
+            );
         }
 
         /// <summary>
@@ -222,7 +263,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="current">The value the INSERT shows; null where the grip lists nothing.</param>
         /// <returns>The values; empty for a grip of another kind, or one of no INSERT.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
-        public static IReadOnlyList<string> ValuesOf(CadDocument document, string handle, int gripIndex, out string current)
+        public static IReadOnlyList<string> ValuesOf(
+            CadDocument document,
+            string handle,
+            int gripIndex,
+            out string current
+        )
         {
             if (document == null)
             {
@@ -231,8 +277,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             current = null;
 
-            if (!(GripOf(document, handle, gripIndex, out _) is CadGrip grip) || grip.Kind != CadGripKind.CustomList
-                || !(Find((DxfBlockReference)document.FindEntity(handle), grip.Custom.PropertyNames[0]) is DxfDynamicBlockReferenceProperty property))
+            if (
+                !(GripOf(document, handle, gripIndex, out _) is CadGrip grip)
+                || grip.Kind != CadGripKind.CustomList
+                || !(
+                    Find((DxfBlockReference)document.FindEntity(handle), grip.Custom.PropertyNames[0])
+                    is DxfDynamicBlockReferenceProperty property
+                )
+            )
             {
                 return Array.Empty<string>();
             }
@@ -306,16 +358,18 @@ namespace GeometryHelper.Dxf.Viewer
                 case CadGripKind.CustomList:
                     return CadEditResult.Refuse("Click the grip to choose from its list.");
                 case CadGripKind.CustomLinear:
+                {
+                    double distance =
+                        (to.X - custom.BasePoint.X) * custom.Direction.X
+                        + (to.Y - custom.BasePoint.Y) * custom.Direction.Y;
+
+                    if (!(distance > Tolerance.Default.EqualPoint))
                     {
-                        double distance = (to.X - custom.BasePoint.X) * custom.Direction.X + (to.Y - custom.BasePoint.Y) * custom.Direction.Y;
-
-                        if (!(distance > Tolerance.Default.EqualPoint))
-                        {
-                            return CadEditResult.Refuse("The distance must be above nought.");
-                        }
-
-                        return Apply(document, handle, property, was, went, i => Set(i, custom.PropertyNames[0], distance));
+                        return CadEditResult.Refuse("The distance must be above nought.");
                     }
+
+                    return Apply(document, handle, property, was, went, i => Set(i, custom.PropertyNames[0], distance));
+                }
             }
 
             // The rest are worked in the block's own coordinates: the INSERT may be turned, mirrored or scaled.
@@ -338,53 +392,60 @@ namespace GeometryHelper.Dxf.Viewer
                         Set(i, custom.PropertyNames[1], local.Y * scale);
                     });
                 case DxfDynamicBlockGripType.XY:
+                {
+                    double x = Math.Abs(local.X - origin.X) * scale,
+                        y = Math.Abs(local.Y - origin.Y) * scale;
+
+                    if (!(x > Tolerance.Default.EqualPoint) || !(y > Tolerance.Default.EqualPoint))
                     {
-                        double x = Math.Abs(local.X - origin.X) * scale, y = Math.Abs(local.Y - origin.Y) * scale;
-
-                        if (!(x > Tolerance.Default.EqualPoint) || !(y > Tolerance.Default.EqualPoint))
-                        {
-                            return CadEditResult.Refuse("The distances must be above nought.");
-                        }
-
-                        return Apply(document, handle, property, was, went, i =>
-                        {
-                            Set(i, custom.PropertyNames[0], x);
-                            Set(i, custom.PropertyNames[1], y);
-                        });
+                        return CadEditResult.Refuse("The distances must be above nought.");
                     }
+
+                    return Apply(document, handle, property, was, went, i =>
+                    {
+                        Set(i, custom.PropertyNames[0], x);
+                        Set(i, custom.PropertyNames[1], y);
+                    });
+                }
 
                 case DxfDynamicBlockGripType.Polar:
+                {
+                    double dx = local.X - origin.X,
+                        dy = local.Y - origin.Y;
+                    double distance = Math.Sqrt(dx * dx + dy * dy) * scale;
+
+                    if (!(distance > Tolerance.Default.EqualPoint))
                     {
-                        double dx = local.X - origin.X, dy = local.Y - origin.Y;
-                        double distance = Math.Sqrt(dx * dx + dy * dy) * scale;
-
-                        if (!(distance > Tolerance.Default.EqualPoint))
-                        {
-                            return CadEditResult.Refuse("The distance must be above nought.");
-                        }
-
-                        double angle = Turn(Math.Atan2(dy, dx));
-                        return Apply(document, handle, property, was, went, i =>
-                        {
-                            Set(i, custom.PropertyNames[0], distance);
-                            Set(i, custom.PropertyNames[1], angle);
-                        });
+                        return CadEditResult.Refuse("The distance must be above nought.");
                     }
+
+                    double angle = Turn(Math.Atan2(dy, dx));
+                    return Apply(document, handle, property, was, went, i =>
+                    {
+                        Set(i, custom.PropertyNames[0], distance);
+                        Set(i, custom.PropertyNames[1], angle);
+                    });
+                }
 
                 default:
+                {
+                    // A rotation: the angle it has, turned by the turn from the grip to the point about the base point.
+                    GeoPoint3 from = inverse.Transform(custom.Position);
+
+                    if (
+                        !(local.DistanceTo(origin) > Tolerance.Default.EqualPoint)
+                        || !(Find(insert, custom.PropertyNames[0])?.Value is double now)
+                    )
                     {
-                        // A rotation: the angle it has, turned by the turn from the grip to the point about the base point.
-                        GeoPoint3 from = inverse.Transform(custom.Position);
-
-                        if (!(local.DistanceTo(origin) > Tolerance.Default.EqualPoint) || !(Find(insert, custom.PropertyNames[0])?.Value is double now))
-                        {
-                            return CadEditResult.Refuse("The point must be off the base point of the rotation.");
-                        }
-
-                        double turned = Math.Atan2(local.Y - origin.Y, local.X - origin.X) - Math.Atan2(from.Y - origin.Y, from.X - origin.X);
-                        double angle = Turn(now + turned);
-                        return Apply(document, handle, property, was, went, i => Set(i, custom.PropertyNames[0], angle));
+                        return CadEditResult.Refuse("The point must be off the base point of the rotation.");
                     }
+
+                    double turned =
+                        Math.Atan2(local.Y - origin.Y, local.X - origin.X)
+                        - Math.Atan2(from.Y - origin.Y, from.X - origin.X);
+                    double angle = Turn(now + turned);
+                    return Apply(document, handle, property, was, went, i => Set(i, custom.PropertyNames[0], angle));
+                }
             }
         }
 
@@ -395,9 +456,19 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 return insert.GetDynamicGrips();
             }
-            catch (Exception exception) when (exception is NotSupportedException || exception is InvalidOperationException || exception is ArgumentException || exception is FormatException)
+            catch (Exception exception)
+                when (exception is NotSupportedException
+                    || exception is InvalidOperationException
+                    || exception is ArgumentException
+                    || exception is FormatException
+                )
             {
-                GeometryHelperLog.Debug("CadDynamicBlocks: the grips of the dynamic block reference " + insert.Handle + " are not shown: " + exception.Message);
+                GeometryHelperLog.Debug(
+                    "CadDynamicBlocks: the grips of the dynamic block reference "
+                        + insert.Handle
+                        + " are not shown: "
+                        + exception.Message
+                );
                 return Array.Empty<DxfDynamicBlockGrip>();
             }
         }
@@ -428,7 +499,8 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 return IsDynamic(insert) ? insert.DynamicBlockTableRecord.Name : insert.Name;
             }
-            catch (Exception exception) when (exception is NotSupportedException || exception is InvalidOperationException)
+            catch (Exception exception)
+                when (exception is NotSupportedException || exception is InvalidOperationException)
             {
                 return insert.Name;
             }
@@ -441,14 +513,25 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 return insert.IsDynamicBlock;
             }
-            catch (Exception exception) when (exception is NotSupportedException || exception is InvalidOperationException || exception is FormatException)
+            catch (Exception exception)
+                when (exception is NotSupportedException
+                    || exception is InvalidOperationException
+                    || exception is FormatException
+                )
             {
                 return false;
             }
         }
 
         /// <summary>One edit of one INSERT, its record a reshape of the grip or the property named.</summary>
-        private static CadEditResult Apply(CadDocument document, string handle, string property, string was, string went, Action<DxfBlockReference> write)
+        private static CadEditResult Apply(
+            CadDocument document,
+            string handle,
+            string property,
+            string was,
+            string went,
+            Action<DxfBlockReference> write
+        )
         {
             if (CadLayerEditor.IsLocked(document.Database, document.FindEntity(handle).Layer))
             {
@@ -456,7 +539,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             var record = new CadEditRecord(CadEditRecordKind.Reshaped, handle, property, was, went);
-            return document.ApplyEdit("GRIP", new[] { record }, s => write((DxfBlockReference)s.Document.FindEntity(handle)));
+            return document.ApplyEdit("GRIP", new[] { record }, s =>
+                write((DxfBlockReference)s.Document.FindEntity(handle))
+            );
         }
 
         /// <summary>The custom grip of an index of an INSERT; null, with the reason, where it has none.</summary>
@@ -487,9 +572,15 @@ namespace GeometryHelper.Dxf.Viewer
         {
             try
             {
-                return IsDynamic(insert) ? insert.DynamicBlockReferencePropertyCollection : Array.Empty<DxfDynamicBlockReferenceProperty>();
+                return IsDynamic(insert)
+                    ? insert.DynamicBlockReferencePropertyCollection
+                    : Array.Empty<DxfDynamicBlockReferenceProperty>();
             }
-            catch (Exception exception) when (exception is NotSupportedException || exception is InvalidOperationException || exception is FormatException)
+            catch (Exception exception)
+                when (exception is NotSupportedException
+                    || exception is InvalidOperationException
+                    || exception is FormatException
+                )
             {
                 return Array.Empty<DxfDynamicBlockReferenceProperty>();
             }
@@ -512,7 +603,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Sets a property of a name of an INSERT, read anew, as the library works the block out.</summary>
         private static void Set(DxfBlockReference insert, string name, object value)
         {
-            DxfDynamicBlockReferenceProperty property = Find(insert, name) ?? throw new InvalidOperationException("The block reference " + insert.Handle + " has no property " + name + ".");
+            DxfDynamicBlockReferenceProperty property = Find(insert, name)
+                ?? throw new InvalidOperationException(
+                    "The block reference " + insert.Handle + " has no property " + name + "."
+                );
             property.Value = value;
         }
 
@@ -570,12 +664,19 @@ namespace GeometryHelper.Dxf.Viewer
             switch (property.Value)
             {
                 case double _:
-                    if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) || double.IsNaN(number) || double.IsInfinity(number))
+                    if (
+                        !double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+                        || double.IsNaN(number)
+                        || double.IsInfinity(number)
+                    )
                     {
                         return "The value of " + property.PropertyName + " must be a number.";
                     }
 
-                    value = property.UnitsType == DxfDynamicBlockReferencePropertyUnitsType.Angular ? number * Math.PI / 180.0 : number;
+                    value =
+                        property.UnitsType == DxfDynamicBlockReferencePropertyUnitsType.Angular
+                            ? number * Math.PI / 180.0
+                            : number;
                     return null;
                 case short _:
                     for (int i = 0; i < property.StateNames.Count; i++)
@@ -589,7 +690,15 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (!short.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out short whole))
                     {
-                        return "The value of " + property.PropertyName + " must be " + (property.StateNames.Count == 2 ? property.StateNames[0] + " or " + property.StateNames[1] : "a whole number") + ".";
+                        return "The value of "
+                            + property.PropertyName
+                            + " must be "
+                            + (
+                                property.StateNames.Count == 2
+                                    ? property.StateNames[0] + " or " + property.StateNames[1]
+                                    : "a whole number"
+                            )
+                            + ".";
                     }
 
                     value = whole;
@@ -601,7 +710,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>An angle in radians written in degrees to 4 places, for a record's old value.</summary>
-        private static string Degrees(double radians) => (radians * 180.0 / Math.PI).ToString("0.####", CultureInfo.InvariantCulture);
+        private static string Degrees(double radians) =>
+            (radians * 180.0 / Math.PI).ToString("0.####", CultureInfo.InvariantCulture);
 
         /// <summary>An angle taken into a turn, from nought up to 2 pi.</summary>
         private static double Turn(double angle)

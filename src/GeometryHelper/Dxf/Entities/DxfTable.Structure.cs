@@ -57,7 +57,11 @@ namespace GeometryHelper.Dxf
         {
             CheckEditable();
             Layout layout = Read();
-            return Holds(layout) && index >= 0 && nCount >= 1 && (long)index + nCount <= layout.Rows && nCount < layout.Rows;
+            return Holds(layout)
+                && index >= 0
+                && nCount >= 1
+                && (long)index + nCount <= layout.Rows
+                && nCount < layout.Rows;
         }
 
         /// <summary>
@@ -72,7 +76,11 @@ namespace GeometryHelper.Dxf
         {
             CheckEditable();
             Layout layout = Read();
-            return Holds(layout) && index >= 0 && nCount >= 1 && (long)index + nCount <= layout.Columns && nCount < layout.Columns;
+            return Holds(layout)
+                && index >= 0
+                && nCount >= 1
+                && (long)index + nCount <= layout.Columns
+                && nCount < layout.Columns;
         }
 
         /// <summary>
@@ -237,7 +245,14 @@ namespace GeometryHelper.Dxf
             CheckIndex(inheritFrom, layout.Columns, nameof(inheritFrom), "column");
             CheckCount(numCols, nameof(numCols));
             CheckCells(layout.Rows, (long)layout.Columns + numCols, nameof(numCols));
-            InsertLines(layout, false, col, numCols, layout.Groups.List[layout.ColumnAt[inheritFrom]].Value, inheritFrom);
+            InsertLines(
+                layout,
+                false,
+                col,
+                numCols,
+                layout.Groups.List[layout.ColumnAt[inheritFrom]].Value,
+                inheritFrom
+            );
         }
 
         /// <summary>
@@ -322,9 +337,12 @@ namespace GeometryHelper.Dxf
             {
                 for (int c = 0; c < numCols; c++)
                 {
-                    List<KeyValuePair<int, string>> cell = r < rows && c < columns ? merge?.Cells[r * columns + c] ?? Slice(layout, r * columns + c)
-                        : r < rows ? NewCell(valued, looks, r) : NewCell(valued);
-                    cells[r * numCols + c] = merge != null && r < rows && c >= columns ? merge.NewCell(cell, r, valued) : cell;
+                    List<KeyValuePair<int, string>> cell =
+                        r < rows && c < columns ? merge?.Cells[r * columns + c] ?? Slice(layout, r * columns + c)
+                        : r < rows ? NewCell(valued, looks, r)
+                        : NewCell(valued);
+                    cells[r * numCols + c] =
+                        merge != null && r < rows && c >= columns ? merge.NewCell(cell, r, valued) : cell;
                 }
             }
 
@@ -334,19 +352,46 @@ namespace GeometryHelper.Dxf
             {
                 if (b.TopRow < numRows && b.LeftColumn < numCols)
                 {
-                    AddBlock(blocks, b.TopRow, b.LeftColumn, Math.Min(b.BottomRow, numRows - 1), title && IsTitle(b, columns) ? numCols - 1 : Math.Min(b.RightColumn, numCols - 1));
+                    AddBlock(
+                        blocks,
+                        b.TopRow,
+                        b.LeftColumn,
+                        Math.Min(b.BottomRow, numRows - 1),
+                        title && IsTitle(b, columns) ? numCols - 1 : Math.Min(b.RightColumn, numCols - 1)
+                    );
                 }
             }
 
-            RowKinds kinds = numRows > rows ? Kinds(layout, cells, numCols, rows, numRows - rows, -1, valued, false) : numRows < rows ? DeletedKinds(layout, numRows, rows - numRows, cells, numCols) : null;
+            RowKinds kinds =
+                numRows > rows ? Kinds(layout, cells, numCols, rows, numRows - rows, -1, valued, false)
+                : numRows < rows ? DeletedKinds(layout, numRows, rows - numRows, cells, numCols)
+                : null;
 
             // The cells put in, and those of the title merged anew, are emptied in the session (D33d a05).
             bool anew = merge != null;
-            int[] places = Places(numRows, numCols, (r, c) => r < rows && c < columns && (!anew || r > 0 || c == 0) ? r * columns + c : -1);
-            Rebuild(layout, numRows, numCols, heights, widths, cells, blocks, LinksCut(layout, numRows, numCols), places);
+            int[] places = Places(numRows, numCols, (r, c) =>
+                r < rows && c < columns && (!anew || r > 0 || c == 0) ? r * columns + c : -1
+            );
+            Rebuild(
+                layout,
+                numRows,
+                numCols,
+                heights,
+                widths,
+                cells,
+                blocks,
+                LinksCut(layout, numRows, numCols),
+                places
+            );
 
             // A row put in keeps no looks of its own, as AutoCAD 2021 gave none to the row its SetSize put in (D33g e01).
-            MoveRowLooks(rows, Math.Min(rows, numRows), Math.Max(rows - numRows, 0), Math.Max(numRows - rows, 0), NoLooks);
+            MoveRowLooks(
+                rows,
+                Math.Min(rows, numRows),
+                Math.Max(rows - numRows, 0),
+                Math.Max(numRows - rows, 0),
+                NoLooks
+            );
             kinds?.MarkRows(this, numRows);
 
             if (numRows != rows)
@@ -422,8 +467,10 @@ namespace GeometryHelper.Dxf
                     {
                         int oldRow = rowsOf && r >= at + count ? r - count : r;
                         int oldColumn = !rowsOf && c >= at + count ? c - count : c;
-                        cell = merge?.Cells[oldRow * columns + oldColumn] ?? Slice(layout, oldRow * columns + oldColumn);
-                        places[r * newColumns + c] = merge == null || oldRow > 0 || oldColumn == 0 ? oldRow * columns + oldColumn : -1;
+                        cell = merge?.Cells[oldRow * columns + oldColumn]
+                            ?? Slice(layout, oldRow * columns + oldColumn);
+                        places[r * newColumns + c] =
+                            merge == null || oldRow > 0 || oldColumn == 0 ? oldRow * columns + oldColumn : -1;
                     }
                     else if (inheritFrom >= 0)
                     {
@@ -431,12 +478,20 @@ namespace GeometryHelper.Dxf
                         List<KeyValuePair<int, string>> changed = merge?.Cells[source];
 
                         // A cell of the title merged anew is of no value, as is the new one that takes its look (D28d g5, b1).
-                        cell = changed != null && r == 0 ? new List<KeyValuePair<int, string>>(changed)
-                            : Inherited(changed != null ? View(changed) : layout.CellAt(source / columns, source % columns), valued);
+                        cell =
+                            changed != null && r == 0
+                                ? new List<KeyValuePair<int, string>>(changed)
+                                : Inherited(
+                                    changed != null ? View(changed) : layout.CellAt(source / columns, source % columns),
+                                    valued
+                                );
                     }
                     else
                     {
-                        cell = merge != null ? merge.NewCell(NewCell(valued, looks, r), r, valued) : NewCell(valued, looks, r);
+                        cell =
+                            merge != null
+                                ? merge.NewCell(NewCell(valued, looks, r), r, valued)
+                                : NewCell(valued, looks, r);
                     }
 
                     cells[r * newColumns + c] = cell;
@@ -458,7 +513,13 @@ namespace GeometryHelper.Dxf
                 int last = rowsOf ? b.BottomRow : b.RightColumn;
                 int newFirst = at <= first ? first + count : first;
                 int newLast = at <= last ? last + count : last;
-                AddBlock(blocks, rowsOf ? newFirst : b.TopRow, rowsOf ? b.LeftColumn : newFirst, rowsOf ? newLast : b.BottomRow, rowsOf ? b.RightColumn : newLast);
+                AddBlock(
+                    blocks,
+                    rowsOf ? newFirst : b.TopRow,
+                    rowsOf ? b.LeftColumn : newFirst,
+                    rowsOf ? newLast : b.BottomRow,
+                    rowsOf ? b.RightColumn : newLast
+                );
             }
 
             if (title && at == 0)
@@ -483,10 +544,21 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            List<DxfCellRange> copied = inheritFrom >= 0 ? MergesAlong(found, rowsOf, inheritFrom, at, count, blocks) : null;
+            List<DxfCellRange> copied =
+                inheritFrom >= 0 ? MergesAlong(found, rowsOf, inheritFrom, at, count, blocks) : null;
             RowKinds kinds = rowsOf ? Kinds(layout, cells, newColumns, at, count, inheritFrom, valued) : null;
 
-            Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks, LinksInserted(layout, rowsOf, at, count), places);
+            Rebuild(
+                layout,
+                newRows,
+                newColumns,
+                heights,
+                widths,
+                cells,
+                blocks,
+                LinksInserted(layout, rowsOf, at, count),
+                places
+            );
 
             // A row put in keeps no looks of its own, and one taking the look of another those that row keeps, as AutoCAD 2021
             // kept them (D33f a04, D33g h01, h03).
@@ -496,7 +568,15 @@ namespace GeometryHelper.Dxf
             }
 
             kinds?.MarkRows(this, newRows);
-            ContentInserted(rowsOf, at, count, size, inheritFrom, title ? columns : 0, rowsOf && inheritFrom < 0 && rows == 1);
+            ContentInserted(
+                rowsOf,
+                at,
+                count,
+                size,
+                inheritFrom,
+                title ? columns : 0,
+                rowsOf && inheritFrom < 0 && rows == 1
+            );
 
             foreach (DxfCellRange block in copied ?? new List<DxfCellRange>())
             {
@@ -511,9 +591,11 @@ namespace GeometryHelper.Dxf
         /// by the columns its <c>InsertColumns</c> put in first, last or among them, and its <c>SetSize</c> put in, where a merge
         /// of another row it moved on (D28b c1 to c8, s1, s2); a title unmerged it left so.
         /// </summary>
-        private bool TitleAcross(List<DxfCellRange> blocks, int columns) => blocks.Exists(b => IsTitle(b, columns)) && !IsTitleSuppressed;
+        private bool TitleAcross(List<DxfCellRange> blocks, int columns) =>
+            blocks.Exists(b => IsTitle(b, columns)) && !IsTitleSuppressed;
 
-        private static bool IsTitle(DxfCellRange b, int columns) => b.TopRow == 0 && b.BottomRow == 0 && b.LeftColumn == 0 && b.RightColumn == columns - 1;
+        private static bool IsTitle(DxfCellRange b, int columns) =>
+            b.TopRow == 0 && b.BottomRow == 0 && b.LeftColumn == 0 && b.RightColumn == columns - 1;
 
         /// <summary>
         /// Merges, once, at the table's first edit while its drawing is open, the rows AutoCAD 2021 merges across when it loads
@@ -617,7 +699,14 @@ namespace GeometryHelper.Dxf
                 return cell.Text().Length == 0;
             }
 
-            int flags = int.TryParse(cell.InValue(93)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) ? read : 6;
+            int flags = int.TryParse(
+                cell.InValue(93)?.Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int read
+            )
+                ? read
+                : 6;
 
             if ((flags & 1) != 0)
             {
@@ -674,8 +763,14 @@ namespace GeometryHelper.Dxf
                 int last = rowsOf ? b.BottomRow : b.RightColumn;
 
                 // The lines of the block left, numbered as they are after the others are taken out.
-                int newFirst = first < at ? first : first >= at + count ? first - count : at;
-                int newLast = last < at ? last : last >= at + count ? last - count : at - 1;
+                int newFirst =
+                    first < at ? first
+                    : first >= at + count ? first - count
+                    : at;
+                int newLast =
+                    last < at ? last
+                    : last >= at + count ? last - count
+                    : at - 1;
 
                 if (newLast < newFirst)
                 {
@@ -684,12 +779,30 @@ namespace GeometryHelper.Dxf
 
                 // The block's top left cell taken out, the first cell of it left keeps its own content, empty where the block
                 // was merged as AutoCAD merges, as AutoCAD 2021 left it (D28e x5, k1, k3, k4).
-                AddBlock(blocks, rowsOf ? newFirst : b.TopRow, rowsOf ? b.LeftColumn : newFirst, rowsOf ? newLast : b.BottomRow, rowsOf ? b.RightColumn : newLast);
+                AddBlock(
+                    blocks,
+                    rowsOf ? newFirst : b.TopRow,
+                    rowsOf ? b.LeftColumn : newFirst,
+                    rowsOf ? newLast : b.BottomRow,
+                    rowsOf ? b.RightColumn : newLast
+                );
             }
 
             RowKinds kinds = rowsOf ? DeletedKinds(layout, at, count, cells, newColumns) : null;
-            int[] places = Places(newRows, newColumns, (r, c) => (rowsOf && r >= at ? r + count : r) * columns + (!rowsOf && c >= at ? c + count : c));
-            Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks, LinksDeleted(layout, rowsOf, at, count), places);
+            int[] places = Places(newRows, newColumns, (r, c) =>
+                (rowsOf && r >= at ? r + count : r) * columns + (!rowsOf && c >= at ? c + count : c)
+            );
+            Rebuild(
+                layout,
+                newRows,
+                newColumns,
+                heights,
+                widths,
+                cells,
+                blocks,
+                LinksDeleted(layout, rowsOf, at, count),
+                places
+            );
 
             if (rowsOf)
             {
@@ -749,11 +862,19 @@ namespace GeometryHelper.Dxf
                 }
                 else
                 {
-                    throw new ArgumentException("The block of merged cells " + b + " reaches across the edge of the range " + range + ": unmerge it first, or merge a range that holds it whole.", nameof(range));
+                    throw new ArgumentException(
+                        "The block of merged cells "
+                            + b
+                            + " reaches across the edge of the range "
+                            + range
+                            + ": unmerge it first, or merge a range that holds it whole.",
+                        nameof(range)
+                    );
                 }
             }
 
-            changed |= !Blocks(layout).Contains(new DxfCellRange(range.TopRow, range.LeftColumn, range.BottomRow, range.RightColumn));
+            changed |= !Blocks(layout)
+                .Contains(new DxfCellRange(range.TopRow, range.LeftColumn, range.BottomRow, range.RightColumn));
             AddBlock(blocks, range.TopRow, range.LeftColumn, range.BottomRow, range.RightColumn);
 
             if (changed)
@@ -793,7 +914,12 @@ namespace GeometryHelper.Dxf
         /// beyond, so that a green line over Qty went where the line over Mark was none and red where it was red; the lines
         /// within the block are kept. The cells given are changed in place.
         /// </summary>
-        private void EmptyMerged(Layout layout, List<KeyValuePair<int, string>>[] cells, DxfCellRange range, bool valued)
+        private void EmptyMerged(
+            Layout layout,
+            List<KeyValuePair<int, string>>[] cells,
+            DxfCellRange range,
+            bool valued
+        )
         {
             int rows = layout.Rows;
             int columns = layout.Columns;
@@ -801,7 +927,8 @@ namespace GeometryHelper.Dxf
             int left = range.LeftColumn;
             int bottom = range.BottomRow;
             int right = range.RightColumn;
-            Func<int, int, int, CellLine> line = (row, column, edge) => LineOf(View(cells[row * columns + column]), edge);
+            Func<int, int, int, CellLine> line = (row, column, edge) =>
+                LineOf(View(cells[row * columns + column]), edge);
             CellLine over = line(top, left, 0) ?? (top > 0 ? line(top - 1, left, 2) : null);
             CellLine before = line(top, left, 3) ?? (left > 0 ? line(top, left - 1, 1) : null);
             CellLine after = (right + 1 < columns ? line(top, right + 1, 3) : null) ?? line(top, right, 1);
@@ -813,7 +940,11 @@ namespace GeometryHelper.Dxf
             // its content of its own.
             for (int k = 0; k < (bottom - top + 1) * (right - left + 1) && !held; k++)
             {
-                held = k > 0 && HoldsContentLooks(View(cells[(top + k / (right - left + 1)) * columns + left + k % (right - left + 1)]));
+                held =
+                    k > 0
+                    && HoldsContentLooks(
+                        View(cells[(top + k / (right - left + 1)) * columns + left + k % (right - left + 1)])
+                    );
             }
 
             List<KeyValuePair<int, string>>[] looks = held ? ContentLooks(layout, out moved) : null;
@@ -824,12 +955,18 @@ namespace GeometryHelper.Dxf
                 {
                     if (row != top || column != left)
                     {
-                        cells[row * columns + column] = Emptied(cells[row * columns + column], looks?[row], moved != null && moved[row], valued);
+                        cells[row * columns + column] = Emptied(
+                            cells[row * columns + column],
+                            looks?[row],
+                            moved != null && moved[row],
+                            valued
+                        );
                     }
                 }
             }
 
-            Action<int, int, int, CellLine> give = (row, column, edge, given) => cells[row * columns + column] = WithLine(cells[row * columns + column], edge, given, valued);
+            Action<int, int, int, CellLine> give = (row, column, edge, given) =>
+                cells[row * columns + column] = WithLine(cells[row * columns + column], edge, given, valued);
 
             for (int column = left + 1; column <= right; column++)
             {
@@ -871,7 +1008,12 @@ namespace GeometryHelper.Dxf
         /// height or colour of its own but those of the looks given (<see cref="ContentLooks"/>); of a row of its kind out of its
         /// place (<paramref name="moved"/>), each of them taken away given back as the looks give it, 140 3.0 made 6.0.
         /// </summary>
-        private static List<KeyValuePair<int, string>> Emptied(List<KeyValuePair<int, string>> groups, List<KeyValuePair<int, string>> looks, bool moved, bool valued)
+        private static List<KeyValuePair<int, string>> Emptied(
+            List<KeyValuePair<int, string>> groups,
+            List<KeyValuePair<int, string>> looks,
+            bool moved,
+            bool valued
+        )
         {
             CellView cell = View(groups);
             int mask = 0;
@@ -916,7 +1058,10 @@ namespace GeometryHelper.Dxf
 
             foreach (KeyValuePair<int, string> look in moved ? looks : new List<KeyValuePair<int, string>>())
             {
-                if ((look.Key == 7 || look.Key == 140 || look.Key == 64) && (mask & Layout.CellOverrides[look.Key]) != 0)
+                if (
+                    (look.Key == 7 || look.Key == 140 || look.Key == 64)
+                    && (mask & Layout.CellOverrides[look.Key]) != 0
+                )
                 {
                     cell.SetOverride(look.Key, look.Value, valued ? 91 : 177);
                     cell = View(cell.Groups.List);
@@ -936,11 +1081,18 @@ namespace GeometryHelper.Dxf
         /// own go: those of the rows out of their places, a row in its place given none. With <paramref name="shownOf"/>, the
         /// title's and the header's showing read of the layout, which holds the record as it stands (<see cref="KeptKinds"/>).
         /// </summary>
-        private List<KeyValuePair<int, string>>[] ContentLooks(Layout layout, out bool[] moved, bool tables = true, bool shownOf = false)
+        private List<KeyValuePair<int, string>>[] ContentLooks(
+            Layout layout,
+            out bool[] moved,
+            bool tables = true,
+            bool shownOf = false
+        )
         {
             List<KeyValuePair<int, string>>[] looks = tables ? RowKindLooks(layout) : null;
             int[] kept = KeptKinds(layout, shownOf);
-            int[] places = shownOf ? PlaceKinds(layout.Rows, !LeftOut(layout, 280), !LeftOut(layout, 281)) : PlaceKinds(layout.Rows);
+            int[] places = shownOf
+                ? PlaceKinds(layout.Rows, !LeftOut(layout, 280), !LeftOut(layout, 281))
+                : PlaceKinds(layout.Rows);
             List<KeyValuePair<int, string>>[] own = null;
             moved = null;
 
@@ -948,7 +1100,17 @@ namespace GeometryHelper.Dxf
             {
                 if (kept[r] != 2 && kept[r] != places[r])
                 {
-                    own = own ?? (tables ? OwnLooks(layout) : new[] { new List<KeyValuePair<int, string>>(), new List<KeyValuePair<int, string>>(), new List<KeyValuePair<int, string>>() });
+                    own = own
+                        ?? (
+                            tables
+                                ? OwnLooks(layout)
+                                : new[]
+                                {
+                                    new List<KeyValuePair<int, string>>(),
+                                    new List<KeyValuePair<int, string>>(),
+                                    new List<KeyValuePair<int, string>>(),
+                                }
+                        );
                     looks = looks ?? new List<KeyValuePair<int, string>>[layout.Rows];
                     moved = moved ?? new bool[layout.Rows];
                     looks[r] = KindLooks(kept[r], own);
@@ -960,7 +1122,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether a cell holds a text style, text height or colour of its own (7, 140, 64), the looks of its content.</summary>
-        private static bool HoldsContentLooks(CellView cell) => cell.Override(7, 0x10) != null || cell.Override(140, 0x20) != null || cell.Override(64, 0x08) != null;
+        private static bool HoldsContentLooks(CellView cell) =>
+            cell.Override(7, 0x10) != null || cell.Override(140, 0x20) != null || cell.Override(64, 0x08) != null;
 
         /// <summary>
         /// Unmerges the blocks of merged cells a range meets, as AutoCAD's <c>UnmergeCells</c>: each cell of them marked
@@ -1003,9 +1166,16 @@ namespace GeometryHelper.Dxf
         #region Copying and filling
 
         // The options of CopyFrom the library carries out.
-        private const DxfTableCopyOptions CopyOptions = DxfTableCopyOptions.ExpandOrContractTable | DxfTableCopyOptions.SkipContent
-            | DxfTableCopyOptions.SkipFormat | DxfTableCopyOptions.SkipMerges | DxfTableCopyOptions.TableCopyRowHeight | DxfTableCopyOptions.TableCopyColumnWidth
-            | DxfTableCopyOptions.SkipField | DxfTableCopyOptions.SkipFormula | DxfTableCopyOptions.SkipDataLink;
+        private const DxfTableCopyOptions CopyOptions =
+            DxfTableCopyOptions.ExpandOrContractTable
+            | DxfTableCopyOptions.SkipContent
+            | DxfTableCopyOptions.SkipFormat
+            | DxfTableCopyOptions.SkipMerges
+            | DxfTableCopyOptions.TableCopyRowHeight
+            | DxfTableCopyOptions.TableCopyColumnWidth
+            | DxfTableCopyOptions.SkipField
+            | DxfTableCopyOptions.SkipFormula
+            | DxfTableCopyOptions.SkipDataLink;
 
         /// <summary>
         /// Copies cells of another table of the drawing, or of this one, into this table, as AutoCAD's <c>CopyFrom(source,
@@ -1042,7 +1212,12 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when the source is of another drawing, or the options ask for what the library does not carry out.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the source range reaches past the source, or the copy begins at no cell of this table.</exception>
         /// <exception cref="InvalidOperationException">Thrown when a table's record does not hold its cells, heights and widths, or this table is erased.</exception>
-        public DxfCellRange CopyFrom(DxfTable source, DxfTableCopyOptions options, DxfCellRange sourceRange, DxfCellRange targetRange)
+        public DxfCellRange CopyFrom(
+            DxfTable source,
+            DxfTableCopyOptions options,
+            DxfCellRange sourceRange,
+            DxfCellRange targetRange
+        )
         {
             if (source == null)
             {
@@ -1051,12 +1226,20 @@ namespace GeometryHelper.Dxf
 
             if ((options & ~CopyOptions) != 0)
             {
-                throw new ArgumentException("The library copies a table's cells with ExpandOrContractTable, SkipContent, SkipFormat, SkipMerges, SkipField, SkipFormula, SkipDataLink, TableCopyRowHeight and TableCopyColumnWidth: " + (options & ~CopyOptions) + " asks for what a file of these versions has no groups for, or for rules of AutoCAD's own.", nameof(options));
+                throw new ArgumentException(
+                    "The library copies a table's cells with ExpandOrContractTable, SkipContent, SkipFormat, SkipMerges, SkipField, SkipFormula, SkipDataLink, TableCopyRowHeight and TableCopyColumnWidth: "
+                        + (options & ~CopyOptions)
+                        + " asks for what a file of these versions has no groups for, or for rules of AutoCAD's own.",
+                    nameof(options)
+                );
             }
 
             if (!IsResident || !source.IsResident || !ReferenceEquals(source.Item.File, Item.File))
             {
-                throw new ArgumentException("The table copied from is of another drawing, whose cells point at its own blocks and fields: copy it into this drawing first, with WblockCloneObjects.", nameof(source));
+                throw new ArgumentException(
+                    "The table copied from is of another drawing, whose cells point at its own blocks and fields: copy it into this drawing first, with WblockCloneObjects.",
+                    nameof(source)
+                );
             }
 
             Layout from = source.Structured();
@@ -1071,7 +1254,21 @@ namespace GeometryHelper.Dxf
             // Where the table grows, the copy may begin just past its last row or column.
             if (top > layout.Rows - (grow ? 0 : 1) || left > layout.Columns - (grow ? 0 : 1))
             {
-                throw new ArgumentOutOfRangeException(nameof(targetRange), targetRange, "The copy begins at a cell of the table's " + layout.Rows.ToString(CultureInfo.InvariantCulture) + " rows of " + layout.Columns.ToString(CultureInfo.InvariantCulture) + " columns" + (grow ? ", or just past its last row or column" : string.Empty) + ": (" + top.ToString(CultureInfo.InvariantCulture) + ", " + left.ToString(CultureInfo.InvariantCulture) + ") is not one.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(targetRange),
+                    targetRange,
+                    "The copy begins at a cell of the table's "
+                        + layout.Rows.ToString(CultureInfo.InvariantCulture)
+                        + " rows of "
+                        + layout.Columns.ToString(CultureInfo.InvariantCulture)
+                        + " columns"
+                        + (grow ? ", or just past its last row or column" : string.Empty)
+                        + ": ("
+                        + top.ToString(CultureInfo.InvariantCulture)
+                        + ", "
+                        + left.ToString(CultureInfo.InvariantCulture)
+                        + ") is not one."
+                );
             }
 
             int high = taken.BottomRow - taken.TopRow + 1;
@@ -1087,14 +1284,28 @@ namespace GeometryHelper.Dxf
 
             for (int r = 0; r < rows; r++)
             {
-                bool copiedRow = r >= top && r < top + high && ((options & DxfTableCopyOptions.TableCopyRowHeight) != 0 || r >= layout.Rows);
-                heights.Add(copiedRow ? from.Groups.List[from.RowAt[taken.TopRow + r - top]].Value : layout.Groups.List[layout.RowAt[r]].Value);
+                bool copiedRow =
+                    r >= top
+                    && r < top + high
+                    && ((options & DxfTableCopyOptions.TableCopyRowHeight) != 0 || r >= layout.Rows);
+                heights.Add(
+                    copiedRow
+                        ? from.Groups.List[from.RowAt[taken.TopRow + r - top]].Value
+                        : layout.Groups.List[layout.RowAt[r]].Value
+                );
             }
 
             for (int c = 0; c < columns; c++)
             {
-                bool copiedColumn = c >= left && c < left + wide && ((options & DxfTableCopyOptions.TableCopyColumnWidth) != 0 || c >= layout.Columns);
-                widths.Add(copiedColumn ? from.Groups.List[from.ColumnAt[taken.LeftColumn + c - left]].Value : layout.Groups.List[layout.ColumnAt[c]].Value);
+                bool copiedColumn =
+                    c >= left
+                    && c < left + wide
+                    && ((options & DxfTableCopyOptions.TableCopyColumnWidth) != 0 || c >= layout.Columns);
+                widths.Add(
+                    copiedColumn
+                        ? from.Groups.List[from.ColumnAt[taken.LeftColumn + c - left]].Value
+                        : layout.Groups.List[layout.ColumnAt[c]].Value
+                );
             }
 
             bool valued = Item.File.Supports(1021);
@@ -1107,7 +1318,8 @@ namespace GeometryHelper.Dxf
             {
                 for (int c = 0; c < columns; c++)
                 {
-                    List<KeyValuePair<int, string>> target = r < layout.Rows && c < layout.Columns ? Slice(layout, r * layout.Columns + c) : NewCell(valued);
+                    List<KeyValuePair<int, string>> target =
+                        r < layout.Rows && c < layout.Columns ? Slice(layout, r * layout.Columns + c) : NewCell(valued);
 
                     if (r >= top && r < top + high && c >= left && c < left + wide)
                     {
@@ -1125,7 +1337,11 @@ namespace GeometryHelper.Dxf
                         else
                         {
                             // Both copied as the source cell holds them; the look alone, or the content alone, with the other of the cell here.
-                            target = content && look ? WithoutField(Slice(cell)) : look ? WithLook(target, cell) : content ? WithLook(WithoutField(Slice(cell)), View(target)) : target;
+                            target =
+                                content && look ? WithoutField(Slice(cell))
+                                : look ? WithLook(target, cell)
+                                : content ? WithLook(WithoutField(Slice(cell)), View(target))
+                                : target;
 
                             if (given != null)
                             {
@@ -1153,7 +1369,13 @@ namespace GeometryHelper.Dxf
             {
                 if (Within(b, taken) && b.BottomRow - taken.TopRow < high && b.RightColumn - taken.LeftColumn < wide)
                 {
-                    AddBlock(blocks, top + b.TopRow - taken.TopRow, left + b.LeftColumn - taken.LeftColumn, top + b.BottomRow - taken.TopRow, left + b.RightColumn - taken.LeftColumn);
+                    AddBlock(
+                        blocks,
+                        top + b.TopRow - taken.TopRow,
+                        left + b.LeftColumn - taken.LeftColumn,
+                        top + b.BottomRow - taken.TopRow,
+                        left + b.RightColumn - taken.LeftColumn
+                    );
                 }
             }
 
@@ -1171,16 +1393,32 @@ namespace GeometryHelper.Dxf
 
             foreach (LinkedRange l in linksToo ? Links(from) : new List<LinkedRange>())
             {
-                if (Within(l.Range, taken) && l.BottomRow - taken.TopRow < high && l.RightColumn - taken.LeftColumn < wide)
+                if (
+                    Within(l.Range, taken)
+                    && l.BottomRow - taken.TopRow < high
+                    && l.RightColumn - taken.LeftColumn < wide
+                )
                 {
-                    links.Add(l.With(top + l.TopRow - taken.TopRow, left + l.LeftColumn - taken.LeftColumn, top + l.BottomRow - taken.TopRow, left + l.RightColumn - taken.LeftColumn));
+                    links.Add(
+                        l.With(
+                            top + l.TopRow - taken.TopRow,
+                            left + l.LeftColumn - taken.LeftColumn,
+                            top + l.BottomRow - taken.TopRow,
+                            left + l.RightColumn - taken.LeftColumn
+                        )
+                    );
                 }
             }
 
             // The cells of the table it grew by are of no mark of the session, nor are those given a content (D33e g14).
-            int[] places = rows != layout.Rows || columns != layout.Columns || given != null
-                ? Places(rows, columns, (r, c) => r < layout.Rows && c < layout.Columns && (given == null || !given[r * columns + c]) ? r * layout.Columns + c : -2)
-                : null;
+            int[] places =
+                rows != layout.Rows || columns != layout.Columns || given != null
+                    ? Places(rows, columns, (r, c) =>
+                        r < layout.Rows && c < layout.Columns && (given == null || !given[r * columns + c])
+                            ? r * layout.Columns + c
+                            : -2
+                    )
+                    : null;
             Rebuild(layout, rows, columns, heights, widths, cells, blocks, links, places);
             return copied;
         }
@@ -1233,7 +1471,11 @@ namespace GeometryHelper.Dxf
         {
             if (((int)options & ~0x7F) != 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(options), options, "The options are made of the flags of DxfTableFillOptions.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(options),
+                    options,
+                    "The options are made of the flags of DxfTableFillOptions."
+                );
             }
 
             Layout layout = Structured();
@@ -1247,7 +1489,16 @@ namespace GeometryHelper.Dxf
 
             if (from <= end && to >= start)
             {
-                throw new ArgumentException("The fill range " + fillRange + " holds " + (along ? "columns" : "rows") + " of the source " + sourceRange + ", which AutoCAD 2021 refuses (eInvalidInput).", nameof(fillRange));
+                throw new ArgumentException(
+                    "The fill range "
+                        + fillRange
+                        + " holds "
+                        + (along ? "columns" : "rows")
+                        + " of the source "
+                        + sourceRange
+                        + ", which AutoCAD 2021 refuses (eInvalidInput).",
+                    nameof(fillRange)
+                );
             }
 
             bool content = (options & DxfTableFillOptions.CopyContent) != 0;
@@ -1263,7 +1514,9 @@ namespace GeometryHelper.Dxf
             bool reverse = (options & DxfTableFillOptions.Reverse) != 0;
             List<KeyValuePair<int, string>>[] cells = AllSlices(layout);
             int count = end - start + 1;
-            int lines = along ? sourceRange.BottomRow - sourceRange.TopRow + 1 : sourceRange.RightColumn - sourceRange.LeftColumn + 1;
+            int lines = along
+                ? sourceRange.BottomRow - sourceRange.TopRow + 1
+                : sourceRange.RightColumn - sourceRange.LeftColumn + 1;
             bool changed = false;
 
             // The cells given a content, which leave their marks of the session behind them (D33e g12, g14).
@@ -1321,7 +1574,10 @@ namespace GeometryHelper.Dxf
 
                     // A cell a merge hides is left as it is (D33b f12, D33c e09, e15, e16), and so is a cell of a repeat back from
                     // the fill's last cell that would reach before the table's first row or column (D33c h-x07, h-x11, h-x15).
-                    if ((hidden != null && hidden[r * layout.Columns + c]) || (copy && back && to + 1 - ((to - place) / count + 1) * count < 0))
+                    if (
+                        (hidden != null && hidden[r * layout.Columns + c])
+                        || (copy && back && to + 1 - ((to - place) / count + 1) * count < 0)
+                    )
                     {
                         continue;
                     }
@@ -1354,14 +1610,22 @@ namespace GeometryHelper.Dxf
                         int steps = reverse ? -(to - place + 1) : place - from + 1;
                         long first = reverse ? (long)numbers[0] : (long)numbers[count - 1];
                         double value = (reverse ? numbers[0] : numbers[count - 1]) + steps * by;
-                        double rounded = integral && Exact(first, steps, (long)by, out long exact) ? exact : Rounded(value, places);
+                        double rounded =
+                            integral && Exact(first, steps, (long)by, out long exact) ? exact : Rounded(value, places);
                         made = look ? Formatted(target, source) : target;
-                        made = WithSeriesNumber(made, rounded, whole && rounded >= int.MinValue && rounded <= int.MaxValue);
+                        made = WithSeriesNumber(
+                            made,
+                            rounded,
+                            whole && rounded >= int.MinValue && rounded <= int.MaxValue
+                        );
                     }
                     else if (content && !look)
                     {
                         int? flags = View(target).Flags;
-                        made = WithFlags(WithLook(WithoutField(Slice(source)), View(target)), flags.HasValue && kindFlag == 0 ? flags.Value & ~DataTypeFlag : flags);
+                        made = WithFlags(
+                            WithLook(WithoutField(Slice(source)), View(target)),
+                            flags.HasValue && kindFlag == 0 ? flags.Value & ~DataTypeFlag : flags
+                        );
                     }
                     else if (look && !content && !series)
                     {
@@ -1372,7 +1636,14 @@ namespace GeometryHelper.Dxf
                         // The cell whole, or a series of texts that are no numbers: the content copied, the cell given its kind
                         // of value.
                         made = WithoutField(Slice(source));
-                        made = look ? made : WithFlags(WithLook(made, View(target)), kindFlag == 0 ? (View(target).Flags ?? 0) & ~DataTypeFlag : (View(target).Flags ?? 0) | DataTypeFlag);
+                        made = look
+                            ? made
+                            : WithFlags(
+                                WithLook(made, View(target)),
+                                kindFlag == 0
+                                    ? (View(target).Flags ?? 0) & ~DataTypeFlag
+                                    : (View(target).Flags ?? 0) | DataTypeFlag
+                            );
                     }
 
                     // A cell given a content is no longer one emptied in the session, a clear writing one of no value given it as
@@ -1389,7 +1660,12 @@ namespace GeometryHelper.Dxf
 
             if (changed)
             {
-                int[] at = given == null ? null : Places(layout.Rows, layout.Columns, (r, c) => given[r * layout.Columns + c] ? -2 : r * layout.Columns + c);
+                int[] at =
+                    given == null
+                        ? null
+                        : Places(layout.Rows, layout.Columns, (r, c) =>
+                            given[r * layout.Columns + c] ? -2 : r * layout.Columns + c
+                        );
                 Rebuild(layout, layout.Rows, layout.Columns, null, null, cells, blocks, Links(layout), at);
             }
         }
@@ -1398,11 +1674,15 @@ namespace GeometryHelper.Dxf
         /// Whether a cell, by its index in the layout, was emptied in the session (<see cref="SessionEmptied"/>) and holds no
         /// value still: one AutoCAD 2021 holds no content of, which a fill or a copy has nothing to give from (D33e).
         /// </summary>
-        private bool EmptiedInSession(Layout layout, int index, CellView cell) => (MarksOf(layout, index) & SessionEmptied) != 0 && cell.HoldsNoValue();
+        private bool EmptiedInSession(Layout layout, int index, CellView cell) =>
+            (MarksOf(layout, index) & SessionEmptied) != 0 && cell.HoldsNoValue();
 
         /// <summary>Whether a cell of R2007 holds a value of none (the flag 1 of its 93) and no text, read so or emptied.</summary>
-        private static bool OfNoValue(CellView cell)
-            => cell.ValueFrom >= 0 && int.TryParse(cell.InValue(93)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags) && (flags & 1) != 0 && cell.Text().Length == 0;
+        private static bool OfNoValue(CellView cell) =>
+            cell.ValueFrom >= 0
+            && int.TryParse(cell.InValue(93)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags)
+            && (flags & 1) != 0
+            && cell.Text().Length == 0;
 
         /// <summary>
         /// A cell's groups given the look of a cell emptied in the session, as AutoCAD 2021's CopyFormat and CopyFrom gave it
@@ -1410,7 +1690,10 @@ namespace GeometryHelper.Dxf
         /// gives it, the cell keeping its text style, text height and colour and its kind of value, the looks of a content the
         /// other has none of. B-12, reset of the table of its own data looks, gives Z its top left alone.
         /// </summary>
-        private static List<KeyValuePair<int, string>> WithCellLook(List<KeyValuePair<int, string>> target, CellView source)
+        private static List<KeyValuePair<int, string>> WithCellLook(
+            List<KeyValuePair<int, string>> target,
+            CellView source
+        )
         {
             CellView own = View(target);
             var kept = new List<KeyValuePair<int, string>>();
@@ -1472,15 +1755,39 @@ namespace GeometryHelper.Dxf
         {
             List<KeyValuePair<int, string>> made = WithFlags(WithLook(target, look), look.Flags);
             CellView cell = View(made);
-            int flags = int.TryParse(cell.InValue(93)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) ? read : 6;
+            int flags = int.TryParse(
+                cell.InValue(93)?.Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int read
+            )
+                ? read
+                : 6;
 
             if (cell.ValueFrom >= 0 && look.ValueFrom >= 0 && (flags & 1) != 0)
             {
-                cell.WriteValue(look.InValue(90) ?? "4", new List<KeyValuePair<int, string>>(), string.Empty, null, null, false, (flags & ~2).ToString(CultureInfo.InvariantCulture));
+                cell.WriteValue(
+                    look.InValue(90) ?? "4",
+                    new List<KeyValuePair<int, string>>(),
+                    string.Empty,
+                    null,
+                    null,
+                    false,
+                    (flags & ~2).ToString(CultureInfo.InvariantCulture)
+                );
             }
-            else if (cell.ValueFrom >= 0 && look.ValueFrom >= 0 && int.TryParse(look.InValue(90)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int kind)
+            else if (
+                cell.ValueFrom >= 0
+                && look.ValueFrom >= 0
+                && int.TryParse(
+                    look.InValue(90)?.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int kind
+                )
                 && (kind == (int)DxfDataType.String || kind == (int)DxfDataType.Long || kind == (int)DxfDataType.Double)
-                && (cell.InValue(90) ?? "4").Trim() != kind.ToString(CultureInfo.InvariantCulture))
+                && (cell.InValue(90) ?? "4").Trim() != kind.ToString(CultureInfo.InvariantCulture)
+            )
             {
                 Turn(cell, (DxfDataType)kind, look.InValue(94) ?? "0");
             }
@@ -1507,7 +1814,11 @@ namespace GeometryHelper.Dxf
         /// value from R2007 on, the flags of the value 4 and the number shown of six places (3.500000), the cell given its kind
         /// of value (0x40000); before R2007 as its text.
         /// </summary>
-        private static List<KeyValuePair<int, string>> WithSeriesNumber(List<KeyValuePair<int, string>> groups, double value, bool whole)
+        private static List<KeyValuePair<int, string>> WithSeriesNumber(
+            List<KeyValuePair<int, string>> groups,
+            double value,
+            bool whole
+        )
         {
             CellView cell = View(groups);
             Written written = whole ? Whole((int)value) : Real(value, nameof(value));
@@ -1518,7 +1829,15 @@ namespace GeometryHelper.Dxf
                 return cell.Groups.List;
             }
 
-            cell.WriteValue(((int)written.Kind).ToString(CultureInfo.InvariantCulture), written.Data, whole ? written.Text : RealText(value, null), null, null, false, "4");
+            cell.WriteValue(
+                ((int)written.Kind).ToString(CultureInfo.InvariantCulture),
+                written.Data,
+                whole ? written.Text : RealText(value, null),
+                null,
+                null,
+                false,
+                "4"
+            );
             return WithFlags(cell.Groups.List, (View(cell.Groups.List).Flags ?? 0) | DataTypeFlag);
         }
 
@@ -1567,7 +1886,8 @@ namespace GeometryHelper.Dxf
                     return true;
                 case string _ when cell.ValueFrom >= 0:
                     return false;
-                case string words when int.TryParse(words.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read):
+                case string words
+                    when int.TryParse(words.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read):
                     number = read;
                     whole = true;
                     return true;
@@ -1581,7 +1901,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether a number is whole and within the 53 bits a double holds a whole number exactly in.</summary>
-        private static bool Integral(double value) => Math.Floor(value) == value && Math.Abs(value) <= 9007199254740992.0;
+        private static bool Integral(double value) =>
+            Math.Floor(value) == value && Math.Abs(value) <= 9007199254740992.0;
 
         /// <summary>A number of a series in whole arithmetic, from a whole number by a count of whole steps; false where it passes the 53 bits.</summary>
         private static bool Exact(long from, int steps, long by, out long value)
@@ -1605,7 +1926,15 @@ namespace GeometryHelper.Dxf
             int e = written.IndexOfAny(new[] { 'E', 'e' });
             int exponent = 0;
 
-            if (e >= 0 && !int.TryParse(written.Substring(e + 1), NumberStyles.Integer, CultureInfo.InvariantCulture, out exponent))
+            if (
+                e >= 0
+                && !int.TryParse(
+                    written.Substring(e + 1),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out exponent
+                )
+            )
             {
                 exponent = 0;
             }
@@ -1623,7 +1952,13 @@ namespace GeometryHelper.Dxf
         private static double Rounded(double value, int places)
         {
             double rounded = places <= 15 ? Math.Round(value, places) : value;
-            return Guard.IsFinite(rounded) ? double.Parse(rounded.ToString("G15", CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture) + 0.0 : rounded;
+            return Guard.IsFinite(rounded)
+                ? double.Parse(
+                    rounded.ToString("G15", CultureInfo.InvariantCulture),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture
+                ) + 0.0
+                : rounded;
         }
 
         #endregion
@@ -1705,9 +2040,17 @@ namespace GeometryHelper.Dxf
 
             string expression = formula.Trim();
 
-            if (!expression.StartsWith("=", StringComparison.Ordinal) || expression.Substring(1).Trim().Length == 0 || formula.IndexOf('\n') >= 0 || formula.IndexOf('\r') >= 0)
+            if (
+                !expression.StartsWith("=", StringComparison.Ordinal)
+                || expression.Substring(1).Trim().Length == 0
+                || formula.IndexOf('\n') >= 0
+                || formula.IndexOf('\r') >= 0
+            )
             {
-                throw new ArgumentException("A formula begins with =, as =Sum(A1:B2), and is written on one line: " + formula + " is not one.", nameof(formula));
+                throw new ArgumentException(
+                    "A formula begins with =, as =Sum(A1:B2), and is written on one line: " + formula + " is not one.",
+                    nameof(formula)
+                );
             }
 
             expression = expression.Substring(1).Trim();
@@ -1715,14 +2058,21 @@ namespace GeometryHelper.Dxf
 
             if (!string.Equals(Expression(code), "=" + expression, StringComparison.Ordinal))
             {
-                throw new ArgumentException("The formula " + formula + " would not be read back from its field as it is given: its parentheses do not pair, or a quote is left open.", nameof(formula));
+                throw new ArgumentException(
+                    "The formula "
+                        + formula
+                        + " would not be read back from its field as it is given: its parentheses do not pair, or a quote is left open.",
+                    nameof(formula)
+                );
             }
 
             CheckText(CellToWrite(row, column), row, column);
 
             if (!Item.File.Supports(1018))
             {
-                throw new InvalidOperationException("A DXF older than R2004 (AC1018) has no FIELD to hold a formula: fields came with it.");
+                throw new InvalidOperationException(
+                    "A DXF older than R2004 (AC1018) has no FIELD to hold a formula: fields came with it."
+                );
             }
 
             if (string.Equals(GetFormula(row, column, 0), "=" + expression, StringComparison.Ordinal))
@@ -1789,7 +2139,11 @@ namespace GeometryHelper.Dxf
                 return Expression(code.ToString());
             }
 
-            return outer && string.Equals(evaluator, "_text", StringComparison.Ordinal) && children.Count == 1 && code.ToString().Trim() == "%<\\_FldIdx 0>%"
+            return
+                outer
+                && string.Equals(evaluator, "_text", StringComparison.Ordinal)
+                && children.Count == 1
+                && code.ToString().Trim() == "%<\\_FldIdx 0>%"
                 ? FormulaOf(file, children[0], false)
                 : null;
         }
@@ -1799,7 +2153,11 @@ namespace GeometryHelper.Dxf
         {
             string text = code.Trim();
 
-            if (text.StartsWith("%<", StringComparison.Ordinal) && text.EndsWith(">%", StringComparison.Ordinal) && text.Length >= 4)
+            if (
+                text.StartsWith("%<", StringComparison.Ordinal)
+                && text.EndsWith(">%", StringComparison.Ordinal)
+                && text.Length >= 4
+            )
             {
                 text = text.Substring(2, text.Length - 4).Trim();
             }
@@ -1825,7 +2183,11 @@ namespace GeometryHelper.Dxf
             {
                 char letter = text[i];
                 quoted = letter == '"' ? !quoted : quoted;
-                depth += quoted ? 0 : letter == '(' ? 1 : letter == ')' ? -1 : 0;
+                depth +=
+                    quoted ? 0
+                    : letter == '(' ? 1
+                    : letter == ')' ? -1
+                    : 0;
 
                 if (!quoted && depth == 0)
                 {
@@ -1842,9 +2204,12 @@ namespace GeometryHelper.Dxf
         #region The record written anew
 
         /// <summary>Whether the table's record holds its cells, one height for each row and one width for each column.</summary>
-        private static bool Holds(Layout layout)
-            => layout.Rows >= 1 && layout.Columns >= 1 && (long)layout.Rows * layout.Columns == layout.CellStart.Count
-                && layout.RowAt.Count == layout.Rows && layout.ColumnAt.Count == layout.Columns;
+        private static bool Holds(Layout layout) =>
+            layout.Rows >= 1
+            && layout.Columns >= 1
+            && (long)layout.Rows * layout.Columns == layout.CellStart.Count
+            && layout.RowAt.Count == layout.Rows
+            && layout.ColumnAt.Count == layout.Columns;
 
         /// <summary>The table's layout read anew to have its structure changed: refused where its record does not hold its cells, heights and widths.</summary>
         private Layout Structured()
@@ -1853,7 +2218,21 @@ namespace GeometryHelper.Dxf
 
             if (!Holds(layout))
             {
-                throw new InvalidOperationException("The ACAD_TABLE " + (Handle ?? string.Empty) + " has " + layout.Rows.ToString(CultureInfo.InvariantCulture) + " rows of " + layout.Columns.ToString(CultureInfo.InvariantCulture) + " columns, and its record holds " + layout.CellStart.Count.ToString(CultureInfo.InvariantCulture) + " cells, " + layout.RowAt.Count.ToString(CultureInfo.InvariantCulture) + " heights and " + layout.ColumnAt.Count.ToString(CultureInfo.InvariantCulture) + " widths: its structure is changed only where they agree.");
+                throw new InvalidOperationException(
+                    "The ACAD_TABLE "
+                        + (Handle ?? string.Empty)
+                        + " has "
+                        + layout.Rows.ToString(CultureInfo.InvariantCulture)
+                        + " rows of "
+                        + layout.Columns.ToString(CultureInfo.InvariantCulture)
+                        + " columns, and its record holds "
+                        + layout.CellStart.Count.ToString(CultureInfo.InvariantCulture)
+                        + " cells, "
+                        + layout.RowAt.Count.ToString(CultureInfo.InvariantCulture)
+                        + " heights and "
+                        + layout.ColumnAt.Count.ToString(CultureInfo.InvariantCulture)
+                        + " widths: its structure is changed only where they agree."
+                );
             }
 
             return layout;
@@ -1867,7 +2246,17 @@ namespace GeometryHelper.Dxf
         /// kept as they are. Nothing is written where the record comes out the same. The marks of the session follow the cells
         /// from the places given (<see cref="Places"/>), each cell kept where none are given.
         /// </summary>
-        private void Rebuild(Layout layout, int rows, int columns, IList<string> heights, IList<string> widths, IList<List<KeyValuePair<int, string>>> cells, IList<DxfCellRange> blocks, IList<LinkedRange> links, int[] places = null)
+        private void Rebuild(
+            Layout layout,
+            int rows,
+            int columns,
+            IList<string> heights,
+            IList<string> widths,
+            IList<List<KeyValuePair<int, string>>> cells,
+            IList<DxfCellRange> blocks,
+            IList<LinkedRange> links,
+            int[] places = null
+        )
         {
             DxfDimGroups g = layout.Groups;
             int first = layout.CellStart[0];
@@ -1932,7 +2321,9 @@ namespace GeometryHelper.Dxf
                 {
                     DxfCellRange block = blocks[b];
                     bool corner = block.TopRow * columns + block.LeftColumn == k;
-                    cell = corner ? Merged(cell, 1, block.RightColumn - block.LeftColumn + 1, block.BottomRow - block.TopRow + 1) : Merged(cell, 1, 0, 0);
+                    cell = corner
+                        ? Merged(cell, 1, block.RightColumn - block.LeftColumn + 1, block.BottomRow - block.TopRow + 1)
+                        : Merged(cell, 1, 0, 0);
                 }
 
                 // A link is named by a text cell alone: a block cell keeps its 340, its block, and a link it is the top left cell of goes.
@@ -1957,13 +2348,19 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The marks of a cell of the session (<see cref="_session"/>), by its index in the layout; none where the marks are of a table of another size.</summary>
-        private byte MarksOf(Layout layout, int index)
-            => _session != null && _sessionColumns == layout.Columns && _session.Length == layout.Rows * layout.Columns ? _session[index] : (byte)0;
+        private byte MarksOf(Layout layout, int index) =>
+            _session != null && _sessionColumns == layout.Columns && _session.Length == layout.Rows * layout.Columns
+                ? _session[index]
+                : (byte)0;
 
         /// <summary>Marks a cell of the layout, by its index, as <see cref="_session"/> says.</summary>
         private void MarkCell(Layout layout, int index, byte marks)
         {
-            if (_session == null || _sessionColumns != layout.Columns || _session.Length != layout.Rows * layout.Columns)
+            if (
+                _session == null
+                || _sessionColumns != layout.Columns
+                || _session.Length != layout.Rows * layout.Columns
+            )
             {
                 _session = new byte[layout.Rows * layout.Columns];
                 _sessionColumns = layout.Columns;
@@ -1999,7 +2396,10 @@ namespace GeometryHelper.Dxf
 
             for (int k = 0; places != null && k < places.Length; k++)
             {
-                byte marks = places[k] >= 0 ? MarksOf(layout, places[k]) : places[k] == -1 ? SessionEmptied : (byte)0;
+                byte marks =
+                    places[k] >= 0 ? MarksOf(layout, places[k])
+                    : places[k] == -1 ? SessionEmptied
+                    : (byte)0;
 
                 if (marks != 0)
                 {
@@ -2062,7 +2462,12 @@ namespace GeometryHelper.Dxf
                 held = held ?? new HashSet<string>(CellFields(Read()), StringComparer.OrdinalIgnoreCase);
                 DxfItem item = held.Contains(handle) ? null : file.ObjectItem(handle);
 
-                if (item != null && !item.IsRemoved && item.Type == "FIELD" && string.Equals(file.OwnerOf(item), Handle, StringComparison.OrdinalIgnoreCase))
+                if (
+                    item != null
+                    && !item.IsRemoved
+                    && item.Type == "FIELD"
+                    && string.Equals(file.OwnerOf(item), Handle, StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     fields.Add(item);
                 }
@@ -2074,8 +2479,11 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        private static KeyValuePair<int, string> Counted(KeyValuePair<int, string> group, int count)
-            => int.TryParse(group.Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int now) && now == count ? group : new KeyValuePair<int, string>(group.Key, count.ToString(CultureInfo.InvariantCulture));
+        private static KeyValuePair<int, string> Counted(KeyValuePair<int, string> group, int count) =>
+            int.TryParse(group.Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int now)
+            && now == count
+                ? group
+                : new KeyValuePair<int, string>(group.Key, count.ToString(CultureInfo.InvariantCulture));
 
         private static void AddSizes(List<KeyValuePair<int, string>> list, IList<string> heights, IList<string> widths)
         {
@@ -2121,7 +2529,12 @@ namespace GeometryHelper.Dxf
         /// written as AutoCAD 2021 wrote its own (D33e w07, w08): a block's top left cell 173 0 and its spans, its other cells
         /// 173 1, and a top left cell unmerged 175 1 and 176 1.
         /// </summary>
-        private static List<KeyValuePair<int, string>> Merged(List<KeyValuePair<int, string>> groups, int merged, int width, int height)
+        private static List<KeyValuePair<int, string>> Merged(
+            List<KeyValuePair<int, string>> groups,
+            int merged,
+            int width,
+            int height
+        )
         {
             int nowMerged = HeadWhole(groups, 173);
             int nowWidth = HeadWhole(groups, 175);
@@ -2129,7 +2542,11 @@ namespace GeometryHelper.Dxf
             bool cornerNow = nowWidth > 1 || nowHeight > 1;
             bool corner = width > 1 || height > 1;
 
-            if (corner ? Math.Max(1, nowWidth) == width && Math.Max(1, nowHeight) == height : !cornerNow && (nowMerged != 0) == (merged != 0))
+            if (
+                corner
+                    ? Math.Max(1, nowWidth) == width && Math.Max(1, nowHeight) == height
+                    : !cornerNow && (nowMerged != 0) == (merged != 0)
+            )
             {
                 return groups;
             }
@@ -2163,7 +2580,14 @@ namespace GeometryHelper.Dxf
 
                 if (groups[i].Key == code)
                 {
-                    return int.TryParse(groups[i].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : 0;
+                    return int.TryParse(
+                        groups[i].Value.Trim(),
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int value
+                    )
+                        ? value
+                        : 0;
                 }
             }
 
@@ -2195,7 +2619,11 @@ namespace GeometryHelper.Dxf
                     int bottom = (int)Math.Min(layout.Rows - 1, (long)r + height - 1);
                     int right = (int)Math.Min(layout.Columns - 1, (long)c + width - 1);
 
-                    if ((width == 1 && height == 1) || (bottom == r && right == c) || Covered(covered, layout.Columns, r, c, bottom, right))
+                    if (
+                        (width == 1 && height == 1)
+                        || (bottom == r && right == c)
+                        || Covered(covered, layout.Columns, r, c, bottom, right)
+                    )
                     {
                         continue;
                     }
@@ -2240,17 +2668,24 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        private static bool Meets(DxfCellRange a, DxfCellRange b)
-            => a.TopRow <= b.BottomRow && b.TopRow <= a.BottomRow && a.LeftColumn <= b.RightColumn && b.LeftColumn <= a.RightColumn;
+        private static bool Meets(DxfCellRange a, DxfCellRange b) =>
+            a.TopRow <= b.BottomRow
+            && b.TopRow <= a.BottomRow
+            && a.LeftColumn <= b.RightColumn
+            && b.LeftColumn <= a.RightColumn;
 
-        private static bool Within(DxfCellRange inner, DxfCellRange outer)
-            => inner.TopRow >= outer.TopRow && inner.BottomRow <= outer.BottomRow && inner.LeftColumn >= outer.LeftColumn && inner.RightColumn <= outer.RightColumn;
+        private static bool Within(DxfCellRange inner, DxfCellRange outer) =>
+            inner.TopRow >= outer.TopRow
+            && inner.BottomRow <= outer.BottomRow
+            && inner.LeftColumn >= outer.LeftColumn
+            && inner.RightColumn <= outer.RightColumn;
 
         /// <summary>The groups of the cell of an index, row by row, copied.</summary>
-        private static List<KeyValuePair<int, string>> Slice(Layout layout, int index)
-            => Slice(layout.CellAt(index / layout.Columns, index % layout.Columns));
+        private static List<KeyValuePair<int, string>> Slice(Layout layout, int index) =>
+            Slice(layout.CellAt(index / layout.Columns, index % layout.Columns));
 
-        private static List<KeyValuePair<int, string>> Slice(CellView cell) => cell.Groups.List.GetRange(cell.From, cell.To - cell.From);
+        private static List<KeyValuePair<int, string>> Slice(CellView cell) =>
+            cell.Groups.List.GetRange(cell.From, cell.To - cell.From);
 
         private static List<KeyValuePair<int, string>>[] AllSlices(Layout layout)
         {
@@ -2265,7 +2700,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A cell's groups seen as a cell, held apart from the record, to be edited on their own.</summary>
-        private static CellView View(List<KeyValuePair<int, string>> groups) => new CellView(new DxfDimGroups(groups), 0, groups.Count);
+        private static CellView View(List<KeyValuePair<int, string>> groups) =>
+            new CellView(new DxfDimGroups(groups), 0, groups.Count);
 
         private static bool SameGroups(List<KeyValuePair<int, string>> a, List<KeyValuePair<int, string>> b)
         {
@@ -2367,7 +2803,11 @@ namespace GeometryHelper.Dxf
             for (int row = 0; row < layout.Rows; row++)
             {
                 DxfRowType type = RowType(row);
-                rows[row] = looks[type == DxfRowType.TitleRow ? 0 : type == DxfRowType.HeaderRow ? 1 : 2];
+                rows[row] = looks[
+                    type == DxfRowType.TitleRow ? 0
+                    : type == DxfRowType.HeaderRow ? 1
+                    : 2
+                ];
             }
 
             return rows;
@@ -2380,10 +2820,15 @@ namespace GeometryHelper.Dxf
         /// (91 33), the header <c>170 5</c>, its green and its 9 (91 39), and those a row keeps of its own
         /// (<see cref="_rowLooks"/>), none for a row put in after the data (D33g g01, g02, g05); null where no row has looks.
         /// </summary>
-        private List<KeyValuePair<int, string>>[] NewColumnLooks(Layout layout) => WithRowLooks(layout, ContentLooks(layout, out bool[] moved), moved);
+        private List<KeyValuePair<int, string>>[] NewColumnLooks(Layout layout) =>
+            WithRowLooks(layout, ContentLooks(layout, out bool[] moved), moved);
 
         /// <summary>A new cell (<see cref="NewCell(bool)"/>) of a row of the table as it stands, given the looks of its row (<see cref="NewColumnLooks"/>) as its own.</summary>
-        private static List<KeyValuePair<int, string>> NewCell(bool valued, List<KeyValuePair<int, string>>[] looks, int row)
+        private static List<KeyValuePair<int, string>> NewCell(
+            bool valued,
+            List<KeyValuePair<int, string>>[] looks,
+            int row
+        )
         {
             List<KeyValuePair<int, string>> cell = NewCell(valued);
 
@@ -2407,7 +2852,10 @@ namespace GeometryHelper.Dxf
         /// value of the kind given: that kind; 4, a text, where it has none; 512 for a value of no kind (0), as it wrote the
         /// rows it put in below the linked row of its 73 (D28c i4).
         /// </summary>
-        private static string InheritedKind(string kind) => string.IsNullOrEmpty(kind) ? "4" : kind == "0" ? "512" : kind;
+        private static string InheritedKind(string kind) =>
+            string.IsNullOrEmpty(kind) ? "4"
+            : kind == "0" ? "512"
+            : kind;
 
         /// <summary>
         /// An empty text cell with the look a cell holds of its own: its overrides with their flags and the edges of its lines,
@@ -2475,7 +2923,12 @@ namespace GeometryHelper.Dxf
             {
                 KeyValuePair<int, string> group = look.Groups.List[i];
 
-                if ((look.ValueFrom < 0 || i < look.ValueFrom || i > look.ValueTo) && Layout.CellOverrides.TryGetValue(group.Key, out int bit) && (bit & lookFlags) != 0 && taken.Add(group.Key))
+                if (
+                    (look.ValueFrom < 0 || i < look.ValueFrom || i > look.ValueTo)
+                    && Layout.CellOverrides.TryGetValue(group.Key, out int bit)
+                    && (bit & lookFlags) != 0
+                    && taken.Add(group.Key)
+                )
                 {
                     cell.Groups.List.Add(group);
                 }
@@ -2486,7 +2939,13 @@ namespace GeometryHelper.Dxf
             if (cell.Flags != wanted && (cell.Flags != null || wanted != 0))
             {
                 cell = new CellView(cell.Groups, 0, cell.Groups.List.Count);
-                cell.SetHead(cell.Head(91) != null ? 91 : cell.Head(177) != null ? 177 : cell.ValueFrom >= 0 ? 91 : 177, wanted.ToString(CultureInfo.InvariantCulture));
+                cell.SetHead(
+                    cell.Head(91) != null ? 91
+                        : cell.Head(177) != null ? 177
+                        : cell.ValueFrom >= 0 ? 91
+                        : 177,
+                    wanted.ToString(CultureInfo.InvariantCulture)
+                );
             }
 
             // The edges of its lines in the edge flags (172), as AutoCAD 2021's InsertRowsAndInherit copied 172 9 with the top and
@@ -2495,7 +2954,10 @@ namespace GeometryHelper.Dxf
 
             for (int edge = 0; edge < 4; edge++)
             {
-                edges |= (look.Whole(172, 0) & (1 << edge)) != 0 && (lookFlags & CellView.EdgeFlags(edge)) != 0 ? 1 << edge : 0;
+                edges |=
+                    (look.Whole(172, 0) & (1 << edge)) != 0 && (lookFlags & CellView.EdgeFlags(edge)) != 0
+                        ? 1 << edge
+                        : 0;
             }
 
             cell = new CellView(cell.Groups, 0, cell.Groups.List.Count);
@@ -2559,13 +3021,34 @@ namespace GeometryHelper.Dxf
         {
             if (index < 0 || index > count)
             {
-                throw new ArgumentOutOfRangeException(parameter, index, "New " + what + "s go before one of the table's " + count.ToString(CultureInfo.InvariantCulture) + ", from nought, or after the last at " + count.ToString(CultureInfo.InvariantCulture) + ".");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    index,
+                    "New "
+                        + what
+                        + "s go before one of the table's "
+                        + count.ToString(CultureInfo.InvariantCulture)
+                        + ", from nought, or after the last at "
+                        + count.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
         }
 
         /// <summary>Refuses a table of more cells than a whole number of 32 bits counts, which no list of the library holds.</summary>
-        private static void CheckCells(long rows, long columns, string parameter)
-            => Guard.AtMost(rows * columns, int.MaxValue, parameter, "A table holds at most " + int.MaxValue.ToString(CultureInfo.InvariantCulture) + " cells: " + rows.ToString(CultureInfo.InvariantCulture) + " rows of " + columns.ToString(CultureInfo.InvariantCulture) + " columns are more.");
+        private static void CheckCells(long rows, long columns, string parameter) =>
+            Guard.AtMost(
+                rows * columns,
+                int.MaxValue,
+                parameter,
+                "A table holds at most "
+                    + int.MaxValue.ToString(CultureInfo.InvariantCulture)
+                    + " cells: "
+                    + rows.ToString(CultureInfo.InvariantCulture)
+                    + " rows of "
+                    + columns.ToString(CultureInfo.InvariantCulture)
+                    + " columns are more."
+            );
 
         private static void CheckCount(int count, string parameter)
         {
@@ -2575,13 +3058,33 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        private static void CheckTaken(int index, int count, int of, string parameter, string countParameter, string what)
+        private static void CheckTaken(
+            int index,
+            int count,
+            int of,
+            string parameter,
+            string countParameter,
+            string what
+        )
         {
             CheckCount(count, countParameter);
 
             if (index < 0 || (long)index + count > of || count >= of)
             {
-                throw new ArgumentOutOfRangeException(parameter, index, count.ToString(CultureInfo.InvariantCulture) + " " + what + "s from " + index.ToString(CultureInfo.InvariantCulture) + " are not of the table's " + of.ToString(CultureInfo.InvariantCulture) + " with one " + what + " at least left.");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    index,
+                    count.ToString(CultureInfo.InvariantCulture)
+                        + " "
+                        + what
+                        + "s from "
+                        + index.ToString(CultureInfo.InvariantCulture)
+                        + " are not of the table's "
+                        + of.ToString(CultureInfo.InvariantCulture)
+                        + " with one "
+                        + what
+                        + " at least left."
+                );
             }
         }
 
@@ -2594,7 +3097,17 @@ namespace GeometryHelper.Dxf
 
             if (range.BottomRow >= layout.Rows || range.RightColumn >= layout.Columns)
             {
-                throw new ArgumentOutOfRangeException(parameter, range, "The range " + range + " reaches past the table's " + layout.Rows.ToString(CultureInfo.InvariantCulture) + " rows of " + layout.Columns.ToString(CultureInfo.InvariantCulture) + " columns.");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    range,
+                    "The range "
+                        + range
+                        + " reaches past the table's "
+                        + layout.Rows.ToString(CultureInfo.InvariantCulture)
+                        + " rows of "
+                        + layout.Columns.ToString(CultureInfo.InvariantCulture)
+                        + " columns."
+                );
             }
         }
 

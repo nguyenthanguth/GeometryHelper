@@ -24,11 +24,16 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             var gate = new TaskCompletionSource<bool>();
             DrawingSettings settings = made.Drawing.Settings;
             settings.Views.Kinds.Add(ViewKind.Isometric);
-            Task<UpdateReport> first = bench.Workspace.ApplySettingsAsync(made, settings, "Changed", async (text, work) =>
-            {
-                await gate.Task;
-                return work();
-            });
+            Task<UpdateReport> first = bench.Workspace.ApplySettingsAsync(
+                made,
+                settings,
+                "Changed",
+                async (text, work) =>
+                {
+                    await gate.Task;
+                    return work();
+                }
+            );
 
             Assert.False(await bench.Workspace.AddViewAsync(ViewKind.Back));
             made.Document.Selection.Set(new[] { Bench.FirstOf(made, "View") });
@@ -52,11 +57,16 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             var gate = new TaskCompletionSource<bool>();
             DrawingSettings settings = made.Drawing.Settings;
             settings.Views.Kinds.Add(ViewKind.Isometric);
-            Task<UpdateReport> late = bench.Workspace.ApplySettingsAsync(made, settings, "Changed", async (text, work) =>
-            {
-                await gate.Task;
-                return work();
-            });
+            Task<UpdateReport> late = bench.Workspace.ApplySettingsAsync(
+                made,
+                settings,
+                "Changed",
+                async (text, work) =>
+                {
+                    await gate.Task;
+                    return work();
+                }
+            );
             bench.Model.AskSaveChanges = d => CadSaveChoice.DontSave;
             Assert.True(bench.Model.CloseDocument(made.Document));
 
@@ -78,7 +88,11 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             {
                 string path = await SavedAndClosedAsync(new Bench(), folder);
                 var model = new MainViewModel();
-                var workspace = new DrawingWorkspace(model, new IDrawingSourceProvider[] { new StoppedSource("Test bodies") }, Bench.Tol);
+                var workspace = new DrawingWorkspace(
+                    model,
+                    new IDrawingSourceProvider[] { new StoppedSource("Test bodies") },
+                    Bench.Tol
+                );
                 Assert.True(model.Open(path));
                 ModelDrawing opened = workspace.Current;
                 opened.Document.Selection.Set(new[] { Tagged(opened, "V-RIGHT") });
@@ -107,7 +121,8 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
                 string path = await SavedAndClosedAsync(bench, folder);
                 Assert.True(bench.Model.Open(path));
                 ModelDrawing opened = bench.Workspace.Current;
-                string Row(string label) => bench.Model.PropertyGroups.SelectMany(g => g.Rows).Single(r => r.Label == label).Value;
+                string Row(string label) =>
+                    bench.Model.PropertyGroups.SelectMany(g => g.Rows).Single(r => r.Label == label).Value;
                 Assert.Equal("Assembly", Row("Preset"));
 
                 Assert.True(await bench.Workspace.AddViewAsync(ViewKind.Isometric));
@@ -167,18 +182,20 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             return path;
         }
 
-        private static string Preset(ModelDrawing drawing) => DrawingDocumentStore.ReadValues(drawing.Document.Database).Single(v => v.Key == "Preset").Value;
+        private static string Preset(ModelDrawing drawing) =>
+            DrawingDocumentStore.ReadValues(drawing.Document.Database).Single(v => v.Key == "Preset").Value;
 
-        private static string Tagged(ModelDrawing drawing, string id)
-            => DrawingEntityTags.Find(drawing.Document.Database).First(e => !e.IsErased && DrawingEntityTags.TryRead(e, out string tag, out _) && tag == id).Handle;
+        private static string Tagged(ModelDrawing drawing, string id) =>
+            DrawingEntityTags
+                .Find(drawing.Document.Database)
+                .First(e => !e.IsErased && DrawingEntityTags.TryRead(e, out string tag, out _) && tag == id)
+                .Handle;
 
         /// <summary>The error a source of a model server gives when the server stops answering: of no kind the workspace expects.</summary>
         private sealed class ServerStoppedException : Exception
         {
             public ServerStoppedException()
-                : base("The model server stopped answering.")
-            {
-            }
+                : base("The model server stopped answering.") { }
         }
 
         /// <summary>A source that is connected, and whose server stops answering when asked for its objects.</summary>

@@ -44,8 +44,14 @@ namespace GeometryHelper.UnitTest.Solid
                 for (int k = 0; k < perQuarter; k++)
                 {
                     double t = (double)k / perQuarter;
-                    double x = 1000.0 * (1.0 - t * t) / (1.0 + t * t), y = 1000.0 * 2.0 * t / (1.0 + t * t);
-                    rim.Add(quarter == 0 ? new GeoPoint3(x, y, 0.0) : quarter == 1 ? new GeoPoint3(-y, x, 0.0) : quarter == 2 ? new GeoPoint3(-x, -y, 0.0) : new GeoPoint3(y, -x, 0.0));
+                    double x = 1000.0 * (1.0 - t * t) / (1.0 + t * t),
+                        y = 1000.0 * 2.0 * t / (1.0 + t * t);
+                    rim.Add(
+                        quarter == 0 ? new GeoPoint3(x, y, 0.0)
+                        : quarter == 1 ? new GeoPoint3(-y, x, 0.0)
+                        : quarter == 2 ? new GeoPoint3(-x, -y, 0.0)
+                        : new GeoPoint3(y, -x, 0.0)
+                    );
                 }
             }
 
@@ -57,7 +63,13 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < rim.Count; i++)
             {
-                faces.Add(new GeoFace3(new GeoPolygon3(new[] { rim[i], rim[(i + 1) % rim.Count], apex }, Within), null, Within));
+                faces.Add(
+                    new GeoFace3(
+                        new GeoPolygon3(new[] { rim[i], rim[(i + 1) % rim.Count], apex }, Within),
+                        null,
+                        Within
+                    )
+                );
             }
 
             return faces;
@@ -108,7 +120,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.All(validation.Issues, issue => Assert.Equal(SolidIssueKind.OpenEdge, issue.Kind));
 
             // Each side is open along its own edge of the rim, and none along any other.
-            Assert.Equal(Enumerable.Range(0, sides.Count), validation.Issues.Select(issue => issue.Faces.Single()).OrderBy(face => face));
+            Assert.Equal(
+                Enumerable.Range(0, sides.Count),
+                validation.Issues.Select(issue => issue.Faces.Single()).OrderBy(face => face)
+            );
         }
 
         [Fact]
@@ -149,7 +164,8 @@ namespace GeometryHelper.UnitTest.Solid
             // base, which has two more points on it: a long edge beside three short ones.
             List<GeoFace3> faces = ConeFaces(500);
             List<GeoPoint3> rim = faces[0].Boundary.Vertices.Reverse().ToList();
-            GeoPoint3 a = rim[0], b = rim[1];
+            GeoPoint3 a = rim[0],
+                b = rim[1];
             var cut = new List<GeoPoint3>
             {
                 a,

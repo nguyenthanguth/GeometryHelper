@@ -44,9 +44,7 @@ namespace GeometryHelper.Geometry
         /// <param name="through">A point the ray passes through.</param>
         /// <exception cref="ArgumentException">Thrown when the two points coincide.</exception>
         public GeoRay3(GeoPoint3 origin, GeoPoint3 through)
-            : this(origin, origin.GetVectorTo(through))
-        {
-        }
+            : this(origin, origin.GetVectorTo(through)) { }
 
         /// <summary>
         /// Initializes a ray from a direction that is already normalized.
@@ -126,7 +124,11 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is negative, NaN or infinite.</exception>
         public GeoLine3 ToLine(double distance)
         {
-            Guard.NonNegative(distance, nameof(distance), "A ray is sampled forwards, over a distance that is a number.");
+            Guard.NonNegative(
+                distance,
+                nameof(distance),
+                "A ray is sampled forwards, over a distance that is a number."
+            );
 
             return new GeoLine3(Origin, GetPointAtDistance(distance));
         }
@@ -186,7 +188,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this ray is parallel to a line segment within a tolerance.
         /// </summary>
-        public bool IsParallelTo(GeoLine3 line, Tolerance tolerance) => Parallel3.IsParallel(Direction, line.Direction, tolerance);
+        public bool IsParallelTo(GeoLine3 line, Tolerance tolerance) =>
+            Parallel3.IsParallel(Direction, line.Direction, tolerance);
 
         #endregion
 
@@ -252,6 +255,7 @@ namespace GeometryHelper.Geometry
         /// Returns a string that represents the current ray.
         /// </summary>
         public override string ToString() => $"Ray3(Origin: {Origin}, Direction: {Direction})";
+
         /// <summary>
         /// Says where a point lies with respect to this ray.
         /// </summary>
@@ -268,8 +272,7 @@ namespace GeometryHelper.Geometry
         /// <param name="point">The point.</param>
         /// <param name="tolerance">The tolerance that decides what counts as on it.</param>
         /// <returns><c>OnSide</c> when the point is on the ray; otherwise, <c>OutSide</c>.</returns>
-        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance)
-            => IsPointOn(point, tolerance) ? PointLocation.OnSide : PointLocation.OutSide;
-
+        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) =>
+            IsPointOn(point, tolerance) ? PointLocation.OnSide : PointLocation.OutSide;
     }
 }

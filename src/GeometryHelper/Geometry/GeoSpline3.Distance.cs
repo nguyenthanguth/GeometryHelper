@@ -73,7 +73,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether a point lies on the spline, within a tolerance: within the point tolerance of its nearest point.
         /// </summary>
-        public bool IsPointOn(GeoPoint3 point, Tolerance tolerance) => DistanceTo(point, tolerance) <= tolerance.EqualPoint;
+        public bool IsPointOn(GeoPoint3 point, Tolerance tolerance) =>
+            DistanceTo(point, tolerance) <= tolerance.EqualPoint;
 
         #region Against the other shapes in space
 
@@ -93,7 +94,9 @@ namespace GeometryHelper.Geometry
         {
             double gap = Spline3.DistanceTo(this, Spline3.Of(this, line));
 
-            return Stub3.ReadsAsStart(line, tolerance) && !Stub3.Meets(gap, line) ? DistanceTo(line.StartPoint, tolerance) : gap;
+            return Stub3.ReadsAsStart(line, tolerance) && !Stub3.Meets(gap, line)
+                ? DistanceTo(line.StartPoint, tolerance)
+                : gap;
         }
 
         /// <summary>
@@ -122,7 +125,8 @@ namespace GeometryHelper.Geometry
         /// <param name="xline">The infinite line.</param>
         /// <param name="tolerance">The tolerance; not read, since a distance is measured rather than judged.</param>
         /// <returns>Nought only where they truly meet, a crossing or a touch found to rounding, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoXLine3 xline, Tolerance tolerance) => Spline3.DistanceTo(this, Spline3.Of(this, xline));
+        public double DistanceTo(GeoXLine3 xline, Tolerance tolerance) =>
+            Spline3.DistanceTo(this, Spline3.Of(this, xline));
 
         /// <summary>
         /// Calculates the shortest distance from this spline to a plane, using the default tolerance.
@@ -139,7 +143,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A plane is a surface without ends, not a half of space: a spline that lies off it on one side is as far from it as its nearest point.
         /// </remarks>
-        public double DistanceTo(GeoPlane3 plane, Tolerance tolerance) => Spline3.DistanceTo(this, Spline3.Of(this, plane));
+        public double DistanceTo(GeoPlane3 plane, Tolerance tolerance) =>
+            Spline3.DistanceTo(this, Spline3.Of(this, plane));
 
         /// <summary>
         /// Calculates the shortest distance from this spline to a polyline, using the default tolerance.
@@ -155,7 +160,8 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance; not read, since a distance is measured rather than judged.</param>
         /// <returns>Nought only where they truly meet, a crossing or a touch found to rounding, otherwise the gap, measured exactly.</returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the polyline is null.</exception>
-        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Spline3.DistanceTo(this, Spline3.Of(this, polyline));
+        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Spline3.DistanceTo(this, Spline3.Of(this, polyline));
 
         /// <summary>
         /// Calculates the shortest distance from this spline to a polygon, using the default tolerance.
@@ -174,7 +180,8 @@ namespace GeometryHelper.Geometry
         /// A polygon is a flat region here, as every curve reads it: a spline that pierces it, or lies in it, is nought from it.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
-        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) => Spline3.DistanceTo(this, Spline3.Of(this, polygon));
+        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Spline3.DistanceTo(this, Spline3.Of(this, polygon));
 
         /// <summary>
         /// Calculates the shortest distance from this spline to a triangle, using the default tolerance.
@@ -191,7 +198,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A triangle is a flat region here, as every curve reads it: a spline that pierces it, or lies in it, is nought from it.
         /// </remarks>
-        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) => Spline3.DistanceTo(this, Spline3.Of(this, triangle));
+        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Spline3.DistanceTo(this, Spline3.Of(this, triangle));
 
         /// <summary>
         /// Calculates the shortest distance from this spline to a face, using the default tolerance.
@@ -210,7 +218,8 @@ namespace GeometryHelper.Geometry
         /// A face is a flat region here, as every curve reads it: a spline that pierces it, or lies in it, is nought from it.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
-        public double DistanceTo(GeoFace3 face, Tolerance tolerance) => Spline3.DistanceTo(this, Spline3.Of(this, face));
+        public double DistanceTo(GeoFace3 face, Tolerance tolerance) =>
+            Spline3.DistanceTo(this, Spline3.Of(this, face));
 
         /// <summary>
         /// Calculates the shortest distance from this spline to an axis-aligned box, using the default tolerance.
@@ -265,7 +274,8 @@ namespace GeometryHelper.Geometry
         /// A solid is material here, as every curve reads a body: a spline inside it is nought from it, though it crosses nothing.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the solid is null.</exception>
-        public double DistanceTo(GeoSolid3 solid, Tolerance tolerance) => Spline3.DistanceTo(this, Spline3.Of(this, solid, tolerance, true));
+        public double DistanceTo(GeoSolid3 solid, Tolerance tolerance) =>
+            Spline3.DistanceTo(this, Spline3.Of(this, solid, tolerance, true));
 
         /// <summary>
         /// Calculates the shortest distance from this spline to a ball, using the default tolerance.
@@ -282,7 +292,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A ball is material here, as every curve reads a body: a spline inside it is nought from it, though it crosses nothing.
         /// </remarks>
-        public double DistanceTo(GeoSphere3 sphere, Tolerance tolerance) => Spline3.DistanceTo(this, Spline3.Of(this, sphere));
+        public double DistanceTo(GeoSphere3 sphere, Tolerance tolerance) =>
+            Spline3.DistanceTo(this, Spline3.Of(this, sphere));
 
         /// <summary>
         /// Calculates the shortest distance from this spline to an arc, using the default tolerance.
@@ -313,7 +324,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A circle is read as the disc it is for the distance, as its own distance to a point reads it: a spline that pierces the disc, or lies in it, is nought from it, though it meets no rim.
         /// </remarks>
-        public double DistanceTo(GeoCircle3 circle, Tolerance tolerance) => Spline3.DistanceTo(this, Spline3.Of(this, circle));
+        public double DistanceTo(GeoCircle3 circle, Tolerance tolerance) =>
+            Spline3.DistanceTo(this, Spline3.Of(this, circle));
 
         /// <summary>
         /// Calculates the shortest distance from this spline to an ellipse, using the default tolerance.
@@ -330,7 +342,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// An ellipse is read as the disc it is for the distance, as its own distance to a point reads it: a spline that pierces the disc, or lies in it, is nought from it, though it meets no rim.
         /// </remarks>
-        public double DistanceTo(GeoEllipse3 ellipse, Tolerance tolerance) => Spline3.DistanceTo(this, Spline3.Of(this, ellipse));
+        public double DistanceTo(GeoEllipse3 ellipse, Tolerance tolerance) =>
+            Spline3.DistanceTo(this, Spline3.Of(this, ellipse));
 
         /// <summary>
         /// Calculates the shortest distance from this spline to an edge, using the default tolerance.
@@ -344,8 +357,10 @@ namespace GeometryHelper.Geometry
         /// <param name="edge">The edge.</param>
         /// <param name="tolerance">The tolerance: a straight edge no longer than its point tolerance is read as its start where it does not truly meet the spline.</param>
         /// <returns>Nought only where they truly meet, a crossing or a touch found to rounding, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoEdge3 edge, Tolerance tolerance)
-            => Stub3.ReadsAsStart(edge, tolerance) ? DistanceTo(edge.ToLine(), tolerance) : Spline3.DistanceTo(this, Spline3.Of(this, edge));
+        public double DistanceTo(GeoEdge3 edge, Tolerance tolerance) =>
+            Stub3.ReadsAsStart(edge, tolerance)
+                ? DistanceTo(edge.ToLine(), tolerance)
+                : Spline3.DistanceTo(this, Spline3.Of(this, edge));
 
         /// <summary>
         /// Calculates the shortest distance from this spline to a curved chain, using the default tolerance.
@@ -361,7 +376,8 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance; not read, since a distance is measured rather than judged.</param>
         /// <returns>Nought only where they truly meet, a crossing or a touch found to rounding, otherwise the gap, measured exactly.</returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the chain is null.</exception>
-        public double DistanceTo(GeoPolylineArc3 chain, Tolerance tolerance) => Spline3.DistanceTo(this, Spline3.Of(this, chain));
+        public double DistanceTo(GeoPolylineArc3 chain, Tolerance tolerance) =>
+            Spline3.DistanceTo(this, Spline3.Of(this, chain));
 
         /// <summary>
         /// Calculates the shortest distance from this spline to a curved loop, using the default tolerance.
@@ -380,7 +396,8 @@ namespace GeometryHelper.Geometry
         /// A curved loop is measured to its outline, as its own distance to a point is: a spline inside it is not nought from it.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the loop is null.</exception>
-        public double DistanceTo(GeoPolygonArc3 loop, Tolerance tolerance) => Spline3.DistanceTo(this, Spline3.Of(this, loop));
+        public double DistanceTo(GeoPolygonArc3 loop, Tolerance tolerance) =>
+            Spline3.DistanceTo(this, Spline3.Of(this, loop));
 
         #endregion
     }

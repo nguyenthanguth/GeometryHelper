@@ -18,7 +18,24 @@ namespace GeometryHelper.UnitTest.Dxf
         private static readonly Tolerance Tight = new Tolerance(1E-9, 1E-9);
 
         /// <summary>A cubic of four points from (0, 0, 0) to (30, 0, 0), over 0 to 1.</summary>
-        private static DxfSpline Bezier() => new DxfSpline(3, false, false, false, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(20, 10, 0), new GeoPoint3(30, 0, 0) }, new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 }, null, 0.0, 0.0);
+        private static DxfSpline Bezier() =>
+            new DxfSpline(
+                3,
+                false,
+                false,
+                false,
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(20, 10, 0),
+                    new GeoPoint3(30, 0, 0),
+                },
+                new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 },
+                null,
+                0.0,
+                0.0
+            );
 
         /// <summary>The fixture's cubic of five points over 0 to 1 (R2000, handle 70), and its drawing.</summary>
         private static DxfSpline Fixture(out DxfDatabase db)
@@ -32,14 +49,24 @@ namespace GeometryHelper.UnitTest.Dxf
             for (int i = 0; i <= 40; i++)
             {
                 double t = expected.StartParam + (expected.EndParam - expected.StartParam) * i / 40;
-                Assert.True(expected.GetPointAtParameter(t).IsEqualTo(actual.GetPointAtParameter(t), tolerance), "At " + t + ": " + expected.GetPointAtParameter(t) + " against " + actual.GetPointAtParameter(t));
+                Assert.True(
+                    expected.GetPointAtParameter(t).IsEqualTo(actual.GetPointAtParameter(t), tolerance),
+                    "At " + t + ": " + expected.GetPointAtParameter(t) + " against " + actual.GetPointAtParameter(t)
+                );
             }
         }
 
         [Fact]
         public void TheNurbsAndFitDataGivenTheirOwnValues_LeaveTheFileByteForByte()
         {
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018, DxfReaderRoundTripTests.OneOfEach().ToString() })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R2000,
+                    DxfFileEzdxfDrawings.R2018,
+                    DxfReaderRoundTripTests.OneOfEach().ToString(),
+                }
+            )
             {
                 SettingWhatItHasChangesNothing<DxfSpline>(text, spline =>
                 {
@@ -63,13 +90,37 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Empty(data.GetWeights());
             Assert.True(data.IsEqualTo(spline.NurbsData));
 
-            var rational = new DxfNurbsData(2, true, false, false, new[] { new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0) }, new[] { 0.0, 0, 0, 1, 1, 1 }, new[] { 1.0, Math.Sqrt(0.5), 1.0 }, 1E-10, 1E-10);
+            var rational = new DxfNurbsData(
+                2,
+                true,
+                false,
+                false,
+                new[] { new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0) },
+                new[] { 0.0, 0, 0, 1, 1, 1 },
+                new[] { 1.0, Math.Sqrt(0.5), 1.0 },
+                1E-10,
+                1E-10
+            );
             spline.NurbsData = rational;
 
             DxfSpline again = ByHandle<DxfSpline>(DxfDatabase.Parse(db.ToText()), "70");
             Assert.True(again.NurbsData.IsEqualTo(rational, Tight));
-            Assert.True(again.GetPointAtParameter(0.5).IsEqualTo(new GeoPoint3(Math.Sqrt(50), Math.Sqrt(50), 0), Tight));
-            Assert.Throws<ArgumentException>(() => spline.NurbsData = new DxfNurbsData(3, false, false, false, new[] { new GeoPoint3(0, 0, 0) }, new[] { 0.0 }, null, 0, 0));
+            Assert.True(
+                again.GetPointAtParameter(0.5).IsEqualTo(new GeoPoint3(Math.Sqrt(50), Math.Sqrt(50), 0), Tight)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                spline.NurbsData = new DxfNurbsData(
+                    3,
+                    false,
+                    false,
+                    false,
+                    new[] { new GeoPoint3(0, 0, 0) },
+                    new[] { 0.0 },
+                    null,
+                    0,
+                    0
+                )
+            );
         }
 
         [Fact]
@@ -99,7 +150,12 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(3, again.Degree);
             Assert.False(data.TangentsExist);
             Assert.Equal(DxfKnotParameterizationEnum.Chord, data.KnotParam);
-            Assert.Throws<NotSupportedException>(() => again.FitData = new DxfFitData(points, 3, 0.0) { KnotParam = DxfKnotParameterizationEnum.CustomParameterization });
+            Assert.Throws<NotSupportedException>(() =>
+                again.FitData = new DxfFitData(points, 3, 0.0)
+                {
+                    KnotParam = DxfKnotParameterizationEnum.CustomParameterization,
+                }
+            );
             Assert.Throws<ArgumentException>(() => again.FitData = new DxfFitData(new[] { points[0] }, 3, 0.0));
         }
 
@@ -189,7 +245,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(spline.IsRational);
             Assert.Equal(2.0, spline.WeightAt(2));
             Assert.Throws<InvalidOperationException>(() => Bezier().RemoveControlPointAt(0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => Bezier().InsertControlPointAt(1.0, new GeoPoint3(0, 0, 0), 1.0));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                Bezier().InsertControlPointAt(1.0, new GeoPoint3(0, 0, 0), 1.0)
+            );
         }
 
         [Fact]
@@ -232,7 +290,10 @@ namespace GeometryHelper.UnitTest.Dxf
             for (int i = 0; i <= 50; i++)
             {
                 GeoPoint3 on = dense.GetPointAtParameter(i / 50.0);
-                Assert.True(before.GetClosestPointTo(on, false).DistanceTo(on) < 0.004, "Rebuilt of 20 points, the spline strays " + before.GetClosestPointTo(on, false).DistanceTo(on));
+                Assert.True(
+                    before.GetClosestPointTo(on, false).DistanceTo(on) < 0.004,
+                    "Rebuilt of 20 points, the spline strays " + before.GetClosestPointTo(on, false).DistanceTo(on)
+                );
                 GeoPoint3 near = fewer.GetPointAtParameter(i / 50.0);
                 Assert.True(before.GetClosestPointTo(near, false).DistanceTo(near) < 0.05);
             }
@@ -279,15 +340,39 @@ namespace GeometryHelper.UnitTest.Dxf
             for (int i = 0; i <= 30; i++)
             {
                 double t = 2 * Math.PI * i / 30;
-                Assert.True(Math.Abs(outer.GetPointAtParameter(t).DistanceTo(new GeoPoint3(0, 0, 0)) - 12.0) <= Tolerance.Default.EqualPoint);
-                Assert.True(Math.Abs(inner.GetPointAtParameter(t).DistanceTo(new GeoPoint3(0, 0, 0)) - 8.0) <= Tolerance.Default.EqualPoint);
+                Assert.True(
+                    Math.Abs(outer.GetPointAtParameter(t).DistanceTo(new GeoPoint3(0, 0, 0)) - 12.0)
+                        <= Tolerance.Default.EqualPoint
+                );
+                Assert.True(
+                    Math.Abs(inner.GetPointAtParameter(t).DistanceTo(new GeoPoint3(0, 0, 0)) - 8.0)
+                        <= Tolerance.Default.EqualPoint
+                );
             }
 
             Assert.Equal(circle.StartParam, outer.StartParam);
             Assert.Equal(circle.EndParam, outer.EndParam);
             Assert.True(outer.Closed);
-            Assert.Throws<ArgumentException>(() => circle.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(1, 0, 0), 2.0));
-            var twisted = new DxfSpline(3, false, false, false, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 1), new GeoPoint3(1, 1, 0), new GeoPoint3(0, 1, 1) }, new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 }, null, 0, 0);
+            Assert.Throws<ArgumentException>(() =>
+                circle.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(1, 0, 0), 2.0)
+            );
+            var twisted = new DxfSpline(
+                3,
+                false,
+                false,
+                false,
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(1, 0, 1),
+                    new GeoPoint3(1, 1, 0),
+                    new GeoPoint3(0, 1, 1),
+                },
+                new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 },
+                null,
+                0,
+                0
+            );
             Assert.Throws<InvalidOperationException>(() => twisted.GetOffsetCurves(1.0));
         }
 
@@ -309,14 +394,26 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(longer.GetPointAtParameter(0.7).IsEqualTo(bezier.GetPointAtParameter(0.7), Tight));
 
             // A straight spline run on to a point on its line.
-            var line = new DxfSpline(1, false, false, false, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) }, new[] { 0.0, 0, 10, 10 }, null, 0, 0);
+            var line = new DxfSpline(
+                1,
+                false,
+                false,
+                false,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) },
+                new[] { 0.0, 0, 10, 10 },
+                null,
+                0,
+                0
+            );
             line.Extend(false, new GeoPoint3(15, 0, 0));
             Assert.True(line.EndPoint.IsEqualTo(new GeoPoint3(15, 0, 0), Tight));
             Assert.Equal(15.0, line.EndParam, 9);
             Assert.Throws<ArgumentException>(() => line.Extend(false, new GeoPoint3(20, 1, 0)));
             Assert.Throws<ArgumentException>(() => line.Extend(false, new GeoPoint3(5, 0, 0)));
             Assert.Throws<ArgumentOutOfRangeException>(() => line.Extend(5.0));
-            Assert.Throws<InvalidOperationException>(() => new DxfCircle(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 10).Spline.Extend(7.0));
+            Assert.Throws<InvalidOperationException>(() =>
+                new DxfCircle(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 10).Spline.Extend(7.0)
+            );
         }
 
         [Fact]
@@ -324,13 +421,32 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // The L of degree 2 from (0, 0) along x to (10, 0), then up to (10, 10), its corner the knot 1 standing twice: offset
             // by 1 to its right, it runs along y = -1 to (11, -1), up x = 11, within the point tolerance all along.
-            var l = new DxfSpline(2, false, false, false, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(5, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 5, 0), new GeoPoint3(10, 10, 0) }, new[] { 0.0, 0, 0, 1, 1, 2, 2, 2 }, null, 0, 0);
+            var l = new DxfSpline(
+                2,
+                false,
+                false,
+                false,
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(5, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 5, 0),
+                    new GeoPoint3(10, 10, 0),
+                },
+                new[] { 0.0, 0, 0, 1, 1, 2, 2, 2 },
+                null,
+                0,
+                0
+            );
             var offset = (DxfSpline)Assert.Single(l.GetOffsetCurves(1.0));
             double worst = 0.0;
 
             for (int i = 0; i <= 400; i++)
             {
-                GeoPoint3 q = offset.GetPointAtParameter(offset.StartParam + (offset.EndParam - offset.StartParam) * i / 400);
+                GeoPoint3 q = offset.GetPointAtParameter(
+                    offset.StartParam + (offset.EndParam - offset.StartParam) * i / 400
+                );
                 double along = Math.Min(Segment(q, 0, -1, 11, -1), Segment(q, 11, -1, 11, 10));
                 worst = Math.Max(worst, along);
             }
@@ -338,11 +454,17 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(worst <= Tolerance.Default.EqualPoint, "The offset strays " + worst);
             Assert.True(offset.StartPoint.IsEqualTo(new GeoPoint3(0, -1, 0), Tight));
             Assert.True(offset.EndPoint.IsEqualTo(new GeoPoint3(11, 10, 0), Tight));
-            Assert.True(offset.GetClosestPointTo(new GeoPoint3(11, -1, 0), false).IsEqualTo(new GeoPoint3(11, -1, 0), Tight));
+            Assert.True(
+                offset.GetClosestPointTo(new GeoPoint3(11, -1, 0), false).IsEqualTo(new GeoPoint3(11, -1, 0), Tight)
+            );
 
             // Offset into the inside of the corner by 1: the pieces cut back to where they cross, at (9, 1).
             var inner = (DxfSpline)Assert.Single(l.GetOffsetCurves(-1.0));
-            Assert.True(inner.GetClosestPointTo(new GeoPoint3(9, 1, 0), false).IsEqualTo(new GeoPoint3(9, 1, 0), new Tolerance(1E-6, 1E-6)));
+            Assert.True(
+                inner
+                    .GetClosestPointTo(new GeoPoint3(9, 1, 0), false)
+                    .IsEqualTo(new GeoPoint3(9, 1, 0), new Tolerance(1E-6, 1E-6))
+            );
             Assert.True(inner.EndPoint.IsEqualTo(new GeoPoint3(9, 10, 0), Tight));
         }
 
@@ -350,7 +472,17 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ARationalSplineRunOnUntilAWeightReachesNought_IsRefused()
         {
             // The weights 1, 5, 0.01 carried on to twice the span: the last point's weight would be below nought.
-            var spline = new DxfSpline(2, true, false, false, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(5, 5, 0), new GeoPoint3(10, 0, 0) }, new[] { 0.0, 0, 0, 1, 1, 1 }, new[] { 1.0, 5.0, 0.01 }, 0, 0);
+            var spline = new DxfSpline(
+                2,
+                true,
+                false,
+                false,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(5, 5, 0), new GeoPoint3(10, 0, 0) },
+                new[] { 0.0, 0, 0, 1, 1, 1 },
+                new[] { 1.0, 5.0, 0.01 },
+                0,
+                0
+            );
 
             InvalidOperationException refused = Assert.Throws<InvalidOperationException>(() => spline.Extend(2.0));
             Assert.Contains("weight", refused.Message);
@@ -371,8 +503,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(1025, ((DxfPolyline)coarser).NumberOfVertices);
         }
 
-        private static double Segment(GeoPoint3 q, double ax, double ay, double bx, double by)
-            => new GeoLine3(new GeoPoint3(ax, ay, 0), new GeoPoint3(bx, by, 0)).GetClosestPointOnBoundary(q).DistanceTo(q);
+        private static double Segment(GeoPoint3 q, double ax, double ay, double bx, double by) =>
+            new GeoLine3(new GeoPoint3(ax, ay, 0), new GeoPoint3(bx, by, 0)).GetClosestPointOnBoundary(q).DistanceTo(q);
 
         [Fact]
         public void ASplineMadeAPolyline_RunsAlongIt_OfArcsWhereItIsFlat()
@@ -382,7 +514,9 @@ namespace GeometryHelper.UnitTest.Dxf
             var polyline = Assert.IsType<DxfPolyline>(quarter.ToPolyline(3));
 
             Assert.Equal(3, polyline.NumberOfVertices);
-            Assert.True(polyline.GetPoint3dAt(1).IsEqualTo(new GeoPoint3(100 * Math.Sqrt(0.5), 100 * Math.Sqrt(0.5), 0), Tight));
+            Assert.True(
+                polyline.GetPoint3dAt(1).IsEqualTo(new GeoPoint3(100 * Math.Sqrt(0.5), 100 * Math.Sqrt(0.5), 0), Tight)
+            );
             Assert.Equal(Math.Tan(Math.PI / 16), polyline.GetBulgeAt(0), 9);
             Assert.Equal(Math.PI * 50, polyline.Length, 6);
 
@@ -395,7 +529,10 @@ namespace GeometryHelper.UnitTest.Dxf
             for (int i = 0; i + 1 < count; i += Math.Max(1, count / 200))
             {
                 GeoPoint3 middle = lines.GetPointAtParameter(i + 0.5);
-                Assert.True(spline.GetClosestPointTo(middle, false).DistanceTo(middle) < size, "The segment " + i + " strays " + spline.GetClosestPointTo(middle, false).DistanceTo(middle));
+                Assert.True(
+                    spline.GetClosestPointTo(middle, false).DistanceTo(middle) < size,
+                    "The segment " + i + " strays " + spline.GetClosestPointTo(middle, false).DistanceTo(middle)
+                );
             }
 
             DxfSpline flat = Bezier();
@@ -429,7 +566,10 @@ namespace GeometryHelper.UnitTest.Dxf
         private static DxfSpline LongWave()
         {
             var random = new Random(7);
-            var points = Enumerable.Range(0, 203).Select(i => new GeoPoint3(i * 100, random.NextDouble() * 100, 0)).ToList();
+            var points = Enumerable
+                .Range(0, 203)
+                .Select(i => new GeoPoint3(i * 100, random.NextDouble() * 100, 0))
+                .ToList();
             var knots = new List<double> { 0, 0, 0 };
             knots.AddRange(Enumerable.Range(0, 201).Select(k => (double)k));
             knots.AddRange(new double[] { 200, 200, 200 });
@@ -449,7 +589,10 @@ namespace GeometryHelper.UnitTest.Dxf
             for (int i = 0; i < 100; i++)
             {
                 double along = spline.GetDistAtPoint(polyline.GetPoint3dAt(i));
-                Assert.True(Math.Abs(along - length * i / 99) <= Tolerance.Default.EqualPoint, i + ": " + along + " against " + (length * i / 99));
+                Assert.True(
+                    Math.Abs(along - length * i / 99) <= Tolerance.Default.EqualPoint,
+                    i + ": " + along + " against " + (length * i / 99)
+                );
             }
         }
 
@@ -466,7 +609,10 @@ namespace GeometryHelper.UnitTest.Dxf
             for (int i = 0; i <= 400; i++)
             {
                 GeoPoint3 point = spline.GetPointAtParameter(i * 0.5);
-                Assert.True(rebuilt.GetClosestPointTo(point, false).DistanceTo(point) <= 0.01, i.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                Assert.True(
+                    rebuilt.GetClosestPointTo(point, false).DistanceTo(point) <= 0.01,
+                    i.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                );
             }
         }
     }

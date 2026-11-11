@@ -71,7 +71,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The properties the state chosen restores, as AutoCAD's mask (1 on, 2 frozen, 4 locked, 8 plot, 0x20 colour and on).</summary>
         /// <param name="mask">The mask.</param>
         /// <returns>Whether it was written.</returns>
-        public bool SetMask(int mask) => Change("Mask", mask.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        public bool SetMask(int mask) =>
+            Change("Mask", mask.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
         /// <summary>Import: the states of a .las file read into the drawing.</summary>
         /// <param name="path">The file.</param>

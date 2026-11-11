@@ -17,7 +17,8 @@ namespace GeometryHelper.UnitTest.Dxf
         private static DxfDatabase NewDrawing() => DxfDatabase.Parse(new DxfWriter().ToString());
 
         /// <summary>The number next to a value, one unit of its last place up.</summary>
-        private static double NextUp(double value) => BitConverter.Int64BitsToDouble(BitConverter.DoubleToInt64Bits(value) + 1);
+        private static double NextUp(double value) =>
+            BitConverter.Int64BitsToDouble(BitConverter.DoubleToInt64Bits(value) + 1);
 
         [Fact]
         public void TheEmptyObjects_AreTheCurvesOfNoLengthAndTheTextsOfNoWords_CountedAsTheyAreErased()
@@ -35,7 +36,20 @@ namespace GeometryHelper.UnitTest.Dxf
             var formatted = new DxfMText { Contents = "{\\fArial|b0|i0;}" };
             var note = new DxfMText { Contents = "Plate B-12" };
 
-            foreach (DxfEntity entity in new DxfEntity[] { point, shortLine, dot, ring, folded, blank, words, formatted, note })
+            foreach (
+                DxfEntity entity in new DxfEntity[]
+                {
+                    point,
+                    shortLine,
+                    dot,
+                    ring,
+                    folded,
+                    blank,
+                    words,
+                    formatted,
+                    note,
+                }
+            )
             {
                 db.ModelSpace.AppendEntity(entity);
             }
@@ -93,7 +107,12 @@ namespace GeometryHelper.UnitTest.Dxf
             db.BlockTable.Add(detail);
             detail.AppendEntity(weld);
             detail.AppendEntity(tick);
-            db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), detail) { ScaleFactors = new GeoVector3(10000, 10000, 10000) });
+            db.ModelSpace.AppendEntity(
+                new DxfBlockReference(new GeoPoint3(0, 0, 0), detail)
+                {
+                    ScaleFactors = new GeoVector3(10000, 10000, 10000),
+                }
+            );
 
             Assert.Equal(1, db.CountEmptyObjects((int)DxfEraseFlags.ZeroLengthCurve));
             Assert.Equal(1, db.EraseEmptyObjects(-1));
@@ -125,7 +144,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal(1, db.CountEmptyObjects((int)DxfEraseFlags.ZeroLengthCurve));
             Assert.Equal(1, db.EraseEmptyObjects((int)DxfEraseFlags.ZeroLengthCurve));
-            Assert.True(watch.ElapsedMilliseconds < 3000, "Two polylines of 8 000 vertices took " + watch.ElapsedMilliseconds + " ms.");
+            Assert.True(
+                watch.ElapsedMilliseconds < 3000,
+                "Two polylines of 8 000 vertices took " + watch.ElapsedMilliseconds + " ms."
+            );
             Assert.True(folded.IsErased);
             Assert.False(open.IsErased);
         }
@@ -133,7 +155,14 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ADrawingWithNoEmptyObject_IsLeftByteForByte()
         {
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R12,
+                    DxfFileEzdxfDrawings.R2000,
+                    DxfFileEzdxfDrawings.R2018,
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
 
@@ -147,7 +176,12 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TheHardReferences_AreThePointersAndTheNamesThatStandForThem_AddedToTheCounts()
         {
             DxfDatabase db = NewDrawing();
-            var dashed = new DxfLinetypeTableRecord { Name = "DASHED", AsciiDescription = "__ __", NumDashes = 2 };
+            var dashed = new DxfLinetypeTableRecord
+            {
+                Name = "DASHED",
+                AsciiDescription = "__ __",
+                NumDashes = 2,
+            };
             dashed.SetDashLengthAt(0, 0.5);
             dashed.SetDashLengthAt(1, -0.25);
             db.LinetypeTable.Add(dashed);
@@ -160,7 +194,9 @@ namespace GeometryHelper.UnitTest.Dxf
             bolt.AppendEntity(new DxfCircle(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 5) { Layer = "steel" });
             var first = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)) { Layer = "steel" };
             db.ModelSpace.AppendEntity(first);
-            db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 5, 0), new GeoPoint3(10, 5, 0)) { Layer = "steel", Linetype = "DASHED" });
+            db.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(0, 5, 0), new GeoPoint3(10, 5, 0)) { Layer = "steel", Linetype = "DASHED" }
+            );
             db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(20, 0, 0), bolt));
             first.CreateExtensionDictionary();
             DxfDBDictionary extension = first.ExtensionDictionary;
@@ -181,8 +217,15 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(counts[6] >= 4);
 
             Assert.Throws<ArgumentException>(() => db.CountHardReferences(objects, new int[3]));
-            Assert.Throws<ArgumentException>(() => db.CountHardReferences(new List<DxfDBObject> { new DxfLayerTableRecord { Name = "x" } }, new int[1]));
-            Assert.Throws<ArgumentException>(() => db.CountHardReferences(new List<DxfDBObject> { DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018).LayerTable["steel"] }, new int[1]));
+            Assert.Throws<ArgumentException>(() =>
+                db.CountHardReferences(new List<DxfDBObject> { new DxfLayerTableRecord { Name = "x" } }, new int[1])
+            );
+            Assert.Throws<ArgumentException>(() =>
+                db.CountHardReferences(
+                    new List<DxfDBObject> { DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018).LayerTable["steel"] },
+                    new int[1]
+                )
+            );
             Assert.Throws<ArgumentNullException>(() => db.CountHardReferences(null, new int[1]));
             Assert.Throws<ArgumentNullException>(() => db.CountHardReferences(objects, null));
         }
@@ -208,19 +251,36 @@ namespace GeometryHelper.UnitTest.Dxf
             db.ModelSpace.AppendEntity(line);
             db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(20, 0, 0), bolt));
 
-            Assert.Equal(new[] { "hidden" }, db.Purge(db.LayerTable.Cast<DxfDBObject>().ToList()).Select(o => ((DxfLayerTableRecord)o).Name));
-            Assert.Equal(new[] { "SPARE_LT" }, db.Purge(db.LinetypeTable.Cast<DxfDBObject>().ToList()).Select(o => ((DxfLinetypeTableRecord)o).Name));
+            Assert.Equal(
+                new[] { "hidden" },
+                db.Purge(db.LayerTable.Cast<DxfDBObject>().ToList()).Select(o => ((DxfLayerTableRecord)o).Name)
+            );
+            Assert.Equal(
+                new[] { "SPARE_LT" },
+                db.Purge(db.LinetypeTable.Cast<DxfDBObject>().ToList()).Select(o => ((DxfLinetypeTableRecord)o).Name)
+            );
 
             // A text style nothing uses is offered as AutoCAD offers it, though the library does not erase a text style yet.
-            Assert.Equal(new[] { "GH_TXT" },db.Purge(db.TextStyleTable.Cast<DxfDBObject>().ToList()).Select(o => ((DxfTextStyleTableRecord)o).Name));
-            Assert.Equal(new[] { "SPARE" }, db.Purge(db.BlockTable.Cast<DxfDBObject>().ToList()).Select(o => ((DxfBlockTableRecord)o).Name));
+            Assert.Equal(
+                new[] { "GH_TXT" },
+                db.Purge(db.TextStyleTable.Cast<DxfDBObject>().ToList()).Select(o => ((DxfTextStyleTableRecord)o).Name)
+            );
+            Assert.Equal(
+                new[] { "SPARE" },
+                db.Purge(db.BlockTable.Cast<DxfDBObject>().ToList()).Select(o => ((DxfBlockTableRecord)o).Name)
+            );
             Assert.Empty(db.Purge(db.DimStyleTable.Cast<DxfDBObject>().ToList()));
-            Assert.Empty(db.Purge(new List<DxfDBObject> { line, db.LayerTable, db.NamedObjectsDictionary, db.GroupDictionary }));
+            Assert.Empty(
+                db.Purge(new List<DxfDBObject> { line, db.LayerTable, db.NamedObjectsDictionary, db.GroupDictionary })
+            );
 
             // The linetype the layer hidden draws with is free once that layer goes, and the purge is run again.
             string before = db.ToText();
             hidden.Erase();
-            Assert.Equal(new[] { "DASHED", "SPARE_LT" }, db.Purge(db.LinetypeTable.Cast<DxfDBObject>().ToList()).Select(o => ((DxfLinetypeTableRecord)o).Name));
+            Assert.Equal(
+                new[] { "DASHED", "SPARE_LT" },
+                db.Purge(db.LinetypeTable.Cast<DxfDBObject>().ToList()).Select(o => ((DxfLinetypeTableRecord)o).Name)
+            );
             Assert.NotEqual(before, db.ToText());
 
             foreach (DxfDBObject free in db.Purge(db.LinetypeTable.Cast<DxfDBObject>().ToList()))
@@ -228,7 +288,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 free.Erase();
             }
 
-            Assert.Equal(new[] { "ByBlock", "ByLayer", "Continuous" }, DxfDatabase.Parse(db.ToText()).LinetypeTable.Select(l => l.Name));
+            Assert.Equal(
+                new[] { "ByBlock", "ByLayer", "Continuous" },
+                DxfDatabase.Parse(db.ToText()).LinetypeTable.Select(l => l.Name)
+            );
         }
 
         [Fact]
@@ -238,7 +301,9 @@ namespace GeometryHelper.UnitTest.Dxf
             string text = DxfDimensionDrawings.R2000;
             int table = text.IndexOf("  0\nACAD_TABLE\n", StringComparison.Ordinal);
             int cell = text.IndexOf("  7\nGH_TXT\n", table, StringComparison.Ordinal);
-            DxfDatabase db = DxfDatabase.Parse(text.Substring(0, cell) + "  7\nGH_CELL\n" + text.Substring(cell + "  7\nGH_TXT\n".Length));
+            DxfDatabase db = DxfDatabase.Parse(
+                text.Substring(0, cell) + "  7\nGH_CELL\n" + text.Substring(cell + "  7\nGH_TXT\n".Length)
+            );
 
             foreach (string name in new[] { "GH_CELL", "GH_DIMTXT", "GH_TS", "GH_FREE" })
             {
@@ -257,7 +322,17 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // A dimension whose overrides name the arrow ARROWX and the text style GH_DIMTXT (1005s of ACAD DSTYLE); a table style
             // whose rows are written in GH_TS (its 7); and an XRECORD that points at GH_SOFT (a 330 of its data).
-            var dimension = new DxfRotatedDimension(0.0, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(50, 20, 0), string.Empty, null) { DimBlock = db.BlockTable["*D2"] };
+            var dimension = new DxfRotatedDimension(
+                0.0,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(50, 20, 0),
+                string.Empty,
+                null
+            )
+            {
+                DimBlock = db.BlockTable["*D2"],
+            };
             db.ModelSpace.AppendEntity(dimension);
             dimension.Dimblk = arrow;
             dimension.TextStyle = db.TextStyleTable["GH_DIMTXT"];
@@ -275,16 +350,23 @@ namespace GeometryHelper.UnitTest.Dxf
                 b.Group(7, "GH_TS");
             });
 
-            db.NamedObjectsDictionary.SetAt("GH_LINK", new DxfXrecord { Data = new List<DxfTypedValue> { new DxfTypedValue(330, soft.Handle) } });
+            db.NamedObjectsDictionary.SetAt(
+                "GH_LINK",
+                new DxfXrecord { Data = new List<DxfTypedValue> { new DxfTypedValue(330, soft.Handle) } }
+            );
 
-            List<string> styles = db.Purge(db.TextStyleTable.Cast<DxfDBObject>().ToList()).Select(o => ((DxfTextStyleTableRecord)o).Name).ToList();
+            List<string> styles = db.Purge(db.TextStyleTable.Cast<DxfDBObject>().ToList())
+                .Select(o => ((DxfTextStyleTableRecord)o).Name)
+                .ToList();
             Assert.Contains("GH_FREE", styles);
             Assert.DoesNotContain("GH_CELL", styles);
             Assert.DoesNotContain("GH_DIMTXT", styles);
             Assert.DoesNotContain("GH_TS", styles);
             Assert.DoesNotContain("GH_SHAPES", styles);
 
-            List<string> blocks = db.Purge(db.BlockTable.Cast<DxfDBObject>().ToList()).Select(o => ((DxfBlockTableRecord)o).Name).ToList();
+            List<string> blocks = db.Purge(db.BlockTable.Cast<DxfDBObject>().ToList())
+                .Select(o => ((DxfBlockTableRecord)o).Name)
+                .ToList();
             Assert.Contains("GH_SPARE", blocks);
             Assert.DoesNotContain("ARROWX", blocks);
             Assert.DoesNotContain("GH_SOFT", blocks);
@@ -293,8 +375,12 @@ namespace GeometryHelper.UnitTest.Dxf
             // until it finds none.
             for (int pass = 0; pass < 10; pass++)
             {
-                List<DxfDBObject> all = db.LayerTable.Cast<DxfDBObject>().Concat(db.LinetypeTable.Cast<DxfDBObject>())
-                    .Concat(db.DimStyleTable.Cast<DxfDBObject>()).Concat(db.BlockTable.Cast<DxfDBObject>()).ToList();
+                List<DxfDBObject> all = db
+                    .LayerTable.Cast<DxfDBObject>()
+                    .Concat(db.LinetypeTable.Cast<DxfDBObject>())
+                    .Concat(db.DimStyleTable.Cast<DxfDBObject>())
+                    .Concat(db.BlockTable.Cast<DxfDBObject>())
+                    .ToList();
                 IReadOnlyList<DxfDBObject> free = db.Purge(all);
 
                 if (free.Count == 0)
@@ -317,7 +403,13 @@ namespace GeometryHelper.UnitTest.Dxf
         public void APurge_OffersNoLayerAViewportFreezes_ByHandleOrInAnR12DrawingByName()
         {
             // The viewport 40 of the drawing of R2000 freezes a layer by its handle (331), the viewport 35 of R12 by its name.
-            foreach (KeyValuePair<string, string> drawing in new[] { new KeyValuePair<string, string>(DxfObjectsEzdxfDrawings.R2000, "40"), new KeyValuePair<string, string>(DxfObjectsEzdxfDrawings.R12, "35") })
+            foreach (
+                KeyValuePair<string, string> drawing in new[]
+                {
+                    new KeyValuePair<string, string>(DxfObjectsEzdxfDrawings.R2000, "40"),
+                    new KeyValuePair<string, string>(DxfObjectsEzdxfDrawings.R12, "35"),
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(drawing.Key);
                 var frozen = new DxfLayerTableRecord { Name = "GH_FROZEN" };
@@ -403,19 +495,56 @@ namespace GeometryHelper.UnitTest.Dxf
             Add("GH_TABLESTYLES", "GH_SPARE", "TABLESTYLE", b => b.Group(100, "AcDbTableStyle"));
             Add("GH_PLOTSTYLES", "Normal", "ACDBPLACEHOLDER", b => { });
             Add("GH_PLOTSTYLES", "GH_SPARE", "ACDBPLACEHOLDER", b => { });
-            Add("GH_VARIABLES", "GH_WIPEOUT", "WIPEOUTVARIABLES", b => { b.Group(100, "AcDbWipeoutVariables"); b.Group(70, "1"); });
-            Add("GH_VARIABLES", "GH_RASTER", "RASTERVARIABLES", b => { b.Group(100, "AcDbRasterVariables"); b.Group(90, "0"); });
-            Add("GH_VARIABLES", "GH_VAR", "DICTIONARYVAR", b => { b.Group(100, "DictionaryVariables"); b.Group(280, "0"); b.Group(1, "1"); });
-            Add("GH_VISUALSTYLES", "Realistic", "VISUALSTYLE", b => { b.Group(100, "AcDbVisualStyle"); b.Group(2, "Realistic"); });
-            Add("GH_MATERIALS", "Global", "MATERIAL", b => { b.Group(100, "AcDbMaterial"); b.Group(1, "Global"); });
-            Add("GH_MATERIALS", "GH_STEEL", "MATERIAL", b => { b.Group(100, "AcDbMaterial"); b.Group(1, "GH_STEEL"); });
+            Add("GH_VARIABLES", "GH_WIPEOUT", "WIPEOUTVARIABLES", b =>
+            {
+                b.Group(100, "AcDbWipeoutVariables");
+                b.Group(70, "1");
+            });
+            Add("GH_VARIABLES", "GH_RASTER", "RASTERVARIABLES", b =>
+            {
+                b.Group(100, "AcDbRasterVariables");
+                b.Group(90, "0");
+            });
+            Add("GH_VARIABLES", "GH_VAR", "DICTIONARYVAR", b =>
+            {
+                b.Group(100, "DictionaryVariables");
+                b.Group(280, "0");
+                b.Group(1, "1");
+            });
+            Add("GH_VISUALSTYLES", "Realistic", "VISUALSTYLE", b =>
+            {
+                b.Group(100, "AcDbVisualStyle");
+                b.Group(2, "Realistic");
+            });
+            Add("GH_MATERIALS", "Global", "MATERIAL", b =>
+            {
+                b.Group(100, "AcDbMaterial");
+                b.Group(1, "Global");
+            });
+            Add("GH_MATERIALS", "GH_STEEL", "MATERIAL", b =>
+            {
+                b.Group(100, "AcDbMaterial");
+                b.Group(1, "GH_STEEL");
+            });
 
             IReadOnlyList<DxfDBObject> free = db.Purge(made);
 
             // Of each kind AutoCAD keeps its own, Standard, Normal, Global, the variables and the visual styles, and offers the
             // others nothing uses.
-            Assert.Equal(new[] { "MLEADERSTYLE GH_SPARE", "TABLESTYLE GH_SPARE", "ACDBPLACEHOLDER GH_SPARE", "MATERIAL GH_STEEL" },
-                free.Select(o => o.Item.Type + " " + ((DxfDBDictionary)DxfDBObject.OfObject(db.File.ObjectItem(o.OwnerHandle))).NameAt(o)));
+            Assert.Equal(
+                new[]
+                {
+                    "MLEADERSTYLE GH_SPARE",
+                    "TABLESTYLE GH_SPARE",
+                    "ACDBPLACEHOLDER GH_SPARE",
+                    "MATERIAL GH_STEEL",
+                },
+                free.Select(o =>
+                    o.Item.Type
+                    + " "
+                    + ((DxfDBDictionary)DxfDBObject.OfObject(db.File.ObjectItem(o.OwnerHandle))).NameAt(o)
+                )
+            );
         }
 
         [Fact]
@@ -429,7 +558,11 @@ namespace GeometryHelper.UnitTest.Dxf
             dimension.Dimblk = arrow;
 
             // The override is written by name, as a file of R12 writes it: 1070 5, then 1000 B_OVR, in ACAD's DSTYLE.
-            Assert.Contains("1070\n5\n1000\nB_OVR\n", Records(db.ToText()).Single(r => HandleOf(r) == dimension.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "1070\n5\n1000\nB_OVR\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == dimension.Handle),
+                StringComparison.Ordinal
+            );
 
             int[] counts = new int[1];
             db.CountHardReferences(new List<DxfDBObject> { arrow }, counts);
@@ -446,9 +579,15 @@ namespace GeometryHelper.UnitTest.Dxf
             // AutoCAD's drawing of R14 names a style's arrows by name (5, 6, 7), as one of R12 does: GH_EMPTY's first is
             // GH_R14ARROW.
             string text = DxfDimensionDrawings.R2000.Replace("AC1015", "AC1014");
-            int style = text.IndexOf("\n  2\nGH_EMPTY\n 70\n", text.IndexOf("  0\nTABLE\n  2\nDIMSTYLE\n", StringComparison.Ordinal), StringComparison.Ordinal);
+            int style = text.IndexOf(
+                "\n  2\nGH_EMPTY\n 70\n",
+                text.IndexOf("  0\nTABLE\n  2\nDIMSTYLE\n", StringComparison.Ordinal),
+                StringComparison.Ordinal
+            );
             int after = text.IndexOf('\n', text.IndexOf("\n 70\n", style + 1, StringComparison.Ordinal) + 5) + 1;
-            DxfDatabase r14 = DxfDatabase.Parse(text.Substring(0, after) + "  5\nGH_R14ARROW\n" + text.Substring(after));
+            DxfDatabase r14 = DxfDatabase.Parse(
+                text.Substring(0, after) + "  5\nGH_R14ARROW\n" + text.Substring(after)
+            );
             var arrow = new DxfBlockTableRecord { Name = "GH_R14ARROW" };
             r14.BlockTable.Add(arrow);
 
@@ -476,23 +615,42 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = NewDrawing();
             var points = Enumerable.Repeat(new GeoPoint3(1234.5, -678.25, 90), 8000).ToList();
-            var knots = Enumerable.Repeat(0.0, 4).Concat(Enumerable.Range(1, 7996).Select(k => (double)k)).Concat(Enumerable.Repeat(7997.0, 4)).ToList();
+            var knots = Enumerable
+                .Repeat(0.0, 4)
+                .Concat(Enumerable.Range(1, 7996).Select(k => (double)k))
+                .Concat(Enumerable.Repeat(7997.0, 4))
+                .ToList();
             var spline = new DxfSpline(3, false, false, false, points, knots, new double[0], 0.0, 0.0);
             db.ModelSpace.AppendEntity(spline);
             var watch = System.Diagnostics.Stopwatch.StartNew();
 
             Assert.Equal(1, db.CountEmptyObjects((int)DxfEraseFlags.ZeroLengthCurve));
-            Assert.True(watch.ElapsedMilliseconds < 3000, "A spline of 8 000 points took " + watch.ElapsedMilliseconds + " ms.");
+            Assert.True(
+                watch.ElapsedMilliseconds < 3000,
+                "A spline of 8 000 points took " + watch.ElapsedMilliseconds + " ms."
+            );
         }
 
         [Fact]
         public void APurgeOrACount_WritesNothing()
         {
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R12,
+                    DxfFileEzdxfDrawings.R2000,
+                    DxfFileEzdxfDrawings.R2018,
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                List<DxfDBObject> all = db.LayerTable.Cast<DxfDBObject>().Concat(db.LinetypeTable.Cast<DxfDBObject>()).Concat(db.TextStyleTable.Cast<DxfDBObject>())
-                    .Concat(db.DimStyleTable.Cast<DxfDBObject>()).Concat(db.BlockTable.Cast<DxfDBObject>()).ToList();
+                List<DxfDBObject> all = db
+                    .LayerTable.Cast<DxfDBObject>()
+                    .Concat(db.LinetypeTable.Cast<DxfDBObject>())
+                    .Concat(db.TextStyleTable.Cast<DxfDBObject>())
+                    .Concat(db.DimStyleTable.Cast<DxfDBObject>())
+                    .Concat(db.BlockTable.Cast<DxfDBObject>())
+                    .ToList();
 
                 db.CountHardReferences(all, new int[all.Count]);
                 db.Purge(all);
@@ -518,7 +676,14 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new GeoPoint3(-1E+20, -1E+20, -1E+20), db.Pextmax);
 
             // A text counts as the point it stands at; paper space has its own box.
-            db.ModelSpace.AppendEntity(new DxfDBText { TextString = "B-12", Position = new GeoPoint3(200, 10, 0), Height = 2.5 });
+            db.ModelSpace.AppendEntity(
+                new DxfDBText
+                {
+                    TextString = "B-12",
+                    Position = new GeoPoint3(200, 10, 0),
+                    Height = 2.5,
+                }
+            );
             db.PaperSpace.AppendEntity(new DxfLine(new GeoPoint3(10, 20, 0), new GeoPoint3(30, 40, 0)));
             db.UpdateExt(false);
 
@@ -536,10 +701,25 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void TheExtentsOfEzdxfsDrawings_AreThoseOfTheirShapes()
         {
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R12,
+                    DxfFileEzdxfDrawings.R2000,
+                    DxfFileEzdxfDrawings.R2018,
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                double[] box = { double.MaxValue, double.MaxValue, double.MaxValue, double.MinValue, double.MinValue, double.MinValue };
+                double[] box =
+                {
+                    double.MaxValue,
+                    double.MaxValue,
+                    double.MaxValue,
+                    double.MinValue,
+                    double.MinValue,
+                    double.MinValue,
+                };
 
                 foreach (DxfEntity entity in db.ModelSpace)
                 {
@@ -557,8 +737,12 @@ namespace GeometryHelper.UnitTest.Dxf
 
                     box = new[]
                     {
-                        Math.Min(box[0], extents.Min.X), Math.Min(box[1], extents.Min.Y), Math.Min(box[2], extents.Min.Z),
-                        Math.Max(box[3], extents.Max.X), Math.Max(box[4], extents.Max.Y), Math.Max(box[5], extents.Max.Z),
+                        Math.Min(box[0], extents.Min.X),
+                        Math.Min(box[1], extents.Min.Y),
+                        Math.Min(box[2], extents.Min.Z),
+                        Math.Max(box[3], extents.Max.X),
+                        Math.Max(box[4], extents.Max.Y),
+                        Math.Max(box[5], extents.Max.Z),
                     };
                 }
 

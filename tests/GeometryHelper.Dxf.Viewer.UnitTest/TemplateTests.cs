@@ -80,11 +80,23 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfDimStyleTableRecord header = database.GetDimstyleData();
             DxfDimStyleTableRecord metric = new DxfDatabase("AC1027").GetDimstyleData();
 
-            foreach (PropertyInfo property in typeof(DxfDimStyleTableRecord).GetProperties().Where(p => p.Name.StartsWith("Dim", StringComparison.Ordinal) && p.GetIndexParameters().Length == 0))
+            foreach (
+                PropertyInfo property in typeof(DxfDimStyleTableRecord)
+                    .GetProperties()
+                    .Where(p =>
+                        p.Name.StartsWith("Dim", StringComparison.Ordinal) && p.GetIndexParameters().Length == 0
+                    )
+            )
             {
                 string own = Text(property.GetValue(iso));
-                Assert.True(own == Text(property.GetValue(header)), property.Name + " of ISO-25 is " + own + ", the header's " + Text(property.GetValue(header)) + ".");
-                Assert.True(own == Text(property.GetValue(metric)), property.Name + " of ISO-25 is " + own + ", acadiso's " + Text(property.GetValue(metric)) + ".");
+                Assert.True(
+                    own == Text(property.GetValue(header)),
+                    property.Name + " of ISO-25 is " + own + ", the header's " + Text(property.GetValue(header)) + "."
+                );
+                Assert.True(
+                    own == Text(property.GetValue(metric)),
+                    property.Name + " of ISO-25 is " + own + ", acadiso's " + Text(property.GetValue(metric)) + "."
+                );
             }
         }
 
@@ -111,12 +123,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfDatabase database = CadTemplate.CreateMetric();
 
             Assert.Equal(new[] { "0" }, database.LayerTable.Cast<DxfLayerTableRecord>().Select(l => l.Name));
-            Assert.Equal(new[] { "ByBlock", "ByLayer", "Continuous" }, database.LinetypeTable.Cast<DxfLinetypeTableRecord>().Select(l => l.Name));
-            Assert.Equal(new[] { "Standard", "Annotative" }, database.TextStyleTable.Cast<DxfTextStyleTableRecord>().Select(s => s.Name));
+            Assert.Equal(
+                new[] { "ByBlock", "ByLayer", "Continuous" },
+                database.LinetypeTable.Cast<DxfLinetypeTableRecord>().Select(l => l.Name)
+            );
+            Assert.Equal(
+                new[] { "Standard", "Annotative" },
+                database.TextStyleTable.Cast<DxfTextStyleTableRecord>().Select(s => s.Name)
+            );
             Assert.Equal("arial.ttf", database.TextStyleTable["Standard"].FileName);
             Assert.Equal(DxfAnnotativeStates.False, database.TextStyleTable["Standard"].Annotative);
             Assert.Equal(DxfAnnotativeStates.True, database.TextStyleTable["Annotative"].Annotative);
-            Assert.Equal(new[] { "Standard", "ISO-25" }, database.DimStyleTable.Cast<DxfDimStyleTableRecord>().Select(s => s.Name));
+            Assert.Equal(
+                new[] { "Standard", "ISO-25" },
+                database.DimStyleTable.Cast<DxfDimStyleTableRecord>().Select(s => s.Name)
+            );
             Assert.Empty(database.ModelSpace);
 
             string text = database.ToText();
@@ -128,9 +149,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = CadDocument.From(CadTemplate.CreateMetric(), "Drawing1.dxf");
 
-            EditingDrawings.Run(EditingDrawings.Session(document), "DLI", EditingDrawings.P(0, 0), EditingDrawings.P(1234.5, 0), EditingDrawings.P(600, -30));
+            EditingDrawings.Run(
+                EditingDrawings.Session(document),
+                "DLI",
+                EditingDrawings.P(0, 0),
+                EditingDrawings.P(1234.5, 0),
+                EditingDrawings.P(600, -30)
+            );
 
-            DxfRotatedDimension dimension = Assert.Single(EditingDrawings.All<DxfRotatedDimension>(document.ModelSpace));
+            DxfRotatedDimension dimension = Assert.Single(
+                EditingDrawings.All<DxfRotatedDimension>(document.ModelSpace)
+            );
             Assert.Equal("ISO-25", dimension.DimensionStyleName);
             Assert.Contains(dimension.DimBlock.OfType<DxfMText>(), m => m.Text.Contains("1234,5"));
         }

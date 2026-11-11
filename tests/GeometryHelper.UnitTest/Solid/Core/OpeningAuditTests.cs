@@ -27,19 +27,34 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Loose = new Tolerance(1E-7, 1E-7);
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
-        private static GeoSolid3 Plate() => Box(0, 0, 0, 100, 100, 20).WithOpenings(new[] { Box(40, 40, -1, 60, 60, 21) });
+        private static GeoSolid3 Plate() =>
+            Box(0, 0, 0, 100, 100, 20).WithOpenings(new[] { Box(40, 40, -1, 60, 60, 21) });
 
         // Probes lying wholly in the hole: up the middle of it, or within 5 of its middle.
         private static readonly GeoLine3 Line = new GeoLine3(new GeoPoint3(50, 50, -50), new GeoPoint3(50, 50, 50));
         private static readonly GeoRay3 Ray = new GeoRay3(new GeoPoint3(50, 50, -50), GeoVector3.ZAxis);
-        private static readonly GeoPolyline3 Polyline = new GeoPolyline3(new GeoPoint3(50, 50, -50), new GeoPoint3(50, 50, 0), new GeoPoint3(50, 50, 50));
-        private static readonly GeoTriangle3 Triangle = new GeoTriangle3(new GeoPoint3(46, 46, 10), new GeoPoint3(54, 46, 10), new GeoPoint3(50, 54, 10));
-        private static readonly GeoPolygon3 Polygon = new GeoPolygon3(new GeoPoint3(46, 46, 10), new GeoPoint3(54, 46, 10), new GeoPoint3(54, 54, 10), new GeoPoint3(46, 54, 10));
+        private static readonly GeoPolyline3 Polyline = new GeoPolyline3(
+            new GeoPoint3(50, 50, -50),
+            new GeoPoint3(50, 50, 0),
+            new GeoPoint3(50, 50, 50)
+        );
+        private static readonly GeoTriangle3 Triangle = new GeoTriangle3(
+            new GeoPoint3(46, 46, 10),
+            new GeoPoint3(54, 46, 10),
+            new GeoPoint3(50, 54, 10)
+        );
+        private static readonly GeoPolygon3 Polygon = new GeoPolygon3(
+            new GeoPoint3(46, 46, 10),
+            new GeoPoint3(54, 46, 10),
+            new GeoPoint3(54, 54, 10),
+            new GeoPoint3(46, 54, 10)
+        );
         private static readonly GeoObb3 Obb = new GeoObb3(new GeoPoint3(50, 50, 0), 10, 10, 100);
         private static readonly GeoAabb3 Aabb = new GeoAabb3(new GeoPoint3(45, 45, -50), new GeoPoint3(55, 55, 50));
+
         private static GeoSolid3 Pin() => Box(45, 45, -50, 55, 55, 50);
 
         [Fact]
@@ -165,7 +180,9 @@ namespace GeometryHelper.UnitTest.Solid
             // named by both triangles sharing it. Checked against the scan rather than against a count
             // guessed from where the diagonals might run.
             var through = new GeoRay3(new GeoPoint3(13, 27, -50), GeoVector3.ZAxis);
-            int scanned = plate.TriangulateSurface().Count(triangle => GeometryHelper.Core.Intersection3.TryIntersectWith(through, triangle, out _));
+            int scanned = plate
+                .TriangulateSurface()
+                .Count(triangle => GeometryHelper.Core.Intersection3.TryIntersectWith(through, triangle, out _));
 
             Assert.True(scanned >= 2);
             Assert.Equal(scanned, index.GetIntersections(through).Length);

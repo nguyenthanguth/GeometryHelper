@@ -46,7 +46,19 @@ namespace GeometryHelper.Viewer
             _chord = chord;
         }
 
-        private SceneCurve(int itemIndex, Vec3 center, Vec3 u, Vec3 v, double radiusU, double radiusV, double startAngle, double sweep, Vec3? start, Vec3? end, Vec3? middle)
+        private SceneCurve(
+            int itemIndex,
+            Vec3 center,
+            Vec3 u,
+            Vec3 v,
+            double radiusU,
+            double radiusV,
+            double startAngle,
+            double sweep,
+            Vec3? start,
+            Vec3? end,
+            Vec3? middle
+        )
         {
             ItemIndex = itemIndex;
             Shape = CurveShape.Conic;
@@ -81,11 +93,19 @@ namespace GeometryHelper.Viewer
         /// Makes one chord of a curve that is drawn and snapped to by its chords, as a spline is: a segment with no middle of its own, whose
         /// ends are ends of the curve only where it says so, the first chord's start and the last chord's end.
         /// </summary>
-        internal static SceneCurve Chord(int itemIndex, Vec3 a, Vec3 b, bool startIsEnd, bool endIsEnd)
-            => new SceneCurve(itemIndex, a, b, (byte)(1 | (startIsEnd ? 2 : 0) | (endIsEnd ? 4 : 0)));
+        internal static SceneCurve Chord(int itemIndex, Vec3 a, Vec3 b, bool startIsEnd, bool endIsEnd) =>
+            new SceneCurve(itemIndex, a, b, (byte)(1 | (startIsEnd ? 2 : 0) | (endIsEnd ? 4 : 0)));
 
-        internal static SceneCurve Conic(int itemIndex, Vec3 center, Vec3 u, Vec3 v, double radiusU, double radiusV, double startAngle, double sweep)
-            => new SceneCurve(itemIndex, center, u, v, radiusU, radiusV, startAngle, sweep, null, null, null);
+        internal static SceneCurve Conic(
+            int itemIndex,
+            Vec3 center,
+            Vec3 u,
+            Vec3 v,
+            double radiusU,
+            double radiusV,
+            double startAngle,
+            double sweep
+        ) => new SceneCurve(itemIndex, center, u, v, radiusU, radiusV, startAngle, sweep, null, null, null);
 
         /// <summary>
         /// Makes the arc of an edge of a chain with a bulge, whose ends are exactly the vertices and whose middle is the vertices'
@@ -114,7 +134,19 @@ namespace GeometryHelper.Viewer
             Vec3 u = (left * -(length * 0.5 * (1.0 - bulge * bulge) / (2.0 * bulge)) - chord * (0.5)).Normalized();
             Vec3 v = Vec3.Cross(normal, u);
 
-            return new SceneCurve(itemIndex, center, u, v, radius, radius, 0.0, 4.0 * Math.Atan(bulge), from, to, middle - left * (bulge * length * 0.5));
+            return new SceneCurve(
+                itemIndex,
+                center,
+                u,
+                v,
+                radius,
+                radius,
+                0.0,
+                4.0 * Math.Atan(bulge),
+                from,
+                to,
+                middle - left * (bulge * length * 0.5)
+            );
         }
 
         /// <summary>
@@ -240,7 +272,8 @@ namespace GeometryHelper.Viewer
         /// </summary>
         internal Vec3 TangentAtStart => _tangent;
 
-        private Vec3 PointAtCentre(double t) => Center + AxisU * (RadiusU * Math.Cos(t)) + AxisV * (RadiusV * Math.Sin(t));
+        private Vec3 PointAtCentre(double t) =>
+            Center + AxisU * (RadiusU * Math.Cos(t)) + AxisV * (RadiusV * Math.Sin(t));
 
         /// <summary>
         /// Gets where a point is to a circle measured from its start: along the radius at the start, along the tangent there, and out of the
@@ -361,14 +394,18 @@ namespace GeometryHelper.Viewer
             {
                 map.GetRay(x, y, out Vec3 origin, out Vec3 direction);
                 double gap = ConicToLine(origin, direction, !map.Orthographic, out onCurve, map.IsInDepth);
-                return double.IsInfinity(gap) || double.IsNaN(gap) ? double.PositiveInfinity : gap / map.PixelSizeAt(onCurve);
+                return double.IsInfinity(gap) || double.IsNaN(gap)
+                    ? double.PositiveInfinity
+                    : gap / map.PixelSizeAt(onCurve);
             }
 
             onCurve = _start;
 
-            if (!map.ClipSegmentToView(_start, _end, out Vec3 from, out Vec3 to)
+            if (
+                !map.ClipSegmentToView(_start, _end, out Vec3 from, out Vec3 to)
                 || !map.TryProject(from, out double ax, out double ay, out double depthFrom)
-                || !map.TryProject(to, out double bx, out double by, out double depthTo))
+                || !map.TryProject(to, out double bx, out double by, out double depthTo)
+            )
             {
                 return double.PositiveInfinity;
             }
@@ -382,12 +419,25 @@ namespace GeometryHelper.Viewer
 
             // The picture is a perspective image of the segment: a step along its image is not the same step along the segment, and the share of the segment is found
             // from the depths of its ends.
-            double s = map.Orthographic || !(depthFrom * (1.0 - u) + depthTo * u > 0.0) ? u : u * depthFrom / (u * depthFrom + (1.0 - u) * depthTo);
-            onCurve = u == 0.0 ? from : u == 1.0 ? to : from + (to - from) * s;
+            double s =
+                map.Orthographic || !(depthFrom * (1.0 - u) + depthTo * u > 0.0)
+                    ? u
+                    : u * depthFrom / (u * depthFrom + (1.0 - u) * depthTo);
+            onCurve =
+                u == 0.0 ? from
+                : u == 1.0 ? to
+                : from + (to - from) * s;
             return Math.Sqrt(dx * dx + dy * dy);
         }
 
-        private static double SegmentToLine(Vec3 a, Vec3 b, Vec3 origin, Vec3 direction, bool forwardOnly, out Vec3 closest)
+        private static double SegmentToLine(
+            Vec3 a,
+            Vec3 b,
+            Vec3 origin,
+            Vec3 direction,
+            bool forwardOnly,
+            out Vec3 closest
+        )
         {
             if (forwardOnly)
             {
@@ -421,7 +471,13 @@ namespace GeometryHelper.Viewer
             return (wPerp + ePerp * s).Length;
         }
 
-        private double ConicToLine(Vec3 origin, Vec3 direction, bool forwardOnly, out Vec3 onCurve, Func<Vec3, bool> shown = null)
+        private double ConicToLine(
+            Vec3 origin,
+            Vec3 direction,
+            bool forwardOnly,
+            out Vec3 onCurve,
+            Func<Vec3, bool> shown = null
+        )
         {
             double Lateral2(double t)
             {
@@ -461,7 +517,8 @@ namespace GeometryHelper.Viewer
                     after = (i + 1) % count;
                 }
 
-                bool low = (before < 0 || values[i] <= values[before]) && (after >= count || values[i] <= values[after]);
+                bool low =
+                    (before < 0 || values[i] <= values[before]) && (after >= count || values[i] <= values[after]);
 
                 if (!low || double.IsPositiveInfinity(values[i]))
                 {
@@ -580,7 +637,8 @@ namespace GeometryHelper.Viewer
             {
                 int before = IsFull ? (i + count - 1) % count : i - 1;
                 int after = IsFull ? (i + 1) % count : i + 1;
-                bool low = (before < 0 || values[i] <= values[before]) && (after >= count || values[i] <= values[after]);
+                bool low =
+                    (before < 0 || values[i] <= values[before]) && (after >= count || values[i] <= values[after]);
 
                 if (!low)
                 {

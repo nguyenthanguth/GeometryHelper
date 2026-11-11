@@ -84,7 +84,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </summary>
     public sealed class LayerStatesViewModel : ObservableObject
     {
-        private readonly ObservableCollection<LayerStateRowViewModel> _states = new ObservableCollection<LayerStateRowViewModel>();
+        private readonly ObservableCollection<LayerStateRowViewModel> _states =
+            new ObservableCollection<LayerStateRowViewModel>();
         private LayerStateRowViewModel _selected;
         private bool _showProperties = true;
         private bool _showing;
@@ -95,20 +96,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public LayerStatesViewModel(CadLayerStatesRequest request)
         {
             Request = request ?? throw new ArgumentNullException(nameof(request));
-            Properties = new ReadOnlyCollection<LayerStatePropertyViewModel>(new[]
-            {
-                new LayerStatePropertyViewModel(this, "On/Off", 0x1, false),
-                new LayerStatePropertyViewModel(this, "Frozen/Thawed", 0x2, false),
-                new LayerStatePropertyViewModel(this, "Visibility in current viewport", 0x200, true),
-                new LayerStatePropertyViewModel(this, "Locked/Unlocked", 0x4, false),
-                new LayerStatePropertyViewModel(this, "Plot/No Plot", 0x8, false),
-                new LayerStatePropertyViewModel(this, "Color", 0x20, false),
-                new LayerStatePropertyViewModel(this, "Linetype", 0x40, false),
-                new LayerStatePropertyViewModel(this, "Lineweight", 0x80, false),
-                new LayerStatePropertyViewModel(this, "Transparency", 0x400, false),
-                new LayerStatePropertyViewModel(this, "Plot style", 0x100, true),
-                new LayerStatePropertyViewModel(this, "New VP freeze", 0x10, true),
-            });
+            Properties = new ReadOnlyCollection<LayerStatePropertyViewModel>(
+                new[]
+                {
+                    new LayerStatePropertyViewModel(this, "On/Off", 0x1, false),
+                    new LayerStatePropertyViewModel(this, "Frozen/Thawed", 0x2, false),
+                    new LayerStatePropertyViewModel(this, "Visibility in current viewport", 0x200, true),
+                    new LayerStatePropertyViewModel(this, "Locked/Unlocked", 0x4, false),
+                    new LayerStatePropertyViewModel(this, "Plot/No Plot", 0x8, false),
+                    new LayerStatePropertyViewModel(this, "Color", 0x20, false),
+                    new LayerStatePropertyViewModel(this, "Linetype", 0x40, false),
+                    new LayerStatePropertyViewModel(this, "Lineweight", 0x80, false),
+                    new LayerStatePropertyViewModel(this, "Transparency", 0x400, false),
+                    new LayerStatePropertyViewModel(this, "Plot style", 0x100, true),
+                    new LayerStatePropertyViewModel(this, "New VP freeze", 0x10, true),
+                }
+            );
             Refresh();
         }
 
@@ -165,16 +168,36 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets or sets whether Restore turns off the layers the state does not name.</summary>
-        public bool TurnOffMissing { get => Request.TurnOffMissing; set { Request.TurnOffMissing = value; Raise(nameof(TurnOffMissing)); } }
+        public bool TurnOffMissing
+        {
+            get => Request.TurnOffMissing;
+            set
+            {
+                Request.TurnOffMissing = value;
+                Raise(nameof(TurnOffMissing));
+            }
+        }
 
         /// <summary>Gets or sets whether Restore puts the properties on the current viewport as overrides.</summary>
-        public bool AsViewportOverrides { get => Request.AsViewportOverrides; set { Request.AsViewportOverrides = value; Raise(nameof(AsViewportOverrides)); } }
+        public bool AsViewportOverrides
+        {
+            get => Request.AsViewportOverrides;
+            set
+            {
+                Request.AsViewportOverrides = value;
+                Raise(nameof(AsViewportOverrides));
+            }
+        }
 
         /// <summary>Gets whether Apply properties as viewport overrides can be ticked: in a layout only.</summary>
         public bool CanOverride => !Request.IsModelSpace;
 
         /// <summary>Gets or sets whether the Layer properties panel is shown (&gt;&gt;) or folded away (&lt;&lt;).</summary>
-        public bool ShowProperties { get => _showProperties; set => Set(ref _showProperties, value); }
+        public bool ShowProperties
+        {
+            get => _showProperties;
+            set => Set(ref _showProperties, value);
+        }
 
         /// <summary>Gets what the last change said where it was refused; empty where none was.</summary>
         public string Message => Request.Message ?? string.Empty;
@@ -183,7 +206,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>Whether it was saved.</returns>
         public bool New()
         {
-            string name = AskName?.Invoke("New Layer State to Save", "Layer state " + (Request.States.Count + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
+            string name = AskName?.Invoke(
+                "New Layer State to Save",
+                "Layer state " + (Request.States.Count + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)
+            );
             return name != null && Changed(Request.New(name, string.Empty));
         }
 

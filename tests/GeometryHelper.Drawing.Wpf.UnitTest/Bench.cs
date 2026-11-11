@@ -15,9 +15,7 @@ namespace System.Runtime.CompilerServices
 {
     /// <summary>Marks the method the compiler runs when the assembly is loaded; .NET Framework has no such attribute of its own.</summary>
     [AttributeUsage(AttributeTargets.Method, Inherited = false)]
-    internal sealed class ModuleInitializerAttribute : Attribute
-    {
-    }
+    internal sealed class ModuleInitializerAttribute : Attribute { }
 }
 
 namespace GeometryHelper.Drawing.Wpf.UnitTest
@@ -29,7 +27,13 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
     /// </summary>
     internal static class TestSettings
     {
-        internal static readonly string Folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "wpf-b-tests", "settings-" + Guid.NewGuid().ToString("N"));
+        internal static readonly string Folder = Path.Combine(
+            Path.GetTempPath(),
+            "gk",
+            "drawing",
+            "wpf-b-tests",
+            "settings-" + Guid.NewGuid().ToString("N")
+        );
 
         [ModuleInitializer]
         internal static void Use()
@@ -48,12 +52,8 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
                     Directory.Delete(Folder, true);
                 }
             }
-            catch (IOException)
-            {
-            }
-            catch (UnauthorizedAccessException)
-            {
-            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
     }
 
@@ -70,7 +70,13 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             Model = new MainViewModel();
             Original = new TestBodiesSourceProvider(Tol);
             Changed = new TestBodiesSourceProvider(Tol, changed: true);
-            var sources = new List<IDrawingSourceProvider> { Original, Changed, UnconnectedSourceProvider.TeklaStructures, UnconnectedSourceProvider.IfcFile };
+            var sources = new List<IDrawingSourceProvider>
+            {
+                Original,
+                Changed,
+                UnconnectedSourceProvider.TeklaStructures,
+                UnconnectedSourceProvider.IfcFile,
+            };
             sources.AddRange(more);
             Workspace = new DrawingWorkspace(Model, sources, Tol);
             Workspace.DialogRequested += (s, e) => Requests.Add(e);
@@ -89,7 +95,10 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
         public IEnumerable<MessageViewModel> Messages => Requests.Select(r => r.Model).OfType<MessageViewModel>();
 
         /// <summary>Makes a drawing through the New drawing dialog: the first source, the preset's objects, Create.</summary>
-        public async Task<ModelDrawing> MakeAsync(string preset = "Assembly", Action<NewDrawingViewModel> beforeCreate = null)
+        public async Task<ModelDrawing> MakeAsync(
+            string preset = "Assembly",
+            Action<NewDrawingViewModel> beforeCreate = null
+        )
         {
             NewDrawingViewModel dialog = Workspace.ShowNewDrawing();
             await dialog.NextAsync();
@@ -108,7 +117,12 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
 
             foreach (DxfEntity entity in DrawingEntityTags.Find(drawing.Document.Database))
             {
-                if (!entity.IsErased && DrawingEntityTags.TryRead(entity, out string id, out _) && kinds.TryGetValue(id, out string found) && found == kind)
+                if (
+                    !entity.IsErased
+                    && DrawingEntityTags.TryRead(entity, out string id, out _)
+                    && kinds.TryGetValue(id, out string found)
+                    && found == kind
+                )
                 {
                     return entity.Handle;
                 }
@@ -122,7 +136,12 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
         {
             foreach (DxfEntity entity in DrawingEntityTags.Find(drawing.Document.Database))
             {
-                if (!entity.IsErased && entity is DxfLine && DrawingEntityTags.TryRead(entity, out string id, out _) && id == objectId)
+                if (
+                    !entity.IsErased
+                    && entity is DxfLine
+                    && DrawingEntityTags.TryRead(entity, out string id, out _)
+                    && id == objectId
+                )
                 {
                     return entity.Handle;
                 }
@@ -141,7 +160,13 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
         /// <summary>A folder of its own under %TEMP%\gk\drawing\wpf-b-tests, deleted when the test ends.</summary>
         public static string NewFolder()
         {
-            string folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "wpf-b-tests", Guid.NewGuid().ToString("N"));
+            string folder = Path.Combine(
+                Path.GetTempPath(),
+                "gk",
+                "drawing",
+                "wpf-b-tests",
+                Guid.NewGuid().ToString("N")
+            );
             Directory.CreateDirectory(folder);
             return folder;
         }
@@ -152,12 +177,8 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             {
                 Directory.Delete(folder, true);
             }
-            catch (IOException)
-            {
-            }
-            catch (UnauthorizedAccessException)
-            {
-            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
     }
 

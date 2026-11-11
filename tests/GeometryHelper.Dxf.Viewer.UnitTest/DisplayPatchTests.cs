@@ -28,7 +28,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         private static CadDocument Plan()
         {
             string layers = Layer("Steel", 1) + Layer("Notes", 2) + Layer("Bolts", 3);
-            string blocks = Block("INNER", Arc(0, 0, 4, 0, 180, "Bolts"))
+            string blocks =
+                Block("INNER", Arc(0, 0, 4, 0, 180, "Bolts"))
                 + Block("OUTER", Line(0, 0, 10, 0), Circle(5, 5, 3, "Notes"), Insert("INNER", 20, 0));
             DxfDatabase database = Drawing(
                 layers,
@@ -37,20 +38,25 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 Line(0, 10, 100, 10, "Steel", handle: "A2"),
                 Circle(50, 50, 20, "Notes", handle: "A3"),
                 Text(0, 80, 5, "PLAN", "Bolts", handle: "A4"),
-                Insert("OUTER", 200, 0, 2.0, 30.0, "Steel", handle: "A5"));
+                Insert("OUTER", 200, 0, 2.0, 30.0, "Steel", handle: "A5")
+            );
             return CadDocument.From(database, "plan.dxf");
         }
 
         private static CadEditResult Move(CadDocument document, params string[] handles)
         {
             GeoTransform3 move = GeoTransform3.Translation(new GeoVector3(7, 3, 0));
-            return document.ApplyEdit("MOVE", handles.Select(h => new CadEditRecord(CadEditRecordKind.Transformed, h)).ToList(), s =>
-            {
-                foreach (string handle in handles)
+            return document.ApplyEdit(
+                "MOVE",
+                handles.Select(h => new CadEditRecord(CadEditRecordKind.Transformed, h)).ToList(),
+                s =>
                 {
-                    s.Document.FindEntity(handle).TransformBy(move);
+                    foreach (string handle in handles)
+                    {
+                        s.Document.FindEntity(handle).TransformBy(move);
+                    }
                 }
-            });
+            );
         }
 
         /// <summary>The list of model space as it stands, then the one a REGEN makes, which the first must equal item for item.</summary>
@@ -90,8 +96,23 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             document.GetDisplay(document.ModelSpace);
             string added = null;
 
-            Assert.True(document.ApplyEdit("ERASE", new[] { new CadEditRecord(CadEditRecordKind.Erased, "A2") }, s => s.Document.FindEntity("A2").Erase()).Succeeded);
-            Assert.True(document.ApplyEdit("LINE", null, s => added = s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(-40, -40, 0))).Handle).Succeeded);
+            Assert.True(
+                document
+                    .ApplyEdit("ERASE", new[] { new CadEditRecord(CadEditRecordKind.Erased, "A2") }, s =>
+                        s.Document.FindEntity("A2").Erase()
+                    )
+                    .Succeeded
+            );
+            Assert.True(
+                document
+                    .ApplyEdit("LINE", null, s =>
+                        added = s.Append(
+                            s.Document.ModelSpace,
+                            new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(-40, -40, 0))
+                        ).Handle
+                    )
+                    .Succeeded
+            );
             DisplayList2 after = AssertSameAsRegen(document);
 
             Assert.DoesNotContain(after.Items, i => i.Handle == "A2");
@@ -161,11 +182,23 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void AMoveInALayout_IsPatchedThere_AndModelSpaceIsKept()
         {
             CadDocument document = EditingDrawings.Blank();
-            Assert.True(document.ApplyEdit("LINE", null, s => s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0)))).Succeeded);
+            Assert.True(
+                document
+                    .ApplyEdit("LINE", null, s =>
+                        s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0)))
+                    )
+                    .Succeeded
+            );
             CadSpace sheet = Assert.Single(document.Spaces, s => s.Name == "Layout1");
             DisplayList2 model = document.GetDisplay(document.ModelSpace);
             string mark = null;
-            Assert.True(document.ApplyEdit("LINE", null, s => mark = s.Append(sheet, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0))).Handle).Succeeded);
+            Assert.True(
+                document
+                    .ApplyEdit("LINE", null, s =>
+                        mark = s.Append(sheet, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0))).Handle
+                    )
+                    .Succeeded
+            );
             document.GetDisplay(sheet);
 
             Assert.True(Move(document, mark).Succeeded);
@@ -189,18 +222,40 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             picture.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 12, 0)));
             picture.AppendEntity(new DxfLine(new GeoPoint3(20, 0, 0), new GeoPoint3(20, 12, 0)));
             picture.AppendEntity(new DxfLine(new GeoPoint3(0, 10, 0), new GeoPoint3(20, 10, 0)));
-            var dimension = new DxfRotatedDimension(0.0, new GeoPoint3(0, 0, 0), new GeoPoint3(20, 0, 0), new GeoPoint3(20, 10, 0), string.Empty, null) { DimBlock = picture };
+            var dimension = new DxfRotatedDimension(
+                0.0,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(20, 0, 0),
+                new GeoPoint3(20, 10, 0),
+                string.Empty,
+                null
+            )
+            {
+                DimBlock = picture,
+            };
             database.ModelSpace.AppendEntity(dimension);
 
             // As AutoCAD writes one: its block its own (flag 32) and placed at no point of its own (no group 12).
-            DxfDatabase written = Rewritten(database, "DIMENSION", (code, value) => code == "70" ? (int.Parse(value, CultureInfo.InvariantCulture) | 32).ToString(CultureInfo.InvariantCulture) : code == "12" || code == "22" || code == "32" ? null : value);
+            DxfDatabase written = Rewritten(database, "DIMENSION", (code, value) => code == "70"
+                    ? (int.Parse(value, CultureInfo.InvariantCulture) | 32).ToString(CultureInfo.InvariantCulture)
+                : code == "12" || code == "22" || code == "32" ? null
+                : value);
             CadDocument document = CadDocument.From(written, "dimensions.dxf");
             string original = dimension.Handle;
             document.GetDisplay(document.ModelSpace);
             string copy = null;
             GeoTransform3 up = GeoTransform3.Translation(new GeoVector3(0, 50, 0));
 
-            Assert.True(document.ApplyEdit("COPY", null, s => copy = s.Append(document.ModelSpace, s.Document.FindEntity(original).GetTransformedCopy(up)).Handle).Succeeded);
+            Assert.True(
+                document
+                    .ApplyEdit("COPY", null, s =>
+                        copy = s.Append(
+                            document.ModelSpace,
+                            s.Document.FindEntity(original).GetTransformedCopy(up)
+                        ).Handle
+                    )
+                    .Succeeded
+            );
             AssertSameAsRegen(document);
             Assert.True(Move(document, original).Succeeded);
             AssertSameAsRegen(document);
@@ -213,14 +268,23 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             // The hook of a leader of words above its line runs on to the far end of the MTEXT it points to, as the drawing's
             // fonts measure it: moving the words alone draws the leader again, as a REGEN draws it.
-            string folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "gh-patch-" + Guid.NewGuid().ToString("N"));
+            string folder = System.IO.Path.Combine(
+                System.IO.Path.GetTempPath(),
+                "gh-patch-" + Guid.NewGuid().ToString("N")
+            );
             System.IO.Directory.CreateDirectory(folder);
 
             try
             {
                 System.IO.File.WriteAllBytes(System.IO.Path.Combine(folder, "txt.shx"), ShxFiles.Unifont());
                 var database = new DxfDatabase("AC1032") { FontSearchPath = folder };
-                var words = new DxfMText { Contents = "IOI", TextHeight = 2.5, Attachment = DxfAttachmentPoint.MiddleLeft, Location = new GeoPoint3(22, 10, 0) };
+                var words = new DxfMText
+                {
+                    Contents = "IOI",
+                    TextHeight = 2.5,
+                    Attachment = DxfAttachmentPoint.MiddleLeft,
+                    Location = new GeoPoint3(22, 10, 0),
+                };
                 database.ModelSpace.AppendEntity(words);
                 var leader = new DxfLeader { HasArrowHead = true };
                 leader.AppendVertex(new GeoPoint3(0, 0, 0));
@@ -236,13 +300,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 DxfDatabase hooked = Rewritten(database, "LEADER", (code, value) => code == "75" ? "1" : value);
                 hooked.FontSearchPath = folder;
                 CadDocument document = CadDocument.From(hooked, "leader.dxf");
-                double before = Assert.Single(document.GetDisplay(document.ModelSpace).Items, i => i.Handle == leader.Handle && i is DisplayPolyline2).Bounds.MaxX;
+                double before = Assert
+                    .Single(document.GetDisplay(document.ModelSpace).Items, i =>
+                        i.Handle == leader.Handle && i is DisplayPolyline2
+                    )
+                    .Bounds.MaxX;
 
                 Assert.True(Move(document, words.Handle).Succeeded);
                 DisplayList2 after = AssertSameAsRegen(document);
 
                 Assert.True(before > 21.375 + 1E-9, "the hook runs on to " + before);
-                Assert.Equal(before + 7.0, Assert.Single(after.Items, i => i.Handle == leader.Handle && i is DisplayPolyline2).Bounds.MaxX, 9);
+                Assert.Equal(
+                    before + 7.0,
+                    Assert.Single(after.Items, i => i.Handle == leader.Handle && i is DisplayPolyline2).Bounds.MaxX,
+                    9
+                );
             }
             finally
             {
@@ -328,7 +400,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 return "...";
             }
 
-            IEnumerable<string> fields = value.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            IEnumerable<string> fields = value
+                .GetType()
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.GetIndexParameters().Length == 0)
                 .OrderBy(p => p.Name, StringComparer.Ordinal)
                 .Select(p => p.Name + " " + Describe(p.GetValue(value), depth + 1));

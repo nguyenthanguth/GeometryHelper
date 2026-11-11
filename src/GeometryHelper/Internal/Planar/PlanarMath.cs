@@ -58,11 +58,13 @@ namespace GeometryHelper.Internal.Planar
         /// <summary>
         /// The point halfway between two points.
         /// </summary>
-        public static GeoPoint2 Midpoint(GeoPoint2 a, GeoPoint2 b) => new GeoPoint2((a.X + b.X) * 0.5, (a.Y + b.Y) * 0.5);
+        public static GeoPoint2 Midpoint(GeoPoint2 a, GeoPoint2 b) =>
+            new GeoPoint2((a.X + b.X) * 0.5, (a.Y + b.Y) * 0.5);
 
         /// <summary>
         /// The square of the distance between two points, which compares like the distance without the root.
         /// </summary>
-        public static double DistanceSquaredTo(this GeoPoint2 point, GeoPoint2 other) => point.GetDistanceSquaredTo(other);
+        public static double DistanceSquaredTo(this GeoPoint2 point, GeoPoint2 other) =>
+            point.GetDistanceSquaredTo(other);
     }
 }

@@ -29,9 +29,12 @@ namespace GeometryHelper.Viewer
     /// </summary>
     internal static class SceneLoader
     {
-        internal static bool IsScript(string path) => string.Equals(Path.GetExtension(path), ".csx", StringComparison.OrdinalIgnoreCase);
+        internal static bool IsScript(string path) =>
+            string.Equals(Path.GetExtension(path), ".csx", StringComparison.OrdinalIgnoreCase);
 
-        internal static bool IsSceneFile(string path) => path.EndsWith(".ghscene.json", StringComparison.OrdinalIgnoreCase) || string.Equals(Path.GetExtension(path), ".json", StringComparison.OrdinalIgnoreCase);
+        internal static bool IsSceneFile(string path) =>
+            path.EndsWith(".ghscene.json", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(Path.GetExtension(path), ".json", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
         /// Opens a file. Nothing in it makes this throw, but running out of memory: whatever goes wrong comes back in the errors.
@@ -48,7 +51,14 @@ namespace GeometryHelper.Viewer
                     string code = File.ReadAllText(path, Encoding.UTF8);
                     ScriptRunResult run = await ScriptHost.RunAsync(code, path, note, cancel).ConfigureAwait(false);
 
-                    return new LoadResult { Succeeded = run.Succeeded, Scene = run.Scene, Notes = run.Notes, Errors = run.Errors, WasScript = true };
+                    return new LoadResult
+                    {
+                        Succeeded = run.Succeeded,
+                        Scene = run.Scene,
+                        Notes = run.Notes,
+                        Errors = run.Errors,
+                        WasScript = true,
+                    };
                 }
 
                 if (IsSceneFile(path))
@@ -65,11 +75,19 @@ namespace GeometryHelper.Viewer
 
                 if (SceneImport.IsImportable(path))
                 {
-                    Scene scene = await Task.Run(() => SceneImport.ReadFile(path, cancel), cancel).ConfigureAwait(false);
+                    Scene scene = await Task.Run(() => SceneImport.ReadFile(path, cancel), cancel)
+                        .ConfigureAwait(false);
                     return new LoadResult { Succeeded = true, Scene = scene };
                 }
 
-                return new LoadResult { Errors = new[] { path + ": a script ends in .csx, a scene in .ghscene.json, and the files of the library in .obj, .dxf, .wkt or .svg." } };
+                return new LoadResult
+                {
+                    Errors = new[]
+                    {
+                        path
+                            + ": a script ends in .csx, a scene in .ghscene.json, and the files of the library in .obj, .dxf, .wkt or .svg.",
+                    },
+                };
             }
             catch (Exception e) when (!(e is OutOfMemoryException))
             {

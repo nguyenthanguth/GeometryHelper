@@ -45,7 +45,8 @@ namespace GeometryHelper.UnitTest.Plane
             }
         }
 
-        public static TheoryData<string> ShapeCases() => new TheoryData<string> { "through", "beside", "behind", "from inside", "four tenths past" };
+        public static TheoryData<string> ShapeCases() =>
+            new TheoryData<string> { "through", "beside", "behind", "from inside", "four tenths past" };
 
         private static bool Many(string which) => which == "through";
 
@@ -61,18 +62,26 @@ namespace GeometryHelper.UnitTest.Plane
         /// </summary>
         private static void AssertDistanceAsTheCut(double gap, bool collides, double distance)
         {
-            Assert.True(Math.Abs(distance - gap) <= 1E-9 || (collides && distance == 0.0), $"distance {distance:R}, the cut's gap {gap:R}, collides {collides}");
+            Assert.True(
+                Math.Abs(distance - gap) <= 1E-9 || (collides && distance == 0.0),
+                $"distance {distance:R}, the cut's gap {gap:R}, collides {collides}"
+            );
         }
 
         private static GeoRay2 SquareRay(string which)
         {
             switch (which)
             {
-                case "through": return new GeoRay2(P(-50, 50), GeoVector2.XAxis);
-                case "beside": return new GeoRay2(P(220, 0), V(-1, 1));
-                case "behind": return new GeoRay2(P(150, 50), GeoVector2.XAxis);
-                case "from inside": return new GeoRay2(P(30, 40), GeoVector2.XAxis);
-                default: return Grazing(P(100, 100), U(1, -1), U(1, 1), out _);
+                case "through":
+                    return new GeoRay2(P(-50, 50), GeoVector2.XAxis);
+                case "beside":
+                    return new GeoRay2(P(220, 0), V(-1, 1));
+                case "behind":
+                    return new GeoRay2(P(150, 50), GeoVector2.XAxis);
+                case "from inside":
+                    return new GeoRay2(P(30, 40), GeoVector2.XAxis);
+                default:
+                    return Grazing(P(100, 100), U(1, -1), U(1, 1), out _);
             }
         }
 
@@ -80,11 +89,16 @@ namespace GeometryHelper.UnitTest.Plane
         {
             switch (which)
             {
-                case "through": return new GeoRay2(P(-100, 30), GeoVector2.XAxis);
-                case "beside": return new GeoRay2(P(-100, 80), GeoVector2.XAxis);
-                case "behind": return new GeoRay2(P(100, 0), GeoVector2.XAxis);
-                case "from inside": return new GeoRay2(P(0, 0), GeoVector2.YAxis);
-                default: return new GeoRay2(P(-100, 50.4), GeoVector2.XAxis);
+                case "through":
+                    return new GeoRay2(P(-100, 30), GeoVector2.XAxis);
+                case "beside":
+                    return new GeoRay2(P(-100, 80), GeoVector2.XAxis);
+                case "behind":
+                    return new GeoRay2(P(100, 0), GeoVector2.XAxis);
+                case "from inside":
+                    return new GeoRay2(P(0, 0), GeoVector2.YAxis);
+                default:
+                    return new GeoRay2(P(-100, 50.4), GeoVector2.XAxis);
             }
         }
 
@@ -92,11 +106,16 @@ namespace GeometryHelper.UnitTest.Plane
         {
             switch (which)
             {
-                case "through": return new GeoRay2(P(20, -50), V(1, 1));
-                case "beside": return new GeoRay2(P(150, -100), V(1, 1));
-                case "behind": return new GeoRay2(P(-30, 50), -GeoVector2.XAxis);
-                case "from inside": return new GeoRay2(P(50, 0), GeoVector2.YAxis);
-                default: return Grazing(P(100, 0), U(1, 1), U(1, -1), out _);
+                case "through":
+                    return new GeoRay2(P(20, -50), V(1, 1));
+                case "beside":
+                    return new GeoRay2(P(150, -100), V(1, 1));
+                case "behind":
+                    return new GeoRay2(P(-30, 50), -GeoVector2.XAxis);
+                case "from inside":
+                    return new GeoRay2(P(50, 0), GeoVector2.YAxis);
+                default:
+                    return Grazing(P(100, 0), U(1, 1), U(1, -1), out _);
             }
         }
 
@@ -104,11 +123,16 @@ namespace GeometryHelper.UnitTest.Plane
         {
             switch (which)
             {
-                case "through": return new GeoRay2(P(20, -50), V(0, 1));
-                case "beside": return new GeoRay2(P(200, -100), GeoVector2.YAxis);
-                case "behind": return new GeoRay2(P(-30, -40), -GeoVector2.XAxis);
-                case "from inside": return new GeoRay2(P(100, 50), GeoVector2.XAxis);
-                default: return new GeoRay2(P(150.4, -100), GeoVector2.YAxis);
+                case "through":
+                    return new GeoRay2(P(20, -50), V(0, 1));
+                case "beside":
+                    return new GeoRay2(P(200, -100), GeoVector2.YAxis);
+                case "behind":
+                    return new GeoRay2(P(-30, -40), -GeoVector2.XAxis);
+                case "from inside":
+                    return new GeoRay2(P(100, 50), GeoVector2.XAxis);
+                default:
+                    return new GeoRay2(P(150.4, -100), GeoVector2.YAxis);
             }
         }
 
@@ -116,11 +140,16 @@ namespace GeometryHelper.UnitTest.Plane
         {
             switch (which)
             {
-                case "through": return new GeoRay2(P(-100, 25), GeoVector2.XAxis);
-                case "beside": return new GeoRay2(P(260, -100), GeoVector2.YAxis);
-                case "behind": return new GeoRay2(P(300, 25), GeoVector2.XAxis);
-                case "from inside": return new GeoRay2(P(100, 25), GeoVector2.YAxis);
-                default: return new GeoRay2(P(225.4, -100), GeoVector2.YAxis);
+                case "through":
+                    return new GeoRay2(P(-100, 25), GeoVector2.XAxis);
+                case "beside":
+                    return new GeoRay2(P(260, -100), GeoVector2.YAxis);
+                case "behind":
+                    return new GeoRay2(P(300, 25), GeoVector2.XAxis);
+                case "from inside":
+                    return new GeoRay2(P(100, 25), GeoVector2.YAxis);
+                default:
+                    return new GeoRay2(P(225.4, -100), GeoVector2.YAxis);
             }
         }
 
@@ -135,9 +164,17 @@ namespace GeometryHelper.UnitTest.Plane
 
             foreach (Tolerance t in Both)
             {
-                AssertDistanceAsTheCut(circle.DistanceTo(LongCut(ray)), circle.CollidesWith(LongCut(ray), t), Distance2.DistanceTo(circle, ray, t));
+                AssertDistanceAsTheCut(
+                    circle.DistanceTo(LongCut(ray)),
+                    circle.CollidesWith(LongCut(ray), t),
+                    Distance2.DistanceTo(circle, ray, t)
+                );
                 Assert.Equal(circle.CollidesWith(LongCut(ray), t), Collision2.CollidesWith(circle, ray, t));
-                AssertShortestLinesAgree(Projection2.GetShortestLineTo(ray, circle, t), Projection2.GetShortestLineTo(circle, ray, t), Many(which));
+                AssertShortestLinesAgree(
+                    Projection2.GetShortestLineTo(ray, circle, t),
+                    Projection2.GetShortestLineTo(circle, ray, t),
+                    Many(which)
+                );
             }
         }
 
@@ -151,13 +188,29 @@ namespace GeometryHelper.UnitTest.Plane
 
             foreach (Tolerance t in Both)
             {
-                AssertDistanceAsTheCut(square.DistanceTo(LongCut(ray)), square.CollidesWith(LongCut(ray), t), Distance2.DistanceTo(square, ray, t));
+                AssertDistanceAsTheCut(
+                    square.DistanceTo(LongCut(ray)),
+                    square.CollidesWith(LongCut(ray), t),
+                    Distance2.DistanceTo(square, ray, t)
+                );
                 Assert.Equal(square.CollidesWith(LongCut(ray), t), Collision2.CollidesWith(square, ray, t));
-                AssertShortestLinesAgree(Projection2.GetShortestLineTo(ray, square, t), Projection2.GetShortestLineTo(square, ray, t), Many(which));
+                AssertShortestLinesAgree(
+                    Projection2.GetShortestLineTo(ray, square, t),
+                    Projection2.GetShortestLineTo(square, ray, t),
+                    Many(which)
+                );
 
-                AssertDistanceAsTheCut(rectangle.DistanceTo(LongCut(ray)), rectangle.CollidesWith(LongCut(ray), t), Distance2.DistanceTo(rectangle, ray, t));
+                AssertDistanceAsTheCut(
+                    rectangle.DistanceTo(LongCut(ray)),
+                    rectangle.CollidesWith(LongCut(ray), t),
+                    Distance2.DistanceTo(rectangle, ray, t)
+                );
                 Assert.Equal(rectangle.CollidesWith(LongCut(ray), t), Collision2.CollidesWith(rectangle, ray, t));
-                AssertShortestLinesAgree(Projection2.GetShortestLineTo(ray, rectangle, t), Projection2.GetShortestLineTo(rectangle, ray, t), Many(which));
+                AssertShortestLinesAgree(
+                    Projection2.GetShortestLineTo(ray, rectangle, t),
+                    Projection2.GetShortestLineTo(rectangle, ray, t),
+                    Many(which)
+                );
             }
         }
 
@@ -171,17 +224,41 @@ namespace GeometryHelper.UnitTest.Plane
 
             foreach (Tolerance t in Both)
             {
-                AssertDistanceAsTheCut(Ell().DistanceTo(LongCut(ell)), Ell().CollidesWith(LongCut(ell), t), Distance2.DistanceTo(Ell(), ell, t));
+                AssertDistanceAsTheCut(
+                    Ell().DistanceTo(LongCut(ell)),
+                    Ell().CollidesWith(LongCut(ell), t),
+                    Distance2.DistanceTo(Ell(), ell, t)
+                );
                 Assert.Equal(Ell().CollidesWith(LongCut(ell), t), Collision2.CollidesWith(Ell(), ell, t));
-                AssertShortestLinesAgree(Projection2.GetShortestLineTo(ell, Ell(), t), Projection2.GetShortestLineTo(Ell(), ell, t), Many(which));
+                AssertShortestLinesAgree(
+                    Projection2.GetShortestLineTo(ell, Ell(), t),
+                    Projection2.GetShortestLineTo(Ell(), ell, t),
+                    Many(which)
+                );
 
-                AssertDistanceAsTheCut(Hook().DistanceTo(LongCut(hook)), Hook().CollidesWith(LongCut(hook), t), Distance2.DistanceTo(Hook(), hook, t));
+                AssertDistanceAsTheCut(
+                    Hook().DistanceTo(LongCut(hook)),
+                    Hook().CollidesWith(LongCut(hook), t),
+                    Distance2.DistanceTo(Hook(), hook, t)
+                );
                 Assert.Equal(Hook().CollidesWith(LongCut(hook), t), Collision2.CollidesWith(Hook(), hook, t));
-                AssertShortestLinesAgree(Projection2.GetShortestLineTo(hook, Hook(), t), Projection2.GetShortestLineTo(Hook(), hook, t), Many(which));
+                AssertShortestLinesAgree(
+                    Projection2.GetShortestLineTo(hook, Hook(), t),
+                    Projection2.GetShortestLineTo(Hook(), hook, t),
+                    Many(which)
+                );
 
-                AssertDistanceAsTheCut(Slot().DistanceTo(LongCut(slot)), Slot().CollidesWith(LongCut(slot), t), Distance2.DistanceTo(Slot(), slot, t));
+                AssertDistanceAsTheCut(
+                    Slot().DistanceTo(LongCut(slot)),
+                    Slot().CollidesWith(LongCut(slot), t),
+                    Distance2.DistanceTo(Slot(), slot, t)
+                );
                 Assert.Equal(Slot().CollidesWith(LongCut(slot), t), Collision2.CollidesWith(Slot(), slot, t));
-                AssertShortestLinesAgree(Projection2.GetShortestLineTo(slot, Slot(), t), Projection2.GetShortestLineTo(Slot(), slot, t), Many(which));
+                AssertShortestLinesAgree(
+                    Projection2.GetShortestLineTo(slot, Slot(), t),
+                    Projection2.GetShortestLineTo(Slot(), slot, t),
+                    Many(which)
+                );
             }
         }
 
@@ -195,8 +272,16 @@ namespace GeometryHelper.UnitTest.Plane
             foreach (Tolerance t in Both)
             {
                 Assert.Equal(arc.CollidesWith(LongCut(ray), t), Collision2.CollidesWith(ray, arc, t));
-                AssertDistanceAsTheCut(arc.DistanceTo(LongCut(ray)), arc.CollidesWith(LongCut(ray), t), Arc2.DistanceTo(arc, ray, t));
-                AssertShortestLinesAgree(Projection2.GetShortestLineTo(ray, arc, t), Arc2.GetShortestLineTo(arc, ray, t), Many(which));
+                AssertDistanceAsTheCut(
+                    arc.DistanceTo(LongCut(ray)),
+                    arc.CollidesWith(LongCut(ray), t),
+                    Arc2.DistanceTo(arc, ray, t)
+                );
+                AssertShortestLinesAgree(
+                    Projection2.GetShortestLineTo(ray, arc, t),
+                    Arc2.GetShortestLineTo(arc, ray, t),
+                    Many(which)
+                );
             }
         }
 
@@ -204,18 +289,33 @@ namespace GeometryHelper.UnitTest.Plane
 
         #region A ray and a segment (A4, A5)
 
-        public static TheoryData<string> SegmentCases() => new TheoryData<string> { "across", "beside", "behind", "five ten-thousandths behind", "end-on a hair above", "parallel" };
+        public static TheoryData<string> SegmentCases() =>
+            new TheoryData<string>
+            {
+                "across",
+                "beside",
+                "behind",
+                "five ten-thousandths behind",
+                "end-on a hair above",
+                "parallel",
+            };
 
         private static GeoLine2 Segment(string which)
         {
             switch (which)
             {
-                case "across": return new GeoLine2(P(50, -10), P(50, 10));
-                case "beside": return new GeoLine2(P(50, 10), P(50, 30));
-                case "behind": return new GeoLine2(P(-30, -10), P(-30, 10));
-                case "five ten-thousandths behind": return new GeoLine2(P(-0.0005, -10), P(-0.0005, 10));
-                case "end-on a hair above": return new GeoLine2(P(50, 0.0005), P(50, 10));
-                default: return new GeoLine2(P(10, 5), P(60, 5));
+                case "across":
+                    return new GeoLine2(P(50, -10), P(50, 10));
+                case "beside":
+                    return new GeoLine2(P(50, 10), P(50, 30));
+                case "behind":
+                    return new GeoLine2(P(-30, -10), P(-30, 10));
+                case "five ten-thousandths behind":
+                    return new GeoLine2(P(-0.0005, -10), P(-0.0005, 10));
+                case "end-on a hair above":
+                    return new GeoLine2(P(50, 0.0005), P(50, 10));
+                default:
+                    return new GeoLine2(P(10, 5), P(60, 5));
             }
         }
 
@@ -283,18 +383,33 @@ namespace GeometryHelper.UnitTest.Plane
 
         #region Two rays
 
-        public static TheoryData<string> RayCases() => new TheoryData<string> { "crossing", "pointing away", "diverging", "side by side", "two thousandths behind", "half a degree" };
+        public static TheoryData<string> RayCases() =>
+            new TheoryData<string>
+            {
+                "crossing",
+                "pointing away",
+                "diverging",
+                "side by side",
+                "two thousandths behind",
+                "half a degree",
+            };
 
         private static GeoRay2 Other(string which)
         {
             switch (which)
             {
-                case "crossing": return new GeoRay2(P(50, -50), GeoVector2.YAxis);
-                case "pointing away": return new GeoRay2(P(50, 30), GeoVector2.YAxis);
-                case "diverging": return new GeoRay2(P(20, 10), V(1, 1));
-                case "side by side": return new GeoRay2(P(10, 5), GeoVector2.XAxis);
-                case "two thousandths behind": return new GeoRay2(P(-0.002, -5), GeoVector2.YAxis);
-                default: return new GeoRay2(P(0, 5), V(1, -0.005));
+                case "crossing":
+                    return new GeoRay2(P(50, -50), GeoVector2.YAxis);
+                case "pointing away":
+                    return new GeoRay2(P(50, 30), GeoVector2.YAxis);
+                case "diverging":
+                    return new GeoRay2(P(20, 10), V(1, 1));
+                case "side by side":
+                    return new GeoRay2(P(10, 5), GeoVector2.XAxis);
+                case "two thousandths behind":
+                    return new GeoRay2(P(-0.002, -5), GeoVector2.YAxis);
+                default:
+                    return new GeoRay2(P(0, 5), V(1, -0.005));
             }
         }
 
@@ -309,7 +424,10 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 Assert.Equal(Distance2.DistanceTo(ray, other, t), Distance2.DistanceTo(other, ray, t));
                 Assert.Equal(Collision2.CollidesWith(ray, other, t), Collision2.CollidesWith(other, ray, t));
-                Assert.Equal(Intersection2.TryIntersectWith(ray, other, out GeoPoint2 here, t), Intersection2.TryIntersectWith(other, ray, out GeoPoint2 there, t));
+                Assert.Equal(
+                    Intersection2.TryIntersectWith(ray, other, out GeoPoint2 here, t),
+                    Intersection2.TryIntersectWith(other, ray, out GeoPoint2 there, t)
+                );
                 Assert.InRange(here.DistanceTo(there), 0.0, t.EqualPoint);
 
                 GeoLine2 line = Projection2.GetShortestLineTo(ray, other, t);

@@ -50,7 +50,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (objects)
             {
                 Source = "GeometryHelper Drawing entities";
-                SourceDetail = Count(data.Count) + (data.Count == 1 ? " object" : " objects") + " copied from " + (data.SourceName ?? "a drawing") + (data.SpaceName != null ? " · " + data.SpaceName : string.Empty);
+                SourceDetail =
+                    Count(data.Count)
+                    + (data.Count == 1 ? " object" : " objects")
+                    + " copied from "
+                    + (data.SourceName ?? "a drawing")
+                    + (data.SpaceName != null ? " · " + data.SpaceName : string.Empty);
             }
             else if (text)
             {
@@ -65,12 +70,42 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             Formats = new List<PasteFormatViewModel>
             {
-                new PasteFormatViewModel("Drawing entities (PASTECLIP)", "PASTECLIP", "Inserts the clipboard contents as the objects they were, their layers and styles brought along, at the point you pick: the same as PASTECLIP.", objects),
-                new PasteFormatViewModel("Drawing entities as a block (PASTEBLOCK)", "PASTEBLOCK", "Inserts the clipboard contents as one block reference, named A$C followed by a number, at the point you pick: the same as PASTEBLOCK.", objects),
-                new PasteFormatViewModel("Drawing entities at original coordinates (PASTEORIG)", "PASTEORIG", "Inserts the clipboard contents where they were in the drawing they were copied from, which is another drawing: the same as PASTEORIG.", objects),
-                new PasteFormatViewModel("Multiline text (MTEXT)", "TEXT", "Inserts the clipboard's text as multiline text in the current text style, each line a paragraph, at the point you pick.", text),
-                new PasteFormatViewModel("Unicode text", "TEXT", "Inserts the clipboard's text as it reads, as multiline text with no formatting, at the point you pick.", text),
-                new PasteFormatViewModel("Image (PNG)", null, "Pasting a picture as an OLE object is not built yet.", false),
+                new PasteFormatViewModel(
+                    "Drawing entities (PASTECLIP)",
+                    "PASTECLIP",
+                    "Inserts the clipboard contents as the objects they were, their layers and styles brought along, at the point you pick: the same as PASTECLIP.",
+                    objects
+                ),
+                new PasteFormatViewModel(
+                    "Drawing entities as a block (PASTEBLOCK)",
+                    "PASTEBLOCK",
+                    "Inserts the clipboard contents as one block reference, named A$C followed by a number, at the point you pick: the same as PASTEBLOCK.",
+                    objects
+                ),
+                new PasteFormatViewModel(
+                    "Drawing entities at original coordinates (PASTEORIG)",
+                    "PASTEORIG",
+                    "Inserts the clipboard contents where they were in the drawing they were copied from, which is another drawing: the same as PASTEORIG.",
+                    objects
+                ),
+                new PasteFormatViewModel(
+                    "Multiline text (MTEXT)",
+                    "TEXT",
+                    "Inserts the clipboard's text as multiline text in the current text style, each line a paragraph, at the point you pick.",
+                    text
+                ),
+                new PasteFormatViewModel(
+                    "Unicode text",
+                    "TEXT",
+                    "Inserts the clipboard's text as it reads, as multiline text with no formatting, at the point you pick.",
+                    text
+                ),
+                new PasteFormatViewModel(
+                    "Image (PNG)",
+                    null,
+                    "Pasting a picture as an OLE object is not built yet.",
+                    false
+                ),
             };
 
             _selected = Formats.FirstOrDefault(f => f.IsEnabled);

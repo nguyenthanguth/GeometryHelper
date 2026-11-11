@@ -25,7 +25,9 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
 
             Assert.Equal(2, bench.Requests.Count);
             Assert.All(bench.Requests, r => Assert.IsType<NewDrawingViewModel>(r.Model));
-            Assert.DoesNotContain(bench.Model.History, l => l.StartsWith("No drawing is open", StringComparison.Ordinal));
+            Assert.DoesNotContain(bench.Model.History, l =>
+                l.StartsWith("No drawing is open", StringComparison.Ordinal)
+            );
         }
 
         [Fact]
@@ -43,9 +45,14 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             var bench = new Bench();
 
             Assert.True(bench.Model.CanMakeFromModel);
-            Assert.Equal("Open and edit any 2D drawing, or make drawings from a model. No file is open.", bench.Model.StartScreenText);
+            Assert.Equal(
+                "Open and edit any 2D drawing, or make drawings from a model. No file is open.",
+                bench.Model.StartScreenText
+            );
             Assert.Equal(new[] { MainViewModel.WelcomeText }, bench.Model.RecentHistory);
-            Assert.Contains(bench.Model.CreateAppMenu("GeometryHelper Drawing").Items[0].Items, i => i.Name == "Drawing from a model");
+            Assert.Contains(bench.Model.CreateAppMenu("GeometryHelper Drawing").Items[0].Items, i =>
+                i.Name == "Drawing from a model"
+            );
 
             bench.Model.NewByShortcut();
 
@@ -85,7 +92,16 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             bench.Model.Execute("AD");
             bench.Model.Execute("VS");
 
-            Assert.Equal(new[] { DrawingDialogKind.NewDrawing, DrawingDialogKind.Update, DrawingDialogKind.Settings, DrawingDialogKind.Export }, bench.Requests.Select(r => r.Kind));
+            Assert.Equal(
+                new[]
+                {
+                    DrawingDialogKind.NewDrawing,
+                    DrawingDialogKind.Update,
+                    DrawingDialogKind.Settings,
+                    DrawingDialogKind.Export,
+                },
+                bench.Requests.Select(r => r.Kind)
+            );
             Assert.Contains("Select a view first: its frame, or anything in it.", bench.Model.History);
             Assert.StartsWith("Specify first point of the cut line", bench.Model.Prompt);
             bench.Model.Escape();
@@ -124,7 +140,9 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             Assert.Equal("DXF 0", bench.Model.DxfChipText);
 
             string mark = Bench.FirstOf(made, "Mark") ?? Bench.FirstOf(made, "Dimension");
-            Assert.True(made.Document.Owners.TryApply(made.Document, new CadEdit(mark, CadEditKind.Move, null, null, "40,0")));
+            Assert.True(
+                made.Document.Owners.TryApply(made.Document, new CadEdit(mark, CadEditKind.Move, null, null, "40,0"))
+            );
 
             Assert.Equal(CadFileState.Edited, bench.Model.FileRows.Single(r => !r.IsHeader).State);
             Assert.Equal("Edited · 1 hand edit", made.StatusText);
@@ -142,9 +160,13 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             await bench.MakeAsync();
 
             Assert.Equal("Drawing B1", bench.Model.SelectionLabel);
-            Assert.Equal(new[] { "Drawing", "Sheet", "Title block", "Source" }, bench.Model.PropertyGroups.Select(g => g.Title));
+            Assert.Equal(
+                new[] { "Drawing", "Sheet", "Title block", "Source" },
+                bench.Model.PropertyGroups.Select(g => g.Title)
+            );
             Assert.Null(bench.Model.PropertiesBanner);
-            string Row(string label) => bench.Model.PropertyGroups.SelectMany(g => g.Rows).Single(r => r.Label == label).Value;
+            string Row(string label) =>
+                bench.Model.PropertyGroups.SelectMany(g => g.Rows).Single(r => r.Label == label).Value;
             Assert.Equal("B1", Row("Number"));
             Assert.Equal("Beam B1", Row("Name"));
             Assert.Equal("Assembly", Row("Preset"));
@@ -166,7 +188,10 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
 
             made.Document.Selection.Set(new[] { dimension });
 
-            Assert.Equal("Owned by drawing B1. You can move it, edit its text and points. Its value follows the model.", bench.Model.PropertiesBanner);
+            Assert.Equal(
+                "Owned by drawing B1. You can move it, edit its text and points. Its value follows the model.",
+                bench.Model.PropertiesBanner
+            );
             PropertyGroupViewModel link = bench.Model.PropertyGroups.Last();
             Assert.Equal("Model link", link.Title);
             Assert.Equal(new[] { "Object", "Measures", "Value", "Edited" }, link.Rows.Select(r => r.Label));
@@ -185,9 +210,18 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             made.Document.Selection.Set(new[] { view });
 
             Assert.Equal("View (1)", bench.Model.SelectionLabel);
-            Assert.Equal("Part of drawing B1. The lines of a view come from the model: change the view, not the lines.", bench.Model.PropertiesBanner);
-            Assert.Equal(new[] { "View", "Visible area", "Display", "Content" }, bench.Model.PropertyGroups.Select(g => g.Title));
-            Assert.Equal("Along an axis (like MVIEW)", bench.Model.PropertyGroups[0].Rows.Single(r => r.Label == "Kind").Value);
+            Assert.Equal(
+                "Part of drawing B1. The lines of a view come from the model: change the view, not the lines.",
+                bench.Model.PropertiesBanner
+            );
+            Assert.Equal(
+                new[] { "View", "Visible area", "Display", "Content" },
+                bench.Model.PropertyGroups.Select(g => g.Title)
+            );
+            Assert.Equal(
+                "Along an axis (like MVIEW)",
+                bench.Model.PropertyGroups[0].Rows.Single(r => r.Label == "Kind").Value
+            );
             Assert.StartsWith("1:", bench.Model.PropertyGroups[0].Rows.Single(r => r.Label == "Scale").Value);
 
             made.Document.Selection.Clear();
@@ -219,7 +253,12 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             var bench = new Bench();
             ModelDrawing made = await bench.MakeAsync();
             string dimension = Bench.FirstOf(made, "Dimension");
-            Assert.True(made.Document.Owners.TryApply(made.Document, new CadEdit(dimension, CadEditKind.Move, null, null, "0,25")));
+            Assert.True(
+                made.Document.Owners.TryApply(
+                    made.Document,
+                    new CadEdit(dimension, CadEditKind.Move, null, null, "0,25")
+                )
+            );
             Assert.Contains(ViewKind.Isometric, bench.Workspace.AddableViews);
 
             Assert.True(await bench.Workspace.AddViewAsync(ViewKind.Isometric));
@@ -229,7 +268,9 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             Assert.Single(made.Drawing.Edits);
             Assert.Same(made.Document, bench.Model.Document);
             Assert.Equal("Changed", made.PresetName);
-            Assert.Contains(bench.Model.History, l => l.StartsWith("B1 made again with the new settings: 1 hand edit kept", StringComparison.Ordinal));
+            Assert.Contains(bench.Model.History, l =>
+                l.StartsWith("B1 made again with the new settings: 1 hand edit kept", StringComparison.Ordinal)
+            );
             Assert.Equal("UPDATE", made.Document.NextUndo.Name);
             Assert.False(await bench.Workspace.AddViewAsync(ViewKind.Section));
             Assert.Contains("A section is drawn by VIEWSECTION on the canvas.", bench.Model.History);
@@ -250,7 +291,9 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             Assert.NotNull(report);
             Assert.Contains(made.Drawing.Elements, e => e.Kind == "Dimension" && e.ViewId == "V-RIGHT");
             Assert.Equal("UPDATE", made.Document.NextUndo.Name);
-            Assert.Contains(bench.Model.History, l => l.StartsWith("Dimensions of V-RIGHT: ", StringComparison.Ordinal));
+            Assert.Contains(bench.Model.History, l =>
+                l.StartsWith("Dimensions of V-RIGHT: ", StringComparison.Ordinal)
+            );
 
             Assert.True(bench.Model.Undo());
             Assert.DoesNotContain(made.Drawing.Elements, e => e.Kind == "Dimension" && e.ViewId == "V-RIGHT");
@@ -285,8 +328,12 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             string x = front.Center.X.ToString("R", CultureInfo.InvariantCulture);
 
             bench.Model.Execute("VS");
-            bench.Model.Execute(x + "," + (front.Center.Y + 0.4 * front.Height).ToString("R", CultureInfo.InvariantCulture));
-            bench.Model.Execute(x + "," + (front.Center.Y - 0.4 * front.Height).ToString("R", CultureInfo.InvariantCulture));
+            bench.Model.Execute(
+                x + "," + (front.Center.Y + 0.4 * front.Height).ToString("R", CultureInfo.InvariantCulture)
+            );
+            bench.Model.Execute(
+                x + "," + (front.Center.Y - 0.4 * front.Height).ToString("R", CultureInfo.InvariantCulture)
+            );
             Assert.StartsWith("Specify depth behind the cut", bench.Model.Prompt);
             bench.Model.Execute("100");
 
@@ -335,8 +382,11 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             Assert.False(bench.Workspace.ExportDxfCommand.CanExecute(null));
         }
 
-        private static string Tagged(ModelDrawing made, string id)
-            => DrawingEntityTags.Find(made.Document.Database).First(e => !e.IsErased && DrawingEntityTags.TryRead(e, out string tag, out _) && tag == id).Handle;
+        private static string Tagged(ModelDrawing made, string id) =>
+            DrawingEntityTags
+                .Find(made.Document.Database)
+                .First(e => !e.IsErased && DrawingEntityTags.TryRead(e, out string tag, out _) && tag == id)
+                .Handle;
 
         [Fact]
         public async Task TwoDrawingsOfOneBeamAreBothListed()

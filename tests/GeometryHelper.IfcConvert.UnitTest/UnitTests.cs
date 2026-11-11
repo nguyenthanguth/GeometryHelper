@@ -8,10 +8,13 @@ namespace GeometryHelper.IfcConvert.UnitTest
         private const string Guid = "0000000000000000000002";
 
         // Tekla-style unit assignment: lengths in millimetres, areas in m2, volumes in m3, mass in kg.
-        private static string ModelWithUnits(string lengthUnit) => @"
+        private static string ModelWithUnits(string lengthUnit) =>
+            @"
 #1=IFCPROJECT('0000000000000000000001',$,'TestProject',$,$,$,$,(#11),#2);
 #2=IFCUNITASSIGNMENT((#3,#4,#5,#6));
-" + lengthUnit + @"
+"
+            + lengthUnit
+            + @"
 #4=IFCSIUNIT(*,.AREAUNIT.,$,.SQUARE_METRE.);
 #5=IFCSIUNIT(*,.VOLUMEUNIT.,$,.CUBIC_METRE.);
 #6=IFCSIUNIT(*,.MASSUNIT.,.KILO.,.GRAM.);
@@ -19,7 +22,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
 #8=IFCAXIS2PLACEMENT3D(#7,$,$);
 #11=IFCGEOMETRICREPRESENTATIONCONTEXT($,'Model',3,0.0001,#8,$);
 #24=IFCLOCALPLACEMENT($,#8);
-#25=IFCBEAM('" + Guid + @"',$,'Beam',$,$,#24,$,$,$);
+#25=IFCBEAM('"
+            + Guid
+            + @"',$,'Beam',$,$,#24,$,$,$);
 #40=IFCQUANTITYLENGTH('Length',$,$,6000.,$);
 #41=IFCQUANTITYAREA('OuterSurfaceArea',$,$,4.2,$);
 #42=IFCQUANTITYVOLUME('NetVolume',$,$,0.05,$);
@@ -50,9 +55,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
         }
 
         [Theory]
-        [InlineData("Span", "mm")]   // no unit on the property: project length unit
+        [InlineData("Span", "mm")] // no unit on the property: project length unit
         [InlineData("Camber", "mm")] // explicit SI unit with MILLI prefix
-        [InlineData("Grade", "")]    // not a measure
+        [InlineData("Grade", "")] // not a measure
         public void SingleValues_ReportUnitSymbols(string property, string unit)
         {
             IfcTestFile.Run(Millimetres, model =>
@@ -65,10 +70,13 @@ namespace GeometryHelper.IfcConvert.UnitTest
         [InlineData("#3=IFCSIUNIT(*,.LENGTHUNIT.,.MILLI.,.METRE.);", "MILLIMETRE")]
         [InlineData("#3=IFCSIUNIT(*,.LENGTHUNIT.,.CENTI.,.METRE.);", "CENTIMETRE")]
         [InlineData("#3=IFCSIUNIT(*,.LENGTHUNIT.,$,.METRE.);", "METRE")]
-        [InlineData(@"#3=IFCCONVERSIONBASEDUNIT(#60,.LENGTHUNIT.,'FOOT',#61);
+        [InlineData(
+            @"#3=IFCCONVERSIONBASEDUNIT(#60,.LENGTHUNIT.,'FOOT',#61);
 #60=IFCDIMENSIONALEXPONENTS(1,0,0,0,0,0,0);
 #61=IFCMEASUREWITHUNIT(IFCLENGTHMEASURE(0.3048),#62);
-#62=IFCSIUNIT(*,.LENGTHUNIT.,$,.METRE.);", "FOOT")]
+#62=IFCSIUNIT(*,.LENGTHUNIT.,$,.METRE.);",
+            "FOOT"
+        )]
         public void OriginalLengthUnit_NamesTheProjectUnit(string lengthUnit, string expected)
         {
             IfcTestFile.Run(ModelWithUnits(lengthUnit), model =>

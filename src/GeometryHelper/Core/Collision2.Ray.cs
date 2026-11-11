@@ -55,7 +55,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static bool CollidesWith(GeoPolygon2 poly, GeoRay2 ray, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             return CollidesWith(poly, Ray2.CutPast(ray, poly, tolerance), tolerance);
         }
@@ -72,7 +73,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool CollidesWith(GeoPolygonArc2 loop, GeoRay2 ray, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return CollidesWith(loop, Ray2.CutPast(ray, loop, tolerance), tolerance);
         }
@@ -81,7 +83,8 @@ namespace GeometryHelper.Core
         /// Checks whether a ray touches a polyline, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public static bool CollidesWith(GeoPolyline2 polyline, GeoRay2 ray) => CollidesWith(polyline, ray, Tolerance.Global);
+        public static bool CollidesWith(GeoPolyline2 polyline, GeoRay2 ray) =>
+            CollidesWith(polyline, ray, Tolerance.Global);
 
         /// <summary>
         /// Checks whether a ray touches a polyline, within a tolerance.
@@ -89,7 +92,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static bool CollidesWith(GeoPolyline2 polyline, GeoRay2 ray, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return CollidesWith(polyline, Ray2.CutPast(ray, polyline, tolerance), tolerance);
         }
@@ -98,7 +102,8 @@ namespace GeometryHelper.Core
         /// Checks whether a ray touches a curved chain, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolylineArc2 chain, GeoRay2 ray) => CollidesWith(chain, ray, Tolerance.Global);
+        public static bool CollidesWith(GeoPolylineArc2 chain, GeoRay2 ray) =>
+            CollidesWith(chain, ray, Tolerance.Global);
 
         /// <summary>
         /// Checks whether a ray touches a curved chain, within a tolerance.
@@ -106,7 +111,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolylineArc2 chain, GeoRay2 ray, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return CollidesWith(chain, Ray2.CutPast(ray, chain, tolerance), tolerance);
         }

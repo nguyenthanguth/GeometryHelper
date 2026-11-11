@@ -34,16 +34,27 @@ namespace GeometryHelper.Spatial
             internal double MaxX;
             internal double MaxY;
 
-            internal static Box Empty => new Box { MinX = double.MaxValue, MinY = double.MaxValue, MaxX = double.MinValue, MaxY = double.MinValue };
+            internal static Box Empty =>
+                new Box
+                {
+                    MinX = double.MaxValue,
+                    MinY = double.MaxValue,
+                    MaxX = double.MinValue,
+                    MaxY = double.MinValue,
+                };
 
             internal bool IsEmpty => MinX > MaxX;
 
             internal void Add(Box other)
             {
-                if (other.MinX < MinX) MinX = other.MinX;
-                if (other.MinY < MinY) MinY = other.MinY;
-                if (other.MaxX > MaxX) MaxX = other.MaxX;
-                if (other.MaxY > MaxY) MaxY = other.MaxY;
+                if (other.MinX < MinX)
+                    MinX = other.MinX;
+                if (other.MinY < MinY)
+                    MinY = other.MinY;
+                if (other.MaxX > MaxX)
+                    MaxX = other.MaxX;
+                if (other.MaxY > MaxY)
+                    MaxY = other.MaxY;
             }
 
             /// <summary>
@@ -51,8 +62,14 @@ namespace GeometryHelper.Spatial
             /// </summary>
             internal double DistanceTo(GeoPoint2 point)
             {
-                double x = point.X < MinX ? MinX - point.X : point.X > MaxX ? point.X - MaxX : 0.0;
-                double y = point.Y < MinY ? MinY - point.Y : point.Y > MaxY ? point.Y - MaxY : 0.0;
+                double x =
+                    point.X < MinX ? MinX - point.X
+                    : point.X > MaxX ? point.X - MaxX
+                    : 0.0;
+                double y =
+                    point.Y < MinY ? MinY - point.Y
+                    : point.Y > MaxY ? point.Y - MaxY
+                    : 0.0;
 
                 return Math.Sqrt(x * x + y * y);
             }
@@ -62,8 +79,14 @@ namespace GeometryHelper.Spatial
             /// </summary>
             internal double DistanceTo(Box other)
             {
-                double x = other.MinX > MaxX ? other.MinX - MaxX : MinX > other.MaxX ? MinX - other.MaxX : 0.0;
-                double y = other.MinY > MaxY ? other.MinY - MaxY : MinY > other.MaxY ? MinY - other.MaxY : 0.0;
+                double x =
+                    other.MinX > MaxX ? other.MinX - MaxX
+                    : MinX > other.MaxX ? MinX - other.MaxX
+                    : 0.0;
+                double y =
+                    other.MinY > MaxY ? other.MinY - MaxY
+                    : MinY > other.MaxY ? MinY - other.MaxY
+                    : 0.0;
 
                 return Math.Sqrt(x * x + y * y);
             }
@@ -77,8 +100,10 @@ namespace GeometryHelper.Spatial
                 double enter = double.NegativeInfinity;
                 double exit = double.PositiveInfinity;
 
-                if (!Slab(line.Origin.X, line.Direction.X, MinX - grow, MaxX + grow, ref enter, ref exit)
-                    || !Slab(line.Origin.Y, line.Direction.Y, MinY - grow, MaxY + grow, ref enter, ref exit))
+                if (
+                    !Slab(line.Origin.X, line.Direction.X, MinX - grow, MaxX + grow, ref enter, ref exit)
+                    || !Slab(line.Origin.Y, line.Direction.Y, MinY - grow, MaxY + grow, ref enter, ref exit)
+                )
                 {
                     return false;
                 }
@@ -95,8 +120,10 @@ namespace GeometryHelper.Spatial
                 double enter = double.NegativeInfinity;
                 double exit = double.PositiveInfinity;
 
-                if (!Slab(ray.Origin.X, ray.Direction.X, MinX - grow, MaxX + grow, ref enter, ref exit)
-                    || !Slab(ray.Origin.Y, ray.Direction.Y, MinY - grow, MaxY + grow, ref enter, ref exit))
+                if (
+                    !Slab(ray.Origin.X, ray.Direction.X, MinX - grow, MaxX + grow, ref enter, ref exit)
+                    || !Slab(ray.Origin.Y, ray.Direction.Y, MinY - grow, MaxY + grow, ref enter, ref exit)
+                )
                 {
                     return false;
                 }
@@ -104,7 +131,14 @@ namespace GeometryHelper.Spatial
                 return enter <= exit && exit >= -grow;
             }
 
-            private static bool Slab(double origin, double step, double low, double high, ref double enter, ref double exit)
+            private static bool Slab(
+                double origin,
+                double step,
+                double low,
+                double high,
+                ref double enter,
+                ref double exit
+            )
             {
                 if (step == 0.0)
                 {
@@ -150,7 +184,8 @@ namespace GeometryHelper.Spatial
         /// <exception cref="ArgumentNullException">Thrown when the edges are null.</exception>
         public GeoBvh2(IEnumerable<GeoEdge2> edges)
         {
-            if (edges == null) throw new ArgumentNullException(nameof(edges));
+            if (edges == null)
+                throw new ArgumentNullException(nameof(edges));
 
             var kept = new List<GeoEdge2>(edges);
 
@@ -181,7 +216,8 @@ namespace GeometryHelper.Spatial
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static GeoBvh2 FromPolygonArc(GeoPolygonArc2 loop)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return new GeoBvh2(loop.GetEdges());
         }
@@ -192,7 +228,8 @@ namespace GeometryHelper.Spatial
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoBvh2 FromPolylineArc(GeoPolylineArc2 chain)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return new GeoBvh2(chain.GetEdges());
         }
@@ -203,7 +240,8 @@ namespace GeometryHelper.Spatial
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static GeoBvh2 FromPolygon(GeoPolygon2 polygon)
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             var edges = new List<GeoEdge2>(polygon.VertexCount);
 
@@ -221,7 +259,8 @@ namespace GeometryHelper.Spatial
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static GeoBvh2 FromPolyline(GeoPolyline2 polyline)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             var edges = new List<GeoEdge2>(polyline.VertexCount - 1);
 
@@ -262,7 +301,8 @@ namespace GeometryHelper.Spatial
                     new GeoPoint2((box.MinX + box.MaxX) * 0.5, (box.MinY + box.MaxY) * 0.5),
                     box.MaxX - box.MinX,
                     box.MaxY - box.MinY,
-                    0.0);
+                    0.0
+                );
             }
         }
 
@@ -319,7 +359,8 @@ namespace GeometryHelper.Spatial
         /// knows nothing of what they enclose.
         /// </remarks>
         /// <exception cref="InvalidOperationException">Thrown when nothing was indexed.</exception>
-        public double DistanceTo(GeoPoint2 point, Tolerance tolerance) => point.DistanceTo(GetClosestPoint(point, tolerance));
+        public double DistanceTo(GeoPoint2 point, Tolerance tolerance) =>
+            point.DistanceTo(GetClosestPoint(point, tolerance));
 
         /// <summary>
         /// Gets the points where a straight segment crosses the indexed edges.
@@ -426,7 +467,8 @@ namespace GeometryHelper.Spatial
         /// <exception cref="ArgumentNullException">Thrown when the other hierarchy is null.</exception>
         public double DistanceTo(GeoBvh2 other, Tolerance tolerance)
         {
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
 
             if (_nodeCount == 0 || other._nodeCount == 0)
             {
@@ -457,7 +499,8 @@ namespace GeometryHelper.Spatial
         /// <exception cref="ArgumentNullException">Thrown when the other hierarchy is null.</exception>
         public bool CollidesWith(GeoBvh2 other, Tolerance tolerance)
         {
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
 
             return DistanceTo(other, tolerance) <= tolerance.EqualPoint;
         }
@@ -477,7 +520,7 @@ namespace GeometryHelper.Spatial
                 MinX = Math.Min(edge.StartPoint.X, edge.EndPoint.X),
                 MinY = Math.Min(edge.StartPoint.Y, edge.EndPoint.Y),
                 MaxX = Math.Max(edge.StartPoint.X, edge.EndPoint.X),
-                MaxY = Math.Max(edge.StartPoint.Y, edge.EndPoint.Y)
+                MaxY = Math.Max(edge.StartPoint.Y, edge.EndPoint.Y),
             };
 
             if (!edge.IsArc)
@@ -500,10 +543,14 @@ namespace GeometryHelper.Spatial
 
                 GeoPoint2 at = arc.GetPointAtAngle(angle);
 
-                if (at.X < box.MinX) box.MinX = at.X;
-                if (at.Y < box.MinY) box.MinY = at.Y;
-                if (at.X > box.MaxX) box.MaxX = at.X;
-                if (at.Y > box.MaxY) box.MaxY = at.Y;
+                if (at.X < box.MinX)
+                    box.MinX = at.X;
+                if (at.Y < box.MinY)
+                    box.MinY = at.Y;
+                if (at.X > box.MaxX)
+                    box.MaxX = at.X;
+                if (at.Y > box.MaxY)
+                    box.MaxY = at.Y;
             }
 
             return box;
@@ -540,7 +587,14 @@ namespace GeometryHelper.Spatial
                 bounds.Add(_boxes[_order[i]]);
             }
 
-            _nodes[node] = new Node { Bounds = bounds, Start = start, Count = count, Left = -1, Right = -1 };
+            _nodes[node] = new Node
+            {
+                Bounds = bounds,
+                Start = start,
+                Count = count,
+                Left = -1,
+                Right = -1,
+            };
 
             if (count <= LeafSize)
             {
@@ -584,7 +638,9 @@ namespace GeometryHelper.Spatial
             public int Compare(int first, int second)
             {
                 double one = _byX ? _boxes[first].MinX + _boxes[first].MaxX : _boxes[first].MinY + _boxes[first].MaxY;
-                double other = _byX ? _boxes[second].MinX + _boxes[second].MaxX : _boxes[second].MinY + _boxes[second].MaxY;
+                double other = _byX
+                    ? _boxes[second].MinX + _boxes[second].MaxX
+                    : _boxes[second].MinY + _boxes[second].MaxY;
 
                 return one.CompareTo(other);
             }
@@ -609,7 +665,8 @@ namespace GeometryHelper.Spatial
                 for (int i = one.Start; i < one.Start + one.Count; i++)
                 {
                     int at = _order[i];
-                    GeoPoint2 candidate = _edges[at].GetClosestPointOnBoundary(point, _edges[at].IsArc ? tolerance : Exactly);
+                    GeoPoint2 candidate = _edges[at]
+                        .GetClosestPointOnBoundary(point, _edges[at].IsArc ? tolerance : Exactly);
                     double distance = point.GetDistanceSquaredTo(candidate);
 
                     if (distance < best)
@@ -641,7 +698,16 @@ namespace GeometryHelper.Spatial
         /// <summary>
         /// Collects where a segment crosses the edges, leaving alone the branches it cannot reach.
         /// </summary>
-        private void Cross(int node, GeoLine2 line, double minX, double minY, double maxX, double maxY, Tolerance tolerance, List<GeoPoint2> found)
+        private void Cross(
+            int node,
+            GeoLine2 line,
+            double minX,
+            double minY,
+            double maxX,
+            double maxY,
+            Tolerance tolerance,
+            List<GeoPoint2> found
+        )
         {
             Node one = _nodes[node];
 
@@ -819,6 +885,7 @@ namespace GeometryHelper.Spatial
                 Between(node, other, two.Right, ref best);
             }
         }
+
         /// <summary>
         /// Creates a hierarchy over the boundary of a face: its outline together with the rim of every hole.
         /// </summary>
@@ -859,6 +926,5 @@ namespace GeometryHelper.Spatial
                 edges.Add(new GeoEdge2(loop[i], loop[(i + 1) % loop.VertexCount]));
             }
         }
-
     }
 }

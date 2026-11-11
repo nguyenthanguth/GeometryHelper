@@ -40,8 +40,14 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int draw = 0; draw < 200; draw++)
             {
-                double[] a = Enumerable.Range(0, 1 + random.Next(6)).Select(_ => random.NextDouble() * 20 - 10).ToArray();
-                double[] b = Enumerable.Range(0, 1 + random.Next(6)).Select(_ => random.NextDouble() * 20 - 10).ToArray();
+                double[] a = Enumerable
+                    .Range(0, 1 + random.Next(6))
+                    .Select(_ => random.NextDouble() * 20 - 10)
+                    .ToArray();
+                double[] b = Enumerable
+                    .Range(0, 1 + random.Next(6))
+                    .Select(_ => random.NextDouble() * 20 - 10)
+                    .ToArray();
                 double[] c = Bernstein.Multiply(a, b);
 
                 Assert.Equal(a.Length + b.Length - 1, c.Length);
@@ -104,7 +110,10 @@ namespace GeometryHelper.UnitTest.Plane
 
                 for (int i = 0; i < expected.Length; i++)
                 {
-                    Assert.True(Math.Abs(found[i] - expected[i]) <= 1E-9, "root " + expected[i] + ": found " + found[i]);
+                    Assert.True(
+                        Math.Abs(found[i] - expected[i]) <= 1E-9,
+                        "root " + expected[i] + ": found " + found[i]
+                    );
                 }
             }
         }
@@ -202,7 +211,13 @@ namespace GeometryHelper.UnitTest.Plane
             for (int draw = 0; draw < 200; draw++)
             {
                 SplineOracle o = SplineGen.Draw(random, 2 + draw % 2, maxDegree: 6);
-                NurbsCurve curve = new NurbsCurve(o.Dim, o.Degree, o.Points.ToArray(), o.Knots.ToArray(), o.Weights.Any(w => w != 1.0) ? o.Weights.ToArray() : null);
+                NurbsCurve curve = new NurbsCurve(
+                    o.Dim,
+                    o.Degree,
+                    o.Points.ToArray(),
+                    o.Knots.ToArray(),
+                    o.Weights.Any(w => w != 1.0) ? o.Weights.ToArray() : null
+                );
                 BezierPieces pieces = curve.Pieces;
 
                 Assert.Equal(o.Start, pieces.From[0]);
@@ -217,7 +232,10 @@ namespace GeometryHelper.UnitTest.Plane
 
                         for (int k = 0; k < o.Dim; k++)
                         {
-                            Assert.Equal(pieces.Points[pieces.PointOffset(piece) + o.Degree * o.Dim + k], pieces.Points[pieces.PointOffset(piece + 1) + k]);
+                            Assert.Equal(
+                                pieces.Points[pieces.PointOffset(piece) + o.Degree * o.Dim + k],
+                                pieces.Points[pieces.PointOffset(piece + 1) + k]
+                            );
                         }
                     }
 
@@ -231,7 +249,10 @@ namespace GeometryHelper.UnitTest.Plane
 
                         for (int j = 0; j <= o.Degree; j++)
                         {
-                            double basis = Bernstein.Choose(o.Degree, j) * Math.Pow(share, j) * Math.Pow(1.0 - share, o.Degree - j);
+                            double basis =
+                                Bernstein.Choose(o.Degree, j)
+                                * Math.Pow(share, j)
+                                * Math.Pow(1.0 - share, o.Degree - j);
                             double w = pieces.Rational ? pieces.Weights[pieces.WeightOffset(piece) + j] : 1.0;
                             weight += basis * w;
 
@@ -249,7 +270,10 @@ namespace GeometryHelper.UnitTest.Plane
                         double error = SplineUnderTest.Distance(exact, numerators) / (o.Scale * 2.2E-16);
                         worst = Math.Max(worst, error);
 
-                        Assert.True(error <= 200.0, "piece " + piece + " at " + share + " is " + error + " units of rounding off");
+                        Assert.True(
+                            error <= 200.0,
+                            "piece " + piece + " at " + share + " is " + error + " units of rounding off"
+                        );
                     }
                 }
             }

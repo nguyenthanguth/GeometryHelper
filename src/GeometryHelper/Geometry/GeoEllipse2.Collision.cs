@@ -27,7 +27,8 @@ namespace GeometryHelper.Geometry
         /// Determines whether this ellipse touches a polyline, within a tolerance.
         /// </summary>
         /// <exception cref="System.ArgumentNullException">Thrown when the polyline is null.</exception>
-        public bool CollidesWith(GeoPolyline2 polyline, Tolerance tolerance) => Ellipse2.CollidesWith(this, polyline, tolerance);
+        public bool CollidesWith(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Ellipse2.CollidesWith(this, polyline, tolerance);
 
         /// <summary>
         /// Determines whether this ellipse touches or overlaps a polygon, using the default tolerance.
@@ -39,7 +40,8 @@ namespace GeometryHelper.Geometry
         /// Determines whether this ellipse touches or overlaps a polygon, within a tolerance.
         /// </summary>
         /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
-        public bool CollidesWith(GeoPolygon2 polygon, Tolerance tolerance) => Ellipse2.CollidesWith(this, polygon, tolerance);
+        public bool CollidesWith(GeoPolygon2 polygon, Tolerance tolerance) =>
+            Ellipse2.CollidesWith(this, polygon, tolerance);
 
         /// <summary>
         /// Determines whether this ellipse touches or overlaps a rectangle, using the default tolerance.
@@ -49,7 +51,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this ellipse touches or overlaps a rectangle, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoRectangle2 rect, Tolerance tolerance) => Ellipse2.CollidesWith(this, rect, tolerance);
+        public bool CollidesWith(GeoRectangle2 rect, Tolerance tolerance) =>
+            Ellipse2.CollidesWith(this, rect, tolerance);
 
         /// <summary>
         /// Determines whether this ellipse touches or overlaps a triangle, using the default tolerance.
@@ -59,7 +62,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this ellipse touches or overlaps a triangle, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoTriangle2 triangle, Tolerance tolerance) => Ellipse2.CollidesWith(this, triangle, tolerance);
+        public bool CollidesWith(GeoTriangle2 triangle, Tolerance tolerance) =>
+            Ellipse2.CollidesWith(this, triangle, tolerance);
 
         /// <summary>
         /// Determines whether this ellipse reaches the material of a face, using the default tolerance.
@@ -91,7 +95,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this ellipse touches or overlaps a circle, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoCircle2 circle, Tolerance tolerance) => Ellipse2.CollidesWith(this, circle, tolerance);
+        public bool CollidesWith(GeoCircle2 circle, Tolerance tolerance) =>
+            Ellipse2.CollidesWith(this, circle, tolerance);
 
         /// <summary>
         /// Determines whether this ellipse touches an arc, using the default tolerance.
@@ -113,7 +118,8 @@ namespace GeometryHelper.Geometry
         /// Determines whether this ellipse touches a curved chain, within a tolerance.
         /// </summary>
         /// <exception cref="System.ArgumentNullException">Thrown when the chain is null.</exception>
-        public bool CollidesWith(GeoPolylineArc2 chain, Tolerance tolerance) => Ellipse2.CollidesWith(this, chain, tolerance);
+        public bool CollidesWith(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Ellipse2.CollidesWith(this, chain, tolerance);
 
         /// <summary>
         /// Determines whether this ellipse touches or overlaps a curved loop, using the default tolerance.
@@ -125,7 +131,8 @@ namespace GeometryHelper.Geometry
         /// Determines whether this ellipse touches or overlaps a curved loop, within a tolerance.
         /// </summary>
         /// <exception cref="System.ArgumentNullException">Thrown when the loop is null.</exception>
-        public bool CollidesWith(GeoPolygonArc2 loop, Tolerance tolerance) => Ellipse2.CollidesWith(this, loop, tolerance);
+        public bool CollidesWith(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Ellipse2.CollidesWith(this, loop, tolerance);
 
         /// <summary>
         /// Determines whether this ellipse touches or overlaps another ellipse, using the default tolerance.
@@ -135,7 +142,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this ellipse touches or overlaps another ellipse, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoEllipse2 other, Tolerance tolerance) => Ellipse2.CollidesWith(this, other, tolerance);
+        public bool CollidesWith(GeoEllipse2 other, Tolerance tolerance) =>
+            Ellipse2.CollidesWith(this, other, tolerance);
 
         #region Rays
 

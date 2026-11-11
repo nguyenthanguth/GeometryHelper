@@ -47,9 +47,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when the code has a line break in it, is not one field in its markers, or
         /// names no evaluator after the backslash it begins with.</exception>
         public DxfField(string fieldCode)
-            : this(fieldCode, false)
-        {
-        }
+            : this(fieldCode, false) { }
 
         /// <summary>
         /// Initializes a field made in code, as AutoCAD's <c>Field(fieldCode, textField)</c>: of one field as
@@ -74,7 +72,10 @@ namespace GeometryHelper.Dxf
 
             if (fieldCode.IndexOf('\n') >= 0 || fieldCode.IndexOf('\r') >= 0)
             {
-                throw new ArgumentException("The code of a field is written on one line: it has no line break in it.", nameof(fieldCode));
+                throw new ArgumentException(
+                    "The code of a field is written on one line: it has no line break in it.",
+                    nameof(fieldCode)
+                );
             }
 
             if (!textField)
@@ -83,7 +84,10 @@ namespace GeometryHelper.Dxf
 
                 if (!field.StartsWith("%<", StringComparison.Ordinal) || Closing(field, 0) != field.Length - 2)
                 {
-                    throw new ArgumentException("The code of one field is that field in its markers, as %<\\AcVar Date>%: a text with fields in it is a text field, new DxfField(code, true).", nameof(fieldCode));
+                    throw new ArgumentException(
+                        "The code of one field is that field in its markers, as %<\\AcVar Date>%: a text with fields in it is a text field, new DxfField(code, true).",
+                        nameof(fieldCode)
+                    );
                 }
 
                 string inner = field.Substring(2, field.Length - 4);
@@ -96,7 +100,12 @@ namespace GeometryHelper.Dxf
 
                 if (inner.Length == 0 || inner[0] != '\\' || end == 1)
                 {
-                    throw new ArgumentException("The code of a field begins with its evaluator after a backslash, as \\AcVar Date: '" + fieldCode + "' names none.", nameof(fieldCode));
+                    throw new ArgumentException(
+                        "The code of a field begins with its evaluator after a backslash, as \\AcVar Date: '"
+                            + fieldCode
+                            + "' names none.",
+                        nameof(fieldCode)
+                    );
                 }
 
                 _madeEvaluator = inner.Substring(1, end - 1);
@@ -121,7 +130,10 @@ namespace GeometryHelper.Dxf
 
                 if (close < 0)
                 {
-                    throw new ArgumentException("The code '" + fieldCode + "' opens a field with %< that it does not close with >%.", nameof(fieldCode));
+                    throw new ArgumentException(
+                        "The code '" + fieldCode + "' opens a field with %< that it does not close with >%.",
+                        nameof(fieldCode)
+                    );
                 }
 
                 code.Append(fieldCode, at, open - at);
@@ -135,9 +147,7 @@ namespace GeometryHelper.Dxf
         }
 
         internal DxfField(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets the evaluator of the field (group 1), as AutoCAD's <c>EvaluatorId</c>: <c>_text</c> for a text with fields in it,
@@ -276,7 +286,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gives the field as a line for debugging: its type, its handle, its evaluator and its code.</summary>
         /// <returns>The line, such as <c>FIELD 2F AcVar \AcVar Date</c>.</returns>
-        public override string ToString() => "FIELD " + (Handle ?? string.Empty) + " " + EvaluatorId + " " + GetFieldCode();
+        public override string ToString() =>
+            "FIELD " + (Handle ?? string.Empty) + " " + EvaluatorId + " " + GetFieldCode();
 
         /// <summary>
         /// The text with the codes of a field in place: the code of a text field, of one field that code in its markers, each
@@ -299,7 +310,12 @@ namespace GeometryHelper.Dxf
         /// <see cref="WithCodes(DxfField)"/> with the handles of the fields it stands inside, and the text of each field of the
         /// file worked out so far, so that a field two others name is worked out once.
         /// </summary>
-        private static string WithCodes(DxfField field, HashSet<string> inside, Dictionary<string, string> done, bool top)
+        private static string WithCodes(
+            DxfField field,
+            HashSet<string> inside,
+            Dictionary<string, string> done,
+            bool top
+        )
         {
             if (!top && field.Handle != null && done.TryGetValue(field.Handle, out string known))
             {
@@ -325,7 +341,12 @@ namespace GeometryHelper.Dxf
                 text.Append(code, at, open - at);
                 string index = code.Substring(open + 11, close - open - 11);
 
-                if (int.TryParse(index, NumberStyles.None, CultureInfo.InvariantCulture, out int n) && n < children.Length && children[n] != null && (children[n].Handle == null || inside.Add(children[n].Handle)))
+                if (
+                    int.TryParse(index, NumberStyles.None, CultureInfo.InvariantCulture, out int n)
+                    && n < children.Length
+                    && children[n] != null
+                    && (children[n].Handle == null || inside.Add(children[n].Handle))
+                )
                 {
                     text.Append(WithCodes(children[n], inside, done, false));
 
@@ -399,7 +420,12 @@ namespace GeometryHelper.Dxf
         internal static void EraseChildren(DxfField field)
         {
             var erased = new List<string>();
-            EraseChildren(field.Item.File, field.Item, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { field.Handle }, erased);
+            EraseChildren(
+                field.Item.File,
+                field.Item,
+                new HashSet<string>(StringComparer.OrdinalIgnoreCase) { field.Handle },
+                erased
+            );
             erased.Add(field.Handle);
             Unlist(field.Item.File, erased);
         }
@@ -415,7 +441,12 @@ namespace GeometryHelper.Dxf
 
                 DxfItem child = file.ObjectItem(group.Value);
 
-                if (child != null && child.Type == "FIELD" && string.Equals(file.OwnerOf(child), item.Handle, StringComparison.OrdinalIgnoreCase) && reached.Add(child.Handle))
+                if (
+                    child != null
+                    && child.Type == "FIELD"
+                    && string.Equals(file.OwnerOf(child), item.Handle, StringComparison.OrdinalIgnoreCase)
+                    && reached.Add(child.Handle)
+                )
                 {
                     EraseChildren(file, child, reached, erased);
                     file.RemoveRecord(child);
@@ -466,7 +497,12 @@ namespace GeometryHelper.Dxf
                 handles.Add(item.Handle);
             }
 
-            Dictionary<string, string> held = file.PointedAmong(handles, aside, new[] { "FIELDLIST" }, out Dictionary<string, string> named);
+            Dictionary<string, string> held = file.PointedAmong(
+                handles,
+                aside,
+                new[] { "FIELDLIST" },
+                out Dictionary<string, string> named
+            );
             var erased = new List<string>();
 
             foreach (DxfItem item in tree)
@@ -476,12 +512,21 @@ namespace GeometryHelper.Dxf
                     erased.Add(item.Handle);
                     file.RemoveRecord(item);
                 }
-                else if (held.ContainsKey(item.Handle) && parents.TryGetValue(item, out DxfItem parent) && !Kept(parent, held, parents))
+                else if (
+                    held.ContainsKey(item.Handle)
+                    && parents.TryGetValue(item, out DxfItem parent)
+                    && !Kept(parent, held, parents)
+                )
                 {
                     // Kept by another while the field that owns it goes: given an owner, so that it does not go with its old
                     // owner when the file is saved, nor stand in a circle of owners none of the drawing reaches.
                     named.TryGetValue(item.Handle, out string holder);
-                    Reown(file, item, parent.Handle, holder != null && !Below(file, holder, item.Handle) ? holder : TopOwner(file, parent, parents));
+                    Reown(
+                        file,
+                        item,
+                        parent.Handle,
+                        holder != null && !Below(file, holder, item.Handle) ? holder : TopOwner(file, parent, parents)
+                    );
                 }
             }
 
@@ -489,7 +534,13 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The fields a field owns, at every depth, each after those it owns, in the order of their 360s.</summary>
-        private static void Walk(DxfFile file, DxfItem item, List<DxfItem> tree, Dictionary<DxfItem, DxfItem> parents, HashSet<string> reached)
+        private static void Walk(
+            DxfFile file,
+            DxfItem item,
+            List<DxfItem> tree,
+            Dictionary<DxfItem, DxfItem> parents,
+            HashSet<string> reached
+        )
         {
             foreach (DxfTypedValue group in file.ObjectGroupsOf(item))
             {
@@ -500,7 +551,13 @@ namespace GeometryHelper.Dxf
 
                 DxfItem child = file.ObjectItem(group.Value);
 
-                if (child != null && !child.IsRemoved && child.Type == "FIELD" && string.Equals(file.OwnerOf(child), item.Handle, StringComparison.OrdinalIgnoreCase) && reached.Add(child.Handle))
+                if (
+                    child != null
+                    && !child.IsRemoved
+                    && child.Type == "FIELD"
+                    && string.Equals(file.OwnerOf(child), item.Handle, StringComparison.OrdinalIgnoreCase)
+                    && reached.Add(child.Handle)
+                )
                 {
                     parents[child] = item;
                     Walk(file, child, tree, parents, reached);
@@ -514,7 +571,11 @@ namespace GeometryHelper.Dxf
         {
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            for (string at = handle; at != null && seen.Add(at); at = file.ObjectItem(at) is DxfItem item ? file.OwnerOf(item) : null)
+            for (
+                string at = handle;
+                at != null && seen.Add(at);
+                at = file.ObjectItem(at) is DxfItem item ? file.OwnerOf(item) : null
+            )
             {
                 if (string.Equals(at, field, StringComparison.OrdinalIgnoreCase))
                 {
@@ -555,7 +616,14 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                if (code == 330 && (braced ? string.Equals(groups[i].Value.Trim(), oldOwner, StringComparison.OrdinalIgnoreCase) : !owner))
+                if (
+                    code == 330
+                    && (
+                        braced
+                            ? string.Equals(groups[i].Value.Trim(), oldOwner, StringComparison.OrdinalIgnoreCase)
+                            : !owner
+                    )
+                )
                 {
                     owner |= !braced;
                     file.SetValueAt(item, i, newOwner);
@@ -586,7 +654,11 @@ namespace GeometryHelper.Dxf
             string root = erased.Count == 0 ? null : file.KeptRootDictionaryHandle();
             DxfItem rootItem = root == null ? null : file.ObjectItem(root);
 
-            if (rootItem == null || !(OfObject(rootItem) is DxfDBDictionary dictionary) || !dictionary.Contains("ACAD_FIELDLIST"))
+            if (
+                rootItem == null
+                || !(OfObject(rootItem) is DxfDBDictionary dictionary)
+                || !dictionary.Contains("ACAD_FIELDLIST")
+            )
             {
                 return;
             }
@@ -620,7 +692,10 @@ namespace GeometryHelper.Dxf
 
             if (count >= 0)
             {
-                g.List[count] = new KeyValuePair<int, string>(90, g.List.FindAll(group => group.Key == 330).Count.ToString(CultureInfo.InvariantCulture));
+                g.List[count] = new KeyValuePair<int, string>(
+                    90,
+                    g.List.FindAll(group => group.Key == 330).Count.ToString(CultureInfo.InvariantCulture)
+                );
             }
 
             g.Write(new[] { 100, 90, 330 });
@@ -826,7 +901,15 @@ namespace GeometryHelper.Dxf
 
                 text.Append(code, at, open - at);
 
-                if (int.TryParse(code.Substring(open + 11, close - open - 11), NumberStyles.None, CultureInfo.InvariantCulture, out int n) && n < slots.Count)
+                if (
+                    int.TryParse(
+                        code.Substring(open + 11, close - open - 11),
+                        NumberStyles.None,
+                        CultureInfo.InvariantCulture,
+                        out int n
+                    )
+                    && n < slots.Count
+                )
                 {
                     text.Append(Placeholder(slots[n] >= 0 ? slots[n] : kept + n));
                 }
@@ -844,7 +927,10 @@ namespace GeometryHelper.Dxf
         /// <summary>The groups a code is written in: its first 250 characters in a 2, the rest in pieces of 250 in 3s.</summary>
         private static List<KeyValuePair<int, string>> CodeGroups(string code)
         {
-            var groups = new List<KeyValuePair<int, string>> { G(2, code.Length > 250 ? code.Substring(0, 250) : code) };
+            var groups = new List<KeyValuePair<int, string>>
+            {
+                G(2, code.Length > 250 ? code.Substring(0, 250) : code),
+            };
 
             for (int from = 250; from < code.Length; from += 250)
             {
@@ -925,9 +1011,11 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The placeholder of a child in the code of its text field, <c>%&lt;\_FldIdx 0&gt;%</c>.</summary>
-        private static string Placeholder(int index) => @"%<\_FldIdx " + index.ToString(CultureInfo.InvariantCulture) + ">%";
+        private static string Placeholder(int index) =>
+            @"%<\_FldIdx " + index.ToString(CultureInfo.InvariantCulture) + ">%";
 
-        private static KeyValuePair<int, string> G(int code, string value) => new KeyValuePair<int, string>(code, value);
+        private static KeyValuePair<int, string> G(int code, string value) =>
+            new KeyValuePair<int, string>(code, value);
 
         /// <summary>A field to be written: its groups after its marker, a 360 for each child in its children's order, and the field made in code it stands for, where it is one.</summary>
         private sealed class Node

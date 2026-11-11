@@ -20,7 +20,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public int BlockEditorBackground { get; set; } = 0x3B4049;
 
         /// <summary>The colour behind a space: the Block Editor's, the canvas's of model space, or the paper of a layout.</summary>
-        internal int BackgroundOf(CadSpace space) => space.IsModel ? (space.IsBlockEditor ? BlockEditorBackground : Background) : Paper;
+        internal int BackgroundOf(CadSpace space) =>
+            space.IsModel ? (space.IsBlockEditor ? BlockEditorBackground : Background) : Paper;
 
         /// <summary>Gets or sets the colour of selected entities and their grips as 0xRRGGBB.</summary>
         public int SelectionColor { get; set; } = 0x3D9BFF;
@@ -75,14 +76,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>A hatch whose lines come closer than this many pixels is filled with a tint.</summary>
         private const double DenseHatchPixels = 2.0;
 
-        private static readonly ConditionalWeakTable<DisplaySegments2, double[]> SpacingsOf = new ConditionalWeakTable<DisplaySegments2, double[]>();
+        private static readonly ConditionalWeakTable<DisplaySegments2, double[]> SpacingsOf =
+            new ConditionalWeakTable<DisplaySegments2, double[]>();
 
-        private static readonly Dictionary<string, SKTypeface> Measured = new Dictionary<string, SKTypeface>(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, SKTypeface> Measured = new Dictionary<string, SKTypeface>(
+            StringComparer.OrdinalIgnoreCase
+        );
 
         /// <summary>The flattening of an arc in a plot, in units of the canvas: a twentieth of a point on a PDF page.</summary>
         private const double PlotArcTolerance = 0.05;
 
-        private readonly Dictionary<string, SKTypeface> _faces = new Dictionary<string, SKTypeface>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, SKTypeface> _faces = new Dictionary<string, SKTypeface>(
+            StringComparer.OrdinalIgnoreCase
+        );
 
         /// <summary>The rules of the plot being drawn; null on the screen.</summary>
         private PlotRules _plot;
@@ -105,7 +111,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Units of the canvas per millimetre of lineweight; the scale of <paramref name="sheetToCanvas"/> where 0. An image
         /// sized in pixels gives 96 / 25.4, its lines as wide as at 96 dots an inch.
         /// </param>
-        internal void RenderPlot(SKCanvas canvas, CadDocument document, CadSpace space, CadPlotPage page, CadPlotSettings settings, Affine2 sheetToCanvas, double lineweightScale = 0.0)
+        internal void RenderPlot(
+            SKCanvas canvas,
+            CadDocument document,
+            CadSpace space,
+            CadPlotPage page,
+            CadPlotSettings settings,
+            Affine2 sheetToCanvas,
+            double lineweightScale = 0.0
+        )
         {
             if (page.IsEmpty)
             {
@@ -115,16 +129,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Affine2 m = page.DrawingToSheet.Then(sheetToCanvas);
             DisplayBox drawn = DisplayBox.Empty;
 
-            foreach (double[] corner in new[] { new[] { page.Area.MinX, page.Area.MinY }, new[] { page.Area.MaxX, page.Area.MaxY } })
+            foreach (
+                double[] corner in new[]
+                {
+                    new[] { page.Area.MinX, page.Area.MinY },
+                    new[] { page.Area.MaxX, page.Area.MaxY },
+                }
+            )
             {
-                drawn = drawn.Add(page.DrawingToSheet.X(corner[0], corner[1]), page.DrawingToSheet.Y(corner[0], corner[1]));
+                drawn = drawn.Add(
+                    page.DrawingToSheet.X(corner[0], corner[1]),
+                    page.DrawingToSheet.Y(corner[0], corner[1])
+                );
             }
 
             var clip = new DisplayBox(
                 Math.Max(drawn.MinX, page.Printable.MinX),
                 Math.Max(drawn.MinY, page.Printable.MinY),
                 Math.Min(drawn.MaxX, page.Printable.MaxX),
-                Math.Min(drawn.MaxY, page.Printable.MaxY));
+                Math.Min(drawn.MaxY, page.Printable.MaxY)
+            );
 
             if (clip.IsEmpty)
             {
@@ -136,14 +160,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             float x1 = (float)sheetToCanvas.X(clip.MaxX, clip.MaxY);
             float y1 = (float)sheetToCanvas.Y(clip.MaxX, clip.MaxY);
             double perMillimetre = lineweightScale > 0.0 ? lineweightScale : sheetToCanvas.Scale;
-            _plot = new PlotRules(settings.EffectiveStyleTable, settings.PlotLineweights ? perMillimetre * (settings.ScaleLineweights ? page.Scale : 1.0) : 0.0);
+            _plot = new PlotRules(
+                settings.EffectiveStyleTable,
+                settings.PlotLineweights ? perMillimetre * (settings.ScaleLineweights ? page.Scale : 1.0) : 0.0
+            );
             canvas.Save();
 
             try
             {
                 canvas.ClipRect(new SKRect(Math.Min(x0, x1), Math.Min(y0, y1), Math.Max(x0, x1), Math.Max(y0, y1)));
                 var options = new CanvasOptions { Background = 0xFFFFFF, Paper = 0xFFFFFF };
-                DrawList(canvas, document, space, document.GetDisplay(space), m, page.Area, options, null, null, null, null, 0xFFFFFF);
+                DrawList(
+                    canvas,
+                    document,
+                    space,
+                    document.GetDisplay(space),
+                    m,
+                    page.Area,
+                    options,
+                    null,
+                    null,
+                    null,
+                    null,
+                    0xFFFFFF
+                );
             }
             finally
             {
@@ -168,7 +208,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Draws a space with nothing selected or hovered: the scene the canvas keeps and draws its highlights over, so that a
         /// change of the entity under the cursor costs the entity, not the drawing.
         /// </summary>
-        internal void RenderScene(SKCanvas canvas, CadDocument document, CadSpace space, CadView view, CanvasOptions options)
+        internal void RenderScene(
+            SKCanvas canvas,
+            CadDocument document,
+            CadSpace space,
+            CadView view,
+            CanvasOptions options
+        )
         {
             Draw(canvas, document, space, view, options ?? new CanvasOptions(), null, null);
         }
@@ -184,9 +230,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="view">What part of it is shown and at what zoom.</param>
         /// <param name="options">How to draw it.</param>
         /// <param name="handles">The entities drawn.</param>
-        internal void RenderOnly(SKCanvas canvas, CadDocument document, CadSpace space, CadView view, CanvasOptions options, IReadOnlyCollection<string> handles)
+        internal void RenderOnly(
+            SKCanvas canvas,
+            CadDocument document,
+            CadSpace space,
+            CadView view,
+            CanvasOptions options,
+            IReadOnlyCollection<string> handles
+        )
         {
-            Draw(canvas, document, space, view, options ?? new CanvasOptions(), null, null, new HashSet<string>(handles, StringComparer.OrdinalIgnoreCase));
+            Draw(
+                canvas,
+                document,
+                space,
+                view,
+                options ?? new CanvasOptions(),
+                null,
+                null,
+                new HashSet<string>(handles, StringComparer.OrdinalIgnoreCase)
+            );
         }
 
         /// <summary>
@@ -205,7 +267,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// The pixels the canvas draws on, the whole of them shown unmoved and unclipped; given, several thousand items are drawn
         /// by several threads at once, pixel for pixel as one draws them. Null to draw them all on the calling thread.
         /// </param>
-        internal void RenderHighlight(SKCanvas canvas, CadDocument document, CadSpace space, CadView view, CanvasOptions options, IReadOnlyCollection<string> handles, bool hover, SKPixmap pixels = null)
+        internal void RenderHighlight(
+            SKCanvas canvas,
+            CadDocument document,
+            CadSpace space,
+            CadView view,
+            CanvasOptions options,
+            IReadOnlyCollection<string> handles,
+            bool hover,
+            SKPixmap pixels = null
+        )
         {
             if (handles == null || handles.Count == 0)
             {
@@ -245,7 +316,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 items.Add(item);
             }
 
-            if (pixels != null && items.Count >= HighlightTilesLeast && Environment.ProcessorCount > 1 && HighlightTiles.TryDraw(this, canvas, pixels, document, items, m, zoom, options, hover, background))
+            if (
+                pixels != null
+                && items.Count >= HighlightTilesLeast
+                && Environment.ProcessorCount > 1
+                && HighlightTiles.TryDraw(this, canvas, pixels, document, items, m, zoom, options, hover, background)
+            )
             {
                 return;
             }
@@ -263,12 +339,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The fewest items drawn highlighted that are shared out among threads; fewer are drawn on the calling thread.</summary>
         private const int HighlightTilesLeast = 4000;
 
-        private static SKPaint NewStroke() => new SKPaint { IsStroke = true, IsAntialias = true, StrokeCap = SKStrokeCap.Butt, StrokeJoin = SKStrokeJoin.Miter };
+        private static SKPaint NewStroke() =>
+            new SKPaint
+            {
+                IsStroke = true,
+                IsAntialias = true,
+                StrokeCap = SKStrokeCap.Butt,
+                StrokeJoin = SKStrokeJoin.Miter,
+            };
 
         private static SKPaint NewFill() => new SKPaint { IsStroke = false, IsAntialias = true };
 
         /// <summary>One item drawn highlighted: a viewport by its frame and a wipeout by its outline, anything else as selected or hovered.</summary>
-        private void DrawHighlighted(SKCanvas canvas, CadDocument document, DisplayItem2 item, Affine2 m, double zoom, CanvasOptions options, SKPaint stroke, SKPaint fill, bool hover, int background)
+        private void DrawHighlighted(
+            SKCanvas canvas,
+            CadDocument document,
+            DisplayItem2 item,
+            Affine2 m,
+            double zoom,
+            CanvasOptions options,
+            SKPaint stroke,
+            SKPaint fill,
+            bool hover,
+            int background
+        )
         {
             if (item is DisplayViewport2 || (item is DisplayFill2 area && area.IsMask))
             {
@@ -307,11 +401,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             /// drawing nothing, where the canvas is not the whole of <paramref name="pixels"/> unmoved and unclipped, or where
             /// the items are laid so that the threads would mostly wait for each other.
             /// </summary>
-            public static bool TryDraw(SkiaCanvasRenderer renderer, SKCanvas canvas, SKPixmap pixels, CadDocument document, List<DisplayItem2> items, Affine2 m, double zoom, CanvasOptions options, bool hover, int background)
+            public static bool TryDraw(
+                SkiaCanvasRenderer renderer,
+                SKCanvas canvas,
+                SKPixmap pixels,
+                CadDocument document,
+                List<DisplayItem2> items,
+                Affine2 m,
+                double zoom,
+                CanvasOptions options,
+                bool hover,
+                int background
+            )
             {
                 SKRectI device = canvas.DeviceClipBounds;
 
-                if (!canvas.TotalMatrix.IsIdentity || !canvas.IsClipRect || device.Left != 0 || device.Top != 0 || device.Right != pixels.Width || device.Bottom != pixels.Height)
+                if (
+                    !canvas.TotalMatrix.IsIdentity
+                    || !canvas.IsClipRect
+                    || device.Left != 0
+                    || device.Top != 0
+                    || device.Right != pixels.Width
+                    || device.Bottom != pixels.Height
+                )
                 {
                     return false;
                 }
@@ -346,10 +458,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 // the sheet draw one after another, and columns draw it side by side.
                 int count = Math.Min(MostTiles, Environment.ProcessorCount);
                 int grid = (int)Math.Ceiling(Math.Sqrt(count));
-                int columns = 0, rows = 0, soonest = int.MaxValue;
+                int columns = 0,
+                    rows = 0,
+                    soonest = int.MaxValue;
                 int[] masks = null;
 
-                foreach (int[] layout in new[] { new[] { count, 1 }, new[] { 1, count }, new[] { grid, Math.Max(1, count / grid) } })
+                foreach (
+                    int[] layout in new[]
+                    {
+                        new[] { count, 1 },
+                        new[] { 1, count },
+                        new[] { grid, Math.Max(1, count / grid) },
+                    }
+                )
                 {
                     int[] laid = Masks(boxes, n, layout[0], layout[1], pixels.Width, pixels.Height, out int finish);
 
@@ -372,7 +493,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             /// <summary>The items drawn by a thread a tile, each tile's in the order of the drawing, those it shares by the last of their tiles to reach them.</summary>
-            private static void Draw(SkiaCanvasRenderer renderer, SKPixmap pixels, CadDocument document, List<DisplayItem2> items, int[] masks, int count, Affine2 m, double zoom, CanvasOptions options, bool hover, int background)
+            private static void Draw(
+                SkiaCanvasRenderer renderer,
+                SKPixmap pixels,
+                CadDocument document,
+                List<DisplayItem2> items,
+                int[] masks,
+                int count,
+                Affine2 m,
+                double zoom,
+                CanvasOptions options,
+                bool hover,
+                int background
+            )
             {
                 int n = items.Count;
                 var queues = new List<int>[count];
@@ -433,7 +566,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                                         continue;
                                     }
 
-                                    renderer.DrawHighlighted(surface.Canvas, document, items[i], m, zoom, options, stroke, fill, hover, background);
+                                    renderer.DrawHighlighted(
+                                        surface.Canvas,
+                                        document,
+                                        items[i],
+                                        m,
+                                        zoom,
+                                        options,
+                                        stroke,
+                                        fill,
+                                        hover,
+                                        background
+                                    );
                                     Volatile.Write(ref drawn[i], 1);
                                 }
 
@@ -449,7 +593,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             ReleaseChainPath();
                         }
                     })
-                    { IsBackground = true };
+                    {
+                        IsBackground = true,
+                    };
                     threads[t].Start();
                 }
 
@@ -464,14 +610,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
             }
 
-            private static int Clamp(int tile, int tiles) => tile < 0 ? 0 : tile >= tiles ? tiles - 1 : tile;
+            private static int Clamp(int tile, int tiles) =>
+                tile < 0 ? 0
+                : tile >= tiles ? tiles - 1
+                : tile;
 
             /// <summary>
             /// The tiles of each item for tiles laid <paramref name="columns"/> by <paramref name="rows"/> over the canvas, every
             /// tile for an item that cannot be bounded; and, counting each item drawn as one step, the step at which the last
             /// thread would finish, each waiting at an item it shares until the others reach it.
             /// </summary>
-            private static int[] Masks(double[] boxes, int n, int columns, int rows, int width, int height, out int finish)
+            private static int[] Masks(
+                double[] boxes,
+                int n,
+                int columns,
+                int rows,
+                int width,
+                int height,
+                out int finish
+            )
             {
                 var masks = new int[n];
                 var clocks = new int[columns * rows];
@@ -480,7 +637,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 for (int i = 0; i < n; i++)
                 {
-                    int c0 = 0, r0 = 0, c1 = columns - 1, r1 = rows - 1;
+                    int c0 = 0,
+                        r0 = 0,
+                        c1 = columns - 1,
+                        r1 = rows - 1;
 
                     if (!double.IsNaN(boxes[4 * i]))
                     {
@@ -490,7 +650,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         r1 = Clamp((int)Math.Floor(boxes[4 * i + 3] / tileHeight), rows);
                     }
 
-                    int mask = 0, at = 0;
+                    int mask = 0,
+                        at = 0;
 
                     for (int r = r0; r <= r1; r++)
                     {
@@ -523,8 +684,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             /// <summary>Whether an item draws no pixel: a text of one look under <see cref="LeastTextPixels"/> high on the screen.</summary>
-            private static bool DrawsNothing(DisplayItem2 item, double zoom, SkiaCanvasRenderer renderer)
-                => renderer._plot == null && item is DisplayText2 text && text.Parts == null && text.Height * zoom < LeastTextPixels;
+            private static bool DrawsNothing(DisplayItem2 item, double zoom, SkiaCanvasRenderer renderer) =>
+                renderer._plot == null
+                && item is DisplayText2 text
+                && text.Parts == null
+                && text.Height * zoom < LeastTextPixels;
 
             /// <summary>
             /// The box on the canvas, in pixels, that holds every pixel an item drawn highlighted can touch: its box through the
@@ -532,20 +696,39 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             /// a pixel more. False for an item whose pixels cannot be so bounded: a text, whose letters may reach past its box, a
             /// hatch, whose tint fills loops its box of lines may not hold, a ray, a picture, and anything else.
             /// </summary>
-            private static bool PixelBox(DisplayItem2 item, Affine2 m, CanvasOptions options, out double x0, out double y0, out double x1, out double y1)
+            private static bool PixelBox(
+                DisplayItem2 item,
+                Affine2 m,
+                CanvasOptions options,
+                out double x0,
+                out double y0,
+                out double x1,
+                out double y1
+            )
             {
                 x0 = y0 = x1 = y1 = 0.0;
 
-                if (!(item is DisplayPolyline2 || item is DisplayArc2 || item is DisplayFill2 || item is DisplayViewport2))
+                if (
+                    !(
+                        item is DisplayPolyline2
+                        || item is DisplayArc2
+                        || item is DisplayFill2
+                        || item is DisplayViewport2
+                    )
+                )
                 {
                     return false;
                 }
 
                 DisplayBox b = item.Bounds;
-                double ax = m.X(b.MinX, b.MinY), ay = m.Y(b.MinX, b.MinY);
-                double bx = m.X(b.MaxX, b.MinY), by = m.Y(b.MaxX, b.MinY);
-                double cx = m.X(b.MaxX, b.MaxY), cy = m.Y(b.MaxX, b.MaxY);
-                double dx = m.X(b.MinX, b.MaxY), dy = m.Y(b.MinX, b.MaxY);
+                double ax = m.X(b.MinX, b.MinY),
+                    ay = m.Y(b.MinX, b.MinY);
+                double bx = m.X(b.MaxX, b.MinY),
+                    by = m.Y(b.MaxX, b.MinY);
+                double cx = m.X(b.MaxX, b.MaxY),
+                    cy = m.Y(b.MaxX, b.MaxY);
+                double dx = m.X(b.MinX, b.MaxY),
+                    dy = m.Y(b.MinX, b.MaxY);
                 x0 = Math.Min(Math.Min(ax, bx), Math.Min(cx, dx));
                 y0 = Math.Min(Math.Min(ay, by), Math.Min(cy, dy));
                 x1 = Math.Max(Math.Max(ax, bx), Math.Max(cx, dx));
@@ -560,7 +743,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private void Draw(SKCanvas canvas, CadDocument document, CadSpace space, CadView view, CanvasOptions options, IReadOnlyCollection<string> selection, string hover, HashSet<string> only = null)
+        private void Draw(
+            SKCanvas canvas,
+            CadDocument document,
+            CadSpace space,
+            CadView view,
+            CanvasOptions options,
+            IReadOnlyCollection<string> selection,
+            string hover,
+            HashSet<string> only = null
+        )
         {
             if (canvas == null)
             {
@@ -582,11 +774,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             var selected = selection == null ? null : new HashSet<string>(selection, StringComparer.OrdinalIgnoreCase);
-            DrawList(canvas, document, space, list, m, view.VisibleBox, options, selected, hover, only, null, options.BackgroundOf(space));
+            DrawList(
+                canvas,
+                document,
+                space,
+                list,
+                m,
+                view.VisibleBox,
+                options,
+                selected,
+                hover,
+                only,
+                null,
+                options.BackgroundOf(space)
+            );
         }
 
         /// <summary>The ring of a box, its four corners.</summary>
-        private static double[] Frame(DisplayBox box) => new[] { box.MinX, box.MinY, box.MaxX, box.MinY, box.MaxX, box.MaxY, box.MinX, box.MaxY };
+        private static double[] Frame(DisplayBox box) =>
+            new[] { box.MinX, box.MinY, box.MaxX, box.MinY, box.MaxX, box.MaxY, box.MinX, box.MaxY };
 
         /// <summary>Releases the typefaces.</summary>
         public void Dispose()
@@ -599,9 +805,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _faces.Clear();
         }
 
-        private static SKColor Color(int rgb, byte alpha) => new SKColor((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, alpha);
+        private static SKColor Color(int rgb, byte alpha) =>
+            new SKColor((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, alpha);
 
-        private static double Luminance(int rgb) => (0.2126 * ((rgb >> 16) & 0xFF) + 0.7152 * ((rgb >> 8) & 0xFF) + 0.0722 * (rgb & 0xFF)) / 255.0;
+        private static double Luminance(int rgb) =>
+            (0.2126 * ((rgb >> 16) & 0xFF) + 0.7152 * ((rgb >> 8) & 0xFF) + 0.0722 * (rgb & 0xFF)) / 255.0;
 
         /// <summary>
         /// White drawn on a light background would vanish, as would black on a dark one: AutoCAD's colour 7 turns black on
@@ -616,7 +824,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return 0x000000;
             }
 
-            if (Luminance(background) < 0.4 && (Luminance(rgb) <= 0.02 || (Luminance(rgb) >= 0.98 && onDark != 0xFFFFFF)))
+            if (
+                Luminance(background) < 0.4
+                && (Luminance(rgb) <= 0.02 || (Luminance(rgb) >= 0.98 && onDark != 0xFFFFFF))
+            )
             {
                 return onDark;
             }
@@ -652,7 +863,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// one colour, each run drawn before the next item larger than that, so the order holds. Where <paramref name="only"/>
         /// is given, the items of other entities are left out.
         /// </summary>
-        private void DrawList(SKCanvas canvas, CadDocument document, CadSpace model, DisplayList2 list, Affine2 m, DisplayBox visible, CanvasOptions options, HashSet<string> selected, string hover, HashSet<string> only, ISet<string> frozen, int background)
+        private void DrawList(
+            SKCanvas canvas,
+            CadDocument document,
+            CadSpace model,
+            DisplayList2 list,
+            Affine2 m,
+            DisplayBox visible,
+            CanvasOptions options,
+            HashSet<string> selected,
+            string hover,
+            HashSet<string> only,
+            ISet<string> frozen,
+            int background
+        )
         {
             double zoom = m.Scale;
 
@@ -665,7 +889,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             IReadOnlyList<int> shown = IndexOf(document, list, model)?.IndicesIn(visible);
             int count = shown?.Count ?? items.Count;
 
-            using (var stroke = new SKPaint { IsStroke = true, IsAntialias = true, StrokeCap = SKStrokeCap.Butt, StrokeJoin = SKStrokeJoin.Miter })
+            using (
+                var stroke = new SKPaint
+                {
+                    IsStroke = true,
+                    IsAntialias = true,
+                    StrokeCap = SKStrokeCap.Butt,
+                    StrokeJoin = SKStrokeJoin.Miter,
+                }
+            )
             using (var fill = new SKPaint { IsStroke = false, IsAntialias = true })
             using (var dots = new Dots())
             {
@@ -689,7 +921,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     }
 
                     bool isSelected = selected != null && item.Handle != null && selected.Contains(item.Handle);
-                    bool isHover = hover != null && string.Equals(item.Handle, hover, StringComparison.OrdinalIgnoreCase);
+                    bool isHover =
+                        hover != null && string.Equals(item.Handle, hover, StringComparison.OrdinalIgnoreCase);
 
                     if (_plot == null && !isSelected && !isHover && IsTiny(item, zoom))
                     {
@@ -699,7 +932,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             DisplayBox b = item.Bounds;
                             double cx = (b.MinX + b.MaxX) / 2.0;
                             double cy = (b.MinY + b.MaxY) / 2.0;
-                            dots.Add(canvas, (float)m.X(cx, cy), (float)m.Y(cx, cy), ColorOf(item, options, false, false, background));
+                            dots.Add(
+                                canvas,
+                                (float)m.X(cx, cy),
+                                (float)m.Y(cx, cy),
+                                ColorOf(item, options, false, false, background)
+                            );
                         }
 
                         continue;
@@ -748,28 +986,47 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return Color(CadPlotStyles.Map(_plot.Table, item.Style.Rgb), 255);
             }
 
-            int own = options.HiddenLineColor.HasValue && item.Layer != null && string.Equals(item.Layer, options.HiddenLayerName, StringComparison.OrdinalIgnoreCase)
-                ? options.HiddenLineColor.Value
-                : item.Style.Rgb;
+            int own =
+                options.HiddenLineColor.HasValue
+                && item.Layer != null
+                && string.Equals(item.Layer, options.HiddenLayerName, StringComparison.OrdinalIgnoreCase)
+                    ? options.HiddenLineColor.Value
+                    : item.Style.Rgb;
             int rgb = isSelected ? options.SelectionColor : Visible(own, background, options.VisibleLineColor);
 
             if (isHover && !isSelected)
             {
                 int s = options.SelectionColor;
-                rgb = ((((rgb >> 16) & 0xFF) + ((s >> 16) & 0xFF)) / 2 << 16) | ((((rgb >> 8) & 0xFF) + ((s >> 8) & 0xFF)) / 2 << 8) | (((rgb & 0xFF) + (s & 0xFF)) / 2);
+                rgb =
+                    ((((rgb >> 16) & 0xFF) + ((s >> 16) & 0xFF)) / 2 << 16)
+                    | ((((rgb >> 8) & 0xFF) + ((s >> 8) & 0xFF)) / 2 << 8)
+                    | (((rgb & 0xFF) + (s & 0xFF)) / 2);
             }
 
             return Color(rgb, 255);
         }
 
-        private void DrawItem(SKCanvas canvas, CadDocument document, DisplayItem2 item, Affine2 m, double zoom, CanvasOptions options, SKPaint stroke, SKPaint fill, bool isSelected, bool isHover, int background)
+        private void DrawItem(
+            SKCanvas canvas,
+            CadDocument document,
+            DisplayItem2 item,
+            Affine2 m,
+            double zoom,
+            CanvasOptions options,
+            SKPaint stroke,
+            SKPaint fill,
+            bool isSelected,
+            bool isHover,
+            int background
+        )
         {
             // A selected or hovered entity is only coloured and thickened: its own dashes stay, as AutoCAD keeps a linetype
             // when it highlights.
             SKColor color = ColorOf(item, options, isSelected, isHover, background);
-            float width = _plot != null
-                ? (float)(Math.Max(item.Style.LineWeight, 0.0) * _plot.LineweightScale)
-                : options.ShowLineWeights ? (float)Math.Max(1.0, item.Style.LineWeight * 96.0 / 25.4) : 1f;
+            float width =
+                _plot != null ? (float)(Math.Max(item.Style.LineWeight, 0.0) * _plot.LineweightScale)
+                : options.ShowLineWeights ? (float)Math.Max(1.0, item.Style.LineWeight * 96.0 / 25.4)
+                : 1f;
             stroke.Color = color;
             stroke.StrokeWidth = isSelected || isHover ? Math.Max(width, 2f) : width;
             stroke.PathEffect = null;
@@ -801,7 +1058,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     // An MTEXT of several looks: its runs and their lines, each in its own colour, all in the selection's when selected.
                     foreach (DisplayItem2 part in text.Parts)
                     {
-                        DrawItem(canvas, document, part, m, zoom, options, stroke, fill, isSelected, isHover, background);
+                        DrawItem(
+                            canvas,
+                            document,
+                            part,
+                            m,
+                            zoom,
+                            options,
+                            stroke,
+                            fill,
+                            isSelected,
+                            isHover,
+                            background
+                        );
                     }
 
                     break;
@@ -831,7 +1100,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// The picture of an image laid on its parallelogram, clipped by its boundary (outside it where inverted), over the
         /// background where its transparency is off, its brightness, contrast and fade applied; highlighted, its outline alone.
         /// </summary>
-        private void DrawPicture(SKCanvas canvas, DisplayImage2 picture, Affine2 m, SKPaint stroke, int background, bool highlighted)
+        private void DrawPicture(
+            SKCanvas canvas,
+            DisplayImage2 picture,
+            Affine2 m,
+            SKPaint stroke,
+            int background,
+            bool highlighted
+        )
         {
             double x0 = m.X(picture.X, picture.Y);
             double y0 = m.Y(picture.X, picture.Y);
@@ -839,11 +1115,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double uy = m.Y(picture.X + picture.Ux, picture.Y + picture.Uy) - y0;
             double vx = m.X(picture.X + picture.Vx, picture.Y + picture.Vy) - x0;
             double vy = m.Y(picture.X + picture.Vx, picture.Y + picture.Vy) - y0;
-            double[] frame = { picture.X, picture.Y, picture.X + picture.Ux, picture.Y + picture.Uy, picture.X + picture.Ux + picture.Vx, picture.Y + picture.Uy + picture.Vy, picture.X + picture.Vx, picture.Y + picture.Vy };
+            double[] frame =
+            {
+                picture.X,
+                picture.Y,
+                picture.X + picture.Ux,
+                picture.Y + picture.Uy,
+                picture.X + picture.Ux + picture.Vx,
+                picture.Y + picture.Uy + picture.Vy,
+                picture.X + picture.Vx,
+                picture.Y + picture.Vy,
+            };
 
             if (highlighted)
             {
-                using (SKPath path = RingsPath(picture.Clip != null && !picture.IsClipInverted ? picture.Clip : new[] { frame }, m))
+                using (
+                    SKPath path = RingsPath(
+                        picture.Clip != null && !picture.IsClipInverted ? picture.Clip : new[] { frame },
+                        m
+                    )
+                )
                 {
                     canvas.DrawPath(path, stroke);
                 }
@@ -865,7 +1156,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             double w = image.Width;
             double h = image.Height;
-            var matrix = new SKMatrix((float)(ux / w), (float)(-vx / h), (float)(x0 + vx), (float)(uy / w), (float)(-vy / h), (float)(y0 + vy), 0f, 0f, 1f);
+            var matrix = new SKMatrix(
+                (float)(ux / w),
+                (float)(-vx / h),
+                (float)(x0 + vx),
+                (float)(uy / w),
+                (float)(-vy / h),
+                (float)(y0 + vy),
+                0f,
+                0f,
+                1f
+            );
             canvas.Save();
 
             try
@@ -879,7 +1180,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     using (SKPath clip = RingsPath(picture.Clip, m))
                     {
-                        canvas.ClipPath(clip, picture.IsClipInverted ? SKClipOperation.Difference : SKClipOperation.Intersect, true);
+                        canvas.ClipPath(
+                            clip,
+                            picture.IsClipInverted ? SKClipOperation.Difference : SKClipOperation.Intersect,
+                            true
+                        );
                     }
                 }
 
@@ -895,7 +1200,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     }
 
                     paint.ColorFilter = Adjustments(picture, background);
-                    canvas.DrawImage(image, SKRect.Create((float)w, (float)h), SKRect.Create((float)w, (float)h), new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
+                    canvas.DrawImage(
+                        image,
+                        SKRect.Create((float)w, (float)h),
+                        SKRect.Create((float)w, (float)h),
+                        new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear),
+                        paint
+                    );
                     paint.ColorFilter?.Dispose();
                 }
             }
@@ -924,13 +1235,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             float r = ((background >> 16) & 0xFF) / 255f;
             float g = ((background >> 8) & 0xFF) / 255f;
             float b = (background & 0xFF) / 255f;
-            return SKColorFilter.CreateColorMatrix(new[]
-            {
-                keep * k, 0f, 0f, 0f, keep * shift + fade * r,
-                0f, keep * k, 0f, 0f, keep * shift + fade * g,
-                0f, 0f, keep * k, 0f, keep * shift + fade * b,
-                0f, 0f, 0f, 1f, 0f,
-            });
+            return SKColorFilter.CreateColorMatrix(
+                new[]
+                {
+                    keep * k,
+                    0f,
+                    0f,
+                    0f,
+                    keep * shift + fade * r,
+                    0f,
+                    keep * k,
+                    0f,
+                    0f,
+                    keep * shift + fade * g,
+                    0f,
+                    0f,
+                    keep * k,
+                    0f,
+                    keep * shift + fade * b,
+                    0f,
+                    0f,
+                    0f,
+                    1f,
+                    0f,
+                }
+            );
         }
 
         private static SKPathEffect DashEffect(double[] dashes, double zoom)
@@ -948,7 +1277,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return total < 3.0 ? null : SKPathEffect.CreateDash(intervals, 0f);
         }
 
-        private static void DrawChain(SKCanvas canvas, DisplayPolyline2 chain, Affine2 m, SKPaint stroke, SKPaint fill, SKColor color)
+        private static void DrawChain(
+            SKCanvas canvas,
+            DisplayPolyline2 chain,
+            Affine2 m,
+            SKPaint stroke,
+            SKPaint fill,
+            SKColor color
+        )
         {
             IReadOnlyList<double> xy = chain.Xy;
             int n = chain.Count;
@@ -962,7 +1298,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (n == 2 && !chain.Closed)
             {
-                canvas.DrawLine((float)m.X(xy[0], xy[1]), (float)m.Y(xy[0], xy[1]), (float)m.X(xy[2], xy[3]), (float)m.Y(xy[2], xy[3]), stroke);
+                canvas.DrawLine(
+                    (float)m.X(xy[0], xy[1]),
+                    (float)m.Y(xy[0], xy[1]),
+                    (float)m.X(xy[2], xy[3]),
+                    (float)m.Y(xy[2], xy[3]),
+                    stroke
+                );
                 return;
             }
 
@@ -1031,7 +1373,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double margin = stroke.StrokeWidth + 2.0;
             DisplayBox box = DisplayBox.Empty;
 
-            foreach (double[] corner in new[] { new double[] { clip.Left - margin, clip.Top - margin }, new double[] { clip.Right + margin, clip.Top - margin }, new double[] { clip.Right + margin, clip.Bottom + margin }, new double[] { clip.Left - margin, clip.Bottom + margin } })
+            foreach (
+                double[] corner in new[]
+                {
+                    new double[] { clip.Left - margin, clip.Top - margin },
+                    new double[] { clip.Right + margin, clip.Top - margin },
+                    new double[] { clip.Right + margin, clip.Bottom + margin },
+                    new double[] { clip.Left - margin, clip.Bottom + margin },
+                }
+            )
             {
                 // The screen's corner taken back into the drawing by the inverse of the view's matrix.
                 double sx = corner[0] - m.E;
@@ -1075,7 +1425,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// loops filled with its colour as thin as the lines would cover them: lines 1 pixel wide 1.6 apart one way fill 62
         /// per cent, a grid of them both ways 86. A plot draws every line.
         /// </summary>
-        private static void DrawSegments(SKCanvas canvas, DisplaySegments2 segments, Affine2 m, double zoom, SKPaint stroke, SKPaint fill, SKColor color, bool plot)
+        private static void DrawSegments(
+            SKCanvas canvas,
+            DisplaySegments2 segments,
+            Affine2 m,
+            double zoom,
+            SKPaint stroke,
+            SKPaint fill,
+            SKColor color,
+            bool plot
+        )
         {
             double[] spacings = !plot && segments.Rings.Count > 0 ? Spacings(segments) : null;
             double widest = 0.0;
@@ -1121,11 +1480,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     builder.LineTo(x1, y1);
                 }
 
-                using (SKPath path = builder.Detach()) canvas.DrawPath(path, stroke);
+                using (SKPath path = builder.Detach())
+                    canvas.DrawPath(path, stroke);
             }
         }
 
-        private static void DrawArc(SKCanvas canvas, DisplayArc2 arc, Affine2 m, double zoom, SKPaint stroke, double pixels)
+        private static void DrawArc(
+            SKCanvas canvas,
+            DisplayArc2 arc,
+            Affine2 m,
+            double zoom,
+            SKPaint stroke,
+            double pixels
+        )
         {
             double tolerance = pixels / zoom;
             double[] xy = arc.Flatten(tolerance);
@@ -1250,7 +1617,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     for (int i = 1; i < n; i++)
                     {
-                        builder.LineTo((float)m.X(ring[2 * i], ring[2 * i + 1]), (float)m.Y(ring[2 * i], ring[2 * i + 1]));
+                        builder.LineTo(
+                            (float)m.X(ring[2 * i], ring[2 * i + 1]),
+                            (float)m.Y(ring[2 * i], ring[2 * i + 1])
+                        );
                     }
 
                     builder.Close();
@@ -1260,10 +1630,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private static void DrawFill(SKCanvas canvas, DisplayFill2 area, Affine2 m, SKPaint fill, CanvasOptions options, int background, int styleRgb, bool isSelected, SKColor color)
+        private static void DrawFill(
+            SKCanvas canvas,
+            DisplayFill2 area,
+            Affine2 m,
+            SKPaint fill,
+            CanvasOptions options,
+            int background,
+            int styleRgb,
+            bool isSelected,
+            SKColor color
+        )
         {
-            fill.Color = area.IsMask ? Color(options.Paper == 0 ? background : background, 255) : (isSelected ? new SKColor(color.Red, color.Green, color.Blue, 140) : color);
-            using (SKPath path = RingsPath(area.Rings, m)) canvas.DrawPath(path, fill);
+            fill.Color = area.IsMask
+                ? Color(options.Paper == 0 ? background : background, 255)
+                : (isSelected ? new SKColor(color.Red, color.Green, color.Blue, 140) : color);
+            using (SKPath path = RingsPath(area.Rings, m))
+                canvas.DrawPath(path, fill);
         }
 
         /// <summary>
@@ -1301,9 +1684,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 if (!Measured.TryGetValue(key, out face))
                 {
-                    string name = string.IsNullOrEmpty(family) ? "Arial" : Path.HasExtension(family) ? Path.GetFileNameWithoutExtension(family) : family;
-                    face = SKFontManager.Default.MatchFamily(name, new SKFontStyle(bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal, SKFontStyleWidth.Normal, italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright))
-                        ?? SKTypeface.Default;
+                    string name =
+                        string.IsNullOrEmpty(family) ? "Arial"
+                        : Path.HasExtension(family) ? Path.GetFileNameWithoutExtension(family)
+                        : family;
+                    face = SKFontManager.Default.MatchFamily(
+                        name,
+                        new SKFontStyle(
+                            bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal,
+                            SKFontStyleWidth.Normal,
+                            italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright
+                        )
+                    ) ?? SKTypeface.Default;
                     Measured[key] = face;
                 }
             }
@@ -1318,11 +1710,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The bold or italic face of a typeface's family, the typeface itself where the family has none.</summary>
         private SKTypeface Styled(SKTypeface regular, bool bold, bool italic)
         {
-            string key = "\u0001" + regular.FamilyName + "|" + (bold ? "b" : string.Empty) + (italic ? "i" : string.Empty);
+            string key =
+                "\u0001" + regular.FamilyName + "|" + (bold ? "b" : string.Empty) + (italic ? "i" : string.Empty);
 
             if (!_faces.TryGetValue(key, out SKTypeface face))
             {
-                face = SKFontManager.Default.MatchFamily(regular.FamilyName, new SKFontStyle(bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal, SKFontStyleWidth.Normal, italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright)) ?? regular;
+                face = SKFontManager.Default.MatchFamily(
+                    regular.FamilyName,
+                    new SKFontStyle(
+                        bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal,
+                        SKFontStyleWidth.Normal,
+                        italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright
+                    )
+                ) ?? regular;
                 _faces[key] = face;
             }
 
@@ -1342,14 +1742,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 string extension = name == null ? string.Empty : Path.GetExtension(name).ToLowerInvariant();
 
-                if (name == null || extension == ".shx" || (extension.Length > 0 && extension != ".ttf" && extension != ".ttc" && extension != ".otf"))
+                if (
+                    name == null
+                    || extension == ".shx"
+                    || (extension.Length > 0 && extension != ".ttf" && extension != ".ttc" && extension != ".otf")
+                )
                 {
                     face = SKTypeface.FromFamilyName(fallback);
                 }
                 else if (extension.Length > 0)
                 {
-                    string path = Path.IsPathRooted(name) ? name : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), Path.GetFileName(name));
-                    face = (File.Exists(path) ? SKTypeface.FromFile(path) : null) ?? SKFontManager.Default.MatchFamily(Path.GetFileNameWithoutExtension(name)) ?? SKTypeface.FromFamilyName(fallback);
+                    string path = Path.IsPathRooted(name)
+                        ? name
+                        : Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.Fonts),
+                            Path.GetFileName(name)
+                        );
+                    face = (File.Exists(path) ? SKTypeface.FromFile(path) : null)
+                        ?? SKFontManager.Default.MatchFamily(Path.GetFileNameWithoutExtension(name))
+                        ?? SKTypeface.FromFamilyName(fallback);
                 }
                 else
                 {
@@ -1363,7 +1774,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return face;
         }
 
-        private void DrawText(SKCanvas canvas, DisplayText2 text, Affine2 m, double zoom, SKPaint stroke, SKPaint fill, SKColor color, CanvasOptions options)
+        private void DrawText(
+            SKCanvas canvas,
+            DisplayText2 text,
+            Affine2 m,
+            double zoom,
+            SKPaint stroke,
+            SKPaint fill,
+            SKColor color,
+            CanvasOptions options
+        )
         {
             double heightPx = text.Height * zoom;
 
@@ -1394,7 +1814,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         }
                     }
 
-                    using (SKPath path = builder.Detach()) canvas.DrawPath(path, stroke);
+                    using (SKPath path = builder.Detach())
+                        canvas.DrawPath(path, stroke);
                 }
 
                 stroke.StrokeCap = SKStrokeCap.Butt;
@@ -1408,7 +1829,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             float px = (float)m.X(text.X, text.Y);
             float py = (float)m.Y(text.X, text.Y);
 
-            SKTypeface typeface = text.IsBold || text.IsItalic ? Styled(Face(text.FontName, options.FontName), text.IsBold, text.IsItalic) : Face(text.FontName, options.FontName);
+            SKTypeface typeface =
+                text.IsBold || text.IsItalic
+                    ? Styled(Face(text.FontName, options.FontName), text.IsBold, text.IsItalic)
+                    : Face(text.FontName, options.FontName);
 
             using (var font = new SKFont(typeface, (float)(heightPx / 0.72)))
             {
@@ -1420,7 +1844,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 double lineStep = heightPx * 1.25;
                 double top = heightPx;
                 double bottom = -(n - 1) * lineStep;
-                double shift = text.Vertical == 0 ? 0.0 : text.Vertical == 1 ? -bottom : text.Vertical == 2 ? -(top + bottom) / 2.0 : -top;
+                double shift =
+                    text.Vertical == 0 ? 0.0
+                    : text.Vertical == 1 ? -bottom
+                    : text.Vertical == 2 ? -(top + bottom) / 2.0
+                    : -top;
 
                 canvas.Save();
                 canvas.Translate(px, py);
@@ -1434,7 +1862,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 for (int i = 0; i < n; i++)
                 {
                     float width = font.MeasureText(lines[i]);
-                    float x = text.Horizontal == 0 ? 0f : text.Horizontal == 1 ? -width / 2f : -width;
+                    float x =
+                        text.Horizontal == 0 ? 0f
+                        : text.Horizontal == 1 ? -width / 2f
+                        : -width;
                     float y = (float)(-shift + i * lineStep);
                     canvas.DrawText(lines[i], x, y, SKTextAlign.Left, font, fill);
                 }
@@ -1443,7 +1874,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private void DrawViewport(SKCanvas canvas, CadDocument document, DisplayViewport2 viewport, Affine2 m, CanvasOptions options, SKPaint stroke, int background, bool isSelected)
+        private void DrawViewport(
+            SKCanvas canvas,
+            CadDocument document,
+            DisplayViewport2 viewport,
+            Affine2 m,
+            CanvasOptions options,
+            SKPaint stroke,
+            int background,
+            bool isSelected
+        )
         {
             float x0 = (float)m.X(viewport.Bounds.MinX, viewport.Bounds.MaxY);
             float y0 = (float)m.Y(viewport.Bounds.MinX, viewport.Bounds.MaxY);
@@ -1459,8 +1899,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double halfW = viewport.Width / 2.0 / viewport.Scale;
             double halfH = viewport.Height / 2.0 / viewport.Scale;
             double reach = Math.Sqrt(halfW * halfW + halfH * halfH);
-            var visible = new DisplayBox(viewport.ViewCenterX - reach, viewport.ViewCenterY - reach, viewport.ViewCenterX + reach, viewport.ViewCenterY + reach);
-            DrawList(canvas, document, document?.ModelSpace, viewport.Model, inner, visible, options, null, null, null, viewport.FrozenLayers, paperBackground);
+            var visible = new DisplayBox(
+                viewport.ViewCenterX - reach,
+                viewport.ViewCenterY - reach,
+                viewport.ViewCenterX + reach,
+                viewport.ViewCenterY + reach
+            );
+            DrawList(
+                canvas,
+                document,
+                document?.ModelSpace,
+                viewport.Model,
+                inner,
+                visible,
+                options,
+                null,
+                null,
+                null,
+                viewport.FrozenLayers,
+                paperBackground
+            );
             canvas.Restore();
 
             if (cos == 0.0 && sin == 0.0)
@@ -1468,8 +1926,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            stroke.Color = isSelected ? Color(options.SelectionColor, 255) : _plot != null ? Color(CadPlotStyles.Map(_plot.Table, 0x808080), 255) : Color(Visible(0x808080, paperBackground), 255);
-            stroke.StrokeWidth = isSelected ? 2f : _plot != null ? 0f : 1f;
+            stroke.Color =
+                isSelected ? Color(options.SelectionColor, 255)
+                : _plot != null ? Color(CadPlotStyles.Map(_plot.Table, 0x808080), 255)
+                : Color(Visible(0x808080, paperBackground), 255);
+            stroke.StrokeWidth =
+                isSelected ? 2f
+                : _plot != null ? 0f
+                : 1f;
             canvas.DrawRect(x0, y0, x1 - x0, y1 - y0, stroke);
         }
 
@@ -1494,7 +1958,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private sealed class Dots : IDisposable
         {
             private readonly List<SKPoint> _points = new List<SKPoint>();
-            private readonly SKPaint _paint = new SKPaint { IsAntialias = false, IsStroke = true, StrokeWidth = 0f };
+            private readonly SKPaint _paint = new SKPaint
+            {
+                IsAntialias = false,
+                IsStroke = true,
+                StrokeWidth = 0f,
+            };
             private SKColor _color;
 
             public void Add(SKCanvas canvas, float x, float y, SKColor color)

@@ -16,8 +16,13 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Tol = Tolerance.Default;
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoObb3(new GeoPoint3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), x1 - x0, y1 - y0, z1 - z0).ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoObb3(
+                new GeoPoint3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2),
+                x1 - x0,
+                y1 - y0,
+                z1 - z0
+            ).ToSolid();
 
         [Fact]
         public void ASideCutJustOverItsFloor_MergesBackWhole()
@@ -31,14 +36,27 @@ namespace GeometryHelper.UnitTest.Solid
             double Z(double x) => rise * (1000 - x) / 2000;
             var faces = new List<GeoFace3>
             {
-                new GeoFace3(new GeoPolygon3(new GeoPoint3(1000, 0, 0), new GeoPoint3(-1000, 0, 0), new GeoPoint3(-1000, 0, rise))),
+                new GeoFace3(
+                    new GeoPolygon3(
+                        new GeoPoint3(1000, 0, 0),
+                        new GeoPoint3(-1000, 0, 0),
+                        new GeoPoint3(-1000, 0, rise)
+                    )
+                ),
             };
 
             for (int i = 0; i + 1 < xs.Length; i++)
             {
-                faces.Add(new GeoFace3(new GeoPolygon3(
-                    new GeoPoint3(xs[i], 0, Z(xs[i])), new GeoPoint3(xs[i + 1], 0, Z(xs[i + 1])),
-                    new GeoPoint3(xs[i + 1], 0, 300), new GeoPoint3(xs[i], 0, 300))));
+                faces.Add(
+                    new GeoFace3(
+                        new GeoPolygon3(
+                            new GeoPoint3(xs[i], 0, Z(xs[i])),
+                            new GeoPoint3(xs[i + 1], 0, Z(xs[i + 1])),
+                            new GeoPoint3(xs[i + 1], 0, 300),
+                            new GeoPoint3(xs[i], 0, 300)
+                        )
+                    )
+                );
             }
 
             GeoFace3[] merged = Merge3.CoplanarFaces(faces, Tol);
@@ -49,15 +67,37 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Theory]
-        [InlineData(0.001000000000011006, -0.6680026593003434, 0.9700941052148557, -0.7819907328961374, 0.30668040798356777)]
-        [InlineData(0.0009999999999999972, -0.0862188307038596, 0.8120668557528719, -0.6552474171180499, 0.17176066812675478)]
-        public void ABeamLessABentBarEndingTheToleranceOffItsFloor_KeepsItsSides(double off, double ax, double ay, double az, double angle)
+        [InlineData(
+            0.001000000000011006,
+            -0.6680026593003434,
+            0.9700941052148557,
+            -0.7819907328961374,
+            0.30668040798356777
+        )]
+        [InlineData(
+            0.0009999999999999972,
+            -0.0862188307038596,
+            0.8120668557528719,
+            -0.6552474171180499,
+            0.17176066812675478
+        )]
+        public void ABeamLessABentBarEndingTheToleranceOffItsFloor_KeepsItsSides(
+            double off,
+            double ax,
+            double ay,
+            double az,
+            double angle
+        )
         {
             // A bar 16 across bent through a right angle in forty steps, its straight leg ending the tolerance over the floor of a
             // beam 2 000 by 200 by 300, both turned. The beam was cut by the plane of the bar's end, which met the floor within
             // the tolerance and left a sliver below it on each side; merged, the sides came out 0.72 and 0.49 square
             // millimetres short, and the difference 32.9 cubic millimetres short, and 54.8 the second way.
-            var profile = new GeoPolygon2(Enumerable.Range(0, 16).Select(i => new GeoPoint2(8 * Math.Cos(i * Math.PI / 8), 8 * Math.Sin(i * Math.PI / 8))));
+            var profile = new GeoPolygon2(
+                Enumerable
+                    .Range(0, 16)
+                    .Select(i => new GeoPoint2(8 * Math.Cos(i * Math.PI / 8), 8 * Math.Sin(i * Math.PI / 8)))
+            );
             var points = new List<GeoPoint3> { new GeoPoint3(100, 0, off) };
 
             for (int i = 0; i <= 40; i++)
@@ -68,7 +108,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoTransform3 turn = GeoTransform3.RotationAxis(GeoPoint3.Origin, new GeoVector3(ax, ay, az), angle);
             GeoSolid3 beam = Box(-1000, -100, 0, 1000, 100, 300).TransformBy(turn);
-            GeoSolid3 bar = GeoSolid3.Sweep(profile, new GeoPolyline3(points), new GeoVector3(0, 1, 0), Tol).TransformBy(turn);
+            GeoSolid3 bar = GeoSolid3
+                .Sweep(profile, new GeoPolyline3(points), new GeoVector3(0, 1, 0), Tol)
+                .TransformBy(turn);
 
             Assert.True(bar.TryIntersect(beam, out GeoSolid3 common, Tol));
             double expected = 2000.0 * 200 * 300 - common.GetVolume(Tol);

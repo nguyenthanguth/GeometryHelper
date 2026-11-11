@@ -32,16 +32,29 @@ namespace GeometryHelper.Drawing.Projection
         /// Thrown when the smooth angle is not a number from nought up to a right angle, or a depth is NaN, or the near depth
         /// lies behind the far one.
         /// </exception>
-        public ProjectionOptions(double smoothAngleRad = DefaultSmoothAngleRad, double nearDepth = double.PositiveInfinity, double farDepth = double.NegativeInfinity, GeoPlane3? sectionPlane = null)
+        public ProjectionOptions(
+            double smoothAngleRad = DefaultSmoothAngleRad,
+            double nearDepth = double.PositiveInfinity,
+            double farDepth = double.NegativeInfinity,
+            GeoPlane3? sectionPlane = null
+        )
         {
             if (!(smoothAngleRad >= 0.0) || !(smoothAngleRad <= Math.PI / 2.0))
             {
-                throw new ArgumentOutOfRangeException(nameof(smoothAngleRad), smoothAngleRad, "A smooth angle has to be a number from nought up to a right angle.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(smoothAngleRad),
+                    smoothAngleRad,
+                    "A smooth angle has to be a number from nought up to a right angle."
+                );
             }
 
             if (double.IsNaN(nearDepth) || double.IsNaN(farDepth) || !(nearDepth >= farDepth))
             {
-                throw new ArgumentOutOfRangeException(nameof(nearDepth), nearDepth, "The near depth has to be a number no further back than the far depth.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(nearDepth),
+                    nearDepth,
+                    "The near depth has to be a number no further back than the far depth."
+                );
             }
 
             SmoothAngleRad = smoothAngleRad;

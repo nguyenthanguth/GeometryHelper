@@ -17,7 +17,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a ray and a triangle.
         /// </summary>
-        public static double DistanceTo(GeoRay3 ray, GeoTriangle3 triangle) => DistanceTo(ray, triangle, Tolerance.Global);
+        public static double DistanceTo(GeoRay3 ray, GeoTriangle3 triangle) =>
+            DistanceTo(ray, triangle, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a ray and a triangle, within a tolerance.

@@ -54,7 +54,9 @@ namespace GeometryHelper.Core
             Check(method);
             GeoSolid3 material = Material(solid, tolerance, out _);
 
-            return material == null ? 0.0 : Mass3.Volume(Mass3.Triangles(material, method, tolerance), material.GetAabb().Center);
+            return material == null
+                ? 0.0
+                : Mass3.Volume(Mass3.Triangles(material, method, tolerance), material.GetAabb().Center);
         }
 
         #endregion
@@ -64,7 +66,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the mass of a body's material at a density by a method, using the default tolerance.
         /// </summary>
-        public static double Mass(GeoSolid3 solid, double density, VolumeMethod method) => Mass(solid, density, method, Tolerance.Global);
+        public static double Mass(GeoSolid3 solid, double density, VolumeMethod method) =>
+            Mass(solid, density, method, Tolerance.Global);
 
         /// <summary>
         /// Gets the mass of a body's material at a density by a method: the density times its volume.
@@ -88,7 +91,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the centre of a body's material by a method, using the default tolerance.
         /// </summary>
-        public static GeoPoint3 Centroid(GeoSolid3 solid, VolumeMethod method) => Centroid(solid, method, Tolerance.Global);
+        public static GeoPoint3 Centroid(GeoSolid3 solid, VolumeMethod method) =>
+            Centroid(solid, method, Tolerance.Global);
 
         /// <summary>
         /// Gets the centre of a body's material by a method, which is its centre of mass.
@@ -99,14 +103,14 @@ namespace GeometryHelper.Core
         /// <returns>The centroid; the middle of the body's box where it holds no volume.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the body is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the method is not one of <see cref="VolumeMethod"/>.</exception>
-        public static GeoPoint3 Centroid(GeoSolid3 solid, VolumeMethod method, Tolerance tolerance)
-            => MassProperties(solid, 1.0, method, tolerance).Centroid;
+        public static GeoPoint3 Centroid(GeoSolid3 solid, VolumeMethod method, Tolerance tolerance) =>
+            MassProperties(solid, 1.0, method, tolerance).Centroid;
 
         /// <summary>
         /// Gets the mass properties of a body's material at a density by a method, using the default tolerance.
         /// </summary>
-        public static MassProperties3 MassProperties(GeoSolid3 solid, double density, VolumeMethod method)
-            => MassProperties(solid, density, method, Tolerance.Global);
+        public static MassProperties3 MassProperties(GeoSolid3 solid, double density, VolumeMethod method) =>
+            MassProperties(solid, density, method, Tolerance.Global);
 
         /// <summary>
         /// Gets the mass properties of a body's material at a density by a method: volume, mass, centroid, the moments and
@@ -121,7 +125,12 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown when the density is not a positive number, or the method is not one of <see cref="VolumeMethod"/>.
         /// </exception>
-        public static MassProperties3 MassProperties(GeoSolid3 solid, double density, VolumeMethod method, Tolerance tolerance)
+        public static MassProperties3 MassProperties(
+            GeoSolid3 solid,
+            double density,
+            VolumeMethod method,
+            Tolerance tolerance
+        )
         {
             Guard.Positive(density, nameof(density), "A density has to be a positive number.");
             Check(method);
@@ -139,7 +148,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the area of where a body's material ends by a method, using the default tolerance.
         /// </summary>
-        public static double SurfaceArea(GeoSolid3 solid, AreaMethod method) => SurfaceArea(solid, method, Tolerance.Global);
+        public static double SurfaceArea(GeoSolid3 solid, AreaMethod method) =>
+            SurfaceArea(solid, method, Tolerance.Global);
 
         /// <summary>
         /// Gets the area of where a body's material ends by a method: its openings cut in first, their walls included.
@@ -229,7 +239,8 @@ namespace GeometryHelper.Core
             {
                 double[] sums = Mass3.Integrate(Mass3.Triangles(material, method, tolerance), origin);
                 volumes[(int)method] = sums[0];
-                centroids[(int)method] = sums[0] > 0.0 ? origin.Add(new GeoVector3(sums[1], sums[2], sums[3]).Divide(sums[0])) : origin;
+                centroids[(int)method] =
+                    sums[0] > 0.0 ? origin.Add(new GeoVector3(sums[1], sums[2], sums[3]).Divide(sums[0])) : origin;
             }
 
             foreach (AreaMethod method in areas)
@@ -239,7 +250,8 @@ namespace GeometryHelper.Core
 
             // The same triangles measured from the middle of the box and from each of its corners.
             var triangles = Mass3.Triangles(material, VolumeMethod.Surface, tolerance).ToList();
-            double least = double.MaxValue, most = double.MinValue;
+            double least = double.MaxValue,
+                most = double.MinValue;
 
             foreach (GeoPoint3 from in new[] { origin }.Concat(Corners(box)))
             {
@@ -258,7 +270,8 @@ namespace GeometryHelper.Core
                 yield return new GeoPoint3(
                     (k & 1) == 0 ? box.Min.X : box.Max.X,
                     (k & 2) == 0 ? box.Min.Y : box.Max.Y,
-                    (k & 4) == 0 ? box.Min.Z : box.Max.Z);
+                    (k & 4) == 0 ? box.Min.Z : box.Max.Z
+                );
             }
         }
 
@@ -289,7 +302,11 @@ namespace GeometryHelper.Core
         {
             if (method < VolumeMethod.Fan || method > VolumeMethod.FlatFaces)
             {
-                throw new ArgumentOutOfRangeException(nameof(method), method, "Unknown way of reading the faces of a body.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(method),
+                    method,
+                    "Unknown way of reading the faces of a body."
+                );
             }
         }
 
@@ -297,7 +314,11 @@ namespace GeometryHelper.Core
         {
             if (method < AreaMethod.Faces || method > AreaMethod.Surface)
             {
-                throw new ArgumentOutOfRangeException(nameof(method), method, "Unknown way of reading the faces of a body.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(method),
+                    method,
+                    "Unknown way of reading the faces of a body."
+                );
             }
         }
 

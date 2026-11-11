@@ -90,7 +90,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             table = Assert.Single(All<DxfTable>(document.ModelSpace));
             Assert.Equal("STEEL SCHEDULE", table.TextString(0, 0));
             Assert.Equal("Mark", table.TextString(1, 0));
-            Assert.Equal(new[] { "STEEL SCHEDULE", "Mark" }, table.BlockTableRecord.OfType<DxfMText>().Select(m => m.Contents).ToArray());
+            Assert.Equal(
+                new[] { "STEEL SCHEDULE", "Mark" },
+                table.BlockTableRecord.OfType<DxfMText>().Select(m => m.Contents).ToArray()
+            );
             AssertReopens(document);
 
             // Each cell written is a step of its own; the table made one more.
@@ -107,7 +110,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Metric();
             CadCommandSession session = Run(Session(document), "-TABLE", "3", "2", "W", "40", "S", "GH_NONE", P(0, 0));
 
-            Assert.Contains(session.History, line => line.Contains("Current table style: \"Standard\"  Cell width: 63.5  Cell height: 1 line(s)"));
+            Assert.Contains(session.History, line =>
+                line.Contains("Current table style: \"Standard\"  Cell width: 63.5  Cell height: 1 line(s)")
+            );
             Assert.Contains(session.History, line => line.Contains("Cannot find table style \"GH_NONE\"."));
             DxfTable table = Assert.Single(All<DxfTable>(document.ModelSpace));
             Assert.Equal(4, table.NumRows);
@@ -136,7 +141,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string text = new DxfDatabase("AC1027").ToText().Replace("\r\n", "\n");
             int objects = text.IndexOf("  0\nSECTION\n  2\nOBJECTS\n", StringComparison.Ordinal);
             int end = text.IndexOf("  0\nENDSEC\n", objects, StringComparison.Ordinal) + "  0\nENDSEC\n".Length;
-            CadDocument document = CadDocument.From(DxfDatabase.Parse(text.Substring(0, objects) + text.Substring(end)), "noobjects.dxf");
+            CadDocument document = CadDocument.From(
+                DxfDatabase.Parse(text.Substring(0, objects) + text.Substring(end)),
+                "noobjects.dxf"
+            );
             Assert.Null(document.Database.NamedObjectsDictionary);
             return document;
         }
@@ -149,7 +157,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(CadTableStyleEditor.AddStandard(document).Succeeded);
             Assert.True(CadTableStyleEditor.Add(document, "GH_SCHEDULE", "Standard").Succeeded);
 
-            Assert.Equal(new[] { "GH_SCHEDULE", "Standard" }, CadTableStyleEditor.Styles(document.Database).OrderBy(n => n, StringComparer.Ordinal));
+            Assert.Equal(
+                new[] { "GH_SCHEDULE", "Standard" },
+                CadTableStyleEditor.Styles(document.Database).OrderBy(n => n, StringComparer.Ordinal)
+            );
             AssertReopens(document);
             Assert.True(document.Undo());
             Assert.True(document.Undo());
@@ -198,8 +209,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Metric();
             string handle = Schedule(document);
-            Assert.True(CadTableEditor.SetAlignment(document, handle, new DxfCellRange(5, 0, 5, 4), DxfCellAlignment.MiddleLeft).Succeeded);
-            Assert.True(CadTableEditor.SetText(document, handle, 5, 1, "HEA300 S355 with end plates both sides, galvanised").Succeeded);
+            Assert.True(
+                CadTableEditor
+                    .SetAlignment(document, handle, new DxfCellRange(5, 0, 5, 4), DxfCellAlignment.MiddleLeft)
+                    .Succeeded
+            );
+            Assert.True(
+                CadTableEditor
+                    .SetText(document, handle, 5, 1, "HEA300 S355 with end plates both sides, galvanised")
+                    .Succeeded
+            );
             double grown = Entity<DxfTable>(document, handle).RowHeight(5);
             Assert.True(grown > 9.0);
 
@@ -250,18 +269,39 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(CadTableEditor.Unmerge(document, handle, new DxfCellRange(5, 2, 5, 2)).Succeeded);
             Assert.False(Entity<DxfTable>(document, handle).IsMergedCell(5, 2, out _));
 
-            Assert.True(CadTableEditor.SetAlignment(document, handle, new DxfCellRange(2, 1, 2, 1), DxfCellAlignment.MiddleLeft).Succeeded);
+            Assert.True(
+                CadTableEditor
+                    .SetAlignment(document, handle, new DxfCellRange(2, 1, 2, 1), DxfCellAlignment.MiddleLeft)
+                    .Succeeded
+            );
             DxfMText b1 = Entity<DxfTable>(document, handle).BlockTableRecord.OfType<DxfMText>().Single();
             Assert.Equal(DxfAttachmentPoint.MiddleLeft, b1.Attachment);
             Assert.Equal(63.5 + 1.5, b1.Location.X, 9);
 
-            Assert.True(CadTableEditor.SetBackground(document, handle, new DxfCellRange(1, 0, 1, 5), DxfColor.FromColorIndex(DxfColorMethod.ByAci, 8)).Succeeded);
+            Assert.True(
+                CadTableEditor
+                    .SetBackground(
+                        document,
+                        handle,
+                        new DxfCellRange(1, 0, 1, 5),
+                        DxfColor.FromColorIndex(DxfColorMethod.ByAci, 8)
+                    )
+                    .Succeeded
+            );
             Assert.Equal(6, Entity<DxfTable>(document, handle).BlockTableRecord.OfType<DxfSolid>().Count());
 
             int lines = Entity<DxfTable>(document, handle).BlockTableRecord.OfType<DxfLine>().Count();
-            Assert.True(CadTableEditor.SetBorders(document, handle, new DxfCellRange(0, 0, 6, 5), DxfGridLineType.AllGridLines, false).Succeeded);
+            Assert.True(
+                CadTableEditor
+                    .SetBorders(document, handle, new DxfCellRange(0, 0, 6, 5), DxfGridLineType.AllGridLines, false)
+                    .Succeeded
+            );
             Assert.Empty(Entity<DxfTable>(document, handle).BlockTableRecord.OfType<DxfLine>());
-            Assert.True(CadTableEditor.SetBorders(document, handle, new DxfCellRange(0, 0, 6, 5), DxfGridLineType.OuterGridLines, true).Succeeded);
+            Assert.True(
+                CadTableEditor
+                    .SetBorders(document, handle, new DxfCellRange(0, 0, 6, 5), DxfGridLineType.OuterGridLines, true)
+                    .Succeeded
+            );
             Assert.Equal(4, Entity<DxfTable>(document, handle).BlockTableRecord.OfType<DxfLine>().Count());
             Assert.True(lines > 4);
 
@@ -308,7 +348,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadTableEditor.SetText(document, handle, 2, 2, "HEA300");
             CadTableEditor.SetText(document, handle, 3, 2, "PL20*300");
 
-            IReadOnlyList<CadFindResult> found = CadFind.Find(document, "HEA", new CadFindOptions(), CadFindScope.EntireDrawing);
+            IReadOnlyList<CadFindResult> found = CadFind.Find(
+                document,
+                "HEA",
+                new CadFindOptions(),
+                CadFindScope.EntireDrawing
+            );
             CadFindResult hit = Assert.Single(found);
             Assert.Equal("Table cell", hit.ObjectType);
             Assert.Equal(handle, hit.Handle);
@@ -320,7 +365,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             var quick = new CadQuickSelect(document);
             Assert.Contains("Table", quick.ObjectTypes);
-            Assert.Equal(new[] { handle }, quick.Match("Table", "Layer", CadQuickSelectOperator.EqualTo, "0", true, Tolerance.Default).ToArray());
+            Assert.Equal(
+                new[] { handle },
+                quick.Match("Table", "Layer", CadQuickSelectOperator.EqualTo, "0", true, Tolerance.Default).ToArray()
+            );
         }
 
         [Fact]
@@ -333,11 +381,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(CadTableStyleEditor.Add(document, "GH_SCHEDULE", "Standard").Succeeded);
             Assert.Equal(new[] { "GH_SCHEDULE", "Standard" }, CadTableStyleEditor.Styles(document.Database).ToArray());
             Assert.False(CadTableStyleEditor.Add(document, "gh_schedule", null).Succeeded);
-            Assert.Equal("The Standard table style cannot be deleted.", CadTableStyleEditor.WhyNotDeleted(document.Database, "Standard"));
+            Assert.Equal(
+                "The Standard table style cannot be deleted.",
+                CadTableStyleEditor.WhyNotDeleted(document.Database, "Standard")
+            );
             Assert.Null(CadTableStyleEditor.WhyNotDeleted(document.Database, "GH_SCHEDULE"));
             Assert.Equal(1, CadTableStyleEditor.CountUses(document.Database, "Standard"));
 
-            CadTableStyleSettings settings = CadTableStyleSettings.Of(CadTableStyleEditor.Find(document.Database, "Standard"));
+            CadTableStyleSettings settings = CadTableStyleSettings.Of(
+                CadTableStyleEditor.Find(document.Database, "Standard")
+            );
             settings.Data.TextHeight = 3.5;
             settings.Data.Alignment = DxfCellAlignment.MiddleLeft;
             Assert.True(CadTableStyleEditor.Apply(document, "Standard", settings).Succeeded);

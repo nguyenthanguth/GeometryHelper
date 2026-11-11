@@ -17,12 +17,14 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class ArcTransform2FaultLN3EvenScalingTests
     {
-        private static readonly GeoTransform2 Rounded = new GeoTransform2(new double[,]
-        {
-            { 0.764842, -0.644217, 1000 },
-            { 0.644218, 0.764843, 2000 },
-            { 0, 0, 1 },
-        });
+        private static readonly GeoTransform2 Rounded = new GeoTransform2(
+            new double[,]
+            {
+                { 0.764842, -0.644217, 1000 },
+                { 0.644218, 0.764843, 2000 },
+                { 0, 0, 1 },
+            }
+        );
 
         private static readonly GeoTransform2 RoundedTimes1000 = Rounded.Multiply(GeoTransform2.Scaling(1000));
 
@@ -72,19 +74,35 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AStretchOf3EMinus6Scaled1000_IsRefusedWhereTheArcWouldLand0Point017Off()
         {
-            var stretch = new GeoTransform2(new double[,] { { (1 + 3E-6) * 1000, 0, 0 }, { 0, 1000, 0 }, { 0, 0, 1 } });
+            var stretch = new GeoTransform2(
+                new double[,]
+                {
+                    { (1 + 3E-6) * 1000, 0, 0 },
+                    { 0, 1000, 0 },
+                    { 0, 0, 1 },
+                }
+            );
             var arc = new GeoArc2(Centre, 100, 0.5, 2.0);
 
             Assert.Throws<InvalidOperationException>(() => stretch.Transform(new GeoCircle2(Centre, 100)));
             Assert.Throws<InvalidOperationException>(() => arc.TransformBy(stretch));
-            Assert.Throws<InvalidOperationException>(() => new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), 0.5).TransformBy(stretch));
+            Assert.Throws<InvalidOperationException>(() =>
+                new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), 0.5).TransformBy(stretch)
+            );
         }
 
         [Fact]
         public void AStretchOf3EMinus5AtAThousandthOfTheScale_MovesBoth()
         {
             // 3E-6 off at the most, well within the tolerance.
-            var stretch = new GeoTransform2(new double[,] { { (1 + 3E-5) * 0.001, 0, 0 }, { 0, 0.001, 0 }, { 0, 0, 1 } });
+            var stretch = new GeoTransform2(
+                new double[,]
+                {
+                    { (1 + 3E-5) * 0.001, 0, 0 },
+                    { 0, 0.001, 0 },
+                    { 0, 0, 1 },
+                }
+            );
             var arc = new GeoArc2(Centre, 100, 0.5, 2.0);
 
             Assert.Equal(0.1, stretch.Transform(new GeoCircle2(Centre, 100)).Radius, 4);
@@ -94,8 +112,16 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ATurnRoundedToSixPlacesOnItsOwnScaled1E5_MovesTheArcWhole()
         {
-            double c = Math.Round(Math.Cos(0.7), 6), s = Math.Round(Math.Sin(0.7), 6);
-            var map = new GeoTransform2(new double[,] { { c * 1E5, -s * 1E5, 0 }, { s * 1E5, c * 1E5, 0 }, { 0, 0, 1 } });
+            double c = Math.Round(Math.Cos(0.7), 6),
+                s = Math.Round(Math.Sin(0.7), 6);
+            var map = new GeoTransform2(
+                new double[,]
+                {
+                    { c * 1E5, -s * 1E5, 0 },
+                    { s * 1E5, c * 1E5, 0 },
+                    { 0, 0, 1 },
+                }
+            );
             var arc = new GeoArc2(Centre, 100, 0.5, 2.0);
 
             Assert.Equal(map.Transform(new GeoCircle2(Centre, 100)).Radius, arc.TransformBy(map).Radius);

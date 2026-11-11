@@ -46,7 +46,15 @@ namespace GeometryHelper.Viewer.Tests
                 .Add(new GeoCircle3(new GeoPoint3(10, -20, 5), new GeoVector3(0.3, -0.5, 0.8), 60.0))
                 .Add(new GeoArc3(new GeoPoint3(-30, 40, 0), new GeoVector3(1, 2, 3), 45.0, 0.4, 2.9))
                 .Add(new GeoArc2(new GeoPoint2(5, 5), 30.0, 5.0, 1.0))
-                .Add(new GeoEllipse3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), new GeoVector3(1, 1, 0), 80.0, 15.0));
+                .Add(
+                    new GeoEllipse3(
+                        new GeoPoint3(0, 0, 0),
+                        new GeoVector3(0, 0, 1),
+                        new GeoVector3(1, 1, 0),
+                        80.0,
+                        15.0
+                    )
+                );
             Scene scene = shapes.Scene;
             ExactGeometry geometry = ExactGeometry.Build(scene, Primitives.Build(scene));
             var random = new Random(11);
@@ -56,8 +64,16 @@ namespace GeometryHelper.Viewer.Tests
             {
                 for (int k = 0; k < 12; k++)
                 {
-                    Vec3 origin = new Vec3(random.NextDouble() * 300 - 150, random.NextDouble() * 300 - 150, random.NextDouble() * 300 - 150);
-                    Vec3 direction = new Vec3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5).Normalized();
+                    Vec3 origin = new Vec3(
+                        random.NextDouble() * 300 - 150,
+                        random.NextDouble() * 300 - 150,
+                        random.NextDouble() * 300 - 150
+                    );
+                    Vec3 direction = new Vec3(
+                        random.NextDouble() - 0.5,
+                        random.NextDouble() - 0.5,
+                        random.NextDouble() - 0.5
+                    ).Normalized();
                     bool forward = k % 2 == 0;
 
                     double exact = curve.DistanceToLine(origin, direction, forward, out Vec3 point);
@@ -86,13 +102,21 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheNearestPointOfAnEllipseToAPoint_IsTheBruteForceMinimum()
         {
-            SceneCurve ellipse = Only(new SceneWriter().Add(new GeoEllipse2(new GeoPoint2(3, 4), new GeoVector2(2, 1), 50.0, 12.0)));
+            SceneCurve ellipse = Only(
+                new SceneWriter().Add(new GeoEllipse2(new GeoPoint2(3, 4), new GeoVector2(2, 1), 50.0, 12.0))
+            );
             var random = new Random(5);
 
             for (int k = 0; k < 20; k++)
             {
-                Vec3 point = new Vec3(random.NextDouble() * 200 - 100, random.NextDouble() * 200 - 100, random.NextDouble() * 10 - 5);
-                double brute = Enumerable.Range(0, 100001).Min(i => (ellipse.PointAt(2.0 * Math.PI * i / 100000.0) - point).Length);
+                Vec3 point = new Vec3(
+                    random.NextDouble() * 200 - 100,
+                    random.NextDouble() * 200 - 100,
+                    random.NextDouble() * 10 - 5
+                );
+                double brute = Enumerable
+                    .Range(0, 100001)
+                    .Min(i => (ellipse.PointAt(2.0 * Math.PI * i / 100000.0) - point).Length);
                 double found = (ellipse.ClosestPointTo(point) - point).Length;
 
                 Assert.True(found <= brute + 1E-9);
@@ -115,8 +139,20 @@ namespace GeometryHelper.Viewer.Tests
         public void TheCurvesOfAScene_AreReadFromTheNumbersOfItsItems()
         {
             Scene scene = new SceneWriter()
-                .Add(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10)))
-                .Add(new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(20, 5) }, new[] { 0.0, 0.5, 0.0 }))
+                .Add(
+                    new GeoPolygon2(
+                        new GeoPoint2(0, 0),
+                        new GeoPoint2(10, 0),
+                        new GeoPoint2(10, 10),
+                        new GeoPoint2(0, 10)
+                    )
+                )
+                .Add(
+                    new GeoPolylineArc2(
+                        new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(20, 5) },
+                        new[] { 0.0, 0.5, 0.0 }
+                    )
+                )
                 .Add(new GeoRay2(new GeoPoint2(0, 0), new GeoVector2(1, 1)))
                 .Add(new GeoPoint3(1, 2, 3))
                 .Add(new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 2, 3)))
@@ -128,7 +164,10 @@ namespace GeometryHelper.Viewer.Tests
 
             Assert.Equal(4, with.Curves.Count(c => c.ItemIndex == 0));
             Assert.Equal(2, with.Curves.Count(c => c.ItemIndex == 1));
-            Assert.Equal(CurveShape.Conic, with.Curves.Single(c => c.ItemIndex == 1 && c.Shape == CurveShape.Conic).Shape);
+            Assert.Equal(
+                CurveShape.Conic,
+                with.Curves.Single(c => c.ItemIndex == 1 && c.Shape == CurveShape.Conic).Shape
+            );
             Assert.Equal(12, with.Curves.Count(c => c.ItemIndex == 4));
 
             // A ray is drawn out to the length the primitives give it, and a ray with no primitives has no curve, only its origin.
@@ -142,7 +181,8 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AnItemWhoseNumbersAreWrong_LeavesTheRestOfTheSceneItsCurves()
         {
-            const string json = "{\"items\":[{\"name\":\"bad\",\"layer\":\"l\",\"kind\":\"GeoPolygon2\",\"data\":{\"points\":[[0,0],[1]]}},{\"name\":\"good\",\"layer\":\"l\",\"kind\":\"GeoLine2\",\"data\":{\"a\":[0,0],\"b\":[5,5]}}]}";
+            const string json =
+                "{\"items\":[{\"name\":\"bad\",\"layer\":\"l\",\"kind\":\"GeoPolygon2\",\"data\":{\"points\":[[0,0],[1]]}},{\"name\":\"good\",\"layer\":\"l\",\"kind\":\"GeoLine2\",\"data\":{\"a\":[0,0],\"b\":[5,5]}}]}";
             Scene scene = SceneReader.ReadJson(json);
 
             ExactGeometry geometry = ExactGeometry.Build(scene, Primitives.Build(scene));

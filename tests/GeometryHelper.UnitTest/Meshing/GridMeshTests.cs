@@ -18,7 +18,8 @@ namespace GeometryHelper.UnitTest.Meshing
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
-        private static GeoPolygon2 Box(double x0, double y0, double x1, double y1) => new GeoPolygon2(P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1));
+        private static GeoPolygon2 Box(double x0, double y0, double x1, double y1) =>
+            new GeoPolygon2(P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1));
 
         private static int Whole(GeoMesh2 mesh) => Enumerable.Range(0, mesh.FaceCount).Count(mesh.IsWhole);
 
@@ -52,9 +53,15 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Equal(6, Whole(mesh));
             MeshAssert.IsSound(mesh, p => plate.Locate(p, Tolerance), 1000 * 500, Tolerance);
 
-            double[] widths = mesh.GetFaces().Select(f => f.Vertices.Max(v => v.X) - f.Vertices.Min(v => v.X)).Distinct().OrderBy(w => w).ToArray();
+            double[] widths = mesh.GetFaces()
+                .Select(f => f.Vertices.Max(v => v.X) - f.Vertices.Min(v => v.X))
+                .Distinct()
+                .OrderBy(w => w)
+                .ToArray();
             Assert.Equal(new[] { 100.0, 300.0 }, widths);
-            Assert.Contains(mesh.GetFaces(), f => f.Vertices.Min(v => v.X) == 900.0 && f.Vertices.Max(v => v.X) == 1000.0);
+            Assert.Contains(mesh.GetFaces(), f =>
+                f.Vertices.Min(v => v.X) == 900.0 && f.Vertices.Max(v => v.X) == 1000.0
+            );
         }
 
         [Theory]
@@ -62,7 +69,11 @@ namespace GeometryHelper.UnitTest.Meshing
         [InlineData(GridAlignment.End, 100.0, 400.0)]
         [InlineData(GridAlignment.CenterCell, 50.0, 350.0)]
         [InlineData(GridAlignment.CenterJoint, 200.0, 500.0)]
-        public void TheAlignmentSaysWhereTheCutCellsGo(GridAlignment alignment, double firstWholeStart, double firstWholeEnd)
+        public void TheAlignmentSaysWhereTheCutCellsGo(
+            GridAlignment alignment,
+            double firstWholeStart,
+            double firstWholeEnd
+        )
         {
             // 1000 wide in cells of 300: where the first whole cell from the left starts says where the grid stands.
             GeoPolygon2 strip = Box(0, 0, 1000, 100);
@@ -70,12 +81,20 @@ namespace GeometryHelper.UnitTest.Meshing
 
             MeshAssert.IsSound(mesh, p => strip.Locate(p, Tolerance), 1000 * 100, Tolerance);
 
-            GeoPolygon2 first = Enumerable.Range(0, mesh.FaceCount).Where(mesh.IsWhole).Select(mesh.GetFace).OrderBy(f => f.Vertices.Min(v => v.X)).First();
+            GeoPolygon2 first = Enumerable
+                .Range(0, mesh.FaceCount)
+                .Where(mesh.IsWhole)
+                .Select(mesh.GetFace)
+                .OrderBy(f => f.Vertices.Min(v => v.X))
+                .First();
             Assert.Equal(firstWholeStart, first.Vertices.Min(v => v.X), 9);
             Assert.Equal(firstWholeEnd, first.Vertices.Max(v => v.X), 9);
 
             // The centred ones leave the same cut at both ends.
-            double[] widths = mesh.GetFaces().OrderBy(f => f.Vertices.Min(v => v.X)).Select(f => f.Vertices.Max(v => v.X) - f.Vertices.Min(v => v.X)).ToArray();
+            double[] widths = mesh.GetFaces()
+                .OrderBy(f => f.Vertices.Min(v => v.X))
+                .Select(f => f.Vertices.Max(v => v.X) - f.Vertices.Min(v => v.X))
+                .ToArray();
 
             if (alignment == GridAlignment.CenterCell || alignment == GridAlignment.CenterJoint)
             {
@@ -95,10 +114,14 @@ namespace GeometryHelper.UnitTest.Meshing
             MeshAssert.IsSound(mesh, p => strip.Locate(p, Tolerance), mesh.Area, Tolerance, covers: false);
 
             GeoPolygon2[] cells = mesh.GetFaces().OrderBy(f => f.Vertices.Min(v => v.X)).ToArray();
-            Assert.Contains(cells, f => Math.Abs(f.Vertices.Min(v => v.X) - middleStart) < 1E-9 && Math.Abs(f.Vertices.Max(v => v.X) - middleEnd) < 1E-9);
+            Assert.Contains(cells, f =>
+                Math.Abs(f.Vertices.Min(v => v.X) - middleStart) < 1E-9
+                && Math.Abs(f.Vertices.Max(v => v.X) - middleEnd) < 1E-9
+            );
 
             double first = cells[0].Vertices.Max(v => v.X) - cells[0].Vertices.Min(v => v.X);
-            double last = cells[cells.Length - 1].Vertices.Max(v => v.X) - cells[cells.Length - 1].Vertices.Min(v => v.X);
+            double last =
+                cells[cells.Length - 1].Vertices.Max(v => v.X) - cells[cells.Length - 1].Vertices.Min(v => v.X);
             Assert.Equal(first, last, 9);
         }
 
@@ -119,7 +142,11 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.All(Enumerable.Range(0, mesh.FaceCount), f => Assert.Empty(mesh.GetAdjacentFaces(f)));
 
             // The panels stand a joint apart.
-            double[] starts = mesh.GetFaces().Select(f => f.Vertices.Min(v => v.X)).Distinct().OrderBy(x => x).ToArray();
+            double[] starts = mesh.GetFaces()
+                .Select(f => f.Vertices.Min(v => v.X))
+                .Distinct()
+                .OrderBy(x => x)
+                .ToArray();
             Assert.Equal(new[] { 0.0, 1203.0, 2406.0 }, starts);
         }
 
@@ -152,7 +179,11 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Equal(2, Whole(mesh));
 
             // The split runs through the middle of the hole, so the cells either side take its new corners on their sides.
-            GeoPolygon2[] cut = Enumerable.Range(0, mesh.FaceCount).Where(f => !mesh.IsWhole(f)).Select(mesh.GetFace).ToArray();
+            GeoPolygon2[] cut = Enumerable
+                .Range(0, mesh.FaceCount)
+                .Where(f => !mesh.IsWhole(f))
+                .Select(mesh.GetFace)
+                .ToArray();
             Assert.All(cut, f => Assert.Equal(600 * 600 / 2.0 - 100 * 100 / 2.0, f.Area, 6));
         }
 
@@ -163,11 +194,12 @@ namespace GeometryHelper.UnitTest.Meshing
                 Box(0, 0, 2000, 1500),
                 new[]
                 {
-                    Box(500, 500, 700, 700),           // across a vertical and a horizontal line of a 600 grid
-                    Box(1150, 100, 1250, 400),         // whole in a cell
-                    Box(1250, 100, 1350, 400),         // touching the one before
-                    Box(1700, 1300, 2000, 1500),       // in the corner, touching the boundary
-                });
+                    Box(500, 500, 700, 700), // across a vertical and a horizontal line of a 600 grid
+                    Box(1150, 100, 1250, 400), // whole in a cell
+                    Box(1250, 100, 1350, 400), // touching the one before
+                    Box(1700, 1300, 2000, 1500), // in the corner, touching the boundary
+                }
+            );
             GeoMesh2 mesh = face.ToMesh(MeshOptions.Grid(600, 600), Tolerance);
 
             MeshAssert.IsSound(mesh, p => face.Locate(p, Tolerance), face.Area, Tolerance);
@@ -230,7 +262,11 @@ namespace GeometryHelper.UnitTest.Meshing
 
             // The same cells Divide gives.
             GeoRectangle2[] divided = rectangle.Divide(4, 3);
-            Assert.All(divided, cell => Assert.Contains(mesh.GetFaces(), face => face.Vertices.All(v => cell.GetVertices().Any(c => c.IsEqualTo(v, new Tolerance(1E-7, 1E-7))))));
+            Assert.All(divided, cell =>
+                Assert.Contains(mesh.GetFaces(), face =>
+                    face.Vertices.All(v => cell.GetVertices().Any(c => c.IsEqualTo(v, new Tolerance(1E-7, 1E-7))))
+                )
+            );
         }
 
         [Fact]
@@ -299,7 +335,14 @@ namespace GeometryHelper.UnitTest.Meshing
         public void ANeckNarrowerThanThePointToleranceIsKeptAsItIs()
         {
             // An hourglass whose waist is 0.006 across, in one cell: the material it is, every corner kept, in one face.
-            var hourglass = new GeoPolygon2(P(0, 0), P(200, 0), P(100.003, 100), P(200, 200), P(0, 200), P(99.997, 100));
+            var hourglass = new GeoPolygon2(
+                P(0, 0),
+                P(200, 0),
+                P(100.003, 100),
+                P(200, 200),
+                P(0, 200),
+                P(99.997, 100)
+            );
             GeoMesh2 mesh = hourglass.ToMesh(MeshOptions.Grid(300, 300), Tolerance);
 
             Assert.Equal(1, mesh.FaceCount);
@@ -315,7 +358,8 @@ namespace GeometryHelper.UnitTest.Meshing
             // that point, and the cell comes back as the faces either side of it, not as one face touching itself there.
             var face = new GeoFace2(
                 Box(0, 0, 1000, 1000),
-                new[] { new GeoPolygon2(P(300, 500), P(400, 400), P(500, 500), P(400, 600)), Box(500, 450, 700, 650) });
+                new[] { new GeoPolygon2(P(300, 500), P(400, 400), P(500, 500), P(400, 600)), Box(500, 450, 700, 650) }
+            );
             GeoMesh2 mesh = face.ToMesh(MeshOptions.Grid(2000, 2000), Tolerance);
 
             MeshAssert.IsSound(mesh, p => face.Locate(p, Tolerance), face.Area, Tolerance);
@@ -333,7 +377,9 @@ namespace GeometryHelper.UnitTest.Meshing
 
             // At a tolerance of nought, cells of 1E-14 along 100 000, more than 2^53 of them: the steps that find the first
             // cell never ended, as a cell's number less one is the number itself there.
-            Assert.Throws<ArgumentException>(() => plate.ToMesh(MeshOptions.Grid(1E-14, 1E-14), new Tolerance(0.0, 0.0, 0.0, 0.0)));
+            Assert.Throws<ArgumentException>(() =>
+                plate.ToMesh(MeshOptions.Grid(1E-14, 1E-14), new Tolerance(0.0, 0.0, 0.0, 0.0))
+            );
         }
 
         [Fact]

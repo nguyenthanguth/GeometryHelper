@@ -22,13 +22,18 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private const double HalfDegree = Math.PI / 360.0;
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
         /// <summary>A metre square on the ground, and the same turned half a degree about its first edge.</summary>
         private static (GeoPolygon3 Flat, GeoPolygon3 Turned) Squares()
         {
-            var flat = new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(1000, 0, 0), new GeoPoint3(1000, 1000, 0), new GeoPoint3(0, 1000, 0));
+            var flat = new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(1000, 0, 0),
+                new GeoPoint3(1000, 1000, 0),
+                new GeoPoint3(0, 1000, 0)
+            );
             GeoTransform3 turn = GeoTransform3.RotationAxis(GeoPoint3.Origin, GeoVector3.XAxis, HalfDegree);
 
             return (flat, new GeoPolygon3(flat.Vertices.Select(v => turn.Transform(v))));
@@ -80,7 +85,9 @@ namespace GeometryHelper.UnitTest.Solid
             foreach (GeoPoint3 hinge in new[] { new GeoPoint3(0, 0, 500), new GeoPoint3(0, 1000, 500) })
             {
                 double sense = hinge.Y == 0 ? 1.0 : -1.0;
-                GeoSolid3 tilted = block.TransformBy(GeoTransform3.RotationAxis(hinge, GeoVector3.XAxis, sense * HalfDegree));
+                GeoSolid3 tilted = block.TransformBy(
+                    GeoTransform3.RotationAxis(hinge, GeoVector3.XAxis, sense * HalfDegree)
+                );
 
                 Assert.False(footing.TryGetContact(tilted, out GeoFace3[] contact));
                 Assert.Empty(contact);

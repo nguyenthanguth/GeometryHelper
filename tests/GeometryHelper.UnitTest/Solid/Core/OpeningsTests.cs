@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -16,8 +16,10 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoPoint3[] baseCcw =
             {
-                new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y0, z0),
-                new GeoPoint3(x1, y1, z0), new GeoPoint3(x0, y1, z0)
+                new GeoPoint3(x0, y0, z0),
+                new GeoPoint3(x1, y0, z0),
+                new GeoPoint3(x1, y1, z0),
+                new GeoPoint3(x0, y1, z0),
             };
 
             List<GeoFace3> faces = new List<GeoFace3>();
@@ -230,11 +232,8 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void GetVolume_CountsOverlappingOpeningsOnce()
         {
-            GeoSolid3 slab = Box(0, 0, 0, 10, 10, 4).WithOpenings(new[]
-            {
-                Box(2, 2, 1, 6, 6, 3),
-                Box(4, 4, 1, 8, 8, 3)
-            });
+            GeoSolid3 slab = Box(0, 0, 0, 10, 10, 4)
+                .WithOpenings(new[] { Box(2, 2, 1, 6, 6, 3), Box(4, 4, 1, 8, 8, 3) });
 
             // Two 4 x 4 x 2 openings sharing a 2 x 2 x 2 corner: 32 + 32 - 8 = 56 is really removed.
             Assert.Equal(400.0 - 56.0, slab.GetVolume(), 9);

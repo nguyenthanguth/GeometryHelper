@@ -28,7 +28,9 @@ namespace GeometryHelper.Dxf
     public sealed class DxfEllipse : DxfCurve
     {
         // The groups of AcDbEllipse in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 10, 20, 30, 11, 21, 31, 210, 220, 230, 40, 41, 42 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 10, 20, 30, 11, 21, 31, 210, 220, 230, 40, 41, 42 }
+        );
 
         private static readonly GeoPoint3 Origin = new GeoPoint3(0.0, 0.0, 0.0);
 
@@ -45,9 +47,7 @@ namespace GeometryHelper.Dxf
         /// as AutoCAD's <c>new Ellipse()</c>, on layer 0 in no file.
         /// </summary>
         public DxfEllipse()
-            : this(Origin, Up, new GeoVector3(1.0, 0.0, 0.0), 1.0, 0.0, Turn)
-        {
-        }
+            : this(Origin, Up, new GeoVector3(1.0, 0.0, 0.0), 1.0, 0.0, Turn) { }
 
         /// <summary>
         /// Initializes an ellipse, as AutoCAD's <c>new Ellipse(center, unitNormal, majorAxis, radiusRatio, startAngle,
@@ -63,15 +63,18 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number, the normal or the major axis has
         /// no length, or the major axis is not square to the normal within the vector tolerance.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the ratio is not above nought and up to 1, or an angle is not finite.</exception>
-        public DxfEllipse(GeoPoint3 center, GeoVector3 unitNormal, GeoVector3 majorAxis, double radiusRatio, double startAngle, double endAngle)
-            : base("ELLIPSE", Groups(center, unitNormal, majorAxis, radiusRatio, startAngle, endAngle))
-        {
-        }
+        public DxfEllipse(
+            GeoPoint3 center,
+            GeoVector3 unitNormal,
+            GeoVector3 majorAxis,
+            double radiusRatio,
+            double startAngle,
+            double endAngle
+        )
+            : base("ELLIPSE", Groups(center, unitNormal, majorAxis, radiusRatio, startAngle, endAngle)) { }
 
         private DxfEllipse(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets the centre of the ellipse (groups 10, 20, 30), in world coordinates, as AutoCAD's <c>Center</c>; the origin where the record gives none.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
@@ -124,7 +127,6 @@ namespace GeometryHelper.Dxf
         public double RadiusRatio
         {
             get => GetDouble(40, 1.0);
-
             set
             {
                 // The ratio it has changes nothing, though the file's lie outside (0, 1].
@@ -173,7 +175,6 @@ namespace GeometryHelper.Dxf
                 double end = GetDouble(42, Turn);
                 return end > start ? end : end + Turn;
             }
-
             set
             {
                 Guard.Finite(value, nameof(value), "A parameter has to be a finite number.");
@@ -196,7 +197,6 @@ namespace GeometryHelper.Dxf
         public double StartAngle
         {
             get => AngleOf(GetDouble(41, 0.0), RadiusRatio);
-
             set
             {
                 Guard.Finite(value, nameof(value), "An angle has to be a finite number.");
@@ -218,7 +218,6 @@ namespace GeometryHelper.Dxf
         public double EndAngle
         {
             get => AngleOf(GetDouble(42, Turn), RadiusRatio);
-
             set
             {
                 Guard.Finite(value, nameof(value), "An angle has to be a finite number.");
@@ -300,16 +299,26 @@ namespace GeometryHelper.Dxf
         /// no length, or the major axis is not square to the normal within the vector tolerance.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the ratio is not above nought and up to 1, or an angle is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the ellipse is erased.</exception>
-        public void Set(GeoPoint3 center, GeoVector3 unitNormal, GeoVector3 majorAxis, double radiusRatio, double startAngle, double endAngle)
+        public void Set(
+            GeoPoint3 center,
+            GeoVector3 unitNormal,
+            GeoVector3 majorAxis,
+            double radiusRatio,
+            double startAngle,
+            double endAngle
+        )
         {
             Check(center, unitNormal, majorAxis, radiusRatio, startAngle, endAngle, out GeoVector3 normal);
-            SetGroups(Join(
-                PointGroups(10, center, Origin),
-                PointGroups(11, new GeoPoint3(majorAxis.X, majorAxis.Y, majorAxis.Z), AlongX),
-                NormalGroups(normal),
-                NumberGroups(40, radiusRatio, RadiusRatio),
-                NumberGroups(41, ParameterOf(startAngle, radiusRatio), GetDouble(41, 0.0)),
-                NumberGroups(42, ParameterOf(endAngle, radiusRatio), GetDouble(42, Turn))));
+            SetGroups(
+                Join(
+                    PointGroups(10, center, Origin),
+                    PointGroups(11, new GeoPoint3(majorAxis.X, majorAxis.Y, majorAxis.Z), AlongX),
+                    NormalGroups(normal),
+                    NumberGroups(40, radiusRatio, RadiusRatio),
+                    NumberGroups(41, ParameterOf(startAngle, radiusRatio), GetDouble(41, 0.0)),
+                    NumberGroups(42, ParameterOf(endAngle, radiusRatio), GetDouble(42, Turn))
+                )
+            );
         }
 
         /// <summary>
@@ -506,11 +515,21 @@ namespace GeometryHelper.Dxf
         /// <returns>The one spline.</returns>
         /// <exception cref="ArgumentException">Thrown when the normal is not along the ellipse's within the vector tolerance.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not finite.</exception>
-        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(GeoVector3 planeNormal, double offsetDist)
+        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(
+            GeoVector3 planeNormal,
+            double offsetDist
+        )
         {
-            if (!planeNormal.IsValid || planeNormal.IsZeroLength(Tolerance.Default) || !planeNormal.IsParallelTo(GetNormal(), Tolerance.Default))
+            if (
+                !planeNormal.IsValid
+                || planeNormal.IsZeroLength(Tolerance.Default)
+                || !planeNormal.IsParallelTo(GetNormal(), Tolerance.Default)
+            )
             {
-                throw new ArgumentException("An ellipse is offset in its own plane: the normal " + planeNormal + " is not along the ellipse's.", nameof(planeNormal));
+                throw new ArgumentException(
+                    "An ellipse is offset in its own plane: the normal " + planeNormal + " is not along the ellipse's.",
+                    nameof(planeNormal)
+                );
             }
 
             return GetOffsetCurves(offsetDist);
@@ -527,7 +546,13 @@ namespace GeometryHelper.Dxf
             double start = StartParam;
             double end = EndParam;
             double first = Modulo(-end, Turn) + 0.0;
-            SetGroups(Join(NormalGroups(GetNormal().Negate()), NumberGroups(41, first, GetDouble(41, 0.0)), NumberGroups(42, first + (end - start), GetDouble(42, Turn))));
+            SetGroups(
+                Join(
+                    NormalGroups(GetNormal().Negate()),
+                    NumberGroups(41, first, GetDouble(41, 0.0)),
+                    NumberGroups(42, first + (end - start), GetDouble(42, Turn))
+                )
+            );
         }
 
         /// <summary>
@@ -553,12 +578,20 @@ namespace GeometryHelper.Dxf
 
             if (newParameter >= start && newParameter <= end)
             {
-                throw new ArgumentOutOfRangeException(nameof(newParameter), newParameter, "The parameter lies on the ellipse, which runs from its start parameter to its end: one past an end extends it.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(newParameter),
+                    newParameter,
+                    "The parameter lies on the ellipse, which runs from its start parameter to its end: one past an end extends it."
+                );
             }
 
             if ((newParameter < start ? end - newParameter : newParameter - start) >= Turn)
             {
-                throw new ArgumentOutOfRangeException(nameof(newParameter), newParameter, "The parameter would take the ellipse round a whole turn or more.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(newParameter),
+                    newParameter,
+                    "The parameter would take the ellipse round a whole turn or more."
+                );
             }
 
             if (newParameter < start)
@@ -691,7 +724,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The ellipse, in world coordinates.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the ellipse is a part of one, has no major axis within the
         /// default point tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoEllipse3 ToGeoEllipse3() => ShapeAs<GeoEllipse3>(nameof(ToGeoEllipse3), false, Tolerance.Default, kind: NotWhole);
+        public GeoEllipse3 ToGeoEllipse3() =>
+            ShapeAs<GeoEllipse3>(nameof(ToGeoEllipse3), false, Tolerance.Default, kind: NotWhole);
 
         /// <summary>
         /// Gets the whole ellipse in the plane, as <see cref="DxfReader"/> reads it with <see cref="DxfReadOptions.PlanAs2D"/>
@@ -713,7 +747,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The ellipse in the plane.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the ellipse does not lie on the floor, is a part of one, has
         /// no major axis within the point tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoEllipse2 ToGeoEllipse2(Tolerance tolerance) => ShapeAs<GeoEllipse2>(nameof(ToGeoEllipse2), true, tolerance, kind: NotWhole);
+        public GeoEllipse2 ToGeoEllipse2(Tolerance tolerance) =>
+            ShapeAs<GeoEllipse2>(nameof(ToGeoEllipse2), true, tolerance, kind: NotWhole);
 
         /// <summary>
         /// Gets a part of an ellipse as the spline that is exactly that part, as <see cref="DxfEntity.GetGeometry"/> gives it,
@@ -724,7 +759,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The spline, in world coordinates.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the ellipse is whole, has no major axis within the default
         /// point tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoSpline3 ToGeoSpline3() => ShapeAs<GeoSpline3>(nameof(ToGeoSpline3), false, Tolerance.Default, kind: NotPart);
+        public GeoSpline3 ToGeoSpline3() =>
+            ShapeAs<GeoSpline3>(nameof(ToGeoSpline3), false, Tolerance.Default, kind: NotPart);
 
         /// <summary>
         /// Gets a part of an ellipse in the plane as the spline that is exactly that part, as <see cref="DxfReader"/> reads it
@@ -744,7 +780,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The spline in the plane.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the ellipse does not lie on the floor, is whole, has no major
         /// axis within the point tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoSpline2 ToGeoSpline2(Tolerance tolerance) => ShapeAs<GeoSpline2>(nameof(ToGeoSpline2), true, tolerance, kind: NotPart);
+        public GeoSpline2 ToGeoSpline2(Tolerance tolerance) =>
+            ShapeAs<GeoSpline2>(nameof(ToGeoSpline2), true, tolerance, kind: NotPart);
 
         /// <summary>
         /// Gives the ellipse the centre, normal, axes and radii of a whole <see cref="GeoEllipse3"/>, as AutoCAD's
@@ -765,17 +802,32 @@ namespace GeometryHelper.Dxf
 
             if (!(geCurve is GeoEllipse3 ellipse))
             {
-                throw new ArgumentException("An ellipse takes a GeoEllipse3 or a GeoEllipse2, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
+                throw new ArgumentException(
+                    "An ellipse takes a GeoEllipse3 or a GeoEllipse2, and was given "
+                        + (geCurve == null ? "null" : "a " + geCurve.GetType().Name)
+                        + ".",
+                    nameof(geCurve)
+                );
             }
 
             SetShape(ellipse);
         }
 
         /// <summary>Why the ellipse read is not a whole one.</summary>
-        private string NotWhole(object shape) => TypeAndHandle + " is a part of an ellipse, which a " + (shape is GeoSpline2 ? "GeoEllipse2" : "GeoEllipse3") + " is not: " + (shape is GeoSpline2 ? "ToGeoSpline2" : "ToGeoSpline3") + " gives it, exactly.";
+        private string NotWhole(object shape) =>
+            TypeAndHandle
+            + " is a part of an ellipse, which a "
+            + (shape is GeoSpline2 ? "GeoEllipse2" : "GeoEllipse3")
+            + " is not: "
+            + (shape is GeoSpline2 ? "ToGeoSpline2" : "ToGeoSpline3")
+            + " gives it, exactly.";
 
         /// <summary>Why the ellipse read is not a part of one.</summary>
-        private string NotPart(object shape) => TypeAndHandle + " is a whole ellipse, which " + (shape is GeoEllipse2 ? "ToGeoEllipse2" : "ToGeoEllipse3") + " gives; DxfCurve.Spline gives it as a spline.";
+        private string NotPart(object shape) =>
+            TypeAndHandle
+            + " is a whole ellipse, which "
+            + (shape is GeoEllipse2 ? "ToGeoEllipse2" : "ToGeoEllipse3")
+            + " gives; DxfCurve.Spline gives it as a spline.";
 
         /// <summary>
         /// Moves, turns, scales, mirrors or shears the ellipse, as AutoCAD's <c>TransformBy</c> does: as ezdxf transforms one,
@@ -828,7 +880,13 @@ namespace GeometryHelper.Dxf
                 adjust = false;
             }
 
-            if (!normal.IsValid || !newMajor.IsValid || !(newMajor.Length > 0.0) || double.IsNaN(newRatio) || double.IsInfinity(newRatio))
+            if (
+                !normal.IsValid
+                || !newMajor.IsValid
+                || !(newMajor.Length > 0.0)
+                || double.IsNaN(newRatio)
+                || double.IsInfinity(newRatio)
+            )
             {
                 throw new ArgumentException("The transformation flattens the ellipse.", nameof(transform));
             }
@@ -840,7 +898,9 @@ namespace GeometryHelper.Dxf
                 GeoVector3 y = Unit(newMinor);
                 double oldSpan = Modulo(end - start, Turn);
                 double Parameter(GeoVector3 v) => Modulo(Math.Atan2(y.DotProduct(v) / newRatio, x.DotProduct(v)), Turn);
-                start = Parameter(newCenter.GetVectorTo(transform.Transform(Vertex(start, major, minor, center, ratio))));
+                start = Parameter(
+                    newCenter.GetVectorTo(transform.Transform(Vertex(start, major, minor, center, ratio)))
+                );
                 end = Parameter(newCenter.GetVectorTo(transform.Transform(Vertex(end, major, minor, center, ratio))));
 
                 if (!(Math.Abs(oldSpan - Math.PI) <= Math.Max(1E-9 * Math.PI, 1E-9)))
@@ -856,7 +916,9 @@ namespace GeometryHelper.Dxf
                 }
                 else
                 {
-                    GeoPoint3 oldCheck = transform.Transform(Vertex(Middle(oldStart, oldEnd), major, minor, center, ratio));
+                    GeoPoint3 oldCheck = transform.Transform(
+                        Vertex(Middle(oldStart, oldEnd), major, minor, center, ratio)
+                    );
                     GeoPoint3 newCheck = Vertex(Middle(start, end), newMajor, newMinor, newCenter, newRatio);
 
                     if (!Close(oldCheck, newCheck))
@@ -889,13 +951,16 @@ namespace GeometryHelper.Dxf
                 end = Turn;
             }
 
-            SetGroups(Join(
-                PointGroups(10, newCenter, Origin),
-                PointGroups(11, new GeoPoint3(newMajor.X, newMajor.Y, newMajor.Z), AlongX),
-                NormalGroups(normal),
-                NumberGroups(40, Math.Max(newRatio, 1E-6), ratio),
-                NumberGroups(41, start, oldStart),
-                NumberGroups(42, end, oldEnd)));
+            SetGroups(
+                Join(
+                    PointGroups(10, newCenter, Origin),
+                    PointGroups(11, new GeoPoint3(newMajor.X, newMajor.Y, newMajor.Z), AlongX),
+                    NormalGroups(normal),
+                    NumberGroups(40, Math.Max(newRatio, 1E-6), ratio),
+                    NumberGroups(41, start, oldStart),
+                    NumberGroups(42, end, oldEnd)
+                )
+            );
         }
 
         [DxfType("ELLIPSE")]
@@ -905,7 +970,14 @@ namespace GeometryHelper.Dxf
         private protected override IReadOnlyList<int> GroupOrder => Order;
 
         /// <summary>The groups of an ellipse made in code: its marker, centre, major axis, normal, ratio and parameters.</summary>
-        private static IEnumerable<DxfTypedValue> Groups(GeoPoint3 center, GeoVector3 unitNormal, GeoVector3 majorAxis, double radiusRatio, double startAngle, double endAngle)
+        private static IEnumerable<DxfTypedValue> Groups(
+            GeoPoint3 center,
+            GeoVector3 unitNormal,
+            GeoVector3 majorAxis,
+            double radiusRatio,
+            double startAngle,
+            double endAngle
+        )
         {
             Check(center, unitNormal, majorAxis, radiusRatio, startAngle, endAngle, out GeoVector3 normal);
             return new[]
@@ -927,11 +999,22 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Refuses an ellipse AutoCAD would not make: a normal or major axis of no length, the two askew, a ratio out of range.</summary>
-        private static void Check(GeoPoint3 center, GeoVector3 unitNormal, GeoVector3 majorAxis, double radiusRatio, double startAngle, double endAngle, out GeoVector3 normal)
+        private static void Check(
+            GeoPoint3 center,
+            GeoVector3 unitNormal,
+            GeoVector3 majorAxis,
+            double radiusRatio,
+            double startAngle,
+            double endAngle,
+            out GeoVector3 normal
+        )
         {
             if (!center.IsValid)
             {
-                throw new ArgumentException("A centre has to be of finite numbers: " + center + " is not.", nameof(center));
+                throw new ArgumentException(
+                    "A centre has to be of finite numbers: " + center + " is not.",
+                    nameof(center)
+                );
             }
 
             normal = DxfCircle.Unit(unitNormal, nameof(unitNormal));
@@ -939,12 +1022,18 @@ namespace GeometryHelper.Dxf
 
             if (!majorAxis.IsValid || !(length > 0.0) || double.IsInfinity(length))
             {
-                throw new ArgumentException("A major axis has to be a direction of finite numbers and some length: " + majorAxis + " is not.", nameof(majorAxis));
+                throw new ArgumentException(
+                    "A major axis has to be a direction of finite numbers and some length: " + majorAxis + " is not.",
+                    nameof(majorAxis)
+                );
             }
 
             if (!(Math.Abs(majorAxis.DotProduct(normal)) / length <= Tolerance.Default.EqualVector))
             {
-                throw new ArgumentException("The major axis " + majorAxis + " is not square to the normal " + normal + ".", nameof(majorAxis));
+                throw new ArgumentException(
+                    "The major axis " + majorAxis + " is not square to the normal " + normal + ".",
+                    nameof(majorAxis)
+                );
             }
 
             CheckRatio(radiusRatio, nameof(radiusRatio));
@@ -958,7 +1047,11 @@ namespace GeometryHelper.Dxf
 
             if (value > 1.0)
             {
-                throw new ArgumentOutOfRangeException(parameter, value, "A ratio of radii has to be a finite number above nought and up to 1.");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    value,
+                    "A ratio of radii has to be a finite number above nought and up to 1."
+                );
             }
         }
 
@@ -973,8 +1066,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The parameter of the point at an angle from the major axis, from nought up to 2 pi, and 2 pi at the angle 2 pi.</summary>
-        private static double ParameterOf(double angle, double ratio)
-            => Math.Abs(angle - Turn) < 1E-15 ? Turn : Modulo(Math.Atan2(Math.Sin(angle), ratio * Math.Cos(angle)), Turn);
+        private static double ParameterOf(double angle, double ratio) =>
+            Math.Abs(angle - Turn) < 1E-15 ? Turn : Modulo(Math.Atan2(Math.Sin(angle), ratio * Math.Cos(angle)), Turn);
 
         /// <summary>Whether the parameters are a whole turn apart, or the same, as the reader takes them.</summary>
         private bool IsWhole()
@@ -1017,7 +1110,13 @@ namespace GeometryHelper.Dxf
             GeoVector3 offset = Center.GetVectorTo(point);
             double along = offset.DotProduct(x);
             double across = offset.DotProduct(y);
-            Ellipse2.UnitClosest(Math.Min(ratio, 1.0), Math.Abs(along) / a, Math.Abs(across) / a, out double cos, out double sin);
+            Ellipse2.UnitClosest(
+                Math.Min(ratio, 1.0),
+                Math.Abs(along) / a,
+                Math.Abs(across) / a,
+                out double cos,
+                out double sin
+            );
             return Modulo(Math.Atan2(across < 0.0 ? -sin : sin, along < 0.0 ? -cos : cos), Turn);
         }
 
@@ -1127,7 +1226,9 @@ namespace GeometryHelper.Dxf
         private DxfEllipse Piece(double from, double to)
         {
             var copy = (DxfEllipse)Copy();
-            copy.SetGroups(Join(NumberGroups(41, from, copy.GetDouble(41, 0.0)), NumberGroups(42, to, copy.GetDouble(42, Turn))));
+            copy.SetGroups(
+                Join(NumberGroups(41, from, copy.GetDouble(41, 0.0)), NumberGroups(42, to, copy.GetDouble(42, Turn)))
+            );
             return copy;
         }
 
@@ -1152,27 +1253,41 @@ namespace GeometryHelper.Dxf
         private static GeoVector3 Unit(GeoVector3 vector) => vector.Multiply(1.0 / vector.Length);
 
         /// <summary>The point at a parameter of an ellipse given by its axes, as ezdxf's <c>vertex</c>.</summary>
-        private static GeoPoint3 Vertex(double parameter, GeoVector3 major, GeoVector3 minor, GeoPoint3 center, double ratio)
+        private static GeoPoint3 Vertex(
+            double parameter,
+            GeoVector3 major,
+            GeoVector3 minor,
+            GeoPoint3 center,
+            double ratio
+        )
         {
             double rx = major.Length;
             double ry = rx * ratio;
-            return center.Add(Unit(major).Multiply(Math.Cos(parameter) * rx)).Add(Unit(minor).Multiply(Math.Sin(parameter) * ry));
+            return center
+                .Add(Unit(major).Multiply(Math.Cos(parameter) * rx))
+                .Add(Unit(minor).Multiply(Math.Sin(parameter) * ry));
         }
 
         /// <summary>The parameter halfway from one to another counter-clockwise, as ezdxf's <c>mid_param</c>.</summary>
         private static double Middle(double start, double end) => 0.5 * (start + (end < start ? end + Turn : end));
 
         /// <summary>Whether two points are within 1E-9 of each other in every coordinate, as ezdxf's <c>isclose</c> with that absolute tolerance.</summary>
-        private static bool Close(GeoPoint3 a, GeoPoint3 b)
-            => Near(a.X, b.X) && Near(a.Y, b.Y) && Near(a.Z, b.Z);
+        private static bool Close(GeoPoint3 a, GeoPoint3 b) => Near(a.X, b.X) && Near(a.Y, b.Y) && Near(a.Z, b.Z);
 
-        private static bool Near(double a, double b) => Math.Abs(a - b) <= Math.Max(1E-9 * Math.Max(Math.Abs(a), Math.Abs(b)), 1E-9);
+        private static bool Near(double a, double b) =>
+            Math.Abs(a - b) <= Math.Max(1E-9 * Math.Max(Math.Abs(a), Math.Abs(b)), 1E-9);
 
         /// <summary>
         /// Rytz's construction of the axes of an ellipse from two conjugate half diameters, as ezdxf's
         /// <c>rytz_axis_construction</c>: the major and minor axes and their ratio.
         /// </summary>
-        private static void Rytz(GeoVector3 d1, GeoVector3 d2, out GeoVector3 major, out GeoVector3 minor, out double ratio)
+        private static void Rytz(
+            GeoVector3 d1,
+            GeoVector3 d2,
+            out GeoVector3 major,
+            out GeoVector3 minor,
+            out double ratio
+        )
         {
             GeoVector3 q = d1;
             GeoVector3 p1;
@@ -1220,7 +1335,9 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The group that sets a number, written as <see cref="DxfWriter"/> writes one; none where it is the number read, to the bit.</summary>
-        private static KeyValuePair<int, string>[] NumberGroups(int code, double value, double now)
-            => Same(value, now) ? new KeyValuePair<int, string>[0] : new[] { new KeyValuePair<int, string>(code, Numbers.Exact(value + 0.0)) };
+        private static KeyValuePair<int, string>[] NumberGroups(int code, double value, double now) =>
+            Same(value, now)
+                ? new KeyValuePair<int, string>[0]
+                : new[] { new KeyValuePair<int, string>(code, Numbers.Exact(value + 0.0)) };
     }
 }

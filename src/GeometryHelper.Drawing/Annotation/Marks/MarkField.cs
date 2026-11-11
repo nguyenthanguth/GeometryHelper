@@ -69,6 +69,7 @@ namespace GeometryHelper.Drawing.Annotation
         }
 
         /// <inheritdoc/>
-        public override string ToString() => Kind == MarkFieldKind.Attribute ? "Attribute " + AttributeName : Kind.ToString();
+        public override string ToString() =>
+            Kind == MarkFieldKind.Attribute ? "Attribute " + AttributeName : Kind.ToString();
     }
 }

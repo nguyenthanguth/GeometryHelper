@@ -24,15 +24,32 @@ namespace GeometryHelper.Drawing.UnitTest.Update
             _output = output;
         }
 
-        private static DxfMText MarkText(DxfDatabase database, string id) => Tagged(database.ModelSpace.Cast<DxfEntity>(), id).OfType<DxfMText>().Single();
+        private static DxfMText MarkText(DxfDatabase database, string id) =>
+            Tagged(database.ModelSpace.Cast<DxfEntity>(), id).OfType<DxfMText>().Single();
 
         /// <summary>TC2 with its extra plate, saved with a plugin run in its document, opened again and shown in the presenter.</summary>
         private static (Drawing Drawing, CadDocument Document, DrawingPluginRun Run) Saved()
         {
             Drawing built = DrawingBuilder.Build(TC2(3000, extra: true), AssemblyOnA3(), Tol);
             DrawingDocumentRecords records = DrawingDocumentStore.Read(built.Database);
-            var run = new DrawingPluginRun("R-1", "BoltDimensions", "1.2", "V-FRONT", new DrawingLinks(new[] { "TC2-endplate" }), new[] { new KeyValuePair<string, string>("Gap", "8") });
-            DrawingDocumentStore.Write(built.Database, new DrawingDocumentRecords(records.DrawingId, records.Views, records.Annotations, records.Edits, new[] { run }));
+            var run = new DrawingPluginRun(
+                "R-1",
+                "BoltDimensions",
+                "1.2",
+                "V-FRONT",
+                new DrawingLinks(new[] { "TC2-endplate" }),
+                new[] { new KeyValuePair<string, string>("Gap", "8") }
+            );
+            DrawingDocumentStore.Write(
+                built.Database,
+                new DrawingDocumentRecords(
+                    records.DrawingId,
+                    records.Views,
+                    records.Annotations,
+                    records.Edits,
+                    new[] { run }
+                )
+            );
             string path = Path.Combine(Folder(), "tc2-update.dxf");
             built.Save(path);
             Drawing drawing = Drawing.Open(path, TC2(3000, extra: true), Tol);
@@ -47,14 +64,31 @@ namespace GeometryHelper.Drawing.UnitTest.Update
 
             // By hand: the end plate's mark 40 to the right, the extra plate's mark 30 down, the overall dimension's text
             // overridden, and a line drawn on the sheet.
-            Assert.True(document.Owners.TryApply(document, new CadEdit(MarkText(document.Database, MarkId).Handle, CadEditKind.Move, newValue: "40,0")));
-            Assert.True(document.Owners.TryApply(document, new CadEdit(MarkText(document.Database, ExtraMarkId).Handle, CadEditKind.Move, newValue: "0,-30")));
+            Assert.True(
+                document.Owners.TryApply(
+                    document,
+                    new CadEdit(MarkText(document.Database, MarkId).Handle, CadEditKind.Move, newValue: "40,0")
+                )
+            );
+            Assert.True(
+                document.Owners.TryApply(
+                    document,
+                    new CadEdit(MarkText(document.Database, ExtraMarkId).Handle, CadEditKind.Move, newValue: "0,-30")
+                )
+            );
             DxfDimension overall = Dimension(document.Database, OverallId);
             Assert.Equal(3000.0, overall.Measurement, 6);
-            Assert.True(document.Owners.TryApply(document, new CadEdit(overall.Handle, CadEditKind.Property, "Text override", string.Empty, "<> (check)")));
+            Assert.True(
+                document.Owners.TryApply(
+                    document,
+                    new CadEdit(overall.Handle, CadEditKind.Property, "Text override", string.Empty, "<> (check)")
+                )
+            );
             CadSpace sheet = document.Spaces.Single(s => s.Name == DrawingDxfWriter.LayoutName);
             DxfLine byHand = null;
-            document.ApplyEdit("LINE", null, scope => byHand = scope.Append(sheet, new DxfLine(new GeoPoint3(20, 100, 0), new GeoPoint3(120, 100, 0))));
+            document.ApplyEdit("LINE", null, scope =>
+                byHand = scope.Append(sheet, new DxfLine(new GeoPoint3(20, 100, 0), new GeoPoint3(120, 100, 0)))
+            );
             string handle = byHand.Handle;
             Assert.Equal(3, drawing.Edits.Count);
 
@@ -79,7 +113,10 @@ namespace GeometryHelper.Drawing.UnitTest.Update
             Assert.Equal(3500.0, longer.Measurement, 6);
             Assert.Equal("<> (check)", longer.DimensionText);
             Assert.Contains(longer.DimBlock.Cast<DxfEntity>().OfType<DxfMText>(), t => t.Contents == "3500 (check)");
-            Assert.Equal("3500", drawing.Views[0].Dimensions[drawing.Views[0].DimensionIds.ToList().IndexOf(OverallId)].Text);
+            Assert.Equal(
+                "3500",
+                drawing.Views[0].Dimensions[drawing.Views[0].DimensionIds.ToList().IndexOf(OverallId)].Text
+            );
 
             // The end plate's mark stands 40 to the right of where the drawing puts it, at the plate's new place.
             DrawingView front = drawing.Views[0];
@@ -108,7 +145,12 @@ namespace GeometryHelper.Drawing.UnitTest.Update
         public void AnUpdateInThePresenterIsOneUndoStepThatTakesBackTheDxfAndTheEdits()
         {
             (Drawing drawing, CadDocument document, _) = Saved();
-            Assert.True(document.Owners.TryApply(document, new CadEdit(MarkText(document.Database, ExtraMarkId).Handle, CadEditKind.Move, newValue: "0,-30")));
+            Assert.True(
+                document.Owners.TryApply(
+                    document,
+                    new CadEdit(MarkText(document.Database, ExtraMarkId).Handle, CadEditKind.Move, newValue: "0,-30")
+                )
+            );
 
             drawing.Update(TC2(3500));
             Assert.Empty(drawing.Edits);
@@ -151,7 +193,10 @@ namespace GeometryHelper.Drawing.UnitTest.Update
             Assert.Empty(report.ChangedElements);
             Assert.Empty(report.AddedElements);
             Assert.Empty(report.RemovedElements);
-            Assert.Equal(DrawingEntityTags.Find(DrawingBuilder.Build(TC2(), AssemblyOnA3(), Tol).Database).Count, DrawingEntityTags.Find(drawing.Database).Count);
+            Assert.Equal(
+                DrawingEntityTags.Find(DrawingBuilder.Build(TC2(), AssemblyOnA3(), Tol).Database).Count,
+                DrawingEntityTags.Find(drawing.Database).Count
+            );
             Assert.NotEmpty(before);
         }
     }

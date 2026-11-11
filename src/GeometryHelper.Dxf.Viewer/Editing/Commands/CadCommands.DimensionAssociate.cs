@@ -15,7 +15,17 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("DIMREASSOCIATE", DimReassociate));
             registry.Add(new CadCommand("DIMDISASSOCIATE", DimDisassociate));
             registry.Add(new CadCommand("-DIMDISASSOCIATE", DimDisassociate));
-            registry.AddVariable(CadSystemVariable.Whole("DIMASSOC", true, 0, 2, s => s.Document.Database.DimAssoc, (c, v) => c.Database.DimAssoc = v, "$DIMASSOC"));
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "DIMASSOC",
+                    true,
+                    0,
+                    2,
+                    s => s.Document.Database.DimAssoc,
+                    (c, v) => c.Database.DimAssoc = v,
+                    "$DIMASSOC"
+                )
+            );
         }
 
         /// <summary>
@@ -39,7 +49,13 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 DxfEntity entity = c.Document.FindEntity(handle);
 
-                if (entity is DxfRotatedDimension || entity is DxfAlignedDimension || entity is DxfRadialDimension || entity is DxfDiametricDimension || entity is DxfPoint3AngularDimension)
+                if (
+                    entity is DxfRotatedDimension
+                    || entity is DxfAlignedDimension
+                    || entity is DxfRadialDimension
+                    || entity is DxfDiametricDimension
+                    || entity is DxfPoint3AngularDimension
+                )
                 {
                     dimensions.Add(handle);
                 }
@@ -63,13 +79,21 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (dimension is DxfRotatedDimension || dimension is DxfAlignedDimension)
                 {
-                    yield return CadPrompt.ForPoint("Specify first extension line origin", null, new[] { "Select object" }, "next");
+                    yield return CadPrompt.ForPoint(
+                        "Specify first extension line origin",
+                        null,
+                        new[] { "Select object" },
+                        "next"
+                    );
 
                     if (c.Input.Is("Select object"))
                     {
                         yield return CadPrompt.ForEntity("Select object");
 
-                        if (c.Input.Kind == CadInputKind.Selection && c.Document.FindEntity(c.Input.Handles[0]) is DxfLine line)
+                        if (
+                            c.Input.Kind == CadInputKind.Selection
+                            && c.Document.FindEntity(c.Input.Handles[0]) is DxfLine line
+                        )
                         {
                             DxfOsnapPointRef[] ends = CadDimAssociation.LineEnds(line);
                             references[0] = ends[0];
@@ -91,7 +115,10 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     yield return CadPrompt.ForEntity("Select arc", null, "next");
 
-                    if (c.Input.Kind == CadInputKind.Selection && c.Document.FindEntity(c.Input.Handles[0]) is DxfArc arc)
+                    if (
+                        c.Input.Kind == CadInputKind.Selection
+                        && c.Document.FindEntity(c.Input.Handles[0]) is DxfArc arc
+                    )
                     {
                         foreach (DxfOsnapPointRef reference in CadDimAssociation.ArcEnds(arc))
                         {
@@ -124,10 +151,13 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 var list = new List<DxfOsnapPointRef>(references.Values);
-                c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Associative", null, "Yes") }, s =>
-                {
-                    CadDimAssociation.Reassociate(s.Document, (DxfDimension)s.Document.FindEntity(handle), list);
-                });
+                c.Apply(
+                    new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Associative", null, "Yes") },
+                    s =>
+                    {
+                        CadDimAssociation.Reassociate(s.Document, (DxfDimension)s.Document.FindEntity(handle), list);
+                    }
+                );
             }
         }
 
@@ -177,7 +207,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                 foreach (string handle in tied)
                 {
-                    planned.Add(new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "Associative", "Yes", "No"));
+                    planned.Add(
+                        new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "Associative", "Yes", "No")
+                    );
                 }
 
                 c.Apply(planned, s =>

@@ -70,7 +70,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // A plate 10 thick with a square hole 10 by 10 at the top narrowing to 6 by 6 at the bottom: the walls,
             // trapezoids, close it round the hole, 8 346.67, and the caps over it, 9 000. Neither lies on a face, and either
             // is valid.
-            GeoSolid3 body = ClosingTestBodies.PlateWithAHoleWithoutItsWalls(10, ClosingTestBodies.Rectangle(10, 10, 20, 20), ClosingTestBodies.Rectangle(12, 12, 18, 18));
+            GeoSolid3 body = ClosingTestBodies.PlateWithAHoleWithoutItsWalls(
+                10,
+                ClosingTestBodies.Rectangle(10, 10, 20, 20),
+                ClosingTestBodies.Rectangle(12, 12, 18, 18)
+            );
 
             GeoPoint3 at = AssertRefused(body, Filling(1000.0), ClosingFailure.HoleAmbiguous);
             AssertOnARim(at, 10, 10, 20, 10, 20);
@@ -81,7 +85,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // The caps add 100 and 36, 136 in all, the four walls the square root of 104 times 8 each, 326.34: the least area
             // caps the plate over, two Fills, as though it had no hole.
-            GeoSolid3 body = ClosingTestBodies.PlateWithAHoleWithoutItsWalls(10, ClosingTestBodies.Rectangle(10, 10, 20, 20), ClosingTestBodies.Rectangle(12, 12, 18, 18));
+            GeoSolid3 body = ClosingTestBodies.PlateWithAHoleWithoutItsWalls(
+                10,
+                ClosingTestBodies.Rectangle(10, 10, 20, 20),
+                ClosingTestBodies.Rectangle(12, 12, 18, 18)
+            );
 
             SolidClosing3 report = AssertFilled(body, Filling(1000.0, FillStrategy.MinArea), out GeoSolid3 closed);
             Assert.Equal(2, report.Repairs.Count);
@@ -103,7 +111,14 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // each corner of the top with the one moved from it makes the five walls flat: 167.74 in all, against 208 for the
             // caps, so the least area walls the hole round, 3 184 left. Where only an unambiguous fill is taken, the hole is
             // ambiguous.
-            GeoPoint3[] pentagon = { new GeoPoint3(10, 10, 0), new GeoPoint3(20, 10, 0), new GeoPoint3(22, 16, 0), new GeoPoint3(15, 21, 0), new GeoPoint3(9, 17, 0) };
+            GeoPoint3[] pentagon =
+            {
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(20, 10, 0),
+                new GeoPoint3(22, 16, 0),
+                new GeoPoint3(15, 21, 0),
+                new GeoPoint3(9, 17, 0),
+            };
             GeoSolid3 body = ClosingTestBodies.PlateWithAHoleWithoutItsWalls(4, pentagon, Moved(pentagon, 2, 1), 2);
 
             if (strategy == FillStrategy.WhenUnambiguous)
@@ -183,10 +198,20 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // and 92, without ambiguity.
             GeoPoint3[] octagon =
             {
-                new GeoPoint3(12, 10, 0), new GeoPoint3(18, 10, 0), new GeoPoint3(20, 12, 0), new GeoPoint3(20, 18, 0),
-                new GeoPoint3(18, 20, 0), new GeoPoint3(12, 20, 0), new GeoPoint3(10, 18, 0), new GeoPoint3(10, 12, 0),
+                new GeoPoint3(12, 10, 0),
+                new GeoPoint3(18, 10, 0),
+                new GeoPoint3(20, 12, 0),
+                new GeoPoint3(20, 18, 0),
+                new GeoPoint3(18, 20, 0),
+                new GeoPoint3(12, 20, 0),
+                new GeoPoint3(10, 18, 0),
+                new GeoPoint3(10, 12, 0),
             };
-            GeoSolid3 body = ClosingTestBodies.PlateWithAHoleWithoutItsWalls(10, ClosingTestBodies.Rectangle(10, 10, 20, 20), octagon);
+            GeoSolid3 body = ClosingTestBodies.PlateWithAHoleWithoutItsWalls(
+                10,
+                ClosingTestBodies.Rectangle(10, 10, 20, 20),
+                octagon
+            );
 
             SolidClosing3 report = AssertFilled(body, Filling(1000.0), out GeoSolid3 closed);
             Assert.Equal(2, report.Repairs.Count);
@@ -202,18 +227,33 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // The straight hole through a plate 10 thick, the bottom's ring of it with a corner more, half way along an edge,
             // where it runs straight on: counted at the corners where they turn, the rims have 4 each, and the hole is
             // ambiguous where only an unambiguous fill is taken, as without the corner.
-            GeoPoint3[] withAStraightCorner = { new GeoPoint3(10, 10, 0), new GeoPoint3(15, 10, 0), new GeoPoint3(20, 10, 0), new GeoPoint3(20, 20, 0), new GeoPoint3(10, 20, 0) };
-            GeoSolid3 body = ClosingTestBodies.PlateWithAHoleWithoutItsWalls(10, ClosingTestBodies.Rectangle(10, 10, 20, 20), withAStraightCorner, 1);
+            GeoPoint3[] withAStraightCorner =
+            {
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(15, 10, 0),
+                new GeoPoint3(20, 10, 0),
+                new GeoPoint3(20, 20, 0),
+                new GeoPoint3(10, 20, 0),
+            };
+            GeoSolid3 body = ClosingTestBodies.PlateWithAHoleWithoutItsWalls(
+                10,
+                ClosingTestBodies.Rectangle(10, 10, 20, 20),
+                withAStraightCorner,
+                1
+            );
 
             AssertOnARim(AssertRefused(body, Filling(1000.0), ClosingFailure.HoleAmbiguous), 10, 10, 20, 10, 20);
         }
 
         // The corners of a plan moved along x and y.
-        private static GeoPoint3[] Moved(GeoPoint3[] plan, double x, double y) => plan.Select(p => new GeoPoint3(p.X + x, p.Y + y, 0)).ToArray();
+        private static GeoPoint3[] Moved(GeoPoint3[] plan, double x, double y) =>
+            plan.Select(p => new GeoPoint3(p.X + x, p.Y + y, 0)).ToArray();
 
         // Welds within five thousandths, and fills a hole of no more than given, as the strategy says.
-        private static SolidClosingOptions Filling(double maxHoleArea, FillStrategy fill = FillStrategy.WhenUnambiguous)
-            => new SolidClosingOptions(Fine, 0.005, maxHoleArea, 0.0, fill);
+        private static SolidClosingOptions Filling(
+            double maxHoleArea,
+            FillStrategy fill = FillStrategy.WhenUnambiguous
+        ) => new SolidClosingOptions(Fine, 0.005, maxHoleArea, 0.0, fill);
 
         // Filled: another body, valid, with no needle and no skin of no thickness, nothing gone wrong.
         private static SolidClosing3 AssertFilled(GeoSolid3 body, SolidClosingOptions options, out GeoSolid3 closed)
@@ -252,7 +292,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         // Within a millionth of what it should hold.
-        private static void AssertVolume(double expected, GeoSolid3 closed)
-            => Assert.InRange(closed.GetVolume(Fine), expected * (1.0 - 1E-6), expected * (1.0 + 1E-6));
+        private static void AssertVolume(double expected, GeoSolid3 closed) =>
+            Assert.InRange(closed.GetVolume(Fine), expected * (1.0 - 1E-6), expected * (1.0 + 1E-6));
     }
 }

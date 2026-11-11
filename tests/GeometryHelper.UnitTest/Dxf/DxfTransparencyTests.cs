@@ -14,7 +14,12 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfTransparencyTests
     {
-        private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
+        private static readonly string[] Drawings =
+        {
+            DxfFileEzdxfDrawings.R12,
+            DxfFileEzdxfDrawings.R2000,
+            DxfFileEzdxfDrawings.R2018,
+        };
 
         [Fact]
         public void ATransparency_IsAutoCADs_ByLayerByBlockOrAnAlpha_AndItsValueAsAFileWritesIt()
@@ -80,15 +85,30 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfLine line = db.ModelSpace.OfType<DxfLine>().First();
 
                 Assert.Throws<InvalidOperationException>(() => line.Transparency = new DxfTransparency(10));
-                Assert.Throws<ArgumentException>(() => db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)) { Transparency = new DxfTransparency(10) }));
+                Assert.Throws<ArgumentException>(() =>
+                    db.ModelSpace.AppendEntity(
+                        new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0))
+                        {
+                            Transparency = new DxfTransparency(10),
+                        }
+                    )
+                );
                 Assert.Equal(text, db.ToText());
             }
 
             DxfDatabase r2018 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
-            var made = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)) { Transparency = new DxfTransparency(10) };
+            var made = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0))
+            {
+                Transparency = new DxfTransparency(10),
+            };
             r2018.ModelSpace.AppendEntity(made);
-            Assert.Equal(new DxfTransparency(10), ByHandle<DxfLine>(DxfDatabase.Parse(r2018.ToText()), made.Handle).Transparency);
-            Assert.Throws<ArgumentException>(() => made.Transparency = new DxfTransparency(DxfTransparencyMethod.ErrorValue));
+            Assert.Equal(
+                new DxfTransparency(10),
+                ByHandle<DxfLine>(DxfDatabase.Parse(r2018.ToText()), made.Handle).Transparency
+            );
+            Assert.Throws<ArgumentException>(() =>
+                made.Transparency = new DxfTransparency(DxfTransparencyMethod.ErrorValue)
+            );
         }
 
         [Fact]
@@ -102,19 +122,36 @@ namespace GeometryHelper.UnitTest.Dxf
             steel.Transparency = new DxfTransparency(64);
 
             string saved = db.ToText();
-            string appid = HandleOf(Records(saved).Single(r => r.StartsWith("  0\nAPPID\n", StringComparison.Ordinal) && r.Contains("\nAcCmTransparency\n")));
+            string appid = HandleOf(
+                Records(saved)
+                    .Single(r =>
+                        r.StartsWith("  0\nAPPID\n", StringComparison.Ordinal) && r.Contains("\nAcCmTransparency\n")
+                    )
+            );
             OnlyTheseChanged(text, saved, steel.Handle, "3", appid);
-            Assert.EndsWith("1001\nAcCmTransparency\n1071\n33554496\n", Records(saved).Single(r => HandleOf(r) == steel.Handle), StringComparison.Ordinal);
+            Assert.EndsWith(
+                "1001\nAcCmTransparency\n1071\n33554496\n",
+                Records(saved).Single(r => HandleOf(r) == steel.Handle),
+                StringComparison.Ordinal
+            );
             DxfDatabase again = DxfDatabase.Parse(saved);
             Assert.Equal(new DxfTransparency(64), again.LayerTable["steel"].Transparency);
 
             again.LayerTable["steel"].Transparency = new DxfTransparency(255);
             Assert.Empty(again.LayerTable["steel"].XData);
             Assert.Throws<ArgumentException>(() => steel.Transparency = DxfTransparency.ByLayer);
-            Assert.Throws<InvalidOperationException>(() => DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000).LayerTable["steel"].Transparency = new DxfTransparency(64));
+            Assert.Throws<InvalidOperationException>(() =>
+                DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000).LayerTable["steel"].Transparency = new DxfTransparency(64)
+            );
 
             var made = new DxfLayerTableRecord { Name = "GH_Glass", Transparency = new DxfTransparency(100) };
-            Assert.Throws<ArgumentException>(() => DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000).LayerTable.Add(new DxfLayerTableRecord { Name = "GH_Glass", Transparency = new DxfTransparency(100) }));
+            Assert.Throws<ArgumentException>(() =>
+                DxfDatabase
+                    .Parse(DxfFileEzdxfDrawings.R2000)
+                    .LayerTable.Add(
+                        new DxfLayerTableRecord { Name = "GH_Glass", Transparency = new DxfTransparency(100) }
+                    )
+            );
             db.LayerTable.Add(made);
             Assert.Equal(new DxfTransparency(100), DxfDatabase.Parse(db.ToText()).LayerTable["GH_Glass"].Transparency);
         }

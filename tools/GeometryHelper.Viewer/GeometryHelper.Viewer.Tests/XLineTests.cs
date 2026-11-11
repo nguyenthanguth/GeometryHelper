@@ -168,8 +168,12 @@ namespace GeometryHelper.Viewer.Tests
                 .Scene;
             Primitives primitives = Primitives.Build(scene);
 
-            var flat = ItemMeasures.Describe(scene.Items[0], scene, primitives.Items[0]).ToDictionary(p => p.Key, p => p.Value);
-            var solid = ItemMeasures.Describe(scene.Items[1], scene, primitives.Items[1]).ToDictionary(p => p.Key, p => p.Value);
+            var flat = ItemMeasures
+                .Describe(scene.Items[0], scene, primitives.Items[0])
+                .ToDictionary(p => p.Key, p => p.Value);
+            var solid = ItemMeasures
+                .Describe(scene.Items[1], scene, primitives.Items[1])
+                .ToDictionary(p => p.Key, p => p.Value);
 
             Assert.Equal("1.5, 2", flat["Origin"]);
             Assert.Equal("0, 1", flat["Direction"]);
@@ -181,12 +185,23 @@ namespace GeometryHelper.Viewer.Tests
         public void TheNearestPointOfALine_IsOnTheLineToTheLastDigit_FarFromItsOriginToo()
         {
             // A line along X through the origin; the cursor is two pixels off it, far along the line from the origin.
-            var view = ViewFixture.Top(new SceneWriter()
-                .Add(new GeoLine2(new GeoPoint2(-100, -50), new GeoPoint2(100, 50)))
-                .Add(new GeoXLine2(new GeoPoint2(0, 0), new GeoVector2(1, 0))));
+            var view = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoLine2(new GeoPoint2(-100, -50), new GeoPoint2(100, 50)))
+                    .Add(new GeoXLine2(new GeoPoint2(0, 0), new GeoVector2(1, 0)))
+            );
 
             (double x, double y) = view.Pixel(new Vec3(70, 0, 0));
-            SnapHit hit = SnapEngine.Find(view.Geometry, view.Map, x, y + 2.0, SnapKinds.Nearest, SnapEngine.DefaultRadius, view.Scene.EqualPoint, null);
+            SnapHit hit = SnapEngine.Find(
+                view.Geometry,
+                view.Map,
+                x,
+                y + 2.0,
+                SnapKinds.Nearest,
+                SnapEngine.DefaultRadius,
+                view.Scene.EqualPoint,
+                null
+            );
 
             Assert.Equal("nearest", hit.Name);
             Assert.Equal(1, hit.ItemIndex);
@@ -197,12 +212,23 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheOriginOfALine_SnapsAsAPoint()
         {
-            var view = ViewFixture.Top(new SceneWriter()
-                .Add(new GeoLine2(new GeoPoint2(-100, -50), new GeoPoint2(100, 50)))
-                .Add(new GeoXLine2(new GeoPoint2(10, 20), new GeoVector2(1, 0))));
+            var view = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoLine2(new GeoPoint2(-100, -50), new GeoPoint2(100, 50)))
+                    .Add(new GeoXLine2(new GeoPoint2(10, 20), new GeoVector2(1, 0)))
+            );
 
             (double x, double y) = view.Pixel(new Vec3(10, 20, 0));
-            SnapHit hit = SnapEngine.Find(view.Geometry, view.Map, x + 1.5, y - 1.0, SnapKinds.End, SnapEngine.DefaultRadius, view.Scene.EqualPoint, null);
+            SnapHit hit = SnapEngine.Find(
+                view.Geometry,
+                view.Map,
+                x + 1.5,
+                y - 1.0,
+                SnapKinds.End,
+                SnapEngine.DefaultRadius,
+                view.Scene.EqualPoint,
+                null
+            );
 
             Assert.Equal(new Vec3(10, 20, 0), hit.Point);
             Assert.Equal(1, hit.ItemIndex);
@@ -211,9 +237,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ALineIsPickedOnItsDrawnStretch_WithinAFewPixels_AndNotFurther()
         {
-            var view = ViewFixture.Top(new SceneWriter()
-                .Add(new GeoLine2(new GeoPoint2(-100, -50), new GeoPoint2(100, 50)))
-                .Add(new GeoXLine2(new GeoPoint2(0, 0), new GeoVector2(1, 0))));
+            var view = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoLine2(new GeoPoint2(-100, -50), new GeoPoint2(100, 50)))
+                    .Add(new GeoXLine2(new GeoPoint2(0, 0), new GeoVector2(1, 0)))
+            );
 
             (double x, double y) = view.Pixel(new Vec3(-60, 0, 0));
             PickHit near = PickEngine.Pick(view.Primitives, view.Geometry, view.Map, x, y + 3.0, null, true);
@@ -246,9 +274,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AnXLineBesideARay_EachComesBackAsItsOwnKind()
         {
-            Scene scene = Read(new DxfWriter()
-                .Add(new GeoRay3(new GeoPoint3(0, 0, 0), GeoVector3.XAxis))
-                .Add(new GeoXLine3(new GeoPoint3(0, 0, 0), GeoVector3.YAxis)));
+            Scene scene = Read(
+                new DxfWriter()
+                    .Add(new GeoRay3(new GeoPoint3(0, 0, 0), GeoVector3.XAxis))
+                    .Add(new GeoXLine3(new GeoPoint3(0, 0, 0), GeoVector3.YAxis))
+            );
 
             Assert.Equal(new[] { "GeoRay2", "GeoXLine2" }, scene.Items.Select(i => i.Kind).ToArray());
         }

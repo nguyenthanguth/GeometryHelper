@@ -36,7 +36,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 style.FileName = settings.FileName ?? string.Empty;
                 style.BigFontFileName = settings.BigFontFileName ?? string.Empty;
                 style.XScale = settings.WidthFactor > 0.0 ? settings.WidthFactor : 1.0;
-                style.ObliquingAngle = Math.Max(-85.0, Math.Min(85.0, settings.ObliqueAngle * 180.0 / Math.PI)) * Math.PI / 180.0;
+                style.ObliquingAngle =
+                    Math.Max(-85.0, Math.Min(85.0, settings.ObliqueAngle * 180.0 / Math.PI)) * Math.PI / 180.0;
                 style.Font = settings.Font;
                 var text = new DxfDBText
                 {
@@ -58,8 +59,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // The box of a TrueType text is the canvas's to measure, not the display list's: the sample is fitted to the box its
             // letters take, about three quarters of the height each, mirrored as it is.
-            double across = SampleText.Length * 10.0 * 0.75 * (settings.WidthFactor > 0.0 ? settings.WidthFactor : 1.0) + 10.0 * Math.Abs(Math.Tan(Math.Min(1.5, Math.Abs(settings.ObliqueAngle))));
-            var fit = new DisplayBox(settings.Backwards ? -across : 0.0, settings.UpsideDown ? -10.0 : -3.0, settings.Backwards ? 0.0 : across, settings.UpsideDown ? 3.0 : 10.0);
+            double across =
+                SampleText.Length * 10.0 * 0.75 * (settings.WidthFactor > 0.0 ? settings.WidthFactor : 1.0)
+                + 10.0 * Math.Abs(Math.Tan(Math.Min(1.5, Math.Abs(settings.ObliqueAngle))));
+            var fit = new DisplayBox(
+                settings.Backwards ? -across : 0.0,
+                settings.UpsideDown ? -10.0 : -3.0,
+                settings.Backwards ? 0.0 : across,
+                settings.UpsideDown ? 3.0 : 10.0
+            );
             return Draw(database, fonts, width, height, fit);
         }
 
@@ -70,7 +78,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="width">The width of the picture, in pixels.</param>
         /// <param name="height">The height of the picture, in pixels.</param>
         /// <returns>The picture; of the parts alone where the variables do not make a style.</returns>
-        public static BitmapSource Dimensions(DxfDatabase source, System.Collections.Generic.IDictionary<string, object> values, CadFonts fonts, int width, int height)
+        public static BitmapSource Dimensions(
+            DxfDatabase source,
+            System.Collections.Generic.IDictionary<string, object> values,
+            CadFonts fonts,
+            int width,
+            int height
+        )
         {
             DxfDatabase database;
 
@@ -99,9 +113,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="height">The height of the picture, in pixels.</param>
         /// <returns>The picture; of the parts alone where the settings do not make a style.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the settings are null.</exception>
-        public static BitmapSource MLeader(DxfDatabase source, CadMLeaderStyleSettings settings, CadFonts fonts, int width, int height)
+        public static BitmapSource MLeader(
+            DxfDatabase source,
+            CadMLeaderStyleSettings settings,
+            CadFonts fonts,
+            int width,
+            int height
+        )
         {
-            return Draw(CadMLeaderStyleEditor.Sample(source, settings), fonts, width, height, new DisplayBox(0.0, 0.0, 0.0, 0.0));
+            return Draw(
+                CadMLeaderStyleEditor.Sample(source, settings),
+                fonts,
+                width,
+                height,
+                new DisplayBox(0.0, 0.0, 0.0, 0.0)
+            );
         }
 
         /// <summary>
@@ -142,7 +168,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>The picture of model space of a drawing, as the attach dialog and the External References palette preview an external reference.</summary>
-        internal static BitmapSource Drawing(DxfDatabase database, CadFonts fonts, int width, int height) => Draw(database, fonts, width, height, DisplayBox.Empty);
+        internal static BitmapSource Drawing(DxfDatabase database, CadFonts fonts, int width, int height) =>
+            Draw(database, fonts, width, height, DisplayBox.Empty);
 
         /// <summary>Draws model space of a drawing, zoomed to what it draws and a box given, white on the black ground of the canvas.</summary>
         private static BitmapSource Draw(DxfDatabase database, CadFonts fonts, int width, int height, DisplayBox fit)
@@ -172,7 +199,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 using (SKSurface surface = SKSurface.Create(info, bitmap.BackBuffer, bitmap.BackBufferStride))
                 using (var renderer = new SkiaCanvasRenderer())
                 {
-                    renderer.Render(surface.Canvas, document, document.ModelSpace, view, new CanvasOptions { Background = 0x000000 });
+                    renderer.Render(
+                        surface.Canvas,
+                        document,
+                        document.ModelSpace,
+                        view,
+                        new CanvasOptions { Background = 0x000000 }
+                    );
                     surface.Canvas.Flush();
                 }
 

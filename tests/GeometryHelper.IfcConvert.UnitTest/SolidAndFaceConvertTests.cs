@@ -2,11 +2,11 @@ using System;
 using System.IO;
 using System.Linq;
 using GeometryHelper;
+using GeometryHelper.Geometry;
 using GeometryHelper.IfcConvert.Converters.Internal;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Core.Internal;
 using GeometryHelper.IfcConvert.Models;
-using GeometryHelper.Geometry;
 using Xbim.Ifc;
 using Xbim.Ifc4.Interfaces;
 using Xunit;
@@ -16,7 +16,8 @@ namespace GeometryHelper.IfcConvert.UnitTest
     [Collection("IfcEngine")]
     public class SolidAndFaceConvertTests
     {
-        private const string MinimalIfcBoxStep = @"ISO-10303-21;
+        private const string MinimalIfcBoxStep =
+            @"ISO-10303-21;
 HEADER;
 FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');
 FILE_NAME('test_box.ifc','2026-09-17T23:00:00',('Tester'),('TestOrg'),'xBIM','xBIM','');
@@ -111,7 +112,11 @@ END-ISO-10303-21;
             {
                 if (File.Exists(tempFile))
                 {
-                    try { File.Delete(tempFile); } catch { }
+                    try
+                    {
+                        File.Delete(tempFile);
+                    }
+                    catch { }
                 }
             }
         }
@@ -174,7 +179,11 @@ END-ISO-10303-21;
             {
                 if (File.Exists(tempFile))
                 {
-                    try { File.Delete(tempFile); } catch { }
+                    try
+                    {
+                        File.Delete(tempFile);
+                    }
+                    catch { }
                 }
             }
         }

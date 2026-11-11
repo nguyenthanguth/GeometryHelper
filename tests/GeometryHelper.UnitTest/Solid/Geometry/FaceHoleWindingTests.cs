@@ -13,13 +13,31 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     public class FaceHoleWindingTests
     {
-        private static GeoPolygon3 Square(double x0, double y0, double x1, double y1, double z, bool up)
-            => up
-                ? new GeoPolygon3(new[] { new GeoPoint3(x0, y0, z), new GeoPoint3(x1, y0, z), new GeoPoint3(x1, y1, z), new GeoPoint3(x0, y1, z) })
-                : new GeoPolygon3(new[] { new GeoPoint3(x0, y0, z), new GeoPoint3(x0, y1, z), new GeoPoint3(x1, y1, z), new GeoPoint3(x1, y0, z) });
+        private static GeoPolygon3 Square(double x0, double y0, double x1, double y1, double z, bool up) =>
+            up
+                ? new GeoPolygon3(
+                    new[]
+                    {
+                        new GeoPoint3(x0, y0, z),
+                        new GeoPoint3(x1, y0, z),
+                        new GeoPoint3(x1, y1, z),
+                        new GeoPoint3(x0, y1, z),
+                    }
+                )
+                : new GeoPolygon3(
+                    new[]
+                    {
+                        new GeoPoint3(x0, y0, z),
+                        new GeoPoint3(x0, y1, z),
+                        new GeoPoint3(x1, y1, z),
+                        new GeoPoint3(x1, y0, z),
+                    }
+                );
 
-        private static GeoPolygon3 Wall(GeoPoint3 a, GeoPoint3 b, double height)
-            => new GeoPolygon3(new[] { a, b, new GeoPoint3(b.X, b.Y, b.Z + height), new GeoPoint3(a.X, a.Y, a.Z + height) });
+        private static GeoPolygon3 Wall(GeoPoint3 a, GeoPoint3 b, double height) =>
+            new GeoPolygon3(
+                new[] { a, b, new GeoPoint3(b.X, b.Y, b.Z + height), new GeoPoint3(a.X, a.Y, a.Z + height) }
+            );
 
         /// <summary>
         /// A plate ten by ten by one with a two by two hole through it, its top face carrying the hole wound
@@ -35,7 +53,6 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoFace3(Wall(new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), 1)),
                 new GeoFace3(Wall(new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0), 1)),
                 new GeoFace3(Wall(new GeoPoint3(0, 10, 0), new GeoPoint3(0, 0, 0), 1)),
-
                 // The walls of the hole face into it, away from the material.
                 new GeoFace3(Wall(new GeoPoint3(4, 4, 0), new GeoPoint3(4, 6, 0), 1)),
                 new GeoFace3(Wall(new GeoPoint3(4, 6, 0), new GeoPoint3(6, 6, 0), 1)),
@@ -69,7 +86,10 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AFaceWithAHoleOutOfTheFlatBooleans_HoldsItAsTheBoundaryRuns()
         {
-            GeoFace3[] ring = Boolean3.Subtract(new GeoFace3(Square(0, 0, 10, 10, 0, true)), new GeoFace3(Square(4, 4, 6, 6, 0, true)));
+            GeoFace3[] ring = Boolean3.Subtract(
+                new GeoFace3(Square(0, 0, 10, 10, 0, true)),
+                new GeoFace3(Square(4, 4, 6, 6, 0, true))
+            );
 
             GeoFace3 face = Assert.Single(ring);
             GeoPolygon3 hole = Assert.Single(face.Holes);
@@ -81,8 +101,12 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // A plate a hundred square and ten thick with a ten by ten hole near one corner, cut in so that its top
             // and bottom faces carry the hole: the material is pulled away from that corner.
-            GeoSolid3 plate = new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 100, 10)).ToObb().ToSolid()
-                .WithOpenings(new[] { new GeoAabb3(new GeoPoint3(80, 80, -5), new GeoPoint3(90, 90, 15)).ToObb().ToSolid() });
+            GeoSolid3 plate = new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 100, 10))
+                .ToObb()
+                .ToSolid()
+                .WithOpenings(
+                    new[] { new GeoAabb3(new GeoPoint3(80, 80, -5), new GeoPoint3(90, 90, 15)).ToObb().ToSolid() }
+                );
             Assert.True(plate.TryCutOpenings(out GeoSolid3 material));
             Assert.Contains(material.Faces, face => face.Holes.Count > 0);
 

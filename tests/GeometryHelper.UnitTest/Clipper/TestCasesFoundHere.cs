@@ -21,7 +21,33 @@ namespace GeometryHelper.UnitTest.Clipper
         {
             Paths64 subject = new()
             {
-                Clipper2.MakePath(new int[] { 70, 512, 971, 11, 813, 61, 453, 155, 592, 19, 995, 425, 711, 571, 954, 133, 957, 984, 906, 835, 211, 641 }),
+                Clipper2.MakePath(
+                    new int[]
+                    {
+                        70,
+                        512,
+                        971,
+                        11,
+                        813,
+                        61,
+                        453,
+                        155,
+                        592,
+                        19,
+                        995,
+                        425,
+                        711,
+                        571,
+                        954,
+                        133,
+                        957,
+                        984,
+                        906,
+                        835,
+                        211,
+                        641,
+                    }
+                ),
             };
             Paths64 clip = new()
             {

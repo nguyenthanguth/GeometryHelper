@@ -1,7 +1,7 @@
-using GeometryHelper.Geometry;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GeometryHelper.Geometry;
 using TSG = Tekla.Structures.Geometry3d;
 
 namespace GeometryHelper.TeklaConvert
@@ -55,6 +55,7 @@ namespace GeometryHelper.TeklaConvert
         /// </summary>
         /// <param name="boxes">The sequence of GeometryHelper bounding boxes to convert.</param>
         /// <returns>A list of converted Tekla <see cref="TSG.AABB"/> bounding boxes.</returns>
-        public static List<TSG.AABB> ToTeklaAabb(this IEnumerable<GeoAabb3> boxes) => boxes.Select(ToTeklaAabb).ToList();
+        public static List<TSG.AABB> ToTeklaAabb(this IEnumerable<GeoAabb3> boxes) =>
+            boxes.Select(ToTeklaAabb).ToList();
     }
 }

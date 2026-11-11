@@ -51,7 +51,6 @@ namespace GeometryHelper.Dxf
         public string PatternSearchPath
         {
             get => _patternSearchPath;
-
             set
             {
                 if (value == null)

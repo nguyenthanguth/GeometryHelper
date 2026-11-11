@@ -1,22 +1,48 @@
-<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.DimStyleEditWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
-        Title="Dimension Style" Width="800" Height="640" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" Background="#262B33">
-
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.DimStyleEditWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Dimension Style"
+    Width="800"
+    Height="640"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
     <Window.Resources>
         <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
     </Window.Resources>
 
-    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
-            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
-            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
         <DockPanel>
             <!-- Header: the title, dragged to move the dialog, and the close button (Cancel). -->
-            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Command="{Binding CancelCommand}" ToolTip="Close" />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Command="{Binding CancelCommand}"
+                        ToolTip="Close"
+                    />
                     <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>
@@ -25,15 +51,37 @@
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                        <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Command="{Binding CancelCommand}" IsCancel="True" />
-                        <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Click="OnOk" IsDefault="True" />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            Margin="0,0,8,0"
+                            Command="{Binding CancelCommand}"
+                            IsCancel="True"
+                        />
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="OK"
+                            Padding="14,5"
+                            Click="OnOk"
+                            IsDefault="True"
+                        />
                     </StackPanel>
-                    <TextBlock Text="Dimension variables are shown beside each field." Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                    <TextBlock
+                        Text="Dimension variables are shown beside each field."
+                        Foreground="{StaticResource GhTextMuted}"
+                        VerticalAlignment="Center"
+                    />
                 </DockPanel>
             </Border>
 
             <!-- The seven tabs, in the design's order, over a line. -->
-            <Border DockPanel.Dock="Top" Padding="16,8,16,0" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,0,0,1">
+            <Border
+                DockPanel.Dock="Top"
+                Padding="16,8,16,0"
+                BorderBrush="{StaticResource GhBorder}"
+                BorderThickness="0,0,0,1"
+            >
                 <ItemsControl ItemsSource="{Binding TabChips}" Focusable="False">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -42,7 +90,11 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <RadioButton Style="{StaticResource StyleTab}" Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                            <RadioButton
+                                Style="{StaticResource StyleTab}"
+                                Content="{Binding Name}"
+                                IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                            />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -57,7 +109,11 @@
 
                 <!-- The fields of the tab shown, by groups. -->
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <ItemsControl ItemsSource="{Binding Fields}" ItemTemplate="{StaticResource DimFieldTemplate}" Focusable="False" />
+                    <ItemsControl
+                        ItemsSource="{Binding Fields}"
+                        ItemTemplate="{StaticResource DimFieldTemplate}"
+                        Focusable="False"
+                    />
                 </ScrollViewer>
 
                 <!-- The preview, the description of the tab and what OK does. -->
@@ -74,8 +130,19 @@
                     </Border>
                     <Border Style="{StaticResource StyleFrame}">
                         <DockPanel>
-                            <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Margin="0,4,8,0" VerticalAlignment="Top" Style="{StaticResource NoticeDot}" />
-                            <TextBlock Text="{Binding Notice}" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" />
+                            <Ellipse
+                                DockPanel.Dock="Left"
+                                Width="8"
+                                Height="8"
+                                Margin="0,4,8,0"
+                                VerticalAlignment="Top"
+                                Style="{StaticResource NoticeDot}"
+                            />
+                            <TextBlock
+                                Text="{Binding Notice}"
+                                Foreground="{StaticResource GhTextMuted}"
+                                TextWrapping="Wrap"
+                            />
                         </DockPanel>
                     </Border>
                 </StackPanel>

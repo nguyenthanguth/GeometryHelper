@@ -1,6 +1,6 @@
 using System;
-using GeometryHelper.IfcConvert.Converters.Internal;
 using GeometryHelper.Geometry;
+using GeometryHelper.IfcConvert.Converters.Internal;
 using Xbim.Common.Geometry;
 using Xunit;
 
@@ -63,11 +63,7 @@ namespace GeometryHelper.IfcConvert.UnitTest
             double s = Math.Sin(Math.PI / 4.0);
 
             // xBIM row-major: rows are X, Y, Z, and row 4 is translation offset
-            var compositeXbim = new XbimMatrix3D(
-                c, -s, 0, 0,
-                s,  c, 0, 0,
-                0,  0, 1, 0,
-                120.0, 240.0, -50.0, 1.0);
+            var compositeXbim = new XbimMatrix3D(c, -s, 0, 0, s, c, 0, 0, 0, 0, 1, 0, 120.0, 240.0, -50.0, 1.0);
 
             GeoTransform3 geoTransform = compositeXbim.ToGeoTransform3();
 

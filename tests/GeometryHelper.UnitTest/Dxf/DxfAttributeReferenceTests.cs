@@ -15,7 +15,12 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfAttributeReferenceTests
     {
-        private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
+        private static readonly string[] Drawings =
+        {
+            DxfFileEzdxfDrawings.R12,
+            DxfFileEzdxfDrawings.R2000,
+            DxfFileEzdxfDrawings.R2018,
+        };
 
         [Fact]
         public void TheAttribsOfEzdxf_AreReadAsEzdxfReadsThem()
@@ -57,7 +62,12 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfDatabase db = DxfDatabase.Parse(text);
                 byte[] before = Saved(db);
 
-                foreach (DxfAttributeReference a in Everything(db).OfType<DxfBlockReference>().SelectMany(b => b.AttributeCollection).ToList())
+                foreach (
+                    DxfAttributeReference a in Everything(db)
+                        .OfType<DxfBlockReference>()
+                        .SelectMany(b => b.AttributeCollection)
+                        .ToList()
+                )
                 {
                     a.Tag = a.Tag;
                     a.TextString = a.TextString;
@@ -140,10 +150,15 @@ namespace GeometryHelper.UnitTest.Dxf
             mark.LockPositionInBlock = true;
 
             string record = Records(db.ToText()).Single(r => HandleOf(r) == mark.Handle);
-            Assert.True(record.IndexOf("280\n1\n", StringComparison.Ordinal) > record.IndexOf("  2\nMARK\n", StringComparison.Ordinal), record);
+            Assert.True(
+                record.IndexOf("280\n1\n", StringComparison.Ordinal)
+                    > record.IndexOf("  2\nMARK\n", StringComparison.Ordinal),
+                record
+            );
             Assert.True(Bolt(DxfDatabase.Parse(db.ToText())).AttributeCollection.Single().LockPositionInBlock);
 
-            DxfAttributeReference old = Bolt(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000)).AttributeCollection.Single();
+            DxfAttributeReference old = Bolt(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000))
+                .AttributeCollection.Single();
             Assert.Throws<InvalidOperationException>(() => old.LockPositionInBlock = true);
         }
 
@@ -204,7 +219,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.StartsWith("  0\nATTRIB\n", records[at + 1], StringComparison.Ordinal);
                 Assert.StartsWith("  0\nSEQEND\n", records[at + 2], StringComparison.Ordinal);
 
-                DxfAttributeReference again = Assert.Single(ByHandle<DxfBlockReference>(DxfDatabase.Parse(saved), made.Handle).AttributeCollection);
+                DxfAttributeReference again = Assert.Single(
+                    ByHandle<DxfBlockReference>(DxfDatabase.Parse(saved), made.Handle).AttributeCollection
+                );
                 Assert.Equal("B-99", again.TextString);
                 Assert.Equal(Bits(new GeoPoint3(10, 19, 0)), Bits(again.Position));
             }
@@ -230,13 +247,26 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Same(second, Assert.Single(bolt.AttributeCollection));
                 Assert.Equal(secondHandle, second.Handle);
                 Assert.DoesNotContain(Records(db.ToText()), r => r.Contains("\nB-12\n"));
-                Assert.Equal(secondHandle, Assert.Single(ByHandle<DxfBlockReference>(DxfDatabase.Parse(db.ToText()), insert ?? bolt.Handle).AttributeCollection).Handle);
+                Assert.Equal(
+                    secondHandle,
+                    Assert
+                        .Single(
+                            ByHandle<DxfBlockReference>(
+                                DxfDatabase.Parse(db.ToText()),
+                                insert ?? bolt.Handle
+                            ).AttributeCollection
+                        )
+                        .Handle
+                );
 
                 Assert.Throws<ArgumentException>(() => second.Tag = "TWO WORDS");
-                var copy = (DxfAttributeReference)second.GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(1, 0, 0)));
+                var copy = (DxfAttributeReference)
+                    second.GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(1, 0, 0)));
                 Assert.Equal(Bits(new GeoPoint3(2.0, 2.0, 0.0)), Bits(copy.Position));
                 Assert.Throws<ArgumentException>(() => db.ModelSpace.AppendEntity(copy));
-                Assert.Throws<ArgumentException>(() => bolt.AttributeCollection.AppendAttribute(new DxfAttributeReference()));
+                Assert.Throws<ArgumentException>(() =>
+                    bolt.AttributeCollection.AppendAttribute(new DxfAttributeReference())
+                );
                 Assert.Throws<InvalidOperationException>(() => bolt.AttributeCollection.AppendAttribute(second));
             }
         }
@@ -247,7 +277,15 @@ namespace GeometryHelper.UnitTest.Dxf
             // The ATTRIB MARK of R2018 made an MTEXT of two lines (its embedded object, 101, at (50, 59, 0)). Its INSERT mirrored
             // in x and moved by (10, 20, 0), the embedded MTEXT goes with it, as ezdxf takes it: to (-40, 79, 0), its extrusion
             // (0, 0, -1), reading along (-1, 0, 0). So do the setters that move the INSERT.
-            var mirror = new GeoTransform3(new double[,] { { -1, 0, 0, 10 }, { 0, 1, 0, 20 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } });
+            var mirror = new GeoTransform3(
+                new double[,]
+                {
+                    { -1, 0, 0, 10 },
+                    { 0, 1, 0, 20 },
+                    { 0, 0, 1, 0 },
+                    { 0, 0, 0, 1 },
+                }
+            );
 
             DxfDatabase db = DxfDatabase.Parse(Embedded);
             DxfBlockReference bolt = Bolt(db);
@@ -266,11 +304,20 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfBlockReference other = Bolt(moved);
             other.Position = new GeoPoint3(60.0, 65.0, 0.0);
             string[] lines = EmbeddedPart(moved, other.AttributeCollection.Single().Handle).Split('\n');
-            Near(60.0, double.Parse(lines[Array.IndexOf(lines, " 10") + 1], System.Globalization.CultureInfo.InvariantCulture));
-            Near(64.0, double.Parse(lines[Array.IndexOf(lines, " 20") + 1], System.Globalization.CultureInfo.InvariantCulture));
+            Near(
+                60.0,
+                double.Parse(lines[Array.IndexOf(lines, " 10") + 1], System.Globalization.CultureInfo.InvariantCulture)
+            );
+            Near(
+                64.0,
+                double.Parse(lines[Array.IndexOf(lines, " 20") + 1], System.Globalization.CultureInfo.InvariantCulture)
+            );
 
             // ezdxf reads the moved file with the MTEXT where it put it.
-            Assert.Equal(Bits(new GeoPoint3(-40.0, 79.0, 0.0)), Bits(Bolt(DxfDatabase.Parse(db.ToText())).AttributeCollection.Single().Position));
+            Assert.Equal(
+                Bits(new GeoPoint3(-40.0, 79.0, 0.0)),
+                Bits(Bolt(DxfDatabase.Parse(db.ToText())).AttributeCollection.Single().Position)
+            );
         }
 
         [Fact]
@@ -279,14 +326,19 @@ namespace GeometryHelper.UnitTest.Dxf
             // R2000 has no MTEXT in an ATTRIB: the copy keeps the first line in its text's part, B-12, and nothing from 101 on.
             DxfDatabase from = DxfDatabase.Parse(Embedded);
             DxfDatabase into = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
-            var copy = (DxfBlockReference)Bolt(from).GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(0, 0, 0)));
+            var copy = (DxfBlockReference)
+                Bolt(from).GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(0, 0, 0)));
 
             into.ModelSpace.AppendEntity(copy);
 
             DxfAttributeReference mark = copy.AttributeCollection.Single();
             Assert.False(mark.IsMTextAttribute);
             Assert.Equal("B-12", mark.TextString);
-            Assert.DoesNotContain("Embedded Object", Records(into.ToText()).Single(r => HandleOf(r) == mark.Handle), StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "Embedded Object",
+                Records(into.ToText()).Single(r => HandleOf(r) == mark.Handle),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -296,7 +348,12 @@ namespace GeometryHelper.UnitTest.Dxf
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
 
-                foreach (DxfAttributeReference a in Everything(db).OfType<DxfBlockReference>().SelectMany(b => b.AttributeCollection).ToList())
+                foreach (
+                    DxfAttributeReference a in Everything(db)
+                        .OfType<DxfBlockReference>()
+                        .SelectMany(b => b.AttributeCollection)
+                        .ToList()
+                )
                 {
                     a.IsMTextAttribute = a.IsMTextAttribute;
                     a.MTextAttribute = a.MTextAttribute;
@@ -315,7 +372,13 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfAttributeReference mark = Bolt(db).AttributeCollection.Single();
             string before = db.ToText();
 
-            mark.MTextAttribute = new DxfMText { Contents = "B-12\\PM24", Location = new GeoPoint3(60, 70, 0), TextHeight = 3.0, Attachment = DxfAttachmentPoint.MiddleCenter };
+            mark.MTextAttribute = new DxfMText
+            {
+                Contents = "B-12\\PM24",
+                Location = new GeoPoint3(60, 70, 0),
+                TextHeight = 3.0,
+                Attachment = DxfAttachmentPoint.MiddleCenter,
+            };
 
             OnlyTheseChanged(before, db.ToText(), mark.Handle);
             DxfAttributeReference again = Bolt(DxfDatabase.Parse(db.ToText())).AttributeCollection.Single();
@@ -332,16 +395,25 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(DxfAttachmentPoint.MiddleCenter, again.MTextAttribute.Attachment);
             Assert.Equal(Bits(new GeoPoint3(60, 70, 0)), Bits(again.MTextAttribute.Location));
             string record = Records(db.ToText()).Single(r => HandleOf(r) == mark.Handle);
-            Assert.Contains("AcDbAttribute\n  2\nMARK\n 70\n0\n 74\n2\n 71\n2\n 72\n0\n101\nEmbedded Object\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                "AcDbAttribute\n  2\nMARK\n 70\n0\n 74\n2\n 71\n2\n 72\n0\n101\nEmbedded Object\n",
+                record,
+                StringComparison.Ordinal
+            );
 
             // Made one of one line again: the MTEXT goes, the text keeps B-12 M24, the type is 1.
             mark.IsMTextAttribute = false;
             Assert.False(mark.IsMTextAttribute);
             Assert.Equal("B-12 M24", mark.TextString);
-            Assert.Contains("AcDbAttribute\n  2\nMARK\n 70\n0\n 74\n2\n 71\n1\n 72\n0\n", Records(db.ToText()).Single(r => HandleOf(r) == mark.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "AcDbAttribute\n  2\nMARK\n 70\n0\n 74\n2\n 71\n1\n 72\n0\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == mark.Handle),
+                StringComparison.Ordinal
+            );
             Assert.Null(mark.MTextAttribute);
 
-            DxfAttributeReference old = Bolt(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000)).AttributeCollection.Single();
+            DxfAttributeReference old = Bolt(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000))
+                .AttributeCollection.Single();
             Assert.Throws<InvalidOperationException>(() => old.IsMTextAttribute = true);
             Assert.Throws<InvalidOperationException>(() => old.MTextAttribute = new DxfMText());
 
@@ -360,7 +432,12 @@ namespace GeometryHelper.UnitTest.Dxf
             // type 2, as ezdxf writes an ATTRIB of several lines, its 72 of nought after it.
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             DxfAttributeDefinition definition = db.BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single();
-            definition.MTextAttributeDefinition = new DxfMText { Contents = "M20\\Pgrade 8.8", Location = new GeoPoint3(0, -1, 0), TextHeight = 0.5 };
+            definition.MTextAttributeDefinition = new DxfMText
+            {
+                Contents = "M20\\Pgrade 8.8",
+                Location = new GeoPoint3(0, -1, 0),
+                TextHeight = 0.5,
+            };
             DxfBlockReference bolt = Bolt(db);
             DxfAttributeReference mark = bolt.AttributeCollection.Single();
 
@@ -369,7 +446,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(mark.IsMTextAttribute);
             Assert.Equal("M20\\Pgrade 8.8", mark.MTextAttribute.Contents);
             string record = Records(db.ToText()).Single(r => HandleOf(r) == mark.Handle);
-            Assert.Contains("AcDbAttribute\n  2\nMARK\n 70\n0\n 74\n3\n 71\n2\n 72\n0\n101\nEmbedded Object\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                "AcDbAttribute\n  2\nMARK\n 70\n0\n 74\n3\n 71\n2\n 72\n0\n101\nEmbedded Object\n",
+                record,
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -420,9 +501,11 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The drawing of R2018 with its ATTRIB MARK made an MTEXT of two lines, as ezdxf writes one.</summary>
-        private static string Embedded => DxfFileEzdxfDrawings.R2018.Replace(
-            "AcDbAttribute\n  2\nMARK\n 70\n0\n 71\n1\n 72\n0\n  0\nSEQEND\n",
-            "AcDbAttribute\n  2\nMARK\n 70\n0\n 71\n2\n 72\n0\n101\nEmbedded Object\n 10\n50.0\n 20\n59.0\n 30\n0.0\n 40\n2.5\n 41\n5.0\n 46\n0.0\n 71\n1\n 72\n5\n  1\nB-12\\Pmore\n  0\nSEQEND\n");
+        private static string Embedded =>
+            DxfFileEzdxfDrawings.R2018.Replace(
+                "AcDbAttribute\n  2\nMARK\n 70\n0\n 71\n1\n 72\n0\n  0\nSEQEND\n",
+                "AcDbAttribute\n  2\nMARK\n 70\n0\n 71\n2\n 72\n0\n101\nEmbedded Object\n 10\n50.0\n 20\n59.0\n 30\n0.0\n 40\n2.5\n 41\n5.0\n 46\n0.0\n 71\n1\n 72\n5\n  1\nB-12\\Pmore\n  0\nSEQEND\n"
+            );
 
         /// <summary>The embedded object of an ATTRIB's record: from its 101 on.</summary>
         private static string EmbeddedPart(DxfDatabase db, string handle)
@@ -434,10 +517,12 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The handle of the TABLE record of the layer table of a text, whose count a new layer raises.</summary>
-        private static string LayerTableHandle(string text)
-            => HandleOf(Records(text).First(r => r.StartsWith("  0\nTABLE\n  2\nLAYER\n", StringComparison.Ordinal)));
+        private static string LayerTableHandle(string text) =>
+            HandleOf(Records(text).First(r => r.StartsWith("  0\nTABLE\n  2\nLAYER\n", StringComparison.Ordinal)));
 
-        private static DxfBlockReference Bolt(DxfDatabase db)
-            => Everything(db).OfType<DxfBlockReference>().Single(b => b.Owner == db.ModelSpace && b.Name == "BOLT" && !(b is DxfMInsertBlock));
+        private static DxfBlockReference Bolt(DxfDatabase db) =>
+            Everything(db)
+                .OfType<DxfBlockReference>()
+                .Single(b => b.Owner == db.ModelSpace && b.Name == "BOLT" && !(b is DxfMInsertBlock));
     }
 }

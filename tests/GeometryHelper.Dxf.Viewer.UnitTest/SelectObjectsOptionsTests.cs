@@ -50,7 +50,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void FenceUndo_TakesBackItsLastPoint()
         {
             CadDocument document = Plan();
-            CadCommandSession session = Run(Session(document), "ERASE", "F", "50,-10", "50,10", "-10,40", "U", Enter, Enter);
+            CadCommandSession session = Run(
+                Session(document),
+                "ERASE",
+                "F",
+                "50,-10",
+                "50,10",
+                "-10,40",
+                "U",
+                Enter,
+                Enter
+            );
 
             Assert.True(Erased(document, "A1"));
             Assert.False(Erased(document, "A2"));
@@ -211,7 +221,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             db.ModelSpace.AppendEntity(b);
             db.ModelSpace.AppendEntity(c);
             CadDocument document = CadDocument.From(db, "group.dxf");
-            CadCommandSession session = Run(Session(document), "-GROUP", Enter, "PAIR", "Pair", new[] { a.Handle, b.Handle }, Enter);
+            CadCommandSession session = Run(
+                Session(document),
+                "-GROUP",
+                Enter,
+                "PAIR",
+                "Pair",
+                new[] { a.Handle, b.Handle },
+                Enter
+            );
             Assert.Equal("Group \"PAIR\" has been created.", session.History.Last());
 
             Run(session, "ERASE", "G", "NONE");
@@ -231,8 +249,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Run(Session(Plan()), "ERASE", "XYZ");
 
             Assert.Equal(
-                new[] { "Select objects: XYZ", "*Invalid selection*", "Expects a point or", "Window/Last/Crossing/BOX/ALL/Fence/WPolygon/CPolygon/Group/Add/Remove/Multiple/Previous/Undo/AUto/SIngle" },
-                session.History.Skip(session.History.Count - 4));
+                new[]
+                {
+                    "Select objects: XYZ",
+                    "*Invalid selection*",
+                    "Expects a point or",
+                    "Window/Last/Crossing/BOX/ALL/Fence/WPolygon/CPolygon/Group/Add/Remove/Multiple/Previous/Undo/AUto/SIngle",
+                },
+                session.History.Skip(session.History.Count - 4)
+            );
             Assert.Equal("Select objects:", session.PromptText);
         }
 
@@ -263,14 +288,31 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             watch.Restart();
             int touched = index.CrossingPolygon(ring).Count;
             long crossingMs = watch.ElapsedMilliseconds;
-            _output.WriteLine("Fence: " + fenceMs + " ms (" + fenced + "), WPolygon: " + windowMs + " ms (" + inside + "), CPolygon: " + crossingMs + " ms (" + touched + ")");
+            _output.WriteLine(
+                "Fence: "
+                    + fenceMs
+                    + " ms ("
+                    + fenced
+                    + "), WPolygon: "
+                    + windowMs
+                    + " ms ("
+                    + inside
+                    + "), CPolygon: "
+                    + crossingMs
+                    + " ms ("
+                    + touched
+                    + ")"
+            );
 
             // The fence crosses row 0 along y = 2.5 and row 50 along y = 502.5, its sides passing by the ends of the rows.
             Assert.Equal(2000, fenced);
             Assert.Equal(100000, inside);
             Assert.Equal(100000, touched);
             // Alone each takes under 100 ms; the bound is wide for a run beside the other suites, against a sweep gone quadratic.
-            Assert.True(fenceMs < 1000 && windowMs < 1000 && crossingMs < 1000, "Too slow: " + fenceMs + ", " + windowMs + ", " + crossingMs + " ms.");
+            Assert.True(
+                fenceMs < 1000 && windowMs < 1000 && crossingMs < 1000,
+                "Too slow: " + fenceMs + ", " + windowMs + ", " + crossingMs + " ms."
+            );
         }
     }
 }

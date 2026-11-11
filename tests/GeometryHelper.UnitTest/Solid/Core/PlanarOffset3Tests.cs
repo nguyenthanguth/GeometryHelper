@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper;
 using GeometryHelper.Clipper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -53,22 +53,36 @@ namespace GeometryHelper.UnitTest.Solid
             public GeoPolygon3 Polygon(params double[] xy)
             {
                 var points = new GeoPoint3[xy.Length / 2];
-                for (int i = 0; i < points.Length; i++) { points[i] = ToWorld(xy[2 * i], xy[2 * i + 1]); }
+                for (int i = 0; i < points.Length; i++)
+                {
+                    points[i] = ToWorld(xy[2 * i], xy[2 * i + 1]);
+                }
                 return new GeoPolygon3(points);
             }
         }
 
-        private static readonly Frame Tilted = new Frame(new GeoPoint3(100, -200, 300), new GeoVector3(1, 2, 3), new GeoVector3(1, 0, 0));
+        private static readonly Frame Tilted = new Frame(
+            new GeoPoint3(100, -200, 300),
+            new GeoVector3(1, 2, 3),
+            new GeoVector3(1, 0, 0)
+        );
 
-        private static readonly OffsetOptions SharpAlways = new OffsetOptions(OffsetJoin.Miter, double.PositiveInfinity);
+        private static readonly OffsetOptions SharpAlways = new OffsetOptions(
+            OffsetJoin.Miter,
+            double.PositiveInfinity
+        );
 
-        private static double SignedArea(GeoPolygon3 polygon, GeoVector3 normal) => polygon.Area * Math.Sign(polygon.Normal.DotProduct(normal));
+        private static double SignedArea(GeoPolygon3 polygon, GeoVector3 normal) =>
+            polygon.Area * Math.Sign(polygon.Normal.DotProduct(normal));
 
         private static void AssertInPlane(Frame frame, GeoPolygon3 polygon)
         {
             foreach (GeoPoint3 v in polygon.Vertices)
             {
-                Assert.True(Math.Abs(frame.Origin.GetVectorTo(v).DotProduct(frame.Normal)) < 1e-8, $"vertex {v} is off the plane");
+                Assert.True(
+                    Math.Abs(frame.Origin.GetVectorTo(v).DotProduct(frame.Normal)) < 1e-8,
+                    $"vertex {v} is off the plane"
+                );
             }
         }
 
@@ -106,12 +120,62 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void Dumbbell_SplitsAndRing_EnclosesAHole()
         {
-            GeoPolygon3 dumbbell = Tilted.Polygon(0, 0, 10, 0, 10, 4, 14, 4, 14, 0, 24, 0, 24, 10, 14, 10, 14, 6, 10, 6, 10, 10, 0, 10);
+            GeoPolygon3 dumbbell = Tilted.Polygon(
+                0,
+                0,
+                10,
+                0,
+                10,
+                4,
+                14,
+                4,
+                14,
+                0,
+                24,
+                0,
+                24,
+                10,
+                14,
+                10,
+                14,
+                6,
+                10,
+                6,
+                10,
+                10,
+                0,
+                10
+            );
             GeoPolygon3[] pieces = dumbbell.Offset(-1.5);
             Assert.Equal(2, pieces.Length);
             Assert.All(pieces, piece => Assert.Equal(49.0, piece.Area, 8));
 
-            GeoPolygon3 ring = Tilted.Polygon(0, 0, 20, 0, 20, 9, 15, 9, 15, 5, 5, 5, 5, 15, 15, 15, 15, 11, 20, 11, 20, 20, 0, 20);
+            GeoPolygon3 ring = Tilted.Polygon(
+                0,
+                0,
+                20,
+                0,
+                20,
+                9,
+                15,
+                9,
+                15,
+                5,
+                5,
+                5,
+                5,
+                15,
+                15,
+                15,
+                15,
+                11,
+                20,
+                11,
+                20,
+                20,
+                0,
+                20
+            );
             GeoPolygon3[] loops = ring.Offset(1.5);
             Assert.Equal(2, loops.Length);
             Assert.Equal(529.0, loops[0].Area, 8);
@@ -168,7 +232,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(Offset3.Offset(l, 1.5), l.Offset(1.5));
             Assert.Equal(Offset3.Offset(l, -1.5, Tolerance.Global), l.Offset(-1.5, Tolerance.Global));
             Assert.Equal(Offset3.Offset(l, 1.5, OffsetJoin.Chamfer), l.Offset(1.5, OffsetJoin.Chamfer));
-            Assert.Equal(Offset3.Offset(l, 1.5, OffsetJoin.Chamfer, Tolerance.Global), l.Offset(1.5, OffsetJoin.Chamfer, Tolerance.Global));
+            Assert.Equal(
+                Offset3.Offset(l, 1.5, OffsetJoin.Chamfer, Tolerance.Global),
+                l.Offset(1.5, OffsetJoin.Chamfer, Tolerance.Global)
+            );
             Assert.Equal(Offset3.Offset(l, 1.5, options), l.Offset(1.5, options));
             Assert.Equal(Offset3.Offset(l, 1.5, options, Tolerance.Global), l.Offset(1.5, options, Tolerance.Global));
         }
@@ -184,15 +251,21 @@ namespace GeometryHelper.UnitTest.Solid
             for (int t = 0; t < count; t++)
             {
                 var frame = new Frame(
-                    new GeoPoint3(rng.NextDouble() * 1000 - 500, rng.NextDouble() * 1000 - 500, rng.NextDouble() * 1000 - 500),
+                    new GeoPoint3(
+                        rng.NextDouble() * 1000 - 500,
+                        rng.NextDouble() * 1000 - 500,
+                        rng.NextDouble() * 1000 - 500
+                    ),
                     new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() - 0.5 + 0.01),
-                    new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5 + 0.01, rng.NextDouble() - 0.5));
+                    new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5 + 0.01, rng.NextDouble() - 0.5)
+                );
 
                 int n = 5 + rng.Next(25);
                 var xy = new double[2 * n];
                 for (int i = 0; i < n; i++)
                 {
-                    double angle = 2 * Math.PI * i / n, radius = 3 + rng.NextDouble() * 10;
+                    double angle = 2 * Math.PI * i / n,
+                        radius = 3 + rng.NextDouble() * 10;
                     xy[2 * i] = radius * Math.Cos(angle);
                     xy[2 * i + 1] = radius * Math.Sin(angle);
                 }
@@ -212,10 +285,13 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         // The join of Clipper2's offset that ours is held against: a chamfer is its square join.
-        private static JoinType ClipperJoin(OffsetJoin ours)
-            => ours == OffsetJoin.Miter ? JoinType.Miter : ours == OffsetJoin.Chamfer ? JoinType.Square : JoinType.Round;
+        private static JoinType ClipperJoin(OffsetJoin ours) =>
+            ours == OffsetJoin.Miter ? JoinType.Miter
+            : ours == OffsetJoin.Chamfer ? JoinType.Square
+            : JoinType.Round;
 
-        private static double XorArea(PathsD a, PathsD b) => Math.Abs(Clipper2.Area(Clipper2.Xor(a, b, FillRule.NonZero, 8)));
+        private static double XorArea(PathsD a, PathsD b) =>
+            Math.Abs(Clipper2.Area(Clipper2.Xor(a, b, FillRule.NonZero, 8)));
 
         [Theory]
         [InlineData(OffsetJoin.Miter)]
@@ -232,7 +308,10 @@ namespace GeometryHelper.UnitTest.Solid
                 foreach ((Frame frame, double[] xy) in RandomStars(88, 100))
                 {
                     GeoPolygon3 star = frame.Polygon(xy);
-                    var local = new PathsD { new PathD(Enumerable.Range(0, xy.Length / 2).Select(i => new PointD(xy[2 * i], xy[2 * i + 1]))) };
+                    var local = new PathsD
+                    {
+                        new PathD(Enumerable.Range(0, xy.Length / 2).Select(i => new PointD(xy[2 * i], xy[2 * i + 1]))),
+                    };
 
                     foreach (double d in new[] { 0.4, -0.4, 2.0, -2.0 })
                     {
@@ -246,7 +325,10 @@ namespace GeometryHelper.UnitTest.Solid
 
                         double limit = ours == OffsetJoin.Round ? 2 * 0.0005 * (result.Sum(r => r.Length) + 1) : 1e-5;
                         double xor = XorArea(Local(frame, result), expected);
-                        Assert.True(xor < limit, $"{ours} offset {d} of star {compared}: differs from Clipper by area {xor}");
+                        Assert.True(
+                            xor < limit,
+                            $"{ours} offset {d} of star {compared}: differs from Clipper by area {xor}"
+                        );
                         compared++;
                     }
                 }
@@ -282,10 +364,27 @@ namespace GeometryHelper.UnitTest.Solid
             // about two units across, shrunk by three. Nothing can be left, and the detours are what make the raw
             // loop's folds cancel; without them a piece of 2.1 square units survived.
             GeoPolygon3 walk = Flat.Polygon(
-                1.29120435487293, 0.8529122511717194, 2.0692576855245406, 1.8246495197613428, 2.2463920430178077, 2.5563866007258804,
-                2.111849016130124, 3.2240605527713724, 2.131484777697378, 3.5052053578503806, 1.5969035822287925, 4.292744418060094,
-                1.204212114951118, 4.359962079953233, 0.6624590592209036, 4.244928638591521, 0.2404842875843622, 3.88891733400727,
-                0.14789238177608988, 3.7046090201323696);
+                1.29120435487293,
+                0.8529122511717194,
+                2.0692576855245406,
+                1.8246495197613428,
+                2.2463920430178077,
+                2.5563866007258804,
+                2.111849016130124,
+                3.2240605527713724,
+                2.131484777697378,
+                3.5052053578503806,
+                1.5969035822287925,
+                4.292744418060094,
+                1.204212114951118,
+                4.359962079953233,
+                0.6624590592209036,
+                4.244928638591521,
+                0.2404842875843622,
+                3.88891733400727,
+                0.14789238177608988,
+                3.7046090201323696
+            );
 
             foreach (OffsetJoin join in new[] { OffsetJoin.Miter, OffsetJoin.Round, OffsetJoin.Chamfer })
             {
@@ -305,28 +404,107 @@ namespace GeometryHelper.UnitTest.Solid
                 // separation missed.
                 double[] xy =
                 {
-                    0, 0, 12.556810211975506, 0, 12.556810211975506, 1, 12.346807620649603, 1, 12.346807620649603, 5.422796114544755,
-                    11.030278669032398, 5.422796114544755, 11.030278669032398, 1, 9.675089881091886, 1, 9.675089881091886, 6.886248821339686,
-                    9.400917458069006, 6.886248821339686, 9.400917458069006, 1, 8.00142274857565, 1, 8.00142274857565, 3.632585188668494,
-                    7.289240777813476, 3.632585188668494, 7.289240777813476, 1, 6.227419358178703, 1, 6.227419358178703, 7.821611514697602,
-                    5.277756546427383, 7.821611514697602, 5.277756546427383, 1, 4.161423784103907, 1, 4.161423784103907, 6.20141693353719,
-                    3.7245509831349137, 6.20141693353719, 3.7245509831349137, 1, 2.459634663052687, 1, 2.459634663052687, 8.855549968711822,
-                    2.1069624506435183, 8.855549968711822, 2.1069624506435183, 1, 0.6055348466641897, 1, 0.6055348466641897, 4.003288449255418,
-                    0, 4.003288449255418, 0, 1
+                    0,
+                    0,
+                    12.556810211975506,
+                    0,
+                    12.556810211975506,
+                    1,
+                    12.346807620649603,
+                    1,
+                    12.346807620649603,
+                    5.422796114544755,
+                    11.030278669032398,
+                    5.422796114544755,
+                    11.030278669032398,
+                    1,
+                    9.675089881091886,
+                    1,
+                    9.675089881091886,
+                    6.886248821339686,
+                    9.400917458069006,
+                    6.886248821339686,
+                    9.400917458069006,
+                    1,
+                    8.00142274857565,
+                    1,
+                    8.00142274857565,
+                    3.632585188668494,
+                    7.289240777813476,
+                    3.632585188668494,
+                    7.289240777813476,
+                    1,
+                    6.227419358178703,
+                    1,
+                    6.227419358178703,
+                    7.821611514697602,
+                    5.277756546427383,
+                    7.821611514697602,
+                    5.277756546427383,
+                    1,
+                    4.161423784103907,
+                    1,
+                    4.161423784103907,
+                    6.20141693353719,
+                    3.7245509831349137,
+                    6.20141693353719,
+                    3.7245509831349137,
+                    1,
+                    2.459634663052687,
+                    1,
+                    2.459634663052687,
+                    8.855549968711822,
+                    2.1069624506435183,
+                    8.855549968711822,
+                    2.1069624506435183,
+                    1,
+                    0.6055348466641897,
+                    1,
+                    0.6055348466641897,
+                    4.003288449255418,
+                    0,
+                    4.003288449255418,
+                    0,
+                    1,
                 };
 
                 GeoPolygon3 comb = Flat.Polygon(xy);
-                var local = new PathsD { new PathD(Enumerable.Range(0, xy.Length / 2).Select(i => new PointD(xy[2 * i], xy[2 * i + 1]))) };
+                var local = new PathsD
+                {
+                    new PathD(Enumerable.Range(0, xy.Length / 2).Select(i => new PointD(xy[2 * i], xy[2 * i + 1]))),
+                };
 
                 foreach (double d in new[] { -0.3, 0.3, -0.12 })
                 {
                     GeoPolygon3[] round = comb.Offset(d, new OffsetOptions(OffsetJoin.Round, arcTolerance: 0.001));
-                    PathsD expectedRound = Clipper2.InflatePaths(local, d, JoinType.Round, EndType.Polygon, 1e9, 8, 0.001);
-                    Assert.True(XorArea(Local(Flat, round), expectedRound) < 0.002 * (round.Sum(p => p.Length) + 1.0), $"round offset {d} differs from Clipper");
+                    PathsD expectedRound = Clipper2.InflatePaths(
+                        local,
+                        d,
+                        JoinType.Round,
+                        EndType.Polygon,
+                        1e9,
+                        8,
+                        0.001
+                    );
+                    Assert.True(
+                        XorArea(Local(Flat, round), expectedRound) < 0.002 * (round.Sum(p => p.Length) + 1.0),
+                        $"round offset {d} differs from Clipper"
+                    );
 
                     GeoPolygon3[] sharp = comb.Offset(d, SharpAlways);
-                    PathsD expectedSharp = Clipper2.InflatePaths(local, d, JoinType.Miter, EndType.Polygon, 1e9, 8, 0.0);
-                    Assert.True(XorArea(Local(Flat, sharp), expectedSharp) < 1e-5, $"sharp offset {d} differs from Clipper");
+                    PathsD expectedSharp = Clipper2.InflatePaths(
+                        local,
+                        d,
+                        JoinType.Miter,
+                        EndType.Polygon,
+                        1e9,
+                        8,
+                        0.0
+                    );
+                    Assert.True(
+                        XorArea(Local(Flat, sharp), expectedSharp) < 1e-5,
+                        $"sharp offset {d} differs from Clipper"
+                    );
                 }
             }
         }
@@ -336,12 +514,16 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoPolygon3 l = Tilted.Polygon(0, 0, 10, 0, 10, 4, 4, 4, 4, 10, 0, 10);
 
-            foreach (GeoTransform3 motion in new[]
-            {
-                GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 1.3),
-                GeoTransform3.Translation(new GeoVector3(5000, -7000, 300)).Multiply(GeoTransform3.RotationAxis(new GeoVector3(-3, 1, 2), 2.1)),
-                GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(1, 0, 0), new GeoVector3(1, 1, 1)))
-            })
+            foreach (
+                GeoTransform3 motion in new[]
+                {
+                    GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 1.3),
+                    GeoTransform3
+                        .Translation(new GeoVector3(5000, -7000, 300))
+                        .Multiply(GeoTransform3.RotationAxis(new GeoVector3(-3, 1, 2), 2.1)),
+                    GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(1, 0, 0), new GeoVector3(1, 1, 1))),
+                }
+            )
             {
                 GeoPolygon3 moved = l.TransformBy(motion);
 
@@ -367,7 +549,10 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void Face_HolesShrinkAsTheBoundaryGrows()
         {
-            var face = new GeoFace3(Tilted.Polygon(0, 0, 20, 0, 20, 20, 0, 20), new[] { Tilted.Polygon(5, 5, 15, 5, 15, 15, 5, 15) });
+            var face = new GeoFace3(
+                Tilted.Polygon(0, 0, 20, 0, 20, 20, 0, 20),
+                new[] { Tilted.Polygon(5, 5, 15, 5, 15, 15, 5, 15) }
+            );
 
             GeoFace3 grown = face.Offset(2.0).Single();
             Assert.Equal(24 * 24 - 6 * 6, grown.Area, 8);
@@ -382,14 +567,45 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Empty(face.Offset(-2.5));
 
             Assert.Equal(Offset3.Offset(face, 2.0), face.Offset(2.0));
-            Assert.Equal(Offset3.Offset(face, 2.0, OffsetJoin.Round, Tolerance.Global), face.Offset(2.0, OffsetJoin.Round, Tolerance.Global));
+            Assert.Equal(
+                Offset3.Offset(face, 2.0, OffsetJoin.Round, Tolerance.Global),
+                face.Offset(2.0, OffsetJoin.Round, Tolerance.Global)
+            );
         }
 
         [Fact]
         public void Face_ShrunkIntoRooms_KeepsEachColumnInItsRoom()
         {
-            GeoPolygon3 outline = Tilted.Polygon(0, 0, 10, 0, 10, 4, 14, 4, 14, 0, 24, 0, 24, 10, 14, 10, 14, 6, 10, 6, 10, 10, 0, 10);
-            var face = new GeoFace3(outline, new[] { Tilted.Polygon(4, 4, 6, 4, 6, 6, 4, 6), Tilted.Polygon(18, 4, 20, 4, 20, 6, 18, 6) });
+            GeoPolygon3 outline = Tilted.Polygon(
+                0,
+                0,
+                10,
+                0,
+                10,
+                4,
+                14,
+                4,
+                14,
+                0,
+                24,
+                0,
+                24,
+                10,
+                14,
+                10,
+                14,
+                6,
+                10,
+                6,
+                10,
+                10,
+                0,
+                10
+            );
+            var face = new GeoFace3(
+                outline,
+                new[] { Tilted.Polygon(4, 4, 6, 4, 6, 6, 4, 6), Tilted.Polygon(18, 4, 20, 4, 20, 6, 18, 6) }
+            );
 
             GeoFace3[] rooms = face.Offset(-1.5);
 
@@ -408,25 +624,49 @@ namespace GeometryHelper.UnitTest.Solid
             var chain = new GeoPolyline3(new GeoPoint3(0, 0, 7), new GeoPoint3(10, 0, 7), new GeoPoint3(10, 10, 7));
 
             GeoPolyline3 left = chain.OffsetInPlane(1.0, GeoVector3.ZAxis).Single();
-            Assert.Equal(new[] { new GeoPoint3(0, 1, 7), new GeoPoint3(9, 1, 7), new GeoPoint3(9, 10, 7) }, left.Vertices.Select(Round));
+            Assert.Equal(
+                new[] { new GeoPoint3(0, 1, 7), new GeoPoint3(9, 1, 7), new GeoPoint3(9, 10, 7) },
+                left.Vertices.Select(Round)
+            );
 
             // Seen from below, left is the other side.
             GeoPolyline3 fromBelow = chain.OffsetInPlane(1.0, GeoVector3.ZAxis.Negate()).Single();
-            Assert.Equal(new[] { new GeoPoint3(0, -1, 7), new GeoPoint3(11, -1, 7), new GeoPoint3(11, 10, 7) }, fromBelow.Vertices.Select(Round));
-            Assert.Equal(chain.OffsetInPlane(-1.0, GeoVector3.ZAxis).Single().Vertices.Select(Round), fromBelow.Vertices.Select(Round));
+            Assert.Equal(
+                new[] { new GeoPoint3(0, -1, 7), new GeoPoint3(11, -1, 7), new GeoPoint3(11, 10, 7) },
+                fromBelow.Vertices.Select(Round)
+            );
+            Assert.Equal(
+                chain.OffsetInPlane(-1.0, GeoVector3.ZAxis).Single().Vertices.Select(Round),
+                fromBelow.Vertices.Select(Round)
+            );
         }
 
-        private static GeoPoint3 Round(GeoPoint3 p) => new GeoPoint3(Math.Round(p.X, 9), Math.Round(p.Y, 9), Math.Round(p.Z, 9));
+        private static GeoPoint3 Round(GeoPoint3 p) =>
+            new GeoPoint3(Math.Round(p.X, 9), Math.Round(p.Y, 9), Math.Round(p.Z, 9));
 
         [Fact]
         public void Polyline_InAVerticalPlane_UsesThatPlane()
         {
             // A frame of a portal in the XZ plane, seen from -Y: its left there is up for a chain running along +X.
-            var portal = new GeoPolyline3(new GeoPoint3(0, 5, 0), new GeoPoint3(0, 5, 4), new GeoPoint3(6, 5, 4), new GeoPoint3(6, 5, 0));
+            var portal = new GeoPolyline3(
+                new GeoPoint3(0, 5, 0),
+                new GeoPoint3(0, 5, 4),
+                new GeoPoint3(6, 5, 4),
+                new GeoPoint3(6, 5, 0)
+            );
 
             GeoPolyline3 inner = portal.OffsetInPlane(-0.5, GeoVector3.YAxis.Negate()).Single();
 
-            Assert.Equal(new[] { new GeoPoint3(0.5, 5, 0), new GeoPoint3(0.5, 5, 3.5), new GeoPoint3(5.5, 5, 3.5), new GeoPoint3(5.5, 5, 0) }, inner.Vertices.Select(Round));
+            Assert.Equal(
+                new[]
+                {
+                    new GeoPoint3(0.5, 5, 0),
+                    new GeoPoint3(0.5, 5, 3.5),
+                    new GeoPoint3(5.5, 5, 3.5),
+                    new GeoPoint3(5.5, 5, 0),
+                },
+                inner.Vertices.Select(Round)
+            );
             Assert.All(inner.Vertices, v => Assert.Equal(5.0, v.Y, 9));
         }
 
@@ -443,20 +683,34 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void Polyline_WithNoPlaneOrNoSide_IsRefused()
         {
-            var twisted = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(10, 10, 10));
+            var twisted = new GeoPolyline3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(10, 10, 10)
+            );
             var flat = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0));
 
             Assert.Throws<ArgumentException>(() => twisted.OffsetInPlane(1.0, GeoVector3.ZAxis));
             Assert.Throws<ArgumentException>(() => flat.OffsetInPlane(1.0, GeoVector3.XAxis));
             Assert.Throws<ArgumentException>(() => flat.OffsetInPlane(1.0, GeoVector3.Zero));
-            Assert.Throws<ArgumentException>(() => new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)).OffsetInPlane(1.0, GeoVector3.XAxis));
-            Assert.Throws<ArgumentNullException>(() => Offset3.OffsetInPlane((GeoPolyline3)null, 1.0, GeoVector3.ZAxis));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)).OffsetInPlane(1.0, GeoVector3.XAxis)
+            );
+            Assert.Throws<ArgumentNullException>(() =>
+                Offset3.OffsetInPlane((GeoPolyline3)null, 1.0, GeoVector3.ZAxis)
+            );
         }
 
         [Fact]
         public void Polyline_Hairpin_IsCutIntoTwoPieces()
         {
-            var hairpin = new GeoPolyline3(new GeoPoint3(0, 0, 3), new GeoPoint3(10, 0, 3), new GeoPoint3(10, 1, 3), new GeoPoint3(0, 1, 3));
+            var hairpin = new GeoPolyline3(
+                new GeoPoint3(0, 0, 3),
+                new GeoPoint3(10, 0, 3),
+                new GeoPoint3(10, 1, 3),
+                new GeoPoint3(0, 1, 3)
+            );
 
             GeoPolyline3[] inside = hairpin.OffsetInPlane(2.0, GeoVector3.ZAxis);
 
@@ -466,7 +720,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(
                 Offset3.OffsetInPlane(hairpin, 2.0, GeoVector3.ZAxis, OffsetJoin.Round, Tolerance.Global),
-                hairpin.OffsetInPlane(2.0, GeoVector3.ZAxis, OffsetJoin.Round, Tolerance.Global));
+                hairpin.OffsetInPlane(2.0, GeoVector3.ZAxis, OffsetJoin.Round, Tolerance.Global)
+            );
         }
 
         #endregion
@@ -483,7 +738,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(grown.Normal.IsEqualTo(circle.Normal));
             Assert.False(circle.TryOffset(-5.0, out GeoCircle3 unchanged));
             Assert.Equal(circle, unchanged);
-            Assert.Equal(Offset3.TryOffset(circle, 1.0, out GeoCircle3 a), circle.TryOffset(1.0, out GeoCircle3 b, Tolerance.Global));
+            Assert.Equal(
+                Offset3.TryOffset(circle, 1.0, out GeoCircle3 a),
+                circle.TryOffset(1.0, out GeoCircle3 b, Tolerance.Global)
+            );
             Assert.Equal(a, b);
         }
 

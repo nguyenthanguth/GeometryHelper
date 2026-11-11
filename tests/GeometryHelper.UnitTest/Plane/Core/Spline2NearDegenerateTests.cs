@@ -19,9 +19,15 @@ namespace GeometryHelper.UnitTest.Plane
         private static readonly Tolerance Fine = new Tolerance(1E-4, 1E-5);
         private static readonly Tolerance Coarse = new Tolerance(1E-2, 1E-5);
 
-        private static GeoSpline2 Ring(double x = 0, double y = 0, double r = 50) => GeoSpline2.FromCircle(new GeoCircle2(P(x, y), r));
+        private static GeoSpline2 Ring(double x = 0, double y = 0, double r = 50) =>
+            GeoSpline2.FromCircle(new GeoCircle2(P(x, y), r));
 
-        private static GeoSpline2 Arch() => new GeoSpline2(3, new[] { P(0, 0), P(100, 150), P(200, 150), P(300, 0) }, new double[] { 0, 0, 0, 0, 1, 1, 1, 1 });
+        private static GeoSpline2 Arch() =>
+            new GeoSpline2(
+                3,
+                new[] { P(0, 0), P(100, 150), P(200, 150), P(300, 0) },
+                new double[] { 0, 0, 0, 0, 1, 1, 1, 1 }
+            );
 
         /// <summary>
         /// Two curves that touch run side by side for a little way: where their gap is no more than the rounding of the numbers, a
@@ -31,16 +37,25 @@ namespace GeometryHelper.UnitTest.Plane
         private static void AssertTouch(GeoPoint2[] actual, double x, double y)
         {
             Assert.True(actual.Length == 1, actual.Length + " points " + string.Join(" ", actual) + ", one expected");
-            Assert.True(actual[0].DistanceTo(P(x, y)) <= 1E-3, "the touch is at " + actual[0] + ", (" + x + ", " + y + ") expected");
+            Assert.True(
+                actual[0].DistanceTo(P(x, y)) <= 1E-3,
+                "the touch is at " + actual[0] + ", (" + x + ", " + y + ") expected"
+            );
         }
 
         private static void AssertPoints(GeoPoint2[] actual, params double[] xy)
         {
-            Assert.True(actual.Length == xy.Length / 2, actual.Length + " points " + string.Join(" ", actual) + ", " + xy.Length / 2 + " expected");
+            Assert.True(
+                actual.Length == xy.Length / 2,
+                actual.Length + " points " + string.Join(" ", actual) + ", " + xy.Length / 2 + " expected"
+            );
 
             for (int i = 0; i < actual.Length; i++)
             {
-                Assert.True(actual[i].DistanceTo(P(xy[2 * i], xy[2 * i + 1])) <= 1E-6, "point " + i + " is " + actual[i] + ", (" + xy[2 * i] + ", " + xy[2 * i + 1] + ") expected");
+                Assert.True(
+                    actual[i].DistanceTo(P(xy[2 * i], xy[2 * i + 1])) <= 1E-6,
+                    "point " + i + " is " + actual[i] + ", (" + xy[2 * i] + ", " + xy[2 * i + 1] + ") expected"
+                );
             }
         }
 
@@ -178,7 +193,8 @@ namespace GeometryHelper.UnitTest.Plane
             return new GeoSpline2(
                 3,
                 new[] { P(100, -100), P(100.0 / 3.0, 0), P(0, 0), P(0, 0), P(0, 0), P(100.0 / 3.0, 0), P(100, 100) },
-                new double[] { 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2 });
+                new double[] { 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2 }
+            );
         }
 
         [Fact]
@@ -330,11 +346,22 @@ namespace GeometryHelper.UnitTest.Plane
             double shift = 1E6;
             double down = -3E6;
             var line = new GeoLine2(P(shift - 100, down + 30), P(shift + 100, down + 30));
-            var polygon = new GeoPolygon2(P(shift + 50, down), P(shift + 100, down), P(shift + 100, down + 100), P(shift + 50, down + 100));
+            var polygon = new GeoPolygon2(
+                P(shift + 50, down),
+                P(shift + 100, down),
+                P(shift + 100, down + 100),
+                P(shift + 50, down + 100)
+            );
             var xline = new GeoXLine2(P(shift - 100, down + 80), U(1, 0));
 
             double at30 = Math.Sqrt(2500 - 900);
-            AssertPoints(ring.GetIntersections(line, Strict).Select(p => P(p.X - shift, p.Y - down)).ToArray(), at30, 30, -at30, 30);
+            AssertPoints(
+                ring.GetIntersections(line, Strict).Select(p => P(p.X - shift, p.Y - down)).ToArray(),
+                at30,
+                30,
+                -at30,
+                30
+            );
             Assert.Equal(30.0, ring.DistanceTo(xline, Strict), 6);
             Assert.Equal(0.0, ring.DistanceTo(polygon, Strict), 6);
             Assert.Equal(ring.DistanceTo(xline, Strict), xline.DistanceTo(ring, Strict));
@@ -350,7 +377,10 @@ namespace GeometryHelper.UnitTest.Plane
             // The cubic (-100, 0), (500, 300), (-500, 300), (100, 0) has a loop: x is nought at t = 0.067, 0.5 and 0.933, and y = 900 t (1 - t)
             // is 56.25 at the first and the last, so the curve crosses itself at (0, 56.25). The line along X at that height meets it
             // nowhere else, so it meets it at that one point, twice over, which is one place.
-            GeoSpline2 loop = GeoSpline2.FromControlPoints(3, new[] { P(-100, 0), P(500, 300), P(-500, 300), P(100, 0) });
+            GeoSpline2 loop = GeoSpline2.FromControlPoints(
+                3,
+                new[] { P(-100, 0), P(500, 300), P(-500, 300), P(100, 0) }
+            );
             var line = new GeoXLine2(P(-300, 56.25), U(1, 0));
             GeoPoint2[] crossings = loop.GetIntersections(line, Strict);
 

@@ -109,8 +109,7 @@ namespace GeometryHelper.UnitTest.Plane
         {
             Tolerance tolerance = Tol(1.0);
 
-            List<GeoPoint2> result = OnX(0.0, 0.1, 0.2, 0.3, 5.0, 5.05, 9.0)
-                .RemoveConsecutiveNearPoints(tolerance);
+            List<GeoPoint2> result = OnX(0.0, 0.1, 0.2, 0.3, 5.0, 5.05, 9.0).RemoveConsecutiveNearPoints(tolerance);
 
             for (int i = 1; i < result.Count; i++)
             {
@@ -188,8 +187,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void RemoveConsecutiveNearPoints_RejectsNull()
         {
-            Assert.Throws<ArgumentNullException>(
-                () => ((List<GeoPoint2>)null).RemoveConsecutiveNearPoints(Tol(1.0)));
+            Assert.Throws<ArgumentNullException>(() => ((List<GeoPoint2>)null).RemoveConsecutiveNearPoints(Tol(1.0)));
         }
 
         [Fact]

@@ -19,7 +19,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
         // A prism ten deep with a house-shaped end: A (0, 0), B (10, 0), C (10, 10), the ridge D (5, 12) and E (0, 10),
         // in X and Z. The back end has all five corners; the front end runs from C straight to E and skips the ridge,
         // which the two roof faces keep, so the triangle C D E of the front end is open.
-        private static readonly string House = IfcTestFile.CommonHeader(".MILLI.,.METRE.") + @"
+        private static readonly string House =
+            IfcTestFile.CommonHeader(".MILLI.,.METRE.")
+            + @"
 #20=IFCCARTESIANPOINT((0.,0.,0.));
 #21=IFCCARTESIANPOINT((10.,0.,0.));
 #22=IFCCARTESIANPOINT((10.,0.,10.));
@@ -64,7 +66,10 @@ namespace GeometryHelper.IfcConvert.UnitTest
         {
             IfcTestFile.Run(House, model =>
             {
-                IfcProductGeometry nut = model.GetGeometry("0000000000000000000N01", new IfcConvertOptions { TargetUnit = LengthUnit.Millimeters });
+                IfcProductGeometry nut = model.GetGeometry(
+                    "0000000000000000000N01",
+                    new IfcConvertOptions { TargetUnit = LengthUnit.Millimeters }
+                );
 
                 GeoSolid3 body = Assert.Single(nut.Solids);
                 Assert.DoesNotContain(nut.Warnings, warning => warning.Contains("not closed"));

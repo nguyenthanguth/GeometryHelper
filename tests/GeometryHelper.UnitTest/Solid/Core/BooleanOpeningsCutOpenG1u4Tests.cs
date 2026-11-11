@@ -13,18 +13,29 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     public class BooleanOpeningsCutOpenG1u4Tests
     {
-        private static GeoPoint3 At(double far, double x, double y, double z) => new GeoPoint3(far + x, far + y, far + z);
+        private static GeoPoint3 At(double far, double x, double y, double z) =>
+            new GeoPoint3(far + x, far + y, far + z);
 
-        private static GeoSolid3 Box(double far, double x0, double y0, double z0, double x1, double y1, double z1)
-            => GeoSolid3.Extrude(
-                new GeoPolygon3(At(far, x0, y0, z0), At(far, x1, y0, z0), At(far, x1, y1, z0), At(far, x0, y1, z0)), new GeoVector3(0, 0, z1 - z0), Tolerance.Default);
+        private static GeoSolid3 Box(double far, double x0, double y0, double z0, double x1, double y1, double z1) =>
+            GeoSolid3.Extrude(
+                new GeoPolygon3(At(far, x0, y0, z0), At(far, x1, y0, z0), At(far, x1, y1, z0), At(far, x0, y1, z0)),
+                new GeoVector3(0, 0, z1 - z0),
+                Tolerance.Default
+            );
 
         /// <summary>
         /// A plate 200 by 100 by 3 with a blind opening 38.6 by 60.7 up from its floor to 1.772, and one 38.9 by 60 to
         /// 1.77105: their ceilings stand 0.00095 apart, the openings 31.5 apart along them.
         /// </summary>
-        private static GeoSolid3 Plate(double far)
-            => Box(far, 0, 0, 0, 200, 100, 3).WithOpenings(new[] { Box(far, 13.5, 22.5, -7, 52.1, 83.2, 1.772), Box(far, 83.6, 24.9, -7, 122.5, 84.9, 1.77105) });
+        private static GeoSolid3 Plate(double far) =>
+            Box(far, 0, 0, 0, 200, 100, 3)
+                .WithOpenings(
+                    new[]
+                    {
+                        Box(far, 13.5, 22.5, -7, 52.1, 83.2, 1.772),
+                        Box(far, 83.6, 24.9, -7, 122.5, 84.9, 1.77105),
+                    }
+                );
 
         /// <summary>The plate less what the openings take of it.</summary>
         private const double Held = 60_000 - 38.6 * 60.7 * 1.772 - 38.9 * 60 * 1.77105;
@@ -52,15 +63,19 @@ namespace GeometryHelper.UnitTest.Solid
             return cases;
         }
 
-        private static Tolerance Within(double tolerance)
-            => tolerance < 1E-9 ? new Tolerance(tolerance, tolerance, tolerance, tolerance) : new Tolerance(tolerance, 1E-5, Math.PI / 180, tolerance);
+        private static Tolerance Within(double tolerance) =>
+            tolerance < 1E-9
+                ? new Tolerance(tolerance, tolerance, tolerance, tolerance)
+                : new Tolerance(tolerance, 1E-5, Math.PI / 180, tolerance);
 
         [Theory]
         [MemberData(nameof(Cases))]
         public void ThePlateLessABoxAcrossBothOpenings_HoldsWhatIsLeft(double far, double tolerance)
         {
             // The plate less the box held 22 717.96, 1.05 short, and was not valid.
-            Assert.True(Plate(far).TrySubtract(Tool(far), out GeoSolid3 left, Within(tolerance), out BooleanOutcome outcome));
+            Assert.True(
+                Plate(far).TrySubtract(Tool(far), out GeoSolid3 left, Within(tolerance), out BooleanOutcome outcome)
+            );
 
             Assert.Equal(BooleanOutcome.Made, outcome);
             Assert.Equal(Held - Shared, left.GetVolume(Within(tolerance)), 1E-5);
@@ -72,7 +87,9 @@ namespace GeometryHelper.UnitTest.Solid
         public void ThePlateJoinedToTheBox_IsWorkedOut(double far, double tolerance)
         {
             // The two joined were not worked out.
-            Assert.True(Plate(far).TryUnion(Tool(far), out GeoSolid3 union, Within(tolerance), out BooleanOutcome outcome));
+            Assert.True(
+                Plate(far).TryUnion(Tool(far), out GeoSolid3 union, Within(tolerance), out BooleanOutcome outcome)
+            );
 
             Assert.Equal(BooleanOutcome.Made, outcome);
             Assert.Equal(Held + ToolVolume - Shared, union.GetVolume(Within(tolerance)), 1E-5);
@@ -83,7 +100,9 @@ namespace GeometryHelper.UnitTest.Solid
         [MemberData(nameof(Cases))]
         public void TheBoxLessThePlate_HoldsWhatIsLeft(double far, double tolerance)
         {
-            Assert.True(Tool(far).TrySubtract(Plate(far), out GeoSolid3 left, Within(tolerance), out BooleanOutcome outcome));
+            Assert.True(
+                Tool(far).TrySubtract(Plate(far), out GeoSolid3 left, Within(tolerance), out BooleanOutcome outcome)
+            );
 
             Assert.Equal(BooleanOutcome.Made, outcome);
             Assert.Equal(ToolVolume - Shared, left.GetVolume(Within(tolerance)), 1E-5);
@@ -94,7 +113,9 @@ namespace GeometryHelper.UnitTest.Solid
         [MemberData(nameof(Cases))]
         public void WhatThePlateAndTheBoxShare_IsWhatTheBoxHoldsOfTheMaterial(double far, double tolerance)
         {
-            Assert.True(Plate(far).TryIntersect(Tool(far), out GeoSolid3 shared, Within(tolerance), out BooleanOutcome outcome));
+            Assert.True(
+                Plate(far).TryIntersect(Tool(far), out GeoSolid3 shared, Within(tolerance), out BooleanOutcome outcome)
+            );
 
             Assert.Equal(BooleanOutcome.Made, outcome);
             Assert.Equal(Shared, shared.GetVolume(Within(tolerance)), 1E-5);

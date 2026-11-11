@@ -13,7 +13,8 @@ namespace GeometryHelper.UnitTest.Dxf
     internal static class DxfDimensionDrawings
     {
         /// <summary>The drawing of R12.</summary>
-        internal const string R12 = @"  0
+        internal const string R12 =
+            @"  0
 SECTION
   2
 HEADER
@@ -2506,7 +2507,7 @@ TEXT
  40
 1.0
   1
-315°
+315Â°
  50
 292.5
  72
@@ -2732,7 +2733,7 @@ A6
  40
 1.0
   1
-90°
+90Â°
  50
 -45.0
  72
@@ -3828,7 +3829,8 @@ EOF
 ";
 
         /// <summary>The drawing of R2000.</summary>
-        internal const string R2000 = @"  0
+        internal const string R2000 =
+            @"  0
 SECTION
   2
 HEADER
@@ -7879,7 +7881,7 @@ AcDbMText
  71
 5
   1
-315°
+315Â°
  50
 292.5
   0
@@ -8185,7 +8187,7 @@ AcDbMText
  71
 5
   1
-90°
+90Â°
  50
 -45.0
   0
@@ -11439,7 +11441,8 @@ EOF
 ";
 
         /// <summary>The drawing of R2018.</summary>
-        internal const string R2018 = @"  0
+        internal const string R2018 =
+            @"  0
 SECTION
   2
 HEADER
@@ -15906,7 +15909,7 @@ AcDbMText
  71
 5
   1
-315°
+315Â°
  50
 292.5
   0
@@ -16212,7 +16215,7 @@ AcDbMText
  71
 5
   1
-90°
+90Â°
  50
 -45.0
   0

@@ -130,7 +130,8 @@ namespace GeometryHelper.UnitTest.Packing
             var placed = new List<(double X, double Y, double W, double H)>();
             for (int i = 0; i < 400; i++)
             {
-                double w = 5.0 + random.Next(120), h = 5.0 + random.Next(90);
+                double w = 5.0 + random.Next(120),
+                    h = 5.0 + random.Next(90);
                 if (bin.TryPlace(w, h, out double x, out double y))
                 {
                     placed.Add((x, y, w, h));

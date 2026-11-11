@@ -236,6 +236,7 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Equal(new[] { 0, 1, 2 }, layout.UnfittedShown());
             Assert.All(layout.Slots, s => Assert.Equal(s.Fitted, s == layout.Slots[3]));
         }
+
         [Fact]
         public void ALayout_IsRememberedAndPutBack_ByItsState()
         {
@@ -267,7 +268,15 @@ namespace GeometryHelper.Viewer.Tests
             layout.SetCount(4);
 
             layout.Restore(null);
-            layout.Restore(new ViewLayoutState { Count = 3, Active = 9, Modes = new[] { "Banana", "Wireframe" }, Linked = new[] { true } });
+            layout.Restore(
+                new ViewLayoutState
+                {
+                    Count = 3,
+                    Active = 9,
+                    Modes = new[] { "Banana", "Wireframe" },
+                    Linked = new[] { true },
+                }
+            );
 
             Assert.Equal(4, layout.Count);
             Assert.Equal(3, layout.Active);
@@ -277,7 +286,14 @@ namespace GeometryHelper.Viewer.Tests
             Assert.False(layout.Slots[1].Linked);
 
             // A number that is a mode in no way is not one: "7" parses as an enum, and is not defined.
-            layout.Restore(new ViewLayoutState { Count = 4, Active = 3, Modes = new[] { "7" } });
+            layout.Restore(
+                new ViewLayoutState
+                {
+                    Count = 4,
+                    Active = 3,
+                    Modes = new[] { "7" },
+                }
+            );
             Assert.Equal(RenderMode.ShadedEdges, layout.Slots[0].Mode);
         }
 

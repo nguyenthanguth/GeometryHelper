@@ -63,7 +63,10 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // The line from (10, 20, 0) to (400, 280, 0) in paper space.
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
-            string[] model = db.GetHeader("$EXTMIN").Concat(db.GetHeader("$EXTMAX")).Select(g => g.ToString()).ToArray();
+            string[] model = db.GetHeader("$EXTMIN")
+                .Concat(db.GetHeader("$EXTMAX"))
+                .Select(g => g.ToString())
+                .ToArray();
 
             db.PaperSpace.AppendEntity(new DxfLine(new GeoPoint3(10, 20, 0), new GeoPoint3(400, 280, 0)));
 

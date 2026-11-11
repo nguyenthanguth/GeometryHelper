@@ -32,7 +32,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="owner">The window it is shown over; null for none.</param>
         /// <param name="model">The view model.</param>
         /// <returns>True when OK was pressed; the colour is then the model's.</returns>
-        public static bool Pick(Window owner, SelectColorViewModel model) => new SelectColorWindow(model) { Owner = owner }.ShowDialog() == true;
+        public static bool Pick(Window owner, SelectColorViewModel model) =>
+            new SelectColorWindow(model) { Owner = owner }.ShowDialog() == true;
 
         private void OnHeaderDown(object sender, MouseButtonEventArgs e)
         {
@@ -72,7 +73,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private void OnPickUp(object sender, MouseButtonEventArgs e) => ((FrameworkElement)sender).ReleaseMouseCapture();
+        private void OnPickUp(object sender, MouseButtonEventArgs e) =>
+            ((FrameworkElement)sender).ReleaseMouseCapture();
 
         private void Pick(FrameworkElement area, Point at)
         {
@@ -86,7 +88,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             else if (area.Tag is string channel)
             {
-                Model.PickChannel(int.Parse(channel, System.Globalization.CultureInfo.InvariantCulture), at.X, area.ActualWidth);
+                Model.PickChannel(
+                    int.Parse(channel, System.Globalization.CultureInfo.InvariantCulture),
+                    at.X,
+                    area.ActualWidth
+                );
             }
         }
 

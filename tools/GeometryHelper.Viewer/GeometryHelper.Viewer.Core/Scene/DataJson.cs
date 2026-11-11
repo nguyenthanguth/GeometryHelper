@@ -141,9 +141,12 @@ namespace GeometryHelper.Viewer
             {
                 switch (element.GetString())
                 {
-                    case "NaN": return double.NaN;
-                    case "Infinity": return double.PositiveInfinity;
-                    case "-Infinity": return double.NegativeInfinity;
+                    case "NaN":
+                        return double.NaN;
+                    case "Infinity":
+                        return double.PositiveInfinity;
+                    case "-Infinity":
+                        return double.NegativeInfinity;
                 }
             }
 
@@ -219,9 +222,11 @@ namespace GeometryHelper.Viewer
 
         internal static double Number(JsonElement element, string name) => Number(Get(element, name));
 
-        internal static Vec3 Point(JsonElement element, string name, int dimension) => Point(Get(element, name), dimension);
+        internal static Vec3 Point(JsonElement element, string name, int dimension) =>
+            Point(Get(element, name), dimension);
 
-        internal static Vec3[] Points(JsonElement element, string name, int dimension) => Points(Get(element, name), dimension);
+        internal static Vec3[] Points(JsonElement element, string name, int dimension) =>
+            Points(Get(element, name), dimension);
 
         /// <summary>
         /// Reads the bulges, or nought for each of <paramref name="count"/> edges where the data has none.
@@ -263,7 +268,8 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Reads the weights of a spline, or null where the data has none, as it has none for a spline that is not rational.
         /// </summary>
-        internal static double[] Weights(JsonElement element) => TryGet(element, "weights", out JsonElement list) ? Numbers(list) : null;
+        internal static double[] Weights(JsonElement element) =>
+            TryGet(element, "weights", out JsonElement list) ? Numbers(list) : null;
 
         internal static IEnumerable<JsonElement> List(JsonElement element, string name)
         {

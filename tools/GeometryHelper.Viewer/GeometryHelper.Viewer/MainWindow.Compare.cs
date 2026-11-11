@@ -80,10 +80,34 @@ namespace GeometryHelper.Viewer
 
             internal int Index { get; set; }
 
-            public override string ToString()
-                => "#" + Number.ToString(CultureInfo.InvariantCulture) + " " + Status + " | " + Layer + " | " + Item + " | " + Kind + " | vertices " + Vertices
-                   + " | length " + LengthLeft + " / " + LengthRight + " | area " + AreaLeft + " / " + AreaRight + " | volume " + VolumeLeft + " / " + VolumeRight
-                   + " | bit-identical " + Identical + (Difference.Length > 0 ? " | " + Difference : string.Empty);
+            public override string ToString() =>
+                "#"
+                + Number.ToString(CultureInfo.InvariantCulture)
+                + " "
+                + Status
+                + " | "
+                + Layer
+                + " | "
+                + Item
+                + " | "
+                + Kind
+                + " | vertices "
+                + Vertices
+                + " | length "
+                + LengthLeft
+                + " / "
+                + LengthRight
+                + " | area "
+                + AreaLeft
+                + " / "
+                + AreaRight
+                + " | volume "
+                + VolumeLeft
+                + " / "
+                + VolumeRight
+                + " | bit-identical "
+                + Identical
+                + (Difference.Length > 0 ? " | " + Difference : string.Empty);
         }
 
         #region Starting
@@ -103,9 +127,16 @@ namespace GeometryHelper.Viewer
                 return null;
             }
 
-            for (DirectoryInfo directory = File.Exists(start) ? new FileInfo(start).Directory : new DirectoryInfo(start); directory != null; directory = directory.Parent)
+            for (
+                DirectoryInfo directory = File.Exists(start) ? new FileInfo(start).Directory : new DirectoryInfo(start);
+                directory != null;
+                directory = directory.Parent
+            )
             {
-                if (Directory.Exists(Path.Combine(directory.FullName, ".git")) || File.Exists(Path.Combine(directory.FullName, ".git")))
+                if (
+                    Directory.Exists(Path.Combine(directory.FullName, ".git"))
+                    || File.Exists(Path.Combine(directory.FullName, ".git"))
+                )
                 {
                     return directory.FullName;
                 }
@@ -122,7 +153,10 @@ namespace GeometryHelper.Viewer
                 return;
             }
 
-            string script = _currentPath != null && SceneLoader.IsScript(_currentPath) ? _currentPath : _settings.Recent.FirstOrDefault(SceneLoader.IsScript);
+            string script =
+                _currentPath != null && SceneLoader.IsScript(_currentPath)
+                    ? _currentPath
+                    : _settings.Recent.FirstOrDefault(SceneLoader.IsScript);
             string repository = _settings.CompareRepository;
 
             if (string.IsNullOrEmpty(repository) || !Directory.Exists(repository))
@@ -134,7 +168,16 @@ namespace GeometryHelper.Viewer
             BuildSource.TryParse(_settings.CompareRight, repository, out BuildSource right, out _);
             var dialog = new CompareDialog(
                 this,
-                new CompareSetup { Script = script, Left = left ?? BuildSource.Own, Right = right ?? BuildSource.Own, Repository = repository, TimeoutSeconds = _settings.CompareTimeoutSeconds, Watch = _settings.CompareWatch });
+                new CompareSetup
+                {
+                    Script = script,
+                    Left = left ?? BuildSource.Own,
+                    Right = right ?? BuildSource.Own,
+                    Repository = repository,
+                    TimeoutSeconds = _settings.CompareTimeoutSeconds,
+                    Watch = _settings.CompareWatch,
+                }
+            );
 
             if (dialog.ShowDialog() != true)
             {
@@ -186,18 +229,26 @@ namespace GeometryHelper.Viewer
                 // A script that was edited since a side ran is run again on both sides: what each gave is of a text that is gone.
                 string scriptHash = SideRunner.HashOfScript(setup.Script);
 
-                if (scriptHash != null && ((state.LeftRun != null && state.LeftRun.ScriptHash != scriptHash) || (state.RightRun != null && state.RightRun.ScriptHash != scriptHash)))
+                if (
+                    scriptHash != null
+                    && (
+                        (state.LeftRun != null && state.LeftRun.ScriptHash != scriptHash)
+                        || (state.RightRun != null && state.RightRun.ScriptHash != scriptHash)
+                    )
+                )
                 {
                     runLeft = true;
                     runRight = true;
                 }
 
-                Task<SideRunResult> left = runLeft || state.LeftRun == null
-                    ? SideRunner.RunAsync(environment, setup.Script, setup.Left, "left", Say, cts.Token)
-                    : Task.FromResult(state.LeftRun);
-                Task<SideRunResult> right = runRight || state.RightRun == null
-                    ? SideRunner.RunAsync(environment, setup.Script, setup.Right, "right", Say, cts.Token)
-                    : Task.FromResult(state.RightRun);
+                Task<SideRunResult> left =
+                    runLeft || state.LeftRun == null
+                        ? SideRunner.RunAsync(environment, setup.Script, setup.Left, "left", Say, cts.Token)
+                        : Task.FromResult(state.LeftRun);
+                Task<SideRunResult> right =
+                    runRight || state.RightRun == null
+                        ? SideRunner.RunAsync(environment, setup.Script, setup.Right, "right", Say, cts.Token)
+                        : Task.FromResult(state.RightRun);
                 await Task.WhenAll(left, right);
                 SideRunResult leftRun = left.Result;
                 SideRunResult rightRun = right.Result;
@@ -215,7 +266,16 @@ namespace GeometryHelper.Viewer
 
                 foreach (SideRunResult run in new[] { leftRun, rightRun })
                 {
-                    Log("    " + run.Label + ": " + (run.Succeeded ? "ok" : "FAILED") + ", " + run.Elapsed.TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture) + " s" + (run.LibraryLine != null ? ", library " + run.LibraryLine : string.Empty));
+                    Log(
+                        "    "
+                            + run.Label
+                            + ": "
+                            + (run.Succeeded ? "ok" : "FAILED")
+                            + ", "
+                            + run.Elapsed.TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture)
+                            + " s"
+                            + (run.LibraryLine != null ? ", library " + run.LibraryLine : string.Empty)
+                    );
 
                     foreach (string error in run.Errors)
                     {
@@ -230,7 +290,9 @@ namespace GeometryHelper.Viewer
                     return false;
                 }
 
-                SceneComparison comparison = await Task.Run(() => SceneComparison.Compare(leftRun.Scene, rightRun.Scene));
+                SceneComparison comparison = await Task.Run(() =>
+                    SceneComparison.Compare(leftRun.Scene, rightRun.Scene)
+                );
                 ComparisonScene layout = ComparisonScene.Build(comparison, leftRun.Scene, rightRun.Scene);
                 string dashWarning = null;
                 var built = await Task.Run(() =>
@@ -245,7 +307,11 @@ namespace GeometryHelper.Viewer
                     return false;
                 }
 
-                foreach (string warning in built.Item1.Warnings.Concat(built.Item2.Warnings).Concat(dashWarning == null ? new string[0] : new[] { dashWarning }))
+                foreach (
+                    string warning in built
+                        .Item1.Warnings.Concat(built.Item2.Warnings)
+                        .Concat(dashWarning == null ? new string[0] : new[] { dashWarning })
+                )
                 {
                     Log("warning: " + warning);
                 }
@@ -271,7 +337,8 @@ namespace GeometryHelper.Viewer
                 BuildTree();
                 ShowProperties();
                 UpdateSelectionText();
-                ToleranceText.Text = "EqualPoint " + layout.Scene.EqualPoint.ToString("G", CultureInfo.InvariantCulture);
+                ToleranceText.Text =
+                    "EqualPoint " + layout.Scene.EqualPoint.ToString("G", CultureInfo.InvariantCulture);
                 FillCompareRows(comparison);
                 CompareTab.Visibility = Visibility.Visible;
                 BottomTabs.SelectedItem = CompareTab;
@@ -353,7 +420,9 @@ namespace GeometryHelper.Viewer
                     _pendingLeft = false;
                     _pendingRight = false;
                     Log("A DLL changed while the comparison ran.");
-                    _ = Dispatcher.BeginInvoke(new Action(() => _ = RunCompareAsync(_compare, again, againRight, true)));
+                    _ = Dispatcher.BeginInvoke(
+                        new Action(() => _ = RunCompareAsync(_compare, again, againRight, true))
+                    );
                 }
             }
         }
@@ -388,28 +457,41 @@ namespace GeometryHelper.Viewer
                 for (int i = 0; i < comparison.Items.Count; i++)
                 {
                     ComparedItem item = comparison.Items[i];
-                    string text(double? value) => value.HasValue ? value.Value.ToString("G10", CultureInfo.InvariantCulture) : "-";
-                    string count(int? value) => value.HasValue ? value.Value.ToString(CultureInfo.InvariantCulture) : "-";
+                    string text(double? value) =>
+                        value.HasValue ? value.Value.ToString("G10", CultureInfo.InvariantCulture) : "-";
+                    string count(int? value) =>
+                        value.HasValue ? value.Value.ToString(CultureInfo.InvariantCulture) : "-";
 
-                    _compareRows.Add(new CompareRow
-                    {
-                        Index = i,
-                        Number = item.Number,
-                        Status = StatusText(item),
-                        Layer = item.Layer,
-                        Item = item.Name ?? string.Empty,
-                        Kind = item.RightKind == null ? item.Kind : item.Kind + " -> " + item.RightKind,
-                        Vertices = count(item.Left?.Vertices) + " / " + count(item.Right?.Vertices),
-                        LengthLeft = text(item.Left?.Length),
-                        LengthRight = text(item.Right?.Length),
-                        AreaLeft = text(item.Left?.Area),
-                        AreaRight = text(item.Right?.Area),
-                        VolumeLeft = text(item.Left?.Volume),
-                        VolumeRight = text(item.Right?.Volume),
-                        Identical = item.Status == CompareStatus.Identical || item.Status == CompareStatus.NumbersDiffer ? (item.DataIdentical ? "yes" : "no") : item.Status == CompareStatus.Changed ? "no" : "-",
-                        Difference = item.Difference,
-                        Foreground = item.Status == CompareStatus.Identical ? identical : item.Status == CompareStatus.NumbersDiffer ? numbers : item.Status == CompareStatus.Changed ? changed : item.Status == CompareStatus.OnlyLeft ? onlyLeft : onlyRight,
-                    });
+                    _compareRows.Add(
+                        new CompareRow
+                        {
+                            Index = i,
+                            Number = item.Number,
+                            Status = StatusText(item),
+                            Layer = item.Layer,
+                            Item = item.Name ?? string.Empty,
+                            Kind = item.RightKind == null ? item.Kind : item.Kind + " -> " + item.RightKind,
+                            Vertices = count(item.Left?.Vertices) + " / " + count(item.Right?.Vertices),
+                            LengthLeft = text(item.Left?.Length),
+                            LengthRight = text(item.Right?.Length),
+                            AreaLeft = text(item.Left?.Area),
+                            AreaRight = text(item.Right?.Area),
+                            VolumeLeft = text(item.Left?.Volume),
+                            VolumeRight = text(item.Right?.Volume),
+                            Identical =
+                                item.Status == CompareStatus.Identical || item.Status == CompareStatus.NumbersDiffer
+                                    ? (item.DataIdentical ? "yes" : "no")
+                                : item.Status == CompareStatus.Changed ? "no"
+                                : "-",
+                            Difference = item.Difference,
+                            Foreground =
+                                item.Status == CompareStatus.Identical ? identical
+                                : item.Status == CompareStatus.NumbersDiffer ? numbers
+                                : item.Status == CompareStatus.Changed ? changed
+                                : item.Status == CompareStatus.OnlyLeft ? onlyLeft
+                                : onlyRight,
+                        }
+                    );
                 }
 
                 CompareSummary.Text = comparison.Summary;
@@ -426,11 +508,21 @@ namespace GeometryHelper.Viewer
 
             switch (item.Status)
             {
-                case CompareStatus.Identical: text = "same"; break;
-                case CompareStatus.NumbersDiffer: text = "numbers differ"; break;
-                case CompareStatus.Changed: text = "changed"; break;
-                case CompareStatus.OnlyLeft: text = "only left"; break;
-                default: text = "only right"; break;
+                case CompareStatus.Identical:
+                    text = "same";
+                    break;
+                case CompareStatus.NumbersDiffer:
+                    text = "numbers differ";
+                    break;
+                case CompareStatus.Changed:
+                    text = "changed";
+                    break;
+                case CompareStatus.OnlyLeft:
+                    text = "only left";
+                    break;
+                default:
+                    text = "only right";
+                    break;
             }
 
             // How the two were found to be the one item, where it was not by a name the script gave.
@@ -473,7 +565,14 @@ namespace GeometryHelper.Viewer
 
             if (say)
             {
-                SetMessage("showing " + (view == CompareView.Both ? "both sides" : view == CompareView.Left ? "the left side" : "the right side"));
+                SetMessage(
+                    "showing "
+                        + (
+                            view == CompareView.Both ? "both sides"
+                            : view == CompareView.Left ? "the left side"
+                            : "the right side"
+                        )
+                );
             }
         }
 
@@ -551,15 +650,25 @@ namespace GeometryHelper.Viewer
         // A click on the row already selected selects nothing new; it zooms again, which is what is wanted after the view has been moved away.
         private void OnCompareMouseDown(object sender, MouseButtonEventArgs e)
         {
-            DependencyObject container = ItemsControl.ContainerFromElement(CompareList, e.OriginalSource as DependencyObject);
-            _comparePressed = (container as ListViewItem)?.DataContext is CompareRow row && ReferenceEquals(row, CompareList.SelectedItem) ? row : null;
+            DependencyObject container = ItemsControl.ContainerFromElement(
+                CompareList,
+                e.OriginalSource as DependencyObject
+            );
+            _comparePressed =
+                (container as ListViewItem)?.DataContext is CompareRow row
+                && ReferenceEquals(row, CompareList.SelectedItem)
+                    ? row
+                    : null;
         }
 
         private void OnCompareMouseUp(object sender, MouseButtonEventArgs e)
         {
             CompareRow row = _comparePressed;
             _comparePressed = null;
-            DependencyObject container = ItemsControl.ContainerFromElement(CompareList, e.OriginalSource as DependencyObject);
+            DependencyObject container = ItemsControl.ContainerFromElement(
+                CompareList,
+                e.OriginalSource as DependencyObject
+            );
 
             if (row != null && ReferenceEquals((container as ListViewItem)?.DataContext, row))
             {
@@ -606,7 +715,10 @@ namespace GeometryHelper.Viewer
 
         private DllWatcher Watch(BuildSource source, CompareEnvironment environment, bool left)
         {
-            string path = source.Kind == BuildSourceKind.Own ? environment.OwnLibrary : source.Kind == BuildSourceKind.Dll ? source.Dll : null;
+            string path =
+                source.Kind == BuildSourceKind.Own ? environment.OwnLibrary
+                : source.Kind == BuildSourceKind.Dll ? source.Dll
+                : null;
 
             if (path == null || !File.Exists(path))
             {
@@ -615,7 +727,9 @@ namespace GeometryHelper.Viewer
 
             try
             {
-                return new DllWatcher(path, TimeSpan.FromSeconds(1), () => Dispatcher.BeginInvoke(new Action(() => OnSideDllChanged(left))));
+                return new DllWatcher(path, TimeSpan.FromSeconds(1), () =>
+                    Dispatcher.BeginInvoke(new Action(() => OnSideDllChanged(left)))
+                );
             }
             catch (Exception e) when (e is ArgumentException || e is IOException)
             {
@@ -687,14 +801,28 @@ namespace GeometryHelper.Viewer
             if (file != null)
             {
                 File.WriteAllText(file, text, new UTF8Encoding(false));
-                Log("test for " + items.Count.ToString(CultureInfo.InvariantCulture) + " item(s) written to " + file + " (" + text.Length.ToString(CultureInfo.InvariantCulture) + " characters)");
+                Log(
+                    "test for "
+                        + items.Count.ToString(CultureInfo.InvariantCulture)
+                        + " item(s) written to "
+                        + file
+                        + " ("
+                        + text.Length.ToString(CultureInfo.InvariantCulture)
+                        + " characters)"
+                );
                 return;
             }
 
             try
             {
                 Clipboard.SetText(text);
-                Log("test for " + items.Count.ToString(CultureInfo.InvariantCulture) + " item(s) copied to the clipboard (" + text.Length.ToString(CultureInfo.InvariantCulture) + " characters)");
+                Log(
+                    "test for "
+                        + items.Count.ToString(CultureInfo.InvariantCulture)
+                        + " item(s) copied to the clipboard ("
+                        + text.Length.ToString(CultureInfo.InvariantCulture)
+                        + " characters)"
+                );
             }
             catch (System.Runtime.InteropServices.ExternalException e)
             {
@@ -706,7 +834,10 @@ namespace GeometryHelper.Viewer
                 Title = "Save the test skeleton",
                 Filter = "C# (*.cs)|*.cs",
                 FileName = "ViewerExportTests.cs",
-                InitialDirectory = _settings.LastFolder != null && Directory.Exists(_settings.LastFolder) ? _settings.LastFolder : null,
+                InitialDirectory =
+                    _settings.LastFolder != null && Directory.Exists(_settings.LastFolder)
+                        ? _settings.LastFolder
+                        : null,
             };
 
             if (dialog.ShowDialog(this) == true)
@@ -735,7 +866,9 @@ namespace GeometryHelper.Viewer
         {
             if (words.Length < 3 || _currentPath == null || !SceneLoader.IsScript(_currentPath))
             {
-                Log("--do: compare <left> <right> [repo=path] [timeout=seconds] needs a script open; a source is own, dll:<path> or commit:<hash>");
+                Log(
+                    "--do: compare <left> <right> [repo=path] [timeout=seconds] needs a script open; a source is own, dll:<path> or commit:<hash>"
+                );
                 return;
             }
 
@@ -754,19 +887,38 @@ namespace GeometryHelper.Viewer
                 {
                     repository = word.Substring(5);
                 }
-                else if (word.StartsWith("timeout=", StringComparison.OrdinalIgnoreCase) && int.TryParse(word.Substring(8), NumberStyles.Integer, CultureInfo.InvariantCulture, out int seconds))
+                else if (
+                    word.StartsWith("timeout=", StringComparison.OrdinalIgnoreCase)
+                    && int.TryParse(
+                        word.Substring(8),
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int seconds
+                    )
+                )
                 {
                     timeout = seconds;
                 }
             }
 
-            if (!BuildSource.TryParse(words[1], repository, out BuildSource left, out string problem) || !BuildSource.TryParse(words[2], repository, out BuildSource right, out problem))
+            if (
+                !BuildSource.TryParse(words[1], repository, out BuildSource left, out string problem)
+                || !BuildSource.TryParse(words[2], repository, out BuildSource right, out problem)
+            )
             {
                 Log("--do: " + problem);
                 return;
             }
 
-            var setup = new CompareSetup { Script = Path.GetFullPath(_currentPath), Left = left, Right = right, Repository = repository, TimeoutSeconds = timeout, Watch = watch };
+            var setup = new CompareSetup
+            {
+                Script = Path.GetFullPath(_currentPath),
+                Left = left,
+                Right = right,
+                Repository = repository,
+                TimeoutSeconds = timeout,
+                Watch = watch,
+            };
             await RunCompareAsync(new CompareState { Setup = setup }, true, true, false);
         }
 
@@ -780,12 +932,27 @@ namespace GeometryHelper.Viewer
             string repository = FindRepository(script) ?? FindRepository(AppContext.BaseDirectory) ?? string.Empty;
             var dialog = new CompareDialog(
                 null,
-                new CompareSetup { Script = script, Left = BuildSource.Own, Right = BuildSource.FromCommit("9ee3f57", repository), Repository = repository, TimeoutSeconds = _settings.CompareTimeoutSeconds, Watch = true });
+                new CompareSetup
+                {
+                    Script = script,
+                    Left = BuildSource.Own,
+                    Right = BuildSource.FromCommit("9ee3f57", repository),
+                    Repository = repository,
+                    TimeoutSeconds = _settings.CompareTimeoutSeconds,
+                    Watch = true,
+                }
+            );
             var content = (FrameworkElement)dialog.Content;
             content.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             content.Arrange(new Rect(content.DesiredSize));
             content.UpdateLayout();
-            var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap((int)Math.Ceiling(content.DesiredSize.Width), (int)Math.Ceiling(content.DesiredSize.Height), 96.0, 96.0, PixelFormats.Pbgra32);
+            var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+                (int)Math.Ceiling(content.DesiredSize.Width),
+                (int)Math.Ceiling(content.DesiredSize.Height),
+                96.0,
+                96.0,
+                PixelFormats.Pbgra32
+            );
             bitmap.Render(content);
             var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
             encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
@@ -819,15 +986,26 @@ namespace GeometryHelper.Viewer
         {
             switch (name.ToLowerInvariant())
             {
-                case "left": SetCompareView(CompareView.Left); break;
-                case "right": SetCompareView(CompareView.Right); break;
-                default: SetCompareView(CompareView.Both); break;
+                case "left":
+                    SetCompareView(CompareView.Left);
+                    break;
+                case "right":
+                    SetCompareView(CompareView.Right);
+                    break;
+                default:
+                    SetCompareView(CompareView.Both);
+                    break;
             }
         }
 
         private void CompareClickCommand(string number)
         {
-            if (_compare != null && int.TryParse(number, NumberStyles.Integer, CultureInfo.InvariantCulture, out int n) && n >= 1 && n <= _compareRows.Count)
+            if (
+                _compare != null
+                && int.TryParse(number, NumberStyles.Integer, CultureInfo.InvariantCulture, out int n)
+                && n >= 1
+                && n <= _compareRows.Count
+            )
             {
                 // The row is chosen as a click chooses it, quietly, and the row is then done as the click does it.
                 _syncingCompare = true;

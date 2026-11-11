@@ -75,8 +75,10 @@ namespace GeometryHelper.UnitTest.Plane
                 {
                     GeoPoint2 end = pieces[i - 1][pieces[i - 1].VertexCount - 1];
                     GeoPoint2 start = pieces[i][0];
-                    Assert.True(end.IsEqualTo(start, Tol),
-                        $"case {c}: piece {i - 1} ends at {end} but piece {i} starts at {start}");
+                    Assert.True(
+                        end.IsEqualTo(start, Tol),
+                        $"case {c}: piece {i - 1} ends at {end} but piece {i} starts at {start}"
+                    );
                 }
 
                 // An open subject keeps its own endpoints at the outer edges of the result.
@@ -127,15 +129,16 @@ namespace GeometryHelper.UnitTest.Plane
                 foreach (GeoPolyline2 piece in pieces)
                 {
                     Assert.True(piece.VertexCount >= 2, $"case {c}: piece with {piece.VertexCount} vertices");
-                    Assert.True(piece.Length > floor,
-                        $"case {c}: piece only {piece.Length} long");
+                    Assert.True(piece.Length > floor, $"case {c}: piece only {piece.Length} long");
 
                     // A sliver edge does not shorten the piece that holds it, so the piece length above
                     // would not notice one; only the edges show it.
                     for (int e = 0; e < piece.EdgeCount; e++)
                     {
-                        Assert.True(piece.GetEdgeAt(e).Length > floor,
-                            $"case {c}: sliver edge {e} of {piece.GetEdgeAt(e).Length}");
+                        Assert.True(
+                            piece.GetEdgeAt(e).Length > floor,
+                            $"case {c}: sliver edge {e} of {piece.GetEdgeAt(e).Length}"
+                        );
                     }
                 }
 
@@ -171,8 +174,10 @@ namespace GeometryHelper.UnitTest.Plane
                     Assert.Equal(expected.VertexCount, actual.VertexCount);
                     for (int v = 0; v < expected.VertexCount; v++)
                     {
-                        Assert.True(expected[v].IsEqualTo(actual[v], Tol),
-                            $"case {c}: piece {i} vertex {v}: {expected[v]} vs {actual[v]}");
+                        Assert.True(
+                            expected[v].IsEqualTo(actual[v], Tol),
+                            $"case {c}: piece {i} vertex {v}: {expected[v]} vs {actual[v]}"
+                        );
                     }
                 }
             }
@@ -192,11 +197,18 @@ namespace GeometryHelper.UnitTest.Plane
                 double distance = length * (0.05 + random.NextDouble() * 0.9);
                 GeoPoint2 point = path.GetPointAtDistance(distance);
 
-                bool byDistance = Splition2.TrySplitAtDistance(path, distance, out GeoPolyline2 a1, out GeoPolyline2 a2, Tol);
+                bool byDistance = Splition2.TrySplitAtDistance(
+                    path,
+                    distance,
+                    out GeoPolyline2 a1,
+                    out GeoPolyline2 a2,
+                    Tol
+                );
                 bool byPoint = Splition2.TrySplitBy(path, point, out GeoPolyline2 b1, out GeoPolyline2 b2, Tol);
 
                 Assert.Equal(byDistance, byPoint);
-                if (!byDistance) continue;
+                if (!byDistance)
+                    continue;
 
                 Assert.Equal(a1.Length, b1.Length, 6);
                 Assert.Equal(a2.Length, b2.Length, 6);
@@ -230,8 +242,10 @@ namespace GeometryHelper.UnitTest.Plane
                     // Every internal boundary is a point where the cutter actually met the path.
                     for (int i = 1; i < pieces.Length; i++)
                     {
-                        Assert.True(Containment2.IsPointOn(cutter, pieces[i][0], Tol),
-                            $"case {c}: boundary {i} at {pieces[i][0]} is not on the cutter");
+                        Assert.True(
+                            Containment2.IsPointOn(cutter, pieces[i][0], Tol),
+                            $"case {c}: boundary {i} at {pieces[i][0]} is not on the cutter"
+                        );
                     }
                 }
             }
@@ -246,7 +260,8 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 var line = new GeoLine2(
                     new GeoPoint2(random.NextDouble() * 20.0 - 10.0, random.NextDouble() * 20.0 - 10.0),
-                    new GeoPoint2(random.NextDouble() * 20.0 + 10.0, random.NextDouble() * 20.0 + 10.0));
+                    new GeoPoint2(random.NextDouble() * 20.0 + 10.0, random.NextDouble() * 20.0 + 10.0)
+                );
 
                 double[] cuts = RandomCuts(random, line.Length, random.Next(0, 6));
                 GeoLine2[] pieces = Splition2.SplitAtDistances(line, cuts, Tol);
@@ -275,16 +290,27 @@ namespace GeometryHelper.UnitTest.Plane
                 // Wild positions on purpose: far outside, exactly on the ends, NaN and infinities.
                 var cuts = new List<double>
                 {
-                    0.0, length, -length, length * 3.0,
-                    double.NaN, double.PositiveInfinity, double.NegativeInfinity,
-                    random.NextDouble() * length
+                    0.0,
+                    length,
+                    -length,
+                    length * 3.0,
+                    double.NaN,
+                    double.PositiveInfinity,
+                    double.NegativeInfinity,
+                    random.NextDouble() * length,
                 };
 
                 GeoPolyline2[] pieces = Splition2.SplitAtDistances(path, cuts, Tol);
                 Assert.NotEmpty(pieces);
 
                 Splition2.TrySplitAtDistance(path, double.NaN, out _, out _, Tol);
-                Splition2.TrySplitBy(path, new GeoPoint2(double.NaN, double.NaN), out GeoPolyline2 _, out GeoPolyline2 _, Tol);
+                Splition2.TrySplitBy(
+                    path,
+                    new GeoPoint2(double.NaN, double.NaN),
+                    out GeoPolyline2 _,
+                    out GeoPolyline2 _,
+                    Tol
+                );
                 Splition2.TrySplitBy(path, new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(0, 0)), out _, Tol);
             }
         }

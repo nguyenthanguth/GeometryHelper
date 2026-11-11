@@ -44,7 +44,6 @@ namespace GeometryHelper.Dxf
         public string Cannoscale
         {
             get => Variable("CANNOSCALE") ?? "1:1";
-
             set
             {
                 if (value == null)
@@ -61,7 +60,10 @@ namespace GeometryHelper.Dxf
 
                 if (!Scales().Contains(value))
                 {
-                    throw new ArgumentException("The drawing's list of scales has no scale named " + value + ".", nameof(value));
+                    throw new ArgumentException(
+                        "The drawing's list of scales has no scale named " + value + ".",
+                        nameof(value)
+                    );
                 }
 
                 SetVariable("CANNOSCALE", value);
@@ -98,7 +100,6 @@ namespace GeometryHelper.Dxf
                     ? DxfTransparency.OfValue(number)
                     : new DxfTransparency(DxfTransparencyMethod.ErrorValue);
             }
-
             set
             {
                 if (value == Cetransparency)
@@ -108,14 +109,24 @@ namespace GeometryHelper.Dxf
 
                 if (value.IsInvalid)
                 {
-                    throw new ArgumentException("A transparency is by layer, by block or by alpha: an error value is not written.", nameof(value));
+                    throw new ArgumentException(
+                        "A transparency is by layer, by block or by alpha: an error value is not written.",
+                        nameof(value)
+                    );
                 }
 
                 int percent = (int)Math.Round((255 - value.Alpha) * 100.0 / 255.0, MidpointRounding.AwayFromZero);
 
                 if (value.IsByAlpha && percent > 90)
                 {
-                    throw new ArgumentException("AutoCAD makes new entities at most 90 per cent clear: the alpha " + value.Alpha.ToString(CultureInfo.InvariantCulture) + " is " + percent.ToString(CultureInfo.InvariantCulture) + ".", nameof(value));
+                    throw new ArgumentException(
+                        "AutoCAD makes new entities at most 90 per cent clear: the alpha "
+                            + value.Alpha.ToString(CultureInfo.InvariantCulture)
+                            + " is "
+                            + percent.ToString(CultureInfo.InvariantCulture)
+                            + ".",
+                        nameof(value)
+                    );
                 }
 
                 SetVariable("CETRANSPARENCY", value.Value.ToString(CultureInfo.InvariantCulture));
@@ -255,7 +266,6 @@ namespace GeometryHelper.Dxf
         public double Facetres
         {
             get => Real("FACETRES", 0.5);
-
             set
             {
                 if (!(value >= 0.01 && value <= 10.0))
@@ -357,11 +367,17 @@ namespace GeometryHelper.Dxf
             DxfItem rootItem = File.HoldsObjects ? File.ObjectItem(File.RootDictionaryHandle()) : null;
             var root = rootItem == null ? null : DxfDBObject.OfObject(rootItem) as DxfDBDictionary;
 
-            if (root != null && root.Contains(VariableDictionary) && root.GetAt(VariableDictionary) is DxfDBDictionary variables)
+            if (
+                root != null
+                && root.Contains(VariableDictionary)
+                && root.GetAt(VariableDictionary) is DxfDBDictionary variables
+            )
             {
                 if (make && !File.ListDictionaryVariables())
                 {
-                    throw new InvalidOperationException("The file has no CLASSES section to list DICTIONARYVAR, which a variable kept out of the header is.");
+                    throw new InvalidOperationException(
+                        "The file has no CLASSES section to list DICTIONARYVAR, which a variable kept out of the header is."
+                    );
                 }
 
                 return variables;
@@ -374,12 +390,18 @@ namespace GeometryHelper.Dxf
 
             if (root == null)
             {
-                throw new InvalidOperationException("A DXF " + (Version ?? "with no version") + " has no named object dictionary to hold a variable kept out of the header: R13 (AC1012) brought it.");
+                throw new InvalidOperationException(
+                    "A DXF "
+                        + (Version ?? "with no version")
+                        + " has no named object dictionary to hold a variable kept out of the header: R13 (AC1012) brought it."
+                );
             }
 
             if (!File.ListDictionaryVariables())
             {
-                throw new InvalidOperationException("The file has no CLASSES section to list DICTIONARYVAR, which a variable kept out of the header is.");
+                throw new InvalidOperationException(
+                    "The file has no CLASSES section to list DICTIONARYVAR, which a variable kept out of the header is."
+                );
             }
 
             DxfItem made = root.Add(VariableDictionary, "DICTIONARY", b =>
@@ -397,7 +419,13 @@ namespace GeometryHelper.Dxf
         {
             if (File.HeaderOf("$" + name) == null && !File.HoldsObjects)
             {
-                throw new InvalidOperationException("A DXF " + (Version ?? "with no version") + " has no OBJECTS section to hold the variable " + name + ": R13 (AC1012) brought it.");
+                throw new InvalidOperationException(
+                    "A DXF "
+                        + (Version ?? "with no version")
+                        + " has no OBJECTS section to hold the variable "
+                        + name
+                        + ": R13 (AC1012) brought it."
+                );
             }
         }
 
@@ -407,7 +435,12 @@ namespace GeometryHelper.Dxf
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             DxfItem rootItem = File.HoldsObjects ? File.ObjectItem(File.RootDictionaryHandle()) : null;
 
-            if (rootItem != null && DxfDBObject.OfObject(rootItem) is DxfDBDictionary root && root.Contains(dictionary) && root.GetAt(dictionary) is DxfDBDictionary entries)
+            if (
+                rootItem != null
+                && DxfDBObject.OfObject(rootItem) is DxfDBDictionary root
+                && root.Contains(dictionary)
+                && root.GetAt(dictionary) is DxfDBDictionary entries
+            )
             {
                 foreach (DxfDBDictionaryEntry entry in entries)
                 {
@@ -424,11 +457,20 @@ namespace GeometryHelper.Dxf
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             DxfItem rootItem = File.HoldsObjects ? File.ObjectItem(File.RootDictionaryHandle()) : null;
 
-            if (rootItem != null && DxfDBObject.OfObject(rootItem) is DxfDBDictionary root && root.Contains("ACAD_SCALELIST") && root.GetAt("ACAD_SCALELIST") is DxfDBDictionary list)
+            if (
+                rootItem != null
+                && DxfDBObject.OfObject(rootItem) is DxfDBDictionary root
+                && root.Contains("ACAD_SCALELIST")
+                && root.GetAt("ACAD_SCALELIST") is DxfDBDictionary list
+            )
             {
                 foreach (DxfDBDictionaryEntry entry in list)
                 {
-                    foreach (DxfTypedValue group in entry.Value == null ? new DxfTypedValue[0] : (IEnumerable<DxfTypedValue>)File.ObjectGroupsOf(entry.Value.Item))
+                    foreach (
+                        DxfTypedValue group in entry.Value == null
+                            ? new DxfTypedValue[0]
+                            : (IEnumerable<DxfTypedValue>)File.ObjectGroupsOf(entry.Value.Item)
+                    )
                     {
                         if (group.TypeCode == 300)
                         {
@@ -457,17 +499,27 @@ namespace GeometryHelper.Dxf
 
             if (!Entries(dictionary).Contains(value))
             {
-                throw new ArgumentException("The drawing has no style named " + value + " in " + dictionary + ".", nameof(value));
+                throw new ArgumentException(
+                    "The drawing has no style named " + value + " in " + dictionary + ".",
+                    nameof(value)
+                );
             }
 
             SetVariable(variable, value);
         }
 
-        private bool Flag(string name, bool fallback) => int.TryParse(Variable(name)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value != 0 : fallback;
+        private bool Flag(string name, bool fallback) =>
+            int.TryParse(Variable(name)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value != 0
+                : fallback;
 
-        private int Whole(string name, int fallback) => int.TryParse(Variable(name)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+        private int Whole(string name, int fallback) =>
+            int.TryParse(Variable(name)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : fallback;
 
-        private double Real(string name, double fallback) => Numbers.TryRead(Variable(name), out double value) && Guard.IsFinite(value) ? value : fallback;
+        private double Real(string name, double fallback) =>
+            Numbers.TryRead(Variable(name), out double value) && Guard.IsFinite(value) ? value : fallback;
 
         private void SetVariableFlag(string name, bool value, bool now)
         {
@@ -481,7 +533,16 @@ namespace GeometryHelper.Dxf
         {
             if (value < least || value > most)
             {
-                throw new ArgumentOutOfRangeException(nameof(value), value, name + " is from " + least.ToString(CultureInfo.InvariantCulture) + " to " + most.ToString(CultureInfo.InvariantCulture) + ".");
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    name
+                        + " is from "
+                        + least.ToString(CultureInfo.InvariantCulture)
+                        + " to "
+                        + most.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
 
             if (value != now)

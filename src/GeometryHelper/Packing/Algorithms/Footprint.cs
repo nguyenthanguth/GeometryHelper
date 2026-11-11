@@ -38,7 +38,8 @@ namespace GeometryHelper.Packing.Algorithms
         internal double MaxY => MinY + Height;
 
         /// <summary>Gets whether all four numbers are finite.</summary>
-        internal bool IsFinite => Guard.IsFinite(MinX) && Guard.IsFinite(MinY) && Guard.IsFinite(Width) && Guard.IsFinite(Height);
+        internal bool IsFinite =>
+            Guard.IsFinite(MinX) && Guard.IsFinite(MinY) && Guard.IsFinite(Width) && Guard.IsFinite(Height);
 
         /// <summary>
         /// Gets the footprint of a rectangle: exactly its own extent when it is not turned, the box round its corners
@@ -48,17 +49,29 @@ namespace GeometryHelper.Packing.Algorithms
         {
             if (rectangle.AngleRad == 0.0)
             {
-                return new Footprint(rectangle.Center.X - rectangle.Width * 0.5, rectangle.Center.Y - rectangle.Height * 0.5, rectangle.Width, rectangle.Height);
+                return new Footprint(
+                    rectangle.Center.X - rectangle.Width * 0.5,
+                    rectangle.Center.Y - rectangle.Height * 0.5,
+                    rectangle.Width,
+                    rectangle.Height
+                );
             }
 
             GeoPoint2[] corners = rectangle.GetVertices();
-            double minX = corners[0].X, maxX = corners[0].X, minY = corners[0].Y, maxY = corners[0].Y;
+            double minX = corners[0].X,
+                maxX = corners[0].X,
+                minY = corners[0].Y,
+                maxY = corners[0].Y;
             for (int i = 1; i < corners.Length; i++)
             {
-                if (corners[i].X < minX) minX = corners[i].X;
-                if (corners[i].X > maxX) maxX = corners[i].X;
-                if (corners[i].Y < minY) minY = corners[i].Y;
-                if (corners[i].Y > maxY) maxY = corners[i].Y;
+                if (corners[i].X < minX)
+                    minX = corners[i].X;
+                if (corners[i].X > maxX)
+                    maxX = corners[i].X;
+                if (corners[i].Y < minY)
+                    minY = corners[i].Y;
+                if (corners[i].Y > maxY)
+                    maxY = corners[i].Y;
             }
 
             return new Footprint(minX, minY, maxX - minX, maxY - minY);

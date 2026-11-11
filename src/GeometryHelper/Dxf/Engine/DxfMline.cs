@@ -17,9 +17,7 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     internal sealed class DxfMline
     {
-        private DxfMline()
-        {
-        }
+        private DxfMline() { }
 
         /// <summary>The name of the style (group 2).</summary>
         internal string StyleName { get; private set; }
@@ -36,7 +34,11 @@ namespace GeometryHelper.Dxf
         /// <summary>Reads the own groups of an MLINE record: its head, then from each group 11 a vertex, from each 74 an element of it.</summary>
         internal static DxfMline Read(IReadOnlyList<DxfTypedValue> groups)
         {
-            var mline = new DxfMline { StyleName = DxfFollowers.Text(groups, 2)?.Trim() ?? string.Empty, Flags = DxfFollowers.Whole(groups, 71, 1) };
+            var mline = new DxfMline
+            {
+                StyleName = DxfFollowers.Text(groups, 2)?.Trim() ?? string.Empty,
+                Flags = DxfFollowers.Whole(groups, 71, 1),
+            };
             string handle = DxfFollowers.Text(groups, 340)?.Trim();
             mline.StyleHandle = string.IsNullOrEmpty(handle) ? null : handle;
             Vertex vertex = null;
@@ -63,7 +65,10 @@ namespace GeometryHelper.Dxf
                 if (code >= 11 && code <= 33 && code % 10 >= 1 && code % 10 <= 3)
                 {
                     // 11, 21, 31 the vertex; 12, 22, 32 the direction; 13, 23, 33 the miter.
-                    double[] point = code % 10 == 1 ? vertex.At : code % 10 == 2 ? vertex.Along : vertex.Miter;
+                    double[] point =
+                        code % 10 == 1 ? vertex.At
+                        : code % 10 == 2 ? vertex.Along
+                        : vertex.Miter;
                     point[code / 10 - 1] = Number(group);
                 }
                 else if (code == 74)
@@ -82,9 +87,13 @@ namespace GeometryHelper.Dxf
             return mline;
         }
 
-        private static double Number(DxfTypedValue group) => Numbers.TryRead(group.Value, out double value) && Guard.IsFinite(value) ? value : 0.0;
+        private static double Number(DxfTypedValue group) =>
+            Numbers.TryRead(group.Value, out double value) && Guard.IsFinite(value) ? value : 0.0;
 
-        private static int Whole(DxfTypedValue group) => int.TryParse(group.Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : 0;
+        private static int Whole(DxfTypedValue group) =>
+            int.TryParse(group.Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : 0;
 
         /// <summary>A vertex of an MLINE: where it is, the direction of the segment it starts and its miter, in the world, and the parameters of each element.</summary>
         internal sealed class Vertex
@@ -116,9 +125,7 @@ namespace GeometryHelper.Dxf
         /// <summary>An MLINESTYLE as its record writes it: its flags and its elements in their order.</summary>
         internal sealed class Style
         {
-            private Style()
-            {
-            }
+            private Style() { }
 
             /// <summary>
             /// The flags (group 70): 1 filled, 2 a miter line at each joint, 16 a line across the start, 32 inner arcs at the
@@ -171,11 +178,13 @@ namespace GeometryHelper.Dxf
                     order.Add(i);
                 }
 
-                order.Sort((a, b) =>
-                {
-                    int by = Elements[a].Offset.CompareTo(Elements[b].Offset);
-                    return by != 0 ? by : a.CompareTo(b);
-                });
+                order.Sort(
+                    (a, b) =>
+                    {
+                        int by = Elements[a].Offset.CompareTo(Elements[b].Offset);
+                        return by != 0 ? by : a.CompareTo(b);
+                    }
+                );
 
                 return order;
             }

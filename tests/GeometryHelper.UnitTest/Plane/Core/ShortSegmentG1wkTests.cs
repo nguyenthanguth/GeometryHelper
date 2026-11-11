@@ -15,7 +15,12 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class ShortSegmentG1wkTests
     {
-        private static readonly Tolerance Billionth = new Tolerance(1E-9, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-9);
+        private static readonly Tolerance Billionth = new Tolerance(
+            1E-9,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-9
+        );
 
         private static readonly GeoLine2 Segment = new GeoLine2(new GeoPoint2(5, 0.0004), new GeoPoint2(5, -0.0005));
 
@@ -71,7 +76,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ASegmentShorterThanTheGlobalTolerance_CutByPoints_IsCutAtTheOneOnIt()
         {
-            Assert.True(Segment.TrySplitBy(new[] { new GeoPoint2(0, 0), new GeoPoint2(5, 0) }, out GeoLine2[] pieces, Billionth));
+            Assert.True(
+                Segment.TrySplitBy(new[] { new GeoPoint2(0, 0), new GeoPoint2(5, 0) }, out GeoLine2[] pieces, Billionth)
+            );
 
             Assert.Equal(2, pieces.Length);
             AssertCutAtTheCrossing(pieces[0], pieces[1]);
@@ -81,7 +88,12 @@ namespace GeometryHelper.UnitTest.Plane
         public void ASegmentShorterThanTheGlobalTolerance_CutByASquare_IsCutAtTheSquaresSide()
         {
             // The square 2 by 2 from (4, 0) holds the part of the segment above its bottom side, 0.0004 long.
-            var square = new GeoPolygon2(new GeoPoint2(4, 0), new GeoPoint2(6, 0), new GeoPoint2(6, 2), new GeoPoint2(4, 2));
+            var square = new GeoPolygon2(
+                new GeoPoint2(4, 0),
+                new GeoPoint2(6, 0),
+                new GeoPoint2(6, 2),
+                new GeoPoint2(4, 2)
+            );
 
             Assert.True(Segment.TrySplitBy(new[] { square }, out GeoLine2[] inside, out GeoLine2[] outside, Billionth));
 

@@ -50,7 +50,14 @@ namespace GeometryHelper.UnitTest.Dxf
         private static DxfDatabase Stretched(DxfBlockParameterValueSet set)
         {
             DxfDatabase db = Panel(out DxfBlockTableRecord block, out DxfLine[] lines);
-            DxfBlockLinearParameter width = block.AddLinearParameter("Width", "Overall width of the panel", new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, set);
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                "Overall width of the panel",
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                set
+            );
             block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), lines.Take(3));
             return db;
         }
@@ -59,10 +66,29 @@ namespace GeometryHelper.UnitTest.Dxf
         private static DxfDatabase WidthAndHeight()
         {
             DxfDatabase db = Panel(out DxfBlockTableRecord block, out DxfLine[] lines);
-            DxfBlockLinearParameter width = block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, DxfBlockParameterValueSet.Increments(50, 300, 10));
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                DxfBlockParameterValueSet.Increments(50, 300, 10)
+            );
             block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), lines.Take(3));
-            DxfBlockLinearParameter height = block.AddLinearParameter("Height", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0), 20, DxfBlockParameterValueSet.List(new[] { 50.0, 80, 120 }));
-            block.AddStretchAction(height, new GeoPoint2(-10, 40), new GeoPoint2(110, 60), new[] { lines[0], lines[2], lines[3] });
+            DxfBlockLinearParameter height = block.AddLinearParameter(
+                "Height",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(0, 50, 0),
+                20,
+                DxfBlockParameterValueSet.List(new[] { 50.0, 80, 120 })
+            );
+            block.AddStretchAction(
+                height,
+                new GeoPoint2(-10, 40),
+                new GeoPoint2(110, 60),
+                new[] { lines[0], lines[2], lines[3] }
+            );
             return db;
         }
 
@@ -84,12 +110,17 @@ namespace GeometryHelper.UnitTest.Dxf
                 block.AppendEntity(line);
             }
 
-            block.AddVisibilityParameter("Mark", "What the sign shows", new GeoPoint3(20, -10, 0), new[]
-            {
-                new DxfBlockVisibilityState("Cross", new DxfEntity[] { lines[1] }),
-                new DxfBlockVisibilityState("Tick", new DxfEntity[] { lines[2] }),
-                new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
-            });
+            block.AddVisibilityParameter(
+                "Mark",
+                "What the sign shows",
+                new GeoPoint3(20, -10, 0),
+                new[]
+                {
+                    new DxfBlockVisibilityState("Cross", new DxfEntity[] { lines[1] }),
+                    new DxfBlockVisibilityState("Tick", new DxfEntity[] { lines[2] }),
+                    new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
+                }
+            );
             db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), block));
             return db;
         }
@@ -98,15 +129,19 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static DxfBlockReference TheInsert(DxfDatabase db) => db.ModelSpace.OfType<DxfBlockReference>().First();
 
-        private static DxfDynamicBlockReferenceProperty Property(DxfBlockReference insert, string name) => insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name);
+        private static DxfDynamicBlockReferenceProperty Property(DxfBlockReference insert, string name) =>
+            insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name);
 
-        private static double ValueOf(DxfBlockReference insert, string name) => Assert.IsType<double>(Property(insert, name).Value);
+        private static double ValueOf(DxfBlockReference insert, string name) =>
+            Assert.IsType<double>(Property(insert, name).Value);
 
         /// <summary>The lines of the block the INSERT places, in its order.</summary>
-        private static List<DxfLine> Shown(DxfBlockReference insert) => insert.BlockTableRecord.OfType<DxfLine>().ToList();
+        private static List<DxfLine> Shown(DxfBlockReference insert) =>
+            insert.BlockTableRecord.OfType<DxfLine>().ToList();
 
-        private static bool Is(DxfLine line, double x1, double y1, double x2, double y2)
-            => line.StartPoint.IsEqualTo(new GeoPoint3(x1, y1, 0), Exact) && line.EndPoint.IsEqualTo(new GeoPoint3(x2, y2, 0), Exact);
+        private static bool Is(DxfLine line, double x1, double y1, double x2, double y2) =>
+            line.StartPoint.IsEqualTo(new GeoPoint3(x1, y1, 0), Exact)
+            && line.EndPoint.IsEqualTo(new GeoPoint3(x2, y2, 0), Exact);
 
         /// <summary>The XRECORDs AutoCAD reads an INSERT's values from, by their node ids, in the order of the dictionary.</summary>
         private static List<KeyValuePair<string, DxfXrecord>> Cache(DxfBlockReference insert)
@@ -117,13 +152,17 @@ namespace GeometryHelper.UnitTest.Dxf
             return data.Select(e => new KeyValuePair<string, DxfXrecord>(e.Key, (DxfXrecord)e.Value)).ToList();
         }
 
-        private static List<string> Words(DxfXrecord record) => record.Data.Select(g => g.TypeCode.ToString(CultureInfo.InvariantCulture) + " " + g.Value.Trim()).ToList();
+        private static List<string> Words(DxfXrecord record) =>
+            record.Data.Select(g => g.TypeCode.ToString(CultureInfo.InvariantCulture) + " " + g.Value.Trim()).ToList();
 
         /// <summary>The objects of the graph's nodes of a block, in its order.</summary>
         private static List<DxfItem> Nodes(DxfBlockTableRecord block)
         {
             DxfDBObject graph = block.ExtensionDictionary.GetAt("ACAD_ENHANCEDBLOCK");
-            return graph.Item.Groups.Where(g => g.TypeCode == 360).Select(g => graph.Item.File.ObjectItem(g.Value)).ToList();
+            return graph
+                .Item.Groups.Where(g => g.TypeCode == 360)
+                .Select(g => graph.Item.File.ObjectItem(g.Value))
+                .ToList();
         }
 
         /// <summary>The values of the groups of a code after a subclass marker, up to the next marker.</summary>
@@ -176,7 +215,11 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase back = Reopened(db);
 
             Assert.Equal(version.ToUpperInvariant(), back.Version);
-            Assert.True(Assert.IsType<DxfLine>(Assert.Single(back.ModelSpace)).EndPoint.IsEqualTo(new GeoPoint3(100, 0, 0), Exact));
+            Assert.True(
+                Assert
+                    .IsType<DxfLine>(Assert.Single(back.ModelSpace))
+                    .EndPoint.IsEqualTo(new GeoPoint3(100, 0, 0), Exact)
+            );
             Assert.Equal(back.ToText(), DxfDatabase.Parse(back.ToText()).ToText());
         }
 
@@ -194,7 +237,15 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ANewDrawingOfR2000_IsTheDrawingTheWriterWrites_ItsCodePageNamed()
         {
             // D23d: the header names the code page after the version, as AutoCAD's own empty drawings do.
-            Assert.Equal(new DxfWriter().ToString().Replace("  9\n$ACADVER\n  1\nAC1015\n", "  9\n$ACADVER\n  1\nAC1015\n  9\n$DWGCODEPAGE\n  3\nANSI_1252\n"), new DxfDatabase("AC1015").ToText());
+            Assert.Equal(
+                new DxfWriter()
+                    .ToString()
+                    .Replace(
+                        "  9\n$ACADVER\n  1\nAC1015\n",
+                        "  9\n$ACADVER\n  1\nAC1015\n  9\n$DWGCODEPAGE\n  3\nANSI_1252\n"
+                    ),
+                new DxfDatabase("AC1015").ToText()
+            );
         }
 
         [Fact]
@@ -213,7 +264,14 @@ namespace GeometryHelper.UnitTest.Dxf
                 panel.AppendEntity(line);
             }
 
-            DxfBlockLinearParameter width = panel.AddLinearParameter("Width", "Overall width", new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, DxfBlockParameterValueSet.Increments(50, 300, 10));
+            DxfBlockLinearParameter width = panel.AddLinearParameter(
+                "Width",
+                "Overall width",
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                DxfBlockParameterValueSet.Increments(50, 300, 10)
+            );
             panel.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { right, bottom, top });
             var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), panel);
             db.ModelSpace.AppendEntity(insert);
@@ -230,12 +288,17 @@ namespace GeometryHelper.UnitTest.Dxf
                     sign.AppendEntity(signLine);
                 }
 
-                sign.AddVisibilityParameter("Mark", "What the sign shows", new GeoPoint3(20, -10, 0), new[]
-                {
-                    new DxfBlockVisibilityState("Cross", new DxfEntity[] { cross }),
-                    new DxfBlockVisibilityState("Tick", new DxfEntity[] { tick }),
-                    new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
-                });
+                sign.AddVisibilityParameter(
+                    "Mark",
+                    "What the sign shows",
+                    new GeoPoint3(20, -10, 0),
+                    new[]
+                    {
+                        new DxfBlockVisibilityState("Cross", new DxfEntity[] { cross }),
+                        new DxfBlockVisibilityState("Tick", new DxfEntity[] { tick }),
+                        new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
+                    }
+                );
                 var mark = new DxfBlockReference(new GeoPoint3(200, 0, 0), sign);
                 db.ModelSpace.AppendEntity(mark);
                 mark.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Mark").Value = "Tick";
@@ -296,7 +359,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // The anonymous block names the dynamic one; each copy carries its source's tag and its own handle.
             IReadOnlyList<DxfTypedValue> tag = anonymous.GetXDataForApplication("AcDbBlockRepBTag");
-            Assert.Equal(new[] { "1070 1", "1005 " + dynamic.Handle }, tag.Skip(1).Select(g => g.TypeCode.ToString(CultureInfo.InvariantCulture) + " " + g.Value.Trim()));
+            Assert.Equal(
+                new[] { "1070 1", "1005 " + dynamic.Handle },
+                tag.Skip(1).Select(g => g.TypeCode.ToString(CultureInfo.InvariantCulture) + " " + g.Value.Trim())
+            );
             int n = 0;
 
             foreach (DxfEntity copy in anonymous)
@@ -317,9 +383,31 @@ namespace GeometryHelper.UnitTest.Dxf
 
             List<KeyValuePair<string, DxfXrecord>> records = Cache(insert);
             Assert.Equal(new[] { "1", "8" }, records.Select(r => r.Key));
-            Assert.Equal(new[] { "1071 18597260", "1071 25303744", "70 25", "70 104", "10 0", "20 0", "30 0", "10 200", "20 0", "30 0", "10 0", "20 0", "30 -1" }, Words(records[0].Value));
+            Assert.Equal(
+                new[]
+                {
+                    "1071 18597260",
+                    "1071 25303744",
+                    "70 25",
+                    "70 104",
+                    "10 0",
+                    "20 0",
+                    "30 0",
+                    "10 200",
+                    "20 0",
+                    "30 0",
+                    "10 0",
+                    "20 0",
+                    "30 -1",
+                },
+                Words(records[0].Value)
+            );
             Assert.Equal(new[] { "1071 6895636", "1071 9291323", "70 25", "70 104", "40 0" }, Words(records[1].Value));
-            Assert.Contains("  0\nCLASS\n  1\nACDB_BLOCKREPRESENTATION_DATA\n", back.ToText().Replace("\r\n", "\n"), StringComparison.Ordinal);
+            Assert.Contains(
+                "  0\nCLASS\n  1\nACDB_BLOCKREPRESENTATION_DATA\n",
+                back.ToText().Replace("\r\n", "\n"),
+                StringComparison.Ordinal
+            );
         }
 
         [Theory]
@@ -464,7 +552,10 @@ namespace GeometryHelper.UnitTest.Dxf
             // AutoCAD 2021 kept its Parking sample's history and added each value it set after it (plugin D26).
             Assert.Equal(new[] { "ACAD_ENHANCEDBLOCKDATA", "ACAD_ENHANCEDBLOCKHISTORY" }, cache.Select(e => e.Key));
             var history = (DxfXrecord)cache.GetAt("ACAD_ENHANCEDBLOCKHISTORY");
-            Assert.Equal(new[] { "3", "1", "Width", "150.0", "1", "Width" }, history.Data.Take(6).Select(g => g.Value.Trim()));
+            Assert.Equal(
+                new[] { "3", "1", "Width", "150.0", "1", "Width" },
+                history.Data.Take(6).Select(g => g.Value.Trim())
+            );
             Assert.Equal(200.0, double.Parse(history.Data[6].Value, System.Globalization.CultureInfo.InvariantCulture));
             Assert.Equal(200.0, ValueOf(TheInsert(Reopened(db)), "Width"), Close);
         }
@@ -497,7 +588,14 @@ namespace GeometryHelper.UnitTest.Dxf
             outline.AddVertexAt(3, new GeoPoint2(0, 50), 0, 0, 0);
             outline.Closed = true;
             block.AppendEntity(outline);
-            DxfBlockLinearParameter width = block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                null
+            );
             block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new DxfEntity[] { outline });
             db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), block));
 
@@ -578,32 +676,165 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfBlockTableRecord block = back.BlockTable["GH_SIGN"];
             List<DxfItem> nodes = Nodes(block);
 
-            Assert.Equal(new[] { "BLOCKVISIBILITYPARAMETER", "BLOCKVISIBILITYGRIP", "BLOCKGRIPLOCATIONCOMPONENT", "BLOCKGRIPLOCATIONCOMPONENT" }, nodes.Select(n => n.Type));
+            Assert.Equal(
+                new[]
+                {
+                    "BLOCKVISIBILITYPARAMETER",
+                    "BLOCKVISIBILITYGRIP",
+                    "BLOCKGRIPLOCATIONCOMPONENT",
+                    "BLOCKGRIPLOCATIONCOMPONENT",
+                },
+                nodes.Select(n => n.Type)
+            );
             DxfItem parameter = nodes[0];
             Assert.Equal(new[] { "Visibility State" }, Of(parameter, "AcDbBlockElement", 300));
-            Assert.Equal(new[] { "20", "2" }, Of(parameter, "AcDbBlock1PtParameter", 1010).Concat(Of(parameter, "AcDbBlock1PtParameter", 93)));
+            Assert.Equal(
+                new[] { "20", "2" },
+                Of(parameter, "AcDbBlock1PtParameter", 1010).Concat(Of(parameter, "AcDbBlock1PtParameter", 93))
+            );
             Assert.Equal(new[] { "Mark" }, Of(parameter, "AcDbBlockVisibilityParameter", 301));
             Assert.Equal(new[] { "What the sign shows" }, Of(parameter, "AcDbBlockVisibilityParameter", 302));
             Assert.Equal(new[] { "2" }, Of(parameter, "AcDbBlockVisibilityParameter", 93));
-            Assert.Equal(new[] { lines[1].Handle, lines[2].Handle }, Of(parameter, "AcDbBlockVisibilityParameter", 331));
+            Assert.Equal(
+                new[] { lines[1].Handle, lines[2].Handle },
+                Of(parameter, "AcDbBlockVisibilityParameter", 331)
+            );
             Assert.Equal(new[] { "3" }, Of(parameter, "AcDbBlockVisibilityParameter", 92));
             Assert.Equal(new[] { "Cross", "Tick", "Blank" }, Of(parameter, "AcDbBlockVisibilityParameter", 303));
             Assert.Equal(new[] { "1", "1", "0" }, Of(parameter, "AcDbBlockVisibilityParameter", 94));
-            Assert.Equal(new[] { lines[1].Handle, lines[2].Handle }, Of(parameter, "AcDbBlockVisibilityParameter", 332));
+            Assert.Equal(
+                new[] { lines[1].Handle, lines[2].Handle },
+                Of(parameter, "AcDbBlockVisibilityParameter", 332)
+            );
             Assert.Equal(new[] { "0", "0", "0" }, Of(parameter, "AcDbBlockVisibilityParameter", 95));
-            Assert.Equal(new[] { "UpdatedX", "UpdatedY" }, nodes.Skip(2).Select(n => Of(n, "AcDbBlockGripExpr", 300).Single()));
+            Assert.Equal(
+                new[] { "UpdatedX", "UpdatedY" },
+                nodes.Skip(2).Select(n => Of(n, "AcDbBlockGripExpr", 300).Single())
+            );
 
             // AutoCAD's own graph of a visibility parameter (ACadSharp's sample): four nodes, three edges, every number the same.
             int[] autocad =
             {
-                96, 4, 97, 4,
-                91, 0, 93, 32, 95, 1, 92, 0, 92, 0, 92, 1, 92, 2,
-                91, 1, 93, 32, 95, 2, 92, -1, 92, -1, 92, 0, 92, 0,
-                91, 2, 93, 32, 95, 3, 92, 1, 92, 1, 92, -1, 92, -1,
-                91, 3, 93, 32, 95, 4, 92, 2, 92, 2, 92, -1, 92, -1,
-                92, 0, 93, 0, 94, 1, 91, 1, 91, 0, 92, -1, 92, -1, 92, -1, 92, -1, 92, -1,
-                92, 1, 93, 0, 94, 1, 91, 0, 91, 2, 92, -1, 92, -1, 92, -1, 92, 2, 92, -1,
-                92, 2, 93, 0, 94, 1, 91, 0, 91, 3, 92, -1, 92, -1, 92, 1, 92, -1, 92, -1,
+                96,
+                4,
+                97,
+                4,
+                91,
+                0,
+                93,
+                32,
+                95,
+                1,
+                92,
+                0,
+                92,
+                0,
+                92,
+                1,
+                92,
+                2,
+                91,
+                1,
+                93,
+                32,
+                95,
+                2,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                0,
+                92,
+                0,
+                91,
+                2,
+                93,
+                32,
+                95,
+                3,
+                92,
+                1,
+                92,
+                1,
+                92,
+                -1,
+                92,
+                -1,
+                91,
+                3,
+                93,
+                32,
+                95,
+                4,
+                92,
+                2,
+                92,
+                2,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                0,
+                93,
+                0,
+                94,
+                1,
+                91,
+                1,
+                91,
+                0,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                1,
+                93,
+                0,
+                94,
+                1,
+                91,
+                0,
+                91,
+                2,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                2,
+                92,
+                -1,
+                92,
+                2,
+                93,
+                0,
+                94,
+                1,
+                91,
+                0,
+                91,
+                3,
+                92,
+                -1,
+                92,
+                -1,
+                92,
+                1,
+                92,
+                -1,
+                92,
+                -1,
             };
 
             DxfDBObject graph = block.ExtensionDictionary.GetAt("ACAD_ENHANCEDBLOCK");
@@ -620,7 +851,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(autocad, numbers);
             string text = back.ToText().Replace("\r\n", "\n");
 
-            foreach (string type in new[] { "BLOCKVISIBILITYPARAMETER", "BLOCKVISIBILITYGRIP", "BLOCKGRIPLOCATIONCOMPONENT" })
+            foreach (
+                string type in new[] { "BLOCKVISIBILITYPARAMETER", "BLOCKVISIBILITYGRIP", "BLOCKGRIPLOCATIONCOMPONENT" }
+            )
             {
                 Assert.Contains("  0\nCLASS\n  1\n" + type + "\n", text, StringComparison.Ordinal);
             }
@@ -639,7 +872,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfBlockReference back = TheInsert(again);
             Assert.Equal("Tick", Property(back, "Mark").Value);
             Assert.Equal(new[] { true, false, true }, Shown(back).Select(l => l.Visible));
-            Assert.Equal(new[] { "1071 135625452", "1071 184556386", "70 25", "70 104", "10 20", "20 -10", "30 0", "1 Tick" }, Words(Cache(back).Single().Value));
+            Assert.Equal(
+                new[] { "1071 135625452", "1071 184556386", "70 25", "70 104", "10 20", "20 -10", "30 0", "1 Tick" },
+                Words(Cache(back).Single().Value)
+            );
 
             // Set again once the drawing is read back, its anonymous block is filled anew.
             Property(back, "Mark").Value = "Blank";
@@ -651,13 +887,25 @@ namespace GeometryHelper.UnitTest.Dxf
         public void AStateAndAWidth_AreKeptTogether()
         {
             DxfDatabase db = Panel(out DxfBlockTableRecord block, out DxfLine[] lines);
-            DxfBlockLinearParameter width = block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                null
+            );
             block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), lines.Take(3));
-            block.AddVisibilityParameter("Sides", null, new GeoPoint3(50, 70, 0), new[]
-            {
-                new DxfBlockVisibilityState("All", lines),
-                new DxfBlockVisibilityState("Open", lines.Skip(1).Take(2)),
-            });
+            block.AddVisibilityParameter(
+                "Sides",
+                null,
+                new GeoPoint3(50, 70, 0),
+                new[]
+                {
+                    new DxfBlockVisibilityState("All", lines),
+                    new DxfBlockVisibilityState("Open", lines.Skip(1).Take(2)),
+                }
+            );
             DxfBlockReference insert = TheInsert(db);
 
             Property(insert, "Sides").Value = "Open";
@@ -682,20 +930,54 @@ namespace GeometryHelper.UnitTest.Dxf
             var at = new GeoPoint3(0, 0, 0);
 
             Assert.Throws<ArgumentNullException>(() => block.AddVisibilityParameter("V", null, at, null));
-            Assert.Throws<ArgumentException>(() => block.AddVisibilityParameter("V", null, new GeoPoint3(double.NaN, 0, 0), new[] { new DxfBlockVisibilityState("A", lines) }));
-            Assert.Throws<ArgumentException>(() => block.AddVisibilityParameter("V", null, at, new DxfBlockVisibilityState[0]));
-            Assert.Throws<ArgumentException>(() => block.AddVisibilityParameter(" ", null, at, new[] { new DxfBlockVisibilityState("A", lines) }));
-            Assert.Throws<ArgumentException>(() => block.AddVisibilityParameter("V", null, at, new[] { new DxfBlockVisibilityState("A", lines), new DxfBlockVisibilityState("a", lines) }));
-            Assert.Throws<ArgumentException>(() => block.AddVisibilityParameter("V", null, at, new[] { new DxfBlockVisibilityState("A", new DxfEntity[] { stray }) }));
+            Assert.Throws<ArgumentException>(() =>
+                block.AddVisibilityParameter(
+                    "V",
+                    null,
+                    new GeoPoint3(double.NaN, 0, 0),
+                    new[] { new DxfBlockVisibilityState("A", lines) }
+                )
+            );
+            Assert.Throws<ArgumentException>(() =>
+                block.AddVisibilityParameter("V", null, at, new DxfBlockVisibilityState[0])
+            );
+            Assert.Throws<ArgumentException>(() =>
+                block.AddVisibilityParameter(" ", null, at, new[] { new DxfBlockVisibilityState("A", lines) })
+            );
+            Assert.Throws<ArgumentException>(() =>
+                block.AddVisibilityParameter(
+                    "V",
+                    null,
+                    at,
+                    new[] { new DxfBlockVisibilityState("A", lines), new DxfBlockVisibilityState("a", lines) }
+                )
+            );
+            Assert.Throws<ArgumentException>(() =>
+                block.AddVisibilityParameter(
+                    "V",
+                    null,
+                    at,
+                    new[] { new DxfBlockVisibilityState("A", new DxfEntity[] { stray }) }
+                )
+            );
             Assert.Throws<ArgumentException>(() => new DxfBlockVisibilityState("two\nlines", lines));
             Assert.Throws<ArgumentNullException>(() => new DxfBlockVisibilityState("A", null));
-            Assert.Throws<InvalidOperationException>(() => db.ModelSpace.AddVisibilityParameter("V", null, at, new[] { new DxfBlockVisibilityState("A", new DxfEntity[0]) }));
+            Assert.Throws<InvalidOperationException>(() =>
+                db.ModelSpace.AddVisibilityParameter(
+                    "V",
+                    null,
+                    at,
+                    new[] { new DxfBlockVisibilityState("A", new DxfEntity[0]) }
+                )
+            );
             Assert.Equal(before, db.ToText());
 
             // One visibility parameter to a block, as AutoCAD's Block Editor allows one.
             block.AddVisibilityParameter("V", null, at, new[] { new DxfBlockVisibilityState("A", lines) });
             string one = db.ToText();
-            Assert.Throws<InvalidOperationException>(() => block.AddVisibilityParameter("W", null, at, new[] { new DxfBlockVisibilityState("B", lines) }));
+            Assert.Throws<InvalidOperationException>(() =>
+                block.AddVisibilityParameter("W", null, at, new[] { new DxfBlockVisibilityState("B", lines) })
+            );
             Assert.Equal(one, db.ToText());
 
             // A state the parameter has not is refused.

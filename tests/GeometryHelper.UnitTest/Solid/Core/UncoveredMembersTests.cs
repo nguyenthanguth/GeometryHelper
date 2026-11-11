@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -34,8 +34,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(15.0, box.GetExtentAt(2), 9);
 
             // A turned box hands back the axes it was turned onto.
-            var turned = new GeoObb3(GeoPoint3.Origin, 2, 2, 2,
-                new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 0));
+            var turned = new GeoObb3(GeoPoint3.Origin, 2, 2, 2, new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 0));
 
             Assert.True(turned.GetAxisAt(0).IsUnitLength(Tol));
             Assert.True(turned.GetAxisAt(0).IsCodirectionalTo(new GeoVector3(1, 1, 0), Tol));
@@ -57,13 +56,15 @@ namespace GeometryHelper.UnitTest.Solid
         {
             var disc = new GeoCircle3(new GeoPoint3(1, 2, 3), GeoVector3.ZAxis, 5.0);
 
-            foreach (GeoPoint3 probe in new[]
-            {
-                new GeoPoint3(20, 2, 3),      // out beyond the rim
-                new GeoPoint3(1, 2, 9),       // straight above the centre
-                new GeoPoint3(2, 3, 7),       // above, but off centre
-                new GeoPoint3(1, 2, 3)        // the centre itself
-            })
+            foreach (
+                GeoPoint3 probe in new[]
+                {
+                    new GeoPoint3(20, 2, 3), // out beyond the rim
+                    new GeoPoint3(1, 2, 9), // straight above the centre
+                    new GeoPoint3(2, 3, 7), // above, but off centre
+                    new GeoPoint3(1, 2, 3), // the centre itself
+                }
+            )
             {
                 GeoPoint3 onSurface = disc.GetClosestPointOnSurface(probe);
 
@@ -113,8 +114,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(PlaneSide.On, Containment3.GetSide(plane, new GeoPoint3(1, 1, 4), Tol));
 
             // Within the planar tolerance still counts as on it.
-            Assert.Equal(PlaneSide.On,
-                         Containment3.GetSide(plane, new GeoPoint3(1, 1, 4 + Tolerance.DefaultEqualPlanar / 2.0), Tol));
+            Assert.Equal(
+                PlaneSide.On,
+                Containment3.GetSide(plane, new GeoPoint3(1, 1, 4 + Tolerance.DefaultEqualPlanar / 2.0), Tol)
+            );
 
             Random rng = new Random(2468);
 
@@ -126,9 +129,18 @@ namespace GeometryHelper.UnitTest.Solid
                 double signed = plane.SignedDistanceTo(probe);
 
                 // The side and the sign of the distance are the same fact told two ways.
-                if (side == PlaneSide.Above) { Assert.True(signed > Tol.EqualPlanar); }
-                else if (side == PlaneSide.Below) { Assert.True(signed < -Tol.EqualPlanar); }
-                else { Assert.True(Math.Abs(signed) <= Tol.EqualPlanar); }
+                if (side == PlaneSide.Above)
+                {
+                    Assert.True(signed > Tol.EqualPlanar);
+                }
+                else if (side == PlaneSide.Below)
+                {
+                    Assert.True(signed < -Tol.EqualPlanar);
+                }
+                else
+                {
+                    Assert.True(Math.Abs(signed) <= Tol.EqualPlanar);
+                }
             }
         }
 

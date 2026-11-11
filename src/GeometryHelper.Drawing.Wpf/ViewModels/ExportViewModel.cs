@@ -79,18 +79,28 @@ namespace GeometryHelper.Drawing.Wpf
             _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
             ModelDrawing shown = workspace.Current ?? workspace.Drawings.LastOrDefault();
             Rows = workspace.Drawings.Select(d => new ExportRow(d, d == shown, OnTicked)).ToList();
-            _sheetInModelSpace = shown != null && shown.Drawing.Settings.ExportMode == DrawingExportMode.SheetInModelSpace;
-            _folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GeometryHelper Drawing");
+            _sheetInModelSpace =
+                shown != null && shown.Drawing.Settings.ExportMode == DrawingExportMode.SheetInModelSpace;
+            _folder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                "GeometryHelper Drawing"
+            );
             ExportCommand = new DelegateCommand(_ => _ = ExportAsync(), _ => CanExport);
             CancelCommand = new DelegateCommand(_ => Close(false));
-            LayoutModeCommand = new DelegateCommand(p => SheetInModelSpace = string.Equals(p as string, "Sheet", StringComparison.Ordinal));
+            LayoutModeCommand = new DelegateCommand(p =>
+                SheetInModelSpace = string.Equals(p as string, "Sheet", StringComparison.Ordinal)
+            );
         }
 
         /// <summary>Gets the model drawings, in the order they were made.</summary>
         public IReadOnlyList<ExportRow> Rows { get; }
 
         /// <summary>Gets how many are ticked, in words: "1 of 2 selected".</summary>
-        public string SelectedText => Rows.Count(r => r.IsChecked).ToString(CultureInfo.InvariantCulture) + " of " + Rows.Count.ToString(CultureInfo.InvariantCulture) + " selected";
+        public string SelectedText =>
+            Rows.Count(r => r.IsChecked).ToString(CultureInfo.InvariantCulture)
+            + " of "
+            + Rows.Count.ToString(CultureInfo.InvariantCulture)
+            + " selected";
 
         /// <summary>Gets the label of the button: "Export 2".</summary>
         public string ExportText => "Export " + Rows.Count(r => r.IsChecked).ToString(CultureInfo.InvariantCulture);
@@ -163,7 +173,8 @@ namespace GeometryHelper.Drawing.Wpf
         /// <summary>Gets the command that chooses the DXF layout, given "Layout" or "Sheet".</summary>
         public ICommand LayoutModeCommand { get; }
 
-        private bool CanExport => !IsBusy && Rows.Any(r => r.IsChecked) && _folder.Trim().Length > 0 && _fileNames.Trim().Length > 0;
+        private bool CanExport =>
+            !IsBusy && Rows.Any(r => r.IsChecked) && _folder.Trim().Length > 0 && _fileNames.Trim().Length > 0;
 
         /// <summary>The file a drawing is written to: the names with its number, name and revision, characters a file name cannot hold made "_".</summary>
         /// <param name="drawing">The drawing.</param>
@@ -175,7 +186,11 @@ namespace GeometryHelper.Drawing.Wpf
                 throw new ArgumentNullException(nameof(drawing));
             }
 
-            string name = _fileNames.Replace("<Number>", drawing.Number).Replace("<Name>", drawing.Name).Replace("<Revision>", drawing.Revision).Trim();
+            string name = _fileNames
+                .Replace("<Number>", drawing.Number)
+                .Replace("<Name>", drawing.Name)
+                .Replace("<Revision>", drawing.Revision)
+                .Trim();
 
             foreach (char bad in Path.GetInvalidFileNameChars())
             {
@@ -202,7 +217,9 @@ namespace GeometryHelper.Drawing.Wpf
                 return Array.Empty<string>();
             }
 
-            DrawingExportMode mode = _sheetInModelSpace ? DrawingExportMode.SheetInModelSpace : DrawingExportMode.LayoutAndViewports;
+            DrawingExportMode mode = _sheetInModelSpace
+                ? DrawingExportMode.SheetInModelSpace
+                : DrawingExportMode.LayoutAndViewports;
             var written = new List<string>();
             var failed = new List<string>();
             string folder;
@@ -212,7 +229,12 @@ namespace GeometryHelper.Drawing.Wpf
                 folder = Path.GetFullPath(_folder.Trim());
                 Directory.CreateDirectory(folder);
             }
-            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+            catch (Exception ex)
+                when (ex is IOException
+                    || ex is UnauthorizedAccessException
+                    || ex is ArgumentException
+                    || ex is NotSupportedException
+                )
             {
                 Notice = "The folder cannot be made: " + ex.Message;
                 return written;
@@ -246,19 +268,31 @@ namespace GeometryHelper.Drawing.Wpf
                         settings.ExportMode = mode;
                         DrawingSource source = entry.Drawing.Source;
                         Tolerance tolerance = _workspace.Tolerance;
-                        string aside = Path.Combine(Path.GetTempPath(), "GeometryHelper", "Export", Guid.NewGuid().ToString("N") + ".dxf");
+                        string aside = Path.Combine(
+                            Path.GetTempPath(),
+                            "GeometryHelper",
+                            "Export",
+                            Guid.NewGuid().ToString("N") + ".dxf"
+                        );
                         Directory.CreateDirectory(Path.GetDirectoryName(aside));
                         File.WriteAllBytes(aside, bytes);
 
                         try
                         {
-                            await RunAsync("Laying " + entry.Number + " out " + (_sheetInModelSpace ? "in model space" : "as a layout of viewports") + "…", () =>
-                            {
-                                var copy = Drawing.Open(aside, source, tolerance);
-                                copy.Update(source, settings);
-                                copy.Save(path);
-                                return true;
-                            });
+                            await RunAsync(
+                                "Laying "
+                                    + entry.Number
+                                    + " out "
+                                    + (_sheetInModelSpace ? "in model space" : "as a layout of viewports")
+                                    + "…",
+                                () =>
+                                {
+                                    var copy = Drawing.Open(aside, source, tolerance);
+                                    copy.Update(source, settings);
+                                    copy.Save(path);
+                                    return true;
+                                }
+                            );
                         }
                         finally
                         {
@@ -275,21 +309,55 @@ namespace GeometryHelper.Drawing.Wpf
                 }
                 catch (Exception ex) when (!(ex is OutOfMemoryException))
                 {
-                    GeometryHelperLog.Warn("ExportViewModel: " + entry.Number + " was not written to " + path + ".", ex);
+                    GeometryHelperLog.Warn(
+                        "ExportViewModel: " + entry.Number + " was not written to " + path + ".",
+                        ex
+                    );
                     failed.Add(entry.Number + ": " + ex.Message);
                 }
             }
 
             Written = written.AsReadOnly();
-            _workspace.Say("Exported " + DrawingWorkspace.Count(written.Count, "drawing") + " to " + folder + (failed.Count == 0 ? "." : "; " + failed.Count.ToString(CultureInfo.InvariantCulture) + " not written."));
+            _workspace.Say(
+                "Exported "
+                    + DrawingWorkspace.Count(written.Count, "drawing")
+                    + " to "
+                    + folder
+                    + (
+                        failed.Count == 0
+                            ? "."
+                            : "; " + failed.Count.ToString(CultureInfo.InvariantCulture) + " not written."
+                    )
+            );
 
             if (failed.Count > 0)
             {
-                _workspace.ShowMessage(new MessageViewModel(MessageKind.Error, "Export not finished", DrawingWorkspace.Count(written.Count, "drawing") + " written to " + folder + "; these were not:", string.Join("\n", failed), "Open folder", () => OpenFolder(folder)));
+                _workspace.ShowMessage(
+                    new MessageViewModel(
+                        MessageKind.Error,
+                        "Export not finished",
+                        DrawingWorkspace.Count(written.Count, "drawing")
+                            + " written to "
+                            + folder
+                            + "; these were not:",
+                        string.Join("\n", failed),
+                        "Open folder",
+                        () => OpenFolder(folder)
+                    )
+                );
             }
             else if (written.Count > 0)
             {
-                _workspace.ShowMessage(new MessageViewModel(MessageKind.Done, "Export done", "Exported " + DrawingWorkspace.Count(written.Count, "drawing") + " to " + folder + ".", null, "Open folder", () => OpenFolder(folder)));
+                _workspace.ShowMessage(
+                    new MessageViewModel(
+                        MessageKind.Done,
+                        "Export done",
+                        "Exported " + DrawingWorkspace.Count(written.Count, "drawing") + " to " + folder + ".",
+                        null,
+                        "Open folder",
+                        () => OpenFolder(folder)
+                    )
+                );
             }
 
             if (Notice.Length == 0)

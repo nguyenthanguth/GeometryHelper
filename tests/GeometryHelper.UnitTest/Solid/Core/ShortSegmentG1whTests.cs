@@ -23,23 +23,52 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class ShortSegmentG1whTests
     {
-        private static readonly Tolerance Billionth = new Tolerance(1E-9, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-9);
+        private static readonly Tolerance Billionth = new Tolerance(
+            1E-9,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-9
+        );
 
-        private static readonly Tolerance Hundredth = new Tolerance(1E-2, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-2);
+        private static readonly Tolerance Hundredth = new Tolerance(
+            1E-2,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-2
+        );
 
         private static readonly GeoPoint3 Through = new GeoPoint3(5, 5, 0);
 
         private static GeoSolid3 Box() => new GeoObb3(new GeoPoint3(5, 5, -5), 10, 10, 10).ToSolid();
 
-        private static GeoPolygon3 Top() => new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+        private static GeoPolygon3 Top() =>
+            new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
-        private static GeoTriangle3 TopTriangle() => new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(20, 0, 0), new GeoPoint3(0, 20, 0));
+        private static GeoTriangle3 TopTriangle() =>
+            new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(20, 0, 0), new GeoPoint3(0, 20, 0));
 
-        private static GeoPoint3[] Stepping()
-            => new[] { new GeoPoint3(2, 5, 0.054), new GeoPoint3(5, 5, 0.004), new GeoPoint3(5, 5, -0.005), new GeoPoint3(8, 5, -0.055) };
+        private static GeoPoint3[] Stepping() =>
+            new[]
+            {
+                new GeoPoint3(2, 5, 0.054),
+                new GeoPoint3(5, 5, 0.004),
+                new GeoPoint3(5, 5, -0.005),
+                new GeoPoint3(8, 5, -0.055),
+            };
 
-        private static GeoPoint3[] Level()
-            => new[] { new GeoPoint3(2, 5, 0.004), new GeoPoint3(5, 5, 0.004), new GeoPoint3(5, 5, -0.005), new GeoPoint3(8, 5, -0.005) };
+        private static GeoPoint3[] Level() =>
+            new[]
+            {
+                new GeoPoint3(2, 5, 0.004),
+                new GeoPoint3(5, 5, 0.004),
+                new GeoPoint3(5, 5, -0.005),
+                new GeoPoint3(8, 5, -0.005),
+            };
 
         private static void AssertAt(double x, double y, double z, GeoPoint3 actual)
         {
@@ -93,7 +122,9 @@ namespace GeometryHelper.UnitTest.Solid
         public void AChainOfOneShortLeg_PassingThroughASquare_MeetsItWhereItPasses()
         {
             // Given as a segment it meets the square there; as the one side of a chain it met nothing.
-            var chain = new GeoPolylineArc3(new[] { new GeoEdge3(new GeoPoint3(5, 5, 0.004), new GeoPoint3(5, 5, -0.005)) });
+            var chain = new GeoPolylineArc3(
+                new[] { new GeoEdge3(new GeoPoint3(5, 5, 0.004), new GeoPoint3(5, 5, -0.005)) }
+            );
 
             AssertAt(5, 5, 0, Assert.Single(chain.GetIntersections(Top(), Hundredth)));
             AssertAt(5, 5, 0, Assert.Single(chain.GetIntersections(new GeoFace3(Top()), Hundredth)));

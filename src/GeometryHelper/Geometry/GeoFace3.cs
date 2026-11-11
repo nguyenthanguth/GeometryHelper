@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -50,9 +50,7 @@ namespace GeometryHelper.Geometry
         /// <param name="boundary">The outer boundary.</param>
         /// <exception cref="ArgumentNullException">Thrown when the boundary is null.</exception>
         public GeoFace3(GeoPolygon3 boundary)
-            : this(boundary, null, Tolerance.Global)
-        {
-        }
+            : this(boundary, null, Tolerance.Global) { }
 
         /// <summary>
         /// Initializes a face with holes.
@@ -62,9 +60,7 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the boundary is null.</exception>
         /// <exception cref="ArgumentException">Thrown when a hole does not lie on the plane of the boundary.</exception>
         public GeoFace3(GeoPolygon3 boundary, IEnumerable<GeoPolygon3> holes)
-            : this(boundary, holes, Tolerance.Global)
-        {
-        }
+            : this(boundary, holes, Tolerance.Global) { }
 
         /// <summary>
         /// Initializes a face with holes, within a tolerance.
@@ -121,8 +117,10 @@ namespace GeometryHelper.Geometry
         /// <returns>The faces; see <see cref="FromLoops(IEnumerable{GeoPoint3}, IEnumerable{IEnumerable{GeoPoint3}}, Tolerance)"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="boundary"/> is null.</exception>
         /// <exception cref="ArgumentException">Thrown when a hole is null.</exception>
-        public static GeoFace3[] FromLoops(IEnumerable<GeoPoint3> boundary, IEnumerable<IEnumerable<GeoPoint3>> holes)
-            => FromLoops(boundary, holes, Tolerance.Global);
+        public static GeoFace3[] FromLoops(
+            IEnumerable<GeoPoint3> boundary,
+            IEnumerable<IEnumerable<GeoPoint3>> holes
+        ) => FromLoops(boundary, holes, Tolerance.Global);
 
         /// <summary>
         /// Makes the faces that cover a boundary less its holes, from loops of corners that need not lie flat, within a
@@ -145,8 +143,11 @@ namespace GeometryHelper.Geometry
         /// into triangles on the corners it came with, each exactly flat, it keeps every edge it shares with its neighbours,
         /// so the body is as closed as it was given, and no corner moves. A hole enclosing no area is left out.
         /// </remarks>
-        public static GeoFace3[] FromLoops(IEnumerable<GeoPoint3> boundary, IEnumerable<IEnumerable<GeoPoint3>> holes, Tolerance tolerance)
-            => Loops3.ToFaces(boundary, holes, tolerance);
+        public static GeoFace3[] FromLoops(
+            IEnumerable<GeoPoint3> boundary,
+            IEnumerable<IEnumerable<GeoPoint3>> holes,
+            Tolerance tolerance
+        ) => Loops3.ToFaces(boundary, holes, tolerance);
 
         /// <summary>
         /// Creates a copy of this face.
@@ -278,7 +279,8 @@ namespace GeometryHelper.Geometry
         /// <param name="kind">The kind of faces.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
         /// <exception cref="ArgumentException">Thrown for <see cref="Meshing.MeshKind.Grid"/>, which needs the size of its cells.</exception>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshKind kind) => Meshing.Mesh3.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Meshing.MeshPlacement3.World, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshKind kind) =>
+            Meshing.Mesh3.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Meshing.MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks the face into faces as the options say, its grid level, with the second axis up the slope, using the
@@ -286,7 +288,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="options">How to break it up.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options) => Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options) =>
+            Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks the face into faces as the options say, its grid level, with the second axis up the slope, within a
@@ -295,7 +298,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How to break it up.</param>
         /// <param name="tolerance">The tolerance the shape is read within: which of its rings touch, what has no area, and for a grid which cells are whole.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) => Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, tolerance);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) =>
+            Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Breaks the face into faces as the options say, its grid standing as the placement says, using the default
@@ -304,7 +308,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How to break it up.</param>
         /// <param name="placement">Which way the grid or the strips run in the plane, and where a cell starts.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement) => Meshing.Mesh3.ToMesh(this, options, placement, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement) =>
+            Meshing.Mesh3.ToMesh(this, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Breaks the face into faces as the options say, its grid standing as the placement says, within a tolerance:
@@ -324,7 +329,11 @@ namespace GeometryHelper.Geometry
         /// The holes are left open. A face a hair out of flat keeps its corners where they are, and the points put on its
         /// sides stay on them; only the points inside lie on the plane.
         /// </remarks>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement, Tolerance tolerance) => Meshing.Mesh3.ToMesh(this, options, placement, tolerance);
+        public Meshing.GeoMesh3 ToMesh(
+            Meshing.MeshOptions options,
+            Meshing.MeshPlacement3 placement,
+            Tolerance tolerance
+        ) => Meshing.Mesh3.ToMesh(this, options, placement, tolerance);
 
         /// <summary>
         /// Moves the face by a vector.
@@ -429,7 +438,8 @@ namespace GeometryHelper.Geometry
         /// A point inside a hole is outside the face, and a point on the rim of a hole is on the face
         /// boundary, since the rim is as much an edge of the material as the outer loop is.
         /// </remarks>
-        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) => Containment3.Locate(this, point, tolerance);
+        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) =>
+            Containment3.Locate(this, point, tolerance);
 
         /// <summary>
         /// Checks whether this face holds a point, using the default tolerance.
@@ -444,12 +454,14 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Splits this face by a plane, using the default tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoPlane3 cutter, out GeoFace3[] above, out GeoFace3[] below) => Splition3.TrySplitBy(this, cutter, out above, out below);
+        public bool TrySplitBy(GeoPlane3 cutter, out GeoFace3[] above, out GeoFace3[] below) =>
+            Splition3.TrySplitBy(this, cutter, out above, out below);
 
         /// <summary>
         /// Splits this face by a plane, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoPlane3 cutter, out GeoFace3[] above, out GeoFace3[] below, Tolerance tolerance) => Splition3.TrySplitBy(this, cutter, out above, out below, tolerance);
+        public bool TrySplitBy(GeoPlane3 cutter, out GeoFace3[] above, out GeoFace3[] below, Tolerance tolerance) =>
+            Splition3.TrySplitBy(this, cutter, out above, out below, tolerance);
 
         /// <summary>
         /// Grows this face within its own plane by a distance, or shrinks it when the distance is negative, with
@@ -474,7 +486,8 @@ namespace GeometryHelper.Geometry
         /// Grows this face within its own plane by a distance, or shrinks it when the distance is negative, with
         /// the given corners, within a tolerance.
         /// </summary>
-        public GeoFace3[] Offset(double distance, OffsetJoin join, Tolerance tolerance) => Offset3.Offset(this, distance, join, tolerance);
+        public GeoFace3[] Offset(double distance, OffsetJoin join, Tolerance tolerance) =>
+            Offset3.Offset(this, distance, join, tolerance);
 
         /// <summary>
         /// Grows this face within its own plane by a distance, or shrinks it when the distance is negative, as the
@@ -486,7 +499,8 @@ namespace GeometryHelper.Geometry
         /// Grows this face within its own plane by a distance, or shrinks it when the distance is negative, as the
         /// options say, within a tolerance.
         /// </summary>
-        public GeoFace3[] Offset(double distance, OffsetOptions options, Tolerance tolerance) => Offset3.Offset(this, distance, options, tolerance);
+        public GeoFace3[] Offset(double distance, OffsetOptions options, Tolerance tolerance) =>
+            Offset3.Offset(this, distance, options, tolerance);
 
         #endregion
 
@@ -662,6 +676,7 @@ namespace GeometryHelper.Geometry
                 return new GeoPoint3(x / area, y / area, z / area);
             }
         }
+
         /// <summary>
         /// Gets how far the area of the boundary and of each hole can stand off by the rounding of the sums it comes from.
         /// </summary>
@@ -709,6 +724,5 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance the triangulation works to.</param>
         /// <returns>The hierarchy; it is a snapshot and holds no reference back to this shape.</returns>
         public Spatial.GeoBvh3 BuildIndex(Tolerance tolerance) => Spatial.GeoBvh3.FromFace(this, tolerance);
-
     }
 }

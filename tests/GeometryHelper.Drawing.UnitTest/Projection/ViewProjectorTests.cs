@@ -167,7 +167,11 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
         [Fact]
         public void ATubeSeenAtThirtyDegreesGivesNoLineTwiceAndNoneBothSeenAndHidden()
         {
-            var slant = new GeoCoordinateSystem3(GeoPoint3.Origin, new GeoVector3(Math.Cos(Math.PI / 6), -Math.Sin(Math.PI / 6), 0), GeoVector3.ZAxis);
+            var slant = new GeoCoordinateSystem3(
+                GeoPoint3.Origin,
+                new GeoVector3(Math.Cos(Math.PI / 6), -Math.Sin(Math.PI / 6), 0),
+                GeoVector3.ZAxis
+            );
 
             ProjectedView2 view = Project(slant, Tube(168.3, 6, 1000, 32));
 
@@ -177,13 +181,23 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
             Assert.Empty(Overlaps(view.VisibleEdges, view.HiddenEdges, false));
 
             // The two outer silhouettes run the length of the tube, 84.15 either side of its axis.
-            Assert.Equal(2, view.VisibleEdges.Count(e => e.Kind == EdgeKind.Silhouette && !e.IsArc && Math.Abs(Math.Abs(e.StartPoint.Y) - 84.15) <= 1E-3));
+            Assert.Equal(
+                2,
+                view.VisibleEdges.Count(e =>
+                    e.Kind == EdgeKind.Silhouette && !e.IsArc && Math.Abs(Math.Abs(e.StartPoint.Y) - 84.15) <= 1E-3
+                )
+            );
         }
 
         [Fact]
         public void AHexagonalBarSeenAlongItsAxisStaysSixLines()
         {
-            GeoSolid3 bar = GeoSolid3.Extrude(Circle(0, 0, 20, 6), new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.YAxis, GeoVector3.ZAxis), 100, Tol);
+            GeoSolid3 bar = GeoSolid3.Extrude(
+                Circle(0, 0, 20, 6),
+                new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.YAxis, GeoVector3.ZAxis),
+                100,
+                Tol
+            );
 
             ProjectedView2 view = Project(Right, bar);
 
@@ -231,7 +245,9 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
             Assert.Equal(20.0, seen.Arc.Radius, 3);
             Assert.Equal(Math.PI, seen.Arc.SweptAngle, 3);
             Assert.True(seen.Arc.StartPoint.X > 99.99 && seen.Arc.EndPoint.X > 99.99);
-            Assert.Contains(view.HiddenEdges, e => e.IsArc && Math.Abs(e.Arc.Radius - 20) <= 1E-3 && Math.Abs(e.Arc.SweptAngle - Math.PI) <= 1E-3);
+            Assert.Contains(view.HiddenEdges, e =>
+                e.IsArc && Math.Abs(e.Arc.Radius - 20) <= 1E-3 && Math.Abs(e.Arc.SweptAngle - Math.PI) <= 1E-3
+            );
         }
 
         [Fact]
@@ -255,7 +271,11 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
         {
             // A square rod sloping down through a plate 10 thick: its edges cross the plate's top where z is 10.
             GeoSolid3 plate = Box(0, 0, 0, 300, 200, 10);
-            var placement = new GeoCoordinateSystem3(new GeoPoint3(100, 95, -50), GeoVector3.YAxis, new GeoVector3(-100, 0, 50));
+            var placement = new GeoCoordinateSystem3(
+                new GeoPoint3(100, 95, -50),
+                GeoVector3.YAxis,
+                new GeoVector3(-100, 0, 50)
+            );
             GeoSolid3 rod = GeoSolid3.Extrude(Rectangle(0, 0, 10, 10), placement, Math.Sqrt(50 * 50 + 100 * 100), Tol);
 
             ProjectedView2 view = Project(Top, new ProjectionInput("plate", plate), new ProjectionInput("rod", rod));
@@ -274,7 +294,11 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
         [Fact]
         public void TwoBoxesSideBySideWithFlushFacesShareTheLineBetweenThem()
         {
-            ProjectedView2 view = Project(Front, new ProjectionInput("A", Box(0, 0, 0, 100, 50, 30)), new ProjectionInput("B", Box(100, 0, 0, 200, 50, 30)));
+            ProjectedView2 view = Project(
+                Front,
+                new ProjectionInput("A", Box(0, 0, 0, 100, 50, 30)),
+                new ProjectionInput("B", Box(100, 0, 0, 200, 50, 30))
+            );
 
             Assert.Equal(7, view.VisibleEdges.Count);
             Assert.Empty(view.HiddenEdges);
@@ -287,7 +311,10 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
         [Fact]
         public void TheThreePlatesOfTC8GiveEveryLineOnceSeenOverHidden()
         {
-            ProjectionInput[] plates = TestBodies.TC8().Parts.Select(p => new ProjectionInput(p.Object.Id, p.Object.Solid)).ToArray();
+            ProjectionInput[] plates = TestBodies
+                .TC8()
+                .Parts.Select(p => new ProjectionInput(p.Object.Id, p.Object.Solid))
+                .ToArray();
 
             ProjectedView2 front = Project(Front, plates);
             ProjectedView2 top = Project(Top, plates);
@@ -303,8 +330,16 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
             }
 
             // A's top edge under B's bottom one, face to face, is one line of both; A's and C's ends edge to edge are one.
-            Assert.Contains(front.VisibleEdges, e => e.ObjectIds.SequenceEqual(new[] { "TC8-A", "TC8-B" }) && Near(e.StartPoint, 0, 10) && Near(e.EndPoint, 150, 10));
-            Assert.Contains(front.VisibleEdges, e => e.ObjectIds.SequenceEqual(new[] { "TC8-A", "TC8-C" }) && Near(e.StartPoint, 200, 0) && Near(e.EndPoint, 200, 10));
+            Assert.Contains(front.VisibleEdges, e =>
+                e.ObjectIds.SequenceEqual(new[] { "TC8-A", "TC8-B" })
+                && Near(e.StartPoint, 0, 10)
+                && Near(e.EndPoint, 150, 10)
+            );
+            Assert.Contains(front.VisibleEdges, e =>
+                e.ObjectIds.SequenceEqual(new[] { "TC8-A", "TC8-C" })
+                && Near(e.StartPoint, 200, 0)
+                && Near(e.EndPoint, 200, 10)
+            );
         }
 
         [Fact]
@@ -336,8 +371,16 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
             TestBody tc1 = TestBodies.TC1();
             TestBody tc2 = TestBodies.TC2();
 
-            ProjectedView2 plate = ViewProjector.Project(tc1.Parts.Select(p => new ProjectionInput(p.Object.Id, p.Object.Solid)), Top, Tol);
-            ProjectedView2 beam = ViewProjector.Project(tc2.Parts.Select(p => new ProjectionInput(p.Object.Id, p.Object.Solid)), Right, Tol);
+            ProjectedView2 plate = ViewProjector.Project(
+                tc1.Parts.Select(p => new ProjectionInput(p.Object.Id, p.Object.Solid)),
+                Top,
+                Tol
+            );
+            ProjectedView2 beam = ViewProjector.Project(
+                tc2.Parts.Select(p => new ProjectionInput(p.Object.Id, p.Object.Solid)),
+                Right,
+                Tol
+            );
 
             Assert.Equal(4, plate.VisibleEdges.Count(e => e.IsCircle));
             Assert.All(tc1.Parts[0].HoleCentres, c => HasCircle(plate.VisibleEdges, c.X, c.Y, 11));
@@ -352,7 +395,11 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
             TestBody tc9 = TestBodies.TC9(2E-6);
             GeoSolid3 exact = tc9["TC9-exact"].Object.Solid;
             GeoSolid3 hair = tc9["TC9-hair"].Object.Solid.Translate(new GeoVector3(-500, 0, 0));
-            var side = new GeoCoordinateSystem3(GeoPoint3.Origin, new GeoVector3(Math.Cos(Math.PI / 6), Math.Sin(Math.PI / 6), 0), GeoVector3.ZAxis);
+            var side = new GeoCoordinateSystem3(
+                GeoPoint3.Origin,
+                new GeoVector3(Math.Cos(Math.PI / 6), Math.Sin(Math.PI / 6), 0),
+                GeoVector3.ZAxis
+            );
 
             foreach (GeoCoordinateSystem3 frame in new[] { Top, side })
             {
@@ -372,7 +419,11 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
             // within a tolerance of 0.001, but neither drawn twice, and its holes still circles from above.
             TestBody tc9 = TestBodies.TC9();
             GeoSolid3 hair = tc9["TC9-hair"].Object.Solid;
-            var side = new GeoCoordinateSystem3(GeoPoint3.Origin, new GeoVector3(Math.Cos(Math.PI / 6), Math.Sin(Math.PI / 6), 0), GeoVector3.ZAxis);
+            var side = new GeoCoordinateSystem3(
+                GeoPoint3.Origin,
+                new GeoVector3(Math.Cos(Math.PI / 6), Math.Sin(Math.PI / 6), 0),
+                GeoVector3.ZAxis
+            );
 
             ProjectedView2 top = Project(Top, hair);
             ProjectedView2 across = Project(side, hair);
@@ -419,13 +470,19 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
             Assert.Throws<ArgumentException>(() => new ProjectionInput(null, box));
             Assert.Throws<ArgumentNullException>(() => new ProjectionInput("A", null));
             Assert.Throws<ArgumentNullException>(() => ViewProjector.Project(null, Top, Tol));
-            Assert.Throws<ArgumentException>(() => ViewProjector.Project(new[] { new ProjectionInput("A", box), new ProjectionInput("A", box) }, Top, Tol));
+            Assert.Throws<ArgumentException>(() =>
+                ViewProjector.Project(new[] { new ProjectionInput("A", box), new ProjectionInput("A", box) }, Top, Tol)
+            );
             Assert.Throws<ArgumentException>(() => ViewProjector.Project(new[] { default(ProjectionInput) }, Top, Tol));
-            Assert.Throws<ArgumentException>(() => ViewProjector.Project(new[] { new ProjectionInput("A", box) }, default(GeoCoordinateSystem3), Tol));
+            Assert.Throws<ArgumentException>(() =>
+                ViewProjector.Project(new[] { new ProjectionInput("A", box) }, default(GeoCoordinateSystem3), Tol)
+            );
             Assert.Throws<ArgumentOutOfRangeException>(() => new ProjectionOptions(double.NaN));
             Assert.Throws<ArgumentOutOfRangeException>(() => new ProjectionOptions(nearDepth: -1, farDepth: 1));
             var edgeOn = new ProjectionOptions(sectionPlane: new GeoPlane3(GeoPoint3.Origin, GeoVector3.XAxis));
-            Assert.Throws<ArgumentException>(() => ViewProjector.Project(new[] { new ProjectionInput("A", box) }, Top, edgeOn, Tol));
+            Assert.Throws<ArgumentException>(() =>
+                ViewProjector.Project(new[] { new ProjectionInput("A", box) }, Top, edgeOn, Tol)
+            );
         }
 
         [Fact]

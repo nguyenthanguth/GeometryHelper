@@ -23,7 +23,20 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             // A figure of eight through (100, 100): two squares meeting at a corner, as one loop.
             MeshBuilder2 builder = Builder();
-            builder.Add(new[] { P(0, 0), P(100, 0), P(100, 100), P(200, 100), P(200, 200), P(100, 200), P(100, 100), P(0, 100) }, false);
+            builder.Add(
+                new[]
+                {
+                    P(0, 0),
+                    P(100, 0),
+                    P(100, 100),
+                    P(200, 100),
+                    P(200, 200),
+                    P(100, 200),
+                    P(100, 100),
+                    P(0, 100),
+                },
+                false
+            );
             GeoMesh2 mesh = builder.Build(MeshKind.Grid);
 
             Assert.Equal(2, mesh.FaceCount);
@@ -35,11 +48,18 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             // A square with a notch whose tip touches the far side at (50, 0): the material either side meets only there.
             MeshBuilder2 builder = Builder();
-            builder.Add(new[] { P(0, 0), P(100, 0), P(100, 100), P(60, 100), P(50, 0.0), P(40, 100), P(0, 100) }, false);
+            builder.Add(
+                new[] { P(0, 0), P(100, 0), P(100, 100), P(60, 100), P(50, 0.0), P(40, 100), P(0, 100) },
+                false
+            );
             GeoMesh2 mesh = builder.Build(MeshKind.Grid);
 
             Assert.Equal(2, mesh.FaceCount);
-            Assert.Equal(new GeoPolygon2(P(0, 0), P(100, 0), P(100, 100), P(60, 100), P(50, 0.0), P(40, 100), P(0, 100)).Area, mesh.Area, 9);
+            Assert.Equal(
+                new GeoPolygon2(P(0, 0), P(100, 0), P(100, 100), P(60, 100), P(50, 0.0), P(40, 100), P(0, 100)).Area,
+                mesh.Area,
+                9
+            );
             Assert.All(mesh.GetFaces(), f => Assert.True(f.IsSimple(new Tolerance(1E-9, 1E-9))));
         }
 

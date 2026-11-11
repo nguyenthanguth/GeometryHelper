@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -57,7 +57,10 @@ namespace GeometryHelper.UnitTest.Solid
         public void Extend_ThroughCoreAndInstance_Agree()
         {
             Assert.Equal(Lengthen3.Extend(Beam, 250.0, LineEnd.Start), Beam.Extend(250.0, LineEnd.Start));
-            Assert.Equal(Lengthen3.Extend(Beam, 250.0, -100.0, Tolerance.Global), Beam.Extend(250.0, -100.0, Tolerance.Global));
+            Assert.Equal(
+                Lengthen3.Extend(Beam, 250.0, -100.0, Tolerance.Global),
+                Beam.Extend(250.0, -100.0, Tolerance.Global)
+            );
             Assert.Equal(Lengthen3.ExtendToLength(Beam, 6000.0, LineEnd.End), Beam.ExtendToLength(6000.0, LineEnd.End));
         }
 
@@ -107,7 +110,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             foreach (GeoLine3 beam in new[] { Beam, Beam.ExtendToLength(1000, LineEnd.End) })
             {
-                Assert.True(beam.TryExtendTo(face, LineEnd.End, out GeoLine3 fitted) || beam.TryTrimTo(face, LineEnd.End, out fitted));
+                Assert.True(
+                    beam.TryExtendTo(face, LineEnd.End, out GeoLine3 fitted)
+                        || beam.TryTrimTo(face, LineEnd.End, out fitted)
+                );
                 Assert.True(face.IsPointOn(fitted.EndPoint));
                 Assert.Equal(beam.StartPoint, fitted.StartPoint);
             }
@@ -167,9 +173,13 @@ namespace GeometryHelper.UnitTest.Solid
 
         #region To polygons, faces and solids
 
-        private static GeoPolygon3 Slab() => new GeoPolygon3(
-            new GeoPoint3(5000, -1000, 0), new GeoPoint3(5000, 1000, 0),
-            new GeoPoint3(5000, 1000, 4000), new GeoPoint3(5000, -1000, 4000));
+        private static GeoPolygon3 Slab() =>
+            new GeoPolygon3(
+                new GeoPoint3(5000, -1000, 0),
+                new GeoPoint3(5000, 1000, 0),
+                new GeoPoint3(5000, 1000, 4000),
+                new GeoPoint3(5000, -1000, 4000)
+            );
 
         [Fact]
         public void ExtendToPolygon_StopsWhereItPiercesTheSurface()
@@ -186,7 +196,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void ExtendToPolygon_InItsPlane_StopsAtAnEdge()
         {
             var floor = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
             var along = new GeoLine3(-20, 5, 0, -10, 5, 0);
 
             Assert.True(along.TryExtendTo(floor, LineEnd.End, out GeoLine3 toNearEdge));
@@ -205,8 +219,11 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoPolygon3 outer = Slab();
             var hole = new GeoPolygon3(
-                new GeoPoint3(5000, -200, 2800), new GeoPoint3(5000, 200, 2800),
-                new GeoPoint3(5000, 200, 3200), new GeoPoint3(5000, -200, 3200));
+                new GeoPoint3(5000, -200, 2800),
+                new GeoPoint3(5000, 200, 2800),
+                new GeoPoint3(5000, 200, 3200),
+                new GeoPoint3(5000, -200, 3200)
+            );
             var wall = new GeoFace3(outer, new[] { hole });
 
             // The beam axis runs through the opening, so the face is never met.
@@ -247,33 +264,71 @@ namespace GeometryHelper.UnitTest.Solid
             var point = new GeoPoint3(4500, 200, 0);
             GeoPolygon3 slab = Slab();
             var face = new GeoFace3(slab);
-            GeoSolid3 box = new GeoAabb3(new GeoPoint3(5000, -100, 2000), new GeoPoint3(5500, 100, 4000)).ToObb().ToSolid();
+            GeoSolid3 box = new GeoAabb3(new GeoPoint3(5000, -100, 2000), new GeoPoint3(5500, 100, 4000))
+                .ToObb()
+                .ToSolid();
 
-            Assert.Equal(Lengthen3.TryExtendTo(Beam, point, LineEnd.End, out GeoLine3 a1), Beam.TryExtendTo(point, LineEnd.End, out GeoLine3 b1));
+            Assert.Equal(
+                Lengthen3.TryExtendTo(Beam, point, LineEnd.End, out GeoLine3 a1),
+                Beam.TryExtendTo(point, LineEnd.End, out GeoLine3 b1)
+            );
             Assert.Equal(a1, b1);
-            Assert.Equal(Lengthen3.TryExtendTo(Beam, column, LineEnd.End, out GeoLine3 a2), Beam.TryExtendTo(column, LineEnd.End, out GeoLine3 b2));
+            Assert.Equal(
+                Lengthen3.TryExtendTo(Beam, column, LineEnd.End, out GeoLine3 a2),
+                Beam.TryExtendTo(column, LineEnd.End, out GeoLine3 b2)
+            );
             Assert.Equal(a2, b2);
-            Assert.Equal(Lengthen3.TryExtendTo(Beam, plane, LineEnd.End, out GeoLine3 a3), Beam.TryExtendTo(plane, LineEnd.End, out GeoLine3 b3));
+            Assert.Equal(
+                Lengthen3.TryExtendTo(Beam, plane, LineEnd.End, out GeoLine3 a3),
+                Beam.TryExtendTo(plane, LineEnd.End, out GeoLine3 b3)
+            );
             Assert.Equal(a3, b3);
-            Assert.Equal(Lengthen3.TryExtendTo(Beam, slab, LineEnd.End, out GeoLine3 a4), Beam.TryExtendTo(slab, LineEnd.End, out GeoLine3 b4));
+            Assert.Equal(
+                Lengthen3.TryExtendTo(Beam, slab, LineEnd.End, out GeoLine3 a4),
+                Beam.TryExtendTo(slab, LineEnd.End, out GeoLine3 b4)
+            );
             Assert.Equal(a4, b4);
-            Assert.Equal(Lengthen3.TryExtendTo(Beam, face, LineEnd.End, out GeoLine3 a5), Beam.TryExtendTo(face, LineEnd.End, out GeoLine3 b5));
+            Assert.Equal(
+                Lengthen3.TryExtendTo(Beam, face, LineEnd.End, out GeoLine3 a5),
+                Beam.TryExtendTo(face, LineEnd.End, out GeoLine3 b5)
+            );
             Assert.Equal(a5, b5);
-            Assert.Equal(Lengthen3.TryExtendTo(Beam, box, LineEnd.End, out GeoLine3 a6), Beam.TryExtendTo(box, LineEnd.End, out GeoLine3 b6));
+            Assert.Equal(
+                Lengthen3.TryExtendTo(Beam, box, LineEnd.End, out GeoLine3 a6),
+                Beam.TryExtendTo(box, LineEnd.End, out GeoLine3 b6)
+            );
             Assert.Equal(a6, b6);
 
             GeoLine3 longBeam = Beam.ExtendToLength(8000, LineEnd.End);
-            Assert.Equal(Lengthen3.TryTrimTo(longBeam, point, LineEnd.End, out GeoLine3 c1), longBeam.TryTrimTo(point, LineEnd.End, out GeoLine3 d1));
+            Assert.Equal(
+                Lengthen3.TryTrimTo(longBeam, point, LineEnd.End, out GeoLine3 c1),
+                longBeam.TryTrimTo(point, LineEnd.End, out GeoLine3 d1)
+            );
             Assert.Equal(c1, d1);
-            Assert.Equal(Lengthen3.TryTrimTo(longBeam, column, LineEnd.End, out GeoLine3 c2), longBeam.TryTrimTo(column, LineEnd.End, out GeoLine3 d2));
+            Assert.Equal(
+                Lengthen3.TryTrimTo(longBeam, column, LineEnd.End, out GeoLine3 c2),
+                longBeam.TryTrimTo(column, LineEnd.End, out GeoLine3 d2)
+            );
             Assert.Equal(c2, d2);
-            Assert.Equal(Lengthen3.TryTrimTo(longBeam, plane, LineEnd.End, out GeoLine3 c3), longBeam.TryTrimTo(plane, LineEnd.End, out GeoLine3 d3));
+            Assert.Equal(
+                Lengthen3.TryTrimTo(longBeam, plane, LineEnd.End, out GeoLine3 c3),
+                longBeam.TryTrimTo(plane, LineEnd.End, out GeoLine3 d3)
+            );
             Assert.Equal(c3, d3);
-            Assert.Equal(Lengthen3.TryTrimTo(longBeam, slab, LineEnd.End, out GeoLine3 c4), longBeam.TryTrimTo(slab, LineEnd.End, out GeoLine3 d4));
+            Assert.Equal(
+                Lengthen3.TryTrimTo(longBeam, slab, LineEnd.End, out GeoLine3 c4),
+                longBeam.TryTrimTo(slab, LineEnd.End, out GeoLine3 d4)
+            );
             Assert.Equal(c4, d4);
-            Assert.Equal(Lengthen3.TryTrimTo(longBeam, face, LineEnd.End, out GeoLine3 c5), longBeam.TryTrimTo(face, LineEnd.End, out GeoLine3 d5));
+            Assert.Equal(
+                Lengthen3.TryTrimTo(longBeam, face, LineEnd.End, out GeoLine3 c5),
+                longBeam.TryTrimTo(face, LineEnd.End, out GeoLine3 d5)
+            );
             Assert.Equal(c5, d5);
-            Assert.Equal(Lengthen3.TryTrimTo(longBeam, box, LineEnd.End, out GeoLine3 c6), longBeam.TryTrimTo(box, LineEnd.End, out GeoLine3 d6));
+            Assert.Equal(
+                Lengthen3.TryTrimTo(longBeam, box, LineEnd.End, out GeoLine3 c6),
+                longBeam.TryTrimTo(box, LineEnd.End, out GeoLine3 d6)
+            );
             Assert.Equal(c6, d6);
         }
 
@@ -322,15 +377,20 @@ namespace GeometryHelper.UnitTest.Solid
         {
             yield return GeoTransform3.Translation(new GeoVector3(1000.0, -2000.0, 3000.0));
             yield return GeoTransform3.RotationAxis(new GeoVector3(1.0, 2.0, 3.0), 1.3);
-            yield return GeoTransform3.Translation(new GeoVector3(5.0, 5.0, 5.0))
+            yield return GeoTransform3
+                .Translation(new GeoVector3(5.0, 5.0, 5.0))
                 .Multiply(GeoTransform3.RotationAxis(new GeoVector3(-3.0, 1.0, 2.0), 2.1));
-            yield return GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(1.0, 0.0, 0.0), new GeoVector3(1.0, 1.0, 1.0)));
+            yield return GeoTransform3.Mirror(
+                new GeoPlane3(new GeoPoint3(1.0, 0.0, 0.0), new GeoVector3(1.0, 1.0, 1.0))
+            );
         }
 
         [Fact]
         public void ARigidMotionOfTheWholeScene_MovesEveryAnswerWithIt()
         {
-            GeoSolid3 box = new GeoAabb3(new GeoPoint3(5000, -100, 2000), new GeoPoint3(5500, 100, 4000)).ToObb().ToSolid();
+            GeoSolid3 box = new GeoAabb3(new GeoPoint3(5000, -100, 2000), new GeoPoint3(5500, 100, 4000))
+                .ToObb()
+                .ToSolid();
             var plane = new GeoPlane3(new GeoPoint3(4500, 0, 0), new GeoVector3(1, 0.3, -0.2));
             var column = new GeoLine3(6000, 0, 0, 6000, 0, 4000);
 
@@ -347,7 +407,9 @@ namespace GeometryHelper.UnitTest.Solid
                 AssertLine(toPlane.TransformBy(motion), movedToPlane, 1e-6);
 
                 Assert.True(Beam.TryTrimExtendToCorner(column, out GeoLine3 c1, out GeoLine3 c2));
-                Assert.True(movedBeam.TryTrimExtendToCorner(column.TransformBy(motion), out GeoLine3 m1, out GeoLine3 m2));
+                Assert.True(
+                    movedBeam.TryTrimExtendToCorner(column.TransformBy(motion), out GeoLine3 m1, out GeoLine3 m2)
+                );
                 AssertLine(c1.TransformBy(motion), m1, 1e-6);
                 AssertLine(c2.TransformBy(motion), m2, 1e-6);
             }

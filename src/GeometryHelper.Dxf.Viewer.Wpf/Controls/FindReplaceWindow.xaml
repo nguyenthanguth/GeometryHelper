@@ -1,9 +1,16 @@
-<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.FindReplaceWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Find and Replace" Width="720" Height="660" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" Background="#262B33">
-
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.FindReplaceWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Find and Replace"
+    Width="720"
+    Height="660"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -16,23 +23,67 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
-            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
-            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
         <DockPanel>
-            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnClose" ToolTip="Close" />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnClose"
+                        ToolTip="Close"
+                    />
                     <TextBlock Text="Find and Replace" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>
 
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Style="{StaticResource GhDialogButton}" Content="Replace" Padding="14,5" Margin="0,0,8,0" Click="OnReplace" />
-                    <Button Style="{StaticResource GhDialogButton}" Content="Replace All" Padding="14,5" Margin="0,0,8,0" Click="OnReplaceAll" />
-                    <Button Style="{StaticResource StylePrimaryButton}" Content="Find Next" Padding="14,5" Margin="0,0,8,0" Click="OnFindNext" IsDefault="True" />
-                    <Button Style="{StaticResource GhCloseButton}" Content="Close" Padding="14,5" Click="OnClose" IsCancel="True" />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Replace"
+                        Padding="14,5"
+                        Margin="0,0,8,0"
+                        Click="OnReplace"
+                    />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Replace All"
+                        Padding="14,5"
+                        Margin="0,0,8,0"
+                        Click="OnReplaceAll"
+                    />
+                    <Button
+                        Style="{StaticResource StylePrimaryButton}"
+                        Content="Find Next"
+                        Padding="14,5"
+                        Margin="0,0,8,0"
+                        Click="OnFindNext"
+                        IsDefault="True"
+                    />
+                    <Button
+                        Style="{StaticResource GhCloseButton}"
+                        Content="Close"
+                        Padding="14,5"
+                        Click="OnClose"
+                        IsCancel="True"
+                    />
                 </StackPanel>
             </Border>
 
@@ -50,20 +101,43 @@
                     </Grid.RowDefinitions>
                     <StackPanel>
                         <TextBlock Text="Find what:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,3" />
-                        <TextBox x:Name="FindBox" Style="{StaticResource StyleBox}" Padding="6,3" FontFamily="{StaticResource GhMonoFont}" AutomationProperties.Name="Find what"
-                                 Text="{Binding FindWhat, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox
+                            x:Name="FindBox"
+                            Style="{StaticResource StyleBox}"
+                            Padding="6,3"
+                            FontFamily="{StaticResource GhMonoFont}"
+                            AutomationProperties.Name="Find what"
+                            Text="{Binding FindWhat, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        />
                     </StackPanel>
                     <StackPanel Grid.Column="2">
                         <TextBlock Text="Find where:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,3" />
-                        <ComboBox Style="{StaticResource GhComboBox}" AutomationProperties.Name="Find where" ItemsSource="{Binding FindWhereOptions}" SelectedItem="{Binding FindWhere, Mode=TwoWay}" />
+                        <ComboBox
+                            Style="{StaticResource GhComboBox}"
+                            AutomationProperties.Name="Find where"
+                            ItemsSource="{Binding FindWhereOptions}"
+                            SelectedItem="{Binding FindWhere, Mode=TwoWay}"
+                        />
                     </StackPanel>
                     <StackPanel Grid.Row="2">
                         <TextBlock Text="Replace with:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,3" />
-                        <TextBox Style="{StaticResource StyleBox}" Padding="6,3" FontFamily="{StaticResource GhMonoFont}" AutomationProperties.Name="Replace with"
-                                 Text="{Binding ReplaceWith, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox
+                            Style="{StaticResource StyleBox}"
+                            Padding="6,3"
+                            FontFamily="{StaticResource GhMonoFont}"
+                            AutomationProperties.Name="Replace with"
+                            Text="{Binding ReplaceWith, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        />
                     </StackPanel>
-                    <CheckBox Grid.Row="2" Grid.Column="2" Style="{StaticResource GhCheckBox}" Content="List results" VerticalAlignment="Bottom" Margin="0,0,0,4"
-                              IsChecked="{Binding ListResults, Mode=TwoWay}" />
+                    <CheckBox
+                        Grid.Row="2"
+                        Grid.Column="2"
+                        Style="{StaticResource GhCheckBox}"
+                        Content="List results"
+                        VerticalAlignment="Bottom"
+                        Margin="0,0,0,4"
+                        IsChecked="{Binding ListResults, Mode=TwoWay}"
+                    />
                 </Grid>
 
                 <Grid DockPanel.Dock="Bottom" Margin="0,10,0,0">
@@ -74,41 +148,128 @@
                     </Grid.ColumnDefinitions>
                     <GroupBox Header="Search Options" Style="{StaticResource StyleGroup}">
                         <StackPanel Margin="4">
-                            <CheckBox Style="{StaticResource OptionCheck}" Content="Match case" IsChecked="{Binding MatchCase, Mode=TwoWay}" />
-                            <CheckBox Style="{StaticResource OptionCheck}" Content="Find whole words only" IsChecked="{Binding WholeWords, Mode=TwoWay}" />
-                            <CheckBox Style="{StaticResource OptionCheck}" Content="Use wildcards" IsChecked="{Binding UseWildcards, Mode=TwoWay}" />
+                            <CheckBox
+                                Style="{StaticResource OptionCheck}"
+                                Content="Match case"
+                                IsChecked="{Binding MatchCase, Mode=TwoWay}"
+                            />
+                            <CheckBox
+                                Style="{StaticResource OptionCheck}"
+                                Content="Find whole words only"
+                                IsChecked="{Binding WholeWords, Mode=TwoWay}"
+                            />
+                            <CheckBox
+                                Style="{StaticResource OptionCheck}"
+                                Content="Use wildcards"
+                                IsChecked="{Binding UseWildcards, Mode=TwoWay}"
+                            />
                             <CheckBox Style="{StaticResource OptionCheck}" Content="Search xrefs" IsEnabled="False" />
-                            <CheckBox Style="{StaticResource OptionCheck}" Content="Search blocks" IsChecked="{Binding SearchBlocks, Mode=TwoWay}" />
-                            <CheckBox Style="{StaticResource OptionCheck}" Content="Ignore hidden items" IsChecked="{Binding IgnoreHidden, Mode=TwoWay}" />
-                            <CheckBox Style="{StaticResource OptionCheck}" Content="Match diacritics" IsEnabled="False" />
-                            <CheckBox Style="{StaticResource OptionCheck}" Content="Match half/full width forms" IsEnabled="False" />
+                            <CheckBox
+                                Style="{StaticResource OptionCheck}"
+                                Content="Search blocks"
+                                IsChecked="{Binding SearchBlocks, Mode=TwoWay}"
+                            />
+                            <CheckBox
+                                Style="{StaticResource OptionCheck}"
+                                Content="Ignore hidden items"
+                                IsChecked="{Binding IgnoreHidden, Mode=TwoWay}"
+                            />
+                            <CheckBox
+                                Style="{StaticResource OptionCheck}"
+                                Content="Match diacritics"
+                                IsEnabled="False"
+                            />
+                            <CheckBox
+                                Style="{StaticResource OptionCheck}"
+                                Content="Match half/full width forms"
+                                IsEnabled="False"
+                            />
                         </StackPanel>
                     </GroupBox>
                     <GroupBox Grid.Column="2" Header="Text Types" Style="{StaticResource StyleGroup}">
                         <StackPanel Margin="4">
-                            <CheckBox Style="{StaticResource OptionCheck}" Content="Block attribute value" IsChecked="{Binding BlockAttributes, Mode=TwoWay}" />
-                            <CheckBox Style="{StaticResource OptionCheck}" Content="Dimension or leader text" IsChecked="{Binding DimensionText, Mode=TwoWay}" />
-                            <CheckBox Style="{StaticResource OptionCheck}" Content="Single-line or multiline text" IsChecked="{Binding Text, Mode=TwoWay}" />
-                            <CheckBox Style="{StaticResource OptionCheck}" Content="Table text" IsChecked="{Binding TableText, Mode=TwoWay}" />
-                            <CheckBox Style="{StaticResource OptionCheck}" Content="Hyperlink description" IsEnabled="False" />
+                            <CheckBox
+                                Style="{StaticResource OptionCheck}"
+                                Content="Block attribute value"
+                                IsChecked="{Binding BlockAttributes, Mode=TwoWay}"
+                            />
+                            <CheckBox
+                                Style="{StaticResource OptionCheck}"
+                                Content="Dimension or leader text"
+                                IsChecked="{Binding DimensionText, Mode=TwoWay}"
+                            />
+                            <CheckBox
+                                Style="{StaticResource OptionCheck}"
+                                Content="Single-line or multiline text"
+                                IsChecked="{Binding Text, Mode=TwoWay}"
+                            />
+                            <CheckBox
+                                Style="{StaticResource OptionCheck}"
+                                Content="Table text"
+                                IsChecked="{Binding TableText, Mode=TwoWay}"
+                            />
+                            <CheckBox
+                                Style="{StaticResource OptionCheck}"
+                                Content="Hyperlink description"
+                                IsEnabled="False"
+                            />
                             <CheckBox Style="{StaticResource OptionCheck}" Content="Hyperlink" IsEnabled="False" />
                         </StackPanel>
                     </GroupBox>
                 </Grid>
 
-                <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Visibility="{Binding ListResults, Converter={StaticResource Shown}}">
+                <Border
+                    BorderBrush="{StaticResource GhBorder}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Visibility="{Binding ListResults, Converter={StaticResource Shown}}"
+                >
                     <DockPanel>
                         <DockPanel DockPanel.Dock="Bottom" Margin="10,5">
-                            <Button DockPanel.Dock="Right" Style="{StaticResource GhDialogButton}" Content="Select" Padding="8,2" Click="OnSelect" ToolTip="Create a selection set of the results" />
-                            <Button DockPanel.Dock="Right" Style="{StaticResource GhDialogButton}" Content="Zoom" Padding="8,2" Margin="0,0,8,0" Click="OnZoom" ToolTip="Zoom to the highlighted result" />
-                            <TextBlock Text="{Binding Summary}" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                            <Button
+                                DockPanel.Dock="Right"
+                                Style="{StaticResource GhDialogButton}"
+                                Content="Select"
+                                Padding="8,2"
+                                Click="OnSelect"
+                                ToolTip="Create a selection set of the results"
+                            />
+                            <Button
+                                DockPanel.Dock="Right"
+                                Style="{StaticResource GhDialogButton}"
+                                Content="Zoom"
+                                Padding="8,2"
+                                Margin="0,0,8,0"
+                                Click="OnZoom"
+                                ToolTip="Zoom to the highlighted result"
+                            />
+                            <TextBlock
+                                Text="{Binding Summary}"
+                                Foreground="{StaticResource GhTextMuted}"
+                                VerticalAlignment="Center"
+                            />
                         </DockPanel>
-                        <ListView ItemsSource="{Binding Results}" SelectedItem="{Binding Current, Mode=TwoWay}" Background="{StaticResource GhInput}" BorderThickness="0"
-                                  Foreground="{StaticResource GhText}" MouseDoubleClick="OnZoom" AutomationProperties.Name="Results">
+                        <ListView
+                            ItemsSource="{Binding Results}"
+                            SelectedItem="{Binding Current, Mode=TwoWay}"
+                            Background="{StaticResource GhInput}"
+                            BorderThickness="0"
+                            Foreground="{StaticResource GhText}"
+                            MouseDoubleClick="OnZoom"
+                            AutomationProperties.Name="Results"
+                        >
                             <ListView.View>
                                 <GridView>
-                                    <GridViewColumn Header="Location" Width="90" DisplayMemberBinding="{Binding Location}" />
-                                    <GridViewColumn Header="Object type" Width="150" DisplayMemberBinding="{Binding ObjectType}" />
+                                    <GridViewColumn
+                                        Header="Location"
+                                        Width="90"
+                                        DisplayMemberBinding="{Binding Location}"
+                                    />
+                                    <GridViewColumn
+                                        Header="Object type"
+                                        Width="150"
+                                        DisplayMemberBinding="{Binding ObjectType}"
+                                    />
                                     <GridViewColumn Header="Text" Width="420" DisplayMemberBinding="{Binding Text}" />
                                 </GridView>
                             </ListView.View>

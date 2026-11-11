@@ -21,16 +21,21 @@ namespace GeometryHelper.UnitTest.Common
         private static readonly Tolerance Loose = new Tolerance(1E-7, 1E-7);
 
         /// <summary>A hundred square, in the plane.</summary>
-        private static GeoPolygon2 Square() => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+        private static GeoPolygon2 Square() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
 
         /// <summary>An L in the plane: along x to (400, 0), then up to (400, 200).</summary>
-        private static GeoPolyline2 Bent() => new GeoPolyline2(
-            new GeoPoint2(0, 0), new GeoPoint2(400, 0), new GeoPoint2(400, 200));
+        private static GeoPolyline2 Bent() =>
+            new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(400, 0), new GeoPoint2(400, 200));
 
         /// <summary>A chain in space that lies in no one plane: along x, then y, then z.</summary>
-        private static GeoPolyline3 Crooked() => new GeoPolyline3(
-            new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0), new GeoPoint3(400, 200, 300));
+        private static GeoPolyline3 Crooked() =>
+            new GeoPolyline3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(400, 200, 0),
+                new GeoPoint3(400, 200, 300)
+            );
 
         #region Rounding the straight types in the plane
 
@@ -185,9 +190,17 @@ namespace GeometryHelper.UnitTest.Common
         public void TwoCornersWantingTheSameLegAreSettledTheWayThePlaneSettlesThem()
         {
             var loop = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 100, 0),
+                new GeoPoint3(0, 100, 0)
+            );
             var flat = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(0, 100)
+            );
 
             // Room to spare: a corner off each, eight vertices, and half a twenty-square gone four times over.
             Assert.Equal(8, loop.Chamfer(20.0).VertexCount);
@@ -226,7 +239,11 @@ namespace GeometryHelper.UnitTest.Common
         {
             // A square standing on edge, turned out of every axis plane.
             var tilted = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(100, 100, 100), new GeoPoint3(0, 0, 100));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 100, 0),
+                new GeoPoint3(100, 100, 100),
+                new GeoPoint3(0, 0, 100)
+            );
 
             GeoPlane3 plane = tilted.GetPlane();
 
@@ -254,8 +271,11 @@ namespace GeometryHelper.UnitTest.Common
         {
             // A bar: two straight legs with a fifty radius at the bend, then a third leg out of plane.
             GeoPolylineArc3 bar = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 400, 0), new GeoPoint3(400, 400, 400))
-                .Fillet(50.0);
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(400, 400, 0),
+                new GeoPoint3(400, 400, 400)
+            ).Fillet(50.0);
 
             int arcsBefore = bar.GetEdges().Count(edge => edge.IsArc);
 
@@ -280,7 +300,11 @@ namespace GeometryHelper.UnitTest.Common
         {
             // Round the first bend only, so the second corner still meets two straight legs.
             GeoPolyline3 setOut = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 400, 0), new GeoPoint3(400, 400, 400));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(400, 400, 0),
+                new GeoPoint3(400, 400, 400)
+            );
 
             Assert.True(setOut.TryFilletAt(1, 50.0, out GeoPolylineArc3 half));
             Assert.Single(half.GetEdges(), edge => edge.IsArc);
@@ -328,7 +352,11 @@ namespace GeometryHelper.UnitTest.Common
             GeoPolygon2 square = Square();
             GeoPolyline3 crooked = Crooked();
             var loop = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 100, 0),
+                new GeoPoint3(0, 100, 0)
+            );
 
             Assert.Equal(bent.Fillet(50.0).Length, bent.Fillet(50.0, global).Length, 9);
             Assert.Equal(square.Fillet(30.0).Area, square.Fillet(30.0, global).Area, 9);
@@ -339,12 +367,14 @@ namespace GeometryHelper.UnitTest.Common
 
             Assert.Equal(
                 bent.TryFilletAt(1, 50.0, out GeoPolylineArc2 a),
-                bent.TryFilletAt(1, 50.0, out GeoPolylineArc2 b, global));
+                bent.TryFilletAt(1, 50.0, out GeoPolylineArc2 b, global)
+            );
             Assert.Equal(a.Length, b.Length, 9);
 
             Assert.Equal(
                 crooked.TryChamferAt(1, 50.0, 50.0, out GeoPolyline3 c),
-                crooked.TryChamferAt(1, 50.0, 50.0, out GeoPolyline3 d, global));
+                crooked.TryChamferAt(1, 50.0, 50.0, out GeoPolyline3 d, global)
+            );
             Assert.Equal(c.Length, d.Length, 9);
 
             Assert.Throws<ArgumentNullException>(() => Corner3.Chamfer((GeoPolygon3)null, 10.0));

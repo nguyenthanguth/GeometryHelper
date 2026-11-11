@@ -23,11 +23,19 @@ namespace GeometryHelper.Viewer.Tests
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var references = new List<MetadataReference>();
             string trusted = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string ?? string.Empty;
-            var files = trusted.Split(Path.PathSeparator).Where(f => f.Length > 0).Where(f =>
-            {
-                string name = Path.GetFileNameWithoutExtension(f);
-                return name.StartsWith("System.", StringComparison.Ordinal) || name == "System" || name == "netstandard" || name == "mscorlib" || name == "Microsoft.CSharp";
-            }).ToList();
+            var files = trusted
+                .Split(Path.PathSeparator)
+                .Where(f => f.Length > 0)
+                .Where(f =>
+                {
+                    string name = Path.GetFileNameWithoutExtension(f);
+                    return name.StartsWith("System.", StringComparison.Ordinal)
+                        || name == "System"
+                        || name == "netstandard"
+                        || name == "mscorlib"
+                        || name == "Microsoft.CSharp";
+                })
+                .ToList();
 
             files.Add(typeof(Tolerance).Assembly.Location);
             files.AddRange(Directory.GetFiles(AppContext.BaseDirectory, "xunit*.dll"));
@@ -45,14 +53,23 @@ namespace GeometryHelper.Viewer.Tests
     {
         public static IEnumerable<object[]> Kinds => SampleShapes.KindData;
 
-        private static ScriptOptions Options()
-            => ScriptOptions.Default.WithReferences(RoslynReferences.All()).WithImports("System", "System.Linq", "System.Collections.Generic", "GeometryHelper", "GeometryHelper.Geometry");
+        private static ScriptOptions Options() =>
+            ScriptOptions
+                .Default.WithReferences(RoslynReferences.All())
+                .WithImports(
+                    "System",
+                    "System.Linq",
+                    "System.Collections.Generic",
+                    "GeometryHelper",
+                    "GeometryHelper.Geometry"
+                );
 
         private static bool Same(object a, object b)
         {
             if (a is Array arrayA && b is Array arrayB)
             {
-                return arrayA.Length == arrayB.Length && arrayA.Cast<object>().Zip(arrayB.Cast<object>(), Same).All(x => x);
+                return arrayA.Length == arrayB.Length
+                    && arrayA.Cast<object>().Zip(arrayB.Cast<object>(), Same).All(x => x);
             }
 
             return GeometryEncoder.Encode(a).GetRawText() == GeometryEncoder.Encode(b).GetRawText();
@@ -74,7 +91,19 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public async Task ANumberThatIsNotRoundOrNegativeZeroOrAnInteger_IsWrittenSoItReadsBackAsTheSameBits()
         {
-            double[] values = { 0.1, 1E-300, 1.0 / 3.0, 123456789.12345678, -0.0, 0.0, 5.0, -2.0, 1E21, double.Epsilon };
+            double[] values =
+            {
+                0.1,
+                1E-300,
+                1.0 / 3.0,
+                123456789.12345678,
+                -0.0,
+                0.0,
+                5.0,
+                -2.0,
+                1E21,
+                double.Epsilon,
+            };
 
             foreach (double value in values)
             {
@@ -91,7 +120,14 @@ namespace GeometryHelper.Viewer.Tests
         {
             var writer = new SceneWriter("mixed");
             writer.Scene.SetTolerance(new Tolerance(0.002, 1E-5, 0.01, 0.02));
-            writer.Add(new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 60), new GeoPoint2(0, 60) }, new[] { 0.0, 0.5, 0.0, 0.0 }), layer: "source", name: "star 2:116");
+            writer.Add(
+                new GeoPolygonArc2(
+                    new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 60), new GeoPoint2(0, 60) },
+                    new[] { 0.0, 0.5, 0.0, 0.0 }
+                ),
+                layer: "source",
+                name: "star 2:116"
+            );
             writer.Add(SampleShapes.Box(30, 20, 10, true), name: "box with a hole");
             writer.Add(SampleShapes.Make("GeoFace2", 5), name: "plate");
             writer.Add(SampleShapes.Make("GeoMesh3", 5), name: "mesh");
@@ -107,12 +143,19 @@ namespace GeometryHelper.Viewer.Tests
                 "ExportedTests" + Guid.NewGuid().ToString("N"),
                 new[] { CSharpSyntaxTree.ParseText(source) },
                 RoslynReferences.All(),
-                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Disable));
+                new CSharpCompilationOptions(
+                    OutputKind.DynamicallyLinkedLibrary,
+                    nullableContextOptions: NullableContextOptions.Disable
+                )
+            );
 
             using (var stream = new MemoryStream())
             {
                 var result = compilation.Emit(stream);
-                string errors = string.Join("\n", result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Select(d => d.ToString()));
+                string errors = string.Join(
+                    "\n",
+                    result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Select(d => d.ToString())
+                );
                 return (result.Success ? stream.ToArray() : null, errors);
             }
         }
@@ -138,13 +181,18 @@ namespace GeometryHelper.Viewer.Tests
 
             Type type = Assembly.Load(image).GetType("GeometryHelper.UnitTest.ViewerExportTests", true);
             object instance = Activator.CreateInstance(type);
-            MethodInfo[] tests = type.GetMethods().Where(m => m.GetCustomAttribute<FactAttribute>() != null).OrderBy(m => m.Name, StringComparer.Ordinal).ToArray();
+            MethodInfo[] tests = type.GetMethods()
+                .Where(m => m.GetCustomAttribute<FactAttribute>() != null)
+                .OrderBy(m => m.Name, StringComparer.Ordinal)
+                .ToArray();
 
             Assert.Equal(6, tests.Length);
 
             foreach (MethodInfo test in tests)
             {
-                TargetInvocationException thrown = Assert.Throws<TargetInvocationException>(() => test.Invoke(instance, null));
+                TargetInvocationException thrown = Assert.Throws<TargetInvocationException>(() =>
+                    test.Invoke(instance, null)
+                );
                 Assert.IsAssignableFrom<Xunit.Sdk.XunitException>(thrown.InnerException);
             }
         }
@@ -168,9 +216,18 @@ namespace GeometryHelper.Viewer.Tests
         {
             Scene scene = MixedScene();
             string text = TestExporter.Export(scene, new[] { scene.Items[0] });
-            double length = double.Parse(ItemMeasures.Numbers(scene.Items[0], scene).First(n => n.Key == "Length").Value, System.Globalization.CultureInfo.InvariantCulture);
+            double length = double.Parse(
+                ItemMeasures.Numbers(scene.Items[0], scene).First(n => n.Key == "Length").Value,
+                System.Globalization.CultureInfo.InvariantCulture
+            );
 
-            Assert.Contains("the viewer measured " + length.ToString("G17", System.Globalization.CultureInfo.InvariantCulture) + ".", text, StringComparison.Ordinal);
+            Assert.Contains(
+                "the viewer measured "
+                    + length.ToString("G17", System.Globalization.CultureInfo.InvariantCulture)
+                    + ".",
+                text,
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -179,7 +236,11 @@ namespace GeometryHelper.Viewer.Tests
             Scene scene = MixedScene();
             string text = TestExporter.Export(scene, new[] { scene.Items[0] });
 
-            Assert.Contains("var tolerance = new Tolerance(0.002, 1.0000000000000001E-05, 0.01, 0.02);", text, StringComparison.Ordinal);
+            Assert.Contains(
+                "var tolerance = new Tolerance(0.002, 1.0000000000000001E-05, 0.01, 0.02);",
+                text,
+                StringComparison.Ordinal
+            );
             Assert.Contains("using (Tolerance.Use(tolerance))", text, StringComparison.Ordinal);
             Assert.DoesNotContain("Tolerance.Global", text, StringComparison.Ordinal);
         }
@@ -188,7 +249,12 @@ namespace GeometryHelper.Viewer.Tests
         public void ALabelAndAnUnknownKind_AreLeftOutAndSaidSo()
         {
             Scene scene = MixedScene();
-            var unknown = new SceneItem { Name = "odd", Layer = "default", Kind = "GeoFuture9" };
+            var unknown = new SceneItem
+            {
+                Name = "odd",
+                Layer = "default",
+                Kind = "GeoFuture9",
+            };
             string text = TestExporter.Export(scene, new[] { scene.Items[6], unknown });
 
             Assert.DoesNotContain("[Fact]", text, StringComparison.Ordinal);
@@ -260,7 +326,11 @@ namespace GeometryHelper.Viewer.Tests
         {
             int count = 0;
 
-            for (int at = text.IndexOf(what, StringComparison.Ordinal); at >= 0; at = text.IndexOf(what, at + what.Length, StringComparison.Ordinal))
+            for (
+                int at = text.IndexOf(what, StringComparison.Ordinal);
+                at >= 0;
+                at = text.IndexOf(what, at + what.Length, StringComparison.Ordinal)
+            )
             {
                 count++;
             }

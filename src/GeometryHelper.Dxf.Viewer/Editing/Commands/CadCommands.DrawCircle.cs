@@ -13,23 +13,33 @@ namespace GeometryHelper.Dxf.Viewer
         /// tangent only or <c>_tan</c> was typed first, a point on a line, an arc or a circle, said so where it is on none. Adds
         /// what was given to the list, nothing where the command ends.
         /// </summary>
-        private static IEnumerable<CadPrompt> AskTouch(CadCommandContext c, string message, GeoPoint2? basePoint, List<Touch> touches, bool tangentOnly, Func<Touch, DxfEntity> preview = null)
+        private static IEnumerable<CadPrompt> AskTouch(
+            CadCommandContext c,
+            string message,
+            GeoPoint2? basePoint,
+            List<Touch> touches,
+            bool tangentOnly,
+            Func<Touch, DxfEntity> preview = null
+        )
         {
             bool tangent = tangentOnly;
 
             while (true)
             {
-                CadPrompt asked = tangent && !tangentOnly ? CadPrompt.ForPoint("to", basePoint) : CadPrompt.ForPoint(message, basePoint, null, null, !tangentOnly);
+                CadPrompt asked =
+                    tangent && !tangentOnly
+                        ? CadPrompt.ForPoint("to", basePoint)
+                        : CadPrompt.ForPoint(message, basePoint, null, null, !tangentOnly);
 
                 // The circle the point at the cursor would give, or the object under it where a tangent is asked.
                 if (preview != null)
                 {
                     bool touching = tangent;
                     asked.Previewing(CadPreview.MakingOne(c, input =>
-                    {
-                        DxfEntity under = touching ? TouchedAt(c, input.Point) : null;
-                        return touching && under == null ? null : preview(new Touch(message, input.Point, under));
-                    }));
+                        {
+                            DxfEntity under = touching ? TouchedAt(c, input.Point) : null;
+                            return touching && under == null ? null : preview(new Touch(message, input.Point, under));
+                        }));
                 }
 
                 yield return asked;
@@ -38,7 +48,10 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     string typed = c.Input.Text.Trim();
 
-                    if (string.Equals(typed, "_tan", StringComparison.OrdinalIgnoreCase) || string.Equals(typed, "tan", StringComparison.OrdinalIgnoreCase))
+                    if (
+                        string.Equals(typed, "_tan", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(typed, "tan", StringComparison.OrdinalIgnoreCase)
+                    )
                     {
                         tangent = true;
                         continue;
@@ -82,7 +95,10 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 DxfEntity entity = c.Document.FindEntity(handle);
 
-                if (entity is DxfLine line && (P2(line.EndPoint) - P2(line.StartPoint)).Length > c.Session.Tolerance.EqualPoint)
+                if (
+                    entity is DxfLine line
+                    && (P2(line.EndPoint) - P2(line.StartPoint)).Length > c.Session.Tolerance.EqualPoint
+                )
                 {
                     return entity;
                 }
@@ -101,7 +117,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// way of touching gives (outside or inside a circle, either side of a line), found by Newton's method from the middle of
         /// the picks, the one whose points of touching lie nearest the picks, ties to the least centre X, then Y, then radius.
         /// </summary>
-        private static bool CircleTouching(List<Touch> touches, Tolerance tolerance, out GeoPoint2 center, out double radius)
+        private static bool CircleTouching(
+            List<Touch> touches,
+            Tolerance tolerance,
+            out GeoPoint2 center,
+            out double radius
+        )
         {
             center = default;
             radius = 0.0;
@@ -141,10 +162,21 @@ namespace GeometryHelper.Dxf.Viewer
                         score += (touch.Foot(at, r) - touch.Pick).Length;
                     }
 
-                    bool better = score < best - tolerance.EqualPoint
-                        || (Math.Abs(score - best) <= tolerance.EqualPoint && (at.X < center.X - tolerance.EqualPoint
-                            || (Math.Abs(at.X - center.X) <= tolerance.EqualPoint && (at.Y < center.Y - tolerance.EqualPoint
-                                || (Math.Abs(at.Y - center.Y) <= tolerance.EqualPoint && r < radius)))));
+                    bool better =
+                        score < best - tolerance.EqualPoint
+                        || (
+                            Math.Abs(score - best) <= tolerance.EqualPoint
+                            && (
+                                at.X < center.X - tolerance.EqualPoint
+                                || (
+                                    Math.Abs(at.X - center.X) <= tolerance.EqualPoint
+                                    && (
+                                        at.Y < center.Y - tolerance.EqualPoint
+                                        || (Math.Abs(at.Y - center.Y) <= tolerance.EqualPoint && r < radius)
+                                    )
+                                )
+                            )
+                        );
 
                     if (better)
                     {
@@ -159,7 +191,15 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Newton's method on the three conditions of touching, one way of touching each (a bit of the sides each); false where it does not settle.</summary>
-        private static bool Solve(List<Touch> touches, int sides, GeoPoint2 start, double spread, Tolerance tolerance, out GeoPoint2 center, out double radius)
+        private static bool Solve(
+            List<Touch> touches,
+            int sides,
+            GeoPoint2 start,
+            double spread,
+            Tolerance tolerance,
+            out GeoPoint2 center,
+            out double radius
+        )
         {
             double x = start.X;
             double y = start.Y;
@@ -171,10 +211,23 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 for (int i = 0; i < 3; i++)
                 {
-                    touches[i].Condition(x, y, r, (sides >> i & 1) == 0 ? 1.0 : -1.0, out f[i], out j[i, 0], out j[i, 1], out j[i, 2]);
+                    touches[i]
+                        .Condition(
+                            x,
+                            y,
+                            r,
+                            (sides >> i & 1) == 0 ? 1.0 : -1.0,
+                            out f[i],
+                            out j[i, 0],
+                            out j[i, 1],
+                            out j[i, 2]
+                        );
                 }
 
-                double det = j[0, 0] * (j[1, 1] * j[2, 2] - j[1, 2] * j[2, 1]) - j[0, 1] * (j[1, 0] * j[2, 2] - j[1, 2] * j[2, 0]) + j[0, 2] * (j[1, 0] * j[2, 1] - j[1, 1] * j[2, 0]);
+                double det =
+                    j[0, 0] * (j[1, 1] * j[2, 2] - j[1, 2] * j[2, 1])
+                    - j[0, 1] * (j[1, 0] * j[2, 2] - j[1, 2] * j[2, 0])
+                    + j[0, 2] * (j[1, 0] * j[2, 1] - j[1, 1] * j[2, 0]);
 
                 if (Math.Abs(det) < 1E-300)
                 {
@@ -182,9 +235,24 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 // Cramer's rule for the step.
-                double dx = (f[0] * (j[1, 1] * j[2, 2] - j[1, 2] * j[2, 1]) - j[0, 1] * (f[1] * j[2, 2] - j[1, 2] * f[2]) + j[0, 2] * (f[1] * j[2, 1] - j[1, 1] * f[2])) / det;
-                double dy = (j[0, 0] * (f[1] * j[2, 2] - j[1, 2] * f[2]) - f[0] * (j[1, 0] * j[2, 2] - j[1, 2] * j[2, 0]) + j[0, 2] * (j[1, 0] * f[2] - f[1] * j[2, 0])) / det;
-                double dr = (j[0, 0] * (j[1, 1] * f[2] - f[1] * j[2, 1]) - j[0, 1] * (j[1, 0] * f[2] - f[1] * j[2, 0]) + f[0] * (j[1, 0] * j[2, 1] - j[1, 1] * j[2, 0])) / det;
+                double dx =
+                    (
+                        f[0] * (j[1, 1] * j[2, 2] - j[1, 2] * j[2, 1])
+                        - j[0, 1] * (f[1] * j[2, 2] - j[1, 2] * f[2])
+                        + j[0, 2] * (f[1] * j[2, 1] - j[1, 1] * f[2])
+                    ) / det;
+                double dy =
+                    (
+                        j[0, 0] * (f[1] * j[2, 2] - j[1, 2] * f[2])
+                        - f[0] * (j[1, 0] * j[2, 2] - j[1, 2] * j[2, 0])
+                        + j[0, 2] * (j[1, 0] * f[2] - f[1] * j[2, 0])
+                    ) / det;
+                double dr =
+                    (
+                        j[0, 0] * (j[1, 1] * f[2] - f[1] * j[2, 1])
+                        - j[0, 1] * (j[1, 0] * f[2] - f[1] * j[2, 0])
+                        + f[0] * (j[1, 0] * j[2, 1] - j[1, 1] * j[2, 0])
+                    ) / det;
                 x -= dx;
                 y -= dy;
                 r -= dr;
@@ -210,7 +278,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (Touch touch in touches)
             {
-                if (Math.Abs((touch.Foot(center, r) - center).Length - r) > tolerance.EqualPoint || !touch.Touches(center, r, tolerance))
+                if (
+                    Math.Abs((touch.Foot(center, r) - center).Length - r) > tolerance.EqualPoint
+                    || !touch.Touches(center, r, tolerance)
+                )
                 {
                     return false;
                 }
@@ -271,7 +342,16 @@ namespace GeometryHelper.Dxf.Viewer
             /// The condition of touching and its slopes by x, y and r: a point at the radius from the centre; a line at the radius
             /// on the side given; a circle the radius further out or, the side below nought, the radius in.
             /// </summary>
-            public void Condition(double x, double y, double r, double side, out double f, out double fx, out double fy, out double fr)
+            public void Condition(
+                double x,
+                double y,
+                double r,
+                double side,
+                out double f,
+                out double fx,
+                out double fy,
+                out double fr
+            )
             {
                 if (_line)
                 {
@@ -321,11 +401,13 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (_line)
                 {
-                    return Math.Abs(Math.Abs(-_way.Y * (center.X - _origin.X) + _way.X * (center.Y - _origin.Y)) - r) <= tolerance.EqualPoint;
+                    return Math.Abs(Math.Abs(-_way.Y * (center.X - _origin.X) + _way.X * (center.Y - _origin.Y)) - r)
+                        <= tolerance.EqualPoint;
                 }
 
                 double apart = (center - _origin).Length;
-                return Math.Abs(apart - (_radius + r)) <= tolerance.EqualPoint || Math.Abs(apart - Math.Abs(_radius - r)) <= tolerance.EqualPoint;
+                return Math.Abs(apart - (_radius + r)) <= tolerance.EqualPoint
+                    || Math.Abs(apart - Math.Abs(_radius - r)) <= tolerance.EqualPoint;
             }
         }
     }

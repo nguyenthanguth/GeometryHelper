@@ -29,7 +29,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // bottom's rings running through the corners of both sides of it: each spans the crack by an edge 0.003 long, its
             // two corners neighbours on the ring and copies of one point. Made one, the edge goes, and the crack closes in the
             // front's plane.
-            SolidClosing3 report = AssertWelded(ClosingTestBodies.BoxCrackedThroughTheFront(0.003), 0.005, out GeoSolid3 closed);
+            SolidClosing3 report = AssertWelded(
+                ClosingTestBodies.BoxCrackedThroughTheFront(0.003),
+                0.005,
+                out GeoSolid3 closed
+            );
             Assert.Equal(2, report.Repairs.Count);
             Assert.All(report.Repairs, repair => Assert.Equal(SolidRepairKind.Weld, repair.Kind));
             Assert.All(report.Repairs, repair => Assert.InRange(repair.Location.X, 15.0 - 1E-9, 15.003 + 1E-9));
@@ -42,7 +46,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // The top's ring runs through the corner over (30, 20) and on through a copy of it 0.003 out along the top's
             // diagonal, the right and the back meeting at the corner alone: the copy stands off the back's edge beyond its
             // end, so that no edge takes it, and it is made one with the corner, which the top has as well.
-            SolidClosing3 report = AssertWelded(ClosingTestBodies.BoxWithATopCornerDoubled(0.003), 0.005, out GeoSolid3 closed);
+            SolidClosing3 report = AssertWelded(
+                ClosingTestBodies.BoxWithATopCornerDoubled(0.003),
+                0.005,
+                out GeoSolid3 closed
+            );
             SolidRepair3 weld = Assert.Single(report.Repairs);
             Assert.Equal(SolidRepairKind.Weld, weld.Kind);
             Assert.InRange(weld.Location.DistanceTo(new GeoPoint3(30, 20, 10)), 0.0, 1E-9);
@@ -56,7 +64,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // The top's corner over (30, 20) in two copies beside each other on the top's ring, one 0.002 off the right's
             // plane and the other off the back's, the right and the back meeting at the corner itself: both are made one with
             // it, and the top lies flat on the box again.
-            SolidClosing3 report = AssertWelded(ClosingTestBodies.BoxWithATopCornerInTwo(0.002), 0.005, out GeoSolid3 closed);
+            SolidClosing3 report = AssertWelded(
+                ClosingTestBodies.BoxWithATopCornerInTwo(0.002),
+                0.005,
+                out GeoSolid3 closed
+            );
             SolidRepair3 weld = Assert.Single(report.Repairs);
             Assert.Equal(SolidRepairKind.Weld, weld.Kind);
             Assert.InRange(weld.Location.DistanceTo(new GeoPoint3(30, 20, 10)), 0.0, 1E-9);
@@ -69,7 +81,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // The top corner over (30, 20) cut off 0.003 along each edge and the triangle left out: each corner of it is a
             // corner of the two faces meeting along its edge, so every two of them share a face, on whose ring they are
             // neighbours. The three, 0.0042 apart, are made one within a gap of 0.005.
-            SolidClosing3 report = AssertWelded(ClosingTestBodies.BoxWithItsCornerCutOffOpen(0.003), 0.005, out GeoSolid3 closed);
+            SolidClosing3 report = AssertWelded(
+                ClosingTestBodies.BoxWithItsCornerCutOffOpen(0.003),
+                0.005,
+                out GeoSolid3 closed
+            );
             SolidRepair3 weld = Assert.Single(report.Repairs);
             Assert.Equal(SolidRepairKind.Weld, weld.Kind);
             Assert.InRange(closed.GetVolume(Fine), Volume - 0.003 * Area, Volume + 0.003 * Area);
@@ -81,7 +97,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // The edge between the top and the right chamfered 0.003 along each and the chamfer left out: a strip 0.0042 wide,
             // which the front and the back each span by a short edge from the top's corner to the right's. Welded at both
             // ends, the strip closes.
-            SolidClosing3 report = AssertWelded(ClosingTestBodies.BoxWithAChamferMissing(0.003), 0.005, out GeoSolid3 closed);
+            SolidClosing3 report = AssertWelded(
+                ClosingTestBodies.BoxWithAChamferMissing(0.003),
+                0.005,
+                out GeoSolid3 closed
+            );
             Assert.Equal(2, report.Repairs.Count);
             Assert.All(report.Repairs, repair => Assert.Equal(SolidRepairKind.Weld, repair.Kind));
             Assert.InRange(closed.GetVolume(Fine), Volume - 0.003 * Area, Volume + 0.003 * Area);
@@ -95,7 +115,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // A flap 0.004 by 0.004 stands out of the top's front edge beside the top's corner over (30, 0), which is moved
             // out 0.003. The corner welds back, but the flap is a fin, a stretch of the edge three faces run, and welding its
             // corners together or onto the box's would hide it, not close it: the body is refused at the flap.
-            GeoPoint3 at = AssertRefused(ClosingTestBodies.BoxWithAMovedCornerAndAFlapBesideIt(), gap, ClosingFailure.NonManifold);
+            GeoPoint3 at = AssertRefused(
+                ClosingTestBodies.BoxWithAMovedCornerAndAFlapBesideIt(),
+                gap,
+                ClosingFailure.NonManifold
+            );
             Assert.InRange(at.DistanceTo(new GeoPoint3(29.994, 0, 10)), 0.0, 0.006);
         }
 
@@ -142,7 +166,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // edge it runs is shorter than the widest gap, 0.005, and all four run the same way as its neighbours'. It is
             // turned back, as any face wound against every face beside it is.
             GeoSolid3 body = ClosingTestBodies.BoxWithAFinePatchOneTurned(10, 0.004, false);
-            Assert.True(body.TryClose(out GeoSolid3 closed, new SolidClosingOptions(Fine, 0.005), out SolidClosing3 report), report.ToString());
+            Assert.True(
+                body.TryClose(out GeoSolid3 closed, new SolidClosingOptions(Fine, 0.005), out SolidClosing3 report),
+                report.ToString()
+            );
             Assert.True(closed.Validate(Fine).IsValid);
             SolidRepair3 flip = Assert.Single(report.Repairs);
             Assert.Equal(SolidRepairKind.Flip, flip.Kind);
@@ -157,7 +184,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // The patch of triangles 0.3 a side, the first of the middle cell's two wound the wrong way, closed within a gap
             // of 0.5: no edge of it is longer than 0.43.
             GeoSolid3 body = ClosingTestBodies.BoxWithAFinePatchOneTurned(10, 0.3, true);
-            Assert.True(body.TryClose(out GeoSolid3 closed, new SolidClosingOptions(Fine, 0.5), out SolidClosing3 report), report.ToString());
+            Assert.True(
+                body.TryClose(out GeoSolid3 closed, new SolidClosingOptions(Fine, 0.5), out SolidClosing3 report),
+                report.ToString()
+            );
             Assert.True(closed.Validate(Fine).IsValid);
             SolidRepair3 flip = Assert.Single(report.Repairs);
             Assert.Equal(SolidRepairKind.Flip, flip.Kind);
@@ -172,7 +202,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // stretch of edge is as long as the gap, and the body is one shell all the same, wound inwards. Every face is
             // turned out.
             GeoSolid3 body = ClosingTestBodies.FineCubeInsideOut(3, 10);
-            Assert.True(body.TryClose(out GeoSolid3 closed, new SolidClosingOptions(Fine, 0.5), out SolidClosing3 report), report.ToString());
+            Assert.True(
+                body.TryClose(out GeoSolid3 closed, new SolidClosingOptions(Fine, 0.5), out SolidClosing3 report),
+                report.ToString()
+            );
             Assert.True(closed.Validate(Fine).IsValid);
             Assert.Equal(600, report.Repairs.Count);
             Assert.All(report.Repairs, repair => Assert.Equal(SolidRepairKind.Flip, repair.Kind));
@@ -186,8 +219,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // The box with its top wound the wrong way, or with every face so, closed within a gap of 50: no edge of it is
             // as long as that, and every face still faces the wrong way. The top is turned, or all six.
-            GeoSolid3 body = insideOut ? ClosingTestBodies.BoxInsideOut() : ClosingTestBodies.BoxWithFaceFlipped(ClosingTestBodies.Top);
-            Assert.True(body.TryClose(out GeoSolid3 closed, new SolidClosingOptions(Fine, 50), out SolidClosing3 report), report.ToString());
+            GeoSolid3 body = insideOut
+                ? ClosingTestBodies.BoxInsideOut()
+                : ClosingTestBodies.BoxWithFaceFlipped(ClosingTestBodies.Top);
+            Assert.True(
+                body.TryClose(out GeoSolid3 closed, new SolidClosingOptions(Fine, 50), out SolidClosing3 report),
+                report.ToString()
+            );
             Assert.True(closed.Validate(Fine).IsValid);
             Assert.Equal(insideOut ? 6 : 1, report.Repairs.Count);
             Assert.All(report.Repairs, repair => Assert.Equal(SolidRepairKind.Flip, repair.Kind));
@@ -209,7 +247,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             SolidClosing3 report = AssertWelded(body, 0.005, out GeoSolid3 closed);
             Assert.All(report.Repairs, repair => Assert.Equal(SolidRepairKind.Weld, repair.Kind));
-            double volume = whole.GetVolume(Fine), area = whole.GetSurfaceArea(Fine);
+            double volume = whole.GetVolume(Fine),
+                area = whole.GetSurfaceArea(Fine);
             Assert.InRange(closed.GetVolume(Fine), volume - 0.004 * area, volume + 0.004 * area);
         }
 
@@ -222,10 +261,15 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // round before the welding, so that no shell of it says which way it faces, and closed after it, inside out. The
             // body welded is turned out, all six faces, as a closed shell wound inwards is.
             var body = new GeoSolid3(ClosingTestBodies.BoxOfMovedCopies(seed, 0.002).Faces.Select(face => face.Flip()));
-            Assert.True(body.TryClose(out GeoSolid3 closed, new SolidClosingOptions(Fine, 0.005), out SolidClosing3 report), report.ToString());
+            Assert.True(
+                body.TryClose(out GeoSolid3 closed, new SolidClosingOptions(Fine, 0.005), out SolidClosing3 report),
+                report.ToString()
+            );
             Assert.True(closed.Validate(Fine).IsValid);
             Assert.Equal(6, report.Repairs.Count(repair => repair.Kind == SolidRepairKind.Flip));
-            Assert.All(report.Repairs, repair => Assert.Contains(repair.Kind, new[] { SolidRepairKind.Weld, SolidRepairKind.Flip }));
+            Assert.All(report.Repairs, repair =>
+                Assert.Contains(repair.Kind, new[] { SolidRepairKind.Weld, SolidRepairKind.Flip })
+            );
             Assert.InRange(closed.GetVolume(Fine), Volume - 0.004 * Area, Volume + 0.004 * Area);
         }
 
@@ -257,7 +301,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // The top's copy of one corner of the rim of a prism of 1 000 sides moved out 0.003 and up 0.00001: welded back,
             // the top's corners lie within a hair of its plane, and the top stays one face.
-            GeoSolid3 body = ClosingTestBodies.PrismWithTopCornerMoved(ClosingTestBodies.RoundPlan(1000, 10), 0, 10, 0, new GeoVector3(0.003, 0, 1E-5));
+            GeoSolid3 body = ClosingTestBodies.PrismWithTopCornerMoved(
+                ClosingTestBodies.RoundPlan(1000, 10),
+                0,
+                10,
+                0,
+                new GeoVector3(0.003, 0, 1E-5)
+            );
             SolidClosing3 report = AssertWelded(body, 0.005, out GeoSolid3 closed);
             Assert.Equal(SolidRepairKind.Weld, Assert.Single(report.Repairs).Kind);
             AssertCapsWhole(body, closed, 10);
@@ -269,21 +319,28 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             Assert.Equal(1, FacesIn(closed, 0.0));
             Assert.Equal(1, FacesIn(closed, height));
-            SolidValidation3 before = given.Validate(Fine), after = closed.Validate(Fine);
+            SolidValidation3 before = given.Validate(Fine),
+                after = closed.Validate(Fine);
             int slivers = before.Issues.Count(issue => issue.Kind == SolidIssueKind.SliverFace);
             Assert.Equal(slivers, after.Issues.Count(issue => issue.Kind == SolidIssueKind.SliverFace));
             Assert.DoesNotContain(after.Issues, issue => issue.Kind == SolidIssueKind.NonManifoldEdge);
         }
 
         // How many faces lie in the plane z = at, facing up or down, within the planar tolerance.
-        private static int FacesIn(GeoSolid3 body, double at)
-            => body.Faces.Count(face => Math.Abs(face.Normal.Z) > 0.999 && face.Boundary.Vertices.All(p => Math.Abs(p.Z - at) <= Fine.EqualPlanar));
+        private static int FacesIn(GeoSolid3 body, double at) =>
+            body.Faces.Count(face =>
+                Math.Abs(face.Normal.Z) > 0.999
+                && face.Boundary.Vertices.All(p => Math.Abs(p.Z - at) <= Fine.EqualPlanar)
+            );
 
         // Closed within a gap by welds and corners put on edges alone: valid, no ring doubling back, no skin of no thickness,
         // nothing filled.
         private static SolidClosing3 AssertWelded(GeoSolid3 body, double gap, out GeoSolid3 closed)
         {
-            Assert.True(body.TryClose(out closed, new SolidClosingOptions(Fine, gap), out SolidClosing3 report), report.ToString());
+            Assert.True(
+                body.TryClose(out closed, new SolidClosingOptions(Fine, gap), out SolidClosing3 report),
+                report.ToString()
+            );
             Assert.NotSame(body, closed);
             SolidValidation3 check = closed.Validate(Fine);
             Assert.True(check.IsValid, check.ToString());
@@ -292,14 +349,18 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.Equal(ClosingFailure.None, report.Failure);
             Assert.Equal(0.0, report.AddedArea);
             Assert.NotEmpty(report.Repairs);
-            Assert.All(report.Repairs, repair => Assert.Contains(repair.Kind, new[] { SolidRepairKind.Weld, SolidRepairKind.SplitEdge }));
+            Assert.All(report.Repairs, repair =>
+                Assert.Contains(repair.Kind, new[] { SolidRepairKind.Weld, SolidRepairKind.SplitEdge })
+            );
             return report;
         }
 
         // Not closed within a gap: nothing back and nothing done, with why and where.
         private static GeoPoint3 AssertRefused(GeoSolid3 body, double gap, ClosingFailure failure)
         {
-            Assert.False(body.TryClose(out GeoSolid3 closed, new SolidClosingOptions(Fine, gap), out SolidClosing3 report));
+            Assert.False(
+                body.TryClose(out GeoSolid3 closed, new SolidClosingOptions(Fine, gap), out SolidClosing3 report)
+            );
             Assert.Equal(failure, report.Failure);
             Assert.Null(closed);
             Assert.Empty(report.Repairs);
@@ -308,7 +369,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         // Within a millionth of what it should hold.
-        private static void AssertVolume(double expected, GeoSolid3 closed)
-            => Assert.InRange(closed.GetVolume(Fine), expected * (1.0 - 1E-6), expected * (1.0 + 1E-6));
+        private static void AssertVolume(double expected, GeoSolid3 closed) =>
+            Assert.InRange(closed.GetVolume(Fine), expected * (1.0 - 1E-6), expected * (1.0 + 1E-6));
     }
 }

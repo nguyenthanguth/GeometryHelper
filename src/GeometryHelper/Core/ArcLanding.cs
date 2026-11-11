@@ -41,9 +41,20 @@ namespace GeometryHelper.Core
         /// from the moved start, each in the moved plane.
         /// </summary>
         internal static double Bend(
-            double px, double py, double pz, double qx, double qy, double qz, double start, double cx, double cy, double cz)
+            double px,
+            double py,
+            double pz,
+            double qx,
+            double qy,
+            double qz,
+            double start,
+            double cx,
+            double cy,
+            double cz
+        )
         {
-            double cos = Math.Cos(start), sin = Math.Sin(start);
+            double cos = Math.Cos(start),
+                sin = Math.Sin(start);
 
             // The moved start, read from where the old centre lands, and the moved centre read from there.
             double ox = px * cos + qx * sin + cx;
@@ -51,7 +62,10 @@ namespace GeometryHelper.Core
             double oz = pz * cos + qz * sin + cz;
 
             double first = 2.0 * Hypot(px * ox + py * oy + pz * oz, qx * ox + qy * oy + qz * oz);
-            double second = Hypot(0.5 * (px * px + py * py + pz * pz - qx * qx - qy * qy - qz * qz), px * qx + py * qy + pz * qz);
+            double second = Hypot(
+                0.5 * (px * px + py * py + pz * pz - qx * qx - qy * qy - qz * qz),
+                px * qx + py * qy + pz * qz
+            );
 
             return first + 4.0 * second;
         }
@@ -68,9 +82,19 @@ namespace GeometryHelper.Core
         /// <param name="bend">The bound of the second derivative of <c>g</c> (<see cref="Bend"/>).</param>
         /// <param name="rise">The bound of the second derivative of the height; nought in the plane.</param>
         /// <param name="tolerance">How far off a point may land.</param>
-        internal static bool Plainly(double[] heights, double[] gaps, double sweep, double radius, double bend, double rise, double tolerance)
+        internal static bool Plainly(
+            double[] heights,
+            double[] gaps,
+            double sweep,
+            double radius,
+            double bend,
+            double rise,
+            double tolerance
+        )
         {
-            double highest = 0.0, most = double.MinValue, least = double.MaxValue;
+            double highest = 0.0,
+                most = double.MinValue,
+                least = double.MaxValue;
 
             for (int i = 0; i <= 16; i++)
             {
@@ -99,11 +123,36 @@ namespace GeometryHelper.Core
         /// <param name="bend">The bound of the second derivative of <c>g</c> (<see cref="Bend"/>).</param>
         /// <param name="rise">The bound of the second derivative of the height; nought in the plane.</param>
         /// <param name="tolerance">How far off a point may land.</param>
-        internal static bool Holds(Func<double, (double Height, double Gap)> at, double[] heights, double[] gaps, double sweep, double radius, double bend, double rise, double tolerance)
+        internal static bool Holds(
+            Func<double, (double Height, double Gap)> at,
+            double[] heights,
+            double[] gaps,
+            double sweep,
+            double radius,
+            double bend,
+            double rise,
+            double tolerance
+        )
         {
             for (int i = 0; i < 16; i++)
             {
-                if (!Holds(at, i / 16.0, (i + 1) / 16.0, heights[i], heights[i + 1], gaps[i], gaps[i + 1], Math.Abs(sweep), radius, bend, rise, tolerance, 0))
+                if (
+                    !Holds(
+                        at,
+                        i / 16.0,
+                        (i + 1) / 16.0,
+                        heights[i],
+                        heights[i + 1],
+                        gaps[i],
+                        gaps[i + 1],
+                        Math.Abs(sweep),
+                        radius,
+                        bend,
+                        rise,
+                        tolerance,
+                        0
+                    )
+                )
                 {
                     return false;
                 }
@@ -113,8 +162,20 @@ namespace GeometryHelper.Core
         }
 
         private static bool Holds(
-            Func<double, (double Height, double Gap)> at, double from, double to, double heightFrom, double heightTo, double gapFrom, double gapTo,
-            double sweep, double radius, double bend, double rise, double tolerance, int depth)
+            Func<double, (double Height, double Gap)> at,
+            double from,
+            double to,
+            double heightFrom,
+            double heightTo,
+            double gapFrom,
+            double gapTo,
+            double sweep,
+            double radius,
+            double bend,
+            double rise,
+            double tolerance,
+            int depth
+        )
         {
             double angle = sweep * (to - from);
             double square = angle * angle * 0.125;
@@ -145,8 +206,8 @@ namespace GeometryHelper.Core
         /// Gets how far a point stands off a circle of a radius, from the square of its distance from the centre less the
         /// square of the radius: no further inside than the centre.
         /// </summary>
-        private static double Off(double gap, double radius)
-            => gap <= -radius * radius ? -radius : gap / (Math.Sqrt(radius * radius + gap) + radius);
+        private static double Off(double gap, double radius) =>
+            gap <= -radius * radius ? -radius : gap / (Math.Sqrt(radius * radius + gap) + radius);
 
         private static double Hypot(double a, double b) => Math.Sqrt(a * a + b * b);
     }

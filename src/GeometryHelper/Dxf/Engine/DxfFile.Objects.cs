@@ -119,12 +119,20 @@ namespace GeometryHelper.Dxf
 
             if (end < 0 || !Style.Markers)
             {
-                throw new InvalidOperationException("A DXF " + VersionSaid() + " has no OBJECTS section to hold a " + type + ": R13 (AC1012) brought it.");
+                throw new InvalidOperationException(
+                    "A DXF "
+                        + VersionSaid()
+                        + " has no OBJECTS section to hold a "
+                        + type
+                        + ": R13 (AC1012) brought it."
+                );
             }
 
             if (!UsesHandles())
             {
-                throw new InvalidOperationException("The file writes no handles, which an object of the OBJECTS section needs to be pointed at.");
+                throw new InvalidOperationException(
+                    "The file writes no handles, which an object of the OBJECTS section needs to be pointed at."
+                );
             }
 
             Dictionary<ulong, DxfItem> index = ObjectIndex();
@@ -255,7 +263,11 @@ namespace GeometryHelper.Dxf
                 }
 
                 // The groups of the applications after the handle, as its reactors, stay before it.
-                while (put < data && pairs[put].Code == 102 && Text(head, pairs[put]).Trim().StartsWith("{", StringComparison.Ordinal))
+                while (
+                    put < data
+                    && pairs[put].Code == 102
+                    && Text(head, pairs[put]).Trim().StartsWith("{", StringComparison.Ordinal)
+                )
                 {
                     while (put < data && !(pairs[put].Code == 102 && Text(head, pairs[put]).Trim() == "}"))
                     {
@@ -457,13 +469,19 @@ namespace GeometryHelper.Dxf
             // Each line that holds the letter or a backslash, in their order, each looked at once.
             while (letter >= 0 || escape >= 0)
             {
-                int at = letter < 0 ? escape : escape < 0 ? letter : Math.Min(letter, escape);
+                int at =
+                    letter < 0 ? escape
+                    : escape < 0 ? letter
+                    : Math.Min(letter, escape);
 
                 if (at >= done)
                 {
                     int feed = Find(bytes, '\n', at, head.End);
                     int lineEnd = feed < 0 ? head.End : feed;
-                    int line = at > head.Start ? Math.Max(Array.LastIndexOf(bytes, (byte)'\n', at - 1, at - head.Start) + 1, head.Start) : head.Start;
+                    int line =
+                        at > head.Start
+                            ? Math.Max(Array.LastIndexOf(bytes, (byte)'\n', at - 1, at - head.Start) + 1, head.Start)
+                            : head.Start;
                     done = feed < 0 ? head.End : feed + 1;
 
                     if ((escape >= at && escape < lineEnd) || Holds(bytes, line, lineEnd, value))
@@ -485,7 +503,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Where a byte stands first in bytes from a place to an end; -1 where it is not there.</summary>
-        private static int Find(byte[] bytes, char letter, int from, int end) => from >= end ? -1 : Array.IndexOf(bytes, (byte)letter, from, end - from);
+        private static int Find(byte[] bytes, char letter, int from, int end) =>
+            from >= end ? -1 : Array.IndexOf(bytes, (byte)letter, from, end - from);
 
         /// <summary>The value of the group that begins at a place of a record, comments passed over, its spaces taken off, added where it is of the code given.</summary>
         private void After(Rec record, int at, int next, List<string> found)
@@ -614,8 +633,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether a group of a record is one given, its code and its text as <see cref="TailOf"/> reads it.</summary>
-        private bool SameTail(Rec record, Pair pair, KeyValuePair<int, string> group)
-            => pair.Code == group.Key && string.Equals(TailText(record, pair), group.Value, StringComparison.Ordinal);
+        private bool SameTail(Rec record, Pair pair, KeyValuePair<int, string> group) =>
+            pair.Code == group.Key && string.Equals(TailText(record, pair), group.Value, StringComparison.Ordinal);
 
         /// <summary>
         /// Sets the value of one group of a record (counted as <see cref="GroupsOf"/> counts them, after its group 0), its code
@@ -669,7 +688,11 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            throw new ArgumentOutOfRangeException(nameof(index), index, "The record has no group " + Number(index) + ".");
+            throw new ArgumentOutOfRangeException(
+                nameof(index),
+                index,
+                "The record has no group " + Number(index) + "."
+            );
         }
 
         /// <summary>
@@ -709,7 +732,11 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            throw new ArgumentOutOfRangeException(nameof(index), index, "The record has no group " + Number(index) + ".");
+            throw new ArgumentOutOfRangeException(
+                nameof(index),
+                index,
+                "The record has no group " + Number(index) + "."
+            );
         }
 
         /// <summary>How many changes the records have had, so that what is worked out of them all is kept until the next.</summary>
@@ -741,8 +768,8 @@ namespace GeometryHelper.Dxf
         internal int RemovedCount => _removed?.Count ?? 0;
 
         /// <summary>Whether a record of a handle has been taken out of the file since it was opened, an entity erased among them.</summary>
-        internal bool WasRemoved(string handle)
-            => _removed != null && handle != null && TryHex(handle.Trim(), out ulong key) && _removed.Contains(key);
+        internal bool WasRemoved(string handle) =>
+            _removed != null && handle != null && TryHex(handle.Trim(), out ulong key) && _removed.Contains(key);
 
         /// <summary>The groups of the own part of an object (from its first subclass marker), as <see cref="OwnGroupsOf(DxfItem, int)"/> reads an entity's.</summary>
         internal IReadOnlyList<DxfTypedValue> ObjectGroupsOf(DxfItem item) => OwnGroupsOf(item, 0);

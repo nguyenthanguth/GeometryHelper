@@ -13,7 +13,8 @@ namespace GeometryHelper.IfcConvert.UnitTest
         /// Shared entities #1-#11: project in <paramref name="lengthUnit"/>, 2D/3D origin placements,
         /// +Z direction and the 'Model' representation context. Test data should start at #20.
         /// </summary>
-        public static string CommonHeader(string lengthUnit = "$,.METRE.") => $@"
+        public static string CommonHeader(string lengthUnit = "$,.METRE.") =>
+            $@"
 #1=IFCPROJECT('0000000000000000000001',$,'TestProject',$,$,$,$,(#11),#2);
 #2=IFCUNITASSIGNMENT((#3));
 #3=IFCSIUNIT(*,.LENGTHUNIT.,{lengthUnit});
@@ -30,7 +31,8 @@ namespace GeometryHelper.IfcConvert.UnitTest
         /// </summary>
         public static void Run(string data, Action<IfcStoreCache> test, string schema = "IFC4")
         {
-            string step = $@"ISO-10303-21;
+            string step =
+                $@"ISO-10303-21;
 HEADER;
 FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');
 FILE_NAME('test.ifc','2026-09-18T00:00:00',('Tester'),('TestOrg'),'xBIM','xBIM','');
@@ -53,7 +55,11 @@ END-ISO-10303-21;
             }
             finally
             {
-                try { File.Delete(tempFile); } catch { }
+                try
+                {
+                    File.Delete(tempFile);
+                }
+                catch { }
             }
         }
     }

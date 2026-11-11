@@ -17,7 +17,20 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfOle2FrameTests
     {
-        private static readonly string[] Handles = { "D10", "D11", "D12", "D13", "D14", "D15", "D16", "D17", "D18", "D19", "D1A" };
+        private static readonly string[] Handles =
+        {
+            "D10",
+            "D11",
+            "D12",
+            "D13",
+            "D14",
+            "D15",
+            "D16",
+            "D17",
+            "D18",
+            "D19",
+            "D1A",
+        };
 
         private static DxfOle2Frame Of(DxfDatabase db, string handle) => ByHandle<DxfOle2Frame>(db, handle);
 
@@ -105,7 +118,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(78, DxfOle2FrameDrawings.Bitmap().Length);
 
             DxfOle2Frame metafile = Of(db, "D11");
-            Assert.Equal(DxfOle2FrameDrawings.PlaceableMetafile(), metafile.GetPictureData(out DxfOlePictureFormat wmf));
+            Assert.Equal(
+                DxfOle2FrameDrawings.PlaceableMetafile(),
+                metafile.GetPictureData(out DxfOlePictureFormat wmf)
+            );
             Assert.Equal(DxfOlePictureFormat.Metafile, wmf);
             Assert.Equal("Picture (Metafile)", metafile.UserType);
             Assert.Equal(DxfOle2FrameItemType.Static, metafile.Type);
@@ -233,7 +249,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfOle2Frame frame = Of(db, "D10");
 
             var outline = (GeoPolyline3)Assert.Single(frame.GetGeometry());
-            Assert.Equal(new[] { P(10, 40, 0), P(40, 40, 0), P(40, 20, 0), P(10, 20, 0), P(10, 40, 0) }.Select(Bits), outline.Vertices.Select(Bits));
+            Assert.Equal(
+                new[] { P(10, 40, 0), P(40, 40, 0), P(40, 20, 0), P(10, 20, 0), P(10, 40, 0) }.Select(Bits),
+                outline.Vertices.Select(Bits)
+            );
             Same(P(10, 20, 0), frame.GeometricExtents.Min);
             Same(P(40, 40, 0), frame.GeometricExtents.Max);
 
@@ -273,7 +292,9 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfOle2Frame frame = Of(db, "D10");
             byte[] before = Saved(db);
 
-            var copy = Assert.IsType<DxfOle2Frame>(frame.GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(5, 0, 0))));
+            var copy = Assert.IsType<DxfOle2Frame>(
+                frame.GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(5, 0, 0)))
+            );
             Assert.Equal(before, Saved(db));
             Same(P(15, 20, 0), copy.Location);
             Assert.IsType<DxfOle2Frame>(frame.GetTransformedCopy(GeoTransform3.Identity));
@@ -322,8 +343,23 @@ namespace GeometryHelper.UnitTest.Dxf
         public void AFrameOfACompoundFileOfVersion4_IsRead()
         {
             var b = new StringBuilder();
-            DxfOle2FrameDrawings.Frame(b, "D20", false, "Picture (Device Independent Bitmap)", 3, DxfOle2FrameDrawings.Head(DxfOle2FrameDrawings.Square(1, 2, 3, 4), 0x80, DxfOle2FrameDrawings.DibCompound(12)), true);
-            DxfOle2Frame frame = Of(DxfDatabase.Parse(DxfOle2FrameDrawings.With(DxfFileEzdxfDrawings.R2018, b.ToString())), "D20");
+            DxfOle2FrameDrawings.Frame(
+                b,
+                "D20",
+                false,
+                "Picture (Device Independent Bitmap)",
+                3,
+                DxfOle2FrameDrawings.Head(
+                    DxfOle2FrameDrawings.Square(1, 2, 3, 4),
+                    0x80,
+                    DxfOle2FrameDrawings.DibCompound(12)
+                ),
+                true
+            );
+            DxfOle2Frame frame = Of(
+                DxfDatabase.Parse(DxfOle2FrameDrawings.With(DxfFileEzdxfDrawings.R2018, b.ToString())),
+                "D20"
+            );
 
             Assert.Equal(DxfOle2FrameDrawings.Bitmap(), frame.GetPictureData(out DxfOlePictureFormat format));
             Assert.Equal(DxfOlePictureFormat.Dib, format);
@@ -338,7 +374,12 @@ namespace GeometryHelper.UnitTest.Dxf
             // by a DIFAT sector.
             var contents = new byte[7500000];
             new Random(11).NextBytes(contents);
-            byte[] file = DxfOle2FrameDrawings.Compound(DxfOle2FrameDrawings.StaticDib, 9, DxfOle2FrameDrawings.Stream("\u0001Ole", DxfOle2FrameDrawings.OleStream()), DxfOle2FrameDrawings.Stream("CONTENTS", contents));
+            byte[] file = DxfOle2FrameDrawings.Compound(
+                DxfOle2FrameDrawings.StaticDib,
+                9,
+                DxfOle2FrameDrawings.Stream("\u0001Ole", DxfOle2FrameDrawings.OleStream()),
+                DxfOle2FrameDrawings.Stream("CONTENTS", contents)
+            );
             Assert.Equal(1u, BitConverter.ToUInt32(file, 0x48));
 
             DxfCompoundFile read = DxfCompoundFile.Read(file, 0, file.Length, out string why);
@@ -353,15 +394,25 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ABinaryDamagedAnywhere_IsNeverReadPastItsEnd_NorThrows()
         {
-            byte[] dib = DxfOle2FrameDrawings.Head(DxfOle2FrameDrawings.Square(0, 0, 30, 20), 0x80, DxfOle2FrameDrawings.DibCompound());
-            byte[] link = DxfOle2FrameDrawings.Head(DxfOle2FrameDrawings.Square(0, 0, 30, 20), 0x80, DxfOle2FrameDrawings.LinkCompound());
+            byte[] dib = DxfOle2FrameDrawings.Head(
+                DxfOle2FrameDrawings.Square(0, 0, 30, 20),
+                0x80,
+                DxfOle2FrameDrawings.DibCompound()
+            );
+            byte[] link = DxfOle2FrameDrawings.Head(
+                DxfOle2FrameDrawings.Square(0, 0, 30, 20),
+                0x80,
+                DxfOle2FrameDrawings.LinkCompound()
+            );
             int read = 0;
 
             foreach (byte[] binary in new[] { dib, link })
             {
                 for (int at = 0; at < binary.Length; at++)
                 {
-                    foreach (byte value in new byte[] { 0x00, 0xFF, (byte)(binary[at] ^ 0x01), (byte)(binary[at] ^ 0x80) })
+                    foreach (
+                        byte value in new byte[] { 0x00, 0xFF, (byte)(binary[at] ^ 0x01), (byte)(binary[at] ^ 0x80) }
+                    )
                     {
                         var damaged = (byte[])binary.Clone();
                         damaged[at] = value;

@@ -18,7 +18,8 @@ namespace GeometryHelper.UnitTest.Clipper
         [Fact]
         public void SegsIntersect_Inclusive_AStartOnTheLineBeyondTheOther_DoesNotTouch()
         {
-            Point64 bottom = new Point64(5, 0), right = new Point64(10, 0);
+            Point64 bottom = new Point64(5, 0),
+                right = new Point64(10, 0);
 
             Assert.False(InternalClipper.SegsIntersect(new Point64(0, 0), new Point64(0, 10), bottom, right, true));
 
@@ -70,7 +71,8 @@ namespace GeometryHelper.UnitTest.Clipper
                                 if (InternalClipper.SegsIntersect(a, b, c, d, inclusive) != expected)
                                 {
                                     wrong++;
-                                    first = first ?? $"({a.X},{a.Y})-({b.X},{b.Y}) and ({c.X},{c.Y})-({d.X},{d.Y}), inclusive {inclusive}, should be {expected}";
+                                    first = first
+                                        ?? $"({a.X},{a.Y})-({b.X},{b.Y}) and ({c.X},{c.Y})-({d.X},{d.Y}), inclusive {inclusive}, should be {expected}";
                                 }
                             }
                         }
@@ -93,8 +95,8 @@ namespace GeometryHelper.UnitTest.Clipper
             return inclusive ? sidesOfC <= 0 && sidesOfA <= 0 : sidesOfC < 0 && sidesOfA < 0;
         }
 
-        private static int Side(Point64 from, Point64 to, Point64 point)
-            => Math.Sign((to.X - from.X) * (point.Y - from.Y) - (to.Y - from.Y) * (point.X - from.X));
+        private static int Side(Point64 from, Point64 to, Point64 point) =>
+            Math.Sign((to.X - from.X) * (point.Y - from.Y) - (to.Y - from.Y) * (point.X - from.X));
 
         /// <summary>
         /// ClipperD answered true for a sweep that had marked itself failed, with what it had built until then, where
@@ -107,13 +109,18 @@ namespace GeometryHelper.UnitTest.Clipper
             integers.AddReuseableData(DataTheSweepFailsOn());
             Assert.False(integers.Execute(ClipType.Difference, FillRule.Negative, new Paths64()));
 
-            PathsD closed = new PathsD(), open = new PathsD();
-            Assert.False(new ReusingClipperD(DataTheSweepFailsOn()).Execute(ClipType.Difference, FillRule.Negative, closed, open));
+            PathsD closed = new PathsD(),
+                open = new PathsD();
+            Assert.False(
+                new ReusingClipperD(DataTheSweepFailsOn()).Execute(ClipType.Difference, FillRule.Negative, closed, open)
+            );
             Assert.Empty(closed);
             Assert.Empty(open);
 
             PolyTreeD tree = new PolyTreeD();
-            Assert.False(new ReusingClipperD(DataTheSweepFailsOn()).Execute(ClipType.Difference, FillRule.Negative, tree, open));
+            Assert.False(
+                new ReusingClipperD(DataTheSweepFailsOn()).Execute(ClipType.Difference, FillRule.Negative, tree, open)
+            );
             Assert.Equal(0, tree.Count);
             Assert.Empty(open);
         }
@@ -127,7 +134,11 @@ namespace GeometryHelper.UnitTest.Clipper
         private static ReuseableDataContainer64 DataTheSweepFailsOn()
         {
             ReuseableDataContainer64 data = new ReuseableDataContainer64();
-            data.AddPaths(new Paths64 { Clipper2.MakePath(new long[] { 5, 1, 0, 4, 4, 3, 5, 5, 3, 1, 6, 6 }) }, PathType.Subject, false);
+            data.AddPaths(
+                new Paths64 { Clipper2.MakePath(new long[] { 5, 1, 0, 4, 4, 3, 5, 5, 3, 1, 6, 6 }) },
+                PathType.Subject,
+                false
+            );
 
             int at = data._minimaList.FindIndex(m => m.vertex.pt == new Point64(5, 5));
             LocalMinima minimum = data._minimaList[at];
@@ -140,7 +151,8 @@ namespace GeometryHelper.UnitTest.Clipper
         /// </summary>
         private sealed class ReusingClipperD : ClipperD
         {
-            public ReusingClipperD(ReuseableDataContainer64 data) : base(0)
+            public ReusingClipperD(ReuseableDataContainer64 data)
+                : base(0)
             {
                 AddReuseableData(data);
             }
@@ -153,14 +165,19 @@ namespace GeometryHelper.UnitTest.Clipper
         [Fact]
         public void ClipperRegion_ASweepThatFailed_GivesNothing_AndWarns()
         {
-            List<(GeometryHelperLogLevel Level, string Message)> written = new List<(GeometryHelperLogLevel Level, string Message)>();
+            List<(GeometryHelperLogLevel Level, string Message)> written =
+                new List<(GeometryHelperLogLevel Level, string Message)>();
             bool enabled = GeometryHelperLog.Enable;
             GeometryHelperLog.Enable = true;
             GeometryHelperLog.Writer = (level, message, exception) => written.Add((level, message));
 
             try
             {
-                PathsD solution = GeometryHelper.Core.ClipperRegion.Run(new ReusingClipperD(DataTheSweepFailsOn()), ClipType.Difference, FillRule.Negative);
+                PathsD solution = GeometryHelper.Core.ClipperRegion.Run(
+                    new ReusingClipperD(DataTheSweepFailsOn()),
+                    ClipType.Difference,
+                    FillRule.Negative
+                );
 
                 Assert.Empty(solution);
                 Assert.Contains(written, w => w.Level == GeometryHelperLogLevel.Warn && w.Message.Contains("Clipper2"));
@@ -193,9 +210,13 @@ namespace GeometryHelper.UnitTest.Clipper
         [Fact]
         public void PointD_EqualPoints_HashAlike()
         {
-            PointD point = new PointD(1.0, 2.0), near = new PointD(1.0 + 1e-13, 2.0);
+            PointD point = new PointD(1.0, 2.0),
+                near = new PointD(1.0 + 1e-13, 2.0);
 
-            Assert.True(!point.Equals(near) || point.GetHashCode() == near.GetHashCode(), "equal points hash differently");
+            Assert.True(
+                !point.Equals(near) || point.GetHashCode() == near.GetHashCode(),
+                "equal points hash differently"
+            );
             Assert.False(point == near);
             Assert.True(point != near);
             Assert.True(point == new PointD(1.0, 2.0));

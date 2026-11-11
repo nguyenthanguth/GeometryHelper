@@ -33,7 +33,11 @@ namespace GeometryHelper.Core
         /// Gathers where two runs of edges cross, naming each place once and dropping the pairs whose boxes
         /// cannot reach each other.
         /// </summary>
-        private static GeoPoint3[] CrossingsOfChains(IEnumerable<GeoEdge3> first, IEnumerable<GeoEdge3> second, Tolerance tolerance)
+        private static GeoPoint3[] CrossingsOfChains(
+            IEnumerable<GeoEdge3> first,
+            IEnumerable<GeoEdge3> second,
+            Tolerance tolerance
+        )
         {
             List<GeoEdge3> others = new List<GeoEdge3>(second);
             var boxes = new GeoAabb3[others.Count];
@@ -85,9 +89,14 @@ namespace GeometryHelper.Core
 
                 for (int i = 0; i < others.Count; i++)
                 {
-                    if (box.CollidesWith(boxes[i], tolerance) && (IsShortStraight(edge, tolerance) || IsShortStraight(others[i], tolerance)
-                        ? ShortTouches(edge, others[i], tolerance)
-                        : edge.CollidesWith(others[i], tolerance)))
+                    if (
+                        box.CollidesWith(boxes[i], tolerance)
+                        && (
+                            IsShortStraight(edge, tolerance) || IsShortStraight(others[i], tolerance)
+                                ? ShortTouches(edge, others[i], tolerance)
+                                : edge.CollidesWith(others[i], tolerance)
+                        )
+                    )
                     {
                         return true;
                     }

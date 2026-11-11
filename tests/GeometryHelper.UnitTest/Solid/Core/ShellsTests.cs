@@ -22,11 +22,11 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Loose = new Tolerance(1E-7, 1E-7);
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
-        private static GeoSolid3 Together(params GeoSolid3[] parts)
-            => new GeoSolid3(parts.SelectMany(part => part.Faces));
+        private static GeoSolid3 Together(params GeoSolid3[] parts) =>
+            new GeoSolid3(parts.SelectMany(part => part.Faces));
 
         [Fact]
         public void SubtractingABoxThatOverlapsAnExistingHoleKeepsTheMaterialFarFromIt()
@@ -46,7 +46,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(PointLocation.OutSide, slotted.Locate(new GeoPoint3(70, 50, 10)));
 
             // And the plate's own volume, its two openings cut out, agrees.
-            GeoSolid3 withOpenings = plate.WithOpenings(new[] { Box(30, 40, -1, 60, 60, 21), Box(50, 40, -1, 80, 60, 21) });
+            GeoSolid3 withOpenings = plate.WithOpenings(
+                new[] { Box(30, 40, -1, 60, 60, 21), Box(50, 40, -1, 80, 60, 21) }
+            );
 
             Assert.Equal(180000.0, withOpenings.GetVolume(), 3);
         }
@@ -109,7 +111,6 @@ namespace GeometryHelper.UnitTest.Solid
                 F(P(0, 0, 0), P(0, 0, 100), P(0, 100, 100), P(0, 100, 0)),
                 F(P(0, 0, 0), P(100, 0, 0), P(100, 0, 100), P(0, 0, 100)),
                 F(P(0, 0, 0), P(0, 100, 0), P(100, 100, 0), P(100, 0, 0)),
-
                 F(P(100, 100, 0), P(100, 100, 50), P(100, 100, 100), P(100, 200, 100), P(100, 200, 0)),
                 F(P(100, 100, 0), P(200, 100, 0), P(200, 100, 100), P(100, 100, 100)),
                 F(P(200, 100, 0), P(200, 200, 0), P(200, 200, 100), P(200, 100, 100)),
@@ -135,7 +136,13 @@ namespace GeometryHelper.UnitTest.Solid
             // drum its long edges all overlap, and across a thin disc all of its edges do: swept so, each of these bodies
             // of 4 096 sides took eleven seconds, against a few hundredths swept across.
             Tolerance tolerance = Tolerance.Default;
-            GeoSolid3 drum = GeoSolid3.Cylinder(new GeoPoint3(0, 0, 0), new GeoPoint3(10000, 0, 0), 600, 4096, tolerance);
+            GeoSolid3 drum = GeoSolid3.Cylinder(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10000, 0, 0),
+                600,
+                4096,
+                tolerance
+            );
             GeoSolid3 disc = GeoSolid3.Cylinder(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0), 600, 4096, tolerance);
 
             var watch = Stopwatch.StartNew();
@@ -189,7 +196,8 @@ namespace GeometryHelper.UnitTest.Solid
         public void EachOpeningGoesWithThePiecesItReaches()
         {
             var hole = Box(10, 40, -1, 20, 60, 31);
-            GeoSolid3 two = Together(Box(0, 0, 0, 30, 100, 30), Box(70, 0, 0, 100, 100, 30)).WithOpenings(new[] { hole });
+            GeoSolid3 two = Together(Box(0, 0, 0, 30, 100, 30), Box(70, 0, 0, 100, 100, 30))
+                .WithOpenings(new[] { hole });
 
             var pieces = Shells3.Split(two, Loose);
 

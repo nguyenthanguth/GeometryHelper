@@ -17,7 +17,12 @@ namespace GeometryHelper.Viewer.Tests
 
         private static GeoSolid3 Box(double x0, double y0, double z0, double x, double y, double z)
         {
-            var floor = new GeoPolygon3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x0 + x, y0, z0), new GeoPoint3(x0 + x, y0 + y, z0), new GeoPoint3(x0, y0 + y, z0));
+            var floor = new GeoPolygon3(
+                new GeoPoint3(x0, y0, z0),
+                new GeoPoint3(x0 + x, y0, z0),
+                new GeoPoint3(x0 + x, y0 + y, z0),
+                new GeoPoint3(x0, y0 + y, z0)
+            );
             return GeoSolid3.Extrude(floor, new GeoVector3(0, 0, z));
         }
 
@@ -26,23 +31,34 @@ namespace GeometryHelper.Viewer.Tests
         /// <summary>
         /// A box 10 by 10 by 10 written as the faces a scene holds, with its top cut in two at x = 5 and the right half of the top as wide as asked.
         /// </summary>
-        private static SceneItem SplitTopBox(double rightEdge)
-            => Diag.Raw(
+        private static SceneItem SplitTopBox(double rightEdge) =>
+            Diag.Raw(
                 "GeoSolid3",
-                "{\"faces\":[" + string.Join(
-                    ",",
-                    FaceJson(0, 0, 0, 0, 10, 0, 10, 10, 0, 10, 0, 0),
-                    FaceJson(0, 0, 10, 5, 0, 10, 5, 10, 10, 0, 10, 10),
-                    FaceJson(5, 0, 10, rightEdge, 0, 10, rightEdge, 10, 10, 5, 10, 10),
-                    FaceJson(0, 0, 0, 10, 0, 0, 10, 0, 10, 0, 0, 10),
-                    FaceJson(0, 10, 0, 0, 10, 10, 10, 10, 10, 10, 10, 0),
-                    FaceJson(0, 0, 0, 0, 0, 10, 0, 10, 10, 0, 10, 0),
-                    FaceJson(10, 0, 0, 10, 10, 0, 10, 10, 10, 10, 0, 10)) + "]}",
-                "split top");
+                "{\"faces\":["
+                    + string.Join(
+                        ",",
+                        FaceJson(0, 0, 0, 0, 10, 0, 10, 10, 0, 10, 0, 0),
+                        FaceJson(0, 0, 10, 5, 0, 10, 5, 10, 10, 0, 10, 10),
+                        FaceJson(5, 0, 10, rightEdge, 0, 10, rightEdge, 10, 10, 5, 10, 10),
+                        FaceJson(0, 0, 0, 10, 0, 0, 10, 0, 10, 0, 0, 10),
+                        FaceJson(0, 10, 0, 0, 10, 10, 10, 10, 10, 10, 10, 0),
+                        FaceJson(0, 0, 0, 0, 0, 10, 0, 10, 10, 0, 10, 0),
+                        FaceJson(10, 0, 0, 10, 10, 0, 10, 10, 10, 10, 0, 10)
+                    )
+                    + "]}",
+                "split top"
+            );
 
         private static GeoSolid3 Pyramid(int n)
         {
-            GeoPoint3[] ring = Enumerable.Range(0, n).Select(i => new GeoPoint3(1000 * Math.Cos(2 * Math.PI * i / n), 1000 * Math.Sin(2 * Math.PI * i / n), 0)).ToArray();
+            GeoPoint3[] ring = Enumerable
+                .Range(0, n)
+                .Select(i => new GeoPoint3(
+                    1000 * Math.Cos(2 * Math.PI * i / n),
+                    1000 * Math.Sin(2 * Math.PI * i / n),
+                    0
+                ))
+                .ToArray();
             var apex = new GeoPoint3(0, 0, 500);
             var faces = new List<GeoFace3> { new GeoFace3(new GeoPolygon3(Enumerable.Reverse(ring)), null) };
 
@@ -67,7 +83,11 @@ namespace GeometryHelper.Viewer.Tests
             string back = FaceJson(0, 10, 0, 0, 10, 10, 10, 10, 10, 10, 10, 0);
             string left = FaceJson(0, 0, 0, 0, 0, 10, 0, 10, 10, 0, 10, 0);
             string right = FaceJson(10, 0, 0, 10, 10, 0, 10, 10, 10, 10, 0, 10);
-            SceneItem box = Diag.Raw("GeoSolid3", "{\"faces\":[" + string.Join(",", top, bottom, front, back, left, right) + "]}", "rounded");
+            SceneItem box = Diag.Raw(
+                "GeoSolid3",
+                "{\"faces\":[" + string.Join(",", top, bottom, front, back, left, right) + "]}",
+                "rounded"
+            );
 
             DiagnosticReport report = Diag.Run(Diag.SceneOf(box), DiagnosticChecks.Duplicates, false);
 
@@ -83,7 +103,11 @@ namespace GeometryHelper.Viewer.Tests
             string back = FaceJson(0, 10, 0, 0, 10, 10, 10, 10, 10, 10, 10, 0);
             string left = FaceJson(0, 0, 0, 0, 0, 10, 0, 10, 10, 0, 10, 0);
             string right = FaceJson(10, 0, 0, 10, 10, 0, 10, 10, 10, 10, 0, 10);
-            SceneItem box = Diag.Raw("GeoSolid3", "{\"faces\":[" + string.Join(",", top, bottom, front, back, left, right) + "]}", "apart");
+            SceneItem box = Diag.Raw(
+                "GeoSolid3",
+                "{\"faces\":[" + string.Join(",", top, bottom, front, back, left, right) + "]}",
+                "apart"
+            );
             Scene scene = Diag.SceneOf(box);
 
             DiagnosticFinding alone = Assert.Single(Diag.Run(scene, DiagnosticChecks.Duplicates, false).Findings);
@@ -106,15 +130,31 @@ namespace GeometryHelper.Viewer.Tests
             for (int n = 0; n < 300; n++)
             {
                 GeoSolid3 a = Box(0, 0, 0, 100 + rnd.Next(100), 100 + rnd.Next(100), 50 + rnd.Next(50));
-                GeoSolid3 b = Box(-20 + rnd.NextDouble() * 100, -20 + rnd.NextDouble() * 100, -10 + rnd.NextDouble() * 60, 20 + rnd.NextDouble() * 80, 20 + rnd.NextDouble() * 80, 20 + rnd.NextDouble() * 80);
+                GeoSolid3 b = Box(
+                    -20 + rnd.NextDouble() * 100,
+                    -20 + rnd.NextDouble() * 100,
+                    -10 + rnd.NextDouble() * 60,
+                    20 + rnd.NextDouble() * 80,
+                    20 + rnd.NextDouble() * 80,
+                    20 + rnd.NextDouble() * 80
+                );
 
                 if (n % 2 == 0)
                 {
-                    b = b.TransformBy(GeoTransform3.RotationAxis(b.GetAabb().Center, new GeoVector3(rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble() + 0.1), rnd.NextDouble() * 3));
+                    b = b.TransformBy(
+                        GeoTransform3.RotationAxis(
+                            b.GetAabb().Center,
+                            new GeoVector3(rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble() + 0.1),
+                            rnd.NextDouble() * 3
+                        )
+                    );
                 }
 
                 GeoSolid3 r = null;
-                bool ok = (n % 3) == 0 ? a.TrySubtract(b, out r, tol) : (n % 3) == 1 ? a.TryUnion(b, out r, tol) : (r = a.Intersect(b, tol).FirstOrDefault()) != null;
+                bool ok =
+                    (n % 3) == 0 ? a.TrySubtract(b, out r, tol)
+                    : (n % 3) == 1 ? a.TryUnion(b, out r, tol)
+                    : (r = a.Intersect(b, tol).FirstOrDefault()) != null;
 
                 if (!ok || r == null || !r.Validate(tol).IsValid)
                 {
@@ -122,7 +162,11 @@ namespace GeometryHelper.Viewer.Tests
                 }
 
                 bodies++;
-                DiagnosticReport report = Diag.Run(new SceneWriter().Add(r, name: "b" + n).Scene, DiagnosticChecks.Duplicates | DiagnosticChecks.Report, true);
+                DiagnosticReport report = Diag.Run(
+                    new SceneWriter().Add(r, name: "b" + n).Scene,
+                    DiagnosticChecks.Duplicates | DiagnosticChecks.Report,
+                    true
+                );
                 faults += report.Findings.Count(f => f.IsFault);
             }
 
@@ -137,7 +181,14 @@ namespace GeometryHelper.Viewer.Tests
             Primitives primitives = Primitives.Build(scene);
             var clock = System.Diagnostics.Stopwatch.StartNew();
 
-            DiagnosticReport report = SceneDiagnostics.Run(scene, primitives, null, null, new DiagnosticOptions { Checks = DiagnosticChecks.Duplicates, UseLibrary = false }, CancellationToken.None);
+            DiagnosticReport report = SceneDiagnostics.Run(
+                scene,
+                primitives,
+                null,
+                null,
+                new DiagnosticOptions { Checks = DiagnosticChecks.Duplicates, UseLibrary = false },
+                CancellationToken.None
+            );
 
             clock.Stop();
             Assert.Empty(report.Findings);
@@ -160,26 +211,47 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Equal(dz / 2.0, f.Size, 6);
             Assert.Contains("first corner", f.Message);
             Assert.Contains("first corner", f.Source);
-            Assert.Throws<ArgumentException>(() => new GeoPolygon3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, dz), new GeoPoint3(0, 10, 0) }, Tolerance.Default));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoPolygon3(
+                    new[]
+                    {
+                        new GeoPoint3(0, 0, 0),
+                        new GeoPoint3(10, 0, 0),
+                        new GeoPoint3(10, 10, dz),
+                        new GeoPoint3(0, 10, 0),
+                    },
+                    Tolerance.Default
+                )
+            );
         }
 
         [Fact]
         public void ABodyTheLibraryRefusesForAFaceOffFlat_NamesTheFaceThatMadeItRefuse()
         {
             double dz = 0.0035;
-            string body = "{\"faces\":[" + string.Join(
-                ",",
-                FaceJson(0, 0, 0, 0, 10, 0, 10, 10, 0, 10, 0, 0),
-                FaceJson(0, 0, 10, 10, 0, 10, 10, 10, 10 + dz, 0, 10, 10),
-                FaceJson(0, 0, 0, 10, 0, 0, 10, 0, 10, 0, 0, 10),
-                FaceJson(10, 0, 0, 10, 10, 0, 10, 10, 10 + dz, 10, 0, 10),
-                FaceJson(10, 10, 0, 0, 10, 0, 0, 10, 10, 10, 10, 10 + dz),
-                FaceJson(0, 10, 0, 0, 0, 0, 0, 0, 10, 0, 10, 10)) + "]}";
+            string body =
+                "{\"faces\":["
+                + string.Join(
+                    ",",
+                    FaceJson(0, 0, 0, 0, 10, 0, 10, 10, 0, 10, 0, 0),
+                    FaceJson(0, 0, 10, 10, 0, 10, 10, 10, 10 + dz, 0, 10, 10),
+                    FaceJson(0, 0, 0, 10, 0, 0, 10, 0, 10, 0, 0, 10),
+                    FaceJson(10, 0, 0, 10, 10, 0, 10, 10, 10 + dz, 10, 0, 10),
+                    FaceJson(10, 10, 0, 0, 10, 0, 0, 10, 10, 10, 10, 10 + dz),
+                    FaceJson(0, 10, 0, 0, 0, 0, 0, 0, 10, 0, 10, 10)
+                )
+                + "]}";
 
             // Flatness is not ticked: the body is refused, and the face that made it refuse is named all the same.
-            DiagnosticReport report = Diag.Run(Diag.SceneOf(Diag.Raw("GeoSolid3", body, "warped box")), DiagnosticChecks.Edges | DiagnosticChecks.Report, true);
+            DiagnosticReport report = Diag.Run(
+                Diag.SceneOf(Diag.Raw("GeoSolid3", body, "warped box")),
+                DiagnosticChecks.Edges | DiagnosticChecks.Report,
+                true
+            );
 
-            Assert.Contains(report.Findings, f => f.Kind == DiagnosticKind.Note && f.Message.Contains("refused the body"));
+            Assert.Contains(report.Findings, f =>
+                f.Kind == DiagnosticKind.Note && f.Message.Contains("refused the body")
+            );
             DiagnosticFinding flat = Assert.Single(Diag.Of(report, DiagnosticKind.NotFlat));
             Assert.Contains("face 2", flat.Message);
             Assert.Contains("the library refuses a face like this", flat.Message);
@@ -189,8 +261,24 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AHoleThatCrossesItsOutline_IsTwoCrossings_AndOneInsideIsNone()
         {
-            SceneItem crossing = Diag.Raw("GeoFace2", "{\"outer\":" + Diag.Pts2(0, 0, 10, 0, 10, 10, 0, 10) + ",\"holes\":[" + Diag.Pts2(8, 8, 12, 8, 12, 12, 8, 12) + "]}", "crossing");
-            SceneItem inside = Diag.Raw("GeoFace2", "{\"outer\":" + Diag.Pts2(0, 0, 10, 0, 10, 10, 0, 10) + ",\"holes\":[" + Diag.Pts2(2, 2, 4, 2, 4, 4, 2, 4) + "]}", "inside");
+            SceneItem crossing = Diag.Raw(
+                "GeoFace2",
+                "{\"outer\":"
+                    + Diag.Pts2(0, 0, 10, 0, 10, 10, 0, 10)
+                    + ",\"holes\":["
+                    + Diag.Pts2(8, 8, 12, 8, 12, 12, 8, 12)
+                    + "]}",
+                "crossing"
+            );
+            SceneItem inside = Diag.Raw(
+                "GeoFace2",
+                "{\"outer\":"
+                    + Diag.Pts2(0, 0, 10, 0, 10, 10, 0, 10)
+                    + ",\"holes\":["
+                    + Diag.Pts2(2, 2, 4, 2, 4, 4, 2, 4)
+                    + "]}",
+                "inside"
+            );
 
             DiagnosticReport report = Diag.Run(Diag.SceneOf(crossing, inside), DiagnosticChecks.Crossings);
 
@@ -202,18 +290,34 @@ namespace GeometryHelper.Viewer.Tests
                 Assert.Contains("outer", f.Message);
                 Assert.Contains("cross at", f.Message);
             });
-            Assert.Equal(new[] { new Vec3(8, 10, 0), new Vec3(10, 8, 0) }, report.Findings.Select(f => f.At).OrderBy(p => p.X).ToArray());
+            Assert.Equal(
+                new[] { new Vec3(8, 10, 0), new Vec3(10, 8, 0) },
+                report.Findings.Select(f => f.At).OrderBy(p => p.X).ToArray()
+            );
         }
 
         [Fact]
         public void TwoHolesThatTouchEachOther_AreATouch()
         {
-            SceneItem item = Diag.Raw("GeoFace2", "{\"outer\":" + Diag.Pts2(0, 0, 20, 0, 20, 20, 0, 20) + ",\"holes\":[" + Diag.Pts2(2, 2, 6, 2, 6, 6, 2, 6) + "," + Diag.Pts2(6, 4, 10, 4, 10, 8, 6, 8) + "]}", "touching holes");
+            SceneItem item = Diag.Raw(
+                "GeoFace2",
+                "{\"outer\":"
+                    + Diag.Pts2(0, 0, 20, 0, 20, 20, 0, 20)
+                    + ",\"holes\":["
+                    + Diag.Pts2(2, 2, 6, 2, 6, 6, 2, 6)
+                    + ","
+                    + Diag.Pts2(6, 4, 10, 4, 10, 8, 6, 8)
+                    + "]}",
+                "touching holes"
+            );
 
             // The holes share the stretch of x = 6 from y = 4 to y = 6: a corner of each stands on the other.
             DiagnosticReport report = Diag.Run(Diag.SceneOf(item), DiagnosticChecks.Crossings);
 
-            Assert.Equal(new[] { new Vec3(6, 4, 0), new Vec3(6, 6, 0) }, report.Findings.Select(f => f.At).OrderBy(p => p.Y).ToArray());
+            Assert.Equal(
+                new[] { new Vec3(6, 4, 0), new Vec3(6, 6, 0) },
+                report.Findings.Select(f => f.At).OrderBy(p => p.Y).ToArray()
+            );
             Assert.All(report.Findings, f =>
             {
                 Assert.Contains("hole 1", f.Message);
@@ -229,17 +333,22 @@ namespace GeometryHelper.Viewer.Tests
             double z = 0.0004;
             SceneItem plate = Diag.Raw(
                 "GeoSolid3",
-                "{\"faces\":[" + string.Join(
-                    ",",
-                    FaceJson(0, 0, 0, 0, 100, 0, 100, 100, 0, 100, 0, 0),
-                    FaceJson(0, 0, z, 100, 0, z, 100, 100, z, 0, 100, z),
-                    FaceJson(0, 0, 0, 100, 0, 0, 100, 0, z, 0, 0, z),
-                    FaceJson(0, 100, 0, 0, 100, z, 100, 100, z, 100, 100, 0),
-                    FaceJson(0, 0, 0, 0, 0, z, 0, 100, z, 0, 100, 0),
-                    FaceJson(100, 0, 0, 100, 100, 0, 100, 100, z, 100, 0, z)) + "]}",
-                "plate");
+                "{\"faces\":["
+                    + string.Join(
+                        ",",
+                        FaceJson(0, 0, 0, 0, 100, 0, 100, 100, 0, 100, 0, 0),
+                        FaceJson(0, 0, z, 100, 0, z, 100, 100, z, 0, 100, z),
+                        FaceJson(0, 0, 0, 100, 0, 0, 100, 0, z, 0, 0, z),
+                        FaceJson(0, 100, 0, 0, 100, z, 100, 100, z, 100, 100, 0),
+                        FaceJson(0, 0, 0, 0, 0, z, 0, 100, z, 0, 100, 0),
+                        FaceJson(100, 0, 0, 100, 100, 0, 100, 100, z, 100, 0, z)
+                    )
+                    + "]}",
+                "plate"
+            );
 
-            DiagnosticFinding f = Diag.Run(Diag.SceneOf(plate), DiagnosticChecks.Slivers).Findings.First(x => x.Kind == DiagnosticKind.Sliver);
+            DiagnosticFinding f = Diag.Run(Diag.SceneOf(plate), DiagnosticChecks.Slivers)
+                .Findings.First(x => x.Kind == DiagnosticKind.Sliver);
 
             Assert.Contains("twice its area over its perimeter", f.Message);
             Assert.Contains("at most half of EqualPoint times its perimeter", f.Message);
@@ -309,7 +418,14 @@ namespace GeometryHelper.Viewer.Tests
             for (int n = 0; n < 400; n++)
             {
                 GeoSolid3 a = Box(0, 0, 0, 10 * (5 + rnd.Next(5)), 10 * (5 + rnd.Next(5)), 10 * (3 + rnd.Next(5)));
-                GeoSolid3 b = Box(10 * rnd.Next(-2, 8), 10 * rnd.Next(-2, 8), 10 * rnd.Next(-2, 6), 10 * (1 + rnd.Next(6)), 10 * (1 + rnd.Next(6)), 10 * (1 + rnd.Next(9)));
+                GeoSolid3 b = Box(
+                    10 * rnd.Next(-2, 8),
+                    10 * rnd.Next(-2, 8),
+                    10 * rnd.Next(-2, 6),
+                    10 * (1 + rnd.Next(6)),
+                    10 * (1 + rnd.Next(6)),
+                    10 * (1 + rnd.Next(9))
+                );
                 GeoSolid3 r;
                 bool ok = n % 2 == 0 ? a.TrySubtract(b, out r, tol) : a.TryUnion(b, out r, tol);
 
@@ -320,7 +436,14 @@ namespace GeometryHelper.Viewer.Tests
 
                 if (n % 3 == 0)
                 {
-                    GeoSolid3 c = Box(10 * rnd.Next(0, 8), 10 * rnd.Next(0, 8), -5, 10 * (1 + rnd.Next(3)), 10 * (1 + rnd.Next(3)), 200);
+                    GeoSolid3 c = Box(
+                        10 * rnd.Next(0, 8),
+                        10 * rnd.Next(0, 8),
+                        -5,
+                        10 * (1 + rnd.Next(3)),
+                        10 * (1 + rnd.Next(3)),
+                        200
+                    );
 
                     if (r.TrySubtract(c, out GeoSolid3 r2, tol) && r2 != null)
                     {
@@ -330,8 +453,10 @@ namespace GeometryHelper.Viewer.Tests
 
                 bodies++;
                 Scene scene = new SceneWriter().Add(r, name: "b" + n).Scene;
-                int library = Diag.Run(scene, DiagnosticChecks.Edges, true).Findings.Count(f => f.Check == DiagnosticChecks.Edges && f.IsFault);
-                int own = Diag.Run(scene, DiagnosticChecks.Edges, false).Findings.Count(f => f.Check == DiagnosticChecks.Edges && f.IsFault);
+                int library = Diag.Run(scene, DiagnosticChecks.Edges, true)
+                    .Findings.Count(f => f.Check == DiagnosticChecks.Edges && f.IsFault);
+                int own = Diag.Run(scene, DiagnosticChecks.Edges, false)
+                    .Findings.Count(f => f.Check == DiagnosticChecks.Edges && f.IsFault);
                 ownFaults += own;
 
                 if ((library == 0) != (own == 0))
@@ -347,7 +472,9 @@ namespace GeometryHelper.Viewer.Tests
 
         [Theory]
         [MemberData(nameof(BothWays))]
-        public void SideFacesCutAtThirdsUnderATopWholeAndATopCopyCutInHalves_AreFourOddStretches_AsValidateReadsThem(bool library)
+        public void SideFacesCutAtThirdsUnderATopWholeAndATopCopyCutInHalves_AreFourOddStretches_AsValidateReadsThem(
+            bool library
+        )
         {
             // Along each top edge the side face runs one way over 3 pieces, and two tops run the other: 1 one way against 2 the other on every
             // piece, the same three faces on all of them, so one stretch of 3 faces a side. Covering the edge end to end is not meeting it.
@@ -355,22 +482,58 @@ namespace GeometryHelper.Viewer.Tests
             double b = 40.0 / 3.0;
             SceneItem box = Diag.Raw(
                 "GeoSolid3",
-                "{\"faces\":[" + string.Join(
-                    ",",
-                    FaceJson(0, 0, 0, 0, 20, 0, 20, 20, 0, 20, 0, 0),
-                    FaceJson(0, 0, 20, 20, 0, 20, 20, 20, 20, 0, 20, 20),
-                    FaceJson(0, 0, 20, 10, 0, 20, 20, 0, 20, 20, 10, 20, 20, 20, 20, 10, 20, 20, 0, 20, 20, 0, 10, 20),
-                    FaceJson(0, 0, 0, 20, 0, 0, 20, 0, 20, b, 0, 20, a, 0, 20, 0, 0, 20),
-                    FaceJson(0, 20, 0, 0, 20, 20, a, 20, 20, b, 20, 20, 20, 20, 20, 20, 20, 0),
-                    FaceJson(0, 0, 0, 0, 0, 20, 0, a, 20, 0, b, 20, 0, 20, 20, 0, 20, 0),
-                    FaceJson(20, 0, 0, 20, 20, 0, 20, 20, 20, 20, b, 20, 20, a, 20, 20, 0, 20)) + "]}",
-                "double top");
+                "{\"faces\":["
+                    + string.Join(
+                        ",",
+                        FaceJson(0, 0, 0, 0, 20, 0, 20, 20, 0, 20, 0, 0),
+                        FaceJson(0, 0, 20, 20, 0, 20, 20, 20, 20, 0, 20, 20),
+                        FaceJson(
+                            0,
+                            0,
+                            20,
+                            10,
+                            0,
+                            20,
+                            20,
+                            0,
+                            20,
+                            20,
+                            10,
+                            20,
+                            20,
+                            20,
+                            20,
+                            10,
+                            20,
+                            20,
+                            0,
+                            20,
+                            20,
+                            0,
+                            10,
+                            20
+                        ),
+                        FaceJson(0, 0, 0, 20, 0, 0, 20, 0, 20, b, 0, 20, a, 0, 20, 0, 0, 20),
+                        FaceJson(0, 20, 0, 0, 20, 20, a, 20, 20, b, 20, 20, 20, 20, 20, 20, 20, 0),
+                        FaceJson(0, 0, 0, 0, 0, 20, 0, a, 20, 0, b, 20, 0, 20, 20, 0, 20, 0),
+                        FaceJson(20, 0, 0, 20, 20, 0, 20, 20, 20, 20, b, 20, 20, a, 20, 20, 0, 20)
+                    )
+                    + "]}",
+                "double top"
+            );
 
-            DiagnosticReport report = Diag.Run(Diag.SceneOf(box), DiagnosticChecks.Edges | DiagnosticChecks.Report, library);
+            DiagnosticReport report = Diag.Run(
+                Diag.SceneOf(box),
+                DiagnosticChecks.Edges | DiagnosticChecks.Report,
+                library
+            );
 
             Assert.Equal(4, Diag.Count(report, DiagnosticKind.NonManifoldEdge));
             Assert.Equal(0, Diag.Count(report, DiagnosticKind.TJunction));
-            Assert.True(Diag.Count(report, DiagnosticKind.OpenEdge) == 0, string.Join(" | ", Diag.Of(report, DiagnosticKind.OpenEdge)));
+            Assert.True(
+                Diag.Count(report, DiagnosticKind.OpenEdge) == 0,
+                string.Join(" | ", Diag.Of(report, DiagnosticKind.OpenEdge))
+            );
             Assert.All(Diag.Of(report, DiagnosticKind.NonManifoldEdge), f =>
             {
                 Assert.True(f.IsFault);
@@ -393,11 +556,19 @@ namespace GeometryHelper.Viewer.Tests
             string again = FaceJson(10, 0, 10, 5, 0, 10, 0, 0, 10, 0, 5, 12);
             string other = FaceJson(10, 0, 10, 0, 0, 10, 0, 5, 12);
             string sideways = FaceJson(0, 0, 0, 0, 0, 10, 0, 5, 12);
-            Scene scene = Diag.SceneOf(Diag.Raw("GeoSolid3", "{\"faces\":[" + string.Join(",", front, again, other, sideways) + "]}", "same way"));
+            Scene scene = Diag.SceneOf(
+                Diag.Raw(
+                    "GeoSolid3",
+                    "{\"faces\":[" + string.Join(",", front, again, other, sideways) + "]}",
+                    "same way"
+                )
+            );
 
             DiagnosticReport report = Diag.Run(scene, DiagnosticChecks.Edges, false);
 
-            Assert.Contains(report.Findings, f => f.Kind == DiagnosticKind.InconsistentWinding && f.Message.Contains("run the same way"));
+            Assert.Contains(report.Findings, f =>
+                f.Kind == DiagnosticKind.InconsistentWinding && f.Message.Contains("run the same way")
+            );
         }
 
         [Fact]
@@ -405,7 +576,15 @@ namespace GeometryHelper.Viewer.Tests
         {
             foreach (double bulge in new[] { 0.1, 0.3, 0.55, -0.4, 0.9 })
             {
-                SceneItem item = Diag.Raw("GeoPolygonArc2", "{\"points\":" + Diag.Pts2(0, 0, 40, 0, 40, 10, 0, 10) + ",\"bulges\":[" + Diag.N(bulge) + ",0,0,0]}", "arc");
+                SceneItem item = Diag.Raw(
+                    "GeoPolygonArc2",
+                    "{\"points\":"
+                        + Diag.Pts2(0, 0, 40, 0, 40, 10, 0, 10)
+                        + ",\"bulges\":["
+                        + Diag.N(bulge)
+                        + ",0,0,0]}",
+                    "arc"
+                );
                 Scene scene = Diag.SceneOf(item);
                 scene.EqualPoint = 0.0;
 
@@ -429,7 +608,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ASliverLoopIsReadAsNeedlesAtItsCorners_WhenTheSliversCheckIsNotOn()
         {
-            SceneItem sliver = Diag.Raw("GeoTriangle2", "{\"points\":" + Diag.Pts2(60, -60, 90, -60, 75, -59.9995) + "}", "sliver");
+            SceneItem sliver = Diag.Raw(
+                "GeoTriangle2",
+                "{\"points\":" + Diag.Pts2(60, -60, 90, -60, 75, -59.9995) + "}",
+                "sliver"
+            );
 
             DiagnosticReport report = Diag.Run(Diag.SceneOf(sliver), DiagnosticChecks.Needles);
 
@@ -445,7 +628,13 @@ namespace GeometryHelper.Viewer.Tests
             string back = FaceJson(0, 10, 0, 0, 10, 10, 10, 10, 10, 10, 10, 0);
             string left = FaceJson(0, 0, 0, 0, 0, 10, 0, 10, 10, 0, 10, 0);
             string right = FaceJson(10, 0, 0, 10, 10, 0, 10, 10, 10, 10, 0, 10);
-            Scene scene = Diag.SceneOf(Diag.Raw("GeoSolid3", "{\"faces\":[" + string.Join(",", top, bottom, front, back, left, right) + "]}", "apart"));
+            Scene scene = Diag.SceneOf(
+                Diag.Raw(
+                    "GeoSolid3",
+                    "{\"faces\":[" + string.Join(",", top, bottom, front, back, left, right) + "]}",
+                    "apart"
+                )
+            );
 
             DiagnosticReport alone = Diag.Run(scene, DiagnosticChecks.Duplicates, true);
             DiagnosticReport with = Diag.Run(scene, DiagnosticChecks.Duplicates | DiagnosticChecks.Report, true);
@@ -460,9 +649,21 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ASpikeIsAFaultOnlyWhereItIsNoWiderThanEqualPointAtItsEnd_AndAFactWhereItIsWiderThough_ItTurnsBackJustAsFar()
         {
-            Func<double, DiagnosticFinding> run = half => Assert.Single(Diag.Run(
-                Diag.SceneOf(Diag.Raw("GeoPolygon2", "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 10, 5 + half, 10, 5, 30, 5 - half, 10, 0, 10) + "}", "spiked")),
-                DiagnosticChecks.Needles).Findings);
+            Func<double, DiagnosticFinding> run = half =>
+                Assert.Single(
+                    Diag.Run(
+                        Diag.SceneOf(
+                            Diag.Raw(
+                                "GeoPolygon2",
+                                "{\"points\":"
+                                    + Diag.Pts2(0, 0, 10, 0, 10, 10, 5 + half, 10, 5, 30, 5 - half, 10, 0, 10)
+                                    + "}",
+                                "spiked"
+                            )
+                        ),
+                        DiagnosticChecks.Needles
+                    ).Findings
+                );
 
             DiagnosticFinding wide = run(0.01);
             DiagnosticFinding thin = run(0.0004);
@@ -489,9 +690,16 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ASliverTriangle_IsOneSliverAndNotAlsoTwoNeedles()
         {
-            SceneItem sliver = Diag.Raw("GeoTriangle2", "{\"points\":" + Diag.Pts2(60, -60, 90, -60, 75, -59.9995) + "}", "sliver");
+            SceneItem sliver = Diag.Raw(
+                "GeoTriangle2",
+                "{\"points\":" + Diag.Pts2(60, -60, 90, -60, 75, -59.9995) + "}",
+                "sliver"
+            );
 
-            DiagnosticReport report = Diag.Run(Diag.SceneOf(sliver), DiagnosticChecks.Needles | DiagnosticChecks.Slivers);
+            DiagnosticReport report = Diag.Run(
+                Diag.SceneOf(sliver),
+                DiagnosticChecks.Needles | DiagnosticChecks.Slivers
+            );
 
             Assert.Equal(DiagnosticKind.Sliver, Assert.Single(report.Findings).Kind);
         }
@@ -499,7 +707,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ATipGivenTwice_IsStillOneNeedle()
         {
-            SceneItem item = Diag.Raw("GeoPolygon2", "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 5, 20, 5, 20, 5, 10, 5.0001, 10, 10, 0, 10) + "}", "doubled tip");
+            SceneItem item = Diag.Raw(
+                "GeoPolygon2",
+                "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 10, 5, 20, 5, 20, 5, 10, 5.0001, 10, 10, 0, 10) + "}",
+                "doubled tip"
+            );
 
             DiagnosticFinding needle = Assert.Single(Diag.Run(Diag.SceneOf(item), DiagnosticChecks.Needles).Findings);
 
@@ -518,9 +730,19 @@ namespace GeometryHelper.Viewer.Tests
         {
             // The arc from (0,0) to (10,0) bulges down by 1 (a bulge of 0.2 on a chord of 10): the edge along y = -1 touches it at (5,-1), or
             // along y = -0.9 cuts it in two places.
-            Func<double, DiagnosticReport> run = y => Diag.Run(
-                Diag.SceneOf(Diag.Raw("GeoPolygonArc2", "{\"points\":" + Diag.Pts2(0, 0, 10, 0, 12, 0, 12, y, -2, y, -2, 0) + ",\"bulges\":[0.2,0,0,0,0,0]}", "arc")),
-                DiagnosticChecks.Crossings);
+            Func<double, DiagnosticReport> run = y =>
+                Diag.Run(
+                    Diag.SceneOf(
+                        Diag.Raw(
+                            "GeoPolygonArc2",
+                            "{\"points\":"
+                                + Diag.Pts2(0, 0, 10, 0, 12, 0, 12, y, -2, y, -2, 0)
+                                + ",\"bulges\":[0.2,0,0,0,0,0]}",
+                            "arc"
+                        )
+                    ),
+                    DiagnosticChecks.Crossings
+                );
 
             DiagnosticReport tangent = run(-1.0);
             DiagnosticReport cutting = run(-0.9);
@@ -538,8 +760,21 @@ namespace GeometryHelper.Viewer.Tests
         {
             // Hits at x = 0, 0.0009 and 0.0018: the ends are 0.0018 apart, more than EqualPoint 0.001, but each is within it of the next.
             Scene scene = Diag.SceneOf(Diag.Polygon2("p", 0, 0, 1, 0, 0, 1));
-            var run = new DiagnosticRun(scene, Primitives.Build(scene), null, new DiagnosticOptions(), CancellationToken.None);
-            var hits = new[] { new Vec3(0.0018, 0, 0), new Vec3(0, 0, 0), new Vec3(0.0009, 0, 0), new Vec3(5, 0, 0), new Vec3(5.0005, 0, 0) };
+            var run = new DiagnosticRun(
+                scene,
+                Primitives.Build(scene),
+                null,
+                new DiagnosticOptions(),
+                CancellationToken.None
+            );
+            var hits = new[]
+            {
+                new Vec3(0.0018, 0, 0),
+                new Vec3(0, 0, 0),
+                new Vec3(0.0009, 0, 0),
+                new Vec3(5, 0, 0),
+                new Vec3(5.0005, 0, 0),
+            };
 
             int[] cluster = run.Cluster(hits, 0.001);
 
@@ -563,7 +798,10 @@ namespace GeometryHelper.Viewer.Tests
             GapLens lens = GapMagnifier.Build(exact, report.Gap, 0.3);
 
             Assert.Equal(100.0, lens.Scale);
-            DiagnosticStroke arc = lens.Overlay.Strokes.Where(s => s.Color == "#7A3E9D").OrderByDescending(s => s.Line.Points.Length).First();
+            DiagnosticStroke arc = lens
+                .Overlay.Strokes.Where(s => s.Color == "#7A3E9D")
+                .OrderByDescending(s => s.Line.Points.Length)
+                .First();
             Assert.True(arc.Line.Points.Length >= 6, arc.Line.Points.Length.ToString());
             Vec3 middle = (report.Gap.From + report.Gap.To) * 0.5;
             double allowed = 0.1 * 0.3 / 100.0;

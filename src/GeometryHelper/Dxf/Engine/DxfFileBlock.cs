@@ -15,7 +15,15 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     internal sealed class DxfFileBlock
     {
-        internal DxfFileBlock(DxfFile file, string name, GeoPoint3 basePoint, int flags, List<DxfItem> items, DxfItem head, int end)
+        internal DxfFileBlock(
+            DxfFile file,
+            string name,
+            GeoPoint3 basePoint,
+            int flags,
+            List<DxfItem> items,
+            DxfItem head,
+            int end
+        )
         {
             Name = name;
             BasePoint = basePoint;
@@ -68,6 +76,11 @@ namespace GeometryHelper.Dxf
         /// Gives the block as a line for debugging: its name and how many entities it holds.
         /// </summary>
         /// <returns>The block as a line, such as <c>BLOCK BOLT, 2 entities</c>.</returns>
-        public override string ToString() => "BLOCK " + Name + ", " + Items.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " entities";
+        public override string ToString() =>
+            "BLOCK "
+            + Name
+            + ", "
+            + Items.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + " entities";
     }
 }

@@ -40,7 +40,9 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // The source's layer Defpoints renamed DIMS, the layer of 4D, so that the target, which has no DIMS and no GH_DIM, is
             // given both; each of R2018 with groups R2007 brought.
-            DxfDatabase source = DxfDatabase.Parse(DxfDimensionDrawings.R2018.Replace("  2\nDefpoints\n", "  2\nDIMS\n"));
+            DxfDatabase source = DxfDatabase.Parse(
+                DxfDimensionDrawings.R2018.Replace("  2\nDefpoints\n", "  2\nDIMS\n")
+            );
             DxfDatabase target = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
             Assert.False(target.LayerTable.Has("DIMS"));
             Assert.False(target.DimStyleTable.Has("GH_DIM"));
@@ -48,7 +50,10 @@ namespace GeometryHelper.UnitTest.Dxf
             target.ModelSpace.AppendEntity(Dim(source, "4D").Clone());
 
             string saved = target.ToText();
-            string style = Records(saved).Single(r => r.StartsWith("  0\nDIMSTYLE\n", StringComparison.Ordinal) && r.Contains("\n  2\nGH_DIM\n"));
+            string style = Records(saved)
+                .Single(r =>
+                    r.StartsWith("  0\nDIMSTYLE\n", StringComparison.Ordinal) && r.Contains("\n  2\nGH_DIM\n")
+                );
 
             foreach (string code in new[] { " 49", " 50", " 69", "290", "345", "346", "347" })
             {
@@ -58,7 +63,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Single(style.Split('\n'), line => line == " 70");
             Assert.Contains("\n 41\n3.5\n", style, StringComparison.Ordinal);
             Assert.Contains("\n271\n3\n", style, StringComparison.Ordinal);
-            string layer = Records(saved).Single(r => r.StartsWith("  0\nLAYER\n", StringComparison.Ordinal) && r.Contains("\n  2\nDIMS\n"));
+            string layer = Records(saved)
+                .Single(r => r.StartsWith("  0\nLAYER\n", StringComparison.Ordinal) && r.Contains("\n  2\nDIMS\n"));
             Assert.DoesNotContain("\n347\n", layer, StringComparison.Ordinal);
             Assert.Contains("\n370\n", layer, StringComparison.Ordinal);
             Assert.Equal(3.5, DxfDatabase.Parse(saved).DimStyleTable["GH_DIM"].Dimasz);
@@ -69,7 +75,17 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // R2000 has no DIMFXLEN, which R2007 brought; R12 has no DIMDEC, which R2000 brought.
             DxfDatabase r2000 = DxfDatabase.Parse(DxfDimensionDrawings.R2000);
-            var made = new DxfRotatedDimension(0.0, new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(5, 5, 0), string.Empty, null) { DimBlock = r2000.BlockTable["*D2"] };
+            var made = new DxfRotatedDimension(
+                0.0,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(5, 5, 0),
+                string.Empty,
+                null
+            )
+            {
+                DimBlock = r2000.BlockTable["*D2"],
+            };
             made.Dimfxlen = 3.0;
             made.Dimasz = 1.5;
             r2000.ModelSpace.AppendEntity(made);
@@ -79,12 +95,23 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Contains("1070\n41\n1040\n1.5\n", record, StringComparison.Ordinal);
 
             DxfDatabase r12 = DxfDatabase.Parse(DxfDimensionDrawings.R12);
-            var old = new DxfRotatedDimension(0.0, new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(5, 5, 0), string.Empty, null) { DimBlock = r12.BlockTable["*D2"] };
+            var old = new DxfRotatedDimension(
+                0.0,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(5, 5, 0),
+                string.Empty,
+                null
+            )
+            {
+                DimBlock = r12.BlockTable["*D2"],
+            };
             old.Dimdec = 2;
             old.Dimasz = 1.5;
             r12.ModelSpace.AppendEntity(old);
 
-            string written = Records(r12.ToText()).Last(r => r.StartsWith("  0\nDIMENSION\n", StringComparison.Ordinal));
+            string written = Records(r12.ToText())
+                .Last(r => r.StartsWith("  0\nDIMENSION\n", StringComparison.Ordinal));
             Assert.DoesNotContain("1070\n271\n", written, StringComparison.Ordinal);
             Assert.Contains("1070\n41\n1040\n1.5\n", written, StringComparison.Ordinal);
         }
@@ -118,11 +145,13 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase bare = DxfDatabase.Parse(DxfDimensionDrawings.R12.Replace("\n_DOT\n", "\n_DOX\n"));
             DxfEntity other = dimension.Clone();
             bare.ModelSpace.AppendEntity(other);
-            string written = Records(bare.ToText()).Last(r => r.StartsWith("  0\nDIMENSION\n", StringComparison.Ordinal));
+            string written = Records(bare.ToText())
+                .Last(r => r.StartsWith("  0\nDIMENSION\n", StringComparison.Ordinal));
             Assert.DoesNotContain("1070\n5\n", written, StringComparison.Ordinal);
             Assert.Contains("1070\n41\n1040\n2", written, StringComparison.Ordinal);
         }
 
-        private static DxfDimension Dim(DxfDatabase db, string handle) => db.ModelSpace.OfType<DxfDimension>().Single(d => d.Handle == handle);
+        private static DxfDimension Dim(DxfDatabase db, string handle) =>
+            db.ModelSpace.OfType<DxfDimension>().Single(d => d.Handle == handle);
     }
 }

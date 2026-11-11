@@ -93,10 +93,25 @@ namespace GeometryHelper.Dxf
         private static readonly double[] QuarterY = { 0.0, 1.0, 0.0, -1.0 };
 
         private readonly Groups _entities = new Groups();
-        private readonly List<KeyValuePair<string, int>> _layers = new List<KeyValuePair<string, int>> { new KeyValuePair<string, int>("0", LayerZero) };
-        private readonly Dictionary<string, int> _layerIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) { { "0", 0 } };
+        private readonly List<KeyValuePair<string, int>> _layers = new List<KeyValuePair<string, int>>
+        {
+            new KeyValuePair<string, int>("0", LayerZero),
+        };
+        private readonly Dictionary<string, int> _layerIndex = new Dictionary<string, int>(
+            StringComparer.OrdinalIgnoreCase
+        )
+        {
+            { "0", 0 },
+        };
         private readonly List<KeyValuePair<string, int>> _linetypes = new List<KeyValuePair<string, int>>();
-        private readonly Dictionary<string, string> _linetypeIndex = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { { "ByBlock", "ByBlock" }, { "ByLayer", "ByLayer" }, { "Continuous", "Continuous" } };
+        private readonly Dictionary<string, string> _linetypeIndex = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase
+        )
+        {
+            { "ByBlock", "ByBlock" },
+            { "ByLayer", "ByLayer" },
+            { "Continuous", "Continuous" },
+        };
         private Style _style;
         private int _nextHandle = FirstHandle;
         private double _minX = double.PositiveInfinity;
@@ -339,7 +354,12 @@ namespace GeometryHelper.Dxf
 
             Begin("ELLIPSE", Layer(layer), "AcDbEllipse");
             Place(0, ellipse.Center.X, ellipse.Center.Y, 0.0);
-            _entities.Point(1, ellipse.MajorAxis.X * ellipse.MajorRadius, ellipse.MajorAxis.Y * ellipse.MajorRadius, 0.0);
+            _entities.Point(
+                1,
+                ellipse.MajorAxis.X * ellipse.MajorRadius,
+                ellipse.MajorAxis.Y * ellipse.MajorRadius,
+                0.0
+            );
             _entities.Triple(210, 0.0, 0.0, 1.0);
             Ratio(ellipse.MinorRadius / ellipse.MajorRadius);
 
@@ -428,7 +448,15 @@ namespace GeometryHelper.Dxf
                 points[i] = new GeoPoint3(spline.ControlPoints[i].X, spline.ControlPoints[i].Y, 0.0);
             }
 
-            Spline(Layer(layer), spline.Degree, spline.Knots, spline.IsRational ? spline.Weights : null, points, spline.StartPoint.Equals(spline.EndPoint), new GeoVector3(0.0, 0.0, 1.0));
+            Spline(
+                Layer(layer),
+                spline.Degree,
+                spline.Knots,
+                spline.IsRational ? spline.Weights : null,
+                points,
+                spline.StartPoint.Equals(spline.EndPoint),
+                new GeoVector3(0.0, 0.0, 1.0)
+            );
 
             // The drawing grows by the box the curve fills, not by its control points.
             var min = new double[2];
@@ -576,7 +604,15 @@ namespace GeometryHelper.Dxf
                 points[i] = spline.ControlPoints[i];
             }
 
-            Spline(Layer(layer), spline.Degree, spline.Knots, spline.IsRational ? spline.Weights : null, points, spline.StartPoint.Equals(spline.EndPoint), normal);
+            Spline(
+                Layer(layer),
+                spline.Degree,
+                spline.Knots,
+                spline.IsRational ? spline.Weights : null,
+                points,
+                spline.StartPoint.Equals(spline.EndPoint),
+                normal
+            );
 
             var min = new double[3];
             var max = new double[3];
@@ -953,7 +989,11 @@ namespace GeometryHelper.Dxf
             Check(arc.Radius, nameof(arc));
             Check(arc.StartAngle, nameof(arc));
             Check(arc.SweptAngle, nameof(arc));
-            Guard.Positive(arc.Radius, nameof(arc), "An arc has to have a radius that is a finite number above nought.");
+            Guard.Positive(
+                arc.Radius,
+                nameof(arc),
+                "An arc has to have a radius that is a finite number above nought."
+            );
             Guard.Positive(arc.Normal.Length, nameof(arc), "An arc has to have a normal of non-zero length.");
 
             return Arc3(Layer(layer), arc);
@@ -979,7 +1019,11 @@ namespace GeometryHelper.Dxf
             Check(circle.Center, nameof(circle));
             Check(circle.Normal, nameof(circle));
             Check(circle.Radius, nameof(circle));
-            Guard.Positive(circle.Radius, nameof(circle), "A circle has to have a radius that is a finite number above nought.");
+            Guard.Positive(
+                circle.Radius,
+                nameof(circle),
+                "A circle has to have a radius that is a finite number above nought."
+            );
             Guard.Positive(circle.Normal.Length, nameof(circle), "A circle has to have a normal of non-zero length.");
 
             return Circle3(Layer(layer), circle.Center, circle.Normal, circle.Radius);
@@ -1143,7 +1187,12 @@ namespace GeometryHelper.Dxf
                     var plane = new Ocs(normal);
                     double cos = Math.Cos(text.Rotation);
                     double sin = Math.Sin(text.Rotation);
-                    _entities.Triple(11, plane.UX * cos + plane.VX * sin, plane.UY * cos + plane.VY * sin, plane.UZ * cos + plane.VZ * sin);
+                    _entities.Triple(
+                        11,
+                        plane.UX * cos + plane.VX * sin,
+                        plane.UY * cos + plane.VY * sin,
+                        plane.UZ * cos + plane.VZ * sin
+                    );
                 }
 
                 return this;
@@ -1263,10 +1312,21 @@ namespace GeometryHelper.Dxf
 
             if (!Writes(shape))
             {
-                throw new ArgumentException("A " + (shape == null ? "null shape" : shape.GetType().Name) + " has no overload of Add to write it.", nameof(entity));
+                throw new ArgumentException(
+                    "A "
+                        + (shape == null ? "null shape" : shape.GetType().Name)
+                        + " has no overload of Add to write it.",
+                    nameof(entity)
+                );
             }
 
-            var style = new Style(entity.Color, entity.TrueColor, entity.Linetype == null ? null : Linetype(entity.Linetype), entity.LineWeight, entity.Thickness);
+            var style = new Style(
+                entity.Color,
+                entity.TrueColor,
+                entity.Linetype == null ? null : Linetype(entity.Linetype),
+                entity.LineWeight,
+                entity.Thickness
+            );
             _style = style.IsEmpty ? null : style;
 
             try
@@ -1289,32 +1349,79 @@ namespace GeometryHelper.Dxf
         /// for a file of R12, and a polyline of the plane as a POLYLINE for one older than R14. The extents are the least and
         /// greatest x, y and z the shape reaches, null where it reaches none.
         /// </summary>
-        internal static List<KeyValuePair<string, List<DxfTypedValue>>> RecordsOf(object shape, int hiddenEdges, double thickness, bool markers, bool lightweight, out double[] extents)
+        internal static List<KeyValuePair<string, List<DxfTypedValue>>> RecordsOf(
+            object shape,
+            int hiddenEdges,
+            double thickness,
+            bool markers,
+            bool lightweight,
+            out double[] extents
+        )
         {
             if (!Writes(shape))
             {
-                throw new ArgumentException("A " + (shape == null ? "null shape" : shape.GetType().Name) + " is not a shape a DXF entity is written from.", nameof(shape));
+                throw new ArgumentException(
+                    "A "
+                        + (shape == null ? "null shape" : shape.GetType().Name)
+                        + " is not a shape a DXF entity is written from.",
+                    nameof(shape)
+                );
             }
 
-            var writer = new DxfWriter { _sunk = new List<KeyValuePair<string, List<DxfTypedValue>>>(), _noLightweight = !lightweight };
+            var writer = new DxfWriter
+            {
+                _sunk = new List<KeyValuePair<string, List<DxfTypedValue>>>(),
+                _noLightweight = !lightweight,
+            };
             writer._entities.NoMarkers = !markers;
             writer._style = thickness != 0.0 ? new Style(null, null, null, null, thickness) : null;
             writer.Write(shape, null, hiddenEdges, Tolerance.Default);
 
-            extents = double.IsInfinity(writer._minX) ? null : new[] { writer._minX, writer._minY, writer._minZ, writer._maxX, writer._maxY, writer._maxZ };
+            extents = double.IsInfinity(writer._minX)
+                ? null
+                : new[] { writer._minX, writer._minY, writer._minZ, writer._maxX, writer._maxY, writer._maxZ };
             return writer._sunk;
         }
 
         /// <summary>Whether a shape is one the writer writes an entity from without a tolerance, as <see cref="RecordsOf"/> writes it.</summary>
         internal static bool CanWrite(object shape) => Writes(shape);
 
-        private static bool Writes(object shape)
-            => shape is GeoPoint2 || shape is GeoLine2 || shape is GeoPolyline2 || shape is GeoPolygon2 || shape is GeoRectangle2 || shape is GeoTriangle2
-            || shape is GeoPolylineArc2 || shape is GeoPolygonArc2 || shape is GeoFace2 || shape is GeoCircle2 || shape is GeoArc2 || shape is GeoEllipse2
-            || shape is GeoRay2 || shape is GeoXLine2 || shape is GeoSpline2 || shape is GeoPoint3 || shape is GeoLine3 || shape is GeoPolyline3
-            || shape is GeoPolygon3 || shape is GeoRay3 || shape is GeoXLine3 || shape is GeoSpline3 || shape is GeoEllipse3 || shape is GeoTriangle3
-            || shape is GeoFace3 || shape is GeoSolid3 || shape is GeoMesh3 || shape is GeoAabb3 || shape is GeoObb3 || shape is GeoArc3
-            || shape is GeoCircle3 || shape is GeoPolylineArc3 || shape is GeoPolygonArc3 || shape is DxfText || shape is ChainOnNormal;
+        private static bool Writes(object shape) =>
+            shape is GeoPoint2
+            || shape is GeoLine2
+            || shape is GeoPolyline2
+            || shape is GeoPolygon2
+            || shape is GeoRectangle2
+            || shape is GeoTriangle2
+            || shape is GeoPolylineArc2
+            || shape is GeoPolygonArc2
+            || shape is GeoFace2
+            || shape is GeoCircle2
+            || shape is GeoArc2
+            || shape is GeoEllipse2
+            || shape is GeoRay2
+            || shape is GeoXLine2
+            || shape is GeoSpline2
+            || shape is GeoPoint3
+            || shape is GeoLine3
+            || shape is GeoPolyline3
+            || shape is GeoPolygon3
+            || shape is GeoRay3
+            || shape is GeoXLine3
+            || shape is GeoSpline3
+            || shape is GeoEllipse3
+            || shape is GeoTriangle3
+            || shape is GeoFace3
+            || shape is GeoSolid3
+            || shape is GeoMesh3
+            || shape is GeoAabb3
+            || shape is GeoObb3
+            || shape is GeoArc3
+            || shape is GeoCircle3
+            || shape is GeoPolylineArc3
+            || shape is GeoPolygonArc3
+            || shape is DxfText
+            || shape is ChainOnNormal;
 
         /// <summary>
         /// The edges of a chain or loop of space that lies in the plane of a normal, the normal of the polyline it is given to,
@@ -1345,49 +1452,124 @@ namespace GeometryHelper.Dxf
                     Check(s.Edges[0].StartPoint, nameof(shape));
                     Lightweight3(Layer(layer), s.Normal, s.Edges, s.Closed, false);
                     break;
-                case GeoPoint2 s: Add(s, layer); break;
-                case GeoLine2 s: Add(s, layer); break;
-                case GeoPolyline2 s: Add(s, layer); break;
-                case GeoPolygon2 s: Add(s, layer); break;
-                case GeoRectangle2 s: Add(s, layer); break;
-                case GeoTriangle2 s: Add(s, layer); break;
-                case GeoPolylineArc2 s: Add(s, layer); break;
-                case GeoPolygonArc2 s: Add(s, layer); break;
-                case GeoFace2 s: Add(s, layer); break;
-                case GeoCircle2 s: Add(s, layer); break;
-                case GeoArc2 s: Add(s, layer); break;
-                case GeoEllipse2 s: Add(s, layer); break;
-                case GeoRay2 s: Add(s, layer); break;
-                case GeoXLine2 s: Add(s, layer); break;
-                case GeoSpline2 s: Add(s, layer); break;
-                case GeoPoint3 s: Add(s, layer); break;
-                case GeoLine3 s: Add(s, layer); break;
-                case GeoPolyline3 s: Add(s, layer); break;
-                case GeoPolygon3 s: Add(s, layer); break;
-                case GeoRay3 s: Add(s, layer); break;
-                case GeoXLine3 s: Add(s, layer); break;
-                case GeoSpline3 s: Add(s, layer); break;
-                case GeoEllipse3 s: Add(s, layer); break;
+                case GeoPoint2 s:
+                    Add(s, layer);
+                    break;
+                case GeoLine2 s:
+                    Add(s, layer);
+                    break;
+                case GeoPolyline2 s:
+                    Add(s, layer);
+                    break;
+                case GeoPolygon2 s:
+                    Add(s, layer);
+                    break;
+                case GeoRectangle2 s:
+                    Add(s, layer);
+                    break;
+                case GeoTriangle2 s:
+                    Add(s, layer);
+                    break;
+                case GeoPolylineArc2 s:
+                    Add(s, layer);
+                    break;
+                case GeoPolygonArc2 s:
+                    Add(s, layer);
+                    break;
+                case GeoFace2 s:
+                    Add(s, layer);
+                    break;
+                case GeoCircle2 s:
+                    Add(s, layer);
+                    break;
+                case GeoArc2 s:
+                    Add(s, layer);
+                    break;
+                case GeoEllipse2 s:
+                    Add(s, layer);
+                    break;
+                case GeoRay2 s:
+                    Add(s, layer);
+                    break;
+                case GeoXLine2 s:
+                    Add(s, layer);
+                    break;
+                case GeoSpline2 s:
+                    Add(s, layer);
+                    break;
+                case GeoPoint3 s:
+                    Add(s, layer);
+                    break;
+                case GeoLine3 s:
+                    Add(s, layer);
+                    break;
+                case GeoPolyline3 s:
+                    Add(s, layer);
+                    break;
+                case GeoPolygon3 s:
+                    Add(s, layer);
+                    break;
+                case GeoRay3 s:
+                    Add(s, layer);
+                    break;
+                case GeoXLine3 s:
+                    Add(s, layer);
+                    break;
+                case GeoSpline3 s:
+                    Add(s, layer);
+                    break;
+                case GeoEllipse3 s:
+                    Add(s, layer);
+                    break;
                 case GeoTriangle3 s when hidden != 0:
                     Check(new[] { s.A, s.B, s.C }, nameof(shape));
                     Face(Layer(layer), s.A, s.B, s.C, s.C, hidden);
                     break;
-                case GeoTriangle3 s: Add(s, layer); break;
+                case GeoTriangle3 s:
+                    Add(s, layer);
+                    break;
                 case GeoFace3 s when s.Holes.Count == 0 && s.Boundary.VertexCount <= 4:
                     IReadOnlyList<GeoPoint3> corners = s.Boundary.Vertices;
                     Check(corners, nameof(shape));
-                    Face(Layer(layer), corners[0], corners[1], corners[2], corners[corners.Count - 1], corners.Count == 4 ? hidden : 0);
+                    Face(
+                        Layer(layer),
+                        corners[0],
+                        corners[1],
+                        corners[2],
+                        corners[corners.Count - 1],
+                        corners.Count == 4 ? hidden : 0
+                    );
                     break;
-                case GeoFace3 s: Add(s, tolerance ?? Tolerance.Global, layer); break;
-                case GeoSolid3 s: Add(s, tolerance ?? Tolerance.Global, layer); break;
-                case GeoMesh3 s: Add(s, layer); break;
-                case GeoAabb3 s: Add(s, layer); break;
-                case GeoObb3 s: Add(s, layer); break;
-                case GeoArc3 s: Add(s, layer); break;
-                case GeoCircle3 s: Add(s, layer); break;
-                case GeoPolylineArc3 s: Add(s, tolerance ?? Tolerance.Global, layer); break;
-                case GeoPolygonArc3 s: Add(s, layer); break;
-                case DxfText s: Add(s, layer); break;
+                case GeoFace3 s:
+                    Add(s, tolerance ?? Tolerance.Global, layer);
+                    break;
+                case GeoSolid3 s:
+                    Add(s, tolerance ?? Tolerance.Global, layer);
+                    break;
+                case GeoMesh3 s:
+                    Add(s, layer);
+                    break;
+                case GeoAabb3 s:
+                    Add(s, layer);
+                    break;
+                case GeoObb3 s:
+                    Add(s, layer);
+                    break;
+                case GeoArc3 s:
+                    Add(s, layer);
+                    break;
+                case GeoCircle3 s:
+                    Add(s, layer);
+                    break;
+                case GeoPolylineArc3 s:
+                    Add(s, tolerance ?? Tolerance.Global, layer);
+                    break;
+                case GeoPolygonArc3 s:
+                    Add(s, layer);
+                    break;
+                case DxfText s:
+                    Add(s, layer);
+                    break;
             }
         }
 
@@ -1425,7 +1607,12 @@ namespace GeometryHelper.Dxf
 
             internal double Thickness { get; }
 
-            internal bool IsEmpty => !_colour.HasValue && !_trueColour.HasValue && _linetype == null && !_lineweight.HasValue && Thickness == 0.0;
+            internal bool IsEmpty =>
+                !_colour.HasValue
+                && !_trueColour.HasValue
+                && _linetype == null
+                && !_lineweight.HasValue
+                && Thickness == 0.0;
 
             internal void Write(Groups groups)
             {
@@ -1835,7 +2022,15 @@ namespace GeometryHelper.Dxf
         /// A layout with the page set-up left at nothing, which is all AutoCAD needs of one to show the model and a sheet; from
         /// R2004 on with its shade plot as displayed (76), at normal quality (77) and 300 dots an inch (78), as AutoCAD writes it.
         /// </summary>
-        private static void Layout(Groups file, int handle, string name, int tab, int record, int plotFlags, bool shadePlot)
+        private static void Layout(
+            Groups file,
+            int handle,
+            string name,
+            int tab,
+            int record,
+            int plotFlags,
+            bool shadePlot
+        )
         {
             file.Str(0, "LAYOUT");
             file.Hex(5, handle);
@@ -2103,13 +2298,21 @@ namespace GeometryHelper.Dxf
 
             GeoPoint3 centre = arc.Center;
 
-            if (!Guard.IsFinite(arc.Radius) || !Guard.IsFinite(centre.X) || !Guard.IsFinite(centre.Y) || !Guard.IsFinite(centre.Z))
+            if (
+                !Guard.IsFinite(arc.Radius)
+                || !Guard.IsFinite(centre.X)
+                || !Guard.IsFinite(centre.Y)
+                || !Guard.IsFinite(centre.Z)
+            )
             {
                 return false;
             }
 
             double sag = Math.Abs(edge.Bulge) * edge.StartPoint.DistanceTo(edge.EndPoint) * 0.5;
-            return !(Math.Abs(edge.Bulge) <= 1.0 && Arc2.IsFlat(sag, new GeoPoint2(centre.X, Math.Abs(centre.Y) + Math.Abs(centre.Z)), arc.Radius));
+            return !(
+                Math.Abs(edge.Bulge) <= 1.0
+                && Arc2.IsFlat(sag, new GeoPoint2(centre.X, Math.Abs(centre.Y) + Math.Abs(centre.Z)), arc.Radius)
+            );
         }
 
         /// <summary>
@@ -2189,7 +2392,10 @@ namespace GeometryHelper.Dxf
             double x = Math.Abs(normal.X);
             double y = Math.Abs(normal.Y);
             double z = Math.Abs(normal.Z);
-            double largest = z >= y && z >= x ? normal.Z : y >= x ? normal.Y : normal.X;
+            double largest =
+                z >= y && z >= x ? normal.Z
+                : y >= x ? normal.Y
+                : normal.X;
 
             return largest < 0.0 ? normal.Multiply(-1.0) : normal;
         }
@@ -2216,7 +2422,12 @@ namespace GeometryHelper.Dxf
 
             Begin("CIRCLE", layer, "AcDbCircle");
             Thickness();
-            _entities.Point(0, ocs.X(centre.X, centre.Y, centre.Z), ocs.Y(centre.X, centre.Y, centre.Z), ocs.Z(centre.X, centre.Y, centre.Z));
+            _entities.Point(
+                0,
+                ocs.X(centre.X, centre.Y, centre.Z),
+                ocs.Y(centre.X, centre.Y, centre.Z),
+                ocs.Z(centre.X, centre.Y, centre.Z)
+            );
             _entities.Real(40, radius);
             Extrusion(normal);
             GrowCircle(centre, normal, radius);
@@ -2260,7 +2471,12 @@ namespace GeometryHelper.Dxf
 
             Begin("ARC", layer, "AcDbCircle");
             Thickness();
-            _entities.Point(0, ocs.X(centre.X, centre.Y, centre.Z), ocs.Y(centre.X, centre.Y, centre.Z), ocs.Z(centre.X, centre.Y, centre.Z));
+            _entities.Point(
+                0,
+                ocs.X(centre.X, centre.Y, centre.Z),
+                ocs.Y(centre.X, centre.Y, centre.Z),
+                ocs.Z(centre.X, centre.Y, centre.Z)
+            );
             _entities.Real(40, arc.Radius);
             Extrusion(normal);
             _entities.Str(100, "AcDbArc");
@@ -2309,7 +2525,13 @@ namespace GeometryHelper.Dxf
         /// negated where they are opposite, and nought where the arc bows square to the plane. Not turned up, the extrusion is
         /// the normal given, as a straight chain on one line is written on the normal of the polyline it is given to.
         /// </summary>
-        private DxfWriter Lightweight3(string layer, GeoVector3 plane, List<GeoEdge3> edges, bool closed, bool turnUp = true)
+        private DxfWriter Lightweight3(
+            string layer,
+            GeoVector3 plane,
+            List<GeoEdge3> edges,
+            bool closed,
+            bool turnUp = true
+        )
         {
             GeoVector3 normal = turnUp ? Upward(plane) : plane;
 
@@ -2412,7 +2634,15 @@ namespace GeometryHelper.Dxf
         /// degree, the counts of knots, control points and fit points (none), the knot, control point and fit tolerances, then
         /// each knot, each weight where there are weights, and each control point.
         /// </summary>
-        private void Spline(string layer, int degree, IReadOnlyList<double> knots, IReadOnlyList<double> weights, IReadOnlyList<GeoPoint3> points, bool closed, GeoVector3? normal)
+        private void Spline(
+            string layer,
+            int degree,
+            IReadOnlyList<double> knots,
+            IReadOnlyList<double> weights,
+            IReadOnlyList<GeoPoint3> points,
+            bool closed,
+            GeoVector3? normal
+        )
         {
             const double Fitting = 1E-10;
 
@@ -2465,7 +2695,12 @@ namespace GeometryHelper.Dxf
         /// A lightweight polyline. The bulge of each edge sits on the vertex the edge leaves, which for the closing edge of a
         /// loop is the last.
         /// </summary>
-        private DxfWriter Lightweight(string layer, IReadOnlyList<GeoPoint2> vertices, IReadOnlyList<double> bulges, bool closed)
+        private DxfWriter Lightweight(
+            string layer,
+            IReadOnlyList<GeoPoint2> vertices,
+            IReadOnlyList<double> bulges,
+            bool closed
+        )
         {
             // Older than R14, the vertices are gathered for a POLYLINE: x, y and bulge each.
             List<double[]> plain = _noLightweight ? new List<double[]>(vertices.Count) : null;
@@ -2570,7 +2805,10 @@ namespace GeometryHelper.Dxf
 
             foreach (GeoTriangle3 t in side)
             {
-                int hidden = (seen[new Seam(t.A, t.B)] > 1 ? 1 : 0) | (seen[new Seam(t.B, t.C)] > 1 ? 2 : 0) | (seen[new Seam(t.C, t.A)] > 1 ? 8 : 0);
+                int hidden =
+                    (seen[new Seam(t.A, t.B)] > 1 ? 1 : 0)
+                    | (seen[new Seam(t.B, t.C)] > 1 ? 2 : 0)
+                    | (seen[new Seam(t.C, t.A)] > 1 ? 8 : 0);
                 Face(layer, t.A, t.B, t.C, t.C, hidden);
             }
         }
@@ -2637,7 +2875,13 @@ namespace GeometryHelper.Dxf
                 GeoArc3 arc = list[i].IsArc ? list[i].ToArc() : default(GeoArc3);
 
                 // An arc too shallow to place a circle for is read by its chord, as a straight edge is.
-                if (!list[i].IsArc || !Guard.IsFinite(arc.Radius) || !Guard.IsFinite(arc.Center.X) || !Guard.IsFinite(arc.Center.Y) || !Guard.IsFinite(arc.Center.Z))
+                if (
+                    !list[i].IsArc
+                    || !Guard.IsFinite(arc.Radius)
+                    || !Guard.IsFinite(arc.Center.X)
+                    || !Guard.IsFinite(arc.Center.Y)
+                    || !Guard.IsFinite(arc.Center.Z)
+                )
                 {
                     points.Add(list[i].EndPoint);
                     continue;
@@ -2689,8 +2933,8 @@ namespace GeometryHelper.Dxf
 
         #region Numbers that must be finite
 
-        private static void Check(double value, string name)
-            => Guard.Finite(value, name, "A coordinate, size or direction has to be a finite number.");
+        private static void Check(double value, string name) =>
+            Guard.Finite(value, name, "A coordinate, size or direction has to be a finite number.");
 
         private static void Check(GeoPoint2 point, string name)
         {
@@ -2855,8 +3099,8 @@ namespace GeometryHelper.Dxf
                 _z = point.Z + 0.0;
             }
 
-            public bool Equals(Corner other)
-                => BitConverter.DoubleToInt64Bits(_x) == BitConverter.DoubleToInt64Bits(other._x)
+            public bool Equals(Corner other) =>
+                BitConverter.DoubleToInt64Bits(_x) == BitConverter.DoubleToInt64Bits(other._x)
                 && BitConverter.DoubleToInt64Bits(_y) == BitConverter.DoubleToInt64Bits(other._y)
                 && BitConverter.DoubleToInt64Bits(_z) == BitConverter.DoubleToInt64Bits(other._z);
 

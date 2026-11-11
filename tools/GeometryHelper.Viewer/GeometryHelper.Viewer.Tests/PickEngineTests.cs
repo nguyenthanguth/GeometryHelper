@@ -7,13 +7,35 @@ namespace GeometryHelper.Viewer.Tests
 {
     public class PickEngineTests
     {
-        private static GeoFace3 Plate(double x, double y, double z, double size)
-            => new GeoFace3(new GeoPolygon3(new GeoPoint3(x, y, z), new GeoPoint3(x + size, y, z), new GeoPoint3(x + size, y + size, z), new GeoPoint3(x, y + size, z)));
+        private static GeoFace3 Plate(double x, double y, double z, double size) =>
+            new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(x, y, z),
+                    new GeoPoint3(x + size, y, z),
+                    new GeoPoint3(x + size, y + size, z),
+                    new GeoPoint3(x, y + size, z)
+                )
+            );
 
-        private static PickHit PickAt(ViewFixture view, Vec3 at, double offsetX = 0.0, double offsetY = 0.0, bool surfaces = true, Func<int, bool> visible = null)
+        private static PickHit PickAt(
+            ViewFixture view,
+            Vec3 at,
+            double offsetX = 0.0,
+            double offsetY = 0.0,
+            bool surfaces = true,
+            Func<int, bool> visible = null
+        )
         {
             (double x, double y) = view.Pixel(at);
-            return PickEngine.Pick(view.Primitives, view.Geometry, view.Map, x + offsetX, y + offsetY, visible, surfaces);
+            return PickEngine.Pick(
+                view.Primitives,
+                view.Geometry,
+                view.Map,
+                x + offsetX,
+                y + offsetY,
+                visible,
+                surfaces
+            );
         }
 
         [Fact]
@@ -31,7 +53,9 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void OfTwoFacesOneAboveTheOther_TheUpperIsPickedFromAbove()
         {
-            var view = ViewFixture.Top(new SceneWriter().Add(Plate(0, 0, 0, 100)).Add(Plate(20, 20, 10, 50)).Add(Plate(0, 0, -5, 100)));
+            var view = ViewFixture.Top(
+                new SceneWriter().Add(Plate(0, 0, 0, 100)).Add(Plate(20, 20, 10, 50)).Add(Plate(0, 0, -5, 100))
+            );
 
             Assert.Equal(1, PickAt(view, new Vec3(40, 40, 10)).ItemIndex);
             Assert.Equal(0, PickAt(view, new Vec3(90, 90, 0)).ItemIndex);
@@ -40,7 +64,11 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AnEdgeOnAFace_IsPickedInPreferenceToTheFace()
         {
-            var view = ViewFixture.Top(new SceneWriter().Add(Plate(0, 0, 0, 100)).Add(new GeoLine3(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0))));
+            var view = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(Plate(0, 0, 0, 100))
+                    .Add(new GeoLine3(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0)))
+            );
 
             PickHit hit = PickAt(view, new Vec3(50, 50, 0), 0.0, 2.0);
 
@@ -67,7 +95,12 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ThePointsAndTheLabelsOfAScene_ArePickedByTheirPlaceOnTheScreen()
         {
-            var view = ViewFixture.Top(new SceneWriter().Add(new GeoPoint3(10, 10, 0)).Text(new GeoPoint3(80, 40, 0), "note").Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0))));
+            var view = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoPoint3(10, 10, 0))
+                    .Text(new GeoPoint3(80, 40, 0), "note")
+                    .Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0)))
+            );
 
             Assert.Equal(PickKind.Point, PickAt(view, new Vec3(10, 10, 0), 4.0, 3.0).Kind);
             Assert.Equal(1, PickAt(view, new Vec3(80, 40, 0), -3.0, 2.0).ItemIndex);
@@ -111,16 +144,46 @@ namespace GeometryHelper.Viewer.Tests
             double tolerance = view.Scene.EqualPoint;
 
             (double cx, double cy) = view.Pixel(new Vec3(100, 100, 0));
-            ResolvedPoint corner = PickEngine.ResolvePoint(view.Primitives, view.Geometry, view.Map, cx + 2.0, cy - 2.0, SnapKinds.All, tolerance, null, true);
+            ResolvedPoint corner = PickEngine.ResolvePoint(
+                view.Primitives,
+                view.Geometry,
+                view.Map,
+                cx + 2.0,
+                cy - 2.0,
+                SnapKinds.All,
+                tolerance,
+                null,
+                true
+            );
             Assert.Equal("end", corner.Source);
             Assert.Equal(new Vec3(100, 100, 0), corner.Point);
 
             (double sx, double sy) = view.Pixel(new Vec3(30, 70, 0));
-            ResolvedPoint surface = PickEngine.ResolvePoint(view.Primitives, view.Geometry, view.Map, sx, sy, SnapKinds.None, tolerance, null, true);
+            ResolvedPoint surface = PickEngine.ResolvePoint(
+                view.Primitives,
+                view.Geometry,
+                view.Map,
+                sx,
+                sy,
+                SnapKinds.None,
+                tolerance,
+                null,
+                true
+            );
             Assert.Equal("surface", surface.Source);
             ViewFixture.AssertNear(new Vec3(30, 70, 0), surface.Point, 1E-9);
 
-            ResolvedPoint space = PickEngine.ResolvePoint(view.Primitives, view.Geometry, view.Map, sx, sy, SnapKinds.None, tolerance, null, false);
+            ResolvedPoint space = PickEngine.ResolvePoint(
+                view.Primitives,
+                view.Geometry,
+                view.Map,
+                sx,
+                sy,
+                SnapKinds.None,
+                tolerance,
+                null,
+                false
+            );
             Assert.Equal("plane z = 0", space.Source);
             ViewFixture.AssertNear(new Vec3(30, 70, 0), space.Point, 1E-9);
             Assert.Equal(-1, space.ItemIndex);

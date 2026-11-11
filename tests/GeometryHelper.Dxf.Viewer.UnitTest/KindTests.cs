@@ -15,10 +15,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return document.GetDisplay(document.ModelSpace);
         }
 
-        private static DisplayList2 Display(params string[] entities) => Display(TestDrawings.Drawing(null, null, entities));
+        private static DisplayList2 Display(params string[] entities) =>
+            Display(TestDrawings.Drawing(null, null, entities));
 
         /// <summary>The least distance from a point to the items drawn.</summary>
-        private static double Distance(DisplayList2 list, double x, double y) => list.Items.Min(i => i.DistanceTo(x, y));
+        private static double Distance(DisplayList2 list, double x, double y) =>
+            list.Items.Min(i => i.DistanceTo(x, y));
 
         [Fact]
         public void AClosedPolylineWithABulgeDrawsEveryEdgeTheClosingOneAmongThem()
@@ -37,7 +39,32 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             // Centre (10, 0) of its own system, which runs along the world's -x: the world centre is (-10, 0), the arc from
             // (-15, 0) round through (-13.54, 3.54) to (-10, 5).
-            DisplayList2 list = Display(TestDrawings.Entity("ARC", "0", 256, "A1", "10", 10.0, "20", 0.0, "30", 0.0, "40", 5.0, "210", 0.0, "220", 0.0, "230", -1.0, "50", 0.0, "51", 90.0));
+            DisplayList2 list = Display(
+                TestDrawings.Entity(
+                    "ARC",
+                    "0",
+                    256,
+                    "A1",
+                    "10",
+                    10.0,
+                    "20",
+                    0.0,
+                    "30",
+                    0.0,
+                    "40",
+                    5.0,
+                    "210",
+                    0.0,
+                    "220",
+                    0.0,
+                    "230",
+                    -1.0,
+                    "50",
+                    0.0,
+                    "51",
+                    90.0
+                )
+            );
 
             DisplayArc2 arc = Assert.IsType<DisplayArc2>(Assert.Single(list.Items));
             Assert.Equal(-10.0, arc.Cx, 9);
@@ -52,7 +79,30 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void AnInsertMirroredInXDrawsItsLineAndArcMirrored()
         {
             string block = TestDrawings.Block("MARK", TestDrawings.Line(0, 0, 10, 0), TestDrawings.Arc(5, 0, 5, 0, 90));
-            DxfDatabase database = TestDrawings.Drawing(null, block, TestDrawings.Entity("INSERT", "0", 256, "B1", "2", "MARK", "10", 100.0, "20", 200.0, "30", 0.0, "41", -1.0, "42", 1.0, "43", 1.0));
+            DxfDatabase database = TestDrawings.Drawing(
+                null,
+                block,
+                TestDrawings.Entity(
+                    "INSERT",
+                    "0",
+                    256,
+                    "B1",
+                    "2",
+                    "MARK",
+                    "10",
+                    100.0,
+                    "20",
+                    200.0,
+                    "30",
+                    0.0,
+                    "41",
+                    -1.0,
+                    "42",
+                    1.0,
+                    "43",
+                    1.0
+                )
+            );
 
             DisplayList2 list = Display(database);
 
@@ -69,9 +119,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ABlockInsideABlockIsPlacedByBothInsertsAndKeepsTheOuterHandle()
         {
-            string blocks = TestDrawings.Block("INNER", TestDrawings.Line(0, 0, 10, 0))
+            string blocks =
+                TestDrawings.Block("INNER", TestDrawings.Line(0, 0, 10, 0))
                 + TestDrawings.Block("OUTER", TestDrawings.Insert("INNER", 5, 0, rotation: 90.0));
-            DxfDatabase database = TestDrawings.Drawing(null, blocks, TestDrawings.Insert("OUTER", 100, 100, scale: 2.0, handle: "B1"));
+            DxfDatabase database = TestDrawings.Drawing(
+                null,
+                blocks,
+                TestDrawings.Insert("OUTER", 100, 100, scale: 2.0, handle: "B1")
+            );
 
             DisplayPolyline2 line = Assert.IsType<DisplayPolyline2>(Assert.Single(Display(database).Items));
 
@@ -86,7 +141,34 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void AnArrayInsertDrawsItsBlockOncePerCellAlongItsTurnedRowsAndColumns()
         {
             string block = TestDrawings.Block("MARK", TestDrawings.Line(0, 0, 10, 0));
-            DxfDatabase database = TestDrawings.Drawing(null, block, TestDrawings.Entity("INSERT", "0", 256, "B1", "2", "MARK", "10", 0.0, "20", 0.0, "30", 0.0, "50", 90.0, "70", 3, "71", 2, "44", 50.0, "45", 30.0));
+            DxfDatabase database = TestDrawings.Drawing(
+                null,
+                block,
+                TestDrawings.Entity(
+                    "INSERT",
+                    "0",
+                    256,
+                    "B1",
+                    "2",
+                    "MARK",
+                    "10",
+                    0.0,
+                    "20",
+                    0.0,
+                    "30",
+                    0.0,
+                    "50",
+                    90.0,
+                    "70",
+                    3,
+                    "71",
+                    2,
+                    "44",
+                    50.0,
+                    "45",
+                    30.0
+                )
+            );
 
             DisplayList2 list = Display(database);
 
@@ -94,15 +176,69 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.All(list.Items, item => Assert.Equal("B1", item.Handle));
 
             // Turned 90 degrees, the columns run up the y axis and the rows to the left.
-            double[] starts = list.Items.Cast<DisplayPolyline2>().Select(c => Math.Round(c.Xy[0]) * 1000 + Math.Round(c.Xy[1])).OrderBy(v => v).ToArray();
+            double[] starts = list
+                .Items.Cast<DisplayPolyline2>()
+                .Select(c => Math.Round(c.Xy[0]) * 1000 + Math.Round(c.Xy[1]))
+                .OrderBy(v => v)
+                .ToArray();
             Assert.Equal(new[] { -30000.0, -29950.0, -29900.0, 0.0, 50.0, 100.0 }, starts);
         }
 
         [Fact]
         public void AWholeEllipseIsAClosedChainAndAPartOfOneAnOpenChainOfItsPartOnly()
         {
-            DisplayList2 whole = Display(TestDrawings.Entity("ELLIPSE", "0", 256, "E1", "10", 0.0, "20", 0.0, "30", 0.0, "11", 20.0, "21", 0.0, "31", 0.0, "40", 0.5, "41", 0.0, "42", 2 * Math.PI));
-            DisplayList2 part = Display(TestDrawings.Entity("ELLIPSE", "0", 256, "E2", "10", 0.0, "20", 0.0, "30", 0.0, "11", 20.0, "21", 0.0, "31", 0.0, "40", 0.5, "41", 0.0, "42", Math.PI / 2));
+            DisplayList2 whole = Display(
+                TestDrawings.Entity(
+                    "ELLIPSE",
+                    "0",
+                    256,
+                    "E1",
+                    "10",
+                    0.0,
+                    "20",
+                    0.0,
+                    "30",
+                    0.0,
+                    "11",
+                    20.0,
+                    "21",
+                    0.0,
+                    "31",
+                    0.0,
+                    "40",
+                    0.5,
+                    "41",
+                    0.0,
+                    "42",
+                    2 * Math.PI
+                )
+            );
+            DisplayList2 part = Display(
+                TestDrawings.Entity(
+                    "ELLIPSE",
+                    "0",
+                    256,
+                    "E2",
+                    "10",
+                    0.0,
+                    "20",
+                    0.0,
+                    "30",
+                    0.0,
+                    "11",
+                    20.0,
+                    "21",
+                    0.0,
+                    "31",
+                    0.0,
+                    "40",
+                    0.5,
+                    "41",
+                    0.0,
+                    "42",
+                    Math.PI / 2
+                )
+            );
 
             DisplayPolyline2 ring = Assert.IsType<DisplayPolyline2>(Assert.Single(whole.Items));
             Assert.True(ring.Closed);
@@ -120,10 +256,66 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void ASplineRunsFromItsFirstControlPointToItsLast()
         {
             // A cubic Bezier from (0, 0) to (30, 0) pulled up by (10, 20) and (20, 20): its top is 15 high.
-            DisplayList2 list = Display(TestDrawings.Entity(
-                "SPLINE", "0", 256, "S1", "100", "AcDbSpline", "70", 8, "71", 3, "72", 8, "73", 4, "74", 0,
-                "40", 0.0, "40", 0.0, "40", 0.0, "40", 0.0, "40", 1.0, "40", 1.0, "40", 1.0, "40", 1.0,
-                "10", 0.0, "20", 0.0, "30", 0.0, "10", 10.0, "20", 20.0, "30", 0.0, "10", 20.0, "20", 20.0, "30", 0.0, "10", 30.0, "20", 0.0, "30", 0.0));
+            DisplayList2 list = Display(
+                TestDrawings.Entity(
+                    "SPLINE",
+                    "0",
+                    256,
+                    "S1",
+                    "100",
+                    "AcDbSpline",
+                    "70",
+                    8,
+                    "71",
+                    3,
+                    "72",
+                    8,
+                    "73",
+                    4,
+                    "74",
+                    0,
+                    "40",
+                    0.0,
+                    "40",
+                    0.0,
+                    "40",
+                    0.0,
+                    "40",
+                    0.0,
+                    "40",
+                    1.0,
+                    "40",
+                    1.0,
+                    "40",
+                    1.0,
+                    "40",
+                    1.0,
+                    "10",
+                    0.0,
+                    "20",
+                    0.0,
+                    "30",
+                    0.0,
+                    "10",
+                    10.0,
+                    "20",
+                    20.0,
+                    "30",
+                    0.0,
+                    "10",
+                    20.0,
+                    "20",
+                    20.0,
+                    "30",
+                    0.0,
+                    "10",
+                    30.0,
+                    "20",
+                    0.0,
+                    "30",
+                    0.0
+                )
+            );
 
             DisplayPolyline2 chain = Assert.IsType<DisplayPolyline2>(Assert.Single(list.Items));
             Assert.Equal(0.0, chain.Xy[0], 9);
@@ -134,8 +326,70 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void AThreeDFaceIsAClosedChainOfItsCornersAndATriangleOfThreeWhenTheLastTwoAreOne()
         {
-            DisplayList2 quad = Display(TestDrawings.Entity("3DFACE", "0", 256, "F1", "10", 0.0, "20", 0.0, "30", 0.0, "11", 10.0, "21", 0.0, "31", 0.0, "12", 10.0, "22", 10.0, "32", 0.0, "13", 0.0, "23", 10.0, "33", 0.0));
-            DisplayList2 triangle = Display(TestDrawings.Entity("3DFACE", "0", 256, "F2", "10", 0.0, "20", 0.0, "30", 0.0, "11", 10.0, "21", 0.0, "31", 0.0, "12", 10.0, "22", 10.0, "32", 0.0, "13", 10.0, "23", 10.0, "33", 0.0));
+            DisplayList2 quad = Display(
+                TestDrawings.Entity(
+                    "3DFACE",
+                    "0",
+                    256,
+                    "F1",
+                    "10",
+                    0.0,
+                    "20",
+                    0.0,
+                    "30",
+                    0.0,
+                    "11",
+                    10.0,
+                    "21",
+                    0.0,
+                    "31",
+                    0.0,
+                    "12",
+                    10.0,
+                    "22",
+                    10.0,
+                    "32",
+                    0.0,
+                    "13",
+                    0.0,
+                    "23",
+                    10.0,
+                    "33",
+                    0.0
+                )
+            );
+            DisplayList2 triangle = Display(
+                TestDrawings.Entity(
+                    "3DFACE",
+                    "0",
+                    256,
+                    "F2",
+                    "10",
+                    0.0,
+                    "20",
+                    0.0,
+                    "30",
+                    0.0,
+                    "11",
+                    10.0,
+                    "21",
+                    0.0,
+                    "31",
+                    0.0,
+                    "12",
+                    10.0,
+                    "22",
+                    10.0,
+                    "32",
+                    0.0,
+                    "13",
+                    10.0,
+                    "23",
+                    10.0,
+                    "33",
+                    0.0
+                )
+            );
 
             Assert.True(quad.Items.All(i => !(i is DisplayFill2)));
             Assert.True(Distance(quad, 0, 5) < 1E-9);
@@ -161,7 +415,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             var database = new DxfDatabase("AC1018");
             var wipeout = new DxfWipeout();
-            wipeout.SetFrom(new[] { new GeoPoint2(0, 0), new GeoPoint2(40, 0), new GeoPoint2(40, 30), new GeoPoint2(0, 30), new GeoPoint2(0, 0) }, new GeoVector3(0, 0, 1));
+            wipeout.SetFrom(
+                new[]
+                {
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(40, 0),
+                    new GeoPoint2(40, 30),
+                    new GeoPoint2(0, 30),
+                    new GeoPoint2(0, 0),
+                },
+                new GeoVector3(0, 0, 1)
+            );
             database.ModelSpace.AppendEntity(wipeout);
 
             DisplayFill2 mask = Assert.IsType<DisplayFill2>(Assert.Single(Display(database).Items));
@@ -175,12 +439,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void APolylineOfTheOldKindIn2DAnd3DDrawsItsVerticesAndBulges()
         {
-            string old2d = "0\nPOLYLINE\n5\nP1\n8\n0\n66\n1\n10\n0\n20\n0\n30\n0\n70\n1\n"
+            string old2d =
+                "0\nPOLYLINE\n5\nP1\n8\n0\n66\n1\n10\n0\n20\n0\n30\n0\n70\n1\n"
                 + "0\nVERTEX\n5\nV1\n8\n0\n10\n0\n20\n0\n30\n0\n42\n1\n"
                 + "0\nVERTEX\n5\nV2\n8\n0\n10\n20\n20\n0\n30\n0\n"
                 + "0\nVERTEX\n5\nV3\n8\n0\n10\n20\n20\n30\n30\n0\n"
                 + "0\nSEQEND\n5\nV4\n8\n0\n";
-            string old3d = "0\nPOLYLINE\n5\nP2\n8\n0\n66\n1\n10\n0\n20\n0\n30\n0\n70\n8\n"
+            string old3d =
+                "0\nPOLYLINE\n5\nP2\n8\n0\n66\n1\n10\n0\n20\n0\n30\n0\n70\n8\n"
                 + "0\nVERTEX\n5\nW1\n8\n0\n10\n100\n20\n0\n30\n0\n70\n32\n"
                 + "0\nVERTEX\n5\nW2\n8\n0\n10\n110\n20\n10\n30\n50\n70\n32\n"
                 + "0\nSEQEND\n5\nW3\n8\n0\n";
@@ -196,12 +462,47 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ALeaderDrawsItsLineAndAFilledArrowheadAtItsFirstVertex()
         {
-            DisplayList2 list = Display(TestDrawings.Entity(
-                "LEADER", "0", 256, "L1", "100", "AcDbLeader", "3", "Standard", "71", 1, "72", 0, "76", 3,
-                "10", 0.0, "20", 0.0, "30", 0.0, "10", 10.0, "20", 10.0, "30", 0.0, "10", 20.0, "20", 10.0, "30", 0.0));
+            DisplayList2 list = Display(
+                TestDrawings.Entity(
+                    "LEADER",
+                    "0",
+                    256,
+                    "L1",
+                    "100",
+                    "AcDbLeader",
+                    "3",
+                    "Standard",
+                    "71",
+                    1,
+                    "72",
+                    0,
+                    "76",
+                    3,
+                    "10",
+                    0.0,
+                    "20",
+                    0.0,
+                    "30",
+                    0.0,
+                    "10",
+                    10.0,
+                    "20",
+                    10.0,
+                    "30",
+                    0.0,
+                    "10",
+                    20.0,
+                    "20",
+                    10.0,
+                    "30",
+                    0.0
+                )
+            );
 
             // The arrow is 0.18 long, the size of AutoCAD's own style where the drawing names none, along the first segment.
-            Assert.Contains(list.Items, i => i is DisplayFill2 fill && fill.Contains(0.07, 0.07) && !fill.Contains(0.3, 0.3));
+            Assert.Contains(list.Items, i =>
+                i is DisplayFill2 fill && fill.Contains(0.07, 0.07) && !fill.Contains(0.3, 0.3)
+            );
             Assert.True(Distance(list, 15, 10) < 1E-9);
             Assert.True(Distance(list, 5, 5) < 1E-9);
         }
@@ -209,10 +510,45 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ATableIsDrawnByItsBlockAtItsPoint()
         {
-            string block = "0\nBLOCK\n8\n0\n2\n*T1\n70\n1\n10\n0\n20\n0\n30\n0\n3\n*T1\n1\n\n" + TestDrawings.Line(0, 0, 50, 0) + TestDrawings.Line(0, -10, 50, -10) + "0\nENDBLK\n8\n0\n";
+            string block =
+                "0\nBLOCK\n8\n0\n2\n*T1\n70\n1\n10\n0\n20\n0\n30\n0\n3\n*T1\n1\n\n"
+                + TestDrawings.Line(0, 0, 50, 0)
+                + TestDrawings.Line(0, -10, 50, -10)
+                + "0\nENDBLK\n8\n0\n";
             string table = TestDrawings.Entity(
-                "ACAD_TABLE", "0", 256, "T1", "100", "AcDbBlockReference", "2", "*T1", "10", 100.0, "20", 50.0, "30", 0.0,
-                "100", "AcDbTable", "280", 0, "11", 1.0, "21", 0.0, "31", 0.0, "91", 1, "92", 1, "141", 10.0, "142", 50.0);
+                "ACAD_TABLE",
+                "0",
+                256,
+                "T1",
+                "100",
+                "AcDbBlockReference",
+                "2",
+                "*T1",
+                "10",
+                100.0,
+                "20",
+                50.0,
+                "30",
+                0.0,
+                "100",
+                "AcDbTable",
+                "280",
+                0,
+                "11",
+                1.0,
+                "21",
+                0.0,
+                "31",
+                0.0,
+                "91",
+                1,
+                "92",
+                1,
+                "141",
+                10.0,
+                "142",
+                50.0
+            );
             DxfDatabase database = TestDrawings.Drawing(null, block, table);
 
             DisplayList2 list = Display(database);

@@ -57,11 +57,25 @@ namespace GeometryHelper.Dwg
         {
             switch (value)
             {
-                case 0: Bit(false); break;
-                case 2: Bit(true); Bit(false); break;
-                case 6: Bit(true); Bit(true); Bit(false); break;
-                case 7: Bit(true); Bit(true); Bit(true); break;
-                default: throw new ArgumentOutOfRangeException(nameof(value), "A 3B code holds 0, 2, 6 or 7.");
+                case 0:
+                    Bit(false);
+                    break;
+                case 2:
+                    Bit(true);
+                    Bit(false);
+                    break;
+                case 6:
+                    Bit(true);
+                    Bit(true);
+                    Bit(false);
+                    break;
+                case 7:
+                    Bit(true);
+                    Bit(true);
+                    Bit(true);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(value), "A 3B code holds 0, 2, 6 or 7.");
             }
         }
 
@@ -410,7 +424,11 @@ namespace GeometryHelper.Dwg
         /// <summary>BE from R2000: a set bit for the extrusion (0, 0, 1), else a clear bit and three bit doubles.</summary>
         public void BitExtrusion(double[] extrusion)
         {
-            if (BitConverter.DoubleToInt64Bits(extrusion[0]) == 0 && BitConverter.DoubleToInt64Bits(extrusion[1]) == 0 && extrusion[2] == 1.0)
+            if (
+                BitConverter.DoubleToInt64Bits(extrusion[0]) == 0
+                && BitConverter.DoubleToInt64Bits(extrusion[1]) == 0
+                && extrusion[2] == 1.0
+            )
             {
                 Bit(true);
                 return;

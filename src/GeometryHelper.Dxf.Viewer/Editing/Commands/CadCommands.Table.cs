@@ -89,7 +89,13 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            if (request.Columns < 1 || request.DataRows < 1 || request.RowHeightLines < 1 || !(request.ColumnWidth > 0.0) || double.IsInfinity(request.ColumnWidth))
+            if (
+                request.Columns < 1
+                || request.DataRows < 1
+                || request.RowHeightLines < 1
+                || !(request.ColumnWidth > 0.0)
+                || double.IsInfinity(request.ColumnWidth)
+            )
             {
                 c.Write("A table needs a column and a data row at least, of a width above nought.");
                 yield break;
@@ -113,8 +119,22 @@ namespace GeometryHelper.Dxf.Viewer
 
                 corner = c.Input.Point;
                 GeoPoint2 first = corner;
-                yield return CadPrompt.ForPoint("Specify second corner", corner).Previewing(CadPreview.MakingOne(c, input =>
-                    TableOutline(c, request.TableStyle, first, input.Point, request.Columns, request.ColumnWidth, request.DataRows, request.RowHeightLines)));
+                yield return CadPrompt
+                    .ForPoint("Specify second corner", corner)
+                    .Previewing(
+                        CadPreview.MakingOne(c, input =>
+                            TableOutline(
+                                c,
+                                request.TableStyle,
+                                first,
+                                input.Point,
+                                request.Columns,
+                                request.ColumnWidth,
+                                request.DataRows,
+                                request.RowHeightLines
+                            )
+                        )
+                    );
 
                 if (!c.Input.IsPoint)
                 {
@@ -125,8 +145,22 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else
             {
-                yield return CadPrompt.ForPoint("Specify insertion point").Previewing(CadPreview.MakingOne(c, input =>
-                    TableOutline(c, request.TableStyle, input.Point, null, request.Columns, request.ColumnWidth, request.DataRows, request.RowHeightLines)));
+                yield return CadPrompt
+                    .ForPoint("Specify insertion point")
+                    .Previewing(
+                        CadPreview.MakingOne(c, input =>
+                            TableOutline(
+                                c,
+                                request.TableStyle,
+                                input.Point,
+                                null,
+                                request.Columns,
+                                request.ColumnWidth,
+                                request.DataRows,
+                                request.RowHeightLines
+                            )
+                        )
+                    );
 
                 if (!c.Input.IsPoint)
                 {
@@ -136,7 +170,16 @@ namespace GeometryHelper.Dxf.Viewer
                 corner = c.Input.Point;
             }
 
-            string handle = MakeTable(c, request.TableStyle, corner, opposite, request.Columns, request.ColumnWidth, request.DataRows, request.RowHeightLines);
+            string handle = MakeTable(
+                c,
+                request.TableStyle,
+                corner,
+                opposite,
+                request.Columns,
+                request.ColumnWidth,
+                request.DataRows,
+                request.RowHeightLines
+            );
 
             if (handle == null)
             {
@@ -159,9 +202,21 @@ namespace GeometryHelper.Dxf.Viewer
             string style = CadTableStyleEditor.Current(c.Database);
             double width = c.Remembered("table.width", 63.5);
             int lines = (int)c.Remembered("table.lines", 1);
-            c.Write("Current table style: \"" + style + "\"  Cell width: " + Number(width) + "  Cell height: " + lines.ToString(CultureInfo.InvariantCulture) + " line(s)");
+            c.Write(
+                "Current table style: \""
+                    + style
+                    + "\"  Cell width: "
+                    + Number(width)
+                    + "  Cell height: "
+                    + lines.ToString(CultureInfo.InvariantCulture)
+                    + " line(s)"
+            );
             int columns = (int)c.Remembered("table.columns", 5);
-            yield return CadPrompt.ForInteger("Enter number of columns", null, columns.ToString(CultureInfo.InvariantCulture));
+            yield return CadPrompt.ForInteger(
+                "Enter number of columns",
+                null,
+                columns.ToString(CultureInfo.InvariantCulture)
+            );
 
             if (c.Input.Kind == CadInputKind.Number)
             {
@@ -169,7 +224,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             int rows = (int)c.Remembered("table.rows", 1);
-            yield return CadPrompt.ForInteger("Enter number of rows", null, rows.ToString(CultureInfo.InvariantCulture));
+            yield return CadPrompt.ForInteger(
+                "Enter number of rows",
+                null,
+                rows.ToString(CultureInfo.InvariantCulture)
+            );
 
             if (c.Input.Kind == CadInputKind.Number)
             {
@@ -184,8 +243,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify insertion point", null, new[] { "Style", "Width", "Height" }).Previewing(CadPreview.MakingOne(c, input =>
-                    TableOutline(c, style, input.Point, null, columns, width, rows, lines)));
+                yield return CadPrompt
+                    .ForPoint("Specify insertion point", null, new[] { "Style", "Width", "Height" })
+                    .Previewing(
+                        CadPreview.MakingOne(c, input =>
+                            TableOutline(c, style, input.Point, null, columns, width, rows, lines)
+                        )
+                    );
 
                 if (c.Input.Is("Style"))
                 {
@@ -230,7 +294,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("Height"))
                 {
-                    yield return CadPrompt.ForInteger("Specify row height in lines", null, lines.ToString(CultureInfo.InvariantCulture));
+                    yield return CadPrompt.ForInteger(
+                        "Specify row height in lines",
+                        null,
+                        lines.ToString(CultureInfo.InvariantCulture)
+                    );
 
                     if (c.Input.Kind == CadInputKind.Number && c.Input.Number >= 1.0)
                     {
@@ -259,7 +327,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (!c.Session.Request("TABLESTYLE", c.Document))
             {
-                c.Write("Current table style: \"" + CadTableStyleEditor.Current(c.Database) + "\". The Table Style dialog is shown by the window.");
+                c.Write(
+                    "Current table style: \""
+                        + CadTableStyleEditor.Current(c.Database)
+                        + "\". The Table Style dialog is shown by the window."
+                );
             }
 
             yield break;
@@ -292,7 +364,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// of each row, a title, a header and the data rows; filling a window, the columns share its width and the rows its
         /// height in the proportions they would have. False where it has no width or height.
         /// </summary>
-        private static bool TableLayout(DxfTableStyle style, GeoPoint2 corner, GeoPoint2? opposite, int columns, double columnWidth, int dataRows, int lines, out GeoPoint2 top, out double width, out double[] heights)
+        private static bool TableLayout(
+            DxfTableStyle style,
+            GeoPoint2 corner,
+            GeoPoint2? opposite,
+            int columns,
+            double columnWidth,
+            int dataRows,
+            int lines,
+            out GeoPoint2 top,
+            out double width,
+            out double[] heights
+        )
         {
             double margin = style.VerticalCellMargin;
             double Row(DxfRowType kind, int count) => count * style.TextHeight(kind) * 4.0 / 3.0 + 2.0 * margin;
@@ -339,11 +422,35 @@ namespace GeometryHelper.Dxf.Viewer
         /// drawing has none yet). Five columns 63.5 wide make it 317.5 wide.
         /// Null where the table has no size.
         /// </summary>
-        private static DxfPolyline TableOutline(CadCommandContext c, string styleName, GeoPoint2 corner, GeoPoint2? opposite, int columns, double columnWidth, int dataRows, int lines)
+        private static DxfPolyline TableOutline(
+            CadCommandContext c,
+            string styleName,
+            GeoPoint2 corner,
+            GeoPoint2? opposite,
+            int columns,
+            double columnWidth,
+            int dataRows,
+            int lines
+        )
         {
-            DxfTableStyle style = CadTableStyleEditor.Find(c.Database, styleName) ?? CadTableStyleEditor.Find(c.Database, "Standard") ?? CadTableStyleEditor.StandardApart(c.Database);
+            DxfTableStyle style = CadTableStyleEditor.Find(c.Database, styleName)
+                ?? CadTableStyleEditor.Find(c.Database, "Standard")
+                ?? CadTableStyleEditor.StandardApart(c.Database);
 
-            if (!TableLayout(style, corner, opposite, columns, columnWidth, dataRows, lines, out GeoPoint2 top, out double width, out double[] heights))
+            if (
+                !TableLayout(
+                    style,
+                    corner,
+                    opposite,
+                    columns,
+                    columnWidth,
+                    dataRows,
+                    lines,
+                    out GeoPoint2 top,
+                    out double width,
+                    out double[] heights
+                )
+            )
             {
                 return null;
             }
@@ -351,7 +458,13 @@ namespace GeometryHelper.Dxf.Viewer
             double right = top.X + width * columns;
             double bottom = top.Y - heights.Sum();
             var outline = new DxfPolyline();
-            GeoPoint2[] corners = { top, new GeoPoint2(right, top.Y), new GeoPoint2(right, bottom), new GeoPoint2(top.X, bottom) };
+            GeoPoint2[] corners =
+            {
+                top,
+                new GeoPoint2(right, top.Y),
+                new GeoPoint2(right, bottom),
+                new GeoPoint2(top.X, bottom),
+            };
 
             for (int i = 0; i < corners.Length; i++)
             {
@@ -368,7 +481,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// above and below, as AutoCAD lays out a new table; one undo step. The style is made current where the drawing can hold
         /// it. Gives the table's handle, or null where it was not made.
         /// </summary>
-        private static string MakeTable(CadCommandContext c, string styleName, GeoPoint2 corner, GeoPoint2? opposite, int columns, double columnWidth, int dataRows, int lines)
+        private static string MakeTable(
+            CadCommandContext c,
+            string styleName,
+            GeoPoint2 corner,
+            GeoPoint2? opposite,
+            int columns,
+            double columnWidth,
+            int dataRows,
+            int lines
+        )
         {
             c.Document.EnsureNamedObjectsDictionary();
             c.OpenUndoStep();
@@ -376,10 +498,24 @@ namespace GeometryHelper.Dxf.Viewer
             CadEditResult result = c.Apply(null, s =>
             {
                 CadTableStyleEditor.EnsureStandard(s.Database);
-                DxfTableStyle style = CadTableStyleEditor.Find(s.Database, styleName) ?? CadTableStyleEditor.Find(s.Database, "Standard");
+                DxfTableStyle style = CadTableStyleEditor.Find(s.Database, styleName)
+                    ?? CadTableStyleEditor.Find(s.Database, "Standard");
                 int rows = dataRows + 2;
 
-                if (!TableLayout(style, corner, opposite, columns, columnWidth, dataRows, lines, out GeoPoint2 top, out double width, out double[] heights))
+                if (
+                    !TableLayout(
+                        style,
+                        corner,
+                        opposite,
+                        columns,
+                        columnWidth,
+                        dataRows,
+                        lines,
+                        out GeoPoint2 top,
+                        out double width,
+                        out double[] heights
+                    )
+                )
                 {
                     throw new InvalidOperationException("The window has no width or height to fill.");
                 }
@@ -399,7 +535,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             c.CloseUndoStep();
 
-            if (result.Succeeded && !string.Equals(CadTableStyleEditor.Current(c.Database), styleName, StringComparison.OrdinalIgnoreCase))
+            if (
+                result.Succeeded
+                && !string.Equals(
+                    CadTableStyleEditor.Current(c.Database),
+                    styleName,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
             {
                 // The style chosen is current next time, a step of its own, where the drawing can hold CTABLESTYLE; one that
                 // cannot keeps its own, and the table is made all the same (a refusal inside the table's step would take it back).
@@ -420,7 +563,13 @@ namespace GeometryHelper.Dxf.Viewer
         {
             while (true)
             {
-                if (!(c.Document.FindEntity(handle) is DxfTable table) || row < 0 || column < 0 || row >= table.NumRows || column >= table.NumColumns)
+                if (
+                    !(c.Document.FindEntity(handle) is DxfTable table)
+                    || row < 0
+                    || column < 0
+                    || row >= table.NumRows
+                    || column >= table.NumColumns
+                )
                 {
                     yield break;
                 }
@@ -483,7 +632,8 @@ namespace GeometryHelper.Dxf.Viewer
         private static bool NextCell(DxfTable table, CadTableCellMove move, ref int row, ref int column)
         {
             DxfCellRange from = table.GetMergeRange(row, column);
-            int r = row, c = column;
+            int r = row,
+                c = column;
 
             while (true)
             {
@@ -546,8 +696,18 @@ namespace GeometryHelper.Dxf.Viewer
         {
             DxfRowType kind = table.RowType(row);
             var style = table.TableStyle as DxfTableStyle;
-            double height = table.TextHeight(row, column) ?? (style != null ? style.TextHeight(kind) : kind == DxfRowType.TitleRow ? 6.0 : 4.5);
-            DxfCellAlignment alignment = table.Alignment(row, column) ?? (style != null ? style.Alignment(kind) : kind == DxfRowType.DataRow ? DxfCellAlignment.TopCenter : DxfCellAlignment.MiddleCenter);
+            double height = table.TextHeight(row, column)
+                ?? (
+                    style != null ? style.TextHeight(kind)
+                    : kind == DxfRowType.TitleRow ? 6.0
+                    : 4.5
+                );
+            DxfCellAlignment alignment = table.Alignment(row, column)
+                ?? (
+                    style != null ? style.Alignment(kind)
+                    : kind == DxfRowType.DataRow ? DxfCellAlignment.TopCenter
+                    : DxfCellAlignment.MiddleCenter
+                );
             string styleName = table.TextStyle(row, column)?.Name ?? style?.TextStyleName(kind) ?? "Standard";
             IReadOnlyList<GeoPoint3> corners = table.GetCellExtents(row, column, true);
             double width = corners[0].DistanceTo(corners[1]);
@@ -558,10 +718,26 @@ namespace GeometryHelper.Dxf.Viewer
             double v = table.VerticalCellMargin;
             int across = ((int)alignment - 1) % 3;
             int upDown = ((int)alignment - 1) / 3;
-            double x = across == 0 ? h : across == 1 ? width / 2.0 : width - h;
-            double y = upDown == 0 ? v : upDown == 1 ? tall / 2.0 : tall - v;
+            double x =
+                across == 0 ? h
+                : across == 1 ? width / 2.0
+                : width - h;
+            double y =
+                upDown == 0 ? v
+                : upDown == 1 ? tall / 2.0
+                : tall - v;
             GeoPoint3 at = corners[0].Add(along.Multiply(x)).Add(down.Multiply(y));
-            return new CadInPlaceEdit(CadInPlaceKind.MText, table.Handle, table.TextString(row, column), new GeoPoint2(at.X, at.Y), height, Math.Atan2(along.Y, along.X), Math.Max(0.0, width - 2.0 * h), styleName, (int)alignment)
+            return new CadInPlaceEdit(
+                CadInPlaceKind.MText,
+                table.Handle,
+                table.TextString(row, column),
+                new GeoPoint2(at.X, at.Y),
+                height,
+                Math.Atan2(along.Y, along.X),
+                Math.Max(0.0, width - 2.0 * h),
+                styleName,
+                (int)alignment
+            )
             {
                 TableRow = row,
                 TableColumn = column,

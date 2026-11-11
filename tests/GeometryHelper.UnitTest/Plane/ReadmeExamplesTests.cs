@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Extension;
 using GeometryHelper.Geometry;
 using GeometryHelper.Spatial;
@@ -21,8 +21,12 @@ namespace GeometryHelper.UnitTest.Plane
         public void GeometricTypes_CurveVersusRegion()
         {
             var traced = new GeoPolyline2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10), new GeoPoint2(0, 10), new GeoPoint2(0, 0));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10),
+                new GeoPoint2(0, 0)
+            );
 
             // Exactly the four results quoted in the README table.
             Assert.Equal(PointLocation.OutSide, traced.Locate(new GeoPoint2(5, 5)));
@@ -37,7 +41,11 @@ namespace GeometryHelper.UnitTest.Plane
             // The README says Contains belongs to regions and Locate to everything. Curves reach Locate
             // and IsPointOn only, which is why the polyline lines below have no Contains counterpart.
             var poly = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
             var rect = new GeoRectangle2(new GeoPoint2(5, 5), 10, 10);
             var circle = new GeoCircle2(new GeoPoint2(5, 5), 5);
             var polyline = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10));
@@ -63,9 +71,17 @@ namespace GeometryHelper.UnitTest.Plane
             var rect = new GeoRectangle2(new GeoPoint2(5, 5), 8, 8);
             var otherRect = new GeoRectangle2(new GeoPoint2(6, 6), 8, 8);
             var poly = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
             var otherPoly = new GeoPolygon2(
-                new GeoPoint2(5, 5), new GeoPoint2(15, 5), new GeoPoint2(15, 15), new GeoPoint2(5, 15));
+                new GeoPoint2(5, 5),
+                new GeoPoint2(15, 5),
+                new GeoPoint2(15, 15),
+                new GeoPoint2(5, 15)
+            );
             var circle = new GeoCircle2(new GeoPoint2(5, 5), 4);
             var polyline = new GeoPolyline2(new GeoPoint2(0, 5), new GeoPoint2(10, 5), new GeoPoint2(10, 10));
 
@@ -156,17 +172,34 @@ namespace GeometryHelper.UnitTest.Plane
         public void Splitting_AgainstAPolygonSortsBySide()
         {
             var polygon = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
             var polygonA = polygon;
             var polygonB = new GeoPolygon2(
-                new GeoPoint2(10, 0), new GeoPoint2(20, 0), new GeoPoint2(20, 10), new GeoPoint2(10, 10));
+                new GeoPoint2(10, 0),
+                new GeoPoint2(20, 0),
+                new GeoPoint2(20, 10),
+                new GeoPoint2(10, 10)
+            );
 
             var line = new GeoLine2(new GeoPoint2(-5, 5), new GeoPoint2(15, 5));
             var polyline = new GeoPolyline2(new GeoPoint2(-5, 5), new GeoPoint2(5, 5), new GeoPoint2(5, 15));
 
             Assert.True(Splition2.TrySplitBy(line, polygon, out GeoLine2[] inside, out GeoLine2[] outside));
-            Assert.True(Splition2.TrySplitBy(polyline, polygon, out GeoPolyline2[] insideRuns, out GeoPolyline2[] outsideRuns));
-            Assert.True(Splition2.TrySplitBy(polyline, new[] { polygonA, polygonB }, out GeoPolyline2[] within, out GeoPolyline2[] beyond));
+            Assert.True(
+                Splition2.TrySplitBy(polyline, polygon, out GeoPolyline2[] insideRuns, out GeoPolyline2[] outsideRuns)
+            );
+            Assert.True(
+                Splition2.TrySplitBy(
+                    polyline,
+                    new[] { polygonA, polygonB },
+                    out GeoPolyline2[] within,
+                    out GeoPolyline2[] beyond
+                )
+            );
 
             Assert.Single(inside);
             Assert.Equal(2, outside.Length);
@@ -185,7 +218,11 @@ namespace GeometryHelper.UnitTest.Plane
             var line = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0));
             var point = new GeoPoint2(4, 0);
             var polygon = new GeoPolygon2(
-                new GeoPoint2(2, -5), new GeoPoint2(8, -5), new GeoPoint2(8, 5), new GeoPoint2(2, 5));
+                new GeoPoint2(2, -5),
+                new GeoPoint2(8, -5),
+                new GeoPoint2(8, 5),
+                new GeoPoint2(2, 5)
+            );
             var polyline = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10));
             var cutter = new GeoLine2(new GeoPoint2(6, -5), new GeoPoint2(6, 5));
 
@@ -213,7 +250,11 @@ namespace GeometryHelper.UnitTest.Plane
             var polyline = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0));
             var missing = new GeoLine2(new GeoPoint2(50, -5), new GeoPoint2(50, 5));
             var farAway = new GeoPolygon2(
-                new GeoPoint2(50, 50), new GeoPoint2(60, 50), new GeoPoint2(60, 60), new GeoPoint2(50, 60));
+                new GeoPoint2(50, 50),
+                new GeoPoint2(60, 50),
+                new GeoPoint2(60, 60),
+                new GeoPoint2(50, 60)
+            );
 
             Assert.False(polyline.TrySplitBy(missing, out GeoPolyline2[] pieces));
             Assert.Single(pieces);
@@ -231,19 +272,24 @@ namespace GeometryHelper.UnitTest.Plane
             var polyline = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10));
 
             // "Cut positions outside the subject, or landing on one of its endpoints, are not splits."
-            GeoPolyline2[] skipped = Splition2.SplitAtDistances(
-                polyline, new[] { -5.0, 0.0, 20.0, 50.0 }, tolerance);
+            GeoPolyline2[] skipped = Splition2.SplitAtDistances(polyline, new[] { -5.0, 0.0, 20.0, 50.0 }, tolerance);
             Assert.Single(skipped);
 
             // "Positions closer together than the tolerance merge into one."
             GeoPolyline2[] merged = Splition2.SplitAtDistances(
-                polyline, new[] { 5.0, 5.0 + tolerance.EqualPoint * 0.5 }, tolerance);
+                polyline,
+                new[] { 5.0, 5.0 + tolerance.EqualPoint * 0.5 },
+                tolerance
+            );
             Assert.Equal(2, merged.Length);
 
             // "A position within a tolerance of an existing vertex snaps onto it, so no piece and no
             // edge is ever shorter than the tolerance."
             GeoPolyline2[] snapped = Splition2.SplitAtDistances(
-                polyline, new[] { 10.0 + tolerance.EqualPoint * 0.5 }, tolerance);
+                polyline,
+                new[] { 10.0 + tolerance.EqualPoint * 0.5 },
+                tolerance
+            );
             Assert.Equal(2, snapped.Length);
             foreach (GeoPolyline2 piece in snapped)
             {
@@ -266,7 +312,11 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var tolerance = new Tolerance(1E-4, 1E-4);
             var square = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
 
             // "A part running along the boundary counts as inside, matching Contains."
             var alongEdge = new GeoLine2(new GeoPoint2(2, 0), new GeoPoint2(8, 0));
@@ -282,12 +332,16 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Single(grazeOut);
             Assert.Equal(graze.Length, grazeOut[0].Length, 9);
         }
+
         [Fact]
         public void PointChains_ThinThenChain()
         {
             var traced = new List<GeoPoint2>
             {
-                new GeoPoint2(0, 0), new GeoPoint2(0.0001, 0), new GeoPoint2(5, 0), new GeoPoint2(5, 5),
+                new GeoPoint2(0, 0),
+                new GeoPoint2(0.0001, 0),
+                new GeoPoint2(5, 0),
+                new GeoPoint2(5, 5),
             };
 
             // "The second point is a hair away from the first and goes." - 3 points.
@@ -325,17 +379,31 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(new GeoLine2(0, 0, 20, 0), cut);
 
             // "each segment keeps its longer part and ends at the corner"
-            Assert.True(new GeoLine2(0, 0, 8, 0).TryTrimExtendToCorner(new GeoLine2(10, 2, 10, 10), out GeoLine2 a, out GeoLine2 b));
+            Assert.True(
+                new GeoLine2(0, 0, 8, 0).TryTrimExtendToCorner(
+                    new GeoLine2(10, 2, 10, 10),
+                    out GeoLine2 a,
+                    out GeoLine2 b
+                )
+            );
             Assert.Equal(new GeoLine2(0, 0, 10, 0), a);
             Assert.Equal(new GeoLine2(10, 0, 10, 10), b);
 
-            Assert.True(new GeoLine2(0, 0, 1, 1).TryIntersectWith(new GeoLine2(10, 0, 11, -1), LineExtension.Both, out GeoPoint2 x));
+            Assert.True(
+                new GeoLine2(0, 0, 1, 1).TryIntersectWith(
+                    new GeoLine2(10, 0, 11, -1),
+                    LineExtension.Both,
+                    out GeoPoint2 x
+                )
+            );
             Assert.True(x.IsEqualTo(new GeoPoint2(5, 5)));
 
             // "fits an end to a boundary whichever side of it the end starts on"
             foreach (GeoLine2 line in new[] { new GeoLine2(0, 0, 12, 0), new GeoLine2(0, 0, 27, 0) })
             {
-                Assert.True(line.TryExtendTo(wall, LineEnd.End, out GeoLine2 fit) || line.TryTrimTo(wall, LineEnd.End, out fit));
+                Assert.True(
+                    line.TryExtendTo(wall, LineEnd.End, out GeoLine2 fit) || line.TryTrimTo(wall, LineEnd.End, out fit)
+                );
                 Assert.Equal(new GeoLine2(0, 0, 20, 0), fit);
             }
         }
@@ -353,7 +421,12 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(parallel[1].IsEqualTo(new GeoPoint2(11, -1)));
             Assert.True(parallel[2].IsEqualTo(new GeoPoint2(11, 10)));
 
-            var square = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+            var square = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
             Assert.Equal(14.0 * 14.0, square.Offset(2.0).Single().Area, 9);
             Assert.Equal(4, square.Offset(2.0).Single().VertexCount);
             Assert.True(square.Offset(2.0, OffsetJoin.Round).Single().VertexCount > 4);
@@ -363,16 +436,32 @@ namespace GeometryHelper.UnitTest.Plane
             // "a growing polygon that closes a gap around empty space gives that space as a hole, wound the
             // other way so that signed areas add up"
             var ring = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(20, 0), new GeoPoint2(20, 9), new GeoPoint2(15, 9), new GeoPoint2(15, 5),
-                new GeoPoint2(5, 5), new GeoPoint2(5, 15), new GeoPoint2(15, 15), new GeoPoint2(15, 11), new GeoPoint2(20, 11),
-                new GeoPoint2(20, 20), new GeoPoint2(0, 20));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(20, 0),
+                new GeoPoint2(20, 9),
+                new GeoPoint2(15, 9),
+                new GeoPoint2(15, 5),
+                new GeoPoint2(5, 5),
+                new GeoPoint2(5, 15),
+                new GeoPoint2(15, 15),
+                new GeoPoint2(15, 11),
+                new GeoPoint2(20, 11),
+                new GeoPoint2(20, 20),
+                new GeoPoint2(0, 20)
+            );
             GeoPolygon2[] loops = ring.Offset(1.5);
             Assert.Equal(2, loops.Length);
             Assert.True(loops[1].IsClockwise);
             Assert.Equal(529.0 - 49.0, loops.Sum(l => l.SignedArea), 9);
 
             // "its holes shrink as the boundary grows"
-            var face = new GeoFace2(square, new[] { new GeoPolygon2(new GeoPoint2(3, 3), new GeoPoint2(7, 3), new GeoPoint2(7, 7), new GeoPoint2(3, 7)) });
+            var face = new GeoFace2(
+                square,
+                new[]
+                {
+                    new GeoPolygon2(new GeoPoint2(3, 3), new GeoPoint2(7, 3), new GeoPoint2(7, 7), new GeoPoint2(3, 7)),
+                }
+            );
             GeoFace2 grown = face.Offset(1.0).Single();
             Assert.Equal(12.0 * 12.0 - 2.0 * 2.0, grown.Area, 9);
 
@@ -391,10 +480,10 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var t = new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(4, 0), new GeoPoint2(0, 3));
 
-            double area = t.Area;                                   // 6
-            PointLocation where = t.Locate(new GeoPoint2(1, 1));    // Inside
-            double off = t.DistanceTo(new GeoPoint2(4, 3));         // 2.4, to the long side
-            t.TryGetCircumcircle(out GeoCircle2 circle);            // centre (2, 1.5), radius 2.5
+            double area = t.Area; // 6
+            PointLocation where = t.Locate(new GeoPoint2(1, 1)); // Inside
+            double off = t.DistanceTo(new GeoPoint2(4, 3)); // 2.4, to the long side
+            t.TryGetCircumcircle(out GeoCircle2 circle); // centre (2, 1.5), radius 2.5
 
             Assert.Equal(6.0, area, 12);
             Assert.Equal(PointLocation.Inside, where);
@@ -406,8 +495,18 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void CombiningRegions_EverySampleHolds()
         {
-            var a = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
-            var b = new GeoPolygon2(new GeoPoint2(5, 5), new GeoPoint2(15, 5), new GeoPoint2(15, 15), new GeoPoint2(5, 15));
+            var a = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
+            var b = new GeoPolygon2(
+                new GeoPoint2(5, 5),
+                new GeoPoint2(15, 5),
+                new GeoPoint2(15, 15),
+                new GeoPoint2(5, 15)
+            );
 
             Assert.Equal(175.0, a.Union(b).Single().Area, 9);
             Assert.Equal(25.0, a.Intersect(b).Single().Area, 9);
@@ -416,11 +515,26 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(150.0, a.Xor(b).Sum(f => f.Area), 9);
 
             // "an opening inside becomes a hole, one across the edge a notch"
-            var outline = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 40), new GeoPoint2(0, 40));
+            var outline = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 40),
+                new GeoPoint2(0, 40)
+            );
             var openings = new[]
             {
-                new GeoPolygon2(new GeoPoint2(10, 10), new GeoPoint2(20, 10), new GeoPoint2(20, 20), new GeoPoint2(10, 20)),
-                new GeoPolygon2(new GeoPoint2(95, 30), new GeoPoint2(105, 30), new GeoPoint2(105, 35), new GeoPoint2(95, 35))
+                new GeoPolygon2(
+                    new GeoPoint2(10, 10),
+                    new GeoPoint2(20, 10),
+                    new GeoPoint2(20, 20),
+                    new GeoPoint2(10, 20)
+                ),
+                new GeoPolygon2(
+                    new GeoPoint2(95, 30),
+                    new GeoPoint2(105, 30),
+                    new GeoPoint2(105, 35),
+                    new GeoPoint2(95, 35)
+                ),
             };
 
             GeoFace2[] slab = Boolean2.Subtract(outline, openings);
@@ -442,13 +556,30 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // "A GeoPolygon2 is not checked for self-intersection when it is built ... polygon.IsSimple()
             // runs it when you want it"
-            var crossed = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(2, 8), new GeoPoint2(6, -4));
+            var crossed = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(2, 8),
+                new GeoPoint2(6, -4)
+            );
 
             Assert.False(crossed.IsSimple());
-            Assert.True(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10)).IsSimple());
+            Assert.True(
+                new GeoPolygon2(
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(10, 0),
+                    new GeoPoint2(10, 10),
+                    new GeoPoint2(0, 10)
+                ).IsSimple()
+            );
 
             // "a doubled-back lobe counts against the rest"
-            var bowtie = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 10), new GeoPoint2(10, 0), new GeoPoint2(0, 10));
+            var bowtie = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(0, 10)
+            );
             Assert.False(bowtie.IsSimple());
             Assert.Equal(0.0, bowtie.Area, 9);
         }
@@ -456,10 +587,18 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void PackageReadme_QuickStart_Holds()
         {
-            var slab = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(4000, 0),
-                                       new GeoPoint2(4000, 2000), new GeoPoint2(0, 2000));
-            var duct = new GeoPolygon2(new GeoPoint2(1000, 500), new GeoPoint2(1400, 500),
-                                       new GeoPoint2(1400, 900), new GeoPoint2(1000, 900));
+            var slab = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(4000, 0),
+                new GeoPoint2(4000, 2000),
+                new GeoPoint2(0, 2000)
+            );
+            var duct = new GeoPolygon2(
+                new GeoPoint2(1000, 500),
+                new GeoPoint2(1400, 500),
+                new GeoPoint2(1400, 900),
+                new GeoPoint2(1000, 900)
+            );
 
             GeoPolygon2 grown = slab.Offset(50.0)[0];
             GeoFace2 pierced = Boolean2.Subtract(grown, duct)[0];
@@ -503,12 +642,22 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.False(first.IsCodirectionalTo(new GeoVector2(-5, -5)));
 
             // "the foot of the perpendicular, beyond the ends if need be"
-            Assert.True(Projection2.ProjectToInfiniteLine(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0)),
-                                                          new GeoPoint2(25, 4))
-                                   .IsEqualTo(new GeoPoint2(25, 0)));
+            Assert.True(
+                Projection2
+                    .ProjectToInfiniteLine(
+                        new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0)),
+                        new GeoPoint2(25, 4)
+                    )
+                    .IsEqualTo(new GeoPoint2(25, 0))
+            );
 
             // "Every region reports its measurements as properties, named alike whatever the shape"
-            var polygon = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(4, 0), new GeoPoint2(4, 3), new GeoPoint2(0, 3));
+            var polygon = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(4, 0),
+                new GeoPoint2(4, 3),
+                new GeoPoint2(0, 3)
+            );
             var face = new GeoFace2(polygon);
             var rectangle = new GeoRectangle2(new GeoPoint2(0, 0), 4, 3);
             var circle = new GeoCircle2(GeoPoint2.Origin, 5);
@@ -532,7 +681,12 @@ namespace GeometryHelper.UnitTest.Plane
             var axis = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(1, 0));
             var origin = new GeoPoint2(100, 50);
             var xAxis = new GeoVector2(0, 2);
-            var polygon = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(4, 0), new GeoPoint2(4, 2), new GeoPoint2(0, 2));
+            var polygon = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(4, 0),
+                new GeoPoint2(4, 2),
+                new GeoPoint2(0, 2)
+            );
             var point = new GeoPoint2(101, 50);
 
             GeoTransform2 move = GeoTransform2.Translation(new GeoVector2(10, -3));
@@ -589,9 +743,17 @@ namespace GeometryHelper.UnitTest.Plane
         public void CuttingCorners_EverySampleHolds()
         {
             var plate = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 120), new GeoPoint2(0, 120));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(200, 0),
+                new GeoPoint2(200, 120),
+                new GeoPoint2(0, 120)
+            );
             var chain = new GeoPolyline2(
-                new GeoPoint2(0, 0), new GeoPoint2(50, 0), new GeoPoint2(50, 40), new GeoPoint2(90, 40));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(50, 0),
+                new GeoPoint2(50, 40),
+                new GeoPoint2(90, 40)
+            );
 
             // "every corner, the same distance along both edges" - a rectangle comes back an octagon
             GeoPolygon2 cut = plate.Chamfer(15.0);
@@ -632,8 +794,10 @@ namespace GeometryHelper.UnitTest.Plane
             // "no edge strays further than 0.5 from the circle"
             GeoPolygon2 fine = circle.ToPolygonByChordTolerance(0.5);
             GeoLine2 edge = fine.GetEdgeAt(0);
-            GeoPoint2 middle = new GeoPoint2((edge.StartPoint.X + edge.EndPoint.X) * 0.5,
-                                             (edge.StartPoint.Y + edge.EndPoint.Y) * 0.5);
+            GeoPoint2 middle = new GeoPoint2(
+                (edge.StartPoint.X + edge.EndPoint.X) * 0.5,
+                (edge.StartPoint.Y + edge.EndPoint.Y) * 0.5
+            );
             Assert.True(circle.Radius - circle.Center.DistanceTo(middle) <= 0.5 + 1E-9);
 
             // "no two vertices further apart than 25 along the circumference"
@@ -658,6 +822,7 @@ namespace GeometryHelper.UnitTest.Plane
             var inSpace = new GeoCircle3(GeoPoint3.Origin, GeoVector3.ZAxis, 1000.0);
             Assert.Equal(automatic.VertexCount, inSpace.ToPolygon().VertexCount);
         }
+
         [Fact]
         public void Arcs_EverySampleHolds()
         {
@@ -666,7 +831,9 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Equal(78.54, arc.Length, 2);
             Assert.Equal(1.5708, arc.EndAngle, 4);
-            Assert.True(arc.MidPoint.IsEqualTo(new GeoPoint2(50.0 * Math.Cos(Math.PI / 4), 50.0 * Math.Sin(Math.PI / 4))));
+            Assert.True(
+                arc.MidPoint.IsEqualTo(new GeoPoint2(50.0 * Math.Cos(Math.PI / 4), 50.0 * Math.Sin(Math.PI / 4)))
+            );
             Assert.True(arc.GetChord().IsEqualTo(new GeoLine2(arc.StartPoint, arc.EndPoint)));
             Assert.Equal(50.0, arc.GetCircle().Radius, 9);
 
@@ -710,7 +877,8 @@ namespace GeometryHelper.UnitTest.Plane
 
             var chain = new GeoPolylineArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(20, 0), new GeoPoint2(40, 20) },
-                new[] { 1.0, 0.0 });
+                new[] { 1.0, 0.0 }
+            );
 
             Assert.True(chain.HasArcs);
             Assert.Equal(59.7, chain.Length, 1);
@@ -724,7 +892,8 @@ namespace GeometryHelper.UnitTest.Plane
             // A repeated first vertex says nothing a loop does not already say, but its bulge is kept.
             var loop = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 0) },
-                new[] { 0.0, 0.0, 0.0, 0.25 });
+                new[] { 0.0, 0.0, 0.0, 0.25 }
+            );
 
             Assert.Equal(3, loop.VertexCount);
             Assert.Equal(0.25, loop.GetBulgeAt(2), 12);
@@ -732,7 +901,8 @@ namespace GeometryHelper.UnitTest.Plane
             // Equals is exact and starts where the loop starts; IsEqualTo does not care.
             var shifted = new GeoPolygonArc2(
                 new[] { new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 0) },
-                new[] { 0.0, 0.25, 0.0 });
+                new[] { 0.0, 0.25, 0.0 }
+            );
 
             Assert.True(loop.IsEqualTo(shifted));
             Assert.False(loop.Equals(shifted));
@@ -742,8 +912,15 @@ namespace GeometryHelper.UnitTest.Plane
         public void Flattening_EverySampleHolds()
         {
             var loop = new GeoPolygonArc2(
-                new[] { new GeoPoint2(0, 0), new GeoPoint2(1000, 0), new GeoPoint2(1000, 1000), new GeoPoint2(0, 1000) },
-                new[] { 0.0, 0.0, 1.0, 0.0 });
+                new[]
+                {
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(1000, 0),
+                    new GeoPoint2(1000, 1000),
+                    new GeoPoint2(0, 1000),
+                },
+                new[] { 0.0, 0.0, 1.0, 0.0 }
+            );
 
             GeoPolygon2 flat = loop.Flatten();
             GeoPolygon2 fine = loop.Flatten(0.05);
@@ -751,7 +928,11 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(fine.VertexCount > flat.VertexCount);
 
             var opening = new GeoPolygon2(
-                new GeoPoint2(400, 400), new GeoPoint2(600, 400), new GeoPoint2(600, 600), new GeoPoint2(400, 600));
+                new GeoPoint2(400, 400),
+                new GeoPoint2(600, 400),
+                new GeoPoint2(600, 600),
+                new GeoPoint2(400, 600)
+            );
 
             GeoFace2[] pierced = Boolean2.Subtract(flat, opening);
 
@@ -767,7 +948,11 @@ namespace GeometryHelper.UnitTest.Plane
         public void RoundingCorners_EverySampleHolds()
         {
             var plate = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(0, 100)
+            );
 
             GeoPolygonArc2 rounded = new GeoPolygonArc2(plate).Fillet(15.0);
 
@@ -776,7 +961,9 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(4, rounded.GetEdges().Count(edge => edge.IsArc));
             Assert.True(rounded.Flatten().VertexCount > 8);
 
-            var chain = new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) });
+            var chain = new GeoPolylineArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) }
+            );
             GeoPolylineArc2 eased = chain.Fillet(15.0);
 
             Assert.True(eased[0].IsEqualTo(chain[0]));
@@ -786,7 +973,16 @@ namespace GeometryHelper.UnitTest.Plane
             var first = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(80, 0));
             var second = new GeoLine2(new GeoPoint2(100, 20), new GeoPoint2(100, 100));
 
-            Assert.True(Lengthen2.TryFilletCorner(first, second, 15.0, out GeoArc2 arc, out GeoLine2 trimmed1, out GeoLine2 trimmed2));
+            Assert.True(
+                Lengthen2.TryFilletCorner(
+                    first,
+                    second,
+                    15.0,
+                    out GeoArc2 arc,
+                    out GeoLine2 trimmed1,
+                    out GeoLine2 trimmed2
+                )
+            );
             Assert.Equal(15.0, arc.Radius, 9);
 
             // The order the two segments come in does not change the answer.
@@ -795,12 +991,14 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(trimmed1.EndPoint.IsEqualTo(new GeoPoint2(85, 0)));
             Assert.True(trimmed2.StartPoint.IsEqualTo(new GeoPoint2(100, 15)));
         }
+
         [Fact]
         public void OffsettingWithoutStraightening_EverySampleHolds()
         {
             var slot = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 50), new GeoPoint2(0, 50) },
-                new[] { 0.0, 1.0, 0.0, 1.0 });
+                new[] { 0.0, 1.0, 0.0, 1.0 }
+            );
 
             GeoPolygonArc2[] grown = slot.Offset(20.0);
             Assert.Single(grown);
@@ -813,9 +1011,14 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Single(slot.Offset(20.0, OffsetJoin.Round));
 
             // A fillet of R40 offset by 10 comes back R50 exactly.
-            GeoPolygonArc2 plate = new GeoPolygonArc2(new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(300, 0), new GeoPoint2(300, 200), new GeoPoint2(0, 200)))
-                .Fillet(40.0);
+            GeoPolygonArc2 plate = new GeoPolygonArc2(
+                new GeoPolygon2(
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(300, 0),
+                    new GeoPoint2(300, 200),
+                    new GeoPoint2(0, 200)
+                )
+            ).Fillet(40.0);
 
             foreach (GeoEdge2 edge in plate.Offset(10.0)[0].GetEdges().Where(edge => edge.IsArc))
             {
@@ -827,7 +1030,11 @@ namespace GeometryHelper.UnitTest.Plane
 
             // The booleans do flatten, and the type says so.
             var opening = new GeoPolygon2(
-                new GeoPoint2(80, 15), new GeoPoint2(120, 15), new GeoPoint2(120, 35), new GeoPoint2(80, 35));
+                new GeoPoint2(80, 15),
+                new GeoPoint2(120, 15),
+                new GeoPoint2(120, 35),
+                new GeoPoint2(80, 35)
+            );
 
             GeoFace2[] pierced = slot.Subtract(opening);
             Assert.Single(pierced);
@@ -839,7 +1046,8 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var cog = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 50), new GeoPoint2(0, 50) },
-                new[] { 0.0, 1.0, 0.0, 1.0 });
+                new[] { 0.0, 1.0, 0.0, 1.0 }
+            );
 
             GeoBvh2 index = GeoBvh2.FromPolygonArc(cog);
 
@@ -857,9 +1065,16 @@ namespace GeometryHelper.UnitTest.Plane
 
             // Every way of building one is there.
             Assert.Equal(4, GeoBvh2.FromPolygon(cog.Flatten(40.0)).EdgeCount > 0 ? 4 : 0);
-            Assert.True(GeoBvh2.FromPolyline(new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(1, 1))).EdgeCount == 1);
-            Assert.True(GeoBvh2.FromPolylineArc(new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(1, 1) })).EdgeCount == 1);
+            Assert.True(
+                GeoBvh2.FromPolyline(new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(1, 1))).EdgeCount == 1
+            );
+            Assert.True(
+                GeoBvh2
+                    .FromPolylineArc(new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(1, 1) }))
+                    .EdgeCount == 1
+            );
         }
+
         [Fact]
         public void WorkingInALocalFrame_EverySampleHolds()
         {
@@ -884,7 +1099,11 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(plate.Area, new GeoRectangle2(plate.CoordinateSystem, 80.0, 40.0).Area, 9);
 
             var square = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
 
             Assert.NotEqual(square.IsClockwise, square.Reverse().IsClockwise);
 
@@ -892,11 +1111,18 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolygon2 placed = square.TransformBy(frame.ToTransform());
             Assert.True(placed.TransformBy(GeoTransform2.ToCoordinateSystem(frame)).IsEqualTo(square));
         }
+
         [Fact]
         public void OneRadiusPerCorner_EverySampleHolds()
         {
-            var plate = new GeoPolygonArc2(new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(300, 0), new GeoPoint2(300, 200), new GeoPoint2(0, 200)));
+            var plate = new GeoPolygonArc2(
+                new GeoPolygon2(
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(300, 0),
+                    new GeoPoint2(300, 200),
+                    new GeoPoint2(0, 200)
+                )
+            );
 
             GeoPolygonArc2 mixed = plate.Fillet(new[] { 40.0, 10.0, 0.0, 25.0 });
 
@@ -915,12 +1141,17 @@ namespace GeometryHelper.UnitTest.Plane
         public void TheNearestThingAndTheSegmentToIt_EverySampleHolds()
         {
             var poly = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(0, 100)
+            );
             var circle = new GeoCircle2(new GeoPoint2(300, 50), 20.0);
             var point = new GeoPoint2(300, 50);
             var slot = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
-                new[] { 0.0, 1.0, 0.0, 0.0 });
+                new[] { 0.0, 1.0, 0.0, 0.0 }
+            );
 
             GeoPoint2 on = poly.GetClosestPointOnBoundary(point);
             GeoLine2 across = poly.GetShortestLineTo(circle);
@@ -947,12 +1178,22 @@ namespace GeometryHelper.UnitTest.Plane
         public void StraightAgainstCurvedBothWays_EverySampleHolds()
         {
             var poly = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(0, 100)
+            );
             var rect = new GeoRectangle2(0, 0, 100, 100);
             var circle = new GeoCircle2(new GeoPoint2(300, 50), 20.0);
             var arc = new GeoArc2(new GeoPoint2(100, 50), 50.0, -Math.PI / 2, Math.PI / 2);
-            var slot = new GeoPolygonArc2(new GeoPolygon2(
-                new GeoPoint2(50, 25), new GeoPoint2(150, 25), new GeoPoint2(150, 75), new GeoPoint2(50, 75)));
+            var slot = new GeoPolygonArc2(
+                new GeoPolygon2(
+                    new GeoPoint2(50, 25),
+                    new GeoPoint2(150, 25),
+                    new GeoPoint2(150, 75),
+                    new GeoPoint2(50, 75)
+                )
+            );
 
             Assert.Equal(poly.DistanceTo(slot), slot.DistanceTo(poly), 9);
             Assert.Equal(poly.DistanceTo(arc), poly.GetShortestLineTo(arc).Length, 9);
@@ -974,12 +1215,17 @@ namespace GeometryHelper.UnitTest.Plane
 
             var slot = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
-                new[] { 0.0, 1.0, 0.0, 0.0 });
+                new[] { 0.0, 1.0, 0.0, 0.0 }
+            );
 
             Assert.Equal(-20.0, slot.SignedDistanceTo(new GeoPoint2(130, 50)), 9);
 
             var hole = new GeoPolygon2(
-                new GeoPoint2(40, 40), new GeoPoint2(60, 40), new GeoPoint2(60, 60), new GeoPoint2(40, 60));
+                new GeoPoint2(40, 40),
+                new GeoPoint2(60, 40),
+                new GeoPoint2(60, 60),
+                new GeoPoint2(40, 60)
+            );
             var pierced = new GeoFace2(plate.ToPolygon(), new[] { hole });
 
             Assert.Equal(10.0, pierced.SignedDistanceTo(new GeoPoint2(50, 50)), 9);
@@ -996,16 +1242,28 @@ namespace GeometryHelper.UnitTest.Plane
 
             // A point asks the same question from the other side.
             Assert.Equal(-50.0, new GeoPoint2(50, 50).SignedDistanceTo(plate), 9);
-            Assert.Equal(plate.SignedDistanceTo(new GeoPoint2(50, 50)), new GeoPoint2(50, 50).SignedDistanceTo(plate), 9);
+            Assert.Equal(
+                plate.SignedDistanceTo(new GeoPoint2(50, 50)),
+                new GeoPoint2(50, 50).SignedDistanceTo(plate),
+                9
+            );
         }
 
         [Fact]
         public void AFaceIsMaterialAndAHoleIsNot_EverySampleHolds()
         {
             var outline = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(200, 0),
+                new GeoPoint2(200, 200),
+                new GeoPoint2(0, 200)
+            );
             var cut = new GeoPolygon2(
-                new GeoPoint2(80, 80), new GeoPoint2(120, 80), new GeoPoint2(120, 120), new GeoPoint2(80, 120));
+                new GeoPoint2(80, 80),
+                new GeoPoint2(120, 80),
+                new GeoPoint2(120, 120),
+                new GeoPoint2(80, 120)
+            );
 
             var plate = new GeoFace2(outline, new[] { cut });
             var inHole = new GeoLine2(new GeoPoint2(90, 90), new GeoPoint2(110, 110));
@@ -1025,7 +1283,11 @@ namespace GeometryHelper.UnitTest.Plane
         public void AnEdgeIsASegmentOrAnArc_EverySampleHolds()
         {
             var poly = new GeoPolygon2(
-                new GeoPoint2(300, -50), new GeoPoint2(400, -50), new GeoPoint2(400, 50), new GeoPoint2(300, 50));
+                new GeoPoint2(300, -50),
+                new GeoPoint2(400, -50),
+                new GeoPoint2(400, 50),
+                new GeoPoint2(300, 50)
+            );
             var rect = new GeoRectangle2(new GeoPoint2(350, 0), 100, 100);
             var circle = new GeoCircle2(new GeoPoint2(50, 0), 80);
 
@@ -1046,7 +1308,11 @@ namespace GeometryHelper.UnitTest.Plane
         public void APointCanBeAskedWhichEdgeFacesIt_EverySampleHolds()
         {
             var poly = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(0, 100)
+            );
 
             var below = new GeoPoint2(50, -50);
 
@@ -1056,10 +1322,16 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(0.0, below.GetClosestEdge(poly).StartPoint.Y, 9);
             Assert.Equal(0.0, below.GetClosestEdge(poly).EndPoint.Y, 9);
         }
+
         [Fact]
         public void CuttingARegionIntoRegions()
         {
-            var plate = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200));
+            var plate = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(200, 0),
+                new GeoPoint2(200, 200),
+                new GeoPoint2(0, 200)
+            );
             var cutter = new GeoLine2(new GeoPoint2(100, -50), new GeoPoint2(100, 250));
 
             Assert.True(plate.TrySplitBy(cutter, out GeoPolygon2[] left, out GeoPolygon2[] right));
@@ -1097,13 +1369,22 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(bar.TryTrimTo(new GeoPoint2(200, 0), LineEnd.End, out GeoPolyline2 back));
             Assert.Equal(200.0, back.Length, 6);
 
-            Assert.Equal(150.0, new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(100, 0)).Extend(50.0, LineEnd.End).Length, 6);
+            Assert.Equal(
+                150.0,
+                new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(100, 0)).Extend(50.0, LineEnd.End).Length,
+                6
+            );
         }
 
         [Fact]
         public void RoundingTheStraightShapes()
         {
-            var plate = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+            var plate = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(0, 100)
+            );
             var chain = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(400, 0), new GeoPoint2(400, 200));
 
             Assert.Equal(4, plate.Fillet(30.0).GetEdges().Count(edge => edge.IsArc));
@@ -1115,8 +1396,14 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AnIndexOverTheEdges()
         {
-            var cog = new GeoPolygonArc2(new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200)));
+            var cog = new GeoPolygonArc2(
+                new GeoPolygon2(
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(200, 0),
+                    new GeoPoint2(200, 200),
+                    new GeoPoint2(0, 200)
+                )
+            );
             var point = new GeoPoint2(-50, 100);
             var knife = new GeoLine2(new GeoPoint2(-50, 100), new GeoPoint2(250, 100));
 
@@ -1125,15 +1412,25 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Equal(same.EdgeCount, index.EdgeCount);
             Assert.Equal(cog.DistanceTo(point), index.DistanceTo(point), 6);
-            Assert.True(index.GetClosestPoint(point).IsEqualTo(cog.GetClosestPointOnBoundary(point), new Tolerance(1E-7, 1E-7)));
+            Assert.True(
+                index.GetClosestPoint(point).IsEqualTo(cog.GetClosestPointOnBoundary(point), new Tolerance(1E-7, 1E-7))
+            );
             Assert.Equal(2, index.GetIntersections(knife).Length);
             Assert.True(index.CollidesWith(index));
 
             // A face indexes the rim of every hole along with its outline.
             var plate = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(200, 0),
+                new GeoPoint2(200, 200),
+                new GeoPoint2(0, 200)
+            );
             var hole = new GeoPolygon2(
-                new GeoPoint2(80, 80), new GeoPoint2(120, 80), new GeoPoint2(120, 120), new GeoPoint2(80, 120));
+                new GeoPoint2(80, 80),
+                new GeoPoint2(120, 80),
+                new GeoPoint2(120, 120),
+                new GeoPoint2(80, 120)
+            );
 
             Assert.Equal(8, new GeoFace2(plate, new[] { hole }).BuildIndex().EdgeCount);
         }
@@ -1142,7 +1439,14 @@ namespace GeometryHelper.UnitTest.Plane
         public void HullsAndFittedRectangles()
         {
             // The corners of a fifty by ten rectangle running along (4, 3), and a point inside it.
-            var points = new[] { new GeoPoint2(0, 0), new GeoPoint2(40, 30), new GeoPoint2(34, 38), new GeoPoint2(-6, 8), new GeoPoint2(20, 20) };
+            var points = new[]
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(40, 30),
+                new GeoPoint2(34, 38),
+                new GeoPoint2(-6, 8),
+                new GeoPoint2(20, 20),
+            };
 
             GeoPolygon2 hull = ConvexHull2.Of(points);
             GeoRectangle2 tightest = GeoRectangle2.Fit(points);
@@ -1158,7 +1462,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Rays()
         {
-            var square = new GeoPolygon2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) });
+            var square = new GeoPolygon2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) }
+            );
             var ray = new GeoRay2(new GeoPoint2(-50, 50), GeoVector2.XAxis);
 
             // Edge by edge, as for a segment: the right side comes before the left one.
@@ -1181,7 +1487,9 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(0.0, square.DistanceTo(inside));
 
             var alongX = new GeoRay2(new GeoPoint2(0, 0), GeoVector2.XAxis);
-            Assert.True(alongX.TryIntersectWith(new GeoRay2(new GeoPoint2(50, -50), GeoVector2.YAxis), out GeoPoint2 crossing));
+            Assert.True(
+                alongX.TryIntersectWith(new GeoRay2(new GeoPoint2(50, -50), GeoVector2.YAxis), out GeoPoint2 crossing)
+            );
             Assert.True(crossing.IsEqualTo(new GeoPoint2(50, 0), Tolerance.Default));
         }
     }

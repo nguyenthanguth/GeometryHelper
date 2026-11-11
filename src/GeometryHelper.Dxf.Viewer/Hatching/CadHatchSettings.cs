@@ -30,8 +30,30 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     public sealed class CadHatchSettings
     {
-        private static readonly string[] GradientNamesOfAutoCad = { "GR_LINEAR", "GR_CYLIN", "GR_INVCYL", "GR_SPHER", "GR_INVSPH", "GR_HEMISP", "GR_INVHEM", "GR_CURVED", "GR_INVCUR" };
-        private static readonly string[] GradientNamesOfDxf = { "LINEAR", "CYLINDER", "INVCYLINDER", "SPHERICAL", "INVSPHERICAL", "HEMISPHERICAL", "INVHEMISPHERICAL", "CURVED", "INVCURVED" };
+        private static readonly string[] GradientNamesOfAutoCad =
+        {
+            "GR_LINEAR",
+            "GR_CYLIN",
+            "GR_INVCYL",
+            "GR_SPHER",
+            "GR_INVSPH",
+            "GR_HEMISP",
+            "GR_INVHEM",
+            "GR_CURVED",
+            "GR_INVCUR",
+        };
+        private static readonly string[] GradientNamesOfDxf =
+        {
+            "LINEAR",
+            "CYLINDER",
+            "INVCYLINDER",
+            "SPHERICAL",
+            "INVSPHERICAL",
+            "HEMISPHERICAL",
+            "INVHEMISPHERICAL",
+            "CURVED",
+            "INVCURVED",
+        };
 
         /// <summary>Gets the names of AutoCAD's nine gradients as its dialog gives them: GR_LINEAR, GR_CYLIN, GR_INVCYL, GR_SPHER, GR_INVSPH, GR_HEMISP, GR_INVHEM, GR_CURVED, GR_INVCUR.</summary>
         public static IReadOnlyList<string> GradientNames { get; } = Array.AsReadOnly(GradientNamesOfAutoCad);
@@ -104,11 +126,7 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(hatch));
             }
 
-            var settings = new CadHatchSettings
-            {
-                IslandStyle = hatch.HatchStyle,
-                Associative = hatch.Associative,
-            };
+            var settings = new CadHatchSettings { IslandStyle = hatch.HatchStyle, Associative = hatch.Associative };
 
             if (hatch.IsGradient)
             {
@@ -161,7 +179,10 @@ namespace GeometryHelper.Dxf.Viewer
             var database = new DxfDatabase("AC1027");
             CadDocument document = CadDocument.From(database, "preview.dxf");
             document.SupportFolders = source == null ? Array.Empty<string>() : CadSupportFiles.FoldersOf(source);
-            double side = Type == CadHatchType.Pattern ? 25.0 * Scale : Type == CadHatchType.UserDefined ? 10.0 * Spacing : 25.0;
+            double side =
+                Type == CadHatchType.Pattern ? 25.0 * Scale
+                : Type == CadHatchType.UserDefined ? 10.0 * Spacing
+                : 25.0;
             var hatch = new DxfHatch();
             database.ModelSpace.AppendEntity(hatch);
 
@@ -169,19 +190,38 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 ApplyTo(hatch, database, document);
             }
-            catch (Exception e) when (e is ArgumentException || e is InvalidOperationException || e is System.IO.IOException || e is UnauthorizedAccessException)
+            catch (Exception e)
+                when (e is ArgumentException
+                    || e is InvalidOperationException
+                    || e is System.IO.IOException
+                    || e is UnauthorizedAccessException
+                )
             {
-                GeometryHelperLog.Debug("CadHatchSettings: the preview of " + PatternName + " was not hatched (" + e.Message + ").");
+                GeometryHelperLog.Debug(
+                    "CadHatchSettings: the preview of " + PatternName + " was not hatched (" + e.Message + ")."
+                );
             }
 
-            hatch.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(0, 0), new GeoPoint2(side, 0), new GeoPoint2(side, side), new GeoPoint2(0, side) }, null);
+            hatch.AppendLoop(
+                DxfHatchLoopTypes.External,
+                new[]
+                {
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(side, 0),
+                    new GeoPoint2(side, side),
+                    new GeoPoint2(0, side),
+                },
+                null
+            );
             return document;
         }
 
         /// <summary>The name a gradient of AutoCAD's dialog is written under in a DXF: GR_CYLIN as CYLINDER.</summary>
         internal static string DxfGradientName(string name)
         {
-            int known = Array.FindIndex(GradientNamesOfAutoCad, n => string.Equals(n, name?.Trim(), StringComparison.OrdinalIgnoreCase));
+            int known = Array.FindIndex(GradientNamesOfAutoCad, n =>
+                string.Equals(n, name?.Trim(), StringComparison.OrdinalIgnoreCase)
+            );
             return GradientNamesOfDxf[known < 0 ? 0 : known];
         }
 
@@ -203,7 +243,9 @@ namespace GeometryHelper.Dxf.Viewer
                     return null;
                 case CadHatchType.Gradient:
                     hatch.SetGradient(DxfGradientPatternType.PreDefinedGradient, DxfGradientName(GradientName));
-                    hatch.SetGradientColors(new[] { new DxfGradientColor(GradientColor1, 0.0f), new DxfGradientColor(GradientColor2, 1.0f) });
+                    hatch.SetGradientColors(
+                        new[] { new DxfGradientColor(GradientColor1, 0.0f), new DxfGradientColor(GradientColor2, 1.0f) }
+                    );
                     hatch.GradientOneColorMode = false;
                     hatch.GradientAngle = Angle * Math.PI / 180.0;
                     hatch.GradientShift = GradientCentered ? 0.0f : 0.25f;
@@ -224,7 +266,9 @@ namespace GeometryHelper.Dxf.Viewer
             // A pattern of a file the user picked is read from it, as a custom pattern.
             if (PatternFile != null && !own)
             {
-                pattern = CadPatternFile.Read(PatternFile).FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+                pattern = CadPatternFile
+                    .Read(PatternFile)
+                    .FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
             }
 
             bool custom = pattern != null;
@@ -238,7 +282,10 @@ namespace GeometryHelper.Dxf.Viewer
                 database.PatternSearchPath = path;
             }
 
-            hatch.SetHatchPattern(custom ? DxfHatchPatternType.CustomDefined : DxfHatchPatternType.PreDefined, name.ToUpperInvariant());
+            hatch.SetHatchPattern(
+                custom ? DxfHatchPatternType.CustomDefined : DxfHatchPatternType.PreDefined,
+                name.ToUpperInvariant()
+            );
             hatch.PatternAngle = Angle * Math.PI / 180.0;
             hatch.PatternScale = Scale;
 
@@ -273,7 +320,16 @@ namespace GeometryHelper.Dxf.Viewer
             for (int i = 0; i < hatch.NumberOfPatternDefinitions; i++)
             {
                 DxfPatternDefinition line = hatch.GetPatternDefinitionAt(i);
-                lines.Add(new DxfPatternDefinition(line.Angle, line.BaseX + OriginX, line.BaseY + OriginY, line.OffsetX, line.OffsetY, line.GetDashes()));
+                lines.Add(
+                    new DxfPatternDefinition(
+                        line.Angle,
+                        line.BaseX + OriginX,
+                        line.BaseY + OriginY,
+                        line.OffsetX,
+                        line.OffsetY,
+                        line.GetDashes()
+                    )
+                );
             }
 
             hatch.SetPatternDefinitions(lines);

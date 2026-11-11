@@ -33,7 +33,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             // The angle and the deltas are along the axes of the UCS, as AutoCAD reports them.
             GeoVector2 d = c.Session.Ucs.ToUcs(c.Input.Point - a);
-            c.Write("Distance = " + Length(d.Length) + ",  Angle in XY Plane = " + Degrees(c, c.Session.CountAngle(Math.Atan2(d.Y, d.X))) + ",  Angle from XY Plane = " + Degrees(c, c.Session.CountAngle(0.0)));
+            c.Write(
+                "Distance = "
+                    + Length(d.Length)
+                    + ",  Angle in XY Plane = "
+                    + Degrees(c, c.Session.CountAngle(Math.Atan2(d.Y, d.X)))
+                    + ",  Angle from XY Plane = "
+                    + Degrees(c, c.Session.CountAngle(0.0))
+            );
             c.Write("Delta X = " + Length(d.X) + ",  Delta Y = " + Length(d.Y) + ",  Delta Z = " + Length(0.0));
         }
 
@@ -56,7 +63,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> Area(CadCommandContext c)
         {
-            yield return CadPrompt.ForPoint("Specify first corner point", null, new[] { "Object", "Add area", "Subtract area" }, "Object");
+            yield return CadPrompt.ForPoint(
+                "Specify first corner point",
+                null,
+                new[] { "Object", "Add area", "Subtract area" },
+                "Object"
+            );
 
             if (!c.Input.Is("Add area") && !c.Input.Is("Subtract area"))
             {
@@ -73,7 +85,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify first corner point", null, new[] { "Object", adding ? "Subtract area" : "Add area" });
+                yield return CadPrompt.ForPoint(
+                    "Specify first corner point",
+                    null,
+                    new[] { "Object", adding ? "Subtract area" : "Add area" }
+                );
 
                 if (c.Input.Is("Add area") || c.Input.Is("Subtract area"))
                 {
@@ -87,10 +103,10 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 foreach (CadPrompt prompt in AreaOf(c, adding ? "ADD" : "SUBTRACT", area =>
-                {
-                    sum += adding ? area : -area;
-                    c.Write("Total area = " + Length(sum));
-                }))
+                    {
+                        sum += adding ? area : -area;
+                        c.Write("Total area = " + Length(sum));
+                    }))
                 {
                     yield return prompt;
                 }
@@ -114,7 +130,12 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                if (!(c.Document.FindEntity(c.Input.Handles[0]) is DxfCurve curve) || curve is DxfLine || curve is DxfXline || curve is DxfRay)
+                if (
+                    !(c.Document.FindEntity(c.Input.Handles[0]) is DxfCurve curve)
+                    || curve is DxfLine
+                    || curve is DxfXline
+                    || curve is DxfRay
+                )
                 {
                     c.Write("Selected object does not have an area.");
 
@@ -127,7 +148,10 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 double length = curve.GetDistanceAtParameter(curve.EndParam);
-                string around = curve is DxfCircle ? "Circumference" : curve.Closed ? "Perimeter" : "Length";
+                string around =
+                    curve is DxfCircle ? "Circumference"
+                    : curve.Closed ? "Perimeter"
+                    : "Length";
                 c.Write("Area = " + Length(curve.Closed ? curve.Area : 0.0) + ", " + around + " = " + Length(length));
 
                 if (mode == null)
@@ -148,7 +172,12 @@ namespace GeometryHelper.Dxf.Viewer
             while (true)
             {
                 bool total = points.Count >= 3;
-                yield return CadPrompt.ForPoint(before + "Specify next point", points[points.Count - 1], total ? new[] { "Undo", "Total" } : new[] { "Undo" }, total ? "Total" : null);
+                yield return CadPrompt.ForPoint(
+                    before + "Specify next point",
+                    points[points.Count - 1],
+                    total ? new[] { "Undo", "Total" } : new[] { "Undo" },
+                    total ? "Total" : null
+                );
 
                 if (c.Input.IsPoint)
                 {
@@ -199,8 +228,16 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 DxfEntity entity = c.Document.FindEntity(handle);
                 CadSpace space = c.Document.FindSpace(handle);
-                c.Write(new string(' ', 18) + CadProperties.KindOf(entity).ToUpperInvariant().PadRight(10) + "Layer: \"" + entity.Layer + "\"");
-                c.Write(new string(' ', 28) + "Space: " + (space == null || space.IsModel ? "Model space" : "Paper space"));
+                c.Write(
+                    new string(' ', 18)
+                        + CadProperties.KindOf(entity).ToUpperInvariant().PadRight(10)
+                        + "Layer: \""
+                        + entity.Layer
+                        + "\""
+                );
+                c.Write(
+                    new string(' ', 28) + "Space: " + (space == null || space.IsModel ? "Model space" : "Paper space")
+                );
                 c.Write(new string(' ', 19) + "Handle = " + handle.ToLowerInvariant());
 
                 foreach (string line in Listed(c, entity, handle, space))
@@ -221,8 +258,16 @@ namespace GeometryHelper.Dxf.Viewer
                     var d = new GeoVector3(flat.X, flat.Y, delta.Z);
                     yield return "              from point, " + At(c, line.StartPoint);
                     yield return "                to point, " + At(c, line.EndPoint);
-                    yield return "          Length = " + Length(line.Length) + ",  Angle in XY Plane = " + Degrees(c, c.Session.CountAngle(Math.Atan2(d.Y, d.X))).PadLeft(6);
-                    yield return "                  Delta X = " + Length(d.X) + ", Delta Y = " + Length(d.Y) + ", Delta Z = " + Length(d.Z);
+                    yield return "          Length = "
+                        + Length(line.Length)
+                        + ",  Angle in XY Plane = "
+                        + Degrees(c, c.Session.CountAngle(Math.Atan2(d.Y, d.X))).PadLeft(6);
+                    yield return "                  Delta X = "
+                        + Length(d.X)
+                        + ", Delta Y = "
+                        + Length(d.Y)
+                        + ", Delta Z = "
+                        + Length(d.Z);
                     yield break;
                 case DxfCircle circle:
                     yield return "            center point, " + At(c, circle.Center);
@@ -233,14 +278,18 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfArc arc:
                     yield return "            center point, " + At(c, arc.Center);
                     yield return "            radius " + Length(arc.Radius).PadLeft(9);
-                    yield return "             start angle " + Degrees(c, c.Session.CountAngle(c.Session.Ucs.AngleToUcs(arc.StartAngle))).PadLeft(6);
-                    yield return "               end angle " + Degrees(c, c.Session.CountAngle(c.Session.Ucs.AngleToUcs(arc.EndAngle))).PadLeft(6);
+                    yield return "             start angle "
+                        + Degrees(c, c.Session.CountAngle(c.Session.Ucs.AngleToUcs(arc.StartAngle))).PadLeft(6);
+                    yield return "               end angle "
+                        + Degrees(c, c.Session.CountAngle(c.Session.Ucs.AngleToUcs(arc.EndAngle))).PadLeft(6);
                     yield return "                  length " + Length(arc.Length).PadLeft(9);
                     yield break;
                 case DxfPolyline polyline:
                     yield return "                            " + (polyline.Closed ? "Closed" : "Open");
                     yield return "                    area   " + Length(polyline.Closed ? polyline.Area : 0.0);
-                    yield return "                " + (polyline.Closed ? "perimeter " : "   length ") + Length(polyline.Length);
+                    yield return "                "
+                        + (polyline.Closed ? "perimeter " : "   length ")
+                        + Length(polyline.Length);
 
                     for (int i = 0; i < polyline.NumberOfVertices; i++)
                     {
@@ -283,7 +332,9 @@ namespace GeometryHelper.Dxf.Viewer
             // Nought added makes -0 nought; a turn that rounds to 360 is written as nought, as AutoCAD writes it.
             degrees = (degrees < 0.0 ? degrees + 360.0 : degrees) + 0.0;
             string text = degrees.ToString(format, CultureInfo.InvariantCulture);
-            return text == 360.0.ToString(format, CultureInfo.InvariantCulture) ? 0.0.ToString(format, CultureInfo.InvariantCulture) : text;
+            return text == 360.0.ToString(format, CultureInfo.InvariantCulture)
+                ? 0.0.ToString(format, CultureInfo.InvariantCulture)
+                : text;
         }
     }
 }

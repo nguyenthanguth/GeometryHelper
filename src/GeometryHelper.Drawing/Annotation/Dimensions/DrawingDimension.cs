@@ -51,7 +51,8 @@ namespace GeometryHelper.Drawing.Annotation
             double textRotation,
             double textHeight,
             double scale,
-            double rounding)
+            double rounding
+        )
         {
             Id = id;
             Kind = kind;
@@ -151,15 +152,22 @@ namespace GeometryHelper.Drawing.Annotation
                 }
 
                 GeoLine2 line = DimensionLine.Value;
-                double length = line.Length, arrow = TextHeight;
+                double length = line.Length,
+                    arrow = TextHeight;
 
                 if (length >= 2.0 * arrow || !(length > 0.0))
                 {
                     return line;
                 }
 
-                double ux = (line.EndPoint.X - line.StartPoint.X) / length * arrow, uy = (line.EndPoint.Y - line.StartPoint.Y) / length * arrow;
-                return new GeoLine2(line.StartPoint.X - ux, line.StartPoint.Y - uy, line.EndPoint.X + ux, line.EndPoint.Y + uy);
+                double ux = (line.EndPoint.X - line.StartPoint.X) / length * arrow,
+                    uy = (line.EndPoint.Y - line.StartPoint.Y) / length * arrow;
+                return new GeoLine2(
+                    line.StartPoint.X - ux,
+                    line.StartPoint.Y - uy,
+                    line.EndPoint.X + ux,
+                    line.EndPoint.Y + uy
+                );
             }
         }
 
@@ -179,7 +187,9 @@ namespace GeometryHelper.Drawing.Annotation
                     return _arrowheads;
                 }
 
-                return _arrowheads = DimensionLine.HasValue ? ArrowheadsOf(DimensionLine.Value, TextHeight) : new GeoRectangle2[0];
+                return _arrowheads = DimensionLine.HasValue
+                    ? ArrowheadsOf(DimensionLine.Value, TextHeight)
+                    : new GeoRectangle2[0];
             }
         }
 
@@ -248,18 +258,34 @@ namespace GeometryHelper.Drawing.Annotation
             }
 
             DxfDimStyleTableRecord style = Style(database, placement.Scale);
-            string text = Count > 1 ? Count.ToString(CultureInfo.InvariantCulture) + " x " + Format(Value / Count, Rounding) + " = <>" : "<>";
+            string text =
+                Count > 1
+                    ? Count.ToString(CultureInfo.InvariantCulture) + " x " + Format(Value / Count, Rounding) + " = <>"
+                    : "<>";
             DxfDimension dimension;
 
             if (DimensionLine.HasValue)
             {
                 GeoLine2 line = DimensionLine.Value;
                 double rotation = Direction.X > 0.5 ? 0.0 : Math.PI / 2.0;
-                dimension = new DxfRotatedDimension(rotation, placement.ToSheet(_points[0].ViewPoint), placement.ToSheet(_points[1].ViewPoint), placement.ToSheet(line.EndPoint), text, style);
+                dimension = new DxfRotatedDimension(
+                    rotation,
+                    placement.ToSheet(_points[0].ViewPoint),
+                    placement.ToSheet(_points[1].ViewPoint),
+                    placement.ToSheet(line.EndPoint),
+                    text,
+                    style
+                );
             }
             else
             {
-                var ordinate = new DxfOrdinateDimension(Direction.X > 0.5, placement.ToSheet(_points[1].ViewPoint), placement.ToSheet(_extensionLines[0].EndPoint), text, style)
+                var ordinate = new DxfOrdinateDimension(
+                    Direction.X > 0.5,
+                    placement.ToSheet(_points[1].ViewPoint),
+                    placement.ToSheet(_extensionLines[0].EndPoint),
+                    text,
+                    style
+                )
                 {
                     Origin = placement.ToSheet(_points[0].ViewPoint),
                 };
@@ -275,7 +301,8 @@ namespace GeometryHelper.Drawing.Annotation
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"{Kind} {Id} {Text} ({string.Join(" - ", Array.ConvertAll(_points, p => p.ToString()))})";
+        public override string ToString() =>
+            $"{Kind} {Id} {Text} ({string.Join(" - ", Array.ConvertAll(_points, p => p.ToString()))})";
 
         /// <summary>
         /// A value rounded to a step and written in as few decimals as the step has, trailing zeros left out: 2 800.4 to 1 is
@@ -326,10 +353,14 @@ namespace GeometryHelper.Drawing.Annotation
         /// <summary>The box round an arrow, its tip at a point, its back an arrow's length along a unit direction from it.</summary>
         private static GeoRectangle2 ArrowBox(GeoPoint2 tip, double bx, double by, double length)
         {
-            double backX = tip.X + bx * length, backY = tip.Y + by * length;
-            double acrossX = Math.Abs(by) * length / 6.0, acrossY = Math.Abs(bx) * length / 6.0;
-            double x0 = Math.Min(tip.X, backX - acrossX), x1 = Math.Max(tip.X, backX + acrossX);
-            double y0 = Math.Min(tip.Y, backY - acrossY), y1 = Math.Max(tip.Y, backY + acrossY);
+            double backX = tip.X + bx * length,
+                backY = tip.Y + by * length;
+            double acrossX = Math.Abs(by) * length / 6.0,
+                acrossY = Math.Abs(bx) * length / 6.0;
+            double x0 = Math.Min(tip.X, backX - acrossX),
+                x1 = Math.Max(tip.X, backX + acrossX);
+            double y0 = Math.Min(tip.Y, backY - acrossY),
+                y1 = Math.Max(tip.Y, backY + acrossY);
             return Box2.FromCorner(x0, y0, x1 - x0, y1 - y0);
         }
 

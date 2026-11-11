@@ -27,8 +27,9 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets whether two scales have the same numbers, to the bit.</summary>
         /// <param name="other">The other scale.</param>
         /// <returns>Whether they have.</returns>
-        public bool Equals(DxfCustomScale other)
-            => BitConverter.DoubleToInt64Bits(Numerator) == BitConverter.DoubleToInt64Bits(other.Numerator) && BitConverter.DoubleToInt64Bits(Denominator) == BitConverter.DoubleToInt64Bits(other.Denominator);
+        public bool Equals(DxfCustomScale other) =>
+            BitConverter.DoubleToInt64Bits(Numerator) == BitConverter.DoubleToInt64Bits(other.Numerator)
+            && BitConverter.DoubleToInt64Bits(Denominator) == BitConverter.DoubleToInt64Bits(other.Denominator);
 
         /// <summary>Gets whether an object is a scale of the same numbers, to the bit.</summary>
         /// <param name="obj">The object.</param>
@@ -37,10 +38,15 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gets a hash of the numbers, the same for scales of the same numbers.</summary>
         /// <returns>The hash.</returns>
-        public override int GetHashCode() => BitConverter.DoubleToInt64Bits(Numerator).GetHashCode() * 31 + BitConverter.DoubleToInt64Bits(Denominator).GetHashCode();
+        public override int GetHashCode() =>
+            BitConverter.DoubleToInt64Bits(Numerator).GetHashCode() * 31
+            + BitConverter.DoubleToInt64Bits(Denominator).GetHashCode();
 
         /// <summary>Gives the scale as a line for debugging.</summary>
         /// <returns>The line, such as <c>1:50</c>.</returns>
-        public override string ToString() => Numerator.ToString("R", CultureInfo.InvariantCulture) + ":" + Denominator.ToString("R", CultureInfo.InvariantCulture);
+        public override string ToString() =>
+            Numerator.ToString("R", CultureInfo.InvariantCulture)
+            + ":"
+            + Denominator.ToString("R", CultureInfo.InvariantCulture);
     }
 }

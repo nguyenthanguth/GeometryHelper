@@ -1,7 +1,8 @@
-<UserControl x:Class="GeometryHelper.Dxf.Viewer.Wpf.BlockEditorRibbon"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-
+<UserControl
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.BlockEditorRibbon"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+>
     <!--
     The contextual Block Editor tab, as the design draws it: Open/Save, Geometric, Dimensional, Manage, Action Parameters,
     Visibility and Close. Its logic is BlockEditorRibbonViewModel. Test Block, the constraints, the parameters, the actions and
@@ -27,30 +28,81 @@
             <DockPanel>
                 <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Open/Save" />
                 <StackPanel Orientation="Horizontal">
-                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconEditBlock}" Content="Edit Block" IsEnabled="True" Command="{Binding EditBlockCommand}" ToolTip="BEDIT: close this block, then choose another" />
-                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconSaveBlock}" Content="Save Block" IsEnabled="True" Command="{Binding SaveBlockCommand}" ToolTip="BSAVE" />
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconEditBlock}"
+                        Content="Edit Block"
+                        IsEnabled="True"
+                        Command="{Binding EditBlockCommand}"
+                        ToolTip="BEDIT: close this block, then choose another"
+                    />
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconSaveBlock}"
+                        Content="Save Block"
+                        IsEnabled="True"
+                        Command="{Binding SaveBlockCommand}"
+                        ToolTip="BSAVE"
+                    />
                     <WrapPanel Style="{DynamicResource SmallColumn}">
-                        <Button Style="{DynamicResource SmallButton}" Tag="{StaticResource IconSaveAs}" Content="Save As" IsEnabled="True" Command="{Binding SaveAsCommand}" ToolTip="BSAVEAS" />
-                        <Button Style="{DynamicResource SmallButton}" Tag="{StaticResource IconTest}" Content="Test Block" ToolTip="BTESTBLOCK: not in this version" />
+                        <Button
+                            Style="{DynamicResource SmallButton}"
+                            Tag="{StaticResource IconSaveAs}"
+                            Content="Save As"
+                            IsEnabled="True"
+                            Command="{Binding SaveAsCommand}"
+                            ToolTip="BSAVEAS"
+                        />
+                        <Button
+                            Style="{DynamicResource SmallButton}"
+                            Tag="{StaticResource IconTest}"
+                            Content="Test Block"
+                            ToolTip="BTESTBLOCK: not in this version"
+                        />
                     </WrapPanel>
                 </StackPanel>
             </DockPanel>
         </Border>
         <Border Style="{DynamicResource GroupBorder}">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Geometric" Opacity="0.6" />
+                <TextBlock
+                    DockPanel.Dock="Bottom"
+                    Style="{DynamicResource GroupTitle}"
+                    Text="Geometric"
+                    Opacity="0.6"
+                />
                 <StackPanel Orientation="Horizontal">
-                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconAutoConstrain}" Content="Auto Constrain" ToolTip="Geometric constraints: not in this version" Margin="0" />
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconAutoConstrain}"
+                        Content="Auto Constrain"
+                        ToolTip="Geometric constraints: not in this version"
+                        Margin="0"
+                    />
                 </StackPanel>
             </DockPanel>
         </Border>
         <Border Style="{DynamicResource GroupBorder}">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Dimensional" Opacity="0.6" />
+                <TextBlock
+                    DockPanel.Dock="Bottom"
+                    Style="{DynamicResource GroupTitle}"
+                    Text="Dimensional"
+                    Opacity="0.6"
+                />
                 <StackPanel Orientation="Horizontal">
-                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconLinear}" Content="Linear ▾" ToolTip="Dimensional constraints: not in this version" />
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconLinear}"
+                        Content="Linear ▾"
+                        ToolTip="Dimensional constraints: not in this version"
+                    />
                     <WrapPanel Style="{DynamicResource SmallColumn}">
-                        <Button Style="{DynamicResource SmallButton}" Content="Block Table" ToolTip="Not in this version" />
+                        <Button
+                            Style="{DynamicResource SmallButton}"
+                            Content="Block Table"
+                            ToolTip="Not in this version"
+                        />
                         <Button Style="{DynamicResource SmallButton}" Content="Delete" ToolTip="Not in this version" />
                     </WrapPanel>
                 </StackPanel>
@@ -60,22 +112,64 @@
             <DockPanel>
                 <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Manage" />
                 <StackPanel Orientation="Horizontal">
-                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconAttribute}" Content="Attribute Definition" IsEnabled="True" Command="{Binding AttributeDefinitionCommand}" ToolTip="ATTDEF: the definition goes into the block" />
-                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconProperties}" Content="Block Properties" IsEnabled="True" Command="{Binding BlockPropertiesCommand}" ToolTip="Properties shows the Block group: description, units and flags" />
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconAttribute}"
+                        Content="Attribute Definition"
+                        IsEnabled="True"
+                        Command="{Binding AttributeDefinitionCommand}"
+                        ToolTip="ATTDEF: the definition goes into the block"
+                    />
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconProperties}"
+                        Content="Block Properties"
+                        IsEnabled="True"
+                        Command="{Binding BlockPropertiesCommand}"
+                        ToolTip="Properties shows the Block group: description, units and flags"
+                    />
                     <WrapPanel Style="{DynamicResource SmallColumn}">
-                        <Button Style="{DynamicResource SmallButton}" Content="Authoring Palettes" ToolTip="BAUTHORPALETTE: not in this version" />
-                        <Button Style="{DynamicResource SmallButton}" Content="Parameter Manager" ToolTip="Not in this version" />
-                        <Button Style="{DynamicResource SmallButton}" Content="Construction" ToolTip="Not in this version" />
+                        <Button
+                            Style="{DynamicResource SmallButton}"
+                            Content="Authoring Palettes"
+                            ToolTip="BAUTHORPALETTE: not in this version"
+                        />
+                        <Button
+                            Style="{DynamicResource SmallButton}"
+                            Content="Parameter Manager"
+                            ToolTip="Not in this version"
+                        />
+                        <Button
+                            Style="{DynamicResource SmallButton}"
+                            Content="Construction"
+                            ToolTip="Not in this version"
+                        />
                     </WrapPanel>
                 </StackPanel>
             </DockPanel>
         </Border>
         <Border Style="{DynamicResource GroupBorder}">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Action Parameters" Opacity="0.6" />
+                <TextBlock
+                    DockPanel.Dock="Bottom"
+                    Style="{DynamicResource GroupTitle}"
+                    Text="Action Parameters"
+                    Opacity="0.6"
+                />
                 <StackPanel Orientation="Horizontal">
-                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconPoint}" Content="Point ▾" ToolTip="Parameters: not in this version" />
-                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconMove}" Content="Move ▾" ToolTip="Actions: not in this version" Margin="0" />
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconPoint}"
+                        Content="Point ▾"
+                        ToolTip="Parameters: not in this version"
+                    />
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconMove}"
+                        Content="Move ▾"
+                        ToolTip="Actions: not in this version"
+                        Margin="0"
+                    />
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -83,13 +177,32 @@
             <DockPanel>
                 <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Visibility" />
                 <StackPanel Orientation="Horizontal">
-                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconVisibility}" Content="Visibility States" ToolTip="Authoring visibility states: not in this version" />
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconVisibility}"
+                        Content="Visibility States"
+                        ToolTip="Authoring visibility states: not in this version"
+                    />
                     <StackPanel Width="150" Margin="0,2,0,0">
-                        <ComboBox Style="{DynamicResource GhComboBox}" IsEnabled="{Binding HasVisibilityStates}" ToolTip="Current visibility state: live only for a block with visibility states"
-                                  AutomationProperties.Name="Current visibility state" Margin="0,0,0,4"
-                                  ItemsSource="{Binding VisibilityStates}" SelectedItem="{Binding VisibilityState, Mode=TwoWay}" />
-                        <Button Style="{DynamicResource SmallButton}" Content="Make Visible" ToolTip="Not in this version" />
-                        <Button Style="{DynamicResource SmallButton}" Content="Make Invisible" ToolTip="Not in this version" />
+                        <ComboBox
+                            Style="{DynamicResource GhComboBox}"
+                            IsEnabled="{Binding HasVisibilityStates}"
+                            ToolTip="Current visibility state: live only for a block with visibility states"
+                            AutomationProperties.Name="Current visibility state"
+                            Margin="0,0,0,4"
+                            ItemsSource="{Binding VisibilityStates}"
+                            SelectedItem="{Binding VisibilityState, Mode=TwoWay}"
+                        />
+                        <Button
+                            Style="{DynamicResource SmallButton}"
+                            Content="Make Visible"
+                            ToolTip="Not in this version"
+                        />
+                        <Button
+                            Style="{DynamicResource SmallButton}"
+                            Content="Make Invisible"
+                            ToolTip="Not in this version"
+                        />
                     </StackPanel>
                 </StackPanel>
             </DockPanel>
@@ -97,7 +210,16 @@
         <Border Style="{DynamicResource GroupBorder}">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Close" />
-                <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconClose}" Content="Close Block Editor" IsEnabled="True" Command="{Binding CloseCommand}" ToolTip="BCLOSE" Foreground="#F26B3A" Margin="0" />
+                <Button
+                    Style="{DynamicResource BigButton}"
+                    Tag="{StaticResource IconClose}"
+                    Content="Close Block Editor"
+                    IsEnabled="True"
+                    Command="{Binding CloseCommand}"
+                    ToolTip="BCLOSE"
+                    Foreground="#F26B3A"
+                    Margin="0"
+                />
             </DockPanel>
         </Border>
     </StackPanel>

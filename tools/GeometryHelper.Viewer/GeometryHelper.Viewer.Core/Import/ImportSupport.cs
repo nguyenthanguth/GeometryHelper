@@ -92,7 +92,11 @@ namespace GeometryHelper.Viewer
         /// </summary>
         internal static bool TryParse(string text, out double value)
         {
-            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && !double.IsNaN(value) && !double.IsInfinity(value))
+            if (
+                double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+                && !double.IsNaN(value)
+                && !double.IsInfinity(value)
+            )
             {
                 return true;
             }
@@ -134,7 +138,12 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// The data of a chain or a loop; bulges, and normals for a chain in space with arcs, are written when given.
         /// </summary>
-        internal static JsonElement Chain(IReadOnlyList<Vec3> points, int dimension, IReadOnlyList<double> bulges = null, IReadOnlyList<Vec3> normals = null)
+        internal static JsonElement Chain(
+            IReadOnlyList<Vec3> points,
+            int dimension,
+            IReadOnlyList<double> bulges = null,
+            IReadOnlyList<Vec3> normals = null
+        )
         {
             using (var w = new DataWriter())
             {
@@ -158,7 +167,8 @@ namespace GeometryHelper.Viewer
             }
         }
 
-        internal static JsonElement Triangle(Vec3 a, Vec3 b, Vec3 c, int dimension) => Chain(new[] { a, b, c }, dimension);
+        internal static JsonElement Triangle(Vec3 a, Vec3 b, Vec3 c, int dimension) =>
+            Chain(new[] { a, b, c }, dimension);
 
         internal static JsonElement Circle(Vec3 centre, Vec3? normal, double radius, int dimension)
         {
@@ -195,7 +205,14 @@ namespace GeometryHelper.Viewer
             }
         }
 
-        internal static JsonElement Ellipse(Vec3 centre, Vec3? normal, Vec3 majorAxis, double majorRadius, double minorRadius, int dimension)
+        internal static JsonElement Ellipse(
+            Vec3 centre,
+            Vec3? normal,
+            Vec3 majorAxis,
+            double majorRadius,
+            double minorRadius,
+            int dimension
+        )
         {
             using (var w = new DataWriter())
             {
@@ -409,7 +426,9 @@ namespace GeometryHelper.Viewer
             foreach (string text in _warnOrder)
             {
                 int times = _warned[text];
-                Scene.LoadWarnings.Add(times == 1 ? text : text + " (" + times.ToString(CultureInfo.InvariantCulture) + " times)");
+                Scene.LoadWarnings.Add(
+                    times == 1 ? text : text + " (" + times.ToString(CultureInfo.InvariantCulture) + " times)"
+                );
             }
 
             _warnOrder.Clear();

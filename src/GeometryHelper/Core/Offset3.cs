@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using GeometryHelper;
 using GeometryHelper.Enums;
-using GeometryHelper.Internal.Planar;
 using GeometryHelper.Geometry;
+using GeometryHelper.Internal.Planar;
 
 namespace GeometryHelper.Core
 {
@@ -34,7 +34,8 @@ namespace GeometryHelper.Core
         /// <exception cref="InvalidOperationException">Thrown when the segment is too short to have a direction.</exception>
         /// <exception cref="ArgumentException">Thrown when the normal has no length or runs along the segment.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
-        public static GeoLine3 OffsetInPlane(GeoLine3 line, double distance, GeoVector3 planeNormal) => OffsetInPlane(line, distance, planeNormal, Tolerance.Global);
+        public static GeoLine3 OffsetInPlane(GeoLine3 line, double distance, GeoVector3 planeNormal) =>
+            OffsetInPlane(line, distance, planeNormal, Tolerance.Global);
 
         /// <summary>
         /// Gets the segment parallel to a segment at a distance to its left within a plane, within a tolerance.
@@ -54,7 +55,12 @@ namespace GeometryHelper.Core
         /// <exception cref="InvalidOperationException">Thrown when the segment is too short to have a direction.</exception>
         /// <exception cref="ArgumentException">Thrown when the normal has no length or runs along the segment.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
-        public static GeoLine3 OffsetInPlane(GeoLine3 line, double distance, GeoVector3 planeNormal, Tolerance tolerance)
+        public static GeoLine3 OffsetInPlane(
+            GeoLine3 line,
+            double distance,
+            GeoVector3 planeNormal,
+            Tolerance tolerance
+        )
         {
             RequireFinite(distance, nameof(distance));
             GeoVector3 unit = GetUnitDirection(line, tolerance);
@@ -77,7 +83,8 @@ namespace GeometryHelper.Core
         /// <exception cref="InvalidOperationException">Thrown when the segment is too short to have a direction.</exception>
         /// <exception cref="ArgumentException">Thrown when the direction has no length or runs along the segment.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
-        public static GeoLine3 Offset(GeoLine3 line, double distance, GeoVector3 direction) => Offset(line, distance, direction, Tolerance.Global);
+        public static GeoLine3 Offset(GeoLine3 line, double distance, GeoVector3 direction) =>
+            Offset(line, distance, direction, Tolerance.Global);
 
         /// <summary>
         /// Gets the segment parallel to a segment at a distance towards a direction, within a tolerance. A
@@ -115,7 +122,8 @@ namespace GeometryHelper.Core
         /// <exception cref="InvalidOperationException">Thrown when the segment is too short to have a direction.</exception>
         /// <exception cref="ArgumentException">Thrown when the up direction has no length or runs along the segment.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a distance is not a finite number.</exception>
-        public static GeoLine3 Offset(GeoLine3 line, double lateral, double vertical, GeoVector3 up) => Offset(line, lateral, vertical, up, Tolerance.Global);
+        public static GeoLine3 Offset(GeoLine3 line, double lateral, double vertical, GeoVector3 up) =>
+            Offset(line, lateral, vertical, up, Tolerance.Global);
 
         /// <summary>
         /// Gets the segment parallel to a segment, moved sideways and upward in the frame an up direction
@@ -137,7 +145,13 @@ namespace GeometryHelper.Core
         /// <exception cref="InvalidOperationException">Thrown when the segment is too short to have a direction.</exception>
         /// <exception cref="ArgumentException">Thrown when the up direction has no length or runs along the segment.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a distance is not a finite number.</exception>
-        public static GeoLine3 Offset(GeoLine3 line, double lateral, double vertical, GeoVector3 up, Tolerance tolerance)
+        public static GeoLine3 Offset(
+            GeoLine3 line,
+            double lateral,
+            double vertical,
+            GeoVector3 up,
+            Tolerance tolerance
+        )
         {
             RequireFinite(lateral, nameof(lateral));
             RequireFinite(vertical, nameof(vertical));
@@ -156,7 +170,8 @@ namespace GeometryHelper.Core
         /// <param name="point">A point the parallel segment passes through.</param>
         /// <returns>The parallel segment, of the same length and running the same way.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the segment is too short to have a direction.</exception>
-        public static GeoLine3 OffsetThrough(GeoLine3 line, GeoPoint3 point) => OffsetThrough(line, point, Tolerance.Global);
+        public static GeoLine3 OffsetThrough(GeoLine3 line, GeoPoint3 point) =>
+            OffsetThrough(line, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the segment parallel to a segment that passes through a point, within a tolerance. The segment
@@ -184,31 +199,40 @@ namespace GeometryHelper.Core
         /// Grows a polygon within its own plane by a distance, or shrinks it when the distance is negative, with
         /// sharp corners, using the default tolerance.
         /// </summary>
-        public static GeoPolygon3[] Offset(GeoPolygon3 polygon, double distance) => Offset(polygon, distance, OffsetOptions.Default, Tolerance.Global);
+        public static GeoPolygon3[] Offset(GeoPolygon3 polygon, double distance) =>
+            Offset(polygon, distance, OffsetOptions.Default, Tolerance.Global);
 
         /// <summary>
         /// Grows a polygon within its own plane by a distance, or shrinks it when the distance is negative, with
         /// sharp corners, within a tolerance.
         /// </summary>
-        public static GeoPolygon3[] Offset(GeoPolygon3 polygon, double distance, Tolerance tolerance) => Offset(polygon, distance, OffsetOptions.Default, tolerance);
+        public static GeoPolygon3[] Offset(GeoPolygon3 polygon, double distance, Tolerance tolerance) =>
+            Offset(polygon, distance, OffsetOptions.Default, tolerance);
 
         /// <summary>
         /// Grows a polygon within its own plane by a distance, or shrinks it when the distance is negative, with
         /// the given corners, using the default tolerance.
         /// </summary>
-        public static GeoPolygon3[] Offset(GeoPolygon3 polygon, double distance, OffsetJoin join) => Offset(polygon, distance, new OffsetOptions(join), Tolerance.Global);
+        public static GeoPolygon3[] Offset(GeoPolygon3 polygon, double distance, OffsetJoin join) =>
+            Offset(polygon, distance, new OffsetOptions(join), Tolerance.Global);
 
         /// <summary>
         /// Grows a polygon within its own plane by a distance, or shrinks it when the distance is negative, with
         /// the given corners, within a tolerance.
         /// </summary>
-        public static GeoPolygon3[] Offset(GeoPolygon3 polygon, double distance, OffsetJoin join, Tolerance tolerance) => Offset(polygon, distance, new OffsetOptions(join), tolerance);
+        public static GeoPolygon3[] Offset(
+            GeoPolygon3 polygon,
+            double distance,
+            OffsetJoin join,
+            Tolerance tolerance
+        ) => Offset(polygon, distance, new OffsetOptions(join), tolerance);
 
         /// <summary>
         /// Grows a polygon within its own plane by a distance, or shrinks it when the distance is negative, as the
         /// options say, using the default tolerance.
         /// </summary>
-        public static GeoPolygon3[] Offset(GeoPolygon3 polygon, double distance, OffsetOptions options) => Offset(polygon, distance, options, Tolerance.Global);
+        public static GeoPolygon3[] Offset(GeoPolygon3 polygon, double distance, OffsetOptions options) =>
+            Offset(polygon, distance, options, Tolerance.Global);
 
         /// <summary>
         /// Grows a polygon within its own plane by a distance, or shrinks it when the distance is negative, as the
@@ -234,10 +258,17 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon or the options are null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
-        public static GeoPolygon3[] Offset(GeoPolygon3 polygon, double distance, OffsetOptions options, Tolerance tolerance)
+        public static GeoPolygon3[] Offset(
+            GeoPolygon3 polygon,
+            double distance,
+            OffsetOptions options,
+            Tolerance tolerance
+        )
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
+            if (options == null)
+                throw new ArgumentNullException(nameof(options));
             RequireFinite(distance, nameof(distance));
 
             if (Math.Abs(distance) <= tolerance.EqualPoint)
@@ -282,31 +313,36 @@ namespace GeometryHelper.Core
         /// Grows a face within its own plane by a distance, or shrinks it when the distance is negative, with
         /// sharp corners, using the default tolerance.
         /// </summary>
-        public static GeoFace3[] Offset(GeoFace3 face, double distance) => Offset(face, distance, OffsetOptions.Default, Tolerance.Global);
+        public static GeoFace3[] Offset(GeoFace3 face, double distance) =>
+            Offset(face, distance, OffsetOptions.Default, Tolerance.Global);
 
         /// <summary>
         /// Grows a face within its own plane by a distance, or shrinks it when the distance is negative, with
         /// sharp corners, within a tolerance.
         /// </summary>
-        public static GeoFace3[] Offset(GeoFace3 face, double distance, Tolerance tolerance) => Offset(face, distance, OffsetOptions.Default, tolerance);
+        public static GeoFace3[] Offset(GeoFace3 face, double distance, Tolerance tolerance) =>
+            Offset(face, distance, OffsetOptions.Default, tolerance);
 
         /// <summary>
         /// Grows a face within its own plane by a distance, or shrinks it when the distance is negative, with the
         /// given corners, using the default tolerance.
         /// </summary>
-        public static GeoFace3[] Offset(GeoFace3 face, double distance, OffsetJoin join) => Offset(face, distance, new OffsetOptions(join), Tolerance.Global);
+        public static GeoFace3[] Offset(GeoFace3 face, double distance, OffsetJoin join) =>
+            Offset(face, distance, new OffsetOptions(join), Tolerance.Global);
 
         /// <summary>
         /// Grows a face within its own plane by a distance, or shrinks it when the distance is negative, with the
         /// given corners, within a tolerance.
         /// </summary>
-        public static GeoFace3[] Offset(GeoFace3 face, double distance, OffsetJoin join, Tolerance tolerance) => Offset(face, distance, new OffsetOptions(join), tolerance);
+        public static GeoFace3[] Offset(GeoFace3 face, double distance, OffsetJoin join, Tolerance tolerance) =>
+            Offset(face, distance, new OffsetOptions(join), tolerance);
 
         /// <summary>
         /// Grows a face within its own plane by a distance, or shrinks it when the distance is negative, as the
         /// options say, using the default tolerance.
         /// </summary>
-        public static GeoFace3[] Offset(GeoFace3 face, double distance, OffsetOptions options) => Offset(face, distance, options, Tolerance.Global);
+        public static GeoFace3[] Offset(GeoFace3 face, double distance, OffsetOptions options) =>
+            Offset(face, distance, options, Tolerance.Global);
 
         /// <summary>
         /// Grows a face within its own plane by a distance, or shrinks it when the distance is negative, as the
@@ -329,8 +365,10 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
         public static GeoFace3[] Offset(GeoFace3 face, double distance, OffsetOptions options, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
+            if (options == null)
+                throw new ArgumentNullException(nameof(options));
             RequireFinite(distance, nameof(distance));
 
             if (Math.Abs(distance) <= tolerance.EqualPoint)
@@ -358,7 +396,9 @@ namespace GeometryHelper.Core
 
             foreach (List<GeoPoint2> ring in holes)
             {
-                foreach (List<GeoPoint2> loop in PlanarRegion3.Resolve(new[] { ring }, FillRule.EvenOdd, tolerance, snap))
+                foreach (
+                    List<GeoPoint2> loop in PlanarRegion3.Resolve(new[] { ring }, FillRule.EvenOdd, tolerance, snap)
+                )
                 {
                     loop.Reverse();
                     loops.Add(loop);
@@ -400,31 +440,53 @@ namespace GeometryHelper.Core
         /// Gets the curve parallel to a flat polyline at a distance to its left within its plane, with sharp
         /// corners, using the default tolerance. A negative distance goes to the right.
         /// </summary>
-        public static GeoPolyline3[] OffsetInPlane(GeoPolyline3 polyline, double distance, GeoVector3 planeNormal) => OffsetInPlane(polyline, distance, planeNormal, OffsetOptions.Default, Tolerance.Global);
+        public static GeoPolyline3[] OffsetInPlane(GeoPolyline3 polyline, double distance, GeoVector3 planeNormal) =>
+            OffsetInPlane(polyline, distance, planeNormal, OffsetOptions.Default, Tolerance.Global);
 
         /// <summary>
         /// Gets the curve parallel to a flat polyline at a distance to its left within its plane, with sharp
         /// corners, within a tolerance.
         /// </summary>
-        public static GeoPolyline3[] OffsetInPlane(GeoPolyline3 polyline, double distance, GeoVector3 planeNormal, Tolerance tolerance) => OffsetInPlane(polyline, distance, planeNormal, OffsetOptions.Default, tolerance);
+        public static GeoPolyline3[] OffsetInPlane(
+            GeoPolyline3 polyline,
+            double distance,
+            GeoVector3 planeNormal,
+            Tolerance tolerance
+        ) => OffsetInPlane(polyline, distance, planeNormal, OffsetOptions.Default, tolerance);
 
         /// <summary>
         /// Gets the curve parallel to a flat polyline at a distance to its left within its plane, with the given
         /// corners, using the default tolerance.
         /// </summary>
-        public static GeoPolyline3[] OffsetInPlane(GeoPolyline3 polyline, double distance, GeoVector3 planeNormal, OffsetJoin join) => OffsetInPlane(polyline, distance, planeNormal, new OffsetOptions(join), Tolerance.Global);
+        public static GeoPolyline3[] OffsetInPlane(
+            GeoPolyline3 polyline,
+            double distance,
+            GeoVector3 planeNormal,
+            OffsetJoin join
+        ) => OffsetInPlane(polyline, distance, planeNormal, new OffsetOptions(join), Tolerance.Global);
 
         /// <summary>
         /// Gets the curve parallel to a flat polyline at a distance to its left within its plane, with the given
         /// corners, within a tolerance.
         /// </summary>
-        public static GeoPolyline3[] OffsetInPlane(GeoPolyline3 polyline, double distance, GeoVector3 planeNormal, OffsetJoin join, Tolerance tolerance) => OffsetInPlane(polyline, distance, planeNormal, new OffsetOptions(join), tolerance);
+        public static GeoPolyline3[] OffsetInPlane(
+            GeoPolyline3 polyline,
+            double distance,
+            GeoVector3 planeNormal,
+            OffsetJoin join,
+            Tolerance tolerance
+        ) => OffsetInPlane(polyline, distance, planeNormal, new OffsetOptions(join), tolerance);
 
         /// <summary>
         /// Gets the curve parallel to a flat polyline at a distance to its left within its plane, as the options
         /// say, using the default tolerance.
         /// </summary>
-        public static GeoPolyline3[] OffsetInPlane(GeoPolyline3 polyline, double distance, GeoVector3 planeNormal, OffsetOptions options) => OffsetInPlane(polyline, distance, planeNormal, options, Tolerance.Global);
+        public static GeoPolyline3[] OffsetInPlane(
+            GeoPolyline3 polyline,
+            double distance,
+            GeoVector3 planeNormal,
+            OffsetOptions options
+        ) => OffsetInPlane(polyline, distance, planeNormal, options, Tolerance.Global);
 
         /// <summary>
         /// Gets the curve parallel to a flat polyline at a distance to its left within its plane, as the options
@@ -451,10 +513,18 @@ namespace GeometryHelper.Core
         /// the polyline's plane and so gives no side.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
-        public static GeoPolyline3[] OffsetInPlane(GeoPolyline3 polyline, double distance, GeoVector3 planeNormal, OffsetOptions options, Tolerance tolerance)
+        public static GeoPolyline3[] OffsetInPlane(
+            GeoPolyline3 polyline,
+            double distance,
+            GeoVector3 planeNormal,
+            OffsetOptions options,
+            Tolerance tolerance
+        )
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
+            if (options == null)
+                throw new ArgumentNullException(nameof(options));
             RequireFinite(distance, nameof(distance));
 
             if (Math.Abs(distance) <= tolerance.EqualPoint)
@@ -500,7 +570,8 @@ namespace GeometryHelper.Core
         /// <param name="distance">How far the circumference moves: outward when positive.</param>
         /// <param name="result">The concentric circle, or the circle unchanged when the method returns false.</param>
         /// <returns>true if a circle is left; false if it shrinks to nothing.</returns>
-        public static bool TryOffset(GeoCircle3 circle, double distance, out GeoCircle3 result) => TryOffset(circle, distance, out result, Tolerance.Global);
+        public static bool TryOffset(GeoCircle3 circle, double distance, out GeoCircle3 result) =>
+            TryOffset(circle, distance, out result, Tolerance.Global);
 
         /// <summary>
         /// Grows a circle within its plane by a distance, or shrinks it when the distance is negative, within a
@@ -536,7 +607,12 @@ namespace GeometryHelper.Core
         /// <see cref="GeoPolygon3"/> promises is checked. A piece the constructor refuses under the tolerance,
         /// being too small to enclose an area it accepts, is reported and left out.
         /// </summary>
-        private static bool TryBuildPolygon(PlaneFrame frame, List<GeoPoint2> loop, Tolerance tolerance, out GeoPolygon3 polygon)
+        private static bool TryBuildPolygon(
+            PlaneFrame frame,
+            List<GeoPoint2> loop,
+            Tolerance tolerance,
+            out GeoPolygon3 polygon
+        )
         {
             try
             {
@@ -545,7 +621,10 @@ namespace GeometryHelper.Core
             }
             catch (ArgumentException exception)
             {
-                GeometryHelperLog.Debug("Offset: a piece of " + loop.Count + " vertices was too small to keep as a polygon.", exception);
+                GeometryHelperLog.Debug(
+                    "Offset: a piece of " + loop.Count + " vertices was too small to keep as a polygon.",
+                    exception
+                );
                 polygon = null;
                 return false;
             }
@@ -571,7 +650,10 @@ namespace GeometryHelper.Core
 
                 if (Math.Abs(facing) <= tolerance.EqualAngleSin)
                 {
-                    throw new ArgumentException("The plane normal lies in the plane of the polyline, so it gives no side to offset to.", nameof(planeNormal));
+                    throw new ArgumentException(
+                        "The plane normal lies in the plane of the polyline, so it gives no side to offset to.",
+                        nameof(planeNormal)
+                    );
                 }
 
                 return facing > 0.0 ? plane.Normal : plane.Normal.Negate();
@@ -585,7 +667,10 @@ namespace GeometryHelper.Core
 
                 if (square.Length <= tolerance.EqualAngleSin)
                 {
-                    throw new ArgumentException("The plane normal runs along the polyline, so it gives no side to offset to.", nameof(planeNormal));
+                    throw new ArgumentException(
+                        "The plane normal runs along the polyline, so it gives no side to offset to.",
+                        nameof(planeNormal)
+                    );
                 }
 
                 return square.Divide(square.Length);
@@ -599,13 +684,20 @@ namespace GeometryHelper.Core
                 return reference;
             }
 
-            throw new ArgumentException("The polyline does not lie in one plane, so it has no side to offset to.", nameof(polyline));
+            throw new ArgumentException(
+                "The polyline does not lie in one plane, so it has no side to offset to.",
+                nameof(polyline)
+            );
         }
 
         /// <summary>
         /// Checks whether every vertex of a polyline lies on the line through its start and its farthest vertex.
         /// </summary>
-        private static bool TryGetStraightDirection(GeoPolyline3 polyline, Tolerance tolerance, out GeoVector3 direction)
+        private static bool TryGetStraightDirection(
+            GeoPolyline3 polyline,
+            Tolerance tolerance,
+            out GeoVector3 direction
+        )
         {
             direction = GeoVector3.Zero;
             GeoPoint3 start = polyline.StartPoint;
@@ -671,7 +763,12 @@ namespace GeometryHelper.Core
         /// Gets the unit vector along the part of a direction square to a unit axis, refusing a direction
         /// that has no length or lies along the axis within the angular tolerance.
         /// </summary>
-        private static GeoVector3 GetSquareUnit(GeoVector3 axis, GeoVector3 direction, string parameterName, Tolerance tolerance)
+        private static GeoVector3 GetSquareUnit(
+            GeoVector3 axis,
+            GeoVector3 direction,
+            string parameterName,
+            Tolerance tolerance
+        )
         {
             double length = direction.Length;
 
@@ -686,7 +783,10 @@ namespace GeometryHelper.Core
             // angular test Parallel3 applies: a direction along the segment says nothing about a side.
             if (square.Length <= tolerance.EqualAngleSin * length)
             {
-                throw new ArgumentException("The direction runs along the segment, so it gives no side to move to.", parameterName);
+                throw new ArgumentException(
+                    "The direction runs along the segment, so it gives no side to move to.",
+                    parameterName
+                );
             }
 
             return square.Divide(square.Length);

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -100,7 +100,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets a plane from a normal already of unit length, which is not normalized again nor judged against a tolerance.
         /// </summary>
-        internal static GeoPlane3 FromUnitNormal(GeoPoint3 origin, GeoVector3 unitNormal) => new GeoPlane3(origin, unitNormal, true);
+        internal static GeoPlane3 FromUnitNormal(GeoPoint3 origin, GeoVector3 unitNormal) =>
+            new GeoPlane3(origin, unitNormal, true);
 
         /// <summary>
         /// Creates a copy of this plane.
@@ -252,7 +253,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this plane is perpendicular to another plane within a tolerance.
         /// </summary>
-        public bool IsPerpendicularTo(GeoPlane3 other, Tolerance tolerance) => Parallel3.IsPerpendicular(this, other, tolerance);
+        public bool IsPerpendicularTo(GeoPlane3 other, Tolerance tolerance) =>
+            Parallel3.IsPerpendicular(this, other, tolerance);
 
         #endregion
 
@@ -300,8 +302,8 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         public bool IsEqualTo(GeoPlane3 other, Tolerance tolerance)
         {
-            return Normal.IsEqualTo(other.Normal, tolerance) &&
-                   Math.Abs(SignedDistanceTo(other.Origin)) <= tolerance.EqualPlanar;
+            return Normal.IsEqualTo(other.Normal, tolerance)
+                && Math.Abs(SignedDistanceTo(other.Origin)) <= tolerance.EqualPlanar;
         }
 
         /// <summary>

@@ -71,7 +71,12 @@ namespace GeometryHelper.Drawing.Annotation
         /// <exception cref="ArgumentNullException">Thrown when the view or the objects are null.</exception>
         /// <exception cref="ArgumentException">Thrown when the frame is not a frame of three unit axes square to each other,
         /// an object is null, or two objects have the same id.</exception>
-        public static IReadOnlyList<DimensionPoint> FindPoints(ProjectedView2 view, IEnumerable<DrawingObject> objects, GeoCoordinateSystem3 frame, Tolerance tolerance)
+        public static IReadOnlyList<DimensionPoint> FindPoints(
+            ProjectedView2 view,
+            IEnumerable<DrawingObject> objects,
+            GeoCoordinateSystem3 frame,
+            Tolerance tolerance
+        )
         {
             List<PointFinder.ObjectPoints> found = Find(view, objects, frame, tolerance);
             var points = new List<DimensionPoint>();
@@ -82,11 +87,13 @@ namespace GeometryHelper.Drawing.Annotation
                 own.AddRange(item.Corners);
                 own.AddRange(item.Centres);
                 own.AddRange(item.Ends);
-                own.Sort((a, b) =>
-                {
-                    int c = a.Kind.CompareTo(b.Kind);
-                    return c != 0 ? c : PointFinder.CompareXY(a, b);
-                });
+                own.Sort(
+                    (a, b) =>
+                    {
+                        int c = a.Kind.CompareTo(b.Kind);
+                        return c != 0 ? c : PointFinder.CompareXY(a, b);
+                    }
+                );
                 points.AddRange(own);
             }
 
@@ -106,7 +113,13 @@ namespace GeometryHelper.Drawing.Annotation
         /// <exception cref="ArgumentNullException">Thrown when the view, the objects or the settings are null.</exception>
         /// <exception cref="ArgumentException">Thrown when the frame is not a frame of three unit axes square to each other,
         /// an object is null, or two objects have the same id.</exception>
-        public static IReadOnlyList<DrawingDimension> Dimension(ProjectedView2 view, IEnumerable<DrawingObject> objects, GeoCoordinateSystem3 frame, DimensionSettings settings, Tolerance tolerance)
+        public static IReadOnlyList<DrawingDimension> Dimension(
+            ProjectedView2 view,
+            IEnumerable<DrawingObject> objects,
+            GeoCoordinateSystem3 frame,
+            DimensionSettings settings,
+            Tolerance tolerance
+        )
         {
             if (settings == null)
             {
@@ -129,7 +142,9 @@ namespace GeometryHelper.Drawing.Annotation
                 // the cumulative and ordinate lines then go inside the overall dimension, or on the other side.
                 List<DimensionCandidate> overall = Unique(rules.Overall, linear, ordinates, tol);
                 List<DimensionCandidate> chain = Unique(rules.Chain, linear, ordinates, tol);
-                List<List<DimensionCandidate>> holes = rules.Holes.ConvertAll(group => Unique(group, linear, ordinates, tol));
+                List<List<DimensionCandidate>> holes = rules.Holes.ConvertAll(group =>
+                    Unique(group, linear, ordinates, tol)
+                );
                 List<DimensionCandidate> cumulative = Unique(rules.Cumulative, linear, ordinates, tol);
                 List<DimensionCandidate> ordinate = Unique(rules.Ordinate, linear, ordinates, tol);
 
@@ -169,16 +184,34 @@ namespace GeometryHelper.Drawing.Annotation
                     shape.TextRotation,
                     layout.TextHeight,
                     settings.Scale,
-                    settings.Rounding);
+                    settings.Rounding
+                );
             }
 
             if (layout.Dropped.Count > 0)
             {
-                string left = string.Join(", ", layout.Dropped.ConvertAll(c => c.Kind + " " + c.Text + (c.Axis == 0 ? " along X" : " along Y")));
-                GeometryHelperLog.Debug(string.Format(CultureInfo.InvariantCulture, "Annotator: {0} dimensions found no place free of overlaps and were left out: {1}.", layout.Dropped.Count, left));
+                string left = string.Join(
+                    ", ",
+                    layout.Dropped.ConvertAll(c => c.Kind + " " + c.Text + (c.Axis == 0 ? " along X" : " along Y"))
+                );
+                GeometryHelperLog.Debug(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "Annotator: {0} dimensions found no place free of overlaps and were left out: {1}.",
+                        layout.Dropped.Count,
+                        left
+                    )
+                );
             }
 
-            GeometryHelperLog.Info(string.Format(CultureInfo.InvariantCulture, "Annotator: {0} objects gave {1} dimensions.", found.Count, dimensions.Length));
+            GeometryHelperLog.Info(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "Annotator: {0} objects gave {1} dimensions.",
+                    found.Count,
+                    dimensions.Length
+                )
+            );
             return dimensions;
         }
 
@@ -219,7 +252,12 @@ namespace GeometryHelper.Drawing.Annotation
             return DimensionShape.FindAll(list, tolerance.EqualPoint);
         }
 
-        private static List<PointFinder.ObjectPoints> Find(ProjectedView2 view, IEnumerable<DrawingObject> objects, GeoCoordinateSystem3 frame, Tolerance tolerance)
+        private static List<PointFinder.ObjectPoints> Find(
+            ProjectedView2 view,
+            IEnumerable<DrawingObject> objects,
+            GeoCoordinateSystem3 frame,
+            Tolerance tolerance
+        )
         {
             if (view == null)
             {
@@ -233,7 +271,10 @@ namespace GeometryHelper.Drawing.Annotation
 
             if (!frame.IsValid)
             {
-                throw new ArgumentException("The frame has to have three unit axes square to each other.", nameof(frame));
+                throw new ArgumentException(
+                    "The frame has to have three unit axes square to each other.",
+                    nameof(frame)
+                );
             }
 
             return PointFinder.Find(view, objects, frame, tolerance);
@@ -243,7 +284,12 @@ namespace GeometryHelper.Drawing.Annotation
         /// The dimensions of a group not given already: a linear one measuring between the same places along the same axis
         /// as one kept, a cumulative or ordinate one from and to the same places; the others kept.
         /// </summary>
-        private static List<DimensionCandidate> Unique(List<DimensionCandidate> group, List<DimensionCandidate> linear, List<DimensionCandidate> ordinates, double tol)
+        private static List<DimensionCandidate> Unique(
+            List<DimensionCandidate> group,
+            List<DimensionCandidate> linear,
+            List<DimensionCandidate> ordinates,
+            double tol
+        )
         {
             var kept = new List<DimensionCandidate>();
 
@@ -254,7 +300,11 @@ namespace GeometryHelper.Drawing.Annotation
 
                 foreach (DimensionCandidate other in made)
                 {
-                    if (other.Axis == c.Axis && Math.Abs(other.Low - c.Low) <= tol && Math.Abs(other.High - c.High) <= tol)
+                    if (
+                        other.Axis == c.Axis
+                        && Math.Abs(other.Low - c.Low) <= tol
+                        && Math.Abs(other.High - c.High) <= tol
+                    )
                     {
                         twice = true;
                         break;
@@ -294,7 +344,13 @@ namespace GeometryHelper.Drawing.Annotation
             private readonly DimensionSettings _settings;
             private readonly double _tol;
 
-            public Rules(List<PointFinder.ObjectPoints> found, int axis, GeoCoordinateSystem3 frame, DimensionSettings settings, double tol)
+            public Rules(
+                List<PointFinder.ObjectPoints> found,
+                int axis,
+                GeoCoordinateSystem3 frame,
+                DimensionSettings settings,
+                double tol
+            )
             {
                 _found = found;
                 _axis = axis;
@@ -424,19 +480,41 @@ namespace GeometryHelper.Drawing.Annotation
             }
 
             /// <summary>The distance between the model points of two points along the axis.</summary>
-            private double Value(DimensionPoint a, DimensionPoint b) => Math.Abs(_along.DotProduct(a.ModelPoint.GetVectorTo(b.ModelPoint)));
+            private double Value(DimensionPoint a, DimensionPoint b) =>
+                Math.Abs(_along.DotProduct(a.ModelPoint.GetVectorTo(b.ModelPoint)));
 
             /// <summary>
             /// A linear dimension between two points, each with the point of a pool at its place furthest towards either side
             /// of the view.
             /// </summary>
-            private DimensionCandidate Linear(DimensionKind kind, DimensionPoint from, DimensionPoint to, int count, List<DimensionPoint> pool)
+            private DimensionCandidate Linear(
+                DimensionKind kind,
+                DimensionPoint from,
+                DimensionPoint to,
+                int count,
+                List<DimensionPoint> pool
+            )
             {
                 double value = Value(from, to);
-                string text = count > 1
-                    ? count.ToString(CultureInfo.InvariantCulture) + " x " + DrawingDimension.Format(value / count, _settings.Rounding) + " = " + DrawingDimension.Format(value, _settings.Rounding)
-                    : DrawingDimension.Format(value, _settings.Rounding);
-                return new DimensionCandidate(kind, _axis, _along, Toward(from, pool, 1), Toward(to, pool, 1), Toward(from, pool, -1), Toward(to, pool, -1), count, text);
+                string text =
+                    count > 1
+                        ? count.ToString(CultureInfo.InvariantCulture)
+                            + " x "
+                            + DrawingDimension.Format(value / count, _settings.Rounding)
+                            + " = "
+                            + DrawingDimension.Format(value, _settings.Rounding)
+                        : DrawingDimension.Format(value, _settings.Rounding);
+                return new DimensionCandidate(
+                    kind,
+                    _axis,
+                    _along,
+                    Toward(from, pool, 1),
+                    Toward(to, pool, 1),
+                    Toward(from, pool, -1),
+                    Toward(to, pool, -1),
+                    count,
+                    text
+                );
             }
 
             /// <summary>
@@ -462,7 +540,15 @@ namespace GeometryHelper.Drawing.Annotation
             /// <summary>
             /// Dimensions end to end between points first to last, runs of equal neighbours merged into one where asked.
             /// </summary>
-            private void AddSteps(List<DimensionCandidate> into, DimensionKind kind, List<DimensionPoint> points, int first, int last, bool merge, List<DimensionPoint> pool)
+            private void AddSteps(
+                List<DimensionCandidate> into,
+                DimensionKind kind,
+                List<DimensionPoint> points,
+                int first,
+                int last,
+                bool merge,
+                List<DimensionPoint> pool
+            )
             {
                 int i = first;
 
@@ -494,7 +580,8 @@ namespace GeometryHelper.Drawing.Annotation
                 {
                     foreach (DimensionPoint centre in item.Centres)
                     {
-                        PointFinder.ObjectPoints owner = item.Object.Kind == DrawingObjectKind.Part ? item : OwnerOf(centre, main);
+                        PointFinder.ObjectPoints owner =
+                            item.Object.Kind == DrawingObjectKind.Part ? item : OwnerOf(centre, main);
 
                         if (!byOwner.TryGetValue(owner.Object.Id, out List<DimensionPoint> list))
                         {
@@ -511,7 +598,8 @@ namespace GeometryHelper.Drawing.Annotation
                     PointFinder.ObjectPoints owner = owners[entry.Key];
                     var pool = new List<DimensionPoint>(entry.Value);
                     pool.AddRange(owner.Corners);
-                    DimensionPoint? ownerLow = null, ownerHigh = null;
+                    DimensionPoint? ownerLow = null,
+                        ownerHigh = null;
 
                     if (owner.Corners.Count > 0)
                     {
@@ -550,7 +638,9 @@ namespace GeometryHelper.Drawing.Annotation
 
                         if (lastCentre < points.Count - 1)
                         {
-                            group.Add(Linear(DimensionKind.HoleEdge, points[lastCentre], points[lastCentre + 1], 1, pool));
+                            group.Add(
+                                Linear(DimensionKind.HoleEdge, points[lastCentre], points[lastCentre + 1], 1, pool)
+                            );
                         }
 
                         if (group.Count > 0)
@@ -593,11 +683,13 @@ namespace GeometryHelper.Drawing.Annotation
             private List<List<DimensionPoint>> Rows(List<DimensionPoint> centres)
             {
                 var sorted = new List<DimensionPoint>(centres);
-                sorted.Sort((a, b) =>
-                {
-                    int c = Across(a).CompareTo(Across(b));
-                    return c != 0 ? c : CompareAlong(a, b);
-                });
+                sorted.Sort(
+                    (a, b) =>
+                    {
+                        int c = Across(a).CompareTo(Across(b));
+                        return c != 0 ? c : CompareAlong(a, b);
+                    }
+                );
 
                 var rows = new List<List<DimensionPoint>>();
                 var row = new List<DimensionPoint>();
@@ -622,7 +714,13 @@ namespace GeometryHelper.Drawing.Annotation
             }
 
             /// <summary>An ordinate dimension from an origin to the origin itself and to each point.</summary>
-            private void AddOrdinates(List<DimensionCandidate> into, DimensionKind kind, DimensionPoint origin, List<DimensionPoint> points, List<DimensionPoint> pool)
+            private void AddOrdinates(
+                List<DimensionCandidate> into,
+                DimensionKind kind,
+                DimensionPoint origin,
+                List<DimensionPoint> points,
+                List<DimensionPoint> pool
+            )
             {
                 var all = new List<DimensionPoint>(points);
 

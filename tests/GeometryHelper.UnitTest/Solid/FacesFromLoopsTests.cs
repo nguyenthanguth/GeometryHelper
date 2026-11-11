@@ -130,7 +130,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(faces.Length > 1);
             Assert.All(faces, face => Assert.Empty(face.Holes));
-            Assert.All(faces.SelectMany(face => face.Boundary.Vertices), corner => Assert.True(Square.Contains(corner) || hole.Contains(corner)));
+            Assert.All(faces.SelectMany(face => face.Boundary.Vertices), corner =>
+                Assert.True(Square.Contains(corner) || hole.Contains(corner))
+            );
             Assert.InRange(faces.Sum(face => face.Area), 9600.0 * 0.99999, 9600.0 * 1.001);
             Assert.DoesNotContain(faces, face => CoversFromAbove(face, 50, 50));
         }
@@ -142,16 +144,28 @@ namespace GeometryHelper.UnitTest.Solid
             // faces that meet there are out of flat.
             GeoPoint3[] corners =
             {
-                P(0, 0, 0), P(100, 0, 0), P(100, 100, 0), P(0, 100, 0),
-                P(0, 0, 100), P(100, 0, 100), P(101, 101, 101), P(0, 100, 100),
+                P(0, 0, 0),
+                P(100, 0, 0),
+                P(100, 100, 0),
+                P(0, 100, 0),
+                P(0, 0, 100),
+                P(100, 0, 100),
+                P(101, 101, 101),
+                P(0, 100, 100),
             };
             int[][] loops =
             {
-                new[] { 0, 3, 2, 1 }, new[] { 4, 5, 6, 7 }, new[] { 0, 1, 5, 4 },
-                new[] { 1, 2, 6, 5 }, new[] { 2, 3, 7, 6 }, new[] { 3, 0, 4, 7 },
+                new[] { 0, 3, 2, 1 },
+                new[] { 4, 5, 6, 7 },
+                new[] { 0, 1, 5, 4 },
+                new[] { 1, 2, 6, 5 },
+                new[] { 2, 3, 7, 6 },
+                new[] { 3, 0, 4, 7 },
             };
 
-            var body = new GeoSolid3(loops.SelectMany(loop => GeoFace3.FromLoops(loop.Select(i => corners[i]), null, Default)));
+            var body = new GeoSolid3(
+                loops.SelectMany(loop => GeoFace3.FromLoops(loop.Select(i => corners[i]), null, Default))
+            );
 
             Assert.Equal(3 + 3 * 2, body.Faces.Count);
             Assert.True(body.IsClosed(Default));
@@ -165,14 +179,18 @@ namespace GeometryHelper.UnitTest.Solid
             // not flat, the face 0.04 mm out and four more out by rounding alone.
             var none = new Tolerance();
 
-            var beam = new GeoSolid3(DefaultToleranceTests.Loops().SelectMany(loops => GeoFace3.FromLoops(loops[0], loops.Skip(1), none)));
+            var beam = new GeoSolid3(
+                DefaultToleranceTests.Loops().SelectMany(loops => GeoFace3.FromLoops(loops[0], loops.Skip(1), none))
+            );
 
             Assert.True(beam.Faces.Count > 26);
             Assert.True(beam.IsClosed(Default));
             double concrete = 30000.0 * 3000.0 * 400.0 - 5 * 600.0 * 800.0 * 400.0;
             Assert.InRange(beam.GetVolume(), concrete * 0.99999, concrete * 1.00001);
 
-            GeoFace3 cut = Assert.Single(beam.Section(new GeoPlane3(DefaultToleranceTests.Start, GeoVector3.YAxis), Default));
+            GeoFace3 cut = Assert.Single(
+                beam.Section(new GeoPlane3(DefaultToleranceTests.Start, GeoVector3.YAxis), Default)
+            );
             Assert.Equal(3, cut.Holes.Count);
             double web = 30000.0 * 3000.0 - 5 * 600.0 * 800.0;
             Assert.InRange(cut.Area, web * 0.99999, web * 1.00001);
@@ -181,7 +199,10 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TheNotchedBeamAtTheDefaultToleranceIsItsFacesWholeButTheOneOutOfFlat()
         {
-            List<GeoFace3> faces = DefaultToleranceTests.Loops().SelectMany(loops => GeoFace3.FromLoops(loops[0], loops.Skip(1), Default)).ToList();
+            List<GeoFace3> faces = DefaultToleranceTests
+                .Loops()
+                .SelectMany(loops => GeoFace3.FromLoops(loops[0], loops.Skip(1), Default))
+                .ToList();
 
             // 25 faces whole, and the top beside the notch, 0.04 mm out, as two triangles.
             Assert.Equal(27, faces.Count);
@@ -194,7 +215,9 @@ namespace GeometryHelper.UnitTest.Solid
         public void LoopsWithNoAreaGiveNoFaces()
         {
             Assert.Empty(GeoFace3.FromLoops(new[] { P(0, 0, 0), P(50, 0, 0), P(100, 0, 0) }, null, Default));
-            Assert.Empty(GeoFace3.FromLoops(new[] { P(0, 0, 0), P(100, 0, 0), P(100, 0, 0), P(0, 0, 0) }, null, Default));
+            Assert.Empty(
+                GeoFace3.FromLoops(new[] { P(0, 0, 0), P(100, 0, 0), P(100, 0, 0), P(0, 0, 0) }, null, Default)
+            );
             Assert.Empty(GeoFace3.FromLoops(new GeoPoint3[0], null, Default));
         }
 
@@ -248,6 +271,7 @@ namespace GeometryHelper.UnitTest.Solid
             return (d1 > 0 && d2 > 0 && d3 > 0) || (d1 < 0 && d2 < 0 && d3 < 0);
         }
 
-        private static double Cross(GeoPoint3 a, GeoPoint3 b, double x, double y) => (b.X - a.X) * (y - a.Y) - (b.Y - a.Y) * (x - a.X);
+        private static double Cross(GeoPoint3 a, GeoPoint3 b, double x, double y) =>
+            (b.X - a.X) * (y - a.Y) - (b.Y - a.Y) * (x - a.X);
     }
 }

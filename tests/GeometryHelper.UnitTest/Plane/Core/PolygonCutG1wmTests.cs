@@ -16,12 +16,24 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class PolygonCutG1wmTests
     {
-        private static readonly Tolerance Millionth = new Tolerance(1E-6, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-6);
+        private static readonly Tolerance Millionth = new Tolerance(
+            1E-6,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-6
+        );
 
         // The square 10 by 10 at the origin with its corner (0, 0) cut off by a side 0.00057 long.
         private static GeoPolygon2 Chamfered()
         {
-            var corners = new[] { new GeoPoint2(0.0004, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10), new GeoPoint2(0, 0.0004) };
+            var corners = new[]
+            {
+                new GeoPoint2(0.0004, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10),
+                new GeoPoint2(0, 0.0004),
+            };
             return new GeoPolygon2(corners, corners.Length);
         }
 
@@ -34,7 +46,9 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(plate.TrySplitBy(chain, out GeoPolygon2[] pieces, Millionth));
 
             Assert.Equal(2, pieces.Length);
-            Assert.Contains(pieces, piece => piece.Vertices.Contains(new GeoPoint2(0.0004, 0)) && piece.Vertices.Contains(new GeoPoint2(0, 0.0004)));
+            Assert.Contains(pieces, piece =>
+                piece.Vertices.Contains(new GeoPoint2(0.0004, 0)) && piece.Vertices.Contains(new GeoPoint2(0, 0.0004))
+            );
             Assert.Equal(plate.Area, pieces.Sum(piece => piece.Area), 9);
         }
 
@@ -47,20 +61,29 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(plate.TrySplitBy(chain, out GeoPolygon2[] pieces, Millionth));
 
             Assert.Equal(2, pieces.Length);
-            Assert.All(pieces, piece => Assert.Contains(piece.Vertices, corner => corner.IsEqualTo(new GeoPoint2(0.0002, 0.0002), Millionth)));
+            Assert.All(pieces, piece =>
+                Assert.Contains(piece.Vertices, corner => corner.IsEqualTo(new GeoPoint2(0.0002, 0.0002), Millionth))
+            );
             Assert.Equal(plate.Area, pieces.Sum(piece => piece.Area), 9);
         }
 
         [Fact]
         public void AChainEndingCloserToACornerThanTheGlobalTolerance_EndsBothPiecesWhereItEnds()
         {
-            var plate = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+            var plate = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
             var chain = new GeoPolyline2(new GeoPoint2(5, 0), new GeoPoint2(9.9995, 10));
 
             Assert.True(plate.TrySplitBy(chain, out GeoPolygon2[] pieces, Millionth));
 
             Assert.Equal(2, pieces.Length);
-            Assert.All(pieces, piece => Assert.Contains(piece.Vertices, corner => corner.IsEqualTo(new GeoPoint2(9.9995, 10), Millionth)));
+            Assert.All(pieces, piece =>
+                Assert.Contains(piece.Vertices, corner => corner.IsEqualTo(new GeoPoint2(9.9995, 10), Millionth))
+            );
             Assert.Equal(100, pieces.Sum(piece => piece.Area), 9);
         }
 
@@ -82,7 +105,12 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ALineCuttingOffACornerSmallerThanTheGlobalTolerance_GivesTheCornerAsAPiece()
         {
-            var plate = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+            var plate = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
             var cutter = new GeoLine2(new GeoPoint2(0.0005, 0), new GeoPoint2(0, 0.0005));
 
             Assert.True(plate.TrySplitBy(cutter, out GeoPolygon2[] left, out GeoPolygon2[] right, Millionth));
@@ -94,7 +122,13 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ALoopSmallerThanTheGlobalTolerance_IsCutInTwoAtTheToleranceAsked()
         {
-            var corners = new[] { new GeoPoint2(0, 0), new GeoPoint2(0.0005, 0), new GeoPoint2(0.0005, 0.0005), new GeoPoint2(0, 0.0005) };
+            var corners = new[]
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(0.0005, 0),
+                new GeoPoint2(0.0005, 0.0005),
+                new GeoPoint2(0, 0.0005),
+            };
             var plate = new GeoPolygon2(corners, corners.Length);
             var ends = new[] { new GeoPoint2(0.00025, 0), new GeoPoint2(0.00025, 0.0005) };
             var chain = new GeoPolyline2(ends, ends.Length);

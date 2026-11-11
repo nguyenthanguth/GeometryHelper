@@ -19,13 +19,19 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static GeoPoint2 Q(double x, double y) => new GeoPoint2(x, y);
 
-        private static void Near(GeoPoint3 expected, GeoPoint3 actual)
-            => Assert.True(expected.DistanceTo(actual) <= Close * Math.Max(1.0, expected.DistanceTo(new GeoPoint3(0, 0, 0))), expected + " was " + actual);
+        private static void Near(GeoPoint3 expected, GeoPoint3 actual) =>
+            Assert.True(
+                expected.DistanceTo(actual) <= Close * Math.Max(1.0, expected.DistanceTo(new GeoPoint3(0, 0, 0))),
+                expected + " was " + actual
+            );
 
         private static string Record(string text, string handle) => Records(text).First(r => HandleOf(r) == handle);
 
-        private static string ClassRecord(string text, string name)
-            => Records(text).FirstOrDefault(r => r.StartsWith("  0\nCLASS\n", StringComparison.Ordinal) && r.Contains("\n  1\n" + name + "\n"));
+        private static string ClassRecord(string text, string name) =>
+            Records(text)
+                .FirstOrDefault(r =>
+                    r.StartsWith("  0\nCLASS\n", StringComparison.Ordinal) && r.Contains("\n  1\n" + name + "\n")
+                );
 
         [Fact]
         public void AWipeoutSetFromAtSiteCoordinates_IsFramedWithTheOrigin_AndHidesItsPolygon()
@@ -34,7 +40,14 @@ namespace GeometryHelper.UnitTest.Dxf
             var cases = new[]
             {
                 new[] { Q(100000, 100000), Q(100010, 100000), Q(100010, 100010), Q(100000, 100010), Q(100000, 100000) },
-                new[] { Q(500000, 6000000), Q(500020, 6000000), Q(500020, 6000005), Q(500000, 6000005), Q(500000, 6000000) },
+                new[]
+                {
+                    Q(500000, 6000000),
+                    Q(500020, 6000000),
+                    Q(500020, 6000005),
+                    Q(500000, 6000005),
+                    Q(500000, 6000000),
+                },
             };
 
             foreach (GeoPoint2[] square in cases)
@@ -64,7 +77,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(new GeoPoint3(1, 1, 0), db.Extmax);
 
             // The picture 40 by 30 at (10, 20) copied to (1010, 1020): the header holds it to (1050, 1050).
-            DxfEntity image = ByHandle<DxfEntity>(source, "C10").GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(1000, 1000, 0)));
+            DxfEntity image = ByHandle<DxfEntity>(source, "C10")
+                .GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(1000, 1000, 0)));
             db.ModelSpace.AppendEntity(image);
             Assert.Same(image, db.ModelSpace.Single(e => e.Handle == image.Handle));
             Near(new GeoPoint3(1050, 1050, 0), db.Extmax);
@@ -116,7 +130,12 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.False(((DxfRasterImage)copy).IsClipInverted);
 
             // An R2000 file another writer gave a 290 of 1 has it taken off by false, which needs no later version.
-            string held = DxfRasterImageDrawings.R2000.Replace("  5\nC11\n", "  5\nC11\n").Replace(" 71\n2\n 91\n4\n 14\n0.0\n 24\n0.0\n 14\n3.0", "290\n1\n 71\n2\n 91\n4\n 14\n0.0\n 24\n0.0\n 14\n3.0");
+            string held = DxfRasterImageDrawings
+                .R2000.Replace("  5\nC11\n", "  5\nC11\n")
+                .Replace(
+                    " 71\n2\n 91\n4\n 14\n0.0\n 24\n0.0\n 14\n3.0",
+                    "290\n1\n 71\n2\n 91\n4\n 14\n0.0\n 24\n0.0\n 14\n3.0"
+                );
             DxfDatabase odd = DxfDatabase.Parse(held);
             DxfRasterImage image = ByHandle<DxfRasterImage>(odd, "C11");
             Assert.True(image.IsClipInverted);
@@ -134,10 +153,18 @@ namespace GeometryHelper.UnitTest.Dxf
             wipeout.SetOrientation(new GeoPoint3(0, 0, 0), new GeoVector3(10000, 0, 0), new GeoVector3(0, 10000, 0));
 
             // On a frame of 10 000, a last corner 0.0009 of the frame off the first is 9 mm off: not closed.
-            Assert.Throws<ArgumentException>(() => wipeout.SetClipBoundary(DxfClipBoundaryType.Poly, new[] { Q(-0.5, 0.5), Q(0.5, 0.5), Q(0, -0.5), Q(-0.4991, 0.5) }));
+            Assert.Throws<ArgumentException>(() =>
+                wipeout.SetClipBoundary(
+                    DxfClipBoundaryType.Poly,
+                    new[] { Q(-0.5, 0.5), Q(0.5, 0.5), Q(0, -0.5), Q(-0.4991, 0.5) }
+                )
+            );
 
             // 0.0005 mm off, 5E-8 of the frame, it closes, written as the first.
-            wipeout.SetClipBoundary(DxfClipBoundaryType.Poly, new[] { Q(-0.5, 0.5), Q(0.5, 0.5), Q(0, -0.5), Q(-0.49999995, 0.5) });
+            wipeout.SetClipBoundary(
+                DxfClipBoundaryType.Poly,
+                new[] { Q(-0.5, 0.5), Q(0.5, 0.5), Q(0, -0.5), Q(-0.49999995, 0.5) }
+            );
             IReadOnlyList<GeoPoint2> boundary = wipeout.GetClipBoundary();
             Assert.Equal(boundary[0], boundary[3]);
         }
@@ -161,19 +188,27 @@ namespace GeometryHelper.UnitTest.Dxf
         public void AnEntityOfATypeWithNoClass_IsCopiedIntoADrawingOfAnOlderVersion_AsItIs()
         {
             // A SHAPE, which R2000 holds too, kept raw: copied from a drawing of R2018 into one of R2000.
-            string shape = "  0\nSHAPE\n  5\nC30\n330\n17\n100\nAcDbEntity\n  8\n0\n100\nAcDbShape\n 10\n1.0\n 20\n2.0\n 30\n0.0\n 40\n2.5\n  2\nBOX\n";
+            string shape =
+                "  0\nSHAPE\n  5\nC30\n330\n17\n100\nAcDbEntity\n  8\n0\n100\nAcDbShape\n 10\n1.0\n 20\n2.0\n 30\n0.0\n 40\n2.5\n  2\nBOX\n";
             string text = DxfFileEzdxfDrawings.R2018;
-            int end = text.IndexOf("  0\nENDSEC\n", text.IndexOf("\nENTITIES\n", StringComparison.Ordinal), StringComparison.Ordinal);
+            int end = text.IndexOf(
+                "  0\nENDSEC\n",
+                text.IndexOf("\nENTITIES\n", StringComparison.Ordinal),
+                StringComparison.Ordinal
+            );
             DxfDatabase source = DxfDatabase.Parse(text.Insert(end, shape));
             var raw = (DxfUnknownEntity)ByHandle<DxfEntity>(source, "C30");
             DxfDatabase target = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
 
             DxfEntity clone = raw.Clone();
             Assert.IsType<DxfUnknownEntity>(clone);
-            Assert.Throws<NotSupportedException>(() => raw.GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(1, 0, 0))));
+            Assert.Throws<NotSupportedException>(() =>
+                raw.GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(1, 0, 0)))
+            );
             target.ModelSpace.AppendEntity(clone);
 
-            var reopened = (DxfUnknownEntity)DxfDatabase.Parse(target.ToText()).ModelSpace.Single(e => e.Handle == clone.Handle);
+            var reopened = (DxfUnknownEntity)
+                DxfDatabase.Parse(target.ToText()).ModelSpace.Single(e => e.Handle == clone.Handle);
             Assert.Equal("SHAPE", reopened.DxfName);
             Assert.Contains(reopened.Groups, g => g.TypeCode == 2 && g.Value == "BOX");
         }

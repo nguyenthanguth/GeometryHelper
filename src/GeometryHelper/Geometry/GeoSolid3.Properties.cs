@@ -223,7 +223,8 @@ namespace GeometryHelper.Geometry
         /// other ways too, and sets the ways side by side.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the density is not a positive number.</exception>
-        public MassProperties3 GetMassProperties(double density, Tolerance tolerance) => Measure3.MassProperties(this, density, VolumeMethod.Surface, tolerance);
+        public MassProperties3 GetMassProperties(double density, Tolerance tolerance) =>
+            Measure3.MassProperties(this, density, VolumeMethod.Surface, tolerance);
 
         /// <summary>
         /// Gets where a plane cuts the material, using the default tolerance.
@@ -378,10 +379,16 @@ namespace GeometryHelper.Geometry
             // Refused within the rounding, the openings are cut within what rounding can move a corner off a plane, a
             // trillionth of the size of the coordinates, as Section and Mesh3.ToCells cut them, and the corners that leaves
             // apart made one where that closes the material within the tolerance given; see the remarks.
-            if (Splition3.BelowTheRounding(this, tolerance, out Tolerance trillionth)
-                && Boolean3.TryCutOpenings(this, out GeoSolid3 coarser, trillionth, out _) && coarser != null)
+            if (
+                Splition3.BelowTheRounding(this, tolerance, out Tolerance trillionth)
+                && Boolean3.TryCutOpenings(this, out GeoSolid3 coarser, trillionth, out _)
+                && coarser != null
+            )
             {
-                if (!coarser.ClosesByCorners(tolerance) && Weld3.TryWeld(coarser, trillionth, tolerance, out GeoSolid3 welded))
+                if (
+                    !coarser.ClosesByCorners(tolerance)
+                    && Weld3.TryWeld(coarser, trillionth, tolerance, out GeoSolid3 welded)
+                )
                 {
                     coarser = welded;
                 }
@@ -389,7 +396,10 @@ namespace GeometryHelper.Geometry
                 return new MaterialCut(tolerance, coarser, true);
             }
 
-            GeometryHelperLog.Debug("GeoSolid3: the openings could not be cut out closed within the rounding of the coordinates; they are cut at the tolerance given, and the volume is not to be trusted.", failure);
+            GeometryHelperLog.Debug(
+                "GeoSolid3: the openings could not be cut out closed within the rounding of the coordinates; they are cut at the tolerance given, and the volume is not to be trusted.",
+                failure
+            );
             return new MaterialCut(tolerance, CutMaterialAsGiven(tolerance).Body, false);
         }
 
@@ -414,11 +424,20 @@ namespace GeometryHelper.Geometry
                 return new MaterialCut(tolerance, apart, true);
             }
 
-            bool cut = Boolean3.TryCutOpeningsAtOnce(this, _openings, out GeoSolid3 material, tolerance, out Exception failure, out bool judgedWhole);
+            bool cut = Boolean3.TryCutOpeningsAtOnce(
+                this,
+                _openings,
+                out GeoSolid3 material,
+                tolerance,
+                out Exception failure,
+                out bool judgedWhole
+            );
 
             if (judgedWhole)
             {
-                GeometryHelperLog.Debug("GeoSolid3: cutting the openings out at once left a piece of the body part in an opening and part out; they are taken out one at a time.");
+                GeometryHelperLog.Debug(
+                    "GeoSolid3: cutting the openings out at once left a piece of the body part in an opening and part out; they are taken out one at a time."
+                );
             }
             else if (cut)
             {
@@ -428,7 +447,9 @@ namespace GeometryHelper.Geometry
                     return new MaterialCut(tolerance, material, true);
                 }
 
-                GeometryHelperLog.Debug("GeoSolid3: cutting the openings out at once left the material open; they are taken out one at a time.");
+                GeometryHelperLog.Debug(
+                    "GeoSolid3: cutting the openings out at once left the material open; they are taken out one at a time."
+                );
             }
             else if (failure == null)
             {
@@ -437,7 +458,10 @@ namespace GeometryHelper.Geometry
             }
             else
             {
-                GeometryHelperLog.Debug("GeoSolid3: the openings could not be cut out at once; they are taken out one at a time.", failure);
+                GeometryHelperLog.Debug(
+                    "GeoSolid3: the openings could not be cut out at once; they are taken out one at a time.",
+                    failure
+                );
             }
 
             GeoSolid3 remaining = new GeoSolid3(_faces);
@@ -464,8 +488,11 @@ namespace GeometryHelper.Geometry
                     {
                         cutAsTryCutOpenings = true;
 
-                        if (!(Material3.ToRounding(this, tolerance).EqualPoint > tolerance.EqualPoint)
-                            && Boolean3.TryCutOpenings(this, out GeoSolid3 cutOpenings, tolerance, out _) && cutOpenings != null)
+                        if (
+                            !(Material3.ToRounding(this, tolerance).EqualPoint > tolerance.EqualPoint)
+                            && Boolean3.TryCutOpenings(this, out GeoSolid3 cutOpenings, tolerance, out _)
+                            && cutOpenings != null
+                        )
                         {
                             return new MaterialCut(tolerance, cutOpenings, true);
                         }
@@ -474,7 +501,8 @@ namespace GeometryHelper.Geometry
                     whole = false;
                     GeometryHelperLog.Warn(
                         $"GeoSolid3: opening {i + 1} of {_openings.Length}, within {_openings[i].GetAabb()}, could not be cut out of the body, and is measured as material.",
-                        failed);
+                        failed
+                    );
                 }
             }
 

@@ -8,7 +8,10 @@ namespace GeometryHelper.Drawing.Projection
     /// </summary>
     internal struct Piece2
     {
-        internal double X0, Y0, X1, Y1;
+        internal double X0,
+            Y0,
+            X1,
+            Y1;
         internal EdgeVisibility Visibility;
         internal EdgeKind Kind;
 
@@ -24,15 +27,20 @@ namespace GeometryHelper.Drawing.Projection
         internal static int Compare(Piece2 p, Piece2 q)
         {
             int c = p.X0.CompareTo(q.X0);
-            if (c != 0) return c;
+            if (c != 0)
+                return c;
             c = p.Y0.CompareTo(q.Y0);
-            if (c != 0) return c;
+            if (c != 0)
+                return c;
             c = p.X1.CompareTo(q.X1);
-            if (c != 0) return c;
+            if (c != 0)
+                return c;
             c = p.Y1.CompareTo(q.Y1);
-            if (c != 0) return c;
+            if (c != 0)
+                return c;
             c = p.Visibility.CompareTo(q.Visibility);
-            if (c != 0) return c;
+            if (c != 0)
+                return c;
             c = p.Kind.CompareTo(q.Kind);
             return c != 0 ? c : CompareObjects(p.Objects, q.Objects);
         }
@@ -187,10 +195,20 @@ namespace GeometryHelper.Drawing.Projection
         /// <summary>
         /// Adds the spans of an edge, as parameters from nought at its start to one at its end, that a face hides.
         /// </summary>
-        private static void HiddenBy(CandidateEdge edge, Occluder o, double tol, List<Span> hidden, List<double> parameters)
+        private static void HiddenBy(
+            CandidateEdge edge,
+            Occluder o,
+            double tol,
+            List<Span> hidden,
+            List<double> parameters
+        )
         {
-            if (Math.Max(edge.Ax, edge.Bx) < o.MinX - tol || Math.Min(edge.Ax, edge.Bx) > o.MaxX + tol
-                || Math.Max(edge.Ay, edge.By) < o.MinY - tol || Math.Min(edge.Ay, edge.By) > o.MaxY + tol)
+            if (
+                Math.Max(edge.Ax, edge.Bx) < o.MinX - tol
+                || Math.Min(edge.Ax, edge.Bx) > o.MaxX + tol
+                || Math.Max(edge.Ay, edge.By) < o.MinY - tol
+                || Math.Min(edge.Ay, edge.By) > o.MaxY + tol
+            )
             {
                 return;
             }
@@ -237,7 +255,15 @@ namespace GeometryHelper.Drawing.Projection
         /// Adds the spans between two parameters of an edge that lie within a face seen in the view, its outline counting as
         /// within it to the tolerance.
         /// </summary>
-        private static void Clip(CandidateEdge edge, Occluder o, double t0, double t1, double tol, List<Span> hidden, List<double> parameters)
+        private static void Clip(
+            CandidateEdge edge,
+            Occluder o,
+            double t0,
+            double t1,
+            double tol,
+            List<Span> hidden,
+            List<double> parameters
+        )
         {
             double ax = edge.Ax;
             double ay = edge.Ay;
@@ -425,7 +451,15 @@ namespace GeometryHelper.Drawing.Projection
             Add(edge, at, 1.0, EdgeVisibility.Visible, tol, length, pieces);
         }
 
-        private static void Add(CandidateEdge edge, double from, double to, EdgeVisibility visibility, double tol, double length, List<Piece2> pieces)
+        private static void Add(
+            CandidateEdge edge,
+            double from,
+            double to,
+            EdgeVisibility visibility,
+            double tol,
+            double length,
+            List<Piece2> pieces
+        )
         {
             if ((to - from) * length <= tol)
             {

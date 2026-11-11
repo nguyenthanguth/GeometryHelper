@@ -56,7 +56,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("Mode"))
                 {
-                    yield return CadPrompt.ForKeyword("Enter a text edit mode option", new[] { "Single", "Multiple" }, single ? "Single" : "Multiple");
+                    yield return CadPrompt.ForKeyword(
+                        "Enter a text edit mode option",
+                        new[] { "Single", "Multiple" },
+                        single ? "Single" : "Multiple"
+                    );
 
                     if (c.Input.Is("Single") || c.Input.Is("Multiple"))
                     {
@@ -90,7 +94,11 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else
                     {
-                        c.Write(mtextOnly ? "The object selected is not an MTEXT." : "The object selected is not a text, an MTEXT or a dimension.");
+                        c.Write(
+                            mtextOnly
+                                ? "The object selected is not an MTEXT."
+                                : "The object selected is not a text, an MTEXT or a dimension."
+                        );
                     }
 
                     if (single)
@@ -101,7 +109,10 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                yield return CadPrompt.ForInPlaceEdit(edit.Kind == CadInPlaceKind.MText ? "Edit multiline text" : "Edit text", edit);
+                yield return CadPrompt.ForInPlaceEdit(
+                    edit.Kind == CadInPlaceKind.MText ? "Edit multiline text" : "Edit text",
+                    edit
+                );
 
                 if (c.Input.Kind == CadInputKind.Text && WriteEdit(c, entity, edit, c.Input.Text))
                 {
@@ -121,15 +132,45 @@ namespace GeometryHelper.Dxf.Viewer
             switch (entity)
             {
                 case DxfMText mtext:
-                    return new CadInPlaceEdit(CadInPlaceKind.MText, mtext.Handle, mtext.Contents, P2(mtext.Location), mtext.TextHeight, mtext.Rotation, mtext.Width, mtext.TextStyleName, (int)mtext.Attachment);
+                    return new CadInPlaceEdit(
+                        CadInPlaceKind.MText,
+                        mtext.Handle,
+                        mtext.Contents,
+                        P2(mtext.Location),
+                        mtext.TextHeight,
+                        mtext.Rotation,
+                        mtext.Width,
+                        mtext.TextStyleName,
+                        (int)mtext.Attachment
+                    );
                 case DxfAttributeDefinition _:
                     return null;
                 case DxfDBText text when !mtextOnly:
-                    return new CadInPlaceEdit(CadInPlaceKind.Text, text.Handle, text.TextString, P2(text.Position), text.Height, text.Rotation, 0.0, text.TextStyleName, 1);
+                    return new CadInPlaceEdit(
+                        CadInPlaceKind.Text,
+                        text.Handle,
+                        text.TextString,
+                        P2(text.Position),
+                        text.Height,
+                        text.Rotation,
+                        0.0,
+                        text.TextStyleName,
+                        1
+                    );
                 case DxfDimension dimension when !mtextOnly:
                     string value = string.IsNullOrEmpty(dimension.DimensionText) ? "<>" : dimension.DimensionText;
                     GeoPoint3 at = dimension.TextPosition;
-                    return new CadInPlaceEdit(CadInPlaceKind.Text, dimension.Handle, value, P2(at), DimensionTextHeight(dimension), dimension.TextRotation, 0.0, null, 5);
+                    return new CadInPlaceEdit(
+                        CadInPlaceKind.Text,
+                        dimension.Handle,
+                        value,
+                        P2(at),
+                        DimensionTextHeight(dimension),
+                        dimension.TextRotation,
+                        0.0,
+                        null,
+                        5
+                    );
                 default:
                     return null;
             }
@@ -168,17 +209,41 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (edit.NewWidth.HasValue && edit.NewWidth.Value >= 0.0 && edit.NewWidth.Value != edit.Width)
                 {
-                    planned.Add(new CadEditRecord(CadEditRecordKind.PropertyChanged, edit.Handle, "Width", Values(edit.Width), Values(edit.NewWidth.Value)));
+                    planned.Add(
+                        new CadEditRecord(
+                            CadEditRecordKind.PropertyChanged,
+                            edit.Handle,
+                            "Width",
+                            Values(edit.Width),
+                            Values(edit.NewWidth.Value)
+                        )
+                    );
                 }
 
                 if (edit.NewAttachment.HasValue)
                 {
-                    planned.Add(new CadEditRecord(CadEditRecordKind.PropertyChanged, edit.Handle, "Attachment", ((int)mtext.Attachment).ToString(System.Globalization.CultureInfo.InvariantCulture), edit.NewAttachment.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+                    planned.Add(
+                        new CadEditRecord(
+                            CadEditRecordKind.PropertyChanged,
+                            edit.Handle,
+                            "Attachment",
+                            ((int)mtext.Attachment).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                            edit.NewAttachment.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        )
+                    );
                 }
 
                 if (edit.NewLineSpacing.HasValue)
                 {
-                    planned.Add(new CadEditRecord(CadEditRecordKind.PropertyChanged, edit.Handle, "Line space factor", Values(mtext.LineSpacingFactor), Values(edit.NewLineSpacing.Value)));
+                    planned.Add(
+                        new CadEditRecord(
+                            CadEditRecordKind.PropertyChanged,
+                            edit.Handle,
+                            "Line space factor",
+                            Values(mtext.LineSpacingFactor),
+                            Values(edit.NewLineSpacing.Value)
+                        )
+                    );
                 }
 
                 CadEditResult result = c.Apply(planned, s =>

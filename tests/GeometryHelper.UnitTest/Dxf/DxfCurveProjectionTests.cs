@@ -30,7 +30,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 double t = expected.StartParam + (expected.EndParam - expected.StartParam) * i / steps;
                 GeoPoint3 want = map(expected.GetPointAtParameter(t));
                 GeoPoint3 on = actual.GetClosestPointTo(want, false);
-                Assert.True(on.IsEqualTo(want, Tight), "At " + t + " the curve is " + on.DistanceTo(want) + " from " + want);
+                Assert.True(
+                    on.IsEqualTo(want, Tight),
+                    "At " + t + " the curve is " + on.DistanceTo(want) + " from " + want
+                );
             }
         }
 
@@ -57,11 +60,24 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(10.0, round.GetPointAtParameter(angle).DistanceTo(circle.Center), 9);
             }
 
-            Assert.True(round.GetPointAtParameter(Math.PI / 2).IsEqualTo(circle.GetPointAtParameter(Math.PI / 2), Tight));
+            Assert.True(
+                round.GetPointAtParameter(Math.PI / 2).IsEqualTo(circle.GetPointAtParameter(Math.PI / 2), Tight)
+            );
 
             var arc = new DxfArc(new GeoPoint3(0, 0, 0), 5, 0.5, 2.5);
             SameCurve(arc, arc.Spline, p => p, 20);
-            var ellipse = new DxfEllipse(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), new GeoVector3(8, 0, 0), 0.5, 0, 2 * Math.PI) { StartParam = 1.0, EndParam = 4.0 };
+            var ellipse = new DxfEllipse(
+                new GeoPoint3(0, 0, 0),
+                new GeoVector3(0, 0, 1),
+                new GeoVector3(8, 0, 0),
+                0.5,
+                0,
+                2 * Math.PI
+            )
+            {
+                StartParam = 1.0,
+                EndParam = 4.0,
+            };
             DxfSpline oval = ellipse.Spline;
             Assert.Equal(1.0, oval.StartParam);
             Assert.True(oval.GetPointAtParameter(2.5).IsEqualTo(ellipse.GetPointAtParameter(2.5), Tight));
@@ -79,12 +95,18 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(chain.GetPointAtParameter(1.0).IsEqualTo(polyline.GetPoint3dAt(1), Tight));
             SameCurve(polyline, chain, p => p, 20);
 
-            var lines = new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(3, 4, 0), new GeoPoint3(3, 4, 12) }, true);
+            var lines = new DxfPolyline3d(
+                DxfPoly3dType.SimplePoly,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(3, 4, 0), new GeoPoint3(3, 4, 12) },
+                true
+            );
             DxfSpline frame = lines.Spline;
             Assert.Equal(1, frame.Degree);
             Assert.Equal(3.0, frame.EndParam);
             Assert.True(frame.GetPointAtParameter(1.5).IsEqualTo(new GeoPoint3(3, 4, 6), Tight));
-            Assert.Throws<NotSupportedException>(() => new DxfRay { BasePoint = new GeoPoint3(0, 0, 0), UnitDir = new GeoVector3(1, 0, 0) }.Spline);
+            Assert.Throws<NotSupportedException>(() =>
+                new DxfRay { BasePoint = new GeoPoint3(0, 0, 0), UnitDir = new GeoVector3(1, 0, 0) }.Spline
+            );
         }
 
         [Fact]
@@ -97,14 +119,24 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(down.EndPoint.IsEqualTo(new GeoPoint3(10, 5, -5), Tight));
             Assert.Equal(3, down.ColorIndex);
 
-            var flat = (DxfLine)line.GetOrthoProjectedCurve(new GeoPlane3(new GeoPoint3(0, 0, 2), new GeoVector3(0, 0, 1)));
+            var flat = (DxfLine)
+                line.GetOrthoProjectedCurve(new GeoPlane3(new GeoPoint3(0, 0, 2), new GeoVector3(0, 0, 1)));
             Assert.True(flat.EndPoint.IsEqualTo(new GeoPoint3(10, 5, 2), Tight));
 
-            var ray = (DxfRay)new DxfRay { BasePoint = new GeoPoint3(1, 1, 1), UnitDir = new GeoVector3(0, 1, 0) }.GetProjectedCurve(Slope, new GeoVector3(0, 0, 1));
+            var ray = (DxfRay)
+                new DxfRay { BasePoint = new GeoPoint3(1, 1, 1), UnitDir = new GeoVector3(0, 1, 0) }.GetProjectedCurve(
+                    Slope,
+                    new GeoVector3(0, 0, 1)
+                );
             Assert.True(ray.BasePoint.IsEqualTo(new GeoPoint3(1, 1, -1), Tight));
             Assert.True(ray.UnitDir.IsEqualTo(new GeoVector3(0, Math.Sqrt(0.5), -Math.Sqrt(0.5)), Tight));
 
-            Assert.Throws<InvalidOperationException>(() => new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, 5)).GetProjectedCurve(Slope, new GeoVector3(0, 0, 1)));
+            Assert.Throws<InvalidOperationException>(() =>
+                new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, 5)).GetProjectedCurve(
+                    Slope,
+                    new GeoVector3(0, 0, 1)
+                )
+            );
             Assert.Throws<ArgumentException>(() => line.GetProjectedCurve(Slope, new GeoVector3(1, 0, 0)));
         }
 
@@ -127,13 +159,30 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(part.EndPoint.IsEqualTo(Down(arc.EndPoint), Tight));
             SameCurve(arc, part, Down, 12);
 
-            var raised = (DxfCircle)circle.GetOrthoProjectedCurve(new GeoPlane3(new GeoPoint3(0, 0, 7), new GeoVector3(0, 0, -1)));
+            var raised = (DxfCircle)
+                circle.GetOrthoProjectedCurve(new GeoPlane3(new GeoPoint3(0, 0, 7), new GeoVector3(0, 0, -1)));
             Assert.True(raised.Center.IsEqualTo(new GeoPoint3(0, 0, 7), Tight));
             Assert.Equal(10.0, raised.Radius);
 
-            var oval = new DxfEllipse(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), new GeoVector3(0, 8, 0), 0.5, 0, 2 * Math.PI) { StartParam = 0.5, EndParam = 2.0 };
+            var oval = new DxfEllipse(
+                new GeoPoint3(0, 0, 0),
+                new GeoVector3(0, 0, 1),
+                new GeoVector3(0, 8, 0),
+                0.5,
+                0,
+                2 * Math.PI
+            )
+            {
+                StartParam = 0.5,
+                EndParam = 2.0,
+            };
             SameCurve(oval, oval.GetProjectedCurve(Slope, new GeoVector3(0, 0, 1)), Down, 12);
-            Assert.Throws<InvalidOperationException>(() => circle.GetProjectedCurve(new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0)), new GeoVector3(1, 0, 0)));
+            Assert.Throws<InvalidOperationException>(() =>
+                circle.GetProjectedCurve(
+                    new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0)),
+                    new GeoVector3(1, 0, 0)
+                )
+            );
         }
 
         [Fact]
@@ -143,14 +192,25 @@ namespace GeometryHelper.UnitTest.Dxf
             // 1E-4 of its major one for the normal (1, 0, 1E-7), below the 1E-6 AutoCAD takes. Tilted by 1E-4 it is an ellipse.
             var floor = new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1));
 
-            foreach (GeoVector3 normal in new[] { new GeoVector3(0.6, 0.8, 0), new GeoVector3(1, 0, 0), new GeoVector3(1, 1, 0), new GeoVector3(1, 0, 1E-7) })
+            foreach (
+                GeoVector3 normal in new[]
+                {
+                    new GeoVector3(0.6, 0.8, 0),
+                    new GeoVector3(1, 0, 0),
+                    new GeoVector3(1, 1, 0),
+                    new GeoVector3(1, 0, 1E-7),
+                }
+            )
             {
                 var circle = new DxfCircle(new GeoPoint3(3, 4, 5), normal, 1000);
                 Assert.Throws<InvalidOperationException>(() => circle.GetOrthoProjectedCurve(floor));
-                Assert.Throws<InvalidOperationException>(() => new DxfArc(new GeoPoint3(3, 4, 5), normal, 1000, 0.5, 2.0).GetOrthoProjectedCurve(floor));
+                Assert.Throws<InvalidOperationException>(() =>
+                    new DxfArc(new GeoPoint3(3, 4, 5), normal, 1000, 0.5, 2.0).GetOrthoProjectedCurve(floor)
+                );
             }
 
-            var thin = (DxfEllipse)new DxfCircle(new GeoPoint3(3, 4, 5), new GeoVector3(1, 0, 1E-4), 1000).GetOrthoProjectedCurve(floor);
+            var thin = (DxfEllipse)
+                new DxfCircle(new GeoPoint3(3, 4, 5), new GeoVector3(1, 0, 1E-4), 1000).GetOrthoProjectedCurve(floor);
             Assert.Equal(1E-4, thin.RadiusRatio, 9);
             Assert.True(thin.Normal.IsParallelTo(new GeoVector3(0, 0, 1), Tight));
         }
@@ -159,8 +219,22 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ACurveProjectedToAPoint_IsRefused()
         {
             var floor = new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1));
-            var standing = new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(1, 2, 0), new GeoPoint3(1, 2, 5), new GeoPoint3(1, 2, 9) }, false);
-            var upright = new DxfSpline(2, false, false, false, new[] { new GeoPoint3(1, 2, 0), new GeoPoint3(1, 2, 3), new GeoPoint3(1, 2, 9) }, new[] { 0.0, 0, 0, 1, 1, 1 }, null, 0, 0);
+            var standing = new DxfPolyline3d(
+                DxfPoly3dType.SimplePoly,
+                new[] { new GeoPoint3(1, 2, 0), new GeoPoint3(1, 2, 5), new GeoPoint3(1, 2, 9) },
+                false
+            );
+            var upright = new DxfSpline(
+                2,
+                false,
+                false,
+                false,
+                new[] { new GeoPoint3(1, 2, 0), new GeoPoint3(1, 2, 3), new GeoPoint3(1, 2, 9) },
+                new[] { 0.0, 0, 0, 1, 1, 1 },
+                null,
+                0,
+                0
+            );
             var wall = new DxfPolyline { Normal = new GeoVector3(1, 0, 0) };
             wall.AddVertexAt(0, new GeoPoint2(0, 0), 0, 0, 0);
             wall.AddVertexAt(1, new GeoPoint2(0, 10), 0, 0, 0);
@@ -168,7 +242,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<InvalidOperationException>(() => standing.GetOrthoProjectedCurve(floor));
             Assert.Throws<InvalidOperationException>(() => upright.GetOrthoProjectedCurve(floor));
             Assert.Throws<InvalidOperationException>(() => wall.GetOrthoProjectedCurve(floor));
-            Assert.Throws<InvalidOperationException>(() => new DxfLine(new GeoPoint3(1, 2, 0), new GeoPoint3(1, 2, 9)).GetOrthoProjectedCurve(floor));
+            Assert.Throws<InvalidOperationException>(() =>
+                new DxfLine(new GeoPoint3(1, 2, 0), new GeoPoint3(1, 2, 9)).GetOrthoProjectedCurve(floor)
+            );
         }
 
         [Fact]
@@ -176,7 +252,10 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // Twelve corners within a box 0.00063 by 0.00054 on the floor, its diagonal under 1E-3, the zigzag some 0.008 long.
             var floor = new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1));
-            GeoPoint3[] corners = Enumerable.Range(0, 12).Select(i => new GeoPoint3((i % 2) * 0.7 * 0.0009, (i % 3) * 0.3 * 0.0009, i)).ToArray();
+            GeoPoint3[] corners = Enumerable
+                .Range(0, 12)
+                .Select(i => new GeoPoint3((i % 2) * 0.7 * 0.0009, (i % 3) * 0.3 * 0.0009, i))
+                .ToArray();
             var knots = new List<double> { 0, 0 };
             knots.AddRange(Enumerable.Range(1, 10).Select(k => (double)k));
             knots.AddRange(new double[] { 11, 11 });
@@ -207,14 +286,27 @@ namespace GeometryHelper.UnitTest.Dxf
             bent.AddVertexAt(2, new GeoPoint2(10, 10), 0, 0, 0);
             var spline = (DxfSpline)bent.GetProjectedCurve(Slope, new GeoVector3(0, 0, 1));
             SameCurve(bent, spline, Down, 24);
-            var lifted = (DxfPolyline)bent.GetOrthoProjectedCurve(new GeoPlane3(new GeoPoint3(0, 0, 3), new GeoVector3(0, 0, 1)));
+            var lifted = (DxfPolyline)
+                bent.GetOrthoProjectedCurve(new GeoPlane3(new GeoPoint3(0, 0, 3), new GeoVector3(0, 0, 1)));
             Assert.Equal(3.0, lifted.Elevation);
             Assert.Equal(1.0, lifted.GetBulgeAt(1));
 
-            var plane2d = new DxfPolyline2d(DxfPoly2dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0) }, 0, false, 0, 0, null);
+            var plane2d = new DxfPolyline2d(
+                DxfPoly2dType.SimplePoly,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0) },
+                0,
+                false,
+                0,
+                0,
+                null
+            );
             SameCurve(plane2d, plane2d.GetProjectedCurve(Slope, new GeoVector3(0, 0, 1)), Down, 8);
 
-            var space = new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(3, 4, 5), new GeoPoint3(3, 8, 12) }, false);
+            var space = new DxfPolyline3d(
+                DxfPoly3dType.SimplePoly,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(3, 4, 5), new GeoPoint3(3, 8, 12) },
+                false
+            );
             var projected = (DxfPolyline3d)space.GetProjectedCurve(Slope, new GeoVector3(0, 0, 1));
             Assert.True(projected.EndPoint.IsEqualTo(new GeoPoint3(3, 8, -8), Tight));
         }

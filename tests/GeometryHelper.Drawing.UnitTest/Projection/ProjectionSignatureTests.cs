@@ -21,7 +21,8 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
         // Taken on 2026-11-08 under .NET Framework 4.8, x64, from the projection as it stood before it was made faster
         // (the code agent projection left), before any line of it was changed: each a view's Signature, its SHA-256 cut
         // to 24 digits. The test writes what it takes in the folder proj\signatures of the run (TestRun).
-        private const string Bodies = ""
+        private const string Bodies =
+            ""
             + "box top 5d624ae514d29c8c0ab7cd45\n"
             + "box bottom 752cdedb17584ca1962bb26e\n"
             + "box front 691f8a5e030c04f2c15e5434\n"
@@ -133,7 +134,8 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
             + "tc5 section 45d905ce3431ae3579f14136\n"
             + "tc7 section 0e95682bcdff90ad3c99e6d7\n";
 
-        private const string Frame = ""
+        private const string Frame =
+            ""
             + "frame top 9ea316ed18125782f4d6822c\n"
             + "frame bottom 26862078fd0be8286c2c2b85\n"
             + "frame front eaa753789f3eb8d31a8fc734\n"
@@ -165,13 +167,24 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
             {
                 foreach ((string view, GeoCoordinateSystem3 frame) in Views)
                 {
-                    lines.Append(name).Append(' ').Append(view).Append(' ').Append(Hash(ViewProjector.Project(inputs, frame, Tol))).Append('\n');
+                    lines
+                        .Append(name)
+                        .Append(' ')
+                        .Append(view)
+                        .Append(' ')
+                        .Append(Hash(ViewProjector.Project(inputs, frame, Tol)))
+                        .Append('\n');
                 }
             }
 
             foreach ((string name, ProjectionInput[] inputs, GeoCoordinateSystem3 frame, GeoPlane3 plane) in Sections())
             {
-                ProjectedView2 view = ViewProjector.Project(inputs, frame, new ProjectionOptions(sectionPlane: plane), Tol);
+                ProjectedView2 view = ViewProjector.Project(
+                    inputs,
+                    frame,
+                    new ProjectionOptions(sectionPlane: plane),
+                    Tol
+                );
                 lines.Append(name).Append(" section ").Append(Hash(view)).Append('\n');
             }
 
@@ -186,7 +199,12 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
 
             foreach ((string view, GeoCoordinateSystem3 at) in Views)
             {
-                lines.Append("frame ").Append(view).Append(' ').Append(Hash(ViewProjector.Project(frame, at, Tol))).Append('\n');
+                lines
+                    .Append("frame ")
+                    .Append(view)
+                    .Append(' ')
+                    .Append(Hash(ViewProjector.Project(frame, at, Tol)))
+                    .Append('\n');
             }
 
             Assert.Equal(Frame, Kept("frame", lines.ToString()));
@@ -202,9 +220,12 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
                 var random = new Random(seed);
                 ProjectionInput[] inputs = ProjectionFuzzTests.Bodies(random);
                 GeoCoordinateSystem3 frame = ProjectionFuzzTests.Frame(random);
-                ProjectionOptions options = random.Next(5) == 0
-                    ? new ProjectionOptions(sectionPlane: new GeoPlane3(new GeoPoint3(random.Next(0, 200), 0, 0), frame.ZAxis))
-                    : ProjectionOptions.Default;
+                ProjectionOptions options =
+                    random.Next(5) == 0
+                        ? new ProjectionOptions(
+                            sectionPlane: new GeoPlane3(new GeoPoint3(random.Next(0, 200), 0, 0), frame.ZAxis)
+                        )
+                        : ProjectionOptions.Default;
 
                 lines.Append(Signature(ViewProjector.Project(inputs, frame, options, Tol)));
             }
@@ -215,7 +236,10 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
         private static IEnumerable<(string Name, ProjectionInput[] Inputs)> TestInputs()
         {
             yield return ("box", new[] { new ProjectionInput("box", Box(0, 0, 0, 300, 200, 100)) });
-            yield return ("plate", new[] { new ProjectionInput("plate", PlateWithHoles(300, 200, 20, 22, 24, P(60, 100), P(240, 100))) });
+            yield return (
+                "plate",
+                new[] { new ProjectionInput("plate", PlateWithHoles(300, 200, 20, 22, 24, P(60, 100), P(240, 100))) }
+            );
             yield return ("angle", new[] { new ProjectionInput("angle", Angle(100, 10, 1000)) });
             yield return ("tube", new[] { new ProjectionInput("tube", Tube(168.3, 6, 1000, 32)) });
             yield return ("beam", BeamWithEndPlates());
@@ -231,16 +255,42 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
             yield return ("tc10", Inputs(TestBodies.TC10()));
         }
 
-        private static IEnumerable<(string Name, ProjectionInput[] Inputs, GeoCoordinateSystem3 Frame, GeoPlane3 Plane)> Sections()
+        private static IEnumerable<(
+            string Name,
+            ProjectionInput[] Inputs,
+            GeoCoordinateSystem3 Frame,
+            GeoPlane3 Plane
+        )> Sections()
         {
-            yield return ("beam", BeamWithEndPlates(), Right, new GeoPlane3(new GeoPoint3(500, 0, 0), GeoVector3.XAxis));
-            yield return ("tc1", Inputs(TestBodies.TC1()), Right, new GeoPlane3(new GeoPoint3(50, 0, 0), GeoVector3.XAxis));
-            yield return ("tc2", Inputs(TestBodies.TC2()), Right, new GeoPlane3(new GeoPoint3(1500, 0, 0), GeoVector3.XAxis));
+            yield return (
+                "beam",
+                BeamWithEndPlates(),
+                Right,
+                new GeoPlane3(new GeoPoint3(500, 0, 0), GeoVector3.XAxis)
+            );
+            yield return (
+                "tc1",
+                Inputs(TestBodies.TC1()),
+                Right,
+                new GeoPlane3(new GeoPoint3(50, 0, 0), GeoVector3.XAxis)
+            );
+            yield return (
+                "tc2",
+                Inputs(TestBodies.TC2()),
+                Right,
+                new GeoPlane3(new GeoPoint3(1500, 0, 0), GeoVector3.XAxis)
+            );
             yield return ("tc5", Inputs(TestBodies.TC5()), Front, new GeoPlane3(GeoPoint3.Origin, GeoVector3.YAxis));
-            yield return ("tc7", Inputs(TestBodies.TC7()), Right, new GeoPlane3(new GeoPoint3(1000, 0, 0), GeoVector3.XAxis));
+            yield return (
+                "tc7",
+                Inputs(TestBodies.TC7()),
+                Right,
+                new GeoPlane3(new GeoPoint3(1000, 0, 0), GeoVector3.XAxis)
+            );
         }
 
-        private static ProjectionInput[] Inputs(TestBody body) => body.Parts.Select(p => new ProjectionInput(p.Object.Id, p.Object.Solid)).ToArray();
+        private static ProjectionInput[] Inputs(TestBody body) =>
+            body.Parts.Select(p => new ProjectionInput(p.Object.Id, p.Object.Solid)).ToArray();
 
         /// <summary>
         /// Writes the signatures taken in the folder proj\signatures of the run (<see cref="TestRun"/>) and gives them.
@@ -258,7 +308,11 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
         {
             using (SHA256 sha = SHA256.Create())
             {
-                return string.Concat(sha.ComputeHash(Encoding.UTF8.GetBytes(text)).Take(12).Select(b => b.ToString("x2", System.Globalization.CultureInfo.InvariantCulture)));
+                return string.Concat(
+                    sha.ComputeHash(Encoding.UTF8.GetBytes(text))
+                        .Take(12)
+                        .Select(b => b.ToString("x2", System.Globalization.CultureInfo.InvariantCulture))
+                );
             }
         }
     }

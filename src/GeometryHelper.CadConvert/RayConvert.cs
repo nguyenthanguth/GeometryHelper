@@ -29,7 +29,8 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentException">Thrown when the Ray has a unit direction of no length.</exception>
         public static GeoRay3 ToGeoRay3(this Ray ray)
         {
-            if (ray == null) throw new ArgumentNullException(nameof(ray));
+            if (ray == null)
+                throw new ArgumentNullException(nameof(ray));
             return new GeoRay3(ray.BasePoint.ToGeoPoint3(), ray.UnitDir.ToGeoVector3());
         }
 
@@ -48,7 +49,11 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentException">Thrown when the ray has no direction, as a <c>default</c> one has, or holds a number that is not finite.</exception>
         public static Ray ToAcadRay(this GeoRay3 geoRay)
         {
-            if (!geoRay.IsValid) throw new ArgumentException("A ray with no direction, or a number that is not finite, has no Ray.", nameof(geoRay));
+            if (!geoRay.IsValid)
+                throw new ArgumentException(
+                    "A ray with no direction, or a number that is not finite, has no Ray.",
+                    nameof(geoRay)
+                );
             return new Ray { BasePoint = geoRay.Origin.ToAcadPoint3(), UnitDir = geoRay.Direction.ToAcadVector3() };
         }
 

@@ -20,11 +20,13 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class SpaceSimilarityG1wvTests
     {
-        private static Tolerance Within(double point) => new Tolerance(point, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, point);
+        private static Tolerance Within(double point) =>
+            new Tolerance(point, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, point);
 
         private static GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
 
-        private static int Corners(GeoSolid3 body) => body.Faces.Sum(f => f.Boundary.VertexCount + f.Holes.Sum(h => h.VertexCount));
+        private static int Corners(GeoSolid3 body) =>
+            body.Faces.Sum(f => f.Boundary.VertexCount + f.Holes.Sum(h => h.VertexCount));
 
         // The block 100 by 70 by 40 whose top has the corner over (100, 70) raised by e.
         private static GeoSolid3 RaisedBlock(double e)
@@ -56,14 +58,21 @@ namespace GeometryHelper.UnitTest.Solid
             // By 1 000, as a model in metres is brought into millimetres; turned and moved besides.
             foreach (double scale in new[] { 10.0, 1000.0 })
             {
-                GeoTransform3 transform = GeoTransform3.Translation(new GeoVector3(500, -300, 20)) * GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 0.7) * GeoTransform3.Scaling(scale);
+                GeoTransform3 transform =
+                    GeoTransform3.Translation(new GeoVector3(500, -300, 20))
+                    * GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 0.7)
+                    * GeoTransform3.Scaling(scale);
 
                 GeoSolid3 scaled = block.TransformBy(transform);
 
                 Tolerance within = Within(1E-3 * scale);
                 Assert.True(scaled.IsClosed(within), "scaled by " + scale);
                 Assert.Equal(Corners(block), Corners(scaled));
-                Assert.True(Math.Abs(scaled.GetVolume(within) - volume * scale * scale * scale) <= 1E-9 * volume * scale * scale * scale, "scaled by " + scale);
+                Assert.True(
+                    Math.Abs(scaled.GetVolume(within) - volume * scale * scale * scale)
+                        <= 1E-9 * volume * scale * scale * scale,
+                    "scaled by " + scale
+                );
 
                 for (int i = 0; i < block.Faces.Count; i++)
                 {
@@ -89,7 +98,9 @@ namespace GeometryHelper.UnitTest.Solid
             var transforms = new[]
             {
                 GeoTransform3.Scaling(0.1),
-                GeoTransform3.Mirror(new GeoPlane3(P(10, 0, 0), new GeoVector3(1, 1, 0))) * GeoTransform3.RotationAxis(new GeoVector3(0, 1, 1), 1.1) * GeoTransform3.Scaling(0.1),
+                GeoTransform3.Mirror(new GeoPlane3(P(10, 0, 0), new GeoVector3(1, 1, 0)))
+                    * GeoTransform3.RotationAxis(new GeoVector3(0, 1, 1), 1.1)
+                    * GeoTransform3.Scaling(0.1),
             };
 
             foreach (GeoTransform3 transform in transforms)
@@ -108,13 +119,17 @@ namespace GeometryHelper.UnitTest.Solid
             // The triangle (0, 0, 0), (10, 0, 0), (10, 0, 10) with every corner cut by 0.0003, built at a millionth.
             GeoPoint3[] corners =
             {
-                P(0.0003 / Math.Sqrt(2), 0, 0.0003 / Math.Sqrt(2)), P(0.0003, 0, 0),
-                P(10 - 0.0003, 0, 0), P(10, 0, 0.0003),
-                P(10, 0, 10 - 0.0003), P(10 - 0.0003 / Math.Sqrt(2), 0, 10 - 0.0003 / Math.Sqrt(2)),
+                P(0.0003 / Math.Sqrt(2), 0, 0.0003 / Math.Sqrt(2)),
+                P(0.0003, 0, 0),
+                P(10 - 0.0003, 0, 0),
+                P(10, 0, 0.0003),
+                P(10, 0, 10 - 0.0003),
+                P(10 - 0.0003 / Math.Sqrt(2), 0, 10 - 0.0003 / Math.Sqrt(2)),
             };
             var triangle = new GeoPolygon3(corners, Within(1E-6));
 
-            GeoTransform3 shrink = GeoTransform3.Mirror(new GeoPlane3(P(0, 0, 0), GeoVector3.XAxis)) * GeoTransform3.Scaling(0.0001);
+            GeoTransform3 shrink =
+                GeoTransform3.Mirror(new GeoPlane3(P(0, 0, 0), GeoVector3.XAxis)) * GeoTransform3.Scaling(0.0001);
 
             GeoPolygon3 shrunk = triangle.TransformBy(shrink);
 
@@ -129,7 +144,12 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(Math.Abs(shrunk.Area - triangle.Area * 1E-8) <= 1E-12 * shrunk.Area, shrunk.Area.ToString());
 
             // Mirrored in the plane x = 0, the corners run the other way round, and the normal turns over with them.
-            Assert.True(shrunk.Normal.IsEqualTo(new GeoVector3(triangle.Normal.X, -triangle.Normal.Y, -triangle.Normal.Z), Within(1E-12)));
+            Assert.True(
+                shrunk.Normal.IsEqualTo(
+                    new GeoVector3(triangle.Normal.X, -triangle.Normal.Y, -triangle.Normal.Z),
+                    Within(1E-12)
+                )
+            );
         }
 
         [Fact]
@@ -171,7 +191,10 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ASquareThreeThousandthsAcrossShrunkUnevenlyToUnderAThousandthWide_IsKeptWithItsAreaScaled()
         {
-            var square = new GeoPolygon3(new[] { P(0, 0, 0), P(0.003, 0, 0), P(0.003, 0.003, 0), P(0, 0.003, 0) }, Tolerance.Default);
+            var square = new GeoPolygon3(
+                new[] { P(0, 0, 0), P(0.003, 0, 0), P(0.003, 0.003, 0), P(0, 0.003, 0) },
+                Tolerance.Default
+            );
 
             // 0.0006 by 0.00075, 0.00094 wide: within the global tolerance shrunk by a half, the most the scaling stretches.
             GeoPolygon3 shrunk = square.TransformBy(GeoTransform3.Scaling(0.2, 0.25, 0.5));
@@ -183,10 +206,19 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void APolygonStandingInAPlaneTheTransformationFlattensToALine_IsStillRefused()
         {
-            var standing = new GeoPolygon3(new[] { P(0, 0, 0), P(10, 0, 0), P(10, 0, 10), P(0, 0, 10) }, Tolerance.Default);
+            var standing = new GeoPolygon3(
+                new[] { P(0, 0, 0), P(10, 0, 0), P(10, 0, 10), P(0, 0, 10) },
+                Tolerance.Default
+            );
 
             // Flattened onto the floor, and projected along (1, 0, 1), a direction in its own plane, and moved.
-            var along = new double[4, 4] { { 0.5, 0, -0.5, 7 }, { 0, 1, 0, -3 }, { -0.5, 0, 0.5, 2 }, { 0, 0, 0, 1 } };
+            var along = new double[4, 4]
+            {
+                { 0.5, 0, -0.5, 7 },
+                { 0, 1, 0, -3 },
+                { -0.5, 0, 0.5, 2 },
+                { 0, 0, 0, 1 },
+            };
 
             Assert.Throws<ArgumentException>(() => standing.TransformBy(GeoTransform3.Scaling(1, 1, 0)));
             Assert.Throws<ArgumentException>(() => standing.TransformBy(new GeoTransform3(along)));
@@ -196,19 +228,28 @@ namespace GeometryHelper.UnitTest.Solid
         public void ASquareFifteenTenThousandthsAcrossStandingAcrossAStretchByTen_IsKeptAsItWas()
         {
             // In the plane x = 5, enclosing 0.00000225 square units and 0.0015 wide: a stretch along X leaves it as it is.
-            var square = new GeoPolygon3(new[] { P(5, 0, 0), P(5, 0.0015, 0), P(5, 0.0015, 0.0015), P(5, 0, 0.0015) }, Tolerance.Default);
+            var square = new GeoPolygon3(
+                new[] { P(5, 0, 0), P(5, 0.0015, 0), P(5, 0.0015, 0.0015), P(5, 0, 0.0015) },
+                Tolerance.Default
+            );
 
             GeoPolygon3 stretched = square.TransformBy(GeoTransform3.Scaling(10, 1, 1));
 
             Assert.Equal(4, stretched.VertexCount);
-            Assert.True(Math.Abs(stretched.Area - 0.0015 * 0.0015) <= 1E-12 * stretched.Area, stretched.Area.ToString());
+            Assert.True(
+                Math.Abs(stretched.Area - 0.0015 * 0.0015) <= 1E-12 * stretched.Area,
+                stretched.Area.ToString()
+            );
         }
 
         [Fact]
         public void APolygonBuiltAtAHundredthEighteenTenThousandthsOffFlatShearedAndHalved_IsKeptAsItWas()
         {
             var hundredth = new Tolerance(1E-2, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-2);
-            var quad = new GeoPolygon3(new[] { P(0, 0, 0), P(100, 0, 0), P(100, 100, 0.0018), P(0, 100, 0) }, hundredth);
+            var quad = new GeoPolygon3(
+                new[] { P(0, 0, 0), P(100, 0, 0), P(100, 100, 0.0018), P(0, 100, 0) },
+                hundredth
+            );
             var matrix = new double[4, 4];
             matrix[0, 0] = 0.5;
             matrix[1, 1] = 0.5;
@@ -227,8 +268,13 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // Circles of radius 39.7175765 and 0.0000000487 less, in a plane leaning every way, about centres 0.00000014
             // apart: they cross 1.4E-8 radians apart, 13.86 along the line between the centres.
-            var frame = new GeoCoordinateSystem3(new GeoPlane3(P(9.68, -18.63, 6.1), new GeoVector3(0.373, -0.919, 0.129)));
-            double radius = 39.717576470094535, apart = 1.3966711830951286E-07, less = 4.874832135163453E-08, turn = 2.1;
+            var frame = new GeoCoordinateSystem3(
+                new GeoPlane3(P(9.68, -18.63, 6.1), new GeoVector3(0.373, -0.919, 0.129))
+            );
+            double radius = 39.717576470094535,
+                apart = 1.3966711830951286E-07,
+                less = 4.874832135163453E-08,
+                turn = 2.1;
 
             foreach (double scale in new[] { 1.0, 100.0 })
             {
@@ -237,9 +283,20 @@ namespace GeometryHelper.UnitTest.Solid
                     GeoPoint3 g = frame.ToGlobal(P(x, y, 0));
                     return P(g.X * scale, g.Y * scale, g.Z * scale);
                 };
-                double cx = apart * Math.Cos(turn), cy = apart * Math.Sin(turn), other = radius - less, gap = turn + Math.PI;
-                GeoArc3 one = GeoArc3.FromThreePoints(at(radius * Math.Cos(gap + 0.2), radius * Math.Sin(gap + 0.2)), at(radius * Math.Cos(turn), radius * Math.Sin(turn)), at(radius * Math.Cos(gap - 0.2), radius * Math.Sin(gap - 0.2)));
-                GeoArc3 two = GeoArc3.FromThreePoints(at(cx + other * Math.Cos(gap + 0.3), cy + other * Math.Sin(gap + 0.3)), at(cx + other * Math.Cos(turn), cy + other * Math.Sin(turn)), at(cx + other * Math.Cos(gap - 0.3), cy + other * Math.Sin(gap - 0.3)));
+                double cx = apart * Math.Cos(turn),
+                    cy = apart * Math.Sin(turn),
+                    other = radius - less,
+                    gap = turn + Math.PI;
+                GeoArc3 one = GeoArc3.FromThreePoints(
+                    at(radius * Math.Cos(gap + 0.2), radius * Math.Sin(gap + 0.2)),
+                    at(radius * Math.Cos(turn), radius * Math.Sin(turn)),
+                    at(radius * Math.Cos(gap - 0.2), radius * Math.Sin(gap - 0.2))
+                );
+                GeoArc3 two = GeoArc3.FromThreePoints(
+                    at(cx + other * Math.Cos(gap + 0.3), cy + other * Math.Sin(gap + 0.3)),
+                    at(cx + other * Math.Cos(turn), cy + other * Math.Sin(turn)),
+                    at(cx + other * Math.Cos(gap - 0.3), cy + other * Math.Sin(gap - 0.3))
+                );
                 Tolerance tolerance = Within(1E-7 * scale);
 
                 GeoPoint3[] met = one.GetIntersections(two, tolerance);
@@ -248,14 +305,23 @@ namespace GeometryHelper.UnitTest.Solid
 
                 foreach (GeoPoint3 point in met)
                 {
-                    Assert.True(one.DistanceTo(point) <= 1E-3 * tolerance.EqualPoint, "at a scale of " + scale + ": " + one.DistanceTo(point));
-                    Assert.True(two.DistanceTo(point) <= 1E-3 * tolerance.EqualPoint, "at a scale of " + scale + ": " + two.DistanceTo(point));
+                    Assert.True(
+                        one.DistanceTo(point) <= 1E-3 * tolerance.EqualPoint,
+                        "at a scale of " + scale + ": " + one.DistanceTo(point)
+                    );
+                    Assert.True(
+                        two.DistanceTo(point) <= 1E-3 * tolerance.EqualPoint,
+                        "at a scale of " + scale + ": " + two.DistanceTo(point)
+                    );
                 }
 
                 // One either side of the line between the centres, about 69.6 degrees off it.
                 GeoVector3 between = one.Center.GetVectorTo(two.Center);
                 GeoVector3 side = one.Normal.CrossProduct(between);
-                Assert.True(one.Center.GetVectorTo(met[0]).DotProduct(side) * one.Center.GetVectorTo(met[1]).DotProduct(side) < 0.0);
+                Assert.True(
+                    one.Center.GetVectorTo(met[0]).DotProduct(side) * one.Center.GetVectorTo(met[1]).DotProduct(side)
+                        < 0.0
+                );
             }
         }
     }

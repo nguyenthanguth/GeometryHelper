@@ -35,6 +35,6 @@ namespace GeometryHelper.Drawing
         Isometric,
 
         /// <summary>Along a direction the user sets, as an MVIEW looking from any side.</summary>
-        Free
+        Free,
     }
 }

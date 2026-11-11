@@ -188,7 +188,12 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>The size of the largest coordinate: what the rounding of the numbers is a share of.</summary>
         internal double Scale => Math.Max(1.0, Points.Max(Math.Abs));
 
-        internal static decimal ToDecimal(double value) => decimal.Parse(value.ToString("R", CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture);
+        internal static decimal ToDecimal(double value) =>
+            decimal.Parse(
+                value.ToString("R", CultureInfo.InvariantCulture),
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture
+            );
 
         /// <summary>The distinct knot values inside and at the ends of the domain.</summary>
         internal double[] Breaks() => Knots.Skip(Degree).Take(Count - Degree + 1).Distinct().OrderBy(k => k).ToArray();
@@ -249,16 +254,18 @@ namespace GeometryHelper.UnitTest.Plane
 
                         if (!leftDen.IsZero)
                         {
-                            left = k == 0
-                                ? (t - _knots[i]) / leftDen * table[d - 1][0][i]
-                                : new SplRat(d, 1) * table[d - 1][k - 1][i] / leftDen;
+                            left =
+                                k == 0
+                                    ? (t - _knots[i]) / leftDen * table[d - 1][0][i]
+                                    : new SplRat(d, 1) * table[d - 1][k - 1][i] / leftDen;
                         }
 
                         if (!rightDen.IsZero)
                         {
-                            right = k == 0
-                                ? (_knots[i + d + 1] - t) / rightDen * table[d - 1][0][i + 1]
-                                : new SplRat(d, 1) * table[d - 1][k - 1][i + 1] / rightDen;
+                            right =
+                                k == 0
+                                    ? (_knots[i + d + 1] - t) / rightDen * table[d - 1][0][i + 1]
+                                    : new SplRat(d, 1) * table[d - 1][k - 1][i + 1] / rightDen;
                         }
 
                         table[d][k][i] = k == 0 ? left + right : left - right;
@@ -270,7 +277,12 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int k = 0; k <= order; k++)
             {
-                result[k] = k < table[p].Length ? table[p][k] : new SplRat[Count].Select(_ => SplRat.Zero).ToArray();
+                result[k] =
+                    k < table[p].Length
+                        ? table[p][k]
+                        : new SplRat[Count]
+                            .Select(_ => SplRat.Zero)
+                            .ToArray();
             }
 
             return result;
@@ -373,7 +385,9 @@ namespace GeometryHelper.UnitTest.Plane
                 {
                     double left = Knots[i + d] - Knots[i];
                     double right = Knots[i + d + 1] - Knots[i + 1];
-                    basis[i] = (left > 0.0 ? (t - Knots[i]) / left * basis[i] : 0.0) + (right > 0.0 ? (Knots[i + d + 1] - t) / right * basis[i + 1] : 0.0);
+                    basis[i] =
+                        (left > 0.0 ? (t - Knots[i]) / left * basis[i] : 0.0)
+                        + (right > 0.0 ? (Knots[i + d + 1] - t) / right * basis[i + 1] : 0.0);
                 }
             }
 
@@ -430,7 +444,14 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int i = 0; i < m; i++)
             {
-                if (Knots[i] < Knots[i + 1] && (fromLeft ? Knots[i] < t && t <= Knots[i + 1] : t >= End ? Knots[i + 1] >= t : Knots[i] <= t && t < Knots[i + 1]))
+                if (
+                    Knots[i] < Knots[i + 1]
+                    && (
+                        fromLeft ? Knots[i] < t && t <= Knots[i + 1]
+                        : t >= End ? Knots[i + 1] >= t
+                        : Knots[i] <= t && t < Knots[i + 1]
+                    )
+                )
                 {
                     last = i;
                 }
@@ -453,7 +474,9 @@ namespace GeometryHelper.UnitTest.Plane
                 {
                     double left = Knots[i + d] - Knots[i];
                     double right = Knots[i + d + 1] - Knots[i + 1];
-                    basis[i] = (left > 0.0 ? (t - Knots[i]) / left * previous[i] : 0.0) + (right > 0.0 ? (Knots[i + d + 1] - t) / right * previous[i + 1] : 0.0);
+                    basis[i] =
+                        (left > 0.0 ? (t - Knots[i]) / left * previous[i] : 0.0)
+                        + (right > 0.0 ? (Knots[i + d + 1] - t) / right * previous[i + 1] : 0.0);
                 }
             }
 
@@ -463,7 +486,8 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 double left = Knots[i + p] - Knots[i];
                 double right = Knots[i + p + 1] - Knots[i + 1];
-                derivative[i] = p * ((left > 0.0 ? previous[i] / left : 0.0) - (right > 0.0 ? previous[i + 1] / right : 0.0));
+                derivative[i] =
+                    p * ((left > 0.0 ? previous[i] / left : 0.0) - (right > 0.0 ? previous[i + 1] / right : 0.0));
             }
 
             var a = new double[Dim];
@@ -505,7 +529,10 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int i = 0; i < m; i++)
             {
-                if (_decimalKnots[i] < _decimalKnots[i + 1] && (t >= end ? _decimalKnots[i + 1] >= t : _decimalKnots[i] <= t && t < _decimalKnots[i + 1]))
+                if (
+                    _decimalKnots[i] < _decimalKnots[i + 1]
+                    && (t >= end ? _decimalKnots[i + 1] >= t : _decimalKnots[i] <= t && t < _decimalKnots[i + 1])
+                )
                 {
                     last = i;
                 }
@@ -522,7 +549,9 @@ namespace GeometryHelper.UnitTest.Plane
                 {
                     decimal left = _decimalKnots[i + d] - _decimalKnots[i];
                     decimal right = _decimalKnots[i + d + 1] - _decimalKnots[i + 1];
-                    basis[i] = (left > 0m ? (t - _decimalKnots[i]) / left * basis[i] : 0m) + (right > 0m ? (_decimalKnots[i + d + 1] - t) / right * basis[i + 1] : 0m);
+                    basis[i] =
+                        (left > 0m ? (t - _decimalKnots[i]) / left * basis[i] : 0m)
+                        + (right > 0m ? (_decimalKnots[i + d + 1] - t) / right * basis[i + 1] : 0m);
                 }
             }
 
@@ -801,7 +830,10 @@ namespace GeometryHelper.UnitTest.Plane
         /// </remarks>
         internal double Length(double from, double to)
         {
-            double[] breaks = new[] { from }.Concat(Breaks().Where(k => k > from && k < to)).Concat(new[] { to }).ToArray();
+            double[] breaks = new[] { from }
+                .Concat(Breaks().Where(k => k > from && k < to))
+                .Concat(new[] { to })
+                .ToArray();
             double total = 0.0;
 
             // What a unit of parameter may be wrong by: a hundred-billionth of a share of the control polygon's length
@@ -814,7 +846,9 @@ namespace GeometryHelper.UnitTest.Plane
 
                 for (int c = 0; c < Dim; c++)
                 {
-                    square += (Points[i * Dim + c] - Points[(i - 1) * Dim + c]) * (Points[i * Dim + c] - Points[(i - 1) * Dim + c]);
+                    square +=
+                        (Points[i * Dim + c] - Points[(i - 1) * Dim + c])
+                        * (Points[i * Dim + c] - Points[(i - 1) * Dim + c]);
                 }
 
                 polygon += Math.Sqrt(square);
@@ -868,7 +902,10 @@ namespace GeometryHelper.UnitTest.Plane
                 estimate = row[level];
 
                 // Three rounds in a row must agree: two can by luck.
-                agree = level >= 4 && Math.Abs(estimate - previous) <= Math.Max(2E-15 * Math.Abs(estimate), rate * (b - a)) ? agree + 1 : 0;
+                agree =
+                    level >= 4 && Math.Abs(estimate - previous) <= Math.Max(2E-15 * Math.Abs(estimate), rate * (b - a))
+                        ? agree + 1
+                        : 0;
 
                 if (agree >= 3)
                 {

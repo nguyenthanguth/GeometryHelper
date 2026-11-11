@@ -44,7 +44,8 @@ namespace GeometryHelper.Geometry
         /// <param name="point">The point; it does not have to lie on the spline.</param>
         /// <param name="tolerance">The tolerance; not read, since the nearest point takes none.</param>
         /// <returns>The share of the domain: 0 at the start and 1 at the end.</returns>
-        public double GetParameterAtPoint(GeoPoint2 point, Tolerance tolerance) => _curve.ParameterAtKnot(GetKnotAtPoint(point));
+        public double GetParameterAtPoint(GeoPoint2 point, Tolerance tolerance) =>
+            _curve.ParameterAtKnot(GetKnotAtPoint(point));
 
         /// <summary>
         /// Gets how far along the spline the point nearest a point lies, using the default tolerance.
@@ -59,7 +60,8 @@ namespace GeometryHelper.Geometry
         /// <param name="point">The point; it does not have to lie on the spline.</param>
         /// <param name="tolerance">The tolerance; not read, since the nearest point takes none.</param>
         /// <returns>The length from the start of the spline to its nearest point.</returns>
-        public double GetDistanceAtPoint(GeoPoint2 point, Tolerance tolerance) => _curve.LengthTo(GetKnotAtPoint(point));
+        public double GetDistanceAtPoint(GeoPoint2 point, Tolerance tolerance) =>
+            _curve.LengthTo(GetKnotAtPoint(point));
 
         /// <summary>
         /// Gets the point of this spline nearest a point.
@@ -79,7 +81,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="point">The point.</param>
         /// <param name="tolerance">The tolerance; not read, since the nearest point takes none.</param>
-        public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance) => new GeoLine2(GetClosestPointOnBoundary(point), point);
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance) =>
+            new GeoLine2(GetClosestPointOnBoundary(point), point);
 
         #region Against the other shapes in the plane
 
@@ -102,7 +105,9 @@ namespace GeometryHelper.Geometry
         {
             GeoLine2 asItIs = Spline2.GetShortestLineTo(this, Spline2.Of(this, line));
 
-            return Stub2.ReadsAsStart(line, tolerance) ? Stub2.Nearest(line, asItIs, GetShortestLineTo(line.StartPoint, tolerance)) : asItIs;
+            return Stub2.ReadsAsStart(line, tolerance)
+                ? Stub2.Nearest(line, asItIs, GetShortestLineTo(line.StartPoint, tolerance))
+                : asItIs;
         }
 
         /// <summary>
@@ -120,7 +125,8 @@ namespace GeometryHelper.Geometry
         /// The segment from the point of the spline to the point of ray nearest it, as long as <see cref="DistanceTo(GeoRay2, Tolerance)"/>
         /// but where a closed shape holds the spline, which it reads as the gap out to the boundary; of no length where the two cross.
         /// </returns>
-        public GeoLine2 GetShortestLineTo(GeoRay2 ray, Tolerance tolerance) => Spline2.GetShortestLineTo(this, Spline2.Of(this, ray));
+        public GeoLine2 GetShortestLineTo(GeoRay2 ray, Tolerance tolerance) =>
+            Spline2.GetShortestLineTo(this, Spline2.Of(this, ray));
 
         /// <summary>
         /// Gets the shortest segment leaving this spline and landing on an infinite line, using the default tolerance.
@@ -137,7 +143,8 @@ namespace GeometryHelper.Geometry
         /// The segment from the point of the spline to the point of infinite line nearest it, as long as <see cref="DistanceTo(GeoXLine2, Tolerance)"/>
         /// but where a closed shape holds the spline, which it reads as the gap out to the boundary; of no length where the two cross.
         /// </returns>
-        public GeoLine2 GetShortestLineTo(GeoXLine2 xline, Tolerance tolerance) => Spline2.GetShortestLineTo(this, Spline2.Of(this, xline));
+        public GeoLine2 GetShortestLineTo(GeoXLine2 xline, Tolerance tolerance) =>
+            Spline2.GetShortestLineTo(this, Spline2.Of(this, xline));
 
         /// <summary>
         /// Gets the shortest segment leaving this spline and landing on a polyline, using the default tolerance.
@@ -156,7 +163,8 @@ namespace GeometryHelper.Geometry
         /// but where a closed shape holds the spline, which it reads as the gap out to the boundary; of no length where the two cross.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the polyline is null.</exception>
-        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, Tolerance tolerance) => Spline2.GetShortestLineTo(this, Spline2.Of(this, polyline));
+        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Spline2.GetShortestLineTo(this, Spline2.Of(this, polyline));
 
         /// <summary>
         /// Gets the shortest segment leaving this spline and landing on a polygon, using the default tolerance.
@@ -175,7 +183,8 @@ namespace GeometryHelper.Geometry
         /// but where a closed shape holds the spline, which it reads as the gap out to the boundary; of no length where the two cross.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
-        public GeoLine2 GetShortestLineTo(GeoPolygon2 polygon, Tolerance tolerance) => Spline2.GetShortestLineTo(this, Spline2.Of(this, polygon));
+        public GeoLine2 GetShortestLineTo(GeoPolygon2 polygon, Tolerance tolerance) =>
+            Spline2.GetShortestLineTo(this, Spline2.Of(this, polygon));
 
         /// <summary>
         /// Gets the shortest segment leaving this spline and landing on a rectangle, using the default tolerance.
@@ -192,7 +201,8 @@ namespace GeometryHelper.Geometry
         /// The segment from the point of the spline to the point of rectangle nearest it, as long as <see cref="DistanceTo(GeoRectangle2, Tolerance)"/>
         /// but where a closed shape holds the spline, which it reads as the gap out to the boundary; of no length where the two cross.
         /// </returns>
-        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect, Tolerance tolerance) => Spline2.GetShortestLineTo(this, Spline2.Of(this, rect));
+        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect, Tolerance tolerance) =>
+            Spline2.GetShortestLineTo(this, Spline2.Of(this, rect));
 
         /// <summary>
         /// Gets the shortest segment leaving this spline and landing on a triangle, using the default tolerance.
@@ -209,7 +219,8 @@ namespace GeometryHelper.Geometry
         /// The segment from the point of the spline to the point of triangle nearest it, as long as <see cref="DistanceTo(GeoTriangle2, Tolerance)"/>
         /// but where a closed shape holds the spline, which it reads as the gap out to the boundary; of no length where the two cross.
         /// </returns>
-        public GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, Tolerance tolerance) => Spline2.GetShortestLineTo(this, Spline2.Of(this, triangle));
+        public GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, Tolerance tolerance) =>
+            Spline2.GetShortestLineTo(this, Spline2.Of(this, triangle));
 
         /// <summary>
         /// Gets the shortest segment leaving this spline and landing on a face, using the default tolerance.
@@ -228,7 +239,8 @@ namespace GeometryHelper.Geometry
         /// but where a closed shape holds the spline, which it reads as the gap out to the boundary; of no length where the two cross.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
-        public GeoLine2 GetShortestLineTo(GeoFace2 face, Tolerance tolerance) => Spline2.GetShortestLineTo(this, Spline2.Of(this, face));
+        public GeoLine2 GetShortestLineTo(GeoFace2 face, Tolerance tolerance) =>
+            Spline2.GetShortestLineTo(this, Spline2.Of(this, face));
 
         /// <summary>
         /// Gets the shortest segment leaving this spline and landing on an arc, using the default tolerance.
@@ -245,7 +257,8 @@ namespace GeometryHelper.Geometry
         /// The segment from the point of the spline to the point of arc nearest it, as long as <see cref="DistanceTo(GeoArc2, Tolerance)"/>
         /// but where a closed shape holds the spline, which it reads as the gap out to the boundary; of no length where the two cross.
         /// </returns>
-        public GeoLine2 GetShortestLineTo(GeoArc2 arc, Tolerance tolerance) => Spline2.GetShortestLineTo(this, Spline2.Of(this, arc));
+        public GeoLine2 GetShortestLineTo(GeoArc2 arc, Tolerance tolerance) =>
+            Spline2.GetShortestLineTo(this, Spline2.Of(this, arc));
 
         /// <summary>
         /// Gets the shortest segment leaving this spline and landing on a circle, using the default tolerance.
@@ -262,7 +275,8 @@ namespace GeometryHelper.Geometry
         /// The segment from the point of the spline to the point of circle nearest it, as long as <see cref="DistanceTo(GeoCircle2, Tolerance)"/>
         /// but where a closed shape holds the spline, which it reads as the gap out to the boundary; of no length where the two cross.
         /// </returns>
-        public GeoLine2 GetShortestLineTo(GeoCircle2 circle, Tolerance tolerance) => Spline2.GetShortestLineTo(this, Spline2.Of(this, circle));
+        public GeoLine2 GetShortestLineTo(GeoCircle2 circle, Tolerance tolerance) =>
+            Spline2.GetShortestLineTo(this, Spline2.Of(this, circle));
 
         /// <summary>
         /// Gets the shortest segment leaving this spline and landing on an ellipse, using the default tolerance.
@@ -279,7 +293,8 @@ namespace GeometryHelper.Geometry
         /// The segment from the point of the spline to the point of ellipse nearest it, as long as <see cref="DistanceTo(GeoEllipse2, Tolerance)"/>
         /// but where a closed shape holds the spline, which it reads as the gap out to the boundary; of no length where the two cross.
         /// </returns>
-        public GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, Tolerance tolerance) => Spline2.GetShortestLineTo(this, Spline2.Of(this, ellipse));
+        public GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, Tolerance tolerance) =>
+            Spline2.GetShortestLineTo(this, Spline2.Of(this, ellipse));
 
         /// <summary>
         /// Gets the shortest segment leaving this spline and landing on an edge, using the default tolerance.
@@ -296,8 +311,10 @@ namespace GeometryHelper.Geometry
         /// The segment from the point of the spline to the point of edge nearest it, as long as <see cref="DistanceTo(GeoEdge2, Tolerance)"/>
         /// but where a closed shape holds the spline, which it reads as the gap out to the boundary; of no length where the two cross.
         /// </returns>
-        public GeoLine2 GetShortestLineTo(GeoEdge2 edge, Tolerance tolerance)
-            => !edge.IsArc && Stub2.ReadsAsStart(edge.ToLine(), tolerance) ? GetShortestLineTo(edge.ToLine(), tolerance) : Spline2.GetShortestLineTo(this, Spline2.Of(this, edge));
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge, Tolerance tolerance) =>
+            !edge.IsArc && Stub2.ReadsAsStart(edge.ToLine(), tolerance)
+                ? GetShortestLineTo(edge.ToLine(), tolerance)
+                : Spline2.GetShortestLineTo(this, Spline2.Of(this, edge));
 
         /// <summary>
         /// Gets the shortest segment leaving this spline and landing on a curved chain, using the default tolerance.
@@ -316,7 +333,8 @@ namespace GeometryHelper.Geometry
         /// but where a closed shape holds the spline, which it reads as the gap out to the boundary; of no length where the two cross.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the curved chain is null.</exception>
-        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, Tolerance tolerance) => Spline2.GetShortestLineTo(this, Spline2.Of(this, chain));
+        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Spline2.GetShortestLineTo(this, Spline2.Of(this, chain));
 
         /// <summary>
         /// Gets the shortest segment leaving this spline and landing on a curved loop, using the default tolerance.
@@ -335,7 +353,8 @@ namespace GeometryHelper.Geometry
         /// but where a closed shape holds the spline, which it reads as the gap out to the boundary; of no length where the two cross.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the curved loop is null.</exception>
-        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, Tolerance tolerance) => Spline2.GetShortestLineTo(this, Spline2.Of(this, loop));
+        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Spline2.GetShortestLineTo(this, Spline2.Of(this, loop));
 
         #endregion
     }

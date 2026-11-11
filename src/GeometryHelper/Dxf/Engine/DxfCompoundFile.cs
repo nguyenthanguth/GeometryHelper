@@ -36,7 +36,20 @@ namespace GeometryHelper.Dxf
         // The streams of the root storage, each by its name and the index of its entry, in the order of their entries.
         private readonly List<KeyValuePair<string, int>> _streams;
 
-        private DxfCompoundFile(byte[] bytes, int offset, int length, int sectorSize, bool version4, uint miniCutoff, uint[] fat, uint[] miniFat, byte[] miniStream, byte[] directory, List<KeyValuePair<string, int>> streams, Guid rootClassId)
+        private DxfCompoundFile(
+            byte[] bytes,
+            int offset,
+            int length,
+            int sectorSize,
+            bool version4,
+            uint miniCutoff,
+            uint[] fat,
+            uint[] miniFat,
+            byte[] miniStream,
+            byte[] directory,
+            List<KeyValuePair<string, int>> streams,
+            Guid rootClassId
+        )
         {
             _bytes = bytes;
             _offset = offset;
@@ -86,7 +99,11 @@ namespace GeometryHelper.Dxf
             int major = U16(bytes, offset + 0x1A);
             int shift = U16(bytes, offset + 0x1E);
 
-            if (U16(bytes, offset + 0x1C) != 0xFFFE || !((major == 3 && shift == 9) || (major == 4 && shift == 12)) || U16(bytes, offset + 0x20) != 6)
+            if (
+                U16(bytes, offset + 0x1C) != 0xFFFE
+                || !((major == 3 && shift == 9) || (major == 4 && shift == 12))
+                || U16(bytes, offset + 0x20) != 6
+            )
             {
                 why = "its header gives a version, byte order or sector size MS-CFB has not";
                 return null;
@@ -111,7 +128,12 @@ namespace GeometryHelper.Dxf
             // Every FAT sector is a sector of the file: a count beyond them is damage, not a size to allocate.
             if (fatCount == 0 || fatCount > sectors)
             {
-                why = "it counts " + fatCount.ToString(CultureInfo.InvariantCulture) + " FAT sectors in " + sectors.ToString(CultureInfo.InvariantCulture) + " sectors";
+                why =
+                    "it counts "
+                    + fatCount.ToString(CultureInfo.InvariantCulture)
+                    + " FAT sectors in "
+                    + sectors.ToString(CultureInfo.InvariantCulture)
+                    + " sectors";
                 return null;
             }
 
@@ -130,7 +152,12 @@ namespace GeometryHelper.Dxf
             {
                 if (difat >= sectors || !seen.Add(difat))
                 {
-                    why = "its DIFAT lists " + fatSectors.Count.ToString(CultureInfo.InvariantCulture) + " of its " + fatCount.ToString(CultureInfo.InvariantCulture) + " FAT sectors, or runs in a loop";
+                    why =
+                        "its DIFAT lists "
+                        + fatSectors.Count.ToString(CultureInfo.InvariantCulture)
+                        + " of its "
+                        + fatCount.ToString(CultureInfo.InvariantCulture)
+                        + " FAT sectors, or runs in a loop";
                     return null;
                 }
 
@@ -169,7 +196,20 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            var file = new DxfCompoundFile(bytes, offset, length, sectorSize, major == 4, miniCutoff, fat, null, null, null, null, Guid.Empty);
+            var file = new DxfCompoundFile(
+                bytes,
+                offset,
+                length,
+                sectorSize,
+                major == 4,
+                miniCutoff,
+                fat,
+                null,
+                null,
+                null,
+                null,
+                Guid.Empty
+            );
             byte[] directory = file.ReadChain(firstDirectory, -1, out why);
 
             if (directory == null || directory.Length < EntrySize)
@@ -250,7 +290,20 @@ namespace GeometryHelper.Dxf
             }
 
             streams.Sort((a, b) => a.Value.CompareTo(b.Value));
-            return new DxfCompoundFile(bytes, offset, length, sectorSize, major == 4, miniCutoff, fat, miniFat, miniStream, directory, streams, new Guid(classId));
+            return new DxfCompoundFile(
+                bytes,
+                offset,
+                length,
+                sectorSize,
+                major == 4,
+                miniCutoff,
+                fat,
+                miniFat,
+                miniStream,
+                directory,
+                streams,
+                new Guid(classId)
+            );
         }
 
         /// <summary>
@@ -272,7 +325,8 @@ namespace GeometryHelper.Dxf
                 int at = stream.Value * EntrySize;
                 long size = SizeOf(_directory, at);
                 uint start = U32(_directory, at + 116);
-                byte[] data = size < _miniCutoff ? ReadMiniChain(start, size, out why) : ReadChain(start, size, out why);
+                byte[] data =
+                    size < _miniCutoff ? ReadMiniChain(start, size, out why) : ReadChain(start, size, out why);
 
                 if (data == null)
                 {
@@ -301,7 +355,10 @@ namespace GeometryHelper.Dxf
             {
                 if (sector >= _fat.Length || sector >= _sectorCount || taken[sector])
                 {
-                    why = sector < _sectorCount && sector < _fat.Length ? "comes back to its sector " + sector.ToString(CultureInfo.InvariantCulture) : "runs to a sector the file has not";
+                    why =
+                        sector < _sectorCount && sector < _fat.Length
+                            ? "comes back to its sector " + sector.ToString(CultureInfo.InvariantCulture)
+                            : "runs to a sector the file has not";
                     return null;
                 }
 
@@ -361,9 +418,18 @@ namespace GeometryHelper.Dxf
 
             while (done < size)
             {
-                if (sector >= _miniFat.Length || (long)(sector + 1) * MiniSectorSize > _miniStream.Length || taken[sector])
+                if (
+                    sector >= _miniFat.Length
+                    || (long)(sector + 1) * MiniSectorSize > _miniStream.Length
+                    || taken[sector]
+                )
                 {
-                    why = sector < _miniFat.Length && taken[sector] ? "comes back to its sector " + sector.ToString(CultureInfo.InvariantCulture) + " of the mini stream" : "runs to a sector the mini stream has not";
+                    why =
+                        sector < _miniFat.Length && taken[sector]
+                            ? "comes back to its sector "
+                                + sector.ToString(CultureInfo.InvariantCulture)
+                                + " of the mini stream"
+                            : "runs to a sector the mini stream has not";
                     return null;
                 }
 
@@ -409,6 +475,7 @@ namespace GeometryHelper.Dxf
 
         internal static int U16(byte[] bytes, int at) => bytes[at] | (bytes[at + 1] << 8);
 
-        internal static uint U32(byte[] bytes, int at) => (uint)(bytes[at] | (bytes[at + 1] << 8) | (bytes[at + 2] << 16) | (bytes[at + 3] << 24));
+        internal static uint U32(byte[] bytes, int at) =>
+            (uint)(bytes[at] | (bytes[at + 1] << 8) | (bytes[at + 2] << 16) | (bytes[at + 3] << 24));
     }
 }

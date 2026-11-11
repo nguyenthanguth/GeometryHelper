@@ -56,7 +56,10 @@ namespace GeometryHelper.Drawing
             objectId = null;
             viewId = null;
 
-            if (!CadOwnerTag.TryRead(entity, out CadOwnerTag tag) || !string.Equals(tag.Owner, OwnerName, StringComparison.Ordinal))
+            if (
+                !CadOwnerTag.TryRead(entity, out CadOwnerTag tag)
+                || !string.Equals(tag.Owner, OwnerName, StringComparison.Ordinal)
+            )
             {
                 return false;
             }
@@ -110,7 +113,11 @@ namespace GeometryHelper.Drawing
             {
                 if (!entity.IsErased)
                 {
-                    if (entity is DxfDimension dimension && dimension.DimBlock != null && dimension.DimBlock.IsAnonymous)
+                    if (
+                        entity is DxfDimension dimension
+                        && dimension.DimBlock != null
+                        && dimension.DimBlock.IsAnonymous
+                    )
                     {
                         pictures.Add(dimension.DimBlock);
                     }
@@ -144,7 +151,13 @@ namespace GeometryHelper.Drawing
                 }
             }
 
-            GeometryHelperLog.Info("DrawingEntityTags.RemoveAll: " + found.Count.ToString(CultureInfo.InvariantCulture) + " entities of " + OwnerName + " erased.");
+            GeometryHelperLog.Info(
+                "DrawingEntityTags.RemoveAll: "
+                    + found.Count.ToString(CultureInfo.InvariantCulture)
+                    + " entities of "
+                    + OwnerName
+                    + " erased."
+            );
             return found.Count;
         }
 
@@ -162,17 +175,22 @@ namespace GeometryHelper.Drawing
 
             foreach (DxfLayout layout in database.Layouts)
             {
-                if (!string.Equals(layout.LayoutName, "Model", StringComparison.OrdinalIgnoreCase) && layout.BlockTableRecord != null)
+                if (
+                    !string.Equals(layout.LayoutName, "Model", StringComparison.OrdinalIgnoreCase)
+                    && layout.BlockTableRecord != null
+                )
                 {
                     layouts.Add(layout);
                 }
             }
 
-            layouts.Sort((a, b) =>
-            {
-                int byTab = a.TabOrder.CompareTo(b.TabOrder);
-                return byTab != 0 ? byTab : string.CompareOrdinal(a.LayoutName, b.LayoutName);
-            });
+            layouts.Sort(
+                (a, b) =>
+                {
+                    int byTab = a.TabOrder.CompareTo(b.TabOrder);
+                    return byTab != 0 ? byTab : string.CompareOrdinal(a.LayoutName, b.LayoutName);
+                }
+            );
 
             foreach (DxfLayout layout in layouts)
             {

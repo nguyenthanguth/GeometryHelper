@@ -108,7 +108,11 @@ namespace GeometryHelper.Dxf
         /// <see cref="Insert(GeometryHelper.Geometry.GeoTransform3, DxfDatabase, bool)"/> copies a drawing, every GROUP of this drawing all of whose
         /// entities are copied into model space or a layout comes too, as <see cref="CopyGroups"/> says.
         /// </summary>
-        internal IReadOnlyList<DxfEntity> CloneObjects(IEnumerable<DxfEntity> source, DxfBlockTableRecord owner, bool groups)
+        internal IReadOnlyList<DxfEntity> CloneObjects(
+            IEnumerable<DxfEntity> source,
+            DxfBlockTableRecord owner,
+            bool groups
+        )
         {
             if (source == null)
             {
@@ -132,7 +136,12 @@ namespace GeometryHelper.Dxf
 
                 if (!entity.IsResident || entity.IsErased || entity.Item.File != File || entity.Item.Parent != null)
                 {
-                    throw new ArgumentException("The " + entity + " is not an entity of this drawing to copy: erased, of another drawing, made in code, or a record that follows another.", nameof(source));
+                    throw new ArgumentException(
+                        "The "
+                            + entity
+                            + " is not an entity of this drawing to copy: erased, of another drawing, made in code, or a record that follows another.",
+                        nameof(source)
+                    );
                 }
 
                 if (!given.Add(entity.Item))
@@ -154,8 +163,15 @@ namespace GeometryHelper.Dxf
 
             for (int i = 0; target != File && i < count; i++)
             {
-                if (entities[i] is DxfLeader leader && leader.Annotation is DxfEntity annotation && annotation.IsResident && !annotation.IsErased
-                    && annotation.Item.File == File && annotation.Item.Parent == null && given.Add(annotation.Item))
+                if (
+                    entities[i] is DxfLeader leader
+                    && leader.Annotation is DxfEntity annotation
+                    && annotation.IsResident
+                    && !annotation.IsErased
+                    && annotation.Item.File == File
+                    && annotation.Item.Parent == null
+                    && given.Add(annotation.Item)
+                )
                 {
                     entities.Add(annotation);
                 }
@@ -243,7 +259,10 @@ namespace GeometryHelper.Dxf
                 {
                     DxfEntity annotation = leader.Annotation;
                     var copied = (DxfLeader)copies[i];
-                    copied.Annotation = annotation != null && copyOf.TryGetValue(annotation.Item, out DxfEntity made) && made.IsResident ? made : null;
+                    copied.Annotation =
+                        annotation != null && copyOf.TryGetValue(annotation.Item, out DxfEntity made) && made.IsResident
+                            ? made
+                            : null;
                 }
             }
 
@@ -252,7 +271,13 @@ namespace GeometryHelper.Dxf
                 CopyGroups(target, copyOf, owner.IsLayout);
             }
 
-            GeometryHelperLog.Info("DxfDatabase: " + entities.Count.ToString(CultureInfo.InvariantCulture) + " entities were copied together into the block " + owner.Name + ".");
+            GeometryHelperLog.Info(
+                "DxfDatabase: "
+                    + entities.Count.ToString(CultureInfo.InvariantCulture)
+                    + " entities were copied together into the block "
+                    + owner.Name
+                    + "."
+            );
             return copies.GetRange(0, count).AsReadOnly();
         }
 
@@ -316,7 +341,13 @@ namespace GeometryHelper.Dxf
 
                     if (followed == null || !copyOf.TryGetValue(followed, out DxfEntity made) || !made.IsResident)
                     {
-                        GeometryHelperLog.Debug("DxfDatabase: the HATCH " + hatch.Handle + " was copied without the object " + handle + " it follows, and its copy follows none.");
+                        GeometryHelperLog.Debug(
+                            "DxfDatabase: the HATCH "
+                                + hatch.Handle
+                                + " was copied without the object "
+                                + handle
+                                + " it follows, and its copy follows none."
+                        );
                         return;
                     }
 
@@ -378,7 +409,16 @@ namespace GeometryHelper.Dxf
 
                 if (into == null || !layout)
                 {
-                    GeometryHelperLog.Debug("DxfDatabase: the group " + entry.Key + " was not copied, " + (into == null ? "the drawing copied into having no group dictionary." : "its entities' copies being in a block, which a group does not hold entities of."));
+                    GeometryHelperLog.Debug(
+                        "DxfDatabase: the group "
+                            + entry.Key
+                            + " was not copied, "
+                            + (
+                                into == null
+                                    ? "the drawing copied into having no group dictionary."
+                                    : "its entities' copies being in a block, which a group does not hold entities of."
+                            )
+                    );
                     continue;
                 }
 

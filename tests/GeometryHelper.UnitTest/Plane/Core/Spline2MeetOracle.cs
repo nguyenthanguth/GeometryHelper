@@ -26,8 +26,13 @@ namespace GeometryHelper.UnitTest.Plane
     /// <summary>A segment, a ray or a line without ends, as the oracle reads it.</summary>
     internal sealed class MeetSegment : MeetPart
     {
-        private readonly double _ox, _oy, _dx, _dy, _length;
-        private readonly bool _ray, _endless;
+        private readonly double _ox,
+            _oy,
+            _dx,
+            _dy,
+            _length;
+        private readonly bool _ray,
+            _endless;
 
         internal MeetSegment(double ox, double oy, double dx, double dy, double length, bool ray, bool endless)
         {
@@ -46,7 +51,9 @@ namespace GeometryHelper.UnitTest.Plane
             double dy = b.Y - a.Y;
             double length = Math.Sqrt(dx * dx + dy * dy);
 
-            return length > 0.0 ? new MeetSegment(a.X, a.Y, dx / length, dy / length, length, false, false) : new MeetSegment(a.X, a.Y, 1.0, 0.0, 0.0, false, false);
+            return length > 0.0
+                ? new MeetSegment(a.X, a.Y, dx / length, dy / length, length, false, false)
+                : new MeetSegment(a.X, a.Y, 1.0, 0.0, 0.0, false, false);
         }
 
         internal override double Gap(double x, double y)
@@ -78,13 +85,33 @@ namespace GeometryHelper.UnitTest.Plane
             return _endless || (t >= 0.0 && (_ray || t <= _length));
         }
 
-        public override string ToString() => (_endless ? "xline" : _ray ? "ray" : "segment") + "(" + _ox.ToString("R") + ", " + _oy.ToString("R") + " along " + _dx.ToString("R") + ", " + _dy.ToString("R") + ", length " + _length.ToString("R") + ")";
+        public override string ToString() =>
+            (
+                _endless ? "xline"
+                : _ray ? "ray"
+                : "segment"
+            )
+            + "("
+            + _ox.ToString("R")
+            + ", "
+            + _oy.ToString("R")
+            + " along "
+            + _dx.ToString("R")
+            + ", "
+            + _dy.ToString("R")
+            + ", length "
+            + _length.ToString("R")
+            + ")";
     }
 
     /// <summary>A circle or an arc of one, as the oracle reads it.</summary>
     internal sealed class MeetRound : MeetPart
     {
-        private readonly double _cx, _cy, _r, _start, _sweep;
+        private readonly double _cx,
+            _cy,
+            _r,
+            _start,
+            _sweep;
         private readonly bool _whole;
 
         internal MeetRound(double cx, double cy, double r, double start, double sweep, bool whole)
@@ -150,20 +177,41 @@ namespace GeometryHelper.UnitTest.Plane
             double ex = _cx + _r * Math.Cos(_start + _sweep);
             double ey = _cy + _r * Math.Sin(_start + _sweep);
 
-            return Math.Min(Math.Sqrt((x - sx) * (x - sx) + (y - sy) * (y - sy)), Math.Sqrt((x - ex) * (x - ex) + (y - ey) * (y - ey)));
+            return Math.Min(
+                Math.Sqrt((x - sx) * (x - sx) + (y - sy) * (y - sy)),
+                Math.Sqrt((x - ex) * (x - ex) + (y - ey) * (y - ey))
+            );
         }
 
-        internal override double Signed(double x, double y) => Math.Sqrt((x - _cx) * (x - _cx) + (y - _cy) * (y - _cy)) - _r;
+        internal override double Signed(double x, double y) =>
+            Math.Sqrt((x - _cx) * (x - _cx) + (y - _cy) * (y - _cy)) - _r;
 
         internal override bool InRange(double x, double y) => Within(Math.Atan2(y - _cy, x - _cx));
 
-        public override string ToString() => "round(" + _cx.ToString("R") + ", " + _cy.ToString("R") + ", r " + _r.ToString("R") + ", from " + _start.ToString("R") + " sweep " + _sweep.ToString("R") + (_whole ? ", whole" : string.Empty) + ")";
+        public override string ToString() =>
+            "round("
+            + _cx.ToString("R")
+            + ", "
+            + _cy.ToString("R")
+            + ", r "
+            + _r.ToString("R")
+            + ", from "
+            + _start.ToString("R")
+            + " sweep "
+            + _sweep.ToString("R")
+            + (_whole ? ", whole" : string.Empty)
+            + ")";
     }
 
     /// <summary>An ellipse as the oracle reads it: its distance found by a dense search over the eccentric angle and golden section.</summary>
     internal sealed class MeetEllipse : MeetPart
     {
-        private readonly double _cx, _cy, _ux, _uy, _a, _b;
+        private readonly double _cx,
+            _cy,
+            _ux,
+            _uy,
+            _a,
+            _b;
 
         internal MeetEllipse(double cx, double cy, double ux, double uy, double a, double b)
         {
@@ -269,7 +317,20 @@ namespace GeometryHelper.UnitTest.Plane
 
         internal override bool InRange(double x, double y) => true;
 
-        public override string ToString() => "ellipse(" + _cx.ToString("R") + ", " + _cy.ToString("R") + ", axis " + _ux.ToString("R") + ", " + _uy.ToString("R") + ", radii " + _a.ToString("R") + ", " + _b.ToString("R") + ")";
+        public override string ToString() =>
+            "ellipse("
+            + _cx.ToString("R")
+            + ", "
+            + _cy.ToString("R")
+            + ", axis "
+            + _ux.ToString("R")
+            + ", "
+            + _uy.ToString("R")
+            + ", radii "
+            + _a.ToString("R")
+            + ", "
+            + _b.ToString("R")
+            + ")";
     }
 
     /// <summary>
@@ -403,10 +464,16 @@ namespace GeometryHelper.UnitTest.Plane
 
                     if (i + 1 < us.Count)
                     {
-                        double gap = Math.Sqrt((points[i + 1][0] - points[i][0]) * (points[i + 1][0] - points[i][0]) + (points[i + 1][1] - points[i][1]) * (points[i + 1][1] - points[i][1]));
+                        double gap = Math.Sqrt(
+                            (points[i + 1][0] - points[i][0]) * (points[i + 1][0] - points[i][0])
+                                + (points[i + 1][1] - points[i][1]) * (points[i + 1][1] - points[i][1])
+                        );
                         double middle = 0.5 * (us[i] + us[i + 1]);
                         bool wide = gap > spacing * reach;
-                        bool close = us.Count < 60000 && Math.Min(shapeGaps[i], shapeGaps[i + 1]) <= 1.5 * gap && gap > 1E-5 * reach;
+                        bool close =
+                            us.Count < 60000
+                            && Math.Min(shapeGaps[i], shapeGaps[i + 1]) <= 1.5 * gap
+                            && gap > 1E-5 * reach;
 
                         if ((wide || close) && middle > us[i] && middle < us[i + 1])
                         {
@@ -443,7 +510,10 @@ namespace GeometryHelper.UnitTest.Plane
 
                 if (d <= tolerance && inLevel && Math.Max(levelHigh, d) - Math.Min(levelLow, d) <= 0.5 * tolerance)
                 {
-                    run += Math.Sqrt((points[i][0] - points[i - 1][0]) * (points[i][0] - points[i - 1][0]) + (points[i][1] - points[i - 1][1]) * (points[i][1] - points[i - 1][1]));
+                    run += Math.Sqrt(
+                        (points[i][0] - points[i - 1][0]) * (points[i][0] - points[i - 1][0])
+                            + (points[i][1] - points[i - 1][1]) * (points[i][1] - points[i - 1][1])
+                    );
                     levelLow = Math.Min(levelLow, d);
                     levelHigh = Math.Max(levelHigh, d);
                 }
@@ -523,7 +593,16 @@ namespace GeometryHelper.UnitTest.Plane
                         continue;
                     }
 
-                    double v = Golden(u => { double[] p = spline.FastPoint(u); return part.Gap(p[0], p[1]); }, us[Math.Max(i - 1, 0)], us[Math.Min(i + 1, us.Count - 1)], out double leastAt);
+                    double v = Golden(
+                        u =>
+                        {
+                            double[] p = spline.FastPoint(u);
+                            return part.Gap(p[0], p[1]);
+                        },
+                        us[Math.Max(i - 1, 0)],
+                        us[Math.Min(i + 1, us.Count - 1)],
+                        out double leastAt
+                    );
 
                     if (gaps[i] < v)
                     {
@@ -566,7 +645,11 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 double[] p = spline.FastPoint(knot);
 
-                if (!mergedPoints.Any(q => Math.Sqrt((q[0] - p[0]) * (q[0] - p[0]) + (q[1] - p[1]) * (q[1] - p[1])) <= tolerance))
+                if (
+                    !mergedPoints.Any(q =>
+                        Math.Sqrt((q[0] - p[0]) * (q[0] - p[0]) + (q[1] - p[1]) * (q[1] - p[1])) <= tolerance
+                    )
+                )
                 {
                     merged.Add(knot);
                     mergedPoints.Add(p);
@@ -643,8 +726,14 @@ namespace GeometryHelper.UnitTest.Plane
         internal static SplineAnswer AskSplines(SplineOracle a, SplineOracle b, double size, int samples = 400)
         {
             var answer = new SplineAnswer();
-            double[] ua = Enumerable.Range(0, samples + 1).Select(i => a.Start + (a.End - a.Start) * i / samples).ToArray();
-            double[] ub = Enumerable.Range(0, samples + 1).Select(i => b.Start + (b.End - b.Start) * i / samples).ToArray();
+            double[] ua = Enumerable
+                .Range(0, samples + 1)
+                .Select(i => a.Start + (a.End - a.Start) * i / samples)
+                .ToArray();
+            double[] ub = Enumerable
+                .Range(0, samples + 1)
+                .Select(i => b.Start + (b.End - b.Start) * i / samples)
+                .ToArray();
             double[][] pa = ua.Select(u => a.FastPoint(u)).ToArray();
             double[][] pb = ub.Select(u => b.FastPoint(u)).ToArray();
             var roots = new List<double[]>();
@@ -653,13 +742,20 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 for (int j = 0; j < samples; j++)
                 {
-                    if (Math.Max(pa[i][0], pa[i + 1][0]) < Math.Min(pb[j][0], pb[j + 1][0]) || Math.Max(pb[j][0], pb[j + 1][0]) < Math.Min(pa[i][0], pa[i + 1][0])
-                        || Math.Max(pa[i][1], pa[i + 1][1]) < Math.Min(pb[j][1], pb[j + 1][1]) || Math.Max(pb[j][1], pb[j + 1][1]) < Math.Min(pa[i][1], pa[i + 1][1]))
+                    if (
+                        Math.Max(pa[i][0], pa[i + 1][0]) < Math.Min(pb[j][0], pb[j + 1][0])
+                        || Math.Max(pb[j][0], pb[j + 1][0]) < Math.Min(pa[i][0], pa[i + 1][0])
+                        || Math.Max(pa[i][1], pa[i + 1][1]) < Math.Min(pb[j][1], pb[j + 1][1])
+                        || Math.Max(pb[j][1], pb[j + 1][1]) < Math.Min(pa[i][1], pa[i + 1][1])
+                    )
                     {
                         continue;
                     }
 
-                    double d1x = pa[i + 1][0] - pa[i][0], d1y = pa[i + 1][1] - pa[i][1], d2x = pb[j + 1][0] - pb[j][0], d2y = pb[j + 1][1] - pb[j][1];
+                    double d1x = pa[i + 1][0] - pa[i][0],
+                        d1y = pa[i + 1][1] - pa[i][1],
+                        d2x = pb[j + 1][0] - pb[j][0],
+                        d2y = pb[j + 1][1] - pb[j][1];
                     double den = d1x * d2y - d1y * d2x;
 
                     if (den == 0.0)
@@ -667,7 +763,8 @@ namespace GeometryHelper.UnitTest.Plane
                         continue;
                     }
 
-                    double wx = pb[j][0] - pa[i][0], wy = pb[j][1] - pa[i][1];
+                    double wx = pb[j][0] - pa[i][0],
+                        wy = pb[j][1] - pa[i][1];
                     double t = (wx * d2y - wy * d2x) / den;
                     double u = (wx * d1y - wy * d1x) / den;
 
@@ -677,7 +774,10 @@ namespace GeometryHelper.UnitTest.Plane
                         double[] qa = a.FastPoint(root[0]);
                         double[] qb = b.FastPoint(root[1]);
 
-                        if (Math.Sqrt((qa[0] - qb[0]) * (qa[0] - qb[0]) + (qa[1] - qb[1]) * (qa[1] - qb[1])) < 1E-7 * Math.Max(1.0, size))
+                        if (
+                            Math.Sqrt((qa[0] - qb[0]) * (qa[0] - qb[0]) + (qa[1] - qb[1]) * (qa[1] - qb[1]))
+                            < 1E-7 * Math.Max(1.0, size)
+                        )
                         {
                             roots.Add(root);
                         }
@@ -689,7 +789,11 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 double[] p = a.FastPoint(root[0]);
 
-                if (!answer.Crossings.Any(q => Math.Sqrt((q[0] - p[0]) * (q[0] - p[0]) + (q[1] - p[1]) * (q[1] - p[1])) <= 1E-3))
+                if (
+                    !answer.Crossings.Any(q =>
+                        Math.Sqrt((q[0] - p[0]) * (q[0] - p[0]) + (q[1] - p[1]) * (q[1] - p[1])) <= 1E-3
+                    )
+                )
                 {
                     answer.Crossings.Add(p);
                 }
@@ -707,7 +811,9 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 for (int j = 0; j <= samples; j++)
                 {
-                    grid[i, j] = Math.Sqrt((pa[i][0] - pb[j][0]) * (pa[i][0] - pb[j][0]) + (pa[i][1] - pb[j][1]) * (pa[i][1] - pb[j][1]));
+                    grid[i, j] = Math.Sqrt(
+                        (pa[i][0] - pb[j][0]) * (pa[i][0] - pb[j][0]) + (pa[i][1] - pb[j][1]) * (pa[i][1] - pb[j][1])
+                    );
                 }
             }
 
@@ -741,7 +847,18 @@ namespace GeometryHelper.UnitTest.Plane
 
                     if (isLeast)
                     {
-                        least = Math.Min(least, Compass(a, b, ua[i], ub[j], (a.End - a.Start) / samples, (b.End - b.Start) / samples, grid[i, j]));
+                        least = Math.Min(
+                            least,
+                            Compass(
+                                a,
+                                b,
+                                ua[i],
+                                ub[j],
+                                (a.End - a.Start) / samples,
+                                (b.End - b.Start) / samples,
+                                grid[i, j]
+                            )
+                        );
                     }
                 }
             }
@@ -756,11 +873,22 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 double[] p = a.FastPoint(s);
                 double[] q = b.FastPoint(t);
-                double fx = p[0] - q[0], fy = p[1] - q[1];
-                double hs = 1E-6 * (a.End - a.Start), ht = 1E-6 * (b.End - b.Start);
-                double sa = Math.Min(s + hs, a.End), sb = Math.Max(s - hs, a.Start), ta = Math.Min(t + ht, b.End), tb = Math.Max(t - ht, b.Start);
-                double[] a1 = a.FastPoint(sa), a0 = a.FastPoint(sb), b1 = b.FastPoint(ta), b0 = b.FastPoint(tb);
-                double axs = (a1[0] - a0[0]) / (sa - sb), ays = (a1[1] - a0[1]) / (sa - sb), bxt = (b1[0] - b0[0]) / (ta - tb), byt = (b1[1] - b0[1]) / (ta - tb);
+                double fx = p[0] - q[0],
+                    fy = p[1] - q[1];
+                double hs = 1E-6 * (a.End - a.Start),
+                    ht = 1E-6 * (b.End - b.Start);
+                double sa = Math.Min(s + hs, a.End),
+                    sb = Math.Max(s - hs, a.Start),
+                    ta = Math.Min(t + ht, b.End),
+                    tb = Math.Max(t - ht, b.Start);
+                double[] a1 = a.FastPoint(sa),
+                    a0 = a.FastPoint(sb),
+                    b1 = b.FastPoint(ta),
+                    b0 = b.FastPoint(tb);
+                double axs = (a1[0] - a0[0]) / (sa - sb),
+                    ays = (a1[1] - a0[1]) / (sa - sb),
+                    bxt = (b1[0] - b0[0]) / (ta - tb),
+                    byt = (b1[1] - b0[1]) / (ta - tb);
                 double det = axs * -byt - -bxt * ays;
 
                 if (Math.Abs(det) < 1E-300)
@@ -783,7 +911,15 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         /// <summary>A compass search for a least of the distance between two splines, kept inside their domains, from a start.</summary>
-        private static double Compass(SplineOracle a, SplineOracle b, double s, double t, double stepS, double stepT, double value)
+        private static double Compass(
+            SplineOracle a,
+            SplineOracle b,
+            double s,
+            double t,
+            double stepS,
+            double stepT,
+            double value
+        )
         {
             double Distance(double ss, double tt)
             {
@@ -799,8 +935,14 @@ namespace GeometryHelper.UnitTest.Plane
 
                 for (int d = 0; d < 8 && !moved; d++)
                 {
-                    double ds = d == 0 || d == 4 || d == 5 ? stepS : d == 1 || d == 6 || d == 7 ? -stepS : 0.0;
-                    double dt = d == 2 || d == 4 || d == 6 ? stepT : d == 3 || d == 5 || d == 7 ? -stepT : 0.0;
+                    double ds =
+                        d == 0 || d == 4 || d == 5 ? stepS
+                        : d == 1 || d == 6 || d == 7 ? -stepS
+                        : 0.0;
+                    double dt =
+                        d == 2 || d == 4 || d == 6 ? stepT
+                        : d == 3 || d == 5 || d == 7 ? -stepT
+                        : 0.0;
                     double ns = Math.Min(Math.Max(s + ds, a.Start), a.End);
                     double nt = Math.Min(Math.Max(t + dt, b.Start), b.End);
                     double nv = Distance(ns, nt);
@@ -831,7 +973,10 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int i = 0, j = ring.Count - 1; i < ring.Count; j = i++)
             {
-                if ((ring[i].Y > y) != (ring[j].Y > y) && x < (ring[j].X - ring[i].X) * (y - ring[i].Y) / (ring[j].Y - ring[i].Y) + ring[i].X)
+                if (
+                    (ring[i].Y > y) != (ring[j].Y > y)
+                    && x < (ring[j].X - ring[i].X) * (y - ring[i].Y) / (ring[j].Y - ring[i].Y) + ring[i].X
+                )
                 {
                     inside = !inside;
                 }

@@ -300,7 +300,10 @@ namespace GeometryHelper.Meshing
 
             if (!(lx > 0.0) || !(ly > 0.0) || double.IsInfinity(lx) || double.IsInfinity(ly))
             {
-                throw new ArgumentException("The transformation flattens the plane of the mesh into a line.", nameof(transform));
+                throw new ArgumentException(
+                    "The transformation flattens the plane of the mesh into a line.",
+                    nameof(transform)
+                );
             }
 
             x = x.Divide(lx);
@@ -310,10 +313,17 @@ namespace GeometryHelper.Meshing
 
             if (!(lz > 1E-9))
             {
-                throw new ArgumentException("The transformation flattens the plane of the mesh into a line.", nameof(transform));
+                throw new ArgumentException(
+                    "The transformation flattens the plane of the mesh into a line.",
+                    nameof(transform)
+                );
             }
 
-            GeoCoordinateSystem3 frame = new GeoCoordinateSystem3(transform.Transform(Frame.Origin), x, z.Divide(lz).CrossProduct(x));
+            GeoCoordinateSystem3 frame = new GeoCoordinateSystem3(
+                transform.Transform(Frame.Origin),
+                x,
+                z.Divide(lz).CrossProduct(x)
+            );
             var flat = new GeoPoint2[moved.Length];
 
             for (int i = 0; i < flat.Length; i++)
@@ -328,8 +338,15 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Describes the mesh.
         /// </summary>
-        public override string ToString()
-            => string.Format(CultureInfo.InvariantCulture, "GeoMesh3[{0}, Vertices: {1}, Faces: {2}, Area: {3}]", Kind, VertexCount, FaceCount, Area);
+        public override string ToString() =>
+            string.Format(
+                CultureInfo.InvariantCulture,
+                "GeoMesh3[{0}, Vertices: {1}, Faces: {2}, Area: {3}]",
+                Kind,
+                VertexCount,
+                FaceCount,
+                Area
+            );
 
         private void Check(int index)
         {
@@ -369,7 +386,11 @@ namespace GeometryHelper.Meshing
 
             for (int i = 1; i + 1 < face.Length; i++)
             {
-                twice = twice.Add(reference.GetVectorTo(_vertices[face[i]]).CrossProduct(reference.GetVectorTo(_vertices[face[i + 1]])));
+                twice = twice.Add(
+                    reference
+                        .GetVectorTo(_vertices[face[i]])
+                        .CrossProduct(reference.GetVectorTo(_vertices[face[i + 1]]))
+                );
             }
 
             return 0.5 * twice.DotProduct(Normal);

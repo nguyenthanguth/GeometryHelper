@@ -1,8 +1,8 @@
-using GeometryHelper;
-using GeometryHelper.Geometry;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GeometryHelper;
+using GeometryHelper.Geometry;
 using TSS = Tekla.Structures.Solid;
 
 namespace GeometryHelper.TeklaConvert
@@ -55,7 +55,12 @@ namespace GeometryHelper.TeklaConvert
         /// <summary>
         /// Makes the faces of one Tekla face from its loops of corners, boundary first, and the normal Tekla gives it.
         /// </summary>
-        internal static bool TryReadFaces(GeoVector3 outward, IReadOnlyList<IReadOnlyList<GeoPoint3>> loops, Tolerance tolerance, out GeoFace3[] result)
+        internal static bool TryReadFaces(
+            GeoVector3 outward,
+            IReadOnlyList<IReadOnlyList<GeoPoint3>> loops,
+            Tolerance tolerance,
+            out GeoFace3[] result
+        )
         {
             result = Array.Empty<GeoFace3>();
 

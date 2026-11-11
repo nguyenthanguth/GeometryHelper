@@ -28,7 +28,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return CadDocument.From(database, "modify.dxf");
         }
 
-        private static DxfLine Line(double x1, double y1, double x2, double y2) => new DxfLine(new GeoPoint3(x1, y1, 0), new GeoPoint3(x2, y2, 0));
+        private static DxfLine Line(double x1, double y1, double x2, double y2) =>
+            new DxfLine(new GeoPoint3(x1, y1, 0), new GeoPoint3(x2, y2, 0));
 
         private static CadCommandSession Start(CadDocument document, params object[] inputs)
         {
@@ -62,9 +63,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             CadCommandSession session = Start(document, "TR");
             Assert.Contains("Current settings: Projection=UCS, Edge=None, Mode=Quick", session.History);
-            Assert.Equal("Select object to trim or shift-select to extend or [cuTting edges/Fence/Crossing/mOde/Project/eRase]:", session.PromptText);
+            Assert.Equal(
+                "Select object to trim or shift-select to extend or [cuTting edges/Fence/Crossing/mOde/Project/eRase]:",
+                session.PromptText
+            );
             Run(session, P(50, 0));
-            Assert.Equal("Select object to trim or shift-select to extend or [cuTting edges/Fence/Crossing/mOde/Project/eRase/Undo]:", session.PromptText);
+            Assert.Equal(
+                "Select object to trim or shift-select to extend or [cuTting edges/Fence/Crossing/mOde/Project/eRase/Undo]:",
+                session.PromptText
+            );
             Run(session, Enter);
 
             NearLine(Entity<DxfLine>(document, handle), 0, 0, 30, 0);
@@ -179,7 +186,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Contains("Select cutting edges ...", session.History);
             Assert.Equal("Select objects or <select all>:", session.PromptText);
             Run(session, new[] { near.Handle }, Enter);
-            Assert.Equal("Select object to trim or shift-select to extend or [Fence/Crossing/mOde/Project/Edge/eRase]:", session.PromptText);
+            Assert.Equal(
+                "Select object to trim or shift-select to extend or [Fence/Crossing/mOde/Project/Edge/eRase]:",
+                session.PromptText
+            );
             Run(session, P(90, 0), Enter);
             NearLine(Entity<DxfLine>(document, h.Handle), 0, 0, 30, 0);
 
@@ -213,7 +223,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string before = document.Database.ToText();
 
             CadCommandSession session = Start(document, "EX");
-            Assert.Equal("Select object to extend or shift-select to trim or [Boundary edges/Fence/Crossing/mOde/Project/Edge]:", session.PromptText);
+            Assert.Equal(
+                "Select object to extend or shift-select to trim or [Boundary edges/Fence/Crossing/mOde/Project/Edge]:",
+                session.PromptText
+            );
             Run(session, P(35, 0), Enter);
             NearLine(Entity<DxfLine>(document, a.Handle), 0, 0, 100, 0);
             UndoesToTheBytes(document, before, "EXTEND");
@@ -306,7 +319,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             NearLine(Entity<DxfLine>(document, h.Handle), 0, 0, 50, 0);
             Run(session, "U");
             NearLine(Entity<DxfLine>(document, h.Handle), 0, 0, 100, 0);
-            Assert.Equal("Select object to trim or shift-select to extend or [cuTting edges/Fence/Crossing/mOde/Project/eRase]:", session.PromptText);
+            Assert.Equal(
+                "Select object to trim or shift-select to extend or [cuTting edges/Fence/Crossing/mOde/Project/eRase]:",
+                session.PromptText
+            );
             Run(session, Enter);
             Assert.False(document.CanUndo);
             Assert.Equal(before, document.Database.ToText());
@@ -345,7 +361,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(Math.PI, part.StartParam, 9);
             Assert.Equal(2 * Math.PI, part.EndParam, 9);
 
-            var spline = new DxfSpline(2, false, false, false, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(50, 100, 0), new GeoPoint3(100, 0, 0) }, new[] { 0.0, 0, 0, 1, 1, 1 }, null, 0, 0);
+            var spline = new DxfSpline(
+                2,
+                false,
+                false,
+                false,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(50, 100, 0), new GeoPoint3(100, 0, 0) },
+                new[] { 0.0, 0, 0, 1, 1, 1 },
+                null,
+                0,
+                0
+            );
             document = Drawing(spline, Line(-10, 25, 110, 25));
             Start(document, "TR", P(50, 50), Enter);
             List<DxfSpline> pieces = All<DxfSpline>(document.ModelSpace);
@@ -567,7 +593,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             double ellipseLength = ellipse.GetDistanceAtParameter(ellipse.EndParam);
 
             // The semicircle of radius 5 run on by a quarter of its length turns a further 45 degrees.
-            Start(document, "LEN", "DE", (Math.PI * 5 / 4).ToString("R", System.Globalization.CultureInfo.InvariantCulture), P(10, 9.9), Enter);
+            Start(
+                document,
+                "LEN",
+                "DE",
+                (Math.PI * 5 / 4).ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+                P(10, 9.9),
+                Enter
+            );
             DxfPolyline run = Entity<DxfPolyline>(document, polyline.Handle);
             Near(P(10 - 5 * Math.Sqrt(0.5), 5 + 5 * Math.Sqrt(0.5)), run.GetPoint2dAt(2), 1E-9);
             Assert.Equal(Math.Tan(1.25 * Math.PI / 4), run.GetBulgeAt(1), 9);

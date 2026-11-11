@@ -27,7 +27,10 @@ namespace GeometryHelper.Dxf.Viewer
             switch (lunits)
             {
                 case 1:
-                    text = size.ToString((places == 0 ? "0" : "0." + new string('0', places)) + "E+00", CultureInfo.InvariantCulture);
+                    text = size.ToString(
+                        (places == 0 ? "0" : "0." + new string('0', places)) + "E+00",
+                        CultureInfo.InvariantCulture
+                    );
                     break;
                 case 3:
                     double feet3 = Math.Floor(size / 12.0);
@@ -39,7 +42,11 @@ namespace GeometryHelper.Dxf.Viewer
                         inches3 -= 12.0;
                     }
 
-                    text = Whole(feet3) + "'-" + inches3.ToString("F" + Whole(places), CultureInfo.InvariantCulture) + "\"";
+                    text =
+                        Whole(feet3)
+                        + "'-"
+                        + inches3.ToString("F" + Whole(places), CultureInfo.InvariantCulture)
+                        + "\"";
                     break;
                 case 4:
                     long denominator = 1L << places;
@@ -75,18 +82,25 @@ namespace GeometryHelper.Dxf.Viewer
                 case 1:
                     return (degrees < 0.0 ? "-" : string.Empty) + Sexagesimal(Math.Abs(degrees), places);
                 case 2:
-                    return (radians * 200.0 / Math.PI).ToString("F" + Whole(places), CultureInfo.InvariantCulture) + "g";
+                    return (radians * 200.0 / Math.PI).ToString("F" + Whole(places), CultureInfo.InvariantCulture)
+                        + "g";
                 case 3:
                     return radians.ToString("F" + Whole(places), CultureInfo.InvariantCulture) + "r";
                 case 4:
                     double turned = degrees % 360.0;
                     turned = turned < 0.0 ? turned + 360.0 : turned;
-                    double unit = places == 0 ? 1.0 : places <= 2 ? 1.0 / 60.0 : 1.0 / 3600.0;
+                    double unit =
+                        places == 0 ? 1.0
+                        : places <= 2 ? 1.0 / 60.0
+                        : 1.0 / 3600.0;
                     turned = Math.Round(turned / unit) * unit % 360.0;
 
                     if (turned == 0.0 || turned == 90.0 || turned == 180.0 || turned == 270.0)
                     {
-                        return turned == 0.0 ? "E" : turned == 90.0 ? "N" : turned == 180.0 ? "W" : "S";
+                        return turned == 0.0 ? "E"
+                            : turned == 90.0 ? "N"
+                            : turned == 180.0 ? "W"
+                            : "S";
                     }
 
                     string ns = turned < 180.0 ? "N" : "S";
@@ -110,7 +124,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             string typed = (text ?? string.Empty).Trim();
 
-            if (double.TryParse(typed, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && !double.IsNaN(value) && !double.IsInfinity(value))
+            if (
+                double.TryParse(typed, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+                && !double.IsNaN(value)
+                && !double.IsInfinity(value)
+            )
             {
                 return true;
             }
@@ -119,13 +137,20 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (lunits == 3 || lunits == 4)
             {
-                Match feet = Regex.Match(typed, "^(?<sign>-?)(?:(?<feet>\\d+(?:\\.\\d*)?)')?-?(?:(?<inches>[0-9./ -]+)\"?)?$");
+                Match feet = Regex.Match(
+                    typed,
+                    "^(?<sign>-?)(?:(?<feet>\\d+(?:\\.\\d*)?)')?-?(?:(?<inches>[0-9./ -]+)\"?)?$"
+                );
 
                 if (feet.Success && (feet.Groups["feet"].Success || typed.EndsWith("\"", StringComparison.Ordinal)))
                 {
                     double inches = 0.0;
 
-                    if (feet.Groups["inches"].Success && feet.Groups["inches"].Value.Trim().Length > 0 && !TryFraction(feet.Groups["inches"].Value.Trim(), out inches))
+                    if (
+                        feet.Groups["inches"].Success
+                        && feet.Groups["inches"].Value.Trim().Length > 0
+                        && !TryFraction(feet.Groups["inches"].Value.Trim(), out inches)
+                    )
                     {
                         return false;
                     }
@@ -165,15 +190,34 @@ namespace GeometryHelper.Dxf.Viewer
             string typed = (text ?? string.Empty).Trim();
             radians = 0.0;
 
-            if (double.TryParse(typed, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) && !double.IsNaN(number) && !double.IsInfinity(number))
+            if (
+                double.TryParse(typed, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+                && !double.IsNaN(number)
+                && !double.IsInfinity(number)
+            )
             {
-                radians = aunits == 2 ? number * Math.PI / 200.0 : aunits == 3 ? number : number * Math.PI / 180.0;
+                radians =
+                    aunits == 2 ? number * Math.PI / 200.0
+                    : aunits == 3 ? number
+                    : number * Math.PI / 180.0;
                 return true;
             }
 
-            if (typed.Length > 1 && (typed.EndsWith("g", StringComparison.OrdinalIgnoreCase) || typed.EndsWith("r", StringComparison.OrdinalIgnoreCase))
-                && double.TryParse(typed.Substring(0, typed.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out number)
-                && !double.IsNaN(number) && !double.IsInfinity(number))
+            if (
+                typed.Length > 1
+                && (
+                    typed.EndsWith("g", StringComparison.OrdinalIgnoreCase)
+                    || typed.EndsWith("r", StringComparison.OrdinalIgnoreCase)
+                )
+                && double.TryParse(
+                    typed.Substring(0, typed.Length - 1),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out number
+                )
+                && !double.IsNaN(number)
+                && !double.IsInfinity(number)
+            )
             {
                 radians = char.ToLowerInvariant(typed[typed.Length - 1]) == 'g' ? number * Math.PI / 200.0 : number;
                 return true;
@@ -214,7 +258,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="angbase">ANGBASE: the direction of angle nought, in radians counter-clockwise from east.</param>
         /// <param name="clockwise">ANGDIR: whether angles grow clockwise.</param>
         /// <returns>The direction, in radians counter-clockwise from east.</returns>
-        public static double ToDirection(double counted, double angbase, bool clockwise) => angbase + (clockwise ? -counted : counted);
+        public static double ToDirection(double counted, double angbase, bool clockwise) =>
+            angbase + (clockwise ? -counted : counted);
 
         /// <summary>
         /// Turns a direction into the angle the drawing counts for it, the reverse of <see cref="ToDirection"/>, as AutoCAD's
@@ -238,14 +283,18 @@ namespace GeometryHelper.Dxf.Viewer
         private static bool TryDegrees(string text, out double degrees)
         {
             degrees = 0.0;
-            Match dms = Regex.Match((text ?? string.Empty).Trim(), "^(?<sign>-?)(?<d>\\d+(?:\\.\\d*)?)(?:[dD°](?:(?<m>\\d+(?:\\.\\d*)?)')?(?:(?<s>\\d+(?:\\.\\d*)?)\")?)?$");
+            Match dms = Regex.Match(
+                (text ?? string.Empty).Trim(),
+                "^(?<sign>-?)(?<d>\\d+(?:\\.\\d*)?)(?:[dD°](?:(?<m>\\d+(?:\\.\\d*)?)')?(?:(?<s>\\d+(?:\\.\\d*)?)\")?)?$"
+            );
 
             if (!dms.Success)
             {
                 return false;
             }
 
-            degrees = Digits(dms.Groups["d"].Value)
+            degrees =
+                Digits(dms.Groups["d"].Value)
                 + (dms.Groups["m"].Success ? Digits(dms.Groups["m"].Value) / 60.0 : 0.0)
                 + (dms.Groups["s"].Success ? Digits(dms.Groups["s"].Value) / 3600.0 : 0.0);
             degrees = dms.Groups["sign"].Value == "-" ? -degrees : degrees;
@@ -263,7 +312,10 @@ namespace GeometryHelper.Dxf.Viewer
         private static bool TryFraction(string text, out double value)
         {
             value = 0.0;
-            Match fraction = Regex.Match(text, "^(?:(?<whole>\\d+(?:\\.\\d*)?)(?:[ -]+|$))?(?:(?<top>\\d+)/(?<bottom>\\d+))?$");
+            Match fraction = Regex.Match(
+                text,
+                "^(?:(?<whole>\\d+(?:\\.\\d*)?)(?:[ -]+|$))?(?:(?<top>\\d+)/(?<bottom>\\d+))?$"
+            );
 
             if (!fraction.Success || (!fraction.Groups["whole"].Success && !fraction.Groups["top"].Success))
             {
@@ -277,7 +329,8 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            value = (fraction.Groups["whole"].Success ? Digits(fraction.Groups["whole"].Value) : 0.0)
+            value =
+                (fraction.Groups["whole"].Success ? Digits(fraction.Groups["whole"].Value) : 0.0)
                 + (fraction.Groups["top"].Success ? Digits(fraction.Groups["top"].Value) / bottom : 0.0);
 
             if (double.IsNaN(value) || double.IsInfinity(value))
@@ -295,7 +348,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static double Digits(string digits)
         {
-            return double.TryParse(digits, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) ? number : double.PositiveInfinity;
+            return double.TryParse(digits, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+                ? number
+                : double.PositiveInfinity;
         }
 
         private static string Sexagesimal(double degrees, int places)
@@ -308,7 +363,10 @@ namespace GeometryHelper.Dxf.Viewer
             if (places <= 2)
             {
                 double minutesAll = Math.Round(degrees * 60.0, MidpointRounding.AwayFromZero);
-                return Whole(Math.Floor(minutesAll / 60.0)) + "d" + Whole(minutesAll - Math.Floor(minutesAll / 60.0) * 60.0) + "'";
+                return Whole(Math.Floor(minutesAll / 60.0))
+                    + "d"
+                    + Whole(minutesAll - Math.Floor(minutesAll / 60.0) * 60.0)
+                    + "'";
             }
 
             int decimals = places - 4 > 0 ? places - 4 : 0;
@@ -316,7 +374,12 @@ namespace GeometryHelper.Dxf.Viewer
             double whole = Math.Floor(secondsAll / 3600.0);
             double minutes = Math.Floor((secondsAll - whole * 3600.0) / 60.0);
             double seconds = secondsAll - whole * 3600.0 - minutes * 60.0;
-            return Whole(whole) + "d" + Whole(minutes) + "'" + seconds.ToString("F" + Whole(decimals), CultureInfo.InvariantCulture) + "\"";
+            return Whole(whole)
+                + "d"
+                + Whole(minutes)
+                + "'"
+                + seconds.ToString("F" + Whole(decimals), CultureInfo.InvariantCulture)
+                + "\"";
         }
 
         /// <summary>A whole number and its fraction over a power of two, reduced: 3 1/2, 1/2, or 3 where none is left.</summary>

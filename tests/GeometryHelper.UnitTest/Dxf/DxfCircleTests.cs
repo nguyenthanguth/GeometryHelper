@@ -17,32 +17,48 @@ namespace GeometryHelper.UnitTest.Dxf
     {
         private static readonly Tolerance Tol = Tolerance.Default;
 
-        private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
+        private static readonly string[] Drawings =
+        {
+            DxfFileEzdxfDrawings.R12,
+            DxfFileEzdxfDrawings.R2000,
+            DxfFileEzdxfDrawings.R2018,
+        };
 
         // The transformation the oracle moves entities by: a turn about a tilted axis and a shift.
-        private static readonly GeoTransform3 Turn = new GeoTransform3(new[,]
-        {
-            { 0.7816391739070251, -0.4829292842142122, 0.3947397981737998, 10.0 },
-            { 0.5501172307043584, 0.8320301337746346, -0.07139249941787586, -5.0 },
-            { -0.29395787843858057, 0.27295633888831433, 0.9160150668873173, 2.5 },
-            { 0.0, 0.0, 0.0, 1.0 },
-        });
+        private static readonly GeoTransform3 Turn = new GeoTransform3(
+            new[,]
+            {
+                { 0.7816391739070251, -0.4829292842142122, 0.3947397981737998, 10.0 },
+                { 0.5501172307043584, 0.8320301337746346, -0.07139249941787586, -5.0 },
+                { -0.29395787843858057, 0.27295633888831433, 0.9160150668873173, 2.5 },
+                { 0.0, 0.0, 0.0, 1.0 },
+            }
+        );
 
         // A shear, which scales a plane more one way than the other.
-        private static readonly GeoTransform3 Shear = new GeoTransform3(new[,]
-        {
-            { 0.9210609940028851, -0.3894183423086505, 0.0, 1.0 },
-            { 0.778836684617301, 1.8421219880057702, 0.0, 2.0 },
-            { 0.0, 0.0, 1.0, 3.0 },
-            { 0.0, 0.0, 0.0, 1.0 },
-        });
+        private static readonly GeoTransform3 Shear = new GeoTransform3(
+            new[,]
+            {
+                { 0.9210609940028851, -0.3894183423086505, 0.0, 1.0 },
+                { 0.778836684617301, 1.8421219880057702, 0.0, 2.0 },
+                { 0.0, 0.0, 1.0, 3.0 },
+                { 0.0, 0.0, 0.0, 1.0 },
+            }
+        );
 
         [Fact]
         public void ACircleOnTheNormalDown_IsReadAsEzdxfReadsIt_ItsCentreInTheWorld()
         {
             // ezdxf 1.4.5: CIRCLE 3F of R2000 (42 of R12), groups 10/20/30 (10, 20, 5) on the extrusion (0, 0, -1), is about
             // OCS.to_wcs = (-10, 20, -5), radius 7.5 (0x1.e000000000000p+2).
-            foreach (var (text, handle) in new[] { (DxfFileEzdxfDrawings.R12, "42"), (DxfFileEzdxfDrawings.R2000, "3F"), (DxfFileEzdxfDrawings.R2018, "3F") })
+            foreach (
+                var (text, handle) in new[]
+                {
+                    (DxfFileEzdxfDrawings.R12, "42"),
+                    (DxfFileEzdxfDrawings.R2000, "3F"),
+                    (DxfFileEzdxfDrawings.R2018, "3F"),
+                }
+            )
             {
                 DxfCircle circle = ByHandle<DxfCircle>(DxfDatabase.Parse(text), handle);
 
@@ -95,7 +111,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(5 * Math.PI / 2, circle.GetDistAtPoint(new GeoPoint3(10, 25, 0)), 12);
             Assert.True(circle.GetFirstDerivative(0.0).IsEqualTo(new GeoVector3(0, 5, 0), near));
             Assert.True(circle.GetSecondDerivative(0.0).IsEqualTo(new GeoVector3(-5, 0, 0), near));
-            Assert.True(circle.GetClosestPointTo(new GeoPoint3(30, 20, 7), false).IsEqualTo(new GeoPoint3(15, 20, 0), near));
+            Assert.True(
+                circle.GetClosestPointTo(new GeoPoint3(30, 20, 7), false).IsEqualTo(new GeoPoint3(15, 20, 0), near)
+            );
             Assert.Throws<ArgumentException>(() => circle.GetParameterAtPoint(new GeoPoint3(10, 20, 0)));
             Assert.Throws<ArgumentOutOfRangeException>(() => circle.GetPointAtParameter(7.0));
             Assert.Throws<NotSupportedException>(() => circle.Extend(1.0));
@@ -174,7 +192,11 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                var circle = new DxfCircle(new GeoPoint3(1, 1, 1), new GeoVector3(0.6, 0, 0.8), 1.25) { Layer = "rebar", ColorIndex = 3 };
+                var circle = new DxfCircle(new GeoPoint3(1, 1, 1), new GeoVector3(0.6, 0, 0.8), 1.25)
+                {
+                    Layer = "rebar",
+                    ColorIndex = 3,
+                };
 
                 Assert.Null(circle.Handle);
                 db.ModelSpace.AppendEntity(circle);
@@ -222,18 +244,32 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // A mirror in x: the normal comes up, the centre (13, 20, -5).
             DxfCircle mirrored = ByHandle<DxfCircle>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000), "3F");
-            mirrored.TransformBy(new GeoTransform3(new double[,] { { -1, 0, 0, 3 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } }));
+            mirrored.TransformBy(
+                new GeoTransform3(
+                    new double[,]
+                    {
+                        { -1, 0, 0, 3 },
+                        { 0, 1, 0, 0 },
+                        { 0, 0, 1, 0 },
+                        { 0, 0, 0, 1 },
+                    }
+                )
+            );
             Near(new GeoPoint3(13.0, 20.0, -5.0), mirrored.Center);
             Near(new GeoVector3(0.0, 0.0, 1.0), mirrored.Normal);
         }
 
-        private static void Near(GeoPoint3 expected, GeoPoint3 actual)
-            => Assert.True(actual.DistanceTo(expected) <= 1E-9 * Math.Max(1.0, Math.Abs(expected.X) + Math.Abs(expected.Y) + Math.Abs(expected.Z)), actual + " is not " + expected);
+        private static void Near(GeoPoint3 expected, GeoPoint3 actual) =>
+            Assert.True(
+                actual.DistanceTo(expected)
+                    <= 1E-9 * Math.Max(1.0, Math.Abs(expected.X) + Math.Abs(expected.Y) + Math.Abs(expected.Z)),
+                actual + " is not " + expected
+            );
 
-        private static void Near(GeoVector3 expected, GeoVector3 actual)
-            => Assert.True(actual.Subtract(expected).Length <= 1E-9, actual + " is not " + expected);
+        private static void Near(GeoVector3 expected, GeoVector3 actual) =>
+            Assert.True(actual.Subtract(expected).Length <= 1E-9, actual + " is not " + expected);
 
-        private static string LayerTableHandle(string text)
-            => HandleOf(Records(text).First(r => r.StartsWith("  0\nTABLE\n  2\nLAYER\n", StringComparison.Ordinal)));
+        private static string LayerTableHandle(string text) =>
+            HandleOf(Records(text).First(r => r.StartsWith("  0\nTABLE\n  2\nLAYER\n", StringComparison.Ordinal)));
     }
 }

@@ -60,7 +60,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             while (points.Count < 3000)
             {
-                double x = random.NextDouble() * 2 - 1, y = random.NextDouble() * 2 - 1, z = random.NextDouble() * 2 - 1;
+                double x = random.NextDouble() * 2 - 1,
+                    y = random.NextDouble() * 2 - 1,
+                    z = random.NextDouble() * 2 - 1;
                 double length = Math.Sqrt(x * x + y * y + z * z);
 
                 if (length >= 0.1 && length <= 1)
@@ -92,7 +94,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(5001, above.Length);
             Assert.Single(below);
-            Assert.InRange(above.Sum(piece => piece.Area) + below[0].Area, face.Area * (1 - 1E-12), face.Area * (1 + 1E-12));
+            Assert.InRange(
+                above.Sum(piece => piece.Area) + below[0].Area,
+                face.Area * (1 - 1E-12),
+                face.Area * (1 + 1E-12)
+            );
             Assert.True(watch.Elapsed.TotalSeconds < 2, watch.Elapsed.ToString());
         }
 

@@ -53,7 +53,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(new GeoCoordinateSystem3(p, new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 1)).IsValid);
             Assert.True(new GeoCoordinateSystem2(new GeoPoint2(1, 2), 0.7).IsValid);
             Assert.True(new GeoArc2(new GeoPoint2(0, 0), 5, 0.2, 1.4).IsValid);
-            Assert.True(GeoArc3.FromThreePoints(new GeoPoint3(1, 0, 0), new GeoPoint3(0, 1, 0), new GeoPoint3(-1, 0, 0)).IsValid);
+            Assert.True(
+                GeoArc3.FromThreePoints(new GeoPoint3(1, 0, 0), new GeoPoint3(0, 1, 0), new GeoPoint3(-1, 0, 0)).IsValid
+            );
             Assert.True(new GeoCircle3(p, new GeoVector3(0, 0, 2), 4).IsValid);
             Assert.True(new GeoCircle2(new GeoPoint2(1, 1), 3).IsValid);
             Assert.True(new GeoEdge3(p, new GeoPoint3(5, 2, 3), 0.5, GeoVector3.ZAxis).IsValid);
@@ -74,7 +76,12 @@ namespace GeometryHelper.UnitTest.Solid
         public void APolygonCrossingItselfIsMadeIntoTheRegionItCovers()
         {
             // A bow tie: two triangles of 25 meeting at a point. The shoelace sum sets one against the other.
-            var bowTie = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 10), new GeoPoint2(10, 0), new GeoPoint2(0, 10));
+            var bowTie = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(0, 10)
+            );
 
             Assert.False(bowTie.IsSimple());
             Assert.Equal(0.0, bowTie.Area, 9);
@@ -89,7 +96,12 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ASimplePolygonIsMadeIntoItself()
         {
-            var square = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+            var square = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
 
             GeoFace2 face = Assert.Single(square.MakeValid());
 

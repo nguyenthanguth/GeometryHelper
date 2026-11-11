@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -38,7 +38,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this segment touches a solid, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) => Collision3.CollidesWith(this, solid, tolerance);
+        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) =>
+            Collision3.CollidesWith(this, solid, tolerance);
 
         /// <summary>
         /// Checks whether this segment touches a triangle, using the default tolerance.
@@ -48,7 +49,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this segment touches a triangle, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) => Collision3.CollidesWith(this, triangle, tolerance);
+        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Collision3.CollidesWith(this, triangle, tolerance);
 
         /// <summary>
         /// Checks whether this segment touches a polygon, using the default tolerance.
@@ -58,7 +60,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this segment touches a polygon, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) => Collision3.CollidesWith(this, polygon, tolerance);
+        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Collision3.CollidesWith(this, polygon, tolerance);
 
         /// <summary>
         /// Checks whether this segment touches a face, using the default tolerance.
@@ -69,6 +72,7 @@ namespace GeometryHelper.Geometry
         /// Checks whether this segment touches a face, within a tolerance.
         /// </summary>
         public bool CollidesWith(GeoFace3 face, Tolerance tolerance) => Collision3.CollidesWith(this, face, tolerance);
+
         /// <summary>
         /// Checks whether this segment touches an arc, using the default tolerance.
         /// </summary>
@@ -100,7 +104,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="plane">The plane.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance) => Collision3.CollidesWith(this, plane, tolerance);
+        public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance) =>
+            Collision3.CollidesWith(this, plane, tolerance);
 
         /// <summary>
         /// Determines whether this segment touches a segment.
@@ -154,8 +159,8 @@ namespace GeometryHelper.Geometry
         /// <see cref="GeoPolygonArc3.CollidesWith(GeoLine3, Tolerance)"/>.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance)
-            => ArcChain3.CollidesWith(loop, this, tolerance);
+        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance) =>
+            ArcChain3.CollidesWith(loop, this, tolerance);
 
         /// <summary>
         /// Checks whether this segment touches a straight chain: the same answer as
@@ -169,8 +174,8 @@ namespace GeometryHelper.Geometry
         /// <see cref="GeoPolyline3.CollidesWith(GeoLine3, Tolerance)"/>.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance)
-            => Collision3.CollidesWith(polyline, this, tolerance);
+        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Collision3.CollidesWith(polyline, this, tolerance);
 
         /// <summary>
         /// Checks whether this segment touches a curved chain: the same answer as
@@ -184,7 +189,7 @@ namespace GeometryHelper.Geometry
         /// <see cref="GeoPolylineArc3.CollidesWith(GeoLine3, Tolerance)"/>.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance)
-            => ArcChain3.CollidesWith(chain, this, tolerance);
+        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance) =>
+            ArcChain3.CollidesWith(chain, this, tolerance);
     }
 }

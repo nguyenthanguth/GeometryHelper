@@ -19,27 +19,36 @@ namespace GeometryHelper.UnitTest.Solid
         /// A half turn standing upright in the plane y = 0, over the top from (-50, 0, 0) to (50, 0, 0).
         /// Its middle is (0, 0, 50), so it arches over the plate below.
         /// </summary>
-        private static GeoArc3 Arching() => GeoArc3.FromThreePoints(
-            new GeoPoint3(-50, 0, 0), new GeoPoint3(0, 0, 50), new GeoPoint3(50, 0, 0));
+        private static GeoArc3 Arching() =>
+            GeoArc3.FromThreePoints(new GeoPoint3(-50, 0, 0), new GeoPoint3(0, 0, 50), new GeoPoint3(50, 0, 0));
 
         /// <summary>
         /// A hundred square plate lying in z = 0, centred on the origin.
         /// </summary>
-        private static GeoPolygon3 Plate() => new GeoPolygon3(
-            new GeoPoint3(-50, -50, 0), new GeoPoint3(50, -50, 0),
-            new GeoPoint3(50, 50, 0), new GeoPoint3(-50, 50, 0));
+        private static GeoPolygon3 Plate() =>
+            new GeoPolygon3(
+                new GeoPoint3(-50, -50, 0),
+                new GeoPoint3(50, -50, 0),
+                new GeoPoint3(50, 50, 0),
+                new GeoPoint3(-50, 50, 0)
+            );
 
         /// <summary>
         /// The same plate with a twenty-wide hole in the middle of it.
         /// </summary>
-        private static GeoFace3 Pierced() => new GeoFace3(
-            Plate(),
-            new[]
-            {
-                new GeoPolygon3(
-                    new GeoPoint3(-10, -10, 0), new GeoPoint3(10, -10, 0),
-                    new GeoPoint3(10, 10, 0), new GeoPoint3(-10, 10, 0))
-            });
+        private static GeoFace3 Pierced() =>
+            new GeoFace3(
+                Plate(),
+                new[]
+                {
+                    new GeoPolygon3(
+                        new GeoPoint3(-10, -10, 0),
+                        new GeoPoint3(10, -10, 0),
+                        new GeoPoint3(10, 10, 0),
+                        new GeoPoint3(-10, 10, 0)
+                    ),
+                }
+            );
 
         [Fact]
         public void AnArcPiercingAPlateIsCreditedWithThePointsThePlateHolds()
@@ -79,7 +88,10 @@ namespace GeometryHelper.UnitTest.Solid
             // An arch whose feet land inside the hole: it pierces the plane of the face where there is no
             // face, so it reaches no material.
             GeoArc3 inHole = GeoArc3.FromThreePoints(
-                new GeoPoint3(-5, 0, 0), new GeoPoint3(0, 0, 20), new GeoPoint3(5, 0, 0));
+                new GeoPoint3(-5, 0, 0),
+                new GeoPoint3(0, 0, 20),
+                new GeoPoint3(5, 0, 0)
+            );
 
             Assert.Empty(Arc3.GetIntersections(inHole, plate));
             Assert.False(Arc3.CollidesWith(inHole, plate));
@@ -103,27 +115,37 @@ namespace GeometryHelper.UnitTest.Solid
             // come back in over the top, so it cuts the outline four times -- at x = +-50 where y = 33.166,
             // and at y = 50 where x = +-33.166.
             GeoArc3 cutting = GeoArc3.FromThreePoints(
-                new GeoPoint3(60, 0, 0), new GeoPoint3(0, 60, 0), new GeoPoint3(-60, 0, 0));
+                new GeoPoint3(60, 0, 0),
+                new GeoPoint3(0, 60, 0),
+                new GeoPoint3(-60, 0, 0)
+            );
 
             GeoPoint3[] crossings = Arc3.GetIntersections(cutting, plate);
 
             Assert.Equal(4, crossings.Length);
             Assert.All(crossings, point => Assert.Equal(0.0, point.Z, 6));
             Assert.All(crossings, point => Assert.True(cutting.IsPointOn(point, Loose)));
-            Assert.All(crossings, point => Assert.True(Containment3.IsPointOn(plate, point, Loose),
-                $"{point} is not on the outline"));
+            Assert.All(crossings, point =>
+                Assert.True(Containment3.IsPointOn(plate, point, Loose), $"{point} is not on the outline")
+            );
 
             // A circle in the same plane that is simply too big encircles the plate and touches none of it.
             // The plate's farthest corner is 70.711 out, so a radius of 100 clears it everywhere.
             GeoArc3 around = GeoArc3.FromThreePoints(
-                new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0), new GeoPoint3(-100, 0, 0));
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(0, 100, 0),
+                new GeoPoint3(-100, 0, 0)
+            );
 
             Assert.Empty(Arc3.GetIntersections(around, plate));
             Assert.False(Arc3.CollidesWith(around, plate));
 
             // A small arc lying wholly inside the plate cuts nothing and still touches it.
             GeoArc3 inside = GeoArc3.FromThreePoints(
-                new GeoPoint3(10, 0, 0), new GeoPoint3(0, 10, 0), new GeoPoint3(-10, 0, 0));
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(0, 10, 0),
+                new GeoPoint3(-10, 0, 0)
+            );
 
             Assert.Empty(Arc3.GetIntersections(inside, plate));
             Assert.True(Arc3.CollidesWith(inside, plate));
@@ -138,12 +160,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ATriangleIsReadTheSameWay()
         {
-            var flat = new GeoTriangle3(
-                new GeoPoint3(-50, -50, 0), new GeoPoint3(50, -50, 0), new GeoPoint3(0, 50, 0));
+            var flat = new GeoTriangle3(new GeoPoint3(-50, -50, 0), new GeoPoint3(50, -50, 0), new GeoPoint3(0, 50, 0));
 
             // An arch whose feet land inside the triangle.
             GeoArc3 arch = GeoArc3.FromThreePoints(
-                new GeoPoint3(-10, -20, 0), new GeoPoint3(0, -20, 30), new GeoPoint3(10, -20, 0));
+                new GeoPoint3(-10, -20, 0),
+                new GeoPoint3(0, -20, 30),
+                new GeoPoint3(10, -20, 0)
+            );
 
             Assert.Equal(2, Arc3.GetIntersections(arch, flat).Length);
             Assert.True(Arc3.CollidesWith(arch, flat));
@@ -182,8 +206,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoArc3 arch = Arching();
             GeoPolygon3 plate = Plate();
             GeoFace3 pierced = Pierced();
-            var flat = new GeoTriangle3(
-                new GeoPoint3(-50, -50, 0), new GeoPoint3(50, -50, 0), new GeoPoint3(0, 50, 0));
+            var flat = new GeoTriangle3(new GeoPoint3(-50, -50, 0), new GeoPoint3(50, -50, 0), new GeoPoint3(0, 50, 0));
             var upright = new GeoCircle3(GeoPoint3.Origin, new GeoVector3(0, 1, 0), 50.0);
 
             Assert.Equal(arch.GetIntersections(plate).Length, plate.GetIntersections(arch).Length);
@@ -208,8 +231,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoArc3 arch = Arching();
             GeoPolygon3 plate = Plate();
             GeoFace3 pierced = Pierced();
-            var flat = new GeoTriangle3(
-                new GeoPoint3(-50, -50, 0), new GeoPoint3(50, -50, 0), new GeoPoint3(0, 50, 0));
+            var flat = new GeoTriangle3(new GeoPoint3(-50, -50, 0), new GeoPoint3(50, -50, 0), new GeoPoint3(0, 50, 0));
             var upright = new GeoCircle3(GeoPoint3.Origin, new GeoVector3(0, 1, 0), 50.0);
 
             Assert.Equal(arch.GetIntersections(plate).Length, arch.GetIntersections(plate, global).Length);

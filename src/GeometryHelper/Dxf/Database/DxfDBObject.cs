@@ -27,9 +27,7 @@ namespace GeometryHelper.Dxf
         private List<DxfTypedValue> _pendingXData;
 
         /// <summary>An object made in code, given its record when it is added to a file.</summary>
-        private protected DxfDBObject()
-        {
-        }
+        private protected DxfDBObject() { }
 
         /// <summary>An object of a record, the one that stands for it from now on.</summary>
         private protected DxfDBObject(DxfItem item)
@@ -85,8 +83,10 @@ namespace GeometryHelper.Dxf
         /// GROUPs it is in. Empty for an object in no file or with none; a new list on each call, read as it was for one erased.
         /// </summary>
         /// <returns>The handles.</returns>
-        public IReadOnlyList<string> GetPersistentReactorIds()
-            => _item == null || !IsResident || HasNoRecord ? (IReadOnlyList<string>)Array.Empty<string>() : _item.File.ReactorsOf(_item).AsReadOnly();
+        public IReadOnlyList<string> GetPersistentReactorIds() =>
+            _item == null || !IsResident || HasNoRecord
+                ? (IReadOnlyList<string>)Array.Empty<string>()
+                : _item.File.ReactorsOf(_item).AsReadOnly();
 
         /// <summary>
         /// Gets the object's extension dictionary, as AutoCAD's <c>ExtensionDictionary</c> gives its id: the DICTIONARY of the
@@ -147,7 +147,11 @@ namespace GeometryHelper.Dxf
 
             if (dictionary.Count > 0)
             {
-                throw new InvalidOperationException("The extension dictionary of the object has " + dictionary.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " entries, and is released only when empty, as AutoCAD answers eContainerNotEmpty.");
+                throw new InvalidOperationException(
+                    "The extension dictionary of the object has "
+                        + dictionary.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        + " entries, and is released only when empty, as AutoCAD answers eContainerNotEmpty."
+                );
             }
 
             DxfFile file = InFile("release its extension dictionary");
@@ -171,7 +175,12 @@ namespace GeometryHelper.Dxf
 
             DxfDBDictionary dictionary = ExtensionDictionary;
 
-            if (dictionary == null || !dictionary.Contains(key) || !(dictionary.GetAt(key) is DxfDBObject data) || data.Item.Type != "XRECORD")
+            if (
+                dictionary == null
+                || !dictionary.Contains(key)
+                || !(dictionary.GetAt(key) is DxfDBObject data)
+                || data.Item.Type != "XRECORD"
+            )
             {
                 return null;
             }
@@ -237,7 +246,12 @@ namespace GeometryHelper.Dxf
 
                 if (data == null || data.Item.Type != "XRECORD")
                 {
-                    throw new ArgumentException("The entry " + key + " of the extension dictionary is not an XRECORD, which binary data is kept in.", nameof(key));
+                    throw new ArgumentException(
+                        "The entry "
+                            + key
+                            + " of the extension dictionary is not an XRECORD, which binary data is kept in.",
+                        nameof(key)
+                    );
                 }
 
                 file.ReplaceOwn(data.Item, 0, new HashSet<int> { 310 }, groups, XrecordOrder, false);
@@ -285,17 +299,28 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The extended data moved by a transformation, as <see cref="XDataTransformBy"/> moves it; null where it leaves it as it is.</summary>
-        private protected List<DxfTypedValue> TransformedData(GeoTransform3 transform) => TransformedData(XData, transform);
+        private protected List<DxfTypedValue> TransformedData(GeoTransform3 transform) =>
+            TransformedData(XData, transform);
 
         /// <summary>Extended data moved by a transformation, as <see cref="XDataTransformBy"/> moves it; null where it leaves it as it is.</summary>
-        private protected static List<DxfTypedValue> TransformedData(IReadOnlyList<DxfTypedValue> xdata, GeoTransform3 transform)
+        private protected static List<DxfTypedValue> TransformedData(
+            IReadOnlyList<DxfTypedValue> xdata,
+            GeoTransform3 transform
+        )
         {
             var data = new List<DxfTypedValue>(xdata);
             double scale = 0.0;
 
             for (int c = 0; c < 3; c++)
             {
-                scale = Math.Max(scale, Math.Sqrt(transform[0, c] * transform[0, c] + transform[1, c] * transform[1, c] + transform[2, c] * transform[2, c]));
+                scale = Math.Max(
+                    scale,
+                    Math.Sqrt(
+                        transform[0, c] * transform[0, c]
+                            + transform[1, c] * transform[1, c]
+                            + transform[2, c] * transform[2, c]
+                    )
+                );
             }
 
             bool changed = false;
@@ -362,8 +387,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The number of a group of extended data; nought where there is none or it is not a finite number.</summary>
-        private static double Read(List<DxfTypedValue> data, int at)
-            => at >= 0 && Numbers.TryRead(data[at].Value, out double value) && Guard.IsFinite(value) ? value : 0.0;
+        private static double Read(List<DxfTypedValue> data, int at) =>
+            at >= 0 && Numbers.TryRead(data[at].Value, out double value) && Guard.IsFinite(value) ? value : 0.0;
 
         /// <summary>A group of extended data given a number, where it differs to the bit from the one it has.</summary>
         private static bool Moved(List<DxfTypedValue> data, int at, double now, double was)
@@ -382,12 +407,16 @@ namespace GeometryHelper.Dxf
         {
             if (_item == null || !IsResident || HasNoRecord)
             {
-                throw new InvalidOperationException("The " + GetType().Name + " is in no file to " + what + ": add it to one first.");
+                throw new InvalidOperationException(
+                    "The " + GetType().Name + " is in no file to " + what + ": add it to one first."
+                );
             }
 
             if (IsErased)
             {
-                throw new InvalidOperationException("The " + GetType().Name + " " + (Handle ?? string.Empty) + " is erased, and is not changed.");
+                throw new InvalidOperationException(
+                    "The " + GetType().Name + " " + (Handle ?? string.Empty) + " is erased, and is not changed."
+                );
             }
 
             return _item.File;
@@ -505,7 +534,6 @@ namespace GeometryHelper.Dxf
 
                 return _item.File.XDataOf(_item);
             }
-
             set
             {
                 if (value == null)
@@ -524,7 +552,9 @@ namespace GeometryHelper.Dxf
 
                 foreach (KeyValuePair<string, List<DxfTypedValue>> application in given)
                 {
-                    int at = merged.FindIndex(a => string.Equals(a.Key, application.Key, StringComparison.OrdinalIgnoreCase));
+                    int at = merged.FindIndex(a =>
+                        string.Equals(a.Key, application.Key, StringComparison.OrdinalIgnoreCase)
+                    );
 
                     if (application.Value.Count == 1)
                     {
@@ -554,7 +584,11 @@ namespace GeometryHelper.Dxf
                 {
                     if (HasNoRecord)
                     {
-                        throw new InvalidOperationException("The " + GetType().Name + " has no record in its file to hold extended data: a file of R12 with no block of model or paper space has none.");
+                        throw new InvalidOperationException(
+                            "The "
+                                + GetType().Name
+                                + " has no record in its file to hold extended data: a file of R12 with no block of model or paper space has none."
+                        );
                     }
 
                     _pendingXData = groups;
@@ -600,7 +634,11 @@ namespace GeometryHelper.Dxf
         /// <exception cref="NotSupportedException">Thrown for an object not erased yet: a table, a dictionary, a layout.</exception>
         public virtual void Erase()
         {
-            throw new NotSupportedException("A " + GetType().Name + " is not erased yet: entities, layers, linetypes, blocks, XRECORDs and GROUPs are.");
+            throw new NotSupportedException(
+                "A "
+                    + GetType().Name
+                    + " is not erased yet: entities, layers, linetypes, blocks, XRECORDs and GROUPs are."
+            );
         }
 
         /// <summary>
@@ -674,30 +712,55 @@ namespace GeometryHelper.Dxf
 
             if (ReferenceEquals(newPointer, this))
             {
-                throw new ArgumentException("An object hands its place over to another, not to itself.", nameof(newPointer));
+                throw new ArgumentException(
+                    "An object hands its place over to another, not to itself.",
+                    nameof(newPointer)
+                );
             }
 
             DxfFile file = InFile("hand its place over");
 
             if (!(this is DxfEntity entity) || !(newPointer is DxfEntity made))
             {
-                throw new NotSupportedException("An entity hands its place over to another entity; a " + GetType().Name + " and a " + newPointer.GetType().Name + " are not handed over yet.");
+                throw new NotSupportedException(
+                    "An entity hands its place over to another entity; a "
+                        + GetType().Name
+                        + " and a "
+                        + newPointer.GetType().Name
+                        + " are not handed over yet."
+                );
             }
 
             if (_item.Parent != null)
             {
-                throw new NotSupportedException("A " + _item.Type + " belongs to the entity it follows, and does not hand its place over.");
+                throw new NotSupportedException(
+                    "A " + _item.Type + " belongs to the entity it follows, and does not hand its place over."
+                );
             }
 
             if (newPointer.IsResident || newPointer.IsErased)
             {
-                throw new ArgumentException("The object to take the place is to be in no file: the " + newPointer + " is in one, or erased.", nameof(newPointer));
+                throw new ArgumentException(
+                    "The object to take the place is to be in no file: the " + newPointer + " is in one, or erased.",
+                    nameof(newPointer)
+                );
             }
 
             // AutoCAD 2021 keeps the contexts unconverted, and crashes reading a drawing of those of another kind (check D35e).
             string foreign = keepExtensionDictionary ? ForeignContext(made) : null;
-            Guard.Argument(foreign == null, nameof(newPointer), "The " + _item.Type + " " + (_item.Handle ?? string.Empty) + " holds contexts of the kind " + foreign + ", which the "
-                + made.Item.Type + " taking its place does not take: AutoCAD 2021 keeps them as they are and crashes reading the drawing. Hand the place over keeping no extension dictionary, and the new entity writes contexts of its own.");
+            Guard.Argument(
+                foreign == null,
+                nameof(newPointer),
+                "The "
+                    + _item.Type
+                    + " "
+                    + (_item.Handle ?? string.Empty)
+                    + " holds contexts of the kind "
+                    + foreign
+                    + ", which the "
+                    + made.Item.Type
+                    + " taking its place does not take: AutoCAD 2021 keeps them as they are and crashes reading the drawing. Hand the place over keeping no extension dictionary, and the new entity writes contexts of its own."
+            );
 
             made.Appending(entity.Owner as DxfBlockTableRecord);
 
@@ -716,7 +779,15 @@ namespace GeometryHelper.Dxf
             {
                 WriteCopiedContexts(item, carried, origin);
             }
-            GeometryHelperLog.Info("DxfDatabase: the " + item.Type + " " + (item.Handle ?? string.Empty) + " took the place of a " + snapshot.Type + ".");
+            GeometryHelperLog.Info(
+                "DxfDatabase: the "
+                    + item.Type
+                    + " "
+                    + (item.Handle ?? string.Empty)
+                    + " took the place of a "
+                    + snapshot.Type
+                    + "."
+            );
         }
 
         /// <summary>Whether two runs of extended data are the same, group for group, code and text.</summary>
@@ -739,7 +810,10 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The data of extended data, application by application, each with its 1001 first; checked where a parameter is named.</summary>
-        private static List<KeyValuePair<string, List<DxfTypedValue>>> Applications(IReadOnlyList<DxfTypedValue> groups, string parameter)
+        private static List<KeyValuePair<string, List<DxfTypedValue>>> Applications(
+            IReadOnlyList<DxfTypedValue> groups,
+            string parameter
+        )
         {
             var applications = new List<KeyValuePair<string, List<DxfTypedValue>>>();
             List<DxfTypedValue> current = null;
@@ -753,7 +827,10 @@ namespace GeometryHelper.Dxf
                         continue;
                     }
 
-                    throw new ArgumentException("Extended data has groups from 1000 to 1071 alone: " + group + " is not one.", parameter);
+                    throw new ArgumentException(
+                        "Extended data has groups from 1000 to 1071 alone: " + group + " is not one.",
+                        parameter
+                    );
                 }
 
                 if (group.TypeCode == 1001)
@@ -762,7 +839,10 @@ namespace GeometryHelper.Dxf
 
                     if (name.Length == 0 && parameter != null)
                     {
-                        throw new ArgumentException("The group 1001 that opens an application's extended data names it, and this one names none.", parameter);
+                        throw new ArgumentException(
+                            "The group 1001 that opens an application's extended data names it, and this one names none.",
+                            parameter
+                        );
                     }
 
                     current = new List<DxfTypedValue> { group };
@@ -777,7 +857,12 @@ namespace GeometryHelper.Dxf
                         continue;
                     }
 
-                    throw new ArgumentException("Extended data begins with a group 1001 that names its application: " + group + " stands before any.", parameter);
+                    throw new ArgumentException(
+                        "Extended data begins with a group 1001 that names its application: "
+                            + group
+                            + " stands before any.",
+                        parameter
+                    );
                 }
 
                 current.Add(group);

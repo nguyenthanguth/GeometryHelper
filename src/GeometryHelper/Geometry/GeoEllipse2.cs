@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -58,7 +58,8 @@ namespace GeometryHelper.Geometry
         /// Gets the eccentricity of the ellipse, the root of 1 - b²/a²: nought for a circle, nearer one the thinner it is;
         /// an ellipse 300 by 100 has 0.943.
         /// </summary>
-        public double Eccentricity => Math.Sqrt((MajorRadius - MinorRadius) * (MajorRadius + MinorRadius)) / MajorRadius;
+        public double Eccentricity =>
+            Math.Sqrt((MajorRadius - MinorRadius) * (MajorRadius + MinorRadius)) / MajorRadius;
 
         /// <summary>
         /// Gets the length of the rim, the perimeter: an ellipse 300 by 100 measures 1 336.489 round. Named as it is on
@@ -88,14 +89,21 @@ namespace GeometryHelper.Geometry
 
             if (minorRadius > majorRadius)
             {
-                throw new ArgumentOutOfRangeException(nameof(minorRadius), minorRadius, "The minor radius cannot be larger than the major one.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(minorRadius),
+                    minorRadius,
+                    "The minor radius cannot be larger than the major one."
+                );
             }
 
             double length = majorAxis.Length;
 
             if (!(length > 0.0) || double.IsInfinity(length))
             {
-                throw new ArgumentException("The major axis needs a direction: a finite vector of some length.", nameof(majorAxis));
+                throw new ArgumentException(
+                    "The major axis needs a direction: a finite vector of some length.",
+                    nameof(majorAxis)
+                );
             }
 
             Center = center;
@@ -107,7 +115,13 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Initializes an ellipse from values already checked, the axis already of unit length.
         /// </summary>
-        internal GeoEllipse2(GeoPoint2 center, GeoVector2 unitAxis, double majorRadius, double minorRadius, bool trusted)
+        internal GeoEllipse2(
+            GeoPoint2 center,
+            GeoVector2 unitAxis,
+            double majorRadius,
+            double minorRadius,
+            bool trusted
+        )
         {
             Center = center;
             MajorAxis = unitAxis;
@@ -126,7 +140,8 @@ namespace GeometryHelper.Geometry
         /// A circle can be stretched into an ellipse this way: a circle of radius 100 made an ellipse and transformed by a
         /// scaling of 3 along X is the ellipse 300 by 100, which <see cref="GeoCircle2.TransformBy(GeoTransform2)"/> refuses.
         /// </remarks>
-        public static GeoEllipse2 FromCircle(GeoCircle2 circle) => new GeoEllipse2(circle.Center, GeoVector2.XAxis, circle.Radius, circle.Radius);
+        public static GeoEllipse2 FromCircle(GeoCircle2 circle) =>
+            new GeoEllipse2(circle.Center, GeoVector2.XAxis, circle.Radius, circle.Radius);
 
         /// <summary>
         /// Creates a copy of this ellipse.
@@ -337,7 +352,8 @@ namespace GeometryHelper.Geometry
         /// <param name="chordTolerance">The largest gap allowed between an edge and the rim, in drawing units. Zero picks the automatic share of the minor radius.</param>
         /// <returns>A polygon inscribed in the ellipse.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 corners.</exception>
-        public GeoPolygon2 ToPolygonByChordTolerance(double chordTolerance) => Ellipse2.ToPolygonByChordTolerance(this, chordTolerance);
+        public GeoPolygon2 ToPolygonByChordTolerance(double chordTolerance) =>
+            Ellipse2.ToPolygonByChordTolerance(this, chordTolerance);
 
         /// <summary>
         /// Approximates the rim as a polygon whose corners are evenly spread along it, no two further apart along the rim
@@ -372,7 +388,8 @@ namespace GeometryHelper.Geometry
         /// <param name="chordTolerance">The largest gap allowed between a piece and the rim, in drawing units. Zero picks the automatic share of the minor radius.</param>
         /// <returns>A chain with its first point repeated at the end.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 corners.</exception>
-        public GeoPolyline2 ToPolylineByChordTolerance(double chordTolerance) => Ellipse2.ToPolylineByChordTolerance(this, chordTolerance);
+        public GeoPolyline2 ToPolylineByChordTolerance(double chordTolerance) =>
+            Ellipse2.ToPolylineByChordTolerance(this, chordTolerance);
 
         /// <summary>
         /// Approximates the rim as a chain whose points are no further apart along it than a spacing.
@@ -403,7 +420,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="tolerance">The tolerance deciding what counts as no area.</param>
         /// <returns>The triangles, counter-clockwise; none when the minor radius is no more than the point tolerance.</returns>
-        public GeoTriangle2[] TriangulateSurface(Tolerance tolerance) => Ellipse2.TriangulateSurface(this, 0.0, tolerance);
+        public GeoTriangle2[] TriangulateSurface(Tolerance tolerance) =>
+            Ellipse2.TriangulateSurface(this, 0.0, tolerance);
 
         /// <summary>
         /// Breaks the region into triangles fanned from its centre, the rim cut so that it strays from the ellipse no
@@ -411,7 +429,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="chordTolerance">The largest gap allowed between a chord and the rim, in drawing units. Zero picks the automatic share of the minor radius.</param>
         /// <returns>The triangles, counter-clockwise.</returns>
-        public GeoTriangle2[] TriangulateSurface(double chordTolerance) => Ellipse2.TriangulateSurface(this, chordTolerance);
+        public GeoTriangle2[] TriangulateSurface(double chordTolerance) =>
+            Ellipse2.TriangulateSurface(this, chordTolerance);
 
         /// <summary>
         /// Breaks the region into triangles fanned from its centre, the rim cut so that it strays from the ellipse no
@@ -424,7 +443,8 @@ namespace GeometryHelper.Geometry
         /// Fanned from the centre, as a circle is: the rim's polygon is convex, so every triangle is whole, and the triangles
         /// cover the polygon <see cref="ToPolygonByChordTolerance(double)"/> gives, which lies within the ellipse.
         /// </remarks>
-        public GeoTriangle2[] TriangulateSurface(double chordTolerance, Tolerance tolerance) => Ellipse2.TriangulateSurface(this, chordTolerance, tolerance);
+        public GeoTriangle2[] TriangulateSurface(double chordTolerance, Tolerance tolerance) =>
+            Ellipse2.TriangulateSurface(this, chordTolerance, tolerance);
 
         /// <summary>
         /// Breaks the region into faces of a kind, using the default tolerance. A grid needs the size of its cells, which
@@ -433,14 +453,16 @@ namespace GeometryHelper.Geometry
         /// <param name="kind">The kind of faces.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
         /// <exception cref="ArgumentException">Thrown for <see cref="Meshing.MeshKind.Grid"/>, which needs the size of its cells.</exception>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshKind kind) => Meshing.Mesh2.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Tolerance.Global);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshKind kind) =>
+            Meshing.Mesh2.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Tolerance.Global);
 
         /// <summary>
         /// Breaks the region into faces as the options say, using the default tolerance.
         /// </summary>
         /// <param name="options">How to break it up.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options) => Meshing.Mesh2.ToMesh(this, options, Tolerance.Global);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options) =>
+            Meshing.Mesh2.ToMesh(this, options, Tolerance.Global);
 
         /// <summary>
         /// Breaks the region into faces as the options say, within a tolerance: triangles, the cells of a grid, strips or
@@ -458,7 +480,8 @@ namespace GeometryHelper.Geometry
         /// The rim is flattened first, by the options' chord tolerance, as <see cref="ToPolygonByChordTolerance(double)"/>
         /// flattens it; its triangles are fanned from the centre.
         /// </remarks>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) => Meshing.Mesh2.ToMesh(this, options, tolerance);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) =>
+            Meshing.Mesh2.ToMesh(this, options, tolerance);
 
         #endregion
 
@@ -529,14 +552,19 @@ namespace GeometryHelper.Geometry
         /// of a <c>Try</c> method holds when the method said false — is not: it has no radii and no axis, and answers
         /// questions without complaint all the same.
         /// </remarks>
-        public bool IsValid => Center.IsValid
-            && MinorRadius > 0.0 && Guard.IsFinite(MajorRadius) && MajorRadius >= MinorRadius
-            && MajorAxis.IsValid && Guard.IsUnit(MajorAxis);
+        public bool IsValid =>
+            Center.IsValid
+            && MinorRadius > 0.0
+            && Guard.IsFinite(MajorRadius)
+            && MajorRadius >= MinorRadius
+            && MajorAxis.IsValid
+            && Guard.IsUnit(MajorAxis);
 
         /// <summary>
         /// Returns the string representation of the ellipse.
         /// </summary>
-        public override string ToString() => $"GeoEllipse2[Center:{Center}, MajorAxis:{MajorAxis}, MajorRadius:{MajorRadius:0.###}, MinorRadius:{MinorRadius:0.###}]";
+        public override string ToString() =>
+            $"GeoEllipse2[Center:{Center}, MajorAxis:{MajorAxis}, MajorRadius:{MajorRadius:0.###}, MinorRadius:{MinorRadius:0.###}]";
 
         #endregion
     }

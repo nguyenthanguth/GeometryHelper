@@ -24,7 +24,8 @@ namespace GeometryHelper.Internal
             {
                 // How many things start no further along than this one ends: itself, those before it in the sweep and
                 // those it is tried against.
-                int below = 0, above = lows.Length;
+                int below = 0,
+                    above = lows.Length;
 
                 while (below < above)
                 {

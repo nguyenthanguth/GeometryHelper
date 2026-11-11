@@ -59,24 +59,50 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // fraction and degrees, and "NaNg" and "Infinityr" were read as angles of NaN and infinity.
             string huge = new string('9', 400);
 
-            foreach (string typed in new[] { huge + "'", "1'" + huge + "\"", huge + "-1/2", "1-" + huge + "/2", "1-1/" + huge })
+            foreach (
+                string typed in new[]
+                {
+                    huge + "'",
+                    "1'" + huge + "\"",
+                    huge + "-1/2",
+                    "1-" + huge + "/2",
+                    "1-1/" + huge,
+                }
+            )
             {
                 foreach (int lunits in new[] { 3, 4, 5 })
                 {
                     if (CadUnits.TryLength(typed, lunits, out double length))
                     {
-                        Assert.False(double.IsNaN(length) || double.IsInfinity(length), typed + " in units " + lunits + " read as " + length);
+                        Assert.False(
+                            double.IsNaN(length) || double.IsInfinity(length),
+                            typed + " in units " + lunits + " read as " + length
+                        );
                     }
                 }
             }
 
-            foreach (string typed in new[] { huge + "d", "45d" + huge + "'", "N " + huge + "d E", "NaNg", "NaNr", "Infinityr", "-Infinityg" })
+            foreach (
+                string typed in new[]
+                {
+                    huge + "d",
+                    "45d" + huge + "'",
+                    "N " + huge + "d E",
+                    "NaNg",
+                    "NaNr",
+                    "Infinityr",
+                    "-Infinityg",
+                }
+            )
             {
                 foreach (int aunits in new[] { 0, 1, 2, 3, 4 })
                 {
                     if (CadUnits.TryAngle(typed, aunits, out double radians))
                     {
-                        Assert.False(double.IsNaN(radians) || double.IsInfinity(radians), typed + " in units " + aunits + " read as " + radians);
+                        Assert.False(
+                            double.IsNaN(radians) || double.IsInfinity(radians),
+                            typed + " in units " + aunits + " read as " + radians
+                        );
                     }
                 }
             }

@@ -13,7 +13,14 @@ namespace GeometryHelper.Takeoff
     /// </remarks>
     public sealed class VolumeTakeoffResult
     {
-        internal VolumeTakeoffResult(VolumeItem item, double grossVolume, double deductedVolume, double netVolume, VolumeDeduction[] deductions, string[] issues)
+        internal VolumeTakeoffResult(
+            VolumeItem item,
+            double grossVolume,
+            double deductedVolume,
+            double netVolume,
+            VolumeDeduction[] deductions,
+            string[] issues
+        )
         {
             Item = item;
             GrossVolume = grossVolume;

@@ -48,7 +48,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else
             {
-                _text = new DxfMText { TextHeight = edit.Height > 0.0 ? edit.Height : 2.5, Width = Math.Max(0.0, edit.Width), Attachment = (DxfAttachmentPoint)edit.Attachment };
+                _text = new DxfMText
+                {
+                    TextHeight = edit.Height > 0.0 ? edit.Height : 2.5,
+                    Width = Math.Max(0.0, edit.Width),
+                    Attachment = (DxfAttachmentPoint)edit.Attachment,
+                };
 
                 if (!string.IsNullOrEmpty(edit.StyleName))
                 {
@@ -80,7 +85,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="rgb">The colour of letters of no colour of their own, 0xRRGGBB.</param>
         /// <param name="layerRgb">The colour of letters coded ByLayer, 0xRRGGBB.</param>
         /// <exception cref="ArgumentNullException">Thrown when the editor is null.</exception>
-        public void Update(CadMTextEditor editor, double width, int attachment, double lineSpacing, int rgb, int layerRgb)
+        public void Update(
+            CadMTextEditor editor,
+            double width,
+            int attachment,
+            double lineSpacing,
+            int rgb,
+            int layerRgb
+        )
         {
             if (editor == null)
             {
@@ -237,8 +249,14 @@ namespace GeometryHelper.Dxf.Viewer
             for (int n = 0; n < lines.Count; n++)
             {
                 CadMTextLayout.LineBox line = lines[n];
-                double across = x < line.ColumnLeft ? line.ColumnLeft - x : x > line.ColumnRight ? x - line.ColumnRight : 0.0;
-                double down = y > line.Top ? y - line.Top : y < line.Bottom ? line.Bottom - y : 0.0;
+                double across =
+                    x < line.ColumnLeft ? line.ColumnLeft - x
+                    : x > line.ColumnRight ? x - line.ColumnRight
+                    : 0.0;
+                double down =
+                    y > line.Top ? y - line.Top
+                    : y < line.Bottom ? line.Bottom - y
+                    : 0.0;
 
                 if (across < bestAcross - 1E-9 || (Math.Abs(across - bestAcross) <= 1E-9 && down < bestDown))
                 {
@@ -274,7 +292,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (_layout == null || line < 0 || line >= LineCount)
             {
-                throw new ArgumentOutOfRangeException(nameof(line), line, "The words have " + LineCount + " lines, counted from nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(line),
+                    line,
+                    "The words have " + LineCount + " lines, counted from nought."
+                );
             }
 
             return _layout.Places.Lines[line];

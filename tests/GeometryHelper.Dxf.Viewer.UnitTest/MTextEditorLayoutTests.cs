@@ -22,7 +22,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             _folder.Write("test.shx", ShxFiles.Unifont());
             var database = new DxfDatabase("AC1027");
             database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "GH_SHX", FileName = "test.shx" });
-            mtext = new DxfMText { Contents = contents, Location = new GeoPoint3(0, 0, 0), TextHeight = 10.0, Width = width };
+            mtext = new DxfMText
+            {
+                Contents = contents,
+                Location = new GeoPoint3(0, 0, 0),
+                TextHeight = 10.0,
+                Width = width,
+            };
             database.ModelSpace.AppendEntity(mtext);
             mtext.TextStyleName = "GH_SHX";
             more?.Invoke(mtext);
@@ -32,11 +38,27 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         /// <summary>The MTEXT drawn by the canvas, and the editor opened on it and laid out.</summary>
-        private CadMTextEditorLayout Edited(string contents, double width, Action<DxfMText> more, out DisplayText2 drawn, out CadMTextEditor editor)
+        private CadMTextEditorLayout Edited(
+            string contents,
+            double width,
+            Action<DxfMText> more,
+            out DisplayText2 drawn,
+            out CadMTextEditor editor
+        )
         {
             CadDocument document = Document(contents, width, more, out DxfMText mtext);
             drawn = document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>().Single();
-            var edit = new CadInPlaceEdit(CadInPlaceKind.MText, mtext.Handle, mtext.Contents, new GeoPoint2(0, 0), mtext.TextHeight, 0.0, mtext.Width, mtext.TextStyleName, (int)mtext.Attachment);
+            var edit = new CadInPlaceEdit(
+                CadInPlaceKind.MText,
+                mtext.Handle,
+                mtext.Contents,
+                new GeoPoint2(0, 0),
+                mtext.TextHeight,
+                0.0,
+                mtext.Width,
+                mtext.TextStyleName,
+                (int)mtext.Attachment
+            );
             editor = new CadMTextEditor(edit.Value, edit.Height);
             var layout = new CadMTextEditorLayout(document, edit);
             layout.Update(editor, mtext.Width, (int)mtext.Attachment, mtext.LineSpacingFactor, 0xFFFFFF, 0xFFFFFF);
@@ -65,7 +87,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 }
             }
 
-            Assert.Equal(drawn.Parts.OfType<DisplayPolyline2>().Count(), layout.Parts.OfType<DisplayPolyline2>().Count());
+            Assert.Equal(
+                drawn.Parts.OfType<DisplayPolyline2>().Count(),
+                layout.Parts.OfType<DisplayPolyline2>().Count()
+            );
         }
 
         [Fact]
@@ -79,7 +104,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(2, layout.LineCount);
             Assert.Equal(-10.0, layout.BaselineOf(0), 9);
             Assert.Equal(-10.0 - (50.0 / 3.0), layout.BaselineOf(1), 9);
-            Assert.Equal(new[] { 0, 0, 0, 0, 0, 0, 1, 1, 1 }, Enumerable.Range(0, 9).Select(layout.LineOfPlace).ToArray());
+            Assert.Equal(
+                new[] { 0, 0, 0, 0, 0, 0, 1, 1, 1 },
+                Enumerable.Range(0, 9).Select(layout.LineOfPlace).ToArray()
+            );
             Assert.Equal(-1.0, layout.XOf(0), 9);
             Assert.Equal(20.0, layout.XOf(5), 9);
             Assert.Equal(-1.0, layout.XOf(6), 9);
@@ -94,7 +122,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             foreach (DxfLineSpacingStyle style in new[] { DxfLineSpacingStyle.AtLeast, DxfLineSpacingStyle.Exactly })
             {
-                CadMTextEditorLayout layout = Edited(@"I\P{\H2x;I}\PI", 0.0, t => t.LineSpacingStyle = style, out DisplayText2 drawn, out _);
+                CadMTextEditorLayout layout = Edited(
+                    @"I\P{\H2x;I}\PI",
+                    0.0,
+                    t => t.LineSpacingStyle = style,
+                    out DisplayText2 drawn,
+                    out _
+                );
                 SameParts(drawn, layout);
                 double[] feet = drawn.Parts.OfType<DisplayText2>().Select(t => t.Strokes[0][1]).ToArray();
                 Assert.Equal(3, layout.LineCount);
@@ -106,14 +140,29 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             }
 
             // At least, the line of the letter 20 high stands 10 lower than one of 10; exactly, 50 / 3 below the first.
-            Assert.Equal(-10.0 - (50.0 / 3.0) - 10.0, Edited(@"I\P{\H2x;I}\PI", 0.0, null, out _, out _).BaselineOf(1), 9);
-            Assert.Equal(-10.0 - (50.0 / 3.0), Edited(@"I\P{\H2x;I}\PI", 0.0, t => t.LineSpacingStyle = DxfLineSpacingStyle.Exactly, out _, out _).BaselineOf(1), 9);
+            Assert.Equal(
+                -10.0 - (50.0 / 3.0) - 10.0,
+                Edited(@"I\P{\H2x;I}\PI", 0.0, null, out _, out _).BaselineOf(1),
+                9
+            );
+            Assert.Equal(
+                -10.0 - (50.0 / 3.0),
+                Edited(@"I\P{\H2x;I}\PI", 0.0, t => t.LineSpacingStyle = DxfLineSpacingStyle.Exactly, out _, out _)
+                    .BaselineOf(1),
+                9
+            );
         }
 
         [Fact]
         public void AStackedFraction_IsDrawnStackedInTheEditor_OnePlaceAsWideAsItMovesThePen()
         {
-            CadMTextEditorLayout layout = Edited(@"I\SI/II;I", 0.0, null, out DisplayText2 drawn, out CadMTextEditor editor);
+            CadMTextEditorLayout layout = Edited(
+                @"I\SI/II;I",
+                0.0,
+                null,
+                out DisplayText2 drawn,
+                out CadMTextEditor editor
+            );
 
             // The stack is one place of the editor: from the pen after the first letter, 3, it moves the pen by its ink, 4, and a
             // seventh of the height; the last letter's place starts there.

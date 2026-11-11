@@ -18,20 +18,27 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static readonly GeoPoint2[] Arch =
         {
-            new GeoPoint2(0, 0), new GeoPoint2(100, 150), new GeoPoint2(200, 150), new GeoPoint2(300, 0)
+            new GeoPoint2(0, 0),
+            new GeoPoint2(100, 150),
+            new GeoPoint2(200, 150),
+            new GeoPoint2(300, 0),
         };
 
         private static readonly double[] BezierKnots = { 0, 0, 0, 0, 1, 1, 1, 1 };
 
         private static GeoSpline2 Cubic() => new GeoSpline2(3, Arch, BezierKnots);
 
-        private static GeoSpline2 Circle(double radius = 100.0) => GeoSpline2.FromCircle(new GeoCircle2(new GeoPoint2(0, 0), radius));
+        private static GeoSpline2 Circle(double radius = 100.0) =>
+            GeoSpline2.FromCircle(new GeoCircle2(new GeoPoint2(0, 0), radius));
 
         private static SplineOracle OracleOf(GeoSpline2 spline) => SplineUnderTest.Wrap(spline).Oracle();
 
         private static void AssertPoint(double x, double y, GeoPoint2 actual, double within)
         {
-            Assert.True(Math.Abs(actual.X - x) <= within && Math.Abs(actual.Y - y) <= within, "expected (" + x + ", " + y + "), got " + actual);
+            Assert.True(
+                Math.Abs(actual.X - x) <= within && Math.Abs(actual.Y - y) <= within,
+                "expected (" + x + ", " + y + "), got " + actual
+            );
         }
 
         #region Making one
@@ -127,7 +134,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void APolylineAsASpline_IsThePolyline_WithEachVertexAtItsShareOfTheLength()
         {
-            var polyline = new GeoPolyline2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 50) });
+            var polyline = new GeoPolyline2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 50) }
+            );
             GeoSpline2 spline = GeoSpline2.FromPolyline(polyline);
 
             Assert.Equal(1, spline.Degree);
@@ -154,11 +163,19 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void TooFewControlPoints_AreRefused_AndNullsAreNamed()
         {
-            Assert.Throws<ArgumentException>(() => new GeoSpline2(4, Arch, new double[] { 0, 0, 0, 0, 0, 1, 1, 1, 1, 1 }));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoSpline2(4, Arch, new double[] { 0, 0, 0, 0, 0, 1, 1, 1, 1, 1 })
+            );
             Assert.Throws<ArgumentException>(() => GeoSpline2.FromControlPoints(4, Arch));
-            Assert.Equal("controlPoints", Assert.Throws<ArgumentNullException>(() => new GeoSpline2(3, null, BezierKnots)).ParamName);
+            Assert.Equal(
+                "controlPoints",
+                Assert.Throws<ArgumentNullException>(() => new GeoSpline2(3, null, BezierKnots)).ParamName
+            );
             Assert.Equal("knots", Assert.Throws<ArgumentNullException>(() => new GeoSpline2(3, Arch, null)).ParamName);
-            Assert.Equal("controlPoints", Assert.Throws<ArgumentNullException>(() => GeoSpline2.FromControlPoints(3, null)).ParamName);
+            Assert.Equal(
+                "controlPoints",
+                Assert.Throws<ArgumentNullException>(() => GeoSpline2.FromControlPoints(3, null)).ParamName
+            );
         }
 
         [Theory]
@@ -178,20 +195,40 @@ namespace GeometryHelper.UnitTest.Plane
 
             switch (fault)
             {
-                case "count": knots = new double[] { 0, 0, 0, 0, 1, 1, 1, 1 }; break;
-                case "decreasing": knots = new double[] { 0, 0, 0, 0, 0.7, 0.5, 1, 1, 1, 1 }; break;
-                case "notClampedAtTheStart": knots = new double[] { 0, 0, 0, 0.1, 0.4, 0.7, 1, 1, 1, 1 }; break;
-                case "notClampedAtTheEnd": knots = new double[] { 0, 0, 0, 0, 0.3, 0.7, 0.9, 1, 1, 1 }; break;
-                case "tooManyAtTheEnd": knots = new double[] { 0, 0, 0, 0, 0, 1, 1, 1, 1, 1 }; break;
-                case "empty": knots = new double[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }; break;
-                case "innerKnotRepeatedMoreThanTheDegree": knots = new double[] { 0, 0, 0, 0, 0.5, 0.5, 0.5, 0.5, 1, 1, 1, 1, 1 }; break;
-                case "notANumber": knots = new[] { 0, 0, 0, 0, double.NaN, 0.5, 1, 1, 1, 1 }; break;
-                default: knots = new[] { 0, 0, 0, 0, double.PositiveInfinity, double.PositiveInfinity, 1, 1, 1, 1 }; break;
+                case "count":
+                    knots = new double[] { 0, 0, 0, 0, 1, 1, 1, 1 };
+                    break;
+                case "decreasing":
+                    knots = new double[] { 0, 0, 0, 0, 0.7, 0.5, 1, 1, 1, 1 };
+                    break;
+                case "notClampedAtTheStart":
+                    knots = new double[] { 0, 0, 0, 0.1, 0.4, 0.7, 1, 1, 1, 1 };
+                    break;
+                case "notClampedAtTheEnd":
+                    knots = new double[] { 0, 0, 0, 0, 0.3, 0.7, 0.9, 1, 1, 1 };
+                    break;
+                case "tooManyAtTheEnd":
+                    knots = new double[] { 0, 0, 0, 0, 0, 1, 1, 1, 1, 1 };
+                    break;
+                case "empty":
+                    knots = new double[] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+                    break;
+                case "innerKnotRepeatedMoreThanTheDegree":
+                    knots = new double[] { 0, 0, 0, 0, 0.5, 0.5, 0.5, 0.5, 1, 1, 1, 1, 1 };
+                    break;
+                case "notANumber":
+                    knots = new[] { 0, 0, 0, 0, double.NaN, 0.5, 1, 1, 1, 1 };
+                    break;
+                default:
+                    knots = new[] { 0, 0, 0, 0, double.PositiveInfinity, double.PositiveInfinity, 1, 1, 1, 1 };
+                    break;
             }
 
             if (fault == "innerKnotRepeatedMoreThanTheDegree")
             {
-                points = points.Concat(new[] { new GeoPoint2(600, 50), new GeoPoint2(700, 20), new GeoPoint2(800, 30) });
+                points = points.Concat(
+                    new[] { new GeoPoint2(600, 50), new GeoPoint2(700, 20), new GeoPoint2(800, 30) }
+                );
             }
 
             Assert.Throws<ArgumentException>(() => new GeoSpline2(3, points, knots));
@@ -201,7 +238,16 @@ namespace GeometryHelper.UnitTest.Plane
         public void AnInnerKnotRepeatedTheDegree_IsAllowed_AndBreaksTheCurveToACorner()
         {
             // Three times, with degree three: the curve passes through a control point and turns a corner there.
-            var points = new[] { new GeoPoint2(0, 0), new GeoPoint2(50, 100), new GeoPoint2(100, 0), new GeoPoint2(150, -100), new GeoPoint2(200, 0), new GeoPoint2(250, 100), new GeoPoint2(300, 0) };
+            var points = new[]
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(50, 100),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(150, -100),
+                new GeoPoint2(200, 0),
+                new GeoPoint2(250, 100),
+                new GeoPoint2(300, 0),
+            };
             var spline = new GeoSpline2(3, points, new double[] { 0, 0, 0, 0, 0.5, 0.5, 0.5, 1, 1, 1, 1 });
 
             AssertPoint(150.0, -100.0, spline.GetPointAtKnot(0.5), 1E-12);
@@ -211,10 +257,18 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void WeightsThatAreNotPositiveNumbers_AreRefused_AsAreTheWrongNumberOfThem()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoSpline2(3, Arch, BezierKnots, new double[] { 1, 0, 1, 1 }));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoSpline2(3, Arch, BezierKnots, new double[] { 1, -2, 1, 1 }));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoSpline2(3, Arch, BezierKnots, new[] { 1, double.NaN, 1, 1 }));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoSpline2(3, Arch, BezierKnots, new[] { 1, double.PositiveInfinity, 1, 1 }));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new GeoSpline2(3, Arch, BezierKnots, new double[] { 1, 0, 1, 1 })
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new GeoSpline2(3, Arch, BezierKnots, new double[] { 1, -2, 1, 1 })
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new GeoSpline2(3, Arch, BezierKnots, new[] { 1, double.NaN, 1, 1 })
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new GeoSpline2(3, Arch, BezierKnots, new[] { 1, double.PositiveInfinity, 1, 1 })
+            );
             Assert.Throws<ArgumentException>(() => new GeoSpline2(3, Arch, BezierKnots, new double[] { 1, 1, 1 }));
         }
 
@@ -224,11 +278,39 @@ namespace GeometryHelper.UnitTest.Plane
             var one = new GeoPoint2(7, 7);
 
             Assert.Throws<ArgumentException>(() => new GeoSpline2(3, new[] { one, one, one, one }, BezierKnots));
-            Assert.Throws<ArgumentException>(() => new GeoSpline2(3, new[] { new GeoPoint2(0, 0), new GeoPoint2(double.NaN, 1), new GeoPoint2(2, 2), new GeoPoint2(3, 3) }, BezierKnots));
-            Assert.Throws<ArgumentException>(() => new GeoSpline2(3, new[] { new GeoPoint2(0, 0), new GeoPoint2(1, double.PositiveInfinity), new GeoPoint2(2, 2), new GeoPoint2(3, 3) }, BezierKnots));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoSpline2(
+                    3,
+                    new[]
+                    {
+                        new GeoPoint2(0, 0),
+                        new GeoPoint2(double.NaN, 1),
+                        new GeoPoint2(2, 2),
+                        new GeoPoint2(3, 3),
+                    },
+                    BezierKnots
+                )
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new GeoSpline2(
+                    3,
+                    new[]
+                    {
+                        new GeoPoint2(0, 0),
+                        new GeoPoint2(1, double.PositiveInfinity),
+                        new GeoPoint2(2, 2),
+                        new GeoPoint2(3, 3),
+                    },
+                    BezierKnots
+                )
+            );
 
             // Not all one point is enough: a curve that returns to where it started is a curve.
-            var loop = new GeoSpline2(3, new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 100), new GeoPoint2(-100, 100), new GeoPoint2(0, 0) }, BezierKnots);
+            var loop = new GeoSpline2(
+                3,
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 100), new GeoPoint2(-100, 100), new GeoPoint2(0, 0) },
+                BezierKnots
+            );
             Assert.True(loop.IsClosed());
         }
 
@@ -259,7 +341,10 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(9, circle.ControlPointCount);
             Assert.True(circle.IsRational);
             Assert.Equal(new[] { 0, 0, 0, 0.25, 0.25, 0.5, 0.5, 0.75, 0.75, 1, 1, 1 }, circle.Knots.ToArray());
-            Assert.Equal(new[] { 1, Math.Sqrt(0.5), 1, Math.Sqrt(0.5), 1, Math.Sqrt(0.5), 1, Math.Sqrt(0.5), 1 }, circle.Weights.ToArray());
+            Assert.Equal(
+                new[] { 1, Math.Sqrt(0.5), 1, Math.Sqrt(0.5), 1, Math.Sqrt(0.5), 1, Math.Sqrt(0.5), 1 },
+                circle.Weights.ToArray()
+            );
             AssertPoint(100, 100, circle.ControlPoints[1], 1E-12);
             AssertPoint(-100, 0, circle.ControlPoints[4], 1E-12);
 
@@ -296,7 +381,10 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 double length = Circle(radius).Length;
 
-                Assert.True(Math.Abs(length - 2.0 * Math.PI * radius) <= 1E-12 * 2.0 * Math.PI * radius, "radius " + radius + ": " + length.ToString("R"));
+                Assert.True(
+                    Math.Abs(length - 2.0 * Math.PI * radius) <= 1E-12 * 2.0 * Math.PI * radius,
+                    "radius " + radius + ": " + length.ToString("R")
+                );
             }
         }
 
@@ -311,7 +399,13 @@ namespace GeometryHelper.UnitTest.Plane
             }
 
             Assert.Equal(-0.01, circle.Reverse().GetCurvatureAtKnot(0.4), 12);
-            Assert.Equal(-0.01, circle.TransformBy(GeoTransform2.Mirror(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(1, 0)))).GetCurvatureAtKnot(0.4), 12);
+            Assert.Equal(
+                -0.01,
+                circle
+                    .TransformBy(GeoTransform2.Mirror(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(1, 0))))
+                    .GetCurvatureAtKnot(0.4),
+                12
+            );
         }
 
         [Fact]
@@ -394,7 +488,13 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void FourFitPointsOfDegreeThree_AreMetAtTheirShareOfTheChainLength()
         {
-            var fit = new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 50), new GeoPoint2(200, 0), new GeoPoint2(300, 50) };
+            var fit = new[]
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 50),
+                new GeoPoint2(200, 0),
+                new GeoPoint2(300, 50),
+            };
             GeoSpline2 spline = GeoSpline2.Interpolate(fit, 3, Tol);
 
             Assert.Equal(3, spline.Degree);
@@ -435,7 +535,16 @@ namespace GeometryHelper.UnitTest.Plane
 
                 for (int i = 0; i < fit.Count; i++)
                 {
-                    Assert.True(spline.GetPointAtKnot(u[i]).DistanceTo(fit[i]) <= 1E-9, "degree " + degree + ", point " + i + " is " + spline.GetPointAtKnot(u[i]).DistanceTo(fit[i]) + " off");
+                    Assert.True(
+                        spline.GetPointAtKnot(u[i]).DistanceTo(fit[i]) <= 1E-9,
+                        "degree "
+                            + degree
+                            + ", point "
+                            + i
+                            + " is "
+                            + spline.GetPointAtKnot(u[i]).DistanceTo(fit[i])
+                            + " off"
+                    );
                 }
 
                 // The inner knots are the means of degree parameters in a row.
@@ -454,7 +563,13 @@ namespace GeometryHelper.UnitTest.Plane
 
             foreach (double scale in new[] { 1.0, 0.001, 5000.0 })
             {
-                GeoSpline2 spline = GeoSpline2.Interpolate(fit, new GeoVector2(scale, 0), new GeoVector2(scale, 0), 3, Tol);
+                GeoSpline2 spline = GeoSpline2.Interpolate(
+                    fit,
+                    new GeoVector2(scale, 0),
+                    new GeoVector2(scale, 0),
+                    3,
+                    Tol
+                );
 
                 Assert.Equal(5, spline.ControlPointCount);
                 Assert.True(spline.GetDerivativeAtKnot(0.0, 1).IsEqualTo(new GeoVector2(200, 0), Tol));
@@ -493,7 +608,10 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void FitPointsOnACircle_GiveACurveThatStaysCloseToIt()
         {
-            var fit = Enumerable.Range(0, 17).Select(i => new GeoPoint2(100 * Math.Cos(i * Math.PI / 8), 100 * Math.Sin(i * Math.PI / 8))).ToArray();
+            var fit = Enumerable
+                .Range(0, 17)
+                .Select(i => new GeoPoint2(100 * Math.Cos(i * Math.PI / 8), 100 * Math.Sin(i * Math.PI / 8)))
+                .ToArray();
             GeoSpline2 spline = GeoSpline2.Interpolate(fit, new GeoVector2(0, 1), new GeoVector2(0, 1), 3, Tol);
             double worst = 0.0;
 
@@ -510,22 +628,51 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void FitPointsThatCoincideWithTheOneBefore_AreDropped_AndTooFewOrBadOnesAreRefused()
         {
-            var fit = new[] { new GeoPoint2(0, 0), new GeoPoint2(0.0004, 0), new GeoPoint2(100, 50), new GeoPoint2(200, 0), new GeoPoint2(300, 50) };
+            var fit = new[]
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(0.0004, 0),
+                new GeoPoint2(100, 50),
+                new GeoPoint2(200, 0),
+                new GeoPoint2(300, 50),
+            };
             GeoSpline2 spline = GeoSpline2.Interpolate(fit, 3, Tol);
 
             Assert.Equal(4, spline.ControlPointCount);
             Assert.Equal(new GeoPoint2(0, 0), spline.StartPoint);
 
             Assert.Throws<ArgumentException>(() => GeoSpline2.Interpolate(fit.Take(3), 3, Tol));
-            Assert.Throws<ArgumentException>(() => GeoSpline2.Interpolate(new[] { new GeoPoint2(0, 0), new GeoPoint2(0, 0) }, 1, Tol));
-            Assert.Throws<ArgumentException>(() => GeoSpline2.Interpolate(new[] { new GeoPoint2(0, 0), new GeoPoint2(double.NaN, 1), new GeoPoint2(5, 5), new GeoPoint2(9, 1) }, 3, Tol));
+            Assert.Throws<ArgumentException>(() =>
+                GeoSpline2.Interpolate(new[] { new GeoPoint2(0, 0), new GeoPoint2(0, 0) }, 1, Tol)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                GeoSpline2.Interpolate(
+                    new[]
+                    {
+                        new GeoPoint2(0, 0),
+                        new GeoPoint2(double.NaN, 1),
+                        new GeoPoint2(5, 5),
+                        new GeoPoint2(9, 1),
+                    },
+                    3,
+                    Tol
+                )
+            );
             Assert.Throws<ArgumentNullException>(() => GeoSpline2.Interpolate(null, 3, Tol));
             Assert.Throws<ArgumentOutOfRangeException>(() => GeoSpline2.Interpolate(fit, 0, Tol));
             Assert.Throws<ArgumentOutOfRangeException>(() => GeoSpline2.Interpolate(fit, 11, Tol));
-            Assert.Throws<ArgumentOutOfRangeException>(() => GeoSpline2.Interpolate(fit, new GeoVector2(1, 0), new GeoVector2(1, 0), 1, Tol));
-            Assert.Throws<ArgumentException>(() => GeoSpline2.Interpolate(fit, GeoVector2.Zero, new GeoVector2(1, 0), 3, Tol));
-            Assert.Throws<ArgumentException>(() => GeoSpline2.Interpolate(fit, new GeoVector2(1, 0), new GeoVector2(double.NaN, 0), 3, Tol));
-            Assert.Throws<ArgumentException>(() => GeoSpline2.Interpolate(fit.Take(1), new GeoVector2(1, 0), new GeoVector2(1, 0), 3, Tol));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                GeoSpline2.Interpolate(fit, new GeoVector2(1, 0), new GeoVector2(1, 0), 1, Tol)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                GeoSpline2.Interpolate(fit, GeoVector2.Zero, new GeoVector2(1, 0), 3, Tol)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                GeoSpline2.Interpolate(fit, new GeoVector2(1, 0), new GeoVector2(double.NaN, 0), 3, Tol)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                GeoSpline2.Interpolate(fit.Take(1), new GeoVector2(1, 0), new GeoVector2(1, 0), 3, Tol)
+            );
 
             // A degree as high as the points allow is fine, one more is not.
             Assert.Equal(3, GeoSpline2.Interpolate(fit, 3, Tol).Degree);
@@ -537,7 +684,10 @@ namespace GeometryHelper.UnitTest.Plane
         public void ManyThousandFitPoints_AreSolvedAsOneBandedSystem()
         {
             int count = 20000;
-            var fit = Enumerable.Range(0, count).Select(i => new GeoPoint2(i * 3.0, 500.0 * Math.Sin(i * 0.01) + (i % 7))).ToArray();
+            var fit = Enumerable
+                .Range(0, count)
+                .Select(i => new GeoPoint2(i * 3.0, 500.0 * Math.Sin(i * 0.01) + (i % 7)))
+                .ToArray();
             GeoSpline2 spline = GeoSpline2.Interpolate(fit, 3, Tol);
             double[] u = new double[count];
 
@@ -589,7 +739,16 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void CuttingAtAKnotOrWhereAKnotIsAlreadyRepeated_Works_AndCuttingAtAnEndIsRefused()
         {
-            var points = new[] { new GeoPoint2(0, 0), new GeoPoint2(50, 100), new GeoPoint2(100, 0), new GeoPoint2(150, -100), new GeoPoint2(200, 0), new GeoPoint2(250, 100), new GeoPoint2(300, 0) };
+            var points = new[]
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(50, 100),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(150, -100),
+                new GeoPoint2(200, 0),
+                new GeoPoint2(250, 100),
+                new GeoPoint2(300, 0),
+            };
             var spline = new GeoSpline2(3, points, new double[] { 0, 0, 0, 0, 0.5, 0.5, 0.5, 1, 1, 1, 1 });
 
             GeoSpline2[] atTheCorner = spline.Split(0.5);
@@ -621,7 +780,9 @@ namespace GeometryHelper.UnitTest.Plane
 
                 for (int i = 0; i <= 100; i++)
                 {
-                    GeoPoint2 p = half.GetPointAtKnot(half.DomainStart + (half.DomainEnd - half.DomainStart) * i / 100.0);
+                    GeoPoint2 p = half.GetPointAtKnot(
+                        half.DomainStart + (half.DomainEnd - half.DomainStart) * i / 100.0
+                    );
                     Assert.Equal(100.0, Math.Sqrt(p.X * p.X + p.Y * p.Y), 11);
                 }
             }
@@ -636,7 +797,12 @@ namespace GeometryHelper.UnitTest.Plane
         public void TheReverse_HasTheSameDomain_AndRunsFromTheEndToTheStart()
         {
             var points = Arch.Concat(new[] { new GeoPoint2(400, 80) });
-            var spline = new GeoSpline2(3, points, new double[] { 5, 5, 5, 5, 9, 12, 12, 12, 12 }, new double[] { 1, 2, 3, 1, 2 });
+            var spline = new GeoSpline2(
+                3,
+                points,
+                new double[] { 5, 5, 5, 5, 9, 12, 12, 12, 12 },
+                new double[] { 1, 2, 3, 1, 2 }
+            );
             GeoSpline2 reversed = spline.Reverse();
 
             Assert.Equal(5.0, reversed.DomainStart);
@@ -667,7 +833,9 @@ namespace GeometryHelper.UnitTest.Plane
             AssertPoint(-112.5, 150.0, turned.GetPointAtKnot(0.5), 1E-12);
             Assert.Equal(spline.Length, turned.Length, 10);
 
-            GeoSpline2 mirrored = spline.TransformBy(GeoTransform2.Mirror(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(0, 1))));
+            GeoSpline2 mirrored = spline.TransformBy(
+                GeoTransform2.Mirror(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(0, 1)))
+            );
             AssertPoint(-150.0, 112.5, mirrored.GetPointAtKnot(0.5), 1E-12);
             Assert.Equal(new GeoPoint2(-300, 0), mirrored.EndPoint);
 
@@ -689,7 +857,11 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void LiftedIntoSpaceAndLaidBackOut_TheSplineComesBackAsItWent()
         {
-            var frame = new GeoCoordinateSystem3(new GeoPoint3(10, 20, 30), new GeoVector3(1, 1, 0), new GeoVector3(0, 0, 1));
+            var frame = new GeoCoordinateSystem3(
+                new GeoPoint3(10, 20, 30),
+                new GeoVector3(1, 1, 0),
+                new GeoVector3(0, 0, 1)
+            );
             GeoSpline2 spline = new GeoSpline2(3, Arch, BezierKnots, new double[] { 1, 2, 0.5, 1 });
             GeoSpline3 lifted = spline.ToSpline3(frame);
 
@@ -702,7 +874,10 @@ namespace GeometryHelper.UnitTest.Plane
             for (int i = 0; i < spline.ControlPointCount; i++)
             {
                 Assert.True(back.ControlPoints[i].IsEqualTo(spline.ControlPoints[i], Tolerance.Default));
-                Assert.True(frame.ToLocal(lifted.ControlPoints[i]).Z == 0.0 || Math.Abs(frame.ToLocal(lifted.ControlPoints[i]).Z) < 1E-12);
+                Assert.True(
+                    frame.ToLocal(lifted.ControlPoints[i]).Z == 0.0
+                        || Math.Abs(frame.ToLocal(lifted.ControlPoints[i]).Z) < 1E-12
+                );
             }
 
             Assert.True(back.GetPointAtKnot(0.4).IsEqualTo(spline.GetPointAtKnot(0.4), Tolerance.Default));
@@ -740,7 +915,11 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void WhereTheFirstTwoControlPointsCoincide_TheTangentIsFoundFromTheSecondDerivative()
         {
-            var spline = new GeoSpline2(3, new[] { new GeoPoint2(0, 0), new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) }, BezierKnots);
+            var spline = new GeoSpline2(
+                3,
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) },
+                BezierKnots
+            );
 
             Assert.True(spline.GetDerivativeAtKnot(0.0, 1).IsEqualTo(GeoVector2.Zero, Tol));
             Assert.True(spline.GetTangentAtKnot(0.0).IsEqualTo(new GeoVector2(1, 0), Tol));
@@ -758,7 +937,11 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(1.0, circle.GetParameterAtDistance(1E9));
             Assert.Equal(0.5, circle.GetParameterAtDistance(circle.Length * 0.5), 11);
             Assert.Equal(0.125, circle.GetParameterAtDistance(circle.Length * 0.125), 11);
-            Assert.True(circle.GetPointAtKnot(circle.GetParameterAtDistance(Math.PI * 100.0)).IsEqualTo(new GeoPoint2(-100, 0), Tol));
+            Assert.True(
+                circle
+                    .GetPointAtKnot(circle.GetParameterAtDistance(Math.PI * 100.0))
+                    .IsEqualTo(new GeoPoint2(-100, 0), Tol)
+            );
         }
 
         [Fact]
@@ -770,8 +953,15 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(200.0, box.Height, 11);
             AssertPoint(0.0, 0.0, box.Center, 1E-11);
 
-            GeoRectangle2 tilted = Circle().TransformBy(GeoTransform2.Scaling(2.0, 1.0)).TransformBy(GeoTransform2.Rotation(Math.PI / 6.0)).GetAabb();
-            double expectedWidth = 2.0 * Math.Sqrt(Math.Pow(200.0 * Math.Cos(Math.PI / 6.0), 2) + Math.Pow(100.0 * Math.Sin(Math.PI / 6.0), 2));
+            GeoRectangle2 tilted = Circle()
+                .TransformBy(GeoTransform2.Scaling(2.0, 1.0))
+                .TransformBy(GeoTransform2.Rotation(Math.PI / 6.0))
+                .GetAabb();
+            double expectedWidth =
+                2.0
+                * Math.Sqrt(
+                    Math.Pow(200.0 * Math.Cos(Math.PI / 6.0), 2) + Math.Pow(100.0 * Math.Sin(Math.PI / 6.0), 2)
+                );
 
             Assert.Equal(expectedWidth, tilted.Width, 9);
         }
@@ -806,7 +996,11 @@ namespace GeometryHelper.UnitTest.Plane
             AssertPoint(100.0, 0.0, circle.GetClosestPointOnBoundary(new GeoPoint2(0, 0)), 1E-11);
 
             // A point on the axis of a symmetric arch is equally near its two sides: the lower parameter.
-            GeoSpline2 arch = new GeoSpline2(2, new[] { new GeoPoint2(-100, 0), new GeoPoint2(0, 200), new GeoPoint2(100, 0) }, new double[] { 0, 0, 0, 1, 1, 1 });
+            GeoSpline2 arch = new GeoSpline2(
+                2,
+                new[] { new GeoPoint2(-100, 0), new GeoPoint2(0, 200), new GeoPoint2(100, 0) },
+                new double[] { 0, 0, 0, 1, 1, 1 }
+            );
             double t = arch.GetKnotAtPoint(new GeoPoint2(0, 0));
 
             Assert.True(t < 0.5);
@@ -831,7 +1025,11 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AStraightSpline_IsMeasuredAsASegmentIs()
         {
-            var line = new GeoSpline2(1, new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0) }, new double[] { 0, 0, 1, 1 });
+            var line = new GeoSpline2(
+                1,
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0) },
+                new double[] { 0, 0, 1, 1 }
+            );
 
             Assert.Equal(30.0, line.DistanceTo(new GeoPoint2(50, 30)), 12);
             Assert.Equal(50.0, line.DistanceTo(new GeoPoint2(150, 0)), 12);
@@ -872,14 +1070,30 @@ namespace GeometryHelper.UnitTest.Plane
         public void ACurveThatLoopsOrDoublesBack_GivesTheNearestOfAllItsParts()
         {
             // A cubic that crosses itself: both ends run to the right of the loop.
-            var loop = new GeoSpline2(3, new[] { new GeoPoint2(0, 0), new GeoPoint2(300, 300), new GeoPoint2(-100, 300), new GeoPoint2(200, 0) }, BezierKnots);
+            var loop = new GeoSpline2(
+                3,
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(300, 300), new GeoPoint2(-100, 300), new GeoPoint2(200, 0) },
+                BezierKnots
+            );
             var oracle = OracleOf(loop);
 
-            foreach (GeoPoint2 q in new[] { new GeoPoint2(100, 150), new GeoPoint2(100, 100), new GeoPoint2(50, 200), new GeoPoint2(100, 20), new GeoPoint2(100, 400) })
+            foreach (
+                GeoPoint2 q in new[]
+                {
+                    new GeoPoint2(100, 150),
+                    new GeoPoint2(100, 100),
+                    new GeoPoint2(50, 200),
+                    new GeoPoint2(100, 20),
+                    new GeoPoint2(100, 400),
+                }
+            )
             {
                 double expected = oracle.Nearest(new[] { q.X, q.Y }, out _);
 
-                Assert.True(Math.Abs(loop.DistanceTo(q) - expected) <= 1E-11, q + ": " + loop.DistanceTo(q) + ", the oracle says " + expected);
+                Assert.True(
+                    Math.Abs(loop.DistanceTo(q) - expected) <= 1E-11,
+                    q + ": " + loop.DistanceTo(q) + ", the oracle says " + expected
+                );
             }
         }
 
@@ -906,8 +1120,14 @@ namespace GeometryHelper.UnitTest.Plane
                 polyline = Math.Min(polyline, new GeoLine2(fit[i], fit[i + 1]).DistanceTo(query));
             }
 
-            Assert.True(Math.Abs(distance - polyline) < 1.0, "distance " + distance + ", the control polygon's " + polyline);
-            Assert.True(spline.GetClosestPointOnBoundary(query).X > 77000.0 && spline.GetClosestPointOnBoundary(query).X < 78500.0);
+            Assert.True(
+                Math.Abs(distance - polyline) < 1.0,
+                "distance " + distance + ", the control polygon's " + polyline
+            );
+            Assert.True(
+                spline.GetClosestPointOnBoundary(query).X > 77000.0
+                    && spline.GetClosestPointOnBoundary(query).X < 78500.0
+            );
         }
 
         #endregion
@@ -957,12 +1177,20 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AFlatSpline_IsOnePieceWhateverTheTolerance_AndABentOneCannotBeLessThanItsBend()
         {
-            var line = new GeoSpline2(3, new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(200, 0), new GeoPoint2(300, 0) }, BezierKnots);
+            var line = new GeoSpline2(
+                3,
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(200, 0), new GeoPoint2(300, 0) },
+                BezierKnots
+            );
 
             Assert.Equal(1, line.Flatten(1E-6).EdgeCount);
 
             // Control points that run past the end and back are not flat for all they lie on a line.
-            var back = new GeoSpline2(3, new[] { new GeoPoint2(0, 0), new GeoPoint2(300, 0), new GeoPoint2(-100, 0), new GeoPoint2(200, 0) }, BezierKnots);
+            var back = new GeoSpline2(
+                3,
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(300, 0), new GeoPoint2(-100, 0), new GeoPoint2(200, 0) },
+                BezierKnots
+            );
 
             Assert.True(back.Flatten(1.0).EdgeCount > 1);
             Assert.Equal(200.0, back.GetAabb().Width, 9);
@@ -978,7 +1206,9 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Throws<ArgumentOutOfRangeException>(() => circle.Flatten(double.NaN));
             Assert.Throws<ArgumentOutOfRangeException>(() => circle.Flatten(double.PositiveInfinity));
 
-            ArgumentOutOfRangeException refused = Assert.Throws<ArgumentOutOfRangeException>(() => circle.Flatten(1E-13));
+            ArgumentOutOfRangeException refused = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                circle.Flatten(1E-13)
+            );
             Assert.Contains("1048576", refused.Message);
         }
 

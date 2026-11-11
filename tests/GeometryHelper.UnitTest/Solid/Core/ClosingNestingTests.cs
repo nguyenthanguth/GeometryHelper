@@ -34,13 +34,21 @@ namespace GeometryHelper.UnitTest.Solid.Core
         private static readonly SolidClosingOptions NoFill = new SolidClosingOptions(Fine, 0.005);
 
         // Welds no further than five thousandths, and fills a flat hole of up to 1 000 where that is the one way.
-        private static readonly SolidClosingOptions Filling = new SolidClosingOptions(Fine, 0.005, 1000.0, 0.0, FillStrategy.WhenUnambiguous);
+        private static readonly SolidClosingOptions Filling = new SolidClosingOptions(
+            Fine,
+            0.005,
+            1000.0,
+            0.0,
+            FillStrategy.WhenUnambiguous
+        );
 
         [Fact]
         public void ABoxWithABlockInside_BothWoundOutwards_ReadsValid_AndIsTakenAsItIs()
         {
             // A solid inside a solid, as the real part came, each closed and wound outwards: 6 600 together.
-            var body = new GeoSolid3(ClosingTestBodies.BoxFaces(ClosingTestBodies.Corners()).Concat(ClosingTestBodies.BlockFaces()));
+            var body = new GeoSolid3(
+                ClosingTestBodies.BoxFaces(ClosingTestBodies.Corners()).Concat(ClosingTestBodies.BlockFaces())
+            );
             Assert.Equal(6600.0, body.GetVolume(Fine), 6);
 
             AssertTakenAsItIs(body);
@@ -83,7 +91,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // The whole body inside out: the box wound inwards, the cavity in the middle of it the other way. The box lies in
             // no other and is turned, and the cavity with it, keeping its winding against the box: every face, 2 200 and 24.
-            var body = new GeoSolid3(ClosingTestBodies.Turned(ClosingTestBodies.BoxFaces(ClosingTestBodies.Corners()).Concat(ClosingTestBodies.CavityFaces())));
+            var body = new GeoSolid3(
+                ClosingTestBodies.Turned(
+                    ClosingTestBodies.BoxFaces(ClosingTestBodies.Corners()).Concat(ClosingTestBodies.CavityFaces())
+                )
+            );
             Assert.Contains(body.Validate(Fine).Issues, issue => issue.Kind == SolidIssueKind.InsideOut);
 
             SolidClosing3 report = AssertClosed(body, NoFill, out GeoSolid3 closed);
@@ -99,7 +111,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // Both wound inwards, the same way: a block within the box, the whole solid inside out. Turned with the box, the
             // block stays a block; left as it is, it would be a cavity in the box turned, 5 400. Every face, 2 200 and 440.
-            var body = new GeoSolid3(ClosingTestBodies.Turned(ClosingTestBodies.BoxFaces(ClosingTestBodies.Corners()).Concat(ClosingTestBodies.BlockFaces())));
+            var body = new GeoSolid3(
+                ClosingTestBodies.Turned(
+                    ClosingTestBodies.BoxFaces(ClosingTestBodies.Corners()).Concat(ClosingTestBodies.BlockFaces())
+                )
+            );
             Assert.Contains(body.Validate(Fine).Issues, issue => issue.Kind == SolidIssueKind.InsideOut);
 
             SolidClosing3 report = AssertClosed(body, NoFill, out GeoSolid3 closed);
@@ -115,7 +131,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // Three shells, each in the next: the box outwards, the cavity in it inwards and the block in the cavity outwards,
             // each wound against the one round it, 6 000 less 600 and 64 back. Only the top is wrong.
-            List<GeoFace3> inside = ClosingTestBodies.Turned(ClosingTestBodies.BlockFaces()).Concat(ClosingTestBodies.InnerBlockFaces()).ToList();
+            List<GeoFace3> inside = ClosingTestBodies
+                .Turned(ClosingTestBodies.BlockFaces())
+                .Concat(ClosingTestBodies.InnerBlockFaces())
+                .ToList();
             var body = new GeoSolid3(ClosingTestBodies.BoxWithFaceFlipped(ClosingTestBodies.Top).Faces.Concat(inside));
 
             SolidClosing3 report = AssertClosed(body, NoFill, out GeoSolid3 closed);
@@ -131,9 +150,14 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // The box inwards, the cavity outwards and the block in it inwards: the whole body inside out. The box lies in no
             // other and is turned with both shells inside it, each keeping its winding: every face, 2 200, 440 and 96.
-            var body = new GeoSolid3(ClosingTestBodies.Turned(ClosingTestBodies.BoxFaces(ClosingTestBodies.Corners())
-                .Concat(ClosingTestBodies.Turned(ClosingTestBodies.BlockFaces()))
-                .Concat(ClosingTestBodies.InnerBlockFaces())));
+            var body = new GeoSolid3(
+                ClosingTestBodies.Turned(
+                    ClosingTestBodies
+                        .BoxFaces(ClosingTestBodies.Corners())
+                        .Concat(ClosingTestBodies.Turned(ClosingTestBodies.BlockFaces()))
+                        .Concat(ClosingTestBodies.InnerBlockFaces())
+                )
+            );
             Assert.Contains(body.Validate(Fine).Issues, issue => issue.Kind == SolidIssueKind.InsideOut);
 
             SolidClosing3 report = AssertClosed(body, NoFill, out GeoSolid3 closed);
@@ -167,10 +191,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // The first box and its block wound inwards, that solid inside out; the second, 100 along x, and its block
             // outwards. The two hold nothing together. Only the first box is outermost and wound inwards: it is turned with
             // its block, 2 200 and 440, and the second keeps every face of both. Two boxes with a block each, 13 200.
-            List<GeoFace3> second = ClosingTestBodies.BoxFaces(ClosingTestBodies.Corners(100, 0, 0, 130, 20, 10))
+            List<GeoFace3> second = ClosingTestBodies
+                .BoxFaces(ClosingTestBodies.Corners(100, 0, 0, 130, 20, 10))
                 .Concat(ClosingTestBodies.BoxFaces(ClosingTestBodies.Corners(110, 5, 2, 120, 15, 8)))
                 .ToList();
-            List<GeoFace3> first = ClosingTestBodies.Turned(ClosingTestBodies.BoxFaces(ClosingTestBodies.Corners()).Concat(ClosingTestBodies.BlockFaces()));
+            List<GeoFace3> first = ClosingTestBodies.Turned(
+                ClosingTestBodies.BoxFaces(ClosingTestBodies.Corners()).Concat(ClosingTestBodies.BlockFaces())
+            );
             var body = new GeoSolid3(first.Concat(second));
             Assert.Contains(body.Validate(Fine).Issues, issue => issue.Kind == SolidIssueKind.NoVolume);
 
@@ -241,7 +268,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // read so, the shell still open does not hold it. It may yet: capped twice, top and bottom, the box holds it,
             // wound against the box round it, a cavity, and it stays so. Turned outwards, the body would hold 6 008.
             List<GeoFace3> cavity = ClosingTestBodies.CavityFaces();
-            GeoSolid3 open = ClosingTestBodies.WithoutFaces(ClosingTestBodies.Box(), ClosingTestBodies.Top, ClosingTestBodies.Bottom);
+            GeoSolid3 open = ClosingTestBodies.WithoutFaces(
+                ClosingTestBodies.Box(),
+                ClosingTestBodies.Top,
+                ClosingTestBodies.Bottom
+            );
             var body = new GeoSolid3(open.Faces.Concat(cavity));
 
             SolidClosing3 report = AssertClosed(body, Filling, out GeoSolid3 closed);
@@ -284,7 +315,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
             SolidClosing3 report = AssertClosed(body, NoFill, out GeoSolid3 closed);
             Assert.NotEmpty(report.Repairs);
             Assert.All(report.Repairs, repair => Assert.Equal(SolidRepairKind.Weld, repair.Kind));
-            Assert.InRange(closed.GetVolume(Fine), 6600.0 - (0.003 * ClosingTestBodies.Area), 6600.0 + (0.003 * ClosingTestBodies.Area));
+            Assert.InRange(
+                closed.GetVolume(Fine),
+                6600.0 - (0.003 * ClosingTestBodies.Area),
+                6600.0 + (0.003 * ClosingTestBodies.Area)
+            );
             AssertKept(block, closed);
         }
 
@@ -303,7 +338,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.NotEmpty(Of(report, SolidRepairKind.Weld));
             Assert.Equal(report.Repairs.Count, flips.Count + Of(report, SolidRepairKind.Weld).Count);
             Assert.InRange(flips.Sum(repair => repair.Size), 2640.0 - 0.1, 2640.0 + 0.1);
-            Assert.InRange(closed.GetVolume(Fine), 6600.0 - (0.003 * ClosingTestBodies.Area), 6600.0 + (0.003 * ClosingTestBodies.Area));
+            Assert.InRange(
+                closed.GetVolume(Fine),
+                6600.0 - (0.003 * ClosingTestBodies.Area),
+                6600.0 + (0.003 * ClosingTestBodies.Area)
+            );
         }
 
         // Valid already: the very body back and nothing done, whatever the options allow.
@@ -335,8 +374,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         // The repairs of one kind, in their order.
-        private static List<SolidRepair3> Of(SolidClosing3 report, SolidRepairKind kind)
-            => report.Repairs.Where(repair => repair.Kind == kind).ToList();
+        private static List<SolidRepair3> Of(SolidClosing3 report, SolidRepairKind kind) =>
+            report.Repairs.Where(repair => repair.Kind == kind).ToList();
 
         // Each face in the body closed, as it was given and the same way round.
         private static void AssertKept(IEnumerable<GeoFace3> faces, GeoSolid3 closed)

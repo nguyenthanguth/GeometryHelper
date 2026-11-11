@@ -9,7 +9,15 @@ namespace GeometryHelper.Dxf
     public sealed partial class DxfMLeader
     {
         // The arrows ezdxf draws from their insertion point, with no length to take off the line: by name, the "_" left off.
-        private static readonly HashSet<string> NoLength = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "ARCHTICK", "OBLIQUE", "DOTSMALL", "SMALL", "INTEGRAL", "NONE" };
+        private static readonly HashSet<string> NoLength = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "ARCHTICK",
+            "OBLIQUE",
+            "DOTSMALL",
+            "SMALL",
+            "INTEGRAL",
+            "NONE",
+        };
 
         /// <summary>
         /// Gets the entities the multileader breaks into, as AutoCAD 2021's <c>Explode</c> gives them from its context data: its
@@ -69,7 +77,10 @@ namespace GeometryHelper.Dxf
             string layer = Layer;
 
             // A copy in no file reads what its record names in the drawing it was copied from.
-            DxfDatabase database = IsResident ? Database() : Item.File.IsDetached ? Item.File.NamingDrawing?.Database : null;
+            DxfDatabase database =
+                IsResident ? Database()
+                : Item.File.IsDetached ? Item.File.NamingDrawing?.Database
+                : null;
             Content(rec, ctx, layer, database, parts);
             int ownColour = ColorIndex;
             int? ownTrueColour = TrueColor;
@@ -77,7 +88,12 @@ namespace GeometryHelper.Dxf
             string entityLinetype = Linetype;
             DxfLeaderType type = LeaderLineType;
 
-            if (type == DxfLeaderType.InVisibleLeader && !ctx.Leaders.Exists(l => l.Lines.Exists(line => LineType(line.Groups, type) != DxfLeaderType.InVisibleLeader)))
+            if (
+                type == DxfLeaderType.InVisibleLeader
+                && !ctx.Leaders.Exists(l =>
+                    l.Lines.Exists(line => LineType(line.Groups, type) != DxfLeaderType.InVisibleLeader)
+                )
+            )
             {
                 return parts.AsReadOnly();
             }
@@ -105,7 +121,13 @@ namespace GeometryHelper.Dxf
 
                 // The dogleg, once for the leader, in the multileader's look, where a line of it is drawn or it has none: of no
                 // length too (a1-k-right-negdogleg-only).
-                if (landed && (leader.Lines.Count == 0 || leader.Lines.Exists(l => LineType(l.Groups, type) != DxfLeaderType.InVisibleLeader)))
+                if (
+                    landed
+                    && (
+                        leader.Lines.Count == 0
+                        || leader.Lines.Exists(l => LineType(l.Groups, type) != DxfLeaderType.InVisibleLeader)
+                    )
+                )
                 {
                     var dogleg = new DxfLine(last, last.Add(along)) { Layer = layer };
                     Colour(dogleg, leaderColour, ownColour, ownTrueColour);
@@ -133,7 +155,8 @@ namespace GeometryHelper.Dxf
                     string ownWeight = Own(own, LineWeightFlag, 171);
                     DxfLineWeight lineWeight = ownWeight == null ? weight : (DxfLineWeight)Whole(ownWeight, -2);
                     string ownLinetype = Own(own, LinetypeFlag, 340);
-                    string lineLinetype = ownLinetype == null ? linetype : LinetypeName(database, ownLinetype) ?? linetype;
+                    string lineLinetype =
+                        ownLinetype == null ? linetype : LinetypeName(database, ownLinetype) ?? linetype;
                     // A line's own size is unscaled, as the multileader's own (42), and drawn times the scale.
                     string ownSize = Own(own, ArrowSizeFlag, 40);
                     double lineSize = ownSize == null ? size : Num(ownSize, 4.0) * scale;
@@ -174,16 +197,30 @@ namespace GeometryHelper.Dxf
 
                     if (run * lineSize > 0.0 && run > 2.0 * lineSize)
                     {
-                        DxfBlockTableRecord block = arrows.TryGetValue(Whole(Text(line.Groups, 91), 0), out string handle) ? Block(database, handle, "the arrow of a leader line") : arrow;
+                        DxfBlockTableRecord block = arrows.TryGetValue(
+                            Whole(Text(line.Groups, 91), 0),
+                            out string handle
+                        )
+                            ? Block(database, handle, "the arrow of a leader line")
+                            : arrow;
                         head = Arrowhead(vertices[0], direction, lineSize, normal, block);
                         string name = block?.Name.TrimStart('_');
-                        vertices[0] = vertices[0].Add(direction.Multiply(name != null && NoLength.Contains(name) ? 0.0 : lineSize));
+                        vertices[0] = vertices[0]
+                            .Add(direction.Multiply(name != null && NoLength.Contains(name) ? 0.0 : lineSize));
                     }
 
                     if (lineType == DxfLeaderType.SplineLeader)
                     {
-                        GeoVector3 end = horizontal ? along : vertices[vertices.Count - 2].GetVectorTo(vertices[vertices.Count - 1]);
-                        DxfSpline spline = DxfLeader.ParameterSpline(vertices, tolerance, direction, end.Length > 0.0 ? end : (GeoVector3?)null, true);
+                        GeoVector3 end = horizontal
+                            ? along
+                            : vertices[vertices.Count - 2].GetVectorTo(vertices[vertices.Count - 1]);
+                        DxfSpline spline = DxfLeader.ParameterSpline(
+                            vertices,
+                            tolerance,
+                            direction,
+                            end.Length > 0.0 ? end : (GeoVector3?)null,
+                            true
+                        );
 
                         if (spline != null)
                         {
@@ -229,15 +266,21 @@ namespace GeometryHelper.Dxf
         private static string LinetypeName(DxfDatabase database, string handle)
         {
             handle = handle?.Trim();
-            return handle != null && database != null && database.TryGetObject(handle, out DxfDBObject found) && found is DxfLinetypeTableRecord record ? record.Name : null;
+            return
+                handle != null
+                && database != null
+                && database.TryGetObject(handle, out DxfDBObject found)
+                && found is DxfLinetypeTableRecord record
+                ? record.Name
+                : null;
         }
 
         /// <summary>
         /// Whether the doglegs of a multileader are drawn, as AutoCAD 2021 draws them: where it has them (291) and its leader lines
         /// are not splined (170), which AutoCAD draws with none, its <c>EnableDogleg</c> false.
         /// </summary>
-        private static bool Doglegged(List<KeyValuePair<int, string>> after)
-            => Whole(Text(after, 291), 1) != 0 && Whole(Text(after, 170), 1) != (int)DxfLeaderType.SplineLeader;
+        private static bool Doglegged(List<KeyValuePair<int, string>> after) =>
+            Whole(Text(after, 291), 1) != 0 && Whole(Text(after, 170), 1) != (int)DxfLeaderType.SplineLeader;
 
         /// <summary>
         /// Where the lines of a leader end, as <see cref="Explode"/> draws them: the last point of the leader (10), whether its
@@ -249,8 +292,14 @@ namespace GeometryHelper.Dxf
             last = PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0));
             horizontal = Whole(Text(leader.Head, 271) ?? Text(leader.Tail, 271), 0) == 0;
             double length = Num(Text(leader.Head, 40), 1.0);
-            along = Whole(Text(leader.Head, 291), 0) != 0 ? PointOf(leader.Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector() : new GeoVector3(1.0, 0.0, 0.0);
-            along = along.Length > 0.0 ? DxfOcsTransform.Normalized(along).Multiply(length) : new GeoVector3(length, 0.0, 0.0);
+            along =
+                Whole(Text(leader.Head, 291), 0) != 0
+                    ? PointOf(leader.Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector()
+                    : new GeoVector3(1.0, 0.0, 0.0);
+            along =
+                along.Length > 0.0
+                    ? DxfOcsTransform.Normalized(along).Multiply(length)
+                    : new GeoVector3(length, 0.0, 0.0);
         }
 
         /// <summary>
@@ -258,7 +307,13 @@ namespace GeometryHelper.Dxf
         /// vertices, the last point of its leader where the dogleg runs left or right and is drawn, and the end of the dogleg
         /// there, else the last point.
         /// </summary>
-        private static List<GeoPoint3> Path(LinePart line, GeoPoint3 last, bool horizontal, bool dogleg, GeoVector3 along)
+        private static List<GeoPoint3> Path(
+            LinePart line,
+            GeoPoint3 last,
+            bool horizontal,
+            bool dogleg,
+            GeoVector3 along
+        )
         {
             List<GeoPoint3> vertices = line.Vertices();
 
@@ -315,7 +370,13 @@ namespace GeometryHelper.Dxf
                         continue;
                     }
 
-                    List<GeoPoint3> vertices = Path(line, last, horizontal, landed && lineType != DxfLeaderType.SplineLeader, along);
+                    List<GeoPoint3> vertices = Path(
+                        line,
+                        last,
+                        horizontal,
+                        landed && lineType != DxfLeaderType.SplineLeader,
+                        along
+                    );
 
                     if (vertices.Count < 2)
                     {
@@ -331,8 +392,20 @@ namespace GeometryHelper.Dxf
                     GeoVector3 first = vertices[0].GetVectorTo(vertices[1]);
                     double run = first.Length;
                     GeoVector3 direction = run > 0.0 ? first.Multiply(1.0 / run) : new GeoVector3(1.0, 0.0, 0.0);
-                    GeoVector3 end = horizontal ? along : vertices[vertices.Count - 2].GetVectorTo(vertices[vertices.Count - 1]);
-                    lines.Add(new LinePath(vertices, DxfLeader.FittedCurve(vertices, tolerance, direction, end.Length > 0.0 ? end : (GeoVector3?)null)));
+                    GeoVector3 end = horizontal
+                        ? along
+                        : vertices[vertices.Count - 2].GetVectorTo(vertices[vertices.Count - 1]);
+                    lines.Add(
+                        new LinePath(
+                            vertices,
+                            DxfLeader.FittedCurve(
+                                vertices,
+                                tolerance,
+                                direction,
+                                end.Length > 0.0 ? end : (GeoVector3?)null
+                            )
+                        )
+                    );
                 }
             }
 
@@ -421,7 +494,12 @@ namespace GeometryHelper.Dxf
                 Colour(mtext, Text(m, 90) ?? ByBlock, ColorIndex, TrueColor);
                 string style = Text(m, 340)?.Trim();
 
-                if (style != null && database != null && database.TryGetObject(style, out DxfDBObject found) && found is DxfTextStyleTableRecord record)
+                if (
+                    style != null
+                    && database != null
+                    && database.TryGetObject(style, out DxfDBObject found)
+                    && found is DxfTextStyleTableRecord record
+                )
                 {
                     mtext.TextStyleName = record.Name;
                 }
@@ -441,7 +519,11 @@ namespace GeometryHelper.Dxf
             List<KeyValuePair<int, string>> b = BlockGroups(rec, out _, out _);
             GeoVector3 normal = PointOf(b, 14, new GeoPoint3(0.0, 0.0, 1.0)).ToVector();
             // The block as it is drawn: its scale times the multileader's (16), else its own (10), and its turn (46), else its own (43).
-            var insert = new DxfBlockReference(BlockPosition, block) { ScaleFactors = PointOf(b, 16, PointOf(rec.After, 10, new GeoPoint3(1.0, 1.0, 1.0))).ToVector(), Rotation = Num(Text(b, 46), Num(Text(rec.After, 43), 0.0)) };
+            var insert = new DxfBlockReference(BlockPosition, block)
+            {
+                ScaleFactors = PointOf(b, 16, PointOf(rec.After, 10, new GeoPoint3(1.0, 1.0, 1.0))).ToVector(),
+                Rotation = Num(Text(b, 46), Num(Text(rec.After, 43), 0.0)),
+            };
 
             if (normal.Length > 0.0)
             {
@@ -457,11 +539,17 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfEntity entity in block)
             {
-                if (entity is DxfAttributeDefinition definition && definition.Handle != null && AttributeAt(rec.After, definition.Handle) >= 0)
+                if (
+                    entity is DxfAttributeDefinition definition
+                    && definition.Handle != null
+                    && AttributeAt(rec.After, definition.Handle) >= 0
+                )
                 {
                     var attribute = new DxfAttributeReference();
                     attribute.SetAttributeFromBlock(definition, insert.BlockTransform);
-                    attribute.SetWrittenText(Text(rec.After, 302, AttributeAt(rec.After, definition.Handle)) ?? string.Empty);
+                    attribute.SetWrittenText(
+                        Text(rec.After, 302, AttributeAt(rec.After, definition.Handle)) ?? string.Empty
+                    );
                     insert.AttributeCollection.AppendAttribute(attribute);
                 }
             }
@@ -480,10 +568,21 @@ namespace GeometryHelper.Dxf
             string trimmed = handle.Trim();
             DxfBlockTableRecord block = BlockByHandle(database, trimmed);
 
-            if (block == null && !IsResident && Item.File.IsDetached && Item.File.NamingDrawing is DxfFile origin && origin.WasRemoved(trimmed))
+            if (
+                block == null
+                && !IsResident
+                && Item.File.IsDetached
+                && Item.File.NamingDrawing is DxfFile origin
+                && origin.WasRemoved(trimmed)
+            )
             {
-                throw new InvalidOperationException("The MULTILEADER, a copy in no drawing, draws " + what + " with the block of handle " + trimmed
-                    + ", which the drawing it was copied from has erased since: append the copy to a drawing that has the block, or explode the original.");
+                throw new InvalidOperationException(
+                    "The MULTILEADER, a copy in no drawing, draws "
+                        + what
+                        + " with the block of handle "
+                        + trimmed
+                        + ", which the drawing it was copied from has erased since: append the copy to a drawing that has the block, or explode the original."
+                );
             }
 
             return block;
@@ -511,7 +610,13 @@ namespace GeometryHelper.Dxf
         /// or, of no block, AutoCAD's closed filled arrow as a SOLID a third as wide as long, as a straight LEADER's: its corner
         /// on the right of the line, the tip, and its corner on the left, as AutoCAD 2021 gives them.
         /// </summary>
-        private static DxfEntity Arrowhead(GeoPoint3 tip, GeoVector3 direction, double size, GeoVector3 normal, DxfBlockTableRecord block)
+        private static DxfEntity Arrowhead(
+            GeoPoint3 tip,
+            GeoVector3 direction,
+            double size,
+            GeoVector3 normal,
+            DxfBlockTableRecord block
+        )
         {
             if (block == null)
             {
@@ -546,7 +651,11 @@ namespace GeometryHelper.Dxf
                 part.ColorIndex = ownIndex;
                 part.TrueColor = ownTrue;
             }
-            else if (colour.ColorMethod == DxfColorMethod.ByLayer || colour.ColorMethod == DxfColorMethod.ByAci || colour.ColorMethod == DxfColorMethod.ByColor)
+            else if (
+                colour.ColorMethod == DxfColorMethod.ByLayer
+                || colour.ColorMethod == DxfColorMethod.ByAci
+                || colour.ColorMethod == DxfColorMethod.ByColor
+            )
             {
                 part.Color = colour;
             }

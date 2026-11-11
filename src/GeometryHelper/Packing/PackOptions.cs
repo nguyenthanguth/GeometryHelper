@@ -106,9 +106,18 @@ namespace GeometryHelper.Packing
             get => _startCorner;
             set
             {
-                if (value != SheetCorner.UpperLeft && value != SheetCorner.UpperRight && value != SheetCorner.LowerLeft && value != SheetCorner.LowerRight)
+                if (
+                    value != SheetCorner.UpperLeft
+                    && value != SheetCorner.UpperRight
+                    && value != SheetCorner.LowerLeft
+                    && value != SheetCorner.LowerRight
+                )
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A packing starts from one of the four corners.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A packing starts from one of the four corners."
+                    );
                 }
 
                 _startCorner = value;

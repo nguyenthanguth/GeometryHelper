@@ -37,15 +37,28 @@ namespace GeometryHelper.Drawing
                 throw new ArgumentException("A section needs a name.", nameof(name));
             }
 
-            if (lookingAs != ViewKind.Front && lookingAs != ViewKind.Top && lookingAs != ViewKind.Bottom
-                && lookingAs != ViewKind.Left && lookingAs != ViewKind.Right && lookingAs != ViewKind.Back)
+            if (
+                lookingAs != ViewKind.Front
+                && lookingAs != ViewKind.Top
+                && lookingAs != ViewKind.Bottom
+                && lookingAs != ViewKind.Left
+                && lookingAs != ViewKind.Right
+                && lookingAs != ViewKind.Back
+            )
             {
-                throw new ArgumentException("A section looks as one of the views along the axes does.", nameof(lookingAs));
+                throw new ArgumentException(
+                    "A section looks as one of the views along the axes does.",
+                    nameof(lookingAs)
+                );
             }
 
             if (!(share >= 0.0) || !(share <= 1.0))
             {
-                throw new ArgumentOutOfRangeException(nameof(share), share, "The share has to be a number from nought to one.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(share),
+                    share,
+                    "The share has to be a number from nought to one."
+                );
             }
 
             Name = name;
@@ -123,7 +136,9 @@ namespace GeometryHelper.Drawing
         internal GeoVector2 LookInView()
         {
             GeoLine2 line = CutLine.Value;
-            double dx = line.EndPoint.X - line.StartPoint.X, dy = line.EndPoint.Y - line.StartPoint.Y, length = Math.Sqrt(dx * dx + dy * dy);
+            double dx = line.EndPoint.X - line.StartPoint.X,
+                dy = line.EndPoint.Y - line.StartPoint.Y,
+                length = Math.Sqrt(dx * dx + dy * dy);
             return new GeoVector2(dy / length, -dx / length);
         }
     }

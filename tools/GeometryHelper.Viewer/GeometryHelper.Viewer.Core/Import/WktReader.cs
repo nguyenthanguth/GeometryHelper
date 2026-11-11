@@ -17,7 +17,16 @@ namespace GeometryHelper.Viewer
 
         private static readonly string[] Known =
         {
-            "GEOMETRYCOLLECTION", "MULTILINESTRING", "MULTIPOLYGON", "POLYHEDRALSURFACE", "LINESTRING", "MULTIPOINT", "POLYGON", "TRIANGLE", "POINT", "TIN",
+            "GEOMETRYCOLLECTION",
+            "MULTILINESTRING",
+            "MULTIPOLYGON",
+            "POLYHEDRALSURFACE",
+            "LINESTRING",
+            "MULTIPOINT",
+            "POLYGON",
+            "TRIANGLE",
+            "POINT",
+            "TIN",
         };
 
         private readonly string _text;
@@ -100,7 +109,11 @@ namespace GeometryHelper.Viewer
                 {
                     _at++;
                 }
-                else if (c == '#' || (c == '-' && _at + 1 < _text.Length && _text[_at + 1] == '-') || (c == '/' && _at + 1 < _text.Length && _text[_at + 1] == '/'))
+                else if (
+                    c == '#'
+                    || (c == '-' && _at + 1 < _text.Length && _text[_at + 1] == '-')
+                    || (c == '/' && _at + 1 < _text.Length && _text[_at + 1] == '/')
+                )
                 {
                     // A comment to the end of its line.
                     while (_at < _text.Length && _text[_at] != '\n')
@@ -141,7 +154,10 @@ namespace GeometryHelper.Viewer
                 }
             }
 
-            return "line " + line.ToString(CultureInfo.InvariantCulture) + ", column " + column.ToString(CultureInfo.InvariantCulture);
+            return "line "
+                + line.ToString(CultureInfo.InvariantCulture)
+                + ", column "
+                + column.ToString(CultureInfo.InvariantCulture);
         }
 
         private FormatException Problem(string what) => new FormatException(what + " at " + Where(_at));
@@ -231,7 +247,15 @@ namespace GeometryHelper.Viewer
 
             foreach (string known in Known)
             {
-                if (word.StartsWith(known, StringComparison.Ordinal) && (word.Length == known.Length || word.Substring(known.Length) == "Z" || word.Substring(known.Length) == "M" || word.Substring(known.Length) == "ZM"))
+                if (
+                    word.StartsWith(known, StringComparison.Ordinal)
+                    && (
+                        word.Length == known.Length
+                        || word.Substring(known.Length) == "Z"
+                        || word.Substring(known.Length) == "M"
+                        || word.Substring(known.Length) == "ZM"
+                    )
+                )
                 {
                     name = known;
                     tag = word.Substring(known.Length);
@@ -256,7 +280,10 @@ namespace GeometryHelper.Viewer
             }
 
             _dimensionFixed = tag.Length > 0;
-            _dimension = tag == "Z" || tag == "ZM" ? 3 : tag == "M" ? 2 : 0;
+            _dimension =
+                tag == "Z" || tag == "ZM" ? 3
+                : tag == "M" ? 2
+                : 0;
 
             SkipSpace();
             int afterTag = _at;
@@ -278,7 +305,11 @@ namespace GeometryHelper.Viewer
                     throw Problem("'" + word.ToLowerInvariant() + "' is not the name of a geometry");
                 }
 
-                _b.Warn("WKT: " + name + " is not read (the geometries read are POINT, LINESTRING, POLYGON, the MULTI forms, GEOMETRYCOLLECTION, POLYHEDRALSURFACE, TIN and TRIANGLE)");
+                _b.Warn(
+                    "WKT: "
+                        + name
+                        + " is not read (the geometries read are POINT, LINESTRING, POLYGON, the MULTI forms, GEOMETRYCOLLECTION, POLYHEDRALSURFACE, TIN and TRIANGLE)"
+                );
                 return;
             }
 
@@ -292,11 +323,21 @@ namespace GeometryHelper.Viewer
             {
                 case "POINT":
                     Expect('(');
+
                     {
                         Vec3 p = Coordinate();
                         Expect(')');
                         int dim = _dimension;
-                        _pending.Add(() => _b.Add(dim == 3 ? "GeoPoint3" : "GeoPoint2", ImportData.Point(p, dim), Layer, null, null, "WKT POINT"));
+                        _pending.Add(() =>
+                            _b.Add(
+                                dim == 3 ? "GeoPoint3" : "GeoPoint2",
+                                ImportData.Point(p, dim),
+                                Layer,
+                                null,
+                                null,
+                                "WKT POINT"
+                            )
+                        );
                     }
 
                     break;
@@ -320,8 +361,7 @@ namespace GeometryHelper.Viewer
                     do
                     {
                         LineString();
-                    }
-                    while (Comma());
+                    } while (Comma());
 
                     Expect(')');
                     break;
@@ -332,8 +372,7 @@ namespace GeometryHelper.Viewer
                     do
                     {
                         Polygon("POLYGON");
-                    }
-                    while (Comma());
+                    } while (Comma());
 
                     Expect(')');
                     break;
@@ -349,13 +388,11 @@ namespace GeometryHelper.Viewer
                     do
                     {
                         Geometry();
-                    }
-                    while (Comma());
+                    } while (Comma());
 
                     Expect(')');
                     break;
             }
-
         }
 
         private bool Comma()
@@ -409,7 +446,10 @@ namespace GeometryHelper.Viewer
                 SkipSpace();
                 int start = _at;
 
-                while (_at < _text.Length && (char.IsLetterOrDigit(_text[_at]) || _text[_at] == '.' || _text[_at] == '+' || _text[_at] == '-'))
+                while (
+                    _at < _text.Length
+                    && (char.IsLetterOrDigit(_text[_at]) || _text[_at] == '.' || _text[_at] == '+' || _text[_at] == '-')
+                )
                 {
                     _at++;
                 }
@@ -428,11 +468,20 @@ namespace GeometryHelper.Viewer
                 numbers.Add(value);
             }
 
-            int dimension = _dimensionFixed ? _dimension : numbers.Count == 2 ? 2 : 3;
+            int dimension =
+                _dimensionFixed ? _dimension
+                : numbers.Count == 2 ? 2
+                : 3;
 
             if (numbers.Count < dimension || numbers.Count < 2 || numbers.Count > 4)
             {
-                throw Problem("a point of " + (_dimensionFixed && _dimension == 3 ? "three" : "two or three") + " numbers expected, " + numbers.Count.ToString(CultureInfo.InvariantCulture) + " found");
+                throw Problem(
+                    "a point of "
+                        + (_dimensionFixed && _dimension == 3 ? "three" : "two or three")
+                        + " numbers expected, "
+                        + numbers.Count.ToString(CultureInfo.InvariantCulture)
+                        + " found"
+                );
             }
 
             if (!_dimensionFixed && _dimension != 0 && _dimension != dimension)
@@ -452,8 +501,7 @@ namespace GeometryHelper.Viewer
             do
             {
                 points.Add(Coordinate());
-            }
-            while (Comma());
+            } while (Comma());
 
             Expect(')');
             return points;
@@ -481,7 +529,14 @@ namespace GeometryHelper.Viewer
             {
                 bool segment = points.Count == 2;
                 string kind = (segment ? "GeoLine" : "GeoPolyline") + dim.ToString(CultureInfo.InvariantCulture);
-                _b.Add(kind, segment ? ImportData.Line(points[0], points[1], dim) : ImportData.Chain(points, dim), Layer, null, null, "WKT LINESTRING");
+                _b.Add(
+                    kind,
+                    segment ? ImportData.Line(points[0], points[1], dim) : ImportData.Chain(points, dim),
+                    Layer,
+                    null,
+                    null,
+                    "WKT LINESTRING"
+                );
             });
         }
 
@@ -507,9 +562,17 @@ namespace GeometryHelper.Viewer
                 }
 
                 int dim = _dimension;
-                _pending.Add(() => _b.Add(dim == 3 ? "GeoPoint3" : "GeoPoint2", ImportData.Point(p, dim), Layer, null, null, "WKT MULTIPOINT"));
-            }
-            while (Comma());
+                _pending.Add(() =>
+                    _b.Add(
+                        dim == 3 ? "GeoPoint3" : "GeoPoint2",
+                        ImportData.Point(p, dim),
+                        Layer,
+                        null,
+                        null,
+                        "WKT MULTIPOINT"
+                    )
+                );
+            } while (Comma());
 
             Expect(')');
         }
@@ -536,8 +599,7 @@ namespace GeometryHelper.Viewer
                 }
 
                 rings.Add(ring.ToArray());
-            }
-            while (Comma());
+            } while (Comma());
 
             Expect(')');
             return rings;
@@ -562,7 +624,16 @@ namespace GeometryHelper.Viewer
 
             if (name == "TRIANGLE" && rings.Count == 1 && rings[0].Length == 3)
             {
-                _pending.Add(() => _b.Add("GeoTriangle" + dim.ToString(CultureInfo.InvariantCulture), ImportData.Triangle(rings[0][0], rings[0][1], rings[0][2], dim), Layer, null, null, "WKT TRIANGLE"));
+                _pending.Add(() =>
+                    _b.Add(
+                        "GeoTriangle" + dim.ToString(CultureInfo.InvariantCulture),
+                        ImportData.Triangle(rings[0][0], rings[0][1], rings[0][2], dim),
+                        Layer,
+                        null,
+                        null,
+                        "WKT TRIANGLE"
+                    )
+                );
                 return;
             }
 
@@ -612,8 +683,7 @@ namespace GeometryHelper.Viewer
 
                 innerRings |= rings.Count > 1;
                 weld.Faces.Add(rings[0].Select(weld.Vertex).ToArray());
-            }
-            while (Comma());
+            } while (Comma());
 
             Expect(')');
 
@@ -624,7 +694,16 @@ namespace GeometryHelper.Viewer
 
             if (weld.Faces.Count > 0)
             {
-                _pending.Add(() => _b.Add("GeoMesh" + dim.ToString(CultureInfo.InvariantCulture), ImportData.Mesh(weld.Points, weld.Faces, dim), Layer, null, null, "WKT " + name));
+                _pending.Add(() =>
+                    _b.Add(
+                        "GeoMesh" + dim.ToString(CultureInfo.InvariantCulture),
+                        ImportData.Mesh(weld.Points, weld.Faces, dim),
+                        Layer,
+                        null,
+                        null,
+                        "WKT " + name
+                    )
+                );
             }
         }
 

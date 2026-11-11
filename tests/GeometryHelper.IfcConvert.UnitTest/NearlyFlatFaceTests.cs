@@ -21,7 +21,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
     {
         // A strip 290 x 1.9942 x 78 in millimetres, as face 7 of brep #38621 of that model has it: the top corner at
         // (290, 22.0058) written 77.9997 where the other three are 78.
-        private static readonly string Strip = IfcTestFile.CommonHeader(".MILLI.,.METRE.") + @"
+        private static readonly string Strip =
+            IfcTestFile.CommonHeader(".MILLI.,.METRE.")
+            + @"
 #20=IFCCARTESIANPOINT((0.,22.0058,0.));
 #21=IFCCARTESIANPOINT((290.,22.0058,0.));
 #22=IFCCARTESIANPOINT((290.,24.,0.));
@@ -59,7 +61,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
         // A plate 200 x 200 x 20 with a 40 x 40 hole through it, one corner of the hole's top rim written 0.3 mm out each
         // way: the hole of the top face stands off the face's plane, and the two walls of the hole meeting there are out
         // of flat, six times what the default tolerance lets a face stray.
-        private static readonly string PlateWithAHoleCornerOut = IfcTestFile.CommonHeader(".MILLI.,.METRE.") + @"
+        private static readonly string PlateWithAHoleCornerOut =
+            IfcTestFile.CommonHeader(".MILLI.,.METRE.")
+            + @"
 #20=IFCCARTESIANPOINT((0.,0.,0.));
 #21=IFCCARTESIANPOINT((200.,0.,0.));
 #22=IFCCARTESIANPOINT((200.,200.,0.));
@@ -123,9 +127,14 @@ namespace GeometryHelper.IfcConvert.UnitTest
         {
             IfcTestFile.Run(PlateWithAHoleCornerOut, model =>
             {
-                IfcProductGeometry plate = model.GetGeometry("0000000000000000000P01", new IfcConvertOptions { TargetUnit = LengthUnit.Millimeters });
+                IfcProductGeometry plate = model.GetGeometry(
+                    "0000000000000000000P01",
+                    new IfcConvertOptions { TargetUnit = LengthUnit.Millimeters }
+                );
 
-                Assert.DoesNotContain(plate.Warnings, warning => warning.Contains("could not be read") || warning.Contains("dropped"));
+                Assert.DoesNotContain(plate.Warnings, warning =>
+                    warning.Contains("could not be read") || warning.Contains("dropped")
+                );
                 GeoSolid3 body = Assert.Single(plate.Solids);
                 Assert.True(body.IsClosed());
 
@@ -141,7 +150,10 @@ namespace GeometryHelper.IfcConvert.UnitTest
         {
             IfcTestFile.Run(Strip, model =>
             {
-                IfcProductGeometry strip = model.GetGeometry("0000000000000000000S01", new IfcConvertOptions { TargetUnit = LengthUnit.Millimeters });
+                IfcProductGeometry strip = model.GetGeometry(
+                    "0000000000000000000S01",
+                    new IfcConvertOptions { TargetUnit = LengthUnit.Millimeters }
+                );
 
                 Assert.DoesNotContain(strip.Warnings, warning => warning.Contains("could not be read"));
                 GeoSolid3 body = Assert.Single(strip.Solids);

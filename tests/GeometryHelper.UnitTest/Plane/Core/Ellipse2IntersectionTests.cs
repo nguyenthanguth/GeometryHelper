@@ -54,7 +54,8 @@ namespace GeometryHelper.UnitTest.Plane
             }
         }
 
-        private static GeoPoint2[] RimAt(GeoEllipse2 ellipse, params double[] angles) => angles.Select(t => Ellipse2Oracle.Rim(ellipse, t)).ToArray();
+        private static GeoPoint2[] RimAt(GeoEllipse2 ellipse, params double[] angles) =>
+            angles.Select(t => Ellipse2Oracle.Rim(ellipse, t)).ToArray();
 
         // One point, where the touch is expected, and within half the tolerance of 0.001 of the rim.
         private static void AssertTouch(GeoEllipse2 ellipse, GeoPoint2[] found, GeoPoint2 at)
@@ -71,7 +72,10 @@ namespace GeometryHelper.UnitTest.Plane
         {
             for (int i = 1; i < points.Length; i++)
             {
-                Assert.True(Ellipse2Oracle.AngleOf(ellipse, points[i - 1]) < Ellipse2Oracle.AngleOf(ellipse, points[i]), "the crossings run by t");
+                Assert.True(
+                    Ellipse2Oracle.AngleOf(ellipse, points[i - 1]) < Ellipse2Oracle.AngleOf(ellipse, points[i]),
+                    "the crossings run by t"
+                );
             }
         }
 
@@ -108,7 +112,11 @@ namespace GeometryHelper.UnitTest.Plane
             // y = 100 in the frame touches the rim at t = 90° and nowhere else; the two roots of the quadratic are one.
             GeoEllipse2 ellipse = Tilted();
 
-            AssertTouch(ellipse, ellipse.GetIntersections(Ellipse2Oracle.FrameLine(ellipse, -200, 100, 200, 100), Strict), Ellipse2Oracle.Rim(ellipse, Math.PI / 2));
+            AssertTouch(
+                ellipse,
+                ellipse.GetIntersections(Ellipse2Oracle.FrameLine(ellipse, -200, 100, 200, 100), Strict),
+                Ellipse2Oracle.Rim(ellipse, Math.PI / 2)
+            );
         }
 
         [Fact]
@@ -119,7 +127,11 @@ namespace GeometryHelper.UnitTest.Plane
             GeoEllipse2 ellipse = Tilted();
             GeoLine2 line = Ellipse2Oracle.FrameLine(ellipse, -200, 100.0004, 200, 100.0004);
 
-            AssertTouch(ellipse, ellipse.GetIntersections(line, Strict), Ellipse2Oracle.FromFrame(ellipse, 0, 100.0004));
+            AssertTouch(
+                ellipse,
+                ellipse.GetIntersections(line, Strict),
+                Ellipse2Oracle.FromFrame(ellipse, 0, 100.0004)
+            );
             Assert.InRange(Ellipse2Oracle.PointToSegment(ellipse.GetIntersections(line, Strict)[0], line), 0.0, 1E-9);
             Assert.True(ellipse.TryIntersectWith(line, out _, Strict));
         }
@@ -143,7 +155,11 @@ namespace GeometryHelper.UnitTest.Plane
             // millionth, and both would touch.
             GeoEllipse2 thin = Ellipse2Oracle.Upright(1000, 1);
 
-            AssertTouch(thin, thin.GetIntersections(Ellipse2Oracle.FrameLine(thin, 1000.0004, -3, 1000.0004, 3), Strict), Ellipse2Oracle.FromFrame(thin, 1000.0004, 0));
+            AssertTouch(
+                thin,
+                thin.GetIntersections(Ellipse2Oracle.FrameLine(thin, 1000.0004, -3, 1000.0004, 3), Strict),
+                Ellipse2Oracle.FromFrame(thin, 1000.0004, 0)
+            );
 
             Assert.Empty(thin.GetIntersections(Ellipse2Oracle.FrameLine(thin, 1000.002, -3, 1000.002, 3), Strict));
         }
@@ -184,7 +200,8 @@ namespace GeometryHelper.UnitTest.Plane
             AssertPoints(
                 RimAt(thin, 5 * Math.PI / 3, Math.PI / 3),
                 thin.GetIntersections(Ellipse2Oracle.FrameLine(thin, 500, -5, 500, 5), Strict),
-                1E-9);
+                1E-9
+            );
         }
 
         [Fact]
@@ -201,8 +218,12 @@ namespace GeometryHelper.UnitTest.Plane
 
             AssertTouch(
                 ellipse,
-                ellipse.GetIntersections(Ellipse2Oracle.FrameLine(ellipse, -200, RimHeight(0.0015), 200, RimHeight(0.0015)), Strict),
-                Ellipse2Oracle.FromFrame(ellipse, 0, RimHeight(0.0015)));
+                ellipse.GetIntersections(
+                    Ellipse2Oracle.FrameLine(ellipse, -200, RimHeight(0.0015), 200, RimHeight(0.0015)),
+                    Strict
+                ),
+                Ellipse2Oracle.FromFrame(ellipse, 0, RimHeight(0.0015))
+            );
         }
 
         [Fact]
@@ -215,7 +236,8 @@ namespace GeometryHelper.UnitTest.Plane
             AssertPoints(
                 Ellipse2Oracle.FramePoints(ellipse, -x, 99.99, x, 99.99),
                 ellipse.GetIntersections(Ellipse2Oracle.FrameLine(ellipse, -200, 99.99, 200, 99.99), Strict),
-                1E-9);
+                1E-9
+            );
         }
 
         #endregion
@@ -232,7 +254,8 @@ namespace GeometryHelper.UnitTest.Plane
             AssertPoints(
                 RimAt(ellipse, Math.PI / 6, 5 * Math.PI / 6, 7 * Math.PI / 6, 11 * Math.PI / 6),
                 ellipse.GetIntersections(polyline, Strict),
-                1E-9);
+                1E-9
+            );
         }
 
         [Fact]
@@ -255,7 +278,11 @@ namespace GeometryHelper.UnitTest.Plane
             GeoEllipse2 ellipse = Tilted();
             GeoPolygon2 band = Ellipse2Oracle.FramePolygon(ellipse, 400, -50, -400, -50, -400, 50, 400, 50);
 
-            AssertPoints(RimAt(ellipse, 11 * Math.PI / 6, 7 * Math.PI / 6, 5 * Math.PI / 6, Math.PI / 6), ellipse.GetIntersections(band, Strict), 1E-9);
+            AssertPoints(
+                RimAt(ellipse, 11 * Math.PI / 6, 7 * Math.PI / 6, 5 * Math.PI / 6, Math.PI / 6),
+                ellipse.GetIntersections(band, Strict),
+                1E-9
+            );
         }
 
         [Fact]
@@ -264,7 +291,10 @@ namespace GeometryHelper.UnitTest.Plane
             // An 80 by 60 rectangle, turned 0.3, about the rim point at t = 2: four sides, two of them across the rim.
             GeoEllipse2 ellipse = Tilted();
             var rectangle = new GeoRectangle2(Ellipse2Oracle.Rim(ellipse, 2.0), 80, 60, 0.3);
-            GeoPoint2[] expected = Ellipse2Oracle.RimCrossings(ellipse, Ellipse2Oracle.SideOfConvex(rectangle.GetVertices()));
+            GeoPoint2[] expected = Ellipse2Oracle.RimCrossings(
+                ellipse,
+                Ellipse2Oracle.SideOfConvex(rectangle.GetVertices())
+            );
 
             Assert.Equal(2, expected.Length);
             AssertSamePoints(expected, ellipse.GetIntersections(rectangle, Strict), 1E-9);
@@ -293,7 +323,8 @@ namespace GeometryHelper.UnitTest.Plane
             AssertPoints(
                 RimAt(ellipse, Math.PI / 6, 5 * Math.PI / 6),
                 ellipse.GetIntersections(new GeoTriangle2(corners[0], corners[1], corners[2]), Strict),
-                1E-9);
+                1E-9
+            );
         }
 
         [Fact]
@@ -309,14 +340,28 @@ namespace GeometryHelper.UnitTest.Plane
             double side = Math.Acos(-2.0 / 3.0);
             double top = Math.Asin(0.2);
 
-            AssertPoints(RimAt(ellipse, side, 2 * Math.PI - side, 2 * Math.PI - top, top), ellipse.GetIntersections(face, Strict), 1E-9);
+            AssertPoints(
+                RimAt(ellipse, side, 2 * Math.PI - side, 2 * Math.PI - top, top),
+                ellipse.GetIntersections(face, Strict),
+                1E-9
+            );
         }
 
         [Fact]
         public void AnEllipseInAHoleOfAFace_OrRoundTheHole_CrossesNothing()
         {
             GeoEllipse2 ellipse = Upright();
-            GeoPolygon2 outline = Ellipse2Oracle.FramePolygon(ellipse, -2000, -2000, 2000, -2000, 2000, 2000, -2000, 2000);
+            GeoPolygon2 outline = Ellipse2Oracle.FramePolygon(
+                ellipse,
+                -2000,
+                -2000,
+                2000,
+                -2000,
+                2000,
+                2000,
+                -2000,
+                2000
+            );
             GeoPolygon2 bigHole = Ellipse2Oracle.FramePolygon(ellipse, -400, -200, 400, -200, 400, 200, -400, 200);
             GeoPolygon2 smallHole = Ellipse2Oracle.FramePolygon(ellipse, -50, -20, 50, -20, 50, 20, -50, 20);
 
@@ -331,8 +376,16 @@ namespace GeometryHelper.UnitTest.Plane
             GeoLine2 line = Ellipse2Oracle.FrameLine(ellipse, 400, 50, -400, 50);
             GeoArc2 arc = Ellipse2Oracle.FrameArc(ellipse, 0, 0, 200, 0.0, Math.PI);
 
-            AssertPoints(ellipse.GetIntersections(line, Strict), ellipse.GetIntersections(new GeoEdge2(line.StartPoint, line.EndPoint), Strict), 1E-12);
-            AssertPoints(ellipse.GetIntersections(arc, Strict), ellipse.GetIntersections(new GeoEdge2(arc), Strict), 1E-9);
+            AssertPoints(
+                ellipse.GetIntersections(line, Strict),
+                ellipse.GetIntersections(new GeoEdge2(line.StartPoint, line.EndPoint), Strict),
+                1E-12
+            );
+            AssertPoints(
+                ellipse.GetIntersections(arc, Strict),
+                ellipse.GetIntersections(new GeoEdge2(arc), Strict),
+                1E-9
+            );
 
             Assert.True(ellipse.TryIntersectWith(new GeoEdge2(arc), out GeoPoint2[] found, Strict));
             Assert.Equal(2, found.Length);
@@ -360,7 +413,11 @@ namespace GeometryHelper.UnitTest.Plane
             // the least of the gap and given once.
             GeoEllipse2 ellipse = Upright();
 
-            AssertTouch(ellipse, ellipse.GetIntersections(Ellipse2Oracle.FrameCircle(ellipse, 0, 150, 50), Strict), Ellipse2Oracle.FromFrame(ellipse, 0, 100));
+            AssertTouch(
+                ellipse,
+                ellipse.GetIntersections(Ellipse2Oracle.FrameCircle(ellipse, 0, 150, 50), Strict),
+                Ellipse2Oracle.FromFrame(ellipse, 0, 100)
+            );
         }
 
         [Fact]
@@ -369,7 +426,11 @@ namespace GeometryHelper.UnitTest.Plane
             // The touch is the midpoint of the rim's top (0, 100) and the circle's bottom (0, 100.0004) (A10).
             GeoEllipse2 ellipse = Upright();
 
-            AssertTouch(ellipse, ellipse.GetIntersections(Ellipse2Oracle.FrameCircle(ellipse, 0, 150.0004, 50), Strict), Ellipse2Oracle.FromFrame(ellipse, 0, 100.0002));
+            AssertTouch(
+                ellipse,
+                ellipse.GetIntersections(Ellipse2Oracle.FrameCircle(ellipse, 0, 150.0004, 50), Strict),
+                Ellipse2Oracle.FromFrame(ellipse, 0, 100.0002)
+            );
 
             Assert.Empty(ellipse.GetIntersections(Ellipse2Oracle.FrameCircle(ellipse, 0, 150.002, 50), Strict));
         }
@@ -379,7 +440,10 @@ namespace GeometryHelper.UnitTest.Plane
         {
             GeoEllipse2 ellipse = Tilted();
             GeoCircle2 circle = Ellipse2Oracle.FrameCircle(ellipse, 300, 0, 50);
-            GeoPoint2[] expected = Ellipse2Oracle.RimCrossings(ellipse, Ellipse2Oracle.SideOfCircle(circle.Center, circle.Radius));
+            GeoPoint2[] expected = Ellipse2Oracle.RimCrossings(
+                ellipse,
+                Ellipse2Oracle.SideOfCircle(circle.Center, circle.Radius)
+            );
 
             Assert.Equal(2, expected.Length);
             AssertPoints(expected, ellipse.GetIntersections(circle, Strict), 1E-9);
@@ -407,7 +471,11 @@ namespace GeometryHelper.UnitTest.Plane
             const double t0 = 0.91173829096848764;
             GeoCircle2 circle = Ellipse2Oracle.FrameCircle(ellipse, 0, 0, 200);
 
-            AssertPoints(RimAt(ellipse, t0, Math.PI - t0, Math.PI + t0, 2 * Math.PI - t0), ellipse.GetIntersections(circle, Strict), 1E-9);
+            AssertPoints(
+                RimAt(ellipse, t0, Math.PI - t0, Math.PI + t0, 2 * Math.PI - t0),
+                ellipse.GetIntersections(circle, Strict),
+                1E-9
+            );
             Assert.True(ellipse.TryIntersectWith(circle, out GeoPoint2[] found, Strict));
             Assert.Equal(4, found.Length);
         }
@@ -439,13 +507,18 @@ namespace GeometryHelper.UnitTest.Plane
             // it curves harder than the rim and dips 3.4E-9 or 1.2E-8 below the top. Merged within the tolerance (A9), the
             // two crossings sorted by t otherwise: the one at x = +h first.
             GeoEllipse2 ellipse = Upright();
-            Func<double, GeoCircle2> through = h => Ellipse2Oracle.FrameCircle(ellipse, 0, RimHeight(h) + Math.Sqrt(2500 - h * h), 50);
+            Func<double, GeoCircle2> through = h =>
+                Ellipse2Oracle.FrameCircle(ellipse, 0, RimHeight(h) + Math.Sqrt(2500 - h * h), 50);
 
             GeoPoint2[] once = ellipse.GetIntersections(through(0.0008), Strict);
             Assert.Single(once);
             Assert.InRange(once[0].DistanceTo(Ellipse2Oracle.FromFrame(ellipse, 0, 100)), 0.0, 1E-3);
 
-            AssertPoints(Ellipse2Oracle.FramePoints(ellipse, 0.0015, RimHeight(0.0015), -0.0015, RimHeight(0.0015)), ellipse.GetIntersections(through(0.0015), Strict), 1E-6);
+            AssertPoints(
+                Ellipse2Oracle.FramePoints(ellipse, 0.0015, RimHeight(0.0015), -0.0015, RimHeight(0.0015)),
+                ellipse.GetIntersections(through(0.0015), Strict),
+                1E-6
+            );
         }
 
         [Fact]
@@ -453,13 +526,18 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The same ellipse moved up to 2 y(h), its bottom through (±h, y(h)): it dips 7.1E-10 or 2.5E-9 below the top.
             GeoEllipse2 ellipse = Upright();
-            Func<double, GeoEllipse2> through = h => Ellipse2Oracle.FrameEllipse(ellipse, 0, 2 * RimHeight(h), 0, 300, 100);
+            Func<double, GeoEllipse2> through = h =>
+                Ellipse2Oracle.FrameEllipse(ellipse, 0, 2 * RimHeight(h), 0, 300, 100);
 
             GeoPoint2[] once = ellipse.GetIntersections(through(0.0008), Strict);
             Assert.Single(once);
             Assert.InRange(once[0].DistanceTo(Ellipse2Oracle.FromFrame(ellipse, 0, 100)), 0.0, 1E-3);
 
-            AssertPoints(Ellipse2Oracle.FramePoints(ellipse, 0.0015, RimHeight(0.0015), -0.0015, RimHeight(0.0015)), ellipse.GetIntersections(through(0.0015), Strict), 1E-6);
+            AssertPoints(
+                Ellipse2Oracle.FramePoints(ellipse, 0.0015, RimHeight(0.0015), -0.0015, RimHeight(0.0015)),
+                ellipse.GetIntersections(through(0.0015), Strict),
+                1E-6
+            );
         }
 
         [Fact]
@@ -499,7 +577,11 @@ namespace GeometryHelper.UnitTest.Plane
             // the touch, its upper half does not.
             GeoEllipse2 ellipse = Upright();
 
-            AssertTouch(ellipse, ellipse.GetIntersections(Ellipse2Oracle.FrameArc(ellipse, 0, 150, 50, Math.PI, 2 * Math.PI), Strict), Ellipse2Oracle.FromFrame(ellipse, 0, 100));
+            AssertTouch(
+                ellipse,
+                ellipse.GetIntersections(Ellipse2Oracle.FrameArc(ellipse, 0, 150, 50, Math.PI, 2 * Math.PI), Strict),
+                Ellipse2Oracle.FromFrame(ellipse, 0, 100)
+            );
 
             Assert.Empty(ellipse.GetIntersections(Ellipse2Oracle.FrameArc(ellipse, 0, 150, 50, 0.0, Math.PI), Strict));
         }
@@ -512,17 +594,22 @@ namespace GeometryHelper.UnitTest.Plane
         // centre back down: the straight edge crosses the rim at (0, -100) then (0, 100), and the arc, as wide as the major
         // axis, touches the rim from outside at its tip (300, 0), where the rim curves far harder (radius 33.3 against
         // 300). Edge by edge, as the circle's chain (ArcChain2.cs:451-468; A8).
-        private static GeoPoint2[] ChainMeetings(GeoEllipse2 ellipse) => new[]
-        {
-            Ellipse2Oracle.FromFrame(ellipse, 0, -100), Ellipse2Oracle.FromFrame(ellipse, 0, 100), Ellipse2Oracle.FromFrame(ellipse, 300, 0),
-        };
+        private static GeoPoint2[] ChainMeetings(GeoEllipse2 ellipse) =>
+            new[]
+            {
+                Ellipse2Oracle.FromFrame(ellipse, 0, -100),
+                Ellipse2Oracle.FromFrame(ellipse, 0, 100),
+                Ellipse2Oracle.FromFrame(ellipse, 300, 0),
+            };
 
         [Fact]
         public void AChainOfASegmentAndAnArc_IsMetOnBoth()
         {
             GeoEllipse2 ellipse = Upright();
             GeoPoint2[] ends = Ellipse2Oracle.FramePoints(ellipse, 0, -300, 0, 300);
-            var chain = new GeoPolylineArc2(new[] { new GeoEdge2(ends[0], ends[1]), new GeoEdge2(ends[1], ends[0], -1.0) });
+            var chain = new GeoPolylineArc2(
+                new[] { new GeoEdge2(ends[0], ends[1]), new GeoEdge2(ends[1], ends[0], -1.0) }
+            );
 
             AssertPoints(ChainMeetings(ellipse), ellipse.GetIntersections(chain, Strict), 1E-4);
             Assert.True(ellipse.TryIntersectWith(chain, out GeoPoint2[] found, Strict));
@@ -536,7 +623,10 @@ namespace GeometryHelper.UnitTest.Plane
             // given once. A quarter turn clockwise has the bulge -tan 22.5°.
             GeoEllipse2 ellipse = Upright();
             double quarter = -Math.Tan(Math.PI / 8);
-            var loop = new GeoPolygonArc2(Ellipse2Oracle.FramePoints(ellipse, 0, -300, 0, 300, 300, 0), new[] { 0.0, quarter, quarter });
+            var loop = new GeoPolygonArc2(
+                Ellipse2Oracle.FramePoints(ellipse, 0, -300, 0, 300, 300, 0),
+                new[] { 0.0, quarter, quarter }
+            );
 
             AssertPoints(ChainMeetings(ellipse), ellipse.GetIntersections(loop, Strict), 1E-4);
             Assert.True(ellipse.TryIntersectWith(loop, out GeoPoint2[] found, Strict));
@@ -565,7 +655,11 @@ namespace GeometryHelper.UnitTest.Plane
             // x² / 900, so a thousandth off for |x| < 0.95: the touch is one point, at the least of the gap.
             GeoEllipse2 ellipse = Upright();
 
-            AssertTouch(ellipse, ellipse.GetIntersections(Ellipse2Oracle.FrameEllipse(ellipse, 0, 200, 0, 300, 100), Strict), Ellipse2Oracle.FromFrame(ellipse, 0, 100));
+            AssertTouch(
+                ellipse,
+                ellipse.GetIntersections(Ellipse2Oracle.FrameEllipse(ellipse, 0, 200, 0, 300, 100), Strict),
+                Ellipse2Oracle.FromFrame(ellipse, 0, 100)
+            );
         }
 
         [Fact]
@@ -574,9 +668,15 @@ namespace GeometryHelper.UnitTest.Plane
             // The touch is the midpoint of this top (0, 100) and the copy's bottom (0, 100.0004) (A10).
             GeoEllipse2 ellipse = Upright();
 
-            AssertTouch(ellipse, ellipse.GetIntersections(Ellipse2Oracle.FrameEllipse(ellipse, 0, 200.0004, 0, 300, 100), Strict), Ellipse2Oracle.FromFrame(ellipse, 0, 100.0002));
+            AssertTouch(
+                ellipse,
+                ellipse.GetIntersections(Ellipse2Oracle.FrameEllipse(ellipse, 0, 200.0004, 0, 300, 100), Strict),
+                Ellipse2Oracle.FromFrame(ellipse, 0, 100.0002)
+            );
 
-            Assert.Empty(ellipse.GetIntersections(Ellipse2Oracle.FrameEllipse(ellipse, 0, 200.002, 0, 300, 100), Strict));
+            Assert.Empty(
+                ellipse.GetIntersections(Ellipse2Oracle.FrameEllipse(ellipse, 0, 200.002, 0, 300, 100), Strict)
+            );
         }
 
         [Fact]
@@ -586,7 +686,11 @@ namespace GeometryHelper.UnitTest.Plane
             GeoEllipse2 ellipse = Tilted();
             const double t = 1.4033482475752073;
 
-            AssertPoints(RimAt(ellipse, t, 2 * Math.PI - t), ellipse.GetIntersections(Ellipse2Oracle.FrameEllipse(ellipse, 100, 0, 0, 300, 100), Strict), 1E-9);
+            AssertPoints(
+                RimAt(ellipse, t, 2 * Math.PI - t),
+                ellipse.GetIntersections(Ellipse2Oracle.FrameEllipse(ellipse, 100, 0, 0, 300, 100), Strict),
+                1E-9
+            );
         }
 
         [Fact]
@@ -596,12 +700,23 @@ namespace GeometryHelper.UnitTest.Plane
             // and touches from inside; its sides cross the rim at y = 2.297702, x = ±299.920798, near the tips. With
             // x² = 90 000 (1 - y² / 10 000) the other's equation is a quadratic in y with the roots 2.297702 and 100.
             GeoEllipse2 ellipse = Upright();
-            GeoPoint2[] found = ellipse.GetIntersections(Ellipse2Oracle.FrameEllipse(ellipse, 0, -50, 0, 320, 150), Strict);
+            GeoPoint2[] found = ellipse.GetIntersections(
+                Ellipse2Oracle.FrameEllipse(ellipse, 0, -50, 0, 320, 150),
+                Strict
+            );
 
             Assert.Equal(3, found.Length);
-            Assert.InRange(found[0].DistanceTo(Ellipse2Oracle.FromFrame(ellipse, 299.92079800734094, 2.2977022977022977)), 0.0, 1E-9);
+            Assert.InRange(
+                found[0].DistanceTo(Ellipse2Oracle.FromFrame(ellipse, 299.92079800734094, 2.2977022977022977)),
+                0.0,
+                1E-9
+            );
             Assert.InRange(found[1].DistanceTo(Ellipse2Oracle.FromFrame(ellipse, 0, 100)), 0.0, 1E-4);
-            Assert.InRange(found[2].DistanceTo(Ellipse2Oracle.FromFrame(ellipse, -299.92079800734094, 2.2977022977022977)), 0.0, 1E-9);
+            Assert.InRange(
+                found[2].DistanceTo(Ellipse2Oracle.FromFrame(ellipse, -299.92079800734094, 2.2977022977022977)),
+                0.0,
+                1E-9
+            );
         }
 
         [Fact]
@@ -642,7 +757,8 @@ namespace GeometryHelper.UnitTest.Plane
             AssertPoints(
                 RimAt(thin, t, Math.PI - t, Math.PI + t, 2 * Math.PI - t),
                 thin.GetIntersections(Ellipse2Oracle.FrameEllipse(thin, 0, 0, Math.PI / 2, 1000, 1), Strict),
-                1E-9);
+                1E-9
+            );
         }
 
         [Fact]
@@ -670,7 +786,8 @@ namespace GeometryHelper.UnitTest.Plane
             AssertPoints(
                 new[] { Ellipse2Oracle.FromFrame(ellipse, x, 0.005), Ellipse2Oracle.FromFrame(ellipse, -x, 0.005) },
                 ellipse.GetIntersections(Ellipse2Oracle.FrameEllipse(ellipse, 0, 0.01, 0, 300, 100), Strict),
-                1E-6);
+                1E-6
+            );
         }
 
         [Fact]
@@ -711,7 +828,8 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoPoint2(0.97995044670923415, 100.01559881523094),
                 new GeoVector2(-0.99989050590944029, -0.014797844172840363),
                 1,
-                0.003);
+                0.003
+            );
             var touch = new GeoPoint2(0, 100.00025);
 
             GeoPoint2[] asked = ellipse.GetIntersections(needle, Strict);
@@ -737,12 +855,14 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoPoint2(-9.5094813543881713, 28.229761090236604),
                 new GeoVector2(-0.835876313564321, 0.548917833944317),
                 50.136498268757244,
-                2.6903775407523129);
+                2.6903775407523129
+            );
             GeoEllipse2 needle = new GeoEllipse2(
                 new GeoPoint2(-50.1312154350809, 55.506056231586818),
                 new GeoVector2(0.95192131884887643, -0.30634262308894589),
                 1.0670170608125147,
-                0.095047373751542319);
+                0.095047373751542319
+            );
 
             GeoPoint2[] asked = ellipse.GetIntersections(needle, Strict);
 

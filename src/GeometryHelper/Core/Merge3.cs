@@ -21,7 +21,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Merges runs of consecutive collinear segments, using the default tolerance.
         /// </summary>
-        public static GeoLine3[] ConsecutiveLines(IEnumerable<GeoLine3> lines) => ConsecutiveLines(lines, Tolerance.Global);
+        public static GeoLine3[] ConsecutiveLines(IEnumerable<GeoLine3> lines) =>
+            ConsecutiveLines(lines, Tolerance.Global);
 
         /// <summary>
         /// Merges runs of consecutive collinear segments, within a tolerance.
@@ -82,7 +83,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Concatenates polylines that meet end to start into a single chain, using the default tolerance.
         /// </summary>
-        public static GeoPolyline3 Polylines(IEnumerable<GeoPolyline3> polylines) => Polylines(polylines, Tolerance.Global);
+        public static GeoPolyline3 Polylines(IEnumerable<GeoPolyline3> polylines) =>
+            Polylines(polylines, Tolerance.Global);
 
         /// <summary>
         /// Concatenates polylines that meet end to start into a single chain, within a tolerance.
@@ -121,7 +123,10 @@ namespace GeometryHelper.Core
 
                 if (!vertices[vertices.Count - 1].IsEqualTo(polyline.StartPoint, tolerance))
                 {
-                    throw new ArgumentException("Each polyline must start where the previous one ended.", nameof(polylines));
+                    throw new ArgumentException(
+                        "Each polyline must start where the previous one ended.",
+                        nameof(polylines)
+                    );
                 }
 
                 for (int i = 1; i < polyline.VertexCount; i++)
@@ -141,7 +146,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Merges runs of consecutive polylines that meet end to start, using the default tolerance.
         /// </summary>
-        public static GeoPolyline3[] ConsecutivePolylines(IEnumerable<GeoPolyline3> polylines) => ConsecutivePolylines(polylines, Tolerance.Global);
+        public static GeoPolyline3[] ConsecutivePolylines(IEnumerable<GeoPolyline3> polylines) =>
+            ConsecutivePolylines(polylines, Tolerance.Global);
 
         /// <summary>
         /// Merges runs of consecutive polylines that meet end to start, within a tolerance.
@@ -302,7 +308,12 @@ namespace GeometryHelper.Core
         /// area is their difference rather than their sum, and a surface merged from it reports a size it
         /// does not have.
         /// </remarks>
-        private static void ExtendForwards(List<GeoPolyline3> pieces, bool[] used, List<GeoPoint3> chain, Tolerance tolerance)
+        private static void ExtendForwards(
+            List<GeoPolyline3> pieces,
+            bool[] used,
+            List<GeoPoint3> chain,
+            Tolerance tolerance
+        )
         {
             bool grew = true;
 
@@ -439,7 +450,10 @@ namespace GeometryHelper.Core
                 }
 
                 GeoPlane3 plane = face.GetPlane();
-                int group = byNormal == null ? FirstGroup(planes, plane, tolerance) : FirstGroup(planes, byNormal, plane, cell, tolerance);
+                int group =
+                    byNormal == null
+                        ? FirstGroup(planes, plane, tolerance)
+                        : FirstGroup(planes, byNormal, plane, cell, tolerance);
 
                 if (group < 0)
                 {
@@ -525,7 +539,14 @@ namespace GeometryHelper.Core
             // Every loop is the outline of faces that exist, however thin, so it is built as thin as they were:
             // a sliver left by a cut beside the plane's other faces would otherwise be refused and leave a hole.
             // A loop lost anyway leaves the group as it was rather than a surface with a hole in it.
-            if (!LoopAssembly.TryAssembleFaces(loops, plane.Normal, LoopAssembly.ForPieces(tolerance), out List<GeoFace3> assembled))
+            if (
+                !LoopAssembly.TryAssembleFaces(
+                    loops,
+                    plane.Normal,
+                    LoopAssembly.ForPieces(tolerance),
+                    out List<GeoFace3> assembled
+                )
+            )
             {
                 return group;
             }
@@ -604,7 +625,13 @@ namespace GeometryHelper.Core
         /// The first of some planes a plane is equal to within a tolerance, or -1, asking only those filed in the cells round
         /// its normal: a plane equal to it has a normal no further off along any axis than the side of a cell.
         /// </summary>
-        private static int FirstGroup(List<GeoPlane3> planes, Dictionary<(long, long, long), List<int>> byNormal, GeoPlane3 plane, double cell, Tolerance tolerance)
+        private static int FirstGroup(
+            List<GeoPlane3> planes,
+            Dictionary<(long, long, long), List<int>> byNormal,
+            GeoPlane3 plane,
+            double cell,
+            Tolerance tolerance
+        )
         {
             (long x, long y, long z) = NormalCell(plane.Normal, cell);
             int group = -1;
@@ -648,8 +675,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// The cell a unit normal falls in, on a grid of cubes of a side.
         /// </summary>
-        private static (long, long, long) NormalCell(GeoVector3 normal, double cell)
-            => ((long)Math.Floor(normal.X / cell), (long)Math.Floor(normal.Y / cell), (long)Math.Floor(normal.Z / cell));
+        private static (long, long, long) NormalCell(GeoVector3 normal, double cell) =>
+            ((long)Math.Floor(normal.X / cell), (long)Math.Floor(normal.Y / cell), (long)Math.Floor(normal.Z / cell));
 
         /// <summary>
         /// Hashes the three numbers of a cell, each spread over the whole hash by a multiply, so that the cells of a sphere's
@@ -659,7 +686,8 @@ namespace GeometryHelper.Core
         {
             internal static CellKeys Instance { get; } = new CellKeys();
 
-            public bool Equals((long, long, long) a, (long, long, long) b) => a.Item1 == b.Item1 && a.Item2 == b.Item2 && a.Item3 == b.Item3;
+            public bool Equals((long, long, long) a, (long, long, long) b) =>
+                a.Item1 == b.Item1 && a.Item2 == b.Item2 && a.Item3 == b.Item3;
 
             public int GetHashCode((long, long, long) key)
             {

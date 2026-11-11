@@ -24,7 +24,9 @@ namespace GeometryHelper.Dxf
     public sealed class DxfLine : DxfCurve
     {
         // The groups of AcDbLine in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 39, 10, 20, 30, 11, 21, 31, 210, 220, 230 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 39, 10, 20, 30, 11, 21, 31, 210, 220, 230 }
+        );
 
         private static readonly GeoPoint3 Origin = new GeoPoint3(0.0, 0.0, 0.0);
 
@@ -33,9 +35,7 @@ namespace GeometryHelper.Dxf
         /// ends before it is drawn.
         /// </summary>
         public DxfLine()
-            : this(Origin, Origin)
-        {
-        }
+            : this(Origin, Origin) { }
 
         /// <summary>
         /// Initializes a line from one point to another, as AutoCAD's <c>new Line(start, end)</c>, on layer 0 with no look of
@@ -45,14 +45,10 @@ namespace GeometryHelper.Dxf
         /// <param name="endPoint">Where it ends.</param>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
         public DxfLine(GeoPoint3 startPoint, GeoPoint3 endPoint)
-            : base(new GeoLine3(startPoint, endPoint))
-        {
-        }
+            : base(new GeoLine3(startPoint, endPoint)) { }
 
         private DxfLine(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets or sets where the line starts (groups 10, 20, 30), in world coordinates; the origin where the record gives none.
@@ -164,7 +160,12 @@ namespace GeometryHelper.Dxf
             }
 
             double length = segment.Length;
-            return length > 0.0 ? Math.Max(0.0, Math.Min(length, segment.StartPoint.GetVectorTo(point).DotProduct(segment.Direction) / length)) : 0.0;
+            return length > 0.0
+                ? Math.Max(
+                    0.0,
+                    Math.Min(length, segment.StartPoint.GetVectorTo(point).DotProduct(segment.Direction) / length)
+                )
+                : 0.0;
         }
 
         /// <summary>Gets the distance at a parameter: the parameter itself, as on any AutoCAD line.</summary>
@@ -256,7 +257,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The one line, of the same look, in no file.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the line has no length to give it a direction.</exception>
-        public override IReadOnlyList<DxfCurve> GetOffsetCurves(double offsetDist) => GetOffsetCurvesGivenPlaneNormal(Normal, offsetDist);
+        public override IReadOnlyList<DxfCurve> GetOffsetCurves(double offsetDist) =>
+            GetOffsetCurvesGivenPlaneNormal(Normal, offsetDist);
 
         /// <summary>
         /// Gets the line at a distance from this one in the plane of a normal, as AutoCAD's
@@ -269,7 +271,10 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
         /// <exception cref="ArgumentException">Thrown when the normal has no length or runs along the line.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the line has no length to give it a direction.</exception>
-        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(GeoVector3 planeNormal, double offsetDist)
+        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(
+            GeoVector3 planeNormal,
+            double offsetDist
+        )
         {
             // The library's offset in a plane goes to the left, as AutoCAD's of a line does.
             GeoLine3 moved = Segment().OffsetInPlane(offsetDist, planeNormal, Tolerance.Default);
@@ -307,7 +312,11 @@ namespace GeometryHelper.Dxf
 
             if (newParameter >= 0.0 && newParameter <= length)
             {
-                throw new ArgumentOutOfRangeException(nameof(newParameter), newParameter, "The parameter lies on the line, which runs from nought to its length: one past an end extends it.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(newParameter),
+                    newParameter,
+                    "The parameter lies on the line, which runs from nought to its length: one past an end extends it."
+                );
             }
 
             GeoPoint3 start = StartPoint;
@@ -439,7 +448,12 @@ namespace GeometryHelper.Dxf
 
             if (!(geCurve is GeoLine3 segment))
             {
-                throw new ArgumentException("A line takes a GeoLine3 or a GeoLine2, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
+                throw new ArgumentException(
+                    "A line takes a GeoLine3 or a GeoLine2, and was given "
+                        + (geCurve == null ? "null" : "a " + geCurve.GetType().Name)
+                        + ".",
+                    nameof(geCurve)
+                );
             }
 
             if (!segment.StartPoint.IsValid || !segment.EndPoint.IsValid)
@@ -474,10 +488,15 @@ namespace GeometryHelper.Dxf
 
             if (!(length > 0.0) || double.IsInfinity(length))
             {
-                throw new ArgumentException("The transformation takes the normal of the line to no direction.", nameof(transform));
+                throw new ArgumentException(
+                    "The transformation takes the normal of the line to no direction.",
+                    nameof(transform)
+                );
             }
 
-            SetGroups(Join(PointGroups(10, start, Origin), PointGroups(11, end, Origin), NormalGroups(raised.Divide(length))));
+            SetGroups(
+                Join(PointGroups(10, start, Origin), PointGroups(11, end, Origin), NormalGroups(raised.Divide(length)))
+            );
 
             if (thickness != 0.0)
             {
@@ -498,7 +517,12 @@ namespace GeometryHelper.Dxf
         private DxfLine Piece(double from, double to)
         {
             var copy = (DxfLine)Copy();
-            copy.SetGroups(Join(copy.PointGroups(10, GetPointAtParameter(from), Origin), copy.PointGroups(11, GetPointAtParameter(to), Origin)));
+            copy.SetGroups(
+                Join(
+                    copy.PointGroups(10, GetPointAtParameter(from), Origin),
+                    copy.PointGroups(11, GetPointAtParameter(to), Origin)
+                )
+            );
             return copy;
         }
     }

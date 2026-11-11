@@ -24,15 +24,15 @@ namespace GeometryHelper.Dxf
     public sealed class DxfDBPoint : DxfEntity
     {
         // The groups of AcDbPoint in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 10, 20, 30, 39, 210, 220, 230, 50 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 10, 20, 30, 39, 210, 220, 230, 50 }
+        );
 
         private static readonly GeoPoint3 Origin = new GeoPoint3(0.0, 0.0, 0.0);
 
         /// <summary>Initializes a point at the origin, as AutoCAD's <c>new DBPoint()</c>, on layer 0 in no file.</summary>
         public DxfDBPoint()
-            : this(Origin)
-        {
-        }
+            : this(Origin) { }
 
         /// <summary>
         /// Initializes a point, as AutoCAD's <c>new DBPoint(position)</c>, on layer 0 with no look of its own, in no file until
@@ -41,14 +41,10 @@ namespace GeometryHelper.Dxf
         /// <param name="position">Where it is, in world coordinates.</param>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
         public DxfDBPoint(GeoPoint3 position)
-            : base("POINT", Groups(position))
-        {
-        }
+            : base("POINT", Groups(position)) { }
 
         private DxfDBPoint(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets where the point is (groups 10, 20, 30), in world coordinates, as AutoCAD's <c>Position</c>; the origin where the record gives none.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
@@ -92,7 +88,6 @@ namespace GeometryHelper.Dxf
         public double EcsRotation
         {
             get => GetDouble(50, 0.0) * Math.PI / 180.0;
-
             set
             {
                 Guard.Finite(value, nameof(value), "An angle has to be a finite number.");
@@ -156,7 +151,10 @@ namespace GeometryHelper.Dxf
 
             if (!(length > 0.0) || double.IsInfinity(length))
             {
-                throw new ArgumentException("The transformation takes the normal of the point to no direction.", nameof(transform));
+                throw new ArgumentException(
+                    "The transformation takes the normal of the point to no direction.",
+                    nameof(transform)
+                );
             }
 
             SetGroups(Join(PointGroups(10, position, Origin), NormalGroups(raised.Divide(length))));
@@ -178,7 +176,10 @@ namespace GeometryHelper.Dxf
         {
             if (!position.IsValid)
             {
-                throw new ArgumentException("A point has to be of finite numbers: " + position + " is not.", nameof(position));
+                throw new ArgumentException(
+                    "A point has to be of finite numbers: " + position + " is not.",
+                    nameof(position)
+                );
             }
 
             return new[]

@@ -10,7 +10,12 @@ namespace GeometryHelper.Drawing.Projection
     internal struct CandidateEdge
     {
         internal int Object;
-        internal double Ax, Ay, Az, Bx, By, Bz;
+        internal double Ax,
+            Ay,
+            Az,
+            Bx,
+            By,
+            Bz;
         internal EdgeKind Kind;
 
         /// <summary>The view-wide numbers of the faces the edge bounds; none of them hides it.</summary>
@@ -30,10 +35,17 @@ namespace GeometryHelper.Drawing.Projection
         internal double[] Ys;
         internal int[] Starts;
 
-        internal double MinX, MinY, MaxX, MaxY, MaxZ;
+        internal double MinX,
+            MinY,
+            MaxX,
+            MaxY,
+            MaxZ;
 
         /// <summary>The unit normal in view coordinates, turned to the viewer (Nz above nought), and the plane's offset.</summary>
-        internal double Nx, Ny, Nz, D;
+        internal double Nx,
+            Ny,
+            Nz,
+            D;
     }
 
     /// <summary>
@@ -58,7 +70,17 @@ namespace GeometryHelper.Drawing.Projection
         /// <param name="faceBase">The view-wide number of the body's first face; moved past its last.</param>
         /// <param name="edges">The edges that may be drawn.</param>
         /// <param name="occluders">The faces that hide.</param>
-        internal static void Add(GeoSolid3 solid, int obj, GeoCoordinateSystem3 frame, double[] cut, double smoothAngleRad, Tolerance tolerance, ref int faceBase, List<CandidateEdge> edges, List<Occluder> occluders)
+        internal static void Add(
+            GeoSolid3 solid,
+            int obj,
+            GeoCoordinateSystem3 frame,
+            double[] cut,
+            double smoothAngleRad,
+            Tolerance tolerance,
+            ref int faceBase,
+            List<CandidateEdge> edges,
+            List<Occluder> occluders
+        )
         {
             double tol = tolerance.EqualPoint;
             double eps = tolerance.EqualVector;
@@ -124,7 +146,10 @@ namespace GeometryHelper.Drawing.Projection
                 {
                     int f1 = record.Faces[0];
                     int f2 = record.Faces[1];
-                    double cos = normals[3 * f1] * normals[3 * f2] + normals[3 * f1 + 1] * normals[3 * f2 + 1] + normals[3 * f1 + 2] * normals[3 * f2 + 2];
+                    double cos =
+                        normals[3 * f1] * normals[3 * f2]
+                        + normals[3 * f1 + 1] * normals[3 * f2 + 1]
+                        + normals[3 * f1 + 2] * normals[3 * f2 + 2];
 
                     if (cos >= cosSmooth)
                     {
@@ -137,7 +162,11 @@ namespace GeometryHelper.Drawing.Projection
                     }
                 }
 
-                if (cut != null && Math.Abs(cut[0] * xs[a] + cut[1] * ys[a] + cut[2] * zs[a] - cut[3]) <= tol && Math.Abs(cut[0] * xs[b] + cut[1] * ys[b] + cut[2] * zs[b] - cut[3]) <= tol)
+                if (
+                    cut != null
+                    && Math.Abs(cut[0] * xs[a] + cut[1] * ys[a] + cut[2] * zs[a] - cut[3]) <= tol
+                    && Math.Abs(cut[0] * xs[b] + cut[1] * ys[b] + cut[2] * zs[b] - cut[3]) <= tol
+                )
                 {
                     kind = EdgeKind.SectionOutline;
                 }
@@ -149,14 +178,20 @@ namespace GeometryHelper.Drawing.Projection
                     faceIds[i] = faceBase + record.Faces[i];
                 }
 
-                edges.Add(new CandidateEdge
-                {
-                    Object = obj,
-                    Ax = xs[a], Ay = ys[a], Az = zs[a],
-                    Bx = xs[b], By = ys[b], Bz = zs[b],
-                    Kind = kind,
-                    Faces = faceIds,
-                });
+                edges.Add(
+                    new CandidateEdge
+                    {
+                        Object = obj,
+                        Ax = xs[a],
+                        Ay = ys[a],
+                        Az = zs[a],
+                        Bx = xs[b],
+                        By = ys[b],
+                        Bz = zs[b],
+                        Kind = kind,
+                        Faces = faceIds,
+                    }
+                );
             }
 
             for (int f = 0; f < faces.Count; f++)
@@ -175,9 +210,21 @@ namespace GeometryHelper.Drawing.Projection
         /// <summary>
         /// Which way a face is turned: +1 to the viewer, -1 away, 0 seen edge-on within the vector tolerance.
         /// </summary>
-        private static int Facing(double nz, double eps) => nz > eps ? 1 : nz < -eps ? -1 : 0;
+        private static int Facing(double nz, double eps) =>
+            nz > eps ? 1
+            : nz < -eps ? -1
+            : 0;
 
-        private static Occluder MakeOccluder(List<int[]> faceLoops, double[] normals, int f, int obj, int faceId, double[] xs, double[] ys, double[] zs)
+        private static Occluder MakeOccluder(
+            List<int[]> faceLoops,
+            double[] normals,
+            int f,
+            int obj,
+            int faceId,
+            double[] xs,
+            double[] ys,
+            double[] zs
+        )
         {
             int count = 0;
 
@@ -506,8 +553,12 @@ namespace GeometryHelper.Drawing.Projection
                 }
             }
 
-            private static CellKey Bits(GeoPoint3 p)
-                => new CellKey(BitConverter.DoubleToInt64Bits(p.X), BitConverter.DoubleToInt64Bits(p.Y), BitConverter.DoubleToInt64Bits(p.Z));
+            private static CellKey Bits(GeoPoint3 p) =>
+                new CellKey(
+                    BitConverter.DoubleToInt64Bits(p.X),
+                    BitConverter.DoubleToInt64Bits(p.Y),
+                    BitConverter.DoubleToInt64Bits(p.Z)
+                );
 
             internal List<double> Xs { get; } = new List<double>();
 

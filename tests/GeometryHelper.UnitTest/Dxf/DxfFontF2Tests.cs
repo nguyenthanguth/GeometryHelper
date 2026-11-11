@@ -46,10 +46,18 @@ namespace GeometryHelper.UnitTest.Dxf
             }
         }
 
-        private static KeyValuePair<string, byte[]> F(string name, byte[] bytes) => new KeyValuePair<string, byte[]>(name, bytes);
+        private static KeyValuePair<string, byte[]> F(string name, byte[] bytes) =>
+            new KeyValuePair<string, byte[]>(name, bytes);
 
         /// <summary>A style of a font's file, and of a typeface where one is given, added to a drawing.</summary>
-        private static void Style(DxfDatabase db, string name, string file, string typeFace = null, bool bold = false, bool italic = false)
+        private static void Style(
+            DxfDatabase db,
+            string name,
+            string file,
+            string typeFace = null,
+            bool bold = false,
+            bool italic = false
+        )
         {
             var style = new DxfTextStyleTableRecord { Name = name, FileName = file };
             db.TextStyleTable.Add(style);
@@ -71,9 +79,17 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static GeoPoint3 P(double x, double y) => new GeoPoint3(x, y, 0);
 
-        private static void Is(GeoPoint3 expected, GeoPoint3 actual) => Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
+        private static void Is(GeoPoint3 expected, GeoPoint3 actual) =>
+            Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
 
-        private static void Is(double expected, double actual) => Assert.True(Math.Abs(expected - actual) <= Near, "expected " + expected.ToString("R", CultureInfo.InvariantCulture) + ", got " + actual.ToString("R", CultureInfo.InvariantCulture));
+        private static void Is(double expected, double actual) =>
+            Assert.True(
+                Math.Abs(expected - actual) <= Near,
+                "expected "
+                    + expected.ToString("R", CultureInfo.InvariantCulture)
+                    + ", got "
+                    + actual.ToString("R", CultureInfo.InvariantCulture)
+            );
 
         /// <summary>The messages logged while an action runs, every level, each after its level.</summary>
         private static List<string> Logged(Action action)
@@ -98,9 +114,23 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>A TEXT in model space made in code, 7 high (the top of A), its modes and second point given.</summary>
-        private static DxfDBText Text(DxfDatabase db, string words, int horizontal, int vertical, GeoPoint3 second, double widthFactor = 1.0, string style = "GH")
+        private static DxfDBText Text(
+            DxfDatabase db,
+            string words,
+            int horizontal,
+            int vertical,
+            GeoPoint3 second,
+            double widthFactor = 1.0,
+            string style = "GH"
+        )
         {
-            var text = new DxfDBText { TextString = words, Height = 7, WidthFactor = widthFactor, TextStyleName = style };
+            var text = new DxfDBText
+            {
+                TextString = words,
+                Height = 7,
+                WidthFactor = widthFactor,
+                TextStyleName = style,
+            };
             text.HorizontalMode = (DxfTextHorizontalMode)horizontal;
             text.VerticalMode = (DxfTextVerticalMode)vertical;
             text.AlignmentPoint = second;
@@ -155,7 +185,13 @@ namespace GeometryHelper.UnitTest.Dxf
                 // AutoCAD 2021 (F1a): "AV" of Arial is as wide as A's advance and V's, though Arial kerns them by -152 units. The
                 // font here kerns them by -100: right-aligned on 100 it stands at 88, its box 12 wide, not at 89.
                 Is(P(88, 50), Text(db, "AV", 2, 0, P(100, 50)).Position);
-                var mtext = new DxfMText { Contents = "AV", TextHeight = 7, TextStyleName = "GH", Location = P(0, 0) };
+                var mtext = new DxfMText
+                {
+                    Contents = "AV",
+                    TextHeight = 7,
+                    TextStyleName = "GH",
+                    Location = P(0, 0),
+                };
                 db.ModelSpace.AppendEntity(mtext);
                 Is(12, mtext.ActualWidth);
             });
@@ -211,11 +247,18 @@ namespace GeometryHelper.UnitTest.Dxf
                     // which has both, draws its U+2205.
                     Is(P(96, 50), Text(db, "%%c", 1, 0, P(100, 50)).Position);
                     Is(P(95.5, 50), Text(db, "%%c", 1, 0, P(100, 50), style: "SIGN").Position);
-                    var mtext = new DxfMText { Contents = "%%c", TextHeight = 7, TextStyleName = "GH", Location = P(0, 0) };
+                    var mtext = new DxfMText
+                    {
+                        Contents = "%%c",
+                        TextHeight = 7,
+                        TextStyleName = "GH",
+                        Location = P(0, 0),
+                    };
                     db.ModelSpace.AppendEntity(mtext);
                     Is(8, mtext.ActualWidth);
                 },
-                F("gh-sign.ttf", TrueTypeFile.Font(TrueTypeFile.Letters(true))));
+                F("gh-sign.ttf", TrueTypeFile.Font(TrueTypeFile.Letters(true)))
+            );
         }
 
         [Fact]
@@ -245,7 +288,13 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 DxfMText Words(string contents)
                 {
-                    var mtext = new DxfMText { Contents = contents, TextHeight = 7, TextStyleName = "GH", Location = P(0, 0) };
+                    var mtext = new DxfMText
+                    {
+                        Contents = contents,
+                        TextHeight = 7,
+                        TextStyleName = "GH",
+                        Location = P(0, 0),
+                    };
                     db.ModelSpace.AppendEntity(mtext);
                     return mtext;
                 }
@@ -288,7 +337,16 @@ namespace GeometryHelper.UnitTest.Dxf
         /// <summary>A multileader made in code as F1a's plugin made AutoCAD's: words of GH 4 high at (100, 50) on the Standard of a gap of 2 and doglegs of 8, a line added from the point given.</summary>
         private static DxfMLeader Made(DxfDatabase db, string words, GeoPoint3 from, int attachment = 1)
         {
-            var mleader = new DxfMLeader { MText = new DxfMText { Contents = words, Location = P(100, 50), TextHeight = 4.0, TextStyleName = "GH" } };
+            var mleader = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = words,
+                    Location = P(100, 50),
+                    TextHeight = 4.0,
+                    TextStyleName = "GH",
+                },
+            };
             db.ModelSpace.AppendEntity(mleader);
             mleader.LandingGap = 2;
             mleader.DoglegLength = 8;
@@ -313,7 +371,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 // "Ag", its g 200 units below the baseline: met as far below its top as half its height and that depth.
                 double depth = 200 * 4.0 / 700;
-                Is(P(100 + (1080 * 4.0 / 700) + 10, 50 - ((4 + depth) / 2)), Made(db, "Ag", P(250, 0)).GetLastVertex(0));
+                Is(
+                    P(100 + (1080 * 4.0 / 700) + 10, 50 - ((4 + depth) / 2)),
+                    Made(db, "Ag", P(250, 0)).GetLastVertex(0)
+                );
             });
         }
 
@@ -331,12 +392,28 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 foreach (string words in new[] { "A", "A ", " A" })
                 {
-                    var definition = new DxfAttributeDefinition(P(20, 10 * acted.Count), words, "T" + acted.Count.ToString(CultureInfo.InvariantCulture), "T", null) { Height = 7, LockPositionInBlock = true, TextStyleName = "GH" };
+                    var definition = new DxfAttributeDefinition(
+                        P(20, 10 * acted.Count),
+                        words,
+                        "T" + acted.Count.ToString(CultureInfo.InvariantCulture),
+                        "T",
+                        null
+                    )
+                    {
+                        Height = 7,
+                        LockPositionInBlock = true,
+                        TextStyleName = "GH",
+                    };
                     block.AppendEntity(definition);
                     acted.Add(definition);
                 }
 
-                DxfBlockFlipParameter hand = block.AddFlipParameter("Hand", null, new GeoPoint3(45, 0, 0), new GeoPoint3(45, 50, 0));
+                DxfBlockFlipParameter hand = block.AddFlipParameter(
+                    "Hand",
+                    null,
+                    new GeoPoint3(45, 0, 0),
+                    new GeoPoint3(45, 50, 0)
+                );
                 block.AddFlipAction(hand, acted);
                 db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), block));
 
@@ -361,7 +438,14 @@ namespace GeometryHelper.UnitTest.Dxf
             InFolder(folder =>
             {
                 DxfDatabase db = Drawing(folder);
-                var words = new DxfMText { Contents = "AV", TextHeight = 2.5, TextStyleName = "GH", Attachment = DxfAttachmentPoint.MiddleLeft, Location = P(22, 10) };
+                var words = new DxfMText
+                {
+                    Contents = "AV",
+                    TextHeight = 2.5,
+                    TextStyleName = "GH",
+                    Attachment = DxfAttachmentPoint.MiddleLeft,
+                    Location = P(22, 10),
+                };
                 db.ModelSpace.AppendEntity(words);
                 var leader = new DxfLeader { HasArrowHead = true };
                 leader.AppendVertex(P(0, 0));
@@ -372,7 +456,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 leader.Dimtad = 1;
                 db.ModelSpace.AppendEntity(leader);
                 leader.Annotation = words;
-                List<KeyValuePair<int, string>> groups = leader.Item.File.TailOf(leader.Item, 0).Select(g => new KeyValuePair<int, string>(g.TypeCode, g.TypeCode == 75 ? "1" : g.Value)).ToList();
+                List<KeyValuePair<int, string>> groups = leader
+                    .Item.File.TailOf(leader.Item, 0)
+                    .Select(g => new KeyValuePair<int, string>(g.TypeCode, g.TypeCode == 75 ? "1" : g.Value))
+                    .ToList();
                 leader.Item.File.ReplaceTail(leader.Item, 0, groups);
 
                 // AutoCAD 2021 (F2, 20 LEADERs of Arial words exploded): the hook runs on to the far end of the words, "AV" 1200
@@ -415,26 +502,73 @@ namespace GeometryHelper.UnitTest.Dxf
                             Is(P(96.5, 50), Text(db, "H", 1, 0, P(100, 50), style: measured).Position);
                         }
 
-                        foreach (string refused in new[] { "OTHER", "BOLD", "ITALIC", "TYPEFACE", "SECOND", "NOFACE", "CFF", "SYMBOLS", "BAD", "OTHER", "BAD" })
+                        foreach (
+                            string refused in new[]
+                            {
+                                "OTHER",
+                                "BOLD",
+                                "ITALIC",
+                                "TYPEFACE",
+                                "SECOND",
+                                "NOFACE",
+                                "CFF",
+                                "SYMBOLS",
+                                "BAD",
+                                "OTHER",
+                                "BAD",
+                            }
+                        )
                         {
                             Is(unmeasured, Text(db, "H", 1, 0, P(100, 50), style: refused).Position);
                         }
                     });
 
-                    Assert.Single(logged, m => m.StartsWith("Debug", StringComparison.Ordinal) && m.Contains("Times New Roman"));
-                    Assert.Single(logged, m => m.StartsWith("Debug", StringComparison.Ordinal) && m.Contains("GH Test bold"));
-                    Assert.Single(logged, m => m.StartsWith("Debug", StringComparison.Ordinal) && m.Contains("GH Other"));
-                    Assert.Single(logged, m => m.StartsWith("Debug", StringComparison.Ordinal) && m.Contains("no typeface"));
-                    Assert.Single(logged, m => m.StartsWith("Debug", StringComparison.Ordinal) && m.Contains("of no name"));
-                    Assert.Single(logged, m => m.StartsWith("Debug", StringComparison.Ordinal) && m.Contains("gh-cff.otf"));
-                    Assert.Single(logged, m => m.StartsWith("Debug", StringComparison.Ordinal) && m.Contains("gh-symbols.ttf"));
-                    Assert.Single(logged, m => m.StartsWith("Warn", StringComparison.Ordinal) && m.Contains("gh-bad.ttf"));
+                    Assert.Single(logged, m =>
+                        m.StartsWith("Debug", StringComparison.Ordinal) && m.Contains("Times New Roman")
+                    );
+                    Assert.Single(logged, m =>
+                        m.StartsWith("Debug", StringComparison.Ordinal) && m.Contains("GH Test bold")
+                    );
+                    Assert.Single(logged, m =>
+                        m.StartsWith("Debug", StringComparison.Ordinal) && m.Contains("GH Other")
+                    );
+                    Assert.Single(logged, m =>
+                        m.StartsWith("Debug", StringComparison.Ordinal) && m.Contains("no typeface")
+                    );
+                    Assert.Single(logged, m =>
+                        m.StartsWith("Debug", StringComparison.Ordinal) && m.Contains("of no name")
+                    );
+                    Assert.Single(logged, m =>
+                        m.StartsWith("Debug", StringComparison.Ordinal) && m.Contains("gh-cff.otf")
+                    );
+                    Assert.Single(logged, m =>
+                        m.StartsWith("Debug", StringComparison.Ordinal) && m.Contains("gh-symbols.ttf")
+                    );
+                    Assert.Single(logged, m =>
+                        m.StartsWith("Warn", StringComparison.Ordinal) && m.Contains("gh-bad.ttf")
+                    );
                 },
                 F("gh-bold.ttf", TrueTypeFile.Font(TrueTypeFile.Letters(), "GH Test", 1)),
                 F("gh.ttc", TrueTypeFile.Collection(TrueTypeFile.Letters())),
                 F("gh-cff.otf", TrueTypeFile.Cff()),
-                F("gh-symbols.ttf", TrueTypeFile.Font(TrueTypeFile.Letters().Select(l => new TrueTypeFile.Letter(l.Number > 0 && l.Number < 0x100 ? 0xF000 | l.Number : l.Number, l.Advance, l.Box ?? new int[0])).ToList(), "GH Symbols", 0, true)),
-                F("gh-bad.ttf", Encoding.ASCII.GetBytes("\0\u0001\0\0\0\u0009")));
+                F(
+                    "gh-symbols.ttf",
+                    TrueTypeFile.Font(
+                        TrueTypeFile
+                            .Letters()
+                            .Select(l => new TrueTypeFile.Letter(
+                                l.Number > 0 && l.Number < 0x100 ? 0xF000 | l.Number : l.Number,
+                                l.Advance,
+                                l.Box ?? new int[0]
+                            ))
+                            .ToList(),
+                        "GH Symbols",
+                        0,
+                        true
+                    )
+                ),
+                F("gh-bad.ttf", Encoding.ASCII.GetBytes("\0\u0001\0\0\0\u0009"))
+            );
         }
 
         [Fact]

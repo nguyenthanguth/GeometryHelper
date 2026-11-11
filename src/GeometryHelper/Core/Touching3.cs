@@ -73,7 +73,10 @@ namespace GeometryHelper.Core
 
                 for (int t = 0; t < targets.Count; t++)
                 {
-                    if (Math.Abs(targets[t].Face.Normal.DotProduct(face.Normal)) < parallel || !targets[t].Box.CollidesWith(box, reach))
+                    if (
+                        Math.Abs(targets[t].Face.Normal.DotProduct(face.Normal)) < parallel
+                        || !targets[t].Box.CollidesWith(box, reach)
+                    )
                     {
                         continue;
                     }
@@ -183,8 +186,8 @@ namespace GeometryHelper.Core
             return put.ClosesByCorners(tolerance) || !second.ClosesByCorners(tolerance) ? put : second;
         }
 
-        private static GeoPoint3 At(Dictionary<GeoPoint3, GeoPoint3> moved, GeoPoint3 corner)
-            => moved.TryGetValue(corner, out GeoPoint3 at) ? at : corner;
+        private static GeoPoint3 At(Dictionary<GeoPoint3, GeoPoint3> moved, GeoPoint3 corner) =>
+            moved.TryGetValue(corner, out GeoPoint3 at) ? at : corner;
 
         private static bool Touches(GeoFace3 face, Dictionary<GeoPoint3, GeoPoint3> moved)
         {

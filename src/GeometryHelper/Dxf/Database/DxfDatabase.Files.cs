@@ -58,7 +58,9 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(filename));
             }
 
-            List<DxfSupportFiles.Linetype> linetypes = DxfSupportFiles.ReadLinetypes(DxfSupportFiles.ReadText(filename));
+            List<DxfSupportFiles.Linetype> linetypes = DxfSupportFiles.ReadLinetypes(
+                DxfSupportFiles.ReadText(filename)
+            );
             string folder = Path.GetDirectoryName(Path.GetFullPath(filename));
             bool pattern = lineTypeName.IndexOf('*') >= 0 || lineTypeName.IndexOf('?') >= 0;
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -90,15 +92,32 @@ namespace GeometryHelper.Dxf
 
             if (!pattern && loaded == 0)
             {
-                throw new ArgumentException("The file " + Path.GetFileName(filename) + " has no linetype named " + lineTypeName + ".", nameof(lineTypeName));
+                throw new ArgumentException(
+                    "The file " + Path.GetFileName(filename) + " has no linetype named " + lineTypeName + ".",
+                    nameof(lineTypeName)
+                );
             }
 
             if (passed.Count > 0)
             {
-                GeometryHelperLog.Debug("DxfDatabase: " + passed.Count.ToString(CultureInfo.InvariantCulture) + " linetypes of " + Path.GetFileName(filename) + " were passed over, the drawing having them already or not taking them: " + string.Join(", ", passed) + ".");
+                GeometryHelperLog.Debug(
+                    "DxfDatabase: "
+                        + passed.Count.ToString(CultureInfo.InvariantCulture)
+                        + " linetypes of "
+                        + Path.GetFileName(filename)
+                        + " were passed over, the drawing having them already or not taking them: "
+                        + string.Join(", ", passed)
+                        + "."
+                );
             }
 
-            GeometryHelperLog.Info("DxfDatabase: " + loaded.ToString(CultureInfo.InvariantCulture) + " linetypes were loaded from " + Path.GetFileName(filename) + ".");
+            GeometryHelperLog.Info(
+                "DxfDatabase: "
+                    + loaded.ToString(CultureInfo.InvariantCulture)
+                    + " linetypes were loaded from "
+                    + Path.GetFileName(filename)
+                    + "."
+            );
         }
 
         /// <summary>
@@ -140,7 +159,11 @@ namespace GeometryHelper.Dxf
             {
                 string name = each.Find(g => g.TypeCode == 2).Value;
 
-                if (style == null && name != null && string.Equals(name.Trim(), mlineStyleName.Trim(), StringComparison.OrdinalIgnoreCase))
+                if (
+                    style == null
+                    && name != null
+                    && string.Equals(name.Trim(), mlineStyleName.Trim(), StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     style = each;
                 }
@@ -148,16 +171,27 @@ namespace GeometryHelper.Dxf
 
             if (style == null)
             {
-                throw new ArgumentException("The file " + Path.GetFileName(fileName) + " has no multiline style named " + mlineStyleName + ".", nameof(mlineStyleName));
+                throw new ArgumentException(
+                    "The file " + Path.GetFileName(fileName) + " has no multiline style named " + mlineStyleName + ".",
+                    nameof(mlineStyleName)
+                );
             }
 
             string written = style.Find(g => g.TypeCode == 2).Value.Trim();
-            DxfDBDictionary root = NamedObjectsDictionary ?? throw new InvalidOperationException("A DXF " + (Version ?? "with no version") + " has no named object dictionary to hold multiline styles: R13 (AC1012) brought it.");
+            DxfDBDictionary root = NamedObjectsDictionary
+                ?? throw new InvalidOperationException(
+                    "A DXF "
+                        + (Version ?? "with no version")
+                        + " has no named object dictionary to hold multiline styles: R13 (AC1012) brought it."
+                );
             DxfDBDictionary styles = MLStyleDictionary;
 
             if (styles != null && styles.Contains(written))
             {
-                throw new ArgumentException("The drawing has a multiline style named " + written + " already, letters of either case the same.", nameof(mlineStyleName));
+                throw new ArgumentException(
+                    "The drawing has a multiline style named " + written + " already, letters of either case the same.",
+                    nameof(mlineStyleName)
+                );
             }
 
             foreach (DxfTypedValue group in style)
@@ -166,7 +200,14 @@ namespace GeometryHelper.Dxf
 
                 if (linetype != null && !IsOneOf(linetype, "BYLAYER", "BYBLOCK") && !LinetypeTable.Has(linetype))
                 {
-                    throw new ArgumentException("The multiline style " + written + " draws an element with the linetype " + linetype + ", which the drawing has not: load it first.", nameof(mlineStyleName));
+                    throw new ArgumentException(
+                        "The multiline style "
+                            + written
+                            + " draws an element with the linetype "
+                            + linetype
+                            + ", which the drawing has not: load it first.",
+                        nameof(mlineStyleName)
+                    );
                 }
             }
 
@@ -183,14 +224,22 @@ namespace GeometryHelper.Dxf
                 foreach (DxfTypedValue group in style)
                 {
                     // The handle, owner and markers are the drawing's to give.
-                    if (group.TypeCode != 5 && group.TypeCode != 100 && group.TypeCode != 102 && group.TypeCode != 330 && group.TypeCode != 360)
+                    if (
+                        group.TypeCode != 5
+                        && group.TypeCode != 100
+                        && group.TypeCode != 102
+                        && group.TypeCode != 330
+                        && group.TypeCode != 360
+                    )
                     {
                         b.Group(group.TypeCode, group.Value);
                     }
                 }
             });
 
-            GeometryHelperLog.Info("DxfDatabase: the multiline style " + written + " was loaded from " + Path.GetFileName(fileName) + ".");
+            GeometryHelperLog.Info(
+                "DxfDatabase: the multiline style " + written + " was loaded from " + Path.GetFileName(fileName) + "."
+            );
         }
 
         /// <summary>
@@ -217,21 +266,31 @@ namespace GeometryHelper.Dxf
 
             if (LinetypeTable.Has(name))
             {
-                return "The drawing has a linetype named " + name + " already, as AutoCAD answers eDuplicateRecordName.";
+                return "The drawing has a linetype named "
+                    + name
+                    + " already, as AutoCAD answers eDuplicateRecordName.";
             }
 
             List<DxfSupportFiles.Dash> dashes = linetype.Dashes;
 
             if (dashes.Count > 12)
             {
-                return "The linetype " + name + " has " + dashes.Count.ToString(CultureInfo.InvariantCulture) + " dashes, and AutoCAD takes 12 at most.";
+                return "The linetype "
+                    + name
+                    + " has "
+                    + dashes.Count.ToString(CultureInfo.InvariantCulture)
+                    + " dashes, and AutoCAD takes 12 at most.";
             }
 
             bool complex = dashes.Exists(d => d.IsComplex);
 
             if (complex && !File.HasMarkers)
             {
-                return "The linetype " + name + " is complex, and a DXF " + (Version ?? "R12") + " has no complex linetypes, which came with R13 (AC1012).";
+                return "The linetype "
+                    + name
+                    + " is complex, and a DXF "
+                    + (Version ?? "R12")
+                    + " has no complex linetypes, which came with R13 (AC1012).";
             }
 
             if (File.TableItem("LTYPE") == null)
@@ -254,7 +313,11 @@ namespace GeometryHelper.Dxf
 
                     if (styles[i] == null)
                     {
-                        return "The linetype " + name + " writes its text in the text style " + dash.Style + ", which the drawing has not.";
+                        return "The linetype "
+                            + name
+                            + " writes its text in the text style "
+                            + dash.Style
+                            + ", which the drawing has not.";
                     }
                 }
                 else if (dash.Shape != null)
@@ -277,11 +340,18 @@ namespace GeometryHelper.Dxf
 
                 if (dash.IsComplex && (styles[i] == null ? !File.WritesHandles : styles[i].Handle == null))
                 {
-                    return "The drawing writes no handles, by which a dash of the linetype " + name + " points at its style.";
+                    return "The drawing writes no handles, by which a dash of the linetype "
+                        + name
+                        + " points at its style.";
                 }
             }
 
-            var record = new DxfLinetypeTableRecord { Name = name, AsciiDescription = linetype.Description, NumDashes = dashes.Count };
+            var record = new DxfLinetypeTableRecord
+            {
+                Name = name,
+                AsciiDescription = linetype.Description,
+                NumDashes = dashes.Count,
+            };
 
             for (int i = 0; i < dashes.Count; i++)
             {
@@ -297,7 +367,10 @@ namespace GeometryHelper.Dxf
                 {
                     // A file of shapes the drawing has no style of is given one with no name, as AutoCAD gives it, once: two dashes
                     // of the file find the one the first added.
-                    styles[i] = ShapeStyleOf(shapeFiles[i]) ?? DxfTextStyleTableRecord.Of(File.AddTextStyle(string.Empty, 1, 0.0, 1.0, 0.0, shapeFiles[i], string.Empty));
+                    styles[i] = ShapeStyleOf(shapeFiles[i])
+                        ?? DxfTextStyleTableRecord.Of(
+                            File.AddTextStyle(string.Empty, 1, 0.0, 1.0, 0.0, shapeFiles[i], string.Empty)
+                        );
                 }
 
                 if (dash.Text != null)
@@ -345,7 +418,14 @@ namespace GeometryHelper.Dxf
         {
             foreach (DxfTextStyleTableRecord style in TextStyleTable)
             {
-                if (style.IsShapeFile && string.Equals(ShapeFileName(style.FileName), ShapeFileName(file), StringComparison.OrdinalIgnoreCase))
+                if (
+                    style.IsShapeFile
+                    && string.Equals(
+                        ShapeFileName(style.FileName),
+                        ShapeFileName(file),
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
                 {
                     return style;
                 }
@@ -359,7 +439,9 @@ namespace GeometryHelper.Dxf
         {
             string name = file.Replace('\\', '/');
             name = name.Substring(name.LastIndexOf('/') + 1);
-            return name.EndsWith(".shx", StringComparison.OrdinalIgnoreCase) ? name.Substring(0, name.Length - 4) : name;
+            return name.EndsWith(".shx", StringComparison.OrdinalIgnoreCase)
+                ? name.Substring(0, name.Length - 4)
+                : name;
         }
 
         /// <summary>The number of a shape: as written where it is a number, else found by its name in the compiled file of shapes beside the file of linetypes; the fault where it is not found, else null.</summary>
@@ -397,7 +479,10 @@ namespace GeometryHelper.Dxf
 
             while (n < name.Length)
             {
-                if (p < pattern.Length && (pattern[p] == '?' || char.ToUpperInvariant(pattern[p]) == char.ToUpperInvariant(name[n])))
+                if (
+                    p < pattern.Length
+                    && (pattern[p] == '?' || char.ToUpperInvariant(pattern[p]) == char.ToUpperInvariant(name[n]))
+                )
                 {
                     n++;
                     p++;

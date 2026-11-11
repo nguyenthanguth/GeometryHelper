@@ -71,7 +71,9 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // Along the normal, either way, nothing is left in the plane. (1E-13, 0, 1) leaves 1E-13 of a length of one, ten
             // times under the 1E-12 the spec allows: still no direction.
-            Assert.Throws<ArgumentException>(() => new GeoEllipse3(Centre, GeoVector3.ZAxis, new GeoVector3(x, y, z), 300, 100));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoEllipse3(Centre, GeoVector3.ZAxis, new GeoVector3(x, y, z), 300, 100)
+            );
         }
 
         [Fact]
@@ -86,16 +88,24 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AnAxisWithNoLengthOrNoFiniteValueIsRefused()
         {
-            Assert.Throws<ArgumentException>(() => new GeoEllipse3(Centre, GeoVector3.ZAxis, GeoVector3.Zero, 300, 100));
-            Assert.Throws<ArgumentException>(() => new GeoEllipse3(Centre, GeoVector3.ZAxis, new GeoVector3(double.NaN, 1, 0), 300, 100));
-            Assert.Throws<ArgumentException>(() => new GeoEllipse3(Centre, GeoVector3.ZAxis, new GeoVector3(double.PositiveInfinity, 0, 0), 300, 100));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoEllipse3(Centre, GeoVector3.ZAxis, GeoVector3.Zero, 300, 100)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new GeoEllipse3(Centre, GeoVector3.ZAxis, new GeoVector3(double.NaN, 1, 0), 300, 100)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new GeoEllipse3(Centre, GeoVector3.ZAxis, new GeoVector3(double.PositiveInfinity, 0, 0), 300, 100)
+            );
         }
 
         [Fact]
         public void ANormalWithNoLengthIsRefused()
         {
             // As the circle's (GeoCircle3.cs:42-45).
-            Assert.Throws<ArgumentException>(() => new GeoEllipse3(Centre, GeoVector3.Zero, GeoVector3.XAxis, 300, 100));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoEllipse3(Centre, GeoVector3.Zero, GeoVector3.XAxis, 300, 100)
+            );
         }
 
         [Theory]
@@ -109,15 +119,21 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(double.PositiveInfinity, double.PositiveInfinity)]
         public void ARadiusThatIsNotAPositiveFiniteNumberIsRefused(double majorRadius, double minorRadius)
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoEllipse3(Centre, GeoVector3.ZAxis, GeoVector3.XAxis, majorRadius, minorRadius));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new GeoEllipse3(Centre, GeoVector3.ZAxis, GeoVector3.XAxis, majorRadius, minorRadius)
+            );
         }
 
         [Fact]
         public void AMinorRadiusLargerThanTheMajorIsRefusedRatherThanSwapped()
         {
             // 100 by 300 is not read as 300 by 100 turned a quarter, and a hair over is still over: the check is on the numbers.
-            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoEllipse3(Centre, GeoVector3.ZAxis, GeoVector3.XAxis, 100, 300));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoEllipse3(Centre, GeoVector3.ZAxis, GeoVector3.XAxis, 100, 100.0001));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new GeoEllipse3(Centre, GeoVector3.ZAxis, GeoVector3.XAxis, 100, 300)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new GeoEllipse3(Centre, GeoVector3.ZAxis, GeoVector3.XAxis, 100, 100.0001)
+            );
         }
 
         #endregion
@@ -281,7 +297,13 @@ namespace GeometryHelper.UnitTest.Solid
             Ellipse3Oracle.Specimen specimen = Ellipse3Oracle.Tilted();
             GeoEllipse3 ellipse = specimen.Build();
             var reversed = new GeoEllipse3(specimen.Center, specimen.N, specimen.U.Multiply(-1), 300, 100);
-            var turned = new GeoEllipse3(specimen.Center, specimen.N, specimen.U.Multiply(Math.Cos(0.01)).Add(specimen.V.Multiply(Math.Sin(0.01))), 300, 100);
+            var turned = new GeoEllipse3(
+                specimen.Center,
+                specimen.N,
+                specimen.U.Multiply(Math.Cos(0.01)).Add(specimen.V.Multiply(Math.Sin(0.01))),
+                300,
+                100
+            );
 
             Assert.True(ellipse.IsEqualTo(reversed, Strict));
             Assert.False(ellipse.IsEqualTo(turned, Strict));
@@ -302,8 +324,20 @@ namespace GeometryHelper.UnitTest.Solid
             // The axis is laid into each tipped plane, so it moves by as much and no more.
             Ellipse3Oracle.Specimen specimen = Ellipse3Oracle.Tilted();
             GeoEllipse3 ellipse = specimen.Build();
-            var hair = new GeoEllipse3(specimen.Center, specimen.N.Add(specimen.U.Multiply(1E-7)), specimen.U, 300, 100);
-            var tipped = new GeoEllipse3(specimen.Center, specimen.N.Add(specimen.U.Multiply(0.01)), specimen.U, 300, 100);
+            var hair = new GeoEllipse3(
+                specimen.Center,
+                specimen.N.Add(specimen.U.Multiply(1E-7)),
+                specimen.U,
+                300,
+                100
+            );
+            var tipped = new GeoEllipse3(
+                specimen.Center,
+                specimen.N.Add(specimen.U.Multiply(0.01)),
+                specimen.U,
+                300,
+                100
+            );
 
             Assert.True(ellipse.IsEqualTo(hair, Strict));
             Assert.False(ellipse.IsEqualTo(tipped, Strict));
@@ -342,7 +376,9 @@ namespace GeometryHelper.UnitTest.Solid
             // As TypeContractTests holds the other shapes: a transformation hands back another ellipse and changes none.
             GeoEllipse3 ellipse = Ellipse3Oracle.Tilted().Build();
             GeoEllipse3 before = Ellipse3Oracle.Tilted().Build();
-            GeoTransform3 move = GeoTransform3.Translation(new GeoVector3(100, -50, 25)) * GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 0.7);
+            GeoTransform3 move =
+                GeoTransform3.Translation(new GeoVector3(100, -50, 25))
+                * GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 0.7);
 
             GeoEllipse3 moved = ellipse.TransformBy(move);
             ellipse.GetAabb();

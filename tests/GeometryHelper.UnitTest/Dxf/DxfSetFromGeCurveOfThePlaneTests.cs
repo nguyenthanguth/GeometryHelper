@@ -21,47 +21,716 @@ namespace GeometryHelper.UnitTest.Dxf
         private static readonly Tolerance Tol = Tolerance.Default;
 
         private static readonly string Text = R2000(
-            G(0, "LINE", 5, "10", 102, "{ACAD_REACTORS", 330, "2F", 102, "}", 100, "AcDbEntity", 8, "steel", 100, "AcDbLine", 39, 2.0, 10, 0.0, 20, 0.0, 30, 5.0, 11, 100.0, 21, 50.0, 31, 5.0, 210, 0.0, 220, 0.6, 230, 0.8, 1001, "ACAD", 1000, "kept")
-            + G(0, "CIRCLE", 5, "20", 100, "AcDbEntity", 8, "steel", 100, "AcDbCircle", 10, 10.0, 20, 20.0, 30, 0.0, 40, 5.0, 210, 0.0, 220, 0.6, 230, 0.8)
-            + G(0, "ARC", 5, "30", 100, "AcDbEntity", 8, "steel", 100, "AcDbCircle", 10, 0.0, 20, 0.0, 30, 0.0, 40, 10.0, 210, 0.0, 220, 0.0, 230, -1.0, 100, "AcDbArc", 50, 0.0, 51, 90.0)
-            + G(0, "ELLIPSE", 5, "40", 100, "AcDbEntity", 8, "steel", 100, "AcDbEllipse", 10, 0.0, 20, 0.0, 30, 3.0, 11, 60.0, 21, 0.0, 31, 0.0, 210, 0.0, 220, 0.0, 230, 1.0, 40, 0.5, 41, 0.0, 42, 2 * Math.PI)
-            + G(0, "RAY", 5, "50", 100, "AcDbEntity", 8, "steel", 100, "AcDbRay", 10, 0.0, 20, 0.0, 30, 7.0, 11, 0.0, 21, 0.0, 31, 1.0)
-            + G(0, "XLINE", 5, "51", 100, "AcDbEntity", 8, "steel", 100, "AcDbXline", 10, 0.0, 20, 0.0, 30, 7.0, 11, 0.0, 21, 0.0, 31, 1.0)
-            + G(0, "SPLINE", 5, "60", 100, "AcDbEntity", 8, "steel", 100, "AcDbSpline", 70, 0, 71, 3, 72, 8, 73, 4, 74, 0,
-                40, 0.0, 40, 0.0, 40, 0.0, 40, 0.0, 40, 1.0, 40, 1.0, 40, 1.0, 40, 1.0,
-                10, 0.0, 20, 0.0, 30, 0.0, 10, 100.0, 20, 150.0, 30, 40.0, 10, 200.0, 20, 150.0, 30, 0.0, 10, 300.0, 20, 0.0, 30, 0.0)
-            + G(0, "LWPOLYLINE", 5, "80", 102, "{ACAD_REACTORS", 330, "2F", 102, "}", 100, "AcDbEntity", 8, "steel", 100, "AcDbPolyline", 90, 3, 70, 128, 43, 0.5, 38, 4.0,
-                10, 0.0, 20, 0.0, 10, 10.0, 20, 0.0, 10, 10.0, 20, 10.0, 210, 0.0, 220, 0.6, 230, 0.8, 1001, "ACAD", 1000, "kept")
-            + G(0, "LWPOLYLINE", 5, "81", 100, "AcDbEntity", 8, "0", 100, "AcDbPolyline", 90, 4, 70, 1, 43, 0.25,
-                10, 0.0, 20, 0.0, 10, 10.0, 20, 0.0, 42, 0.5, 10, 10.0, 20, 10.0, 10, 0.0, 20, 10.0, 42, -0.3, 210, 0.0, 220, 0.6, 230, 0.8)
-            + G(0, "LWPOLYLINE", 5, "82", 100, "AcDbEntity", 8, "0", 100, "AcDbPolyline", 90, 3, 70, 0,
-                10, 0.0, 20, 0.0, 10, 10.0, 20, 0.0, 42, 0.5, 10, 10.0, 20, 10.0, 210, 0.0, 220, 0.0, 230, -1.0)
-            + G(0, "LWPOLYLINE", 5, "83", 100, "AcDbEntity", 8, "steel", 100, "AcDbPolyline", 90, 2, 70, 0, 38, 5.0, 10, 0.0, 20, 0.0, 10, 10.0, 20, 0.0)
-            + G(0, "LWPOLYLINE", 5, "84", 100, "AcDbEntity", 8, "0", 100, "AcDbPolyline", 90, 2, 70, 0, 38, 5.0, 10, 0.0, 20, 0.0, 10, 10.0, 20, 0.0, 210, 0.0, 220, 0.6, 230, 0.8)
-            + G(0, "LWPOLYLINE", 5, "85", 100, "AcDbEntity", 8, "0", 100, "AcDbPolyline", 90, 2, 70, 0, 38, 5.0, 10, 0.0, 20, 0.0, 10, 10.0, 20, 0.0, 210, 0.0, 220, 0.0, 230, -1.0)
-            + G(0, "LWPOLYLINE", 5, "86", 100, "AcDbEntity", 8, "0", 100, "AcDbPolyline", 90, 4, 70, 1, 38, 5.0,
-                10, 0.0, 20, 0.0, 10, 10.0, 20, 0.0, 42, 0.5, 10, 10.0, 20, 10.0, 10, 0.0, 20, 10.0, 210, 0.0, 220, 0.0, 230, -1.0)
-            + G(0, "LWPOLYLINE", 5, "87", 100, "AcDbEntity", 8, "0", 100, "AcDbPolyline", 90, 4, 70, 1, 43, 0.5, 38, 5.0,
-                10, 0.0, 20, 0.0, 10, 10.0, 20, 0.0, 42, 0.5, 10, 10.0, 20, 10.0, 10, 0.0, 20, 10.0, 210, 0.0, 220, 0.0, 230, -1.0)
-            + G(0, "POLYLINE", 5, "90", 100, "AcDbEntity", 8, "steel", 100, "AcDb2dPolyline", 66, 1, 10, 0.0, 20, 0.0, 30, 2.0, 70, 0, 40, 1.0, 41, 1.0)
-            + G(0, "VERTEX", 5, "91", 100, "AcDbEntity", 8, "steel", 100, "AcDbVertex", 100, "AcDb2dVertex", 10, 0.0, 20, 0.0, 30, 2.0, 70, 0)
-            + G(0, "VERTEX", 5, "92", 100, "AcDbEntity", 8, "steel", 100, "AcDbVertex", 100, "AcDb2dVertex", 10, 5.0, 20, 0.0, 30, 2.0, 70, 0)
-            + G(0, "SEQEND", 5, "93", 100, "AcDbEntity", 8, "steel")
-            + G(0, "POLYLINE", 5, "A0", 100, "AcDbEntity", 8, "steel", 100, "AcDb3dPolyline", 66, 1, 10, 0.0, 20, 0.0, 30, 0.0, 70, 8)
-            + G(0, "VERTEX", 5, "A1", 100, "AcDbEntity", 8, "steel", 100, "AcDbVertex", 100, "AcDb3dPolylineVertex", 10, 0.0, 20, 0.0, 30, 2.0, 70, 32)
-            + G(0, "VERTEX", 5, "A2", 100, "AcDbEntity", 8, "steel", 100, "AcDbVertex", 100, "AcDb3dPolylineVertex", 10, 5.0, 20, 0.0, 30, 9.0, 70, 32)
-            + G(0, "SEQEND", 5, "A3", 100, "AcDbEntity", 8, "steel"));
+            G(
+                0,
+                "LINE",
+                5,
+                "10",
+                102,
+                "{ACAD_REACTORS",
+                330,
+                "2F",
+                102,
+                "}",
+                100,
+                "AcDbEntity",
+                8,
+                "steel",
+                100,
+                "AcDbLine",
+                39,
+                2.0,
+                10,
+                0.0,
+                20,
+                0.0,
+                30,
+                5.0,
+                11,
+                100.0,
+                21,
+                50.0,
+                31,
+                5.0,
+                210,
+                0.0,
+                220,
+                0.6,
+                230,
+                0.8,
+                1001,
+                "ACAD",
+                1000,
+                "kept"
+            )
+                + G(
+                    0,
+                    "CIRCLE",
+                    5,
+                    "20",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "steel",
+                    100,
+                    "AcDbCircle",
+                    10,
+                    10.0,
+                    20,
+                    20.0,
+                    30,
+                    0.0,
+                    40,
+                    5.0,
+                    210,
+                    0.0,
+                    220,
+                    0.6,
+                    230,
+                    0.8
+                )
+                + G(
+                    0,
+                    "ARC",
+                    5,
+                    "30",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "steel",
+                    100,
+                    "AcDbCircle",
+                    10,
+                    0.0,
+                    20,
+                    0.0,
+                    30,
+                    0.0,
+                    40,
+                    10.0,
+                    210,
+                    0.0,
+                    220,
+                    0.0,
+                    230,
+                    -1.0,
+                    100,
+                    "AcDbArc",
+                    50,
+                    0.0,
+                    51,
+                    90.0
+                )
+                + G(
+                    0,
+                    "ELLIPSE",
+                    5,
+                    "40",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "steel",
+                    100,
+                    "AcDbEllipse",
+                    10,
+                    0.0,
+                    20,
+                    0.0,
+                    30,
+                    3.0,
+                    11,
+                    60.0,
+                    21,
+                    0.0,
+                    31,
+                    0.0,
+                    210,
+                    0.0,
+                    220,
+                    0.0,
+                    230,
+                    1.0,
+                    40,
+                    0.5,
+                    41,
+                    0.0,
+                    42,
+                    2 * Math.PI
+                )
+                + G(
+                    0,
+                    "RAY",
+                    5,
+                    "50",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "steel",
+                    100,
+                    "AcDbRay",
+                    10,
+                    0.0,
+                    20,
+                    0.0,
+                    30,
+                    7.0,
+                    11,
+                    0.0,
+                    21,
+                    0.0,
+                    31,
+                    1.0
+                )
+                + G(
+                    0,
+                    "XLINE",
+                    5,
+                    "51",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "steel",
+                    100,
+                    "AcDbXline",
+                    10,
+                    0.0,
+                    20,
+                    0.0,
+                    30,
+                    7.0,
+                    11,
+                    0.0,
+                    21,
+                    0.0,
+                    31,
+                    1.0
+                )
+                + G(
+                    0,
+                    "SPLINE",
+                    5,
+                    "60",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "steel",
+                    100,
+                    "AcDbSpline",
+                    70,
+                    0,
+                    71,
+                    3,
+                    72,
+                    8,
+                    73,
+                    4,
+                    74,
+                    0,
+                    40,
+                    0.0,
+                    40,
+                    0.0,
+                    40,
+                    0.0,
+                    40,
+                    0.0,
+                    40,
+                    1.0,
+                    40,
+                    1.0,
+                    40,
+                    1.0,
+                    40,
+                    1.0,
+                    10,
+                    0.0,
+                    20,
+                    0.0,
+                    30,
+                    0.0,
+                    10,
+                    100.0,
+                    20,
+                    150.0,
+                    30,
+                    40.0,
+                    10,
+                    200.0,
+                    20,
+                    150.0,
+                    30,
+                    0.0,
+                    10,
+                    300.0,
+                    20,
+                    0.0,
+                    30,
+                    0.0
+                )
+                + G(
+                    0,
+                    "LWPOLYLINE",
+                    5,
+                    "80",
+                    102,
+                    "{ACAD_REACTORS",
+                    330,
+                    "2F",
+                    102,
+                    "}",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "steel",
+                    100,
+                    "AcDbPolyline",
+                    90,
+                    3,
+                    70,
+                    128,
+                    43,
+                    0.5,
+                    38,
+                    4.0,
+                    10,
+                    0.0,
+                    20,
+                    0.0,
+                    10,
+                    10.0,
+                    20,
+                    0.0,
+                    10,
+                    10.0,
+                    20,
+                    10.0,
+                    210,
+                    0.0,
+                    220,
+                    0.6,
+                    230,
+                    0.8,
+                    1001,
+                    "ACAD",
+                    1000,
+                    "kept"
+                )
+                + G(
+                    0,
+                    "LWPOLYLINE",
+                    5,
+                    "81",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "0",
+                    100,
+                    "AcDbPolyline",
+                    90,
+                    4,
+                    70,
+                    1,
+                    43,
+                    0.25,
+                    10,
+                    0.0,
+                    20,
+                    0.0,
+                    10,
+                    10.0,
+                    20,
+                    0.0,
+                    42,
+                    0.5,
+                    10,
+                    10.0,
+                    20,
+                    10.0,
+                    10,
+                    0.0,
+                    20,
+                    10.0,
+                    42,
+                    -0.3,
+                    210,
+                    0.0,
+                    220,
+                    0.6,
+                    230,
+                    0.8
+                )
+                + G(
+                    0,
+                    "LWPOLYLINE",
+                    5,
+                    "82",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "0",
+                    100,
+                    "AcDbPolyline",
+                    90,
+                    3,
+                    70,
+                    0,
+                    10,
+                    0.0,
+                    20,
+                    0.0,
+                    10,
+                    10.0,
+                    20,
+                    0.0,
+                    42,
+                    0.5,
+                    10,
+                    10.0,
+                    20,
+                    10.0,
+                    210,
+                    0.0,
+                    220,
+                    0.0,
+                    230,
+                    -1.0
+                )
+                + G(
+                    0,
+                    "LWPOLYLINE",
+                    5,
+                    "83",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "steel",
+                    100,
+                    "AcDbPolyline",
+                    90,
+                    2,
+                    70,
+                    0,
+                    38,
+                    5.0,
+                    10,
+                    0.0,
+                    20,
+                    0.0,
+                    10,
+                    10.0,
+                    20,
+                    0.0
+                )
+                + G(
+                    0,
+                    "LWPOLYLINE",
+                    5,
+                    "84",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "0",
+                    100,
+                    "AcDbPolyline",
+                    90,
+                    2,
+                    70,
+                    0,
+                    38,
+                    5.0,
+                    10,
+                    0.0,
+                    20,
+                    0.0,
+                    10,
+                    10.0,
+                    20,
+                    0.0,
+                    210,
+                    0.0,
+                    220,
+                    0.6,
+                    230,
+                    0.8
+                )
+                + G(
+                    0,
+                    "LWPOLYLINE",
+                    5,
+                    "85",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "0",
+                    100,
+                    "AcDbPolyline",
+                    90,
+                    2,
+                    70,
+                    0,
+                    38,
+                    5.0,
+                    10,
+                    0.0,
+                    20,
+                    0.0,
+                    10,
+                    10.0,
+                    20,
+                    0.0,
+                    210,
+                    0.0,
+                    220,
+                    0.0,
+                    230,
+                    -1.0
+                )
+                + G(
+                    0,
+                    "LWPOLYLINE",
+                    5,
+                    "86",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "0",
+                    100,
+                    "AcDbPolyline",
+                    90,
+                    4,
+                    70,
+                    1,
+                    38,
+                    5.0,
+                    10,
+                    0.0,
+                    20,
+                    0.0,
+                    10,
+                    10.0,
+                    20,
+                    0.0,
+                    42,
+                    0.5,
+                    10,
+                    10.0,
+                    20,
+                    10.0,
+                    10,
+                    0.0,
+                    20,
+                    10.0,
+                    210,
+                    0.0,
+                    220,
+                    0.0,
+                    230,
+                    -1.0
+                )
+                + G(
+                    0,
+                    "LWPOLYLINE",
+                    5,
+                    "87",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "0",
+                    100,
+                    "AcDbPolyline",
+                    90,
+                    4,
+                    70,
+                    1,
+                    43,
+                    0.5,
+                    38,
+                    5.0,
+                    10,
+                    0.0,
+                    20,
+                    0.0,
+                    10,
+                    10.0,
+                    20,
+                    0.0,
+                    42,
+                    0.5,
+                    10,
+                    10.0,
+                    20,
+                    10.0,
+                    10,
+                    0.0,
+                    20,
+                    10.0,
+                    210,
+                    0.0,
+                    220,
+                    0.0,
+                    230,
+                    -1.0
+                )
+                + G(
+                    0,
+                    "POLYLINE",
+                    5,
+                    "90",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "steel",
+                    100,
+                    "AcDb2dPolyline",
+                    66,
+                    1,
+                    10,
+                    0.0,
+                    20,
+                    0.0,
+                    30,
+                    2.0,
+                    70,
+                    0,
+                    40,
+                    1.0,
+                    41,
+                    1.0
+                )
+                + G(
+                    0,
+                    "VERTEX",
+                    5,
+                    "91",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "steel",
+                    100,
+                    "AcDbVertex",
+                    100,
+                    "AcDb2dVertex",
+                    10,
+                    0.0,
+                    20,
+                    0.0,
+                    30,
+                    2.0,
+                    70,
+                    0
+                )
+                + G(
+                    0,
+                    "VERTEX",
+                    5,
+                    "92",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "steel",
+                    100,
+                    "AcDbVertex",
+                    100,
+                    "AcDb2dVertex",
+                    10,
+                    5.0,
+                    20,
+                    0.0,
+                    30,
+                    2.0,
+                    70,
+                    0
+                )
+                + G(0, "SEQEND", 5, "93", 100, "AcDbEntity", 8, "steel")
+                + G(
+                    0,
+                    "POLYLINE",
+                    5,
+                    "A0",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "steel",
+                    100,
+                    "AcDb3dPolyline",
+                    66,
+                    1,
+                    10,
+                    0.0,
+                    20,
+                    0.0,
+                    30,
+                    0.0,
+                    70,
+                    8
+                )
+                + G(
+                    0,
+                    "VERTEX",
+                    5,
+                    "A1",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "steel",
+                    100,
+                    "AcDbVertex",
+                    100,
+                    "AcDb3dPolylineVertex",
+                    10,
+                    0.0,
+                    20,
+                    0.0,
+                    30,
+                    2.0,
+                    70,
+                    32
+                )
+                + G(
+                    0,
+                    "VERTEX",
+                    5,
+                    "A2",
+                    100,
+                    "AcDbEntity",
+                    8,
+                    "steel",
+                    100,
+                    "AcDbVertex",
+                    100,
+                    "AcDb3dPolylineVertex",
+                    10,
+                    5.0,
+                    20,
+                    0.0,
+                    30,
+                    9.0,
+                    70,
+                    32
+                )
+                + G(0, "SEQEND", 5, "A3", 100, "AcDbEntity", 8, "steel")
+        );
 
-        private static object Plan(DxfDatabase db, string handle)
-            => DxfReader.Parse(db.ToText(), new DxfReadOptions { PlanAs2D = true, Tolerance = Tol }).Shapes.Single(s => s.Handle == handle).Shape;
+        private static object Plan(DxfDatabase db, string handle) =>
+            DxfReader
+                .Parse(db.ToText(), new DxfReadOptions { PlanAs2D = true, Tolerance = Tol })
+                .Shapes.Single(s => s.Handle == handle)
+                .Shape;
 
-        private static object Space(DxfDatabase db, string handle)
-            => DxfReader.Parse(db.ToText(), new DxfReadOptions { Tolerance = Tol }).Shapes.Single(s => s.Handle == handle).Shape;
+        private static object Space(DxfDatabase db, string handle) =>
+            DxfReader
+                .Parse(db.ToText(), new DxfReadOptions { Tolerance = Tol })
+                .Shapes.Single(s => s.Handle == handle)
+                .Shape;
 
         /// <summary>The x and y axes of the system of a normal, by the arbitrary axis algorithm of the DXF reference.</summary>
         private static void Axes(GeoVector3 n, out GeoVector3 u, out GeoVector3 v)
         {
-            u = (Math.Abs(n.X) < 1.0 / 64.0 && Math.Abs(n.Y) < 1.0 / 64.0 ? new GeoVector3(0, 1, 0).CrossProduct(n) : new GeoVector3(0, 0, 1).CrossProduct(n)).Normalize();
+            u = (
+                Math.Abs(n.X) < 1.0 / 64.0 && Math.Abs(n.Y) < 1.0 / 64.0
+                    ? new GeoVector3(0, 1, 0).CrossProduct(n)
+                    : new GeoVector3(0, 0, 1).CrossProduct(n)
+            ).Normalize();
             v = n.CrossProduct(u).Normalize();
         }
 
@@ -76,7 +745,12 @@ namespace GeometryHelper.UnitTest.Dxf
             var ellipse = new GeoEllipse2(new GeoPoint2(5, 6), new GeoVector2(0.6, 0.8), 40, 10);
             var ray = new GeoRay2(new GeoPoint2(1, 2), new GeoVector2(0.6, 0.8));
             var xline = new GeoXLine2(new GeoPoint2(1, 2), new GeoVector2(0.8, -0.6));
-            var spline = new GeoSpline2(3, new[] { new GeoPoint2(0, 0), new GeoPoint2(1, 2.5), new GeoPoint2(3, 2.5), new GeoPoint2(4, 0.1) }, new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 }, null);
+            var spline = new GeoSpline2(
+                3,
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(1, 2.5), new GeoPoint2(3, 2.5), new GeoPoint2(4, 0.1) },
+                new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 },
+                null
+            );
 
             ByHandle<DxfLine>(db, "10").SetFromGeCurve(line);
             ByHandle<DxfCircle>(db, "20").SetFromGeCurve(circle);
@@ -99,7 +773,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new GeoVector3(0, 0, 1), written.Normal);
             Assert.Equal(new GeoPoint3(0.1, 0.2, 0), written.StartPoint);
             Assert.Equal(new GeoVector3(0, 0, 1), ByHandle<DxfCircle>(again, "20").Normal);
-            Assert.All(new[] { "10", "20", "40", "50", "51", "60" }, h => Assert.Equal("steel", ByHandle<DxfEntity>(again, h).Layer));
+            Assert.All(new[] { "10", "20", "40", "50", "51", "60" }, h =>
+                Assert.Equal("steel", ByHandle<DxfEntity>(again, h).Layer)
+            );
         }
 
         [Fact]
@@ -115,7 +791,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(back.StartPoint.IsEqualTo(clockwise.EndPoint, Tol));
             Assert.True(back.EndPoint.IsEqualTo(clockwise.StartPoint, Tol));
             Assert.Equal(new GeoVector3(0, 0, 1), ByHandle<DxfArc>(db, "30").Normal);
-            Assert.Throws<ArgumentException>(() => ByHandle<DxfArc>(db, "30").SetFromGeCurve(new GeoArc2(new GeoPoint2(0, 0), 5, 0, 2 * Math.PI)));
+            Assert.Throws<ArgumentException>(() =>
+                ByHandle<DxfArc>(db, "30").SetFromGeCurve(new GeoArc2(new GeoPoint2(0, 0), 5, 0, 2 * Math.PI))
+            );
         }
 
         [Fact]
@@ -141,7 +819,16 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(Text);
             DxfPolyline polyline = ByHandle<DxfPolyline>(db, "80");
-            var loop = new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10.5, 0), new GeoPoint2(10.5, 7.25), new GeoPoint2(0, 7.25) }, new[] { 0.0, -0.4, 0.0, 0.2 });
+            var loop = new GeoPolygonArc2(
+                new[]
+                {
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(10.5, 0),
+                    new GeoPoint2(10.5, 7.25),
+                    new GeoPoint2(0, 7.25),
+                },
+                new[] { 0.0, -0.4, 0.0, 0.2 }
+            );
             var chain = new GeoPolyline2(new GeoPoint2(1, 1), new GeoPoint2(9, 1), new GeoPoint2(5, 8));
 
             polyline.SetFromGeCurve(loop);
@@ -185,7 +872,12 @@ namespace GeometryHelper.UnitTest.Dxf
             // A loop of straight edges in that plane, as a polygon of space gives it.
             var square = new GeoPolygon3(tilted.Vertices, Tol);
             polyline.SetFromGeCurve(square);
-            Assert.True(Assert.IsType<GeoPolygon3>(Space(db, "80")).Vertices.Zip(square.Vertices, (a, b) => a.DistanceTo(b)).Max() <= 1E-12);
+            Assert.True(
+                Assert
+                    .IsType<GeoPolygon3>(Space(db, "80"))
+                    .Vertices.Zip(square.Vertices, (a, b) => a.DistanceTo(b))
+                    .Max() <= 1E-12
+            );
         }
 
         [Fact]
@@ -194,13 +886,33 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(Text);
             DxfPolyline polyline = ByHandle<DxfPolyline>(db, "80");
             byte[] before = Saved(db);
-            var bent = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 5), new GeoPoint3(0, 10, -3));
-            var square = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(4, 0), new GeoPoint2(4, 4), new GeoPoint2(0, 4));
-            var hole = new GeoPolygon2(new GeoPoint2(1, 1), new GeoPoint2(2, 1), new GeoPoint2(2, 2), new GeoPoint2(1, 2));
+            var bent = new GeoPolyline3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 5),
+                new GeoPoint3(0, 10, -3)
+            );
+            var square = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(4, 0),
+                new GeoPoint2(4, 4),
+                new GeoPoint2(0, 4)
+            );
+            var hole = new GeoPolygon2(
+                new GeoPoint2(1, 1),
+                new GeoPoint2(2, 1),
+                new GeoPoint2(2, 2),
+                new GeoPoint2(1, 2)
+            );
 
-            Assert.Contains("does not lie in one plane", Assert.Throws<ArgumentException>(() => polyline.SetFromGeCurve(bent)).Message);
+            Assert.Contains(
+                "does not lie in one plane",
+                Assert.Throws<ArgumentException>(() => polyline.SetFromGeCurve(bent)).Message
+            );
             Assert.Throws<ArgumentException>(() => polyline.SetFromGeCurve(new GeoFace2(square, new[] { hole })));
-            Assert.Throws<ArgumentException>(() => polyline.SetFromGeCurve(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(1, 0))));
+            Assert.Throws<ArgumentException>(() =>
+                polyline.SetFromGeCurve(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(1, 0)))
+            );
             Assert.Throws<ArgumentException>(() => polyline.SetFromGeCurve(null));
             Assert.Equal(before, Saved(db));
         }
@@ -210,7 +922,16 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(Text);
             DxfPolyline2d polyline = ByHandle<DxfPolyline2d>(db, "90");
-            var loop = new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10.5, 0), new GeoPoint2(10.5, 7.25), new GeoPoint2(0, 7.25) }, new[] { 0.0, -0.4, 0.0, 0.2 });
+            var loop = new GeoPolygonArc2(
+                new[]
+                {
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(10.5, 0),
+                    new GeoPoint2(10.5, 7.25),
+                    new GeoPoint2(0, 7.25),
+                },
+                new[] { 0.0, -0.4, 0.0, 0.2 }
+            );
 
             polyline.SetFromGeCurve(loop);
 
@@ -221,7 +942,13 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(0.0, back.Elevation);
             Assert.Equal("steel", back.Layer);
             Assert.Equal(loop, Plan(again, "90"));
-            Assert.Equal("POLYLINE", DxfReader.Parse(again.ToText(), new DxfReadOptions { Tolerance = Tol }).Shapes.Single(s => s.Handle == "90").Type);
+            Assert.Equal(
+                "POLYLINE",
+                DxfReader
+                    .Parse(again.ToText(), new DxfReadOptions { Tolerance = Tol })
+                    .Shapes.Single(s => s.Handle == "90")
+                    .Type
+            );
         }
 
         [Fact]
@@ -229,18 +956,25 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             string text = R12(
                 G(0, "POLYLINE", 8, "steel", 66, 1, 10, 0.0, 20, 0.0, 30, 0.0, 70, 0)
-                + G(0, "VERTEX", 8, "steel", 10, 0.0, 20, 0.0, 30, 0.0)
-                + G(0, "VERTEX", 8, "steel", 10, 5.0, 20, 0.0, 30, 0.0)
-                + G(0, "SEQEND", 8, "steel"));
+                    + G(0, "VERTEX", 8, "steel", 10, 0.0, 20, 0.0, 30, 0.0)
+                    + G(0, "VERTEX", 8, "steel", 10, 5.0, 20, 0.0, 30, 0.0)
+                    + G(0, "SEQEND", 8, "steel")
+            );
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfPolyline2d polyline = db.ModelSpace.OfType<DxfPolyline2d>().Single();
-            var loop = new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10.5, 0), new GeoPoint2(10.5, 7.25) }, new[] { 0.0, 0.3, 0.0 });
+            var loop = new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10.5, 0), new GeoPoint2(10.5, 7.25) },
+                new[] { 0.0, 0.3, 0.0 }
+            );
 
             polyline.SetFromGeCurve(loop);
 
             string saved = db.ToText();
             Assert.DoesNotContain("AcDb", saved);
-            Assert.Equal(loop, DxfReader.Parse(saved, new DxfReadOptions { PlanAs2D = true, Tolerance = Tol }).Shapes.Single().Shape);
+            Assert.Equal(
+                loop,
+                DxfReader.Parse(saved, new DxfReadOptions { PlanAs2D = true, Tolerance = Tol }).Shapes.Single().Shape
+            );
             Assert.Equal("steel", db.ModelSpace.OfType<DxfPolyline2d>().Single().Layer);
         }
 
@@ -251,7 +985,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfPolyline3d polyline = ByHandle<DxfPolyline3d>(db, "A0");
             var chain = new GeoPolyline2(new GeoPoint2(1, 1), new GeoPoint2(9, 1), new GeoPoint2(5, 8));
             var triangle = new GeoPolygon2(new GeoPoint2(1, 1), new GeoPoint2(9, 1), new GeoPoint2(5, 8));
-            var space = new GeoPolygon3(new[] { new GeoPoint3(0, 0, 1), new GeoPoint3(5, 0, 2), new GeoPoint3(5, 5, 3) }, Tol);
+            var space = new GeoPolygon3(
+                new[] { new GeoPoint3(0, 0, 1), new GeoPoint3(5, 0, 2), new GeoPoint3(5, 5, 3) },
+                Tol
+            );
 
             polyline.SetFromGeCurve(chain);
             Assert.False(polyline.Closed);
@@ -264,7 +1001,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             polyline.SetFromGeCurve(space);
             Assert.Equal(space.Vertices, Assert.IsType<GeoPolygon3>(Space(db, "A0")).Vertices);
-            Assert.Throws<ArgumentException>(() => polyline.SetFromGeCurve(new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(1, 0) }, new[] { 0.5, 0.0 })));
+            Assert.Throws<ArgumentException>(() =>
+                polyline.SetFromGeCurve(
+                    new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(1, 0) }, new[] { 0.5, 0.0 })
+                )
+            );
         }
 
         #endregion
@@ -306,7 +1047,9 @@ namespace GeometryHelper.UnitTest.Dxf
             GeoPolyline3 back = tilted.ToGeoPolyline3();
             Assert.Equal(new GeoVector3(0, 0.6, 0.8), tilted.Normal);
             Assert.Equal(3, back.VertexCount);
-            Assert.All(Enumerable.Range(0, 3), i => Assert.True(back.Vertices[i].DistanceTo(chain.Vertices[i]) <= 1E-12, i + ": " + back.Vertices[i]));
+            Assert.All(Enumerable.Range(0, 3), i =>
+                Assert.True(back.Vertices[i].DistanceTo(chain.Vertices[i]) <= 1E-12, i + ": " + back.Vertices[i])
+            );
         }
 
         [Fact]
@@ -329,8 +1072,12 @@ namespace GeometryHelper.UnitTest.Dxf
             byte[] before = Saved(db);
             var upright = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, 10));
 
-            string lightweight = Assert.Throws<ArgumentException>(() => ByHandle<DxfPolyline>(db, "83").SetFromGeCurve(upright)).Message;
-            string plane = Assert.Throws<ArgumentException>(() => ByHandle<DxfPolyline2d>(db, "90").SetFromGeCurve(upright)).Message;
+            string lightweight = Assert
+                .Throws<ArgumentException>(() => ByHandle<DxfPolyline>(db, "83").SetFromGeCurve(upright))
+                .Message;
+            string plane = Assert
+                .Throws<ArgumentException>(() => ByHandle<DxfPolyline2d>(db, "90").SetFromGeCurve(upright))
+                .Message;
 
             Assert.Contains("its vertices are on one line, not in the plane of the polyline's normal", lightweight);
             Assert.Contains("its vertices are on one line, not in the plane of the polyline's normal", plane);
@@ -345,7 +1092,10 @@ namespace GeometryHelper.UnitTest.Dxf
             byte[] before = Saved(db);
             var rising = new GeoPolyline3(new GeoPoint3(0, 0, 5), new GeoPoint3(10000, 0, 5.1));
 
-            Assert.Contains("its vertices are on one line", Assert.Throws<ArgumentException>(() => ByHandle<DxfPolyline>(db, "83").SetFromGeCurve(rising)).Message);
+            Assert.Contains(
+                "its vertices are on one line",
+                Assert.Throws<ArgumentException>(() => ByHandle<DxfPolyline>(db, "83").SetFromGeCurve(rising)).Message
+            );
             Assert.Equal(before, Saved(db));
         }
 
@@ -370,7 +1120,11 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(Text);
             DxfPolyline polyline = ByHandle<DxfPolyline>(db, "83");
-            var chain = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0.0009), new GeoPoint3(100, 0, 0));
+            var chain = new GeoPolyline3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(50, 0, 0.0009),
+                new GeoPoint3(100, 0, 0)
+            );
 
             polyline.SetFromGeCurve(chain);
 
@@ -378,7 +1132,12 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new GeoVector3(0, 0, 1), polyline.Normal);
             Assert.Equal(0.0, polyline.Elevation);
             Assert.Equal(3, back.VertexCount);
-            Assert.All(Enumerable.Range(0, 3), i => Assert.True(back.Vertices[i].DistanceTo(chain.Vertices[i]) <= Tol.EqualPoint, i + ": " + back.Vertices[i]));
+            Assert.All(Enumerable.Range(0, 3), i =>
+                Assert.True(
+                    back.Vertices[i].DistanceTo(chain.Vertices[i]) <= Tol.EqualPoint,
+                    i + ": " + back.Vertices[i]
+                )
+            );
         }
 
         [Fact]
@@ -387,7 +1146,12 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(Text);
             DxfPolyline mirrored = ByHandle<DxfPolyline>(db, "86");
             GeoPolygonArc3 loop = mirrored.ToGeoPolygonArc3();
-            var edited = new GeoPolygonArc3(loop.Vertices.Select(v => v.Add(new GeoVector3(1, 2, 0))), loop.Bulges, loop.Normals, Tol);
+            var edited = new GeoPolygonArc3(
+                loop.Vertices.Select(v => v.Add(new GeoVector3(1, 2, 0))),
+                loop.Bulges,
+                loop.Normals,
+                Tol
+            );
 
             mirrored.SetFromGeCurve(edited);
 
@@ -395,7 +1159,12 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new GeoVector3(0, 0, -1), mirrored.Normal);
             Assert.Equal(5.0, mirrored.Elevation);
             Assert.Equal(edited.VertexCount, back.VertexCount);
-            Assert.All(Enumerable.Range(0, edited.VertexCount), i => Assert.True(back.Vertices[i].DistanceTo(edited.Vertices[i]) <= Tol.EqualPoint, i + ": " + back.Vertices[i]));
+            Assert.All(Enumerable.Range(0, edited.VertexCount), i =>
+                Assert.True(
+                    back.Vertices[i].DistanceTo(edited.Vertices[i]) <= Tol.EqualPoint,
+                    i + ": " + back.Vertices[i]
+                )
+            );
             Assert.Equal(edited.Area, back.Area, 9);
         }
 
@@ -403,14 +1172,21 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData(0.001)]
         [InlineData(0.004)]
         [InlineData(1E-7)]
-        public void AChainWhoseHalfCircleIsTurnedOffThePolylinesPlane_IsFlattenedOnlyWhereItStandsOffItByLessThanTheTolerance(double turn)
+        public void AChainWhoseHalfCircleIsTurnedOffThePolylinesPlane_IsFlattenedOnlyWhereItStandsOffItByLessThanTheTolerance(
+            double turn
+        )
         {
             // (0, 0, 0) to (200, 0, 0), a half circle of radius 100 about (0, -sin a, cos a), then on to (300, 0, 0): turned by a,
             // the half circle stands 100 sin a off the floor, 0.1 at a = 0.001 and 1E-5 at a = 1E-7.
             DxfDatabase db = DxfDatabase.Parse(Text);
             DxfPolyline polyline = ByHandle<DxfPolyline>(db, "83");
             var about = new GeoVector3(0, -Math.Sin(turn), Math.Cos(turn));
-            var chain = new GeoPolylineArc3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(200, 0, 0), new GeoPoint3(300, 0, 0) }, new[] { 1.0, 0.0, 0.0 }, new[] { about, default(GeoVector3), default(GeoVector3) }, Tol);
+            var chain = new GeoPolylineArc3(
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(200, 0, 0), new GeoPoint3(300, 0, 0) },
+                new[] { 1.0, 0.0, 0.0 },
+                new[] { about, default(GeoVector3), default(GeoVector3) },
+                Tol
+            );
 
             polyline.SetFromGeCurve(chain);
 
@@ -421,9 +1197,18 @@ namespace GeometryHelper.UnitTest.Dxf
 
             for (int i = 0; i < given.Length; i++)
             {
-                Assert.True(read[i].StartPoint.DistanceTo(given[i].StartPoint) <= Tol.EqualPoint, i + " start " + read[i].StartPoint);
-                Assert.True(read[i].MidPoint.DistanceTo(given[i].MidPoint) <= Tol.EqualPoint, i + " middle " + read[i].MidPoint);
-                Assert.True(read[i].EndPoint.DistanceTo(given[i].EndPoint) <= Tol.EqualPoint, i + " end " + read[i].EndPoint);
+                Assert.True(
+                    read[i].StartPoint.DistanceTo(given[i].StartPoint) <= Tol.EqualPoint,
+                    i + " start " + read[i].StartPoint
+                );
+                Assert.True(
+                    read[i].MidPoint.DistanceTo(given[i].MidPoint) <= Tol.EqualPoint,
+                    i + " middle " + read[i].MidPoint
+                );
+                Assert.True(
+                    read[i].EndPoint.DistanceTo(given[i].EndPoint) <= Tol.EqualPoint,
+                    i + " end " + read[i].EndPoint
+                );
             }
 
             // Within the tolerance it is taken on the polyline's own normal; beyond it, written in its own plane.
@@ -459,7 +1244,12 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(before, Saved(db));
             Assert.Equal(0.25, polyline.ConstantWidth);
 
-            polyline.SetFromGeCurve(new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10) }, new[] { 0.0, 0.5, 0.0 }));
+            polyline.SetFromGeCurve(
+                new GeoPolygonArc2(
+                    new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10) },
+                    new[] { 0.0, 0.5, 0.0 }
+                )
+            );
             Assert.Equal(0.0, polyline.ConstantWidth);
             Assert.Equal(0.0, polyline.GetStartWidthAt(0));
         }
@@ -470,7 +1260,13 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(Text);
 
             ByHandle<DxfLine>(db, "10").SetFromGeCurve(new GeoLine2(new GeoPoint2(1, 2), new GeoPoint2(3, 4)));
-            ByHandle<DxfPolyline>(db, "80").SetFromGeCurve(new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10) }, new[] { 0.0, 0.5, 0.0 }));
+            ByHandle<DxfPolyline>(db, "80")
+                .SetFromGeCurve(
+                    new GeoPolygonArc2(
+                        new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10) },
+                        new[] { 0.0, 0.5, 0.0 }
+                    )
+                );
             DxfDatabase again = Opened(Saved(db));
 
             foreach (string handle in new[] { "10", "80" })
@@ -495,7 +1291,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Same(polyline, ByHandle<DxfPolyline2d>(db, "90"));
             Assert.True(polyline.Normal.IsEqualTo(new GeoVector3(0, 0.6, 0.8), Tol));
             Assert.Equal(tilted.VertexCount, back.VertexCount);
-            Assert.All(Enumerable.Range(0, tilted.VertexCount), i => Assert.True(tilted.Vertices[i].DistanceTo(back.Vertices[i]) <= 1E-12, i + ": " + back.Vertices[i]));
+            Assert.All(Enumerable.Range(0, tilted.VertexCount), i =>
+                Assert.True(tilted.Vertices[i].DistanceTo(back.Vertices[i]) <= 1E-12, i + ": " + back.Vertices[i])
+            );
         }
 
         #endregion
@@ -512,11 +1310,29 @@ namespace GeometryHelper.UnitTest.Dxf
                 new GeoEllipse2(new GeoPoint2(5, 6), new GeoVector2(0.6, 0.8), 40, 10),
                 new GeoRay2(new GeoPoint2(1, 2), new GeoVector2(0.6, 0.8)),
                 new GeoXLine2(new GeoPoint2(1, 2), new GeoVector2(0.8, -0.6)),
-                new GeoSpline2(3, new[] { new GeoPoint2(0, 0), new GeoPoint2(1, 2.5), new GeoPoint2(3, 2.5), new GeoPoint2(4, 0.1) }, new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 }, null),
+                new GeoSpline2(
+                    3,
+                    new[] { new GeoPoint2(0, 0), new GeoPoint2(1, 2.5), new GeoPoint2(3, 2.5), new GeoPoint2(4, 0.1) },
+                    new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 },
+                    null
+                ),
                 new GeoPolyline2(new GeoPoint2(1, 1), new GeoPoint2(9, 1), new GeoPoint2(5, 8)),
-                new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10.5, 0), new GeoPoint2(10.5, 7.25) }, new[] { 0.0, -0.4, 0.2 }),
+                new GeoPolygonArc2(
+                    new[] { new GeoPoint2(0, 0), new GeoPoint2(10.5, 0), new GeoPoint2(10.5, 7.25) },
+                    new[] { 0.0, -0.4, 0.2 }
+                ),
             };
-            var classes = new[] { typeof(DxfLine), typeof(DxfCircle), typeof(DxfEllipse), typeof(DxfRay), typeof(DxfXline), typeof(DxfSpline), typeof(DxfPolyline), typeof(DxfPolyline) };
+            var classes = new[]
+            {
+                typeof(DxfLine),
+                typeof(DxfCircle),
+                typeof(DxfEllipse),
+                typeof(DxfRay),
+                typeof(DxfXline),
+                typeof(DxfSpline),
+                typeof(DxfPolyline),
+                typeof(DxfPolyline),
+            };
 
             for (int i = 0; i < shapes.Length; i++)
             {
@@ -525,10 +1341,18 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 var db = DxfDatabase.Parse(Text);
                 db.ModelSpace.AppendEntity(curve);
-                Assert.Equal(shapes[i], DxfReader.Parse(db.ToText(), new DxfReadOptions { PlanAs2D = true, Tolerance = Tol }).Shapes.Last().Shape);
+                Assert.Equal(
+                    shapes[i],
+                    DxfReader
+                        .Parse(db.ToText(), new DxfReadOptions { PlanAs2D = true, Tolerance = Tol })
+                        .Shapes.Last()
+                        .Shape
+                );
             }
 
-            var arc = Assert.IsType<DxfArc>(DxfCurve.CreateFromGeCurve(new GeoArc2(new GeoPoint2(3, 4), 12.5, 0.25, 1.0)));
+            var arc = Assert.IsType<DxfArc>(
+                DxfCurve.CreateFromGeCurve(new GeoArc2(new GeoPoint2(3, 4), 12.5, 0.25, 1.0))
+            );
             Assert.Equal(12.5, arc.Radius);
         }
 
@@ -546,7 +1370,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfPolyline polyline = ByHandle<DxfPolyline>(db, handle);
                 GeoVector3 n = polyline.Normal;
                 Axes(n, out GeoVector3 u, out GeoVector3 v);
-                GeoPoint3 Lift(GeoPoint2 p) => new GeoPoint3(0, 0, 0).Add(u.Multiply(p.X)).Add(v.Multiply(p.Y)).Add(n.Multiply(polyline.Elevation));
+                GeoPoint3 Lift(GeoPoint2 p) =>
+                    new GeoPoint3(0, 0, 0)
+                        .Add(u.Multiply(p.X))
+                        .Add(v.Multiply(p.Y))
+                        .Add(n.Multiply(polyline.Elevation));
 
                 GeoLine2 line = polyline.GetLineSegment2dAt(0);
                 GeoLine3 line3 = polyline.GetLineSegmentAt(0);

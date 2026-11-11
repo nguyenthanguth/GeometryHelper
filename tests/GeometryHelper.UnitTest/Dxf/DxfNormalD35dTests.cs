@@ -23,8 +23,12 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static readonly DxfTypedValue[] AnnotativeXData =
         {
-            new DxfTypedValue(1001, "AcadAnnotative"), new DxfTypedValue(1000, "AnnotativeData"), new DxfTypedValue(1002, "{"),
-            new DxfTypedValue(1070, "1"), new DxfTypedValue(1070, "1"), new DxfTypedValue(1002, "}"),
+            new DxfTypedValue(1001, "AcadAnnotative"),
+            new DxfTypedValue(1000, "AnnotativeData"),
+            new DxfTypedValue(1002, "{"),
+            new DxfTypedValue(1070, "1"),
+            new DxfTypedValue(1070, "1"),
+            new DxfTypedValue(1002, "}"),
         };
 
         // The normal AutoCAD's checks set: its plane's x axis is (-1, 0, 0), its y axis (0, -0.8, 0.6).
@@ -33,9 +37,14 @@ namespace GeometryHelper.UnitTest.Dxf
         private static string N(double value) => value.ToString("R", CultureInfo.InvariantCulture);
 
         /// <summary>A point of the plane z = 0 where it stands once its plane is that of <see cref="Tilted"/>, its coordinates kept.</summary>
-        private static GeoPoint3 OnTilted(GeoPoint3 p) => new GeoPoint3(-p.X, -0.8 * p.Y + 0.6 * p.Z, 0.6 * p.Y + 0.8 * p.Z);
+        private static GeoPoint3 OnTilted(GeoPoint3 p) =>
+            new GeoPoint3(-p.X, -0.8 * p.Y + 0.6 * p.Z, 0.6 * p.Y + 0.8 * p.Z);
 
-        private static void Near(double expected, double actual) => Assert.True(Math.Abs(expected - actual) <= 1E-9 * Math.Max(1.0, Math.Abs(expected)), "expected " + N(expected) + ", got " + N(actual));
+        private static void Near(double expected, double actual) =>
+            Assert.True(
+                Math.Abs(expected - actual) <= 1E-9 * Math.Max(1.0, Math.Abs(expected)),
+                "expected " + N(expected) + ", got " + N(actual)
+            );
 
         private static void Near(GeoPoint3 expected, GeoPoint3 actual)
         {
@@ -61,24 +70,43 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static DxfDBText Grid(DxfDatabase db) => ByHandle<DxfDBText>(db, "64");
 
-        private static DxfObjectContextCollection Scales(DxfDatabase db) => db.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES");
+        private static DxfObjectContextCollection Scales(DxfDatabase db) =>
+            db.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES");
 
-        private static string[] ShownAt(DxfDatabase db, DxfDBObject o)
-            => Scales(db).Where(s => o.HasContext(s)).Select(s => s.Name).OrderBy(s => s, StringComparer.Ordinal).ToArray();
+        private static string[] ShownAt(DxfDatabase db, DxfDBObject o) =>
+            Scales(db)
+                .Where(s => o.HasContext(s))
+                .Select(s => s.Name)
+                .OrderBy(s => s, StringComparer.Ordinal)
+                .ToArray();
 
-        private static string[] ScaleRows(DxfDatabase db)
-            => Scales(db).Cast<DxfAnnotationScale>().Select(s => s.Name + "=" + N(s.PaperUnits) + "/" + N(s.DrawingUnits)).OrderBy(s => s, StringComparer.Ordinal).ToArray();
+        private static string[] ScaleRows(DxfDatabase db) =>
+            Scales(db)
+                .Cast<DxfAnnotationScale>()
+                .Select(s => s.Name + "=" + N(s.PaperUnits) + "/" + N(s.DrawingUnits))
+                .OrderBy(s => s, StringComparer.Ordinal)
+                .ToArray();
 
-        private static string Scale(string handle, string name, string paper, string drawing, string unit)
-            => "  0\nSCALE\n  5\n" + handle + "\n102\n{ACAD_REACTORS\n330\n14\n102\n}\n330\n14\n100\nAcDbScale\n 70\n0\n300\n" + name + "\n140\n" + paper + "\n141\n" + drawing + "\n290\n" + unit + "\n";
+        private static string Scale(string handle, string name, string paper, string drawing, string unit) =>
+            "  0\nSCALE\n  5\n"
+            + handle
+            + "\n102\n{ACAD_REACTORS\n330\n14\n102\n}\n330\n14\n100\nAcDbScale\n 70\n0\n300\n"
+            + name
+            + "\n140\n"
+            + paper
+            + "\n141\n"
+            + drawing
+            + "\n290\n"
+            + unit
+            + "\n";
 
         /// <summary>Those of a TEXT's context: the horizontal mode, the angle, the two points.</summary>
-        private static string TextGroups(double degrees, double x, double y)
-            => " 70\n0\n 50\n" + N(degrees) + "\n 10\n" + N(x) + "\n 20\n" + N(y) + "\n 11\n0.0\n 21\n0.0\n";
+        private static string TextGroups(double degrees, double x, double y) =>
+            " 70\n0\n 50\n" + N(degrees) + "\n 10\n" + N(x) + "\n 20\n" + N(y) + "\n 11\n0.0\n 21\n0.0\n";
 
         /// <summary>Those of an attribute's: the horizontal mode, the angle, the two points, the flag of no MTEXT after them.</summary>
-        private static string AttributeGroups(double x, double y)
-            => " 70\n0\n 50\n0.0\n 10\n" + N(x) + "\n 20\n" + N(y) + "\n 11\n0.0\n 21\n0.0\n290\n0\n";
+        private static string AttributeGroups(double x, double y) =>
+            " 70\n0\n 50\n0.0\n 10\n" + N(x) + "\n 20\n" + N(y) + "\n 11\n0.0\n 21\n0.0\n290\n0\n";
 
         /// <summary>
         /// The ezdxf drawing with the scales 1:1 (F0), 1:2 (F1) and 1:4 (F2), its TEXT 64 shown at (11, 12) turned 15 degrees
@@ -89,11 +117,20 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             string text = DxfFileEzdxfDrawings.R2018;
             Assert.Contains(ScaleList, text, StringComparison.Ordinal);
-            string scales = Scale("F0", "1:1", "1", "1", "1") + Scale("F1", "1:2", "1", "2", "0") + Scale("F2", "1:4", "1", "4", "0");
+            string scales =
+                Scale("F0", "1:1", "1", "1", "1")
+                + Scale("F1", "1:2", "1", "2", "0")
+                + Scale("F2", "1:4", "1", "4", "0");
             int end = text.LastIndexOf("  0\nENDSEC\n", StringComparison.Ordinal);
-            text = (text.Substring(0, end) + scales + text.Substring(end)).Replace(ScaleList, ScaleList + "  3\nA0\n350\nF0\n  3\nA1\n350\nF1\n  3\nA2\n350\nF2\n");
+            text = (text.Substring(0, end) + scales + text.Substring(end)).Replace(
+                ScaleList,
+                ScaleList + "  3\nA0\n350\nF0\n  3\nA1\n350\nF1\n  3\nA2\n350\nF2\n"
+            );
             DxfDatabase db = DxfDatabase.Parse(text);
-            var held = new List<KeyValuePair<DxfEntity, string>> { new KeyValuePair<DxfEntity, string>(Grid(db), TextContext) };
+            var held = new List<KeyValuePair<DxfEntity, string>>
+            {
+                new KeyValuePair<DxfEntity, string>(Grid(db), TextContext),
+            };
 
             if (attribute)
             {
@@ -118,7 +155,17 @@ namespace GeometryHelper.UnitTest.Dxf
             string[][] contexts =
             {
                 new[] { "E01", "F0", "0", TextGroups(15.0, 11.0, 12.0), "E02", "F1", "1", TextGroups(0.0, 40.0, 12.0) },
-                new[] { "E03", "F0", "0", AttributeGroups(-6.151391694414086, 265.3285550728426), "E04", "F1", "1", AttributeGroups(-100.0, 265.3285550728426) },
+                new[]
+                {
+                    "E03",
+                    "F0",
+                    "0",
+                    AttributeGroups(-6.151391694414086, 265.3285550728426),
+                    "E04",
+                    "F1",
+                    "1",
+                    AttributeGroups(-100.0, 265.3285550728426),
+                },
             };
 
             for (int k = 0; k < owners.Count; k++)
@@ -130,9 +177,25 @@ namespace GeometryHelper.UnitTest.Dxf
                 for (int i = 0; i < 2; i++)
                 {
                     string[] c = contexts[k];
-                    records.Append("  0\n" + held[k].Value + "\n  5\n" + c[4 * i] + "\n102\n{ACAD_REACTORS\n330\n" + owner + "\n102\n}\n330\n" + owner
-                        + "\n100\nAcDbObjectContextData\n 70\n4\n290\n" + c[4 * i + 2] + "\n100\nAcDbAnnotScaleObjectContextData\n340\n" + c[4 * i + 1] + "\n" + c[4 * i + 3]);
-                    entries.Append("  3\n*A" + (i + 1).ToString(CultureInfo.InvariantCulture) + "\n350\n" + c[4 * i] + "\n");
+                    records.Append(
+                        "  0\n"
+                            + held[k].Value
+                            + "\n  5\n"
+                            + c[4 * i]
+                            + "\n102\n{ACAD_REACTORS\n330\n"
+                            + owner
+                            + "\n102\n}\n330\n"
+                            + owner
+                            + "\n100\nAcDbObjectContextData\n 70\n4\n290\n"
+                            + c[4 * i + 2]
+                            + "\n100\nAcDbAnnotScaleObjectContextData\n340\n"
+                            + c[4 * i + 1]
+                            + "\n"
+                            + c[4 * i + 3]
+                    );
+                    entries.Append(
+                        "  3\n*A" + (i + 1).ToString(CultureInfo.InvariantCulture) + "\n350\n" + c[4 * i] + "\n"
+                    );
                 }
 
                 end = text.LastIndexOf("  0\nENDSEC\n", StringComparison.Ordinal);
@@ -232,7 +295,12 @@ namespace GeometryHelper.UnitTest.Dxf
             // AutoCAD 2021 gave the SOLID of corners (200, 0), (210, 0), (200, 10) and (210, 10) the normal (0, 0.6, 0.8): its
             // corners stood at (-200, 0, 0), (-210, 0, 0), (-200, -8, 6) and (-210, -8, 6) (plugin D35d N0 normal).
             DxfDatabase db = Ezdxf();
-            var solid = new DxfSolid(new GeoPoint3(200.0, 0.0, 0.0), new GeoPoint3(210.0, 0.0, 0.0), new GeoPoint3(200.0, 10.0, 0.0), new GeoPoint3(210.0, 10.0, 0.0));
+            var solid = new DxfSolid(
+                new GeoPoint3(200.0, 0.0, 0.0),
+                new GeoPoint3(210.0, 0.0, 0.0),
+                new GeoPoint3(200.0, 10.0, 0.0),
+                new GeoPoint3(210.0, 10.0, 0.0)
+            );
             db.ModelSpace.AppendEntity(solid);
             solid.Normal = Tilted;
             Near(new GeoPoint3(-200.0, 0.0, 0.0), solid.GetPointAt(0));
@@ -325,7 +393,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             target = DxfDatabase.Parse(Drawing(false));
             target.Insert(GeoTransform3.Identity, source, true);
-            DxfDBText inserted = target.ModelSpace.OfType<DxfDBText>().Last(t => t.TextString == Grid(source).TextString);
+            DxfDBText inserted = target
+                .ModelSpace.OfType<DxfDBText>()
+                .Last(t => t.TextString == Grid(source).TextString);
             Assert.Equal(new[] { "1:1", "1:2" }, ShownAt(target, inserted));
             Assert.Equal(new GeoPoint3(11.0, 12.0, 0.0), inserted.Position);
         }
@@ -337,7 +407,15 @@ namespace GeometryHelper.UnitTest.Dxf
             // had R5 of 1:5; and of S7 of 1:3, where that drawing's S7 was 1:7, onto an S7_1 of 1:3 it added (plugin D35d r3).
             DxfDatabase source = DxfDatabase.Parse(Drawing(false));
             DxfDatabase target = new DxfDatabase("AC1032");
-            Scales(target).AddContext(new DxfAnnotationScale { Name = "1:2", PaperUnits = 1.0, DrawingUnits = 3.0 });
+            Scales(target)
+                .AddContext(
+                    new DxfAnnotationScale
+                    {
+                        Name = "1:2",
+                        PaperUnits = 1.0,
+                        DrawingUnits = 3.0,
+                    }
+                );
             var copy = (DxfDBText)Grid(source).Clone();
             target.ModelSpace.AppendEntity(copy);
             Assert.Equal(new[] { "1:1", "1:2_1" }, ShownAt(target, copy));
@@ -381,7 +459,13 @@ namespace GeometryHelper.UnitTest.Dxf
 
             target = new DxfDatabase("AC1032");
             target.Insert(GeoTransform3.Identity, source, true);
-            DxfBlockReference inserted = target.ModelSpace.OfType<DxfBlockReference>().First(b => b.Name == Insert(source).Name && b.AttributeCollection.Count > 0 && b.Position == Insert(source).Position);
+            DxfBlockReference inserted = target
+                .ModelSpace.OfType<DxfBlockReference>()
+                .First(b =>
+                    b.Name == Insert(source).Name
+                    && b.AttributeCollection.Count > 0
+                    && b.Position == Insert(source).Position
+                );
             Assert.Equal(DxfAnnotativeStates.True, inserted.Annotative);
             Assert.Equal(new[] { "1:1", "1:2" }, ShownAt(target, inserted.AttributeCollection[0]));
         }

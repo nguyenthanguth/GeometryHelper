@@ -8,18 +8,25 @@ namespace GeometryHelper.Viewer.Tests
 {
     public class SectionTests
     {
-        private static ItemPrimitives Drawn(object shape)
-            => Primitives.Build(new SceneWriter().Add(shape).Scene).Items[0];
+        private static ItemPrimitives Drawn(object shape) =>
+            Primitives.Build(new SceneWriter().Add(shape).Scene).Items[0];
 
-        private static ItemPrimitives Box(double x, double y, double z, bool withOpening = false)
-            => Drawn(SampleShapes.Box(x, y, z, withOpening));
+        private static ItemPrimitives Box(double x, double y, double z, bool withOpening = false) =>
+            Drawn(SampleShapes.Box(x, y, z, withOpening));
 
         /// <summary>
         /// A prism over a regular polygon of the given number of sides, its corners on a circle of the given radius, the first at angle nought.
         /// </summary>
         private static GeoSolid3 Prism(int sides, double radius, double height)
         {
-            var corners = Enumerable.Range(0, sides).Select(k => new GeoPoint3(radius * Math.Cos(2.0 * Math.PI * k / sides), radius * Math.Sin(2.0 * Math.PI * k / sides), 0.0)).ToList();
+            var corners = Enumerable
+                .Range(0, sides)
+                .Select(k => new GeoPoint3(
+                    radius * Math.Cos(2.0 * Math.PI * k / sides),
+                    radius * Math.Sin(2.0 * Math.PI * k / sides),
+                    0.0
+                ))
+                .ToList();
             return GeoSolid3.Extrude(new GeoPolygon3(corners), new GeoVector3(0, 0, height));
         }
 
@@ -104,7 +111,10 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Equal(new[] { 4, 4 }, chains.Select(c => c.Points.Length));
 
             // The box is 100 round and the hole, 10 by 10, 40.
-            Assert.Equal(new[] { 40.0, 100.0 }, chains.Select(c => Math.Round(SectionBuilder.Length(new[] { c }), 9)).OrderBy(v => v));
+            Assert.Equal(
+                new[] { 40.0, 100.0 },
+                chains.Select(c => Math.Round(SectionBuilder.Length(new[] { c }), 9)).OrderBy(v => v)
+            );
         }
 
         [Fact]
@@ -114,7 +124,11 @@ namespace GeometryHelper.Viewer.Tests
             const double Radius = 50.0;
             ItemPrimitives prism = Drawn(Prism(Sides, Radius, 40.0));
 
-            List<DrawPolyline> chains = SectionBuilder.Chains(prism, Plane(new Vec3(0, 0, 13), new Vec3(0, 0, 1)), 1E-9);
+            List<DrawPolyline> chains = SectionBuilder.Chains(
+                prism,
+                Plane(new Vec3(0, 0, 13), new Vec3(0, 0, 1)),
+                1E-9
+            );
 
             DrawPolyline only = Assert.Single(chains);
             Assert.True(only.Closed);
@@ -165,7 +179,11 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Equal(2, crossings.Count);
             double chord = Math.Abs(crossings[0] - crossings[1]);
 
-            List<DrawPolyline> chains = SectionBuilder.Chains(prism, Plane(new Vec3(0, Offset, 0), new Vec3(0, -1, 0)), 1E-9);
+            List<DrawPolyline> chains = SectionBuilder.Chains(
+                prism,
+                Plane(new Vec3(0, Offset, 0), new Vec3(0, -1, 0)),
+                1E-9
+            );
 
             DrawPolyline only = Assert.Single(chains);
             Assert.Equal(4, only.Points.Length);
@@ -210,7 +228,9 @@ namespace GeometryHelper.Viewer.Tests
             Primitives box = Primitives.Build(new SceneWriter().Add(SampleShapes.Box(30, 20, 10, false)).Scene);
 
             // Keep what is above z = 5 and beyond x = 10.
-            ClipSet clips = new ClipSet(new[] { Plane(new Vec3(0, 0, 5), new Vec3(0, 0, 1)), Plane(new Vec3(10, 0, 0), new Vec3(1, 0, 0)) });
+            ClipSet clips = new ClipSet(
+                new[] { Plane(new Vec3(0, 0, 5), new Vec3(0, 0, 1)), Plane(new Vec3(10, 0, 0), new Vec3(1, 0, 0)) }
+            );
             ClipResult result = ClipResult.Build(box, clips);
 
             // The cut at z = 5, 20 along x and 20 across, kept for x from 10 to 30 and so 20 + 20 + 20 round three sides, and the cut at x = 10, 20 across
@@ -224,19 +244,30 @@ namespace GeometryHelper.Viewer.Tests
             // The block 100 by 60 by 40 with a bore of radius 10 along Y at z = 20: the plane z = 30 touches the top of the bore along a line. The section is the outline
             // of the block with a line across it where the plane touches, which is three lines meeting at two points; it is reported as the pieces between them,
             // two of 160 and one of 60, none closed, 380 in all, and not as a closed outline that is not one.
-            var floor = new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 60, 0), new GeoPoint3(0, 60, 0));
+            var floor = new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 60, 0),
+                new GeoPoint3(0, 60, 0)
+            );
             GeoSolid3 block = GeoSolid3.Extrude(floor, new GeoVector3(0, 0, 40));
             GeoSolid3 bore = GeoSolid3.Cylinder(new GeoPoint3(50, -5, 20), new GeoPoint3(50, 65, 20), 10, 48);
-            Primitives scene = Primitives.Build(new SceneWriter().Add(block.WithOpenings(new[] { bore }), name: "block").Scene);
+            Primitives scene = Primitives.Build(
+                new SceneWriter().Add(block.WithOpenings(new[] { bore }), name: "block").Scene
+            );
             var clips = new ClipSet(new[] { new ClipPlane(new Vec3(50, 30, 30), new Vec3(1E-12, 0, 1)) });
 
             IReadOnlyList<DrawPolyline> lines = ClipResult.Build(scene, clips).Sections[0];
 
             Assert.Equal(3, lines.Count);
             Assert.All(lines, l => Assert.False(l.Closed));
-            Assert.Equal(new[] { 60.0, 160.0, 160.0 }, lines.Select(l => Math.Round(SectionBuilder.Length(new[] { l }), 6)).OrderBy(v => v));
+            Assert.Equal(
+                new[] { 60.0, 160.0, 160.0 },
+                lines.Select(l => Math.Round(SectionBuilder.Length(new[] { l }), 6)).OrderBy(v => v)
+            );
             Assert.Equal(380.0, SectionBuilder.Length(lines), 6);
         }
+
         [Fact]
         public void ASectionOfAPlaneThatIsOff_IsNotMade_AndNothingIsCutWhenNoPlaneIsOn()
         {
@@ -262,7 +293,9 @@ namespace GeometryHelper.Viewer.Tests
             // The box has 2 * (600 + 300 + 200) = 2200 of surface; with the lower half taken away, 600 of top and half of each of the four sides are left: 1100.
             Assert.Equal(2200.0, whole, 9);
             Assert.Equal(1100.0, cut.Triangles.Sum(TriangleArea), 9);
-            Assert.All(cut.Triangles, t => Assert.True(t.A.Z >= 5.0 - 1E-12 && t.B.Z >= 5.0 - 1E-12 && t.C.Z >= 5.0 - 1E-12));
+            Assert.All(cut.Triangles, t =>
+                Assert.True(t.A.Z >= 5.0 - 1E-12 && t.B.Z >= 5.0 - 1E-12 && t.C.Z >= 5.0 - 1E-12)
+            );
 
             // A piece of a triangle is lit as the whole was: its normal is one of the six of the box, to the bit.
             var normals = new HashSet<Vec3>(box.Items[0].Triangles.Select(t => t.Normal));
@@ -300,8 +333,13 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void APlaneThatLeavesAClosedLineInTwoPieces_GivesTwoRuns_AndAClosedLineIsCutOpen()
         {
-            ClipSet keep = new ClipSet(new[] { Plane(new Vec3(5, 0, 0), new Vec3(1, 0, 0)), Plane(new Vec3(25, 0, 0), new Vec3(-1, 0, 0)) });
-            var ring = new DrawPolyline(new[] { new Vec3(0, 0, 0), new Vec3(30, 0, 0), new Vec3(30, 10, 0), new Vec3(0, 10, 0) }, true);
+            ClipSet keep = new ClipSet(
+                new[] { Plane(new Vec3(5, 0, 0), new Vec3(1, 0, 0)), Plane(new Vec3(25, 0, 0), new Vec3(-1, 0, 0)) }
+            );
+            var ring = new DrawPolyline(
+                new[] { new Vec3(0, 0, 0), new Vec3(30, 0, 0), new Vec3(30, 10, 0), new Vec3(0, 10, 0) },
+                true
+            );
             var item = new ItemPrimitives();
             item.Polylines.Add(ring);
 

@@ -12,19 +12,28 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     public class CoplanarMergeTests
     {
-        private static GeoSolid3 MakeBoxSolid(GeoPoint3 min, GeoPoint3 max) =>
-            new GeoAabb3(min, max).ToObb().ToSolid();
+        private static GeoSolid3 MakeBoxSolid(GeoPoint3 min, GeoPoint3 max) => new GeoAabb3(min, max).ToObb().ToSolid();
 
         [Fact]
         public void TwoHalvesOfASquareBecomeTheSquareAgain()
         {
-            GeoFace3 left = new GeoFace3(new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(5, 0, 0),
-                new GeoPoint3(5, 10, 0), new GeoPoint3(0, 10, 0)));
+            GeoFace3 left = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(5, 0, 0),
+                    new GeoPoint3(5, 10, 0),
+                    new GeoPoint3(0, 10, 0)
+                )
+            );
 
-            GeoFace3 right = new GeoFace3(new GeoPolygon3(
-                new GeoPoint3(5, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(5, 10, 0)));
+            GeoFace3 right = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(5, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(5, 10, 0)
+                )
+            );
 
             GeoFace3[] merged = Merge3.CoplanarFaces(new[] { left, right });
 
@@ -41,13 +50,23 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void FacesThatShareAPlaneButDoNotTouchStaySeparate()
         {
-            GeoFace3 near = new GeoFace3(new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0),
-                new GeoPoint3(1, 1, 0), new GeoPoint3(0, 1, 0)));
+            GeoFace3 near = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(1, 0, 0),
+                    new GeoPoint3(1, 1, 0),
+                    new GeoPoint3(0, 1, 0)
+                )
+            );
 
-            GeoFace3 far = new GeoFace3(new GeoPolygon3(
-                new GeoPoint3(50, 0, 0), new GeoPoint3(51, 0, 0),
-                new GeoPoint3(51, 1, 0), new GeoPoint3(50, 1, 0)));
+            GeoFace3 far = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(50, 0, 0),
+                    new GeoPoint3(51, 0, 0),
+                    new GeoPoint3(51, 1, 0),
+                    new GeoPoint3(50, 1, 0)
+                )
+            );
 
             GeoFace3[] merged = Merge3.CoplanarFaces(new[] { near, far });
 
@@ -58,13 +77,23 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void FacesOnDifferentPlanesAreNotTouched()
         {
-            GeoFace3 flat = new GeoFace3(new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0),
-                new GeoPoint3(1, 1, 0), new GeoPoint3(0, 1, 0)));
+            GeoFace3 flat = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(1, 0, 0),
+                    new GeoPoint3(1, 1, 0),
+                    new GeoPoint3(0, 1, 0)
+                )
+            );
 
-            GeoFace3 upright = new GeoFace3(new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0),
-                new GeoPoint3(1, 0, 1), new GeoPoint3(0, 0, 1)));
+            GeoFace3 upright = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(1, 0, 0),
+                    new GeoPoint3(1, 0, 1),
+                    new GeoPoint3(0, 0, 1)
+                )
+            );
 
             Assert.Equal(2, Merge3.CoplanarFaces(new[] { flat, upright }).Length);
         }
@@ -72,9 +101,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AFaceAndOneFacingTheOtherWayAreNotMerged()
         {
-            GeoFace3 up = new GeoFace3(new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0),
-                new GeoPoint3(1, 1, 0), new GeoPoint3(0, 1, 0)));
+            GeoFace3 up = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(1, 0, 0),
+                    new GeoPoint3(1, 1, 0),
+                    new GeoPoint3(0, 1, 0)
+                )
+            );
 
             // The same flat place, looked at from the other side: a different surface.
             Assert.Equal(2, Merge3.CoplanarFaces(new[] { up, up.Flip() }).Length);
@@ -100,11 +134,16 @@ namespace GeometryHelper.UnitTest.Solid
                     double x = ix * 3.0;
                     double y = iy * 3.0;
 
-                    ring.Add(new GeoFace3(new GeoPolygon3(
-                        new GeoPoint3(x, y, 0),
-                        new GeoPoint3(x + 3, y, 0),
-                        new GeoPoint3(x + 3, y + 3, 0),
-                        new GeoPoint3(x, y + 3, 0))));
+                    ring.Add(
+                        new GeoFace3(
+                            new GeoPolygon3(
+                                new GeoPoint3(x, y, 0),
+                                new GeoPoint3(x + 3, y, 0),
+                                new GeoPoint3(x + 3, y + 3, 0),
+                                new GeoPoint3(x, y + 3, 0)
+                            )
+                        )
+                    );
                 }
             }
 
@@ -124,17 +163,32 @@ namespace GeometryHelper.UnitTest.Solid
             // bottom edges on its own — a T-junction — so cancelling opposed edges finds no partner for
             // any of the three. Cutting every edge at the ends of the others first turns the long edge
             // into two that do match, and the three faces join into the square they tile.
-            GeoFace3 wide = new GeoFace3(new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 5, 0), new GeoPoint3(0, 5, 0)));
+            GeoFace3 wide = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 5, 0),
+                    new GeoPoint3(0, 5, 0)
+                )
+            );
 
-            GeoFace3 leftAbove = new GeoFace3(new GeoPolygon3(
-                new GeoPoint3(0, 5, 0), new GeoPoint3(5, 5, 0),
-                new GeoPoint3(5, 10, 0), new GeoPoint3(0, 10, 0)));
+            GeoFace3 leftAbove = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 5, 0),
+                    new GeoPoint3(5, 5, 0),
+                    new GeoPoint3(5, 10, 0),
+                    new GeoPoint3(0, 10, 0)
+                )
+            );
 
-            GeoFace3 rightAbove = new GeoFace3(new GeoPolygon3(
-                new GeoPoint3(5, 5, 0), new GeoPoint3(10, 5, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(5, 10, 0)));
+            GeoFace3 rightAbove = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(5, 5, 0),
+                    new GeoPoint3(10, 5, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(5, 10, 0)
+                )
+            );
 
             GeoFace3[] merged = Merge3.CoplanarFaces(new[] { wide, leftAbove, rightAbove });
 
@@ -150,13 +204,23 @@ namespace GeometryHelper.UnitTest.Solid
             // the outlines has a choice to make there, and taking the wrong one would join the two into a
             // single figure of eight whose lobes run opposite ways — an outline enclosing the difference
             // of the two areas rather than the sum.
-            GeoFace3 lower = new GeoFace3(new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(2, 0, 0),
-                new GeoPoint3(2, 2, 0), new GeoPoint3(0, 2, 0)));
+            GeoFace3 lower = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(2, 0, 0),
+                    new GeoPoint3(2, 2, 0),
+                    new GeoPoint3(0, 2, 0)
+                )
+            );
 
-            GeoFace3 upper = new GeoFace3(new GeoPolygon3(
-                new GeoPoint3(2, 2, 0), new GeoPoint3(4, 2, 0),
-                new GeoPoint3(4, 4, 0), new GeoPoint3(2, 4, 0)));
+            GeoFace3 upper = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(2, 2, 0),
+                    new GeoPoint3(4, 2, 0),
+                    new GeoPoint3(4, 4, 0),
+                    new GeoPoint3(2, 4, 0)
+                )
+            );
 
             GeoFace3[] merged = Merge3.CoplanarFaces(new[] { lower, upper });
 
@@ -174,13 +238,23 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void MergingKeepsTheTotalArea()
         {
-            GeoFace3 left = new GeoFace3(new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(5, 0, 0),
-                new GeoPoint3(5, 10, 0), new GeoPoint3(0, 10, 0)));
+            GeoFace3 left = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(5, 0, 0),
+                    new GeoPoint3(5, 10, 0),
+                    new GeoPoint3(0, 10, 0)
+                )
+            );
 
-            GeoFace3 right = new GeoFace3(new GeoPolygon3(
-                new GeoPoint3(5, 0, 0), new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(5, 10, 0)));
+            GeoFace3 right = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(5, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(5, 10, 0)
+                )
+            );
 
             GeoFace3[] merged = Merge3.CoplanarFaces(new[] { left, right });
 
@@ -241,15 +315,18 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void MergingAConcaveCutSolidKeepsItsVolume()
         {
-            GeoSolid3 lShape = MakePrism(new[]
-            {
-                new GeoPoint3(0, 0, 0),
-                new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 4, 0),
-                new GeoPoint3(4, 4, 0),
-                new GeoPoint3(4, 10, 0),
-                new GeoPoint3(0, 10, 0)
-            }, 6.0);
+            GeoSolid3 lShape = MakePrism(
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(10, 4, 0),
+                    new GeoPoint3(4, 4, 0),
+                    new GeoPoint3(4, 10, 0),
+                    new GeoPoint3(0, 10, 0),
+                },
+                6.0
+            );
 
             Assert.True(lShape.TrySplitBy(GeoPlane3.XY.Offset(3), out GeoSolid3 upper, out _));
 

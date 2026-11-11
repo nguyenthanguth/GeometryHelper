@@ -34,7 +34,11 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AFlatZChainWithAnArc_HasThePlaneItLiesIn()
         {
-            var chain = new GeoPolylineArc3(Z, new[] { 0.2, 0.0, 0.0, 0.0 }, Enumerable.Repeat(new GeoVector3(0, 0, 1), 4));
+            var chain = new GeoPolylineArc3(
+                Z,
+                new[] { 0.2, 0.0, 0.0, 0.0 },
+                Enumerable.Repeat(new GeoVector3(0, 0, 1), 4)
+            );
 
             Assert.True(chain.TryGetPlane(out GeoPlane3 plane, Thousandth));
             Assert.Equal(1.0, Math.Abs(plane.Normal.Z), 1E-12);
@@ -45,9 +49,19 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The first edge bows 1 below the axis (bulge 0.2: radius 13 about (5, 12, 2)); moved 0.3 to the left, towards
             // its centre, it starts at (0.11538, 0.27692, 2). Whatever the rest, every point stays in z = 2.
-            var chain = new GeoPolylineArc3(Z, new[] { 0.2, 0.0, 0.0, 0.0 }, Enumerable.Repeat(new GeoVector3(0, 0, 1), 4));
+            var chain = new GeoPolylineArc3(
+                Z,
+                new[] { 0.2, 0.0, 0.0, 0.0 },
+                Enumerable.Repeat(new GeoVector3(0, 0, 1), 4)
+            );
 
-            GeoPolylineArc3[] offset = Offset3.OffsetInPlane(chain, 0.3, new GeoVector3(0, 0, 1), OffsetOptions.Default, Thousandth);
+            GeoPolylineArc3[] offset = Offset3.OffsetInPlane(
+                chain,
+                0.3,
+                new GeoVector3(0, 0, 1),
+                OffsetOptions.Default,
+                Thousandth
+            );
 
             Assert.NotEmpty(offset);
             Assert.All(offset.SelectMany(c => c.Vertices), v => Assert.Equal(2.0, v.Z, 1E-9));

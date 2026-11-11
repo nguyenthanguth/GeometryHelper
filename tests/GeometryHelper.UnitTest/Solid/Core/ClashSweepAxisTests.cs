@@ -37,10 +37,16 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     double start = random.Next(3) == 0 ? 0.0 : random.Next(201) * 0.5;
                     int pick = random.Next(8);
-                    double over = pick == 0 ? 12.0 : pick == 1 ? 10.0 : pick == 2 ? 7.0 : pick == 3 ? 4.999 : 0.0;
+                    double over =
+                        pick == 0 ? 12.0
+                        : pick == 1 ? 10.0
+                        : pick == 2 ? 7.0
+                        : pick == 3 ? 4.999
+                        : 0.0;
                     var box = new GeoAabb3(
                         new GeoPoint3(start, row * 30.0 + over, column * 30.0),
-                        new GeoPoint3(start + 600.0, row * 30.0 + over + 20.0, column * 30.0 + 20.0));
+                        new GeoPoint3(start + 600.0, row * 30.0 + over + 20.0, column * 30.0 + 20.0)
+                    );
                     boxes.Add(SweepAxisText.Along(axis, box));
                 }
             }
@@ -56,13 +62,16 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The centre line runs along the axis the bundle lies along, through the middle of the box.
             GeoPoint3 middle = box.Center;
-            GeoPoint3 Through(GeoPoint3 end) => axis == 'X' ? new GeoPoint3(end.X, middle.Y, middle.Z)
-                : axis == 'Y' ? new GeoPoint3(middle.X, end.Y, middle.Z) : new GeoPoint3(middle.X, middle.Y, end.Z);
+            GeoPoint3 Through(GeoPoint3 end) =>
+                axis == 'X' ? new GeoPoint3(end.X, middle.Y, middle.Z)
+                : axis == 'Y' ? new GeoPoint3(middle.X, end.Y, middle.Z)
+                : new GeoPoint3(middle.X, middle.Y, end.Z);
 
             return new ClashBar(new GeoPolyline3(Through(box.Min), Through(box.Max)), 10.0);
         }
 
-        private static string Text(IEnumerable<ClashResult> results) => Text(results.Select(r => (r.First, r.Second, r)));
+        private static string Text(IEnumerable<ClashResult> results) =>
+            Text(results.Select(r => (r.First, r.Second, r)));
 
         /// <summary>
         /// Every result to the last bit, under the indexes given for its pair.
@@ -75,9 +84,16 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 text.Append(first).Append(',').Append(second).Append(' ').Append(r.Kind).Append(' ');
                 SweepAxisText.Append(text, r.Location);
-                text.Append(SweepAxisText.Number(r.Volume)).Append(' ').Append(SweepAxisText.Number(r.Depth)).Append(' ')
-                    .Append(SweepAxisText.Number(r.LengthInside)).Append(' ').Append(SweepAxisText.Number(r.ContactArea)).Append(' ')
-                    .Append(SweepAxisText.Number(r.Distance)).Append(' ');
+                text.Append(SweepAxisText.Number(r.Volume))
+                    .Append(' ')
+                    .Append(SweepAxisText.Number(r.Depth))
+                    .Append(' ')
+                    .Append(SweepAxisText.Number(r.LengthInside))
+                    .Append(' ')
+                    .Append(SweepAxisText.Number(r.ContactArea))
+                    .Append(' ')
+                    .Append(SweepAxisText.Number(r.Distance))
+                    .Append(' ');
 
                 if (r.Gap.HasValue)
                 {
@@ -106,7 +122,8 @@ namespace GeometryHelper.UnitTest.Solid
             return text.ToString();
         }
 
-        private static string Hash(IEnumerable<ClashResult> results) => SweepAxisText.Hash(new StringBuilder(Text(results)));
+        private static string Hash(IEnumerable<ClashResult> results) =>
+            SweepAxisText.Hash(new StringBuilder(Text(results)));
 
         [Theory]
         [InlineData('X', "6e9bb2f7dae40fc4460bc811858d01b4061c67584e58aea907e273dca0be5b96")] // moved 2026-10-20: operand order canonicalised, loops and patches measured from the part that sorts first
@@ -158,7 +175,9 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 for (int j = i + 1; j < parts.Length; j++)
                 {
-                    expected.AddRange(Clash3.Find(new[] { parts[i], parts[j] }, Options, Within).Select(r => (i, j, r)));
+                    expected.AddRange(
+                        Clash3.Find(new[] { parts[i], parts[j] }, Options, Within).Select(r => (i, j, r))
+                    );
                 }
             }
 
@@ -180,7 +199,9 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 for (int j = 0; j < second.Length; j++)
                 {
-                    expected.AddRange(Clash3.Find(new[] { first[i] }, new[] { second[j] }, Options, Within).Select(r => (i, j, r)));
+                    expected.AddRange(
+                        Clash3.Find(new[] { first[i] }, new[] { second[j] }, Options, Within).Select(r => (i, j, r))
+                    );
                 }
             }
 
@@ -197,24 +218,33 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 switch (swap)
                 {
-                    case "XY": return new GeoPoint3(p.Y, p.X, p.Z);
-                    case "YZ": return new GeoPoint3(p.X, p.Z, p.Y);
-                    case "XZ": return new GeoPoint3(p.Z, p.Y, p.X);
-                    default: return p;
+                    case "XY":
+                        return new GeoPoint3(p.Y, p.X, p.Z);
+                    case "YZ":
+                        return new GeoPoint3(p.X, p.Z, p.Y);
+                    case "XZ":
+                        return new GeoPoint3(p.Z, p.Y, p.X);
+                    default:
+                        return p;
                 }
             }
 
             return new GeoAabb3(Of(box.Min), Of(box.Max));
         }
 
-        private static List<(GeoAabb3, int, bool)> Entries(IEnumerable<GeoAabb3> boxes) => boxes.Select((b, i) => (b, i, true)).ToList();
+        private static List<(GeoAabb3, int, bool)> Entries(IEnumerable<GeoAabb3> boxes) =>
+            boxes.Select((b, i) => (b, i, true)).ToList();
 
         /// <summary>
         /// Ten bars 600 long along X, side by side along Y at a pitch of 30, all at the same height: every pair overlaps
         /// along X and along Z, and none along Y.
         /// </summary>
-        private static IEnumerable<GeoAabb3> Row(string swap)
-            => Enumerable.Range(0, 10).Select(i => Swapped(swap, new GeoAabb3(new GeoPoint3(0, 30.0 * i, 0), new GeoPoint3(600, 30.0 * i + 20, 20))));
+        private static IEnumerable<GeoAabb3> Row(string swap) =>
+            Enumerable
+                .Range(0, 10)
+                .Select(i =>
+                    Swapped(swap, new GeoAabb3(new GeoPoint3(0, 30.0 * i, 0), new GeoPoint3(600, 30.0 * i + 20, 20)))
+                );
 
         [Theory]
         [InlineData("", 1)]
@@ -229,7 +259,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void BoxesUpTheDiagonalAreSweptAlongX_WhereEveryAxisLeavesAsManyPairs()
         {
-            IEnumerable<GeoAabb3> boxes = Enumerable.Range(0, 10).Select(i => new GeoAabb3(new GeoPoint3(i, i, i), new GeoPoint3(i + 1.5, i + 1.5, i + 1.5)));
+            IEnumerable<GeoAabb3> boxes = Enumerable
+                .Range(0, 10)
+                .Select(i => new GeoAabb3(new GeoPoint3(i, i, i), new GeoPoint3(i + 1.5, i + 1.5, i + 1.5)));
 
             Assert.Equal(0, Clash3.SweepAxis(Entries(boxes), 0.0));
         }
@@ -239,7 +271,9 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // 25 apart along Y, 20 wide: a reach of 5 makes every two neighbours a pair, and Y leaves 9, against 45
             // along X and Z.
-            IEnumerable<GeoAabb3> boxes = Enumerable.Range(0, 10).Select(i => new GeoAabb3(new GeoPoint3(0, 25.0 * i, 0), new GeoPoint3(600, 25.0 * i + 20, 20)));
+            IEnumerable<GeoAabb3> boxes = Enumerable
+                .Range(0, 10)
+                .Select(i => new GeoAabb3(new GeoPoint3(0, 25.0 * i, 0), new GeoPoint3(600, 25.0 * i + 20, 20)));
 
             Assert.Equal(1, Clash3.SweepAxis(Entries(boxes), 5.0));
             Assert.Equal(9, Clash3.SweepBoxes(boxes.ToArray(), new GeoAabb3[0], true, 5.0).Count);
@@ -264,9 +298,10 @@ namespace GeometryHelper.UnitTest.Solid
                 }
 
                 var low = new GeoPoint3(random.Next(40) * 5, random.Next(40) * 5, random.Next(40) * 5);
-                var size = swap == null
-                    ? new GeoVector3(random.Next(1, 40) * 5, random.Next(1, 40) * 5, random.Next(1, 40) * 5)
-                    : new GeoVector3(1000 + random.Next(10), random.Next(1, 4) * 5, random.Next(1, 4) * 5);
+                var size =
+                    swap == null
+                        ? new GeoVector3(random.Next(1, 40) * 5, random.Next(1, 40) * 5, random.Next(1, 40) * 5)
+                        : new GeoVector3(1000 + random.Next(10), random.Next(1, 4) * 5, random.Next(1, 4) * 5);
                 boxes[i] = Swapped(swap ?? string.Empty, new GeoAabb3(low, low.Add(size)));
             }
 
@@ -279,10 +314,15 @@ namespace GeometryHelper.UnitTest.Solid
         /// </summary>
         private static List<(int, int)> EveryPair(GeoAabb3[] first, GeoAabb3[] second, bool oneSet, double reach)
         {
-            bool Apart(double aMin, double aMax, double bMin, double bMax) => aMin > bMax + reach || bMin > aMax + reach;
+            bool Apart(double aMin, double aMax, double bMin, double bMax) =>
+                aMin > bMax + reach || bMin > aMax + reach;
 
-            bool Near(GeoAabb3 a, GeoAabb3 b) => !a.IsEmpty && !b.IsEmpty
-                && !Apart(a.Min.X, a.Max.X, b.Min.X, b.Max.X) && !Apart(a.Min.Y, a.Max.Y, b.Min.Y, b.Max.Y) && !Apart(a.Min.Z, a.Max.Z, b.Min.Z, b.Max.Z);
+            bool Near(GeoAabb3 a, GeoAabb3 b) =>
+                !a.IsEmpty
+                && !b.IsEmpty
+                && !Apart(a.Min.X, a.Max.X, b.Min.X, b.Max.X)
+                && !Apart(a.Min.Y, a.Max.Y, b.Min.Y, b.Max.Y)
+                && !Apart(a.Min.Z, a.Max.Z, b.Min.Z, b.Max.Z);
 
             var pairs = new List<(int, int)>();
             GeoAabb3[] other = oneSet ? first : second;
@@ -301,7 +341,8 @@ namespace GeometryHelper.UnitTest.Solid
             return pairs;
         }
 
-        private static List<(int, int)> Sorted(List<(int, int)> pairs) => pairs.OrderBy(p => p.Item1).ThenBy(p => p.Item2).ToList();
+        private static List<(int, int)> Sorted(List<(int, int)> pairs) =>
+            pairs.OrderBy(p => p.Item1).ThenBy(p => p.Item2).ToList();
 
         [Theory]
         [InlineData(1, null)]
@@ -316,7 +357,10 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 GeoAabb3[] boxes = Scattered(seed, 300, swap);
 
-                Assert.Equal(EveryPair(boxes, null, true, reach), Sorted(Clash3.SweepBoxes(boxes, new GeoAabb3[0], true, reach)));
+                Assert.Equal(
+                    EveryPair(boxes, null, true, reach),
+                    Sorted(Clash3.SweepBoxes(boxes, new GeoAabb3[0], true, reach))
+                );
             }
         }
 
@@ -333,7 +377,10 @@ namespace GeometryHelper.UnitTest.Solid
                 GeoAabb3[] first = Scattered(seed, 200, swap);
                 GeoAabb3[] second = Scattered(seed + 100, 150, swap);
 
-                Assert.Equal(EveryPair(first, second, false, reach), Sorted(Clash3.SweepBoxes(first, second, false, reach)));
+                Assert.Equal(
+                    EveryPair(first, second, false, reach),
+                    Sorted(Clash3.SweepBoxes(first, second, false, reach))
+                );
             }
         }
 
@@ -348,8 +395,14 @@ namespace GeometryHelper.UnitTest.Solid
             GeoAabb3[] second = boxes.Where((b, i) => !InFirstSet(i)).ToArray();
             double reach = Options.Clearance + Within.EqualPoint;
 
-            Assert.Equal(EveryPair(boxes, null, true, reach), Sorted(Clash3.SweepBoxes(boxes, new GeoAabb3[0], true, reach)));
-            Assert.Equal(EveryPair(first, second, false, reach), Sorted(Clash3.SweepBoxes(first, second, false, reach)));
+            Assert.Equal(
+                EveryPair(boxes, null, true, reach),
+                Sorted(Clash3.SweepBoxes(boxes, new GeoAabb3[0], true, reach))
+            );
+            Assert.Equal(
+                EveryPair(first, second, false, reach),
+                Sorted(Clash3.SweepBoxes(first, second, false, reach))
+            );
         }
     }
 }

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -93,9 +93,7 @@ namespace GeometryHelper.Geometry
         /// <param name="sizeZ">Full size along the Z axis.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when any size is negative.</exception>
         public GeoObb3(GeoPoint3 center, double sizeX, double sizeY, double sizeZ)
-            : this(new GeoCoordinateSystem3(center, GeoVector3.XAxis, GeoVector3.YAxis), sizeX, sizeY, sizeZ)
-        {
-        }
+            : this(new GeoCoordinateSystem3(center, GeoVector3.XAxis, GeoVector3.YAxis), sizeX, sizeY, sizeZ) { }
 
         /// <summary>
         /// Initializes a box with its own orientation.
@@ -114,9 +112,7 @@ namespace GeometryHelper.Geometry
         /// that costs and why it is done.
         /// </remarks>
         public GeoObb3(GeoPoint3 center, double sizeX, double sizeY, double sizeZ, GeoVector3 axisX, GeoVector3 axisY)
-            : this(new GeoCoordinateSystem3(center, axisX, axisY), sizeX, sizeY, sizeZ)
-        {
-        }
+            : this(new GeoCoordinateSystem3(center, axisX, axisY), sizeX, sizeY, sizeZ) { }
 
         /// <summary>
         /// Initializes a box from a local coordinate system and its sizes.
@@ -151,10 +147,14 @@ namespace GeometryHelper.Geometry
         {
             switch (index)
             {
-                case 0: return ExtentX;
-                case 1: return ExtentY;
-                case 2: return ExtentZ;
-                default: throw new ArgumentOutOfRangeException(nameof(index), "A box has three axes.");
+                case 0:
+                    return ExtentX;
+                case 1:
+                    return ExtentY;
+                case 2:
+                    return ExtentZ;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(index), "A box has three axes.");
             }
         }
 
@@ -166,10 +166,14 @@ namespace GeometryHelper.Geometry
         {
             switch (index)
             {
-                case 0: return AxisX;
-                case 1: return AxisY;
-                case 2: return AxisZ;
-                default: throw new ArgumentOutOfRangeException(nameof(index), "A box has three axes.");
+                case 0:
+                    return AxisX;
+                case 1:
+                    return AxisY;
+                case 2:
+                    return AxisZ;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(index), "A box has three axes.");
             }
         }
 
@@ -196,7 +200,7 @@ namespace GeometryHelper.Geometry
                 Center.Subtract(dx).Subtract(dy).Add(dz),
                 Center.Add(dx).Subtract(dy).Add(dz),
                 Center.Add(dx).Add(dy).Add(dz),
-                Center.Subtract(dx).Add(dy).Add(dz)
+                Center.Subtract(dx).Add(dy).Add(dz),
             };
         }
 
@@ -214,7 +218,11 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         public GeoPolygon3[] GetFaces()
         {
-            double reach = Math.Max(Math.Abs(Center.X), Math.Max(Math.Abs(Center.Y), Math.Abs(Center.Z))) + ExtentX + ExtentY + ExtentZ;
+            double reach =
+                Math.Max(Math.Abs(Center.X), Math.Max(Math.Abs(Center.Y), Math.Abs(Center.Z)))
+                + ExtentX
+                + ExtentY
+                + ExtentZ;
             double nought = reach * FlatShare;
 
             if (!(ExtentX > nought) || !(ExtentY > nought) || !(ExtentZ > nought))
@@ -231,7 +239,7 @@ namespace GeometryHelper.Geometry
                 Face(c[0], c[1], c[5], c[4]), // front, normal along -Y
                 Face(c[2], c[3], c[7], c[6]), // back, normal along +Y
                 Face(c[1], c[2], c[6], c[5]), // right, normal along +X
-                Face(c[3], c[0], c[4], c[7])  // left, normal along -X
+                Face(c[3], c[0], c[4], c[7]), // left, normal along -X
             };
         }
 
@@ -257,7 +265,9 @@ namespace GeometryHelper.Geometry
         internal GeoPolygon3[] GetFacesWithArea()
         {
             double nought = Nought();
-            bool x = ExtentX > nought, y = ExtentY > nought, z = ExtentZ > nought;
+            bool x = ExtentX > nought,
+                y = ExtentY > nought,
+                z = ExtentZ > nought;
             GeoPoint3[] c = GetCorners();
             var faces = new List<GeoPolygon3>(6);
 
@@ -283,8 +293,13 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>The size on an axis a box has to exceed to have faces across it: <see cref="FlatShare"/> of its reach.</summary>
-        private double Nought()
-            => (Math.Max(Math.Abs(Center.X), Math.Max(Math.Abs(Center.Y), Math.Abs(Center.Z))) + ExtentX + ExtentY + ExtentZ) * FlatShare;
+        private double Nought() =>
+            (
+                Math.Max(Math.Abs(Center.X), Math.Max(Math.Abs(Center.Y), Math.Abs(Center.Z)))
+                + ExtentX
+                + ExtentY
+                + ExtentZ
+            ) * FlatShare;
 
         /// <summary>
         /// The share of how far a box reaches from the origin that its size on an axis has to exceed for it to have faces.
@@ -301,7 +316,11 @@ namespace GeometryHelper.Geometry
             GeoVector3 areaVector = Newell.GetAreaVector(corners);
             double length = areaVector.Length;
 
-            return GeoPolygon3.FromValidated(corners, new GeoVector3(areaVector.X / length, areaVector.Y / length, areaVector.Z / length), length);
+            return GeoPolygon3.FromValidated(
+                corners,
+                new GeoVector3(areaVector.X / length, areaVector.Y / length, areaVector.Z / length),
+                length
+            );
         }
 
         /// <summary>
@@ -326,7 +345,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="options">How each axis of the grid is divided, the joint, and the snap distance.</param>
         /// <returns>The grid of cells.</returns>
-        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options) => Meshing.Mesh3.ToCells(this, options, Meshing.MeshPlacement3.Own, Tolerance.Global);
+        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options) =>
+            Meshing.Mesh3.ToCells(this, options, Meshing.MeshPlacement3.Own, Tolerance.Global);
 
         /// <summary>
         /// Cuts the box into cells as the options say, along its own axes, within a tolerance.
@@ -334,7 +354,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How each axis of the grid is divided, the joint, and the snap distance.</param>
         /// <param name="tolerance">The tolerance it is cut within: which cells are whole, and the least a cut is snapped by.</param>
         /// <returns>The grid of cells.</returns>
-        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Tolerance tolerance) => Meshing.Mesh3.ToCells(this, options, Meshing.MeshPlacement3.Own, tolerance);
+        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Tolerance tolerance) =>
+            Meshing.Mesh3.ToCells(this, options, Meshing.MeshPlacement3.Own, tolerance);
 
         /// <summary>
         /// Cuts the box into cells as the options say, its grid standing as the placement says, using the default
@@ -343,7 +364,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How each axis of the grid is divided, the joint, and the snap distance.</param>
         /// <param name="placement">Which way the grid's axes run, and where a cell starts.</param>
         /// <returns>The grid of cells.</returns>
-        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Meshing.MeshPlacement3 placement) => Meshing.Mesh3.ToCells(this, options, placement, Tolerance.Global);
+        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Meshing.MeshPlacement3 placement) =>
+            Meshing.Mesh3.ToCells(this, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Cuts the box into cells as the options say, its grid standing as the placement says, within a tolerance: blocks,
@@ -358,12 +380,17 @@ namespace GeometryHelper.Geometry
         /// Thrown when a cell is no larger than the point tolerance along an axis it divides, or the grid would lay more
         /// cells than a grid may have.
         /// </exception>
-        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Meshing.MeshPlacement3 placement, Tolerance tolerance) => Meshing.Mesh3.ToCells(this, options, placement, tolerance);
+        public Meshing.GeoCellGrid3 ToCells(
+            Meshing.CellOptions3 options,
+            Meshing.MeshPlacement3 placement,
+            Tolerance tolerance
+        ) => Meshing.Mesh3.ToCells(this, options, placement, tolerance);
 
         /// <summary>
         /// Gets the axis-aligned bounding box enclosing this oriented box.
         /// </summary>
         public GeoAabb3 GetAabb() => GeoAabb3.FromPoints(GetCorners());
+
         /// <summary>
         /// Grows the box by a margin on every side, or shrinks it by a negative one.
         /// </summary>
@@ -402,7 +429,6 @@ namespace GeometryHelper.Geometry
             result = new GeoObb3(CoordinateSystem, sizeX, sizeY, sizeZ);
             return true;
         }
-
 
         /// <summary>
         /// Moves the box by a vector.
@@ -468,7 +494,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Locates a point relative to this box, within a tolerance.
         /// </summary>
-        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) => Containment3.Locate(this, point, tolerance);
+        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) =>
+            Containment3.Locate(this, point, tolerance);
 
         /// <summary>
         /// Checks whether this box holds a point, using the default tolerance.
@@ -499,10 +526,10 @@ namespace GeometryHelper.Geometry
                 return true;
             }
 
-            return CoordinateSystem.Equals(other.CoordinateSystem) &&
-                   ExtentX.Equals(other.ExtentX) &&
-                   ExtentY.Equals(other.ExtentY) &&
-                   ExtentZ.Equals(other.ExtentZ);
+            return CoordinateSystem.Equals(other.CoordinateSystem)
+                && ExtentX.Equals(other.ExtentX)
+                && ExtentY.Equals(other.ExtentY)
+                && ExtentZ.Equals(other.ExtentZ);
         }
 
         /// <summary>
@@ -545,10 +572,10 @@ namespace GeometryHelper.Geometry
                 return false;
             }
 
-            return CoordinateSystem.IsEqualTo(other.CoordinateSystem, tolerance) &&
-                   Math.Abs(ExtentX - other.ExtentX) <= tolerance.EqualPoint &&
-                   Math.Abs(ExtentY - other.ExtentY) <= tolerance.EqualPoint &&
-                   Math.Abs(ExtentZ - other.ExtentZ) <= tolerance.EqualPoint;
+            return CoordinateSystem.IsEqualTo(other.CoordinateSystem, tolerance)
+                && Math.Abs(ExtentX - other.ExtentX) <= tolerance.EqualPoint
+                && Math.Abs(ExtentY - other.ExtentY) <= tolerance.EqualPoint
+                && Math.Abs(ExtentZ - other.ExtentZ) <= tolerance.EqualPoint;
         }
 
         #endregion
@@ -556,7 +583,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Returns a string that represents the current box.
         /// </summary>
-        public override string ToString() => $"Box3(Center: {Center}, Size: ({SizeX:0.###}, {SizeY:0.###}, {SizeZ:0.###}))";
+        public override string ToString() =>
+            $"Box3(Center: {Center}, Size: ({SizeX:0.###}, {SizeY:0.###}, {SizeZ:0.###}))";
 
         #region Combining with a body
 
@@ -574,8 +602,8 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the two made a body; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the other box is null.</exception>
-        public bool TryUnion(GeoObb3 other, out GeoSolid3 result, Tolerance tolerance)
-            => Run(Boolean3.TryUnion, AsBody(other, nameof(other)), out result, tolerance);
+        public bool TryUnion(GeoObb3 other, out GeoSolid3 result, Tolerance tolerance) =>
+            Run(Boolean3.TryUnion, AsBody(other, nameof(other)), out result, tolerance);
 
         /// <summary>
         /// Joins this box to a body.
@@ -591,14 +619,15 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the two made a body; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the body is null.</exception>
-        public bool TryUnion(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance)
-            => Run(Boolean3.TryUnion, other ?? throw new ArgumentNullException(nameof(other)), out result, tolerance);
+        public bool TryUnion(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance) =>
+            Run(Boolean3.TryUnion, other ?? throw new ArgumentNullException(nameof(other)), out result, tolerance);
 
         /// <summary>
         /// Keeps what this box and another box both enclose.
         /// </summary>
         /// <remarks>A box is read as the body it bounds, which is exact: six flat faces, no fitting and no approximation. The answer is a <see cref="GeoSolid3"/> because a boolean of two boxes is hardly ever a box. A box flat on some axis bounds no body, and the answer is false.</remarks>
-        public bool TryIntersect(GeoObb3 other, out GeoSolid3 result) => TryIntersect(other, out result, Tolerance.Global);
+        public bool TryIntersect(GeoObb3 other, out GeoSolid3 result) =>
+            TryIntersect(other, out result, Tolerance.Global);
 
         /// <summary>
         /// Keeps what this box and another box both enclose, within a tolerance.
@@ -608,14 +637,15 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the two made a body; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the other box is null.</exception>
-        public bool TryIntersect(GeoObb3 other, out GeoSolid3 result, Tolerance tolerance)
-            => Run(Boolean3.TryIntersect, AsBody(other, nameof(other)), out result, tolerance);
+        public bool TryIntersect(GeoObb3 other, out GeoSolid3 result, Tolerance tolerance) =>
+            Run(Boolean3.TryIntersect, AsBody(other, nameof(other)), out result, tolerance);
 
         /// <summary>
         /// Keeps what this box and a body both enclose.
         /// </summary>
         /// <remarks>A box is read as the body it bounds, which is exact: six flat faces, no fitting and no approximation. The answer is a <see cref="GeoSolid3"/> because a boolean of two boxes is hardly ever a box. A box flat on some axis bounds no body, and the answer is false.</remarks>
-        public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result) => TryIntersect(other, out result, Tolerance.Global);
+        public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result) =>
+            TryIntersect(other, out result, Tolerance.Global);
 
         /// <summary>
         /// Keeps what this box and a body both enclose, within a tolerance.
@@ -625,8 +655,8 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the two made a body; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the body is null.</exception>
-        public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance)
-            => Run(Boolean3.TryIntersect, other ?? throw new ArgumentNullException(nameof(other)), out result, tolerance);
+        public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance) =>
+            Run(Boolean3.TryIntersect, other ?? throw new ArgumentNullException(nameof(other)), out result, tolerance);
 
         /// <summary>
         /// Takes another box out of this box.
@@ -642,14 +672,15 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the two made a body; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the other box is null.</exception>
-        public bool TrySubtract(GeoObb3 tool, out GeoSolid3 result, Tolerance tolerance)
-            => Run(Boolean3.TrySubtract, AsBody(tool, nameof(tool)), out result, tolerance);
+        public bool TrySubtract(GeoObb3 tool, out GeoSolid3 result, Tolerance tolerance) =>
+            Run(Boolean3.TrySubtract, AsBody(tool, nameof(tool)), out result, tolerance);
 
         /// <summary>
         /// Takes a body out of this box.
         /// </summary>
         /// <remarks>A box is read as the body it bounds, which is exact: six flat faces, no fitting and no approximation. The answer is a <see cref="GeoSolid3"/> because a boolean of two boxes is hardly ever a box. A box flat on some axis bounds no body, and the answer is false.</remarks>
-        public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result) => TrySubtract(tool, out result, Tolerance.Global);
+        public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result) =>
+            TrySubtract(tool, out result, Tolerance.Global);
 
         /// <summary>
         /// Takes a body out of this box, within a tolerance.
@@ -659,8 +690,8 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the two made a body; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the body is null.</exception>
-        public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance)
-            => Run(Boolean3.TrySubtract, tool ?? throw new ArgumentNullException(nameof(tool)), out result, tolerance);
+        public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance) =>
+            Run(Boolean3.TrySubtract, tool ?? throw new ArgumentNullException(nameof(tool)), out result, tolerance);
 
         /// <summary>
         /// Reads a box as the body it bounds, complaining in the caller's own words when it is null; null for a box flat on

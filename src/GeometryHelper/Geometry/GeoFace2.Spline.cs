@@ -33,7 +33,8 @@ namespace GeometryHelper.Geometry
         /// Determines whether this face touches a spline, within a tolerance.
         /// </summary>
         /// <exception cref="System.ArgumentNullException">Thrown when the spline is null.</exception>
-        public bool CollidesWith(GeoSpline2 spline, Tolerance tolerance) => Require(spline).CollidesWith(this, tolerance);
+        public bool CollidesWith(GeoSpline2 spline, Tolerance tolerance) =>
+            Require(spline).CollidesWith(this, tolerance);
 
         /// <summary>
         /// Gets the points where this face crosses a spline, using the default tolerance.
@@ -46,7 +47,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>The same points the spline gives, in order along the spline from its start.</returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the spline is null.</exception>
-        public GeoPoint2[] GetIntersections(GeoSpline2 spline, Tolerance tolerance) => Require(spline).GetIntersections(this, tolerance);
+        public GeoPoint2[] GetIntersections(GeoSpline2 spline, Tolerance tolerance) =>
+            Require(spline).GetIntersections(this, tolerance);
 
         /// <summary>
         /// Tries to find where this face crosses a spline, using the default tolerance.
@@ -54,7 +56,8 @@ namespace GeometryHelper.Geometry
         /// <param name="spline">The spline.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
         /// <exception cref="System.ArgumentNullException">Thrown when the spline is null.</exception>
-        public bool TryIntersectWith(GeoSpline2 spline, out GeoPoint2[] intersections) => TryIntersectWith(spline, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoSpline2 spline, out GeoPoint2[] intersections) =>
+            TryIntersectWith(spline, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this face crosses a spline, within a tolerance.
@@ -63,7 +66,8 @@ namespace GeometryHelper.Geometry
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <exception cref="System.ArgumentNullException">Thrown when the spline is null.</exception>
-        public bool TryIntersectWith(GeoSpline2 spline, out GeoPoint2[] intersections, Tolerance tolerance) => Require(spline).TryIntersectWith(this, out intersections, tolerance);
+        public bool TryIntersectWith(GeoSpline2 spline, out GeoPoint2[] intersections, Tolerance tolerance) =>
+            Require(spline).TryIntersectWith(this, out intersections, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this face and landing on a spline, using the default tolerance.
@@ -76,9 +80,11 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>The segment the spline gives, turned round: it starts on this face and lands on the spline.</returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the spline is null.</exception>
-        public GeoLine2 GetShortestLineTo(GeoSpline2 spline, Tolerance tolerance) => Require(spline).GetShortestLineTo(this, tolerance).Reverse();
+        public GeoLine2 GetShortestLineTo(GeoSpline2 spline, Tolerance tolerance) =>
+            Require(spline).GetShortestLineTo(this, tolerance).Reverse();
 
-        private static GeoSpline2 Require(GeoSpline2 spline) => spline ?? throw new System.ArgumentNullException(nameof(spline));
+        private static GeoSpline2 Require(GeoSpline2 spline) =>
+            spline ?? throw new System.ArgumentNullException(nameof(spline));
 
         #endregion
     }

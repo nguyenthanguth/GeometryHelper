@@ -38,7 +38,12 @@ namespace GeometryHelper.Meshing
         {
             Guard.Positive(size, nameof(size), "A cell has to have a size: a finite number above nought.");
 
-            if (alignment != GridAlignment.Start && alignment != GridAlignment.End && alignment != GridAlignment.CenterCell && alignment != GridAlignment.CenterJoint)
+            if (
+                alignment != GridAlignment.Start
+                && alignment != GridAlignment.End
+                && alignment != GridAlignment.CenterCell
+                && alignment != GridAlignment.CenterJoint
+            )
             {
                 throw new ArgumentOutOfRangeException(nameof(alignment), alignment, "Unknown grid alignment.");
             }
@@ -55,7 +60,11 @@ namespace GeometryHelper.Meshing
         {
             if (count < 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(count), count, "An axis divides into one cell at the least.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(count),
+                    count,
+                    "An axis divides into one cell at the least."
+                );
             }
 
             return new CellAxis(0.0, count, GridAlignment.Start);
@@ -84,7 +93,8 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Determines whether another axis is divided the same way.
         /// </summary>
-        public bool Equals(CellAxis other) => Size.Equals(other.Size) && Count == other.Count && Alignment == other.Alignment;
+        public bool Equals(CellAxis other) =>
+            Size.Equals(other.Size) && Count == other.Count && Alignment == other.Alignment;
 
         /// <summary>
         /// Determines whether the specified object is an axis divided the same way.

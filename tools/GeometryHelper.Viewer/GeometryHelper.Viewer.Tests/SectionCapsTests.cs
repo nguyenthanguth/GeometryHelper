@@ -13,14 +13,20 @@ namespace GeometryHelper.Viewer.Tests
     {
         private static readonly Tolerance Tol = Tolerance.Default;
 
-        private static double Area(IEnumerable<DrawTriangle> triangles) => triangles.Sum(t => Vec3.Cross(t.B - t.A, t.C - t.A).Length * 0.5);
+        private static double Area(IEnumerable<DrawTriangle> triangles) =>
+            triangles.Sum(t => Vec3.Cross(t.B - t.A, t.C - t.A).Length * 0.5);
 
         /// <summary>
         /// A block 100 by 60 by 40, with a bore of radius 10 down its middle along Z, cut into 48 flat sides.
         /// </summary>
         private static Primitives BlockWithABore()
         {
-            var floor = new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 60, 0), new GeoPoint3(0, 60, 0));
+            var floor = new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 60, 0),
+                new GeoPoint3(0, 60, 0)
+            );
             GeoSolid3 block = GeoSolid3.Extrude(floor, new GeoVector3(0, 0, 40));
             GeoSolid3 bore = GeoSolid3.Cylinder(new GeoPoint3(50, 30, -5), new GeoPoint3(50, 30, 45), 10, 48);
             return Primitives.Build(new SceneWriter().Add(block.WithOpenings(new[] { bore }), name: "block").Scene);
@@ -53,7 +59,10 @@ namespace GeometryHelper.Viewer.Tests
             Assert.All(cap, t =>
             {
                 Vec3 middle = (t.A + t.B + t.C) * (1.0 / 3.0);
-                Assert.True(new Vec3(middle.X - 50, middle.Y - 30, 0).Length > inner, "a triangle with its middle at " + middle + " is over the bore");
+                Assert.True(
+                    new Vec3(middle.X - 50, middle.Y - 30, 0).Length > inner,
+                    "a triangle with its middle at " + middle + " is over the bore"
+                );
             });
         }
 
@@ -61,18 +70,36 @@ namespace GeometryHelper.Viewer.Tests
         public void TheCapOfASectionThatAnotherPlaneCutsAcross_IsCutByIt()
         {
             Primitives block = BlockWithABore();
-            var clips = new ClipSet(new[] { new ClipPlane(new Vec3(0, 0, 20), new Vec3(0, 0, 1)), new ClipPlane(new Vec3(70, 0, 0), new Vec3(1, 0, 0)) });
+            var clips = new ClipSet(
+                new[]
+                {
+                    new ClipPlane(new Vec3(0, 0, 20), new Vec3(0, 0, 1)),
+                    new ClipPlane(new Vec3(70, 0, 0), new Vec3(1, 0, 0)),
+                }
+            );
 
             ClipResult result = ClipResult.Build(block, clips, true);
 
             // The cap in z = 20 is kept for x from 70 to 100 over the whole width of 60: the bore ends at x = 60. The cap in x = 70 is 60 across and kept from z = 20 up: 20 high.
-            DrawTriangle[] level = result.Caps[0].Where(t => Math.Abs(t.A.Z - 20.0) < 1E-9 && Math.Abs(t.B.Z - 20.0) < 1E-9 && Math.Abs(t.C.Z - 20.0) < 1E-9).ToArray();
-            DrawTriangle[] upright = result.Caps[0].Where(t => Math.Abs(t.A.X - 70.0) < 1E-9 && Math.Abs(t.B.X - 70.0) < 1E-9 && Math.Abs(t.C.X - 70.0) < 1E-9).ToArray();
+            DrawTriangle[] level = result
+                .Caps[0]
+                .Where(t =>
+                    Math.Abs(t.A.Z - 20.0) < 1E-9 && Math.Abs(t.B.Z - 20.0) < 1E-9 && Math.Abs(t.C.Z - 20.0) < 1E-9
+                )
+                .ToArray();
+            DrawTriangle[] upright = result
+                .Caps[0]
+                .Where(t =>
+                    Math.Abs(t.A.X - 70.0) < 1E-9 && Math.Abs(t.B.X - 70.0) < 1E-9 && Math.Abs(t.C.X - 70.0) < 1E-9
+                )
+                .ToArray();
 
             Assert.Equal(1800.0, Area(level), 6);
             Assert.Equal(1200.0, Area(upright), 6);
             Assert.Equal(3000.0, Area(result.Caps[0]), 6);
-            Assert.All(result.Caps[0].SelectMany(t => new[] { t.A, t.B, t.C }), p => Assert.True(p.X >= 70.0 - 1E-9 && p.Z >= 20.0 - 1E-9));
+            Assert.All(result.Caps[0].SelectMany(t => new[] { t.A, t.B, t.C }), p =>
+                Assert.True(p.X >= 70.0 - 1E-9 && p.Z >= 20.0 - 1E-9)
+            );
         }
 
         [Fact]
@@ -95,7 +122,15 @@ namespace GeometryHelper.Viewer.Tests
             var clips = new ClipSet(new[] { new ClipPlane(new Vec3(0, 0, 20), new Vec3(0, 0, 1)) });
 
             Assert.Empty(ClipResult.Build(block, clips).Caps[0]);
-            Assert.Empty(ClipResult.Build(block, new ClipSet(new[] { new ClipPlane(new Vec3(0, 0, 20), new Vec3(0, 0, 1), 0.0, false) }), true).Caps[0]);
+            Assert.Empty(
+                ClipResult
+                    .Build(
+                        block,
+                        new ClipSet(new[] { new ClipPlane(new Vec3(0, 0, 20), new Vec3(0, 0, 1), 0.0, false) }),
+                        true
+                    )
+                    .Caps[0]
+            );
             Assert.Empty(ClipResult.Build(block, ClipSet.Empty, true).Caps[0]);
         }
 
@@ -107,10 +142,26 @@ namespace GeometryHelper.Viewer.Tests
 
             foreach (double half in new[] { 50.0, 30.0, 10.0 })
             {
-                chains.Add(new DrawPolyline(new[] { new Vec3(-half, -half, 0), new Vec3(half, -half, 0), new Vec3(half, half, 0), new Vec3(-half, half, 0) }, true));
+                chains.Add(
+                    new DrawPolyline(
+                        new[]
+                        {
+                            new Vec3(-half, -half, 0),
+                            new Vec3(half, -half, 0),
+                            new Vec3(half, half, 0),
+                            new Vec3(-half, half, 0),
+                        },
+                        true
+                    )
+                );
             }
 
-            List<DrawTriangle> cap = SectionCaps.Build(chains, new ClipPlane(new Vec3(0, 0, 0), new Vec3(0, 0, 1)), Tol, out int refused);
+            List<DrawTriangle> cap = SectionCaps.Build(
+                chains,
+                new ClipPlane(new Vec3(0, 0, 0), new Vec3(0, 0, 1)),
+                Tol,
+                out int refused
+            );
 
             Assert.Equal(0, refused);
             Assert.Equal(10000.0 - 3600.0 + 400.0, Area(cap), 9);
@@ -119,22 +170,35 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ALineThatDoesNotClose_HasNoCap()
         {
-            var open = new List<DrawPolyline> { new DrawPolyline(new[] { new Vec3(0, 0, 0), new Vec3(10, 0, 0), new Vec3(10, 10, 0) }, false) };
+            var open = new List<DrawPolyline>
+            {
+                new DrawPolyline(new[] { new Vec3(0, 0, 0), new Vec3(10, 0, 0), new Vec3(10, 10, 0) }, false),
+            };
 
-            Assert.Empty(SectionCaps.Build(open, new ClipPlane(new Vec3(0, 0, 0), new Vec3(0, 0, 1)), Tol, out int refused));
+            Assert.Empty(
+                SectionCaps.Build(open, new ClipPlane(new Vec3(0, 0, 0), new Vec3(0, 0, 1)), Tol, out int refused)
+            );
             Assert.Equal(0, refused);
         }
 
         private static GeoSolid3 FourWalls()
         {
-            var floor = new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 60, 0), new GeoPoint3(0, 60, 0) };
+            var floor = new[]
+            {
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 60, 0),
+                new GeoPoint3(0, 60, 0),
+            };
             var faces = new List<GeoFace3>();
 
             for (int i = 0; i < 4; i++)
             {
                 GeoPoint3 a = floor[i];
                 GeoPoint3 b = floor[(i + 1) % 4];
-                faces.Add(new GeoFace3(new GeoPolygon3(a, b, new GeoPoint3(b.X, b.Y, 40), new GeoPoint3(a.X, a.Y, 40)), null));
+                faces.Add(
+                    new GeoFace3(new GeoPolygon3(a, b, new GeoPoint3(b.X, b.Y, 40), new GeoPoint3(a.X, a.Y, 40)), null)
+                );
             }
 
             return new GeoSolid3(faces);
@@ -157,10 +221,21 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheSameBlockWithItsTopAndBottom_IsClosed_AndHasACapOfItsWholeSection()
         {
-            var floor = new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 60, 0), new GeoPoint3(0, 60, 0));
-            Primitives block = Primitives.Build(new SceneWriter().Add(GeoSolid3.Extrude(floor, new GeoVector3(0, 0, 40))).Scene);
+            var floor = new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 60, 0),
+                new GeoPoint3(0, 60, 0)
+            );
+            Primitives block = Primitives.Build(
+                new SceneWriter().Add(GeoSolid3.Extrude(floor, new GeoVector3(0, 0, 40))).Scene
+            );
 
-            ClipResult result = ClipResult.Build(block, new ClipSet(new[] { new ClipPlane(new Vec3(0, 0, 20), new Vec3(0, 0, 1)) }), true);
+            ClipResult result = ClipResult.Build(
+                block,
+                new ClipSet(new[] { new ClipPlane(new Vec3(0, 0, 20), new Vec3(0, 0, 1)) }),
+                true
+            );
 
             Assert.True(block.Items[0].IsClosedBody);
             Assert.Equal(6000.0, Area(result.Caps[0]), 6);
@@ -169,12 +244,57 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AMeshOfSixSidesIsClosed_AndOneOfFiveIsNot_AndOnlyTheClosedOneHasACap()
         {
-            string points = Diag.Pts3(0, 0, 0, 100, 0, 0, 100, 60, 0, 0, 60, 0, 0, 0, 40, 100, 0, 40, 100, 60, 40, 0, 60, 40);
+            string points = Diag.Pts3(
+                0,
+                0,
+                0,
+                100,
+                0,
+                0,
+                100,
+                60,
+                0,
+                0,
+                60,
+                0,
+                0,
+                0,
+                40,
+                100,
+                0,
+                40,
+                100,
+                60,
+                40,
+                0,
+                60,
+                40
+            );
             string sides = "[0,3,2,1],[4,5,6,7],[0,1,5,4],[1,2,6,5],[2,3,7,6],[3,0,4,7]";
             var clips = new ClipSet(new[] { new ClipPlane(new Vec3(0, 0, 20), new Vec3(0, 0, 1)) });
 
-            Primitives closed = Primitives.Build(Diag.SceneOf(Diag.Raw("GeoMesh3", "{\"kind\":\"Convex\",\"points\":" + points + ",\"faces\":[" + sides + "]}", "six")));
-            Primitives open = Primitives.Build(Diag.SceneOf(Diag.Raw("GeoMesh3", "{\"kind\":\"Convex\",\"points\":" + points + ",\"faces\":[" + sides.Substring(sides.IndexOf(']') + 2) + "]}", "five")));
+            Primitives closed = Primitives.Build(
+                Diag.SceneOf(
+                    Diag.Raw(
+                        "GeoMesh3",
+                        "{\"kind\":\"Convex\",\"points\":" + points + ",\"faces\":[" + sides + "]}",
+                        "six"
+                    )
+                )
+            );
+            Primitives open = Primitives.Build(
+                Diag.SceneOf(
+                    Diag.Raw(
+                        "GeoMesh3",
+                        "{\"kind\":\"Convex\",\"points\":"
+                            + points
+                            + ",\"faces\":["
+                            + sides.Substring(sides.IndexOf(']') + 2)
+                            + "]}",
+                        "five"
+                    )
+                )
+            );
 
             Assert.True(closed.Items[0].IsClosedBody);
             Assert.False(open.Items[0].IsClosedBody);
@@ -185,7 +305,10 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AFaceAndAPolygon_AreNeverClosedBodies()
         {
-            Scene scene = Diag.SceneOf(Diag.Face3("face", 0, 0, 0, 100, 0, 0, 100, 60, 0, 0, 60, 0), Diag.Polygon2("polygon", 0, 0, 100, 0, 100, 60, 0, 60));
+            Scene scene = Diag.SceneOf(
+                Diag.Face3("face", 0, 0, 0, 100, 0, 0, 100, 60, 0, 0, 60, 0),
+                Diag.Polygon2("polygon", 0, 0, 100, 0, 100, 60, 0, 60)
+            );
 
             Primitives primitives = Primitives.Build(scene);
 

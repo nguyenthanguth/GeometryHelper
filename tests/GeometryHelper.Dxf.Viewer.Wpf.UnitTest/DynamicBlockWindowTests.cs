@@ -35,14 +35,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 panel.AppendEntity(side);
             }
 
-            DxfBlockLinearParameter width = panel.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, DxfBlockParameterValueSet.List(new[] { 100.0, 150, 200 }));
+            DxfBlockLinearParameter width = panel.AddLinearParameter(
+                "Width",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                DxfBlockParameterValueSet.List(new[] { 100.0, 150, 200 })
+            );
             panel.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), sides);
 
             var door = new DxfBlockTableRecord { Name = "GH_DOOR", Origin = new GeoPoint3(0, 0, 0) };
             database.BlockTable.Add(door);
             var leaf = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(90, 0, 0));
             door.AppendEntity(leaf);
-            door.AddFlipAction(door.AddFlipParameter("Hand", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0)), new[] { leaf });
+            door.AddFlipAction(
+                door.AddFlipParameter("Hand", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0)),
+                new[] { leaf }
+            );
 
             var sign = new DxfBlockTableRecord { Name = "GH_SIGN", Origin = new GeoPoint3(0, 0, 0) };
             database.BlockTable.Add(sign);
@@ -50,12 +60,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             var tick = new DxfLine(new GeoPoint3(10, 20, 0), new GeoPoint3(20, 10, 0));
             sign.AppendEntity(cross);
             sign.AppendEntity(tick);
-            sign.AddVisibilityParameter("Mark", null, new GeoPoint3(20, -10, 0), new[]
-            {
-                new DxfBlockVisibilityState("Cross", new DxfEntity[] { cross }),
-                new DxfBlockVisibilityState("Tick", new DxfEntity[] { tick }),
-                new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
-            });
+            sign.AddVisibilityParameter(
+                "Mark",
+                null,
+                new GeoPoint3(20, -10, 0),
+                new[]
+                {
+                    new DxfBlockVisibilityState("Cross", new DxfEntity[] { cross }),
+                    new DxfBlockVisibilityState("Tick", new DxfEntity[] { tick }),
+                    new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
+                }
+            );
 
             var inserts = new[]
             {
@@ -80,10 +95,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             return model;
         }
 
-        private static PropertyGroupViewModel Custom(MainViewModel model) => model.PropertyGroups.SingleOrDefault(g => g.Title == "Custom");
+        private static PropertyGroupViewModel Custom(MainViewModel model) =>
+            model.PropertyGroups.SingleOrDefault(g => g.Title == "Custom");
 
-        private static object ValueOf(CadDocument document, string handle, string name)
-            => ((DxfBlockReference)document.FindEntity(handle)).DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name).Value;
+        private static object ValueOf(CadDocument document, string handle, string name) =>
+            ((DxfBlockReference)document.FindEntity(handle))
+                .DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name)
+                .Value;
 
         [Fact]
         public void TheCustomGroup_StandsBetweenGeometryAndMisc_TheWidthTypedSnapsToItsList()
@@ -92,7 +110,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             MainViewModel model = Open(document);
             document.Selection.Set(new[] { handles[0] });
 
-            Assert.Equal(new[] { "General", "Geometry", "Custom", "Misc" }, model.PropertyGroups.Select(g => g.Title).Take(4));
+            Assert.Equal(
+                new[] { "General", "Geometry", "Custom", "Misc" },
+                model.PropertyGroups.Select(g => g.Title).Take(4)
+            );
             PropertyRowViewModel width = Custom(model).Rows.Single(r => r.Label == "Width");
             Assert.True(width.IsTyped);
             Assert.Equal("100.0000", width.Value);
@@ -101,7 +122,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             Assert.Equal(200.0, (double)ValueOf(document, handles[0], "Width"), 9);
             Assert.Equal("200.0000", Custom(model).Rows.Single(r => r.Label == "Width").Value);
-            Assert.Equal("GH_PANEL", model.PropertyGroups.Single(g => g.Title == "Misc").Rows.Single(r => r.Label == "Name").Value);
+            Assert.Equal(
+                "GH_PANEL",
+                model.PropertyGroups.Single(g => g.Title == "Misc").Rows.Single(r => r.Label == "Name").Value
+            );
         }
 
         [Fact]

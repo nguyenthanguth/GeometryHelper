@@ -42,8 +42,8 @@ namespace GeometryHelper.UnitTest.Arranging
         /// The label of the guide's example: 2000 by 1000 on a leader 2000 long, 20 off above it and 300 below, or the
         /// other way round. Its first rows stand 500 + 20 and 500 + 300 off.
         /// </summary>
-        private static ArrangeItem DimensionText(bool reversed, bool topNear)
-            => new ArrangeItem
+        private static ArrangeItem DimensionText(bool reversed, bool topNear) =>
+            new ArrangeItem
             {
                 Box = new GeoRectangle2(new GeoPoint2(1000.0, 0.0), 2000.0, 1000.0),
                 Leader = reversed ? new GeoLine2(2000.0, 0.0, 0.0, 0.0) : new GeoLine2(0.0, 0.0, 2000.0, 0.0),
@@ -52,15 +52,15 @@ namespace GeometryHelper.UnitTest.Arranging
             };
 
         // The rows of candidates above a horizontal leader at y = 0, nearest first, and those below it.
-        private static double[] Above(IEnumerable<GeoPoint2> points)
-            => points.Where(p => p.Y > 0.0).Select(p => Math.Round(p.Y, 9)).Distinct().OrderBy(y => y).ToArray();
+        private static double[] Above(IEnumerable<GeoPoint2> points) =>
+            points.Where(p => p.Y > 0.0).Select(p => Math.Round(p.Y, 9)).Distinct().OrderBy(y => y).ToArray();
 
-        private static double[] Below(IEnumerable<GeoPoint2> points)
-            => points.Where(p => p.Y < 0.0).Select(p => Math.Round(p.Y, 9)).Distinct().OrderByDescending(y => y).ToArray();
+        private static double[] Below(IEnumerable<GeoPoint2> points) =>
+            points.Where(p => p.Y < 0.0).Select(p => Math.Round(p.Y, 9)).Distinct().OrderByDescending(y => y).ToArray();
 
         // The rows across a horizontal leader at y = 0, in the order the candidates reach them.
-        private static double[] RowsInTurn(IEnumerable<GeoPoint2> points)
-            => points.Select(p => Math.Round(p.Y, 9)).Distinct().ToArray();
+        private static double[] RowsInTurn(IEnumerable<GeoPoint2> points) =>
+            points.Select(p => Math.Round(p.Y, 9)).Distinct().ToArray();
 
         /// <summary>
         /// How far off the leader the nearest candidates on either side of it stand, measured along the normal of the
@@ -69,7 +69,8 @@ namespace GeometryHelper.UnitTest.Arranging
         private static (double Top, double Bottom) FirstRows(IEnumerable<GeoPoint2> points, GeoLine2 leader)
         {
             double length = leader.Length;
-            double upX = -(leader.EndPoint.Y - leader.StartPoint.Y) / length, upY = (leader.EndPoint.X - leader.StartPoint.X) / length;
+            double upX = -(leader.EndPoint.Y - leader.StartPoint.Y) / length,
+                upY = (leader.EndPoint.X - leader.StartPoint.X) / length;
             if (upY < 0.0)
             {
                 upX = -upX;
@@ -81,25 +82,31 @@ namespace GeometryHelper.UnitTest.Arranging
             return (across.Where(d => d > 0.0).Min(), across.Where(d => d < 0.0).Max());
         }
 
-        public static IEnumerable<object[]> Leaders() => new[]
-        {
-            new object[] { 0.0, 0.0, 100.0, 0.0 },
-            new object[] { 100.0, 0.0, 0.0, 0.0 },
-            new object[] { 0.0, 0.0, 0.0, 100.0 },
-            new object[] { 0.0, 100.0, 0.0, 0.0 },
-            new object[] { 0.0, 0.0, 100.0, 100.0 },
-            new object[] { 0.0, 100.0, 100.0, 0.0 },
-        };
+        public static IEnumerable<object[]> Leaders() =>
+            new[]
+            {
+                new object[] { 0.0, 0.0, 100.0, 0.0 },
+                new object[] { 100.0, 0.0, 0.0, 0.0 },
+                new object[] { 0.0, 0.0, 0.0, 100.0 },
+                new object[] { 0.0, 100.0, 0.0, 0.0 },
+                new object[] { 0.0, 0.0, 100.0, 100.0 },
+                new object[] { 0.0, 100.0, 100.0, 0.0 },
+            };
 
         // The leader drawn either way, the top side the nearer or the further.
-        public static IEnumerable<object[]> BothWaysBothSides()
-            => from reversed in new[] { false, true }
-               from topNear in new[] { true, false }
-               select new object[] { reversed, topNear };
+        public static IEnumerable<object[]> BothWaysBothSides() =>
+            from reversed in new[] { false, true }
+            from topNear in new[] { true, false }
+            select new object[] { reversed, topNear };
 
         [Theory]
         [MemberData(nameof(Leaders))]
-        public void BothSidesGivenTheOffset_GiveTheCandidatesOfTheOffsetAlone(double x0, double y0, double x1, double y1)
+        public void BothSidesGivenTheOffset_GiveTheCandidatesOfTheOffsetAlone(
+            double x0,
+            double y0,
+            double x1,
+            double y1
+        )
         {
             var leader = new GeoLine2(x0, y0, x1, y1);
             List<GeoPoint2> alone = Label(leader, null, null, 30.0).GetPlacePoints(OptionsFor());
@@ -128,7 +135,8 @@ namespace GeometryHelper.UnitTest.Arranging
         [Fact]
         public void TheRowsOfBothSides_ComeNearestFirst()
         {
-            List<GeoPoint2> points = Label(new GeoLine2(0.0, 0.0, 100.0, 0.0), 5.0, 300.0).GetPlacePoints(new ArrangeOptions());
+            List<GeoPoint2> points = Label(new GeoLine2(0.0, 0.0, 100.0, 0.0), 5.0, 300.0)
+                .GetPlacePoints(new ArrangeOptions());
 
             Assert.Equal(new[] { 10.0, 40.0, 70.0, -305.0, -335.0, -365.0 }, RowsInTurn(points));
 
@@ -151,7 +159,10 @@ namespace GeometryHelper.UnitTest.Arranging
             ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions())[0];
 
             Assert.True(result.Placed);
-            Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(50.0, 40.0)), result.ToString());
+            Assert.True(
+                (label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(50.0, 40.0)),
+                result.ToString()
+            );
         }
 
         /// <summary>
@@ -177,7 +188,10 @@ namespace GeometryHelper.UnitTest.Arranging
                 GeoPoint2 centre = label.Box.Center + result.Translation;
 
                 Assert.True(result.Placed, $"leader blocked {leaderBlocked}: {result}");
-                Assert.True(centre.IsEqualTo(new GeoPoint2(1000.0, topNear ? 520.0 : -520.0)), $"leader blocked {leaderBlocked}: {centre}");
+                Assert.True(
+                    centre.IsEqualTo(new GeoPoint2(1000.0, topNear ? 520.0 : -520.0)),
+                    $"leader blocked {leaderBlocked}: {centre}"
+                );
             }
         }
 
@@ -196,7 +210,10 @@ namespace GeometryHelper.UnitTest.Arranging
             ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions())[0];
 
             Assert.False(result.Placed);
-            Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(1000.0, 520.0)), result.ToString());
+            Assert.True(
+                (label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(1000.0, 520.0)),
+                result.ToString()
+            );
         }
 
         /// <summary>
@@ -210,26 +227,40 @@ namespace GeometryHelper.UnitTest.Arranging
             foreach (double degrees in new[] { 90.0, 270.0, 45.0, 225.0 })
             {
                 double angle = degrees * Math.PI / 180.0;
-                var leaders = Enumerable.Range(0, 3)
-                    .Select(i => new GeoLine2(6000.0 * i, 0.0, 6000.0 * i + 4000.0 * Math.Cos(angle), 4000.0 * Math.Sin(angle)))
+                var leaders = Enumerable
+                    .Range(0, 3)
+                    .Select(i => new GeoLine2(
+                        6000.0 * i,
+                        0.0,
+                        6000.0 * i + 4000.0 * Math.Cos(angle),
+                        4000.0 * Math.Sin(angle)
+                    ))
                     .ToList();
-                var labels = leaders.Select(leader => new ArrangeItem
-                {
-                    Box = new GeoRectangle2(leader.MidPoint, 2000.0, 1000.0, angle),
-                    Leader = leader,
-                    OffsetTop = 20.0,
-                    OffsetBottom = 300.0,
-                    BlockLines = leaders.Where(other => !other.Equals(leader)).ToList(),
-                }).ToList();
+                var labels = leaders
+                    .Select(leader => new ArrangeItem
+                    {
+                        Box = new GeoRectangle2(leader.MidPoint, 2000.0, 1000.0, angle),
+                        Leader = leader,
+                        OffsetTop = 20.0,
+                        OffsetBottom = 300.0,
+                        BlockLines = leaders.Where(other => !other.Equals(leader)).ToList(),
+                    })
+                    .ToList();
 
                 ArrangeResult[] results = Arranger.Run(labels, new ArrangeOptions());
 
                 // The top: the left of a vertical leader, up and to the left of one rising to the right.
-                GeoVector2 up = degrees % 180.0 == 90.0 ? new GeoVector2(-1.0, 0.0) : new GeoVector2(-Math.Sqrt(0.5), Math.Sqrt(0.5));
+                GeoVector2 up =
+                    degrees % 180.0 == 90.0
+                        ? new GeoVector2(-1.0, 0.0)
+                        : new GeoVector2(-Math.Sqrt(0.5), Math.Sqrt(0.5));
                 for (int i = 0; i < results.Length; i++)
                 {
                     Assert.True(results[i].Placed, $"{degrees} degrees, label {i}: {results[i]}");
-                    Assert.True(Math.Abs(results[i].Translation.DotProduct(up) - 520.0) < 1e-6, $"{degrees} degrees, label {i}: {results[i]}");
+                    Assert.True(
+                        Math.Abs(results[i].Translation.DotProduct(up) - 520.0) < 1e-6,
+                        $"{degrees} degrees, label {i}: {results[i]}"
+                    );
                 }
             }
         }
@@ -252,7 +283,10 @@ namespace GeometryHelper.UnitTest.Arranging
             ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions())[0];
 
             Assert.True(result.Placed);
-            Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(-1500.0, 520.0)), result.ToString());
+            Assert.True(
+                (label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(-1500.0, 520.0)),
+                result.ToString()
+            );
         }
 
         [Fact]
@@ -284,8 +318,18 @@ namespace GeometryHelper.UnitTest.Arranging
             // Across a vertical leader the label is 20 wide: 10 plus the gap of the side, rows 20 + 5 apart. A leader
             // leaning a hair to the left as it rises has its upper side on the left, a hair of it facing down: within the
             // tolerance it is vertical, and its top is on the left too.
-            double[] left = points.Where(p => p.X < 0.0).Select(p => Math.Round(p.X, 6)).Distinct().OrderByDescending(x => x).ToArray();
-            double[] right = points.Where(p => p.X > 0.0).Select(p => Math.Round(p.X, 6)).Distinct().OrderBy(x => x).ToArray();
+            double[] left = points
+                .Where(p => p.X < 0.0)
+                .Select(p => Math.Round(p.X, 6))
+                .Distinct()
+                .OrderByDescending(x => x)
+                .ToArray();
+            double[] right = points
+                .Where(p => p.X > 0.0)
+                .Select(p => Math.Round(p.X, 6))
+                .Distinct()
+                .OrderBy(x => x)
+                .ToArray();
 
             Assert.Equal(new[] { -40.0, -65.0, -90.0 }, left);
             Assert.Equal(new[] { 15.0, 40.0, 65.0 }, right);
@@ -361,8 +405,12 @@ namespace GeometryHelper.UnitTest.Arranging
                 lines.Add(new GeoLine2(x, -600.0, x, 800.0));
             }
 
-            ArrangeItem label = Label(reversed ? new GeoLine2(100.0, 0.0, 0.0, 0.0) : new GeoLine2(0.0, 0.0, 100.0, 0.0),
-                topNear ? 5.0 : 30.0, topNear ? 30.0 : 5.0, offset: 50.0);
+            ArrangeItem label = Label(
+                reversed ? new GeoLine2(100.0, 0.0, 0.0, 0.0) : new GeoLine2(0.0, 0.0, 100.0, 0.0),
+                topNear ? 5.0 : 30.0,
+                topNear ? 30.0 : 5.0,
+                offset: 50.0
+            );
             label.BlockLines = lines;
 
             ArrangeResult result = Arranger.Run(new[] { label }, OptionsFor())[0];
@@ -410,10 +458,16 @@ namespace GeometryHelper.UnitTest.Arranging
                 Rectangle(-100.0, 130.0, 200.0, 140.0),
             };
 
-            ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions { RowGap = 100.0, PerpendicularLevels = 3 })[0];
+            ArrangeResult result = Arranger.Run(
+                new[] { label },
+                new ArrangeOptions { RowGap = 100.0, PerpendicularLevels = 3 }
+            )[0];
 
             Assert.True(result.Placed, result.ToString());
-            Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(50.0, 245.0)), result.ToString());
+            Assert.True(
+                (label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(50.0, 245.0)),
+                result.ToString()
+            );
         }
 
         /// <summary>
@@ -451,7 +505,10 @@ namespace GeometryHelper.UnitTest.Arranging
                 ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions())[0];
 
                 Assert.True(result.Placed, $"gap {gap}: {result}");
-                Assert.True((label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(50.0, 40.0)), $"gap {gap}: {result}");
+                Assert.True(
+                    (label.Box.Center + result.Translation).IsEqualTo(new GeoPoint2(50.0, 40.0)),
+                    $"gap {gap}: {result}"
+                );
             }
         }
 

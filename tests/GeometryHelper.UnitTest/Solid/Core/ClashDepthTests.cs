@@ -12,8 +12,8 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     public class ClashDepthTests
     {
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
         private static GeoSolid3 Plate() => Box(0, 0, 0, 100, 100, 10);
 
@@ -59,7 +59,11 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AMinimumDepth_TakesAShallowOverlapAsTouching_AndKeepsWhatItFound()
         {
-            ClashResult[] found = Clash3.Find(new[] { Plate(), Plate().Translate(new GeoVector3(0, 0, 1000)) }, new[] { Graze(), Pin() }, new ClashOptions(minimumDepth: 2.0));
+            ClashResult[] found = Clash3.Find(
+                new[] { Plate(), Plate().Translate(new GeoVector3(0, 0, 1000)) },
+                new[] { Graze(), Pin() },
+                new ClashOptions(minimumDepth: 2.0)
+            );
 
             ClashResult graze = found.Single(r => r.Second == 0);
             Assert.Equal(ClashKind.Touch, graze.Kind);
@@ -74,7 +78,11 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AMinimumDepth_WithoutTouching_LeavesAShallowOverlapOut()
         {
-            ClashResult[] found = Clash3.Find(new[] { Plate() }, new[] { Graze(), Pin() }, new ClashOptions(includeTouching: false, minimumDepth: 2.0));
+            ClashResult[] found = Clash3.Find(
+                new[] { Plate() },
+                new[] { Graze(), Pin() },
+                new ClashOptions(includeTouching: false, minimumDepth: 2.0)
+            );
 
             ClashResult pin = Assert.Single(found);
             Assert.Equal(1, pin.Second);
@@ -84,7 +92,11 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AMinimumVolume_TakesASmallOverlapAsTouching()
         {
-            ClashResult[] found = Clash3.Find(new[] { Plate() }, new[] { Graze(), Pin() }, new ClashOptions(minimumVolume: 1000.0));
+            ClashResult[] found = Clash3.Find(
+                new[] { Plate() },
+                new[] { Graze(), Pin() },
+                new ClashOptions(minimumVolume: 1000.0)
+            );
 
             Assert.Equal(ClashKind.Touch, found.Single(r => r.Second == 0).Kind);
             Assert.Equal(ClashKind.Hard, found.Single(r => r.Second == 1).Kind);
@@ -105,7 +117,9 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(0.0, double.PositiveInfinity)]
         public void AMinimumThatIsNotANumberOfNoughtOrMore_IsRefused(double depth, double volume)
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => new ClashOptions(minimumDepth: depth, minimumVolume: volume));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new ClashOptions(minimumDepth: depth, minimumVolume: volume)
+            );
         }
 
         [Fact]

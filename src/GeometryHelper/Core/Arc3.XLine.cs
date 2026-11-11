@@ -17,7 +17,12 @@ namespace GeometryHelper.Core
             return GetIntersections(arc, XLine3.CutPast(xline, arc, tolerance), tolerance);
         }
 
-        internal static bool TryIntersectWith(GeoArc3 arc, GeoXLine3 xline, out GeoPoint3[] intersections, Tolerance tolerance)
+        internal static bool TryIntersectWith(
+            GeoArc3 arc,
+            GeoXLine3 xline,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             return TryIntersectWith(arc, XLine3.CutPast(xline, arc, tolerance), out intersections, tolerance);
         }
@@ -32,7 +37,12 @@ namespace GeometryHelper.Core
             return GetIntersections(circle, XLine3.CutPast(xline, circle, tolerance), tolerance);
         }
 
-        internal static bool TryIntersectWith(GeoCircle3 circle, GeoXLine3 xline, out GeoPoint3[] intersections, Tolerance tolerance)
+        internal static bool TryIntersectWith(
+            GeoCircle3 circle,
+            GeoXLine3 xline,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             return TryIntersectWith(circle, XLine3.CutPast(xline, circle, tolerance), out intersections, tolerance);
         }

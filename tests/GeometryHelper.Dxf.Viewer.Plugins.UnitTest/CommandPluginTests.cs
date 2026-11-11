@@ -10,14 +10,18 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
 {
     public class CommandPluginTests
     {
-        private static CadPlugin TestPlugin() => CadPlugin.FromAssemblies("Test tools", new[] { typeof(TestTools).Assembly });
+        private static CadPlugin TestPlugin() =>
+            CadPlugin.FromAssemblies("Test tools", new[] { typeof(TestTools).Assembly });
 
         [Fact]
         public void APluginsCommandsAreTheMethodsMarkedAsCommandsInOrdinalOrderOfTheirNames()
         {
             CadPlugin plugin = TestPlugin();
 
-            Assert.Equal(new[] { "DRAWLINE", "LAYERTHENFAIL", "MOVE", "STATICCMD", "TESTALIAS" }, plugin.Commands.Select(c => c.Name));
+            Assert.Equal(
+                new[] { "DRAWLINE", "LAYERTHENFAIL", "MOVE", "STATICCMD", "TESTALIAS" },
+                plugin.Commands.Select(c => c.Name)
+            );
             Assert.Equal("DL", plugin.Commands[0].Alias);
             Assert.Equal("Draw a line through two points", plugin.Commands[0].Description);
             Assert.Equal("Test tools", plugin.Name);
@@ -30,10 +34,22 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
         {
             CadPlugin plugin = TestPlugin();
 
-            Assert.Contains(plugin.Problems, p => p.StartsWith("The command VOIDCMD", StringComparison.Ordinal) && p.Contains("returns void") && p.Contains("iterator"));
-            Assert.Contains(plugin.Problems, p => p.StartsWith("The command BADARGS", StringComparison.Ordinal) && p.Contains("one CadCommandContext"));
-            Assert.Contains(plugin.Problems, p => p.StartsWith("The command DRAWLINE", StringComparison.Ordinal) && p.Contains("DrawLineAgain") && p.Contains("already"));
-            Assert.Contains(plugin.Problems, p => p.StartsWith("The command HIDDEN", StringComparison.Ordinal) && p.Contains("not public"));
+            Assert.Contains(plugin.Problems, p =>
+                p.StartsWith("The command VOIDCMD", StringComparison.Ordinal)
+                && p.Contains("returns void")
+                && p.Contains("iterator")
+            );
+            Assert.Contains(plugin.Problems, p =>
+                p.StartsWith("The command BADARGS", StringComparison.Ordinal) && p.Contains("one CadCommandContext")
+            );
+            Assert.Contains(plugin.Problems, p =>
+                p.StartsWith("The command DRAWLINE", StringComparison.Ordinal)
+                && p.Contains("DrawLineAgain")
+                && p.Contains("already")
+            );
+            Assert.Contains(plugin.Problems, p =>
+                p.StartsWith("The command HIDDEN", StringComparison.Ordinal) && p.Contains("not public")
+            );
             Assert.Contains(plugin.Problems, p => p.StartsWith("The setting When", StringComparison.Ordinal));
         }
 
@@ -75,7 +91,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
             session.Feed("now");
 
             Assert.Equal(CadCommandOutcome.Failed, session.LastOutcome);
-            Assert.Contains("*Error* LAYERTHENFAIL of the plugin Test tools failed: Failed after a layer was added.", session.History);
+            Assert.Contains(
+                "*Error* LAYERTHENFAIL of the plugin Test tools failed: Failed after a layer was added.",
+                session.History
+            );
             Assert.False(document.Database.LayerTable.Has("Temp"));
             Assert.False(document.CanUndo);
         }
@@ -102,8 +121,13 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
             var refused = TestPlugin().AddTo(registry);
 
             Assert.Equal(2, refused.Count);
-            Assert.Contains(refused, r => r.StartsWith("The command MOVE of the plugin Test tools is not added", StringComparison.Ordinal));
-            Assert.Contains(refused, r => r.StartsWith("The alias M of the command TESTALIAS is not added", StringComparison.Ordinal) && r.Contains("MOVE"));
+            Assert.Contains(refused, r =>
+                r.StartsWith("The command MOVE of the plugin Test tools is not added", StringComparison.Ordinal)
+            );
+            Assert.Contains(refused, r =>
+                r.StartsWith("The alias M of the command TESTALIAS is not added", StringComparison.Ordinal)
+                && r.Contains("MOVE")
+            );
             Assert.Same(move, registry.Find("MOVE"));
             Assert.Same(move, registry.Find("M"));
             Assert.NotNull(registry.Find("TESTALIAS"));
@@ -131,19 +155,34 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
         [Fact]
         public void APluginThatNeedsANewerApiIsRefusedSayingWhichItNeedsAndWhichThePresenterHas()
         {
-            AssemblyBuilder assembly = AppDomain.CurrentDomain.DefineDynamicAssembly(new AssemblyName("NeedsApiTwo"), AssemblyBuilderAccess.Run);
-            assembly.SetCustomAttribute(new CustomAttributeBuilder(typeof(CadPluginApiAttribute).GetConstructor(new[] { typeof(string) }), new object[] { "2.0" }));
+            AssemblyBuilder assembly = AppDomain.CurrentDomain.DefineDynamicAssembly(
+                new AssemblyName("NeedsApiTwo"),
+                AssemblyBuilderAccess.Run
+            );
+            assembly.SetCustomAttribute(
+                new CustomAttributeBuilder(
+                    typeof(CadPluginApiAttribute).GetConstructor(new[] { typeof(string) }),
+                    new object[] { "2.0" }
+                )
+            );
 
-            CadPluginException refused = Assert.Throws<CadPluginException>(() => CadPlugin.FromAssemblies("Needs two", new Assembly[] { assembly }));
+            CadPluginException refused = Assert.Throws<CadPluginException>(() =>
+                CadPlugin.FromAssemblies("Needs two", new Assembly[] { assembly })
+            );
 
             Assert.Equal("Needs two", refused.PluginName);
-            Assert.Equal("The plugin Needs two needs version 2.0 of the plugin API, and this presenter has 1.0: it needs a newer presenter.", refused.Message);
+            Assert.Equal(
+                "The plugin Needs two needs version 2.0 of the plugin API, and this presenter has 1.0: it needs a newer presenter.",
+                refused.Message
+            );
         }
 
         [Fact]
         public void AnAssemblyWithNoCommandIsRefused()
         {
-            CadPluginException refused = Assert.Throws<CadPluginException>(() => CadPlugin.FromAssemblies(null, new[] { typeof(Xunit.FactAttribute).Assembly }));
+            CadPluginException refused = Assert.Throws<CadPluginException>(() =>
+                CadPlugin.FromAssemblies(null, new[] { typeof(Xunit.FactAttribute).Assembly })
+            );
 
             Assert.StartsWith("The plugin xunit.core has no command", refused.Message, StringComparison.Ordinal);
         }

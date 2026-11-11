@@ -13,9 +13,30 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static partial class CadCommands
     {
-        private static readonly string[] RectangularOptions = { "ASsociative", "Base point", "COUnt", "Spacing", "COLumns", "Rows", "Levels", "eXit" };
+        private static readonly string[] RectangularOptions =
+        {
+            "ASsociative",
+            "Base point",
+            "COUnt",
+            "Spacing",
+            "COLumns",
+            "Rows",
+            "Levels",
+            "eXit",
+        };
 
-        private static readonly string[] PolarOptions = { "ASsociative", "Base point", "Items", "Angle between", "Fill angle", "ROWs", "Levels", "ROTate items", "eXit" };
+        private static readonly string[] PolarOptions =
+        {
+            "ASsociative",
+            "Base point",
+            "Items",
+            "Angle between",
+            "Fill angle",
+            "ROWs",
+            "Levels",
+            "ROTate items",
+            "eXit",
+        };
 
         private static IEnumerable<CadPrompt> ArrayAny(CadCommandContext c)
         {
@@ -29,7 +50,11 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForKeyword("Enter array type", new[] { "Rectangular", "PAth", "POlar" }, "Rectangular");
+            yield return CadPrompt.ForKeyword(
+                "Enter array type",
+                new[] { "Rectangular", "PAth", "POlar" },
+                "Rectangular"
+            );
 
             if (c.Input.Is("PAth"))
             {
@@ -37,7 +62,10 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            IEnumerable<CadPrompt> rest = c.Input.Is("POlar") ? PolarArray(c) : c.Input.Kind == CadInputKind.Keyword ? RectangularArray(c) : null;
+            IEnumerable<CadPrompt> rest =
+                c.Input.Is("POlar") ? PolarArray(c)
+                : c.Input.Kind == CadInputKind.Keyword ? RectangularArray(c)
+                : null;
 
             if (rest == null)
             {
@@ -96,8 +124,14 @@ namespace GeometryHelper.Dxf.Viewer
             GeoAabb3 box = Extents(c, c.Selected);
             int columns = 4;
             int rows = 3;
-            double across = box.IsEmpty || !(box.Max.X - box.Min.X > c.Session.Tolerance.EqualPoint) ? 1.0 : 1.5 * (box.Max.X - box.Min.X);
-            double up = box.IsEmpty || !(box.Max.Y - box.Min.Y > c.Session.Tolerance.EqualPoint) ? 1.0 : 1.5 * (box.Max.Y - box.Min.Y);
+            double across =
+                box.IsEmpty || !(box.Max.X - box.Min.X > c.Session.Tolerance.EqualPoint)
+                    ? 1.0
+                    : 1.5 * (box.Max.X - box.Min.X);
+            double up =
+                box.IsEmpty || !(box.Max.Y - box.Min.Y > c.Session.Tolerance.EqualPoint)
+                    ? 1.0
+                    : 1.5 * (box.Max.Y - box.Min.Y);
             var count = new Ref<int?>();
             var distance = new Ref<double?>();
 
@@ -126,7 +160,8 @@ namespace GeometryHelper.Dxf.Viewer
             while (true)
             {
                 // The array as it stands, as AutoCAD 2021 shows it while its grips and options are offered.
-                yield return CadPrompt.ForPoint("Select grip to edit array", null, RectangularOptions, "eXit")
+                yield return CadPrompt
+                    .ForPoint("Select grip to edit array", null, RectangularOptions, "eXit")
                     .Previewing(CadPreview.Moving(c, c.Selected, input => Moves().ConvertAll(CadPreview.Flat)));
 
                 if (c.Input.IsPoint)
@@ -173,7 +208,16 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else
                     {
-                        foreach (CadPrompt prompt in Spacing(c, "Specify the distance between columns", "Specify the distance between first and last column", across, columns, distance))
+                        foreach (
+                            CadPrompt prompt in Spacing(
+                                c,
+                                "Specify the distance between columns",
+                                "Specify the distance between first and last column",
+                                across,
+                                columns,
+                                distance
+                            )
+                        )
                         {
                             yield return prompt;
                         }
@@ -193,20 +237,39 @@ namespace GeometryHelper.Dxf.Viewer
 
                     rows = count.Value ?? rows;
 
-                    foreach (CadPrompt prompt in Spacing(c, "Specify the distance between rows", "Specify the distance between first and last row", up, rows, distance))
+                    foreach (
+                        CadPrompt prompt in Spacing(
+                            c,
+                            "Specify the distance between rows",
+                            "Specify the distance between first and last row",
+                            up,
+                            rows,
+                            distance
+                        )
+                    )
                     {
                         yield return prompt;
                     }
 
                     up = distance.Value ?? up;
-                    yield return CadPrompt.ForDistance("Specify the incrementing elevation between rows", null, new[] { "Expression" }, Length(0.0));
+                    yield return CadPrompt.ForDistance(
+                        "Specify the incrementing elevation between rows",
+                        null,
+                        new[] { "Expression" },
+                        Length(0.0)
+                    );
                     Planar(c, 0.0);
                     continue;
                 }
 
                 if (c.Input.Is("Spacing"))
                 {
-                    yield return CadPrompt.ForDistance("Specify the distance between columns", null, new[] { "Unit cell" }, Length(across));
+                    yield return CadPrompt.ForDistance(
+                        "Specify the distance between columns",
+                        null,
+                        new[] { "Unit cell" },
+                        Length(across)
+                    );
 
                     if (c.Input.Is("Unit cell"))
                     {
@@ -262,12 +325,18 @@ namespace GeometryHelper.Dxf.Viewer
         {
             c.Write("Type = Polar  Associative = No");
             GeoAabb3 box = Extents(c, c.Selected);
-            var basePoint = box.IsEmpty ? GeoPoint2.Origin : new GeoPoint2((box.Min.X + box.Max.X) / 2.0, (box.Min.Y + box.Max.Y) / 2.0);
+            var basePoint = box.IsEmpty
+                ? GeoPoint2.Origin
+                : new GeoPoint2((box.Min.X + box.Max.X) / 2.0, (box.Min.Y + box.Max.Y) / 2.0);
             GeoPoint2 centre;
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify center point of array", null, new[] { "Base point", "Axis of rotation" });
+                yield return CadPrompt.ForPoint(
+                    "Specify center point of array",
+                    null,
+                    new[] { "Base point", "Axis of rotation" }
+                );
 
                 if (c.Input.Is("Base point"))
                 {
@@ -307,8 +376,13 @@ namespace GeometryHelper.Dxf.Viewer
             while (true)
             {
                 // The array as it stands, as AutoCAD 2021 shows it while its grips and options are offered.
-                yield return CadPrompt.ForPoint("Select grip to edit array", null, PolarOptions, "eXit")
-                    .Previewing(CadPreview.Moving(c, c.Selected, input => PolarMoves(centre, basePoint, items, step, rows, apart, turn).ConvertAll(CadPreview.Flat)));
+                yield return CadPrompt
+                    .ForPoint("Select grip to edit array", null, PolarOptions, "eXit")
+                    .Previewing(
+                        CadPreview.Moving(c, c.Selected, input =>
+                            PolarMoves(centre, basePoint, items, step, rows, apart, turn).ConvertAll(CadPreview.Flat)
+                        )
+                    );
 
                 if (c.Input.IsPoint)
                 {
@@ -354,14 +428,28 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("Angle between"))
                 {
-                    yield return CadPrompt.ForAngle("Specify angle between items", null, new[] { "Expression" }, Number(step * 180.0 / Math.PI)).Turning();
+                    yield return CadPrompt
+                        .ForAngle(
+                            "Specify angle between items",
+                            null,
+                            new[] { "Expression" },
+                            Number(step * 180.0 / Math.PI)
+                        )
+                        .Turning();
                     step = c.Input.Kind == CadInputKind.Number ? c.Input.Number : step;
                     continue;
                 }
 
                 if (c.Input.Is("Fill angle"))
                 {
-                    yield return CadPrompt.ForAngle("Specify the angle to fill " + FillWays(c), null, new[] { "EXpression" }, Number(Fill(items, step) * 180.0 / Math.PI)).Turning();
+                    yield return CadPrompt
+                        .ForAngle(
+                            "Specify the angle to fill " + FillWays(c),
+                            null,
+                            new[] { "EXpression" },
+                            Number(Fill(items, step) * 180.0 / Math.PI)
+                        )
+                        .Turning();
 
                     if (c.Input.Kind == CadInputKind.Number)
                     {
@@ -380,13 +468,27 @@ namespace GeometryHelper.Dxf.Viewer
 
                     rows = count.Value ?? rows;
 
-                    foreach (CadPrompt prompt in Spacing(c, "Specify the distance between rows", "Specify the distance between first and last row", apart, rows, distance))
+                    foreach (
+                        CadPrompt prompt in Spacing(
+                            c,
+                            "Specify the distance between rows",
+                            "Specify the distance between first and last row",
+                            apart,
+                            rows,
+                            distance
+                        )
+                    )
                     {
                         yield return prompt;
                     }
 
                     apart = distance.Value ?? apart;
-                    yield return CadPrompt.ForDistance("Specify the incrementing elevation between rows", null, new[] { "Expression" }, Length(0.0));
+                    yield return CadPrompt.ForDistance(
+                        "Specify the incrementing elevation between rows",
+                        null,
+                        new[] { "Expression" },
+                        Length(0.0)
+                    );
                     Planar(c, 0.0);
                     continue;
                 }
@@ -400,7 +502,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("ROTate items"))
                 {
-                    yield return CadPrompt.ForKeyword("Rotate arrayed items?", new[] { "Yes", "No" }, turn ? "Yes" : "No");
+                    yield return CadPrompt.ForKeyword(
+                        "Rotate arrayed items?",
+                        new[] { "Yes", "No" },
+                        turn ? "Yes" : "No"
+                    );
                     turn = c.Input.Kind == CadInputKind.Keyword ? c.Input.Is("Yes") : turn;
                     continue;
                 }
@@ -434,7 +540,9 @@ namespace GeometryHelper.Dxf.Viewer
             if (c.Input.Is("Polar"))
             {
                 GeoAabb3 box = Extents(c, c.Selected);
-                var basePoint = box.IsEmpty ? GeoPoint2.Origin : new GeoPoint2((box.Min.X + box.Max.X) / 2.0, (box.Min.Y + box.Max.Y) / 2.0);
+                var basePoint = box.IsEmpty
+                    ? GeoPoint2.Origin
+                    : new GeoPoint2((box.Min.X + box.Max.X) / 2.0, (box.Min.Y + box.Max.Y) / 2.0);
 
                 while (true)
                 {
@@ -463,25 +571,52 @@ namespace GeometryHelper.Dxf.Viewer
                 int items = c.Input.Kind == CadInputKind.Number ? (int)c.Input.Number : 0;
 
                 // The copies the angle to the cursor from the centre would make, turned as they are unless No is answered after.
-                CadPrompt filling = CadPrompt.ForAngle("Specify the angle to fill " + FillWays(c), centre, null, "360").Turning();
-                yield return items < 2 ? filling : filling.Previewing(CadPreview.Moving(c, c.Selected, input => PolarMoves(centre, basePoint, items, StepOf(items, input.Number), 1, 0.0, true).ConvertAll(CadPreview.Flat), true));
+                CadPrompt filling = CadPrompt
+                    .ForAngle("Specify the angle to fill " + FillWays(c), centre, null, "360")
+                    .Turning();
+                yield return items < 2
+                    ? filling
+                    : filling.Previewing(
+                        CadPreview.Moving(
+                            c,
+                            c.Selected,
+                            input =>
+                                PolarMoves(centre, basePoint, items, StepOf(items, input.Number), 1, 0.0, true)
+                                    .ConvertAll(CadPreview.Flat),
+                            true
+                        )
+                    );
                 double fill = c.Input.Kind == CadInputKind.Number ? c.Input.Number : 2.0 * Math.PI;
                 double step;
 
                 if (items <= 0)
                 {
-                    yield return CadPrompt.ForAngle("Angle between items", centre).Turning().Previewing(CadPreview.Moving(c, c.Selected, input =>
-                    {
-                        if (Math.Abs(input.Number) <= Tolerance.Default.EqualAngleRad)
-                        {
-                            return null;
-                        }
+                    yield return CadPrompt
+                        .ForAngle("Angle between items", centre)
+                        .Turning()
+                        .Previewing(
+                            CadPreview.Moving(
+                                c,
+                                c.Selected,
+                                input =>
+                                {
+                                    if (Math.Abs(input.Number) <= Tolerance.Default.EqualAngleRad)
+                                    {
+                                        return null;
+                                    }
 
-                        double between = input.Number * Math.Sign(fill == 0.0 ? 1.0 : fill);
-                        return PolarMoves(centre, basePoint, Between(fill, between), between, 1, 0.0, true).ConvertAll(CadPreview.Flat);
-                    }, true));
+                                    double between = input.Number * Math.Sign(fill == 0.0 ? 1.0 : fill);
+                                    return PolarMoves(centre, basePoint, Between(fill, between), between, 1, 0.0, true)
+                                        .ConvertAll(CadPreview.Flat);
+                                },
+                                true
+                            )
+                        );
 
-                    if (c.Input.Kind != CadInputKind.Number || Math.Abs(c.Input.Number) <= Tolerance.Default.EqualAngleRad)
+                    if (
+                        c.Input.Kind != CadInputKind.Number
+                        || Math.Abs(c.Input.Number) <= Tolerance.Default.EqualAngleRad
+                    )
                     {
                         c.Write("Requires an angle between items other than nought.");
                         yield break;
@@ -501,8 +636,11 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                List<Affine2> turned = PolarMoves(centre, basePoint, items, step, 1, 0.0, true).ConvertAll(CadPreview.Flat);
-                yield return CadPrompt.ForKeyword("Rotate arrayed objects?", new[] { "Yes", "No" }, "Y").Previewing(CadPreview.Moving(c, c.Selected, input => turned));
+                List<Affine2> turned = PolarMoves(centre, basePoint, items, step, 1, 0.0, true)
+                    .ConvertAll(CadPreview.Flat);
+                yield return CadPrompt
+                    .ForKeyword("Rotate arrayed objects?", new[] { "Yes", "No" }, "Y")
+                    .Previewing(CadPreview.Moving(c, c.Selected, input => turned));
                 Copies(c, c.Selected, PolarMoves(centre, basePoint, items, step, 1, 0.0, !c.Input.Is("No")));
                 yield break;
             }
@@ -535,7 +673,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (rows > 1)
             {
-                yield return CadPrompt.ForPoint("Enter the distance between rows or specify unit cell (---)", null, null, null, true);
+                yield return CadPrompt.ForPoint(
+                    "Enter the distance between rows or specify unit cell (---)",
+                    null,
+                    null,
+                    null,
+                    true
+                );
 
                 if (c.Input.IsPoint)
                 {
@@ -543,11 +687,13 @@ namespace GeometryHelper.Dxf.Viewer
 
                     // The copies the unit cell to the cursor would make, as the array is made of it. AutoCAD's help
                     // for -ARRAY describes no preview at this prompt; the copies are kept as at the other prompts.
-                    yield return CadPrompt.ForPoint("Specify opposite corner", corner).Previewing(CadPreview.Moving(c, c.Selected, input =>
-                    {
-                        GeoVector2 drawn = c.Session.Ucs.ToUcs(input.Point - corner);
-                        return RectangularMoves(c, rows, columns, drawn.X, drawn.Y).ConvertAll(CadPreview.Flat);
-                    }));
+                    yield return CadPrompt
+                        .ForPoint("Specify opposite corner", corner)
+                        .Previewing(CadPreview.Moving(c, c.Selected, input =>
+                            {
+                                GeoVector2 drawn = c.Session.Ucs.ToUcs(input.Point - corner);
+                                return RectangularMoves(c, rows, columns, drawn.X, drawn.Y).ConvertAll(CadPreview.Flat);
+                            }));
 
                     if (!c.Input.IsPoint)
                     {
@@ -559,7 +705,10 @@ namespace GeometryHelper.Dxf.Viewer
                     up = size.Y;
                     cell = true;
                 }
-                else if (c.Input.Kind != CadInputKind.Text || !double.TryParse(c.Input.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out up))
+                else if (
+                    c.Input.Kind != CadInputKind.Text
+                    || !double.TryParse(c.Input.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out up)
+                )
                 {
                     c.Write("Requires a distance or two points.");
                     yield break;
@@ -574,7 +723,17 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     // The distance shown by two points: the copies it would make to the cursor, the rows as far apart as typed.
                     double typed = up;
-                    yield return CadPrompt.ForDistance("Specify second point", c.Input.Point).Previewing(CadPreview.Moving(c, c.Selected, input => RectangularMoves(c, rows, columns, input.Number, typed).ConvertAll(CadPreview.Flat), true));
+                    yield return CadPrompt
+                        .ForDistance("Specify second point", c.Input.Point)
+                        .Previewing(
+                            CadPreview.Moving(
+                                c,
+                                c.Selected,
+                                input =>
+                                    RectangularMoves(c, rows, columns, input.Number, typed).ConvertAll(CadPreview.Flat),
+                                true
+                            )
+                        );
 
                     if (c.Input.Kind != CadInputKind.Number)
                     {
@@ -583,7 +742,10 @@ namespace GeometryHelper.Dxf.Viewer
 
                     across = c.Input.Number;
                 }
-                else if (c.Input.Kind != CadInputKind.Text || !CadUnits.TryLength(c.Input.Text, c.Session.Document.Database.Lunits, out across))
+                else if (
+                    c.Input.Kind != CadInputKind.Text
+                    || !CadUnits.TryLength(c.Input.Text, c.Session.Document.Database.Lunits, out across)
+                )
                 {
                     yield break;
                 }
@@ -596,7 +758,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// The moves of the copies of a rectangular array of -ARRAY, the columns and rows apart by distances along the UCS; the
         /// item in place not moved. Three rows of two columns, 50 across and 30 up, give five copies.
         /// </summary>
-        private static List<GeoTransform3> RectangularMoves(CadCommandContext c, int rows, int columns, double across, double up)
+        private static List<GeoTransform3> RectangularMoves(
+            CadCommandContext c,
+            int rows,
+            int columns,
+            double across,
+            double up
+        )
         {
             var moves = new List<GeoTransform3>();
 
@@ -645,10 +813,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// The moves of the copies of a polar array: item by item round the centre, row by row out from it along the way from the
         /// centre to the base point; turned with the array, or moved round with the base point upright.
         /// </summary>
-        private static List<GeoTransform3> PolarMoves(GeoPoint2 centre, GeoPoint2 basePoint, int items, double step, int rows, double apart, bool turn)
+        private static List<GeoTransform3> PolarMoves(
+            GeoPoint2 centre,
+            GeoPoint2 basePoint,
+            int items,
+            double step,
+            int rows,
+            double apart,
+            bool turn
+        )
         {
             GeoVector2 outward = basePoint - centre;
-            outward = outward.Length > Tolerance.Default.EqualPoint ? outward / outward.Length : new GeoVector2(1.0, 0.0);
+            outward =
+                outward.Length > Tolerance.Default.EqualPoint ? outward / outward.Length : new GeoVector2(1.0, 0.0);
             var moves = new List<GeoTransform3>();
 
             for (int row = 0; row < rows; row++)
@@ -673,8 +850,13 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         GeoPoint2 from = basePoint + off;
                         GeoVector2 radius = from - centre;
-                        var to = new GeoPoint2(centre.X + radius.X * Math.Cos(angle) - radius.Y * Math.Sin(angle), centre.Y + radius.X * Math.Sin(angle) + radius.Y * Math.Cos(angle));
-                        moves.Add(GeoTransform3.Translation(new GeoVector3(to.X - basePoint.X, to.Y - basePoint.Y, 0.0)));
+                        var to = new GeoPoint2(
+                            centre.X + radius.X * Math.Cos(angle) - radius.Y * Math.Sin(angle),
+                            centre.Y + radius.X * Math.Sin(angle) + radius.Y * Math.Cos(angle)
+                        );
+                        moves.Add(
+                            GeoTransform3.Translation(new GeoVector3(to.X - basePoint.X, to.Y - basePoint.Y, 0.0))
+                        );
                     }
                 }
             }
@@ -708,14 +890,19 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (c.Input.Is("Yes"))
             {
-                c.Write("Associative arrays are not built: the items are made as separate objects (ARRAYASSOCIATIVITY 0).");
+                c.Write(
+                    "Associative arrays are not built: the items are made as separate objects (ARRAYASSOCIATIVITY 0)."
+                );
             }
         }
 
         /// <summary>Says that an elevation or a number of levels asked is of 3D, where a value other than the plain one (nought, or one level) was given.</summary>
         private static void Planar(CadCommandContext c, double plain)
         {
-            if (c.Input.Kind == CadInputKind.Number && Math.Abs(c.Input.Number - plain) > c.Session.Tolerance.EqualPoint)
+            if (
+                c.Input.Kind == CadInputKind.Number
+                && Math.Abs(c.Input.Number - plain) > c.Session.Tolerance.EqualPoint
+            )
             {
                 c.Write("Levels and elevations are of 3D: the array is made in the plan.");
             }
@@ -725,7 +912,11 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> Count(CadCommandContext c, string message, int now, Ref<int?> result)
         {
             result.Value = null;
-            yield return CadPrompt.ForInteger(message, new[] { "Expression" }, now.ToString(CultureInfo.InvariantCulture));
+            yield return CadPrompt.ForInteger(
+                message,
+                new[] { "Expression" },
+                now.ToString(CultureInfo.InvariantCulture)
+            );
 
             if (c.Input.Kind != CadInputKind.Number)
             {
@@ -742,14 +933,26 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Asks the distance between columns or rows, or with Total the distance from the first to the last.</summary>
-        private static IEnumerable<CadPrompt> Spacing(CadCommandContext c, string message, string total, double now, int count, Ref<double?> result)
+        private static IEnumerable<CadPrompt> Spacing(
+            CadCommandContext c,
+            string message,
+            string total,
+            double now,
+            int count,
+            Ref<double?> result
+        )
         {
             result.Value = null;
             yield return CadPrompt.ForDistance(message, null, new[] { "Total", "Expression" }, Length(now));
 
             if (c.Input.Is("Total"))
             {
-                yield return CadPrompt.ForDistance(total, null, new[] { "Expression" }, Length(now * Math.Max(1, count - 1)));
+                yield return CadPrompt.ForDistance(
+                    total,
+                    null,
+                    new[] { "Expression" },
+                    Length(now * Math.Max(1, count - 1))
+                );
 
                 if (c.Input.Kind == CadInputKind.Number)
                 {
@@ -781,7 +984,8 @@ namespace GeometryHelper.Dxf.Viewer
                         box = box.IsEmpty ? one : box.Union(one);
                     }
                 }
-                catch (Exception exception) when (exception is InvalidOperationException || exception is NotSupportedException)
+                catch (Exception exception)
+                    when (exception is InvalidOperationException || exception is NotSupportedException)
                 {
                     GeometryHelperLog.Debug("ARRAY: the box of " + handle + " is left out: " + exception.Message);
                 }

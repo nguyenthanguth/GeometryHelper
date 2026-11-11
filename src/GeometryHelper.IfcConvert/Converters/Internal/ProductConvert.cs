@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using GeometryHelper;
+using GeometryHelper.Geometry;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Models;
-using GeometryHelper.Geometry;
 using Xbim.Common.Geometry;
 using Xbim.Ifc.Extensions;
 using Xbim.Ifc4.Interfaces;
@@ -26,8 +26,8 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <param name="tolerance">Geometric tolerance (defaults to <see cref="Tolerance.Global"/>).</param>
         /// <returns>A new transformed <see cref="GeoSolid3"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="solid"/> or <paramref name="transform"/> is null.</exception>
-        public static GeoSolid3 Transform(this GeoSolid3 solid, GeoTransform3 transform, Tolerance? tolerance = null)
-            => Transform(solid, transform, tolerance, out _);
+        public static GeoSolid3 Transform(this GeoSolid3 solid, GeoTransform3 transform, Tolerance? tolerance = null) =>
+            Transform(solid, transform, tolerance, out _);
 
         /// <summary>
         /// Transforms a <see cref="GeoSolid3"/>, counting the faces the transformation left nothing of.
@@ -36,10 +36,17 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <param name="transform">The transformation matrix.</param>
         /// <param name="tolerance">Geometric tolerance (defaults to <see cref="Tolerance.Global"/>).</param>
         /// <param name="lost">How many faces were left out, having nothing left with an area.</param>
-        internal static GeoSolid3 Transform(this GeoSolid3 solid, GeoTransform3 transform, Tolerance? tolerance, out int lost)
+        internal static GeoSolid3 Transform(
+            this GeoSolid3 solid,
+            GeoTransform3 transform,
+            Tolerance? tolerance,
+            out int lost
+        )
         {
-            if (solid == null) throw new ArgumentNullException(nameof(solid));
-            if (transform == null) throw new ArgumentNullException(nameof(transform));
+            if (solid == null)
+                throw new ArgumentNullException(nameof(solid));
+            if (transform == null)
+                throw new ArgumentNullException(nameof(transform));
 
             Tolerance tol = (tolerance ?? Tolerance.Global).ForConstruction();
             lost = 0;
@@ -80,7 +87,12 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// (<see cref="ToleranceExtensions.ForConstruction"/>). False when its boundary degenerates; a hole that
         /// degenerates is dropped from the face.
         /// </summary>
-        internal static bool TryTransformFace(GeoFace3 face, GeoTransform3 transform, Tolerance tolerance, out GeoFace3 result)
+        internal static bool TryTransformFace(
+            GeoFace3 face,
+            GeoTransform3 transform,
+            Tolerance tolerance,
+            out GeoFace3 result
+        )
         {
             result = null;
 
@@ -127,7 +139,8 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             GeoFace3[] pieces = GeoFace3.FromLoops(
                 face.Boundary.Vertices.Select(v => transform.Transform(v)),
                 face.Holes.Select(hole => hole.Vertices.Select(v => transform.Transform(v))),
-                tolerance);
+                tolerance
+            );
 
             if (transform.GetDeterminant() < 0.0)
             {
@@ -140,7 +153,12 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             return pieces;
         }
 
-        private static bool TryTransformPolygon(GeoPolygon3 polygon, GeoTransform3 transform, Tolerance tolerance, out GeoPolygon3 result)
+        private static bool TryTransformPolygon(
+            GeoPolygon3 polygon,
+            GeoTransform3 transform,
+            Tolerance tolerance,
+            out GeoPolygon3 result
+        )
         {
             result = null;
             try
@@ -182,7 +200,11 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         // Aggregation trees are shallow in practice; the limit only guards against malformed cyclic files.
         private const int MaxAggregationDepth = 16;
 
-        private static IfcProductGeometry ToProductGeometry(this IIfcProduct product, IfcConvertOptions options, int depth)
+        private static IfcProductGeometry ToProductGeometry(
+            this IIfcProduct product,
+            IfcConvertOptions options,
+            int depth
+        )
         {
             if (product == null)
             {
@@ -198,8 +220,7 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                 return CreateProductGeometry(product, Enumerable.Empty<GeoSolid3>());
             }
 
-            if (product.ObjectPlacement == null ||
-                (product.Representation == null && !options.IncludeAggregatedParts))
+            if (product.ObjectPlacement == null || (product.Representation == null && !options.IncludeAggregatedParts))
             {
                 return CreateProductGeometry(product, Enumerable.Empty<GeoSolid3>());
             }
@@ -215,8 +236,10 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             }
             catch (Exception ex)
             {
-                warnings.Add($"#{product.ObjectPlacement.EntityLabel} {IfcTypeNames.GetName(product.ObjectPlacement)}: " +
-                    $"The placement cannot be evaluated ({ex.GetType().Name}: {ex.Message}); no geometry was converted.");
+                warnings.Add(
+                    $"#{product.ObjectPlacement.EntityLabel} {IfcTypeNames.GetName(product.ObjectPlacement)}: "
+                        + $"The placement cannot be evaluated ({ex.GetType().Name}: {ex.Message}); no geometry was converted."
+                );
                 return CreateProductGeometry(product, Enumerable.Empty<GeoSolid3>(), null, null, warnings);
             }
 
@@ -228,7 +251,12 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             {
                 allSolids = new List<GeoSolid3>();
             }
-            else if (options.ApplyVoids && product is IIfcElement element && element.HasOpenings != null && element.HasOpenings.Any())
+            else if (
+                options.ApplyVoids
+                && product is IIfcElement element
+                && element.HasOpenings != null
+                && element.HasOpenings.Any()
+            )
             {
                 // Preferred: cut the exact B-rep in the geometry engine. Falls back to the mesh boolean on
                 // converted solids when an opening or a host item cannot be handled that way.
@@ -238,7 +266,14 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                     {
                         // Messages from an attempt that is thrown away would describe geometry that is not returned.
                         List<string> cutWarnings = new List<string>();
-                        List<GeoSolid3> cutSolids = CollectBodySolids(product, options, placementTransform, cutters, out bool allCut, cutWarnings);
+                        List<GeoSolid3> cutSolids = CollectBodySolids(
+                            product,
+                            options,
+                            placementTransform,
+                            cutters,
+                            out bool allCut,
+                            cutWarnings
+                        );
                         if (allCut)
                         {
                             allSolids = cutSolids;
@@ -253,8 +288,10 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
                 if (allSolids == null)
                 {
-                    warnings.Add("Openings could not be cut in the geometry engine; the GeoSolid3 boolean fallback was used, " +
-                        "which is unreliable on curved or triangulated bodies.");
+                    warnings.Add(
+                        "Openings could not be cut in the geometry engine; the GeoSolid3 boolean fallback was used, "
+                            + "which is unreliable on curved or triangulated bodies."
+                    );
                     allSolids = CollectBodySolids(product, options, placementTransform, null, out _, warnings);
                     if (allSolids.Count > 0)
                     {
@@ -278,7 +315,9 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             {
                 if (!allSolids[i].IsClosed(options.Tolerance))
                 {
-                    warnings.Add($"Solid {i + 1} of {allSolids.Count} is not closed; its volume and point containment may be off.");
+                    warnings.Add(
+                        $"Solid {i + 1} of {allSolids.Count} is not closed; its volume and point containment may be off."
+                    );
                 }
             }
 
@@ -290,17 +329,27 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// IfcElementAssembly, which usually has no body of its own. Parts carry their own placements, so they
         /// are converted globally and, for local output, brought into the aggregating product's frame.
         /// </summary>
-        private static List<GeoSolid3> CollectAggregatedParts(IIfcProduct product, IfcConvertOptions options,
-            GeoTransform3 placementTransform, int depth, List<string> warnings)
+        private static List<GeoSolid3> CollectAggregatedParts(
+            IIfcProduct product,
+            IfcConvertOptions options,
+            GeoTransform3 placementTransform,
+            int depth,
+            List<string> warnings
+        )
         {
             List<GeoSolid3> solids = new List<GeoSolid3>();
             IfcConvertOptions partOptions = options.Clone();
             partOptions.CoordinateSpace = CoordinateSpace.Global;
 
             GeoTransform3 globalToHost = null;
-            if (options.CoordinateSpace == CoordinateSpace.Local && !placementTransform.TryGetInverse(out globalToHost, options.Tolerance))
+            if (
+                options.CoordinateSpace == CoordinateSpace.Local
+                && !placementTransform.TryGetInverse(out globalToHost, options.Tolerance)
+            )
             {
-                warnings.Add("The placement cannot be inverted, so aggregated parts could not be expressed in local coordinates.");
+                warnings.Add(
+                    "The placement cannot be inverted, so aggregated parts could not be expressed in local coordinates."
+                );
                 return solids;
             }
 
@@ -316,7 +365,9 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
                     foreach (GeoSolid3 solid in partGeometry.Solids)
                     {
-                        solids.Add(globalToHost != null ? TransformChecked(solid, globalToHost, options, warnings) : solid);
+                        solids.Add(
+                            globalToHost != null ? TransformChecked(solid, globalToHost, options, warnings) : solid
+                        );
                     }
                 }
             }
@@ -329,7 +380,11 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// swing symbol. A body counts as flat when its average thickness (volume / surface area) is within the
         /// point tolerance, which is scale-consistent whatever the output unit.
         /// </summary>
-        private static List<GeoSolid3> DropFlatSolids(List<GeoSolid3> solids, IfcConvertOptions options, List<string> warnings)
+        private static List<GeoSolid3> DropFlatSolids(
+            List<GeoSolid3> solids,
+            IfcConvertOptions options,
+            List<string> warnings
+        )
         {
             List<GeoSolid3> kept = new List<GeoSolid3>(solids.Count);
             int dropped = 0;
@@ -357,7 +412,12 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <summary>
         /// Transforms a solid and reports faces that could not be rebuilt at their new position.
         /// </summary>
-        private static GeoSolid3 TransformChecked(GeoSolid3 solid, GeoTransform3 transform, IfcConvertOptions options, List<string> warnings)
+        private static GeoSolid3 TransformChecked(
+            GeoSolid3 solid,
+            GeoTransform3 transform,
+            IfcConvertOptions options,
+            List<string> warnings
+        )
         {
             GeoSolid3 moved = solid.Transform(transform, options.Tolerance, out int lost);
             if (lost > 0)
@@ -372,13 +432,21 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// Converts the body representation items of a product, optionally cutting engine opening solids
         /// (in the product's local frame) from each geometric item first.
         /// </summary>
-        private static List<GeoSolid3> CollectBodySolids(IIfcProduct product, IfcConvertOptions options,
-            GeoTransform3 placementTransform, IReadOnlyList<IXbimSolid> cutters, out bool allCut, List<string> warnings)
+        private static List<GeoSolid3> CollectBodySolids(
+            IIfcProduct product,
+            IfcConvertOptions options,
+            GeoTransform3 placementTransform,
+            IReadOnlyList<IXbimSolid> cutters,
+            out bool allCut,
+            List<string> warnings
+        )
         {
             List<GeoSolid3> allSolids = new List<GeoSolid3>();
             allCut = true;
 
-            foreach (IIfcRepresentation representation in SelectBodyRepresentations(product.Representation.Representations))
+            foreach (
+                IIfcRepresentation representation in SelectBodyRepresentations(product.Representation.Representations)
+            )
             {
                 foreach (IIfcRepresentationItem item in representation.Items)
                 {
@@ -391,7 +459,12 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                     {
                         if (item is IIfcGeometricRepresentationItem geometricItem)
                         {
-                            List<GeoSolid3> itemSolids = geometricItem.ToGeoSolids(options, cutters, out bool itemCut, warnings);
+                            List<GeoSolid3> itemSolids = geometricItem.ToGeoSolids(
+                                options,
+                                cutters,
+                                out bool itemCut,
+                                warnings
+                            );
                             allCut &= itemCut;
                             foreach (GeoSolid3 s in itemSolids)
                             {
@@ -410,16 +483,19 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                             // Mapped items are converted from GeoSolid3 pieces, so engine cutters cannot reach them.
                             allCut &= cutters == null || cutters.Count == 0;
 
-                            List<GeoTransform3> initialTransforms = options.CoordinateSpace == CoordinateSpace.Local
-                                ? new List<GeoTransform3>()
-                                : new List<GeoTransform3> { placementTransform };
+                            List<GeoTransform3> initialTransforms =
+                                options.CoordinateSpace == CoordinateSpace.Local
+                                    ? new List<GeoTransform3>()
+                                    : new List<GeoTransform3> { placementTransform };
                             CollectMappedItemSolids(mappedItem, initialTransforms, options, allSolids, warnings);
                         }
                     }
                     catch (Exception ex)
                     {
                         // A failing item is skipped rather than failing the whole product, but it is reported.
-                        warnings.Add($"#{item.EntityLabel} {IfcTypeNames.GetName(item)}: Conversion failed: {ex.GetType().Name}: {ex.Message}");
+                        warnings.Add(
+                            $"#{item.EntityLabel} {IfcTypeNames.GetName(item)}: Conversion failed: {ex.GetType().Name}: {ex.Message}"
+                        );
                     }
                 }
             }
@@ -428,10 +504,21 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         }
 
         // Representation identifiers (IFC4 "Shape representation identifiers") that never describe the physical body.
-        private static readonly HashSet<string> NonBodyIdentifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly HashSet<string> NonBodyIdentifiers = new HashSet<string>(
+            StringComparer.OrdinalIgnoreCase
+        )
         {
-            "Axis", "Box", "FootPrint", "Profile", "Annotation", "Clearance", "Reference",
-            "SurveyPoints", "Lighting", "CoG", "Surface"
+            "Axis",
+            "Box",
+            "FootPrint",
+            "Profile",
+            "Annotation",
+            "Clearance",
+            "Reference",
+            "SurveyPoints",
+            "Lighting",
+            "CoG",
+            "Surface",
         };
 
         /// <summary>
@@ -440,23 +527,32 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// Preference order: "Body", then "Body-*" variants (e.g. "Body-FallBack"), then "Facetation",
         /// then any representation not known to be non-body (exporters that leave the identifier unset).
         /// </summary>
-        internal static List<IIfcRepresentation> SelectBodyRepresentations(IEnumerable<IIfcRepresentation> representations)
+        internal static List<IIfcRepresentation> SelectBodyRepresentations(
+            IEnumerable<IIfcRepresentation> representations
+        )
         {
-            List<IIfcRepresentation> candidates = representations?
-                .Where(r => r?.Items != null && r.Items.Any())
-                .ToList() ?? new List<IIfcRepresentation>();
+            List<IIfcRepresentation> candidates = representations
+                ?.Where(r => r?.Items != null && r.Items.Any())
+                .ToList()
+                ?? new List<IIfcRepresentation>();
 
             string IdOf(IIfcRepresentation r) => r.RepresentationIdentifier?.ToString() ?? string.Empty;
 
-            List<IIfcRepresentation> selected = candidates.Where(r => string.Equals(IdOf(r), "Body", StringComparison.OrdinalIgnoreCase)).ToList();
+            List<IIfcRepresentation> selected = candidates
+                .Where(r => string.Equals(IdOf(r), "Body", StringComparison.OrdinalIgnoreCase))
+                .ToList();
             if (selected.Count == 0)
             {
-                selected = candidates.Where(r => IdOf(r).StartsWith("Body", StringComparison.OrdinalIgnoreCase)).ToList();
+                selected = candidates
+                    .Where(r => IdOf(r).StartsWith("Body", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
             }
 
             if (selected.Count == 0)
             {
-                selected = candidates.Where(r => string.Equals(IdOf(r), "Facetation", StringComparison.OrdinalIgnoreCase)).ToList();
+                selected = candidates
+                    .Where(r => string.Equals(IdOf(r), "Facetation", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
             }
 
             if (selected.Count == 0)
@@ -472,7 +568,8 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             IEnumerable<GeoSolid3> solids,
             IEnumerable<GeoFace3> openSurfaces = null,
             GeoTransform3 placement = null,
-            IEnumerable<string> warnings = null)
+            IEnumerable<string> warnings = null
+        )
         {
             string globalId = product?.GlobalId.ToString() ?? string.Empty;
             string name = product?.Name?.ToString() ?? string.Empty;
@@ -481,8 +578,13 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             return new IfcProductGeometry(globalId, name, ifcType, solids, openSurfaces, placement, tag, warnings);
         }
 
-        private static List<GeoSolid3> ApplyElementVoids(IIfcElement element, List<GeoSolid3> solids, GeoTransform3 hostPlacement,
-            IfcConvertOptions options, List<string> warnings)
+        private static List<GeoSolid3> ApplyElementVoids(
+            IIfcElement element,
+            List<GeoSolid3> solids,
+            GeoTransform3 hostPlacement,
+            IfcConvertOptions options,
+            List<string> warnings
+        )
         {
             List<GeoSolid3> openingSolids = new List<GeoSolid3>();
 
@@ -496,7 +598,10 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             openingOptions.OnlyNames.Clear();
 
             GeoTransform3 globalToHost = null;
-            if (options.CoordinateSpace == CoordinateSpace.Local && !hostPlacement.TryGetInverse(out globalToHost, options.Tolerance))
+            if (
+                options.CoordinateSpace == CoordinateSpace.Local
+                && !hostPlacement.TryGetInverse(out globalToHost, options.Tolerance)
+            )
             {
                 warnings.Add("The placement cannot be inverted, so openings were not subtracted.");
                 return solids;
@@ -514,7 +619,11 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
                     foreach (GeoSolid3 openingSolid in opening)
                     {
-                        openingSolids.Add(globalToHost != null ? TransformChecked(openingSolid, globalToHost, options, warnings) : openingSolid);
+                        openingSolids.Add(
+                            globalToHost != null
+                                ? TransformChecked(openingSolid, globalToHost, options, warnings)
+                                : openingSolid
+                        );
                     }
                 }
             }
@@ -545,7 +654,9 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                     {
                         // An opening that throws is left uncut rather than failing the product, and with it every product
                         // of a whole model read at once: one beam's openings took a whole IFC file down that way.
-                        warnings.Add($"An opening could not be subtracted by the GeoSolid3 boolean: {ex.GetType().Name}: {ex.Message}");
+                        warnings.Add(
+                            $"An opening could not be subtracted by the GeoSolid3 boolean: {ex.GetType().Name}: {ex.Message}"
+                        );
                     }
                 }
                 cutSolids.Add(currentSolid);
@@ -581,7 +692,8 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             List<GeoTransform3> outerTransforms,
             IfcConvertOptions options,
             List<GeoSolid3> targetSolids,
-            List<string> warnings)
+            List<string> warnings
+        )
         {
             if (mappedItem?.MappingSource?.MappedRepresentation?.Items == null || mappedItem.MappingTarget == null)
             {
@@ -618,7 +730,10 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                     }
                     else if (item is IIfcMappedItem nestedMappedItem)
                     {
-                        List<GeoTransform3> nextOuterTransforms = new List<GeoTransform3>(outerTransforms.Count + 1) { mappingTransform };
+                        List<GeoTransform3> nextOuterTransforms = new List<GeoTransform3>(outerTransforms.Count + 1)
+                        {
+                            mappingTransform,
+                        };
                         nextOuterTransforms.AddRange(outerTransforms);
                         CollectMappedItemSolids(nestedMappedItem, nextOuterTransforms, options, targetSolids, warnings);
                     }
@@ -626,7 +741,9 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                 catch (Exception ex)
                 {
                     // A failing mapped component is skipped rather than failing the product, but it is reported.
-                    warnings.Add($"#{item.EntityLabel} {IfcTypeNames.GetName(item)}: Conversion failed: {ex.GetType().Name}: {ex.Message}");
+                    warnings.Add(
+                        $"#{item.EntityLabel} {IfcTypeNames.GetName(item)}: Conversion failed: {ex.GetType().Name}: {ex.Message}"
+                    );
                 }
             }
         }

@@ -24,8 +24,8 @@ namespace GeometryHelper.UnitTest.Solid
         /// A triangle standing in the plane x = 200, clear of the cube in all three directions so that
         /// exactly one of its corners is the nearest point of it to anything below and behind.
         /// </summary>
-        private static GeoTriangle3 Standing() => new GeoTriangle3(
-            new GeoPoint3(200, 150, 150), new GeoPoint3(200, 250, 150), new GeoPoint3(200, 150, 250));
+        private static GeoTriangle3 Standing() =>
+            new GeoTriangle3(new GeoPoint3(200, 150, 150), new GeoPoint3(200, 250, 150), new GeoPoint3(200, 150, 250));
 
         /// <summary>
         /// The corner of that triangle nearest the cube, the segment and the ray used below.
@@ -109,7 +109,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             var flat = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
             GeoTriangle3 over = new GeoTriangle3(
-                new GeoPoint3(0, 0, 200), new GeoPoint3(100, 0, 200), new GeoPoint3(0, 100, 200));
+                new GeoPoint3(0, 0, 200),
+                new GeoPoint3(100, 0, 200),
+                new GeoPoint3(0, 100, 200)
+            );
 
             GeoLine3 between = flat.GetShortestLineTo(over);
 
@@ -157,7 +160,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(0.0, into.GetShortestLineTo(cube).Length, 6);
 
             var piercing = new GeoTriangle3(
-                new GeoPoint3(50, 50, 50), new GeoPoint3(300, 50, 50), new GeoPoint3(300, 150, 50));
+                new GeoPoint3(50, 50, 50),
+                new GeoPoint3(300, 50, 50),
+                new GeoPoint3(300, 150, 50)
+            );
 
             Assert.Equal(0.0, piercing.GetShortestLineTo(cube).Length, 6);
         }

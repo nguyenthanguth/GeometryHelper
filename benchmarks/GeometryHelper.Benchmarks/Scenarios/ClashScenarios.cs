@@ -51,17 +51,27 @@ namespace GeometryHelper.Benchmarks.Scenarios
         {
             foreach (char axis in "XYZ")
             {
-                yield return new BenchmarkCase("Clash.AxisTrap.OneSet." + axis, Side * Side, "parts", false, () => OneSet(axis));
+                yield return new BenchmarkCase("Clash.AxisTrap.OneSet." + axis, Side * Side, "parts", false, () =>
+                    OneSet(axis)
+                );
             }
 
             foreach (char axis in "XYZ")
             {
-                yield return new BenchmarkCase("Clash.AxisTrap.TwoSets." + axis, Side * Side, "parts", false, () => TwoSets(axis));
+                yield return new BenchmarkCase("Clash.AxisTrap.TwoSets." + axis, Side * Side, "parts", false, () =>
+                    TwoSets(axis)
+                );
             }
 
             foreach (char axis in "XYZ")
             {
-                yield return new BenchmarkCase("Clash.AxisTrap.Bars." + axis, Side * Side, "bars and parts", false, () => Bars(axis));
+                yield return new BenchmarkCase(
+                    "Clash.AxisTrap.Bars." + axis,
+                    Side * Side,
+                    "bars and parts",
+                    false,
+                    () => Bars(axis)
+                );
             }
 
             yield return new BenchmarkCase("Clash.Neutral", NeutralCount, "parts", false, Neutral);
@@ -81,9 +91,11 @@ namespace GeometryHelper.Benchmarks.Scenarios
             public bool InFirstSet => (Row + Column) % 2 == 0;
 
             /// <summary>The box of the cell, laid along X.</summary>
-            public GeoAabb3 Box => new GeoAabb3(
-                new GeoPoint3(Start, Row * Pitch + Over, Column * Pitch),
-                new GeoPoint3(Start + Length, Row * Pitch + Over + Section, Column * Pitch + Section));
+            public GeoAabb3 Box =>
+                new GeoAabb3(
+                    new GeoPoint3(Start, Row * Pitch + Over, Column * Pitch),
+                    new GeoPoint3(Start + Length, Row * Pitch + Over + Section, Column * Pitch + Section)
+                );
         }
 
         /// <summary>
@@ -100,8 +112,20 @@ namespace GeometryHelper.Benchmarks.Scenarios
                 {
                     double start = random.Next(2001) * 0.5;
                     int pick = random.Next(100);
-                    double over = pick == 0 ? 12.0 : pick == 1 ? 10.0 : pick == 2 ? 7.0 : 0.0;
-                    cells.Add(new Cell { Row = row, Column = column, Start = start, Over = over });
+                    double over =
+                        pick == 0 ? 12.0
+                        : pick == 1 ? 10.0
+                        : pick == 2 ? 7.0
+                        : 0.0;
+                    cells.Add(
+                        new Cell
+                        {
+                            Row = row,
+                            Column = column,
+                            Start = start,
+                            Over = over,
+                        }
+                    );
                 }
             }
 
@@ -115,13 +139,17 @@ namespace GeometryHelper.Benchmarks.Scenarios
         {
             switch (axis)
             {
-                case 'X': return p;
-                case 'Y': return new GeoPoint3(p.Y, p.X, p.Z);
-                default: return new GeoPoint3(p.Z, p.Y, p.X);
+                case 'X':
+                    return p;
+                case 'Y':
+                    return new GeoPoint3(p.Y, p.X, p.Z);
+                default:
+                    return new GeoPoint3(p.Z, p.Y, p.X);
             }
         }
 
-        private static GeoAabb3 Along(char axis, GeoAabb3 box) => new GeoAabb3(Along(axis, box.Min), Along(axis, box.Max));
+        private static GeoAabb3 Along(char axis, GeoAabb3 box) =>
+            new GeoAabb3(Along(axis, box.Min), Along(axis, box.Max));
 
         private static GeoPreparedSolid3 Part(GeoAabb3 box) => new GeoPreparedSolid3(box.ToObb().ToSolid(), Within);
 
@@ -137,7 +165,10 @@ namespace GeometryHelper.Benchmarks.Scenarios
         {
             List<Cell> cells = Bundle();
             GeoPreparedSolid3[] first = cells.Where(c => c.InFirstSet).Select(c => Part(Along(axis, c.Box))).ToArray();
-            GeoPreparedSolid3[] second = cells.Where(c => !c.InFirstSet).Select(c => Part(Along(axis, c.Box))).ToArray();
+            GeoPreparedSolid3[] second = cells
+                .Where(c => !c.InFirstSet)
+                .Select(c => Part(Along(axis, c.Box)))
+                .ToArray();
             string note = Pairs(first.Concat(second).Select(p => p.Box).ToList(), Clearance + Within.EqualPoint);
 
             return Fixture.Of(() => Clash3.Find(first, second, Options, Within), Sign, Describe, note);
@@ -156,7 +187,8 @@ namespace GeometryHelper.Benchmarks.Scenarios
             foreach (Cell c in cells.Where(c => c.InFirstSet))
             {
                 GeoAabb3 box = c.Box;
-                double y = box.Min.Y + radius, z = box.Min.Z + radius;
+                double y = box.Min.Y + radius,
+                    z = box.Min.Z + radius;
                 GeoPoint3 start = Along(axis, new GeoPoint3(box.Min.X, y, z));
                 GeoPoint3 end = Along(axis, new GeoPoint3(box.Max.X, y, z));
                 bars.Add(new ClashBar(new GeoPolyline3(start, end), radius));
@@ -200,8 +232,12 @@ namespace GeometryHelper.Benchmarks.Scenarios
         /// </summary>
         private static string Pairs(List<GeoAabb3> boxes, double reach)
         {
-            long On(Func<GeoPoint3, double> axis)
-                => SweepPairs.Count(boxes.Select(b => axis(b.Min)).ToList(), boxes.Select(b => axis(b.Max)).ToList(), reach);
+            long On(Func<GeoPoint3, double> axis) =>
+                SweepPairs.Count(
+                    boxes.Select(b => axis(b.Min)).ToList(),
+                    boxes.Select(b => axis(b.Max)).ToList(),
+                    reach
+                );
 
             return SweepPairs.Describe(On(p => p.X), On(p => p.Y), On(p => p.Z));
         }
@@ -254,8 +290,16 @@ namespace GeometryHelper.Benchmarks.Scenarios
         {
             int Of(ClashKind kind) => results.Count(r => r.Kind == kind);
 
-            return Report.Count(results.Length) + " clashes: " + Of(ClashKind.Hard) + " hard, " + Of(ClashKind.Touch) + " touching, "
-                + Of(ClashKind.Clearance) + " too near, " + Of(ClashKind.Unresolved) + " unresolved";
+            return Report.Count(results.Length)
+                + " clashes: "
+                + Of(ClashKind.Hard)
+                + " hard, "
+                + Of(ClashKind.Touch)
+                + " touching, "
+                + Of(ClashKind.Clearance)
+                + " too near, "
+                + Of(ClashKind.Unresolved)
+                + " unresolved";
         }
     }
 }

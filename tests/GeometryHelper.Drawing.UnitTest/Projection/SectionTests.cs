@@ -28,7 +28,13 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
             HasLine(view.VisibleEdges, -50, 90, -3, 90);
 
             // The section is one face: no line runs across the web where it meets a flange.
-            Assert.DoesNotContain(view.VisibleEdges, e => !e.IsArc && Math.Abs(e.StartPoint.Y - 90) < 1E-3 && Math.Abs(e.EndPoint.Y - 90) < 1E-3 && Math.Min(e.StartPoint.X, e.EndPoint.X) < 2.9 && Math.Max(e.StartPoint.X, e.EndPoint.X) > -2.9);
+            Assert.DoesNotContain(view.VisibleEdges, e =>
+                !e.IsArc
+                && Math.Abs(e.StartPoint.Y - 90) < 1E-3
+                && Math.Abs(e.EndPoint.Y - 90) < 1E-3
+                && Math.Min(e.StartPoint.X, e.EndPoint.X) < 2.9
+                && Math.Max(e.StartPoint.X, e.EndPoint.X) > -2.9
+            );
         }
 
         [Fact]
@@ -38,7 +44,12 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
             GeoSolid3 plate = tc1.Parts[0].Object.Solid;
             var cut = new GeoPlane3(new GeoPoint3(50, 0, 0), GeoVector3.XAxis);
 
-            ProjectedView2 view = ViewProjector.Project(new[] { new ProjectionInput("plate", plate) }, Right, new ProjectionOptions(sectionPlane: cut), Tol);
+            ProjectedView2 view = ViewProjector.Project(
+                new[] { new ProjectionInput("plate", plate) },
+                Right,
+                new ProjectionOptions(sectionPlane: cut),
+                Tol
+            );
 
             double expected = plate.Section(cut, Tol).Sum(f => f.Area);
             Assert.Equal(3, view.SectionFaces.Count);
@@ -55,8 +66,12 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
             var towards = new GeoPlane3(new GeoPoint3(500, 0, 0), GeoVector3.XAxis);
             var away = new GeoPlane3(new GeoPoint3(500, 0, 0), GeoVector3.XAxis.Negate());
 
-            string a = Signature(ViewProjector.Project(BeamWithEndPlates(), Right, new ProjectionOptions(sectionPlane: towards), Tol));
-            string b = Signature(ViewProjector.Project(BeamWithEndPlates(), Right, new ProjectionOptions(sectionPlane: away), Tol));
+            string a = Signature(
+                ViewProjector.Project(BeamWithEndPlates(), Right, new ProjectionOptions(sectionPlane: towards), Tol)
+            );
+            string b = Signature(
+                ViewProjector.Project(BeamWithEndPlates(), Right, new ProjectionOptions(sectionPlane: away), Tol)
+            );
 
             Assert.Equal(a, b);
         }

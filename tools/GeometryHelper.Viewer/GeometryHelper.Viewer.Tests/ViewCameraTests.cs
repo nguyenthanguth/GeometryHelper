@@ -16,7 +16,11 @@ namespace GeometryHelper.Viewer.Tests
         {
             for (int i = 0; i < 8; i++)
             {
-                yield return new Vec3((i & 1) == 0 ? b.Min.X : b.Max.X, (i & 2) == 0 ? b.Min.Y : b.Max.Y, (i & 4) == 0 ? b.Min.Z : b.Max.Z);
+                yield return new Vec3(
+                    (i & 1) == 0 ? b.Min.X : b.Max.X,
+                    (i & 2) == 0 ? b.Min.Y : b.Max.Y,
+                    (i & 4) == 0 ? b.Min.Z : b.Max.Z
+                );
             }
         }
 
@@ -107,7 +111,12 @@ namespace GeometryHelper.Viewer.Tests
         public void Fit_TakesInEveryCornerOfTheBoxAndNoMoreThanAFewPercentOfRoom(bool orthographic, double aspect)
         {
             var box = new Bounds3(new Vec3(-300, 120, 40), new Vec3(5200, 900, 380));
-            var camera = new ViewCamera { Orthographic = orthographic, Azimuth = -0.6, Elevation = 0.5 };
+            var camera = new ViewCamera
+            {
+                Orthographic = orthographic,
+                Azimuth = -0.6,
+                Elevation = 0.5,
+            };
 
             camera.Fit(box, aspect);
 
@@ -136,7 +145,14 @@ namespace GeometryHelper.Viewer.Tests
         [InlineData(true)]
         public void ZoomAt_KeepsThePointUnderTheCursorWhereItWas(bool orthographic)
         {
-            var camera = new ViewCamera { Orthographic = orthographic, Azimuth = 0.4, Elevation = 0.8, Distance = 900.0, Target = new Vec3(10, 20, 30) };
+            var camera = new ViewCamera
+            {
+                Orthographic = orthographic,
+                Azimuth = 0.4,
+                Elevation = 0.8,
+                Distance = 900.0,
+                Target = new Vec3(10, 20, 30),
+            };
             Vec3 under = camera.PointOnTargetPlane(0.3, -0.4, 1.7);
 
             camera.ZoomAt(1.25, 0.3, -0.4, 1.7);
@@ -162,7 +178,13 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void Pan_MovesTheSceneWithTheMouse()
         {
-            var camera = new ViewCamera { Azimuth = 0.3, Elevation = 0.4, Distance = 1500.0, Target = new Vec3(100, 200, 300) };
+            var camera = new ViewCamera
+            {
+                Azimuth = 0.3,
+                Elevation = 0.4,
+                Distance = 1500.0,
+                Target = new Vec3(100, 200, 300),
+            };
             const double Aspect = 1.5;
             const double Height = 600.0;
             Vec3 under = camera.PointOnTargetPlane(0.2, 0.1, Aspect);
@@ -178,7 +200,12 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void PanBy_MovesTheViewByAShareOfItsSize()
         {
-            var camera = new ViewCamera { Distance = 1000.0, Azimuth = -Math.PI / 2.0, Elevation = 0.0 };
+            var camera = new ViewCamera
+            {
+                Distance = 1000.0,
+                Azimuth = -Math.PI / 2.0,
+                Elevation = 0.0,
+            };
             double height = 2.0 * 1000.0 * camera.HalfHeightRatio;
 
             camera.PanBy(0.1, 0.0, 2.0);
@@ -204,7 +231,14 @@ namespace GeometryHelper.Viewer.Tests
 
             foreach (bool orthographic in new[] { false, true })
             {
-                var camera = new ViewCamera { Orthographic = orthographic, Azimuth = 1.0, Elevation = 0.3, Distance = 500.0, Target = new Vec3(5, 6, 7) };
+                var camera = new ViewCamera
+                {
+                    Orthographic = orthographic,
+                    Azimuth = 1.0,
+                    Elevation = 0.3,
+                    Distance = 500.0,
+                    Target = new Vec3(5, 6, 7),
+                };
 
                 camera.GetRay(0.0, 0.0, 1.3, box, out Vec3 origin, out Vec3 direction);
 
@@ -222,7 +256,14 @@ namespace GeometryHelper.Viewer.Tests
 
             foreach (bool orthographic in new[] { false, true })
             {
-                var camera = new ViewCamera { Orthographic = orthographic, Azimuth = 1.0, Elevation = 0.3, Distance = 500.0, Target = new Vec3(5, 6, 7) };
+                var camera = new ViewCamera
+                {
+                    Orthographic = orthographic,
+                    Azimuth = 1.0,
+                    Elevation = 0.3,
+                    Distance = 500.0,
+                    Target = new Vec3(5, 6, 7),
+                };
                 Vec3 onPlane = camera.PointOnTargetPlane(-0.6, 0.35, 1.3);
 
                 camera.GetRay(-0.6, 0.35, 1.3, box, out Vec3 origin, out Vec3 direction);
@@ -285,7 +326,10 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void Bounds_IncludeSkipsAPointThatIsNotANumber_AndAnEmptyBoxHasNoCentre()
         {
-            Bounds3 box = default(Bounds3).Include(new Vec3(double.NaN, 0, 0)).Include(new Vec3(1, 2, 3)).Include(new Vec3(-1, 5, 0));
+            Bounds3 box = default(Bounds3)
+                .Include(new Vec3(double.NaN, 0, 0))
+                .Include(new Vec3(1, 2, 3))
+                .Include(new Vec3(-1, 5, 0));
 
             Assert.False(box.IsEmpty);
             Assert.Equal(new Vec3(-1, 2, 0), box.Min);

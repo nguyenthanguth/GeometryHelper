@@ -38,88 +38,105 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a segment crosses the boundary of a face.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoLine2 line) => GetIntersections(face, line, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoLine2 line) =>
+            GetIntersections(face, line, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a segment crosses the boundary of a face, within a tolerance.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoLine2 line, Tolerance tolerance) => Crossings(face, rim => rim.GetIntersections(line, tolerance));
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoLine2 line, Tolerance tolerance) =>
+            Crossings(face, rim => rim.GetIntersections(line, tolerance));
 
         /// <summary>
         /// Gets every point where a arc crosses the boundary of a face.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoArc2 arc) => GetIntersections(face, arc, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoArc2 arc) =>
+            GetIntersections(face, arc, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a arc crosses the boundary of a face, within a tolerance.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoArc2 arc, Tolerance tolerance) => Crossings(face, rim => rim.GetIntersections(arc, tolerance));
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoArc2 arc, Tolerance tolerance) =>
+            Crossings(face, rim => rim.GetIntersections(arc, tolerance));
 
         /// <summary>
         /// Gets every point where a circle crosses the boundary of a face.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoCircle2 circle) => GetIntersections(face, circle, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoCircle2 circle) =>
+            GetIntersections(face, circle, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a circle crosses the boundary of a face, within a tolerance.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoCircle2 circle, Tolerance tolerance) => Crossings(face, rim => rim.GetIntersections(circle, tolerance));
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoCircle2 circle, Tolerance tolerance) =>
+            Crossings(face, rim => rim.GetIntersections(circle, tolerance));
 
         /// <summary>
         /// Gets every point where a rectangle crosses the boundary of a face.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoRectangle2 rect) => GetIntersections(face, rect, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoRectangle2 rect) =>
+            GetIntersections(face, rect, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a rectangle crosses the boundary of a face, within a tolerance.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoRectangle2 rect, Tolerance tolerance) => Crossings(face, rim => rim.GetIntersections(rect, tolerance));
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoRectangle2 rect, Tolerance tolerance) =>
+            Crossings(face, rim => rim.GetIntersections(rect, tolerance));
 
         /// <summary>
         /// Gets every point where a polyline crosses the boundary of a face.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoPolyline2 polyline) => GetIntersections(face, polyline, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoPolyline2 polyline) =>
+            GetIntersections(face, polyline, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a polyline crosses the boundary of a face, within a tolerance.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoPolyline2 polyline, Tolerance tolerance) => Crossings(face, rim => rim.GetIntersections(polyline, tolerance));
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoPolyline2 polyline, Tolerance tolerance) =>
+            Crossings(face, rim => rim.GetIntersections(polyline, tolerance));
 
         /// <summary>
         /// Gets every point where a polygon crosses the boundary of a face.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoPolygon2 polygon) => GetIntersections(face, polygon, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoPolygon2 polygon) =>
+            GetIntersections(face, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a polygon crosses the boundary of a face, within a tolerance.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoPolygon2 polygon, Tolerance tolerance) => Crossings(face, rim => rim.GetIntersections(polygon, tolerance));
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoPolygon2 polygon, Tolerance tolerance) =>
+            Crossings(face, rim => rim.GetIntersections(polygon, tolerance));
 
         /// <summary>
         /// Gets every point where a curved loop crosses the boundary of a face.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoPolygonArc2 loop) => GetIntersections(face, loop, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoPolygonArc2 loop) =>
+            GetIntersections(face, loop, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a curved loop crosses the boundary of a face, within a tolerance.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoPolygonArc2 loop, Tolerance tolerance) => Crossings(face, rim => rim.GetIntersections(loop, tolerance));
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Crossings(face, rim => rim.GetIntersections(loop, tolerance));
 
         /// <summary>
         /// Gets every point where a curved chain crosses the boundary of a face.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoPolylineArc2 chain) => GetIntersections(face, chain, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoPolylineArc2 chain) =>
+            GetIntersections(face, chain, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a curved chain crosses the boundary of a face, within a tolerance.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoPolylineArc2 chain, Tolerance tolerance) => Crossings(face, rim => rim.GetIntersections(chain, tolerance));
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Crossings(face, rim => rim.GetIntersections(chain, tolerance));
 
         /// <summary>
         /// Gets every point where the boundaries of two faces cross.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either face is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoFace2 other) => GetIntersections(face, other, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoFace2 other) =>
+            GetIntersections(face, other, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where the boundaries of two faces cross, within a tolerance.
@@ -158,7 +175,16 @@ namespace GeometryHelper.Core
         /// (50, 59.9995), in the hole from (40, 40) to (60, 60) of the square 100 by 100, reaches the material half a
         /// thousandth below the hole's top.
         /// </remarks>
-        public static bool CollidesWith(GeoFace2 face, GeoLine2 line, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(line, tolerance), rim => Collision2.Crosses(ToArray(rim.GetEdges()), line, tolerance), () => line.StartPoint, null, tolerance, hole => Collision2.ComeWithin(ToArray(hole.GetEdges()), line, tolerance));
+        public static bool CollidesWith(GeoFace2 face, GeoLine2 line, Tolerance tolerance) =>
+            Touches(
+                face,
+                rim => rim.CollidesWith(line, tolerance),
+                rim => Collision2.Crosses(ToArray(rim.GetEdges()), line, tolerance),
+                () => line.StartPoint,
+                null,
+                tolerance,
+                hole => Collision2.ComeWithin(ToArray(hole.GetEdges()), line, tolerance)
+            );
 
         /// <summary>
         /// Determines whether a arc reaches the material of a face.
@@ -174,12 +200,22 @@ namespace GeometryHelper.Core
         /// a thousandth above the top of the square 100 by 100 collides with it, and one ending two thousandths above
         /// does not.
         /// </remarks>
-        public static bool CollidesWith(GeoFace2 face, GeoArc2 arc, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(arc, tolerance), rim => rim.GetIntersections(arc, tolerance).Length > 0, () => arc.StartPoint, null, tolerance, hole => ArcChain2.ComeWithin(ArcChain2.EdgesOf(hole), arc, tolerance));
+        public static bool CollidesWith(GeoFace2 face, GeoArc2 arc, Tolerance tolerance) =>
+            Touches(
+                face,
+                rim => rim.CollidesWith(arc, tolerance),
+                rim => rim.GetIntersections(arc, tolerance).Length > 0,
+                () => arc.StartPoint,
+                null,
+                tolerance,
+                hole => ArcChain2.ComeWithin(ArcChain2.EdgesOf(hole), arc, tolerance)
+            );
 
         /// <summary>
         /// Determines whether a circle reaches the material of a face.
         /// </summary>
-        public static bool CollidesWith(GeoFace2 face, GeoCircle2 circle) => CollidesWith(face, circle, Tolerance.Global);
+        public static bool CollidesWith(GeoFace2 face, GeoCircle2 circle) =>
+            CollidesWith(face, circle, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a circle reaches the material of a face, within a tolerance.
@@ -188,12 +224,22 @@ namespace GeometryHelper.Core
         /// The circle, read as its disc, collides where it reaches the material or comes within the point tolerance of
         /// a rim, a hole's from within the hole included.
         /// </remarks>
-        public static bool CollidesWith(GeoFace2 face, GeoCircle2 circle, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(circle, tolerance), rim => rim.GetIntersections(circle, tolerance).Length > 0, () => circle.Center, at => circle.Contains(at, tolerance), tolerance, hole => NearDisc(hole, circle, tolerance));
+        public static bool CollidesWith(GeoFace2 face, GeoCircle2 circle, Tolerance tolerance) =>
+            Touches(
+                face,
+                rim => rim.CollidesWith(circle, tolerance),
+                rim => rim.GetIntersections(circle, tolerance).Length > 0,
+                () => circle.Center,
+                at => circle.Contains(at, tolerance),
+                tolerance,
+                hole => NearDisc(hole, circle, tolerance)
+            );
 
         /// <summary>
         /// Determines whether a rectangle reaches the material of a face.
         /// </summary>
-        public static bool CollidesWith(GeoFace2 face, GeoRectangle2 rect) => CollidesWith(face, rect, Tolerance.Global);
+        public static bool CollidesWith(GeoFace2 face, GeoRectangle2 rect) =>
+            CollidesWith(face, rect, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a rectangle reaches the material of a face, within a tolerance.
@@ -202,12 +248,22 @@ namespace GeometryHelper.Core
         /// The rectangle collides where it crosses a rim, where its material and the face's overlap, or where it comes
         /// within the point tolerance of a rim, the outline from outside or a hole's from within the hole.
         /// </remarks>
-        public static bool CollidesWith(GeoFace2 face, GeoRectangle2 rect, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(rect, tolerance), rim => Collision2.Crosses(ToArray(rim.GetEdges()), rect.GetEdges(), tolerance), () => rect.Center, at => Containment2.Contains(rect, at, Exactly), tolerance, hole => Collision2.ComeWithin(ToArray(hole.GetEdges()), rect.GetEdges(), tolerance));
+        public static bool CollidesWith(GeoFace2 face, GeoRectangle2 rect, Tolerance tolerance) =>
+            Touches(
+                face,
+                rim => rim.CollidesWith(rect, tolerance),
+                rim => Collision2.Crosses(ToArray(rim.GetEdges()), rect.GetEdges(), tolerance),
+                () => rect.Center,
+                at => Containment2.Contains(rect, at, Exactly),
+                tolerance,
+                hole => Collision2.ComeWithin(ToArray(hole.GetEdges()), rect.GetEdges(), tolerance)
+            );
 
         /// <summary>
         /// Determines whether a polyline reaches the material of a face.
         /// </summary>
-        public static bool CollidesWith(GeoFace2 face, GeoPolyline2 polyline) => CollidesWith(face, polyline, Tolerance.Global);
+        public static bool CollidesWith(GeoFace2 face, GeoPolyline2 polyline) =>
+            CollidesWith(face, polyline, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a polyline reaches the material of a face, within a tolerance.
@@ -216,12 +272,22 @@ namespace GeometryHelper.Core
         /// The polyline collides where it crosses a rim, lies on the material, or comes within the point tolerance of a
         /// rim, the outline from outside or a hole's from within the hole.
         /// </remarks>
-        public static bool CollidesWith(GeoFace2 face, GeoPolyline2 polyline, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(polyline, tolerance), rim => Collision2.Crosses(ToArray(rim.GetEdges()), ToArray(polyline.GetEdges()), tolerance), () => polyline.Vertices[0], null, tolerance, hole => Collision2.ComeWithin(ToArray(hole.GetEdges()), ToArray(polyline.GetEdges()), tolerance));
+        public static bool CollidesWith(GeoFace2 face, GeoPolyline2 polyline, Tolerance tolerance) =>
+            Touches(
+                face,
+                rim => rim.CollidesWith(polyline, tolerance),
+                rim => Collision2.Crosses(ToArray(rim.GetEdges()), ToArray(polyline.GetEdges()), tolerance),
+                () => polyline.Vertices[0],
+                null,
+                tolerance,
+                hole => Collision2.ComeWithin(ToArray(hole.GetEdges()), ToArray(polyline.GetEdges()), tolerance)
+            );
 
         /// <summary>
         /// Determines whether a polygon reaches the material of a face.
         /// </summary>
-        public static bool CollidesWith(GeoFace2 face, GeoPolygon2 polygon) => CollidesWith(face, polygon, Tolerance.Global);
+        public static bool CollidesWith(GeoFace2 face, GeoPolygon2 polygon) =>
+            CollidesWith(face, polygon, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a polygon reaches the material of a face, within a tolerance.
@@ -230,12 +296,22 @@ namespace GeometryHelper.Core
         /// The polygon collides where it crosses a rim, where its material and the face's overlap, or where it comes
         /// within the point tolerance of a rim, the outline from outside or a hole's from within the hole.
         /// </remarks>
-        public static bool CollidesWith(GeoFace2 face, GeoPolygon2 polygon, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(polygon, tolerance), rim => Collision2.Crosses(ToArray(rim.GetEdges()), ToArray(polygon.GetEdges()), tolerance), () => polygon.Vertices[0], at => polygon.Contains(at, tolerance), tolerance, hole => Collision2.ComeWithin(ToArray(hole.GetEdges()), ToArray(polygon.GetEdges()), tolerance));
+        public static bool CollidesWith(GeoFace2 face, GeoPolygon2 polygon, Tolerance tolerance) =>
+            Touches(
+                face,
+                rim => rim.CollidesWith(polygon, tolerance),
+                rim => Collision2.Crosses(ToArray(rim.GetEdges()), ToArray(polygon.GetEdges()), tolerance),
+                () => polygon.Vertices[0],
+                at => polygon.Contains(at, tolerance),
+                tolerance,
+                hole => Collision2.ComeWithin(ToArray(hole.GetEdges()), ToArray(polygon.GetEdges()), tolerance)
+            );
 
         /// <summary>
         /// Determines whether a curved loop reaches the material of a face.
         /// </summary>
-        public static bool CollidesWith(GeoFace2 face, GeoPolygonArc2 loop) => CollidesWith(face, loop, Tolerance.Global);
+        public static bool CollidesWith(GeoFace2 face, GeoPolygonArc2 loop) =>
+            CollidesWith(face, loop, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a curved loop reaches the material of a face, within a tolerance.
@@ -244,12 +320,22 @@ namespace GeometryHelper.Core
         /// The loop collides where it crosses a rim, where its material and the face's overlap, or where it comes within
         /// the point tolerance of a rim, the outline from outside or a hole's from within the hole.
         /// </remarks>
-        public static bool CollidesWith(GeoFace2 face, GeoPolygonArc2 loop, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(loop, tolerance), rim => ArcChain2.Cross(ArcChain2.EdgesOf(rim), ArcChain2.EdgesOf(loop), tolerance), () => loop.Vertices[0], at => loop.Contains(at, tolerance), tolerance, hole => ArcChain2.ComeWithin(ArcChain2.EdgesOf(hole), ArcChain2.EdgesOf(loop), tolerance));
+        public static bool CollidesWith(GeoFace2 face, GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Touches(
+                face,
+                rim => rim.CollidesWith(loop, tolerance),
+                rim => ArcChain2.Cross(ArcChain2.EdgesOf(rim), ArcChain2.EdgesOf(loop), tolerance),
+                () => loop.Vertices[0],
+                at => loop.Contains(at, tolerance),
+                tolerance,
+                hole => ArcChain2.ComeWithin(ArcChain2.EdgesOf(hole), ArcChain2.EdgesOf(loop), tolerance)
+            );
 
         /// <summary>
         /// Determines whether a curved chain reaches the material of a face.
         /// </summary>
-        public static bool CollidesWith(GeoFace2 face, GeoPolylineArc2 chain) => CollidesWith(face, chain, Tolerance.Global);
+        public static bool CollidesWith(GeoFace2 face, GeoPolylineArc2 chain) =>
+            CollidesWith(face, chain, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a curved chain reaches the material of a face, within a tolerance.
@@ -258,7 +344,16 @@ namespace GeometryHelper.Core
         /// The chain collides where it crosses a rim, lies on the material, or comes within the point tolerance of a rim,
         /// the outline from outside or a hole's from within the hole.
         /// </remarks>
-        public static bool CollidesWith(GeoFace2 face, GeoPolylineArc2 chain, Tolerance tolerance) => Touches(face, rim => rim.CollidesWith(chain, tolerance), rim => ArcChain2.Cross(ArcChain2.EdgesOf(rim), ArcChain2.EdgesOf(chain), tolerance), () => chain.Vertices[0], null, tolerance, hole => ArcChain2.ComeWithin(ArcChain2.EdgesOf(hole), ArcChain2.EdgesOf(chain), tolerance));
+        public static bool CollidesWith(GeoFace2 face, GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Touches(
+                face,
+                rim => rim.CollidesWith(chain, tolerance),
+                rim => ArcChain2.Cross(ArcChain2.EdgesOf(rim), ArcChain2.EdgesOf(chain), tolerance),
+                () => chain.Vertices[0],
+                null,
+                tolerance,
+                hole => ArcChain2.ComeWithin(ArcChain2.EdgesOf(hole), ArcChain2.EdgesOf(chain), tolerance)
+            );
 
         /// <summary>
         /// Determines whether the materials of two faces meet.
@@ -292,104 +387,131 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(other));
             }
 
-            return Touches(face, rim => CollidesWith(other, rim, tolerance), rim => Crosses(other, rim, tolerance), () => other.Boundary.Vertices[0], at => Containment2.Contains(other, at, tolerance), tolerance, hole => Collision2.ComeWithin(ToArray(hole.GetEdges()), ToArray(other.Boundary.GetEdges()), tolerance));
+            return Touches(
+                face,
+                rim => CollidesWith(other, rim, tolerance),
+                rim => Crosses(other, rim, tolerance),
+                () => other.Boundary.Vertices[0],
+                at => Containment2.Contains(other, at, tolerance),
+                tolerance,
+                hole => Collision2.ComeWithin(ToArray(hole.GetEdges()), ToArray(other.Boundary.GetEdges()), tolerance)
+            );
         }
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a point.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPoint2 point) => GetShortestLineTo(face, point, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPoint2 point) =>
+            GetShortestLineTo(face, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a point, within a tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(Projection2.ProjectToFace(face, point, tolerance), point);
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPoint2 point, Tolerance tolerance) =>
+            new GeoLine2(Projection2.ProjectToFace(face, point, tolerance), point);
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a segment.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoLine2 line) => GetShortestLineTo(face, line, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoLine2 line) =>
+            GetShortestLineTo(face, line, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a segment, within a tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoLine2 line, Tolerance tolerance) => Nearest(face, rim => rim.GetShortestLineTo(line, tolerance));
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoLine2 line, Tolerance tolerance) =>
+            Nearest(face, rim => rim.GetShortestLineTo(line, tolerance));
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a arc.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoArc2 arc) => GetShortestLineTo(face, arc, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoArc2 arc) =>
+            GetShortestLineTo(face, arc, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a arc, within a tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoArc2 arc, Tolerance tolerance) => Nearest(face, rim => rim.GetShortestLineTo(arc, tolerance));
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoArc2 arc, Tolerance tolerance) =>
+            Nearest(face, rim => rim.GetShortestLineTo(arc, tolerance));
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a circle.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoCircle2 circle) => GetShortestLineTo(face, circle, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoCircle2 circle) =>
+            GetShortestLineTo(face, circle, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a circle, within a tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoCircle2 circle, Tolerance tolerance) => Nearest(face, rim => rim.GetShortestLineTo(circle, tolerance));
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoCircle2 circle, Tolerance tolerance) =>
+            Nearest(face, rim => rim.GetShortestLineTo(circle, tolerance));
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a rectangle.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoRectangle2 rect) => GetShortestLineTo(face, rect, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoRectangle2 rect) =>
+            GetShortestLineTo(face, rect, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a rectangle, within a tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoRectangle2 rect, Tolerance tolerance) => Nearest(face, rim => rim.GetShortestLineTo(rect, tolerance));
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoRectangle2 rect, Tolerance tolerance) =>
+            Nearest(face, rim => rim.GetShortestLineTo(rect, tolerance));
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a polyline.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPolyline2 polyline) => GetShortestLineTo(face, polyline, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPolyline2 polyline) =>
+            GetShortestLineTo(face, polyline, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a polyline, within a tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPolyline2 polyline, Tolerance tolerance) => Nearest(face, rim => rim.GetShortestLineTo(polyline, tolerance));
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPolyline2 polyline, Tolerance tolerance) =>
+            Nearest(face, rim => rim.GetShortestLineTo(polyline, tolerance));
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a polygon.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPolygon2 polygon) => GetShortestLineTo(face, polygon, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPolygon2 polygon) =>
+            GetShortestLineTo(face, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a polygon, within a tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPolygon2 polygon, Tolerance tolerance) => Nearest(face, rim => rim.GetShortestLineTo(polygon, tolerance));
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPolygon2 polygon, Tolerance tolerance) =>
+            Nearest(face, rim => rim.GetShortestLineTo(polygon, tolerance));
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a curved loop.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPolygonArc2 loop) => GetShortestLineTo(face, loop, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPolygonArc2 loop) =>
+            GetShortestLineTo(face, loop, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a curved loop, within a tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPolygonArc2 loop, Tolerance tolerance) => Nearest(face, rim => rim.GetShortestLineTo(loop, tolerance));
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Nearest(face, rim => rim.GetShortestLineTo(loop, tolerance));
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a curved chain.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPolylineArc2 chain) => GetShortestLineTo(face, chain, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPolylineArc2 chain) =>
+            GetShortestLineTo(face, chain, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a curved chain, within a tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPolylineArc2 chain, Tolerance tolerance) => Nearest(face, rim => rim.GetShortestLineTo(chain, tolerance));
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Nearest(face, rim => rim.GetShortestLineTo(chain, tolerance));
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on the boundary of another.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either face is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoFace2 other) => GetShortestLineTo(face, other, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoFace2 other) =>
+            GetShortestLineTo(face, other, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on the boundary of another, within a
@@ -441,7 +563,9 @@ namespace GeometryHelper.Core
         {
             if (Stub2.ReadsAsStart(line, tolerance))
             {
-                return Stub2.Meets(DistanceTo(face, line, Exactly), line) ? 0.0 : Distance2.DistanceTo(face, line.StartPoint, tolerance);
+                return Stub2.Meets(DistanceTo(face, line, Exactly), line)
+                    ? 0.0
+                    : Distance2.DistanceTo(face, line.StartPoint, tolerance);
             }
 
             return Apart(face, rim => Distance2.DistanceTo(rim, line, Exactly), line.StartPoint);
@@ -465,8 +589,8 @@ namespace GeometryHelper.Core
         /// about (50, 50) lies in the hole and is 10 from its rim.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static double DistanceTo(GeoFace2 face, GeoArc2 arc, Tolerance tolerance)
-            => Apart(face, rim => Arc2.Gap(arc, rim), arc.StartPoint);
+        public static double DistanceTo(GeoFace2 face, GeoArc2 arc, Tolerance tolerance) =>
+            Apart(face, rim => Arc2.Gap(arc, rim), arc.StartPoint);
 
         /// <summary>
         /// Gets the distance from the material of a face to a circle.
@@ -488,8 +612,12 @@ namespace GeometryHelper.Core
         /// is nought away.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static double DistanceTo(GeoFace2 face, GeoCircle2 circle, Tolerance tolerance)
-            => Apart(face, rim => Distance2.DistanceTo(circle, rim, Exactly), new GeoPoint2(circle.Center.X + circle.Radius, circle.Center.Y));
+        public static double DistanceTo(GeoFace2 face, GeoCircle2 circle, Tolerance tolerance) =>
+            Apart(
+                face,
+                rim => Distance2.DistanceTo(circle, rim, Exactly),
+                new GeoPoint2(circle.Center.X + circle.Radius, circle.Center.Y)
+            );
 
         /// <summary>
         /// Gets the distance from the material of a face to a rectangle.
@@ -513,14 +641,19 @@ namespace GeometryHelper.Core
         {
             GeoLine2[] edges = rect.GetEdges();
 
-            return Apart(face, rim => Containment2.Contains(rect, rim.StartPoint, Exactly) ? 0.0 : Least(rim, edges), rect.GetVertices()[0]);
+            return Apart(
+                face,
+                rim => Containment2.Contains(rect, rim.StartPoint, Exactly) ? 0.0 : Least(rim, edges),
+                rect.GetVertices()[0]
+            );
         }
 
         /// <summary>
         /// Gets the distance from the material of a face to a polyline.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face or the polyline is null.</exception>
-        public static double DistanceTo(GeoFace2 face, GeoPolyline2 polyline) => DistanceTo(face, polyline, Tolerance.Global);
+        public static double DistanceTo(GeoFace2 face, GeoPolyline2 polyline) =>
+            DistanceTo(face, polyline, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from the material of a face to a polyline, within a tolerance.
@@ -547,7 +680,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from the material of a face to a polygon.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face or the polygon is null.</exception>
-        public static double DistanceTo(GeoFace2 face, GeoPolygon2 polygon) => DistanceTo(face, polygon, Tolerance.Global);
+        public static double DistanceTo(GeoFace2 face, GeoPolygon2 polygon) =>
+            DistanceTo(face, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from the material of a face to a polygon, within a tolerance.
@@ -568,7 +702,11 @@ namespace GeometryHelper.Core
 
             GeoLine2[] edges = ToArray(polygon.GetEdges());
 
-            return Apart(face, rim => Containment2.Contains(polygon, rim.StartPoint, Exactly) ? 0.0 : Least(rim, edges), polygon[0]);
+            return Apart(
+                face,
+                rim => Containment2.Contains(polygon, rim.StartPoint, Exactly) ? 0.0 : Least(rim, edges),
+                polygon[0]
+            );
         }
 
         /// <summary>
@@ -596,14 +734,19 @@ namespace GeometryHelper.Core
 
             List<GeoEdge2> edges = ArcChain2.EdgesOf(loop);
 
-            return Apart(face, rim => Containment2.Contains(loop, rim.StartPoint, Exactly) ? 0.0 : Least(rim, edges), loop[0]);
+            return Apart(
+                face,
+                rim => Containment2.Contains(loop, rim.StartPoint, Exactly) ? 0.0 : Least(rim, edges),
+                loop[0]
+            );
         }
 
         /// <summary>
         /// Gets the distance from the material of a face to a curved chain.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face or the chain is null.</exception>
-        public static double DistanceTo(GeoFace2 face, GeoPolylineArc2 chain) => DistanceTo(face, chain, Tolerance.Global);
+        public static double DistanceTo(GeoFace2 face, GeoPolylineArc2 chain) =>
+            DistanceTo(face, chain, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from the material of a face to a curved chain, within a tolerance.
@@ -660,7 +803,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from the material of a face to a triangle.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static double DistanceTo(GeoFace2 face, GeoTriangle2 triangle) => DistanceTo(face, triangle, Tolerance.Global);
+        public static double DistanceTo(GeoFace2 face, GeoTriangle2 triangle) =>
+            DistanceTo(face, triangle, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from the material of a face to a triangle, within a tolerance.
@@ -822,7 +966,12 @@ namespace GeometryHelper.Core
         /// corner of the face at a tolerance of 0.001 is 0.0015 away, where the shortest line, which lets a segment run on
         /// up to the tolerance past its ends, and the collision band read nought.
         /// </remarks>
-        internal static double Apart(GeoFace2 face, Func<GeoLine2, double> fromRimEdge, GeoPoint2 onShape, double enough = 0.0)
+        internal static double Apart(
+            GeoFace2 face,
+            Func<GeoLine2, double> fromRimEdge,
+            GeoPoint2 onShape,
+            double enough = 0.0
+        )
         {
             Required(face, nameof(face));
 
@@ -833,7 +982,9 @@ namespace GeometryHelper.Core
                 foreach (GeoPolygon2 hole in face.Holes)
                 {
                     // On a hole's rim the point is on the material's edge, so only its inside counts as the hole.
-                    if (Containment2.Contains(hole, onShape, Exactly) && !Containment2.IsPointOn(hole, onShape, Exactly))
+                    if (
+                        Containment2.Contains(hole, onShape, Exactly) && !Containment2.IsPointOn(hole, onShape, Exactly)
+                    )
                     {
                         inHole = true;
                         break;
@@ -982,7 +1133,8 @@ namespace GeometryHelper.Core
             Func<GeoPoint2> somewhereOnProbe,
             Func<GeoPoint2, bool> probeHolds,
             Tolerance tolerance,
-            Func<GeoPolygon2, bool> nearRim)
+            Func<GeoPolygon2, bool> nearRim
+        )
         {
             if (face == null)
             {
@@ -1020,7 +1172,8 @@ namespace GeometryHelper.Core
             bool crosses,
             GeoPoint2 somewhereOnProbe,
             Func<GeoPoint2, bool> probeHolds,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             if (crosses)
             {

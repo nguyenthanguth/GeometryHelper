@@ -13,20 +13,25 @@ namespace GeometryHelper.UnitTest.Plane
     {
         private const double Gap = 0.00175;
 
-        private static Tolerance At(double equalPoint) => new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
+        private static Tolerance At(double equalPoint) =>
+            new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
 
         // 0.0005 wide and 10 tall, its left side at x = 20.00175, 0.00175 clear of the curves below at x = 20.
         private static GeoRectangle2 Thin() => new GeoRectangle2(new GeoPoint2(20.002, 0), 0.0005, 10, 0);
 
         private static GeoArc2 Arc() => new GeoArc2(new GeoPoint2(0, 0), 20, -Math.PI / 4.0, Math.PI / 4.0);
 
-        private static GeoPolylineArc2 Chain() => new GeoPolylineArc2(
-            new[] { new GeoPoint2(10, -10), new GeoPoint2(20, 0), new GeoPoint2(10, 10) },
-            new[] { 0.0, 0.0, 0.0 });
+        private static GeoPolylineArc2 Chain() =>
+            new GeoPolylineArc2(
+                new[] { new GeoPoint2(10, -10), new GeoPoint2(20, 0), new GeoPoint2(10, 10) },
+                new[] { 0.0, 0.0, 0.0 }
+            );
 
-        private static GeoPolygonArc2 Loop() => new GeoPolygonArc2(
-            new[] { new GeoPoint2(0, -10), new GeoPoint2(20, -10), new GeoPoint2(20, 10), new GeoPoint2(0, 10) },
-            new[] { 0.0, 0.0, 0.0, 0.0 });
+        private static GeoPolygonArc2 Loop() =>
+            new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, -10), new GeoPoint2(20, -10), new GeoPoint2(20, 10), new GeoPoint2(0, 10) },
+                new[] { 0.0, 0.0, 0.0, 0.0 }
+            );
 
         [Fact]
         public void ARectangleHalfAThousandthWide_IsMeasuredToAnArcAChainAndALoopBySides_AtTheDefaultTolerance()

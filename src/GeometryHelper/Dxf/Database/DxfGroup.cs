@@ -48,9 +48,7 @@ namespace GeometryHelper.Dxf
         /// Initializes a group made in code, with no description, selectable, to be added to the group dictionary by
         /// <see cref="DxfDBDictionary.SetAt"/>, as AutoCAD's <c>Group()</c> is.
         /// </summary>
-        public DxfGroup()
-        {
-        }
+        public DxfGroup() { }
 
         /// <summary>
         /// Initializes a group made in code with its description, as AutoCAD's <c>Group(description, selectable)</c>:
@@ -67,9 +65,7 @@ namespace GeometryHelper.Dxf
         }
 
         internal DxfGroup(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets or sets the name of the group, as AutoCAD's <c>Name</c>: the name of its entry in the dictionary that holds it,
@@ -86,7 +82,6 @@ namespace GeometryHelper.Dxf
         public string Name
         {
             get => Dictionary()?.NameOf(this);
-
             set
             {
                 if (value == null)
@@ -101,7 +96,10 @@ namespace GeometryHelper.Dxf
 
                 DxfSymbolTable.CheckName(value, nameof(value));
                 InFile("be renamed");
-                DxfDBDictionary dictionary = Dictionary() ?? throw new InvalidOperationException("The group " + Handle + " is in no dictionary to be named in.");
+                DxfDBDictionary dictionary = Dictionary()
+                    ?? throw new InvalidOperationException(
+                        "The group " + Handle + " is in no dictionary to be named in."
+                    );
                 dictionary.Rename(this, value);
 
                 if (IsAnonymous)
@@ -118,7 +116,6 @@ namespace GeometryHelper.Dxf
         public string Description
         {
             get => Item == null ? _description : DxfReader.Decode(Item.File.ValueOf(Item, 300) ?? string.Empty);
-
             set
             {
                 if (value == null)
@@ -139,7 +136,8 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                InFile("be described").SetValues(Item, new[] { new KeyValuePair<int, string>(300, value) }, Order, false);
+                InFile("be described")
+                    .SetValues(Item, new[] { new KeyValuePair<int, string>(300, value) }, Order, false);
             }
         }
 
@@ -151,7 +149,6 @@ namespace GeometryHelper.Dxf
         public bool Selectable
         {
             get => Item == null ? _selectable : Flag(71, true);
-
             set
             {
                 if (value == Selectable)
@@ -346,7 +343,10 @@ namespace GeometryHelper.Dxf
 
                 if (!taken.Add(entity.Item))
                 {
-                    throw new ArgumentException("The " + entity + " is in the group already, as AutoCAD answers eAlreadyInGroup.", nameof(entities));
+                    throw new ArgumentException(
+                        "The " + entity + " is in the group already, as AutoCAD answers eAlreadyInGroup.",
+                        nameof(entities)
+                    );
                 }
 
                 added.Add(entity);
@@ -425,7 +425,14 @@ namespace GeometryHelper.Dxf
 
                 if (at < index || IndexOf(taken, entity) >= 0)
                 {
-                    throw new ArgumentException("The " + entity + " is not in the group at or after " + index.ToString(CultureInfo.InvariantCulture) + ", or is given twice.", nameof(entities));
+                    throw new ArgumentException(
+                        "The "
+                            + entity
+                            + " is not in the group at or after "
+                            + index.ToString(CultureInfo.InvariantCulture)
+                            + ", or is given twice.",
+                        nameof(entities)
+                    );
                 }
 
                 taken.Add(entity);
@@ -486,7 +493,10 @@ namespace GeometryHelper.Dxf
 
             if (IndexOf(members, newEntity) >= 0)
             {
-                throw new ArgumentException("The " + newEntity + " is in the group already, as AutoCAD answers eAlreadyInGroup.", nameof(newEntity));
+                throw new ArgumentException(
+                    "The " + newEntity + " is in the group already, as AutoCAD answers eAlreadyInGroup.",
+                    nameof(newEntity)
+                );
             }
 
             members[at] = newEntity;
@@ -522,12 +532,28 @@ namespace GeometryHelper.Dxf
 
             if (numItems < 0 || fromIndex < 0 || fromIndex > members.Count - numItems)
             {
-                throw new ArgumentOutOfRangeException(nameof(fromIndex), fromIndex, "The run of " + numItems.ToString(CultureInfo.InvariantCulture) + " from " + fromIndex.ToString(CultureInfo.InvariantCulture) + " is not within the group of " + members.Count.ToString(CultureInfo.InvariantCulture) + ".");
+                throw new ArgumentOutOfRangeException(
+                    nameof(fromIndex),
+                    fromIndex,
+                    "The run of "
+                        + numItems.ToString(CultureInfo.InvariantCulture)
+                        + " from "
+                        + fromIndex.ToString(CultureInfo.InvariantCulture)
+                        + " is not within the group of "
+                        + members.Count.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
 
             if (toIndex < 0 || toIndex > members.Count - numItems)
             {
-                throw new ArgumentOutOfRangeException(nameof(toIndex), toIndex, "The run's first entity stands from 0 to " + (members.Count - numItems).ToString(CultureInfo.InvariantCulture) + ".");
+                throw new ArgumentOutOfRangeException(
+                    nameof(toIndex),
+                    toIndex,
+                    "The run's first entity stands from 0 to "
+                        + (members.Count - numItems).ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
 
             List<DxfEntity> run = members.GetRange(fromIndex, numItems);
@@ -555,9 +581,19 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(color));
             }
 
-            if (color.ColorMethod != DxfColorMethod.ByLayer && color.ColorMethod != DxfColorMethod.ByBlock && color.ColorMethod != DxfColorMethod.ByAci && color.ColorMethod != DxfColorMethod.ByColor)
+            if (
+                color.ColorMethod != DxfColorMethod.ByLayer
+                && color.ColorMethod != DxfColorMethod.ByBlock
+                && color.ColorMethod != DxfColorMethod.ByAci
+                && color.ColorMethod != DxfColorMethod.ByColor
+            )
             {
-                throw new ArgumentException("An entity of DXF is by layer, by block, of the index or of a true colour: " + color.ColorMethod + " is none of them.", nameof(color));
+                throw new ArgumentException(
+                    "An entity of DXF is by layer, by block, of the index or of a true colour: "
+                        + color.ColorMethod
+                        + " is none of them.",
+                    nameof(color)
+                );
             }
 
             List<DxfEntity> members = Checked("be given a colour");
@@ -616,7 +652,10 @@ namespace GeometryHelper.Dxf
 
             if (members.Count > 0 && !Item.File.LinetypeListed(value))
             {
-                throw new ArgumentException("The linetype " + value + " is not in the file's linetype table.", nameof(value));
+                throw new ArgumentException(
+                    "The linetype " + value + " is not in the file's linetype table.",
+                    nameof(value)
+                );
             }
 
             members.ForEach(e => e.Linetype = value);
@@ -646,7 +685,14 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gives the group as a line for debugging: its type, its handle, its name and how many entities it has.</summary>
         /// <returns>The line, such as <c>GROUP 2F BEAMS, 3 entities</c>.</returns>
-        public override string ToString() => "GROUP " + (Handle ?? string.Empty) + " " + (Name ?? string.Empty) + ", " + NumEntities.ToString(CultureInfo.InvariantCulture) + " entities";
+        public override string ToString() =>
+            "GROUP "
+            + (Handle ?? string.Empty)
+            + " "
+            + (Name ?? string.Empty)
+            + ", "
+            + NumEntities.ToString(CultureInfo.InvariantCulture)
+            + " entities";
 
         /// <summary>The description a group made in code is written with.</summary>
         internal string MadeDescription => _description;
@@ -666,7 +712,9 @@ namespace GeometryHelper.Dxf
             }
 
             DxfItem owner = Item.File.ObjectItem(OwnerHandle);
-            return owner != null && OfObject(owner) is DxfDBDictionary dictionary && dictionary.NameOf(this) != null ? dictionary : null;
+            return owner != null && OfObject(owner) is DxfDBDictionary dictionary && dictionary.NameOf(this) != null
+                ? dictionary
+                : null;
         }
 
         /// <summary>The entities the group lists that the drawing has, in its order, each the object that stands for it now.</summary>
@@ -698,7 +746,12 @@ namespace GeometryHelper.Dxf
             DxfFile file = Item.File;
             DxfFile.Rec record = file.RecordAt(Item, 0);
 
-            if (_kept != null && ReferenceEquals(record.Bytes, _keptBytes) && record.Start == _keptStart && file.RemovedCount == _keptRemoved)
+            if (
+                _kept != null
+                && ReferenceEquals(record.Bytes, _keptBytes)
+                && record.Start == _keptStart
+                && file.RemovedCount == _keptRemoved
+            )
             {
                 return new List<DxfItem>(_kept);
             }
@@ -760,7 +813,9 @@ namespace GeometryHelper.Dxf
             }
 
             DxfFile.Rec record = Item.File.RecordAt(Item, 0);
-            return ReferenceEquals(record.Bytes, _keptBytes) && record.Start == _keptStart && Item.File.RemovedCount == _keptRemoved;
+            return ReferenceEquals(record.Bytes, _keptBytes)
+                && record.Start == _keptStart
+                && Item.File.RemovedCount == _keptRemoved;
         }
 
         /// <summary>
@@ -779,7 +834,10 @@ namespace GeometryHelper.Dxf
 
                 if (_keptSet.Contains(entity.Item) || !taken.Add(entity.Item))
                 {
-                    throw new ArgumentException("The " + entity + " is in the group already, as AutoCAD answers eAlreadyInGroup.", nameof(entities));
+                    throw new ArgumentException(
+                        "The " + entity + " is in the group already, as AutoCAD answers eAlreadyInGroup.",
+                        nameof(entities)
+                    );
                 }
 
                 added.Add(entity);
@@ -829,11 +887,19 @@ namespace GeometryHelper.Dxf
             Keep(items);
         }
 
-        private bool Flag(int code, bool fallback)
-            => int.TryParse(Item.File.ValueOf(Item, code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value != 0 : fallback;
+        private bool Flag(int code, bool fallback) =>
+            int.TryParse(
+                Item.File.ValueOf(Item, code)?.Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int value
+            )
+                ? value != 0
+                : fallback;
 
-        private void SetFlag(int code, bool value)
-            => InFile("be changed").SetValues(Item, new[] { new KeyValuePair<int, string>(code, value ? "1" : "0") }, Order, false);
+        private void SetFlag(int code, bool value) =>
+            InFile("be changed")
+                .SetValues(Item, new[] { new KeyValuePair<int, string>(code, value ? "1" : "0") }, Order, false);
 
         /// <summary>Checks that an entity can be a member: of this file, not erased, its own record with a handle.</summary>
         private static void CheckMember(DxfEntity entity, DxfFile file, string parameter)
@@ -843,22 +909,38 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(parameter);
             }
 
-            if (!entity.IsResident || entity.IsErased || entity.Item.File != file || entity.Item.Parent != null || entity.Handle == null)
+            if (
+                !entity.IsResident
+                || entity.IsErased
+                || entity.Item.File != file
+                || entity.Item.Parent != null
+                || entity.Handle == null
+            )
             {
-                throw new ArgumentException("A group holds entities of its own drawing, not erased and not following another: the " + entity + " is not one.", parameter);
+                throw new ArgumentException(
+                    "A group holds entities of its own drawing, not erased and not following another: the "
+                        + entity
+                        + " is not one.",
+                    parameter
+                );
             }
         }
 
-        private static IEnumerable<DxfEntity> Single(DxfEntity entity, string parameter)
-            => entity == null ? throw new ArgumentNullException(parameter) : new[] { entity };
+        private static IEnumerable<DxfEntity> Single(DxfEntity entity, string parameter) =>
+            entity == null ? throw new ArgumentNullException(parameter) : new[] { entity };
 
-        private static int IndexOf(List<DxfEntity> entities, DxfEntity entity) => entities.FindIndex(e => ReferenceEquals(e.Item, entity.Item));
+        private static int IndexOf(List<DxfEntity> entities, DxfEntity entity) =>
+            entities.FindIndex(e => ReferenceEquals(e.Item, entity.Item));
 
         private static void CheckIndex(int index, int most, string parameter)
         {
             if (index < 0 || index > most)
             {
-                throw new ArgumentOutOfRangeException(parameter, index, "The index is from 0 to " + most.ToString(CultureInfo.InvariantCulture) + ".");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    index,
+                    "The index is from 0 to " + most.ToString(CultureInfo.InvariantCulture) + "."
+                );
             }
         }
 

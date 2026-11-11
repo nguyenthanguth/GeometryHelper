@@ -44,7 +44,10 @@ namespace GeometryHelper.Core
             // inside the other with nothing shared. Neither names a point. Centres closer than the point tolerance are one
             // where the circles stay within the tolerance of each other all round, or where the rounding of the numbers leaves
             // no line to cross on, as in the plane (Intersection2).
-            if (apart <= tolerance.EqualPoint && Intersection2.AboutOneCentre(apart, Scale(first, second), first.Radius, second.Radius, tolerance))
+            if (
+                apart <= tolerance.EqualPoint
+                && Intersection2.AboutOneCentre(apart, Scale(first, second), first.Radius, second.Radius, tolerance)
+            )
             {
                 return found;
             }
@@ -106,7 +109,8 @@ namespace GeometryHelper.Core
 
             if (second.Radius < first.Radius)
             {
-                double back = (apart * apart + (second.Radius - first.Radius) * (second.Radius + first.Radius)) / (2.0 * apart);
+                double back =
+                    (apart * apart + (second.Radius - first.Radius) * (second.Radius + first.Radius)) / (2.0 * apart);
                 GeoPoint3 nearer = OntoPlane(second, second.Center.Add(between.Multiply(-back / apart)));
 
                 foreach (GeoPoint3 candidate in PointsOnLine(second, nearer, across, tolerance))
@@ -120,7 +124,8 @@ namespace GeometryHelper.Core
                 return found;
             }
 
-            double along =(apart * apart + (first.Radius - second.Radius) * (first.Radius + second.Radius)) / (2.0 * apart);
+            double along =
+                (apart * apart + (first.Radius - second.Radius) * (first.Radius + second.Radius)) / (2.0 * apart);
             GeoPoint3 foot = OntoPlane(first, first.Center.Add(between.Multiply(along / apart)));
 
             foreach (GeoPoint3 candidate in PointsOnLine(first, foot, across, tolerance))
@@ -142,8 +147,8 @@ namespace GeometryHelper.Core
         /// apart, leans out of the plane by the rounding of their coordinates: carried 14 along it, the foot stood 3E-8 off
         /// the plane, and the crossings found from it as far off the circles.
         /// </remarks>
-        private static GeoPoint3 OntoPlane(GeoArc3 arc, GeoPoint3 point)
-            => point.Add(arc.Normal.Multiply(-arc.Center.GetVectorTo(point).DotProduct(arc.Normal)));
+        private static GeoPoint3 OntoPlane(GeoArc3 arc, GeoPoint3 point) =>
+            point.Add(arc.Normal.Multiply(-arc.Center.GetVectorTo(point).DotProduct(arc.Normal)));
 
         /// <summary>
         /// The largest coordinate of the centres of two arcs, or radius, whichever is larger: the size of the numbers whose
@@ -155,7 +160,8 @@ namespace GeometryHelper.Core
             GeoPoint3 b = second.Center;
             double coordinates = Math.Max(
                 Math.Max(Math.Max(Math.Abs(a.X), Math.Abs(a.Y)), Math.Abs(a.Z)),
-                Math.Max(Math.Max(Math.Abs(b.X), Math.Abs(b.Y)), Math.Abs(b.Z)));
+                Math.Max(Math.Max(Math.Abs(b.X), Math.Abs(b.Y)), Math.Abs(b.Z))
+            );
 
             return Math.Max(coordinates, Math.Max(first.Radius, second.Radius));
         }
@@ -163,8 +169,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where two arcs cross.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoArc3 first, GeoArc3 second)
-            => GetIntersections(first, second, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoArc3 first, GeoArc3 second) =>
+            GetIntersections(first, second, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where two arcs cross, within a tolerance.
@@ -205,8 +211,8 @@ namespace GeometryHelper.Core
         /// the difference of the centres, leant out of the plane by its rounding and the crossings lay up to 1.4E-7 off both.
         /// </para>
         /// </remarks>
-        public static GeoPoint3[] GetIntersections(GeoArc3 first, GeoArc3 second, Tolerance tolerance)
-            => Shared(first, second, tolerance);
+        public static GeoPoint3[] GetIntersections(GeoArc3 first, GeoArc3 second, Tolerance tolerance) =>
+            Shared(first, second, tolerance);
 
         /// <summary>
         /// Gets the places two arcs share, read both ways from the one that leads, with where they pass within the tolerance
@@ -237,10 +243,18 @@ namespace GeometryHelper.Core
 
             // Along the line read from the one that leads, turned round for the one asked first where that is the other, so
             // that the two orders are each other's reverse whichever way the normals point.
-            GeoVector3 direction = (firstInPlane || secondInPlane
-                ? lead.Normal.CrossProduct(lead.Center.GetVectorTo(follow.Center))
-                : AlongShared(lead.Normal, follow.Normal, lead.Center, follow.Center, lead.Center.GetVectorTo(lead.StartPoint), tolerance))
-                .Multiply(swapped ? -1.0 : 1.0);
+            GeoVector3 direction = (
+                firstInPlane || secondInPlane
+                    ? lead.Normal.CrossProduct(lead.Center.GetVectorTo(follow.Center))
+                    : AlongShared(
+                        lead.Normal,
+                        follow.Normal,
+                        lead.Center,
+                        follow.Center,
+                        lead.Center.GetVectorTo(lead.StartPoint),
+                        tolerance
+                    )
+            ).Multiply(swapped ? -1.0 : 1.0);
             var keys = new double[points.Count];
             var order = new int[points.Count];
 
@@ -274,7 +288,14 @@ namespace GeometryHelper.Core
         /// direction of the first's own. Two circles of radius 100 and 90 in planes 0.005 apart, read in space at a point
         /// tolerance of 0.01, came in the order they were found whichever was asked first.
         /// </summary>
-        internal static GeoVector3 AlongShared(GeoVector3 normal, GeoVector3 otherNormal, GeoPoint3 center, GeoPoint3 otherCenter, GeoVector3 own, Tolerance tolerance)
+        internal static GeoVector3 AlongShared(
+            GeoVector3 normal,
+            GeoVector3 otherNormal,
+            GeoPoint3 center,
+            GeoPoint3 otherCenter,
+            GeoVector3 own,
+            Tolerance tolerance
+        )
         {
             GeoVector3 shared = normal.CrossProduct(otherNormal);
 
@@ -296,7 +317,8 @@ namespace GeometryHelper.Core
         {
             double apart = first.Center.DistanceTo(second.Center);
 
-            return apart <= tolerance.EqualPoint && Intersection2.AboutOneCentre(apart, Scale(first, second), first.Radius, second.Radius, tolerance);
+            return apart <= tolerance.EqualPoint
+                && Intersection2.AboutOneCentre(apart, Scale(first, second), first.Radius, second.Radius, tolerance);
         }
 
         /// <summary>
@@ -305,8 +327,30 @@ namespace GeometryHelper.Core
         /// </summary>
         private static bool ComesFirst(GeoArc3 arc, GeoArc3 other)
         {
-            double[] one = { arc.Center.X, arc.Center.Y, arc.Center.Z, arc.Radius, arc.Normal.X, arc.Normal.Y, arc.Normal.Z, arc.StartAngle, arc.SweptAngle };
-            double[] two = { other.Center.X, other.Center.Y, other.Center.Z, other.Radius, other.Normal.X, other.Normal.Y, other.Normal.Z, other.StartAngle, other.SweptAngle };
+            double[] one =
+            {
+                arc.Center.X,
+                arc.Center.Y,
+                arc.Center.Z,
+                arc.Radius,
+                arc.Normal.X,
+                arc.Normal.Y,
+                arc.Normal.Z,
+                arc.StartAngle,
+                arc.SweptAngle,
+            };
+            double[] two =
+            {
+                other.Center.X,
+                other.Center.Y,
+                other.Center.Z,
+                other.Radius,
+                other.Normal.X,
+                other.Normal.Y,
+                other.Normal.Z,
+                other.StartAngle,
+                other.SweptAngle,
+            };
 
             for (int i = 0; i < one.Length; i++)
             {
@@ -374,8 +418,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where two arcs cross.
         /// </summary>
-        public static bool TryIntersectWith(GeoArc3 first, GeoArc3 second, out GeoPoint3[] intersections)
-            => TryIntersectWith(first, second, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoArc3 first, GeoArc3 second, out GeoPoint3[] intersections) =>
+            TryIntersectWith(first, second, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where two arcs cross, within a tolerance.
@@ -384,7 +428,12 @@ namespace GeometryHelper.Core
         /// <param name="second">The second arc.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool TryIntersectWith(GeoArc3 first, GeoArc3 second, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoArc3 first,
+            GeoArc3 second,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(first, second, tolerance);
 
@@ -394,8 +443,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where an arc crosses a circle.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoCircle3 circle)
-            => GetIntersections(arc, AsArc(circle));
+        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoCircle3 circle) =>
+            GetIntersections(arc, AsArc(circle));
 
         /// <summary>
         /// Gets every point where an arc crosses a circle, within a tolerance.
@@ -403,8 +452,8 @@ namespace GeometryHelper.Core
         /// <param name="arc">The arc.</param>
         /// <param name="circle">The circle.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoCircle3 circle, Tolerance tolerance)
-            => GetIntersections(arc, AsArc(circle), tolerance);
+        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoCircle3 circle, Tolerance tolerance) =>
+            GetIntersections(arc, AsArc(circle), tolerance);
 
         /// <summary>
         /// Determines whether an arc touches a circle.
@@ -417,14 +466,14 @@ namespace GeometryHelper.Core
         /// <param name="arc">The arc.</param>
         /// <param name="circle">The circle.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool CollidesWith(GeoArc3 arc, GeoCircle3 circle, Tolerance tolerance)
-            => CollidesWith(arc, AsArc(circle), tolerance);
+        public static bool CollidesWith(GeoArc3 arc, GeoCircle3 circle, Tolerance tolerance) =>
+            CollidesWith(arc, AsArc(circle), tolerance);
 
         /// <summary>
         /// Tries to find where an arc crosses a circle.
         /// </summary>
-        public static bool TryIntersectWith(GeoArc3 arc, GeoCircle3 circle, out GeoPoint3[] intersections)
-            => TryIntersectWith(arc, AsArc(circle), out intersections);
+        public static bool TryIntersectWith(GeoArc3 arc, GeoCircle3 circle, out GeoPoint3[] intersections) =>
+            TryIntersectWith(arc, AsArc(circle), out intersections);
 
         /// <summary>
         /// Tries to find where an arc crosses a circle, within a tolerance.
@@ -433,14 +482,18 @@ namespace GeometryHelper.Core
         /// <param name="circle">The circle.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool TryIntersectWith(GeoArc3 arc, GeoCircle3 circle, out GeoPoint3[] intersections, Tolerance tolerance)
-            => TryIntersectWith(arc, AsArc(circle), out intersections, tolerance);
+        public static bool TryIntersectWith(
+            GeoArc3 arc,
+            GeoCircle3 circle,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        ) => TryIntersectWith(arc, AsArc(circle), out intersections, tolerance);
 
         /// <summary>
         /// Gets every point where two circles cross.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoCircle3 first, GeoCircle3 second)
-            => GetIntersections(first, second, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoCircle3 first, GeoCircle3 second) =>
+            GetIntersections(first, second, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where two circles cross, within a tolerance.
@@ -463,20 +516,29 @@ namespace GeometryHelper.Core
         /// place there, as <see cref="CollidesWith(GeoCircle3, GeoCircle3, Tolerance)"/> reads a touch, the middle of the
         /// shortest line between them is the place, as for two arcs.
         /// </remarks>
-        public static GeoPoint3[] GetIntersections(GeoCircle3 first, GeoCircle3 second, Tolerance tolerance)
-            => Shared(AsArc(first), AsArc(second), tolerance);
+        public static GeoPoint3[] GetIntersections(GeoCircle3 first, GeoCircle3 second, Tolerance tolerance) =>
+            Shared(AsArc(first), AsArc(second), tolerance);
 
         /// <summary>
         /// Adds a point two arcs share unless a place already named stands within the tolerance of it, or both arcs pass
         /// within the tolerance of the point halfway between the two.
         /// </summary>
-        private static void AddPlace(List<GeoPoint3> found, GeoPoint3 point, GeoArc3 one, GeoArc3 other, Tolerance tolerance)
+        private static void AddPlace(
+            List<GeoPoint3> found,
+            GeoPoint3 point,
+            GeoArc3 one,
+            GeoArc3 other,
+            Tolerance tolerance
+        )
         {
             foreach (GeoPoint3 named in found)
             {
                 GeoPoint3 halfway = named.Add(named.GetVectorTo(point).Multiply(0.5));
 
-                if (named.IsEqualTo(point, tolerance) || (one.IsPointOn(halfway, tolerance) && other.IsPointOn(halfway, tolerance)))
+                if (
+                    named.IsEqualTo(point, tolerance)
+                    || (one.IsPointOn(halfway, tolerance) && other.IsPointOn(halfway, tolerance))
+                )
                 {
                     return;
                 }
@@ -488,7 +550,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether two circles touch.
         /// </summary>
-        public static bool CollidesWith(GeoCircle3 first, GeoCircle3 second) => CollidesWith(AsArc(first), AsArc(second));
+        public static bool CollidesWith(GeoCircle3 first, GeoCircle3 second) =>
+            CollidesWith(AsArc(first), AsArc(second));
 
         /// <summary>
         /// Determines whether two circles touch, within a tolerance.
@@ -496,14 +559,14 @@ namespace GeometryHelper.Core
         /// <param name="first">The first circle.</param>
         /// <param name="second">The second circle.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool CollidesWith(GeoCircle3 first, GeoCircle3 second, Tolerance tolerance)
-            => CollidesWith(AsArc(first), AsArc(second), tolerance);
+        public static bool CollidesWith(GeoCircle3 first, GeoCircle3 second, Tolerance tolerance) =>
+            CollidesWith(AsArc(first), AsArc(second), tolerance);
 
         /// <summary>
         /// Tries to find where two circles cross.
         /// </summary>
-        public static bool TryIntersectWith(GeoCircle3 first, GeoCircle3 second, out GeoPoint3[] intersections)
-            => TryIntersectWith(first, second, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoCircle3 first, GeoCircle3 second, out GeoPoint3[] intersections) =>
+            TryIntersectWith(first, second, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where two circles cross, within a tolerance.
@@ -512,7 +575,12 @@ namespace GeometryHelper.Core
         /// <param name="second">The second circle.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool TryIntersectWith(GeoCircle3 first, GeoCircle3 second, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoCircle3 first,
+            GeoCircle3 second,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(first, second, tolerance);
 

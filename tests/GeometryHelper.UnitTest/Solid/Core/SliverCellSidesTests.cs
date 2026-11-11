@@ -18,10 +18,22 @@ namespace GeometryHelper.UnitTest.Solid.Core
         // as Tekla Structures leaves a face out of flat by more than a thousandth, read as triangles.
         private static readonly double[] Warp =
         {
-            -0.00048489047725297496, -0.00064674465738789877, -0.00071111207466856285, 0.00037612753311577762,
-            -0.00010961444144186316, 0.0012851214841020919, -0.0010610683381173658, 0.0013517996621317252,
-            0.00028839976562267111, -0.0011476201622713234, 0.0014266767734056884, -0.00038733922127676124,
-            -0.0012902568987556151, -0.0012876353258093332, -5.3968254746905586E-05, -0.0010410855834379618,
+            -0.00048489047725297496,
+            -0.00064674465738789877,
+            -0.00071111207466856285,
+            0.00037612753311577762,
+            -0.00010961444144186316,
+            0.0012851214841020919,
+            -0.0010610683381173658,
+            0.0013517996621317252,
+            0.00028839976562267111,
+            -0.0011476201622713234,
+            0.0014266767734056884,
+            -0.00038733922127676124,
+            -0.0012902568987556151,
+            -0.0012876353258093332,
+            -5.3968254746905586E-05,
+            -0.0010410855834379618,
         };
 
         private const int Grid = 3;
@@ -31,7 +43,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// </summary>
         private static GeoSolid3 SteppedBlock()
         {
-            GeoPoint3 P(int a, int b) => new GeoPoint3(1000.0 * a / Grid, 1000.0 * b / Grid, 300.0 + Warp[a * (Grid + 1) + b]);
+            GeoPoint3 P(int a, int b) =>
+                new GeoPoint3(1000.0 * a / Grid, 1000.0 * b / Grid, 300.0 + Warp[a * (Grid + 1) + b]);
             var faces = new List<GeoFace3>();
 
             for (int a = 0; a < Grid; a++)
@@ -43,14 +56,65 @@ namespace GeometryHelper.UnitTest.Solid.Core
                 }
             }
 
-            faces.Add(new GeoFace3(new GeoPolygon3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(0, 1000, 0), new GeoPoint3(2000, 1000, 0), new GeoPoint3(2000, 0, 0) }, Fine)));
-            faces.Add(new GeoFace3(new GeoPolygon3(new[] { new GeoPoint3(1000, 0, 400), new GeoPoint3(2000, 0, 400), new GeoPoint3(2000, 1000, 400), new GeoPoint3(1000, 1000, 400) }, Fine)));
-            faces.Add(new GeoFace3(new GeoPolygon3(new[] { new GeoPoint3(2000, 0, 0), new GeoPoint3(2000, 1000, 0), new GeoPoint3(2000, 1000, 400), new GeoPoint3(2000, 0, 400) }, Fine)));
+            faces.Add(
+                new GeoFace3(
+                    new GeoPolygon3(
+                        new[]
+                        {
+                            new GeoPoint3(0, 0, 0),
+                            new GeoPoint3(0, 1000, 0),
+                            new GeoPoint3(2000, 1000, 0),
+                            new GeoPoint3(2000, 0, 0),
+                        },
+                        Fine
+                    )
+                )
+            );
+            faces.Add(
+                new GeoFace3(
+                    new GeoPolygon3(
+                        new[]
+                        {
+                            new GeoPoint3(1000, 0, 400),
+                            new GeoPoint3(2000, 0, 400),
+                            new GeoPoint3(2000, 1000, 400),
+                            new GeoPoint3(1000, 1000, 400),
+                        },
+                        Fine
+                    )
+                )
+            );
+            faces.Add(
+                new GeoFace3(
+                    new GeoPolygon3(
+                        new[]
+                        {
+                            new GeoPoint3(2000, 0, 0),
+                            new GeoPoint3(2000, 1000, 0),
+                            new GeoPoint3(2000, 1000, 400),
+                            new GeoPoint3(2000, 0, 400),
+                        },
+                        Fine
+                    )
+                )
+            );
 
             var x0 = new List<GeoPoint3> { new GeoPoint3(0, 1000, 0), new GeoPoint3(0, 0, 0) };
             var riser = new List<GeoPoint3>();
-            var y0 = new List<GeoPoint3> { new GeoPoint3(0, 0, 0), new GeoPoint3(2000, 0, 0), new GeoPoint3(2000, 0, 400), new GeoPoint3(1000, 0, 400) };
-            var y1 = new List<GeoPoint3> { new GeoPoint3(0, 1000, 0), new GeoPoint3(2000, 1000, 0), new GeoPoint3(2000, 1000, 400), new GeoPoint3(1000, 1000, 400) };
+            var y0 = new List<GeoPoint3>
+            {
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(2000, 0, 0),
+                new GeoPoint3(2000, 0, 400),
+                new GeoPoint3(1000, 0, 400),
+            };
+            var y1 = new List<GeoPoint3>
+            {
+                new GeoPoint3(0, 1000, 0),
+                new GeoPoint3(2000, 1000, 0),
+                new GeoPoint3(2000, 1000, 400),
+                new GeoPoint3(1000, 1000, 400),
+            };
 
             for (int k = 0; k <= Grid; k++)
             {
@@ -73,7 +137,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         // Its top at z = 300, along the warped top of the low step and through the high one.
-        private static GeoSolid3 Tool() => new GeoAabb3(new GeoPoint3(700, 200, 100), new GeoPoint3(1300, 800, 300)).ToObb().ToSolid();
+        private static GeoSolid3 Tool() =>
+            new GeoAabb3(new GeoPoint3(700, 200, 100), new GeoPoint3(1300, 800, 300)).ToObb().ToSolid();
 
         // The tool's 600 by 600 by 200, less what of it stands over the warped top, a few hundred cubic millimetres.
         private const double Shared = 600.0 * 600.0 * 200.0;
@@ -89,7 +154,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.True(block.TrySubtract(Tool(), out GeoSolid3 rest, Fine, out BooleanOutcome outcome));
             Assert.Equal(BooleanOutcome.Made, outcome);
             Assert.True(rest.Validate(Fine).IsValid, rest.Validate(Fine).ToString());
-            Assert.InRange(rest.GetVolume(Fine), block.GetVolume(Fine) - Shared - 1000.0, block.GetVolume(Fine) - Shared + 1000.0);
+            Assert.InRange(
+                rest.GetVolume(Fine),
+                block.GetVolume(Fine) - Shared - 1000.0,
+                block.GetVolume(Fine) - Shared + 1000.0
+            );
         }
 
         [Fact]

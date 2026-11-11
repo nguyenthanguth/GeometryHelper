@@ -21,9 +21,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Initializes a diameter dimension of the origin, as AutoCAD's <c>new DiametricDimension()</c>, in the style Standard.</summary>
         public DxfDiametricDimension()
-            : this(new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(0.0, 0.0, 0.0), 0.0, string.Empty, null)
-        {
-        }
+            : this(new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(0.0, 0.0, 0.0), 0.0, string.Empty, null) { }
 
         /// <summary>
         /// Initializes a diameter dimension, as AutoCAD's <c>new DiametricDimension(chordPoint, farChordPoint, leaderLength,
@@ -37,30 +35,51 @@ namespace GeometryHelper.Dxf
         /// <param name="dimensionStyle">The style it is drawn in, by its name; null for Standard.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the length is not a finite number.</exception>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
-        public DxfDiametricDimension(GeoPoint3 chordPoint, GeoPoint3 farChordPoint, double leaderLength, string dimensionText, DxfDimStyleTableRecord dimensionStyle)
-            : base("DIMENSION", 3, farChordPoint, dimensionText, dimensionStyle, DxfRadialDimension.Groups("AcDbDiametricDimension", chordPoint, leaderLength))
-        {
-        }
+        public DxfDiametricDimension(
+            GeoPoint3 chordPoint,
+            GeoPoint3 farChordPoint,
+            double leaderLength,
+            string dimensionText,
+            DxfDimStyleTableRecord dimensionStyle
+        )
+            : base(
+                "DIMENSION",
+                3,
+                farChordPoint,
+                dimensionText,
+                dimensionStyle,
+                DxfRadialDimension.Groups("AcDbDiametricDimension", chordPoint, leaderLength)
+            ) { }
 
         internal DxfDiametricDimension(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets the point of the circle the leader starts at (groups 15, 25, 35), as AutoCAD's <c>ChordPoint</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 ChordPoint { get => SubPoint(15); set => SetSubPoint(15, value); }
+        public GeoPoint3 ChordPoint
+        {
+            get => SubPoint(15);
+            set => SetSubPoint(15, value);
+        }
 
         /// <summary>Gets or sets the point opposite the chord point (groups 10, 20, 30), as AutoCAD's <c>FarChordPoint</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 FarChordPoint { get => DefinitionPoint; set => SetDefinitionPoint(value); }
+        public GeoPoint3 FarChordPoint
+        {
+            get => DefinitionPoint;
+            set => SetDefinitionPoint(value);
+        }
 
         /// <summary>Gets or sets the length of the leader to the text (group 40), as AutoCAD's <c>LeaderLength</c>; nought where the record gives none.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the length set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public double LeaderLength { get => SubReal(40, 0.0); set => SetSubReal(40, value, LeaderLength); }
+        public double LeaderLength
+        {
+            get => SubReal(40, 0.0);
+            set => SetSubReal(40, value, LeaderLength);
+        }
 
         /// <summary>Gets the diameter, between the two chord points, as AutoCAD's <c>Measurement</c>: 30 for a circle of radius 15.</summary>
         public override double Measurement => ChordPoint.DistanceTo(FarChordPoint);

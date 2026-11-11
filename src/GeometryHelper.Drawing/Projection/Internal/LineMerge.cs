@@ -108,7 +108,9 @@ namespace GeometryHelper.Drawing.Projection
                 order[i] = i;
             }
 
-            Array.Sort(order, (a, b) => a == b ? 0 : Longer(units, members[a], members[b]) ? -1 : 1);
+            Array.Sort(order, (a, b) => a == b ? 0
+                : Longer(units, members[a], members[b]) ? -1
+                : 1);
             var groupOf = new int[n];
             var lines = new List<int>();
             var from = new List<double>();
@@ -119,7 +121,8 @@ namespace GeometryHelper.Drawing.Projection
                 Piece2 p = pieces[members[i]];
                 int best = -1;
                 double bestOverlap = double.NegativeInfinity;
-                double bestS0 = 0.0, bestS1 = 0.0;
+                double bestS0 = 0.0,
+                    bestS1 = 0.0;
 
                 // A piece the same as the one before it, taken just before it, overlaps that one's line wholly, and no
                 // line overlaps it more or comes first among those that overlap it as much.
@@ -212,7 +215,11 @@ namespace GeometryHelper.Drawing.Projection
                     Piece2 longer = pieces[r];
                     Piece2 shorter = pieces[members[lines[iLonger ? gj : gi]]];
 
-                    if (Near(longer, units[r], shorter, tol) && Near(longer, units[r], p, tol) && Near(longer, units[r], pieces[members[j]], tol))
+                    if (
+                        Near(longer, units[r], shorter, tol)
+                        && Near(longer, units[r], p, tol)
+                        && Near(longer, units[r], pieces[members[j]], tol)
+                    )
                     {
                         Along(longer, units[r], p, out double a0, out double a1);
                         Along(longer, units[r], pieces[members[j]], out double b0, out double b1);
@@ -322,8 +329,8 @@ namespace GeometryHelper.Drawing.Projection
         /// <summary>
         /// Whether two pieces have the same ends to the bit, so that every test of one gives what it gives of the other.
         /// </summary>
-        private static bool SameEnds(Piece2 a, Piece2 b)
-            => BitConverter.DoubleToInt64Bits(a.X0) == BitConverter.DoubleToInt64Bits(b.X0)
+        private static bool SameEnds(Piece2 a, Piece2 b) =>
+            BitConverter.DoubleToInt64Bits(a.X0) == BitConverter.DoubleToInt64Bits(b.X0)
             && BitConverter.DoubleToInt64Bits(a.Y0) == BitConverter.DoubleToInt64Bits(b.Y0)
             && BitConverter.DoubleToInt64Bits(a.X1) == BitConverter.DoubleToInt64Bits(b.X1)
             && BitConverter.DoubleToInt64Bits(a.Y1) == BitConverter.DoubleToInt64Bits(b.Y1);
@@ -430,7 +437,12 @@ namespace GeometryHelper.Drawing.Projection
                     }
 
                     objects.RemoveRange(distinct, objects.Count - distinct);
-                    stretch = new Piece2 { Visibility = visibility, Kind = kind, Objects = objects.ToArray() };
+                    stretch = new Piece2
+                    {
+                        Visibility = visibility,
+                        Kind = kind,
+                        Objects = objects.ToArray(),
+                    };
                 }
 
                 if (open >= 0 && (!any || !Same(current, stretch)))
@@ -452,10 +464,13 @@ namespace GeometryHelper.Drawing.Projection
             }
         }
 
-        private static int Rank(EdgeKind kind) => kind == EdgeKind.SectionOutline ? 2 : kind == EdgeKind.Sharp ? 1 : 0;
+        private static int Rank(EdgeKind kind) =>
+            kind == EdgeKind.SectionOutline ? 2
+            : kind == EdgeKind.Sharp ? 1
+            : 0;
 
-        private static bool Same(Piece2 a, Piece2 b)
-            => a.Visibility == b.Visibility && a.Kind == b.Kind && Piece2.CompareObjects(a.Objects, b.Objects) == 0;
+        private static bool Same(Piece2 a, Piece2 b) =>
+            a.Visibility == b.Visibility && a.Kind == b.Kind && Piece2.CompareObjects(a.Objects, b.Objects) == 0;
 
         private static Piece2 Along(Piece2 r, double ux, double uy, double s0, double s1, Piece2 attributes)
         {

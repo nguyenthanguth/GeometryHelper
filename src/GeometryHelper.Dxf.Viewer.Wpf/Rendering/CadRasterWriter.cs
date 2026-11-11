@@ -65,7 +65,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <exception cref="ArgumentException">Thrown when the settings are not of a raster device in pixels.</exception>
         /// <exception cref="InvalidOperationException">Thrown when there is nothing to plot.</exception>
         /// <exception cref="IOException">Thrown when the file cannot be written.</exception>
-        public static CadPlotPage WritePlot(string path, CadDocument document, CadSpace space, CadPlotSettings settings, DisplayBox display)
+        public static CadPlotPage WritePlot(
+            string path,
+            CadDocument document,
+            CadSpace space,
+            CadPlotSettings settings,
+            DisplayBox display
+        )
         {
             if (path == null)
             {
@@ -79,10 +85,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (!settings.IsRaster || !settings.Paper.IsPixels)
             {
-                throw new ArgumentException("An image is plotted by " + CadPlotSettings.PngDevice + " or " + CadPlotSettings.JpgDevice + " on a size in pixels.", nameof(settings));
+                throw new ArgumentException(
+                    "An image is plotted by "
+                        + CadPlotSettings.PngDevice
+                        + " or "
+                        + CadPlotSettings.JpgDevice
+                        + " on a size in pixels.",
+                    nameof(settings)
+                );
             }
 
-            CadPlotPage page = CadPlotPage.Compute(document ?? throw new ArgumentNullException(nameof(document)), space ?? throw new ArgumentNullException(nameof(space)), settings, display);
+            CadPlotPage page = CadPlotPage.Compute(
+                document ?? throw new ArgumentNullException(nameof(document)),
+                space ?? throw new ArgumentNullException(nameof(space)),
+                settings,
+                display
+            );
 
             if (page.IsEmpty)
             {
@@ -91,7 +109,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             int width = (int)Math.Round(page.SheetWidth);
             int height = (int)Math.Round(page.SheetHeight);
-            bool jpeg = string.Equals(settings.DeviceName, CadPlotSettings.JpgDevice, StringComparison.OrdinalIgnoreCase);
+            bool jpeg = string.Equals(
+                settings.DeviceName,
+                CadPlotSettings.JpgDevice,
+                StringComparison.OrdinalIgnoreCase
+            );
 
             using (var picture = new SKBitmap(new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul)))
             {
@@ -101,14 +123,32 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     surface.Canvas.Clear(SKColors.White);
 
                     // The sheet's pixels, Y upward from its lower left corner, to the image's rows from the top.
-                    renderer.RenderPlot(surface.Canvas, document, space, page, settings, new Affine2(1.0, 0.0, 0.0, -1.0, 0.0, height), 96.0 / 25.4);
+                    renderer.RenderPlot(
+                        surface.Canvas,
+                        document,
+                        space,
+                        page,
+                        settings,
+                        new Affine2(1.0, 0.0, 0.0, -1.0, 0.0, height),
+                        96.0 / 25.4
+                    );
                     surface.Canvas.Flush();
                 }
 
                 File.WriteAllBytes(path, Encode(picture, jpeg ? CadImageFormat.Jpeg : CadImageFormat.Png));
             }
 
-            GeometryHelperLog.Info("CadRasterWriter: " + space.Name + " plotted to " + path + ", " + width.ToString(System.Globalization.CultureInfo.InvariantCulture) + " by " + height.ToString(System.Globalization.CultureInfo.InvariantCulture) + " pixels.");
+            GeometryHelperLog.Info(
+                "CadRasterWriter: "
+                    + space.Name
+                    + " plotted to "
+                    + path
+                    + ", "
+                    + width.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    + " by "
+                    + height.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    + " pixels."
+            );
             return page;
         }
 
@@ -116,7 +156,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// A view drawn into a new picture of its size, as the canvas keeps its scene: blue, green, red and alpha, every pixel
         /// opaque. With handles, only their entities are drawn.
         /// </summary>
-        internal static SKBitmap Draw(CadDocument document, CadSpace space, CadView view, CanvasOptions options, IReadOnlyCollection<string> handles)
+        internal static SKBitmap Draw(
+            CadDocument document,
+            CadSpace space,
+            CadView view,
+            CanvasOptions options,
+            IReadOnlyCollection<string> handles
+        )
         {
             int width = Math.Max(1, (int)Math.Round(view.Width));
             int height = Math.Max(1, (int)Math.Round(view.Height));
@@ -149,11 +195,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             // Read as opaque, the encoders write no alpha: a PNG of colour type 2, as AutoCAD's.
-            var opaque = new SKPixmap(picture.Info.WithAlphaType(SKAlphaType.Opaque), picture.GetPixels(), picture.RowBytes);
+            var opaque = new SKPixmap(
+                picture.Info.WithAlphaType(SKAlphaType.Opaque),
+                picture.GetPixels(),
+                picture.RowBytes
+            );
 
             using (opaque)
             using (SKImage image = SKImage.FromPixels(opaque))
-            using (SKData data = image.Encode(format == CadImageFormat.Png ? SKEncodedImageFormat.Png : SKEncodedImageFormat.Jpeg, format == CadImageFormat.Png ? 100 : JpegQuality))
+            using (
+                SKData data = image.Encode(
+                    format == CadImageFormat.Png ? SKEncodedImageFormat.Png : SKEncodedImageFormat.Jpeg,
+                    format == CadImageFormat.Png ? 100 : JpegQuality
+                )
+            )
             {
                 return data.ToArray();
             }

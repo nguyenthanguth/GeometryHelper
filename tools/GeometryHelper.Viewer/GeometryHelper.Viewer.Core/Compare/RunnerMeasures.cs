@@ -104,7 +104,10 @@ namespace GeometryHelper.Viewer
 
             var numbers = new ItemNumbers();
 
-            if (item.Properties.TryGetValue(Prefix + "vertices", out string vertices) && int.TryParse(vertices, NumberStyles.Integer, CultureInfo.InvariantCulture, out int count))
+            if (
+                item.Properties.TryGetValue(Prefix + "vertices", out string vertices)
+                && int.TryParse(vertices, NumberStyles.Integer, CultureInfo.InvariantCulture, out int count)
+            )
             {
                 numbers.Vertices = count;
             }
@@ -116,21 +119,32 @@ namespace GeometryHelper.Viewer
             return numbers;
         }
 
-        private static double? Double(SceneItem item, string name)
-            => item.Properties.TryGetValue(Prefix + name, out string text) && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ? value : (double?)null;
+        private static double? Double(SceneItem item, string name) =>
+            item.Properties.TryGetValue(Prefix + name, out string text)
+            && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+                ? value
+                : (double?)null;
 
         private static string KeyOf(string label)
         {
             switch (label)
             {
-                case "Vertices": return "vertices";
-                case "Length": return "length";
-                case "Area": return "area";
-                case "Volume": return "volume";
-                case "Surface area": return "surfaceArea";
-                case "Closed": return "closed";
-                case "Library": return "note";
-                default: return null;
+                case "Vertices":
+                    return "vertices";
+                case "Length":
+                    return "length";
+                case "Area":
+                    return "area";
+                case "Volume":
+                    return "volume";
+                case "Surface area":
+                    return "surfaceArea";
+                case "Closed":
+                    return "closed";
+                case "Library":
+                    return "note";
+                default:
+                    return null;
             }
         }
     }

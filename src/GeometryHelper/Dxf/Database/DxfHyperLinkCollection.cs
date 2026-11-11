@@ -52,7 +52,6 @@ namespace GeometryHelper.Dxf
                 Check(index, links.Count);
                 return links[index];
             }
-
             set
             {
                 Checked(value);
@@ -178,7 +177,10 @@ namespace GeometryHelper.Dxf
                 if (group.TypeCode == 1002)
                 {
                     string brace = group.Value.Trim();
-                    depth = brace == "{" ? depth + 1 : brace == "}" ? Math.Max(0, depth - 1) : depth;
+                    depth =
+                        brace == "{" ? depth + 1
+                        : brace == "}" ? Math.Max(0, depth - 1)
+                        : depth;
 
                     if (depth == 1 && brace == "{")
                     {
@@ -264,7 +266,11 @@ namespace GeometryHelper.Dxf
         {
             if (index < 0 || index >= count)
             {
-                throw new ArgumentOutOfRangeException(nameof(index), index, "The hyperlinks are 0 to " + (count - 1).ToString(CultureInfo.InvariantCulture) + ".");
+                throw new ArgumentOutOfRangeException(
+                    nameof(index),
+                    index,
+                    "The hyperlinks are 0 to " + (count - 1).ToString(CultureInfo.InvariantCulture) + "."
+                );
             }
         }
     }

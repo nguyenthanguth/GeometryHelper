@@ -143,7 +143,6 @@ namespace GeometryHelper.Dxf
         public double StepSize
         {
             get => Real("$STEPSIZE", 40, 100.0);
-
             set
             {
                 if (!Same(value, StepSize) && !(value >= 1E-6 && value <= 1E6))
@@ -161,7 +160,6 @@ namespace GeometryHelper.Dxf
         public double StepsPerSec
         {
             get => Real("$STEPSPERSEC", 40, 24.0);
-
             set
             {
                 if (!Same(value, StepsPerSec) && !(value >= 1.0 && value <= 30.0))
@@ -251,12 +249,15 @@ namespace GeometryHelper.Dxf
         public double Latitude
         {
             get => Real("$LATITUDE", 40, 37.795);
-
             set
             {
                 if (!Same(value, Latitude) && !(value >= -90.0 && value <= 90.0))
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A latitude is from -90 to 90 degrees.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A latitude is from -90 to 90 degrees."
+                    );
                 }
 
                 PutReal("$LATITUDE", 40, value, Latitude, Bound.Finite, 1021);
@@ -269,12 +270,15 @@ namespace GeometryHelper.Dxf
         public double Longitude
         {
             get => Real("$LONGITUDE", 40, -122.394);
-
             set
             {
                 if (!Same(value, Longitude) && !(value >= -180.0 && value <= 180.0))
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A longitude is from -180 to 180 degrees.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A longitude is from -180 to 180 degrees."
+                    );
                 }
 
                 PutReal("$LONGITUDE", 40, value, Longitude, Bound.Finite, 1021);
@@ -373,7 +377,6 @@ namespace GeometryHelper.Dxf
         public DxfColor Interferecolor
         {
             get => DxfColor.OfIndex(Whole("$INTERFERECOLOR", 62, 256));
-
             set
             {
                 if (value == null)
@@ -381,9 +384,16 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentNullException(nameof(value));
                 }
 
-                if (value.ColorMethod != DxfColorMethod.ByLayer && value.ColorMethod != DxfColorMethod.ByBlock && value.ColorMethod != DxfColorMethod.ByAci)
+                if (
+                    value.ColorMethod != DxfColorMethod.ByLayer
+                    && value.ColorMethod != DxfColorMethod.ByBlock
+                    && value.ColorMethod != DxfColorMethod.ByAci
+                )
                 {
-                    throw new ArgumentException("The header holds the colour of interference as an index: by layer, by block or 1 to 255.", nameof(value));
+                    throw new ArgumentException(
+                        "The header holds the colour of interference as an index: by layer, by block or 1 to 255.",
+                        nameof(value)
+                    );
                 }
 
                 if (!value.Equals(Interferecolor))
@@ -405,7 +415,8 @@ namespace GeometryHelper.Dxf
         public DxfDBObject Cmaterial
         {
             get => Pointed("$CMATERIAL", 347);
-            set => PutPointed("$CMATERIAL", 347, value, Cmaterial, MaterialDictionary, "materials (ACAD_MATERIAL)", 1021);
+            set =>
+                PutPointed("$CMATERIAL", 347, value, Cmaterial, MaterialDictionary, "materials (ACAD_MATERIAL)", 1021);
         }
 
         /// <summary>
@@ -419,7 +430,16 @@ namespace GeometryHelper.Dxf
         public DxfDBObject dragvs
         {
             get => Pointed("$DRAGVS", 349);
-            set => PutPointed("$DRAGVS", 349, value, dragvs, VisualStyleDictionary, "visual styles (ACAD_VISUALSTYLE)", 1021);
+            set =>
+                PutPointed(
+                    "$DRAGVS",
+                    349,
+                    value,
+                    dragvs,
+                    VisualStyleDictionary,
+                    "visual styles (ACAD_VISUALSTYLE)",
+                    1021
+                );
         }
 
         /// <summary>Gets or sets the visual style the bodies where two interfere are shown in (<c>$INTERFEREOBJVS</c>, a handle), as AutoCAD's <c>Interfereobjvs</c> gives its id: a VISUALSTYLE of <see cref="VisualStyleDictionary"/>; null where the header names none the drawing has.</summary>
@@ -429,7 +449,16 @@ namespace GeometryHelper.Dxf
         public DxfDBObject Interfereobjvs
         {
             get => Pointed("$INTERFEREOBJVS", 345);
-            set => PutPointed("$INTERFEREOBJVS", 345, value, Interfereobjvs, VisualStyleDictionary, "visual styles (ACAD_VISUALSTYLE)", 1021);
+            set =>
+                PutPointed(
+                    "$INTERFEREOBJVS",
+                    345,
+                    value,
+                    Interfereobjvs,
+                    VisualStyleDictionary,
+                    "visual styles (ACAD_VISUALSTYLE)",
+                    1021
+                );
         }
 
         /// <summary>Gets or sets the visual style of the viewport while interference is checked (<c>$INTERFEREVPVS</c>, a handle), as AutoCAD's <c>Interferevpvs</c> gives its id: a VISUALSTYLE of <see cref="VisualStyleDictionary"/>; null where the header names none the drawing has.</summary>
@@ -439,7 +468,16 @@ namespace GeometryHelper.Dxf
         public DxfDBObject Interferevpvs
         {
             get => Pointed("$INTERFEREVPVS", 346);
-            set => PutPointed("$INTERFEREVPVS", 346, value, Interferevpvs, VisualStyleDictionary, "visual styles (ACAD_VISUALSTYLE)", 1021);
+            set =>
+                PutPointed(
+                    "$INTERFEREVPVS",
+                    346,
+                    value,
+                    Interferevpvs,
+                    VisualStyleDictionary,
+                    "visual styles (ACAD_VISUALSTYLE)",
+                    1021
+                );
         }
 
         /// <summary>
@@ -478,7 +516,11 @@ namespace GeometryHelper.Dxf
         {
             if (!Same(value, now) && !(value >= 0.0 && value < 2.0 * Math.PI))
             {
-                throw new ArgumentOutOfRangeException(nameof(value), value, name.Substring(1) + " is from nought to less than two pi radians.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    name.Substring(1) + " is from nought to less than two pi radians."
+                );
             }
 
             PutReal(name, 40, value, now, Bound.Finite, 1021);

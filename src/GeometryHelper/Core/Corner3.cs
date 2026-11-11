@@ -30,7 +30,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Rounds every corner of a straight chain by the same radius.
         /// </summary>
-        public static GeoPolylineArc3 Fillet(GeoPolyline3 polyline, double radius) => Fillet(polyline, radius, Tolerance.Global);
+        public static GeoPolylineArc3 Fillet(GeoPolyline3 polyline, double radius) =>
+            Fillet(polyline, radius, Tolerance.Global);
 
         /// <summary>
         /// Rounds every corner of a straight chain by the same radius, within a tolerance.
@@ -49,7 +50,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not a positive number.</exception>
         public static GeoPolylineArc3 Fillet(GeoPolyline3 polyline, double radius, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return Fillet(new GeoPolylineArc3(polyline), radius, tolerance);
         }
@@ -57,14 +59,16 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Rounds every corner of a chain that may curve by the same radius.
         /// </summary>
-        public static GeoPolylineArc3 Fillet(GeoPolylineArc3 chain, double radius) => Fillet(chain, radius, Tolerance.Global);
+        public static GeoPolylineArc3 Fillet(GeoPolylineArc3 chain, double radius) =>
+            Fillet(chain, radius, Tolerance.Global);
 
         /// <summary>
         /// Rounds every corner of a chain that may curve by the same radius, within a tolerance.
         /// </summary>
         public static GeoPolylineArc3 Fillet(GeoPolylineArc3 chain, double radius, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             RequirePositive(radius, nameof(radius));
 
@@ -74,7 +78,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Rounds the corners of a straight chain, each by its own radius.
         /// </summary>
-        public static GeoPolylineArc3 Fillet(GeoPolyline3 polyline, IReadOnlyList<double> radii) => Fillet(polyline, radii, Tolerance.Global);
+        public static GeoPolylineArc3 Fillet(GeoPolyline3 polyline, IReadOnlyList<double> radii) =>
+            Fillet(polyline, radii, Tolerance.Global);
 
         /// <summary>
         /// Rounds the corners of a straight chain, each by its own radius, within a tolerance.
@@ -86,7 +91,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a radius is negative or not a number.</exception>
         public static GeoPolylineArc3 Fillet(GeoPolyline3 polyline, IReadOnlyList<double> radii, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return Fillet(new GeoPolylineArc3(polyline), radii, tolerance);
         }
@@ -94,14 +100,16 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Rounds the corners of a chain that may curve, each by its own radius.
         /// </summary>
-        public static GeoPolylineArc3 Fillet(GeoPolylineArc3 chain, IReadOnlyList<double> radii) => Fillet(chain, radii, Tolerance.Global);
+        public static GeoPolylineArc3 Fillet(GeoPolylineArc3 chain, IReadOnlyList<double> radii) =>
+            Fillet(chain, radii, Tolerance.Global);
 
         /// <summary>
         /// Rounds the corners of a chain that may curve, each by its own radius, within a tolerance.
         /// </summary>
         public static GeoPolylineArc3 Fillet(GeoPolylineArc3 chain, IReadOnlyList<double> radii, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             RequireRadii(radii);
 
@@ -111,15 +119,22 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Rounds one named corner of a straight chain.
         /// </summary>
-        public static bool TryFilletAt(GeoPolyline3 polyline, int index, double radius, out GeoPolylineArc3 result)
-            => TryFilletAt(polyline, index, radius, out result, Tolerance.Global);
+        public static bool TryFilletAt(GeoPolyline3 polyline, int index, double radius, out GeoPolylineArc3 result) =>
+            TryFilletAt(polyline, index, radius, out result, Tolerance.Global);
 
         /// <summary>
         /// Rounds one named corner of a straight chain, within a tolerance.
         /// </summary>
-        public static bool TryFilletAt(GeoPolyline3 polyline, int index, double radius, out GeoPolylineArc3 result, Tolerance tolerance)
+        public static bool TryFilletAt(
+            GeoPolyline3 polyline,
+            int index,
+            double radius,
+            out GeoPolylineArc3 result,
+            Tolerance tolerance
+        )
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return TryFilletAt(new GeoPolylineArc3(polyline), index, radius, out result, tolerance);
         }
@@ -127,8 +142,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Rounds one named corner of a chain that may curve.
         /// </summary>
-        public static bool TryFilletAt(GeoPolylineArc3 chain, int index, double radius, out GeoPolylineArc3 result)
-            => TryFilletAt(chain, index, radius, out result, Tolerance.Global);
+        public static bool TryFilletAt(GeoPolylineArc3 chain, int index, double radius, out GeoPolylineArc3 result) =>
+            TryFilletAt(chain, index, radius, out result, Tolerance.Global);
 
         /// <summary>
         /// Rounds one named corner of a chain that may curve, within a tolerance.
@@ -141,9 +156,16 @@ namespace GeometryHelper.Core
         /// <returns>true if the corner had room to be rounded; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the chain or the radius is not a positive number.</exception>
-        public static bool TryFilletAt(GeoPolylineArc3 chain, int index, double radius, out GeoPolylineArc3 result, Tolerance tolerance)
+        public static bool TryFilletAt(
+            GeoPolylineArc3 chain,
+            int index,
+            double radius,
+            out GeoPolylineArc3 result,
+            Tolerance tolerance
+        )
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             if (index < 0 || index >= chain.VertexCount)
             {
@@ -170,8 +192,10 @@ namespace GeometryHelper.Core
 
             // A bend that takes the whole of a leg, give or take the tolerance, leaves nothing of it, and the arc
             // runs from the leg's far end, which does not move.
-            bool allOfFirst = incoming.Length - rounded.Before.EndPoint.DistanceTo(incoming.EndPoint) <= tolerance.EqualPoint;
-            bool allOfSecond = outgoing.Length - rounded.After.StartPoint.DistanceTo(outgoing.StartPoint) <= tolerance.EqualPoint;
+            bool allOfFirst =
+                incoming.Length - rounded.Before.EndPoint.DistanceTo(incoming.EndPoint) <= tolerance.EqualPoint;
+            bool allOfSecond =
+                outgoing.Length - rounded.After.StartPoint.DistanceTo(outgoing.StartPoint) <= tolerance.EqualPoint;
 
             var edges = new List<GeoEdge3>();
 
@@ -184,7 +208,9 @@ namespace GeometryHelper.Core
                         edges.Add(rounded.Before);
                     }
 
-                    edges.Add(Moved(rounded.Arc, allOfFirst, incoming.StartPoint, allOfSecond, outgoing.EndPoint, tolerance));
+                    edges.Add(
+                        Moved(rounded.Arc, allOfFirst, incoming.StartPoint, allOfSecond, outgoing.EndPoint, tolerance)
+                    );
 
                     if (!allOfSecond)
                     {
@@ -286,10 +312,14 @@ namespace GeometryHelper.Core
 
             if (refused > 0)
             {
-                GeometryHelperLog.Debug($"Fillet left {refused} corner(s) in space alone: too little edge, no turn, or a leg that curves.");
+                GeometryHelperLog.Debug(
+                    $"Fillet left {refused} corner(s) in space alone: too little edge, no turn, or a leg that curves."
+                );
             }
 
-            return new GeoPolylineArc3(Assemble(edges, doCut, cutFrom, cutTo, arcAt, takenAtStart, takenAtEnd, tolerance));
+            return new GeoPolylineArc3(
+                Assemble(edges, doCut, cutFrom, cutTo, arcAt, takenAtStart, takenAtEnd, tolerance)
+            );
         }
 
         /// <summary>
@@ -312,7 +342,8 @@ namespace GeometryHelper.Core
             GeoEdge3[] newPiece,
             double[] takenAtStart,
             double[] takenAtEnd,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             int count = edges.Count;
 
@@ -333,7 +364,11 @@ namespace GeometryHelper.Core
                 if (cutBefore || doCut[e])
                 {
                     gone.Add(edge.Length - takenAtStart[e] - takenAtEnd[e] <= tolerance.EqualPoint);
-                    meetAt.Add(!doCut[e] ? edge.EndPoint : !cutBefore ? edge.StartPoint : Midway(start, end));
+                    meetAt.Add(
+                        !doCut[e] ? edge.EndPoint
+                        : !cutBefore ? edge.StartPoint
+                        : Midway(start, end)
+                    );
                 }
                 else
                 {
@@ -378,9 +413,10 @@ namespace GeometryHelper.Core
                 }
 
                 // A run at the start or the end of the chain meets at the chain's own end, which never moves.
-                GeoPoint3 meet = runStart == 0 ? pieces[0].StartPoint
-                               : position == n ? pieces[n - 1].EndPoint
-                               : meetAt[position - 1];
+                GeoPoint3 meet =
+                    runStart == 0 ? pieces[0].StartPoint
+                    : position == n ? pieces[n - 1].EndPoint
+                    : meetAt[position - 1];
 
                 if (runStart > 0)
                 {
@@ -399,7 +435,16 @@ namespace GeometryHelper.Core
             {
                 if (!gone[k])
                 {
-                    result.Add(Moved(pieces[k], starts[k].HasValue, starts[k] ?? default(GeoPoint3), ends[k].HasValue, ends[k] ?? default(GeoPoint3), tolerance));
+                    result.Add(
+                        Moved(
+                            pieces[k],
+                            starts[k].HasValue,
+                            starts[k] ?? default(GeoPoint3),
+                            ends[k].HasValue,
+                            ends[k] ?? default(GeoPoint3),
+                            tolerance
+                        )
+                    );
                 }
             }
 
@@ -413,7 +458,14 @@ namespace GeometryHelper.Core
         /// An arc keeps its bulge and its plane: the point it moves to lies on a leg, and both legs lie in the
         /// plane of the corner.
         /// </remarks>
-        private static GeoEdge3 Moved(GeoEdge3 piece, bool movedStart, GeoPoint3 newStart, bool movedEnd, GeoPoint3 newEnd, Tolerance tolerance)
+        private static GeoEdge3 Moved(
+            GeoEdge3 piece,
+            bool movedStart,
+            GeoPoint3 newStart,
+            bool movedEnd,
+            GeoPoint3 newEnd,
+            Tolerance tolerance
+        )
         {
             if (!movedStart && !movedEnd)
             {
@@ -436,8 +488,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the point half way between two points.
         /// </summary>
-        private static GeoPoint3 Midway(GeoPoint3 first, GeoPoint3 second)
-            => new GeoPoint3((first.X + second.X) * 0.5, (first.Y + second.Y) * 0.5, (first.Z + second.Z) * 0.5);
+        private static GeoPoint3 Midway(GeoPoint3 first, GeoPoint3 second) =>
+            new GeoPoint3((first.X + second.X) * 0.5, (first.Y + second.Y) * 0.5, (first.Z + second.Z) * 0.5);
 
         /// <summary>
         /// Rounds one corner between two straight pieces, in the plane the corner itself lies in.
@@ -447,7 +499,13 @@ namespace GeometryHelper.Core
         /// they are laid out in a frame of their own, rounded by <see cref="ArcFillet2"/>, and lifted back.
         /// The arc carries that frame away with it as the plane its bulge is read in.
         /// </remarks>
-        private static bool TryRound(GeoEdge3 incoming, GeoEdge3 outgoing, double radius, Tolerance tolerance, out Rounded rounded)
+        private static bool TryRound(
+            GeoEdge3 incoming,
+            GeoEdge3 outgoing,
+            double radius,
+            Tolerance tolerance,
+            out Rounded rounded
+        )
         {
             rounded = default(Rounded);
 
@@ -463,9 +521,11 @@ namespace GeometryHelper.Core
             // from the unit legs and the plane the tolerance finds them to span, so that it cannot call the legs
             // parallel where the tolerance did not: a bend of 1E-7 radians at (1E-4, 1E-6) passed the test and
             // then threw building its frame.
-            if (!corner.GetVectorTo(incoming.StartPoint).TryGetNormal(out GeoVector3 toPrev, tolerance) ||
-                !corner.GetVectorTo(outgoing.EndPoint).TryGetNormal(out GeoVector3 toNext, tolerance) ||
-                !toNext.CrossProduct(toPrev).TryGetNormal(out GeoVector3 normal, tolerance))
+            if (
+                !corner.GetVectorTo(incoming.StartPoint).TryGetNormal(out GeoVector3 toPrev, tolerance)
+                || !corner.GetVectorTo(outgoing.EndPoint).TryGetNormal(out GeoVector3 toNext, tolerance)
+                || !toNext.CrossProduct(toPrev).TryGetNormal(out GeoVector3 normal, tolerance)
+            )
             {
                 return false;
             }
@@ -475,7 +535,17 @@ namespace GeometryHelper.Core
             var flatIn = new GeoEdge2(Flat(frame, incoming.StartPoint), Flat(frame, corner));
             var flatOut = new GeoEdge2(Flat(frame, corner), Flat(frame, outgoing.EndPoint));
 
-            if (!ArcFillet2.TryFillet(flatIn, flatOut, radius, out GeoArc2 arc, out GeoEdge2 shorter1, out GeoEdge2 shorter2, tolerance))
+            if (
+                !ArcFillet2.TryFillet(
+                    flatIn,
+                    flatOut,
+                    radius,
+                    out GeoArc2 arc,
+                    out GeoEdge2 shorter1,
+                    out GeoEdge2 shorter2,
+                    tolerance
+                )
+            )
             {
                 return false;
             }
@@ -494,7 +564,8 @@ namespace GeometryHelper.Core
             rounded = new Rounded(
                 new GeoEdge3(incoming.StartPoint, first),
                 new GeoEdge3(first, second, arc.Bulge, frame.ZAxis, tolerance),
-                new GeoEdge3(second, outgoing.EndPoint));
+                new GeoEdge3(second, outgoing.EndPoint)
+            );
 
             return true;
         }
@@ -530,8 +601,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Puts a point of the corner plane back into space.
         /// </summary>
-        private static GeoPoint3 Lift(GeoCoordinateSystem3 frame, GeoPoint2 point)
-            => frame.ToGlobal(new GeoPoint3(point.X, point.Y, 0.0));
+        private static GeoPoint3 Lift(GeoCoordinateSystem3 frame, GeoPoint2 point) =>
+            frame.ToGlobal(new GeoPoint3(point.X, point.Y, 0.0));
 
         /// <summary>
         /// Gets one radius for every corner of a run of edges.
@@ -599,7 +670,10 @@ namespace GeometryHelper.Core
             {
                 if (double.IsNaN(radius) || radius < 0.0)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(radii), "A radius cannot be negative, and nought means the corner is left alone.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(radii),
+                        "A radius cannot be negative, and nought means the corner is left alone."
+                    );
                 }
             }
         }

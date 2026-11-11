@@ -34,7 +34,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="owner">The window it is shown over; null for none.</param>
         /// <param name="model">The view model.</param>
         /// <returns>True when OK or the preview's Plot was pressed.</returns>
-        public static bool Show(Window owner, PlotDialogViewModel model) => new PlotWindow(model) { Owner = owner }.ShowDialog() == true;
+        public static bool Show(Window owner, PlotDialogViewModel model) =>
+            new PlotWindow(model) { Owner = owner }.ShowDialog() == true;
 
         private void OnHeaderDown(object sender, MouseButtonEventArgs e)
         {

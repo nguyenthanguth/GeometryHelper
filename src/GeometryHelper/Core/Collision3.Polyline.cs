@@ -21,11 +21,11 @@ namespace GeometryHelper.Core
     /// </remarks>
     public static partial class Collision3
     {
-
         /// <summary>
         /// Determines whether a straight chain touches a plane.
         /// </summary>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoPlane3 plane) => CollidesWith(polyline, plane, Tolerance.Global);
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoPlane3 plane) =>
+            CollidesWith(polyline, plane, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a straight chain touches a plane, within a tolerance.
@@ -35,13 +35,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when any of its segments touches; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoPlane3 plane, Tolerance tolerance)
-            => TouchedBySegment(polyline, segment => segment.CollidesWith(plane, tolerance));
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoPlane3 plane, Tolerance tolerance) =>
+            TouchedBySegment(polyline, segment => segment.CollidesWith(plane, tolerance));
 
         /// <summary>
         /// Determines whether a straight chain touches a segment.
         /// </summary>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoLine3 line) => CollidesWith(polyline, line, Tolerance.Global);
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoLine3 line) =>
+            CollidesWith(polyline, line, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a straight chain touches a segment, within a tolerance.
@@ -51,13 +52,21 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when any of its segments touches; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoLine3 line, Tolerance tolerance)
-            => Gap3.ChainToSegment(polyline ?? throw new ArgumentNullException(nameof(polyline)), line.StartPoint, line.EndPoint, true, tolerance, tolerance.EqualPoint) <= tolerance.EqualPoint;
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoLine3 line, Tolerance tolerance) =>
+            Gap3.ChainToSegment(
+                polyline ?? throw new ArgumentNullException(nameof(polyline)),
+                line.StartPoint,
+                line.EndPoint,
+                true,
+                tolerance,
+                tolerance.EqualPoint
+            ) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether a straight chain touches a ray.
         /// </summary>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoRay3 ray) => CollidesWith(polyline, ray, Tolerance.Global);
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoRay3 ray) =>
+            CollidesWith(polyline, ray, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a straight chain touches a ray, within a tolerance.
@@ -67,13 +76,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when any of its segments touches; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoRay3 ray, Tolerance tolerance)
-            => Distance3.DistanceTo(polyline, ray, tolerance) <= tolerance.EqualPoint;
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoRay3 ray, Tolerance tolerance) =>
+            Distance3.DistanceTo(polyline, ray, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether a straight chain touches an arc.
         /// </summary>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoArc3 arc) => CollidesWith(polyline, arc, Tolerance.Global);
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoArc3 arc) =>
+            CollidesWith(polyline, arc, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a straight chain touches an arc, within a tolerance.
@@ -83,13 +93,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when any of its segments touches; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoArc3 arc, Tolerance tolerance)
-            => TouchedBySegment(polyline, segment => segment.CollidesWith(arc, tolerance));
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoArc3 arc, Tolerance tolerance) =>
+            TouchedBySegment(polyline, segment => segment.CollidesWith(arc, tolerance));
 
         /// <summary>
         /// Determines whether a straight chain touches a circle.
         /// </summary>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoCircle3 circle) => CollidesWith(polyline, circle, Tolerance.Global);
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoCircle3 circle) =>
+            CollidesWith(polyline, circle, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a straight chain touches a circle, within a tolerance.
@@ -99,13 +110,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when any of its segments touches; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoCircle3 circle, Tolerance tolerance)
-            => TouchedBySegment(polyline, segment => segment.CollidesWith(circle, tolerance));
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoCircle3 circle, Tolerance tolerance) =>
+            TouchedBySegment(polyline, segment => segment.CollidesWith(circle, tolerance));
 
         /// <summary>
         /// Determines whether a straight chain touches a triangle.
         /// </summary>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoTriangle3 triangle) => CollidesWith(polyline, triangle, Tolerance.Global);
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoTriangle3 triangle) =>
+            CollidesWith(polyline, triangle, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a straight chain touches a triangle, within a tolerance.
@@ -115,13 +127,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when any of its segments touches; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoTriangle3 triangle, Tolerance tolerance)
-            => TouchedBySegment(polyline, segment => segment.CollidesWith(triangle, tolerance));
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoTriangle3 triangle, Tolerance tolerance) =>
+            TouchedBySegment(polyline, segment => segment.CollidesWith(triangle, tolerance));
 
         /// <summary>
         /// Determines whether a straight chain touches a polygon.
         /// </summary>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoPolygon3 polygon) => CollidesWith(polyline, polygon, Tolerance.Global);
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoPolygon3 polygon) =>
+            CollidesWith(polyline, polygon, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a straight chain touches a polygon, within a tolerance.
@@ -131,13 +144,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when any of its segments touches; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoPolygon3 polygon, Tolerance tolerance)
-            => TouchedBySegment(polyline, segment => segment.CollidesWith(polygon, tolerance));
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoPolygon3 polygon, Tolerance tolerance) =>
+            TouchedBySegment(polyline, segment => segment.CollidesWith(polygon, tolerance));
 
         /// <summary>
         /// Determines whether a straight chain touches a face.
         /// </summary>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoFace3 face) => CollidesWith(polyline, face, Tolerance.Global);
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoFace3 face) =>
+            CollidesWith(polyline, face, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a straight chain touches a face, within a tolerance.
@@ -147,13 +161,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when any of its segments touches; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoFace3 face, Tolerance tolerance)
-            => TouchedBySegment(polyline, segment => segment.CollidesWith(face, tolerance));
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoFace3 face, Tolerance tolerance) =>
+            TouchedBySegment(polyline, segment => segment.CollidesWith(face, tolerance));
 
         /// <summary>
         /// Determines whether a straight chain touches a box.
         /// </summary>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoObb3 box) => CollidesWith(polyline, box, Tolerance.Global);
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoObb3 box) =>
+            CollidesWith(polyline, box, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a straight chain touches a box, within a tolerance.
@@ -163,13 +178,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when any of its segments touches; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoObb3 box, Tolerance tolerance)
-            => TouchedBySegment(polyline, segment => segment.CollidesWith(box, tolerance));
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoObb3 box, Tolerance tolerance) =>
+            TouchedBySegment(polyline, segment => segment.CollidesWith(box, tolerance));
 
         /// <summary>
         /// Determines whether a straight chain touches a square box.
         /// </summary>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoAabb3 box) => CollidesWith(polyline, box, Tolerance.Global);
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoAabb3 box) =>
+            CollidesWith(polyline, box, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a straight chain touches a square box, within a tolerance.
@@ -179,8 +195,8 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when any of its segments touches; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoAabb3 box, Tolerance tolerance)
-            => TouchedBySegment(polyline, segment => segment.CollidesWith(box, tolerance));
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoAabb3 box, Tolerance tolerance) =>
+            TouchedBySegment(polyline, segment => segment.CollidesWith(box, tolerance));
 
         /// <summary>
         /// Determines whether any segment of a chain touches a shape, stopping at the first that does.
@@ -206,7 +222,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether two straight chains touch.
         /// </summary>
-        public static bool CollidesWith(GeoPolyline3 polyline, GeoPolyline3 other) => CollidesWith(polyline, other, Tolerance.Global);
+        public static bool CollidesWith(GeoPolyline3 polyline, GeoPolyline3 other) =>
+            CollidesWith(polyline, other, Tolerance.Global);
 
         /// <summary>
         /// Determines whether two straight chains touch, within a tolerance.

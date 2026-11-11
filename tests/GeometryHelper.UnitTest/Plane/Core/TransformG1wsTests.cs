@@ -21,17 +21,25 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class TransformG1wsTests
     {
-        private static readonly Tolerance Millionth = new Tolerance(1E-6, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-6);
+        private static readonly Tolerance Millionth = new Tolerance(
+            1E-6,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-6
+        );
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
         // The triangle (0, 0), (10, 0), (10, 10) with every corner cut by 0.0003 at a millionth: six corners.
-        private static GeoPolygon2 Cut() => Corner2.Chamfer(new GeoPolygon2(P(0, 0), P(10, 0), P(10, 10)), 0.0003, 0.0003, Millionth);
+        private static GeoPolygon2 Cut() =>
+            Corner2.Chamfer(new GeoPolygon2(P(0, 0), P(10, 0), P(10, 10)), 0.0003, 0.0003, Millionth);
 
         // The chain (0, 0), (10, 0), (10, 10) with its corner cut by 0.0003 at a millionth: four vertices.
-        private static GeoPolyline2 CutChain() => Corner2.Chamfer(new GeoPolyline2(P(0, 0), P(10, 0), P(10, 10)), 0.0003, 0.0003, Millionth);
+        private static GeoPolyline2 CutChain() =>
+            Corner2.Chamfer(new GeoPolyline2(P(0, 0), P(10, 0), P(10, 10)), 0.0003, 0.0003, Millionth);
 
-        private static GeoTransform2 Rigid() => GeoTransform2.Translation(new GeoVector2(5, 7)) * GeoTransform2.Rotation(P(3, 4), 0.7);
+        private static GeoTransform2 Rigid() =>
+            GeoTransform2.Translation(new GeoVector2(5, 7)) * GeoTransform2.Rotation(P(3, 4), 0.7);
 
         private static void AssertWhereTheTransformPutsThem(GeoTransform2 transform, GeoPolygon2 from, GeoPolygon2 to)
         {
@@ -99,7 +107,12 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AFaceWithTheCutTriangleForAHoleTurnedAndMoved_KeepsTheSixCornersOfItsHole()
         {
-            GeoPolygon2 hole = Corner2.Chamfer(new GeoPolygon2(P(0, 0), P(10, 10), P(10, 0)), 0.0003, 0.0003, Millionth);
+            GeoPolygon2 hole = Corner2.Chamfer(
+                new GeoPolygon2(P(0, 0), P(10, 10), P(10, 0)),
+                0.0003,
+                0.0003,
+                Millionth
+            );
             var face = new GeoFace2(new GeoPolygon2(P(-20, -20), P(30, -20), P(30, 30), P(-20, 30)), new[] { hole });
             GeoTransform2 rigid = Rigid();
 
@@ -147,7 +160,11 @@ namespace GeometryHelper.UnitTest.Plane
         {
             GeoPoint2[] corners =
             {
-                P(-0.001165, -0.002711), P(0.00062, -0.001059), P(0.002589, 0.00029), P(0.000415, 0.000801), P(-0.00214, 0.003174),
+                P(-0.001165, -0.002711),
+                P(0.00062, -0.001059),
+                P(0.002589, 0.00029),
+                P(0.000415, 0.000801),
+                P(-0.00214, 0.003174),
                 P(-0.001103, 0.000257),
             };
             double[] bulges = { 0, 0, 0.24, -0.24, 0, 0 };
@@ -155,8 +172,16 @@ namespace GeometryHelper.UnitTest.Plane
             var chain = new GeoPolylineArc2(corners, bulges);
             var scaled = new GeoPolylineArc2(Array.ConvertAll(corners, p => P(p.X * 64, p.Y * 64)), bulges);
 
-            GeoPolylineArc2[] offset = chain.Offset(-0.0000702, miters, new Tolerance(2E-6, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 2E-6));
-            GeoPolylineArc2[] offsetScaled = scaled.Offset(-0.0000702 * 64, miters, new Tolerance(2E-6 * 64, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 2E-6 * 64));
+            GeoPolylineArc2[] offset = chain.Offset(
+                -0.0000702,
+                miters,
+                new Tolerance(2E-6, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 2E-6)
+            );
+            GeoPolylineArc2[] offsetScaled = scaled.Offset(
+                -0.0000702 * 64,
+                miters,
+                new Tolerance(2E-6 * 64, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 2E-6 * 64)
+            );
 
             Assert.Single(offsetScaled);
             Assert.Equal(8, offsetScaled[0].VertexCount);

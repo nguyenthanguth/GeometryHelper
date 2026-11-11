@@ -19,15 +19,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Model = model ?? throw new ArgumentNullException(nameof(model));
             InitializeComponent();
             DataContext = model;
-            model.AskName = (title, offered) => StyleNameWindow.Ask(this, new StyleNameViewModel(title, offered, n => false));
+            model.AskName = (title, offered) =>
+                StyleNameWindow.Ask(this, new StyleNameViewModel(title, offered, n => false));
             model.AskImportFile = () =>
             {
-                var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Layer states (*.las)|*.las|All files (*.*)|*.*", Title = "Import layer state" };
+                var dialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Filter = "Layer states (*.las)|*.las|All files (*.*)|*.*",
+                    Title = "Import layer state",
+                };
                 return dialog.ShowDialog(this) == true ? dialog.FileName : null;
             };
             model.AskExportFile = offered =>
             {
-                var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "Layer states (*.las)|*.las", Title = "Export layer state", FileName = offered + ".las" };
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Filter = "Layer states (*.las)|*.las",
+                    Title = "Export layer state",
+                    FileName = offered + ".las",
+                };
                 return dialog.ShowDialog(this) == true ? dialog.FileName : null;
             };
         }

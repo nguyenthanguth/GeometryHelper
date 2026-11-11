@@ -27,7 +27,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             var database = new DxfDatabase("AC1027");
             database.TextStyleTable["Standard"].Font = new DxfFontDescriptor("Arial", false, false, 0, 34);
-            var corners = new[] { new GeoPoint3(120, 60, 0), new GeoPoint3(7620, 60, 0), new GeoPoint3(7620, 5360, 0), new GeoPoint3(120, 5360, 0) };
+            var corners = new[]
+            {
+                new GeoPoint3(120, 60, 0),
+                new GeoPoint3(7620, 60, 0),
+                new GeoPoint3(7620, 5360, 0),
+                new GeoPoint3(120, 5360, 0),
+            };
 
             for (int i = 0; i < 4; i++)
             {
@@ -37,13 +43,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 line.LineWeight = DxfLineWeight.LineWeight050;
             }
 
-            database.ModelSpace.AppendEntity(new DxfDBText { TextString = "ROOM 1", Position = new GeoPoint3(1500, 2500, 0), Height = 250 });
-            database.ModelSpace.AppendEntity(new DxfSolid(new GeoPoint3(5000, 1000, 0), new GeoPoint3(6000, 1000, 0), new GeoPoint3(5000, 1500, 0), new GeoPoint3(6000, 1500, 0)));
+            database.ModelSpace.AppendEntity(
+                new DxfDBText
+                {
+                    TextString = "ROOM 1",
+                    Position = new GeoPoint3(1500, 2500, 0),
+                    Height = 250,
+                }
+            );
+            database.ModelSpace.AppendEntity(
+                new DxfSolid(
+                    new GeoPoint3(5000, 1000, 0),
+                    new GeoPoint3(6000, 1000, 0),
+                    new GeoPoint3(5000, 1500, 0),
+                    new GeoPoint3(6000, 1500, 0)
+                )
+            );
             return CadDocument.From(database, "plan-level2.dxf");
         }
 
-        internal static CadPlotSettings AtOneToTwenty()
-            => new CadPlotSettings { Area = CadPlotArea.Window, Window = new DisplayBox(120, 60, 7620, 5360), FitToPaper = false, PaperUnits = 1, DrawingUnits = 20 };
+        internal static CadPlotSettings AtOneToTwenty() =>
+            new CadPlotSettings
+            {
+                Area = CadPlotArea.Window,
+                Window = new DisplayBox(120, 60, 7620, 5360),
+                FitToPaper = false,
+                PaperUnits = 1,
+                DrawingUnits = 20,
+            };
 
         private static byte[] Written(CadDocument document, CadPlotSettings settings)
         {
@@ -58,7 +85,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         public void APlanOnA3OnItsSide_IsAPageOf1190Point55By841Point89Points_WhoseTextIsFound()
         {
             CadDocument document = Plan();
-            Assert.Contains(document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>(), t => t.Strokes == null && t.Text == "ROOM 1");
+            Assert.Contains(document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>(), t =>
+                t.Strokes == null && t.Text == "ROOM 1"
+            );
 
             byte[] pdf = Written(document, AtOneToTwenty());
             string text = Latin(pdf);
@@ -119,15 +148,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             int lost = 0;
 
-            System.Threading.Tasks.Parallel.For(0, 64, new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = 8 }, i =>
-            {
-                CadDocument document = Plan();
-
-                if (!Pdf.Text(Written(document, AtOneToTwenty())).Contains("ROOM 1"))
+            System.Threading.Tasks.Parallel.For(
+                0,
+                64,
+                new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = 8 },
+                i =>
                 {
-                    System.Threading.Interlocked.Increment(ref lost);
+                    CadDocument document = Plan();
+
+                    if (!Pdf.Text(Written(document, AtOneToTwenty())).Contains("ROOM 1"))
+                    {
+                        System.Threading.Interlocked.Increment(ref lost);
+                    }
                 }
-            });
+            );
 
             Assert.Equal(0, lost);
         }
@@ -138,7 +172,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             var document = CadDocument.From(new DxfDatabase("AC1027"), "empty.dxf");
             var settings = new CadPlotSettings { Area = CadPlotArea.Extents };
 
-            Assert.Throws<InvalidOperationException>(() => CadPdfWriter.Write(new MemoryStream(), document, document.ModelSpace, settings, DisplayBox.Empty));
+            Assert.Throws<InvalidOperationException>(() =>
+                CadPdfWriter.Write(new MemoryStream(), document, document.ModelSpace, settings, DisplayBox.Empty)
+            );
         }
 
         private static string Latin(byte[] bytes) => Encoding.GetEncoding(28591).GetString(bytes);
@@ -157,13 +193,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             string text = latin.GetString(pdf);
             var streams = new List<string>();
 
-            foreach (Match match in Regex.Matches(text, @"/Length (\d+)(?:(?!endobj).)*?>>\s*stream\r?\n", RegexOptions.Singleline))
+            foreach (
+                Match match in Regex.Matches(
+                    text,
+                    @"/Length (\d+)(?:(?!endobj).)*?>>\s*stream\r?\n",
+                    RegexOptions.Singleline
+                )
+            )
             {
                 int length = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
                 int start = match.Index + match.Length;
                 byte[] data = pdf.Skip(start).Take(length).ToArray();
                 int head = text.LastIndexOf(" obj", match.Index, StringComparison.Ordinal);
-                bool deflated = head >= 0 && text.IndexOf("/FlateDecode", head, match.Index + match.Length - head, StringComparison.Ordinal) >= 0;
+                bool deflated =
+                    head >= 0
+                    && text.IndexOf("/FlateDecode", head, match.Index + match.Length - head, StringComparison.Ordinal)
+                        >= 0;
 
                 if (deflated && data.Length > 2)
                 {
@@ -190,8 +235,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             foreach (string cmap in streams.Where(s => s.Contains("begincmap")))
             {
-                string chars = string.Concat(Regex.Matches(cmap, @"beginbfchar(.*?)endbfchar", RegexOptions.Singleline).Cast<Match>().Select(m => m.Groups[1].Value));
-                string ranges = string.Concat(Regex.Matches(cmap, @"beginbfrange(.*?)endbfrange", RegexOptions.Singleline).Cast<Match>().Select(m => m.Groups[1].Value));
+                string chars = string.Concat(
+                    Regex
+                        .Matches(cmap, @"beginbfchar(.*?)endbfchar", RegexOptions.Singleline)
+                        .Cast<Match>()
+                        .Select(m => m.Groups[1].Value)
+                );
+                string ranges = string.Concat(
+                    Regex
+                        .Matches(cmap, @"beginbfrange(.*?)endbfrange", RegexOptions.Singleline)
+                        .Cast<Match>()
+                        .Select(m => m.Groups[1].Value)
+                );
 
                 foreach (Match m in Regex.Matches(chars, @"<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>"))
                 {
@@ -217,15 +272,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             {
                 foreach (Match m in Regex.Matches(content, @"<([0-9A-Fa-f]*)>\s*Tj|\[([^\]]*)\]\s*TJ"))
                 {
-                    IEnumerable<string> strings = m.Groups[1].Success && m.Value.EndsWith("Tj", StringComparison.Ordinal)
-                        ? new[] { m.Groups[1].Value }
-                        : Regex.Matches(m.Groups[2].Value, @"<([0-9A-Fa-f]*)>").Cast<Match>().Select(x => x.Groups[1].Value);
+                    IEnumerable<string> strings =
+                        m.Groups[1].Success && m.Value.EndsWith("Tj", StringComparison.Ordinal)
+                            ? new[] { m.Groups[1].Value }
+                            : Regex
+                                .Matches(m.Groups[2].Value, @"<([0-9A-Fa-f]*)>")
+                                .Cast<Match>()
+                                .Select(x => x.Groups[1].Value);
 
                     foreach (string hex in strings)
                     {
                         for (int i = 0; i + 3 < hex.Length; i += 4)
                         {
-                            shown.Append(map.TryGetValue(Convert.ToInt32(hex.Substring(i, 4), 16), out string letter) ? letter : "?");
+                            shown.Append(
+                                map.TryGetValue(Convert.ToInt32(hex.Substring(i, 4), 16), out string letter)
+                                    ? letter
+                                    : "?"
+                            );
                         }
                     }
 
@@ -256,7 +319,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 if (entry[17] == 'n')
                 {
                     int offset = int.Parse(entry.Substring(0, 10), CultureInfo.InvariantCulture);
-                    Assert.StartsWith((first + i).ToString(CultureInfo.InvariantCulture) + " 0 obj", text.Substring(offset, 20), StringComparison.Ordinal);
+                    Assert.StartsWith(
+                        (first + i).ToString(CultureInfo.InvariantCulture) + " 0 obj",
+                        text.Substring(offset, 20),
+                        StringComparison.Ordinal
+                    );
                 }
             }
         }

@@ -28,7 +28,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             for (int i = 0; i + 1 < lines.Length; i += 2)
             {
-                if (lines[i].Trim() == code.ToString(System.Globalization.CultureInfo.InvariantCulture) && seen++ == nth)
+                if (
+                    lines[i].Trim() == code.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    && seen++ == nth
+                )
                 {
                     return lines[i + 1].Trim();
                 }
@@ -37,10 +40,11 @@ namespace GeometryHelper.UnitTest.Dxf
             return null;
         }
 
-        private static double Number(string text, string handle, int code, int nth = 0)
-            => double.Parse(Group(text, handle, code, nth), System.Globalization.CultureInfo.InvariantCulture);
+        private static double Number(string text, string handle, int code, int nth = 0) =>
+            double.Parse(Group(text, handle, code, nth), System.Globalization.CultureInfo.InvariantCulture);
 
-        private static void Near(double expected, double actual) => Assert.InRange(actual, expected - Close, expected + Close);
+        private static void Near(double expected, double actual) =>
+            Assert.InRange(actual, expected - Close, expected + Close);
 
         private static void Near(GeoPoint3 expected, GeoPoint3 actual)
         {
@@ -49,8 +53,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(expected.Z, actual.Z);
         }
 
-        private static GeoPoint3 Point(string text, string handle, int code)
-            => new GeoPoint3(Number(text, handle, code), Number(text, handle, code + 10), Number(text, handle, code + 20));
+        private static GeoPoint3 Point(string text, string handle, int code) =>
+            new GeoPoint3(Number(text, handle, code), Number(text, handle, code + 10), Number(text, handle, code + 20));
 
         [Fact]
         public void AnImageMovedTurnedScaledMirroredOrSheared_LandsWhereAutoCad2021MovesIt()
@@ -59,11 +63,44 @@ namespace GeometryHelper.UnitTest.Dxf
             // (12) turned and scaled, whatever the transformation, as it gave them.
             var cases = new[]
             {
-                Tuple.Create(GeoTransform3.Translation(new GeoVector3(5, 7, 1)), new GeoPoint3(15, 27, 1), new GeoPoint3(10, 0, 0), new GeoPoint3(0, 10, 0)),
-                Tuple.Create(GeoTransform3.RotationZ(Math.PI / 2), new GeoPoint3(-20, 10, 0), new GeoPoint3(0, 10, 0), new GeoPoint3(-10, 0, 0)),
-                Tuple.Create(GeoTransform3.Scaling(2, 1, 1), new GeoPoint3(20, 20, 0), new GeoPoint3(20, 0, 0), new GeoPoint3(0, 10, 0)),
-                Tuple.Create(new GeoTransform3(new[,] { { 1.0, 0.5, 0, 0 }, { 0, 1.0, 0, 0 }, { 0, 0, 1.0, 0 }, { 0, 0, 0, 1.0 } }), new GeoPoint3(20, 20, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(5, 10, 0)),
-                Tuple.Create(GeoTransform3.Scaling(-1, 1, 1), new GeoPoint3(-10, 20, 0), new GeoPoint3(-10, 0, 0), new GeoPoint3(0, 10, 0)),
+                Tuple.Create(
+                    GeoTransform3.Translation(new GeoVector3(5, 7, 1)),
+                    new GeoPoint3(15, 27, 1),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(0, 10, 0)
+                ),
+                Tuple.Create(
+                    GeoTransform3.RotationZ(Math.PI / 2),
+                    new GeoPoint3(-20, 10, 0),
+                    new GeoPoint3(0, 10, 0),
+                    new GeoPoint3(-10, 0, 0)
+                ),
+                Tuple.Create(
+                    GeoTransform3.Scaling(2, 1, 1),
+                    new GeoPoint3(20, 20, 0),
+                    new GeoPoint3(20, 0, 0),
+                    new GeoPoint3(0, 10, 0)
+                ),
+                Tuple.Create(
+                    new GeoTransform3(
+                        new[,]
+                        {
+                            { 1.0, 0.5, 0, 0 },
+                            { 0, 1.0, 0, 0 },
+                            { 0, 0, 1.0, 0 },
+                            { 0, 0, 0, 1.0 },
+                        }
+                    ),
+                    new GeoPoint3(20, 20, 0),
+                    new GeoPoint3(10, 0, 0),
+                    new GeoPoint3(5, 10, 0)
+                ),
+                Tuple.Create(
+                    GeoTransform3.Scaling(-1, 1, 1),
+                    new GeoPoint3(-10, 20, 0),
+                    new GeoPoint3(-10, 0, 0),
+                    new GeoPoint3(0, 10, 0)
+                ),
             };
 
             foreach (var c in cases)
@@ -107,7 +144,15 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfRasterImageDrawings.R2018);
             var stretch = GeoTransform3.Scaling(2, 1, 1);
-            var shear = new GeoTransform3(new[,] { { 1.0, 0.5, 0, 0 }, { 0, 1.0, 0, 0 }, { 0, 0, 1.0, 0 }, { 0, 0, 0, 1.0 } });
+            var shear = new GeoTransform3(
+                new[,]
+                {
+                    { 1.0, 0.5, 0, 0 },
+                    { 0, 1.0, 0, 0 },
+                    { 0, 0, 1.0, 0 },
+                    { 0, 0, 0, 1.0 },
+                }
+            );
 
             // AutoCAD 2021's GetTransformedCopy of a Wipeout answers eCannotScaleNonUniformly; of a RasterImage it gives the copy.
             Assert.Throws<ArgumentException>(() => Of(db, "C14").GetTransformedCopy(stretch));
@@ -182,17 +227,28 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase reopened = DxfDatabase.Parse(text);
 
             // The IMAGEDEF of photo.jpg under its name in a dictionary of images made for it, both copies pointing at it.
-            List<string> definitions = Records(text).Where(r => r.StartsWith("  0\nIMAGEDEF\n", StringComparison.Ordinal)).ToList();
+            List<string> definitions = Records(text)
+                .Where(r => r.StartsWith("  0\nIMAGEDEF\n", StringComparison.Ordinal))
+                .ToList();
             string definition = HandleOf(Assert.Single(definitions));
             Assert.Contains("\nphoto.jpg\n", definitions[0], StringComparison.Ordinal);
             Assert.Equal(definition, Group(text, one.Handle, 340));
             Assert.Equal(definition, Group(text, two.Handle, 340));
-            Assert.Contains(Records(text), r => r.StartsWith("  0\nDICTIONARY\n", StringComparison.Ordinal) && r.Contains("\nphoto.jpg\n350\n" + definition + "\n"));
+            Assert.Contains(Records(text), r =>
+                r.StartsWith("  0\nDICTIONARY\n", StringComparison.Ordinal)
+                && r.Contains("\nphoto.jpg\n350\n" + definition + "\n")
+            );
             Assert.Equal(2, reopened.ModelSpace.Count());
 
             // Listed in the CLASSES, of one object each, as AutoCAD 2021 reads an IMAGE only where its class is listed and counted.
-            Assert.Contains(Records(text), r => r.StartsWith("  0\nCLASS\n  1\nIMAGE\n", StringComparison.Ordinal) && r.Contains("\n 91\n1\n") && r.Contains("\n281\n1\n"));
-            Assert.Contains(Records(text), r => r.StartsWith("  0\nCLASS\n  1\nIMAGEDEF\n", StringComparison.Ordinal) && r.Contains("\n 91\n1\n"));
+            Assert.Contains(Records(text), r =>
+                r.StartsWith("  0\nCLASS\n  1\nIMAGE\n", StringComparison.Ordinal)
+                && r.Contains("\n 91\n1\n")
+                && r.Contains("\n281\n1\n")
+            );
+            Assert.Contains(Records(text), r =>
+                r.StartsWith("  0\nCLASS\n  1\nIMAGEDEF\n", StringComparison.Ordinal) && r.Contains("\n 91\n1\n")
+            );
             Near(new GeoPoint3(115, 45, 0), reopened.ModelSpace.Last().Explode().Cast<DxfLine>().First().StartPoint);
         }
 
@@ -223,7 +279,9 @@ namespace GeometryHelper.UnitTest.Dxf
             var insert = new DxfBlockReference(new GeoPoint3(100, 0, 0), tag);
             drawing.ModelSpace.AppendEntity(insert);
 
-            Assert.Contains(Records(drawing.ToText()), r => r.StartsWith("  0\nCLASS\n  1\nWIPEOUT\n", StringComparison.Ordinal) && r.Contains("\n 91\n1\n"));
+            Assert.Contains(Records(drawing.ToText()), r =>
+                r.StartsWith("  0\nCLASS\n  1\nWIPEOUT\n", StringComparison.Ordinal) && r.Contains("\n 91\n1\n")
+            );
 
             // The wipeout comes out of the INSERT moved with the line, where it was left out as a type the library did not move.
             IReadOnlyList<DxfEntity> parts = insert.Explode();

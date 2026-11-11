@@ -19,11 +19,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             var session = new CadCommandSession(document) { Tolerance = Tolerance.Default };
             session.Feed("TR");
 
-            Assert.True(CadPicking.Click(document, document.ModelSpace, session, null, new GeoPoint2(35, 0), 1.0, true));
+            Assert.True(
+                CadPicking.Click(document, document.ModelSpace, session, null, new GeoPoint2(35, 0), 1.0, true)
+            );
             var extended = (DxfLine)document.FindEntity(line.Handle);
             Assert.Equal(100.0, extended.EndPoint.X, 9);
 
-            Assert.True(CadPicking.Click(document, document.ModelSpace, session, null, new GeoPoint2(10, 0), 1.0, false));
+            Assert.True(
+                CadPicking.Click(document, document.ModelSpace, session, null, new GeoPoint2(10, 0), 1.0, false)
+            );
             var trimmed = (DxfLine)document.FindEntity(line.Handle);
             Assert.Equal(20.0, trimmed.StartPoint.X, 9);
             Assert.Equal(100.0, trimmed.EndPoint.X, 9);

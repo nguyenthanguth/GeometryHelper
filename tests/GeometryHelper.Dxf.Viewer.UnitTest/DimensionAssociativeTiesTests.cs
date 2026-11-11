@@ -17,7 +17,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     /// </summary>
     public class DimensionAssociativeTiesTests
     {
-        private static readonly ObjectSnap Snaps = new ObjectSnap(Tight) { Modes = CadSnapModes.Endpoint | CadSnapModes.Intersection | CadSnapModes.Quadrant };
+        private static readonly ObjectSnap Snaps = new ObjectSnap(Tight)
+        {
+            Modes = CadSnapModes.Endpoint | CadSnapModes.Intersection | CadSnapModes.Quadrant,
+        };
 
         private static void Snap(CadCommandSession session, GeoPoint2 cursor)
         {
@@ -26,8 +29,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(session.Feed(result, false));
         }
 
-        private static string LineAt(CadDocument document, double x1, double y1)
-            => All<DxfLine>(document.ModelSpace).Single(l => l.StartPoint.DistanceTo(new GeoPoint3(x1, y1, 0)) < 1E-9).Handle;
+        private static string LineAt(CadDocument document, double x1, double y1) =>
+            All<DxfLine>(document.ModelSpace)
+                .Single(l => l.StartPoint.DistanceTo(new GeoPoint3(x1, y1, 0)) < 1E-9)
+                .Handle;
 
         [Fact]
         public void ADimensionSnappedWhereTwoLinesCross_IsTiedToBoth_AndFollowsTheCrossingWhenOneMoves()
@@ -73,7 +78,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Snap(session, P(29.7, -0.3));
             Run(session, P(0, 50));
             var dimension = Assert.Single(All<DxfRotatedDimension>(document.ModelSpace));
-            Assert.Equal(new[] { DxfOsnapType.Quadrant, DxfOsnapType.Quadrant }, dimension.DimAssoc.PointReferences.Select(r => r.OsnapType));
+            Assert.Equal(
+                new[] { DxfOsnapType.Quadrant, DxfOsnapType.Quadrant },
+                dimension.DimAssoc.PointReferences.Select(r => r.OsnapType)
+            );
             document.Selection.Set(new[] { circle });
 
             Run(session, "SCALE", P(0, 0), "2");
@@ -88,7 +96,22 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Blank();
             session = Session(document);
-            Run(session, "LINE", P(0, 0), P(100, 0), Enter, "LINE", P(100, 0), P(200, 0), Enter, "LINE", P(200, 0), P(300, 0), Enter, "DIMLINEAR");
+            Run(
+                session,
+                "LINE",
+                P(0, 0),
+                P(100, 0),
+                Enter,
+                "LINE",
+                P(100, 0),
+                P(200, 0),
+                Enter,
+                "LINE",
+                P(200, 0),
+                P(300, 0),
+                Enter,
+                "DIMLINEAR"
+            );
             Snap(session, P(0.3, 0.3));
             Snap(session, P(99.8, 0.3));
             Run(session, P(50, -20));
@@ -106,7 +129,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Snap(session, P(199.7, 0.3));
             Run(session, Enter, Enter);
 
-            DxfRotatedDimension next = All<DxfRotatedDimension>(document.ModelSpace).Single(d => d.Handle != first.Handle);
+            DxfRotatedDimension next = All<DxfRotatedDimension>(document.ModelSpace)
+                .Single(d => d.Handle != first.Handle);
             DxfOsnapPointRef[] tied = next.DimAssoc.PointReferences.ToArray();
             Assert.Equal(2, tied.Length);
             Assert.Equal(0, tied[0].PointIndex);
@@ -115,7 +139,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(1, tied[1].PointIndex);
 
             // The end it was snapped to dragged on: the second dimension's end follows.
-            Assert.True(document.GripDrag(tied[1].ObjectHandle, tied[1].OsnapType == DxfOsnapType.StartPoint ? 0 : 1, P(250, 0)).Succeeded);
+            Assert.True(
+                document
+                    .GripDrag(tied[1].ObjectHandle, tied[1].OsnapType == DxfOsnapType.StartPoint ? 0 : 1, P(250, 0))
+                    .Succeeded
+            );
             Near(new GeoPoint3(250, 0, 0), Entity<DxfRotatedDimension>(document, next.Handle).XLine2Point);
         }
 
@@ -129,7 +157,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Snap(session, P(299.7, 0.3));
             Run(session, Enter, Enter);
 
-            DxfRotatedDimension next = All<DxfRotatedDimension>(document.ModelSpace).Single(d => d.Handle != first.Handle);
+            DxfRotatedDimension next = All<DxfRotatedDimension>(document.ModelSpace)
+                .Single(d => d.Handle != first.Handle);
             Assert.Equal(from.ObjectHandle, next.DimAssoc.PointReferences[0].ObjectHandle);
             Assert.Equal(DxfOsnapType.Endpoint, next.DimAssoc.PointReferences[1].OsnapType);
 
@@ -172,9 +201,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             var dimensions = All<DxfRotatedDimension>(document.ModelSpace);
             Assert.Equal(2, dimensions.Count);
-            Assert.Equal(new[] { DxfOsnapType.StartPoint, DxfOsnapType.Endpoint }, dimensions[0].DimAssoc.PointReferences.Select(r => r.OsnapType));
-            Assert.Equal(new[] { DxfOsnapType.StartPoint, DxfOsnapType.Endpoint }, dimensions[1].DimAssoc.PointReferences.Select(r => r.OsnapType));
-            Assert.All(dimensions[1].DimAssoc.PointReferences, r => Assert.Equal(LineAt(document, 0, 100), r.ObjectHandle));
+            Assert.Equal(
+                new[] { DxfOsnapType.StartPoint, DxfOsnapType.Endpoint },
+                dimensions[0].DimAssoc.PointReferences.Select(r => r.OsnapType)
+            );
+            Assert.Equal(
+                new[] { DxfOsnapType.StartPoint, DxfOsnapType.Endpoint },
+                dimensions[1].DimAssoc.PointReferences.Select(r => r.OsnapType)
+            );
+            Assert.All(dimensions[1].DimAssoc.PointReferences, r =>
+                Assert.Equal(LineAt(document, 0, 100), r.ObjectHandle)
+            );
         }
 
         [Fact]
@@ -221,14 +258,22 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Run(session, "MOVE", P(0, 0), P(0, 10));
 
-            Near(new GeoPoint3(84.466, 25.496, 0), Entity<DxfLineAngularDimension2>(document, angle.Handle).ArcPoint, 1E-3);
+            Near(
+                new GeoPoint3(84.466, 25.496, 0),
+                Entity<DxfLineAngularDimension2>(document, angle.Handle).ArcPoint,
+                1E-3
+            );
             Assert.True(document.Undo());
             Assert.Equal(before, document.Database.ToText());
             document.Selection.Set(new[] { second });
 
             Run(session, "ROTATE", P(0, 0), "20");
 
-            Near(new GeoPoint3(68.8527, 23.65, 0), Entity<DxfLineAngularDimension2>(document, angle.Handle).ArcPoint, 1E-2);
+            Near(
+                new GeoPoint3(68.8527, 23.65, 0),
+                Entity<DxfLineAngularDimension2>(document, angle.Handle).ArcPoint,
+                1E-2
+            );
         }
 
         /// <summary>A line from (0, 0) to (100, 0) with a DIMLINEAR snapped to its ends, an upright at x = 70 and one at x = 150.</summary>
@@ -236,7 +281,22 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Blank();
             session = Session(document);
-            Run(session, "LINE", P(0, 0), P(100, 0), Enter, "LINE", P(70, -20), P(70, 20), Enter, "LINE", P(150, -20), P(150, 20), Enter, "DIMLINEAR");
+            Run(
+                session,
+                "LINE",
+                P(0, 0),
+                P(100, 0),
+                Enter,
+                "LINE",
+                P(70, -20),
+                P(70, 20),
+                Enter,
+                "LINE",
+                P(150, -20),
+                P(150, 20),
+                Enter,
+                "DIMLINEAR"
+            );
             Snap(session, P(0.3, 0.3));
             Snap(session, P(99.7, 0.3));
             Run(session, P(50, 30));
@@ -277,7 +337,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         private static void SnapFrom(CadCommandSession session, CadSnapModes mode, GeoPoint2 cursor)
         {
             var snaps = new ObjectSnap(Tight) { Modes = mode };
-            CadSnapResult result = snaps.Snap(session.Document.GetPickIndex(session.Document.ModelSpace), cursor, 2.0, session.Prompt.BasePoint, session.Prompt.SnapFrom);
+            CadSnapResult result = snaps.Snap(
+                session.Document.GetPickIndex(session.Document.ModelSpace),
+                cursor,
+                2.0,
+                session.Prompt.BasePoint,
+                session.Prompt.SnapFrom
+            );
             Assert.NotEqual(CadSnapKind.None, result.Kind);
             Assert.True(session.Feed(result, false));
         }
@@ -408,7 +474,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             document.Selection.Set(new[] { circle });
             Run(session, "MOVE", P(0, 0), P(20, 7));
 
-            Near(new GeoPoint3(237.466992, 324.885865, 0), Entity<DxfAlignedDimension>(document, dimension.Handle).XLine1Point, 1E-6);
+            Near(
+                new GeoPoint3(237.466992, 324.885865, 0),
+                Entity<DxfAlignedDimension>(document, dimension.Handle).XLine1Point,
+                1E-6
+            );
         }
 
         [Fact]
@@ -423,7 +493,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "LINE", P(100, -20), P(100, 60), Enter, "DIMLINEAR", P(100, 123), P(50, 77), P(70, -60));
             string upright = LineAt(document, 100, -20);
             var dimension = Assert.Single(All<DxfRotatedDimension>(document.ModelSpace));
-            var foot = new DxfOsnapPointRef(0, DxfOsnapType.Perpendicular, upright, 0, 1.7875, new GeoPoint3(0, 0, 0), null);
+            var foot = new DxfOsnapPointRef(
+                0,
+                DxfOsnapType.Perpendicular,
+                upright,
+                0,
+                1.7875,
+                new GeoPoint3(0, 0, 0),
+                null
+            );
             dimension.SetDimAssoc(new[] { foot.WithLastPoint(new GeoPoint3(37, 123, 0)) });
             document.Selection.Set(new[] { upright });
 
@@ -444,13 +522,34 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Blank();
             session = Session(document);
-            Run(session, "PLINE", P(0, 200), P(100, 200), "A", P(100, 300), "L", P(0, 300), Enter, "LINE", P(20, 280), P(20, 320), Enter);
+            Run(
+                session,
+                "PLINE",
+                P(0, 200),
+                P(100, 200),
+                "A",
+                P(100, 300),
+                "L",
+                P(0, 300),
+                Enter,
+                "LINE",
+                P(20, 280),
+                P(20, 320),
+                Enter
+            );
             polyline = Assert.Single(All<DxfPolyline>(document.ModelSpace)).Handle;
             line = LineAt(document, 20, 280);
             return document;
         }
 
-        private static void AssertTie(DxfOsnapPointRef reference, int index, DxfOsnapType type, string handle, int marker, double parameter)
+        private static void AssertTie(
+            DxfOsnapPointRef reference,
+            int index,
+            DxfOsnapType type,
+            string handle,
+            int marker,
+            double parameter
+        )
         {
             Assert.Equal(index, reference.PointIndex);
             Assert.Equal(type, reference.OsnapType);
@@ -545,7 +644,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.Equal(100.0 / 120.0, Entity<DxfPolyline>(document, polyline).GetBulgeAt(1), 9);
             Near(new GeoPoint3(89, 260, 0), Entity<DxfRotatedDimension>(document, center).XLine2Point, 1E-9);
-            Near(new GeoPoint3(116.280029, 314.560059, 0), Entity<DxfPoint3AngularDimension>(document, angle).XLine2Point, 1E-6);
+            Near(
+                new GeoPoint3(116.280029, 314.560059, 0),
+                Entity<DxfPoint3AngularDimension>(document, angle).XLine2Point,
+                1E-6
+            );
         }
 
         [Fact]
@@ -558,7 +661,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // the vertex at (310, 10), the ends at (120, 10) and (396.956203, 216.694506).
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
-            Run(session, "LINE", P(100, -20), P(100, 60), Enter, "LINE", P(300, 0), P(380, 0), Enter, "CIRCLE", P(400, 200), "25");
+            Run(
+                session,
+                "LINE",
+                P(100, -20),
+                P(100, 60),
+                Enter,
+                "LINE",
+                P(300, 0),
+                P(380, 0),
+                Enter,
+                "CIRCLE",
+                P(400, 200),
+                "25"
+            );
             string upright = LineAt(document, 100, -20);
             string level = LineAt(document, 300, 0);
             string circle = Assert.Single(All<DxfCircle>(document.ModelSpace)).Handle;
@@ -575,7 +691,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             AssertTie(ties[1], 1, DxfOsnapType.Tangent, circle, 0, 2.78998);
             AssertTie(ties[2], 2, DxfOsnapType.StartPoint, level, 0, 0.0);
             Assert.All(new[] { ties[0], ties[1] }, t => Assert.Equal(level, t.LastPointReference.ObjectHandle));
-            Assert.All(new[] { ties[0], ties[1] }, t => Assert.Equal(DxfOsnapType.StartPoint, t.LastPointReference.OsnapType));
+            Assert.All(new[] { ties[0], ties[1] }, t =>
+                Assert.Equal(DxfOsnapType.StartPoint, t.LastPointReference.OsnapType)
+            );
             AssertReopens(document);
             Assert.Equal(0, document.Database.Audit(false).Count);
 

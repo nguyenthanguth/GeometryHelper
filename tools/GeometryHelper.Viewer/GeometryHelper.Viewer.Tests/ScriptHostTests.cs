@@ -10,19 +10,24 @@ namespace GeometryHelper.Viewer.Tests
 {
     public class ScriptHostTests
     {
-        private static ScriptRunResult Run(string code, string path = null, CancellationToken cancel = default(CancellationToken))
-            => ScriptHost.RunAsync(code, path, null, cancel).GetAwaiter().GetResult();
+        private static ScriptRunResult Run(
+            string code,
+            string path = null,
+            CancellationToken cancel = default(CancellationToken)
+        ) => ScriptHost.RunAsync(code, path, null, cancel).GetAwaiter().GetResult();
 
         [Fact]
         public void AScript_BuildsASceneWithShowAndSaysLinesWithNote()
         {
-            ScriptRunResult result = Run(@"
+            ScriptRunResult result = Run(
+                @"
                 var loop = new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 60), new GeoPoint2(0, 60) }, new[] { 0.0, 0.5, 0.0, 0.0 });
                 Show(loop, layer: ""source"", name: ""loop"", props: new { width = 100 });
                 Show(new[] { new GeoPoint2(1, 1), new GeoPoint2(2, 2) }, layer: ""points"");
                 Scene.Layer(""source"", ""#202020"");
                 Note(""area "" + loop.Area.ToString(""0.0""));
-            ");
+            "
+            );
 
             Assert.True(result.Succeeded, string.Join("\n", result.Errors));
             Assert.Empty(result.Errors);
@@ -38,7 +43,10 @@ namespace GeometryHelper.Viewer.Tests
         public void ACompileError_IsReportedWithItsFileAndLineNumber()
         {
             string path = Path.Combine(Path.GetTempPath(), "broken.csx");
-            ScriptRunResult result = Run("var a = 1;\nvar b = 2;\nint c = \"text\";\nShow(new GeoPoint2(a, b));\n", path);
+            ScriptRunResult result = Run(
+                "var a = 1;\nvar b = 2;\nint c = \"text\";\nShow(new GeoPoint2(a, b));\n",
+                path
+            );
 
             Assert.False(result.Succeeded);
             string error = Assert.Single(result.Errors);
@@ -51,7 +59,10 @@ namespace GeometryHelper.Viewer.Tests
         public void AnExceptionOfTheScript_IsReportedWithTheLineItWasThrownFrom_AndWhatWasShownBeforeStays()
         {
             string path = Path.Combine(Path.GetTempPath(), "throws.csx");
-            ScriptRunResult result = Run("Show(new GeoPoint2(1, 2));\nvar tooFew = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(1, 0));\nShow(tooFew);\n", path);
+            ScriptRunResult result = Run(
+                "Show(new GeoPoint2(1, 2));\nvar tooFew = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(1, 0));\nShow(tooFew);\n",
+                path
+            );
 
             Assert.False(result.Succeeded);
             string error = Assert.Single(result.Errors);
@@ -65,12 +76,14 @@ namespace GeometryHelper.Viewer.Tests
         {
             double before = Tolerance.Global.EqualPoint;
 
-            ScriptRunResult result = Run(@"
+            ScriptRunResult result = Run(
+                @"
                 Note(Tolerance.Global.EqualPoint.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 Tol = new Tolerance(0.25, 1E-5);
                 Note(Tolerance.Global.EqualPoint.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 Show(new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(0.1, 0), new GeoPoint2(5, 0)));
-            ");
+            "
+            );
 
             Assert.True(result.Succeeded, string.Join("\n", result.Errors));
             Assert.Equal(new[] { "0.001", "0.25" }, result.Notes);
@@ -109,7 +122,9 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AShapeTheViewerCannotDraw_StopsTheScriptWithAMessageNamingTheType()
         {
-            ScriptRunResult result = Run("Show(new GeoCoordinateSystem3(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0), new GeoVector3(0, 1, 0)));");
+            ScriptRunResult result = Run(
+                "Show(new GeoCoordinateSystem3(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0), new GeoVector3(0, 1, 0)));"
+            );
 
             Assert.False(result.Succeeded);
             Assert.Contains("GeoCoordinateSystem3", Assert.Single(result.Errors), StringComparison.Ordinal);
@@ -118,12 +133,14 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheLibraryAndTheViewerAreImported_SoAScriptNamesNoNamespaces()
         {
-            ScriptRunResult result = Run(@"
+            ScriptRunResult result = Run(
+                @"
                 var square = new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) });
                 GeoPolygonArc2[] grown = square.Offset(10.0, new OffsetOptions(OffsetJoin.Round));
                 Show(grown, layer: ""round"");
                 Note(grown.Length + "" loop"");
-            ");
+            "
+            );
 
             Assert.True(result.Succeeded, string.Join("\n", result.Errors));
             Assert.Equal("1 loop", Assert.Single(result.Notes));
@@ -156,8 +173,21 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public async Task TwoScriptsAtOnce_EachKeepToTheirOwnSceneAndTolerance()
         {
-            Task<ScriptRunResult> first = ScriptHost.RunAsync("Tol = new Tolerance(0.5, 1E-5); Thread.Sleep(100); Show(new GeoPoint2(1, 1));".Replace("Thread.Sleep", "System.Threading.Thread.Sleep"), null, null, CancellationToken.None);
-            Task<ScriptRunResult> second = ScriptHost.RunAsync("System.Threading.Thread.Sleep(50); Note(Tolerance.Global.EqualPoint.ToString(System.Globalization.CultureInfo.InvariantCulture)); Show(new GeoPoint2(2, 2));", null, null, CancellationToken.None);
+            Task<ScriptRunResult> first = ScriptHost.RunAsync(
+                "Tol = new Tolerance(0.5, 1E-5); Thread.Sleep(100); Show(new GeoPoint2(1, 1));".Replace(
+                    "Thread.Sleep",
+                    "System.Threading.Thread.Sleep"
+                ),
+                null,
+                null,
+                CancellationToken.None
+            );
+            Task<ScriptRunResult> second = ScriptHost.RunAsync(
+                "System.Threading.Thread.Sleep(50); Note(Tolerance.Global.EqualPoint.ToString(System.Globalization.CultureInfo.InvariantCulture)); Show(new GeoPoint2(2, 2));",
+                null,
+                null,
+                CancellationToken.None
+            );
 
             ScriptRunResult one = await first;
             ScriptRunResult two = await second;

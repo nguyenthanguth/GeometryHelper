@@ -41,7 +41,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             foreach (KeyValuePair<int, byte[]> shape in shapes)
             {
-                byte[] record = new byte[] { (byte)'n', 0 }.Concat(shape.Value).ToArray();
+                byte[] record = new byte[] { (byte)'n', 0 }
+                    .Concat(shape.Value)
+                    .ToArray();
                 U16(bytes, shape.Key);
                 U16(bytes, record.Length);
                 bytes.AddRange(record);
@@ -64,7 +66,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             U16(bytes, shapes.Keys.First());
             U16(bytes, shapes.Keys.Last());
             U16(bytes, shapes.Count);
-            var records = shapes.ToDictionary(s => s.Key, s => Encoding.ASCII.GetBytes("n\0").Concat(s.Value).ToArray());
+            var records = shapes.ToDictionary(
+                s => s.Key,
+                s => Encoding.ASCII.GetBytes("n\0").Concat(s.Value).ToArray()
+            );
 
             foreach (KeyValuePair<int, byte[]> record in records.OrderBy(r => r.Key))
             {
@@ -99,7 +104,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             U16(bytes, 0x81);
             U16(bytes, 0xFE);
             int place = bytes.Count + (shapes.Count * 8);
-            var records = shapes.Select(s => new KeyValuePair<int, byte[]>(s.Key, Encoding.ASCII.GetBytes("n\0").Concat(s.Value).ToArray())).ToList();
+            var records = shapes
+                .Select(s => new KeyValuePair<int, byte[]>(
+                    s.Key,
+                    Encoding.ASCII.GetBytes("n\0").Concat(s.Value).ToArray()
+                ))
+                .ToList();
 
             foreach (KeyValuePair<int, byte[]> record in records)
             {

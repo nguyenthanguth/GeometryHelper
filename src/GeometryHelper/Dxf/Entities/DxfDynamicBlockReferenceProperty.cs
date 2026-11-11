@@ -31,7 +31,15 @@ namespace GeometryHelper.Dxf
         private bool _settable;
 
         /// <summary>A property read from a parameter, its allowed values kept as given.</summary>
-        internal DxfDynamicBlockReferenceProperty(string name, string description, object value, short typeCode, DxfDynamicBlockReferencePropertyUnitsType units, bool readOnly, object[] allowed)
+        internal DxfDynamicBlockReferenceProperty(
+            string name,
+            string description,
+            object value,
+            short typeCode,
+            DxfDynamicBlockReferencePropertyUnitsType units,
+            bool readOnly,
+            object[] allowed
+        )
         {
             PropertyName = name;
             Description = description;
@@ -208,17 +216,22 @@ namespace GeometryHelper.Dxf
         public object Value
         {
             get => _value;
-
             set
             {
                 if (ReadOnly && !_settable)
                 {
-                    throw new InvalidOperationException("The property " + PropertyName + " is read only, as AutoCAD keeps it.");
+                    throw new InvalidOperationException(
+                        "The property " + PropertyName + " is read only, as AutoCAD keeps it."
+                    );
                 }
 
                 if (_insert == null)
                 {
-                    throw new NotSupportedException("The property " + PropertyName + " is of a parameter the library does not work out: it sets those of linear, XY, polar, point, rotation, flip, visibility, lookup, user and horizontal, vertical and radial constraint parameters and of block properties tables.");
+                    throw new NotSupportedException(
+                        "The property "
+                            + PropertyName
+                            + " is of a parameter the library does not work out: it sets those of linear, XY, polar, point, rotation, flip, visibility, lookup, user and horizontal, vertical and radial constraint parameters and of block properties tables."
+                    );
                 }
 
                 _value = DxfDynamicBlockRepresentation.Set(_insert, _node, _part, value);
@@ -304,6 +317,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gives the property as a line for debugging: its name and its value.</summary>
         /// <returns>The line, such as <c>Width = 1000</c>.</returns>
-        public override string ToString() => PropertyName + " = " + Convert.ToString(Value, System.Globalization.CultureInfo.InvariantCulture);
+        public override string ToString() =>
+            PropertyName + " = " + Convert.ToString(Value, System.Globalization.CultureInfo.InvariantCulture);
     }
 }

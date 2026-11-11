@@ -15,7 +15,15 @@ namespace GeometryHelper.Drawing
     /// </remarks>
     public sealed class PreparedUpdate
     {
-        internal PreparedUpdate(Drawing drawing, DrawingSource source, DrawingSettings settings, DrawingContent content, List<DrawingElement> views, List<DrawingElement> annotations, DrawingPluginRuns runs)
+        internal PreparedUpdate(
+            Drawing drawing,
+            DrawingSource source,
+            DrawingSettings settings,
+            DrawingContent content,
+            List<DrawingElement> views,
+            List<DrawingElement> annotations,
+            DrawingPluginRuns runs
+        )
         {
             Drawing = drawing;
             Source = source;

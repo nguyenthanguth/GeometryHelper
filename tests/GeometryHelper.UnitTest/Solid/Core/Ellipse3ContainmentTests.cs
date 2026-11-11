@@ -48,7 +48,14 @@ namespace GeometryHelper.UnitTest.Solid
             GeoEllipse3 ellipse = specimen.Build();
             var circle = new GeoCircle3(specimen.Center, specimen.N, 300);
 
-            foreach (GeoPoint3 point in new[] { specimen.At(0, 0, 0.2), specimen.At(100, 20, -0.2), specimen.OffRim(1.0, 0.0, 0.2) })
+            foreach (
+                GeoPoint3 point in new[]
+                {
+                    specimen.At(0, 0, 0.2),
+                    specimen.At(100, 20, -0.2),
+                    specimen.OffRim(1.0, 0.0, 0.2),
+                }
+            )
             {
                 Assert.Equal(PointLocation.OutSide, ellipse.Locate(point, Bands));
                 Assert.False(ellipse.Contains(point, Bands));
@@ -133,7 +140,15 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(70.0, ellipse.DistanceTo(specimen.At(0, 0, -70)), 1E-9);
             Assert.Equal(0.0, ellipse.DistanceTo(specimen.At(-150, 60, 0)), 1E-9);
 
-            foreach (GeoPoint3 point in new[] { specimen.At(400, 50, 0), specimen.At(400, 50, 30), specimen.At(-100, -150, -45), specimen.At(0, 500, 12) })
+            foreach (
+                GeoPoint3 point in new[]
+                {
+                    specimen.At(400, 50, 0),
+                    specimen.At(400, 50, 30),
+                    specimen.At(-100, -150, -45),
+                    specimen.At(0, 500, 12),
+                }
+            )
             {
                 specimen.Read(point, out double u, out double v, out double h);
                 double d = Plane.Ellipse2Oracle.ClosestDistance(300, 100, u, v);
@@ -150,11 +165,22 @@ namespace GeometryHelper.UnitTest.Solid
             Ellipse3Oracle.Specimen specimen = Ellipse3Oracle.Tilted();
             GeoEllipse3 ellipse = specimen.Build();
 
-            Assert.True(ellipse.GetClosestPointOnSurface(specimen.At(100, 20, 40)).IsEqualTo(specimen.At(100, 20, 0), Tight));
+            Assert.True(
+                ellipse.GetClosestPointOnSurface(specimen.At(100, 20, 40)).IsEqualTo(specimen.At(100, 20, 0), Tight)
+            );
             Assert.True(ellipse.GetClosestPointOnSurface(specimen.At(0, 0, -70)).IsEqualTo(specimen.Center, Tight));
-            Assert.True(ellipse.GetClosestPointOnSurface(specimen.At(-150, 60, 0)).IsEqualTo(specimen.At(-150, 60, 0), Tight));
+            Assert.True(
+                ellipse.GetClosestPointOnSurface(specimen.At(-150, 60, 0)).IsEqualTo(specimen.At(-150, 60, 0), Tight)
+            );
 
-            foreach (GeoPoint3 point in new[] { specimen.At(400, 50, 0), specimen.At(400, 50, 30), specimen.At(-100, -150, -45) })
+            foreach (
+                GeoPoint3 point in new[]
+                {
+                    specimen.At(400, 50, 0),
+                    specimen.At(400, 50, 30),
+                    specimen.At(-100, -150, -45),
+                }
+            )
             {
                 GeoPoint3 expected = Ellipse3Oracle.ClosestOnRim(specimen, point, out double distance);
                 GeoPoint3 closest = ellipse.GetClosestPointOnSurface(point);

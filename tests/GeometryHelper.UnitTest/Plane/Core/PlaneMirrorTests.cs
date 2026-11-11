@@ -31,11 +31,11 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static GeoRectangle2 Rectangle() => new GeoRectangle2(new GeoPoint2(60, 30), 80, 40, 0.3);
 
-        private static GeoPolygon2 Polygon() => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(120, 0), new GeoPoint2(120, 70), new GeoPoint2(0, 70));
+        private static GeoPolygon2 Polygon() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(120, 0), new GeoPoint2(120, 70), new GeoPoint2(0, 70));
 
-        private static GeoPolyline2 Polyline() => new GeoPolyline2(
-            new GeoPoint2(-30, -30), new GeoPoint2(150, -30), new GeoPoint2(150, 100));
+        private static GeoPolyline2 Polyline() =>
+            new GeoPolyline2(new GeoPoint2(-30, -30), new GeoPoint2(150, -30), new GeoPoint2(150, 100));
 
         [Fact]
         public void ACircleMeasuresTheSameWhicheverWayItIsAsked()
@@ -123,23 +123,28 @@ namespace GeometryHelper.UnitTest.Plane
             // Every pair, both as a count and against the form that takes a tolerance.
             Assert.Equal(
                 Intersection2.GetIntersections(Rectangle(), Rectangle()).Length,
-                Intersection2.GetIntersections(Rectangle(), Rectangle(), Global).Length);
+                Intersection2.GetIntersections(Rectangle(), Rectangle(), Global).Length
+            );
 
             Assert.Equal(
                 Intersection2.GetIntersections(Rectangle(), Circle()).Length,
-                Intersection2.GetIntersections(Rectangle(), Circle(), Global).Length);
+                Intersection2.GetIntersections(Rectangle(), Circle(), Global).Length
+            );
 
             Assert.Equal(
                 Intersection2.GetIntersections(Polygon(), Polygon()).Length,
-                Intersection2.GetIntersections(Polygon(), Polygon(), Global).Length);
+                Intersection2.GetIntersections(Polygon(), Polygon(), Global).Length
+            );
 
             Assert.Equal(
                 Intersection2.GetIntersections(Polygon(), Rectangle()).Length,
-                Intersection2.GetIntersections(Polygon(), Rectangle(), Global).Length);
+                Intersection2.GetIntersections(Polygon(), Rectangle(), Global).Length
+            );
 
             Assert.Equal(
                 Intersection2.GetIntersections(Polygon(), Circle()).Length,
-                Intersection2.GetIntersections(Polygon(), Circle(), Global).Length);
+                Intersection2.GetIntersections(Polygon(), Circle(), Global).Length
+            );
 
             // A rectangle overlapping a polygon crosses its boundary; one drawn far off does not.
             Assert.NotEmpty(Intersection2.GetIntersections(Polygon(), Rectangle()));
@@ -148,19 +153,23 @@ namespace GeometryHelper.UnitTest.Plane
             // The try forms say the same thing as the counts.
             Assert.Equal(
                 Intersection2.GetIntersections(Circle(), Line()).Length > 0,
-                Intersection2.TryIntersectWith(Circle(), Line(), out _, Global));
+                Intersection2.TryIntersectWith(Circle(), Line(), out _, Global)
+            );
 
             Assert.Equal(
                 Intersection2.GetIntersections(Circle(), Away()).Length > 0,
-                Intersection2.TryIntersectWith(Circle(), Away(), out _, Global));
+                Intersection2.TryIntersectWith(Circle(), Away(), out _, Global)
+            );
 
             Assert.Equal(
                 Intersection2.GetIntersection(Line(), Crossing()).HasValue,
-                Intersection2.TryIntersectWith(Line(), Crossing(), LineExtension.None, out _, Global));
+                Intersection2.TryIntersectWith(Line(), Crossing(), LineExtension.None, out _, Global)
+            );
 
             Assert.Equal(
                 Intersection2.GetIntersections(Polyline(), Crossing()).Length > 0,
-                Intersection2.TryIntersectWith(Polyline(), Crossing(), out _, Global));
+                Intersection2.TryIntersectWith(Polyline(), Crossing(), out _, Global)
+            );
         }
 
         [Fact]
@@ -168,7 +177,11 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var outer = new GeoFace2(Polygon());
             var hole = new GeoPolygon2(
-                new GeoPoint2(30, 20), new GeoPoint2(60, 20), new GeoPoint2(60, 50), new GeoPoint2(30, 50));
+                new GeoPoint2(30, 20),
+                new GeoPoint2(60, 20),
+                new GeoPoint2(60, 50),
+                new GeoPoint2(30, 50)
+            );
 
             GeoFace2[] pierced = Boolean2.Subtract(outer, new GeoFace2(hole));
 
@@ -180,8 +193,14 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Empty(Boolean2.Subtract(outer, outer));
 
             // Unioning a set of faces that do not touch keeps them all.
-            var apart = new GeoFace2(new GeoPolygon2(
-                new GeoPoint2(500, 0), new GeoPoint2(560, 0), new GeoPoint2(560, 60), new GeoPoint2(500, 60)));
+            var apart = new GeoFace2(
+                new GeoPolygon2(
+                    new GeoPoint2(500, 0),
+                    new GeoPoint2(560, 0),
+                    new GeoPoint2(560, 60),
+                    new GeoPoint2(500, 60)
+                )
+            );
 
             GeoFace2[] both = Boolean2.Union(new[] { outer, apart });
 

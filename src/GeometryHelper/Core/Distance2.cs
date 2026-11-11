@@ -142,8 +142,10 @@ namespace GeometryHelper.Core
         /// (0.002, 0.006) would read 0.00632 from it, not 0.006. Crossing is read with no slack, and a segment that
         /// crosses a side is nought from it however short, as it is from the shape.
         /// </remarks>
-        internal static double DistanceToSide(GeoLine2 side, GeoLine2 line, Tolerance tolerance)
-            => Stub2.ReadsAsStart(line, tolerance) ? DistanceToStubOfSide(side, line) : DistanceToLongerOfSide(side, line, tolerance);
+        internal static double DistanceToSide(GeoLine2 side, GeoLine2 line, Tolerance tolerance) =>
+            Stub2.ReadsAsStart(line, tolerance)
+                ? DistanceToStubOfSide(side, line)
+                : DistanceToLongerOfSide(side, line, tolerance);
 
         /// <summary>
         /// Calculates the distance between one side of a shape and a segment a caller gave longer than the tolerance.
@@ -178,7 +180,8 @@ namespace GeometryHelper.Core
             double fromStart = DistanceTo(side, line.StartPoint, Exactly);
             double gap = Math.Min(
                 Math.Min(fromStart, DistanceTo(side, line.EndPoint, Exactly)),
-                Math.Min(DistanceTo(line, side.StartPoint, Exactly), DistanceTo(line, side.EndPoint, Exactly)));
+                Math.Min(DistanceTo(line, side.StartPoint, Exactly), DistanceTo(line, side.EndPoint, Exactly))
+            );
 
             return Stub2.Meets(gap, side, line) ? 0.0 : fromStart;
         }
@@ -266,7 +269,8 @@ namespace GeometryHelper.Core
         /// </returns>
         public static double DistanceTo(GeoCircle2 circle, GeoPolygon2 poly)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             // A centre in the polygon is nought from it, so the distance to the centre needs no test of its own.
             return Math.Max(0.0, DistanceTo(poly, circle.Center) - circle.Radius);
@@ -337,7 +341,8 @@ namespace GeometryHelper.Core
             foreach (var re in rectEdges)
             {
                 double d = DistanceToSide(re, line, tolerance);
-                if (d < minDistance) minDistance = d;
+                if (d < minDistance)
+                    minDistance = d;
             }
 
             return minDistance;
@@ -370,7 +375,8 @@ namespace GeometryHelper.Core
                 {
                     // Sides of two rectangles, not a caller's segment: a side shorter than the tolerance is the side it is.
                     double d = DistanceTo(r1e, r2e, Exactly);
-                    if (d < minDistance) minDistance = d;
+                    if (d < minDistance)
+                        minDistance = d;
                 }
             }
 
@@ -386,7 +392,8 @@ namespace GeometryHelper.Core
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoRectangle2 rect, GeoPolygon2 poly)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             if (Collision2.Meets(rect, poly))
             {
@@ -403,7 +410,8 @@ namespace GeometryHelper.Core
                 {
                     // Sides of two shapes, not a caller's segment: a side shorter than the tolerance is the side it is.
                     double d = DistanceTo(pe, re, Exactly);
-                    if (d < minDistance) minDistance = d;
+                    if (d < minDistance)
+                        minDistance = d;
                 }
             }
 
@@ -424,7 +432,8 @@ namespace GeometryHelper.Core
         /// <returns>Nought for a point in the polygon or on its rim, otherwise the distance to the nearest side.</returns>
         public static double DistanceTo(GeoPolygon2 poly, GeoPoint2 point)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             // A polygon is a filled region here, exactly like a rectangle or a circle, so a point inside
             // it is at distance zero. Projection2 reports the boundary point instead, so the two
@@ -447,7 +456,8 @@ namespace GeometryHelper.Core
         /// </returns>
         public static double DistanceTo(GeoPolygon2 poly, GeoLine2 line)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             // Zero when the segment crosses the polygon or lies inside it, matching DistanceTo(rect, line).
             if (Collision2.Meets(poly, line))
@@ -459,7 +469,8 @@ namespace GeometryHelper.Core
             for (int i = 0; i < poly.EdgeCount; i++)
             {
                 double d = DistanceToSide(poly.GetEdgeAt(i), line, Tolerance.Global);
-                if (d < minDistance) minDistance = d;
+                if (d < minDistance)
+                    minDistance = d;
             }
             return minDistance;
         }
@@ -471,9 +482,12 @@ namespace GeometryHelper.Core
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoPolygon2 poly1, GeoPolygon2 poly2)
         {
-            if (poly1 == null) throw new ArgumentNullException(nameof(poly1));
-            if (poly2 == null) throw new ArgumentNullException(nameof(poly2));
-            if (Collision2.Meets(poly1, poly2)) return 0.0;
+            if (poly1 == null)
+                throw new ArgumentNullException(nameof(poly1));
+            if (poly2 == null)
+                throw new ArgumentNullException(nameof(poly2));
+            if (Collision2.Meets(poly1, poly2))
+                return 0.0;
 
             double minDistance = double.MaxValue;
             for (int i = 0; i < poly1.EdgeCount; i++)
@@ -483,7 +497,8 @@ namespace GeometryHelper.Core
                 {
                     // Sides of two shapes, not a caller's segment: a side shorter than the tolerance is the side it is.
                     double d = DistanceTo(e1, poly2.GetEdgeAt(j), Exactly);
-                    if (d < minDistance) minDistance = d;
+                    if (d < minDistance)
+                        minDistance = d;
                 }
             }
             return minDistance;
@@ -501,7 +516,8 @@ namespace GeometryHelper.Core
         /// <returns>The shortest distance to the polyline.</returns>
         public static double DistanceTo(GeoPolyline2 polyline, GeoPoint2 point)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             // A polyline is a curve, not a region, so only its path counts: a point sitting in the mouth
             // of a horseshoe is at its distance from the path, never at zero.
@@ -517,7 +533,8 @@ namespace GeometryHelper.Core
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoPolyline2 polyline, GeoLine2 line)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             if (CrossesOrStartsOn(polyline, line))
             {
@@ -529,7 +546,8 @@ namespace GeometryHelper.Core
             {
                 GeoLine2 edge = polyline.GetEdgeAt(i);
                 double d = DistanceToSide(edge, line, Tolerance.Global);
-                if (d < minDistance) minDistance = d;
+                if (d < minDistance)
+                    minDistance = d;
             }
 
             return minDistance;
@@ -561,8 +579,10 @@ namespace GeometryHelper.Core
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoPolyline2 polyline, GeoRectangle2 rect)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-            if (Collision2.Meets(polyline, rect)) return 0.0;
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
+            if (Collision2.Meets(polyline, rect))
+                return 0.0;
 
             double minDistance = double.MaxValue;
             GeoLine2[] rectEdges = rect.GetEdges();
@@ -572,7 +592,8 @@ namespace GeometryHelper.Core
                 foreach (var re in rectEdges)
                 {
                     double d = DistanceTo(pe, re, Exactly);
-                    if (d < minDistance) minDistance = d;
+                    if (d < minDistance)
+                        minDistance = d;
                 }
             }
             return minDistance;
@@ -585,9 +606,12 @@ namespace GeometryHelper.Core
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoPolyline2 polyline, GeoPolygon2 poly)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
-            if (Collision2.Meets(polyline, poly)) return 0.0;
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
+            if (Collision2.Meets(polyline, poly))
+                return 0.0;
 
             double minDistance = double.MaxValue;
             for (int i = 0; i < polyline.EdgeCount; i++)
@@ -596,7 +620,8 @@ namespace GeometryHelper.Core
                 for (int j = 0; j < poly.EdgeCount; j++)
                 {
                     double d = DistanceTo(ple, poly.GetEdgeAt(j), Exactly);
-                    if (d < minDistance) minDistance = d;
+                    if (d < minDistance)
+                        minDistance = d;
                 }
             }
             return minDistance;
@@ -612,13 +637,15 @@ namespace GeometryHelper.Core
         /// </returns>
         public static double DistanceTo(GeoPolyline2 polyline, GeoCircle2 circle)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             double minDistance = double.MaxValue;
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
                 double d = DistanceTo(circle, polyline.GetEdgeAt(i), Exactly);
-                if (d < minDistance) minDistance = d;
+                if (d < minDistance)
+                    minDistance = d;
             }
             return minDistance;
         }
@@ -630,9 +657,12 @@ namespace GeometryHelper.Core
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoPolyline2 pl1, GeoPolyline2 pl2)
         {
-            if (pl1 == null) throw new ArgumentNullException(nameof(pl1));
-            if (pl2 == null) throw new ArgumentNullException(nameof(pl2));
-            if (Collision2.Meets(pl1, pl2)) return 0.0;
+            if (pl1 == null)
+                throw new ArgumentNullException(nameof(pl1));
+            if (pl2 == null)
+                throw new ArgumentNullException(nameof(pl2));
+            if (Collision2.Meets(pl1, pl2))
+                return 0.0;
 
             double minDistance = double.MaxValue;
             for (int i = 0; i < pl1.EdgeCount; i++)
@@ -641,7 +671,8 @@ namespace GeometryHelper.Core
                 for (int j = 0; j < pl2.EdgeCount; j++)
                 {
                     double d = DistanceTo(e1, pl2.GetEdgeAt(j), Exactly);
-                    if (d < minDistance) minDistance = d;
+                    if (d < minDistance)
+                        minDistance = d;
                 }
             }
             return minDistance;
@@ -654,7 +685,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from a chain that may curve to a point.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static double DistanceTo(GeoPolylineArc2 chain, GeoPoint2 point) => DistanceTo(chain, point, Tolerance.Global);
+        public static double DistanceTo(GeoPolylineArc2 chain, GeoPoint2 point) =>
+            DistanceTo(chain, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from a chain that may curve to a point, within a tolerance.
@@ -667,8 +699,9 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static double DistanceTo(GeoPolylineArc2 chain, GeoPoint2 point, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), point);
         }
 
@@ -676,7 +709,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from a chain that may curve to a straight segment.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static double DistanceTo(GeoPolylineArc2 chain, GeoLine2 line) => DistanceTo(chain, line, Tolerance.Global);
+        public static double DistanceTo(GeoPolylineArc2 chain, GeoLine2 line) =>
+            DistanceTo(chain, line, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from a chain that may curve to a straight segment, within a tolerance.
@@ -685,12 +719,14 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static double DistanceTo(GeoPolylineArc2 chain, GeoLine2 line, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             List<GeoEdge2> edges = ArcChain2.EdgesOf(chain);
 
             // A segment crossing an edge is nought from the chain, however short it is.
-            if (ArcChain2.Meet(edges, line)) return 0.0;
+            if (ArcChain2.Meet(edges, line))
+                return 0.0;
 
             return ArcChain2.DistanceTo(edges, line, tolerance);
         }
@@ -708,8 +744,9 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static double DistanceTo(GeoPolylineArc2 chain, GeoArc2 arc, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), arc);
         }
 
@@ -717,7 +754,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from a chain that may curve to a straight chain.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static double DistanceTo(GeoPolylineArc2 chain, GeoPolyline2 polyline) => DistanceTo(chain, polyline, Tolerance.Global);
+        public static double DistanceTo(GeoPolylineArc2 chain, GeoPolyline2 polyline) =>
+            DistanceTo(chain, polyline, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from a chain that may curve to a straight chain, within a tolerance.
@@ -727,9 +765,11 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static double DistanceTo(GeoPolylineArc2 chain, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-            
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
+
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polyline));
         }
 
@@ -737,7 +777,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from a chain that may curve to a straight loop.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static double DistanceTo(GeoPolylineArc2 chain, GeoPolygon2 polygon) => DistanceTo(chain, polygon, Tolerance.Global);
+        public static double DistanceTo(GeoPolylineArc2 chain, GeoPolygon2 polygon) =>
+            DistanceTo(chain, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from a chain that may curve to a straight loop, within a tolerance.
@@ -747,10 +788,13 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static double DistanceTo(GeoPolylineArc2 chain, GeoPolygon2 polygon, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
-            
-            if (Collision2.Meets(chain, polygon)) return 0.0;
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
+
+            if (Collision2.Meets(chain, polygon))
+                return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polygon));
         }
@@ -759,7 +803,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from a chain that may curve to a chain that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static double DistanceTo(GeoPolylineArc2 chain, GeoPolylineArc2 other) => DistanceTo(chain, other, Tolerance.Global);
+        public static double DistanceTo(GeoPolylineArc2 chain, GeoPolylineArc2 other) =>
+            DistanceTo(chain, other, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from a chain that may curve to a chain that may curve, within a tolerance.
@@ -769,9 +814,11 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the other is null.</exception>
         public static double DistanceTo(GeoPolylineArc2 chain, GeoPolylineArc2 other, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (other == null) throw new ArgumentNullException(nameof(other));
-            
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
+
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(other));
         }
 
@@ -779,7 +826,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from a chain that may curve to a loop that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static double DistanceTo(GeoPolylineArc2 chain, GeoPolygonArc2 loop) => DistanceTo(chain, loop, Tolerance.Global);
+        public static double DistanceTo(GeoPolylineArc2 chain, GeoPolygonArc2 loop) =>
+            DistanceTo(chain, loop, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from a chain that may curve to a loop that may curve, within a tolerance.
@@ -789,10 +837,13 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static double DistanceTo(GeoPolylineArc2 chain, GeoPolygonArc2 loop, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            
-            if (Collision2.Meets(chain, loop)) return 0.0;
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+
+            if (Collision2.Meets(chain, loop))
+                return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(loop));
         }
@@ -801,7 +852,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from a loop that may curve to a point.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static double DistanceTo(GeoPolygonArc2 loop, GeoPoint2 point) => DistanceTo(loop, point, Tolerance.Global);
+        public static double DistanceTo(GeoPolygonArc2 loop, GeoPoint2 point) =>
+            DistanceTo(loop, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from a loop that may curve to a point, within a tolerance.
@@ -814,8 +866,10 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static double DistanceTo(GeoPolygonArc2 loop, GeoPoint2 point, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (Containment2.Contains(loop, point, Exactly)) return 0.0;
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (Containment2.Contains(loop, point, Exactly))
+                return 0.0;
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), point);
         }
 
@@ -832,9 +886,11 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static double DistanceTo(GeoPolygonArc2 loop, GeoLine2 line, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            
-            if (Collision2.Meets(loop, line)) return 0.0;
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+
+            if (Collision2.Meets(loop, line))
+                return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), line, tolerance);
         }
@@ -852,9 +908,11 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static double DistanceTo(GeoPolygonArc2 loop, GeoArc2 arc, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            
-            if (Containment2.Contains(loop, arc.StartPoint, Exactly)) return 0.0;
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+
+            if (Containment2.Contains(loop, arc.StartPoint, Exactly))
+                return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), arc);
         }
@@ -863,7 +921,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from a loop that may curve to a straight chain.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static double DistanceTo(GeoPolygonArc2 loop, GeoPolyline2 polyline) => DistanceTo(loop, polyline, Tolerance.Global);
+        public static double DistanceTo(GeoPolygonArc2 loop, GeoPolyline2 polyline) =>
+            DistanceTo(loop, polyline, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from a loop that may curve to a straight chain, within a tolerance.
@@ -873,10 +932,13 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static double DistanceTo(GeoPolygonArc2 loop, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-            
-            if (Collision2.Meets(loop, polyline)) return 0.0;
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
+
+            if (Collision2.Meets(loop, polyline))
+                return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polyline));
         }
@@ -885,7 +947,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from a loop that may curve to a straight loop.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static double DistanceTo(GeoPolygonArc2 loop, GeoPolygon2 polygon) => DistanceTo(loop, polygon, Tolerance.Global);
+        public static double DistanceTo(GeoPolygonArc2 loop, GeoPolygon2 polygon) =>
+            DistanceTo(loop, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from a loop that may curve to a straight loop, within a tolerance.
@@ -895,10 +958,13 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static double DistanceTo(GeoPolygonArc2 loop, GeoPolygon2 polygon, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
-            
-            if (Collision2.Meets(loop, polygon)) return 0.0;
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
+
+            if (Collision2.Meets(loop, polygon))
+                return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polygon));
         }
@@ -907,7 +973,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from a loop that may curve to a chain that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static double DistanceTo(GeoPolygonArc2 loop, GeoPolylineArc2 chain) => DistanceTo(loop, chain, Tolerance.Global);
+        public static double DistanceTo(GeoPolygonArc2 loop, GeoPolylineArc2 chain) =>
+            DistanceTo(loop, chain, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from a loop that may curve to a chain that may curve, within a tolerance.
@@ -917,10 +984,13 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static double DistanceTo(GeoPolygonArc2 loop, GeoPolylineArc2 chain, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            
-            if (Collision2.Meets(loop, chain)) return 0.0;
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+
+            if (Collision2.Meets(loop, chain))
+                return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(chain));
         }
@@ -929,7 +999,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from a loop that may curve to a loop that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static double DistanceTo(GeoPolygonArc2 loop, GeoPolygonArc2 other) => DistanceTo(loop, other, Tolerance.Global);
+        public static double DistanceTo(GeoPolygonArc2 loop, GeoPolygonArc2 other) =>
+            DistanceTo(loop, other, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from a loop that may curve to a loop that may curve, within a tolerance.
@@ -939,10 +1010,13 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the other is null.</exception>
         public static double DistanceTo(GeoPolygonArc2 loop, GeoPolygonArc2 other, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (other == null) throw new ArgumentNullException(nameof(other));
-            
-            if (Collision2.Meets(loop, other)) return 0.0;
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
+
+            if (Collision2.Meets(loop, other))
+                return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(other));
         }
@@ -953,7 +1027,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from a chain that may curve to a circle.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static double DistanceTo(GeoPolylineArc2 chain, GeoCircle2 circle) => DistanceTo(chain, circle, Tolerance.Global);
+        public static double DistanceTo(GeoPolylineArc2 chain, GeoCircle2 circle) =>
+            DistanceTo(chain, circle, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from a chain that may curve to a circle, within a tolerance.
@@ -962,7 +1037,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static double DistanceTo(GeoPolylineArc2 chain, GeoCircle2 circle, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(chain), circle);
         }
@@ -971,7 +1047,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from a loop that may curve to a circle.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static double DistanceTo(GeoPolygonArc2 loop, GeoCircle2 circle) => DistanceTo(loop, circle, Tolerance.Global);
+        public static double DistanceTo(GeoPolygonArc2 loop, GeoCircle2 circle) =>
+            DistanceTo(loop, circle, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from a loop that may curve to a circle, within a tolerance.
@@ -980,12 +1057,13 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static double DistanceTo(GeoPolygonArc2 loop, GeoCircle2 circle, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
-            if (Containment2.Contains(loop, circle.Center, Exactly)) return 0.0;
+            if (Containment2.Contains(loop, circle.Center, Exactly))
+                return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(loop), circle);
         }
-
     }
 }

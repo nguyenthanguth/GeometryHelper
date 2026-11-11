@@ -13,9 +13,18 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Thousandth = Tolerance.Default;
 
-        private static readonly GeoTriangle3 Triangle = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
+        private static readonly GeoTriangle3 Triangle = new GeoTriangle3(
+            new GeoPoint3(0, 0, 0),
+            new GeoPoint3(100, 0, 0),
+            new GeoPoint3(0, 100, 0)
+        );
 
-        private static readonly GeoPolygon3 Square = new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0));
+        private static readonly GeoPolygon3 Square = new GeoPolygon3(
+            new GeoPoint3(0, 0, 0),
+            new GeoPoint3(100, 0, 0),
+            new GeoPoint3(100, 100, 0),
+            new GeoPoint3(0, 100, 0)
+        );
 
         private static void SamePoint(GeoPoint3 expected, GeoPoint3 actual)
         {
@@ -28,12 +37,25 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(100.0, 0.0002, 4E-6)]
         [InlineData(100.0, 0.00005, 1E-6)]
         [InlineData(5000.0, 1E-7, 1E-10)]
-        public void ARayLyingLevelOverTheShapeWithinThePlanarTolerance_IsRefused_AsTheListGivesNothing(double length, double height, double fall)
+        public void ARayLyingLevelOverTheShapeWithinThePlanarTolerance_IsRefused_AsTheListGivesNothing(
+            double length,
+            double height,
+            double fall
+        )
         {
             // From (10, 50) a hair over the floor, falling along X: it would cross the floor at (60, 50, 0) or (1010, 50, 0),
             // but it climbs less than the planar tolerance across the shape and lies level over it, as its line does.
-            var rectangle = new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(length, 0, 0), new GeoPoint3(length, 100, 0), new GeoPoint3(0, 100, 0));
-            var triangle = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(2 * length, 0, 0), new GeoPoint3(0, 200, 0));
+            var rectangle = new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(length, 0, 0),
+                new GeoPoint3(length, 100, 0),
+                new GeoPoint3(0, 100, 0)
+            );
+            var triangle = new GeoTriangle3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(2 * length, 0, 0),
+                new GeoPoint3(0, 200, 0)
+            );
             var ray = new GeoRay3(new GeoPoint3(10, 50, height), new GeoVector3(1, 0, -fall).Normalize());
 
             Assert.Empty(ray.GetIntersections(rectangle, Thousandth));
@@ -84,7 +106,18 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ARayStraightDownThroughAHole_CrossesNothing()
         {
-            var face = new GeoFace3(Square, new[] { new GeoPolygon3(new GeoPoint3(30, 30, 0), new GeoPoint3(70, 30, 0), new GeoPoint3(70, 70, 0), new GeoPoint3(30, 70, 0)) });
+            var face = new GeoFace3(
+                Square,
+                new[]
+                {
+                    new GeoPolygon3(
+                        new GeoPoint3(30, 30, 0),
+                        new GeoPoint3(70, 30, 0),
+                        new GeoPoint3(70, 70, 0),
+                        new GeoPoint3(30, 70, 0)
+                    ),
+                }
+            );
             var ray = new GeoRay3(new GeoPoint3(50, 50, 10), new GeoVector3(0, 0, -1));
 
             Assert.False(ray.TryIntersectWith(face, out _, Thousandth));
@@ -104,7 +137,13 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Empty(line.GetIntersections(Square, Thousandth));
             Assert.False(line.TryIntersectWith(Square, out _, Thousandth));
-            Assert.InRange(Assert.Single(segment.GetIntersections(Square, Thousandth)).DistanceTo(new GeoPoint3(50, -0.0004, 0.0008)), 0.0, 1E-6);
+            Assert.InRange(
+                Assert
+                    .Single(segment.GetIntersections(Square, Thousandth))
+                    .DistanceTo(new GeoPoint3(50, -0.0004, 0.0008)),
+                0.0,
+                1E-6
+            );
             Assert.False(segment.TryIntersectWith(Square, out _, Thousandth));
         }
     }

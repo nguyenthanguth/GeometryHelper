@@ -30,19 +30,46 @@ namespace GeometryHelper.Core
         // The corners of the icosahedron, on three golden rectangles, all the same distance from the centre.
         private static readonly double[][] Corners =
         {
-            new[] { -1.0, Phi, 0.0 }, new[] { 1.0, Phi, 0.0 }, new[] { -1.0, -Phi, 0.0 }, new[] { 1.0, -Phi, 0.0 },
-            new[] { 0.0, -1.0, Phi }, new[] { 0.0, 1.0, Phi }, new[] { 0.0, -1.0, -Phi }, new[] { 0.0, 1.0, -Phi },
-            new[] { Phi, 0.0, -1.0 }, new[] { Phi, 0.0, 1.0 }, new[] { -Phi, 0.0, -1.0 }, new[] { -Phi, 0.0, 1.0 }
+            new[] { -1.0, Phi, 0.0 },
+            new[] { 1.0, Phi, 0.0 },
+            new[] { -1.0, -Phi, 0.0 },
+            new[] { 1.0, -Phi, 0.0 },
+            new[] { 0.0, -1.0, Phi },
+            new[] { 0.0, 1.0, Phi },
+            new[] { 0.0, -1.0, -Phi },
+            new[] { 0.0, 1.0, -Phi },
+            new[] { Phi, 0.0, -1.0 },
+            new[] { Phi, 0.0, 1.0 },
+            new[] { -Phi, 0.0, -1.0 },
+            new[] { -Phi, 0.0, 1.0 },
         };
 
         // The twenty faces as corner indices, each turned below to run counter-clockwise seen from outside.
-        private static readonly int[][] Faces = TurnOutwards(new[]
-        {
-            new[] { 0, 11, 5 }, new[] { 0, 5, 1 }, new[] { 0, 1, 7 }, new[] { 0, 7, 10 }, new[] { 0, 10, 11 },
-            new[] { 1, 5, 9 }, new[] { 5, 11, 4 }, new[] { 11, 10, 2 }, new[] { 10, 7, 6 }, new[] { 7, 1, 8 },
-            new[] { 3, 9, 4 }, new[] { 3, 4, 2 }, new[] { 3, 2, 6 }, new[] { 3, 6, 8 }, new[] { 3, 8, 9 },
-            new[] { 4, 9, 5 }, new[] { 2, 4, 11 }, new[] { 6, 2, 10 }, new[] { 8, 6, 7 }, new[] { 9, 8, 1 }
-        });
+        private static readonly int[][] Faces = TurnOutwards(
+            new[]
+            {
+                new[] { 0, 11, 5 },
+                new[] { 0, 5, 1 },
+                new[] { 0, 1, 7 },
+                new[] { 0, 7, 10 },
+                new[] { 0, 10, 11 },
+                new[] { 1, 5, 9 },
+                new[] { 5, 11, 4 },
+                new[] { 11, 10, 2 },
+                new[] { 10, 7, 6 },
+                new[] { 7, 1, 8 },
+                new[] { 3, 9, 4 },
+                new[] { 3, 4, 2 },
+                new[] { 3, 2, 6 },
+                new[] { 3, 6, 8 },
+                new[] { 3, 8, 9 },
+                new[] { 4, 9, 5 },
+                new[] { 2, 4, 11 },
+                new[] { 6, 2, 10 },
+                new[] { 8, 6, 7 },
+                new[] { 9, 8, 1 },
+            }
+        );
 
         private static int[][] TurnOutwards(int[][] faces)
         {
@@ -81,7 +108,11 @@ namespace GeometryHelper.Core
                 throw new ArgumentException("A sphere to be meshed must have a centre that is a number.", "sphere");
             }
 
-            Guard.NonNegative(chordTolerance, nameof(chordTolerance), "The chord tolerance must be zero (automatic) or a positive distance.");
+            Guard.NonNegative(
+                chordTolerance,
+                nameof(chordTolerance),
+                "The chord tolerance must be zero (automatic) or a positive distance."
+            );
 
             return chordTolerance > 0.0 ? chordTolerance : sphere.Radius * AutomaticShare;
         }
@@ -106,11 +137,19 @@ namespace GeometryHelper.Core
                 {
                     for (int j = 0; j < n - i; j++)
                     {
-                        triangles[count++] = new GeoTriangle3(grid[Slot(n, i, j)], grid[Slot(n, i + 1, j)], grid[Slot(n, i, j + 1)]);
+                        triangles[count++] = new GeoTriangle3(
+                            grid[Slot(n, i, j)],
+                            grid[Slot(n, i + 1, j)],
+                            grid[Slot(n, i, j + 1)]
+                        );
 
                         if (i + j < n - 1)
                         {
-                            triangles[count++] = new GeoTriangle3(grid[Slot(n, i + 1, j)], grid[Slot(n, i + 1, j + 1)], grid[Slot(n, i, j + 1)]);
+                            triangles[count++] = new GeoTriangle3(
+                                grid[Slot(n, i + 1, j)],
+                                grid[Slot(n, i + 1, j + 1)],
+                                grid[Slot(n, i, j + 1)]
+                            );
                         }
                     }
                 }
@@ -132,7 +171,9 @@ namespace GeometryHelper.Core
                 GeoVector3 twice = triangles[i].GetAreaVector();
                 GeoPoint3[] corners = { triangles[i].A, triangles[i].B, triangles[i].C };
 
-                faces[i] = new GeoFace3(GeoPolygon3.FromValidated(corners, twice.Multiply(1.0 / twice.Length), 0.5 * twice.Length));
+                faces[i] = new GeoFace3(
+                    GeoPolygon3.FromValidated(corners, twice.Multiply(1.0 / twice.Length), 0.5 * twice.Length)
+                );
             }
 
             return faces;
@@ -197,7 +238,8 @@ namespace GeometryHelper.Core
             return new GeoPoint3(
                 sphere.Center.X + sphere.Radius * (x / length),
                 sphere.Center.Y + sphere.Radius * (y / length),
-                sphere.Center.Z + sphere.Radius * (z / length));
+                sphere.Center.Z + sphere.Radius * (z / length)
+            );
         }
 
         // The fewest pieces to cut an edge of the icosahedron into so that no triangle strays further than the tolerance, found from
@@ -219,8 +261,12 @@ namespace GeometryHelper.Core
                 throw new ArgumentOutOfRangeException(
                     "chordTolerance",
                     asked,
-                    "A chord tolerance of " + tolerance.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
-                    + " would cut the sphere into more than " + MostTriangles + " triangles; ask for a larger one.");
+                    "A chord tolerance of "
+                        + tolerance.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                        + " would cut the sphere into more than "
+                        + MostTriangles
+                        + " triangles; ask for a larger one."
+                );
             }
 
             while (n > 1 && Holds(radius, tolerance, n - 1))
@@ -249,7 +295,10 @@ namespace GeometryHelper.Core
                         return false;
                     }
 
-                    if (i + j < n - 1 && Sag(grid[Slot(n, i + 1, j)], grid[Slot(n, i + 1, j + 1)], grid[Slot(n, i, j + 1)]) > share)
+                    if (
+                        i + j < n - 1
+                        && Sag(grid[Slot(n, i + 1, j)], grid[Slot(n, i + 1, j + 1)], grid[Slot(n, i, j + 1)]) > share
+                    )
                     {
                         return false;
                     }

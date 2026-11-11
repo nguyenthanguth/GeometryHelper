@@ -171,9 +171,15 @@ namespace GeometryHelper.Viewer
 
                 switch (parts[i].ToLowerInvariant())
                 {
-                    case "ctrl": one = GestureModifiers.Ctrl; break;
-                    case "alt": one = GestureModifiers.Alt; break;
-                    case "shift": one = GestureModifiers.Shift; break;
+                    case "ctrl":
+                        one = GestureModifiers.Ctrl;
+                        break;
+                    case "alt":
+                        one = GestureModifiers.Alt;
+                        break;
+                    case "shift":
+                        one = GestureModifiers.Shift;
+                        break;
                     default:
                         problem = "'" + parts[i] + "' in '" + text + "' is not a modifier; use Ctrl, Alt or Shift.";
                         return false;
@@ -278,7 +284,8 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Determines whether another gesture is the same input.
         /// </summary>
-        public bool Equals(Gesture other) => other != null && string.Equals(ToString(), other.ToString(), StringComparison.Ordinal);
+        public bool Equals(Gesture other) =>
+            other != null && string.Equals(ToString(), other.ToString(), StringComparison.Ordinal);
 
         /// <summary>
         /// Determines whether an object is the same input.
@@ -307,8 +314,21 @@ namespace GeometryHelper.Viewer
         {
             var keys = new HashSet<string>(StringComparer.Ordinal)
             {
-                "Esc", "Enter", "Space", "Tab", "Delete", "Backspace", "Insert", "Home", "End",
-                "PageUp", "PageDown", "Left", "Right", "Up", "Down",
+                "Esc",
+                "Enter",
+                "Space",
+                "Tab",
+                "Delete",
+                "Backspace",
+                "Insert",
+                "Home",
+                "End",
+                "PageUp",
+                "PageDown",
+                "Left",
+                "Right",
+                "Up",
+                "Down",
             };
 
             for (char c = 'A'; c <= 'Z'; c++)

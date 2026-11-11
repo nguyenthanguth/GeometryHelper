@@ -32,7 +32,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal(CadSnapModes.All & ~CadSnapModes.Nearest, settings.Snaps);
             Assert.Equal(CadShortcuts.Default.Aliases, settings.Aliases);
             Assert.Equal(CadShortcuts.Default.Keys, settings.Keys);
-            Assert.Equal(new[] { "Visible", "Hidden", "Centre", "Hatch", "Dimension", "Mark", "Symbol", "Sheet", "Viewport" }, settings.Layers.Select(l => l.Name));
+            Assert.Equal(
+                new[] { "Visible", "Hidden", "Centre", "Hatch", "Dimension", "Mark", "Symbol", "Sheet", "Viewport" },
+                settings.Layers.Select(l => l.Name)
+            );
             Assert.Equal("Assembly", settings.DefaultPreset);
             Assert.Equal("A2", settings.DefaultSheetSize);
             Assert.Equal("LayoutAndViewports", settings.ExportLayout);
@@ -69,8 +72,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 SaveFolder = @"D:\Drawings ""A""",
                 ShowLineWeights = false,
             };
-            settings.Layers = settings.Layers.Concat(new[] { new GlobalLayer("Weld", 0xF85149, "Continuous", 0.5, false) }).ToList();
-            settings.SetShortcuts(settings.Aliases.Concat(new[] { new KeyValuePair<string, string>("ZZ", "ZOOM") }), settings.Keys.Concat(new[] { new KeyValuePair<string, string>("Ctrl+Shift+P", "PLOT") }));
+            settings.Layers = settings
+                .Layers.Concat(new[] { new GlobalLayer("Weld", 0xF85149, "Continuous", 0.5, false) })
+                .ToList();
+            settings.SetShortcuts(
+                settings.Aliases.Concat(new[] { new KeyValuePair<string, string>("ZZ", "ZOOM") }),
+                settings.Keys.Concat(new[] { new KeyValuePair<string, string>("Ctrl+Shift+P", "PLOT") })
+            );
             string path = Path.Combine(_folder.FullPath, "deep", "settings.json");
 
             settings.Save(path);
@@ -90,7 +98,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         public void ABadValueFallsBackToItsDefaultWithAWarnAndTheOthersAreRead()
         {
             string path = Path.Combine(_folder.FullPath, "settings.json");
-            File.WriteAllText(path, "{ \"appearance\": { \"canvasBackground\": \"blue\", \"pickboxPixels\": 500, \"paper\": \"#EEEEEE\" }, \"canvas\": { \"wheelZoomFactor\": 1.5, \"snaps\": \"Endpoint,Bogus\" }, \"units\": { \"thousandsSeparator\": \"Point\" }, \"layers\": [ { \"name\": \"\", \"colour\": \"#FFFFFF\", \"linetype\": \"x\", \"lineweight\": 0.25 }, { \"name\": \"Visible\", \"colour\": \"#FFFFFF\", \"linetype\": \"Continuous\", \"lineweight\": 0.35 } ] }");
+            File.WriteAllText(
+                path,
+                "{ \"appearance\": { \"canvasBackground\": \"blue\", \"pickboxPixels\": 500, \"paper\": \"#EEEEEE\" }, \"canvas\": { \"wheelZoomFactor\": 1.5, \"snaps\": \"Endpoint,Bogus\" }, \"units\": { \"thousandsSeparator\": \"Point\" }, \"layers\": [ { \"name\": \"\", \"colour\": \"#FFFFFF\", \"linetype\": \"x\", \"lineweight\": 0.25 }, { \"name\": \"Visible\", \"colour\": \"#FFFFFF\", \"linetype\": \"Continuous\", \"lineweight\": 0.35 } ] }"
+            );
             var lines = new List<string>();
             Action<GeometryHelperLogLevel, string, Exception> before = GeometryHelperLog.Writer;
             GlobalSettings read;
@@ -118,14 +129,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal(CadSnapModes.All & ~CadSnapModes.Nearest, read.Snaps);
             Assert.Equal("Space", read.ThousandsSeparator);
             Assert.Equal(new[] { "Visible" }, read.Layers.Select(l => l.Name));
-            Assert.Contains(lines, l => l.StartsWith("WARN ", StringComparison.Ordinal) && l.Contains("appearance.pickboxPixels"));
-            Assert.Contains(lines, l => l.StartsWith("WARN ", StringComparison.Ordinal) && l.Contains("appearance.canvasBackground"));
+            Assert.Contains(lines, l =>
+                l.StartsWith("WARN ", StringComparison.Ordinal) && l.Contains("appearance.pickboxPixels")
+            );
+            Assert.Contains(lines, l =>
+                l.StartsWith("WARN ", StringComparison.Ordinal) && l.Contains("appearance.canvasBackground")
+            );
             Assert.Contains(lines, l => l.StartsWith("WARN ", StringComparison.Ordinal) && l.Contains("canvas.snaps"));
-            Assert.Contains(lines, l => l.StartsWith("WARN ", StringComparison.Ordinal) && l.Contains("units.thousandsSeparator"));
+            Assert.Contains(lines, l =>
+                l.StartsWith("WARN ", StringComparison.Ordinal) && l.Contains("units.thousandsSeparator")
+            );
 
             File.WriteAllText(path, "{ this is not JSON");
             Assert.Equal(new GlobalSettings().ToJson(), GlobalSettings.Load(path).ToJson());
-            Assert.Equal(new GlobalSettings().ToJson(), GlobalSettings.Load(Path.Combine(_folder.FullPath, "none.json")).ToJson());
+            Assert.Equal(
+                new GlobalSettings().ToJson(),
+                GlobalSettings.Load(Path.Combine(_folder.FullPath, "none.json")).ToJson()
+            );
         }
 
         [Fact]
@@ -144,18 +164,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal(settings.Layers.Select(l => l.Name), GlobalSettings.Load(path).Layers.Select(l => l.Name));
 
             // A file written before Symbol and Viewport were defaults reads as written.
-            var older = new GlobalSettings { Layers = settings.Layers.Where(l => l.Name != "Symbol" && l.Name != "Viewport").ToList() };
+            var older = new GlobalSettings
+            {
+                Layers = settings.Layers.Where(l => l.Name != "Symbol" && l.Name != "Viewport").ToList(),
+            };
             older.Save(path);
             GlobalSettings read = GlobalSettings.Load(path);
-            Assert.Equal(new[] { "Visible", "Hidden", "Centre", "Hatch", "Dimension", "Mark", "Sheet" }, read.Layers.Select(l => l.Name));
+            Assert.Equal(
+                new[] { "Visible", "Hidden", "Centre", "Hatch", "Dimension", "Mark", "Sheet" },
+                read.Layers.Select(l => l.Name)
+            );
             Assert.Equal(1.2, read.WheelZoomFactor);
         }
 
         [Fact]
         public void ApplyGivesTheCanvasItsColoursPickboxAndZoomAndTheStatusBarItsUnits()
         {
-            int background = -1, paper = -1, selection = -1;
-            double pickbox = 0, wheel = 0, aperture = 0;
+            int background = -1,
+                paper = -1,
+                selection = -1;
+            double pickbox = 0,
+                wheel = 0,
+                aperture = 0;
             string font = null;
             Exception failure = null;
             var model = new MainViewModel();
@@ -228,7 +258,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             move.Keys = "Ctrl+1";
 
-            Assert.Contains(dialog.Shortcuts, r => r.HasConflict && r.Conflict.StartsWith("Ctrl+1 is already used by ", StringComparison.Ordinal));
+            Assert.Contains(dialog.Shortcuts, r =>
+                r.HasConflict && r.Conflict.StartsWith("Ctrl+1 is already used by ", StringComparison.Ordinal)
+            );
             Assert.True(dialog.HasErrors);
             Assert.False(dialog.ApplyCommand.CanExecute(null));
 
@@ -300,9 +332,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 try
                 {
                     var model = new MainViewModel();
-                    model.SettingsSources = new[] { new CadSourceInfo("Test bodies", "Built in", true), new CadSourceInfo("Tekla Structures", "Not connected", false) };
+                    model.SettingsSources = new[]
+                    {
+                        new CadSourceInfo("Test bodies", "Built in", true),
+                        new CadSourceInfo("Tekla Structures", "Not connected", false),
+                    };
 
-                    foreach (string category in new[] { "Appearance", "Layers, colours and lines", "Data sources", "Shortcuts" })
+                    foreach (
+                        string category in new[]
+                        {
+                            "Appearance",
+                            "Layers, colours and lines",
+                            "Data sources",
+                            "Shortcuts",
+                        }
+                    )
                     {
                         var window = new GlobalSettingsWindow(model.CreateGlobalSettings(category));
                         FrameworkElement body = window.Body;

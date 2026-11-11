@@ -85,13 +85,15 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // ezdxf 1.4.5 by the uniform scale by 2 turned about z (M2), the spacing scaled as the oracle scales it: insert
             // (569.2018934753636, 183.31212399680373, 1), rotation 17.188733853924695, scale 2, spacing 60 and 40.
-            var scale = new GeoTransform3(new double[,]
-            {
-                { 1.910672978251212, -0.5910404133226791, 0.0, -4.0 },
-                { 0.5910404133226791, 1.910672978251212, 0.0, 6.0 },
-                { 0.0, 0.0, 2.0, 1.0 },
-                { 0, 0, 0, 1 },
-            });
+            var scale = new GeoTransform3(
+                new double[,]
+                {
+                    { 1.910672978251212, -0.5910404133226791, 0.0, -4.0 },
+                    { 0.5910404133226791, 1.910672978251212, 0.0, 6.0 },
+                    { 0.0, 0.0, 2.0, 1.0 },
+                    { 0, 0, 0, 1 },
+                }
+            );
             DxfMInsertBlock grid = ByHandle<DxfMInsertBlock>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000), "6A");
 
             grid.TransformBy(scale);
@@ -128,9 +130,37 @@ namespace GeometryHelper.UnitTest.Dxf
             // of every cell the reader placed lands where the mirror takes it.
             var mirrors = new[]
             {
-                new GeoTransform3(new double[,] { { -1, 0, 0, 10 }, { 0, 1, 0, 20 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } }),
-                new GeoTransform3(new double[,] { { 1, 0, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, -1, 3 }, { 0, 0, 0, 1 } }),
-                GeoTransform3.RotationAxis(new GeoVector3(1, 1, 1), 0.7).Multiply(new GeoTransform3(new double[,] { { -1, 0, 0, 5 }, { 0, 1, 0, -3 }, { 0, 0, 1, 7 }, { 0, 0, 0, 1 } })),
+                new GeoTransform3(
+                    new double[,]
+                    {
+                        { -1, 0, 0, 10 },
+                        { 0, 1, 0, 20 },
+                        { 0, 0, 1, 0 },
+                        { 0, 0, 0, 1 },
+                    }
+                ),
+                new GeoTransform3(
+                    new double[,]
+                    {
+                        { 1, 0, 0, 0 },
+                        { 0, 1, 0, 0 },
+                        { 0, 0, -1, 3 },
+                        { 0, 0, 0, 1 },
+                    }
+                ),
+                GeoTransform3
+                    .RotationAxis(new GeoVector3(1, 1, 1), 0.7)
+                    .Multiply(
+                        new GeoTransform3(
+                            new double[,]
+                            {
+                                { -1, 0, 0, 5 },
+                                { 0, 1, 0, -3 },
+                                { 0, 0, 1, 7 },
+                                { 0, 0, 0, 1 },
+                            }
+                        )
+                    ),
             };
 
             foreach (string text in Drawings)
@@ -138,7 +168,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 foreach (GeoTransform3 mirror in mirrors)
                 {
                     DxfMInsertBlock grid = ByHandle<DxfMInsertBlock>(DxfDatabase.Parse(text), "6A");
-                    GeoLine3[] wanted = grid.GetGeometry().OfType<GeoLine3>().Select(l => mirror.Transform(l)).ToArray();
+                    GeoLine3[] wanted = grid.GetGeometry()
+                        .OfType<GeoLine3>()
+                        .Select(l => mirror.Transform(l))
+                        .ToArray();
 
                     grid.TransformBy(mirror);
 

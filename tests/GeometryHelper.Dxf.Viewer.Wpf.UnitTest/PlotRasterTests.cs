@@ -40,8 +40,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.True(dialog.IsRaster);
             Assert.Equal("1920 x 1080 Pixels (Full HD)", dialog.Paper.Label);
             Assert.Equal(
-                new[] { "1280 x 720 Pixels (HD)", "1600 x 1200 Pixels (UXGA)", "1920 x 1080 Pixels (Full HD)", "2560 x 1440 Pixels (QHD)", "3840 x 2160 Pixels (4K UHD)", "800 x 600 Pixels (Custom)", "Custom…" },
-                dialog.Papers.Select(p => p.Label).ToArray());
+                new[]
+                {
+                    "1280 x 720 Pixels (HD)",
+                    "1600 x 1200 Pixels (UXGA)",
+                    "1920 x 1080 Pixels (Full HD)",
+                    "2560 x 1440 Pixels (QHD)",
+                    "3840 x 2160 Pixels (4K UHD)",
+                    "800 x 600 Pixels (Custom)",
+                    "Custom…",
+                },
+                dialog.Papers.Select(p => p.Label).ToArray()
+            );
             Assert.Equal("1920 PIXELS", dialog.SheetWidthText);
             Assert.Equal("1080", dialog.SheetHeightText);
             Assert.True(dialog.FitToPaper);
@@ -89,7 +99,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     SKColor[] across = Enumerable.Range(537, 7).Select(y => image.GetPixel(960, y)).ToArray();
                     Assert.Contains(across, p => p.Red < 160 && p.Red == p.Green && p.Green == p.Blue);
                     int left = (int)System.Math.Round((1920 - 7500 * page.Scale) / 2.0);
-                    Assert.Contains(Enumerable.Range(left - 3, 7).Select(x => image.GetPixel(x, 300)), p => p.Red > 200 && p.Green < p.Red - 40 && p.Blue < p.Red - 40);
+                    Assert.Contains(Enumerable.Range(left - 3, 7).Select(x => image.GetPixel(x, 300)), p =>
+                        p.Red > 200 && p.Green < p.Red - 40 && p.Blue < p.Red - 40
+                    );
                 }
 
                 // JPG: a JPEG of the same size.
@@ -157,7 +169,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 GlobalSettings read = GlobalSettings.Load(path);
 
-                Assert.Equal(new[] { "2480 x 1754 Pixels (Custom)", "800 x 600 Pixels (Custom)" }, read.CustomPixelSizes.Select(p => p.Label).ToArray());
+                Assert.Equal(
+                    new[] { "2480 x 1754 Pixels (Custom)", "800 x 600 Pixels (Custom)" },
+                    read.CustomPixelSizes.Select(p => p.Label).ToArray()
+                );
             }
         }
 
@@ -174,13 +189,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     dialog.Paper = dialog.Papers.First();
                     return true;
                 };
-                model.AskPlotFile = (where, name) => throw new Xunit.Sdk.XunitException("FILEDIA 0 asks no file dialog.");
+                model.AskPlotFile = (where, name) =>
+                    throw new Xunit.Sdk.XunitException("FILEDIA 0 asks no file dialog.");
                 model.Execute("FILEDIA");
                 model.Execute("0");
 
                 model.Execute("PLOT");
 
-                Assert.Equal("Enter file name <" + Path.Combine(folder.FullPath, "plan-level2-Model.png") + ">:", model.Session.PromptText);
+                Assert.Equal(
+                    "Enter file name <" + Path.Combine(folder.FullPath, "plan-level2-Model.png") + ">:",
+                    model.Session.PromptText
+                );
 
                 string path = Path.Combine(folder.FullPath, "out");
                 model.Execute(path);

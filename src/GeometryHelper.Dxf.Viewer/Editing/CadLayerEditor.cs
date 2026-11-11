@@ -10,7 +10,21 @@ namespace GeometryHelper.Dxf.Viewer
     public static class CadLayerEditor
     {
         // The characters AutoCAD refuses in the name of a layer; | joins an external reference's name to its layer's.
-        private static readonly char[] InvalidNameCharacters = { '<', '>', '/', '\\', '"', ':', ';', '?', '*', '|', '=', '`' };
+        private static readonly char[] InvalidNameCharacters =
+        {
+            '<',
+            '>',
+            '/',
+            '\\',
+            '"',
+            ':',
+            ';',
+            '?',
+            '*',
+            '|',
+            '=',
+            '`',
+        };
 
         /// <summary>Gets whether a layer of the drawing is locked; false for a layer it has not.</summary>
         /// <param name="database">The drawing.</param>
@@ -55,7 +69,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             string old = document.Database.Clayer;
             string set = layer.Name;
-            return document.ApplyEdit("LAYER", new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "Current layer", old, set) }, s => s.Database.Clayer = set);
+            return document.ApplyEdit(
+                "LAYER",
+                new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "Current layer", old, set) },
+                s => s.Database.Clayer = set
+            );
         }
 
         /// <summary>Adds a layer of the colour White (7) and the linetype Continuous, as AutoCAD's New layer.</summary>
@@ -90,7 +108,11 @@ namespace GeometryHelper.Dxf.Viewer
                 return Refuse("Layer \"" + trimmed + "\" already exists.");
             }
 
-            return document.ApplyEdit("LAYER", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New layer", null, trimmed) }, s => s.Database.LayerTable.Add(new DxfLayerTableRecord { Name = trimmed, ColorIndex = 7 }));
+            return document.ApplyEdit(
+                "LAYER",
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New layer", null, trimmed) },
+                s => s.Database.LayerTable.Add(new DxfLayerTableRecord { Name = trimmed, ColorIndex = 7 })
+            );
         }
 
         /// <summary>Switches a layer on or off; the current layer may be switched off, as in AutoCAD.</summary>
@@ -129,7 +151,9 @@ namespace GeometryHelper.Dxf.Viewer
                 return Refuse("Cannot freeze layer \"" + layer.Name + "\".  It is the CURRENT layer.");
             }
 
-            return Set(document, layer, "Freeze", layer.IsFrozen, frozen, CadXrefLayers.Frozen, l => l.IsFrozen = frozen);
+            return Set(document, layer, "Freeze", layer.IsFrozen, frozen, CadXrefLayers.Frozen, l =>
+                l.IsFrozen = frozen
+            );
         }
 
         /// <summary>Locks or unlocks a layer: the objects on a locked layer are drawn but not changed.</summary>
@@ -158,7 +182,9 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (colorIndex < 1 || colorIndex > 255)
             {
-                return Find(document, name, out CadEditResult refused) == null ? refused : Refuse("A layer's colour is 1 to 255.");
+                return Find(document, name, out CadEditResult refused) == null
+                    ? refused
+                    : Refuse("A layer's colour is 1 to 255.");
             }
 
             return SetColor(document, name, DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)colorIndex));
@@ -185,7 +211,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (color == null || (!color.IsByAci && !color.IsByColor))
             {
-                return Refuse("A layer's colour is one of the index, 1 to 255, or a true colour; not ByLayer or ByBlock.");
+                return Refuse(
+                    "A layer's colour is one of the index, 1 to 255, or a true colour; not ByLayer or ByBlock."
+                );
             }
 
             if (color.IsByColor && string.CompareOrdinal(document.Database.Version, "AC1018") < 0)
@@ -194,8 +222,19 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string layerName = layer.Name;
-            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Color of " + layerName, layer.Color.ToString(), color.ToString()) { IsLayerLook = true };
-            return document.ApplyEdit("LAYER", new[] { record }, s => Write(s.Database.LayerTable[layerName], CadXrefLayers.Color, l => l.Color = color));
+            var record = new CadEditRecord(
+                CadEditRecordKind.TableChanged,
+                null,
+                "Color of " + layerName,
+                layer.Color.ToString(),
+                color.ToString()
+            )
+            {
+                IsLayerLook = true,
+            };
+            return document.ApplyEdit("LAYER", new[] { record }, s =>
+                Write(s.Database.LayerTable[layerName], CadXrefLayers.Color, l => l.Color = color)
+            );
         }
 
         /// <summary>
@@ -237,7 +276,11 @@ namespace GeometryHelper.Dxf.Viewer
                 return Refuse("Layer \"" + layerName + "\" cannot be deleted: objects are on it.");
             }
 
-            return document.ApplyEdit("LAYER", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Delete layer", layerName, null) }, s => s.Database.LayerTable[layerName].Erase());
+            return document.ApplyEdit(
+                "LAYER",
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Delete layer", layerName, null) },
+                s => s.Database.LayerTable[layerName].Erase()
+            );
         }
 
         /// <summary>
@@ -259,7 +302,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             string wanted = (linetype ?? string.Empty).Trim();
 
-            if (wanted.Length == 0 || string.Equals(wanted, "ByLayer", StringComparison.OrdinalIgnoreCase) || string.Equals(wanted, "ByBlock", StringComparison.OrdinalIgnoreCase))
+            if (
+                wanted.Length == 0
+                || string.Equals(wanted, "ByLayer", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(wanted, "ByBlock", StringComparison.OrdinalIgnoreCase)
+            )
             {
                 return Refuse("A layer's linetype is one of the drawing's linetypes, not ByLayer or ByBlock.");
             }
@@ -271,8 +318,19 @@ namespace GeometryHelper.Dxf.Viewer
 
             string set = document.Database.LinetypeTable[wanted].Name;
             string layerName = layer.Name;
-            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Linetype of " + layerName, layer.LinetypeName, set) { IsLayerLook = true };
-            return document.ApplyEdit("LAYER", new[] { record }, s => Write(s.Database.LayerTable[layerName], CadXrefLayers.Linetype, l => l.LinetypeName = set));
+            var record = new CadEditRecord(
+                CadEditRecordKind.TableChanged,
+                null,
+                "Linetype of " + layerName,
+                layer.LinetypeName,
+                set
+            )
+            {
+                IsLayerLook = true,
+            };
+            return document.ApplyEdit("LAYER", new[] { record }, s =>
+                Write(s.Database.LayerTable[layerName], CadXrefLayers.Linetype, l => l.LinetypeName = set)
+            );
         }
 
         /// <summary>Gives a layer a lineweight: Default, or one of AutoCAD's widths; ByLayer and ByBlock are refused, as a layer cannot take them.</summary>
@@ -289,14 +347,30 @@ namespace GeometryHelper.Dxf.Viewer
                 return refused;
             }
 
-            if (lineWeight == DxfLineWeight.ByLayer || lineWeight == DxfLineWeight.ByBlock || lineWeight == DxfLineWeight.ByDIPs || !Enum.IsDefined(typeof(DxfLineWeight), lineWeight))
+            if (
+                lineWeight == DxfLineWeight.ByLayer
+                || lineWeight == DxfLineWeight.ByBlock
+                || lineWeight == DxfLineWeight.ByDIPs
+                || !Enum.IsDefined(typeof(DxfLineWeight), lineWeight)
+            )
             {
                 return Refuse("A layer's lineweight is Default or one of AutoCAD's widths, not ByLayer or ByBlock.");
             }
 
             string layerName = layer.Name;
-            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Lineweight of " + layerName, layer.LineWeight.ToString(), lineWeight.ToString()) { IsLayerLook = true };
-            return document.ApplyEdit("LAYER", new[] { record }, s => Write(s.Database.LayerTable[layerName], CadXrefLayers.LineWeight, l => l.LineWeight = lineWeight));
+            var record = new CadEditRecord(
+                CadEditRecordKind.TableChanged,
+                null,
+                "Lineweight of " + layerName,
+                layer.LineWeight.ToString(),
+                lineWeight.ToString()
+            )
+            {
+                IsLayerLook = true,
+            };
+            return document.ApplyEdit("LAYER", new[] { record }, s =>
+                Write(s.Database.LayerTable[layerName], CadXrefLayers.LineWeight, l => l.LineWeight = lineWeight)
+            );
         }
 
         /// <summary>
@@ -323,8 +397,16 @@ namespace GeometryHelper.Dxf.Viewer
 
             var transparency = new DxfTransparency((byte)Math.Floor(255.0 * (100 - percent) / 100.0));
             string layerName = layer.Name;
-            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Transparency of " + layerName, layer.Transparency.ToString(), transparency.ToString());
-            return document.ApplyEdit("LAYER", new[] { record }, s => Write(s.Database.LayerTable[layerName], CadXrefLayers.Transparency, l => l.Transparency = transparency));
+            var record = new CadEditRecord(
+                CadEditRecordKind.TableChanged,
+                null,
+                "Transparency of " + layerName,
+                layer.Transparency.ToString(),
+                transparency.ToString()
+            );
+            return document.ApplyEdit("LAYER", new[] { record }, s =>
+                Write(s.Database.LayerTable[layerName], CadXrefLayers.Transparency, l => l.Transparency = transparency)
+            );
         }
 
         /// <summary>Sets whether a layer is plotted, as -LAYER Plot does; one of an external reference marked 8, as AutoCAD 2021 marks it.</summary>
@@ -342,8 +424,16 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string layerName = layer.Name;
-            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Plot " + layerName, layer.IsPlottable ? "Yes" : "No", plotted ? "Yes" : "No");
-            return document.ApplyEdit("LAYER", new[] { record }, s => Write(s.Database.LayerTable[layerName], CadXrefLayers.Plot, l => l.IsPlottable = plotted));
+            var record = new CadEditRecord(
+                CadEditRecordKind.TableChanged,
+                null,
+                "Plot " + layerName,
+                layer.IsPlottable ? "Yes" : "No",
+                plotted ? "Yes" : "No"
+            );
+            return document.ApplyEdit("LAYER", new[] { record }, s =>
+                Write(s.Database.LayerTable[layerName], CadXrefLayers.Plot, l => l.IsPlottable = plotted)
+            );
         }
 
         /// <summary>Gives a layer a description, as -LAYER Description does; one of an external reference marked 1024, as AutoCAD 2021 marks it.</summary>
@@ -368,15 +458,42 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string layerName = layer.Name;
-            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Description of " + layerName, layer.Description, text);
-            return document.ApplyEdit("LAYER", new[] { record }, s => Write(s.Database.LayerTable[layerName], CadXrefLayers.Description, l => l.Description = text));
+            var record = new CadEditRecord(
+                CadEditRecordKind.TableChanged,
+                null,
+                "Description of " + layerName,
+                layer.Description,
+                text
+            );
+            return document.ApplyEdit("LAYER", new[] { record }, s =>
+                Write(s.Database.LayerTable[layerName], CadXrefLayers.Description, l => l.Description = text)
+            );
         }
 
-        private static CadEditResult Set(CadDocument document, DxfLayerTableRecord layer, string what, bool old, bool value, int overrideBits, Action<DxfLayerTableRecord> write)
+        private static CadEditResult Set(
+            CadDocument document,
+            DxfLayerTableRecord layer,
+            string what,
+            bool old,
+            bool value,
+            int overrideBits,
+            Action<DxfLayerTableRecord> write
+        )
         {
             string layerName = layer.Name;
-            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, what + " " + layerName, old ? "Yes" : "No", value ? "Yes" : "No") { IsLayerLook = true };
-            return document.ApplyEdit("LAYER", new[] { record }, s => Write(s.Database.LayerTable[layerName], overrideBits, write));
+            var record = new CadEditRecord(
+                CadEditRecordKind.TableChanged,
+                null,
+                what + " " + layerName,
+                old ? "Yes" : "No",
+                value ? "Yes" : "No"
+            )
+            {
+                IsLayerLook = true,
+            };
+            return document.ApplyEdit("LAYER", new[] { record }, s =>
+                Write(s.Database.LayerTable[layerName], overrideBits, write)
+            );
         }
 
         /// <summary>
@@ -397,7 +514,10 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(document));
             }
 
-            DxfLayerTableRecord layer = string.IsNullOrWhiteSpace(name) || !document.Database.LayerTable.Has(name.Trim()) ? null : document.Database.LayerTable[name.Trim()];
+            DxfLayerTableRecord layer =
+                string.IsNullOrWhiteSpace(name) || !document.Database.LayerTable.Has(name.Trim())
+                    ? null
+                    : document.Database.LayerTable[name.Trim()];
             refused = layer == null ? Refuse("Cannot find layer \"" + name + "\".") : null;
             return layer;
         }

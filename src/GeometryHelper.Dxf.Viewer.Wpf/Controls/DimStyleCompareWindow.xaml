@@ -1,22 +1,45 @@
-<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.DimStyleCompareWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Compare Dimension Styles" Width="560" Height="460" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" Background="#262B33">
-
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.DimStyleCompareWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Compare Dimension Styles"
+    Width="560"
+    Height="460"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
     <Window.Resources>
         <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
     </Window.Resources>
 
-    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
-            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
-            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
         <DockPanel>
             <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10">
                 <TextBlock Text="Compare Dimension Styles" FontSize="13" FontWeight="SemiBold" />
             </Border>
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
-                <Button HorizontalAlignment="Right" Style="{StaticResource GhCloseButton}" Content="Close" Padding="14,5" Command="{Binding CloseCommand}" IsCancel="True" />
+                <Button
+                    HorizontalAlignment="Right"
+                    Style="{StaticResource GhCloseButton}"
+                    Content="Close"
+                    Padding="14,5"
+                    Command="{Binding CloseCommand}"
+                    IsCancel="True"
+                />
             </Border>
             <DockPanel Margin="16,12">
                 <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
@@ -29,14 +52,34 @@
                         <RowDefinition />
                     </Grid.RowDefinitions>
                     <TextBlock Style="{StaticResource StyleLabel}" Text="Compare:" />
-                    <ComboBox Grid.Column="1" Style="{StaticResource GhComboBox}" ItemsSource="{Binding Styles}" SelectedItem="{Binding First, Mode=TwoWay}" Margin="0,0,0,6" />
+                    <ComboBox
+                        Grid.Column="1"
+                        Style="{StaticResource GhComboBox}"
+                        ItemsSource="{Binding Styles}"
+                        SelectedItem="{Binding First, Mode=TwoWay}"
+                        Margin="0,0,0,6"
+                    />
                     <TextBlock Grid.Row="1" Style="{StaticResource StyleLabel}" Text="With:" />
-                    <ComboBox Grid.Row="1" Grid.Column="1" Style="{StaticResource GhComboBox}" ItemsSource="{Binding Styles}" SelectedItem="{Binding Second, Mode=TwoWay}" />
+                    <ComboBox
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Style="{StaticResource GhComboBox}"
+                        ItemsSource="{Binding Styles}"
+                        SelectedItem="{Binding Second, Mode=TwoWay}"
+                    />
                 </Grid>
                 <TextBlock DockPanel.Dock="Top" Text="{Binding Summary}" Margin="0,0,0,6" />
-                <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" Background="{StaticResource GhInput}">
+                <Border
+                    BorderBrush="{StaticResource GhBorder}"
+                    BorderThickness="1"
+                    Background="{StaticResource GhInput}"
+                >
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <ItemsControl ItemsSource="{Binding Rows}" Margin="8,4" TextElement.FontFamily="{StaticResource GhMonoFont}">
+                        <ItemsControl
+                            ItemsSource="{Binding Rows}"
+                            Margin="8,4"
+                            TextElement.FontFamily="{StaticResource GhMonoFont}"
+                        >
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Grid Margin="0,2">

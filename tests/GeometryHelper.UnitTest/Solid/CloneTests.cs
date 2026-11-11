@@ -19,7 +19,11 @@ namespace GeometryHelper.UnitTest.Solid
             GeoLine3 line = new GeoLine3(point, point.Add(vector));
             GeoRay3 ray = new GeoRay3(point, vector);
             GeoPlane3 plane = new GeoPlane3(point, vector);
-            GeoTriangle3 triangle = new GeoTriangle3(GeoPoint3.Origin, new GeoPoint3(1.0, 0.0, 0.0), new GeoPoint3(0.0, 1.0, 0.0));
+            GeoTriangle3 triangle = new GeoTriangle3(
+                GeoPoint3.Origin,
+                new GeoPoint3(1.0, 0.0, 0.0),
+                new GeoPoint3(0.0, 1.0, 0.0)
+            );
             GeoCircle3 circle = new GeoCircle3(point, vector, 2.0);
             GeoAabb3 bounds = new GeoAabb3(GeoPoint3.Origin, point);
             GeoCoordinateSystem3 system = new GeoCoordinateSystem3(point, GeoVector3.XAxis, GeoVector3.YAxis);
@@ -41,7 +45,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPolyline3 original = new GeoPolyline3(
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(3.0, 0.0, 0.0),
-                new GeoPoint3(3.0, 4.0, 5.0));
+                new GeoPoint3(3.0, 4.0, 5.0)
+            );
 
             GeoPolyline3 copy = original.Clone();
 
@@ -58,7 +63,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(10.0, 0.0, 0.0),
                 new GeoPoint3(10.0, 10.0, 0.0),
-                new GeoPoint3(0.0, 10.0, 0.0));
+                new GeoPoint3(0.0, 10.0, 0.0)
+            );
 
             GeoPolygon3 copy = original.Clone();
 
@@ -78,7 +84,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(1.0, 0.0, 0.0),
                 new GeoPoint3(1.0005, 0.0005, 0.0),
                 new GeoPoint3(1.0, 1.0, 0.0),
-                new GeoPoint3(0.0, 1.0, 0.0));
+                new GeoPoint3(0.0, 1.0, 0.0)
+            );
 
             Tolerance original = Tolerance.Global;
 
@@ -104,13 +111,15 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(10.0, 0.0, 0.0),
                 new GeoPoint3(10.0, 10.0, 0.0),
-                new GeoPoint3(0.0, 10.0, 0.0));
+                new GeoPoint3(0.0, 10.0, 0.0)
+            );
 
             GeoPolygon3 hole = new GeoPolygon3(
                 new GeoPoint3(4.0, 4.0, 0.0),
                 new GeoPoint3(6.0, 4.0, 0.0),
                 new GeoPoint3(6.0, 6.0, 0.0),
-                new GeoPoint3(4.0, 6.0, 0.0));
+                new GeoPoint3(4.0, 6.0, 0.0)
+            );
 
             GeoFace3 original = new GeoFace3(boundary, new[] { hole });
             GeoFace3 copy = original.Clone();
@@ -129,21 +138,27 @@ namespace GeometryHelper.UnitTest.Solid
             // changes nothing for its polygons.
             Tolerance wide = new Tolerance(0.05, 0.01, Tolerance.DefaultEqualAngleRad, 0.05);
 
-            GeoPolygon3 boundary = new GeoPolygon3(new[]
-            {
-                new GeoPoint3(0.0, 0.0, 0.0),
-                new GeoPoint3(10.0, 0.0, 0.0),
-                new GeoPoint3(10.0, 10.0, 0.0),
-                new GeoPoint3(0.0, 10.0, 0.0),
-            }, wide);
+            GeoPolygon3 boundary = new GeoPolygon3(
+                new[]
+                {
+                    new GeoPoint3(0.0, 0.0, 0.0),
+                    new GeoPoint3(10.0, 0.0, 0.0),
+                    new GeoPoint3(10.0, 10.0, 0.0),
+                    new GeoPoint3(0.0, 10.0, 0.0),
+                },
+                wide
+            );
 
-            GeoPolygon3 hole = new GeoPolygon3(new[]
-            {
-                new GeoPoint3(4.0, 4.0, 0.03),
-                new GeoPoint3(6.0, 4.0, 0.03),
-                new GeoPoint3(6.0, 6.0, 0.03),
-                new GeoPoint3(4.0, 6.0, 0.03),
-            }, wide);
+            GeoPolygon3 hole = new GeoPolygon3(
+                new[]
+                {
+                    new GeoPoint3(4.0, 4.0, 0.03),
+                    new GeoPoint3(6.0, 4.0, 0.03),
+                    new GeoPoint3(6.0, 6.0, 0.03),
+                    new GeoPoint3(4.0, 6.0, 0.03),
+                },
+                wide
+            );
 
             GeoFace3 face = new GeoFace3(boundary, new[] { hole }, wide);
 
@@ -177,9 +192,13 @@ namespace GeometryHelper.UnitTest.Solid
         public void ABoxCopyIsASeparateObjectWithTheSamePlacement()
         {
             GeoObb3 original = new GeoObb3(
-                new GeoPoint3(1.0, 2.0, 3.0), 4.0, 5.0, 6.0,
+                new GeoPoint3(1.0, 2.0, 3.0),
+                4.0,
+                5.0,
+                6.0,
                 new GeoVector3(1.0, 1.0, 0.0),
-                new GeoVector3(-1.0, 1.0, 0.0));
+                new GeoVector3(-1.0, 1.0, 0.0)
+            );
 
             GeoObb3 copy = original.Clone();
 

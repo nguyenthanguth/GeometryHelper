@@ -40,8 +40,12 @@ namespace GeometryHelper.UnitTest.Plane
         {
             GeoEllipse2 ellipse = Tilted();
 
-            Assert.True(ellipse.Contains(new GeoLine2(ellipse.Center, Ellipse2Oracle.OffRim(ellipse, 2.2, 0.0005)), Strict));
-            Assert.False(ellipse.Contains(new GeoLine2(ellipse.Center, Ellipse2Oracle.OffRim(ellipse, 2.2, 0.002)), Strict));
+            Assert.True(
+                ellipse.Contains(new GeoLine2(ellipse.Center, Ellipse2Oracle.OffRim(ellipse, 2.2, 0.0005)), Strict)
+            );
+            Assert.False(
+                ellipse.Contains(new GeoLine2(ellipse.Center, Ellipse2Oracle.OffRim(ellipse, 2.2, 0.002)), Strict)
+            );
         }
 
         [Fact]
@@ -50,7 +54,12 @@ namespace GeometryHelper.UnitTest.Plane
             // From the rim at t = 0.5 to the rim at t = 3: both ends on it, every point between inside.
             GeoEllipse2 ellipse = Tilted();
 
-            Assert.True(ellipse.Contains(new GeoLine2(Ellipse2Oracle.Rim(ellipse, 0.5), Ellipse2Oracle.Rim(ellipse, 3.0)), Strict));
+            Assert.True(
+                ellipse.Contains(
+                    new GeoLine2(Ellipse2Oracle.Rim(ellipse, 0.5), Ellipse2Oracle.Rim(ellipse, 3.0)),
+                    Strict
+                )
+            );
         }
 
         #endregion

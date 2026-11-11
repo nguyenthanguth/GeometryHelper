@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -136,7 +136,8 @@ namespace GeometryHelper.Geometry
         /// middle of the hole along y = 50 from x = 40 to 60, and nought from one lying on its material.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) => Distance3.DistanceTo(this, polygon, tolerance);
+        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Distance3.DistanceTo(this, polygon, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between this face and a polyline: the answer of
@@ -162,7 +163,8 @@ namespace GeometryHelper.Geometry
         /// chain (20, 20, 30), (20, 20, 80), (50, 50, 80) is 30 above the material.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(polyline, this, tolerance);
+        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Distance3.DistanceTo(polyline, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between this face and a ray: the answer of
@@ -242,7 +244,8 @@ namespace GeometryHelper.Geometry
         /// standing beside the square 100 by 100 in the floor with a corner at the origin and a hole 40 by 40 in its
         /// middle, is 10 from its outline.
         /// </remarks>
-        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) => Distance3.DistanceTo(triangle, this, tolerance);
+        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Distance3.DistanceTo(triangle, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between this face and an oriented box: the answer of

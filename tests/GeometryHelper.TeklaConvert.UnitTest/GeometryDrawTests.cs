@@ -5,8 +5,8 @@ using System.Reflection;
 using GeometryHelper.Geometry;
 using GeometryHelper.TeklaConvert;
 using Tekla.Structures.Model;
-using TSG = Tekla.Structures.Geometry3d;
 using Xunit;
+using TSG = Tekla.Structures.Geometry3d;
 
 namespace GeometryHelper.TeklaConvert.UnitTest
 {
@@ -118,11 +118,14 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         [Fact]
         public void FaceRings_OtherColours_ArePassedThrough()
         {
-            var rings = GeometryDraw.FaceRings(SquareWithTwoHoles(), ControlObjectColorEnum.BLUE, ControlObjectColorEnum.YELLOW).ToList();
+            var rings = GeometryDraw
+                .FaceRings(SquareWithTwoHoles(), ControlObjectColorEnum.BLUE, ControlObjectColorEnum.YELLOW)
+                .ToList();
 
             Assert.Equal(
                 new[] { ControlObjectColorEnum.BLUE, ControlObjectColorEnum.YELLOW, ControlObjectColorEnum.YELLOW },
-                rings.Select(r => r.Color));
+                rings.Select(r => r.Color)
+            );
         }
 
         [Fact]
@@ -144,7 +147,14 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         {
             MethodInfo method = typeof(GeometryDraw).GetMethod(
                 nameof(GeometryDraw.DrawToTekla),
-                new[] { target, typeof(ControlObjectColorEnum), typeof(ControlObjectColorEnum), typeof(ControlObjectLineType) });
+                new[]
+                {
+                    target,
+                    typeof(ControlObjectColorEnum),
+                    typeof(ControlObjectColorEnum),
+                    typeof(ControlObjectLineType),
+                }
+            );
 
             Assert.NotNull(method);
             ParameterInfo[] parameters = method.GetParameters();
@@ -158,7 +168,8 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         [Fact]
         public void TheDrawingMethods_AreDrawPolylineAndDrawToTekla()
         {
-            string[] names = typeof(GeometryDraw).GetMethods(BindingFlags.Public | BindingFlags.Static)
+            string[] names = typeof(GeometryDraw)
+                .GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .Select(m => m.Name)
                 .Distinct()
                 .OrderBy(n => n, StringComparer.Ordinal)
@@ -171,7 +182,10 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         {
             GeoPoint3[] corners =
             {
-                new GeoPoint3(x, y, 0), new GeoPoint3(x + size, y, 0), new GeoPoint3(x + size, y + size, 0), new GeoPoint3(x, y + size, 0)
+                new GeoPoint3(x, y, 0),
+                new GeoPoint3(x + size, y, 0),
+                new GeoPoint3(x + size, y + size, 0),
+                new GeoPoint3(x, y + size, 0),
             };
 
             return new GeoPolygon3(clockwise ? corners.Reverse() : corners);
@@ -180,7 +194,10 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         // A 1000 mm square with two 100 mm holes.
         private static GeoFace3 SquareWithTwoHoles()
         {
-            return new GeoFace3(Square(0, 0, 1000, false), new[] { Square(100, 100, 100, true), Square(500, 500, 100, true) });
+            return new GeoFace3(
+                Square(0, 0, 1000, false),
+                new[] { Square(100, 100, 100, true), Square(500, 500, 100, true) }
+            );
         }
     }
 }

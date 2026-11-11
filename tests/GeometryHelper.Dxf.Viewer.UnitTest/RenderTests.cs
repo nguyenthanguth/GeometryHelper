@@ -18,7 +18,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         private static readonly string Folder = TestRun.Folder("render");
 
         /// <summary>Draws a space of a document into a bitmap and writes it as a PNG of the scene's name.</summary>
-        private static SKBitmap Render(string scene, CadDocument document, CadSpace space, CadView view, CanvasOptions options = null)
+        private static SKBitmap Render(
+            string scene,
+            CadDocument document,
+            CadSpace space,
+            CadView view,
+            CanvasOptions options = null
+        )
         {
             var bitmap = new SKBitmap((int)view.Width, (int)view.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
 
@@ -76,7 +82,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void ARedLineLeavesRedPixelsOnItsPathAndBlackElsewhere()
         {
             // The line runs along y = 74.5, the middle of the pixel row 75 on the screen.
-            CadDocument document = CadDocument.From(TestDrawings.Drawing(null, null, TestDrawings.Line(20, 74.5, 180, 74.5, color: 1, handle: "A1")));
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(null, null, TestDrawings.Line(20, 74.5, 180, 74.5, color: 1, handle: "A1"))
+            );
 
             using (SKBitmap bitmap = Render("red-line", document, document.ModelSpace, PixelView()))
             {
@@ -94,7 +102,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ACircleLeavesItsColourOnItsRimAndNothingInsideIt()
         {
-            CadDocument document = CadDocument.From(TestDrawings.Drawing(null, null, TestDrawings.Circle(100, 75, 50, color: 3, handle: "A1")));
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(null, null, TestDrawings.Circle(100, 75, 50, color: 3, handle: "A1"))
+            );
 
             using (SKBitmap bitmap = Render("circle", document, document.ModelSpace, PixelView()))
             {
@@ -115,12 +125,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ASelectedEntityIsDrawnInTheSelectionColour()
         {
-            CadDocument document = CadDocument.From(TestDrawings.Drawing(null, null, TestDrawings.Line(20, 74.5, 180, 74.5, color: 1, handle: "A1")));
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(null, null, TestDrawings.Line(20, 74.5, 180, 74.5, color: 1, handle: "A1"))
+            );
             var options = new CanvasOptions { Selected = new[] { "A1" } };
 
             using (SKBitmap bitmap = Render("selected", document, document.ModelSpace, PixelView(), options))
             {
-                Func<SKColor, bool> selection = c => Math.Abs(c.Red - 0x3D) < 30 && Math.Abs(c.Green - 0x9B) < 30 && Math.Abs(c.Blue - 0xFF) < 30;
+                Func<SKColor, bool> selection = c =>
+                    Math.Abs(c.Red - 0x3D) < 30 && Math.Abs(c.Green - 0x9B) < 30 && Math.Abs(c.Blue - 0xFF) < 30;
 
                 Assert.True(Count(bitmap, 20, 73, 180, 77, selection) > 60);
                 Assert.Equal(0, Count(bitmap, 0, 0, 199, 149, IsRed));
@@ -154,7 +167,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             }
         }
 
-        private static void PixelBox(CadView view, double x0, double y0, double x1, double y1, out int px0, out int py0, out int px1, out int py1)
+        private static void PixelBox(
+            CadView view,
+            double x0,
+            double y0,
+            double x1,
+            double y1,
+            out int px0,
+            out int py0,
+            out int px1,
+            out int py1
+        )
         {
             view.DrawingToPixel(x0, y1, out double left, out double top);
             view.DrawingToPixel(x1, y0, out double right, out double bottom);
@@ -168,7 +191,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void TextLeavesPixelsFromItsBaselineUpToItsHeightAndNoneBelow()
         {
             // HELLO 20 high from (20, 60): capitals from y 60 to 80 of the drawing, rows 90 to 70 on the screen.
-            CadDocument document = CadDocument.From(TestDrawings.Drawing(null, null, TestDrawings.Text(20, 60, 20, "HELLO", handle: "T1")));
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(null, null, TestDrawings.Text(20, 60, 20, "HELLO", handle: "T1"))
+            );
 
             using (SKBitmap bitmap = Render("text", document, document.ModelSpace, PixelView()))
             {
@@ -186,7 +211,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ZoomingAboutThePixelOfALineKeepsTheLineOnThatPixel()
         {
-            CadDocument document = CadDocument.From(TestDrawings.Drawing(null, null, TestDrawings.Line(60.5, 0, 60.5, 150, color: 1, handle: "A1"), TestDrawings.Circle(120, 70, 30, color: 3)));
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(
+                    null,
+                    null,
+                    TestDrawings.Line(60.5, 0, 60.5, 150, color: 1, handle: "A1"),
+                    TestDrawings.Circle(120, 70, 30, color: 3)
+                )
+            );
             CadView view = PixelView();
             view.DrawingToPixel(60.5, 100, out double px, out double py);
 
@@ -212,7 +244,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             hatch.SetHatchPattern(DxfHatchPatternType.UserDefined, "_USER");
             hatch.PatternAngle = 0.0;
             hatch.PatternSpace = 10.0;
-            hatch.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(20, 20.5), new GeoPoint2(180, 20.5), new GeoPoint2(180, 130.5), new GeoPoint2(20, 130.5) }, null);
+            hatch.AppendLoop(
+                DxfHatchLoopTypes.External,
+                new[]
+                {
+                    new GeoPoint2(20, 20.5),
+                    new GeoPoint2(180, 20.5),
+                    new GeoPoint2(180, 130.5),
+                    new GeoPoint2(20, 130.5),
+                },
+                null
+            );
             database.ModelSpace.AppendEntity(hatch);
             hatch.ColorIndex = 1;
             CadDocument document = CadDocument.From(database);
@@ -250,7 +292,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 TestDrawings.Line(90, 150, 110, 150, color: 1),
                 TestDrawings.Line(100, 140, 100, 160, color: 1),
                 TestDrawings.Line(290, 150, 310, 150, color: 1),
-                TestDrawings.Line(300, 140, 300, 160, color: 1));
+                TestDrawings.Line(300, 140, 300, 160, color: 1)
+            );
             CadDocument document = CadDocument.From(database);
             CadView view = PixelView(400, 200);
 
@@ -268,12 +311,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ASelectedLineIsDrawnSolidInTheSelectionColourWithNoGapsAlongIt()
         {
-            CadDocument document = CadDocument.From(TestDrawings.Drawing(null, null, TestDrawings.Line(20, 74.5, 180, 74.5, color: 1, handle: "A1")));
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(null, null, TestDrawings.Line(20, 74.5, 180, 74.5, color: 1, handle: "A1"))
+            );
             var options = new CanvasOptions { Selected = new[] { "A1" } };
 
             using (SKBitmap bitmap = Render("selected-solid", document, document.ModelSpace, PixelView(), options))
             {
-                Func<SKColor, bool> selection = c => Math.Abs(c.Red - 0x3D) < 30 && Math.Abs(c.Green - 0x9B) < 30 && Math.Abs(c.Blue - 0xFF) < 30;
+                Func<SKColor, bool> selection = c =>
+                    Math.Abs(c.Red - 0x3D) < 30 && Math.Abs(c.Green - 0x9B) < 30 && Math.Abs(c.Blue - 0xFF) < 30;
 
                 // Every pixel of the row along the line, not three in five as a dash of 6 and a gap of 4 would leave.
                 for (int x = 22; x <= 178; x++)
@@ -287,7 +333,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void AHoveredLineIsDrawnTwoPixelsWideInItsColourTakenHalfwayToTheSelectionColour()
         {
             // The line along y = 75, the border of the rows 74 and 75 on the screen: 2 pixels wide, it fills both.
-            CadDocument document = CadDocument.From(TestDrawings.Drawing(null, null, TestDrawings.Line(20, 75, 180, 75, color: 1, handle: "A1")));
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(null, null, TestDrawings.Line(20, 75, 180, 75, color: 1, handle: "A1"))
+            );
             var options = new CanvasOptions { Hover = "A1" };
 
             using (SKBitmap bitmap = Render("hovered", document, document.ModelSpace, PixelView(), options))
@@ -312,7 +360,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             hatch.SetHatchPattern(DxfHatchPatternType.UserDefined, "_USER");
             hatch.PatternAngle = 0.0;
             hatch.PatternSpace = 1.5;
-            hatch.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(20, 20), new GeoPoint2(180, 20), new GeoPoint2(180, 130), new GeoPoint2(20, 130) }, null);
+            hatch.AppendLoop(
+                DxfHatchLoopTypes.External,
+                new[]
+                {
+                    new GeoPoint2(20, 20),
+                    new GeoPoint2(180, 20),
+                    new GeoPoint2(180, 130),
+                    new GeoPoint2(20, 130),
+                },
+                null
+            );
             database.ModelSpace.AppendEntity(hatch);
             hatch.ColorIndex = 1;
             CadDocument document = CadDocument.From(database);
@@ -332,9 +390,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void ACircleUnderHalfAPixelIsOnePixelOfItsColourAndATextUnderThreePixelsIsLeftOut()
         {
             // A circle 0.2 across at (100.25, 75.75), inside the pixel (100, 74); a text 2.8 high at (20, 40).
-            CadDocument document = CadDocument.From(TestDrawings.Drawing(null, null,
-                TestDrawings.Circle(100.25, 75.75, 0.1, color: 3, handle: "C1"),
-                TestDrawings.Text(20, 40, 2.8, "SMALL", handle: "T1")));
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(
+                    null,
+                    null,
+                    TestDrawings.Circle(100.25, 75.75, 0.1, color: 3, handle: "C1"),
+                    TestDrawings.Text(20, 40, 2.8, "SMALL", handle: "T1")
+                )
+            );
 
             using (SKBitmap bitmap = Render("tiny", document, document.ModelSpace, PixelView()))
             {

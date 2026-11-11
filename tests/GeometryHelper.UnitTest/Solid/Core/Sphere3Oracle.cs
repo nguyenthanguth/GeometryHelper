@@ -44,7 +44,9 @@ namespace GeometryHelper.UnitTest.Solid
             internal Face(IReadOnlyList<GeoPoint3> outline, IEnumerable<IReadOnlyList<GeoPoint3>> holes)
             {
                 Outline = outline.Select(Vec.Of).ToArray();
-                Holes = (holes ?? Enumerable.Empty<IReadOnlyList<GeoPoint3>>()).Select(h => h.Select(Vec.Of).ToArray()).ToArray();
+                Holes = (holes ?? Enumerable.Empty<IReadOnlyList<GeoPoint3>>())
+                    .Select(h => h.Select(Vec.Of).ToArray())
+                    .ToArray();
 
                 Vec sum = new Vec(0, 0, 0);
 
@@ -53,16 +55,26 @@ namespace GeometryHelper.UnitTest.Solid
                     Vec a = Outline[i];
                     Vec b = Outline[(i + 1) % Outline.Length];
 
-                    sum = sum + new Vec((a.Y - b.Y) * (a.Z + b.Z), (a.Z - b.Z) * (a.X + b.X), (a.X - b.X) * (a.Y + b.Y));
+                    sum =
+                        sum + new Vec((a.Y - b.Y) * (a.Z + b.Z), (a.Z - b.Z) * (a.X + b.X), (a.X - b.X) * (a.Y + b.Y));
                 }
 
                 Normal = sum.Unit();
-                Drop = Math.Abs(Normal.X) >= Math.Abs(Normal.Y) && Math.Abs(Normal.X) >= Math.Abs(Normal.Z) ? 0 : Math.Abs(Normal.Y) >= Math.Abs(Normal.Z) ? 1 : 2;
+                Drop =
+                    Math.Abs(Normal.X) >= Math.Abs(Normal.Y) && Math.Abs(Normal.X) >= Math.Abs(Normal.Z) ? 0
+                    : Math.Abs(Normal.Y) >= Math.Abs(Normal.Z) ? 1
+                    : 2;
             }
 
-            private double U(Vec p) => Drop == 0 ? p.Y : Drop == 1 ? p.Z : p.X;
+            private double U(Vec p) =>
+                Drop == 0 ? p.Y
+                : Drop == 1 ? p.Z
+                : p.X;
 
-            private double W(Vec p) => Drop == 0 ? p.Z : Drop == 1 ? p.X : p.Y;
+            private double W(Vec p) =>
+                Drop == 0 ? p.Z
+                : Drop == 1 ? p.X
+                : p.Y;
 
             private bool InRing(Vec[] ring, Vec p)
             {
@@ -70,7 +82,10 @@ namespace GeometryHelper.UnitTest.Solid
 
                 for (int i = 0, j = ring.Length - 1; i < ring.Length; j = i++)
                 {
-                    double ui = U(ring[i]), wi = W(ring[i]), uj = U(ring[j]), wj = W(ring[j]);
+                    double ui = U(ring[i]),
+                        wi = W(ring[i]),
+                        uj = U(ring[j]),
+                        wj = W(ring[j]);
 
                     if ((wi > W(p)) != (wj > W(p)) && U(p) < (uj - ui) * (W(p) - wi) / (wj - wi) + ui)
                     {
@@ -107,7 +122,12 @@ namespace GeometryHelper.UnitTest.Solid
             Face[] ours = faces.Select(f => new Face(f.Boundary.Vertices, f.Holes.Select(h => h.Vertices))).ToArray();
 
             // Three rays in directions no shape is drawn along; the body is taken as holding the point where two of the three say so.
-            Vec[] rays = { new Vec(0.5773, 0.3217, 0.7501).Unit(), new Vec(-0.2371, 0.8123, -0.5301).Unit(), new Vec(0.1117, -0.4431, 0.8891).Unit() };
+            Vec[] rays =
+            {
+                new Vec(0.5773, 0.3217, 0.7501).Unit(),
+                new Vec(-0.2371, 0.8123, -0.5301).Unit(),
+                new Vec(0.1117, -0.4431, 0.8891).Unit(),
+            };
             int votes = 0;
 
             foreach (Vec ray in rays)
@@ -164,7 +184,13 @@ namespace GeometryHelper.UnitTest.Solid
                     Vec c = Vec.Of(circle.Center);
                     Vec n = Vec.Of(circle.Normal).Unit();
 
-                    return ToDisc(center, c, n, f => (f - c).Length <= circle.Radius, f => Math.Abs((f - c).Length - circle.Radius));
+                    return ToDisc(
+                        center,
+                        c,
+                        n,
+                        f => (f - c).Length <= circle.Radius,
+                        f => Math.Abs((f - c).Length - circle.Radius)
+                    );
                 }
 
                 case "Ellipse3":
@@ -179,8 +205,14 @@ namespace GeometryHelper.UnitTest.Solid
                         center,
                         c,
                         n,
-                        f => { double x = (f - c).Dot(m) / ellipse.MajorRadius; double y = (f - c).Dot(w) / ellipse.MinorRadius; return x * x + y * y <= 1.0; },
-                        f => specimen.Pieces[0].GapFromPoint(f));
+                        f =>
+                        {
+                            double x = (f - c).Dot(m) / ellipse.MajorRadius;
+                            double y = (f - c).Dot(w) / ellipse.MinorRadius;
+                            return x * x + y * y <= 1.0;
+                        },
+                        f => specimen.Pieces[0].GapFromPoint(f)
+                    );
                 }
 
                 case "Aabb3":
@@ -190,11 +222,18 @@ namespace GeometryHelper.UnitTest.Solid
                     Vec high = Vec.Of(box.Max);
                     GeoPoint3 middle = ((low + high) * 0.5).ToPoint();
 
-                    return Inside(center, new GeoObb3(middle, high.X - low.X, high.Y - low.Y, high.Z - low.Z).ToSolid().Faces) ? 0.0 : specimen.DistanceFrom(center);
+                    return Inside(
+                        center,
+                        new GeoObb3(middle, high.X - low.X, high.Y - low.Y, high.Z - low.Z).ToSolid().Faces
+                    )
+                        ? 0.0
+                        : specimen.DistanceFrom(center);
                 }
 
                 case "Obb3":
-                    return Inside(center, ((GeoObb3)specimen.Shape).ToSolid().Faces) ? 0.0 : specimen.DistanceFrom(center);
+                    return Inside(center, ((GeoObb3)specimen.Shape).ToSolid().Faces)
+                        ? 0.0
+                        : specimen.DistanceFrom(center);
 
                 case "Solid3":
                     return Inside(center, ((GeoSolid3)specimen.Shape).Faces) ? 0.0 : specimen.DistanceFrom(center);
@@ -257,7 +296,10 @@ namespace GeometryHelper.UnitTest.Solid
 
                 foreach (double t in new[] { -b - half, -b + half })
                 {
-                    if (!double.IsInfinity(_from) && Math.Abs(t - _from) <= Band || !double.IsInfinity(_to) && Math.Abs(t - _to) <= Band)
+                    if (
+                        !double.IsInfinity(_from) && Math.Abs(t - _from) <= Band
+                        || !double.IsInfinity(_to) && Math.Abs(t - _to) <= Band
+                    )
                     {
                         delicate = true;
                     }
@@ -346,7 +388,13 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     double a = Math.Abs(g[i]);
 
-                    if (a <= Band && a <= Math.Abs(g[i - 1]) && a <= Math.Abs(g[i + 1]) && (g[i - 1] < 0.0) == (g[i] < 0.0) && (g[i + 1] < 0.0) == (g[i] < 0.0))
+                    if (
+                        a <= Band
+                        && a <= Math.Abs(g[i - 1])
+                        && a <= Math.Abs(g[i + 1])
+                        && (g[i - 1] < 0.0) == (g[i] < 0.0)
+                        && (g[i + 1] < 0.0) == (g[i] < 0.0)
+                    )
                     {
                         delicate = true;
                     }
@@ -423,7 +471,9 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static IEnumerable<Element> OfEdge(GeoEdge3 edge)
         {
-            yield return edge.IsArc ? OfArc(edge.ToArc()) : new Straight(Vec.Of(edge.StartPoint), Vec.Of(edge.EndPoint));
+            yield return edge.IsArc
+                ? OfArc(edge.ToArc())
+                : new Straight(Vec.Of(edge.StartPoint), Vec.Of(edge.EndPoint));
         }
 
         /// <summary>The elements of a shape whose surface crossings are asked, or null where none are: a point, a plane, a box and a body.</summary>
@@ -434,9 +484,20 @@ namespace GeometryHelper.UnitTest.Solid
                 case GeoLine3 line:
                     return new List<Element> { new Straight(Vec.Of(line.StartPoint), Vec.Of(line.EndPoint)) };
                 case GeoRay3 ray:
-                    return new List<Element> { new Straight(Vec.Of(ray.Origin), Vec.Of(ray.Direction), 0.0, double.PositiveInfinity) };
+                    return new List<Element>
+                    {
+                        new Straight(Vec.Of(ray.Origin), Vec.Of(ray.Direction), 0.0, double.PositiveInfinity),
+                    };
                 case GeoXLine3 xline:
-                    return new List<Element> { new Straight(Vec.Of(xline.Origin), Vec.Of(xline.Direction), double.NegativeInfinity, double.PositiveInfinity) };
+                    return new List<Element>
+                    {
+                        new Straight(
+                            Vec.Of(xline.Origin),
+                            Vec.Of(xline.Direction),
+                            double.NegativeInfinity,
+                            double.PositiveInfinity
+                        ),
+                    };
                 case GeoArc3 arc:
                     return new List<Element> { OfArc(arc) };
                 case GeoCircle3 circle:
@@ -445,7 +506,13 @@ namespace GeometryHelper.UnitTest.Solid
                     Vec s = Vec.Of(circle.GetPointAtParameter(0.0)) - c;
                     Vec t = Vec.Of(circle.Normal).Unit().Cross(s);
 
-                    return new List<Element> { new Parametric(u => c + s * Math.Cos(2.0 * Math.PI * u) + t * Math.Sin(2.0 * Math.PI * u), true) };
+                    return new List<Element>
+                    {
+                        new Parametric(
+                            u => c + s * Math.Cos(2.0 * Math.PI * u) + t * Math.Sin(2.0 * Math.PI * u),
+                            true
+                        ),
+                    };
                 }
 
                 case GeoEllipse3 ellipse:
@@ -456,7 +523,13 @@ namespace GeometryHelper.UnitTest.Solid
 
                     return new List<Element>
                     {
-                        new Parametric(u => c + major * (ellipse.MajorRadius * Math.Cos(2.0 * Math.PI * u)) + minor * (ellipse.MinorRadius * Math.Sin(2.0 * Math.PI * u)), true)
+                        new Parametric(
+                            u =>
+                                c
+                                + major * (ellipse.MajorRadius * Math.Cos(2.0 * Math.PI * u))
+                                + minor * (ellipse.MinorRadius * Math.Sin(2.0 * Math.PI * u)),
+                            true
+                        ),
                     };
                 }
 
@@ -469,7 +542,9 @@ namespace GeometryHelper.UnitTest.Solid
                 case GeoTriangle3 triangle:
                     return Segments(new[] { triangle.A, triangle.B, triangle.C }, true).ToList();
                 case GeoFace3 face:
-                    return Segments(face.Boundary.Vertices, true).Concat(face.Holes.SelectMany(h => Segments(h.Vertices, true))).ToList();
+                    return Segments(face.Boundary.Vertices, true)
+                        .Concat(face.Holes.SelectMany(h => Segments(h.Vertices, true)))
+                        .ToList();
                 case GeoPolylineArc3 chain:
                     return chain.GetEdges().SelectMany(OfEdge).ToList();
                 case GeoPolygonArc3 loop:

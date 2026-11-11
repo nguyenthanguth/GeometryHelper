@@ -28,7 +28,9 @@ namespace GeometryHelper.Dxf
     public sealed class DxfRasterImageDef : DxfDBObject
     {
         // The groups of AcDbRasterImageDef in the order AutoCAD 2021 writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 90, 1, 10, 20, 11, 21, 280, 281 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 90, 1, 10, 20, 11, 21, 280, 281 }
+        );
 
         // The groups a definition made in code is written with after its marker, as AutoCAD 2021 writes a new one of a picture
         // loaded, but for the size of a pixel, (1, 1) as AutoCAD writes it of a picture it has not loaded.
@@ -57,15 +59,19 @@ namespace GeometryHelper.Dxf
             Guard.Positive(size.Y, nameof(size), "A picture is some pixels up.");
             _made = new List<KeyValuePair<int, string>>
             {
-                Pair(90, "0"), Pair(1, sourceFileName), Pair(10, Numbers.Exact(size.X + 0.0)), Pair(20, Numbers.Exact(size.Y + 0.0)),
-                Pair(11, "1"), Pair(21, "1"), Pair(280, "1"), Pair(281, "0"),
+                Pair(90, "0"),
+                Pair(1, sourceFileName),
+                Pair(10, Numbers.Exact(size.X + 0.0)),
+                Pair(20, Numbers.Exact(size.Y + 0.0)),
+                Pair(11, "1"),
+                Pair(21, "1"),
+                Pair(280, "1"),
+                Pair(281, "0"),
             };
         }
 
         internal DxfRasterImageDef(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets or sets the path of the picture file (group 1), as AutoCAD's <c>SourceFileName</c>: as the file writes it, a path
@@ -77,7 +83,6 @@ namespace GeometryHelper.Dxf
         public string SourceFileName
         {
             get => Text(1) ?? string.Empty;
-
             set
             {
                 if (value == null)
@@ -106,14 +111,16 @@ namespace GeometryHelper.Dxf
         public GeoVector2 ResolutionMMPerPixel
         {
             get => new GeoVector2(Real(11, 1.0), Real(21, 1.0));
-
             set
             {
                 Guard.Positive(value.X, nameof(value), "A pixel is some millimetres across.");
                 Guard.Positive(value.Y, nameof(value), "A pixel is some millimetres up.");
                 GeoVector2 now = ResolutionMMPerPixel;
 
-                if (BitConverter.DoubleToInt64Bits(value.X) != BitConverter.DoubleToInt64Bits(now.X) || BitConverter.DoubleToInt64Bits(value.Y) != BitConverter.DoubleToInt64Bits(now.Y))
+                if (
+                    BitConverter.DoubleToInt64Bits(value.X) != BitConverter.DoubleToInt64Bits(now.X)
+                    || BitConverter.DoubleToInt64Bits(value.Y) != BitConverter.DoubleToInt64Bits(now.Y)
+                )
                 {
                     Set(Pair(11, Numbers.Exact(value.X + 0.0)), Pair(21, Numbers.Exact(value.Y + 0.0)));
                 }
@@ -134,12 +141,15 @@ namespace GeometryHelper.Dxf
                 int unit = Whole(281, 0);
                 return unit >= 0 && unit <= 20 ? (DxfUnit)unit : DxfUnit.None;
             }
-
             set
             {
                 if (value != DxfUnit.None && value != DxfUnit.Centimeter && value != DxfUnit.Inch)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The resolution of a picture is in no unit, centimetres or inches, as the DXF reference has it.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "The resolution of a picture is in no unit, centimetres or inches, as the DXF reference has it."
+                    );
                 }
 
                 if (value != ResolutionUnits)
@@ -175,12 +185,16 @@ namespace GeometryHelper.Dxf
             foreach (string reactor in file.ReactorsOf(Item))
             {
                 DxfItem held = file.ObjectItem(reactor);
-                DxfEntity shown = held == null || held.Type != "IMAGEDEF_REACTOR" ? null : file.Database?.EntityByHandle(file.OwnerOf(held));
+                DxfEntity shown =
+                    held == null || held.Type != "IMAGEDEF_REACTOR"
+                        ? null
+                        : file.Database?.EntityByHandle(file.OwnerOf(held));
 
                 if (shown is DxfRasterImage && !shown.IsErased)
                 {
                     count++;
-                    locked |= file.Database.LayerTable.Has(shown.Layer) && file.Database.LayerTable[shown.Layer].IsLocked;
+                    locked |=
+                        file.Database.LayerTable.Has(shown.Layer) && file.Database.LayerTable[shown.Layer].IsLocked;
                 }
             }
 
@@ -207,7 +221,11 @@ namespace GeometryHelper.Dxf
                 {
                     foreach (DxfEntity entity in block)
                     {
-                        if (entity is DxfRasterImage image && !(entity is DxfWipeout) && string.Equals(image.ImageDefHandle, Handle, StringComparison.OrdinalIgnoreCase))
+                        if (
+                            entity is DxfRasterImage image
+                            && !(entity is DxfWipeout)
+                            && string.Equals(image.ImageDefHandle, Handle, StringComparison.OrdinalIgnoreCase)
+                        )
                         {
                             showing.Add(entity);
                         }
@@ -238,7 +256,9 @@ namespace GeometryHelper.Dxf
             }
 
             DxfDBDictionary root = database.NamedObjectsDictionary;
-            return root != null && root.Contains("ACAD_IMAGE_DICT") ? root.GetAt("ACAD_IMAGE_DICT") as DxfDBDictionary : null;
+            return root != null && root.Contains("ACAD_IMAGE_DICT")
+                ? root.GetAt("ACAD_IMAGE_DICT") as DxfDBDictionary
+                : null;
         }
 
         /// <summary>
@@ -265,7 +285,9 @@ namespace GeometryHelper.Dxf
 
             if (root == null)
             {
-                throw new InvalidOperationException("The drawing has no named object dictionary to hold its dictionary of images.");
+                throw new InvalidOperationException(
+                    "The drawing has no named object dictionary to hold its dictionary of images."
+                );
             }
 
             var images = new DxfDBDictionary();
@@ -322,7 +344,8 @@ namespace GeometryHelper.Dxf
         /// <summary>The groups a definition made in code is written with, after its subclass marker, in AutoCAD's order.</summary>
         internal IReadOnlyList<KeyValuePair<int, string>> MadeGroups => _made.AsReadOnly();
 
-        private static KeyValuePair<int, string> Pair(int code, string value) => new KeyValuePair<int, string>(code, value);
+        private static KeyValuePair<int, string> Pair(int code, string value) =>
+            new KeyValuePair<int, string>(code, value);
 
         /// <summary>The first group of a code of the definition's own part, as made in code or as the file writes it; null where it has none.</summary>
         private string Text(int code)
@@ -359,8 +382,12 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        private double Real(int code, double fallback) => Numbers.TryRead(Text(code), out double value) && Guard.IsFinite(value) ? value : fallback;
+        private double Real(int code, double fallback) =>
+            Numbers.TryRead(Text(code), out double value) && Guard.IsFinite(value) ? value : fallback;
 
-        private int Whole(int code, int fallback) => int.TryParse(Text(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+        private int Whole(int code, int fallback) =>
+            int.TryParse(Text(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : fallback;
     }
 }

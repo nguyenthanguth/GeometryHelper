@@ -13,19 +13,62 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     /// </summary>
     public class XlineRayDisplayTests
     {
-        private static string Xline(double x, double y, double dx, double dy, int color = 256, string handle = null)
-            => TestDrawings.Entity("XLINE", "0", color, handle, 100, "AcDbXline", 10, x, 20, y, 30, 0.0, 11, dx, 21, dy, 31, 0.0);
+        private static string Xline(double x, double y, double dx, double dy, int color = 256, string handle = null) =>
+            TestDrawings.Entity(
+                "XLINE",
+                "0",
+                color,
+                handle,
+                100,
+                "AcDbXline",
+                10,
+                x,
+                20,
+                y,
+                30,
+                0.0,
+                11,
+                dx,
+                21,
+                dy,
+                31,
+                0.0
+            );
 
-        private static string Ray(double x, double y, double dx, double dy, int color = 256, string handle = null)
-            => TestDrawings.Entity("RAY", "0", color, handle, 100, "AcDbRay", 10, x, 20, y, 30, 0.0, 11, dx, 21, dy, 31, 0.0);
+        private static string Ray(double x, double y, double dx, double dy, int color = 256, string handle = null) =>
+            TestDrawings.Entity(
+                "RAY",
+                "0",
+                color,
+                handle,
+                100,
+                "AcDbRay",
+                10,
+                x,
+                20,
+                y,
+                30,
+                0.0,
+                11,
+                dx,
+                21,
+                dy,
+                31,
+                0.0
+            );
 
-        private static CadDocument Document(params string[] entities) => CadDocument.From(TestDrawings.Drawing(null, null, entities), "test.dxf");
+        private static CadDocument Document(params string[] entities) =>
+            CadDocument.From(TestDrawings.Drawing(null, null, entities), "test.dxf");
 
         [Fact]
         public void AnXlineAndARay_AreDrawnWithoutEnd_AndOnlyTheirBasePointsCountInTheExtents()
         {
             // A line 100 by 50 from the origin, an xline level through (200, 300) and a ray up from (-50, -20).
-            CadDocument document = Document(TestDrawings.Line(0, 0, 100, 50, handle: "A1"), Xline(200, 300, 1, 0, handle: "B1"), Ray(-50, -20, 0, 1, handle: "B2"));
+            CadDocument document = Document(
+                TestDrawings.Line(0, 0, 100, 50, handle: "A1"),
+                Xline(200, 300, 1, 0, handle: "B1"),
+                Ray(-50, -20, 0, 1, handle: "B2")
+            );
 
             DisplayList2 list = document.GetDisplay(document.ModelSpace);
 
@@ -55,7 +98,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void AnXlineAndARay_ArePickedFarAlongThem_AndARayNotBehindItsBasePoint()
         {
-            CadDocument document = Document(TestDrawings.Line(0, 0, 100, 50, handle: "A1"), Xline(200, 300, 1, 0, handle: "B1"), Ray(-50, -20, 0, 1, handle: "B2"));
+            CadDocument document = Document(
+                TestDrawings.Line(0, 0, 100, 50, handle: "A1"),
+                Xline(200, 300, 1, 0, handle: "B1"),
+                Ray(-50, -20, 0, 1, handle: "B2")
+            );
             PickIndex index = document.GetPickIndex(document.ModelSpace);
 
             Assert.Equal(new[] { "B1" }, index.Pick(1E6, 300.5, 1.0));
@@ -74,7 +121,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void ARayInABlock_IsPlacedAndTurnedByTheInsert_AndPickedAsTheInsert()
         {
             // The block's ray runs along x from (10, 0); inserted at (100, 100) turned a quarter, it runs up from (100, 110).
-            DxfDatabase database = TestDrawings.Drawing(null, TestDrawings.Block("K", Ray(10, 0, 1, 0)), TestDrawings.Insert("K", 100, 100, rotation: 90, handle: "C1"));
+            DxfDatabase database = TestDrawings.Drawing(
+                null,
+                TestDrawings.Block("K", Ray(10, 0, 1, 0)),
+                TestDrawings.Insert("K", 100, 100, rotation: 90, handle: "C1")
+            );
             CadDocument document = CadDocument.From(database, "test.dxf");
 
             DisplayRay2 ray = Assert.IsType<DisplayRay2>(Assert.Single(document.GetDisplay(document.ModelSpace).Items));
@@ -90,7 +141,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             // At one pixel to the unit, a red xline along y = 74.5 lies on pixel row 75 and a green ray from (100, 24.5) running
             // to the left on row 125.
-            CadDocument document = Document(Xline(100, 74.5, 1, 0, color: 1, handle: "B1"), Ray(100, 24.5, -1, 0, color: 3, handle: "B2"));
+            CadDocument document = Document(
+                Xline(100, 74.5, 1, 0, color: 1, handle: "B1"),
+                Ray(100, 24.5, -1, 0, color: 3, handle: "B2")
+            );
             var view = new CadView(200, 150);
             view.ZoomTo(new DisplayBox(0, 0, 200, 150), 0.0);
 

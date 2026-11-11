@@ -17,9 +17,11 @@ namespace GeometryHelper.UnitTest.Dxf
     public class DxfCopyLinksTests
     {
         // The spline edge of the HATCH AD of R2018 given two fit points, its count of them (97) 2, before the loop's own 97.
-        private static string FittedSpline() => DxfHatchLeaderDrawings.R2018.Replace(
-            " 10\n200.0\n 20\n0.0\n 97\n0\n 97\n0\n 92\n18\n",
-            " 10\n200.0\n 20\n0.0\n 97\n2\n 11\n205.0\n 21\n20.0\n 11\n200.0\n 21\n0.0\n 97\n0\n 92\n18\n");
+        private static string FittedSpline() =>
+            DxfHatchLeaderDrawings.R2018.Replace(
+                " 10\n200.0\n 20\n0.0\n 97\n0\n 97\n0\n 92\n18\n",
+                " 10\n200.0\n 20\n0.0\n 97\n2\n 11\n205.0\n 21\n20.0\n 11\n200.0\n 21\n0.0\n 97\n0\n 92\n18\n"
+            );
 
         [Fact]
         public void AnInsertCopiedIntoADrawingWithNoBlockOfItsName_BringsItsBlock_WithTheBlocksItInserts()
@@ -42,7 +44,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("Bolt M20", read.BlockTable["BOLT"].Comments);
             Assert.IsType<DxfCircle>(Assert.Single(read.BlockTable["GH_NUT"]));
             Assert.Equal("BOLT", ByHandle<DxfBlockReference>(read, copy.Handle).Name);
-            Assert.Equal(((DxfBlockReference)ByHandle<DxfBlockReference>(source, "65")).AttributeCollection.Count, ByHandle<DxfBlockReference>(read, copy.Handle).AttributeCollection.Count);
+            Assert.Equal(
+                ((DxfBlockReference)ByHandle<DxfBlockReference>(source, "65")).AttributeCollection.Count,
+                ByHandle<DxfBlockReference>(read, copy.Handle).AttributeCollection.Count
+            );
 
             // A second copy, and one by WblockCloneObjects, place the block brought, not another.
             int blocks = target.BlockTable.Count();
@@ -74,7 +79,16 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase source = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             var plate = new DxfBlockTableRecord { Name = "GH_PLATE" };
             source.BlockTable.Add(plate);
-            source.WblockCloneObjects(new DxfEntity[] { ByHandle<DxfLeader>(source, "B2"), ByHandle<DxfMText>(source, "B1"), ByHandle<DxfHatch>(source, "AC"), ByHandle<DxfPolyline>(source, "AB") }, plate);
+            source.WblockCloneObjects(
+                new DxfEntity[]
+                {
+                    ByHandle<DxfLeader>(source, "B2"),
+                    ByHandle<DxfMText>(source, "B1"),
+                    ByHandle<DxfHatch>(source, "AC"),
+                    ByHandle<DxfPolyline>(source, "AB"),
+                },
+                plate
+            );
             Assert.NotNull(plate.OfType<DxfLeader>().Single().Annotation);
             Assert.True(plate.OfType<DxfHatch>().Single().Associative);
             var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), plate);
@@ -92,8 +106,16 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(hatch.Associative);
             Assert.Same(copied.OfType<DxfPolyline>().Single(), Assert.Single(hatch.GetAssociatedObjects()));
             List<string> records = Records(target.ToText());
-            Assert.Contains("102\n{ACAD_REACTORS\n330\n" + hatch.Handle + "\n102\n}\n", records.Single(r => HandleOf(r) == copied.OfType<DxfPolyline>().Single().Handle), StringComparison.Ordinal);
-            Assert.Contains("102\n{ACAD_REACTORS\n330\n" + leader.Handle + "\n102\n}\n", records.Single(r => HandleOf(r) == leader.Annotation.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "102\n{ACAD_REACTORS\n330\n" + hatch.Handle + "\n102\n}\n",
+                records.Single(r => HandleOf(r) == copied.OfType<DxfPolyline>().Single().Handle),
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "102\n{ACAD_REACTORS\n330\n" + leader.Handle + "\n102\n}\n",
+                records.Single(r => HandleOf(r) == leader.Annotation.Handle),
+                StringComparison.Ordinal
+            );
             Assert.DoesNotContain("\n?", target.ToText(), StringComparison.Ordinal);
         }
 
@@ -104,7 +126,11 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // The picture *D of a dimension of the drawing given the LEADER B2 and its MTEXT B1, in one order or the other.
             DxfDatabase source = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
-            DxfEntity dimension = DxfDatabase.Parse(DxfDimensionDrawings.R2018).ModelSpace.OfType<DxfDimension>().Single(d => d.Handle == "61").Clone();
+            DxfEntity dimension = DxfDatabase
+                .Parse(DxfDimensionDrawings.R2018)
+                .ModelSpace.OfType<DxfDimension>()
+                .Single(d => d.Handle == "61")
+                .Clone();
             source.ModelSpace.AppendEntity(dimension);
             DxfBlockTableRecord picture = ((DxfDimension)dimension).DimBlock;
             DxfEntity leader = ByHandle<DxfLeader>(source, "B2");
@@ -121,7 +147,11 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfMText words = copied.OfType<DxfMText>().Single(m => m.Text == "note");
             Assert.Same(words, pointing.Annotation);
             Assert.Equal(DxfAnnotationType.MText, pointing.AnnoType);
-            Assert.Contains("102\n{ACAD_REACTORS\n330\n" + pointing.Handle + "\n102\n}\n", Records(target.ToText()).Single(r => HandleOf(r) == words.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "102\n{ACAD_REACTORS\n330\n" + pointing.Handle + "\n102\n}\n",
+                Records(target.ToText()).Single(r => HandleOf(r) == words.Handle),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]

@@ -26,7 +26,9 @@ namespace GeometryHelper.UnitTest.Common
 
         private readonly List<string> members = new List<string>();
 
-        private readonly Dictionary<string, List<Func<string>>> answers = new Dictionary<string, List<Func<string>>>(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<Func<string>>> answers = new Dictionary<string, List<Func<string>>>(
+            StringComparer.Ordinal
+        );
 
         /// <summary>
         /// Starts a table whose rows are each checked without a tolerance and then under every one of these.
@@ -54,7 +56,8 @@ namespace GeometryHelper.UnitTest.Common
             Func<TA, TB, Tolerance, TR> mineWithin,
             Func<TA, TB, TR> theirs,
             Func<TA, TB, Tolerance, TR> theirsWithin,
-            Action<TR, TR> same)
+            Action<TR, TR> same
+        )
         {
             members.Add(member);
             answers.Add(member, new List<Func<string>>());
@@ -70,11 +73,18 @@ namespace GeometryHelper.UnitTest.Common
 
                     foreach (Tolerance tolerance in tolerances)
                     {
-                        Agree(() => theirsWithin(c.Asked, c.Argument, tolerance), () => mineWithin(c.Asked, c.Argument, tolerance), same);
+                        Agree(
+                            () => theirsWithin(c.Asked, c.Argument, tolerance),
+                            () => mineWithin(c.Asked, c.Argument, tolerance),
+                            same
+                        );
                     }
                 });
 
-                answers[member].Add(() => string.Join(" | ", tolerances.Select(t => Answer(() => theirsWithin(c.Asked, c.Argument, t)))));
+                answers[member]
+                    .Add(() =>
+                        string.Join(" | ", tolerances.Select(t => Answer(() => theirsWithin(c.Asked, c.Argument, t))))
+                    );
             }
         }
 
@@ -111,7 +121,8 @@ namespace GeometryHelper.UnitTest.Common
         /// Gets how many different answers the side being mirrored gives over the cases of one member, read
         /// under every tolerance at once, so that a member answering the same whatever it is asked is caught.
         /// </summary>
-        internal int DistinctAnswers(string member) => answers[member].Select(answer => answer()).Distinct(StringComparer.Ordinal).Count();
+        internal int DistinctAnswers(string member) =>
+            answers[member].Select(answer => answer()).Distinct(StringComparer.Ordinal).Count();
 
         /// <summary>
         /// Asserts the new side answers as the other side does; where the other side refuses the pair with an

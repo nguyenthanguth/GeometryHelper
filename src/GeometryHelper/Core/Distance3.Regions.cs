@@ -64,7 +64,8 @@ namespace GeometryHelper.Core
         /// Calculates the shortest distance between a chain and the material of a face.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline or the face is null.</exception>
-        public static double DistanceTo(GeoPolyline3 polyline, GeoFace3 face) => DistanceTo(polyline, face, Tolerance.Global);
+        public static double DistanceTo(GeoPolyline3 polyline, GeoFace3 face) =>
+            DistanceTo(polyline, face, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a chain and the material of a face, within a tolerance.
@@ -159,7 +160,8 @@ namespace GeometryHelper.Core
         /// Calculates the shortest distance between a triangle and a polygon.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static double DistanceTo(GeoTriangle3 triangle, GeoPolygon3 polygon) => DistanceTo(triangle, polygon, Tolerance.Global);
+        public static double DistanceTo(GeoTriangle3 triangle, GeoPolygon3 polygon) =>
+            DistanceTo(triangle, polygon, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a triangle and a polygon, within a tolerance.
@@ -187,7 +189,8 @@ namespace GeometryHelper.Core
         /// Calculates the shortest distance between a triangle and the material of a face.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static double DistanceTo(GeoTriangle3 triangle, GeoFace3 face) => DistanceTo(triangle, face, Tolerance.Global);
+        public static double DistanceTo(GeoTriangle3 triangle, GeoFace3 face) =>
+            DistanceTo(triangle, face, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a triangle and the material of a face, within a tolerance.
@@ -215,7 +218,8 @@ namespace GeometryHelper.Core
         /// Calculates the shortest distance between two polygons.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either polygon is null.</exception>
-        public static double DistanceTo(GeoPolygon3 polygon1, GeoPolygon3 polygon2) => DistanceTo(polygon1, polygon2, Tolerance.Global);
+        public static double DistanceTo(GeoPolygon3 polygon1, GeoPolygon3 polygon2) =>
+            DistanceTo(polygon1, polygon2, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between two polygons, within a tolerance.
@@ -249,7 +253,8 @@ namespace GeometryHelper.Core
         /// Calculates the shortest distance between the material of a face and a polygon.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face or the polygon is null.</exception>
-        public static double DistanceTo(GeoFace3 face, GeoPolygon3 polygon) => DistanceTo(face, polygon, Tolerance.Global);
+        public static double DistanceTo(GeoFace3 face, GeoPolygon3 polygon) =>
+            DistanceTo(face, polygon, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between the material of a face and a polygon, within a tolerance.
@@ -318,7 +323,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a plane and a triangle.
         /// </summary>
-        public static double DistanceTo(GeoPlane3 plane, GeoTriangle3 triangle) => DistanceTo(plane, triangle, Tolerance.Global);
+        public static double DistanceTo(GeoPlane3 plane, GeoTriangle3 triangle) =>
+            DistanceTo(plane, triangle, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a plane and a triangle, within a tolerance.
@@ -342,7 +348,8 @@ namespace GeometryHelper.Core
         /// Calculates the shortest distance between a plane and a polygon.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static double DistanceTo(GeoPlane3 plane, GeoPolygon3 polygon) => DistanceTo(plane, polygon, Tolerance.Global);
+        public static double DistanceTo(GeoPlane3 plane, GeoPolygon3 polygon) =>
+            DistanceTo(plane, polygon, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a plane and a polygon, within a tolerance.
@@ -358,9 +365,7 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static double DistanceTo(GeoPlane3 plane, GeoPolygon3 polygon, Tolerance tolerance)
         {
-            return Collision3.CollidesWith(plane, polygon, tolerance)
-                ? 0.0
-                : Gap(plane, polygon.Vertices);
+            return Collision3.CollidesWith(plane, polygon, tolerance) ? 0.0 : Gap(plane, polygon.Vertices);
         }
 
         /// <summary>
@@ -383,9 +388,7 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static double DistanceTo(GeoPlane3 plane, GeoFace3 face, Tolerance tolerance)
         {
-            return Collision3.CollidesWith(plane, face, tolerance)
-                ? 0.0
-                : Gap(plane, face.Boundary.Vertices);
+            return Collision3.CollidesWith(plane, face, tolerance) ? 0.0 : Gap(plane, face.Boundary.Vertices);
         }
 
         /// <summary>
@@ -467,7 +470,8 @@ namespace GeometryHelper.Core
         /// Calculates the shortest distance between a chain and a ray.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public static double DistanceTo(GeoPolyline3 polyline, GeoRay3 ray) => DistanceTo(polyline, ray, Tolerance.Global);
+        public static double DistanceTo(GeoPolyline3 polyline, GeoRay3 ray) =>
+            DistanceTo(polyline, ray, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a chain and a ray, within a tolerance.
@@ -483,7 +487,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static double DistanceTo(GeoPolyline3 polyline, GeoRay3 ray, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             double reach = 0.0;
 
@@ -573,8 +578,14 @@ namespace GeometryHelper.Core
         /// nought from one reaching into it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
-        public static double DistanceTo(GeoLine3 line, GeoObb3 box, Tolerance tolerance)
-            => new Gap3.Block(box ?? throw new ArgumentNullException(nameof(box))).Segment(line.StartPoint, line.EndPoint, true, tolerance, 0.0);
+        public static double DistanceTo(GeoLine3 line, GeoObb3 box, Tolerance tolerance) =>
+            new Gap3.Block(box ?? throw new ArgumentNullException(nameof(box))).Segment(
+                line.StartPoint,
+                line.EndPoint,
+                true,
+                tolerance,
+                0.0
+            );
 
         /// <summary>
         /// Calculates the shortest distance between a line segment and an axis-aligned box.
@@ -591,8 +602,8 @@ namespace GeometryHelper.Core
         /// nought from one reaching into it.
         /// </remarks>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
-        public static double DistanceTo(GeoLine3 line, GeoAabb3 box, Tolerance tolerance)
-            => DistanceTo(line, box.ToObb(), tolerance);
+        public static double DistanceTo(GeoLine3 line, GeoAabb3 box, Tolerance tolerance) =>
+            DistanceTo(line, box.ToObb(), tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between a ray and an oriented box.
@@ -609,8 +620,8 @@ namespace GeometryHelper.Core
         /// same ray turned round.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
-        public static double DistanceTo(GeoRay3 ray, GeoObb3 box, Tolerance tolerance)
-            => new Gap3.Block(box ?? throw new ArgumentNullException(nameof(box))).Ray(ray, 0.0);
+        public static double DistanceTo(GeoRay3 ray, GeoObb3 box, Tolerance tolerance) =>
+            new Gap3.Block(box ?? throw new ArgumentNullException(nameof(box))).Ray(ray, 0.0);
 
         /// <summary>
         /// Calculates the shortest distance between a ray and an axis-aligned box.
@@ -627,8 +638,8 @@ namespace GeometryHelper.Core
         /// same ray turned round.
         /// </remarks>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
-        public static double DistanceTo(GeoRay3 ray, GeoAabb3 box, Tolerance tolerance)
-            => DistanceTo(ray, box.ToObb(), tolerance);
+        public static double DistanceTo(GeoRay3 ray, GeoAabb3 box, Tolerance tolerance) =>
+            DistanceTo(ray, box.ToObb(), tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between a plane and an oriented box.
@@ -644,8 +655,8 @@ namespace GeometryHelper.Core
         /// The box 100 by 100 by 100 about (50, 50, 50) is 30 from the plane z = 130, and nought from the plane z = 50.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
-        public static double DistanceTo(GeoPlane3 plane, GeoObb3 box, Tolerance tolerance)
-            => DistanceTo(Intersection3.BodyOf(box), plane, tolerance);
+        public static double DistanceTo(GeoPlane3 plane, GeoObb3 box, Tolerance tolerance) =>
+            DistanceTo(Intersection3.BodyOf(box), plane, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between a plane and an axis-aligned box.
@@ -661,14 +672,15 @@ namespace GeometryHelper.Core
         /// The box from the origin to (100, 100, 100) is 30 from the plane z = 130, and nought from the plane z = 50.
         /// </remarks>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
-        public static double DistanceTo(GeoPlane3 plane, GeoAabb3 box, Tolerance tolerance)
-            => DistanceTo(box.ToObb().ToSolid(), plane, tolerance);
+        public static double DistanceTo(GeoPlane3 plane, GeoAabb3 box, Tolerance tolerance) =>
+            DistanceTo(box.ToObb().ToSolid(), plane, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between a triangle and an oriented box.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
-        public static double DistanceTo(GeoTriangle3 triangle, GeoObb3 box) => DistanceTo(triangle, box, Tolerance.Global);
+        public static double DistanceTo(GeoTriangle3 triangle, GeoObb3 box) =>
+            DistanceTo(triangle, box, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a triangle and an oriented box, within a tolerance: the answer of
@@ -679,14 +691,15 @@ namespace GeometryHelper.Core
         /// (0, 100, 130), and nought from one wholly inside it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
-        public static double DistanceTo(GeoTriangle3 triangle, GeoObb3 box, Tolerance tolerance)
-            => DistanceTo(Intersection3.BodyOf(box), triangle, tolerance);
+        public static double DistanceTo(GeoTriangle3 triangle, GeoObb3 box, Tolerance tolerance) =>
+            DistanceTo(Intersection3.BodyOf(box), triangle, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between a triangle and an axis-aligned box.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
-        public static double DistanceTo(GeoTriangle3 triangle, GeoAabb3 box) => DistanceTo(triangle, box, Tolerance.Global);
+        public static double DistanceTo(GeoTriangle3 triangle, GeoAabb3 box) =>
+            DistanceTo(triangle, box, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a triangle and an axis-aligned box, within a tolerance: the answer of
@@ -697,8 +710,8 @@ namespace GeometryHelper.Core
         /// (0, 100, 130), and nought from one wholly inside it.
         /// </remarks>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
-        public static double DistanceTo(GeoTriangle3 triangle, GeoAabb3 box, Tolerance tolerance)
-            => DistanceTo(box.ToObb().ToSolid(), triangle, tolerance);
+        public static double DistanceTo(GeoTriangle3 triangle, GeoAabb3 box, Tolerance tolerance) =>
+            DistanceTo(box.ToObb().ToSolid(), triangle, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between a polygon and an oriented box.
@@ -715,15 +728,16 @@ namespace GeometryHelper.Core
         /// it, and nought from the square 200 by 200 lying across it at half its height.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon or the box is null.</exception>
-        public static double DistanceTo(GeoPolygon3 polygon, GeoObb3 box, Tolerance tolerance)
-            => DistanceTo(Intersection3.BodyOf(box), polygon, tolerance);
+        public static double DistanceTo(GeoPolygon3 polygon, GeoObb3 box, Tolerance tolerance) =>
+            DistanceTo(Intersection3.BodyOf(box), polygon, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between a polygon and an axis-aligned box.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
-        public static double DistanceTo(GeoPolygon3 polygon, GeoAabb3 box) => DistanceTo(polygon, box, Tolerance.Global);
+        public static double DistanceTo(GeoPolygon3 polygon, GeoAabb3 box) =>
+            DistanceTo(polygon, box, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance between a polygon and an axis-aligned box, within a tolerance: the answer of
@@ -735,8 +749,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
-        public static double DistanceTo(GeoPolygon3 polygon, GeoAabb3 box, Tolerance tolerance)
-            => DistanceTo(box.ToObb().ToSolid(), polygon, tolerance);
+        public static double DistanceTo(GeoPolygon3 polygon, GeoAabb3 box, Tolerance tolerance) =>
+            DistanceTo(box.ToObb().ToSolid(), polygon, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between the material of a face and an oriented box.
@@ -753,8 +767,8 @@ namespace GeometryHelper.Core
         /// 200 by 200 from (-50, -50, 50) to (150, 150, 50) and is 25 from its rim.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face or the box is null.</exception>
-        public static double DistanceTo(GeoFace3 face, GeoObb3 box, Tolerance tolerance)
-            => DistanceTo(Intersection3.BodyOf(box), face, tolerance);
+        public static double DistanceTo(GeoFace3 face, GeoObb3 box, Tolerance tolerance) =>
+            DistanceTo(Intersection3.BodyOf(box), face, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between the material of a face and an axis-aligned box.
@@ -773,8 +787,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
-        public static double DistanceTo(GeoFace3 face, GeoAabb3 box, Tolerance tolerance)
-            => DistanceTo(box.ToObb().ToSolid(), face, tolerance);
+        public static double DistanceTo(GeoFace3 face, GeoAabb3 box, Tolerance tolerance) =>
+            DistanceTo(box.ToObb().ToSolid(), face, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between an oriented box and an axis-aligned box.
@@ -795,8 +809,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the oriented box is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the axis-aligned box is empty.</exception>
-        public static double DistanceTo(GeoObb3 box1, GeoAabb3 box2, Tolerance tolerance)
-            => DistanceTo(box1, box2.ToObb(), tolerance);
+        public static double DistanceTo(GeoObb3 box1, GeoAabb3 box2, Tolerance tolerance) =>
+            DistanceTo(box1, box2.ToObb(), tolerance);
 
         #endregion
     }

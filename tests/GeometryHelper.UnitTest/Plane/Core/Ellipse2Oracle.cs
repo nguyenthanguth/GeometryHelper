@@ -23,7 +23,12 @@ namespace GeometryHelper.UnitTest.Plane
         /// ends of the minor.
         /// </summary>
         public static GeoEllipse2 Tilted() =>
-            new GeoEllipse2(new GeoPoint2(40, -25), new GeoVector2(Math.Cos(Math.PI / 6), Math.Sin(Math.PI / 6)), 300, 100);
+            new GeoEllipse2(
+                new GeoPoint2(40, -25),
+                new GeoVector2(Math.Cos(Math.PI / 6), Math.Sin(Math.PI / 6)),
+                300,
+                100
+            );
 
         /// <summary>
         /// An ellipse of the given radii about (40, -25), its major axis along X, so that a point on one of its axes has
@@ -46,9 +51,11 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         /// <summary>The point at frame coordinates (x, y).</summary>
-        public static GeoPoint2 FromFrame(GeoEllipse2 ellipse, double x, double y) => new GeoPoint2(
-            ellipse.Center.X + x * ellipse.MajorAxis.X - y * ellipse.MajorAxis.Y,
-            ellipse.Center.Y + x * ellipse.MajorAxis.Y + y * ellipse.MajorAxis.X);
+        public static GeoPoint2 FromFrame(GeoEllipse2 ellipse, double x, double y) =>
+            new GeoPoint2(
+                ellipse.Center.X + x * ellipse.MajorAxis.X - y * ellipse.MajorAxis.Y,
+                ellipse.Center.Y + x * ellipse.MajorAxis.Y + y * ellipse.MajorAxis.X
+            );
 
         /// <summary>The rim point at eccentric angle t: (a cos t, b sin t) in the frame.</summary>
         public static GeoPoint2 Rim(GeoEllipse2 ellipse, double t) =>
@@ -133,24 +140,34 @@ namespace GeometryHelper.UnitTest.Plane
         // Checked in Python: the Kronrod sums integrate x^0..x^22 and the Gauss sums x^0..x^13 over [-1, 1] to rounding.
         private static readonly double[] Xk =
         {
-            0.991455371120812639206854697526329, 0.949107912342758524526189684047851,
-            0.864864423359769072789712788640926, 0.741531185599394439863864773280788,
-            0.586087235467691130294144845693013, 0.405845151377397166906606412076961,
-            0.207784955007898467600689403773245, 0.0,
+            0.991455371120812639206854697526329,
+            0.949107912342758524526189684047851,
+            0.864864423359769072789712788640926,
+            0.741531185599394439863864773280788,
+            0.586087235467691130294144845693013,
+            0.405845151377397166906606412076961,
+            0.207784955007898467600689403773245,
+            0.0,
         };
 
         private static readonly double[] Wk =
         {
-            0.022935322010529224963732008058970, 0.063092092629978553290700663189204,
-            0.104790010322250183839876322541518, 0.140653259715525918745189590510238,
-            0.169004726639267902826583426598550, 0.190350578064785409913256402421014,
-            0.204432940075298892414161999234649, 0.209482141084727828012999174891714,
+            0.022935322010529224963732008058970,
+            0.063092092629978553290700663189204,
+            0.104790010322250183839876322541518,
+            0.140653259715525918745189590510238,
+            0.169004726639267902826583426598550,
+            0.190350578064785409913256402421014,
+            0.204432940075298892414161999234649,
+            0.209482141084727828012999174891714,
         };
 
         private static readonly double[] Wg =
         {
-            0.129484966168869693270611432679082, 0.279705391489276667901467771423780,
-            0.381830050505118944950369775488975, 0.417959183673469387755102040816327,
+            0.129484966168869693270611432679082,
+            0.279705391489276667901467771423780,
+            0.381830050505118944950369775488975,
+            0.417959183673469387755102040816327,
         };
 
         private static void Kronrod(Func<double, double> f, double lo, double hi, out double kronrod, out double gauss)
@@ -246,7 +263,8 @@ namespace GeometryHelper.UnitTest.Plane
                 double dx = x1 - x0;
                 double dy = y1 - y0;
                 double chord = Math.Sqrt(dx * dx + dy * dy);
-                Func<double, double> off = t => Math.Abs((a * Math.Cos(t) - x0) * dy - (b * Math.Sin(t) - y0) * dx) / chord;
+                Func<double, double> off = t =>
+                    Math.Abs((a * Math.Cos(t) - x0) * dy - (b * Math.Sin(t) - y0) * dx) / chord;
 
                 worst = Math.Max(worst, Golden(off, t0, t1, false));
             }
@@ -263,10 +281,12 @@ namespace GeometryHelper.UnitTest.Plane
             new GeoLine2(FromFrame(ellipse, x0, y0), FromFrame(ellipse, x1, y1));
 
         /// <summary>The polygon through points given in the ellipse's frame as x, y pairs.</summary>
-        public static GeoPolygon2 FramePolygon(GeoEllipse2 ellipse, params double[] xy) => new GeoPolygon2(FramePoints(ellipse, xy));
+        public static GeoPolygon2 FramePolygon(GeoEllipse2 ellipse, params double[] xy) =>
+            new GeoPolygon2(FramePoints(ellipse, xy));
 
         /// <summary>The polyline through points given in the ellipse's frame as x, y pairs.</summary>
-        public static GeoPolyline2 FramePolyline(GeoEllipse2 ellipse, params double[] xy) => new GeoPolyline2(FramePoints(ellipse, xy));
+        public static GeoPolyline2 FramePolyline(GeoEllipse2 ellipse, params double[] xy) =>
+            new GeoPolyline2(FramePoints(ellipse, xy));
 
         /// <summary>The points given in the ellipse's frame as x, y pairs.</summary>
         public static GeoPoint2[] FramePoints(GeoEllipse2 ellipse, params double[] xy)
@@ -288,17 +308,36 @@ namespace GeometryHelper.UnitTest.Plane
         /// The arc about a point given in the ellipse's frame, from one angle to another counter-clockwise, the angles
         /// read in the frame, so that the arc sits on the ellipse the same way however the ellipse is turned.
         /// </summary>
-        public static GeoArc2 FrameArc(GeoEllipse2 ellipse, double x, double y, double radius, double fromRad, double toRad)
+        public static GeoArc2 FrameArc(
+            GeoEllipse2 ellipse,
+            double x,
+            double y,
+            double radius,
+            double fromRad,
+            double toRad
+        )
         {
             double turn = Math.Atan2(ellipse.MajorAxis.Y, ellipse.MajorAxis.X);
             return new GeoArc2(FromFrame(ellipse, x, y), radius, fromRad + turn, toRad + turn);
         }
 
         /// <summary>An ellipse placed in the frame of another: its centre at (x, y) and its major axis turned by an angle from the other's.</summary>
-        public static GeoEllipse2 FrameEllipse(GeoEllipse2 ellipse, double x, double y, double turnRad, double majorRadius, double minorRadius)
+        public static GeoEllipse2 FrameEllipse(
+            GeoEllipse2 ellipse,
+            double x,
+            double y,
+            double turnRad,
+            double majorRadius,
+            double minorRadius
+        )
         {
             double turn = Math.Atan2(ellipse.MajorAxis.Y, ellipse.MajorAxis.X) + turnRad;
-            return new GeoEllipse2(FromFrame(ellipse, x, y), new GeoVector2(Math.Cos(turn), Math.Sin(turn)), majorRadius, minorRadius);
+            return new GeoEllipse2(
+                FromFrame(ellipse, x, y),
+                new GeoVector2(Math.Cos(turn), Math.Sin(turn)),
+                majorRadius,
+                minorRadius
+            );
         }
 
         #endregion
@@ -316,8 +355,18 @@ namespace GeometryHelper.UnitTest.Plane
             FrameLine(e, -200, e.MinorRadius + gap, 200, e.MinorRadius + gap);
 
         /// <summary>A trough whose flat bottom is y = b + gap from x = -100 to 100.</summary>
-        public static GeoPolyline2 PolylineAbove(GeoEllipse2 e, double gap) => FramePolyline(
-            e, -200, e.MinorRadius + gap + 50, -100, e.MinorRadius + gap, 100, e.MinorRadius + gap, 200, e.MinorRadius + gap + 50);
+        public static GeoPolyline2 PolylineAbove(GeoEllipse2 e, double gap) =>
+            FramePolyline(
+                e,
+                -200,
+                e.MinorRadius + gap + 50,
+                -100,
+                e.MinorRadius + gap,
+                100,
+                e.MinorRadius + gap,
+                200,
+                e.MinorRadius + gap + 50
+            );
 
         /// <summary>A triangle on its side y = b + gap from x = -100 to 100, its apex above.</summary>
         public static GeoPolygon2 PolygonAbove(GeoEllipse2 e, double gap) =>
@@ -332,21 +381,34 @@ namespace GeometryHelper.UnitTest.Plane
 
         /// <summary>A 100 by 60 rectangle square to the axes, its bottom side y = b + gap.</summary>
         public static GeoRectangle2 RectangleAbove(GeoEllipse2 e, double gap) =>
-            new GeoRectangle2(FromFrame(e, 0, e.MinorRadius + gap + 30), 100, 60, Math.Atan2(e.MajorAxis.Y, e.MajorAxis.X));
+            new GeoRectangle2(
+                FromFrame(e, 0, e.MinorRadius + gap + 30),
+                100,
+                60,
+                Math.Atan2(e.MajorAxis.Y, e.MajorAxis.X)
+            );
 
         /// <summary>The circle of radius 50 standing on (0, b + gap).</summary>
-        public static GeoCircle2 CircleAbove(GeoEllipse2 e, double gap) => FrameCircle(e, 0, e.MinorRadius + gap + 50, 50);
+        public static GeoCircle2 CircleAbove(GeoEllipse2 e, double gap) =>
+            FrameCircle(e, 0, e.MinorRadius + gap + 50, 50);
 
         /// <summary>The lower half of <see cref="CircleAbove"/>.</summary>
-        public static GeoArc2 ArcAbove(GeoEllipse2 e, double gap) => FrameArc(e, 0, e.MinorRadius + gap + 50, 50, Math.PI, 2 * Math.PI);
+        public static GeoArc2 ArcAbove(GeoEllipse2 e, double gap) =>
+            FrameArc(e, 0, e.MinorRadius + gap + 50, 50, Math.PI, 2 * Math.PI);
 
         /// <summary>A chain: the lower half of <see cref="CircleAbove"/>, left to right, then a segment up and away.</summary>
-        public static GeoPolylineArc2 ChainAbove(GeoEllipse2 e, double gap) => new GeoPolylineArc2(
-            FramePoints(e, -50, e.MinorRadius + gap + 50, 50, e.MinorRadius + gap + 50, 100, e.MinorRadius + 200), new[] { 1.0, 0.0 });
+        public static GeoPolylineArc2 ChainAbove(GeoEllipse2 e, double gap) =>
+            new GeoPolylineArc2(
+                FramePoints(e, -50, e.MinorRadius + gap + 50, 50, e.MinorRadius + gap + 50, 100, e.MinorRadius + 200),
+                new[] { 1.0, 0.0 }
+            );
 
         /// <summary>A loop: the lower half of <see cref="CircleAbove"/>, closed by two segments up to a point above.</summary>
-        public static GeoPolygonArc2 LoopAbove(GeoEllipse2 e, double gap) => new GeoPolygonArc2(
-            FramePoints(e, -50, e.MinorRadius + gap + 50, 50, e.MinorRadius + gap + 50, 0, e.MinorRadius + 150), new[] { 1.0, 0.0, 0.0 });
+        public static GeoPolygonArc2 LoopAbove(GeoEllipse2 e, double gap) =>
+            new GeoPolygonArc2(
+                FramePoints(e, -50, e.MinorRadius + gap + 50, 50, e.MinorRadius + gap + 50, 0, e.MinorRadius + 150),
+                new[] { 1.0, 0.0, 0.0 }
+            );
 
         /// <summary>A copy of the ellipse standing on (0, b + gap).</summary>
         public static GeoEllipse2 EllipseAbove(GeoEllipse2 e, double gap) =>
@@ -371,7 +433,10 @@ namespace GeometryHelper.UnitTest.Plane
             double dx = line.EndPoint.X - line.StartPoint.X;
             double dy = line.EndPoint.Y - line.StartPoint.Y;
             double length2 = dx * dx + dy * dy;
-            double s = length2 > 0.0 ? ((point.X - line.StartPoint.X) * dx + (point.Y - line.StartPoint.Y) * dy) / length2 : 0.0;
+            double s =
+                length2 > 0.0
+                    ? ((point.X - line.StartPoint.X) * dx + (point.Y - line.StartPoint.Y) * dy) / length2
+                    : 0.0;
             s = Math.Max(0.0, Math.Min(1.0, s));
             double fx = line.StartPoint.X + s * dx - point.X;
             double fy = line.StartPoint.Y + s * dy - point.Y;
@@ -402,7 +467,10 @@ namespace GeometryHelper.UnitTest.Plane
             double best = double.PositiveInfinity;
             for (int i = 0; i < polygon.VertexCount; i++)
             {
-                best = Math.Min(best, PointToSegment(point, new GeoLine2(polygon[i], polygon[(i + 1) % polygon.VertexCount])));
+                best = Math.Min(
+                    best,
+                    PointToSegment(point, new GeoLine2(polygon[i], polygon[(i + 1) % polygon.VertexCount]))
+                );
             }
 
             return best;
@@ -467,7 +535,8 @@ namespace GeometryHelper.UnitTest.Plane
                 double best = double.PositiveInfinity;
                 for (int j = 0; j < ss.Length; j++)
                 {
-                    double dx = p.X - px[j], dy = p.Y - py[j];
+                    double dx = p.X - px[j],
+                        dy = p.Y - py[j];
                     double d2 = dx * dx + dy * dy;
                     if (d2 < best)
                     {
@@ -514,17 +583,38 @@ namespace GeometryHelper.UnitTest.Plane
         {
             double Half(double tt, double ss)
             {
-                GeoPoint2 p = Rim(first, tt), q = Rim(second, ss);
-                double dx = p.X - q.X, dy = p.Y - q.Y;
+                GeoPoint2 p = Rim(first, tt),
+                    q = Rim(second, ss);
+                double dx = p.X - q.X,
+                    dy = p.Y - q.Y;
                 return 0.5 * (dx * dx + dy * dy);
             }
 
             double f = Half(t, s);
             for (int iteration = 0; iteration < 100; iteration++)
             {
-                Derivatives(first, t, out double p1x, out double p1y, out double d1x, out double d1y, out double dd1x, out double dd1y);
-                Derivatives(second, s, out double p2x, out double p2y, out double d2x, out double d2y, out double dd2x, out double dd2y);
-                double dx = p1x - p2x, dy = p1y - p2y;
+                Derivatives(
+                    first,
+                    t,
+                    out double p1x,
+                    out double p1y,
+                    out double d1x,
+                    out double d1y,
+                    out double dd1x,
+                    out double dd1y
+                );
+                Derivatives(
+                    second,
+                    s,
+                    out double p2x,
+                    out double p2y,
+                    out double d2x,
+                    out double d2y,
+                    out double dd2x,
+                    out double dd2y
+                );
+                double dx = p1x - p2x,
+                    dy = p1y - p2y;
                 double g1 = dx * d1x + dy * d1y;
                 double g2 = -(dx * d2x + dy * d2y);
                 double h11 = d1x * d1x + d1y * d1y + dx * dd1x + dy * dd1y;
@@ -532,7 +622,8 @@ namespace GeometryHelper.UnitTest.Plane
                 double h12 = -(d1x * d2x + d1y * d2y);
                 double det = h11 * h22 - h12 * h12;
 
-                double st, ss2;
+                double st,
+                    ss2;
                 if (h11 > 0.0 && det > 0.0)
                 {
                     st = -(h22 * g1 - h12 * g2) / det;
@@ -571,11 +662,23 @@ namespace GeometryHelper.UnitTest.Plane
             return Math.Sqrt(2.0 * f);
         }
 
-        private static void Derivatives(GeoEllipse2 e, double t, out double px, out double py, out double dx, out double dy, out double ddx, out double ddy)
+        private static void Derivatives(
+            GeoEllipse2 e,
+            double t,
+            out double px,
+            out double py,
+            out double dx,
+            out double dy,
+            out double ddx,
+            out double ddy
+        )
         {
-            double c = Math.Cos(t), s = Math.Sin(t);
-            double a = e.MajorRadius, b = e.MinorRadius;
-            double mx = e.MajorAxis.X, my = e.MajorAxis.Y;
+            double c = Math.Cos(t),
+                s = Math.Sin(t);
+            double a = e.MajorRadius,
+                b = e.MinorRadius;
+            double mx = e.MajorAxis.X,
+                my = e.MajorAxis.Y;
             px = e.Center.X + a * c * mx - b * s * my;
             py = e.Center.Y + a * c * my + b * s * mx;
             dx = -a * s * mx - b * c * my;
@@ -605,7 +708,8 @@ namespace GeometryHelper.UnitTest.Plane
                 double here = side(Rim(ellipse, k * step));
                 if ((before < 0.0) != (here < 0.0))
                 {
-                    double lo = (k - 1) * step, hi = k * step;
+                    double lo = (k - 1) * step,
+                        hi = k * step;
                     for (int i = 0; i < 100; i++)
                     {
                         double mid = 0.5 * (lo + hi);
@@ -629,7 +733,8 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         /// <summary>The side of a circle a point lies on: its distance from the centre less the radius.</summary>
-        public static Func<GeoPoint2, double> SideOfCircle(GeoPoint2 center, double radius) => p => p.DistanceTo(center) - radius;
+        public static Func<GeoPoint2, double> SideOfCircle(GeoPoint2 center, double radius) =>
+            p => p.DistanceTo(center) - radius;
 
         /// <summary>
         /// The side of a convex polygon a point lies on: the largest of its signed distances to the lines carrying the
@@ -640,7 +745,8 @@ namespace GeometryHelper.UnitTest.Plane
             double twiceArea = 0.0;
             for (int i = 0; i < corners.Length; i++)
             {
-                GeoPoint2 p = corners[i], q = corners[(i + 1) % corners.Length];
+                GeoPoint2 p = corners[i],
+                    q = corners[(i + 1) % corners.Length];
                 twiceArea += p.X * q.Y - q.X * p.Y;
             }
 
@@ -650,8 +756,10 @@ namespace GeometryHelper.UnitTest.Plane
                 double side = double.NegativeInfinity;
                 for (int i = 0; i < corners.Length; i++)
                 {
-                    GeoPoint2 p = corners[i], q = corners[(i + 1) % corners.Length];
-                    double dx = q.X - p.X, dy = q.Y - p.Y;
+                    GeoPoint2 p = corners[i],
+                        q = corners[(i + 1) % corners.Length];
+                    double dx = q.X - p.X,
+                        dy = q.Y - p.Y;
                     double left = (dx * (point.Y - p.Y) - dy * (point.X - p.X)) / Math.Sqrt(dx * dx + dy * dy);
                     side = Math.Max(side, -turn * left);
                 }

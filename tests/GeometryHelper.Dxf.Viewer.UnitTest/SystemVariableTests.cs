@@ -91,7 +91,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             CadCommandSession session = Start(document, "EXTMIN");
             Assert.False(session.IsRunning);
-            Assert.Equal("EXTMIN = " + CadCommandContext.Length(document.Database.Extmin.X) + "," + CadCommandContext.Length(document.Database.Extmin.Y) + "," + CadCommandContext.Length(document.Database.Extmin.Z) + " (read only)", session.History.Last());
+            Assert.Equal(
+                "EXTMIN = "
+                    + CadCommandContext.Length(document.Database.Extmin.X)
+                    + ","
+                    + CadCommandContext.Length(document.Database.Extmin.Y)
+                    + ","
+                    + CadCommandContext.Length(document.Database.Extmin.Z)
+                    + " (read only)",
+                session.History.Last()
+            );
 
             Run(session, "SETVAR", "DWGNAME");
             Assert.Equal("DWGNAME = \"blank.dxf\" (read only)", session.History.Last());
@@ -114,10 +123,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             int before = session.History.Count;
             Run(session, "CHAMFER?");
 
-            Assert.Equal(new[] { "CHAMFERA          0.0000", "CHAMFERB          0.0000" }, session.History.Skip(before + 1));
+            Assert.Equal(
+                new[] { "CHAMFERA          0.0000", "CHAMFERB          0.0000" },
+                session.History.Skip(before + 1)
+            );
 
             Run(session, "SETVAR", "?", Enter);
-            Assert.Contains(session.History, l => l.StartsWith("EXTMAX ", StringComparison.Ordinal) && l.EndsWith("(read only)", StringComparison.Ordinal));
+            Assert.Contains(session.History, l =>
+                l.StartsWith("EXTMAX ", StringComparison.Ordinal) && l.EndsWith("(read only)", StringComparison.Ordinal)
+            );
             Assert.Contains(session.History, l => l.StartsWith("PDMODE            0", StringComparison.Ordinal));
         }
 
@@ -201,12 +215,59 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(
                 new[]
                 {
-                    "ATTDIA", "ATTREQ", "CANNOSCALE", "CDATE", "CECOLOR", "CELTSCALE", "CELTYPE", "CELWEIGHT", "CHAMFERA", "CHAMFERB", "CLAYER", "CMDDIA", "DATE", "DIMASSOC", "DIMSCALE", "DIMSTYLE",
-                    "DWGNAME", "DWGPREFIX", "EXTMAX", "EXTMIN", "FILEDIA", "FILLETRAD", "IMAGEFRAME", "INSBASE", "LIMMAX", "LIMMIN", "LTSCALE", "LWDISPLAY", "MIRRTEXT",
-                    "MSLTSCALE", "OFFSETDIST", "ORTHOMODE", "PDMODE", "PDSIZE", "PEDITACCEPT", "PICKADD", "PICKFIRST", "PICKSTYLE", "PLINETYPE", "PSLTSCALE", "REVCLOUDAPPROXARCLEN", "REVCLOUDARCVARIANCE", "REVCLOUDCREATEMODE", "SELECTIONCYCLING", "SORTENTS", "TEXTSIZE",
-                    "TEXTSTYLE", "TILEMODE", "UCSNAME", "UCSORG",
+                    "ATTDIA",
+                    "ATTREQ",
+                    "CANNOSCALE",
+                    "CDATE",
+                    "CECOLOR",
+                    "CELTSCALE",
+                    "CELTYPE",
+                    "CELWEIGHT",
+                    "CHAMFERA",
+                    "CHAMFERB",
+                    "CLAYER",
+                    "CMDDIA",
+                    "DATE",
+                    "DIMASSOC",
+                    "DIMSCALE",
+                    "DIMSTYLE",
+                    "DWGNAME",
+                    "DWGPREFIX",
+                    "EXTMAX",
+                    "EXTMIN",
+                    "FILEDIA",
+                    "FILLETRAD",
+                    "IMAGEFRAME",
+                    "INSBASE",
+                    "LIMMAX",
+                    "LIMMIN",
+                    "LTSCALE",
+                    "LWDISPLAY",
+                    "MIRRTEXT",
+                    "MSLTSCALE",
+                    "OFFSETDIST",
+                    "ORTHOMODE",
+                    "PDMODE",
+                    "PDSIZE",
+                    "PEDITACCEPT",
+                    "PICKADD",
+                    "PICKFIRST",
+                    "PICKSTYLE",
+                    "PLINETYPE",
+                    "PSLTSCALE",
+                    "REVCLOUDAPPROXARCLEN",
+                    "REVCLOUDARCVARIANCE",
+                    "REVCLOUDCREATEMODE",
+                    "SELECTIONCYCLING",
+                    "SORTENTS",
+                    "TEXTSIZE",
+                    "TEXTSTYLE",
+                    "TILEMODE",
+                    "UCSNAME",
+                    "UCSORG",
                 },
-                registry.Variables.Select(v => v.Name));
+                registry.Variables.Select(v => v.Name)
+            );
             Assert.Equal("LTSCALE", registry.FindVariable("LTS").Name);
             Assert.Equal(178, registry.Commands.Count);
             Assert.NotNull(registry.Find("SETVAR"));
@@ -260,7 +321,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Near(P(420, 297), document.Database.Limmax);
         }
 
-        private static string Header(CadDocument document, string name)
-            => string.Join(";", document.Database.GetHeader(name).Select(g => g.TypeCode + "=" + g.Value.Trim()));
+        private static string Header(CadDocument document, string name) =>
+            string.Join(";", document.Database.GetHeader(name).Select(g => g.TypeCode + "=" + g.Value.Trim()));
     }
 }

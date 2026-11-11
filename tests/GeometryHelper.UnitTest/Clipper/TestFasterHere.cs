@@ -108,7 +108,15 @@ namespace GeometryHelper.UnitTest.Clipper
 
             for (int i = 0; i < 20000; i++)
             {
-                squares.Add(new Path64 { new Point64(10 * i, 0), new Point64(10 * i + 10, 0), new Point64(10 * i + 10, 10), new Point64(10 * i, 10) });
+                squares.Add(
+                    new Path64
+                    {
+                        new Point64(10 * i, 0),
+                        new Point64(10 * i + 10, 0),
+                        new Point64(10 * i + 10, 10),
+                        new Point64(10 * i, 10),
+                    }
+                );
             }
 
             var watch = Stopwatch.StartNew();
@@ -132,7 +140,15 @@ namespace GeometryHelper.UnitTest.Clipper
             {
                 for (int i = 0; i < 8000; i++)
                 {
-                    squares.Add(new Path64 { new Point64(10 * i, 10 * j), new Point64(10 * i + 10, 10 * j), new Point64(10 * i + 10, 10 * j + 10), new Point64(10 * i, 10 * j + 10) });
+                    squares.Add(
+                        new Path64
+                        {
+                            new Point64(10 * i, 10 * j),
+                            new Point64(10 * i + 10, 10 * j),
+                            new Point64(10 * i + 10, 10 * j + 10),
+                            new Point64(10 * i, 10 * j + 10),
+                        }
+                    );
                 }
             }
 
@@ -152,11 +168,22 @@ namespace GeometryHelper.UnitTest.Clipper
             // of all those joined before them, and each horizontal segment along the strip's top walked that chain to the
             // path that holds its points: 9.8 seconds on .NET 10 and 9.4 on .NET Framework, against 0.3 now. Each walk
             // points the paths it passes at the end of the chain now.
-            var shapes = new Paths64 { new Path64 { new Point64(0, 0), new Point64(1000000, 0), new Point64(1000000, 10), new Point64(0, 10) } };
+            var shapes = new Paths64
+            {
+                new Path64 { new Point64(0, 0), new Point64(1000000, 0), new Point64(1000000, 10), new Point64(0, 10) },
+            };
 
             for (int i = 0; i < 50000; i++)
             {
-                shapes.Add(new Path64 { new Point64(20 * i, 10), new Point64(20 * i + 10, 10), new Point64(20 * i + 10, 20), new Point64(20 * i, 20) });
+                shapes.Add(
+                    new Path64
+                    {
+                        new Point64(20 * i, 10),
+                        new Point64(20 * i + 10, 10),
+                        new Point64(20 * i + 10, 20),
+                        new Point64(20 * i, 20),
+                    }
+                );
             }
 
             var watch = Stopwatch.StartNew();
@@ -248,14 +275,29 @@ namespace GeometryHelper.UnitTest.Clipper
             // outer paths of their own.
             var subject = new Paths64
             {
-                Rectangle(21, 0, 1610, 1), Rectangle(78, 1, 2608, 0), Rectangle(81, 0, 2120, 2), Rectangle(33, 2, 1157, 0),
-                Rectangle(35, 35, 2394, 36), Rectangle(111, 0, 1527, 1), Rectangle(39, 0, 1387, 1), Rectangle(150, 50, 1320, 52),
+                Rectangle(21, 0, 1610, 1),
+                Rectangle(78, 1, 2608, 0),
+                Rectangle(81, 0, 2120, 2),
+                Rectangle(33, 2, 1157, 0),
+                Rectangle(35, 35, 2394, 36),
+                Rectangle(111, 0, 1527, 1),
+                Rectangle(39, 0, 1387, 1),
+                Rectangle(150, 50, 1320, 52),
             };
             var clip = new Paths64
             {
-                Rectangle(0, 0, 1130, 2), Rectangle(24, 8, 1584, 10), Rectangle(36, 0, 2579, 3), Rectangle(34, 0, 1679, 2),
-                Rectangle(23, 23, 1861, 24), Rectangle(62, 0, 2171, 2), Rectangle(34, 0, 1110, 2), Rectangle(108, 0, 2869, 1),
-                Rectangle(114, 0, 1289, 3), Rectangle(82, 0, 1379, 1), Rectangle(129, 1, 1775, 0), Rectangle(153, 51, 1822, 53),
+                Rectangle(0, 0, 1130, 2),
+                Rectangle(24, 8, 1584, 10),
+                Rectangle(36, 0, 2579, 3),
+                Rectangle(34, 0, 1679, 2),
+                Rectangle(23, 23, 1861, 24),
+                Rectangle(62, 0, 2171, 2),
+                Rectangle(34, 0, 1110, 2),
+                Rectangle(108, 0, 2869, 1),
+                Rectangle(114, 0, 1289, 3),
+                Rectangle(82, 0, 1379, 1),
+                Rectangle(129, 1, 1775, 0),
+                Rectangle(153, 51, 1822, 53),
             };
 
             var clipper = new Clipper64 { PreserveCollinear = false };
@@ -280,7 +322,9 @@ namespace GeometryHelper.UnitTest.Clipper
                     Assert.True(hole.IsHole);
                     Assert.False(Clipper2.IsPositive(hole.Polygon));
                     Assert.Empty(hole);
-                    Assert.All(hole.Polygon, p => Assert.NotEqual(PointInPolygonResult.IsOutside, Clipper2.PointInPolygon(p, outer.Polygon)));
+                    Assert.All(hole.Polygon, p =>
+                        Assert.NotEqual(PointInPolygonResult.IsOutside, Clipper2.PointInPolygon(p, outer.Polygon))
+                    );
                     holes++;
                 }
             }
@@ -302,11 +346,112 @@ namespace GeometryHelper.UnitTest.Clipper
             };
             var clip = new Paths64
             {
-                Path(503, 0, 503, -35, 506, -35, 506, 0, 509, 0, 509, -35, 510, -35, 510, 0, 512, 0, 512, -68, 515, -68, 515, 0, 516, 0,
-                    516, -68, 519, -68, 519, 0, 520, 0, 520, -136, 522, -136, 522, 0, 525, 0, 525, -136, 527, -136, 527, 0, 529, 0,
-                    529, -136, 533, 0, 536, -35, 536, 0, 539, 0, 539, -68, 580, 0, 580, -68, 583, 0, 583, -136, 591, -136, 591, 0,
-                    593, 0, 596, -136, 596, 0, 599, 0, 600, -68, 600, 0, 601, 0, 604, -68, 604, 0, 606, 0, 606, -35, 607, -35, 607, 0,
-                    610, 0, 610, 68),
+                Path(
+                    503,
+                    0,
+                    503,
+                    -35,
+                    506,
+                    -35,
+                    506,
+                    0,
+                    509,
+                    0,
+                    509,
+                    -35,
+                    510,
+                    -35,
+                    510,
+                    0,
+                    512,
+                    0,
+                    512,
+                    -68,
+                    515,
+                    -68,
+                    515,
+                    0,
+                    516,
+                    0,
+                    516,
+                    -68,
+                    519,
+                    -68,
+                    519,
+                    0,
+                    520,
+                    0,
+                    520,
+                    -136,
+                    522,
+                    -136,
+                    522,
+                    0,
+                    525,
+                    0,
+                    525,
+                    -136,
+                    527,
+                    -136,
+                    527,
+                    0,
+                    529,
+                    0,
+                    529,
+                    -136,
+                    533,
+                    0,
+                    536,
+                    -35,
+                    536,
+                    0,
+                    539,
+                    0,
+                    539,
+                    -68,
+                    580,
+                    0,
+                    580,
+                    -68,
+                    583,
+                    0,
+                    583,
+                    -136,
+                    591,
+                    -136,
+                    591,
+                    0,
+                    593,
+                    0,
+                    596,
+                    -136,
+                    596,
+                    0,
+                    599,
+                    0,
+                    600,
+                    -68,
+                    600,
+                    0,
+                    601,
+                    0,
+                    604,
+                    -68,
+                    604,
+                    0,
+                    606,
+                    0,
+                    606,
+                    -35,
+                    607,
+                    -35,
+                    607,
+                    0,
+                    610,
+                    0,
+                    610,
+                    68
+                ),
             };
 
             var clipper = new Clipper64 { PreserveCollinear = false };
@@ -338,9 +483,18 @@ namespace GeometryHelper.UnitTest.Clipper
             // an outer path of its own.
             var subject = new Paths64
             {
-                Rectangle(0, 3, 1417, 0), Rectangle(6, 0, 1531, 3), Path(9, 3, 2722, 3, 9, 6), Rectangle(10, 0, 1067, 1),
-                Rectangle(39, 1, 2473, 0), Rectangle(45, 0, 1525, 3), Rectangle(48, 0, 1628, 3), Rectangle(57, 1, 2888, 0),
-                Rectangle(21, 0, 2364, 2), Rectangle(26, 0, 2096, 2), Rectangle(84, 1, 2524, 0), Rectangle(58, 2, 1677, 0),
+                Rectangle(0, 3, 1417, 0),
+                Rectangle(6, 0, 1531, 3),
+                Path(9, 3, 2722, 3, 9, 6),
+                Rectangle(10, 0, 1067, 1),
+                Rectangle(39, 1, 2473, 0),
+                Rectangle(45, 0, 1525, 3),
+                Rectangle(48, 0, 1628, 3),
+                Rectangle(57, 1, 2888, 0),
+                Rectangle(21, 0, 2364, 2),
+                Rectangle(26, 0, 2096, 2),
+                Rectangle(84, 1, 2524, 0),
+                Rectangle(58, 2, 1677, 0),
                 Rectangle(68, 0, 2576, 2),
             };
             var clip = new Paths64 { Rectangle(6, 0, 2684, 1) };
@@ -368,7 +522,9 @@ namespace GeometryHelper.UnitTest.Clipper
                     Assert.True(hole.IsHole);
                     Assert.Equal(-51.0, Clipper2.Area(hole.Polygon));
                     Assert.Empty(hole);
-                    Assert.All(hole.Polygon, p => Assert.NotEqual(PointInPolygonResult.IsOutside, Clipper2.PointInPolygon(p, outer.Polygon)));
+                    Assert.All(hole.Polygon, p =>
+                        Assert.NotEqual(PointInPolygonResult.IsOutside, Clipper2.PointInPolygon(p, outer.Polygon))
+                    );
                     holes++;
                 }
             }
@@ -394,8 +550,8 @@ namespace GeometryHelper.UnitTest.Clipper
         /// <summary>
         /// The path round the rectangle from the first corner to the other, along x first.
         /// </summary>
-        private static Path64 Rectangle(long x1, long y1, long x2, long y2)
-            => new Path64 { new Point64(x1, y1), new Point64(x2, y1), new Point64(x2, y2), new Point64(x1, y2) };
+        private static Path64 Rectangle(long x1, long y1, long x2, long y2) =>
+            new Path64 { new Point64(x1, y1), new Point64(x2, y1), new Point64(x2, y2), new Point64(x1, y2) };
 
         /// <summary>
         /// A comb along X: teeth 4 wide and 200 long, 4 apart, on a back 200 deep, pointing down from it, or up when mirrored.

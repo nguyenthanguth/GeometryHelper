@@ -32,7 +32,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets where an arc meets a ray, using the default tolerance.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoArc2 arc, GeoRay2 ray) => GetIntersections(arc, ray, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoArc2 arc, GeoRay2 ray) =>
+            GetIntersections(arc, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets where an arc meets a ray, within a tolerance.
@@ -48,8 +49,8 @@ namespace GeometryHelper.Core
         /// <param name="arc">The arc.</param>
         /// <param name="ray">The ray.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
-        public static bool TryIntersectWith(GeoArc2 arc, GeoRay2 ray, out GeoPoint2[] intersections)
-            => TryIntersectWith(arc, ray, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoArc2 arc, GeoRay2 ray, out GeoPoint2[] intersections) =>
+            TryIntersectWith(arc, ray, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where an arc meets a ray, within a tolerance.
@@ -58,7 +59,12 @@ namespace GeometryHelper.Core
         /// <param name="ray">The ray.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool TryIntersectWith(GeoArc2 arc, GeoRay2 ray, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoArc2 arc,
+            GeoRay2 ray,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             return TryIntersectWith(arc, Ray2.CutPast(ray, arc, tolerance), out intersections, tolerance);
         }
@@ -66,7 +72,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment leaving an arc and landing on a ray, using the default tolerance.
         /// </summary>
-        public static GeoLine2 GetShortestLineTo(GeoArc2 arc, GeoRay2 ray) => GetShortestLineTo(arc, ray, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoArc2 arc, GeoRay2 ray) =>
+            GetShortestLineTo(arc, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving an arc and landing on a ray, within a tolerance.

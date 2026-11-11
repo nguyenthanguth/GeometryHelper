@@ -20,8 +20,8 @@ namespace GeometryHelper.UnitTest.Meshing
             _output = output;
         }
 
-        private static GeoPolygon2 Box(double x0, double y0, double x1, double y1)
-            => new GeoPolygon2(new GeoPoint2(x0, y0), new GeoPoint2(x1, y0), new GeoPoint2(x1, y1), new GeoPoint2(x0, y1));
+        private static GeoPolygon2 Box(double x0, double y0, double x1, double y1) =>
+            new GeoPolygon2(new GeoPoint2(x0, y0), new GeoPoint2(x1, y0), new GeoPoint2(x1, y1), new GeoPoint2(x0, y1));
 
         [Fact]
         public void QuickStart_PanelsOfFormworkOnAWallWithADoorAndAWindow()
@@ -31,9 +31,10 @@ namespace GeometryHelper.UnitTest.Meshing
                 Box(0, 0, 7215, 3012),
                 new[]
                 {
-                    Box(900, 0, 1800, 2100),      // a door
-                    Box(3600, 900, 5400, 2100),   // a window
-                });
+                    Box(900, 0, 1800, 2100), // a door
+                    Box(3600, 900, 5400, 2100), // a window
+                }
+            );
 
             GeoMesh2 panels = wall.ToMesh(MeshOptions.Grid(1200, 600, joint: 3));
 
@@ -51,20 +52,33 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             GeoPolygon2 strip = Box(0, 0, 1000, 100);
 
-            foreach (GridAlignment alignment in new[] { GridAlignment.Start, GridAlignment.End, GridAlignment.CenterCell, GridAlignment.CenterJoint })
+            foreach (
+                GridAlignment alignment in new[]
+                {
+                    GridAlignment.Start,
+                    GridAlignment.End,
+                    GridAlignment.CenterCell,
+                    GridAlignment.CenterJoint,
+                }
+            )
             {
                 GeoMesh2 mesh = strip.ToMesh(MeshOptions.Grid(300, 100, 0, alignment));
                 double[] widths = mesh.GetFaces()
                     .Select(f => f.Vertices.Max(v => v.X) - f.Vertices.Min(v => v.X))
                     .Select(w => Math.Round(w, 6))
-                    .OrderBy(w => w).ToArray();
+                    .OrderBy(w => w)
+                    .ToArray();
 
                 _output.WriteLine($"{alignment}: {string.Join(", ", widths)}");
             }
 
-            double[] Widths(GridAlignment a) => strip.ToMesh(MeshOptions.Grid(300, 100, 0, a)).GetFaces()
-                .OrderBy(f => f.Vertices.Min(v => v.X))
-                .Select(f => Math.Round(f.Vertices.Max(v => v.X) - f.Vertices.Min(v => v.X), 6)).ToArray();
+            double[] Widths(GridAlignment a) =>
+                strip
+                    .ToMesh(MeshOptions.Grid(300, 100, 0, a))
+                    .GetFaces()
+                    .OrderBy(f => f.Vertices.Min(v => v.X))
+                    .Select(f => Math.Round(f.Vertices.Max(v => v.X) - f.Vertices.Min(v => v.X), 6))
+                    .ToArray();
 
             Assert.Equal(new[] { 300.0, 300.0, 300.0, 100.0 }, Widths(GridAlignment.Start));
             Assert.Equal(new[] { 100.0, 300.0, 300.0, 300.0 }, Widths(GridAlignment.End));
@@ -78,7 +92,13 @@ namespace GeometryHelper.UnitTest.Meshing
             GeoPolygon2 slab = Box(0, 0, 8000, 5000);
 
             // A cell's corner on a column at (2400, 1800), the grid turned 30 degrees.
-            var options = new MeshOptions(MeshKind.Grid, 1500, 1500, angleRad: Math.PI / 6, origin: new GeoPoint2(2400, 1800));
+            var options = new MeshOptions(
+                MeshKind.Grid,
+                1500,
+                1500,
+                angleRad: Math.PI / 6,
+                origin: new GeoPoint2(2400, 1800)
+            );
             GeoMesh2 mesh = slab.ToMesh(options);
 
             Assert.Contains(new GeoPoint2(2400, 1800), mesh.Vertices);
@@ -103,17 +123,26 @@ namespace GeometryHelper.UnitTest.Meshing
         public void TheKinds_OneShapeFourWays()
         {
             var slab = new GeoFace2(
-                new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(9000, 0), new GeoPoint2(9000, 4000),
-                                new GeoPoint2(4500, 4000), new GeoPoint2(4500, 8000), new GeoPoint2(0, 8000)),
-                new[] { Box(1500, 1500, 2700, 2400), Box(1800, 5600, 3000, 6600) });
+                new GeoPolygon2(
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(9000, 0),
+                    new GeoPoint2(9000, 4000),
+                    new GeoPoint2(4500, 4000),
+                    new GeoPoint2(4500, 8000),
+                    new GeoPoint2(0, 8000)
+                ),
+                new[] { Box(1500, 1500, 2700, 2400), Box(1800, 5600, 3000, 6600) }
+            );
 
             GeoMesh2 triangles = slab.ToMesh(MeshKind.Triangles);
             GeoMesh2 convex = slab.ToMesh(MeshKind.Convex);
-            GeoMesh2 strips = slab.ToMesh(MeshKind.Strips);          // along the X axis
+            GeoMesh2 strips = slab.ToMesh(MeshKind.Strips); // along the X axis
             GeoMesh2 turned = slab.ToMesh(MeshOptions.Strips(Math.PI / 2));
             GeoMesh2 grid = slab.ToMesh(MeshOptions.Grid(1000, 1000));
 
-            _output.WriteLine($"triangles {triangles.FaceCount}, convex {convex.FaceCount}, strips {strips.FaceCount}, turned {turned.FaceCount}, grid {grid.FaceCount}");
+            _output.WriteLine(
+                $"triangles {triangles.FaceCount}, convex {convex.FaceCount}, strips {strips.FaceCount}, turned {turned.FaceCount}, grid {grid.FaceCount}"
+            );
             Assert.Equal(16, triangles.FaceCount);
             Assert.Equal(9, convex.FaceCount);
             Assert.Equal(8, strips.FaceCount);
@@ -131,11 +160,11 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             GeoMesh2 mesh = Box(0, 0, 3000, 2000).ToMesh(MeshOptions.Grid(1000, 1000));
 
-            GeoPolygon2 first = mesh.GetFace(0);            // a polygon, counter-clockwise
-            int[] corners = mesh.GetFaceIndices(0);         // its corners in mesh.Vertices
-            int[] beside = mesh.GetAdjacentFaces(0);        // the faces sharing a side with it
-            GeoLine2[] outline = mesh.GetBoundaryEdges();   // the material on the left of each
-            GeoTriangle2[] triangles = mesh.ToTriangles();  // for a renderer or an OBJ file
+            GeoPolygon2 first = mesh.GetFace(0); // a polygon, counter-clockwise
+            int[] corners = mesh.GetFaceIndices(0); // its corners in mesh.Vertices
+            int[] beside = mesh.GetAdjacentFaces(0); // the faces sharing a side with it
+            GeoLine2[] outline = mesh.GetBoundaryEdges(); // the material on the left of each
+            GeoTriangle2[] triangles = mesh.ToTriangles(); // for a renderer or an OBJ file
 
             Assert.Equal(4, first.VertexCount);
             Assert.Equal(4, corners.Length);

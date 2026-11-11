@@ -29,8 +29,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="owner">The window it is shown over; null for none.</param>
         /// <param name="model">The view model.</param>
         /// <returns>PASTECLIP, PASTEBLOCK, PASTEORIG or TEXT; null when cancelled.</returns>
-        public static string Show(Window owner, PasteSpecialViewModel model)
-            => new PasteSpecialWindow(model) { Owner = owner }.ShowDialog() == true ? model.Answer : null;
+        public static string Show(Window owner, PasteSpecialViewModel model) =>
+            new PasteSpecialWindow(model) { Owner = owner }.ShowDialog() == true ? model.Answer : null;
 
         private void OnHeaderDown(object sender, MouseButtonEventArgs e)
         {

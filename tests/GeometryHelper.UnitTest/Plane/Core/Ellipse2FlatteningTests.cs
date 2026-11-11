@@ -59,7 +59,9 @@ namespace GeometryHelper.UnitTest.Plane
             // From vertex 1 on: vertex 0 lies on the major axis, where rounding may read its angle as a hair under 2 pi.
             for (int i = 2; i < n; i++)
             {
-                Assert.True(Ellipse2Oracle.AngleOf(ellipse, polygon[i]) > Ellipse2Oracle.AngleOf(ellipse, polygon[i - 1]));
+                Assert.True(
+                    Ellipse2Oracle.AngleOf(ellipse, polygon[i]) > Ellipse2Oracle.AngleOf(ellipse, polygon[i - 1])
+                );
             }
 
             Assert.True(polygon.SignedArea > 0.0);
@@ -73,7 +75,11 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(1000.0, 1.0, 0.0005)]
         [InlineData(1000.0, 10.0, 1.0)]
         [InlineData(250.0, 250.0, 0.5)]
-        public void NoChordStraysFurtherFromTheRimThanTheTolerance(double majorRadius, double minorRadius, double chordTolerance)
+        public void NoChordStraysFurtherFromTheRimThanTheTolerance(
+            double majorRadius,
+            double minorRadius,
+            double chordTolerance
+        )
         {
             // Nought is the automatic tolerance, 0.002 of the minor radius: 0.002 on the 1 000 by 1, whose ends curve
             // with a radius of a thousandth, half the tolerance.
@@ -263,7 +269,9 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Equal(polygon.VertexCount, fan.Length);
             Assert.All(fan, triangle => Assert.False(triangle.IsClockwise));
-            Assert.All(fan, triangle => Assert.Contains(triangle.GetVertices(), corner => corner.IsEqualTo(ellipse.Center, Tight)));
+            Assert.All(fan, triangle =>
+                Assert.Contains(triangle.GetVertices(), corner => corner.IsEqualTo(ellipse.Center, Tight))
+            );
             Assert.Equal(polygon.Area, fan.Sum(triangle => triangle.Area), 1E-9 * polygon.Area);
             Assert.InRange(polygon.Area, ellipse.Area - 45, ellipse.Area);
 

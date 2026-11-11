@@ -33,9 +33,11 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class XLine3OracleFuzzTests
     {
-        private static int Cases => int.TryParse(Environment.GetEnvironmentVariable("XLINE3_FUZZ"), out int n) ? n : 1500;
+        private static int Cases =>
+            int.TryParse(Environment.GetEnvironmentVariable("XLINE3_FUZZ"), out int n) ? n : 1500;
 
-        private static int Seed => int.TryParse(Environment.GetEnvironmentVariable("XLINE3_SEED"), out int n) ? n : 20261020;
+        private static int Seed =>
+            int.TryParse(Environment.GetEnvironmentVariable("XLINE3_SEED"), out int n) ? n : 20261020;
 
         public static TheoryData<string> KindRows()
         {
@@ -58,7 +60,11 @@ namespace GeometryHelper.UnitTest.Solid
             var tally = new Tally();
             XLine3Gen.Layout[] layouts =
             {
-                XLine3Gen.Layout.Random, XLine3Gen.Layout.Through, XLine3Gen.Layout.Through, XLine3Gen.Layout.Axis, XLine3Gen.Layout.NearlyThrough
+                XLine3Gen.Layout.Random,
+                XLine3Gen.Layout.Through,
+                XLine3Gen.Layout.Through,
+                XLine3Gen.Layout.Axis,
+                XLine3Gen.Layout.NearlyThrough,
             };
 
             for (int i = 0; i < Cases; i++)
@@ -73,21 +79,51 @@ namespace GeometryHelper.UnitTest.Solid
                 }
                 catch (Exception e)
                 {
-                    failures.Add(kind + " #" + i + " " + layout + ": " + e.Message + "\n   shape " + specimen.Shape + "\n   line  " + line);
+                    failures.Add(
+                        kind
+                            + " #"
+                            + i
+                            + " "
+                            + layout
+                            + ": "
+                            + e.Message
+                            + "\n   shape "
+                            + specimen.Shape
+                            + "\n   line  "
+                            + line
+                    );
                 }
             }
 
-            Assert.True(failures.Count == 0, failures.Count + " of " + Cases + " pairs of " + kind + " went wrong:\n" + string.Join("\n", failures.Take(8)));
+            Assert.True(
+                failures.Count == 0,
+                failures.Count
+                    + " of "
+                    + Cases
+                    + " pairs of "
+                    + kind
+                    + " went wrong:\n"
+                    + string.Join("\n", failures.Take(8))
+            );
 
             // The run asked what it meant to: a good share of the pairs touch, cross and are measured, so that it is not
             // judging shapes the lines all miss.
             if (kind != "Point3")
             {
-                Assert.True(tally.Collided >= Cases / 10, kind + ": only " + tally.Collided + " of " + Cases + " pairs collided");
-                Assert.True(tally.Crossed >= Cases / 10, kind + ": only " + tally.Crossed + " pairs of " + Cases + " crossed with the crossings judged");
+                Assert.True(
+                    tally.Collided >= Cases / 10,
+                    kind + ": only " + tally.Collided + " of " + Cases + " pairs collided"
+                );
+                Assert.True(
+                    tally.Crossed >= Cases / 10,
+                    kind + ": only " + tally.Crossed + " pairs of " + Cases + " crossed with the crossings judged"
+                );
             }
 
-            Assert.True(tally.Judged >= Cases / 3 || kind == "Point3", kind + ": only " + tally.Judged + " of " + Cases + " pairs had their crossings judged");
+            Assert.True(
+                tally.Judged >= Cases / 3 || kind == "Point3",
+                kind + ": only " + tally.Judged + " of " + Cases + " pairs had their crossings judged"
+            );
         }
 
         /// <summary>What a run has judged, for it to say it looked at something.</summary>
@@ -100,11 +136,17 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static void AssertSamePoints(GeoPoint3[] expected, GeoPoint3[] actual, string what)
         {
-            Assert.True(expected.Length == actual.Length, what + ": " + actual.Length + " points against " + expected.Length);
+            Assert.True(
+                expected.Length == actual.Length,
+                what + ": " + actual.Length + " points against " + expected.Length
+            );
 
             for (int i = 0; i < expected.Length; i++)
             {
-                Assert.True(expected[i].Equals(actual[i]), what + ": point " + i + " " + actual[i] + " against " + expected[i]);
+                Assert.True(
+                    expected[i].Equals(actual[i]),
+                    what + ": point " + i + " " + actual[i] + " against " + expected[i]
+                );
             }
         }
 
@@ -141,11 +183,15 @@ namespace GeometryHelper.UnitTest.Solid
                 // The collision of an ellipse with a segment reads the tolerance where the segment crosses the plane of the ellipse, and
                 // so misses a segment that passes the rim within the tolerance at a slant, whatever its length: the line, answered as a
                 // segment, shares that, and an ellipse is exempt in the band from half the tolerance up to it.
-                bool inherited = specimen.Kind == "Ellipse3" && distance > 0.5 * Strict.EqualPoint && distance <= Strict.EqualPoint;
+                bool inherited =
+                    specimen.Kind == "Ellipse3" && distance > 0.5 * Strict.EqualPoint && distance <= Strict.EqualPoint;
 
                 if (Math.Abs(distance - Strict.EqualPoint) > 1E-6 && !inherited)
                 {
-                    Assert.True(distance <= Strict.EqualPoint == fromLine, "collides " + fromLine + " where the oracle's distance is " + distance);
+                    Assert.True(
+                        distance <= Strict.EqualPoint == fromLine,
+                        "collides " + fromLine + " where the oracle's distance is " + distance
+                    );
                 }
             }
 
@@ -158,7 +204,10 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.Equal(fromLine, fromShape);
                 Assert.Equal(Distance(line, shape, Tolerance.Global), Distance(line, shape));
                 Assert.Equal(Distance(shape, line, Tolerance.Global), Distance(shape, line));
-                Assert.True(Math.Abs(fromLine - distance) <= slack, "distance " + fromLine + " against the oracle's " + distance);
+                Assert.True(
+                    Math.Abs(fromLine - distance) <= slack,
+                    "distance " + fromLine + " against the oracle's " + distance
+                );
 
                 var ahead = new GeoRay3(line.Origin, line.Direction);
                 var behind = new GeoRay3(line.Origin, line.Direction.Negate());
@@ -167,12 +216,23 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     double byRays = Math.Min(RayDistance(ahead, shape), RayDistance(behind, shape));
 
-                    Assert.True(Math.Abs(fromLine - byRays) <= slack, "distance " + fromLine + " against " + byRays + " by two rays");
+                    Assert.True(
+                        Math.Abs(fromLine - byRays) <= slack,
+                        "distance " + fromLine + " against " + byRays + " by two rays"
+                    );
                 }
 
                 // Turned round, and moved along itself, it is the same line.
-                Assert.True(Math.Abs(Distance(line.Reverse(), shape, Strict) - fromLine) <= slack, "turned round " + Distance(line.Reverse(), shape, Strict) + " against " + fromLine);
-                Assert.True(Math.Abs(Distance(new GeoXLine3(line.GetPointAtDistance(37.5), line.Direction), shape, Strict) - fromLine) <= slack, "moved along itself");
+                Assert.True(
+                    Math.Abs(Distance(line.Reverse(), shape, Strict) - fromLine) <= slack,
+                    "turned round " + Distance(line.Reverse(), shape, Strict) + " against " + fromLine
+                );
+                Assert.True(
+                    Math.Abs(
+                        Distance(new GeoXLine3(line.GetPointAtDistance(37.5), line.Direction), shape, Strict) - fromLine
+                    ) <= slack,
+                    "moved along itself"
+                );
             }
 
             // The crossings.
@@ -183,7 +243,11 @@ namespace GeometryHelper.UnitTest.Solid
 
                 AssertSamePoints(fromLine, fromShape, "the crossings from both sides");
                 AssertSamePoints(Crossings(line, shape, Tolerance.Global), Crossings(line, shape), "the plain form");
-                AssertSamePoints(Crossings(shape, line, Tolerance.Global), Crossings(shape, line), "the plain form from the shape");
+                AssertSamePoints(
+                    Crossings(shape, line, Tolerance.Global),
+                    Crossings(shape, line),
+                    "the plain form from the shape"
+                );
 
                 Assert.True(HasTry(line, shape) == HasTry(shape, line), "TryIntersectWith is one-sided");
 
@@ -205,11 +269,24 @@ namespace GeometryHelper.UnitTest.Solid
                     tally.Judged++;
                     tally.Crossed += expected.Length > 0 ? 1 : 0;
 
-                    Assert.True(expected.Length == fromLine.Length, fromLine.Length + " crossings (" + string.Join(" ", fromLine) + ") against the oracle's " + expected.Length + " (" + string.Join(" ", expected.Select(v => v.ToPoint())) + ")");
+                    Assert.True(
+                        expected.Length == fromLine.Length,
+                        fromLine.Length
+                            + " crossings ("
+                            + string.Join(" ", fromLine)
+                            + ") against the oracle's "
+                            + expected.Length
+                            + " ("
+                            + string.Join(" ", expected.Select(v => v.ToPoint()))
+                            + ")"
+                    );
 
                     for (int k = 0; k < expected.Length; k++)
                     {
-                        Assert.True(expected[k].DistanceTo(Vec.Of(fromLine[k])) <= 1E-6, "crossing " + k + " at " + fromLine[k] + " against the oracle's " + expected[k].ToPoint());
+                        Assert.True(
+                            expected[k].DistanceTo(Vec.Of(fromLine[k])) <= 1E-6,
+                            "crossing " + k + " at " + fromLine[k] + " against the oracle's " + expected[k].ToPoint()
+                        );
                     }
                 }
             }
@@ -228,24 +305,45 @@ namespace GeometryHelper.UnitTest.Solid
 
                 if (clear)
                 {
-                    Assert.True(Math.Abs(leaving.Length - distance) <= slack, "the shortest line is " + leaving.Length + " long, the distance " + distance);
+                    Assert.True(
+                        Math.Abs(leaving.Length - distance) <= slack,
+                        "the shortest line is " + leaving.Length + " long, the distance " + distance
+                    );
                 }
 
-                Assert.True(oracleLine.Perp(Vec.Of(leaving.StartPoint)).Length <= 1E-6, "the shortest line leaving the line starts off it at " + leaving.StartPoint);
+                Assert.True(
+                    oracleLine.Perp(Vec.Of(leaving.StartPoint)).Length <= 1E-6,
+                    "the shortest line leaving the line starts off it at " + leaving.StartPoint
+                );
                 // Where the line reaches the shape within the point tolerance the segment kernels' shortest line may land on a crossing
                 // read with the tolerance's slack, up to the tolerance off the shape, a line through a body just outside the rim of a face.
-                Assert.True(specimen.DistanceFrom(Vec.Of(leaving.EndPoint)) <= 1E-6 + (distance <= 1.5 * Strict.EqualPoint ? 1.5 * Strict.EqualPoint : 0.0), "the shortest line ends " + specimen.DistanceFrom(Vec.Of(leaving.EndPoint)) + " off the shape at " + leaving.EndPoint);
+                Assert.True(
+                    specimen.DistanceFrom(Vec.Of(leaving.EndPoint))
+                        <= 1E-6 + (distance <= 1.5 * Strict.EqualPoint ? 1.5 * Strict.EqualPoint : 0.0),
+                    "the shortest line ends "
+                        + specimen.DistanceFrom(Vec.Of(leaving.EndPoint))
+                        + " off the shape at "
+                        + leaving.EndPoint
+                );
             }
         }
 
         private static bool RayMeasures(GeoRay3 ray, object shape)
         {
-            return ray.GetType().GetMethods().Any(m => m.Name == "DistanceTo" && m.GetParameters().Length > 0 && m.GetParameters()[0].ParameterType == shape.GetType());
+            return ray.GetType()
+                .GetMethods()
+                .Any(m =>
+                    m.Name == "DistanceTo"
+                    && m.GetParameters().Length > 0
+                    && m.GetParameters()[0].ParameterType == shape.GetType()
+                );
         }
 
         private static double RayDistance(GeoRay3 ray, object shape)
         {
-            return Answers(ray, "DistanceTo", shape) ? XLine3Probe.Distance(ray, shape, Strict) : XLine3Probe.Distance(ray, shape);
+            return Answers(ray, "DistanceTo", shape)
+                ? XLine3Probe.Distance(ray, shape, Strict)
+                : XLine3Probe.Distance(ray, shape);
         }
     }
 }

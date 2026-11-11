@@ -87,25 +87,43 @@ namespace GeometryHelper.Dxf.Viewer
                 return true;
             }
 
-            if ((ax < box.MinX && bx < box.MinX) || (ax > box.MaxX && bx > box.MaxX) || (ay < box.MinY && by < box.MinY) || (ay > box.MaxY && by > box.MaxY))
+            if (
+                (ax < box.MinX && bx < box.MinX)
+                || (ax > box.MaxX && bx > box.MaxX)
+                || (ay < box.MinY && by < box.MinY)
+                || (ay > box.MaxY && by > box.MaxY)
+            )
             {
                 return false;
             }
 
-            return Crosses(ax, ay, bx, by, box.MinX, box.MinY, box.MaxX, box.MinY) || Crosses(ax, ay, bx, by, box.MaxX, box.MinY, box.MaxX, box.MaxY)
-                || Crosses(ax, ay, bx, by, box.MaxX, box.MaxY, box.MinX, box.MaxY) || Crosses(ax, ay, bx, by, box.MinX, box.MaxY, box.MinX, box.MinY);
+            return Crosses(ax, ay, bx, by, box.MinX, box.MinY, box.MaxX, box.MinY)
+                || Crosses(ax, ay, bx, by, box.MaxX, box.MinY, box.MaxX, box.MaxY)
+                || Crosses(ax, ay, bx, by, box.MaxX, box.MaxY, box.MinX, box.MaxY)
+                || Crosses(ax, ay, bx, by, box.MinX, box.MaxY, box.MinX, box.MinY);
         }
 
-        private static bool Crosses(double ax, double ay, double bx, double by, double cx, double cy, double dx, double dy)
+        private static bool Crosses(
+            double ax,
+            double ay,
+            double bx,
+            double by,
+            double cx,
+            double cy,
+            double dx,
+            double dy
+        )
         {
             double d1 = Cross(cx, cy, dx, dy, ax, ay);
             double d2 = Cross(cx, cy, dx, dy, bx, by);
             double d3 = Cross(ax, ay, bx, by, cx, cy);
             double d4 = Cross(ax, ay, bx, by, dx, dy);
-            return ((d1 > 0.0 && d2 < 0.0) || (d1 < 0.0 && d2 > 0.0)) && ((d3 > 0.0 && d4 < 0.0) || (d3 < 0.0 && d4 > 0.0));
+            return ((d1 > 0.0 && d2 < 0.0) || (d1 < 0.0 && d2 > 0.0))
+                && ((d3 > 0.0 && d4 < 0.0) || (d3 < 0.0 && d4 > 0.0));
         }
 
-        private static double Cross(double ax, double ay, double bx, double by, double px, double py) => (bx - ax) * (py - ay) - (by - ay) * (px - ax);
+        private static double Cross(double ax, double ay, double bx, double by, double px, double py) =>
+            (bx - ax) * (py - ay) - (by - ay) * (px - ax);
     }
 
     /// <summary>A chain of straight segments, open or closed: a LINE, a polyline, a flattened spline or ellipse.</summary>
@@ -166,7 +184,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             for (int i = 0; i + 1 < n; i++)
             {
-                best = Math.Min(best, SegmentDistance(x, y, _xy[2 * i], _xy[2 * i + 1], _xy[2 * i + 2], _xy[2 * i + 3]));
+                best = Math.Min(
+                    best,
+                    SegmentDistance(x, y, _xy[2 * i], _xy[2 * i + 1], _xy[2 * i + 2], _xy[2 * i + 3])
+                );
             }
 
             if (Closed && n > 2)
@@ -301,7 +322,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="handle">The handle of the entity.</param>
         /// <param name="layer">The layer.</param>
         /// <exception cref="ArgumentException">Thrown when the way has no length or is not a finite number.</exception>
-        public DisplayRay2(double x, double y, double dx, double dy, bool bothWays, DisplayStyle style, string handle, string layer)
+        public DisplayRay2(
+            double x,
+            double y,
+            double dx,
+            double dy,
+            bool bothWays,
+            DisplayStyle style,
+            string handle,
+            string layer
+        )
             : base(style, handle, layer)
         {
             double length = Math.Sqrt(dx * dx + dy * dy);
@@ -381,7 +411,10 @@ namespace GeometryHelper.Dxf.Viewer
             double from = IsBothWays ? double.NegativeInfinity : 0.0;
             double to = double.PositiveInfinity;
 
-            if (!Narrow(X, Dx, box.MinX, box.MaxX, ref from, ref to) || !Narrow(Y, Dy, box.MinY, box.MaxY, ref from, ref to))
+            if (
+                !Narrow(X, Dx, box.MinX, box.MaxX, ref from, ref to)
+                || !Narrow(Y, Dy, box.MinY, box.MaxY, ref from, ref to)
+            )
             {
                 return false;
             }
@@ -434,7 +467,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="style">How it is drawn.</param>
         /// <param name="handle">The handle of the entity.</param>
         /// <param name="layer">The layer.</param>
-        public DisplayArc2(double cx, double cy, double radius, double start, double sweep, DisplayStyle style, string handle, string layer)
+        public DisplayArc2(
+            double cx,
+            double cy,
+            double radius,
+            double start,
+            double sweep,
+            DisplayStyle style,
+            string handle,
+            string layer
+        )
             : base(style, handle, layer)
         {
             Cx = cx;
@@ -505,7 +547,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             PointAt(Start, out double sx, out double sy);
             PointAt(Start + Sweep, out double ex, out double ey);
-            return Math.Min(Math.Sqrt((x - sx) * (x - sx) + (y - sy) * (y - sy)), Math.Sqrt((x - ex) * (x - ex) + (y - ey) * (y - ey)));
+            return Math.Min(
+                Math.Sqrt((x - sx) * (x - sx) + (y - sy) * (y - sy)),
+                Math.Sqrt((x - ex) * (x - ex) + (y - ey) * (y - ey))
+            );
         }
 
         /// <inheritdoc/>
@@ -635,7 +680,10 @@ namespace GeometryHelper.Dxf.Viewer
                 for (int i = 0; i < n; i++)
                 {
                     int j = (i + 1) % n;
-                    best = Math.Min(best, SegmentDistance(x, y, ring[2 * i], ring[2 * i + 1], ring[2 * j], ring[2 * j + 1]));
+                    best = Math.Min(
+                        best,
+                        SegmentDistance(x, y, ring[2 * i], ring[2 * i + 1], ring[2 * j], ring[2 * j + 1])
+                    );
                 }
             }
 
@@ -726,10 +774,37 @@ namespace GeometryHelper.Dxf.Viewer
         /// (romans.shx, arial.ttf); null or empty for the canvas's own.</param>
         /// <param name="oblique">How far the letters lean, in radians clockwise from upright: 0.2618 for the 15 degrees of an
         /// italic look.</param>
-        public DisplayText2(string text, double x, double y, double height, double rotation, double widthFactor, int horizontal, int vertical, DisplayStyle style, string handle, string layer, string fontName, double oblique)
-            : this(text, x, y, height, rotation, widthFactor, horizontal, vertical, style, handle, layer, fontName, oblique, false)
-        {
-        }
+        public DisplayText2(
+            string text,
+            double x,
+            double y,
+            double height,
+            double rotation,
+            double widthFactor,
+            int horizontal,
+            int vertical,
+            DisplayStyle style,
+            string handle,
+            string layer,
+            string fontName,
+            double oblique
+        )
+            : this(
+                text,
+                x,
+                y,
+                height,
+                rotation,
+                widthFactor,
+                horizontal,
+                vertical,
+                style,
+                handle,
+                layer,
+                fontName,
+                oblique,
+                false
+            ) { }
 
         /// <summary>Makes a piece of text that may be drawn backwards, as text in a mirrored block is.</summary>
         /// <param name="text">The text, one or more lines separated by line feeds.</param>
@@ -746,7 +821,22 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="fontName">The font of its text style; null or empty for the canvas's own.</param>
         /// <param name="oblique">How far the letters lean, in radians clockwise from upright.</param>
         /// <param name="backward">Whether it is drawn backwards: see <see cref="IsBackward"/>.</param>
-        public DisplayText2(string text, double x, double y, double height, double rotation, double widthFactor, int horizontal, int vertical, DisplayStyle style, string handle, string layer, string fontName, double oblique, bool backward)
+        public DisplayText2(
+            string text,
+            double x,
+            double y,
+            double height,
+            double rotation,
+            double widthFactor,
+            int horizontal,
+            int vertical,
+            DisplayStyle style,
+            string handle,
+            string layer,
+            string fontName,
+            double oblique,
+            bool backward
+        )
             : base(style, handle, layer)
         {
             IsBackward = backward;
@@ -764,8 +854,41 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A text drawn as the strokes of its SHX font's letters, its width measured from their advances and its depth below the baseline the font's.</summary>
-        internal DisplayText2(string text, double x, double y, double height, double rotation, double widthFactor, int horizontal, int vertical, DisplayStyle style, string handle, string layer, string fontName, double oblique, bool backward, IReadOnlyList<double[]> strokes, double width, double descent)
-            : this(text, x, y, height, rotation, widthFactor, horizontal, vertical, style, handle, layer, fontName, oblique, backward)
+        internal DisplayText2(
+            string text,
+            double x,
+            double y,
+            double height,
+            double rotation,
+            double widthFactor,
+            int horizontal,
+            int vertical,
+            DisplayStyle style,
+            string handle,
+            string layer,
+            string fontName,
+            double oblique,
+            bool backward,
+            IReadOnlyList<double[]> strokes,
+            double width,
+            double descent
+        )
+            : this(
+                text,
+                x,
+                y,
+                height,
+                rotation,
+                widthFactor,
+                horizontal,
+                vertical,
+                style,
+                handle,
+                layer,
+                fontName,
+                oblique,
+                backward
+            )
         {
             Strokes = strokes;
             _width = width;
@@ -953,7 +1076,10 @@ namespace GeometryHelper.Dxf.Viewer
         private void GetFrame(out double x0, out double y0, out double x1, out double y1)
         {
             double width = EstimatedWidth;
-            x0 = Horizontal == 0 ? 0.0 : Horizontal == 1 ? -width / 2.0 : -width;
+            x0 =
+                Horizontal == 0 ? 0.0
+                : Horizontal == 1 ? -width / 2.0
+                : -width;
             x1 = x0 + width;
 
             if (IsBackward)
@@ -968,7 +1094,11 @@ namespace GeometryHelper.Dxf.Viewer
             // then says which of its levels is at nought, the bottom that depth.
             double top = Height;
             double bottom = -(LineCount - 1) * 1.25 * Height;
-            double shift = Vertical == 0 ? 0.0 : Vertical == 1 ? -(bottom - _descent) : Vertical == 2 ? -(top + bottom) / 2.0 : -top;
+            double shift =
+                Vertical == 0 ? 0.0
+                : Vertical == 1 ? -(bottom - _descent)
+                : Vertical == 2 ? -(top + bottom) / 2.0
+                : -top;
             y0 = bottom - _descent + shift;
             y1 = top + shift;
         }
@@ -980,7 +1110,9 @@ namespace GeometryHelper.Dxf.Viewer
             double sin = Math.Sin(Rotation);
             DisplayBox box = DisplayBox.Empty;
 
-            foreach (double[] corner in new[] { new[] { x0, y0 }, new[] { x1, y0 }, new[] { x1, y1 }, new[] { x0, y1 } })
+            foreach (
+                double[] corner in new[] { new[] { x0, y0 }, new[] { x1, y0 }, new[] { x1, y1 }, new[] { x0, y1 } }
+            )
             {
                 box = box.Add(X + corner[0] * cos - corner[1] * sin, Y + corner[0] * sin + corner[1] * cos);
             }
@@ -1013,7 +1145,21 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="style">How its frame is drawn.</param>
         /// <param name="handle">The handle of the entity.</param>
         /// <param name="layer">The layer.</param>
-        public DisplayImage2(double x, double y, double ux, double uy, double vx, double vy, IReadOnlyList<double[]> clip, bool clipInverted, string filePath, string fileName, DisplayStyle style, string handle, string layer)
+        public DisplayImage2(
+            double x,
+            double y,
+            double ux,
+            double uy,
+            double vx,
+            double vy,
+            IReadOnlyList<double[]> clip,
+            bool clipInverted,
+            string filePath,
+            string fileName,
+            DisplayStyle style,
+            string handle,
+            string layer
+        )
             : base(style, handle, layer)
         {
             X = x;

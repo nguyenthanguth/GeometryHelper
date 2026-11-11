@@ -30,15 +30,18 @@ namespace GeometryHelper.UnitTest.Plane
         /// </summary>
         private static GeoEdge2 Curved() => new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), 1.0);
 
-        private static GeoPolygon2 Square(double x, double y, double size) => new GeoPolygon2(
-            new GeoPoint2(x, y), new GeoPoint2(x + size, y), new GeoPoint2(x + size, y + size), new GeoPoint2(x, y + size));
+        private static GeoPolygon2 Square(double x, double y, double size) =>
+            new GeoPolygon2(
+                new GeoPoint2(x, y),
+                new GeoPoint2(x + size, y),
+                new GeoPoint2(x + size, y + size),
+                new GeoPoint2(x, y + size)
+            );
 
         /// <summary>
         /// Two hundred square with a forty-wide hole in the middle of it.
         /// </summary>
-        private static GeoFace2 Pierced() => new GeoFace2(
-            Square(0, 0, 200),
-            new[] { Square(80, 80, 40) });
+        private static GeoFace2 Pierced() => new GeoFace2(Square(0, 0, 200), new[] { Square(80, 80, 40) });
 
         [Fact]
         public void AnEdgeAnswersExactlyWhatTheShapeItStandsForAnswers()
@@ -192,8 +195,10 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Single(face.GetIntersections(crossing));
             Assert.Equal(face.GetIntersections(crossing).Length, crossing.GetIntersections(face).Length);
 
-            Assert.True(face.GetShortestLineTo(elsewhere).EndPoint
-                .IsEqualTo(elsewhere.GetShortestLineTo(face).StartPoint, Loose));
+            Assert.True(
+                face.GetShortestLineTo(elsewhere)
+                    .EndPoint.IsEqualTo(elsewhere.GetShortestLineTo(face).StartPoint, Loose)
+            );
         }
 
         [Fact]
@@ -223,12 +228,14 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Equal(
                 circle.TryIntersectWith(curved, out GeoPoint2[] a),
-                circle.TryIntersectWith(curved, out GeoPoint2[] b, global));
+                circle.TryIntersectWith(curved, out GeoPoint2[] b, global)
+            );
             Assert.Equal(a.Length, b.Length);
 
             Assert.Equal(
                 curved.TryIntersectWith(circle, out GeoPoint2[] c),
-                circle.TryIntersectWith(curved, out GeoPoint2[] d));
+                circle.TryIntersectWith(curved, out GeoPoint2[] d)
+            );
             Assert.Equal(c.Length, d.Length);
         }
 

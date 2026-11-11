@@ -156,7 +156,8 @@ namespace GeometryHelper.Internal.Nurbs
         /// Makes the same curve with other control points, the knots and weights shared: the curve under an affine map,
         /// which is the map of its control points.
         /// </summary>
-        internal NurbsCurve WithPoints(double[] points) => new NurbsCurve(Dim, Degree, points, Knots, Rational ? Weights : null);
+        internal NurbsCurve WithPoints(double[] points) =>
+            new NurbsCurve(Dim, Degree, points, Knots, Rational ? Weights : null);
 
         #region Checking
 
@@ -224,34 +225,62 @@ namespace GeometryHelper.Internal.Nurbs
         {
             if (degree < 1 || degree > MostDegree)
             {
-                throw new ArgumentOutOfRangeException(nameof(degree), degree, "The degree of a spline is from 1 to " + MostDegree + ".");
+                throw new ArgumentOutOfRangeException(
+                    nameof(degree),
+                    degree,
+                    "The degree of a spline is from 1 to " + MostDegree + "."
+                );
             }
 
             int count = points.Length / dim;
 
             if (count < degree + 1)
             {
-                throw new ArgumentException("A spline of degree " + degree + " needs at least " + (degree + 1) + " control points; " + count + " were given.", "controlPoints");
+                throw new ArgumentException(
+                    "A spline of degree "
+                        + degree
+                        + " needs at least "
+                        + (degree + 1)
+                        + " control points; "
+                        + count
+                        + " were given.",
+                    "controlPoints"
+                );
             }
 
             for (int i = 0; i < points.Length; i++)
             {
                 if (!Guard.IsFinite(points[i]))
                 {
-                    throw new ArgumentException("Control point " + (i / dim) + " is not a finite point.", "controlPoints");
+                    throw new ArgumentException(
+                        "Control point " + (i / dim) + " is not a finite point.",
+                        "controlPoints"
+                    );
                 }
             }
 
             if (AllTheSame(points, dim))
             {
-                throw new ArgumentException("The control points are all one point, which no curve runs along.", "controlPoints");
+                throw new ArgumentException(
+                    "The control points are all one point, which no curve runs along.",
+                    "controlPoints"
+                );
             }
 
             if (knots.Length != count + degree + 1)
             {
                 throw new ArgumentException(
-                    "A spline of degree " + degree + " with " + count + " control points has " + (count + degree + 1) + " knots; " + knots.Length + " were given.",
-                    nameof(knots));
+                    "A spline of degree "
+                        + degree
+                        + " with "
+                        + count
+                        + " control points has "
+                        + (count + degree + 1)
+                        + " knots; "
+                        + knots.Length
+                        + " were given.",
+                    nameof(knots)
+                );
             }
 
             for (int i = 0; i < knots.Length; i++)
@@ -263,7 +292,10 @@ namespace GeometryHelper.Internal.Nurbs
 
                 if (i > 0 && knots[i] < knots[i - 1])
                 {
-                    throw new ArgumentException("The knots must not decrease; knot " + i + " is below the one before it.", nameof(knots));
+                    throw new ArgumentException(
+                        "The knots must not decrease; knot " + i + " is below the one before it.",
+                        nameof(knots)
+                    );
                 }
             }
 
@@ -274,7 +306,12 @@ namespace GeometryHelper.Internal.Nurbs
             {
                 if (!knots[i].Equals(first) || !knots[knots.Length - 1 - i].Equals(last))
                 {
-                    throw new ArgumentException("A clamped spline repeats its first and its last knot " + (degree + 1) + " times, so that it starts and ends at its end control points.", nameof(knots));
+                    throw new ArgumentException(
+                        "A clamped spline repeats its first and its last knot "
+                            + (degree + 1)
+                            + " times, so that it starts and ends at its end control points.",
+                        nameof(knots)
+                    );
                 }
             }
 
@@ -285,7 +322,10 @@ namespace GeometryHelper.Internal.Nurbs
 
             if (knots[degree + 1].Equals(first) || knots[knots.Length - 2 - degree].Equals(last))
             {
-                throw new ArgumentException("The first and the last knot may be repeated " + (degree + 1) + " times and no more.", nameof(knots));
+                throw new ArgumentException(
+                    "The first and the last knot may be repeated " + (degree + 1) + " times and no more.",
+                    nameof(knots)
+                );
             }
 
             int run = 1;
@@ -296,7 +336,12 @@ namespace GeometryHelper.Internal.Nurbs
 
                 if (run > degree)
                 {
-                    throw new ArgumentException("An inner knot may be repeated " + degree + " times at most, or the curve would break in two there.", nameof(knots));
+                    throw new ArgumentException(
+                        "An inner knot may be repeated "
+                            + degree
+                            + " times at most, or the curve would break in two there.",
+                        nameof(knots)
+                    );
                 }
             }
 
@@ -304,7 +349,14 @@ namespace GeometryHelper.Internal.Nurbs
             {
                 if (weights.Length != count)
                 {
-                    throw new ArgumentException("There has to be one weight for each of the " + count + " control points; " + weights.Length + " were given.", nameof(weights));
+                    throw new ArgumentException(
+                        "There has to be one weight for each of the "
+                            + count
+                            + " control points; "
+                            + weights.Length
+                            + " were given.",
+                        nameof(weights)
+                    );
                 }
 
                 double lightest = double.PositiveInfinity;
@@ -322,7 +374,10 @@ namespace GeometryHelper.Internal.Nurbs
                     throw new ArgumentOutOfRangeException(
                         nameof(weights),
                         heaviest / lightest,
-                        "The weights of a spline are no more than " + MostWeightRatio.ToString("0E+0", System.Globalization.CultureInfo.InvariantCulture) + " to one apart: past that the length of the spline cannot be worked out right.");
+                        "The weights of a spline are no more than "
+                            + MostWeightRatio.ToString("0E+0", System.Globalization.CultureInfo.InvariantCulture)
+                            + " to one apart: past that the length of the spline cannot be worked out right."
+                    );
                 }
             }
         }
@@ -377,7 +432,10 @@ namespace GeometryHelper.Internal.Nurbs
         /// <summary>
         /// Puts a parameter inside the domain of the curve.
         /// </summary>
-        internal double Clamp(double t) => t <= Start ? Start : t >= End ? End : t;
+        internal double Clamp(double t) =>
+            t <= Start ? Start
+            : t >= End ? End
+            : t;
 
         private int _closed = -1;
 
@@ -437,7 +495,9 @@ namespace GeometryHelper.Internal.Nurbs
                 return knot;
             }
 
-            return side < 0 && knot <= Start ? End : side > 0 && knot >= End ? Start : knot;
+            return side < 0 && knot <= Start ? End
+                : side > 0 && knot >= End ? Start
+                : knot;
         }
 
         /// <summary>

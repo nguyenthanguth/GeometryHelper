@@ -99,6 +99,7 @@ namespace GeometryHelper.Clipper
 
         //tombStone marks cleared OutRec in the pool
         private static readonly Path64 tombStone = new Path64();
+
         public override void Clear()
         {
             base.Clear();
@@ -106,7 +107,8 @@ namespace GeometryHelper.Clipper
             for (int i = 0; i < _items.Length; i++)
             {
                 OutRec active = _items[i];
-                if (active == null || active.path == tombStone) break;
+                if (active == null || active.path == tombStone)
+                    break;
                 //we use path as tombStone because it is not nullable
                 active.path = tombStone;
                 active.owner = null;
@@ -146,7 +148,8 @@ namespace GeometryHelper.Clipper
     // A List that pools objects added to it for reuse.
     // Indexing, growing and enumeration implementation is identical to System.Collections.Generic.List<T>.
     // The pooled list reuses allocated reference objects. Operations are limited to read, add and clear.
-    internal abstract class PooledList<T> : IReadOnlyList<T> where T : class
+    internal abstract class PooledList<T> : IReadOnlyList<T>
+        where T : class
     {
         private const int DefaultCapacity = 4;
 
@@ -157,10 +160,13 @@ namespace GeometryHelper.Clipper
         {
             get
             {
-                if ((uint) index >= (uint) _size)
+                if ((uint)index >= (uint)_size)
                 {
-                    throw new ArgumentOutOfRangeException("index must be greater or equal to zero and less than the size of the collection");
-                };
+                    throw new ArgumentOutOfRangeException(
+                        "index must be greater or equal to zero and less than the size of the collection"
+                    );
+                }
+                ;
                 return _items[index];
             }
         }
@@ -210,7 +216,10 @@ namespace GeometryHelper.Clipper
             return value + 1;
         }
 
-        public void EnsureCapacity(int capacity) { Capacity = capacity; }
+        public void EnsureCapacity(int capacity)
+        {
+            Capacity = capacity;
+        }
 
         protected void TryGrow()
         {
@@ -244,12 +253,13 @@ namespace GeometryHelper.Clipper
             return new ListEnumerator<T>(this);
         }
 
-        internal struct ListEnumerator<T2> : IEnumerator<T2> where T2 : class
+        internal struct ListEnumerator<T2> : IEnumerator<T2>
+            where T2 : class
         {
             private readonly PooledList<T2> _list;
             private int _index;
             private T2 _current;
-            
+
             public ListEnumerator(PooledList<T2> list)
             {
                 _list = list;
@@ -261,14 +271,12 @@ namespace GeometryHelper.Clipper
 
             object IEnumerator.Current => _current;
 
-            public void Dispose()
-            {
-            }
+            public void Dispose() { }
 
             public bool MoveNext()
             {
                 int count = _list._size;
-                if ((uint) _index < (uint) count)
+                if ((uint)_index < (uint)count)
                 {
                     _current = _list[_index];
                     _index++;

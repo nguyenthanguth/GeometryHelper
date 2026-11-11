@@ -32,19 +32,31 @@ namespace GeometryHelper.Drawing.Wpf
         /// <summary>Whether two objects are the same: id, kind, texts, frame and body, every coordinate to the bit.</summary>
         public static bool Same(DrawingObject a, DrawingObject b)
         {
-            if (!string.Equals(a.Id, b.Id, StringComparison.Ordinal) || a.Kind != b.Kind || a.IsMain != b.IsMain
-                || !string.Equals(a.Name, b.Name, StringComparison.Ordinal) || !string.Equals(a.Mark, b.Mark, StringComparison.Ordinal)
-                || !string.Equals(a.Profile, b.Profile, StringComparison.Ordinal) || !string.Equals(a.Material, b.Material, StringComparison.Ordinal)
-                || !string.Equals(a.ParentId, b.ParentId, StringComparison.Ordinal) || a.Attributes.Count != b.Attributes.Count
-                || !Same(a.Frame.Origin, b.Frame.Origin) || !Same(a.Frame.XAxis, b.Frame.XAxis) || !Same(a.Frame.YAxis, b.Frame.YAxis)
-                || a.Solid.Faces.Count != b.Solid.Faces.Count)
+            if (
+                !string.Equals(a.Id, b.Id, StringComparison.Ordinal)
+                || a.Kind != b.Kind
+                || a.IsMain != b.IsMain
+                || !string.Equals(a.Name, b.Name, StringComparison.Ordinal)
+                || !string.Equals(a.Mark, b.Mark, StringComparison.Ordinal)
+                || !string.Equals(a.Profile, b.Profile, StringComparison.Ordinal)
+                || !string.Equals(a.Material, b.Material, StringComparison.Ordinal)
+                || !string.Equals(a.ParentId, b.ParentId, StringComparison.Ordinal)
+                || a.Attributes.Count != b.Attributes.Count
+                || !Same(a.Frame.Origin, b.Frame.Origin)
+                || !Same(a.Frame.XAxis, b.Frame.XAxis)
+                || !Same(a.Frame.YAxis, b.Frame.YAxis)
+                || a.Solid.Faces.Count != b.Solid.Faces.Count
+            )
             {
                 return false;
             }
 
             foreach (KeyValuePair<string, string> attribute in a.Attributes)
             {
-                if (!b.Attributes.TryGetValue(attribute.Key, out string value) || !string.Equals(value, attribute.Value, StringComparison.Ordinal))
+                if (
+                    !b.Attributes.TryGetValue(attribute.Key, out string value)
+                    || !string.Equals(value, attribute.Value, StringComparison.Ordinal)
+                )
                 {
                     return false;
                 }
@@ -83,7 +95,10 @@ namespace GeometryHelper.Drawing.Wpf
 
             if (Math.Abs(was - now) > tolerance.EqualPoint)
             {
-                return "Length " + DialogViewModel.Length(Math.Round(was, 1)) + " → " + DialogViewModel.Length(Math.Round(now, 1));
+                return "Length "
+                    + DialogViewModel.Length(Math.Round(was, 1))
+                    + " → "
+                    + DialogViewModel.Length(Math.Round(now, 1));
             }
 
             GeoVector3 moved = after.Frame.Origin - before.Frame.Origin;
@@ -93,8 +108,10 @@ namespace GeometryHelper.Drawing.Wpf
                 return "Moved " + DialogViewModel.Length(Math.Round(moved.Length, 1));
             }
 
-            return !string.Equals(before.Profile, after.Profile, StringComparison.Ordinal) ? "Profile " + before.Profile + " → " + after.Profile
-                : !string.Equals(before.Material, after.Material, StringComparison.Ordinal) ? "Material " + before.Material + " → " + after.Material
+            return !string.Equals(before.Profile, after.Profile, StringComparison.Ordinal)
+                    ? "Profile " + before.Profile + " → " + after.Profile
+                : !string.Equals(before.Material, after.Material, StringComparison.Ordinal)
+                    ? "Material " + before.Material + " → " + after.Material
                 : "Shape or texts changed";
         }
 
@@ -141,6 +158,7 @@ namespace GeometryHelper.Drawing.Wpf
 
         private static bool Same(GeoVector3 a, GeoVector3 b) => Bits(a.X, b.X) && Bits(a.Y, b.Y) && Bits(a.Z, b.Z);
 
-        private static bool Bits(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
+        private static bool Bits(double a, double b) =>
+            BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
     }
 }

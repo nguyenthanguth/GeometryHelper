@@ -73,7 +73,13 @@ namespace GeometryHelper.TeklaConvert
             var reader = new Reader(Tolerance.Global);
             string mainId = reader.AddAssembly(assembly);
             reader.AddConnections();
-            return DrawingSourceBuild.Build(reader.Data, mainId, "DrawingSourceConvert.FromAssembly", "assembly " + Describe(assembly), reader.Tolerance);
+            return DrawingSourceBuild.Build(
+                reader.Data,
+                mainId,
+                "DrawingSourceConvert.FromAssembly",
+                "assembly " + Describe(assembly),
+                reader.Tolerance
+            );
         }
 
         /// <summary>
@@ -92,7 +98,13 @@ namespace GeometryHelper.TeklaConvert
             var reader = new Reader(Tolerance.Global);
             string id = reader.AddPart(part, null, false);
             reader.AddConnections();
-            return DrawingSourceBuild.Build(reader.Data, id, "DrawingSourceConvert.FromPart", "part " + Describe(part), reader.Tolerance);
+            return DrawingSourceBuild.Build(
+                reader.Data,
+                id,
+                "DrawingSourceConvert.FromPart",
+                "part " + Describe(part),
+                reader.Tolerance
+            );
         }
 
         /// <summary>
@@ -126,7 +138,13 @@ namespace GeometryHelper.TeklaConvert
             }
 
             reader.AddConnections();
-            return DrawingSourceBuild.Build(reader.Data, null, "DrawingSourceConvert.FromObjects", given + " model objects", reader.Tolerance);
+            return DrawingSourceBuild.Build(
+                reader.Data,
+                null,
+                "DrawingSourceConvert.FromObjects",
+                given + " model objects",
+                reader.Tolerance
+            );
         }
 
         /// <summary>
@@ -148,7 +166,9 @@ namespace GeometryHelper.TeklaConvert
         private static string Describe(TSM.ModelObject item)
         {
             Guid guid = item.Identifier.GUID;
-            return guid == Guid.Empty ? item.Identifier.ID.ToString(System.Globalization.CultureInfo.InvariantCulture) : guid.ToString();
+            return guid == Guid.Empty
+                ? item.Identifier.ID.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                : guid.ToString();
         }
 
         /// <summary>A Tekla coordinate system as a frame; null where its axes are parallel or of no length.</summary>
@@ -161,7 +181,11 @@ namespace GeometryHelper.TeklaConvert
 
             try
             {
-                return DrawingSourceBuild.BoltFrame(system.Origin.ToGeoPoint3(), system.AxisX.ToGeoVector3(), system.AxisY.ToGeoVector3());
+                return DrawingSourceBuild.BoltFrame(
+                    system.Origin.ToGeoPoint3(),
+                    system.AxisX.ToGeoVector3(),
+                    system.AxisY.ToGeoVector3()
+                );
             }
             catch (ArgumentException)
             {
@@ -201,8 +225,8 @@ namespace GeometryHelper.TeklaConvert
             return item.GetReportProperty(name, ref value) ? value : (double?)null;
         }
 
-        private static GeoSolid3 Body(TSS.ISolid solid, Tolerance tolerance)
-            => solid != null && solid.TryToGeoSolid3(out GeoSolid3 body, tolerance) ? body : null;
+        private static GeoSolid3 Body(TSS.ISolid solid, Tolerance tolerance) =>
+            solid != null && solid.TryToGeoSolid3(out GeoSolid3 body, tolerance) ? body : null;
 
         /// <summary>Every corner of every face of a Tekla solid, holes and all.</summary>
         private static List<GeoPoint3> Corners(TSS.ISolid solid)
@@ -306,7 +330,10 @@ namespace GeometryHelper.TeklaConvert
                 }
                 catch (Exception exception)
                 {
-                    GeometryHelperLog.Warn($"Assembly {Describe(assembly)} could not be read from Tekla; it is left out.", exception);
+                    GeometryHelperLog.Warn(
+                        $"Assembly {Describe(assembly)} could not be read from Tekla; it is left out.",
+                        exception
+                    );
                     return null;
                 }
 
@@ -363,32 +390,39 @@ namespace GeometryHelper.TeklaConvert
                         if (assembly != null)
                         {
                             assemblyId = IdOf(assembly);
-                            isMain = assembly.GetMainPart() is TSM.Part main && string.Equals(IdOf(main), id, StringComparison.Ordinal);
+                            isMain =
+                                assembly.GetMainPart() is TSM.Part main
+                                && string.Equals(IdOf(main), id, StringComparison.Ordinal);
                         }
                     }
 
-                    Data.Parts.Add(new TeklaPartData
-                    {
-                        Id = id,
-                        Solid = Body(part.GetSolid(), Tolerance),
-                        Frame = Frame(part.GetCoordinateSystem()),
-                        Name = part.Name,
-                        Mark = ReportText(part, "PART_POS"),
-                        Profile = part.Profile?.ProfileString,
-                        Material = part.Material?.MaterialString,
-                        AssemblyId = assemblyId,
-                        IsMain = isMain,
-                        AssemblyPosition = ReportText(part, "ASSEMBLY_POS"),
-                        Length = ReportNumber(part, "LENGTH"),
-                        Weight = ReportNumber(part, "WEIGHT"),
-                    });
+                    Data.Parts.Add(
+                        new TeklaPartData
+                        {
+                            Id = id,
+                            Solid = Body(part.GetSolid(), Tolerance),
+                            Frame = Frame(part.GetCoordinateSystem()),
+                            Name = part.Name,
+                            Mark = ReportText(part, "PART_POS"),
+                            Profile = part.Profile?.ProfileString,
+                            Material = part.Material?.MaterialString,
+                            AssemblyId = assemblyId,
+                            IsMain = isMain,
+                            AssemblyPosition = ReportText(part, "ASSEMBLY_POS"),
+                            Length = ReportNumber(part, "LENGTH"),
+                            Weight = ReportNumber(part, "WEIGHT"),
+                        }
+                    );
 
                     _parts.Add(part);
                     return id;
                 }
                 catch (Exception exception)
                 {
-                    GeometryHelperLog.Warn($"Part {Describe(part)} could not be read from Tekla; it is left out.", exception);
+                    GeometryHelperLog.Warn(
+                        $"Part {Describe(part)} could not be read from Tekla; it is left out.",
+                        exception
+                    );
                     return null;
                 }
             }
@@ -425,7 +459,10 @@ namespace GeometryHelper.TeklaConvert
                     }
                     catch (Exception exception)
                     {
-                        GeometryHelperLog.Warn($"The bolts and welds of part {Describe(part)} could not be read from Tekla; they are left out.", exception);
+                        GeometryHelperLog.Warn(
+                            $"The bolts and welds of part {Describe(part)} could not be read from Tekla; they are left out.",
+                            exception
+                        );
                         continue;
                     }
 
@@ -486,24 +523,29 @@ namespace GeometryHelper.TeklaConvert
                         bolted.Add(PartId(other as TSM.ModelObject));
                     }
 
-                    Data.BoltGroups.Add(new TeklaBoltGroupData
-                    {
-                        Id = id,
-                        HasBolt = group.Bolt,
-                        Diameter = group.BoltSize,
-                        HoleTolerance = group.Tolerance,
-                        Length = group.Length > 0.0 ? group.Length : group.CutLength,
-                        Standard = group.BoltStandard,
-                        Frame = frame.Value,
-                        Positions = positions,
-                        BodyCorners = group.Bolt ? Corners(group.GetSolid()) : new List<GeoPoint3>(),
-                        PartToBoltToId = toId,
-                        BoltedPartIds = bolted.FindAll(b => b != null),
-                    });
+                    Data.BoltGroups.Add(
+                        new TeklaBoltGroupData
+                        {
+                            Id = id,
+                            HasBolt = group.Bolt,
+                            Diameter = group.BoltSize,
+                            HoleTolerance = group.Tolerance,
+                            Length = group.Length > 0.0 ? group.Length : group.CutLength,
+                            Standard = group.BoltStandard,
+                            Frame = frame.Value,
+                            Positions = positions,
+                            BodyCorners = group.Bolt ? Corners(group.GetSolid()) : new List<GeoPoint3>(),
+                            PartToBoltToId = toId,
+                            BoltedPartIds = bolted.FindAll(b => b != null),
+                        }
+                    );
                 }
                 catch (Exception exception)
                 {
-                    GeometryHelperLog.Warn($"Bolt group {Describe(group)} could not be read from Tekla; it is left out.", exception);
+                    GeometryHelperLog.Warn(
+                        $"Bolt group {Describe(group)} could not be read from Tekla; it is left out.",
+                        exception
+                    );
                 }
             }
 
@@ -524,27 +566,32 @@ namespace GeometryHelper.TeklaConvert
                         return;
                     }
 
-                    Data.Welds.Add(new TeklaWeldData
-                    {
-                        Id = id,
-                        Solid = Body(weld.GetSolid(), Tolerance),
-                        Frame = Frame(weld.GetCoordinateSystem()),
-                        TypeAbove = weld.TypeAbove.ToString(),
-                        TypeBelow = weld.TypeBelow.ToString(),
-                        SizeAbove = weld.SizeAbove,
-                        SizeBelow = weld.SizeBelow,
-                        PrefixAbove = weld.PrefixAboveLine,
-                        PrefixBelow = weld.PrefixBelowLine,
-                        LengthAbove = weld.LengthAbove,
-                        LengthBelow = weld.LengthBelow,
-                        Length = ReportNumber(weld, "LENGTH"),
-                        MainPartId = PartId(weld.MainObject),
-                        SecondaryPartId = PartId(weld.SecondaryObject),
-                    });
+                    Data.Welds.Add(
+                        new TeklaWeldData
+                        {
+                            Id = id,
+                            Solid = Body(weld.GetSolid(), Tolerance),
+                            Frame = Frame(weld.GetCoordinateSystem()),
+                            TypeAbove = weld.TypeAbove.ToString(),
+                            TypeBelow = weld.TypeBelow.ToString(),
+                            SizeAbove = weld.SizeAbove,
+                            SizeBelow = weld.SizeBelow,
+                            PrefixAbove = weld.PrefixAboveLine,
+                            PrefixBelow = weld.PrefixBelowLine,
+                            LengthAbove = weld.LengthAbove,
+                            LengthBelow = weld.LengthBelow,
+                            Length = ReportNumber(weld, "LENGTH"),
+                            MainPartId = PartId(weld.MainObject),
+                            SecondaryPartId = PartId(weld.SecondaryObject),
+                        }
+                    );
                 }
                 catch (Exception exception)
                 {
-                    GeometryHelperLog.Warn($"Weld {Describe(weld)} could not be read from Tekla; it is left out.", exception);
+                    GeometryHelperLog.Warn(
+                        $"Weld {Describe(weld)} could not be read from Tekla; it is left out.",
+                        exception
+                    );
                 }
             }
 

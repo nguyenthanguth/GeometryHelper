@@ -54,9 +54,17 @@ namespace GeometryHelper.UnitTest.Dxf
 
             groups.TreatElementsAsHard = true;
             string record = Records(db.ToText()).Single(r => HandleOf(r) == "C");
-            Assert.Contains("100\nAcDbDictionary\n280\n1\n281\n1\n  3\nBEAMS\n360\n37\n  3\n*A1\n360\n38\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                "100\nAcDbDictionary\n280\n1\n281\n1\n  3\nBEAMS\n360\n37\n  3\n*A1\n360\n38\n",
+                record,
+                StringComparison.Ordinal
+            );
             groups.TreatElementsAsHard = false;
-            Assert.Contains("280\n0\n281\n1\n  3\nBEAMS\n350\n37\n", Records(db.ToText()).Single(r => HandleOf(r) == "C"), StringComparison.Ordinal);
+            Assert.Contains(
+                "280\n0\n281\n1\n  3\nBEAMS\n350\n37\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "C"),
+                StringComparison.Ordinal
+            );
 
             var made = new DxfDBDictionary { TreatElementsAsHard = true };
             db.NamedObjectsDictionary.SetAt("GH_HARD", made);
@@ -76,7 +84,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("R2018")]
         public void ThePropertiesOfTheDrawing_AreThoseOfItsDwgprops(string version)
         {
-            DxfDatabase db = DxfDatabase.Parse(version == "R2000" ? DxfObjectsEzdxfDrawings.R2000 : DxfObjectsEzdxfDrawings.R2018);
+            DxfDatabase db = DxfDatabase.Parse(
+                version == "R2000" ? DxfObjectsEzdxfDrawings.R2000 : DxfObjectsEzdxfDrawings.R2018
+            );
             DxfDatabaseSummaryInfo info = db.SummaryInfo;
 
             Assert.Equal("Plate B-12", info.Title);
@@ -87,7 +97,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("jdoe", info.LastSavedBy);
             Assert.Equal("3", info.RevisionNumber);
             Assert.Equal("https://example.com/", info.HyperlinkBase);
-            Assert.Equal(new[] { "Project=Grid A", "Phase=2" }, info.CustomProperties.Select(p => p.Key + "=" + p.Value));
+            Assert.Equal(
+                new[] { "Project=Grid A", "Phase=2" },
+                info.CustomProperties.Select(p => p.Key + "=" + p.Value)
+            );
             Assert.Equal(info, new DxfDatabaseSummaryInfoBuilder(info).ToDatabaseSummaryInfo());
             Assert.True(info == db.SummaryInfo);
         }
@@ -112,9 +125,17 @@ namespace GeometryHelper.UnitTest.Dxf
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "3A");
             string record = Records(saved).Single(r => HandleOf(r) == "3A");
-            Assert.Contains("  2\nPlate B-13\n  3\nSteel plates\n  4\n\\U+0110\\U+1ED7\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                "  2\nPlate B-13\n  3\nSteel plates\n  4\n\\U+0110\\U+1ED7\n",
+                record,
+                StringComparison.Ordinal
+            );
             Assert.Contains("300\nProject=Grid A\n301\nGrade=S355\n302\n=\n", record, StringComparison.Ordinal);
-            Assert.EndsWith(" 40\n0.125\n 41\n2461338.25\n 42\n2461339.5\n  1\nhttps://example.com/\n 90\n2\n", record, StringComparison.Ordinal);
+            Assert.EndsWith(
+                " 40\n0.125\n 41\n2461338.25\n 42\n2461339.5\n  1\nhttps://example.com/\n 90\n2\n",
+                record,
+                StringComparison.Ordinal
+            );
             DxfDatabaseSummaryInfo read = DxfDatabase.Parse(saved).SummaryInfo;
             Assert.Equal("Plate B-13", read.Title);
             Assert.Equal("Đỗ", read.Author);
@@ -137,7 +158,11 @@ namespace GeometryHelper.UnitTest.Dxf
             db.SummaryInfo = new DxfDatabaseSummaryInfoBuilder().ToDatabaseSummaryInfo();
             Assert.Equal(text, db.ToText());
 
-            db.SummaryInfo = new DxfDatabaseSummaryInfoBuilder { Title = "Plan", Author = "GH" }.ToDatabaseSummaryInfo();
+            db.SummaryInfo = new DxfDatabaseSummaryInfoBuilder
+            {
+                Title = "Plan",
+                Author = "GH",
+            }.ToDatabaseSummaryInfo();
 
             DxfDatabase again = DxfDatabase.Parse(db.ToText());
             Assert.Equal("Plan", again.SummaryInfo.Title);
@@ -146,31 +171,50 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("1 DWGPROPS COOKIE", props.Data[0].ToString());
             Assert.Equal("90 0", props.Data[22].ToString());
             Assert.Equal(23, props.Data.Count);
-            Assert.Throws<InvalidOperationException>(() => DxfDatabase.Parse(DxfFileEzdxfDrawings.R12).SummaryInfo = again.SummaryInfo);
+            Assert.Throws<InvalidOperationException>(() =>
+                DxfDatabase.Parse(DxfFileEzdxfDrawings.R12).SummaryInfo = again.SummaryInfo
+            );
         }
 
         [Fact]
         public void CustomPropertiesListedAfterGroup90_AreRead_AndWrittenInTheTenGroups_AsAutoCadReadsThem()
         {
             // The list after 90: its count, then each name and value in two groups 1; read after those of 300 to 309.
-            string listed = DxfObjectsEzdxfDrawings.R2000.Replace("https://example.com/\n 90\n0\n", "https://example.com/\n 90\n2\n  1\nClient\n  1\nACME\n  1\nproject\n  1\nignored\n");
+            string listed = DxfObjectsEzdxfDrawings.R2000.Replace(
+                "https://example.com/\n 90\n0\n",
+                "https://example.com/\n 90\n2\n  1\nClient\n  1\nACME\n  1\nproject\n  1\nignored\n"
+            );
             DxfDatabase db = DxfDatabase.Parse(listed);
-            Assert.Equal(new[] { "Project=Grid A", "Phase=2", "Client=ACME" }, db.SummaryInfo.CustomProperties.Select(p => p.Key + "=" + p.Value));
+            Assert.Equal(
+                new[] { "Project=Grid A", "Phase=2", "Client=ACME" },
+                db.SummaryInfo.CustomProperties.Select(p => p.Key + "=" + p.Value)
+            );
 
             // Written back in the ten groups, as AutoCAD 2021 reads them, the list gone: one set of them in the record.
             db.SummaryInfo = new DxfDatabaseSummaryInfoBuilder(db.SummaryInfo) { Title = "T" }.ToDatabaseSummaryInfo();
             string record = Records(db.ToText()).Single(r => HandleOf(r) == "3A");
-            Assert.Contains("300\nProject=Grid A\n301\nPhase=2\n302\nClient=ACME\n303\n=\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                "300\nProject=Grid A\n301\nPhase=2\n302\nClient=ACME\n303\n=\n",
+                record,
+                StringComparison.Ordinal
+            );
             Assert.EndsWith("  1\nhttps://example.com/\n 90\n3\n", record, StringComparison.Ordinal);
 
             // A record with no list is written in the ten groups too, their count after them as AutoCAD writes it.
-            string plain = DxfObjectsEzdxfDrawings.R2000.Replace("https://example.com/\n 90\n0\n", "https://example.com/\n");
+            string plain = DxfObjectsEzdxfDrawings.R2000.Replace(
+                "https://example.com/\n 90\n0\n",
+                "https://example.com/\n"
+            );
             DxfDatabase old = DxfDatabase.Parse(plain);
             var builder = new DxfDatabaseSummaryInfoBuilder(old.SummaryInfo);
             builder.CustomPropertyTable.Add(new KeyValuePair<string, string>("Grade", "S355"));
             old.SummaryInfo = builder.ToDatabaseSummaryInfo();
             string kept = Records(old.ToText()).Single(r => HandleOf(r) == "3A");
-            Assert.Contains("300\nProject=Grid A\n301\nPhase=2\n302\nGrade=S355\n303\n=\n", kept, StringComparison.Ordinal);
+            Assert.Contains(
+                "300\nProject=Grid A\n301\nPhase=2\n302\nGrade=S355\n303\n=\n",
+                kept,
+                StringComparison.Ordinal
+            );
             Assert.EndsWith("  1\nhttps://example.com/\n 90\n3\n", kept, StringComparison.Ordinal);
 
             // More than ten: each after the tenth in a group 300 after the count, as AutoCAD 2021 writes twelve (P4b, point 26).
@@ -188,7 +232,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("R2018")]
         public void TheOverridesOfALayerInAViewport_AreReadAsEzdxfReadsThem(string version)
         {
-            DxfDatabase db = DxfDatabase.Parse(version == "R2000" ? DxfObjectsEzdxfDrawings.R2000 : DxfObjectsEzdxfDrawings.R2018);
+            DxfDatabase db = DxfDatabase.Parse(
+                version == "R2000" ? DxfObjectsEzdxfDrawings.R2000 : DxfObjectsEzdxfDrawings.R2018
+            );
             DxfViewport viewport = ByHandle<DxfViewport>(db, "40");
             DxfViewport other = ByHandle<DxfViewport>(db, "41");
             DxfLayerTableRecord steel = db.LayerTable["steel"];

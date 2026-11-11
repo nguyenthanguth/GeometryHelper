@@ -62,7 +62,10 @@ namespace GeometryHelper.Dxf
 
             if (xrefBlock.File != File)
             {
-                throw new ArgumentException("The block " + xrefBlock.Name + " is not of this drawing.", nameof(xrefBlock));
+                throw new ArgumentException(
+                    "The block " + xrefBlock.Name + " is not of this drawing.",
+                    nameof(xrefBlock)
+                );
             }
 
             if (xrefBlock.Gone)
@@ -72,7 +75,10 @@ namespace GeometryHelper.Dxf
 
             if (!xrefBlock.IsFromExternalReference)
             {
-                throw new ArgumentException("The block " + xrefBlock.Name + " is no external reference to detach.", nameof(xrefBlock));
+                throw new ArgumentException(
+                    "The block " + xrefBlock.Name + " is no external reference to detach.",
+                    nameof(xrefBlock)
+                );
             }
 
             string name = xrefBlock.Name;
@@ -90,7 +96,11 @@ namespace GeometryHelper.Dxf
             {
                 foreach (DxfItem item in File.TableItems(table).ToArray())
                 {
-                    if (DxfReader.NameOf(File.ValueOf(item, 2) ?? string.Empty).StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    if (
+                        DxfReader
+                            .NameOf(File.ValueOf(item, 2) ?? string.Empty)
+                            .StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+                    )
                     {
                         string handle = item.Handle;
                         File.RemoveTableRecord(item, table);
@@ -115,8 +125,15 @@ namespace GeometryHelper.Dxf
             }
 
             xrefBlock.Remove();
-            GeometryHelperLog.Info("DxfDatabase: the external reference " + name + " was detached, with " + inserts.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
-                + " INSERTs and " + dependents.ToString(System.Globalization.CultureInfo.InvariantCulture) + " records it brought.");
+            GeometryHelperLog.Info(
+                "DxfDatabase: the external reference "
+                    + name
+                    + " was detached, with "
+                    + inserts.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    + " INSERTs and "
+                    + dependents.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    + " records it brought."
+            );
         }
 
         /// <summary>Adds the block of an external reference, its BLOCK's flags those given, as <see cref="AttachXref"/> says.</summary>
@@ -134,19 +151,38 @@ namespace GeometryHelper.Dxf
 
             if (fileName.Trim().Length == 0 || fileName.IndexOf('\n') >= 0 || fileName.IndexOf('\r') >= 0)
             {
-                throw new ArgumentException("The path of an external reference is given, on one line: '" + fileName + "' is not one.", nameof(fileName));
+                throw new ArgumentException(
+                    "The path of an external reference is given, on one line: '" + fileName + "' is not one.",
+                    nameof(fileName)
+                );
             }
 
             DxfSymbolTable.CheckName(blockName, nameof(blockName));
 
             if (BlockTable.Has(blockName))
             {
-                throw new ArgumentException("The drawing has a block named " + blockName + " already, letters of either case the same.", nameof(blockName));
+                throw new ArgumentException(
+                    "The drawing has a block named " + blockName + " already, letters of either case the same.",
+                    nameof(blockName)
+                );
             }
 
-            var block = new DxfBlockTableRecord { Name = blockName, MadeFlags = flags, MadePath = fileName };
+            var block = new DxfBlockTableRecord
+            {
+                Name = blockName,
+                MadeFlags = flags,
+                MadePath = fileName,
+            };
             BlockTable.Add(block);
-            GeometryHelperLog.Info("DxfDatabase: the drawing " + fileName + " was " + (flags == 4 ? "attached" : "overlaid") + " as the external reference " + blockName + ".");
+            GeometryHelperLog.Info(
+                "DxfDatabase: the drawing "
+                    + fileName
+                    + " was "
+                    + (flags == 4 ? "attached" : "overlaid")
+                    + " as the external reference "
+                    + blockName
+                    + "."
+            );
             return block;
         }
     }

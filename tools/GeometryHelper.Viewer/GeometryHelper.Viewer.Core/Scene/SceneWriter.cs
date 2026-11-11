@@ -118,7 +118,13 @@ namespace GeometryHelper.Viewer
         /// <returns>This writer, for adding the next shape.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the shape is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the shape is of a type the viewer cannot draw; the message names the type.</exception>
-        public SceneWriter Add(object geometry, string layer = null, string name = null, string color = null, object props = null)
+        public SceneWriter Add(
+            object geometry,
+            string layer = null,
+            string name = null,
+            string color = null,
+            object props = null
+        )
         {
             if (geometry == null)
             {
@@ -131,7 +137,10 @@ namespace GeometryHelper.Viewer
 
                 for (int i = 0; i < shapes.Count; i++)
                 {
-                    string each = name == null || shapes.Count == 1 ? name : name + " " + (i + 1).ToString(CultureInfo.InvariantCulture);
+                    string each =
+                        name == null || shapes.Count == 1
+                            ? name
+                            : name + " " + (i + 1).ToString(CultureInfo.InvariantCulture);
                     Add(shapes[i], layer, each, color, props);
                 }
 
@@ -152,7 +161,13 @@ namespace GeometryHelper.Viewer
         /// <returns>This writer, for adding the next shape.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the text is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the colour is not #RRGGBB.</exception>
-        public SceneWriter Text(GeoPoint3 at, string text, double height = 0.0, string layer = null, string color = null)
+        public SceneWriter Text(
+            GeoPoint3 at,
+            string text,
+            double height = 0.0,
+            string layer = null,
+            string color = null
+        )
         {
             if (text == null)
             {
@@ -180,10 +195,24 @@ namespace GeometryHelper.Viewer
         /// s.View("plan of it", new GeoPoint3(40, 0, 500), new GeoPoint3(40, 0, 0), new GeoVector3(0, 1, 0), ortho: true, width: 20);
         /// </code>
         /// </example>
-        public SceneWriter View(string name, GeoPoint3 eye, GeoPoint3 target, GeoVector3 up, bool ortho = false, double width = 0.0)
+        public SceneWriter View(
+            string name,
+            GeoPoint3 eye,
+            GeoPoint3 target,
+            GeoVector3 up,
+            bool ortho = false,
+            double width = 0.0
+        )
         {
             Cancellation.ThrowIfCancellationRequested();
-            var view = new SavedView(name, new Vec3(eye.X, eye.Y, eye.Z), new Vec3(target.X, target.Y, target.Z), new Vec3(up.X, up.Y, up.Z), ortho, width);
+            var view = new SavedView(
+                name,
+                new Vec3(eye.X, eye.Y, eye.Z),
+                new Vec3(target.X, target.Y, target.Z),
+                new Vec3(up.X, up.Y, up.Z),
+                ortho,
+                width
+            );
             int index = Scene.Views.FindIndex(v => string.Equals(v.Name, name, StringComparison.Ordinal));
 
             if (index >= 0)
@@ -231,13 +260,23 @@ namespace GeometryHelper.Viewer
 
             if (kind == null)
             {
-                throw new ArgumentException("The viewer cannot draw a " + geometry.GetType().FullName + ".", nameof(geometry));
+                throw new ArgumentException(
+                    "The viewer cannot draw a " + geometry.GetType().FullName + ".",
+                    nameof(geometry)
+                );
             }
 
             return Append(kind, GeometryEncoder.Encode(geometry), layer, name, color, props);
         }
 
-        private SceneWriter Append(string kind, System.Text.Json.JsonElement data, string layer, string name, string color, object props)
+        private SceneWriter Append(
+            string kind,
+            System.Text.Json.JsonElement data,
+            string layer,
+            string name,
+            string color,
+            object props
+        )
         {
             Cancellation.ThrowIfCancellationRequested();
             string normalized = SceneColor.Normalize(color);
@@ -294,13 +333,18 @@ namespace GeometryHelper.Viewer
             {
                 foreach (DictionaryEntry entry in dictionary)
                 {
-                    yield return new KeyValuePair<string, string>(Convert.ToString(entry.Key, CultureInfo.InvariantCulture), AsText(entry.Value));
+                    yield return new KeyValuePair<string, string>(
+                        Convert.ToString(entry.Key, CultureInfo.InvariantCulture),
+                        AsText(entry.Value)
+                    );
                 }
 
                 yield break;
             }
 
-            foreach (PropertyInfo property in props.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            foreach (
+                PropertyInfo property in props.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            )
             {
                 if (property.GetIndexParameters().Length == 0 && property.CanRead)
                 {
@@ -313,12 +357,18 @@ namespace GeometryHelper.Viewer
         {
             switch (value)
             {
-                case null: return string.Empty;
-                case double d: return d.ToString("G17", CultureInfo.InvariantCulture);
-                case float f: return ((double)f).ToString("G17", CultureInfo.InvariantCulture);
-                case bool b: return b ? "true" : "false";
-                case IFormattable formattable: return formattable.ToString(null, CultureInfo.InvariantCulture);
-                default: return value.ToString();
+                case null:
+                    return string.Empty;
+                case double d:
+                    return d.ToString("G17", CultureInfo.InvariantCulture);
+                case float f:
+                    return ((double)f).ToString("G17", CultureInfo.InvariantCulture);
+                case bool b:
+                    return b ? "true" : "false";
+                case IFormattable formattable:
+                    return formattable.ToString(null, CultureInfo.InvariantCulture);
+                default:
+                    return value.ToString();
             }
         }
     }

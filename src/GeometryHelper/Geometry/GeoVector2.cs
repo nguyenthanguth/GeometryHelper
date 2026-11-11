@@ -217,7 +217,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this vector is perpendicular to another vector within angular tolerance.
         /// </summary>
-        public bool IsPerpendicularTo(GeoVector2 other, Tolerance tolerance) => Parallel2.IsPerpendicular(this, other, tolerance);
+        public bool IsPerpendicularTo(GeoVector2 other, Tolerance tolerance) =>
+            Parallel2.IsPerpendicular(this, other, tolerance);
 
         /// <summary>
         /// Checks whether this vector is parallel to a line segment using default tolerance.
@@ -237,7 +238,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this vector is perpendicular to a line segment within angular tolerance.
         /// </summary>
-        public bool IsPerpendicularTo(GeoLine2 line, Tolerance tolerance) => Parallel2.IsPerpendicular(line, this, tolerance);
+        public bool IsPerpendicularTo(GeoLine2 line, Tolerance tolerance) =>
+            Parallel2.IsPerpendicular(line, this, tolerance);
 
         /// <summary>
         /// Projects this vector onto another axis vector.
@@ -369,7 +371,8 @@ namespace GeometryHelper.Geometry
         /// <param name="other">The vector to compare with.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the vectors are parallel and point the same way; otherwise, false.</returns>
-        public bool IsCodirectionalTo(GeoVector2 other, Tolerance tolerance) => Parallel2.IsCodirectional(this, other, tolerance);
+        public bool IsCodirectionalTo(GeoVector2 other, Tolerance tolerance) =>
+            Parallel2.IsCodirectional(this, other, tolerance);
 
         /// <summary>
         /// Applies a transformation to this vector. The translation does not touch a vector.

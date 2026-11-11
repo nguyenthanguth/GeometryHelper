@@ -29,7 +29,10 @@ namespace GeometryHelper.UnitTest.Plane
         private static GeoPolygon2 P(params double[] xy)
         {
             var points = new GeoPoint2[xy.Length / 2];
-            for (int i = 0; i < points.Length; i++) { points[i] = new GeoPoint2(xy[2 * i], xy[2 * i + 1]); }
+            for (int i = 0; i < points.Length; i++)
+            {
+                points[i] = new GeoPoint2(xy[2 * i], xy[2 * i + 1]);
+            }
             return new GeoPolygon2(points);
         }
 
@@ -102,7 +105,8 @@ namespace GeometryHelper.UnitTest.Plane
                     int n = 6 + rng.Next(30);
                     for (int i = 0; i < n; i++)
                     {
-                        double a = 2 * Math.PI * i / n, r = 2 + rng.NextDouble() * 9;
+                        double a = 2 * Math.PI * i / n,
+                            r = 2 + rng.NextDouble() * 9;
                         points.Add(new GeoPoint2(r * Math.Cos(a), r * Math.Sin(a)));
                     }
                 }
@@ -113,11 +117,18 @@ namespace GeometryHelper.UnitTest.Plane
                     var top = new List<GeoPoint2>();
                     for (int k = 0; k < 4 + rng.Next(5); k++)
                     {
-                        double w = 0.2 + rng.NextDouble() * 1.5, g = 0.1 + rng.NextDouble() * 1.5, h = 2 + rng.NextDouble() * 5;
-                        top.Add(new GeoPoint2(x, 1)); top.Add(new GeoPoint2(x, 1 + h)); top.Add(new GeoPoint2(x + w, 1 + h)); top.Add(new GeoPoint2(x + w, 1));
+                        double w = 0.2 + rng.NextDouble() * 1.5,
+                            g = 0.1 + rng.NextDouble() * 1.5,
+                            h = 2 + rng.NextDouble() * 5;
+                        top.Add(new GeoPoint2(x, 1));
+                        top.Add(new GeoPoint2(x, 1 + h));
+                        top.Add(new GeoPoint2(x + w, 1 + h));
+                        top.Add(new GeoPoint2(x + w, 1));
                         x += w + g;
                     }
-                    points.Add(new GeoPoint2(0, 0)); points.Add(new GeoPoint2(x, 0)); points.Add(new GeoPoint2(x, 1));
+                    points.Add(new GeoPoint2(0, 0));
+                    points.Add(new GeoPoint2(x, 0));
+                    points.Add(new GeoPoint2(x, 1));
                     top.Reverse();
                     points.AddRange(top);
                 }
@@ -127,12 +138,24 @@ namespace GeometryHelper.UnitTest.Plane
                     int n = 3 + rng.Next(5);
                     double y = 0;
                     points.Add(new GeoPoint2(0, 0));
-                    for (int k = 0; k < n; k++) { points.Add(new GeoPoint2(k * 2 + 2, y)); y += 1 + rng.Next(3); points.Add(new GeoPoint2(k * 2 + 2, y)); }
+                    for (int k = 0; k < n; k++)
+                    {
+                        points.Add(new GeoPoint2(k * 2 + 2, y));
+                        y += 1 + rng.Next(3);
+                        points.Add(new GeoPoint2(k * 2 + 2, y));
+                    }
                     points.Add(new GeoPoint2(0, y));
                 }
 
                 GeoPolygon2 polygon;
-                try { polygon = new GeoPolygon2(points); } catch (ArgumentException) { continue; }
+                try
+                {
+                    polygon = new GeoPolygon2(points);
+                }
+                catch (ArgumentException)
+                {
+                    continue;
+                }
                 yield return polygon;
             }
         }
@@ -155,7 +178,10 @@ namespace GeometryHelper.UnitTest.Plane
                         GeoPolygon2[] ours = shape.Offset(d, options);
                         double xor = XorArea(ToPaths(ours), InHouseOffset(shape, d, options));
 
-                        Assert.True(xor < 1e-6, $"{join} offset {d} of shape {compared}: the two solvers differ by area {xor}");
+                        Assert.True(
+                            xor < 1e-6,
+                            $"{join} offset {d} of shape {compared}: the two solvers differ by area {xor}"
+                        );
                         compared++;
                     }
                 }

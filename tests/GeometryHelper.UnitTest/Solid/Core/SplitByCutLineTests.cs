@@ -13,11 +13,13 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A 10 by 10 plate in the XY plane, first vertex at the origin.
         /// </summary>
-        private static GeoPolygon3 MakePlate() => new GeoPolygon3(
-            new GeoPoint3(0, 0, 0),
-            new GeoPoint3(10, 0, 0),
-            new GeoPoint3(10, 10, 0),
-            new GeoPoint3(0, 10, 0));
+        private static GeoPolygon3 MakePlate() =>
+            new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
         [Fact]
         public void AStraightCutAcrossThePlateHalvesIt()
@@ -52,7 +54,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(2, 0, 0),
                 new GeoPoint3(2, 5, 0),
                 new GeoPoint3(8, 5, 0),
-                new GeoPoint3(8, 10, 0));
+                new GeoPoint3(8, 10, 0)
+            );
 
             Assert.True(plate.TrySplitBy(cut, out GeoPolygon3[] pieces));
 
@@ -113,7 +116,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPolyline3 wandering = new GeoPolyline3(
                 new GeoPoint3(2, 0, 0),
                 new GeoPoint3(-5, 5, 0),
-                new GeoPoint3(8, 10, 0));
+                new GeoPoint3(8, 10, 0)
+            );
 
             Assert.False(plate.TrySplitBy(wandering, out GeoPolygon3[] pieces));
             Assert.Single(pieces);
@@ -148,7 +152,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(10, 4, 0),
                 new GeoPoint3(4, 4, 0),
                 new GeoPoint3(4, 10, 0),
-                new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 10, 0)
+            );
 
             // Straight across the foot of the L.
             GeoPolyline3 cut = new GeoPolyline3(new GeoPoint3(0, 2, 0), new GeoPoint3(10, 2, 0));
@@ -182,8 +187,13 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPolygon3 plate = MakePlate();
 
             Assert.Throws<ArgumentNullException>(() => plate.TrySplitBy((GeoPolyline3)null, out GeoPolygon3[] _));
-            Assert.Throws<ArgumentNullException>(() => Splition3.TrySplitBy(
-                (GeoPolygon3)null, new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)), out _));
+            Assert.Throws<ArgumentNullException>(() =>
+                Splition3.TrySplitBy(
+                    (GeoPolygon3)null,
+                    new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)),
+                    out _
+                )
+            );
         }
     }
 }

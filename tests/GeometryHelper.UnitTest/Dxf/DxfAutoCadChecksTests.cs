@@ -22,14 +22,20 @@ namespace GeometryHelper.UnitTest.Dxf
 
             for (int i = 0; i + 1 < lines.Length; i += 2)
             {
-                groups.Add(new KeyValuePair<int, string>(int.Parse(lines[i].Trim(), System.Globalization.CultureInfo.InvariantCulture), lines[i + 1]));
+                groups.Add(
+                    new KeyValuePair<int, string>(
+                        int.Parse(lines[i].Trim(), System.Globalization.CultureInfo.InvariantCulture),
+                        lines[i + 1]
+                    )
+                );
             }
 
             return groups;
         }
 
         /// <summary>The record of a handle in a drawing's saved text.</summary>
-        private static string RecordOf(DxfDatabase db, string handle) => Records(db.ToText()).Single(r => HandleOf(r) == handle);
+        private static string RecordOf(DxfDatabase db, string handle) =>
+            Records(db.ToText()).Single(r => HandleOf(r) == handle);
 
         /// <summary>The codes of a record from the first of one code on, as far as a count goes.</summary>
         private static int[] CodesAfter(string record, int code, int count)
@@ -57,7 +63,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new[] { 90, 63, 45, 441 }, codes);
             List<KeyValuePair<int, string>> groups = Groups(RecordOf(db, "73"));
             Assert.Equal("256", groups.First(g => g.Key == 63).Value.Trim());
-            Assert.Equal(1.5, double.Parse(groups.First(g => g.Key == 45).Value, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(
+                1.5,
+                double.Parse(groups.First(g => g.Key == 45).Value, System.Globalization.CultureInfo.InvariantCulture)
+            );
             Assert.Equal("0", groups.First(g => g.Key == 441).Value.Trim());
 
             DxfMText again = ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73");
@@ -124,14 +133,21 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             var hatch = new DxfHatch();
             hatch.SetHatchPattern(DxfHatchPatternType.PreDefined, "ANSI31");
-            hatch.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(0, 0), new GeoPoint2(30, 0), new GeoPoint2(30, 20), new GeoPoint2(0, 20) }, new double[] { 0, 0, 0, 0 });
+            hatch.AppendLoop(
+                DxfHatchLoopTypes.External,
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(30, 0), new GeoPoint2(30, 20), new GeoPoint2(0, 20) },
+                new double[] { 0, 0, 0, 0 }
+            );
             db.ModelSpace.AppendEntity(hatch);
             Assert.Equal(new[] { 77, 78, 98 }, CodesAfter(RecordOf(db, hatch.Handle), 77, 3));
 
             hatch.BackgroundColor = DxfColor.FromColorIndex(DxfColorMethod.ByAci, 5);
 
             Assert.Equal(new[] { 77, 78, 98 }, CodesAfter(RecordOf(db, hatch.Handle), 77, 3));
-            Assert.Equal(5, ByHandle<DxfHatch>(DxfDatabase.Parse(db.ToText()), hatch.Handle).BackgroundColor.ColorIndex);
+            Assert.Equal(
+                5,
+                ByHandle<DxfHatch>(DxfDatabase.Parse(db.ToText()), hatch.Handle).BackgroundColor.ColorIndex
+            );
         }
 
         #endregion
@@ -158,7 +174,15 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // AUDIT of AutoCAD 2021 reports every vertex whose colour is not its POLYLINE's: "AcDb2dVertex(8F) color != owner's".
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
-            var polyline = new DxfPolyline2d(DxfPoly2dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(20, 0, 0) }, 0, false, 0, 0, null)
+            var polyline = new DxfPolyline2d(
+                DxfPoly2dType.SimplePoly,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(20, 0, 0) },
+                0,
+                false,
+                0,
+                0,
+                null
+            )
             {
                 Layer = "GH_INPUT",
                 ColorIndex = 7,
@@ -168,13 +192,25 @@ namespace GeometryHelper.UnitTest.Dxf
 
             List<string> vertices = VerticesOf(db, polyline.Handle);
             Assert.Equal(3, vertices.Count);
-            Assert.All(vertices, v => Assert.Contains("100\nAcDbEntity\n  8\nGH_INPUT\n 62\n7\n370\n35\n100\nAcDbVertex\n", v, StringComparison.Ordinal));
+            Assert.All(vertices, v =>
+                Assert.Contains(
+                    "100\nAcDbEntity\n  8\nGH_INPUT\n 62\n7\n370\n35\n100\nAcDbVertex\n",
+                    v,
+                    StringComparison.Ordinal
+                )
+            );
 
             // Its colour and lineweight changed after, every vertex follows them.
             polyline.ColorIndex = 1;
             polyline.LineWeight = DxfLineWeight.ByLayer;
-            Assert.All(VerticesOf(db, polyline.Handle), v => Assert.Contains("  8\nGH_INPUT\n 62\n1\n370\n-1\n100\nAcDbVertex\n", v, StringComparison.Ordinal));
-            Assert.Contains("  8\nGH_INPUT\n 62\n1\n370\n-1\n100\nAcDb2dPolyline\n", RecordOf(db, polyline.Handle), StringComparison.Ordinal);
+            Assert.All(VerticesOf(db, polyline.Handle), v =>
+                Assert.Contains("  8\nGH_INPUT\n 62\n1\n370\n-1\n100\nAcDbVertex\n", v, StringComparison.Ordinal)
+            );
+            Assert.Contains(
+                "  8\nGH_INPUT\n 62\n1\n370\n-1\n100\nAcDb2dPolyline\n",
+                RecordOf(db, polyline.Handle),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -182,8 +218,32 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             db.Splinesegs = 8;
-            var flat = new DxfPolyline2d(DxfPoly2dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(20, 0, 0), new GeoPoint3(30, 10, 0) }, 0, false, 0, 0, null);
-            var spatial = new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 1), new GeoPoint3(20, 0, 2), new GeoPoint3(30, 10, 3) }, false);
+            var flat = new DxfPolyline2d(
+                DxfPoly2dType.SimplePoly,
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(20, 0, 0),
+                    new GeoPoint3(30, 10, 0),
+                },
+                0,
+                false,
+                0,
+                0,
+                null
+            );
+            var spatial = new DxfPolyline3d(
+                DxfPoly3dType.SimplePoly,
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 10, 1),
+                    new GeoPoint3(20, 0, 2),
+                    new GeoPoint3(30, 10, 3),
+                },
+                false
+            );
             var grid = new List<GeoPoint3>();
 
             for (int i = 0; i < 16; i++)
@@ -254,7 +314,14 @@ namespace GeometryHelper.UnitTest.Dxf
             // AutoCAD 2021's Polyline2d.Spline of the polyline (0, 0), (10, 10), (20, 0), (30, 10), (40, 0) fitted by a cubic:
             // degree 3, its 5 control points the frame (17 vertices drawn).
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
-            GeoPoint3[] frame = { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(20, 0, 0), new GeoPoint3(30, 10, 0), new GeoPoint3(40, 0, 0) };
+            GeoPoint3[] frame =
+            {
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(20, 0, 0),
+                new GeoPoint3(30, 10, 0),
+                new GeoPoint3(40, 0, 0),
+            };
             var polyline = new DxfPolyline2d(DxfPoly2dType.SimplePoly, frame, 0, false, 0, 0, null);
             db.ModelSpace.AppendEntity(polyline);
             polyline.SplineFit(DxfPoly2dType.CubicSplinePoly, 8);
@@ -264,7 +331,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(3, spline.Degree);
             Assert.Equal(frame.Select(Bits), spline.ControlPoints.Select(Bits));
             var tolerance = new Tolerance(1E-9, 1E-9, 1E-9);
-            Assert.All(polyline.Where(v => v.VertexType == DxfVertex2dType.SplineFitVertex), v => Assert.True(spline.GetClosestPointTo(v.Position, false).IsEqualTo(v.Position, tolerance)));
+            Assert.All(polyline.Where(v => v.VertexType == DxfVertex2dType.SplineFitVertex), v =>
+                Assert.True(spline.GetClosestPointTo(v.Position, false).IsEqualTo(v.Position, tolerance))
+            );
         }
 
         [Fact]
@@ -303,18 +372,33 @@ namespace GeometryHelper.UnitTest.Dxf
             source.ModelSpace.AppendEntity(line);
             line.XData = new[]
             {
-                new DxfTypedValue(1001, "GH_P2"), new DxfTypedValue(1000, "before"), new DxfTypedValue(1005, circle.Handle),
-                new DxfTypedValue(1000, "after"), new DxfTypedValue(1070, "7"),
+                new DxfTypedValue(1001, "GH_P2"),
+                new DxfTypedValue(1000, "before"),
+                new DxfTypedValue(1005, circle.Handle),
+                new DxfTypedValue(1000, "after"),
+                new DxfTypedValue(1070, "7"),
             };
 
             DxfDatabase alone = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             DxfEntity copy = source.WblockCloneObjects(new DxfEntity[] { line }, alone.ModelSpace).Single();
-            Assert.Equal(new[] { "1001 GH_P2", "1000 before", "1005 0", "1000 after", "1070 7" }, copy.XData.Select(g => g.ToString()));
+            Assert.Equal(
+                new[] { "1001 GH_P2", "1000 before", "1005 0", "1000 after", "1070 7" },
+                copy.XData.Select(g => g.ToString())
+            );
 
             DxfDatabase together = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
-            IReadOnlyList<DxfEntity> copies = source.WblockCloneObjects(new DxfEntity[] { line, circle }, together.ModelSpace);
-            Assert.Equal(new[] { "1001 GH_P2", "1000 before", "1005 " + copies[1].Handle, "1000 after", "1070 7" }, copies[0].XData.Select(g => g.ToString()));
-            Assert.Equal("1005 " + copies[1].Handle, ByHandle<DxfLine>(DxfDatabase.Parse(together.ToText()), copies[0].Handle).XData[2].ToString());
+            IReadOnlyList<DxfEntity> copies = source.WblockCloneObjects(
+                new DxfEntity[] { line, circle },
+                together.ModelSpace
+            );
+            Assert.Equal(
+                new[] { "1001 GH_P2", "1000 before", "1005 " + copies[1].Handle, "1000 after", "1070 7" },
+                copies[0].XData.Select(g => g.ToString())
+            );
+            Assert.Equal(
+                "1005 " + copies[1].Handle,
+                ByHandle<DxfLine>(DxfDatabase.Parse(together.ToText()), copies[0].Handle).XData[2].ToString()
+            );
 
             // The CIRCLE copied first, the same.
             DxfDatabase first = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
@@ -337,24 +421,60 @@ namespace GeometryHelper.UnitTest.Dxf
             block.AppendEntity(new DxfCircle(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 10));
             var insert = new DxfBlockReference(new GeoPoint3(50, 50, 0), block);
             db.ModelSpace.AppendEntity(insert);
-            var attribute = new DxfAttributeReference(new GeoPoint3(42, 54, 0), "LINE ONE", "NOTE", db.TextStyleTable["Standard"]) { Height = 2.5 };
+            var attribute = new DxfAttributeReference(
+                new GeoPoint3(42, 54, 0),
+                "LINE ONE",
+                "NOTE",
+                db.TextStyleTable["Standard"]
+            )
+            {
+                Height = 2.5,
+            };
             insert.AttributeCollection.AppendAttribute(attribute);
 
-            attribute.MTextAttribute = new DxfMText { Location = new GeoPoint3(42, 54, 0), TextHeight = 2.5, Contents = "LINE ONE\\PLINE TWO\\PLINE THREE" };
+            attribute.MTextAttribute = new DxfMText
+            {
+                Location = new GeoPoint3(42, 54, 0),
+                TextHeight = 2.5,
+                Contents = "LINE ONE\\PLINE TWO\\PLINE THREE",
+            };
 
             List<KeyValuePair<int, string>> groups = Groups(RecordOf(db, attribute.Handle));
             Assert.Equal("LINE ONE LINE TWO LINE THREE", groups.First(g => g.Key == 1).Value);
             Assert.Contains(groups, g => g.Key == 1 && g.Value == "LINE ONE\\PLINE TWO\\PLINE THREE");
 
             // Filled from a definition of the three lines, as AutoCAD made it, the same.
-            var definition = new DxfAttributeDefinition(new GeoPoint3(-8, 4, 0), "LINE ONE", "NOTE", "Note", db.TextStyleTable["Standard"]) { Height = 2.5 };
+            var definition = new DxfAttributeDefinition(
+                new GeoPoint3(-8, 4, 0),
+                "LINE ONE",
+                "NOTE",
+                "Note",
+                db.TextStyleTable["Standard"]
+            )
+            {
+                Height = 2.5,
+            };
             block.AppendEntity(definition);
-            definition.MTextAttributeDefinition = new DxfMText { Location = new GeoPoint3(-8, 4, 0), TextHeight = 2.5, Contents = "LINE ONE\\PLINE TWO\\PLINE THREE" };
-            var filled = new DxfAttributeReference(new GeoPoint3(42, 54, 0), "x", "NOTE", db.TextStyleTable["Standard"]) { Height = 2.5 };
+            definition.MTextAttributeDefinition = new DxfMText
+            {
+                Location = new GeoPoint3(-8, 4, 0),
+                TextHeight = 2.5,
+                Contents = "LINE ONE\\PLINE TWO\\PLINE THREE",
+            };
+            var filled = new DxfAttributeReference(new GeoPoint3(42, 54, 0), "x", "NOTE", db.TextStyleTable["Standard"])
+            {
+                Height = 2.5,
+            };
             insert.AttributeCollection.AppendAttribute(filled);
             filled.SetAttributeFromBlock(definition, insert.BlockTransform);
-            Assert.Equal("LINE ONE LINE TWO LINE THREE", Groups(RecordOf(db, filled.Handle)).First(g => g.Key == 1).Value);
-            Assert.Equal("LINE ONE\\PLINE TWO\\PLINE THREE", Groups(RecordOf(db, definition.Handle)).First(g => g.Key == 1).Value);
+            Assert.Equal(
+                "LINE ONE LINE TWO LINE THREE",
+                Groups(RecordOf(db, filled.Handle)).First(g => g.Key == 1).Value
+            );
+            Assert.Equal(
+                "LINE ONE\\PLINE TWO\\PLINE THREE",
+                Groups(RecordOf(db, definition.Handle)).First(g => g.Key == 1).Value
+            );
         }
 
         #endregion
@@ -370,13 +490,25 @@ namespace GeometryHelper.UnitTest.Dxf
             var moved = (DxfLine)line.GetOffsetCurves(5).Single();
             Assert.True(moved.StartPoint.IsEqualTo(new GeoPoint3(-4, 3, 0), tolerance));
             Assert.True(moved.EndPoint.IsEqualTo(new GeoPoint3(26, 43, 0), tolerance));
-            Assert.True(((DxfLine)line.GetOffsetCurves(-5).Single()).StartPoint.IsEqualTo(new GeoPoint3(4, -3, 0), tolerance));
+            Assert.True(
+                ((DxfLine)line.GetOffsetCurves(-5).Single()).StartPoint.IsEqualTo(new GeoPoint3(4, -3, 0), tolerance)
+            );
 
             var up = new GeoVector3(0, 0, 1);
             var ray = new DxfRay { UnitDir = new GeoVector3(0.6, 0.8, 0) };
-            Assert.True(((DxfRay)ray.GetOffsetCurvesGivenPlaneNormal(up, 5).Single()).BasePoint.IsEqualTo(new GeoPoint3(-4, 3, 0), tolerance));
+            Assert.True(
+                ((DxfRay)ray.GetOffsetCurvesGivenPlaneNormal(up, 5).Single()).BasePoint.IsEqualTo(
+                    new GeoPoint3(-4, 3, 0),
+                    tolerance
+                )
+            );
             var xline = new DxfXline { UnitDir = new GeoVector3(0.6, 0.8, 0) };
-            Assert.True(((DxfXline)xline.GetOffsetCurvesGivenPlaneNormal(up, 5).Single()).BasePoint.IsEqualTo(new GeoPoint3(-4, 3, 0), tolerance));
+            Assert.True(
+                ((DxfXline)xline.GetOffsetCurvesGivenPlaneNormal(up, 5).Single()).BasePoint.IsEqualTo(
+                    new GeoPoint3(-4, 3, 0),
+                    tolerance
+                )
+            );
         }
 
         #endregion
@@ -394,7 +526,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfViewport read = ByHandle<DxfViewport>(DxfDatabase.Parse(db.ToText()), "35");
             Assert.Equal(Math.PI / 6.0, read.TwistAngle, 15);
-            double[] reals = read.XData.Where(g => g.TypeCode == 1040).Select(g => double.Parse(g.Value, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+            double[] reals = read
+                .XData.Where(g => g.TypeCode == 1040)
+                .Select(g => double.Parse(g.Value, System.Globalization.CultureInfo.InvariantCulture))
+                .ToArray();
             Assert.Contains(reals, r => Math.Abs(r - Math.PI / 6.0) < 1E-15);
         }
 
@@ -413,10 +548,17 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal(0.0, leader.StartParam);
             Assert.Equal(24.142136, leader.EndParam, 6);
-            Assert.True(leader.GetPointAtParameter(12.071067811865476).IsEqualTo(new GeoPoint3(8.2766504294495533, 9.1605339059327378, 0), new Tolerance(1E-6, 1E-6)));
+            Assert.True(
+                leader
+                    .GetPointAtParameter(12.071067811865476)
+                    .IsEqualTo(new GeoPoint3(8.2766504294495533, 9.1605339059327378, 0), new Tolerance(1E-6, 1E-6))
+            );
             // The length within two millionths of AutoCAD's: 24.373771, the length of the curve sampled at 200 000 chords.
             double length = leader.GetDistanceAtParameter(leader.EndParam);
-            Assert.True(Math.Abs(length - 24.373747) < 24.373747 * 2E-6, length.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+            Assert.True(
+                Math.Abs(length - 24.373747) < 24.373747 * 2E-6,
+                length.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+            );
             double sampled = 0.0;
             GeoPoint3 last = leader.StartPoint;
 
@@ -443,7 +585,10 @@ namespace GeometryHelper.UnitTest.Dxf
             // 55-b and 55-c: the copy into R12 named a DIMSTYLE the drawing did not have.
             string fixture = DxfDimensionDrawings.R2000;
             int blocks = fixture.IndexOf("\n  2\nBLOCKS\n", StringComparison.Ordinal);
-            DxfDatabase source = DxfDatabase.Parse(fixture.Substring(0, blocks) + System.Text.RegularExpressions.Regex.Replace(fixture.Substring(blocks), "\n370\n-?[0-9]+\n", "\n"));
+            DxfDatabase source = DxfDatabase.Parse(
+                fixture.Substring(0, blocks)
+                    + System.Text.RegularExpressions.Regex.Replace(fixture.Substring(blocks), "\n370\n-?[0-9]+\n", "\n")
+            );
             var dimension = ByHandle<DxfRotatedDimension>(source, "4D");
             DxfDimStyleTableRecord style = source.DimStyleTable[dimension.DimensionStyleName];
             style.Dimblk = null;
@@ -467,13 +612,18 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase target = DxfDatabase.Parse(DxfFileEzdxfDrawings.R12);
             Assert.False(target.DimStyleTable.Has(dimension.DimensionStyleName));
 
-            var copy = (DxfDimension)source.WblockCloneObjects(new DxfEntity[] { dimension }, target.ModelSpace).Single();
+            var copy = (DxfDimension)
+                source.WblockCloneObjects(new DxfEntity[] { dimension }, target.ModelSpace).Single();
 
             DxfDatabase read = DxfDatabase.Parse(target.ToText());
             Assert.True(read.DimStyleTable.Has(dimension.DimensionStyleName));
             Assert.Equal(style.Dimasz, read.DimStyleTable[dimension.DimensionStyleName].Dimasz);
             Assert.Equal(style.Dimtxt, read.DimStyleTable[dimension.DimensionStyleName].Dimtxt);
-            string record = Records(target.ToText()).Single(r => r.StartsWith("  0\nDIMSTYLE\n", StringComparison.Ordinal) && r.Contains("\n  2\n" + dimension.DimensionStyleName + "\n"));
+            string record = Records(target.ToText())
+                .Single(r =>
+                    r.StartsWith("  0\nDIMSTYLE\n", StringComparison.Ordinal)
+                    && r.Contains("\n  2\n" + dimension.DimensionStyleName + "\n")
+                );
             Assert.DoesNotContain("\n100\n", record, StringComparison.Ordinal);
             Assert.DoesNotContain("\n340\n", record, StringComparison.Ordinal);
             Assert.Equal(dimension.DimensionStyleName, copy.DimensionStyleName);
@@ -517,7 +667,10 @@ namespace GeometryHelper.UnitTest.Dxf
                     extension.SetAt(record.Item1, new DxfDBDictionary { TreatElementsAsHard = true });
                 }
 
-                ((DxfDBDictionary)extension.GetAt(record.Item1)).SetAt(record.Item2, new DxfXrecord { Data = record.Item3 });
+                ((DxfDBDictionary)extension.GetAt(record.Item1)).SetAt(
+                    record.Item2,
+                    new DxfXrecord { Data = record.Item3 }
+                );
             }
 
             return DxfDatabase.Parse(db.ToText());
@@ -532,32 +685,71 @@ namespace GeometryHelper.UnitTest.Dxf
             // in ACLYDICTIONARY alone (*A2); its NestedFilters: GH_STEEL, GH_NOTES, All Used Layers, Unreconciled New Layers,
             // Viewport Overrides.
             DxfDatabase db = WithLayerDictionaries(
-                Tuple.Create("ACAD_LAYERFILTERS", "GH_STEEL", new[] { V(1, "GH_STEEL"), V(1, "STEEL*"), V(1, "*"), V(1, "*"), V(70, "0"), V(1, "*"), V(1, "*") }),
-                Tuple.Create("ACLYDICTIONARY", "*A1", new[] { V(1, "AcLyLayerFilter"), V(90, "1"), V(300, "GH_STEEL"), V(301, "NAME==\"STEEL*\"") }),
-                Tuple.Create("ACLYDICTIONARY", "*A2", new[] { V(1, "AcLyLayerGroup"), V(90, "1"), V(300, "GH_NOTES") }));
+                Tuple.Create(
+                    "ACAD_LAYERFILTERS",
+                    "GH_STEEL",
+                    new[] { V(1, "GH_STEEL"), V(1, "STEEL*"), V(1, "*"), V(1, "*"), V(70, "0"), V(1, "*"), V(1, "*") }
+                ),
+                Tuple.Create(
+                    "ACLYDICTIONARY",
+                    "*A1",
+                    new[] { V(1, "AcLyLayerFilter"), V(90, "1"), V(300, "GH_STEEL"), V(301, "NAME==\"STEEL*\"") }
+                ),
+                Tuple.Create("ACLYDICTIONARY", "*A2", new[] { V(1, "AcLyLayerGroup"), V(90, "1"), V(300, "GH_NOTES") })
+            );
 
             DxfLayerFilter root = db.LayerFilters.Root;
 
-            Assert.Equal(new[] { "GH_STEEL", "GH_NOTES", "All Used Layers", "Unreconciled New Layers", "Viewport Overrides" }, root.NestedFilters.Select(f => f.Name));
-            Assert.Equal(new[] { false, false, true, true, true }, root.NestedFilters.Select(f => f.DynamicallyGenerated));
+            Assert.Equal(
+                new[] { "GH_STEEL", "GH_NOTES", "All Used Layers", "Unreconciled New Layers", "Viewport Overrides" },
+                root.NestedFilters.Select(f => f.Name)
+            );
+            Assert.Equal(
+                new[] { false, false, true, true, true },
+                root.NestedFilters.Select(f => f.DynamicallyGenerated)
+            );
         }
 
         [Fact]
         public void AHiddenLayerStateAndOneOfAnXref_AreToldByTheirRecords_AsAutoCADListsThem()
         {
             // AutoCAD 2021: GH_HIDDEN saved of the mask 0x8001 (91 of 32769); the state of an attached xref names its layers by 8.
-            DxfTypedValue[] Plain(int mask, int layerCode, string layer) => new[] { V(91, mask.ToString(System.Globalization.CultureInfo.InvariantCulture)), V(301, string.Empty), V(290, "0"), V(302, "0"), V(layerCode, layer), V(90, "8"), V(62, "7"), V(370, "-3"), V(1, "Color_7"), V(440, "0") };
+            DxfTypedValue[] Plain(int mask, int layerCode, string layer) =>
+                new[]
+                {
+                    V(91, mask.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                    V(301, string.Empty),
+                    V(290, "0"),
+                    V(302, "0"),
+                    V(layerCode, layer),
+                    V(90, "8"),
+                    V(62, "7"),
+                    V(370, "-3"),
+                    V(1, "Color_7"),
+                    V(440, "0"),
+                };
             DxfDatabase db = WithLayerDictionaries(
-                Tuple.Create("ACAD_LAYERSTATES", "70-b-xref-source__GH_XR_STATE", Plain(1535, 8, "70-b-xref-source|XR_WALLS")),
+                Tuple.Create(
+                    "ACAD_LAYERSTATES",
+                    "70-b-xref-source__GH_XR_STATE",
+                    Plain(1535, 8, "70-b-xref-source|XR_WALLS")
+                ),
                 Tuple.Create("ACAD_LAYERSTATES", "GH_HIDDEN", Plain(32769, 330, "10")),
                 Tuple.Create("ACAD_LAYERSTATES", "GH_NOTES_OFF", Plain(1535, 330, "10")),
-                Tuple.Create("ACAD_LAYERSTATES", "GH_PLAN", Plain(1535, 330, "10")));
+                Tuple.Create("ACAD_LAYERSTATES", "GH_PLAN", Plain(1535, 330, "10"))
+            );
             DxfLayerStateManager states = db.LayerStateManager;
 
             Assert.Equal(new[] { "GH_NOTES_OFF", "GH_PLAN" }, states.GetLayerStateNames(false, false));
             Assert.Equal(new[] { "GH_HIDDEN", "GH_NOTES_OFF", "GH_PLAN" }, states.GetLayerStateNames(true, false));
-            Assert.Equal(new[] { "70-b-xref-source__GH_XR_STATE", "GH_NOTES_OFF", "GH_PLAN" }, states.GetLayerStateNames(false, true));
-            Assert.Equal(new[] { "70-b-xref-source__GH_XR_STATE", "GH_HIDDEN", "GH_NOTES_OFF", "GH_PLAN" }, states.GetLayerStateNames(true, true));
+            Assert.Equal(
+                new[] { "70-b-xref-source__GH_XR_STATE", "GH_NOTES_OFF", "GH_PLAN" },
+                states.GetLayerStateNames(false, true)
+            );
+            Assert.Equal(
+                new[] { "70-b-xref-source__GH_XR_STATE", "GH_HIDDEN", "GH_NOTES_OFF", "GH_PLAN" },
+                states.GetLayerStateNames(true, true)
+            );
             Assert.Equal(states.GetLayerStateNames(true, true), states.GetLayerStateNames());
         }
 
@@ -567,17 +759,30 @@ namespace GeometryHelper.UnitTest.Dxf
             // AutoCAD 2021, -LAYER stAte Import of a .las file: 91 2047, then each layer by its name (8 XR_DOORS, 8 XR_WALLS, 8 0),
             // and -LAYER stAte ? lists the state beside one saved in the drawing. Only a state named xref__state whose layers
             // are all an xref's (xref|layer) is an xref's.
-            DxfTypedValue[] Layers(int code, params string[] layers) => new[] { V(91, "2047"), V(301, string.Empty), V(290, "0"), V(302, "0") }
-                .Concat(layers.SelectMany(l => new[] { V(code, l), V(90, "8"), V(62, "7"), V(370, "-3"), V(1, "Color_7"), V(440, "0") })).ToArray();
+            DxfTypedValue[] Layers(int code, params string[] layers) =>
+                new[] { V(91, "2047"), V(301, string.Empty), V(290, "0"), V(302, "0") }
+                    .Concat(
+                        layers.SelectMany(l =>
+                            new[] { V(code, l), V(90, "8"), V(62, "7"), V(370, "-3"), V(1, "Color_7"), V(440, "0") }
+                        )
+                    )
+                    .ToArray();
             DxfDatabase db = WithLayerDictionaries(
                 Tuple.Create("ACAD_LAYERSTATES", "GH_IMPORTED", Layers(8, "XR_DOORS", "XR_WALLS", "0")),
                 Tuple.Create("ACAD_LAYERSTATES", "GH_SAVED", Layers(330, "10")),
                 Tuple.Create("ACAD_LAYERSTATES", "PLAN__LEVEL2", Layers(8, "0")),
                 Tuple.Create("ACAD_LAYERSTATES", "xr__GH_MIXED", Layers(8, "0", "xr|WALLS")),
-                Tuple.Create("ACAD_LAYERSTATES", "xr__GH_XR", Layers(8, "xr|WALLS", "xr|DOORS")));
+                Tuple.Create("ACAD_LAYERSTATES", "xr__GH_XR", Layers(8, "xr|WALLS", "xr|DOORS"))
+            );
 
-            Assert.Equal(new[] { "GH_IMPORTED", "GH_SAVED", "PLAN__LEVEL2", "xr__GH_MIXED" }, db.LayerStateManager.GetLayerStateNames(false, false));
-            Assert.Equal(new[] { "GH_IMPORTED", "GH_SAVED", "PLAN__LEVEL2", "xr__GH_MIXED", "xr__GH_XR" }, db.LayerStateManager.GetLayerStateNames(false, true));
+            Assert.Equal(
+                new[] { "GH_IMPORTED", "GH_SAVED", "PLAN__LEVEL2", "xr__GH_MIXED" },
+                db.LayerStateManager.GetLayerStateNames(false, false)
+            );
+            Assert.Equal(
+                new[] { "GH_IMPORTED", "GH_SAVED", "PLAN__LEVEL2", "xr__GH_MIXED", "xr__GH_XR" },
+                db.LayerStateManager.GetLayerStateNames(false, true)
+            );
         }
 
         #endregion

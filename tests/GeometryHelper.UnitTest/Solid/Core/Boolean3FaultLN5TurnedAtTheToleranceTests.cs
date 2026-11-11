@@ -22,10 +22,24 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Default = Tolerance.Default;
 
-        private static readonly GeoTransform3 Turn = GeoTransform3.RotationAxis(new GeoPoint3(10, 30, 20), new GeoVector3(0.3, -0.2, 1), 0.7);
+        private static readonly GeoTransform3 Turn = GeoTransform3.RotationAxis(
+            new GeoPoint3(10, 30, 20),
+            new GeoVector3(0.3, -0.2, 1),
+            0.7
+        );
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1, GeoTransform3 turn)
-            => new GeoObb3(new GeoPoint3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), x1 - x0, y1 - y0, z1 - z0).ToSolid().TransformBy(turn);
+        private static GeoSolid3 Box(
+            double x0,
+            double y0,
+            double z0,
+            double x1,
+            double y1,
+            double z1,
+            GeoTransform3 turn
+        ) =>
+            new GeoObb3(new GeoPoint3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), x1 - x0, y1 - y0, z1 - z0)
+                .ToSolid()
+                .TransformBy(turn);
 
         private static void AssertValidWithin(GeoSolid3 result, double low, double high)
         {
@@ -66,9 +80,15 @@ namespace GeometryHelper.UnitTest.Solid
         public void ACubeLessASlabTheToleranceDeepInItsTop_BothTurned_IsValid()
         {
             GeoTransform3 turn = GeoTransform3.RotationAxis(
-                new GeoPoint3(32.51210343209659, 0, 0), new GeoVector3(0.1350835569366271, 0.4313071984477841, -0.4327822054204448), 4.569126457240957);
+                new GeoPoint3(32.51210343209659, 0, 0),
+                new GeoVector3(0.1350835569366271, 0.4313071984477841, -0.4327822054204448),
+                4.569126457240957
+            );
 
-            Assert.True(Box(0, 0, 0, 100, 100, 100, turn).TrySubtract(Box(30, 30, 99.999, 70, 60, 100, turn), out GeoSolid3 left, Default));
+            Assert.True(
+                Box(0, 0, 0, 100, 100, 100, turn)
+                    .TrySubtract(Box(30, 30, 99.999, 70, 60, 100, turn), out GeoSolid3 left, Default)
+            );
             AssertValidWithin(left, 1000000.0 - 1.2 - 1E-6, 1000000.0 + 1E-6);
         }
 
@@ -76,7 +96,10 @@ namespace GeometryHelper.UnitTest.Solid
         public void ACubeJoinedToASlabTheToleranceDeepInItsTop_BothTurned_IsClosedEitherWayRound()
         {
             GeoTransform3 turn = GeoTransform3.RotationAxis(
-                new GeoPoint3(16.906434654680282, 0, 0), new GeoVector3(-0.260895405319005, 0.3250665966538091, -0.39196248922728116), 5.15051195824077);
+                new GeoPoint3(16.906434654680282, 0, 0),
+                new GeoVector3(-0.260895405319005, 0.3250665966538091, -0.39196248922728116),
+                5.15051195824077
+            );
             GeoSolid3 cube = Box(0, 0, 0, 100, 100, 100, turn);
             GeoSolid3 slab = Box(30, 30, 99.999, 70, 60, 100, turn);
 

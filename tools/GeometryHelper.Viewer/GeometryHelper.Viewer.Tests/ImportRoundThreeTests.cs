@@ -24,14 +24,17 @@ namespace GeometryHelper.Viewer.Tests
 
         private static GeoFace3 F(params GeoPoint3[] corners) => new GeoFace3(new GeoPolygon3(corners), null);
 
-        private static GeoSolid3 Plate(double x, double y, double z, double sx, double sy, double sz)
-            => GeoSolid3.Extrude(new GeoPolygon3(Q(x, y, z), Q(x + sx, y, z), Q(x + sx, y + sy, z), Q(x, y + sy, z)), new GeoVector3(0, 0, sz));
+        private static GeoSolid3 Plate(double x, double y, double z, double sx, double sy, double sz) =>
+            GeoSolid3.Extrude(
+                new GeoPolygon3(Q(x, y, z), Q(x + sx, y, z), Q(x + sx, y + sy, z), Q(x, y + sy, z)),
+                new GeoVector3(0, 0, sz)
+            );
 
-        private static Scene Dxf(GeoSolid3 a, GeoSolid3 b)
-            => SceneImport.ReadText(new DxfWriter().Add(a, Tol, "steel").Add(b, Tol, "steel").ToString(), "dxf");
+        private static Scene Dxf(GeoSolid3 a, GeoSolid3 b) =>
+            SceneImport.ReadText(new DxfWriter().Add(a, Tol, "steel").Add(b, Tol, "steel").ToString(), "dxf");
 
-        private static Scene Obj(GeoSolid3 a, GeoSolid3 b)
-            => SceneImport.ReadText(new ObjWriter().Add(a, Tol, "a").Add(b, Tol, "b").ToString(), "obj");
+        private static Scene Obj(GeoSolid3 a, GeoSolid3 b) =>
+            SceneImport.ReadText(new ObjWriter().Add(a, Tol, "a").Add(b, Tol, "b").ToString(), "obj");
 
         private static DiagnosticReport Clash(Scene scene) => Diag.Run(scene, DiagnosticChecks.Clash, true);
 
@@ -42,16 +45,18 @@ namespace GeometryHelper.Viewer.Tests
         {
             // 20 by 10 by 10; the top is two faces meeting at x = 10 while the front and the back are single quads, so two edges are whole on one side and cut at
             // the middle on the other.
-            var tj = new GeoSolid3(new[]
-            {
-                F(Q(0, 0, 0), Q(0, 10, 0), Q(20, 10, 0), Q(20, 0, 0)),
-                F(Q(0, 0, 10), Q(10, 0, 10), Q(10, 10, 10), Q(0, 10, 10)),
-                F(Q(10, 0, 10), Q(20, 0, 10), Q(20, 10, 10), Q(10, 10, 10)),
-                F(Q(0, 0, 0), Q(20, 0, 0), Q(20, 0, 10), Q(0, 0, 10)),
-                F(Q(20, 10, 0), Q(0, 10, 0), Q(0, 10, 10), Q(20, 10, 10)),
-                F(Q(20, 0, 0), Q(20, 10, 0), Q(20, 10, 10), Q(20, 0, 10)),
-                F(Q(0, 10, 0), Q(0, 0, 0), Q(0, 0, 10), Q(0, 10, 10)),
-            });
+            var tj = new GeoSolid3(
+                new[]
+                {
+                    F(Q(0, 0, 0), Q(0, 10, 0), Q(20, 10, 0), Q(20, 0, 0)),
+                    F(Q(0, 0, 10), Q(10, 0, 10), Q(10, 10, 10), Q(0, 10, 10)),
+                    F(Q(10, 0, 10), Q(20, 0, 10), Q(20, 10, 10), Q(10, 10, 10)),
+                    F(Q(0, 0, 0), Q(20, 0, 0), Q(20, 0, 10), Q(0, 0, 10)),
+                    F(Q(20, 10, 0), Q(0, 10, 0), Q(0, 10, 10), Q(20, 10, 10)),
+                    F(Q(20, 0, 0), Q(20, 10, 0), Q(20, 10, 10), Q(20, 0, 10)),
+                    F(Q(0, 10, 0), Q(0, 0, 0), Q(0, 0, 10), Q(0, 10, 10)),
+                }
+            );
             GeoSolid3 other = Plate(15, 2, 2, 10, 5, 5);
             ClashResult expected = Clash3.Find(new[] { tj }, new[] { other }, Options, Tol).Single();
 
@@ -71,17 +76,19 @@ namespace GeometryHelper.Viewer.Tests
 
         #region Bodies that run into each other along an edge
 
-        private static GeoSolid3 LeaningBody(double x)
-            => new GeoSolid3(new[]
-            {
-                F(Q(10, 0, 0), Q(10, 10, 0), Q(20, 10, 0), Q(20, 0, 0)),
-                F(Q(10, 0, 10), Q(20, 0, 10), Q(20, 10, 10), Q(x, 10, 10)),
-                F(Q(10, 0, 0), Q(20, 0, 0), Q(20, 0, 10), Q(10, 0, 10)),
-                F(Q(20, 10, 0), Q(10, 10, 0), Q(x, 10, 10), Q(20, 10, 10)),
-                F(Q(20, 0, 0), Q(20, 10, 0), Q(20, 10, 10), Q(20, 0, 10)),
-                F(Q(10, 0, 0), Q(10, 0, 10), Q(x, 10, 10)),
-                F(Q(10, 0, 0), Q(x, 10, 10), Q(10, 10, 0)),
-            });
+        private static GeoSolid3 LeaningBody(double x) =>
+            new GeoSolid3(
+                new[]
+                {
+                    F(Q(10, 0, 0), Q(10, 10, 0), Q(20, 10, 0), Q(20, 0, 0)),
+                    F(Q(10, 0, 10), Q(20, 0, 10), Q(20, 10, 10), Q(x, 10, 10)),
+                    F(Q(10, 0, 0), Q(20, 0, 0), Q(20, 0, 10), Q(10, 0, 10)),
+                    F(Q(20, 10, 0), Q(10, 10, 0), Q(x, 10, 10), Q(20, 10, 10)),
+                    F(Q(20, 0, 0), Q(20, 10, 0), Q(20, 10, 10), Q(20, 0, 10)),
+                    F(Q(10, 0, 0), Q(10, 0, 10), Q(x, 10, 10)),
+                    F(Q(10, 0, 0), Q(x, 10, 10), Q(10, 10, 0)),
+                }
+            );
 
         [Fact]
         public void TwoBodiesThatRunIntoEachOtherAlongAnEdge_AreTwoItems_AndAHardClashAsTheLibrarySays()
@@ -149,12 +156,17 @@ namespace GeometryHelper.Viewer.Tests
             GeoSolid3 inner = Plate(40, 20, 10, 10, 10, 10);
             var inside = inner.TriangulateSurface(Tol).Select(t => new GeoTriangle3(t.A, t.C, t.B)).ToList();
 
-            Scene one = SceneImport.ReadText(new DxfWriter().Add(shell.Concat(inside).ToList(), "steel").ToString(), "dxf");
+            Scene one = SceneImport.ReadText(
+                new DxfWriter().Add(shell.Concat(inside).ToList(), "steel").ToString(),
+                "dxf"
+            );
             Scene two = SceneImport.ReadText(new DxfWriter().Add(shell, "steel").Add(inside, "bolt").ToString(), "dxf");
 
             Assert.Equal(24, Imp.MeshFaces(Assert.Single(one.Items)).Count);
             Assert.Equal(2, two.Items.Count);
-            Assert.Contains(Diag.Of(Clash(two), DiagnosticKind.Note), n => n.Message.Contains("an inside-out shell with no body round it"));
+            Assert.Contains(Diag.Of(Clash(two), DiagnosticKind.Note), n =>
+                n.Message.Contains("an inside-out shell with no body round it")
+            );
         }
 
         #endregion
@@ -203,11 +215,23 @@ namespace GeometryHelper.Viewer.Tests
             var random = new Random(11);
             var triangles = new List<GeoTriangle3>();
 
-            foreach (GeoSolid3 box in new[] { Plate(0, 0, 0, 10, 10, 10), Plate(10, 0, 0, 10, 10, 10), Plate(0, 0, 10, 20, 10, 5) })
+            foreach (
+                GeoSolid3 box in new[]
+                {
+                    Plate(0, 0, 0, 10, 10, 10),
+                    Plate(10, 0, 0, 10, 10, 10),
+                    Plate(0, 0, 10, 20, 10, 5),
+                }
+            )
             {
                 foreach (GeoTriangle3 t in box.TriangulateSurface(Tol))
                 {
-                    GeoPoint3 Move(GeoPoint3 p) => Q(p.X + ((random.NextDouble() - 0.5) * 8E-4), p.Y + ((random.NextDouble() - 0.5) * 8E-4), p.Z + ((random.NextDouble() - 0.5) * 8E-4));
+                    GeoPoint3 Move(GeoPoint3 p) =>
+                        Q(
+                            p.X + ((random.NextDouble() - 0.5) * 8E-4),
+                            p.Y + ((random.NextDouble() - 0.5) * 8E-4),
+                            p.Z + ((random.NextDouble() - 0.5) * 8E-4)
+                        );
                     triangles.Add(new GeoTriangle3(Move(t.A), Move(t.B), Move(t.C)));
                 }
             }
@@ -225,9 +249,13 @@ namespace GeometryHelper.Viewer.Tests
                     points.Add(new Vec3(t.C.X, t.C.Y, t.C.Z));
                 }
 
-                return string.Join(";", MeshShells.Split(points, faces, 1E-3, CancellationToken.None)
-                    .Select(p => p.Closed.ToString() + ":" + p.Faces.Count + ":" + p.Voids.Count)
-                    .OrderBy(s => s, StringComparer.Ordinal));
+                return string.Join(
+                    ";",
+                    MeshShells
+                        .Split(points, faces, 1E-3, CancellationToken.None)
+                        .Select(p => p.Closed.ToString() + ":" + p.Faces.Count + ":" + p.Voids.Count)
+                        .OrderBy(s => s, StringComparer.Ordinal)
+                );
             }
 
             string expected = Summary(triangles);
@@ -237,7 +265,6 @@ namespace GeometryHelper.Viewer.Tests
             {
                 Assert.Equal(expected, Summary(triangles.OrderBy(_ => shuffler.Next()).ToList()));
             }
-
         }
 
         #endregion

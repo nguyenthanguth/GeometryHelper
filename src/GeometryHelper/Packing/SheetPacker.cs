@@ -41,7 +41,8 @@ namespace GeometryHelper.Packing
         /// <returns>Where each box goes, in the shape the boxes were given, and the sheets they took.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="groups"/> or <paramref name="sheet"/> is null.</exception>
         /// <exception cref="ArgumentException">The offsets of the sheet leave it no room.</exception>
-        public static PackResult Pack(IReadOnlyList<GeoRectangle2[]> groups, Sheet sheet) => Pack(groups, sheet, PackOptions.Default);
+        public static PackResult Pack(IReadOnlyList<GeoRectangle2[]> groups, Sheet sheet) =>
+            Pack(groups, sheet, PackOptions.Default);
 
         /// <summary>
         /// Packs the boxes onto sheets like the one given.
@@ -103,25 +104,49 @@ namespace GeometryHelper.Packing
                     }
                 }
 
-                clusters.AddRange(ClusterBuilder.Build(g, footprints[g], fitting, options.GroupLayout, spacing, usable.Width, usable.Height, slack));
+                clusters.AddRange(
+                    ClusterBuilder.Build(
+                        g,
+                        footprints[g],
+                        fitting,
+                        options.GroupLayout,
+                        spacing,
+                        usable.Width,
+                        usable.Height,
+                        slack
+                    )
+                );
             }
 
             // STEP 2: The blocks in their order, or largest first; the sort keeps the order of blocks of one size.
-            IEnumerable<Cluster> order = options.LargestGroupsFirst ? clusters.OrderByDescending(c => c.Area) : (IEnumerable<Cluster>)clusters;
+            IEnumerable<Cluster> order = options.LargestGroupsFirst
+                ? clusters.OrderByDescending(c => c.Area)
+                : (IEnumerable<Cluster>)clusters;
 
             // STEP 3: Each block onto the last sheet, or any sheet with room, or a new one. Each block with the group
             // spacing added on its right and above, into sheets the spacing wider and higher: the blocks then stand the
             // spacing apart, and flush with the edges of the usable area. From another corner than the upper left, each
             // block and each box of a block laid out afresh is mirrored across the usable area and its block.
-            bool fromRight = options.StartCorner == SheetCorner.UpperRight || options.StartCorner == SheetCorner.LowerRight;
-            bool fromBelow = options.StartCorner == SheetCorner.LowerLeft || options.StartCorner == SheetCorner.LowerRight;
+            bool fromRight =
+                options.StartCorner == SheetCorner.UpperRight || options.StartCorner == SheetCorner.LowerRight;
+            bool fromBelow =
+                options.StartCorner == SheetCorner.LowerLeft || options.StartCorner == SheetCorner.LowerRight;
             var bins = new List<MaxRectsBin>();
             var spots = new List<Spot>();
             int clusterIndex = 0;
             foreach (Cluster cluster in order)
             {
-                int onSheet = Place(bins, cluster.Width + groupSpacing, cluster.Height + groupSpacing, options.FillEarlierSheets,
-                    usable.Width + groupSpacing, usable.Height + groupSpacing, slack, out double x, out double y);
+                int onSheet = Place(
+                    bins,
+                    cluster.Width + groupSpacing,
+                    cluster.Height + groupSpacing,
+                    options.FillEarlierSheets,
+                    usable.Width + groupSpacing,
+                    usable.Height + groupSpacing,
+                    slack,
+                    out double x,
+                    out double y
+                );
                 if (onSheet >= 0)
                 {
                     Footprint area = sheet.GetUsableArea(onSheet);
@@ -129,13 +154,21 @@ namespace GeometryHelper.Packing
                     double blockY = fromBelow ? usable.Height - y - cluster.Height : y;
                     for (int j = 0; j < cluster.Members.Count; j++)
                     {
-                        int g = cluster.Group, i = cluster.Members[j];
+                        int g = cluster.Group,
+                            i = cluster.Members[j];
                         Footprint box = footprints[g][i];
-                        double offsetX = fromRight && !cluster.Kept ? cluster.Width - cluster.Offsets[j].X - box.Width : cluster.Offsets[j].X;
-                        double offsetY = fromBelow && !cluster.Kept ? cluster.Height - cluster.Offsets[j].Y - box.Height : cluster.Offsets[j].Y;
+                        double offsetX =
+                            fromRight && !cluster.Kept
+                                ? cluster.Width - cluster.Offsets[j].X - box.Width
+                                : cluster.Offsets[j].X;
+                        double offsetY =
+                            fromBelow && !cluster.Kept
+                                ? cluster.Height - cluster.Offsets[j].Y - box.Height
+                                : cluster.Offsets[j].Y;
                         var translation = new GeoVector2(
                             area.MinX + blockX + offsetX - box.MinX,
-                            area.MinY + blockY + offsetY - box.MinY);
+                            area.MinY + blockY + offsetY - box.MinY
+                        );
                         GeoRectangle2 moved = groups[g][i].Translate(translation);
                         placements[g][i] = new PackPlacement(onSheet, translation, moved, true);
                         spots.Add(new Spot(g, i, onSheet, clusterIndex, cluster.Kept, Footprint.Of(moved)));
@@ -177,8 +210,17 @@ namespace GeometryHelper.Packing
         /// Puts a block onto the last sheet, or onto the first with room when earlier sheets may be filled, or onto a new
         /// sheet; the sheet it went on, or -1 when it went on none, as a block that fits an empty sheet cannot.
         /// </summary>
-        private static int Place(List<MaxRectsBin> bins, double width, double height, bool fillEarlierSheets,
-            double binWidth, double binHeight, double slack, out double x, out double y)
+        private static int Place(
+            List<MaxRectsBin> bins,
+            double width,
+            double height,
+            bool fillEarlierSheets,
+            double binWidth,
+            double binHeight,
+            double slack,
+            out double x,
+            out double y
+        )
         {
             for (int k = fillEarlierSheets ? 0 : Math.Max(0, bins.Count - 1); k < bins.Count; k++)
             {

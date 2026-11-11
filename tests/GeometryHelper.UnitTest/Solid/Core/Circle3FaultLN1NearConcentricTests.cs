@@ -61,7 +61,13 @@ namespace GeometryHelper.UnitTest.Solid
             // Which of the two crossings the half turns hold depends on where the plane's axes put angle nought.
             var expected = new System.Collections.Generic.List<GeoPoint3>();
 
-            foreach (GeoPoint3 crossing in new[] { new GeoPoint3(CrossingX, CrossingY, 0), new GeoPoint3(CrossingX, -CrossingY, 0) })
+            foreach (
+                GeoPoint3 crossing in new[]
+                {
+                    new GeoPoint3(CrossingX, CrossingY, 0),
+                    new GeoPoint3(CrossingX, -CrossingY, 0),
+                }
+            )
             {
                 if (first.IsPointOn(crossing, Thousandth) && second.IsPointOn(crossing, Thousandth))
                 {
@@ -71,7 +77,13 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.NotEmpty(expected);
 
-            foreach (GeoPoint3[] found in new[] { first.GetIntersections(second, Thousandth), second.GetIntersections(first, Thousandth) })
+            foreach (
+                GeoPoint3[] found in new[]
+                {
+                    first.GetIntersections(second, Thousandth),
+                    second.GetIntersections(first, Thousandth),
+                }
+            )
             {
                 Assert.Equal(expected.Count, found.Length);
 

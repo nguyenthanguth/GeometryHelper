@@ -12,7 +12,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </summary>
     public sealed partial class MainViewModel
     {
-        private readonly ConditionalWeakTable<CadDocument, SortedDictionary<string, string>> _shxReplacements = new ConditionalWeakTable<CadDocument, SortedDictionary<string, string>>();
+        private readonly ConditionalWeakTable<CadDocument, SortedDictionary<string, string>> _shxReplacements =
+            new ConditionalWeakTable<CadDocument, SortedDictionary<string, string>>();
 
         /// <summary>
         /// Gets or sets how the workspace shows the Missing SHX files dialog: true when OK was pressed, the replacements chosen
@@ -46,7 +47,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            SortedDictionary<string, string> kept = _shxReplacements.GetValue(document, d => new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+            SortedDictionary<string, string> kept = _shxReplacements.GetValue(document, d => new SortedDictionary<
+                string,
+                string
+            >(StringComparer.OrdinalIgnoreCase));
 
             foreach (KeyValuePair<string, string> pair in dialog.Apply())
             {
@@ -61,9 +65,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     _settings.Save(SettingsPath);
                 }
-                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+                catch (Exception ex)
+                    when (ex is IOException
+                        || ex is UnauthorizedAccessException
+                        || ex is ArgumentException
+                        || ex is NotSupportedException
+                    )
                 {
-                    GeometryHelperLog.Warn("MainViewModel: Global settings were not saved after Do not show again.", ex);
+                    GeometryHelperLog.Warn(
+                        "MainViewModel: Global settings were not saved after Do not show again.",
+                        ex
+                    );
                 }
             }
         }

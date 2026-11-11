@@ -21,7 +21,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             IReadOnlyList<CadMenuItemViewModel> items = model.SnapOverrideMenu();
 
-            Assert.Equal(new[] { "Temporary track point", "From", "Mid Between 2 Points", "Point Filters", string.Empty, "Endpoint" }, items.Take(6).Select(i => i.Header));
+            Assert.Equal(
+                new[]
+                {
+                    "Temporary track point",
+                    "From",
+                    "Mid Between 2 Points",
+                    "Point Filters",
+                    string.Empty,
+                    "Endpoint",
+                },
+                items.Take(6).Select(i => i.Header)
+            );
             CadMenuItemViewModel filters = items.Single(i => i.Header == "Point Filters");
             Assert.False(filters.IsSeparator);
             Assert.Equal(new[] { ".X", ".Y", ".Z", ".XY", ".XZ", ".YZ" }, filters.Items.Select(i => i.Header));
@@ -84,7 +95,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             OpenRoom(model);
             model.StartCommand("POINT");
 
-            model.SnapOverrideMenu().Single(i => i.Header == "Point Filters").Items.Single(i => i.Header == ".X").Command.Execute(null);
+            model
+                .SnapOverrideMenu()
+                .Single(i => i.Header == "Point Filters")
+                .Items.Single(i => i.Header == ".X")
+                .Command.Execute(null);
             Assert.Equal("of", model.Prompt);
             Assert.Contains("Specify a point: .X", model.History);
 

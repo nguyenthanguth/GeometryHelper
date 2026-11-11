@@ -113,7 +113,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             {
                 MainViewModel model = Room(folder, out string bottom, out _);
                 model.PickAt(1000, 0, 5, false);
-                PropertyRowViewModel layer = model.PropertyGroups.SelectMany(g => g.Rows).Single(r => r.Label == "Layer");
+                PropertyRowViewModel layer = model
+                    .PropertyGroups.SelectMany(g => g.Rows)
+                    .Single(r => r.Label == "Layer");
 
                 Assert.True(layer.HasOptions);
                 Assert.Contains("COLUMNS", layer.Options);
@@ -121,9 +123,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 layer.Value = "COLUMNS";
 
                 Assert.Equal("COLUMNS", Line(model, bottom).Layer);
-                Assert.Equal("COLUMNS", model.PropertyGroups.SelectMany(g => g.Rows).Single(r => r.Label == "Layer").Value);
+                Assert.Equal(
+                    "COLUMNS",
+                    model.PropertyGroups.SelectMany(g => g.Rows).Single(r => r.Label == "Layer").Value
+                );
 
-                PropertyRowViewModel startX = model.PropertyGroups.SelectMany(g => g.Rows).Single(r => r.Label == "Start X");
+                PropertyRowViewModel startX = model
+                    .PropertyGroups.SelectMany(g => g.Rows)
+                    .Single(r => r.Label == "Start X");
                 string old = startX.Value;
                 int lines = model.History.Count;
 

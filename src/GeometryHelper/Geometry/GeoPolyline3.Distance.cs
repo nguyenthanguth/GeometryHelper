@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -45,7 +45,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this chain to another chain, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPolyline3 other, Tolerance tolerance) => Distance3.DistanceTo(this, other, tolerance);
+        public double DistanceTo(GeoPolyline3 other, Tolerance tolerance) =>
+            Distance3.DistanceTo(this, other, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this chain to a triangle.
@@ -57,7 +58,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this chain to a triangle, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) => Distance3.DistanceTo(this, triangle, tolerance);
+        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Distance3.DistanceTo(this, triangle, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this chain to a polygon.
@@ -69,7 +71,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this chain to a polygon, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) => Distance3.DistanceTo(this, polygon, tolerance);
+        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Distance3.DistanceTo(this, polygon, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this chain to a plane.

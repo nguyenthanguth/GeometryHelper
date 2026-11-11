@@ -15,8 +15,13 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class BoxFacesFaultLN2ThinTests
     {
-        private static GeoObb3 Plate(double thickness)
-            => new GeoObb3(new GeoCoordinateSystem3(new GeoPoint3(1, 2, 3), GeoVector3.XAxis, GeoVector3.YAxis), thickness, 50, 30);
+        private static GeoObb3 Plate(double thickness) =>
+            new GeoObb3(
+                new GeoCoordinateSystem3(new GeoPoint3(1, 2, 3), GeoVector3.XAxis, GeoVector3.YAxis),
+                thickness,
+                50,
+                30
+            );
 
         [Theory]
         [InlineData(0.002)]
@@ -53,7 +58,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AnOrdinaryBox_HasTheFacesItHad()
         {
-            var box = new GeoObb3(new GeoPoint3(1E5, -2E5, 30), 40, 25, 12, new GeoVector3(0.3, 0.7, -0.2), new GeoVector3(-0.6, 0.2, 0.1));
+            var box = new GeoObb3(
+                new GeoPoint3(1E5, -2E5, 30),
+                40,
+                25,
+                12,
+                new GeoVector3(0.3, 0.7, -0.2),
+                new GeoVector3(-0.6, 0.2, 0.1)
+            );
             GeoPoint3[] c = box.GetCorners();
             GeoPolygon3[] faces = box.GetFaces();
             GeoPolygon3 bottom = new GeoPolygon3(c[0], c[3], c[2], c[1]);

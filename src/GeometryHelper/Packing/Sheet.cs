@@ -46,16 +46,36 @@ namespace GeometryHelper.Packing
         /// </exception>
         public Sheet(PaperSize size, SheetOrientation orientation = SheetOrientation.Landscape)
         {
-            double shortSide, longSide;
+            double shortSide,
+                longSide;
             switch (size)
             {
-                case PaperSize.A0: shortSide = 841.0; longSide = 1189.0; break;
-                case PaperSize.A1: shortSide = 594.0; longSide = 841.0; break;
-                case PaperSize.A2: shortSide = 420.0; longSide = 594.0; break;
-                case PaperSize.A3: shortSide = 297.0; longSide = 420.0; break;
-                case PaperSize.A4: shortSide = 210.0; longSide = 297.0; break;
+                case PaperSize.A0:
+                    shortSide = 841.0;
+                    longSide = 1189.0;
+                    break;
+                case PaperSize.A1:
+                    shortSide = 594.0;
+                    longSide = 841.0;
+                    break;
+                case PaperSize.A2:
+                    shortSide = 420.0;
+                    longSide = 594.0;
+                    break;
+                case PaperSize.A3:
+                    shortSide = 297.0;
+                    longSide = 420.0;
+                    break;
+                case PaperSize.A4:
+                    shortSide = 210.0;
+                    longSide = 297.0;
+                    break;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(size), size, "A size of the A series; a size of its own is made by Sheet.Custom.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(size),
+                        size,
+                        "A size of the A series; a size of its own is made by Sheet.Custom."
+                    );
             }
 
             if (orientation != SheetOrientation.Landscape && orientation != SheetOrientation.Portrait)
@@ -191,7 +211,12 @@ namespace GeometryHelper.Packing
             get => _newSheet;
             set
             {
-                if (value != SheetDirection.Right && value != SheetDirection.Left && value != SheetDirection.Top && value != SheetDirection.Bottom)
+                if (
+                    value != SheetDirection.Right
+                    && value != SheetDirection.Left
+                    && value != SheetDirection.Top
+                    && value != SheetDirection.Bottom
+                )
                 {
                     throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown direction.");
                 }
@@ -279,25 +304,41 @@ namespace GeometryHelper.Packing
 
             GeoPoint2 corner = GetCorner(index);
             Footprint usable = GetUsableArea(index);
-            return new SheetFrame(index,
+            return new SheetFrame(
+                index,
                 new GeoRectangle2(corner.X, corner.Y, Width, Height),
-                new GeoRectangle2(usable.MinX, usable.MinY, usable.Width, usable.Height));
+                new GeoRectangle2(usable.MinX, usable.MinY, usable.Width, usable.Height)
+            );
         }
 
         /// <inheritdoc/>
         public override string ToString()
         {
-            return string.Format(CultureInfo.InvariantCulture, "Sheet[{0} {1}, {2:0.###} x {3:0.###} mm, scale {4:0.###}]",
-                Size, Orientation, PaperWidth, PaperHeight, Scale);
+            return string.Format(
+                CultureInfo.InvariantCulture,
+                "Sheet[{0} {1}, {2:0.###} x {3:0.###} mm, scale {4:0.###}]",
+                Size,
+                Orientation,
+                PaperWidth,
+                PaperHeight,
+                Scale
+            );
         }
 
         /// <summary>Gets whether the offsets leave room on the sheet, across and up.</summary>
-        internal bool HasRoom => PaperWidth - OffsetLeft - OffsetRight > 0.0 && PaperHeight - OffsetTop - OffsetBottom > 0.0;
+        internal bool HasRoom =>
+            PaperWidth - OffsetLeft - OffsetRight > 0.0 && PaperHeight - OffsetTop - OffsetBottom > 0.0;
 
         /// <summary>Gets what is said when the offsets leave the sheet no room.</summary>
-        internal string NoRoomMessage => string.Format(CultureInfo.InvariantCulture,
-            "The offsets of the sheet leave it no room: {0:0.###} mm across of {1:0.###}, {2:0.###} mm up of {3:0.###}.",
-            PaperWidth - OffsetLeft - OffsetRight, PaperWidth, PaperHeight - OffsetTop - OffsetBottom, PaperHeight);
+        internal string NoRoomMessage =>
+            string.Format(
+                CultureInfo.InvariantCulture,
+                "The offsets of the sheet leave it no room: {0:0.###} mm across of {1:0.###}, {2:0.###} mm up of {3:0.###}.",
+                PaperWidth - OffsetLeft - OffsetRight,
+                PaperWidth,
+                PaperHeight - OffsetTop - OffsetBottom,
+                PaperHeight
+            );
 
         /// <summary>Gets the lower left corner of a sheet.</summary>
         internal GeoPoint2 GetCorner(int index)
@@ -325,7 +366,8 @@ namespace GeometryHelper.Packing
                 corner.X + OffsetLeft * Scale,
                 corner.Y + OffsetBottom * Scale,
                 (PaperWidth - OffsetLeft - OffsetRight) * Scale,
-                (PaperHeight - OffsetTop - OffsetBottom) * Scale);
+                (PaperHeight - OffsetTop - OffsetBottom) * Scale
+            );
         }
     }
 }

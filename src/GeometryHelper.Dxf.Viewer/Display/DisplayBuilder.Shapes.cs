@@ -9,15 +9,46 @@ namespace GeometryHelper.Dxf.Viewer
     {
         private const double ArcStep = Math.PI / 90.0;
 
-        private void AddShape(object shape, Affine2 m, DisplayList2 list, DisplayStyle style, string handle, string layer, bool fill, bool mask)
+        private void AddShape(
+            object shape,
+            Affine2 m,
+            DisplayList2 list,
+            DisplayStyle style,
+            string handle,
+            string layer,
+            bool fill,
+            bool mask
+        )
         {
             switch (shape)
             {
                 case GeoPoint3 point:
-                    list.Add(new DisplayPolyline2(new[] { m.X(point.X, point.Y), m.Y(point.X, point.Y) }, false, style, handle, layer));
+                    list.Add(
+                        new DisplayPolyline2(
+                            new[] { m.X(point.X, point.Y), m.Y(point.X, point.Y) },
+                            false,
+                            style,
+                            handle,
+                            layer
+                        )
+                    );
                     return;
                 case GeoLine3 line:
-                    list.Add(new DisplayPolyline2(new[] { m.X(line.StartPoint.X, line.StartPoint.Y), m.Y(line.StartPoint.X, line.StartPoint.Y), m.X(line.EndPoint.X, line.EndPoint.Y), m.Y(line.EndPoint.X, line.EndPoint.Y) }, false, style, handle, layer));
+                    list.Add(
+                        new DisplayPolyline2(
+                            new[]
+                            {
+                                m.X(line.StartPoint.X, line.StartPoint.Y),
+                                m.Y(line.StartPoint.X, line.StartPoint.Y),
+                                m.X(line.EndPoint.X, line.EndPoint.Y),
+                                m.Y(line.EndPoint.X, line.EndPoint.Y),
+                            },
+                            false,
+                            style,
+                            handle,
+                            layer
+                        )
+                    );
                     return;
                 case GeoRay3 ray:
                     AddEndless(ray.Origin, ray.Direction, false, m, list, style, handle, layer);
@@ -26,7 +57,19 @@ namespace GeometryHelper.Dxf.Viewer
                     AddEndless(xline.Origin, xline.Direction, true, m, list, style, handle, layer);
                     return;
                 case GeoArc3 arc:
-                    AddArc(arc.Center, arc.Normal, arc.StartPoint, arc.SweptAngle, arc.Radius, arc, m, list, style, handle, layer);
+                    AddArc(
+                        arc.Center,
+                        arc.Normal,
+                        arc.StartPoint,
+                        arc.SweptAngle,
+                        arc.Radius,
+                        arc,
+                        m,
+                        list,
+                        style,
+                        handle,
+                        layer
+                    );
                     return;
                 case GeoCircle3 circle:
                     AddCircle(circle, m, list, style, handle, layer);
@@ -43,7 +86,17 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else
                     {
-                        AddArcChain(polygon.Vertices, polygon.Bulges, polygon.Normals, true, m, list, style, handle, layer);
+                        AddArcChain(
+                            polygon.Vertices,
+                            polygon.Bulges,
+                            polygon.Normals,
+                            true,
+                            m,
+                            list,
+                            style,
+                            handle,
+                            layer
+                        );
                     }
 
                     return;
@@ -101,14 +154,28 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            list.Add(new DisplayPolyline2(xy.ToArray(), closed, style, handle, layer) { IsSampled = shape is GeoEllipse3 || shape is GeoSpline3 });
+            list.Add(
+                new DisplayPolyline2(xy.ToArray(), closed, style, handle, layer)
+                {
+                    IsSampled = shape is GeoEllipse3 || shape is GeoSpline3,
+                }
+            );
         }
 
         /// <summary>
         /// An XLINE or a RAY as a line without end from its base point the way it runs, both placed by the frame. One that
         /// runs straight out of the drawing's plane is seen end on, as the point it is drawn as.
         /// </summary>
-        private static void AddEndless(GeoPoint3 origin, GeoVector3 direction, bool bothWays, Affine2 m, DisplayList2 list, DisplayStyle style, string handle, string layer)
+        private static void AddEndless(
+            GeoPoint3 origin,
+            GeoVector3 direction,
+            bool bothWays,
+            Affine2 m,
+            DisplayList2 list,
+            DisplayStyle style,
+            string handle,
+            string layer
+        )
         {
             double x = m.X(origin.X, origin.Y);
             double y = m.Y(origin.X, origin.Y);
@@ -124,14 +191,23 @@ namespace GeometryHelper.Dxf.Viewer
             list.Add(new DisplayRay2(x, y, dx, dy, bothWays, style, handle, layer));
         }
 
-        private void AddCircle(GeoCircle3 circle, Affine2 m, DisplayList2 list, DisplayStyle style, string handle, string layer)
+        private void AddCircle(
+            GeoCircle3 circle,
+            Affine2 m,
+            DisplayList2 list,
+            DisplayStyle style,
+            string handle,
+            string layer
+        )
         {
             GeoPoint3 c = circle.Center;
 
             if (IsFlat(circle.Normal) && m.IsSimilarity)
             {
                 double radius = circle.Radius * m.Scale;
-                list.Add(new DisplayArc2(m.X(c.X, c.Y), m.Y(c.X, c.Y), radius, 0.0, 2.0 * Math.PI, style, handle, layer));
+                list.Add(
+                    new DisplayArc2(m.X(c.X, c.Y), m.Y(c.X, c.Y), radius, 0.0, 2.0 * Math.PI, style, handle, layer)
+                );
                 return;
             }
 
@@ -140,7 +216,19 @@ namespace GeometryHelper.Dxf.Viewer
             list.Add(new DisplayPolyline2(xy.ToArray(), true, style, handle, layer) { IsSampled = true });
         }
 
-        private void AddArc(GeoPoint3 center, GeoVector3 normal, GeoPoint3 startPoint, double swept, double radius, GeoArc3 arc, Affine2 m, DisplayList2 list, DisplayStyle style, string handle, string layer)
+        private void AddArc(
+            GeoPoint3 center,
+            GeoVector3 normal,
+            GeoPoint3 startPoint,
+            double swept,
+            double radius,
+            GeoArc3 arc,
+            Affine2 m,
+            DisplayList2 list,
+            DisplayStyle style,
+            string handle,
+            string layer
+        )
         {
             if (IsFlat(normal) && m.IsSimilarity)
             {
@@ -165,9 +253,20 @@ namespace GeometryHelper.Dxf.Viewer
             list.Add(new DisplayPolyline2(xy.ToArray(), false, style, handle, layer) { IsSampled = true });
         }
 
-        private static bool IsFlat(GeoVector3 normal) => Math.Abs(Math.Abs(normal.Z) - normal.Length) <= 1E-9 * Math.Max(1.0, normal.Length);
+        private static bool IsFlat(GeoVector3 normal) =>
+            Math.Abs(Math.Abs(normal.Z) - normal.Length) <= 1E-9 * Math.Max(1.0, normal.Length);
 
-        private void AddArcChain(IReadOnlyList<GeoPoint3> vertices, IReadOnlyList<double> bulges, IReadOnlyList<GeoVector3> normals, bool closed, Affine2 m, DisplayList2 list, DisplayStyle style, string handle, string layer)
+        private void AddArcChain(
+            IReadOnlyList<GeoPoint3> vertices,
+            IReadOnlyList<double> bulges,
+            IReadOnlyList<GeoVector3> normals,
+            bool closed,
+            Affine2 m,
+            DisplayList2 list,
+            DisplayStyle style,
+            string handle,
+            string layer
+        )
         {
             int n = vertices.Count;
             int edges = closed ? n : n - 1;
@@ -209,7 +308,18 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                Bulge(p0.X, p0.Y, p1.X, p1.Y, bulge, out double cx, out double cy, out double radius, out double start, out double sweep);
+                Bulge(
+                    p0.X,
+                    p0.Y,
+                    p1.X,
+                    p1.Y,
+                    bulge,
+                    out double cx,
+                    out double cy,
+                    out double radius,
+                    out double start,
+                    out double sweep
+                );
 
                 if (m.IsSimilarity)
                 {
@@ -218,7 +328,18 @@ namespace GeometryHelper.Dxf.Viewer
                     double mcy = m.Y(cx, cy);
                     double sx = m.X(cx + radius * Math.Cos(start), cy + radius * Math.Sin(start));
                     double sy = m.Y(cx + radius * Math.Cos(start), cy + radius * Math.Sin(start));
-                    list.Add(new DisplayArc2(mcx, mcy, radius * m.Scale, Math.Atan2(sy - mcy, sx - mcx), m.Determinant < 0.0 ? -sweep : sweep, style, handle, layer));
+                    list.Add(
+                        new DisplayArc2(
+                            mcx,
+                            mcy,
+                            radius * m.Scale,
+                            Math.Atan2(sy - mcy, sx - mcx),
+                            m.Determinant < 0.0 ? -sweep : sweep,
+                            style,
+                            handle,
+                            layer
+                        )
+                    );
                     run.Add(m.X(p1.X, p1.Y));
                     run.Add(m.Y(p1.X, p1.Y));
                 }
@@ -282,7 +403,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// radius crosses the centre, as the dot of AutoCAD's arrowhead _Dot fills a disc. False, nothing added, for a polyline
         /// whose normal is not the world's Z, which is drawn by its centre line.
         /// </summary>
-        private bool AddWide(DxfPolyline polyline, Affine2 m, DisplayList2 list, DisplayStyle style, string handle, string layer)
+        private bool AddWide(
+            DxfPolyline polyline,
+            Affine2 m,
+            DisplayList2 list,
+            DisplayStyle style,
+            string handle,
+            string layer
+        )
         {
             GeoVector3 normal = polyline.Normal;
             int n = polyline.NumberOfVertices;
@@ -319,7 +447,15 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (w0 <= 0.0 && w1 <= 0.0)
                     {
-                        list.Add(new DisplayPolyline2(new[] { m.X(p0.X, p0.Y), m.Y(p0.X, p0.Y), m.X(p1.X, p1.Y), m.Y(p1.X, p1.Y) }, false, style, handle, layer));
+                        list.Add(
+                            new DisplayPolyline2(
+                                new[] { m.X(p0.X, p0.Y), m.Y(p0.X, p0.Y), m.X(p1.X, p1.Y), m.Y(p1.X, p1.Y) },
+                                false,
+                                style,
+                                handle,
+                                layer
+                            )
+                        );
                         continue;
                     }
 
@@ -330,7 +466,18 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else
                 {
-                    Bulge(p0.X, p0.Y, p1.X, p1.Y, bulge, out double cx, out double cy, out double radius, out double start, out double sweep);
+                    Bulge(
+                        p0.X,
+                        p0.Y,
+                        p1.X,
+                        p1.Y,
+                        bulge,
+                        out double cx,
+                        out double cy,
+                        out double radius,
+                        out double start,
+                        out double sweep
+                    );
                     int steps = Math.Max(2, (int)Math.Ceiling(Math.Abs(sweep) / ArcStep));
 
                     if (w0 <= 0.0 && w1 <= 0.0)
@@ -341,7 +488,9 @@ namespace GeometryHelper.Dxf.Viewer
                             Ring(ring, m, cx + radius * Math.Cos(angle), cy + radius * Math.Sin(angle));
                         }
 
-                        list.Add(new DisplayPolyline2(ring.ToArray(), false, style, handle, layer) { IsSampled = true });
+                        list.Add(
+                            new DisplayPolyline2(ring.ToArray(), false, style, handle, layer) { IsSampled = true }
+                        );
                         continue;
                     }
 
@@ -379,7 +528,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// <see cref="PointSize"/>) and turned back by the point's <see cref="DxfDBPoint.EcsRotation"/>, which AutoCAD measures
         /// clockwise. A mode of 5 to 31 is drawn as its dot.
         /// </summary>
-        private void AddPoint(DxfDBPoint point, Affine2 m, DisplayList2 list, DisplayStyle style, string handle, string layer)
+        private void AddPoint(
+            DxfDBPoint point,
+            Affine2 m,
+            DisplayList2 list,
+            DisplayStyle style,
+            string handle,
+            string layer
+        )
         {
             GeoPoint3 at = point.Position;
             int shape = _pdmode & 31;
@@ -394,7 +550,15 @@ namespace GeometryHelper.Dxf.Viewer
                 double y0 = at.Y + u0 * sin + v0 * cos;
                 double x1 = at.X + u1 * cos - v1 * sin;
                 double y1 = at.Y + u1 * sin + v1 * cos;
-                list.Add(new DisplayPolyline2(new[] { m.X(x0, y0), m.Y(x0, y0), m.X(x1, y1), m.Y(x1, y1) }, false, style, handle, layer));
+                list.Add(
+                    new DisplayPolyline2(
+                        new[] { m.X(x0, y0), m.Y(x0, y0), m.X(x1, y1), m.Y(x1, y1) },
+                        false,
+                        style,
+                        handle,
+                        layer
+                    )
+                );
             }
 
             switch (shape)
@@ -413,7 +577,9 @@ namespace GeometryHelper.Dxf.Viewer
                     Line(0.0, 0.0, 0.0, half);
                     break;
                 default:
-                    list.Add(new DisplayPolyline2(new[] { m.X(at.X, at.Y), m.Y(at.X, at.Y) }, false, style, handle, layer));
+                    list.Add(
+                        new DisplayPolyline2(new[] { m.X(at.X, at.Y), m.Y(at.X, at.Y) }, false, style, handle, layer)
+                    );
                     break;
             }
 
@@ -476,7 +642,18 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The arc a bulge draws from one vertex to the next: its centre, radius, start angle and signed sweep.</summary>
-        private static void Bulge(double x0, double y0, double x1, double y1, double bulge, out double cx, out double cy, out double radius, out double start, out double sweep)
+        private static void Bulge(
+            double x0,
+            double y0,
+            double x1,
+            double y1,
+            double bulge,
+            out double cx,
+            out double cy,
+            out double radius,
+            out double start,
+            out double sweep
+        )
         {
             sweep = 4.0 * Math.Atan(bulge);
             double dx = x1 - x0;
@@ -526,16 +703,16 @@ namespace GeometryHelper.Dxf.Viewer
                     Add(triangle.C);
                     break;
                 case GeoArc3 arc:
+                {
+                    int steps = Math.Max(4, (int)Math.Ceiling(Math.Abs(arc.SweptAngle) / ArcStep));
+
+                    for (int i = 0; i <= steps; i++)
                     {
-                        int steps = Math.Max(4, (int)Math.Ceiling(Math.Abs(arc.SweptAngle) / ArcStep));
-
-                        for (int i = 0; i <= steps; i++)
-                        {
-                            Add(arc.GetPointAtParameter((double)i / steps));
-                        }
-
-                        break;
+                        Add(arc.GetPointAtParameter((double)i / steps));
                     }
+
+                    break;
+                }
 
                 case GeoCircle3 circle:
                     for (int i = 0; i < 180; i++)
@@ -567,7 +744,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static void FlattenChain(IReadOnlyList<GeoPoint3> vertices, IReadOnlyList<double> bulges, IReadOnlyList<GeoVector3> normals, bool closed, Affine2 m, List<double> xy)
+        private static void FlattenChain(
+            IReadOnlyList<GeoPoint3> vertices,
+            IReadOnlyList<double> bulges,
+            IReadOnlyList<GeoVector3> normals,
+            bool closed,
+            Affine2 m,
+            List<double> xy
+        )
         {
             int n = vertices.Count;
             int edges = closed ? n : n - 1;
@@ -582,7 +766,18 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (Math.Abs(bulge) >= 1E-12)
                 {
-                    Bulge(p0.X, p0.Y, p1.X, p1.Y, bulge, out double cx, out double cy, out double radius, out double start, out double sweep);
+                    Bulge(
+                        p0.X,
+                        p0.Y,
+                        p1.X,
+                        p1.Y,
+                        bulge,
+                        out double cx,
+                        out double cy,
+                        out double radius,
+                        out double start,
+                        out double sweep
+                    );
                     int steps = Math.Max(2, (int)Math.Ceiling(Math.Abs(sweep) / ArcStep));
 
                     for (int k = 1; k < steps; k++)

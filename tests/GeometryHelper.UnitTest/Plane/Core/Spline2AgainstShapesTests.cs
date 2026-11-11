@@ -65,12 +65,18 @@ namespace GeometryHelper.UnitTest.Plane
         private static GeoSpline2 Ring() => GeoSpline2.FromCircle(new GeoCircle2(P(0, 0), 50));
 
         /// <summary>The parabola y = x (300 - x) / 200 from (0, 0) to (300, 0), a cubic: x = 300 t, y = 450 t (1 - t).</summary>
-        private static GeoSpline2 Arch() => new GeoSpline2(3, new[] { P(0, 0), P(100, 150), P(200, 150), P(300, 0) }, new double[] { 0, 0, 0, 0, 1, 1, 1, 1 });
+        private static GeoSpline2 Arch() =>
+            new GeoSpline2(
+                3,
+                new[] { P(0, 0), P(100, 150), P(200, 150), P(300, 0) },
+                new double[] { 0, 0, 0, 0, 1, 1, 1, 1 }
+            );
 
         /// <summary>The polyline (0, 0), (100, 0), (100, 50) as a spline of degree one.</summary>
         private static GeoSpline2 Corner() => GeoSpline2.FromPolyline(new GeoPolyline2(P(0, 0), P(100, 0), P(100, 50)));
 
-        private static GeoSpline2 Round(double x, double y, double r) => GeoSpline2.FromCircle(new GeoCircle2(P(x, y), r));
+        private static GeoSpline2 Round(double x, double y, double r) =>
+            GeoSpline2.FromCircle(new GeoCircle2(P(x, y), r));
 
         private static GeoPoint2[] Pts(params double[] xy)
         {
@@ -94,25 +100,51 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static void AssertSamePoints(GeoPoint2[] expected, GeoPoint2[] actual, string what)
         {
-            Assert.True(expected.Length == actual.Length, what + ": " + actual.Length + " points " + string.Join(" ", actual) + ", " + expected.Length + " expected");
+            Assert.True(
+                expected.Length == actual.Length,
+                what
+                    + ": "
+                    + actual.Length
+                    + " points "
+                    + string.Join(" ", actual)
+                    + ", "
+                    + expected.Length
+                    + " expected"
+            );
 
             for (int i = 0; i < expected.Length; i++)
             {
-                Assert.True(expected[i].DistanceTo(actual[i]) <= 1E-6, what + ": point " + i + " is " + actual[i] + ", " + expected[i] + " expected");
+                Assert.True(
+                    expected[i].DistanceTo(actual[i]) <= 1E-6,
+                    what + ": point " + i + " is " + actual[i] + ", " + expected[i] + " expected"
+                );
             }
         }
 
         private static void AssertSameBits(GeoPoint2[] expected, GeoPoint2[] actual, string what)
         {
-            Assert.True(expected.Length == actual.Length, what + ": " + actual.Length + " points and " + expected.Length);
+            Assert.True(
+                expected.Length == actual.Length,
+                what + ": " + actual.Length + " points and " + expected.Length
+            );
 
             for (int i = 0; i < expected.Length; i++)
             {
-                Assert.True(Bits(expected[i].X) == Bits(actual[i].X) && Bits(expected[i].Y) == Bits(actual[i].Y), what + ": point " + i + " " + expected[i] + " and " + actual[i]);
+                Assert.True(
+                    Bits(expected[i].X) == Bits(actual[i].X) && Bits(expected[i].Y) == Bits(actual[i].Y),
+                    what + ": point " + i + " " + expected[i] + " and " + actual[i]
+                );
             }
         }
 
-        private static void Verify(string name, GeoSpline2 spline, object shape, double distance, GeoPoint2[] crossings, double? shortest)
+        private static void Verify(
+            string name,
+            GeoSpline2 spline,
+            object shape,
+            double distance,
+            GeoPoint2[] crossings,
+            double? shortest
+        )
         {
             bool isPoint = shape is GeoPoint2;
 
@@ -123,7 +155,10 @@ namespace GeometryHelper.UnitTest.Plane
                 Assert.True(Answers(shape, query, spline), name + ": the shape does not answer " + query);
             }
 
-            Assert.True(HasTry(spline, shape) && HasTry(shape, spline), name + ": TryIntersectWith is missing from one side");
+            Assert.True(
+                HasTry(spline, shape) && HasTry(shape, spline),
+                name + ": TryIntersectWith is missing from one side"
+            );
 
             // Distance: as worked out, the same from both sides to the bit, and the plain form is the global one.
             double fromSpline = Distance(spline, shape, Strict);
@@ -154,7 +189,11 @@ namespace GeometryHelper.UnitTest.Plane
 
             AssertSameBits(fromSplineSide, fromShapeSide, name + " both sides");
             AssertSameBits(Crossings(spline, shape, Tolerance.Global), Crossings(spline, shape), name + " plain form");
-            AssertSameBits(Crossings(shape, spline, Tolerance.Global), Crossings(shape, spline), name + " plain form, the shape's");
+            AssertSameBits(
+                Crossings(shape, spline, Tolerance.Global),
+                Crossings(shape, spline),
+                name + " plain form, the shape's"
+            );
 
             // TryIntersectWith says whether there are any, and gives them.
             bool tried = Try(spline, shape, out GeoPoint2[] points, Strict);
@@ -174,16 +213,33 @@ namespace GeometryHelper.UnitTest.Plane
             double length = shortest ?? distance;
 
             Assert.InRange(leaving.Length, length - 1E-9, length + 1E-9);
-            Assert.True(Bits(leaving.StartPoint.X) == Bits(landing.EndPoint.X) && Bits(leaving.StartPoint.Y) == Bits(landing.EndPoint.Y), name + ": the segments are not the same turned round");
-            Assert.True(Bits(leaving.EndPoint.X) == Bits(landing.StartPoint.X) && Bits(leaving.EndPoint.Y) == Bits(landing.StartPoint.Y), name + ": the segments are not the same turned round");
-            Assert.True(spline.DistanceTo(leaving.StartPoint) <= 1E-9 * Math.Max(1.0, Math.Abs(leaving.StartPoint.X) + Math.Abs(leaving.StartPoint.Y)), name + ": the shortest segment starts off the spline at " + leaving.StartPoint);
+            Assert.True(
+                Bits(leaving.StartPoint.X) == Bits(landing.EndPoint.X)
+                    && Bits(leaving.StartPoint.Y) == Bits(landing.EndPoint.Y),
+                name + ": the segments are not the same turned round"
+            );
+            Assert.True(
+                Bits(leaving.EndPoint.X) == Bits(landing.StartPoint.X)
+                    && Bits(leaving.EndPoint.Y) == Bits(landing.StartPoint.Y),
+                name + ": the segments are not the same turned round"
+            );
+            Assert.True(
+                spline.DistanceTo(leaving.StartPoint)
+                    <= 1E-9 * Math.Max(1.0, Math.Abs(leaving.StartPoint.X) + Math.Abs(leaving.StartPoint.Y)),
+                name + ": the shortest segment starts off the spline at " + leaving.StartPoint
+            );
             Assert.Equal(Bits(Shortest(spline, shape, Tolerance.Global).Length), Bits(Shortest(spline, shape).Length));
             Assert.Equal(Bits(Shortest(shape, spline, Tolerance.Global).Length), Bits(Shortest(shape, spline).Length));
 
             _ = isPoint;
         }
 
-        private static void Add(Dictionary<string, Action> checks, string shapeName, object shape, params (string label, GeoSpline2 spline, double distance, GeoPoint2[] crossings, double? shortest)[] cases)
+        private static void Add(
+            Dictionary<string, Action> checks,
+            string shapeName,
+            object shape,
+            params (string label, GeoSpline2 spline, double distance, GeoPoint2[] crossings, double? shortest)[] cases
+        )
         {
             foreach (var c in cases)
             {
@@ -212,149 +268,466 @@ namespace GeometryHelper.UnitTest.Plane
             double at10 = Root(2500 - 100); // 48.9898: where the ring meets y = 10
 
             // A segment: the ring is crossed twice by y = 30, touches y = 50 at the top, and ends of the segment can lie on it.
-            Add(checks, "Line2", new GeoLine2(P(-100, 30), P(100, 30)),
-                ("the ring through it", ring, 0, Pts(at30, 30, -at30, 30), null));
-            Add(checks, "Line2: stopping inside the ring", new GeoLine2(P(-100, 30), P(-30, 30)),
-                ("only one crossing is reached", ring, 0, Pts(-at30, 30), null));
-            Add(checks, "Line2: beside the ring", new GeoLine2(P(60, -100), P(60, 100)),
-                ("ten from it", ring, 10, Pts(), null));
-            Add(checks, "Line2: inside the ring", new GeoLine2(P(-20, 0), P(20, 0)),
-                ("thirty from either side, the lower knot first", ring, 30, Pts(), null));
-            Add(checks, "Line2: touching the top", new GeoLine2(P(-100, 50), P(100, 50)),
-                ("tangent at (0, 50)", ring, 0, Pts(0, 50), null));
-            Add(checks, "Line2: half a thousandth over the top", new GeoLine2(P(-100, 50.0005), P(100, 50.0005)),
-                ("touches within the point tolerance, at the top", ring, 0.0005, Pts(0, 50), null));
-            Add(checks, "Line2: two thousandths over the top", new GeoLine2(P(-100, 50.002), P(100, 50.002)),
-                ("does not touch", ring, 0.002, Pts(), null));
-            Add(checks, "Line2: an end on the ring", new GeoLine2(P(50, 0), P(120, 0)),
-                ("starts on the start of the ring, which is its end too, one place", ring, 0, Pts(50, 0), null));
-            Add(checks, "Line2: along the first leg", new GeoLine2(P(-50, 0), P(150, 0)),
-                ("the corner leaves the line at (100, 0); the leg along it is not crossing it", corner, 0, Pts(100, 0), 0));
-            Add(checks, "Line2: along part of the first leg", new GeoLine2(P(20, 0), P(60, 0)),
-                ("inside the leg: nought, collides, no crossing", corner, 0, Pts(), 0));
-            Add(checks, "Line2: across the arch", new GeoLine2(P(150, 50), P(150, 200)),
-                ("through the top", arch, 0, Pts(150, 112.5), null));
-            Add(checks, "Line2: above the arch", new GeoLine2(P(0, 200), P(300, 200)),
-                ("87.5 over the top", arch, 87.5, Pts(), null));
-            Add(checks, "Line2: ending on the arch's end", new GeoLine2(P(300, 0), P(400, 0)),
-                ("meets the end of the arch", arch, 0, Pts(300, 0), null));
+            Add(
+                checks,
+                "Line2",
+                new GeoLine2(P(-100, 30), P(100, 30)),
+                ("the ring through it", ring, 0, Pts(at30, 30, -at30, 30), null)
+            );
+            Add(
+                checks,
+                "Line2: stopping inside the ring",
+                new GeoLine2(P(-100, 30), P(-30, 30)),
+                ("only one crossing is reached", ring, 0, Pts(-at30, 30), null)
+            );
+            Add(
+                checks,
+                "Line2: beside the ring",
+                new GeoLine2(P(60, -100), P(60, 100)),
+                ("ten from it", ring, 10, Pts(), null)
+            );
+            Add(
+                checks,
+                "Line2: inside the ring",
+                new GeoLine2(P(-20, 0), P(20, 0)),
+                ("thirty from either side, the lower knot first", ring, 30, Pts(), null)
+            );
+            Add(
+                checks,
+                "Line2: touching the top",
+                new GeoLine2(P(-100, 50), P(100, 50)),
+                ("tangent at (0, 50)", ring, 0, Pts(0, 50), null)
+            );
+            Add(
+                checks,
+                "Line2: half a thousandth over the top",
+                new GeoLine2(P(-100, 50.0005), P(100, 50.0005)),
+                ("touches within the point tolerance, at the top", ring, 0.0005, Pts(0, 50), null)
+            );
+            Add(
+                checks,
+                "Line2: two thousandths over the top",
+                new GeoLine2(P(-100, 50.002), P(100, 50.002)),
+                ("does not touch", ring, 0.002, Pts(), null)
+            );
+            Add(
+                checks,
+                "Line2: an end on the ring",
+                new GeoLine2(P(50, 0), P(120, 0)),
+                ("starts on the start of the ring, which is its end too, one place", ring, 0, Pts(50, 0), null)
+            );
+            Add(
+                checks,
+                "Line2: along the first leg",
+                new GeoLine2(P(-50, 0), P(150, 0)),
+                (
+                    "the corner leaves the line at (100, 0); the leg along it is not crossing it",
+                    corner,
+                    0,
+                    Pts(100, 0),
+                    0
+                )
+            );
+            Add(
+                checks,
+                "Line2: along part of the first leg",
+                new GeoLine2(P(20, 0), P(60, 0)),
+                ("inside the leg: nought, collides, no crossing", corner, 0, Pts(), 0)
+            );
+            Add(
+                checks,
+                "Line2: across the arch",
+                new GeoLine2(P(150, 50), P(150, 200)),
+                ("through the top", arch, 0, Pts(150, 112.5), null)
+            );
+            Add(
+                checks,
+                "Line2: above the arch",
+                new GeoLine2(P(0, 200), P(300, 200)),
+                ("87.5 over the top", arch, 87.5, Pts(), null)
+            );
+            Add(
+                checks,
+                "Line2: ending on the arch's end",
+                new GeoLine2(P(300, 0), P(400, 0)),
+                ("meets the end of the arch", arch, 0, Pts(300, 0), null)
+            );
 
             // A ray.
-            Add(checks, "Ray2", new GeoRay2(P(100, 10), U(-1, 0)),
-                ("running left through the ring", ring, 0, Pts(at10, 10, -at10, 10), null));
-            Add(checks, "Ray2: pointing away", new GeoRay2(P(60, 10), U(1, 0)),
-                ("starts outside and runs off", ring, Root(3700) - 50, Pts(), null));
-            Add(checks, "Ray2: from inside", new GeoRay2(P(0, 10), U(1, 0)),
-                ("leaves the ring once", ring, 0, Pts(at10, 10), null));
-            Add(checks, "Ray2: along the arch's axis", new GeoRay2(P(150, 300), U(0, -1)),
-                ("comes down on the top", arch, 0, Pts(150, 112.5), null));
-            Add(checks, "Ray2: up from the arch", new GeoRay2(P(150, 120), U(0, 1)),
-                ("starts 7.5 over the top and runs away", arch, 7.5, Pts(), null));
+            Add(
+                checks,
+                "Ray2",
+                new GeoRay2(P(100, 10), U(-1, 0)),
+                ("running left through the ring", ring, 0, Pts(at10, 10, -at10, 10), null)
+            );
+            Add(
+                checks,
+                "Ray2: pointing away",
+                new GeoRay2(P(60, 10), U(1, 0)),
+                ("starts outside and runs off", ring, Root(3700) - 50, Pts(), null)
+            );
+            Add(
+                checks,
+                "Ray2: from inside",
+                new GeoRay2(P(0, 10), U(1, 0)),
+                ("leaves the ring once", ring, 0, Pts(at10, 10), null)
+            );
+            Add(
+                checks,
+                "Ray2: along the arch's axis",
+                new GeoRay2(P(150, 300), U(0, -1)),
+                ("comes down on the top", arch, 0, Pts(150, 112.5), null)
+            );
+            Add(
+                checks,
+                "Ray2: up from the arch",
+                new GeoRay2(P(150, 120), U(0, 1)),
+                ("starts 7.5 over the top and runs away", arch, 7.5, Pts(), null)
+            );
 
             // A line without ends.
-            Add(checks, "XLine2", new GeoXLine2(P(-100, 30), U(1, 0)),
-                ("through the ring", ring, 0, Pts(at30, 30, -at30, 30), null));
-            Add(checks, "XLine2: turned round", new GeoXLine2(P(500, 30), U(-1, 0)),
-                ("through the ring, from the other end", ring, 0, Pts(at30, 30, -at30, 30), null));
-            Add(checks, "XLine2: beside the ring", new GeoXLine2(P(-100, 80), U(1, 0)),
-                ("thirty over the top", ring, 30, Pts(), null));
-            Add(checks, "XLine2: touching the top", new GeoXLine2(P(-100, 50), U(1, 0)),
-                ("tangent", ring, 0, Pts(0, 50), null));
-            Add(checks, "XLine2: far along", new GeoXLine2(P(1E6, 30), U(-1, 0)),
-                ("through the ring from a million away", ring, 0, Pts(at30, 30, -at30, 30), null));
-            Add(checks, "XLine2: across the arch", new GeoXLine2(P(-50, 100), U(1, 0)),
-                ("at 100: x = 100 and x = 200", arch, 0, Pts(100, 100, 200, 100), null));
-            Add(checks, "XLine2: touching the arch's top", new GeoXLine2(P(-50, 112.5), U(1, 0)),
-                ("tangent at (150, 112.5)", arch, 0, Pts(150, 112.5), null));
-            Add(checks, "XLine2: half a unit over the arch", new GeoXLine2(P(-50, 113), U(1, 0)),
-                ("0.5 over the top", arch, 0.5, Pts(), null));
-            Add(checks, "XLine2: along the first leg", new GeoXLine2(P(-50, 0), U(1, 0)),
-                ("the line carries the first leg: nought, and one crossing where the corner leaves it", corner, 0, Pts(100, 0), 0));
+            Add(
+                checks,
+                "XLine2",
+                new GeoXLine2(P(-100, 30), U(1, 0)),
+                ("through the ring", ring, 0, Pts(at30, 30, -at30, 30), null)
+            );
+            Add(
+                checks,
+                "XLine2: turned round",
+                new GeoXLine2(P(500, 30), U(-1, 0)),
+                ("through the ring, from the other end", ring, 0, Pts(at30, 30, -at30, 30), null)
+            );
+            Add(
+                checks,
+                "XLine2: beside the ring",
+                new GeoXLine2(P(-100, 80), U(1, 0)),
+                ("thirty over the top", ring, 30, Pts(), null)
+            );
+            Add(
+                checks,
+                "XLine2: touching the top",
+                new GeoXLine2(P(-100, 50), U(1, 0)),
+                ("tangent", ring, 0, Pts(0, 50), null)
+            );
+            Add(
+                checks,
+                "XLine2: far along",
+                new GeoXLine2(P(1E6, 30), U(-1, 0)),
+                ("through the ring from a million away", ring, 0, Pts(at30, 30, -at30, 30), null)
+            );
+            Add(
+                checks,
+                "XLine2: across the arch",
+                new GeoXLine2(P(-50, 100), U(1, 0)),
+                ("at 100: x = 100 and x = 200", arch, 0, Pts(100, 100, 200, 100), null)
+            );
+            Add(
+                checks,
+                "XLine2: touching the arch's top",
+                new GeoXLine2(P(-50, 112.5), U(1, 0)),
+                ("tangent at (150, 112.5)", arch, 0, Pts(150, 112.5), null)
+            );
+            Add(
+                checks,
+                "XLine2: half a unit over the arch",
+                new GeoXLine2(P(-50, 113), U(1, 0)),
+                ("0.5 over the top", arch, 0.5, Pts(), null)
+            );
+            Add(
+                checks,
+                "XLine2: along the first leg",
+                new GeoXLine2(P(-50, 0), U(1, 0)),
+                (
+                    "the line carries the first leg: nought, and one crossing where the corner leaves it",
+                    corner,
+                    0,
+                    Pts(100, 0),
+                    0
+                )
+            );
 
             // A polyline.
-            Add(checks, "Polyline2", new GeoPolyline2(P(-100, -30), P(100, -30), P(100, 30)),
-                ("through the bottom of the ring", ring, 0, Pts(-at30, -30, at30, -30), null));
-            Add(checks, "Polyline2: round the ring at thirty", new GeoPolyline2(P(-80, -80), P(-80, 80), P(80, 80)),
-                ("thirty from the top and from the left", ring, 30, Pts(), null));
-            Add(checks, "Polyline2: across the arch", new GeoPolyline2(P(50, 0), P(50, 200), P(250, 200), P(250, 0)),
-                ("up a side, over, and down", arch, 0, Pts(50, 62.5, 250, 62.5), null));
+            Add(
+                checks,
+                "Polyline2",
+                new GeoPolyline2(P(-100, -30), P(100, -30), P(100, 30)),
+                ("through the bottom of the ring", ring, 0, Pts(-at30, -30, at30, -30), null)
+            );
+            Add(
+                checks,
+                "Polyline2: round the ring at thirty",
+                new GeoPolyline2(P(-80, -80), P(-80, 80), P(80, 80)),
+                ("thirty from the top and from the left", ring, 30, Pts(), null)
+            );
+            Add(
+                checks,
+                "Polyline2: across the arch",
+                new GeoPolyline2(P(50, 0), P(50, 200), P(250, 200), P(250, 0)),
+                ("up a side, over, and down", arch, 0, Pts(50, 62.5, 250, 62.5), null)
+            );
 
             // A polygon, a rectangle, a triangle: closed, so a spline inside is nought from them.
             GeoPolygon2 square = Square();
 
-            Add(checks, "Polygon2", square,
-                ("the ring through its bottom and its left side", ring, 0, Pts(50, 0, 0, 50), null));
-            Add(checks, "Polygon2: round the ring", new GeoPolygon2(P(-100, -100), P(100, -100), P(100, 100), P(-100, 100)),
-                ("the ring is inside: nought, and 50 to the outline", ring, 0, Pts(), 50));
-            Add(checks, "Polygon2: beside the ring", new GeoPolygon2(P(100, 0), P(200, 0), P(200, 100), P(100, 100)),
-                ("50 from the ring", ring, 50, Pts(), null));
-            Add(checks, "Polygon2: over the arch", new GeoPolygon2(P(100, 150), P(200, 150), P(200, 250), P(100, 250)),
-                ("37.5 under its bottom edge, from the top of the arch", arch, 37.5, Pts(), null));
-            Add(checks, "Polygon2: round the arch", new GeoPolygon2(P(-50, -50), P(350, -50), P(350, 150), P(-50, 150)),
-                ("the arch is inside: nought, and 37.5 to the top edge", arch, 0, Pts(), 37.5));
-            Add(checks, "Rectangle2", Rectangle(),
-                ("the ring through its bottom and its left side", ring, 0, Pts(50, 0, 0, 50), null));
-            Add(checks, "Rectangle2: round the ring", new GeoRectangle2(P(0, 0), 200, 200),
-                ("the ring is inside", ring, 0, Pts(), 50));
-            Add(checks, "Triangle2", Triangle(),
-                ("the ring through its bottom and its left side, not its slope", ring, 0, Pts(50, 0, 0, 50), null));
-            Add(checks, "Triangle2: beside the ring", new GeoTriangle2(P(60, 60), P(160, 60), P(60, 160)),
-                ("the corner (60, 60) is 84.85 from the centre", ring, Root(7200) - 50, Pts(), null));
+            Add(
+                checks,
+                "Polygon2",
+                square,
+                ("the ring through its bottom and its left side", ring, 0, Pts(50, 0, 0, 50), null)
+            );
+            Add(
+                checks,
+                "Polygon2: round the ring",
+                new GeoPolygon2(P(-100, -100), P(100, -100), P(100, 100), P(-100, 100)),
+                ("the ring is inside: nought, and 50 to the outline", ring, 0, Pts(), 50)
+            );
+            Add(
+                checks,
+                "Polygon2: beside the ring",
+                new GeoPolygon2(P(100, 0), P(200, 0), P(200, 100), P(100, 100)),
+                ("50 from the ring", ring, 50, Pts(), null)
+            );
+            Add(
+                checks,
+                "Polygon2: over the arch",
+                new GeoPolygon2(P(100, 150), P(200, 150), P(200, 250), P(100, 250)),
+                ("37.5 under its bottom edge, from the top of the arch", arch, 37.5, Pts(), null)
+            );
+            Add(
+                checks,
+                "Polygon2: round the arch",
+                new GeoPolygon2(P(-50, -50), P(350, -50), P(350, 150), P(-50, 150)),
+                ("the arch is inside: nought, and 37.5 to the top edge", arch, 0, Pts(), 37.5)
+            );
+            Add(
+                checks,
+                "Rectangle2",
+                Rectangle(),
+                ("the ring through its bottom and its left side", ring, 0, Pts(50, 0, 0, 50), null)
+            );
+            Add(
+                checks,
+                "Rectangle2: round the ring",
+                new GeoRectangle2(P(0, 0), 200, 200),
+                ("the ring is inside", ring, 0, Pts(), 50)
+            );
+            Add(
+                checks,
+                "Triangle2",
+                Triangle(),
+                ("the ring through its bottom and its left side, not its slope", ring, 0, Pts(50, 0, 0, 50), null)
+            );
+            Add(
+                checks,
+                "Triangle2: beside the ring",
+                new GeoTriangle2(P(60, 60), P(160, 60), P(60, 160)),
+                ("the corner (60, 60) is 84.85 from the centre", ring, Root(7200) - 50, Pts(), null)
+            );
 
             // A face: the material is the square less the hole.
-            Add(checks, "Face2", Plate(),
-                ("the ring through the outline and the hole", ring, 0, Pts(50, 0, 40, 30, 30, 40, 0, 50), null));
-            Add(checks, "Face2: in the hole", Plate(),
-                ("a circle of radius 5 in the hole of 40 by 40 is 15 from its rim", Round(50, 50, 5), 15, Pts(), null));
-            Add(checks, "Face2: in the material", Plate(),
-                ("a circle of radius 5 in the material, 10 from the outline: nought from the face, and 10 to its rim", Round(15, 15, 5), 0, Pts(), 10));
+            Add(
+                checks,
+                "Face2",
+                Plate(),
+                ("the ring through the outline and the hole", ring, 0, Pts(50, 0, 40, 30, 30, 40, 0, 50), null)
+            );
+            Add(
+                checks,
+                "Face2: in the hole",
+                Plate(),
+                ("a circle of radius 5 in the hole of 40 by 40 is 15 from its rim", Round(50, 50, 5), 15, Pts(), null)
+            );
+            Add(
+                checks,
+                "Face2: in the material",
+                Plate(),
+                (
+                    "a circle of radius 5 in the material, 10 from the outline: nought from the face, and 10 to its rim",
+                    Round(15, 15, 5),
+                    0,
+                    Pts(),
+                    10
+                )
+            );
 
             // An arc, a circle, an ellipse: all curved.
-            Add(checks, "Arc2", new GeoArc2(P(60, 0), 80, Math.PI / 2, 3 * Math.PI / 2),
-                ("crosses the ring where the two circles do", ring, 0, Pts(-2.5, Root(2500 - 6.25), -2.5, -Root(2500 - 6.25)), null));
-            Add(checks, "Arc2: along the ring", Arc(),
-                ("lies along it: nought, collides, no crossing", ring, 0, Pts(), 0));
-            Add(checks, "Arc2: far from the ring", new GeoArc2(P(150, 0), 20, Math.PI / 2, Math.PI),
-                ("the arc's nearest point is (130, 0)", ring, 80, Pts(), null));
-            Add(checks, "Circle2", new GeoCircle2(P(60, 0), 30),
-                ("the two circles meet at x = 43.33", ring, 0, Pts(130.0 / 3.0, Root(2500 - 130.0 * 130.0 / 9.0), 130.0 / 3.0, -Root(2500 - 130.0 * 130.0 / 9.0)), null));
-            Add(checks, "Circle2: round the ring", new GeoCircle2(P(0, 0), 100),
-                ("the ring is inside: nought, and 50 to the rim", ring, 0, Pts(), 50));
-            Add(checks, "Circle2: beside the ring", new GeoCircle2(P(200, 0), 50),
-                ("100 apart", ring, 100, Pts(), null));
-            Add(checks, "Circle2: touching the ring", new GeoCircle2(P(100, 0), 50),
-                ("tangent at (50, 0)", ring, 0, Pts(50, 0), null));
-            Add(checks, "Ellipse2", new GeoEllipse2(P(0, 0), GeoVector2.XAxis, 100, 20),
-                ("the ring crosses the long thin ellipse four times", ring, 0, Pts(Root(2187.5), Root(312.5), -Root(2187.5), Root(312.5), -Root(2187.5), -Root(312.5), Root(2187.5), -Root(312.5)), null));
-            Add(checks, "Ellipse2: inside the ring", new GeoEllipse2(P(0, 0), GeoVector2.XAxis, 30, 20),
-                ("20 from the end of the ellipse", ring, 20, Pts(), null));
-            Add(checks, "Ellipse2: round the ring", Oval(),
-                ("the ring is inside and touches the ellipse top and bottom", ring, 0, Pts(0, 50, 0, -50), 0));
+            Add(
+                checks,
+                "Arc2",
+                new GeoArc2(P(60, 0), 80, Math.PI / 2, 3 * Math.PI / 2),
+                (
+                    "crosses the ring where the two circles do",
+                    ring,
+                    0,
+                    Pts(-2.5, Root(2500 - 6.25), -2.5, -Root(2500 - 6.25)),
+                    null
+                )
+            );
+            Add(
+                checks,
+                "Arc2: along the ring",
+                Arc(),
+                ("lies along it: nought, collides, no crossing", ring, 0, Pts(), 0)
+            );
+            Add(
+                checks,
+                "Arc2: far from the ring",
+                new GeoArc2(P(150, 0), 20, Math.PI / 2, Math.PI),
+                ("the arc's nearest point is (130, 0)", ring, 80, Pts(), null)
+            );
+            Add(
+                checks,
+                "Circle2",
+                new GeoCircle2(P(60, 0), 30),
+                (
+                    "the two circles meet at x = 43.33",
+                    ring,
+                    0,
+                    Pts(130.0 / 3.0, Root(2500 - 130.0 * 130.0 / 9.0), 130.0 / 3.0, -Root(2500 - 130.0 * 130.0 / 9.0)),
+                    null
+                )
+            );
+            Add(
+                checks,
+                "Circle2: round the ring",
+                new GeoCircle2(P(0, 0), 100),
+                ("the ring is inside: nought, and 50 to the rim", ring, 0, Pts(), 50)
+            );
+            Add(
+                checks,
+                "Circle2: beside the ring",
+                new GeoCircle2(P(200, 0), 50),
+                ("100 apart", ring, 100, Pts(), null)
+            );
+            Add(
+                checks,
+                "Circle2: touching the ring",
+                new GeoCircle2(P(100, 0), 50),
+                ("tangent at (50, 0)", ring, 0, Pts(50, 0), null)
+            );
+            Add(
+                checks,
+                "Ellipse2",
+                new GeoEllipse2(P(0, 0), GeoVector2.XAxis, 100, 20),
+                (
+                    "the ring crosses the long thin ellipse four times",
+                    ring,
+                    0,
+                    Pts(
+                        Root(2187.5),
+                        Root(312.5),
+                        -Root(2187.5),
+                        Root(312.5),
+                        -Root(2187.5),
+                        -Root(312.5),
+                        Root(2187.5),
+                        -Root(312.5)
+                    ),
+                    null
+                )
+            );
+            Add(
+                checks,
+                "Ellipse2: inside the ring",
+                new GeoEllipse2(P(0, 0), GeoVector2.XAxis, 30, 20),
+                ("20 from the end of the ellipse", ring, 20, Pts(), null)
+            );
+            Add(
+                checks,
+                "Ellipse2: round the ring",
+                Oval(),
+                ("the ring is inside and touches the ellipse top and bottom", ring, 0, Pts(0, 50, 0, -50), 0)
+            );
 
             // An edge, a chain, a loop.
-            Add(checks, "Edge2: straight", new GeoEdge2(P(60, -100), P(60, 100)),
-                ("ten from the ring", ring, 10, Pts(), null));
-            Add(checks, "Edge2: curved", new GeoEdge2(new GeoArc2(P(60, 0), 80, Math.PI / 2, 3 * Math.PI / 2)),
-                ("crosses the ring twice", ring, 0, Pts(-2.5, Root(2500 - 6.25), -2.5, -Root(2500 - 6.25)), null));
-            Add(checks, "PolylineArc2", Hook(),
-                ("the straight edge crosses the ring at (50, 0); the bowed one is far", ring, 0, Pts(50, 0), null));
-            Add(checks, "PolylineArc2: a half circle far off", new GeoPolylineArc2(new[] { P(150, -50), P(150, 50) }, new[] { 1.0 }),
-                ("nearest at its ends (150, 50) and (150, -50): 158.11 from the origin", ring, Root(150 * 150 + 50 * 50) - 50, Pts(), null));
-            Add(checks, "PolygonArc2", Slot(),
-                ("the ring crosses the bottom at (50, 0) and touches the round end at the top", ring, 0, Pts(50, 0, 0, 50), null));
+            Add(
+                checks,
+                "Edge2: straight",
+                new GeoEdge2(P(60, -100), P(60, 100)),
+                ("ten from the ring", ring, 10, Pts(), null)
+            );
+            Add(
+                checks,
+                "Edge2: curved",
+                new GeoEdge2(new GeoArc2(P(60, 0), 80, Math.PI / 2, 3 * Math.PI / 2)),
+                ("crosses the ring twice", ring, 0, Pts(-2.5, Root(2500 - 6.25), -2.5, -Root(2500 - 6.25)), null)
+            );
+            Add(
+                checks,
+                "PolylineArc2",
+                Hook(),
+                ("the straight edge crosses the ring at (50, 0); the bowed one is far", ring, 0, Pts(50, 0), null)
+            );
+            Add(
+                checks,
+                "PolylineArc2: a half circle far off",
+                new GeoPolylineArc2(new[] { P(150, -50), P(150, 50) }, new[] { 1.0 }),
+                (
+                    "nearest at its ends (150, 50) and (150, -50): 158.11 from the origin",
+                    ring,
+                    Root(150 * 150 + 50 * 50) - 50,
+                    Pts(),
+                    null
+                )
+            );
+            Add(
+                checks,
+                "PolygonArc2",
+                Slot(),
+                (
+                    "the ring crosses the bottom at (50, 0) and touches the round end at the top",
+                    ring,
+                    0,
+                    Pts(50, 0, 0, 50),
+                    null
+                )
+            );
 
             // Another spline.
-            var flipped = new GeoSpline2(3, new[] { P(0, 100), P(100, -50), P(200, -50), P(300, 100) }, new double[] { 0, 0, 0, 0, 1, 1, 1, 1 });
+            var flipped = new GeoSpline2(
+                3,
+                new[] { P(0, 100), P(100, -50), P(200, -50), P(300, 100) },
+                new double[] { 0, 0, 0, 0, 1, 1, 1, 1 }
+            );
             double cross = 50.0 * Root(5.0); // the arch and its twin meet where t (1 - t) = 1/9: x = 150 -+ 50 sqrt 5, at height 50
 
-            Add(checks, "Spline2: crossing", flipped,
-                ("the arch and its upside down twin cross where 450 t (1 - t) = 100 - 450 t (1 - t)", arch, 0, Pts(150 - cross, 50, 150 + cross, 50), null));
-            Add(checks, "Spline2: apart", arch + new GeoVector2(0, 20),
-                ("a copy 20 over it is not 20 away: its start is 11.3358552330596 from the arch, at t = 0.0308", arch, 11.3358552330596365, Pts(), null));
-            Add(checks, "Spline2: the same", arch.Clone(),
-                ("a copy lies along it: nought, collides, no crossing", arch, 0, Pts(), 0));
-            Add(checks, "Spline2: a circle through the arch", Round(150, 60, 40),
-                ("the circle of radius 40 about (150, 60) is 12.5 under the top", arch, 12.5, Pts(), null));
+            Add(
+                checks,
+                "Spline2: crossing",
+                flipped,
+                (
+                    "the arch and its upside down twin cross where 450 t (1 - t) = 100 - 450 t (1 - t)",
+                    arch,
+                    0,
+                    Pts(150 - cross, 50, 150 + cross, 50),
+                    null
+                )
+            );
+            Add(
+                checks,
+                "Spline2: apart",
+                arch + new GeoVector2(0, 20),
+                (
+                    "a copy 20 over it is not 20 away: its start is 11.3358552330596 from the arch, at t = 0.0308",
+                    arch,
+                    11.3358552330596365,
+                    Pts(),
+                    null
+                )
+            );
+            Add(
+                checks,
+                "Spline2: the same",
+                arch.Clone(),
+                ("a copy lies along it: nought, collides, no crossing", arch, 0, Pts(), 0)
+            );
+            Add(
+                checks,
+                "Spline2: a circle through the arch",
+                Round(150, 60, 40),
+                ("the circle of radius 40 about (150, 60) is 12.5 under the top", arch, 12.5, Pts(), null)
+            );
 
             return checks;
         }

@@ -19,8 +19,8 @@ namespace GeometryHelper.Extension
         /// <param name="tolerance">The tolerance: two ends nearer than this count as meeting.</param>
         /// <returns>One chain for every unbroken run.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="lines"/> is null.</exception>
-        public static GeoPolyline3[] Join(this IEnumerable<GeoLine3> lines, Tolerance tolerance)
-            => Merge3.Join(lines, tolerance);
+        public static GeoPolyline3[] Join(this IEnumerable<GeoLine3> lines, Tolerance tolerance) =>
+            Merge3.Join(lines, tolerance);
 
         /// <summary>
         /// Joins chains into longer chains by matching their ends.
@@ -34,13 +34,14 @@ namespace GeometryHelper.Extension
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>One chain for every unbroken run.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="polylines"/> is null.</exception>
-        public static GeoPolyline3[] Join(this IEnumerable<GeoPolyline3> polylines, Tolerance tolerance)
-            => Merge3.Join(polylines, tolerance);
+        public static GeoPolyline3[] Join(this IEnumerable<GeoPolyline3> polylines, Tolerance tolerance) =>
+            Merge3.Join(polylines, tolerance);
 
         /// <summary>
         /// Rejoins segments already in order along a run, where one ends and the next begins.
         /// </summary>
-        public static GeoLine3[] MergeConsecutive(this IEnumerable<GeoLine3> segments) => Merge3.ConsecutiveLines(segments);
+        public static GeoLine3[] MergeConsecutive(this IEnumerable<GeoLine3> segments) =>
+            Merge3.ConsecutiveLines(segments);
 
         /// <summary>
         /// Rejoins segments already in order along a run, where one ends and the next begins, within a tolerance.
@@ -49,14 +50,14 @@ namespace GeometryHelper.Extension
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>One segment per unbroken stretch, in order.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="segments"/> is null.</exception>
-        public static GeoLine3[] MergeConsecutive(this IEnumerable<GeoLine3> segments, Tolerance tolerance)
-            => Merge3.ConsecutiveLines(segments, tolerance);
+        public static GeoLine3[] MergeConsecutive(this IEnumerable<GeoLine3> segments, Tolerance tolerance) =>
+            Merge3.ConsecutiveLines(segments, tolerance);
 
         /// <summary>
         /// Rejoins chains already in order along a run, where one ends and the next begins.
         /// </summary>
-        public static GeoPolyline3[] MergeConsecutive(this IEnumerable<GeoPolyline3> polylines)
-            => Merge3.ConsecutivePolylines(polylines);
+        public static GeoPolyline3[] MergeConsecutive(this IEnumerable<GeoPolyline3> polylines) =>
+            Merge3.ConsecutivePolylines(polylines);
 
         /// <summary>
         /// Rejoins chains already in order along a run, where one ends and the next begins, within a tolerance.
@@ -65,13 +66,14 @@ namespace GeometryHelper.Extension
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>One chain per unbroken stretch, in order.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="polylines"/> is null.</exception>
-        public static GeoPolyline3[] MergeConsecutive(this IEnumerable<GeoPolyline3> polylines, Tolerance tolerance)
-            => Merge3.ConsecutivePolylines(polylines, tolerance);
+        public static GeoPolyline3[] MergeConsecutive(this IEnumerable<GeoPolyline3> polylines, Tolerance tolerance) =>
+            Merge3.ConsecutivePolylines(polylines, tolerance);
 
         /// <summary>
         /// Runs a set of chains together into one, end to end.
         /// </summary>
-        public static GeoPolyline3 MergeIntoOne(this IEnumerable<GeoPolyline3> polylines) => Merge3.Polylines(polylines);
+        public static GeoPolyline3 MergeIntoOne(this IEnumerable<GeoPolyline3> polylines) =>
+            Merge3.Polylines(polylines);
 
         /// <summary>
         /// Runs a set of chains together into one, end to end, within a tolerance.
@@ -80,8 +82,8 @@ namespace GeometryHelper.Extension
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>One chain holding all of them.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="polylines"/> is null.</exception>
-        public static GeoPolyline3 MergeIntoOne(this IEnumerable<GeoPolyline3> polylines, Tolerance tolerance)
-            => Merge3.Polylines(polylines, tolerance);
+        public static GeoPolyline3 MergeIntoOne(this IEnumerable<GeoPolyline3> polylines, Tolerance tolerance) =>
+            Merge3.Polylines(polylines, tolerance);
 
         /// <summary>
         /// Runs faces that share a plane and an edge together into single faces.
@@ -100,7 +102,7 @@ namespace GeometryHelper.Extension
         /// read out of a mesh format is worth passing through it before anything is measured against the faces
         /// one by one.
         /// </remarks>
-        public static GeoFace3[] MergeCoplanar(this IEnumerable<GeoFace3> faces, Tolerance tolerance)
-            => Merge3.CoplanarFaces(faces, tolerance);
+        public static GeoFace3[] MergeCoplanar(this IEnumerable<GeoFace3> faces, Tolerance tolerance) =>
+            Merge3.CoplanarFaces(faces, tolerance);
     }
 }

@@ -52,12 +52,18 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             string groups = Cells(db)[cell];
             int value = groups.IndexOf("301\nCELL_VALUE\n", StringComparison.Ordinal);
-            Match m = Regex.Match(value >= 0 ? groups.Substring(0, value) : groups, "(?:^|\n) *" + code + "\n(-?\\d+)\n");
+            Match m = Regex.Match(
+                value >= 0 ? groups.Substring(0, value) : groups,
+                "(?:^|\n) *" + code + "\n(-?\\d+)\n"
+            );
             return m.Success ? int.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) : -1;
         }
 
         /// <summary>The R2018 drawing of a table of 3 rows and 2 columns, each cell given the flag of its kind of value (91 262144), as AutoCAD 2021 writes a cell of a value.</summary>
-        private static string ValuedText() => DxfDimensionDrawings.R2018.Replace("\n 91\n0\n178\n", "\n 91\n262144\n178\n").Replace("\n 91\n49\n178\n", "\n 91\n262193\n178\n");
+        private static string ValuedText() =>
+            DxfDimensionDrawings
+                .R2018.Replace("\n 91\n0\n178\n", "\n 91\n262144\n178\n")
+                .Replace("\n 91\n49\n178\n", "\n 91\n262193\n178\n");
 
         private static DxfDatabase Valued() => DxfDatabase.Parse(ValuedText());
 
@@ -69,7 +75,12 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             const string Head = " 93\n0\n 94\n0\n 95\n0\n 96\n0\n141\n10.0\n";
             Assert.Contains(Head, DxfDimensionDrawings.R2018, StringComparison.Ordinal);
-            DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018.Replace(Head, " 93\n6886016\n 94\n0\n 95\n0\n 96\n0\n  7\nGH_TXT\n140\n9.0\n170\n1\n 63\n3\n 64\n1\n140\n9.0\n283\n0\n141\n10.0\n"));
+            DxfDatabase db = DxfDatabase.Parse(
+                DxfDimensionDrawings.R2018.Replace(
+                    Head,
+                    " 93\n6886016\n 94\n0\n 95\n0\n 96\n0\n  7\nGH_TXT\n140\n9.0\n170\n1\n 63\n3\n 64\n1\n140\n9.0\n283\n0\n141\n10.0\n"
+                )
+            );
             DxfTable table = Table(db);
 
             for (int column = 0; column < 2; column++)
@@ -114,12 +125,21 @@ namespace GeometryHelper.UnitTest.Dxf
                 (t => t.SetSize(5, 2), 4, 0),
                 (t => t.ResetValue(2, 1), 2, 1),
                 (t => t.InsertRows(2, 9.0, 1), 2, 0),
-                (t => { t.MergeCells(new DxfCellRange(1, 0, 1, 1)); t.UnmergeCells(new DxfCellRange(1, 0, 1, 1)); }, 1, 1),
+                (
+                    t =>
+                    {
+                        t.MergeCells(new DxfCellRange(1, 0, 1, 1));
+                        t.UnmergeCells(new DxfCellRange(1, 0, 1, 1));
+                    },
+                    1,
+                    1
+                ),
             };
             var copies = new List<Action<DxfTable, int, int>>
             {
                 (t, r, c) => t.Fill(Cell(3, c), Cell(r, c), DxfTableFillOptions.CopyContent),
-                (t, r, c) => t.Fill(Cell(3, c), Cell(r, c), DxfTableFillOptions.CopyContent | DxfTableFillOptions.CopyFormat),
+                (t, r, c) =>
+                    t.Fill(Cell(3, c), Cell(r, c), DxfTableFillOptions.CopyContent | DxfTableFillOptions.CopyFormat),
                 (t, r, c) => t.CopyFrom(t, DxfTableCopyOptions.None, Cell(r, c), Cell(3, c)),
                 (t, r, c) => t.CopyFrom(t, DxfTableCopyOptions.SkipFormat, Cell(r, c), Cell(3, c)),
             };
@@ -190,7 +210,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfTable read = Reread(db);
                 Assert.Equal("Z", read.TextString(3, 0));
                 Assert.Equal(DxfCellAlignment.TopLeft, read.Alignment(3, 0));
-                Assert.Equal(DxfCellProperties.DataType | DxfCellProperties.DataFormat | DxfCellProperties.Alignment, read.GetOverrides(3, 0, 0));
+                Assert.Equal(
+                    DxfCellProperties.DataType | DxfCellProperties.DataFormat | DxfCellProperties.Alignment,
+                    read.GetOverrides(3, 0, 0)
+                );
                 Assert.Equal(0x40001, Head(db, 6, 91));
             }
 
@@ -209,7 +232,13 @@ namespace GeometryHelper.UnitTest.Dxf
             // D33e f04, f05, g08, g12, g15, g20, g21: AutoCAD 2021's Fill with GenerateSeries, CopyContent with it or not, from a
             // cell of no value, reset or read so, emptied the target of its flag of a kind of value (91 0), and a clear of the
             // overrides wrote it as one read of no value (93 5, 90 512). The library kept the flag, or gave it.
-            foreach (DxfTableFillOptions options in new[] { DxfTableFillOptions.GenerateSeries, DxfTableFillOptions.GenerateSeries | DxfTableFillOptions.CopyContent })
+            foreach (
+                DxfTableFillOptions options in new[]
+                {
+                    DxfTableFillOptions.GenerateSeries,
+                    DxfTableFillOptions.GenerateSeries | DxfTableFillOptions.CopyContent,
+                }
+            )
             {
                 foreach (bool reset in new[] { true, false })
                 {
@@ -258,7 +287,14 @@ namespace GeometryHelper.UnitTest.Dxf
             // turn of a cell's text (145 of 1.5708 on B-12) and of a block cell's block (0.5 on M12) to nought, whether set in
             // the session or read so; of 1 it kept them. RemoveAllOverrides also took the block cell's flag of its kind of value
             // (91 0). The library kept the turns.
-            foreach (Action<DxfTable> clear in new Action<DxfTable>[] { t => t.ClearTableStyleOverrides(0), t => t.ClearTableStyleOverrides(2), t => t.RemoveAllOverrides(2, 0) })
+            foreach (
+                Action<DxfTable> clear in new Action<DxfTable>[]
+                {
+                    t => t.ClearTableStyleOverrides(0),
+                    t => t.ClearTableStyleOverrides(2),
+                    t => t.RemoveAllOverrides(2, 0),
+                }
+            )
             {
                 DxfDatabase db = EveryLook();
                 Table(db).ResetValue(2, 1);
@@ -270,7 +306,14 @@ namespace GeometryHelper.UnitTest.Dxf
             Table(kept).ClearTableStyleOverrides(1);
             Assert.Equal(DxfRotationAngle.Degrees090, Reread(kept).TextRotation(2, 0));
 
-            foreach (Action<DxfTable> clear in new Action<DxfTable>[] { t => t.ClearTableStyleOverrides(0), t => t.ClearTableStyleOverrides(2), t => t.RemoveAllOverrides(2, 1) })
+            foreach (
+                Action<DxfTable> clear in new Action<DxfTable>[]
+                {
+                    t => t.ClearTableStyleOverrides(0),
+                    t => t.ClearTableStyleOverrides(2),
+                    t => t.RemoveAllOverrides(2, 1),
+                }
+            )
             {
                 DxfDatabase db = Valued();
                 Table(db).SetBlockRotation(2, 1, 0.5);
@@ -299,13 +342,19 @@ namespace GeometryHelper.UnitTest.Dxf
             // (93 3, 280 1, 281 1), and through a clear of 0 or 2 and RemoveAllOverrides the looks of their kinds as their
             // cells' own (170 5 and 140 6.0, the header 170 5), as it did for a row put in taking the title's look; it then
             // merged the new first row on load, the head telling it the title was left out. The library took both away.
-            foreach (Action<DxfTable> clear in new Action<DxfTable>[]
-            {
-                t => t.ClearTableStyleOverrides(0),
-                t => t.ClearTableStyleOverrides(1),
-                t => t.ClearTableStyleOverrides(2),
-                t => { t.RemoveAllOverrides(1, 0); t.RemoveAllOverrides(2, 0); },
-            })
+            foreach (
+                Action<DxfTable> clear in new Action<DxfTable>[]
+                {
+                    t => t.ClearTableStyleOverrides(0),
+                    t => t.ClearTableStyleOverrides(1),
+                    t => t.ClearTableStyleOverrides(2),
+                    t =>
+                    {
+                        t.RemoveAllOverrides(1, 0);
+                        t.RemoveAllOverrides(2, 0);
+                    },
+                }
+            )
             {
                 DxfDatabase db = Kept();
                 Table(db).SetTextString(2, 0, string.Empty);
@@ -324,7 +373,13 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             // n06: a row put in taking the title's look keeps it so too.
-            foreach (Action<DxfTable> clear in new Action<DxfTable>[] { t => t.ClearTableStyleOverrides(0), t => t.ClearTableStyleOverrides(2) })
+            foreach (
+                Action<DxfTable> clear in new Action<DxfTable>[]
+                {
+                    t => t.ClearTableStyleOverrides(0),
+                    t => t.ClearTableStyleOverrides(2),
+                }
+            )
             {
                 DxfDatabase db = Kept();
                 Table(db).InsertRowsAndInherit(3, 0, 1);
@@ -346,7 +401,14 @@ namespace GeometryHelper.UnitTest.Dxf
             // D33d a17, b02, D33e w01, w03 to w06, w09, w10: AutoCAD 2021's SetValue, of a text or a number, and its
             // SetTextString gave a cell of no flags, reset or read of no value, the flag of its kind of value (91 262144); the
             // library wrote 91 0.
-            foreach (Action<DxfTable> set in new Action<DxfTable>[] { t => t.SetValue(2, 0, "Z"), t => t.SetValue(2, 0, 2.5), t => t.SetTextString(2, 0, "Z") })
+            foreach (
+                Action<DxfTable> set in new Action<DxfTable>[]
+                {
+                    t => t.SetValue(2, 0, "Z"),
+                    t => t.SetValue(2, 0, 2.5),
+                    t => t.SetTextString(2, 0, "Z"),
+                }
+            )
             {
                 DxfDatabase reset = Valued();
                 Table(reset).ResetValue(2, 0);
@@ -368,7 +430,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase old = DxfDatabase.Parse(DxfDimensionDrawings.R2000);
             string before = DxfAutoCadChecksD16Tests.Record(old.ToText(), "F6");
             Table(old).SetValue(2, 0, "Z");
-            Assert.Equal(before.Replace("\n  1\nB-12\n", "\n  1\nZ\n"), DxfAutoCadChecksD16Tests.Record(old.ToText(), "F6"));
+            Assert.Equal(
+                before.Replace("\n  1\nB-12\n", "\n  1\nZ\n"),
+                DxfAutoCadChecksD16Tests.Record(old.ToText(), "F6")
+            );
         }
 
         [Fact]
@@ -380,7 +445,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Drawn();
             DxfTable table = Table(db);
             table.SetSize(4, 2);
-            Assert.Equal(new[] { 0, 0, 1, 1 }, new[] { Head(db, 6, 173), Head(db, 6, 174), Head(db, 6, 175), Head(db, 6, 176) });
+            Assert.Equal(
+                new[] { 0, 0, 1, 1 },
+                new[] { Head(db, 6, 173), Head(db, 6, 174), Head(db, 6, 175), Head(db, 6, 176) }
+            );
             Assert.Equal(1, Head(db, 7, 175));
             Assert.Equal(1, Head(db, 7, 176));
 

@@ -55,7 +55,9 @@ namespace GeometryHelper.Dxf
         /// the whole of its record (the value), the part every entity has among them: where a face of a polyface mesh writes a
         /// layer or a colour of its own.
         /// </summary>
-        internal static List<KeyValuePair<IReadOnlyList<DxfTypedValue>, IReadOnlyList<DxfTypedValue>>> WholeVertices(DxfItem item)
+        internal static List<KeyValuePair<IReadOnlyList<DxfTypedValue>, IReadOnlyList<DxfTypedValue>>> WholeVertices(
+            DxfItem item
+        )
         {
             var vertices = new List<KeyValuePair<IReadOnlyList<DxfTypedValue>, IReadOnlyList<DxfTypedValue>>>();
             List<DxfTypedValue> current = null;
@@ -66,7 +68,12 @@ namespace GeometryHelper.Dxf
                 {
                     if (current != null)
                     {
-                        vertices.Add(new KeyValuePair<IReadOnlyList<DxfTypedValue>, IReadOnlyList<DxfTypedValue>>(OwnPart(current), current.AsReadOnly()));
+                        vertices.Add(
+                            new KeyValuePair<IReadOnlyList<DxfTypedValue>, IReadOnlyList<DxfTypedValue>>(
+                                OwnPart(current),
+                                current.AsReadOnly()
+                            )
+                        );
                     }
 
                     current = group.Value.Trim() == "VERTEX" ? new List<DxfTypedValue>() : null;
@@ -78,7 +85,12 @@ namespace GeometryHelper.Dxf
 
             if (current != null)
             {
-                vertices.Add(new KeyValuePair<IReadOnlyList<DxfTypedValue>, IReadOnlyList<DxfTypedValue>>(OwnPart(current), current.AsReadOnly()));
+                vertices.Add(
+                    new KeyValuePair<IReadOnlyList<DxfTypedValue>, IReadOnlyList<DxfTypedValue>>(
+                        OwnPart(current),
+                        current.AsReadOnly()
+                    )
+                );
             }
 
             return vertices;
@@ -88,7 +100,11 @@ namespace GeometryHelper.Dxf
         /// The groups that move the point (10, 20, 30) of each VERTEX record a filter takes by a transformation in the world, for
         /// one writing of the entity: a 3D polyline's vertices, a mesh's points.
         /// </summary>
-        internal static List<KeyValuePair<int, KeyValuePair<int, string>[]>> Moved(DxfItem item, GeoTransform3 transform, Func<IReadOnlyList<DxfTypedValue>, bool> takes)
+        internal static List<KeyValuePair<int, KeyValuePair<int, string>[]>> Moved(
+            DxfItem item,
+            GeoTransform3 transform,
+            Func<IReadOnlyList<DxfTypedValue>, bool> takes
+        )
         {
             var origin = new GeoPoint3(0.0, 0.0, 0.0);
             var records = new List<KeyValuePair<int, KeyValuePair<int, string>[]>>();
@@ -98,7 +114,12 @@ namespace GeometryHelper.Dxf
                 if (takes(vertex.Value))
                 {
                     GeoPoint3 moved = transform.Transform(Point(vertex.Value, 10, origin));
-                    records.Add(new KeyValuePair<int, KeyValuePair<int, string>[]>(vertex.Key, PointChanges(vertex.Value, 10, moved, origin, 3)));
+                    records.Add(
+                        new KeyValuePair<int, KeyValuePair<int, string>[]>(
+                            vertex.Key,
+                            PointChanges(vertex.Value, 10, moved, origin, 3)
+                        )
+                    );
                 }
             }
 
@@ -158,12 +179,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The number of the first group of a code, as the reader reads one; the fallback where there is none or it is not finite.</summary>
-        internal static double Number(IReadOnlyList<DxfTypedValue> groups, int code, double fallback)
-            => Numbers.TryRead(Text(groups, code), out double value) && Guard.IsFinite(value) ? value : fallback;
+        internal static double Number(IReadOnlyList<DxfTypedValue> groups, int code, double fallback) =>
+            Numbers.TryRead(Text(groups, code), out double value) && Guard.IsFinite(value) ? value : fallback;
 
         /// <summary>The whole number of the first group of a code; the fallback where there is none, or it is not a whole number.</summary>
-        internal static int Whole(IReadOnlyList<DxfTypedValue> groups, int code, int fallback)
-            => int.TryParse(Text(groups, code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+        internal static int Whole(IReadOnlyList<DxfTypedValue> groups, int code, int fallback) =>
+            int.TryParse(Text(groups, code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : fallback;
 
         /// <summary>The point of a code and the codes 10 and 20 above it, as the reader reads one: a coordinate left out is nought, the fallback where all three are.</summary>
         internal static GeoPoint3 Point(IReadOnlyList<DxfTypedValue> groups, int code, GeoPoint3 fallback)
@@ -180,11 +203,20 @@ namespace GeometryHelper.Dxf
         /// them; none where none differs.
         /// </summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
-        internal static KeyValuePair<int, string>[] PointChanges(IReadOnlyList<DxfTypedValue> groups, int code, GeoPoint3 value, GeoPoint3 fallback, int dimensions)
+        internal static KeyValuePair<int, string>[] PointChanges(
+            IReadOnlyList<DxfTypedValue> groups,
+            int code,
+            GeoPoint3 value,
+            GeoPoint3 fallback,
+            int dimensions
+        )
         {
             if (!value.IsValid)
             {
-                throw new ArgumentException("A point has to be of finite numbers: " + value + " is not.", nameof(value));
+                throw new ArgumentException(
+                    "A point has to be of finite numbers: " + value + " is not.",
+                    nameof(value)
+                );
             }
 
             GeoPoint3 now = Point(groups, code, fallback);
@@ -219,7 +251,13 @@ namespace GeometryHelper.Dxf
 
         /// <summary>The group that sets a number, none where the number read is the same to the bit; taken out at the fallback where asked.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number is not finite.</exception>
-        internal static KeyValuePair<int, string>[] NumberChange(IReadOnlyList<DxfTypedValue> groups, int code, double value, double fallback, bool dropAtFallback)
+        internal static KeyValuePair<int, string>[] NumberChange(
+            IReadOnlyList<DxfTypedValue> groups,
+            int code,
+            double value,
+            double fallback,
+            bool dropAtFallback
+        )
         {
             Guard.Finite(value, nameof(value), "The number has to be a finite number.");
 
@@ -233,13 +271,19 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The group that sets a whole number, none where it is the one read.</summary>
-        internal static KeyValuePair<int, string>[] WholeChange(IReadOnlyList<DxfTypedValue> groups, int code, int value, int fallback)
-            => value == Whole(groups, code, fallback)
+        internal static KeyValuePair<int, string>[] WholeChange(
+            IReadOnlyList<DxfTypedValue> groups,
+            int code,
+            int value,
+            int fallback
+        ) =>
+            value == Whole(groups, code, fallback)
                 ? new KeyValuePair<int, string>[0]
                 : new[] { new KeyValuePair<int, string>(code, value.ToString(CultureInfo.InvariantCulture)) };
 
         /// <summary>Whether two numbers are the same to the bit.</summary>
-        internal static bool Same(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
+        internal static bool Same(double a, double b) =>
+            BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
 
         private static bool TryNumber(IReadOnlyList<DxfTypedValue> groups, int code, out double value)
         {

@@ -62,7 +62,8 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from the chain to a straight chain, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPolyline2 polyline, Tolerance tolerance) => Distance2.DistanceTo(this, polyline, tolerance);
+        public double DistanceTo(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Distance2.DistanceTo(this, polyline, tolerance);
 
         /// <summary>
         /// Gets the distance from the chain to a straight loop.
@@ -74,7 +75,8 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from the chain to a straight loop, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPolygon2 polygon, Tolerance tolerance) => Distance2.DistanceTo(this, polygon, tolerance);
+        public double DistanceTo(GeoPolygon2 polygon, Tolerance tolerance) =>
+            Distance2.DistanceTo(this, polygon, tolerance);
 
         /// <summary>
         /// Gets the distance from the chain to a chain that may curve.
@@ -86,7 +88,8 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from the chain to a chain that may curve, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPolylineArc2 other, Tolerance tolerance) => Distance2.DistanceTo(this, other, tolerance);
+        public double DistanceTo(GeoPolylineArc2 other, Tolerance tolerance) =>
+            Distance2.DistanceTo(this, other, tolerance);
 
         /// <summary>
         /// Gets the distance from the chain to a loop that may curve.
@@ -98,7 +101,8 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from the chain to a loop that may curve, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => Distance2.DistanceTo(this, loop, tolerance);
+        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Distance2.DistanceTo(this, loop, tolerance);
 
         /// <summary>
         /// Gets the distance from the chain to a circle.
@@ -110,7 +114,8 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from the chain to a circle, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoCircle2 circle, Tolerance tolerance) => Distance2.DistanceTo(this, circle, tolerance);
+        public double DistanceTo(GeoCircle2 circle, Tolerance tolerance) =>
+            Distance2.DistanceTo(this, circle, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this curved chain to a rectangle.
@@ -122,7 +127,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this curved chain to a rectangle, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoRectangle2 rect, Tolerance tolerance) => Distance2.DistanceTo(rect, this, tolerance);
+        public double DistanceTo(GeoRectangle2 rect, Tolerance tolerance) =>
+            Distance2.DistanceTo(rect, this, tolerance);
 
         /// <summary>
         /// Gets the distance from this curved chain to an edge.
@@ -140,8 +146,13 @@ namespace GeometryHelper.Geometry
         /// Nought only where they truly meet, otherwise the gap, measured exactly. A segment or straight edge shorter
         /// than the tolerance given is read as its start point, except where it crosses a side or an arc.
         /// </returns>
-        public double DistanceTo(GeoEdge2 edge, Tolerance tolerance)
-            => ArcChain2.Edge(edge, line => DistanceTo(line, tolerance), arc => DistanceTo(arc, tolerance), point => DistanceTo(point, tolerance));
+        public double DistanceTo(GeoEdge2 edge, Tolerance tolerance) =>
+            ArcChain2.Edge(
+                edge,
+                line => DistanceTo(line, tolerance),
+                arc => DistanceTo(arc, tolerance),
+                point => DistanceTo(point, tolerance)
+            );
 
         #region Triangles
 
@@ -155,7 +166,8 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from this curved chain to a triangle, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.DistanceTo(triangle, this, tolerance);
+        public double DistanceTo(GeoTriangle2 triangle, Tolerance tolerance) =>
+            Triangle2.DistanceTo(triangle, this, tolerance);
 
         #endregion
 

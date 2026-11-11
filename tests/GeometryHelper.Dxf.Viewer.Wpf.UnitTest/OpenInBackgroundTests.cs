@@ -39,7 +39,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     model.Execute("LINE");
                     model.StartCommand("CIRCLE");
 
-                    Assert.Equal("LINE not run: room.dxf is still opening. Run it again once it is shown, or press Esc to stop opening it.", model.History[model.History.Count - 2]);
+                    Assert.Equal(
+                        "LINE not run: room.dxf is still opening. Run it again once it is shown, or press Esc to stop opening it.",
+                        model.History[model.History.Count - 2]
+                    );
                     Assert.StartsWith("CIRCLE not run: room.dxf is still opening.", model.History.Last());
                     Assert.False(model.Session.IsRunning);
 
@@ -49,7 +52,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     Assert.Equal(string.Empty, model.OpeningText);
                     Assert.False(model.CancelOpeningCommand.CanExecute(null));
                     Assert.Equal("room.dxf", model.Title);
-                    Assert.Equal("Opened room.dxf: 3 entities, " + model.Layers.Count + " layers.", model.History.Last());
+                    Assert.Equal(
+                        "Opened room.dxf: 3 entities, " + model.Layers.Count + " layers.",
+                        model.History.Last()
+                    );
 
                     // Shown, the drawing takes commands again.
                     model.Execute("LINE");
@@ -141,7 +147,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             var frame = new DispatcherFrame();
             opened.ContinueWith(_ => frame.Continue = false, TaskContinuationOptions.ExecuteSynchronously);
-            var timeout = new DispatcherTimer(TimeSpan.FromMinutes(1), DispatcherPriority.Normal, (s, e) => frame.Continue = false, Dispatcher.CurrentDispatcher);
+            var timeout = new DispatcherTimer(
+                TimeSpan.FromMinutes(1),
+                DispatcherPriority.Normal,
+                (s, e) => frame.Continue = false,
+                Dispatcher.CurrentDispatcher
+            );
             Dispatcher.PushFrame(frame);
             timeout.Stop();
             Assert.True(opened.IsCompleted, "The opening did not end within a minute.");

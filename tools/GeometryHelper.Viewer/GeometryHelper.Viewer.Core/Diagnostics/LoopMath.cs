@@ -45,9 +45,10 @@ namespace GeometryHelper.Viewer
             double radius = chord * (1.0 + a * a) / (4.0 * a);
 
             // theta - sin(theta) loses its digits for a small angle, where its series does not.
-            double lost = theta < 0.1
-                ? theta * theta * theta / 6.0 * (1.0 - theta * theta / 20.0 * (1.0 - theta * theta / 42.0))
-                : theta - Math.Sin(theta);
+            double lost =
+                theta < 0.1
+                    ? theta * theta * theta / 6.0 * (1.0 - theta * theta / 20.0 * (1.0 - theta * theta / 42.0))
+                    : theta - Math.Sin(theta);
 
             return Math.Sign(bulge) * radius * radius * 0.5 * lost;
         }
@@ -85,7 +86,10 @@ namespace GeometryHelper.Viewer
                         continue;
                     }
 
-                    double side = loop.Dimension == 2 ? 1.0 : loop.Normals != null && k < loop.Normals.Length ? Math.Sign(Vec3.Dot(loop.Normals[k], normal)) : 0.0;
+                    double side =
+                        loop.Dimension == 2 ? 1.0
+                        : loop.Normals != null && k < loop.Normals.Length ? Math.Sign(Vec3.Dot(loop.Normals[k], normal))
+                        : 0.0;
                     area += side * SegmentArea((p[(k + 1) % p.Length] - p[k]).Length, bulge);
                 }
             }
@@ -133,8 +137,10 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Gets the unit direction of travel along a curve at its middle.
         /// </summary>
-        internal static Vec3 MiddleTangent(SceneCurve curve)
-            => curve.Shape == CurveShape.Segment ? (curve.End - curve.Start).Normalized() : ConicTangent(curve, curve.StartAngle + curve.Sweep * 0.5);
+        internal static Vec3 MiddleTangent(SceneCurve curve) =>
+            curve.Shape == CurveShape.Segment
+                ? (curve.End - curve.Start).Normalized()
+                : ConicTangent(curve, curve.StartAngle + curve.Sweep * 0.5);
 
         private static Vec3 ConicTangent(SceneCurve curve, double t)
         {
@@ -149,15 +155,25 @@ namespace GeometryHelper.Viewer
         {
             Vec3 a = curve.Start;
             Vec3 b = curve.End;
-            double x0 = Math.Min(a.X, b.X), y0 = Math.Min(a.Y, b.Y), z0 = Math.Min(a.Z, b.Z);
-            double x1 = Math.Max(a.X, b.X), y1 = Math.Max(a.Y, b.Y), z1 = Math.Max(a.Z, b.Z);
+            double x0 = Math.Min(a.X, b.X),
+                y0 = Math.Min(a.Y, b.Y),
+                z0 = Math.Min(a.Z, b.Z);
+            double x1 = Math.Max(a.X, b.X),
+                y1 = Math.Max(a.Y, b.Y),
+                z1 = Math.Max(a.Z, b.Z);
 
             if (curve.Shape == CurveShape.Conic)
             {
                 for (int axis = 0; axis < 3; axis++)
                 {
-                    double u = axis == 0 ? curve.AxisU.X : axis == 1 ? curve.AxisU.Y : curve.AxisU.Z;
-                    double v = axis == 0 ? curve.AxisV.X : axis == 1 ? curve.AxisV.Y : curve.AxisV.Z;
+                    double u =
+                        axis == 0 ? curve.AxisU.X
+                        : axis == 1 ? curve.AxisU.Y
+                        : curve.AxisU.Z;
+                    double v =
+                        axis == 0 ? curve.AxisV.X
+                        : axis == 1 ? curve.AxisV.Y
+                        : curve.AxisV.Z;
                     double t0 = Math.Atan2(curve.RadiusV * v, curve.RadiusU * u);
 
                     for (int turn = 0; turn < 2; turn++)
@@ -196,7 +212,14 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Draws an arrow from one point to another into an overlay: the shaft, and a head of two barbs a quarter of its length.
         /// </summary>
-        internal static void Arrow(DiagnosticOverlay overlay, string color, double thickness, Vec3 from, Vec3 to, Vec3 side)
+        internal static void Arrow(
+            DiagnosticOverlay overlay,
+            string color,
+            double thickness,
+            Vec3 from,
+            Vec3 to,
+            Vec3 side
+        )
         {
             Vec3 d = to - from;
             double length = d.Length;

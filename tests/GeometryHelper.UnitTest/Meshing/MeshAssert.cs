@@ -31,7 +31,13 @@ namespace GeometryHelper.UnitTest.Meshing
         /// <param name="covers">
         /// Whether every point of the material lies in a face: false for a grid with joints, whose joints no face covers.
         /// </param>
-        public static void IsSound(GeoMesh2 mesh, Func<GeoPoint2, PointLocation> material, double area, Tolerance tolerance, bool covers = true)
+        public static void IsSound(
+            GeoMesh2 mesh,
+            Func<GeoPoint2, PointLocation> material,
+            double area,
+            Tolerance tolerance,
+            bool covers = true
+        )
         {
             Assert.True(mesh.FaceCount > 0, "the mesh has no faces");
             GeoPolygon2[] faces = mesh.GetFaces();
@@ -41,14 +47,26 @@ namespace GeometryHelper.UnitTest.Meshing
             {
                 int[] indices = mesh.GetFaceIndices(i);
                 Assert.True(indices.Length >= 3, $"face {i} has {indices.Length} corners");
-                Assert.True(indices.Distinct().Count() == indices.Length, $"face {i} comes back to a corner: {string.Join(" ", indices)}");
-                Assert.True(faces[i].SignedArea > 0.0, $"face {i} runs clockwise or has no area: {faces[i].SignedArea}");
+                Assert.True(
+                    indices.Distinct().Count() == indices.Length,
+                    $"face {i} comes back to a corner: {string.Join(" ", indices)}"
+                );
+                Assert.True(
+                    faces[i].SignedArea > 0.0,
+                    $"face {i} runs clockwise or has no area: {faces[i].SignedArea}"
+                );
                 Assert.True(faces[i].IsSimple(Strict), $"face {i} crosses or touches itself: {Describe(faces[i])}");
                 sum += faces[i].SignedArea;
             }
 
-            Assert.True(Math.Abs(sum - mesh.Area) <= 1E-9 * Math.Max(1.0, Math.Abs(sum)), $"Area {mesh.Area} is not the faces' {sum}");
-            Assert.True(Math.Abs(area - mesh.Area) <= 1E-9 * Math.Max(1.0, area), $"the faces cover {mesh.Area:R}, not {area:R}");
+            Assert.True(
+                Math.Abs(sum - mesh.Area) <= 1E-9 * Math.Max(1.0, Math.Abs(sum)),
+                $"Area {mesh.Area} is not the faces' {sum}"
+            );
+            Assert.True(
+                Math.Abs(area - mesh.Area) <= 1E-9 * Math.Max(1.0, area),
+                $"the faces cover {mesh.Area:R}, not {area:R}"
+            );
 
             EdgeToEdge(mesh, tolerance, covers ? material : null);
             Covers(mesh, faces, material, tolerance, covers);
@@ -86,7 +104,10 @@ namespace GeometryHelper.UnitTest.Meshing
             {
                 for (int b = a + 1; b < vertices.Count; b++)
                 {
-                    Assert.False(vertices[a].IsEqualTo(vertices[b], Strict), $"vertices {a} and {b} stand on each other: {vertices[a]}");
+                    Assert.False(
+                        vertices[a].IsEqualTo(vertices[b], Strict),
+                        $"vertices {a} and {b} stand on each other: {vertices[a]}"
+                    );
                 }
             }
 
@@ -103,16 +124,25 @@ namespace GeometryHelper.UnitTest.Meshing
                 GeoPoint2 start = vertices[a];
                 GeoPoint2 end = vertices[b];
                 GeoVector2 along = start.GetVectorTo(end).Multiply(1.0 / start.DistanceTo(end));
-                var across = new GeoPoint2(0.5 * (start.X + end.X) + 1E-5 * along.Y, 0.5 * (start.Y + end.Y) - 1E-5 * along.X);
+                var across = new GeoPoint2(
+                    0.5 * (start.X + end.X) + 1E-5 * along.Y,
+                    0.5 * (start.Y + end.Y) - 1E-5 * along.X
+                );
 
                 for (int f = 0; f < faces.Length; f++)
                 {
-                    Assert.False(Containment2.Locate(faces[f], across, Strict) == PointLocation.Inside, $"face {f} lies across the edge {a}-{b} ({start} to {end}) without running back along it");
+                    Assert.False(
+                        Containment2.Locate(faces[f], across, Strict) == PointLocation.Inside,
+                        $"face {f} lies across the edge {a}-{b} ({start} to {end}) without running back along it"
+                    );
                 }
 
                 if (uncovered != null)
                 {
-                    Assert.False(uncovered(across) == PointLocation.Inside, $"material lies across the edge {a}-{b} ({start} to {end}) and no face covers it");
+                    Assert.False(
+                        uncovered(across) == PointLocation.Inside,
+                        $"material lies across the edge {a}-{b} ({start} to {end}) and no face covers it"
+                    );
                 }
             }
         }
@@ -121,17 +151,29 @@ namespace GeometryHelper.UnitTest.Meshing
         /// At points spread over the shape: a point of the material in one face, or in at most one where joints leave some
         /// uncovered, and a point outside it in none.
         /// </summary>
-        private static void Covers(GeoMesh2 mesh, GeoPolygon2[] faces, Func<GeoPoint2, PointLocation> material, Tolerance tolerance, bool covers)
+        private static void Covers(
+            GeoMesh2 mesh,
+            GeoPolygon2[] faces,
+            Func<GeoPoint2, PointLocation> material,
+            Tolerance tolerance,
+            bool covers
+        )
         {
-            double minX = mesh.Vertices.Min(p => p.X), maxX = mesh.Vertices.Max(p => p.X);
-            double minY = mesh.Vertices.Min(p => p.Y), maxY = mesh.Vertices.Max(p => p.Y);
-            double marginX = 0.1 * (maxX - minX), marginY = 0.1 * (maxY - minY);
+            double minX = mesh.Vertices.Min(p => p.X),
+                maxX = mesh.Vertices.Max(p => p.X);
+            double minY = mesh.Vertices.Min(p => p.Y),
+                maxY = mesh.Vertices.Max(p => p.Y);
+            double marginX = 0.1 * (maxX - minX),
+                marginY = 0.1 * (maxY - minY);
             var random = new Random(7);
             int inside = 0;
 
             for (int k = 0; k < 1500; k++)
             {
-                var point = new GeoPoint2(minX - marginX + random.NextDouble() * (maxX - minX + 2 * marginX), minY - marginY + random.NextDouble() * (maxY - minY + 2 * marginY));
+                var point = new GeoPoint2(
+                    minX - marginX + random.NextDouble() * (maxX - minX + 2 * marginX),
+                    minY - marginY + random.NextDouble() * (maxY - minY + 2 * marginY)
+                );
                 PointLocation where = material(point);
 
                 if (where == PointLocation.OnSide)
@@ -168,7 +210,8 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.True(inside > 50, $"only {inside} points fell in the material");
         }
 
-        public static string Describe(GeoPolygon2 polygon) => string.Join(" ", polygon.Vertices.Select(p => $"({p.X:R}, {p.Y:R})"));
+        public static string Describe(GeoPolygon2 polygon) =>
+            string.Join(" ", polygon.Vertices.Select(p => $"({p.X:R}, {p.Y:R})"));
 
         /// <summary>
         /// The corners of a face that turn: those with three in a row dropped.

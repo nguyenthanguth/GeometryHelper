@@ -8,9 +8,7 @@ namespace GeometryHelper.Dxf
     public abstract class DxfObjectContext
     {
         /// <summary>A context of a kind of the library's own.</summary>
-        private protected DxfObjectContext()
-        {
-        }
+        private protected DxfObjectContext() { }
 
         /// <summary>Gets the name of the collection the context is of, as AutoCAD's <c>CollectionName</c>: <c>ACDB_ANNOTATIONSCALES</c> for a scale.</summary>
         public abstract string CollectionName { get; }

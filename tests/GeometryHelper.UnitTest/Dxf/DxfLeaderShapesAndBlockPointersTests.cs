@@ -29,10 +29,18 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             DxfMLeader multileader = ByHandle<DxfMLeader>(db, "B4");
 
-            GeoPoint3 up = Assert.Single(multileader.IntersectWith(Line(785, -3, 795, -3), DxfIntersect.OnBothOperands));
-            GeoPoint3 dogleg = Assert.Single(multileader.IntersectWith(Line(794, -5, 794, 5), DxfIntersect.OnBothOperands));
-            GeoPoint3 right = Assert.Single(multileader.IntersectWith(Line(824, -5, 824, 5), DxfIntersect.OnBothOperands));
-            GeoPoint3 arrow = Assert.Single(multileader.IntersectWith(Line(781, -12, 781, -8), DxfIntersect.OnBothOperands));
+            GeoPoint3 up = Assert.Single(
+                multileader.IntersectWith(Line(785, -3, 795, -3), DxfIntersect.OnBothOperands)
+            );
+            GeoPoint3 dogleg = Assert.Single(
+                multileader.IntersectWith(Line(794, -5, 794, 5), DxfIntersect.OnBothOperands)
+            );
+            GeoPoint3 right = Assert.Single(
+                multileader.IntersectWith(Line(824, -5, 824, 5), DxfIntersect.OnBothOperands)
+            );
+            GeoPoint3 arrow = Assert.Single(
+                multileader.IntersectWith(Line(781, -12, 781, -8), DxfIntersect.OnBothOperands)
+            );
 
             Assert.True(up.IsEqualTo(new GeoPoint3(790, -3, 0), Tol), up.ToString());
             Assert.True(dogleg.IsEqualTo(new GeoPoint3(794, -1.25, 0), Tol), dogleg.ToString());
@@ -44,8 +52,15 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(3, shapes.Count);
             var first = Assert.IsType<GeoPolyline3>(shapes[0]);
             Assert.Equal(
-                new[] { Bits(new GeoPoint3(780, -10, 0)), Bits(new GeoPoint3(790, -5, 0)), Bits(new GeoPoint3(790, -1.25, 0)), Bits(new GeoPoint3(798, -1.25, 0)) },
-                first.Vertices.Select(Bits));
+                new[]
+                {
+                    Bits(new GeoPoint3(780, -10, 0)),
+                    Bits(new GeoPoint3(790, -5, 0)),
+                    Bits(new GeoPoint3(790, -1.25, 0)),
+                    Bits(new GeoPoint3(798, -1.25, 0)),
+                },
+                first.Vertices.Select(Bits)
+            );
             Assert.Same(shapes, multileader.GetGeometry());
             Assert.True(multileader.IsPlanar);
         }
@@ -84,7 +99,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(Bits(new GeoPoint3(780, -10, 0)), Bits(splines[0].StartPoint));
             Assert.Equal(Bits(new GeoPoint3(798, -1.25, 0)), Bits(splines[0].EndPoint));
             Assert.True(splines[0].DistanceTo(new GeoPoint3(790, -5, 0), Tol) <= Tol.EqualPoint);
-            GeoPoint3 met = Assert.Single(multileader.IntersectWith(Line(783, -7.5, 795, -7.5), DxfIntersect.OnBothOperands));
+            GeoPoint3 met = Assert.Single(
+                multileader.IntersectWith(Line(783, -7.5, 795, -7.5), DxfIntersect.OnBothOperands)
+            );
             Assert.Equal(-7.5, met.Y, 9);
             Assert.True(splines[0].DistanceTo(met, Tol) <= Tol.EqualPoint, met.ToString());
 
@@ -101,7 +118,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void ALeaderInABlock_WhoseArrowOverrideNamesABlockCopiedAfterIt_NamesTheCopy_WhicheverComesFirst(bool insertFirst)
+        public void ALeaderInABlock_WhoseArrowOverrideNamesABlockCopiedAfterIt_NamesTheCopy_WhicheverComesFirst(
+            bool insertFirst
+        )
         {
             // W holds the leader 89 with DIMLDRBLK GKTAG and an INSERT of GKTAG, in one order or the other; ezdxf's drawing has no
             // GKTAG. An INSERT of W copied brings W, then GKTAG: the copy of 89 in W names the copy of GKTAG.
@@ -119,7 +138,11 @@ namespace GeometryHelper.UnitTest.Dxf
             {
                 DxfLeader copied = db.BlockTable["W"].OfType<DxfLeader>().Single();
                 Assert.Same(db.BlockTable["GKTAG"], copied.Dimldrblk);
-                Assert.Contains("1070\n341\n1005\n" + db.BlockTable["GKTAG"].Handle + "\n", Records(db.ToText()).Single(r => HandleOf(r) == copied.Handle), StringComparison.Ordinal);
+                Assert.Contains(
+                    "1070\n341\n1005\n" + db.BlockTable["GKTAG"].Handle + "\n",
+                    Records(db.ToText()).Single(r => HandleOf(r) == copied.Handle),
+                    StringComparison.Ordinal
+                );
             }
         }
 
@@ -137,7 +160,10 @@ namespace GeometryHelper.UnitTest.Dxf
             source.ModelSpace.AppendEntity(insert);
             DxfDatabase target = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
 
-            IReadOnlyList<DxfEntity> copies = source.WblockCloneObjects(insertFirst ? new DxfEntity[] { insert, leader } : new DxfEntity[] { leader, insert }, target.ModelSpace);
+            IReadOnlyList<DxfEntity> copies = source.WblockCloneObjects(
+                insertFirst ? new DxfEntity[] { insert, leader } : new DxfEntity[] { leader, insert },
+                target.ModelSpace
+            );
 
             DxfLeader copied = copies.OfType<DxfLeader>().Single();
             Assert.Same(target.BlockTable["GKTAG"], copied.Dimldrblk);
@@ -148,7 +174,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void ADimensionInABlock_WhoseArrowOverrideNamesABlockCopiedAfterIt_NamesTheCopy_AndDrawsByTheCopyOfItsPicture(bool insertFirst)
+        public void ADimensionInABlock_WhoseArrowOverrideNamesABlockCopiedAfterIt_NamesTheCopy_AndDrawsByTheCopyOfItsPicture(
+            bool insertFirst
+        )
         {
             // W holds a copy of the dimension 4D, which draws by *D1, with DIMBLK BOLT, and an INSERT of BOLT; ezdxf's drawing of
             // objects has no BOLT. The copy in W names the copy of BOLT and draws by the copy of *D1, both copied after W.
@@ -190,7 +218,11 @@ namespace GeometryHelper.UnitTest.Dxf
             source.WblockCloneObjects(new[] { placed }, target.ModelSpace);
 
             DxfDimension copied = target.BlockTable["W"].OfType<DxfDimension>().Single();
-            Assert.Contains("1070\n5\n1000\nBOLT\n", Records(target.ToText()).Single(r => HandleOf(r) == copied.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "1070\n5\n1000\nBOLT\n",
+                Records(target.ToText()).Single(r => HandleOf(r) == copied.Handle),
+                StringComparison.Ordinal
+            );
             DxfDimension read = DxfDatabase.Parse(target.ToText()).BlockTable["W"].OfType<DxfDimension>().Single();
             Assert.Equal("BOLT", read.Dimblk.Name);
         }
@@ -198,7 +230,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void ATableInABlock_PointsToTheCopiesOfItsPictureAndOfTheBlockOfItsCell_WhicheverComesFirst(bool insertFirst)
+        public void ATableInABlock_PointsToTheCopiesOfItsPictureAndOfTheBlockOfItsCell_WhicheverComesFirst(
+            bool insertFirst
+        )
         {
             // W holds a copy of the table F6, which draws by *T12 and shows BOLT in its cell (2, 1), and an INSERT of BOLT. The
             // copy in W points to the copy of *T12 (343) and of BOLT (340), both copied after W, and keeps M12 for SIZE.
@@ -215,7 +249,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 string record = Records(db.ToText()).Single(r => HandleOf(r) == copied.Handle);
                 Assert.Contains("343\n" + copied.BlockTableRecord.Handle + "\n", record, StringComparison.Ordinal);
                 Assert.Same(db.BlockTable["BOLT"], copied.GetBlockTableRecord(2, 1));
-                Assert.Equal("M12", copied.GetBlockAttributeValue(2, 1, db.BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single()));
+                Assert.Equal(
+                    "M12",
+                    copied.GetBlockAttributeValue(2, 1, db.BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single())
+                );
             }
         }
 
@@ -240,7 +277,10 @@ namespace GeometryHelper.UnitTest.Dxf
             {
                 DxfTable copied = db.ModelSpace.OfType<DxfTable>().Single();
                 Assert.Same(db.BlockTable["BOLT"], copied.GetBlockTableRecord(2, 1));
-                Assert.Equal("M12", copied.GetBlockAttributeValue(2, 1, db.BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single()));
+                Assert.Equal(
+                    "M12",
+                    copied.GetBlockAttributeValue(2, 1, db.BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single())
+                );
             }
         }
 
@@ -261,17 +301,23 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("LEADER", straight.Type);
             Assert.Equal(
                 new[] { Bits(new GeoPoint3(0, 0, 0)), Bits(new GeoPoint3(10, 10, 0)), Bits(new GeoPoint3(20, 10, 0)) },
-                Assert.IsType<GeoPolyline3>(straight.Shape).Vertices.Select(Bits));
+                Assert.IsType<GeoPolyline3>(straight.Shape).Vertices.Select(Bits)
+            );
             Assert.IsType<GeoPolyline2>(plan.Shapes.Single(s => s.Handle == "89").Shape);
             var spline = Assert.IsType<GeoSpline3>(read.Shapes.Single(s => s.Handle == "B2").Shape);
             DxfLeader b2 = ByHandle<DxfLeader>(db, "B2");
             b2.HasArrowHead = false;
             var drawn = (DxfSpline)Assert.Single(b2.Explode());
-            Assert.Equal(Assert.IsType<GeoSpline3>(Assert.Single(drawn.GetGeometry())).ControlPoints.Select(Bits), spline.ControlPoints.Select(Bits));
+            Assert.Equal(
+                Assert.IsType<GeoSpline3>(Assert.Single(drawn.GetGeometry())).ControlPoints.Select(Bits),
+                spline.ControlPoints.Select(Bits)
+            );
             // The exploded spline's knots run over the lengths of the chords, as AutoCAD 2021's; the reader's from 0 to 1.
             IReadOnlyList<double> knots = Assert.IsType<GeoSpline3>(Assert.Single(drawn.GetGeometry())).Knots;
             Assert.Equal(knots.Count, spline.Knots.Count);
-            Assert.All(spline.Knots.Zip(knots, (k, d) => (k * knots[knots.Count - 1]) - d), d => Assert.True(Math.Abs(d) < 1E-9, d.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            Assert.All(spline.Knots.Zip(knots, (k, d) => (k * knots[knots.Count - 1]) - d), d =>
+                Assert.True(Math.Abs(d) < 1E-9, d.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            );
             Assert.Contains(read.Shapes, s => s.Handle == "B3" && s.Shape is GeoPolyline3);
             Assert.False(read.Skipped.ContainsKey("LEADER"));
 
@@ -299,14 +345,19 @@ namespace GeometryHelper.UnitTest.Dxf
             var placed = Assert.IsType<GeoPolyline3>(Assert.Single(insert.GetGeometry()));
             Assert.True(placed.Vertices[2].IsEqualTo(new GeoPoint3(140, 20, 0), Tol));
             GeoAabb3 box = insert.GeometricExtents;
-            Assert.True(box.Min.IsEqualTo(new GeoPoint3(100, 0, 0), Tol) && box.Max.IsEqualTo(new GeoPoint3(140, 20, 0), Tol), box.ToString());
+            Assert.True(
+                box.Min.IsEqualTo(new GeoPoint3(100, 0, 0), Tol) && box.Max.IsEqualTo(new GeoPoint3(140, 20, 0), Tol),
+                box.ToString()
+            );
         }
 
         [Fact]
         public void ALeaderAppended_GrowsTheExtentsOfTheHeader_AsALineDoes()
         {
             // A drawing of the line from (0, 0, 0) to (1, 1, 0); the leader from (-5, 0, 0) to (90, 70, 0) appended to it.
-            DxfDatabase db = DxfDatabase.Parse(new DxfWriter().Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))).ToString());
+            DxfDatabase db = DxfDatabase.Parse(
+                new DxfWriter().Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))).ToString()
+            );
             var leader = new DxfLeader();
             leader.AppendVertex(new GeoPoint3(-5, 0, 0));
             leader.AppendVertex(new GeoPoint3(90, 70, 0));
@@ -338,7 +389,12 @@ namespace GeometryHelper.UnitTest.Dxf
             for (int i = 0; i < own.ControlPoints.Count; i++)
             {
                 GeoPoint3 p = own.ControlPoints[i];
-                Assert.True(placed.ControlPoints[i].IsEqualTo(new GeoPoint3(2 * p.X, p.Y, p.Z), new Tolerance(1E-9, 1E-9, 1E-9)), i + ": " + placed.ControlPoints[i]);
+                Assert.True(
+                    placed
+                        .ControlPoints[i]
+                        .IsEqualTo(new GeoPoint3(2 * p.X, p.Y, p.Z), new Tolerance(1E-9, 1E-9, 1E-9)),
+                    i + ": " + placed.ControlPoints[i]
+                );
             }
 
             Assert.Equal(own.Knots.Select(Bits), placed.Knots.Select(Bits));
@@ -349,7 +405,9 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // The leader from (-5, 0, 0) to (90, 70, 0), splined, its last vertex moved to (500, 400, 0) and a vertex appended at
             // (600, -50, 0): the extents reach both.
-            DxfDatabase db = DxfDatabase.Parse(new DxfWriter().Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))).ToString());
+            DxfDatabase db = DxfDatabase.Parse(
+                new DxfWriter().Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))).ToString()
+            );
             var leader = new DxfLeader();
             leader.AppendVertex(new GeoPoint3(-5, 0, 0));
             leader.AppendVertex(new GeoPoint3(90, 70, 0));
@@ -359,7 +417,10 @@ namespace GeometryHelper.UnitTest.Dxf
             leader.SetVertexAt(1, new GeoPoint3(500, 400, 0));
             leader.AppendVertex(new GeoPoint3(600, -50, 0));
 
-            Assert.True(db.Extmax.X >= 600 && db.Extmax.Y >= 400 && db.Extmin.X <= -5 && db.Extmin.Y <= -50, db.Extmin + " " + db.Extmax);
+            Assert.True(
+                db.Extmax.X >= 600 && db.Extmax.Y >= 400 && db.Extmin.X <= -5 && db.Extmin.Y <= -50,
+                db.Extmin + " " + db.Extmax
+            );
             Assert.Equal(Bits(db.Extmax), Bits(DxfDatabase.Parse(db.ToText()).Extmax));
         }
 
@@ -371,7 +432,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDocument read = DxfReader.Parse(text, new DxfReadOptions { Tolerance = Tol });
             DxfDatabase db = DxfDatabase.Parse(text);
 
-            Assert.Equal(3, read.Shapes.Count(s => s.Handle == "B4" && s.Type == "MULTILEADER" && s.Shape is GeoPolyline3));
+            Assert.Equal(
+                3,
+                read.Shapes.Count(s => s.Handle == "B4" && s.Type == "MULTILEADER" && s.Shape is GeoPolyline3)
+            );
             Assert.Single(read.Shapes, s => s.Handle == "BA");
             Assert.False(read.Skipped.ContainsKey("MULTILEADER"));
 
@@ -419,7 +483,9 @@ namespace GeometryHelper.UnitTest.Dxf
         public void AnInvisibleMultileaderOfABlock_CountsNothingAgainstMaxPlacedEntities()
         {
             // BUD holds a LINE, B4 and a copy of B4 whose leaders are invisible: 4 shapes; two INSERTs of it fit in 8.
-            DxfDatabase db = DxfDatabase.Parse(new DxfWriter().Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))).ToString());
+            DxfDatabase db = DxfDatabase.Parse(
+                new DxfWriter().Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))).ToString()
+            );
             var bud = new DxfBlockTableRecord { Name = "BUD" };
             db.BlockTable.Add(bud);
             bud.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)));
@@ -431,7 +497,10 @@ namespace GeometryHelper.UnitTest.Dxf
             db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), bud));
             db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(100, 0, 0), bud));
 
-            DxfDocument read = DxfReader.Parse(db.ToText(), new DxfReadOptions { MaxPlacedEntities = 8, Tolerance = Tol });
+            DxfDocument read = DxfReader.Parse(
+                db.ToText(),
+                new DxfReadOptions { MaxPlacedEntities = 8, Tolerance = Tol }
+            );
 
             Assert.Equal(8, read.Shapes.Count(s => s.BlockPath.Count > 0));
             Assert.DoesNotContain(read.Warnings, w => w.Contains("not placed"));
@@ -462,7 +531,9 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ALeaderOrAMultileaderOfABlock_CountsAgainstMaxPlacedEntities_AsItIsPlaced(string type, int each)
         {
             // BUD holds a LINE and ten leaders, or three copies of B4 of three lines each; two INSERTs of it, the bound that of one.
-            DxfDatabase db = DxfDatabase.Parse(new DxfWriter().Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))).ToString());
+            DxfDatabase db = DxfDatabase.Parse(
+                new DxfWriter().Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))).ToString()
+            );
             var bud = new DxfBlockTableRecord { Name = "BUD" };
             db.BlockTable.Add(bud);
             bud.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)));
@@ -486,17 +557,23 @@ namespace GeometryHelper.UnitTest.Dxf
             db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), bud));
             db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(100, 0, 0), bud));
 
-            DxfDocument read = DxfReader.Parse(db.ToText(), new DxfReadOptions { MaxPlacedEntities = each, Tolerance = Tol });
+            DxfDocument read = DxfReader.Parse(
+                db.ToText(),
+                new DxfReadOptions { MaxPlacedEntities = each, Tolerance = Tol }
+            );
 
             Assert.Equal(each, read.Shapes.Count(s => s.BlockPath.Count > 0));
-            Assert.Contains(read.Warnings, w => w.Contains("had they placed the " + each + " more they would have taken"));
+            Assert.Contains(read.Warnings, w =>
+                w.Contains("had they placed the " + each + " more they would have taken")
+            );
         }
 
         [Fact]
         public void ALeaderReadFirst_SpellsTheLayerOfTheEntitiesAfterIt_WhereThereIsNoLayerTable()
         {
             // The reader names a layer as it first meets it: the LEADER on WALL, then the LINE on Wall, are both on WALL.
-            string text = "  0\nSECTION\n  2\nENTITIES\n  0\nLEADER\n  8\nWALL\n100\nAcDbLeader\n 72\n0\n 10\n0\n 20\n0\n 30\n0\n 10\n10\n 20\n5\n 30\n0\n"
+            string text =
+                "  0\nSECTION\n  2\nENTITIES\n  0\nLEADER\n  8\nWALL\n100\nAcDbLeader\n 72\n0\n 10\n0\n 20\n0\n 30\n0\n 10\n10\n 20\n5\n 30\n0\n"
                 + "  0\nLINE\n  8\nWall\n 10\n0\n 20\n0\n 30\n0\n 11\n1\n 21\n1\n 31\n0\n  0\nENDSEC\n  0\nEOF\n";
 
             DxfDocument read = DxfReader.Parse(text, new DxfReadOptions { Tolerance = Tol });
@@ -516,15 +593,22 @@ namespace GeometryHelper.UnitTest.Dxf
             leader.Item.Shape = null;
 
             Assert.Equal(before, db.ToText());
-            var refused = Assert.Throws<InvalidOperationException>(() => leader.Item.Shape = new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)));
-            Assert.Contains("a LEADER and a MULTILEADER are read as their lines but not written from a shape", refused.Message, StringComparison.Ordinal);
+            var refused = Assert.Throws<InvalidOperationException>(() =>
+                leader.Item.Shape = new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0))
+            );
+            Assert.Contains(
+                "a LEADER and a MULTILEADER are read as their lines but not written from a shape",
+                refused.Message,
+                StringComparison.Ordinal
+            );
             Assert.Equal(before, db.ToText());
         }
 
         #endregion
 
         /// <summary>A line of the floor from one point to another.</summary>
-        private static DxfLine Line(double x1, double y1, double x2, double y2) => new DxfLine(new GeoPoint3(x1, y1, 0), new GeoPoint3(x2, y2, 0));
+        private static DxfLine Line(double x1, double y1, double x2, double y2) =>
+            new DxfLine(new GeoPoint3(x1, y1, 0), new GeoPoint3(x2, y2, 0));
 
         /// <summary>
         /// A block W of a drawing holding an entity and an INSERT of a block, the INSERT first where asked, and an INSERT of W in
@@ -554,7 +638,8 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The shapes the reader read of the entity of a handle, each as <see cref="Describe"/> writes it.</summary>
-        private static IEnumerable<string> Shapes(DxfDocument read, string handle) => read.Shapes.Where(s => s.Handle == handle).Select(s => Describe(s.Shape));
+        private static IEnumerable<string> Shapes(DxfDocument read, string handle) =>
+            read.Shapes.Where(s => s.Handle == handle).Select(s => Describe(s.Shape));
 
         /// <summary>A shape as its type and the bits of its points.</summary>
         private static string Describe(object shape)
@@ -564,7 +649,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 case GeoPolyline3 chain:
                     return "polyline " + string.Join(" ", chain.Vertices.Select(Bits));
                 case GeoSpline3 spline:
-                    return "spline " + string.Join(" ", spline.ControlPoints.Select(Bits)) + " knots " + string.Join(" ", spline.Knots.Select(Bits));
+                    return "spline "
+                        + string.Join(" ", spline.ControlPoints.Select(Bits))
+                        + " knots "
+                        + string.Join(" ", spline.Knots.Select(Bits));
                 default:
                     return shape.GetType().Name;
             }

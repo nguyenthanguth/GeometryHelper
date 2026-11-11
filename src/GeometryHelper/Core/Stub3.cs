@@ -24,22 +24,28 @@ namespace GeometryHelper.Core
         /// by the measure <see cref="Gap3"/> takes. A tolerance no coarser than the rounding of the segment's start, nought
         /// or <see cref="AsItIs(GeoLine3, Tolerance)"/>, reads none so, and measures every segment as it is.
         /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        internal static bool ReadsAsStart(GeoLine3 line, Tolerance tolerance) => ReadsAsStart(line.StartPoint, line.EndPoint, tolerance);
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining
+        )]
+        internal static bool ReadsAsStart(GeoLine3 line, Tolerance tolerance) =>
+            ReadsAsStart(line.StartPoint, line.EndPoint, tolerance);
 
         /// <summary>
         /// Whether a tolerance reads the segment you give from one point to another as the point at its start.
         /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        internal static bool ReadsAsStart(GeoPoint3 from, GeoPoint3 to, Tolerance tolerance)
-            => from.GetDistanceSquaredTo(to) <= tolerance.EqualPoint * tolerance.EqualPoint && tolerance.EqualPoint > Rounding(from);
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining
+        )]
+        internal static bool ReadsAsStart(GeoPoint3 from, GeoPoint3 to, Tolerance tolerance) =>
+            from.GetDistanceSquaredTo(to) <= tolerance.EqualPoint * tolerance.EqualPoint
+            && tolerance.EqualPoint > Rounding(from);
 
         /// <summary>
         /// Whether a straight edge you give is read as the point at its start, as a segment is; an edge that is an arc
         /// never is.
         /// </summary>
-        internal static bool ReadsAsStart(GeoEdge3 edge, Tolerance tolerance)
-            => !edge.IsArc && ReadsAsStart(edge.StartPoint, edge.EndPoint, tolerance);
+        internal static bool ReadsAsStart(GeoEdge3 edge, Tolerance tolerance) =>
+            !edge.IsArc && ReadsAsStart(edge.StartPoint, edge.EndPoint, tolerance);
 
         /// <summary>
         /// Whether the gap to a segment read as its start, measured to the segment as it is, is a true meeting: no more
@@ -52,22 +58,32 @@ namespace GeometryHelper.Core
         /// Whether the gap between two segments, one or both read as their starts, measured as they are, is a true
         /// meeting: no more than 1E-12 of the largest coordinate of the four ends, as <see cref="Gap3"/> reads two segments.
         /// </summary>
-        internal static bool Meets(double gap, GeoLine3 line, GeoLine3 other)
-            => gap <= 1E-12 * Math.Max(1.0, Math.Max(Far(line.StartPoint, line.EndPoint), Far(other.StartPoint, other.EndPoint)));
+        internal static bool Meets(double gap, GeoLine3 line, GeoLine3 other) =>
+            gap
+            <= 1E-12
+                * Math.Max(1.0, Math.Max(Far(line.StartPoint, line.EndPoint), Far(other.StartPoint, other.EndPoint)));
 
         /// <summary>
         /// Gets the tolerance a segment read as its start is measured with as the segment it is, to find where it truly
         /// meets a shape: the one given, its point and planar thresholds brought down to the rounding of the segment's
         /// start.
         /// </summary>
-        internal static Tolerance AsItIs(GeoLine3 line, Tolerance tolerance) => AsItIs(Rounding(line.StartPoint), tolerance);
+        internal static Tolerance AsItIs(GeoLine3 line, Tolerance tolerance) =>
+            AsItIs(Rounding(line.StartPoint), tolerance);
 
         /// <summary>
         /// Gets the tolerance two segments, one or both read as their starts, are measured with as they are: the one given,
         /// its point and planar thresholds brought down to the rounding of the four ends.
         /// </summary>
-        internal static Tolerance AsItIs(GeoLine3 line, GeoLine3 other, Tolerance tolerance)
-            => AsItIs(1E-12 * Math.Max(1.0, Math.Max(Far(line.StartPoint, line.EndPoint), Far(other.StartPoint, other.EndPoint))), tolerance);
+        internal static Tolerance AsItIs(GeoLine3 line, GeoLine3 other, Tolerance tolerance) =>
+            AsItIs(
+                1E-12
+                    * Math.Max(
+                        1.0,
+                        Math.Max(Far(line.StartPoint, line.EndPoint), Far(other.StartPoint, other.EndPoint))
+                    ),
+                tolerance
+            );
 
         /// <summary>
         /// Gets the shortest segment joining a shape and a segment read as its start: the one joining the segment as it
@@ -76,8 +92,8 @@ namespace GeometryHelper.Core
         /// <param name="line">The segment read as its start.</param>
         /// <param name="asItIs">The shortest segment to the segment as it is, found with <see cref="AsItIs(GeoLine3, Tolerance)"/>.</param>
         /// <param name="toStart">The shortest segment to its start, running the same way as <paramref name="asItIs"/>.</param>
-        internal static GeoLine3 Nearest(GeoLine3 line, GeoLine3 asItIs, GeoLine3 toStart)
-            => Meets(asItIs.Length, line) ? asItIs : toStart;
+        internal static GeoLine3 Nearest(GeoLine3 line, GeoLine3 asItIs, GeoLine3 toStart) =>
+            Meets(asItIs.Length, line) ? asItIs : toStart;
 
         /// <summary>
         /// Gets where a segment read as its start meets a shape: the points found with the segment as it is where it truly
@@ -86,8 +102,10 @@ namespace GeometryHelper.Core
         /// <param name="line">The segment read as its start.</param>
         /// <param name="asItIs">The points found with the segment as it is, with <see cref="AsItIs(GeoLine3, Tolerance)"/>.</param>
         /// <param name="startTouches">Whether its start lies within the tolerance of the shape, as a point touching it does.</param>
-        internal static GeoPoint3[] Meeting(GeoLine3 line, GeoPoint3[] asItIs, bool startTouches)
-            => asItIs.Length > 0 ? asItIs : startTouches ? new[] { line.StartPoint } : new GeoPoint3[0];
+        internal static GeoPoint3[] Meeting(GeoLine3 line, GeoPoint3[] asItIs, bool startTouches) =>
+            asItIs.Length > 0 ? asItIs
+            : startTouches ? new[] { line.StartPoint }
+            : new GeoPoint3[0];
 
         /// <summary>
         /// Gives the start of a segment read as its start, which does not truly meet a shape, as the one point where the two
@@ -132,18 +150,19 @@ namespace GeometryHelper.Core
             return touches;
         }
 
-        private static Tolerance AsItIs(double rounding, Tolerance tolerance)
-            => new Tolerance(rounding, tolerance.EqualVector, tolerance.EqualAngleRad, rounding);
+        private static Tolerance AsItIs(double rounding, Tolerance tolerance) =>
+            new Tolerance(rounding, tolerance.EqualVector, tolerance.EqualAngleRad, rounding);
 
         /// <summary>
         /// The rounding of a point: 1E-12 of its largest coordinate, and of one at the least.
         /// </summary>
-        internal static double Rounding(GeoPoint3 point)
-            => 1E-12 * Math.Max(1.0, Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z))));
+        internal static double Rounding(GeoPoint3 point) =>
+            1E-12 * Math.Max(1.0, Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z))));
 
-        private static double Far(GeoPoint3 a, GeoPoint3 b)
-            => Math.Max(
+        private static double Far(GeoPoint3 a, GeoPoint3 b) =>
+            Math.Max(
                 Math.Max(Math.Abs(a.X), Math.Max(Math.Abs(a.Y), Math.Abs(a.Z))),
-                Math.Max(Math.Abs(b.X), Math.Max(Math.Abs(b.Y), Math.Abs(b.Z))));
+                Math.Max(Math.Abs(b.X), Math.Max(Math.Abs(b.Y), Math.Abs(b.Z)))
+            );
     }
 }

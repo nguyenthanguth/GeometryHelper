@@ -10,8 +10,16 @@ namespace GeometryHelper.Viewer
     {
         private static readonly string[] _cycle =
         {
-            "#1F77B4", "#FF7F0E", "#2CA02C", "#D62728", "#9467BD",
-            "#8C564B", "#E377C2", "#7F7F7F", "#BCBD22", "#17BECF",
+            "#1F77B4",
+            "#FF7F0E",
+            "#2CA02C",
+            "#D62728",
+            "#9467BD",
+            "#8C564B",
+            "#E377C2",
+            "#7F7F7F",
+            "#BCBD22",
+            "#17BECF",
         };
 
         /// <summary>
@@ -37,9 +45,24 @@ namespace GeometryHelper.Viewer
                 return false;
             }
 
-            return byte.TryParse(color.Substring(1, 2), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out red)
-                && byte.TryParse(color.Substring(3, 2), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out green)
-                && byte.TryParse(color.Substring(5, 2), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out blue);
+            return byte.TryParse(
+                    color.Substring(1, 2),
+                    NumberStyles.AllowHexSpecifier,
+                    CultureInfo.InvariantCulture,
+                    out red
+                )
+                && byte.TryParse(
+                    color.Substring(3, 2),
+                    NumberStyles.AllowHexSpecifier,
+                    CultureInfo.InvariantCulture,
+                    out green
+                )
+                && byte.TryParse(
+                    color.Substring(5, 2),
+                    NumberStyles.AllowHexSpecifier,
+                    CultureInfo.InvariantCulture,
+                    out blue
+                );
         }
 
         /// <summary>
@@ -56,10 +79,16 @@ namespace GeometryHelper.Viewer
 
             if (!TryParse(color, out byte red, out byte green, out byte blue))
             {
-                throw new ArgumentException("A colour is written #RRGGBB, as in #1F77B4; this one is '" + color + "'.", nameof(color));
+                throw new ArgumentException(
+                    "A colour is written #RRGGBB, as in #1F77B4; this one is '" + color + "'.",
+                    nameof(color)
+                );
             }
 
-            return "#" + red.ToString("X2", CultureInfo.InvariantCulture) + green.ToString("X2", CultureInfo.InvariantCulture) + blue.ToString("X2", CultureInfo.InvariantCulture);
+            return "#"
+                + red.ToString("X2", CultureInfo.InvariantCulture)
+                + green.ToString("X2", CultureInfo.InvariantCulture)
+                + blue.ToString("X2", CultureInfo.InvariantCulture);
         }
     }
 }

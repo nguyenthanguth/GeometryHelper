@@ -28,23 +28,23 @@ namespace GeometryHelper.UnitTest.Packing
             var sectionB = new GeoRectangle2(-500.0, 400.0, 60.0, 120.0);
             var detail = new GeoRectangle2(-300.0, 400.0, 90.0, 60.0);
 
-            var sheet = new Sheet(PaperSize.A3)          // 420 x 297 mm, landscape
+            var sheet = new Sheet(PaperSize.A3) // 420 x 297 mm, landscape
             {
-                OffsetLeft   = 20.0,
-                OffsetRight  = 10.0,
-                OffsetTop    = 10.0,
+                OffsetLeft = 20.0,
+                OffsetRight = 10.0,
+                OffsetTop = 10.0,
                 OffsetBottom = 10.0,
             };
 
             var groups = new List<GeoRectangle2[]>
             {
-                new[] { plan, sectionA, sectionB },      // a view and its sections: kept together
+                new[] { plan, sectionA, sectionB }, // a view and its sections: kept together
                 new[] { detail },
             };
 
             PackResult result = SheetPacker.Pack(groups, sheet, new PackOptions { Spacing = 5.0, GroupSpacing = 20.0 });
 
-            PackPlacement placement = result.Placements[0][1];   // sectionA: the same shape as the groups given
+            PackPlacement placement = result.Placements[0][1]; // sectionA: the same shape as the groups given
             Assert.True(placement.Placed);
             Assert.Equal(0, placement.SheetIndex);
             Assert.Equal(sectionA.Translate(placement.Translation), placement.ViewBox);
@@ -58,11 +58,11 @@ namespace GeometryHelper.UnitTest.Packing
         public void TheSheet_AtAScale_PlacedByACorner()
         {
             var sheet = new Sheet(PaperSize.A1) { Scale = 50.0 };
-            sheet.PlaceCorner(SheetCorner.UpperLeft, new GeoPoint2(0.0, 0.0));   // its upper left corner at the origin
+            sheet.PlaceCorner(SheetCorner.UpperLeft, new GeoPoint2(0.0, 0.0)); // its upper left corner at the origin
 
-            SheetFrame second = sheet.GetFrame(1);   // the next sheet: to the right of the first
-            GeoPoint2 corner = second.Bounds.LowerLeft;                  // (42050, -29700)
-            GeoRectangle2 usable = second.UsableArea;                    // the part inside the offsets
+            SheetFrame second = sheet.GetFrame(1); // the next sheet: to the right of the first
+            GeoPoint2 corner = second.Bounds.LowerLeft; // (42050, -29700)
+            GeoRectangle2 usable = second.UsableArea; // the part inside the offsets
 
             Assert.Equal(42050.0, sheet.Width);
             Assert.Equal(29700.0, sheet.Height);
@@ -79,13 +79,20 @@ namespace GeometryHelper.UnitTest.Packing
         {
             var views = new List<View>
             {
-                new View { Origin = new GeoPoint2(-930.0, 350.0), Box = new GeoRectangle2(-900.0, 400.0, 180.0, 120.0) },
+                new View
+                {
+                    Origin = new GeoPoint2(-930.0, 350.0),
+                    Box = new GeoRectangle2(-900.0, 400.0, 180.0, 120.0),
+                },
                 new View { Origin = new GeoPoint2(-570.0, 410.0), Box = new GeoRectangle2(-600.0, 400.0, 60.0, 120.0) },
             };
-            PackResult result = SheetPacker.Pack(new List<GeoRectangle2[]> { views.Select(v => v.Box).ToArray() }, new Sheet(PaperSize.A3));
+            PackResult result = SheetPacker.Pack(
+                new List<GeoRectangle2[]> { views.Select(v => v.Box).ToArray() },
+                new Sheet(PaperSize.A3)
+            );
 
             int index = 0;
-            foreach (View view in views)   // the views of one drawing, their boxes in the same order
+            foreach (View view in views) // the views of one drawing, their boxes in the same order
             {
                 PackPlacement placement = result.Placements[0][index++];
                 view.Origin = view.Origin + placement.Translation;
@@ -94,7 +101,9 @@ namespace GeometryHelper.UnitTest.Packing
             // Each origin stands to its box, moved, as it stood to the box given.
             for (int i = 0; i < views.Count; i++)
             {
-                GeoVector2 before = new GeoPoint2(-930.0 + 360.0 * i, 350.0 + 60.0 * i).GetVectorTo(new GeoPoint2(-900.0 + 300.0 * i, 400.0));
+                GeoVector2 before = new GeoPoint2(-930.0 + 360.0 * i, 350.0 + 60.0 * i).GetVectorTo(
+                    new GeoPoint2(-900.0 + 300.0 * i, 400.0)
+                );
                 GeoVector2 after = views[i].Origin.GetVectorTo(result.Placements[0][i].ViewBox.LowerLeft);
                 Assert.True(before.IsEqualTo(after), $"view {i}: {before} and {after}");
             }
@@ -111,20 +120,49 @@ namespace GeometryHelper.UnitTest.Packing
         [InlineData(SheetCorner.LowerRight)]
         public void TheStartCorner_TakesTheFirstBox(SheetCorner corner)
         {
-            var sizes = new (double W, double H)[] { (80, 50), (60, 40), (70, 60), (50, 30), (90, 45), (40, 40), (60, 50), (55, 35), (75, 40) };
-            List<GeoRectangle2[]> groups = sizes.Select(s => new[] { new GeoRectangle2(new GeoPoint2(-3000, 2000), s.W, s.H) }).ToList();
-            var sheet = new Sheet(PaperSize.A4) { OffsetLeft = 10, OffsetRight = 10, OffsetTop = 10, OffsetBottom = 10 };
+            var sizes = new (double W, double H)[]
+            {
+                (80, 50),
+                (60, 40),
+                (70, 60),
+                (50, 30),
+                (90, 45),
+                (40, 40),
+                (60, 50),
+                (55, 35),
+                (75, 40),
+            };
+            List<GeoRectangle2[]> groups = sizes
+                .Select(s => new[] { new GeoRectangle2(new GeoPoint2(-3000, 2000), s.W, s.H) })
+                .ToList();
+            var sheet = new Sheet(PaperSize.A4)
+            {
+                OffsetLeft = 10,
+                OffsetRight = 10,
+                OffsetTop = 10,
+                OffsetBottom = 10,
+            };
 
-            var options = new PackOptions { GroupSpacing = 5, StartCorner = corner, Tolerance = Tolerance.Default };
+            var options = new PackOptions
+            {
+                GroupSpacing = 5,
+                StartCorner = corner,
+                Tolerance = Tolerance.Default,
+            };
             PackResult result = SheetPacker.Pack(groups, sheet, options);
 
-            GeoRectangle2 first = result.Placements[0][0].ViewBox, area = result.Sheets[0].UsableArea;
-            GeoPoint2 expected = corner == SheetCorner.UpperLeft ? area.UpperLeft
+            GeoRectangle2 first = result.Placements[0][0].ViewBox,
+                area = result.Sheets[0].UsableArea;
+            GeoPoint2 expected =
+                corner == SheetCorner.UpperLeft ? area.UpperLeft
                 : corner == SheetCorner.UpperRight ? area.UpperRight
-                : corner == SheetCorner.LowerLeft ? area.LowerLeft : area.LowerRight;
-            GeoPoint2 placed = corner == SheetCorner.UpperLeft ? first.UpperLeft
+                : corner == SheetCorner.LowerLeft ? area.LowerLeft
+                : area.LowerRight;
+            GeoPoint2 placed =
+                corner == SheetCorner.UpperLeft ? first.UpperLeft
                 : corner == SheetCorner.UpperRight ? first.UpperRight
-                : corner == SheetCorner.LowerLeft ? first.LowerLeft : first.LowerRight;
+                : corner == SheetCorner.LowerLeft ? first.LowerLeft
+                : first.LowerRight;
             Assert.True(placed.IsEqualTo(expected, Tolerance.Default), placed.ToString());
             Assert.Single(result.Sheets);
             Assert.All(result.Placements, g => Assert.True(g[0].Placed));

@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -55,9 +55,7 @@ namespace GeometryHelper.Geometry
         /// <param name="centerY">Y coordinate of the center point.</param>
         /// <param name="radius">Radius of the circle (must be non-negative).</param>
         public GeoCircle2(double centerX, double centerY, double radius)
-            : this(new GeoPoint2(centerX, centerY), radius)
-        {
-        }
+            : this(new GeoPoint2(centerX, centerY), radius) { }
 
         /// <summary>
         /// Creates a copy of this circle.
@@ -101,12 +99,14 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the arc length from angle zero of this circle to a normalized parameter.
         /// </summary>
-        public double GetDistanceAtParameter(double parameter) => Parametrization2.GetDistanceAtParameter(this, parameter);
+        public double GetDistanceAtParameter(double parameter) =>
+            Parametrization2.GetDistanceAtParameter(this, parameter);
 
         /// <summary>
         /// Gets the normalized parameter at an arc length measured from angle zero of this circle.
         /// </summary>
-        public double GetParameterAtDistance(double distance) => Parametrization2.GetParameterAtDistance(this, distance);
+        public double GetParameterAtDistance(double distance) =>
+            Parametrization2.GetParameterAtDistance(this, distance);
 
         /// <summary>
         /// Translates the circle by a displacement vector.
@@ -121,7 +121,8 @@ namespace GeometryHelper.Geometry
         /// <param name="distance">How far the circumference moves: outward when positive.</param>
         /// <param name="result">The concentric circle, or this circle when the method returns false.</param>
         /// <returns>true if a circle is left; false if it shrinks to nothing.</returns>
-        public bool TryOffset(double distance, out GeoCircle2 result) => Offset2.TryOffset(this, distance, out result, Tolerance.Global);
+        public bool TryOffset(double distance, out GeoCircle2 result) =>
+            Offset2.TryOffset(this, distance, out result, Tolerance.Global);
 
         /// <summary>
         /// Grows this circle by a distance, or shrinks it when the distance is negative, within tolerance.
@@ -130,7 +131,8 @@ namespace GeometryHelper.Geometry
         /// <param name="result">The concentric circle, or this circle when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if a circle is left; false if it shrinks to nothing.</returns>
-        public bool TryOffset(double distance, out GeoCircle2 result, Tolerance tolerance) => Offset2.TryOffset(this, distance, out result, tolerance);
+        public bool TryOffset(double distance, out GeoCircle2 result, Tolerance tolerance) =>
+            Offset2.TryOffset(this, distance, out result, tolerance);
 
         /// <summary>
         /// Checks whether the circle contains a point using default tolerance.
@@ -150,7 +152,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Classifies the location of a point relative to this circle (Inside, OutSide, or OnSide) within tolerance.
         /// </summary>
-        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) => Containment2.Locate(this, point, tolerance);
+        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) =>
+            Containment2.Locate(this, point, tolerance);
 
         /// <summary>
         /// Checks whether the circle entirely contains another circle using default tolerance.
@@ -292,7 +295,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="chordTolerance">The largest gap allowed between a chord and the circle, in drawing units. Zero picks the automatic share of the radius.</param>
         /// <returns>The triangles, counter-clockwise; none when the radius is nought.</returns>
-        public GeoTriangle2[] TriangulateSurface(double chordTolerance) => TriangulateSurface(chordTolerance, Tolerance.Global);
+        public GeoTriangle2[] TriangulateSurface(double chordTolerance) =>
+            TriangulateSurface(chordTolerance, Tolerance.Global);
 
         /// <summary>
         /// Breaks the disc into triangles fanned from its center, the rim cut so that it strays from the circle no
@@ -329,14 +333,16 @@ namespace GeometryHelper.Geometry
         /// <param name="kind">The kind of faces.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
         /// <exception cref="ArgumentException">Thrown for <see cref="Meshing.MeshKind.Grid"/>, which needs the size of its cells.</exception>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshKind kind) => Meshing.Mesh2.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Tolerance.Global);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshKind kind) =>
+            Meshing.Mesh2.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Tolerance.Global);
 
         /// <summary>
         /// Breaks the disc into faces as the options say, using the default tolerance.
         /// </summary>
         /// <param name="options">How to break it up.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options) => Meshing.Mesh2.ToMesh(this, options, Tolerance.Global);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options) =>
+            Meshing.Mesh2.ToMesh(this, options, Tolerance.Global);
 
         /// <summary>
         /// Breaks the disc into faces as the options say, within a tolerance: triangles, the cells of a grid, strips or
@@ -354,7 +360,8 @@ namespace GeometryHelper.Geometry
         /// The rim is flattened first, by the options' chord tolerance, as <see cref="ToPolygonByChordTolerance(double)"/>
         /// flattens it; its triangles are fanned from the center.
         /// </remarks>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) => Meshing.Mesh2.ToMesh(this, options, tolerance);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) =>
+            Meshing.Mesh2.ToMesh(this, options, tolerance);
 
         /// <summary>
         /// Approximates the circle as a polygon that strays no further from it than a chord tolerance.

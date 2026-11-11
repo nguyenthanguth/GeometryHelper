@@ -20,7 +20,12 @@ namespace GeometryHelper.UnitTest.Dxf
     {
         private const string NoGuid = "{00000000-0000-0000-0000-000000000000}";
 
-        private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
+        private static readonly string[] Drawings =
+        {
+            DxfFileEzdxfDrawings.R12,
+            DxfFileEzdxfDrawings.R2000,
+            DxfFileEzdxfDrawings.R2018,
+        };
 
         private static readonly Row[] Rows =
         {
@@ -38,20 +43,112 @@ namespace GeometryHelper.UnitTest.Dxf
             Of("$PELEVATION", 40, 1009, db => db.Pelevation, (db, v) => db.Pelevation = v, 0.0, -5.0),
             Of("$THICKNESS", 40, 1009, db => db.Thickness, (db, v) => db.Thickness = v, 0.0, 30.0),
             Of("$ENDCAPS", 280, 1015, db => db.EndCaps, (db, v) => db.EndCaps = v, DxfEndCap.None, DxfEndCap.Round),
-            Of("$JOINSTYLE", 280, 1015, db => db.JoinStyle, (db, v) => db.JoinStyle = v, DxfJoinStyle.StyleNone, DxfJoinStyle.StyleFlat),
+            Of(
+                "$JOINSTYLE",
+                280,
+                1015,
+                db => db.JoinStyle,
+                (db, v) => db.JoinStyle = v,
+                DxfJoinStyle.StyleNone,
+                DxfJoinStyle.StyleFlat
+            ),
             Of("$FILLETRAD", 40, 1009, db => db.Filletrad, (db, v) => db.Filletrad = v, 10.0, 2.5),
-            Of("$FINGERPRINTGUID", 2, 1015, db => db.FingerprintGuid, (db, v) => db.FingerprintGuid = v, NoGuid, "{11111111-2222-3333-4444-555555555555}", written: false),
-            Of("$VERSIONGUID", 2, 1015, db => db.VersionGuid, (db, v) => db.VersionGuid = v, NoGuid, "{66666666-7777-8888-9999-AAAAAAAAAAAA}", written: false),
-            Of("$HYPERLINKBASE", 1, 1015, db => db.HyperlinkBase, (db, v) => db.HyperlinkBase = v, string.Empty, "https://example.com/plans/"),
-            Of("$STYLESHEET", 1, 1015, db => db.StyleSheet, (db, v) => db.StyleSheet = v, string.Empty, "monochrome.ctb"),
-            Of("$PROJECTNAME", 1, 1018, db => db.ProjectName, (db, v) => db.ProjectName = v, string.Empty, "Bridge B-12"),
+            Of(
+                "$FINGERPRINTGUID",
+                2,
+                1015,
+                db => db.FingerprintGuid,
+                (db, v) => db.FingerprintGuid = v,
+                NoGuid,
+                "{11111111-2222-3333-4444-555555555555}",
+                written: false
+            ),
+            Of(
+                "$VERSIONGUID",
+                2,
+                1015,
+                db => db.VersionGuid,
+                (db, v) => db.VersionGuid = v,
+                NoGuid,
+                "{66666666-7777-8888-9999-AAAAAAAAAAAA}",
+                written: false
+            ),
+            Of(
+                "$HYPERLINKBASE",
+                1,
+                1015,
+                db => db.HyperlinkBase,
+                (db, v) => db.HyperlinkBase = v,
+                string.Empty,
+                "https://example.com/plans/"
+            ),
+            Of(
+                "$STYLESHEET",
+                1,
+                1015,
+                db => db.StyleSheet,
+                (db, v) => db.StyleSheet = v,
+                string.Empty,
+                "monochrome.ctb"
+            ),
+            Of(
+                "$PROJECTNAME",
+                1,
+                1018,
+                db => db.ProjectName,
+                (db, v) => db.ProjectName = v,
+                string.Empty,
+                "Bridge B-12"
+            ),
             Of("$LIMCHECK", 70, 1009, db => db.Limcheck, (db, v) => db.Limcheck = v, false, true),
             Of("$PLIMCHECK", 70, 1009, db => db.Plimcheck, (db, v) => db.Plimcheck = v, false, true),
-            Of("$PLIMMIN", 10, 1009, db => db.Plimmin, (db, v) => db.Plimmin = v, new GeoPoint2(0.0, 0.0), new GeoPoint2(-10.0, -20.0)),
-            Of("$PLIMMAX", 10, 1009, db => db.Plimmax, (db, v) => db.Plimmax = v, new GeoPoint2(420.0, 297.0), new GeoPoint2(841.0, 594.0)),
-            Of("$PEXTMIN", 10, 1009, db => db.Pextmin, (db, v) => db.Pextmin = v, new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(-1.0, -2.0, -3.0), written: false),
-            Of("$PEXTMAX", 10, 1009, db => db.Pextmax, (db, v) => db.Pextmax = v, new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(420.0, 297.0, 0.0), written: false),
-            Of("$PINSBASE", 10, 1015, db => db.Pinsbase, (db, v) => db.Pinsbase = v, new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(1.0, 2.0, 3.0)),
+            Of(
+                "$PLIMMIN",
+                10,
+                1009,
+                db => db.Plimmin,
+                (db, v) => db.Plimmin = v,
+                new GeoPoint2(0.0, 0.0),
+                new GeoPoint2(-10.0, -20.0)
+            ),
+            Of(
+                "$PLIMMAX",
+                10,
+                1009,
+                db => db.Plimmax,
+                (db, v) => db.Plimmax = v,
+                new GeoPoint2(420.0, 297.0),
+                new GeoPoint2(841.0, 594.0)
+            ),
+            Of(
+                "$PEXTMIN",
+                10,
+                1009,
+                db => db.Pextmin,
+                (db, v) => db.Pextmin = v,
+                new GeoPoint3(0.0, 0.0, 0.0),
+                new GeoPoint3(-1.0, -2.0, -3.0),
+                written: false
+            ),
+            Of(
+                "$PEXTMAX",
+                10,
+                1009,
+                db => db.Pextmax,
+                (db, v) => db.Pextmax = v,
+                new GeoPoint3(0.0, 0.0, 0.0),
+                new GeoPoint3(420.0, 297.0, 0.0),
+                written: false
+            ),
+            Of(
+                "$PINSBASE",
+                10,
+                1015,
+                db => db.Pinsbase,
+                (db, v) => db.Pinsbase = v,
+                new GeoPoint3(0.0, 0.0, 0.0),
+                new GeoPoint3(1.0, 2.0, 3.0)
+            ),
             Of("$PLINEGEN", 70, 1009, db => db.Plinegen, (db, v) => db.Plinegen = v, false, true),
             Of("$PLINEWID", 40, 1009, db => db.Plinewid, (db, v) => db.Plinewid = v, 0.0, 0.7),
             Of("$TRACEWID", 40, 1009, db => db.Tracewid, (db, v) => db.Tracewid = v, 1.0, 0.5),
@@ -76,11 +173,27 @@ namespace GeometryHelper.UnitTest.Dxf
             Of("$USERR3", 40, 1009, db => db.Userr3, (db, v) => db.Userr3 = v, 0.0, 0.1),
             Of("$USERR4", 40, 1009, db => db.Userr4, (db, v) => db.Userr4 = v, 0.0, 1E-7),
             Of("$USERR5", 40, 1009, db => db.Userr5, (db, v) => db.Userr5 = v, 0.0, -12345.678),
-            Of("$PSVPSCALE", 40, 1015, db => db.ViewportScaleDefault, (db, v) => db.ViewportScaleDefault = v, 0.0, 0.02),
+            Of(
+                "$PSVPSCALE",
+                40,
+                1015,
+                db => db.ViewportScaleDefault,
+                (db, v) => db.ViewportScaleDefault = v,
+                0.0,
+                0.02
+            ),
             Of("$VISRETAIN", 70, 1009, db => db.Visretain, (db, v) => db.Visretain = v, true, false),
             Of("$WORLDVIEW", 70, 1009, db => db.Worldview, (db, v) => db.Worldview = v, true, false),
             Of("$MAXACTVP", 70, 1009, db => db.Maxactvp, (db, v) => db.Maxactvp = v, 64, 16),
-            Of("$MEASUREMENT", 70, 1015, db => db.Measurement, (db, v) => db.Measurement = v, DxfMeasurementValue.Metric, DxfMeasurementValue.English),
+            Of(
+                "$MEASUREMENT",
+                70,
+                1015,
+                db => db.Measurement,
+                (db, v) => db.Measurement = v,
+                DxfMeasurementValue.Metric,
+                DxfMeasurementValue.English
+            ),
             Of("$OLESTARTUP", 290, 1015, db => db.OleStartUp, (db, v) => db.OleStartUp = v, false, true),
             Of("$XEDIT", 290, 1015, db => db.XrefEditEnabled, (db, v) => db.XrefEditEnabled = v, true, false),
             Of("$SHADEDGE", 70, 1009, db => db.Shadedge, (db, v) => db.Shadedge = v, 3, 1),
@@ -101,8 +214,26 @@ namespace GeometryHelper.UnitTest.Dxf
             Of("$STEPSPERSEC", 40, 1021, db => db.StepsPerSec, (db, v) => db.StepsPerSec = v, 24.0, 2.0),
             Of("$PSOLHEIGHT", 40, 1021, db => db.PsolHeight, (db, v) => db.PsolHeight = v, 80.0, 100.0, written: false),
             Of("$PSOLWIDTH", 40, 1021, db => db.PsolWidth, (db, v) => db.PsolWidth = v, 5.0, 10.0, written: false),
-            Of("$LOFTANG1", 40, 1021, db => db.LoftAng1, (db, v) => db.LoftAng1 = v, Math.PI / 2.0, 1.0, written: false),
-            Of("$LOFTANG2", 40, 1021, db => db.LoftAng2, (db, v) => db.LoftAng2 = v, Math.PI / 2.0, 0.5, written: false),
+            Of(
+                "$LOFTANG1",
+                40,
+                1021,
+                db => db.LoftAng1,
+                (db, v) => db.LoftAng1 = v,
+                Math.PI / 2.0,
+                1.0,
+                written: false
+            ),
+            Of(
+                "$LOFTANG2",
+                40,
+                1021,
+                db => db.LoftAng2,
+                (db, v) => db.LoftAng2 = v,
+                Math.PI / 2.0,
+                0.5,
+                written: false
+            ),
             Of("$LOFTMAG1", 40, 1021, db => db.LoftMag1, (db, v) => db.LoftMag1 = v, 0.0, 2.0),
             Of("$LOFTMAG2", 40, 1021, db => db.LoftMag2, (db, v) => db.LoftMag2 = v, 0.0, 3.0),
             Of("$LOFTPARAM", 70, 1021, db => db.LoftParam, (db, v) => db.LoftParam = v, 7, 15),
@@ -111,16 +242,48 @@ namespace GeometryHelper.UnitTest.Dxf
             Of("$LONGITUDE", 40, 1021, db => db.Longitude, (db, v) => db.Longitude = v, -122.394, 105.8542),
             Of("$NORTHDIRECTION", 40, 1021, db => db.NorthDirection, (db, v) => db.NorthDirection = v, 0.0, 0.25),
             Of("$LIGHTGLYPHDISPLAY", 280, 1021, db => db.LightGlyphDisplay, (db, v) => db.LightGlyphDisplay = v, 1, 0),
-            Of("$TILEMODELIGHTSYNCH", 280, 1021, db => db.TileModeLightSynch, (db, v) => db.TileModeLightSynch = v, 1, 0),
+            Of(
+                "$TILEMODELIGHTSYNCH",
+                280,
+                1021,
+                db => db.TileModeLightSynch,
+                (db, v) => db.TileModeLightSynch = v,
+                1,
+                0
+            ),
             Of("$SOLIDHIST", 280, 1021, db => db.SolidHist, (db, v) => db.SolidHist = v, 0, 1),
             Of("$SHOWHIST", 280, 1021, db => db.ShowHist, (db, v) => db.ShowHist = v, 1, 2),
             Of("$DWFFRAME", 280, 1021, db => db.DwfFrame, (db, v) => db.DwfFrame = v, 2, 0),
             Of("$DGNFRAME", 280, 1021, db => db.DgnFrame, (db, v) => db.DgnFrame = v, 2, 1),
             Of("$CSHADOW", 280, 1021, db => db.Cshadow, (db, v) => db.Cshadow = v, 0, 3),
-            Of("$SHADOWPLANELOCATION", 40, 1021, db => db.ShadowPlaneLocation, (db, v) => db.ShadowPlaneLocation = v, 0.0, -100.0),
-            Of("$INTERFERECOLOR", 62, 1021, db => db.Interferecolor, (db, v) => db.Interferecolor = v, DxfColor.ByLayer, DxfColor.OfIndex(1)),
+            Of(
+                "$SHADOWPLANELOCATION",
+                40,
+                1021,
+                db => db.ShadowPlaneLocation,
+                (db, v) => db.ShadowPlaneLocation = v,
+                0.0,
+                -100.0
+            ),
+            Of(
+                "$INTERFERECOLOR",
+                62,
+                1021,
+                db => db.Interferecolor,
+                (db, v) => db.Interferecolor = v,
+                DxfColor.ByLayer,
+                DxfColor.OfIndex(1)
+            ),
             Of("$USRTIMER", 70, 1009, db => db.Usrtimer, (db, v) => db.Usrtimer = v, true, false),
-            Of("$TIMEZONE", 70, 1021, db => db.TimeZone, (db, v) => db.TimeZone = v, DxfTimeZone.Pacific, DxfTimeZone.Bangkok),
+            Of(
+                "$TIMEZONE",
+                70,
+                1021,
+                db => db.TimeZone,
+                (db, v) => db.TimeZone = v,
+                DxfTimeZone.Pacific,
+                DxfTimeZone.Bangkok
+            ),
         };
 
         [Fact]
@@ -132,8 +295,14 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 foreach (Row row in Rows.Where(r => r.Written))
                 {
-                    Assert.True(db.GetHeader(row.Variable) != null || !db.File.Supports(row.Since), db.Version + " " + row.Variable + " is not in the drawing.");
-                    Assert.Equal(db.Version + " " + row.Variable + " " + Show(row.Fallback), db.Version + " " + row.Variable + " " + Show(row.Get(db)));
+                    Assert.True(
+                        db.GetHeader(row.Variable) != null || !db.File.Supports(row.Since),
+                        db.Version + " " + row.Variable + " is not in the drawing."
+                    );
+                    Assert.Equal(
+                        db.Version + " " + row.Variable + " " + Show(row.Fallback),
+                        db.Version + " " + row.Variable + " " + Show(row.Get(db))
+                    );
                 }
             }
         }
@@ -152,7 +321,10 @@ namespace GeometryHelper.UnitTest.Dxf
                     Assert.Equal(row.Variable + " " + Show(row.Fallback), row.Variable + " " + Show(row.Get(db)));
                 }
 
-                Assert.Equal(new GeoVector3(1.0, 0.0, 0.0), DxfDatabase.Parse(Without(Without(bare, "$UCSXDIR"), "$PUCSXDIR")).Ucsxdir);
+                Assert.Equal(
+                    new GeoVector3(1.0, 0.0, 0.0),
+                    DxfDatabase.Parse(Without(Without(bare, "$UCSXDIR"), "$PUCSXDIR")).Ucsxdir
+                );
                 Assert.Equal(new GeoVector3(0.0, 1.0, 0.0), DxfDatabase.Parse(Without(bare, "$PUCSYDIR")).Pucsydir);
             }
         }
@@ -193,7 +365,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 foreach (Row row in held)
                 {
-                    Assert.Equal(row.Variable + " " + Show(row.Changed), row.Variable + " " + Show(row.Get(addedAgain)));
+                    Assert.Equal(
+                        row.Variable + " " + Show(row.Changed),
+                        row.Variable + " " + Show(row.Get(addedAgain))
+                    );
                 }
             }
         }
@@ -201,7 +376,11 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void EveryVariableSetToTheValueItHas_ChangesNoByte()
         {
-            foreach (string text in Drawings.Concat(Drawings.Select(t => Rows.Aggregate(t, (u, row) => Without(u, row.Variable)))))
+            foreach (
+                string text in Drawings.Concat(
+                    Drawings.Select(t => Rows.Aggregate(t, (u, row) => Without(u, row.Variable)))
+                )
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
 
@@ -212,7 +391,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 db.Ucs = new GeoCoordinateSystem3(db.Ucsorg, db.Ucsxdir, db.Ucsydir);
                 db.Ucsname = db.Ucsname;
-                db.SetWorldUcsBaseOrigin(db.WorldUcsBaseOrigin(DxfOrthographicView.TopView), DxfOrthographicView.TopView);
+                db.SetWorldUcsBaseOrigin(
+                    db.WorldUcsBaseOrigin(DxfOrthographicView.TopView),
+                    DxfOrthographicView.TopView
+                );
 
                 if (db.Cmaterial != null)
                 {
@@ -239,7 +421,9 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             DxfDatabase r12 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R12);
-            Assert.Throws<InvalidOperationException>(() => r12.SetWorldUcsBaseOrigin(new GeoPoint3(1.0, 0.0, 0.0), DxfOrthographicView.BackView));
+            Assert.Throws<InvalidOperationException>(() =>
+                r12.SetWorldUcsBaseOrigin(new GeoPoint3(1.0, 0.0, 0.0), DxfOrthographicView.BackView)
+            );
             Assert.Throws<InvalidOperationException>(() => r12.SetTimeZoneAsUtcOffset(7.0));
             Assert.Equal(DxfFileEzdxfDrawings.R12, r12.ToText());
         }
@@ -314,11 +498,15 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<ArgumentException>(() => db.Interferecolor = DxfColor.FromRgb(1, 2, 3));
             Assert.Throws<ArgumentException>(() => db.Pinsbase = new GeoPoint3(double.NaN, 0.0, 0.0));
             Assert.Throws<ArgumentException>(() => db.Ucs = default(GeoCoordinateSystem3));
-            Assert.Throws<ArgumentException>(() => db.SetWorldUcsBaseOrigin(new GeoPoint3(0.0, double.PositiveInfinity, 0.0), DxfOrthographicView.TopView));
+            Assert.Throws<ArgumentException>(() =>
+                db.SetWorldUcsBaseOrigin(new GeoPoint3(0.0, double.PositiveInfinity, 0.0), DxfOrthographicView.TopView)
+            );
             Assert.Throws<ArgumentException>(() => db.Ucsname = "GH_NONE");
             Assert.Throws<ArgumentNullException>(() => db.Cmaterial = null);
             Assert.Throws<ArgumentException>(() => db.Cmaterial = db.VisualStyleDictionary.First().Value);
-            Assert.Throws<ArgumentException>(() => db.dragvs = DxfDatabase.Parse(text).VisualStyleDictionary.First().Value);
+            Assert.Throws<ArgumentException>(() =>
+                db.dragvs = DxfDatabase.Parse(text).VisualStyleDictionary.First().Value
+            );
             Assert.Throws<ArgumentException>(() => db.CmlstyleID = db.MaterialDictionary.First().Value);
             Assert.Equal(text, db.ToText());
         }
@@ -334,7 +522,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(".", r2018.Menu);
             Assert.True(r12.PlotStyleMode);
             Assert.True(r2018.PlotStyleMode);
-            Assert.False(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018.Replace("$PSTYLEMODE\n290\n1\n", "$PSTYLEMODE\n290\n0\n")).PlotStyleMode);
+            Assert.False(
+                DxfDatabase
+                    .Parse(DxfFileEzdxfDrawings.R2018.Replace("$PSTYLEMODE\n290\n1\n", "$PSTYLEMODE\n290\n0\n"))
+                    .PlotStyleMode
+            );
 
             // $ACADMAINTVER is a group 70 up to R2017 and a group 90 from R2018.
             Assert.Equal(0, r12.MaintenanceReleaseVersion);
@@ -351,12 +543,24 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(0.005, r2018.PsolWidth);
 
             // The last day DateTime holds is read whole; only a part of it rounded to midnight after it is past its end.
-            string last = DxfFileEzdxfDrawings.R2018.Replace("$TDCREATE\n 40\n2461337.6045138887\n", "$TDCREATE\n 40\n5373484.5\n");
+            string last = DxfFileEzdxfDrawings.R2018.Replace(
+                "$TDCREATE\n 40\n2461337.6045138887\n",
+                "$TDCREATE\n 40\n5373484.5\n"
+            );
             Assert.Equal(new DateTime(9999, 12, 31, 12, 0, 0), DxfDatabase.Parse(last).Tdcreate);
-            Assert.Equal(new DateTime(9999, 12, 31), DxfDatabase.Parse(last.Replace("5373484.5", "5373484.0")).Tdcreate);
-            Assert.Equal(default(DateTime), DxfDatabase.Parse(last.Replace("5373484.5", "5373484.9999999995")).Tdcreate);
+            Assert.Equal(
+                new DateTime(9999, 12, 31),
+                DxfDatabase.Parse(last.Replace("5373484.5", "5373484.0")).Tdcreate
+            );
+            Assert.Equal(
+                default(DateTime),
+                DxfDatabase.Parse(last.Replace("5373484.5", "5373484.9999999995")).Tdcreate
+            );
             Assert.Equal(default(DateTime), DxfDatabase.Parse(last.Replace("5373484.5", "5373485.0")).Tdcreate);
-            Assert.Equal(new DateTime(1, 1, 1, 6, 0, 0), DxfDatabase.Parse(last.Replace("5373484.5", "1721426.25")).Tdcreate);
+            Assert.Equal(
+                new DateTime(1, 1, 1, 6, 0, 0),
+                DxfDatabase.Parse(last.Replace("5373484.5", "1721426.25")).Tdcreate
+            );
             Assert.Equal(default(DateTime), DxfDatabase.Parse(last.Replace("5373484.5", "1721425.75")).Tdcreate);
             Assert.Equal(new DateTime(2026, 10, 23, 14, 30, 30, 0), r2018.Tdupdate);
             Assert.Equal(new DateTime(2019, 2, 17, 3, 41, 45, 332, DateTimeKind.Utc), r2018.Tducreate);
@@ -367,8 +571,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(default(DateTime), r12.Tducreate);
 
             // 2451545.75 is 1 January 2000 at 18:00; an edit of half a day and an hour's timer.
-            string text = DxfFileEzdxfDrawings.R2018.Replace("$TDCREATE\n 40\n2461337.6045138887\n", "$TDCREATE\n 40\n2451545.75\n")
-                .Replace("$TDINDWG\n 40\n0.0\n", "$TDINDWG\n 40\n0.5\n").Replace("$TDUSRTIMER\n 40\n0.0\n", "$TDUSRTIMER\n 40\n0.041666666666666664\n");
+            string text = DxfFileEzdxfDrawings
+                .R2018.Replace("$TDCREATE\n 40\n2461337.6045138887\n", "$TDCREATE\n 40\n2451545.75\n")
+                .Replace("$TDINDWG\n 40\n0.0\n", "$TDINDWG\n 40\n0.5\n")
+                .Replace("$TDUSRTIMER\n 40\n0.0\n", "$TDUSRTIMER\n 40\n0.041666666666666664\n");
             DxfDatabase timed = DxfDatabase.Parse(text);
             Assert.Equal(new DateTime(2000, 1, 1, 18, 0, 0), timed.Tdcreate);
             Assert.Equal(TimeSpan.FromHours(12), timed.Tdindwg);
@@ -467,14 +673,39 @@ namespace GeometryHelper.UnitTest.Dxf
             db.Longitude = 180.0;
 
             DxfDatabase again = DxfDatabase.Parse(db.ToText());
-            Assert.Equal(new[] { 2, 32766, 100, 100, 0, 257, 2 }, new[] { again.Surftab1, again.Surftab2, again.HaloGap, again.Shadedif, again.SortEnts, again.ObscuredColor, again.Maxactvp });
-            Assert.Equal(new[] { 1E-6, 30.0, underTwoPi, 0.0, 10.0, -90.0, 180.0 }, new[] { again.StepSize, again.StepsPerSec, again.LoftAng1, again.LoftAng2, again.LoftMag1, again.Latitude, again.Longitude });
+            Assert.Equal(
+                new[] { 2, 32766, 100, 100, 0, 257, 2 },
+                new[]
+                {
+                    again.Surftab1,
+                    again.Surftab2,
+                    again.HaloGap,
+                    again.Shadedif,
+                    again.SortEnts,
+                    again.ObscuredColor,
+                    again.Maxactvp,
+                }
+            );
+            Assert.Equal(
+                new[] { 1E-6, 30.0, underTwoPi, 0.0, 10.0, -90.0, 180.0 },
+                new[]
+                {
+                    again.StepSize,
+                    again.StepsPerSec,
+                    again.LoftAng1,
+                    again.LoftAng2,
+                    again.LoftMag1,
+                    again.Latitude,
+                    again.Longitude,
+                }
+            );
         }
 
         [Fact]
         public void TheTextVariables_AreReadAsWritten_AndAGuidIsWrittenAsAutoCADWritesIt()
         {
-            string text = DxfFileEzdxfDrawings.R2018.Replace("$HYPERLINKBASE\n  1\n\n", "$HYPERLINKBASE\n  1\n  ../plans/  \n")
+            string text = DxfFileEzdxfDrawings
+                .R2018.Replace("$HYPERLINKBASE\n  1\n\n", "$HYPERLINKBASE\n  1\n  ../plans/  \n")
                 .Replace("$PROJECTNAME\n  1\n\n", "$PROJECTNAME\n  1\nBridge B-12 \n");
             DxfDatabase db = DxfDatabase.Parse(text);
 
@@ -585,7 +816,8 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TheUcs_IsWrittenToItsThreeVariables_AndNamedByTheUcsTable()
         {
             const string Table = "  2\nUCS\n  5\n6\n330\n0\n100\nAcDbSymbolTable\n 70\n0\n";
-            const string Record = "  0\nUCS\n  5\nF1\n330\n6\n100\nAcDbSymbolTableRecord\n100\nAcDbUCSTableRecord\n  2\nGH_UCS\n 70\n0\n"
+            const string Record =
+                "  0\nUCS\n  5\nF1\n330\n6\n100\nAcDbSymbolTableRecord\n100\nAcDbUCSTableRecord\n  2\nGH_UCS\n 70\n0\n"
                 + " 10\n100.0\n 20\n0.0\n 30\n0.0\n 11\n0.0\n 21\n1.0\n 31\n0.0\n 12\n-1.0\n 22\n0.0\n 32\n0.0\n 79\n0\n146\n0.0\n";
             string text = DxfFileEzdxfDrawings.R2018;
             Assert.Contains(Table, text, StringComparison.Ordinal);
@@ -601,10 +833,18 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(DxfOrthographicView.NonOrthoView, db.PucsOrthographic);
 
             // A quarter turn about Z at (100, 0, 0).
-            db.Ucs = new GeoCoordinateSystem3(new GeoPoint3(100.0, 0.0, 0.0), new GeoVector3(0.0, 1.0, 0.0), new GeoVector3(-1.0, 0.0, 0.0));
+            db.Ucs = new GeoCoordinateSystem3(
+                new GeoPoint3(100.0, 0.0, 0.0),
+                new GeoVector3(0.0, 1.0, 0.0),
+                new GeoVector3(-1.0, 0.0, 0.0)
+            );
             db.Ucsname = "gh_ucs";
             db.UcsBase = "GH_UCS";
-            db.Pucs = new GeoCoordinateSystem3(new GeoPoint3(5.0, 6.0, 7.0), new GeoVector3(0.0, 0.0, 1.0), new GeoVector3(1.0, 0.0, 0.0));
+            db.Pucs = new GeoCoordinateSystem3(
+                new GeoPoint3(5.0, 6.0, 7.0),
+                new GeoVector3(0.0, 0.0, 1.0),
+                new GeoVector3(1.0, 0.0, 0.0)
+            );
             db.Pucsname = "GH_UCS";
             db.PucsBase = "GH_UCS";
             db.SetWorldUcsBaseOrigin(new GeoPoint3(0.0, 0.0, 300.0), DxfOrthographicView.TopView);
@@ -612,8 +852,12 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string saved = db.ToText();
             OnlyTheseChanged(named, saved);
-            const string Written = "$UCSORG\n 10\n100\n 20\n0\n 30\n0\n  9\n$UCSXDIR\n 10\n0\n 20\n1\n 30\n0\n  9\n$UCSYDIR\n 10\n-1\n 20\n0\n 30\n0\n";
-            Assert.Equal(Written, saved.Substring(saved.IndexOf("$UCSORG\n", StringComparison.Ordinal), Written.Length));
+            const string Written =
+                "$UCSORG\n 10\n100\n 20\n0\n 30\n0\n  9\n$UCSXDIR\n 10\n0\n 20\n1\n 30\n0\n  9\n$UCSYDIR\n 10\n-1\n 20\n0\n 30\n0\n";
+            Assert.Equal(
+                Written,
+                saved.Substring(saved.IndexOf("$UCSORG\n", StringComparison.Ordinal), Written.Length)
+            );
             DxfDatabase again = DxfDatabase.Parse(saved);
             Assert.Equal(new GeoPoint3(100.0, 0.0, 0.0), again.Ucsorg);
             Assert.Equal(new GeoVector3(0.0, 1.0, 0.0), again.Ucsxdir);
@@ -627,7 +871,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("GH_UCS", again.PucsBase);
             Assert.Equal(new GeoPoint3(0.0, 0.0, 300.0), again.WorldUcsBaseOrigin(DxfOrthographicView.TopView));
             Assert.Equal(new GeoPoint3(0.0, 0.0, 0.0), again.WorldUcsBaseOrigin(DxfOrthographicView.BottomView));
-            Assert.Equal(new GeoPoint3(0.0, -10.0, 0.0), again.WorldPaperspaceUcsBaseOrigin(DxfOrthographicView.FrontView));
+            Assert.Equal(
+                new GeoPoint3(0.0, -10.0, 0.0),
+                again.WorldPaperspaceUcsBaseOrigin(DxfOrthographicView.FrontView)
+            );
 
             // Named none again: the group 2 is empty, as ezdxf writes a drawing's.
             again.Ucsname = null;
@@ -683,16 +930,19 @@ namespace GeometryHelper.UnitTest.Dxf
         /// </summary>
         private static string Styled()
         {
-            const string Lines = "  0\nDICTIONARY\n  5\n10\n330\nA\n100\nAcDbDictionary\n281\n1\n  3\nStandard\n350\n22\n";
+            const string Lines =
+                "  0\nDICTIONARY\n  5\n10\n330\nA\n100\nAcDbDictionary\n281\n1\n  3\nStandard\n350\n22\n";
             const string Visual = "  0\nDICTIONARY\n  5\n16\n330\nA\n100\nAcDbDictionary\n281\n1\n";
-            const string Objects = "  0\nMLINESTYLE\n  5\nF2\n330\n10\n100\nAcDbMlineStyle\n  2\nGH\n 70\n0\n  3\n\n 62\n256\n 51\n90.0\n 52\n90.0\n 71\n1\n 49\n0.0\n 62\n256\n  6\nBYLAYER\n"
+            const string Objects =
+                "  0\nMLINESTYLE\n  5\nF2\n330\n10\n100\nAcDbMlineStyle\n  2\nGH\n 70\n0\n  3\n\n 62\n256\n 51\n90.0\n 52\n90.0\n 71\n1\n 49\n0.0\n 62\n256\n  6\nBYLAYER\n"
                 + "  0\nVISUALSTYLE\n  5\nF3\n330\n16\n100\nAcDbVisualStyle\n  2\nConceptual\n 70\n9\n291\n1\n"
                 + "  0\nVISUALSTYLE\n  5\nF4\n330\n16\n100\nAcDbVisualStyle\n  2\nRealistic\n 70\n8\n291\n1\n";
             string text = DxfFileEzdxfDrawings.R2018;
             Assert.Contains(Lines, text, StringComparison.Ordinal);
             Assert.Contains(Visual, text, StringComparison.Ordinal);
             int end = text.LastIndexOf("  0\nENDSEC\n", StringComparison.Ordinal);
-            return (text.Substring(0, end) + Objects + text.Substring(end)).Replace(Lines, Lines + "  3\nGH\n350\nF2\n")
+            return (text.Substring(0, end) + Objects + text.Substring(end))
+                .Replace(Lines, Lines + "  3\nGH\n350\nF2\n")
                 .Replace(Visual, Visual + "  3\nConceptual\n350\nF3\n  3\nRealistic\n350\nF4\n");
         }
 
@@ -731,8 +981,17 @@ namespace GeometryHelper.UnitTest.Dxf
             }
         }
 
-        private static Row Of<T>(string variable, int code, int since, Func<DxfDatabase, T> get, Action<DxfDatabase, T> set, T fallback, T changed, bool written = true)
-            => new Row
+        private static Row Of<T>(
+            string variable,
+            int code,
+            int since,
+            Func<DxfDatabase, T> get,
+            Action<DxfDatabase, T> set,
+            T fallback,
+            T changed,
+            bool written = true
+        ) =>
+            new Row
             {
                 Variable = variable,
                 Code = code,

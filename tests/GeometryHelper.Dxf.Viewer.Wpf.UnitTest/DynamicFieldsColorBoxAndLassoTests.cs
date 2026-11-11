@@ -36,7 +36,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     using (var folder = new TestFolder())
                     {
                         MainViewModel model = Room(folder, out string column);
-                        var canvas = new CadCanvas { Document = model.Document, Space = model.Space, View = model.View, Session = model.Session, Snap = model.Snap };
+                        var canvas = new CadCanvas
+                        {
+                            Document = model.Document,
+                            Space = model.Space,
+                            View = model.View,
+                            Session = model.Session,
+                            Snap = model.Snap,
+                        };
                         canvas.PixelSizeChanged += (s, e) => model.SetCanvasSize(canvas.PixelWidth, canvas.PixelHeight);
                         canvas.Measure(new Size(Width, Height));
                         canvas.Arrange(new Rect(0, 0, Width, Height));
@@ -65,7 +72,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             model.SetCursor(x, y);
         }
 
-        private static DxfLine LastLine(MainViewModel model) => model.Document.Database.ModelSpace.Cast<DxfEntity>().OfType<DxfLine>().Last();
+        private static DxfLine LastLine(MainViewModel model) =>
+            model.Document.Database.ModelSpace.Cast<DxfEntity>().OfType<DxfLine>().Last();
 
         private static void Lasso(CadCanvas canvas, params Point[] points)
         {
@@ -140,45 +148,49 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         [Fact]
         public void ALengthLockedHoldsThePointOfAClick_WhereItHoldsThePreview()
         {
-            OnCanvas((model, canvas, column) =>
-            {
-                canvas.HeldAt = (at, taken) => model.HoldDynamicInput(at);
-                model.Execute("LINE");
-                model.Execute("1000,1000");
-                model.CommandText = "300";
-                Assert.True(model.TabDynamicInput());
+            OnCanvas(
+                (model, canvas, column) =>
+                {
+                    canvas.HeldAt = (at, taken) => model.HoldDynamicInput(at);
+                    model.Execute("LINE");
+                    model.Execute("1000,1000");
+                    model.CommandText = "300";
+                    Assert.True(model.TabDynamicInput());
 
-                // What the canvas draws the rubber band and the preview to, with the cursor at (1 300, 1 400).
-                GeoPoint2 held = model.HoldDynamicInput(new GeoPoint2(1300, 1400)).Value;
-                Assert.Equal(300.0, (held - new GeoPoint2(1000, 1000)).Length, 9);
+                    // What the canvas draws the rubber band and the preview to, with the cursor at (1 300, 1 400).
+                    GeoPoint2 held = model.HoldDynamicInput(new GeoPoint2(1300, 1400)).Value;
+                    Assert.Equal(300.0, (held - new GeoPoint2(1000, 1000)).Length, 9);
 
-                CanvasMouseTests.Click(canvas, At(canvas, 1300, 1400));
+                    CanvasMouseTests.Click(canvas, At(canvas, 1300, 1400));
 
-                // The click lands within a pixel of the cursor, so the end within a few units of the held point.
-                DxfLine line = LastLine(model);
-                Assert.Equal(300.0, (line.EndPoint - line.StartPoint).Length, 6);
-                Assert.InRange(line.EndPoint.X - held.X, -5.0, 5.0);
-                Assert.InRange(line.EndPoint.Y - held.Y, -5.0, 5.0);
-            });
+                    // The click lands within a pixel of the cursor, so the end within a few units of the held point.
+                    DxfLine line = LastLine(model);
+                    Assert.Equal(300.0, (line.EndPoint - line.StartPoint).Length, 6);
+                    Assert.InRange(line.EndPoint.X - held.X, -5.0, 5.0);
+                    Assert.InRange(line.EndPoint.Y - held.Y, -5.0, 5.0);
+                }
+            );
         }
 
         [Fact]
         public void AGripStretched_IsDimensionalInput_TheLengthAndTheAngleFromTheGrip()
         {
-            OnCanvas((model, canvas, column) =>
-            {
-                // The bottom wall picked, then the grip at its end (4 000, 0).
-                CanvasMouseTests.Click(canvas, At(canvas, 3000, 0));
-                canvas.RenderNow();
-                CanvasMouseTests.Click(canvas, At(canvas, 4000, 0));
+            OnCanvas(
+                (model, canvas, column) =>
+                {
+                    // The bottom wall picked, then the grip at its end (4 000, 0).
+                    CanvasMouseTests.Click(canvas, At(canvas, 3000, 0));
+                    canvas.RenderNow();
+                    CanvasMouseTests.Click(canvas, At(canvas, 4000, 0));
 
-                Assert.True(model.Session.IsGripEditing);
-                Cursor(model, 4300, 400);
+                    Assert.True(model.Session.IsGripEditing);
+                    Cursor(model, 4300, 400);
 
-                Assert.True(model.IsDynamicInputPolar);
-                Assert.Equal("500.00", model.DynamicInputFirst);
-                Assert.Equal("53.1", model.DynamicInputSecond);
-            });
+                    Assert.True(model.IsDynamicInputPolar);
+                    Assert.Equal("500.00", model.DynamicInputFirst);
+                    Assert.Equal("53.1", model.DynamicInputSecond);
+                }
+            );
         }
 
         [Fact]
@@ -241,62 +253,66 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         [Fact]
         public void WithDynamicInputShown_TheCanvasTipGivesTheSnapAlone_AndWithoutItTheDistanceAndAngleToo()
         {
-            OnCanvas((model, canvas, column) =>
-            {
-                model.Toggles.Single(t => t.Name == "OSNAP").IsOn = false;
-                model.StartCommand("LINE");
-                CanvasMouseTests.Click(canvas, At(canvas, 500, 500));
-                CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 800, 900));
+            OnCanvas(
+                (model, canvas, column) =>
+                {
+                    model.Toggles.Single(t => t.Name == "OSNAP").IsOn = false;
+                    model.StartCommand("LINE");
+                    CanvasMouseTests.Click(canvas, At(canvas, 500, 500));
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 800, 900));
 
-                Assert.Contains(" < ", canvas.PromptTip);
+                    Assert.Contains(" < ", canvas.PromptTip);
 
-                // DYN gives the distance and angle; the grid is no object snap, so the canvas shows no tip of its own.
-                canvas.DynamicInput = true;
+                    // DYN gives the distance and angle; the grid is no object snap, so the canvas shows no tip of its own.
+                    canvas.DynamicInput = true;
 
-                Assert.Equal(string.Empty, canvas.PromptTip);
+                    Assert.Equal(string.Empty, canvas.PromptTip);
 
-                // An object snap is still named: the end of the bottom wall.
-                model.Toggles.Single(t => t.Name == "OSNAP").IsOn = true;
-                CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 4005, 5));
+                    // An object snap is still named: the end of the bottom wall.
+                    model.Toggles.Single(t => t.Name == "OSNAP").IsOn = true;
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 4005, 5));
 
-                Assert.Equal("Endpoint", canvas.PromptTip);
-            });
+                    Assert.Equal("Endpoint", canvas.PromptTip);
+                }
+            );
         }
 
         [Fact]
         public void AutosnapWithoutBit2_NamesNoSnap_AndWithoutBit32_ShowsNoDistanceWhereOrthoHoldsTheCursor()
         {
-            OnCanvas((model, canvas, column) =>
-            {
-                // AUTOSNAP 61: all but the AutoSnap tooltip.
-                model.Execute("AUTOSNAP");
-                model.Execute("61");
-                canvas.DynamicInput = true;
-                model.StartCommand("LINE");
-                CanvasMouseTests.Click(canvas, At(canvas, 500, 500));
-                CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 4005, 5));
+            OnCanvas(
+                (model, canvas, column) =>
+                {
+                    // AUTOSNAP 61: all but the AutoSnap tooltip.
+                    model.Execute("AUTOSNAP");
+                    model.Execute("61");
+                    canvas.DynamicInput = true;
+                    model.StartCommand("LINE");
+                    CanvasMouseTests.Click(canvas, At(canvas, 500, 500));
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 4005, 5));
 
-                Assert.Equal(string.Empty, canvas.PromptTip);
+                    Assert.Equal(string.Empty, canvas.PromptTip);
 
-                // ORTHO holds the cursor: its distance and angle are shown with bit 32, and left out without it.
-                model.Escape();
-                canvas.DynamicInput = false;
-                model.Toggles.Single(t => t.Name == "OSNAP").IsOn = false;
-                model.Toggles.Single(t => t.Name == "ORTHO").IsOn = true;
-                model.StartCommand("LINE");
-                CanvasMouseTests.Click(canvas, At(canvas, 500, 500));
-                CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 800, 520));
+                    // ORTHO holds the cursor: its distance and angle are shown with bit 32, and left out without it.
+                    model.Escape();
+                    canvas.DynamicInput = false;
+                    model.Toggles.Single(t => t.Name == "OSNAP").IsOn = false;
+                    model.Toggles.Single(t => t.Name == "ORTHO").IsOn = true;
+                    model.StartCommand("LINE");
+                    CanvasMouseTests.Click(canvas, At(canvas, 500, 500));
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 800, 520));
 
-                Assert.Contains(" < ", canvas.PromptTip);
-                model.Escape();
-                model.Execute("AUTOSNAP");
-                model.Execute("31");
-                model.StartCommand("LINE");
-                CanvasMouseTests.Click(canvas, At(canvas, 500, 500));
-                CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 800, 520));
+                    Assert.Contains(" < ", canvas.PromptTip);
+                    model.Escape();
+                    model.Execute("AUTOSNAP");
+                    model.Execute("31");
+                    model.StartCommand("LINE");
+                    CanvasMouseTests.Click(canvas, At(canvas, 500, 500));
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 800, 520));
 
-                Assert.Equal(string.Empty, canvas.PromptTip);
-            });
+                    Assert.Equal(string.Empty, canvas.PromptTip);
+                }
+            );
         }
 
         [Fact]
@@ -357,59 +373,84 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 model.SelectCurrentColorCommand.Execute(null);
 
                 Assert.True(model.Document.Database.Cecolor.IsByBlock);
-                Assert.Equal("The drawing keeps the colour of new objects as an index: ByLayer, ByBlock or 1 to 255.", model.History.Last());
+                Assert.Equal(
+                    "The drawing keeps the colour of new objects as an index: ByLayer, ByBlock or 1 to 255.",
+                    model.History.Last()
+                );
             }
         }
 
         [Fact]
         public void TheFirstCornerOfABoxStaysOnTheDrawingWhileTheWheelZooms()
         {
-            OnCanvas((model, canvas, column) =>
-            {
-                // The first corner at (1800, 1300), then a notch about (3000, 2500): the box ends at (2200, 1700), a window
-                // that holds the column of radius 100 at (2000, 1500). Kept in pixels, the corner would have moved to
-                // (2000, 1500), and the window would hold nothing.
-                CanvasMouseTests.Click(canvas, At(canvas, 1800, 1300));
-                CanvasMouseTests.Mouse(canvas, UIElement.MouseWheelEvent, At(canvas, 3000, 2500), delta: 120);
-                CanvasMouseTests.Click(canvas, At(canvas, 2200, 1700));
+            OnCanvas(
+                (model, canvas, column) =>
+                {
+                    // The first corner at (1800, 1300), then a notch about (3000, 2500): the box ends at (2200, 1700), a window
+                    // that holds the column of radius 100 at (2000, 1500). Kept in pixels, the corner would have moved to
+                    // (2000, 1500), and the window would hold nothing.
+                    CanvasMouseTests.Click(canvas, At(canvas, 1800, 1300));
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseWheelEvent, At(canvas, 3000, 2500), delta: 120);
+                    CanvasMouseTests.Click(canvas, At(canvas, 2200, 1700));
 
-                Assert.Equal(new[] { column }, model.Document.Selection.Handles);
-            });
+                    Assert.Equal(new[] { column }, model.Document.Selection.Handles);
+                }
+            );
         }
 
         [Fact]
         public void ALassoDrawnClockwiseTakesWhatItHoldsWhole_CounterClockwiseWhatItTouches_AndEscDropsIt()
         {
-            OnCanvas((model, canvas, column) =>
-            {
-                // Clockwise round the column: a window that holds it whole.
-                Lasso(canvas, At(canvas, 1800, 1700), At(canvas, 2200, 1700), At(canvas, 2200, 1300), At(canvas, 1800, 1300));
+            OnCanvas(
+                (model, canvas, column) =>
+                {
+                    // Clockwise round the column: a window that holds it whole.
+                    Lasso(
+                        canvas,
+                        At(canvas, 1800, 1700),
+                        At(canvas, 2200, 1700),
+                        At(canvas, 2200, 1300),
+                        At(canvas, 1800, 1300)
+                    );
 
-                Assert.Equal(new[] { column }, model.Document.Selection.Handles);
+                    Assert.Equal(new[] { column }, model.Document.Selection.Handles);
 
-                // Over its right half only, clockwise: a window, which takes nothing.
-                model.ClearSelection();
-                Lasso(canvas, At(canvas, 2050, 1700), At(canvas, 2300, 1700), At(canvas, 2300, 1300), At(canvas, 2050, 1300));
+                    // Over its right half only, clockwise: a window, which takes nothing.
+                    model.ClearSelection();
+                    Lasso(
+                        canvas,
+                        At(canvas, 2050, 1700),
+                        At(canvas, 2300, 1700),
+                        At(canvas, 2300, 1300),
+                        At(canvas, 2050, 1300)
+                    );
 
-                Assert.Empty(model.Document.Selection.Handles);
+                    Assert.Empty(model.Document.Selection.Handles);
 
-                // The same counter-clockwise: a crossing, which takes the column its rim runs through.
-                Lasso(canvas, At(canvas, 2050, 1700), At(canvas, 2050, 1300), At(canvas, 2300, 1300), At(canvas, 2300, 1700));
+                    // The same counter-clockwise: a crossing, which takes the column its rim runs through.
+                    Lasso(
+                        canvas,
+                        At(canvas, 2050, 1700),
+                        At(canvas, 2050, 1300),
+                        At(canvas, 2300, 1300),
+                        At(canvas, 2300, 1700)
+                    );
 
-                Assert.Equal(new[] { column }, model.Document.Selection.Handles);
+                    Assert.Equal(new[] { column }, model.Document.Selection.Handles);
 
-                // Esc while drawing drops the lasso: the release selects nothing.
-                model.ClearSelection();
-                CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 1800, 1700));
-                CanvasMouseTests.Mouse(canvas, UIElement.MouseDownEvent, At(canvas, 1800, 1700));
-                CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 2200, 1700));
-                CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 2200, 1300));
-                canvas.Cancel();
-                CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 1800, 1300));
-                CanvasMouseTests.Mouse(canvas, UIElement.MouseUpEvent, At(canvas, 1800, 1300));
+                    // Esc while drawing drops the lasso: the release selects nothing.
+                    model.ClearSelection();
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 1800, 1700));
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseDownEvent, At(canvas, 1800, 1700));
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 2200, 1700));
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 2200, 1300));
+                    canvas.Cancel();
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 1800, 1300));
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseUpEvent, At(canvas, 1800, 1300));
 
-                Assert.Empty(model.Document.Selection.Handles);
-            });
+                    Assert.Empty(model.Document.Selection.Handles);
+                }
+            );
         }
     }
 }

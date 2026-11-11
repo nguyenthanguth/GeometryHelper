@@ -27,30 +27,40 @@ namespace GeometryHelper.UnitTest.Plane
         {
             GeoVector2 chord = edge.StartPoint.GetVectorTo(edge.EndPoint);
 
-            return edge.StartPoint.Add(chord.Multiply(0.5)).Add(new GeoVector2(chord.Y, -chord.X).Multiply(edge.Bulge * 0.5));
+            return edge
+                .StartPoint.Add(chord.Multiply(0.5))
+                .Add(new GeoVector2(chord.Y, -chord.X).Multiply(edge.Bulge * 0.5));
         }
 
         /// <summary>A turn of 0.7529 radians of a stretch of 1 + 4.29E-9 along X and a shear of 9.28E-5, scaled by 55.57.</summary>
         private static GeoTransform2 EqualLengthSkew()
         {
-            double turn = 0.7529, stretch = 1 + 4.29E-9, shear = 9.28E-5, scale = 55.57;
-            double cos = Math.Cos(turn), sin = Math.Sin(turn);
+            double turn = 0.7529,
+                stretch = 1 + 4.29E-9,
+                shear = 9.28E-5,
+                scale = 55.57;
+            double cos = Math.Cos(turn),
+                sin = Math.Sin(turn);
 
-            return new GeoTransform2(new double[,]
-            {
-                { scale * cos * stretch, scale * (cos * shear - sin), 0 },
-                { scale * sin * stretch, scale * (sin * shear + cos), 0 },
-                { 0, 0, 1 },
-            });
+            return new GeoTransform2(
+                new double[,]
+                {
+                    { scale * cos * stretch, scale * (cos * shear - sin), 0 },
+                    { scale * sin * stretch, scale * (sin * shear + cos), 0 },
+                    { 0, 0, 1 },
+                }
+            );
         }
 
         /// <summary>The skew that sends Y to (0.000001, 1): a circle of radius 100 under it lands 0.0001 off.</summary>
-        private static readonly GeoTransform2 SlightSkew = new GeoTransform2(new double[,]
-        {
-            { 1, 0.000001, 0 },
-            { 0, 1, 0 },
-            { 0, 0, 1 },
-        });
+        private static readonly GeoTransform2 SlightSkew = new GeoTransform2(
+            new double[,]
+            {
+                { 1, 0.000001, 0 },
+                { 0, 1, 0 },
+                { 0, 0, 1 },
+            }
+        );
 
         [Fact]
         public void TheEqualLengthSkew_KeepsBothAxesOneLength()
@@ -114,12 +124,14 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // 100 long and bowing by 1E-12, its radius is 2.5E13: read from its centre, it stood thousandths off where it
             // lands, and was refused.
-            var rounded = new GeoTransform2(new double[,]
-            {
-                { 0.764842, -0.644217, 1000 },
-                { 0.644218, 0.764843, 2000 },
-                { 0, 0, 1 },
-            });
+            var rounded = new GeoTransform2(
+                new double[,]
+                {
+                    { 0.764842, -0.644217, 1000 },
+                    { 0.644218, 0.764843, 2000 },
+                    { 0, 0, 1 },
+                }
+            );
             var edge = new GeoEdge2(new GeoPoint2(10, 20), new GeoPoint2(70, 100), bulge);
 
             GeoEdge2 moved = edge.TransformBy(rounded);

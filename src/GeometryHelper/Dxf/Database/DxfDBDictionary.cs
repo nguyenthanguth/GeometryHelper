@@ -82,14 +82,10 @@ namespace GeometryHelper.Dxf
         /// Initializes a dictionary made in code, empty, to be added to another by <see cref="SetAt"/>, as AutoCAD's
         /// <c>DBDictionary()</c> is.
         /// </summary>
-        public DxfDBDictionary()
-        {
-        }
+        public DxfDBDictionary() { }
 
         internal DxfDBDictionary(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets how many entries the dictionary has, as AutoCAD's <c>Count</c>; nought for one made in code.</summary>
         public int Count => Item == null ? 0 : Indexed().Nodes.Count;
@@ -116,7 +112,8 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets whether an entry of the dictionary names an object, as AutoCAD's <c>Contains</c> of an id: by its handle.</summary>
         /// <param name="value">The object.</param>
         /// <returns>Whether one does.</returns>
-        public bool Contains(DxfDBObject value) => value?.Handle != null && Item != null && Indexed().ByHandle.ContainsKey(value.Handle);
+        public bool Contains(DxfDBObject value) =>
+            value?.Handle != null && Item != null && Indexed().ByHandle.ContainsKey(value.Handle);
 
         /// <summary>
         /// Gets the object an entry names, as AutoCAD's <c>GetAt</c> gives its id.
@@ -151,7 +148,8 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(value));
             }
 
-            return NameOf(value) ?? throw new KeyNotFoundException("No entry of the dictionary names the object " + value + ".");
+            return NameOf(value)
+                ?? throw new KeyNotFoundException("No entry of the dictionary names the object " + value + ".");
         }
 
         /// <summary>
@@ -196,7 +194,10 @@ namespace GeometryHelper.Dxf
 
             if (newValue.Item != null)
             {
-                throw new ArgumentException("A dictionary takes an object made in code and in no file yet: the " + newValue + " is in one.", nameof(newValue));
+                throw new ArgumentException(
+                    "A dictionary takes an object made in code and in no file yet: the " + newValue + " is in one.",
+                    nameof(newValue)
+                );
             }
 
             switch (newValue)
@@ -204,44 +205,44 @@ namespace GeometryHelper.Dxf
                 case DxfDBDictionary dictionary:
                     bool hard = dictionary._madeHard;
                     newValue.Bind(Add(searchKey, "DICTIONARY", b =>
-                    {
-                        b.Group(100, "AcDbDictionary");
-
-                        if (hard)
                         {
-                            b.Group(280, "1");
-                        }
+                            b.Group(100, "AcDbDictionary");
 
-                        b.Group(281, "1");
-                    }));
+                            if (hard)
+                            {
+                                b.Group(280, "1");
+                            }
+
+                            b.Group(281, "1");
+                        }));
                     break;
                 case DxfXrecord xrecord:
                     bool flagged = Resident().Supports(1015);
                     newValue.Bind(Add(searchKey, "XRECORD", b =>
-                    {
-                        b.Group(100, "AcDbXrecord");
-
-                        if (flagged)
                         {
-                            b.Group(280, "1");
-                        }
+                            b.Group(100, "AcDbXrecord");
 
-                        foreach (DxfTypedValue group in xrecord.MadeData)
-                        {
-                            b.Group(group.TypeCode, group.Value);
-                        }
-                    }));
+                            if (flagged)
+                            {
+                                b.Group(280, "1");
+                            }
+
+                            foreach (DxfTypedValue group in xrecord.MadeData)
+                            {
+                                b.Group(group.TypeCode, group.Value);
+                            }
+                        }));
                     break;
                 case DxfGroup group:
                     bool anonymous = searchKey.Trim() == "*" || group.MadeAnonymous;
                     string key = anonymous ? AnonymousName() : searchKey;
                     newValue.Bind(Add(key, "GROUP", b =>
-                    {
-                        b.Group(100, "AcDbGroup");
-                        b.Group(300, group.MadeDescription);
-                        b.Group(70, anonymous ? "1" : "0");
-                        b.Group(71, group.MadeSelectable ? "1" : "0");
-                    }));
+                        {
+                            b.Group(100, "AcDbGroup");
+                            b.Group(300, group.MadeDescription);
+                            b.Group(70, anonymous ? "1" : "0");
+                            b.Group(71, group.MadeSelectable ? "1" : "0");
+                        }));
                     break;
                 case DxfRasterImageDef definition:
                     DxfFile file = Resident();
@@ -250,53 +251,63 @@ namespace GeometryHelper.Dxf
                     // AutoCAD's SetAt erases the definition there, and the images that show it are not in the file it writes.
                     if (Find(searchKey) != null)
                     {
-                        throw new ArgumentException("The dictionary has an entry " + searchKey.Trim() + " already, an IMAGEDEF its images show: add the new one under the name DxfRasterImageDef.SuggestName gives.", nameof(searchKey));
+                        throw new ArgumentException(
+                            "The dictionary has an entry "
+                                + searchKey.Trim()
+                                + " already, an IMAGEDEF its images show: add the new one under the name DxfRasterImageDef.SuggestName gives.",
+                            nameof(searchKey)
+                        );
                     }
 
                     IReadOnlyList<KeyValuePair<int, string>> made = definition.MadeGroups;
                     newValue.Bind(Add(searchKey, "IMAGEDEF", b =>
-                    {
-                        b.Group(100, "AcDbRasterImageDef");
-
-                        foreach (KeyValuePair<int, string> pair in made)
                         {
-                            b.Group(pair.Key, pair.Value);
-                        }
-                    }));
+                            b.Group(100, "AcDbRasterImageDef");
+
+                            foreach (KeyValuePair<int, string> pair in made)
+                            {
+                                b.Group(pair.Key, pair.Value);
+                            }
+                        }));
                     file.ImageDefWritten();
                     break;
                 case DxfTableStyle style:
                     DxfFile styled = Resident();
                     List<KeyValuePair<int, string>> written = style.MadeGroups(styled.Supports(1021));
                     newValue.Bind(Add(searchKey, "TABLESTYLE", b =>
-                    {
-                        b.Group(100, "AcDbTableStyle");
-
-                        foreach (KeyValuePair<int, string> pair in written)
                         {
-                            b.Group(pair.Key, pair.Value);
-                        }
-                    }));
+                            b.Group(100, "AcDbTableStyle");
+
+                            foreach (KeyValuePair<int, string> pair in written)
+                            {
+                                b.Group(pair.Key, pair.Value);
+                            }
+                        }));
                     break;
                 case DxfMLeaderStyle mleaderStyle:
                     DxfFile leadered = Resident();
                     List<KeyValuePair<int, string>> held = mleaderStyle.MadeGroups(leadered.Database);
                     newValue.Bind(Add(searchKey, "MLEADERSTYLE", b =>
-                    {
-                        b.Group(100, "AcDbMLeaderStyle");
-
-                        foreach (KeyValuePair<int, string> pair in held)
                         {
-                            b.Group(pair.Key, pair.Value);
-                        }
-                    }));
+                            b.Group(100, "AcDbMLeaderStyle");
+
+                            foreach (KeyValuePair<int, string> pair in held)
+                            {
+                                b.Group(pair.Key, pair.Value);
+                            }
+                        }));
 
                     // Listed and counted in CLASSES, as AutoCAD 2021 passes over every object of a class it counts 0.
                     leadered.AddClass("MLEADERSTYLE", "AcDbMLeaderStyle", 4095, "ACDB_MLEADERSTYLE_CLASS");
                     leadered.CountClass("MLEADERSTYLE");
                     break;
                 default:
-                    throw new ArgumentException("A dictionary takes a DxfDBDictionary, a DxfXrecord, a DxfGroup, a DxfRasterImageDef, a DxfTableStyle or a DxfMLeaderStyle made in code: a " + newValue.GetType().Name + " is not added.", nameof(newValue));
+                    throw new ArgumentException(
+                        "A dictionary takes a DxfDBDictionary, a DxfXrecord, a DxfGroup, a DxfRasterImageDef, a DxfTableStyle or a DxfMLeaderStyle made in code: a "
+                            + newValue.GetType().Name
+                            + " is not added.",
+                        nameof(newValue)
+                    );
             }
         }
 
@@ -318,7 +329,6 @@ namespace GeometryHelper.Dxf
 
                 return Item.File.ValueOf(Item, 280)?.Trim() == "1";
             }
-
             set
             {
                 if (value == TreatElementsAsHard)
@@ -369,7 +379,14 @@ namespace GeometryHelper.Dxf
 
             if (array.Length - index < entries.Count)
             {
-                throw new ArgumentException("The array has room for " + Math.Max(0, array.Length - index).ToString(System.Globalization.CultureInfo.InvariantCulture) + " entries from the index on, and the dictionary has " + entries.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".", nameof(array));
+                throw new ArgumentException(
+                    "The array has room for "
+                        + Math.Max(0, array.Length - index).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        + " entries from the index on, and the dictionary has "
+                        + entries.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        + ".",
+                    nameof(array)
+                );
             }
 
             entries.CopyTo(array, index);
@@ -418,8 +435,10 @@ namespace GeometryHelper.Dxf
         internal void Rename(DxfDBObject value, string newName) => SetName(NameAt(value), newName);
 
         /// <summary>The name of the entry that names an object, as <see cref="NameAt"/>; null where no entry names it.</summary>
-        internal string NameOf(DxfDBObject value)
-            => value.Handle != null && Item != null && Indexed().ByHandle.TryGetValue(value.Handle, out List<Node> named) ? named[0].Name : null;
+        internal string NameOf(DxfDBObject value) =>
+            value.Handle != null && Item != null && Indexed().ByHandle.TryGetValue(value.Handle, out List<Node> named)
+                ? named[0].Name
+                : null;
 
         /// <summary>
         /// Adds an object of a type, owned by the dictionary, under a name: its record written as <see cref="DxfFile.AddObject"/>
@@ -447,7 +466,11 @@ namespace GeometryHelper.Dxf
                 if (Spliceable(index))
                 {
                     int from = index.Offset(found, out int at);
-                    index.Put(at, made.Handle, Splice(index, from, from + found.Length, found.Key, found.Code, made.Handle));
+                    index.Put(
+                        at,
+                        made.Handle,
+                        Splice(index, from, from + found.Length, found.Key, found.Code, made.Handle)
+                    );
                     return made;
                 }
 
@@ -555,7 +578,10 @@ namespace GeometryHelper.Dxf
 
             if (other != null && other != found)
             {
-                throw new ArgumentException("The dictionary has an entry named " + newName + " already, letters of either case the same.", nameof(newName));
+                throw new ArgumentException(
+                    "The dictionary has an entry named " + newName + " already, letters of either case the same.",
+                    nameof(newName)
+                );
             }
 
             Resident();
@@ -586,7 +612,12 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gives the dictionary as a line for debugging: its type, its handle and how many entries it has.</summary>
         /// <returns>The line, such as <c>DICTIONARY 2F, 3 entries</c>.</returns>
-        public override string ToString() => "DICTIONARY " + (Handle ?? string.Empty) + ", " + Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " entries";
+        public override string ToString() =>
+            "DICTIONARY "
+            + (Handle ?? string.Empty)
+            + ", "
+            + Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + " entries";
 
         /// <summary>The entries of the record, each its name as written, the handle it names and the code it names it by, in their order.</summary>
         private List<Entry> Entries()
@@ -660,7 +691,12 @@ namespace GeometryHelper.Dxf
                 else if ((group.TypeCode == 350 || group.TypeCode == 360) && name >= 0)
                 {
                     start = start < 0 ? places[2 * name] : start;
-                    index.Add(groups[name].Value, group.Value.Trim(), group.TypeCode, places[(2 * i) + 1] - places[2 * name]);
+                    index.Add(
+                        groups[name].Value,
+                        group.Value.Trim(),
+                        group.TypeCode,
+                        places[(2 * i) + 1] - places[2 * name]
+                    );
                     name = -1;
                 }
             }
@@ -680,9 +716,10 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private int Splice(Index index, int from, int to, string key, int code, string handle)
         {
-            KeyValuePair<int, string>[] groups = key == null
-                ? new KeyValuePair<int, string>[0]
-                : new[] { new KeyValuePair<int, string>(3, key), new KeyValuePair<int, string>(code, handle) };
+            KeyValuePair<int, string>[] groups =
+                key == null
+                    ? new KeyValuePair<int, string>[0]
+                    : new[] { new KeyValuePair<int, string>(3, key), new KeyValuePair<int, string>(code, handle) };
             int written = Item.File.SpliceRecord(Item, 0, from, to, groups, false);
             _written = Item.File.RecordAt(Item, 0);
             index.Record = _written;
@@ -690,7 +727,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether two records are the same bytes, which a record written anew is not.</summary>
-        private static bool Same(DxfFile.Rec a, DxfFile.Rec b) => a.Bytes != null && ReferenceEquals(a.Bytes, b.Bytes) && a.Start == b.Start && a.End == b.End;
+        private static bool Same(DxfFile.Rec a, DxfFile.Rec b) =>
+            a.Bytes != null && ReferenceEquals(a.Bytes, b.Bytes) && a.Start == b.Start && a.End == b.End;
 
         private static bool Ascii(string text)
         {
@@ -724,7 +762,14 @@ namespace GeometryHelper.Dxf
             foreach (Entry entry in entries)
             {
                 groups.Add(new KeyValuePair<int, string>(3, entry.Key));
-                groups.Add(new KeyValuePair<int, string>(entry.Code != 0 ? entry.Code : hard ? 360 : 350, entry.Handle));
+                groups.Add(
+                    new KeyValuePair<int, string>(
+                        entry.Code != 0 ? entry.Code
+                            : hard ? 360
+                            : 350,
+                        entry.Handle
+                    )
+                );
             }
 
             Item.File.ReplaceOwn(Item, 0, EntryCodes, groups, Order, false);
@@ -741,8 +786,8 @@ namespace GeometryHelper.Dxf
         /// Erases an object and, where it is a dictionary, every entry it owns (its 330 the dictionary's handle), at any depth,
         /// from the deepest up: a dictionary taken out takes its sub-dictionaries and records with it at once.
         /// </summary>
-        private static void EraseOwned(DxfFile file, DxfItem item)
-            => EraseOwned(file, item, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+        private static void EraseOwned(DxfFile file, DxfItem item) =>
+            EraseOwned(file, item, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
 
         /// <summary>
         /// <see cref="EraseOwned(DxfFile, DxfItem)"/> with the handles of the objects reached so far: each is taken once, so that
@@ -770,7 +815,10 @@ namespace GeometryHelper.Dxf
                     {
                         DxfItem child = file.ObjectItem(group.Value.Trim());
 
-                        if (child != null && string.Equals(file.OwnerOf(child), handle, StringComparison.OrdinalIgnoreCase))
+                        if (
+                            child != null
+                            && string.Equals(file.OwnerOf(child), handle, StringComparison.OrdinalIgnoreCase)
+                        )
                         {
                             EraseOwned(file, child, reached);
                         }
@@ -821,9 +869,11 @@ namespace GeometryHelper.Dxf
 
             internal List<Node> Nodes { get; } = new List<Node>();
 
-            internal Dictionary<string, List<Node>> ByName { get; } = new Dictionary<string, List<Node>>(StringComparer.OrdinalIgnoreCase);
+            internal Dictionary<string, List<Node>> ByName { get; } =
+                new Dictionary<string, List<Node>>(StringComparer.OrdinalIgnoreCase);
 
-            internal Dictionary<string, List<Node>> ByHandle { get; } = new Dictionary<string, List<Node>>(StringComparer.OrdinalIgnoreCase);
+            internal Dictionary<string, List<Node>> ByHandle { get; } =
+                new Dictionary<string, List<Node>>(StringComparer.OrdinalIgnoreCase);
 
             /// <summary>Whether the record has a group 280 of 1, by which a new entry is named by a 360.</summary>
             internal bool Hard { get; set; }
@@ -991,7 +1041,10 @@ namespace GeometryHelper.Dxf
             {
                 if (c < ' ')
                 {
-                    throw new ArgumentException("The name of an entry has no control character in it: '" + key + "' has one.", parameter);
+                    throw new ArgumentException(
+                        "The name of an entry has no control character in it: '" + key + "' has one.",
+                        parameter
+                    );
                 }
             }
         }

@@ -32,7 +32,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "C");
             Assert.Equal("Specify center point of arc:", session.PromptText);
             Run(session, P(10, 0));
-            Assert.Equal("Specify end point of arc (hold Ctrl to switch direction) or [Angle/chord Length]:", session.PromptText);
+            Assert.Equal(
+                "Specify end point of arc (hold Ctrl to switch direction) or [Angle/chord Length]:",
+                session.PromptText
+            );
             Run(session, P(10, 10));
 
             Arc(LastArc(document), 10, 0, 10, 180, 90);
@@ -81,13 +84,19 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "ARC", P(0, 0), "E");
             Assert.Equal("Specify end point of arc:", session.PromptText);
             Run(session, P(20, 0));
-            Assert.Equal("Specify center point of arc (hold Ctrl to switch direction) or [Angle/Direction/Radius]:", session.PromptText);
+            Assert.Equal(
+                "Specify center point of arc (hold Ctrl to switch direction) or [Angle/Direction/Radius]:",
+                session.PromptText
+            );
             Run(session, "A", "180");
             Arc(LastArc(document), 10, 0, 10, 180, 0);
 
             // Leaving (0, 0) straight up and ending at (20, 0): the half circle over the chord, clockwise.
             Run(session, "ARC", P(0, 0), "E", P(20, 0), "D");
-            Assert.Equal("Specify tangent direction for the start point of arc (hold Ctrl to switch direction):", session.PromptText);
+            Assert.Equal(
+                "Specify tangent direction for the start point of arc (hold Ctrl to switch direction):",
+                session.PromptText
+            );
             Run(session, "90");
             Arc(LastArc(document), 10, 0, 10, 0, 180);
 
@@ -190,13 +199,22 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Session(document);
 
             Run(session, "PLINE", P(0, 0), P(10, 0), "A");
-            Assert.Equal("Specify endpoint of arc (hold Ctrl to switch direction) or [Angle/CEnter/CLose/Direction/Halfwidth/Line/Radius/Second pt/Undo/Width]:", session.PromptText);
+            Assert.Equal(
+                "Specify endpoint of arc (hold Ctrl to switch direction) or [Angle/CEnter/CLose/Direction/Halfwidth/Line/Radius/Second pt/Undo/Width]:",
+                session.PromptText
+            );
             Run(session, "A");
             Assert.Equal("Specify included angle:", session.PromptText);
             Run(session, "90");
-            Assert.Equal("Specify endpoint of arc (hold Ctrl to switch direction) or [CEnter/Radius]:", session.PromptText);
+            Assert.Equal(
+                "Specify endpoint of arc (hold Ctrl to switch direction) or [CEnter/Radius]:",
+                session.PromptText
+            );
             Run(session, P(20, 10), "CE", P(20, 20));
-            Assert.Equal("Specify endpoint of arc (hold Ctrl to switch direction) or [Angle/Length]:", session.PromptText);
+            Assert.Equal(
+                "Specify endpoint of arc (hold Ctrl to switch direction) or [Angle/Length]:",
+                session.PromptText
+            );
             Run(session, "A", "90", "R", "10");
             Assert.Equal("Specify endpoint of arc (hold Ctrl to switch direction) or [Angle]:", session.PromptText);
             Run(session, P(40, 30), "S");
@@ -243,7 +261,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "TEXT");
             Assert.Equal("Specify start point of text or [Justify/Style]:", session.PromptText);
             Run(session, "J");
-            Assert.Equal("Enter an option [Left/Center/Right/Align/Middle/Fit/TL/TC/TR/ML/MC/MR/BL/BC/BR]:", session.PromptText);
+            Assert.Equal(
+                "Enter an option [Left/Center/Right/Align/Middle/Fit/TL/TC/TR/ML/MC/MR/BL/BC/BR]:",
+                session.PromptText
+            );
             Run(session, "MC");
             Assert.Equal("Specify middle point of text:", session.PromptText);
             Run(session, P(100, 50), "3", "0", "A-1", Enter);
@@ -301,7 +322,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Session(document);
 
             Run(session, "MTEXT", P(0, 100));
-            Assert.Equal("Specify opposite corner or [Height/Justify/Line spacing/Rotation/Style/Width/Columns]:", session.PromptText);
+            Assert.Equal(
+                "Specify opposite corner or [Height/Justify/Line spacing/Rotation/Style/Width/Columns]:",
+                session.PromptText
+            );
             Run(session, "J");
             Assert.Equal("Enter justification [TL/TC/TR/ML/MC/MR/BL/BC/BR] <TL>:", session.PromptText);
             Run(session, "MC", "L");

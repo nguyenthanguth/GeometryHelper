@@ -28,7 +28,17 @@ namespace GeometryHelper.Dxf.Viewer
     /// </remarks>
     public static partial class CadPropertyEditor
     {
-        private static readonly string[] ColorNames = { null, "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White" };
+        private static readonly string[] ColorNames =
+        {
+            null,
+            "Red",
+            "Yellow",
+            "Green",
+            "Cyan",
+            "Blue",
+            "Magenta",
+            "White",
+        };
 
         /// <summary>Sets one property of entities.</summary>
         /// <param name="document">The document.</param>
@@ -38,7 +48,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>What came of it; refused with the reason, nothing written, for a value that cannot be taken, a row that cannot
         /// be set, or an entity on a locked layer.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document, the label or the value is null.</exception>
-        public static CadEditResult Set(CadDocument document, IReadOnlyCollection<string> handles, string label, string value)
+        public static CadEditResult Set(
+            CadDocument document,
+            IReadOnlyCollection<string> handles,
+            string label,
+            string value
+        )
         {
             if (document == null)
             {
@@ -85,11 +100,21 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 if (CadLayerEditor.IsLocked(document.Database, entity.Layer))
                 {
-                    return CadEditResult.Refuse("The " + CadDocument.KindName(entity) + " " + entity.Handle + " is on a locked layer.");
+                    return CadEditResult.Refuse(
+                        "The " + CadDocument.KindName(entity) + " " + entity.Handle + " is on a locked layer."
+                    );
                 }
             }
 
-            string error = Writer(document.Database, label, value, vertex, entities[0], out Action<DxfEntity> write, out string normal);
+            string error = Writer(
+                document.Database,
+                label,
+                value,
+                vertex,
+                entities[0],
+                out Action<DxfEntity> write,
+                out string normal
+            );
 
             if (error != null)
             {
@@ -105,7 +130,15 @@ namespace GeometryHelper.Dxf.Viewer
                     return CadEditResult.Refuse("The selected objects do not all have the property " + label + ".");
                 }
 
-                planned.Add(new CadEditRecord(CadEditRecordKind.PropertyChanged, entities[i].Handle, label, Read(document, entities[i], label), normal));
+                planned.Add(
+                    new CadEditRecord(
+                        CadEditRecordKind.PropertyChanged,
+                        entities[i].Handle,
+                        label,
+                        Read(document, entities[i], label),
+                        normal
+                    )
+                );
             }
 
             return document.ApplyEdit("Properties", planned, s =>
@@ -144,116 +177,146 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Works out how a value is written to an entity: null and the writer, or the reason it cannot be.</summary>
-        private static string Writer(DxfDatabase db, string label, string value, int vertex, DxfEntity entity, out Action<DxfEntity> write, out string normal)
+        private static string Writer(
+            DxfDatabase db,
+            string label,
+            string value,
+            int vertex,
+            DxfEntity entity,
+            out Action<DxfEntity> write,
+            out string normal
+        )
         {
             write = null;
 
             // AutoCAD reads a text override of one space as no text at all, so that one is kept as it is typed; so is a
             // dimension's prefix or suffix, whose spaces stand between it and the measurement.
-            normal = (label == "Text override" && value == " ") || (entity is DxfDimension && (label == "Dim prefix" || label == "Dim suffix")) ? value : value.Trim();
+            normal =
+                (label == "Text override" && value == " ")
+                || (entity is DxfDimension && (label == "Dim prefix" || label == "Dim suffix"))
+                    ? value
+                    : value.Trim();
             string text = normal;
 
             switch (label)
             {
                 case "Color":
-                    {
-                        string error = ParseColor(text, out DxfColor color);
-                        write = e => e.Color = color;
-                        return error;
-                    }
+                {
+                    string error = ParseColor(text, out DxfColor color);
+                    write = e => e.Color = color;
+                    return error;
+                }
 
                 case "Layer":
+                {
+                    DxfLayerTableRecord layer =
+                        text.Length == 0 || !db.LayerTable.Has(text) ? null : db.LayerTable[text];
+
+                    if (layer == null)
                     {
-                        DxfLayerTableRecord layer = text.Length == 0 || !db.LayerTable.Has(text) ? null : db.LayerTable[text];
-
-                        if (layer == null)
-                        {
-                            return "The drawing has no layer \"" + text + "\".";
-                        }
-
-                        string name = layer.Name;
-                        normal = name;
-                        write = e => e.Layer = name;
-                        return null;
+                        return "The drawing has no layer \"" + text + "\".";
                     }
+
+                    string name = layer.Name;
+                    normal = name;
+                    write = e => e.Layer = name;
+                    return null;
+                }
 
                 case "Linetype":
+                {
+                    string name;
+
+                    if (
+                        string.Equals(text, "ByLayer", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(text, "ByBlock", StringComparison.OrdinalIgnoreCase)
+                    )
                     {
-                        string name;
-
-                        if (string.Equals(text, "ByLayer", StringComparison.OrdinalIgnoreCase) || string.Equals(text, "ByBlock", StringComparison.OrdinalIgnoreCase))
-                        {
-                            name = string.Equals(text, "ByLayer", StringComparison.OrdinalIgnoreCase) ? "ByLayer" : "ByBlock";
-                        }
-                        else if (text.Length > 0 && db.LinetypeTable.Has(text))
-                        {
-                            name = text;
-                        }
-                        else
-                        {
-                            return "The drawing has no linetype \"" + text + "\".";
-                        }
-
-                        write = e => e.Linetype = name;
-                        return null;
+                        name = string.Equals(text, "ByLayer", StringComparison.OrdinalIgnoreCase)
+                            ? "ByLayer"
+                            : "ByBlock";
                     }
+                    else if (text.Length > 0 && db.LinetypeTable.Has(text))
+                    {
+                        name = text;
+                    }
+                    else
+                    {
+                        return "The drawing has no linetype \"" + text + "\".";
+                    }
+
+                    write = e => e.Linetype = name;
+                    return null;
+                }
 
                 case "Linetype scale":
+                {
+                    if (!Number(text, out double scale) || scale <= 0.0)
                     {
-                        if (!Number(text, out double scale) || scale <= 0.0)
-                        {
-                            return "Linetype scale is a number above nought.";
-                        }
-
-                        write = e => e.LinetypeScale = scale;
-                        return null;
+                        return "Linetype scale is a number above nought.";
                     }
+
+                    write = e => e.LinetypeScale = scale;
+                    return null;
+                }
 
                 case "Lineweight":
-                    {
-                        string error = ParseLineWeight(text, out DxfLineWeight weight);
-                        write = e => e.LineWeight = weight;
-                        return error;
-                    }
+                {
+                    string error = ParseLineWeight(text, out DxfLineWeight weight);
+                    write = e => e.LineWeight = weight;
+                    return error;
+                }
 
                 case "Text override" when entity is DxfDimension:
                     write = e => Override(db, (DxfDimension)e, text);
                     return null;
                 case "Arrowhead" when entity is DxfMLeader:
+                {
+                    // One of AutoCAD's arrowheads, its block made on first use, or a block of the drawing as a user arrow.
+                    string name = null;
+
+                    foreach (string arrow in CadArrowheads.Names)
                     {
-                        // One of AutoCAD's arrowheads, its block made on first use, or a block of the drawing as a user arrow.
-                        string name = null;
-
-                        foreach (string arrow in CadArrowheads.Names)
+                        if (string.Equals(arrow, text, StringComparison.OrdinalIgnoreCase))
                         {
-                            if (string.Equals(arrow, text, StringComparison.OrdinalIgnoreCase))
-                            {
-                                name = arrow;
-                                break;
-                            }
+                            name = arrow;
+                            break;
                         }
-
-                        if (name == null && text.Length > 0 && db.BlockTable.Has(text) && !text.StartsWith("*", StringComparison.Ordinal))
-                        {
-                            name = db.BlockTable[text].Name;
-                        }
-
-                        if (name == null)
-                        {
-                            return "The drawing has no arrowhead \"" + text + "\".";
-                        }
-
-                        normal = name;
-                        write = e => ((DxfMLeader)e).ArrowSymbol = CadArrowheads.Ensure(db, name);
-                        return null;
                     }
+
+                    if (
+                        name == null
+                        && text.Length > 0
+                        && db.BlockTable.Has(text)
+                        && !text.StartsWith("*", StringComparison.Ordinal)
+                    )
+                    {
+                        name = db.BlockTable[text].Name;
+                    }
+
+                    if (name == null)
+                    {
+                        return "The drawing has no arrowhead \"" + text + "\".";
+                    }
+
+                    normal = name;
+                    write = e => ((DxfMLeader)e).ArrowSymbol = CadArrowheads.Ensure(db, name);
+                    return null;
+                }
             }
 
             return Own(db, label, text, vertex, entity, ref write);
         }
 
         /// <summary>The rows of an entity's own kind.</summary>
-        private static string Own(DxfDatabase db, string label, string text, int vertex, DxfEntity entity, ref Action<DxfEntity> write)
+        private static string Own(
+            DxfDatabase db,
+            string label,
+            string text,
+            int vertex,
+            DxfEntity entity,
+            ref Action<DxfEntity> write
+        )
         {
             bool number = Number(text, out double v);
             string notNumber = label + " is a number.";
@@ -264,64 +327,185 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfLine _:
                     switch (label)
                     {
-                        case "Start X": write = e => { var l = (DxfLine)e; l.StartPoint = new GeoPoint3(v, l.StartPoint.Y, l.StartPoint.Z); }; return number ? null : notNumber;
-                        case "Start Y": write = e => { var l = (DxfLine)e; l.StartPoint = new GeoPoint3(l.StartPoint.X, v, l.StartPoint.Z); }; return number ? null : notNumber;
-                        case "Start Z": write = e => { var l = (DxfLine)e; l.StartPoint = new GeoPoint3(l.StartPoint.X, l.StartPoint.Y, v); }; return number ? null : notNumber;
-                        case "End X": write = e => { var l = (DxfLine)e; l.EndPoint = new GeoPoint3(v, l.EndPoint.Y, l.EndPoint.Z); }; return number ? null : notNumber;
-                        case "End Y": write = e => { var l = (DxfLine)e; l.EndPoint = new GeoPoint3(l.EndPoint.X, v, l.EndPoint.Z); }; return number ? null : notNumber;
-                        case "End Z": write = e => { var l = (DxfLine)e; l.EndPoint = new GeoPoint3(l.EndPoint.X, l.EndPoint.Y, v); }; return number ? null : notNumber;
+                        case "Start X":
+                            write = e =>
+                            {
+                                var l = (DxfLine)e;
+                                l.StartPoint = new GeoPoint3(v, l.StartPoint.Y, l.StartPoint.Z);
+                            };
+                            return number ? null : notNumber;
+                        case "Start Y":
+                            write = e =>
+                            {
+                                var l = (DxfLine)e;
+                                l.StartPoint = new GeoPoint3(l.StartPoint.X, v, l.StartPoint.Z);
+                            };
+                            return number ? null : notNumber;
+                        case "Start Z":
+                            write = e =>
+                            {
+                                var l = (DxfLine)e;
+                                l.StartPoint = new GeoPoint3(l.StartPoint.X, l.StartPoint.Y, v);
+                            };
+                            return number ? null : notNumber;
+                        case "End X":
+                            write = e =>
+                            {
+                                var l = (DxfLine)e;
+                                l.EndPoint = new GeoPoint3(v, l.EndPoint.Y, l.EndPoint.Z);
+                            };
+                            return number ? null : notNumber;
+                        case "End Y":
+                            write = e =>
+                            {
+                                var l = (DxfLine)e;
+                                l.EndPoint = new GeoPoint3(l.EndPoint.X, v, l.EndPoint.Z);
+                            };
+                            return number ? null : notNumber;
+                        case "End Z":
+                            write = e =>
+                            {
+                                var l = (DxfLine)e;
+                                l.EndPoint = new GeoPoint3(l.EndPoint.X, l.EndPoint.Y, v);
+                            };
+                            return number ? null : notNumber;
                     }
 
                     break;
                 case DxfCircle _:
                     switch (label)
                     {
-                        case "Center X": write = e => { var c = (DxfCircle)e; c.Center = new GeoPoint3(v, c.Center.Y, c.Center.Z); }; return number ? null : notNumber;
-                        case "Center Y": write = e => { var c = (DxfCircle)e; c.Center = new GeoPoint3(c.Center.X, v, c.Center.Z); }; return number ? null : notNumber;
-                        case "Center Z": write = e => { var c = (DxfCircle)e; c.Center = new GeoPoint3(c.Center.X, c.Center.Y, v); }; return number ? null : notNumber;
-                        case "Radius": write = e => ((DxfCircle)e).Radius = v; return number && v > 0.0 ? null : notPositive;
-                        case "Diameter": write = e => ((DxfCircle)e).Radius = v / 2.0; return number && v > 0.0 ? null : notPositive;
-                        case "Circumference": write = e => ((DxfCircle)e).Radius = v / (2.0 * Math.PI); return number && v > 0.0 ? null : notPositive;
+                        case "Center X":
+                            write = e =>
+                            {
+                                var c = (DxfCircle)e;
+                                c.Center = new GeoPoint3(v, c.Center.Y, c.Center.Z);
+                            };
+                            return number ? null : notNumber;
+                        case "Center Y":
+                            write = e =>
+                            {
+                                var c = (DxfCircle)e;
+                                c.Center = new GeoPoint3(c.Center.X, v, c.Center.Z);
+                            };
+                            return number ? null : notNumber;
+                        case "Center Z":
+                            write = e =>
+                            {
+                                var c = (DxfCircle)e;
+                                c.Center = new GeoPoint3(c.Center.X, c.Center.Y, v);
+                            };
+                            return number ? null : notNumber;
+                        case "Radius":
+                            write = e => ((DxfCircle)e).Radius = v;
+                            return number && v > 0.0 ? null : notPositive;
+                        case "Diameter":
+                            write = e => ((DxfCircle)e).Radius = v / 2.0;
+                            return number && v > 0.0 ? null : notPositive;
+                        case "Circumference":
+                            write = e => ((DxfCircle)e).Radius = v / (2.0 * Math.PI);
+                            return number && v > 0.0 ? null : notPositive;
                     }
 
                     break;
                 case DxfArc _:
                     switch (label)
                     {
-                        case "Center X": write = e => { var a = (DxfArc)e; a.Center = new GeoPoint3(v, a.Center.Y, a.Center.Z); }; return number ? null : notNumber;
-                        case "Center Y": write = e => { var a = (DxfArc)e; a.Center = new GeoPoint3(a.Center.X, v, a.Center.Z); }; return number ? null : notNumber;
-                        case "Center Z": write = e => { var a = (DxfArc)e; a.Center = new GeoPoint3(a.Center.X, a.Center.Y, v); }; return number ? null : notNumber;
-                        case "Radius": write = e => ((DxfArc)e).Radius = v; return number && v > 0.0 ? null : notPositive;
-                        case "Start angle": write = e => ((DxfArc)e).StartAngle = Direction(db, v); return number ? null : notNumber;
-                        case "End angle": write = e => ((DxfArc)e).EndAngle = Direction(db, v); return number ? null : notNumber;
+                        case "Center X":
+                            write = e =>
+                            {
+                                var a = (DxfArc)e;
+                                a.Center = new GeoPoint3(v, a.Center.Y, a.Center.Z);
+                            };
+                            return number ? null : notNumber;
+                        case "Center Y":
+                            write = e =>
+                            {
+                                var a = (DxfArc)e;
+                                a.Center = new GeoPoint3(a.Center.X, v, a.Center.Z);
+                            };
+                            return number ? null : notNumber;
+                        case "Center Z":
+                            write = e =>
+                            {
+                                var a = (DxfArc)e;
+                                a.Center = new GeoPoint3(a.Center.X, a.Center.Y, v);
+                            };
+                            return number ? null : notNumber;
+                        case "Radius":
+                            write = e => ((DxfArc)e).Radius = v;
+                            return number && v > 0.0 ? null : notPositive;
+                        case "Start angle":
+                            write = e => ((DxfArc)e).StartAngle = Direction(db, v);
+                            return number ? null : notNumber;
+                        case "End angle":
+                            write = e => ((DxfArc)e).EndAngle = Direction(db, v);
+                            return number ? null : notNumber;
                     }
 
                     break;
                 case DxfDBText _:
                     switch (label)
                     {
-                        case "Contents": write = e => ((DxfDBText)e).TextString = text; return text.Length > 0 ? null : "A text has contents.";
-                        case "Height": write = e => ((DxfDBText)e).Height = v; return number && v > 0.0 ? null : notPositive;
-                        case "Rotation": write = e => ((DxfDBText)e).Rotation = Direction(db, v); return number ? null : notNumber;
-                        case "Position X": write = e => Shift(e, v - ((DxfDBText)e).Position.X, 0.0, 0.0); return number ? null : notNumber;
-                        case "Position Y": write = e => Shift(e, 0.0, v - ((DxfDBText)e).Position.Y, 0.0); return number ? null : notNumber;
-                        case "Position Z": write = e => Shift(e, 0.0, 0.0, v - ((DxfDBText)e).Position.Z); return number ? null : notNumber;
+                        case "Contents":
+                            write = e => ((DxfDBText)e).TextString = text;
+                            return text.Length > 0 ? null : "A text has contents.";
+                        case "Height":
+                            write = e => ((DxfDBText)e).Height = v;
+                            return number && v > 0.0 ? null : notPositive;
+                        case "Rotation":
+                            write = e => ((DxfDBText)e).Rotation = Direction(db, v);
+                            return number ? null : notNumber;
+                        case "Position X":
+                            write = e => Shift(e, v - ((DxfDBText)e).Position.X, 0.0, 0.0);
+                            return number ? null : notNumber;
+                        case "Position Y":
+                            write = e => Shift(e, 0.0, v - ((DxfDBText)e).Position.Y, 0.0);
+                            return number ? null : notNumber;
+                        case "Position Z":
+                            write = e => Shift(e, 0.0, 0.0, v - ((DxfDBText)e).Position.Z);
+                            return number ? null : notNumber;
                     }
 
                     break;
                 case DxfMText _:
                     switch (label)
                     {
-                        case "Contents": write = e => ((DxfMText)e).Contents = text; return text.Length > 0 ? null : "An MTEXT has contents.";
-                        case "Text height": write = e => ((DxfMText)e).TextHeight = v; return number && v > 0.0 ? null : notPositive;
-                        case "Rotation": write = e => ((DxfMText)e).Rotation = Direction(db, v); return number ? null : notNumber;
-                        case "Position X": write = e => { var m = (DxfMText)e; m.Location = new GeoPoint3(v, m.Location.Y, m.Location.Z); }; return number ? null : notNumber;
-                        case "Position Y": write = e => { var m = (DxfMText)e; m.Location = new GeoPoint3(m.Location.X, v, m.Location.Z); }; return number ? null : notNumber;
-                        case "Position Z": write = e => { var m = (DxfMText)e; m.Location = new GeoPoint3(m.Location.X, m.Location.Y, v); }; return number ? null : notNumber;
+                        case "Contents":
+                            write = e => ((DxfMText)e).Contents = text;
+                            return text.Length > 0 ? null : "An MTEXT has contents.";
+                        case "Text height":
+                            write = e => ((DxfMText)e).TextHeight = v;
+                            return number && v > 0.0 ? null : notPositive;
+                        case "Rotation":
+                            write = e => ((DxfMText)e).Rotation = Direction(db, v);
+                            return number ? null : notNumber;
+                        case "Position X":
+                            write = e =>
+                            {
+                                var m = (DxfMText)e;
+                                m.Location = new GeoPoint3(v, m.Location.Y, m.Location.Z);
+                            };
+                            return number ? null : notNumber;
+                        case "Position Y":
+                            write = e =>
+                            {
+                                var m = (DxfMText)e;
+                                m.Location = new GeoPoint3(m.Location.X, v, m.Location.Z);
+                            };
+                            return number ? null : notNumber;
+                        case "Position Z":
+                            write = e =>
+                            {
+                                var m = (DxfMText)e;
+                                m.Location = new GeoPoint3(m.Location.X, m.Location.Y, v);
+                            };
+                            return number ? null : notNumber;
                     }
 
                     break;
-                case DxfViewport viewport when label == "Display locked" || label == "Standard scale" || label == "Custom scale":
+                case DxfViewport viewport
+                    when label == "Display locked" || label == "Standard scale" || label == "Custom scale":
                     return ViewportRow(label, text, viewport, ref write);
             }
 
@@ -344,48 +528,48 @@ namespace GeometryHelper.Dxf.Viewer
             switch (label)
             {
                 case "Display locked":
+                {
+                    bool yes = string.Equals(text, "Yes", StringComparison.OrdinalIgnoreCase);
+
+                    if (!yes && !string.Equals(text, "No", StringComparison.OrdinalIgnoreCase))
                     {
-                        bool yes = string.Equals(text, "Yes", StringComparison.OrdinalIgnoreCase);
-
-                        if (!yes && !string.Equals(text, "No", StringComparison.OrdinalIgnoreCase))
-                        {
-                            return "Display locked is Yes or No.";
-                        }
-
-                        write = e => ((DxfViewport)e).Locked = yes;
-                        return null;
+                        return "Display locked is Yes or No.";
                     }
+
+                    write = e => ((DxfViewport)e).Locked = yes;
+                    return null;
+                }
 
                 case "Standard scale":
                 case "Custom scale":
+                {
+                    double scale;
+
+                    if (label == "Standard scale")
                     {
-                        double scale;
-
-                        if (label == "Standard scale")
+                        if (!CadViewports.StandardScales.Contains(text) || !CadViewports.TryReadScale(text, out scale))
                         {
-                            if (!CadViewports.StandardScales.Contains(text) || !CadViewports.TryReadScale(text, out scale))
-                            {
-                                return "Standard scale is one of " + string.Join(", ", CadViewports.StandardScales) + ".";
-                            }
+                            return "Standard scale is one of " + string.Join(", ", CadViewports.StandardScales) + ".";
                         }
-                        else if (!Number(text, out scale) || !(scale > 0.0))
-                        {
-                            return "Custom scale is a number above nought.";
-                        }
-
-                        if (viewport.Locked)
-                        {
-                            return "The viewport's display is locked.";
-                        }
-
-                        if (viewport.Number == 1 || !(viewport.Height > 0.0))
-                        {
-                            return "The viewport of the sheet has no scale to set.";
-                        }
-
-                        write = e => ((DxfViewport)e).CustomScale = scale;
-                        return null;
                     }
+                    else if (!Number(text, out scale) || !(scale > 0.0))
+                    {
+                        return "Custom scale is a number above nought.";
+                    }
+
+                    if (viewport.Locked)
+                    {
+                        return "The viewport's display is locked.";
+                    }
+
+                    if (viewport.Number == 1 || !(viewport.Height > 0.0))
+                    {
+                        return "The viewport of the sheet has no scale to set.";
+                    }
+
+                    write = e => ((DxfViewport)e).CustomScale = scale;
+                    return null;
+                }
             }
 
             write = null;
@@ -399,8 +583,16 @@ namespace GeometryHelper.Dxf.Viewer
             Action<DxfDatabase> write;
             string error;
 
-            if (document.BlockEditor is CadBlockEditor editor && !editor.IsCurrentDrawing
-                && (label == "Description" || label == "Units" || label == "Allow exploding" || label == "Scale uniformly"))
+            if (
+                document.BlockEditor is CadBlockEditor editor
+                && !editor.IsCurrentDrawing
+                && (
+                    label == "Description"
+                    || label == "Units"
+                    || label == "Allow exploding"
+                    || label == "Scale uniformly"
+                )
+            )
             {
                 return SetBlock(document, editor, label, text);
             }
@@ -414,16 +606,24 @@ namespace GeometryHelper.Dxf.Viewer
                 case "Layer":
                     return CadLayerEditor.SetCurrent(document, text);
                 case "Linetype":
-                    {
-                        string name = string.Equals(text, "ByLayer", StringComparison.OrdinalIgnoreCase) ? "ByLayer"
-                            : string.Equals(text, "ByBlock", StringComparison.OrdinalIgnoreCase) ? "ByBlock" : text;
-                        error = name == "ByLayer" || name == "ByBlock" || (name.Length > 0 && db.LinetypeTable.Has(name)) ? null : "The drawing has no linetype \"" + text + "\".";
-                        write = d => d.Celtype = name;
-                        break;
-                    }
+                {
+                    string name =
+                        string.Equals(text, "ByLayer", StringComparison.OrdinalIgnoreCase) ? "ByLayer"
+                        : string.Equals(text, "ByBlock", StringComparison.OrdinalIgnoreCase) ? "ByBlock"
+                        : text;
+                    error =
+                        name == "ByLayer" || name == "ByBlock" || (name.Length > 0 && db.LinetypeTable.Has(name))
+                            ? null
+                            : "The drawing has no linetype \"" + text + "\".";
+                    write = d => d.Celtype = name;
+                    break;
+                }
 
                 case "Linetype scale":
-                    error = Number(text, out double scale) && scale > 0.0 ? null : "Linetype scale is a number above nought.";
+                    error =
+                        Number(text, out double scale) && scale > 0.0
+                            ? null
+                            : "Linetype scale is a number above nought.";
                     write = d => d.Celtscale = scale;
                     break;
                 case "Lineweight":
@@ -439,7 +639,11 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse(error);
             }
 
-            return document.ApplyEdit("Properties", new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, label, null, text) }, s => write(s.Database));
+            return document.ApplyEdit(
+                "Properties",
+                new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, label, null, text) },
+                s => write(s.Database)
+            );
         }
 
         /// <summary>
@@ -476,12 +680,19 @@ namespace GeometryHelper.Dxf.Viewer
                         return CadEditResult.Refuse(label + " is Yes or No.");
                     }
 
-                    write = label == "Allow exploding" ? (Action<DxfBlockTableRecord>)(b => b.Explodable = yes) : b => b.BlockScaling = yes ? DxfBlockScaling.Uniform : DxfBlockScaling.Any;
+                    write =
+                        label == "Allow exploding"
+                            ? (Action<DxfBlockTableRecord>)(b => b.Explodable = yes)
+                            : b => b.BlockScaling = yes ? DxfBlockScaling.Uniform : DxfBlockScaling.Any;
                     break;
             }
 
             // A value the drawing's version cannot hold throws, and the edit fails with its message, nothing written.
-            return document.ApplyEdit("Properties", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Block " + label, null, text) }, s => write(s.Database.BlockTable[name]));
+            return document.ApplyEdit(
+                "Properties",
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Block " + label, null, text) },
+                s => write(s.Database.BlockTable[name])
+            );
         }
 
         /// <summary>
@@ -494,7 +705,12 @@ namespace GeometryHelper.Dxf.Viewer
             dimension.DimensionText = text;
             DxfBlockTableRecord picture = dimension.DimBlock;
 
-            if (picture == null || double.IsNaN(dimension.Measurement) || double.IsInfinity(dimension.Measurement) || SharesPicture(db, dimension, picture))
+            if (
+                picture == null
+                || double.IsNaN(dimension.Measurement)
+                || double.IsInfinity(dimension.Measurement)
+                || SharesPicture(db, dimension, picture)
+            )
             {
                 return;
             }
@@ -531,8 +747,13 @@ namespace GeometryHelper.Dxf.Viewer
 
                 foreach (DxfEntity entity in layout.BlockTableRecord)
                 {
-                    if (!entity.IsErased && entity is DxfDimension other && !ReferenceEquals(other, dimension) && other.DimBlock != null
-                        && string.Equals(other.DimBlock.Name, picture.Name, StringComparison.OrdinalIgnoreCase))
+                    if (
+                        !entity.IsErased
+                        && entity is DxfDimension other
+                        && !ReferenceEquals(other, dimension)
+                        && other.DimBlock != null
+                        && string.Equals(other.DimBlock.Name, picture.Name, StringComparison.OrdinalIgnoreCase)
+                    )
                     {
                         return true;
                     }
@@ -542,13 +763,15 @@ namespace GeometryHelper.Dxf.Viewer
             return false;
         }
 
-        private static void Shift(DxfEntity entity, double dx, double dy, double dz) => entity.TransformBy(GeoTransform3.Translation(new GeoVector3(dx, dy, dz)));
+        private static void Shift(DxfEntity entity, double dx, double dy, double dz) =>
+            entity.TransformBy(GeoTransform3.Translation(new GeoVector3(dx, dy, dz)));
 
         /// <summary>
         /// The direction a row was given in degrees counted as the drawing counts angles, from ANGBASE and clockwise with
         /// ANGDIR 1, in radians from the X axis as an entity keeps it.
         /// </summary>
-        private static double Direction(DxfDatabase db, double degrees) => Turn(CadUnits.ToDirection(degrees * Math.PI / 180.0, db.Angbase, db.Angdir) * 180.0 / Math.PI);
+        private static double Direction(DxfDatabase db, double degrees) =>
+            Turn(CadUnits.ToDirection(degrees * Math.PI / 180.0, db.Angbase, db.Angdir) * 180.0 / Math.PI);
 
         private static double Turn(double degrees)
         {
@@ -557,8 +780,10 @@ namespace GeometryHelper.Dxf.Viewer
             return radians >= 2.0 * Math.PI ? 0.0 : radians;
         }
 
-        private static bool Number(string text, out double value)
-            => double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && !double.IsNaN(value) && !double.IsInfinity(value);
+        private static bool Number(string text, out double value) =>
+            double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+            && !double.IsNaN(value)
+            && !double.IsInfinity(value);
 
         /// <summary>A colour as the palette writes it: ByLayer, ByBlock, Red to White, an index 1 to 255, or red, green and blue.</summary>
         internal static string ParseColor(string text, out DxfColor color)
@@ -599,9 +824,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             string[] parts = text.Split(',');
 
-            if (parts.Length == 3 && byte.TryParse(parts[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte r)
+            if (
+                parts.Length == 3
+                && byte.TryParse(parts[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte r)
                 && byte.TryParse(parts[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte g)
-                && byte.TryParse(parts[2].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte b))
+                && byte.TryParse(parts[2].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte b)
+            )
             {
                 color = DxfColor.FromRgb(r, g, b);
                 return null;
@@ -625,10 +853,16 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (color.IsByColor)
             {
-                return color.Red.ToString(CultureInfo.InvariantCulture) + "," + color.Green.ToString(CultureInfo.InvariantCulture) + "," + color.Blue.ToString(CultureInfo.InvariantCulture);
+                return color.Red.ToString(CultureInfo.InvariantCulture)
+                    + ","
+                    + color.Green.ToString(CultureInfo.InvariantCulture)
+                    + ","
+                    + color.Blue.ToString(CultureInfo.InvariantCulture);
             }
 
-            return color.ColorIndex >= 1 && color.ColorIndex <= 7 ? ColorNames[color.ColorIndex] : color.ColorIndex.ToString(CultureInfo.InvariantCulture);
+            return color.ColorIndex >= 1 && color.ColorIndex <= 7
+                ? ColorNames[color.ColorIndex]
+                : color.ColorIndex.ToString(CultureInfo.InvariantCulture);
         }
 
         /// <summary>A lineweight as the palette writes it: ByLayer, ByBlock, Default, or one of AutoCAD's widths as 0.25 mm.</summary>
@@ -653,13 +887,19 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            string number = text.EndsWith("mm", StringComparison.OrdinalIgnoreCase) ? text.Substring(0, text.Length - 2).Trim() : text;
+            string number = text.EndsWith("mm", StringComparison.OrdinalIgnoreCase)
+                ? text.Substring(0, text.Length - 2).Trim()
+                : text;
 
             if (Number(number, out double millimetres))
             {
                 int hundredths = (int)Math.Round(millimetres * 100.0, MidpointRounding.AwayFromZero);
 
-                if (Math.Abs(hundredths - millimetres * 100.0) < 1E-6 && hundredths >= 0 && Enum.IsDefined(typeof(DxfLineWeight), hundredths))
+                if (
+                    Math.Abs(hundredths - millimetres * 100.0) < 1E-6
+                    && hundredths >= 0
+                    && Enum.IsDefined(typeof(DxfLineWeight), hundredths)
+                )
                 {
                     weight = (DxfLineWeight)hundredths;
                     return null;

@@ -38,7 +38,8 @@ namespace GeometryHelper.UnitTest.Meshing
             return new GeoPolygon2(points);
         }
 
-        private static GeoPolygon2 Box(double x0, double y0, double x1, double y1) => new GeoPolygon2(P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1));
+        private static GeoPolygon2 Box(double x0, double y0, double x1, double y1) =>
+            new GeoPolygon2(P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1));
 
         public static GeoFace2 RandomFace(Random random, out string what)
         {
@@ -55,20 +56,32 @@ namespace GeometryHelper.UnitTest.Meshing
             else if (style == 1)
             {
                 // A rectilinear outline: an L or a U.
-                double w = 2000 + random.NextDouble() * 4000, h = 2000 + random.NextDouble() * 4000;
-                double cx = w * (0.3 + 0.4 * random.NextDouble()), cy = h * (0.3 + 0.4 * random.NextDouble());
-                boundary = new GeoPolygon2(P(offsetX, offsetY), P(offsetX + w, offsetY), P(offsetX + w, offsetY + cy), P(offsetX + cx, offsetY + cy), P(offsetX + cx, offsetY + h), P(offsetX, offsetY + h));
+                double w = 2000 + random.NextDouble() * 4000,
+                    h = 2000 + random.NextDouble() * 4000;
+                double cx = w * (0.3 + 0.4 * random.NextDouble()),
+                    cy = h * (0.3 + 0.4 * random.NextDouble());
+                boundary = new GeoPolygon2(
+                    P(offsetX, offsetY),
+                    P(offsetX + w, offsetY),
+                    P(offsetX + w, offsetY + cy),
+                    P(offsetX + cx, offsetY + cy),
+                    P(offsetX + cx, offsetY + h),
+                    P(offsetX, offsetY + h)
+                );
             }
             else
             {
-                double w = 1000 + random.NextDouble() * 6000, h = 1000 + random.NextDouble() * 4000;
+                double w = 1000 + random.NextDouble() * 6000,
+                    h = 1000 + random.NextDouble() * 4000;
                 boundary = Box(offsetX, offsetY, offsetX + w, offsetY + h);
             }
 
             var holes = new List<GeoPolygon2>();
             int wanted = random.Next(6);
-            double minX = boundary.Vertices.Min(p => p.X), maxX = boundary.Vertices.Max(p => p.X);
-            double minY = boundary.Vertices.Min(p => p.Y), maxY = boundary.Vertices.Max(p => p.Y);
+            double minX = boundary.Vertices.Min(p => p.X),
+                maxX = boundary.Vertices.Max(p => p.X);
+            double minY = boundary.Vertices.Min(p => p.Y),
+                maxY = boundary.Vertices.Max(p => p.Y);
 
             for (int attempt = 0; attempt < 60 && holes.Count < wanted; attempt++)
             {
@@ -79,18 +92,30 @@ namespace GeometryHelper.UnitTest.Meshing
                 {
                     // A box beside the last box, sharing a side or a corner.
                     GeoPolygon2 last = holes[holes.Count - 1];
-                    double lx0 = last.Vertices.Min(p => p.X), lx1 = last.Vertices.Max(p => p.X);
-                    double ly0 = last.Vertices.Min(p => p.Y), ly1 = last.Vertices.Max(p => p.Y);
+                    double lx0 = last.Vertices.Min(p => p.X),
+                        lx1 = last.Vertices.Max(p => p.X);
+                    double ly0 = last.Vertices.Min(p => p.Y),
+                        ly1 = last.Vertices.Max(p => p.Y);
                     double size = 100 + random.NextDouble() * 300;
-                    hole = random.Next(2) == 0 ? Box(lx1, ly0, lx1 + size, ly0 + size) : Box(lx1, ly1, lx1 + size, ly1 + size);
+                    hole =
+                        random.Next(2) == 0
+                            ? Box(lx1, ly0, lx1 + size, ly0 + size)
+                            : Box(lx1, ly1, lx1 + size, ly1 + size);
                 }
                 else if (kind == 1)
                 {
-                    hole = Star(random, P(minX + random.NextDouble() * (maxX - minX), minY + random.NextDouble() * (maxY - minY)), 100 + random.NextDouble() * 400, 3 + random.Next(8), 0.5);
+                    hole = Star(
+                        random,
+                        P(minX + random.NextDouble() * (maxX - minX), minY + random.NextDouble() * (maxY - minY)),
+                        100 + random.NextDouble() * 400,
+                        3 + random.Next(8),
+                        0.5
+                    );
                 }
                 else
                 {
-                    double x = minX + random.NextDouble() * (maxX - minX), y = minY + random.NextDouble() * (maxY - minY);
+                    double x = minX + random.NextDouble() * (maxX - minX),
+                        y = minY + random.NextDouble() * (maxY - minY);
                     double size = 50 + random.NextDouble() * 600;
                     hole = Box(x, y, x + size * (0.3 + random.NextDouble()), y + size * (0.3 + random.NextDouble()));
                 }
@@ -105,7 +130,10 @@ namespace GeometryHelper.UnitTest.Meshing
 
                 foreach (GeoPolygon2 other in holes)
                 {
-                    if (hole.Vertices.Any(v => other.Locate(v, Tolerance.Default) == PointLocation.Inside) || other.Vertices.Any(v => hole.Locate(v, Tolerance.Default) == PointLocation.Inside))
+                    if (
+                        hole.Vertices.Any(v => other.Locate(v, Tolerance.Default) == PointLocation.Inside)
+                        || other.Vertices.Any(v => hole.Locate(v, Tolerance.Default) == PointLocation.Inside)
+                    )
                     {
                         clear = false;
                         break;
@@ -119,11 +147,23 @@ namespace GeometryHelper.UnitTest.Meshing
                             var a = new GeoLine2(hole[i], hole[(i + 1) % hole.VertexCount]);
                             var b = new GeoLine2(other[j], other[(j + 1) % other.VertexCount]);
 
-                            if (a.TryIntersectWith(b, out GeoPoint2 at, Tolerance.Default) && !hole.Vertices.Concat(other.Vertices).Any(v => v.IsEqualTo(at, Tolerance.Default)) && a.DistanceTo(at) < 1E-6 && b.DistanceTo(at) < 1E-6)
+                            if (
+                                a.TryIntersectWith(b, out GeoPoint2 at, Tolerance.Default)
+                                && !hole.Vertices.Concat(other.Vertices).Any(v => v.IsEqualTo(at, Tolerance.Default))
+                                && a.DistanceTo(at) < 1E-6
+                                && b.DistanceTo(at) < 1E-6
+                            )
                             {
-                                double ta = a.GetParameterAtPoint(at), tb = b.GetParameterAtPoint(at);
+                                double ta = a.GetParameterAtPoint(at),
+                                    tb = b.GetParameterAtPoint(at);
 
-                                if (ta > 1E-6 && ta < 1 - 1E-6 && tb > 1E-6 && tb < 1 - 1E-6 && !a.IsParallelTo(b, Tolerance.Default))
+                                if (
+                                    ta > 1E-6
+                                    && ta < 1 - 1E-6
+                                    && tb > 1E-6
+                                    && tb < 1 - 1E-6
+                                    && !a.IsParallelTo(b, Tolerance.Default)
+                                )
                                 {
                                     clear = false;
                                 }
@@ -165,7 +205,8 @@ namespace GeometryHelper.UnitTest.Meshing
                 return MeshOptions.Strips(angle);
             }
 
-            double w = 100 + random.NextDouble() * 1500, h = 100 + random.NextDouble() * 1500;
+            double w = 100 + random.NextDouble() * 1500,
+                h = 100 + random.NextDouble() * 1500;
 
             if (random.Next(3) == 0)
             {
@@ -173,12 +214,22 @@ namespace GeometryHelper.UnitTest.Meshing
                 h = Math.Round(h / 100) * 100;
             }
 
-            double joint = random.Next(3) == 0 ? 0.0 : random.Next(2) == 0 ? 3.0 : random.NextDouble() * 50;
-            double? turn = random.Next(2) == 0 ? (double?)null : random.Next(3) == 0 ? Math.PI / 2 : random.NextDouble() * Math.PI;
+            double joint =
+                random.Next(3) == 0 ? 0.0
+                : random.Next(2) == 0 ? 3.0
+                : random.NextDouble() * 50;
+            double? turn =
+                random.Next(2) == 0 ? (double?)null
+                : random.Next(3) == 0 ? Math.PI / 2
+                : random.NextDouble() * Math.PI;
             var u = (GridAlignment)random.Next(4);
             var v = (GridAlignment)random.Next(4);
-            GeoPoint2? origin = random.Next(4) == 0 ? (GeoPoint2?)P(random.NextDouble() * 5000 - 2500, random.NextDouble() * 5000 - 2500) : null;
-            what = $"grid {w:R} x {h:R}, joint {joint:R}, angle {turn?.ToString("R") ?? "none"}, {u}/{v}, origin {origin?.ToString() ?? "none"}";
+            GeoPoint2? origin =
+                random.Next(4) == 0
+                    ? (GeoPoint2?)P(random.NextDouble() * 5000 - 2500, random.NextDouble() * 5000 - 2500)
+                    : null;
+            what =
+                $"grid {w:R} x {h:R}, joint {joint:R}, angle {turn?.ToString("R") ?? "none"}, {u}/{v}, origin {origin?.ToString() ?? "none"}";
             return new MeshOptions(MeshKind.Grid, w, h, joint, turn, u, v, origin);
         }
 
@@ -226,7 +277,9 @@ namespace GeometryHelper.UnitTest.Meshing
             {
                 // The area the material has, as the booleans read it: a hole reaching past the boundary takes away
                 // only what it covers.
-                double expected = new GeoFace2(face.Boundary).Subtract(face.Holes.Select(h => new GeoFace2(h)), tolerance).Sum(f => f.Area);
+                double expected = new GeoFace2(face.Boundary)
+                    .Subtract(face.Holes.Select(h => new GeoFace2(h)), tolerance)
+                    .Sum(f => f.Area);
 
                 if (Math.Abs(mesh.Area - expected) > 1E-6 * Math.Max(1.0, expected) + 1.0)
                 {
@@ -251,7 +304,16 @@ namespace GeometryHelper.UnitTest.Meshing
                 }
             }
 
-            var boxes0 = faces.Select(f => (f.Vertices.Min(q => q.X), f.Vertices.Max(q => q.X), f.Vertices.Min(q => q.Y), f.Vertices.Max(q => q.Y))).ToArray();
+            var boxes0 = faces
+                .Select(f =>
+                    (
+                        f.Vertices.Min(q => q.X),
+                        f.Vertices.Max(q => q.X),
+                        f.Vertices.Min(q => q.Y),
+                        f.Vertices.Max(q => q.Y)
+                    )
+                )
+                .ToArray();
             var strict = new Tolerance(1E-9, 1E-9);
 
             foreach ((int a, int b) in directed)
@@ -268,7 +330,12 @@ namespace GeometryHelper.UnitTest.Meshing
 
                 for (int f = 0; f < faces.Length; f++)
                 {
-                    if (across.X < boxes0[f].Item1 || across.X > boxes0[f].Item2 || across.Y < boxes0[f].Item3 || across.Y > boxes0[f].Item4)
+                    if (
+                        across.X < boxes0[f].Item1
+                        || across.X > boxes0[f].Item2
+                        || across.Y < boxes0[f].Item3
+                        || across.Y > boxes0[f].Item4
+                    )
                     {
                         continue;
                     }
@@ -308,8 +375,20 @@ namespace GeometryHelper.UnitTest.Meshing
 
             // Points of the material in one face, points outside in none.
             var random = new Random(11);
-            double minX = vertices.Min(p => p.X), maxX = vertices.Max(p => p.X), minY = vertices.Min(p => p.Y), maxY = vertices.Max(p => p.Y);
-            var boxes = faces.Select(f => (f.Vertices.Min(p => p.X), f.Vertices.Max(p => p.X), f.Vertices.Min(p => p.Y), f.Vertices.Max(p => p.Y))).ToArray();
+            double minX = vertices.Min(p => p.X),
+                maxX = vertices.Max(p => p.X),
+                minY = vertices.Min(p => p.Y),
+                maxY = vertices.Max(p => p.Y);
+            var boxes = faces
+                .Select(f =>
+                    (
+                        f.Vertices.Min(p => p.X),
+                        f.Vertices.Max(p => p.X),
+                        f.Vertices.Min(p => p.Y),
+                        f.Vertices.Max(p => p.Y)
+                    )
+                )
+                .ToArray();
 
             for (int k = 0; k < 400; k++)
             {
@@ -326,7 +405,12 @@ namespace GeometryHelper.UnitTest.Meshing
 
                 for (int f = 0; f < faces.Length; f++)
                 {
-                    if (point.X < boxes[f].Item1 - 1 || point.X > boxes[f].Item2 + 1 || point.Y < boxes[f].Item3 - 1 || point.Y > boxes[f].Item4 + 1)
+                    if (
+                        point.X < boxes[f].Item1 - 1
+                        || point.X > boxes[f].Item2 + 1
+                        || point.Y < boxes[f].Item3 - 1
+                        || point.Y > boxes[f].Item4 + 1
+                    )
                     {
                         continue;
                     }

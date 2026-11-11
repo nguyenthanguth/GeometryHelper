@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -55,8 +55,16 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int i = 0; i < 100; i++)
             {
-                var line = new GeoLine2(rng.NextDouble() * 100, rng.NextDouble() * 100, rng.NextDouble() * 100, rng.NextDouble() * 100);
-                if (line.Length < 1.0) { continue; }
+                var line = new GeoLine2(
+                    rng.NextDouble() * 100,
+                    rng.NextDouble() * 100,
+                    rng.NextDouble() * 100,
+                    rng.NextDouble() * 100
+                );
+                if (line.Length < 1.0)
+                {
+                    continue;
+                }
                 double distance = rng.NextDouble() * 40 - 20;
 
                 GeoLine2 moved = line.Offset(distance);
@@ -66,7 +74,8 @@ namespace GeometryHelper.UnitTest.Plane
                 Assert.True(line.Direction.DotProduct(moved.Direction) > 0);
 
                 // Signed distance from the original carrier, positive on the left.
-                double signed = line.Direction.CrossProduct(line.StartPoint.GetVectorTo(moved.StartPoint)) / line.Length;
+                double signed =
+                    line.Direction.CrossProduct(line.StartPoint.GetVectorTo(moved.StartPoint)) / line.Length;
                 Assert.Equal(distance, signed, 9);
 
                 // Offsetting back returns the original.
@@ -152,10 +161,16 @@ namespace GeometryHelper.UnitTest.Plane
                 bool none = a.TryIntersectWith(b, LineExtension.None, out GeoPoint2 p2);
 
                 Assert.Equal(plain, none);
-                if (plain) { Assert.Equal(p1, p2); }
+                if (plain)
+                {
+                    Assert.Equal(p1, p2);
+                }
 
                 // Extending can only find more, never fewer.
-                if (plain) { Assert.True(a.TryIntersectWith(b, LineExtension.Both, out _)); }
+                if (plain)
+                {
+                    Assert.True(a.TryIntersectWith(b, LineExtension.Both, out _));
+                }
             }
         }
 
@@ -164,7 +179,15 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var a = new GeoLine2(0, 0, 10, 0);
 
-            foreach (LineExtension extension in new[] { LineExtension.None, LineExtension.First, LineExtension.Second, LineExtension.Both })
+            foreach (
+                LineExtension extension in new[]
+                {
+                    LineExtension.None,
+                    LineExtension.First,
+                    LineExtension.Second,
+                    LineExtension.Both,
+                }
+            )
             {
                 Assert.False(a.TryIntersectWith(new GeoLine2(0, 5, 10, 5), extension, out _));
                 Assert.False(a.TryIntersectWith(new GeoLine2(20, 0, 30, 0), extension, out _));
@@ -178,8 +201,14 @@ namespace GeometryHelper.UnitTest.Plane
             var a = new GeoLine2(0, 0, 1, 1);
             var b = new GeoLine2(10, 0, 11, -1);
 
-            Assert.Equal(Intersection2.GetIntersection(a, b, LineExtension.Both), a.GetIntersection(b, LineExtension.Both));
-            Assert.Equal(Intersection2.GetIntersection(a, b, LineExtension.Both, Tolerance.Global), a.GetIntersection(b, LineExtension.Both, Tolerance.Global));
+            Assert.Equal(
+                Intersection2.GetIntersection(a, b, LineExtension.Both),
+                a.GetIntersection(b, LineExtension.Both)
+            );
+            Assert.Equal(
+                Intersection2.GetIntersection(a, b, LineExtension.Both, Tolerance.Global),
+                a.GetIntersection(b, LineExtension.Both, Tolerance.Global)
+            );
             Assert.Null(a.GetIntersection(b, LineExtension.None));
             Assert.Throws<ArgumentOutOfRangeException>(() => a.TryIntersectWith(b, (LineExtension)9, out _));
         }

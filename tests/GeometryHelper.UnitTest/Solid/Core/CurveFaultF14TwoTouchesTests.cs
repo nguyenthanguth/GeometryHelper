@@ -17,7 +17,8 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static readonly Tolerance Coarse = new Tolerance(0.05, 1E-5, 1E-5, 0.05);
 
-        private static double Off(GeoEllipse3 ellipse, GeoPoint3 place) => ellipse.GetClosestPointOnBoundary(place).DistanceTo(place);
+        private static double Off(GeoEllipse3 ellipse, GeoPoint3 place) =>
+            ellipse.GetClosestPointOnBoundary(place).DistanceTo(place);
 
         private static double Off(GeoCircle3 circle, GeoPoint3 place)
         {
@@ -44,11 +45,13 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoVector3(0.2721252041791679, -0.9622618463390966, -0.00011104286987786893),
                 new GeoVector3(-0.9601071491276105, -0.27152357587368514, 0.06685214984441014),
                 5995.113407259394,
-                2862.676242427194);
+                2862.676242427194
+            );
             var circle = new GeoCircle3(
                 new GeoPoint3(2484.771086997963, 734.1435931706027, -2453.899663682633),
                 new GeoVector3(0.2720034470524818, -0.9622962763784162, -3.549369958752394E-05),
-                246.832853884824);
+                246.832853884824
+            );
 
             GeoPoint3[] first = ellipse.GetIntersections(circle, Coarse);
             GeoPoint3[] second = circle.GetIntersections(ellipse, Coarse);
@@ -56,7 +59,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(2, first.Length);
             AssertNear(first, new GeoPoint3(2522.2798, 744.7548, -2697.6351), 0.05);
             AssertNear(first, new GeoPoint3(2533.2429, 747.8536, -2695.5378), 0.05);
-            Assert.All(first, place => Assert.InRange(Math.Max(Off(ellipse, place), Off(circle, place)), 0.0, Coarse.EqualPoint));
+            Assert.All(first, place =>
+                Assert.InRange(Math.Max(Off(ellipse, place), Off(circle, place)), 0.0, Coarse.EqualPoint)
+            );
             Assert.Equal(first, second);
         }
 
@@ -70,18 +75,22 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoVector3(0, 0, 1),
                 new GeoVector3(0.4650875488268597, -0.885264690319355, 0),
                 33.466059218377836,
-                0.00013412161480361672);
+                0.00013412161480361672
+            );
             var circle = new GeoCircle3(
                 new GeoPoint3(26558.49212168355, 80324.33675045847, 8195.504413335902),
                 new GeoVector3(-0.0002814249554052923, 0.00019709132339468938, 0.9999999409775007),
-                2.119711841215205);
+                2.119711841215205
+            );
 
             GeoPoint3[] first = needle.GetIntersections(circle, Thousandth);
 
             Assert.Equal(2, first.Length);
             AssertNear(first, new GeoPoint3(26556.5856, 80323.4102, 8195.5042), 0.001);
             AssertNear(first, new GeoPoint3(26556.6475, 80323.2924, 8195.5042), 0.001);
-            Assert.All(first, place => Assert.InRange(Math.Max(Off(needle, place), Off(circle, place)), 0.0, Thousandth.EqualPoint));
+            Assert.All(first, place =>
+                Assert.InRange(Math.Max(Off(needle, place), Off(circle, place)), 0.0, Thousandth.EqualPoint)
+            );
             Assert.Equal(first, circle.GetIntersections(needle, Thousandth));
         }
 
@@ -97,20 +106,24 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoVector3(0, 0, 1),
                 new GeoVector3(0.1262946144378075, -0.991992777374919, 0),
                 313.84929834578617,
-                4.542464212928044);
+                4.542464212928044
+            );
             var larger = new GeoEllipse3(
                 new GeoPoint3(-49560.50503512868, 34818.419131831455, 7906.21463356758),
                 new GeoVector3(2.8827477272527813E-06, 1.90868754854313E-06, 0.9999999999940233),
                 new GeoVector3(0.12629461444236387, -0.99199277737316, 1.5293287496780174E-06),
                 313.8502983491737,
-                4.543464216315594);
+                4.543464216315594
+            );
 
             GeoPoint3[] first = thin.GetIntersections(larger, Thousandth);
 
             Assert.Equal(4, first.Length);
             Assert.Equal(2, first.Count(place => place.DistanceTo(new GeoPoint3(-49600.0, 35127.5, 7906.2146)) <= 1.5));
             Assert.Equal(2, first.Count(place => place.DistanceTo(new GeoPoint3(-49521.2, 34509.6, 7906.2149)) <= 1.5));
-            Assert.All(first, place => Assert.InRange(Math.Max(Off(thin, place), Off(larger, place)), 0.0, Thousandth.EqualPoint));
+            Assert.All(first, place =>
+                Assert.InRange(Math.Max(Off(thin, place), Off(larger, place)), 0.0, Thousandth.EqualPoint)
+            );
             Assert.Equal(first.Reverse(), larger.GetIntersections(thin, Thousandth));
         }
 
@@ -124,20 +137,24 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoVector3(-0.28102472683447405, 0.3797980175582092, -0.8813504233654532),
                 new GeoVector3(-0.8582891657082389, 0.3114185970217811, 0.4078702801833457),
                 67620.3338231986,
-                6.841657484208821);
+                6.841657484208821
+            );
             var small = new GeoEllipse3(
                 new GeoPoint3(-40384.11525397166, -1862.678598456805, -25461.038585024347),
                 new GeoVector3(-0.3574071827316303, 0.20674240635578486, -0.9107786136850484),
                 new GeoVector3(0.6334518186323617, -0.6629387236087401, -0.3990627046109022),
                 3.404369002396413,
-                3.297169904492431);
+                3.297169904492431
+            );
 
             GeoPoint3[] first = thin.GetIntersections(small, Thousandth);
 
             Assert.Equal(2, first.Length);
             AssertNear(first, new GeoPoint3(-40385.1924, -1865.8042, -25461.3251), 0.001);
             AssertNear(first, new GeoPoint3(-40385.3357, -1865.7523, -25461.2570), 0.001);
-            Assert.All(first, place => Assert.InRange(Math.Max(Off(thin, place), Off(small, place)), 0.0, Thousandth.EqualPoint));
+            Assert.All(first, place =>
+                Assert.InRange(Math.Max(Off(thin, place), Off(small, place)), 0.0, Thousandth.EqualPoint)
+            );
         }
 
         [Fact]
@@ -151,17 +168,25 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoVector3(-0.44955160680737877, 0.01390233911168801, -0.893146168207717),
                 new GeoVector3(-0.7458104912932043, 0.5444381498043546, 0.383866919797214),
                 458.56753846563754,
-                458.56447065378245);
+                458.56447065378245
+            );
             var circle = new GeoCircle3(
                 new GeoPoint3(-26.724586528227356, -21.70897782051644, 44.184838146548444),
                 new GeoVector3(-0.44955141326421355, 0.013902471037456747, -0.8931462635712031),
-                458.566792552306);
+                458.566792552306
+            );
 
             GeoPoint3[] first = ellipse.GetIntersections(circle, Thousandth);
 
             Assert.Equal(4, first.Length);
-            Assert.All(first, place => Assert.All(first.Where(other => !other.Equals(place)), other => Assert.True(place.DistanceTo(other) > 300)));
-            Assert.All(first, place => Assert.InRange(Math.Max(Off(ellipse, place), Off(circle, place)), 0.0, Thousandth.EqualPoint));
+            Assert.All(first, place =>
+                Assert.All(first.Where(other => !other.Equals(place)), other =>
+                    Assert.True(place.DistanceTo(other) > 300)
+                )
+            );
+            Assert.All(first, place =>
+                Assert.InRange(Math.Max(Off(ellipse, place), Off(circle, place)), 0.0, Thousandth.EqualPoint)
+            );
             Assert.Equal(first, circle.GetIntersections(ellipse, Thousandth));
         }
 
@@ -176,18 +201,22 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoVector3(0.8563343510641875, 0.3201901449602639, 0.4051786646132818),
                 new GeoVector3(-0.2759515882337974, -0.37947214933458406, 0.8830920726802137),
                 285.55037741807774,
-                3.3812121871164766);
+                3.3812121871164766
+            );
             var circle = new GeoCircle3(
                 new GeoPoint3(-46.47100029998064, -100.60143279854442, 274.2502659457216),
                 new GeoVector3(0.8564312846913384, 0.31998255713828294, 0.4051377762307399),
-                21.23512104211148);
+                21.23512104211148
+            );
 
             GeoPoint3[] first = thin.GetIntersections(circle, Thousandth);
 
             Assert.Equal(2, first.Length);
             AssertNear(first, new GeoPoint3(-37.5505, -119.4600, 270.2866), 0.001);
             AssertNear(first, new GeoPoint3(-37.4474, -119.3427, 269.9761), 0.001);
-            Assert.All(first, place => Assert.InRange(Math.Max(Off(thin, place), Off(circle, place)), 0.0, Thousandth.EqualPoint));
+            Assert.All(first, place =>
+                Assert.InRange(Math.Max(Off(thin, place), Off(circle, place)), 0.0, Thousandth.EqualPoint)
+            );
             Assert.Equal(first, circle.GetIntersections(thin, Thousandth));
         }
 
@@ -202,14 +231,16 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoVector3(-0.4659982142670521, -0.027906496315682545, 0.8843454595141548),
                 new GeoVector3(-0.14998856086795945, 0.987528046052129, -0.04787264217925191),
                 19.50681237015259,
-                0.05535047908097063);
+                0.05535047908097063
+            );
             var arc = new GeoArc3(
                 new GeoPoint3(-91.30651819909187, -41.04287520609369, -105.04032038031943),
                 new GeoVector3(-0.46600700292197916, -0.02789925946485594, 0.8843410566907924),
                 126.23250651538194,
                 3.2972645237411564,
                 6.58982101576218,
-                false);
+                false
+            );
 
             GeoPoint3[] first = needle.GetIntersections(arc, Coarse);
 
@@ -231,13 +262,15 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoVector3(0, 0, 1),
                 new GeoVector3(0.7699999703616046, -0.6380439214059861, 0),
                 100000,
-                1);
+                1
+            );
             var larger = new GeoEllipse3(
                 new GeoPoint3(72206.69536488442, -74306.22511278196, -3641.7247910197684),
                 new GeoVector3(1.7642562851799126E-08, 1.0678999216121345E-08, 0.9999999999999998),
                 new GeoVector3(0.7699999703616045, -0.6380439214059862, -6.771102336442558E-09),
                 100000.00100011282,
-                1.0010001128306836);
+                1.0010001128306836
+            );
 
             GeoPoint3[] first = thin.GetIntersections(larger, Thousandth);
 

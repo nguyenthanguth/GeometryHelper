@@ -72,13 +72,30 @@ namespace GeometryHelper.Core
                 return new LinePartner3(start.X, start.Y, start.Z, 1.0, 0.0, 0.0, 0.0, 0.0, true, true);
             }
 
-            return new LinePartner3(start.X, start.Y, start.Z, dx / length, dy / length, dz / length, 0.0, length, true, true);
+            return new LinePartner3(
+                start.X,
+                start.Y,
+                start.Z,
+                dx / length,
+                dy / length,
+                dz / length,
+                0.0,
+                length,
+                true,
+                true
+            );
         }
 
         /// <summary>
         /// Gets the range along a line, from its origin, that the box of a spline covers.
         /// </summary>
-        private static void Cover(GeoSpline3 spline, GeoPoint3 origin, GeoVector3 direction, out double lowest, out double highest)
+        private static void Cover(
+            GeoSpline3 spline,
+            GeoPoint3 origin,
+            GeoVector3 direction,
+            out double lowest,
+            out double highest
+        )
         {
             var min = new double[3];
             var max = new double[3];
@@ -91,7 +108,8 @@ namespace GeometryHelper.Core
                 double x = (i & 1) == 0 ? min[0] : max[0];
                 double y = (i & 2) == 0 ? min[1] : max[1];
                 double z = (i & 4) == 0 ? min[2] : max[2];
-                double along = (x - origin.X) * direction.X + (y - origin.Y) * direction.Y + (z - origin.Z) * direction.Z;
+                double along =
+                    (x - origin.X) * direction.X + (y - origin.Y) * direction.Y + (z - origin.Z) * direction.Z;
                 lowest = Math.Min(lowest, along);
                 highest = Math.Max(highest, along);
             }
@@ -102,7 +120,18 @@ namespace GeometryHelper.Core
             Cover(spline, ray.Origin, ray.Direction, out _, out double highest);
             double stop = Math.Max(highest, 0.0) + Math.Max(1.0, highest);
 
-            return new LinePartner3(ray.Origin.X, ray.Origin.Y, ray.Origin.Z, ray.Direction.X, ray.Direction.Y, ray.Direction.Z, 0.0, stop, true, false);
+            return new LinePartner3(
+                ray.Origin.X,
+                ray.Origin.Y,
+                ray.Origin.Z,
+                ray.Direction.X,
+                ray.Direction.Y,
+                ray.Direction.Z,
+                0.0,
+                stop,
+                true,
+                false
+            );
         }
 
         private static LinePartner3 Endless(GeoSpline3 spline, GeoXLine3 xline)
@@ -110,7 +139,18 @@ namespace GeometryHelper.Core
             Cover(spline, xline.Origin, xline.Direction, out double lowest, out double highest);
             double pad = Math.Max(1.0, highest - lowest);
 
-            return new LinePartner3(xline.Origin.X, xline.Origin.Y, xline.Origin.Z, xline.Direction.X, xline.Direction.Y, xline.Direction.Z, lowest - pad, highest + pad, false, false);
+            return new LinePartner3(
+                xline.Origin.X,
+                xline.Origin.Y,
+                xline.Origin.Z,
+                xline.Direction.X,
+                xline.Direction.Y,
+                xline.Direction.Z,
+                lowest - pad,
+                highest + pad,
+                false,
+                false
+            );
         }
 
         /// <summary>
@@ -118,7 +158,19 @@ namespace GeometryHelper.Core
         /// </summary>
         private static PlanePartner3 Whole(GeoSpline3 spline, GeoPlane3 plane)
         {
-            return new PlanePartner3(plane.Origin.X, plane.Origin.Y, plane.Origin.Z, plane.Normal.X, plane.Normal.Y, plane.Normal.Z, null, null, null, spline.Curve.Scale, spline.Curve.Extent);
+            return new PlanePartner3(
+                plane.Origin.X,
+                plane.Origin.Y,
+                plane.Origin.Z,
+                plane.Normal.X,
+                plane.Normal.Y,
+                plane.Normal.Z,
+                null,
+                null,
+                null,
+                spline.Curve.Scale,
+                spline.Curve.Extent
+            );
         }
 
         private static double[] Min(GeoAabb3 box) => new[] { box.Min.X, box.Min.Y, box.Min.Z };
@@ -127,7 +179,10 @@ namespace GeometryHelper.Core
 
         private static double ScaleOf(GeoAabb3 box)
         {
-            return Math.Max(Math.Max(Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Min.Y)), Math.Abs(box.Min.Z)), Math.Max(Math.Max(Math.Abs(box.Max.X), Math.Abs(box.Max.Y)), Math.Abs(box.Max.Z)));
+            return Math.Max(
+                Math.Max(Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Min.Y)), Math.Abs(box.Min.Z)),
+                Math.Max(Math.Max(Math.Abs(box.Max.X), Math.Abs(box.Max.Y)), Math.Abs(box.Max.Z))
+            );
         }
 
         private static double ExtentOf(GeoAabb3 box) => box.Min.DistanceTo(box.Max);
@@ -141,7 +196,21 @@ namespace GeometryHelper.Core
             GeoPoint3 origin = region.PlaneOrigin;
             GeoAabb3 box = region.Box;
 
-            shape.Parts.Add(new PlanePartner3(origin.X, origin.Y, origin.Z, normal.X, normal.Y, normal.Z, region.Holds, Min(box), Max(box), ScaleOf(box), ExtentOf(box)));
+            shape.Parts.Add(
+                new PlanePartner3(
+                    origin.X,
+                    origin.Y,
+                    origin.Z,
+                    normal.X,
+                    normal.Y,
+                    normal.Z,
+                    region.Holds,
+                    Min(box),
+                    Max(box),
+                    ScaleOf(box),
+                    ExtentOf(box)
+                )
+            );
 
             for (int i = 0; i < region.EdgeCount; i++)
             {
@@ -176,7 +245,8 @@ namespace GeometryHelper.Core
             GeoPoint2 center = Flat(frame, arc.Center);
             GeoPoint2 start = Flat(frame, arc.StartPoint);
             double from = Math.Atan2(start.Y - center.Y, start.X - center.X);
-            bool clockwise = (arc.SweptAngle > 0.0) != (frame.Handedness(arc.Normal.X, arc.Normal.Y, arc.Normal.Z) > 0.0);
+            bool clockwise =
+                (arc.SweptAngle > 0.0) != (frame.Handedness(arc.Normal.X, arc.Normal.Y, arc.Normal.Z) > 0.0);
 
             if (Math.Abs(arc.SweptAngle) >= 2.0 * Math.PI)
             {
@@ -225,9 +295,11 @@ namespace GeometryHelper.Core
             }
         }
 
-        private static T Required<T>(T shape, string name) where T : class
+        private static T Required<T>(T shape, string name)
+            where T : class
         {
-            if (shape == null) throw new ArgumentNullException(name);
+            if (shape == null)
+                throw new ArgumentNullException(name);
 
             return shape;
         }
@@ -245,13 +317,15 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the spline laid in a plane it lies in, as the plane's own spline, which a ray or a line without ends is cut to the reach of.
         /// </summary>
-        private static GeoSpline2 Flat(FlatFrame frame, GeoSpline3 spline) => new GeoSpline2(spline.Curve.LaidFlat(frame, spline.Curve.Scale));
+        private static GeoSpline2 Flat(FlatFrame frame, GeoSpline3 spline) =>
+            new GeoSpline2(spline.Curve.LaidFlat(frame, spline.Curve.Scale));
 
         internal static SplineShape3 Of(GeoSpline3 spline, GeoLine3 line)
         {
             var shape = new SplineShape3();
             shape.Parts.Add(Segment(line.StartPoint, line.EndPoint));
-            shape.InPlane = frame => Spline2.Of(null, new GeoLine2(Flat(frame, line.StartPoint), Flat(frame, line.EndPoint))).Parts;
+            shape.InPlane = frame =>
+                Spline2.Of(null, new GeoLine2(Flat(frame, line.StartPoint), Flat(frame, line.EndPoint))).Parts;
 
             return shape;
         }
@@ -260,7 +334,8 @@ namespace GeometryHelper.Core
         {
             var shape = new SplineShape3();
             shape.Parts.Add(Ray(spline, ray));
-            shape.InPlane = frame => Spline2.Of(Flat(frame, spline), new GeoRay2(Flat(frame, ray.Origin), Flat(frame, ray.Direction))).Parts;
+            shape.InPlane = frame =>
+                Spline2.Of(Flat(frame, spline), new GeoRay2(Flat(frame, ray.Origin), Flat(frame, ray.Direction))).Parts;
 
             return shape;
         }
@@ -269,7 +344,10 @@ namespace GeometryHelper.Core
         {
             var shape = new SplineShape3();
             shape.Parts.Add(Endless(spline, xline));
-            shape.InPlane = frame => Spline2.Of(Flat(frame, spline), new GeoXLine2(Flat(frame, xline.Origin), Flat(frame, xline.Direction))).Parts;
+            shape.InPlane = frame =>
+                Spline2
+                    .Of(Flat(frame, spline), new GeoXLine2(Flat(frame, xline.Origin), Flat(frame, xline.Direction)))
+                    .Parts;
 
             return shape;
         }
@@ -357,7 +435,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Adds a disc: the plane it lies in with the test that a place stands over it, and the rim, which is a curve of its own.
         /// </summary>
-        private static SplineShape3 Disc(GeoPoint3 center, GeoVector3 normal, double reach, Func<GeoPoint3, bool> holds, NurbsCurve rim)
+        private static SplineShape3 Disc(
+            GeoPoint3 center,
+            GeoVector3 normal,
+            double reach,
+            Func<GeoPoint3, bool> holds,
+            NurbsCurve rim
+        )
         {
             var shape = new SplineShape3();
             double scale = Math.Max(Math.Max(Math.Abs(center.X), Math.Abs(center.Y)), Math.Abs(center.Z)) + reach;
@@ -365,7 +449,21 @@ namespace GeometryHelper.Core
             double[] max = { center.X + reach, center.Y + reach, center.Z + reach };
             var edge = new SplinePartner(rim);
 
-            shape.Parts.Add(new PlanePartner3(center.X, center.Y, center.Z, normal.X, normal.Y, normal.Z, holds, min, max, scale, 2.0 * reach));
+            shape.Parts.Add(
+                new PlanePartner3(
+                    center.X,
+                    center.Y,
+                    center.Z,
+                    normal.X,
+                    normal.Y,
+                    normal.Z,
+                    holds,
+                    min,
+                    max,
+                    scale,
+                    2.0 * reach
+                )
+            );
             shape.Parts.Add(edge);
             shape.Rims = new List<Partner> { edge };
 
@@ -377,14 +475,20 @@ namespace GeometryHelper.Core
             GeoPoint3 center = circle.Center;
             double radius = circle.Radius;
 
-            SplineShape3 shape = Disc(center, circle.Normal, radius, foot =>
-            {
-                double dx = foot.X - center.X;
-                double dy = foot.Y - center.Y;
-                double dz = foot.Z - center.Z;
+            SplineShape3 shape = Disc(
+                center,
+                circle.Normal,
+                radius,
+                foot =>
+                {
+                    double dx = foot.X - center.X;
+                    double dy = foot.Y - center.Y;
+                    double dz = foot.Z - center.Z;
 
-                return Math.Sqrt(dx * dx + dy * dy + dz * dz) <= radius;
-            }, GeoSpline3.FromCircle(circle).Curve);
+                    return Math.Sqrt(dx * dx + dy * dy + dz * dz) <= radius;
+                },
+                GeoSpline3.FromCircle(circle).Curve
+            );
             shape.InPlane = frame => Spline2.Of(null, new GeoCircle2(Flat(frame, center), radius)).Parts;
 
             return shape;
@@ -397,19 +501,31 @@ namespace GeometryHelper.Core
             GeoVector3 minor = ellipse.MinorAxis;
             double a = ellipse.MajorRadius;
             double b = ellipse.MinorRadius;
-            NurbsCurve rim = NurbsCurve.FromEllipse(new[] { center.X, center.Y, center.Z }, new[] { major.X, major.Y, major.Z }, new[] { minor.X, minor.Y, minor.Z }, a, b);
+            NurbsCurve rim = NurbsCurve.FromEllipse(
+                new[] { center.X, center.Y, center.Z },
+                new[] { major.X, major.Y, major.Z },
+                new[] { minor.X, minor.Y, minor.Z },
+                a,
+                b
+            );
 
             // The same test the ellipse's own distances make: inside or on the rim, in its own frame.
-            SplineShape3 shape = Disc(center, ellipse.Normal, Math.Max(a, b), foot =>
-            {
-                double dx = foot.X - center.X;
-                double dy = foot.Y - center.Y;
-                double dz = foot.Z - center.Z;
-                double u = (dx * major.X + dy * major.Y + dz * major.Z) / a;
-                double v = (dx * minor.X + dy * minor.Y + dz * minor.Z) / b;
+            SplineShape3 shape = Disc(
+                center,
+                ellipse.Normal,
+                Math.Max(a, b),
+                foot =>
+                {
+                    double dx = foot.X - center.X;
+                    double dy = foot.Y - center.Y;
+                    double dz = foot.Z - center.Z;
+                    double u = (dx * major.X + dy * major.Y + dz * major.Z) / a;
+                    double v = (dx * minor.X + dy * minor.Y + dz * minor.Z) / b;
 
-                return u * u + v * v <= 1.0;
-            }, rim);
+                    return u * u + v * v <= 1.0;
+                },
+                rim
+            );
             shape.InPlane = frame =>
             {
                 frame.ToPlane(major.X, major.Y, major.Z, out double mx, out double my);
@@ -426,7 +542,9 @@ namespace GeometryHelper.Core
                     length = Math.Sqrt(mx * mx + my * my);
                 }
 
-                return Spline2.Of(null, new GeoEllipse2(Flat(frame, center), new GeoVector2(mx / length, my / length), a, b)).Parts;
+                return Spline2
+                    .Of(null, new GeoEllipse2(Flat(frame, center), new GeoVector2(mx / length, my / length), a, b))
+                    .Parts;
             };
 
             return shape;
@@ -495,7 +613,9 @@ namespace GeometryHelper.Core
             Func<int, int, int, GeoPoint3> corner = (sx, sy, sz) =>
             {
                 double[] s = { sx * half[0], sy * half[1], sz * half[2] };
-                double x = c[0], y = c[1], z = c[2];
+                double x = c[0],
+                    y = c[1],
+                    z = c[2];
 
                 for (int k = 0; k < 3; k++)
                 {
@@ -514,7 +634,11 @@ namespace GeometryHelper.Core
 
                 for (int side = -1; side <= 1; side += 2)
                 {
-                    var origin = new GeoPoint3(c[0] + side * half[axis] * a[axis][0], c[1] + side * half[axis] * a[axis][1], c[2] + side * half[axis] * a[axis][2]);
+                    var origin = new GeoPoint3(
+                        c[0] + side * half[axis] * a[axis][0],
+                        c[1] + side * half[axis] * a[axis][1],
+                        c[2] + side * half[axis] * a[axis][2]
+                    );
                     var min = new[] { double.PositiveInfinity, double.PositiveInfinity, double.PositiveInfinity };
                     var max = new[] { double.NegativeInfinity, double.NegativeInfinity, double.NegativeInfinity };
 
@@ -533,24 +657,43 @@ namespace GeometryHelper.Core
                         max[2] = Math.Max(max[2], p.Z);
                     }
 
-                    double scale = Math.Max(Math.Max(Math.Max(Math.Abs(min[0]), Math.Abs(min[1])), Math.Abs(min[2])), Math.Max(Math.Max(Math.Abs(max[0]), Math.Abs(max[1])), Math.Abs(max[2])));
-                    double extent = Math.Sqrt((max[0] - min[0]) * (max[0] - min[0]) + (max[1] - min[1]) * (max[1] - min[1]) + (max[2] - min[2]) * (max[2] - min[2]));
+                    double scale = Math.Max(
+                        Math.Max(Math.Max(Math.Abs(min[0]), Math.Abs(min[1])), Math.Abs(min[2])),
+                        Math.Max(Math.Max(Math.Abs(max[0]), Math.Abs(max[1])), Math.Abs(max[2]))
+                    );
+                    double extent = Math.Sqrt(
+                        (max[0] - min[0]) * (max[0] - min[0])
+                            + (max[1] - min[1]) * (max[1] - min[1])
+                            + (max[2] - min[2]) * (max[2] - min[2])
+                    );
                     double h1 = half[first];
                     double h2 = half[second];
                     double[] f = a[first];
                     double[] g = a[second];
 
-                    shape.Parts.Add(new PlanePartner3(
-                        origin.X, origin.Y, origin.Z, side * a[axis][0], side * a[axis][1], side * a[axis][2],
-                        foot =>
-                        {
-                            double rx = foot.X - c[0];
-                            double ry = foot.Y - c[1];
-                            double rz = foot.Z - c[2];
+                    shape.Parts.Add(
+                        new PlanePartner3(
+                            origin.X,
+                            origin.Y,
+                            origin.Z,
+                            side * a[axis][0],
+                            side * a[axis][1],
+                            side * a[axis][2],
+                            foot =>
+                            {
+                                double rx = foot.X - c[0];
+                                double ry = foot.Y - c[1];
+                                double rz = foot.Z - c[2];
 
-                            return Math.Abs(rx * f[0] + ry * f[1] + rz * f[2]) <= h1 && Math.Abs(rx * g[0] + ry * g[1] + rz * g[2]) <= h2;
-                        },
-                        min, max, scale, extent));
+                                return Math.Abs(rx * f[0] + ry * f[1] + rz * f[2]) <= h1
+                                    && Math.Abs(rx * g[0] + ry * g[1] + rz * g[2]) <= h2;
+                            },
+                            min,
+                            max,
+                            scale,
+                            extent
+                        )
+                    );
                 }
 
                 // The four edges along the axis.
@@ -582,14 +725,22 @@ namespace GeometryHelper.Core
 
         internal static SplineShape3 Of(GeoSpline3 spline, GeoAabb3 box)
         {
-            return Block(box.Center, new[] { GeoVector3.XAxis, GeoVector3.YAxis, GeoVector3.ZAxis }, new[] { 0.5 * (box.Max.X - box.Min.X), 0.5 * (box.Max.Y - box.Min.Y), 0.5 * (box.Max.Z - box.Min.Z) });
+            return Block(
+                box.Center,
+                new[] { GeoVector3.XAxis, GeoVector3.YAxis, GeoVector3.ZAxis },
+                new[] { 0.5 * (box.Max.X - box.Min.X), 0.5 * (box.Max.Y - box.Min.Y), 0.5 * (box.Max.Z - box.Min.Z) }
+            );
         }
 
         internal static SplineShape3 Of(GeoSpline3 spline, GeoObb3 box)
         {
             Required(box, nameof(box));
 
-            return Block(box.Center, new[] { box.AxisX, box.AxisY, box.AxisZ }, new[] { box.ExtentX, box.ExtentY, box.ExtentZ });
+            return Block(
+                box.Center,
+                new[] { box.AxisX, box.AxisY, box.AxisZ },
+                new[] { box.ExtentX, box.ExtentY, box.ExtentZ }
+            );
         }
 
         internal static SplineShape3 Of(GeoSpline3 spline, GeoSphere3 sphere)
@@ -628,7 +779,14 @@ namespace GeometryHelper.Core
             double pad = tolerance.EqualPoint;
             GeoSolid3 material = whole
                 ? Material3.Whole(solid, tolerance)
-                : Material3.Near(solid, new GeoAabb3(new GeoPoint3(min[0] - pad, min[1] - pad, min[2] - pad), new GeoPoint3(max[0] + pad, max[1] + pad, max[2] + pad)), tolerance);
+                : Material3.Near(
+                    solid,
+                    new GeoAabb3(
+                        new GeoPoint3(min[0] - pad, min[1] - pad, min[2] - pad),
+                        new GeoPoint3(max[0] + pad, max[1] + pad, max[2] + pad)
+                    ),
+                    tolerance
+                );
 
             var shape = new SplineShape3();
 
@@ -739,7 +897,9 @@ namespace GeometryHelper.Core
             GeoSpline3 second = ReferenceEquals(first, spline) ? other : spline;
             Curves(first, second, out NurbsCurve a, out NurbsCurve b);
 
-            return a.TryGetNearest(new List<Partner> { new SplinePartner(b) }, out Contact nearest) ? nearest.Gap : double.PositiveInfinity;
+            return a.TryGetNearest(new List<Partner> { new SplinePartner(b) }, out Contact nearest)
+                ? nearest.Gap
+                : double.PositiveInfinity;
         }
 
         /// <summary>
@@ -757,7 +917,10 @@ namespace GeometryHelper.Core
                 throw new InvalidOperationException("The splines have nothing to measure between.");
             }
 
-            var line = new GeoLine3(Back(frame, nearest.Px, nearest.Py, nearest.Pz), Back(frame, nearest.Qx, nearest.Qy, nearest.Qz));
+            var line = new GeoLine3(
+                Back(frame, nearest.Px, nearest.Py, nearest.Pz),
+                Back(frame, nearest.Qx, nearest.Qy, nearest.Qz)
+            );
 
             return turned ? line.Reverse() : line;
         }
@@ -814,9 +977,10 @@ namespace GeometryHelper.Core
         {
             // A curve of one plane that the spline lies in too, to the snap, is crossed where the plane has the two cross.
             FlatFrame frame = null;
-            List<Contact> meetings = shape.InPlane != null && TryLayFlat(spline, shape, out frame, out NurbsCurve flat)
-                ? flat.GetMeetings(shape.InPlane(frame), tolerance.EqualPoint)
-                : spline.Curve.GetMeetings(shape.Crossing, tolerance.EqualPoint);
+            List<Contact> meetings =
+                shape.InPlane != null && TryLayFlat(spline, shape, out frame, out NurbsCurve flat)
+                    ? flat.GetMeetings(shape.InPlane(frame), tolerance.EqualPoint)
+                    : spline.Curve.GetMeetings(shape.Crossing, tolerance.EqualPoint);
             var points = new GeoPoint3[meetings.Count];
 
             for (int i = 0; i < points.Length; i++)
@@ -882,7 +1046,10 @@ namespace GeometryHelper.Core
                 throw new InvalidOperationException("The shape has nothing to measure to.");
             }
 
-            return new GeoLine3(new GeoPoint3(nearest.Px, nearest.Py, nearest.Pz), new GeoPoint3(nearest.Qx, nearest.Qy, nearest.Qz));
+            return new GeoLine3(
+                new GeoPoint3(nearest.Px, nearest.Py, nearest.Pz),
+                new GeoPoint3(nearest.Qx, nearest.Qy, nearest.Qz)
+            );
         }
 
         #endregion

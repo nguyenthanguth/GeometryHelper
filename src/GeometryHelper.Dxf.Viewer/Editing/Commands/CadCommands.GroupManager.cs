@@ -86,10 +86,23 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfGroup group in c.Document.Groups())
             {
-                rows.Add(new CadGroupRow(group.Name, group.Description, group.Selectable, group.IsAnonymous, group.NumEntities));
+                rows.Add(
+                    new CadGroupRow(
+                        group.Name,
+                        group.Description,
+                        group.Selectable,
+                        group.IsAnonymous,
+                        group.NumEntities
+                    )
+                );
             }
 
-            rows.Sort((a, b) => StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name) != 0 ? StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name) : string.CompareOrdinal(a.Name, b.Name));
+            rows.Sort(
+                (a, b) =>
+                    StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name) != 0
+                        ? StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name)
+                        : string.CompareOrdinal(a.Name, b.Name)
+            );
             request.Groups = rows;
 
             if (request.Selected != null && FindGroup(c, request.Selected) == null)
@@ -99,7 +112,12 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A change of the dialog's made at once, one edit of the command's step; what it says where it is refused, else null.</summary>
-        private static string ChangeGroupInDialog(CadCommandContext c, CadGroupManagerRequest request, string what, int[] numbers)
+        private static string ChangeGroupInDialog(
+            CadCommandContext c,
+            CadGroupManagerRequest request,
+            string what,
+            int[] numbers
+        )
         {
             DxfGroup group = FindGroup(c, request.Selected);
 
@@ -125,12 +143,27 @@ namespace GeometryHelper.Dxf.Viewer
                         return "A group with this name already exists.";
                     }
 
-                    c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group", name, typed) }, s => FindGroup(c, name).Name = typed);
+                    c.Apply(
+                        new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group", name, typed) },
+                        s => FindGroup(c, name).Name = typed
+                    );
                     request.Selected = typed;
                     return null;
                 case "Description":
                     string description = (request.Description ?? string.Empty).Trim();
-                    c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group description", name, description) }, s => FindGroup(c, name).Description = description);
+                    c.Apply(
+                        new[]
+                        {
+                            new CadEditRecord(
+                                CadEditRecordKind.TableChanged,
+                                null,
+                                "Group description",
+                                name,
+                                description
+                            ),
+                        },
+                        s => FindGroup(c, name).Description = description
+                    );
                     return null;
                 case "Explode":
                     ExplodeGroups(c, new[] { name });
@@ -138,10 +171,28 @@ namespace GeometryHelper.Dxf.Viewer
                     return null;
                 case "Selectable":
                     bool selectable = !group.Selectable;
-                    c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group selectable", name, YesNoText(selectable)) }, s => FindGroup(c, name).Selectable = selectable);
+                    c.Apply(
+                        new[]
+                        {
+                            new CadEditRecord(
+                                CadEditRecordKind.TableChanged,
+                                null,
+                                "Group selectable",
+                                name,
+                                YesNoText(selectable)
+                            ),
+                        },
+                        s => FindGroup(c, name).Selectable = selectable
+                    );
                     return null;
                 case "Reverse":
-                    c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group order", name, "reverse") }, s => FindGroup(c, name).Reverse());
+                    c.Apply(
+                        new[]
+                        {
+                            new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group order", name, "reverse"),
+                        },
+                        s => FindGroup(c, name).Reverse()
+                    );
                     return null;
                 default:
                     int count = group.NumEntities;
@@ -151,10 +202,24 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (from < 0 || to < 0 || many < 1 || from + many > count || to + many > count)
                     {
-                        return "Invalid position number: the group holds " + count.ToString(CultureInfo.InvariantCulture) + " objects, numbered from 0.";
+                        return "Invalid position number: the group holds "
+                            + count.ToString(CultureInfo.InvariantCulture)
+                            + " objects, numbered from 0.";
                     }
 
-                    c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group order", name, Values(from, to, many)) }, s => FindGroup(c, name).Transfer(from, to, many));
+                    c.Apply(
+                        new[]
+                        {
+                            new CadEditRecord(
+                                CadEditRecordKind.TableChanged,
+                                null,
+                                "Group order",
+                                name,
+                                Values(from, to, many)
+                            ),
+                        },
+                        s => FindGroup(c, name).Transfer(from, to, many)
+                    );
                     return null;
             }
         }
@@ -185,7 +250,9 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         List<string> names = GroupsHolding(c, c.Input.Handles);
                         names.Sort(StringComparer.OrdinalIgnoreCase);
-                        c.Write(names.Count == 0 ? "Not a group member." : "Group Member List: " + string.Join(", ", names));
+                        c.Write(
+                            names.Count == 0 ? "Not a group member." : "Group Member List: " + string.Join(", ", names)
+                        );
 
                         if (names.Count > 0)
                         {
@@ -205,7 +272,12 @@ namespace GeometryHelper.Dxf.Viewer
                     DxfEntity[] members = group.GetAllEntityIds();
                     int first = Math.Max(0, request.HighlightFrom);
                     int many = request.HighlightCount > 0 ? request.HighlightCount : members.Length - first;
-                    List<string> shown = members.Skip(first).Take(Math.Max(0, many)).Where(e => e.Handle != null && c.Document.FindEntity(e.Handle) != null).Select(e => e.Handle).ToList();
+                    List<string> shown = members
+                        .Skip(first)
+                        .Take(Math.Max(0, many))
+                        .Where(e => e.Handle != null && c.Document.FindEntity(e.Handle) != null)
+                        .Select(e => e.Handle)
+                        .ToList();
                     c.Document.Selection.Set(shown);
                     yield return CadPrompt.ForString("Press ENTER to continue");
                     c.Document.Selection.Set(Array.Empty<string>());
@@ -219,14 +291,21 @@ namespace GeometryHelper.Dxf.Viewer
 
                     // Highlight of Order Group: the members one at a time in their order, "Object 0 of 11" for a group of
                     // twelve; Next and Previous go round, eXit or Enter brings the dialog back.
-                    List<string> order = group.GetAllEntityIds().Where(e => e.Handle != null && c.Document.FindEntity(e.Handle) != null).Select(e => e.Handle).ToList();
+                    List<string> order = group
+                        .GetAllEntityIds()
+                        .Where(e => e.Handle != null && c.Document.FindEntity(e.Handle) != null)
+                        .Select(e => e.Handle)
+                        .ToList();
                     int at = 0;
 
                     while (order.Count > 0)
                     {
                         c.Document.Selection.Set(new[] { order[at] });
                         string last = (order.Count - 1).ToString(CultureInfo.InvariantCulture);
-                        yield return CadPrompt.ForKeyword("Object " + at.ToString(CultureInfo.InvariantCulture) + " of " + last, new[] { "Next", "Previous", "eXit" });
+                        yield return CadPrompt.ForKeyword(
+                            "Object " + at.ToString(CultureInfo.InvariantCulture) + " of " + last,
+                            new[] { "Next", "Previous", "eXit" }
+                        );
 
                         if (c.Input.Is("Next"))
                         {
@@ -263,8 +342,22 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (c.Input.Kind == CadInputKind.Selection && c.Input.Handles.Count > 0)
                     {
-                        MakeGroup(c, name, (request.Description ?? string.Empty).Trim(), c.Input.Handles, request.NewSelectable);
-                        request.Selected = c.Document.Groups().Select(g => g.Name).Where(n => name == null ? n.StartsWith("*", StringComparison.Ordinal) : string.Equals(n, name, StringComparison.OrdinalIgnoreCase)).LastOrDefault();
+                        MakeGroup(
+                            c,
+                            name,
+                            (request.Description ?? string.Empty).Trim(),
+                            c.Input.Handles,
+                            request.NewSelectable
+                        );
+                        request.Selected = c
+                            .Document.Groups()
+                            .Select(g => g.Name)
+                            .Where(n =>
+                                name == null
+                                    ? n.StartsWith("*", StringComparison.Ordinal)
+                                    : string.Equals(n, name, StringComparison.OrdinalIgnoreCase)
+                            )
+                            .LastOrDefault();
                     }
 
                     break;

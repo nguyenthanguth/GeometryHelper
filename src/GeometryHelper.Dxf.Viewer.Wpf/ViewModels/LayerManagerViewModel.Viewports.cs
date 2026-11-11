@@ -16,11 +16,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     public sealed partial class LayerManagerViewModel
     {
         /// <summary>The transparencies the VP Transparency cell offers, in per cent as AutoCAD's: 0 to 90 by tens.</summary>
-        public static readonly IReadOnlyList<string> TransparencyNames = new[] { "0", "10", "20", "30", "40", "50", "60", "70", "80", "90" };
+        public static readonly IReadOnlyList<string> TransparencyNames = new[]
+        {
+            "0",
+            "10",
+            "20",
+            "30",
+            "40",
+            "50",
+            "60",
+            "70",
+            "80",
+            "90",
+        };
 
         private DxfViewport _target;
         private bool _hasViewportColumns;
-        private ICommand _newLayerVpFrozen, _vpFreezeAll, _vpThawAll, _removeOverrides, _selectAll, _clearAll, _allButCurrent, _invert, _isolate;
+        private ICommand _newLayerVpFrozen,
+            _vpFreezeAll,
+            _vpThawAll,
+            _removeOverrides,
+            _selectAll,
+            _clearAll,
+            _allButCurrent,
+            _invert,
+            _isolate;
 
         /// <summary>Gets whether the VP columns are shown: a layout is current, as AutoCAD shows them only there.</summary>
         public bool HasViewportColumns
@@ -45,10 +65,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public IReadOnlyList<string> PlotStyleNames { get; private set; } = Array.Empty<string>();
 
         /// <summary>Gets the command of "New layer VP frozen in all viewports": a layer named Layer1, or the first LayerN the drawing has not, frozen in every viewport.</summary>
-        public ICommand NewLayerVpFrozenCommand => _newLayerVpFrozen ?? (_newLayerVpFrozen = new DelegateCommand(_ => NewLayerVpFrozen()));
+        public ICommand NewLayerVpFrozenCommand =>
+            _newLayerVpFrozen ?? (_newLayerVpFrozen = new DelegateCommand(_ => NewLayerVpFrozen()));
 
         /// <summary>Gets the command of "VP Freeze Layer in All Viewports", on the rows chosen.</summary>
-        public ICommand VpFreezeAllCommand => _vpFreezeAll ?? (_vpFreezeAll = new DelegateCommand(_ => Done(CadViewportLayerEditor.SetFrozenInAllViewports(Document, ChosenNames(), true))));
+        public ICommand VpFreezeAllCommand =>
+            _vpFreezeAll
+            ?? (
+                _vpFreezeAll = new DelegateCommand(_ =>
+                    Done(CadViewportLayerEditor.SetFrozenInAllViewports(Document, ChosenNames(), true))
+                )
+            );
 
         /// <summary>
         /// Gets the command of "Isolate Selected Layers", as AutoCAD 2021's shortcut menu of the Layer Properties Manager: every
@@ -58,13 +85,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public ICommand IsolateCommand => _isolate ?? (_isolate = new DelegateCommand(_ => Isolate()));
 
         /// <summary>Gets the command of "VP Thaw Layer in All Viewports", on the rows chosen.</summary>
-        public ICommand VpThawAllCommand => _vpThawAll ?? (_vpThawAll = new DelegateCommand(_ => Done(CadViewportLayerEditor.SetFrozenInAllViewports(Document, ChosenNames(), false))));
+        public ICommand VpThawAllCommand =>
+            _vpThawAll
+            ?? (
+                _vpThawAll = new DelegateCommand(_ =>
+                    Done(CadViewportLayerEditor.SetFrozenInAllViewports(Document, ChosenNames(), false))
+                )
+            );
 
         /// <summary>
         /// Gets the command of "Remove Viewport Overrides for": its parameter "Selected,Current", "Selected,All", "All,Current" or
         /// "All,All", the layers (those chosen or every one) and the viewports (the one the columns act on, or all).
         /// </summary>
-        public ICommand RemoveOverridesCommand => _removeOverrides ?? (_removeOverrides = new DelegateCommand(p => RemoveOverrides(p as string)));
+        public ICommand RemoveOverridesCommand =>
+            _removeOverrides ?? (_removeOverrides = new DelegateCommand(p => RemoveOverrides(p as string)));
 
         /// <summary>Gets the command of Select All: every row chosen.</summary>
         public ICommand SelectAllCommand => _selectAll ?? (_selectAll = new DelegateCommand(_ => Choose(r => true)));
@@ -73,10 +107,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public ICommand ClearAllCommand => _clearAll ?? (_clearAll = new DelegateCommand(_ => Choose(r => false)));
 
         /// <summary>Gets the command of Select All but Current: every row but the current layer's chosen.</summary>
-        public ICommand SelectAllButCurrentCommand => _allButCurrent ?? (_allButCurrent = new DelegateCommand(_ => Choose(r => !r.IsCurrent)));
+        public ICommand SelectAllButCurrentCommand =>
+            _allButCurrent ?? (_allButCurrent = new DelegateCommand(_ => Choose(r => !r.IsCurrent)));
 
         /// <summary>Gets the command of Invert Selection: the rows chosen let go, the others chosen.</summary>
-        public ICommand InvertSelectionCommand => _invert ?? (_invert = new DelegateCommand(_ => Choose(r => !r.IsChosen)));
+        public ICommand InvertSelectionCommand =>
+            _invert ?? (_invert = new DelegateCommand(_ => Choose(r => !r.IsChosen)));
 
         /// <summary>Adds a layer named Layer1, or the first LayerN the drawing has not, frozen in every viewport of every layout, and chooses it.</summary>
         /// <returns>The name added, or null where it was refused.</returns>
@@ -116,7 +152,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 foreach (string name in Document.Database.LayerTable.Select(l => l.Name).ToList())
                 {
-                    if (!kept.Contains(name) && !Document.Database.LayerTable[name].IsOff && !Done(CadLayerEditor.SetOn(Document, name, false)))
+                    if (
+                        !kept.Contains(name)
+                        && !Document.Database.LayerTable[name].IsOff
+                        && !Done(CadLayerEditor.SetOn(Document, name, false))
+                    )
                     {
                         break;
                     }
@@ -168,7 +208,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             string layout = Document.CurrentSpace.Name;
             return _target == null
                 ? " · " + layout + ", no viewport current"
-                : " · " + layout + ", viewport " + _target.Number.ToString(CultureInfo.InvariantCulture) + " " + CadViewports.ScaleName(_target.CustomScale) + " current";
+                : " · "
+                    + layout
+                    + ", viewport "
+                    + _target.Number.ToString(CultureInfo.InvariantCulture)
+                    + " "
+                    + CadViewports.ScaleName(_target.CustomScale)
+                    + " current";
         }
 
         /// <summary>The line under the table while a viewport is acted on: "8 layers · 1 frozen in this viewport · 2 overrides".</summary>
@@ -176,8 +222,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             int frozen = Rows.Count(r => r.IsVpFrozen);
             int overrides = Rows.Sum(r => r.OverrideCount);
-            return MainViewModel.Count(layers) + (layers == 1 ? " layer" : " layers") + " · " + MainViewModel.Count(frozen) + " frozen in this viewport · "
-                + MainViewModel.Count(overrides) + (overrides == 1 ? " override" : " overrides");
+            return MainViewModel.Count(layers)
+                + (layers == 1 ? " layer" : " layers")
+                + " · "
+                + MainViewModel.Count(frozen)
+                + " frozen in this viewport · "
+                + MainViewModel.Count(overrides)
+                + (overrides == 1 ? " override" : " overrides");
         }
 
         private void RemoveOverrides(string which)
@@ -220,7 +271,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             var dialog = new SelectLinetypeViewModel(Document, row.VpLinetype);
 
-            if (_target != null && PickLinetype != null && PickLinetype(dialog) && !string.Equals(dialog.Linetype, row.VpLinetype, StringComparison.OrdinalIgnoreCase))
+            if (
+                _target != null
+                && PickLinetype != null
+                && PickLinetype(dialog)
+                && !string.Equals(dialog.Linetype, row.VpLinetype, StringComparison.OrdinalIgnoreCase)
+            )
             {
                 Done(CadViewportLayerEditor.SetLinetype(Document, _target.Handle, row.Name, dialog.Linetype));
             }
@@ -251,7 +307,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set
             {
                 DxfViewport target = _owner.Target;
-                Change(target != null && value != _vpFrozen && _owner.Done(CadViewportLayerEditor.SetFrozen(_owner.Document, new[] { target.Handle }, new[] { Name }, value)), nameof(IsVpFrozen));
+                Change(
+                    target != null
+                        && value != _vpFrozen
+                        && _owner.Done(
+                            CadViewportLayerEditor.SetFrozen(
+                                _owner.Document,
+                                new[] { target.Handle },
+                                new[] { Name },
+                                value
+                            )
+                        ),
+                    nameof(IsVpFrozen)
+                );
             }
         }
 
@@ -259,7 +327,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool IsNewVpFrozen
         {
             get => _newVpFrozen;
-            set => Change(value != _newVpFrozen && _owner.Done(CadViewportLayerEditor.SetFrozenInNewViewports(_owner.Document, Name, value)), nameof(IsNewVpFrozen));
+            set =>
+                Change(
+                    value != _newVpFrozen
+                        && _owner.Done(CadViewportLayerEditor.SetFrozenInNewViewports(_owner.Document, Name, value)),
+                    nameof(IsNewVpFrozen)
+                );
         }
 
         /// <summary>Gets the colour of the layer in the viewport: its override, else its own.</summary>
@@ -269,7 +342,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public int VpRgb => VpColor.ColorValue & 0xFFFFFF;
 
         /// <summary>Gets the VP colour by name, as the colour cell names it.</summary>
-        public string VpColorName => VpColor.IsByColor ? SelectColorViewModel.Text(VpColor) : LayerManagerViewModel.ColorName(VpColor.ColorIndex);
+        public string VpColorName =>
+            VpColor.IsByColor
+                ? SelectColorViewModel.Text(VpColor)
+                : LayerManagerViewModel.ColorName(VpColor.ColorIndex);
 
         /// <summary>Gets whether the colour is overridden in the viewport, the cell marked.</summary>
         public bool IsVpColorOverridden => _look != null && _look.IsColorOverridden;
@@ -300,7 +376,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return;
                 }
 
-                Change(weight != (_look?.LineWeight ?? _weight) && _owner.Done(CadViewportLayerEditor.SetLineWeight(_owner.Document, target.Handle, Name, weight)), nameof(VpWeight));
+                Change(
+                    weight != (_look?.LineWeight ?? _weight)
+                        && _owner.Done(
+                            CadViewportLayerEditor.SetLineWeight(_owner.Document, target.Handle, Name, weight)
+                        ),
+                    nameof(VpWeight)
+                );
             }
         }
 
@@ -315,7 +397,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 DxfViewport target = _owner.Target;
 
-                if (target == null || !int.TryParse((value ?? string.Empty).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int percent) || percent < 0 || percent > 90)
+                if (
+                    target == null
+                    || !int.TryParse(
+                        (value ?? string.Empty).Trim(),
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int percent
+                    )
+                    || percent < 0
+                    || percent > 90
+                )
                 {
                     if (target != null)
                     {
@@ -327,7 +419,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 var alpha = new DxfTransparency((byte)Math.Floor(255.0 * (100 - percent) / 100.0));
-                Change(percent.ToString(CultureInfo.InvariantCulture) != VpTransparency && _owner.Done(CadViewportLayerEditor.SetTransparency(_owner.Document, target.Handle, Name, alpha)), nameof(VpTransparency));
+                Change(
+                    percent.ToString(CultureInfo.InvariantCulture) != VpTransparency
+                        && _owner.Done(
+                            CadViewportLayerEditor.SetTransparency(_owner.Document, target.Handle, Name, alpha)
+                        ),
+                    nameof(VpTransparency)
+                );
             }
         }
 
@@ -361,8 +459,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 DxfViewport target = _owner.Target;
                 string wanted = (value ?? string.Empty).Trim();
-                Change(target != null && _owner.HasNamedPlotStyles && !string.Equals(wanted, VpPlotStyle, StringComparison.Ordinal)
-                    && _owner.Done(CadViewportLayerEditor.SetPlotStyle(_owner.Document, target.Handle, Name, wanted)), nameof(VpPlotStyle));
+                Change(
+                    target != null
+                        && _owner.HasNamedPlotStyles
+                        && !string.Equals(wanted, VpPlotStyle, StringComparison.Ordinal)
+                        && _owner.Done(
+                            CadViewportLayerEditor.SetPlotStyle(_owner.Document, target.Handle, Name, wanted)
+                        ),
+                    nameof(VpPlotStyle)
+                );
             }
         }
 
@@ -373,7 +478,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public IReadOnlyList<string> PlotStyleOptions => _owner.PlotStyleNames;
 
         /// <summary>Gets how many properties of the layer are overridden in the viewport.</summary>
-        public int OverrideCount => (IsVpColorOverridden ? 1 : 0) + (IsVpLinetypeOverridden ? 1 : 0) + (IsVpWeightOverridden ? 1 : 0) + (IsVpTransparencyOverridden ? 1 : 0) + (IsVpPlotStyleOverridden ? 1 : 0);
+        public int OverrideCount =>
+            (IsVpColorOverridden ? 1 : 0)
+            + (IsVpLinetypeOverridden ? 1 : 0)
+            + (IsVpWeightOverridden ? 1 : 0)
+            + (IsVpTransparencyOverridden ? 1 : 0)
+            + (IsVpPlotStyleOverridden ? 1 : 0);
 
         /// <summary>Reads the layer as a viewport shows it; null for none, the VP cells then showing the layer's own.</summary>
         internal void ReadViewport(DxfLayerTableRecord record, DxfViewport viewport)
@@ -385,10 +495,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _ownTransparency = record.Transparency;
         }
 
-        private static string WeightText(DxfLineWeight weight)
-            => weight == DxfLineWeight.ByLineWeightDefault ? "Default" : ((int)weight / 100.0).ToString("0.00", CultureInfo.InvariantCulture);
+        private static string WeightText(DxfLineWeight weight) =>
+            weight == DxfLineWeight.ByLineWeightDefault
+                ? "Default"
+                : ((int)weight / 100.0).ToString("0.00", CultureInfo.InvariantCulture);
 
-        private static int Percent(DxfTransparency transparency)
-            => transparency.IsByAlpha ? (int)Math.Round((255 - transparency.Alpha) * 100.0 / 255.0, MidpointRounding.AwayFromZero) : 0;
+        private static int Percent(DxfTransparency transparency) =>
+            transparency.IsByAlpha
+                ? (int)Math.Round((255 - transparency.Alpha) * 100.0 / 255.0, MidpointRounding.AwayFromZero)
+                : 0;
     }
 }

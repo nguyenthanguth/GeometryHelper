@@ -17,13 +17,45 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     public sealed partial class LayerManagerViewModel : ObservableObject, IDisposable
     {
         /// <summary>The colour names of AutoCAD's indices 1 to 7, which the colour cell offers.</summary>
-        public static readonly IReadOnlyList<string> ColorNames = new[] { "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White" };
+        public static readonly IReadOnlyList<string> ColorNames = new[]
+        {
+            "Red",
+            "Yellow",
+            "Green",
+            "Cyan",
+            "Blue",
+            "Magenta",
+            "White",
+        };
 
         /// <summary>The weights the weight cell offers: Default and AutoCAD's widths in millimetres.</summary>
         public static readonly IReadOnlyList<string> WeightNames = new[]
         {
-            "Default", "0.00", "0.05", "0.09", "0.13", "0.15", "0.18", "0.20", "0.25", "0.30", "0.35", "0.40", "0.50", "0.53", "0.60", "0.70",
-            "0.80", "0.90", "1.00", "1.06", "1.20", "1.40", "1.58", "2.00", "2.11",
+            "Default",
+            "0.00",
+            "0.05",
+            "0.09",
+            "0.13",
+            "0.15",
+            "0.18",
+            "0.20",
+            "0.25",
+            "0.30",
+            "0.35",
+            "0.40",
+            "0.50",
+            "0.53",
+            "0.60",
+            "0.70",
+            "0.80",
+            "0.90",
+            "1.00",
+            "1.06",
+            "1.20",
+            "1.40",
+            "1.58",
+            "2.00",
+            "2.11",
         };
 
         private readonly Action<string> _say;
@@ -165,18 +197,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public void Refresh()
         {
             string chosen = _selected?.Name;
-            var chosenNames = new HashSet<string>(Rows.Where(r => r.IsChosen).Select(r => r.Name), StringComparer.OrdinalIgnoreCase);
+            var chosenNames = new HashSet<string>(
+                Rows.Where(r => r.IsChosen).Select(r => r.Name),
+                StringComparer.OrdinalIgnoreCase
+            );
             string current = Document.Database.Clayer;
             ReadViewport();
             var layers = Document.Layers.ToList();
-            layers.Sort((a, b) =>
-            {
-                int order = string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
-                return order != 0 ? order : string.CompareOrdinal(a.Name, b.Name);
-            });
-            LinetypeNames = Document.Database.LinetypeTable.Select(l => l.Name)
-                .Where(n => !string.Equals(n, "ByLayer", StringComparison.OrdinalIgnoreCase) && !string.Equals(n, "ByBlock", StringComparison.OrdinalIgnoreCase))
-                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ThenBy(n => n, StringComparer.Ordinal).ToList();
+            layers.Sort(
+                (a, b) =>
+                {
+                    int order = string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+                    return order != 0 ? order : string.CompareOrdinal(a.Name, b.Name);
+                }
+            );
+            LinetypeNames = Document
+                .Database.LinetypeTable.Select(l => l.Name)
+                .Where(n =>
+                    !string.Equals(n, "ByLayer", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(n, "ByBlock", StringComparison.OrdinalIgnoreCase)
+                )
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(n => n, StringComparer.Ordinal)
+                .ToList();
             Rows.Clear();
 
             foreach (CadLayerInfo layer in layers)
@@ -186,11 +229,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     continue;
                 }
 
-                DxfLayerTableRecord record = Document.Database.LayerTable.Has(layer.Name) ? Document.Database.LayerTable[layer.Name] : null;
+                DxfLayerTableRecord record = Document.Database.LayerTable.Has(layer.Name)
+                    ? Document.Database.LayerTable[layer.Name]
+                    : null;
                 int index = record == null ? 7 : Math.Abs(record.ColorIndex);
                 DxfLineWeight weight = record == null ? DxfLineWeight.ByLineWeightDefault : record.LineWeight;
                 DxfColor color = record == null ? DxfColor.FromColorIndex(DxfColorMethod.ByAci, 7) : record.Color;
-                var row = new LayerRowViewModel(this, layer, index, color, weight, string.Equals(layer.Name, current, StringComparison.OrdinalIgnoreCase)) { IsChosen = chosenNames.Contains(layer.Name) };
+                var row = new LayerRowViewModel(
+                    this,
+                    layer,
+                    index,
+                    color,
+                    weight,
+                    string.Equals(layer.Name, current, StringComparison.OrdinalIgnoreCase)
+                )
+                {
+                    IsChosen = chosenNames.Contains(layer.Name),
+                };
 
                 if (record != null)
                 {
@@ -200,21 +255,32 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Rows.Add(row);
             }
 
-            _selected = chosen == null ? null : Rows.FirstOrDefault(r => string.Equals(r.Name, chosen, StringComparison.OrdinalIgnoreCase));
+            _selected =
+                chosen == null
+                    ? null
+                    : Rows.FirstOrDefault(r => string.Equals(r.Name, chosen, StringComparison.OrdinalIgnoreCase));
             Raise(nameof(SelectedRow));
             _setCurrent.RaiseCanExecuteChanged();
             _delete.RaiseCanExecuteChanged();
             int frozen = layers.Count(l => l.IsFrozen);
             int locked = layers.Count(l => l.IsLocked);
-            Summary = _target != null
-                ? ViewportSummary(layers.Count)
-                : MainViewModel.Count(layers.Count) + (layers.Count == 1 ? " layer" : " layers") + " · " + MainViewModel.Count(frozen) + " frozen · " + MainViewModel.Count(locked) + " locked";
+            Summary =
+                _target != null
+                    ? ViewportSummary(layers.Count)
+                    : MainViewModel.Count(layers.Count)
+                        + (layers.Count == 1 ? " layer" : " layers")
+                        + " · "
+                        + MainViewModel.Count(frozen)
+                        + " frozen · "
+                        + MainViewModel.Count(locked)
+                        + " locked";
         }
 
         /// <summary>The name of a colour index: Red to White for 1 to 7, else "Color 30".</summary>
         /// <param name="index">The index.</param>
         /// <returns>The name.</returns>
-        public static string ColorName(int index) => index >= 1 && index <= 7 ? ColorNames[index - 1] : "Color " + index.ToString(CultureInfo.InvariantCulture);
+        public static string ColorName(int index) =>
+            index >= 1 && index <= 7 ? ColorNames[index - 1] : "Color " + index.ToString(CultureInfo.InvariantCulture);
 
         internal void Say(string line) => _say(line);
 
@@ -234,7 +300,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             var dialog = new SelectLinetypeViewModel(Document, row.Linetype);
 
-            if (PickLinetype != null && PickLinetype(dialog) && !string.Equals(dialog.Linetype, row.Linetype, StringComparison.OrdinalIgnoreCase))
+            if (
+                PickLinetype != null
+                && PickLinetype(dialog)
+                && !string.Equals(dialog.Linetype, row.Linetype, StringComparison.OrdinalIgnoreCase)
+            )
             {
                 Done(CadLayerEditor.SetLinetype(Document, row.Name, dialog.Linetype));
             }
@@ -256,8 +326,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void OnChanged(object sender, CadDocumentChangedEventArgs e)
         {
             // A viewport's frozen layers are of the viewport, not of the layer table: the VP Freeze column reads them again.
-            if (e.TablesChanged || e.Kind == CadChangeKind.Undo || e.Kind == CadChangeKind.Redo
-                || (HasViewportColumns && e.Handles.Any(h => Document.FindEntity(h) is DxfViewport)))
+            if (
+                e.TablesChanged
+                || e.Kind == CadChangeKind.Undo
+                || e.Kind == CadChangeKind.Redo
+                || (HasViewportColumns && e.Handles.Any(h => Document.FindEntity(h) is DxfViewport))
+            )
             {
                 Refresh();
             }
@@ -272,7 +346,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private readonly int _colorIndex;
         private readonly DxfLineWeight _weight;
 
-        internal LayerRowViewModel(LayerManagerViewModel owner, CadLayerInfo layer, int colorIndex, DxfColor color, DxfLineWeight weight, bool isCurrent)
+        internal LayerRowViewModel(
+            LayerManagerViewModel owner,
+            CadLayerInfo layer,
+            int colorIndex,
+            DxfColor color,
+            DxfLineWeight weight,
+            bool isCurrent
+        )
         {
             _owner = owner;
             _layer = layer;
@@ -300,21 +381,33 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool IsOn
         {
             get => _layer.IsOn;
-            set => Change(value != _layer.IsOn && _owner.Done(CadLayerEditor.SetOn(_owner.Document, Name, value)), nameof(IsOn));
+            set =>
+                Change(
+                    value != _layer.IsOn && _owner.Done(CadLayerEditor.SetOn(_owner.Document, Name, value)),
+                    nameof(IsOn)
+                );
         }
 
         /// <summary>Gets or sets whether the layer is frozen; the current layer is refused.</summary>
         public bool IsFrozen
         {
             get => _layer.IsFrozen;
-            set => Change(value != _layer.IsFrozen && _owner.Done(CadLayerEditor.SetFrozen(_owner.Document, Name, value)), nameof(IsFrozen));
+            set =>
+                Change(
+                    value != _layer.IsFrozen && _owner.Done(CadLayerEditor.SetFrozen(_owner.Document, Name, value)),
+                    nameof(IsFrozen)
+                );
         }
 
         /// <summary>Gets or sets whether the layer is locked.</summary>
         public bool IsLocked
         {
             get => _layer.IsLocked;
-            set => Change(value != _layer.IsLocked && _owner.Done(CadLayerEditor.SetLocked(_owner.Document, Name, value)), nameof(IsLocked));
+            set =>
+                Change(
+                    value != _layer.IsLocked && _owner.Done(CadLayerEditor.SetLocked(_owner.Document, Name, value)),
+                    nameof(IsLocked)
+                );
         }
 
         /// <summary>Gets the colour as 0xRRGGBB, the swatch.</summary>
@@ -345,17 +438,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 if (index < 0)
                 {
-                    string number = typed.StartsWith("Color ", StringComparison.OrdinalIgnoreCase) ? typed.Substring(6) : typed;
+                    string number = typed.StartsWith("Color ", StringComparison.OrdinalIgnoreCase)
+                        ? typed.Substring(6)
+                        : typed;
 
                     if (!int.TryParse(number, NumberStyles.Integer, CultureInfo.InvariantCulture, out index))
                     {
-                        _owner.Done(CadEditResult.Refuse("Invalid colour \"" + typed + "\": give Red to White or 1 to 255."));
+                        _owner.Done(
+                            CadEditResult.Refuse("Invalid colour \"" + typed + "\": give Red to White or 1 to 255.")
+                        );
                         Raise(nameof(ColorName));
                         return;
                     }
                 }
 
-                Change(index != _colorIndex && _owner.Done(CadLayerEditor.SetColor(_owner.Document, Name, index)), nameof(ColorName));
+                Change(
+                    index != _colorIndex && _owner.Done(CadLayerEditor.SetColor(_owner.Document, Name, index)),
+                    nameof(ColorName)
+                );
             }
         }
 
@@ -378,12 +478,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets the linetype's name: one of the drawing's linetypes.</summary>
         public string Linetype
         {
-            get => _owner.LinetypeNames.FirstOrDefault(n => string.Equals(n, _layer.Linetype, StringComparison.OrdinalIgnoreCase)) ?? _layer.Linetype;
+            get =>
+                _owner.LinetypeNames.FirstOrDefault(n =>
+                    string.Equals(n, _layer.Linetype, StringComparison.OrdinalIgnoreCase)
+                ) ?? _layer.Linetype;
             set
             {
                 string wanted = (value ?? string.Empty).Trim();
                 bool same = string.Equals(wanted, _layer.Linetype, StringComparison.OrdinalIgnoreCase);
-                Change(!same && _owner.Done(CadLayerEditor.SetLinetype(_owner.Document, Name, wanted)), nameof(Linetype));
+                Change(
+                    !same && _owner.Done(CadLayerEditor.SetLinetype(_owner.Document, Name, wanted)),
+                    nameof(Linetype)
+                );
             }
         }
 
@@ -406,7 +512,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets the line weight: Default, or one of AutoCAD's widths in millimetres as 0.35.</summary>
         public string Weight
         {
-            get => _weight == DxfLineWeight.ByLineWeightDefault ? "Default" : ((int)_weight / 100.0).ToString("0.00", CultureInfo.InvariantCulture);
+            get =>
+                _weight == DxfLineWeight.ByLineWeightDefault
+                    ? "Default"
+                    : ((int)_weight / 100.0).ToString("0.00", CultureInfo.InvariantCulture);
             set
             {
                 if (!TryWeight(value, out DxfLineWeight weight))
@@ -415,7 +524,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return;
                 }
 
-                Change(weight != _weight && _owner.Done(CadLayerEditor.SetLineWeight(_owner.Document, Name, weight)), nameof(Weight));
+                Change(
+                    weight != _weight && _owner.Done(CadLayerEditor.SetLineWeight(_owner.Document, Name, weight)),
+                    nameof(Weight)
+                );
             }
         }
 
@@ -439,15 +551,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
-            if (double.TryParse(typed.Replace("mm", string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double mm)
-                && Enum.IsDefined(typeof(DxfLineWeight), (int)Math.Round(mm * 100.0)) && mm >= 0.0)
+            if (
+                double.TryParse(
+                    typed.Replace("mm", string.Empty).Trim(),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out double mm
+                )
+                && Enum.IsDefined(typeof(DxfLineWeight), (int)Math.Round(mm * 100.0))
+                && mm >= 0.0
+            )
             {
                 weight = (DxfLineWeight)(int)Math.Round(mm * 100.0);
                 return true;
             }
 
             weight = DxfLineWeight.ByLineWeightDefault;
-            _owner.Done(CadEditResult.Refuse("Invalid lineweight \"" + typed + "\": give Default or one of AutoCAD's widths, as 0.35."));
+            _owner.Done(
+                CadEditResult.Refuse(
+                    "Invalid lineweight \"" + typed + "\": give Default or one of AutoCAD's widths, as 0.35."
+                )
+            );
             return false;
         }
 

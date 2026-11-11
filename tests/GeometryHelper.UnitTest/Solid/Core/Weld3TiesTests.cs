@@ -39,11 +39,16 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static readonly int[][] BoxFaces =
         {
-            new[] { 0, 1, 2, 3 }, new[] { 4, 5, 6, 7 }, new[] { 0, 3, 5, 4 }, new[] { 2, 1, 7, 6 }, new[] { 3, 2, 6, 5 }, new[] { 1, 0, 4, 7 },
+            new[] { 0, 1, 2, 3 },
+            new[] { 4, 5, 6, 7 },
+            new[] { 0, 3, 5, 4 },
+            new[] { 2, 1, 7, 6 },
+            new[] { 3, 2, 6, 5 },
+            new[] { 1, 0, 4, 7 },
         };
 
-        private static GeoSolid3 Box(GeoPoint3[] corners, Tolerance tolerance)
-            => new GeoSolid3(BoxFaces.Select(f => new GeoFace3(new GeoPolygon3(f.Select(i => corners[i]), tolerance))));
+        private static GeoSolid3 Box(GeoPoint3[] corners, Tolerance tolerance) =>
+            new GeoSolid3(BoxFaces.Select(f => new GeoFace3(new GeoPolygon3(f.Select(i => corners[i]), tolerance))));
 
         [Theory]
         [InlineData(false)]
@@ -58,7 +63,9 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 block = Box(BlockCorners, tolerance);
 
             GeoSolid3 union;
-            Assert.True(blockFirst ? block.TryUnion(cube, out union, tolerance) : cube.TryUnion(block, out union, tolerance));
+            Assert.True(
+                blockFirst ? block.TryUnion(cube, out union, tolerance) : cube.TryUnion(block, out union, tolerance)
+            );
             Assert.True(union.Validate(tolerance).IsValid, union.Validate(tolerance).ToString());
 
             // The two less the overlap, 1 060 000, within the tolerance times the area where they meet, 1 200.

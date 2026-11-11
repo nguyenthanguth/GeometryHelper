@@ -12,7 +12,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </summary>
     public sealed class CadMenuItemViewModel
     {
-        internal CadMenuItemViewModel(string header, Action run, bool isEnabled = true, string toolTip = null, bool? isChecked = null, CadSnapKind marker = CadSnapKind.None)
+        internal CadMenuItemViewModel(
+            string header,
+            Action run,
+            bool isEnabled = true,
+            string toolTip = null,
+            bool? isChecked = null,
+            CadSnapKind marker = CadSnapKind.None
+        )
         {
             Header = header ?? string.Empty;
             IsEnabled = isEnabled;
@@ -98,9 +105,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The order of AutoCAD's Shift+right-click menu, its object snaps.</summary>
         private static readonly CadSnapKind[] OverrideMenuOrder =
         {
-            CadSnapKind.Endpoint, CadSnapKind.Midpoint, CadSnapKind.Intersection, CadSnapKind.ApparentIntersection, CadSnapKind.Extension, CadSnapKind.Center,
-            CadSnapKind.GeometricCenter, CadSnapKind.Quadrant, CadSnapKind.Tangent, CadSnapKind.Perpendicular, CadSnapKind.Parallel, CadSnapKind.Node,
-            CadSnapKind.Insertion, CadSnapKind.Nearest,
+            CadSnapKind.Endpoint,
+            CadSnapKind.Midpoint,
+            CadSnapKind.Intersection,
+            CadSnapKind.ApparentIntersection,
+            CadSnapKind.Extension,
+            CadSnapKind.Center,
+            CadSnapKind.GeometricCenter,
+            CadSnapKind.Quadrant,
+            CadSnapKind.Tangent,
+            CadSnapKind.Perpendicular,
+            CadSnapKind.Parallel,
+            CadSnapKind.Node,
+            CadSnapKind.Insertion,
+            CadSnapKind.Nearest,
         };
 
         private EventHandler _draftingSettingsRequested;
@@ -149,7 +167,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             SnapModeInfo info = SnapModeTable.FirstOrDefault(i => i.Mode == modes && modes != CadSnapModes.None);
             Snap.Override = modes;
-            _current.Session.Write(_current.Session.Prompt.Text + " _" + (info?.Keyword.ToLowerInvariant() ?? "non") + " of");
+            _current.Session.Write(
+                _current.Session.Prompt.Text + " _" + (info?.Keyword.ToLowerInvariant() ?? "non") + " of"
+            );
             SyncHistory();
             return true;
         }
@@ -175,7 +195,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Makes the view model of Drafting Settings over the snaps, the grid and the polar tracking in use.</summary>
         /// <param name="tab">The tab shown first: "Snap and Grid", "Polar Tracking" or "Object Snap"; null for Object Snap.</param>
         /// <returns>The view model.</returns>
-        public DraftingSettingsViewModel CreateDraftingSettings(string tab = null) => new DraftingSettingsViewModel(this, tab);
+        public DraftingSettingsViewModel CreateDraftingSettings(string tab = null) =>
+            new DraftingSettingsViewModel(this, tab);
 
         /// <summary>
         /// Gets the items of the menu of the status bar's OSNAP (its arrow, or a right click on it): each object snap of
@@ -184,9 +205,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>The items.</returns>
         public IReadOnlyList<CadMenuItemViewModel> OsnapMenu()
         {
-            var items = SnapModeTable.Select(i => i.IsBuilt
-                ? new CadMenuItemViewModel(i.Name, () => SnapModes ^= i.Mode, true, null, (SnapModes & i.Mode) != 0, i.Kind)
-                : new CadMenuItemViewModel(i.Name, () => { }, false, NotBuiltYet, false, i.Kind)).ToList();
+            var items = SnapModeTable
+                .Select(i =>
+                    i.IsBuilt
+                        ? new CadMenuItemViewModel(
+                            i.Name,
+                            () => SnapModes ^= i.Mode,
+                            true,
+                            null,
+                            (SnapModes & i.Mode) != 0,
+                            i.Kind
+                        )
+                        : new CadMenuItemViewModel(i.Name, () => { }, false, NotBuiltYet, false, i.Kind)
+                )
+                .ToList();
             items.Add(CadMenuItemViewModel.Separator());
             items.Add(new CadMenuItemViewModel("Object Snap Settings...", () => RequestDraftingSettings(null)));
             return items;
@@ -211,12 +243,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 new CadMenuItemViewModel("Temporary track point", () => ModifyPoint("_tt")),
                 new CadMenuItemViewModel("From", () => ModifyPoint("_from")),
                 new CadMenuItemViewModel("Mid Between 2 Points", () => ModifyPoint("_m2p")),
-                new CadMenuItemViewModel("Point Filters", new[] { ".X", ".Y", ".Z", ".XY", ".XZ", ".YZ" }
-                    .Select(f => new CadMenuItemViewModel(f, () => ModifyPoint(f))).ToList()),
+                new CadMenuItemViewModel(
+                    "Point Filters",
+                    new[] { ".X", ".Y", ".Z", ".XY", ".XZ", ".YZ" }
+                        .Select(f => new CadMenuItemViewModel(f, () => ModifyPoint(f)))
+                        .ToList()
+                ),
                 CadMenuItemViewModel.Separator(),
             };
-            items.AddRange(OverrideMenuOrder.Select(k => SnapModeTable.First(i => i.Kind == k))
-                .Select(i => new CadMenuItemViewModel(i.Name, () => OverrideSnap(i.Mode), true, null, null, i.Kind)));
+            items.AddRange(
+                OverrideMenuOrder
+                    .Select(k => SnapModeTable.First(i => i.Kind == k))
+                    .Select(i => new CadMenuItemViewModel(i.Name, () => OverrideSnap(i.Mode), true, null, null, i.Kind))
+            );
             items.Add(new CadMenuItemViewModel("None", () => OverrideSnap(CadSnapModes.None)));
             items.Add(CadMenuItemViewModel.Separator());
             items.Add(new CadMenuItemViewModel("Osnap Settings...", () => RequestDraftingSettings(null)));
@@ -263,7 +302,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             string typed = word.Trim().ToUpperInvariant();
             bool none = typed.Length >= 3 && "NONE".StartsWith(typed, StringComparison.Ordinal);
-            SnapModeInfo info = SnapModeTable.FirstOrDefault(i => typed.StartsWith(i.Keyword, StringComparison.Ordinal) && i.Word.StartsWith(typed, StringComparison.Ordinal));
+            SnapModeInfo info = SnapModeTable.FirstOrDefault(i =>
+                typed.StartsWith(i.Keyword, StringComparison.Ordinal)
+                && i.Word.StartsWith(typed, StringComparison.Ordinal)
+            );
 
             if (none)
             {

@@ -17,9 +17,7 @@ namespace GeometryHelper.Dwg
 
         /// <summary>A reader over the whole of <paramref name="data"/>, starting at its first bit.</summary>
         public DwgBitReader(byte[] data)
-            : this(data, 0, data.LongLength * 8)
-        {
-        }
+            : this(data, 0, data.LongLength * 8) { }
 
         /// <summary>A reader over the bits from <paramref name="startBit"/> up to, not including, <paramref name="endBit"/>.</summary>
         public DwgBitReader(byte[] data, long startBit, long endBit)
@@ -225,10 +223,14 @@ namespace GeometryHelper.Dwg
         {
             switch (Bits2())
             {
-                case 0: return RawShort();
-                case 1: return RawChar();
-                case 2: return 0;
-                default: return 256;
+                case 0:
+                    return RawShort();
+                case 1:
+                    return RawChar();
+                case 2:
+                    return 0;
+                default:
+                    return 256;
             }
         }
 
@@ -237,10 +239,14 @@ namespace GeometryHelper.Dwg
         {
             switch (Bits2())
             {
-                case 0: return RawLong();
-                case 1: return RawChar();
-                case 2: return 0;
-                default: throw new FormatException("The DWG data has a bit long of the unused kind 11.");
+                case 0:
+                    return RawLong();
+                case 1:
+                    return RawChar();
+                case 2:
+                    return 0;
+                default:
+                    throw new FormatException("The DWG data has a bit long of the unused kind 11.");
             }
         }
 
@@ -263,10 +269,14 @@ namespace GeometryHelper.Dwg
         {
             switch (Bits2())
             {
-                case 0: return RawDouble();
-                case 1: return 1.0;
-                case 2: return 0.0;
-                default: throw new FormatException("The DWG data has a bit double of the unused kind 11.");
+                case 0:
+                    return RawDouble();
+                case 1:
+                    return 1.0;
+                case 2:
+                    return 0.0;
+                default:
+                    throw new FormatException("The DWG data has a bit double of the unused kind 11.");
             }
         }
 
@@ -399,11 +409,16 @@ namespace GeometryHelper.Dwg
 
             switch (code)
             {
-                case 6: return reference + 1;
-                case 8: return reference - 1;
-                case 0xA: return reference + value;
-                case 0xC: return reference - value;
-                default: return value;
+                case 6:
+                    return reference + 1;
+                case 8:
+                    return reference - 1;
+                case 0xA:
+                    return reference + value;
+                case 0xC:
+                    return reference - value;
+                default:
+                    return value;
             }
         }
 
@@ -465,9 +480,12 @@ namespace GeometryHelper.Dwg
         {
             switch (Bits2())
             {
-                case 0: return RawChar();
-                case 1: return 0x1F0 + RawChar();
-                default: return RawShort() & 0xFFFF;
+                case 0:
+                    return RawChar();
+                case 1:
+                    return 0x1F0 + RawChar();
+                default:
+                    return RawShort() & 0xFFFF;
             }
         }
 

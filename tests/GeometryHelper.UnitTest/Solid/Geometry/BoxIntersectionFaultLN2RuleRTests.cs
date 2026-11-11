@@ -37,7 +37,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Empty(Box.ToObb().GetIntersections(segment, Default));
             Assert.Empty(Box.GetIntersections(new GeoRay3(segment.StartPoint, segment.Direction), Default));
             Assert.Empty(new GeoXLine3(segment.StartPoint, segment.Direction).GetIntersections(Box, Default));
-            Assert.Empty(Box.GetIntersections(new GeoPolyline3(new[] { segment.StartPoint, segment.EndPoint }), Default));
+            Assert.Empty(
+                Box.GetIntersections(new GeoPolyline3(new[] { segment.StartPoint, segment.EndPoint }), Default)
+            );
         }
 
         [Fact]
@@ -62,8 +64,15 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Empty(Box.GetIntersections(back, Default));
             Assert.Empty(Box.ToObb().GetIntersections(segment, Default));
             Assert.Empty(Box.GetIntersections(new GeoRay3(segment.StartPoint, segment.Direction), Default));
-            Assert.Empty(Box.GetIntersections(new GeoPolyline3(new[] { segment.StartPoint, segment.EndPoint }), Default));
-            Assert.Empty(Box.GetIntersections(new GeoPolylineArc3(new[] { new GeoEdge3(segment.StartPoint, segment.EndPoint) }), Default));
+            Assert.Empty(
+                Box.GetIntersections(new GeoPolyline3(new[] { segment.StartPoint, segment.EndPoint }), Default)
+            );
+            Assert.Empty(
+                Box.GetIntersections(
+                    new GeoPolylineArc3(new[] { new GeoEdge3(segment.StartPoint, segment.EndPoint) }),
+                    Default
+                )
+            );
         }
 
         [Fact]
@@ -74,13 +83,19 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < 5000; i++)
             {
-                double y0 = 10 + (random.NextDouble() * 2 - 1) * 0.0015, z0 = 10 + (random.NextDouble() * 2 - 1) * 0.0015;
-                double y1 = y0 + (random.NextDouble() * 2 - 1) * 0.0015, z1 = z0 + (random.NextDouble() * 2 - 1) * 0.0015;
-                double x0 = -20 + random.NextDouble() * 15, x1 = x0 + random.NextDouble() * 30;
+                double y0 = 10 + (random.NextDouble() * 2 - 1) * 0.0015,
+                    z0 = 10 + (random.NextDouble() * 2 - 1) * 0.0015;
+                double y1 = y0 + (random.NextDouble() * 2 - 1) * 0.0015,
+                    z1 = z0 + (random.NextDouble() * 2 - 1) * 0.0015;
+                double x0 = -20 + random.NextDouble() * 15,
+                    x1 = x0 + random.NextDouble() * 30;
                 var segment = new GeoLine3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1));
 
                 Assert.True(box.GetIntersections(segment, Default).Length == 0 || box.CollidesWith(segment, Default));
-                Assert.True(box.GetIntersections(new GeoLine3(segment.EndPoint, segment.StartPoint), Default).Length == 0 || box.CollidesWith(segment, Default));
+                Assert.True(
+                    box.GetIntersections(new GeoLine3(segment.EndPoint, segment.StartPoint), Default).Length == 0
+                        || box.CollidesWith(segment, Default)
+                );
             }
         }
 

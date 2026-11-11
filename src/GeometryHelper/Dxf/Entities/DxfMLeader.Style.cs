@@ -10,7 +10,27 @@ namespace GeometryHelper.Dxf
     {
         // The groups of a leader line in the order the DXF reference writes them: its vertices, its breaks and its index, then
         // from R2010 its own type, colour, linetype, lineweight, arrow size and arrow, and the flags of those it overrides.
-        private static readonly int[] LineOrder = { 10, 20, 30, 90, 11, 21, 31, 12, 22, 32, 91, 170, 92, 340, 171, 40, 341, 93 };
+        private static readonly int[] LineOrder =
+        {
+            10,
+            20,
+            30,
+            90,
+            11,
+            21,
+            31,
+            12,
+            22,
+            32,
+            91,
+            170,
+            92,
+            340,
+            171,
+            40,
+            341,
+            93,
+        };
 
         // The flags of a leader line's overrides (its 93), as the ODA's specification of DWG gives them: its type, colour,
         // linetype (4), lineweight, arrow size and arrow (32).
@@ -24,16 +44,36 @@ namespace GeometryHelper.Dxf
         // or in the head of the context data), its code there and the style's.
         private static readonly StyleOverride[] StyleOverrides =
         {
-            new StyleOverride(0, false, 170, 173), new StyleOverride(1, false, 91, 91), new StyleOverride(2, false, 341, 340),
-            new StyleOverride(3, false, 171, 92), new StyleOverride(4, false, 290, 290), new StyleOverride(5, true, 145, 42),
-            new StyleOverride(6, false, 291, 291), new StyleOverride(7, false, 41, 43), new StyleOverride(8, false, 342, 341),
-            new StyleOverride(9, false, 42, 44), new StyleOverride(10, false, 172, 170), new StyleOverride(11, false, 343, 342),
-            new StyleOverride(12, false, 173, 174), new StyleOverride(13, false, 174, 175), new StyleOverride(14, false, 175, 176),
-            new StyleOverride(15, false, 92, 93), new StyleOverride(16, true, 41, 45), new StyleOverride(17, false, 292, 292),
-            new StyleOverride(19, false, 344, 343), new StyleOverride(20, false, 93, 94), new StyleOverride(21, false, 10, 47),
-            new StyleOverride(21, false, 20, 49), new StyleOverride(21, false, 30, 140), new StyleOverride(22, false, 43, 141),
-            new StyleOverride(23, false, 176, 177), new StyleOverride(24, true, 40, 142), new StyleOverride(25, false, 95, 178),
-            new StyleOverride(27, false, 271, 271), new StyleOverride(28, false, 273, 273), new StyleOverride(29, false, 272, 272),
+            new StyleOverride(0, false, 170, 173),
+            new StyleOverride(1, false, 91, 91),
+            new StyleOverride(2, false, 341, 340),
+            new StyleOverride(3, false, 171, 92),
+            new StyleOverride(4, false, 290, 290),
+            new StyleOverride(5, true, 145, 42),
+            new StyleOverride(6, false, 291, 291),
+            new StyleOverride(7, false, 41, 43),
+            new StyleOverride(8, false, 342, 341),
+            new StyleOverride(9, false, 42, 44),
+            new StyleOverride(10, false, 172, 170),
+            new StyleOverride(11, false, 343, 342),
+            new StyleOverride(12, false, 173, 174),
+            new StyleOverride(13, false, 174, 175),
+            new StyleOverride(14, false, 175, 176),
+            new StyleOverride(15, false, 92, 93),
+            new StyleOverride(16, true, 41, 45),
+            new StyleOverride(17, false, 292, 292),
+            new StyleOverride(19, false, 344, 343),
+            new StyleOverride(20, false, 93, 94),
+            new StyleOverride(21, false, 10, 47),
+            new StyleOverride(21, false, 20, 49),
+            new StyleOverride(21, false, 30, 140),
+            new StyleOverride(22, false, 43, 141),
+            new StyleOverride(23, false, 176, 177),
+            new StyleOverride(24, true, 40, 142),
+            new StyleOverride(25, false, 95, 178),
+            new StyleOverride(27, false, 271, 271),
+            new StyleOverride(28, false, 273, 273),
+            new StyleOverride(29, false, 272, 272),
         };
 
         #region One leader line's own look
@@ -64,16 +104,30 @@ namespace GeometryHelper.Dxf
         {
             if (leaderLineType == GetLeaderLineType(leaderLineIndex))
             {
-                SetLineOwnAgain(leaderLineIndex, 170, ((int)leaderLineType).ToString(CultureInfo.InvariantCulture), LineTypeFlag);
+                SetLineOwnAgain(
+                    leaderLineIndex,
+                    170,
+                    ((int)leaderLineType).ToString(CultureInfo.InvariantCulture),
+                    LineTypeFlag
+                );
                 return;
             }
 
             if (leaderLineType < DxfLeaderType.InVisibleLeader || leaderLineType > DxfLeaderType.SplineLeader)
             {
-                throw new ArgumentOutOfRangeException(nameof(leaderLineType), leaderLineType, "A leader line is invisible, straight or a spline, 0 to 2.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(leaderLineType),
+                    leaderLineType,
+                    "A leader line is invisible, straight or a spline, 0 to 2."
+                );
             }
 
-            SetLineOwn(leaderLineIndex, 170, ((int)leaderLineType).ToString(CultureInfo.InvariantCulture), LineTypeFlag);
+            SetLineOwn(
+                leaderLineIndex,
+                170,
+                ((int)leaderLineType).ToString(CultureInfo.InvariantCulture),
+                LineTypeFlag
+            );
         }
 
         /// <summary>
@@ -86,7 +140,8 @@ namespace GeometryHelper.Dxf
         /// <param name="leaderLineIndex">The index of the line.</param>
         /// <returns>The colour.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the MULTILEADER has no line of the index.</exception>
-        public DxfColor GetLeaderLineColor(int leaderLineIndex) => DxfMLeaderColors.Of(LineColour(FindLine(Read(), leaderLineIndex, out _).Groups) ?? ByBlock);
+        public DxfColor GetLeaderLineColor(int leaderLineIndex) =>
+            DxfMLeaderColors.Of(LineColour(FindLine(Read(), leaderLineIndex, out _).Groups) ?? ByBlock);
 
         /// <summary>
         /// The colour of a leader line's own, as the multileader writes one: its 92 where its flags say it overrides the
@@ -159,16 +214,30 @@ namespace GeometryHelper.Dxf
         {
             if (leaderLineWeight == GetLeaderLineWeight(leaderLineIndex))
             {
-                SetLineOwnAgain(leaderLineIndex, 171, ((int)leaderLineWeight).ToString(CultureInfo.InvariantCulture), LineWeightFlag);
+                SetLineOwnAgain(
+                    leaderLineIndex,
+                    171,
+                    ((int)leaderLineWeight).ToString(CultureInfo.InvariantCulture),
+                    LineWeightFlag
+                );
                 return;
             }
 
             if ((int)leaderLineWeight < -3 || (int)leaderLineWeight > 211)
             {
-                throw new ArgumentOutOfRangeException(nameof(leaderLineWeight), leaderLineWeight, "A lineweight is one of AutoCAD's, -3 to 211.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(leaderLineWeight),
+                    leaderLineWeight,
+                    "A lineweight is one of AutoCAD's, -3 to 211."
+                );
             }
 
-            SetLineOwn(leaderLineIndex, 171, ((int)leaderLineWeight).ToString(CultureInfo.InvariantCulture), LineWeightFlag);
+            SetLineOwn(
+                leaderLineIndex,
+                171,
+                ((int)leaderLineWeight).ToString(CultureInfo.InvariantCulture),
+                LineWeightFlag
+            );
         }
 
         /// <summary>
@@ -205,7 +274,11 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            Guard.NonNegative(arrowSize, nameof(arrowSize), "An arrow's size has to be a finite number, nought or more.");
+            Guard.NonNegative(
+                arrowSize,
+                nameof(arrowSize),
+                "An arrow's size has to be a finite number, nought or more."
+            );
             SetLineOwn(leaderLineIndex, 40, Real(arrowSize), ArrowSizeFlag);
         }
 
@@ -222,10 +295,12 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A leader line's own value of a code where its flags (93) say it overrides the multileader's; null where it does not.</summary>
-        private static string LineOwn(Rec rec, int leaderLineIndex, int flag, int code) => Own(FindLine(rec, leaderLineIndex, out _).Groups, flag, code);
+        private static string LineOwn(Rec rec, int leaderLineIndex, int flag, int code) =>
+            Own(FindLine(rec, leaderLineIndex, out _).Groups, flag, code);
 
         /// <summary>The value of a code of a leader line's groups where its flags (93) say it overrides the multileader's; null where they do not.</summary>
-        private static string Own(List<KeyValuePair<int, string>> line, int flag, int code) => (Whole(Text(line, 93), 0) & flag) != 0 ? Text(line, code) : null;
+        private static string Own(List<KeyValuePair<int, string>> line, int flag, int code) =>
+            (Whole(Text(line, 93), 0) & flag) != 0 ? Text(line, code) : null;
 
         /// <summary>
         /// Writes a leader line's own value of a code and sets its flag (93), from R2010; a line of no flags whose colour was
@@ -280,11 +355,19 @@ namespace GeometryHelper.Dxf
 
             if (mleaderStyle.Item != null)
             {
-                throw new ArgumentException("The style given is filled in, and has to be made in code by new DxfMLeaderStyle(): " + mleaderStyle + " is of a drawing.", nameof(mleaderStyle));
+                throw new ArgumentException(
+                    "The style given is filled in, and has to be made in code by new DxfMLeaderStyle(): "
+                        + mleaderStyle
+                        + " is of a drawing.",
+                    nameof(mleaderStyle)
+                );
             }
 
             Rec rec = Read();
-            DxfMLeaderStyle style = StyleOf(rec, out DxfDatabase database) ?? throw new InvalidOperationException("The MULTILEADER " + (Handle ?? string.Empty) + " names no multileader style of its drawing (340).");
+            DxfMLeaderStyle style = StyleOf(rec, out DxfDatabase database)
+                ?? throw new InvalidOperationException(
+                    "The MULTILEADER " + (Handle ?? string.Empty) + " names no multileader style of its drawing (340)."
+                );
             List<KeyValuePair<int, string>> groups = style.Groups();
             int flags = Whole(Text(rec.After, 90), 0);
 
@@ -367,7 +450,8 @@ namespace GeometryHelper.Dxf
             // has not, and a block the multileader cannot be given, a copy in no drawing being given none.
             string arrow = style.Text(341)?.Trim();
             DxfBlockTableRecord arrowBlock = style.ArrowSymbol;
-            bool arrowTaken = arrowBlock == null ? arrow == null || arrow.Length == 0 || arrow == "0" : Holds(arrowBlock);
+            bool arrowTaken =
+                arrowBlock == null ? arrow == null || arrow.Length == 0 || arrow == "0" : Holds(arrowBlock);
             DxfBlockTableRecord block = style.Block;
             bool blockTaken = block != null && !block.IsLayout && Holds(block);
             string linetype = Named<DxfLinetypeTableRecord>(database, style.Text(340));
@@ -383,7 +467,10 @@ namespace GeometryHelper.Dxf
                 Keep(24);
             }
 
-            if (style.LeaderLineType >= DxfLeaderType.InVisibleLeader && style.LeaderLineType <= DxfLeaderType.SplineLeader)
+            if (
+                style.LeaderLineType >= DxfLeaderType.InVisibleLeader
+                && style.LeaderLineType <= DxfLeaderType.SplineLeader
+            )
             {
                 LeaderLineType = style.LeaderLineType;
             }
@@ -426,7 +513,10 @@ namespace GeometryHelper.Dxf
 
             if (content != ContentType)
             {
-                if ((content == DxfContentType.MTextContent && HasSection(ctx, 290, MTextCodes)) || (content == DxfContentType.BlockContent && HasSection(ctx, 296, BlockCodes)))
+                if (
+                    (content == DxfContentType.MTextContent && HasSection(ctx, 290, MTextCodes))
+                    || (content == DxfContentType.BlockContent && HasSection(ctx, 296, BlockCodes))
+                )
                 {
                     ContentType = content;
                 }
@@ -480,12 +570,26 @@ namespace GeometryHelper.Dxf
                 Keep(22);
             }
 
-            TakeEnum((int)style.BlockConnectionType, 0, 1, v => BlockConnectionType = (DxfBlockConnectionType)v, 23, Keep);
+            TakeEnum(
+                (int)style.BlockConnectionType,
+                0,
+                1,
+                v => BlockConnectionType = (DxfBlockConnectionType)v,
+                23,
+                Keep
+            );
             TakeAttachment(style, DxfLeaderDirectionType.RightLeader, 25, Keep);
 
             if (Item.File.Supports(1024))
             {
-                TakeEnum((int)style.TextAttachmentDirection, 0, 1, v => TextAttachmentDirection = (DxfTextAttachmentDirection)v, 27, Keep);
+                TakeEnum(
+                    (int)style.TextAttachmentDirection,
+                    0,
+                    1,
+                    v => TextAttachmentDirection = (DxfTextAttachmentDirection)v,
+                    27,
+                    Keep
+                );
                 TakeAttachment(style, DxfLeaderDirectionType.TopLeader, 28, Keep);
                 TakeAttachment(style, DxfLeaderDirectionType.BottomLeader, 29, Keep);
             }
@@ -511,19 +615,34 @@ namespace GeometryHelper.Dxf
         private DxfMLeaderStyle StyleOf(Rec rec, out DxfDatabase database)
         {
             // A copy in no file reads what its record names in the drawing it was copied from.
-            database = IsResident ? Database() : Item.File.IsDetached ? Item.File.NamingDrawing?.Database : null;
+            database =
+                IsResident ? Database()
+                : Item.File.IsDetached ? Item.File.NamingDrawing?.Database
+                : null;
             string handle = Text(rec.After, 340)?.Trim();
-            return handle != null && database != null && database.TryGetObject(handle, out DxfDBObject found) ? found as DxfMLeaderStyle : null;
+            return handle != null && database != null && database.TryGetObject(handle, out DxfDBObject found)
+                ? found as DxfMLeaderStyle
+                : null;
         }
 
         /// <summary>Whether a block can be given to the multileader, as <see cref="ArrowSymbol"/> and <see cref="BlockContent"/> take one: a block of its own drawing.</summary>
-        private bool Holds(DxfBlockTableRecord block) => block.Handle != null && ReferenceEquals(BlockByHandle(block.Handle), block);
+        private bool Holds(DxfBlockTableRecord block) =>
+            block.Handle != null && ReferenceEquals(BlockByHandle(block.Handle), block);
 
         /// <summary>A handle the style gives where the drawing has a record of the type of it; null where it gives none, or one the drawing has not.</summary>
-        private static string Named<T>(DxfDatabase database, string handle) where T : DxfDBObject
+        private static string Named<T>(DxfDatabase database, string handle)
+            where T : DxfDBObject
         {
             handle = handle?.Trim();
-            return handle != null && handle.Length > 0 && handle != "0" && database != null && database.TryGetObject(handle, out DxfDBObject found) && found is T ? handle : null;
+            return
+                handle != null
+                && handle.Length > 0
+                && handle != "0"
+                && database != null
+                && database.TryGetObject(handle, out DxfDBObject found)
+                && found is T
+                ? handle
+                : null;
         }
 
         /// <summary>Writes a handle of the style in the multileader's own group of a code, and in its words' 340 where asked; false where there is none to write.</summary>
@@ -617,7 +736,13 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Sets a size in a run where it differs, to the bit, from the one read, the fallback where the run has none.</summary>
-        private static void PutSize(List<KeyValuePair<int, string>> groups, int code, double value, double fallback, int[] order)
+        private static void PutSize(
+            List<KeyValuePair<int, string>> groups,
+            int code,
+            double value,
+            double fallback,
+            int[] order
+        )
         {
             if (!Same(Num(Text(groups, code), fallback), value))
             {
@@ -641,7 +766,10 @@ namespace GeometryHelper.Dxf
         {
             DxfTextAttachmentType value = style.GetTextAttachmentType(side);
 
-            if (value >= DxfTextAttachmentType.AttachmentTopOfTop && value <= DxfTextAttachmentType.AttachmentLinedCenter)
+            if (
+                value >= DxfTextAttachmentType.AttachmentTopOfTop
+                && value <= DxfTextAttachmentType.AttachmentLinedCenter
+            )
             {
                 SetTextAttachmentType(value, side);
             }
@@ -696,7 +824,10 @@ namespace GeometryHelper.Dxf
         {
             if (!value.IsValid)
             {
-                throw new ArgumentException("A plane has a finite origin and a normal of unit length: " + value + " has not.", nameof(value));
+                throw new ArgumentException(
+                    "A plane has a finite origin and a normal of unit length: " + value + " has not.",
+                    nameof(value)
+                );
             }
 
             // The normal the multileader has before it is put in the plane, that its words and block face the side of.
@@ -719,10 +850,21 @@ namespace GeometryHelper.Dxf
             GeoVector3 y = DxfOcsTransform.Cross(n, unitX);
             y = over ? y.Multiply(-1.0) : y;
             double side = DxfOcsTransform.Cross(x, oldY).DotProduct(n);
-            bool leans = SamePoint(Pt(x), Pt(oldX)) && Math.Abs(oldY.DotProduct(n)) <= 1E-12 * oldY.Length && (over ? side < 0.0 : side > 0.0);
+            bool leans =
+                SamePoint(Pt(x), Pt(oldX))
+                && Math.Abs(oldY.DotProduct(n)) <= 1E-12 * oldY.Length
+                && (over ? side < 0.0 : side > 0.0);
             PutWhereNeeded(ctx.Head, 110, origin, new GeoPoint3(0.0, 0.0, 0.0), ContextOrder, 0, -1);
             PutWhereNeeded(ctx.Head, 111, Pt(x), new GeoPoint3(1.0, 0.0, 0.0), ContextOrder, 0, -1);
-            PutWhereNeeded(ctx.Head, 112, Pt(leans ? oldY : DxfLeader.Kept(oldY, y)), new GeoPoint3(0.0, 1.0, 0.0), ContextOrder, 0, -1);
+            PutWhereNeeded(
+                ctx.Head,
+                112,
+                Pt(leans ? oldY : DxfLeader.Kept(oldY, y)),
+                new GeoPoint3(0.0, 1.0, 0.0),
+                ContextOrder,
+                0,
+                -1
+            );
             MovePoint(ctx.Head, 10, Onto, ContextOrder, 0, -1);
 
             // The words: their normal the plane's, facing the side they faced, their place onto it, their direction and turn laid
@@ -742,7 +884,15 @@ namespace GeometryHelper.Dxf
                 Section(ctx.Head, 290, MTextCodes, out from, out to);
                 MovePoint(ctx.Head, 12, Onto, ContextOrder, from, to);
                 Section(ctx.Head, 290, MTextCodes, out from, out to);
-                PutWhereNeeded(ctx.Head, 13, Pt(DxfLeader.InPlane(direction, n, unitX)), new GeoPoint3(1.0, 0.0, 0.0), ContextOrder, from, to);
+                PutWhereNeeded(
+                    ctx.Head,
+                    13,
+                    Pt(DxfLeader.InPlane(direction, n, unitX)),
+                    new GeoPoint3(1.0, 0.0, 0.0),
+                    ContextOrder,
+                    from,
+                    to
+                );
 
                 if (turn != null)
                 {
@@ -780,7 +930,12 @@ namespace GeometryHelper.Dxf
                     PutNumber(ctx.Head, 46, radians, 0.0, ContextOrder, from, to);
                     PutNumber(rec.After, 43, radians, 0.0, TopOrder);
                     Section(ctx.Head, 296, BlockCodes, out from, out to);
-                    Matrix(ctx.Head, from, to, Carried(oldNormal, Num(Text(b, 46), 0.0), was, facing, radians, faced, now));
+                    Matrix(
+                        ctx.Head,
+                        from,
+                        to,
+                        Carried(oldNormal, Num(Text(b, 46), 0.0), was, facing, radians, faced, now)
+                    );
                 }
                 else if (!SamePoint(was, now))
                 {
@@ -795,7 +950,18 @@ namespace GeometryHelper.Dxf
 
                 if (Text(leader.Head, 11) != null)
                 {
-                    PutPoint(leader.Head, 11, Pt(DxfLeader.InPlane(PointOf(leader.Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector(), n, unitX)), LeaderOrder);
+                    PutPoint(
+                        leader.Head,
+                        11,
+                        Pt(
+                            DxfLeader.InPlane(
+                                PointOf(leader.Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector(),
+                                n,
+                                unitX
+                            )
+                        ),
+                        LeaderOrder
+                    );
                 }
 
                 OntoAll(leader.Head, new[] { 12, 13 }, Onto);
@@ -813,10 +979,19 @@ namespace GeometryHelper.Dxf
         /// The normal of the words or the block in the plane of a normal: the plane's, or the other way where they faced away
         /// from the multileader's plane before, as the words of a mirrored multileader do.
         /// </summary>
-        private static GeoVector3 Facing(GeoVector3 oldNormal, GeoVector3 before, GeoVector3 n) => oldNormal.DotProduct(before) < 0.0 ? n.Multiply(-1.0) : n;
+        private static GeoVector3 Facing(GeoVector3 oldNormal, GeoVector3 before, GeoVector3 n) =>
+            oldNormal.DotProduct(before) < 0.0 ? n.Multiply(-1.0) : n;
 
         /// <summary>Sets a point in a part of a run as <see cref="PutPoint"/> sets it; nothing where the run has none and the point is the one read in its place.</summary>
-        private static void PutWhereNeeded(List<KeyValuePair<int, string>> groups, int code, GeoPoint3 value, GeoPoint3 fallback, int[] order, int from, int to)
+        private static void PutWhereNeeded(
+            List<KeyValuePair<int, string>> groups,
+            int code,
+            GeoPoint3 value,
+            GeoPoint3 fallback,
+            int[] order,
+            int from,
+            int to
+        )
         {
             to = to < 0 ? groups.Count : to;
 
@@ -831,7 +1006,15 @@ namespace GeometryHelper.Dxf
         /// the plane, and its angle in the system of the plane's normal; false for <paramref name="turned"/> where the normal
         /// and the direction are as they were, the angle then kept.
         /// </summary>
-        private static double Laid(double radians, GeoVector3 oldNormal, GeoVector3 normal, GeoVector3 n, GeoVector3 x, DxfOcsTransform.Axes axes, out bool turned)
+        private static double Laid(
+            double radians,
+            GeoVector3 oldNormal,
+            GeoVector3 normal,
+            GeoVector3 n,
+            GeoVector3 x,
+            DxfOcsTransform.Axes axes,
+            out bool turned
+        )
         {
             var old = new DxfOcsTransform.Axes(oldNormal.Length > 0.0 ? oldNormal : new GeoVector3(0.0, 0.0, 1.0));
             GeoVector3 direction = old.ToWorld(new GeoVector3(Math.Cos(radians), Math.Sin(radians), 0.0));
@@ -851,7 +1034,15 @@ namespace GeometryHelper.Dxf
         /// The move that carries the block to the plane: its frame (the x of its turn, its normal and the y across them) turned
         /// onto the new one about the place it was at, then taken to the place it is at now.
         /// </summary>
-        private static GeoTransform3 Carried(GeoVector3 oldNormal, double oldRadians, GeoPoint3 was, GeoVector3 n, double radians, DxfOcsTransform.Axes axes, GeoPoint3 now)
+        private static GeoTransform3 Carried(
+            GeoVector3 oldNormal,
+            double oldRadians,
+            GeoPoint3 was,
+            GeoVector3 n,
+            double radians,
+            DxfOcsTransform.Axes axes,
+            GeoPoint3 now
+        )
         {
             var old = new DxfOcsTransform.Axes(oldNormal.Length > 0.0 ? oldNormal : new GeoVector3(0.0, 0.0, 1.0));
             GeoVector3 x0 = old.ToWorld(new GeoVector3(Math.Cos(oldRadians), Math.Sin(oldRadians), 0.0));
@@ -890,10 +1081,17 @@ namespace GeometryHelper.Dxf
             return new GeoTransform3(m);
         }
 
-        private static double Component(GeoVector3 v, int axis) => axis == 0 ? v.X : axis == 1 ? v.Y : v.Z;
+        private static double Component(GeoVector3 v, int axis) =>
+            axis == 0 ? v.X
+            : axis == 1 ? v.Y
+            : v.Z;
 
         /// <summary>Moves every point of some codes in a run straight onto a plane, each with the groups 10 and 20 above it; one already on it keeps its text.</summary>
-        private static void OntoAll(List<KeyValuePair<int, string>> groups, int[] codes, Func<GeoPoint3, GeoPoint3> onto)
+        private static void OntoAll(
+            List<KeyValuePair<int, string>> groups,
+            int[] codes,
+            Func<GeoPoint3, GeoPoint3> onto
+        )
         {
             for (int i = 0; i < groups.Count; i++)
             {

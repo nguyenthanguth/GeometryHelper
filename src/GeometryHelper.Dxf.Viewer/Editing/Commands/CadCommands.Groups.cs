@@ -64,7 +64,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> GroupTyped(CadCommandContext c)
         {
-            yield return CadPrompt.ForKeyword("Enter a group option", new[] { "?", "Order", "Add", "Remove", "Explode", "REName", "Selectable", "Create" }, "Create");
+            yield return CadPrompt.ForKeyword(
+                "Enter a group option",
+                new[] { "?", "Order", "Add", "Remove", "Explode", "REName", "Selectable", "Create" },
+                "Create"
+            );
 
             if (c.Input.Kind != CadInputKind.Keyword)
             {
@@ -189,7 +193,11 @@ namespace GeometryHelper.Dxf.Viewer
             bool given = false;
             string name = null;
 
-            foreach (CadPrompt prompt in AskNewGroupName(c, "Enter a group name or", n => { name = n; given = true; }))
+            foreach (CadPrompt prompt in AskNewGroupName(c, "Enter a group name or", n =>
+                {
+                    name = n;
+                    given = true;
+                }))
             {
                 yield return prompt;
             }
@@ -216,7 +224,10 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> ListGroups(CadCommandContext c)
         {
             yield return CadPrompt.ForString("Enter group name(s) to list", "*");
-            WriteGroups(c, c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim() : "*");
+            WriteGroups(
+                c,
+                c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim() : "*"
+            );
         }
 
         private static IEnumerable<CadPrompt> RenameGroup(CadCommandContext c)
@@ -246,7 +257,9 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group", old, name) }, s => FindGroup(c, old).Name = name);
+            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group", old, name) }, s =>
+                FindGroup(c, old).Name = name
+            );
         }
 
         /// <summary>-GROUP Order, Add, Remove, Explode and Selectable, each of a group asked by name.</summary>
@@ -275,11 +288,31 @@ namespace GeometryHelper.Dxf.Viewer
             if (option == "Selectable")
             {
                 bool selectable = group.Selectable;
-                yield return CadPrompt.ForKeyword("This group is " + (selectable ? "selectable" : "unselectable") + ". Do you want to make it " + (selectable ? "unselectable" : "selectable") + "?", new[] { "Yes", "No" }, "Yes");
+                yield return CadPrompt.ForKeyword(
+                    "This group is "
+                        + (selectable ? "selectable" : "unselectable")
+                        + ". Do you want to make it "
+                        + (selectable ? "unselectable" : "selectable")
+                        + "?",
+                    new[] { "Yes", "No" },
+                    "Yes"
+                );
 
                 if (c.Input.Is("Yes"))
                 {
-                    c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group selectable", name, YesNoText(!selectable)) }, s => FindGroup(c, name).Selectable = !selectable);
+                    c.Apply(
+                        new[]
+                        {
+                            new CadEditRecord(
+                                CadEditRecordKind.TableChanged,
+                                null,
+                                "Group selectable",
+                                name,
+                                YesNoText(!selectable)
+                            ),
+                        },
+                        s => FindGroup(c, name).Selectable = !selectable
+                    );
                 }
 
                 yield break;
@@ -325,30 +358,42 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var handles = new List<string>(picked);
             handles.Sort(StringComparer.OrdinalIgnoreCase);
-            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group " + (add ? "add" : "remove"), name, string.Join(",", handles)) }, s =>
-            {
-                DxfGroup target = FindGroup(c, name);
-                var entities = new List<DxfEntity>();
-
-                foreach (string handle in handles)
+            c.Apply(
+                new[]
                 {
-                    DxfEntity entity = c.Document.FindEntity(handle);
+                    new CadEditRecord(
+                        CadEditRecordKind.TableChanged,
+                        null,
+                        "Group " + (add ? "add" : "remove"),
+                        name,
+                        string.Join(",", handles)
+                    ),
+                },
+                s =>
+                {
+                    DxfGroup target = FindGroup(c, name);
+                    var entities = new List<DxfEntity>();
 
-                    if (entity != null && target.Has(entity) != add)
+                    foreach (string handle in handles)
                     {
-                        entities.Add(entity);
+                        DxfEntity entity = c.Document.FindEntity(handle);
+
+                        if (entity != null && target.Has(entity) != add)
+                        {
+                            entities.Add(entity);
+                        }
+                    }
+
+                    if (add)
+                    {
+                        target.Append(entities);
+                    }
+                    else
+                    {
+                        target.Remove(entities);
                     }
                 }
-
-                if (add)
-                {
-                    target.Append(entities);
-                }
-                else
-                {
-                    target.Remove(entities);
-                }
-            });
+            );
         }
 
         /// <summary>-GROUP Order: "Replace objects at position number:", "Enter new position number for the objects", "Number of objects to re-order".</summary>
@@ -381,7 +426,19 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group order", name, Values(from, to, many)) }, s => FindGroup(c, name).Transfer(from, to, many));
+            c.Apply(
+                new[]
+                {
+                    new CadEditRecord(
+                        CadEditRecordKind.TableChanged,
+                        null,
+                        "Group order",
+                        name,
+                        Values(from, to, many)
+                    ),
+                },
+                s => FindGroup(c, name).Transfer(from, to, many)
+            );
         }
 
         private static IEnumerable<CadPrompt> AskGroup(CadCommandContext c, string message, Action<DxfGroup> take)
@@ -414,39 +471,51 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static void MakeGroup(CadCommandContext c, string name, string description, IReadOnlyList<string> handles, bool selectable = true)
+        private static void MakeGroup(
+            CadCommandContext c,
+            string name,
+            string description,
+            IReadOnlyList<string> handles,
+            bool selectable = true
+        )
         {
             var sorted = new List<string>(handles);
             sorted.Sort(StringComparer.OrdinalIgnoreCase);
             string made = null;
             c.Document.EnsureNamedObjectsDictionary();
-            CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group", null, name ?? "*") }, s =>
-            {
-                DxfDBDictionary dictionary = s.Database.GroupDictionary;
-
-                if (dictionary == null)
+            CadEditResult result = c.Apply(
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group", null, name ?? "*") },
+                s =>
                 {
-                    (s.Database.NamedObjectsDictionary ?? throw new InvalidOperationException("A drawing of R12 has no dictionary to hold groups.")).SetAt("ACAD_GROUP", new DxfDBDictionary());
-                    dictionary = s.Database.GroupDictionary;
-                }
+                    DxfDBDictionary dictionary = s.Database.GroupDictionary;
 
-                var group = new DxfGroup(description, selectable);
-                dictionary.SetAt(name ?? "*", group);
-                var entities = new List<DxfEntity>();
-
-                foreach (string handle in sorted)
-                {
-                    DxfEntity entity = c.Document.FindEntity(handle);
-
-                    if (entity != null)
+                    if (dictionary == null)
                     {
-                        entities.Add(entity);
+                        (
+                            s.Database.NamedObjectsDictionary
+                            ?? throw new InvalidOperationException("A drawing of R12 has no dictionary to hold groups.")
+                        ).SetAt("ACAD_GROUP", new DxfDBDictionary());
+                        dictionary = s.Database.GroupDictionary;
                     }
-                }
 
-                group.Append(entities);
-                made = group.Name;
-            });
+                    var group = new DxfGroup(description, selectable);
+                    dictionary.SetAt(name ?? "*", group);
+                    var entities = new List<DxfEntity>();
+
+                    foreach (string handle in sorted)
+                    {
+                        DxfEntity entity = c.Document.FindEntity(handle);
+
+                        if (entity != null)
+                        {
+                            entities.Add(entity);
+                        }
+                    }
+
+                    group.Append(entities);
+                    made = group.Name;
+                }
+            );
 
             if (result.Succeeded)
             {
@@ -456,13 +525,19 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static void ExplodeGroups(CadCommandContext c, IReadOnlyList<string> names)
         {
-            CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Ungroup", string.Join(",", names), null) }, s =>
-            {
-                foreach (string name in names)
+            CadEditResult result = c.Apply(
+                new[]
                 {
-                    FindGroup(c, name)?.Erase();
+                    new CadEditRecord(CadEditRecordKind.TableChanged, null, "Ungroup", string.Join(",", names), null),
+                },
+                s =>
+                {
+                    foreach (string name in names)
+                    {
+                        FindGroup(c, name)?.Erase();
+                    }
                 }
-            });
+            );
 
             if (result.Succeeded)
             {
@@ -497,7 +572,9 @@ namespace GeometryHelper.Dxf.Viewer
         private static DxfGroup FindGroup(CadCommandContext c, string name)
         {
             DxfDBDictionary dictionary = c.Database.GroupDictionary;
-            return name != null && name.Length > 0 && dictionary != null && dictionary.Contains(name) ? dictionary.GetAt(name) as DxfGroup : null;
+            return name != null && name.Length > 0 && dictionary != null && dictionary.Contains(name)
+                ? dictionary.GetAt(name) as DxfGroup
+                : null;
         }
 
         private static void WriteGroups(CadCommandContext c, string pattern)
@@ -513,7 +590,8 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static bool IsGroupName(string name) => name.Length > 0 && name.Length <= 255 && name.IndexOfAny("<>/\\\":;?*|,=`".ToCharArray()) < 0;
+        private static bool IsGroupName(string name) =>
+            name.Length > 0 && name.Length <= 255 && name.IndexOfAny("<>/\\\":;?*|,=`".ToCharArray()) < 0;
 
         private static string YesNoText(bool value) => value ? "Yes" : "No";
     }

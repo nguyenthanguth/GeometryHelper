@@ -42,7 +42,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(2048, (int)CadSnapModes.ApparentIntersection);
             Assert.Equal(4096, (int)CadSnapModes.Extension);
             Assert.Equal(8192, (int)CadSnapModes.Parallel);
-            Assert.Equal(CadSnapModes.Endpoint | CadSnapModes.Center | CadSnapModes.Intersection | CadSnapModes.Extension, (CadSnapModes)4133);
+            Assert.Equal(
+                CadSnapModes.Endpoint | CadSnapModes.Center | CadSnapModes.Intersection | CadSnapModes.Extension,
+                (CadSnapModes)4133
+            );
         }
 
         [Fact]
@@ -89,7 +92,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Near(P(0, 10), track[0], 1E-9);
             Assert.True(track.Count >= 10);
             Assert.All(track, p => Assert.Equal(10.0, Math.Sqrt(p.X * p.X + p.Y * p.Y), 9));
-            Assert.Equal(CadSnapKind.None, snap.Snap(index, P(10.3 * Math.Cos(0.25 * Math.PI), 10.3 * Math.Sin(0.25 * Math.PI)), 1.0).Kind);
+            Assert.Equal(
+                CadSnapKind.None,
+                snap.Snap(index, P(10.3 * Math.Cos(0.25 * Math.PI), 10.3 * Math.Sin(0.25 * Math.PI)), 1.0).Kind
+            );
         }
 
         [Fact]
@@ -114,10 +120,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void TwoLinesThatStopShortOfACorner_GiveTheirApparentIntersection_NotAnIntersection()
         {
-            PickIndex index = Index(TestDrawings.Line(0, 0, 98, 0, handle: "A1"), TestDrawings.Line(100, 2, 100, 50, handle: "A2"));
+            PickIndex index = Index(
+                TestDrawings.Line(0, 0, 98, 0, handle: "A1"),
+                TestDrawings.Line(100, 2, 100, 50, handle: "A2")
+            );
 
-            CadSnapResult apparent = new ObjectSnap(Tight) { Modes = CadSnapModes.ApparentIntersection }.Snap(index, P(99.5, 0.6), 2.5);
-            CadSnapResult intersection = new ObjectSnap(Tight) { Modes = CadSnapModes.Intersection }.Snap(index, P(99.5, 0.6), 2.5);
+            CadSnapResult apparent = new ObjectSnap(Tight) { Modes = CadSnapModes.ApparentIntersection }.Snap(
+                index,
+                P(99.5, 0.6),
+                2.5
+            );
+            CadSnapResult intersection = new ObjectSnap(Tight) { Modes = CadSnapModes.Intersection }.Snap(
+                index,
+                P(99.5, 0.6),
+                2.5
+            );
 
             Snapped(apparent, CadSnapKind.ApparentIntersection, 100, 0);
             Assert.Equal("A1", apparent.Handle);
@@ -127,7 +144,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void AnObjectClickedFirst_ThenAnotherUnderTheCursor_GiveWhereTheyWouldCross()
         {
-            PickIndex index = Index(TestDrawings.Line(0, 0, 10, 0, handle: "A1"), TestDrawings.Line(20, 5, 20, 10, handle: "A2"));
+            PickIndex index = Index(
+                TestDrawings.Line(0, 0, 10, 0, handle: "A1"),
+                TestDrawings.Line(20, 5, 20, 10, handle: "A2")
+            );
             var snap = new ObjectSnap(Tight) { Modes = CadSnapModes.ApparentIntersection };
 
             CadSnapResult offered = snap.Snap(index, P(5, 0.3), 1.0);
@@ -153,11 +173,62 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 "TB",
                 TestDrawings.Line(0, 0, 100, 0),
                 TestDrawings.Line(100, 0, 100, 30),
-                TestDrawings.Entity("ATTDEF", "0", 256, null, "10", 5.0, "20", 18.0, "30", 0.0, "40", 5.0, "1", "TITLE?", "3", "Title", "2", "TITLE", "70", 0));
-            string insert = "0\nINSERT\n5\nB1\n8\n0\n66\n1\n2\nTB\n10\n20\n20\n20\n30\n0\n41\n1\n42\n1\n43\n1\n"
-                + TestDrawings.Entity("ATTRIB", "0", 256, "B2", "10", 25.0, "20", 38.0, "30", 0.0, "40", 5.0, "1", "BEAM B-12", "2", "TITLE", "70", 0)
+                TestDrawings.Entity(
+                    "ATTDEF",
+                    "0",
+                    256,
+                    null,
+                    "10",
+                    5.0,
+                    "20",
+                    18.0,
+                    "30",
+                    0.0,
+                    "40",
+                    5.0,
+                    "1",
+                    "TITLE?",
+                    "3",
+                    "Title",
+                    "2",
+                    "TITLE",
+                    "70",
+                    0
+                )
+            );
+            string insert =
+                "0\nINSERT\n5\nB1\n8\n0\n66\n1\n2\nTB\n10\n20\n20\n20\n30\n0\n41\n1\n42\n1\n43\n1\n"
+                + TestDrawings.Entity(
+                    "ATTRIB",
+                    "0",
+                    256,
+                    "B2",
+                    "10",
+                    25.0,
+                    "20",
+                    38.0,
+                    "30",
+                    0.0,
+                    "40",
+                    5.0,
+                    "1",
+                    "BEAM B-12",
+                    "2",
+                    "TITLE",
+                    "70",
+                    0
+                )
                 + "0\nSEQEND\n5\nB5\n8\n0\n";
-            CadDocument document = CadDocument.From(TestDrawings.Drawing(null, block, insert, TestDrawings.Text(200, 0, 2.5, "NOTE", handle: "T1"), TestDrawings.Line(300, 0, 400, 0, handle: "L1")), "insertion.dxf");
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(
+                    null,
+                    block,
+                    insert,
+                    TestDrawings.Text(200, 0, 2.5, "NOTE", handle: "T1"),
+                    TestDrawings.Line(300, 0, 400, 0, handle: "L1")
+                ),
+                "insertion.dxf"
+            );
             PickIndex index = document.GetPickIndex(document.ModelSpace);
             var snap = new ObjectSnap(Tight) { Modes = CadSnapModes.Insertion };
 
@@ -172,7 +243,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void TrackingFromAcquiredEndpointsHoldsTheCursorLevelOrUpright_AndWhereTheirLinesCross()
         {
-            PickIndex index = Index(TestDrawings.Line(0, 0, 100, 0, handle: "L1"), TestDrawings.Line(200, 50, 200, 100, handle: "L2"));
+            PickIndex index = Index(
+                TestDrawings.Line(0, 0, 100, 0, handle: "L1"),
+                TestDrawings.Line(200, 50, 200, 100, handle: "L2")
+            );
             var snap = new ObjectSnap(Tight) { Modes = CadSnapModes.Endpoint, Tracking = true };
 
             Assert.True(snap.Acquire(index, P(100.3, 0.2), 1.0));
@@ -209,7 +283,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void SevenPointsAreAcquiredAtMost_TheOldestLetGoFirst()
         {
-            var lines = Enumerable.Range(0, 8).Select(i => TestDrawings.Line(i * 50, 0, i * 50 + 10, 20, handle: "L" + i)).ToArray();
+            var lines = Enumerable
+                .Range(0, 8)
+                .Select(i => TestDrawings.Line(i * 50, 0, i * 50 + 10, 20, handle: "L" + i))
+                .ToArray();
             PickIndex index = Index(lines);
             var snap = new ObjectSnap(Tight) { Modes = CadSnapModes.Endpoint, Tracking = true };
 
@@ -226,7 +303,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void NothingIsAcquiredWithoutTrackingExtensionOrParallel_AndASnapNearTheCursorStillWins()
         {
-            PickIndex index = Index(TestDrawings.Line(0, 0, 100, 0, handle: "L1"), TestDrawings.Line(150, 0, 150, 40, handle: "L2"));
+            PickIndex index = Index(
+                TestDrawings.Line(0, 0, 100, 0, handle: "L1"),
+                TestDrawings.Line(150, 0, 150, 40, handle: "L2")
+            );
             var snap = new ObjectSnap(Tight) { Modes = CadSnapModes.Endpoint };
 
             Assert.False(snap.Acquire(index, P(100.3, 0.2), 1.0));
@@ -241,7 +321,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void TheNewKindsHaveAutoCADsNames()
         {
-            Assert.Equal("Extended Apparent Intersection", CadSnapMarker.NameOf(CadSnapKind.ExtendedApparentIntersection));
+            Assert.Equal(
+                "Extended Apparent Intersection",
+                CadSnapMarker.NameOf(CadSnapKind.ExtendedApparentIntersection)
+            );
             Assert.Equal("Object Snap Tracking", CadSnapMarker.NameOf(CadSnapKind.Tracking));
             Assert.Equal(6, CadSnapMarker.Strokes(CadSnapKind.ExtendedApparentIntersection).Count);
             Assert.Equal(2, CadSnapMarker.Strokes(CadSnapKind.Tracking).Count);

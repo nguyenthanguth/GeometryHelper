@@ -33,7 +33,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the distance from an ellipse to a point, using the default tolerance.
         /// </summary>
-        public static double DistanceTo(GeoEllipse2 ellipse, GeoPoint2 point) => DistanceTo(ellipse, point, Tolerance.Global);
+        public static double DistanceTo(GeoEllipse2 ellipse, GeoPoint2 point) =>
+            DistanceTo(ellipse, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from an ellipse to a point.
@@ -52,7 +53,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the distance from an ellipse to a point, negative for a point inside it, using the default tolerance.
         /// </summary>
-        public static double SignedDistanceTo(GeoEllipse2 ellipse, GeoPoint2 point) => SignedDistanceTo(ellipse, point, Tolerance.Global);
+        public static double SignedDistanceTo(GeoEllipse2 ellipse, GeoPoint2 point) =>
+            SignedDistanceTo(ellipse, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from an ellipse to a point, negative for a point inside it, within a tolerance.
@@ -87,7 +89,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the distance from an ellipse to a segment, using the default tolerance.
         /// </summary>
-        public static double DistanceTo(GeoEllipse2 ellipse, GeoLine2 line) => DistanceTo(ellipse, line, Tolerance.Global);
+        public static double DistanceTo(GeoEllipse2 ellipse, GeoLine2 line) =>
+            DistanceTo(ellipse, line, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from an ellipse to a segment.
@@ -112,7 +115,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from an ellipse to a polyline, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public static double DistanceTo(GeoEllipse2 ellipse, GeoPolyline2 polyline) => DistanceTo(ellipse, polyline, Tolerance.Global);
+        public static double DistanceTo(GeoEllipse2 ellipse, GeoPolyline2 polyline) =>
+            DistanceTo(ellipse, polyline, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from an ellipse to a polyline, within a tolerance.
@@ -127,7 +131,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static double DistanceTo(GeoEllipse2 ellipse, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return ToEdges(ellipse, polyline.GetEdges(), tolerance);
         }
@@ -136,7 +141,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from an ellipse to a polygon, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static double DistanceTo(GeoEllipse2 ellipse, GeoPolygon2 polygon) => DistanceTo(ellipse, polygon, Tolerance.Global);
+        public static double DistanceTo(GeoEllipse2 ellipse, GeoPolygon2 polygon) =>
+            DistanceTo(ellipse, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from an ellipse to a polygon, within a tolerance.
@@ -151,15 +157,19 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static double DistanceTo(GeoEllipse2 ellipse, GeoPolygon2 polygon, Tolerance tolerance)
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
-            return Containment2.Contains(polygon, ellipse.Center, Exactly) ? 0.0 : ToEdges(ellipse, polygon.GetEdges(), tolerance);
+            return Containment2.Contains(polygon, ellipse.Center, Exactly)
+                ? 0.0
+                : ToEdges(ellipse, polygon.GetEdges(), tolerance);
         }
 
         /// <summary>
         /// Gets the distance from an ellipse to a rectangle, using the default tolerance.
         /// </summary>
-        public static double DistanceTo(GeoEllipse2 ellipse, GeoRectangle2 rect) => DistanceTo(ellipse, rect, Tolerance.Global);
+        public static double DistanceTo(GeoEllipse2 ellipse, GeoRectangle2 rect) =>
+            DistanceTo(ellipse, rect, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from an ellipse to a rectangle, within a tolerance.
@@ -170,13 +180,16 @@ namespace GeometryHelper.Core
         /// <returns>Nought only where the two truly meet, a side reaching the region or the rectangle holding the centre with no slack; otherwise the distance from the nearest side, measured exactly.</returns>
         public static double DistanceTo(GeoEllipse2 ellipse, GeoRectangle2 rect, Tolerance tolerance)
         {
-            return Containment2.Contains(rect, ellipse.Center, Exactly) ? 0.0 : ToEdges(ellipse, rect.GetEdges(), tolerance);
+            return Containment2.Contains(rect, ellipse.Center, Exactly)
+                ? 0.0
+                : ToEdges(ellipse, rect.GetEdges(), tolerance);
         }
 
         /// <summary>
         /// Gets the distance from an ellipse to a triangle, using the default tolerance.
         /// </summary>
-        public static double DistanceTo(GeoEllipse2 ellipse, GeoTriangle2 triangle) => DistanceTo(ellipse, triangle, Tolerance.Global);
+        public static double DistanceTo(GeoEllipse2 ellipse, GeoTriangle2 triangle) =>
+            DistanceTo(ellipse, triangle, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from an ellipse to a triangle, within a tolerance.
@@ -195,7 +208,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the distance from an ellipse to an edge, using the default tolerance.
         /// </summary>
-        public static double DistanceTo(GeoEllipse2 ellipse, GeoEdge2 edge) => DistanceTo(ellipse, edge, Tolerance.Global);
+        public static double DistanceTo(GeoEllipse2 ellipse, GeoEdge2 edge) =>
+            DistanceTo(ellipse, edge, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from an ellipse to an edge, within a tolerance: as a segment or as an arc, whichever the edge is.
@@ -212,7 +226,8 @@ namespace GeometryHelper.Core
                 edge,
                 line => DistanceTo(ellipse, line, tolerance),
                 arc => DistanceTo(ellipse, arc, tolerance),
-                point => DistanceTo(ellipse, point, tolerance));
+                point => DistanceTo(ellipse, point, tolerance)
+            );
         }
 
         #endregion
@@ -222,7 +237,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the distance from an ellipse to a circle, using the default tolerance.
         /// </summary>
-        public static double DistanceTo(GeoEllipse2 ellipse, GeoCircle2 circle) => DistanceTo(ellipse, circle, Tolerance.Global);
+        public static double DistanceTo(GeoEllipse2 ellipse, GeoCircle2 circle) =>
+            DistanceTo(ellipse, circle, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from an ellipse to a circle.
@@ -270,7 +286,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the distance between two ellipses, using the default tolerance.
         /// </summary>
-        public static double DistanceTo(GeoEllipse2 ellipse, GeoEllipse2 other) => DistanceTo(ellipse, other, Tolerance.Global);
+        public static double DistanceTo(GeoEllipse2 ellipse, GeoEllipse2 other) =>
+            DistanceTo(ellipse, other, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance between two ellipses.
@@ -299,7 +316,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from an ellipse to a curved chain, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static double DistanceTo(GeoEllipse2 ellipse, GeoPolylineArc2 chain) => DistanceTo(ellipse, chain, Tolerance.Global);
+        public static double DistanceTo(GeoEllipse2 ellipse, GeoPolylineArc2 chain) =>
+            DistanceTo(ellipse, chain, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from an ellipse to a curved chain, within a tolerance.
@@ -314,7 +332,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static double DistanceTo(GeoEllipse2 ellipse, GeoPolylineArc2 chain, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return ToEdges(ellipse, chain.GetEdges(), tolerance);
         }
@@ -323,7 +342,8 @@ namespace GeometryHelper.Core
         /// Gets the distance from an ellipse to a curved loop, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static double DistanceTo(GeoEllipse2 ellipse, GeoPolygonArc2 loop) => DistanceTo(ellipse, loop, Tolerance.Global);
+        public static double DistanceTo(GeoEllipse2 ellipse, GeoPolygonArc2 loop) =>
+            DistanceTo(ellipse, loop, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from an ellipse to a curved loop, within a tolerance.
@@ -338,16 +358,20 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static double DistanceTo(GeoEllipse2 ellipse, GeoPolygonArc2 loop, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
-            return Containment2.Contains(loop, ellipse.Center, Exactly) ? 0.0 : ToEdges(ellipse, loop.GetEdges(), tolerance);
+            return Containment2.Contains(loop, ellipse.Center, Exactly)
+                ? 0.0
+                : ToEdges(ellipse, loop.GetEdges(), tolerance);
         }
 
         /// <summary>
         /// Gets the distance from an ellipse to the material of a face, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static double DistanceTo(GeoEllipse2 ellipse, GeoFace2 face) => DistanceTo(ellipse, face, Tolerance.Global);
+        public static double DistanceTo(GeoEllipse2 ellipse, GeoFace2 face) =>
+            DistanceTo(ellipse, face, Tolerance.Global);
 
         /// <summary>
         /// Gets the distance from an ellipse to the material of a face, within a tolerance.
@@ -499,7 +523,8 @@ namespace GeometryHelper.Core
             }
 
             double apart = ellipse.Center.DistanceTo(other.Center);
-            bool alongFirst = (ellipse.MajorRadius + apart) / other.MinorRadius <= (other.MajorRadius + apart) / ellipse.MinorRadius;
+            bool alongFirst =
+                (ellipse.MajorRadius + apart) / other.MinorRadius <= (other.MajorRadius + apart) / ellipse.MinorRadius;
             GeoEllipse2 rim = alongFirst ? ellipse : other;
             GeoEllipse2 read = alongFirst ? other : ellipse;
 
@@ -620,9 +645,21 @@ namespace GeometryHelper.Core
 
             if (length > 0.0)
             {
-                Across(ellipse, line, length, out double along0, out double across0, out double alongStep, out double acrossStep, out double sideAlong, out double sideAcross, out _);
+                Across(
+                    ellipse,
+                    line,
+                    length,
+                    out double along0,
+                    out double across0,
+                    out double alongStep,
+                    out double acrossStep,
+                    out double sideAlong,
+                    out double sideAcross,
+                    out _
+                );
 
-                double foot = ((sideAlong - along0) * alongStep + (sideAcross - across0) * acrossStep) / (length * length);
+                double foot =
+                    ((sideAlong - along0) * alongStep + (sideAcross - across0) * acrossStep) / (length * length);
 
                 if (foot > 0.0 && foot < 1.0)
                 {
@@ -650,7 +687,13 @@ namespace GeometryHelper.Core
         /// pair is on a normal of the rim through the centre: at the rim point nearest the centre, or at another foot of a
         /// normal from it, the furthest among them when the ellipse lies inside the circle.
         /// </remarks>
-        private static double NearestToCircle(GeoEllipse2 ellipse, GeoPoint2 center, double radius, out GeoPoint2 onRim, out GeoPoint2 onCircle)
+        private static double NearestToCircle(
+            GeoEllipse2 ellipse,
+            GeoPoint2 center,
+            double radius,
+            out GeoPoint2 onRim,
+            out GeoPoint2 onCircle
+        )
         {
             onRim = GetClosestPointOnBoundary(ellipse, center);
             onCircle = Outward(center, radius, onRim);
@@ -727,7 +770,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Keeps a point of the other shape, with the rim point nearest it, when the pair is shorter than the one in hand.
         /// </summary>
-        private static void Weigh(GeoEllipse2 ellipse, GeoPoint2 point, ref double best, ref GeoPoint2 onRim, ref GeoPoint2 onOther)
+        private static void Weigh(
+            GeoEllipse2 ellipse,
+            GeoPoint2 point,
+            ref double best,
+            ref GeoPoint2 onRim,
+            ref GeoPoint2 onOther
+        )
         {
             GeoPoint2 rim = GetClosestPointOnBoundary(ellipse, point);
             double reach = rim.DistanceTo(point);
@@ -804,7 +853,13 @@ namespace GeometryHelper.Core
                 {
                     double from = side == 0 ? low : starts[k];
                     double to = side == 0 ? starts[k] : high;
-                    double found = Least(t => GapAlong(ellipse, other, t), from, 0.5 * (from + to), to, out double value);
+                    double found = Least(
+                        t => GapAlong(ellipse, other, t),
+                        from,
+                        0.5 * (from + to),
+                        to,
+                        out double value
+                    );
 
                     if (value < best)
                     {

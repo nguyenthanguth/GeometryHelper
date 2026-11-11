@@ -54,17 +54,31 @@ namespace GeometryHelper
         /// Thrown when the gap is not a finite number above nought, the largest hole is negative or NaN, the distance out of
         /// flat is negative, NaN or infinite, or the strategy is not one of <see cref="FillStrategy"/>.
         /// </exception>
-        public SolidClosingOptions(Tolerance tolerance, double maxGap, double maxHoleArea = 0.0, double maxOffFlat = 0.0, FillStrategy fill = FillStrategy.WhenUnambiguous)
+        public SolidClosingOptions(
+            Tolerance tolerance,
+            double maxGap,
+            double maxHoleArea = 0.0,
+            double maxOffFlat = 0.0,
+            FillStrategy fill = FillStrategy.WhenUnambiguous
+        )
         {
             Guard.Positive(maxGap, nameof(maxGap), "A gap has to be a finite number above nought.");
 
             // Infinity is the one value no other check lets through, and here it means no limit.
             if (!(maxHoleArea >= 0.0))
             {
-                throw new ArgumentOutOfRangeException(nameof(maxHoleArea), maxHoleArea, "The largest hole has to be a number, and cannot be negative.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(maxHoleArea),
+                    maxHoleArea,
+                    "The largest hole has to be a number, and cannot be negative."
+                );
             }
 
-            Guard.NonNegative(maxOffFlat, nameof(maxOffFlat), "How far out of flat a hole may stand has to be a number, and cannot be negative.");
+            Guard.NonNegative(
+                maxOffFlat,
+                nameof(maxOffFlat),
+                "How far out of flat a hole may stand has to be a number, and cannot be negative."
+            );
 
             if (fill < FillStrategy.None || fill > FillStrategy.MinArea)
             {
@@ -193,9 +207,12 @@ namespace GeometryHelper
                 "(Tolerance: {0}, MaxGap: {1}, MaxHoleArea: {2}, MaxOffFlat: {3}, Fill: {4})",
                 Tolerance,
                 MaxGap,
-                double.IsPositiveInfinity(MaxHoleArea) ? "no limit" : MaxHoleArea.ToString(CultureInfo.InvariantCulture),
+                double.IsPositiveInfinity(MaxHoleArea)
+                    ? "no limit"
+                    : MaxHoleArea.ToString(CultureInfo.InvariantCulture),
                 MaxOffFlat,
-                Fill);
+                Fill
+            );
         }
     }
 }

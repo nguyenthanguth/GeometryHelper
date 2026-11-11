@@ -58,7 +58,11 @@ namespace GeometryHelper.UnitTest.Dxf
         private static List<DxfItem> Nodes(DxfBlockTableRecord block, string type)
         {
             DxfDBObject graph = block.ExtensionDictionary.GetAt("ACAD_ENHANCEDBLOCK");
-            return graph.Item.Groups.Where(g => g.TypeCode == 360).Select(g => graph.Item.File.ObjectItem(g.Value)).Where(n => n.Type == type).ToList();
+            return graph
+                .Item.Groups.Where(g => g.TypeCode == 360)
+                .Select(g => graph.Item.File.ObjectItem(g.Value))
+                .Where(n => n.Type == type)
+                .ToList();
         }
 
         private static string IdOf(DxfItem node) => node.Groups.First(g => g.TypeCode == 90).Value.Trim();
@@ -66,42 +70,63 @@ namespace GeometryHelper.UnitTest.Dxf
         /// <summary>The handle of the grip of a parameter of two points standing at the point given.</summary>
         private static string GripOf(DxfBlockTableRecord block, GeoPoint3 at)
         {
-            DxfItem grip = Nodes(block, "BLOCKLINEARGRIP").Concat(Nodes(block, "BLOCKXYGRIP")).First(n =>
-            {
-                double x = double.Parse(n.Groups.First(g => g.TypeCode == 1010).Value, CultureInfo.InvariantCulture);
-                double y = double.Parse(n.Groups.First(g => g.TypeCode == 1020).Value, CultureInfo.InvariantCulture);
-                return new GeoPoint3(x, y, 0).IsEqualTo(at, Exact);
-            });
+            DxfItem grip = Nodes(block, "BLOCKLINEARGRIP")
+                .Concat(Nodes(block, "BLOCKXYGRIP"))
+                .First(n =>
+                {
+                    double x = double.Parse(
+                        n.Groups.First(g => g.TypeCode == 1010).Value,
+                        CultureInfo.InvariantCulture
+                    );
+                    double y = double.Parse(
+                        n.Groups.First(g => g.TypeCode == 1020).Value,
+                        CultureInfo.InvariantCulture
+                    );
+                    return new GeoPoint3(x, y, 0).IsEqualTo(at, Exact);
+                });
             return grip.Handle;
         }
 
         /// <summary>Rewrites the groups of a node, as AutoCAD's Block Editor writes what the library's API does not.</summary>
-        private static void Rewrite(DxfItem node, Func<List<KeyValuePair<int, string>>, List<KeyValuePair<int, string>>> change)
+        private static void Rewrite(
+            DxfItem node,
+            Func<List<KeyValuePair<int, string>>, List<KeyValuePair<int, string>>> change
+        )
         {
             DxfFile file = node.File;
-            List<KeyValuePair<int, string>> groups = file.TailOf(node, 0).Select(g => new KeyValuePair<int, string>(g.TypeCode, g.Value)).ToList();
+            List<KeyValuePair<int, string>> groups = file.TailOf(node, 0)
+                .Select(g => new KeyValuePair<int, string>(g.TypeCode, g.Value))
+                .ToList();
             file.ReplaceTail(node, 0, change(groups));
         }
 
         /// <summary>Makes a stretch or a move follow its parameter's base point, BaseXDelta and BaseYDelta, as AutoCAD writes one tied to the base grip.</summary>
-        private static void ByBase(DxfItem action) => Rewrite(action, groups => groups.Select(g =>
-            g.Key == 301 && g.Value == "EndXDelta" ? new KeyValuePair<int, string>(301, "BaseXDelta")
-            : g.Key == 302 && g.Value == "EndYDelta" ? new KeyValuePair<int, string>(302, "BaseYDelta") : g).ToList());
+        private static void ByBase(DxfItem action) => Rewrite(action, groups => groups
+                    .Select(g =>
+                        g.Key == 301 && g.Value == "EndXDelta" ? new KeyValuePair<int, string>(301, "BaseXDelta")
+                        : g.Key == 302 && g.Value == "EndYDelta" ? new KeyValuePair<int, string>(302, "BaseYDelta")
+                        : g
+                    )
+                    .ToList());
 
         /// <summary>
         /// Makes a move hold what is given instead of its entities, as AutoCAD writes a move whose selection holds other
         /// parameters: the count of the parameters (70) and their node ids (91), then the count (71) and the handles (330).
         /// </summary>
-        private static void Holding(DxfItem move, IEnumerable<string> parameters, IEnumerable<string> handles) => Rewrite(move, groups =>
-        {
-            int at = groups.FindIndex(g => g.Key == 100 && g.Value == "AcDbBlockAction");
-            int end = groups.FindIndex(at, g => g.Key == 1010);
-            var held = new List<KeyValuePair<int, string>> { new KeyValuePair<int, string>(70, parameters.Count().ToString(CultureInfo.InvariantCulture)) };
-            held.AddRange(parameters.Select(p => new KeyValuePair<int, string>(91, p)));
-            held.Add(new KeyValuePair<int, string>(71, handles.Count().ToString(CultureInfo.InvariantCulture)));
-            held.AddRange(handles.Select(h => new KeyValuePair<int, string>(330, h)));
-            return groups.Take(at + 1).Concat(held).Concat(groups.Skip(end)).ToList();
-        });
+        private static void Holding(DxfItem move, IEnumerable<string> parameters, IEnumerable<string> handles) =>
+            Rewrite(move, groups =>
+            {
+                int at = groups.FindIndex(g => g.Key == 100 && g.Value == "AcDbBlockAction");
+                int end = groups.FindIndex(at, g => g.Key == 1010);
+                var held = new List<KeyValuePair<int, string>>
+                {
+                    new KeyValuePair<int, string>(70, parameters.Count().ToString(CultureInfo.InvariantCulture)),
+                };
+                held.AddRange(parameters.Select(p => new KeyValuePair<int, string>(91, p)));
+                held.Add(new KeyValuePair<int, string>(71, handles.Count().ToString(CultureInfo.InvariantCulture)));
+                held.AddRange(handles.Select(h => new KeyValuePair<int, string>(330, h)));
+                return groups.Take(at + 1).Concat(held).Concat(groups.Skip(end)).ToList();
+            });
 
         /// <summary>
         /// The frame: Depth from (40, 60) down to (40, 0) stretching the bottom corners by its end point and the top corners by
@@ -115,16 +140,37 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Drawing("GH_FRAME", out block);
             outline = Outline(block);
             middle = Add(block, new DxfCircle(new GeoPoint3(40, 30, 0), GeoVector3.ZAxis, 3));
-            DxfBlockLinearParameter depth = block.AddLinearParameter("Depth", null, new GeoPoint3(40, 60, 0), new GeoPoint3(40, 0, 0), -20, null);
+            DxfBlockLinearParameter depth = block.AddLinearParameter(
+                "Depth",
+                null,
+                new GeoPoint3(40, 60, 0),
+                new GeoPoint3(40, 0, 0),
+                -20,
+                null
+            );
             block.AddStretchAction(depth, new GeoPoint2(-10, -10), new GeoPoint2(110, 10), new[] { outline });
             block.AddStretchAction(depth, new GeoPoint2(-10, 50), new GeoPoint2(110, 70), new[] { outline });
             block.AddMoveAction(depth, new[] { middle }, 0.5, 0);
             block.AddMoveAction(depth, new[] { middle }, 0.5, 0);
-            DxfBlockLinearParameter top = block.AddLinearParameter("Top", null, new GeoPoint3(0, 60, 0), new GeoPoint3(100, 60, 0), 20, null);
+            DxfBlockLinearParameter top = block.AddLinearParameter(
+                "Top",
+                null,
+                new GeoPoint3(0, 60, 0),
+                new GeoPoint3(100, 60, 0),
+                20,
+                null
+            );
             block.AddStretchAction(top, new GeoPoint2(-10, 50), new GeoPoint2(10, 70), new[] { outline });
             block.AddStretchAction(top, new GeoPoint2(90, 50), new GeoPoint2(110, 70), new[] { outline });
             block.AddMoveAction(depth, new[] { middle });
-            DxfBlockLinearParameter bottom = block.AddLinearParameter("Bottom", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+            DxfBlockLinearParameter bottom = block.AddLinearParameter(
+                "Bottom",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                null
+            );
             block.AddStretchAction(bottom, new GeoPoint2(-10, -10), new GeoPoint2(10, 10), new[] { outline });
             block.AddStretchAction(bottom, new GeoPoint2(90, -10), new GeoPoint2(110, 10), new[] { outline });
             block.AddMoveAction(depth, new[] { middle });
@@ -136,7 +182,17 @@ namespace GeometryHelper.UnitTest.Dxf
             ByBase(stretches[4]);
             Holding(moves[0], new string[0], new[] { GripOf(block, depth.EndPoint), middle.Handle });
             ByBase(moves[1]);
-            Holding(moves[2], new[] { IdOf(Nodes(block, "BLOCKLINEARPARAMETER")[1]) }, new[] { GripOf(block, top.BasePoint), GripOf(block, top.EndPoint), GripOf(block, depth.BasePoint), top.Handle });
+            Holding(
+                moves[2],
+                new[] { IdOf(Nodes(block, "BLOCKLINEARPARAMETER")[1]) },
+                new[]
+                {
+                    GripOf(block, top.BasePoint),
+                    GripOf(block, top.EndPoint),
+                    GripOf(block, depth.BasePoint),
+                    top.Handle,
+                }
+            );
             ByBase(moves[2]);
             Holding(moves[3], new[] { IdOf(Nodes(block, "BLOCKLINEARPARAMETER")[2]) }, new[] { bottom.Handle });
             return db;
@@ -150,24 +206,55 @@ namespace GeometryHelper.UnitTest.Dxf
         private static DxfDatabase Note(out DxfBlockTableRecord block)
         {
             DxfDatabase db = Drawing("GH_NOTE", out block);
-            DxfDBText text = Add(block, new DxfDBText { Position = new GeoPoint3(20, 25, 0), Height = 2.5, TextString = "M" });
+            DxfDBText text = Add(
+                block,
+                new DxfDBText
+                {
+                    Position = new GeoPoint3(20, 25, 0),
+                    Height = 2.5,
+                    TextString = "M",
+                }
+            );
             DxfLine line = Add(block, new DxfLine(new GeoPoint3(15, 30, 0), new GeoPoint3(25, 30, 0)));
-            DxfAttributeDefinition note = Add(block, new DxfAttributeDefinition(new GeoPoint3(25, 35, 0), "-", "NOTE", "Note", null) { Height = 2.5, LockPositionInBlock = true });
-            DxfAttributeDefinition size = Add(block, new DxfAttributeDefinition(new GeoPoint3(20, 40, 0), "100", "SIZE", "Size", null) { Height = 2.5, LockPositionInBlock = true });
+            DxfAttributeDefinition note = Add(
+                block,
+                new DxfAttributeDefinition(new GeoPoint3(25, 35, 0), "-", "NOTE", "Note", null)
+                {
+                    Height = 2.5,
+                    LockPositionInBlock = true,
+                }
+            );
+            DxfAttributeDefinition size = Add(
+                block,
+                new DxfAttributeDefinition(new GeoPoint3(20, 40, 0), "100", "SIZE", "Size", null)
+                {
+                    Height = 2.5,
+                    LockPositionInBlock = true,
+                }
+            );
             size.HorizontalMode = DxfTextHorizontalMode.TextCenter;
             size.AlignmentPoint = new GeoPoint3(20, 40, 0);
-            Add(block, new DxfAttributeDefinition(new GeoPoint3(0, -10, 0), "K", "KEEP", "Keep", null) { Height = 2.5 });
+            Add(
+                block,
+                new DxfAttributeDefinition(new GeoPoint3(0, -10, 0), "K", "KEEP", "Keep", null) { Height = 2.5 }
+            );
             DxfBlockPointParameter mark = block.AddPointParameter("Mark", null, new GeoPoint3(20, 30, 0));
             block.AddMoveAction(mark, new DxfEntity[] { text, line });
             DxfItem move = Nodes(block, "BLOCKMOVEACTION").Single();
-            Holding(move, new string[0], new[] { GripOf(block, new GeoPoint3(20, 30, 0)), note.Handle, text.Handle, size.Handle, line.Handle });
+            Holding(
+                move,
+                new string[0],
+                new[] { GripOf(block, new GeoPoint3(20, 30, 0)), note.Handle, text.Handle, size.Handle, line.Handle }
+            );
             return db;
         }
 
         /// <summary>Gives an INSERT an ATTRIB of each attribute definition of its block, filled from it where it stands.</summary>
         private static void Attributes(DxfBlockReference insert)
         {
-            foreach (DxfAttributeDefinition definition in insert.BlockTableRecord.OfType<DxfAttributeDefinition>().ToList())
+            foreach (
+                DxfAttributeDefinition definition in insert.BlockTableRecord.OfType<DxfAttributeDefinition>().ToList()
+            )
             {
                 var attribute = new DxfAttributeReference();
                 attribute.SetAttributeFromBlock(definition, insert.BlockTransform);
@@ -181,9 +268,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static DxfBlockReference TheInsert(DxfDatabase db) => db.ModelSpace.OfType<DxfBlockReference>().First();
 
-        private static DxfDynamicBlockReferenceProperty Property(DxfBlockReference insert, string name) => insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name);
+        private static DxfDynamicBlockReferenceProperty Property(DxfBlockReference insert, string name) =>
+            insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name);
 
-        private static double ValueOf(DxfBlockReference insert, string name) => Assert.IsType<double>(Property(insert, name).Value);
+        private static double ValueOf(DxfBlockReference insert, string name) =>
+            Assert.IsType<double>(Property(insert, name).Value);
 
         private static bool At(GeoPoint3 point, double x, double y) => point.IsEqualTo(new GeoPoint3(x, y, 0), Exact);
 
@@ -201,7 +290,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             for (int i = 0; i < corners.Length; i++)
             {
-                Assert.True(At(corners[i], xy[2 * i], xy[2 * i + 1]), "corner " + i + " is " + corners[i] + ", not (" + xy[2 * i] + ", " + xy[2 * i + 1] + ")");
+                Assert.True(
+                    At(corners[i], xy[2 * i], xy[2 * i + 1]),
+                    "corner " + i + " is " + corners[i] + ", not (" + xy[2 * i] + ", " + xy[2 * i + 1] + ")"
+                );
             }
         }
 
@@ -209,13 +301,21 @@ namespace GeometryHelper.UnitTest.Dxf
         private static GeoPoint3[] Kept(DxfBlockReference insert, DxfBlockTableRecord block, int linear)
         {
             var representation = (DxfDBDictionary)insert.ExtensionDictionary.GetAt("AcDbBlockRepresentation");
-            var data = (DxfDBDictionary)((DxfDBDictionary)representation.GetAt("AppDataCache")).GetAt("ACAD_ENHANCEDBLOCKDATA");
-            DxfItem record = data.GetAt(IdOf(Nodes(insert.DynamicBlockTableRecord, "BLOCKLINEARPARAMETER")[linear])).Item;
-            List<double> numbers = record.File.TailOf(record, 0).Where(g => g.TypeCode == 10 || g.TypeCode == 20).Select(g => double.Parse(g.Value, CultureInfo.InvariantCulture)).ToList();
+            var data = (DxfDBDictionary)
+                ((DxfDBDictionary)representation.GetAt("AppDataCache")).GetAt("ACAD_ENHANCEDBLOCKDATA");
+            DxfItem record = data.GetAt(
+                IdOf(Nodes(insert.DynamicBlockTableRecord, "BLOCKLINEARPARAMETER")[linear])
+            ).Item;
+            List<double> numbers = record
+                .File.TailOf(record, 0)
+                .Where(g => g.TypeCode == 10 || g.TypeCode == 20)
+                .Select(g => double.Parse(g.Value, CultureInfo.InvariantCulture))
+                .ToList();
             return new[] { new GeoPoint3(numbers[0], numbers[1], 0), new GeoPoint3(numbers[2], numbers[3], 0) };
         }
 
-        private static DxfAttributeReference Attribute(DxfBlockReference insert, string tag) => insert.AttributeCollection.Single(a => a.Tag == tag);
+        private static DxfAttributeReference Attribute(DxfBlockReference insert, string tag) =>
+            insert.AttributeCollection.Single(a => a.Tag == tag);
 
         // ---- the base grip -------------------------------------------------------------------------------------------------
 
@@ -228,7 +328,14 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Drawing("GH_DEPTH", out DxfBlockTableRecord block);
             DxfPolyline outline = Outline(block);
             DxfCircle middle = Add(block, new DxfCircle(new GeoPoint3(40, 30, 0), GeoVector3.ZAxis, 3));
-            DxfBlockLinearParameter depth = block.AddLinearParameter("Depth", null, new GeoPoint3(40, 60, 0), new GeoPoint3(40, 0, 0), -20, null);
+            DxfBlockLinearParameter depth = block.AddLinearParameter(
+                "Depth",
+                null,
+                new GeoPoint3(40, 60, 0),
+                new GeoPoint3(40, 0, 0),
+                -20,
+                null
+            );
             block.AddStretchAction(depth, new GeoPoint2(-10, -10), new GeoPoint2(110, 10), new[] { outline });
             block.AddStretchAction(depth, new GeoPoint2(-10, 50), new GeoPoint2(110, 70), new[] { outline });
             block.AddMoveAction(depth, new[] { middle }, 0.5, 0);
@@ -259,7 +366,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Property(TheInsert(db), "Depth").Value = 100.0;
 
             DxfBlockReference back = TheInsert(Reopened(db));
-            Assert.Equal(new[] { 100.0, 100, 100 }, new[] { ValueOf(back, "Depth"), ValueOf(back, "Top"), ValueOf(back, "Bottom") });
+            Assert.Equal(
+                new[] { 100.0, 100, 100 },
+                new[] { ValueOf(back, "Depth"), ValueOf(back, "Top"), ValueOf(back, "Bottom") }
+            );
             Shows(back, 0, 60, 100, 60, 100, -40, 0, -40);
             Assert.True(At(Assert.Single(back.BlockTableRecord.OfType<DxfCircle>()).Center, 40, 10));
             GeoPoint3[] bottom = Kept(back, back.DynamicBlockTableRecord, 2);
@@ -287,7 +397,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Property(TheInsert(db), "Top").Value = 130.0;
 
             DxfBlockReference back = TheInsert(Reopened(db));
-            Assert.Equal(new[] { 80.0, 130, 150 }, new[] { ValueOf(back, "Depth"), ValueOf(back, "Top"), ValueOf(back, "Bottom") });
+            Assert.Equal(
+                new[] { 80.0, 130, 150 },
+                new[] { ValueOf(back, "Depth"), ValueOf(back, "Top"), ValueOf(back, "Bottom") }
+            );
             Shows(back, 0, 60, 130, 60, 150, -20, 0, -20);
             Assert.True(At(Assert.Single(back.BlockTableRecord.OfType<DxfCircle>()).Center, 40, 20));
             GeoPoint3[] bottom = Kept(back, back.DynamicBlockTableRecord, 2);
@@ -299,7 +412,10 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // An INSERT of the block itself, no cache saved, at (500, 200) and twice the size: Top 400 is 200 in the block.
             DxfDatabase db = Frame(out DxfBlockTableRecord block, out _, out _);
-            var insert = new DxfBlockReference(new GeoPoint3(500, 200, 0), block) { ScaleFactors = new GeoVector3(2, 2, 2) };
+            var insert = new DxfBlockReference(new GeoPoint3(500, 200, 0), block)
+            {
+                ScaleFactors = new GeoVector3(2, 2, 2),
+            };
             db.ModelSpace.AppendEntity(insert);
             db = Reopened(db);
             DxfBlockReference placed = db.ModelSpace.OfType<DxfBlockReference>().Last();
@@ -309,7 +425,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Property(placed, "Depth").Value = 200.0;
 
             DxfBlockReference back = Reopened(db).ModelSpace.OfType<DxfBlockReference>().Last();
-            Assert.Equal(new[] { 200.0, 400, 300 }, new[] { ValueOf(back, "Depth"), ValueOf(back, "Top"), ValueOf(back, "Bottom") });
+            Assert.Equal(
+                new[] { 200.0, 400, 300 },
+                new[] { ValueOf(back, "Depth"), ValueOf(back, "Top"), ValueOf(back, "Bottom") }
+            );
             Shows(back, 0, 60, 200, 60, 150, -40, 0, -40);
         }
 
@@ -323,7 +442,11 @@ namespace GeometryHelper.UnitTest.Dxf
             // (35, 35) and (30, 40), and the INSERT's ATTRIBs NOTE and SIZE move by (0, 20), SIZE's alignment point with it;
             // KEEP, which no action holds, stays.
             DxfDatabase db = Note(out DxfBlockTableRecord block);
-            var insert = new DxfBlockReference(new GeoPoint3(1000, 500, 0), block) { ScaleFactors = new GeoVector3(2, 2, 2), Rotation = Math.PI / 2 };
+            var insert = new DxfBlockReference(new GeoPoint3(1000, 500, 0), block)
+            {
+                ScaleFactors = new GeoVector3(2, 2, 2),
+                Rotation = Math.PI / 2,
+            };
             db.ModelSpace.AppendEntity(insert);
             Attributes(insert);
             db = Reopened(db);
@@ -337,8 +460,16 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfBlockReference back = Reopened(db).ModelSpace.OfType<DxfBlockReference>().Last();
             Assert.Equal(60.0, ValueOf(back, "Mark X"), Close);
-            Assert.True(At(back.BlockTableRecord.OfType<DxfAttributeDefinition>().Single(d => d.Tag == "NOTE").Position, 35, 35));
-            Assert.True(At(back.BlockTableRecord.OfType<DxfAttributeDefinition>().Single(d => d.Tag == "SIZE").AlignmentPoint, 30, 40));
+            Assert.True(
+                At(back.BlockTableRecord.OfType<DxfAttributeDefinition>().Single(d => d.Tag == "NOTE").Position, 35, 35)
+            );
+            Assert.True(
+                At(
+                    back.BlockTableRecord.OfType<DxfAttributeDefinition>().Single(d => d.Tag == "SIZE").AlignmentPoint,
+                    30,
+                    40
+                )
+            );
             Assert.True(At(Attribute(back, "NOTE").Position, note.X, note.Y + 20));
             Assert.True(At(Attribute(back, "SIZE").AlignmentPoint, size.X, size.Y + 20));
             Assert.True(At(Attribute(back, "KEEP").Position, keep.X, keep.Y));
@@ -377,7 +508,7 @@ namespace GeometryHelper.UnitTest.Dxf
             // Every example of the guide's dynamic blocks, as it stands there, one after another in the guide's order, their
             // db.Save left out: the first a whole program, each after it a block of its own whose names are its own, so that an
             // AI pasting them together gets no clash of a name or of a block's name.
-            var db = new DxfDatabase("AC1024");                              // a new drawing of R2010, in millimetres
+            var db = new DxfDatabase("AC1024"); // a new drawing of R2010, in millimetres
             var panel = new DxfBlockTableRecord { Name = "PANEL", Origin = new GeoPoint3(0, 0, 0) };
             db.BlockTable.Add(panel);
             var right = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
@@ -389,8 +520,14 @@ namespace GeometryHelper.UnitTest.Dxf
                 panel.AppendEntity(line);
             }
 
-            DxfBlockLinearParameter width = panel.AddLinearParameter("Width", "Overall width", new GeoPoint3(0, 0, 0),
-                new GeoPoint3(100, 0, 0), -20, DxfBlockParameterValueSet.Increments(50, 300, 10));
+            DxfBlockLinearParameter width = panel.AddLinearParameter(
+                "Width",
+                "Overall width",
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                DxfBlockParameterValueSet.Increments(50, 300, 10)
+            );
             panel.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { right, bottom, top });
             var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), panel);
             db.ModelSpace.AppendEntity(insert);
@@ -407,12 +544,17 @@ namespace GeometryHelper.UnitTest.Dxf
                     sign.AppendEntity(signLine);
                 }
 
-                sign.AddVisibilityParameter("Mark", "What the sign shows", new GeoPoint3(20, -10, 0), new[]
-                {
-                    new DxfBlockVisibilityState("Cross", new DxfEntity[] { cross }),
-                    new DxfBlockVisibilityState("Tick", new DxfEntity[] { tick }),
-                    new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
-                });
+                sign.AddVisibilityParameter(
+                    "Mark",
+                    "What the sign shows",
+                    new GeoPoint3(20, -10, 0),
+                    new[]
+                    {
+                        new DxfBlockVisibilityState("Cross", new DxfEntity[] { cross }),
+                        new DxfBlockVisibilityState("Tick", new DxfEntity[] { tick }),
+                        new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
+                    }
+                );
                 var mark = new DxfBlockReference(new GeoPoint3(200, 0, 0), sign);
                 db.ModelSpace.AppendEntity(mark);
                 mark.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Mark").Value = "Tick";
@@ -438,35 +580,64 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfBlockTableRecord slide = Block("SLIDE");
                 var tagCircle = new DxfCircle(new GeoPoint3(90, 25, 0), GeoVector3.ZAxis, 5);
                 slide.AppendEntity(tagCircle);
-                DxfBlockLinearParameter length = slide.AddLinearParameter("Length", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+                DxfBlockLinearParameter length = slide.AddLinearParameter(
+                    "Length",
+                    null,
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    -20,
+                    null
+                );
                 slide.AddMoveAction(length, new[] { tagCircle });
 
                 // Scale: a disc of the radius 25 at (50, 25) scaled about the origin by Size over 100; Size 200 doubles it, about (100, 50).
                 DxfBlockTableRecord disc = Block("DISC");
                 var round = new DxfCircle(new GeoPoint3(50, 25, 0), GeoVector3.ZAxis, 25);
                 disc.AppendEntity(round);
-                DxfBlockLinearParameter size = disc.AddLinearParameter("Size", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+                DxfBlockLinearParameter size = disc.AddLinearParameter(
+                    "Size",
+                    null,
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    -20,
+                    null
+                );
                 disc.AddScaleAction(size, new[] { round });
 
                 // Point and move: Tag X and Tag Y move the tag anywhere; Tag X 120 puts its centre at (120, 20).
                 DxfBlockTableRecord tagged = Block("TAGGED");
                 var tag = new DxfCircle(new GeoPoint3(80, 20, 0), GeoVector3.ZAxis, 5);
                 tagged.AppendEntity(tag);
-                DxfBlockPointParameter where = tagged.AddPointParameter("Tag", "Where the tag stands", new GeoPoint3(80, 20, 0));
+                DxfBlockPointParameter where = tagged.AddPointParameter(
+                    "Tag",
+                    "Where the tag stands",
+                    new GeoPoint3(80, 20, 0)
+                );
                 tagged.AddMoveAction(where, new[] { tag });
 
                 // Rotation and rotate: Angle, in radians, turns the arrow about its tail; Math.PI / 2 makes it point along y, to (50, 55).
                 DxfBlockTableRecord arrowBlock = Block("ARROW");
                 var arrow = new DxfLine(new GeoPoint3(50, 25, 0), new GeoPoint3(80, 25, 0));
                 arrowBlock.AppendEntity(arrow);
-                DxfBlockRotationParameter angle = arrowBlock.AddRotationParameter("Angle", "Turn of the arrow", new GeoPoint3(50, 25, 0), 30, 0);
+                DxfBlockRotationParameter angle = arrowBlock.AddRotationParameter(
+                    "Angle",
+                    "Turn of the arrow",
+                    new GeoPoint3(50, 25, 0),
+                    30,
+                    0
+                );
                 arrowBlock.AddRotateAction(angle, new[] { arrow });
 
                 // Flip and flip: Hand 1 mirrors the leaf about the y axis, from (0, 0)-(90, 0) to (0, 0)-(-90, 0).
                 DxfBlockTableRecord door = Block("DOOR");
                 var leaf = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(90, 0, 0));
                 door.AppendEntity(leaf);
-                DxfBlockFlipParameter hand = door.AddFlipParameter("Hand", "Which way the door opens", new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0));
+                DxfBlockFlipParameter hand = door.AddFlipParameter(
+                    "Hand",
+                    "Which way the door opens",
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(0, 50, 0)
+                );
                 door.AddFlipAction(hand, new[] { leaf });
 
                 // XY: Width and Depth move the top right corner of the plate and the hole on it both ways; 160 by 80 takes them to (160, 80).
@@ -480,15 +651,31 @@ namespace GeometryHelper.UnitTest.Dxf
                 var hole = new DxfCircle(new GeoPoint3(100, 50, 0), GeoVector3.ZAxis, 4);
                 plate.AppendEntity(outline);
                 plate.AppendEntity(hole);
-                DxfBlockXYParameter xy = plate.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 50, 0));
+                DxfBlockXYParameter xy = plate.AddXYParameter(
+                    "Width",
+                    null,
+                    "Depth",
+                    null,
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 50, 0)
+                );
                 plate.AddStretchAction(xy, new GeoPoint2(90, 40), new GeoPoint2(110, 60), new[] { outline });
                 plate.AddMoveAction(xy, new[] { hole });
 
-                Place(slide, 0, 150).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Length").Value = 200.0;
-                Place(disc, 0, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Size").Value = 200.0;
-                Place(tagged, 300, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Tag X").Value = 120.0;
-                Place(arrowBlock, 600, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Angle").Value = Math.PI / 2;
-                Place(door, 900, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Hand").Value = (short)1;
+                Place(slide, 0, 150)
+                    .DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Length")
+                    .Value = 200.0;
+                Place(disc, 0, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Size").Value =
+                    200.0;
+                Place(tagged, 300, 300)
+                    .DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Tag X")
+                    .Value = 120.0;
+                Place(arrowBlock, 600, 300)
+                    .DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Angle")
+                    .Value = Math.PI / 2;
+                Place(door, 900, 300)
+                    .DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Hand")
+                    .Value = (short)1;
                 DxfBlockReference sheet = Place(plate, 1200, 300);
                 sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 160.0;
                 sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Depth").Value = 80.0;
@@ -517,8 +704,20 @@ namespace GeometryHelper.UnitTest.Dxf
                 var swing = new DxfArc(new GeoPoint3(90, 25, 0), 10, 0, Math.PI / 2);
                 bend.AppendEntity(edge);
                 bend.AppendEntity(swing);
-                DxfBlockLinearParameter bendWidth = bend.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-                bend.AddStretchAction(bendWidth, new GeoPoint2(95, -10), new GeoPoint2(130, 60), new DxfEntity[] { edge, swing });
+                DxfBlockLinearParameter bendWidth = bend.AddLinearParameter(
+                    "Width",
+                    null,
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    -20,
+                    null
+                );
+                bend.AddStretchAction(
+                    bendWidth,
+                    new GeoPoint2(95, -10),
+                    new GeoPoint2(130, 60),
+                    new DxfEntity[] { edge, swing }
+                );
 
                 // Distance multiplier: the mark moves half as far as the end point, staying in the middle; Span 200 puts it at (100, 25).
                 DxfBlockTableRecord centred = AddBlock("CENTRED");
@@ -526,7 +725,14 @@ namespace GeometryHelper.UnitTest.Dxf
                 var centredMark = new DxfCircle(new GeoPoint3(50, 25, 0), GeoVector3.ZAxis, 5);
                 centred.AppendEntity(centredEdge);
                 centred.AppendEntity(centredMark);
-                DxfBlockLinearParameter span = centred.AddLinearParameter("Span", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+                DxfBlockLinearParameter span = centred.AddLinearParameter(
+                    "Span",
+                    null,
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    -20,
+                    null
+                );
                 centred.AddStretchAction(span, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { centredEdge });
                 centred.AddMoveAction(span, new[] { centredMark }, 0.5, 0);
 
@@ -534,14 +740,28 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfBlockTableRecord fence = AddBlock("FENCE");
                 var post = new DxfCircle(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 5);
                 fence.AppendEntity(post);
-                DxfBlockLinearParameter fenceLength = fence.AddLinearParameter("Length", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+                DxfBlockLinearParameter fenceLength = fence.AddLinearParameter(
+                    "Length",
+                    null,
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    -20,
+                    null
+                );
                 fence.AddArrayAction(fenceLength, new[] { post }, 60);
 
                 // Array of an XY parameter: columns every 25 along x, rows every 20 along y; Width 100 and Depth 70 show 4 by 3 bolts.
                 DxfBlockTableRecord bolted = AddBlock("BOLTS");
                 var bolt = new DxfCircle(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 5);
                 bolted.AppendEntity(bolt);
-                DxfBlockXYParameter grid = bolted.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(40, 30, 0));
+                DxfBlockXYParameter grid = bolted.AddXYParameter(
+                    "Width",
+                    null,
+                    "Depth",
+                    null,
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(40, 30, 0)
+                );
                 bolted.AddArrayAction(grid, new[] { bolt }, 25, 20);
 
                 // Lookup: Size sets Width and Height by the row of its label; Large gives 200 by 80, and Width 150 then reads Custom.
@@ -550,13 +770,41 @@ namespace GeometryHelper.UnitTest.Dxf
                 var sizedSide = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
                 sized.AppendEntity(sizedTop);
                 sized.AppendEntity(sizedSide);
-                DxfBlockLinearParameter w = sized.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-                sized.AddStretchAction(w, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { sizedTop, sizedSide });
-                DxfBlockLinearParameter h = sized.AddLinearParameter("Height", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0), 20, null);
-                sized.AddStretchAction(h, new GeoPoint2(-10, 40), new GeoPoint2(110, 60), new[] { sizedTop, sizedSide });
-                sized.AddLookupParameter("Size", "Panel size", new GeoPoint3(50, -20, 0),
+                DxfBlockLinearParameter w = sized.AddLinearParameter(
+                    "Width",
+                    null,
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    -20,
+                    null
+                );
+                sized.AddStretchAction(
+                    w,
+                    new GeoPoint2(90, -10),
+                    new GeoPoint2(110, 60),
+                    new[] { sizedTop, sizedSide }
+                );
+                DxfBlockLinearParameter h = sized.AddLinearParameter(
+                    "Height",
+                    null,
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(0, 50, 0),
+                    20,
+                    null
+                );
+                sized.AddStretchAction(
+                    h,
+                    new GeoPoint2(-10, 40),
+                    new GeoPoint2(110, 60),
+                    new[] { sizedTop, sizedSide }
+                );
+                sized.AddLookupParameter(
+                    "Size",
+                    "Panel size",
+                    new GeoPoint3(50, -20, 0),
                     new[] { DxfBlockLookupInput.Distance(w), DxfBlockLookupInput.Distance(h) },
-                    new[] { new DxfBlockLookupRow("Small", 100, 50), new DxfBlockLookupRow("Large", 200, 80) });
+                    new[] { new DxfBlockLookupRow("Small", 100, 50), new DxfBlockLookupRow("Large", 200, 80) }
+                );
 
                 // Alignment and base point: grips AutoCAD uses when the block is placed; they give no property.
                 DxfBlockTableRecord pipe = AddBlock("PIPE");
@@ -564,20 +812,48 @@ namespace GeometryHelper.UnitTest.Dxf
                 pipe.AddAlignmentParameter(new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0));
                 pipe.AddBasePointParameter(new GeoPoint3(0, 0, 0));
 
-                PlaceAt(bend, 0, 0).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 200.0;
-                PlaceAt(centred, 0, 200).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Span").Value = 200.0;
-                PlaceAt(fence, 0, 400).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Length").Value = 250.0;
+                PlaceAt(bend, 0, 0)
+                    .DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width")
+                    .Value = 200.0;
+                PlaceAt(centred, 0, 200)
+                    .DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Span")
+                    .Value = 200.0;
+                PlaceAt(fence, 0, 400)
+                    .DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Length")
+                    .Value = 250.0;
                 DxfBlockReference boltedInsert = PlaceAt(bolted, 300, 400);
-                boltedInsert.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 100.0;
+                boltedInsert.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value =
+                    100.0;
                 boltedInsert.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Depth").Value = 70.0;
-                PlaceAt(sized, 600, 400).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Size").Value = "Large";
+                PlaceAt(sized, 600, 400)
+                    .DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Size")
+                    .Value = "Large";
                 PlaceAt(pipe, 900, 400);
             }
 
             DxfDatabase back = Reopened(db);
             List<DxfBlockReference> read = back.ModelSpace.OfType<DxfBlockReference>().ToList();
             Assert.Equal(14, read.Count);
-            Assert.Equal(new[] { "PANEL", "SIGN", "SLIDE", "DISC", "TAGGED", "ARROW", "DOOR", "PLATE", "BEND", "CENTRED", "FENCE", "BOLTS", "SIZED", "PIPE" }, read.Select(r => r.DynamicBlockTableRecord.Name));
+            Assert.Equal(
+                new[]
+                {
+                    "PANEL",
+                    "SIGN",
+                    "SLIDE",
+                    "DISC",
+                    "TAGGED",
+                    "ARROW",
+                    "DOOR",
+                    "PLATE",
+                    "BEND",
+                    "CENTRED",
+                    "FENCE",
+                    "BOLTS",
+                    "SIZED",
+                    "PIPE",
+                },
+                read.Select(r => r.DynamicBlockTableRecord.Name)
+            );
             Assert.Equal(200.0, ValueOf(read[0], "Width"), Close);
             Assert.Equal("Tick", Property(read[1], "Mark").Value);
             Assert.Equal(new[] { 160.0, 80.0 }, new[] { ValueOf(read[7], "Width"), ValueOf(read[7], "Depth") });
@@ -614,7 +890,11 @@ namespace GeometryHelper.UnitTest.Dxf
             // The move of Depth's end point made to hold Bottom's end grip alone: that would move one end of Bottom, an edit no
             // sample shows, so nothing is set.
             DxfDatabase db = Frame(out DxfBlockTableRecord block, out _, out _);
-            Holding(Nodes(block, "BLOCKMOVEACTION")[3], new string[0], new[] { GripOf(block, new GeoPoint3(100, 0, 0)) });
+            Holding(
+                Nodes(block, "BLOCKMOVEACTION")[3],
+                new string[0],
+                new[] { GripOf(block, new GeoPoint3(100, 0, 0)) }
+            );
             db = Reopened(db);
             string before = db.ToText();
 
@@ -628,7 +908,14 @@ namespace GeometryHelper.UnitTest.Dxf
             // Only linear parameters are carried: a point parameter carried by a move would read its position from where the
             // move left it, and is not worked out.
             DxfDatabase db = Note(out DxfBlockTableRecord block);
-            DxfBlockLinearParameter reach = block.AddLinearParameter("Reach", null, new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0), -20, null);
+            DxfBlockLinearParameter reach = block.AddLinearParameter(
+                "Reach",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(50, 0, 0),
+                -20,
+                null
+            );
             DxfLine rule = Add(block, new DxfLine(new GeoPoint3(0, -5, 0), new GeoPoint3(50, -5, 0)));
             block.AddMoveAction(reach, new[] { rule });
             DxfItem point = Nodes(block, "BLOCKPOINTPARAMETER").Single();
@@ -649,7 +936,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Property(TheInsert(db), "Depth").Value = 100.0;
             DxfBlockReference insert = TheInsert(db);
             var representation = (DxfDBDictionary)insert.ExtensionDictionary.GetAt("AcDbBlockRepresentation");
-            var data = (DxfDBDictionary)((DxfDBDictionary)representation.GetAt("AppDataCache")).GetAt("ACAD_ENHANCEDBLOCKDATA");
+            var data = (DxfDBDictionary)
+                ((DxfDBDictionary)representation.GetAt("AppDataCache")).GetAt("ACAD_ENHANCEDBLOCKDATA");
             DxfItem record = data.GetAt(IdOf(Nodes(insert.DynamicBlockTableRecord, "BLOCKLINEARPARAMETER")[2])).Item;
             Rewrite(record, groups =>
             {
@@ -671,7 +959,10 @@ namespace GeometryHelper.UnitTest.Dxf
             // An ATTRIB is told to its ATTDEF by its tag: two ATTDEFs NOTE, one moved by Mark and one not, leave the INSERT's
             // NOTE without one move to follow, and nothing is set.
             DxfDatabase db = Note(out DxfBlockTableRecord block);
-            Add(block, new DxfAttributeDefinition(new GeoPoint3(0, -20, 0), "-", "NOTE", "Note", null) { Height = 2.5 });
+            Add(
+                block,
+                new DxfAttributeDefinition(new GeoPoint3(0, -20, 0), "-", "NOTE", "Note", null) { Height = 2.5 }
+            );
             Attributes(TheInsert(db));
             db = Reopened(db);
             string before = db.ToText();

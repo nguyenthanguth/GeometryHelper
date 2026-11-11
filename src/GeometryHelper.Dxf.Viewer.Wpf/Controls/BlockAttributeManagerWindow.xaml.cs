@@ -21,7 +21,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             InitializeComponent();
             DataContext = model;
             model.ShowEditor = editor => new EditAttributeWindow(editor) { Owner = this }.ShowDialog() == true;
-            model.ShowSettings = settings => new AttributeManagerSettingsWindow(settings) { Owner = this }.ShowDialog() == true;
+            model.ShowSettings = settings =>
+                new AttributeManagerSettingsWindow(settings) { Owner = this }.ShowDialog() == true;
         }
 
         /// <summary>Gets the view model.</summary>

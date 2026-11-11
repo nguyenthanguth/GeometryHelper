@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -104,7 +104,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this point lies on the polyline within tolerance.
         /// </summary>
-        public bool IsPointOn(GeoPolyline2 polyline, Tolerance tolerance) => Containment2.IsPointOn(polyline, this, tolerance);
+        public bool IsPointOn(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Containment2.IsPointOn(polyline, this, tolerance);
 
         /// <summary>
         /// Checks whether this point lies on the circle circumference using default tolerance.
@@ -114,7 +115,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this point lies on the circle circumference within tolerance.
         /// </summary>
-        public bool IsPointOn(GeoCircle2 circle, Tolerance tolerance) => Containment2.IsPointOn(circle, this, tolerance);
+        public bool IsPointOn(GeoCircle2 circle, Tolerance tolerance) =>
+            Containment2.IsPointOn(circle, this, tolerance);
 
         /// <summary>
         /// Classifies the location of this point relative to a circle (Inside, OutSide, or OnSide) using default tolerance.
@@ -124,7 +126,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Classifies the location of this point relative to a circle (Inside, OutSide, or OnSide) within tolerance.
         /// </summary>
-        public PointLocation LocateIn(GeoCircle2 circle, Tolerance tolerance) => Containment2.Locate(circle, this, tolerance);
+        public PointLocation LocateIn(GeoCircle2 circle, Tolerance tolerance) =>
+            Containment2.Locate(circle, this, tolerance);
 
         /// <summary>
         /// Classifies the location of this point relative to a rectangle (Inside, OutSide, or OnSide) using default tolerance.
@@ -134,7 +137,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Classifies the location of this point relative to a rectangle (Inside, OutSide, or OnSide) within tolerance.
         /// </summary>
-        public PointLocation LocateIn(GeoRectangle2 rect, Tolerance tolerance) => Containment2.Locate(rect, this, tolerance);
+        public PointLocation LocateIn(GeoRectangle2 rect, Tolerance tolerance) =>
+            Containment2.Locate(rect, this, tolerance);
 
         /// <summary>
         /// Classifies the location of this point relative to a polygon (Inside, OutSide, or OnSide) using default tolerance.
@@ -144,7 +148,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Classifies the location of this point relative to a polygon (Inside, OutSide, or OnSide) within tolerance.
         /// </summary>
-        public PointLocation LocateIn(GeoPolygon2 poly, Tolerance tolerance) => Containment2.Locate(poly, this, tolerance);
+        public PointLocation LocateIn(GeoPolygon2 poly, Tolerance tolerance) =>
+            Containment2.Locate(poly, this, tolerance);
 
         /// <summary>
         /// Classifies the location of this point relative to a polyline (Inside, OutSide, or OnSide) using default tolerance.
@@ -154,7 +159,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Classifies the location of this point relative to a polyline (Inside, OutSide, or OnSide) within tolerance.
         /// </summary>
-        public PointLocation LocateIn(GeoPolyline2 polyline, Tolerance tolerance) => Containment2.Locate(polyline, this, tolerance);
+        public PointLocation LocateIn(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Containment2.Locate(polyline, this, tolerance);
 
         /// <summary>
         /// Classifies the location of this point relative to a line segment (OnSide or OutSide) using default tolerance.
@@ -181,9 +187,7 @@ namespace GeometryHelper.Geometry
             double dx = X - center.X;
             double dy = Y - center.Y;
 
-            return new GeoPoint2(
-                center.X + dx * cos - dy * sin,
-                center.Y + dx * sin + dy * cos);
+            return new GeoPoint2(center.X + dx * cos - dy * sin, center.Y + dx * sin + dy * cos);
         }
 
         /// <summary>
@@ -191,15 +195,14 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public GeoPoint2 ScaleBy(double factor, GeoPoint2 center)
         {
-            return new GeoPoint2(
-                center.X + (X - center.X) * factor,
-                center.Y + (Y - center.Y) * factor);
+            return new GeoPoint2(center.X + (X - center.X) * factor, center.Y + (Y - center.Y) * factor);
         }
 
         /// <summary>
         /// Compares whether this point is coincident with another point within the allowed tolerance.
         /// </summary>
-        public bool IsEqualTo(GeoPoint2 other, Tolerance tolerance) => GetDistanceSquaredTo(other) <= tolerance.EqualPoint * tolerance.EqualPoint;
+        public bool IsEqualTo(GeoPoint2 other, Tolerance tolerance) =>
+            GetDistanceSquaredTo(other) <= tolerance.EqualPoint * tolerance.EqualPoint;
 
         /// <summary>
         /// Compares whether this point is coincident with another point using default tolerance.
@@ -336,7 +339,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Classifies where this point is with respect to a triangle, within a tolerance.
         /// </summary>
-        public PointLocation LocateIn(GeoTriangle2 triangle, Tolerance tolerance) => Containment2.Locate(triangle, this, tolerance);
+        public PointLocation LocateIn(GeoTriangle2 triangle, Tolerance tolerance) =>
+            Containment2.Locate(triangle, this, tolerance);
 
         #endregion
     }

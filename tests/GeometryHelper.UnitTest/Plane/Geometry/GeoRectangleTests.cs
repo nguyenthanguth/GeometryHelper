@@ -128,9 +128,9 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var rect = new GeoRectangle2(new GeoPoint2(0.0, 0.0), 4.0, 4.0); // X: [-2, 2], Y: [-2, 2]
 
-            Assert.True(rect.CollidesWith(new GeoLine2(-5.0, 0.0, 5.0, 0.0)));   // Passes through
-            Assert.True(rect.CollidesWith(new GeoLine2(-1.0, -1.0, 1.0, 1.0)));  // Completely inside
-            Assert.False(rect.CollidesWith(new GeoLine2(-5.0, 5.0, 5.0, 5.0)));  // Passes above, no contact
+            Assert.True(rect.CollidesWith(new GeoLine2(-5.0, 0.0, 5.0, 0.0))); // Passes through
+            Assert.True(rect.CollidesWith(new GeoLine2(-1.0, -1.0, 1.0, 1.0))); // Completely inside
+            Assert.False(rect.CollidesWith(new GeoLine2(-5.0, 5.0, 5.0, 5.0))); // Passes above, no contact
         }
 
         [Fact]
@@ -144,11 +144,7 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoPoint2(5.0, 5.0),
                 new GeoPoint2(1.0, 5.0)
             );
-            var far = new GeoPolygon2(
-                new GeoPoint2(10.0, 10.0),
-                new GeoPoint2(12.0, 10.0),
-                new GeoPoint2(12.0, 12.0)
-            );
+            var far = new GeoPolygon2(new GeoPoint2(10.0, 10.0), new GeoPoint2(12.0, 10.0), new GeoPoint2(12.0, 12.0));
 
             Assert.True(rect.CollidesWith(overlapping));
             Assert.False(rect.CollidesWith(far));
@@ -288,7 +284,8 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoPoint2(5.0, -1.0),
                 new GeoPoint2(9.0, -1.0),
                 new GeoPoint2(9.0, 1.0),
-                new GeoPoint2(5.0, 1.0));
+                new GeoPoint2(5.0, 1.0)
+            );
             Assert.Equal(3.0, rect.DistanceTo(poly), 9);
         }
 
@@ -304,7 +301,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Rectangle_IntersectsWith_NarrowGapCountsAsTouchingWithinTolerance()
         {
-            var left = new GeoRectangle2(new GeoPoint2(0.0, 0.0), 4.0, 2.0);   // X extends to 2.0
+            var left = new GeoRectangle2(new GeoPoint2(0.0, 0.0), 4.0, 2.0); // X extends to 2.0
 
             // Gap narrower than tolerance is treated as touching.
             var almostTouching = new GeoRectangle2(new GeoPoint2(4.0 + 1e-6, 0.0), 4.0, 2.0);
@@ -482,7 +479,7 @@ namespace GeometryHelper.UnitTest.Plane
         public void Rectangle_Combine_PointsArray_EnclosesAllPoints()
         {
             var rect = new GeoRectangle2(new GeoPoint2(0.0, 0.0), 2.0, 2.0, 0.0);
-            
+
             // Empty / null collection returns this
             Assert.Equal(rect.Width, rect.Combine((GeoPoint2[])null).Width);
             Assert.Equal(rect.Width, rect.Combine(new GeoPoint2[0]).Width);
@@ -493,7 +490,7 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoPoint2(-5.0, 0.0),
                 new GeoPoint2(5.0, 0.0),
                 new GeoPoint2(0.0, 4.0),
-                new GeoPoint2(0.0, -4.0)
+                new GeoPoint2(0.0, -4.0),
             };
 
             var combined = rect.Combine(points);
@@ -625,5 +622,3 @@ namespace GeometryHelper.UnitTest.Plane
         }
     }
 }
-
-

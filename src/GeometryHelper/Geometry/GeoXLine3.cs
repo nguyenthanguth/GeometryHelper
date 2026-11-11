@@ -45,7 +45,10 @@ namespace GeometryHelper.Geometry
         {
             if (!direction.TryGetNormal(out GeoVector3 unit))
             {
-                throw new ArgumentException("An infinite line needs a direction of non-zero length.", nameof(direction));
+                throw new ArgumentException(
+                    "An infinite line needs a direction of non-zero length.",
+                    nameof(direction)
+                );
             }
 
             Origin = origin;
@@ -59,9 +62,7 @@ namespace GeometryHelper.Geometry
         /// <param name="through">Another point on the line; the direction runs from the first to this one.</param>
         /// <exception cref="ArgumentException">Thrown when the two points coincide.</exception>
         public GeoXLine3(GeoPoint3 origin, GeoPoint3 through)
-            : this(origin, origin.GetVectorTo(through))
-        {
-        }
+            : this(origin, origin.GetVectorTo(through)) { }
 
         /// <summary>
         /// Initializes a line from a direction that is already normalized.
@@ -260,9 +261,11 @@ namespace GeometryHelper.Geometry
             near = double.NegativeInfinity;
             far = double.PositiveInfinity;
 
-            if (!Slab(Origin.X, Direction.X, box.Min.X - margin, box.Max.X + margin, ref near, ref far)
+            if (
+                !Slab(Origin.X, Direction.X, box.Min.X - margin, box.Max.X + margin, ref near, ref far)
                 || !Slab(Origin.Y, Direction.Y, box.Min.Y - margin, box.Max.Y + margin, ref near, ref far)
-                || !Slab(Origin.Z, Direction.Z, box.Min.Z - margin, box.Max.Z + margin, ref near, ref far))
+                || !Slab(Origin.Z, Direction.Z, box.Min.Z - margin, box.Max.Z + margin, ref near, ref far)
+            )
             {
                 return false;
             }
@@ -311,7 +314,8 @@ namespace GeometryHelper.Geometry
         /// Of the line through the origin along X, the points (100, 0, 0) and (-1, 0, 0) are on it, and the point (5, 0, 0.002)
         /// is not at a tolerance of a thousandth.
         /// </remarks>
-        public bool IsPointOn(GeoPoint3 point, Tolerance tolerance) => DistanceTo(point, tolerance) <= tolerance.EqualPoint;
+        public bool IsPointOn(GeoPoint3 point, Tolerance tolerance) =>
+            DistanceTo(point, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Says where a point lies with respect to this line.
@@ -329,7 +333,8 @@ namespace GeometryHelper.Geometry
         /// <param name="point">The point.</param>
         /// <param name="tolerance">The tolerance that decides what counts as on it.</param>
         /// <returns><c>OnSide</c> when the point is on the line; otherwise, <c>OutSide</c>.</returns>
-        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) => IsPointOn(point, tolerance) ? PointLocation.OnSide : PointLocation.OutSide;
+        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) =>
+            IsPointOn(point, tolerance) ? PointLocation.OnSide : PointLocation.OutSide;
 
         /// <summary>
         /// Checks whether this line runs parallel to a plane using the default tolerance.
@@ -342,7 +347,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Only the direction is read, so a line lying in a plane is parallel to it, and so is one a metre above it.
         /// </remarks>
-        public bool IsParallelTo(GeoPlane3 plane, Tolerance tolerance) => Parallel3.IsPerpendicular(Direction, plane.Normal, tolerance);
+        public bool IsParallelTo(GeoPlane3 plane, Tolerance tolerance) =>
+            Parallel3.IsPerpendicular(Direction, plane.Normal, tolerance);
 
         /// <summary>
         /// Checks whether this line is parallel to a line segment using the default tolerance.
@@ -356,7 +362,8 @@ namespace GeometryHelper.Geometry
         /// Only the directions are compared, either way round: the line from the origin along X is parallel to the segment
         /// from (0, 10, 0) to (-100, 10, 0).
         /// </remarks>
-        public bool IsParallelTo(GeoLine3 line, Tolerance tolerance) => Parallel3.IsParallel(Direction, line.Direction, tolerance);
+        public bool IsParallelTo(GeoLine3 line, Tolerance tolerance) =>
+            Parallel3.IsParallel(Direction, line.Direction, tolerance);
 
         /// <summary>
         /// Checks whether this line is parallel to another using the default tolerance.
@@ -370,7 +377,8 @@ namespace GeometryHelper.Geometry
         /// Only the directions are compared, either way round, so a line is parallel to itself reversed and to any line it
         /// is the same line as.
         /// </remarks>
-        public bool IsParallelTo(GeoXLine3 other, Tolerance tolerance) => Parallel3.IsParallel(Direction, other.Direction, tolerance);
+        public bool IsParallelTo(GeoXLine3 other, Tolerance tolerance) =>
+            Parallel3.IsParallel(Direction, other.Direction, tolerance);
 
         /// <summary>
         /// Checks whether another line is the same infinite line as this one, using the default tolerance.

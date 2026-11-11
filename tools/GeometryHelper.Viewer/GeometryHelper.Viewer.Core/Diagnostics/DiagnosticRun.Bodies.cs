@@ -48,17 +48,46 @@ namespace GeometryHelper.Viewer
 
                     if (note != null)
                     {
-                        Add(m, DiagnosticChecks.Report, DiagnosticKind.Note, false, note, "Scene.Rebuild", default(Vec3), 0.0, 0.0);
+                        Add(
+                            m,
+                            DiagnosticChecks.Report,
+                            DiagnosticKind.Note,
+                            false,
+                            note,
+                            "Scene.Rebuild",
+                            default(Vec3),
+                            0.0,
+                            0.0
+                        );
                     }
                 }
-                catch (Exception e) when (e is ArgumentException || e is InvalidOperationException || e is NotSupportedException || e is FormatException)
+                catch (Exception e)
+                    when (e is ArgumentException
+                        || e is InvalidOperationException
+                        || e is NotSupportedException
+                        || e is FormatException
+                    )
                 {
-                    Add(m, DiagnosticChecks.Report, DiagnosticKind.Note, false, "the library refused the body (" + e.Message + "); the viewer's own checks are made alone", "GeoSolid3 constructor", default(Vec3), 0.0, 0.0);
+                    Add(
+                        m,
+                        DiagnosticChecks.Report,
+                        DiagnosticKind.Note,
+                        false,
+                        "the library refused the body (" + e.Message + "); the viewer's own checks are made alone",
+                        "GeoSolid3 constructor",
+                        default(Vec3),
+                        0.0,
+                        0.0
+                    );
                     _refused = true;
                 }
             }
 
-            GeoSolid3 solid = _rebuilt == null ? null : unit.Opening < 0 ? _rebuilt : unit.Opening < _rebuilt.Openings.Count ? _rebuilt.Openings[unit.Opening] : null;
+            GeoSolid3 solid =
+                _rebuilt == null ? null
+                : unit.Opening < 0 ? _rebuilt
+                : unit.Opening < _rebuilt.Openings.Count ? _rebuilt.Openings[unit.Opening]
+                : null;
 
             if (solid == null)
             {
@@ -70,9 +99,23 @@ namespace GeometryHelper.Viewer
                 unit.Solid = solid;
                 unit.Validation = solid.Validate(_scene.Tolerance);
             }
-            catch (Exception e) when (e is ArgumentException || e is InvalidOperationException || e is NotSupportedException)
+            catch (Exception e)
+                when (e is ArgumentException || e is InvalidOperationException || e is NotSupportedException)
             {
-                Add(m, DiagnosticChecks.Report, DiagnosticKind.Note, false, unit.Label + ": Validate() refused the body (" + e.Message + "); the viewer's own checks are made alone", "GeoSolid3.Validate", default(Vec3), 0.0, 0.0);
+                Add(
+                    m,
+                    DiagnosticChecks.Report,
+                    DiagnosticKind.Note,
+                    false,
+                    unit.Label
+                        + ": Validate() refused the body ("
+                        + e.Message
+                        + "); the viewer's own checks are made alone",
+                    "GeoSolid3.Validate",
+                    default(Vec3),
+                    0.0,
+                    0.0
+                );
                 return false;
             }
 
@@ -131,19 +174,47 @@ namespace GeometryHelper.Viewer
         {
             SolidValidation3 v = unit.Validation;
             string closed = unit.Solid.IsClosed(_scene.Tolerance) ? "yes" : "no";
-            string net = unit.Solid.TryGetVolume(out double volume, _scene.Tolerance) ? N(volume) : "not given (the body is not closed or not valid)";
-            string counts = string.Join(", ", v.Issues.GroupBy(i => i.Kind).OrderBy(g => g.Key).Select(g => g.Key + " " + g.Count().ToString(System.Globalization.CultureInfo.InvariantCulture)));
-            string inside = v.Issues.Any(i => i.Kind == SolidIssueKind.InsideOut) ? " (wound inwards)" : v.Issues.Any(i => i.Kind == SolidIssueKind.NoVolume) ? " (no volume)" : string.Empty;
+            string net = unit.Solid.TryGetVolume(out double volume, _scene.Tolerance)
+                ? N(volume)
+                : "not given (the body is not closed or not valid)";
+            string counts = string.Join(
+                ", ",
+                v.Issues.GroupBy(i => i.Kind)
+                    .OrderBy(g => g.Key)
+                    .Select(g => g.Key + " " + g.Count().ToString(System.Globalization.CultureInfo.InvariantCulture))
+            );
+            string inside =
+                v.Issues.Any(i => i.Kind == SolidIssueKind.InsideOut) ? " (wound inwards)"
+                : v.Issues.Any(i => i.Kind == SolidIssueKind.NoVolume) ? " (no volume)"
+                : string.Empty;
 
-            string text = unit.Label + ": Validate() says " + (v.IsValid ? "valid" : "not valid")
-                + "; IsClosed() " + closed
-                + "; wound alike " + (v.IsWoundAlike ? "yes" : "no")
-                + "; signed volume " + N(v.SignedVolume) + inside
-                + "; GetVolume() " + net
+            string text =
+                unit.Label
+                + ": Validate() says "
+                + (v.IsValid ? "valid" : "not valid")
+                + "; IsClosed() "
+                + closed
+                + "; wound alike "
+                + (v.IsWoundAlike ? "yes" : "no")
+                + "; signed volume "
+                + N(v.SignedVolume)
+                + inside
+                + "; GetVolume() "
+                + net
                 + (counts.Length > 0 ? "; found: " + counts : string.Empty);
 
             Bounds3 box = BoxOf(unit.Vertices);
-            Add(m, DiagnosticChecks.Report, DiagnosticKind.Report, !v.IsValid, text, "GeoSolid3.Validate(), IsClosed(), TryGetVolume()", box.IsEmpty ? default(Vec3) : box.Center, v.SignedVolume, box.IsEmpty ? 0.0 : box.Radius * 1.1);
+            Add(
+                m,
+                DiagnosticChecks.Report,
+                DiagnosticKind.Report,
+                !v.IsValid,
+                text,
+                "GeoSolid3.Validate(), IsClosed(), TryGetVolume()",
+                box.IsEmpty ? default(Vec3) : box.Center,
+                v.SignedVolume,
+                box.IsEmpty ? 0.0 : box.Radius * 1.1
+            );
         }
 
         private void LibraryIssues(ItemModel m, BodyUnit unit)
@@ -164,20 +235,49 @@ namespace GeometryHelper.Viewer
                         }
 
                         int uses = issue.Forward + issue.Backward;
-                        DiagnosticKind kind = uses == 1 ? DiagnosticKind.OpenEdge
+                        DiagnosticKind kind =
+                            uses == 1 ? DiagnosticKind.OpenEdge
                             : uses >= 3 ? DiagnosticKind.NonManifoldEdge
                             : uses == 2 ? DiagnosticKind.InconsistentWinding
-                            : issue.Kind == SolidIssueKind.OpenEdge ? DiagnosticKind.OpenEdge : issue.Kind == SolidIssueKind.SameWayEdge ? DiagnosticKind.InconsistentWinding : DiagnosticKind.NonManifoldEdge;
+                            : issue.Kind == SolidIssueKind.OpenEdge ? DiagnosticKind.OpenEdge
+                            : issue.Kind == SolidIssueKind.SameWayEdge ? DiagnosticKind.InconsistentWinding
+                            : DiagnosticKind.NonManifoldEdge;
                         Vec3 a = V(issue.Edge.Value.StartPoint);
                         Vec3 b = V(issue.Edge.Value.EndPoint);
                         string faces = string.Join(", ", issue.Faces.Select(f => Number(f)));
-                        string what = kind == DiagnosticKind.OpenEdge ? "is used by one face"
+                        string what =
+                            kind == DiagnosticKind.OpenEdge ? "is used by one face"
                             : kind == DiagnosticKind.NonManifoldEdge ? "is used by " + Count(uses, "face")
                             : "is run the same way by both faces on it";
-                        string text = unit.Label + ": the stretch of edge from " + Where(a) + " to " + Where(b) + ", " + N(issue.Size) + " long, " + what
-                            + " (faces " + faces + "; " + issue.Forward.ToString(System.Globalization.CultureInfo.InvariantCulture) + " one way, " + issue.Backward.ToString(System.Globalization.CultureInfo.InvariantCulture) + " the other)";
+                        string text =
+                            unit.Label
+                            + ": the stretch of edge from "
+                            + Where(a)
+                            + " to "
+                            + Where(b)
+                            + ", "
+                            + N(issue.Size)
+                            + " long, "
+                            + what
+                            + " (faces "
+                            + faces
+                            + "; "
+                            + issue.Forward.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                            + " one way, "
+                            + issue.Backward.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                            + " the other)";
                         // Edges four or more faces meet on, as many running it each way, leave a body valid: the library notes them, so they are a fact.
-                        DiagnosticFinding f = Add(m, DiagnosticChecks.Edges, kind, issue.Kind != SolidIssueKind.NonManifoldEdge, text, "GeoSolid3.Validate() " + issue.Kind, at, issue.Size, issue.Size);
+                        DiagnosticFinding f = Add(
+                            m,
+                            DiagnosticChecks.Edges,
+                            kind,
+                            issue.Kind != SolidIssueKind.NonManifoldEdge,
+                            text,
+                            "GeoSolid3.Validate() " + issue.Kind,
+                            at,
+                            issue.Size,
+                            issue.Size
+                        );
                         f.Drawing.Line(EdgeColor(kind), 4.0, a, b);
                         break;
                     }
@@ -186,8 +286,26 @@ namespace GeometryHelper.Viewer
                     {
                         if (On(DiagnosticChecks.Slivers) && issue.Faces.Count == 1)
                         {
-                            string text = unit.Label + ": face " + Number(issue.Faces[0]) + " is " + N(issue.Size) + " wide on average (twice its area over its perimeter), no wider than EqualPoint " + N(_tol) + ": the library calls a face a sliver when its area is at most half of EqualPoint times its perimeter";
-                            DiagnosticFinding f = Add(m, DiagnosticChecks.Slivers, DiagnosticKind.Sliver, true, text, "GeoSolid3.Validate() SliverFace", at, issue.Size, 0.0);
+                            string text =
+                                unit.Label
+                                + ": face "
+                                + Number(issue.Faces[0])
+                                + " is "
+                                + N(issue.Size)
+                                + " wide on average (twice its area over its perimeter), no wider than EqualPoint "
+                                + N(_tol)
+                                + ": the library calls a face a sliver when its area is at most half of EqualPoint times its perimeter";
+                            DiagnosticFinding f = Add(
+                                m,
+                                DiagnosticChecks.Slivers,
+                                DiagnosticKind.Sliver,
+                                true,
+                                text,
+                                "GeoSolid3.Validate() SliverFace",
+                                at,
+                                issue.Size,
+                                0.0
+                            );
                             OutlineFace(f.Drawing, unit, issue.Faces[0], DiagnosticColors.Sliver);
                         }
 
@@ -198,8 +316,25 @@ namespace GeometryHelper.Viewer
                     {
                         if (On(DiagnosticChecks.Flatness) && issue.Faces.Count == 1)
                         {
-                            string text = unit.Label + ": face " + Number(issue.Faces[0]) + " has a corner " + N(issue.Size) + " off the plane through its first corner, more than EqualPlanar " + N(_planar);
-                            DiagnosticFinding f = Add(m, DiagnosticChecks.Flatness, DiagnosticKind.NotFlat, true, text, "GeoSolid3.Validate() NotFlatFace", at, issue.Size, 0.0);
+                            string text =
+                                unit.Label
+                                + ": face "
+                                + Number(issue.Faces[0])
+                                + " has a corner "
+                                + N(issue.Size)
+                                + " off the plane through its first corner, more than EqualPlanar "
+                                + N(_planar);
+                            DiagnosticFinding f = Add(
+                                m,
+                                DiagnosticChecks.Flatness,
+                                DiagnosticKind.NotFlat,
+                                true,
+                                text,
+                                "GeoSolid3.Validate() NotFlatFace",
+                                at,
+                                issue.Size,
+                                0.0
+                            );
                             OutlineFace(f.Drawing, unit, issue.Faces[0], DiagnosticColors.NotFlat);
                         }
 
@@ -209,8 +344,10 @@ namespace GeometryHelper.Viewer
             }
         }
 
-        private static string EdgeColor(DiagnosticKind kind)
-            => kind == DiagnosticKind.OpenEdge ? DiagnosticColors.Open : kind == DiagnosticKind.NonManifoldEdge ? DiagnosticColors.NonManifold : DiagnosticColors.Winding;
+        private static string EdgeColor(DiagnosticKind kind) =>
+            kind == DiagnosticKind.OpenEdge ? DiagnosticColors.Open
+            : kind == DiagnosticKind.NonManifoldEdge ? DiagnosticColors.NonManifold
+            : DiagnosticColors.Winding;
 
         private static void OutlineFace(DiagnosticOverlay overlay, BodyUnit unit, int face, string color)
         {
@@ -297,7 +434,18 @@ namespace GeometryHelper.Viewer
 
                         if (a != b)
                         {
-                            records.Add(new EdgeRecord { Lo = Math.Min(a, b), Hi = Math.Max(a, b), Direction = a < b ? 1 : -1, Face = f, Sequence = sequence, From = from, To = to });
+                            records.Add(
+                                new EdgeRecord
+                                {
+                                    Lo = Math.Min(a, b),
+                                    Hi = Math.Max(a, b),
+                                    Direction = a < b ? 1 : -1,
+                                    Face = f,
+                                    Sequence = sequence,
+                                    From = from,
+                                    To = to,
+                                }
+                            );
                         }
 
                         sequence++;
@@ -305,21 +453,25 @@ namespace GeometryHelper.Viewer
                 }
             }
 
-            records.Sort((x, y) =>
-            {
-                int c = x.Lo.CompareTo(y.Lo);
-                c = c != 0 ? c : x.Hi.CompareTo(y.Hi);
-                c = c != 0 ? c : x.Face.CompareTo(y.Face);
-                return c != 0 ? c : x.Sequence.CompareTo(y.Sequence);
-            });
+            records.Sort(
+                (x, y) =>
+                {
+                    int c = x.Lo.CompareTo(y.Lo);
+                    c = c != 0 ? c : x.Hi.CompareTo(y.Hi);
+                    c = c != 0 ? c : x.Face.CompareTo(y.Face);
+                    return c != 0 ? c : x.Sequence.CompareTo(y.Sequence);
+                }
+            );
 
             var groups = new List<EdgeGroup>();
 
-            for (int start = 0; start < records.Count;)
+            for (int start = 0; start < records.Count; )
             {
                 int end = start + 1;
 
-                while (end < records.Count && records[end].Lo == records[start].Lo && records[end].Hi == records[start].Hi)
+                while (
+                    end < records.Count && records[end].Lo == records[start].Lo && records[end].Hi == records[start].Hi
+                )
                 {
                     end++;
                 }
@@ -379,14 +531,45 @@ namespace GeometryHelper.Viewer
 
                 // Edges four or more faces meet on, as many running it each way, leave a body valid: a fact.
                 bool balanced = group.Uses % 2 == 0 && group.Forward == group.Backward;
-                bool fault = kind == DiagnosticKind.OpenEdge ? unit.IsSolid : kind == DiagnosticKind.NonManifoldEdge ? !balanced : true;
+                bool fault =
+                    kind == DiagnosticKind.OpenEdge ? unit.IsSolid
+                    : kind == DiagnosticKind.NonManifoldEdge ? !balanced
+                    : true;
                 string list = string.Join(", ", group.Faces.Select(f => Number(f)));
-                string what = kind == DiagnosticKind.OpenEdge ? (unit.IsSolid ? "is used by one face" : "is used by one face: the outline of the mesh")
+                string what =
+                    kind == DiagnosticKind.OpenEdge
+                        ? (unit.IsSolid ? "is used by one face" : "is used by one face: the outline of the mesh")
                     : kind == DiagnosticKind.NonManifoldEdge ? "is used by " + Count(group.Uses, "face")
                     : "is run the same way by both faces on it";
-                string text = unit.Label + ": the edge from " + Where(group.A) + " to " + Where(group.B) + ", " + N(length) + " long, " + what
-                    + " (" + (group.Faces.Count == 1 ? "face " : "faces ") + list + "; " + group.Forward.ToString(System.Globalization.CultureInfo.InvariantCulture) + " one way, " + group.Backward.ToString(System.Globalization.CultureInfo.InvariantCulture) + " the other)";
-                DiagnosticFinding finding = Add(m, DiagnosticChecks.Edges, kind, fault, text, OwnEdges, (group.A + group.B) * 0.5, length, length);
+                string text =
+                    unit.Label
+                    + ": the edge from "
+                    + Where(group.A)
+                    + " to "
+                    + Where(group.B)
+                    + ", "
+                    + N(length)
+                    + " long, "
+                    + what
+                    + " ("
+                    + (group.Faces.Count == 1 ? "face " : "faces ")
+                    + list
+                    + "; "
+                    + group.Forward.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    + " one way, "
+                    + group.Backward.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    + " the other)";
+                DiagnosticFinding finding = Add(
+                    m,
+                    DiagnosticChecks.Edges,
+                    kind,
+                    fault,
+                    text,
+                    OwnEdges,
+                    (group.A + group.B) * 0.5,
+                    length,
+                    length
+                );
                 finding.Drawing.Line(EdgeColor(kind), 4.0, group.A, group.B);
             }
         }
@@ -458,7 +641,8 @@ namespace GeometryHelper.Viewer
                         }
                     }
                 },
-                _cancel);
+                _cancel
+            );
 
             var members = new List<EdgeGroup>[open.Count];
 
@@ -561,7 +745,12 @@ namespace GeometryHelper.Viewer
 
             for (int p = 0; p + 1 < places.Count; p++)
             {
-                var piece = new LineCount { From = places[p], To = places[p + 1], Faces = new List<int>() };
+                var piece = new LineCount
+                {
+                    From = places[p],
+                    To = places[p + 1],
+                    Faces = new List<int>(),
+                };
 
                 for (int i = 0; i < count; i++)
                 {
@@ -598,7 +787,12 @@ namespace GeometryHelper.Viewer
                 {
                     LineCount last = pieces[pieces.Count - 1];
 
-                    if (last.Forward == piece.Forward && last.Backward == piece.Backward && last.Faces.SequenceEqual(piece.Faces) && last.To >= piece.From - _tol)
+                    if (
+                        last.Forward == piece.Forward
+                        && last.Backward == piece.Backward
+                        && last.Faces.SequenceEqual(piece.Faces)
+                        && last.To >= piece.From - _tol
+                    )
                     {
                         last.To = piece.To;
                         pieces[pieces.Count - 1] = last;
@@ -617,7 +811,10 @@ namespace GeometryHelper.Viewer
                 }
 
                 int uses = piece.Forward + piece.Backward;
-                DiagnosticKind kind = uses == 1 ? DiagnosticKind.OpenEdge : uses % 2 == 1 ? DiagnosticKind.NonManifoldEdge : DiagnosticKind.InconsistentWinding;
+                DiagnosticKind kind =
+                    uses == 1 ? DiagnosticKind.OpenEdge
+                    : uses % 2 == 1 ? DiagnosticKind.NonManifoldEdge
+                    : DiagnosticKind.InconsistentWinding;
                 Vec3 a = origin + d * piece.From;
                 Vec3 b = origin + d * piece.To;
                 double length = piece.To - piece.From;
@@ -631,13 +828,39 @@ namespace GeometryHelper.Viewer
                     }
                 }
 
-                string what = kind == DiagnosticKind.OpenEdge ? "is used by one face"
+                string what =
+                    kind == DiagnosticKind.OpenEdge ? "is used by one face"
                     : kind == DiagnosticKind.NonManifoldEdge ? "is used by " + Count(uses, "face")
                     : "is run the same way by the faces on it";
-                string text = unit.Label + ": the stretch of edge from " + Where(a) + " to " + Where(b) + ", " + N(length) + " long, " + what
-                    + " (" + (piece.Faces.Count == 1 ? "face " : "faces ") + string.Join(", ", piece.Faces.Select(f => Number(f))) + "; "
-                    + piece.Forward.ToString(System.Globalization.CultureInfo.InvariantCulture) + " one way, " + piece.Backward.ToString(System.Globalization.CultureInfo.InvariantCulture) + " the other)";
-                DiagnosticFinding finding = Add(m, DiagnosticChecks.Edges, kind, true, text, OwnEdges + "; edges along one line counted by stretch, as the library counts", (a + b) * 0.5, length, length);
+                string text =
+                    unit.Label
+                    + ": the stretch of edge from "
+                    + Where(a)
+                    + " to "
+                    + Where(b)
+                    + ", "
+                    + N(length)
+                    + " long, "
+                    + what
+                    + " ("
+                    + (piece.Faces.Count == 1 ? "face " : "faces ")
+                    + string.Join(", ", piece.Faces.Select(f => Number(f)))
+                    + "; "
+                    + piece.Forward.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    + " one way, "
+                    + piece.Backward.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    + " the other)";
+                DiagnosticFinding finding = Add(
+                    m,
+                    DiagnosticChecks.Edges,
+                    kind,
+                    true,
+                    text,
+                    OwnEdges + "; edges along one line counted by stretch, as the library counts",
+                    (a + b) * 0.5,
+                    length,
+                    length
+                );
                 finding.Drawing.Line(EdgeColor(kind), 4.0, a, b);
             }
 
@@ -653,9 +876,30 @@ namespace GeometryHelper.Viewer
                 }
 
                 double length = end[i] - start[i];
-                string text = unit.Label + ": the edge from " + Where(line[i].A) + " to " + Where(line[i].B) + ", " + N(length) + " long, of face " + Number(line[i].Faces[0])
-                    + " is met by edges of other faces cut at " + Count(inside, "corner") + " along it, as many running each way over every stretch: a T-junction the library takes as meeting";
-                DiagnosticFinding f = Add(m, DiagnosticChecks.Edges, DiagnosticKind.TJunction, false, text, OwnEdges, (line[i].A + line[i].B) * 0.5, length, length);
+                string text =
+                    unit.Label
+                    + ": the edge from "
+                    + Where(line[i].A)
+                    + " to "
+                    + Where(line[i].B)
+                    + ", "
+                    + N(length)
+                    + " long, of face "
+                    + Number(line[i].Faces[0])
+                    + " is met by edges of other faces cut at "
+                    + Count(inside, "corner")
+                    + " along it, as many running each way over every stretch: a T-junction the library takes as meeting";
+                DiagnosticFinding f = Add(
+                    m,
+                    DiagnosticChecks.Edges,
+                    DiagnosticKind.TJunction,
+                    false,
+                    text,
+                    OwnEdges,
+                    (line[i].A + line[i].B) * 0.5,
+                    length,
+                    length
+                );
                 f.Drawing.Line(DiagnosticColors.TJunction, 3.0, line[i].A, line[i].B);
             }
         }
@@ -695,7 +939,12 @@ namespace GeometryHelper.Viewer
                 Vec3 p = points[order[k]];
                 magnitude = Math.Max(magnitude, Math.Max(Math.Abs(p.X), Math.Max(Math.Abs(p.Y), Math.Abs(p.Z))));
 
-                if (distinct.Count > 0 && distinct[distinct.Count - 1].X == p.X && distinct[distinct.Count - 1].Y == p.Y && distinct[distinct.Count - 1].Z == p.Z)
+                if (
+                    distinct.Count > 0
+                    && distinct[distinct.Count - 1].X == p.X
+                    && distinct[distinct.Count - 1].Y == p.Y
+                    && distinct[distinct.Count - 1].Z == p.Z
+                )
                 {
                     uniqueOf[order[k]] = distinct.Count - 1;
                 }
@@ -808,7 +1057,12 @@ namespace GeometryHelper.Viewer
                 return;
             }
 
-            string source = (refused ? "viewer, as the library's constructor reads it: " : unit.IsSolid ? "viewer, as Validate() reads it: " : "viewer, as the library's polygon reads it: ") + "distance from the plane through the first corner";
+            string source =
+                (
+                    refused ? "viewer, as the library's constructor reads it: "
+                    : unit.IsSolid ? "viewer, as Validate() reads it: "
+                    : "viewer, as the library's polygon reads it: "
+                ) + "distance from the plane through the first corner";
 
             for (int f = 0; f < unit.Faces.Count; f++)
             {
@@ -821,9 +1075,26 @@ namespace GeometryHelper.Viewer
 
                 if (worst > _planar)
                 {
-                    string text = (unit.Label == "face" ? string.Empty : unit.Label + ": ") + "face " + Number(f) + " has a corner " + N(worst) + " off the plane through its first corner, more than EqualPlanar " + N(_planar)
+                    string text =
+                        (unit.Label == "face" ? string.Empty : unit.Label + ": ")
+                        + "face "
+                        + Number(f)
+                        + " has a corner "
+                        + N(worst)
+                        + " off the plane through its first corner, more than EqualPlanar "
+                        + N(_planar)
                         + (refused ? "; the library refuses a face like this" : string.Empty);
-                    DiagnosticFinding finding = Add(m, DiagnosticChecks.Flatness, DiagnosticKind.NotFlat, true, text, source, at, worst, 0.0);
+                    DiagnosticFinding finding = Add(
+                        m,
+                        DiagnosticChecks.Flatness,
+                        DiagnosticKind.NotFlat,
+                        true,
+                        text,
+                        source,
+                        at,
+                        worst,
+                        0.0
+                    );
                     OutlineFace(finding.Drawing, unit, f, DiagnosticColors.NotFlat);
                 }
             }
@@ -847,7 +1118,17 @@ namespace GeometryHelper.Viewer
                 {
                     Vec3 a = unit.Vertices[first];
                     Vec3 b = unit.Vertices[second];
-                    string text = unit.Label + ": vertices " + Number(first) + " and " + Number(second) + " are " + N(distance) + " apart, within EqualPoint " + N(_tol) + ", and are not joined";
+                    string text =
+                        unit.Label
+                        + ": vertices "
+                        + Number(first)
+                        + " and "
+                        + Number(second)
+                        + " are "
+                        + N(distance)
+                        + " apart, within EqualPoint "
+                        + N(_tol)
+                        + ", and are not joined";
                     DuplicateFinding(m, text, a, b, distance, true);
                 }
 
@@ -905,7 +1186,17 @@ namespace GeometryHelper.Viewer
 
                 Vec3 a = distinct[first];
                 Vec3 b = distinct[second];
-                string text = unit.Label + ": the corners " + Where(a) + " and " + Where(b) + " of two faces are " + N(distance) + " apart, within EqualPoint " + N(_tol) + " but not the same point"
+                string text =
+                    unit.Label
+                    + ": the corners "
+                    + Where(a)
+                    + " and "
+                    + Where(b)
+                    + " of two faces are "
+                    + N(distance)
+                    + " apart, within EqualPoint "
+                    + N(_tol)
+                    + " but not the same point"
                     + (valid ? "; Validate() calls the body valid, so the library welds them" : string.Empty);
                 DuplicateFinding(m, text, a, b, distance, !valid);
             }
@@ -913,7 +1204,17 @@ namespace GeometryHelper.Viewer
 
         private void DuplicateFinding(ItemModel m, string text, Vec3 a, Vec3 b, double distance, bool fault)
         {
-            DiagnosticFinding f = Add(m, DiagnosticChecks.Duplicates, DiagnosticKind.DuplicateVertex, fault, text, "viewer: vertices closer than EqualPoint", (a + b) * 0.5, distance, distance);
+            DiagnosticFinding f = Add(
+                m,
+                DiagnosticChecks.Duplicates,
+                DiagnosticKind.DuplicateVertex,
+                fault,
+                text,
+                "viewer: vertices closer than EqualPoint",
+                (a + b) * 0.5,
+                distance,
+                distance
+            );
             f.Drawing.Line(DiagnosticColors.Duplicate, 4.0, a, b);
             f.Drawing.Dots.Add(new DiagnosticDot((a + b) * 0.5, DiagnosticColors.Duplicate, 11.0));
         }
@@ -951,14 +1252,42 @@ namespace GeometryHelper.Viewer
                     first = centre;
                 }
 
-                LoopMath.Arrow(drawing, DiagnosticColors.Direction, 2.0, centre, centre + normal * (0.5 * Math.Sqrt(area)), LoopMath.Perpendicular(normal));
+                LoopMath.Arrow(
+                    drawing,
+                    DiagnosticColors.Direction,
+                    2.0,
+                    centre,
+                    centre + normal * (0.5 * Math.Sqrt(area)),
+                    LoopMath.Perpendicular(normal)
+                );
                 drawn++;
             }
 
             if (drawn > 0)
             {
-                string text = unit.Label + ": " + Count(drawn, "face normal") + " drawn, each by the right-hand rule round its outline" + (drawn >= Cap ? " (the first " + Cap.ToString(System.Globalization.CultureInfo.InvariantCulture) + " faces)" : string.Empty);
-                DiagnosticFinding finding = Add(m, DiagnosticChecks.Normals, DiagnosticKind.Normals, false, text, "viewer: right-hand rule round each outline", first, 0.0, 0.0);
+                string text =
+                    unit.Label
+                    + ": "
+                    + Count(drawn, "face normal")
+                    + " drawn, each by the right-hand rule round its outline"
+                    + (
+                        drawn >= Cap
+                            ? " (the first "
+                                + Cap.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                + " faces)"
+                            : string.Empty
+                    );
+                DiagnosticFinding finding = Add(
+                    m,
+                    DiagnosticChecks.Normals,
+                    DiagnosticKind.Normals,
+                    false,
+                    text,
+                    "viewer: right-hand rule round each outline",
+                    first,
+                    0.0,
+                    0.0
+                );
                 finding.Drawing.Strokes.AddRange(drawing.Strokes);
             }
         }

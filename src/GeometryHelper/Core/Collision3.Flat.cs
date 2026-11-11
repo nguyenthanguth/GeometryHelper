@@ -57,7 +57,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a segment touches a triangle.
         /// </summary>
-        public static bool CollidesWith(GeoLine3 line, GeoTriangle3 triangle) => CollidesWith(line, triangle, Tolerance.Global);
+        public static bool CollidesWith(GeoLine3 line, GeoTriangle3 triangle) =>
+            CollidesWith(line, triangle, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a segment touches a triangle, within a tolerance.
@@ -71,14 +72,22 @@ namespace GeometryHelper.Core
         /// its distance says: the one with corners (0, 0, 0), (100, 0, 0) and (50, 1E-8, 0) is nought from a segment through its
         /// middle and collides with it, where it collided with nothing.
         /// </remarks>
-        public static bool CollidesWith(GeoLine3 line, GeoTriangle3 triangle, Tolerance tolerance)
-            => Gap3.BoxGap(line.StartPoint, line.EndPoint, triangle.GetAabb()) <= Reach(tolerance)
-                && Gap3.Segment(Gap3.Region.Of(triangle), line.StartPoint, line.EndPoint, true, tolerance, tolerance.EqualPoint) <= tolerance.EqualPoint;
+        public static bool CollidesWith(GeoLine3 line, GeoTriangle3 triangle, Tolerance tolerance) =>
+            Gap3.BoxGap(line.StartPoint, line.EndPoint, triangle.GetAabb()) <= Reach(tolerance)
+            && Gap3.Segment(
+                Gap3.Region.Of(triangle),
+                line.StartPoint,
+                line.EndPoint,
+                true,
+                tolerance,
+                tolerance.EqualPoint
+            ) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether a segment touches a polygon.
         /// </summary>
-        public static bool CollidesWith(GeoLine3 line, GeoPolygon3 polygon) => CollidesWith(line, polygon, Tolerance.Global);
+        public static bool CollidesWith(GeoLine3 line, GeoPolygon3 polygon) =>
+            CollidesWith(line, polygon, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a segment touches a polygon, within a tolerance.
@@ -99,7 +108,14 @@ namespace GeometryHelper.Core
             }
 
             return Gap3.BoxGap(line.StartPoint, line.EndPoint, polygon.GetAabb()) <= Reach(tolerance)
-                && Gap3.Segment(Gap3.Region.Of(polygon), line.StartPoint, line.EndPoint, true, tolerance, tolerance.EqualPoint) <= tolerance.EqualPoint;
+                && Gap3.Segment(
+                    Gap3.Region.Of(polygon),
+                    line.StartPoint,
+                    line.EndPoint,
+                    true,
+                    tolerance,
+                    tolerance.EqualPoint
+                ) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -127,7 +143,14 @@ namespace GeometryHelper.Core
             }
 
             return Gap3.BoxGap(line.StartPoint, line.EndPoint, face.GetAabb()) <= Reach(tolerance)
-                && Gap3.Segment(Gap3.Region.Of(face), line.StartPoint, line.EndPoint, true, tolerance, tolerance.EqualPoint) <= tolerance.EqualPoint;
+                && Gap3.Segment(
+                    Gap3.Region.Of(face),
+                    line.StartPoint,
+                    line.EndPoint,
+                    true,
+                    tolerance,
+                    tolerance.EqualPoint
+                ) <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -136,7 +159,8 @@ namespace GeometryHelper.Core
         /// apart, which the gap itself takes, and the planar tolerance more, for a polygon or a face is read flat in its plane and
         /// its corners may stand that far off it, outside the box they make.
         /// </summary>
-        internal static double Reach(Tolerance tolerance) => tolerance.EqualPoint * (1.0 + 1E-6) + tolerance.EqualPlanar;
+        internal static double Reach(Tolerance tolerance) =>
+            tolerance.EqualPoint * (1.0 + 1E-6) + tolerance.EqualPlanar;
 
         #endregion
 
@@ -145,7 +169,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a ray runs into a triangle.
         /// </summary>
-        public static bool CollidesWith(GeoRay3 ray, GeoTriangle3 triangle) => CollidesWith(ray, triangle, Tolerance.Global);
+        public static bool CollidesWith(GeoRay3 ray, GeoTriangle3 triangle) =>
+            CollidesWith(ray, triangle, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a ray runs into a triangle, within a tolerance.
@@ -158,13 +183,14 @@ namespace GeometryHelper.Core
         /// one pointing along -X from there misses it. A triangle with no area is the segment it has collapsed to, and touches as
         /// its distance says.
         /// </remarks>
-        public static bool CollidesWith(GeoRay3 ray, GeoTriangle3 triangle, Tolerance tolerance)
-            => RayTouches(Gap3.Region.Of(triangle), ray, tolerance);
+        public static bool CollidesWith(GeoRay3 ray, GeoTriangle3 triangle, Tolerance tolerance) =>
+            RayTouches(Gap3.Region.Of(triangle), ray, tolerance);
 
         /// <summary>
         /// Determines whether a ray runs into a polygon.
         /// </summary>
-        public static bool CollidesWith(GeoRay3 ray, GeoPolygon3 polygon) => CollidesWith(ray, polygon, Tolerance.Global);
+        public static bool CollidesWith(GeoRay3 ray, GeoPolygon3 polygon) =>
+            CollidesWith(ray, polygon, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a ray runs into a polygon, within a tolerance.
@@ -220,8 +246,8 @@ namespace GeometryHelper.Core
         /// and a face are asked about a ray by, by <c>CollidesWith</c> and by the list of where they meet alike, so that the two
         /// cannot part.
         /// </summary>
-        internal static bool RayTouches(Gap3.Region region, GeoRay3 ray, Tolerance tolerance)
-            => Gap3.Ray(region, ray, tolerance.EqualPoint) <= tolerance.EqualPoint;
+        internal static bool RayTouches(Gap3.Region region, GeoRay3 ray, Tolerance tolerance) =>
+            Gap3.Ray(region, ray, tolerance.EqualPoint) <= tolerance.EqualPoint;
 
         #endregion
 
@@ -235,8 +261,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a ray starts inside an axis-aligned box or runs into it, within a tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoRay3 ray, GeoAabb3 box, Tolerance tolerance)
-            => !box.IsEmpty && CollidesWith(ray, box.ToObb(), tolerance);
+        public static bool CollidesWith(GeoRay3 ray, GeoAabb3 box, Tolerance tolerance) =>
+            !box.IsEmpty && CollidesWith(ray, box.ToObb(), tolerance);
 
         /// <summary>
         /// Determines whether a ray starts inside an oriented box or runs into it.
@@ -246,8 +272,9 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a ray starts inside an oriented box or runs into it, within a tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoRay3 ray, GeoObb3 box, Tolerance tolerance)
-            => new Gap3.Block(box ?? throw new System.ArgumentNullException(nameof(box))).Ray(ray, tolerance.EqualPoint) <= tolerance.EqualPoint;
+        public static bool CollidesWith(GeoRay3 ray, GeoObb3 box, Tolerance tolerance) =>
+            new Gap3.Block(box ?? throw new System.ArgumentNullException(nameof(box))).Ray(ray, tolerance.EqualPoint)
+            <= tolerance.EqualPoint;
 
         #endregion
 
@@ -266,8 +293,8 @@ namespace GeometryHelper.Core
         /// oriented answer and not an approximation of it.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the solid is null.</exception>
-        public static bool CollidesWith(GeoAabb3 box, GeoSolid3 solid, Tolerance tolerance)
-            => CollidesWith(box.ToObb(), solid, tolerance);
+        public static bool CollidesWith(GeoAabb3 box, GeoSolid3 solid, Tolerance tolerance) =>
+            CollidesWith(box.ToObb(), solid, tolerance);
 
         #endregion
     }

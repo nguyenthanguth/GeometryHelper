@@ -16,12 +16,26 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class ShortSegmentG1wjTests
     {
-        private static readonly Tolerance Millionth = new Tolerance(1E-6, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-6);
+        private static readonly Tolerance Millionth = new Tolerance(
+            1E-6,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-6
+        );
 
         private static readonly GeoPoint2 Beside = new GeoPoint2(10.003, 0.0003);
 
-        private static GeoPolyline2 Hairpin()
-            => new GeoPolyline2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 0.0006), new GeoPoint2(0, 0.0006) }, 4);
+        private static GeoPolyline2 Hairpin() =>
+            new GeoPolyline2(
+                new[]
+                {
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(10, 0),
+                    new GeoPoint2(10, 0.0006),
+                    new GeoPoint2(0, 0.0006),
+                },
+                4
+            );
 
         [Fact]
         public void ThePlaceRoundATriangle_OfAPointBesideAShortSide_IsOnTheSideAsItIs()
@@ -56,7 +70,10 @@ namespace GeometryHelper.UnitTest.Plane
         public void APolylineCutByAPointOnAShortLeg_IsCutAtThePoint()
         {
             // The cut was made at the leg's start (10, 0), 0.0003 from the point, three hundred tolerances.
-            Assert.True(Hairpin().TrySplitBy(new GeoPoint2(10, 0.0003), out GeoPolyline2 first, out GeoPolyline2 second, Millionth));
+            Assert.True(
+                Hairpin()
+                    .TrySplitBy(new GeoPoint2(10, 0.0003), out GeoPolyline2 first, out GeoPolyline2 second, Millionth)
+            );
 
             Assert.Equal(10, first.EndPoint.X, 12);
             Assert.Equal(0.0003, first.EndPoint.Y, 12);

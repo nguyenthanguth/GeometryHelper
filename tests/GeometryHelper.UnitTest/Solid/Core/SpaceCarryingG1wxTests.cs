@@ -20,10 +20,20 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
-        private static readonly GeoTransform3 Shear = new GeoTransform3(new double[,] { { 1, 0.3, 0, 5 }, { 0, 1, 0.2, -3 }, { 0, 0, 1.5, 2 }, { 0, 0, 0, 1 } });
+        private static readonly GeoTransform3 Shear = new GeoTransform3(
+            new double[,]
+            {
+                { 1, 0.3, 0, 5 },
+                { 0, 1, 0.2, -3 },
+                { 0, 0, 1.5, 2 },
+                { 0, 0, 0, 1 },
+            }
+        );
 
         // A frame leaning every way, far from the origin.
-        private static readonly GeoCoordinateSystem3 Leaning = new GeoCoordinateSystem3(new GeoPlane3(P(312.5, -87.25, 40.125), new GeoVector3(0.3, -0.5, 0.8)));
+        private static readonly GeoCoordinateSystem3 Leaning = new GeoCoordinateSystem3(
+            new GeoPlane3(P(312.5, -87.25, 40.125), new GeoVector3(0.3, -0.5, 0.8))
+        );
 
         // The triangle (0, 0), (10, 0), (10, 10) with every corner cut by 0.3.
         private static GeoPolygon2 CutTriangle()
@@ -53,8 +63,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AFaceWithAHoleShearedRotatedOrScaled_IsItsBoundaryAndHoleTransformedOneByOneToTheBit()
         {
-            var boundary = new GeoPolygon3(new[] { P(0, 0, 0), P(100, 0, 0), P(100, 70, 0.0004), P(0, 70, 0) }, Tolerance.Default);
-            var hole = new GeoPolygon3(new[] { P(20, 20, 0), P(40, 20, 0), P(40, 30, 0), P(20, 30, 0) }, Tolerance.Default);
+            var boundary = new GeoPolygon3(
+                new[] { P(0, 0, 0), P(100, 0, 0), P(100, 70, 0.0004), P(0, 70, 0) },
+                Tolerance.Default
+            );
+            var hole = new GeoPolygon3(
+                new[] { P(20, 20, 0), P(40, 20, 0), P(40, 30, 0), P(20, 30, 0) },
+                Tolerance.Default
+            );
             var face = new GeoFace3(boundary, new[] { hole }, Tolerance.Default);
 
             var transforms = new[]
@@ -103,7 +119,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(Math.Abs(shrunk.SignedArea), laid.Area, 15);
 
             // As the triangle laid in at full size and shrunk in space.
-            GeoPolygon3 reference = CutTriangle().ToPolygon3(Leaning).TransformBy(GeoTransform3.Scaling(Leaning.Origin, 0.001));
+            GeoPolygon3 reference = CutTriangle()
+                .ToPolygon3(Leaning)
+                .TransformBy(GeoTransform3.Scaling(Leaning.Origin, 0.001));
             Assert.Equal(reference.VertexCount, laid.VertexCount);
         }
 

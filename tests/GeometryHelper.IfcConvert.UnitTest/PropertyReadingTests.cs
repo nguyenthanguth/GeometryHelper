@@ -10,13 +10,19 @@ namespace GeometryHelper.IfcConvert.UnitTest
         // IFC4 IfcPropertyBoundedValue lists UpperBoundValue before LowerBoundValue.
         // A beam whose type carries Pset_BeamCommon (Span 6000, IsExternal false) and whose occurrence
         // overrides IsExternal and adds LoadBearing. Plus complex, list, bounded and enumerated values.
-        private static string Model(string beamType) => IfcTestFile.CommonHeader("..MILLI.,.METRE.") + @"
+        private static string Model(string beamType) =>
+            IfcTestFile.CommonHeader("..MILLI.,.METRE.")
+            + @"
 #24=IFCLOCALPLACEMENT($,#8);
-#25=IFCBEAM('" + Guid + @"',$,'Beam',$,$,#24,$,$,$);
+#25=IFCBEAM('"
+            + Guid
+            + @"',$,'Beam',$,$,#24,$,$,$);
 #30=IFCPROPERTYSINGLEVALUE('Span',$,IFCPOSITIVELENGTHMEASURE(6000.),$);
 #31=IFCPROPERTYSINGLEVALUE('IsExternal',$,IFCBOOLEAN(.F.),$);
 #32=IFCPROPERTYSET('0000000000000000000020',$,'Pset_BeamCommon',$,(#30,#31));
-" + beamType + @"
+"
+            + beamType
+            + @"
 #34=IFCRELDEFINESBYTYPE('0000000000000000000022',$,$,$,(#25),#33);
 #40=IFCPROPERTYSINGLEVALUE('IsExternal',$,IFCBOOLEAN(.T.),$);
 #41=IFCPROPERTYSINGLEVALUE('LoadBearing',$,IFCBOOLEAN(.T.),$);
@@ -32,25 +38,31 @@ namespace GeometryHelper.IfcConvert.UnitTest
 #57=IFCRELDEFINESBYPROPERTIES('0000000000000000000026',$,$,$,(#25),#56);
 ";
 
-        private static readonly string BeamWithType = Model("#33=IFCBEAMTYPE('0000000000000000000021',$,'BeamType',$,$,(#32),$,$,$,.BEAM.);");
+        private static readonly string BeamWithType = Model(
+            "#33=IFCBEAMTYPE('0000000000000000000021',$,'BeamType',$,$,(#32),$,$,$,.BEAM.);"
+        );
 
         [Theory]
         [InlineData("IFC4")]
         [InlineData("IFC2X3")]
         public void TypePropertySets_AreInheritedAndOverriddenByOccurrence(string schema)
         {
-            IfcTestFile.Run(BeamWithType, model =>
-            {
-                Assert.Equal(schema.Replace("X", "x"), model.SchemaVersion.ToUpperInvariant().Replace("X", "x"));
+            IfcTestFile.Run(
+                BeamWithType,
+                model =>
+                {
+                    Assert.Equal(schema.Replace("X", "x"), model.SchemaVersion.ToUpperInvariant().Replace("X", "x"));
 
-                var span = model.GetProperty(Guid, "Pset_BeamCommon", "Span");
-                Assert.NotNull(span);
-                Assert.Equal(6000.0, (double)span.Value);
-                Assert.Equal("mm", span.Unit);
+                    var span = model.GetProperty(Guid, "Pset_BeamCommon", "Span");
+                    Assert.NotNull(span);
+                    Assert.Equal(6000.0, (double)span.Value);
+                    Assert.Equal("mm", span.Unit);
 
-                Assert.Equal(true, model.GetProperty(Guid, "Pset_BeamCommon", "IsExternal").Value);
-                Assert.Equal(true, model.GetProperty(Guid, "Pset_BeamCommon", "LoadBearing").Value);
-            }, schema);
+                    Assert.Equal(true, model.GetProperty(Guid, "Pset_BeamCommon", "IsExternal").Value);
+                    Assert.Equal(true, model.GetProperty(Guid, "Pset_BeamCommon", "LoadBearing").Value);
+                },
+                schema
+            );
         }
 
         [Fact]

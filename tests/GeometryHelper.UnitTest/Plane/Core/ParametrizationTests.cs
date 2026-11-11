@@ -8,17 +8,23 @@ namespace GeometryHelper.UnitTest.Plane
     public class ParametrizationTests
     {
         // A 10 by 10 square walked counter-clockwise from the origin: perimeter 40.
-        private static GeoPolygon2 Square() => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+        private static GeoPolygon2 Square() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
 
         // An L of three vertices: 10 along X, then 10 up. Total length 20.
-        private static GeoPolyline2 OpenPath() => new GeoPolyline2(
-            new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10));
+        private static GeoPolyline2 OpenPath() =>
+            new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10));
 
         // The same square traced as an open chain: the path returns to its start but never closes,
         // so its length is the full perimeter while it stays a curve.
-        private static GeoPolyline2 TracedSquare() => new GeoPolyline2(
-            new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10), new GeoPoint2(0, 0));
+        private static GeoPolyline2 TracedSquare() =>
+            new GeoPolyline2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10),
+                new GeoPoint2(0, 0)
+            );
 
         private static GeoLine2 Segment() => new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0));
 
@@ -74,8 +80,8 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Theory]
-        [InlineData(0.0, 10, 0)]        // angle 0
-        [InlineData(0.25, 0, 10)]       // quarter turn counter-clockwise
+        [InlineData(0.0, 10, 0)] // angle 0
+        [InlineData(0.25, 0, 10)] // quarter turn counter-clockwise
         [InlineData(0.5, -10, 0)]
         [InlineData(0.75, 0, -10)]
         public void Circle_PointAtParameter_RunsCounterClockwiseFromAngleZero(double parameter, double x, double y)
@@ -129,7 +135,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Rectangle_WalksThePerimeterFromLowerLeft()
         {
-            var rect = Rect();   // X: [-10, 10], Y: [-5, 5], perimeter 60
+            var rect = Rect(); // X: [-10, 10], Y: [-5, 5], perimeter 60
 
             Assert.Equal(60.0, rect.Length, 9);
             Assert.True(rect.GetPointAtParameter(0.0).IsEqualTo(rect.LowerLeft));
@@ -156,7 +162,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Polygon_WalksThePerimeterFromTheFirstVertex()
         {
-            var poly = Square();   // perimeter 40
+            var poly = Square(); // perimeter 40
 
             Assert.Equal(40.0, poly.Length, 9);
             Assert.True(poly.GetPointAtParameter(0.0).IsEqualTo(new GeoPoint2(0, 0)));
@@ -182,7 +188,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Polyline_Open_ClampsOutsideItsEnds()
         {
-            var path = OpenPath();   // length 20
+            var path = OpenPath(); // length 20
 
             Assert.Equal(20.0, path.Length, 9);
             Assert.True(path.GetPointAtParameter(0.0).IsEqualTo(new GeoPoint2(0, 0)));
@@ -199,7 +205,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Polyline_ClampsInsteadOfWrapping()
         {
-            var path = TracedSquare();   // 10 by 10 square traced open, length 40
+            var path = TracedSquare(); // 10 by 10 square traced open, length 40
 
             Assert.Equal(40.0, path.Length, 9);
 
@@ -277,12 +283,19 @@ namespace GeometryHelper.UnitTest.Plane
 
             foreach (double parameter in new[] { 0.0, 0.15, 0.4, 0.85 })
             {
-                Assert.True(poly.GetPointAtParameter(parameter)
-                    .IsEqualTo(poly.GetPointAtDistance(poly.GetDistanceAtParameter(parameter))));
-                Assert.True(circle.GetPointAtParameter(parameter)
-                    .IsEqualTo(circle.GetPointAtDistance(circle.GetDistanceAtParameter(parameter))));
-                Assert.True(path.GetPointAtParameter(parameter)
-                    .IsEqualTo(path.GetPointAtDistance(path.GetDistanceAtParameter(parameter))));
+                Assert.True(
+                    poly.GetPointAtParameter(parameter)
+                        .IsEqualTo(poly.GetPointAtDistance(poly.GetDistanceAtParameter(parameter)))
+                );
+                Assert.True(
+                    circle
+                        .GetPointAtParameter(parameter)
+                        .IsEqualTo(circle.GetPointAtDistance(circle.GetDistanceAtParameter(parameter)))
+                );
+                Assert.True(
+                    path.GetPointAtParameter(parameter)
+                        .IsEqualTo(path.GetPointAtDistance(path.GetDistanceAtParameter(parameter)))
+                );
             }
         }
 
@@ -304,7 +317,8 @@ namespace GeometryHelper.UnitTest.Plane
                 bool onAnEdge = false;
                 foreach (GeoLine2 edge in rect.GetEdges())
                 {
-                    if (Containment2.IsPointOn(edge, onRect)) onAnEdge = true;
+                    if (Containment2.IsPointOn(edge, onRect))
+                        onAnEdge = true;
                 }
                 Assert.True(onAnEdge);
             }
@@ -314,7 +328,9 @@ namespace GeometryHelper.UnitTest.Plane
         public void NullShapes_Throw()
         {
             Assert.Throws<ArgumentNullException>(() => Parametrization2.GetPointAtParameter((GeoPolyline2)null, 0.5));
-            Assert.Throws<ArgumentNullException>(() => Parametrization2.GetDistanceAtPoint((GeoPolygon2)null, new GeoPoint2(0, 0)));
+            Assert.Throws<ArgumentNullException>(() =>
+                Parametrization2.GetDistanceAtPoint((GeoPolygon2)null, new GeoPoint2(0, 0))
+            );
         }
     }
 }

@@ -17,12 +17,12 @@ namespace GeometryHelper.UnitTest.Common
 
         private static GeoPoint3 Pt(double x, double y, double z) => new GeoPoint3(x, y, z);
 
-        private static GeoPolygon3 Square(double x0, double y0, double x1, double y1, double z)
-            => new GeoPolygon3(Pt(x0, y0, z), Pt(x1, y0, z), Pt(x1, y1, z), Pt(x0, y1, z));
+        private static GeoPolygon3 Square(double x0, double y0, double x1, double y1, double z) =>
+            new GeoPolygon3(Pt(x0, y0, z), Pt(x1, y0, z), Pt(x1, y1, z), Pt(x0, y1, z));
 
         // A square standing upright along y = 50.
-        private static GeoPolygon3 Upright(double x0, double x1, double z0, double z1)
-            => new GeoPolygon3(Pt(x0, 50, z0), Pt(x1, 50, z0), Pt(x1, 50, z1), Pt(x0, 50, z1));
+        private static GeoPolygon3 Upright(double x0, double x1, double z0, double z1) =>
+            new GeoPolygon3(Pt(x0, 50, z0), Pt(x1, 50, z0), Pt(x1, 50, z1), Pt(x0, 50, z1));
 
         // The square 100 by 100 in the floor with a corner at the origin and a hole 40 by 40 in its middle.
         private static GeoFace3 Plate() => new GeoFace3(Square(0, 0, 100, 100, 0), new[] { Square(30, 30, 70, 70, 0) });
@@ -107,7 +107,10 @@ namespace GeometryHelper.UnitTest.Common
             Assert.True(alongX.CollidesWith(facing, Tol));
             Assert.Empty(alongX.GetIntersections(facing, Tol));
             Assert.False(alongX.CollidesWith(new GeoRay3(Pt(-100, 0, 0), GeoVector3.XAxis.Negate()), Tol));
-            AssertPoints(new GeoRay3(Pt(0, 0, 10), GeoVector3.ZAxis.Negate()).GetIntersections(GeoPlane3.XY, Tol), GeoPoint3.Origin);
+            AssertPoints(
+                new GeoRay3(Pt(0, 0, 10), GeoVector3.ZAxis.Negate()).GetIntersections(GeoPlane3.XY, Tol),
+                GeoPoint3.Origin
+            );
         }
 
         [Fact]
@@ -144,7 +147,9 @@ namespace GeometryHelper.UnitTest.Common
         {
             var straight = new GeoEdge3(Pt(0, -50, 0), Pt(0, 50, 0));
             var chain = new GeoPolyline3(Pt(-50, 0, 0), Pt(50, 0, 0), Pt(50, 100, 0));
-            var bend = new GeoEdge3(GeoArc3.FromThreePoints(Pt(50, 0, 0), Pt(50 * Math.Sqrt(0.5), 50 * Math.Sqrt(0.5), 0), Pt(0, 50, 0)));
+            var bend = new GeoEdge3(
+                GeoArc3.FromThreePoints(Pt(50, 0, 0), Pt(50 * Math.Sqrt(0.5), 50 * Math.Sqrt(0.5), 0), Pt(0, 50, 0))
+            );
             var loop = new GeoPolygonArc3(Square(0, 0, 100, 100, 0));
 
             AssertPoints(straight.GetIntersections(chain, Tol), GeoPoint3.Origin);

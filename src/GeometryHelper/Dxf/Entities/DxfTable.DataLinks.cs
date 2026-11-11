@@ -101,7 +101,9 @@ namespace GeometryHelper.Dxf
         public DxfCellRange GetDataLinkRange(int row, int column)
         {
             LinkedRange link = Covering(row, column, out _);
-            return link == null ? null : new DxfCellRange(this, link.TopRow, link.LeftColumn, link.BottomRow, link.RightColumn);
+            return link == null
+                ? null
+                : new DxfCellRange(this, link.TopRow, link.LeftColumn, link.BottomRow, link.RightColumn);
         }
 
         /// <summary>
@@ -131,7 +133,10 @@ namespace GeometryHelper.Dxf
 
             if (link != null)
             {
-                return link.Cell == null || (link.TopRow == row && link.LeftColumn == column) || _flagged.ContainsKey((row, column)) || !HeldAsWritten(row, column);
+                return link.Cell == null
+                    || (link.TopRow == row && link.LeftColumn == column)
+                    || _flagged.ContainsKey((row, column))
+                    || !HeldAsWritten(row, column);
             }
 
             return _filled.Contains((row, column));
@@ -152,7 +157,15 @@ namespace GeometryHelper.Dxf
             int at = _cells.At[row][column] + 1;
             string checksum = null;
 
-            while (at < groups.Count && !(groups[at].TypeCode == 309 && (groups[at].Value.Trim() == "DATAMAP_END" || groups[at].Value.Trim() == "LINKEDTABLEDATACELL_END")))
+            while (
+                at < groups.Count
+                && !(
+                    groups[at].TypeCode == 309
+                    && (
+                        groups[at].Value.Trim() == "DATAMAP_END" || groups[at].Value.Trim() == "LINKEDTABLEDATACELL_END"
+                    )
+                )
+            )
             {
                 if (groups[at].TypeCode == 300 && groups[at].Value.Trim() == "ACAD_ROUNDTRIP_2008_CELL_CHECKSUM")
                 {
@@ -177,7 +190,10 @@ namespace GeometryHelper.Dxf
 
             Layout layout = Read();
             int index = row * layout.Columns + column;
-            string text = index < layout.CellStart.Count && IsTextCell(layout.Groups.List, layout.CellStart[index]) ? DxfReader.Decode(layout.CellAt(row, column).Text()) : string.Empty;
+            string text =
+                index < layout.CellStart.Count && IsTextCell(layout.Groups.List, layout.CellStart[index])
+                    ? DxfReader.Decode(layout.CellAt(row, column).Text())
+                    : string.Empty;
             return Numbers.TryRead(checksum, out double read) && read == ChecksumOf(text);
         }
 
@@ -189,7 +205,15 @@ namespace GeometryHelper.Dxf
         {
             int at = stateAt;
 
-            while (at < groups.Count && !(groups[at].TypeCode == 309 && (groups[at].Value.Trim() == "DATAMAP_END" || groups[at].Value.Trim() == "LINKEDTABLEDATACELL_END")))
+            while (
+                at < groups.Count
+                && !(
+                    groups[at].TypeCode == 309
+                    && (
+                        groups[at].Value.Trim() == "DATAMAP_END" || groups[at].Value.Trim() == "LINKEDTABLEDATACELL_END"
+                    )
+                )
+            )
             {
                 at++;
             }
@@ -201,13 +225,29 @@ namespace GeometryHelper.Dxf
 
             at++;
 
-            while (at < groups.Count && (groups[at].TypeCode == 92 || groups[at].TypeCode == 340 || groups[at].TypeCode == 93 || groups[at].TypeCode == 94 || groups[at].TypeCode == 96))
+            while (
+                at < groups.Count
+                && (
+                    groups[at].TypeCode == 92
+                    || groups[at].TypeCode == 340
+                    || groups[at].TypeCode == 93
+                    || groups[at].TypeCode == 94
+                    || groups[at].TypeCode == 96
+                )
+            )
             {
                 at++;
             }
 
-            return at < groups.Count && groups[at].TypeCode == 95
-                && long.TryParse(groups[at].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out long contents) && contents > 0;
+            return at < groups.Count
+                && groups[at].TypeCode == 95
+                && long.TryParse(
+                    groups[at].Value.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out long contents
+                )
+                && contents > 0;
         }
 
         /// <summary>
@@ -329,7 +369,10 @@ namespace GeometryHelper.Dxf
 
             if (!IsResident || !ReferenceEquals(LinkObject(dataLink.Handle), dataLink))
             {
-                throw new ArgumentException("The data link " + dataLink + " is not one of the table's drawing, or is erased.", nameof(dataLink));
+                throw new ArgumentException(
+                    "The data link " + dataLink + " is not one of the table's drawing, or is erased.",
+                    nameof(dataLink)
+                );
             }
 
             MergeAsLoaded();
@@ -344,12 +387,22 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                if (link.Cell != null && string.Equals(link.Handle, dataLink.Handle, StringComparison.OrdinalIgnoreCase) && link.Range.Equals(range))
+                if (
+                    link.Cell != null
+                    && string.Equals(link.Handle, dataLink.Handle, StringComparison.OrdinalIgnoreCase)
+                    && link.Range.Equals(range)
+                )
                 {
                     return;
                 }
 
-                throw new InvalidOperationException("The cells " + range + " meet the cells " + link.Range + " linked already: take that link away first, with RemoveDataLink.");
+                throw new InvalidOperationException(
+                    "The cells "
+                        + range
+                        + " meet the cells "
+                        + link.Range
+                        + " linked already: take that link away first, with RemoveDataLink."
+                );
             }
 
             DxfItem content = ContentItem() ?? NewContent();
@@ -357,22 +410,54 @@ namespace GeometryHelper.Dxf
             int begin = ContentCellAt(groups, range.TopRow, range.LeftColumn);
             int end = begin + 1;
 
-            while (begin >= 0 && end < groups.Count && !(groups[end].TypeCode == 309 && (groups[end].Value.Trim() == "DATAMAP_END" || groups[end].Value.Trim() == "LINKEDTABLEDATACELL_END")))
+            while (
+                begin >= 0
+                && end < groups.Count
+                && !(
+                    groups[end].TypeCode == 309
+                    && (
+                        groups[end].Value.Trim() == "DATAMAP_END"
+                        || groups[end].Value.Trim() == "LINKEDTABLEDATACELL_END"
+                    )
+                )
+            )
             {
                 end++;
             }
 
-            if (begin < 0 || end + 1 >= groups.Count || groups[end].Value.Trim() != "DATAMAP_END" || groups[end + 1].TypeCode != 92)
+            if (
+                begin < 0
+                || end + 1 >= groups.Count
+                || groups[end].Value.Trim() != "DATAMAP_END"
+                || groups[end + 1].TypeCode != 92
+            )
             {
-                throw new InvalidOperationException("The TABLECONTENT of the table " + Handle + " has no cell (" + range.TopRow.ToString(CultureInfo.InvariantCulture) + ", " + range.LeftColumn.ToString(CultureInfo.InvariantCulture) + ") with a 92 after its custom data, as AutoCAD writes one, to name the link in.");
+                throw new InvalidOperationException(
+                    "The TABLECONTENT of the table "
+                        + Handle
+                        + " has no cell ("
+                        + range.TopRow.ToString(CultureInfo.InvariantCulture)
+                        + ", "
+                        + range.LeftColumn.ToString(CultureInfo.InvariantCulture)
+                        + ") with a 92 after its custom data, as AutoCAD writes one, to name the link in."
+                );
             }
 
             // From the cell's state to the end: the state given the flag 4, the 92 made odd, its run, if any, made the link's.
             int flagAt = groups[begin + 1].TypeCode == 90 ? begin + 1 : -1;
             int from = flagAt >= 0 ? flagAt : end + 1;
-            List<KeyValuePair<int, string>> tail = Item.File.TailOf(content, from).ConvertAll(g => new KeyValuePair<int, string>(g.TypeCode, g.Value));
+            List<KeyValuePair<int, string>> tail = Item
+                .File.TailOf(content, from)
+                .ConvertAll(g => new KeyValuePair<int, string>(g.TypeCode, g.Value));
             int at = end + 1 - from;
-            int linked = int.TryParse(tail[at].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) ? read : 0;
+            int linked = int.TryParse(
+                tail[at].Value.Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int read
+            )
+                ? read
+                : 0;
             int run = 0;
 
             foreach (int code in new[] { 340, 93, 94, 96 })
@@ -382,15 +467,27 @@ namespace GeometryHelper.Dxf
 
             tail[at] = new KeyValuePair<int, string>(92, (linked | 1).ToString(CultureInfo.InvariantCulture));
             tail.RemoveRange(at + 1, run);
-            tail.InsertRange(at + 1, new[]
-            {
-                new KeyValuePair<int, string>(340, dataLink.Handle),
-                new KeyValuePair<int, string>(93, (range.BottomRow - range.TopRow + 1).ToString(CultureInfo.InvariantCulture)),
-                new KeyValuePair<int, string>(94, (range.RightColumn - range.LeftColumn + 1).ToString(CultureInfo.InvariantCulture)),
-                new KeyValuePair<int, string>(96, "1"),
-            });
+            tail.InsertRange(
+                at + 1,
+                new[]
+                {
+                    new KeyValuePair<int, string>(340, dataLink.Handle),
+                    new KeyValuePair<int, string>(
+                        93,
+                        (range.BottomRow - range.TopRow + 1).ToString(CultureInfo.InvariantCulture)
+                    ),
+                    new KeyValuePair<int, string>(
+                        94,
+                        (range.RightColumn - range.LeftColumn + 1).ToString(CultureInfo.InvariantCulture)
+                    ),
+                    new KeyValuePair<int, string>(96, "1"),
+                }
+            );
 
-            if (flagAt >= 0 && int.TryParse(tail[0].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags))
+            if (
+                flagAt >= 0
+                && int.TryParse(tail[0].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags)
+            )
             {
                 tail[0] = new KeyValuePair<int, string>(90, (flags | 4).ToString(CultureInfo.InvariantCulture));
             }
@@ -426,7 +523,10 @@ namespace GeometryHelper.Dxf
                     {
                         Layout layout = Read();
                         int k = row * layout.Columns + column;
-                        string handle = k < layout.CellStart.Count && IsTextCell(layout.Groups.List, layout.CellStart[k]) ? Cell(row, column).Head(344)?.Trim() : null;
+                        string handle =
+                            k < layout.CellStart.Count && IsTextCell(layout.Groups.List, layout.CellStart[k])
+                                ? Cell(row, column).Head(344)?.Trim()
+                                : null;
 
                         if (string.IsNullOrEmpty(handle) || Item.File.ObjectItem(handle) != null)
                         {
@@ -484,7 +584,10 @@ namespace GeometryHelper.Dxf
 
             foreach (LinkedRange link in CurrentLinks())
             {
-                DxfDataLink value = (range == null || Meets(link.Range, range)) && !seen.Contains(link.Handle) ? LinkObject(link.Handle) : null;
+                DxfDataLink value =
+                    (range == null || Meets(link.Range, range)) && !seen.Contains(link.Handle)
+                        ? LinkObject(link.Handle)
+                        : null;
 
                 if (value != null && seen.Add(link.Handle))
                 {
@@ -532,19 +635,27 @@ namespace GeometryHelper.Dxf
         /// the TABLECONTENT begins in the cells given. The TABLECONTENT of a table ACDB_RECOMPOSE_DATA does not list names none,
         /// unless asked for whatever it lists.
         /// </summary>
-        private List<LinkedRange> AllLinks(Layout layout, Dictionary<(int, int), int> flagged = null, HashSet<(int, int)> filled = null, ContentCells cells = null, bool unlisted = false)
+        private List<LinkedRange> AllLinks(
+            Layout layout,
+            Dictionary<(int, int), int> flagged = null,
+            HashSet<(int, int)> filled = null,
+            ContentCells cells = null,
+            bool unlisted = false
+        )
         {
             List<LinkedRange> links = ContentLinks(layout, flagged, filled, cells, unlisted);
             links.AddRange(Links(layout));
-            links.Sort((a, b) =>
-            {
-                int by = a.TopRow.CompareTo(b.TopRow);
-                by = by != 0 ? by : a.LeftColumn.CompareTo(b.LeftColumn);
-                by = by != 0 ? by : (a.Cell == null).CompareTo(b.Cell == null);
-                by = by != 0 ? by : a.BottomRow.CompareTo(b.BottomRow);
-                by = by != 0 ? by : a.RightColumn.CompareTo(b.RightColumn);
-                return by != 0 ? by : string.CompareOrdinal(a.Handle, b.Handle);
-            });
+            links.Sort(
+                (a, b) =>
+                {
+                    int by = a.TopRow.CompareTo(b.TopRow);
+                    by = by != 0 ? by : a.LeftColumn.CompareTo(b.LeftColumn);
+                    by = by != 0 ? by : (a.Cell == null).CompareTo(b.Cell == null);
+                    by = by != 0 ? by : a.BottomRow.CompareTo(b.BottomRow);
+                    by = by != 0 ? by : a.RightColumn.CompareTo(b.RightColumn);
+                    return by != 0 ? by : string.CompareOrdinal(a.Handle, b.Handle);
+                }
+            );
             return links;
         }
 
@@ -814,8 +925,13 @@ namespace GeometryHelper.Dxf
 
                 DxfItem item = file.ObjectItem(handle);
 
-                if (item != null && !item.IsRemoved && item.Type == "DATALINK" && OfObject(item) is DxfDataLink link
-                    && (link.DataLinkOption & DxfDataLinkOption.Anonymous) != 0)
+                if (
+                    item != null
+                    && !item.IsRemoved
+                    && item.Type == "DATALINK"
+                    && OfObject(item) is DxfDataLink link
+                    && (link.DataLinkOption & DxfDataLinkOption.Anonymous) != 0
+                )
                 {
                     items.Add(item);
                     handles.Add(handle);
@@ -857,7 +973,13 @@ namespace GeometryHelper.Dxf
         /// with that record taken out, or listing its table style alone, or nothing, and read it listing the table alone (D28
         /// d05, D28b R1 to R3); <paramref name="unlisted"/> reads them whatever the record lists.
         /// </summary>
-        private List<LinkedRange> ContentLinks(Layout layout, Dictionary<(int, int), int> flagged, HashSet<(int, int)> filled = null, ContentCells places = null, bool unlisted = false)
+        private List<LinkedRange> ContentLinks(
+            Layout layout,
+            Dictionary<(int, int), int> flagged,
+            HashSet<(int, int)> filled = null,
+            ContentCells places = null,
+            bool unlisted = false
+        )
         {
             var links = new List<LinkedRange>();
             DxfItem content = IsResident ? ContentItem() : null;
@@ -896,8 +1018,18 @@ namespace GeometryHelper.Dxf
                     int column = widths[row]++;
                     places?.At[row].Add(i);
 
-                    if (flagged != null && i + 1 < groups.Count && groups[i + 1].TypeCode == 90
-                        && int.TryParse(groups[i + 1].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int state) && (state & 4) != 0)
+                    if (
+                        flagged != null
+                        && i + 1 < groups.Count
+                        && groups[i + 1].TypeCode == 90
+                        && int.TryParse(
+                            groups[i + 1].Value.Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out int state
+                        )
+                        && (state & 4) != 0
+                    )
                     {
                         flagged[(row, column)] = i + 1;
 
@@ -913,7 +1045,16 @@ namespace GeometryHelper.Dxf
 
             foreach (ContentCell cell in cells.FindAll(c => c.Row < layout.Rows && c.Column < layout.Columns))
             {
-                links.Add(new LinkedRange(cell.Row, cell.Column, (int)Math.Min(layout.Rows - 1, cell.Row + cell.Rows - 1), (int)Math.Min(layout.Columns - 1, cell.Column + cell.Columns - 1), cell.Handle, cell));
+                links.Add(
+                    new LinkedRange(
+                        cell.Row,
+                        cell.Column,
+                        (int)Math.Min(layout.Rows - 1, cell.Row + cell.Rows - 1),
+                        (int)Math.Min(layout.Columns - 1, cell.Column + cell.Columns - 1),
+                        cell.Handle,
+                        cell
+                    )
+                );
             }
 
             return links;
@@ -944,12 +1085,23 @@ namespace GeometryHelper.Dxf
             // The cell's first content after its 92: CONTENT, CELLCONTENT_BEGIN, its type 2 of a field, the field.
             int at = begin + 1;
 
-            while (at < groups.Count && !(groups[at].TypeCode == 309 && groups[at].Value.Trim() == "LINKEDTABLEDATACELL_END") && !(groups[at].TypeCode == 1 && groups[at].Value.Trim() == "CELLCONTENT_BEGIN"))
+            while (
+                at < groups.Count
+                && !(groups[at].TypeCode == 309 && groups[at].Value.Trim() == "LINKEDTABLEDATACELL_END")
+                && !(groups[at].TypeCode == 1 && groups[at].Value.Trim() == "CELLCONTENT_BEGIN")
+            )
             {
                 at++;
             }
 
-            return at + 2 < groups.Count && groups[at].TypeCode == 1 && groups[at + 1].TypeCode == 90 && groups[at + 1].Value.Trim() == "2" && groups[at + 2].TypeCode == 340 ? groups[at + 2].Value.Trim() : null;
+            return
+                at + 2 < groups.Count
+                && groups[at].TypeCode == 1
+                && groups[at + 1].TypeCode == 90
+                && groups[at + 1].Value.Trim() == "2"
+                && groups[at + 2].TypeCode == 340
+                ? groups[at + 2].Value.Trim()
+                : null;
         }
 
         /// <summary>Where the cell of a row and a column of a TABLECONTENT begins among its groups (its LINKEDTABLEDATACELL_BEGIN); -1 where it has no such cell.</summary>
@@ -991,21 +1143,49 @@ namespace GeometryHelper.Dxf
         /// end of its custom data (DATAMAP_END) with the run of its link where that is odd; a cell that names a link is added.
         /// Gives where the reading stopped, its custom data's end or the cell's.
         /// </summary>
-        private static int ReadCell(IReadOnlyList<DxfTypedValue> groups, int begin, int row, int column, List<ContentCell> cells)
+        private static int ReadCell(
+            IReadOnlyList<DxfTypedValue> groups,
+            int begin,
+            int row,
+            int column,
+            List<ContentCell> cells
+        )
         {
             int flagAt = begin + 1 < groups.Count && groups[begin + 1].TypeCode == 90 ? begin + 1 : -1;
             int end = begin + 1;
 
-            while (end < groups.Count && !(groups[end].TypeCode == 309 && (groups[end].Value.Trim() == "DATAMAP_END" || groups[end].Value.Trim() == "LINKEDTABLEDATACELL_END")))
+            while (
+                end < groups.Count
+                && !(
+                    groups[end].TypeCode == 309
+                    && (
+                        groups[end].Value.Trim() == "DATAMAP_END"
+                        || groups[end].Value.Trim() == "LINKEDTABLEDATACELL_END"
+                    )
+                )
+            )
             {
                 end++;
             }
 
             int at = end + 1;
 
-            if (end >= groups.Count || groups[end].Value.Trim() != "DATAMAP_END" || at >= groups.Count || groups[at].TypeCode != 92
-                || !int.TryParse(groups[at].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int linked) || (linked & 1) == 0
-                || at + 1 >= groups.Count || groups[at + 1].TypeCode != 340 || groups[at + 1].Value.Trim().Length == 0)
+            if (
+                end >= groups.Count
+                || groups[end].Value.Trim() != "DATAMAP_END"
+                || at >= groups.Count
+                || groups[at].TypeCode != 92
+                || !int.TryParse(
+                    groups[at].Value.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int linked
+                )
+                || (linked & 1) == 0
+                || at + 1 >= groups.Count
+                || groups[at + 1].TypeCode != 340
+                || groups[at + 1].Value.Trim().Length == 0
+            )
             {
                 return end;
             }
@@ -1032,7 +1212,8 @@ namespace GeometryHelper.Dxf
         {
             DxfFile file = Item.File;
             DxfDBDictionary root = file.Database?.NamedObjectsDictionary;
-            DxfDBObject held = root != null && root.Contains("ACDB_RECOMPOSE_DATA") ? root.GetAt("ACDB_RECOMPOSE_DATA") : null;
+            DxfDBObject held =
+                root != null && root.Contains("ACDB_RECOMPOSE_DATA") ? root.GetAt("ACDB_RECOMPOSE_DATA") : null;
 
             if (held == null || held.Item.Type != "XRECORD")
             {
@@ -1047,7 +1228,11 @@ namespace GeometryHelper.Dxf
                 {
                     own = group.Value.Trim() == "AcDbXrecord";
                 }
-                else if (own && group.TypeCode == 330 && string.Equals(group.Value.Trim(), Handle, StringComparison.OrdinalIgnoreCase))
+                else if (
+                    own
+                    && group.TypeCode == 330
+                    && string.Equals(group.Value.Trim(), Handle, StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     return true;
                 }
@@ -1072,7 +1257,10 @@ namespace GeometryHelper.Dxf
         {
             DxfFile file = Item.File;
             DxfItem dictionary = file.ObjectItem(file.ExtensionDictionaryOf(Item));
-            DxfItem record = dictionary == null || dictionary.Type != "DICTIONARY" ? null : file.ObjectItem(EntryOf(file.GroupsOf(dictionary), "ACAD_XREC_ROUNDTRIP"));
+            DxfItem record =
+                dictionary == null || dictionary.Type != "DICTIONARY"
+                    ? null
+                    : file.ObjectItem(EntryOf(file.GroupsOf(dictionary), "ACAD_XREC_ROUNDTRIP"));
 
             if (record == null || record.Type != "XRECORD")
             {
@@ -1098,8 +1286,11 @@ namespace GeometryHelper.Dxf
         {
             for (int i = 0; i + 1 < groups.Count; i++)
             {
-                if (groups[i].TypeCode == 3 && string.Equals(groups[i].Value, name, StringComparison.Ordinal)
-                    && (groups[i + 1].TypeCode == 350 || groups[i + 1].TypeCode == 360))
+                if (
+                    groups[i].TypeCode == 3
+                    && string.Equals(groups[i].Value, name, StringComparison.Ordinal)
+                    && (groups[i + 1].TypeCode == 350 || groups[i + 1].TypeCode == 360)
+                )
                 {
                     return groups[i + 1].Value;
                 }
@@ -1144,7 +1335,8 @@ namespace GeometryHelper.Dxf
             states.Sort();
             var cells = links.ConvertAll(l => l.Cell);
             cells.Sort((a, b) => b.LinkAt.CompareTo(a.LinkAt));
-            int from = cells[cells.Count - 1].FlagAt >= 0 ? cells[cells.Count - 1].FlagAt : cells[cells.Count - 1].LinkAt;
+            int from =
+                cells[cells.Count - 1].FlagAt >= 0 ? cells[cells.Count - 1].FlagAt : cells[cells.Count - 1].LinkAt;
             from = states.Count > 0 ? Math.Min(from, states[0]) : from;
             List<DxfTypedValue> tail = Item.File.TailOf(content, from);
             var groups = tail.ConvertAll(g => new KeyValuePair<int, string>(g.TypeCode, g.Value));
@@ -1152,14 +1344,28 @@ namespace GeometryHelper.Dxf
             // The states first, where they stand before any run is taken out.
             foreach (int at in states)
             {
-                int flags = int.Parse(groups[at - from].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture);
-                groups[at - from] = new KeyValuePair<int, string>(90, (flags & ~4).ToString(CultureInfo.InvariantCulture));
+                int flags = int.Parse(
+                    groups[at - from].Value.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture
+                );
+                groups[at - from] = new KeyValuePair<int, string>(
+                    90,
+                    (flags & ~4).ToString(CultureInfo.InvariantCulture)
+                );
             }
 
             foreach (ContentCell cell in cells)
             {
                 int at = cell.LinkAt - from;
-                int linked = int.TryParse(groups[at].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) ? read : 1;
+                int linked = int.TryParse(
+                    groups[at].Value.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int read
+                )
+                    ? read
+                    : 1;
                 groups[at] = new KeyValuePair<int, string>(92, (linked & ~1).ToString(CultureInfo.InvariantCulture));
                 groups.RemoveRange(at + 1, cell.Run);
             }
@@ -1170,7 +1376,16 @@ namespace GeometryHelper.Dxf
         /// <summary>A cell of a TABLECONTENT that names a link: where its state (90) and its 92 stand among the record's groups, and the run of its link after the 92.</summary>
         private sealed class ContentCell
         {
-            internal ContentCell(int row, int column, int flagAt, int linkAt, int run, string handle, long rows, long columns)
+            internal ContentCell(
+                int row,
+                int column,
+                int flagAt,
+                int linkAt,
+                int run,
+                string handle,
+                long rows,
+                long columns
+            )
             {
                 Row = row;
                 Column = column;
@@ -1246,7 +1461,15 @@ namespace GeometryHelper.Dxf
 
                 if (handle.Length > 0)
                 {
-                    links.Add(new LinkedRange(row, column, (int)Math.Min(layout.Rows - 1, row + rows - 1), (int)Math.Min(columns - 1, column + wide - 1), handle));
+                    links.Add(
+                        new LinkedRange(
+                            row,
+                            column,
+                            (int)Math.Min(layout.Rows - 1, row + rows - 1),
+                            (int)Math.Min(columns - 1, column + wide - 1),
+                            handle
+                        )
+                    );
                 }
             }
 
@@ -1303,12 +1526,21 @@ namespace GeometryHelper.Dxf
                 return groups;
             }
 
-            string rows = link == null ? null : (link.BottomRow - link.TopRow + 1).ToString(CultureInfo.InvariantCulture);
-            string columns = link == null ? null : (link.RightColumn - link.LeftColumn + 1).ToString(CultureInfo.InvariantCulture);
+            string rows =
+                link == null ? null : (link.BottomRow - link.TopRow + 1).ToString(CultureInfo.InvariantCulture);
+            string columns =
+                link == null ? null : (link.RightColumn - link.LeftColumn + 1).ToString(CultureInfo.InvariantCulture);
 
-            if (link != null && run >= 3 && groups[at + 1].Key == 340 && groups[at + 2].Key == 93 && groups[at + 3].Key == 94
+            if (
+                link != null
+                && run >= 3
+                && groups[at + 1].Key == 340
+                && groups[at + 2].Key == 93
+                && groups[at + 3].Key == 94
                 && string.Equals(groups[at + 1].Value.Trim(), link.Handle, StringComparison.OrdinalIgnoreCase)
-                && Count(groups[at + 2].Value) == link.BottomRow - link.TopRow + 1 && Count(groups[at + 3].Value) == link.RightColumn - link.LeftColumn + 1)
+                && Count(groups[at + 2].Value) == link.BottomRow - link.TopRow + 1
+                && Count(groups[at + 3].Value) == link.RightColumn - link.LeftColumn + 1
+            )
             {
                 return groups;
             }
@@ -1324,26 +1556,39 @@ namespace GeometryHelper.Dxf
                 at = LinkFlagAt(made, 0, made.Count);
             }
 
-            int flags = int.TryParse(made[at].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) ? read : 0;
-            made[at] = new KeyValuePair<int, string>(92, (link == null ? flags & ~1 : flags | 1).ToString(CultureInfo.InvariantCulture));
+            int flags = int.TryParse(
+                made[at].Value.Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int read
+            )
+                ? read
+                : 0;
+            made[at] = new KeyValuePair<int, string>(
+                92,
+                (link == null ? flags & ~1 : flags | 1).ToString(CultureInfo.InvariantCulture)
+            );
 
             if (link != null)
             {
-                made.InsertRange(at + 1, new[]
-                {
-                    new KeyValuePair<int, string>(340, link.Handle),
-                    new KeyValuePair<int, string>(93, rows),
-                    new KeyValuePair<int, string>(94, columns),
-                    new KeyValuePair<int, string>(96, "0"),
-                });
+                made.InsertRange(
+                    at + 1,
+                    new[]
+                    {
+                        new KeyValuePair<int, string>(340, link.Handle),
+                        new KeyValuePair<int, string>(93, rows),
+                        new KeyValuePair<int, string>(94, columns),
+                        new KeyValuePair<int, string>(96, "0"),
+                    }
+                );
             }
 
             return made;
         }
 
         /// <summary>Whether the cell whose 171 stands at a place is a text cell: its 171 of 1, the only kind of cell that names a link.</summary>
-        private static bool IsTextCell(List<KeyValuePair<int, string>> list, int at)
-            => at < list.Count && list[at].Key == 171 && list[at].Value.Trim() == "1";
+        private static bool IsTextCell(List<KeyValuePair<int, string>> list, int at) =>
+            at < list.Count && list[at].Key == 171 && list[at].Value.Trim() == "1";
 
         /// <summary>Where a cell's first 92 stands, before its value (<c>301 CELL_VALUE</c>); -1 where it has none.</summary>
         private static int LinkFlagAt(List<KeyValuePair<int, string>> list, int from, int to)
@@ -1372,7 +1617,10 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private static int LinkRun(List<KeyValuePair<int, string>> list, int at, int to)
         {
-            if (!int.TryParse(list[at].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags) || (flags & 1) == 0)
+            if (
+                !int.TryParse(list[at].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags)
+                || (flags & 1) == 0
+            )
             {
                 return 0;
             }
@@ -1388,8 +1636,11 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A count of rows or columns of a link, one where it gives none above nought.</summary>
-        private static long Count(string text)
-            => long.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out long count) && count >= 1 ? count : 1;
+        private static long Count(string text) =>
+            long.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out long count)
+            && count >= 1
+                ? count
+                : 1;
 
         /// <summary>The links as rows (or columns) are put in at a place: one they go above or left of moves with its cells, one they go into grows by them, as a block of merged cells does.</summary>
         private static List<LinkedRange> LinksInserted(Layout layout, bool rowsOf, int at, int count)
@@ -1402,7 +1653,11 @@ namespace GeometryHelper.Dxf
                 int last = rowsOf ? link.BottomRow : link.RightColumn;
                 int newFirst = at <= first ? first + count : first;
                 int newLast = at <= last ? last + count : last;
-                links.Add(rowsOf ? link.With(newFirst, link.LeftColumn, newLast, link.RightColumn) : link.With(link.TopRow, newFirst, link.BottomRow, newLast));
+                links.Add(
+                    rowsOf
+                        ? link.With(newFirst, link.LeftColumn, newLast, link.RightColumn)
+                        : link.With(link.TopRow, newFirst, link.BottomRow, newLast)
+                );
             }
 
             return links;
@@ -1417,12 +1672,22 @@ namespace GeometryHelper.Dxf
             {
                 int first = rowsOf ? link.TopRow : link.LeftColumn;
                 int last = rowsOf ? link.BottomRow : link.RightColumn;
-                int newFirst = first < at ? first : first >= at + count ? first - count : at;
-                int newLast = last < at ? last : last >= at + count ? last - count : at - 1;
+                int newFirst =
+                    first < at ? first
+                    : first >= at + count ? first - count
+                    : at;
+                int newLast =
+                    last < at ? last
+                    : last >= at + count ? last - count
+                    : at - 1;
 
                 if (newLast >= newFirst)
                 {
-                    links.Add(rowsOf ? link.With(newFirst, link.LeftColumn, newLast, link.RightColumn) : link.With(link.TopRow, newFirst, link.BottomRow, newLast));
+                    links.Add(
+                        rowsOf
+                            ? link.With(newFirst, link.LeftColumn, newLast, link.RightColumn)
+                            : link.With(link.TopRow, newFirst, link.BottomRow, newLast)
+                    );
                 }
             }
 
@@ -1438,7 +1703,14 @@ namespace GeometryHelper.Dxf
             {
                 if (link.TopRow < rows && link.LeftColumn < columns)
                 {
-                    links.Add(link.With(link.TopRow, link.LeftColumn, Math.Min(link.BottomRow, rows - 1), Math.Min(link.RightColumn, columns - 1)));
+                    links.Add(
+                        link.With(
+                            link.TopRow,
+                            link.LeftColumn,
+                            Math.Min(link.BottomRow, rows - 1),
+                            Math.Min(link.RightColumn, columns - 1)
+                        )
+                    );
                 }
             }
 
@@ -1448,7 +1720,14 @@ namespace GeometryHelper.Dxf
         /// <summary>A range of cells linked to the DATALINK of a handle, by a cell of the TABLECONTENT or of the table's own.</summary>
         private sealed class LinkedRange
         {
-            internal LinkedRange(int topRow, int leftColumn, int bottomRow, int rightColumn, string handle, ContentCell cell = null)
+            internal LinkedRange(
+                int topRow,
+                int leftColumn,
+                int bottomRow,
+                int rightColumn,
+                string handle,
+                ContentCell cell = null
+            )
             {
                 TopRow = topRow;
                 LeftColumn = leftColumn;
@@ -1473,9 +1752,11 @@ namespace GeometryHelper.Dxf
 
             internal DxfCellRange Range => new DxfCellRange(TopRow, LeftColumn, BottomRow, RightColumn);
 
-            internal bool Holds(int row, int column) => row >= TopRow && row <= BottomRow && column >= LeftColumn && column <= RightColumn;
+            internal bool Holds(int row, int column) =>
+                row >= TopRow && row <= BottomRow && column >= LeftColumn && column <= RightColumn;
 
-            internal LinkedRange With(int topRow, int leftColumn, int bottomRow, int rightColumn) => new LinkedRange(topRow, leftColumn, bottomRow, rightColumn, Handle);
+            internal LinkedRange With(int topRow, int leftColumn, int bottomRow, int rightColumn) =>
+                new LinkedRange(topRow, leftColumn, bottomRow, rightColumn, Handle);
         }
 
         #endregion

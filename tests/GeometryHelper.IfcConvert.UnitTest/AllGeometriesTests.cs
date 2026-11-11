@@ -31,9 +31,12 @@ namespace GeometryHelper.IfcConvert.UnitTest
 
             void Point(GeoPoint3 p)
             {
-                text.Append(p.X.ToString("R", CultureInfo.InvariantCulture)).Append(',')
-                    .Append(p.Y.ToString("R", CultureInfo.InvariantCulture)).Append(',')
-                    .Append(p.Z.ToString("R", CultureInfo.InvariantCulture)).Append(';');
+                text.Append(p.X.ToString("R", CultureInfo.InvariantCulture))
+                    .Append(',')
+                    .Append(p.Y.ToString("R", CultureInfo.InvariantCulture))
+                    .Append(',')
+                    .Append(p.Z.ToString("R", CultureInfo.InvariantCulture))
+                    .Append(';');
             }
 
             void Face(GeoFace3 face)
@@ -153,7 +156,10 @@ namespace GeometryHelper.IfcConvert.UnitTest
             {
                 var options = new IfcConvertOptions { ApplyVoids = true };
 
-                Assert.Equal(oneByOne.EnumerateGeometries(options).Select(Text), atOnce.GetAllGeometries(options).Select(Text));
+                Assert.Equal(
+                    oneByOne.EnumerateGeometries(options).Select(Text),
+                    atOnce.GetAllGeometries(options).Select(Text)
+                );
             }
         }
 
@@ -166,7 +172,10 @@ namespace GeometryHelper.IfcConvert.UnitTest
                 // Everything, not only the physical products; and the same file read with no options at all.
                 var everything = new IfcConvertOptions { IncludeNonPhysicalProducts = true };
 
-                Assert.Equal(oneByOne.EnumerateGeometries(everything).Select(Text), atOnce.GetAllGeometries(everything).Select(Text));
+                Assert.Equal(
+                    oneByOne.EnumerateGeometries(everything).Select(Text),
+                    atOnce.GetAllGeometries(everything).Select(Text)
+                );
                 Assert.Equal(oneByOne.EnumerateGeometries().Select(Text), atOnce.GetAllGeometries().Select(Text));
                 Assert.True(atOnce.GetAllGeometries(everything).Count > atOnce.GetAllGeometries().Count);
             }

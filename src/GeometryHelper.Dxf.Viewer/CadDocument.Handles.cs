@@ -11,7 +11,14 @@ namespace GeometryHelper.Dxf.Viewer
     public sealed partial class CadDocument
     {
         // The records of the ENTITIES and BLOCKS sections that are not entities, given no handle here.
-        private static readonly HashSet<string> NotEntities = new HashSet<string>(StringComparer.Ordinal) { "SECTION", "ENDSEC", "BLOCK", "ENDBLK", "EOF" };
+        private static readonly HashSet<string> NotEntities = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "SECTION",
+            "ENDSEC",
+            "BLOCK",
+            "ENDBLK",
+            "EOF",
+        };
 
         /// <summary>
         /// Gives each entity of a drawing that writes no handles, as one of R12 written by hand with neither header nor tables,
@@ -56,7 +63,12 @@ namespace GeometryHelper.Dxf.Viewer
                         wanting.Add(record);
                     }
 
-                    record = section != null && (section == "ENTITIES" || section == "BLOCKS") && !NotEntities.Contains(value) ? i : -1;
+                    record =
+                        section != null
+                        && (section == "ENTITIES" || section == "BLOCKS")
+                        && !NotEntities.Contains(value)
+                            ? i
+                            : -1;
                     owned = false;
 
                     if (value == "ENDSEC")
@@ -79,7 +91,10 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     owned = true;
 
-                    if (ulong.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong handle) && handle > top)
+                    if (
+                        ulong.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong handle)
+                        && handle > top
+                    )
                     {
                         top = handle;
                     }
@@ -99,7 +114,26 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (header < 0)
             {
-                made.Append(string.Join(newline, "  0", "SECTION", "  2", "HEADER", "  9", "$HANDLING", " 70", "     1", "  9", "$HANDSEED", "  5", next, "  0", "ENDSEC")).Append(newline);
+                made.Append(
+                        string.Join(
+                            newline,
+                            "  0",
+                            "SECTION",
+                            "  2",
+                            "HEADER",
+                            "  9",
+                            "$HANDLING",
+                            " 70",
+                            "     1",
+                            "  9",
+                            "$HANDSEED",
+                            "  5",
+                            next,
+                            "  0",
+                            "ENDSEC"
+                        )
+                    )
+                    .Append(newline);
             }
 
             for (int i = 0; i < lines.Length; i++)
@@ -113,16 +147,33 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (at < wanting.Count && wanting[at] + 1 == i)
                 {
-                    made.Append("  5").Append(newline).Append((top + (ulong)at + 1).ToString("X", CultureInfo.InvariantCulture)).Append(newline);
+                    made.Append("  5")
+                        .Append(newline)
+                        .Append((top + (ulong)at + 1).ToString("X", CultureInfo.InvariantCulture))
+                        .Append(newline);
                     at++;
                 }
                 else if (header >= 0 && i == header + 1 && seed < 0)
                 {
-                    made.Append("  9").Append(newline).Append("$HANDSEED").Append(newline).Append("  5").Append(newline).Append(next).Append(newline);
+                    made.Append("  9")
+                        .Append(newline)
+                        .Append("$HANDSEED")
+                        .Append(newline)
+                        .Append("  5")
+                        .Append(newline)
+                        .Append(next)
+                        .Append(newline);
 
                     if (r12 && handling < 0)
                     {
-                        made.Append("  9").Append(newline).Append("$HANDLING").Append(newline).Append(" 70").Append(newline).Append("     1").Append(newline);
+                        made.Append("  9")
+                            .Append(newline)
+                            .Append("$HANDLING")
+                            .Append(newline)
+                            .Append(" 70")
+                            .Append(newline)
+                            .Append("     1")
+                            .Append(newline);
                     }
                 }
                 else if (i == seed + 3 && seed >= 0)

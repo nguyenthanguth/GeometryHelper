@@ -21,10 +21,12 @@ namespace GeometryHelper.UnitTest.Common
     {
         private static readonly Tolerance Loose = new Tolerance(1E-7, 1E-7);
 
-        private static GeoArc3 Quarter() => GeoArc3.FromThreePoints(
-            new GeoPoint3(100, 0, 0),
-            new GeoPoint3(100.0 * Math.Cos(Math.PI / 4.0), 100.0 * Math.Sin(Math.PI / 4.0), 0),
-            new GeoPoint3(0, 100, 0));
+        private static GeoArc3 Quarter() =>
+            GeoArc3.FromThreePoints(
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100.0 * Math.Cos(Math.PI / 4.0), 100.0 * Math.Sin(Math.PI / 4.0), 0),
+                new GeoPoint3(0, 100, 0)
+            );
 
         [Fact]
         public void AnArcInSpaceCutInTwoKeepsItsCentreRadiusAndPlane()
@@ -169,25 +171,33 @@ namespace GeometryHelper.UnitTest.Common
             var bend = new GeoEdge3(quarter);
             var straight = new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(100, 0));
 
-            Assert.Equal(
-                quarter.TrySplitAt(0.5, out GeoArc3[] a),
-                quarter.TrySplitAt(0.5, out GeoArc3[] b, global));
+            Assert.Equal(quarter.TrySplitAt(0.5, out GeoArc3[] a), quarter.TrySplitAt(0.5, out GeoArc3[] b, global));
             Assert.Equal(a[0].Length, b[0].Length, 9);
 
             Assert.Equal(
                 quarter.TrySplitAtDistance(50.0, out GeoArc3[] c),
-                quarter.TrySplitAtDistance(50.0, out GeoArc3[] d, global));
+                quarter.TrySplitAtDistance(50.0, out GeoArc3[] d, global)
+            );
             Assert.Equal(c[0].Length, d[0].Length, 9);
 
             Assert.Equal(bend.Extend(10.0, LineEnd.End).Length, bend.Extend(10.0, LineEnd.End, global).Length, 9);
-            Assert.Equal(bend.ExtendToLength(200.0, LineEnd.End).Length, bend.ExtendToLength(200.0, LineEnd.End, global).Length, 9);
-            Assert.Equal(straight.Extend(10.0, LineEnd.End).Length, straight.Extend(10.0, LineEnd.End, global).Length, 9);
+            Assert.Equal(
+                bend.ExtendToLength(200.0, LineEnd.End).Length,
+                bend.ExtendToLength(200.0, LineEnd.End, global).Length,
+                9
+            );
+            Assert.Equal(
+                straight.Extend(10.0, LineEnd.End).Length,
+                straight.Extend(10.0, LineEnd.End, global).Length,
+                9
+            );
 
             GeoPoint3 on = quarter.GetPointAtParameter(0.5);
 
             Assert.Equal(
                 bend.TryTrimTo(on, LineEnd.End, out GeoEdge3 e),
-                bend.TryTrimTo(on, LineEnd.End, out GeoEdge3 f, global));
+                bend.TryTrimTo(on, LineEnd.End, out GeoEdge3 f, global)
+            );
             Assert.Equal(e.Length, f.Length, 9);
 
             Assert.Throws<ArgumentOutOfRangeException>(() => bend.Extend(double.NaN, LineEnd.End));

@@ -32,7 +32,9 @@ namespace GeometryHelper.Benchmarks.Scenarios
         {
             foreach (int count in new[] { 100, 500, 1000, 5000 })
             {
-                yield return new BenchmarkCase("Arrange.Sparse." + count, count, "labels", count >= 5000, () => Sparse(count));
+                yield return new BenchmarkCase("Arrange.Sparse." + count, count, "labels", count >= 5000, () =>
+                    Sparse(count)
+                );
             }
 
             yield return new BenchmarkCase("Arrange.Dense", DenseSide * DenseSide, "labels", false, Dense);
@@ -54,8 +56,10 @@ namespace GeometryHelper.Benchmarks.Scenarios
 
             for (int p = 0; p < parts; p++)
             {
-                double x0 = 1500.0 * (p % columns) + random.Next(200), y0 = 1500.0 * (p / columns) + random.Next(200);
-                double x1 = x0 + 150 + random.Next(150), y1 = y0 + 80 + random.Next(120);
+                double x0 = 1500.0 * (p % columns) + random.Next(200),
+                    y0 = 1500.0 * (p / columns) + random.Next(200);
+                double x1 = x0 + 150 + random.Next(150),
+                    y1 = y0 + 80 + random.Next(120);
 
                 var region = new[] { Rectangle(x0, y0, x1, y1) };
                 var lines = new[]
@@ -68,14 +72,16 @@ namespace GeometryHelper.Benchmarks.Scenarios
 
                 foreach (GeoLine2 leader in lines)
                 {
-                    items.Add(new ArrangeItem
-                    {
-                        Leader = leader,
-                        Box = new GeoRectangle2(leader.MidPoint, 40.0, 10.0),
-                        Offset = 5.0,
-                        BlockPolygons = region,
-                        BlockLines = lines,
-                    });
+                    items.Add(
+                        new ArrangeItem
+                        {
+                            Leader = leader,
+                            Box = new GeoRectangle2(leader.MidPoint, 40.0, 10.0),
+                            Offset = 5.0,
+                            BlockPolygons = region,
+                            BlockLines = lines,
+                        }
+                    );
                 }
             }
 
@@ -98,7 +104,8 @@ namespace GeometryHelper.Benchmarks.Scenarios
             {
                 for (int j = 0; j < DenseSide; j++)
                 {
-                    double x = 28.0 * i + random.Next(10), y = 28.0 * j + random.Next(10);
+                    double x = 28.0 * i + random.Next(10),
+                        y = 28.0 * j + random.Next(10);
                     leaders.Add(random.Next(2) == 0 ? new GeoLine2(x, y, x + 30, y) : new GeoLine2(x, y, x, y + 30));
                 }
             }
@@ -107,18 +114,21 @@ namespace GeometryHelper.Benchmarks.Scenarios
 
             for (int k = 0; k < 6; k++)
             {
-                double x = random.Next(530), y = random.Next(530);
+                double x = random.Next(530),
+                    y = random.Next(530);
                 regions.Add(Rectangle(x, y, x + 20 + random.Next(30), y + 20 + random.Next(30)));
             }
 
-            var items = leaders.Select(leader => new ArrangeItem
-            {
-                Leader = leader,
-                Box = new GeoRectangle2(leader.MidPoint, 24.0, 10.0),
-                Offset = 3.0,
-                BlockPolygons = regions,
-                BlockLines = leaders,
-            }).ToList();
+            var items = leaders
+                .Select(leader => new ArrangeItem
+                {
+                    Leader = leader,
+                    Box = new GeoRectangle2(leader.MidPoint, 24.0, 10.0),
+                    Offset = 3.0,
+                    BlockPolygons = regions,
+                    BlockLines = leaders,
+                })
+                .ToList();
 
             return Fixture.Of(() => Arranger.Run(items, Options), Sign, Describe, null);
         }
@@ -137,32 +147,39 @@ namespace GeometryHelper.Benchmarks.Scenarios
 
             for (int i = 0; i < StaticCount; i++)
             {
-                double x = random.Next(30000), y = random.Next(20000), length = 50 + random.Next(250);
-                leaders.Add(random.Next(2) == 0 ? new GeoLine2(x, y, x + length, y) : new GeoLine2(x, y, x, y + length));
+                double x = random.Next(30000),
+                    y = random.Next(20000),
+                    length = 50 + random.Next(250);
+                leaders.Add(
+                    random.Next(2) == 0 ? new GeoLine2(x, y, x + length, y) : new GeoLine2(x, y, x, y + length)
+                );
             }
 
             var regions = new List<GeoPolygon2>(300);
 
             for (int k = 0; k < 300; k++)
             {
-                double x = random.Next(30000), y = random.Next(20000);
+                double x = random.Next(30000),
+                    y = random.Next(20000);
                 regions.Add(Rectangle(x, y, x + 50 + random.Next(400), y + 50 + random.Next(400)));
             }
 
-            var items = leaders.Select(leader => new ArrangeItem
-            {
-                Leader = leader,
-                Box = new GeoRectangle2(leader.MidPoint, 60.0, 12.0),
-                Offset = 5.0,
-                BlockPolygons = regions,
-                BlockLines = leaders,
-            }).ToList();
+            var items = leaders
+                .Select(leader => new ArrangeItem
+                {
+                    Leader = leader,
+                    Box = new GeoRectangle2(leader.MidPoint, 60.0, 12.0),
+                    Offset = 5.0,
+                    BlockPolygons = regions,
+                    BlockLines = leaders,
+                })
+                .ToList();
 
             return Fixture.Of(() => Arranger.Run(items, Options), Sign, Describe, null);
         }
 
-        private static GeoPolygon2 Rectangle(double x0, double y0, double x1, double y1)
-            => new GeoPolygon2(new GeoPoint2(x0, y0), new GeoPoint2(x1, y0), new GeoPoint2(x1, y1), new GeoPoint2(x0, y1));
+        private static GeoPolygon2 Rectangle(double x0, double y0, double x1, double y1) =>
+            new GeoPolygon2(new GeoPoint2(x0, y0), new GeoPoint2(x1, y0), new GeoPoint2(x1, y1), new GeoPoint2(x0, y1));
 
         /// <summary>
         /// Signs the results: for each label in order, how far it moves, then whether it is placed.
@@ -178,7 +195,7 @@ namespace GeometryHelper.Benchmarks.Scenarios
             }
         }
 
-        private static string Describe(ArrangeResult[] results)
-            => Report.Count(results.Count(r => r.Placed)) + " of " + Report.Count(results.Length) + " placed";
+        private static string Describe(ArrangeResult[] results) =>
+            Report.Count(results.Count(r => r.Placed)) + " of " + Report.Count(results.Length) + " placed";
     }
 }

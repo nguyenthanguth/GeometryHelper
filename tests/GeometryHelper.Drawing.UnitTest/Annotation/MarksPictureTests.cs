@@ -40,14 +40,27 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
 
                 foreach (ViewKind kind in new[] { ViewKind.Front, ViewKind.Top, ViewKind.Right })
                 {
-                    cases.Add((body.Name.ToLowerInvariant() + "-" + kind.ToString().ToLowerInvariant() + "-1to" + scale, Objects(body), StandardViews.GetFrame(frame, kind).CoordinateSystem, scale));
+                    cases.Add(
+                        (
+                            body.Name.ToLowerInvariant() + "-" + kind.ToString().ToLowerInvariant() + "-1to" + scale,
+                            Objects(body),
+                            StandardViews.GetFrame(frame, kind).CoordinateSystem,
+                            scale
+                        )
+                    );
                 }
             }
 
             foreach ((string name, DrawingObject[] objects, GeoCoordinateSystem3 frame, double scale) in cases)
             {
                 Marked marked = Mark(objects, frame, scale);
-                IReadOnlyList<DrawingCentreLine> centres = DrawingCentreLine.Find(marked.View, objects, new SymbolSettings(), scale, Tol);
+                IReadOnlyList<DrawingCentreLine> centres = DrawingCentreLine.Find(
+                    marked.View,
+                    objects,
+                    new SymbolSettings(),
+                    scale,
+                    Tol
+                );
                 var database = new DxfDatabase("AC1027");
                 var placement = new ViewPlacement2("V-1", new GeoPoint2(0, 0), scale);
                 marked.View.WriteTo(database);
@@ -69,7 +82,14 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
                 }
 
                 string path = SavePicture(database, name);
-                _output.WriteLine(path + "  " + string.Join(", ", marked.Marks.Select(m => m.Text)) + "; " + centres.Count + " centre lines");
+                _output.WriteLine(
+                    path
+                        + "  "
+                        + string.Join(", ", marked.Marks.Select(m => m.Text))
+                        + "; "
+                        + centres.Count
+                        + " centre lines"
+                );
                 Assert.True(new FileInfo(path).Length > 0);
             }
         }
@@ -86,7 +106,17 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             {
                 for (int s = 0; s < sides.Length; s++)
                 {
-                    objects.Add(Weld("W-" + t + s, new GeoPoint3(100 + s * 500, 0, -100 * t - 50), types[t], sides[s], t % 2 == 0 ? "a5" : "s8", s == 1 ? null : "200", "P-1"));
+                    objects.Add(
+                        Weld(
+                            "W-" + t + s,
+                            new GeoPoint3(100 + s * 500, 0, -100 * t - 50),
+                            types[t],
+                            sides[s],
+                            t % 2 == 0 ? "a5" : "s8",
+                            s == 1 ? null : "200",
+                            "P-1"
+                        )
+                    );
                 }
             }
 
@@ -102,9 +132,14 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
                 weld.WriteTo(database, placement);
             }
 
-            new SectionMark("S-A", "A", new GeoLine2(1700, -450, 1700, 50), new GeoVector2(-1, 0), 25).WriteTo(database, placement);
+            new SectionMark("S-A", "A", new GeoLine2(1700, -450, 1700, 50), new GeoVector2(-1, 0), 25).WriteTo(
+                database,
+                placement
+            );
             DetailMark.Circle("D-B", "B", new GeoPoint2(1300, -350), 80, 25).WriteTo(database, placement);
-            DetailMark.Rectangle("D-C", "C", new GeoRectangle2(new GeoPoint2(1300, -100), 200, 120), 25).WriteTo(database, placement);
+            DetailMark
+                .Rectangle("D-C", "C", new GeoRectangle2(new GeoPoint2(1300, -100), 200, 120), 25)
+                .WriteTo(database, placement);
             new LevelMark("L-1", new GeoPoint2(1900, 0), 0, 25).WriteTo(database, placement);
             new LevelMark("L-2", new GeoPoint2(1900, -400), -400, 25).WriteTo(database, placement);
 

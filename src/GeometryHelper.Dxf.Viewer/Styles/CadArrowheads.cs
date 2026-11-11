@@ -127,7 +127,16 @@ namespace GeometryHelper.Dxf.Viewer
             bool weights = string.CompareOrdinal(version, "AC1015") >= 0;
             bool lightweight = string.CompareOrdinal(version, "AC1014") >= 0;
 
-            foreach (DxfEntity entity in Shape(block, new GeoPoint2(0.0, 0.0), new GeoVector2(1.0, 0.0), 1.0, weights, lightweight))
+            foreach (
+                DxfEntity entity in Shape(
+                    block,
+                    new GeoPoint2(0.0, 0.0),
+                    new GeoVector2(1.0, 0.0),
+                    1.0,
+                    weights,
+                    lightweight
+                )
+            )
             {
                 record.AppendEntity(entity);
             }
@@ -136,8 +145,9 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Whether the dimension line runs to the tip of the arrowhead and on past the extension lines by DIMDLE: the ticks, Oblique and Architectural tick.</summary>
-        internal static bool IsTick(string blockName)
-            => string.Equals(blockName, "_ARCHTICK", StringComparison.OrdinalIgnoreCase) || string.Equals(blockName, "_OBLIQUE", StringComparison.OrdinalIgnoreCase);
+        internal static bool IsTick(string blockName) =>
+            string.Equals(blockName, "_ARCHTICK", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(blockName, "_OBLIQUE", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
         /// Whether a dimension's line runs on to the tip of the arrowhead, which takes no room between the extension lines and
@@ -167,7 +177,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// dimension's picture takes them with the lineweight it is drawn with (<paramref name="weights"/> false) and its dots
         /// and ticks as LWPOLYLINEs; a block of a file before R14 holds them as POLYLINEs.
         /// </summary>
-        internal static List<DxfEntity> Shape(string blockName, GeoPoint2 tip, GeoVector2 way, double size, bool weights = false, bool lightweight = true)
+        internal static List<DxfEntity> Shape(
+            string blockName,
+            GeoPoint2 tip,
+            GeoVector2 way,
+            double size,
+            bool weights = false,
+            bool lightweight = true
+        )
         {
             var parts = new Shapes(tip, way, size, weights, lightweight);
 
@@ -213,7 +230,12 @@ namespace GeometryHelper.Dxf.Viewer
                     parts.Circle(0.25);
                     break;
                 case "_BOXBLANK":
-                    parts.Line(-0.5, -0.5, 0.5, -0.5).Line(0.5, -0.5, 0.5, 0.5).Line(0.5, 0.5, -0.5, 0.5).Line(-0.5, 0.5, -0.5, -0.5).Line(-0.5, 0, -1, 0);
+                    parts
+                        .Line(-0.5, -0.5, 0.5, -0.5)
+                        .Line(0.5, -0.5, 0.5, 0.5)
+                        .Line(0.5, 0.5, -0.5, 0.5)
+                        .Line(-0.5, 0.5, -0.5, -0.5)
+                        .Line(-0.5, 0, -1, 0);
                     break;
                 case "_BOXFILLED":
                     parts.Solid(-0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5).Line(-0.5, 0, -1, 0);
@@ -226,7 +248,9 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
                 case "_INTEGRAL":
                     // 102 to 168 and 282 to 348 degrees, in AutoCAD's radians of ten places.
-                    parts.Arc(0.44488802, -0.09133463, 0.45416667, 1.780235837, 2.932153143).Arc(-0.44488802, 0.09133463, 0.45416667, 4.921828491, 6.073745797);
+                    parts
+                        .Arc(0.44488802, -0.09133463, 0.45416667, 1.780235837, 2.932153143)
+                        .Arc(-0.44488802, 0.09133463, 0.45416667, 4.921828491, 6.073745797);
                     break;
                 case "_NONE":
                     break;
@@ -279,17 +303,27 @@ namespace GeometryHelper.Dxf.Viewer
 
             internal List<DxfEntity> All { get; } = new List<DxfEntity>();
 
-            internal Shapes Line(double x1, double y1, double x2, double y2) => Add(new DxfLine(At(x1, y1), At(x2, y2)), true);
+            internal Shapes Line(double x1, double y1, double x2, double y2) =>
+                Add(new DxfLine(At(x1, y1), At(x2, y2)), true);
 
-            internal Shapes Circle(double radius) => Add(new DxfCircle(At(0, 0), new GeoVector3(0, 0, 1), radius * _size), true);
+            internal Shapes Circle(double radius) =>
+                Add(new DxfCircle(At(0, 0), new GeoVector3(0, 0, 1), radius * _size), true);
 
             /// <summary>An arc about a centre, its angles in radians in the unit frame, counter-clockwise from the start.</summary>
-            internal Shapes Arc(double cx, double cy, double radius, double start, double end)
-                => Add(new DxfArc(At(cx, cy), radius * _size, Turned(start + _turn), Turned(end + _turn)), true);
+            internal Shapes Arc(double cx, double cy, double radius, double start, double end) =>
+                Add(new DxfArc(At(cx, cy), radius * _size, Turned(start + _turn), Turned(end + _turn)), true);
 
             /// <summary>A SOLID of four corners in DXF's order (10, 11, 12, 13).</summary>
-            internal Shapes Solid(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4)
-                => Add(new DxfSolid(At(x1, y1), At(x2, y2), At(x3, y3), At(x4, y4)), false);
+            internal Shapes Solid(
+                double x1,
+                double y1,
+                double x2,
+                double y2,
+                double x3,
+                double y3,
+                double x4,
+                double y4
+            ) => Add(new DxfSolid(At(x1, y1), At(x2, y2), At(x3, y3), At(x4, y4)), false);
 
             /// <summary>A filled dot as AutoCAD writes one: a closed polyline of two half circles through (-h, 0) and (h, 0), 0.5 wide.</summary>
             internal Shapes Donut(double half) => Polyline(0.5, true, 1.0, -half, 0.0, half, 0.0);
@@ -309,7 +343,18 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (!_lightweight)
                 {
-                    return Add(new DxfPolyline2d(DxfPoly2dType.SimplePoly, points, 0.0, closed, wide, wide, points.ConvertAll(p => bulge)), false);
+                    return Add(
+                        new DxfPolyline2d(
+                            DxfPoly2dType.SimplePoly,
+                            points,
+                            0.0,
+                            closed,
+                            wide,
+                            wide,
+                            points.ConvertAll(p => bulge)
+                        ),
+                        false
+                    );
                 }
 
                 var polyline = new DxfPolyline();

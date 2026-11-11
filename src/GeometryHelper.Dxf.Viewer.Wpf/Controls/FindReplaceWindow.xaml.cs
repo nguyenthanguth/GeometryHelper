@@ -29,7 +29,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Shows the dialog over a window until it is closed.</summary>
         /// <param name="owner">The window it is shown over; null for none.</param>
         /// <param name="model">The view model.</param>
-        public static void Show(Window owner, FindReplaceViewModel model) => new FindReplaceWindow(model) { Owner = owner }.ShowDialog();
+        public static void Show(Window owner, FindReplaceViewModel model) =>
+            new FindReplaceWindow(model) { Owner = owner }.ShowDialog();
 
         private void OnHeaderDown(object sender, MouseButtonEventArgs e)
         {

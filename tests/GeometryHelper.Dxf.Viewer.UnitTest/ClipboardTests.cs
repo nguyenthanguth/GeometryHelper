@@ -121,7 +121,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Session(source, clipboard);
             Run(session, "COPYCLIP", new[] { "A3" }, Enter, "PASTEORIG");
             Assert.Single(All<DxfCircle>(source.ModelSpace));
-            Assert.Contains(session.History, l => l.StartsWith("PASTEORIG pastes objects copied from another drawing", System.StringComparison.Ordinal));
+            Assert.Contains(session.History, l =>
+                l.StartsWith("PASTEORIG pastes objects copied from another drawing", System.StringComparison.Ordinal)
+            );
 
             CadDocument blank = Blank();
             Run(Session(blank, clipboard), "PASTEORIG");

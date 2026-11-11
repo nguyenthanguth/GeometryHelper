@@ -15,7 +15,8 @@ namespace GeometryHelper.UnitTest.Dxf
     {
         private static readonly Tolerance Tol = Tolerance.Default;
 
-        private static DxfDocument Read(string text, bool planAs2D = false) => DxfReader.Parse(text, new DxfReadOptions { PlanAs2D = planAs2D, Tolerance = Tol });
+        private static DxfDocument Read(string text, bool planAs2D = false) =>
+            DxfReader.Parse(text, new DxfReadOptions { PlanAs2D = planAs2D, Tolerance = Tol });
 
         private static DxfText Only(DxfDocument read) => Assert.IsType<DxfText>(Assert.Single(read.Shapes).Shape);
 
@@ -46,9 +47,44 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData(0, 2, 5.0)]
         [InlineData(0, 3, 5.0)]
         [InlineData(2, 3, 5.0)]
-        public void ATextAlignedLeftOrAlignedOrFittedOnItsBaseline_StandsAtItsFirstPoint_AndOneAlignedAnyOtherWayAtItsSecond(int horizontal, int vertical, double x)
+        public void ATextAlignedLeftOrAlignedOrFittedOnItsBaseline_StandsAtItsFirstPoint_AndOneAlignedAnyOtherWayAtItsSecond(
+            int horizontal,
+            int vertical,
+            double x
+        )
         {
-            DxfText text = Only(Read(R2000(G(0, "TEXT", 8, "0", 10, "1", 20, "2", 30, "0", 40, "2.5", 1, "A", 72, horizontal, 11, "5", 21, "6", 31, "0", 73, vertical))));
+            DxfText text = Only(
+                Read(
+                    R2000(
+                        G(
+                            0,
+                            "TEXT",
+                            8,
+                            "0",
+                            10,
+                            "1",
+                            20,
+                            "2",
+                            30,
+                            "0",
+                            40,
+                            "2.5",
+                            1,
+                            "A",
+                            72,
+                            horizontal,
+                            11,
+                            "5",
+                            21,
+                            "6",
+                            31,
+                            "0",
+                            73,
+                            vertical
+                        )
+                    )
+                )
+            );
 
             Same(new GeoPoint3(x, x == 1.0 ? 2.0 : 6.0, 0.0), text.Position);
             Assert.False(text.IsMultiline);
@@ -61,7 +97,40 @@ namespace GeometryHelper.UnitTest.Dxf
         public void AnAlignedOrFittedText_RunsFromItsFirstPointToItsSecond_AndStandsAtTheFirst(int horizontal)
         {
             // ezdxf places an ALIGNED or FIT text from its insert (10) to its align point (11): the text from (0, 0) to (100, 0).
-            DxfText text = Only(Read(R2000(G(0, "TEXT", 8, "0", 10, "0", 20, "0", 30, "0", 40, "2.5", 1, "ALIGNED TEXT", 72, horizontal, 11, "100", 21, "0", 31, "0", 100, "AcDbText", 73, 0))));
+            DxfText text = Only(
+                Read(
+                    R2000(
+                        G(
+                            0,
+                            "TEXT",
+                            8,
+                            "0",
+                            10,
+                            "0",
+                            20,
+                            "0",
+                            30,
+                            "0",
+                            40,
+                            "2.5",
+                            1,
+                            "ALIGNED TEXT",
+                            72,
+                            horizontal,
+                            11,
+                            "100",
+                            21,
+                            "0",
+                            31,
+                            "0",
+                            100,
+                            "AcDbText",
+                            73,
+                            0
+                        )
+                    )
+                )
+            );
 
             Same(new GeoPoint3(0.0, 0.0, 0.0), text.Position);
         }
@@ -77,7 +146,11 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void TheSignsOfAText_AreTheirCharacters_InEitherCase_AndItsEscapesItsLetters()
         {
-            DxfText text = Only(Read(R2000(G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, "%%c25 %%C %%d%%D %%p%%P Caf\\U+00E9 50%"))));
+            DxfText text = Only(
+                Read(
+                    R2000(G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, "%%c25 %%C %%d%%D %%p%%P Caf\\U+00E9 50%"))
+                )
+            );
 
             Assert.Equal("\u220525 \u2205 \u00B0\u00B0 \u00B1\u00B1 Caf\u00E9 50%", text.Value);
             Assert.Equal(1.0, text.WidthFactor);
@@ -123,16 +196,37 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("ends %%", "ends %%")]
         public void APerCentSignAndACharacterByItsCode_AreReadAsAutoCadReadsThem(string written, string expected)
         {
-            Assert.Equal(expected, Only(Read(R2000(G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, written)))).Value);
-            Assert.Equal(written, Only(Read(R2000(G(0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, written)))).Value);
+            Assert.Equal(
+                expected,
+                Only(Read(R2000(G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, written)))).Value
+            );
+            Assert.Equal(
+                written,
+                Only(Read(R2000(G(0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, written)))).Value
+            );
         }
 
         [Fact]
         public void ControlCharactersInCaretForm_AreTheCharacters_ATextKeepingToOneLine()
         {
-            DxfDocument read = Read(R2000(
-                G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, "tab^Ihere, a caret ^ , a line^Jfeed^M and a\\U+000Aline\\U+000D")
-                + G(0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, "tab^Ihere^Jnext\\U+000Dline\\U+000Alast")));
+            DxfDocument read = Read(
+                R2000(
+                    G(
+                        0,
+                        "TEXT",
+                        8,
+                        "0",
+                        10,
+                        "0",
+                        20,
+                        "0",
+                        40,
+                        "1",
+                        1,
+                        "tab^Ihere, a caret ^ , a line^Jfeed^M and a\\U+000Aline\\U+000D"
+                    ) + G(0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, "tab^Ihere^Jnext\\U+000Dline\\U+000Alast")
+                )
+            );
             DxfText[] texts = read.Shapes.Select(e => (DxfText)e.Shape).ToArray();
 
             // A TEXT is one line: a line feed is a space and a carriage return is left out; an MTEXT keeps its line feeds.
@@ -143,9 +237,12 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ATextWithControlCharacters_IsWrittenAndReadBackTheSame_ThroughItsEntity()
         {
-            DxfDocument read = Read(R2000(
-                G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, "a\\U+000Ab\\U+000Dc^Id^ e")
-                + G(0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, "a\\U+000Ab\\U+000Dc^Id^ e\\U+0001f")));
+            DxfDocument read = Read(
+                R2000(
+                    G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, "a\\U+000Ab\\U+000Dc^Id^ e")
+                        + G(0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, "a\\U+000Ab\\U+000Dc^Id^ e\\U+0001f")
+                )
+            );
             var writer = new DxfWriter();
 
             foreach (DxfShape entity in read.Shapes)
@@ -155,7 +252,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfDocument again = Read(writer.ToString());
 
-            Assert.Equal(read.Shapes.Select(e => ((DxfText)e.Shape).Value).ToArray(), again.Shapes.Select(e => ((DxfText)e.Shape).Value).ToArray());
+            Assert.Equal(
+                read.Shapes.Select(e => ((DxfText)e.Shape).Value).ToArray(),
+                again.Shapes.Select(e => ((DxfText)e.Shape).Value).ToArray()
+            );
             Assert.Equal("a bc\td^e", ((DxfText)again.Shapes[0].Shape).Value);
             Assert.Equal("a\nbc\td^e\u0001f", ((DxfText)again.Shapes[1].Shape).Value);
             Assert.Contains("a bc^Id^ e", writer.ToString());
@@ -172,7 +272,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.True(text.Rotation >= 0.0 && text.Rotation < Math.PI * 2.0);
             Assert.Equal(expected * Math.PI / 180.0, text.Rotation, 12);
-            Assert.Equal(Math.PI * 1.5, new DxfText(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 1.0, -Math.PI / 2.0, "a").Rotation, 15);
+            Assert.Equal(
+                Math.PI * 1.5,
+                new DxfText(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 1.0, -Math.PI / 2.0, "a").Rotation,
+                15
+            );
         }
 
         [Fact]
@@ -183,7 +287,12 @@ namespace GeometryHelper.UnitTest.Dxf
             string[] lines = written.Split('\n');
             int at = Array.IndexOf(lines, "MTEXT");
             int end = Array.IndexOf(lines, "  0", at + 1);
-            string[] codes = lines.Skip(at + 1).Take(end - at - 1).Where((l, i) => i % 2 == 0).Select(l => l.Trim()).ToArray();
+            string[] codes = lines
+                .Skip(at + 1)
+                .Take(end - at - 1)
+                .Where((l, i) => i % 2 == 0)
+                .Select(l => l.Trim())
+                .ToArray();
 
             Assert.Contains("11", codes);
             Assert.DoesNotContain("50", codes);
@@ -193,7 +302,30 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AnMText_IsItsPiecesInTheirOrder_ThenItsLast()
         {
-            DxfText text = Only(Read(R2000(G(0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "1", 3, "first piece {\\fArial;", 3, "bold} second ", 1, "last\\Pline"))));
+            DxfText text = Only(
+                Read(
+                    R2000(
+                        G(
+                            0,
+                            "MTEXT",
+                            8,
+                            "0",
+                            10,
+                            "0",
+                            20,
+                            "0",
+                            40,
+                            "1",
+                            3,
+                            "first piece {\\fArial;",
+                            3,
+                            "bold} second ",
+                            1,
+                            "last\\Pline"
+                        )
+                    )
+                )
+            );
 
             Assert.Equal("first piece bold second last\nline", text.Value);
         }
@@ -201,7 +333,38 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ATextOnTheExtrusionDown_StandsWhereItsPlaneSaysInTheWorld_TurnedInThatPlane()
         {
-            DxfText text = Only(Read(R2000(G(0, "TEXT", 8, "0", 10, "3", 20, "4", 30, "5", 40, "2", 1, "under", 50, "45", 41, "0.75", 210, "0", 220, "0", 230, "-1"))));
+            DxfText text = Only(
+                Read(
+                    R2000(
+                        G(
+                            0,
+                            "TEXT",
+                            8,
+                            "0",
+                            10,
+                            "3",
+                            20,
+                            "4",
+                            30,
+                            "5",
+                            40,
+                            "2",
+                            1,
+                            "under",
+                            50,
+                            "45",
+                            41,
+                            "0.75",
+                            210,
+                            "0",
+                            220,
+                            "0",
+                            230,
+                            "-1"
+                        )
+                    )
+                )
+            );
 
             // The system of (0, 0, -1) has its x along the world's -x: the point (3, 4, 5) of it is (-3, 4, -5).
             Same(new GeoPoint3(-3.0, 4.0, -5.0), text.Position);
@@ -213,10 +376,65 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AnMText_StandsInWorldCoordinates_TurnedByItsDirection_OrByItsAngleInDegreesWhereItHasNone()
         {
-            DxfDocument read = Read(R2000(
-                G(0, "MTEXT", 8, "0", 10, "1", 20, "2", 30, "3", 40, "2", 41, "20", 1, "tilted", 210, "0.6", 220, "0", 230, "0.8", 11, "-0.8", 21, "0", 31, "0.6")
-                + G(0, "MTEXT", 8, "0", 10, "0", 20, "5", 30, "0", 40, "1.5", 1, "up", 50, "90")
-                + G(0, "MTEXT", 8, "0", 10, "0", 20, "5", 30, "0", 40, "1.5", 1, "both", 50, "90", 11, "1", 21, "1", 31, "0")));
+            DxfDocument read = Read(
+                R2000(
+                    G(
+                        0,
+                        "MTEXT",
+                        8,
+                        "0",
+                        10,
+                        "1",
+                        20,
+                        "2",
+                        30,
+                        "3",
+                        40,
+                        "2",
+                        41,
+                        "20",
+                        1,
+                        "tilted",
+                        210,
+                        "0.6",
+                        220,
+                        "0",
+                        230,
+                        "0.8",
+                        11,
+                        "-0.8",
+                        21,
+                        "0",
+                        31,
+                        "0.6"
+                    )
+                        + G(0, "MTEXT", 8, "0", 10, "0", 20, "5", 30, "0", 40, "1.5", 1, "up", 50, "90")
+                        + G(
+                            0,
+                            "MTEXT",
+                            8,
+                            "0",
+                            10,
+                            "0",
+                            20,
+                            "5",
+                            30,
+                            "0",
+                            40,
+                            "1.5",
+                            1,
+                            "both",
+                            50,
+                            "90",
+                            11,
+                            "1",
+                            21,
+                            "1",
+                            31,
+                            "0"
+                        )
+                )
+            );
             DxfText[] texts = read.Shapes.Select(e => (DxfText)e.Shape).ToArray();
 
             // On (0.6, 0, 0.8) the system's x is (0, 1, 0) and its y (-0.8, 0, 0.6): the direction is a quarter turn on.
@@ -232,12 +450,15 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ATextOfNoHeight_IsCountedAndLeftOut_AndTheRestRead()
         {
-            DxfDocument read = Read(R2000(
-                G(0, "TEXT", 8, "0", 10, "0", 20, "0", 1, "no height")
-                + G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "0", 1, "nought")
-                + G(0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "-1", 1, "below nought")
-                + G(0, "TEXT", 8, "0", 40, "1", 1, "nowhere")
-                + G(0, "LINE", 8, "0", 10, "0", 20, "0", 11, "1", 21, "0")));
+            DxfDocument read = Read(
+                R2000(
+                    G(0, "TEXT", 8, "0", 10, "0", 20, "0", 1, "no height")
+                        + G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "0", 1, "nought")
+                        + G(0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "-1", 1, "below nought")
+                        + G(0, "TEXT", 8, "0", 40, "1", 1, "nowhere")
+                        + G(0, "LINE", 8, "0", 10, "0", 20, "0", 11, "1", 21, "0")
+                )
+            );
 
             Assert.Equal("LINE", Assert.Single(read.Shapes).Type);
             Assert.Equal(3, read.Skipped["TEXT"]);
@@ -247,9 +468,22 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AText_IsATextWithPlanAs2D_AndItsLengthsAreScaledToMillimeters_NotItsAngleOrWidthFactor()
         {
-            string text = File("AC1015", 6, string.Empty, G(0, "TEXT", 8, "0", 10, "1.5", 20, "2", 30, "0", 40, "0.25", 1, "a", 50, "30", 41, "0.8")
-                + G(0, "MTEXT", 8, "0", 10, "1", 20, "1", 30, "0", 40, "0.5", 41, "2", 1, "b"));
-            DxfDocument read = DxfReader.Parse(text, new DxfReadOptions { PlanAs2D = true, ToMillimeters = true, Tolerance = Tol });
+            string text = File(
+                "AC1015",
+                6,
+                string.Empty,
+                G(0, "TEXT", 8, "0", 10, "1.5", 20, "2", 30, "0", 40, "0.25", 1, "a", 50, "30", 41, "0.8")
+                    + G(0, "MTEXT", 8, "0", 10, "1", 20, "1", 30, "0", 40, "0.5", 41, "2", 1, "b")
+            );
+            DxfDocument read = DxfReader.Parse(
+                text,
+                new DxfReadOptions
+                {
+                    PlanAs2D = true,
+                    ToMillimeters = true,
+                    Tolerance = Tol,
+                }
+            );
             DxfText[] texts = read.Shapes.Select(e => (DxfText)e.Shape).ToArray();
 
             Same(new GeoPoint3(1500.0, 2000.0, 0.0), texts[0].Position);
@@ -272,14 +506,19 @@ namespace GeometryHelper.UnitTest.Dxf
 
         #region Through blocks
 
-        private static string WithBlock(string blocks, string entities) => File("AC1015", 4, G(0, "SECTION", 2, "BLOCKS") + blocks + G(0, "ENDSEC"), entities);
+        private static string WithBlock(string blocks, string entities) =>
+            File("AC1015", 4, G(0, "SECTION", 2, "BLOCKS") + blocks + G(0, "ENDSEC"), entities);
 
         [Fact]
         public void ATextOfABlock_TakesTheLayerAndColourOfItsInsert_AndTheNamesOfItsBlocks()
         {
             string text = WithBlock(
-                G(0, "BLOCK", 8, "0", 2, "TAG", 70, 0, 10, "0", 20, "0", 30, "0") + G(0, "TEXT", 5, "A1", 8, "0", 62, 0, 10, "1", 20, "2", 40, "2.5", 1, "D1") + G(0, "ENDBLK", 8, "0"),
-                G(0, "INSERT", 5, "B1", 8, "doors", 62, 3, 2, "TAG", 10, "10", 20, "20") + G(0, "INSERT", 5, "B2", 8, "walls", 2, "TAG", 10, "30", 20, "20"));
+                G(0, "BLOCK", 8, "0", 2, "TAG", 70, 0, 10, "0", 20, "0", 30, "0")
+                    + G(0, "TEXT", 5, "A1", 8, "0", 62, 0, 10, "1", 20, "2", 40, "2.5", 1, "D1")
+                    + G(0, "ENDBLK", 8, "0"),
+                G(0, "INSERT", 5, "B1", 8, "doors", 62, 3, 2, "TAG", 10, "10", 20, "20")
+                    + G(0, "INSERT", 5, "B2", 8, "walls", 2, "TAG", 10, "30", 20, "20")
+            );
 
             DxfDocument read = Read(text);
 
@@ -295,8 +534,12 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TheTextOfAMirroredInsert_FacesTheOtherWay_ReadingAlongTheMirroredAxis_AsAutoCadWritesIt()
         {
             string text = WithBlock(
-                G(0, "BLOCK", 8, "0", 2, "TAG", 70, 0, 10, "0", 20, "0", 30, "0") + G(0, "TEXT", 8, "0", 10, "1", 20, "0", 40, "2", 1, "D1") + G(0, "ENDBLK", 8, "0"),
-                G(0, "INSERT", 8, "0", 2, "TAG", 10, "0", 20, "0", 41, "-1") + G(0, "INSERT", 8, "0", 2, "TAG", 10, "0", 20, "0", 41, "2", 42, "2", 43, "2", 50, "90"));
+                G(0, "BLOCK", 8, "0", 2, "TAG", 70, 0, 10, "0", 20, "0", 30, "0")
+                    + G(0, "TEXT", 8, "0", 10, "1", 20, "0", 40, "2", 1, "D1")
+                    + G(0, "ENDBLK", 8, "0"),
+                G(0, "INSERT", 8, "0", 2, "TAG", 10, "0", 20, "0", 41, "-1")
+                    + G(0, "INSERT", 8, "0", 2, "TAG", 10, "0", 20, "0", 41, "2", 42, "2", 43, "2", 50, "90")
+            );
 
             DxfText[] texts = Read(text).Shapes.Select(e => (DxfText)e.Shape).ToArray();
 
@@ -320,10 +563,11 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             string text = WithBlock(
                 G(0, "BLOCK", 8, "0", 2, "TAG", 70, 0, 10, "0", 20, "0", 30, "0")
-                + G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "2", 41, "0.5", 1, "D1")
-                + G(0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "2", 41, "10", 1, "D2")
-                + G(0, "ENDBLK", 8, "0"),
-                G(0, "INSERT", 8, "0", 2, "TAG", 10, "0", 20, "0", 41, "3", 42, "2"));
+                    + G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "2", 41, "0.5", 1, "D1")
+                    + G(0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "2", 41, "10", 1, "D2")
+                    + G(0, "ENDBLK", 8, "0"),
+                G(0, "INSERT", 8, "0", 2, "TAG", 10, "0", 20, "0", 41, "3", 42, "2")
+            );
 
             DxfText[] texts = Read(text).Shapes.Select(e => (DxfText)e.Shape).ToArray();
 
@@ -340,10 +584,13 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             string text = WithBlock(
                 G(0, "BLOCK", 8, "0", 2, "TAG", 70, 0, 10, "0", 20, "0", 30, "0")
-                + G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "2", 1, "a") + G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "2", 1, "b") + G(0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "2", 1, "c")
-                + G(0, "LINE", 8, "0", 10, "0", 20, "0", 11, "1", 21, "0")
-                + G(0, "ENDBLK", 8, "0"),
-                G(0, "INSERT", 8, "0", 2, "TAG", 10, "0", 20, "0"));
+                    + G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "2", 1, "a")
+                    + G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "2", 1, "b")
+                    + G(0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "2", 1, "c")
+                    + G(0, "LINE", 8, "0", 10, "0", 20, "0", 11, "1", 21, "0")
+                    + G(0, "ENDBLK", 8, "0"),
+                G(0, "INSERT", 8, "0", 2, "TAG", 10, "0", 20, "0")
+            );
 
             DxfDocument under = DxfReader.Parse(text, new DxfReadOptions { MaxPlacedEntities = 3, Tolerance = Tol });
             DxfDocument enough = DxfReader.Parse(text, new DxfReadOptions { MaxPlacedEntities = 4, Tolerance = Tol });
@@ -357,8 +604,11 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ATextOfABlockFlattenedByItsInsert_IsCountedAndLeftOut()
         {
             string text = WithBlock(
-                G(0, "BLOCK", 8, "0", 2, "TAG", 70, 0, 10, "0", 20, "0", 30, "0") + G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "2", 1, "a") + G(0, "ENDBLK", 8, "0"),
-                G(0, "INSERT", 8, "0", 2, "TAG", 10, "0", 20, "0", 42, "0"));
+                G(0, "BLOCK", 8, "0", 2, "TAG", 70, 0, 10, "0", 20, "0", 30, "0")
+                    + G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "2", 1, "a")
+                    + G(0, "ENDBLK", 8, "0"),
+                G(0, "INSERT", 8, "0", 2, "TAG", 10, "0", 20, "0", 42, "0")
+            );
 
             DxfDocument read = Read(text);
 
@@ -373,14 +623,32 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void TextsWrittenAndReadBack_AreTheSameTexts_TheirRotationToTheLastPlace()
         {
-            string longWords = string.Concat(Enumerable.Repeat("words {in braces} and a \\ back slash, ", 20)) + "\u00E9\nnext paragraph";
+            string longWords =
+                string.Concat(Enumerable.Repeat("words {in braces} and a \\ back slash, ", 20))
+                + "\u00E9\nnext paragraph";
             var normal = new GeoVector3(1.0, 2.0, 3.0);
             DxfText[] texts =
             {
-                new DxfText(new GeoPoint3(1.1, 2.2, 3.3), new GeoVector3(0.0, 0.0, 1.0), 2.5, 0.7, "Grid A \u00E9 \u2300", widthFactor: 0.8),
+                new DxfText(
+                    new GeoPoint3(1.1, 2.2, 3.3),
+                    new GeoVector3(0.0, 0.0, 1.0),
+                    2.5,
+                    0.7,
+                    "Grid A \u00E9 \u2300",
+                    widthFactor: 0.8
+                ),
                 new DxfText(new GeoPoint3(-4.25, 5.5, -1.0), new GeoVector3(0.0, 0.0, -1.0), 3.5, 4.0, "under"),
                 new DxfText(new GeoPoint3(10.0, 20.0, 30.0), normal, 1.25, 2.0, "tilted"),
-                new DxfText(new GeoPoint3(0.1, 0.2, 0.3), new GeoVector3(0.0, 0.0, 1.0), 2.0, 0.0, "line one\nline {two} \\ \u00B1", true, 1.0, 50.0),
+                new DxfText(
+                    new GeoPoint3(0.1, 0.2, 0.3),
+                    new GeoVector3(0.0, 0.0, 1.0),
+                    2.0,
+                    0.0,
+                    "line one\nline {two} \\ \u00B1",
+                    true,
+                    1.0,
+                    50.0
+                ),
                 new DxfText(new GeoPoint3(7.7, -8.8, 9.9), normal, 1.5, 1.2, longWords, true, 1.0, 0.0),
             };
             var writer = new DxfWriter();
@@ -405,7 +673,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(text.WidthFactor, back.WidthFactor);
                 Assert.Equal(text.Width, back.Width);
                 Same(text.Normal, back.Normal);
-                Assert.True(Math.Abs(text.Rotation - back.Rotation) <= 1E-14, "rotation " + text.Rotation.ToString("R") + " came back " + back.Rotation.ToString("R"));
+                Assert.True(
+                    Math.Abs(text.Rotation - back.Rotation) <= 1E-14,
+                    "rotation " + text.Rotation.ToString("R") + " came back " + back.Rotation.ToString("R")
+                );
                 Assert.Equal("notes", read.Shapes[i].Layer);
 
                 // The TEXT on a tilted normal goes through its plane's system and comes back to its rounding.
@@ -424,8 +695,37 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ATextReadWithItsLook_IsWrittenWithIt_AndReadBackTheSame()
         {
             string text = R2000(
-                G(0, "TEXT", 8, "steel", 6, "DASHED", 62, 1, 370, 35, 420, 16744448, 39, "5", 10, "1", 20, "2", 30, "0", 40, "2.5", 1, "note", 50, "30", 41, "0.9")
-                + G(0, "MTEXT", 8, "cut", 62, 5, 10, "3", 20, "4", 30, "0", 40, "1.5", 41, "12", 1, "a\\Pb"));
+                G(
+                    0,
+                    "TEXT",
+                    8,
+                    "steel",
+                    6,
+                    "DASHED",
+                    62,
+                    1,
+                    370,
+                    35,
+                    420,
+                    16744448,
+                    39,
+                    "5",
+                    10,
+                    "1",
+                    20,
+                    "2",
+                    30,
+                    "0",
+                    40,
+                    "2.5",
+                    1,
+                    "note",
+                    50,
+                    "30",
+                    41,
+                    "0.9"
+                ) + G(0, "MTEXT", 8, "cut", 62, 5, 10, "3", 20, "4", 30, "0", 40, "1.5", 41, "12", 1, "a\\Pb")
+            );
             DxfDocument read = Read(text);
             var writer = new DxfWriter();
 
@@ -455,7 +755,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(a.Height, b.Height);
                 Assert.Equal(a.Width, b.Width);
                 Assert.Equal(a.WidthFactor, b.WidthFactor);
-                Assert.True(Math.Abs(a.Rotation - b.Rotation) <= 1E-14, "rotation " + a.Rotation.ToString("R") + " came back " + b.Rotation.ToString("R"));
+                Assert.True(
+                    Math.Abs(a.Rotation - b.Rotation) <= 1E-14,
+                    "rotation " + a.Rotation.ToString("R") + " came back " + b.Rotation.ToString("R")
+                );
             }
 
             Assert.Equal(5.0, again.Shapes[0].Thickness);

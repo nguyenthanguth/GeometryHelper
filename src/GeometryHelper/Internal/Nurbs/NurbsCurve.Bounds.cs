@@ -20,7 +20,13 @@ namespace GeometryHelper.Internal.Nurbs
         /// <param name="origin">The point to measure from, Dim numbers, or null for the origin of the drawing.</param>
         /// <param name="numerators">One array of Degree + 1 coefficients per coordinate.</param>
         /// <param name="weights">The weight's Degree + 1 coefficients, or null when the piece is not rational.</param>
-        internal static void Numerators(BezierPieces pieces, int piece, double[] origin, out double[][] numerators, out double[] weights)
+        internal static void Numerators(
+            BezierPieces pieces,
+            int piece,
+            double[] origin,
+            out double[][] numerators,
+            out double[] weights
+        )
         {
             int p = pieces.Degree;
             int dim = pieces.Dim;
@@ -70,7 +76,9 @@ namespace GeometryHelper.Internal.Nurbs
             }
 
             double[] weightSlope = Bernstein.Derivative(weights);
-            scale = Bernstein.MaxAbs(slope) * Bernstein.MaxAbs(weights) + Bernstein.MaxAbs(numerator) * Bernstein.MaxAbs(weightSlope);
+            scale =
+                Bernstein.MaxAbs(slope) * Bernstein.MaxAbs(weights)
+                + Bernstein.MaxAbs(numerator) * Bernstein.MaxAbs(weightSlope);
 
             return Bernstein.Subtract(Bernstein.Multiply(slope, weights), Bernstein.Multiply(numerator, weightSlope));
         }

@@ -28,7 +28,9 @@ namespace GeometryHelper.Dxf
     public sealed class DxfCircle : DxfCurve
     {
         // The groups of AcDbCircle in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 39, 10, 20, 30, 40, 210, 220, 230 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 39, 10, 20, 30, 40, 210, 220, 230 }
+        );
 
         private static readonly GeoPoint3 Origin = new GeoPoint3(0.0, 0.0, 0.0);
 
@@ -41,9 +43,7 @@ namespace GeometryHelper.Dxf
         /// in no file; give it its radius before it is drawn.
         /// </summary>
         public DxfCircle()
-            : this(Origin, Up, 0.0)
-        {
-        }
+            : this(Origin, Up, 0.0) { }
 
         /// <summary>
         /// Initializes a circle about a centre in the plane square to a normal, as AutoCAD's <c>new Circle(center, normal,
@@ -55,14 +55,10 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number, or the normal has no length.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is below nought or not a finite number.</exception>
         public DxfCircle(GeoPoint3 center, GeoVector3 normal, double radius)
-            : base("CIRCLE", Groups(center, normal, radius))
-        {
-        }
+            : base("CIRCLE", Groups(center, normal, radius)) { }
 
         private DxfCircle(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets or sets the centre of the circle, in world coordinates, as AutoCAD's <c>Center</c>: the groups 10, 20 and 30
@@ -74,7 +70,6 @@ namespace GeometryHelper.Dxf
         public GeoPoint3 Center
         {
             get => OcsToWorld(GetNormal(), GetPoint(10, Origin));
-
             set
             {
                 if (!SamePoint(value, Center))
@@ -91,7 +86,6 @@ namespace GeometryHelper.Dxf
         public double Radius
         {
             get => GetDouble(40, 1.0);
-
             set
             {
                 Guard.NonNegative(value, nameof(value), "A radius has to be a finite number, nought or more.");
@@ -132,7 +126,6 @@ namespace GeometryHelper.Dxf
         public double Diameter
         {
             get => 2.0 * Radius;
-
             set
             {
                 if (!Same(value, Diameter))
@@ -149,7 +142,6 @@ namespace GeometryHelper.Dxf
         public double Circumference
         {
             get => Turn * Radius;
-
             set
             {
                 if (!Same(value, Circumference))
@@ -278,7 +270,10 @@ namespace GeometryHelper.Dxf
                 return At(normal, centre, radius, 0.0);
             }
 
-            return OcsToWorld(normal, new GeoPoint3(centre.X + radius * (dx / length), centre.Y + radius * (dy / length), centre.Z));
+            return OcsToWorld(
+                normal,
+                new GeoPoint3(centre.X + radius * (dx / length), centre.Y + radius * (dy / length), centre.Z)
+            );
         }
 
         /// <summary>
@@ -320,7 +315,11 @@ namespace GeometryHelper.Dxf
 
             if (!(radius > 0.0))
             {
-                throw new ArgumentOutOfRangeException(nameof(offsetDist), offsetDist, "The offset takes the radius of the circle to nought or below.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(offsetDist),
+                    offsetDist,
+                    "The offset takes the radius of the circle to nought or below."
+                );
             }
 
             var copy = (DxfCircle)Copy();
@@ -340,11 +339,21 @@ namespace GeometryHelper.Dxf
         /// <returns>The one circle, of the same look, in no file.</returns>
         /// <exception cref="ArgumentException">Thrown when the normal is not along the circle's within the vector tolerance.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number, or takes the radius to nought or below.</exception>
-        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(GeoVector3 planeNormal, double offsetDist)
+        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(
+            GeoVector3 planeNormal,
+            double offsetDist
+        )
         {
-            if (!planeNormal.IsValid || planeNormal.IsZeroLength(Tolerance.Default) || !planeNormal.IsParallelTo(GetNormal(), Tolerance.Default))
+            if (
+                !planeNormal.IsValid
+                || planeNormal.IsZeroLength(Tolerance.Default)
+                || !planeNormal.IsParallelTo(GetNormal(), Tolerance.Default)
+            )
             {
-                throw new ArgumentException("A circle is offset in its own plane: the normal " + planeNormal + " is not along the circle's.", nameof(planeNormal));
+                throw new ArgumentException(
+                    "A circle is offset in its own plane: the normal " + planeNormal + " is not along the circle's.",
+                    nameof(planeNormal)
+                );
             }
 
             return GetOffsetCurves(offsetDist);
@@ -360,13 +369,15 @@ namespace GeometryHelper.Dxf
         /// <summary>Refuses, as AutoCAD does: a circle is closed and has no end to be extended.</summary>
         /// <param name="newParameter">The parameter.</param>
         /// <exception cref="NotSupportedException">Thrown always.</exception>
-        public override void Extend(double newParameter) => throw new NotSupportedException("A circle is closed: it has no end to be extended.");
+        public override void Extend(double newParameter) =>
+            throw new NotSupportedException("A circle is closed: it has no end to be extended.");
 
         /// <summary>Refuses, as AutoCAD does: a circle is closed and has no end to be extended.</summary>
         /// <param name="extendStart">Whether the start is moved.</param>
         /// <param name="toPoint">The point.</param>
         /// <exception cref="NotSupportedException">Thrown always.</exception>
-        public override void Extend(bool extendStart, GeoPoint3 toPoint) => throw new NotSupportedException("A circle is closed: it has no end to be extended.");
+        public override void Extend(bool extendStart, GeoPoint3 toPoint) =>
+            throw new NotSupportedException("A circle is closed: it has no end to be extended.");
 
         /// <summary>
         /// Gets the pieces the circle is cut into at parameters, as AutoCAD's <c>GetSplitCurves</c>: arcs of the same look in
@@ -464,7 +475,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The circle in the plane.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the circle does not lie on the floor, has no radius within the
         /// point tolerance, a number of its record is not finite, or it is erased.</exception>
-        public GeoCircle2 ToGeoCircle2(Tolerance tolerance) => ShapeAs<GeoCircle2>(nameof(ToGeoCircle2), true, tolerance);
+        public GeoCircle2 ToGeoCircle2(Tolerance tolerance) =>
+            ShapeAs<GeoCircle2>(nameof(ToGeoCircle2), true, tolerance);
 
         /// <summary>
         /// Gives the circle the centre, normal and radius of a <see cref="GeoCircle3"/>, as AutoCAD's <c>SetFromGeCurve</c>, or
@@ -484,7 +496,12 @@ namespace GeometryHelper.Dxf
 
             if (!(geCurve is GeoCircle3 circle))
             {
-                throw new ArgumentException("A circle takes a GeoCircle3 or a GeoCircle2, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
+                throw new ArgumentException(
+                    "A circle takes a GeoCircle3 or a GeoCircle2, and was given "
+                        + (geCurve == null ? "null" : "a " + geCurve.GetType().Name)
+                        + ".",
+                    nameof(geCurve)
+                );
             }
 
             SetShape(circle);
@@ -513,7 +530,17 @@ namespace GeometryHelper.Dxf
             }
 
             double thickness = Thickness;
-            Moved(transform, GetNormal(), GetPoint(10, Origin), Radius, thickness, out GeoVector3 normal, out GeoPoint3 centre, out double radius, out double raised);
+            Moved(
+                transform,
+                GetNormal(),
+                GetPoint(10, Origin),
+                Radius,
+                thickness,
+                out GeoVector3 normal,
+                out GeoPoint3 centre,
+                out double radius,
+                out double raised
+            );
             SetGroups(Join(NormalGroups(normal), PointGroups(10, centre, Origin), NumberGroups(40, radius, Radius)));
 
             if (thickness != 0.0)
@@ -555,7 +582,17 @@ namespace GeometryHelper.Dxf
         /// new normal of the image of the old thickness. Refused where the images of the two axes differ in length or are not
         /// square.
         /// </summary>
-        internal static void Moved(GeoTransform3 transform, GeoVector3 normal, GeoPoint3 centre, double radius, double thickness, out GeoVector3 newNormal, out GeoPoint3 newCentre, out double newRadius, out double newThickness)
+        internal static void Moved(
+            GeoTransform3 transform,
+            GeoVector3 normal,
+            GeoPoint3 centre,
+            double radius,
+            double thickness,
+            out GeoVector3 newNormal,
+            out GeoPoint3 newCentre,
+            out double newRadius,
+            out double newThickness
+        )
         {
             OcsAxes(normal, out GeoVector3 u, out GeoVector3 v);
             GeoVector3 x = transform.Transform(u);
@@ -567,7 +604,10 @@ namespace GeometryHelper.Dxf
             // kept square: a shear of axes of one length makes an ellipse of a circle all the same.
             if (!DxfOcsTransform.IsUniform(x, y) || !(length > 0.0) || double.IsInfinity(length))
             {
-                throw new ArgumentException("The transformation scales the plane of the circle more one way than the other, shears it or flattens it: a circle stays a circle only under one that scales it alike.", nameof(transform));
+                throw new ArgumentException(
+                    "The transformation scales the plane of the circle more one way than the other, shears it or flattens it: a circle stays a circle only under one that scales it alike.",
+                    nameof(transform)
+                );
             }
 
             newNormal = cross.Divide(length);
@@ -585,12 +625,17 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The point at an angle of a circle given by its normal and its centre in the normal's system, in world coordinates.</summary>
-        internal static GeoPoint3 At(GeoVector3 normal, GeoPoint3 centre, double radius, double angle)
-            => OcsToWorld(normal, new GeoPoint3(centre.X + Math.Cos(angle) * radius, centre.Y + Math.Sin(angle) * radius, centre.Z));
+        internal static GeoPoint3 At(GeoVector3 normal, GeoPoint3 centre, double radius, double angle) =>
+            OcsToWorld(
+                normal,
+                new GeoPoint3(centre.X + Math.Cos(angle) * radius, centre.Y + Math.Sin(angle) * radius, centre.Z)
+            );
 
         /// <summary>The group that sets a number, written as <see cref="DxfWriter"/> writes one; none where it is the number read, to the bit.</summary>
-        private static KeyValuePair<int, string>[] NumberGroups(int code, double value, double now)
-            => Same(value, now) ? new KeyValuePair<int, string>[0] : new[] { new KeyValuePair<int, string>(code, Numbers.Exact(value + 0.0)) };
+        private static KeyValuePair<int, string>[] NumberGroups(int code, double value, double now) =>
+            Same(value, now)
+                ? new KeyValuePair<int, string>[0]
+                : new[] { new KeyValuePair<int, string>(code, Numbers.Exact(value + 0.0)) };
 
         /// <summary>Whether two points are the same to the bit.</summary>
         private static bool SamePoint(GeoPoint3 a, GeoPoint3 b) => Same(a.X, b.X) && Same(a.Y, b.Y) && Same(a.Z, b.Z);
@@ -603,7 +648,10 @@ namespace GeometryHelper.Dxf
 
             if (!center.IsValid)
             {
-                throw new ArgumentException("A centre has to be of finite numbers: " + center + " is not.", nameof(center));
+                throw new ArgumentException(
+                    "A centre has to be of finite numbers: " + center + " is not.",
+                    nameof(center)
+                );
             }
 
             GeoPoint3 local = WorldToOcs(unit, center);
@@ -633,7 +681,10 @@ namespace GeometryHelper.Dxf
 
             if (!normal.IsValid || !(length > 0.0) || double.IsInfinity(length))
             {
-                throw new ArgumentException("A normal has to be a direction of finite numbers and some length: " + normal + " is not.", parameter);
+                throw new ArgumentException(
+                    "A normal has to be a direction of finite numbers and some length: " + normal + " is not.",
+                    parameter
+                );
             }
 
             return Math.Abs(length - 1.0) <= 1E-12 ? normal : normal.Divide(length);

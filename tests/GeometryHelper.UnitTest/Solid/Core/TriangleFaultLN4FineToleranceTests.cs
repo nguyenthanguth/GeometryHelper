@@ -25,7 +25,11 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Fine = new Tolerance(1E-5, 1E-7, 1E-7, 1E-5);
 
-        private static readonly GeoTriangle3 Thin = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(50, 0.0005, 0));
+        private static readonly GeoTriangle3 Thin = new GeoTriangle3(
+            new GeoPoint3(0, 0, 0),
+            new GeoPoint3(100, 0, 0),
+            new GeoPoint3(50, 0.0005, 0)
+        );
 
         [Fact]
         public void APointInTheMiddleOfAThinTriangle_IsInsideItAtAFineTolerance()
@@ -49,8 +53,12 @@ namespace GeometryHelper.UnitTest.Solid
             var ray = new GeoRay3(new GeoPoint3(50, 0.0002, -1), new GeoVector3(0, 0, 1));
 
             Assert.True(segment.CollidesWith(Thin, Fine));
-            Assert.True(Assert.Single(Thin.GetIntersections(segment, Fine)).DistanceTo(new GeoPoint3(50, 0.0002, 0)) < 1E-12);
-            Assert.True(Assert.Single(Thin.GetIntersections(ray, Fine)).DistanceTo(new GeoPoint3(50, 0.0002, 0)) < 1E-12);
+            Assert.True(
+                Assert.Single(Thin.GetIntersections(segment, Fine)).DistanceTo(new GeoPoint3(50, 0.0002, 0)) < 1E-12
+            );
+            Assert.True(
+                Assert.Single(Thin.GetIntersections(ray, Fine)).DistanceTo(new GeoPoint3(50, 0.0002, 0)) < 1E-12
+            );
         }
 
         [Fact]
@@ -59,7 +67,14 @@ namespace GeometryHelper.UnitTest.Solid
             // The box 100 by 100 by 100 with its edge x = y = 100 chamfered 0.0004 across: its surface has triangles 0.0004
             // wide, which have an area at 1E-5 and none at the global tolerance.
             const double c = 0.0004;
-            var ring = new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100 - c), new GeoPoint2(100 - c, 100), new GeoPoint2(0, 100) };
+            var ring = new[]
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100 - c),
+                new GeoPoint2(100 - c, 100),
+                new GeoPoint2(0, 100),
+            };
             GeoSolid3 solid = Prism(ring, 0, 100);
             var prepared = new GeoPreparedSolid3(solid, Fine);
             var random = new Random(3);
@@ -87,9 +102,20 @@ namespace GeometryHelper.UnitTest.Solid
                 GeoPoint2 a = ring[i];
                 GeoPoint2 b = ring[(i + 1) % ring.Length];
 
-                faces.Add(new GeoFace3(new GeoPolygon3(
-                    new[] { new GeoPoint3(a.X, a.Y, bottom), new GeoPoint3(b.X, b.Y, bottom), new GeoPoint3(b.X, b.Y, top), new GeoPoint3(a.X, a.Y, top) },
-                    Fine)));
+                faces.Add(
+                    new GeoFace3(
+                        new GeoPolygon3(
+                            new[]
+                            {
+                                new GeoPoint3(a.X, a.Y, bottom),
+                                new GeoPoint3(b.X, b.Y, bottom),
+                                new GeoPoint3(b.X, b.Y, top),
+                                new GeoPoint3(a.X, a.Y, top),
+                            },
+                            Fine
+                        )
+                    )
+                );
             }
 
             return new GeoSolid3(faces);

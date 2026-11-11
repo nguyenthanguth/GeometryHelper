@@ -44,7 +44,9 @@ namespace GeometryHelper.Viewer
                 throw new ArgumentNullException(nameof(second));
             }
 
-            return first.Shape == CurveShape.Segment || second.Shape == CurveShape.Segment || (first.IsCircular && second.IsCircular);
+            return first.Shape == CurveShape.Segment
+                || second.Shape == CurveShape.Segment
+                || (first.IsCircular && second.IsCircular);
         }
 
         /// <summary>
@@ -99,7 +101,10 @@ namespace GeometryHelper.Viewer
             foreach (SceneCurve curve in new[] { first, second })
             {
                 curve.BoundingSphere(out Vec3 center, out double radius);
-                m = Math.Max(m, Math.Max(Math.Abs(center.X), Math.Max(Math.Abs(center.Y), Math.Abs(center.Z))) + radius);
+                m = Math.Max(
+                    m,
+                    Math.Max(Math.Abs(center.X), Math.Max(Math.Abs(center.Y), Math.Abs(center.Z))) + radius
+                );
             }
 
             return m;
@@ -159,13 +164,22 @@ namespace GeometryHelper.Viewer
             {
                 conic.ToStartFrame(segment.Start, out _, out _, out double zStart);
                 conic.ToStartFrame(segment.End, out _, out _, out double zEnd);
-                LineMeetsCircle(segment.Start, e, conic, tolerance, Math.Abs(zStart) <= tolerance && Math.Abs(zEnd) <= tolerance, hits);
+                LineMeetsCircle(
+                    segment.Start,
+                    e,
+                    conic,
+                    tolerance,
+                    Math.Abs(zStart) <= tolerance && Math.Abs(zEnd) <= tolerance,
+                    hits
+                );
             }
             else
             {
                 Vec3 fromCentre = segment.Start - conic.Center;
                 Vec3 toCentre = segment.End - conic.Center;
-                bool inPlane = Math.Abs(Vec3.Dot(fromCentre, conic.Normal)) <= tolerance && Math.Abs(Vec3.Dot(toCentre, conic.Normal)) <= tolerance;
+                bool inPlane =
+                    Math.Abs(Vec3.Dot(fromCentre, conic.Normal)) <= tolerance
+                    && Math.Abs(Vec3.Dot(toCentre, conic.Normal)) <= tolerance;
                 LineMeetsEllipse(segment.Start, e, conic, tolerance, inPlane, hits);
             }
 
@@ -194,7 +208,14 @@ namespace GeometryHelper.Viewer
         /// within the tolerance of touching, or none. A line judged in the plane of the circle is flattened into it and meets it where a
         /// quadratic says; one that is not meets the plane in a point that either is on the circle or is not.
         /// </summary>
-        private static void LineMeetsCircle(Vec3 origin, Vec3 direction, SceneCurve circle, double tolerance, bool inPlane, List<double> hits)
+        private static void LineMeetsCircle(
+            Vec3 origin,
+            Vec3 direction,
+            SceneCurve circle,
+            double tolerance,
+            bool inPlane,
+            List<double> hits
+        )
         {
             double r = circle.RadiusU;
             circle.ToStartFrame(origin, out double uo, out double vo, out double zo);
@@ -270,7 +291,14 @@ namespace GeometryHelper.Viewer
         /// Finds where the line <c>origin + s * direction</c> meets the whole of an ellipse, as values of s, in order of s: two, or one where it
         /// touches, or none.
         /// </summary>
-        private static void LineMeetsEllipse(Vec3 origin, Vec3 direction, SceneCurve ellipse, double tolerance, bool inPlane, List<double> hits)
+        private static void LineMeetsEllipse(
+            Vec3 origin,
+            Vec3 direction,
+            SceneCurve ellipse,
+            double tolerance,
+            bool inPlane,
+            List<double> hits
+        )
         {
             Vec3 w = origin - ellipse.Center;
             double xo = Vec3.Dot(w, ellipse.AxisU);
@@ -363,7 +391,12 @@ namespace GeometryHelper.Viewer
                 for (int j = i + 1; j < candidates.Count; j++)
                 {
                     // Two crossings that were apart and come out as one: the one that was further from the root has fallen into the other's, and stays as it was.
-                    if (moved[i] && moved[j] && (refined[i] - refined[j]).Length <= tolerance && (candidates[i] - candidates[j]).Length > tolerance)
+                    if (
+                        moved[i]
+                        && moved[j]
+                        && (refined[i] - refined[j]).Length <= tolerance
+                        && (candidates[i] - candidates[j]).Length > tolerance
+                    )
                     {
                         double shiftI = (refined[i] - candidates[i]).Length;
                         double shiftJ = (refined[j] - candidates[j]).Length;
@@ -390,7 +423,8 @@ namespace GeometryHelper.Viewer
             double gap = Math.Abs(second.GapFromCircle(point, out _));
 
             // How far the crossing from the centres is from the two circles together; what comes out has to be no further.
-            double startGap = Math.Abs(first.GapFromCircle(start, out _)) + Math.Abs(second.GapFromCircle(start, out _));
+            double startGap =
+                Math.Abs(first.GapFromCircle(start, out _)) + Math.Abs(second.GapFromCircle(start, out _));
 
             for (int step = 0; step < 24; step++)
             {
@@ -424,7 +458,9 @@ namespace GeometryHelper.Viewer
                     break;
                 }
 
-                bool done = (candidate - point).Length <= 1E-13 * Math.Max(1.0, Math.Abs(point.X) + Math.Abs(point.Y) + Math.Abs(point.Z));
+                bool done =
+                    (candidate - point).Length
+                    <= 1E-13 * Math.Max(1.0, Math.Abs(point.X) + Math.Abs(point.Y) + Math.Abs(point.Z));
                 t = next;
                 point = candidate;
                 gap = nextGap;
@@ -472,7 +508,9 @@ namespace GeometryHelper.Viewer
             Vec3 t = Vec3.Cross(big.Normal, n);
             double twoD = 2.0 * (rb + e) * rs;
             double cos = (e * (2.0 * rb + e) + rs * rs) / twoD;
-            double sin = Math.Sqrt(Math.Max(0.0, (rs - e) * (2.0 * rb + e - rs) / twoD * ((e + rs) * (2.0 * rb + e + rs) / twoD)));
+            double sin = Math.Sqrt(
+                Math.Max(0.0, (rs - e) * (2.0 * rb + e - rs) / twoD * ((e + rs) * (2.0 * rb + e + rs) / twoD))
+            );
             Vec3 centre = small.Center - n * (rs * Math.Max(-1.0, Math.Min(1.0, cos)));
 
             if (sin > 0.0)
@@ -566,8 +604,10 @@ namespace GeometryHelper.Viewer
                     continue;
                 }
 
-                if (first.ContainsParameter(first.ParameterOf(p), tolerance / Math.Max(r1, tolerance))
-                    && second.ContainsParameter(second.ParameterOf(p), tolerance / Math.Max(r2, tolerance)))
+                if (
+                    first.ContainsParameter(first.ParameterOf(p), tolerance / Math.Max(r1, tolerance))
+                    && second.ContainsParameter(second.ParameterOf(p), tolerance / Math.Max(r2, tolerance))
+                )
                 {
                     found.Add(p);
                 }

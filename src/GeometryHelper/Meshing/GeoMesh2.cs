@@ -70,7 +70,8 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// The same faces on vertices standing somewhere else, in the same order, counter-clockwise still.
         /// </summary>
-        internal GeoMesh2 WithVertices(GeoPoint2[] vertices) => new GeoMesh2(Kind, vertices, _faces, _whole, _tolerance);
+        internal GeoMesh2 WithVertices(GeoPoint2[] vertices) =>
+            new GeoMesh2(Kind, vertices, _faces, _whole, _tolerance);
 
         /// <summary>
         /// Gets the places the faces share, each once.
@@ -288,7 +289,8 @@ namespace GeometryHelper.Meshing
                 GeoPoint2 previous = _vertices[face[(i + face.Length - 1) % face.Length]];
                 GeoPoint2 corner = _vertices[face[i]];
                 GeoPoint2 next = _vertices[face[(i + 1) % face.Length]];
-                double turn = (corner.X - previous.X) * (next.Y - corner.Y) - (corner.Y - previous.Y) * (next.X - corner.X);
+                double turn =
+                    (corner.X - previous.X) * (next.Y - corner.Y) - (corner.Y - previous.Y) * (next.X - corner.X);
 
                 if (turn < -1E-12 * size * (previous.DistanceTo(corner) + corner.DistanceTo(next)))
                 {
@@ -319,7 +321,8 @@ namespace GeometryHelper.Meshing
         /// </summary>
         /// <param name="angleRad">The angle, counter-clockwise.</param>
         /// <param name="center">The point it turns about.</param>
-        public GeoMesh2 RotateBy(double angleRad, GeoPoint2 center) => TransformBy(GeoTransform2.Rotation(center, angleRad));
+        public GeoMesh2 RotateBy(double angleRad, GeoPoint2 center) =>
+            TransformBy(GeoTransform2.Rotation(center, angleRad));
 
         /// <summary>
         /// Transforms the mesh.
@@ -362,8 +365,15 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Describes the mesh.
         /// </summary>
-        public override string ToString()
-            => string.Format(CultureInfo.InvariantCulture, "GeoMesh2[{0}, Vertices: {1}, Faces: {2}, Area: {3}]", Kind, VertexCount, FaceCount, Area);
+        public override string ToString() =>
+            string.Format(
+                CultureInfo.InvariantCulture,
+                "GeoMesh2[{0}, Vertices: {1}, Faces: {2}, Area: {3}]",
+                Kind,
+                VertexCount,
+                FaceCount,
+                Area
+            );
 
         private int[] Face(int index)
         {
@@ -461,7 +471,8 @@ namespace GeometryHelper.Meshing
                 GeoPoint2 previous = _vertices[face[(i + face.Length - 1) % face.Length]];
                 GeoPoint2 corner = _vertices[face[i]];
                 GeoPoint2 next = _vertices[face[(i + 1) % face.Length]];
-                double turn = (corner.X - previous.X) * (next.Y - corner.Y) - (corner.Y - previous.Y) * (next.X - corner.X);
+                double turn =
+                    (corner.X - previous.X) * (next.Y - corner.Y) - (corner.Y - previous.Y) * (next.X - corner.X);
 
                 if (!(turn > 1E-12 * size * (previous.DistanceTo(corner) + corner.DistanceTo(next))))
                 {

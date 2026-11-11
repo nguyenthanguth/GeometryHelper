@@ -13,7 +13,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
     /// </summary>
     public class PatternFileAndMissingShxTests
     {
-        private const string Steel = "*ANSI31,Not the built-in one\n45, 0,0, 0,1\n*GRATING-30,Grating at 30 degrees\n30, 0,0, 0,5\n120, 0,0, 0,5\n*MINE,Mine\n0, 0,0, 0,5\n";
+        private const string Steel =
+            "*ANSI31,Not the built-in one\n45, 0,0, 0,1\n*GRATING-30,Grating at 30 degrees\n30, 0,0, 0,5\n120, 0,0, 0,5\n*MINE,Mine\n0, 0,0, 0,5\n";
 
         private static void OnSta(Action test)
         {
@@ -48,7 +49,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             OnSta(() =>
             {
-                var dialog = new HatchSettingsViewModel(CadDocument.From(new DxfDatabase("AC1027"), "blank.dxf"), new CadHatchSettings(), false);
+                var dialog = new HatchSettingsViewModel(
+                    CadDocument.From(new DxfDatabase("AC1027"), "blank.dxf"),
+                    new CadHatchSettings(),
+                    false
+                );
 
                 Assert.True(dialog.IsBuiltInFile);
                 Assert.Null(dialog.PatternFile);
@@ -76,9 +81,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                         Assert.False(dialog.IsBuiltInFile);
                         Assert.Equal(pat, dialog.PatternFileText);
-                        Assert.Equal("The 48 built-in patterns, then 2 from this file; a built-in name wins.", dialog.PatternFileHint);
+                        Assert.Equal(
+                            "The 48 built-in patterns, then 2 from this file; a built-in name wins.",
+                            dialog.PatternFileHint
+                        );
                         Assert.True(dialog.BuiltInCommand.CanExecute(null));
-                        Assert.Equal(new[] { "GRATING-30", "MINE" }, dialog.Patterns.Skip(48).Select(p => p.Name).ToArray());
+                        Assert.Equal(
+                            new[] { "GRATING-30", "MINE" },
+                            dialog.Patterns.Skip(48).Select(p => p.Name).ToArray()
+                        );
 
                         // ANSI31 stays the built-in one: a built-in name wins.
                         Assert.Equal("ANSI31", dialog.Pattern.Name);
@@ -150,7 +161,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             using (var folder = new TestFolder())
             {
-                string lin = folder.WriteText("site.lin", "*DASHED,Not the built-in one\nA,1,-1\n*FENCE,Fence ---x---x---\nA,10,-2,0,-2\n");
+                string lin = folder.WriteText(
+                    "site.lin",
+                    "*DASHED,Not the built-in one\nA,1,-1\n*FENCE,Fence ---x---x---\nA,10,-2,0,-2\n"
+                );
                 MainViewModel model = Room(folder);
                 var load = new LoadLinetypesViewModel(model.Document);
 
@@ -168,7 +182,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.True(load.BuiltInCommand.CanExecute(null));
                 Assert.Equal(40, load.Rows.Count);
                 Assert.Equal("FENCE", load.Rows.Last().Name);
-                Assert.Same(CadLinetypeFile.BuiltIn.Single(l => l.Name == "DASHED"), load.Rows.Single(r => r.Name == "DASHED").Definition);
+                Assert.Same(
+                    CadLinetypeFile.BuiltIn.Single(l => l.Name == "DASHED"),
+                    load.Rows.Single(r => r.Name == "DASHED").Definition
+                );
 
                 load.Rows.Single(r => r.Name == "DASHED").IsChosen = true;
                 load.Rows.Single(r => r.Name == "FENCE").IsChosen = true;
@@ -219,7 +236,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 var database = new DxfDatabase("AC1027");
                 database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "Dims", FileName = "romand.shx" });
                 database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "TITLE", FileName = "romand" });
-                database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "HZ", FileName = "ghsimplex.shx", BigFontFileName = "hztxt.shx" });
+                database.TextStyleTable.Add(
+                    new DxfTextStyleTableRecord
+                    {
+                        Name = "HZ",
+                        FileName = "ghsimplex.shx",
+                        BigFontFileName = "hztxt.shx",
+                    }
+                );
                 string path = folder.Write("plan-level2.dxf", database);
                 string mine = folder.WriteText("mine.shx", "not a font");
                 var model = new MainViewModel { SettingsPath = Path.Combine(folder.FullPath, "settings.json") };
@@ -238,8 +262,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     Assert.True(big.IsBigFont);
                     Assert.Equal("HZ", big.Styles);
                     Assert.Equal("question marks", big.DrawnInText);
-                    Assert.StartsWith("This drawing uses " + dialog.Rows.Count + " SHX font files that are not in the font search folders", dialog.Explanation);
-                    Assert.Equal("Text stays in the FONTALT replacement, GeometryHelper Simplex; a big font's letters are drawn as question marks.", dialog.IgnoreDetail);
+                    Assert.StartsWith(
+                        "This drawing uses "
+                            + dialog.Rows.Count
+                            + " SHX font files that are not in the font search folders",
+                        dialog.Explanation
+                    );
+                    Assert.Equal(
+                        "Text stays in the FONTALT replacement, GeometryHelper Simplex; a big font's letters are drawn as question marks.",
+                        dialog.IgnoreDetail
+                    );
 
                     // The list: the heading, ghsimplex first, then the line and Browse…; ghsimplex chosen, as it draws the file now.
                     Assert.Equal(MissingShxOptionKind.Heading, romand.Options[0].Kind);
@@ -289,7 +321,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 {
                     dialog.Replace = true;
                     dialog.DoNotShowAgain = true;
-                    dialog.Rows.Single(r => r.File == "romand.shx").Replacement = dialog.Rows.Single(r => r.File == "romand.shx").Options[1];
+                    dialog.Rows.Single(r => r.File == "romand.shx").Replacement = dialog
+                        .Rows.Single(r => r.File == "romand.shx")
+                        .Options[1];
                     return false;
                 };
 

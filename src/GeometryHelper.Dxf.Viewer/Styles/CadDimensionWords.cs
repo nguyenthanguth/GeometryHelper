@@ -27,7 +27,10 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static readonly object Gate = new object();
         private static readonly CadFonts Off = new CadFonts(null, null, null);
-        private static readonly Dictionary<string, KeyValuePair<double, double>> Kept = new Dictionary<string, KeyValuePair<double, double>>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, KeyValuePair<double, double>> Kept = new Dictionary<
+            string,
+            KeyValuePair<double, double>
+        >(StringComparer.Ordinal);
         private static CadFonts _fonts;
         private static string _fontFolder;
 
@@ -49,7 +52,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// Measures words of a text style as AutoCAD lays out a dimension's MTEXT of them: their width and their height; false,
         /// and nothing measured, where the style is null or the layout gives the words no width.
         /// </summary>
-        internal static bool TryMeasure(DxfTextStyleTableRecord style, string words, double height, out double width, out double tall)
+        internal static bool TryMeasure(
+            DxfTextStyleTableRecord style,
+            string words,
+            double height,
+            out double width,
+            out double tall
+        )
         {
             width = 0.0;
             tall = 0.0;
@@ -78,8 +87,20 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            string key = file + "|" + bigFile + "|" + font.TypeFace + "|" + xscale.ToString("R", CultureInfo.InvariantCulture) + "|" + oblique.ToString("R", CultureInfo.InvariantCulture)
-                + "|" + height.ToString("R", CultureInfo.InvariantCulture) + "|" + words;
+            string key =
+                file
+                + "|"
+                + bigFile
+                + "|"
+                + font.TypeFace
+                + "|"
+                + xscale.ToString("R", CultureInfo.InvariantCulture)
+                + "|"
+                + oblique.ToString("R", CultureInfo.InvariantCulture)
+                + "|"
+                + height.ToString("R", CultureInfo.InvariantCulture)
+                + "|"
+                + words;
 
             lock (Gate)
             {
@@ -102,7 +123,17 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static void Measure(string file, string bigFile, string typeface, double xscale, double oblique, string words, double height, out double width, out double tall)
+        private static void Measure(
+            string file,
+            string bigFile,
+            string typeface,
+            double xscale,
+            double oblique,
+            string words,
+            double height,
+            out double width,
+            out double tall
+        )
         {
             width = 0.0;
             tall = 0.0;
@@ -117,21 +148,40 @@ namespace GeometryHelper.Dxf.Viewer
                 // A face whose letters are not read (an SHX font not found, though another is drawn for it, a TrueType font with no
                 // file) is left to the estimate.
                 string extension = System.IO.Path.GetExtension(file).ToLowerInvariant();
-                bool trueType = extension == ".ttf" || extension == ".ttc" || extension == ".otf" || (file.Length == 0 && typeface.Length > 0);
+                bool trueType =
+                    extension == ".ttf"
+                    || extension == ".ttc"
+                    || extension == ".otf"
+                    || (file.Length == 0 && typeface.Length > 0);
 
-                if ((!trueType && (face.Shx == null || (!CadFonts.IsBuiltIn(file) && fonts.Locate(file, folder) == null))) || !CadTextInk.Of(face, false, false).IsRead)
+                if (
+                    (
+                        !trueType
+                        && (face.Shx == null || (!CadFonts.IsBuiltIn(file) && fonts.Locate(file, folder) == null))
+                    ) || !CadTextInk.Of(face, false, false).IsRead
+                )
                 {
                     return;
                 }
 
-                var text = new DxfMText { Location = new GeoPoint3(0.0, 0.0, 0.0), TextHeight = height, Attachment = DxfAttachmentPoint.MiddleCenter, Contents = words };
+                var text = new DxfMText
+                {
+                    Location = new GeoPoint3(0.0, 0.0, 0.0),
+                    TextHeight = height,
+                    Attachment = DxfAttachmentPoint.MiddleCenter,
+                    Contents = words,
+                };
                 CadMTextContent content = CadMTextContent.Parse(words, height, factor);
                 CadMTextLayout layout = CadMTextLayout.Of(
                     text,
                     content,
-                    look => look.Font == null ? face : look.IsShx ? fonts.FaceOf(look.Font, null, null, folder) : fonts.FaceOf(null, null, look.Font, folder),
+                    look =>
+                        look.Font == null ? face
+                        : look.IsShx ? fonts.FaceOf(look.Font, null, null, folder)
+                        : fonts.FaceOf(null, null, look.Font, folder),
                     factor,
-                    oblique);
+                    oblique
+                );
                 double measured = layout.ActualWidth;
                 double high = layout.ActualHeight;
 
@@ -143,7 +193,15 @@ namespace GeometryHelper.Dxf.Viewer
             }
             catch (Exception exception) when (exception is InvalidOperationException || exception is ArgumentException)
             {
-                GeometryHelperLog.Debug("CadDimensionWords: the words " + words + " of " + (file.Length > 0 ? file : typeface) + " were not measured (" + exception.Message + ").");
+                GeometryHelperLog.Debug(
+                    "CadDimensionWords: the words "
+                        + words
+                        + " of "
+                        + (file.Length > 0 ? file : typeface)
+                        + " were not measured ("
+                        + exception.Message
+                        + ")."
+                );
             }
         }
     }

@@ -9,7 +9,10 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     public class GeoLine3Tests
     {
-        private static readonly GeoLine3 UnitX = new GeoLine3(new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(10.0, 0.0, 0.0));
+        private static readonly GeoLine3 UnitX = new GeoLine3(
+            new GeoPoint3(0.0, 0.0, 0.0),
+            new GeoPoint3(10.0, 0.0, 0.0)
+        );
 
         [Fact]
         public void LengthAndMidPointFollowTheEndpoints()

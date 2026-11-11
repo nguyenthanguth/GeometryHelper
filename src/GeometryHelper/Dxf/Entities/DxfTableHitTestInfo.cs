@@ -26,6 +26,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gives what was hit as a line for debugging: <c>Cell (0, 1)</c>.</summary>
         /// <returns>The line.</returns>
-        public override string ToString() => string.Format(CultureInfo.InvariantCulture, "{0} ({1}, {2})", Type, Row, Column);
+        public override string ToString() =>
+            string.Format(CultureInfo.InvariantCulture, "{0} ({1}, {2})", Type, Row, Column);
     }
 }

@@ -17,14 +17,26 @@ namespace GeometryHelper.UnitTest.Dxf
         private static DxfTable Reread(DxfDatabase db) => Table(DxfDatabase.Parse(db.ToText()));
 
         /// <summary>The R2018 drawing of a table of 3 rows and 2 columns, each cell given the flag of its kind of value, with the TABLECONTENT AutoCAD 2021 writes, which keeps the kind of each row.</summary>
-        private static DxfDatabase Kept() => DxfDatabase.Parse(DxfAutoCadChecksD16Tests.LinkedByAutoCad(DxfDimensionDrawings.R2018.Replace("\n 91\n0\n178\n", "\n 91\n262144\n178\n").Replace("\n 91\n49\n178\n", "\n 91\n262193\n178\n")));
+        private static DxfDatabase Kept() =>
+            DxfDatabase.Parse(
+                DxfAutoCadChecksD16Tests.LinkedByAutoCad(
+                    DxfDimensionDrawings
+                        .R2018.Replace("\n 91\n0\n178\n", "\n 91\n262144\n178\n")
+                        .Replace("\n 91\n49\n178\n", "\n 91\n262193\n178\n")
+                )
+            );
 
         /// <summary>The R2018 drawing of D33b's table of its own header and data looks, its cells B-12 and M12 holding the data's own looks of 9, GH_TXT, red and top left as their own (D28c o0).</summary>
         private static DxfDatabase RowLooks()
         {
             const string Head = " 93\n0\n 94\n0\n 95\n0\n 96\n0\n141\n10.0\n";
             Assert.Contains(Head, DxfDimensionDrawings.R2018, StringComparison.Ordinal);
-            DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018.Replace(Head, " 93\n6886016\n 94\n0\n 95\n0\n 96\n0\n  7\nGH_TXT\n140\n9.0\n170\n1\n 63\n3\n 64\n1\n140\n9.0\n283\n0\n141\n10.0\n"));
+            DxfDatabase db = DxfDatabase.Parse(
+                DxfDimensionDrawings.R2018.Replace(
+                    Head,
+                    " 93\n6886016\n 94\n0\n 95\n0\n 96\n0\n  7\nGH_TXT\n140\n9.0\n170\n1\n 63\n3\n 64\n1\n140\n9.0\n283\n0\n141\n10.0\n"
+                )
+            );
             DxfTable table = Table(db);
 
             for (int column = 0; column < 2; column++)
@@ -44,7 +56,10 @@ namespace GeometryHelper.UnitTest.Dxf
             string record = DxfAutoCadChecksD16Tests.Record(db.ToText(), "F6");
             string groups = record.Split(new[] { "\n171\n" }, StringSplitOptions.None)[cell + 1];
             int value = groups.IndexOf("301\nCELL_VALUE\n", StringComparison.Ordinal);
-            System.Text.RegularExpressions.Match m = System.Text.RegularExpressions.Regex.Match(value >= 0 ? groups.Substring(0, value) : groups, "(?:^|\n) *" + code + "\n(-?\\d+)\n");
+            System.Text.RegularExpressions.Match m = System.Text.RegularExpressions.Regex.Match(
+                value >= 0 ? groups.Substring(0, value) : groups,
+                "(?:^|\n) *" + code + "\n(-?\\d+)\n"
+            );
             return m.Success ? int.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) : -1;
         }
 
@@ -56,16 +71,73 @@ namespace GeometryHelper.UnitTest.Dxf
             // old rows: ClearTableStyleOverrides(2) and RemoveAllOverrides gave B-12 and M12 back GH_TXT, red, 9 and top left
             // (their flags 0x39, 91 57 here), wherever the rows went since and whatever B-12 was given since. The library had
             // moved them into the cells at the insert, and took them away.
-            foreach ((Action<DxfTable> Edit, int Row) edit in new (Action<DxfTable>, int)[]
-            {
-                (t => { t.InsertRows(0, 9.0, 1); t.ClearTableStyleOverrides(2); }, 3),
-                (t => { t.InsertRows(0, 9.0, 1); t.RemoveAllOverrides(3, 0); t.RemoveAllOverrides(3, 1); }, 3),
-                (t => { t.InsertRows(2, 9.0, 1); t.ClearTableStyleOverrides(2); }, 3),
-                (t => { t.InsertRows(0, 9.0, 1); t.InsertRows(0, 9.0, 1); t.ClearTableStyleOverrides(2); }, 4),
-                (t => { t.InsertRows(0, 9.0, 1); t.DeleteRows(0, 1); t.ClearTableStyleOverrides(2); }, 2),
-                (t => { t.InsertRows(0, 9.0, 1); t.SetTextHeight(3, 0, 5.0); t.ClearTableStyleOverrides(2); }, 3),
-                (t => { t.InsertRows(0, 9.0, 1); t.ClearTableStyleOverrides(2); t.RemoveAllOverrides(3, 0); t.ClearTableStyleOverrides(2); }, 3),
-            })
+            foreach (
+                (Action<DxfTable> Edit, int Row) edit in new (Action<DxfTable>, int)[]
+                {
+                    (
+                        t =>
+                        {
+                            t.InsertRows(0, 9.0, 1);
+                            t.ClearTableStyleOverrides(2);
+                        },
+                        3
+                    ),
+                    (
+                        t =>
+                        {
+                            t.InsertRows(0, 9.0, 1);
+                            t.RemoveAllOverrides(3, 0);
+                            t.RemoveAllOverrides(3, 1);
+                        },
+                        3
+                    ),
+                    (
+                        t =>
+                        {
+                            t.InsertRows(2, 9.0, 1);
+                            t.ClearTableStyleOverrides(2);
+                        },
+                        3
+                    ),
+                    (
+                        t =>
+                        {
+                            t.InsertRows(0, 9.0, 1);
+                            t.InsertRows(0, 9.0, 1);
+                            t.ClearTableStyleOverrides(2);
+                        },
+                        4
+                    ),
+                    (
+                        t =>
+                        {
+                            t.InsertRows(0, 9.0, 1);
+                            t.DeleteRows(0, 1);
+                            t.ClearTableStyleOverrides(2);
+                        },
+                        2
+                    ),
+                    (
+                        t =>
+                        {
+                            t.InsertRows(0, 9.0, 1);
+                            t.SetTextHeight(3, 0, 5.0);
+                            t.ClearTableStyleOverrides(2);
+                        },
+                        3
+                    ),
+                    (
+                        t =>
+                        {
+                            t.InsertRows(0, 9.0, 1);
+                            t.ClearTableStyleOverrides(2);
+                            t.RemoveAllOverrides(3, 0);
+                            t.ClearTableStyleOverrides(2);
+                        },
+                        3
+                    ),
+                }
+            )
             {
                 DxfDatabase db = RowLooks();
                 edit.Edit(Table(db));
@@ -149,7 +221,9 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             Assert.StartsWith("\nTABLEROW_BEGIN\n 90\n1\n", text.Substring(at), StringComparison.Ordinal);
-            DxfDatabase escaped = DxfDatabase.Parse(text.Substring(0, at) + "\n\\U+0054ABLEROW_BEGIN\n" + text.Substring(at + "\nTABLEROW_BEGIN\n".Length));
+            DxfDatabase escaped = DxfDatabase.Parse(
+                text.Substring(0, at) + "\n\\U+0054ABLEROW_BEGIN\n" + text.Substring(at + "\nTABLEROW_BEGIN\n".Length)
+            );
             Table(escaped).RemoveAllOverrides(3, 0);
             DxfTable read = Reread(escaped);
             Assert.Equal(DxfCellAlignment.MiddleCenter, read.Alignment(3, 0));

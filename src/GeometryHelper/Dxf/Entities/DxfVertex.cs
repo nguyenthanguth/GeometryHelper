@@ -26,15 +26,11 @@ namespace GeometryHelper.Dxf
     {
         /// <summary>The object of a VERTEX record that follows its polyline.</summary>
         private protected DxfVertex(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>A vertex made in code from its groups, in no polyline.</summary>
         private protected DxfVertex(IEnumerable<DxfTypedValue> groups)
-            : base("VERTEX", groups)
-        {
-        }
+            : base("VERTEX", groups) { }
 
         /// <summary>The polyline the vertex follows; null for one made in code and not yet appended.</summary>
         internal DxfEntity Polyline => FollowedEntity;
@@ -43,8 +39,7 @@ namespace GeometryHelper.Dxf
         internal int Record => FollowerIndex;
 
         /// <summary>The flags (group 70) of the POLYLINE a VERTEX record follows; nought for one that follows none.</summary>
-        internal static int ParentFlags(DxfItem item)
-            => item.Parent == null ? 0 : DxfPolyline2d.Flags(item.Parent);
+        internal static int ParentFlags(DxfItem item) => item.Parent == null ? 0 : DxfPolyline2d.Flags(item.Parent);
 
         /// <summary>
         /// Takes the vertex out of its polyline, as AutoCAD's <c>Erase</c> does, every other vertex keeping its handle. A
@@ -76,7 +71,11 @@ namespace GeometryHelper.Dxf
 
                 if (vertices <= 2)
                 {
-                    throw new InvalidOperationException("A polyline keeps two vertices at least, and this one has " + vertices.ToString(CultureInfo.InvariantCulture) + ": erase the polyline instead.");
+                    throw new InvalidOperationException(
+                        "A polyline keeps two vertices at least, and this one has "
+                            + vertices.ToString(CultureInfo.InvariantCulture)
+                            + ": erase the polyline instead."
+                    );
                 }
             }
 

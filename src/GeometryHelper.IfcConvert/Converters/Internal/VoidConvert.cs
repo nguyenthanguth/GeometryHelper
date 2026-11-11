@@ -26,7 +26,11 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <param name="hostPlacement">The host's global placement matrix (model units).</param>
         /// <param name="cutters">The opening solids when the method returns true; the caller disposes them.</param>
         /// <returns>false when any opening cannot be expressed as engine solids (e.g. mapped representations).</returns>
-        public static bool TryCollectCutters(IIfcElement element, XbimMatrix3D hostPlacement, out List<IXbimSolid> cutters)
+        public static bool TryCollectCutters(
+            IIfcElement element,
+            XbimMatrix3D hostPlacement,
+            out List<IXbimSolid> cutters
+        )
         {
             cutters = new List<IXbimSolid>();
 
@@ -37,16 +41,26 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             {
                 foreach (IIfcRelVoidsElement rel in element.HasOpenings)
                 {
-                    if (!(rel?.RelatedOpeningElement is IIfcProduct opening) ||
-                        opening.Representation == null || opening.ObjectPlacement == null)
+                    if (
+                        !(rel?.RelatedOpeningElement is IIfcProduct opening)
+                        || opening.Representation == null
+                        || opening.ObjectPlacement == null
+                    )
                     {
                         continue;
                     }
 
                     // Row-vector convention: host-local = local * openingPlacement * inverse(hostPlacement).
-                    XbimMatrix3D openingToHost = XbimMatrix3D.Multiply(opening.ObjectPlacement.ToMatrix3D(), globalToHost);
+                    XbimMatrix3D openingToHost = XbimMatrix3D.Multiply(
+                        opening.ObjectPlacement.ToMatrix3D(),
+                        globalToHost
+                    );
 
-                    foreach (IIfcRepresentation representation in ProductConvert.SelectBodyRepresentations(opening.Representation.Representations))
+                    foreach (
+                        IIfcRepresentation representation in ProductConvert.SelectBodyRepresentations(
+                            opening.Representation.Representations
+                        )
+                    )
                     {
                         foreach (IIfcRepresentationItem item in representation.Items)
                         {
@@ -89,7 +103,12 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <param name="precision">Boolean precision in model units.</param>
         /// <param name="result">The remaining solids when the method returns true.</param>
         /// <returns>false when the engine fails, so the caller can fall back to another strategy.</returns>
-        public static bool TryCut(IXbimGeometryObject host, IReadOnlyList<IXbimSolid> cutters, double precision, out List<IXbimSolid> result)
+        public static bool TryCut(
+            IXbimGeometryObject host,
+            IReadOnlyList<IXbimSolid> cutters,
+            double precision,
+            out List<IXbimSolid> result
+        )
         {
             result = EnumerateSolids(host).ToList();
 
@@ -142,7 +161,11 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
             foreach (IXbimSolid solid in solids)
             {
-                try { solid?.Dispose(); } catch { }
+                try
+                {
+                    solid?.Dispose();
+                }
+                catch { }
             }
         }
     }

@@ -41,15 +41,71 @@ namespace GeometryHelper.Dxf
     public sealed partial class DxfHatch : DxfEntity
     {
         // The groups AutoCAD writes a HATCH's own part in, and the blocks among them: where one the record has not goes.
-        private static readonly int[] Ranked = { 10, 20, 30, 210, 220, 230, 2, 70, 71, 91, 75, 76, 52, 41, 77, 78, 47, 98, 450 };
+        private static readonly int[] Ranked =
+        {
+            10,
+            20,
+            30,
+            210,
+            220,
+            230,
+            2,
+            70,
+            71,
+            91,
+            75,
+            76,
+            52,
+            41,
+            77,
+            78,
+            47,
+            98,
+            450,
+        };
 
         // The codes of the boundary paths, those of the pattern's lines and those of the seed points, as ezdxf takes them.
-        private static readonly HashSet<int> PathCodes = new HashSet<int> { 10, 20, 11, 21, 12, 22, 13, 23, 40, 42, 50, 51, 72, 73, 74, 92, 93, 94, 95, 96, 97, 330 };
+        private static readonly HashSet<int> PathCodes = new HashSet<int>
+        {
+            10,
+            20,
+            11,
+            21,
+            12,
+            22,
+            13,
+            23,
+            40,
+            42,
+            50,
+            51,
+            72,
+            73,
+            74,
+            92,
+            93,
+            94,
+            95,
+            96,
+            97,
+            330,
+        };
         private static readonly HashSet<int> LineCodes = new HashSet<int> { 53, 43, 44, 45, 46, 79, 49 };
         private static readonly HashSet<int> SeedCodes = new HashSet<int> { 10, 20 };
 
         // The gradients AutoCAD has of its own, as ezdxf names them.
-        private static readonly string[] Gradients = { "LINEAR", "CYLINDER", "INVCYLINDER", "SPHERICAL", "INVSPHERICAL", "HEMISPHERICAL", "INVHEMISPHERICAL", "CURVED", "INVCURVED" };
+        private static readonly string[] Gradients =
+        {
+            "LINEAR",
+            "CYLINDER",
+            "INVCYLINDER",
+            "SPHERICAL",
+            "INVSPHERICAL",
+            "HEMISPHERICAL",
+            "INVHEMISPHERICAL",
+            "CURVED",
+            "INVCURVED",
+        };
 
         private const string Background = "HATCHBACKGROUNDCOLOR";
 
@@ -62,20 +118,29 @@ namespace GeometryHelper.Dxf
         /// give it its pattern with <see cref="SetHatchPattern"/> and its loops with <see cref="AppendLoop(DxfHatchLoop)"/>.
         /// </summary>
         public DxfHatch()
-            : base("HATCH", new[]
-            {
-                new DxfTypedValue(100, "AcDbHatch"), new DxfTypedValue(10, "0"), new DxfTypedValue(20, "0"), new DxfTypedValue(30, "0"),
-                new DxfTypedValue(210, "0"), new DxfTypedValue(220, "0"), new DxfTypedValue(230, "1"), new DxfTypedValue(2, "SOLID"),
-                new DxfTypedValue(70, "1"), new DxfTypedValue(71, "0"), new DxfTypedValue(91, "0"), new DxfTypedValue(75, "0"),
-                new DxfTypedValue(76, "1"), new DxfTypedValue(98, "0"),
-            })
-        {
-        }
+            : base(
+                "HATCH",
+                new[]
+                {
+                    new DxfTypedValue(100, "AcDbHatch"),
+                    new DxfTypedValue(10, "0"),
+                    new DxfTypedValue(20, "0"),
+                    new DxfTypedValue(30, "0"),
+                    new DxfTypedValue(210, "0"),
+                    new DxfTypedValue(220, "0"),
+                    new DxfTypedValue(230, "1"),
+                    new DxfTypedValue(2, "SOLID"),
+                    new DxfTypedValue(70, "1"),
+                    new DxfTypedValue(71, "0"),
+                    new DxfTypedValue(91, "0"),
+                    new DxfTypedValue(75, "0"),
+                    new DxfTypedValue(76, "1"),
+                    new DxfTypedValue(98, "0"),
+                }
+            ) { }
 
         private DxfHatch(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         [DxfType("HATCH")]
         internal static DxfEntity Create(DxfItem item) => new DxfHatch(item);
@@ -91,7 +156,10 @@ namespace GeometryHelper.Dxf
         public override GeoPlane3 GetPlane()
         {
             Snapshot snapshot = Snap();
-            return new GeoPlane3(OcsToWorld(snapshot.Normal, new GeoPoint3(0.0, 0.0, snapshot.Elevation)), snapshot.Normal);
+            return new GeoPlane3(
+                OcsToWorld(snapshot.Normal, new GeoPoint3(0.0, 0.0, snapshot.Elevation)),
+                snapshot.Normal
+            );
         }
 
         /// <summary>
@@ -110,7 +178,9 @@ namespace GeometryHelper.Dxf
                 for (int i = 0; i < NumberOfLoops; i++)
                 {
                     DxfHatchLoop loop = GetLoopAt(i);
-                    IEnumerable<object> shapes = loop.IsPolyline ? (IEnumerable<object>)new[] { loop.Polyline } : loop.Curves;
+                    IEnumerable<object> shapes = loop.IsPolyline
+                        ? (IEnumerable<object>)new[] { loop.Polyline }
+                        : loop.Curves;
 
                     foreach (object shape in shapes)
                     {
@@ -137,7 +207,9 @@ namespace GeometryHelper.Dxf
 
                 if (box == null)
                 {
-                    throw new InvalidOperationException("The HATCH " + (Handle ?? string.Empty) + " has no loop: it has no extents.");
+                    throw new InvalidOperationException(
+                        "The HATCH " + (Handle ?? string.Empty) + " has no loop: it has no extents."
+                    );
                 }
 
                 return new GeoAabb3(new GeoPoint3(box[0], box[1], box[2]), new GeoPoint3(box[3], box[4], box[5]));
@@ -154,7 +226,6 @@ namespace GeometryHelper.Dxf
         public double Elevation
         {
             get => Snap().Elevation;
-
             set
             {
                 Guard.Finite(value, nameof(value), "An elevation has to be a finite number.");
@@ -191,7 +262,6 @@ namespace GeometryHelper.Dxf
         public GeoVector3 Normal
         {
             get => GetNormal();
-
             set
             {
                 KeyValuePair<int, string>[] groups = NormalGroups(value);
@@ -248,7 +318,6 @@ namespace GeometryHelper.Dxf
         public double PatternScale
         {
             get => PatternType == DxfHatchPatternType.UserDefined ? 1.0 : Num(Record().Text(41), 1.0);
-
             set
             {
                 if (Same(value, PatternScale))
@@ -261,7 +330,9 @@ namespace GeometryHelper.Dxf
 
                 if (PatternType == DxfHatchPatternType.UserDefined)
                 {
-                    throw new InvalidOperationException("A pattern made by the user has a spacing, not a scale: set its PatternSpace.");
+                    throw new InvalidOperationException(
+                        "A pattern made by the user has a spacing, not a scale: set its PatternSpace."
+                    );
                 }
 
                 double old = Num(record.Text(41), 1.0);
@@ -293,7 +364,6 @@ namespace GeometryHelper.Dxf
         public double PatternAngle
         {
             get => Num(Record().Text(52), 0.0) * (Math.PI / 180.0);
-
             set
             {
                 Guard.Finite(value, nameof(value), "An angle has to be a finite number.");
@@ -308,7 +378,15 @@ namespace GeometryHelper.Dxf
                 double degrees = DxfOcsTransform.Degrees(value);
                 record.Set(52, Real(degrees));
 
-                if (!FromFiles(record, IsResident ? Item.File.Database : null, degrees, Num(record.Text(41), 1.0), false))
+                if (
+                    !FromFiles(
+                        record,
+                        IsResident ? Item.File.Database : null,
+                        degrees,
+                        Num(record.Text(41), 1.0),
+                        false
+                    )
+                )
                 {
                     ScaleLines(record, 1.0, degrees - old);
                 }
@@ -329,7 +407,6 @@ namespace GeometryHelper.Dxf
         public double PatternSpace
         {
             get => PatternType == DxfHatchPatternType.UserDefined ? Num(Record().Text(41), 1.0) : 1.0;
-
             set
             {
                 if (Same(value, PatternSpace))
@@ -342,11 +419,16 @@ namespace GeometryHelper.Dxf
 
                 if (PatternType != DxfHatchPatternType.UserDefined)
                 {
-                    throw new InvalidOperationException("A pattern of a pattern file has a scale, not a spacing: set its PatternScale.");
+                    throw new InvalidOperationException(
+                        "A pattern of a pattern file has a scale, not a spacing: set its PatternScale."
+                    );
                 }
 
                 record.Set(41, Real(value));
-                record.SetPart(Kind.Pattern, UserLines(Num(record.Text(52), 0.0), value, Whole(record.Text(77), 0) != 0));
+                record.SetPart(
+                    Kind.Pattern,
+                    UserLines(Num(record.Text(52), 0.0), value, Whole(record.Text(77), 0) != 0)
+                );
                 Write(record);
             }
         }
@@ -362,7 +444,6 @@ namespace GeometryHelper.Dxf
         public bool PatternDouble
         {
             get => Whole(Record().Text(77), 0) != 0;
-
             set
             {
                 if (value == PatternDouble)
@@ -375,7 +456,10 @@ namespace GeometryHelper.Dxf
 
                 if (PatternType == DxfHatchPatternType.UserDefined)
                 {
-                    record.SetPart(Kind.Pattern, UserLines(Num(record.Text(52), 0.0), Num(record.Text(41), 1.0), value));
+                    record.SetPart(
+                        Kind.Pattern,
+                        UserLines(Num(record.Text(52), 0.0), Num(record.Text(41), 1.0), value)
+                    );
                 }
 
                 Write(record);
@@ -401,7 +485,8 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when the name is empty or has a line break in it.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the type is not one of <see cref="DxfHatchPatternType"/>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the HATCH is erased.</exception>
-        public void SetHatchPattern(DxfHatchPatternType patternType, string patternName) => Pattern(patternType, patternName, false);
+        public void SetHatchPattern(DxfHatchPatternType patternType, string patternName) =>
+            Pattern(patternType, patternName, false);
 
         /// <summary>Gives the HATCH a pattern, as <see cref="SetHatchPattern"/> does; forced, a gradient of the same pattern taken out.</summary>
         private void Pattern(DxfHatchPatternType patternType, string patternName, bool force)
@@ -413,7 +498,11 @@ namespace GeometryHelper.Dxf
 
             if (patternType < DxfHatchPatternType.UserDefined || patternType > DxfHatchPatternType.CustomDefined)
             {
-                throw new ArgumentOutOfRangeException(nameof(patternType), patternType, "A pattern is made by the user, of AutoCAD's pattern file or of another, 0 to 2.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(patternType),
+                    patternType,
+                    "A pattern is made by the user, of AutoCAD's pattern file or of another, 0 to 2."
+                );
             }
 
             string name = patternName.Trim();
@@ -425,12 +514,19 @@ namespace GeometryHelper.Dxf
 
             Parts record = Record();
             string was = record.Text(2)?.Trim() ?? "SOLID";
-            bool solid = string.Equals(name, "SOLID", StringComparison.OrdinalIgnoreCase) && patternType != DxfHatchPatternType.UserDefined;
-            bool same = string.Equals(name, was, StringComparison.OrdinalIgnoreCase) && Whole(record.Text(76), 1) == (int)patternType;
+            bool solid =
+                string.Equals(name, "SOLID", StringComparison.OrdinalIgnoreCase)
+                && patternType != DxfHatchPatternType.UserDefined;
+            bool same =
+                string.Equals(name, was, StringComparison.OrdinalIgnoreCase)
+                && Whole(record.Text(76), 1) == (int)patternType;
             DxfDatabase database = IsResident ? Item.File.Database : null;
 
             // A pattern of the name it has keeps its lines; one that holds none is given them where the drawing's files have it.
-            bool unfilled = database?.Patterns != null && patternType != DxfHatchPatternType.UserDefined && Lines(record).Count == 0;
+            bool unfilled =
+                database?.Patterns != null
+                && patternType != DxfHatchPatternType.UserDefined
+                && Lines(record).Count == 0;
 
             if (same && (solid ? IsSolidFill && !(force && IsGradient) : !IsSolidFill && !unfilled))
             {
@@ -502,7 +598,12 @@ namespace GeometryHelper.Dxf
             }
 
             string name = record.Text(2)?.Trim() ?? "SOLID";
-            List<double[]> lines = patterns.Find(name, type == DxfHatchPatternType.CustomDefined, database.Measurement == DxfMeasurementValue.Metric, out bool predefined);
+            List<double[]> lines = patterns.Find(
+                name,
+                type == DxfHatchPatternType.CustomDefined,
+                database.Measurement == DxfMeasurementValue.Metric,
+                out bool predefined
+            );
 
             if (lines == null)
             {
@@ -536,7 +637,12 @@ namespace GeometryHelper.Dxf
             if (named)
             {
                 record.Set(2, name.ToUpperInvariant());
-                record.Set(76, ((int)(predefined ? DxfHatchPatternType.PreDefined : DxfHatchPatternType.CustomDefined)).ToString(CultureInfo.InvariantCulture));
+                record.Set(
+                    76,
+                    ((int)(predefined ? DxfHatchPatternType.PreDefined : DxfHatchPatternType.CustomDefined)).ToString(
+                        CultureInfo.InvariantCulture
+                    )
+                );
             }
 
             record.SetPart(Kind.Pattern, LineGroups(lines));
@@ -559,7 +665,11 @@ namespace GeometryHelper.Dxf
 
             if (index < 0 || index >= lines.Count)
             {
-                throw new ArgumentOutOfRangeException(nameof(index), index, "The pattern has " + lines.Count.ToString(CultureInfo.InvariantCulture) + " lines, from nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(index),
+                    index,
+                    "The pattern has " + lines.Count.ToString(CultureInfo.InvariantCulture) + " lines, from nought."
+                );
             }
 
             double[] line = lines[index];
@@ -617,7 +727,9 @@ namespace GeometryHelper.Dxf
 
             if (PatternType == DxfHatchPatternType.UserDefined)
             {
-                throw new InvalidOperationException("A pattern made by the user has the lines of its spacing: set its PatternSpace.");
+                throw new InvalidOperationException(
+                    "A pattern made by the user has the lines of its spacing: set its PatternSpace."
+                );
             }
 
             _fromFiles = false;
@@ -634,7 +746,6 @@ namespace GeometryHelper.Dxf
         public DxfHatchStyle HatchStyle
         {
             get => (DxfHatchStyle)Whole(Record().Text(75), 0);
-
             set
             {
                 if (value == HatchStyle)
@@ -644,7 +755,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < DxfHatchStyle.Normal || value > DxfHatchStyle.Ignore)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A hatch style is normal, outer or ignore, 0 to 2.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A hatch style is normal, outer or ignore, 0 to 2."
+                    );
                 }
 
                 Parts record = Record();
@@ -670,7 +785,6 @@ namespace GeometryHelper.Dxf
         public DxfHatchObjectType HatchObjectType
         {
             get => IsGradient ? DxfHatchObjectType.GradientObject : DxfHatchObjectType.HatchObject;
-
             set
             {
                 if (value == HatchObjectType)
@@ -681,13 +795,20 @@ namespace GeometryHelper.Dxf
                 if (value == DxfHatchObjectType.GradientObject)
                 {
                     string name = Gradient(Record())?.Name;
-                    SetGradient(DxfGradientPatternType.PreDefinedGradient, name != null && Array.IndexOf(Gradients, name.ToUpperInvariant()) >= 0 ? name : "LINEAR");
+                    SetGradient(
+                        DxfGradientPatternType.PreDefinedGradient,
+                        name != null && Array.IndexOf(Gradients, name.ToUpperInvariant()) >= 0 ? name : "LINEAR"
+                    );
                     return;
                 }
 
                 if (value != DxfHatchObjectType.HatchObject)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A hatch is filled with a pattern, 0, or a gradient, 1.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A hatch is filled with a pattern, 0, or a gradient, 1."
+                    );
                 }
 
                 Pattern(DxfHatchPatternType.PreDefined, "SOLID", true);
@@ -709,7 +830,9 @@ namespace GeometryHelper.Dxf
             get
             {
                 string name = GradientName;
-                return name.Length == 0 || Array.IndexOf(Gradients, name.ToUpperInvariant()) >= 0 ? DxfGradientPatternType.PreDefinedGradient : DxfGradientPatternType.UserDefinedGradient;
+                return name.Length == 0 || Array.IndexOf(Gradients, name.ToUpperInvariant()) >= 0
+                    ? DxfGradientPatternType.PreDefinedGradient
+                    : DxfGradientPatternType.UserDefinedGradient;
             }
         }
 
@@ -760,7 +883,6 @@ namespace GeometryHelper.Dxf
         public bool GradientOneColorMode
         {
             get => Whole(Gradient(Record())?.Text(452), 0) != 0;
-
             set
             {
                 if (value == GradientOneColorMode)
@@ -816,7 +938,9 @@ namespace GeometryHelper.Dxf
 
             if (colours.Count == 0)
             {
-                throw new InvalidOperationException("The gradient of the HATCH has no colours: give it them with SetGradientColors.");
+                throw new InvalidOperationException(
+                    "The gradient of the HATCH has no colours: give it them with SetGradientColors."
+                );
             }
 
             var values = new List<double>(colours.Count + 1);
@@ -928,20 +1052,35 @@ namespace GeometryHelper.Dxf
 
                 if (known < 0)
                 {
-                    throw new ArgumentException("AutoCAD's gradients are LINEAR, CYLINDER, INVCYLINDER, SPHERICAL, INVSPHERICAL, HEMISPHERICAL, INVHEMISPHERICAL, CURVED and INVCURVED: " + name + " is none of them.", nameof(gradientName));
+                    throw new ArgumentException(
+                        "AutoCAD's gradients are LINEAR, CYLINDER, INVCYLINDER, SPHERICAL, INVSPHERICAL, HEMISPHERICAL, INVHEMISPHERICAL, CURVED and INVCURVED: "
+                            + name
+                            + " is none of them.",
+                        nameof(gradientName)
+                    );
                 }
 
                 name = Gradients[known];
             }
             else if (gradientType != DxfGradientPatternType.UserDefinedGradient)
             {
-                throw new ArgumentOutOfRangeException(nameof(gradientType), gradientType, "A gradient is one of AutoCAD's, 0, or of another name, 1.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(gradientType),
+                    gradientType,
+                    "A gradient is one of AutoCAD's, 0, or of another name, 1."
+                );
             }
 
             Parts record = Record();
             GradientData gradient = Gradient(record);
 
-            if (gradient != null && gradient.Kind == 1 && string.Equals(gradient.Name, name, StringComparison.Ordinal) && IsSolidFill && string.Equals(PatternName, "SOLID", StringComparison.OrdinalIgnoreCase))
+            if (
+                gradient != null
+                && gradient.Kind == 1
+                && string.Equals(gradient.Name, name, StringComparison.Ordinal)
+                && IsSolidFill
+                && string.Equals(PatternName, "SOLID", StringComparison.OrdinalIgnoreCase)
+            )
             {
                 return;
             }
@@ -988,19 +1127,25 @@ namespace GeometryHelper.Dxf
 
                 return DxfColor.FromColorIndex(DxfColorMethod.None, 0);
             }
-
             set
             {
                 int raw = DxfMLeaderColors.Raw(value, nameof(value));
 
-                if (raw == DxfMLeaderColors.Raw(BackgroundColor, nameof(value)) && (value.IsNone || GetXDataForApplication(Background) != null))
+                if (
+                    raw == DxfMLeaderColors.Raw(BackgroundColor, nameof(value))
+                    && (value.IsNone || GetXDataForApplication(Background) != null)
+                )
                 {
                     return;
                 }
 
                 XData = value.IsNone
                     ? new[] { new DxfTypedValue(1001, Background) }
-                    : new[] { new DxfTypedValue(1001, Background), new DxfTypedValue(1071, raw.ToString(CultureInfo.InvariantCulture)) };
+                    : new[]
+                    {
+                        new DxfTypedValue(1001, Background),
+                        new DxfTypedValue(1071, raw.ToString(CultureInfo.InvariantCulture)),
+                    };
             }
         }
 
@@ -1024,7 +1169,11 @@ namespace GeometryHelper.Dxf
 
             if (index < 0 || index >= seeds.Count)
             {
-                throw new ArgumentOutOfRangeException(nameof(index), index, "The HATCH has " + seeds.Count.ToString(CultureInfo.InvariantCulture) + " seed points, from nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(index),
+                    index,
+                    "The HATCH has " + seeds.Count.ToString(CultureInfo.InvariantCulture) + " seed points, from nought."
+                );
             }
 
             return seeds[index];
@@ -1038,7 +1187,10 @@ namespace GeometryHelper.Dxf
         {
             if (!point.IsValid)
             {
-                throw new ArgumentException("A seed point has to be of finite numbers: " + point + " is not.", nameof(point));
+                throw new ArgumentException(
+                    "A seed point has to be of finite numbers: " + point + " is not.",
+                    nameof(point)
+                );
             }
 
             Parts record = Record();
@@ -1060,7 +1212,11 @@ namespace GeometryHelper.Dxf
 
             if (index < 0 || index >= count)
             {
-                throw new ArgumentOutOfRangeException(nameof(index), index, "The HATCH has " + count.ToString(CultureInfo.InvariantCulture) + " seed points, from nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(index),
+                    index,
+                    "The HATCH has " + count.ToString(CultureInfo.InvariantCulture) + " seed points, from nought."
+                );
             }
 
             seeds.RemoveRange(2 * index, 2);
@@ -1160,7 +1316,9 @@ namespace GeometryHelper.Dxf
 
             for (int i = 0; i + 1 < seeds.Count; i += 2)
             {
-                GeoPoint3 seed = ocs.TransformVertex(new GeoPoint3(Num(seeds[i].Value, 0.0), Num(seeds[i + 1].Value, 0.0), elevation));
+                GeoPoint3 seed = ocs.TransformVertex(
+                    new GeoPoint3(Num(seeds[i].Value, 0.0), Num(seeds[i + 1].Value, 0.0), elevation)
+                );
                 seeds[i] = G(10, seed.X);
                 seeds[i + 1] = G(20, seed.Y);
             }
@@ -1216,11 +1374,16 @@ namespace GeometryHelper.Dxf
                 {
                     switch (Kind)
                     {
-                        case Kind.Paths: return Array.IndexOf(Ranked, 91);
-                        case Kind.Pattern: return Array.IndexOf(Ranked, 78);
-                        case Kind.Seeds: return Array.IndexOf(Ranked, 98);
-                        case Kind.Gradient: return Array.IndexOf(Ranked, 450);
-                        default: return Array.IndexOf(Ranked, Groups[0].Key);
+                        case Kind.Paths:
+                            return Array.IndexOf(Ranked, 91);
+                        case Kind.Pattern:
+                            return Array.IndexOf(Ranked, 78);
+                        case Kind.Seeds:
+                            return Array.IndexOf(Ranked, 98);
+                        case Kind.Gradient:
+                            return Array.IndexOf(Ranked, 450);
+                        default:
+                            return Array.IndexOf(Ranked, Groups[0].Key);
                     }
                 }
             }
@@ -1396,11 +1559,24 @@ namespace GeometryHelper.Dxf
             internal string Name => Text(470)?.Trim();
 
             /// <summary>The data AutoCAD writes for a new gradient: LINEAR, at nought, centred, of two colours, blue to pale yellow.</summary>
-            internal static GradientData Fresh() => new GradientData(new List<KeyValuePair<int, string>>
-            {
-                G(450, "1"), G(451, "0"), G(460, "0"), G(461, "0"), G(452, "0"), G(462, "0"), G(453, "2"),
-                G(463, "0"), G(421, "255"), G(463, "1"), G(421, "16777113"), G(470, "LINEAR"),
-            });
+            internal static GradientData Fresh() =>
+                new GradientData(
+                    new List<KeyValuePair<int, string>>
+                    {
+                        G(450, "1"),
+                        G(451, "0"),
+                        G(460, "0"),
+                        G(461, "0"),
+                        G(452, "0"),
+                        G(462, "0"),
+                        G(453, "2"),
+                        G(463, "0"),
+                        G(421, "255"),
+                        G(463, "1"),
+                        G(421, "16777113"),
+                        G(470, "LINEAR"),
+                    }
+                );
 
             internal string Text(int code) => DxfLeaderGroups.Text(Groups, code);
 
@@ -1415,7 +1591,10 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                int before = code == 470 ? Groups.Count : Groups.FindIndex(g => g.Key == 453 || g.Key == 463 || g.Key == 421 || g.Key == 470);
+                int before =
+                    code == 470
+                        ? Groups.Count
+                        : Groups.FindIndex(g => g.Key == 453 || g.Key == 463 || g.Key == 421 || g.Key == 470);
                 Groups.Insert(before < 0 ? Groups.Count : before, G(code, value));
             }
 
@@ -1438,7 +1617,10 @@ namespace GeometryHelper.Dxf
                             index = Whole(group.Value, 0);
                             break;
                         case 421:
-                            DxfColor colour = index >= 1 && index <= 255 ? DxfColor.OfIndex(index.Value) : DxfColor.OfRgb(Whole(group.Value, 0), null);
+                            DxfColor colour =
+                                index >= 1 && index <= 255
+                                    ? DxfColor.OfIndex(index.Value)
+                                    : DxfColor.OfRgb(Whole(group.Value, 0), null);
                             colours.Add(new DxfGradientColor(colour, (float)value));
                             index = null;
                             break;
@@ -1455,11 +1637,15 @@ namespace GeometryHelper.Dxf
 
                 foreach (DxfGradientColor colour in colours)
                 {
-                    DxfColor c = colour.Color ?? throw new ArgumentException("A colour of a gradient is null.", parameter);
+                    DxfColor c = colour.Color
+                        ?? throw new ArgumentException("A colour of a gradient is null.", parameter);
 
                     if (!c.IsByColor && !c.IsByAci)
                     {
-                        throw new ArgumentException("A colour of a gradient is a true colour or one of AutoCAD's index: " + c + " is neither.", parameter);
+                        throw new ArgumentException(
+                            "A colour of a gradient is a true colour or one of AutoCAD's index: " + c + " is neither.",
+                            parameter
+                        );
                     }
 
                     groups.Add(G(463, (double)colour.Value));
@@ -1516,8 +1702,11 @@ namespace GeometryHelper.Dxf
                 return true;
             }
 
-            private static bool SameColour(DxfGradientColor a, DxfGradientColor b)
-                => a.Value == b.Value && a.Color.ColorValue == b.Color.ColorValue && a.Color.ColorMethod == b.Color.ColorMethod && a.Color.ColorIndex == b.Color.ColorIndex;
+            private static bool SameColour(DxfGradientColor a, DxfGradientColor b) =>
+                a.Value == b.Value
+                && a.Color.ColorValue == b.Color.ColorValue
+                && a.Color.ColorMethod == b.Color.ColorMethod
+                && a.Color.ColorIndex == b.Color.ColorIndex;
         }
 
         /// <inheritdoc/>
@@ -1556,8 +1745,8 @@ namespace GeometryHelper.Dxf
             Write(record);
         }
 
-        private static InvalidOperationException NoGradient()
-            => new InvalidOperationException("The HATCH has no gradient data: give it a gradient with SetGradient first.");
+        private static InvalidOperationException NoGradient() =>
+            new InvalidOperationException("The HATCH has no gradient data: give it a gradient with SetGradient first.");
 
         /// <summary>A channel of red, green or blue (the low byte of each) taken in proportion from one to another, rounded half away from nought.</summary>
         private static int Mix(int a, int b, double f)
@@ -1573,7 +1762,9 @@ namespace GeometryHelper.Dxf
             double t = Math.Max(0.0, Math.Min(1.0, tint));
             int towards = t < 0.5 ? 0x000000 : 0xFFFFFF;
             double f = t < 0.5 ? 1.0 - 2.0 * t : 2.0 * t - 1.0;
-            return (Mix(rgb >> 16, towards >> 16, f) << 16) | (Mix(rgb >> 8, towards >> 8, f) << 8) | Mix(rgb, towards, f);
+            return (Mix(rgb >> 16, towards >> 16, f) << 16)
+                | (Mix(rgb >> 8, towards >> 8, f) << 8)
+                | Mix(rgb, towards, f);
         }
 
         /// <summary>The true colour of 0xRRGGBB.</summary>
@@ -1585,7 +1776,9 @@ namespace GeometryHelper.Dxf
         {
             if (IsSolidFill)
             {
-                throw new InvalidOperationException("A solid fill has no pattern to give a " + what + ": give it one with SetHatchPattern first.");
+                throw new InvalidOperationException(
+                    "A solid fill has no pattern to give a " + what + ": give it one with SetHatchPattern first."
+                );
             }
 
             return Record();

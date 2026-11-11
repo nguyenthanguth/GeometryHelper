@@ -156,7 +156,8 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Gets the folder the viewer keeps its files in.
         /// </summary>
-        public static string Folder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GeometryHelper.Viewer");
+        public static string Folder =>
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GeometryHelper.Viewer");
 
         /// <summary>
         /// Gets the path of the settings file.
@@ -181,9 +182,7 @@ namespace GeometryHelper.Viewer
                     }
                 }
             }
-            catch (Exception e) when (e is IOException || e is JsonException || e is UnauthorizedAccessException)
-            {
-            }
+            catch (Exception e) when (e is IOException || e is JsonException || e is UnauthorizedAccessException) { }
 
             return new Settings();
         }
@@ -196,11 +195,13 @@ namespace GeometryHelper.Viewer
             try
             {
                 Directory.CreateDirectory(Folder);
-                File.WriteAllText(FilePath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }) + "\n", new UTF8Encoding(false));
+                File.WriteAllText(
+                    FilePath,
+                    JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }) + "\n",
+                    new UTF8Encoding(false)
+                );
             }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
-            {
-            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException) { }
         }
 
         /// <summary>

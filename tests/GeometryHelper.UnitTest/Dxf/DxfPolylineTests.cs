@@ -15,7 +15,12 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfPolylineTests
     {
-        private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
+        private static readonly string[] Drawings =
+        {
+            DxfFileEzdxfDrawings.R12,
+            DxfFileEzdxfDrawings.R2000,
+            DxfFileEzdxfDrawings.R2018,
+        };
 
         #region Read as ezdxf reads it
 
@@ -55,13 +60,19 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
             DxfPolyline polyline = ByHandle<DxfPolyline>(db, "6C");
-            DxfDocument read = DxfReader.Parse(DxfFileEzdxfDrawings.R2000, new DxfReadOptions { Tolerance = Tolerance.Default });
+            DxfDocument read = DxfReader.Parse(
+                DxfFileEzdxfDrawings.R2000,
+                new DxfReadOptions { Tolerance = Tolerance.Default }
+            );
 
             object shape = Assert.Single(polyline.GetGeometry());
             Assert.Equal(read.Shapes.Single(s => s.Handle == "6C").Shape, shape);
             Assert.Equal(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)), polyline.GetLineSegmentAt(0));
             Assert.Equal(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0)), polyline.GetLineSegment2dAt(0));
-            Assert.Equal(GeoArc2.FromBulge(new GeoPoint2(10, 0), new GeoPoint2(10, 10), -0.25), polyline.GetArcSegment2dAt(1));
+            Assert.Equal(
+                GeoArc2.FromBulge(new GeoPoint2(10, 0), new GeoPoint2(10, 10), -0.25),
+                polyline.GetArcSegment2dAt(1)
+            );
             GeoArc3 arc = polyline.GetArcSegmentAt(1);
             Assert.True(arc.StartPoint.IsEqualTo(new GeoPoint3(10, 0, 0), Tolerance.Default));
             Assert.True(arc.EndPoint.IsEqualTo(new GeoPoint3(10, 10, 0), Tolerance.Default));
@@ -94,10 +105,20 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(1.5, polyline.GetParameterAtDistance(10.0 + 2.5 * Math.PI), 12);
             Assert.Equal(0.5, polyline.GetParameterAtPoint(new GeoPoint3(5, 0, 0)), 12);
             Assert.Equal(5.0, polyline.GetDistAtPoint(new GeoPoint3(5, 0, 0)), 12);
-            Assert.True(polyline.GetClosestPointTo(new GeoPoint3(20, 5, 3), false).IsEqualTo(new GeoPoint3(15, 5, 0), Tolerance.Default));
+            Assert.True(
+                polyline
+                    .GetClosestPointTo(new GeoPoint3(20, 5, 3), false)
+                    .IsEqualTo(new GeoPoint3(15, 5, 0), Tolerance.Default)
+            );
             Assert.Equal(Bits(new GeoVector3(10, 0, 0)), Bits(polyline.GetFirstDerivative(0.5)));
-            Assert.True(polyline.GetFirstDerivative(1.5).IsEqualTo(new GeoVector3(0, 5 * Math.PI, 0), Tolerance.Default));
-            Assert.True(polyline.GetSecondDerivative(1.5).IsEqualTo(new GeoVector3(-5 * Math.PI * Math.PI, 0, 0), Tolerance.Default));
+            Assert.True(
+                polyline.GetFirstDerivative(1.5).IsEqualTo(new GeoVector3(0, 5 * Math.PI, 0), Tolerance.Default)
+            );
+            Assert.True(
+                polyline
+                    .GetSecondDerivative(1.5)
+                    .IsEqualTo(new GeoVector3(-5 * Math.PI * Math.PI, 0, 0), Tolerance.Default)
+            );
             Assert.Throws<ArgumentException>(() => polyline.GetParameterAtPoint(new GeoPoint3(5, 1, 0)));
             Assert.Throws<ArgumentOutOfRangeException>(() => polyline.GetPointAtParameter(2.5));
 
@@ -197,7 +218,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.False(again.Closed);
             Assert.True(again.HasWidth);
             string record = Records(saved).Single(r => HandleOf(r) == "6C");
-            Assert.Contains(" 90\n4\n 70\n0\n 38\n2.5\n 10\n10.000000000000002\n 20\n-0.1\n 10\n10.0\n 20\n10.0\n 42\n0.375\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                " 90\n4\n 70\n0\n 38\n2.5\n 10\n10.000000000000002\n 20\n-0.1\n 10\n10.0\n 20\n10.0\n 42\n0.375\n",
+                record,
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -213,7 +238,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(0.75, again.ConstantWidth);
             Assert.Equal(0.75, again.GetStartWidthAt(0));
             Assert.Equal(0.75, again.GetEndWidthAt(3));
-            Assert.DoesNotContain("\n 40\n", Records(db.ToText()).Single(r => HandleOf(r) == "6C"), StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "\n 40\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "6C"),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -311,26 +340,39 @@ namespace GeometryHelper.UnitTest.Dxf
         #endregion
 
         /// <summary>The rotation and move of the oracle's edits, as a matrix of columns.</summary>
-        internal static GeoTransform3 Turn() => new GeoTransform3(new double[,]
-        {
-            { 0.7816391739070251, -0.4829292842142122, 0.3947397981737998, 10.0 },
-            { 0.5501172307043584, 0.8320301337746346, -0.07139249941787586, -5.0 },
-            { -0.29395787843858057, 0.27295633888831433, 0.9160150668873173, 2.5 },
-            { 0.0, 0.0, 0.0, 1.0 },
-        });
+        internal static GeoTransform3 Turn() =>
+            new GeoTransform3(
+                new double[,]
+                {
+                    { 0.7816391739070251, -0.4829292842142122, 0.3947397981737998, 10.0 },
+                    { 0.5501172307043584, 0.8320301337746346, -0.07139249941787586, -5.0 },
+                    { -0.29395787843858057, 0.27295633888831433, 0.9160150668873173, 2.5 },
+                    { 0.0, 0.0, 0.0, 1.0 },
+                }
+            );
 
         internal static void Near(GeoPoint2 expected, GeoPoint2 actual)
         {
-            Assert.True(Math.Abs(expected.X - actual.X) <= 1E-9 * Math.Max(1.0, Math.Abs(expected.X)), expected + " " + actual);
-            Assert.True(Math.Abs(expected.Y - actual.Y) <= 1E-9 * Math.Max(1.0, Math.Abs(expected.Y)), expected + " " + actual);
+            Assert.True(
+                Math.Abs(expected.X - actual.X) <= 1E-9 * Math.Max(1.0, Math.Abs(expected.X)),
+                expected + " " + actual
+            );
+            Assert.True(
+                Math.Abs(expected.Y - actual.Y) <= 1E-9 * Math.Max(1.0, Math.Abs(expected.Y)),
+                expected + " " + actual
+            );
         }
 
         internal static void Near(GeoPoint3 expected, GeoPoint3 actual)
         {
-            double scale = Math.Max(1.0, Math.Max(Math.Abs(expected.X), Math.Max(Math.Abs(expected.Y), Math.Abs(expected.Z))));
+            double scale = Math.Max(
+                1.0,
+                Math.Max(Math.Abs(expected.X), Math.Max(Math.Abs(expected.Y), Math.Abs(expected.Z)))
+            );
             Assert.True(expected.GetVectorTo(actual).Length <= 1E-9 * scale, expected + " " + actual);
         }
 
-        internal static void Near(GeoVector3 expected, GeoVector3 actual) => Assert.True(expected.Subtract(actual).Length <= 1E-9, expected + " " + actual);
+        internal static void Near(GeoVector3 expected, GeoVector3 actual) =>
+            Assert.True(expected.Subtract(actual).Length <= 1E-9, expected + " " + actual);
     }
 }

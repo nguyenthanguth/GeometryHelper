@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -48,9 +48,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="point">Source point.</param>
         public GeoPoint3(GeoPoint3 point)
-            : this(point.X, point.Y, point.Z)
-        {
-        }
+            : this(point.X, point.Y, point.Z) { }
 
         /// <summary>
         /// Creates a copy of this point.
@@ -181,7 +179,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines which side of a plane this point lies on, within a tolerance.
         /// </summary>
-        public PlaneSide GetSideOf(GeoPlane3 plane, Tolerance tolerance) => Containment3.GetSide(plane, this, tolerance);
+        public PlaneSide GetSideOf(GeoPlane3 plane, Tolerance tolerance) =>
+            Containment3.GetSide(plane, this, tolerance);
 
         /// <summary>
         /// Locates this point relative to a triangle, using the default tolerance.
@@ -191,7 +190,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Locates this point relative to a triangle, within a tolerance.
         /// </summary>
-        public PointLocation LocateIn(GeoTriangle3 triangle, Tolerance tolerance) => Containment3.Locate(triangle, this, tolerance);
+        public PointLocation LocateIn(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Containment3.Locate(triangle, this, tolerance);
 
         /// <summary>
         /// Locates this point relative to a polygon, using the default tolerance.
@@ -201,7 +201,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Locates this point relative to a polygon, within a tolerance.
         /// </summary>
-        public PointLocation LocateIn(GeoPolygon3 polygon, Tolerance tolerance) => Containment3.Locate(polygon, this, tolerance);
+        public PointLocation LocateIn(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Containment3.Locate(polygon, this, tolerance);
 
         /// <summary>
         /// Locates this point relative to a face, using the default tolerance.
@@ -221,7 +222,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Locates this point relative to a circular disc, within a tolerance.
         /// </summary>
-        public PointLocation LocateIn(GeoCircle3 circle, Tolerance tolerance) => Containment3.Locate(circle, this, tolerance);
+        public PointLocation LocateIn(GeoCircle3 circle, Tolerance tolerance) =>
+            Containment3.Locate(circle, this, tolerance);
 
         /// <summary>
         /// Locates this point relative to an oriented box, using the default tolerance.
@@ -251,7 +253,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Locates this point relative to a solid, within a tolerance.
         /// </summary>
-        public PointLocation LocateIn(GeoSolid3 solid, Tolerance tolerance) => Containment3.Locate(solid, this, tolerance);
+        public PointLocation LocateIn(GeoSolid3 solid, Tolerance tolerance) =>
+            Containment3.Locate(solid, this, tolerance);
 
         /// <summary>
         /// Checks whether this point lies on a polyline, using the default tolerance.
@@ -261,7 +264,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this point lies on a polyline, within a tolerance.
         /// </summary>
-        public bool IsPointOn(GeoPolyline3 polyline, Tolerance tolerance) => Containment3.IsPointOn(polyline, this, tolerance);
+        public bool IsPointOn(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Containment3.IsPointOn(polyline, this, tolerance);
 
         /// <summary>
         /// Checks whether this point lies on the boundary of a polygon, using the default tolerance.
@@ -271,7 +275,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this point lies on the boundary of a polygon, within a tolerance.
         /// </summary>
-        public bool IsPointOn(GeoPolygon3 polygon, Tolerance tolerance) => Containment3.IsPointOn(polygon, this, tolerance);
+        public bool IsPointOn(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Containment3.IsPointOn(polygon, this, tolerance);
 
         /// <summary>
         /// Checks whether this point lies on the circumference of a circle, using the default tolerance.
@@ -281,7 +286,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this point lies on the circumference of a circle, within a tolerance.
         /// </summary>
-        public bool IsPointOn(GeoCircle3 circle, Tolerance tolerance) => Containment3.IsPointOn(circle, this, tolerance);
+        public bool IsPointOn(GeoCircle3 circle, Tolerance tolerance) =>
+            Containment3.IsPointOn(circle, this, tolerance);
 
         #endregion
 
@@ -366,7 +372,8 @@ namespace GeometryHelper.Geometry
         /// <param name="frame">The frame to lay it out in.</param>
         /// <param name="result">The point in the plane, or the origin when the method returns false.</param>
         /// <returns>true if the point lies on the plane of the frame; otherwise, false.</returns>
-        public bool TryToPoint2(GeoCoordinateSystem3 frame, out GeoPoint2 result) => PlanarMap.TryToPoint2(frame, this, out result);
+        public bool TryToPoint2(GeoCoordinateSystem3 frame, out GeoPoint2 result) =>
+            PlanarMap.TryToPoint2(frame, this, out result);
 
         /// <summary>
         /// Lays this point out in a frame when it lies on the plane of that frame, within a tolerance.
@@ -375,6 +382,7 @@ namespace GeometryHelper.Geometry
         /// <param name="result">The point in the plane, or the origin when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the point lies on the plane of the frame; otherwise, false.</returns>
-        public bool TryToPoint2(GeoCoordinateSystem3 frame, out GeoPoint2 result, Tolerance tolerance) => PlanarMap.TryToPoint2(frame, this, out result, tolerance);
+        public bool TryToPoint2(GeoCoordinateSystem3 frame, out GeoPoint2 result, Tolerance tolerance) =>
+            PlanarMap.TryToPoint2(frame, this, out result, tolerance);
     }
 }

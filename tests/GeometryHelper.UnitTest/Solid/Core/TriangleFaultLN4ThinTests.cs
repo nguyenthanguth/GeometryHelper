@@ -23,10 +23,18 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly Tolerance Default = Tolerance.Default;
 
         /// <summary>The triangle 0.003 by 0.003 at the origin, in the plane z = 0: twice its area is 9E-6.</summary>
-        private static readonly GeoTriangle3 Small = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(0.003, 0, 0), new GeoPoint3(0, 0.003, 0));
+        private static readonly GeoTriangle3 Small = new GeoTriangle3(
+            new GeoPoint3(0, 0, 0),
+            new GeoPoint3(0.003, 0, 0),
+            new GeoPoint3(0, 0.003, 0)
+        );
 
         /// <summary>The sliver 100 long and 1E-8 high along X.</summary>
-        private static readonly GeoTriangle3 Sliver = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(50, 1E-8, 0));
+        private static readonly GeoTriangle3 Sliver = new GeoTriangle3(
+            new GeoPoint3(0, 0, 0),
+            new GeoPoint3(100, 0, 0),
+            new GeoPoint3(50, 1E-8, 0)
+        );
 
         [Fact]
         public void TheSmallTriangle_HasAreaAndTheSliverNone()
@@ -44,7 +52,14 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(Small.CollidesWith(segment, Default));
             Assert.True(Intersection3.TryIntersectWith(segment, Small, out GeoPoint3 crossing, Default));
             Assert.Equal(0.0, crossing.DistanceTo(new GeoPoint3(0.001, 0.001, 0)), 12);
-            Assert.True(Intersection3.TryIntersectWith(new GeoRay3(segment.StartPoint, segment.Direction), Small, out crossing, Default));
+            Assert.True(
+                Intersection3.TryIntersectWith(
+                    new GeoRay3(segment.StartPoint, segment.Direction),
+                    Small,
+                    out crossing,
+                    Default
+                )
+            );
             Assert.Equal(0.0, crossing.DistanceTo(new GeoPoint3(0.001, 0.001, 0)), 12);
         }
 
@@ -74,22 +89,51 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TheSliver_TouchesAPolygonAndAFaceAcrossIt_WhereItsSidesCross()
         {
-            var square = new GeoPolygon3(new[] { new GeoPoint3(40, -10, -1), new GeoPoint3(60, -10, 1), new GeoPoint3(60, 10, 1), new GeoPoint3(40, 10, -1) }, Default);
+            var square = new GeoPolygon3(
+                new[]
+                {
+                    new GeoPoint3(40, -10, -1),
+                    new GeoPoint3(60, -10, 1),
+                    new GeoPoint3(60, 10, 1),
+                    new GeoPoint3(40, 10, -1),
+                },
+                Default
+            );
 
             Assert.True(Sliver.CollidesWith(square, Default));
-            Assert.True(Assert.Single(Intersection3.GetIntersections(Sliver, square, Default)).DistanceTo(new GeoPoint3(50, 0, 0)) < 1E-9);
-            Assert.True(Assert.Single(Intersection3.GetIntersections(Sliver, new GeoFace3(square), Default)).DistanceTo(new GeoPoint3(50, 0, 0)) < 1E-9);
+            Assert.True(
+                Assert
+                    .Single(Intersection3.GetIntersections(Sliver, square, Default))
+                    .DistanceTo(new GeoPoint3(50, 0, 0)) < 1E-9
+            );
+            Assert.True(
+                Assert
+                    .Single(Intersection3.GetIntersections(Sliver, new GeoFace3(square), Default))
+                    .DistanceTo(new GeoPoint3(50, 0, 0)) < 1E-9
+            );
         }
 
         [Fact]
         public void TheSliverAndAnUprightTriangle_CrossWhereItsSidesDo()
         {
-            var upright = new GeoTriangle3(new GeoPoint3(50, -10, -10), new GeoPoint3(50, 10, -10), new GeoPoint3(50, 0, 10));
+            var upright = new GeoTriangle3(
+                new GeoPoint3(50, -10, -10),
+                new GeoPoint3(50, 10, -10),
+                new GeoPoint3(50, 0, 10)
+            );
 
             Assert.True(Sliver.CollidesWith(upright, Default));
             Assert.True(upright.CollidesWith(Sliver, Default));
-            Assert.True(Assert.Single(Intersection3.GetIntersections(Sliver, upright, Default)).DistanceTo(new GeoPoint3(50, 0, 0)) < 1E-9);
-            Assert.True(Assert.Single(Intersection3.GetIntersections(upright, Sliver, Default)).DistanceTo(new GeoPoint3(50, 0, 0)) < 1E-9);
+            Assert.True(
+                Assert
+                    .Single(Intersection3.GetIntersections(Sliver, upright, Default))
+                    .DistanceTo(new GeoPoint3(50, 0, 0)) < 1E-9
+            );
+            Assert.True(
+                Assert
+                    .Single(Intersection3.GetIntersections(upright, Sliver, Default))
+                    .DistanceTo(new GeoPoint3(50, 0, 0)) < 1E-9
+            );
         }
 
         [Fact]
@@ -110,12 +154,27 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < 600; i++)
             {
-                var origin = new GeoPoint3(random.NextDouble() * 100, random.NextDouble() * 100, random.NextDouble() * 100);
-                GeoTriangle3 triangle = i % 2 == 0
-                    ? new GeoTriangle3(origin, origin.Add(new GeoVector3(20, 0, 0)), origin.Add(new GeoVector3(20 * random.NextDouble(), heights[random.Next(4)], 0)))
-                    : new GeoTriangle3(origin, origin.Add(new GeoVector3(sizes[random.Next(3)], 0, 0)), origin.Add(new GeoVector3(0, sizes[random.Next(3)], 0)));
+                var origin = new GeoPoint3(
+                    random.NextDouble() * 100,
+                    random.NextDouble() * 100,
+                    random.NextDouble() * 100
+                );
+                GeoTriangle3 triangle =
+                    i % 2 == 0
+                        ? new GeoTriangle3(
+                            origin,
+                            origin.Add(new GeoVector3(20, 0, 0)),
+                            origin.Add(new GeoVector3(20 * random.NextDouble(), heights[random.Next(4)], 0))
+                        )
+                        : new GeoTriangle3(
+                            origin,
+                            origin.Add(new GeoVector3(sizes[random.Next(3)], 0, 0)),
+                            origin.Add(new GeoVector3(0, sizes[random.Next(3)], 0))
+                        );
 
-                GeoPoint3 aim = triangle.GetPointAtBarycentric(0.3, 0.3, 0.4).Add(new GeoVector3(0, (random.NextDouble() * 2 - 1) * 0.0015, 0));
+                GeoPoint3 aim = triangle
+                    .GetPointAtBarycentric(0.3, 0.3, 0.4)
+                    .Add(new GeoVector3(0, (random.NextDouble() * 2 - 1) * 0.0015, 0));
                 var direction = new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, 1);
                 var segment = new GeoLine3(aim.Add(direction.Multiply(-3)), aim.Add(direction.Multiply(3)));
 

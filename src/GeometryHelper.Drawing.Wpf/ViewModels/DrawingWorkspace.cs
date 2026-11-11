@@ -45,7 +45,8 @@ namespace GeometryHelper.Drawing.Wpf
         private static readonly IDrawingSourceProvider OpenedFromFile = new UnconnectedSourceProvider(
             "Opened from a file",
             "A model drawing opened from its DXF, which does not keep the source it was made from",
-            "Not connected · choose the source in Update from model");
+            "Not connected · choose the source in Update from model"
+        );
 
         // The names of what a drawing's file keeps of where it was made from (DrawingDocumentStore.WriteValues).
         private const string SourceKey = "Source";
@@ -69,14 +70,19 @@ namespace GeometryHelper.Drawing.Wpf
         public DrawingWorkspace(MainViewModel model, IEnumerable<IDrawingSourceProvider> providers, Tolerance tolerance)
         {
             Model = model ?? throw new ArgumentNullException(nameof(model));
-            _providers = new List<IDrawingSourceProvider>(providers ?? throw new ArgumentNullException(nameof(providers)));
+            _providers = new List<IDrawingSourceProvider>(
+                providers ?? throw new ArgumentNullException(nameof(providers))
+            );
             Tolerance = tolerance;
             Drawings = new ReadOnlyObservableCollection<ModelDrawing>(_drawings);
 
             NewCommand = new DelegateCommand(_ => ShowNewDrawing());
             UpdateCommand = new DelegateCommand(_ => ShowUpdate(), _ => _current != null);
             SettingsCommand = new DelegateCommand(_ => ShowSettings(), _ => _current != null);
-            AddViewCommand = new DelegateCommand(p => _ = AddViewAsync(p is ViewKind kind ? kind : ParseKind(p as string)), _ => _current != null);
+            AddViewCommand = new DelegateCommand(
+                p => _ = AddViewAsync(p is ViewKind kind ? kind : ParseKind(p as string)),
+                _ => _current != null
+            );
             SectionCommand = new DelegateCommand(_ => Model.StartCommand("VIEWSECTION"), _ => _current != null);
             DetailCommand = new DelegateCommand(_ => Model.StartCommand("VIEWDETAIL"), _ => _current != null);
             AutoDimensionCommand = new DelegateCommand(_ => ReDimensionSelectedView(), _ => _current != null);
@@ -88,7 +94,9 @@ namespace GeometryHelper.Drawing.Wpf
             model.NewFromModelRequested += (s, e) => ShowNewDrawing();
             model.SettingsApplied += (s, e) => _settingsApplied = true;
             model.PropertyChanged += OnModelChanged;
-            model.SettingsSources = _providers.Select(p => new CadSourceInfo(p.Name, p.AvailabilityText, p.IsAvailable)).ToList();
+            model.SettingsSources = _providers
+                .Select(p => new CadSourceInfo(p.Name, p.AvailabilityText, p.IsAvailable))
+                .ToList();
             model.AddExtension(this);
         }
 
@@ -143,7 +151,20 @@ namespace GeometryHelper.Drawing.Wpf
                     Raise(nameof(HasCurrent));
                     Raise(nameof(AddableViews));
 
-                    foreach (ICommand command in new[] { UpdateCommand, SettingsCommand, AddViewCommand, SectionCommand, DetailCommand, AutoDimensionCommand, AutoMarksCommand, CentreLinesCommand, RunPluginCommand })
+                    foreach (
+                        ICommand command in new[]
+                        {
+                            UpdateCommand,
+                            SettingsCommand,
+                            AddViewCommand,
+                            SectionCommand,
+                            DetailCommand,
+                            AutoDimensionCommand,
+                            AutoMarksCommand,
+                            CentreLinesCommand,
+                            RunPluginCommand,
+                        }
+                    )
                     {
                         ((DelegateCommand)command).RaiseCanExecuteChanged();
                     }
@@ -165,8 +186,18 @@ namespace GeometryHelper.Drawing.Wpf
                 }
 
                 IList<ViewKind> kinds = _current.Drawing.Settings.Views.Kinds;
-                return new[] { ViewKind.Front, ViewKind.Top, ViewKind.Bottom, ViewKind.Left, ViewKind.Right, ViewKind.Back, ViewKind.Isometric }
-                    .Where(k => !kinds.Contains(k)).ToList();
+                return new[]
+                {
+                    ViewKind.Front,
+                    ViewKind.Top,
+                    ViewKind.Bottom,
+                    ViewKind.Left,
+                    ViewKind.Right,
+                    ViewKind.Back,
+                    ViewKind.Isometric,
+                }
+                    .Where(k => !kinds.Contains(k))
+                    .ToList();
             }
         }
 
@@ -212,7 +243,8 @@ namespace GeometryHelper.Drawing.Wpf
         /// <summary>Finds the model drawing a document shows; null for a document of none.</summary>
         /// <param name="document">The document.</param>
         /// <returns>The model drawing, or null.</returns>
-        public ModelDrawing Find(CadDocument document) => document == null ? null : _drawings.FirstOrDefault(d => d.Document == document);
+        public ModelDrawing Find(CadDocument document) =>
+            document == null ? null : _drawings.FirstOrDefault(d => d.Document == document);
 
         /// <summary>Asks the window for the New drawing dialog.</summary>
         /// <returns>The dialog's view model.</returns>
@@ -220,19 +252,29 @@ namespace GeometryHelper.Drawing.Wpf
 
         /// <summary>Asks the window for the Update from model dialog of the drawing shown; null, said on the command line, with none.</summary>
         /// <returns>The dialog's view model, or null.</returns>
-        public UpdateFromModelViewModel ShowUpdate() => _current == null ? Refuse<UpdateFromModelViewModel>("DRAWINGUPDATE") : Ask(DrawingDialogKind.Update, new UpdateFromModelViewModel(this, _current));
+        public UpdateFromModelViewModel ShowUpdate() =>
+            _current == null
+                ? Refuse<UpdateFromModelViewModel>("DRAWINGUPDATE")
+                : Ask(DrawingDialogKind.Update, new UpdateFromModelViewModel(this, _current));
 
         /// <summary>Asks the window for the Drawing settings dialog of the drawing shown; null, said on the command line, with none.</summary>
         /// <returns>The dialog's view model, or null.</returns>
-        public DrawingSettingsViewModel ShowSettings() => _current == null ? Refuse<DrawingSettingsViewModel>("DRAWINGSETTINGS") : Ask(DrawingDialogKind.Settings, new DrawingSettingsViewModel(this, _current));
+        public DrawingSettingsViewModel ShowSettings() =>
+            _current == null
+                ? Refuse<DrawingSettingsViewModel>("DRAWINGSETTINGS")
+                : Ask(DrawingDialogKind.Settings, new DrawingSettingsViewModel(this, _current));
 
         /// <summary>Asks the window for the Export dialog; null, said on the command line, with no model drawing made.</summary>
         /// <returns>The dialog's view model, or null.</returns>
-        public ExportViewModel ShowExport() => _drawings.Count == 0 ? Refuse<ExportViewModel>("EXPORTDXF") : Ask(DrawingDialogKind.Export, new ExportViewModel(this));
+        public ExportViewModel ShowExport() =>
+            _drawings.Count == 0
+                ? Refuse<ExportViewModel>("EXPORTDXF")
+                : Ask(DrawingDialogKind.Export, new ExportViewModel(this));
 
         /// <summary>Asks the window to show a message.</summary>
         /// <param name="message">The message.</param>
-        public void ShowMessage(MessageViewModel message) => Ask(DrawingDialogKind.Message, message ?? throw new ArgumentNullException(nameof(message)));
+        public void ShowMessage(MessageViewModel message) =>
+            Ask(DrawingDialogKind.Message, message ?? throw new ArgumentNullException(nameof(message)));
 
         /// <summary>
         /// Shows a drawing made in the presenter: its document over its DXF with its owner registered, listed under its source,
@@ -244,7 +286,12 @@ namespace GeometryHelper.Drawing.Wpf
         /// <param name="wholeAssemblies">The assemblies drawn whole, whose new fittings an update draws too; null for none.</param>
         /// <returns>The model drawing.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the drawing or the source is null.</exception>
-        public ModelDrawing Open(Drawing drawing, IDrawingSourceProvider provider, string presetName, IEnumerable<string> wholeAssemblies = null)
+        public ModelDrawing Open(
+            Drawing drawing,
+            IDrawingSourceProvider provider,
+            string presetName,
+            IEnumerable<string> wholeAssemblies = null
+        )
         {
             if (drawing == null)
             {
@@ -264,8 +311,22 @@ namespace GeometryHelper.Drawing.Wpf
             document.Changed += OnDocumentChanged;
             ((DelegateCommand)ExportDxfCommand).RaiseCanExecuteChanged();
             Show(entry);
-            Say("Made " + entry.Number + " (" + entry.Name + ") from " + provider.Name + ": " + drawing.Views.Count.ToString(CultureInfo.InvariantCulture)
-                + " views at 1:" + DialogViewModel.Length(drawing.Scale) + " on " + entry.SheetSize + "." + Warnings(drawing));
+            Say(
+                "Made "
+                    + entry.Number
+                    + " ("
+                    + entry.Name
+                    + ") from "
+                    + provider.Name
+                    + ": "
+                    + drawing.Views.Count.ToString(CultureInfo.InvariantCulture)
+                    + " views at 1:"
+                    + DialogViewModel.Length(drawing.Scale)
+                    + " on "
+                    + entry.SheetSize
+                    + "."
+                    + Warnings(drawing)
+            );
             SaveNew(entry);
             return entry;
         }
@@ -281,9 +342,13 @@ namespace GeometryHelper.Drawing.Wpf
                 return;
             }
 
-            string folder = Model.Settings.SaveFolder.Length > 0
-                ? Model.Settings.SaveFolder
-                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GeometryHelper Drawing");
+            string folder =
+                Model.Settings.SaveFolder.Length > 0
+                    ? Model.Settings.SaveFolder
+                    : Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                        "GeometryHelper Drawing"
+                    );
             string name = entry.Number;
 
             foreach (char bad in Path.GetInvalidFileNameChars())
@@ -305,10 +370,20 @@ namespace GeometryHelper.Drawing.Wpf
                 entry.Document.SaveAs(path);
                 Say("Saved " + entry.Number + " as " + path + ".");
             }
-            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+            catch (Exception ex)
+                when (ex is IOException
+                    || ex is UnauthorizedAccessException
+                    || ex is ArgumentException
+                    || ex is NotSupportedException
+                )
             {
-                GeometryHelperLog.Warn("DrawingWorkspace: " + entry.Number + " could not be saved into " + folder + ".", ex);
-                Say("Could not save " + entry.Number + " into " + folder + ": " + ex.Message + " Save it with Save As.");
+                GeometryHelperLog.Warn(
+                    "DrawingWorkspace: " + entry.Number + " could not be saved into " + folder + ".",
+                    ex
+                );
+                Say(
+                    "Could not save " + entry.Number + " into " + folder + ": " + ex.Message + " Save it with Save As."
+                );
             }
         }
 
@@ -322,7 +397,9 @@ namespace GeometryHelper.Drawing.Wpf
             }
 
             Model.OpenDocument(entry.Document, entry.Key);
-            CadSpace sheet = entry.Document.Spaces.FirstOrDefault(s => !s.IsModel && string.Equals(s.Name, DrawingDxfWriter.LayoutName, StringComparison.OrdinalIgnoreCase));
+            CadSpace sheet = entry.Document.Spaces.FirstOrDefault(s =>
+                !s.IsModel && string.Equals(s.Name, DrawingDxfWriter.LayoutName, StringComparison.OrdinalIgnoreCase)
+            );
 
             if (sheet != null)
             {
@@ -347,7 +424,12 @@ namespace GeometryHelper.Drawing.Wpf
         /// <exception cref="InvalidOperationException">Thrown, in words saying what to do, when a drawing opened from its file
         /// has no source at hand that holds its objects, or the drawing is being made again already.</exception>
         /// <exception cref="OperationCanceledException">Thrown when the drawing was closed while it was made; nothing is written.</exception>
-        internal async Task<UpdateReport> ApplySettingsAsync(ModelDrawing entry, DrawingSettings settings, string presetName, Func<string, Func<PreparedUpdate>, Task<PreparedUpdate>> runner)
+        internal async Task<UpdateReport> ApplySettingsAsync(
+            ModelDrawing entry,
+            DrawingSettings settings,
+            string presetName,
+            Func<string, Func<PreparedUpdate>, Task<PreparedUpdate>> runner
+        )
         {
             Drawing drawing = entry.Drawing;
             IDrawingSourceProvider provider = SourceToMakeFrom(entry);
@@ -358,7 +440,10 @@ namespace GeometryHelper.Drawing.Wpf
 
             try
             {
-                PreparedUpdate prepared = runner == null ? prepare() : await runner("Making " + entry.Number + " again with the new settings…", prepare);
+                PreparedUpdate prepared =
+                    runner == null
+                        ? prepare()
+                        : await runner("Making " + entry.Number + " again with the new settings…", prepare);
                 ThrowIfClosed(entry);
                 report = WriteChange(entry, provider, presetName ?? entry.PresetName, () => drawing.Apply(prepared));
             }
@@ -368,8 +453,19 @@ namespace GeometryHelper.Drawing.Wpf
             }
 
             Changed(entry);
-            Say(entry.Number + " made again with the new settings: " + Count(report.EditsKept.Count, "hand edit") + " kept"
-                + (report.EditsDropped.Count == 0 ? string.Empty : ", " + Count(report.EditsDropped.Count, "hand edit") + " no longer apply") + "." + Warnings(drawing));
+            Say(
+                entry.Number
+                    + " made again with the new settings: "
+                    + Count(report.EditsKept.Count, "hand edit")
+                    + " kept"
+                    + (
+                        report.EditsDropped.Count == 0
+                            ? string.Empty
+                            : ", " + Count(report.EditsDropped.Count, "hand edit") + " no longer apply"
+                    )
+                    + "."
+                    + Warnings(drawing)
+            );
             SayDropped(report);
             return report;
         }
@@ -439,7 +535,15 @@ namespace GeometryHelper.Drawing.Wpf
 
             if (kind == ViewKind.Section || kind == ViewKind.Detail || kind == ViewKind.Free)
             {
-                Say(kind == ViewKind.Free ? "A view along a direction of one's own comes in a later step." : "A " + kind.ToString().ToLowerInvariant() + " is drawn by VIEW" + kind.ToString().ToUpperInvariant() + " on the canvas.");
+                Say(
+                    kind == ViewKind.Free
+                        ? "A view along a direction of one's own comes in a later step."
+                        : "A "
+                            + kind.ToString().ToLowerInvariant()
+                            + " is drawn by VIEW"
+                            + kind.ToString().ToUpperInvariant()
+                            + " on the canvas."
+                );
                 return false;
             }
 
@@ -469,7 +573,17 @@ namespace GeometryHelper.Drawing.Wpf
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
-                ShowMessage(MessageViewModel.Failure("View not added", "The " + kind.ToString().ToLowerInvariant() + " view could not be added to " + entry.Number + ".", ex));
+                ShowMessage(
+                    MessageViewModel.Failure(
+                        "View not added",
+                        "The "
+                            + kind.ToString().ToLowerInvariant()
+                            + " view could not be added to "
+                            + entry.Number
+                            + ".",
+                        ex
+                    )
+                );
                 return false;
             }
         }
@@ -494,13 +608,19 @@ namespace GeometryHelper.Drawing.Wpf
                 try
                 {
                     DrawingSource now = SourceFor(entry, provider.CreateObjects());
-                    entry.IsOutOfDate = entry.Drawing.Source != null
-                        ? !SourceComparer.Same(entry.Drawing.Source, now)
-                        : !new HashSet<string>(Drawn(entry), StringComparer.Ordinal).SetEquals(now.Objects.Select(o => o.Id));
+                    entry.IsOutOfDate =
+                        entry.Drawing.Source != null
+                            ? !SourceComparer.Same(entry.Drawing.Source, now)
+                            : !new HashSet<string>(Drawn(entry), StringComparer.Ordinal).SetEquals(
+                                now.Objects.Select(o => o.Id)
+                            );
                 }
                 catch (Exception ex) when (!(ex is OutOfMemoryException))
                 {
-                    GeometryHelperLog.Warn("DrawingWorkspace: the source of " + entry.Number + " could not be read.", ex);
+                    GeometryHelperLog.Warn(
+                        "DrawingWorkspace: the source of " + entry.Number + " could not be read.",
+                        ex
+                    );
                 }
 
                 entry.Refresh();
@@ -594,7 +714,8 @@ namespace GeometryHelper.Drawing.Wpf
                 entry.State,
                 entry.Number + " · " + entry.Name,
                 "Source: " + entry.Provider.Name + " · " + (entry.Provider.IsAvailable ? "connected" : "not connected"),
-                outOfDate == 0 ? null : Count(outOfDate, "drawing") + " out of date");
+                outOfDate == 0 ? null : Count(outOfDate, "drawing") + " out of date"
+            );
         }
 
         /// <summary>
@@ -619,12 +740,18 @@ namespace GeometryHelper.Drawing.Wpf
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
-                GeometryHelperLog.Warn("DrawingWorkspace: the model drawing of " + document.Title + " could not be opened; it is shown as a DXF.", ex);
+                GeometryHelperLog.Warn(
+                    "DrawingWorkspace: the model drawing of "
+                        + document.Title
+                        + " could not be opened; it is shown as a DXF.",
+                    ex
+                );
                 return;
             }
 
             // What the file keeps of where the drawing was made from; a file written before it kept any gives none.
-            string sourceName = null, presetName = null;
+            string sourceName = null,
+                presetName = null;
             var whole = new List<string>();
 
             foreach (KeyValuePair<string, string> value in DrawingDocumentStore.ReadValues(document.Database))
@@ -643,12 +770,24 @@ namespace GeometryHelper.Drawing.Wpf
                 }
             }
 
-            var entry = new ModelDrawing(document.FileName ?? UniqueKey(drawing), drawing, document, OpenedFromFile, presetName, whole) { SourceName = sourceName };
+            var entry = new ModelDrawing(
+                document.FileName ?? UniqueKey(drawing),
+                drawing,
+                document,
+                OpenedFromFile,
+                presetName,
+                whole
+            )
+            {
+                SourceName = sourceName,
+            };
             drawing.Plugins = _plugins;
             _drawings.Add(entry);
             document.Changed += OnDocumentChanged;
             ((DelegateCommand)ExportDxfCommand).RaiseCanExecuteChanged();
-            CadSpace sheet = document.Spaces.FirstOrDefault(s => !s.IsModel && string.Equals(s.Name, DrawingDxfWriter.LayoutName, StringComparison.OrdinalIgnoreCase));
+            CadSpace sheet = document.Spaces.FirstOrDefault(s =>
+                !s.IsModel && string.Equals(s.Name, DrawingDxfWriter.LayoutName, StringComparison.OrdinalIgnoreCase)
+            );
 
             if (sheet != null)
             {
@@ -686,7 +825,12 @@ namespace GeometryHelper.Drawing.Wpf
         /// <param name="shown">What Properties shows otherwise.</param>
         /// <param name="banner">The banner; null for none.</param>
         /// <returns>What Properties shows.</returns>
-        public override CadSelectionInfo DescribeSelection(CadDocument document, IReadOnlyList<string> handles, CadSelectionInfo shown, out string banner)
+        public override CadSelectionInfo DescribeSelection(
+            CadDocument document,
+            IReadOnlyList<string> handles,
+            CadSelectionInfo shown,
+            out string banner
+        )
         {
             ModelDrawing entry = Find(document);
             banner = null;
@@ -707,19 +851,24 @@ namespace GeometryHelper.Drawing.Wpf
         {
             var ids = new HashSet<string>(Drawn(entry), StringComparer.Ordinal);
             var whole = new HashSet<string>(entry.WholeAssemblies, StringComparer.Ordinal);
-            List<DrawingObject> objects = now.Where(o => ids.Contains(o.Id) || (o.ParentId != null && whole.Contains(o.ParentId))).ToList();
+            List<DrawingObject> objects = now.Where(o =>
+                    ids.Contains(o.Id) || (o.ParentId != null && whole.Contains(o.ParentId))
+                )
+                .ToList();
             return new DrawingSource(objects);
         }
 
         /// <summary>The ids of the objects a drawing was made from; for a drawing opened from its file, those its views draw.</summary>
-        private static IEnumerable<string> Drawn(ModelDrawing entry)
-            => entry.Drawing.Source != null
+        private static IEnumerable<string> Drawn(ModelDrawing entry) =>
+            entry.Drawing.Source != null
                 ? entry.Drawing.Source.Objects.Select(o => o.Id)
                 : entry.Drawing.Elements.Where(e => e.Kind == "View").SelectMany(e => e.Links.ObjectIds);
 
         /// <summary>The source of the name a drawing's file keeps, or Update from model last found its objects in, connected; null for none.</summary>
-        private IDrawingSourceProvider NamedSource(ModelDrawing entry)
-            => _providers.FirstOrDefault(p => p.IsAvailable && string.Equals(p.Name, entry.SourceName, StringComparison.Ordinal));
+        private IDrawingSourceProvider NamedSource(ModelDrawing entry) =>
+            _providers.FirstOrDefault(p =>
+                p.IsAvailable && string.Equals(p.Name, entry.SourceName, StringComparison.Ordinal)
+            );
 
         /// <summary>
         /// The source a change of a drawing's settings makes it again from: the one it was made from; for a drawing opened from
@@ -734,7 +883,10 @@ namespace GeometryHelper.Drawing.Wpf
             }
 
             return NamedSource(entry)
-                ?? throw new InvalidOperationException(entry.Number + " was opened from its file, and the source it was made from is not at hand: pick its source in Update from model first.");
+                ?? throw new InvalidOperationException(
+                    entry.Number
+                        + " was opened from its file, and the source it was made from is not at hand: pick its source in Update from model first."
+                );
         }
 
         /// <summary>
@@ -751,8 +903,15 @@ namespace GeometryHelper.Drawing.Wpf
             }
 
             DrawingSource source = SourceFor(entry, provider.CreateObjects());
-            return source.Objects.Count > 0 ? source
-                : throw new InvalidOperationException("None of the objects " + entry.Number + " draws is in " + provider.Name + ": pick the source it was made from in Update from model first.");
+            return source.Objects.Count > 0
+                ? source
+                : throw new InvalidOperationException(
+                    "None of the objects "
+                        + entry.Number
+                        + " draws is in "
+                        + provider.Name
+                        + ": pick the source it was made from in Update from model first."
+                );
         }
 
         /// <summary>
@@ -760,7 +919,12 @@ namespace GeometryHelper.Drawing.Wpf
         /// the source and the preset is written first, so that the step holds it and undo and redo take it with the rest; put
         /// back where the change fails. The drawing is then known by the source and the preset.
         /// </summary>
-        internal UpdateReport WriteChange(ModelDrawing entry, IDrawingSourceProvider provider, string presetName, Func<UpdateReport> change)
+        internal UpdateReport WriteChange(
+            ModelDrawing entry,
+            IDrawingSourceProvider provider,
+            string presetName,
+            Func<UpdateReport> change
+        )
         {
             // A document with no step yet keeps itself as it stands at its first edit: a group opened and closed with no edit
             // in it makes it do so now, before the values are written, so that undoing this first step takes them back too.
@@ -828,12 +992,14 @@ namespace GeometryHelper.Drawing.Wpf
             }
         }
 
-        internal static string Count(int count, string one, string many = null)
-            => count.ToString(CultureInfo.InvariantCulture) + " " + (count == 1 ? one : many ?? one + "s");
+        internal static string Count(int count, string one, string many = null) =>
+            count.ToString(CultureInfo.InvariantCulture) + " " + (count == 1 ? one : many ?? one + "s");
 
-        private static string Warnings(Drawing drawing) => drawing.Warnings.Count == 0 ? string.Empty : " " + string.Join(" ", drawing.Warnings);
+        private static string Warnings(Drawing drawing) =>
+            drawing.Warnings.Count == 0 ? string.Empty : " " + string.Join(" ", drawing.Warnings);
 
-        private static ViewKind ParseKind(string name) => Enum.TryParse(name, true, out ViewKind kind) ? kind : ViewKind.Front;
+        private static ViewKind ParseKind(string name) =>
+            Enum.TryParse(name, true, out ViewKind kind) ? kind : ViewKind.Front;
 
         private T Ask<T>(DrawingDialogKind kind, T dialog)
             where T : DialogViewModel
@@ -845,7 +1011,11 @@ namespace GeometryHelper.Drawing.Wpf
         private T Refuse<T>(string command)
             where T : class
         {
-            Say(command == "EXPORTDXF" ? "No model drawing is made yet: DRAWINGNEW makes one." : command + " works on a model drawing; the drawing shown is not one.");
+            Say(
+                command == "EXPORTDXF"
+                    ? "No model drawing is made yet: DRAWINGNEW makes one."
+                    : command + " works on a model drawing; the drawing shown is not one."
+            );
             return null;
         }
 
@@ -865,7 +1035,11 @@ namespace GeometryHelper.Drawing.Wpf
 
         private IEnumerable<CadPrompt> Write(CadCommandContext c, bool needsDrawing, string line)
         {
-            c.Write(needsDrawing && Find(c.Document) == null ? c.Command.Name + " works on a model drawing; " + c.Document.Title + " is a DXF." : line);
+            c.Write(
+                needsDrawing && Find(c.Document) == null
+                    ? c.Command.Name + " works on a model drawing; " + c.Document.Title + " is a DXF."
+                    : line
+            );
             return Array.Empty<CadPrompt>();
         }
 

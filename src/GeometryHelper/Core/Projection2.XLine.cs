@@ -69,28 +69,32 @@ namespace GeometryHelper.Core
 
         internal static GeoLine2 GetShortestLineTo(GeoXLine2 xline, GeoPolygon2 poly, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             return GetShortestLineTo(XLine2.CutPast(xline, poly, tolerance), poly, tolerance);
         }
 
         internal static GeoLine2 GetShortestLineTo(GeoXLine2 xline, GeoPolygonArc2 loop, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return GetShortestLineTo(XLine2.CutPast(xline, loop, tolerance), loop, tolerance);
         }
 
         internal static GeoLine2 GetShortestLineTo(GeoXLine2 xline, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return GetShortestLineTo(XLine2.CutPast(xline, polyline, tolerance), polyline, tolerance);
         }
 
         internal static GeoLine2 GetShortestLineTo(GeoXLine2 xline, GeoPolylineArc2 chain, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return GetShortestLineTo(XLine2.CutPast(xline, chain, tolerance), chain, tolerance);
         }
@@ -107,28 +111,32 @@ namespace GeometryHelper.Core
 
         internal static GeoLine2 GetShortestLineTo(GeoPolygon2 poly, GeoXLine2 xline, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             return GetShortestLineTo(poly, XLine2.CutPast(xline, poly, tolerance), tolerance);
         }
 
         internal static GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, GeoXLine2 xline, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return GetShortestLineTo(loop, XLine2.CutPast(xline, loop, tolerance), tolerance);
         }
 
         internal static GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, GeoXLine2 xline, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return GetShortestLineTo(polyline, XLine2.CutPast(xline, polyline, tolerance), tolerance);
         }
 
         internal static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoXLine2 xline, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return GetShortestLineTo(chain, XLine2.CutPast(xline, chain, tolerance), tolerance);
         }

@@ -176,8 +176,15 @@ namespace GeometryHelper.Dwg
             double start = _data.BitDouble();
             double end = _data.BitDouble();
             int lines = _data.RawChar();
-            int dxf = ((flags & 1) != 0 ? 2 : 0) | ((flags & 2) != 0 ? 1 : 0) | (flags & 16) | ((flags & 32) != 0 ? 64 : 0)
-                | ((flags & 64) != 0 ? 32 : 0) | (flags & 256) | ((flags & 512) != 0 ? 1024 : 0) | ((flags & 1024) != 0 ? 512 : 0);
+            int dxf =
+                ((flags & 1) != 0 ? 2 : 0)
+                | ((flags & 2) != 0 ? 1 : 0)
+                | (flags & 16)
+                | ((flags & 32) != 0 ? 64 : 0)
+                | ((flags & 64) != 0 ? 32 : 0)
+                | (flags & 256)
+                | ((flags & 512) != 0 ? 1024 : 0)
+                | ((flags & 1024) != 0 ? 512 : 0);
             _object.Add(100, "AcDbMlineStyle");
             _object.Add(2, _object.RecordName);
             _object.Add(70, dxf);
@@ -242,8 +249,15 @@ namespace GeometryHelper.Dwg
                 {
                     _object.Add(code, Hex(values.Bytes(values.RawChar())));
                 }
-                else if ((code >= 0 && code <= 9) || (code >= 100 && code <= 105) || (code >= 300 && code <= 309) || (code >= 410 && code <= 419)
-                    || (code >= 430 && code <= 439) || (code >= 470 && code <= 479) || (code >= 1000 && code <= 1003))
+                else if (
+                    (code >= 0 && code <= 9)
+                    || (code >= 100 && code <= 105)
+                    || (code >= 300 && code <= 309)
+                    || (code >= 410 && code <= 419)
+                    || (code >= 430 && code <= 439)
+                    || (code >= 470 && code <= 479)
+                    || (code >= 1000 && code <= 1003)
+                )
                 {
                     if (R2007Plus)
                     {
@@ -259,17 +273,33 @@ namespace GeometryHelper.Dwg
                 {
                     _object.AddPoint(code, values.RawPoint3());
                 }
-                else if ((code >= 40 && code <= 59) || (code >= 110 && code <= 149) || (code >= 210 && code <= 239) || (code >= 460 && code <= 469)
-                    || (code >= 1010 && code <= 1059))
+                else if (
+                    (code >= 40 && code <= 59)
+                    || (code >= 110 && code <= 149)
+                    || (code >= 210 && code <= 239)
+                    || (code >= 460 && code <= 469)
+                    || (code >= 1010 && code <= 1059)
+                )
                 {
                     _object.Add(code, values.RawDouble());
                 }
-                else if ((code >= 60 && code <= 79) || (code >= 170 && code <= 179) || (code >= 270 && code <= 279) || (code >= 370 && code <= 389)
-                    || (code >= 400 && code <= 409) || (code >= 1060 && code <= 1070))
+                else if (
+                    (code >= 60 && code <= 79)
+                    || (code >= 170 && code <= 179)
+                    || (code >= 270 && code <= 279)
+                    || (code >= 370 && code <= 389)
+                    || (code >= 400 && code <= 409)
+                    || (code >= 1060 && code <= 1070)
+                )
                 {
                     _object.Add(code, values.RawShort());
                 }
-                else if ((code >= 90 && code <= 99) || (code >= 420 && code <= 429) || (code >= 440 && code <= 459) || code == 1071)
+                else if (
+                    (code >= 90 && code <= 99)
+                    || (code >= 420 && code <= 429)
+                    || (code >= 440 && code <= 459)
+                    || code == 1071
+                )
                 {
                     _object.Add(code, values.RawLong());
                 }
@@ -287,7 +317,11 @@ namespace GeometryHelper.Dwg
                 }
                 else
                 {
-                    throw new FormatException("The XRECORD has a group of the unknown code " + code.ToString(CultureInfo.InvariantCulture) + ".");
+                    throw new FormatException(
+                        "The XRECORD has a group of the unknown code "
+                            + code.ToString(CultureInfo.InvariantCulture)
+                            + "."
+                    );
                 }
             }
         }

@@ -68,11 +68,23 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static void AssertSameSet(GeoPoint2[] expected, GeoPoint2[] actual, string what)
         {
-            Assert.True(expected.Length == actual.Length, what + ": " + actual.Length + " crossings, " + expected.Length + " expected: " + string.Join(" ", actual));
+            Assert.True(
+                expected.Length == actual.Length,
+                what
+                    + ": "
+                    + actual.Length
+                    + " crossings, "
+                    + expected.Length
+                    + " expected: "
+                    + string.Join(" ", actual)
+            );
 
             foreach (GeoPoint2 point in expected)
             {
-                Assert.True(actual.Any(p => p.DistanceTo(point) <= 1E-6), what + ": no crossing at " + point + " among " + string.Join(" ", actual));
+                Assert.True(
+                    actual.Any(p => p.DistanceTo(point) <= 1E-6),
+                    what + ": no crossing at " + point + " among " + string.Join(" ", actual)
+                );
             }
         }
 
@@ -90,7 +102,10 @@ namespace GeometryHelper.UnitTest.Plane
                     continue;
                 }
 
-                Assert.True(Answers(line, query, shape) == Answers(shape, query, line) || (query == "CollidesWith" && isPoint), name + " " + query + " is one-sided");
+                Assert.True(
+                    Answers(line, query, shape) == Answers(shape, query, line) || (query == "CollidesWith" && isPoint),
+                    name + " " + query + " is one-sided"
+                );
             }
 
             Assert.True(hasTry == HasTry(shape, line), name + " TryIntersectWith is one-sided");
@@ -155,13 +170,24 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.InRange(leaving.Length, least, distance + 1E-9);
             Assert.InRange(landing.Length, least, distance + 1E-9);
-            Assert.True(OnTheLine(line, leaving.StartPoint), name + ": the shortest line leaving the line starts off it at " + leaving.StartPoint);
-            Assert.True(OnTheLine(line, landing.EndPoint), name + ": the shortest line landing on the line ends off it at " + landing.EndPoint);
+            Assert.True(
+                OnTheLine(line, leaving.StartPoint),
+                name + ": the shortest line leaving the line starts off it at " + leaving.StartPoint
+            );
+            Assert.True(
+                OnTheLine(line, landing.EndPoint),
+                name + ": the shortest line landing on the line ends off it at " + landing.EndPoint
+            );
             Assert.Equal(Shortest(line, shape, Tolerance.Global), Shortest(line, shape));
             Assert.Equal(Shortest(shape, line, Tolerance.Global), Shortest(shape, line));
         }
 
-        private static void Add(Dictionary<string, Action> checks, string shapeName, object shape, params (string label, GeoXLine2 line, double distance, GeoPoint2[] crossings)[] cases)
+        private static void Add(
+            Dictionary<string, Action> checks,
+            string shapeName,
+            object shape,
+            params (string label, GeoXLine2 line, double distance, GeoPoint2[] crossings)[] cases
+        )
         {
             foreach (var c in cases)
             {
@@ -213,115 +239,173 @@ namespace GeometryHelper.UnitTest.Plane
             Add(checks, "Polygon2", Square(), square);
             Add(checks, "Rectangle2", Rectangle(), square);
 
-            Add(checks, "Triangle2", Triangle(),
+            Add(
+                checks,
+                "Triangle2",
+                Triangle(),
                 ("through", X(-50, 20, 1, 0), 0, Pts(0, 20, 80, 20)),
                 ("beside", X(-50, -30, 1, 0), 30, Pts()),
                 ("beside, along the hypotenuse", X(150, 50, -1, 1), 100 / Math.Sqrt(2), Pts()),
                 ("touching a corner", X(100, 0, 1, 1), 0, null),
-                ("starting a million along", X(1E6, 20, 1, 0), 0, Pts(0, 20, 80, 20)));
+                ("starting a million along", X(1E6, 20, 1, 0), 0, Pts(0, 20, 80, 20))
+            );
 
-            Add(checks, "Face2", Plate(),
+            Add(
+                checks,
+                "Face2",
+                Plate(),
                 ("through the hole", X(-50, 50, 1, 0), 0, Pts(0, 50, 30, 50, 70, 50, 100, 50)),
                 ("from the hole", X(50, 50, 0, 1), 0, Pts(50, 0, 50, 30, 50, 70, 50, 100)),
                 ("beside", X(-50, 150, 1, 0), 50, Pts()),
-                ("starting a million along", X(1E6, 50, 1, 0), 0, Pts(0, 50, 30, 50, 70, 50, 100, 50)));
+                ("starting a million along", X(1E6, 50, 1, 0), 0, Pts(0, 50, 30, 50, 70, 50, 100, 50))
+            );
 
-            Add(checks, "Circle2", Circle(),
+            Add(
+                checks,
+                "Circle2",
+                Circle(),
                 ("through", X(-100, 30, 1, 0), 0, Pts(-40, 30, 40, 30)),
                 ("beside", X(-100, 80, 1, 0), 30, Pts()),
                 ("tangent", X(-100, 50, 1, 0), 0, null),
                 ("from the centre", X(0, 0, 0, 1), 0, Pts(0, -50, 0, 50)),
                 ("starting half a million along", X(5E5, 0, 1, 0), 0, Pts(-50, 0, 50, 0)),
-                ("four tenths above", X(-100, 50.4, 1, 0), 0.4, Pts()));
+                ("four tenths above", X(-100, 50.4, 1, 0), 0.4, Pts())
+            );
 
-            Add(checks, "Arc2", Arc(),
+            Add(
+                checks,
+                "Arc2",
+                Arc(),
                 ("through", X(-100, 30, 1, 0), 0, Pts(-40, 30, 40, 30)),
                 ("beside", X(-100, -30, 1, 0), 30, Pts()),
                 ("touching an end", X(-100, 0, 1, 0), 0, null),
                 ("four tenths above", X(-100, 50.4, 1, 0), 0.4, Pts()),
-                ("beside, left of it", X(-100, -200, 0, 1), 50, Pts()));
+                ("beside, left of it", X(-100, -200, 0, 1), 50, Pts())
+            );
 
-            Add(checks, "Arc2: bulging past its ends", RightHalf(),
+            Add(
+                checks,
+                "Arc2: bulging past its ends",
+                RightHalf(),
                 ("through the bulge", X(-100, 0, 1, 0), 0, Pts(50, 0)),
-                ("below it", X(-100, -60, 1, 0), 10, Pts()));
+                ("below it", X(-100, -60, 1, 0), 10, Pts())
+            );
 
-            Add(checks, "Ellipse2", Oval(),
+            Add(
+                checks,
+                "Ellipse2",
+                Oval(),
                 ("through", X(-150, 30, 1, 0), 0, Pts(-80, 30, 80, 30)),
                 ("beside", X(-150, 80, 1, 0), 30, Pts()),
                 ("beside its end", X(150, -200, 0, 1), 50, Pts()),
                 ("from the centre", X(0, 0, 1, 0), 0, Pts(-100, 0, 100, 0)),
-                ("tangent", X(-150, 50, 1, 0), 0, null));
+                ("tangent", X(-150, 50, 1, 0), 0, null)
+            );
 
-            Add(checks, "Polyline2", Ell(),
+            Add(
+                checks,
+                "Polyline2",
+                Ell(),
                 ("across the bottom", X(50, -200, 0, 1), 0, Pts(50, 0)),
                 ("across the upright", X(-50, 50, 1, 0), 0, Pts(100, 50)),
                 ("below", X(-50, -30, 1, 0), 30, Pts()),
                 ("left of it", X(-30, -50, 0, 1), 30, Pts()),
                 ("touching an end", X(-50, 100, 1, 0), 0, null),
-                ("starting a million along", X(1E6, 50, 1, 0), 0, Pts(100, 50)));
+                ("starting a million along", X(1E6, 50, 1, 0), 0, Pts(100, 50))
+            );
 
-            Add(checks, "PolylineArc2", Hook(),
+            Add(
+                checks,
+                "PolylineArc2",
+                Hook(),
                 ("through the bowed upright", X(-50, 50, 1, 0), 0, Pts(150, 50)),
                 ("across the bow", X(125, -200, 0, 1), 0, Pts(125, 50 - Math.Sqrt(1875), 125, 50 + Math.Sqrt(1875))),
                 ("beside the bow", X(200, -200, 0, 1), 50, Pts()),
-                ("below", X(-50, -30, 1, 0), 30, Pts()));
+                ("below", X(-50, -30, 1, 0), 30, Pts())
+            );
 
-            Add(checks, "PolygonArc2", Slot(),
+            Add(
+                checks,
+                "PolygonArc2",
+                Slot(),
                 ("through the round ends", X(-300, 25, 1, 0), 0, Pts(-25, 25, 225, 25)),
                 ("across the middle", X(100, -200, 0, 1), 0, Pts(100, 0, 100, 50)),
                 ("above", X(-300, 80, 1, 0), 30, Pts()),
                 ("left of the round end", X(-60, -200, 0, 1), 35, Pts()),
-                ("below", X(-300, -25, 1, 0), 25, Pts()));
+                ("below", X(-300, -25, 1, 0), 25, Pts())
+            );
 
             var segment = new GeoLine2(P(50, -10), P(50, 10));
 
-            Add(checks, "Line2", segment,
+            Add(
+                checks,
+                "Line2",
+                segment,
                 ("across", X(0, 0, 1, 0), 0, Pts(50, 0)),
                 ("above", X(0, 20, 1, 0), 10, Pts()),
                 ("touching an end", X(0, 10, 1, 0), 0, null),
                 ("along it", X(50, -300, 0, 1), 0, Pts()),
-                ("beside it", X(60, -300, 0, 1), 10, Pts()));
+                ("beside it", X(60, -300, 0, 1), 10, Pts())
+            );
 
-            Add(checks, "Edge2: straight", new GeoEdge2(P(50, -10), P(50, 10)),
+            Add(
+                checks,
+                "Edge2: straight",
+                new GeoEdge2(P(50, -10), P(50, 10)),
                 ("across", X(0, 0, 1, 0), 0, Pts(50, 0)),
                 ("above", X(0, 20, 1, 0), 10, Pts()),
-                ("beside it", X(60, -300, 0, 1), 10, Pts()));
+                ("beside it", X(60, -300, 0, 1), 10, Pts())
+            );
 
-            Add(checks, "Edge2: curved", new GeoEdge2(Arc()),
+            Add(
+                checks,
+                "Edge2: curved",
+                new GeoEdge2(Arc()),
                 ("through", X(-100, 30, 1, 0), 0, Pts(-40, 30, 40, 30)),
-                ("beside", X(-100, -30, 1, 0), 30, Pts()));
+                ("beside", X(-100, -30, 1, 0), 30, Pts())
+            );
 
-            Add(checks, "Ray2: standing over the line", new GeoRay2(P(50, 30), V(0, 1)),
+            Add(
+                checks,
+                "Ray2: standing over the line",
+                new GeoRay2(P(50, 30), V(0, 1)),
                 ("the ray runs away", X(0, 0, 1, 0), 30, Pts()),
-                ("the line turned round", X(500, 0, -1, 0), 30, Pts()));
+                ("the line turned round", X(500, 0, -1, 0), 30, Pts())
+            );
 
-            Add(checks, "Ray2: running down", new GeoRay2(P(50, 30), V(0, -1)),
-                ("crossing", X(0, 0, 1, 0), 0, Pts(50, 0)));
+            Add(
+                checks,
+                "Ray2: running down",
+                new GeoRay2(P(50, 30), V(0, -1)),
+                ("crossing", X(0, 0, 1, 0), 0, Pts(50, 0))
+            );
 
-            Add(checks, "Ray2: along the line", new GeoRay2(P(100, 0), V(1, 0)),
+            Add(
+                checks,
+                "Ray2: along the line",
+                new GeoRay2(P(100, 0), V(1, 0)),
                 ("on it", X(0, 0, 1, 0), 0, Pts()),
-                ("on it, turned round", X(0, 0, -1, 0), 0, Pts()));
+                ("on it, turned round", X(0, 0, -1, 0), 0, Pts())
+            );
 
-            Add(checks, "Ray2: beside the line", new GeoRay2(P(100, 30), V(1, 0)),
-                ("parallel", X(0, 0, 1, 0), 30, Pts()));
+            Add(
+                checks,
+                "Ray2: beside the line",
+                new GeoRay2(P(100, 30), V(1, 0)),
+                ("parallel", X(0, 0, 1, 0), 30, Pts())
+            );
 
-            Add(checks, "XLine2", X(0, 30, -1, 0),
-                ("parallel, apart", X(0, 0, 1, 0), 30, Pts()));
+            Add(checks, "XLine2", X(0, 30, -1, 0), ("parallel, apart", X(0, 0, 1, 0), 30, Pts()));
 
-            Add(checks, "XLine2: across", X(50, -50, 0, 1),
-                ("crossing", X(0, 0, 1, 0), 0, Pts(50, 0)));
+            Add(checks, "XLine2: across", X(50, -50, 0, 1), ("crossing", X(0, 0, 1, 0), 0, Pts(50, 0)));
 
-            Add(checks, "XLine2: the same line", X(500, 0, -1, 0),
-                ("the line turned round", X(0, 0, 1, 0), 0, Pts()));
+            Add(checks, "XLine2: the same line", X(500, 0, -1, 0), ("the line turned round", X(0, 0, 1, 0), 0, Pts()));
 
-            Add(checks, "Point2: off the line", P(50, 40),
-                ("ahead", X(0, 0, 1, 0), 40, null));
+            Add(checks, "Point2: off the line", P(50, 40), ("ahead", X(0, 0, 1, 0), 40, null));
 
-            Add(checks, "Point2: behind the origin", P(-30, 40),
-                ("behind", X(0, 0, 1, 0), 40, null));
+            Add(checks, "Point2: behind the origin", P(-30, 40), ("behind", X(0, 0, 1, 0), 40, null));
 
-            Add(checks, "Point2: on the line", P(7, 0),
-                ("on it", X(0, 0, 1, 0), 0, null));
+            Add(checks, "Point2: on the line", P(7, 0), ("on it", X(0, 0, 1, 0), 0, null));
 
             return checks;
         }

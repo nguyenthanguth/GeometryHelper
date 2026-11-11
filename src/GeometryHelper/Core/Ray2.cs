@@ -47,39 +47,46 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Cuts a ray past a segment.
         /// </summary>
-        internal static GeoLine2 CutPast(GeoRay2 ray, GeoLine2 line, Tolerance tolerance)
-            => CutPast(ray, Math.Max(ray.GetDistanceAtPoint(line.StartPoint), ray.GetDistanceAtPoint(line.EndPoint)), tolerance);
+        internal static GeoLine2 CutPast(GeoRay2 ray, GeoLine2 line, Tolerance tolerance) =>
+            CutPast(
+                ray,
+                Math.Max(ray.GetDistanceAtPoint(line.StartPoint), ray.GetDistanceAtPoint(line.EndPoint)),
+                tolerance
+            );
 
         /// <summary>
         /// Cuts a ray past an arc, read by the whole of its circle.
         /// </summary>
-        internal static GeoLine2 CutPast(GeoRay2 ray, GeoArc2 arc, Tolerance tolerance)
-            => CutPast(ray, Round(ray, arc.Center, arc.Radius), tolerance);
+        internal static GeoLine2 CutPast(GeoRay2 ray, GeoArc2 arc, Tolerance tolerance) =>
+            CutPast(ray, Round(ray, arc.Center, arc.Radius), tolerance);
 
         /// <summary>
         /// Cuts a ray past a circle.
         /// </summary>
-        internal static GeoLine2 CutPast(GeoRay2 ray, GeoCircle2 circle, Tolerance tolerance)
-            => CutPast(ray, Round(ray, circle.Center, circle.Radius), tolerance);
+        internal static GeoLine2 CutPast(GeoRay2 ray, GeoCircle2 circle, Tolerance tolerance) =>
+            CutPast(ray, Round(ray, circle.Center, circle.Radius), tolerance);
 
         /// <summary>
         /// Cuts a ray past an ellipse, read by the circle of its major radius.
         /// </summary>
-        internal static GeoLine2 CutPast(GeoRay2 ray, GeoEllipse2 ellipse, Tolerance tolerance)
-            => CutPast(ray, Round(ray, ellipse.Center, ellipse.MajorRadius), tolerance);
+        internal static GeoLine2 CutPast(GeoRay2 ray, GeoEllipse2 ellipse, Tolerance tolerance) =>
+            CutPast(ray, Round(ray, ellipse.Center, ellipse.MajorRadius), tolerance);
 
         /// <summary>
         /// Cuts a ray past a rectangle.
         /// </summary>
-        internal static GeoLine2 CutPast(GeoRay2 ray, GeoRectangle2 rect, Tolerance tolerance)
-            => CutPast(ray, Farthest(ray, rect.GetVertices()), tolerance);
+        internal static GeoLine2 CutPast(GeoRay2 ray, GeoRectangle2 rect, Tolerance tolerance) =>
+            CutPast(ray, Farthest(ray, rect.GetVertices()), tolerance);
 
         /// <summary>
         /// Cuts a ray past a triangle.
         /// </summary>
         internal static GeoLine2 CutPast(GeoRay2 ray, GeoTriangle2 triangle, Tolerance tolerance)
         {
-            double farthest = Math.Max(Math.Max(ray.GetDistanceAtPoint(triangle.A), ray.GetDistanceAtPoint(triangle.B)), ray.GetDistanceAtPoint(triangle.C));
+            double farthest = Math.Max(
+                Math.Max(ray.GetDistanceAtPoint(triangle.A), ray.GetDistanceAtPoint(triangle.B)),
+                ray.GetDistanceAtPoint(triangle.C)
+            );
 
             return CutPast(ray, farthest, tolerance);
         }
@@ -87,14 +94,14 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Cuts a ray past a polygon.
         /// </summary>
-        internal static GeoLine2 CutPast(GeoRay2 ray, GeoPolygon2 poly, Tolerance tolerance)
-            => CutPast(ray, Farthest(ray, poly.Vertices), tolerance);
+        internal static GeoLine2 CutPast(GeoRay2 ray, GeoPolygon2 poly, Tolerance tolerance) =>
+            CutPast(ray, Farthest(ray, poly.Vertices), tolerance);
 
         /// <summary>
         /// Cuts a ray past a polyline.
         /// </summary>
-        internal static GeoLine2 CutPast(GeoRay2 ray, GeoPolyline2 polyline, Tolerance tolerance)
-            => CutPast(ray, Farthest(ray, polyline.Vertices), tolerance);
+        internal static GeoLine2 CutPast(GeoRay2 ray, GeoPolyline2 polyline, Tolerance tolerance) =>
+            CutPast(ray, Farthest(ray, polyline.Vertices), tolerance);
 
         /// <summary>
         /// Cuts a ray past a face: its outline, and its holes too, though a hole lies within the outline.
@@ -156,8 +163,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the point of a ray nearest a point: its projection on the carrier line, stopped at the origin.
         /// </summary>
-        internal static GeoPoint2 Project(GeoRay2 ray, GeoPoint2 point)
-            => ray.GetPointAtDistance(Math.Max(0.0, ray.GetDistanceAtPoint(point)));
+        internal static GeoPoint2 Project(GeoRay2 ray, GeoPoint2 point) =>
+            ray.GetPointAtDistance(Math.Max(0.0, ray.GetDistanceAtPoint(point)));
 
         /// <summary>
         /// Finds where two rays cross, at any angle, placed on the first ray and never behind its origin.
@@ -179,7 +186,13 @@ namespace GeometryHelper.Core
         /// 0.00156 apart.
         /// </para>
         /// </remarks>
-        internal static bool TryCross(GeoRay2 ray1, GeoRay2 ray2, Tolerance tolerance, bool pastEnds, out GeoPoint2 crossing)
+        internal static bool TryCross(
+            GeoRay2 ray1,
+            GeoRay2 ray2,
+            Tolerance tolerance,
+            bool pastEnds,
+            out GeoPoint2 crossing
+        )
         {
             crossing = new GeoPoint2(0, 0);
 
@@ -235,6 +248,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets how far along a ray a round shape can reach: its centre brought onto the ray, plus its radius.
         /// </summary>
-        private static double Round(GeoRay2 ray, GeoPoint2 center, double radius) => ray.GetDistanceAtPoint(center) + radius;
+        private static double Round(GeoRay2 ray, GeoPoint2 center, double radius) =>
+            ray.GetDistanceAtPoint(center) + radius;
     }
 }

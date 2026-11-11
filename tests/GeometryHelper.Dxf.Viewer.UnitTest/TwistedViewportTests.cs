@@ -72,7 +72,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadSpace layout = document.Spaces[1];
             foreach (string handle in new[] { a, b, c })
             {
-                DisplayViewport2 shown = document.GetDisplay(layout).Items.OfType<DisplayViewport2>().Single(v => v.Handle == handle);
+                DisplayViewport2 shown = document
+                    .GetDisplay(layout)
+                    .Items.OfType<DisplayViewport2>()
+                    .Single(v => v.Handle == handle);
                 DxfViewport viewport = Entity<DxfViewport>(document, handle);
 
                 foreach (GeoPoint2 model in new[] { P(0, 0), P(100, 0), P(0, 100), P(100, 50) })
@@ -141,7 +144,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             // PAN by (100, 0) of model space moves the point at the frame's middle by as much.
             Run(session, "PAN", P(0, 0), P(100, 0));
-            Near(P(middle.X - 100, middle.Y), CadViewports.ToModel(Entity<DxfViewport>(document, a), P(100, 100)), 1E-9);
+            Near(
+                P(middle.X - 100, middle.Y),
+                CadViewports.ToModel(Entity<DxfViewport>(document, a), P(100, 100)),
+                1E-9
+            );
 
             // ZOOM Window about (500, 0) puts that point at the middle, the window's box turned fitted to the frame.
             Run(session, "ZOOM", P(400, -50), P(600, 50));

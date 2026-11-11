@@ -12,20 +12,26 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfDrawOrderTableTests
     {
-        private static string[] Handles(DxfDrawOrderTable table) => table.GetFullDrawOrder().Select(e => e.Handle).ToArray();
+        private static string[] Handles(DxfDrawOrderTable table) =>
+            table.GetFullDrawOrder().Select(e => e.Handle).ToArray();
 
         [Fact]
         public void ABlockGivenADrawOrder_ListsOnlyTheEntitiesMoved_WithTheSortHandlesTheyShare()
         {
             var db = new DxfDatabase("AC1027");
-            var lines = Enumerable.Range(0, 3).Select(i => new DxfLine(new GeoPoint3(0, i, 0), new GeoPoint3(10, i, 0))).ToArray();
+            var lines = Enumerable
+                .Range(0, 3)
+                .Select(i => new DxfLine(new GeoPoint3(0, i, 0), new GeoPoint3(10, i, 0)))
+                .ToArray();
 
             foreach (DxfLine line in lines)
             {
                 db.ModelSpace.AppendEntity(line);
             }
 
-            string a = lines[0].Handle, b = lines[1].Handle, c = lines[2].Handle;
+            string a = lines[0].Handle,
+                b = lines[1].Handle,
+                c = lines[2].Handle;
             Assert.Null(db.ModelSpace.DrawOrderTable);
 
             DxfDrawOrderTable table = db.ModelSpace.CreateDrawOrderTable();

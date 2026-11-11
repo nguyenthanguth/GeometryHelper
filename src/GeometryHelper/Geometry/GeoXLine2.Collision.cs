@@ -49,7 +49,8 @@ namespace GeometryHelper.Geometry
         /// The line through the origin along X and the one through (50, -50) along Y cross at (50, 0); two lines side
         /// by side touch only where they are within the point tolerance of each other.
         /// </remarks>
-        public bool CollidesWith(GeoXLine2 other, Tolerance tolerance) => Collision2.CollidesWith(this, other, tolerance);
+        public bool CollidesWith(GeoXLine2 other, Tolerance tolerance) =>
+            Collision2.CollidesWith(this, other, tolerance);
 
         /// <summary>
         /// Determines whether this infinite line touches an arc, using the default tolerance.
@@ -69,7 +70,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this infinite line touches a circle, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoCircle2 circle, Tolerance tolerance) => Collision2.CollidesWith(circle, this, tolerance);
+        public bool CollidesWith(GeoCircle2 circle, Tolerance tolerance) =>
+            Collision2.CollidesWith(circle, this, tolerance);
 
         /// <summary>
         /// Determines whether this infinite line touches an ellipse, using the default tolerance.
@@ -79,7 +81,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this infinite line touches an ellipse, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoEllipse2 ellipse, Tolerance tolerance) => Ellipse2.CollidesWith(ellipse, this, tolerance);
+        public bool CollidesWith(GeoEllipse2 ellipse, Tolerance tolerance) =>
+            Ellipse2.CollidesWith(ellipse, this, tolerance);
 
         /// <summary>
         /// Determines whether this infinite line touches an edge, using the default tolerance.
@@ -101,7 +104,8 @@ namespace GeometryHelper.Geometry
         /// Determines whether this infinite line touches a polyline, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public bool CollidesWith(GeoPolyline2 polyline, Tolerance tolerance) => Collision2.CollidesWith(polyline, this, tolerance);
+        public bool CollidesWith(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Collision2.CollidesWith(polyline, this, tolerance);
 
         /// <summary>
         /// Determines whether this infinite line touches a polygon, using the default tolerance.
@@ -117,7 +121,8 @@ namespace GeometryHelper.Geometry
         /// it starts far from it: nothing of the line stops short.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public bool CollidesWith(GeoPolygon2 poly, Tolerance tolerance) => Collision2.CollidesWith(poly, this, tolerance);
+        public bool CollidesWith(GeoPolygon2 poly, Tolerance tolerance) =>
+            Collision2.CollidesWith(poly, this, tolerance);
 
         /// <summary>
         /// Determines whether this infinite line touches a curved chain, using the default tolerance.
@@ -129,7 +134,8 @@ namespace GeometryHelper.Geometry
         /// Determines whether this infinite line touches a curved chain, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the curved chain is null.</exception>
-        public bool CollidesWith(GeoPolylineArc2 chain, Tolerance tolerance) => Collision2.CollidesWith(chain, this, tolerance);
+        public bool CollidesWith(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Collision2.CollidesWith(chain, this, tolerance);
 
         /// <summary>
         /// Determines whether this infinite line touches a curved loop, using the default tolerance.
@@ -141,7 +147,8 @@ namespace GeometryHelper.Geometry
         /// Determines whether this infinite line touches a curved loop, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the curved loop is null.</exception>
-        public bool CollidesWith(GeoPolygonArc2 loop, Tolerance tolerance) => Collision2.CollidesWith(loop, this, tolerance);
+        public bool CollidesWith(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Collision2.CollidesWith(loop, this, tolerance);
 
         /// <summary>
         /// Determines whether this infinite line touches a rectangle, using the default tolerance.
@@ -151,7 +158,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this infinite line touches a rectangle, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoRectangle2 rect, Tolerance tolerance) => Collision2.CollidesWith(rect, this, tolerance);
+        public bool CollidesWith(GeoRectangle2 rect, Tolerance tolerance) =>
+            Collision2.CollidesWith(rect, this, tolerance);
 
         /// <summary>
         /// Determines whether this infinite line touches a triangle, using the default tolerance.
@@ -161,7 +169,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this infinite line touches a triangle, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.CollidesWith(triangle, this, tolerance);
+        public bool CollidesWith(GeoTriangle2 triangle, Tolerance tolerance) =>
+            Triangle2.CollidesWith(triangle, this, tolerance);
 
         /// <summary>
         /// Determines whether this infinite line touches a face, using the default tolerance.

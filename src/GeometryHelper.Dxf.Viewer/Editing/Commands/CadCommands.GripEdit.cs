@@ -22,7 +22,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// first hot grip's. A point given makes the mode's edit and ends the grip edit, or with Copy on leaves the originals,
         /// asks again and ends at eXit, Enter or Esc. Every edit of it is one undo step.
         /// </summary>
-        internal static IEnumerable<CadPrompt> GripEdit(CadCommandContext c, IReadOnlyList<KeyValuePair<string, int>> hot)
+        internal static IEnumerable<CadPrompt> GripEdit(
+            CadCommandContext c,
+            IReadOnlyList<KeyValuePair<string, int>> hot
+        )
         {
             List<string> objects = GripObjects(c, hot);
             var origins = new List<GeoPoint2>();
@@ -98,7 +101,22 @@ namespace GeometryHelper.Dxf.Viewer
                             yield return prompt;
                         }
 
-                        if (amount.Value.HasValue && GripApply(c, mode, objects, hot, origins, basePoint, amount.Value.Value, default, copy, placed) && !copy)
+                        if (
+                            amount.Value.HasValue
+                            && GripApply(
+                                c,
+                                mode,
+                                objects,
+                                hot,
+                                origins,
+                                basePoint,
+                                amount.Value.Value,
+                                default,
+                                copy,
+                                placed
+                            )
+                            && !copy
+                        )
                         {
                             yield break;
                         }
@@ -116,7 +134,10 @@ namespace GeometryHelper.Dxf.Viewer
                 copy |= first && input.Control;
                 first = false;
 
-                if (GripApply(c, mode, objects, hot, origins, basePoint, input.Number, input.Point, copy, placed) && !copy)
+                if (
+                    GripApply(c, mode, objects, hot, origins, basePoint, input.Number, input.Point, copy, placed)
+                    && !copy
+                )
                 {
                     yield break;
                 }
@@ -129,12 +150,30 @@ namespace GeometryHelper.Dxf.Viewer
             switch (mode)
             {
                 case 2:
-                    return CadPrompt.ForAngle("Specify rotation angle", basePoint, new[] { "Base point", "Copy", "Undo", "Reference", "eXit" }).Turning().Hiding(GripModeWords);
+                    return CadPrompt
+                        .ForAngle(
+                            "Specify rotation angle",
+                            basePoint,
+                            new[] { "Base point", "Copy", "Undo", "Reference", "eXit" }
+                        )
+                        .Turning()
+                        .Hiding(GripModeWords);
                 case 3:
-                    return CadPrompt.ForDistance("Specify scale factor", basePoint, new[] { "Base point", "Copy", "Undo", "Reference", "eXit" }).Hiding(GripModeWords);
+                    return CadPrompt
+                        .ForDistance(
+                            "Specify scale factor",
+                            basePoint,
+                            new[] { "Base point", "Copy", "Undo", "Reference", "eXit" }
+                        )
+                        .Hiding(GripModeWords);
                 default:
-                    string message = mode == 0 ? "Specify stretch point" : mode == 1 ? "Specify move point" : "Specify second point";
-                    return CadPrompt.ForPoint(message, basePoint, new[] { "Base point", "Copy", "Undo", "eXit" }).Hiding(GripModeWords);
+                    string message =
+                        mode == 0 ? "Specify stretch point"
+                        : mode == 1 ? "Specify move point"
+                        : "Specify second point";
+                    return CadPrompt
+                        .ForPoint(message, basePoint, new[] { "Base point", "Copy", "Undo", "eXit" })
+                        .Hiding(GripModeWords);
             }
         }
 
@@ -142,11 +181,24 @@ namespace GeometryHelper.Dxf.Viewer
         /// ROTATE's or SCALE's Reference: the reference angle or length, typed or given by two points, then the new one; the
         /// angle turned through or the factor scaled by.
         /// </summary>
-        private static IEnumerable<CadPrompt> GripReference(CadCommandContext c, bool angle, GeoPoint2 basePoint, Ref<double?> result)
+        private static IEnumerable<CadPrompt> GripReference(
+            CadCommandContext c,
+            bool angle,
+            GeoPoint2 basePoint,
+            Ref<double?> result
+        )
         {
             var reference = new Ref<double?>();
 
-            foreach (CadPrompt prompt in Measured(c, angle ? "Specify reference angle" : "Specify reference length", angle ? Counted(c, 0.0) : Length(1.0), angle, reference))
+            foreach (
+                CadPrompt prompt in Measured(
+                    c,
+                    angle ? "Specify reference angle" : "Specify reference length",
+                    angle ? Counted(c, 0.0) : Length(1.0),
+                    angle,
+                    reference
+                )
+            )
             {
                 yield return prompt;
             }
@@ -170,7 +222,10 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else
             {
-                target.Value = c.Input.Kind == CadInputKind.Number ? c.Input.Number : angle ? 0.0 : 1.0;
+                target.Value =
+                    c.Input.Kind == CadInputKind.Number ? c.Input.Number
+                    : angle ? 0.0
+                    : 1.0;
             }
 
             if (!target.Value.HasValue)
@@ -198,7 +253,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// across the line from it to the point; with Copy on, copies are made and the originals stay.
         /// </summary>
         /// <returns>Whether an edit was made.</returns>
-        private static bool GripApply(CadCommandContext c, int mode, IReadOnlyList<string> objects, IReadOnlyList<KeyValuePair<string, int>> hot, IReadOnlyList<GeoPoint2> origins, GeoPoint2 basePoint, double number, GeoPoint2 point, bool copy, List<List<string>> placed)
+        private static bool GripApply(
+            CadCommandContext c,
+            int mode,
+            IReadOnlyList<string> objects,
+            IReadOnlyList<KeyValuePair<string, int>> hot,
+            IReadOnlyList<GeoPoint2> origins,
+            GeoPoint2 basePoint,
+            double number,
+            GeoPoint2 point,
+            bool copy,
+            List<List<string>> placed
+        )
         {
             GeoVector2 way = point - basePoint;
 
@@ -207,9 +273,25 @@ namespace GeometryHelper.Dxf.Viewer
                 case 0:
                     return GripStretch(c, hot, origins, way, copy, placed);
                 case 1:
-                    return GripTransform(c, objects, GeoTransform3.Translation(new GeoVector3(way.X, way.Y, 0.0)), copy, placed, "Move", Values(way.X, way.Y));
+                    return GripTransform(
+                        c,
+                        objects,
+                        GeoTransform3.Translation(new GeoVector3(way.X, way.Y, 0.0)),
+                        copy,
+                        placed,
+                        "Move",
+                        Values(way.X, way.Y)
+                    );
                 case 2:
-                    return GripTransform(c, objects, GeoTransform3.RotationAxis(P3(basePoint), Up, number), copy, placed, "Rotate", Values(basePoint.X, basePoint.Y, number));
+                    return GripTransform(
+                        c,
+                        objects,
+                        GeoTransform3.RotationAxis(P3(basePoint), Up, number),
+                        copy,
+                        placed,
+                        "Rotate",
+                        Values(basePoint.X, basePoint.Y, number)
+                    );
                 case 3:
                     if (!(number > 0.0))
                     {
@@ -217,7 +299,15 @@ namespace GeometryHelper.Dxf.Viewer
                         return false;
                     }
 
-                    return GripTransform(c, objects, GeoTransform3.Scaling(P3(basePoint), number), copy, placed, "Scale", Values(basePoint.X, basePoint.Y, number));
+                    return GripTransform(
+                        c,
+                        objects,
+                        GeoTransform3.Scaling(P3(basePoint), number),
+                        copy,
+                        placed,
+                        "Scale",
+                        Values(basePoint.X, basePoint.Y, number)
+                    );
                 default:
                     if (!(way.Length > c.Session.Tolerance.EqualPoint))
                     {
@@ -226,12 +316,28 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     var normal = new GeoVector3(-way.Y, way.X, 0.0).Normalize();
-                    return GripTransform(c, objects, GeoTransform3.Mirror(new GeoPlane3(P3(basePoint), normal)), copy, placed, "Mirror", Values(basePoint.X, basePoint.Y, point.X, point.Y));
+                    return GripTransform(
+                        c,
+                        objects,
+                        GeoTransform3.Mirror(new GeoPlane3(P3(basePoint), normal)),
+                        copy,
+                        placed,
+                        "Mirror",
+                        Values(basePoint.X, basePoint.Y, point.X, point.Y)
+                    );
             }
         }
 
         /// <summary>Moves, turns, scales or mirrors the objects, or copies of them, keeping the copies for Undo.</summary>
-        private static bool GripTransform(CadCommandContext c, IReadOnlyList<string> objects, GeoTransform3 transform, bool copy, List<List<string>> placed, string how, string value)
+        private static bool GripTransform(
+            CadCommandContext c,
+            IReadOnlyList<string> objects,
+            GeoTransform3 transform,
+            bool copy,
+            List<List<string>> placed,
+            string how,
+            string value
+        )
         {
             if (objects.Count == 0)
             {
@@ -252,7 +358,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// STRETCH: each hot grip dragged by the way, from where it was when the edit started, as the grips of one object move
         /// together; with Copy on, each object of a hot grip copied first and the copy's grip dragged.
         /// </summary>
-        private static bool GripStretch(CadCommandContext c, IReadOnlyList<KeyValuePair<string, int>> hot, IReadOnlyList<GeoPoint2> origins, GeoVector2 way, bool copy, List<List<string>> placed)
+        private static bool GripStretch(
+            CadCommandContext c,
+            IReadOnlyList<KeyValuePair<string, int>> hot,
+            IReadOnlyList<GeoPoint2> origins,
+            GeoVector2 way,
+            bool copy,
+            List<List<string>> placed
+        )
         {
             c.OpenUndoStep();
             var copies = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -268,7 +381,12 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     if (!copies.TryGetValue(grip.Key, out handle))
                     {
-                        List<string> copied = Transform(c, new[] { grip.Key }, GeoTransform3.Translation(new GeoVector3(0.0, 0.0, 0.0)), true);
+                        List<string> copied = Transform(
+                            c,
+                            new[] { grip.Key },
+                            GeoTransform3.Translation(new GeoVector3(0.0, 0.0, 0.0)),
+                            true
+                        );
 
                         if (copied.Count == 0)
                         {

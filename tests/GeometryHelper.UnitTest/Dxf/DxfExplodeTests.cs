@@ -100,9 +100,14 @@ namespace GeometryHelper.UnitTest.Dxf
             db.ModelSpace.AppendEntity(array);
 
             Assert.Throws<NotSupportedException>(() => array.Explode());
-            Assert.Throws<InvalidOperationException>(() => array.GeometryExtentsBestFit(GeoTransform3.Translation(new GeoVector3(0, 0, 1))));
+            Assert.Throws<InvalidOperationException>(() =>
+                array.GeometryExtentsBestFit(GeoTransform3.Translation(new GeoVector3(0, 0, 1)))
+            );
             GeoAabb3 box = array.GeometricExtents;
-            Assert.Equal(new[] { 98.0, -2.0, 102.0, 2.0 }, new[] { box.Min.X, box.Min.Y, box.Max.X, box.Max.Y }.Select(v => Math.Round(v, 9)));
+            Assert.Equal(
+                new[] { 98.0, -2.0, 102.0, 2.0 },
+                new[] { box.Min.X, box.Min.Y, box.Max.X, box.Max.Y }.Select(v => Math.Round(v, 9))
+            );
 
             DxfEntity[] before = db.ModelSpace.ToArray();
             array.ExplodeToOwnerSpace();
@@ -130,7 +135,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(Bits(new GeoPoint3(0, 0, 0)), Bits(tip));
             GeoPoint3 a = head.GetPointAt(0);
             GeoPoint3 b = head.GetPointAt(2);
-            Assert.Equal(size, tip.DistanceTo(new GeoPoint3((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0, (a.Z + b.Z) / 2.0)), 9);
+            Assert.Equal(
+                size,
+                tip.DistanceTo(new GeoPoint3((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0, (a.Z + b.Z) / 2.0)),
+                9
+            );
             Assert.Equal(size / 3.0, a.DistanceTo(b), 9);
 
             Assert.IsType<DxfPolyline>(Assert.Single(ByHandle<DxfLeader>(db, "B3").Explode()));
@@ -177,7 +186,15 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // As ezdxf's virtual_entities gives them: both arcs on the polyline's normal, the second, bulged -0.5, run from its end.
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
-            var polyline = new DxfPolyline2d(DxfPoly2dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0) }, 3, false, 0, 0, new[] { 0.5, -0.5, 0.0 });
+            var polyline = new DxfPolyline2d(
+                DxfPoly2dType.SimplePoly,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0) },
+                3,
+                false,
+                0,
+                0,
+                new[] { 0.5, -0.5, 0.0 }
+            );
             polyline.Thickness = 1.5;
             polyline.Normal = new GeoVector3(0.3, -0.4, 0.866);
             db.ModelSpace.AppendEntity(polyline);
@@ -209,7 +226,15 @@ namespace GeometryHelper.UnitTest.Dxf
                 donut.AddVertexAt(1, new GeoPoint2(10, 0), 1, 0, 0);
                 donut.Closed = true;
                 donut.Normal = new GeoVector3(0, 0, z);
-                var ring = new DxfPolyline2d(DxfPoly2dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) }, 0, true, 0, 0, new[] { 1.0, 1.0 });
+                var ring = new DxfPolyline2d(
+                    DxfPoly2dType.SimplePoly,
+                    new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) },
+                    0,
+                    true,
+                    0,
+                    0,
+                    new[] { 1.0, 1.0 }
+                );
                 ring.Normal = new GeoVector3(0, 0, z);
                 var half = new DxfPolyline();
                 half.AddVertexAt(0, new GeoPoint2(0, 0), 1, 0, 0);

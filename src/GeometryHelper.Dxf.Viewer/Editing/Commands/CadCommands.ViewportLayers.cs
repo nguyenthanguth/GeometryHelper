@@ -26,7 +26,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForKeyword("Enter an option", new[] { "?", "Freeze", "Thaw", "Reset", "Newfrz", "Vpvisdflt" });
+                yield return CadPrompt.ForKeyword(
+                    "Enter an option",
+                    new[] { "?", "Freeze", "Thaw", "Reset", "Newfrz", "Vpvisdflt" }
+                );
 
                 if (c.Input.IsNone)
                 {
@@ -40,7 +43,10 @@ namespace GeometryHelper.Dxf.Viewer
                     if (listed == null)
                     {
                         yield return CadPrompt.ForEntity("Select a viewport");
-                        listed = c.Input.Kind == CadInputKind.Selection ? c.Document.FindEntity(c.Input.Handles[0]) as DxfViewport : null;
+                        listed =
+                            c.Input.Kind == CadInputKind.Selection
+                                ? c.Document.FindEntity(c.Input.Handles[0]) as DxfViewport
+                                : null;
                     }
 
                     if (listed == null || listed.Number == 1)
@@ -49,7 +55,11 @@ namespace GeometryHelper.Dxf.Viewer
                         continue;
                     }
 
-                    c.Write("Layers currently frozen in viewport " + listed.Number.ToString(CultureInfo.InvariantCulture) + ":");
+                    c.Write(
+                        "Layers currently frozen in viewport "
+                            + listed.Number.ToString(CultureInfo.InvariantCulture)
+                            + ":"
+                    );
 
                     foreach (DxfLayerTableRecord layer in listed.GetFrozenLayers())
                     {
@@ -77,7 +87,11 @@ namespace GeometryHelper.Dxf.Viewer
                 bool freeze = c.Input.Is("Freeze");
                 bool thaw = c.Input.Is("Thaw");
                 bool reset = c.Input.Is("Reset");
-                string what = freeze ? "freeze" : thaw ? "thaw" : reset ? "reset" : "change viewport visibility";
+                string what =
+                    freeze ? "freeze"
+                    : thaw ? "thaw"
+                    : reset ? "reset"
+                    : "change viewport visibility";
                 yield return CadPrompt.ForString("Enter layer name(s) to " + what + " or <select objects>");
                 List<string> layers;
 
@@ -98,12 +112,19 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (!freeze && !thaw && !reset)
                 {
-                    yield return CadPrompt.ForKeyword("Enter a viewport visibility option", new[] { "Frozen", "Thawed" }, "Thawed");
+                    yield return CadPrompt.ForKeyword(
+                        "Enter a viewport visibility option",
+                        new[] { "Frozen", "Thawed" },
+                        "Thawed"
+                    );
                     bool frozen = c.Input.Is("Frozen");
 
                     foreach (string layer in layers)
                     {
-                        Said(c, CadViewportLayerEditor.SetFrozenInNewViewports(c.Document, layer, frozen, c.Command.Name));
+                        Said(
+                            c,
+                            CadViewportLayerEditor.SetFrozenInNewViewports(c.Document, layer, frozen, c.Command.Name)
+                        );
                     }
 
                     continue;
@@ -117,7 +138,11 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else
                 {
-                    yield return CadPrompt.ForKeyword("Enter an option", new[] { "All", "Select", "Current", "Except current" }, "Current");
+                    yield return CadPrompt.ForKeyword(
+                        "Enter an option",
+                        new[] { "All", "Select", "Current", "Except current" },
+                        "Current"
+                    );
                     DxfViewport current = CadViewportLayerEditor.TargetViewport(c.Document);
 
                     if (c.Input.Is("Select"))
@@ -140,7 +165,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                         foreach (DxfViewport viewport in ViewportsOfLayout(c.Document.CurrentSpace))
                         {
-                            if (!except || current == null || !string.Equals(viewport.Handle, current.Handle, StringComparison.OrdinalIgnoreCase))
+                            if (
+                                !except
+                                || current == null
+                                || !string.Equals(viewport.Handle, current.Handle, StringComparison.OrdinalIgnoreCase)
+                            )
                             {
                                 viewports.Add(viewport.Handle);
                             }
@@ -162,7 +191,16 @@ namespace GeometryHelper.Dxf.Viewer
                     foreach (string layer in layers)
                     {
                         bool frozen = c.Database.LayerTable[layer].ViewportVisibilityDefault;
-                        Said(c, CadViewportLayerEditor.SetFrozen(c.Document, viewports, new[] { layer }, frozen, c.Command.Name));
+                        Said(
+                            c,
+                            CadViewportLayerEditor.SetFrozen(
+                                c.Document,
+                                viewports,
+                                new[] { layer },
+                                frozen,
+                                c.Command.Name
+                            )
+                        );
                     }
                 }
                 else
@@ -199,11 +237,18 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 bool layoutOnly = c.Remembered(LayvpiCurrentLayout, 0.0) > 0.0;
                 c.Write("Current settings: Viewports=" + (layoutOnly ? "Current layout" : "All layouts"));
-                yield return CadPrompt.ForEntity("Select objects on the layer to be isolated in viewport", new[] { "Settings", "Undo" });
+                yield return CadPrompt.ForEntity(
+                    "Select objects on the layer to be isolated in viewport",
+                    new[] { "Settings", "Undo" }
+                );
 
                 if (c.Input.Is("Settings"))
                 {
-                    yield return CadPrompt.ForKeyword("Enter an option for viewports", new[] { "All layouts", "Current layout" }, layoutOnly ? "Current layout" : "All layouts");
+                    yield return CadPrompt.ForKeyword(
+                        "Enter an option for viewports",
+                        new[] { "All layouts", "Current layout" },
+                        layoutOnly ? "Current layout" : "All layouts"
+                    );
                     c.Remember(LayvpiCurrentLayout, c.Input.Is("Current layout") ? 1.0 : 0.0);
                     continue;
                 }
@@ -230,17 +275,28 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 var others = new List<string>();
-                IEnumerable<DxfViewport> scope = layoutOnly ? ViewportsOfLayout(c.Document.CurrentSpace) : CadViewportLayerEditor.LayoutViewports(c.Document);
+                IEnumerable<DxfViewport> scope = layoutOnly
+                    ? ViewportsOfLayout(c.Document.CurrentSpace)
+                    : CadViewportLayerEditor.LayoutViewports(c.Document);
 
                 foreach (DxfViewport viewport in scope)
                 {
-                    if (!string.Equals(viewport.Handle, current.Handle, StringComparison.OrdinalIgnoreCase) && !viewport.IsLayerFrozenInViewport(c.Database.LayerTable[name]))
+                    if (
+                        !string.Equals(viewport.Handle, current.Handle, StringComparison.OrdinalIgnoreCase)
+                        && !viewport.IsLayerFrozenInViewport(c.Database.LayerTable[name])
+                    )
                     {
                         others.Add(viewport.Handle);
                     }
                 }
 
-                CadEditResult result = CadViewportLayerEditor.SetFrozen(c.Document, others, new[] { name }, true, c.Command.Name);
+                CadEditResult result = CadViewportLayerEditor.SetFrozen(
+                    c.Document,
+                    others,
+                    new[] { name },
+                    true,
+                    c.Command.Name
+                );
 
                 if (result.Succeeded)
                 {

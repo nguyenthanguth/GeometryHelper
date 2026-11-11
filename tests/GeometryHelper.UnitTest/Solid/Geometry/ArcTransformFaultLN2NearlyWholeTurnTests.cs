@@ -17,10 +17,20 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class ArcTransformFaultLN2NearlyWholeTurnTests
     {
-        private static readonly GeoTransform3 Turn = GeoTransform3.RotationAxis(new GeoPoint3(5, -3, 2), new GeoVector3(0.3, 0.7, -0.2), 0.7);
+        private static readonly GeoTransform3 Turn = GeoTransform3.RotationAxis(
+            new GeoPoint3(5, -3, 2),
+            new GeoVector3(0.3, 0.7, -0.2),
+            0.7
+        );
 
-        private static GeoArc3 Arc(double shortOfATurn)
-            => new GeoArc3(new GeoPoint3(10, 20, 30), new GeoVector3(0.2, -0.1, 1), 100, 0.3, 0.3 + 2.0 * Math.PI - shortOfATurn);
+        private static GeoArc3 Arc(double shortOfATurn) =>
+            new GeoArc3(
+                new GeoPoint3(10, 20, 30),
+                new GeoVector3(0.2, -0.1, 1),
+                100,
+                0.3,
+                0.3 + 2.0 * Math.PI - shortOfATurn
+            );
 
         [Theory]
         [InlineData(1E-15)]
@@ -67,7 +77,10 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(true, 1E-6)]
         [InlineData(true, 1E-5)]
         [InlineData(true, 1E-3)]
-        public void UnderATurnRoundedToAFloatOrToSixPlaces_ItMovesHoweverShortOfAWholeTurn(bool toSixPlaces, double shortOfATurn)
+        public void UnderATurnRoundedToAFloatOrToSixPlaces_ItMovesHoweverShortOfAWholeTurn(
+            bool toSixPlaces,
+            double shortOfATurn
+        )
         {
             // Such a turn carries a circle by the rule of the ball but is no exact turn; the arc moves at every sweep, its ends
             // within the rounding of the turn of where they land.
@@ -84,7 +97,8 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AMirrorAndAnEvenScaling_MoveItToo()
         {
-            GeoTransform3 transform = GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(1, 2, 3), new GeoVector3(1, 1, 0)))
+            GeoTransform3 transform = GeoTransform3
+                .Mirror(new GeoPlane3(new GeoPoint3(1, 2, 3), new GeoVector3(1, 1, 0)))
                 .Multiply(GeoTransform3.Scaling(2.5))
                 .Multiply(Turn);
             GeoArc3 arc = Arc(1E-9);
@@ -112,13 +126,15 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void UnderASkew_ItIsRefusedAsDocumented()
         {
-            var skew = new GeoTransform3(new double[,]
-            {
-                { 1, 0.6, 0, 0 },
-                { 0, 0.8, 0, 0 },
-                { 0, 0, 1, 0 },
-                { 0, 0, 0, 1 },
-            });
+            var skew = new GeoTransform3(
+                new double[,]
+                {
+                    { 1, 0.6, 0, 0 },
+                    { 0, 0.8, 0, 0 },
+                    { 0, 0, 1, 0 },
+                    { 0, 0, 0, 1 },
+                }
+            );
             var arc = new GeoArc3(new GeoPoint3(10, 20, 30), GeoVector3.ZAxis, 100, 0.3, 0.3 + 2.0 * Math.PI - 1E-9);
             var whole = new GeoArc3(new GeoPoint3(10, 20, 30), GeoVector3.ZAxis, 100, 0.3, 0.3);
 

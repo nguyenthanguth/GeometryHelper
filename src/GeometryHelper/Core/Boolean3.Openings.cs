@@ -38,7 +38,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Turns a body with openings into one without, whose faces are the surface of its material.
         /// </summary>
-        public static bool TryCutOpenings(GeoSolid3 solid, out GeoSolid3 material) => TryCutOpenings(solid, out material, Tolerance.Global);
+        public static bool TryCutOpenings(GeoSolid3 solid, out GeoSolid3 material) =>
+            TryCutOpenings(solid, out material, Tolerance.Global);
 
         /// <summary>
         /// Turns a body with openings into one without, whose faces are the surface of its material, within a
@@ -133,22 +134,41 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance asked.</param>
         /// <param name="failure">What was thrown where the cut could not be worked out, or why it would not close; null otherwise.</param>
         /// <returns>true when some material is left; false when the openings take all of it, or the cut cannot be worked out.</returns>
-        internal static bool TryCutOpenings(GeoSolid3 solid, out GeoSolid3 material, Tolerance tolerance, out Exception failure)
+        internal static bool TryCutOpenings(
+            GeoSolid3 solid,
+            out GeoSolid3 material,
+            Tolerance tolerance,
+            out Exception failure
+        )
         {
             // A point tolerance below the rounding of the coordinates is raised to it, as the queries raise it (see Material3);
             // a planar one below it alone is not, and the cut is as it was.
             Tolerance within = Material3.ToRounding(solid, tolerance);
             bool withinRounding = within.EqualPoint > tolerance.EqualPoint;
 
-            if (!TryCutOpenings(solid, solid.Openings, out material, withinRounding ? within : tolerance, withinRounding, out failure, out _))
+            if (
+                !TryCutOpenings(
+                    solid,
+                    solid.Openings,
+                    out material,
+                    withinRounding ? within : tolerance,
+                    withinRounding,
+                    out failure,
+                    out _
+                )
+            )
             {
                 return false;
             }
 
             // The faces cut within the rounding meet on corners as far apart as it; made one, the material closes within the
             // tolerance given too.
-            if (withinRounding && material != null && !material.ClosesByCorners(tolerance)
-                && Weld3.TryWeld(material, within, tolerance, out GeoSolid3 welded))
+            if (
+                withinRounding
+                && material != null
+                && !material.ClosesByCorners(tolerance)
+                && Weld3.TryWeld(material, within, tolerance, out GeoSolid3 welded)
+            )
             {
                 material = welded;
             }
@@ -168,8 +188,13 @@ namespace GeometryHelper.Core
         /// true when some material is left, closed as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it where the body and
         /// the openings are; false when the openings take all of it, or the cut cannot be worked out so.
         /// </returns>
-        internal static bool TryCutOpenings(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance, out Exception failure)
-            => TryCutOpenings(solid, openings, out material, tolerance, false, out failure, out _);
+        internal static bool TryCutOpenings(
+            GeoSolid3 solid,
+            IReadOnlyList<GeoSolid3> openings,
+            out GeoSolid3 material,
+            Tolerance tolerance,
+            out Exception failure
+        ) => TryCutOpenings(solid, openings, out material, tolerance, false, out failure, out _);
 
         /// <summary>
         /// Cuts some of a body's openings into it as <see cref="TryCutOpenings(GeoSolid3, IReadOnlyList{GeoSolid3}, out GeoSolid3, Tolerance, out Exception)"/>
@@ -185,7 +210,15 @@ namespace GeometryHelper.Core
         /// What cutting the openings in at once gave, open or with a piece judged whole, where it was left for no closed
         /// material; null otherwise.
         /// </param>
-        private static bool TryCutOpenings(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance, bool withinRounding, out Exception failure, out GeoSolid3 open)
+        private static bool TryCutOpenings(
+            GeoSolid3 solid,
+            IReadOnlyList<GeoSolid3> openings,
+            out GeoSolid3 material,
+            Tolerance tolerance,
+            bool withinRounding,
+            out Exception failure,
+            out GeoSolid3 open
+        )
         {
             open = null;
             failure = null;
@@ -195,7 +228,15 @@ namespace GeometryHelper.Core
                 return true;
             }
 
-            return TryCutOpeningsWithin(solid, openings, out material, tolerance, withinRounding, out failure, out open);
+            return TryCutOpeningsWithin(
+                solid,
+                openings,
+                out material,
+                tolerance,
+                withinRounding,
+                out failure,
+                out open
+            );
         }
 
         /// <summary>
@@ -209,14 +250,22 @@ namespace GeometryHelper.Core
         /// <param name="material">The body with the openings cut into it; null when the method returns false.</param>
         /// <param name="tolerance">The tolerance asked.</param>
         /// <returns>true where such walls stand apart and the material so cut closes; otherwise, false, and nothing is cut.</returns>
-        internal static bool TryCutWallsApart(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance)
+        internal static bool TryCutWallsApart(
+            GeoSolid3 solid,
+            IReadOnlyList<GeoSolid3> openings,
+            out GeoSolid3 material,
+            Tolerance tolerance
+        )
         {
             material = null;
 
-            if (!FinerForWallsApart(solid, openings, tolerance, out Tolerance finer) || !ClosesAsFinely(solid, openings, tolerance, finer)
+            if (
+                !FinerForWallsApart(solid, openings, tolerance, out Tolerance finer)
+                || !ClosesAsFinely(solid, openings, tolerance, finer)
                 || !TryCutOpeningsWithin(solid, openings, out GeoSolid3 fine, finer, false, out _, out _)
                 || fine == null
-                || !Shells3.Closes(fine, ForWork(tolerance)))
+                || !Shells3.Closes(fine, ForWork(tolerance))
+            )
             {
                 return false;
             }
@@ -257,18 +306,34 @@ namespace GeometryHelper.Core
         /// coordinates (see <see cref="FinerRoundings"/>), the boolean is worked out as before: of 4 800 more, a face of each
         /// box a tenth to six tenths of the tolerance off the plane of a wall, 5 changed, all to right.
         /// </remarks>
-        private static bool WithWallsApart(Operation operation, GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out GeoSolid3 open)
+        private static bool WithWallsApart(
+            Operation operation,
+            GeoSolid3 first,
+            GeoSolid3 second,
+            out GeoSolid3 result,
+            Tolerance tolerance,
+            out GeoSolid3 open
+        )
         {
             result = null;
             open = null;
 
-            if (first.Openings.Count == 0 && second.Openings.Count == 0
+            if (
+                first.Openings.Count == 0 && second.Openings.Count == 0
                 || !FinerForWallsApart(first, second, tolerance, out Tolerance finer)
-                || !(finer.EqualPlanar >= FinerRoundings * Math.Max(Splition3.Rounding(first), Splition3.Rounding(second)))
-                || !ClosesAsFinely(first, first.Openings, tolerance, finer) || !ClosesAsFinely(second, second.Openings, tolerance, finer)
-                || !MaterialWithin(first, finer, tolerance, out GeoSolid3 a) || !MaterialWithin(second, finer, tolerance, out GeoSolid3 b)
+                || !(
+                    finer.EqualPlanar
+                    >= FinerRoundings * Math.Max(Splition3.Rounding(first), Splition3.Rounding(second))
+                )
+                || !ClosesAsFinely(first, first.Openings, tolerance, finer)
+                || !ClosesAsFinely(second, second.Openings, tolerance, finer)
+                || !MaterialWithin(first, finer, tolerance, out GeoSolid3 a)
+                || !MaterialWithin(second, finer, tolerance, out GeoSolid3 b)
                 || !operation(a, b, out GeoSolid3 made, finer, out BooleanOutcome outcome, out GeoSolid3 left)
-                || outcome != BooleanOutcome.Made || made == null || !Shells3.Closes(made, ForWork(tolerance)))
+                || outcome != BooleanOutcome.Made
+                || made == null
+                || !Shells3.Closes(made, ForWork(tolerance))
+            )
             {
                 return false;
             }
@@ -297,7 +362,12 @@ namespace GeometryHelper.Core
         /// <see cref="TryCutOpenings(GeoSolid3, out GeoSolid3, Tolerance)"/> cuts them, where what that gives closes within
         /// the tolerance asked; the body itself where it has none.
         /// </summary>
-        private static bool MaterialWithin(GeoSolid3 solid, Tolerance finer, Tolerance tolerance, out GeoSolid3 material)
+        private static bool MaterialWithin(
+            GeoSolid3 solid,
+            Tolerance finer,
+            Tolerance tolerance,
+            out GeoSolid3 material
+        )
         {
             material = solid;
 
@@ -307,7 +377,8 @@ namespace GeometryHelper.Core
             }
 
             return TryCutOpeningsWithin(solid, solid.Openings, out material, finer, false, out _, out _)
-                && material != null && Shells3.Closes(material, ForWork(tolerance));
+                && material != null
+                && Shells3.Closes(material, ForWork(tolerance));
         }
 
         /// <summary>
@@ -355,7 +426,16 @@ namespace GeometryHelper.Core
         /// <param name="outcome">How the operation as before came out; <see cref="BooleanOutcome.Made"/> where it is worked out again.</param>
         /// <param name="open">What came out open as before; what came out open worked out again where that is taken.</param>
         /// <returns>What the operation returns.</returns>
-        private static bool WithOpeningsCut(Operation operation, GeoSolid3 first, GeoSolid3 second, bool made, ref GeoSolid3 result, Tolerance tolerance, ref BooleanOutcome outcome, ref GeoSolid3 open)
+        private static bool WithOpeningsCut(
+            Operation operation,
+            GeoSolid3 first,
+            GeoSolid3 second,
+            bool made,
+            ref GeoSolid3 result,
+            Tolerance tolerance,
+            ref BooleanOutcome outcome,
+            ref GeoSolid3 open
+        )
         {
             // Above a millionth what came as before is kept, as it was, to the bit; further out than a million, where rounding
             // moves a corner off a plane by more than a millionth, only what came as before made and valid is worked out
@@ -363,22 +443,32 @@ namespace GeometryHelper.Core
             bool given = made && outcome == BooleanOutcome.Made && result != null;
             bool far = !(Math.Max(Splition3.Rounding(first), Splition3.Rounding(second)) <= Splition3.RaisedBelow);
 
-            if (first.Openings.Count == 0 && second.Openings.Count == 0 || !(tolerance.EqualPoint <= Splition3.RaisedBelow) || far && !given)
+            if (
+                first.Openings.Count == 0 && second.Openings.Count == 0
+                || !(tolerance.EqualPoint <= Splition3.RaisedBelow)
+                || far && !given
+            )
             {
                 return made;
             }
 
-            Tolerance work = ForWork(BelowTheRounding(first, second, tolerance, out Tolerance within) ? within : tolerance);
+            Tolerance work = ForWork(
+                BelowTheRounding(first, second, tolerance, out Tolerance within) ? within : tolerance
+            );
             bool firstOpen = CutComesOutOpen(first, work);
             bool secondOpen = CutComesOutOpen(second, work);
             GeoSolid3 a = first;
             GeoSolid3 b = second;
 
-            if (!firstOpen && !secondOpen
+            if (
+                !firstOpen && !secondOpen
                 || firstOpen && !MaterialToWork(first, tolerance, work, out a)
                 || secondOpen && !MaterialToWork(second, tolerance, work, out b)
                 || !operation(a, b, out GeoSolid3 again, tolerance, out BooleanOutcome againOutcome, out GeoSolid3 left)
-                || againOutcome != BooleanOutcome.Made || again == null || !Shells3.Closes(again, work))
+                || againOutcome != BooleanOutcome.Made
+                || again == null
+                || !Shells3.Closes(again, work)
+            )
             {
                 return made;
             }
@@ -387,10 +477,15 @@ namespace GeometryHelper.Core
             // came not valid.
             if (given)
             {
-                double reach = Splition3.OnPlaneWithinRounding(first, Splition3.OnPlaneWithinRounding(second, work)).EqualPlanar;
+                double reach = Splition3
+                    .OnPlaneWithinRounding(first, Splition3.OnPlaneWithinRounding(second, work))
+                    .EqualPlanar;
                 double v = VolumeOf(result, tolerance);
                 double w = VolumeOf(again, tolerance);
-                bool agrees = Math.Abs(v - w) <= reach * Math.Max(result.GrossSurfaceArea, again.GrossSurfaceArea) + 1E-9 * (Math.Abs(v) + Math.Abs(w));
+                bool agrees =
+                    Math.Abs(v - w)
+                    <= reach * Math.Max(result.GrossSurfaceArea, again.GrossSurfaceArea)
+                        + 1E-9 * (Math.Abs(v) + Math.Abs(w));
 
                 if ((agrees || far) && (result.Validate(tolerance).IsValid ? agrees : far))
                 {
@@ -463,7 +558,14 @@ namespace GeometryHelper.Core
                 }
             }
 
-            bool cut = TryCutOpeningsAtOnce(flat, flat.Openings, out GeoSolid3 material, work, out _, out bool judgedWhole);
+            bool cut = TryCutOpeningsAtOnce(
+                flat,
+                flat.Openings,
+                out GeoSolid3 material,
+                work,
+                out _,
+                out bool judgedWhole
+            );
             return judgedWhole || cut && material != null && !Shells3.Closes(material, work);
         }
 
@@ -475,7 +577,12 @@ namespace GeometryHelper.Core
         /// A cube 10 across cracked 0.0001 wide, less two openings 0.0022 apart, cut within the finer tolerance that their
         /// walls asked for, came back closed within a thousandth and holding the whole cube, 999.998 where it holds 749.88.
         /// </remarks>
-        private static bool ClosesAsFinely(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, Tolerance tolerance, Tolerance finer)
+        private static bool ClosesAsFinely(
+            GeoSolid3 solid,
+            IReadOnlyList<GeoSolid3> openings,
+            Tolerance tolerance,
+            Tolerance finer
+        )
         {
             Tolerance work = ForWork(tolerance);
             Tolerance fine = ForWork(finer);
@@ -501,11 +608,22 @@ namespace GeometryHelper.Core
         /// <see cref="TryCutOpenings(GeoSolid3, IReadOnlyList{GeoSolid3}, out GeoSolid3, Tolerance, bool, out Exception, out GeoSolid3)"/>
         /// does where no walls stand apart within the tolerance of one plane.
         /// </summary>
-        private static bool TryCutOpeningsWithin(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance, bool withinRounding, out Exception failure, out GeoSolid3 open)
+        private static bool TryCutOpeningsWithin(
+            GeoSolid3 solid,
+            IReadOnlyList<GeoSolid3> openings,
+            out GeoSolid3 material,
+            Tolerance tolerance,
+            bool withinRounding,
+            out Exception failure,
+            out GeoSolid3 open
+        )
         {
             open = null;
 
-            if (!TryCutOpeningsAtOnce(solid, openings, out material, tolerance, out failure, out bool judgedWhole) && !judgedWhole)
+            if (
+                !TryCutOpeningsAtOnce(solid, openings, out material, tolerance, out failure, out bool judgedWhole)
+                && !judgedWhole
+            )
             {
                 return false;
             }
@@ -516,9 +634,11 @@ namespace GeometryHelper.Core
             {
                 // A cut at once that left a piece of the body part in an opening and part out of it is taken out one at a
                 // time, as GetVolume takes it out; see JudgedWhole.
-                if (judgedWhole
-                    ? TakesOutJudgedWhole(solid, openings, ref material, tolerance, withinRounding, out failure)
-                    : ClosesOrTakesOut(solid, openings, ref material, tolerance, withinRounding, out failure))
+                if (
+                    judgedWhole
+                        ? TakesOutJudgedWhole(solid, openings, ref material, tolerance, withinRounding, out failure)
+                        : ClosesOrTakesOut(solid, openings, ref material, tolerance, withinRounding, out failure)
+                )
                 {
                     return true;
                 }
@@ -560,8 +680,12 @@ namespace GeometryHelper.Core
         /// they are meant to be, and a face off flat is laid flat, so the finer tolerance stays wider than either; where it
         /// cannot, the walls are cut as before.
         /// </remarks>
-        internal static bool FinerForWallsApart(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, Tolerance tolerance, out Tolerance finer)
-            => FinerForWallsApart(new[] { (solid, openings) }, tolerance, out finer);
+        internal static bool FinerForWallsApart(
+            GeoSolid3 solid,
+            IReadOnlyList<GeoSolid3> openings,
+            Tolerance tolerance,
+            out Tolerance finer
+        ) => FinerForWallsApart(new[] { (solid, openings) }, tolerance, out finer);
 
         /// <summary>
         /// Determines whether two walls of one of two bodies and its openings stand apart within the tolerance of one plane,
@@ -584,15 +708,23 @@ namespace GeometryHelper.Core
         /// out otherwise within the finer tolerance, the box's face put onto the wall in part, as the material cut alone
         /// reads it. Such a boolean is worked out as before, and none moves but to right.
         /// </remarks>
-        internal static bool FinerForWallsApart(GeoSolid3 first, GeoSolid3 second, Tolerance tolerance, out Tolerance finer)
-            => FinerForWallsApart(new[] { (first, first.Openings), (second, second.Openings) }, tolerance, out finer);
+        internal static bool FinerForWallsApart(
+            GeoSolid3 first,
+            GeoSolid3 second,
+            Tolerance tolerance,
+            out Tolerance finer
+        ) => FinerForWallsApart(new[] { (first, first.Openings), (second, second.Openings) }, tolerance, out finer);
 
         /// <summary>
         /// Determines whether two walls of one of some bodies and its openings stand apart within the tolerance of one plane,
         /// where no wall of one of the bodies lies within it of the plane of a wall of another. See
         /// <see cref="FinerForWallsApart(GeoSolid3, IReadOnlyList{GeoSolid3}, Tolerance, out Tolerance)"/>.
         /// </summary>
-        private static bool FinerForWallsApart((GeoSolid3 Solid, IReadOnlyList<GeoSolid3> Openings)[] bodies, Tolerance tolerance, out Tolerance finer)
+        private static bool FinerForWallsApart(
+            (GeoSolid3 Solid, IReadOnlyList<GeoSolid3> Openings)[] bodies,
+            Tolerance tolerance,
+            out Tolerance finer
+        )
         {
             finer = tolerance;
 
@@ -770,7 +902,12 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            finer = new Tolerance(Math.Min(level, tolerance.EqualPoint), tolerance.EqualVector, tolerance.EqualAngleRad, Math.Min(level, tolerance.EqualPlanar));
+            finer = new Tolerance(
+                Math.Min(level, tolerance.EqualPoint),
+                tolerance.EqualVector,
+                tolerance.EqualAngleRad,
+                Math.Min(level, tolerance.EqualPlanar)
+            );
             return true;
         }
 
@@ -806,14 +943,19 @@ namespace GeometryHelper.Core
         /// into triangles holding 29 999.99 where it holds 58 800, and a point in the middle of the hole was projected 1.5 from
         /// it, onto a face across the hole, where its wall stands 10 off.
         /// </remarks>
-        internal static GeoSolid3 MaterialToRead(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, Tolerance tolerance)
+        internal static GeoSolid3 MaterialToRead(
+            GeoSolid3 solid,
+            IReadOnlyList<GeoSolid3> openings,
+            Tolerance tolerance
+        )
         {
             // A point tolerance below the rounding of the coordinates is raised to it, and the openings cut within it as
             // TryCutOpenings cuts them; Material3 hands its queries' tolerance in raised already, and they read as they did.
             Tolerance within = Material3.ToRounding(solid, tolerance);
             bool withinRounding = within.EqualPoint > tolerance.EqualPoint;
             bool cut;
-            GeoSolid3 material, open;
+            GeoSolid3 material,
+                open;
             Exception failure;
 
             // Cut where the body stands, what the cut asks of it is asked there too; see FarBody.Hold.
@@ -821,7 +963,15 @@ namespace GeometryHelper.Core
 
             try
             {
-                cut = TryCutOpenings(solid, openings, out material, withinRounding ? within : tolerance, withinRounding, out failure, out open);
+                cut = TryCutOpenings(
+                    solid,
+                    openings,
+                    out material,
+                    withinRounding ? within : tolerance,
+                    withinRounding,
+                    out failure,
+                    out open
+                );
             }
             finally
             {
@@ -835,7 +985,10 @@ namespace GeometryHelper.Core
 
             if (open != null)
             {
-                GeometryHelperLog.Warn("Boolean3: the openings could not be cut in closed, nor taken out one at a time; the material cut in at once is read instead.", failure);
+                GeometryHelperLog.Warn(
+                    "Boolean3: the openings could not be cut in closed, nor taken out one at a time; the material cut in at once is read instead.",
+                    failure
+                );
                 return open;
             }
 
@@ -865,11 +1018,23 @@ namespace GeometryHelper.Core
         /// </remarks>
         internal static bool TryCutOpeningsAtOnce(GeoSolid3 solid, out GeoSolid3 material, Tolerance tolerance)
         {
-            if (TryCutOpeningsAtOnce(solid, solid.Openings, out material, tolerance, out Exception failure, out bool judgedWhole, true))
+            if (
+                TryCutOpeningsAtOnce(
+                    solid,
+                    solid.Openings,
+                    out material,
+                    tolerance,
+                    out Exception failure,
+                    out bool judgedWhole,
+                    true
+                )
+            )
             {
                 if (judgedWhole)
                 {
-                    GeometryHelperLog.Debug("Boolean3: cutting the openings of an operand in at once left a piece of it part in an opening and part out; the boolean reads the cut as it came.");
+                    GeometryHelperLog.Debug(
+                        "Boolean3: cutting the openings of an operand in at once left a piece of it part in an opening and part out; the boolean reads the cut as it came."
+                    );
                 }
 
                 return true;
@@ -899,7 +1064,15 @@ namespace GeometryHelper.Core
         /// openings closes such a cut its own ways.
         /// </param>
         /// <returns>true when some material is left; false when the openings take all of it, or the cut cannot be worked out.</returns>
-        internal static bool TryCutOpeningsAtOnce(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance, out Exception failure, out bool judgedWhole, bool again = false)
+        internal static bool TryCutOpeningsAtOnce(
+            GeoSolid3 solid,
+            IReadOnlyList<GeoSolid3> openings,
+            out GeoSolid3 material,
+            Tolerance tolerance,
+            out Exception failure,
+            out bool judgedWhole,
+            bool again = false
+        )
         {
             failure = null;
             judgedWhole = false;
@@ -942,20 +1115,40 @@ namespace GeometryHelper.Core
         /// difference tries more ways of cutting and keeps the one that closes, and an opening that will not come out
         /// keeps none of the others in.
         /// </remarks>
-        internal static bool TryTakeOut(GeoSolid3 body, GeoSolid3 opening, out GeoSolid3 material, Tolerance tolerance, out Exception failure, bool onPlaneWithinRounding = false)
+        internal static bool TryTakeOut(
+            GeoSolid3 body,
+            GeoSolid3 opening,
+            out GeoSolid3 material,
+            Tolerance tolerance,
+            out Exception failure,
+            bool onPlaneWithinRounding = false
+        )
         {
             failure = null;
 
             try
             {
-                if (TakeAway(body, opening, out material, tolerance, out string unworkable, out _, null, onPlaneWithinRounding))
+                if (
+                    TakeAway(
+                        body,
+                        opening,
+                        out material,
+                        tolerance,
+                        out string unworkable,
+                        out _,
+                        null,
+                        onPlaneWithinRounding
+                    )
+                )
                 {
                     return true;
                 }
 
                 if (unworkable != null)
                 {
-                    failure = new InvalidOperationException($"The opening could not be taken out: cutting it {unworkable}.");
+                    failure = new InvalidOperationException(
+                        $"The opening could not be taken out: cutting it {unworkable}."
+                    );
                 }
 
                 return false;
@@ -1003,7 +1196,14 @@ namespace GeometryHelper.Core
         /// <see cref="CutAgainBelow"/>.
         /// </para>
         /// </remarks>
-        private static bool CutOpenings(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance, out bool judgedWhole, bool again)
+        private static bool CutOpenings(
+            GeoSolid3 solid,
+            IReadOnlyList<GeoSolid3> openings,
+            out GeoSolid3 material,
+            Tolerance tolerance,
+            out bool judgedWhole,
+            bool again
+        )
         {
             // The body carrying only the openings being cut, so that a cell is judged against exactly those, and
             // both as the cut works on them, wound outwards and flat; see ForWork and FlatForWork.
@@ -1015,10 +1215,22 @@ namespace GeometryHelper.Core
             judgedWhole = first.JudgedWhole;
 
             // Cut again below a thousandth and within a million of the origin only; see the remarks.
-            if (again && tolerance.EqualPoint < CutAgainBelow && Splition3.Rounding(owner) <= Splition3.RaisedBelow
+            if (
+                again
+                && tolerance.EqualPoint < CutAgainBelow
+                && Splition3.Rounding(owner) <= Splition3.RaisedBelow
                 && (judgedWhole || cut && !Shells3.Closes(material, tolerance))
-                && CutOpenings(owner, out GeoSolid3 everywhere, tolerance, out bool judgedAgain, MostCellsCutEverywhere * first.Cells, out _)
-                && !judgedAgain && Shells3.Closes(everywhere, tolerance))
+                && CutOpenings(
+                    owner,
+                    out GeoSolid3 everywhere,
+                    tolerance,
+                    out bool judgedAgain,
+                    MostCellsCutEverywhere * first.Cells,
+                    out _
+                )
+                && !judgedAgain
+                && Shells3.Closes(everywhere, tolerance)
+            )
             {
                 material = everywhere;
                 judgedWhole = false;
@@ -1053,7 +1265,14 @@ namespace GeometryHelper.Core
             }
 
             GeoSolid3 owner = FlatForWork(new GeoSolid3(solid.Faces, openings), tolerance);
-            bool cut = CutOpenings(owner, out GeoSolid3 material, tolerance, out bool judgedWhole, int.MaxValue, out int cells);
+            bool cut = CutOpenings(
+                owner,
+                out GeoSolid3 material,
+                tolerance,
+                out bool judgedWhole,
+                int.MaxValue,
+                out int cells
+            );
             var made = new AtOnceCut(tolerance, owner, cut, material, judgedWhole, cells);
 
             if (all)
@@ -1070,7 +1289,14 @@ namespace GeometryHelper.Core
         /// </summary>
         internal sealed class AtOnceCut
         {
-            internal AtOnceCut(Tolerance tolerance, GeoSolid3 owner, bool cut, GeoSolid3 material, bool judgedWhole, int cells)
+            internal AtOnceCut(
+                Tolerance tolerance,
+                GeoSolid3 owner,
+                bool cut,
+                GeoSolid3 material,
+                bool judgedWhole,
+                int cells
+            )
             {
                 Tolerance = tolerance;
                 Owner = owner;
@@ -1138,7 +1364,14 @@ namespace GeometryHelper.Core
         /// <param name="most">The most cells; <see cref="int.MaxValue"/> for the cut by reach.</param>
         /// <param name="count">How many cells the cut came to.</param>
         /// <returns>true when some material is left; false when the openings take all of it, or the cells came to too many.</returns>
-        private static bool CutOpenings(GeoSolid3 owner, out GeoSolid3 material, Tolerance tolerance, out bool judgedWhole, int most, out int count)
+        private static bool CutOpenings(
+            GeoSolid3 owner,
+            out GeoSolid3 material,
+            Tolerance tolerance,
+            out bool judgedWhole,
+            int most,
+            out int count
+        )
         {
             GeoSolid3 gross = new GeoSolid3(owner.Faces);
             IReadOnlyList<GeoSolid3> openings = owner.Openings;
@@ -1166,8 +1399,16 @@ namespace GeometryHelper.Core
                         // as on a plane within what rounding adds to the tolerance; see Splition3.OnPlaneWithinRounding.
                         bool reached = cell.GetAabb().CollidesWith(reach, tolerance);
 
-                        if ((reached || everywhere)
-                            && Splition3.TrySplitCell(cell, plane, out GeoSolid3 above, out GeoSolid3 below, Splition3.OnPlaneWithinRounding(cell, tolerance)))
+                        if (
+                            (reached || everywhere)
+                            && Splition3.TrySplitCell(
+                                cell,
+                                plane,
+                                out GeoSolid3 above,
+                                out GeoSolid3 below,
+                                Splition3.OnPlaneWithinRounding(cell, tolerance)
+                            )
+                        )
                         {
                             divided.Add(above);
                             divided.Add(below);
@@ -1177,8 +1418,11 @@ namespace GeometryHelper.Core
                             // A plane running through a cell it would not cut is kept, to see whether a cell it leaves is
                             // part in the opening and part out; see JudgedWhole. The cells of a body that does not close
                             // hold no volume to weigh, and are judged as they were.
-                            if (reached && Straddles(cell, plane, tolerance, out _, out _)
-                                && (closed ?? (closed = Shells3.Closes(gross, tolerance)).Value))
+                            if (
+                                reached
+                                && Straddles(cell, plane, tolerance, out _, out _)
+                                && (closed ?? (closed = Shells3.Closes(gross, tolerance)).Value)
+                            )
                             {
                                 (uncut = uncut ?? new List<(GeoPlane3, GeoSolid3)>()).Add((plane, opening));
                             }
@@ -1242,7 +1486,12 @@ namespace GeometryHelper.Core
         /// (see <see cref="MostPlanesForEighths"/>). A piece the plane runs through clear of the opening, or only grazes or
         /// takes a sliver off (see <see cref="Straddles"/>), is judged as before.
         /// </remarks>
-        internal static bool JudgedWhole(List<GeoSolid3> pieces, List<(GeoPlane3 Plane, GeoSolid3 Opening)> uncut, Tolerance tolerance, Func<GeoSolid3, GeoPoint3, bool> read = null)
+        internal static bool JudgedWhole(
+            List<GeoSolid3> pieces,
+            List<(GeoPlane3 Plane, GeoSolid3 Opening)> uncut,
+            Tolerance tolerance,
+            Func<GeoSolid3, GeoPoint3, bool> read = null
+        )
         {
             var crossing = new List<(GeoPlane3 Plane, GeoSolid3 Opening)>();
             var corners = new List<(GeoPlane3 Plane, GeoSolid3 Opening)>();
@@ -1254,14 +1503,18 @@ namespace GeometryHelper.Core
 
                 foreach ((GeoPlane3 plane, GeoSolid3 opening) in uncut)
                 {
-                    if (!piece.GetAabb().CollidesWith(opening.GetAabb(), tolerance)
-                        || !Straddles(piece, plane, tolerance, out GeoPoint3 aboveMiddle, out GeoPoint3 belowMiddle))
+                    if (
+                        !piece.GetAabb().CollidesWith(opening.GetAabb(), tolerance)
+                        || !Straddles(piece, plane, tolerance, out GeoPoint3 aboveMiddle, out GeoPoint3 belowMiddle)
+                    )
                     {
                         continue;
                     }
 
-                    if (IsIn(opening, aboveMiddle, tolerance) != IsIn(opening, belowMiddle, tolerance)
-                        && (read == null || read(piece, aboveMiddle) && read(piece, belowMiddle)))
+                    if (
+                        IsIn(opening, aboveMiddle, tolerance) != IsIn(opening, belowMiddle, tolerance)
+                        && (read == null || read(piece, aboveMiddle) && read(piece, belowMiddle))
+                    )
                     {
                         return true;
                     }
@@ -1299,7 +1552,18 @@ namespace GeometryHelper.Core
 
                             for (int j = i + 1; j < corners.Count; j++)
                             {
-                                if (ReferenceEquals(corners[j].Opening, opening) && EighthsPart(piece, corners[i].Plane, corners[j].Plane, plane, opening, tolerance, read))
+                                if (
+                                    ReferenceEquals(corners[j].Opening, opening)
+                                    && EighthsPart(
+                                        piece,
+                                        corners[i].Plane,
+                                        corners[j].Plane,
+                                        plane,
+                                        opening,
+                                        tolerance,
+                                        read
+                                    )
+                                )
                                 {
                                     return true;
                                 }
@@ -1319,21 +1583,33 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Whether a point lies inside a body, off its skin.
         /// </summary>
-        private static bool IsIn(GeoSolid3 body, GeoPoint3 point, Tolerance tolerance)
-            => Containment3.Locate(body, point, tolerance) == PointLocation.Inside;
+        private static bool IsIn(GeoSolid3 body, GeoPoint3 point, Tolerance tolerance) =>
+            Containment3.Locate(body, point, tolerance) == PointLocation.Inside;
 
         /// <summary>
         /// Whether, of the four parts two planes make of a body, one holding more than the tolerance times the body's area has
         /// its middle in an opening and another its middle out of it.
         /// </summary>
-        private static bool QuartersPart(GeoSolid3 body, GeoPlane3 first, GeoPlane3 second, GeoSolid3 opening, Tolerance tolerance, Func<GeoSolid3, GeoPoint3, bool> read)
-            => PartsApart(Quarters(body, first, second), body, opening, tolerance, read);
+        private static bool QuartersPart(
+            GeoSolid3 body,
+            GeoPlane3 first,
+            GeoPlane3 second,
+            GeoSolid3 opening,
+            Tolerance tolerance,
+            Func<GeoSolid3, GeoPoint3, bool> read
+        ) => PartsApart(Quarters(body, first, second), body, opening, tolerance, read);
 
         /// <summary>
         /// Whether, of the parts of a body given, one holding more than the tolerance times the body's area has its middle in
         /// an opening and another its middle out of it, each middle read only where <paramref name="read"/> takes it.
         /// </summary>
-        private static bool PartsApart(List<(double Volume, GeoPoint3 Middle)> parts, GeoSolid3 body, GeoSolid3 opening, Tolerance tolerance, Func<GeoSolid3, GeoPoint3, bool> read)
+        private static bool PartsApart(
+            List<(double Volume, GeoPoint3 Middle)> parts,
+            GeoSolid3 body,
+            GeoSolid3 opening,
+            Tolerance tolerance,
+            Func<GeoSolid3, GeoPoint3, bool> read
+        )
         {
             double least = tolerance.EqualPoint * body.GrossSurfaceArea;
             bool someIn = false;
@@ -1382,7 +1658,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// The four parts two planes make of a body, each with its volume and its middle; see <see cref="Quarter"/>.
         /// </summary>
-        private static List<(double Volume, GeoPoint3 Middle)> Quarters(GeoSolid3 body, GeoPlane3 first, GeoPlane3 second)
+        private static List<(double Volume, GeoPoint3 Middle)> Quarters(
+            GeoSolid3 body,
+            GeoPlane3 first,
+            GeoPlane3 second
+        )
         {
             var parts = new List<(double Volume, GeoPoint3 Middle)>(4);
 
@@ -1408,15 +1688,31 @@ namespace GeometryHelper.Core
         /// of each two. Nor are planes read that meet out of the opening's box, grown by the tolerance: what they leave is a
         /// corner the opening does not have.
         /// </remarks>
-        private static bool EighthsPart(GeoSolid3 body, GeoPlane3 first, GeoPlane3 second, GeoPlane3 third, GeoSolid3 opening, Tolerance tolerance, Func<GeoSolid3, GeoPoint3, bool> read)
-            => Meet(body, first, second, third, out GeoPoint3 apex, out GeoPoint3 origin) && opening.GetAabb().Contains(apex, tolerance)
-                && PartsApart(Eighths(body, apex, origin, first, second, third), body, opening, tolerance, read);
+        private static bool EighthsPart(
+            GeoSolid3 body,
+            GeoPlane3 first,
+            GeoPlane3 second,
+            GeoPlane3 third,
+            GeoSolid3 opening,
+            Tolerance tolerance,
+            Func<GeoSolid3, GeoPoint3, bool> read
+        ) =>
+            Meet(body, first, second, third, out GeoPoint3 apex, out GeoPoint3 origin)
+            && opening.GetAabb().Contains(apex, tolerance)
+            && PartsApart(Eighths(body, apex, origin, first, second, third), body, opening, tolerance, read);
 
         /// <summary>
         /// Finds the point three planes meet at, and the point of the first nearest the middle of a body's box, the parts of
         /// the body are read from; false where two are parallel or the three meet along a line.
         /// </summary>
-        private static bool Meet(GeoSolid3 body, GeoPlane3 first, GeoPlane3 second, GeoPlane3 third, out GeoPoint3 apex, out GeoPoint3 origin)
+        private static bool Meet(
+            GeoSolid3 body,
+            GeoPlane3 first,
+            GeoPlane3 second,
+            GeoPlane3 third,
+            out GeoPoint3 apex,
+            out GeoPoint3 origin
+        )
         {
             GeoVector3 normal = first.Normal;
             GeoVector3 secondNormal = second.Normal;
@@ -1435,8 +1731,12 @@ namespace GeometryHelper.Core
             origin = NearestTo(first, body);
             double secondHeight = secondNormal.DotProduct(origin.GetVectorTo(second.Origin));
             double thirdHeight = thirdNormal.DotProduct(origin.GetVectorTo(third.Origin));
-            apex = origin.Add(thirdNormal.CrossProduct(normal).Multiply(secondHeight / corner)
-                .Add(normal.CrossProduct(secondNormal).Multiply(thirdHeight / corner)));
+            apex = origin.Add(
+                thirdNormal
+                    .CrossProduct(normal)
+                    .Multiply(secondHeight / corner)
+                    .Add(normal.CrossProduct(secondNormal).Multiply(thirdHeight / corner))
+            );
             return true;
         }
 
@@ -1444,7 +1744,14 @@ namespace GeometryHelper.Core
         /// The eight parts three planes meeting at a point make of a body, each with its volume and its middle, read as cones
         /// from that point; see <see cref="Meet"/>.
         /// </summary>
-        private static List<(double Volume, GeoPoint3 Middle)> Eighths(GeoSolid3 body, GeoPoint3 apex, GeoPoint3 origin, GeoPlane3 first, GeoPlane3 second, GeoPlane3 third)
+        private static List<(double Volume, GeoPoint3 Middle)> Eighths(
+            GeoSolid3 body,
+            GeoPoint3 apex,
+            GeoPoint3 origin,
+            GeoPlane3 first,
+            GeoPlane3 second,
+            GeoPlane3 third
+        )
         {
             var parts = new List<(double Volume, GeoPoint3 Middle)>(8);
 
@@ -1454,7 +1761,18 @@ namespace GeometryHelper.Core
                 {
                     foreach (double thirdSide in new[] { 1.0, -1.0 })
                     {
-                        double volume = Part(body, apex, origin, first.Normal, firstSide, second.Normal, secondSide, third.Normal, thirdSide, out GeoVector3 moment);
+                        double volume = Part(
+                            body,
+                            apex,
+                            origin,
+                            first.Normal,
+                            firstSide,
+                            second.Normal,
+                            secondSide,
+                            third.Normal,
+                            thirdSide,
+                            out GeoVector3 moment
+                        );
                         parts.Add((volume, origin.Add(moment.Multiply(1.0 / volume))));
                     }
                 }
@@ -1475,15 +1793,29 @@ namespace GeometryHelper.Core
         /// 19.14 and its floor z = 7.1, holds 2.55 of it between its sides and over its floor, a part no two of the planes
         /// part from the rest.
         /// </remarks>
-        private static bool SlabsPart(GeoSolid3 body, GeoPlane3 a, GeoPlane3 b, GeoPlane3 c, GeoSolid3 opening, Tolerance tolerance, Func<GeoSolid3, GeoPoint3, bool> read)
-            => Slabs(body, a, b, c) is List<(double Volume, GeoPoint3 Middle)> parts && PartsApart(parts, body, opening, tolerance, read);
+        private static bool SlabsPart(
+            GeoSolid3 body,
+            GeoPlane3 a,
+            GeoPlane3 b,
+            GeoPlane3 c,
+            GeoSolid3 opening,
+            Tolerance tolerance,
+            Func<GeoSolid3, GeoPoint3, bool> read
+        ) =>
+            Slabs(body, a, b, c) is List<(double Volume, GeoPoint3 Middle)> parts
+            && PartsApart(parts, body, opening, tolerance, read);
 
         /// <summary>
         /// The six parts three planes two of which are parallel make of a body, each with its volume and its middle, on the
         /// side of the third its normal points to first, short of both parallel planes, between them and beyond both; null
         /// where no two are parallel, or the third is parallel to them too. See <see cref="SlabsPart"/>.
         /// </summary>
-        private static List<(double Volume, GeoPoint3 Middle)> Slabs(GeoSolid3 body, GeoPlane3 a, GeoPlane3 b, GeoPlane3 c)
+        private static List<(double Volume, GeoPoint3 Middle)> Slabs(
+            GeoSolid3 body,
+            GeoPlane3 a,
+            GeoPlane3 b,
+            GeoPlane3 c
+        )
         {
             bool Parallel(GeoPlane3 one, GeoPlane3 another)
             {
@@ -1491,7 +1823,9 @@ namespace GeometryHelper.Core
                 return across.DotProduct(across) <= 1E-12;
             }
 
-            GeoPlane3 first = a, second = b, third = c;
+            GeoPlane3 first = a,
+                second = b,
+                third = c;
 
             if (Parallel(b, c))
             {
@@ -1530,7 +1864,11 @@ namespace GeometryHelper.Core
             double Beyond(double level, double side, double thirdSide, out GeoVector3 moment)
             {
                 GeoPoint3 point = origin.Add(normal.Multiply(level));
-                GeoPoint3 apex = point.Add(along.CrossProduct(normal).Multiply(third.Normal.DotProduct(point.GetVectorTo(third.Origin)) / meeting));
+                GeoPoint3 apex = point.Add(
+                    along
+                        .CrossProduct(normal)
+                        .Multiply(third.Normal.DotProduct(point.GetVectorTo(third.Origin)) / meeting)
+                );
                 return Part(body, apex, origin, normal, side, third.Normal, thirdSide, default, 0.0, out moment);
             }
 
@@ -1666,8 +2004,30 @@ namespace GeometryHelper.Core
 
                 if (ways.Count == 0)
                 {
-                    double over = Part(body, origin, origin, normals[0], 1.0, none, 0.0, none, 0.0, out GeoVector3 overMoment);
-                    double under = Part(body, origin, origin, normals[0], -1.0, none, 0.0, none, 0.0, out GeoVector3 underMoment);
+                    double over = Part(
+                        body,
+                        origin,
+                        origin,
+                        normals[0],
+                        1.0,
+                        none,
+                        0.0,
+                        none,
+                        0.0,
+                        out GeoVector3 overMoment
+                    );
+                    double under = Part(
+                        body,
+                        origin,
+                        origin,
+                        normals[0],
+                        -1.0,
+                        none,
+                        0.0,
+                        none,
+                        0.0,
+                        out GeoVector3 underMoment
+                    );
                     part = (over + under, overMoment.Add(underMoment));
                 }
                 else
@@ -1683,18 +2043,31 @@ namespace GeometryHelper.Core
                     {
                         double cosine = ways[0].DotProduct(ways[1]);
                         double sine = 1.0 - cosine * cosine;
-                        offset = ways[0].Multiply((levels[0] - cosine * levels[1]) / sine).Add(ways[1].Multiply((levels[1] - cosine * levels[0]) / sine));
+                        offset = ways[0]
+                            .Multiply((levels[0] - cosine * levels[1]) / sine)
+                            .Add(ways[1].Multiply((levels[1] - cosine * levels[0]) / sine));
                     }
                     else
                     {
-                        offset = ways[1].CrossProduct(ways[2]).Multiply(levels[0] / corner)
+                        offset = ways[1]
+                            .CrossProduct(ways[2])
+                            .Multiply(levels[0] / corner)
                             .Add(ways[2].CrossProduct(ways[0]).Multiply(levels[1] / corner))
                             .Add(ways[0].CrossProduct(ways[1]).Multiply(levels[2] / corner));
                     }
 
-                    double volume = Part(body, origin.Add(offset), origin, ways[0], 1.0,
-                        ways.Count > 1 ? ways[1] : none, ways.Count > 1 ? 1.0 : 0.0,
-                        ways.Count > 2 ? ways[2] : none, ways.Count > 2 ? 1.0 : 0.0, out GeoVector3 moment);
+                    double volume = Part(
+                        body,
+                        origin.Add(offset),
+                        origin,
+                        ways[0],
+                        1.0,
+                        ways.Count > 1 ? ways[1] : none,
+                        ways.Count > 1 ? 1.0 : 0.0,
+                        ways.Count > 2 ? ways[2] : none,
+                        ways.Count > 2 ? 1.0 : 0.0,
+                        out GeoVector3 moment
+                    );
                     part = (volume, moment);
                 }
 
@@ -1757,7 +2130,14 @@ namespace GeometryHelper.Core
         /// to it. Parallel planes leave a half-space or a slab, and a slab is the part beyond its nearer plane less the part
         /// beyond its further one.
         /// </remarks>
-        private static double Quarter(GeoSolid3 body, GeoPlane3 first, double firstSide, GeoPlane3 second, double secondSide, out GeoPoint3 middle)
+        private static double Quarter(
+            GeoSolid3 body,
+            GeoPlane3 first,
+            double firstSide,
+            GeoPlane3 second,
+            double secondSide,
+            out GeoPoint3 middle
+        )
         {
             GeoVector3 normal = first.Normal;
             GeoVector3 along = normal.CrossProduct(second.Normal);
@@ -1768,8 +2148,23 @@ namespace GeometryHelper.Core
 
             if (meeting > 1E-12)
             {
-                GeoPoint3 apex = origin.Add(along.CrossProduct(normal).Multiply(second.Normal.DotProduct(origin.GetVectorTo(second.Origin)) / meeting));
-                volume = Part(body, apex, origin, normal, firstSide, second.Normal, secondSide, default, 0.0, out moment);
+                GeoPoint3 apex = origin.Add(
+                    along
+                        .CrossProduct(normal)
+                        .Multiply(second.Normal.DotProduct(origin.GetVectorTo(second.Origin)) / meeting)
+                );
+                volume = Part(
+                    body,
+                    apex,
+                    origin,
+                    normal,
+                    firstSide,
+                    second.Normal,
+                    secondSide,
+                    default,
+                    0.0,
+                    out moment
+                );
             }
             else
             {
@@ -1809,7 +2204,18 @@ namespace GeometryHelper.Core
 
                 if (!double.IsInfinity(lowest))
                 {
-                    volume += Part(body, origin.Add(normal.Multiply(lowest)), origin, normal, 1.0, none, 0.0, none, 0.0, out GeoVector3 beyond);
+                    volume += Part(
+                        body,
+                        origin.Add(normal.Multiply(lowest)),
+                        origin,
+                        normal,
+                        1.0,
+                        none,
+                        0.0,
+                        none,
+                        0.0,
+                        out GeoVector3 beyond
+                    );
                     moment = moment.Add(beyond);
                 }
 
@@ -1817,7 +2223,18 @@ namespace GeometryHelper.Core
                 {
                     // Under the highest where nothing is under the lowest; otherwise the part over it taken away.
                     double side = double.IsInfinity(lowest) ? -1.0 : 1.0;
-                    double part = Part(body, origin.Add(normal.Multiply(highest)), origin, normal, side, none, 0.0, none, 0.0, out GeoVector3 over);
+                    double part = Part(
+                        body,
+                        origin.Add(normal.Multiply(highest)),
+                        origin,
+                        normal,
+                        side,
+                        none,
+                        0.0,
+                        none,
+                        0.0,
+                        out GeoVector3 over
+                    );
                     volume += side < 0.0 ? part : -part;
                     moment = side < 0.0 ? moment.Add(over) : moment.Subtract(over);
                 }
@@ -1856,7 +2273,13 @@ namespace GeometryHelper.Core
         /// is weighed all the same: the strip missing changes each part by a third of its area times its distance from the
         /// point the parts are read from, 0.47 cubic millimetres for a crack 20 by 0.007 standing 10 from it.
         /// </remarks>
-        private static bool Straddles(GeoSolid3 body, GeoPlane3 plane, Tolerance tolerance, out GeoPoint3 aboveMiddle, out GeoPoint3 belowMiddle)
+        private static bool Straddles(
+            GeoSolid3 body,
+            GeoPlane3 plane,
+            Tolerance tolerance,
+            out GeoPoint3 aboveMiddle,
+            out GeoPoint3 belowMiddle
+        )
         {
             GeoPoint3 apex = NearestTo(plane, body);
             GeoVector3 normal = plane.Normal;
@@ -1909,7 +2332,18 @@ namespace GeometryHelper.Core
         /// <param name="third">The normal of the third plane; ignored where its side is nought.</param>
         /// <param name="thirdSide">1 or -1 for a side of the third plane; nought for no third plane.</param>
         /// <param name="moment">The integral of the place less the reference point over the part.</param>
-        private static double Part(GeoSolid3 body, GeoPoint3 apex, GeoPoint3 reference, GeoVector3 normal, double side, GeoVector3 second, double secondSide, GeoVector3 third, double thirdSide, out GeoVector3 moment)
+        private static double Part(
+            GeoSolid3 body,
+            GeoPoint3 apex,
+            GeoPoint3 reference,
+            GeoVector3 normal,
+            double side,
+            GeoVector3 second,
+            double secondSide,
+            GeoVector3 third,
+            double thirdSide,
+            out GeoVector3 moment
+        )
         {
             GeoVector3 offset = reference.GetVectorTo(apex).Multiply(4.0);
             double volume = 0.0;
@@ -1917,12 +2351,36 @@ namespace GeometryHelper.Core
 
             foreach (GeoFace3 face in body.Faces)
             {
-                volume += ConeOfClipped(face.Boundary.Vertices, apex, offset, normal, side, second, secondSide, third, thirdSide, ref moment, 1.0);
+                volume += ConeOfClipped(
+                    face.Boundary.Vertices,
+                    apex,
+                    offset,
+                    normal,
+                    side,
+                    second,
+                    secondSide,
+                    third,
+                    thirdSide,
+                    ref moment,
+                    1.0
+                );
 
                 // A hole is wound the way its boundary is, so its cone is taken away.
                 foreach (GeoPolygon3 hole in face.Holes)
                 {
-                    volume += ConeOfClipped(hole.Vertices, apex, offset, normal, side, second, secondSide, third, thirdSide, ref moment, -1.0);
+                    volume += ConeOfClipped(
+                        hole.Vertices,
+                        apex,
+                        offset,
+                        normal,
+                        side,
+                        second,
+                        secondSide,
+                        third,
+                        thirdSide,
+                        ref moment,
+                        -1.0
+                    );
                 }
             }
 
@@ -1946,7 +2404,19 @@ namespace GeometryHelper.Core
         /// <param name="thirdSide">1 or -1 for a side of the third plane; nought for none.</param>
         /// <param name="moment">The moment, added to.</param>
         /// <param name="sign">1 to add the cone, -1 to take it away.</param>
-        private static double ConeOfClipped(IReadOnlyList<GeoPoint3> ring, GeoPoint3 apex, GeoVector3 offset, GeoVector3 normal, double side, GeoVector3 second, double secondSide, GeoVector3 third, double thirdSide, ref GeoVector3 moment, double sign)
+        private static double ConeOfClipped(
+            IReadOnlyList<GeoPoint3> ring,
+            GeoPoint3 apex,
+            GeoVector3 offset,
+            GeoVector3 normal,
+            double side,
+            GeoVector3 second,
+            double secondSide,
+            GeoVector3 third,
+            double thirdSide,
+            ref GeoVector3 moment,
+            double sign
+        )
         {
             var corners = new List<GeoVector3>(ring.Count);
 
@@ -2024,7 +2494,14 @@ namespace GeometryHelper.Core
         /// (<see cref="Weld3.SealedAsValidated"/>), and leaves no more than the body and no less than the body less every
         /// opening whole, each within the tolerance times the openings' area.
         /// </remarks>
-        private static bool ClosesOrTakesOut(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, ref GeoSolid3 material, Tolerance tolerance, bool withinRounding, out Exception failure)
+        private static bool ClosesOrTakesOut(
+            GeoSolid3 solid,
+            IReadOnlyList<GeoSolid3> openings,
+            ref GeoSolid3 material,
+            Tolerance tolerance,
+            bool withinRounding,
+            out Exception failure
+        )
         {
             failure = null;
             Tolerance work = ForWork(tolerance);
@@ -2060,8 +2537,18 @@ namespace GeometryHelper.Core
                 return true;
             }
 
-            GeometryHelperLog.Debug("Boolean3: cutting the openings in at once left the material open to Validate, and a weld did not close it; they are taken out one at a time.");
-            return TakeOutOneAtATime(solid, openings, "Cutting the openings in left the material open", ref material, tolerance, withinRounding, out failure);
+            GeometryHelperLog.Debug(
+                "Boolean3: cutting the openings in at once left the material open to Validate, and a weld did not close it; they are taken out one at a time."
+            );
+            return TakeOutOneAtATime(
+                solid,
+                openings,
+                "Cutting the openings in left the material open",
+                ref material,
+                tolerance,
+                withinRounding,
+                out failure
+            );
         }
 
         /// <summary>
@@ -2075,10 +2562,27 @@ namespace GeometryHelper.Core
         /// <param name="withinRounding">Whether the tolerance is the rounding of the coordinates; see <see cref="TakeOutOneAtATime"/>.</param>
         /// <param name="failure">Why no material could be had; null otherwise.</param>
         /// <returns>false where the openings take all of the material, or no closed material could be had.</returns>
-        private static bool TakesOutJudgedWhole(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, ref GeoSolid3 material, Tolerance tolerance, bool withinRounding, out Exception failure)
+        private static bool TakesOutJudgedWhole(
+            GeoSolid3 solid,
+            IReadOnlyList<GeoSolid3> openings,
+            ref GeoSolid3 material,
+            Tolerance tolerance,
+            bool withinRounding,
+            out Exception failure
+        )
         {
-            GeometryHelperLog.Debug("Boolean3: cutting the openings in at once left a piece of the body part in an opening and part out; they are taken out one at a time.");
-            return TakeOutOneAtATime(solid, openings, "Cutting the openings in at once left a piece of the body part in an opening and part out", ref material, tolerance, withinRounding, out failure);
+            GeometryHelperLog.Debug(
+                "Boolean3: cutting the openings in at once left a piece of the body part in an opening and part out; they are taken out one at a time."
+            );
+            return TakeOutOneAtATime(
+                solid,
+                openings,
+                "Cutting the openings in at once left a piece of the body part in an opening and part out",
+                ref material,
+                tolerance,
+                withinRounding,
+                out failure
+            );
         }
 
         /// <summary>
@@ -2117,7 +2621,15 @@ namespace GeometryHelper.Core
         /// inside its faces, near the origin, had one that came out open whichever way it was cut, and was refused; taken
         /// out so, it holds what its skins can leave. What the differences leave is still refused where it is not valid.
         /// </remarks>
-        private static bool TakeOutOneAtATime(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, string why, ref GeoSolid3 material, Tolerance tolerance, bool withinRounding, out Exception failure)
+        private static bool TakeOutOneAtATime(
+            GeoSolid3 solid,
+            IReadOnlyList<GeoSolid3> openings,
+            string why,
+            ref GeoSolid3 material,
+            Tolerance tolerance,
+            bool withinRounding,
+            out Exception failure
+        )
         {
             failure = null;
             TakenOutOneAtATime++;
@@ -2126,10 +2638,12 @@ namespace GeometryHelper.Core
             foreach (GeoSolid3 opening in openings)
             {
                 // A difference read within the rounding that will not come out is worked out within the tolerance alone.
-                if (withinRounding
-                    ? TryCutIn(remaining, opening, out GeoSolid3 left, tolerance, out Exception failed)
-                    : TryTakeOut(remaining, opening, out left, tolerance, out failed, true)
-                        || (failed != null && TryTakeOut(remaining, opening, out left, tolerance, out failed)))
+                if (
+                    withinRounding
+                        ? TryCutIn(remaining, opening, out GeoSolid3 left, tolerance, out Exception failed)
+                        : TryTakeOut(remaining, opening, out left, tolerance, out failed, true)
+                            || (failed != null && TryTakeOut(remaining, opening, out left, tolerance, out failed))
+                )
                 {
                     remaining = left;
                 }
@@ -2137,11 +2651,17 @@ namespace GeometryHelper.Core
                 {
                     // Not coming out closed; or taking all that is left, where the cut at once left material, which the two
                     // cannot both be, and is not believed.
-                    failure = failed != null
-                        ? new InvalidOperationException(why + ", and an opening could not be taken out of it closed.", failed)
+                    failure =
+                        failed != null
+                            ? new InvalidOperationException(
+                                why + ", and an opening could not be taken out of it closed.",
+                                failed
+                            )
                         : material != null
-                            ? new InvalidOperationException(why + ", and taken out one at a time an opening took all that was left of it.")
-                            : null;
+                            ? new InvalidOperationException(
+                                why + ", and taken out one at a time an opening took all that was left of it."
+                            )
+                        : null;
                     material = null;
                     return false;
                 }
@@ -2151,7 +2671,9 @@ namespace GeometryHelper.Core
             // at once within the rounding, the material is as it was.
             if (!withinRounding && !remaining.ValidateForWork(ForWork(tolerance)).IsValid)
             {
-                failure = new InvalidOperationException(why + ", and taken out one at a time the openings left it not valid.");
+                failure = new InvalidOperationException(
+                    why + ", and taken out one at a time the openings left it not valid."
+                );
                 material = null;
                 return false;
             }
@@ -2175,16 +2697,33 @@ namespace GeometryHelper.Core
         /// some 700 out, with two blind holes, lost nothing to the first hole taken out by a difference, and held 55 407.53
         /// where it holds 53 641.32. Cut in at once, one at a time, the holes take 1 766.21 and 4 592.47 out of it, as they do.
         /// </remarks>
-        private static bool TryCutIn(GeoSolid3 body, GeoSolid3 opening, out GeoSolid3 material, Tolerance tolerance, out Exception failure)
+        private static bool TryCutIn(
+            GeoSolid3 body,
+            GeoSolid3 opening,
+            out GeoSolid3 material,
+            Tolerance tolerance,
+            out Exception failure
+        )
         {
-            if (!TryCutOpeningsAtOnce(body, new[] { opening }, out material, tolerance, out failure, out bool judgedWhole))
+            if (
+                !TryCutOpeningsAtOnce(
+                    body,
+                    new[] { opening },
+                    out material,
+                    tolerance,
+                    out failure,
+                    out bool judgedWhole
+                )
+            )
             {
                 return false;
             }
 
             if (judgedWhole || !Shells3.Closes(material, ForWork(tolerance)))
             {
-                failure = new InvalidOperationException("Cut in within the rounding of the coordinates, the opening left the material open, or a piece of it part in the opening and part out.");
+                failure = new InvalidOperationException(
+                    "Cut in within the rounding of the coordinates, the opening left the material open, or a piece of it part in the opening and part out."
+                );
                 material = null;
                 return false;
             }
@@ -2244,20 +2783,35 @@ namespace GeometryHelper.Core
         /// as they were, to the bit.
         /// </para>
         /// </remarks>
-        private static bool LeaveOutOpeningsApart(GeoSolid3 first, GeoSolid3 second, Tolerance tolerance, bool both, out GeoSolid3 a, out GeoSolid3 b)
+        private static bool LeaveOutOpeningsApart(
+            GeoSolid3 first,
+            GeoSolid3 second,
+            Tolerance tolerance,
+            bool both,
+            out GeoSolid3 a,
+            out GeoSolid3 b
+        )
         {
             a = first;
             b = second;
 
             // Bodies whose boxes do not meet are worked out as they were; see Share and TakeAway.
-            if ((!both || first.Openings.Count == 0) && second.Openings.Count == 0 || !first.GetAabb().CollidesWith(second.GetAabb(), tolerance))
+            if (
+                (!both || first.Openings.Count == 0) && second.Openings.Count == 0
+                || !first.GetAabb().CollidesWith(second.GetAabb(), tolerance)
+            )
             {
                 return false;
             }
 
             BelowTheRounding(first, second, tolerance, out Tolerance within);
-            double widest = Math.Max(Math.Max(tolerance.EqualPoint, tolerance.EqualPlanar), Math.Max(within.EqualPoint, within.EqualPlanar))
-                + Splition3.Rounding(first) + Splition3.Rounding(second);
+            double widest =
+                Math.Max(
+                    Math.Max(tolerance.EqualPoint, tolerance.EqualPlanar),
+                    Math.Max(within.EqualPoint, within.EqualPlanar)
+                )
+                + Splition3.Rounding(first)
+                + Splition3.Rounding(second);
             var reach = new Tolerance(widest, tolerance.EqualVector, tolerance.EqualAngleRad, widest);
             var clear = new Tolerance(2.0 * widest, tolerance.EqualVector, tolerance.EqualAngleRad, 2.0 * widest);
             Tolerance work = ForWork(tolerance);
@@ -2362,7 +2916,9 @@ namespace GeometryHelper.Core
                 if (_faces == null)
                 {
                     _faces = _other.Openings.Count == 0 ? _other : new GeoSolid3(_other.Faces);
-                    GeoTriangle3[] mesh = Shells3.Closes(_faces, _work) ? _faces.TriangulateQuietly(_work) : Array.Empty<GeoTriangle3>();
+                    GeoTriangle3[] mesh = Shells3.Closes(_faces, _work)
+                        ? _faces.TriangulateQuietly(_work)
+                        : Array.Empty<GeoTriangle3>();
                     _index = mesh.Length > 0 ? new Spatial.GeoBvh3(mesh) : null;
                 }
 

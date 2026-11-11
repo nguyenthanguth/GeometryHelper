@@ -1,34 +1,33 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <!-- The assembly attributes are generated from the package metadata below rather than written by
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <!-- The assembly attributes are generated from the package metadata below rather than written by
          hand, so the version lives in one place. The four geometry libraries still carry a hand-written
          Properties/AssemblyInfo.cs; this project has none, and generating is what keeps its identity
          from falling back to 0.0.0.0. -->
-    <PlatformTarget>x64</PlatformTarget>
+        <PlatformTarget>x64</PlatformTarget>
 
-    <!-- 1. Configure NuGet Package generation and XML Documentation -->
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <!-- 1. Configure NuGet Package generation and XML Documentation -->
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
-    <!-- One package per Tekla Structures version (see TeklaVersion in Directory.Build.props). The Tekla year
+        <!-- One package per Tekla Structures version (see TeklaVersion in Directory.Build.props). The Tekla year
          ends the package id, so an update never crosses from one Tekla build to another, and the package
          version is the one every GeometryHelper package shares: GeometryHelper.TeklaConvert.2026 4.0.0.
          The assembly and file version add the year (4.0.0.2026), so the DLL itself tells which Tekla it was
          built for. -->
-    <PackageId>GeometryHelper.TeklaConvert.$(TeklaVersion)</PackageId>
-    <!-- The year as a compilation symbol: TeklaVersion2020, TeklaVersion2025, TeklaVersion2026. Used only
+        <PackageId>GeometryHelper.TeklaConvert.$(TeklaVersion)</PackageId>
+        <!-- The year as a compilation symbol: TeklaVersion2020, TeklaVersion2025, TeklaVersion2026. Used only
          where a Tekla build of one year needs handling the others do not, so that the workaround lives in
          that year's DLL alone and costs the other years nothing. -->
-    <DefineConstants>$(DefineConstants);TeklaVersion$(TeklaVersion)</DefineConstants>
-    <AssemblyVersion>$(GeometryHelperVersion).$(TeklaVersion)</AssemblyVersion>
-    <FileVersion>$(GeometryHelperVersion).$(TeklaVersion)</FileVersion>
-    <Description>Converts geometry between Tekla Structures $(TeklaVersion) and GeometryHelper: points, vectors, segments, planes, coordinate systems, bounding boxes, transformation matrices, and the faces and loops of a Tekla solid. Also reads the objects of IFC reference models into solids placed where Tekla shows them, through GeometryHelper.IfcConvert. Built for Tekla Structures $(TeklaVersion); install the package whose year matches your Tekla.</Description>
-    <PackageTags>tekla tekla$(TeklaVersion) bim ifc geometry 3d solid interop conversion</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>
+        <DefineConstants>$(DefineConstants);TeklaVersion$(TeklaVersion)</DefineConstants>
+        <AssemblyVersion>$(GeometryHelperVersion).$(TeklaVersion)</AssemblyVersion>
+        <FileVersion>$(GeometryHelperVersion).$(TeklaVersion)</FileVersion>
+        <Description>Converts geometry between Tekla Structures $(TeklaVersion) and GeometryHelper: points, vectors, segments, planes, coordinate systems, bounding boxes, transformation matrices, and the faces and loops of a Tekla solid. Also reads the objects of IFC reference models into solids placed where Tekla shows them, through GeometryHelper.IfcConvert. Built for Tekla Structures $(TeklaVersion); install the package whose year matches your Tekla.</Description>
+        <PackageTags>tekla tekla$(TeklaVersion) bim ifc geometry 3d solid interop conversion</PackageTags>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageIcon>icon.png</PackageIcon>
+        <PackageReleaseNotes>
       NEW IN 13.11.0
       - GeometryHelper.TeklaConvert is released at 13.11.0 with GeometryHelper, which reads, moves and makes OLE objects
         in DXF drawings as AutoCAD 2021 does; nothing in TeklaConvert changes.
@@ -250,65 +249,66 @@
         default EqualPlanar is often too tight. Pass a Tolerance suited to the model.
     </PackageReleaseNotes>
 
-    <!-- The Tekla assemblies are referenced but never packed: Private=False keeps them out of the
+        <!-- The Tekla assemblies are referenced but never packed: Private=False keeps them out of the
          build output, so nothing of Trimble's ends up inside the package. See README.md. -->
-    <IsPackable>true</IsPackable>
+        <IsPackable>true</IsPackable>
 
-    <DebugType>embedded</DebugType>
-    <EmbedAllSources>true</EmbedAllSources>
-  </PropertyGroup>
+        <DebugType>embedded</DebugType>
+        <EmbedAllSources>true</EmbedAllSources>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
-    <!-- IFC reference models (ReferenceModelConvert, ReferenceModelObjectConvert) are read through IfcConvert, so
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
+        <!-- IFC reference models (ReferenceModelConvert, ReferenceModelObjectConvert) are read through IfcConvert, so
          every GeometryHelper.TeklaConvert.{year} package depends on GeometryHelper.IfcConvert. -->
-    <ProjectReference Include="..\GeometryHelper.IfcConvert\GeometryHelper.IfcConvert.csproj" />
-    <!-- DrawingSourceConvert reads a Tekla selection into the DrawingSource of GeometryHelper.Drawing. -->
-    <ProjectReference Include="..\GeometryHelper.Drawing\GeometryHelper.Drawing.csproj" />
-  </ItemGroup>
+        <ProjectReference Include="..\GeometryHelper.IfcConvert\GeometryHelper.IfcConvert.csproj" />
+        <!-- DrawingSourceConvert reads a Tekla selection into the DrawingSource of GeometryHelper.Drawing. -->
+        <ProjectReference Include="..\GeometryHelper.Drawing\GeometryHelper.Drawing.csproj" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-      <_Parameter1>GeometryHelper.TeklaConvert.UnitTest</_Parameter1>
-    </AssemblyAttribute>
-  </ItemGroup>
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>GeometryHelper.TeklaConvert.UnitTest</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
 
-  <ItemGroup>
-    <!-- Vendored per Tekla version (Lib2020, Lib2025, Lib2026) rather than referenced from the Tekla test
+    <ItemGroup>
+        <!-- Vendored per Tekla version (Lib2020, Lib2025, Lib2026) rather than referenced from the Tekla test
          project, so this project stands on its own if it is ever lifted out of the repository. Private is
          false because Tekla supplies these at run time from its own installation; copying them next to the
          output would risk loading a build that does not match the running Tekla. -->
-    <Reference Include="Tekla.Structures">
-      <HintPath>Lib$(TeklaVersion)\Tekla.Structures.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Tekla.Structures.Drawing">
-      <HintPath>Lib$(TeklaVersion)\Tekla.Structures.Drawing.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Tekla.Structures.Model">
-      <HintPath>Lib$(TeklaVersion)\Tekla.Structures.Model.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-  </ItemGroup>
+        <Reference Include="Tekla.Structures">
+            <HintPath>Lib$(TeklaVersion)\Tekla.Structures.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="Tekla.Structures.Drawing">
+            <HintPath>Lib$(TeklaVersion)\Tekla.Structures.Drawing.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="Tekla.Structures.Model">
+            <HintPath>Lib$(TeklaVersion)\Tekla.Structures.Model.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+    </ItemGroup>
 
-  <!-- The SDK makes every file under the project a None item, and ResolveAssemblyReference searches None and
+    <!-- The SDK makes every file under the project a None item, and ResolveAssemblyReference searches None and
        Content items (CandidateAssemblyFiles) before HintPath. Left in, Lib2020\Tekla.Structures.dll wins
        alphabetically and a 2026 build silently compiles against the 2020 API. -->
-  <ItemGroup>
-    <None Remove="Lib*\**" />
-  </ItemGroup>
+    <ItemGroup>
+        <None Remove="Lib*\**" />
+    </ItemGroup>
 
-  <!-- A TeklaVersion without its Lib folder would otherwise surface as a pile of CS0246 errors about
+    <!-- A TeklaVersion without its Lib folder would otherwise surface as a pile of CS0246 errors about
        Tekla types, or worse, resolve some other copy of Tekla.Structures from the GAC. -->
-  <Target Name="CheckTeklaVersion" BeforeTargets="ResolveAssemblyReferences">
-    <Error Condition="!Exists('$(MSBuildProjectDirectory)\Lib$(TeklaVersion)\Tekla.Structures.dll')"
-           Text="TeklaVersion=$(TeklaVersion) is not supported: $(MSBuildProjectDirectory)\Lib$(TeklaVersion)\Tekla.Structures.dll does not exist. Build with a Tekla version that has a Lib folder next to this project, e.g. -p:TeklaVersion=2020, 2025 or 2026." />
-  </Target>
+    <Target Name="CheckTeklaVersion" BeforeTargets="ResolveAssemblyReferences">
+        <Error
+            Condition="!Exists('$(MSBuildProjectDirectory)\Lib$(TeklaVersion)\Tekla.Structures.dll')"
+            Text="TeklaVersion=$(TeklaVersion) is not supported: $(MSBuildProjectDirectory)\Lib$(TeklaVersion)\Tekla.Structures.dll does not exist. Build with a Tekla version that has a Lib folder next to this project, e.g. -p:TeklaVersion=2020, 2025 or 2026."
+        />
+    </Target>
 
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
-    <None Include="icon.png" Pack="true" PackagePath="\" />
-  </ItemGroup>
-
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+        <None Include="icon.png" Pack="true" PackagePath="\" />
+    </ItemGroup>
 </Project>

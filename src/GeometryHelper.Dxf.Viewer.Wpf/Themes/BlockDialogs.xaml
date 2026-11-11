@@ -1,5 +1,7 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+>
     <!-- The parts the block dialogs share (Block Definition, Blocks palette, Write Block, Attribute Definition, the Enhanced
          Attribute Editor), on top of Dark.xaml and StyleDialogs.xaml. -->
     <ResourceDictionary.MergedDictionaries>
@@ -14,11 +16,24 @@
             <Setter.Value>
                 <ControlTemplate TargetType="HeaderedContentControl">
                     <Grid>
-                        <Border Margin="0,8,0,0" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Padding="10,12,10,10">
+                        <Border
+                            Margin="0,8,0,0"
+                            BorderBrush="{StaticResource GhBorder}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="10,12,10,10"
+                        >
                             <ContentPresenter />
                         </Border>
-                        <TextBlock Text="{TemplateBinding Header}" FontWeight="SemiBold" Background="{StaticResource GhPanel}" Padding="4,0"
-                                   Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" />
+                        <TextBlock
+                            Text="{TemplateBinding Header}"
+                            FontWeight="SemiBold"
+                            Background="{StaticResource GhPanel}"
+                            Padding="4,0"
+                            Margin="8,0,0,0"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                        />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
@@ -35,8 +50,19 @@
                 <ControlTemplate TargetType="RadioButton">
                     <StackPanel Orientation="Horizontal" Background="Transparent">
                         <Grid Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center">
-                            <Ellipse x:Name="Ring" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1" Fill="{StaticResource GhInput}" />
-                            <Ellipse x:Name="Dot" Width="7" Height="7" Fill="{StaticResource GhAccent}" Visibility="Collapsed" />
+                            <Ellipse
+                                x:Name="Ring"
+                                Stroke="{StaticResource GhTextMuted}"
+                                StrokeThickness="1"
+                                Fill="{StaticResource GhInput}"
+                            />
+                            <Ellipse
+                                x:Name="Dot"
+                                Width="7"
+                                Height="7"
+                                Fill="{StaticResource GhAccent}"
+                                Visibility="Collapsed"
+                            />
                         </Grid>
                         <ContentPresenter VerticalAlignment="Center" />
                     </StackPanel>
@@ -90,8 +116,14 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Tile" Background="{StaticResource GhCommandInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
-                            CornerRadius="4" Padding="4,6">
+                    <Border
+                        x:Name="Tile"
+                        Background="{StaticResource GhCommandInput}"
+                        BorderBrush="{StaticResource GhBorder}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="4,6"
+                    >
                         <ContentPresenter HorizontalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>

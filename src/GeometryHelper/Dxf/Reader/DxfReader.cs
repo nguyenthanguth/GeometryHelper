@@ -119,7 +119,11 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(text));
             }
 
-            return new Reading(options ?? new DxfReadOptions()).Run(text.Length > 0 && text[0] == '﻿' ? text.Substring(1) : text, "a text", null);
+            return new Reading(options ?? new DxfReadOptions()).Run(
+                text.Length > 0 && text[0] == '﻿' ? text.Substring(1) : text,
+                "a text",
+                null
+            );
         }
 
         #region Decoding
@@ -151,7 +155,6 @@ namespace GeometryHelper.Dxf
         internal sealed class TextDecoding
         {
             private static readonly UTF8Encoding StrictUtf8 = new UTF8Encoding(false, true);
-
 
             private readonly Encoding _encoding;
             private readonly bool _windows1252;
@@ -188,7 +191,9 @@ namespace GeometryHelper.Dxf
                     return CodePage;
                 }
 
-                return Start > 0 || string.CompareOrdinal(version ?? string.Empty, "AC1021") >= 0 ? "UTF-8" : "ANSI_" + Number(CodePageNumber(named));
+                return Start > 0 || string.CompareOrdinal(version ?? string.Empty, "AC1021") >= 0
+                    ? "UTF-8"
+                    : "ANSI_" + Number(CodePageNumber(named));
             }
 
             /// <summary>
@@ -221,7 +226,9 @@ namespace GeometryHelper.Dxf
                     return null;
                 }
 
-                return WritesAscii(page) ? new TextDecoding(Start, page, false, "ANSI_" + Number(number), !page.IsSingleByte) : null;
+                return WritesAscii(page)
+                    ? new TextDecoding(Start, page, false, "ANSI_" + Number(number), !page.IsSingleByte)
+                    : null;
             }
 
             /// <summary>
@@ -322,7 +329,8 @@ namespace GeometryHelper.Dxf
                 for (int i = 0; i < text.Length; i++)
                 {
                     char c = text[i];
-                    int units = char.IsHighSurrogate(c) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]) ? 2 : 1;
+                    int units =
+                        char.IsHighSurrogate(c) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]) ? 2 : 1;
 
                     if (c < 0x80)
                     {
@@ -334,7 +342,10 @@ namespace GeometryHelper.Dxf
 
                     if (own && _windows1252)
                     {
-                        int at = c >= ' ' && c <= 'ÿ' ? c : Array.IndexOf(High1252, c) >= 0 ? 0x80 + Array.IndexOf(High1252, c) : -1;
+                        int at =
+                            c >= ' ' && c <= 'ÿ' ? c
+                            : Array.IndexOf(High1252, c) >= 0 ? 0x80 + Array.IndexOf(High1252, c)
+                            : -1;
                         letter = at >= 0 ? new[] { (byte)at } : null;
                     }
                     else if (strict != null && !(units == 2 && CodePage == "UTF-8"))
@@ -353,7 +364,11 @@ namespace GeometryHelper.Dxf
                     {
                         for (int u = 0; u < units; u++)
                         {
-                            bytes.AddRange(Encoding.ASCII.GetBytes("\\U+" + ((int)text[i + u]).ToString("X4", CultureInfo.InvariantCulture)));
+                            bytes.AddRange(
+                                Encoding.ASCII.GetBytes(
+                                    "\\U+" + ((int)text[i + u]).ToString("X4", CultureInfo.InvariantCulture)
+                                )
+                            );
                         }
                     }
                     else
@@ -368,8 +383,14 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>The encoding of the page the text is read in, refusing a letter it cannot hold rather than putting another.</summary>
-            private Encoding Strict()
-                => _encoding is UTF8Encoding ? new UTF8Encoding(false, true) : Encoding.GetEncoding(_encoding.CodePage, EncoderFallback.ExceptionFallback, DecoderFallback.ReplacementFallback);
+            private Encoding Strict() =>
+                _encoding is UTF8Encoding
+                    ? new UTF8Encoding(false, true)
+                    : Encoding.GetEncoding(
+                        _encoding.CodePage,
+                        EncoderFallback.ExceptionFallback,
+                        DecoderFallback.ReplacementFallback
+                    );
 
             /// <summary>
             /// The decoding of a file, the same on either runtime: UTF-8 where it has the mark or is of R2007 or later; else
@@ -403,13 +424,19 @@ namespace GeometryHelper.Dxf
                         return new TextDecoding(start, StrictUtf8, false, "UTF-8");
                     }
 
-                    warnings.Add("The file is of R2007 or later" + (marked ? ", or marked as UTF-8," : string.Empty) + " so its text is UTF-8, but some of its bytes are not: each was read as the replacement character U+FFFD.");
+                    warnings.Add(
+                        "The file is of R2007 or later"
+                            + (marked ? ", or marked as UTF-8," : string.Empty)
+                            + " so its text is UTF-8, but some of its bytes are not: each was read as the replacement character U+FFFD."
+                    );
                     return new TextDecoding(start, Encoding.UTF8, false, "UTF-8");
                 }
 
                 if (IsUtf8(bytes, start, length))
                 {
-                    warnings.Add("The file is of a version before R2007, whose text is in a code page, but its text is UTF-8 and was read as such.");
+                    warnings.Add(
+                        "The file is of a version before R2007, whose text is in a code page, but its text is UTF-8 and was read as such."
+                    );
                     return new TextDecoding(start, StrictUtf8, false, "UTF-8");
                 }
 
@@ -428,7 +455,13 @@ namespace GeometryHelper.Dxf
                 }
                 catch (Exception e) when (e is ArgumentException || e is NotSupportedException)
                 {
-                    warnings.Add("The file is in the code page " + (codePage ?? "ANSI_1252") + " (" + Number(number) + "), which this runtime does not have, so its text was read as Latin-1 and a letter beyond ASCII in a name may be another; save the drawing as a DXF of R2007 or later, whose text is UTF-8, to read it right.");
+                    warnings.Add(
+                        "The file is in the code page "
+                            + (codePage ?? "ANSI_1252")
+                            + " ("
+                            + Number(number)
+                            + "), which this runtime does not have, so its text was read as Latin-1 and a letter beyond ASCII in a name may be another; save the drawing as a DXF of R2007 or later, whose text is UTF-8, to read it right."
+                    );
                     return new TextDecoding(start, Latin1, false, "ISO-8859-1");
                 }
 
@@ -438,7 +471,13 @@ namespace GeometryHelper.Dxf
                 // a shift or a sign as a change of state, which they leave out of the text.
                 if (!WritesAscii(page))
                 {
-                    throw new FormatException("This is not a DXF that can be read: its header names the code page " + codePage + " (" + Number(number) + "), which does not read each byte of ASCII alone as itself, as the group codes of a DXF are read.");
+                    throw new FormatException(
+                        "This is not a DXF that can be read: its header names the code page "
+                            + codePage
+                            + " ("
+                            + Number(number)
+                            + "), which does not read each byte of ASCII alone as itself, as the group codes of a DXF are read."
+                    );
                 }
 
                 return new TextDecoding(start, page, false, "ANSI_" + Number(number), !page.IsSingleByte);
@@ -463,7 +502,10 @@ namespace GeometryHelper.Dxf
             {
                 int end = index + count;
 
-                if (Array.IndexOf(bytes, (byte)'\n', index, count) < 0 && Array.IndexOf(bytes, (byte)'\r', index, count) < 0)
+                if (
+                    Array.IndexOf(bytes, (byte)'\n', index, count) < 0
+                    && Array.IndexOf(bytes, (byte)'\r', index, count) < 0
+                )
                 {
                     return _encoding.GetString(bytes, index, count);
                 }
@@ -532,8 +574,38 @@ namespace GeometryHelper.Dxf
         // those characters, as .NET Framework reads them.
         private static readonly char[] High1252 =
         {
-            '\u20AC', '\u0081', '\u201A', '\u0192', '\u201E', '\u2026', '\u2020', '\u2021', '\u02C6', '\u2030', '\u0160', '\u2039', '\u0152', '\u008D', '\u017D', '\u008F',
-            '\u0090', '\u2018', '\u2019', '\u201C', '\u201D', '\u2022', '\u2013', '\u2014', '\u02DC', '\u2122', '\u0161', '\u203A', '\u0153', '\u009D', '\u017E', '\u0178',
+            '\u20AC',
+            '\u0081',
+            '\u201A',
+            '\u0192',
+            '\u201E',
+            '\u2026',
+            '\u2020',
+            '\u2021',
+            '\u02C6',
+            '\u2030',
+            '\u0160',
+            '\u2039',
+            '\u0152',
+            '\u008D',
+            '\u017D',
+            '\u008F',
+            '\u0090',
+            '\u2018',
+            '\u2019',
+            '\u201C',
+            '\u201D',
+            '\u2022',
+            '\u2013',
+            '\u2014',
+            '\u02DC',
+            '\u2122',
+            '\u0161',
+            '\u203A',
+            '\u0153',
+            '\u009D',
+            '\u017E',
+            '\u0178',
         };
 
         /// <summary>The text of Windows-1252 bytes, from their Latin-1 reading, in which every other byte is already its letter.</summary>
@@ -565,7 +637,12 @@ namespace GeometryHelper.Dxf
                 at--;
             }
 
-            return at < end && int.TryParse(codePage.Substring(at), NumberStyles.None, CultureInfo.InvariantCulture, out int number) && number > 0 ? number : 1252;
+            return
+                at < end
+                && int.TryParse(codePage.Substring(at), NumberStyles.None, CultureInfo.InvariantCulture, out int number)
+                && number > 0
+                ? number
+                : 1252;
         }
 
         /// <summary>
@@ -592,7 +669,11 @@ namespace GeometryHelper.Dxf
                             return;
                         }
 
-                        if (value.Trim() == "SECTION" && pairs.Next(out int nameCode, out string name, out _) && nameCode == 2)
+                        if (
+                            value.Trim() == "SECTION"
+                            && pairs.Next(out int nameCode, out string name, out _)
+                            && nameCode == 2
+                        )
                         {
                             inHeader = name.Trim() == "HEADER";
 
@@ -649,8 +730,10 @@ namespace GeometryHelper.Dxf
             return true;
         }
 
-        private static FormatException Binary()
-            => new FormatException("This is a binary DXF, which is not read: save the drawing as an ASCII DXF and read that.");
+        private static FormatException Binary() =>
+            new FormatException(
+                "This is a binary DXF, which is not read: save the drawing as an ASCII DXF and read that."
+            );
 
         #endregion
 
@@ -692,13 +775,26 @@ namespace GeometryHelper.Dxf
 
                 if (!TryCode(_text, start, end, out code))
                 {
-                    string said = _text.Substring(start, Math.Min(end - start, 24)) + (end - start > 24 ? "..." : string.Empty);
-                    throw new FormatException("This is not a DXF that can be read: line " + Number(line) + " should be a group code, a whole number, and is '" + said + "'.");
+                    string said =
+                        _text.Substring(start, Math.Min(end - start, 24)) + (end - start > 24 ? "..." : string.Empty);
+                    throw new FormatException(
+                        "This is not a DXF that can be read: line "
+                            + Number(line)
+                            + " should be a group code, a whole number, and is '"
+                            + said
+                            + "'."
+                    );
                 }
 
                 if (!NextLine(out start, out end))
                 {
-                    throw new FormatException("The DXF is cut short: the group code " + Number(code) + " on line " + Number(line) + ", the last, has no value after it.");
+                    throw new FormatException(
+                        "The DXF is cut short: the group code "
+                            + Number(code)
+                            + " on line "
+                            + Number(line)
+                            + ", the last, has no value after it."
+                    );
                 }
 
                 value = _text.Substring(start, end - start);
@@ -913,13 +1009,18 @@ namespace GeometryHelper.Dxf
             {
                 value = 0;
                 string text = Text(code);
-                return text != null && int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+                return text != null
+                    && int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
             }
 
             internal int Int(int code, int fallback)
             {
                 string text = Text(code);
-                return text != null && int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+                return
+                    text != null
+                    && int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                    ? value
+                    : fallback;
             }
 
             /// <summary>
@@ -946,7 +1047,12 @@ namespace GeometryHelper.Dxf
                 {
                     int c = _codes[i];
                     bool real = (c >= 10 && c <= 59) || (c >= 110 && c <= 149) || (c >= 210 && c <= 239);
-                    bool whole = (c >= 60 && c <= 99) || (c >= 170 && c <= 179) || (c >= 270 && c <= 289) || (c >= 370 && c <= 379) || (c >= 420 && c <= 429);
+                    bool whole =
+                        (c >= 60 && c <= 99)
+                        || (c >= 170 && c <= 179)
+                        || (c >= 270 && c <= 289)
+                        || (c >= 370 && c <= 379)
+                        || (c >= 420 && c <= 429);
 
                     if (real)
                     {
@@ -962,7 +1068,13 @@ namespace GeometryHelper.Dxf
                             return Said(_values[i]) + " in group " + Number(c);
                         }
                     }
-                    else if (whole && c != 62 && c != 370 && c != 420 && !int.TryParse(_values[i].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
+                    else if (
+                        whole
+                        && c != 62
+                        && c != 370
+                        && c != 420
+                        && !int.TryParse(_values[i].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out _)
+                    )
                     {
                         return Said(_values[i]) + " in group " + Number(c);
                     }
@@ -994,12 +1106,21 @@ namespace GeometryHelper.Dxf
             private readonly Tolerance _tolerance;
             private readonly bool _keepGroups;
             private readonly bool _expandBlocks;
-            private readonly Dictionary<string, string> _interned = new Dictionary<string, string>(StringComparer.Ordinal);
+            private readonly Dictionary<string, string> _interned = new Dictionary<string, string>(
+                StringComparer.Ordinal
+            );
             private readonly List<DxfShape> _entities = new List<DxfShape>();
             private readonly List<string> _layers = new List<string>();
-            private readonly Dictionary<string, string> _layerNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            private readonly SortedDictionary<string, int> _skipped = new SortedDictionary<string, int>(StringComparer.Ordinal);
-            private readonly SortedDictionary<string, SortedDictionary<string, int>> _reasons = new SortedDictionary<string, SortedDictionary<string, int>>(StringComparer.Ordinal);
+            private readonly Dictionary<string, string> _layerNames = new Dictionary<string, string>(
+                StringComparer.OrdinalIgnoreCase
+            );
+            private readonly SortedDictionary<string, int> _skipped = new SortedDictionary<string, int>(
+                StringComparer.Ordinal
+            );
+            private readonly SortedDictionary<string, SortedDictionary<string, int>> _reasons = new SortedDictionary<
+                string,
+                SortedDictionary<string, int>
+            >(StringComparer.Ordinal);
             private readonly List<string> _warnings = new List<string>();
             private string _version;
             private int _unitCode = -1;
@@ -1064,7 +1185,12 @@ namespace GeometryHelper.Dxf
                         }
                         else
                         {
-                            current?.Add(code, _keepGroups && (code == 100 || code == 330 || code == 8 || code == 6) ? Interned(value) : value);
+                            current?.Add(
+                                code,
+                                _keepGroups && (code == 100 || code == 330 || code == 8 || code == 6)
+                                    ? Interned(value)
+                                    : value
+                            );
                         }
 
                         continue;
@@ -1078,7 +1204,15 @@ namespace GeometryHelper.Dxf
                     {
                         if (section != null)
                         {
-                            throw new FormatException("The DXF is cut short: the section " + section + " opened on line " + Number(sectionLine) + " has no ENDSEC before the EOF on line " + Number(line) + ".");
+                            throw new FormatException(
+                                "The DXF is cut short: the section "
+                                    + section
+                                    + " opened on line "
+                                    + Number(sectionLine)
+                                    + " has no ENDSEC before the EOF on line "
+                                    + Number(line)
+                                    + "."
+                            );
                         }
 
                         ended = true;
@@ -1089,12 +1223,26 @@ namespace GeometryHelper.Dxf
                     {
                         if (section != null)
                         {
-                            throw new FormatException("This is not a DXF that can be read: a SECTION opens on line " + Number(line) + " inside the section " + section + " opened on line " + Number(sectionLine) + ", which has no ENDSEC.");
+                            throw new FormatException(
+                                "This is not a DXF that can be read: a SECTION opens on line "
+                                    + Number(line)
+                                    + " inside the section "
+                                    + section
+                                    + " opened on line "
+                                    + Number(sectionLine)
+                                    + ", which has no ENDSEC."
+                            );
                         }
 
                         if (!pairs.Next(out int nameCode, out string name, out int nameLine) || nameCode != 2)
                         {
-                            throw new FormatException("This is not a DXF that can be read: the SECTION on line " + Number(line) + " is not named by a group 2 on line " + Number(nameLine) + ".");
+                            throw new FormatException(
+                                "This is not a DXF that can be read: the SECTION on line "
+                                    + Number(line)
+                                    + " is not named by a group 2 on line "
+                                    + Number(nameLine)
+                                    + "."
+                            );
                         }
 
                         section = name.Trim();
@@ -1107,7 +1255,11 @@ namespace GeometryHelper.Dxf
                     {
                         if (section == null)
                         {
-                            throw new FormatException("This is not a DXF that can be read: the ENDSEC on line " + Number(line) + " closes no section.");
+                            throw new FormatException(
+                                "This is not a DXF that can be read: the ENDSEC on line "
+                                    + Number(line)
+                                    + " closes no section."
+                            );
                         }
 
                         if (section == "ENTITIES")
@@ -1125,7 +1277,13 @@ namespace GeometryHelper.Dxf
 
                     if (section == null)
                     {
-                        throw new FormatException("This is not a DXF that can be read: the " + word + " on line " + Number(line) + " stands in no section.");
+                        throw new FormatException(
+                            "This is not a DXF that can be read: the "
+                                + word
+                                + " on line "
+                                + Number(line)
+                                + " stands in no section."
+                        );
                     }
 
                     current = new Record(word, line);
@@ -1133,7 +1291,17 @@ namespace GeometryHelper.Dxf
 
                 if (!ended)
                 {
-                    throw new FormatException("The DXF is cut short: it ends on line " + Number(pairs.Line) + " without the EOF that closes a DXF" + (section != null ? ", inside the section " + section + " opened on line " + Number(sectionLine) : string.Empty) + ".");
+                    throw new FormatException(
+                        "The DXF is cut short: it ends on line "
+                            + Number(pairs.Line)
+                            + " without the EOF that closes a DXF"
+                            + (
+                                section != null
+                                    ? ", inside the section " + section + " opened on line " + Number(sectionLine)
+                                    : string.Empty
+                            )
+                            + "."
+                    );
                 }
 
                 if (!entities)
@@ -1154,7 +1322,11 @@ namespace GeometryHelper.Dxf
                 {
                     _version = value.Trim();
                 }
-                else if (variable == "$INSUNITS" && code == 70 && int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int units))
+                else if (
+                    variable == "$INSUNITS"
+                    && code == 70
+                    && int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int units)
+                )
                 {
                     _unitCode = units;
                 }
@@ -1219,19 +1391,39 @@ namespace GeometryHelper.Dxf
                 DxfBlock[] blocks = ReadBlocks();
                 DxfUnits units = Units(out bool listed);
 
-                if (_version != null && (string.CompareOrdinal(_version, "AC1009") < 0 || string.CompareOrdinal(_version, "AC1032") > 0))
+                if (
+                    _version != null
+                    && (string.CompareOrdinal(_version, "AC1009") < 0 || string.CompareOrdinal(_version, "AC1032") > 0)
+                )
                 {
-                    _warnings.Insert(0, "The file is of version " + _version + ", outside R12 (AC1009) to R2018 (AC1032); it was read as those are.");
+                    _warnings.Insert(
+                        0,
+                        "The file is of version "
+                            + _version
+                            + ", outside R12 (AC1009) to R2018 (AC1032); it was read as those are."
+                    );
                 }
 
                 if (_toMillimetres && (units == DxfUnits.Undefined))
                 {
-                    _warnings.Add(listed
-                        ? (_unitCode < 0 ? "The file names no unit, so its numbers were kept as they are and not scaled to millimetres." : "The file says it has no unit, so its numbers were kept as they are and not scaled to millimetres.")
-                        : "The file gives the unit " + Number(_unitCode) + ", which the DXF reference does not list, so its numbers were kept as they are and not scaled to millimetres.");
+                    _warnings.Add(
+                        listed
+                            ? (
+                                _unitCode < 0
+                                    ? "The file names no unit, so its numbers were kept as they are and not scaled to millimetres."
+                                    : "The file says it has no unit, so its numbers were kept as they are and not scaled to millimetres."
+                            )
+                            : "The file gives the unit "
+                                + Number(_unitCode)
+                                + ", which the DXF reference does not list, so its numbers were kept as they are and not scaled to millimetres."
+                    );
                 }
 
-                Warn(_paperEntities, " entity of paper space was not read: the reader reads model space.", " entities of paper space were not read: the reader reads model space.");
+                Warn(
+                    _paperEntities,
+                    " entity of paper space was not read: the reader reads model space.",
+                    " entities of paper space were not read: the reader reads model space."
+                );
                 BlockWarnings();
                 EntityWarnings();
 
@@ -1241,7 +1433,11 @@ namespace GeometryHelper.Dxf
                 foreach (KeyValuePair<string, int> pair in _skipped)
                 {
                     skipped += pair.Value;
-                    detail.Append(detail.Length == 0 ? " (" : ", ").Append(pair.Key).Append(' ').Append(Number(pair.Value));
+                    detail
+                        .Append(detail.Length == 0 ? " (" : ", ")
+                        .Append(pair.Key)
+                        .Append(' ')
+                        .Append(Number(pair.Value));
                 }
 
                 foreach (KeyValuePair<string, SortedDictionary<string, int>> type in _reasons)
@@ -1250,15 +1446,44 @@ namespace GeometryHelper.Dxf
 
                     foreach (KeyValuePair<string, int> reason in type.Value)
                     {
-                        why.Append(why.Length == 0 ? string.Empty : ", ").Append(Number(reason.Value)).Append(' ').Append(reason.Key);
+                        why.Append(why.Length == 0 ? string.Empty : ", ")
+                            .Append(Number(reason.Value))
+                            .Append(' ')
+                            .Append(reason.Key);
                     }
 
-                    GeometryHelperLog.Debug("DxfReader: " + Number(_skipped[type.Key]) + " " + type.Key + " not read: " + why + ".");
+                    GeometryHelperLog.Debug(
+                        "DxfReader: " + Number(_skipped[type.Key]) + " " + type.Key + " not read: " + why + "."
+                    );
                 }
 
-                GeometryHelperLog.Info("DxfReader: " + Number(_into.Count) + " entities read from " + source + (placed > 0 ? ", " + Number(placed) + " of them placed by INSERTs" : string.Empty) + ", " + Number(skipped) + " skipped" + (detail.Length > 0 ? detail.Append(')').ToString() : string.Empty) + ", " + Number(_warnings.Count) + " warnings.");
+                GeometryHelperLog.Info(
+                    "DxfReader: "
+                        + Number(_into.Count)
+                        + " entities read from "
+                        + source
+                        + (placed > 0 ? ", " + Number(placed) + " of them placed by INSERTs" : string.Empty)
+                        + ", "
+                        + Number(skipped)
+                        + " skipped"
+                        + (detail.Length > 0 ? detail.Append(')').ToString() : string.Empty)
+                        + ", "
+                        + Number(_warnings.Count)
+                        + " warnings."
+                );
 
-                return new DxfDocument(_into.ToArray(), _layers.ToArray(), _layerTable.ToArray(), blocks, units, _version, new ReadOnlyDictionary<string, int>(new SortedDictionary<string, int>(_skipped, StringComparer.Ordinal)), _warnings.ToArray())
+                return new DxfDocument(
+                    _into.ToArray(),
+                    _layers.ToArray(),
+                    _layerTable.ToArray(),
+                    blocks,
+                    units,
+                    _version,
+                    new ReadOnlyDictionary<string, int>(
+                        new SortedDictionary<string, int>(_skipped, StringComparer.Ordinal)
+                    ),
+                    _warnings.ToArray()
+                )
                 {
                     SizedBlocks = _sizing.Worked,
                 };
@@ -1295,7 +1520,9 @@ namespace GeometryHelper.Dxf
             private DxfUnits Units(out bool listed)
             {
                 listed = _unitCode <= 0 || _unitCode <= (int)DxfUnits.USSurveyMile;
-                return _unitCode > 0 && _unitCode <= (int)DxfUnits.USSurveyMile ? (DxfUnits)_unitCode : DxfUnits.Undefined;
+                return _unitCode > 0 && _unitCode <= (int)DxfUnits.USSurveyMile
+                    ? (DxfUnits)_unitCode
+                    : DxfUnits.Undefined;
             }
 
             /// <summary>The millimetres in a unit of <c>$INSUNITS</c>; 1 for none, or one not listed.</summary>
@@ -1305,30 +1532,54 @@ namespace GeometryHelper.Dxf
 
                 switch (code)
                 {
-                    case 1: return 25.4;
-                    case 2: return 304.8;
-                    case 3: return 1609344.0;
-                    case 5: return 10.0;
-                    case 6: return 1000.0;
-                    case 7: return 1E6;
-                    case 8: return 2.54E-5;
-                    case 9: return 0.0254;
-                    case 10: return 914.4;
-                    case 11: return 1E-7;
-                    case 12: return 1E-6;
-                    case 13: return 1E-3;
-                    case 14: return 100.0;
-                    case 15: return 1E4;
-                    case 16: return 1E5;
-                    case 17: return 1E12;
-                    case 18: return 1.495978707E14;
-                    case 19: return 9.4607304725808E18;
-                    case 20: return 3.0856775814913673E19;
-                    case 21: return SurveyFoot;
-                    case 22: return SurveyFoot / 12.0;
-                    case 23: return SurveyFoot * 3.0;
-                    case 24: return SurveyFoot * 5280.0;
-                    default: return 1.0;
+                    case 1:
+                        return 25.4;
+                    case 2:
+                        return 304.8;
+                    case 3:
+                        return 1609344.0;
+                    case 5:
+                        return 10.0;
+                    case 6:
+                        return 1000.0;
+                    case 7:
+                        return 1E6;
+                    case 8:
+                        return 2.54E-5;
+                    case 9:
+                        return 0.0254;
+                    case 10:
+                        return 914.4;
+                    case 11:
+                        return 1E-7;
+                    case 12:
+                        return 1E-6;
+                    case 13:
+                        return 1E-3;
+                    case 14:
+                        return 100.0;
+                    case 15:
+                        return 1E4;
+                    case 16:
+                        return 1E5;
+                    case 17:
+                        return 1E12;
+                    case 18:
+                        return 1.495978707E14;
+                    case 19:
+                        return 9.4607304725808E18;
+                    case 20:
+                        return 3.0856775814913673E19;
+                    case 21:
+                        return SurveyFoot;
+                    case 22:
+                        return SurveyFoot / 12.0;
+                    case 23:
+                        return SurveyFoot * 3.0;
+                    case 24:
+                        return SurveyFoot * 5280.0;
+                    default:
+                        return 1.0;
                 }
             }
 
@@ -1380,7 +1631,17 @@ namespace GeometryHelper.Dxf
             {
                 bool escape = name[at + 1] == 'U' || name[at + 1] == 'u';
 
-                if (escape && at + 7 <= name.Length && int.TryParse(name.Substring(at + 3, 4), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int letter) && (letter != 0 || plain))
+                if (
+                    escape
+                    && at + 7 <= name.Length
+                    && int.TryParse(
+                        name.Substring(at + 3, 4),
+                        NumberStyles.AllowHexSpecifier,
+                        CultureInfo.InvariantCulture,
+                        out int letter
+                    )
+                    && (letter != 0 || plain)
+                )
                 {
                     read.Append(name, from, at - from).Append((char)letter);
                     from = at + 7;
@@ -1440,8 +1701,17 @@ namespace GeometryHelper.Dxf
         {
             letter = '\0';
 
-            if (at + 8 > text.Length || text[at + 3] < '1' || text[at + 3] > '5'
-                || !int.TryParse(text.Substring(at + 4, 4), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int code))
+            if (
+                at + 8 > text.Length
+                || text[at + 3] < '1'
+                || text[at + 3] > '5'
+                || !int.TryParse(
+                    text.Substring(at + 4, 4),
+                    NumberStyles.AllowHexSpecifier,
+                    CultureInfo.InvariantCulture,
+                    out int code
+                )
+            )
             {
                 return false;
             }
@@ -1475,8 +1745,8 @@ namespace GeometryHelper.Dxf
         /// Whether a byte is a letter alone of a code page, and that letter: not a byte that opens a letter of two, nor one the
         /// page maps to a letter of private use, as Shift-JIS maps A0, FD, FE and FF, which AutoCAD takes for no letter.
         /// </summary>
-        private static bool TryAlone(Encoding page, int value, out char letter)
-            => TryLetter(page, new[] { (byte)value }, out letter) && (letter < '' || letter > '');
+        private static bool TryAlone(Encoding page, int value, out char letter) =>
+            TryLetter(page, new[] { (byte)value }, out letter) && (letter < '' || letter > '');
 
         /// <summary>The code page of a multibyte code, from nought; null where the runtime has not got it.</summary>
         private static Encoding MultibytePage(int index)
@@ -1490,7 +1760,11 @@ namespace GeometryHelper.Dxf
 
             try
             {
-                page = Encoding.GetEncoding(MultibytePages[index], EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
+                page = Encoding.GetEncoding(
+                    MultibytePages[index],
+                    EncoderFallback.ExceptionFallback,
+                    DecoderFallback.ExceptionFallback
+                );
             }
             catch (Exception e) when (e is ArgumentException || e is NotSupportedException)
             {

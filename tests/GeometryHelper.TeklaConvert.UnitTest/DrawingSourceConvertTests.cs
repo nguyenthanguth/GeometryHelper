@@ -22,45 +22,75 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         private static readonly Tolerance Tol = Tolerance.Default;
 
         // A plate 300 by 200 by 20 lying on the world's XY, its four holes of 22 at 50 from the long edges and the short.
-        private static readonly GeoPoint2[] HoleCentres = { new GeoPoint2(50, 50), new GeoPoint2(250, 50), new GeoPoint2(50, 150), new GeoPoint2(250, 150) };
+        private static readonly GeoPoint2[] HoleCentres =
+        {
+            new GeoPoint2(50, 50),
+            new GeoPoint2(250, 50),
+            new GeoPoint2(50, 150),
+            new GeoPoint2(250, 150),
+        };
 
         private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
         {
-            var outline = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(x1 - x0, 0), new GeoPoint2(x1 - x0, y1 - y0), new GeoPoint2(0, y1 - y0));
-            return GeoSolid3.Extrude(outline, new GeoCoordinateSystem3(new GeoPoint3(x0, y0, z0), GeoVector3.XAxis, GeoVector3.YAxis), z1 - z0, Tol);
+            var outline = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(x1 - x0, 0),
+                new GeoPoint2(x1 - x0, y1 - y0),
+                new GeoPoint2(0, y1 - y0)
+            );
+            return GeoSolid3.Extrude(
+                outline,
+                new GeoCoordinateSystem3(new GeoPoint3(x0, y0, z0), GeoVector3.XAxis, GeoVector3.YAxis),
+                z1 - z0,
+                Tol
+            );
         }
 
         /// <summary>The plate with its holes of 22, each faceted into 24 sides with corners on the circle, as Tekla facets them.</summary>
         private static GeoSolid3 PlateWithHoles()
         {
-            var outline = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(300, 0), new GeoPoint2(300, 200), new GeoPoint2(0, 200));
+            var outline = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(300, 0),
+                new GeoPoint2(300, 200),
+                new GeoPoint2(0, 200)
+            );
             GeoPolygon2[] holes = HoleCentres
-                .Select(c => new GeoPolygon2(Enumerable.Range(0, 24).Select(i => new GeoPoint2(c.X + 11 * Math.Cos(Math.PI * i / 12), c.Y + 11 * Math.Sin(Math.PI * i / 12)))))
+                .Select(c => new GeoPolygon2(
+                    Enumerable
+                        .Range(0, 24)
+                        .Select(i => new GeoPoint2(
+                            c.X + 11 * Math.Cos(Math.PI * i / 12),
+                            c.Y + 11 * Math.Sin(Math.PI * i / 12)
+                        ))
+                ))
                 .ToArray();
             return GeoSolid3.Extrude(new GeoFace2(outline, holes), GeoCoordinateSystem3.Global, 20, Tol);
         }
 
-        private static TeklaPartData Plate(string id) => new TeklaPartData
-        {
-            Id = id,
-            Solid = PlateWithHoles(),
-            Frame = GeoCoordinateSystem3.Global,
-            Name = "PLATE",
-            Mark = "P1",
-            Profile = "PL20*300",
-            Material = "S355",
-            AssemblyId = "A",
-            IsMain = true,
-        };
+        private static TeklaPartData Plate(string id) =>
+            new TeklaPartData
+            {
+                Id = id,
+                Solid = PlateWithHoles(),
+                Frame = GeoCoordinateSystem3.Global,
+                Name = "PLATE",
+                Mark = "P1",
+                Profile = "PL20*300",
+                Material = "S355",
+                AssemblyId = "A",
+                IsMain = true,
+            };
 
-        private static TeklaPartData Member(string id, GeoCoordinateSystem3 frame, bool isMain) => new TeklaPartData
-        {
-            Id = id,
-            Solid = Box(0, 0, 0, 100, 100, 100),
-            Frame = frame,
-            AssemblyId = "A",
-            IsMain = isMain,
-        };
+        private static TeklaPartData Member(string id, GeoCoordinateSystem3 frame, bool isMain) =>
+            new TeklaPartData
+            {
+                Id = id,
+                Solid = Box(0, 0, 0, 100, 100, 100),
+                Frame = frame,
+                AssemblyId = "A",
+                IsMain = isMain,
+            };
 
         /// <summary>
         /// An M20 group of four on the top of the plate, its Z up: Tekla's body for each bolt, a head up to 13 above the
@@ -74,7 +104,8 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             {
                 for (int i = 0; i < 6; i++)
                 {
-                    double x = c.X + 15 * Math.Cos(Math.PI * i / 3), y = c.Y + 15 * Math.Sin(Math.PI * i / 3);
+                    double x = c.X + 15 * Math.Cos(Math.PI * i / 3),
+                        y = c.Y + 15 * Math.Sin(Math.PI * i / 3);
                     corners.Add(new GeoPoint3(x, y, 33));
                     corners.Add(new GeoPoint3(x, y, -27));
                 }
@@ -96,10 +127,11 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             };
         }
 
-        private static DrawingSource Build(TeklaDrawingData data, string frameOwnerId = null)
-            => DrawingSourceBuild.Build(data, frameOwnerId, "Test", "test objects", Tol);
+        private static DrawingSource Build(TeklaDrawingData data, string frameOwnerId = null) =>
+            DrawingSourceBuild.Build(data, frameOwnerId, "Test", "test objects", Tol);
 
-        private static double PrismVolume(double radius, double length) => 0.5 * 24 * radius * radius * Math.Sin(2 * Math.PI / 24) * length;
+        private static double PrismVolume(double radius, double length) =>
+            0.5 * 24 * radius * radius * Math.Sin(2 * Math.PI / 24) * length;
 
         [Fact]
         public void APartComesWithItsTextsItsAssemblyAndItsReportProperties()
@@ -114,12 +146,21 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             DrawingObject read = Assert.Single(Build(data).Objects);
 
             Assert.Equal(DrawingObjectKind.Part, read.Kind);
-            Assert.Equal(("PLATE", "P1", "PL20*300", "S355", "A"), (read.Name, read.Mark, read.Profile, read.Material, read.ParentId));
+            Assert.Equal(
+                ("PLATE", "P1", "PL20*300", "S355", "A"),
+                (read.Name, read.Mark, read.Profile, read.Material, read.ParentId)
+            );
             Assert.True(read.IsMain);
             Assert.Same(plate.Solid, read.Solid);
             Assert.Equal(
-                new[] { new KeyValuePair<string, string>("ASSEMBLY_POS", "A12"), new KeyValuePair<string, string>("LENGTH", "300"), new KeyValuePair<string, string>("WEIGHT", "9.12") },
-                read.Attributes.ToArray());
+                new[]
+                {
+                    new KeyValuePair<string, string>("ASSEMBLY_POS", "A12"),
+                    new KeyValuePair<string, string>("LENGTH", "300"),
+                    new KeyValuePair<string, string>("WEIGHT", "9.12"),
+                },
+                read.Attributes.ToArray()
+            );
         }
 
         [Fact]
@@ -231,10 +272,14 @@ namespace GeometryHelper.TeklaConvert.UnitTest
                 var debug = Assert.Single(log.Entries, e => e.Level == GeometryHelperLogLevel.Debug);
                 Assert.Equal(
                     "Test: left out 4: 1 objects of a kind not drawn (Grid); 1 parts whose solid could not be read (P2); "
-                    + "1 parts with no coordinate system (P1); 1 welds whose solid could not be read (W).",
-                    debug.Message);
+                        + "1 parts with no coordinate system (P1); 1 welds whose solid could not be read (W).",
+                    debug.Message
+                );
                 var info = Assert.Single(log.Entries, e => e.Level == GeometryHelperLogLevel.Info);
-                Assert.Equal("Test: 1 objects (1 parts, 0 bolts, 0 holes, 0 welds) from test objects, 4 left out.", info.Message);
+                Assert.Equal(
+                    "Test: 1 objects (1 parts, 0 bolts, 0 holes, 0 welds) from test objects, 4 left out.",
+                    info.Message
+                );
                 Assert.DoesNotContain(log.Entries, e => e.Level == GeometryHelperLogLevel.Warn);
             }
 
@@ -284,7 +329,8 @@ namespace GeometryHelper.TeklaConvert.UnitTest
                         ["Length"] = "60",
                         ["Standard"] = "8.8XOX",
                     },
-                    bolt.Attributes.ToDictionary(a => a.Key, a => a.Value));
+                    bolt.Attributes.ToDictionary(a => a.Key, a => a.Value)
+                );
             }
         }
 
@@ -293,14 +339,35 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         {
             // The group's plane turned 30 degrees about X, its Z leaning back; the body Tekla draws runs 47 one way and 13
             // the other along that Z, and its corners stand 15 off the axis.
-            double c = Math.Cos(Math.PI / 6), s = Math.Sin(Math.PI / 6);
-            var frame = new GeoCoordinateSystem3(new GeoPoint3(100, 100, 100), GeoVector3.XAxis, new GeoVector3(0, c, s));
+            double c = Math.Cos(Math.PI / 6),
+                s = Math.Sin(Math.PI / 6);
+            var frame = new GeoCoordinateSystem3(
+                new GeoPoint3(100, 100, 100),
+                GeoVector3.XAxis,
+                new GeoVector3(0, c, s)
+            );
             GeoVector3 z = frame.ZAxis;
             GeoPoint3 position = new GeoPoint3(100, 100, 100);
             GeoVector3 across = frame.YAxis.Multiply(15);
-            GeoPoint3[] corners = { position.Add(z.Multiply(13)).Add(across), position.Add(z.Multiply(-47)).Add(across.Negate()) };
+            GeoPoint3[] corners =
+            {
+                position.Add(z.Multiply(13)).Add(across),
+                position.Add(z.Multiply(-47)).Add(across.Negate()),
+            };
             var data = new TeklaDrawingData();
-            data.BoltGroups.Add(new TeklaBoltGroupData { Id = "G", HasBolt = true, Diameter = 16, HoleTolerance = 2, Length = 60, Frame = frame, Positions = new[] { position }, BodyCorners = corners });
+            data.BoltGroups.Add(
+                new TeklaBoltGroupData
+                {
+                    Id = "G",
+                    HasBolt = true,
+                    Diameter = 16,
+                    HoleTolerance = 2,
+                    Length = 60,
+                    Frame = frame,
+                    Positions = new[] { position },
+                    BodyCorners = corners,
+                }
+            );
 
             DrawingObject bolt = Assert.Single(Build(data).Objects);
 
@@ -359,14 +426,25 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             TeklaBoltGroupData group = FourBolts("PLATE");
             group.BodyCorners = Array.Empty<GeoPoint3>();
             data.BoltGroups.Add(group);
-            data.BoltGroups.Add(new TeklaBoltGroupData { Id = "EMPTY", HasBolt = true, Diameter = 20, Frame = GeoCoordinateSystem3.Global });
+            data.BoltGroups.Add(
+                new TeklaBoltGroupData
+                {
+                    Id = "EMPTY",
+                    HasBolt = true,
+                    Diameter = 20,
+                    Frame = GeoCoordinateSystem3.Global,
+                }
+            );
 
             using (var log = new LogCapture())
             {
                 Assert.Empty(Build(data).Objects);
 
                 var debug = Assert.Single(log.Entries, e => e.Level == GeometryHelperLogLevel.Debug);
-                Assert.Equal("Test: left out 5: 1 bolt groups with no positions (EMPTY); 4 bolts of no length along their axis (G-1, G-2, G-3, G-4).", debug.Message);
+                Assert.Equal(
+                    "Test: left out 5: 1 bolt groups with no positions (EMPTY); 4 bolts of no length along their axis (G-1, G-2, G-3, G-4).",
+                    debug.Message
+                );
             }
         }
 
@@ -374,11 +452,28 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         public void TheCornersOfOtherBoltsAreOutOfReach()
         {
             // Two bolts 50 apart: the first's corners, 15 off its axis, are 35 off the second's, beyond the reach of its 20.
-            GeoPoint3[] corners = { new GeoPoint3(15, 0, 40), new GeoPoint3(-15, 0, -40), new GeoPoint3(50, 15, 10), new GeoPoint3(50, -15, -10) };
+            GeoPoint3[] corners =
+            {
+                new GeoPoint3(15, 0, 40),
+                new GeoPoint3(-15, 0, -40),
+                new GeoPoint3(50, 15, 10),
+                new GeoPoint3(50, -15, -10),
+            };
 
-            Assert.True(DrawingSourceBuild.TrySpan(new GeoPoint3(50, 0, 0), GeoVector3.ZAxis, 20, corners, out double min, out double max));
+            Assert.True(
+                DrawingSourceBuild.TrySpan(
+                    new GeoPoint3(50, 0, 0),
+                    GeoVector3.ZAxis,
+                    20,
+                    corners,
+                    out double min,
+                    out double max
+                )
+            );
             Assert.Equal((-10.0, 10.0), (min, max));
-            Assert.False(DrawingSourceBuild.TrySpan(new GeoPoint3(200, 0, 0), GeoVector3.ZAxis, 20, corners, out _, out _));
+            Assert.False(
+                DrawingSourceBuild.TrySpan(new GeoPoint3(200, 0, 0), GeoVector3.ZAxis, 20, corners, out _, out _)
+            );
         }
 
         [Fact]
@@ -411,28 +506,65 @@ namespace GeometryHelper.TeklaConvert.UnitTest
                     [WeldSymbol.SizeAttribute] = "a5",
                     [WeldSymbol.TypeAttribute] = "Fillet",
                 },
-                read.Attributes.ToDictionary(a => a.Key, a => a.Value));
+                read.Attributes.ToDictionary(a => a.Key, a => a.Value)
+            );
         }
 
         [Fact]
         public void AWeldBelowTheLineOnlyIsOnTheOtherSide_AndOneOnBothTakesWhatIsAbove()
         {
-            var below = new TeklaWeldData { TypeAbove = "WELD_TYPE_NONE", TypeBelow = "WELD_TYPE_BEVEL_GROOVE_SINGLE_V_BUTT", SizeBelow = 8, PrefixBelow = "s", LengthBelow = 150 };
-            var both = new TeklaWeldData { TypeAbove = "WELD_TYPE_FILLET", TypeBelow = "WELD_TYPE_SQUARE_GROOVE_SQUARE_BUTT", SizeAbove = 4, SizeBelow = 6, PrefixAbove = "a", PrefixBelow = "s", LengthAbove = 0, LengthBelow = 80, Length = 120 };
+            var below = new TeklaWeldData
+            {
+                TypeAbove = "WELD_TYPE_NONE",
+                TypeBelow = "WELD_TYPE_BEVEL_GROOVE_SINGLE_V_BUTT",
+                SizeBelow = 8,
+                PrefixBelow = "s",
+                LengthBelow = 150,
+            };
+            var both = new TeklaWeldData
+            {
+                TypeAbove = "WELD_TYPE_FILLET",
+                TypeBelow = "WELD_TYPE_SQUARE_GROOVE_SQUARE_BUTT",
+                SizeAbove = 4,
+                SizeBelow = 6,
+                PrefixAbove = "a",
+                PrefixBelow = "s",
+                LengthAbove = 0,
+                LengthBelow = 80,
+                Length = 120,
+            };
 
-            Dictionary<string, string> belowRead = DrawingSourceBuild.WeldAttributes(below).ToDictionary(a => a.Key, a => a.Value);
-            Dictionary<string, string> bothRead = DrawingSourceBuild.WeldAttributes(both).ToDictionary(a => a.Key, a => a.Value);
+            Dictionary<string, string> belowRead = DrawingSourceBuild
+                .WeldAttributes(below)
+                .ToDictionary(a => a.Key, a => a.Value);
+            Dictionary<string, string> bothRead = DrawingSourceBuild
+                .WeldAttributes(both)
+                .ToDictionary(a => a.Key, a => a.Value);
 
-            Assert.Equal(("VButt", "Other", "s8", "150"), (belowRead["WeldType"], belowRead["WeldSide"], belowRead["WeldSize"], belowRead["WeldLength"]));
-            Assert.Equal(("Fillet", "Both", "a4", "120"), (bothRead["WeldType"], bothRead["WeldSide"], bothRead["WeldSize"], bothRead["WeldLength"]));
+            Assert.Equal(
+                ("VButt", "Other", "s8", "150"),
+                (belowRead["WeldType"], belowRead["WeldSide"], belowRead["WeldSize"], belowRead["WeldLength"])
+            );
+            Assert.Equal(
+                ("Fillet", "Both", "a4", "120"),
+                (bothRead["WeldType"], bothRead["WeldSide"], bothRead["WeldSize"], bothRead["WeldLength"])
+            );
         }
 
         [Fact]
         public void AWeldAlongTheWholeJointTakesTheLengthTeklaWorksOut_AndOneOfNoSizeHasNone()
         {
-            var weld = new TeklaWeldData { TypeAbove = "WELD_TYPE_FILLET", TypeBelow = "WELD_TYPE_NONE", LengthAbove = 0, Length = 299.999 };
+            var weld = new TeklaWeldData
+            {
+                TypeAbove = "WELD_TYPE_FILLET",
+                TypeBelow = "WELD_TYPE_NONE",
+                LengthAbove = 0,
+                Length = 299.999,
+            };
 
-            Dictionary<string, string> read = DrawingSourceBuild.WeldAttributes(weld).ToDictionary(a => a.Key, a => a.Value);
+            Dictionary<string, string> read = DrawingSourceBuild
+                .WeldAttributes(weld)
+                .ToDictionary(a => a.Key, a => a.Value);
 
             Assert.Equal("300", read["WeldLength"]);
             Assert.False(read.ContainsKey("WeldSize"));
@@ -449,7 +581,14 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         [Fact]
         public void AWeldOfNoKindCarriesOnlyThePartWeldedOn()
         {
-            var weld = new TeklaWeldData { TypeAbove = "WELD_TYPE_NONE", TypeBelow = "WELD_TYPE_NONE", SizeAbove = 5, Length = 100, SecondaryPartId = "PLATE" };
+            var weld = new TeklaWeldData
+            {
+                TypeAbove = "WELD_TYPE_NONE",
+                TypeBelow = "WELD_TYPE_NONE",
+                SizeAbove = 5,
+                Length = 100,
+                SecondaryPartId = "PLATE",
+            };
 
             KeyValuePair<string, string> only = Assert.Single(DrawingSourceBuild.WeldAttributes(weld));
 
@@ -465,7 +604,16 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         {
             string[] names = Enum.GetNames(typeof(TSM.BaseWeld.WeldTypeEnum));
 
-            foreach (string mapped in new[] { "WELD_TYPE_NONE", "WELD_TYPE_FILLET", "WELD_TYPE_SQUARE_GROOVE_SQUARE_BUTT", "WELD_TYPE_BEVEL_GROOVE_SINGLE_V_BUTT", "WELD_TYPE_BEVEL_GROOVE_SINGLE_BEVEL_BUTT" })
+            foreach (
+                string mapped in new[]
+                {
+                    "WELD_TYPE_NONE",
+                    "WELD_TYPE_FILLET",
+                    "WELD_TYPE_SQUARE_GROOVE_SQUARE_BUTT",
+                    "WELD_TYPE_BEVEL_GROOVE_SINGLE_V_BUTT",
+                    "WELD_TYPE_BEVEL_GROOVE_SINGLE_BEVEL_BUTT",
+                }
+            )
             {
                 Assert.Contains(mapped, names);
             }
@@ -477,13 +625,25 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             var data = new TeklaDrawingData();
             data.Parts.Add(Plate("PLATE"));
             data.BoltGroups.Add(FourBolts("PLATE"));
-            data.Welds.Add(new TeklaWeldData { Id = "W", Solid = Box(0, 200, 20, 300, 205, 25), TypeAbove = "WELD_TYPE_FILLET", MainPartId = "PLATE" });
+            data.Welds.Add(
+                new TeklaWeldData
+                {
+                    Id = "W",
+                    Solid = Box(0, 200, 20, 300, 205, 25),
+                    TypeAbove = "WELD_TYPE_FILLET",
+                    MainPartId = "PLATE",
+                }
+            );
 
             DrawingSource source = Build(data, "PLATE");
 
             Assert.Equal(6, source.Objects.Count);
             Assert.All(source.Objects, o => Assert.True(o.Solid.Validate(Tol).IsValid, o.Id));
-            Assert.Equal(300 * 200 * 20 - 4 * PrismVolume(11, 20), source.Objects.Single(o => o.Id == "PLATE").Solid.GetVolume(Tol), 1E-3);
+            Assert.Equal(
+                300 * 200 * 20 - 4 * PrismVolume(11, 20),
+                source.Objects.Single(o => o.Id == "PLATE").Solid.GetVolume(Tol),
+                1E-3
+            );
         }
 
         [Fact]
@@ -503,7 +663,10 @@ namespace GeometryHelper.TeklaConvert.UnitTest
 
                 Assert.Empty(source.Objects);
                 var info = Assert.Single(log.Entries, e => e.Level == GeometryHelperLogLevel.Info);
-                Assert.Equal("DrawingSourceConvert.FromObjects: 0 objects (0 parts, 0 bolts, 0 holes, 0 welds) from 0 model objects, 0 left out.", info.Message);
+                Assert.Equal(
+                    "DrawingSourceConvert.FromObjects: 0 objects (0 parts, 0 bolts, 0 holes, 0 welds) from 0 model objects, 0 left out.",
+                    info.Message
+                );
             }
         }
 
@@ -512,11 +675,16 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         {
             using (var log = new LogCapture())
             {
-                DrawingSource source = DrawingSourceConvert.FromObjects(new TSM.ModelObject[] { new TSM.Grid(), new TSM.Grid() });
+                DrawingSource source = DrawingSourceConvert.FromObjects(
+                    new TSM.ModelObject[] { new TSM.Grid(), new TSM.Grid() }
+                );
 
                 Assert.Empty(source.Objects);
                 var debug = Assert.Single(log.Entries, e => e.Level == GeometryHelperLogLevel.Debug);
-                Assert.Equal("DrawingSourceConvert.FromObjects: left out 2: 2 objects of a kind not drawn (Grid, Grid).", debug.Message);
+                Assert.Equal(
+                    "DrawingSourceConvert.FromObjects: left out 2: 2 objects of a kind not drawn (Grid, Grid).",
+                    debug.Message
+                );
             }
         }
 
@@ -524,7 +692,11 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         public void ABoltGroupAsARunningTeklaGaveItIsReadWithZAlongTheBoltAndXTowardsTheSecondPosition()
         {
             // Read from Tekla Structures 2025: four M20, origin (7200, 29850, 7121), X (0, 0, -371) along the bolt, Y (0, -1000, 0).
-            GeoCoordinateSystem3? read = DrawingSourceBuild.BoltFrame(new GeoPoint3(7200, 29850, 7121), new GeoVector3(0, 0, -371), new GeoVector3(0, -1000, 0));
+            GeoCoordinateSystem3? read = DrawingSourceBuild.BoltFrame(
+                new GeoPoint3(7200, 29850, 7121),
+                new GeoVector3(0, 0, -371),
+                new GeoVector3(0, -1000, 0)
+            );
 
             Assert.True(read.HasValue);
             GeoCoordinateSystem3 frame = read.Value;
@@ -537,8 +709,12 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         [Fact]
         public void BoltGroupAxesOfNoLengthOrAlongOneAnother_GiveNoFrame()
         {
-            Assert.Null(DrawingSourceBuild.BoltFrame(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 0), new GeoVector3(0, 1, 0)));
-            Assert.Null(DrawingSourceBuild.BoltFrame(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 5), new GeoVector3(0, 0, -7)));
+            Assert.Null(
+                DrawingSourceBuild.BoltFrame(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 0), new GeoVector3(0, 1, 0))
+            );
+            Assert.Null(
+                DrawingSourceBuild.BoltFrame(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 5), new GeoVector3(0, 0, -7))
+            );
         }
 
         [Fact]
@@ -547,7 +723,16 @@ namespace GeometryHelper.TeklaConvert.UnitTest
             GeoSolid3 Plate(double z0, double z1) => Box(-60, -60, z0, 60, 60, z1);
 
             // Plates 0 to 10 and 10 to 30 touch; a third at 100 to 110 stands apart, up the axis. The bolt starts at z = 30 and goes down.
-            Assert.True(DrawingSourceBuild.TryAxisSpan(new GeoPoint3(0, 0, 30), GeoVector3.ZAxis.Multiply(-1.0), new[] { Plate(0, 10), Plate(10, 30), Plate(100, 110) }, Tol, out double min, out double max));
+            Assert.True(
+                DrawingSourceBuild.TryAxisSpan(
+                    new GeoPoint3(0, 0, 30),
+                    GeoVector3.ZAxis.Multiply(-1.0),
+                    new[] { Plate(0, 10), Plate(10, 30), Plate(100, 110) },
+                    Tol,
+                    out double min,
+                    out double max
+                )
+            );
 
             Assert.Equal(0.0, min, 6);
             Assert.Equal(30.0, max, 6);
@@ -558,7 +743,16 @@ namespace GeometryHelper.TeklaConvert.UnitTest
         {
             GeoSolid3 block = Box(0, 0, 0, 10, 10, 10);
 
-            Assert.False(DrawingSourceBuild.TryAxisSpan(new GeoPoint3(100, 100, 5), GeoVector3.ZAxis, new[] { block }, Tol, out _, out _));
+            Assert.False(
+                DrawingSourceBuild.TryAxisSpan(
+                    new GeoPoint3(100, 100, 5),
+                    GeoVector3.ZAxis,
+                    new[] { block },
+                    Tol,
+                    out _,
+                    out _
+                )
+            );
         }
 
         [Fact]

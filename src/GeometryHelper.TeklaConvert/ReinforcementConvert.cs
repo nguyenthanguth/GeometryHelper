@@ -30,8 +30,8 @@ namespace GeometryHelper.TeklaConvert
         /// <summary>
         /// Converts every bar of a reinforcement, as Tekla works them out.
         /// </summary>
-        public static GeoPolylineArc3[] ToGeoPolylineArc3s(this TSM.Reinforcement reinforcement)
-            => reinforcement.ToGeoPolylineArc3s(Tolerance.Global);
+        public static GeoPolylineArc3[] ToGeoPolylineArc3s(this TSM.Reinforcement reinforcement) =>
+            reinforcement.ToGeoPolylineArc3s(Tolerance.Global);
 
         /// <summary>
         /// Converts every bar of a reinforcement, as Tekla works them out, within a tolerance.
@@ -48,7 +48,8 @@ namespace GeometryHelper.TeklaConvert
         /// </remarks>
         public static GeoPolylineArc3[] ToGeoPolylineArc3s(this TSM.Reinforcement reinforcement, Tolerance tolerance)
         {
-            if (reinforcement == null) throw new ArgumentNullException(nameof(reinforcement));
+            if (reinforcement == null)
+                throw new ArgumentNullException(nameof(reinforcement));
 
             using (new GlobalWorkPlane())
             {
@@ -59,8 +60,8 @@ namespace GeometryHelper.TeklaConvert
         /// <summary>
         /// Converts the bars of each reinforcement given, as Tekla works them out.
         /// </summary>
-        public static List<GeoPolylineArc3[]> ToGeoPolylineArc3s(this IEnumerable<TSM.Reinforcement> reinforcements)
-            => reinforcements.ToGeoPolylineArc3s(Tolerance.Global);
+        public static List<GeoPolylineArc3[]> ToGeoPolylineArc3s(this IEnumerable<TSM.Reinforcement> reinforcements) =>
+            reinforcements.ToGeoPolylineArc3s(Tolerance.Global);
 
         /// <summary>
         /// Converts the bars of each reinforcement given, as Tekla works them out, within a tolerance.
@@ -84,9 +85,13 @@ namespace GeometryHelper.TeklaConvert
         /// instead of once per reinforcement.
         /// </para>
         /// </remarks>
-        public static List<GeoPolylineArc3[]> ToGeoPolylineArc3s(this IEnumerable<TSM.Reinforcement> reinforcements, Tolerance tolerance)
+        public static List<GeoPolylineArc3[]> ToGeoPolylineArc3s(
+            this IEnumerable<TSM.Reinforcement> reinforcements,
+            Tolerance tolerance
+        )
         {
-            if (reinforcements == null) throw new ArgumentNullException(nameof(reinforcements));
+            if (reinforcements == null)
+                throw new ArgumentNullException(nameof(reinforcements));
 
             var given = new List<TSM.Reinforcement>(reinforcements);
             var read = new List<GeoPolylineArc3[]>(given.Count);
@@ -118,7 +123,8 @@ namespace GeometryHelper.TeklaConvert
         /// <summary>
         /// Converts every bar of every reinforcement of a rebar set, as Tekla works them out.
         /// </summary>
-        public static List<GeoPolylineArc3[]> ToGeoPolylineArc3s(this TSM.RebarSet set) => set.ToGeoPolylineArc3s(Tolerance.Global);
+        public static List<GeoPolylineArc3[]> ToGeoPolylineArc3s(this TSM.RebarSet set) =>
+            set.ToGeoPolylineArc3s(Tolerance.Global);
 
         /// <summary>
         /// Converts every bar of every reinforcement of a rebar set, as Tekla works them out, within a tolerance.
@@ -133,7 +139,8 @@ namespace GeometryHelper.TeklaConvert
         /// </remarks>
         public static List<GeoPolylineArc3[]> ToGeoPolylineArc3s(this TSM.RebarSet set, Tolerance tolerance)
         {
-            if (set == null) throw new ArgumentNullException(nameof(set));
+            if (set == null)
+                throw new ArgumentNullException(nameof(set));
 
             return Held(set).ToGeoPolylineArc3s(tolerance);
         }
@@ -231,7 +238,9 @@ namespace GeometryHelper.TeklaConvert
 
                 if (!model.GetConnectionStatus())
                 {
-                    throw new InvalidOperationException("Tekla Structures is not running, or this process cannot connect to it.");
+                    throw new InvalidOperationException(
+                        "Tekla Structures is not running, or this process cannot connect to it."
+                    );
                 }
 
                 _handler = model.GetWorkPlaneHandler();

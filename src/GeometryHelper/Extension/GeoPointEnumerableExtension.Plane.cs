@@ -27,7 +27,8 @@ namespace GeometryHelper.Extension
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="points"/> is null.</exception>
         public static List<GeoLine2> ToGeoLine2s(this List<GeoPoint2> points)
         {
-            if (points == null) throw new ArgumentNullException(nameof(points));
+            if (points == null)
+                throw new ArgumentNullException(nameof(points));
 
             List<GeoLine2> segments = new List<GeoLine2>();
 
@@ -70,7 +71,8 @@ namespace GeometryHelper.Extension
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="points"/> is null.</exception>
         public static List<GeoPoint2> RemoveConsecutiveNearPoints(this List<GeoPoint2> points, Tolerance tolerance)
         {
-            if (points == null) throw new ArgumentNullException(nameof(points));
+            if (points == null)
+                throw new ArgumentNullException(nameof(points));
 
             if (points.Count <= 1)
             {

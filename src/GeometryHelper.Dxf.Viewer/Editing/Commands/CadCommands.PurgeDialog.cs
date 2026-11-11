@@ -32,7 +32,9 @@ namespace GeometryHelper.Dxf.Viewer
         };
 
         /// <summary>The names AutoCAD never purges, by -PURGE's keyword.</summary>
-        private static readonly Dictionary<string, string[]> PurgeKept = new Dictionary<string, string[]>(StringComparer.Ordinal)
+        private static readonly Dictionary<string, string[]> PurgeKept = new Dictionary<string, string[]>(
+            StringComparer.Ordinal
+        )
         {
             ["LAyers"] = new[] { "0", "Defpoints" },
             ["LTypes"] = new[] { "ByLayer", "ByBlock", "Continuous" },
@@ -82,7 +84,12 @@ namespace GeometryHelper.Dxf.Viewer
             foreach (KeyValuePair<string, string> kind in PurgeTree)
             {
                 List<KeyValuePair<string, DxfDBObject>> unused = Unused(c, kind.Key, "*");
-                purgeable.Add(new CadPurgeCategory(kind.Value, unused.Select(u => new CadPurgeItem(kind.Value, kind.Key, u.Key, null, null)).ToList()));
+                purgeable.Add(
+                    new CadPurgeCategory(
+                        kind.Value,
+                        unused.Select(u => new CadPurgeItem(kind.Value, kind.Key, u.Key, null, null)).ToList()
+                    )
+                );
                 var free = new HashSet<string>(unused.Select(u => u.Key), StringComparer.OrdinalIgnoreCase);
                 var used = new List<CadPurgeItem>();
 
@@ -91,11 +98,18 @@ namespace GeometryHelper.Dxf.Viewer
                     if (!free.Contains(name))
                     {
                         uses.TryGetValue(kind.Key + "|" + name.ToUpperInvariant(), out PurgeUse use);
-                        used.Add(new CadPurgeItem(kind.Value, kind.Key, name, Reasons(c, kind.Key, name, use), use?.Objects));
+                        used.Add(
+                            new CadPurgeItem(kind.Value, kind.Key, name, Reasons(c, kind.Key, name, use), use?.Objects)
+                        );
                     }
                 }
 
-                used.Sort((a, b) => StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name) != 0 ? StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name) : string.CompareOrdinal(a.Name, b.Name));
+                used.Sort(
+                    (a, b) =>
+                        StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name) != 0
+                            ? StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name)
+                            : string.CompareOrdinal(a.Name, b.Name)
+                );
                 inUse.Add(new CadPurgeCategory(kind.Value, used));
             }
 
@@ -123,10 +137,15 @@ namespace GeometryHelper.Dxf.Viewer
                 PurgeEntities(c, false);
             }
 
-            var before = new HashSet<string>(request.Purgeable.SelectMany(k => k.Items).Select(i => i.Keyword + "|" + i.Name), StringComparer.OrdinalIgnoreCase);
+            var before = new HashSet<string>(
+                request.Purgeable.SelectMany(k => k.Items).Select(i => i.Keyword + "|" + i.Name),
+                StringComparer.OrdinalIgnoreCase
+            );
             var declined = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var purged = new List<KeyValuePair<string[], string>>();
-            var pending = items.Select(i => new KeyValuePair<string[], string>(PurgeKinds.First(k => k[0] == i.Keyword), i.Name)).ToList();
+            var pending = items
+                .Select(i => new KeyValuePair<string[], string>(PurgeKinds.First(k => k[0] == i.Keyword), i.Name))
+                .ToList();
             bool stopped = false;
 
             while (pending.Count > 0 && !stopped)
@@ -137,7 +156,11 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     if (request.ConfirmEach)
                     {
-                        CadUiRequestEventArgs asked = c.Session.Ask("PURGEITEM", c.Document, "Purge " + item.Key[1] + " \"" + item.Value + "\"?");
+                        CadUiRequestEventArgs asked = c.Session.Ask(
+                            "PURGEITEM",
+                            c.Document,
+                            "Purge " + item.Key[1] + " \"" + item.Value + "\"?"
+                        );
 
                         if (asked.Handled && asked.Answer == null)
                         {
@@ -213,7 +236,10 @@ namespace GeometryHelper.Dxf.Viewer
             switch (kind)
             {
                 case "Blocks":
-                    names.AddRange(db.BlockTable.Where(b => !b.IsLayout && !b.Name.StartsWith("*", StringComparison.Ordinal)).Select(b => b.Name));
+                    names.AddRange(
+                        db.BlockTable.Where(b => !b.IsLayout && !b.Name.StartsWith("*", StringComparison.Ordinal))
+                            .Select(b => b.Name)
+                    );
                     break;
                 case "Dimstyles":
                     names.AddRange(db.DimStyleTable.Select(s => s.Name));
@@ -225,7 +251,10 @@ namespace GeometryHelper.Dxf.Viewer
                     names.AddRange(db.LinetypeTable.Select(l => l.Name));
                     break;
                 case "textSTyles":
-                    names.AddRange(db.TextStyleTable.Where(s => !s.IsShapeFile && !string.IsNullOrEmpty(s.Name)).Select(s => s.Name));
+                    names.AddRange(
+                        db.TextStyleTable.Where(s => !s.IsShapeFile && !string.IsNullOrEmpty(s.Name))
+                            .Select(s => s.Name)
+                    );
                     break;
                 case "MUltileaderstyles":
                     Dictionary(db.MLeaderStyleDictionary);
@@ -297,7 +326,11 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                bool model = string.Equals(owner.Name, DxfBlockTableRecord.ModelSpace, StringComparison.OrdinalIgnoreCase);
+                bool model = string.Equals(
+                    owner.Name,
+                    DxfBlockTableRecord.ModelSpace,
+                    StringComparison.OrdinalIgnoreCase
+                );
 
                 foreach (DxfEntity entity in owner)
                 {
@@ -359,7 +392,10 @@ namespace GeometryHelper.Dxf.Viewer
                             use.Blocks.Add(owner.Name);
                         }
 
-                        if (ReferenceEquals(owner, shown) || string.Equals(owner.Name, shown.Name, StringComparison.OrdinalIgnoreCase))
+                        if (
+                            ReferenceEquals(owner, shown)
+                            || string.Equals(owner.Name, shown.Name, StringComparison.OrdinalIgnoreCase)
+                        )
                         {
                             if (entity.Handle != null && !use.Objects.Contains(entity.Handle))
                             {
@@ -390,13 +426,22 @@ namespace GeometryHelper.Dxf.Viewer
             var reasons = new List<string>();
             DxfDatabase db = c.Database;
 
-            if (PurgeKept.TryGetValue(kind, out string[] kept) && kept.Any(k => string.Equals(k, name, StringComparison.OrdinalIgnoreCase)))
+            if (
+                PurgeKept.TryGetValue(kind, out string[] kept)
+                && kept.Any(k => string.Equals(k, name, StringComparison.OrdinalIgnoreCase))
+            )
             {
                 reasons.Add(label + " cannot be purged: AutoCAD keeps it in every drawing.");
             }
 
-            string current = kind == "LAyers" ? db.Clayer : kind == "LTypes" ? db.Celtype : kind == "textSTyles" ? db.Textstyle : kind == "Dimstyles" ? db.Dimstyle
-                : kind == "MUltileaderstyles" ? db.MLeaderstyle : kind == "Tablestyles" ? db.Tablestyle : null;
+            string current =
+                kind == "LAyers" ? db.Clayer
+                : kind == "LTypes" ? db.Celtype
+                : kind == "textSTyles" ? db.Textstyle
+                : kind == "Dimstyles" ? db.Dimstyle
+                : kind == "MUltileaderstyles" ? db.MLeaderstyle
+                : kind == "Tablestyles" ? db.Tablestyle
+                : null;
 
             if (current != null && string.Equals(current, name, StringComparison.OrdinalIgnoreCase))
             {
@@ -412,8 +457,15 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 if (use.Model + use.Layouts > 0)
                 {
-                    reasons.Add("Used by " + use.Model.ToString(CultureInfo.InvariantCulture) + " object" + (use.Model == 1 ? string.Empty : "s") + " in model space and "
-                        + use.Layouts.ToString(CultureInfo.InvariantCulture) + " in layouts.");
+                    reasons.Add(
+                        "Used by "
+                            + use.Model.ToString(CultureInfo.InvariantCulture)
+                            + " object"
+                            + (use.Model == 1 ? string.Empty : "s")
+                            + " in model space and "
+                            + use.Layouts.ToString(CultureInfo.InvariantCulture)
+                            + " in layouts."
+                    );
                 }
 
                 foreach (string layer in use.Layers)

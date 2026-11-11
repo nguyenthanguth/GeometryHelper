@@ -32,7 +32,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (move.Value.HasValue)
             {
-                Transform(c, c.Selected, GeoTransform3.Translation(new GeoVector3(move.Value.Value.X, move.Value.Value.Y, 0.0)), false, "Move", Values(move.Value.Value.X, move.Value.Value.Y));
+                Transform(
+                    c,
+                    c.Selected,
+                    GeoTransform3.Translation(new GeoVector3(move.Value.Value.X, move.Value.Value.Y, 0.0)),
+                    false,
+                    "Move",
+                    Values(move.Value.Value.X, move.Value.Value.Y)
+                );
             }
         }
 
@@ -54,11 +61,24 @@ namespace GeometryHelper.Dxf.Viewer
             if (!c.Input.IsPoint)
             {
                 var once = new Ref<GeoVector2?>();
-                GeoVector2 last = new GeoVector2(c.Remembered("displacement.x", 0.0), c.Remembered("displacement.y", 0.0));
-                yield return CadPrompt.ForPoint("Specify displacement", null, null, Length(last.X) + ", " + Length(last.Y) + ", " + Length(0.0));
+                GeoVector2 last = new GeoVector2(
+                    c.Remembered("displacement.x", 0.0),
+                    c.Remembered("displacement.y", 0.0)
+                );
+                yield return CadPrompt.ForPoint(
+                    "Specify displacement",
+                    null,
+                    null,
+                    Length(last.X) + ", " + Length(last.Y) + ", " + Length(0.0)
+                );
                 once.Value = c.Input.IsPoint ? AsDisplacement(c, c.Input.Point) : last;
                 Remember(c, once.Value.Value);
-                Transform(c, c.Selected, GeoTransform3.Translation(new GeoVector3(once.Value.Value.X, once.Value.Value.Y, 0.0)), true);
+                Transform(
+                    c,
+                    c.Selected,
+                    GeoTransform3.Translation(new GeoVector3(once.Value.Value.X, once.Value.Value.Y, 0.0)),
+                    true
+                );
                 yield break;
             }
 
@@ -68,7 +88,16 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (c.Input.IsNone)
             {
-                placed.Add(Transform(c, c.Selected, GeoTransform3.Translation(new GeoVector3(AsDisplacement(c, from).X, AsDisplacement(c, from).Y, 0.0)), true));
+                placed.Add(
+                    Transform(
+                        c,
+                        c.Selected,
+                        GeoTransform3.Translation(
+                            new GeoVector3(AsDisplacement(c, from).X, AsDisplacement(c, from).Y, 0.0)
+                        ),
+                        true
+                    )
+                );
                 yield break;
             }
 
@@ -77,7 +106,9 @@ namespace GeometryHelper.Dxf.Viewer
                 if (c.Input.IsPoint)
                 {
                     GeoVector2 move = c.Input.Point - from;
-                    placed.Add(Transform(c, c.Selected, GeoTransform3.Translation(new GeoVector3(move.X, move.Y, 0.0)), true));
+                    placed.Add(
+                        Transform(c, c.Selected, GeoTransform3.Translation(new GeoVector3(move.X, move.Y, 0.0)), true)
+                    );
                 }
                 else if (c.Input.Is("Undo"))
                 {
@@ -116,7 +147,12 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static IEnumerable<CadPrompt> Rotate(CadCommandContext c)
         {
-            c.Write("Current positive angle in UCS:  ANGDIR=" + (c.Database.Angdir ? "clockwise" : "counterclockwise") + "  ANGBASE=" + Number(c.Database.Angbase * 180.0 / Math.PI));
+            c.Write(
+                "Current positive angle in UCS:  ANGDIR="
+                    + (c.Database.Angdir ? "clockwise" : "counterclockwise")
+                    + "  ANGBASE="
+                    + Number(c.Database.Angbase * 180.0 / Math.PI)
+            );
 
             foreach (CadPrompt prompt in c.SelectObjects())
             {
@@ -146,8 +182,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForAngle("Specify rotation angle", center, new[] { "Copy", "Reference" }, Counted(c, last)).Turning()
-                    .Previewing(CadPreview.MovingOne(c, c.Selected, input => CadPreview.Flat(Turned(input.Number)), true));
+                yield return CadPrompt
+                    .ForAngle("Specify rotation angle", center, new[] { "Copy", "Reference" }, Counted(c, last))
+                    .Turning()
+                    .Previewing(
+                        CadPreview.MovingOne(c, c.Selected, input => CadPreview.Flat(Turned(input.Number)), true)
+                    );
 
                 if (c.Input.Is("Copy"))
                 {
@@ -161,7 +201,9 @@ namespace GeometryHelper.Dxf.Viewer
                     // The objects turned from a reference angle to a new one, each typed or given by two points.
                     var reference = new Ref<double?>();
 
-                    foreach (CadPrompt prompt in Measured(c, "Specify the reference angle", Counted(c, 0.0), true, reference))
+                    foreach (
+                        CadPrompt prompt in Measured(c, "Specify the reference angle", Counted(c, 0.0), true, reference)
+                    )
                     {
                         yield return prompt;
                     }
@@ -172,13 +214,25 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     double from = reference.Value.Value;
-                    yield return CadPrompt.ForAngle("Specify the new angle", center, new[] { "Points" }, Counted(c, 0.0))
-                        .Previewing(CadPreview.MovingOne(c, c.Selected, input => CadPreview.Flat(Turned(input.Number - from)), true));
+                    yield return CadPrompt
+                        .ForAngle("Specify the new angle", center, new[] { "Points" }, Counted(c, 0.0))
+                        .Previewing(
+                            CadPreview.MovingOne(
+                                c,
+                                c.Selected,
+                                input => CadPreview.Flat(Turned(input.Number - from)),
+                                true
+                            )
+                        );
                     var target = new Ref<double?>();
 
                     if (c.Input.Is("Points"))
                     {
-                        foreach (CadPrompt prompt in TwoPoints(c, true, target, value => CadPreview.Flat(Turned(value - from))))
+                        foreach (
+                            CadPrompt prompt in TwoPoints(c, true, target, value =>
+                                CadPreview.Flat(Turned(value - from))
+                            )
+                        )
                         {
                             yield return prompt;
                         }
@@ -230,11 +284,13 @@ namespace GeometryHelper.Dxf.Viewer
             double factor;
 
             // The objects scaled about the base point by a factor, as they are scaled once it is given; none for a factor of nought.
-            Affine2? Scaled(double by) => by > 0.0 ? CadPreview.Flat(GeoTransform3.Scaling(P3(center), by)) : (Affine2?)null;
+            Affine2? Scaled(double by) =>
+                by > 0.0 ? CadPreview.Flat(GeoTransform3.Scaling(P3(center), by)) : (Affine2?)null;
 
             while (true)
             {
-                yield return CadPrompt.ForDistance("Specify scale factor", center, new[] { "Copy", "Reference" }, Length(last))
+                yield return CadPrompt
+                    .ForDistance("Specify scale factor", center, new[] { "Copy", "Reference" }, Length(last))
                     .Previewing(CadPreview.MovingOne(c, c.Selected, input => Scaled(input.Number), true));
 
                 if (c.Input.Is("Copy"))
@@ -260,13 +316,25 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     double length = reference.Value.Value;
-                    yield return CadPrompt.ForDistance("Specify new length", center, new[] { "Points" }, Length(1.0))
-                        .Previewing(CadPreview.MovingOne(c, c.Selected, input => length > c.Session.Tolerance.EqualPoint ? Scaled(input.Number / length) : null, true));
+                    yield return CadPrompt
+                        .ForDistance("Specify new length", center, new[] { "Points" }, Length(1.0))
+                        .Previewing(
+                            CadPreview.MovingOne(
+                                c,
+                                c.Selected,
+                                input => length > c.Session.Tolerance.EqualPoint ? Scaled(input.Number / length) : null,
+                                true
+                            )
+                        );
                     var target = new Ref<double?>();
 
                     if (c.Input.Is("Points"))
                     {
-                        foreach (CadPrompt prompt in TwoPoints(c, false, target, value => length > c.Session.Tolerance.EqualPoint ? Scaled(value / length) : null))
+                        foreach (
+                            CadPrompt prompt in TwoPoints(c, false, target, value =>
+                                length > c.Session.Tolerance.EqualPoint ? Scaled(value / length) : null
+                            )
+                        )
                         {
                             yield return prompt;
                         }
@@ -303,7 +371,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             c.Remember("scale", factor);
-            Transform(c, c.Selected, GeoTransform3.Scaling(P3(center), factor), copy, "Scale", Values(center.X, center.Y, factor));
+            Transform(
+                c,
+                c.Selected,
+                GeoTransform3.Scaling(P3(center), factor),
+                copy,
+                "Scale",
+                Values(center.X, center.Y, factor)
+            );
         }
 
         private static IEnumerable<CadPrompt> Mirror(CadCommandContext c)
@@ -337,8 +412,19 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify second point of mirror line", first)
-                    .Previewing(CadPreview.MovingOne(c, c.Selected, input => (input.Point - first).Length > c.Session.Tolerance.EqualPoint ? CadPreview.Flat(Mirrored(input.Point)) : (Affine2?)null, true));
+                yield return CadPrompt
+                    .ForPoint("Specify second point of mirror line", first)
+                    .Previewing(
+                        CadPreview.MovingOne(
+                            c,
+                            c.Selected,
+                            input =>
+                                (input.Point - first).Length > c.Session.Tolerance.EqualPoint
+                                    ? CadPreview.Flat(Mirrored(input.Point))
+                                    : (Affine2?)null,
+                            true
+                        )
+                    );
 
                 if (!c.Input.IsPoint)
                 {
@@ -368,7 +454,15 @@ namespace GeometryHelper.Dxf.Viewer
                 readable = entity => Readable(document, entity, mirror, tolerance);
             }
 
-            Transform(c, c.Selected, mirror, !c.Input.Is("Yes"), "Mirror", Values(first.X, first.Y, second.X, second.Y), readable);
+            Transform(
+                c,
+                c.Selected,
+                mirror,
+                !c.Input.Is("Yes"),
+                "Mirror",
+                Values(first.X, first.Y, second.X, second.Y),
+                readable
+            );
         }
 
         private static IEnumerable<CadPrompt> Explode(CadCommandContext c)
@@ -389,12 +483,20 @@ namespace GeometryHelper.Dxf.Viewer
                 // An entity of an owner is not exploded: its owner would take the erase as its own and the pieces be lost.
                 if (entity != null && c.Document.Owners.GetEditRule(entity) != CadEditRule.Free)
                 {
-                    c.Write("This " + (entity is DxfDimension ? "dimension" : CadOwnerEditGate.Describe(entity)) + " belongs to the model and cannot be exploded here.");
+                    c.Write(
+                        "This "
+                            + (entity is DxfDimension ? "dimension" : CadOwnerEditGate.Describe(entity))
+                            + " belongs to the model and cannot be exploded here."
+                    );
                     continue;
                 }
 
                 // A block kept from exploding (Allow exploding cleared) is refused, as AutoCAD's EXPLODE refuses it.
-                if (entity is DxfBlockReference insert && insert.BlockTableRecord != null && !insert.BlockTableRecord.Explodable)
+                if (
+                    entity is DxfBlockReference insert
+                    && insert.BlockTableRecord != null
+                    && !insert.BlockTableRecord.Explodable
+                )
                 {
                     refused++;
                     continue;
@@ -425,7 +527,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (refused > 0)
             {
-                c.Write(refused.ToString(CultureInfo.InvariantCulture) + (refused == 1 ? " was" : " were") + " not able to be exploded.");
+                c.Write(
+                    refused.ToString(CultureInfo.InvariantCulture)
+                        + (refused == 1 ? " was" : " were")
+                        + " not able to be exploded."
+                );
             }
 
             if (parts.Count == 0)
@@ -527,7 +633,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (string handle in targets)
             {
-                planned.Add(new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "Match properties", null, source));
+                planned.Add(
+                    new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "Match properties", null, source)
+                );
             }
 
             CadMatchProperties which = c.Session.MatchProperties;
@@ -569,7 +677,21 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> LayerTyped(CadCommandContext c)
         {
-            string[] options = { "Set", "New", "ON", "OFF", "TRansparency", "Plot", "Freeze", "Thaw", "LOck", "Unlock", "stAte", "Description" };
+            string[] options =
+            {
+                "Set",
+                "New",
+                "ON",
+                "OFF",
+                "TRansparency",
+                "Plot",
+                "Freeze",
+                "Thaw",
+                "LOck",
+                "Unlock",
+                "stAte",
+                "Description",
+            };
             c.Write("Current layer:  \"" + c.Database.Clayer + "\"");
 
             while (true)
@@ -604,7 +726,14 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         yield return CadPrompt.ForInteger("Enter transparency value (0-90)");
 
-                        if (c.Input.Kind != CadInputKind.Number || (c.Input.Number >= 0 && c.Input.Number <= 90 && c.Input.Number == Math.Floor(c.Input.Number)))
+                        if (
+                            c.Input.Kind != CadInputKind.Number
+                            || (
+                                c.Input.Number >= 0
+                                && c.Input.Number <= 90
+                                && c.Input.Number == Math.Floor(c.Input.Number)
+                            )
+                        )
                         {
                             break;
                         }
@@ -621,7 +750,11 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (option == "Plot")
                 {
-                    yield return CadPrompt.ForKeyword("Enter a plotting preference", new[] { "Plot", "No plot" }, "Plot");
+                    yield return CadPrompt.ForKeyword(
+                        "Enter a plotting preference",
+                        new[] { "Plot", "No plot" },
+                        "Plot"
+                    );
                     plotted = !c.Input.Is("No plot");
                 }
                 else if (option == "Description")
@@ -640,21 +773,51 @@ namespace GeometryHelper.Dxf.Viewer
 
                 switch (option)
                 {
-                    case "Set": ask = "Enter layer name to make current"; break;
-                    case "New": ask = "Enter name list for new layer(s)"; break;
-                    case "ON": ask = "Enter name list of layer(s) to turn On"; break;
-                    case "OFF": ask = "Enter name list of layer(s) to turn Off"; break;
-                    case "TRansparency": ask = "Enter name list of layer(s) for transparency " + percent.ToString(CultureInfo.InvariantCulture) + "%"; current = c.Database.Clayer; break;
-                    case "Plot": ask = "Enter layer name(s) for this plot preference"; current = c.Database.Clayer; break;
-                    case "Freeze": ask = "Enter name list of layer(s) to freeze"; break;
-                    case "Thaw": ask = "Enter name list of layer(s) to thaw"; break;
-                    case "LOck": ask = "Enter name list of layer(s) to lock"; break;
-                    case "Description": ask = "Enter name list of layer(s) to apply description"; break;
-                    default: ask = "Enter name list of layer(s) to unlock"; break;
+                    case "Set":
+                        ask = "Enter layer name to make current";
+                        break;
+                    case "New":
+                        ask = "Enter name list for new layer(s)";
+                        break;
+                    case "ON":
+                        ask = "Enter name list of layer(s) to turn On";
+                        break;
+                    case "OFF":
+                        ask = "Enter name list of layer(s) to turn Off";
+                        break;
+                    case "TRansparency":
+                        ask =
+                            "Enter name list of layer(s) for transparency "
+                            + percent.ToString(CultureInfo.InvariantCulture)
+                            + "%";
+                        current = c.Database.Clayer;
+                        break;
+                    case "Plot":
+                        ask = "Enter layer name(s) for this plot preference";
+                        current = c.Database.Clayer;
+                        break;
+                    case "Freeze":
+                        ask = "Enter name list of layer(s) to freeze";
+                        break;
+                    case "Thaw":
+                        ask = "Enter name list of layer(s) to thaw";
+                        break;
+                    case "LOck":
+                        ask = "Enter name list of layer(s) to lock";
+                        break;
+                    case "Description":
+                        ask = "Enter name list of layer(s) to apply description";
+                        break;
+                    default:
+                        ask = "Enter name list of layer(s) to unlock";
+                        break;
                 }
 
                 yield return CadPrompt.ForString(ask, current);
-                string names = c.Input.Kind == CadInputKind.Text ? c.Input.Text : c.Input.IsNone ? current : null;
+                string names =
+                    c.Input.Kind == CadInputKind.Text ? c.Input.Text
+                    : c.Input.IsNone ? current
+                    : null;
 
                 if (names == null)
                 {
@@ -677,20 +840,41 @@ namespace GeometryHelper.Dxf.Viewer
                     switch (option)
                     {
                         case "Set":
-                            result = c.Database.LayerTable.Has(name) && c.Database.LayerTable[name].IsDependent
-                                ? CadEditResult.Refuse("Invalid layer name.")
-                                : CadLayerEditor.SetCurrent(c.Document, name);
+                            result =
+                                c.Database.LayerTable.Has(name) && c.Database.LayerTable[name].IsDependent
+                                    ? CadEditResult.Refuse("Invalid layer name.")
+                                    : CadLayerEditor.SetCurrent(c.Document, name);
                             break;
-                        case "New": result = CadLayerEditor.Add(c.Document, name); break;
-                        case "ON": result = CadLayerEditor.SetOn(c.Document, name, true); break;
-                        case "OFF": result = CadLayerEditor.SetOn(c.Document, name, false); break;
-                        case "Freeze": result = CadLayerEditor.SetFrozen(c.Document, name, true); break;
-                        case "Thaw": result = CadLayerEditor.SetFrozen(c.Document, name, false); break;
-                        case "LOck": result = CadLayerEditor.SetLocked(c.Document, name, true); break;
-                        case "TRansparency": result = CadLayerEditor.SetTransparency(c.Document, name, percent); break;
-                        case "Plot": result = CadLayerEditor.SetPlottable(c.Document, name, plotted); break;
-                        case "Description": result = CadLayerEditor.SetDescription(c.Document, name, description); break;
-                        default: result = CadLayerEditor.SetLocked(c.Document, name, false); break;
+                        case "New":
+                            result = CadLayerEditor.Add(c.Document, name);
+                            break;
+                        case "ON":
+                            result = CadLayerEditor.SetOn(c.Document, name, true);
+                            break;
+                        case "OFF":
+                            result = CadLayerEditor.SetOn(c.Document, name, false);
+                            break;
+                        case "Freeze":
+                            result = CadLayerEditor.SetFrozen(c.Document, name, true);
+                            break;
+                        case "Thaw":
+                            result = CadLayerEditor.SetFrozen(c.Document, name, false);
+                            break;
+                        case "LOck":
+                            result = CadLayerEditor.SetLocked(c.Document, name, true);
+                            break;
+                        case "TRansparency":
+                            result = CadLayerEditor.SetTransparency(c.Document, name, percent);
+                            break;
+                        case "Plot":
+                            result = CadLayerEditor.SetPlottable(c.Document, name, plotted);
+                            break;
+                        case "Description":
+                            result = CadLayerEditor.SetDescription(c.Document, name, description);
+                            break;
+                        default:
+                            result = CadLayerEditor.SetLocked(c.Document, name, false);
+                            break;
                     }
 
                     if (!result.Succeeded)
@@ -754,7 +938,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// Asks a reference angle or length as AutoCAD's Reference option does: typed as a number (an angle in degrees), Enter
         /// for the default (nought degrees, a length of 1), or by two points, the second asked after the first.
         /// </summary>
-        private static IEnumerable<CadPrompt> Measured(CadCommandContext c, string message, string offered, bool angle, Ref<double?> result)
+        private static IEnumerable<CadPrompt> Measured(
+            CadCommandContext c,
+            string message,
+            string offered,
+            bool angle,
+            Ref<double?> result
+        )
         {
             yield return CadPrompt.ForPoint(message, null, null, offered, true);
 
@@ -764,9 +954,15 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (c.Input.Kind == CadInputKind.Text)
             {
-                if (double.TryParse(c.Input.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double typed) && !double.IsNaN(typed) && !double.IsInfinity(typed))
+                if (
+                    double.TryParse(c.Input.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double typed)
+                    && !double.IsNaN(typed)
+                    && !double.IsInfinity(typed)
+                )
                 {
-                    result.Value = angle ? CadUnits.ToDirection(typed * Math.PI / 180.0, c.Database.Angbase, c.Database.Angdir) : typed;
+                    result.Value = angle
+                        ? CadUnits.ToDirection(typed * Math.PI / 180.0, c.Database.Angbase, c.Database.Angdir)
+                        : typed;
                 }
                 else
                 {
@@ -790,7 +986,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// Asks two points and gives the angle of the line from the first to the second, or its length; the second point
         /// previewing the objects selected moved as <paramref name="moved"/> moves them by the value to the cursor, where given.
         /// </summary>
-        private static IEnumerable<CadPrompt> TwoPoints(CadCommandContext c, bool angle, Ref<double?> result, Func<double, Affine2?> moved = null)
+        private static IEnumerable<CadPrompt> TwoPoints(
+            CadCommandContext c,
+            bool angle,
+            Ref<double?> result,
+            Func<double, Affine2?> moved = null
+        )
         {
             yield return CadPrompt.ForPoint("Specify first point");
 
@@ -808,7 +1009,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             CadPrompt second = CadPrompt.ForPoint("Specify second point", first);
-            yield return moved == null ? second : second.Previewing(CadPreview.MovingOne(c, c.Selected, input => moved(Between(input.Point)), true));
+            yield return moved == null
+                ? second
+                : second.Previewing(CadPreview.MovingOne(c, c.Selected, input => moved(Between(input.Point)), true));
 
             if (c.Input.IsPoint)
             {
@@ -830,15 +1033,26 @@ namespace GeometryHelper.Dxf.Viewer
         /// Asks the base point and the second point, or a displacement, as MOVE asks them; the second point previewing what
         /// <paramref name="preview"/> makes of the displacement to the cursor, where it is given.
         /// </summary>
-        private static IEnumerable<CadPrompt> Displacement(CadCommandContext c, Ref<GeoVector2?> result, Func<GeoVector2, IEnumerable<DxfEntity>> preview = null)
+        private static IEnumerable<CadPrompt> Displacement(
+            CadCommandContext c,
+            Ref<GeoVector2?> result,
+            Func<GeoVector2, IEnumerable<DxfEntity>> preview = null
+        )
         {
             yield return CadPrompt.ForPoint("Specify base point", null, new[] { "Displacement" }, "Displacement");
 
             if (c.Input.IsPoint)
             {
                 GeoPoint2 from = c.Input.Point;
-                CadPrompt second = CadPrompt.ForPoint("Specify second point or", from, null, "use first point as displacement");
-                yield return preview == null ? second : second.Previewing(CadPreview.Making(c, input => preview(input.Point - from), true));
+                CadPrompt second = CadPrompt.ForPoint(
+                    "Specify second point or",
+                    from,
+                    null,
+                    "use first point as displacement"
+                );
+                yield return preview == null
+                    ? second
+                    : second.Previewing(CadPreview.Making(c, input => preview(input.Point - from), true));
                 result.Value = c.Input.IsPoint ? c.Input.Point - from : AsDisplacement(c, from);
                 yield break;
             }
@@ -849,7 +1063,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             var last = new GeoVector2(c.Remembered("displacement.x", 0.0), c.Remembered("displacement.y", 0.0));
-            yield return CadPrompt.ForPoint("Specify displacement", null, null, Length(last.X) + ", " + Length(last.Y) + ", " + Length(0.0));
+            yield return CadPrompt.ForPoint(
+                "Specify displacement",
+                null,
+                null,
+                Length(last.X) + ", " + Length(last.Y) + ", " + Length(0.0)
+            );
             result.Value = c.Input.IsPoint ? AsDisplacement(c, c.Input.Point) : last;
             Remember(c, result.Value.Value);
         }
@@ -864,7 +1083,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// Moves, turns, scales or mirrors entities, or copies of them; gives the handles of the copies. A mirror that keeps
         /// texts readable gives each its own move (<paramref name="readable"/>), worked out before it moves.
         /// </summary>
-        private static List<string> Transform(CadCommandContext c, IReadOnlyList<string> handles, GeoTransform3 transform, bool copy, string how = "Move", string value = null, Func<DxfEntity, ReadableMirror> readable = null)
+        private static List<string> Transform(
+            CadCommandContext c,
+            IReadOnlyList<string> handles,
+            GeoTransform3 transform,
+            bool copy,
+            string how = "Move",
+            string value = null,
+            Func<DxfEntity, ReadableMirror> readable = null
+        )
         {
             var planned = new List<CadEditRecord>();
 

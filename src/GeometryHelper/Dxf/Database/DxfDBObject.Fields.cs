@@ -75,14 +75,21 @@ namespace GeometryHelper.Dxf
             // The field and every field it holds, which are written with it and bound to their records.
             if (field.AnyInFile())
             {
-                throw new ArgumentException("A field is given to an object made in code and in no file yet, with every field it holds: the " + field + " or one of its fields is in one.", nameof(field));
+                throw new ArgumentException(
+                    "A field is given to an object made in code and in no file yet, with every field it holds: the "
+                        + field
+                        + " or one of its fields is in one.",
+                    nameof(field)
+                );
             }
 
             DxfFile file = InFile("be given a field");
 
             if (!file.Supports(1018))
             {
-                throw new InvalidOperationException("A DXF older than R2004 (AC1018) has no FIELD: fields came with it.");
+                throw new InvalidOperationException(
+                    "A DXF older than R2004 (AC1018) has no FIELD: fields came with it."
+                );
             }
 
             DxfField.Write(FieldDictionary(true), propertyName, field);
@@ -182,7 +189,9 @@ namespace GeometryHelper.Dxf
 
                 if (make)
                 {
-                    throw new InvalidOperationException("The extension dictionary of the object holds an ACAD_FIELD that is not a dictionary, which fields are kept in.");
+                    throw new InvalidOperationException(
+                        "The extension dictionary of the object holds an ACAD_FIELD that is not a dictionary, which fields are kept in."
+                    );
                 }
 
                 return null;
@@ -208,14 +217,20 @@ namespace GeometryHelper.Dxf
 
             if (propertyName.Trim().Length == 0)
             {
-                throw new ArgumentException("The name of a property has to be given: TEXT for the words of a text.", nameof(propertyName));
+                throw new ArgumentException(
+                    "The name of a property has to be given: TEXT for the words of a text.",
+                    nameof(propertyName)
+                );
             }
 
             foreach (char c in propertyName)
             {
                 if (c < ' ')
                 {
-                    throw new ArgumentException("The name of a property has no control character in it: '" + propertyName + "' has one.", nameof(propertyName));
+                    throw new ArgumentException(
+                        "The name of a property has no control character in it: '" + propertyName + "' has one.",
+                        nameof(propertyName)
+                    );
                 }
             }
         }

@@ -14,30 +14,43 @@ namespace GeometryHelper.IfcConvert.UnitTest
         /// metres, its hundredth would be ten millimetres, more than a bolt hole.
         /// </summary>
         private static readonly GeometryHelper.Tolerance InMetres = new GeometryHelper.Tolerance(
-            GeometryHelper.Tolerance.DefaultEqualPoint * 1E-3, GeometryHelper.Tolerance.DefaultEqualVector * 1E-3,
-            GeometryHelper.Tolerance.DefaultEqualAngleRad, GeometryHelper.Tolerance.DefaultEqualPlanar * 1E-3);
+            GeometryHelper.Tolerance.DefaultEqualPoint * 1E-3,
+            GeometryHelper.Tolerance.DefaultEqualVector * 1E-3,
+            GeometryHelper.Tolerance.DefaultEqualAngleRad,
+            GeometryHelper.Tolerance.DefaultEqualPlanar * 1E-3
+        );
 
-        private static string Member(string profileAndSolid) => IfcTestFile.CommonHeader() + profileAndSolid + @"
+        private static string Member(string profileAndSolid) =>
+            IfcTestFile.CommonHeader()
+            + profileAndSolid
+            + @"
 #22=IFCSHAPEREPRESENTATION(#11,'Body','SweptSolid',(#21));
 #23=IFCPRODUCTDEFINITIONSHAPE($,$,(#22));
 #24=IFCLOCALPLACEMENT($,#8);
-#25=IFCCOLUMN('" + Guid + @"',$,'Member',$,$,#24,#23,$,$);
+#25=IFCCOLUMN('"
+            + Guid
+            + @"',$,'Member',$,$,#24,#23,$,$);
 ";
 
         // Round column: r = 0.5, h = 2 -> V = pi * 0.25 * 2
-        private static readonly string RoundColumn = Member(@"
+        private static readonly string RoundColumn = Member(
+            @"
 #20=IFCCIRCLEPROFILEDEF(.AREA.,$,#5,0.5);
 #21=IFCEXTRUDEDAREASOLID(#20,#8,#9,2.);
-");
+"
+        );
 
         // Tube: r = 0.5, wall 0.1, h = 2 -> V = pi * (0.25 - 0.16) * 2
-        private static readonly string Tube = Member(@"
+        private static readonly string Tube = Member(
+            @"
 #20=IFCCIRCLEHOLLOWPROFILEDEF(.AREA.,$,#5,0.5,0.1);
 #21=IFCEXTRUDEDAREASOLID(#20,#8,#9,2.);
-");
+"
+        );
 
         // Steel plate 1 x 1 x 0.1 with one r = 0.2 bolt hole -> V = (1 - pi * 0.04) * 0.1
-        private static readonly string PlateWithBoltHole = Member(@"
+        private static readonly string PlateWithBoltHole = Member(
+            @"
 #30=IFCCARTESIANPOINT((-0.5,-0.5));
 #31=IFCCARTESIANPOINT((0.5,-0.5));
 #32=IFCCARTESIANPOINT((0.5,0.5));
@@ -46,17 +59,21 @@ namespace GeometryHelper.IfcConvert.UnitTest
 #35=IFCCIRCLE(#5,0.2);
 #20=IFCARBITRARYPROFILEDEFWITHVOIDS(.AREA.,$,#34,(#35));
 #21=IFCEXTRUDEDAREASOLID(#20,#8,#9,0.1);
-");
+"
+        );
 
-        public static TheoryData<string, string, double> Cases => new TheoryData<string, string, double>
-        {
-            { "round column", RoundColumn, Math.PI * 0.25 * 2.0 },
-            { "tube", Tube, Math.PI * (0.25 - 0.16) * 2.0 },
-            { "plate with bolt hole", PlateWithBoltHole, (1.0 - Math.PI * 0.04) * 0.1 },
-        };
+        public static TheoryData<string, string, double> Cases =>
+            new TheoryData<string, string, double>
+            {
+                { "round column", RoundColumn, Math.PI * 0.25 * 2.0 },
+                { "tube", Tube, Math.PI * (0.25 - 0.16) * 2.0 },
+                { "plate with bolt hole", PlateWithBoltHole, (1.0 - Math.PI * 0.04) * 0.1 },
+            };
 
         // Tekla-style millimetre model: 200 x 200 x 20 plate with an M20 bolt hole (r = 11).
-        private static readonly string MillimetrePlateWithBoltHole = IfcTestFile.CommonHeader("..MILLI.,.METRE.") + @"
+        private static readonly string MillimetrePlateWithBoltHole =
+            IfcTestFile.CommonHeader("..MILLI.,.METRE.")
+            + @"
 #30=IFCCARTESIANPOINT((-100.,-100.));
 #31=IFCCARTESIANPOINT((100.,-100.));
 #32=IFCCARTESIANPOINT((100.,100.));
@@ -68,7 +85,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
 #22=IFCSHAPEREPRESENTATION(#11,'Body','SweptSolid',(#21));
 #23=IFCPRODUCTDEFINITIONSHAPE($,$,(#22));
 #24=IFCLOCALPLACEMENT($,#8);
-#25=IFCPLATE('" + Guid + @"',$,'Plate',$,$,#24,#23,$,$);
+#25=IFCPLATE('"
+            + Guid
+            + @"',$,'Plate',$,$,#24,#23,$,$);
 ";
 
         [Theory]
@@ -98,13 +117,17 @@ namespace GeometryHelper.IfcConvert.UnitTest
         }
 
         // Millimetre model: 10 x 10 x 2000 flat bar. Its 10 x 10 mm end faces are 1e-4 m2 when output in metres.
-        private static readonly string MillimetreFlatBar = IfcTestFile.CommonHeader("..MILLI.,.METRE.") + @"
+        private static readonly string MillimetreFlatBar =
+            IfcTestFile.CommonHeader("..MILLI.,.METRE.")
+            + @"
 #20=IFCRECTANGLEPROFILEDEF(.AREA.,$,#5,10.,10.);
 #21=IFCEXTRUDEDAREASOLID(#20,#8,#9,2000.);
 #22=IFCSHAPEREPRESENTATION(#11,'Body','SweptSolid',(#21));
 #23=IFCPRODUCTDEFINITIONSHAPE($,$,(#22));
 #24=IFCLOCALPLACEMENT($,#8);
-#25=IFCMEMBER('" + Guid + @"',$,'Bar',$,$,#24,#23,$,$);
+#25=IFCMEMBER('"
+            + Guid
+            + @"',$,'Bar',$,$,#24,#23,$,$);
 ";
 
         [Fact]
@@ -112,7 +135,10 @@ namespace GeometryHelper.IfcConvert.UnitTest
         {
             IfcTestFile.Run(MillimetreFlatBar, model =>
             {
-                var solid = model.GetSolid(Guid, new IfcConvertOptions { TargetUnit = LengthUnit.Meters, Tolerance = InMetres });
+                var solid = model.GetSolid(
+                    Guid,
+                    new IfcConvertOptions { TargetUnit = LengthUnit.Meters, Tolerance = InMetres }
+                );
                 Assert.NotNull(solid);
                 Assert.Equal(6, solid.Faces.Count);
                 Assert.True(solid.IsClosed(), "solid is not closed");
@@ -131,7 +157,10 @@ namespace GeometryHelper.IfcConvert.UnitTest
                 Assert.True(solid.IsClosed(), name + ": solid is not closed");
 
                 double error = Math.Abs(solid.GetVolume() - expectedVolume) / expectedVolume;
-                Assert.True(error < 0.01, $"{name}: volume {solid.GetVolume():F5} vs expected {expectedVolume:F5} ({error:P2} off)");
+                Assert.True(
+                    error < 0.01,
+                    $"{name}: volume {solid.GetVolume():F5} vs expected {expectedVolume:F5} ({error:P2} off)"
+                );
             });
         }
     }

@@ -41,7 +41,8 @@ namespace GeometryHelper.Core
         /// upright across it along y = 50; moved up to stand on z = 10 the square misses it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static bool CollidesWith(GeoTriangle3 triangle, GeoPolygon3 polygon) => CollidesWith(triangle, polygon, Tolerance.Global);
+        public static bool CollidesWith(GeoTriangle3 triangle, GeoPolygon3 polygon) =>
+            CollidesWith(triangle, polygon, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a triangle and a polygon touch, within a tolerance.
@@ -64,7 +65,8 @@ namespace GeometryHelper.Core
             }
 
             return triangle.GetAabb().DistanceTo(polygon.GetAabb()) <= Reach(tolerance)
-                && Gap3.Regions(Gap3.Region.Of(triangle), Gap3.Region.Of(polygon), tolerance.EqualPoint) <= tolerance.EqualPoint;
+                && Gap3.Regions(Gap3.Region.Of(triangle), Gap3.Region.Of(polygon), tolerance.EqualPoint)
+                    <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -76,7 +78,8 @@ namespace GeometryHelper.Core
         /// material, it is.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static bool CollidesWith(GeoTriangle3 triangle, GeoFace3 face) => CollidesWith(triangle, face, Tolerance.Global);
+        public static bool CollidesWith(GeoTriangle3 triangle, GeoFace3 face) =>
+            CollidesWith(triangle, face, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a triangle and the material of a face touch, within a tolerance.
@@ -99,7 +102,8 @@ namespace GeometryHelper.Core
             }
 
             return triangle.GetAabb().DistanceTo(face.GetAabb()) <= Reach(tolerance)
-                && Gap3.Regions(Gap3.Region.Of(triangle), Gap3.Region.Of(face), tolerance.EqualPoint) <= tolerance.EqualPoint;
+                && Gap3.Regions(Gap3.Region.Of(triangle), Gap3.Region.Of(face), tolerance.EqualPoint)
+                    <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -110,7 +114,8 @@ namespace GeometryHelper.Core
         /// along y = 50, and one lying beside it from x = 100 to 200; one lying 10 above it touches nothing.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when either polygon is null.</exception>
-        public static bool CollidesWith(GeoPolygon3 polygon1, GeoPolygon3 polygon2) => CollidesWith(polygon1, polygon2, Tolerance.Global);
+        public static bool CollidesWith(GeoPolygon3 polygon1, GeoPolygon3 polygon2) =>
+            CollidesWith(polygon1, polygon2, Tolerance.Global);
 
         /// <summary>
         /// Determines whether two polygons touch, within a tolerance.
@@ -140,7 +145,8 @@ namespace GeometryHelper.Core
             }
 
             return polygon1.GetAabb().DistanceTo(polygon2.GetAabb()) <= Reach(tolerance)
-                && Gap3.Regions(Gap3.Region.Of(polygon1), Gap3.Region.Of(polygon2), tolerance.EqualPoint) <= tolerance.EqualPoint;
+                && Gap3.Regions(Gap3.Region.Of(polygon1), Gap3.Region.Of(polygon2), tolerance.EqualPoint)
+                    <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -151,7 +157,8 @@ namespace GeometryHelper.Core
         /// standing upright in the middle of the hole, nor by one lying in the hole; one lying across the rim touches it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face or the polygon is null.</exception>
-        public static bool CollidesWith(GeoFace3 face, GeoPolygon3 polygon) => CollidesWith(face, polygon, Tolerance.Global);
+        public static bool CollidesWith(GeoFace3 face, GeoPolygon3 polygon) =>
+            CollidesWith(face, polygon, Tolerance.Global);
 
         /// <summary>
         /// Determines whether the material of a face and a polygon touch, within a tolerance.
@@ -178,7 +185,8 @@ namespace GeometryHelper.Core
             }
 
             return face.GetAabb().DistanceTo(polygon.GetAabb()) <= Reach(tolerance)
-                && Gap3.Regions(Gap3.Region.Of(face), Gap3.Region.Of(polygon), tolerance.EqualPoint) <= tolerance.EqualPoint;
+                && Gap3.Regions(Gap3.Region.Of(face), Gap3.Region.Of(polygon), tolerance.EqualPoint)
+                    <= tolerance.EqualPoint;
         }
 
         /// <summary>
@@ -217,7 +225,8 @@ namespace GeometryHelper.Core
             }
 
             return face1.GetAabb().DistanceTo(face2.GetAabb()) <= Reach(tolerance)
-                && Gap3.Regions(Gap3.Region.Of(face1), Gap3.Region.Of(face2), tolerance.EqualPoint) <= tolerance.EqualPoint;
+                && Gap3.Regions(Gap3.Region.Of(face1), Gap3.Region.Of(face2), tolerance.EqualPoint)
+                    <= tolerance.EqualPoint;
         }
 
         #endregion
@@ -231,7 +240,8 @@ namespace GeometryHelper.Core
         /// The floor plane touches the triangle with corners (0, 50, -50), (100, 50, -50) and (0, 50, 50) standing
         /// across it, and one lying in it; moved up 10 above the floor, a triangle lying flat misses it.
         /// </remarks>
-        public static bool CollidesWith(GeoPlane3 plane, GeoTriangle3 triangle) => CollidesWith(plane, triangle, Tolerance.Global);
+        public static bool CollidesWith(GeoPlane3 plane, GeoTriangle3 triangle) =>
+            CollidesWith(plane, triangle, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a triangle touches a plane, within a tolerance.
@@ -262,7 +272,8 @@ namespace GeometryHelper.Core
         /// from z = 0 to 100, and one lying in it; one standing from z = 10 misses it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static bool CollidesWith(GeoPlane3 plane, GeoPolygon3 polygon) => CollidesWith(plane, polygon, Tolerance.Global);
+        public static bool CollidesWith(GeoPlane3 plane, GeoPolygon3 polygon) =>
+            CollidesWith(plane, polygon, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a polygon touches a plane, within a tolerance.
@@ -333,7 +344,8 @@ namespace GeometryHelper.Core
         /// its top, and missed by the plane z = 101.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the solid is null.</exception>
-        public static bool CollidesWith(GeoPlane3 plane, GeoSolid3 solid) => CollidesWith(plane, solid, Tolerance.Global);
+        public static bool CollidesWith(GeoPlane3 plane, GeoSolid3 solid) =>
+            CollidesWith(plane, solid, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a body touches a plane, within a tolerance.
@@ -405,7 +417,8 @@ namespace GeometryHelper.Core
         {
             double rise = ray.Origin.GetVectorTo(plane.Origin).DotProduct(plane.Normal);
 
-            return Math.Abs(rise) <= tolerance.EqualPlanar || Intersection3.TryIntersectWith(ray, plane, out _, tolerance);
+            return Math.Abs(rise) <= tolerance.EqualPlanar
+                || Intersection3.TryIntersectWith(ray, plane, out _, tolerance);
         }
 
         /// <summary>
@@ -456,8 +469,8 @@ namespace GeometryHelper.Core
         /// along X touches one from (50, -50, 0) along Y, and one along the X axis from 100 facing back; one from
         /// (50, 10, 0) along Y misses it, and so does one along the X axis from -100 facing away.
         /// </remarks>
-        public static bool CollidesWith(GeoRay3 ray1, GeoRay3 ray2, Tolerance tolerance)
-            => Projection3.GetShortestLineTo(ray1, ray2, tolerance).Length <= tolerance.EqualPoint;
+        public static bool CollidesWith(GeoRay3 ray1, GeoRay3 ray2, Tolerance tolerance) =>
+            Projection3.GetShortestLineTo(ray1, ray2, tolerance).Length <= tolerance.EqualPoint;
 
         #endregion
     }

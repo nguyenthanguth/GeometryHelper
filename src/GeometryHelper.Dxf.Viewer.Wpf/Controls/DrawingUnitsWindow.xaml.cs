@@ -18,7 +18,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Model = model ?? throw new ArgumentNullException(nameof(model));
             InitializeComponent();
             DataContext = model;
-            model.ShowDirection = direction => new DirectionControlWindow(direction) { Owner = this }.ShowDialog() == true && direction.Request.Action == CadDialogAction.SelectObjects;
+            model.ShowDirection = direction =>
+                new DirectionControlWindow(direction) { Owner = this }.ShowDialog() == true
+                && direction.Request.Action == CadDialogAction.SelectObjects;
             Loaded += (sender, e) =>
             {
                 // Back from Direction Control's pick: Direction Control again, with the angle picked.

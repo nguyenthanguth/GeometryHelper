@@ -10,11 +10,22 @@ namespace GeometryHelper.Drawing.UnitTest
     {
         private static readonly Tolerance Tolerance = Tolerance.Default;
 
-        private static GeoSolid3 Box(double x, double y, double z)
-            => GeoSolid3.Extrude(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(x, 0), new GeoPoint2(x, y), new GeoPoint2(0, y)), GeoCoordinateSystem3.Global, z, Tolerance);
+        private static GeoSolid3 Box(double x, double y, double z) =>
+            GeoSolid3.Extrude(
+                new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(x, 0), new GeoPoint2(x, y), new GeoPoint2(0, y)),
+                GeoCoordinateSystem3.Global,
+                z,
+                Tolerance
+            );
 
-        private static DrawingObject Part(string id, bool isMain = false, GeoCoordinateSystem3? frame = null)
-            => new DrawingObject(id, DrawingObjectKind.Part, Box(30, 20, 10), frame ?? GeoCoordinateSystem3.Global, isMain: isMain);
+        private static DrawingObject Part(string id, bool isMain = false, GeoCoordinateSystem3? frame = null) =>
+            new DrawingObject(
+                id,
+                DrawingObjectKind.Part,
+                Box(30, 20, 10),
+                frame ?? GeoCoordinateSystem3.Global,
+                isMain: isMain
+            );
 
         [Fact]
         public void AnObjectKeepsWhatItIsGivenAndTakesTextsLeftOutAsEmpty()
@@ -22,7 +33,16 @@ namespace GeometryHelper.Drawing.UnitTest
             GeoSolid3 body = Box(300, 200, 20);
             var frame = new GeoCoordinateSystem3(new GeoPoint3(1, 2, 3), GeoVector3.YAxis, GeoVector3.ZAxis);
 
-            var plate = new DrawingObject("P-1", DrawingObjectKind.Part, body, frame, name: "PLATE", mark: "P1", parentId: "A-1", isMain: true);
+            var plate = new DrawingObject(
+                "P-1",
+                DrawingObjectKind.Part,
+                body,
+                frame,
+                name: "PLATE",
+                mark: "P1",
+                parentId: "A-1",
+                isMain: true
+            );
 
             Assert.Equal("P-1", plate.Id);
             Assert.Equal(DrawingObjectKind.Part, plate.Kind);
@@ -41,7 +61,15 @@ namespace GeometryHelper.Drawing.UnitTest
         public void AnObjectOfNoAssemblyHasNoParentWhetherItsParentIsLeftOutOrEmpty()
         {
             Assert.Null(Part("P-1").ParentId);
-            Assert.Null(new DrawingObject("P-2", DrawingObjectKind.Bolt, Box(1, 1, 1), GeoCoordinateSystem3.Global, parentId: string.Empty).ParentId);
+            Assert.Null(
+                new DrawingObject(
+                    "P-2",
+                    DrawingObjectKind.Bolt,
+                    Box(1, 1, 1),
+                    GeoCoordinateSystem3.Global,
+                    parentId: string.Empty
+                ).ParentId
+            );
         }
 
         [Fact]
@@ -54,7 +82,13 @@ namespace GeometryHelper.Drawing.UnitTest
                 new KeyValuePair<string, string>("Finish", "galvanised"),
             };
 
-            var plate = new DrawingObject("P-1", DrawingObjectKind.Part, Box(1, 1, 1), GeoCoordinateSystem3.Global, attributes: attributes);
+            var plate = new DrawingObject(
+                "P-1",
+                DrawingObjectKind.Part,
+                Box(1, 1, 1),
+                GeoCoordinateSystem3.Global,
+                attributes: attributes
+            );
 
             Assert.Equal(new[] { "Finish", "PROJECT", "phase" }, plate.Attributes.Keys.ToArray());
             Assert.Equal("Bridge", plate.Attributes["PROJECT"]);
@@ -63,11 +97,31 @@ namespace GeometryHelper.Drawing.UnitTest
         [Fact]
         public void AnAttributeGivenTwiceOrWithNoValueIsRefused()
         {
-            var twice = new[] { new KeyValuePair<string, string>("a", "1"), new KeyValuePair<string, string>("a", "2") };
+            var twice = new[]
+            {
+                new KeyValuePair<string, string>("a", "1"),
+                new KeyValuePair<string, string>("a", "2"),
+            };
             var noValue = new[] { new KeyValuePair<string, string>("a", null) };
 
-            Assert.Throws<ArgumentException>(() => new DrawingObject("P-1", DrawingObjectKind.Part, Box(1, 1, 1), GeoCoordinateSystem3.Global, attributes: twice));
-            Assert.Throws<ArgumentException>(() => new DrawingObject("P-1", DrawingObjectKind.Part, Box(1, 1, 1), GeoCoordinateSystem3.Global, attributes: noValue));
+            Assert.Throws<ArgumentException>(() =>
+                new DrawingObject(
+                    "P-1",
+                    DrawingObjectKind.Part,
+                    Box(1, 1, 1),
+                    GeoCoordinateSystem3.Global,
+                    attributes: twice
+                )
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new DrawingObject(
+                    "P-1",
+                    DrawingObjectKind.Part,
+                    Box(1, 1, 1),
+                    GeoCoordinateSystem3.Global,
+                    attributes: noValue
+                )
+            );
         }
 
         [Fact]
@@ -77,10 +131,16 @@ namespace GeometryHelper.Drawing.UnitTest
             GeoCoordinateSystem3 world = GeoCoordinateSystem3.Global;
 
             Assert.Throws<ArgumentNullException>(() => new DrawingObject(null, DrawingObjectKind.Part, body, world));
-            Assert.Throws<ArgumentException>(() => new DrawingObject(string.Empty, DrawingObjectKind.Part, body, world));
+            Assert.Throws<ArgumentException>(() =>
+                new DrawingObject(string.Empty, DrawingObjectKind.Part, body, world)
+            );
             Assert.Throws<ArgumentNullException>(() => new DrawingObject("P-1", DrawingObjectKind.Part, null, world));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DrawingObject("P-1", (DrawingObjectKind)99, body, world));
-            Assert.Throws<ArgumentException>(() => new DrawingObject("P-1", DrawingObjectKind.Part, body, default(GeoCoordinateSystem3)));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new DrawingObject("P-1", (DrawingObjectKind)99, body, world)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new DrawingObject("P-1", DrawingObjectKind.Part, body, default(GeoCoordinateSystem3))
+            );
         }
 
         [Fact]
@@ -121,7 +181,12 @@ namespace GeometryHelper.Drawing.UnitTest
         {
             var beam = new GeoCoordinateSystem3(new GeoPoint3(100, 0, 0), GeoVector3.YAxis, GeoVector3.ZAxis);
             var other = new GeoCoordinateSystem3(new GeoPoint3(0, 100, 0), GeoVector3.ZAxis, GeoVector3.XAxis);
-            DrawingObject[] objects = { Part("A-plate", frame: other), Part("Z-beam", true, beam), Part("Z-other", true, other) };
+            DrawingObject[] objects =
+            {
+                Part("A-plate", frame: other),
+                Part("Z-beam", true, beam),
+                Part("Z-other", true, other),
+            };
 
             Assert.True(new DrawingSource(objects).Frame.IsEqualTo(beam, Tolerance));
             Assert.True(new DrawingSource(objects, other).Frame.IsEqualTo(other, Tolerance));
@@ -133,8 +198,12 @@ namespace GeometryHelper.Drawing.UnitTest
         {
             var first = new GeoCoordinateSystem3(new GeoPoint3(5, 0, 0), GeoVector3.ZAxis, GeoVector3.XAxis);
 
-            Assert.True(new DrawingSource(new[] { Part("B"), Part("A", frame: first) }).Frame.IsEqualTo(first, Tolerance));
-            Assert.True(new DrawingSource(new DrawingObject[0]).Frame.IsEqualTo(GeoCoordinateSystem3.Global, Tolerance));
+            Assert.True(
+                new DrawingSource(new[] { Part("B"), Part("A", frame: first) }).Frame.IsEqualTo(first, Tolerance)
+            );
+            Assert.True(
+                new DrawingSource(new DrawingObject[0]).Frame.IsEqualTo(GeoCoordinateSystem3.Global, Tolerance)
+            );
         }
 
         [Fact]

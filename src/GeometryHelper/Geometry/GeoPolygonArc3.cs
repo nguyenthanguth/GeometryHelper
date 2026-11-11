@@ -59,9 +59,7 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the vertices are null.</exception>
         /// <exception cref="ArgumentException">Thrown when fewer than three distinct vertices are given, or they are not coplanar.</exception>
         public GeoPolygonArc3(IEnumerable<GeoPoint3> vertices)
-            : this(vertices, null, null, Tolerance.Global)
-        {
-        }
+            : this(vertices, null, null, Tolerance.Global) { }
 
         /// <summary>
         /// Initializes a loop whose pieces may be arcs.
@@ -69,10 +67,12 @@ namespace GeometryHelper.Geometry
         /// <param name="vertices">The vertices, in order; at least three, and no two neighbours in the same place.</param>
         /// <param name="bulges">The bulge of the edge leaving each vertex; null or short means the rest are straight.</param>
         /// <param name="normals">The plane each bulge is read about; only wanted where a bulge is not nought.</param>
-        public GeoPolygonArc3(IEnumerable<GeoPoint3> vertices, IEnumerable<double> bulges, IEnumerable<GeoVector3> normals)
-            : this(vertices, bulges, normals, Tolerance.Global)
-        {
-        }
+        public GeoPolygonArc3(
+            IEnumerable<GeoPoint3> vertices,
+            IEnumerable<double> bulges,
+            IEnumerable<GeoVector3> normals
+        )
+            : this(vertices, bulges, normals, Tolerance.Global) { }
 
         /// <summary>
         /// Initializes a loop whose pieces may be arcs, within a tolerance.
@@ -95,9 +95,11 @@ namespace GeometryHelper.Geometry
             IEnumerable<GeoPoint3> vertices,
             IEnumerable<double> bulges,
             IEnumerable<GeoVector3> normals,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
-            if (vertices == null) throw new ArgumentNullException(nameof(vertices));
+            if (vertices == null)
+                throw new ArgumentNullException(nameof(vertices));
 
             var kept = new List<GeoPoint3>();
             var keptBulges = new List<double>();
@@ -144,7 +146,10 @@ namespace GeometryHelper.Geometry
             // A loop that does not lie flat encloses nothing, so it is refused where it is built.
             if (!new GeoPolyline3(kept).TryGetPlane(out GeoPlane3 plane, tolerance))
             {
-                throw new ArgumentException("A closed loop of arcs has to lie in one plane; a bar bent out of one belongs in a GeoPolylineArc3.", nameof(vertices));
+                throw new ArgumentException(
+                    "A closed loop of arcs has to lie in one plane; a bar bent out of one belongs in a GeoPolylineArc3.",
+                    nameof(vertices)
+                );
             }
 
             _vertices = kept.ToArray();
@@ -154,11 +159,23 @@ namespace GeometryHelper.Geometry
 
             for (int i = 0; i < EdgeCount; i++)
             {
-                GeoEdge3 edge = new GeoEdge3(_vertices[i], _vertices[(i + 1) % _vertices.Length], _bulges[i], _normals[i], tolerance);
+                GeoEdge3 edge = new GeoEdge3(
+                    _vertices[i],
+                    _vertices[(i + 1) % _vertices.Length],
+                    _bulges[i],
+                    _normals[i],
+                    tolerance
+                );
 
-                if (edge.IsArc && !Arc3.LiesIn(plane, edge.StartPoint, edge.EndPoint, edge.Bulge, edge.Normal, tolerance))
+                if (
+                    edge.IsArc
+                    && !Arc3.LiesIn(plane, edge.StartPoint, edge.EndPoint, edge.Bulge, edge.Normal, tolerance)
+                )
                 {
-                    throw new ArgumentException("An arc of a closed loop has to bulge in the plane of the loop.", nameof(normals));
+                    throw new ArgumentException(
+                        "An arc of a closed loop has to bulge in the plane of the loop.",
+                        nameof(normals)
+                    );
                 }
 
                 _bulges[i] = edge.Bulge;
@@ -171,18 +188,19 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <exception cref="ArgumentException">Thrown when the edges do not run end to end, do not close, or are not coplanar.</exception>
         public GeoPolygonArc3(IEnumerable<GeoEdge3> edges)
-            : this(Walked(edges, out List<double> bulges, out List<GeoVector3> normals), bulges, normals, Tolerance.Global)
-        {
-        }
+            : this(
+                Walked(edges, out List<double> bulges, out List<GeoVector3> normals),
+                bulges,
+                normals,
+                Tolerance.Global
+            ) { }
 
         /// <summary>
         /// Initializes a loop from a straight one, with no bulges.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public GeoPolygonArc3(GeoPolygon3 polygon)
-            : this(Required(polygon).Vertices, null, null, Tolerance.Global)
-        {
-        }
+            : this(Required(polygon).Vertices, null, null, Tolerance.Global) { }
 
         /// <summary>
         /// Initializes a loop by lifting one out of a frame into the plane of that frame in space.
@@ -191,9 +209,12 @@ namespace GeometryHelper.Geometry
         /// <param name="loop">The loop in the plane.</param>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public GeoPolygonArc3(GeoCoordinateSystem3 frame, GeoPolygonArc2 loop)
-            : this(Lifted(frame, loop, out List<double> bulges, out List<GeoVector3> normals), bulges, normals, Tolerance.Global)
-        {
-        }
+            : this(
+                Lifted(frame, loop, out List<double> bulges, out List<GeoVector3> normals),
+                bulges,
+                normals,
+                Tolerance.Global
+            ) { }
 
         /// <summary>
         /// Gets the number of vertices, which is also the number of edges.
@@ -234,7 +255,9 @@ namespace GeometryHelper.Geometry
             GeoPoint3 start = _vertices[index];
             GeoPoint3 end = _vertices[(index + 1) % _vertices.Length];
 
-            return _bulges[index] == 0.0 ? new GeoEdge3(start, end) : new GeoEdge3(start, end, _bulges[index], _normals[index]);
+            return _bulges[index] == 0.0
+                ? new GeoEdge3(start, end)
+                : new GeoEdge3(start, end, _bulges[index], _normals[index]);
         }
 
         /// <summary>
@@ -434,7 +457,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether a point lies on the outline of the loop, within a tolerance.
         /// </summary>
-        public bool IsPointOn(GeoPoint3 point, Tolerance tolerance) => DistanceTo(point, tolerance) <= tolerance.EqualPoint;
+        public bool IsPointOn(GeoPoint3 point, Tolerance tolerance) =>
+            DistanceTo(point, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Gets the point a given distance round the loop, walked along its arcs.
@@ -451,7 +475,10 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public double GetDistanceAtParameter(double parameter)
         {
-            double held = parameter < 0.0 ? 0.0 : parameter > 1.0 ? 1.0 : parameter;
+            double held =
+                parameter < 0.0 ? 0.0
+                : parameter > 1.0 ? 1.0
+                : parameter;
 
             return held * Length;
         }
@@ -468,7 +495,10 @@ namespace GeometryHelper.Geometry
                 return 0.0;
             }
 
-            double held = distance < 0.0 ? 0.0 : distance > length ? length : distance;
+            double held =
+                distance < 0.0 ? 0.0
+                : distance > length ? length
+                : distance;
 
             return held / length;
         }
@@ -486,7 +516,8 @@ namespace GeometryHelper.Geometry
         /// reads it: at a hundredth, the loop (-7, -7, 0), (0, 0, 0), (0.008, 0, 0), (7, -7, 0) puts (0.006, 0.02, 0) 9.9055
         /// round, 0.006 along its side 0.008 long, where it put it 9.9075 round, at the start of the next side.
         /// </remarks>
-        public double GetDistanceAtPoint(GeoPoint3 point, Tolerance tolerance) => ArcChain3.DistanceAtPoint(Edges(), point, tolerance);
+        public double GetDistanceAtPoint(GeoPoint3 point, Tolerance tolerance) =>
+            ArcChain3.DistanceAtPoint(Edges(), point, tolerance);
 
         /// <summary>
         /// Gets the parameter of the point on the loop nearest another point.
@@ -496,7 +527,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the parameter of the point on the loop nearest another point, within a tolerance.
         /// </summary>
-        public double GetParameterAtPoint(GeoPoint3 point, Tolerance tolerance) => GetParameterAtDistance(GetDistanceAtPoint(point, tolerance));
+        public double GetParameterAtPoint(GeoPoint3 point, Tolerance tolerance) =>
+            GetParameterAtDistance(GetDistanceAtPoint(point, tolerance));
 
         /// <summary>
         /// Gets the smallest axis-aligned box holding the loop, arcs and all.
@@ -637,7 +669,8 @@ namespace GeometryHelper.Geometry
         /// <param name="kind">The kind of faces.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
         /// <exception cref="ArgumentException">Thrown for <see cref="Meshing.MeshKind.Grid"/>, which needs the size of its cells.</exception>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshKind kind) => Meshing.Mesh3.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Meshing.MeshPlacement3.World, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshKind kind) =>
+            Meshing.Mesh3.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Meshing.MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks the loop into faces as the options say, its grid level, with the second axis up the slope, using the
@@ -645,7 +678,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="options">How to break it up.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options) => Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options) =>
+            Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks the loop into faces as the options say, its grid level, with the second axis up the slope, within a
@@ -654,7 +688,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How to break it up.</param>
         /// <param name="tolerance">The tolerance the shape is read within: which of its rings touch, what has no area, and for a grid which cells are whole.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) => Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, tolerance);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) =>
+            Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Breaks the loop into faces as the options say, its grid standing as the placement says, using the default
@@ -663,7 +698,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How to break it up.</param>
         /// <param name="placement">Which way the grid or the strips run in the plane, and where a cell starts.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement) => Meshing.Mesh3.ToMesh(this, options, placement, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement) =>
+            Meshing.Mesh3.ToMesh(this, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Breaks the loop into faces as the options say, its grid standing as the placement says, within a tolerance:
@@ -683,7 +719,11 @@ namespace GeometryHelper.Geometry
         /// Each arc is flattened by the options' chord tolerance first. The mesh's normal is the one the loop runs
         /// counter-clockwise about.
         /// </remarks>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement, Tolerance tolerance) => Meshing.Mesh3.ToMesh(this, options, placement, tolerance);
+        public Meshing.GeoMesh3 ToMesh(
+            Meshing.MeshOptions options,
+            Meshing.MeshPlacement3 placement,
+            Tolerance tolerance
+        ) => Meshing.Mesh3.ToMesh(this, options, placement, tolerance);
 
         /// <summary>
         /// Gets the loop run the other way round, drawing the same outline.
@@ -754,7 +794,12 @@ namespace GeometryHelper.Geometry
                 edges.Add(GetEdgeAt(i).TransformBy(transform));
             }
 
-            return new GeoPolygonArc3(Walked(edges, out List<double> bulges, out List<GeoVector3> normals), bulges, normals, EdgeForEdge);
+            return new GeoPolygonArc3(
+                Walked(edges, out List<double> bulges, out List<GeoVector3> normals),
+                bulges,
+                normals,
+                EdgeForEdge
+            );
         }
 
         /// <summary>
@@ -795,9 +840,11 @@ namespace GeometryHelper.Geometry
 
             for (int i = 0; i < VertexCount; i++)
             {
-                if (!_vertices[i].Equals(other._vertices[i]) ||
-                    !_bulges[i].Equals(other._bulges[i]) ||
-                    !_normals[i].Equals(other._normals[i]))
+                if (
+                    !_vertices[i].Equals(other._vertices[i])
+                    || !_bulges[i].Equals(other._bulges[i])
+                    || !_normals[i].Equals(other._normals[i])
+                )
                 {
                     return false;
                 }
@@ -833,8 +880,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether two loops hold the same vertices, bulges and planes.
         /// </summary>
-        public static bool operator ==(GeoPolygonArc3 left, GeoPolygonArc3 right)
-            => left is null ? right is null : left.Equals(right);
+        public static bool operator ==(GeoPolygonArc3 left, GeoPolygonArc3 right) =>
+            left is null ? right is null : left.Equals(right);
 
         /// <summary>
         /// Determines whether two loops differ.
@@ -861,7 +908,8 @@ namespace GeometryHelper.Geometry
                 "GeoPolygonArc3[{0} vertices, {1} curved, area {2:0.###}]",
                 VertexCount,
                 arcs,
-                Area);
+                Area
+            );
         }
 
         /// <summary>
@@ -882,9 +930,14 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Walks a run of edges that closes, pulling out the vertices, the bulges and the planes.
         /// </summary>
-        private static List<GeoPoint3> Walked(IEnumerable<GeoEdge3> edges, out List<double> bulges, out List<GeoVector3> normals)
+        private static List<GeoPoint3> Walked(
+            IEnumerable<GeoEdge3> edges,
+            out List<double> bulges,
+            out List<GeoVector3> normals
+        )
         {
-            if (edges == null) throw new ArgumentNullException(nameof(edges));
+            if (edges == null)
+                throw new ArgumentNullException(nameof(edges));
 
             var vertices = new List<GeoPoint3>();
             bulges = new List<double>();
@@ -930,9 +983,11 @@ namespace GeometryHelper.Geometry
             GeoCoordinateSystem3 frame,
             GeoPolygonArc2 loop,
             out List<double> bulges,
-            out List<GeoVector3> normals)
+            out List<GeoVector3> normals
+        )
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             var vertices = new List<GeoPoint3>(loop.VertexCount);
             bulges = new List<double>(loop.VertexCount);
@@ -972,8 +1027,13 @@ namespace GeometryHelper.Geometry
         /// and the cuts. A loop lifted out of a frame lies in its plane to the rounding of its coordinates, so the global
         /// tolerance it was always checked within still passes it.
         /// </remarks>
-        private static GeoPolygonArc3 LiftAsItIs(GeoCoordinateSystem3 frame, GeoPolygonArc2 loop)
-            => new GeoPolygonArc3(Lifted(frame, loop, out List<double> bulges, out List<GeoVector3> normals), bulges, normals, EdgeForEdge);
+        private static GeoPolygonArc3 LiftAsItIs(GeoCoordinateSystem3 frame, GeoPolygonArc2 loop) =>
+            new GeoPolygonArc3(
+                Lifted(frame, loop, out List<double> bulges, out List<GeoVector3> normals),
+                bulges,
+                normals,
+                EdgeForEdge
+            );
 
         /// <summary>
         /// Guards a polygon being widened, so the null check reads before the base call rather than after it.

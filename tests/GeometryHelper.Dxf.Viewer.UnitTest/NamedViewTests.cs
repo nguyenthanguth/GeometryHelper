@@ -31,7 +31,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Plan();
             CadCommandSession session = Run(Viewing(document), "-VIEW", "?", Enter);
-            Assert.Equal(new[] { "Saved views:", "  No matching views found." }, session.History.Skip(session.History.Count - 2));
+            Assert.Equal(
+                new[] { "Saved views:", "  No matching views found." },
+                session.History.Skip(session.History.Count - 2)
+            );
 
             Run(session, "-VIEW", "W", "V2", "10,20", "110,80");
             Assert.False(session.IsRunning);
@@ -45,7 +48,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             AssertReopens(document);
 
             Run(session, "-VIEW", "?", "*");
-            Assert.Equal(new[] { "Saved views:", "View name                        Space", "\"V2\"                               M" }, session.History.Skip(session.History.Count - 3));
+            Assert.Equal(
+                new[]
+                {
+                    "Saved views:",
+                    "View name                        Space",
+                    "\"V2\"                               M",
+                },
+                session.History.Skip(session.History.Count - 3)
+            );
         }
 
         [Fact]
@@ -70,7 +81,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.False(document.Database.LayerTable["A"].IsOff);
 
             // Marked as restored last, as AutoCAD 2021 marked a view's snapshot it restored: 0x8200 with 0x10000, 98816.
-            Assert.Equal("98816", ((DxfXrecord)document.Database.LayerStateManager.LayerStatesDictionary.GetAt("ACAD_VIEWS_V1")).Data[0].Value);
+            Assert.Equal(
+                "98816",
+                ((DxfXrecord)document.Database.LayerStateManager.LayerStatesDictionary.GetAt("ACAD_VIEWS_V1"))
+                    .Data[0]
+                    .Value
+            );
 
             Run(session, "-VIEW", "D", "V*");
             Assert.Empty(document.Database.ViewTable.Cast<DxfViewTableRecord>());

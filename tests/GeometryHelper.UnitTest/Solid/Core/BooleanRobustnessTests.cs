@@ -31,7 +31,11 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.True(beam.TrySubtract(opening, out GeoSolid3 rest, tolerance), $"opening {k}");
 
                 // What the opening takes away is what the two have in common.
-                Assert.InRange(beam.GetVolume() - rest.GetVolume(), common - 5E-5 * beam.GetVolume(), common + 5E-5 * beam.GetVolume());
+                Assert.InRange(
+                    beam.GetVolume() - rest.GetVolume(),
+                    common - 5E-5 * beam.GetVolume(),
+                    common + 5E-5 * beam.GetVolume()
+                );
 
                 // The fifteenth left a seam where two faces of the web run a hundredth of a millimetre apart, the point
                 // tolerance itself, and the sixteenth was cut from that; slivers thinner than twice the tolerance are
@@ -64,7 +68,11 @@ namespace GeometryHelper.UnitTest.Solid
 
                 SolidValidation3 check = rest.Validate(thousandth);
                 Assert.True(check.IsClosed && check.IsWoundAlike, $"after opening {k}: {check}");
-                Assert.InRange(beam.GetVolume() - rest.GetVolume(), shared.GetVolume() - 5E-5 * beam.GetVolume(), shared.GetVolume() + 5E-5 * beam.GetVolume());
+                Assert.InRange(
+                    beam.GetVolume() - rest.GetVolume(),
+                    shared.GetVolume() - 5E-5 * beam.GetVolume(),
+                    shared.GetVolume() + 5E-5 * beam.GetVolume()
+                );
 
                 beam = rest;
             }
@@ -79,7 +87,15 @@ namespace GeometryHelper.UnitTest.Solid
             var fine = new Tolerance(1E-4, 1E-4, Tolerance.DefaultEqualAngleRad, 1E-4);
             GeoPoint3[] outline =
             {
-                P(0.02, 0), P(100, 0), P(100, 100), P(80, 100), P(80, 20), P(20, 20), P(20, 100), P(0, 100), P(0, 0.02),
+                P(0.02, 0),
+                P(100, 0),
+                P(100, 100),
+                P(80, 100),
+                P(80, 20),
+                P(20, 20),
+                P(20, 100),
+                P(0, 100),
+                P(0, 0.02),
             };
             GeoSolid3 u = Prism(outline, 0.2, fine);
 
@@ -102,7 +118,9 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 GeoPoint3 a = outline[i];
                 GeoPoint3 b = outline[(i + 1) % outline.Length];
-                faces.Add(new GeoFace3(new GeoPolygon3(new[] { a, b, b.Add(up), a.Add(up) }, tolerance), null, tolerance));
+                faces.Add(
+                    new GeoFace3(new GeoPolygon3(new[] { a, b, b.Add(up), a.Add(up) }, tolerance), null, tolerance)
+                );
             }
 
             faces.Add(new GeoFace3(new GeoPolygon3(outline.Reverse(), tolerance), null, tolerance));

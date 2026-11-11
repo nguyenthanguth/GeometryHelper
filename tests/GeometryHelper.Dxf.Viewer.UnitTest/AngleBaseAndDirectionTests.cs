@@ -152,9 +152,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = North();
 
-            Assert.Contains("Distance = 100.0000,  Angle in XY Plane = 90,  Angle from XY Plane = 90", Start(document, "DIST", P(0, 0), P(100, 0)).History);
-            Assert.Contains("Distance = 100.0000,  Angle in XY Plane = 0,  Angle from XY Plane = 90", Start(document, "DIST", P(0, 0), P(0, 100)).History);
-            Assert.Contains("Distance = 141.4214,  Angle in XY Plane = 45,  Angle from XY Plane = 90", Start(document, "DIST", P(0, 0), P(100, 100)).History);
+            Assert.Contains(
+                "Distance = 100.0000,  Angle in XY Plane = 90,  Angle from XY Plane = 90",
+                Start(document, "DIST", P(0, 0), P(100, 0)).History
+            );
+            Assert.Contains(
+                "Distance = 100.0000,  Angle in XY Plane = 0,  Angle from XY Plane = 90",
+                Start(document, "DIST", P(0, 0), P(0, 100)).History
+            );
+            Assert.Contains(
+                "Distance = 141.4214,  Angle in XY Plane = 45,  Angle from XY Plane = 90",
+                Start(document, "DIST", P(0, 0), P(100, 100)).History
+            );
         }
 
         [Fact]
@@ -177,7 +186,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Start(document, "ARC", "C", P(0, 0), P(100, 0), P(0, 100));
             DxfArc arc = Assert.Single(All<DxfArc>(document.ModelSpace));
 
-            string Row(string label) => CadProperties.Describe(document, null, new[] { arc.Handle }).Groups.SelectMany(g => g.Rows).Single(r => r.Label == label).Value;
+            string Row(string label) =>
+                CadProperties
+                    .Describe(document, null, new[] { arc.Handle })
+                    .Groups.SelectMany(g => g.Rows)
+                    .Single(r => r.Label == label)
+                    .Value;
             Assert.Equal("90", Row("Start angle"));
             Assert.Equal("0", Row("End angle"));
 

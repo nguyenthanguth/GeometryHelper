@@ -131,26 +131,45 @@ namespace GeometryHelper.UnitTest.Common
             for (int t = 0; t < 300; t++)
             {
                 var numbers = new List<int>();
-                for (int i = 0; i < 1 + rng.Next(20); i++) { numbers.Add(rng.Next(-500, 501)); }
+                for (int i = 0; i < 1 + rng.Next(20); i++)
+                {
+                    numbers.Add(rng.Next(-500, 501));
+                }
 
                 int smallest = int.MaxValue;
                 int largest = int.MinValue;
                 foreach (int n in numbers)
                 {
-                    if (n < smallest) { smallest = n; }
-                    if (n > largest) { largest = n; }
+                    if (n < smallest)
+                    {
+                        smallest = n;
+                    }
+                    if (n > largest)
+                    {
+                        largest = n;
+                    }
                 }
 
                 // Keyed on the absolute value, so the answer is not simply the smallest number.
                 int byKeyMin = numbers.MinBy(n => Math.Abs(n));
                 int byKeyMax = numbers.MaxBy(n => Math.Abs(n));
 
-                int expectedMin = int.MaxValue, expectedMax = int.MinValue;
-                int keptMin = 0, keptMax = 0;
+                int expectedMin = int.MaxValue,
+                    expectedMax = int.MinValue;
+                int keptMin = 0,
+                    keptMax = 0;
                 foreach (int n in numbers)
                 {
-                    if (Math.Abs(n) < expectedMin) { expectedMin = Math.Abs(n); keptMin = n; }
-                    if (Math.Abs(n) > expectedMax) { expectedMax = Math.Abs(n); keptMax = n; }
+                    if (Math.Abs(n) < expectedMin)
+                    {
+                        expectedMin = Math.Abs(n);
+                        keptMin = n;
+                    }
+                    if (Math.Abs(n) > expectedMax)
+                    {
+                        expectedMax = Math.Abs(n);
+                        keptMax = n;
+                    }
                 }
 
                 Assert.Equal(Math.Abs(keptMin), Math.Abs(byKeyMin));

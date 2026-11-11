@@ -54,9 +54,9 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoPoint2(0.0, 4.0)
             ); // 4x4 square
 
-            Assert.True(poly.Contains(new GeoPoint2(2.0, 2.0)));   // Point inside
-            Assert.True(poly.Contains(new GeoPoint2(0.0, 2.0)));   // Point on boundary
-            Assert.False(poly.Contains(new GeoPoint2(5.0, 2.0)));  // Point outside
+            Assert.True(poly.Contains(new GeoPoint2(2.0, 2.0))); // Point inside
+            Assert.True(poly.Contains(new GeoPoint2(0.0, 2.0))); // Point on boundary
+            Assert.False(poly.Contains(new GeoPoint2(5.0, 2.0))); // Point outside
         }
 
         [Fact]
@@ -137,11 +137,7 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(inner.CollidesWith(poly));
 
             // 4. Completely separated
-            var far = new GeoPolygon2(
-                new GeoPoint2(10.0, 10.0),
-                new GeoPoint2(12.0, 10.0),
-                new GeoPoint2(12.0, 12.0)
-            );
+            var far = new GeoPolygon2(new GeoPoint2(10.0, 10.0), new GeoPoint2(12.0, 10.0), new GeoPoint2(12.0, 12.0));
             Assert.False(poly.CollidesWith(far));
         }
 
@@ -150,8 +146,7 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // A polygon with only 2 vertices is degenerate. The constructor blocks it immediately instead of creating
             // an object that cannot answer Contains meaningfully, so the correct test is to assert an exception.
-            Assert.Throws<ArgumentException>(
-                () => new GeoPolygon2(new GeoPoint2(0.0, 0.0), new GeoPoint2(1.0, 1.0)));
+            Assert.Throws<ArgumentException>(() => new GeoPolygon2(new GeoPoint2(0.0, 0.0), new GeoPoint2(1.0, 1.0)));
         }
 
         [Fact]
@@ -203,11 +198,7 @@ namespace GeometryHelper.UnitTest.Plane
         public void Polygon_ZeroAreaCollinear_ReturnsCorrectArea()
         {
             // 3 collinear points -> flat polygon area = 0
-            var poly = new GeoPolygon2(
-                new GeoPoint2(0.0, 0.0),
-                new GeoPoint2(5.0, 5.0),
-                new GeoPoint2(10.0, 10.0)
-            );
+            var poly = new GeoPolygon2(new GeoPoint2(0.0, 0.0), new GeoPoint2(5.0, 5.0), new GeoPoint2(10.0, 10.0));
 
             Assert.Equal(0.0, poly.Area, 12);
             Assert.Equal(0.0, poly.SignedArea, 12);
@@ -222,7 +213,8 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoPoint2(0.0, 0.0),
                 new GeoPoint2(4.0, 0.0),
                 new GeoPoint2(4.0, 4.0),
-                new GeoPoint2(0.0, 0.0));
+                new GeoPoint2(0.0, 0.0)
+            );
 
             Assert.Equal(3, poly.VertexCount);
             Assert.Equal(3, poly.EdgeCount);
@@ -234,17 +226,15 @@ namespace GeometryHelper.UnitTest.Plane
         {
             Assert.Throws<ArgumentNullException>(() => new GeoPolygon2((IEnumerable<GeoPoint2>)null));
             Assert.Throws<ArgumentException>(() => new GeoPolygon2(new GeoPoint2(0.0, 0.0)));
-            Assert.Throws<ArgumentException>(
-                () => new GeoPolygon2(new GeoPoint2(1.0, 1.0), new GeoPoint2(1.0, 1.0), new GeoPoint2(1.0, 1.0)));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoPolygon2(new GeoPoint2(1.0, 1.0), new GeoPoint2(1.0, 1.0), new GeoPoint2(1.0, 1.0))
+            );
         }
 
         [Fact]
         public void Polygon_Indexer_AndGetEdgeAt_RejectOutOfRange()
         {
-            var poly = new GeoPolygon2(
-                new GeoPoint2(0.0, 0.0),
-                new GeoPoint2(4.0, 0.0),
-                new GeoPoint2(4.0, 4.0));
+            var poly = new GeoPolygon2(new GeoPoint2(0.0, 0.0), new GeoPoint2(4.0, 0.0), new GeoPoint2(4.0, 4.0));
 
             Assert.Throws<ArgumentOutOfRangeException>(() => poly[-1]);
             Assert.Throws<ArgumentOutOfRangeException>(() => poly[3]);
@@ -255,10 +245,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Polygon_GetEdges_FormsClosedLoop()
         {
-            var poly = new GeoPolygon2(
-                new GeoPoint2(0.0, 0.0),
-                new GeoPoint2(4.0, 0.0),
-                new GeoPoint2(4.0, 4.0));
+            var poly = new GeoPolygon2(new GeoPoint2(0.0, 0.0), new GeoPoint2(4.0, 0.0), new GeoPoint2(4.0, 4.0));
 
             var edges = poly.GetEdges().ToList();
 
@@ -293,7 +280,8 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoPoint2(0.0, 0.0),
                 new GeoPoint2(4.0, 0.0),
                 new GeoPoint2(4.0, 4.0),
-                new GeoPoint2(0.0, 4.0));
+                new GeoPoint2(0.0, 4.0)
+            );
 
             // A line segment touching exactly one vertex still counts as an intersection.
             Assert.True(poly.CollidesWith(new GeoLine2(4.0, 4.0, 8.0, 8.0)));
@@ -312,14 +300,16 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoPoint2(4.0, 2.0),
                 new GeoPoint2(2.0, 2.0),
                 new GeoPoint2(2.0, 4.0),
-                new GeoPoint2(0.0, 4.0));
+                new GeoPoint2(0.0, 4.0)
+            );
 
             // Small polygon fits entirely inside the missing corner: inside bounding box but does NOT intersect the L-shape.
             var inNotch = new GeoPolygon2(
                 new GeoPoint2(2.5, 2.5),
                 new GeoPoint2(3.5, 2.5),
                 new GeoPoint2(3.5, 3.5),
-                new GeoPoint2(2.5, 3.5));
+                new GeoPoint2(2.5, 3.5)
+            );
 
             Assert.False(lShape.CollidesWith(inNotch));
             Assert.False(inNotch.CollidesWith(lShape));
@@ -332,13 +322,15 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoPoint2(0.0, 0.0),
                 new GeoPoint2(4.0, 0.0),
                 new GeoPoint2(4.0, 4.0),
-                new GeoPoint2(0.0, 4.0));
+                new GeoPoint2(0.0, 4.0)
+            );
 
             var cw = new GeoPolygon2(
                 new GeoPoint2(0.0, 0.0),
                 new GeoPoint2(0.0, 4.0),
                 new GeoPoint2(4.0, 4.0),
-                new GeoPoint2(4.0, 0.0));
+                new GeoPoint2(4.0, 0.0)
+            );
 
             Assert.False(ccw.IsClockwise);
             Assert.True(cw.IsClockwise);
@@ -348,6 +340,7 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(ccw.Contains(new GeoPoint2(2.0, 2.0)), cw.Contains(new GeoPoint2(2.0, 2.0)));
             Assert.Equal(ccw.Contains(new GeoPoint2(9.0, 9.0)), cw.Contains(new GeoPoint2(9.0, 9.0)));
         }
+
         [Fact]
         public void Polygon_EqualityOperators_CompareByValue()
         {
@@ -372,15 +365,20 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // A repeated vertex would otherwise leave a zero-length edge behind.
             var poly = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(0, 0),
-                new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(10, 10));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(10, 10)
+            );
 
             Assert.Equal(3, poly.VertexCount);
             Assert.Equal(50.0, poly.Area, 9);
 
             // Once the duplicates are removed there are not enough distinct vertices left.
             Assert.Throws<ArgumentException>(() =>
-                new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(0, 0), new GeoPoint2(1, 1)));
+                new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(0, 0), new GeoPoint2(1, 1))
+            );
         }
 
         [Fact]
@@ -459,4 +457,3 @@ namespace GeometryHelper.UnitTest.Plane
         }
     }
 }
-

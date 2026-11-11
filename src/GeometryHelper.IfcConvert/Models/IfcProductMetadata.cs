@@ -1,4 +1,4 @@
-﻿namespace GeometryHelper.IfcConvert.Models
+namespace GeometryHelper.IfcConvert.Models
 {
     /// <summary>
     /// Lightweight metadata describing an IFC product without converting its 3D geometry.

@@ -74,9 +74,18 @@ namespace GeometryHelper.Viewer
                     {
                         case "v":
                         {
-                            if (words.Length < 4 || !ImportNumber.TryParse(words[1], out double x) || !ImportNumber.TryParse(words[2], out double y) || !ImportNumber.TryParse(words[3], out double z))
+                            if (
+                                words.Length < 4
+                                || !ImportNumber.TryParse(words[1], out double x)
+                                || !ImportNumber.TryParse(words[2], out double y)
+                                || !ImportNumber.TryParse(words[3], out double z)
+                            )
                             {
-                                b.Warn("OBJ line " + lineNumber.ToString(CultureInfo.InvariantCulture) + ": a vertex without three numbers was read as the origin, so that the numbers of the vertices after it stay right");
+                                b.Warn(
+                                    "OBJ line "
+                                        + lineNumber.ToString(CultureInfo.InvariantCulture)
+                                        + ": a vertex without three numbers was read as the origin, so that the numbers of the vertices after it stay right"
+                                );
                                 vertices.Add(default(Vec3));
                                 break;
                             }
@@ -101,11 +110,25 @@ namespace GeometryHelper.Viewer
                             if (command == "g")
                             {
                                 group = name.Length == 0 ? DefaultLayer : name;
-                                current = new ObjObject { Name = name.Length == 0 ? "group" + objects.ToString(CultureInfo.InvariantCulture) : name, Layer = group };
+                                current = new ObjObject
+                                {
+                                    Name =
+                                        name.Length == 0
+                                            ? "group" + objects.ToString(CultureInfo.InvariantCulture)
+                                            : name,
+                                    Layer = group,
+                                };
                             }
                             else
                             {
-                                current = new ObjObject { Name = name.Length == 0 ? "shape" + objects.ToString(CultureInfo.InvariantCulture) : name, Layer = group };
+                                current = new ObjObject
+                                {
+                                    Name =
+                                        name.Length == 0
+                                            ? "shape" + objects.ToString(CultureInfo.InvariantCulture)
+                                            : name,
+                                    Layer = group,
+                                };
                             }
 
                             break;
@@ -119,7 +142,14 @@ namespace GeometryHelper.Viewer
 
                             if (problem != null)
                             {
-                                b.Warn("OBJ line " + lineNumber.ToString(CultureInfo.InvariantCulture) + ": a '" + command + "' statement was left out: " + problem);
+                                b.Warn(
+                                    "OBJ line "
+                                        + lineNumber.ToString(CultureInfo.InvariantCulture)
+                                        + ": a '"
+                                        + command
+                                        + "' statement was left out: "
+                                        + problem
+                                );
                                 break;
                             }
 
@@ -170,12 +200,22 @@ namespace GeometryHelper.Viewer
 
             foreach (string command in ignoredOrder)
             {
-                b.Warn("OBJ: " + ignored[command].ToString(CultureInfo.InvariantCulture) + " '" + command + "' statement(s) are not geometry or not drawn and were left out");
+                b.Warn(
+                    "OBJ: "
+                        + ignored[command].ToString(CultureInfo.InvariantCulture)
+                        + " '"
+                        + command
+                        + "' statement(s) are not geometry or not drawn and were left out"
+                );
             }
 
             if (colouredVertices > 0)
             {
-                b.Warn("OBJ: " + colouredVertices.ToString(CultureInfo.InvariantCulture) + " vertex(es) carry a weight or a colour after the three coordinates, which are left out");
+                b.Warn(
+                    "OBJ: "
+                        + colouredVertices.ToString(CultureInfo.InvariantCulture)
+                        + " vertex(es) carry a weight or a colour after the three coordinates, which are left out"
+                );
             }
 
             return b.Finish();
@@ -196,7 +236,10 @@ namespace GeometryHelper.Viewer
                 int slash = word.IndexOf('/');
                 string head = slash < 0 ? word : word.Substring(0, slash);
 
-                if (!int.TryParse(head, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int n) || n == 0)
+                if (
+                    !int.TryParse(head, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int n)
+                    || n == 0
+                )
                 {
                     problem = "'" + word + "' is not a vertex number";
                     return indexes;
@@ -206,7 +249,12 @@ namespace GeometryHelper.Viewer
 
                 if (at < 0 || at >= count)
                 {
-                    problem = "vertex " + head + " is not there (" + count.ToString(CultureInfo.InvariantCulture) + " read so far)";
+                    problem =
+                        "vertex "
+                        + head
+                        + " is not there ("
+                        + count.ToString(CultureInfo.InvariantCulture)
+                        + " read so far)";
                     return indexes;
                 }
 
@@ -307,7 +355,14 @@ namespace GeometryHelper.Viewer
             {
                 Vec3[] chain = line.Select(i => vertices[i]).ToArray();
                 bool segment = chain.Length == 2;
-                b.Add(segment ? "GeoLine3" : "GeoPolyline3", segment ? ImportData.Line(chain[0], chain[1], 3) : ImportData.Chain(chain, 3), o.Layer, NameFor(), null, "OBJ l");
+                b.Add(
+                    segment ? "GeoLine3" : "GeoPolyline3",
+                    segment ? ImportData.Line(chain[0], chain[1], 3) : ImportData.Chain(chain, 3),
+                    o.Layer,
+                    NameFor(),
+                    null,
+                    "OBJ l"
+                );
             }
 
             foreach (int index in o.Points)

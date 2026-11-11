@@ -59,8 +59,8 @@ namespace GeometryHelper.Core
         /// The same answer as <see cref="Region.PointGap(GeoPoint3)"/> of the region of the triangle, which a caller asking
         /// of one triangle once does not need to make.
         /// </remarks>
-        internal static double PointToTriangle(GeoTriangle3 triangle, GeoPoint3 point)
-            => PointToTriangle(triangle.A, triangle.B, triangle.C, PlaneNormal(triangle.A, triangle.B, triangle.C), point);
+        internal static double PointToTriangle(GeoTriangle3 triangle, GeoPoint3 point) =>
+            PointToTriangle(triangle.A, triangle.B, triangle.C, PlaneNormal(triangle.A, triangle.B, triangle.C), point);
 
         /// <summary>
         /// Gets the area vector of a triangle, or none where its corners lie on one line to rounding, twice its area within a
@@ -70,7 +70,10 @@ namespace GeometryHelper.Core
         internal static GeoVector3 PlaneNormal(GeoPoint3 a, GeoPoint3 b, GeoPoint3 c)
         {
             GeoVector3 normal = a.GetVectorTo(b).CrossProduct(a.GetVectorTo(c));
-            double longest = Math.Max(a.GetDistanceSquaredTo(b), Math.Max(b.GetDistanceSquaredTo(c), c.GetDistanceSquaredTo(a)));
+            double longest = Math.Max(
+                a.GetDistanceSquaredTo(b),
+                Math.Max(b.GetDistanceSquaredTo(c), c.GetDistanceSquaredTo(a))
+            );
 
             return GeoTriangle3.IsFormed(normal.Length, longest) ? normal : new GeoVector3(0.0, 0.0, 0.0);
         }
@@ -92,14 +95,20 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return Math.Min(PointToSegment(point, a, b), Math.Min(PointToSegment(point, b, c), PointToSegment(point, c, a)));
+            return Math.Min(
+                PointToSegment(point, a, b),
+                Math.Min(PointToSegment(point, b, c), PointToSegment(point, c, a))
+            );
         }
 
-        private static bool TriangleCovers(GeoPoint3 a, GeoPoint3 b, GeoPoint3 c, GeoVector3 normal, GeoPoint3 point)
-            => TriangleSide(a, b, normal, point) >= 0.0 && TriangleSide(b, c, normal, point) >= 0.0 && TriangleSide(c, a, normal, point) >= 0.0;
+        private static bool TriangleCovers(GeoPoint3 a, GeoPoint3 b, GeoPoint3 c, GeoVector3 normal, GeoPoint3 point) =>
+            TriangleSide(a, b, normal, point) >= 0.0
+            && TriangleSide(b, c, normal, point) >= 0.0
+            && TriangleSide(c, a, normal, point) >= 0.0;
 
-        private static double TriangleSide(GeoPoint3 from, GeoPoint3 to, GeoVector3 normal, GeoPoint3 point)
-            => normal.DotProduct(from.GetVectorTo(to).CrossProduct(from.GetVectorTo(point)));
+        private static double TriangleSide(GeoPoint3 from, GeoPoint3 to, GeoVector3 normal, GeoPoint3 point) =>
+            normal.DotProduct(from.GetVectorTo(to).CrossProduct(from.GetVectorTo(point)));
+
         /// <summary>
         /// Gets the distance between two segments, each the segment it is however short, the same whichever is asked first
         /// and whichever way round either is given.
@@ -143,9 +152,15 @@ namespace GeometryHelper.Core
                 to2 = swap;
             }
 
-            double d1x = to1.X - from1.X, d1y = to1.Y - from1.Y, d1z = to1.Z - from1.Z;
-            double d2x = to2.X - from2.X, d2y = to2.Y - from2.Y, d2z = to2.Z - from2.Z;
-            double rx = from1.X - from2.X, ry = from1.Y - from2.Y, rz = from1.Z - from2.Z;
+            double d1x = to1.X - from1.X,
+                d1y = to1.Y - from1.Y,
+                d1z = to1.Z - from1.Z;
+            double d2x = to2.X - from2.X,
+                d2y = to2.Y - from2.Y,
+                d2z = to2.Z - from2.Z;
+            double rx = from1.X - from2.X,
+                ry = from1.Y - from2.Y,
+                rz = from1.Z - from2.Z;
 
             double a = d1x * d1x + d1y * d1y + d1z * d1z;
             double e = d2x * d2x + d2y * d2y + d2z * d2z;
@@ -182,8 +197,12 @@ namespace GeometryHelper.Core
                 // out again, three times.
                 for (int pass = 0; pass < 3; pass++)
                 {
-                    double ds = -((gy * d2z - gz * d2y) * nx + (gz * d2x - gx * d2z) * ny + (gx * d2y - gy * d2x) * nz) / denominator;
-                    double dt = -((gy * d1z - gz * d1y) * nx + (gz * d1x - gx * d1z) * ny + (gx * d1y - gy * d1x) * nz) / denominator;
+                    double ds =
+                        -((gy * d2z - gz * d2y) * nx + (gz * d2x - gx * d2z) * ny + (gx * d2y - gy * d2x) * nz)
+                        / denominator;
+                    double dt =
+                        -((gy * d1z - gz * d1y) * nx + (gz * d1x - gx * d1z) * ny + (gx * d1y - gy * d1x) * nz)
+                        / denominator;
 
                     s += ds;
                     t += dt;
@@ -206,8 +225,9 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a point comes before another by its coordinates, X then Y then Z.
         /// </summary>
-        private static bool Before(GeoPoint3 first, GeoPoint3 second)
-            => first.X < second.X || (first.X == second.X && (first.Y < second.Y || (first.Y == second.Y && first.Z < second.Z)));
+        private static bool Before(GeoPoint3 first, GeoPoint3 second) =>
+            first.X < second.X
+            || (first.X == second.X && (first.Y < second.Y || (first.Y == second.Y && first.Z < second.Z)));
 
         /// <summary>
         /// Gets the distance between two segments a caller gave, one no longer than the point tolerance read as its start
@@ -221,7 +241,14 @@ namespace GeometryHelper.Core
         /// <param name="readShort2">true when the second segment is one a caller gave.</param>
         /// <param name="tolerance">The tolerance.</param>
         internal static double Segments(
-            GeoPoint3 from1, GeoPoint3 to1, bool readShort1, GeoPoint3 from2, GeoPoint3 to2, bool readShort2, Tolerance tolerance)
+            GeoPoint3 from1,
+            GeoPoint3 to1,
+            bool readShort1,
+            GeoPoint3 from2,
+            GeoPoint3 to2,
+            bool readShort2,
+            Tolerance tolerance
+        )
         {
             double gap = SegmentToSegment(from1, to1, from2, to2);
             double near = tolerance.EqualPoint * tolerance.EqualPoint;
@@ -248,15 +275,29 @@ namespace GeometryHelper.Core
             return short1 ? PointToSegment(from1, from2, to2) : PointToSegment(from2, from1, to1);
         }
 
-        private static double MostFar(GeoPoint3 a, GeoPoint3 b, GeoPoint3 c, GeoPoint3 d)
-            => Math.Max(
+        private static double MostFar(GeoPoint3 a, GeoPoint3 b, GeoPoint3 c, GeoPoint3 d) =>
+            Math.Max(
                 Math.Max(Math.Max(Math.Abs(a.X), Math.Abs(a.Y)), Math.Max(Math.Abs(a.Z), Math.Abs(b.X))),
-                Math.Max(Math.Max(Math.Abs(b.Y), Math.Abs(b.Z)), Math.Max(Math.Max(Math.Abs(c.X), Math.Abs(c.Y)), Math.Max(Math.Abs(c.Z), Math.Max(Math.Abs(d.X), Math.Max(Math.Abs(d.Y), Math.Abs(d.Z)))))));
+                Math.Max(
+                    Math.Max(Math.Abs(b.Y), Math.Abs(b.Z)),
+                    Math.Max(
+                        Math.Max(Math.Abs(c.X), Math.Abs(c.Y)),
+                        Math.Max(Math.Abs(c.Z), Math.Max(Math.Abs(d.X), Math.Max(Math.Abs(d.Y), Math.Abs(d.Z))))
+                    )
+                )
+            );
 
         /// <summary>
         /// Gets the distance between a chain and a segment a caller gave, each side of the chain the side it is.
         /// </summary>
-        internal static double ChainToSegment(GeoPolyline3 chain, GeoPoint3 from, GeoPoint3 to, bool readShort, Tolerance tolerance, double stopAt)
+        internal static double ChainToSegment(
+            GeoPolyline3 chain,
+            GeoPoint3 from,
+            GeoPoint3 to,
+            bool readShort,
+            Tolerance tolerance,
+            double stopAt
+        )
         {
             double best = double.MaxValue;
 
@@ -300,7 +341,10 @@ namespace GeometryHelper.Core
                 for (int j = 0; j + 1 < theirs.Count; j++)
                 {
                     // Asked whether they come within stopAt, a pair whose boxes stand further apart than that cannot.
-                    if (stopAt > 0.0 && ApartBy(mine[i], mine[i + 1], theirs[j], theirs[j + 1], stopAt * (1.0 + 1E-6) + 1E-9))
+                    if (
+                        stopAt > 0.0
+                        && ApartBy(mine[i], mine[i + 1], theirs[j], theirs[j + 1], stopAt * (1.0 + 1E-6) + 1E-9)
+                    )
                     {
                         continue;
                     }
@@ -342,7 +386,14 @@ namespace GeometryHelper.Core
         /// </param>
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="stopAt">A gap no longer than this ends the search; nought asks for the least of all.</param>
-        internal static double Segment(Region region, GeoPoint3 from, GeoPoint3 to, bool readShortAsPoint, Tolerance tolerance, double stopAt)
+        internal static double Segment(
+            Region region,
+            GeoPoint3 from,
+            GeoPoint3 to,
+            bool readShortAsPoint,
+            Tolerance tolerance,
+            double stopAt
+        )
         {
             if (region.Pierces(from, to))
             {
@@ -354,7 +405,8 @@ namespace GeometryHelper.Core
                 // A segment too short to have a direction is its start, unless it truly meets the region, as it does lying
                 // across a side or through a corner: it is nought from it however short.
                 double reach = region.AroundGap(from, to, 0.0);
-                double rounding = 1E-12 * Math.Max(1.0, Math.Max(Math.Abs(from.X), Math.Max(Math.Abs(from.Y), Math.Abs(from.Z))));
+                double rounding =
+                    1E-12 * Math.Max(1.0, Math.Max(Math.Abs(from.X), Math.Max(Math.Abs(from.Y), Math.Abs(from.Z))));
 
                 return reach <= rounding ? 0.0 : region.PointGap(from);
             }
@@ -509,11 +561,25 @@ namespace GeometryHelper.Core
         /// <see cref="Holds"/>.
         /// </remarks>
         internal static double SurfaceSegment(
-            GeoSolid3 material, GeoPoint3 from, GeoPoint3 to, bool readShortAsPoint, Tolerance tolerance, double within, double stopAt)
-            => SurfaceSegment(material, from, to, readShortAsPoint, tolerance, within, stopAt, false);
+            GeoSolid3 material,
+            GeoPoint3 from,
+            GeoPoint3 to,
+            bool readShortAsPoint,
+            Tolerance tolerance,
+            double within,
+            double stopAt
+        ) => SurfaceSegment(material, from, to, readShortAsPoint, tolerance, within, stopAt, false);
 
         private static double SurfaceSegment(
-            GeoSolid3 material, GeoPoint3 from, GeoPoint3 to, bool readShortAsPoint, Tolerance tolerance, double within, double stopAt, bool ray)
+            GeoSolid3 material,
+            GeoPoint3 from,
+            GeoPoint3 to,
+            bool readShortAsPoint,
+            Tolerance tolerance,
+            double within,
+            double stopAt,
+            bool ray
+        )
         {
             IReadOnlyList<GeoFace3> faces = material.Faces;
             var reach = new double[faces.Count];
@@ -571,7 +637,15 @@ namespace GeometryHelper.Core
             double reach = ray.Origin.DistanceTo(box.Center) + 0.5 * box.Min.DistanceTo(box.Max);
 
             return SurfaceSegment(
-                material, ray.Origin, Parametrization3.GetPointAtDistance(ray, reach), false, Exactly, double.MaxValue, stopAt, true);
+                material,
+                ray.Origin,
+                Parametrization3.GetPointAtDistance(ray, reach),
+                false,
+                Exactly,
+                double.MaxValue,
+                stopAt,
+                true
+            );
         }
 
         /// <summary>
@@ -583,7 +657,10 @@ namespace GeometryHelper.Core
         {
             GeoAabb3 box = material.GetAabb();
             GeoPoint3 from = ray.Origin;
-            GeoPoint3 to = Parametrization3.GetPointAtDistance(ray, from.DistanceTo(box.Center) + 0.5 * box.Min.DistanceTo(box.Max));
+            GeoPoint3 to = Parametrization3.GetPointAtDistance(
+                ray,
+                from.DistanceTo(box.Center) + 0.5 * box.Min.DistanceTo(box.Max)
+            );
             IReadOnlyList<GeoFace3> faces = material.Faces;
 
             for (int i = 0; i < faces.Count; i++)
@@ -694,6 +771,7 @@ namespace GeometryHelper.Core
         /// that distance apart. A bound that is not a number is never beyond it.
         /// </remarks>
         private static bool Beyond(double bound, double best) => bound > best + best * 1E-12 + 1E-9;
+
         /// <summary>
         /// Gets the indices of some faces, nearest first, a tie going to the lower index.
         /// </summary>
@@ -736,23 +814,45 @@ namespace GeometryHelper.Core
 
             return order;
         }
+
         /// <summary>
         /// Determines whether the boxes of two segments stand further apart than a limit along some axis, so that the segments
         /// cannot come within it.
         /// </summary>
-        private static bool ApartBy(GeoPoint3 from1, GeoPoint3 to1, GeoPoint3 from2, GeoPoint3 to2, double limit)
-            => Math.Min(from2.X, to2.X) - Math.Max(from1.X, to1.X) > limit || Math.Min(from1.X, to1.X) - Math.Max(from2.X, to2.X) > limit
-            || Math.Min(from2.Y, to2.Y) - Math.Max(from1.Y, to1.Y) > limit || Math.Min(from1.Y, to1.Y) - Math.Max(from2.Y, to2.Y) > limit
-            || Math.Min(from2.Z, to2.Z) - Math.Max(from1.Z, to1.Z) > limit || Math.Min(from1.Z, to1.Z) - Math.Max(from2.Z, to2.Z) > limit;
+        private static bool ApartBy(GeoPoint3 from1, GeoPoint3 to1, GeoPoint3 from2, GeoPoint3 to2, double limit) =>
+            Math.Min(from2.X, to2.X) - Math.Max(from1.X, to1.X) > limit
+            || Math.Min(from1.X, to1.X) - Math.Max(from2.X, to2.X) > limit
+            || Math.Min(from2.Y, to2.Y) - Math.Max(from1.Y, to1.Y) > limit
+            || Math.Min(from1.Y, to1.Y) - Math.Max(from2.Y, to2.Y) > limit
+            || Math.Min(from2.Z, to2.Z) - Math.Max(from1.Z, to1.Z) > limit
+            || Math.Min(from1.Z, to1.Z) - Math.Max(from2.Z, to2.Z) > limit;
 
         /// <summary>
         /// Gets how near, at the least, two segments can come: the gap between their boxes.
         /// </summary>
         private static double SegmentsGap(GeoPoint3 from1, GeoPoint3 to1, GeoPoint3 from2, GeoPoint3 to2)
         {
-            double x = Math.Max(0.0, Math.Max(Math.Min(from2.X, to2.X) - Math.Max(from1.X, to1.X), Math.Min(from1.X, to1.X) - Math.Max(from2.X, to2.X)));
-            double y = Math.Max(0.0, Math.Max(Math.Min(from2.Y, to2.Y) - Math.Max(from1.Y, to1.Y), Math.Min(from1.Y, to1.Y) - Math.Max(from2.Y, to2.Y)));
-            double z = Math.Max(0.0, Math.Max(Math.Min(from2.Z, to2.Z) - Math.Max(from1.Z, to1.Z), Math.Min(from1.Z, to1.Z) - Math.Max(from2.Z, to2.Z)));
+            double x = Math.Max(
+                0.0,
+                Math.Max(
+                    Math.Min(from2.X, to2.X) - Math.Max(from1.X, to1.X),
+                    Math.Min(from1.X, to1.X) - Math.Max(from2.X, to2.X)
+                )
+            );
+            double y = Math.Max(
+                0.0,
+                Math.Max(
+                    Math.Min(from2.Y, to2.Y) - Math.Max(from1.Y, to1.Y),
+                    Math.Min(from1.Y, to1.Y) - Math.Max(from2.Y, to2.Y)
+                )
+            );
+            double z = Math.Max(
+                0.0,
+                Math.Max(
+                    Math.Min(from2.Z, to2.Z) - Math.Max(from1.Z, to1.Z),
+                    Math.Min(from1.Z, to1.Z) - Math.Max(from2.Z, to2.Z)
+                )
+            );
 
             return Math.Sqrt(x * x + y * y + z * z);
         }
@@ -805,8 +905,14 @@ namespace GeometryHelper.Core
             GeoAabb3 box = solid.GetAabb();
             double size = Math.Max(
                 Math.Max(Math.Max(Math.Abs(point.X), Math.Abs(point.Y)), Math.Abs(point.Z)),
-                Math.Max(Math.Max(Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Max.X)), Math.Max(Math.Abs(box.Min.Y), Math.Abs(box.Max.Y))),
-                    Math.Max(Math.Abs(box.Min.Z), Math.Abs(box.Max.Z))));
+                Math.Max(
+                    Math.Max(
+                        Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Max.X)),
+                        Math.Max(Math.Abs(box.Min.Y), Math.Abs(box.Max.Y))
+                    ),
+                    Math.Max(Math.Abs(box.Min.Z), Math.Abs(box.Max.Z))
+                )
+            );
 
             return size < double.PositiveInfinity ? Math.Max(1E-9, 1E-15 * size) : 1E-9;
         }
@@ -916,7 +1022,9 @@ namespace GeometryHelper.Core
             /// </summary>
             private GeoPoint3 Corner(int axis, int side, int first, int second)
             {
-                double x, y, z;
+                double x,
+                    y,
+                    z;
 
                 if (axis == 0)
                 {
@@ -951,8 +1059,13 @@ namespace GeometryHelper.Core
             /// </param>
             /// <param name="tolerance">The tolerance.</param>
             /// <param name="stopAt">A gap no longer than this ends the search; nought asks for the least of all.</param>
-            internal double Segment(GeoPoint3 from, GeoPoint3 to, bool readShortAsPoint, Tolerance tolerance, double stopAt)
-                => Segment(Local(from), Local(to), from, to, readShortAsPoint, tolerance, stopAt);
+            internal double Segment(
+                GeoPoint3 from,
+                GeoPoint3 to,
+                bool readShortAsPoint,
+                Tolerance tolerance,
+                double stopAt
+            ) => Segment(Local(from), Local(to), from, to, readShortAsPoint, tolerance, stopAt);
 
             /// <summary>
             /// Determines whether a segment a caller gave comes within the point tolerance of the box, the box of the segment
@@ -972,7 +1085,14 @@ namespace GeometryHelper.Core
             }
 
             private double Segment(
-                GeoPoint3 p, GeoPoint3 q, GeoPoint3 from, GeoPoint3 to, bool readShortAsPoint, Tolerance tolerance, double stopAt)
+                GeoPoint3 p,
+                GeoPoint3 q,
+                GeoPoint3 from,
+                GeoPoint3 to,
+                bool readShortAsPoint,
+                Tolerance tolerance,
+                double stopAt
+            )
             {
                 // An end in the box or on it is nought from it, as a segment passing through is; asked first, since it is
                 // three clamps and a square root where the slabs are divisions.
@@ -1008,10 +1128,12 @@ namespace GeometryHelper.Core
                     {
                         double a = (corner & 1) == 0 ? -1.0 : 1.0;
                         double b = (corner & 2) == 0 ? -1.0 : 1.0;
-                        GeoPoint3 start = axis == 0 ? new GeoPoint3(-_hx, a * _hy, b * _hz)
+                        GeoPoint3 start =
+                            axis == 0 ? new GeoPoint3(-_hx, a * _hy, b * _hz)
                             : axis == 1 ? new GeoPoint3(a * _hx, -_hy, b * _hz)
                             : new GeoPoint3(a * _hx, b * _hy, -_hz);
-                        GeoPoint3 end = axis == 0 ? new GeoPoint3(_hx, a * _hy, b * _hz)
+                        GeoPoint3 end =
+                            axis == 0 ? new GeoPoint3(_hx, a * _hy, b * _hz)
                             : axis == 1 ? new GeoPoint3(a * _hx, _hy, b * _hz)
                             : new GeoPoint3(a * _hx, b * _hy, _hz);
 
@@ -1103,7 +1225,9 @@ namespace GeometryHelper.Core
                 double near = 0.0;
                 double far = 1.0;
 
-                return Slab(p.X, q.X, _hx, ref near, ref far) && Slab(p.Y, q.Y, _hy, ref near, ref far) && Slab(p.Z, q.Z, _hz, ref near, ref far);
+                return Slab(p.X, q.X, _hx, ref near, ref far)
+                    && Slab(p.Y, q.Y, _hy, ref near, ref far)
+                    && Slab(p.Z, q.Z, _hz, ref near, ref far);
             }
 
             private static bool Slab(double from, double to, double half, ref double near, ref double far)
@@ -1169,10 +1293,12 @@ namespace GeometryHelper.Core
                     {
                         double a = (corner & 1) == 0 ? -1.0 : 1.0;
                         double b = (corner & 2) == 0 ? -1.0 : 1.0;
-                        GeoPoint3 start = axis == 0 ? new GeoPoint3(-_hx, a * _hy, b * _hz)
+                        GeoPoint3 start =
+                            axis == 0 ? new GeoPoint3(-_hx, a * _hy, b * _hz)
                             : axis == 1 ? new GeoPoint3(a * _hx, -_hy, b * _hz)
                             : new GeoPoint3(a * _hx, b * _hy, -_hz);
-                        GeoPoint3 end = axis == 0 ? new GeoPoint3(_hx, a * _hy, b * _hz)
+                        GeoPoint3 end =
+                            axis == 0 ? new GeoPoint3(_hx, a * _hy, b * _hz)
                             : axis == 1 ? new GeoPoint3(a * _hx, _hy, b * _hz)
                             : new GeoPoint3(a * _hx, b * _hy, _hz);
 
@@ -1187,18 +1313,27 @@ namespace GeometryHelper.Core
                     }
                 }
 
-                point = bestAt <= 0.0 ? from : bestAt >= 1.0 ? to : At(from, to, bestAt);
+                point =
+                    bestAt <= 0.0 ? from
+                    : bestAt >= 1.0 ? to
+                    : At(from, to, bestAt);
 
                 // Which faces of the box the nearest point stands beyond, past the rounding of numbers the size of the two: one
                 // is a face, two an edge, three a corner.
                 GeoPoint3 near = At(p, q, bestAt);
-                double scale = Math.Max(1.0, Math.Max(Math.Max(Math.Abs(near.X), Math.Abs(near.Y)), Math.Abs(near.Z)) + Math.Max(_hx, Math.Max(_hy, _hz)));
+                double scale = Math.Max(
+                    1.0,
+                    Math.Max(Math.Max(Math.Abs(near.X), Math.Abs(near.Y)), Math.Abs(near.Z))
+                        + Math.Max(_hx, Math.Max(_hy, _hz))
+                );
                 double rounding = 1E-12 * scale;
                 bool beyondX = Math.Abs(near.X) - _hx > rounding;
                 bool beyondY = Math.Abs(near.Y) - _hy > rounding;
                 bool beyondZ = Math.Abs(near.Z) - _hz > rounding;
 
-                double dx = q.X - p.X, dy = q.Y - p.Y, dz = q.Z - p.Z;
+                double dx = q.X - p.X,
+                    dy = q.Y - p.Y,
+                    dz = q.Z - p.Z;
                 double length = Math.Sqrt(dx * dx + dy * dy + dz * dz);
 
                 if (!(length > 0.0))
@@ -1209,8 +1344,10 @@ namespace GeometryHelper.Core
                 // Within the planar tolerance of the plane of the face it stands over, or of the line of the edge it runs with, at
                 // both its ends, so all along, it lies along the box, as an arc lies in a plane it stands off by no more than that.
                 int beyond = (beyondX ? 1 : 0) + (beyondY ? 1 : 0) + (beyondZ ? 1 : 0);
-                bool along = (beyond == 1 || beyond == 2)
-                    && !(OffAlong(p, near, beyondX, beyondY, beyondZ) > rise) && !(OffAlong(q, near, beyondX, beyondY, beyondZ) > rise);
+                bool along =
+                    (beyond == 1 || beyond == 2)
+                    && !(OffAlong(p, near, beyondX, beyondY, beyondZ) > rise)
+                    && !(OffAlong(q, near, beyondX, beyondY, beyondZ) > rise);
 
                 return !along;
             }
@@ -1227,8 +1364,12 @@ namespace GeometryHelper.Core
                 return Math.Sqrt(x * x + y * y + z * z);
             }
 
-            private static GeoPoint3 At(GeoPoint3 from, GeoPoint3 to, double at)
-                => new GeoPoint3(from.X + (to.X - from.X) * at, from.Y + (to.Y - from.Y) * at, from.Z + (to.Z - from.Z) * at);
+            private static GeoPoint3 At(GeoPoint3 from, GeoPoint3 to, double at) =>
+                new GeoPoint3(
+                    from.X + (to.X - from.X) * at,
+                    from.Y + (to.Y - from.Y) * at,
+                    from.Z + (to.Z - from.Z) * at
+                );
 
             /// <summary>
             /// Gets how far along the segment from <paramref name="p"/> to <paramref name="q"/>, from nought to one, the pair
@@ -1236,9 +1377,15 @@ namespace GeometryHelper.Core
             /// </summary>
             internal static double NearestAlong(GeoPoint3 p, GeoPoint3 q, GeoPoint3 start, GeoPoint3 end)
             {
-                double d1x = q.X - p.X, d1y = q.Y - p.Y, d1z = q.Z - p.Z;
-                double d2x = end.X - start.X, d2y = end.Y - start.Y, d2z = end.Z - start.Z;
-                double rx = p.X - start.X, ry = p.Y - start.Y, rz = p.Z - start.Z;
+                double d1x = q.X - p.X,
+                    d1y = q.Y - p.Y,
+                    d1z = q.Z - p.Z;
+                double d2x = end.X - start.X,
+                    d2y = end.Y - start.Y,
+                    d2z = end.Z - start.Z;
+                double rx = p.X - start.X,
+                    ry = p.Y - start.Y,
+                    rz = p.Z - start.Z;
 
                 double a = d1x * d1x + d1y * d1y + d1z * d1z;
                 double e = d2x * d2x + d2y * d2y + d2z * d2z;
@@ -1324,12 +1471,24 @@ namespace GeometryHelper.Core
             internal int EdgeCount => _isTriangle ? 3 : Rim.Length;
 
             /// <summary>Gets where a side of the rim starts.</summary>
-            internal GeoPoint3 EdgeFrom(int index)
-                => _isTriangle ? (index == 0 ? _a : index == 1 ? _b : _c) : Rim[index].StartPoint;
+            internal GeoPoint3 EdgeFrom(int index) =>
+                _isTriangle
+                    ? (
+                        index == 0 ? _a
+                        : index == 1 ? _b
+                        : _c
+                    )
+                    : Rim[index].StartPoint;
 
             /// <summary>Gets where a side of the rim ends.</summary>
-            internal GeoPoint3 EdgeTo(int index)
-                => _isTriangle ? (index == 0 ? _b : index == 1 ? _c : _a) : Rim[index].EndPoint;
+            internal GeoPoint3 EdgeTo(int index) =>
+                _isTriangle
+                    ? (
+                        index == 0 ? _b
+                        : index == 1 ? _c
+                        : _a
+                    )
+                    : Rim[index].EndPoint;
 
             /// <summary>
             /// Gets the unit normal of the plane the region is read in; a triangle with no area has none.
@@ -1352,7 +1511,10 @@ namespace GeometryHelper.Core
                     return 0.0;
                 }
 
-                return Math.Max(Math.Abs(_normal.DotProduct(_a.GetVectorTo(_b))), Math.Abs(_normal.DotProduct(_a.GetVectorTo(_c)))) / length;
+                return Math.Max(
+                        Math.Abs(_normal.DotProduct(_a.GetVectorTo(_b))),
+                        Math.Abs(_normal.DotProduct(_a.GetVectorTo(_c)))
+                    ) / length;
             }
 
             /// <summary>Gets a point of the plane the region is read in.</summary>
@@ -1362,8 +1524,8 @@ namespace GeometryHelper.Core
             /// The sides of a polygon or a face, made when first asked: a region plainly clear of what it is weighed against is
             /// never walked.
             /// </summary>
-            private GeoLine3[] Rim
-                => _rim ?? (_rim = _faceIn3 != null ? Intersection3.EdgesOf(_faceIn3).ToArray() : _polygonIn3.GetEdges());
+            private GeoLine3[] Rim =>
+                _rim ?? (_rim = _faceIn3 != null ? Intersection3.EdgesOf(_faceIn3).ToArray() : _polygonIn3.GetEdges());
 
             /// <summary>
             /// The box round the region, as it is read: a polygon or a face is read flat in its plane, and its corners may stand
@@ -1394,12 +1556,12 @@ namespace GeometryHelper.Core
             internal static Region Of(GeoTriangle3 triangle) => new Region(triangle);
 
             /// <summary>Reads a polygon, laid out in its own plane.</summary>
-            internal static Region Of(GeoPolygon3 polygon)
-                => new Region(FrameOf(polygon.Vertices, polygon.Normal), polygon, null, polygon.GetAabb());
+            internal static Region Of(GeoPolygon3 polygon) =>
+                new Region(FrameOf(polygon.Vertices, polygon.Normal), polygon, null, polygon.GetAabb());
 
             /// <summary>Reads the material of a face, laid out in the plane of its outline.</summary>
-            internal static Region Of(GeoFace3 face)
-                => new Region(FrameOf(face.Boundary.Vertices, face.Boundary.Normal), null, face, face.GetAabb());
+            internal static Region Of(GeoFace3 face) =>
+                new Region(FrameOf(face.Boundary.Vertices, face.Boundary.Normal), null, face, face.GetAabb());
 
             /// <summary>
             /// Gets the frame of a ring of corners: the plane through the first, normal to the sum of the areas the sides
@@ -1419,12 +1581,16 @@ namespace GeometryHelper.Core
                 double ny = 0.0;
                 double nz = 0.0;
 
-                double cx = 0.0, cy = 0.0, cz = 0.0;
+                double cx = 0.0,
+                    cy = 0.0,
+                    cz = 0.0;
 
                 for (int i = 1; i <= corners.Count; i++)
                 {
                     GeoPoint3 next = i == corners.Count ? origin : corners[i];
-                    double dx = next.X - origin.X, dy = next.Y - origin.Y, dz = next.Z - origin.Z;
+                    double dx = next.X - origin.X,
+                        dy = next.Y - origin.Y,
+                        dz = next.Z - origin.Z;
 
                     nx += (cy - dy) * (cz + dz);
                     ny += (cz - dz) * (cx + dx);
@@ -1437,7 +1603,10 @@ namespace GeometryHelper.Core
 
                 double length = Math.Sqrt(nx * nx + ny * ny + nz * nz);
 
-                return PlanarMap.FrameOf(corners, length > 0.0 ? new GeoVector3(nx / length, ny / length, nz / length) : normal);
+                return PlanarMap.FrameOf(
+                    corners,
+                    length > 0.0 ? new GeoVector3(nx / length, ny / length, nz / length) : normal
+                );
             }
 
             /// <summary>
@@ -1454,7 +1623,9 @@ namespace GeometryHelper.Core
                 double atFrom = _frame.ZAxis.DotProduct(_frame.Origin.GetVectorTo(from));
                 double atTo = _frame.ZAxis.DotProduct(_frame.Origin.GetVectorTo(to));
 
-                return atFrom > 0.0 && atTo > 0.0 ? Math.Min(atFrom, atTo) : atFrom < 0.0 && atTo < 0.0 ? -Math.Max(atFrom, atTo) : 0.0;
+                return atFrom > 0.0 && atTo > 0.0 ? Math.Min(atFrom, atTo)
+                    : atFrom < 0.0 && atTo < 0.0 ? -Math.Max(atFrom, atTo)
+                    : 0.0;
             }
 
             /// <summary>
@@ -1561,7 +1732,10 @@ namespace GeometryHelper.Core
                     {
                         for (int i = 0; i < ring.Count; i++)
                         {
-                            farthest = Math.Max(farthest, Math.Abs(_frame.ZAxis.DotProduct(_frame.Origin.GetVectorTo(ring[i]))));
+                            farthest = Math.Max(
+                                farthest,
+                                Math.Abs(_frame.ZAxis.DotProduct(_frame.Origin.GetVectorTo(ring[i])))
+                            );
                         }
                     }
 
@@ -1607,8 +1781,13 @@ namespace GeometryHelper.Core
 
                     double along = atFrom / (atFrom - atTo);
 
-                    return CoversAt(new GeoPoint3(
-                        from.X + along * (to.X - from.X), from.Y + along * (to.Y - from.Y), from.Z + along * (to.Z - from.Z)));
+                    return CoversAt(
+                        new GeoPoint3(
+                            from.X + along * (to.X - from.X),
+                            from.Y + along * (to.Y - from.Y),
+                            from.Z + along * (to.Z - from.Z)
+                        )
+                    );
                 }
 
                 GeoPoint3 start = _frame.ToLocal(from);
@@ -1627,13 +1806,23 @@ namespace GeometryHelper.Core
                 double y = from.Y + crossing * (to.Y - from.Y);
                 double z = from.Z + crossing * (to.Z - from.Z);
 
-                if ((x < _box.Min.X || x > _box.Max.X || y < _box.Min.Y || y > _box.Max.Y || z < _box.Min.Z || z > _box.Max.Z) &&
-                    OutsideByMore(x, y, z, Offset() + Hair))
+                if (
+                    (
+                        x < _box.Min.X
+                        || x > _box.Max.X
+                        || y < _box.Min.Y
+                        || y > _box.Max.Y
+                        || z < _box.Min.Z
+                        || z > _box.Max.Z
+                    ) && OutsideByMore(x, y, z, Offset() + Hair)
+                )
                 {
                     return false;
                 }
 
-                return Covers(new GeoPoint2(start.X + crossing * (end.X - start.X), start.Y + crossing * (end.Y - start.Y)));
+                return Covers(
+                    new GeoPoint2(start.X + crossing * (end.X - start.X), start.Y + crossing * (end.Y - start.Y))
+                );
             }
 
             /// <summary>
@@ -1724,7 +1913,11 @@ namespace GeometryHelper.Core
                     }
 
                     double at = Block.NearestAlong(from, to, start, end);
-                    GeoPoint3 point = new GeoPoint3(from.X + (to.X - from.X) * at, from.Y + (to.Y - from.Y) * at, from.Z + (to.Z - from.Z) * at);
+                    GeoPoint3 point = new GeoPoint3(
+                        from.X + (to.X - from.X) * at,
+                        from.Y + (to.Y - from.Y) * at,
+                        from.Z + (to.Z - from.Z) * at
+                    );
                     double gap = PointGap(point);
 
                     if (gap < best)
@@ -1758,7 +1951,11 @@ namespace GeometryHelper.Core
                     along = startZ / (startZ - endZ);
                 }
 
-                return new GeoPoint3(from.X + along * (to.X - from.X), from.Y + along * (to.Y - from.Y), from.Z + along * (to.Z - from.Z));
+                return new GeoPoint3(
+                    from.X + along * (to.X - from.X),
+                    from.Y + along * (to.Y - from.Y),
+                    from.Z + along * (to.Z - from.Z)
+                );
             }
 
             /// <summary>
@@ -1793,7 +1990,10 @@ namespace GeometryHelper.Core
                         // the rounding of it: its shadow meets the material, to the rounding and as far as the corners stand off.
                         GeoPoint3 footFrom = from.Add(normal.Multiply(-atFrom));
                         GeoPoint3 footTo = to.Add(normal.Multiply(-atTo));
-                        double scale = Math.Max(1.0, Math.Max(Math.Abs(from.X), Math.Max(Math.Abs(from.Y), Math.Abs(from.Z))));
+                        double scale = Math.Max(
+                            1.0,
+                            Math.Max(Math.Abs(from.X), Math.Max(Math.Abs(from.Y), Math.Abs(from.Z)))
+                        );
 
                         if (!(AroundGap(footFrom, footTo, 0.0) > PlaneSlack + 1E-12 * scale))
                         {
@@ -1847,7 +2047,15 @@ namespace GeometryHelper.Core
             /// <param name="start">The start of the part.</param>
             /// <param name="end">The end of the part.</param>
             /// <returns>false where the part is no longer than <paramref name="shortest"/>.</returns>
-            internal bool TryGetPartOver(GeoPoint3 from, GeoPoint3 to, GeoPoint3 nearest, bool flat, double shortest, out GeoPoint3 start, out GeoPoint3 end)
+            internal bool TryGetPartOver(
+                GeoPoint3 from,
+                GeoPoint3 to,
+                GeoPoint3 nearest,
+                bool flat,
+                double shortest,
+                out GeoPoint3 start,
+                out GeoPoint3 end
+            )
             {
                 GeoVector3 along = from.GetVectorTo(to);
                 double low = double.PositiveInfinity;
@@ -1878,7 +2086,11 @@ namespace GeometryHelper.Core
                         for (int k = 0; k < (sa == sb ? 2 : 1); k++)
                         {
                             double s = sa == sb ? k : share;
-                            var crossing = new GeoPoint3(a.X + s * (b.X - a.X), a.Y + s * (b.Y - a.Y), a.Z + s * (b.Z - a.Z));
+                            var crossing = new GeoPoint3(
+                                a.X + s * (b.X - a.X),
+                                a.Y + s * (b.Y - a.Y),
+                                a.Z + s * (b.Z - a.Z)
+                            );
                             double t = shadow.DotProduct(from.GetVectorTo(crossing)) / squared;
                             low = Math.Min(low, t);
                             high = Math.Max(high, t);
@@ -1938,13 +2150,18 @@ namespace GeometryHelper.Core
                 GeoVector3 along = start.GetVectorTo(end);
                 double length = along.Length;
 
-                return length > 0.0 ? start.GetVectorTo(point).CrossProduct(along).Length / length : start.DistanceTo(point);
+                return length > 0.0
+                    ? start.GetVectorTo(point).CrossProduct(along).Length / length
+                    : start.DistanceTo(point);
             }
 
-            private bool OutsideByMore(double x, double y, double z, double margin)
-                => x < _box.Min.X - margin || x > _box.Max.X + margin
-                    || y < _box.Min.Y - margin || y > _box.Max.Y + margin
-                    || z < _box.Min.Z - margin || z > _box.Max.Z + margin;
+            private bool OutsideByMore(double x, double y, double z, double margin) =>
+                x < _box.Min.X - margin
+                || x > _box.Max.X + margin
+                || y < _box.Min.Y - margin
+                || y > _box.Max.Y + margin
+                || z < _box.Min.Z - margin
+                || z > _box.Max.Z + margin;
 
             private void LayOut()
             {
@@ -2023,8 +2240,7 @@ namespace GeometryHelper.Core
                 {
                     GeoPoint3 p1 = _frame.ToLocal(ring[i]);
 
-                    if (((p1.Y > y) != (p2.Y > y)) &&
-                        (x < (p2.X - p1.X) * (y - p1.Y) / (p2.Y - p1.Y) + p1.X))
+                    if (((p1.Y > y) != (p2.Y > y)) && (x < (p2.X - p1.X) * (y - p1.Y) / (p2.Y - p1.Y) + p1.X))
                     {
                         inside = !inside;
                     }

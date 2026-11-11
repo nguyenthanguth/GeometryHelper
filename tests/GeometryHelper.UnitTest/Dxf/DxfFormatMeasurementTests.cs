@@ -118,7 +118,10 @@ namespace GeometryHelper.UnitTest.Dxf
                     dim.Dimzin = c.Zin;
                 }
 
-                Assert.Equal(c.ToString() + " " + c.Text, c.ToString() + " " + dim.FormatMeasurement(c.Value, string.Empty));
+                Assert.Equal(
+                    c.ToString() + " " + c.Text,
+                    c.ToString() + " " + dim.FormatMeasurement(c.Value, string.Empty)
+                );
             }
         }
 
@@ -220,7 +223,18 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             // Degrees, minutes and seconds to each of the nine places, 45.50425 degrees: rounded in the last unit shown.
-            string[] places = { "46\u00B0", "45\u00B030'", "45\u00B030'", "45\u00B030'15\"", "45\u00B030'15\"", "45\u00B030'15.3\"", "45\u00B030'15.30\"", "45\u00B030'15.300\"", "45\u00B030'15.3000\"" };
+            string[] places =
+            {
+                "46\u00B0",
+                "45\u00B030'",
+                "45\u00B030'",
+                "45\u00B030'15\"",
+                "45\u00B030'15\"",
+                "45\u00B030'15.3\"",
+                "45\u00B030'15.30\"",
+                "45\u00B030'15.300\"",
+                "45\u00B030'15.3000\"",
+            };
             dim.Dimaunit = 1;
 
             for (int place = 0; place <= 8; place++)
@@ -231,7 +245,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // 59 minutes 59.6 seconds to whole seconds carry into the degree.
             dim.Dimadec = 4;
-            Assert.Equal("1\u00B00'0\"", dim.FormatMeasurement((59.0 / 60.0 + 59.6 / 3600.0) * Math.PI / 180.0, string.Empty));
+            Assert.Equal(
+                "1\u00B00'0\"",
+                dim.FormatMeasurement((59.0 / 60.0 + 59.6 / 3600.0) * Math.PI / 180.0, string.Empty)
+            );
 
             // DIMADEC -1 takes the places of DIMDEC; DIMAZIN 2 leaves out the trailing zeros, 1 the leading ones.
             dim.Dimaunit = 0;
@@ -353,7 +370,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("2x 60.00 <>", dim.FormatMeasurement(60.0, "2x <> <>"));
 
             Assert.Throws<ArgumentOutOfRangeException>(() => dim.FormatMeasurement(double.NaN, string.Empty));
-            Assert.Throws<ArgumentOutOfRangeException>(() => dim.FormatMeasurement(double.PositiveInfinity, string.Empty));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                dim.FormatMeasurement(double.PositiveInfinity, string.Empty)
+            );
         }
 
         [Fact]
@@ -361,7 +380,14 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
             DxfRotatedDimension dim = ByHandle<DxfRotatedDimension>(db, "61");
-            var style = new DxfDimStyleTableRecord { Name = "GH_ISO", Dimdec = 2, Dimdsep = ',', Dimzin = 8, Dimtad = 1 };
+            var style = new DxfDimStyleTableRecord
+            {
+                Name = "GH_ISO",
+                Dimdec = 2,
+                Dimdsep = ',',
+                Dimzin = 8,
+                Dimtad = 1,
+            };
             dim.SetDimstyleData(style);
 
             Assert.Equal("1234,5", dim.FormatMeasurement(1234.5, string.Empty));
@@ -390,11 +416,28 @@ namespace GeometryHelper.UnitTest.Dxf
             return dim.FormatMeasurement(value, string.Empty);
         }
 
-        private static Case L(double value, double round, int places, int zin, char separator, string text)
-            => new Case { Value = value, Round = round, Places = places, Zin = zin, Separator = separator, Text = text };
+        private static Case L(double value, double round, int places, int zin, char separator, string text) =>
+            new Case
+            {
+                Value = value,
+                Round = round,
+                Places = places,
+                Zin = zin,
+                Separator = separator,
+                Text = text,
+            };
 
-        private static Case A(double radians, int units, int places, int azin, char separator, string text)
-            => new Case { Angular = true, Value = radians, Units = units, Places = places, Zin = azin, Separator = separator, Text = text };
+        private static Case A(double radians, int units, int places, int azin, char separator, string text) =>
+            new Case
+            {
+                Angular = true,
+                Value = radians,
+                Units = units,
+                Places = places,
+                Zin = azin,
+                Separator = separator,
+                Text = text,
+            };
 
         /// <summary>A measurement and the variables it is written by, and ezdxf's text of it.</summary>
         private sealed class Case
@@ -415,10 +458,20 @@ namespace GeometryHelper.UnitTest.Dxf
 
             public string Text { get; set; }
 
-            public override string ToString()
-                => (Angular ? "angle " : "length ") + Value.ToString("R", CultureInfo.InvariantCulture) + " units " + Units.ToString(CultureInfo.InvariantCulture)
-                    + " round " + Round.ToString("R", CultureInfo.InvariantCulture) + " places " + Places.ToString(CultureInfo.InvariantCulture)
-                    + " zin " + Zin.ToString(CultureInfo.InvariantCulture) + " '" + Separator + "'";
+            public override string ToString() =>
+                (Angular ? "angle " : "length ")
+                + Value.ToString("R", CultureInfo.InvariantCulture)
+                + " units "
+                + Units.ToString(CultureInfo.InvariantCulture)
+                + " round "
+                + Round.ToString("R", CultureInfo.InvariantCulture)
+                + " places "
+                + Places.ToString(CultureInfo.InvariantCulture)
+                + " zin "
+                + Zin.ToString(CultureInfo.InvariantCulture)
+                + " '"
+                + Separator
+                + "'";
         }
     }
 }

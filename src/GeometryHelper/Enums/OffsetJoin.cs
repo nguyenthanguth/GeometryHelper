@@ -28,6 +28,6 @@ namespace GeometryHelper.Enums
         /// Cuts the corner with one straight segment lying at the offset distance from the original vertex,
         /// tangent to the arc a <see cref="Round"/> join would draw. AutoCAD calls this Chamfer.
         /// </summary>
-        Chamfer
+        Chamfer,
     }
 }

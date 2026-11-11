@@ -32,7 +32,36 @@ namespace GeometryHelper.Dxf
     public class DxfRasterImage : DxfEntity
     {
         // The groups of AcDbRasterImage in the order AutoCAD 2021 writes them, its inverted clip (290) from R2010 on.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 90, 10, 20, 30, 11, 21, 31, 12, 22, 32, 13, 23, 340, 70, 280, 281, 282, 283, 290, 360, 71, 91, 14, 24 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[]
+            {
+                100,
+                90,
+                10,
+                20,
+                30,
+                11,
+                21,
+                31,
+                12,
+                22,
+                32,
+                13,
+                23,
+                340,
+                70,
+                280,
+                281,
+                282,
+                283,
+                290,
+                360,
+                71,
+                91,
+                14,
+                24,
+            }
+        );
 
         // The groups of the run of a clip boundary, rewritten together.
         private static readonly IReadOnlyCollection<int> BoundaryCodes = Array.AsReadOnly(new[] { 71, 91, 14, 24 });
@@ -65,14 +94,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>An image or a wipeout made in code from its groups, which begin with its subclass marker.</summary>
         private protected DxfRasterImage(string dxfName, IEnumerable<DxfTypedValue> groups)
-            : base(dxfName, groups)
-        {
-        }
+            : base(dxfName, groups) { }
 
         private protected DxfRasterImage(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         #region Where it is
 
@@ -128,12 +153,26 @@ namespace GeometryHelper.Dxf
 
             if (!(across > 0.0) || !(up > 0.0))
             {
-                throw new InvalidOperationException("The " + Item.Type + " " + (Handle ?? string.Empty) + " is " + across.ToString(CultureInfo.InvariantCulture) + " by " + up.ToString(CultureInfo.InvariantCulture) + " pixels, and has no pixel to place its sides by.");
+                throw new InvalidOperationException(
+                    "The "
+                        + Item.Type
+                        + " "
+                        + (Handle ?? string.Empty)
+                        + " is "
+                        + across.ToString(CultureInfo.InvariantCulture)
+                        + " by "
+                        + up.ToString(CultureInfo.InvariantCulture)
+                        + " pixels, and has no pixel to place its sides by."
+                );
             }
 
             // A side given as it is read keeps the pixel it is read from, to the bit.
             GetOrientation(out _, out GeoVector3 nowU, out GeoVector3 nowV);
-            WriteFrame(origin, SameVector(u, nowU) ? PixelU : u.Divide(across), SameVector(v, nowV) ? PixelV : v.Divide(up));
+            WriteFrame(
+                origin,
+                SameVector(u, nowU) ? PixelU : u.Divide(across),
+                SameVector(v, nowV) ? PixelV : v.Divide(up)
+            );
         }
 
         /// <summary>Gets the length of the bottom of the image (the side <c>u</c> of <see cref="GetOrientation"/>), as AutoCAD's <c>Width</c>: 40 for 4 pixels 10 across.</summary>
@@ -180,7 +219,6 @@ namespace GeometryHelper.Dxf
                 double angle = Math.Atan2(u.Y, u.X);
                 return angle < 0.0 ? angle + 2.0 * Math.PI : angle;
             }
-
             set
             {
                 Guard.Finite(value, nameof(value), "An angle has to be a finite number.");
@@ -194,7 +232,12 @@ namespace GeometryHelper.Dxf
                 double up = PixelV.Length;
                 double cos = Math.Cos(value);
                 double sin = Math.Sin(value);
-                SetGroups(Join(PointGroups(11, new GeoPoint3(across * cos + 0.0, across * sin + 0.0, 0.0), Across), PointGroups(12, new GeoPoint3(-up * sin + 0.0, up * cos + 0.0, 0.0), Up)));
+                SetGroups(
+                    Join(
+                        PointGroups(11, new GeoPoint3(across * cos + 0.0, across * sin + 0.0, 0.0), Across),
+                        PointGroups(12, new GeoPoint3(-up * sin + 0.0, up * cos + 0.0, 0.0), Up)
+                    )
+                );
             }
         }
 
@@ -213,16 +256,19 @@ namespace GeometryHelper.Dxf
                 GeoVector3 v = PixelV;
                 GeoVector3 cross = u.CrossProduct(v);
                 double length = cross.Length;
-                GeoVector3 normal = length > 0.0 && !double.IsInfinity(length) ? cross.Divide(length) : new GeoVector3(0.0, 0.0, 1.0);
+                GeoVector3 normal =
+                    length > 0.0 && !double.IsInfinity(length) ? cross.Divide(length) : new GeoVector3(0.0, 0.0, 1.0);
                 GeoPoint3 corner = origin.Add(u.Multiply(0.5)).Add(v.Multiply(PixelsUp - 0.5));
 
-                return new GeoTransform3(new[,]
-                {
-                    { u.X, -v.X, normal.X, corner.X },
-                    { u.Y, -v.Y, normal.Y, corner.Y },
-                    { u.Z, -v.Z, normal.Z, corner.Z },
-                    { 0.0, 0.0, 0.0, 1.0 },
-                });
+                return new GeoTransform3(
+                    new[,]
+                    {
+                        { u.X, -v.X, normal.X, corner.X },
+                        { u.Y, -v.Y, normal.Y, corner.Y },
+                        { u.Z, -v.Z, normal.Z, corner.Z },
+                        { 0.0, 0.0, 0.0, 1.0 },
+                    }
+                );
             }
         }
 
@@ -247,7 +293,12 @@ namespace GeometryHelper.Dxf
                 string handle = GetString(340)?.Trim();
                 DxfDatabase database = (IsResident ? Item.File : Item.File.Origin)?.Database;
 
-                if (string.IsNullOrEmpty(handle) || handle == "0" || database == null || !database.TryGetObject(handle, out DxfDBObject found))
+                if (
+                    string.IsNullOrEmpty(handle)
+                    || handle == "0"
+                    || database == null
+                    || !database.TryGetObject(handle, out DxfDBObject found)
+                )
                 {
                     return null;
                 }
@@ -269,7 +320,6 @@ namespace GeometryHelper.Dxf
         public string Name
         {
             get => Images(out DxfRasterImageDef definition)?.NameOf(definition);
-
             set
             {
                 if (value == null)
@@ -281,7 +331,13 @@ namespace GeometryHelper.Dxf
 
                 if (images == null)
                 {
-                    throw new InvalidOperationException("The " + Item.Type + " " + (Handle ?? string.Empty) + " shows no IMAGEDEF of a dictionary of images to rename.");
+                    throw new InvalidOperationException(
+                        "The "
+                            + Item.Type
+                            + " "
+                            + (Handle ?? string.Empty)
+                            + " shows no IMAGEDEF of a dictionary of images to rename."
+                    );
                 }
 
                 string now = images.NameOf(definition);
@@ -289,7 +345,11 @@ namespace GeometryHelper.Dxf
                 if (!string.Equals(now, value, StringComparison.Ordinal))
                 {
                     Guard.Argument(value.Trim().Length > 0, nameof(value), "An image is named by some letters.");
-                    Guard.Argument(!images.Contains(value) || string.Equals(now, value, StringComparison.OrdinalIgnoreCase), nameof(value), "The dictionary of images has an entry " + value + " already.");
+                    Guard.Argument(
+                        !images.Contains(value) || string.Equals(now, value, StringComparison.OrdinalIgnoreCase),
+                        nameof(value),
+                        "The dictionary of images has an entry " + value + " already."
+                    );
                     images.Rename(definition, value);
                 }
             }
@@ -320,8 +380,16 @@ namespace GeometryHelper.Dxf
                 throw new NotSupportedException("A wipeout shows no picture, and is associated with no IMAGEDEF.");
             }
 
-            Guard.Argument(definition.IsResident && !definition.IsErased, nameof(definition), "The IMAGEDEF is in no drawing, or erased: add it to a dictionary of images first.");
-            Guard.Argument(!IsResident || definition.Item.File == Item.File, nameof(definition), "The IMAGEDEF is of another drawing than the image.");
+            Guard.Argument(
+                definition.IsResident && !definition.IsErased,
+                nameof(definition),
+                "The IMAGEDEF is in no drawing, or erased: add it to a dictionary of images first."
+            );
+            Guard.Argument(
+                !IsResident || definition.Item.File == Item.File,
+                nameof(definition),
+                "The IMAGEDEF is of another drawing than the image."
+            );
             DxfRasterImageDef before = ImageDef;
             GetOrientation(out GeoPoint3 origin, out GeoVector3 u, out GeoVector3 v);
             double across = PixelsAcross;
@@ -330,7 +398,11 @@ namespace GeometryHelper.Dxf
             List<GeoPoint2> held = Boundary();
             bool clipped = GetInt(280, 0) == 1;
             WriteFrame(origin, u.Divide(size.X), v.Divide(size.Y));
-            SetGroups(new KeyValuePair<int, string>(13, Numbers.Exact(size.X + 0.0)), new KeyValuePair<int, string>(23, Numbers.Exact(size.Y + 0.0)), new KeyValuePair<int, string>(340, definition.Handle));
+            SetGroups(
+                new KeyValuePair<int, string>(13, Numbers.Exact(size.X + 0.0)),
+                new KeyValuePair<int, string>(23, Numbers.Exact(size.Y + 0.0)),
+                new KeyValuePair<int, string>(340, definition.Handle)
+            );
 
             if (clipped)
             {
@@ -338,10 +410,16 @@ namespace GeometryHelper.Dxf
 
                 foreach (GeoPoint2 pixel in held)
                 {
-                    scaled.Add(new GeoPoint2((pixel.X + 0.5) * size.X / across - 0.5, (pixel.Y + 0.5) * size.Y / up - 0.5));
+                    scaled.Add(
+                        new GeoPoint2((pixel.X + 0.5) * size.X / across - 0.5, (pixel.Y + 0.5) * size.Y / up - 0.5)
+                    );
                 }
 
-                WriteBoundary(ClipBoundaryType == DxfClipBoundaryType.Invalid ? DxfClipBoundaryType.Rectangle : ClipBoundaryType, scaled, true);
+                WriteBoundary(
+                    ClipBoundaryType == DxfClipBoundaryType.Invalid ? DxfClipBoundaryType.Rectangle : ClipBoundaryType,
+                    scaled,
+                    true
+                );
             }
             else
             {
@@ -387,7 +465,12 @@ namespace GeometryHelper.Dxf
             definition = ImageDef;
             DxfDatabase database = definition?.Item?.File.Database;
 
-            if (database == null || definition.OwnerHandle == null || !database.TryGetObject(definition.OwnerHandle, out DxfDBObject owner) || !(owner is DxfDBDictionary images))
+            if (
+                database == null
+                || definition.OwnerHandle == null
+                || !database.TryGetObject(definition.OwnerHandle, out DxfDBObject owner)
+                || !(owner is DxfDBDictionary images)
+            )
             {
                 return null;
             }
@@ -407,7 +490,10 @@ namespace GeometryHelper.Dxf
 
             if (!definition.IsResident || definition.IsErased)
             {
-                throw new ArgumentException("The IMAGEDEF is in no drawing, or erased: add it to a dictionary of images first, by DxfDBDictionary.SetAt.", "imageDefinition");
+                throw new ArgumentException(
+                    "The IMAGEDEF is in no drawing, or erased: add it to a dictionary of images first, by DxfDBDictionary.SetAt.",
+                    "imageDefinition"
+                );
             }
 
             GeoVector2 size = definition.Size;
@@ -415,15 +501,32 @@ namespace GeometryHelper.Dxf
             string up = Numbers.Exact(size.Y + 0.0);
             return new[]
             {
-                new DxfTypedValue(100, "AcDbRasterImage"), new DxfTypedValue(90, "0"),
-                new DxfTypedValue(10, "0"), new DxfTypedValue(20, "0"), new DxfTypedValue(30, "0"),
-                new DxfTypedValue(11, "1"), new DxfTypedValue(21, "0"), new DxfTypedValue(31, "0"),
-                new DxfTypedValue(12, "0"), new DxfTypedValue(22, "1"), new DxfTypedValue(32, "0"),
-                new DxfTypedValue(13, across), new DxfTypedValue(23, up), new DxfTypedValue(340, definition.Handle),
-                new DxfTypedValue(70, "7"), new DxfTypedValue(280, "0"), new DxfTypedValue(281, "50"), new DxfTypedValue(282, "50"),
-                new DxfTypedValue(283, "0"), new DxfTypedValue(290, "0"), new DxfTypedValue(71, "1"), new DxfTypedValue(91, "2"),
-                new DxfTypedValue(14, "-0.5"), new DxfTypedValue(24, "-0.5"),
-                new DxfTypedValue(14, Numbers.Exact(size.X - 0.5)), new DxfTypedValue(24, Numbers.Exact(size.Y - 0.5)),
+                new DxfTypedValue(100, "AcDbRasterImage"),
+                new DxfTypedValue(90, "0"),
+                new DxfTypedValue(10, "0"),
+                new DxfTypedValue(20, "0"),
+                new DxfTypedValue(30, "0"),
+                new DxfTypedValue(11, "1"),
+                new DxfTypedValue(21, "0"),
+                new DxfTypedValue(31, "0"),
+                new DxfTypedValue(12, "0"),
+                new DxfTypedValue(22, "1"),
+                new DxfTypedValue(32, "0"),
+                new DxfTypedValue(13, across),
+                new DxfTypedValue(23, up),
+                new DxfTypedValue(340, definition.Handle),
+                new DxfTypedValue(70, "7"),
+                new DxfTypedValue(280, "0"),
+                new DxfTypedValue(281, "50"),
+                new DxfTypedValue(282, "50"),
+                new DxfTypedValue(283, "0"),
+                new DxfTypedValue(290, "0"),
+                new DxfTypedValue(71, "1"),
+                new DxfTypedValue(91, "2"),
+                new DxfTypedValue(14, "-0.5"),
+                new DxfTypedValue(24, "-0.5"),
+                new DxfTypedValue(14, Numbers.Exact(size.X - 0.5)),
+                new DxfTypedValue(24, Numbers.Exact(size.Y - 0.5)),
             };
         }
 
@@ -435,7 +538,11 @@ namespace GeometryHelper.Dxf
         {
             if (_definition != null && !IsResident)
             {
-                Guard.Argument(!_definition.IsErased && owner.File != null && _definition.Item.File == owner.File, "entity", "The image shows an IMAGEDEF of another drawing, or one erased: make it of a definition of this drawing.");
+                Guard.Argument(
+                    !_definition.IsErased && owner.File != null && _definition.Item.File == owner.File,
+                    "entity",
+                    "The image shows an IMAGEDEF of another drawing, or one erased: make it of a definition of this drawing."
+                );
             }
         }
 
@@ -462,7 +569,12 @@ namespace GeometryHelper.Dxf
             _definition = null;
             Item.KeptImageDef = null;
 
-            if (definition != null && !(this is DxfWipeout) && definition.Item != null && definition.Item.File == Item.File)
+            if (
+                definition != null
+                && !(this is DxfWipeout)
+                && definition.Item != null
+                && definition.Item.File == Item.File
+            )
             {
                 SetString(360, Item.File.AddImageReactor(Item, definition.Item));
             }
@@ -492,12 +604,15 @@ namespace GeometryHelper.Dxf
         public DxfImageDisplayOptions DisplayOptions
         {
             get => (DxfImageDisplayOptions)GetInt(70, 0);
-
             set
             {
                 if (((int)value & ~15) != 0)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The display options of an image are the flags 1, 2, 4 and 8.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "The display options of an image are the flags 1, 2, 4 and 8."
+                    );
                 }
 
                 if (value != DisplayOptions)
@@ -552,7 +667,6 @@ namespace GeometryHelper.Dxf
         public bool IsClipInverted
         {
             get => GetInt(290, 0) != 0;
-
             set
             {
                 if (value == IsClipInverted)
@@ -629,7 +743,9 @@ namespace GeometryHelper.Dxf
         {
             List<GeoPoint2> held = Boundary();
 
-            return (ClipBoundaryType == DxfClipBoundaryType.Rectangle && held.Count == 2 ? Corners(held) : held).AsReadOnly();
+            return (
+                ClipBoundaryType == DxfClipBoundaryType.Rectangle && held.Count == 2 ? Corners(held) : held
+            ).AsReadOnly();
         }
 
         /// <summary>
@@ -672,18 +788,42 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(clipBoundaryVertices));
             }
 
-            Guard.Argument(type == DxfClipBoundaryType.Rectangle || type == DxfClipBoundaryType.Poly, nameof(type), "An image is clipped by a rectangle or a polygon, and AutoCAD answers eInvalidInput for " + type + ".");
+            Guard.Argument(
+                type == DxfClipBoundaryType.Rectangle || type == DxfClipBoundaryType.Poly,
+                nameof(type),
+                "An image is clipped by a rectangle or a polygon, and AutoCAD answers eInvalidInput for " + type + "."
+            );
             int count = clipBoundaryVertices.Count;
 
             foreach (GeoPoint2 corner in clipBoundaryVertices)
             {
-                Guard.Argument(Guard.IsFinite(corner.X) && Guard.IsFinite(corner.Y), nameof(clipBoundaryVertices), "A corner of a boundary has to be of finite numbers: " + corner + " is not.");
+                Guard.Argument(
+                    Guard.IsFinite(corner.X) && Guard.IsFinite(corner.Y),
+                    nameof(clipBoundaryVertices),
+                    "A corner of a boundary has to be of finite numbers: " + corner + " is not."
+                );
             }
 
-            Guard.Argument(type == DxfClipBoundaryType.Rectangle ? count == 5 : count >= 4, nameof(clipBoundaryVertices), type == DxfClipBoundaryType.Rectangle
-                ? "A rectangle is given by its five corners, the first again at the end, as AutoCAD 2021 takes it; " + count.ToString(CultureInfo.InvariantCulture) + " were given."
-                : "A polygon is given by three corners or more, the first again at the end, as AutoCAD 2021 takes it; " + count.ToString(CultureInfo.InvariantCulture) + " were given.");
-            Guard.Argument(World(clipBoundaryVertices[count - 1]).IsEqualTo(World(clipBoundaryVertices[0]), Tolerance.Default), nameof(clipBoundaryVertices), "A boundary ends on its first corner, as AutoCAD 2021 takes it, within the point tolerance in the world: " + clipBoundaryVertices[count - 1] + " is not " + clipBoundaryVertices[0] + ".");
+            Guard.Argument(
+                type == DxfClipBoundaryType.Rectangle ? count == 5 : count >= 4,
+                nameof(clipBoundaryVertices),
+                type == DxfClipBoundaryType.Rectangle
+                    ? "A rectangle is given by its five corners, the first again at the end, as AutoCAD 2021 takes it; "
+                        + count.ToString(CultureInfo.InvariantCulture)
+                        + " were given."
+                    : "A polygon is given by three corners or more, the first again at the end, as AutoCAD 2021 takes it; "
+                        + count.ToString(CultureInfo.InvariantCulture)
+                        + " were given."
+            );
+            Guard.Argument(
+                World(clipBoundaryVertices[count - 1]).IsEqualTo(World(clipBoundaryVertices[0]), Tolerance.Default),
+                nameof(clipBoundaryVertices),
+                "A boundary ends on its first corner, as AutoCAD 2021 takes it, within the point tolerance in the world: "
+                    + clipBoundaryVertices[count - 1]
+                    + " is not "
+                    + clipBoundaryVertices[0]
+                    + "."
+            );
 
             var corners = new List<GeoPoint2>();
 
@@ -711,8 +851,12 @@ namespace GeometryHelper.Dxf
         /// for a WIPEOUT, and its record said to be clipped by none (280 of 0), as AutoCAD 2021 writes it.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the image is erased.</exception>
-        public void SetClipBoundaryToWholeImage()
-            => WriteBoundary(DxfClipBoundaryType.Rectangle, new List<GeoPoint2> { new GeoPoint2(-0.5, -0.5), new GeoPoint2(PixelsAcross - 0.5, PixelsUp - 0.5) }, false);
+        public void SetClipBoundaryToWholeImage() =>
+            WriteBoundary(
+                DxfClipBoundaryType.Rectangle,
+                new List<GeoPoint2> { new GeoPoint2(-0.5, -0.5), new GeoPoint2(PixelsAcross - 0.5, PixelsUp - 0.5) },
+                false
+            );
 
         #endregion
 
@@ -732,7 +876,15 @@ namespace GeometryHelper.Dxf
                 // Clipped inverted, the image shows what lies outside its boundary, and AutoCAD 2021 gives the frame's box.
                 var held = new Held(GetOwnGroups(0));
                 List<GeoPoint3> corners = held.Inverted ? Frame(held) : Vertices(held);
-                double[] box = { double.PositiveInfinity, double.PositiveInfinity, double.PositiveInfinity, double.NegativeInfinity, double.NegativeInfinity, double.NegativeInfinity };
+                double[] box =
+                {
+                    double.PositiveInfinity,
+                    double.PositiveInfinity,
+                    double.PositiveInfinity,
+                    double.NegativeInfinity,
+                    double.NegativeInfinity,
+                    double.NegativeInfinity,
+                };
 
                 foreach (GeoPoint3 corner in corners)
                 {
@@ -808,7 +960,9 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return kept.Count < 2 ? Array.AsReadOnly(new object[0]) : Array.AsReadOnly(new object[] { new GeoPolyline3(kept.ToArray(), true) });
+            return kept.Count < 2
+                ? Array.AsReadOnly(new object[0])
+                : Array.AsReadOnly(new object[] { new GeoPolyline3(kept.ToArray(), true) });
         }
 
         [DxfType("IMAGE")]
@@ -847,7 +1001,10 @@ namespace GeometryHelper.Dxf
                 }
 
                 double x = DxfLeaderGroups.Num(groups[i].Value, 0.0);
-                double y = i + 1 < groups.Count && groups[i + 1].TypeCode == 24 ? DxfLeaderGroups.Num(groups[++i].Value, 0.0) : 0.0;
+                double y =
+                    i + 1 < groups.Count && groups[i + 1].TypeCode == 24
+                        ? DxfLeaderGroups.Num(groups[++i].Value, 0.0)
+                        : 0.0;
                 corners.Add(new GeoPoint2(x, y));
             }
 
@@ -855,8 +1012,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A pixel of the boundary in the world, as <see cref="PixelToModelTransform"/> takes it.</summary>
-        private GeoPoint3 World(GeoPoint2 pixel)
-            => GetPoint(10, Origin).Add(PixelU.Multiply(pixel.X + 0.5)).Add(PixelV.Multiply(PixelsUp - 0.5 - pixel.Y));
+        private GeoPoint3 World(GeoPoint2 pixel) =>
+            GetPoint(10, Origin).Add(PixelU.Multiply(pixel.X + 0.5)).Add(PixelV.Multiply(PixelsUp - 0.5 - pixel.Y));
 
         /// <summary>The five corners of a rectangle held as two, from its least corner up its x and round, as AutoCAD 2021 reads one back.</summary>
         private static List<GeoPoint2> Corners(List<GeoPoint2> held)
@@ -865,7 +1022,14 @@ namespace GeometryHelper.Dxf
             double y0 = Math.Min(held[0].Y, held[1].Y);
             double x1 = Math.Max(held[0].X, held[1].X);
             double y1 = Math.Max(held[0].Y, held[1].Y);
-            return new List<GeoPoint2> { new GeoPoint2(x0, y0), new GeoPoint2(x0, y1), new GeoPoint2(x1, y1), new GeoPoint2(x1, y0), new GeoPoint2(x0, y0) };
+            return new List<GeoPoint2>
+            {
+                new GeoPoint2(x0, y0),
+                new GeoPoint2(x0, y1),
+                new GeoPoint2(x1, y1),
+                new GeoPoint2(x1, y0),
+                new GeoPoint2(x0, y0),
+            };
         }
 
         /// <summary>The frame of the whole image, from the corner it is placed at up its left side and round, the first again at the end.</summary>
@@ -874,7 +1038,14 @@ namespace GeometryHelper.Dxf
             GeoPoint3 origin = held.Origin;
             GeoVector3 across = held.U.Multiply(held.Across);
             GeoVector3 side = held.V.Multiply(held.Up);
-            return new List<GeoPoint3> { origin, origin.Add(side), origin.Add(across).Add(side), origin.Add(across), origin };
+            return new List<GeoPoint3>
+            {
+                origin,
+                origin.Add(side),
+                origin.Add(across).Add(side),
+                origin.Add(across),
+                origin,
+            };
         }
 
         /// <summary>
@@ -901,7 +1072,10 @@ namespace GeometryHelper.Dxf
                     if (code == 14)
                     {
                         double x = DxfLeaderGroups.Num(groups[i].Value, 0.0);
-                        double y = i + 1 < groups.Count && groups[i + 1].TypeCode == 24 ? DxfLeaderGroups.Num(groups[++i].Value, 0.0) : 0.0;
+                        double y =
+                            i + 1 < groups.Count && groups[i + 1].TypeCode == 24
+                                ? DxfLeaderGroups.Num(groups[++i].Value, 0.0)
+                                : 0.0;
                         Boundary.Add(new GeoPoint2(x, y));
                         continue;
                     }
@@ -918,7 +1092,12 @@ namespace GeometryHelper.Dxf
 
                     if (slot >= Wholes)
                     {
-                        found[slot] = int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int whole);
+                        found[slot] = int.TryParse(
+                            text?.Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out int whole
+                        );
                         values[slot] = whole;
                     }
                     else
@@ -967,8 +1146,10 @@ namespace GeometryHelper.Dxf
             internal List<GeoPoint2> Boundary { get; }
 
             /// <summary>A point of three slots as GetPoint reads one: a coordinate left out nought, the fallback where all are.</summary>
-            private static GeoPoint3 Point(bool[] found, double[] values, int slot, GeoPoint3 fallback)
-                => found[slot] || found[slot + 1] || found[slot + 2] ? new GeoPoint3(values[slot], values[slot + 1], values[slot + 2]) : fallback;
+            private static GeoPoint3 Point(bool[] found, double[] values, int slot, GeoPoint3 fallback) =>
+                found[slot] || found[slot + 1] || found[slot + 2]
+                    ? new GeoPoint3(values[slot], values[slot + 1], values[slot + 2])
+                    : fallback;
         }
 
         /// <summary>The corners of <see cref="GetVertices"/>, as it says.</summary>
@@ -981,7 +1162,14 @@ namespace GeometryHelper.Dxf
             List<GeoPoint2> held = record.Boundary;
 
             // Clipped where the display options clip it and its record says a boundary was set, and holds one.
-            if (!((record.Flags & 4) != 0 && record.Clipping == 1 && held.Count >= 2 && (record.Kind == 1 || record.Kind == 2)))
+            if (
+                !(
+                    (record.Flags & 4) != 0
+                    && record.Clipping == 1
+                    && held.Count >= 2
+                    && (record.Kind == 1 || record.Kind == 2)
+                )
+            )
             {
                 return Frame(record);
             }
@@ -1008,7 +1196,13 @@ namespace GeometryHelper.Dxf
         {
             // A polygon ends on its first corner to the bit, as AutoCAD 2021 cannot open a drawing of an image whose polygon does
             // not, and reads a wipeout's so left as of no corners: one another writer left open is closed as it is written anew.
-            if (type == DxfClipBoundaryType.Poly && corners.Count >= 3 && !(Same(corners[0].X, corners[corners.Count - 1].X) && Same(corners[0].Y, corners[corners.Count - 1].Y)))
+            if (
+                type == DxfClipBoundaryType.Poly
+                && corners.Count >= 3
+                && !(
+                    Same(corners[0].X, corners[corners.Count - 1].X) && Same(corners[0].Y, corners[corners.Count - 1].Y)
+                )
+            )
             {
                 corners.Add(corners[0]);
             }
@@ -1030,8 +1224,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Writes the corner the image is placed at (10) and the vectors of one pixel (11, 12) in one writing.</summary>
-        private protected void WriteFrame(GeoPoint3 origin, GeoVector3 u, GeoVector3 v)
-            => SetGroups(Join(PointGroups(10, origin, Origin), PointGroups(11, new GeoPoint3(u.X, u.Y, u.Z), Across), PointGroups(12, new GeoPoint3(v.X, v.Y, v.Z), Up)));
+        private protected void WriteFrame(GeoPoint3 origin, GeoVector3 u, GeoVector3 v) =>
+            SetGroups(
+                Join(
+                    PointGroups(10, origin, Origin),
+                    PointGroups(11, new GeoPoint3(u.X, u.Y, u.Z), Across),
+                    PointGroups(12, new GeoPoint3(v.X, v.Y, v.Z), Up)
+                )
+            );
 
         /// <summary>Refuses sides not of finite numbers, of no length, or along one line.</summary>
         private protected static void CheckSides(GeoVector3 u, GeoVector3 v, string parameter)
@@ -1042,12 +1242,22 @@ namespace GeometryHelper.Dxf
 
             if (!u.IsValid || !v.IsValid || !(a > 0.0) || !(b > 0.0) || double.IsInfinity(a) || double.IsInfinity(b))
             {
-                throw new ArgumentException("The sides of an image have to be of finite numbers and some length: " + u + " and " + v + " are not.", parameter);
+                throw new ArgumentException(
+                    "The sides of an image have to be of finite numbers and some length: "
+                        + u
+                        + " and "
+                        + v
+                        + " are not.",
+                    parameter
+                );
             }
 
             if (!(cross > Tolerance.Default.EqualVector * a * b))
             {
-                throw new ArgumentException("The sides " + u + " and " + v + " of the image run along one line.", parameter);
+                throw new ArgumentException(
+                    "The sides " + u + " and " + v + " of the image run along one line.",
+                    parameter
+                );
             }
         }
 
@@ -1059,7 +1269,11 @@ namespace GeometryHelper.Dxf
         {
             if (value > 100)
             {
-                throw new ArgumentOutOfRangeException(nameof(value), value, "The " + what + " of an image is from 0 to 100, as AutoCAD answers eInvalidInput above.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    "The " + what + " of an image is from 0 to 100, as AutoCAD answers eInvalidInput above."
+                );
             }
 
             if (value != Level(code, fallback))
@@ -1087,13 +1301,18 @@ namespace GeometryHelper.Dxf
         {
             if (this is DxfWipeout)
             {
-                throw new NotSupportedException("A wipeout hides what is under it in the colour of the background, and has no " + what + " of an image to set: AutoCAD 2021 refuses its brightness, contrast and fade, and keeps its display options at 7.");
+                throw new NotSupportedException(
+                    "A wipeout hides what is under it in the colour of the background, and has no "
+                        + what
+                        + " of an image to set: AutoCAD 2021 refuses its brightness, contrast and fade, and keeps its display options at 7."
+                );
             }
         }
 
         private static GeoVector3 Vector(GeoPoint3 point) => new GeoVector3(point.X, point.Y, point.Z);
 
-        private static bool SameVector(GeoVector3 a, GeoVector3 b) => Same(a.X, b.X) && Same(a.Y, b.Y) && Same(a.Z, b.Z);
+        private static bool SameVector(GeoVector3 a, GeoVector3 b) =>
+            Same(a.X, b.X) && Same(a.Y, b.Y) && Same(a.Z, b.Z);
 
         #endregion
     }

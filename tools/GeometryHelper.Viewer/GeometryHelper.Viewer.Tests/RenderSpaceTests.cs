@@ -24,7 +24,15 @@ namespace GeometryHelper.Viewer.Tests
             {
                 scene = new SceneWriter()
                     .Text(new GeoPoint3(0, 0, 0), "origin")
-                    .Add(new GeoPolygon2(new GeoPoint2(30000, 12345.6789), new GeoPoint2(30020, 12345.6789), new GeoPoint2(30020, 12345.6794), new GeoPoint2(30000, 12345.6794)), name: "needle")
+                    .Add(
+                        new GeoPolygon2(
+                            new GeoPoint2(30000, 12345.6789),
+                            new GeoPoint2(30020, 12345.6789),
+                            new GeoPoint2(30020, 12345.6794),
+                            new GeoPoint2(30000, 12345.6794)
+                        ),
+                        name: "needle"
+                    )
                     .Scene;
             }
 

@@ -1,15 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GeometryHelper.Arranging;
 using GeometryHelper.Extension;
 using GeometryHelper.Geometry;
 using GeometryHelper.TeklaConvert;
+using Tekla.Structures.Drawing;
+using Tekla.Structures.Geometry3d;
 using TSD = Tekla.Structures.Drawing;
 using TSG = Tekla.Structures.Geometry3d;
 using TSM = Tekla.Structures.Model;
-using Tekla.Structures.Drawing;
-using Tekla.Structures.Geometry3d;
-using GeometryHelper.Arranging;
 
 namespace GeometryHelper.ArrangeAlgorithms.TeklaTest
 {
@@ -95,15 +95,17 @@ namespace GeometryHelper.ArrangeAlgorithms.TeklaTest
                 }
 
                 // Group the mark and rebar data together for positioning calculations
-                markGroups.Add(new MarkRebarGroup
-                {
-                    View = mark.GetView() as TSD.View,
-                    Mark = mark,
-                    DrawingRebar = drawingRebar,
-                    ModelRebar = modelRebar,
-                    // Use the longest segment of the centerline as the primary guide line for the mark
-                    MiddleLineRebar = segments.MaxBy(mb => mb.Length).ToTeklaLineSegment()
-                });
+                markGroups.Add(
+                    new MarkRebarGroup
+                    {
+                        View = mark.GetView() as TSD.View,
+                        Mark = mark,
+                        DrawingRebar = drawingRebar,
+                        ModelRebar = modelRebar,
+                        // Use the longest segment of the centerline as the primary guide line for the mark
+                        MiddleLineRebar = segments.MaxBy(mb => mb.Length).ToTeklaLineSegment(),
+                    }
+                );
             }
 
             foreach (var dimension in dimensions)
@@ -130,25 +132,24 @@ namespace GeometryHelper.ArrangeAlgorithms.TeklaTest
             {
                 var markBox = markGroup.Mark.GetAxisAlignedBoundingBox();
 
-                items.Add(new ArrangeItem
-                {
-                    // Define the mark's boundary rectangle (center point, width, height, and angle)
-                    Box = markBox.ToGeoRectangle2(),
-                    // Define the target centerline for the mark
-                    Leader = markGroup.MiddleLineRebar.ToGeoLine2(),
-                    // Preferred offset distance of the mark from the rebar centerline
-                    Offset = 50.0,
-                    // Keep track of obstacles (dimensions and other rebar lines) to avoid overlaps
-                    BlockPolygons = blockPolygons,
-                    BlockLines = blockLines,
-                });
+                items.Add(
+                    new ArrangeItem
+                    {
+                        // Define the mark's boundary rectangle (center point, width, height, and angle)
+                        Box = markBox.ToGeoRectangle2(),
+                        // Define the target centerline for the mark
+                        Leader = markGroup.MiddleLineRebar.ToGeoLine2(),
+                        // Preferred offset distance of the mark from the rebar centerline
+                        Offset = 50.0,
+                        // Keep track of obstacles (dimensions and other rebar lines) to avoid overlaps
+                        BlockPolygons = blockPolygons,
+                        BlockLines = blockLines,
+                    }
+                );
             }
 
             // Set up layout options using the Greedy algorithm
-            ArrangeOptions arrangeOptions = new ArrangeOptions
-            {
-                MinimumMoveDistance = 10.0
-            };
+            ArrangeOptions arrangeOptions = new ArrangeOptions { MinimumMoveDistance = 10.0 };
 
             // Run the label placement optimization algorithm
             ArrangeResult[] results = Arranger.Run(items, arrangeOptions);
@@ -193,7 +194,9 @@ namespace GeometryHelper.ArrangeAlgorithms.TeklaTest
 
             if (firstPoints.Count != lastPoints.Count)
             {
-                throw new InvalidOperationException("Mismatched point count between the first and last rebar geometries in the group.");
+                throw new InvalidOperationException(
+                    "Mismatched point count between the first and last rebar geometries in the group."
+                );
             }
 
             // Interpolate the average/middle points between the first and last rebar of the group

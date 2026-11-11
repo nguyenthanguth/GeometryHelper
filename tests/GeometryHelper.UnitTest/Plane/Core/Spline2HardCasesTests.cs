@@ -27,11 +27,13 @@ namespace GeometryHelper.UnitTest.Plane
         /// </summary>
         private static GeoSpline2 ArcThrough(double o, int count)
         {
-            var points = Enumerable.Range(0, count).Select(i =>
-            {
-                double angle = Math.PI * (80.0 + 20.0 * i / (count - 1)) / 180.0;
-                return P(o + 1000.0 * Math.Cos(angle), o + 1000.0 * Math.Sin(angle));
-            });
+            var points = Enumerable
+                .Range(0, count)
+                .Select(i =>
+                {
+                    double angle = Math.PI * (80.0 + 20.0 * i / (count - 1)) / 180.0;
+                    return P(o + 1000.0 * Math.Cos(angle), o + 1000.0 * Math.Sin(angle));
+                });
 
             return GeoSpline2.Interpolate(points, 3, Strict);
         }
@@ -43,7 +45,10 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int i = 0; i <= 20000; i++)
             {
-                top = Math.Max(top, spline.GetPointAtKnot(spline.DomainStart + (spline.DomainEnd - spline.DomainStart) * i / 20000.0).Y);
+                top = Math.Max(
+                    top,
+                    spline.GetPointAtKnot(spline.DomainStart + (spline.DomainEnd - spline.DomainStart) * i / 20000.0).Y
+                );
             }
 
             return top;
@@ -57,7 +62,10 @@ namespace GeometryHelper.UnitTest.Plane
         /// </summary>
         private static void AssertTouch(GeoPoint2[] places, double o, GeoPoint2 touch)
         {
-            Assert.True(places.Length >= 1 && (places.Length == 1 || o >= 1E6), places.Length + " places " + string.Join(" ", places) + ", one expected");
+            Assert.True(
+                places.Length >= 1 && (places.Length == 1 || o >= 1E6),
+                places.Length + " places " + string.Join(" ", places) + ", one expected"
+            );
             Assert.True(places.Length <= 3, places.Length + " places " + string.Join(" ", places));
 
             foreach (GeoPoint2 place in places)
@@ -86,7 +94,16 @@ namespace GeometryHelper.UnitTest.Plane
             // then arches up and falls through the line: the start is 0.005 above the line at a million, and the crossing is well beyond it.
             var tol = new Tolerance(tolerance, 1E-5);
             var line = GeoSpline2.FromControlPoints(1, new[] { P(0, 0), P(length, 0) });
-            var cubic = GeoSpline2.FromControlPoints(3, new[] { P(0, 0.5E-8 * length), P(length / 3, length / 1000), P(2 * length / 3, length / 1000), P(length, -length / 1000) });
+            var cubic = GeoSpline2.FromControlPoints(
+                3,
+                new[]
+                {
+                    P(0, 0.5E-8 * length),
+                    P(length / 3, length / 1000),
+                    P(2 * length / 3, length / 1000),
+                    P(length, -length / 1000),
+                }
+            );
 
             GeoPoint2[] crossings = line.GetIntersections(cubic, tol);
 
@@ -104,7 +121,10 @@ namespace GeometryHelper.UnitTest.Plane
             // first, and 0.01 is a hundred-millionth of the size of the shapes: a bound by that much would have the arch read as 0.01.
             double length = 1E6;
             var line = GeoSpline2.FromControlPoints(1, new[] { P(0, 0), P(length, 0) });
-            var arch = GeoSpline2.FromControlPoints(2, new[] { P(0, 0.01), P(length / 2, 2 * 0.0009 - 0.01), P(length, 0.01) });
+            var arch = GeoSpline2.FromControlPoints(
+                2,
+                new[] { P(0, 0.01), P(length / 2, 2 * 0.0009 - 0.01), P(length, 0.01) }
+            );
 
             Assert.Equal(0.0009, line.DistanceTo(arch, Strict), 9);
             Assert.Equal(0.0009, arch.DistanceTo(line, Strict), 9);
@@ -141,7 +161,16 @@ namespace GeometryHelper.UnitTest.Plane
 
             GeoPoint2[] places = arc.GetIntersections(line, Strict);
 
-            Assert.True(places.Length == 1, places.Length + " places " + string.Join(" ", places.Select(p => (p.X - o).ToString("0.000000") + "/" + (p.Y - top).ToString("0.0E+0"))) + ", one expected");
+            Assert.True(
+                places.Length == 1,
+                places.Length
+                    + " places "
+                    + string.Join(
+                        " ",
+                        places.Select(p => (p.X - o).ToString("0.000000") + "/" + (p.Y - top).ToString("0.0E+0"))
+                    )
+                    + ", one expected"
+            );
             Assert.True(Math.Abs(places[0].X - o) <= 1.5, "the touch is at " + (places[0].X - o) + " from the top");
             Assert.Equal(places, line.GetIntersections(arc, Strict));
         }
@@ -150,7 +179,10 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(0.0, 2000)]
         [InlineData(1E5, 2000)]
         [InlineData(1E6, 2000)]
-        public void ALineASixMillionthOverTheTopOfAFittedArc_IsOneNearTouch_AndOneUnderItIsTwoCrossings(double o, int count)
+        public void ALineASixMillionthOverTheTopOfAFittedArc_IsOneNearTouch_AndOneUnderItIsTwoCrossings(
+            double o,
+            int count
+        )
         {
             GeoSpline2 arc = ArcThrough(o, count);
             double top = o + 1000.0;
@@ -165,8 +197,14 @@ namespace GeometryHelper.UnitTest.Plane
             // 1E-6 under it: the line cuts the arc at x = +-sqrt(2000 * 1E-6) = +-0.0447 about the top, and the middle between them is a greatest.
             var under = new GeoLine2(P(o - 300, top - 1E-6), P(o + 300, top - 1E-6));
             GeoPoint2[] cut = arc.GetIntersections(under, Strict).OrderBy(p => p.X).ToArray();
-            Assert.True(cut.Length == 2, cut.Length + " places " + string.Join(" ", cut.Select(p => p.X - o)) + ", two expected");
-            Assert.True(Math.Abs(cut[0].X - o + 0.0447) <= 0.01 && Math.Abs(cut[1].X - o - 0.0447) <= 0.01, string.Join(" ", cut.Select(p => p.X - o)));
+            Assert.True(
+                cut.Length == 2,
+                cut.Length + " places " + string.Join(" ", cut.Select(p => p.X - o)) + ", two expected"
+            );
+            Assert.True(
+                Math.Abs(cut[0].X - o + 0.0447) <= 0.01 && Math.Abs(cut[1].X - o - 0.0447) <= 0.01,
+                string.Join(" ", cut.Select(p => p.X - o))
+            );
         }
 
         [Fact]
@@ -180,7 +218,10 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPoint2[] places = line.GetIntersections(ellipse, Strict);
 
             Assert.True(places.Length == 2, places.Length + " places " + string.Join(" ", places) + ", two expected");
-            Assert.True(Math.Abs(places[0].X + 0.02) <= 1E-3 && Math.Abs(places[1].X - 0.02) <= 1E-3, string.Join(" ", places));
+            Assert.True(
+                Math.Abs(places[0].X + 0.02) <= 1E-3 && Math.Abs(places[1].X - 0.02) <= 1E-3,
+                string.Join(" ", places)
+            );
             Assert.Equal(places, ellipse.GetIntersections(line, Strict));
         }
 
@@ -193,22 +234,45 @@ namespace GeometryHelper.UnitTest.Plane
             // never more than a few ten-thousandths off the arc. It crosses the arc once between each two, thirty-six times, at a slope
             // of 5E-6, and every other stationary point of its distance to the arc is a greatest, at 2E-4 or so, and no place.
             var arc = new GeoArc2(P(o, o), 1000, 0, Math.PI / 2);
-            var points = Enumerable.Range(0, 37).Select(i =>
-            {
-                double r = 1000.0 + (i % 2 == 0 ? 2E-4 : -2E-4);
-                return P(o + r * Math.Cos(i * Math.PI / 72.0), o + r * Math.Sin(i * Math.PI / 72.0));
-            }).ToList();
+            var points = Enumerable
+                .Range(0, 37)
+                .Select(i =>
+                {
+                    double r = 1000.0 + (i % 2 == 0 ? 2E-4 : -2E-4);
+                    return P(o + r * Math.Cos(i * Math.PI / 72.0), o + r * Math.Sin(i * Math.PI / 72.0));
+                })
+                .ToList();
             GeoSpline2 wiggle = GeoSpline2.Interpolate(points, 3, Strict);
 
             GeoPoint2[] places = wiggle.GetIntersections(arc, Strict);
 
-            Assert.True(places.Length == 36, places.Length + " places " + string.Join(" ", places.Select(p => Math.Atan2(p.Y - o, p.X - o) * 180.0 / Math.PI)) + ", 36 expected");
+            Assert.True(
+                places.Length == 36,
+                places.Length
+                    + " places "
+                    + string.Join(" ", places.Select(p => Math.Atan2(p.Y - o, p.X - o) * 180.0 / Math.PI))
+                    + ", 36 expected"
+            );
 
             for (int i = 0; i < places.Length; i++)
             {
                 double angle = Math.Atan2(places[i].Y - o, places[i].X - o) * 180.0 / Math.PI;
-                Assert.True(angle > 2.5 * i && angle < 2.5 * (i + 1), "place " + i + " is at " + angle + " degrees, between " + 2.5 * i + " and " + 2.5 * (i + 1) + " expected");
-                Assert.True(arc.DistanceTo(places[i], Strict) <= 1E-6, "place " + i + " is " + arc.DistanceTo(places[i], Strict) + " off the arc");
+                Assert.True(
+                    angle > 2.5 * i && angle < 2.5 * (i + 1),
+                    "place "
+                        + i
+                        + " is at "
+                        + angle
+                        + " degrees, between "
+                        + 2.5 * i
+                        + " and "
+                        + 2.5 * (i + 1)
+                        + " expected"
+                );
+                Assert.True(
+                    arc.DistanceTo(places[i], Strict) <= 1E-6,
+                    "place " + i + " is " + arc.DistanceTo(places[i], Strict) + " off the arc"
+                );
             }
 
             Assert.Equal(places, arc.GetIntersections(wiggle, Strict));
@@ -222,7 +286,10 @@ namespace GeometryHelper.UnitTest.Plane
             // The fit points are on the arc, so the spline meets it at each; where else it crosses it, a hundred-millionth off, is the
             // rounding of its numbers and not the shape, so the places are counted no further than that they lie on both and are apart.
             var arc = new GeoArc2(P(o, o), 1000, 0, Math.PI / 2);
-            var points = Enumerable.Range(0, 37).Select(i => P(o + 1000.0 * Math.Cos(i * Math.PI / 72.0), o + 1000.0 * Math.Sin(i * Math.PI / 72.0))).ToList();
+            var points = Enumerable
+                .Range(0, 37)
+                .Select(i => P(o + 1000.0 * Math.Cos(i * Math.PI / 72.0), o + 1000.0 * Math.Sin(i * Math.PI / 72.0)))
+                .ToList();
             GeoSpline2 fit = GeoSpline2.Interpolate(points, 3, Strict);
 
             GeoPoint2[] places = fit.GetIntersections(arc, Strict);
@@ -236,11 +303,17 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int i = 0; i < places.Length; i++)
             {
-                Assert.True(arc.DistanceTo(places[i], Strict) <= 1E-6 && fit.DistanceTo(places[i], Strict) <= 1E-6, "place " + i + " is off a curve");
+                Assert.True(
+                    arc.DistanceTo(places[i], Strict) <= 1E-6 && fit.DistanceTo(places[i], Strict) <= 1E-6,
+                    "place " + i + " is off a curve"
+                );
 
                 for (int j = 0; j < i; j++)
                 {
-                    Assert.True(places[i].DistanceTo(places[j]) > 1E-3, "places " + j + " and " + i + " are within the point tolerance");
+                    Assert.True(
+                        places[i].DistanceTo(places[j]) > 1E-3,
+                        "places " + j + " and " + i + " are within the point tolerance"
+                    );
                 }
             }
 
@@ -259,7 +332,10 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(1E6, 1000)]
         public void ALineOfManySegmentsTangentToACircle_TouchesItOnce_AndIsNoRunAlong(double o, int count)
         {
-            var points = Enumerable.Range(0, count).Select(i => P(o - 500.0 + 1000.0 * i / (count - 1), o + 1000.0)).ToList();
+            var points = Enumerable
+                .Range(0, count)
+                .Select(i => P(o - 500.0 + 1000.0 * i / (count - 1), o + 1000.0))
+                .ToList();
             GeoSpline2 line = GeoSpline2.FromPolyline(new GeoPolyline2(points));
             GeoSpline2 circle = GeoSpline2.FromCircle(new GeoCircle2(P(o, o), 1000));
 
@@ -300,7 +376,10 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // 100 sin(2 pi (x + 0.5) / 200) through 3000 points one apart, a hundred thousand from the origin: zero at x = 100 k - 0.5, k = 1 to 29.
             const double o = 1E5;
-            var points = Enumerable.Range(0, 3000).Select(i => P(o + i, o + 100.0 * Math.Sin(2.0 * Math.PI * (i + 0.5) / 200.0))).ToList();
+            var points = Enumerable
+                .Range(0, 3000)
+                .Select(i => P(o + i, o + 100.0 * Math.Sin(2.0 * Math.PI * (i + 0.5) / 200.0)))
+                .ToList();
             GeoSpline2 sine = GeoSpline2.Interpolate(points, 3, Strict);
             var axis = new GeoXLine2(P(o - 10, o), new GeoVector2(1, 0));
 
@@ -310,7 +389,10 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int k = 1; k <= 29; k++)
             {
-                Assert.True(places[k - 1].DistanceTo(P(o + 100.0 * k - 0.5, o)) <= 1E-4, "zero " + k + " is at " + places[k - 1]);
+                Assert.True(
+                    places[k - 1].DistanceTo(P(o + 100.0 * k - 0.5, o)) <= 1E-4,
+                    "zero " + k + " is at " + places[k - 1]
+                );
             }
 
             Assert.Equal(places, axis.GetIntersections(sine, Strict));
@@ -321,13 +403,20 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // y = x from (o, o) to (o + 500, o + 500), and y = 400 - x / 2 (from o): they cross at x = y = 266.6667.
             const double o = 1E6;
-            GeoSpline2 rising = GeoSpline2.FromPolyline(new GeoPolyline2(Enumerable.Range(0, 501).Select(i => P(o + i, o + i)).ToList()));
-            GeoSpline2 falling = GeoSpline2.FromPolyline(new GeoPolyline2(Enumerable.Range(0, 501).Select(i => P(o + i, o + 400 - 0.5 * i)).ToList()));
+            GeoSpline2 rising = GeoSpline2.FromPolyline(
+                new GeoPolyline2(Enumerable.Range(0, 501).Select(i => P(o + i, o + i)).ToList())
+            );
+            GeoSpline2 falling = GeoSpline2.FromPolyline(
+                new GeoPolyline2(Enumerable.Range(0, 501).Select(i => P(o + i, o + 400 - 0.5 * i)).ToList())
+            );
 
             GeoPoint2[] places = rising.GetIntersections(falling, Strict);
 
             Assert.Single(places);
-            Assert.True(places[0].DistanceTo(P(o + 800.0 / 3.0, o + 800.0 / 3.0)) <= 1E-4, "the crossing is at " + places[0]);
+            Assert.True(
+                places[0].DistanceTo(P(o + 800.0 / 3.0, o + 800.0 / 3.0)) <= 1E-4,
+                "the crossing is at " + places[0]
+            );
             Assert.Equal(places, falling.GetIntersections(rising, Strict));
             Assert.Equal(0.0, rising.DistanceTo(falling, Strict));
         }
@@ -357,7 +446,10 @@ namespace GeometryHelper.UnitTest.Plane
         {
             const double o = 1E6;
             var square = new GeoPolygon2(P(o, o), P(o + 100, o), P(o + 100, o + 100), P(o, o + 100));
-            GeoSpline2 arriving = GeoSpline2.FromControlPoints(2, new[] { P(o + 10, o + 10), P(o + 60, o + 30), P(o + 100, o + 100) });
+            GeoSpline2 arriving = GeoSpline2.FromControlPoints(
+                2,
+                new[] { P(o + 10, o + 10), P(o + 60, o + 30), P(o + 100, o + 100) }
+            );
 
             GeoPoint2[] places = arriving.GetIntersections(square, Strict);
 
@@ -401,7 +493,11 @@ namespace GeometryHelper.UnitTest.Plane
         public void TheArchAndACircleInsideItTouchingItsTopAtAMillion_MeetAtThatPointFromEitherSide()
         {
             const double o = 1E6;
-            GeoSpline2 arch = new GeoSpline2(3, new[] { P(o, o), P(o + 100, o + 150), P(o + 200, o + 150), P(o + 300, o) }, new double[] { 0, 0, 0, 0, 1, 1, 1, 1 });
+            GeoSpline2 arch = new GeoSpline2(
+                3,
+                new[] { P(o, o), P(o + 100, o + 150), P(o + 200, o + 150), P(o + 300, o) },
+                new double[] { 0, 0, 0, 0, 1, 1, 1, 1 }
+            );
             GeoSpline2 circle = GeoSpline2.FromCircle(new GeoCircle2(P(o + 150, o + 92.5), 20));
 
             GeoPoint2[] places = arch.GetIntersections(circle, Strict);
@@ -417,14 +513,20 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // A parabola y = o + x^2 / 2E4, cut into 40 000 segments, a million out; the vertical segment at x = o + 100 crosses it at y = o + 0.5.
             const double o = 1E6;
-            var vertices = Enumerable.Range(0, 40001).Select(i => P(o + 0.005 * i, o + 0.005 * i * 0.005 * i / 2E4)).ToList();
+            var vertices = Enumerable
+                .Range(0, 40001)
+                .Select(i => P(o + 0.005 * i, o + 0.005 * i * 0.005 * i / 2E4))
+                .ToList();
             GeoSpline2 parabola = GeoSpline2.FromPolyline(new GeoPolyline2(vertices));
             var vertical = new GeoLine2(P(o + 100, o - 10), P(o + 100, o + 10));
 
             GeoPoint2[] places = parabola.GetIntersections(vertical, Strict);
 
             Assert.Single(places);
-            Assert.True(places[0].DistanceTo(P(o + 100, o + 100.0 * 100.0 / 2E4)) <= 1E-3, "the crossing is at " + places[0]);
+            Assert.True(
+                places[0].DistanceTo(P(o + 100, o + 100.0 * 100.0 / 2E4)) <= 1E-3,
+                "the crossing is at " + places[0]
+            );
             Assert.Equal(0.0, parabola.DistanceTo(vertical, Strict));
         }
 
@@ -459,7 +561,10 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AFitToThirtySevenPointsOfAQuarterArc_AgainstThatArcAsASpline_LiesAlongIt()
         {
-            var points = Enumerable.Range(0, 37).Select(i => P(1000.0 * Math.Cos(i * Math.PI / 72.0), 1000.0 * Math.Sin(i * Math.PI / 72.0))).ToList();
+            var points = Enumerable
+                .Range(0, 37)
+                .Select(i => P(1000.0 * Math.Cos(i * Math.PI / 72.0), 1000.0 * Math.Sin(i * Math.PI / 72.0)))
+                .ToList();
             GeoSpline2 fit = GeoSpline2.Interpolate(points, 3, Strict);
             GeoSpline2 exact = GeoSpline2.FromArc(new GeoArc2(P(0, 0), 1000, 0, Math.PI / 2));
 
@@ -468,7 +573,12 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPoint2[] places = fit.GetIntersections(exact, Strict);
 
             Assert.True(places.Length <= 12, places.Length + " places");
-            Assert.All(places, p => Assert.True(Math.Atan2(p.Y, p.X) < 0.1 * Math.PI / 2 || Math.Atan2(p.Y, p.X) > 0.9 * Math.PI / 2, "the place " + p + " is in the middle"));
+            Assert.All(places, p =>
+                Assert.True(
+                    Math.Atan2(p.Y, p.X) < 0.1 * Math.PI / 2 || Math.Atan2(p.Y, p.X) > 0.9 * Math.PI / 2,
+                    "the place " + p + " is in the middle"
+                )
+            );
             Assert.Equal(places.OrderBy(p => p.Y), exact.GetIntersections(fit, Strict).OrderBy(p => p.Y));
             Assert.True(fit.CollidesWith(exact, Strict));
             Assert.True(fit.DistanceTo(exact, Strict) <= 1E-3);
@@ -477,7 +587,10 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AFitToThirtySevenPointsOfAQuarterArc_AgainstAnEllipseAGhostOffThatCircle_MeetsItAtMostOncePerFitPoint()
         {
-            var points = Enumerable.Range(0, 37).Select(i => P(1000.0 * Math.Cos(i * Math.PI / 72.0), 1000.0 * Math.Sin(i * Math.PI / 72.0))).ToList();
+            var points = Enumerable
+                .Range(0, 37)
+                .Select(i => P(1000.0 * Math.Cos(i * Math.PI / 72.0), 1000.0 * Math.Sin(i * Math.PI / 72.0)))
+                .ToList();
             GeoSpline2 fit = GeoSpline2.Interpolate(points, 3, Strict);
             var ellipse = new GeoEllipse2(P(0, 0), new GeoVector2(1, 0), 1000, 1000 - 1E-9);
 
@@ -508,7 +621,10 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // A line along the x axis and a spline that is the same line for 400 and then climbs steeply through y = 1 at x = 450.
             GeoSpline2 axis = GeoSpline2.FromControlPoints(1, new[] { P(0, 0), P(1000, 0) });
-            GeoSpline2 bent = GeoSpline2.FromControlPoints(1, new[] { P(0, 0.0004), P(400, 0.0004), P(450, 5), P(500, -5) });
+            GeoSpline2 bent = GeoSpline2.FromControlPoints(
+                1,
+                new[] { P(0, 0.0004), P(400, 0.0004), P(450, 5), P(500, -5) }
+            );
 
             GeoPoint2[] places = axis.GetIntersections(bent, Strict);
 

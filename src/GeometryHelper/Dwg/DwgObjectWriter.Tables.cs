@@ -10,14 +10,14 @@ namespace GeometryHelper.Dwg
     {
         /// <summary>The values of a dimension style in the order of the file, as <see cref="DwgObjectReader"/> reads them: bit code, DXF group, the value DXF leaves out, the first version.</summary>
         private const string DimStyleValues =
-            "TV 3;TV 4;BD 40 1;BD 41 0.18;BD 42 0.0625;BD 43 0.38;BD 44 0.18;BD 45 0;BD 46 0;BD 47 0;BD 48 0;" +
-            "BD 49 1 1021;BD 50 0.7853981633974483 1021;BS 69 0 1021;CMC 70 0 1021;" +
-            "B 71 0;B 72 0;B 73 1;B 74 1;B 75 0;B 76 0;BS 77 0;BS 78 0;BS 79 0;BS 90 0 1021;" +
-            "BD 140 0.18;BD 141 0.09;BD 142 0;BD 143 25.4;BD 144 1;BD 145 0;BD 146 1;BD 147 0.09;BD 148 0;" +
-            "B 170 0;BS 171 2;B 172 0;B 173 0;B 174 0;B 175 0;CMC 176 0;CMC 177 0;CMC 178 0;" +
-            "BS 179 0;BS 271 4;BS 272 4;BS 273 2;BS 274 2;BS 275 0;BS 276 0;BS 277 2;BS 278 46;BS 279 0;" +
-            "BS 280 0;B 281 0;B 282 0;BS 283 1;BS 284 0;BS 285 0;BS 286 0;B 288 0;BS 289 3;B 290 0 1021;" +
-            "B 294 0 1024;BD 0 100 1024;TV 0 0 1024;BD 0 100 1024;TV 0 0 1024;BS 371 -2;BS 372 -2";
+            "TV 3;TV 4;BD 40 1;BD 41 0.18;BD 42 0.0625;BD 43 0.38;BD 44 0.18;BD 45 0;BD 46 0;BD 47 0;BD 48 0;"
+            + "BD 49 1 1021;BD 50 0.7853981633974483 1021;BS 69 0 1021;CMC 70 0 1021;"
+            + "B 71 0;B 72 0;B 73 1;B 74 1;B 75 0;B 76 0;BS 77 0;BS 78 0;BS 79 0;BS 90 0 1021;"
+            + "BD 140 0.18;BD 141 0.09;BD 142 0;BD 143 25.4;BD 144 1;BD 145 0;BD 146 1;BD 147 0.09;BD 148 0;"
+            + "B 170 0;BS 171 2;B 172 0;B 173 0;B 174 0;B 175 0;CMC 176 0;CMC 177 0;CMC 178 0;"
+            + "BS 179 0;BS 271 4;BS 272 4;BS 273 2;BS 274 2;BS 275 0;BS 276 0;BS 277 2;BS 278 46;BS 279 0;"
+            + "BS 280 0;B 281 0;B 282 0;BS 283 1;BS 284 0;BS 285 0;BS 286 0;B 288 0;BS 289 3;B 290 0 1021;"
+            + "B 294 0 1024;BD 0 100 1024;TV 0 0 1024;BD 0 100 1024;TV 0 0 1024;BS 371 -2;BS 372 -2";
 
         /// <summary>The name a DWG keeps for a block: <c>*U</c> or <c>*D</c> alone for an anonymous block, <c>*Paper_Space</c> for that of every layout.</summary>
         private static string StoredBlockName(string name, int flags)
@@ -82,8 +82,22 @@ namespace GeometryHelper.Dwg
 
                 string name = record.Of(null).Text(2).Trim();
 
-                if ((type == 0x30 && (name.Equals("*Model_Space", StringComparison.OrdinalIgnoreCase) || name.Equals("*Paper_Space", StringComparison.OrdinalIgnoreCase)))
-                    || (type == 0x38 && (name.Equals("ByBlock", StringComparison.OrdinalIgnoreCase) || name.Equals("ByLayer", StringComparison.OrdinalIgnoreCase))))
+                if (
+                    (
+                        type == 0x30
+                        && (
+                            name.Equals("*Model_Space", StringComparison.OrdinalIgnoreCase)
+                            || name.Equals("*Paper_Space", StringComparison.OrdinalIgnoreCase)
+                        )
+                    )
+                    || (
+                        type == 0x38
+                        && (
+                            name.Equals("ByBlock", StringComparison.OrdinalIgnoreCase)
+                            || name.Equals("ByLayer", StringComparison.OrdinalIgnoreCase)
+                        )
+                    )
+                )
                 {
                     continue;
                 }
@@ -138,8 +152,13 @@ namespace GeometryHelper.Dwg
         private void WriteBlockHeader()
         {
             DwgGroups record = _record.Of(null);
-            DwgRecord[] ends = _drawing.BlockEnds.TryGetValue(_record.Handle, out DwgRecord[] found) ? found : new DwgRecord[2];
-            DwgGroups begin = ends[0] != null ? ends[0].Of("AcDbBlockBegin") : new DwgGroups(new List<KeyValuePair<int, string>>(), null);
+            DwgRecord[] ends = _drawing.BlockEnds.TryGetValue(_record.Handle, out DwgRecord[] found)
+                ? found
+                : new DwgRecord[2];
+            DwgGroups begin =
+                ends[0] != null
+                    ? ends[0].Of("AcDbBlockBegin")
+                    : new DwgGroups(new List<KeyValuePair<int, string>>(), null);
             int flags = begin.Int(70);
             bool reference = (flags & 4) != 0;
             bool overlay = (flags & 8) != 0;
@@ -158,7 +177,9 @@ namespace GeometryHelper.Dwg
 
             _data.Point3(begin.Point(10));
             T(begin.Text(1));
-            List<ulong> inserts = new List<string>(record.Each(331)).ConvertAll(DwgRecord.Hex).FindAll(handle => _written.Contains(handle));
+            List<ulong> inserts = new List<string>(record.Each(331))
+                .ConvertAll(DwgRecord.Hex)
+                .FindAll(handle => _written.Contains(handle));
 
             foreach (ulong unused in inserts)
             {
@@ -220,8 +241,13 @@ namespace GeometryHelper.Dwg
             int flags = layer.Int(70);
             int colour = layer.Int(62, 7);
             WriteRecordHead(layer.Text(2), flags);
-            int values = ((flags & 1) != 0 ? 1 : 0) | (colour < 0 ? 2 : 0) | ((flags & 2) != 0 ? 4 : 0) | ((flags & 4) != 0 ? 8 : 0)
-                | (layer.Int(290, 1) != 0 ? 16 : 0) | (LineWeightIndex(layer.Int(370, -3)) << 5);
+            int values =
+                ((flags & 1) != 0 ? 1 : 0)
+                | (colour < 0 ? 2 : 0)
+                | ((flags & 2) != 0 ? 4 : 0)
+                | ((flags & 4) != 0 ? 8 : 0)
+                | (layer.Int(290, 1) != 0 ? 16 : 0)
+                | (LineWeightIndex(layer.Int(370, -3)) << 5);
             _data.BitShort(values);
             WriteColour(Math.Abs(colour), layer.Has(420) ? layer.Int(420) : -1);
             H(5, 0);
@@ -330,9 +356,11 @@ namespace GeometryHelper.Dwg
             }
         }
 
-        private static int Value(Dictionary<int, string> groups, int code) => groups.TryGetValue(code, out string value) ? DwgRecord.Int(value) : 0;
+        private static int Value(Dictionary<int, string> groups, int code) =>
+            groups.TryGetValue(code, out string value) ? DwgRecord.Int(value) : 0;
 
-        private static double Real(Dictionary<int, string> groups, int code) => groups.TryGetValue(code, out string value) ? DwgRecord.Double(value) : 0.0;
+        private static double Real(Dictionary<int, string> groups, int code) =>
+            groups.TryGetValue(code, out string value) ? DwgRecord.Double(value) : 0.0;
 
         /// <summary>The view mode of a VIEW or a VPORT: perspective, front clip, back clip, then the inverse of DXF's bit 16.</summary>
         private void WriteViewMode(int mode)
@@ -520,7 +548,9 @@ namespace GeometryHelper.Dwg
                         T(given ? style.Text(code) : string.Empty);
                         break;
                     case "BD":
-                        _data.BitDouble(given ? style.Double(code) : double.Parse(parts[2], CultureInfo.InvariantCulture));
+                        _data.BitDouble(
+                            given ? style.Double(code) : double.Parse(parts[2], CultureInfo.InvariantCulture)
+                        );
                         break;
                     case "B":
                         _data.Bit((given ? style.Int(code) : int.Parse(parts[2], CultureInfo.InvariantCulture)) != 0);

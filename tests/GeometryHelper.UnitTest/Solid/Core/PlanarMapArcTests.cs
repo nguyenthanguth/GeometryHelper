@@ -27,15 +27,17 @@ namespace GeometryHelper.UnitTest.Solid
             return new GeoCoordinateSystem3(plane);
         }
 
-        private static GeoArc2 Quarter() => GeoArc2.FromBulge(
-            new GeoPoint2(10, 20), new GeoPoint2(60, 70), Math.Tan(Math.PI / 8.0));
+        private static GeoArc2 Quarter() =>
+            GeoArc2.FromBulge(new GeoPoint2(10, 20), new GeoPoint2(60, 70), Math.Tan(Math.PI / 8.0));
 
         /// <summary>
         /// A slot outline: three straight sides and one that bulges.
         /// </summary>
-        private static GeoPolylineArc2 Slot() => new GeoPolylineArc2(
-            new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
-            new[] { 0.0, -1.0, 0.0, 0.0 });
+        private static GeoPolylineArc2 Slot() =>
+            new GeoPolylineArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
+                new[] { 0.0, -1.0, 0.0, 0.0 }
+            );
 
         [Fact]
         public void AnArcLiftedAndLaidOutAgainIsTheArcThatWentIn()
@@ -146,9 +148,11 @@ namespace GeometryHelper.UnitTest.Solid
             for (int i = 0; i <= 20; i++)
             {
                 Assert.True(
-                    lifted.GetPointAtParameter(i / 20.0).IsEqualTo(
-                        PlanarMap.ToPoint3(frame, flat.GetPointAtParameter(i / 20.0)), Loose),
-                    "at " + i);
+                    lifted
+                        .GetPointAtParameter(i / 20.0)
+                        .IsEqualTo(PlanarMap.ToPoint3(frame, flat.GetPointAtParameter(i / 20.0)), Loose),
+                    "at " + i
+                );
             }
         }
 
@@ -159,15 +163,21 @@ namespace GeometryHelper.UnitTest.Solid
 
             // A bar bent once in the XY plane and once out of it.
             GeoPolylineArc3 bent = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0),
-                new GeoPoint3(300, 300, 0), new GeoPoint3(300, 300, 300)).Fillet(50.0);
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(300, 300, 0),
+                new GeoPoint3(300, 300, 300)
+            ).Fillet(50.0);
 
             Assert.False(bent.IsPlanar());
             Assert.False(PlanarMap.TryToPolylineArc2(frame, bent, out _));
 
             // One that stays flat does come down.
             GeoPolylineArc3 flatBar = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0), new GeoPoint3(300, 300, 0)).Fillet(50.0);
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(300, 300, 0)
+            ).Fillet(50.0);
 
             Assert.True(flatBar.IsPlanar());
             Assert.True(PlanarMap.TryToPolylineArc2(frame, flatBar, out GeoPolylineArc2 laidOut));
@@ -177,7 +187,8 @@ namespace GeometryHelper.UnitTest.Solid
             var oneBad = new GeoPolylineArc3(
                 new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(200, 0, 0) },
                 new[] { 0.0, 0.5, 0.0 },
-                new[] { default(GeoVector3), new GeoVector3(0, 1, 0), default(GeoVector3) });
+                new[] { default(GeoVector3), new GeoVector3(0, 1, 0), default(GeoVector3) }
+            );
 
             Assert.False(PlanarMap.TryToPolylineArc2(frame, oneBad, out _));
         }
@@ -214,7 +225,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Throws<ArgumentNullException>(() => PlanarMap.ToPolylineArc3(frame, null));
             Assert.Throws<ArgumentNullException>(() => PlanarMap.TryToPolylineArc2(frame, null, out _));
-            Assert.Throws<ArgumentNullException>(() => PlanarMap.TryToPolylineArc2(frame, null, out _, Tolerance.Global));
+            Assert.Throws<ArgumentNullException>(() =>
+                PlanarMap.TryToPolylineArc2(frame, null, out _, Tolerance.Global)
+            );
         }
     }
 }

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -46,7 +46,8 @@ namespace GeometryHelper.Geometry
         /// <returns>
         /// Nought where the plane crosses the shape or comes within the tolerance given of it, otherwise the gap.
         /// </returns>
-        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(polyline, this, tolerance);
+        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Distance3.DistanceTo(polyline, this, tolerance);
 
         /// <summary>
         /// Gets the distance from this plane to a solid, using the default tolerance.
@@ -135,7 +136,8 @@ namespace GeometryHelper.Geometry
         /// to 110 is 10 above the floor plane; one standing from z = -50 crosses it and is nought away.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) => Distance3.DistanceTo(this, polygon, tolerance);
+        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Distance3.DistanceTo(this, polygon, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between this plane and a ray: the answer of
@@ -191,7 +193,8 @@ namespace GeometryHelper.Geometry
         /// 50, 110) is 10 above the floor plane, and the triangle with corners (0, 50, -50), (100, 50, -50) and (0, 50, 50)
         /// crosses it and is nought away.
         /// </remarks>
-        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) => Distance3.DistanceTo(this, triangle, tolerance);
+        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Distance3.DistanceTo(this, triangle, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between this plane and an oriented box: the answer of

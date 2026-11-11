@@ -38,19 +38,21 @@ namespace GeometryHelper.Core
             Point,
 
             /// <summary>They cross in a circle.</summary>
-            Circle
+            Circle,
         }
 
         /// <summary>
         /// Gets how far a point is from the centre of a ball.
         /// </summary>
-        internal static double FromCenter(GeoSphere3 sphere, GeoPoint3 point) => Distance3.DistanceTo(sphere.Center, point);
+        internal static double FromCenter(GeoSphere3 sphere, GeoPoint3 point) =>
+            Distance3.DistanceTo(sphere.Center, point);
 
         /// <summary>
         /// Gets the gap between a ball and a shape from the distance of the shape from the centre: nought where the shape reaches
         /// the ball.
         /// </summary>
-        internal static double Reach(GeoSphere3 sphere, double distanceFromCenter) => Math.Max(0.0, distanceFromCenter - sphere.Radius);
+        internal static double Reach(GeoSphere3 sphere, double distanceFromCenter) =>
+            Math.Max(0.0, distanceFromCenter - sphere.Radius);
 
         /// <summary>
         /// Gets the shortest segment from the surface of a ball to a shape, given the point of the shape nearest the centre.
@@ -81,7 +83,9 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static GeoLine3 Join(GeoSphere3 sphere, GeoSphere3 other)
         {
-            return Precedes(other, sphere) ? JoinFromTheFirst(other, sphere).Reverse() : JoinFromTheFirst(sphere, other);
+            return Precedes(other, sphere)
+                ? JoinFromTheFirst(other, sphere).Reverse()
+                : JoinFromTheFirst(sphere, other);
         }
 
         private static GeoLine3 JoinFromTheFirst(GeoSphere3 first, GeoSphere3 second)
@@ -98,7 +102,10 @@ namespace GeometryHelper.Core
 
             if (far > first.Radius + second.Radius)
             {
-                return new GeoLine3(first.Center.Add(toward.Multiply(first.Radius)), second.Center.Subtract(toward.Multiply(second.Radius)));
+                return new GeoLine3(
+                    first.Center.Add(toward.Multiply(first.Radius)),
+                    second.Center.Subtract(toward.Multiply(second.Radius))
+                );
             }
 
             // They meet: the stretch of the line between the centres that both hold, from the near end of the second to the far end of
@@ -158,9 +165,12 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static bool Precedes(GeoSphere3 first, GeoSphere3 second)
         {
-            if (first.Center.X != second.Center.X) return first.Center.X < second.Center.X;
-            if (first.Center.Y != second.Center.Y) return first.Center.Y < second.Center.Y;
-            if (first.Center.Z != second.Center.Z) return first.Center.Z < second.Center.Z;
+            if (first.Center.X != second.Center.X)
+                return first.Center.X < second.Center.X;
+            if (first.Center.Y != second.Center.Y)
+                return first.Center.Y < second.Center.Y;
+            if (first.Center.Z != second.Center.Z)
+                return first.Center.Z < second.Center.Z;
 
             return first.Radius < second.Radius;
         }
@@ -173,7 +183,13 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance whose point tolerance says how near to tangent is touching.</param>
         /// <param name="circle">The circle the plane cuts, with the normal of the plane, when they cross.</param>
         /// <param name="touch">The foot of the centre on the plane, when they touch at a point.</param>
-        internal static Meeting CutByPlane(GeoSphere3 sphere, GeoPlane3 plane, Tolerance tolerance, out GeoCircle3 circle, out GeoPoint3 touch)
+        internal static Meeting CutByPlane(
+            GeoSphere3 sphere,
+            GeoPlane3 plane,
+            Tolerance tolerance,
+            out GeoCircle3 circle,
+            out GeoPoint3 touch
+        )
         {
             circle = default(GeoCircle3);
             touch = default(GeoPoint3);
@@ -208,14 +224,27 @@ namespace GeometryHelper.Core
         /// <see cref="Precedes"/>), so that asked either way round it is the same to the bit, but for the normal of the circle,
         /// which points from the ball asked towards the other.
         /// </summary>
-        internal static Meeting CutBySphere(GeoSphere3 sphere, GeoSphere3 other, Tolerance tolerance, out GeoCircle3 circle, out GeoPoint3 touch)
+        internal static Meeting CutBySphere(
+            GeoSphere3 sphere,
+            GeoSphere3 other,
+            Tolerance tolerance,
+            out GeoCircle3 circle,
+            out GeoPoint3 touch
+        )
         {
             return Precedes(other, sphere)
                 ? CutFromTheFirst(other, sphere, true, tolerance, out circle, out touch)
                 : CutFromTheFirst(sphere, other, false, tolerance, out circle, out touch);
         }
 
-        private static Meeting CutFromTheFirst(GeoSphere3 first, GeoSphere3 second, bool turned, Tolerance tolerance, out GeoCircle3 circle, out GeoPoint3 touch)
+        private static Meeting CutFromTheFirst(
+            GeoSphere3 first,
+            GeoSphere3 second,
+            bool turned,
+            Tolerance tolerance,
+            out GeoCircle3 circle,
+            out GeoPoint3 touch
+        )
         {
             circle = default(GeoCircle3);
             touch = default(GeoPoint3);
@@ -282,7 +311,15 @@ namespace GeometryHelper.Core
         /// onto it, and an end within the point tolerance of the surface is a crossing of its own where no root lies near it, so a
         /// segment that stops a thousandth short of the surface touches it, as it collides with it.
         /// </remarks>
-        internal static void Cross(List<GeoPoint3> found, GeoSphere3 sphere, GeoPoint3 origin, GeoVector3 direction, double from, double to, Tolerance tolerance)
+        internal static void Cross(
+            List<GeoPoint3> found,
+            GeoSphere3 sphere,
+            GeoPoint3 origin,
+            GeoVector3 direction,
+            double from,
+            double to,
+            Tolerance tolerance
+        )
         {
             double tol = tolerance.EqualPoint;
             GeoVector3 offset = sphere.Center.GetVectorTo(origin);
@@ -308,8 +345,12 @@ namespace GeometryHelper.Core
                 }
             }
 
-            bool startsAt = !double.IsInfinity(from) && Math.Abs(FromCenter(sphere, At(origin, direction, from)) - sphere.Radius) <= tol;
-            bool endsAt = !double.IsInfinity(to) && Math.Abs(FromCenter(sphere, At(origin, direction, to)) - sphere.Radius) <= tol;
+            bool startsAt =
+                !double.IsInfinity(from)
+                && Math.Abs(FromCenter(sphere, At(origin, direction, from)) - sphere.Radius) <= tol;
+            bool endsAt =
+                !double.IsInfinity(to)
+                && Math.Abs(FromCenter(sphere, At(origin, direction, to)) - sphere.Radius) <= tol;
 
             if (startsAt)
             {
@@ -344,7 +385,15 @@ namespace GeometryHelper.Core
 
             if (length > tolerance.EqualPoint)
             {
-                Cross(found, sphere, line.StartPoint, line.StartPoint.GetVectorTo(line.EndPoint).Multiply(1.0 / length), 0.0, length, tolerance);
+                Cross(
+                    found,
+                    sphere,
+                    line.StartPoint,
+                    line.StartPoint.GetVectorTo(line.EndPoint).Multiply(1.0 / length),
+                    0.0,
+                    length,
+                    tolerance
+                );
             }
             else if (Math.Abs(FromCenter(sphere, line.StartPoint) - sphere.Radius) <= tolerance.EqualPoint)
             {
@@ -355,7 +404,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the points where a chain of segments crosses the surface, in order along it, a corner on the surface once.
         /// </summary>
-        internal static GeoPoint3[] Cross(GeoSphere3 sphere, IReadOnlyList<GeoPoint3> vertices, bool closed, Tolerance tolerance)
+        internal static GeoPoint3[] Cross(
+            GeoSphere3 sphere,
+            IReadOnlyList<GeoPoint3> vertices,
+            bool closed,
+            Tolerance tolerance
+        )
         {
             var found = new List<GeoPoint3>();
             int edges = closed ? vertices.Count : vertices.Count - 1;
@@ -373,7 +427,11 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static GeoPoint3[] Finish(List<GeoPoint3> found, bool closed, Tolerance tolerance)
         {
-            if (closed && found.Count > 1 && Distance3.DistanceTo(found[0], found[found.Count - 1]) <= tolerance.EqualPoint)
+            if (
+                closed
+                && found.Count > 1
+                && Distance3.DistanceTo(found[0], found[found.Count - 1]) <= tolerance.EqualPoint
+            )
             {
                 found.RemoveAt(found.Count - 1);
             }
@@ -392,6 +450,7 @@ namespace GeometryHelper.Core
             }
         }
 
-        private static GeoPoint3 At(GeoPoint3 origin, GeoVector3 direction, double distance) => origin.Add(direction.Multiply(distance));
+        private static GeoPoint3 At(GeoPoint3 origin, GeoVector3 direction, double distance) =>
+            origin.Add(direction.Multiply(distance));
     }
 }

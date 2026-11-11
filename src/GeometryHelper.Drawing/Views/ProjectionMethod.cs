@@ -16,6 +16,6 @@ namespace GeometryHelper.Drawing
         /// Each view on the side away from where it looks from: the top view below the front view, the right end view on
         /// its left, as ISO drawings in Europe have it.
         /// </summary>
-        FirstAngle
+        FirstAngle,
     }
 }

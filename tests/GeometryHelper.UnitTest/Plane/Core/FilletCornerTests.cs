@@ -35,7 +35,9 @@ namespace GeometryHelper.UnitTest.Plane
             var along = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0));
             var up = new GeoLine2(new GeoPoint2(100, 0), new GeoPoint2(100, 80));
 
-            Assert.True(Lengthen2.TryFilletCorner(along, up, 20.0, out GeoArc2 arc, out GeoLine2 first, out GeoLine2 second));
+            Assert.True(
+                Lengthen2.TryFilletCorner(along, up, 20.0, out GeoArc2 arc, out GeoLine2 first, out GeoLine2 second)
+            );
 
             // At a right angle the touching points sit exactly the radius back from the corner.
             Assert.True(first.EndPoint.IsEqualTo(new GeoPoint2(80, 0), Tight));
@@ -64,7 +66,16 @@ namespace GeometryHelper.UnitTest.Plane
             var first = new GeoLine2(new GeoPoint2(-60, 0), new GeoPoint2(0, 0));
             var second = new GeoLine2(GeoPoint2.Origin, new GeoPoint2(60.0 * Math.Cos(turn), 60.0 * Math.Sin(turn)));
 
-            Assert.True(Lengthen2.TryFilletCorner(first, second, radius, out GeoArc2 arc, out GeoLine2 trimmed1, out GeoLine2 trimmed2));
+            Assert.True(
+                Lengthen2.TryFilletCorner(
+                    first,
+                    second,
+                    radius,
+                    out GeoArc2 arc,
+                    out GeoLine2 trimmed1,
+                    out GeoLine2 trimmed2
+                )
+            );
 
             Assert.Equal(radius, arc.Radius, 9);
             AssertTangent(arc, trimmed1, arc.StartPoint, radius);
@@ -85,7 +96,9 @@ namespace GeometryHelper.UnitTest.Plane
             var along = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(60, 0));
             var up = new GeoLine2(new GeoPoint2(100, 40), new GeoPoint2(100, 90));
 
-            Assert.True(Lengthen2.TryFilletCorner(along, up, 10.0, out GeoArc2 arc, out GeoLine2 first, out GeoLine2 second));
+            Assert.True(
+                Lengthen2.TryFilletCorner(along, up, 10.0, out GeoArc2 arc, out GeoLine2 first, out GeoLine2 second)
+            );
 
             Assert.True(first.EndPoint.IsEqualTo(new GeoPoint2(90, 0), Tight));
             Assert.True(second.StartPoint.IsEqualTo(new GeoPoint2(100, 10), Tight));
@@ -121,10 +134,23 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.False(Lengthen2.TryFilletCorner(along, new GeoLine2(point, point), 5.0, out _, out _, out _));
 
             // Straight on is a corner of no turn, which has no arc either.
-            Assert.False(Lengthen2.TryFilletCorner(along, new GeoLine2(new GeoPoint2(100, 0), new GeoPoint2(200, 0)), 5.0, out _, out _, out _));
+            Assert.False(
+                Lengthen2.TryFilletCorner(
+                    along,
+                    new GeoLine2(new GeoPoint2(100, 0), new GeoPoint2(200, 0)),
+                    5.0,
+                    out _,
+                    out _,
+                    out _
+                )
+            );
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => Lengthen2.TryFilletCorner(along, parallel, 0.0, out _, out _, out _));
-            Assert.Throws<ArgumentOutOfRangeException>(() => Lengthen2.TryFilletCorner(along, parallel, -5.0, out _, out _, out _));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                Lengthen2.TryFilletCorner(along, parallel, 0.0, out _, out _, out _)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                Lengthen2.TryFilletCorner(along, parallel, -5.0, out _, out _, out _)
+            );
         }
 
         [Fact]
@@ -135,7 +161,9 @@ namespace GeometryHelper.UnitTest.Plane
 
             // The radius-zero case is the method that was already there, and the two agree about the corner.
             Assert.True(Lengthen2.TryTrimExtendToCorner(along, up, out GeoLine2 sharp1, out GeoLine2 sharp2));
-            Assert.True(Lengthen2.TryFilletCorner(along, up, 5.0, out GeoArc2 arc, out GeoLine2 round1, out GeoLine2 round2));
+            Assert.True(
+                Lengthen2.TryFilletCorner(along, up, 5.0, out GeoArc2 arc, out GeoLine2 round1, out GeoLine2 round2)
+            );
 
             Assert.True(sharp1.EndPoint.IsEqualTo(new GeoPoint2(100, 0), Tight));
             Assert.True(sharp2.StartPoint.IsEqualTo(new GeoPoint2(100, 0), Tight));

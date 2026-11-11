@@ -18,7 +18,20 @@ namespace GeometryHelper.Viewer
         {
             if (targets.Count != 2)
             {
-                Add(DiagnosticChecks.Gap, DiagnosticKind.Note, false, targets.Count > 0 ? targets[0] : -1, null, "the gap is measured between two items: select exactly two (" + Count(targets.Count, "item") + " are checked)", "viewer", default(Vec3), 0.0, 0.0);
+                Add(
+                    DiagnosticChecks.Gap,
+                    DiagnosticKind.Note,
+                    false,
+                    targets.Count > 0 ? targets[0] : -1,
+                    null,
+                    "the gap is measured between two items: select exactly two ("
+                        + Count(targets.Count, "item")
+                        + " are checked)",
+                    "viewer",
+                    default(Vec3),
+                    0.0,
+                    0.0
+                );
                 return;
             }
 
@@ -30,7 +43,18 @@ namespace GeometryHelper.Viewer
 
             foreach (string note in answer.Notes)
             {
-                Add(DiagnosticChecks.Gap, DiagnosticKind.Note, false, targets[0], nameA, note, "LibraryMeasure", default(Vec3), 0.0, 0.0);
+                Add(
+                    DiagnosticChecks.Gap,
+                    DiagnosticKind.Note,
+                    false,
+                    targets[0],
+                    nameA,
+                    note,
+                    "LibraryMeasure",
+                    default(Vec3),
+                    0.0,
+                    0.0
+                );
             }
 
             if (!answer.Distance.HasValue)
@@ -39,12 +63,18 @@ namespace GeometryHelper.Viewer
             }
 
             double distance = answer.Distance.Value;
-            string source = first.Kind + ".DistanceTo(" + second.Kind + ")" + (answer.From.HasValue ? " and GetShortestLineTo" : string.Empty);
+            string source =
+                first.Kind
+                + ".DistanceTo("
+                + second.Kind
+                + ")"
+                + (answer.From.HasValue ? " and GetShortestLineTo" : string.Empty);
             string text = "the gap between '" + nameA + "' and '" + nameB + "' is " + N(distance);
 
             if (answer.From.HasValue && answer.To.HasValue)
             {
-                text += "; the shortest segment runs from " + Where(answer.From.Value) + " to " + Where(answer.To.Value);
+                text +=
+                    "; the shortest segment runs from " + Where(answer.From.Value) + " to " + Where(answer.To.Value);
             }
 
             if (distance > 0.0 && distance <= _tol)
@@ -56,8 +86,22 @@ namespace GeometryHelper.Viewer
                 text += "; the two touch or cross";
             }
 
-            Vec3 at = answer.From.HasValue && answer.To.HasValue ? (answer.From.Value + answer.To.Value) * 0.5 : default(Vec3);
-            DiagnosticFinding f = Add(DiagnosticChecks.Gap, DiagnosticKind.Gap, false, targets[0], nameA, text, source, at, distance, Math.Max(distance * 3.0, 0.0));
+            Vec3 at =
+                answer.From.HasValue && answer.To.HasValue
+                    ? (answer.From.Value + answer.To.Value) * 0.5
+                    : default(Vec3);
+            DiagnosticFinding f = Add(
+                DiagnosticChecks.Gap,
+                DiagnosticKind.Gap,
+                false,
+                targets[0],
+                nameA,
+                text,
+                source,
+                at,
+                distance,
+                Math.Max(distance * 3.0, 0.0)
+            );
 
             if (answer.From.HasValue && answer.To.HasValue)
             {
@@ -105,12 +149,14 @@ namespace GeometryHelper.Viewer
             }
 
             // One sphere to a place: the vertices in order of place, the same point once.
-            vertices.Sort((a, b) =>
-            {
-                int c = a.X.CompareTo(b.X);
-                c = c != 0 ? c : a.Y.CompareTo(b.Y);
-                return c != 0 ? c : a.Z.CompareTo(b.Z);
-            });
+            vertices.Sort(
+                (a, b) =>
+                {
+                    int c = a.X.CompareTo(b.X);
+                    c = c != 0 ? c : a.Y.CompareTo(b.Y);
+                    return c != 0 ? c : a.Z.CompareTo(b.Z);
+                }
+            );
 
             var distinct = new List<Vec3>();
 
@@ -132,9 +178,30 @@ namespace GeometryHelper.Viewer
             }
 
             _spheresDrawn += drawn;
-            string text = Count(distinct.Count, "vertex") + " (a sphere of radius EqualPoint " + N(_tol) + " round each; another vertex inside one is the same point to the library); "
-                + (drawn < distinct.Count ? "the first " + drawn.ToString(System.Globalization.CultureInfo.InvariantCulture) + " in order of place are drawn, the cap being " + _options.MaxSpheres.ToString(System.Globalization.CultureInfo.InvariantCulture) : "all are drawn");
-            DiagnosticFinding f = Add(m, DiagnosticChecks.Spheres, DiagnosticKind.ToleranceSpheres, false, text, "viewer: EqualPoint of the scene", distinct[0], _tol, 0.0);
+            string text =
+                Count(distinct.Count, "vertex")
+                + " (a sphere of radius EqualPoint "
+                + N(_tol)
+                + " round each; another vertex inside one is the same point to the library); "
+                + (
+                    drawn < distinct.Count
+                        ? "the first "
+                            + drawn.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                            + " in order of place are drawn, the cap being "
+                            + _options.MaxSpheres.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        : "all are drawn"
+                );
+            DiagnosticFinding f = Add(
+                m,
+                DiagnosticChecks.Spheres,
+                DiagnosticKind.ToleranceSpheres,
+                false,
+                text,
+                "viewer: EqualPoint of the scene",
+                distinct[0],
+                _tol,
+                0.0
+            );
             f.Drawing.Strokes.AddRange(overlay.Strokes);
         }
 
@@ -152,7 +219,10 @@ namespace GeometryHelper.Viewer
                     double t = 2.0 * Math.PI * k / SphereSegments;
                     double c = Math.Cos(t) * radius;
                     double s = Math.Sin(t) * radius;
-                    ring[k] = plane == 0 ? centre + new Vec3(c, s, 0.0) : plane == 1 ? centre + new Vec3(0.0, c, s) : centre + new Vec3(s, 0.0, c);
+                    ring[k] =
+                        plane == 0 ? centre + new Vec3(c, s, 0.0)
+                        : plane == 1 ? centre + new Vec3(0.0, c, s)
+                        : centre + new Vec3(s, 0.0, c);
                 }
 
                 overlay.Loop(DiagnosticColors.Sphere, 1.4, ring);
@@ -192,7 +262,12 @@ namespace GeometryHelper.Viewer
                         continue;
                     }
                 }
-                catch (Exception e) when (e is ArgumentException || e is InvalidOperationException || e is NotSupportedException || e is FormatException)
+                catch (Exception e)
+                    when (e is ArgumentException
+                        || e is InvalidOperationException
+                        || e is NotSupportedException
+                        || e is FormatException
+                    )
                 {
                     continue;
                 }
@@ -211,8 +286,27 @@ namespace GeometryHelper.Viewer
                 ItemPrimitives drawn = index < _primitives.Items.Count ? _primitives.Items[index] : null;
                 string itemName = item.Name ?? item.Kind;
                 Vec3 at = drawn != null && !drawn.Bounds.IsEmpty ? drawn.Bounds.Center : default(Vec3);
-                string text = "piece " + number.ToString(System.Globalization.CultureInfo.InvariantCulture) + " of layer '" + item.Layer + "': " + name + " " + N(value);
-                DiagnosticFinding f = Add(DiagnosticChecks.Pieces, DiagnosticKind.Piece, false, index, itemName, text, measure, at, value, drawn != null && !drawn.Bounds.IsEmpty ? drawn.Bounds.Radius * 1.1 : 0.0);
+                string text =
+                    "piece "
+                    + number.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    + " of layer '"
+                    + item.Layer
+                    + "': "
+                    + name
+                    + " "
+                    + N(value);
+                DiagnosticFinding f = Add(
+                    DiagnosticChecks.Pieces,
+                    DiagnosticKind.Piece,
+                    false,
+                    index,
+                    itemName,
+                    text,
+                    measure,
+                    at,
+                    value,
+                    drawn != null && !drawn.Bounds.IsEmpty ? drawn.Bounds.Radius * 1.1 : 0.0
+                );
 
                 if (drawn != null)
                 {
@@ -221,7 +315,18 @@ namespace GeometryHelper.Viewer
                         f.Drawing.Strokes.Add(new DiagnosticStroke(line, color, 3.5));
                     }
 
-                    f.Drawing.Labels.Add(new DrawLabel(at, "#" + number.ToString(System.Globalization.CultureInfo.InvariantCulture) + "  " + name + " " + value.ToString("G6", System.Globalization.CultureInfo.InvariantCulture), 0.0));
+                    f.Drawing.Labels.Add(
+                        new DrawLabel(
+                            at,
+                            "#"
+                                + number.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                + "  "
+                                + name
+                                + " "
+                                + value.ToString("G6", System.Globalization.CultureInfo.InvariantCulture),
+                            0.0
+                        )
+                    );
                 }
 
                 // Listed in the order of the scene, not of the place: each piece is filed on its own.
@@ -240,21 +345,66 @@ namespace GeometryHelper.Viewer
 
             switch (shape)
             {
-                case GeoPolygon2 s: value = s.Area; source = "GeoPolygon2.Area"; return true;
-                case GeoPolygon3 s: value = s.Area; source = "GeoPolygon3.Area"; return true;
-                case GeoPolygonArc2 s: value = s.Area; source = "GeoPolygonArc2.Area"; return true;
-                case GeoPolygonArc3 s: value = s.Area; source = "GeoPolygonArc3.Area"; return true;
-                case GeoFace2 s: value = s.Area; source = "GeoFace2.Area"; return true;
-                case GeoFace3 s: value = s.Area; source = "GeoFace3.Area"; return true;
-                case GeoTriangle2 s: value = s.Area; source = "GeoTriangle2.Area"; return true;
-                case GeoTriangle3 s: value = s.Area; source = "GeoTriangle3.Area"; return true;
-                case GeoCircle2 s: value = s.Area; source = "GeoCircle2.Area"; return true;
-                case GeoCircle3 s: value = s.Area; source = "GeoCircle3.Area"; return true;
-                case GeoEllipse2 s: value = s.Area; source = "GeoEllipse2.Area"; return true;
-                case GeoEllipse3 s: value = s.Area; source = "GeoEllipse3.Area"; return true;
-                case GeoRectangle2 s: value = s.Area; source = "GeoRectangle2.Area"; return true;
-                case GeoPolygon2[] s: value = s.Sum(p => p.Area); source = "GeoPolygon2.Area of each face"; return true;
-                case GeoPolygon3[] s: value = s.Sum(p => p.Area); source = "GeoPolygon3.Area of each face"; return true;
+                case GeoPolygon2 s:
+                    value = s.Area;
+                    source = "GeoPolygon2.Area";
+                    return true;
+                case GeoPolygon3 s:
+                    value = s.Area;
+                    source = "GeoPolygon3.Area";
+                    return true;
+                case GeoPolygonArc2 s:
+                    value = s.Area;
+                    source = "GeoPolygonArc2.Area";
+                    return true;
+                case GeoPolygonArc3 s:
+                    value = s.Area;
+                    source = "GeoPolygonArc3.Area";
+                    return true;
+                case GeoFace2 s:
+                    value = s.Area;
+                    source = "GeoFace2.Area";
+                    return true;
+                case GeoFace3 s:
+                    value = s.Area;
+                    source = "GeoFace3.Area";
+                    return true;
+                case GeoTriangle2 s:
+                    value = s.Area;
+                    source = "GeoTriangle2.Area";
+                    return true;
+                case GeoTriangle3 s:
+                    value = s.Area;
+                    source = "GeoTriangle3.Area";
+                    return true;
+                case GeoCircle2 s:
+                    value = s.Area;
+                    source = "GeoCircle2.Area";
+                    return true;
+                case GeoCircle3 s:
+                    value = s.Area;
+                    source = "GeoCircle3.Area";
+                    return true;
+                case GeoEllipse2 s:
+                    value = s.Area;
+                    source = "GeoEllipse2.Area";
+                    return true;
+                case GeoEllipse3 s:
+                    value = s.Area;
+                    source = "GeoEllipse3.Area";
+                    return true;
+                case GeoRectangle2 s:
+                    value = s.Area;
+                    source = "GeoRectangle2.Area";
+                    return true;
+                case GeoPolygon2[] s:
+                    value = s.Sum(p => p.Area);
+                    source = "GeoPolygon2.Area of each face";
+                    return true;
+                case GeoPolygon3[] s:
+                    value = s.Sum(p => p.Area);
+                    source = "GeoPolygon3.Area of each face";
+                    return true;
 
                 case GeoSolid3 s:
                     name = "volume";
@@ -267,17 +417,58 @@ namespace GeometryHelper.Viewer
                     source = "GeoSphere3.Volume";
                     return true;
 
-                case GeoPolyline2 s: name = "length"; value = s.Length; source = "GeoPolyline2.Length"; return true;
-                case GeoPolyline3 s: name = "length"; value = s.Length; source = "GeoPolyline3.Length"; return true;
-                case GeoPolylineArc2 s: name = "length"; value = s.Length; source = "GeoPolylineArc2.Length"; return true;
-                case GeoPolylineArc3 s: name = "length"; value = s.Length; source = "GeoPolylineArc3.Length"; return true;
-                case GeoLine2 s: name = "length"; value = s.Length; source = "GeoLine2.Length"; return true;
-                case GeoLine3 s: name = "length"; value = s.Length; source = "GeoLine3.Length"; return true;
-                case GeoArc2 s: name = "length"; value = s.Length; source = "GeoArc2.Length"; return true;
-                case GeoArc3 s: name = "length"; value = s.Length; source = "GeoArc3.Length"; return true;
-                case GeoSpline2 s: name = "length"; value = s.Length; source = "GeoSpline2.Length"; return true;
-                case GeoSpline3 s: name = "length"; value = s.Length; source = "GeoSpline3.Length"; return true;
-                default: return false;
+                case GeoPolyline2 s:
+                    name = "length";
+                    value = s.Length;
+                    source = "GeoPolyline2.Length";
+                    return true;
+                case GeoPolyline3 s:
+                    name = "length";
+                    value = s.Length;
+                    source = "GeoPolyline3.Length";
+                    return true;
+                case GeoPolylineArc2 s:
+                    name = "length";
+                    value = s.Length;
+                    source = "GeoPolylineArc2.Length";
+                    return true;
+                case GeoPolylineArc3 s:
+                    name = "length";
+                    value = s.Length;
+                    source = "GeoPolylineArc3.Length";
+                    return true;
+                case GeoLine2 s:
+                    name = "length";
+                    value = s.Length;
+                    source = "GeoLine2.Length";
+                    return true;
+                case GeoLine3 s:
+                    name = "length";
+                    value = s.Length;
+                    source = "GeoLine3.Length";
+                    return true;
+                case GeoArc2 s:
+                    name = "length";
+                    value = s.Length;
+                    source = "GeoArc2.Length";
+                    return true;
+                case GeoArc3 s:
+                    name = "length";
+                    value = s.Length;
+                    source = "GeoArc3.Length";
+                    return true;
+                case GeoSpline2 s:
+                    name = "length";
+                    value = s.Length;
+                    source = "GeoSpline2.Length";
+                    return true;
+                case GeoSpline3 s:
+                    name = "length";
+                    value = s.Length;
+                    source = "GeoSpline3.Length";
+                    return true;
+                default:
+                    return false;
             }
         }
 

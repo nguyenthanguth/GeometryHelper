@@ -32,7 +32,14 @@ namespace GeometryHelper.Dxf
         /// <param name="points">The vertices.</param>
         /// <param name="bulges">The bulge of each vertex; null for none.</param>
         /// <param name="closed">Whether a segment runs from the last vertex back to the first.</param>
-        internal DxfBulgeChain(GeoVector3 normal, GeoVector3 u, GeoVector3 v, IReadOnlyList<GeoPoint3> points, IReadOnlyList<double> bulges, bool closed)
+        internal DxfBulgeChain(
+            GeoVector3 normal,
+            GeoVector3 u,
+            GeoVector3 v,
+            IReadOnlyList<GeoPoint3> points,
+            IReadOnlyList<double> bulges,
+            bool closed
+        )
         {
             _normal = normal;
             _u = u;
@@ -40,7 +47,10 @@ namespace GeometryHelper.Dxf
             _world = normal.X == 0.0 && normal.Y == 0.0 && normal.Z == 1.0;
             _points = new List<GeoPoint3>(points);
             int n = _points.Count;
-            int count = n < 2 ? 0 : closed ? n : n - 1;
+            int count =
+                n < 2 ? 0
+                : closed ? n
+                : n - 1;
             _segments = new Segment[count];
             _cumulative = new double[count + 1];
 
@@ -213,7 +223,11 @@ namespace GeometryHelper.Dxf
                 return p;
             }
 
-            return new GeoPoint3(_u.X * p.X + _v.X * p.Y + _normal.X * p.Z, _u.Y * p.X + _v.Y * p.Y + _normal.Y * p.Z, _u.Z * p.X + _v.Z * p.Y + _normal.Z * p.Z);
+            return new GeoPoint3(
+                _u.X * p.X + _v.X * p.Y + _normal.X * p.Z,
+                _u.Y * p.X + _v.Y * p.Y + _normal.Y * p.Z,
+                _u.Z * p.X + _v.Z * p.Y + _normal.Z * p.Z
+            );
         }
 
         private GeoVector3 WorldVector(GeoVector3 d)
@@ -229,7 +243,11 @@ namespace GeometryHelper.Dxf
                 return p;
             }
 
-            return new GeoPoint3(_u.X * p.X + _u.Y * p.Y + _u.Z * p.Z, _v.X * p.X + _v.Y * p.Y + _v.Z * p.Z, _normal.X * p.X + _normal.Y * p.Y + _normal.Z * p.Z);
+            return new GeoPoint3(
+                _u.X * p.X + _u.Y * p.Y + _u.Z * p.Z,
+                _v.X * p.X + _v.Y * p.Y + _v.Z * p.Z,
+                _normal.X * p.X + _normal.Y * p.Y + _normal.Z * p.Z
+            );
         }
 
         /// <summary>One segment: a line from one point to the next, or an arc of the plane at the height of its start.</summary>
@@ -301,7 +319,11 @@ namespace GeometryHelper.Dxf
             {
                 if (!Arc)
                 {
-                    return new GeoPoint3(_p1.X + (_p2.X - _p1.X) * f, _p1.Y + (_p2.Y - _p1.Y) * f, _p1.Z + (_p2.Z - _p1.Z) * f);
+                    return new GeoPoint3(
+                        _p1.X + (_p2.X - _p1.X) * f,
+                        _p1.Y + (_p2.Y - _p1.Y) * f,
+                        _p1.Z + (_p2.Z - _p1.Z) * f
+                    );
                 }
 
                 double a = _a0 + _theta * f;

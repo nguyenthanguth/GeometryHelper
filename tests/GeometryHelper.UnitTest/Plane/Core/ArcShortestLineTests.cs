@@ -128,10 +128,21 @@ namespace GeometryHelper.UnitTest.Plane
             var other = new GeoArc2(new GeoPoint2(200, 0), 20.0, Math.PI / 2, 3 * Math.PI / 2);
             var circle = new GeoCircle2(new GeoPoint2(200, 0), 20.0);
 
-            Assert.True(Arc2.GetShortestLineTo(arc, point).IsEqualTo(Arc2.GetShortestLineTo(arc, point, Tolerance.Global), Tight));
-            Assert.True(Arc2.GetShortestLineTo(arc, line).IsEqualTo(Arc2.GetShortestLineTo(arc, line, Tolerance.Global), Tight));
-            Assert.True(Arc2.GetShortestLineTo(arc, other).IsEqualTo(Arc2.GetShortestLineTo(arc, other, Tolerance.Global), Tight));
-            Assert.True(Arc2.GetShortestLineTo(arc, circle).IsEqualTo(Arc2.GetShortestLineTo(arc, circle, Tolerance.Global), Tight));
+            Assert.True(
+                Arc2.GetShortestLineTo(arc, point)
+                    .IsEqualTo(Arc2.GetShortestLineTo(arc, point, Tolerance.Global), Tight)
+            );
+            Assert.True(
+                Arc2.GetShortestLineTo(arc, line).IsEqualTo(Arc2.GetShortestLineTo(arc, line, Tolerance.Global), Tight)
+            );
+            Assert.True(
+                Arc2.GetShortestLineTo(arc, other)
+                    .IsEqualTo(Arc2.GetShortestLineTo(arc, other, Tolerance.Global), Tight)
+            );
+            Assert.True(
+                Arc2.GetShortestLineTo(arc, circle)
+                    .IsEqualTo(Arc2.GetShortestLineTo(arc, circle, Tolerance.Global), Tight)
+            );
         }
 
         /// <summary>
@@ -151,13 +162,21 @@ namespace GeometryHelper.UnitTest.Plane
                 double start = random.NextDouble() * Math.PI * 2;
                 double swept = (random.NextDouble() * 2.0 - 1.0) * Math.PI * 1.9;
 
-                arcs.Add(new GeoArc2(
-                    new GeoPoint2(random.NextDouble() * 400 - 200, random.NextDouble() * 400 - 200),
-                    radius, start, start + swept));
+                arcs.Add(
+                    new GeoArc2(
+                        new GeoPoint2(random.NextDouble() * 400 - 200, random.NextDouble() * 400 - 200),
+                        radius,
+                        start,
+                        start + swept
+                    )
+                );
 
-                lines.Add(new GeoLine2(
-                    new GeoPoint2(random.NextDouble() * 400 - 200, random.NextDouble() * 400 - 200),
-                    new GeoPoint2(random.NextDouble() * 400 - 200, random.NextDouble() * 400 - 200)));
+                lines.Add(
+                    new GeoLine2(
+                        new GeoPoint2(random.NextDouble() * 400 - 200, random.NextDouble() * 400 - 200),
+                        new GeoPoint2(random.NextDouble() * 400 - 200, random.NextDouble() * 400 - 200)
+                    )
+                );
             }
 
             int crossings = 0;

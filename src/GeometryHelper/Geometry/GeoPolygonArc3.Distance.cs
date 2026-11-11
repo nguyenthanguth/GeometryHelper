@@ -71,6 +71,5 @@ namespace GeometryHelper.Geometry
 
             return Flat(frame).SignedDistanceTo(PlanarMap.ProjectToPoint2(frame, point), tolerance);
         }
-
     }
 }

@@ -75,7 +75,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             Assert.Equal(CadArrowheads.Names, first.Choices.Select(c => c.Label).Take(20));
             Assert.Contains(first.Choices, c => c.Label == "Closed");
-            Assert.Contains(editor.Fields.Single(f => f.Label == "Leader").Choices, c => c.Label == "Origin indicator 2");
+            Assert.Contains(editor.Fields.Single(f => f.Label == "Leader").Choices, c =>
+                c.Label == "Origin indicator 2"
+            );
 
             first.SelectedChoice = first.Choices.Single(c => c.Label == "Closed");
             Assert.True(editor.Ok());

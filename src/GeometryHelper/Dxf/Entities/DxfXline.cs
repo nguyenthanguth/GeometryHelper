@@ -34,14 +34,10 @@ namespace GeometryHelper.Dxf
         /// give it its base point and direction before it is drawn.
         /// </summary>
         public DxfXline()
-            : base("XLINE", DxfRay.Groups("AcDbXline"))
-        {
-        }
+            : base("XLINE", DxfRay.Groups("AcDbXline")) { }
 
         private DxfXline(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets the point the xline is placed by (groups 10, 20, 30), in world coordinates, as AutoCAD's <c>BasePoint</c>; the origin where the record gives none.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
@@ -66,7 +62,6 @@ namespace GeometryHelper.Dxf
                 GeoPoint3 raw = GetPoint(11, Up);
                 return new GeoVector3(raw.X, raw.Y, raw.Z);
             }
-
             set => SetDirection(value);
         }
 
@@ -79,7 +74,6 @@ namespace GeometryHelper.Dxf
         public GeoPoint3 SecondPoint
         {
             get => BasePoint.Add(UnitDir);
-
             set
             {
                 GeoPoint3 now = SecondPoint;
@@ -214,8 +208,10 @@ namespace GeometryHelper.Dxf
         /// <param name="offsetDist">The distance.</param>
         /// <returns>Nothing: it throws.</returns>
         /// <exception cref="NotSupportedException">Thrown always.</exception>
-        public override IReadOnlyList<DxfCurve> GetOffsetCurves(double offsetDist)
-            => throw new NotSupportedException("An xline has no plane of its own to be offset in: give one by GetOffsetCurvesGivenPlaneNormal.");
+        public override IReadOnlyList<DxfCurve> GetOffsetCurves(double offsetDist) =>
+            throw new NotSupportedException(
+                "An xline has no plane of its own to be offset in: give one by GetOffsetCurvesGivenPlaneNormal."
+            );
 
         /// <summary>
         /// Gets the xline at a distance from this one in the plane of a normal, as AutoCAD's
@@ -227,7 +223,10 @@ namespace GeometryHelper.Dxf
         /// <returns>The one xline, of the same look, in no file.</returns>
         /// <exception cref="ArgumentException">Thrown when the normal has no length or runs along the xline.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
-        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(GeoVector3 planeNormal, double offsetDist)
+        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(
+            GeoVector3 planeNormal,
+            double offsetDist
+        )
         {
             GeoVector3 shift = DxfRay.Sideways(planeNormal, DxfRay.Direction(UnitDir), -offsetDist);
             var copy = (DxfXline)Copy();
@@ -242,13 +241,15 @@ namespace GeometryHelper.Dxf
         /// <summary>Refuses, as AutoCAD does: an xline runs without end both ways and has no end to be extended.</summary>
         /// <param name="newParameter">The parameter.</param>
         /// <exception cref="NotSupportedException">Thrown always.</exception>
-        public override void Extend(double newParameter) => throw new NotSupportedException("An xline runs without end both ways: it has no end to be extended.");
+        public override void Extend(double newParameter) =>
+            throw new NotSupportedException("An xline runs without end both ways: it has no end to be extended.");
 
         /// <summary>Refuses, as AutoCAD does: an xline runs without end both ways and has no end to be extended.</summary>
         /// <param name="extendStart">Whether the start is moved.</param>
         /// <param name="toPoint">The point.</param>
         /// <exception cref="NotSupportedException">Thrown always.</exception>
-        public override void Extend(bool extendStart, GeoPoint3 toPoint) => throw new NotSupportedException("An xline runs without end both ways: it has no end to be extended.");
+        public override void Extend(bool extendStart, GeoPoint3 toPoint) =>
+            throw new NotSupportedException("An xline runs without end both ways: it has no end to be extended.");
 
         /// <summary>
         /// Gets the pieces the xline is cut into at parameters, as AutoCAD's <c>GetSplitCurves</c>: a ray from the first
@@ -291,7 +292,9 @@ namespace GeometryHelper.Dxf
             {
                 if (cut - from > slack)
                 {
-                    pieces.Add(DxfRay.Segment(this, origin.Add(direction.Multiply(from)), origin.Add(direction.Multiply(cut))));
+                    pieces.Add(
+                        DxfRay.Segment(this, origin.Add(direction.Multiply(from)), origin.Add(direction.Multiply(cut)))
+                    );
                     from = cut;
                 }
             }
@@ -348,7 +351,12 @@ namespace GeometryHelper.Dxf
 
             if (!(geCurve is GeoXLine3 xline))
             {
-                throw new ArgumentException("An xline takes a GeoXLine3 or a GeoXLine2, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
+                throw new ArgumentException(
+                    "An xline takes a GeoXLine3 or a GeoXLine2, and was given "
+                        + (geCurve == null ? "null" : "a " + geCurve.GetType().Name)
+                        + ".",
+                    nameof(geCurve)
+                );
             }
 
             SetShape(xline);

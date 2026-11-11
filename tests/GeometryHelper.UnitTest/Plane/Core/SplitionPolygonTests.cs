@@ -15,15 +15,23 @@ namespace GeometryHelper.UnitTest.Plane
     public class SplitionPolygonTests
     {
         // A 10 by 10 square with its lower left corner at the origin.
-        private static GeoPolygon2 Square() => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+        private static GeoPolygon2 Square() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
 
         // A 20 by 20 square with a notch cut up from its bottom edge, spanning x in (5, 15) up to
         // y = 15. A horizontal probe below y = 15 therefore enters, leaves through the notch, and
         // enters again: the shape a convex-only implementation gets wrong.
-        private static GeoPolygon2 NotchedSquare() => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(5, 0), new GeoPoint2(5, 15), new GeoPoint2(15, 15),
-            new GeoPoint2(15, 0), new GeoPoint2(20, 0), new GeoPoint2(20, 20), new GeoPoint2(0, 20));
+        private static GeoPolygon2 NotchedSquare() =>
+            new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(5, 0),
+                new GeoPoint2(5, 15),
+                new GeoPoint2(15, 15),
+                new GeoPoint2(15, 0),
+                new GeoPoint2(20, 0),
+                new GeoPoint2(20, 20),
+                new GeoPoint2(0, 20)
+            );
 
         private static double TotalLength(GeoLine2[] parts) => parts.Sum(p => p.Length);
 
@@ -127,8 +135,8 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Equal(2, inside.Length);
             Assert.Equal(3, outside.Length);
-            Assert.Equal(5.0, inside[0].Length, 9);   // x from 0 to 5
-            Assert.Equal(5.0, inside[1].Length, 9);   // x from 15 to 20
+            Assert.Equal(5.0, inside[0].Length, 9); // x from 0 to 5
+            Assert.Equal(5.0, inside[1].Length, 9); // x from 15 to 20
             Assert.Equal(10.0, outside[1].Length, 9); // the notch, x from 5 to 15
             Assert.Equal(line.Length, TotalLength(inside) + TotalLength(outside), 9);
         }
@@ -137,8 +145,9 @@ namespace GeometryHelper.UnitTest.Plane
         public void Line_RejectsANullPolygon()
         {
             var line = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0));
-            Assert.Throws<ArgumentNullException>(
-                () => Splition2.TrySplitBy(line, (GeoPolygon2)null, out GeoLine2[] _, out GeoLine2[] _));
+            Assert.Throws<ArgumentNullException>(() =>
+                Splition2.TrySplitBy(line, (GeoPolygon2)null, out GeoLine2[] _, out GeoLine2[] _)
+            );
         }
 
         #endregion
@@ -149,8 +158,7 @@ namespace GeometryHelper.UnitTest.Plane
         public void Polyline_CrossingOnce_SplitsAtTheBoundary()
         {
             // Starts outside, crosses the left edge at (0, 5), then bends upward inside the square.
-            var path = new GeoPolyline2(
-                new GeoPoint2(-5, 5), new GeoPoint2(5, 5), new GeoPoint2(5, 9));
+            var path = new GeoPolyline2(new GeoPoint2(-5, 5), new GeoPoint2(5, 5), new GeoPoint2(5, 9));
 
             Assert.True(Splition2.TrySplitBy(path, Square(), out GeoPolyline2[] inside, out GeoPolyline2[] outside));
 
@@ -171,7 +179,11 @@ namespace GeometryHelper.UnitTest.Plane
         public void Polyline_SegmentsChainEndToEndAcrossBothBuckets()
         {
             var path = new GeoPolyline2(
-                new GeoPoint2(-5, 5), new GeoPoint2(5, 5), new GeoPoint2(5, 15), new GeoPoint2(15, 15));
+                new GeoPoint2(-5, 5),
+                new GeoPoint2(5, 5),
+                new GeoPoint2(5, 15),
+                new GeoPoint2(15, 15)
+            );
 
             Assert.True(Splition2.TrySplitBy(path, Square(), out GeoPolyline2[] inside, out GeoPolyline2[] outside));
 
@@ -179,9 +191,10 @@ namespace GeometryHelper.UnitTest.Plane
             GeoLine2[] outsideEdges = ToEdges(outside);
 
             // Putting the two buckets back in order along the subject must retrace the original path.
-            GeoLine2[] all = insideEdges.Concat(outsideEdges)
-                                  .OrderBy(seg => path.GetDistanceAtPoint(seg.MidPoint))
-                                  .ToArray();
+            GeoLine2[] all = insideEdges
+                .Concat(outsideEdges)
+                .OrderBy(seg => path.GetDistanceAtPoint(seg.MidPoint))
+                .ToArray();
 
             Assert.True(all[0].StartPoint.IsEqualTo(path[0]));
             Assert.True(all[all.Length - 1].EndPoint.IsEqualTo(path[path.VertexCount - 1]));
@@ -196,8 +209,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Polyline_EntirelyInside_ReportsNoCrossingAndKeepsEverySegment()
         {
-            var path = new GeoPolyline2(
-                new GeoPoint2(2, 2), new GeoPoint2(8, 2), new GeoPoint2(8, 8));
+            var path = new GeoPolyline2(new GeoPoint2(2, 2), new GeoPoint2(8, 2), new GeoPoint2(8, 8));
 
             Assert.False(Splition2.TrySplitBy(path, Square(), out GeoPolyline2[] inside, out GeoPolyline2[] outside));
 
@@ -210,8 +222,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Polyline_EntirelyOutside_ReportsNoCrossing()
         {
-            var path = new GeoPolyline2(
-                new GeoPoint2(50, 50), new GeoPoint2(60, 50), new GeoPoint2(60, 60));
+            var path = new GeoPolyline2(new GeoPoint2(50, 50), new GeoPoint2(60, 50), new GeoPoint2(60, 60));
 
             Assert.False(Splition2.TrySplitBy(path, Square(), out GeoPolyline2[] inside, out GeoPolyline2[] outside));
 
@@ -224,8 +235,7 @@ namespace GeometryHelper.UnitTest.Plane
         public void Polyline_TouchingTheBoundaryAndTurningBack_IsNotACrossing()
         {
             // The middle vertex rests exactly on the top edge, then the path retreats upward again.
-            var path = new GeoPolyline2(
-                new GeoPoint2(2, 15), new GeoPoint2(5, 10), new GeoPoint2(8, 15));
+            var path = new GeoPolyline2(new GeoPoint2(2, 15), new GeoPoint2(5, 10), new GeoPoint2(8, 15));
 
             Assert.False(Splition2.TrySplitBy(path, Square(), out GeoPolyline2[] inside, out GeoPolyline2[] outside));
 
@@ -239,7 +249,9 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var path = new GeoPolyline2(new GeoPoint2(-5, 5), new GeoPoint2(30, 5));
 
-            Assert.True(Splition2.TrySplitBy(path, NotchedSquare(), out GeoPolyline2[] inside, out GeoPolyline2[] outside));
+            Assert.True(
+                Splition2.TrySplitBy(path, NotchedSquare(), out GeoPolyline2[] inside, out GeoPolyline2[] outside)
+            );
 
             Assert.Equal(2, inside.Length);
             Assert.Equal(3, outside.Length);
@@ -251,10 +263,12 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var path = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0));
 
-            Assert.Throws<ArgumentNullException>(
-                () => Splition2.TrySplitBy(path, (GeoPolygon2)null, out GeoPolyline2[] _, out GeoPolyline2[] _));
-            Assert.Throws<ArgumentNullException>(
-                () => Splition2.TrySplitBy((GeoPolyline2)null, Square(), out GeoPolyline2[] _, out GeoPolyline2[] _));
+            Assert.Throws<ArgumentNullException>(() =>
+                Splition2.TrySplitBy(path, (GeoPolygon2)null, out GeoPolyline2[] _, out GeoPolyline2[] _)
+            );
+            Assert.Throws<ArgumentNullException>(() =>
+                Splition2.TrySplitBy((GeoPolyline2)null, Square(), out GeoPolyline2[] _, out GeoPolyline2[] _)
+            );
         }
 
         #endregion
@@ -273,7 +287,8 @@ namespace GeometryHelper.UnitTest.Plane
                 var path = new GeoPolyline2(
                     new GeoPoint2(random.NextDouble() * 30 - 10, random.NextDouble() * 30 - 10),
                     new GeoPoint2(random.NextDouble() * 30 - 10, random.NextDouble() * 30 - 10),
-                    new GeoPoint2(random.NextDouble() * 30 - 10, random.NextDouble() * 30 - 10));
+                    new GeoPoint2(random.NextDouble() * 30 - 10, random.NextDouble() * 30 - 10)
+                );
 
                 Splition2.TrySplitBy(path, square, out GeoPolyline2[] inside, out GeoPolyline2[] outside, tolerance);
 
@@ -286,13 +301,17 @@ namespace GeometryHelper.UnitTest.Plane
                 // Each segment landed in the bucket its own midpoint says it belongs to.
                 foreach (GeoLine2 segment in insideEdges)
                 {
-                    Assert.True(Containment2.Contains(square, segment.MidPoint, tolerance),
-                        $"case {c}: segment {segment} filed as inside");
+                    Assert.True(
+                        Containment2.Contains(square, segment.MidPoint, tolerance),
+                        $"case {c}: segment {segment} filed as inside"
+                    );
                 }
                 foreach (GeoLine2 segment in outsideEdges)
                 {
-                    Assert.False(Containment2.Contains(square, segment.MidPoint, tolerance),
-                        $"case {c}: segment {segment} filed as outside");
+                    Assert.False(
+                        Containment2.Contains(square, segment.MidPoint, tolerance),
+                        $"case {c}: segment {segment} filed as outside"
+                    );
                 }
             }
         }
@@ -308,13 +327,20 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 var line = new GeoLine2(
                     new GeoPoint2(random.NextDouble() * 30 - 10, random.NextDouble() * 30 - 10),
-                    new GeoPoint2(random.NextDouble() * 30 - 10, random.NextDouble() * 30 - 10));
+                    new GeoPoint2(random.NextDouble() * 30 - 10, random.NextDouble() * 30 - 10)
+                );
 
                 // The same segment expressed as a two vertex polyline has to split identically.
                 var asPath = new GeoPolyline2(line.StartPoint, line.EndPoint);
 
                 bool a = Splition2.TrySplitBy(line, square, out GeoLine2[] inA, out GeoLine2[] outA, tolerance);
-                bool b = Splition2.TrySplitBy(asPath, square, out GeoPolyline2[] inB, out GeoPolyline2[] outB, tolerance);
+                bool b = Splition2.TrySplitBy(
+                    asPath,
+                    square,
+                    out GeoPolyline2[] inB,
+                    out GeoPolyline2[] outB,
+                    tolerance
+                );
 
                 GeoLine2[] inBEdges = ToEdges(inB);
                 GeoLine2[] outBEdges = ToEdges(outB);

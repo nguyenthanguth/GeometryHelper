@@ -48,7 +48,8 @@ namespace GeometryHelper.Core
             out GeoArc2 arc,
             out GeoEdge2 trimmed1,
             out GeoEdge2 trimmed2,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             arc = default(GeoArc2);
             trimmed1 = incoming;
@@ -77,15 +78,24 @@ namespace GeometryHelper.Core
 
             var centres = new List<GeoPoint2>(2);
 
-            Add(centres, incoming, Sideways(incoming, side * radius), outgoing, Sideways(outgoing, side * radius), tolerance);
+            Add(
+                centres,
+                incoming,
+                Sideways(incoming, side * radius),
+                outgoing,
+                Sideways(outgoing, side * radius),
+                tolerance
+            );
 
             bool found = false;
             double nearest = double.MaxValue;
 
             foreach (GeoPoint2 centre in centres)
             {
-                if (!Touches(incoming, centre, radius, true, tolerance, out GeoPoint2 first) ||
-                    !Touches(outgoing, centre, radius, false, tolerance, out GeoPoint2 second))
+                if (
+                    !Touches(incoming, centre, radius, true, tolerance, out GeoPoint2 first)
+                    || !Touches(outgoing, centre, radius, false, tolerance, out GeoPoint2 second)
+                )
                 {
                     continue;
                 }
@@ -107,7 +117,8 @@ namespace GeometryHelper.Core
                     radius,
                     Math.Atan2(toFirst.Y, toFirst.X),
                     Math.Atan2(toSecond.Y, toSecond.X),
-                    side < 0);
+                    side < 0
+                );
 
                 // A sweep of half a turn or more is not taken: it is the circle met the wrong way round,
                 // the second touching point before the first.
@@ -158,7 +169,14 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Works out where the two edges, each moved sideways, cross, and adds those points to a list.
         /// </summary>
-        private static void Add(List<GeoPoint2> found, GeoEdge2 first, double moveFirst, GeoEdge2 second, double moveSecond, Tolerance tolerance)
+        private static void Add(
+            List<GeoPoint2> found,
+            GeoEdge2 first,
+            double moveFirst,
+            GeoEdge2 second,
+            double moveSecond,
+            Tolerance tolerance
+        )
         {
             if (first.IsArc)
             {
@@ -234,13 +252,24 @@ namespace GeometryHelper.Core
         /// (8.125, 5.83), filleted at 2.5, the radius of the circle filling the lens between them from (5, 0) to (10, 0), were
         /// rounded by a half circle at that size and left square at a thousandth of it and at a thousand times it.
         /// </remarks>
-        private static void Meet(List<GeoPoint2> found, GeoPoint2 first, double firstRadius, GeoPoint2 second, double secondRadius, Tolerance tolerance)
+        private static void Meet(
+            List<GeoPoint2> found,
+            GeoPoint2 first,
+            double firstRadius,
+            GeoPoint2 second,
+            double secondRadius,
+            Tolerance tolerance
+        )
         {
             GeoVector2 between = first.GetVectorTo(second);
             double apart = between.Length;
             double rounding = Rounding(first, second, Math.Max(firstRadius, secondRadius));
 
-            if (apart <= tolerance.EqualPoint || apart >= firstRadius + secondRadius - rounding || apart <= Math.Abs(firstRadius - secondRadius) + rounding)
+            if (
+                apart <= tolerance.EqualPoint
+                || apart >= firstRadius + secondRadius - rounding
+                || apart <= Math.Abs(firstRadius - secondRadius) + rounding
+            )
             {
                 return;
             }
@@ -253,7 +282,8 @@ namespace GeometryHelper.Core
 
             if (secondRadius < firstRadius)
             {
-                double back = ((secondRadius - firstRadius) * (secondRadius + firstRadius) + apart * apart) / (2.0 * apart);
+                double back =
+                    ((secondRadius - firstRadius) * (secondRadius + firstRadius) + apart * apart) / (2.0 * apart);
                 double remaining = secondRadius * secondRadius - back * back;
                 double half = remaining <= 0.0 ? 0.0 : Math.Sqrt(remaining);
                 double footX = second.X - unit.X * back;
@@ -265,7 +295,8 @@ namespace GeometryHelper.Core
                 return;
             }
 
-            double along = ((firstRadius - secondRadius) * (firstRadius + secondRadius) + apart * apart) / (2.0 * apart);
+            double along =
+                ((firstRadius - secondRadius) * (firstRadius + secondRadius) + apart * apart) / (2.0 * apart);
             double square = firstRadius * firstRadius - along * along;
             double across = square <= 0.0 ? 0.0 : Math.Sqrt(square);
 
@@ -325,15 +356,27 @@ namespace GeometryHelper.Core
         /// a line crossing a circle 1E-10 deep among coordinates of some tens was a crossing there and at a thousand times
         /// the size, and a touch at a thousandth of it.
         /// </summary>
-        private static double Rounding(GeoPoint2 one, GeoPoint2 other, double radius)
-            => 1E-12 * Math.Max(radius, Math.Max(Math.Max(Math.Abs(one.X), Math.Abs(one.Y)), Math.Max(Math.Abs(other.X), Math.Abs(other.Y))));
+        private static double Rounding(GeoPoint2 one, GeoPoint2 other, double radius) =>
+            1E-12
+            * Math.Max(
+                radius,
+                Math.Max(Math.Max(Math.Abs(one.X), Math.Abs(one.Y)), Math.Max(Math.Abs(other.X), Math.Abs(other.Y)))
+            );
 
         /// <summary>
         /// Adds where two endless lines cross.
         /// </summary>
         private static void Meet(List<GeoPoint2> found, GeoLine2 first, GeoLine2 second, Tolerance tolerance)
         {
-            if (Intersection2.TryIntersectWith(first, second, Enums.LineExtension.Both, out GeoPoint2 meeting, tolerance))
+            if (
+                Intersection2.TryIntersectWith(
+                    first,
+                    second,
+                    Enums.LineExtension.Both,
+                    out GeoPoint2 meeting,
+                    tolerance
+                )
+            )
             {
                 found.Add(meeting);
             }
@@ -349,7 +392,14 @@ namespace GeometryHelper.Core
         /// of the arithmetic: a piece run on past the corner and then met by an arc turning back is a cusp,
         /// however short the run.
         /// </remarks>
-        private static bool Touches(GeoEdge2 edge, GeoPoint2 centre, double radius, bool cornerAtEnd, Tolerance tolerance, out GeoPoint2 at)
+        private static bool Touches(
+            GeoEdge2 edge,
+            GeoPoint2 centre,
+            double radius,
+            bool cornerAtEnd,
+            Tolerance tolerance,
+            out GeoPoint2 at
+        )
         {
             at = default(GeoPoint2);
 
@@ -420,9 +470,7 @@ namespace GeometryHelper.Core
             double halfGap = (Math.PI * 2.0 - Math.Abs(arc.SweptAngle)) * 0.5;
             double slack = rounding / arc.Radius;
 
-            return cornerAtEnd
-                ? angle > slack && angle < halfGap
-                : angle < -slack && angle > -halfGap;
+            return cornerAtEnd ? angle > slack && angle < halfGap : angle < -slack && angle > -halfGap;
         }
 
         /// <summary>

@@ -22,7 +22,8 @@ namespace GeometryHelper.UnitTest.Solid
             new GeoPoint3(30, 30, 0),
             new GeoPoint3(30, 100, 0),
             new GeoPoint3(0, 100, 0),
-            new GeoPoint3(0, 0, 0));
+            new GeoPoint3(0, 0, 0)
+        );
 
         [Fact]
         public void ABodySittingInTheNotchIsMeasuredToTheMaterial()
@@ -38,7 +39,11 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AChainThroughTheNotchIsMeasuredToTheMaterial()
         {
-            var post = new GeoPolyline3(new GeoPoint3(45, 45, -10), new GeoPoint3(45, 45, 10), new GeoPoint3(45, 45, 20));
+            var post = new GeoPolyline3(
+                new GeoPoint3(45, 45, -10),
+                new GeoPoint3(45, 45, 10),
+                new GeoPoint3(45, 45, 20)
+            );
 
             Assert.Equal(15.0, post.DistanceTo(L), 9);
             Assert.Equal(15.0, L.DistanceTo(post), 9);

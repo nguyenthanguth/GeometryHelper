@@ -31,7 +31,13 @@ namespace GeometryHelper.Dxf
         /// <param name="angular">Whether it is an angle.</param>
         /// <param name="paperSpace">Whether the dimension is in a layout of paper space.</param>
         /// <param name="value">The value of a variable by its name as AutoCAD's .NET gives it, <c>Dimdec</c>.</param>
-        internal static string Text(string dimensionText, double measurement, bool angular, bool paperSpace, Func<string, object> value)
+        internal static string Text(
+            string dimensionText,
+            double measurement,
+            bool angular,
+            bool paperSpace,
+            Func<string, object> value
+        )
         {
             if (dimensionText == " ")
             {
@@ -47,15 +53,33 @@ namespace GeometryHelper.Dxf
             {
                 int places = (int)value("Dimadec");
                 places = places < 0 ? (int)value("Dimdec") : places;
-                primary = Post(Angle(measurement, (int)value("Dimaunit"), places, (int)value("Dimazin"), separator), post, "<>");
+                primary = Post(
+                    Angle(measurement, (int)value("Dimaunit"), places, (int)value("Dimazin"), separator),
+                    post,
+                    "<>"
+                );
             }
             else
             {
                 double factor = (double)value("Dimlfac");
-                double length = measurement * (factor >= 0.0 ? factor : paperSpace ? -factor : 1.0);
+                double length =
+                    measurement
+                    * (
+                        factor >= 0.0 ? factor
+                        : paperSpace ? -factor
+                        : 1.0
+                    );
                 int fraction = (int)value("Dimfrac");
                 double stack = (double)value("Dimtfac");
-                primary = Length(Round(length, (double)value("Dimrnd")), (int)value("Dimlunit"), (int)value("Dimdec"), (int)value("Dimzin"), separator, fraction, stack);
+                primary = Length(
+                    Round(length, (double)value("Dimrnd")),
+                    (int)value("Dimlunit"),
+                    (int)value("Dimdec"),
+                    (int)value("Dimzin"),
+                    separator,
+                    fraction,
+                    stack
+                );
                 primary = Post(primary, post, "<>");
 
                 if ((bool)value("Dimalt"))
@@ -63,15 +87,33 @@ namespace GeometryHelper.Dxf
                     // DIMALTU: 1 scientific, 2 decimal, 3 engineering, 4 architectural and 5 fractional stacked as DIMFRAC stacks
                     // them (across where it stacks none), 6 and 7 the same not stacked, 8 the Windows desktop.
                     int alternateUnits = (int)value("Dimaltu");
-                    int units = alternateUnits == 6 ? 4 : alternateUnits == 7 ? 5 : alternateUnits == 8 ? 6 : alternateUnits;
-                    int alternateFraction = alternateUnits == 6 || alternateUnits == 7 ? 2 : fraction == 2 ? 0 : fraction;
+                    int units =
+                        alternateUnits == 6 ? 4
+                        : alternateUnits == 7 ? 5
+                        : alternateUnits == 8 ? 6
+                        : alternateUnits;
+                    int alternateFraction =
+                        alternateUnits == 6 || alternateUnits == 7 ? 2
+                        : fraction == 2 ? 0
+                        : fraction;
                     double size = Round(length * (double)value("Dimaltf"), (double)value("Dimaltrnd"));
-                    string text = Length(size, units, (int)value("Dimaltd"), (int)value("Dimaltz"), separator, alternateFraction, stack);
+                    string text = Length(
+                        size,
+                        units,
+                        (int)value("Dimaltd"),
+                        (int)value("Dimaltz"),
+                        separator,
+                        alternateFraction,
+                        stack
+                    );
                     alternate = Post(text, (string)value("Dimapost"), "[]");
                 }
             }
 
-            bool placed = alternate != null && dimensionText != null && dimensionText.IndexOf("[]", StringComparison.Ordinal) >= 0;
+            bool placed =
+                alternate != null
+                && dimensionText != null
+                && dimensionText.IndexOf("[]", StringComparison.Ordinal) >= 0;
             string measured = alternate == null || placed ? primary : primary + "[" + alternate + "]";
 
             if (string.IsNullOrEmpty(dimensionText))
@@ -94,7 +136,15 @@ namespace GeometryHelper.Dxf
         /// A length in units of DIMLUNIT: 1 scientific, 2 decimal, 3 engineering (feet and decimal inches), 4 architectural (feet
         /// and inches with a fraction), 5 fractional, 6 the Windows desktop's; any other as decimal. Places run from 0 to 8.
         /// </summary>
-        internal static string Length(double value, int units, int places, int zin, char separator, int fraction, double stack)
+        internal static string Length(
+            double value,
+            int units,
+            int places,
+            int zin,
+            char separator,
+            int fraction,
+            double stack
+        )
         {
             places = Math.Max(0, Math.Min(8, places));
             double size = Math.Abs(value);
@@ -180,8 +230,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A decimal of a number of 0 to 8 places, DIMZIN's 4 leaving out the nought before the point and its 8 the noughts after the last figure.</summary>
-        private static string Decimal(double size, int places, int zin, char separator)
-            => Zeros(Fixed(size, places), (zin & 4) != 0, (zin & 8) != 0).Replace('.', separator);
+        private static string Decimal(double size, int places, int zin, char separator) =>
+            Zeros(Fixed(size, places), (zin & 4) != 0, (zin & 8) != 0).Replace('.', separator);
 
         /// <summary>A number as 1.5500E+01: one figure before the point, the places after it, the power of ten of two figures at least, 1.0E-20 and 1.0E+300 alike.</summary>
         private static string Scientific(double size, int places, int zin, char separator)
@@ -221,8 +271,19 @@ namespace GeometryHelper.Dxf
                 power++;
             }
 
-            string figures = Zeros(mantissa.ToString("F" + places.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture), false, (zin & 8) != 0).Replace('.', separator);
-            return figures + "E" + (power < 0 ? "-" : "+") + Math.Abs(power).ToString("00", CultureInfo.InvariantCulture);
+            string figures = Zeros(
+                    mantissa.ToString(
+                        "F" + places.ToString(CultureInfo.InvariantCulture),
+                        CultureInfo.InvariantCulture
+                    ),
+                    false,
+                    (zin & 8) != 0
+                )
+                .Replace('.', separator);
+            return figures
+                + "E"
+                + (power < 0 ? "-" : "+")
+                + Math.Abs(power).ToString("00", CultureInfo.InvariantCulture);
         }
 
         /// <summary>Feet and decimal inches, 1'-3.50": the whole rounded to the places in inches first, so that 11.9999 inches to two places is 1'.</summary>
@@ -236,7 +297,12 @@ namespace GeometryHelper.Dxf
             decimal inches = Math.Round(Exact(size), places, MidpointRounding.AwayFromZero);
             decimal feet = Math.Floor(inches / 12m);
             inches -= feet * 12m;
-            string text = Zeros(inches.ToString("F" + places.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture), (zin & 4) != 0, (zin & 8) != 0).Replace('.', separator);
+            string text = Zeros(
+                    inches.ToString("F" + places.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture),
+                    (zin & 4) != 0,
+                    (zin & 8) != 0
+                )
+                .Replace('.', separator);
             return FeetAndInches(feet.ToString("0", CultureInfo.InvariantCulture), feet == 0m, inches == 0m, text, zin);
         }
 
@@ -322,14 +388,18 @@ namespace GeometryHelper.Dxf
 
             if (places == 0)
             {
-                return Math.Round(whole, 0, MidpointRounding.AwayFromZero).ToString("0", CultureInfo.InvariantCulture) + Degree;
+                return Math.Round(whole, 0, MidpointRounding.AwayFromZero).ToString("0", CultureInfo.InvariantCulture)
+                    + Degree;
             }
 
             if (places <= 2)
             {
                 decimal minutes = Math.Round(whole * 60m, 0, MidpointRounding.AwayFromZero);
                 decimal d = Math.Floor(minutes / 60m);
-                return d.ToString("0", CultureInfo.InvariantCulture) + Degree + (minutes - d * 60m).ToString("0", CultureInfo.InvariantCulture) + "'";
+                return d.ToString("0", CultureInfo.InvariantCulture)
+                    + Degree
+                    + (minutes - d * 60m).ToString("0", CultureInfo.InvariantCulture)
+                    + "'";
             }
 
             int decimals = Math.Max(0, places - 4);
@@ -337,9 +407,17 @@ namespace GeometryHelper.Dxf
             decimal deg = Math.Floor(seconds / 3600m);
             decimal min = Math.Floor((seconds - deg * 3600m) / 60m);
             decimal sec = seconds - deg * 3600m - min * 60m;
-            string secs = sec.ToString("F" + decimals.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+            string secs = sec.ToString(
+                "F" + decimals.ToString(CultureInfo.InvariantCulture),
+                CultureInfo.InvariantCulture
+            );
             secs = decimals == 0 ? secs : Zeros(secs, false, (zin & 8) != 0).Replace('.', separator);
-            return deg.ToString("0", CultureInfo.InvariantCulture) + Degree + min.ToString("0", CultureInfo.InvariantCulture) + "'" + secs + "\"";
+            return deg.ToString("0", CultureInfo.InvariantCulture)
+                + Degree
+                + min.ToString("0", CultureInfo.InvariantCulture)
+                + "'"
+                + secs
+                + "\"";
         }
 
         /// <summary>
@@ -366,7 +444,14 @@ namespace GeometryHelper.Dxf
         /// AutoCAD's codes of an MTEXT (<c>{\H0.7x;\S1/2;}</c>, <c>{\H0.7x;\S1#2;}</c>), its height DIMTFAC times the text's; 2
         /// not stacked, after a space. The whole is left out where it is nought, unless it is to be written.
         /// </summary>
-        private static string Mixed(long whole, long numerator, long denominator, int fraction, double stack, bool wholeShown)
+        private static string Mixed(
+            long whole,
+            long numerator,
+            long denominator,
+            int fraction,
+            double stack,
+            bool wholeShown
+        )
         {
             if (numerator == 0)
             {
@@ -376,8 +461,16 @@ namespace GeometryHelper.Dxf
             long divisor = Divisor(numerator, denominator);
             string top = (numerator / divisor).ToString(CultureInfo.InvariantCulture);
             string bottom = (denominator / divisor).ToString(CultureInfo.InvariantCulture);
-            string part = fraction == 2 ? top + "/" + bottom
-                : "{\\H" + stack.ToString("R", CultureInfo.InvariantCulture) + "x;\\S" + top + (fraction == 1 ? "#" : "/") + bottom + ";}";
+            string part =
+                fraction == 2
+                    ? top + "/" + bottom
+                    : "{\\H"
+                        + stack.ToString("R", CultureInfo.InvariantCulture)
+                        + "x;\\S"
+                        + top
+                        + (fraction == 1 ? "#" : "/")
+                        + bottom
+                        + ";}";
 
             if (whole == 0 && !wholeShown)
             {
@@ -409,7 +502,8 @@ namespace GeometryHelper.Dxf
                 return size.ToString(format, CultureInfo.InvariantCulture);
             }
 
-            return Math.Round(Exact(size), places, MidpointRounding.AwayFromZero).ToString(format, CultureInfo.InvariantCulture);
+            return Math.Round(Exact(size), places, MidpointRounding.AwayFromZero)
+                .ToString(format, CultureInfo.InvariantCulture);
         }
 
         /// <summary>The .NET decimal of a double, its 15 significant figures.</summary>

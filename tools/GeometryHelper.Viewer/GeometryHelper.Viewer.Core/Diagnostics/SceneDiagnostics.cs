@@ -26,7 +26,14 @@ namespace GeometryHelper.Viewer
         /// <returns>The findings, numbered, with what is drawn for them.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the scene or the primitives are null.</exception>
         /// <exception cref="OperationCanceledException">Thrown when the token is cancelled.</exception>
-        public static DiagnosticReport Run(Scene scene, Primitives primitives, ExactGeometry geometry, IReadOnlyCollection<int> items, DiagnosticOptions options, CancellationToken cancel)
+        public static DiagnosticReport Run(
+            Scene scene,
+            Primitives primitives,
+            ExactGeometry geometry,
+            IReadOnlyCollection<int> items,
+            DiagnosticOptions options,
+            CancellationToken cancel
+        )
         {
             if (scene == null)
             {
@@ -38,7 +45,9 @@ namespace GeometryHelper.Viewer
                 throw new ArgumentNullException(nameof(primitives));
             }
 
-            return new DiagnosticRun(scene, primitives, geometry, options ?? new DiagnosticOptions(), cancel).Execute(items);
+            return new DiagnosticRun(scene, primitives, geometry, options ?? new DiagnosticOptions(), cancel).Execute(
+                items
+            );
         }
     }
 
@@ -58,7 +67,13 @@ namespace GeometryHelper.Viewer
         private readonly List<DiagnosticFinding> _pending = new List<DiagnosticFinding>();
         private GapReading _gap;
 
-        internal DiagnosticRun(Scene scene, Primitives primitives, ExactGeometry geometry, DiagnosticOptions options, CancellationToken cancel)
+        internal DiagnosticRun(
+            Scene scene,
+            Primitives primitives,
+            ExactGeometry geometry,
+            DiagnosticOptions options,
+            CancellationToken cancel
+        )
         {
             _scene = scene;
             _primitives = primitives;
@@ -104,9 +119,26 @@ namespace GeometryHelper.Viewer
                             model = ItemModel.Read(item, index);
                             CheckItem(model);
                         }
-                        catch (Exception e) when (e is FormatException || e is InvalidOperationException || e is ArgumentException || e is KeyNotFoundException || e is NotSupportedException)
+                        catch (Exception e)
+                            when (e is FormatException
+                                || e is InvalidOperationException
+                                || e is ArgumentException
+                                || e is KeyNotFoundException
+                                || e is NotSupportedException
+                            )
                         {
-                            Add(DiagnosticChecks.None, DiagnosticKind.Note, false, index, item.Name ?? item.Kind, "could not be read for the checks: " + e.Message, "viewer", default(Vec3), 0.0, 0.0);
+                            Add(
+                                DiagnosticChecks.None,
+                                DiagnosticKind.Note,
+                                false,
+                                index,
+                                item.Name ?? item.Kind,
+                                "could not be read for the checks: " + e.Message,
+                                "viewer",
+                                default(Vec3),
+                                0.0,
+                                0.0
+                            );
                         }
                     }
 
@@ -160,11 +192,37 @@ namespace GeometryHelper.Viewer
             {
                 DiagnosticFinding f = i < _pending.Count ? _pending[i] : null;
 
-                if (previous != null && (f == null || f.Check != previous.Check || f.Kind != previous.Kind || f.ItemIndex != previous.ItemIndex))
+                if (
+                    previous != null
+                    && (
+                        f == null
+                        || f.Check != previous.Check
+                        || f.Kind != previous.Kind
+                        || f.ItemIndex != previous.ItemIndex
+                    )
+                )
                 {
                     if (dropped > 0)
                     {
-                        _all.Add(new DiagnosticFinding(previous.Check, DiagnosticKind.Note, false, previous.ItemIndex, previous.ItemName, dropped.ToString(CultureInfo.InvariantCulture) + " more of " + previous.Kind + " are not listed: only the first " + cap.ToString(CultureInfo.InvariantCulture) + " in order of place are kept", "viewer", previous.At, 0.0, previous.SpotRadius));
+                        _all.Add(
+                            new DiagnosticFinding(
+                                previous.Check,
+                                DiagnosticKind.Note,
+                                false,
+                                previous.ItemIndex,
+                                previous.ItemName,
+                                dropped.ToString(CultureInfo.InvariantCulture)
+                                    + " more of "
+                                    + previous.Kind
+                                    + " are not listed: only the first "
+                                    + cap.ToString(CultureInfo.InvariantCulture)
+                                    + " in order of place are kept",
+                                "viewer",
+                                previous.At,
+                                0.0,
+                                previous.SpotRadius
+                            )
+                        );
                     }
 
                     run = 0;
@@ -192,19 +250,57 @@ namespace GeometryHelper.Viewer
             _pending.Clear();
         }
 
-        private DiagnosticFinding Add(DiagnosticChecks check, DiagnosticKind kind, bool fault, int itemIndex, string itemName, string message, string source, Vec3 at, double size, double spot)
+        private DiagnosticFinding Add(
+            DiagnosticChecks check,
+            DiagnosticKind kind,
+            bool fault,
+            int itemIndex,
+            string itemName,
+            string message,
+            string source,
+            Vec3 at,
+            double size,
+            double spot
+        )
         {
-            var finding = new DiagnosticFinding(check, kind, fault, itemIndex, itemName, message, source, at, size, Math.Max(spot, 20.0 * Math.Max(_tol, 1E-9)));
+            var finding = new DiagnosticFinding(
+                check,
+                kind,
+                fault,
+                itemIndex,
+                itemName,
+                message,
+                source,
+                at,
+                size,
+                Math.Max(spot, 20.0 * Math.Max(_tol, 1E-9))
+            );
             _pending.Add(finding);
             return finding;
         }
 
-        private DiagnosticFinding Add(ItemModel m, DiagnosticChecks check, DiagnosticKind kind, bool fault, string message, string source, Vec3 at, double size, double spot)
-            => Add(check, kind, fault, m.Index, m.Name, message, source, at, size, spot);
+        private DiagnosticFinding Add(
+            ItemModel m,
+            DiagnosticChecks check,
+            DiagnosticKind kind,
+            bool fault,
+            string message,
+            string source,
+            Vec3 at,
+            double size,
+            double spot
+        ) => Add(check, kind, fault, m.Index, m.Name, message, source, at, size, spot);
 
         internal static string N(double value) => value.ToString("G10", CultureInfo.InvariantCulture);
 
-        private static string Count(int n, string noun) => n.ToString(CultureInfo.InvariantCulture) + " " + (n == 1 ? noun : noun == "vertex" ? "vertices" : noun + "s");
+        private static string Count(int n, string noun) =>
+            n.ToString(CultureInfo.InvariantCulture)
+            + " "
+            + (
+                n == 1 ? noun
+                : noun == "vertex" ? "vertices"
+                : noun + "s"
+            );
 
         private static string Number(int zeroBased) => (zeroBased + 1).ToString(CultureInfo.InvariantCulture);
 
@@ -221,7 +317,15 @@ namespace GeometryHelper.Viewer
         private void CheckItem(ItemModel m)
         {
             // The library first: a body is rebuilt and asked, and what it cannot say, or is not asked, the viewer's own checks say.
-            bool wantsLibrary = _options.UseLibrary && (On(DiagnosticChecks.Report) || On(DiagnosticChecks.Edges) || On(DiagnosticChecks.Flatness) || On(DiagnosticChecks.Slivers) || On(DiagnosticChecks.Duplicates));
+            bool wantsLibrary =
+                _options.UseLibrary
+                && (
+                    On(DiagnosticChecks.Report)
+                    || On(DiagnosticChecks.Edges)
+                    || On(DiagnosticChecks.Flatness)
+                    || On(DiagnosticChecks.Slivers)
+                    || On(DiagnosticChecks.Duplicates)
+                );
 
             foreach (BodyUnit unit in m.Units)
             {

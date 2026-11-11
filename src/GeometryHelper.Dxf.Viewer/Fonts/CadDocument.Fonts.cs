@@ -71,7 +71,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The folder of the drawing's file, looked in first for its fonts; null for a drawing of no file.</summary>
-        internal string FontFolder => _hasPath && !string.IsNullOrEmpty(FileName) ? Path.GetDirectoryName(FileName) : null;
+        internal string FontFolder =>
+            _hasPath && !string.IsNullOrEmpty(FileName) ? Path.GetDirectoryName(FileName) : null;
 
         /// <summary>
         /// Gets the SHX fonts and big fonts the drawing's text styles name that <see cref="Fonts"/> does not find, each with what
@@ -104,7 +105,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (listed != null && listed.Count > 0)
             {
-                FontMissing?.Invoke(this, new CadFontMissingEventArgs("Missing SHX files: " + string.Join("; ", listed.Select(f => f.ToString())) + "."));
+                FontMissing?.Invoke(
+                    this,
+                    new CadFontMissingEventArgs(
+                        "Missing SHX files: " + string.Join("; ", listed.Select(f => f.ToString())) + "."
+                    )
+                );
 
                 foreach (CadMissingFont font in listed)
                 {

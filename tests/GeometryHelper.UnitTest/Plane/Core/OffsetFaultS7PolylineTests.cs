@@ -43,7 +43,8 @@ namespace GeometryHelper.UnitTest.Plane
         private static void AssertChain(GeoPolyline2 actual, double precision, params GeoPoint2[] expected)
         {
             Assert.Equal(expected.Length, actual.VertexCount);
-            for (int i = 0; i < expected.Length; i++) Assert.Equal(0.0, actual.Vertices[i].DistanceTo(expected[i]), precision);
+            for (int i = 0; i < expected.Length; i++)
+                Assert.Equal(0.0, actual.Vertices[i].DistanceTo(expected[i]), precision);
         }
 
         [Fact]
@@ -66,7 +67,13 @@ namespace GeometryHelper.UnitTest.Plane
 
             GeoPolyline2 one = Assert.Single(Offset2.Offset(chain, 1.0, OffsetOptions.Default, Thousandth));
 
-            AssertChain(one, 1E-9, P(-5 + Math.Sqrt(0.75), 5 * Math.Sqrt(3.0) + 0.5), P(1 / Math.Sqrt(3.0), 1), P(10, 1));
+            AssertChain(
+                one,
+                1E-9,
+                P(-5 + Math.Sqrt(0.75), 5 * Math.Sqrt(3.0) + 0.5),
+                P(1 / Math.Sqrt(3.0), 1),
+                P(10, 1)
+            );
         }
 
         [Fact]
@@ -87,7 +94,10 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(0.0, one.Vertices[0].DistanceTo(P(-3 / Math.Sqrt(13.0), 2 / Math.Sqrt(13.0))), 1E-9);
             Assert.Equal(0.0, one.Vertices[1].DistanceTo(P(2, 3 + half)), 1E-9);
             Assert.Equal(0.0, one.Vertices[2].DistanceTo(P(4, half)), 1E-9);
-            Assert.True(watch.Elapsed < TimeSpan.FromSeconds(2), "offsetting a zigzag of 4 000 vertices took " + watch.ElapsedMilliseconds + " ms");
+            Assert.True(
+                watch.Elapsed < TimeSpan.FromSeconds(2),
+                "offsetting a zigzag of 4 000 vertices took " + watch.ElapsedMilliseconds + " ms"
+            );
         }
 
         [Theory]
@@ -106,7 +116,10 @@ namespace GeometryHelper.UnitTest.Plane
                 // The middle of the longest edge of every piece of the answer stands off the chain.
                 Piece longest = PiecesOf(piece).OrderByDescending(p => LengthOf(new[] { p })).First();
                 longest.At(0.5, out double x, out double y);
-                Assert.True(DistanceTo(source, x, y) > Thousandth.EqualPoint, "the piece " + string.Join(" ", piece.Vertices) + " lies along the chain");
+                Assert.True(
+                    DistanceTo(source, x, y) > Thousandth.EqualPoint,
+                    "the piece " + string.Join(" ", piece.Vertices) + " lies along the chain"
+                );
             }
         }
 

@@ -28,7 +28,9 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
 
             Assert.Contains("Symbol", written);
             Assert.Contains("Viewport", written);
-            Assert.Empty(written.Except(new GlobalSettings().Layers.Select(l => l.Name), StringComparer.OrdinalIgnoreCase));
+            Assert.Empty(
+                written.Except(new GlobalSettings().Layers.Select(l => l.Name), StringComparer.OrdinalIgnoreCase)
+            );
         }
     }
 }

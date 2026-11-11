@@ -30,7 +30,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         public void Osmode_ReadsTheSnapsTicked_AndSetTicksThem_ItsBit16384SwitchingOsnapOff()
         {
             MainViewModel model = Room();
-            model.SnapModes = CadSnapModes.Endpoint | CadSnapModes.Center | CadSnapModes.Intersection | CadSnapModes.Extension;
+            model.SnapModes =
+                CadSnapModes.Endpoint | CadSnapModes.Center | CadSnapModes.Intersection | CadSnapModes.Extension;
 
             model.Execute("OSMODE");
             Assert.Equal("Enter new value for OSMODE <4133>:", model.Prompt);
@@ -175,7 +176,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal(new[] { top }, document.Selection.Handles);
 
             CadPicking.Pick(document, document.ModelSpace, 2000, 0, 1.0, true);
-            Assert.Equal(new[] { bottom, top }.OrderBy(h => h, StringComparer.OrdinalIgnoreCase), document.Selection.Handles.OrderBy(h => h, StringComparer.OrdinalIgnoreCase));
+            Assert.Equal(
+                new[] { bottom, top }.OrderBy(h => h, StringComparer.OrdinalIgnoreCase),
+                document.Selection.Handles.OrderBy(h => h, StringComparer.OrdinalIgnoreCase)
+            );
         }
 
         [Fact]
@@ -265,7 +269,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     model.Open(_folder.Write("room.dxf", TestFiles.Room(out string bottom, out _)));
                     model.Toggles.Single(t => t.Name == "SNAP").IsOn = false;
                     model.Toggles.Single(t => t.Name == "OSNAP").IsOn = false;
-                    var canvas = new CadCanvas { Document = model.Document, Space = model.Space, View = model.View, Session = model.Session, Snap = model.Snap };
+                    var canvas = new CadCanvas
+                    {
+                        Document = model.Document,
+                        Space = model.Space,
+                        View = model.View,
+                        Session = model.Session,
+                        Snap = model.Snap,
+                    };
                     canvas.PixelSizeChanged += (s, e) => model.SetCanvasSize(canvas.PixelWidth, canvas.PixelHeight);
                     canvas.Measure(new Size(800, 600));
                     canvas.Arrange(new Rect(0, 0, 800, 600));

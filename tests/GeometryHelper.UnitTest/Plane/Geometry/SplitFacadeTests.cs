@@ -20,11 +20,11 @@ namespace GeometryHelper.UnitTest.Plane
     {
         private static GeoLine2 Segment() => new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0));
 
-        private static GeoPolyline2 Path() => new GeoPolyline2(
-            new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10));
+        private static GeoPolyline2 Path() =>
+            new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10));
 
-        private static GeoPolygon2 Square() => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
+        private static GeoPolygon2 Square() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
 
         // Wide enough that a position 0.4 from an endpoint stops counting as a split.
         private static Tolerance Wide() => new Tolerance(0.5, 0.5);
@@ -105,7 +105,9 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(line.TrySplitBy(Square(), out GeoLine2[] _, out GeoLine2[] _, new Tolerance(1E-4, 1E-4)));
 
             // A tolerance wider than the whole crossing swallows both cut positions.
-            Assert.False(line.TrySplitBy(Square(), out GeoLine2[] wideIn, out GeoLine2[] wideOut, new Tolerance(30.0, 30.0)));
+            Assert.False(
+                line.TrySplitBy(Square(), out GeoLine2[] wideIn, out GeoLine2[] wideOut, new Tolerance(30.0, 30.0))
+            );
             Assert.Equal(1, wideIn.Length + wideOut.Length);
         }
 
@@ -226,8 +228,17 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var path = new GeoPolyline2(new GeoPoint2(-5, 5), new GeoPoint2(15, 5));
 
-            Assert.True(path.TrySplitBy(Square(), out GeoPolyline2[] _, out GeoPolyline2[] _, new Tolerance(1E-4, 1E-4)));
-            Assert.False(path.TrySplitBy(Square(), out GeoPolyline2[] wideIn, out GeoPolyline2[] wideOut, new Tolerance(30.0, 30.0)));
+            Assert.True(
+                path.TrySplitBy(Square(), out GeoPolyline2[] _, out GeoPolyline2[] _, new Tolerance(1E-4, 1E-4))
+            );
+            Assert.False(
+                path.TrySplitBy(
+                    Square(),
+                    out GeoPolyline2[] wideIn,
+                    out GeoPolyline2[] wideOut,
+                    new Tolerance(30.0, 30.0)
+                )
+            );
             Assert.Equal(1, wideIn.Length + wideOut.Length);
         }
 

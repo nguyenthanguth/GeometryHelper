@@ -19,21 +19,44 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static GeoPoint3 P(double x, double y) => new GeoPoint3(x, y, 0.0);
 
-        private static DxfDatabase Drawing(string version) => DxfDatabase.Parse(version == "R2000" ? DxfDimensionDrawings.R2000 : DxfDimensionDrawings.R2018);
+        private static DxfDatabase Drawing(string version) =>
+            DxfDatabase.Parse(version == "R2000" ? DxfDimensionDrawings.R2000 : DxfDimensionDrawings.R2018);
 
         /// <summary>The drawing of the dimension tests of a version, its words written as given in an MTEXT, a TEXT, the ATTRIB of an INSERT and a MULTILEADER.</summary>
         private static DxfDatabase Holding(string version, string written)
         {
             DxfDatabase db = Drawing(version);
-            db.ModelSpace.AppendEntity(new DxfMText { Contents = Placeholder, Location = P(0, 0), TextHeight = 2.5 });
-            db.ModelSpace.AppendEntity(new DxfDBText { TextString = Placeholder, Position = P(0, 10), Height = 2.5 });
+            db.ModelSpace.AppendEntity(
+                new DxfMText
+                {
+                    Contents = Placeholder,
+                    Location = P(0, 0),
+                    TextHeight = 2.5,
+                }
+            );
+            db.ModelSpace.AppendEntity(
+                new DxfDBText
+                {
+                    TextString = Placeholder,
+                    Position = P(0, 10),
+                    Height = 2.5,
+                }
+            );
             var block = new DxfBlockTableRecord { Name = "GH_TAGGED" };
             db.BlockTable.Add(block);
             block.AppendEntity(new DxfAttributeDefinition(P(0, 0), "v", "TAG", "p", null));
             var insert = new DxfBlockReference(P(0, 20), block);
             db.ModelSpace.AppendEntity(insert);
             insert.AttributeCollection.AppendAttribute(new DxfAttributeReference(P(0, 20), Placeholder, "TAG", null));
-            var mleader = new DxfMLeader { MText = new DxfMText { Contents = Placeholder, Location = P(30, 42), TextHeight = 2.5 } };
+            var mleader = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = Placeholder,
+                    Location = P(30, 42),
+                    TextHeight = 2.5,
+                },
+            };
             mleader.AddLeaderLine(P(0, 30));
             db.ModelSpace.AppendEntity(mleader);
             string text = db.ToText();
@@ -42,13 +65,19 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The words of each text of the drawing <see cref="Holding"/> makes: MTEXT, TEXT, ATTRIB and MULTILEADER.</summary>
-        private static string[] Words(DxfDatabase db) => new[]
-        {
-            db.ModelSpace.OfType<DxfMText>().Single().Contents,
-            db.ModelSpace.OfType<DxfDBText>().Single().TextString,
-            db.ModelSpace.OfType<DxfBlockReference>().Single(b => b.Name == "GH_TAGGED").AttributeCollection.Cast<DxfAttributeReference>().Single().TextString,
-            db.ModelSpace.OfType<DxfMLeader>().Single().MText.Contents,
-        };
+        private static string[] Words(DxfDatabase db) =>
+            new[]
+            {
+                db.ModelSpace.OfType<DxfMText>().Single().Contents,
+                db.ModelSpace.OfType<DxfDBText>().Single().TextString,
+                db
+                    .ModelSpace.OfType<DxfBlockReference>()
+                    .Single(b => b.Name == "GH_TAGGED")
+                    .AttributeCollection.Cast<DxfAttributeReference>()
+                    .Single()
+                    .TextString,
+                db.ModelSpace.OfType<DxfMLeader>().Single().MText.Contents,
+            };
 
         // ---- carets ----------------------------------------------------------------------------------------------------------
 
@@ -82,8 +111,18 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ACaretSet_IsWrittenAsACaretAndASpace_AndReadsBackAsSet()
         {
             DxfDatabase db = Drawing("R2018");
-            var mtext = new DxfMText { Contents = "m^2 a^Ib \\S1^2;", Location = P(0, 0), TextHeight = 2.5 };
-            var text = new DxfDBText { TextString = "m^2 a^Ib\tc", Position = P(0, 10), Height = 2.5 };
+            var mtext = new DxfMText
+            {
+                Contents = "m^2 a^Ib \\S1^2;",
+                Location = P(0, 0),
+                TextHeight = 2.5,
+            };
+            var text = new DxfDBText
+            {
+                TextString = "m^2 a^Ib\tc",
+                Position = P(0, 10),
+                Height = 2.5,
+            };
             db.ModelSpace.AppendEntity(mtext);
             db.ModelSpace.AppendEntity(text);
 
@@ -114,7 +153,10 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             var mtext = new DxfMText { Contents = contents };
 
-            Assert.Equal("{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0{\\*\\ghfontfile}txt;}}" + body + "\\par}", mtext.ContentsRTF);
+            Assert.Equal(
+                "{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0{\\*\\ghfontfile}txt;}}" + body + "\\par}",
+                mtext.ContentsRTF
+            );
         }
 
         [Fact]
@@ -147,7 +189,8 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // AutoCAD gives each a letter of its own from U+E800 on, in the order it meets them in all it reads; the bytes A0, FD,
             // FE and FF of Shift-JIS, 00 then FF, and a letter alone then one of these.
-            const string Written = "x\\M+100FFy \\M+1A0A1 \\M+1FD41 \\M+1A1FF \\M+180FF \\M+1A4FF \\M+1A1A0 \\M+1FEFE \\M+200FF \\M+481FF \\M+580FF";
+            const string Written =
+                "x\\M+100FFy \\M+1A0A1 \\M+1FD41 \\M+1A1FF \\M+180FF \\M+1A4FF \\M+1A1A0 \\M+1FEFE \\M+200FF \\M+481FF \\M+580FF";
             DxfDatabase db = Holding(version, Written);
 
             Assert.All(Words(db), words => Assert.Equal(Written, words));
@@ -164,9 +207,19 @@ namespace GeometryHelper.UnitTest.Dxf
             // AutoCAD 2021 reads its letters in the code page of the header, café as cafÃ©, and refuses one with the mark of
             // UTF-8 at its head; the library takes such a file for UTF-8, as it has done before.
             var made = new DxfDatabase(version);
-            made.ModelSpace.AppendEntity(new DxfDBText { TextString = Placeholder, Position = P(0, 0), Height = 2.5 });
+            made.ModelSpace.AppendEntity(
+                new DxfDBText
+                {
+                    TextString = Placeholder,
+                    Position = P(0, 0),
+                    Height = 2.5,
+                }
+            );
             string text = made.ToText().Replace("\n" + Placeholder + "\n", "\ncafé Đường\n");
-            string path = Path.Combine(Path.GetTempPath(), "gh-d23j-" + version + "-" + System.Guid.NewGuid().ToString("N") + ".dxf");
+            string path = Path.Combine(
+                Path.GetTempPath(),
+                "gh-d23j-" + version + "-" + System.Guid.NewGuid().ToString("N") + ".dxf"
+            );
 
             try
             {

@@ -127,7 +127,12 @@ namespace GeometryHelper.Core
         /// Whether an edge no longer than the tolerance is kept where it is a copy of an edge longer than it (see
         /// <see cref="Twins"/>), as <see cref="StretchesAsRead"/> reads the faces; every such edge is left out otherwise.
         /// </param>
-        private static List<Segment> CollectSegments(IReadOnlyList<GeoFace3> faces, Tolerance tolerance, out long tried, bool twins = false)
+        private static List<Segment> CollectSegments(
+            IReadOnlyList<GeoFace3> faces,
+            Tolerance tolerance,
+            out long tried,
+            bool twins = false
+        )
         {
             var segments = new List<Segment>();
             List<Segment> shorts = twins ? new List<Segment>() : null;
@@ -191,8 +196,14 @@ namespace GeometryHelper.Core
         /// <summary>Where a segment starts and ends along an axis, widened by the tolerance either way.</summary>
         private static void Extent(Segment segment, int axis, Tolerance tolerance, out double low, out double high)
         {
-            double a = axis == 0 ? segment.Start.X : axis == 1 ? segment.Start.Y : segment.Start.Z;
-            double b = axis == 0 ? segment.End.X : axis == 1 ? segment.End.Y : segment.End.Z;
+            double a =
+                axis == 0 ? segment.Start.X
+                : axis == 1 ? segment.Start.Y
+                : segment.Start.Z;
+            double b =
+                axis == 0 ? segment.End.X
+                : axis == 1 ? segment.End.Y
+                : segment.End.Z;
 
             low = Math.Min(a, b) - tolerance.EqualPoint;
             high = Math.Max(a, b) + tolerance.EqualPoint;
@@ -212,7 +223,8 @@ namespace GeometryHelper.Core
             {
                 // How many segments start no further along than this one ends: itself, those before it in the sweep and
                 // those it is tried against.
-                int below = 0, above = lows.Length;
+                int below = 0,
+                    above = lows.Length;
 
                 while (below < above)
                 {
@@ -297,7 +309,10 @@ namespace GeometryHelper.Core
 
             foreach (Segment s in shorts)
             {
-                if (TryCellOf(s.Start, cell, out (long X, long Y, long Z) key) && HasTwin(s, key, byCell, segments, kept, tolerance))
+                if (
+                    TryCellOf(s.Start, cell, out (long X, long Y, long Z) key)
+                    && HasTwin(s, key, byCell, segments, kept, tolerance)
+                )
                 {
                     segments.Add(s);
                 }
@@ -308,7 +323,14 @@ namespace GeometryHelper.Core
         /// Whether one of the first so many segments, an end of it filed in a cell beside the one given, is a copy of the
         /// segment given.
         /// </summary>
-        private static bool HasTwin(Segment s, (long X, long Y, long Z) key, Dictionary<(long, long, long), List<int>> byCell, List<Segment> segments, int kept, Tolerance tolerance)
+        private static bool HasTwin(
+            Segment s,
+            (long X, long Y, long Z) key,
+            Dictionary<(long, long, long), List<int>> byCell,
+            List<Segment> segments,
+            int kept,
+            Tolerance tolerance
+        )
         {
             for (long dx = -1; dx <= 1; dx++)
             {
@@ -339,7 +361,9 @@ namespace GeometryHelper.Core
         private static bool TryCellOf(GeoPoint3 point, double cell, out (long, long, long) key)
         {
             const double Reach = 4503599627370496.0;
-            double x = Math.Floor(point.X / cell), y = Math.Floor(point.Y / cell), z = Math.Floor(point.Z / cell);
+            double x = Math.Floor(point.X / cell),
+                y = Math.Floor(point.Y / cell),
+                z = Math.Floor(point.Z / cell);
 
             if (!(Math.Abs(x) < Reach && Math.Abs(y) < Reach && Math.Abs(z) < Reach))
             {
@@ -361,7 +385,15 @@ namespace GeometryHelper.Core
         /// in from the side's ends, read closed with the specks' edges kept, their stops cutting each open side into
         /// stretches no longer than the tolerance.
         /// </remarks>
-        private static void AddLoop(List<Segment> segments, GeoPolygon3 loop, int face, GeoVector3 normal, bool isHole, Tolerance tolerance, List<Segment> shorts = null)
+        private static void AddLoop(
+            List<Segment> segments,
+            GeoPolygon3 loop,
+            int face,
+            GeoVector3 normal,
+            bool isHole,
+            Tolerance tolerance,
+            List<Segment> shorts = null
+        )
         {
             int count = loop.VertexCount;
 
@@ -387,15 +419,17 @@ namespace GeometryHelper.Core
                 GeoVector3 left = normal.CrossProduct(along.Divide(length));
                 GeoVector3 inward = isHole ? left.Negate() : left;
 
-                (length <= tolerance.EqualPoint ? shorts : segments).Add(new Segment
-                {
-                    Start = start,
-                    End = end,
-                    Face = face,
-                    Hole = isHole,
-                    Inward = inward,
-                    Normal = normal,
-                });
+                (length <= tolerance.EqualPoint ? shorts : segments).Add(
+                    new Segment
+                    {
+                        Start = start,
+                        End = end,
+                        Face = face,
+                        Hole = isHole,
+                        Inward = inward,
+                        Normal = normal,
+                    }
+                );
             }
         }
 
@@ -434,7 +468,14 @@ namespace GeometryHelper.Core
         /// every pair it joins is tried, and the lines come out the same.
         /// </para>
         /// </remarks>
-        private static void JoinOverlapping(List<Segment> segments, int[] line, Tolerance tolerance, bool otherFacesOnly, long tried, bool twins = false)
+        private static void JoinOverlapping(
+            List<Segment> segments,
+            int[] line,
+            Tolerance tolerance,
+            bool otherFacesOnly,
+            long tried,
+            bool twins = false
+        )
         {
             if (!ShouldMatchByPoints(segments, tried))
             {
@@ -448,7 +489,10 @@ namespace GeometryHelper.Core
                     {
                         Segment b = segments[j];
 
-                        if ((!otherFacesOnly || a.Face != b.Face) && (Overlap(a, b, tolerance) || twins && Twins(a, b, tolerance)))
+                        if (
+                            (!otherFacesOnly || a.Face != b.Face)
+                            && (Overlap(a, b, tolerance) || twins && Twins(a, b, tolerance))
+                        )
                         {
                             Union(line, i, j);
                         }
@@ -466,14 +510,24 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < count; i++)
             {
-                GeoPoint3 start = segments[i].Start, end = segments[i].End;
+                GeoPoint3 start = segments[i].Start,
+                    end = segments[i].End;
                 x[2 * i] = start.X;
                 y[2 * i] = start.Y;
                 z[2 * i] = start.Z;
                 x[2 * i + 1] = end.X;
                 y[2 * i + 1] = end.Y;
                 z[2 * i + 1] = end.Z;
-                scale = Math.Max(scale, Math.Max(Math.Max(Math.Abs(start.X), Math.Abs(start.Y)), Math.Max(Math.Abs(start.Z), Math.Max(Math.Abs(end.X), Math.Max(Math.Abs(end.Y), Math.Abs(end.Z))))));
+                scale = Math.Max(
+                    scale,
+                    Math.Max(
+                        Math.Max(Math.Abs(start.X), Math.Abs(start.Y)),
+                        Math.Max(
+                            Math.Abs(start.Z),
+                            Math.Max(Math.Abs(end.X), Math.Max(Math.Abs(end.Y), Math.Abs(end.Z)))
+                        )
+                    )
+                );
             }
 
             // Each end point is one number, however many segments end on it; two that are the same to the last bit are one.
@@ -513,7 +567,12 @@ namespace GeometryHelper.Core
             {
                 int p = byPlace[k];
 
-                if (k == 0 || x[p].CompareTo(x[byPlace[k - 1]]) != 0 || y[p].CompareTo(y[byPlace[k - 1]]) != 0 || z[p].CompareTo(z[byPlace[k - 1]]) != 0)
+                if (
+                    k == 0
+                    || x[p].CompareTo(x[byPlace[k - 1]]) != 0
+                    || y[p].CompareTo(y[byPlace[k - 1]]) != 0
+                    || z[p].CompareTo(z[byPlace[k - 1]]) != 0
+                )
                 {
                     placeX.Add(x[p]);
                     placeY.Add(y[p]);
@@ -559,11 +618,24 @@ namespace GeometryHelper.Core
                 Segment s = segments[i];
                 GeoVector3 along = s.Start.GetVectorTo(s.End);
                 double length = along.Length;
-                double ux = along.X / length, uy = along.Y / length, uz = along.Z / length;
+                double ux = along.X / length,
+                    uy = along.Y / length,
+                    uz = along.Z / length;
 
                 // The shorter of two that overlap lies within its own length of the longer, either side of it.
                 double margin = 1E-6 * length + reach;
-                tree.Near(s.Start.X, s.Start.Y, s.Start.Z, ux, uy, uz, -length - margin, 2.0 * length + margin, reach, near);
+                tree.Near(
+                    s.Start.X,
+                    s.Start.Y,
+                    s.Start.Z,
+                    ux,
+                    uy,
+                    uz,
+                    -length - margin,
+                    2.0 * length + margin,
+                    reach,
+                    near
+                );
 
                 int most = -1;
 
@@ -573,7 +645,11 @@ namespace GeometryHelper.Core
 
                     int degree = first[p + 1] - first[p];
 
-                    if (most < 0 || degree > first[most + 1] - first[most] || (degree == first[most + 1] - first[most] && p > most))
+                    if (
+                        most < 0
+                        || degree > first[most + 1] - first[most]
+                        || (degree == first[most + 1] - first[most] && p > most)
+                    )
                     {
                         most = p;
                     }
@@ -597,10 +673,17 @@ namespace GeometryHelper.Core
                             continue;
                         }
 
-                        int low = Math.Min(i, j), high = Math.Max(i, j);
-                        Segment a = segments[low], b = segments[high];
+                        int low = Math.Min(i, j),
+                            high = Math.Max(i, j);
+                        Segment a = segments[low],
+                            b = segments[high];
 
-                        if (b.Low <= a.High && (!otherFacesOnly || a.Face != b.Face) && Find(line, low) != Find(line, high) && (Overlap(a, b, tolerance) || twins && Twins(a, b, tolerance)))
+                        if (
+                            b.Low <= a.High
+                            && (!otherFacesOnly || a.Face != b.Face)
+                            && Find(line, low) != Find(line, high)
+                            && (Overlap(a, b, tolerance) || twins && Twins(a, b, tolerance))
+                        )
                         {
                             Union(line, low, high);
                         }
@@ -627,7 +710,12 @@ namespace GeometryHelper.Core
             // A segment with a number that is not one is left to the sweep, which has always read it as it does.
             foreach (Segment segment in segments)
             {
-                if (!IsFinite(segment.Start) || !IsFinite(segment.End) || double.IsNaN(segment.Low) || double.IsNaN(segment.High))
+                if (
+                    !IsFinite(segment.Start)
+                    || !IsFinite(segment.End)
+                    || double.IsNaN(segment.Low)
+                    || double.IsNaN(segment.High)
+                )
                 {
                     return false;
                 }
@@ -786,7 +874,8 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>The largest coordinate of a point, either way from nought.</summary>
-        private static double Largest(GeoPoint3 point) => Math.Max(Math.Max(Math.Abs(point.X), Math.Abs(point.Y)), Math.Abs(point.Z));
+        private static double Largest(GeoPoint3 point) =>
+            Math.Max(Math.Max(Math.Abs(point.X), Math.Abs(point.Y)), Math.Abs(point.Z));
 
         /// <summary>
         /// Determines whether any edge of the faces is longer than the point tolerance; a body with none is a speck, which
@@ -900,7 +989,14 @@ namespace GeometryHelper.Core
         /// where a corner lies too far out for its cell to be counted in a whole number, or an edge is within the margin of
         /// the tolerance.
         /// </summary>
-        private static bool Count(GeoPolygon3 ring, bool reversed, double step, double shortest, double margin, Dictionary<(Cell From, Cell To), int> runs)
+        private static bool Count(
+            GeoPolygon3 ring,
+            bool reversed,
+            double step,
+            double shortest,
+            double margin,
+            Dictionary<(Cell From, Cell To), int> runs
+        )
         {
             int count = ring.VertexCount;
             var cells = new Cell[count];
@@ -928,7 +1024,8 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                Cell from = cells[i], to = cells[(i + 1) % count];
+                Cell from = cells[i],
+                    to = cells[(i + 1) % count];
                 var key = reversed ? (to, from) : (from, to);
                 runs.TryGetValue(key, out int seen);
                 runs[key] = seen + 1;
@@ -942,7 +1039,9 @@ namespace GeometryHelper.Core
         /// </summary>
         private readonly struct Cell : IEquatable<Cell>
         {
-            private readonly long x, y, z;
+            private readonly long x,
+                y,
+                z;
 
             private Cell(long x, long y, long z)
             {
@@ -958,7 +1057,9 @@ namespace GeometryHelper.Core
             public static bool TryOf(GeoPoint3 point, double step, out Cell cell)
             {
                 const double Reach = 4503599627370496.0;
-                double x = Math.Round(point.X / step), y = Math.Round(point.Y / step), z = Math.Round(point.Z / step);
+                double x = Math.Round(point.X / step),
+                    y = Math.Round(point.Y / step),
+                    z = Math.Round(point.Z / step);
 
                 if (!(Math.Abs(x) < Reach && Math.Abs(y) < Reach && Math.Abs(z) < Reach))
                 {
@@ -1047,7 +1148,10 @@ namespace GeometryHelper.Core
 
             foreach (int m in members)
             {
-                if (segments[m].Start.GetVectorTo(segments[m].End).LengthSquared > first.Start.GetVectorTo(first.End).LengthSquared)
+                if (
+                    segments[m].Start.GetVectorTo(segments[m].End).LengthSquared
+                    > first.Start.GetVectorTo(first.End).LengthSquared
+                )
                 {
                     first = segments[m];
                 }
@@ -1119,7 +1223,10 @@ namespace GeometryHelper.Core
             double length = along.Length;
             GeoVector3 unit = along.Divide(length);
 
-            if (OffLine(a.Start, unit, b.Start) > tolerance.EqualPoint || OffLine(a.Start, unit, b.End) > tolerance.EqualPoint)
+            if (
+                OffLine(a.Start, unit, b.Start) > tolerance.EqualPoint
+                || OffLine(a.Start, unit, b.End) > tolerance.EqualPoint
+            )
             {
                 return false;
             }
@@ -1145,9 +1252,9 @@ namespace GeometryHelper.Core
         /// other, either way round. Two copies no longer than about the tolerance share no more than it along their line, and
         /// <see cref="Overlap"/> leaves them apart.
         /// </summary>
-        private static bool Twins(Segment a, Segment b, Tolerance tolerance)
-            => a.Start.IsEqualTo(b.End, tolerance) && a.End.IsEqualTo(b.Start, tolerance)
-                || a.Start.IsEqualTo(b.Start, tolerance) && a.End.IsEqualTo(b.End, tolerance);
+        private static bool Twins(Segment a, Segment b, Tolerance tolerance) =>
+            a.Start.IsEqualTo(b.End, tolerance) && a.End.IsEqualTo(b.Start, tolerance)
+            || a.Start.IsEqualTo(b.Start, tolerance) && a.End.IsEqualTo(b.End, tolerance);
 
         /// <summary>
         /// A stretch of one line edges of the faces lie along, and how they cover it.
@@ -1206,8 +1313,8 @@ namespace GeometryHelper.Core
         /// the left, a hole's the other way round from how it is wound, and the two faces meeting on a stretch of a body
         /// wound alike run it once each way. Neighbouring stretches covered alike, by the same faces, are one.
         /// </remarks>
-        internal static List<Stretch> UnevenStretches(IReadOnlyList<GeoFace3> faces, Tolerance tolerance)
-            => Stretches(faces, tolerance, false);
+        internal static List<Stretch> UnevenStretches(IReadOnlyList<GeoFace3> faces, Tolerance tolerance) =>
+            Stretches(faces, tolerance, false);
 
         /// <summary>
         /// Every stretch of edge the faces do not close up along, as <see cref="GeoSolid3.IsClosed(Tolerance)"/> and
@@ -1222,8 +1329,8 @@ namespace GeometryHelper.Core
         /// the 0.0012 of the face next to it slid by 0.0002 along it, sharing 0.001, and read open along all four, where its
         /// corners lie within the tolerance of each other.
         /// </remarks>
-        internal static List<Stretch> StretchesAsRead(GeoSolid3 solid, Tolerance tolerance)
-            => Stretches(solid.Faces, Matching(solid, tolerance), true);
+        internal static List<Stretch> StretchesAsRead(GeoSolid3 solid, Tolerance tolerance) =>
+            Stretches(solid.Faces, Matching(solid, tolerance), true);
 
         /// <summary>
         /// Every stretch of edge the faces do not close up along, the edges matched within the tolerance given, and twin edges
@@ -1272,14 +1379,22 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Adds the stretches of one line its edges do not close up along.
         /// </summary>
-        private static void AddUneven(List<Segment> segments, List<int> members, Tolerance tolerance, List<Stretch> found)
+        private static void AddUneven(
+            List<Segment> segments,
+            List<int> members,
+            Tolerance tolerance,
+            List<Stretch> found
+        )
         {
             // Along the longest of them, whose direction is the truest; see Overlap.
             Segment first = segments[members[0]];
 
             foreach (int m in members)
             {
-                if (segments[m].Start.GetVectorTo(segments[m].End).LengthSquared > first.Start.GetVectorTo(first.End).LengthSquared)
+                if (
+                    segments[m].Start.GetVectorTo(segments[m].End).LengthSquared
+                    > first.Start.GetVectorTo(first.End).LengthSquared
+                )
                 {
                     first = segments[m];
                 }
@@ -1315,7 +1430,8 @@ namespace GeometryHelper.Core
                 }
 
                 double middle = (stops[k] + stops[k + 1]) * 0.5;
-                int forward = 0, backward = 0;
+                int forward = 0,
+                    backward = 0;
                 covering.Clear();
 
                 foreach (int m in members)
@@ -1351,7 +1467,13 @@ namespace GeometryHelper.Core
 
                 covering.Sort();
 
-                if (pending && uneven && run.Forward == forward && run.Backward == backward && SameFaces(run.Faces, covering))
+                if (
+                    pending
+                    && uneven
+                    && run.Forward == forward
+                    && run.Backward == backward
+                    && SameFaces(run.Faces, covering)
+                )
                 {
                     run.End = origin.Add(axis.Multiply(stops[k + 1]));
                     continue;
@@ -1472,7 +1594,13 @@ namespace GeometryHelper.Core
         /// its neighbour bound the same piece exactly when the wedge between them is material — which is the
         /// side the first face's outward normal points away from.
         /// </remarks>
-        private static void PairRoundTheLine(List<Segment> meeting, GeoVector3 axis, GeoVector3 b1, GeoVector3 b2, int[] parent)
+        private static void PairRoundTheLine(
+            List<Segment> meeting,
+            GeoVector3 axis,
+            GeoVector3 b1,
+            GeoVector3 b2,
+            int[] parent
+        )
         {
             meeting.Sort((a, b) => Angle(a.Inward, b1, b2).CompareTo(Angle(b.Inward, b1, b2)));
 
@@ -1491,8 +1619,8 @@ namespace GeometryHelper.Core
             }
         }
 
-        private static double Angle(GeoVector3 direction, GeoVector3 b1, GeoVector3 b2)
-            => Math.Atan2(direction.DotProduct(b2), direction.DotProduct(b1));
+        private static double Angle(GeoVector3 direction, GeoVector3 b1, GeoVector3 b2) =>
+            Math.Atan2(direction.DotProduct(b2), direction.DotProduct(b1));
 
         private static void GetBasis(GeoVector3 axis, out GeoVector3 b1, out GeoVector3 b2)
         {
@@ -1510,7 +1638,11 @@ namespace GeometryHelper.Core
         /// Turns the groups of faces into bodies, giving each cavity to the piece around it and each opening
         /// to every piece it reaches.
         /// </summary>
-        private static List<GeoSolid3> Assemble(List<List<GeoFace3>> found, IReadOnlyList<GeoSolid3> openings, Tolerance tolerance)
+        private static List<GeoSolid3> Assemble(
+            List<List<GeoFace3>> found,
+            IReadOnlyList<GeoSolid3> openings,
+            Tolerance tolerance
+        )
         {
             var groups = new List<List<GeoFace3>>();
             var sheets = new List<List<GeoFace3>>();
@@ -1555,9 +1687,11 @@ namespace GeometryHelper.Core
 
                 for (int o = 0; o < outer.Count; o++)
                 {
-                    if (outer[o].GrossVolume < smallest
+                    if (
+                        outer[o].GrossVolume < smallest
                         && outer[o].GetAabb().Contains(witness, tolerance)
-                        && Containment3.Locate(outer[o], witness, tolerance) != PointLocation.OutSide)
+                        && Containment3.Locate(outer[o], witness, tolerance) != PointLocation.OutSide
+                    )
                     {
                         home = o;
                         smallest = outer[o].GrossVolume;
@@ -1589,9 +1723,11 @@ namespace GeometryHelper.Core
 
                 for (int o = 0; o < outer.Count; o++)
                 {
-                    if (outer[o].GrossVolume < smallest
+                    if (
+                        outer[o].GrossVolume < smallest
                         && outer[o].GetAabb().Contains(witness, tolerance)
-                        && Containment3.Locate(outer[o], witness, tolerance) != PointLocation.OutSide)
+                        && Containment3.Locate(outer[o], witness, tolerance) != PointLocation.OutSide
+                    )
                     {
                         home = o;
                         smallest = outer[o].GrossVolume;

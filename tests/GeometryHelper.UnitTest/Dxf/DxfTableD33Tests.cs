@@ -58,7 +58,11 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData(0.0, "%lu4%pr2%zs3", "0\"")]
         [InlineData(-7.25, "%lu4%pr2%zs3", "-7 1/4\"")]
         [InlineData(12.0, "%lu4%pr2%zs12", "1'-0\"")]
-        public void ANumberOfAnArchitecturalFormat_IsShownInFeetAndInches_AsAutoCadShowsIt(double value, string format, string shown)
+        public void ANumberOfAnArchitecturalFormat_IsShownInFeetAndInches_AsAutoCadShowsIt(
+            double value,
+            string format,
+            string shown
+        )
         {
             // D33 P, P2, u1 to u5, u8: AutoCAD 2021 wrote 12.5 of %lu4%pr2 as 1'-0 1/2", to the nearest 2^N part of an inch, the
             // fraction reduced, a half away from nought, the sign only where the rounded number is not nought, and %zs1 leaving
@@ -120,7 +124,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(DxfUnitType.Unitless, read.UnitType(2, 0));
                 Assert.Equal(string.Empty, read.TextString(2, 0));
                 string record = Record(db.ToText(), "F6");
-                Assert.Contains("301\nCELL_VALUE\n 93\n7\n 90\n" + (int)kind + "\n 94\n0\n300\n\n302\n\n304\n", record, StringComparison.Ordinal);
+                Assert.Contains(
+                    "301\nCELL_VALUE\n 93\n7\n 90\n" + (int)kind + "\n 94\n0\n300\n\n302\n\n304\n",
+                    record,
+                    StringComparison.Ordinal
+                );
             }
         }
 
@@ -135,7 +143,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 table.ResetValue(2, 0);
                 table.SetDataType(2, 0, kind, DxfUnitType.Unitless);
 
-                Assert.Contains("301\nCELL_VALUE\n 93\n5\n 90\n" + (int)kind + "\n 94\n0\n300\n\n302\n\n304\n", Record(db.ToText(), "F6"), StringComparison.Ordinal);
+                Assert.Contains(
+                    "301\nCELL_VALUE\n 93\n5\n 90\n" + (int)kind + "\n 94\n0\n300\n\n302\n\n304\n",
+                    Record(db.ToText(), "F6"),
+                    StringComparison.Ordinal
+                );
             }
         }
 
@@ -147,18 +159,66 @@ namespace GeometryHelper.UnitTest.Dxf
             // of the value taken away but where a text of a whole number became that number.
             (Action<DxfTable> set, DxfDataType kind, string value)[] cases =
             {
-                (t => t.SetValue(2, 0, "12"), DxfDataType.Long, "301\nCELL_VALUE\n 93\n6\n 90\n1\n 91\n12\n 94\n0\n300\n\n302\n12\n304\n"),
-                (t => t.SetValue(2, 0, " 12 "), DxfDataType.Long, "301\nCELL_VALUE\n 93\n6\n 90\n1\n 91\n12\n 94\n0\n300\n\n302\n12\n304\n"),
-                (t => t.SetValue(2, 0, "12.25"), DxfDataType.Long, "301\nCELL_VALUE\n 93\n4\n 90\n1\n 91\n12\n 94\n0\n300\n\n302\n12\n304\n"),
-                (t => t.SetValue(2, 0, 12.7), DxfDataType.Long, "301\nCELL_VALUE\n 93\n4\n 90\n1\n 91\n12\n 94\n0\n300\n\n302\n12\n304\n"),
-                (t => t.SetValue(2, 0, -12.7), DxfDataType.Long, "301\nCELL_VALUE\n 93\n4\n 90\n1\n 91\n-12\n 94\n0\n300\n\n302\n-12\n304\n"),
-                (t => t.SetValue(2, 0, 3E9), DxfDataType.Long, "301\nCELL_VALUE\n 93\n4\n 90\n1\n 91\n-2147483648\n 94\n0\n300\n\n302\n-2147483648\n304\n"),
-                (t => t.SetValue(2, 0, "12"), DxfDataType.Double, "301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n12.0\n 94\n0\n300\n%lu6\n302\n12.0000\n304\n"),
-                (t => t.SetValue(2, 0, "-0.5"), DxfDataType.Double, "301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n-0.5\n 94\n0\n300\n%lu6\n302\n-0.5000\n304\n"),
-                (t => t.SetValue(2, 0, "1e3"), DxfDataType.Double, "301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n1000.0\n 94\n0\n300\n%lu1\n302\n1.0000E+03\n304\n"),
-                (t => t.SetValue(2, 0, 7), DxfDataType.Double, "301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n7.0\n 94\n0\n300\n\n302\n7.000000\n304\n"),
-                (t => t.SetValue(2, 0, 7), DxfDataType.String, "301\nCELL_VALUE\n 93\n4\n 90\n4\n  1\n7\n 94\n0\n300\n\n302\n7\n304\n"),
-                (t => t.SetValue(2, 0, 12.5), DxfDataType.String, "301\nCELL_VALUE\n 93\n4\n 90\n4\n  1\n12.500000\n 94\n0\n300\n\n302\n12.500000\n304\n"),
+                (
+                    t => t.SetValue(2, 0, "12"),
+                    DxfDataType.Long,
+                    "301\nCELL_VALUE\n 93\n6\n 90\n1\n 91\n12\n 94\n0\n300\n\n302\n12\n304\n"
+                ),
+                (
+                    t => t.SetValue(2, 0, " 12 "),
+                    DxfDataType.Long,
+                    "301\nCELL_VALUE\n 93\n6\n 90\n1\n 91\n12\n 94\n0\n300\n\n302\n12\n304\n"
+                ),
+                (
+                    t => t.SetValue(2, 0, "12.25"),
+                    DxfDataType.Long,
+                    "301\nCELL_VALUE\n 93\n4\n 90\n1\n 91\n12\n 94\n0\n300\n\n302\n12\n304\n"
+                ),
+                (
+                    t => t.SetValue(2, 0, 12.7),
+                    DxfDataType.Long,
+                    "301\nCELL_VALUE\n 93\n4\n 90\n1\n 91\n12\n 94\n0\n300\n\n302\n12\n304\n"
+                ),
+                (
+                    t => t.SetValue(2, 0, -12.7),
+                    DxfDataType.Long,
+                    "301\nCELL_VALUE\n 93\n4\n 90\n1\n 91\n-12\n 94\n0\n300\n\n302\n-12\n304\n"
+                ),
+                (
+                    t => t.SetValue(2, 0, 3E9),
+                    DxfDataType.Long,
+                    "301\nCELL_VALUE\n 93\n4\n 90\n1\n 91\n-2147483648\n 94\n0\n300\n\n302\n-2147483648\n304\n"
+                ),
+                (
+                    t => t.SetValue(2, 0, "12"),
+                    DxfDataType.Double,
+                    "301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n12.0\n 94\n0\n300\n%lu6\n302\n12.0000\n304\n"
+                ),
+                (
+                    t => t.SetValue(2, 0, "-0.5"),
+                    DxfDataType.Double,
+                    "301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n-0.5\n 94\n0\n300\n%lu6\n302\n-0.5000\n304\n"
+                ),
+                (
+                    t => t.SetValue(2, 0, "1e3"),
+                    DxfDataType.Double,
+                    "301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n1000.0\n 94\n0\n300\n%lu1\n302\n1.0000E+03\n304\n"
+                ),
+                (
+                    t => t.SetValue(2, 0, 7),
+                    DxfDataType.Double,
+                    "301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n7.0\n 94\n0\n300\n\n302\n7.000000\n304\n"
+                ),
+                (
+                    t => t.SetValue(2, 0, 7),
+                    DxfDataType.String,
+                    "301\nCELL_VALUE\n 93\n4\n 90\n4\n  1\n7\n 94\n0\n300\n\n302\n7\n304\n"
+                ),
+                (
+                    t => t.SetValue(2, 0, 12.5),
+                    DxfDataType.String,
+                    "301\nCELL_VALUE\n 93\n4\n 90\n4\n  1\n12.500000\n 94\n0\n300\n\n302\n12.500000\n304\n"
+                ),
             };
 
             foreach ((Action<DxfTable> set, DxfDataType kind, string value) in cases)
@@ -267,7 +327,8 @@ namespace GeometryHelper.UnitTest.Dxf
             return DxfDatabase.Parse(db.ToText());
         }
 
-        private static string[] Column(DxfTable table, int col, int from, int to) => Enumerable.Range(from, to - from + 1).Select(r => table.TextString(r, col)).ToArray();
+        private static string[] Column(DxfTable table, int col, int from, int to) =>
+            Enumerable.Range(from, to - from + 1).Select(r => table.TextString(r, col)).ToArray();
 
         [Fact]
         public void AFillOfNoneOfContentFormatAndSeries_ChangesNothing()
@@ -285,11 +346,17 @@ namespace GeometryHelper.UnitTest.Dxf
             // D33 f03, f06, f08, f16: CopyContent copied 1.5, 2.5, 1.5 down, a series asked for too or reversed; into rows 5 and
             // 6 of a gap 1.5 and 2.5, the source repeated from the fill range's first cell. The library made a series.
             DxfDatabase db = Filled();
-            Table(db).Fill(new DxfCellRange(4, 0, 6, 0), new DxfCellRange(2, 0, 3, 0), DxfTableFillOptions.GenerateSeries | DxfTableFillOptions.CopyContent | DxfTableFillOptions.Reverse);
+            Table(db)
+                .Fill(
+                    new DxfCellRange(4, 0, 6, 0),
+                    new DxfCellRange(2, 0, 3, 0),
+                    DxfTableFillOptions.GenerateSeries | DxfTableFillOptions.CopyContent | DxfTableFillOptions.Reverse
+                );
             Assert.Equal(new[] { "1.500000", "2.500000", "1.500000" }, Column(Reread(db), 0, 4, 6));
 
             DxfDatabase gap = Filled();
-            Table(gap).Fill(new DxfCellRange(5, 0, 6, 0), new DxfCellRange(2, 0, 3, 0), DxfTableFillOptions.CopyContent);
+            Table(gap)
+                .Fill(new DxfCellRange(5, 0, 6, 0), new DxfCellRange(2, 0, 3, 0), DxfTableFillOptions.CopyContent);
             DxfTable read = Reread(gap);
             Assert.Equal(new[] { string.Empty, "1.500000", "2.500000" }, Column(read, 0, 4, 6));
             Assert.Null(read.ContentColor(5, 0));
@@ -302,27 +369,43 @@ namespace GeometryHelper.UnitTest.Dxf
             // into rows 5 and 6, 3.5 and 4.5; into rows 2 and 3 above 1.5 and 2.5, 3.5 and 4.5), and in reverse back from the
             // first, the fill range's last cell next to it (-1.5, -0.5, 0.5; 10 and 20 to -20, -10, 0).
             DxfDatabase db = Filled();
-            Table(db).Fill(new DxfCellRange(4, 0, 6, 0), new DxfCellRange(2, 0, 3, 0), DxfTableFillOptions.GenerateSeries);
+            Table(db)
+                .Fill(new DxfCellRange(4, 0, 6, 0), new DxfCellRange(2, 0, 3, 0), DxfTableFillOptions.GenerateSeries);
             DxfTable read = Reread(db);
             Assert.Equal(new[] { "3.500000", "4.500000", "5.500000" }, Column(read, 0, 4, 6));
             Assert.Equal(DxfDataType.Double, read.DataType(4, 0));
             Assert.Null(read.ContentColor(4, 0));
 
             DxfDatabase gap = Filled();
-            Table(gap).Fill(new DxfCellRange(5, 0, 6, 0), new DxfCellRange(2, 0, 3, 0), DxfTableFillOptions.GenerateSeries);
+            Table(gap)
+                .Fill(new DxfCellRange(5, 0, 6, 0), new DxfCellRange(2, 0, 3, 0), DxfTableFillOptions.GenerateSeries);
             Assert.Equal(new[] { string.Empty, "3.500000", "4.500000" }, Column(Reread(gap), 0, 4, 6));
 
             DxfDatabase back = Filled();
-            Table(back).Fill(new DxfCellRange(4, 0, 6, 0), new DxfCellRange(2, 0, 3, 0), DxfTableFillOptions.GenerateSeries | DxfTableFillOptions.Reverse);
+            Table(back)
+                .Fill(
+                    new DxfCellRange(4, 0, 6, 0),
+                    new DxfCellRange(2, 0, 3, 0),
+                    DxfTableFillOptions.GenerateSeries | DxfTableFillOptions.Reverse
+                );
             Assert.Equal(new[] { "-1.500000", "-0.500000", "0.500000" }, Column(Reread(back), 0, 4, 6));
 
             DxfDatabase whole = Filled();
-            Table(whole).Fill(new DxfCellRange(4, 2, 6, 2), new DxfCellRange(2, 2, 3, 2), DxfTableFillOptions.GenerateSeries | DxfTableFillOptions.Reverse);
+            Table(whole)
+                .Fill(
+                    new DxfCellRange(4, 2, 6, 2),
+                    new DxfCellRange(2, 2, 3, 2),
+                    DxfTableFillOptions.GenerateSeries | DxfTableFillOptions.Reverse
+                );
             Assert.Equal(new[] { "-20", "-10", "0" }, Column(Reread(whole), 2, 4, 6));
 
             DxfDatabase above = Filled();
             DxfTable moved = Table(above);
-            moved.Fill(new DxfCellRange(4, 0, 5, 0), new DxfCellRange(2, 0, 3, 0), DxfTableFillOptions.CopyContent | DxfTableFillOptions.CopyFormat);
+            moved.Fill(
+                new DxfCellRange(4, 0, 5, 0),
+                new DxfCellRange(2, 0, 3, 0),
+                DxfTableFillOptions.CopyContent | DxfTableFillOptions.CopyFormat
+            );
             moved.Fill(new DxfCellRange(2, 0, 3, 0), new DxfCellRange(4, 0, 5, 0), DxfTableFillOptions.GenerateSeries);
             Assert.Equal(new[] { "3.500000", "4.500000" }, Column(Reread(above), 0, 2, 3));
         }
@@ -339,7 +422,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(Aci(1), read.ContentColor(4, 0));
             Assert.Null(read.ContentColor(5, 0));
             Assert.Equal(DxfDataType.Double, read.DataType(5, 0));
-            Assert.Contains("301\nCELL_VALUE\n 93\n5\n 90\n2\n 94\n0\n300\n\n302\n\n304\n", Record(db.ToText(), "F6"), StringComparison.Ordinal);
+            Assert.Contains(
+                "301\nCELL_VALUE\n 93\n5\n 90\n2\n 94\n0\n300\n\n302\n\n304\n",
+                Record(db.ToText(), "F6"),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -353,7 +440,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new[] { "1.500000", "2.500000", "1.500000" }, Column(read, 0, 4, 6));
             Assert.Equal(new[] { string.Empty, string.Empty, string.Empty }, Column(read, 1, 4, 6));
 
-            Assert.Throws<ArgumentException>(() => Table(Filled()).Fill(new DxfCellRange(2, 0, 6, 0), new DxfCellRange(2, 0, 3, 0), DxfTableFillOptions.CopyContent));
+            Assert.Throws<ArgumentException>(() =>
+                Table(Filled())
+                    .Fill(new DxfCellRange(2, 0, 6, 0), new DxfCellRange(2, 0, 3, 0), DxfTableFillOptions.CopyContent)
+            );
         }
 
         #endregion

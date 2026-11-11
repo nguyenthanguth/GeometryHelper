@@ -32,8 +32,7 @@ namespace GeometryHelper.Geometry
         /// Parallel is not enough: two parallel planes a metre apart share nothing at all. Ask this before
         /// combining two shapes, which refuses a second shape lying anywhere else.
         /// </remarks>
-        public bool SharesPlaneWith(GeoPlane3 other, Tolerance tolerance)
-            => Boolean3.LiesIn(other, this, tolerance);
+        public bool SharesPlaneWith(GeoPlane3 other, Tolerance tolerance) => Boolean3.LiesIn(other, this, tolerance);
 
         /// <summary>
         /// Joins this face to a face.
@@ -93,7 +92,8 @@ namespace GeometryHelper.Geometry
         /// <returns>The pieces the two make, in the plane they share.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         /// <exception cref="ArgumentException">Thrown when it lies in another plane.</exception>
-        public GeoFace3[] Intersect(GeoPolygon3 other, Tolerance tolerance) => Boolean3.Intersect(this, other, tolerance);
+        public GeoFace3[] Intersect(GeoPolygon3 other, Tolerance tolerance) =>
+            Boolean3.Intersect(this, other, tolerance);
 
         /// <summary>
         /// Takes a face out of this face.

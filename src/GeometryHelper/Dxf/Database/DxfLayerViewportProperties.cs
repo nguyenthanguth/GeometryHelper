@@ -62,7 +62,10 @@ namespace GeometryHelper.Dxf
             {
                 string raw = Raw(ColorKey, 420);
 
-                if (raw != null && long.TryParse(raw.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out long value))
+                if (
+                    raw != null
+                    && long.TryParse(raw.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out long value)
+                )
                 {
                     int kind = (int)((value >> 24) & 0xFF);
 
@@ -84,7 +87,6 @@ namespace GeometryHelper.Dxf
 
                 return _layer.Color;
             }
-
             set
             {
                 if (value == null)
@@ -94,11 +96,24 @@ namespace GeometryHelper.Dxf
 
                 if (!value.IsByAci && !value.IsByColor)
                 {
-                    throw new ArgumentException("A layer's colour in a viewport is one of the index, 1 to 255, or a true colour: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "A layer's colour in a viewport is one of the index, 1 to 255, or a true colour: "
+                            + value
+                            + " is not.",
+                        nameof(value)
+                    );
                 }
 
-                Writable(value.IsByColor ? 1018 : 1015, value.IsByColor ? "true colours" : "overrides of a layer in a viewport");
-                int raw = unchecked((int)((value.IsByColor ? 0xC2000000u : 0xC3000000u) | (uint)(value.IsByColor ? value.ColorValue & 0xFFFFFF : value.ColorIndex & 0xFF)));
+                Writable(
+                    value.IsByColor ? 1018 : 1015,
+                    value.IsByColor ? "true colours" : "overrides of a layer in a viewport"
+                );
+                int raw = unchecked(
+                    (int)(
+                        (value.IsByColor ? 0xC2000000u : 0xC3000000u)
+                        | (uint)(value.IsByColor ? value.ColorValue & 0xFFFFFF : value.ColorIndex & 0xFF)
+                    )
+                );
                 Write(ColorKey, "{ADSK_LYR_COLOR_OVERRIDE", 420, raw.ToString(CultureInfo.InvariantCulture));
             }
         }
@@ -134,7 +149,6 @@ namespace GeometryHelper.Dxf
 
                 return _layer.LinetypeName;
             }
-
             set
             {
                 if (value == null)
@@ -150,8 +164,12 @@ namespace GeometryHelper.Dxf
                 {
                     string name = DxfReader.NameOf(file.ValueOf(record, 2) ?? string.Empty);
 
-                    if (handle == null && string.Equals(name, wanted, StringComparison.OrdinalIgnoreCase)
-                        && !string.Equals(name, "ByLayer", StringComparison.OrdinalIgnoreCase) && !string.Equals(name, "ByBlock", StringComparison.OrdinalIgnoreCase))
+                    if (
+                        handle == null
+                        && string.Equals(name, wanted, StringComparison.OrdinalIgnoreCase)
+                        && !string.Equals(name, "ByLayer", StringComparison.OrdinalIgnoreCase)
+                        && !string.Equals(name, "ByBlock", StringComparison.OrdinalIgnoreCase)
+                    )
                     {
                         handle = record.Handle;
                     }
@@ -159,7 +177,10 @@ namespace GeometryHelper.Dxf
 
                 if (handle == null)
                 {
-                    throw new ArgumentException("The drawing has no linetype " + wanted + " a layer can take in a viewport.", nameof(value));
+                    throw new ArgumentException(
+                        "The drawing has no linetype " + wanted + " a layer can take in a viewport.",
+                        nameof(value)
+                    );
                 }
 
                 Write(LinetypeKey, "{ADSK_LYR_LINETYPE_OVERRIDE", 343, handle);
@@ -176,17 +197,39 @@ namespace GeometryHelper.Dxf
         /// files, or the file is older than R2000 (AC1015).</exception>
         public DxfLineWeight LineWeight
         {
-            get => int.TryParse(Raw(LineWeightKey, 91)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int weight) ? (DxfLineWeight)weight : _layer.LineWeight;
-
+            get =>
+                int.TryParse(
+                    Raw(LineWeightKey, 91)?.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int weight
+                )
+                    ? (DxfLineWeight)weight
+                    : _layer.LineWeight;
             set
             {
-                if (value == DxfLineWeight.ByLayer || value == DxfLineWeight.ByBlock || value == DxfLineWeight.ByDIPs || !Enum.IsDefined(typeof(DxfLineWeight), value))
+                if (
+                    value == DxfLineWeight.ByLayer
+                    || value == DxfLineWeight.ByBlock
+                    || value == DxfLineWeight.ByDIPs
+                    || !Enum.IsDefined(typeof(DxfLineWeight), value)
+                )
                 {
-                    throw new ArgumentException("A layer's lineweight in a viewport is Default or one of AutoCAD's widths: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "A layer's lineweight in a viewport is Default or one of AutoCAD's widths: "
+                            + value
+                            + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 Writable(1015, "overrides of a layer in a viewport");
-                Write(LineWeightKey, "{ADSK_LYR_LINEWT_OVERRIDE", 91, ((int)value).ToString(CultureInfo.InvariantCulture));
+                Write(
+                    LineWeightKey,
+                    "{ADSK_LYR_LINEWT_OVERRIDE",
+                    91,
+                    ((int)value).ToString(CultureInfo.InvariantCulture)
+                );
             }
         }
 
@@ -200,13 +243,25 @@ namespace GeometryHelper.Dxf
         /// files, or the file is older than R2004 (AC1018), which has no transparency.</exception>
         public DxfTransparency Transparency
         {
-            get => int.TryParse(Raw(AlphaKey, 440)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int alpha) ? DxfTransparency.OfValue(alpha) : _layer.Transparency;
-
+            get =>
+                int.TryParse(
+                    Raw(AlphaKey, 440)?.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int alpha
+                )
+                    ? DxfTransparency.OfValue(alpha)
+                    : _layer.Transparency;
             set
             {
                 if (!value.IsByAlpha)
                 {
-                    throw new ArgumentException("A layer's transparency in a viewport is by alpha, from 0 clear to 255 solid: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "A layer's transparency in a viewport is by alpha, from 0 clear to 255 solid: "
+                            + value
+                            + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 Writable(1018, "transparency");
@@ -232,7 +287,8 @@ namespace GeometryHelper.Dxf
         {
             get
             {
-                string handle = Raw(PlotStyleKey, 344)?.Trim() ?? (_layer.Item == null ? null : _layer.Item.File.ValueOf(_layer.Item, 390)?.Trim());
+                string handle = Raw(PlotStyleKey, 344)?.Trim()
+                    ?? (_layer.Item == null ? null : _layer.Item.File.ValueOf(_layer.Item, 390)?.Trim());
                 DxfDBDictionary names = _layer.Item?.File.Database?.PlotStyleNameDictionary;
 
                 if (handle == null || names == null)
@@ -242,7 +298,10 @@ namespace GeometryHelper.Dxf
 
                 foreach (DxfDBDictionaryEntry entry in names)
                 {
-                    if (entry.Value != null && string.Equals(entry.Value.Handle, handle, StringComparison.OrdinalIgnoreCase))
+                    if (
+                        entry.Value != null
+                        && string.Equals(entry.Value.Handle, handle, StringComparison.OrdinalIgnoreCase)
+                    )
                     {
                         return entry.Key;
                     }
@@ -250,7 +309,6 @@ namespace GeometryHelper.Dxf
 
                 return string.Empty;
             }
-
             set
             {
                 if (value == null)
@@ -262,7 +320,9 @@ namespace GeometryHelper.Dxf
 
                 if (file.Database == null || file.Database.PlotStyleMode)
                 {
-                    throw new InvalidOperationException("The drawing plots by colour, and a layer takes no plot style in a viewport, as AutoCAD answers ePlotStyleInColorDependentMode.");
+                    throw new InvalidOperationException(
+                        "The drawing plots by colour, and a layer takes no plot style in a viewport, as AutoCAD answers ePlotStyleInColorDependentMode."
+                    );
                 }
 
                 DxfDBDictionary names = file.Database.PlotStyleNameDictionary;
@@ -270,7 +330,10 @@ namespace GeometryHelper.Dxf
 
                 if (entry?.Handle == null)
                 {
-                    throw new ArgumentException("The drawing has no plot style named " + value.Trim() + ".", nameof(value));
+                    throw new ArgumentException(
+                        "The drawing has no plot style named " + value.Trim() + ".",
+                        nameof(value)
+                    );
                 }
 
                 Write(PlotStyleKey, "{ADSK_LYR_PLOTSTYLE_OVERRIDE", 344, entry.Handle);
@@ -306,7 +369,10 @@ namespace GeometryHelper.Dxf
         {
             foreach (KeyValuePair<string, string> value in Values(_layer, key, code))
             {
-                if (_viewport.Handle != null && string.Equals(value.Key, _viewport.Handle, StringComparison.OrdinalIgnoreCase))
+                if (
+                    _viewport.Handle != null
+                    && string.Equals(value.Key, _viewport.Handle, StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     return value.Value;
                 }
@@ -318,9 +384,17 @@ namespace GeometryHelper.Dxf
         /// <summary>The file an override is written into, checked: the layer and the viewport in it, not erased, of a version that has the property.</summary>
         private DxfFile Writable(int version, string what)
         {
-            if (_layer.Item == null || _layer.IsErased || _viewport.Item == null || _viewport.IsErased || _viewport.Handle == null)
+            if (
+                _layer.Item == null
+                || _layer.IsErased
+                || _viewport.Item == null
+                || _viewport.IsErased
+                || _viewport.Handle == null
+            )
             {
-                throw new InvalidOperationException("An override is written for a layer and a viewport of a file, neither erased.");
+                throw new InvalidOperationException(
+                    "An override is written for a layer and a viewport of a file, neither erased."
+                );
             }
 
             DxfFile file = _layer.Item.File;
@@ -353,7 +427,13 @@ namespace GeometryHelper.Dxf
 
             if (!(dictionary.GetAt(key) is DxfXrecord record))
             {
-                throw new InvalidOperationException("The extension dictionary of the layer " + _layer.Name + " holds " + key + " as an object other than an XRECORD.");
+                throw new InvalidOperationException(
+                    "The extension dictionary of the layer "
+                        + _layer.Name
+                        + " holds "
+                        + key
+                        + " as an object other than an XRECORD."
+                );
             }
 
             var data = new List<DxfTypedValue>(record.Data);
@@ -378,8 +458,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The list of one viewport's override, as AutoCAD writes it.</summary>
-        private static DxfTypedValue[] List(string open, string viewport, int code, string value)
-            => new[] { new DxfTypedValue(102, open), new DxfTypedValue(335, viewport), new DxfTypedValue(code, value), new DxfTypedValue(102, "}") };
+        private static DxfTypedValue[] List(string open, string viewport, int code, string value) =>
+            new[]
+            {
+                new DxfTypedValue(102, open),
+                new DxfTypedValue(335, viewport),
+                new DxfTypedValue(code, value),
+                new DxfTypedValue(102, "}"),
+            };
 
         /// <summary>
         /// Takes the overrides of a viewport out of a layer's XRECORDs, as AutoCAD does when the viewport is erased: each list
@@ -398,7 +484,12 @@ namespace GeometryHelper.Dxf
         {
             DxfDBDictionary dictionary = layer.ExtensionDictionary;
 
-            if (dictionary == null || viewport == null || !dictionary.Contains(key) || !(dictionary.GetAt(key) is DxfXrecord record))
+            if (
+                dictionary == null
+                || viewport == null
+                || !dictionary.Contains(key)
+                || !(dictionary.GetAt(key) is DxfXrecord record)
+            )
             {
                 return;
             }
@@ -425,7 +516,9 @@ namespace GeometryHelper.Dxf
                 }
 
                 list.Add(group);
-                named |= group.TypeCode == 335 && string.Equals(group.Value.Trim(), viewport, StringComparison.OrdinalIgnoreCase);
+                named |=
+                    group.TypeCode == 335
+                    && string.Equals(group.Value.Trim(), viewport, StringComparison.OrdinalIgnoreCase);
 
                 if (group.TypeCode == 102 && group.Value.Trim() == "}")
                 {

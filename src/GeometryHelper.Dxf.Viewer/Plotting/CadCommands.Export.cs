@@ -14,7 +14,8 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static partial class CadCommands
     {
-        private const string WritersNote = "PNGOUT, JPGOUT and BMPOUT write images, PLOT and -EXPORT write a PDF, SAVEAS writes a DXF.";
+        private const string WritersNote =
+            "PNGOUT, JPGOUT and BMPOUT write images, PLOT and -EXPORT write a PDF, SAVEAS writes a DXF.";
 
         internal static void AddExportTo(CadCommandRegistry registry)
         {
@@ -52,7 +53,10 @@ namespace GeometryHelper.Dxf.Viewer
                 while (true)
                 {
                     yield return CadPrompt.ForString("Enter file name", offered);
-                    file = c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim().Trim('"') : offered;
+                    file =
+                        c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0
+                            ? c.Input.Text.Trim().Trim('"')
+                            : offered;
 
                     if (file.IndexOfAny(Path.GetInvalidPathChars()) < 0)
                     {
@@ -69,7 +73,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                 // A name of a type's extension takes that type (the first listing it); any other has the last type's added.
                 string extension = Path.GetExtension(file);
-                string named = types.FirstOrDefault(t => CadExportJob.ExtensionsOf(t).Contains(extension, StringComparer.OrdinalIgnoreCase));
+                string named = types.FirstOrDefault(t =>
+                    CadExportJob.ExtensionsOf(t).Contains(extension, StringComparer.OrdinalIgnoreCase)
+                );
 
                 if (named != null)
                 {
@@ -117,19 +123,31 @@ namespace GeometryHelper.Dxf.Viewer
 
             // EXPORTEPLOTFORMAT: 0 PDF, 1 DWF, 2 DWFx, as AutoCAD numbers it; 2 until a format is answered.
             double kept = Kept(c.Session, "exporteplotformat", 2.0);
-            string format = kept == 0.0 ? "Pdf" : kept == 1.0 ? "Dwf" : "dwfX";
+            string format =
+                kept == 0.0 ? "Pdf"
+                : kept == 1.0 ? "Dwf"
+                : "dwfX";
             yield return CadPrompt.ForKeyword("Enter file format", formats, format).WithoutColon();
 
             if (!c.Input.IsNone)
             {
-                format = c.Input.Is("Pdf") ? "Pdf" : c.Input.Is("Dwf") ? "Dwf" : "dwfX";
+                format =
+                    c.Input.Is("Pdf") ? "Pdf"
+                    : c.Input.Is("Dwf") ? "Dwf"
+                    : "dwfX";
             }
 
-            c.Session.Remembered["exporteplotformat"] = format == "Pdf" ? 0.0 : format == "Dwf" ? 1.0 : 2.0;
+            c.Session.Remembered["exporteplotformat"] =
+                format == "Pdf" ? 0.0
+                : format == "Dwf" ? 1.0
+                : 2.0;
 
             if (format != "Pdf")
             {
-                c.Write((format == "Dwf" ? "DWF" : "DWFx") + " files have no writer in the presenter: nothing was exported. Answer Pdf for a PDF.");
+                c.Write(
+                    (format == "Dwf" ? "DWF" : "DWFx")
+                        + " files have no writer in the presenter: nothing was exported. Answer Pdf for a PDF."
+                );
                 yield break;
             }
 
@@ -139,8 +157,15 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (space.IsModel)
             {
-                yield return CadPrompt.ForKeyword("Enter plot area", new[] { "Display", "Extents", "Window" }, "Display");
-                settings.Area = c.Input.Is("Extents") ? CadPlotArea.Extents : c.Input.Is("Window") ? CadPlotArea.Window : CadPlotArea.Display;
+                yield return CadPrompt.ForKeyword(
+                    "Enter plot area",
+                    new[] { "Display", "Extents", "Window" },
+                    "Display"
+                );
+                settings.Area =
+                    c.Input.Is("Extents") ? CadPlotArea.Extents
+                    : c.Input.Is("Window") ? CadPlotArea.Window
+                    : CadPlotArea.Display;
 
                 if (settings.Area == CadPlotArea.Window)
                 {
@@ -160,16 +185,27 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     GeoPoint2 second = c.Input.Point;
-                    settings.Window = new DisplayBox(Math.Min(first.X, second.X), Math.Min(first.Y, second.Y), Math.Max(first.X, second.X), Math.Max(first.Y, second.Y));
+                    settings.Window = new DisplayBox(
+                        Math.Min(first.X, second.X),
+                        Math.Min(first.Y, second.Y),
+                        Math.Max(first.X, second.X),
+                        Math.Max(first.Y, second.Y)
+                    );
                 }
             }
             else
             {
-                yield return CadPrompt.ForKeyword("Enter plot area", new[] { "Current layout", "All layouts" }, "Current Layout");
+                yield return CadPrompt.ForKeyword(
+                    "Enter plot area",
+                    new[] { "Current layout", "All layouts" },
+                    "Current Layout"
+                );
 
                 if (c.Input.Is("All layouts"))
                 {
-                    c.Write("A PDF of all layouts has no writer in the presenter, which writes one sheet: nothing was exported. Answer Current layout.");
+                    c.Write(
+                        "A PDF of all layouts has no writer in the presenter, which writes one sheet: nothing was exported. Answer Current layout."
+                    );
                     yield break;
                 }
 
@@ -185,12 +221,22 @@ namespace GeometryHelper.Dxf.Viewer
                     yield return prompt;
                 }
 
-                yield return CadPrompt.ForKeyword("Enter paper units", new[] { "Inches", "Millimeters" }, "Millimeters");
+                yield return CadPrompt.ForKeyword(
+                    "Enter paper units",
+                    new[] { "Inches", "Millimeters" },
+                    "Millimeters"
+                );
                 bool inches = c.Input.Is("Inches");
-                yield return CadPrompt.ForKeyword("Enter drawing orientation", new[] { "Portrait", "Landscape" }, settings.Landscape ? "Landscape" : "Portrait");
+                yield return CadPrompt.ForKeyword(
+                    "Enter drawing orientation",
+                    new[] { "Portrait", "Landscape" },
+                    settings.Landscape ? "Landscape" : "Portrait"
+                );
                 settings.Landscape = c.Input.IsNone ? settings.Landscape : c.Input.Is("Landscape");
 
-                foreach (CadPrompt prompt in PlotScale(c, settings, inches ? 25.4 : 1.0, inches ? "Inches" : "Millimeters"))
+                foreach (
+                    CadPrompt prompt in PlotScale(c, settings, inches ? 25.4 : 1.0, inches ? "Inches" : "Millimeters")
+                )
                 {
                     yield return prompt;
                 }
@@ -217,7 +263,10 @@ namespace GeometryHelper.Dxf.Viewer
             else
             {
                 yield return CadPrompt.ForString("Enter file name", offered);
-                file = c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim().Trim('"') : offered;
+                file =
+                    c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0
+                        ? c.Input.Text.Trim().Trim('"')
+                        : offered;
 
                 if (!Path.IsPathRooted(file))
                 {

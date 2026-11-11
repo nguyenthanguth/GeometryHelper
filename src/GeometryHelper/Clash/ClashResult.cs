@@ -141,7 +141,9 @@ namespace GeometryHelper.Clash
         internal static ClashResult Hard(int first, int second, GeoSolid3[] overlaps, Tolerance tolerance)
         {
             double volume = 0.0;
-            double x = 0.0, y = 0.0, z = 0.0;
+            double x = 0.0,
+                y = 0.0,
+                z = 0.0;
 
             foreach (GeoSolid3 overlap in overlaps)
             {
@@ -154,7 +156,8 @@ namespace GeometryHelper.Clash
                 z += centre.Z * piece;
             }
 
-            GeoPoint3 location = volume > 0.0 ? new GeoPoint3(x / volume, y / volume, z / volume) : overlaps[0].GrossCentroid;
+            GeoPoint3 location =
+                volume > 0.0 ? new GeoPoint3(x / volume, y / volume, z / volume) : overlaps[0].GrossCentroid;
 
             return new ClashResult(first, second, ClashKind.Hard, location)
             {
@@ -167,7 +170,13 @@ namespace GeometryHelper.Clash
         /// <summary>
         /// A bar checked by its centre line running into a part: how deep, and how much of the centre line runs inside.
         /// </summary>
-        internal static ClashResult BarHard(int first, int second, GeoPoint3 location, double depth, double lengthInside)
+        internal static ClashResult BarHard(
+            int first,
+            int second,
+            GeoPoint3 location,
+            double depth,
+            double lengthInside
+        )
         {
             return new ClashResult(first, second, ClashKind.Hard, location)
             {
@@ -179,8 +188,8 @@ namespace GeometryHelper.Clash
         /// <summary>
         /// A bar checked by its centre line touching a part, the part as far from the centre line as the radius.
         /// </summary>
-        internal static ClashResult BarTouch(int first, int second, GeoPoint3 location)
-            => new ClashResult(first, second, ClashKind.Touch, location);
+        internal static ClashResult BarTouch(int first, int second, GeoPoint3 location) =>
+            new ClashResult(first, second, ClashKind.Touch, location);
 
         /// <summary>
         /// A hard clash the options take as touching, for being too shallow or too small: reported as touching, with
@@ -233,7 +242,10 @@ namespace GeometryHelper.Clash
             {
                 // A region too thin for a hull to stand on is as thin as its square box says.
                 GeoAabb3 square = region.GetAabb();
-                return Math.Min(square.Max.X - square.Min.X, Math.Min(square.Max.Y - square.Min.Y, square.Max.Z - square.Min.Z));
+                return Math.Min(
+                    square.Max.X - square.Min.X,
+                    Math.Min(square.Max.Y - square.Min.Y, square.Max.Z - square.Min.Z)
+                );
             }
         }
 
@@ -264,7 +276,9 @@ namespace GeometryHelper.Clash
         internal static ClashResult Touch(int first, int second, GeoFace3[] contact, GeoPoint3 touching)
         {
             double area = 0.0;
-            double x = 0.0, y = 0.0, z = 0.0;
+            double x = 0.0,
+                y = 0.0,
+                z = 0.0;
 
             foreach (GeoFace3 patch in contact)
             {
@@ -279,11 +293,7 @@ namespace GeometryHelper.Clash
 
             GeoPoint3 location = area > 0.0 ? new GeoPoint3(x / area, y / area, z / area) : touching;
 
-            return new ClashResult(first, second, ClashKind.Touch, location)
-            {
-                Contact = contact,
-                ContactArea = area,
-            };
+            return new ClashResult(first, second, ClashKind.Touch, location) { Contact = contact, ContactArea = area };
         }
 
         internal static ClashResult Near(int first, int second, GeoLine3 gap)
@@ -297,10 +307,7 @@ namespace GeometryHelper.Clash
 
         internal static ClashResult Unresolved(int first, int second, GeoPoint3 location, Exception error)
         {
-            return new ClashResult(first, second, ClashKind.Unresolved, location)
-            {
-                Error = error,
-            };
+            return new ClashResult(first, second, ClashKind.Unresolved, location) { Error = error };
         }
 
         /// <inheritdoc/>
@@ -310,14 +317,47 @@ namespace GeometryHelper.Clash
             {
                 case ClashKind.Hard:
                     return Overlaps.Count > 0
-                        ? string.Format(CultureInfo.InvariantCulture, "ClashResult[{0}-{1} Hard, volume {2:0.###} in {3} piece(s), {4:0.###} deep]", First, Second, Volume, Overlaps.Count, Depth)
-                        : string.Format(CultureInfo.InvariantCulture, "ClashResult[{0}-{1} Hard, {2:0.###} deep, {3:0.###} of the centre line inside]", First, Second, Depth, LengthInside);
+                        ? string.Format(
+                            CultureInfo.InvariantCulture,
+                            "ClashResult[{0}-{1} Hard, volume {2:0.###} in {3} piece(s), {4:0.###} deep]",
+                            First,
+                            Second,
+                            Volume,
+                            Overlaps.Count,
+                            Depth
+                        )
+                        : string.Format(
+                            CultureInfo.InvariantCulture,
+                            "ClashResult[{0}-{1} Hard, {2:0.###} deep, {3:0.###} of the centre line inside]",
+                            First,
+                            Second,
+                            Depth,
+                            LengthInside
+                        );
                 case ClashKind.Touch:
-                    return string.Format(CultureInfo.InvariantCulture, "ClashResult[{0}-{1} Touch, contact {2:0.###}]", First, Second, ContactArea);
+                    return string.Format(
+                        CultureInfo.InvariantCulture,
+                        "ClashResult[{0}-{1} Touch, contact {2:0.###}]",
+                        First,
+                        Second,
+                        ContactArea
+                    );
                 case ClashKind.Clearance:
-                    return string.Format(CultureInfo.InvariantCulture, "ClashResult[{0}-{1} Clearance, {2:0.###} apart]", First, Second, Distance);
+                    return string.Format(
+                        CultureInfo.InvariantCulture,
+                        "ClashResult[{0}-{1} Clearance, {2:0.###} apart]",
+                        First,
+                        Second,
+                        Distance
+                    );
                 default:
-                    return string.Format(CultureInfo.InvariantCulture, "ClashResult[{0}-{1} Unresolved: {2}]", First, Second, Error?.Message);
+                    return string.Format(
+                        CultureInfo.InvariantCulture,
+                        "ClashResult[{0}-{1} Unresolved: {2}]",
+                        First,
+                        Second,
+                        Error?.Message
+                    );
             }
         }
     }

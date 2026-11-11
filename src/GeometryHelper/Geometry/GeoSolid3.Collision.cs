@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -53,7 +53,8 @@ namespace GeometryHelper.Geometry
         /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
         /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
-        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance) => Collision3.CollidesWith(polyline, this, tolerance);
+        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Collision3.CollidesWith(polyline, this, tolerance);
 
         /// <summary>
         /// Determines whether this solid touches or overlaps a polygon.
@@ -75,7 +76,8 @@ namespace GeometryHelper.Geometry
         /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
         /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
-        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) => Collision3.CollidesWith(polygon, this, tolerance);
+        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Collision3.CollidesWith(polygon, this, tolerance);
 
         /// <summary>
         /// Determines whether this solid touches or overlaps a face.
@@ -120,7 +122,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// One body sitting wholly inside the other counts as touching, even where no two faces meet.
         /// </remarks>
-        public bool CollidesWith(GeoSolid3 other, Tolerance tolerance) => Collision3.CollidesWith(this, other, tolerance);
+        public bool CollidesWith(GeoSolid3 other, Tolerance tolerance) =>
+            Collision3.CollidesWith(this, other, tolerance);
 
         /// <summary>
         /// Determines whether this solid is reached by a ray.
@@ -153,6 +156,7 @@ namespace GeometryHelper.Geometry
         /// Checks whether this solid touches an axis-aligned box, within a tolerance.
         /// </summary>
         public bool CollidesWith(GeoAabb3 box, Tolerance tolerance) => Collision3.CollidesWith(box, this, tolerance);
+
         /// <summary>
         /// Checks whether this solid touches an arc, using the default tolerance.
         /// </summary>
@@ -183,10 +187,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="edge">The edge.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoEdge3 edge, Tolerance tolerance)
-            => edge.IsArc
-                ? CollidesWith(edge.ToArc(), tolerance)
-                : CollidesWith(edge.ToLine(), tolerance);
+        public bool CollidesWith(GeoEdge3 edge, Tolerance tolerance) =>
+            edge.IsArc ? CollidesWith(edge.ToArc(), tolerance) : CollidesWith(edge.ToLine(), tolerance);
 
         /// <summary>
         /// Checks whether this solid touches a curved chain.
@@ -199,7 +201,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="chain">The curved chain.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance) => ArcChain3.CollidesWith(chain, this, tolerance);
+        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance) =>
+            ArcChain3.CollidesWith(chain, this, tolerance);
 
         /// <summary>
         /// Checks whether this solid touches a curved loop.
@@ -212,7 +215,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="loop">The curved loop.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance) => ArcChain3.CollidesWith(loop, this, tolerance);
+        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance) =>
+            ArcChain3.CollidesWith(loop, this, tolerance);
 
         /// <summary>
         /// Checks whether this solid touches a plane: the same answer as
@@ -235,7 +239,8 @@ namespace GeometryHelper.Geometry
         /// A box 100 by 100 by 100 standing on the floor is touched by the plane z = 50 and by the plane z = 100 through
         /// its top, and missed by the plane z = 101; a body in two pieces either side of a plane does not touch it.
         /// </remarks>
-        public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance) => Collision3.CollidesWith(plane, this, tolerance);
+        public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance) =>
+            Collision3.CollidesWith(plane, this, tolerance);
 
         /// <summary>
         /// Checks whether this solid and a triangle touch: the same answer as
@@ -268,6 +273,7 @@ namespace GeometryHelper.Geometry
         /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
         /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
-        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) => Collision3.CollidesWith(triangle, this, tolerance);
+        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Collision3.CollidesWith(triangle, this, tolerance);
     }
 }

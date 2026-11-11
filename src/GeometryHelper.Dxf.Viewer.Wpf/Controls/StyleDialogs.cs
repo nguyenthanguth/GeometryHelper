@@ -38,7 +38,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 if (styles != null)
                 {
-                    new MLeaderStyleManagerWindow(styles, () => ShowTextStyle(owner, model)) { Owner = owner }.ShowDialog();
+                    new MLeaderStyleManagerWindow(styles, () => ShowTextStyle(owner, model))
+                    {
+                        Owner = owner,
+                    }.ShowDialog();
                 }
 
                 return;

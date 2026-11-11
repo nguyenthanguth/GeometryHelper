@@ -22,11 +22,27 @@ namespace GeometryHelper.Dxf
         // is annotative as its block is.
         private static readonly HashSet<string> AnnotativeEntities = new HashSet<string>(StringComparer.Ordinal)
         {
-            "TEXT", "MTEXT", "ATTRIB", "ATTDEF", "DIMENSION", "ARC_DIMENSION", "LARGE_RADIAL_DIMENSION", "LEADER", "MULTILEADER", "TOLERANCE", "HATCH",
+            "TEXT",
+            "MTEXT",
+            "ATTRIB",
+            "ATTDEF",
+            "DIMENSION",
+            "ARC_DIMENSION",
+            "LARGE_RADIAL_DIMENSION",
+            "LEADER",
+            "MULTILEADER",
+            "TOLERANCE",
+            "HATCH",
         };
 
         // The entities that keep the way up of the sheet of their own, as AutoCAD's protocol of paper orientation takes them.
-        private static readonly HashSet<string> OrientedEntities = new HashSet<string>(StringComparer.Ordinal) { "TEXT", "MTEXT", "ATTRIB", "ATTDEF" };
+        private static readonly HashSet<string> OrientedEntities = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "TEXT",
+            "MTEXT",
+            "ATTRIB",
+            "ATTDEF",
+        };
 
         /// <summary>
         /// Gets or sets whether the object is annotative, as AutoCAD's <c>Annotative</c>: drawn at the size its scale gives it on
@@ -73,31 +89,49 @@ namespace GeometryHelper.Dxf
                         // The anonymous block of a dynamic block's INSERT is annotative as the dynamic block is (check D35b).
                         var reference = (DxfBlockReference)this;
                         DxfBlockTableRecord block = reference.BlockTableRecord;
-                        bool annotative = block != null && (block.Annotative == DxfAnnotativeStates.True || reference.DynamicBlockTableRecord?.Annotative == DxfAnnotativeStates.True);
+                        bool annotative =
+                            block != null
+                            && (
+                                block.Annotative == DxfAnnotativeStates.True
+                                || reference.DynamicBlockTableRecord?.Annotative == DxfAnnotativeStates.True
+                            );
                         return annotative ? DxfAnnotativeStates.True : DxfAnnotativeStates.False;
                     case AnnotationKind.MLeaderStyle:
-                        return _item != null && _item.File.ValueOf(_item, 296)?.Trim() == "1" ? DxfAnnotativeStates.True : DxfAnnotativeStates.False;
-                    case AnnotationKind.Entity when this is DxfAttributeReference attribute && attribute.Owner is DxfBlockReference insert:
+                        return _item != null && _item.File.ValueOf(_item, 296)?.Trim() == "1"
+                            ? DxfAnnotativeStates.True
+                            : DxfAnnotativeStates.False;
+                    case AnnotationKind.Entity
+                        when this is DxfAttributeReference attribute && attribute.Owner is DxfBlockReference insert:
                         // An ATTRIB is annotative as its INSERT is, whatever its own data says (check D35b); in a block that is
                         // not, where its own data says so and it holds a context (check D35c).
-                        return insert.Annotative == DxfAnnotativeStates.True || (AnnotativeFlag() && ScaleContexts().Count > 0) ? DxfAnnotativeStates.True : DxfAnnotativeStates.False;
+                        return
+                            insert.Annotative == DxfAnnotativeStates.True
+                            || (AnnotativeFlag() && ScaleContexts().Count > 0)
+                            ? DxfAnnotativeStates.True
+                            : DxfAnnotativeStates.False;
                     default:
-                        return AnnotativeFlag() || (this is DxfMLeader mleader && mleader.EnableAnnotationScale) ? DxfAnnotativeStates.True : DxfAnnotativeStates.False;
+                        return AnnotativeFlag() || (this is DxfMLeader mleader && mleader.EnableAnnotationScale)
+                            ? DxfAnnotativeStates.True
+                            : DxfAnnotativeStates.False;
                 }
             }
-
             set
             {
                 if (value != DxfAnnotativeStates.True && value != DxfAnnotativeStates.False)
                 {
-                    throw new ArgumentException("An object is made annotative or not: " + value + " is not set.", nameof(value));
+                    throw new ArgumentException(
+                        "An object is made annotative or not: " + value + " is not set.",
+                        nameof(value)
+                    );
                 }
 
                 AnnotationKind kind = AnnotativeKind();
 
                 if (kind == AnnotationKind.None)
                 {
-                    throw new InvalidOperationException("A " + KindName() + " is never annotative, as AutoCAD answers eNotApplicable.");
+                    throw new InvalidOperationException(
+                        "A " + KindName() + " is never annotative, as AutoCAD answers eNotApplicable."
+                    );
                 }
 
                 if (value == Annotative)
@@ -107,7 +141,11 @@ namespace GeometryHelper.Dxf
 
                 if (kind == AnnotationKind.Reference || kind == AnnotationKind.Block)
                 {
-                    throw new NotSupportedException("A " + KindName() + " is not made annotative here: an INSERT is annotative as its block is, and a block's flag is not set yet.");
+                    throw new NotSupportedException(
+                        "A "
+                            + KindName()
+                            + " is not made annotative here: an INSERT is annotative as its block is, and a block's flag is not set yet."
+                    );
                 }
 
                 if (kind == AnnotationKind.MLeaderStyle)
@@ -120,16 +158,24 @@ namespace GeometryHelper.Dxf
 
                 if (value == DxfAnnotativeStates.True && kind == AnnotationKind.Entity)
                 {
-                    throw new NotSupportedException("A " + KindName() + " is not made annotative yet: AutoCAD shows it at the current scale by a context the library writes only once AutoCAD's record of it is checked on a drawing AutoCAD saved.");
+                    throw new NotSupportedException(
+                        "A "
+                            + KindName()
+                            + " is not made annotative yet: AutoCAD shows it at the current scale by a context the library writes only once AutoCAD's record of it is checked on a drawing AutoCAD saved."
+                    );
                 }
 
-                DxfFile file = InFile(value == DxfAnnotativeStates.True ? "be made annotative" : "be made not annotative");
+                DxfFile file = InFile(
+                    value == DxfAnnotativeStates.True ? "be made annotative" : "be made not annotative"
+                );
 
                 if (value == DxfAnnotativeStates.True)
                 {
                     if (!file.Supports(1021))
                     {
-                        throw new InvalidOperationException("A DXF older than R2007 (AC1021) has no annotative styles: AutoCAD 2008, which saves R2007, brought them.");
+                        throw new InvalidOperationException(
+                            "A DXF older than R2007 (AC1021) has no annotative styles: AutoCAD 2008, which saves R2007, brought them."
+                        );
                     }
 
                     XData = AnnotativeOn();
@@ -194,7 +240,13 @@ namespace GeometryHelper.Dxf
             DxfFile own = _item?.CopiedContexts != null ? _item.File.Origin : _item?.File;
 
             // An object never annotative, as a LINE, is shown at no scale, whatever records it holds (check D37).
-            if (!(context is DxfAnnotationScale scale) || scale.Item == null || _item == null || scale.Item.File != own || AnnotativeKind() == AnnotationKind.None)
+            if (
+                !(context is DxfAnnotationScale scale)
+                || scale.Item == null
+                || _item == null
+                || scale.Item.File != own
+                || AnnotativeKind() == AnnotationKind.None
+            )
             {
                 return false;
             }
@@ -210,7 +262,10 @@ namespace GeometryHelper.Dxf
             }
 
             // An INSERT of an annotative block, or an attribute of one, that holds no context is shown at 1:1 (check D35b).
-            return contexts.Count == 0 && scale.Name == "1:1" && (this is DxfBlockReference || this is DxfAttributeReference) && Annotative == DxfAnnotativeStates.True;
+            return contexts.Count == 0
+                && scale.Name == "1:1"
+                && (this is DxfBlockReference || this is DxfAttributeReference)
+                && Annotative == DxfAnnotativeStates.True;
         }
 
         /// <summary>
@@ -243,14 +298,26 @@ namespace GeometryHelper.Dxf
             // One shown at 1:1 by its block, holding no context, is shown at that scale alone.
             if (held.Count <= 1)
             {
-                throw new InvalidOperationException("The scale " + context.Name + " is the last the " + KindName() + " is shown at, which AutoCAD keeps: make it not annotative instead.");
+                throw new InvalidOperationException(
+                    "The scale "
+                        + context.Name
+                        + " is the last the "
+                        + KindName()
+                        + " is shown at, which AutoCAD keeps: make it not annotative instead."
+                );
             }
 
             ScaleContext gone = held.Find(c => string.Equals(c.Scale, handle, StringComparison.OrdinalIgnoreCase));
 
             if (gone.IsDefault)
             {
-                throw new InvalidOperationException("The context of the scale " + context.Name + " is the default of the " + KindName() + ", and the library makes no other the default in its place.");
+                throw new InvalidOperationException(
+                    "The context of the scale "
+                        + context.Name
+                        + " is the default of the "
+                        + KindName()
+                        + ", and the library makes no other the default in its place."
+                );
             }
 
             ContextDictionary().Remove(gone.Key);
@@ -279,7 +346,9 @@ namespace GeometryHelper.Dxf
                 if (AnnotativeKind() == AnnotationKind.Reference)
                 {
                     DxfBlockTableRecord block = ((DxfBlockReference)this).BlockTableRecord;
-                    return block != null && block.PaperOrientation == DxfPaperOrientationStates.True ? DxfPaperOrientationStates.True : DxfPaperOrientationStates.False;
+                    return block != null && block.PaperOrientation == DxfPaperOrientationStates.True
+                        ? DxfPaperOrientationStates.True
+                        : DxfPaperOrientationStates.False;
                 }
 
                 if (Annotative != DxfAnnotativeStates.True)
@@ -295,7 +364,9 @@ namespace GeometryHelper.Dxf
                     {
                         if (group.TypeCode == 1070)
                         {
-                            return group.Value.Trim() == "0" ? DxfPaperOrientationStates.False : DxfPaperOrientationStates.True;
+                            return group.Value.Trim() == "0"
+                                ? DxfPaperOrientationStates.False
+                                : DxfPaperOrientationStates.True;
                         }
                     }
                 }
@@ -341,15 +412,20 @@ namespace GeometryHelper.Dxf
                 case DxfBlockReference _:
                     return AnnotationKind.Reference;
                 case DxfEntity _:
-                    return _item != null && AnnotativeEntities.Contains(_item.Type) ? AnnotationKind.Entity : AnnotationKind.None;
+                    return _item != null && AnnotativeEntities.Contains(_item.Type)
+                        ? AnnotationKind.Entity
+                        : AnnotationKind.None;
                 default:
                     return AnnotationKind.None;
             }
         }
 
         /// <summary>Whether the object can keep the way up of the sheet: a TEXT, an MTEXT, an attribute, an INSERT, a text style or a block.</summary>
-        private bool Orientable()
-            => this is DxfTextStyleTableRecord || this is DxfBlockTableRecord || this is DxfBlockReference || (this is DxfEntity && _item != null && OrientedEntities.Contains(_item.Type));
+        private bool Orientable() =>
+            this is DxfTextStyleTableRecord
+            || this is DxfBlockTableRecord
+            || this is DxfBlockReference
+            || (this is DxfEntity && _item != null && OrientedEntities.Contains(_item.Type));
 
         /// <summary>The name of the object's kind for a message: its record's type, or its class.</summary>
         private string KindName() => _item?.Type ?? GetType().Name;
@@ -384,25 +460,34 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The extended data <c>AcadAnnotative</c> of an annotative style, as AutoCAD writes it.</summary>
-        private static DxfTypedValue[] AnnotativeOn() => new[]
-        {
-            new DxfTypedValue(1001, AnnotativeApplication), new DxfTypedValue(1000, AnnotativeDataName), new DxfTypedValue(1002, "{"),
-            new DxfTypedValue(1070, "1"), new DxfTypedValue(1070, "1"), new DxfTypedValue(1002, "}"),
-        };
+        private static DxfTypedValue[] AnnotativeOn() =>
+            new[]
+            {
+                new DxfTypedValue(1001, AnnotativeApplication),
+                new DxfTypedValue(1000, AnnotativeDataName),
+                new DxfTypedValue(1002, "{"),
+                new DxfTypedValue(1070, "1"),
+                new DxfTypedValue(1070, "1"),
+                new DxfTypedValue(1002, "}"),
+            };
 
         /// <summary>The dictionary ACDB_ANNOTATIONSCALES of AcDbContextDataManager of the extension dictionary; null where there is none.</summary>
-        private DxfDBDictionary ContextDictionary()
-            => ChildDictionary(ChildDictionary(ExtensionDictionary, ContextManagerName), DxfObjectContextManager.AnnotationScales);
+        private DxfDBDictionary ContextDictionary() =>
+            ChildDictionary(
+                ChildDictionary(ExtensionDictionary, ContextManagerName),
+                DxfObjectContextManager.AnnotationScales
+            );
 
-        private static DxfDBDictionary ChildDictionary(DxfDBDictionary owner, string name)
-            => owner != null && owner.Contains(name) ? owner.GetAt(name) as DxfDBDictionary : null;
+        private static DxfDBDictionary ChildDictionary(DxfDBDictionary owner, string name) =>
+            owner != null && owner.Contains(name) ? owner.GetAt(name) as DxfDBDictionary : null;
 
         /// <summary>
         /// The records of the contexts of the object's scales, each with the name of its entry, in the order of their dictionary:
         /// those a copy in no file carries of its original (<see cref="DxfItem.CopiedContexts"/>), else those of
         /// ACDB_ANNOTATIONSCALES; none where it has none.
         /// </summary>
-        private List<KeyValuePair<string, DxfItem>> ContextEntries() => _item == null ? new List<KeyValuePair<string, DxfItem>>() : ContextEntries(_item);
+        private List<KeyValuePair<string, DxfItem>> ContextEntries() =>
+            _item == null ? new List<KeyValuePair<string, DxfItem>>() : ContextEntries(_item);
 
         /// <summary>The records of the contexts of the scales of an object's record, as <see cref="ContextEntries()"/> gives them.</summary>
         private static List<KeyValuePair<string, DxfItem>> ContextEntries(DxfItem item)
@@ -415,7 +500,10 @@ namespace GeometryHelper.Dxf
             var entries = new List<KeyValuePair<string, DxfItem>>();
             string handle = item.File.ExtensionDictionaryOf(item);
             DxfItem extension = handle == null ? null : item.File.ObjectItem(handle);
-            DxfDBDictionary contexts = ChildDictionary(ChildDictionary(extension == null ? null : OfObject(extension) as DxfDBDictionary, ContextManagerName), DxfObjectContextManager.AnnotationScales);
+            DxfDBDictionary contexts = ChildDictionary(
+                ChildDictionary(extension == null ? null : OfObject(extension) as DxfDBDictionary, ContextManagerName),
+                DxfObjectContextManager.AnnotationScales
+            );
 
             if (contexts == null)
             {
@@ -558,12 +646,33 @@ namespace GeometryHelper.Dxf
 
             if (unit == null || unitIsDefault || fallback == null)
             {
-                return new ShownContexts(all, ratios, unit ?? fallback, unit == null || unitIsDefault, 1.0, unit != null ? unitRatio : fallbackRatio, unit != null ? unitRatio : fallbackRatio);
+                return new ShownContexts(
+                    all,
+                    ratios,
+                    unit ?? fallback,
+                    unit == null || unitIsDefault,
+                    1.0,
+                    unit != null ? unitRatio : fallbackRatio,
+                    unit != null ? unitRatio : fallbackRatio
+                );
             }
 
             // The record holds the height at the default's scale: at 1:1 it is that times the default's scale.
-            double factor = fallbackScale != null && ScaleOf(_item.File, fallbackScale, out _, out double ratio) && ScaleOf(_item.File, unitScale, out _, out double shown) ? ratio / shown : 1.0;
-            return new ShownContexts(all, ratios, unit, false, Guard.IsFinite(factor) && factor > 0.0 ? factor : 1.0, unitRatio, fallbackRatio);
+            double factor =
+                fallbackScale != null
+                && ScaleOf(_item.File, fallbackScale, out _, out double ratio)
+                && ScaleOf(_item.File, unitScale, out _, out double shown)
+                    ? ratio / shown
+                    : 1.0;
+            return new ShownContexts(
+                all,
+                ratios,
+                unit,
+                false,
+                Guard.IsFinite(factor) && factor > 0.0 ? factor : 1.0,
+                unitRatio,
+                fallbackRatio
+            );
         }
 
         /// <summary>
@@ -613,7 +722,15 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private protected sealed class ShownContexts
         {
-            internal ShownContexts(List<DxfItem> all, List<double> ratios, DxfItem shown, bool shownIsDefault, double heightFactor, double shownRatio, double defaultRatio)
+            internal ShownContexts(
+                List<DxfItem> all,
+                List<double> ratios,
+                DxfItem shown,
+                bool shownIsDefault,
+                double heightFactor,
+                double shownRatio,
+                double defaultRatio
+            )
             {
                 All = all;
                 Ratios = ratios;
@@ -703,7 +820,12 @@ namespace GeometryHelper.Dxf
 
                     int slot = Array.IndexOf(codes, code);
 
-                    if (slot >= 0 && context._places[slot] < 0 && Numbers.TryRead(groups[i].Value, out double value) && Guard.IsFinite(value))
+                    if (
+                        slot >= 0
+                        && context._places[slot] < 0
+                        && Numbers.TryRead(groups[i].Value, out double value)
+                        && Guard.IsFinite(value)
+                    )
                     {
                         context._places[slot] = i;
                         context._numbers[slot] = value;
@@ -746,10 +868,20 @@ namespace GeometryHelper.Dxf
 
             private void Put(int slot, double value)
             {
-                if (Has(slot) && BitConverter.DoubleToInt64Bits(value + 0.0) != BitConverter.DoubleToInt64Bits(_numbers[slot] + 0.0))
+                if (
+                    Has(slot)
+                    && BitConverter.DoubleToInt64Bits(value + 0.0)
+                        != BitConverter.DoubleToInt64Bits(_numbers[slot] + 0.0)
+                )
                 {
                     bool whole = _codes[slot] >= 60 && _codes[slot] < 100;
-                    _item.File.SetValueAt(_item, _places[slot], whole ? ((int)value).ToString(System.Globalization.CultureInfo.InvariantCulture) : Numbers.Exact(value + 0.0));
+                    _item.File.SetValueAt(
+                        _item,
+                        _places[slot],
+                        whole
+                            ? ((int)value).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                            : Numbers.Exact(value + 0.0)
+                    );
                     _numbers[slot] = value;
                 }
             }
@@ -780,7 +912,12 @@ namespace GeometryHelper.Dxf
             /// height of its box as its upright in the plane of the normal given; those of an attribute's MTEXT where embedded is
             /// true. Null for none.
             /// </summary>
-            internal static List<KeyValuePair<ContextGroups, double[]>> Moved(IReadOnlyList<DxfItem> contexts, bool embedded, GeoTransform3 transform, GeoVector3 normal)
+            internal static List<KeyValuePair<ContextGroups, double[]>> Moved(
+                IReadOnlyList<DxfItem> contexts,
+                bool embedded,
+                GeoTransform3 transform,
+                GeoVector3 normal
+            )
             {
                 if (contexts == null)
                 {
@@ -890,11 +1027,18 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private protected void CarryContextsTo(DxfDBObject copy)
         {
-            List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> held = HeldByRecords(_item, this is DxfBlockReference);
+            List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> held = HeldByRecords(
+                _item,
+                this is DxfBlockReference
+            );
 
-            foreach (KeyValuePair<int, List<KeyValuePair<string, DxfItem>>> record in held ?? new List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>>())
+            foreach (
+                KeyValuePair<int, List<KeyValuePair<string, DxfItem>>> record in held
+                    ?? new List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>>()
+            )
             {
-                (record.Key == 0 ? copy._item : copy._item.File.FollowerOf(copy._item, record.Key)).CopiedContexts = record.Value;
+                (record.Key == 0 ? copy._item : copy._item.File.FollowerOf(copy._item, record.Key)).CopiedContexts =
+                    record.Value;
             }
         }
 
@@ -903,14 +1047,20 @@ namespace GeometryHelper.Dxf
         /// is true each of its ATTRIBs', by the index of the record (0 the entity's own), in the order of the records; null where
         /// none holds any.
         /// </summary>
-        internal static List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> HeldByRecords(DxfItem item, bool attributes)
+        internal static List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> HeldByRecords(
+            DxfItem item,
+            bool attributes
+        )
         {
             List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> held = null;
             List<KeyValuePair<string, DxfItem>> own = HeldContexts(item);
 
             if (own != null)
             {
-                held = new List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> { new KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>(0, own) };
+                held = new List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>>
+                {
+                    new KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>(0, own),
+                };
             }
 
             if (!attributes)
@@ -923,11 +1073,14 @@ namespace GeometryHelper.Dxf
 
             for (int r = 1; r < count; r++)
             {
-                List<KeyValuePair<string, DxfItem>> theirs = file.RecordType(item, r) == "ATTRIB" ? HeldContexts(file.FollowerOf(item, r)) : null;
+                List<KeyValuePair<string, DxfItem>> theirs =
+                    file.RecordType(item, r) == "ATTRIB" ? HeldContexts(file.FollowerOf(item, r)) : null;
 
                 if (theirs != null)
                 {
-                    (held = held ?? new List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>>()).Add(new KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>(r, theirs));
+                    (held = held ?? new List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>>()).Add(
+                        new KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>(r, theirs)
+                    );
                 }
             }
 
@@ -966,14 +1119,19 @@ namespace GeometryHelper.Dxf
         /// was carried; nothing for none. Where the drawing is not the copy's <paramref name="origin"/>, each context points at
         /// the scale <see cref="ScalesFor"/> gives it there, and one whose scale its origin has not is left out.
         /// </summary>
-        internal static void WriteCopiedContexts(DxfItem item, List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> carried, DxfFile origin)
+        internal static void WriteCopiedContexts(
+            DxfItem item,
+            List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> carried,
+            DxfFile origin
+        )
         {
             if (carried == null)
             {
                 return;
             }
 
-            Dictionary<string, string> scaleOf = origin == null || origin == item.File ? null : ScalesFor(origin, item.File, carried);
+            Dictionary<string, string> scaleOf =
+                origin == null || origin == item.File ? null : ScalesFor(origin, item.File, carried);
 
             foreach (KeyValuePair<int, List<KeyValuePair<string, DxfItem>>> record in carried)
             {
@@ -988,8 +1146,18 @@ namespace GeometryHelper.Dxf
                 });
 
                 file.SetExtensionDictionary(owner, extension.Handle);
-                DxfItem manager = ((DxfDBDictionary)OfObject(extension)).Add(ContextManagerName, "DICTIONARY", OwnedDictionary);
-                var scales = (DxfDBDictionary)OfObject(((DxfDBDictionary)OfObject(manager)).Add(DxfObjectContextManager.AnnotationScales, "DICTIONARY", OwnedDictionary));
+                DxfItem manager = ((DxfDBDictionary)OfObject(extension)).Add(
+                    ContextManagerName,
+                    "DICTIONARY",
+                    OwnedDictionary
+                );
+                var scales = (DxfDBDictionary)OfObject(
+                    ((DxfDBDictionary)OfObject(manager)).Add(
+                        DxfObjectContextManager.AnnotationScales,
+                        "DICTIONARY",
+                        OwnedDictionary
+                    )
+                );
 
                 foreach (KeyValuePair<string, DxfItem> context in record.Value)
                 {
@@ -1005,7 +1173,14 @@ namespace GeometryHelper.Dxf
                         foreach (DxfTypedValue group in groups)
                         {
                             // The scales of the drawing it came from named as this drawing's, an embedded MTEXT's among them.
-                            b.Group(group.TypeCode, scaleOf != null && group.TypeCode == 340 && scaleOf.TryGetValue(group.Value.Trim(), out string mapped) ? mapped : group.Value);
+                            b.Group(
+                                group.TypeCode,
+                                scaleOf != null
+                                && group.TypeCode == 340
+                                && scaleOf.TryGetValue(group.Value.Trim(), out string mapped)
+                                    ? mapped
+                                    : group.Value
+                            );
                         }
                     });
                 }
@@ -1019,7 +1194,9 @@ namespace GeometryHelper.Dxf
         internal static bool HoldsScales(DxfFile file)
         {
             DxfDBDictionary root = file.Database?.NamedObjectsDictionary;
-            return root != null && file.Supports(1021) && (!root.Contains("ACAD_SCALELIST") || root.GetAt("ACAD_SCALELIST") is DxfDBDictionary);
+            return root != null
+                && file.Supports(1021)
+                && (!root.Contains("ACAD_SCALELIST") || root.GetAt("ACAD_SCALELIST") is DxfDBDictionary);
         }
 
         /// <summary>
@@ -1030,10 +1207,16 @@ namespace GeometryHelper.Dxf
         /// under its name where the list has none of it, else under the name and <c>_1</c>, <c>_2</c> and on, the first the
         /// list has not. A context whose scale the other drawing has not is given none.
         /// </summary>
-        private static Dictionary<string, string> ScalesFor(DxfFile origin, DxfFile target, List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> carried)
+        private static Dictionary<string, string> ScalesFor(
+            DxfFile origin,
+            DxfFile target,
+            List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> carried
+        )
         {
             var scaleOf = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            DxfObjectContextCollection list = target.Database.ObjectContextManager.GetContextCollection(DxfObjectContextManager.AnnotationScales);
+            DxfObjectContextCollection list = target.Database.ObjectContextManager.GetContextCollection(
+                DxfObjectContextManager.AnnotationScales
+            );
 
             foreach (KeyValuePair<int, List<KeyValuePair<string, DxfItem>>> record in carried)
             {
@@ -1059,7 +1242,12 @@ namespace GeometryHelper.Dxf
 
                     if (ours == null)
                     {
-                        ours = new DxfAnnotationScale { Name = name, PaperUnits = theirs.PaperUnits, DrawingUnits = theirs.DrawingUnits };
+                        ours = new DxfAnnotationScale
+                        {
+                            Name = name,
+                            PaperUnits = theirs.PaperUnits,
+                            DrawingUnits = theirs.DrawingUnits,
+                        };
                         list.AddContext(ours);
                     }
 

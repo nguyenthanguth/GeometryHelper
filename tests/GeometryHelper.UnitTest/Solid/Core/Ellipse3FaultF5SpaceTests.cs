@@ -14,7 +14,13 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Thousandth = Tolerance.Default;
 
-        private static readonly GeoEllipse3 Flat = new GeoEllipse3(GeoPoint3.Origin, new GeoVector3(0, 0, 1), new GeoVector3(1, 0, 0), 300, 100);
+        private static readonly GeoEllipse3 Flat = new GeoEllipse3(
+            GeoPoint3.Origin,
+            new GeoVector3(0, 0, 1),
+            new GeoVector3(1, 0, 0),
+            300,
+            100
+        );
 
         /// <summary>
         /// An ellipse 200 by 100 leaning 0.01 radians about the Y axis, the end of its major axis a height above (0, 100, 0),
@@ -26,7 +32,13 @@ namespace GeometryHelper.UnitTest.Solid
             double cosine = Math.Cos(0.01);
             var axis = new GeoVector3(cosine, 0, -sine);
 
-            return new GeoEllipse3(new GeoPoint3(0, 100, above).Subtract(axis.Multiply(200)), new GeoVector3(sine, 0, cosine), axis, 200, 100);
+            return new GeoEllipse3(
+                new GeoPoint3(0, 100, above).Subtract(axis.Multiply(200)),
+                new GeoVector3(sine, 0, cosine),
+                axis,
+                200,
+                100
+            );
         }
 
         private static void AssertOnBothRims(GeoEllipse3 one, GeoEllipse3 other, GeoPoint3 place)
@@ -83,13 +95,15 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoVector3(-0.08933003703984131, -0.6256422405582144, 0.7749786650687605),
                 new GeoVector3(0.8169067253158232, -0.4911659108808543, -0.30235649508875945),
                 143.21295162812476,
-                83.24131518468458);
+                83.24131518468458
+            );
             var two = new GeoEllipse3(
                 new GeoPoint3(-37229.71874314866, -71915.16981274236, -1706.4046278795947),
                 new GeoVector3(0.022704551494178757, -0.7499175142622664, 0.6611416074822032),
                 new GeoVector3(0.793912217324907, 0.4154468947174194, 0.4439676439245353),
                 32.805011129381604,
-                23.056648033724947);
+                23.056648033724947
+            );
 
             Assert.True(one.CollidesWith(two, Thousandth));
             Assert.True(two.CollidesWith(one, Thousandth));

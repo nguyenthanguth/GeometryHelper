@@ -66,10 +66,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         typed.Hue = hue;
                         typed.Saturation = saturation;
                         typed.Luminance = luminance;
-                        var read = new SelectColorViewModel(DxfColor.FromRgb((byte)typed.Red, (byte)typed.Green, (byte)typed.Blue), true);
+                        var read = new SelectColorViewModel(
+                            DxfColor.FromRgb((byte)typed.Red, (byte)typed.Green, (byte)typed.Blue),
+                            true
+                        );
 
                         int hueOff = Math.Abs(read.Hue - hue) % 360;
-                        Assert.True(Math.Min(hueOff, 360 - hueOff) <= 1, "hue " + hue + "," + saturation + "," + luminance + " read " + read.Hue);
+                        Assert.True(
+                            Math.Min(hueOff, 360 - hueOff) <= 1,
+                            "hue " + hue + "," + saturation + "," + luminance + " read " + read.Hue
+                        );
                         Assert.InRange(read.Saturation, saturation - 1, saturation + 1);
                         Assert.InRange(read.Luminance, luminance - 1, luminance + 1);
                     }
@@ -79,7 +85,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             // Red, green and blue read as HSL and typed back give the same colour within a step of the 0 to 255 scale.
             for (int rgb = 0; rgb < 0x1000000; rgb += 0x0F3B29)
             {
-                var read = new SelectColorViewModel(DxfColor.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb), true);
+                var read = new SelectColorViewModel(
+                    DxfColor.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb),
+                    true
+                );
                 int back = SelectColorViewModel.HslToRgb(read.Hue, read.Saturation, read.Luminance);
 
                 Assert.InRange((back >> 16) - (rgb >> 16), -3, 3);
@@ -136,7 +145,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             var other = new SelectColorViewModel(DxfColor.ByLayer, true);
             Assert.Same(dialog.HueSaturationField, other.HueSaturationField);
-            Assert.Equal(new[] { 218, 198 }, new[] { dialog.HueSaturationField.Width, dialog.HueSaturationField.Height }.Select(v => (int)v));
+            Assert.Equal(
+                new[] { 218, 198 },
+                new[] { dialog.HueSaturationField.Width, dialog.HueSaturationField.Height }.Select(v => (int)v)
+            );
         }
     }
 }

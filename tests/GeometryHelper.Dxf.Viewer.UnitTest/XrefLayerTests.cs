@@ -16,7 +16,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     /// </summary>
     public class XrefLayerTests : IDisposable
     {
-        private readonly string _folder = Path.Combine(Path.GetTempPath(), "gk", "xreflayer-" + Guid.NewGuid().ToString("N"));
+        private readonly string _folder = Path.Combine(
+            Path.GetTempPath(),
+            "gk",
+            "xreflayer-" + Guid.NewGuid().ToString("N")
+        );
 
         public XrefLayerTests()
         {
@@ -40,7 +44,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             DxfDatabase database = CadTemplate.CreateMetric();
             database.LayerTable.Add(new DxfLayerTableRecord { Name = "GRID", ColorIndex = color });
-            database.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1000, 0, 0)) { Layer = "GRID" });
+            database.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1000, 0, 0)) { Layer = "GRID" }
+            );
             string path = Path.Combine(_folder, "grid.dxf");
             database.Save(path);
             File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddMinutes(color));
@@ -56,27 +62,40 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             string grid = Grid(3);
             DxfDatabase database = CadTemplate.CreateMetric();
-            database.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), database.AttachXref(".\\grid.dxf", "grid")));
+            database.ModelSpace.AppendEntity(
+                new DxfBlockReference(new GeoPoint3(0, 0, 0), database.AttachXref(".\\grid.dxf", "grid"))
+            );
             string text = database.ToText();
             int table = text.IndexOf("  0\nTABLE\n  2\nLAYER\n", StringComparison.Ordinal);
             int end = text.IndexOf("  0\nENDTAB\n", table, StringComparison.Ordinal);
-            const string Record = "  0\nLAYER\n  5\nFFF1\n330\n2\n100\nAcDbSymbolTableRecord\n100\nAcDbLayerTableRecord\n  2\ngrid|GRID\n 70\n48\n 62\n3\n  6\nContinuous\n370\n-3\n";
+            const string Record =
+                "  0\nLAYER\n  5\nFFF1\n330\n2\n100\nAcDbSymbolTableRecord\n100\nAcDbLayerTableRecord\n  2\ngrid|GRID\n 70\n48\n 62\n3\n  6\nContinuous\n370\n-3\n";
             string path = Path.Combine(_folder, "host.dxf");
             File.WriteAllText(path, text.Insert(end, Record));
             Assert.True(File.Exists(grid));
             CadDocument document = CadDocument.Open(path);
             DxfLayerTableRecord layer = document.Database.LayerTable["grid|GRID"];
             Assert.True(layer.IsDependent);
-            layer.XData = new[] { new DxfTypedValue(1001, "AcXRefLayerPropertyOverride"), new DxfTypedValue(1071, "0") };
+            layer.XData = new[]
+            {
+                new DxfTypedValue(1001, "AcXRefLayerPropertyOverride"),
+                new DxfTypedValue(1071, "0"),
+            };
             document.Regen();
             return document;
         }
 
-        private static DisplayPolyline2 Line(CadDocument document)
-            => document.GetDisplay(document.ModelSpace).Items.OfType<DisplayPolyline2>().SingleOrDefault(p => p.Layer == "grid|GRID");
+        private static DisplayPolyline2 Line(CadDocument document) =>
+            document
+                .GetDisplay(document.ModelSpace)
+                .Items.OfType<DisplayPolyline2>()
+                .SingleOrDefault(p => p.Layer == "grid|GRID");
 
-        private static string Bits(CadDocument document)
-            => document.Database.LayerTable["grid|GRID"].GetXDataForApplication("AcXRefLayerPropertyOverride")[1].Value.Trim();
+        private static string Bits(CadDocument document) =>
+            document
+                .Database.LayerTable["grid|GRID"]
+                .GetXDataForApplication("AcXRefLayerPropertyOverride")[1]
+                .Value.Trim();
 
         /// <summary>
         /// Under VISRETAIN 1 the drawing's record gives every property, as AutoCAD 2021 kept x|WALL green (62 3, 1071 0) when

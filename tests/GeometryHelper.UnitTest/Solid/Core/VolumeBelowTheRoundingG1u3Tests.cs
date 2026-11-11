@@ -12,15 +12,28 @@ namespace GeometryHelper.UnitTest.Solid
     public class VolumeBelowTheRoundingG1u3Tests
     {
         /// <summary>The plate's length, leaning in space.</summary>
-        private static readonly GeoVector3 Along = new GeoVector3(0.46852538559841106, 0.8586705147503214, 0.207771292887825);
+        private static readonly GeoVector3 Along = new GeoVector3(
+            0.46852538559841106,
+            0.8586705147503214,
+            0.207771292887825
+        );
 
         /// <summary>The plate's width.</summary>
-        private static readonly GeoVector3 Across = new GeoVector3(0.6278105508683705, -0.48907640703675703, 0.605523063390958);
+        private static readonly GeoVector3 Across = new GeoVector3(
+            0.6278105508683705,
+            -0.48907640703675703,
+            0.605523063390958
+        );
 
         /// <summary>The plate's up.</summary>
-        private static readonly GeoVector3 Up = new GeoVector3(0.6215608379460644, -0.15326191692144078, -0.7682271210738084);
+        private static readonly GeoVector3 Up = new GeoVector3(
+            0.6215608379460644,
+            -0.15326191692144078,
+            -0.7682271210738084
+        );
 
-        private static GeoPoint3 At(double x, double y, double z) => GeoPoint3.Origin.Add(Along.Multiply(x)).Add(Across.Multiply(y)).Add(Up.Multiply(z));
+        private static GeoPoint3 At(double x, double y, double z) =>
+            GeoPoint3.Origin.Add(Along.Multiply(x)).Add(Across.Multiply(y)).Add(Up.Multiply(z));
 
         /// <summary>
         /// A plate 200 by 100 by 3 at the origin, turned about in space, with an opening 32.7 by 51 down from 7 over its top to
@@ -28,9 +41,16 @@ namespace GeometryHelper.UnitTest.Solid
         /// </summary>
         private static GeoSolid3 Plate()
         {
-            GeoSolid3 body = GeoSolid3.Extrude(new GeoPolygon3(At(0, 0, 0), At(200, 0, 0), At(200, 100, 0), At(0, 100, 0)), Up.Multiply(3), Tolerance.Default);
+            GeoSolid3 body = GeoSolid3.Extrude(
+                new GeoPolygon3(At(0, 0, 0), At(200, 0, 0), At(200, 100, 0), At(0, 100, 0)),
+                Up.Multiply(3),
+                Tolerance.Default
+            );
             GeoSolid3 opening = GeoSolid3.Extrude(
-                new GeoPolygon3(At(23.5, 16.9, 0.9), At(56.2, 16.9, 0.9), At(56.2, 67.9, 0.9), At(23.5, 67.9, 0.9)), Up.Multiply(9.1), Tolerance.Default);
+                new GeoPolygon3(At(23.5, 16.9, 0.9), At(56.2, 16.9, 0.9), At(56.2, 67.9, 0.9), At(23.5, 67.9, 0.9)),
+                Up.Multiply(9.1),
+                Tolerance.Default
+            );
 
             return body.WithOpenings(new[] { opening });
         }

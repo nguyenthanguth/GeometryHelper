@@ -47,7 +47,8 @@ namespace GeometryHelper.Drawing
             IEnumerable<DrawingElement> annotations,
             IEnumerable<DrawingEdit> edits,
             IEnumerable<DrawingPluginRun> pluginRuns,
-            IEnumerable<IReadOnlyList<DxfTypedValue>> unknownRecords = null)
+            IEnumerable<IReadOnlyList<DxfTypedValue>> unknownRecords = null
+        )
         {
             DrawingId = drawingId;
             _views = NoNulls(views, nameof(views));
@@ -97,13 +98,15 @@ namespace GeometryHelper.Drawing
                 return true;
             }
 
-            if (other == null
+            if (
+                other == null
                 || !string.Equals(DrawingId, other.DrawingId, StringComparison.Ordinal)
                 || !Same(_views, other._views)
                 || !Same(_annotations, other._annotations)
                 || !Same(_edits, other._edits)
                 || !Same(_pluginRuns, other._pluginRuns)
-                || _unknown.Length != other._unknown.Length)
+                || _unknown.Length != other._unknown.Length
+            )
             {
                 return false;
             }
@@ -141,8 +144,19 @@ namespace GeometryHelper.Drawing
 
         /// <summary>Gives the records as a line for debugging.</summary>
         /// <returns>The line, such as <c>B-101: 1 views, 2 annotations, 1 edits, 0 plugin runs, 0 unknown</c>.</returns>
-        public override string ToString()
-            => (DrawingId ?? "(no id)") + ": " + _views.Length + " views, " + _annotations.Length + " annotations, " + _edits.Length + " edits, " + _pluginRuns.Length + " plugin runs, " + _unknown.Length + " unknown";
+        public override string ToString() =>
+            (DrawingId ?? "(no id)")
+            + ": "
+            + _views.Length
+            + " views, "
+            + _annotations.Length
+            + " annotations, "
+            + _edits.Length
+            + " edits, "
+            + _pluginRuns.Length
+            + " plugin runs, "
+            + _unknown.Length
+            + " unknown";
 
         private static T[] NoNulls<T>(IEnumerable<T> items, string parameter)
             where T : class

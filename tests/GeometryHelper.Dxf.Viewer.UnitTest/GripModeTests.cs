@@ -14,7 +14,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     /// </summary>
     public class GripModeTests
     {
-        private static KeyValuePair<string, int> Grip(string handle, int index) => new KeyValuePair<string, int>(handle, index);
+        private static KeyValuePair<string, int> Grip(string handle, int index) =>
+            new KeyValuePair<string, int>(handle, index);
 
         private static CadCommandSession GripEdit(CadDocument document, params KeyValuePair<string, int>[] hot)
         {

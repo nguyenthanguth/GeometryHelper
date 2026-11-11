@@ -27,10 +27,13 @@ namespace GeometryHelper.Dxf.Viewer
         private const int PreviousLimit = 10;
 
         private readonly CadDocument _document;
-        private readonly SortedDictionary<string, CadUcs> _named = new SortedDictionary<string, CadUcs>(StringComparer.OrdinalIgnoreCase);
+        private readonly SortedDictionary<string, CadUcs> _named = new SortedDictionary<string, CadUcs>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private readonly SortedSet<string> _unread = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly List<CadUcs> _modelPrevious = new List<CadUcs>();
         private readonly List<CadUcs> _paperPrevious = new List<CadUcs>();
+
         // Whether each was changed since the drawing was opened, which a save writes; and whether any was since the last save.
         private bool _modelChanged;
         private bool _paperChanged;
@@ -57,7 +60,8 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             Model = Read(database.Ucsorg, database.Ucsxdir, database.Ucsydir, Listed(database.Ucsname)) ?? CadUcs.World;
-            Paper = Read(database.Pucsorg, database.Pucsxdir, database.Pucsydir, Listed(database.Pucsname)) ?? CadUcs.World;
+            Paper = Read(database.Pucsorg, database.Pucsxdir, database.Pucsydir, Listed(database.Pucsname))
+                ?? CadUcs.World;
         }
 
         /// <summary>Raised when a current system, a named one or the icon changes.</summary>
@@ -129,7 +133,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the named system of a name, letters of either case the same; null for none.</summary>
         /// <param name="name">The name.</param>
         /// <returns>The system.</returns>
-        public CadUcs Find(string name) => name != null && _named.TryGetValue(name.Trim(), out CadUcs found) ? found : null;
+        public CadUcs Find(string name) =>
+            name != null && _named.TryGetValue(name.Trim(), out CadUcs found) ? found : null;
 
         /// <summary>
         /// Makes a system current in the space the canvas shows, the one it replaces kept for <see cref="Previous"/>, ten at
@@ -148,7 +153,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!ucs.IsPlanar)
             {
-                throw new ArgumentException("The UCS " + ucs + " is not parallel to the view, which shows the drawing from above.", nameof(ucs));
+                throw new ArgumentException(
+                    "The UCS " + ucs + " is not parallel to the view, which shows the drawing from above.",
+                    nameof(ucs)
+                );
             }
 
             bool model = _document.WorkingSpace.IsModel;
@@ -186,7 +194,12 @@ namespace GeometryHelper.Dxf.Viewer
             CadUcs back = previous[previous.Count - 1];
             previous.RemoveAt(previous.Count - 1);
             CadUcs named = back.Name == null ? null : Find(back.Name);
-            Put(model, named != null && named.IsSameAs(back, Tolerance.Default) ? named : back.Name == null ? back : back.WithName(null));
+            Put(
+                model,
+                named != null && named.IsSameAs(back, Tolerance.Default) ? named
+                    : back.Name == null ? back
+                    : back.WithName(null)
+            );
             return true;
         }
 
@@ -258,9 +271,15 @@ namespace GeometryHelper.Dxf.Viewer
 
             string checkedName = CheckName(newName);
 
-            if (!string.Equals(checkedName, found.Name, StringComparison.OrdinalIgnoreCase) && _named.ContainsKey(checkedName))
+            if (
+                !string.Equals(checkedName, found.Name, StringComparison.OrdinalIgnoreCase)
+                && _named.ContainsKey(checkedName)
+            )
             {
-                throw new ArgumentException("There is a UCS named " + checkedName + " already, letters of either case the same.", nameof(newName));
+                throw new ArgumentException(
+                    "There is a UCS named " + checkedName + " already, letters of either case the same.",
+                    nameof(newName)
+                );
             }
 
             _named.Remove(found.Name);
@@ -292,7 +311,10 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     catch (InvalidOperationException exception)
                     {
-                        GeometryHelperLog.Warn("CadUcsManager: the UCS " + record.Name + " was kept in the drawing.", exception);
+                        GeometryHelperLog.Warn(
+                            "CadUcsManager: the UCS " + record.Name + " was kept in the drawing.",
+                            exception
+                        );
                     }
                 }
             }
@@ -309,7 +331,15 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else
                 {
-                    table.Add(new DxfUcsTableRecord { Name = ucs.Name, Origin = ucs.Origin, XAxis = ucs.XAxis, YAxis = ucs.YAxis });
+                    table.Add(
+                        new DxfUcsTableRecord
+                        {
+                            Name = ucs.Name,
+                            Origin = ucs.Origin,
+                            XAxis = ucs.XAxis,
+                            YAxis = ucs.YAxis,
+                        }
+                    );
                 }
             }
 
@@ -341,7 +371,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
             catch (ArgumentException exception)
             {
-                GeometryHelperLog.Warn("CadUcsManager: the UCS " + (name ?? "of the header") + " has no axes that make one, and is left as the drawing has it.", exception);
+                GeometryHelperLog.Warn(
+                    "CadUcsManager: the UCS "
+                        + (name ?? "of the header")
+                        + " has no axes that make one, and is left as the drawing has it.",
+                    exception
+                );
                 return null;
             }
         }
@@ -359,15 +394,29 @@ namespace GeometryHelper.Dxf.Viewer
 
             string trimmed = name.Trim();
 
-            if (trimmed.Length == 0 || trimmed.Length > 255 || trimmed.IndexOfAny("<>/\\\":;?*|=`".ToCharArray()) >= 0
-                || string.Equals(trimmed, "*WORLD*", StringComparison.OrdinalIgnoreCase))
+            if (
+                trimmed.Length == 0
+                || trimmed.Length > 255
+                || trimmed.IndexOfAny("<>/\\\":;?*|=`".ToCharArray()) >= 0
+                || string.Equals(trimmed, "*WORLD*", StringComparison.OrdinalIgnoreCase)
+            )
             {
-                throw new ArgumentException("A UCS name is up to 255 letters with none of < > / \\ \" : ; ? * | = `: '" + name + "' is not one.", nameof(name));
+                throw new ArgumentException(
+                    "A UCS name is up to 255 letters with none of < > / \\ \" : ; ? * | = `: '"
+                        + name
+                        + "' is not one.",
+                    nameof(name)
+                );
             }
 
             if (_unread.Contains(trimmed))
             {
-                throw new ArgumentException("The drawing has a UCS named " + trimmed + " the presenter could not read, which it keeps as it is.", nameof(name));
+                throw new ArgumentException(
+                    "The drawing has a UCS named "
+                        + trimmed
+                        + " the presenter could not read, which it keeps as it is.",
+                    nameof(name)
+                );
             }
 
             return trimmed;

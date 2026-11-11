@@ -1,5 +1,5 @@
-using GeometryHelper.Geometry;
 using System;
+using GeometryHelper.Geometry;
 using TSG = Tekla.Structures.Geometry3d;
 
 namespace GeometryHelper.TeklaConvert
@@ -34,7 +34,8 @@ namespace GeometryHelper.TeklaConvert
             return new GeoCoordinateSystem3(
                 system.Origin.ToGeoPoint3(),
                 system.AxisX.ToGeoVector3(),
-                system.AxisY.ToGeoVector3());
+                system.AxisY.ToGeoVector3()
+            );
         }
 
         /// <summary>
@@ -47,7 +48,8 @@ namespace GeometryHelper.TeklaConvert
             return new TSG.CoordinateSystem(
                 system.Origin.ToTeklaPoint(),
                 system.XAxis.ToTeklaVector(),
-                system.YAxis.ToTeklaVector());
+                system.YAxis.ToTeklaVector()
+            );
         }
     }
 }

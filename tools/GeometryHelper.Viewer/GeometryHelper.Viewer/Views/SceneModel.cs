@@ -161,8 +161,8 @@ namespace GeometryHelper.Viewer.Views
         /// <summary>
         /// Gets whether an item is shown: not hidden itself, and not on a hidden layer.
         /// </summary>
-        public bool IsVisible(int index)
-            => Scene != null && !_hidden.Contains(index) && !_hiddenLayers.Contains(Scene.Items[index].Layer);
+        public bool IsVisible(int index) =>
+            Scene != null && !_hidden.Contains(index) && !_hiddenLayers.Contains(Scene.Items[index].Layer);
 
         /// <summary>
         /// Shows or hides an item, apart from its layer.
@@ -265,7 +265,9 @@ namespace GeometryHelper.Viewer.Views
         /// <summary>
         /// Gets the box round the visible items.
         /// </summary>
-        public Bounds3 VisibleBounds()
-            => Primitives == null ? default(Bounds3) : BoundsOf(Enumerable.Range(0, Primitives.Items.Count).Where(IsVisible));
+        public Bounds3 VisibleBounds() =>
+            Primitives == null
+                ? default(Bounds3)
+                : BoundsOf(Enumerable.Range(0, Primitives.Items.Count).Where(IsVisible));
     }
 }

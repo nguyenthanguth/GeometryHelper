@@ -59,7 +59,10 @@ namespace GeometryHelper.Viewer.Tests
             Vec3[] ring = ArcTessellation.Circle2(rule, new Vec3(0, 0, 0), radius);
 
             Assert.False(rule.Capped);
-            Assert.True(WorstChordError(ring, new Vec3(0, 0, 0), radius) <= Tenth * (1.0 + 1E-6), "worst " + WorstChordError(ring, new Vec3(0, 0, 0), radius));
+            Assert.True(
+                WorstChordError(ring, new Vec3(0, 0, 0), radius) <= Tenth * (1.0 + 1E-6),
+                "worst " + WorstChordError(ring, new Vec3(0, 0, 0), radius)
+            );
         }
 
         [Fact]
@@ -148,7 +151,14 @@ namespace GeometryHelper.Viewer.Tests
         {
             var rule = new ChordRule(Tenth);
 
-            Vec3[] ring = ArcTessellation.Ellipse(rule, new Vec3(0, 0, 0), new Vec3(1, 0, 0), new Vec3(0, 1, 0), 400.0, 40.0);
+            Vec3[] ring = ArcTessellation.Ellipse(
+                rule,
+                new Vec3(0, 0, 0),
+                new Vec3(1, 0, 0),
+                new Vec3(0, 1, 0),
+                400.0,
+                40.0
+            );
 
             double worst = 0.0;
 
@@ -176,7 +186,12 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ABulgeOfNought_AddsNoPointsBetweenTheVertices()
         {
-            Vec3[] chain = ArcTessellation.Chain2(new ChordRule(Tenth), new[] { new Vec3(0, 0, 0), new Vec3(5, 0, 0), new Vec3(5, 5, 0) }, new[] { 0.0, 0.0, 0.0 }, true);
+            Vec3[] chain = ArcTessellation.Chain2(
+                new ChordRule(Tenth),
+                new[] { new Vec3(0, 0, 0), new Vec3(5, 0, 0), new Vec3(5, 5, 0) },
+                new[] { 0.0, 0.0, 0.0 },
+                true
+            );
 
             Assert.Equal(3, chain.Length);
         }
@@ -184,7 +199,12 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ABulgeThatIsNotANumber_IsDrawnStraight()
         {
-            Vec3[] chain = ArcTessellation.Chain2(new ChordRule(Tenth), new[] { new Vec3(0, 0, 0), new Vec3(5, 0, 0) }, new[] { double.NaN }, false);
+            Vec3[] chain = ArcTessellation.Chain2(
+                new ChordRule(Tenth),
+                new[] { new Vec3(0, 0, 0), new Vec3(5, 0, 0) },
+                new[] { double.NaN },
+                false
+            );
 
             Assert.Equal(2, chain.Length);
         }
@@ -195,7 +215,12 @@ namespace GeometryHelper.Viewer.Tests
             // A semicircle of radius 5000 on a chord 10 000 long.
             var rule = new ChordRule(Tenth);
 
-            Vec3[] chain = ArcTessellation.Chain2(rule, new[] { new Vec3(0, 0, 0), new Vec3(10000, 0, 0) }, new[] { 1.0, 0.0 }, false);
+            Vec3[] chain = ArcTessellation.Chain2(
+                rule,
+                new[] { new Vec3(0, 0, 0), new Vec3(10000, 0, 0) },
+                new[] { 1.0, 0.0 },
+                false
+            );
 
             Assert.True(chain.Length > 1000);
 

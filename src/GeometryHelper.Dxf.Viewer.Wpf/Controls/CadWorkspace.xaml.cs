@@ -43,14 +43,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     {
         /// <summary>Identifies the <see cref="TitleBarContent"/> property.</summary>
         public static readonly DependencyProperty TitleBarContentProperty = DependencyProperty.Register(
-            nameof(TitleBarContent), typeof(object), typeof(CadWorkspace), new PropertyMetadata(null));
+            nameof(TitleBarContent),
+            typeof(object),
+            typeof(CadWorkspace),
+            new PropertyMetadata(null)
+        );
 
         /// <summary>Identifies the <see cref="AppName"/> property.</summary>
         public static readonly DependencyProperty AppNameProperty = DependencyProperty.Register(
-            nameof(AppName), typeof(string), typeof(CadWorkspace), new PropertyMetadata("GeometryHelper Drawing"));
+            nameof(AppName),
+            typeof(string),
+            typeof(CadWorkspace),
+            new PropertyMetadata("GeometryHelper Drawing")
+        );
 
-        private readonly System.Windows.Threading.DispatcherTimer _autosave = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
-        private readonly System.Windows.Threading.DispatcherTimer _suggest = new System.Windows.Threading.DispatcherTimer();
+        private readonly System.Windows.Threading.DispatcherTimer _autosave =
+            new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+        private readonly System.Windows.Threading.DispatcherTimer _suggest =
+            new System.Windows.Threading.DispatcherTimer();
         private AppMenuViewModel _appMenu;
         private MainViewModel _model;
         private Point _dynamicAt;
@@ -84,14 +94,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return held;
             };
             CanvasView.ViewChanged += (s, e) => _model?.NotifyViewChangedByUser();
-            CanvasView.PixelSizeChanged += (s, e) => _model?.SetCanvasSize(CanvasView.PixelWidth, CanvasView.PixelHeight);
+            CanvasView.PixelSizeChanged += (s, e) =>
+                _model?.SetCanvasSize(CanvasView.PixelWidth, CanvasView.PixelHeight);
             CanvasView.HistoryWritten += (s, e) => _model?.RefreshHistory();
             CanvasView.SelectionChanged += (s, e) => _model?.RefreshHistory();
             CanvasView.SnapMenuRequested += (s, e) => ShowMenu(_model?.SnapOverrideMenu(), CanvasView);
 
             // Dynamic blocks: a flip grip clicked flips, a visibility or lookup grip shows its list at the grip; the right-click
             // menu of the selection offers Reset Block.
-            CanvasView.CustomGripClicked += (s, e) => ShowMenu(_model?.ClickCustomGrip(e.Handle, e.GripIndex), CanvasView);
+            CanvasView.CustomGripClicked += (s, e) =>
+                ShowMenu(_model?.ClickCustomGrip(e.Handle, e.GripIndex), CanvasView);
             CanvasView.ShortcutMenuRequested += (s, e) => ShowMenu(_model?.ShortcutMenu(), CanvasView);
 
             // Text edited in place: a double click on a text edits it; the editor follows the view; a click outside it ends it.
@@ -188,7 +200,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 Filter = "DXF drawings (*.dxf)|*.dxf",
                 Title = "Save the drawing as",
-                FileName = _model.Document.Title.EndsWith(".dxf", StringComparison.OrdinalIgnoreCase) ? _model.Document.Title : _model.Document.Title + ".dxf",
+                FileName = _model.Document.Title.EndsWith(".dxf", StringComparison.OrdinalIgnoreCase)
+                    ? _model.Document.Title
+                    : _model.Document.Title + ".dxf",
             };
 
             if (_model.Document.FileName != null && Path.IsPathRooted(_model.Document.FileName))
@@ -239,7 +253,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            var dialog = new GlobalSettingsWindow(_model.CreateGlobalSettings(category)) { Owner = Window.GetWindow(this) };
+            var dialog = new GlobalSettingsWindow(_model.CreateGlobalSettings(category))
+            {
+                Owner = Window.GetWindow(this),
+            };
             dialog.ShowDialog();
         }
 
@@ -252,7 +269,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            var dialog = new DraftingSettingsWindow(_model.CreateDraftingSettings(tab)) { Owner = Window.GetWindow(this) };
+            var dialog = new DraftingSettingsWindow(_model.CreateDraftingSettings(tab))
+            {
+                Owner = Window.GetWindow(this),
+            };
             dialog.ShowDialog();
         }
 
@@ -274,19 +294,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             ModifierKeys modifiers = Keyboard.Modifiers;
-            bool inEditor = (Keyboard.FocusedElement is TextBox box && box != CommandBox) || Keyboard.FocusedElement is CadMTextEditBox;
+            bool inEditor =
+                (Keyboard.FocusedElement is TextBox box && box != CommandBox)
+                || Keyboard.FocusedElement is CadMTextEditBox;
 
             if (!inEditor && DynamicInputKey(key))
             {
                 e.Handled = true;
             }
-            else if (modifiers == ModifierKeys.None && FileList.IsKeyboardFocusWithin && (key == Key.Enter || key == Key.Delete))
+            else if (
+                modifiers == ModifierKeys.None
+                && FileList.IsKeyboardFocusWithin
+                && (key == Key.Enter || key == Key.Delete)
+            )
             {
                 // In the DRAWINGS list Enter opens the row clicked, and Delete does nothing: it neither erases objects nor removes a file.
                 e.Handled = _model.FileListKey(key == Key.Enter ? "Enter" : "Delete");
             }
-            else if (!inEditor && _model.TableCell != null && _model.CommandText.Length == 0 && (modifiers & ~ModifierKeys.Shift) == 0
-                     && TableCellKey(key) is string cellKey && _model.TableCellKey(cellKey, modifiers == ModifierKeys.Shift))
+            else if (
+                !inEditor
+                && _model.TableCell != null
+                && _model.CommandText.Length == 0
+                && (modifiers & ~ModifierKeys.Shift) == 0
+                && TableCellKey(key) is string cellKey
+                && _model.TableCellKey(cellKey, modifiers == ModifierKeys.Shift)
+            )
             {
                 // Cells of a table selected: the arrows move them, Delete empties them, F2 opens one for typing, Esc lets them go.
                 e.Handled = true;
@@ -331,13 +363,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.Redo();
                 e.Handled = true;
             }
-            else if (modifiers == ModifierKeys.None && key == Key.Delete && !(Keyboard.FocusedElement is TextBox) && !inEditor)
+            else if (
+                modifiers == ModifierKeys.None
+                && key == Key.Delete
+                && !(Keyboard.FocusedElement is TextBox)
+                && !inEditor
+            )
             {
                 _model.EraseSelection();
                 e.Handled = true;
             }
-            else if (modifiers == ModifierKeys.None && key == Key.Tab && (Keyboard.FocusedElement == CommandBox || Keyboard.FocusedElement == CanvasView)
-                     && _model.TabDynamicInput())
+            else if (
+                modifiers == ModifierKeys.None
+                && key == Key.Tab
+                && (Keyboard.FocusedElement == CommandBox || Keyboard.FocusedElement == CanvasView)
+                && _model.TabDynamicInput()
+            )
             {
                 // Tab moves between the fields of dynamic input, locking a number typed, as in AutoCAD.
                 e.Handled = true;
@@ -347,7 +388,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 e.Handled = true;
             }
-            else if (!inEditor && (modifiers != ModifierKeys.None || (key >= Key.F1 && key <= Key.F24)) && _model.RunKey(Gesture(key, modifiers)))
+            else if (
+                !inEditor
+                && (modifiers != ModifierKeys.None || (key >= Key.F1 && key <= Key.F24))
+                && _model.RunKey(Gesture(key, modifiers))
+            )
             {
                 // A key the shortcuts give a command or a toggle (Global settings › Shortcuts), as Ctrl+1 gives PROPERTIES; Ctrl+9
                 // hides the command line, and the canvas then takes the keys typed.
@@ -367,8 +412,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // As in AutoCAD, typing with the focus on the canvas types into the command line; hidden (Ctrl+9), the text is kept
             // there all the same, and dynamic input shows it beside the cursor.
-            if (!(Keyboard.FocusedElement is TextBox) && !(Keyboard.FocusedElement is ComboBox) && !(Keyboard.FocusedElement is CadMTextEditBox) && !string.IsNullOrEmpty(e.Text)
-                && !char.IsControl(e.Text[0]) && e.Text != " " && _model != null)
+            if (
+                !(Keyboard.FocusedElement is TextBox)
+                && !(Keyboard.FocusedElement is ComboBox)
+                && !(Keyboard.FocusedElement is CadMTextEditBox)
+                && !string.IsNullOrEmpty(e.Text)
+                && !char.IsControl(e.Text[0])
+                && e.Text != " "
+                && _model != null
+            )
             {
                 _model.CommandText += e.Text;
 
@@ -398,7 +450,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             base.OnKeyDown(e);
 
-            if (_model == null || Keyboard.FocusedElement is TextBox || Keyboard.FocusedElement is ButtonBase || Keyboard.FocusedElement is CadMTextEditBox)
+            if (
+                _model == null
+                || Keyboard.FocusedElement is TextBox
+                || Keyboard.FocusedElement is ButtonBase
+                || Keyboard.FocusedElement is CadMTextEditBox
+            )
             {
                 return;
             }
@@ -424,7 +481,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 e.Handled = true;
             }
-            else if (e.Key == Key.Space && Keyboard.Modifiers == ModifierKeys.Shift && _model.Document != null && _model.Document.SelectionCycling >= 1)
+            else if (
+                e.Key == Key.Space
+                && Keyboard.Modifiers == ModifierKeys.Shift
+                && _model.Document != null
+                && _model.Document.SelectionCycling >= 1
+            )
             {
                 // Shift+Space arms selection cycling, as AutoCAD's: each click at one place then takes the next object there.
                 CanvasView.ArmCycling();
@@ -536,7 +598,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.CloseRequested += OnCloseRequested;
                 _model.DraftingSettingsRequested += OnDraftingSettingsRequested;
                 _model.StyleDialogRequested += OnStyleDialogRequested;
-                _model.AskSaveChanges = document => CadQuestionWindow.AskSave(Window.GetWindow(this), new[] { document });
+                _model.AskSaveChanges = document =>
+                    CadQuestionWindow.AskSave(Window.GetWindow(this), new[] { document });
                 _model.AskSaveAll = documents => CadQuestionWindow.AskSave(Window.GetWindow(this), documents);
                 _model.PickColor = dialog => SelectColorWindow.Pick(Window.GetWindow(this), dialog);
                 _model.ShowLinetypeManager = manager => LinetypeManagerWindow.Show(Window.GetWindow(this), manager);
@@ -544,16 +607,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowMissingShx = dialog => MissingShxWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowPointStyle = dialog => PointStyleWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowBlockDefinition = dialog => BlockDefinitionWindow.Show(Window.GetWindow(this), dialog);
-                _model.ShowInsertTable = dialog => InsertTableWindow.Show(Window.GetWindow(this), dialog, over => StyleDialogs.ShowTableStyle(over, _model));
+                _model.ShowInsertTable = dialog =>
+                    InsertTableWindow.Show(Window.GetWindow(this), dialog, over =>
+                        StyleDialogs.ShowTableStyle(over, _model)
+                    );
                 _model.TableCellChanged += OnTableCellChanged;
                 _model.ShowBlocksPalette = dialog => BlocksPaletteWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowWriteBlock = dialog => WriteBlockWindow.Show(Window.GetWindow(this), dialog);
-                _model.ShowAttributeDefinition = dialog => AttributeDefinitionWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowAttributeDefinition = dialog =>
+                    AttributeDefinitionWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowAttributeEditor = dialog => AttributeEditorWindow.Show(Window.GetWindow(this), dialog);
-                _model.ShowBlockAttributeManager = dialog => BlockAttributeManagerWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowBlockAttributeManager = dialog =>
+                    BlockAttributeManagerWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowEditAttributes = dialog => EditAttributesWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowPurge = dialog => PurgeWindow.Show(Window.GetWindow(this), dialog);
-                _model.ConfirmPurgeItem = question => CadQuestionWindow.ConfirmPurgeItem(Window.GetWindow(this), question);
+                _model.ConfirmPurgeItem = question =>
+                    CadQuestionWindow.ConfirmPurgeItem(Window.GetWindow(this), question);
                 _model.ShowGroupManager = dialog => GroupManagerWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowLayerStates = dialog => LayerStatesWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowViewManager = dialog => ViewManagerWindow.Show(Window.GetWindow(this), dialog);
@@ -563,7 +632,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.AskSaveBlockChanges = name => BlockCloseWindow.Ask(Window.GetWindow(this), name);
                 _model.ShowPasteSpecial = dialog => PasteSpecialWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowMatchPropSettings = dialog => MatchPropSettingsWindow.Show(Window.GetWindow(this), dialog);
-                _model.AskKeepMTextChanges = question => MTextUnsavedChangesWindow.Ask(Window.GetWindow(this), question);
+                _model.AskKeepMTextChanges = question =>
+                    MTextUnsavedChangesWindow.Ask(Window.GetWindow(this), question);
                 _model.InPlaceEditChanged += OnInPlaceEditChanged;
                 _model.ShowPlot = dialog => PlotWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowPlotPreview = preview => PlotPreviewWindow.Show(Window.GetWindow(this), preview);
@@ -574,7 +644,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowQuickSelect = dialog => QuickSelectWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowFindReplace = dialog => FindReplaceWindow.Show(Window.GetWindow(this), dialog);
                 MainViewModel shown = _model;
-                _model.ShowExternalReferences = palette => ExternalReferencesWindow.ShowPalette(Window.GetWindow(this), shown, palette);
+                _model.ShowExternalReferences = palette =>
+                    ExternalReferencesWindow.ShowPalette(Window.GetWindow(this), shown, palette);
                 _model.ShowAttachReference = dialog => AttachReferenceWindow.Show(Window.GetWindow(this), dialog);
                 _model.WatchReferenceFiles = true;
                 _model.ReadClipboardText = () => Clipboard.ContainsText() ? Clipboard.GetText() : null;
@@ -593,8 +664,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             // Of the type of the name offered: a PDF, or for GeometryHelper PNG and JPG an image.
             string extension = Path.GetExtension(name).ToLowerInvariant();
-            string filter = extension == ".png" ? "PNG files (*.png)|*.png" : extension == ".jpg" ? "JPEG files (*.jpg)|*.jpg" : "PDF files (*.pdf)|*.pdf";
-            var dialog = new SaveFileDialog { Filter = filter, Title = "Browse for Plot File", FileName = name, DefaultExt = extension.Length > 0 ? extension : ".pdf" };
+            string filter =
+                extension == ".png" ? "PNG files (*.png)|*.png"
+                : extension == ".jpg" ? "JPEG files (*.jpg)|*.jpg"
+                : "PDF files (*.pdf)|*.pdf";
+            var dialog = new SaveFileDialog
+            {
+                Filter = filter,
+                Title = "Browse for Plot File",
+                FileName = name,
+                DefaultExt = extension.Length > 0 ? extension : ".pdf",
+            };
 
             if (folder != null && Directory.Exists(folder))
             {
@@ -608,8 +688,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private string AskImageFile(string folder, string name)
         {
             string extension = Path.GetExtension(name).ToLowerInvariant();
-            string filter = extension == ".jpg" ? "JPEG files (*.jpg)|*.jpg" : extension == ".bmp" ? "Bitmap files (*.bmp)|*.bmp" : "PNG files (*.png)|*.png";
-            var dialog = new SaveFileDialog { Filter = filter, Title = "Create Raster File", FileName = name, DefaultExt = extension };
+            string filter =
+                extension == ".jpg" ? "JPEG files (*.jpg)|*.jpg"
+                : extension == ".bmp" ? "Bitmap files (*.bmp)|*.bmp"
+                : "PNG files (*.png)|*.png";
+            var dialog = new SaveFileDialog
+            {
+                Filter = filter,
+                Title = "Create Raster File",
+                FileName = name,
+                DefaultExt = extension,
+            };
 
             if (folder != null && Directory.Exists(folder))
             {
@@ -625,7 +714,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         private void AskExportFile(CadExportJob job)
         {
-            string Filter(string type) => type + "|" + string.Join(";", CadExportJob.ExtensionsOf(type).Select(e => "*" + e));
+            string Filter(string type) =>
+                type + "|" + string.Join(";", CadExportJob.ExtensionsOf(type).Select(e => "*" + e));
             string folder = Path.GetDirectoryName(job.FileName);
             var dialog = new SaveFileDialog
             {
@@ -652,17 +742,33 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>The printers of Windows by name, each with whether it is on the network, as the print spooler lists them.</summary>
-        private static System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, bool>> WindowsPrinters()
+        private static System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<
+            string,
+            bool
+        >> WindowsPrinters()
         {
             var printers = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, bool>>();
 
             using (var server = new System.Printing.LocalPrintServer())
             {
-                foreach (System.Printing.PrintQueue queue in server.GetPrintQueues(new[] { System.Printing.EnumeratedPrintQueueTypes.Local, System.Printing.EnumeratedPrintQueueTypes.Connections }))
+                foreach (
+                    System.Printing.PrintQueue queue in server.GetPrintQueues(
+                        new[]
+                        {
+                            System.Printing.EnumeratedPrintQueueTypes.Local,
+                            System.Printing.EnumeratedPrintQueueTypes.Connections,
+                        }
+                    )
+                )
                 {
                     using (queue)
                     {
-                        printers.Add(new System.Collections.Generic.KeyValuePair<string, bool>(queue.FullName, queue.FullName.StartsWith(@"\\", StringComparison.Ordinal)));
+                        printers.Add(
+                            new System.Collections.Generic.KeyValuePair<string, bool>(
+                                queue.FullName,
+                                queue.FullName.StartsWith(@"\\", StringComparison.Ordinal)
+                            )
+                        );
                     }
                 }
             }
@@ -676,19 +782,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnLayerManagerRequested(object sender, EventArgs e) => ShowLayerManager();
 
-        private void OnPluginLoadRequested(object sender, EventArgs e) => PluginManagerWindow.PickPlugin(Window.GetWindow(this), path => _model.LoadPlugin(path));
+        private void OnPluginLoadRequested(object sender, EventArgs e) =>
+            PluginManagerWindow.PickPlugin(Window.GetWindow(this), path => _model.LoadPlugin(path));
 
-        private void OnPluginInstallRequested(object sender, EventArgs e) => PluginManagerWindow.PickPackage(Window.GetWindow(this), path => _model.InstallPlugin(path));
+        private void OnPluginInstallRequested(object sender, EventArgs e) =>
+            PluginManagerWindow.PickPackage(Window.GetWindow(this), path => _model.InstallPlugin(path));
 
         private void OnPluginManagerRequested(object sender, EventArgs e) => ShowPluginManager();
 
         private void OnSettingsRequested(object sender, string category) => ShowGlobalSettings(category);
 
         /// <summary>DSETTINGS and the menus' settings item: Drafting Settings, after the menu or the command line is done with.</summary>
-        private void OnDraftingSettingsRequested(object sender, EventArgs e) => Dispatcher.BeginInvoke(new Action(() => ShowDraftingSettings()));
+        private void OnDraftingSettingsRequested(object sender, EventArgs e) =>
+            Dispatcher.BeginInvoke(new Action(() => ShowDraftingSettings()));
 
         /// <summary>STYLE, DIMSTYLE and the style boxes' last items: the Text Style dialog or the Dimension Style Manager, after the command or the box is done with.</summary>
-        private void OnStyleDialogRequested(object sender, string name) => Dispatcher.BeginInvoke(new Action(() => StyleDialogs.Show(Window.GetWindow(this), _model, name)));
+        private void OnStyleDialogRequested(object sender, string name) =>
+            Dispatcher.BeginInvoke(new Action(() => StyleDialogs.Show(Window.GetWindow(this), _model, name)));
 
         /// <summary>The name of a key the cells of a table take; null for any other.</summary>
         private static string TableCellKey(Key key)
@@ -728,7 +838,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             else
             {
                 ModifierKeys modifiers = Keyboard.Modifiers;
-                _model.SelectFileRow(row, (modifiers & ModifierKeys.Control) != 0, (modifiers & ModifierKeys.Shift) != 0);
+                _model.SelectFileRow(
+                    row,
+                    (modifiers & ModifierKeys.Control) != 0,
+                    (modifiers & ModifierKeys.Shift) != 0
+                );
             }
 
             e.Handled = true;
@@ -754,7 +868,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>A right click on OSNAP of the status bar: the menu of the object snaps, as its arrow gives.</summary>
         private void OnStatusToggleRightUp(object sender, MouseButtonEventArgs e)
         {
-            if (_model != null && ((FrameworkElement)sender).DataContext is StatusToggleViewModel toggle && toggle.Name == "OSNAP")
+            if (
+                _model != null
+                && ((FrameworkElement)sender).DataContext is StatusToggleViewModel toggle
+                && toggle.Name == "OSNAP"
+            )
             {
                 ShowMenu(_model.OsnapMenu(), (UIElement)sender);
                 e.Handled = true;
@@ -790,7 +908,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             var item = (MenuItem)sender;
 
-            if (item.Parent is ContextMenu menu && menu.PlacementTarget is Button arrow && arrow.Parent is Panel split && split.Children.Count > 0 && split.Children[0] is Button main)
+            if (
+                item.Parent is ContextMenu menu
+                && menu.PlacementTarget is Button arrow
+                && arrow.Parent is Panel split
+                && split.Children.Count > 0
+                && split.Children[0] is Button main
+            )
             {
                 string name = AutomationProperties.GetName(item);
                 main.Content = string.IsNullOrEmpty(name) ? item.Header : name;
@@ -801,7 +925,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Opens a menu of a view model's items at the mouse.</summary>
-        private static void ShowMenu(System.Collections.Generic.IReadOnlyList<CadMenuItemViewModel> items, UIElement target)
+        private static void ShowMenu(
+            System.Collections.Generic.IReadOnlyList<CadMenuItemViewModel> items,
+            UIElement target
+        )
         {
             if (items == null || items.Count == 0)
             {
@@ -815,7 +942,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>CLOSE typed: the drawing shown closed once the command has ended.</summary>
-        private void OnCloseRequested(object sender, EventArgs e) => Dispatcher.BeginInvoke(new Action(() => _model?.CloseDocument()));
+        private void OnCloseRequested(object sender, EventArgs e) =>
+            Dispatcher.BeginInvoke(new Action(() => _model?.CloseDocument()));
 
         /// <summary>Saves the copies of the drawings with changes once the minutes of Global settings have gone by since the last.</summary>
         private void AutosaveIfDue()
@@ -959,7 +1087,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double width = DynamicInputBox.ActualWidth;
             double height = DynamicInputBox.ActualHeight;
             const double Clear = 2.0;
-            bool Hides(Rect box, Rect field) => !field.IsEmpty && new Rect(box.X - Clear, box.Y - Clear, box.Width + 2.0 * Clear, box.Height + 2.0 * Clear).IntersectsWith(field);
+            bool Hides(Rect box, Rect field) =>
+                !field.IsEmpty
+                && new Rect(
+                    box.X - Clear,
+                    box.Y - Clear,
+                    box.Width + 2.0 * Clear,
+                    box.Height + 2.0 * Clear
+                ).IntersectsWith(field);
             var at = new Rect(left, top, width, height);
 
             if (!Hides(at, length) && !Hides(at, angle))
@@ -971,7 +1106,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double bestTop = top;
             bool flip = false;
 
-            if (!length.IsEmpty && !Hides(at, angle) && !Hides(at, _lengthOtherSide) && !_lengthOtherSide.IntersectsWith(angle))
+            if (
+                !length.IsEmpty
+                && !Hides(at, angle)
+                && !Hides(at, _lengthOtherSide)
+                && !_lengthOtherSide.IntersectsWith(angle)
+            )
             {
                 least = (_lengthOtherSide.TopLeft - length.TopLeft).Length;
                 flip = true;
@@ -988,7 +1128,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     var moved = new Rect(left, y, width, height);
 
-                    if (y >= 0.0 && y + height <= CanvasView.ActualHeight && !Hides(moved, length) && !Hides(moved, angle) && Math.Abs(y - top) < least)
+                    if (
+                        y >= 0.0
+                        && y + height <= CanvasView.ActualHeight
+                        && !Hides(moved, length)
+                        && !Hides(moved, angle)
+                        && Math.Abs(y - top) < least
+                    )
                     {
                         least = Math.Abs(y - top);
                         bestTop = y;
@@ -1007,7 +1153,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private static Rect Placed(FrameworkElement field) => new Rect(Canvas.GetLeft(field), Canvas.GetTop(field), field.ActualWidth, field.ActualHeight);
+        private static Rect Placed(FrameworkElement field) =>
+            new Rect(Canvas.GetLeft(field), Canvas.GetTop(field), field.ActualWidth, field.ActualHeight);
 
         /// <summary>A number typed into a field of dynamic input, or locked by Tab: the dimensions and the preview are drawn again at the point it holds.</summary>
         private void HoldAgain()
@@ -1024,8 +1171,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             double left = Canvas.GetLeft(DynamicInputBox);
             double top = Canvas.GetTop(DynamicInputBox);
-            Canvas.SetLeft(DynamicInputBox, Math.Max(0.0, Math.Min(left, CanvasView.ActualWidth - DynamicInputBox.ActualWidth)));
-            Canvas.SetTop(DynamicInputBox, Math.Max(0.0, Math.Min(top, CanvasView.ActualHeight - DynamicInputBox.ActualHeight)));
+            Canvas.SetLeft(
+                DynamicInputBox,
+                Math.Max(0.0, Math.Min(left, CanvasView.ActualWidth - DynamicInputBox.ActualWidth))
+            );
+            Canvas.SetTop(
+                DynamicInputBox,
+                Math.Max(0.0, Math.Min(top, CanvasView.ActualHeight - DynamicInputBox.ActualHeight))
+            );
         }
 
         /// <summary>Where a field goes off a point of the rubber band towards one side, its nearest edge the gap from the point.</summary>
@@ -1034,7 +1187,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             field.UpdateLayout();
             double reach = (Math.Abs(side.X) * field.ActualWidth + Math.Abs(side.Y) * field.ActualHeight) / 2.0;
             Point centre = at + side * (gap + reach);
-            return new Rect(centre.X - field.ActualWidth / 2.0, centre.Y - field.ActualHeight / 2.0, field.ActualWidth, field.ActualHeight);
+            return new Rect(
+                centre.X - field.ActualWidth / 2.0,
+                centre.Y - field.ActualHeight / 2.0,
+                field.ActualWidth,
+                field.ActualHeight
+            );
         }
 
         private static void Put(FrameworkElement field, Rect at)
@@ -1061,7 +1219,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>Whether dynamic input took the key.</returns>
         private bool DynamicInputKey(Key key)
         {
-            if (Keyboard.Modifiers != ModifierKeys.None || !(Keyboard.FocusedElement == CommandBox || Keyboard.FocusedElement == CanvasView))
+            if (
+                Keyboard.Modifiers != ModifierKeys.None
+                || !(Keyboard.FocusedElement == CommandBox || Keyboard.FocusedElement == CanvasView)
+            )
             {
                 return false;
             }
@@ -1090,7 +1251,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
-            if ((key == Key.Up || key == Key.Down) && _model.IsSuggestionListAtCursor && Keyboard.FocusedElement == CanvasView)
+            if (
+                (key == Key.Up || key == Key.Down)
+                && _model.IsSuggestionListAtCursor
+                && Keyboard.FocusedElement == CanvasView
+            )
             {
                 _model.MoveSuggestion(key == Key.Down ? 1 : -1);
                 return true;
@@ -1102,11 +1267,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The key pressed as the shortcuts write it: Ctrl+1, Ctrl+Shift+P, F3.</summary>
         private static string Gesture(Key key, ModifierKeys modifiers)
         {
-            string name = key >= Key.D0 && key <= Key.D9 ? ((int)(key - Key.D0)).ToString(System.Globalization.CultureInfo.InvariantCulture)
-                : key >= Key.NumPad0 && key <= Key.NumPad9 ? ((int)(key - Key.NumPad0)).ToString(System.Globalization.CultureInfo.InvariantCulture)
+            string name =
+                key >= Key.D0 && key <= Key.D9
+                    ? ((int)(key - Key.D0)).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                : key >= Key.NumPad0 && key <= Key.NumPad9
+                    ? ((int)(key - Key.NumPad0)).ToString(System.Globalization.CultureInfo.InvariantCulture)
                 : key.ToString();
-            return ((modifiers & ModifierKeys.Control) != 0 ? "Ctrl+" : string.Empty) + ((modifiers & ModifierKeys.Alt) != 0 ? "Alt+" : string.Empty)
-                + ((modifiers & ModifierKeys.Shift) != 0 ? "Shift+" : string.Empty) + name;
+            return ((modifiers & ModifierKeys.Control) != 0 ? "Ctrl+" : string.Empty)
+                + ((modifiers & ModifierKeys.Alt) != 0 ? "Alt+" : string.Empty)
+                + ((modifiers & ModifierKeys.Shift) != 0 ? "Shift+" : string.Empty)
+                + name;
         }
 
         private void OnCommandKeyDown(object sender, KeyEventArgs e)
@@ -1176,20 +1346,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case nameof(MainViewModel.IsSuggestionListAtCursor):
                 case nameof(MainViewModel.IsDynamicInputMenuOpen):
                     // The box opened, or the list or the menu under it: placed again once laid out, so that it stays on the canvas.
-                    Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        DynamicInputLayer.UpdateLayout();
-                        bool frozen = _model != null && (_model.IsSuggestionListAtCursor || _model.IsDynamicInputMenuOpen);
+                    Dispatcher.BeginInvoke(
+                        new Action(() =>
+                        {
+                            DynamicInputLayer.UpdateLayout();
+                            bool frozen =
+                                _model != null && (_model.IsSuggestionListAtCursor || _model.IsDynamicInputMenuOpen);
 
-                        if (frozen && Canvas.GetLeft(DynamicInputBox) is double left && !double.IsNaN(left))
-                        {
-                            KeepOnCanvas();
-                        }
-                        else
-                        {
-                            PlaceDynamicInput(_dynamicAt.X, _dynamicAt.Y);
-                        }
-                    }), System.Windows.Threading.DispatcherPriority.Loaded);
+                            if (frozen && Canvas.GetLeft(DynamicInputBox) is double left && !double.IsNaN(left))
+                            {
+                                KeepOnCanvas();
+                            }
+                            else
+                            {
+                                PlaceDynamicInput(_dynamicAt.X, _dynamicAt.Y);
+                            }
+                        }),
+                        System.Windows.Threading.DispatcherPriority.Loaded
+                    );
                     return;
                 case nameof(MainViewModel.ShowLineWeights):
                     // The drawing shown draws its own LWDISPLAY.
@@ -1237,7 +1411,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private static T FindChild<T>(DependencyObject parent) where T : DependencyObject
+        private static T FindChild<T>(DependencyObject parent)
+            where T : DependencyObject
         {
             for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
             {
@@ -1288,7 +1463,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnAppMenuChosen(object sender, EventArgs e) => AppMenuPopup.IsOpen = false;
 
-        private void OnAppMenuExit(object sender, EventArgs e) => Dispatcher.BeginInvoke(new Action(() => Window.GetWindow(this)?.Close()));
+        private void OnAppMenuExit(object sender, EventArgs e) =>
+            Dispatcher.BeginInvoke(new Action(() => Window.GetWindow(this)?.Close()));
 
         private void OnAppMenuClosed(object sender, EventArgs e)
         {
@@ -1357,7 +1533,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The edit box losing the keyboard to another part of the window ends the edit with its words, as a click outside it does.</summary>
         private void OnInPlaceLostFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
-            if (_model != null && _model.IsTextEditShown && InPlaceTextBox.IsVisible && !InPlaceTextBox.IsKeyboardFocusWithin && e.NewFocus is UIElement)
+            if (
+                _model != null
+                && _model.IsTextEditShown
+                && InPlaceTextBox.IsVisible
+                && !InPlaceTextBox.IsKeyboardFocusWithin
+                && e.NewFocus is UIElement
+            )
             {
                 _model.CommitInPlace(InPlaceTextBox.Text);
             }
@@ -1438,7 +1620,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 rgb = ((rgb >> 16) & 0xFF) + ((rgb >> 8) & 0xFF) + (rgb & 0xFF) < 60 ? 0xFFFFFF : rgb;
                 InPlaceTextBox.FontFamily = new System.Windows.Media.FontFamily(family);
                 InPlaceTextBox.FontSize = size;
-                InPlaceTextBox.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb));
+                InPlaceTextBox.Foreground = new System.Windows.Media.SolidColorBrush(
+                    System.Windows.Media.Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb)
+                );
                 InPlaceTextBox.MinWidth = Math.Max(40.0, size * 3.0);
 
                 // The box's baseline on the text's: the font's ascent and the box's padding and border above it.

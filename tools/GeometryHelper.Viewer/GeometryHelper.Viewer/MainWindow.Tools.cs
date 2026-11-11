@@ -117,7 +117,9 @@ namespace GeometryHelper.Viewer
         {
             switch (action)
             {
-                case "SetRotationCentre": Arm(PickMode.RotationCentre); break;
+                case "SetRotationCentre":
+                    Arm(PickMode.RotationCentre);
+                    break;
 
                 case "ClearRotationCentre":
                     _rotationCentre = null;
@@ -137,13 +139,27 @@ namespace GeometryHelper.Viewer
 
                     break;
 
-                case "MeasureAngle": Arm(PickMode.Angle); break;
-                case "MeasureRadius": Arm(PickMode.Radius); break;
-                case "SnapEnd": ToggleSnap(SnapKinds.End, "end"); break;
-                case "SnapMid": ToggleSnap(SnapKinds.Mid, "mid"); break;
-                case "SnapIntersection": ToggleSnap(SnapKinds.Intersection, "intersection"); break;
-                case "SnapCentre": ToggleSnap(SnapKinds.Centre, "centre"); break;
-                case "SnapNearest": ToggleSnap(SnapKinds.Nearest, "nearest"); break;
+                case "MeasureAngle":
+                    Arm(PickMode.Angle);
+                    break;
+                case "MeasureRadius":
+                    Arm(PickMode.Radius);
+                    break;
+                case "SnapEnd":
+                    ToggleSnap(SnapKinds.End, "end");
+                    break;
+                case "SnapMid":
+                    ToggleSnap(SnapKinds.Mid, "mid");
+                    break;
+                case "SnapIntersection":
+                    ToggleSnap(SnapKinds.Intersection, "intersection");
+                    break;
+                case "SnapCentre":
+                    ToggleSnap(SnapKinds.Centre, "centre");
+                    break;
+                case "SnapNearest":
+                    ToggleSnap(SnapKinds.Nearest, "nearest");
+                    break;
             }
         }
 
@@ -167,15 +183,28 @@ namespace GeometryHelper.Viewer
         {
             switch (_pickMode)
             {
-                case PickMode.RotationCentre: return "rotation centre: click the point to turn about";
-                case PickMode.Distance: return _picked.Count == 0 ? "distance: click the first point" : "distance: click the second point";
-                case PickMode.Angle: return _picked.Count == 0 ? "angle: click a point on the first leg" : _picked.Count == 1 ? "angle: click the vertex" : "angle: click a point on the second leg";
-                case PickMode.Radius: return "radius: click an arc or a circle";
-                case PickMode.WorkPlaneThreePoints: return _picked.Count == 0 ? "work plane: click the origin" : _picked.Count == 1 ? "work plane: click a point along the x axis" : "work plane: click a point in the plane, on the side the y axis points to";
-                case PickMode.WorkPlaneFace: return "work plane: click a face";
-                case PickMode.ClipPoint: return "clip plane: click a point; the plane goes through it square to the view and cuts away what is nearer the eye";
-                case PickMode.ClipFace: return "clip plane: click a face; the plane lies on it and cuts away what is in front of it";
-                default: return string.Empty;
+                case PickMode.RotationCentre:
+                    return "rotation centre: click the point to turn about";
+                case PickMode.Distance:
+                    return _picked.Count == 0 ? "distance: click the first point" : "distance: click the second point";
+                case PickMode.Angle:
+                    return _picked.Count == 0 ? "angle: click a point on the first leg"
+                        : _picked.Count == 1 ? "angle: click the vertex"
+                        : "angle: click a point on the second leg";
+                case PickMode.Radius:
+                    return "radius: click an arc or a circle";
+                case PickMode.WorkPlaneThreePoints:
+                    return _picked.Count == 0 ? "work plane: click the origin"
+                        : _picked.Count == 1 ? "work plane: click a point along the x axis"
+                        : "work plane: click a point in the plane, on the side the y axis points to";
+                case PickMode.WorkPlaneFace:
+                    return "work plane: click a face";
+                case PickMode.ClipPoint:
+                    return "clip plane: click a point; the plane goes through it square to the view and cuts away what is nearer the eye";
+                case PickMode.ClipFace:
+                    return "clip plane: click a face; the plane lies on it and cuts away what is in front of it";
+                default:
+                    return string.Empty;
             }
         }
 
@@ -185,7 +214,13 @@ namespace GeometryHelper.Viewer
             UpdateSnapsText();
             SetMessage("snap to " + name + ": " + ((_snaps & kind) != 0 ? "on" : "off"));
 
-            if (!_snaps.HasFlag(SnapKinds.End) && !_snaps.HasFlag(SnapKinds.Mid) && !_snaps.HasFlag(SnapKinds.Intersection) && !_snaps.HasFlag(SnapKinds.Centre) && !_snaps.HasFlag(SnapKinds.Nearest))
+            if (
+                !_snaps.HasFlag(SnapKinds.End)
+                && !_snaps.HasFlag(SnapKinds.Mid)
+                && !_snaps.HasFlag(SnapKinds.Intersection)
+                && !_snaps.HasFlag(SnapKinds.Centre)
+                && !_snaps.HasFlag(SnapKinds.Nearest)
+            )
             {
                 _overlay.SetSnap(null, SnapKinds.None);
                 SnapText.Text = "snap: none";
@@ -197,7 +232,12 @@ namespace GeometryHelper.Viewer
             if (sender is MenuItem item && item.Tag is string action)
             {
                 bool wanted = item.IsChecked;
-                SnapKinds kind = action == "SnapEnd" ? SnapKinds.End : action == "SnapMid" ? SnapKinds.Mid : action == "SnapIntersection" ? SnapKinds.Intersection : action == "SnapCentre" ? SnapKinds.Centre : SnapKinds.Nearest;
+                SnapKinds kind =
+                    action == "SnapEnd" ? SnapKinds.End
+                    : action == "SnapMid" ? SnapKinds.Mid
+                    : action == "SnapIntersection" ? SnapKinds.Intersection
+                    : action == "SnapCentre" ? SnapKinds.Centre
+                    : SnapKinds.Nearest;
 
                 if (((_snaps & kind) != 0) != wanted)
                 {
@@ -208,12 +248,15 @@ namespace GeometryHelper.Viewer
 
         private void UpdateSnapsText()
         {
-            SnapsText.Text = "snaps " + string.Concat(
-                (_snaps & SnapKinds.End) != 0 ? "E" : "-",
-                (_snaps & SnapKinds.Mid) != 0 ? "M" : "-",
-                (_snaps & SnapKinds.Intersection) != 0 ? "I" : "-",
-                (_snaps & SnapKinds.Centre) != 0 ? "C" : "-",
-                (_snaps & SnapKinds.Nearest) != 0 ? "N" : "-");
+            SnapsText.Text =
+                "snaps "
+                + string.Concat(
+                    (_snaps & SnapKinds.End) != 0 ? "E" : "-",
+                    (_snaps & SnapKinds.Mid) != 0 ? "M" : "-",
+                    (_snaps & SnapKinds.Intersection) != 0 ? "I" : "-",
+                    (_snaps & SnapKinds.Centre) != 0 ? "C" : "-",
+                    (_snaps & SnapKinds.Nearest) != 0 ? "N" : "-"
+                );
             SnapEndMenu.IsChecked = (_snaps & SnapKinds.End) != 0;
             SnapMidMenu.IsChecked = (_snaps & SnapKinds.Mid) != 0;
             SnapIntersectionMenu.IsChecked = (_snaps & SnapKinds.Intersection) != 0;
@@ -280,7 +323,19 @@ namespace GeometryHelper.Viewer
                 }
 
                 // A point to turn about, found on nothing, is on the plane through the target square to the view, not on the work plane (the plane z = 0 where none is set).
-                ResolvedPoint point = PickEngine.ResolvePoint(_model.Primitives, _geometry, map, p.X, p.Y, _snaps, scene.EqualPoint, _model.IsVisible, Surfaces, _pickMode != PickMode.RotationCentre, _workPlane);
+                ResolvedPoint point = PickEngine.ResolvePoint(
+                    _model.Primitives,
+                    _geometry,
+                    map,
+                    p.X,
+                    p.Y,
+                    _snaps,
+                    scene.EqualPoint,
+                    _model.IsVisible,
+                    Surfaces,
+                    _pickMode != PickMode.RotationCentre,
+                    _workPlane
+                );
 
                 if (_pickMode == PickMode.ClipPoint)
                 {
@@ -412,7 +467,16 @@ namespace GeometryHelper.Viewer
                 Log(line);
             }
 
-            SetMessage(result.Kind + " " + (result.Kind == "angle" ? result.Value * 180.0 / Math.PI : result.Value).ToString("G6", CultureInfo.InvariantCulture) + "; " + Prompt());
+            SetMessage(
+                result.Kind
+                    + " "
+                    + (result.Kind == "angle" ? result.Value * 180.0 / Math.PI : result.Value).ToString(
+                        "G6",
+                        CultureInfo.InvariantCulture
+                    )
+                    + "; "
+                    + Prompt()
+            );
         }
 
         private void ShowPending()
@@ -442,7 +506,10 @@ namespace GeometryHelper.Viewer
 
             if (_probeTimer == null)
             {
-                _probeTimer = new DispatcherTimer(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(25) };
+                _probeTimer = new DispatcherTimer(DispatcherPriority.Input)
+                {
+                    Interval = TimeSpan.FromMilliseconds(25),
+                };
                 _probeTimer.Tick += (s, e) =>
                 {
                     _probeTimer.Stop();
@@ -468,12 +535,29 @@ namespace GeometryHelper.Viewer
                 ScreenMap map = MapOf(pane);
                 // A scene with very many curves is not searched for its lines at every move of the mouse unless a tool is waiting for a point.
                 bool curves = _pickMode != PickMode.None || _geometry.Curves.Count <= IdleSnapCurves;
-                PickHit hit = PickEngine.Pick(_model.Primitives, curves ? _geometry : null, map, p.X, p.Y, _model.IsVisible, pane.Mode != RenderMode.Wireframe);
+                PickHit hit = PickEngine.Pick(
+                    _model.Primitives,
+                    curves ? _geometry : null,
+                    map,
+                    p.X,
+                    p.Y,
+                    _model.IsVisible,
+                    pane.Mode != RenderMode.Wireframe
+                );
                 _model.SetHover(hit == null ? -1 : hit.ItemIndex);
 
                 bool look = _snaps != SnapKinds.None && curves;
                 SnapHit snap = look
-                    ? SnapEngine.Find(_geometry, map, p.X, p.Y, _snaps, SnapEngine.DefaultRadius, _model.Scene.EqualPoint, _model.IsVisible)
+                    ? SnapEngine.Find(
+                        _geometry,
+                        map,
+                        p.X,
+                        p.Y,
+                        _snaps,
+                        SnapEngine.DefaultRadius,
+                        _model.Scene.EqualPoint,
+                        _model.IsVisible
+                    )
                     : null;
 
                 if (snap == null)
@@ -484,8 +568,17 @@ namespace GeometryHelper.Viewer
                 }
 
                 _overlay.SetSnap(snap.Point, snap.Kind);
-                string format = "F" + RenderSpace.DecimalsFor(map.PixelSizeAt(snap.Point)).ToString(CultureInfo.InvariantCulture);
-                SnapText.Text = "snap: " + snap.Name + " " + snap.Point.X.ToString(format, CultureInfo.InvariantCulture) + ", " + snap.Point.Y.ToString(format, CultureInfo.InvariantCulture) + ", " + snap.Point.Z.ToString(format, CultureInfo.InvariantCulture);
+                string format =
+                    "F" + RenderSpace.DecimalsFor(map.PixelSizeAt(snap.Point)).ToString(CultureInfo.InvariantCulture);
+                SnapText.Text =
+                    "snap: "
+                    + snap.Name
+                    + " "
+                    + snap.Point.X.ToString(format, CultureInfo.InvariantCulture)
+                    + ", "
+                    + snap.Point.Y.ToString(format, CultureInfo.InvariantCulture)
+                    + ", "
+                    + snap.Point.Z.ToString(format, CultureInfo.InvariantCulture);
             }
             catch (Exception e) when (!(e is OutOfMemoryException))
             {
@@ -516,8 +609,12 @@ namespace GeometryHelper.Viewer
             // The band is drawn over the view the drag began in, which is the active one: the view is activated when the button goes down.
             Rectangle band = Active.Band;
             bool window = BoxSelect.ModeOf(start.X, now.X) == BoxMode.Window;
-            band.Stroke = window ? new SolidColorBrush(Color.FromRgb(0x1F, 0x4F, 0xD8)) : new SolidColorBrush(Color.FromRgb(0x1B, 0x8E, 0x3C));
-            band.Fill = window ? new SolidColorBrush(Color.FromArgb(0x28, 0x1F, 0x4F, 0xD8)) : new SolidColorBrush(Color.FromArgb(0x28, 0x1B, 0x8E, 0x3C));
+            band.Stroke = window
+                ? new SolidColorBrush(Color.FromRgb(0x1F, 0x4F, 0xD8))
+                : new SolidColorBrush(Color.FromRgb(0x1B, 0x8E, 0x3C));
+            band.Fill = window
+                ? new SolidColorBrush(Color.FromArgb(0x28, 0x1F, 0x4F, 0xD8))
+                : new SolidColorBrush(Color.FromArgb(0x28, 0x1B, 0x8E, 0x3C));
             band.StrokeDashArray = window ? new DoubleCollection() : new DoubleCollection { 5.0, 3.0 };
             Canvas.SetLeft(band, Math.Min(start.X, now.X));
             Canvas.SetTop(band, Math.Min(start.Y, now.Y));
@@ -540,7 +637,16 @@ namespace GeometryHelper.Viewer
             }
 
             BoxMode mode = BoxSelect.ModeOf(start.X, end.X);
-            List<int> inside = BoxSelect.Select(_model.Primitives, MakeMap(), start.X, start.Y, end.X, end.Y, mode, _model.IsVisible);
+            List<int> inside = BoxSelect.Select(
+                _model.Primitives,
+                MakeMap(),
+                start.X,
+                start.Y,
+                end.X,
+                end.Y,
+                mode,
+                _model.IsVisible
+            );
             var selection = new HashSet<int>(_model.Selected);
 
             if ((modifiers & ModifierKeys.Shift) != 0)
@@ -594,17 +700,34 @@ namespace GeometryHelper.Viewer
                 {
                     if (words[at].StartsWith("@", StringComparison.Ordinal))
                     {
-                        double[] c = words[at++].Substring(1).Split(',').Select(w => double.Parse(w, CultureInfo.InvariantCulture)).ToArray();
+                        double[] c = words[at++]
+                            .Substring(1)
+                            .Split(',')
+                            .Select(w => double.Parse(w, CultureInfo.InvariantCulture))
+                            .ToArray();
 
-                        if (!MakeMap().TryProject(new Vec3(c[0], c[1], c.Length > 2 ? c[2] : 0.0), out double px, out double py, out _))
+                        if (
+                            !MakeMap()
+                                .TryProject(
+                                    new Vec3(c[0], c[1], c.Length > 2 ? c[2] : 0.0),
+                                    out double px,
+                                    out double py,
+                                    out _
+                                )
+                        )
                         {
-                            throw new InvalidOperationException("the point " + words[at - 1] + " is not in the picture");
+                            throw new InvalidOperationException(
+                                "the point " + words[at - 1] + " is not in the picture"
+                            );
                         }
 
                         return new Point(px, py);
                     }
 
-                    var p = new Point(double.Parse(words[at], CultureInfo.InvariantCulture), double.Parse(words[at + 1], CultureInfo.InvariantCulture));
+                    var p = new Point(
+                        double.Parse(words[at], CultureInfo.InvariantCulture),
+                        double.Parse(words[at + 1], CultureInfo.InvariantCulture)
+                    );
                     at += 2;
                     return p;
                 }
@@ -625,7 +748,13 @@ namespace GeometryHelper.Viewer
                         Point from = Place();
                         Point to = Place();
                         string how = at < words.Length ? words[at] : string.Empty;
-                        ApplyBox(from, to, how == "add" ? ModifierKeys.Shift : how == "toggle" ? ModifierKeys.Control : ModifierKeys.None);
+                        ApplyBox(
+                            from,
+                            to,
+                            how == "add" ? ModifierKeys.Shift
+                                : how == "toggle" ? ModifierKeys.Control
+                                : ModifierKeys.None
+                        );
                         break;
                     }
 
@@ -637,7 +766,12 @@ namespace GeometryHelper.Viewer
                     }
 
                     case "mode":
-                        Execute(words[1].ToLowerInvariant() == "distance" ? "MeasureDistance" : words[1].ToLowerInvariant() == "angle" ? "MeasureAngle" : words[1].ToLowerInvariant() == "radius" ? "MeasureRadius" : "SetRotationCentre");
+                        Execute(
+                            words[1].ToLowerInvariant() == "distance" ? "MeasureDistance"
+                            : words[1].ToLowerInvariant() == "angle" ? "MeasureAngle"
+                            : words[1].ToLowerInvariant() == "radius" ? "MeasureRadius"
+                            : "SetRotationCentre"
+                        );
                         break;
 
                     case "click":
@@ -649,7 +783,15 @@ namespace GeometryHelper.Viewer
                         break;
 
                     case "labelpx":
-                        Log("label heights in pixels: " + string.Join(", ", Active.View.LabelHeights().Select(h => h.ToString("F1", CultureInfo.InvariantCulture))));
+                        Log(
+                            "label heights in pixels: "
+                                + string.Join(
+                                    ", ",
+                                    Active
+                                        .View.LabelHeights()
+                                        .Select(h => h.ToString("F1", CultureInfo.InvariantCulture))
+                                )
+                        );
                         break;
 
                     case "wait":
@@ -678,12 +820,25 @@ namespace GeometryHelper.Viewer
                             }
                         }
 
-                        await RunDiagnosticsAsync(named == DiagnosticChecks.None ? (DiagnosticChecks?)null : named, own);
+                        await RunDiagnosticsAsync(
+                            named == DiagnosticChecks.None ? (DiagnosticChecks?)null : named,
+                            own
+                        );
                         break;
                     }
 
                     case "diagshow":
-                        if (_diagReport != null && int.TryParse(words[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) && number >= 1 && number <= _diagReport.Findings.Count)
+                        if (
+                            _diagReport != null
+                            && int.TryParse(
+                                words[1],
+                                NumberStyles.Integer,
+                                CultureInfo.InvariantCulture,
+                                out int number
+                            )
+                            && number >= 1
+                            && number <= _diagReport.Findings.Count
+                        )
                         {
                             // The row is chosen as a click chooses it, quietly, and the finding is then done as the click does it.
                             _syncingDiag = true;
@@ -746,11 +901,19 @@ namespace GeometryHelper.Viewer
                         }
 
                         UpdateLayout();
-                        var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap((int)Math.Ceiling(ActualWidth), (int)Math.Ceiling(ActualHeight), 96.0, 96.0, PixelFormats.Pbgra32);
+                        var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+                            (int)Math.Ceiling(ActualWidth),
+                            (int)Math.Ceiling(ActualHeight),
+                            96.0,
+                            96.0,
+                            PixelFormats.Pbgra32
+                        );
                         bitmap.Render(this);
                         var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
                         encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
-                        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(words[1])));
+                        System.IO.Directory.CreateDirectory(
+                            System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(words[1]))
+                        );
 
                         using (System.IO.FileStream stream = System.IO.File.Create(words[1]))
                         {

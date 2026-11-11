@@ -20,8 +20,21 @@ namespace GeometryHelper
         private readonly double[] _moments;
         private readonly GeoVector3[] _axes;
 
-        internal MassProperties3(double density, VolumeMethod method, double volume, GeoPoint3 centroid, double surfaceArea,
-            double ixx, double iyy, double izz, double ixy, double iyz, double izx, double[] moments, GeoVector3[] axes)
+        internal MassProperties3(
+            double density,
+            VolumeMethod method,
+            double volume,
+            GeoPoint3 centroid,
+            double surfaceArea,
+            double ixx,
+            double iyy,
+            double izz,
+            double ixy,
+            double iyz,
+            double izx,
+            double[] moments,
+            GeoVector3[] axes
+        )
         {
             Density = density;
             Method = method;
@@ -111,7 +124,10 @@ namespace GeometryHelper
                 throw new ArgumentException("An axis needs a direction of some length.", nameof(direction));
             }
 
-            double about = Ixx * a.X * a.X + Iyy * a.Y * a.Y + Izz * a.Z * a.Z
+            double about =
+                Ixx * a.X * a.X
+                + Iyy * a.Y * a.Y
+                + Izz * a.Z * a.Z
                 - 2.0 * (Ixy * a.X * a.Y + Iyz * a.Y * a.Z + Izx * a.Z * a.X);
 
             GeoVector3 off = point.GetVectorTo(Centroid);
@@ -121,7 +137,13 @@ namespace GeometryHelper
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-            => string.Format(CultureInfo.InvariantCulture, "MassProperties3[Volume: {0:0.###}, Mass: {1:0.###}, Centroid: {2}]", Volume, Mass, Centroid);
+        public override string ToString() =>
+            string.Format(
+                CultureInfo.InvariantCulture,
+                "MassProperties3[Volume: {0:0.###}, Mass: {1:0.###}, Centroid: {2}]",
+                Volume,
+                Mass,
+                Centroid
+            );
     }
 }

@@ -57,8 +57,8 @@ namespace GeometryHelper.Viewer
         /// </summary>
         /// <param name="point">The point.</param>
         /// <param name="origin">The render origin.</param>
-        public static Vec3F Relative(Vec3 point, Vec3 origin)
-            => new Vec3F((float)(point.X - origin.X), (float)(point.Y - origin.Y), (float)(point.Z - origin.Z));
+        public static Vec3F Relative(Vec3 point, Vec3 origin) =>
+            new Vec3F((float)(point.X - origin.X), (float)(point.Y - origin.Y), (float)(point.Z - origin.Z));
 
         /// <summary>
         /// Gets how far from the render origin the target of the camera may be before the origin has to move: the distance at
@@ -78,8 +78,10 @@ namespace GeometryHelper.Viewer
         /// three, one of 0.00001 mm seven, from none up to nine.
         /// </summary>
         /// <param name="pixelSize">The size of a pixel on the plane shown, in millimetres.</param>
-        public static int DecimalsFor(double pixelSize)
-            => pixelSize > 0.0 && !double.IsInfinity(pixelSize) ? (int)Math.Max(0.0, Math.Min(9.0, Math.Ceiling(Math.Log10(100.0 / pixelSize)))) : 3;
+        public static int DecimalsFor(double pixelSize) =>
+            pixelSize > 0.0 && !double.IsInfinity(pixelSize)
+                ? (int)Math.Max(0.0, Math.Min(9.0, Math.Ceiling(Math.Log10(100.0 / pixelSize))))
+                : 3;
 
         /// <summary>
         /// Gets whether the origin has to move to the target of the camera.
@@ -87,7 +89,7 @@ namespace GeometryHelper.Viewer
         /// <param name="origin">The render origin now.</param>
         /// <param name="camera">The camera.</param>
         /// <param name="viewHeightPixels">The height of the view in pixels.</param>
-        public static bool NeedsRebase(Vec3 origin, ViewCamera camera, double viewHeightPixels)
-            => (camera.Target - origin).Length > MaxOffset(camera, viewHeightPixels);
+        public static bool NeedsRebase(Vec3 origin, ViewCamera camera, double viewHeightPixels) =>
+            (camera.Target - origin).Length > MaxOffset(camera, viewHeightPixels);
     }
 }

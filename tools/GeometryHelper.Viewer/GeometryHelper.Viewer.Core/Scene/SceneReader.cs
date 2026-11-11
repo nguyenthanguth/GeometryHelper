@@ -25,7 +25,9 @@ namespace GeometryHelper.Viewer
                 throw new ArgumentNullException(nameof(pathOrJson));
             }
 
-            return pathOrJson.TrimStart().StartsWith("{", StringComparison.Ordinal) ? ReadJson(pathOrJson) : ReadFile(pathOrJson);
+            return pathOrJson.TrimStart().StartsWith("{", StringComparison.Ordinal)
+                ? ReadJson(pathOrJson)
+                : ReadFile(pathOrJson);
         }
 
         /// <summary>

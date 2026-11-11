@@ -128,14 +128,26 @@ namespace GeometryHelper.UnitTest.Dxf
         public void BytesThatAreNotABitmapAFrameTakes_AreRefusedWithTheReason()
         {
             Assert.Throws<ArgumentNullException>(() => new DxfOle2Frame(null));
-            Assert.Contains("BM", Assert.Throws<ArgumentException>(() => new DxfOle2Frame(new byte[60])).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "BM",
+                Assert.Throws<ArgumentException>(() => new DxfOle2Frame(new byte[60])).Message,
+                StringComparison.Ordinal
+            );
 
             byte[] compressed = DxfOle2FrameDrawings.Bitmap();
             compressed[30] = 1;
-            Assert.Contains("compressed", Assert.Throws<ArgumentException>(() => new DxfOle2Frame(compressed)).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "compressed",
+                Assert.Throws<ArgumentException>(() => new DxfOle2Frame(compressed)).Message,
+                StringComparison.Ordinal
+            );
 
             byte[] cut = DxfOle2FrameDrawings.Bitmap().Take(70).ToArray();
-            Assert.Contains("not within", Assert.Throws<ArgumentException>(() => new DxfOle2Frame(cut)).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "not within",
+                Assert.Throws<ArgumentException>(() => new DxfOle2Frame(cut)).Message,
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]

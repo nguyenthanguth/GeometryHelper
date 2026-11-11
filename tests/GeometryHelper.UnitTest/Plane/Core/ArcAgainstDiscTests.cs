@@ -110,13 +110,17 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int k = 0; k < 500; k++)
             {
-                var circle = new GeoCircle2(new GeoPoint2(rng.NextDouble() * 200 - 100, rng.NextDouble() * 200 - 100), 5 + rng.NextDouble() * 80);
+                var circle = new GeoCircle2(
+                    new GeoPoint2(rng.NextDouble() * 200 - 100, rng.NextDouble() * 200 - 100),
+                    5 + rng.NextDouble() * 80
+                );
                 double start = rng.NextDouble() * 2 * Math.PI;
                 var arc = new GeoArc2(
                     new GeoPoint2(rng.NextDouble() * 200 - 100, rng.NextDouble() * 200 - 100),
                     5 + rng.NextDouble() * 80,
                     start,
-                    start + 0.2 + rng.NextDouble() * 5.5);
+                    start + 0.2 + rng.NextDouble() * 5.5
+                );
                 var edge = new GeoEdge2(arc);
                 var chord = new GeoEdge2(arc.StartPoint, arc.EndPoint);
 

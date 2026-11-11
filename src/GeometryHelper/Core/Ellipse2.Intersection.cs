@@ -37,7 +37,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the points where the rim of an ellipse crosses a segment, using the default tolerance.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoLine2 line) => GetIntersections(ellipse, line, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoLine2 line) =>
+            GetIntersections(ellipse, line, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where the rim of an ellipse crosses a segment, within a tolerance.
@@ -58,7 +59,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where the rim of an ellipse crosses a segment, using the default tolerance.
         /// </summary>
-        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoLine2 line, out GeoPoint2[] intersections) => TryIntersectWith(ellipse, line, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoLine2 line, out GeoPoint2[] intersections) =>
+            TryIntersectWith(ellipse, line, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the rim of an ellipse crosses a segment, within a tolerance.
@@ -68,7 +70,12 @@ namespace GeometryHelper.Core
         /// <param name="intersections">The crossings in order along the segment; empty when there are none.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the segment crosses or touches the rim; otherwise, false, a segment wholly inside included.</returns>
-        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoLine2 line, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoEllipse2 ellipse,
+            GeoLine2 line,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(ellipse, line, tolerance);
             return intersections.Length > 0;
@@ -78,7 +85,8 @@ namespace GeometryHelper.Core
         /// Gets the points where the rim of an ellipse crosses a polyline, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoPolyline2 polyline) => GetIntersections(ellipse, polyline, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoPolyline2 polyline) =>
+            GetIntersections(ellipse, polyline, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where the rim of an ellipse crosses a polyline, within a tolerance.
@@ -90,7 +98,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return AlongEdges(ellipse, polyline.GetEdges(), tolerance);
         }
@@ -99,7 +108,8 @@ namespace GeometryHelper.Core
         /// Gets the points where the rim of an ellipse crosses the boundary of a polygon, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoPolygon2 polygon) => GetIntersections(ellipse, polygon, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoPolygon2 polygon) =>
+            GetIntersections(ellipse, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where the rim of an ellipse crosses the boundary of a polygon, within a tolerance.
@@ -111,7 +121,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoPolygon2 polygon, Tolerance tolerance)
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             return AlongEdges(ellipse, polygon.GetEdges(), tolerance);
         }
@@ -119,7 +130,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the points where the rim of an ellipse crosses the boundary of a rectangle, using the default tolerance.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoRectangle2 rect) => GetIntersections(ellipse, rect, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoRectangle2 rect) =>
+            GetIntersections(ellipse, rect, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where the rim of an ellipse crosses the boundary of a rectangle, within a tolerance.
@@ -136,7 +148,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the points where the rim of an ellipse meets the edges of a triangle, using the default tolerance.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoTriangle2 triangle) => GetIntersections(ellipse, triangle, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoTriangle2 triangle) =>
+            GetIntersections(ellipse, triangle, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where the rim of an ellipse meets the edges of a triangle, within a tolerance.
@@ -156,7 +169,8 @@ namespace GeometryHelper.Core
         /// Gets every point where the rim of an ellipse crosses the boundary of a face, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoFace2 face) => GetIntersections(ellipse, face, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoFace2 face) =>
+            GetIntersections(ellipse, face, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where the rim of an ellipse crosses the boundary of a face, within a tolerance.
@@ -168,7 +182,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoFace2 face, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             var found = new List<GeoPoint2>(GetIntersections(ellipse, face.Boundary, tolerance));
 
@@ -187,7 +202,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the points where the rim of an ellipse crosses a circle, using the default tolerance.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoCircle2 circle) => GetIntersections(ellipse, circle, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoCircle2 circle) =>
+            GetIntersections(ellipse, circle, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where the rim of an ellipse crosses a circle, within a tolerance.
@@ -213,7 +229,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where the rim of an ellipse crosses a circle, using the default tolerance.
         /// </summary>
-        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoCircle2 circle, out GeoPoint2[] intersections) => TryIntersectWith(ellipse, circle, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoCircle2 circle, out GeoPoint2[] intersections) =>
+            TryIntersectWith(ellipse, circle, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the rim of an ellipse crosses a circle, within a tolerance.
@@ -223,7 +240,12 @@ namespace GeometryHelper.Core
         /// <param name="intersections">The crossings in the order of the eccentric angle; empty when there are none.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the two cross or touch; otherwise, false, for a circle wholly inside or outside, or lying on the rim.</returns>
-        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoCircle2 circle, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoEllipse2 ellipse,
+            GeoCircle2 circle,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(ellipse, circle, tolerance);
             return intersections.Length > 0;
@@ -232,7 +254,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the points where the rim of an ellipse crosses an arc, using the default tolerance.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoArc2 arc) => GetIntersections(ellipse, arc, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoArc2 arc) =>
+            GetIntersections(ellipse, arc, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where the rim of an ellipse crosses an arc, within a tolerance.
@@ -266,7 +289,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where the rim of an ellipse crosses an arc, using the default tolerance.
         /// </summary>
-        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoArc2 arc, out GeoPoint2[] intersections) => TryIntersectWith(ellipse, arc, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoArc2 arc, out GeoPoint2[] intersections) =>
+            TryIntersectWith(ellipse, arc, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the rim of an ellipse crosses an arc, within a tolerance.
@@ -276,7 +300,12 @@ namespace GeometryHelper.Core
         /// <param name="intersections">The crossings in the order of the eccentric angle; empty when there are none.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the arc crosses or touches the rim; otherwise, false.</returns>
-        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoArc2 arc, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoEllipse2 ellipse,
+            GeoArc2 arc,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(ellipse, arc, tolerance);
             return intersections.Length > 0;
@@ -285,7 +314,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the points where the rims of two ellipses cross, using the default tolerance.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoEllipse2 other) => GetIntersections(ellipse, other, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoEllipse2 other) =>
+            GetIntersections(ellipse, other, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where the rims of two ellipses cross, within a tolerance.
@@ -313,7 +343,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where the rims of two ellipses cross, using the default tolerance.
         /// </summary>
-        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoEllipse2 other, out GeoPoint2[] intersections) => TryIntersectWith(ellipse, other, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoEllipse2 other, out GeoPoint2[] intersections) =>
+            TryIntersectWith(ellipse, other, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the rims of two ellipses cross, within a tolerance.
@@ -323,7 +354,12 @@ namespace GeometryHelper.Core
         /// <param name="intersections">The crossings; empty when there are none.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the rims cross or touch; otherwise, false, for one wholly inside the other, apart, or the same.</returns>
-        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoEllipse2 other, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoEllipse2 ellipse,
+            GeoEllipse2 other,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(ellipse, other, tolerance);
             return intersections.Length > 0;
@@ -336,7 +372,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the points where the rim of an ellipse crosses an edge, using the default tolerance.
         /// </summary>
-        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoEdge2 edge) => GetIntersections(ellipse, edge, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoEdge2 edge) =>
+            GetIntersections(ellipse, edge, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where the rim of an ellipse crosses an edge, within a tolerance: as a segment or as an arc, whichever
@@ -352,7 +389,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where the rim of an ellipse crosses an edge, using the default tolerance.
         /// </summary>
-        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoEdge2 edge, out GeoPoint2[] intersections) => TryIntersectWith(ellipse, edge, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoEdge2 edge, out GeoPoint2[] intersections) =>
+            TryIntersectWith(ellipse, edge, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the rim of an ellipse crosses an edge, within a tolerance.
@@ -362,7 +400,12 @@ namespace GeometryHelper.Core
         /// <param name="intersections">The crossings; empty when there are none.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the edge crosses or touches the rim; otherwise, false.</returns>
-        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoEdge2 edge, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoEllipse2 ellipse,
+            GeoEdge2 edge,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(ellipse, edge, tolerance);
             return intersections.Length > 0;
@@ -372,7 +415,8 @@ namespace GeometryHelper.Core
         /// Gets the points where the rim of an ellipse crosses a curved chain, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoPolylineArc2 chain) => GetIntersections(ellipse, chain, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoPolylineArc2 chain) =>
+            GetIntersections(ellipse, chain, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where the rim of an ellipse crosses a curved chain, within a tolerance.
@@ -384,7 +428,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoPolylineArc2 chain, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return AlongEdges(ellipse, chain.GetEdges(), tolerance);
         }
@@ -393,7 +438,11 @@ namespace GeometryHelper.Core
         /// Tries to find where the rim of an ellipse crosses a curved chain, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoPolylineArc2 chain, out GeoPoint2[] intersections) => TryIntersectWith(ellipse, chain, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(
+            GeoEllipse2 ellipse,
+            GeoPolylineArc2 chain,
+            out GeoPoint2[] intersections
+        ) => TryIntersectWith(ellipse, chain, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the rim of an ellipse crosses a curved chain, within a tolerance.
@@ -404,7 +453,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the chain crosses or touches the rim anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoPolylineArc2 chain, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoEllipse2 ellipse,
+            GeoPolylineArc2 chain,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(ellipse, chain, tolerance);
             return intersections.Length > 0;
@@ -414,7 +468,8 @@ namespace GeometryHelper.Core
         /// Gets the points where the rim of an ellipse crosses a curved loop, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoPolygonArc2 loop) => GetIntersections(ellipse, loop, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoPolygonArc2 loop) =>
+            GetIntersections(ellipse, loop, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where the rim of an ellipse crosses a curved loop, within a tolerance.
@@ -426,7 +481,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoEllipse2 ellipse, GeoPolygonArc2 loop, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return AlongEdges(ellipse, loop.GetEdges(), tolerance);
         }
@@ -435,7 +491,8 @@ namespace GeometryHelper.Core
         /// Tries to find where the rim of an ellipse crosses a curved loop, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoPolygonArc2 loop, out GeoPoint2[] intersections) => TryIntersectWith(ellipse, loop, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoPolygonArc2 loop, out GeoPoint2[] intersections) =>
+            TryIntersectWith(ellipse, loop, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the rim of an ellipse crosses a curved loop, within a tolerance.
@@ -446,7 +503,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the loop crosses or touches the rim anywhere; otherwise, false, one wholly inside the other included.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TryIntersectWith(GeoEllipse2 ellipse, GeoPolygonArc2 loop, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoEllipse2 ellipse,
+            GeoPolygonArc2 loop,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(ellipse, loop, tolerance);
             return intersections.Length > 0;
@@ -509,10 +571,23 @@ namespace GeometryHelper.Core
 
             if (length <= tolerance.EqualPoint)
             {
-                return IsPointOn(ellipse, line.StartPoint, tolerance) ? new[] { line.StartPoint } : Array.Empty<GeoPoint2>();
+                return IsPointOn(ellipse, line.StartPoint, tolerance)
+                    ? new[] { line.StartPoint }
+                    : Array.Empty<GeoPoint2>();
             }
 
-            Across(ellipse, line, length, out double along0, out double across0, out double alongStep, out double acrossStep, out double sideAlong, out double sideAcross, out double side);
+            Across(
+                ellipse,
+                line,
+                length,
+                out double along0,
+                out double across0,
+                out double alongStep,
+                out double acrossStep,
+                out double sideAlong,
+                out double sideAcross,
+                out double side
+            );
 
             // The rim point whose tangent runs along the segment, on the segment's side, and how far it is from the segment.
             double depth = Math.Abs((sideAlong - along0) * acrossStep - (sideAcross - across0) * alongStep) / length;
@@ -520,7 +595,8 @@ namespace GeometryHelper.Core
 
             if (depth <= tolerance.EqualPoint)
             {
-                double foot = ((sideAlong - along0) * alongStep + (sideAcross - across0) * acrossStep) / (length * length);
+                double foot =
+                    ((sideAlong - along0) * alongStep + (sideAcross - across0) * acrossStep) / (length * length);
                 OnSegment(points, line, foot, length, tolerance);
             }
             else if (side < 1.0)
@@ -565,7 +641,8 @@ namespace GeometryHelper.Core
             out double acrossStep,
             out double sideAlong,
             out double sideAcross,
-            out double side)
+            out double side
+        )
         {
             double a = ellipse.MajorRadius;
             double b = ellipse.MinorRadius;
@@ -598,7 +675,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Adds the point at a parameter of a segment, when the parameter falls on it within the tolerance.
         /// </summary>
-        private static void OnSegment(List<GeoPoint2> points, GeoLine2 line, double parameter, double length, Tolerance tolerance)
+        private static void OnSegment(
+            List<GeoPoint2> points,
+            GeoLine2 line,
+            double parameter,
+            double length,
+            Tolerance tolerance
+        )
         {
             double slack = tolerance.EqualPoint / length;
 
@@ -641,7 +724,8 @@ namespace GeometryHelper.Core
 
             internal GeoEllipse2 Ellipse { get; }
 
-            internal static Other Of(GeoCircle2 circle) => new Other(true, circle.Center, circle.Radius, default(GeoEllipse2));
+            internal static Other Of(GeoCircle2 circle) =>
+                new Other(true, circle.Center, circle.Radius, default(GeoEllipse2));
 
             internal static Other Of(GeoEllipse2 ellipse) => new Other(false, ellipse.Center, 0.0, ellipse);
 
@@ -719,7 +803,8 @@ namespace GeometryHelper.Core
                     OnRim(ellipse, a * cos, b * sin),
                     alongRate * m.X - acrossRate * m.Y,
                     alongRate * m.Y + acrossRate * m.X,
-                    out double rate);
+                    out double rate
+                );
 
                 if (Math.Abs(value) < bestValue)
                 {
@@ -775,11 +860,15 @@ namespace GeometryHelper.Core
             double beta2 = minor * vAcross / b;
 
             return new Wave(
-                alpha0 * alpha0 + beta0 * beta0 + 0.5 * (alpha1 * alpha1 + alpha2 * alpha2 + beta1 * beta1 + beta2 * beta2) - 1.0,
+                alpha0 * alpha0
+                    + beta0 * beta0
+                    + 0.5 * (alpha1 * alpha1 + alpha2 * alpha2 + beta1 * beta1 + beta2 * beta2)
+                    - 1.0,
                 2.0 * (alpha0 * alpha1 + beta0 * beta1),
                 2.0 * (alpha0 * alpha2 + beta0 * beta2),
                 0.5 * ((alpha1 - alpha2) * (alpha1 + alpha2) + (beta1 - beta2) * (beta1 + beta2)),
-                alpha1 * alpha2 + beta1 * beta2);
+                alpha1 * alpha2 + beta1 * beta2
+            );
         }
 
         /// <summary>
@@ -801,7 +890,8 @@ namespace GeometryHelper.Core
                 2.0 * a * wAlong,
                 2.0 * b * wAcross,
                 0.5 * (a - b) * (a + b),
-                0.0);
+                0.0
+            );
         }
 
         /// <summary>
@@ -874,7 +964,20 @@ namespace GeometryHelper.Core
             if (!other.IsCircle)
             {
                 var crossingPoints = new List<GeoPoint2>(points);
-                Touches(ellipse, other.Ellipse, wave, turns, values, pieceRoots, count, new List<double>(angles), crossingPoints, tolerance, angles, points);
+                Touches(
+                    ellipse,
+                    other.Ellipse,
+                    wave,
+                    turns,
+                    values,
+                    pieceRoots,
+                    count,
+                    new List<double>(angles),
+                    crossingPoints,
+                    tolerance,
+                    angles,
+                    points
+                );
                 return Gathered(angles, points, tolerance);
             }
 
@@ -895,7 +998,10 @@ namespace GeometryHelper.Core
                 double at = turns[i];
                 double reach = other.GapTo(GetPointAtAngle(ellipse, at));
 
-                if (reach <= tolerance.EqualPoint && NearCrossing(crossingAt, GetPointAtAngle(ellipse, at), 2.0 * tolerance.EqualPoint) < 0)
+                if (
+                    reach <= tolerance.EqualPoint
+                    && NearCrossing(crossingAt, GetPointAtAngle(ellipse, at), 2.0 * tolerance.EqualPoint) < 0
+                )
                 {
                     // Midway between the rim and the curve it touches, as two circles touch at a point between them.
                     GeoPoint2 onRim = GetPointAtAngle(ellipse, at);
@@ -945,14 +1051,16 @@ namespace GeometryHelper.Core
             List<GeoPoint2> crossingPoints,
             Tolerance tolerance,
             List<double> angles,
-            List<GeoPoint2> points)
+            List<GeoPoint2> points
+        )
         {
             double limit = tolerance.EqualPoint;
             double merge = 2.0 * limit;
             double minor = other.MinorRadius;
             double slack = limit * (1.0 + 1E-9) + 1E-12 * (other.MajorRadius + ellipse.MajorRadius);
             double top = (1.0 + slack / minor) * (1.0 + slack / minor) - 1.0;
-            double bottom = slack >= minor ? double.NegativeInfinity : (1.0 - slack / minor) * (1.0 - slack / minor) - 1.0;
+            double bottom =
+                slack >= minor ? double.NegativeInfinity : (1.0 - slack / minor) * (1.0 - slack / minor) - 1.0;
 
             List<double[]> stretches = Within(wave, turns, values, pieceRoots, count, bottom, top);
 
@@ -1011,7 +1119,10 @@ namespace GeometryHelper.Core
 
                         double ahead = crossings[near] - at;
                         ahead -= FullTurn * Math.Round(ahead / FullTurn);
-                        at = ahead > 0.0 ? at + ahead + Stride(ellipse, at + ahead, merge) : at + Stride(ellipse, at, 0.5 * limit);
+                        at =
+                            ahead > 0.0
+                                ? at + ahead + Stride(ellipse, at + ahead, merge)
+                                : at + Stride(ellipse, at, 0.5 * limit);
                         continue;
                     }
 
@@ -1028,7 +1139,10 @@ namespace GeometryHelper.Core
                     // doubles while it stays so, up to 64 times half the tolerance, so that a long, close contact costs a
                     // few dozen steps rather than thousands.
                     int last = reach.Count - 1;
-                    grow = h <= 1.5 * limit && last > 0 && Math.Abs(h - reach[last - 1]) < 0.125 * limit ? Math.Min(2.0 * grow, 64.0) : 1.0;
+                    grow =
+                        h <= 1.5 * limit && last > 0 && Math.Abs(h - reach[last - 1]) < 0.125 * limit
+                            ? Math.Min(2.0 * grow, 64.0)
+                            : 1.0;
 
                     double next = at + Stride(ellipse, at, Math.Max(h - limit, 0.5 * limit * grow));
                     at = next < to ? next : (at < to ? to : next);
@@ -1043,7 +1157,15 @@ namespace GeometryHelper.Core
         /// can hold no touch: at a touch the two tangents run along each other, at the crossing they meet at an angle, and
         /// along a length L of the rim neither turns by more than its greatest bend, a / b², times L.
         /// </summary>
-        private static bool Clean(GeoEllipse2 ellipse, GeoEllipse2 other, double[] crossings, GeoPoint2[] crossingAt, double from, double to, double merge)
+        private static bool Clean(
+            GeoEllipse2 ellipse,
+            GeoEllipse2 other,
+            double[] crossings,
+            GeoPoint2[] crossingAt,
+            double from,
+            double to,
+            double merge
+        )
         {
             int found = -1;
 
@@ -1096,7 +1218,15 @@ namespace GeometryHelper.Core
         /// Gets the stretches of the rim, as angles from and to, where a wave keeps between two values: found piece by piece
         /// between its turning points, where it runs one way, and joined where they meet.
         /// </summary>
-        private static List<double[]> Within(Wave wave, double[] turns, double[] values, double[] pieceRoots, int count, double bottom, double top)
+        private static List<double[]> Within(
+            Wave wave,
+            double[] turns,
+            double[] values,
+            double[] pieceRoots,
+            int count,
+            double bottom,
+            double top
+        )
         {
             var stretches = new List<double[]>();
 
@@ -1153,7 +1283,17 @@ namespace GeometryHelper.Core
         /// the angle where the wave meets the band's edge, looked for from the crossing in the piece when it has one, which
         /// the edge lies a hair from.
         /// </summary>
-        private static double Edge(Wave wave, double low, double high, double atLow, double atHigh, bool lowEnd, double root, double bottom, double top)
+        private static double Edge(
+            Wave wave,
+            double low,
+            double high,
+            double atLow,
+            double atHigh,
+            bool lowEnd,
+            double root,
+            double bottom,
+            double top
+        )
         {
             double atEnd = lowEnd ? atLow : atHigh;
 
@@ -1215,7 +1355,8 @@ namespace GeometryHelper.Core
             double limit,
             double merge,
             List<double> angles,
-            List<GeoPoint2> points)
+            List<GeoPoint2> points
+        )
         {
             int n = walk.Count;
 
@@ -1342,9 +1483,13 @@ namespace GeometryHelper.Core
                 middle -= FullTurn * Math.Floor(middle / FullTurn);
 
                 middles[r] = middle < FullTurn ? middle : 0.0;
-                gathered[r] = first == last
-                    ? placed[first]
-                    : new GeoPoint2(0.5 * (placed[first].X + placed[last].X), 0.5 * (placed[first].Y + placed[last].Y));
+                gathered[r] =
+                    first == last
+                        ? placed[first]
+                        : new GeoPoint2(
+                            0.5 * (placed[first].X + placed[last].X),
+                            0.5 * (placed[first].Y + placed[last].Y)
+                        );
             }
 
             SortByAngle(middles, gathered);
@@ -1358,7 +1503,15 @@ namespace GeometryHelper.Core
         {
             for (int i = 1; i < points.Length; i++)
             {
-                for (int j = i; j > 0 && (angles[j] < angles[j - 1] || (angles[j] == angles[j - 1] && ByCoordinates(points[j], points[j - 1]) < 0)); j--)
+                for (
+                    int j = i;
+                    j > 0
+                        && (
+                            angles[j] < angles[j - 1]
+                            || (angles[j] == angles[j - 1] && ByCoordinates(points[j], points[j - 1]) < 0)
+                        );
+                    j--
+                )
                 {
                     double angle = angles[j];
                     angles[j] = angles[j - 1];

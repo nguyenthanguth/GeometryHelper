@@ -25,7 +25,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> DimEdit(CadCommandContext c)
         {
-            yield return CadPrompt.ForKeyword("Enter type of dimension editing", new[] { "Home", "New", "Rotate", "Oblique" }, "Home");
+            yield return CadPrompt.ForKeyword(
+                "Enter type of dimension editing",
+                new[] { "Home", "New", "Rotate", "Oblique" },
+                "Home"
+            );
             string kind = c.Input.Kind == CadInputKind.Keyword ? c.Input.Text : null;
 
             if (kind == null)
@@ -74,9 +78,18 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            string property = kind == "Home" ? "Text position" : kind == "New" ? "Text override" : kind == "Rotate" ? "Text rotation" : "Oblique";
-            string value = kind == "New" ? text : kind == "Home" ? "Home" : Values(angle);
-            List<DxfDimension> dimensions = Changeable(c, c.Selected, property, d => kind != "Oblique" || d is DxfRotatedDimension || d is DxfAlignedDimension);
+            string property =
+                kind == "Home" ? "Text position"
+                : kind == "New" ? "Text override"
+                : kind == "Rotate" ? "Text rotation"
+                : "Oblique";
+            string value =
+                kind == "New" ? text
+                : kind == "Home" ? "Home"
+                : Values(angle);
+            List<DxfDimension> dimensions = Changeable(c, c.Selected, property, d =>
+                kind != "Oblique" || d is DxfRotatedDimension || d is DxfAlignedDimension
+            );
 
             ChangeDimensions(c, dimensions, property, value, d =>
             {
@@ -134,7 +147,11 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForPoint("Specify new location for dimension text", null, new[] { "Left", "Right", "Center", "Home", "Angle" });
+            yield return CadPrompt.ForPoint(
+                "Specify new location for dimension text",
+                null,
+                new[] { "Left", "Right", "Center", "Home", "Angle" }
+            );
             var only = new List<DxfDimension> { picked };
 
             if (c.Input.IsPoint)
@@ -224,11 +241,17 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (apart > 0)
             {
-                c.Write(apart.ToString(CultureInfo.InvariantCulture) + (apart == 1 ? " dimension is" : " dimensions are") + " not parallel to the base dimension and stays where it is.");
+                c.Write(
+                    apart.ToString(CultureInfo.InvariantCulture)
+                        + (apart == 1 ? " dimension is" : " dimensions are")
+                        + " not parallel to the base dimension and stays where it is."
+                );
             }
 
             List<DxfDimension> dimensions = Changeable(c, moves.Keys.ToList(), "Dimension line position", d => true);
-            ChangeDimensions(c, dimensions, "Dimension line position", Values(spacing), d => ShiftLine(d, baseDimension.Handle, moves[d.Handle], c.Document));
+            ChangeDimensions(c, dimensions, "Dimension line position", Values(spacing), d =>
+                ShiftLine(d, baseDimension.Handle, moves[d.Handle], c.Document)
+            );
         }
 
         /// <summary>
@@ -266,17 +289,24 @@ namespace GeometryHelper.Dxf.Viewer
 
                 bool remove = c.Input.Is("Remove");
                 List<DxfDimension> many = Changeable(c, handles, "Dimension break", d => true);
-                CadEditResult result = ChangeDimensions(c, many, "Dimension break", remove ? "Remove" : "Auto", d =>
-                {
-                    if (remove)
+                CadEditResult result = ChangeDimensions(
+                    c,
+                    many,
+                    "Dimension break",
+                    remove ? "Remove" : "Auto",
+                    d =>
                     {
-                        ForgetBreaks(d);
-                    }
-                    else
-                    {
-                        KeepObjectBreaks(d, BreakAt(d, Cutters(c.Document, c.Space, d, null), null));
-                    }
-                }, remove);
+                        if (remove)
+                        {
+                            ForgetBreaks(d);
+                        }
+                        else
+                        {
+                            KeepObjectBreaks(d, BreakAt(d, Cutters(c.Document, c.Space, d, null), null));
+                        }
+                    },
+                    remove
+                );
 
                 if (result != null && result.Succeeded)
                 {
@@ -302,13 +332,24 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForEntity("Select object to break dimension", new[] { "Auto", "Manual", "Remove" }, "Auto");
+            yield return CadPrompt.ForEntity(
+                "Select object to break dimension",
+                new[] { "Auto", "Manual", "Remove" },
+                "Auto"
+            );
             var only = new List<DxfDimension> { dimension };
             CadEditResult done = null;
 
             if (c.Input.Is("Auto"))
             {
-                done = ChangeDimensions(c, only, "Dimension break", "Auto", d => KeepObjectBreaks(d, BreakAt(d, Cutters(c.Document, c.Space, d, null), null)), false);
+                done = ChangeDimensions(
+                    c,
+                    only,
+                    "Dimension break",
+                    "Auto",
+                    d => KeepObjectBreaks(d, BreakAt(d, Cutters(c.Document, c.Space, d, null), null)),
+                    false
+                );
             }
             else if (c.Input.Is("Remove"))
             {
@@ -332,11 +373,18 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 GeoPoint2 second = c.Input.Point;
-                done = ChangeDimensions(c, only, "Dimension break", Values(first.X, first.Y, second.X, second.Y), d =>
-                {
-                    BreakAt(d, null, new[] { first, second });
-                    KeepManualBreak(d, first, second);
-                }, false);
+                done = ChangeDimensions(
+                    c,
+                    only,
+                    "Dimension break",
+                    Values(first.X, first.Y, second.X, second.Y),
+                    d =>
+                    {
+                        BreakAt(d, null, new[] { first, second });
+                        KeepManualBreak(d, first, second);
+                    },
+                    false
+                );
             }
             else if (c.Input.Kind == CadInputKind.Selection)
             {
@@ -354,7 +402,14 @@ namespace GeometryHelper.Dxf.Viewer
                     picked.Add(c.Input.Handles[0]);
                 }
 
-                done = ChangeDimensions(c, only, "Dimension break", string.Join(",", picked), d => KeepObjectBreaks(d, BreakAt(d, Cutters(c.Document, c.Space, d, picked), null)), false);
+                done = ChangeDimensions(
+                    c,
+                    only,
+                    "Dimension break",
+                    string.Join(",", picked),
+                    d => KeepObjectBreaks(d, BreakAt(d, Cutters(c.Document, c.Space, d, picked), null)),
+                    false
+                );
             }
 
             if (done != null && done.Succeeded)
@@ -363,16 +418,23 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static string Modified(int count) => count.ToString(CultureInfo.InvariantCulture) + (count == 1 ? " object modified" : " objects modified");
+        private static string Modified(int count) =>
+            count.ToString(CultureInfo.InvariantCulture) + (count == 1 ? " object modified" : " objects modified");
 
         /// <summary>An angle typed or picked for the words, in the UCS, as the turn of the text in the world; 0 stays 0, the style's own.</summary>
-        private static double TextAngle(CadCommandContext c, double ucsAngle) => ucsAngle == 0.0 ? 0.0 : Turned(c.Session.Ucs.AngleToWorld(ucsAngle));
+        private static double TextAngle(CadCommandContext c, double ucsAngle) =>
+            ucsAngle == 0.0 ? 0.0 : Turned(c.Session.Ucs.AngleToWorld(ucsAngle));
 
         /// <summary>
         /// The dimensions of a list that are of a kind an edit takes and whose owner lets them be changed, in the order given; a
         /// refusal written as the owner gives it, the dimension called a dimension.
         /// </summary>
-        private static List<DxfDimension> Changeable(CadCommandContext c, IEnumerable<string> handles, string property, Func<DxfDimension, bool> takes)
+        private static List<DxfDimension> Changeable(
+            CadCommandContext c,
+            IEnumerable<string> handles,
+            string property,
+            Func<DxfDimension, bool> takes
+        )
         {
             var dimensions = new List<DxfDimension>();
 
@@ -387,9 +449,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (!c.Document.EditGate.Allows(c.Document, dimension, record, out string reason))
                 {
-                    c.Write(reason == null
-                        ? "The dimension " + handle + " may not be changed."
-                        : reason.Replace("This " + CadOwnerEditGate.Describe(dimension) + " ", "This dimension "));
+                    c.Write(
+                        reason == null
+                            ? "The dimension " + handle + " may not be changed."
+                            : reason.Replace("This " + CadOwnerEditGate.Describe(dimension) + " ", "This dimension ")
+                    );
                     continue;
                 }
 
@@ -403,7 +467,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// Changes dimensions as one edit, each one's property planned with its value for an owner that takes its own edits, then
         /// each drawn anew, or, for a break, its picture cut as it stands; null where there are none to change.
         /// </summary>
-        private static CadEditResult ChangeDimensions(CadCommandContext c, List<DxfDimension> dimensions, string property, string value, Action<DxfDimension> change, bool redraw = true)
+        private static CadEditResult ChangeDimensions(
+            CadCommandContext c,
+            List<DxfDimension> dimensions,
+            string property,
+            string value,
+            Action<DxfDimension> change,
+            bool redraw = true
+        )
         {
             if (dimensions.Count == 0)
             {
@@ -414,7 +485,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfDimension dimension in dimensions)
             {
-                planned.Add(new CadEditRecord(CadEditRecordKind.PropertyChanged, dimension.Handle, property, null, value));
+                planned.Add(
+                    new CadEditRecord(CadEditRecordKind.PropertyChanged, dimension.Handle, property, null, value)
+                );
             }
 
             return c.Apply(planned, s =>
@@ -507,7 +580,14 @@ namespace GeometryHelper.Dxf.Viewer
                     three.ArcPoint = P3(ArcUnder(P2(three.CenterPoint), P2(three.ArcPoint), at, 0.0));
                     break;
                 case DxfLineAngularDimension2 two when withLine:
-                    if (Meet(new DxfLine(two.XLine1Start, two.XLine1End), new DxfLine(two.XLine2Start, two.XLine2End), new Tolerance(1E-9, 1E-9), out GeoPoint2 vertex))
+                    if (
+                        Meet(
+                            new DxfLine(two.XLine1Start, two.XLine1End),
+                            new DxfLine(two.XLine2Start, two.XLine2End),
+                            new Tolerance(1E-9, 1E-9),
+                            out GeoPoint2 vertex
+                        )
+                    )
                     {
                         two.ArcPoint = P3(ArcUnder(vertex, P2(two.ArcPoint), at, 0.0));
                     }
@@ -517,7 +597,10 @@ namespace GeometryHelper.Dxf.Viewer
                     at = dimension.Dimtmove == 2 ? at : OnLine(P2(radial.Center), P2(radial.ChordPoint), at);
                     break;
                 case DxfDiametricDimension diametric:
-                    at = dimension.Dimtmove == 2 ? at : OnLine(P2(diametric.FarChordPoint), P2(diametric.ChordPoint), at);
+                    at =
+                        dimension.Dimtmove == 2
+                            ? at
+                            : OnLine(P2(diametric.FarChordPoint), P2(diametric.ChordPoint), at);
                     break;
                 default:
                     DragWords(dimension, at);
@@ -556,7 +639,9 @@ namespace GeometryHelper.Dxf.Viewer
             switch (dimension)
             {
                 case DxfRotatedDimension rotated when withLine:
-                    rotated.DimLinePoint = P3(LineUnder(P2(rotated.XLine2Point), rotated.Rotation, ObliqueOf(rotated), at));
+                    rotated.DimLinePoint = P3(
+                        LineUnder(P2(rotated.XLine2Point), rotated.Rotation, ObliqueOf(rotated), at)
+                    );
                     break;
                 case DxfAlignedDimension aligned when withLine:
                     GeoPoint2 a = P2(aligned.XLine1Point);
@@ -568,7 +653,14 @@ namespace GeometryHelper.Dxf.Viewer
                     three.ArcPoint = P3(ArcUnder(P2(three.CenterPoint), P2(three.ArcPoint), at, 0.0));
                     break;
                 case DxfLineAngularDimension2 two when withLine:
-                    if (Meet(new DxfLine(two.XLine1Start, two.XLine1End), new DxfLine(two.XLine2Start, two.XLine2End), new Tolerance(1E-9, 1E-9), out GeoPoint2 vertex))
+                    if (
+                        Meet(
+                            new DxfLine(two.XLine1Start, two.XLine1End),
+                            new DxfLine(two.XLine2Start, two.XLine2End),
+                            new Tolerance(1E-9, 1E-9),
+                            out GeoPoint2 vertex
+                        )
+                    )
                     {
                         at = OnArcUnder(dimension, data, vertex, at);
                         two.ArcPoint = P3(ArcUnder(vertex, P2(two.ArcPoint), at, 0.0));
@@ -608,14 +700,19 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The point of a linear dimension's line, where its second extension line meets it, once the line runs through a point.</summary>
-        private static GeoPoint2 LineUnder(GeoPoint2 second, double angle, double oblique, GeoPoint2 at)
-            => Foot(second, at, new GeoVector2(Math.Cos(angle), Math.Sin(angle)), oblique);
+        private static GeoPoint2 LineUnder(GeoPoint2 second, double angle, double oblique, GeoPoint2 at) =>
+            Foot(second, at, new GeoVector2(Math.Cos(angle), Math.Sin(angle)), oblique);
 
         /// <summary>
         /// The point of the arc of an angular dimension its words stand on where they are to stand at a point, as its picture puts
         /// them about a point of the arc: below them as they read by DIMGAP and half their height, on them for DIMTAD 0.
         /// </summary>
-        private static GeoPoint2 OnArcUnder(DxfDimension dimension, DxfDimStyleTableRecord data, GeoPoint2 vertex, GeoPoint2 at)
+        private static GeoPoint2 OnArcUnder(
+            DxfDimension dimension,
+            DxfDimStyleTableRecord data,
+            GeoPoint2 vertex,
+            GeoPoint2 at
+        )
         {
             if ((at - vertex).Length <= 1E-12)
             {
@@ -624,10 +721,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             double scale = data.Dimscale > 0.0 ? data.Dimscale : 1.0;
             double gap = Math.Abs(data.Dimgap) * scale;
-            string words = dimension.DimBlock?.OfType<DxfMText>().FirstOrDefault(m => !m.IsErased)?.Contents ?? string.Empty;
+            string words = dimension.DimBlock?.OfType<DxfMText>().FirstOrDefault(m => !m.IsErased)?.Contents
+                ?? string.Empty;
             WordsWidth(data, words, data.Dimtxt * scale, out double tall);
             int tad = data.Dimtad == 0 && Math.Abs(data.Dimtvp) >= 0.7 ? 1 : data.Dimtad;
-            double lift = tad != data.Dimtad ? data.Dimtvp * tall : tad == 0 ? data.Dimtvp * tall : (gap + tall / 2.0 + (data.Dimgap < 0.0 ? gap : 0.0)) * (tad == 4 ? -1.0 : 1.0);
+            double lift =
+                tad != data.Dimtad ? data.Dimtvp * tall
+                : tad == 0 ? data.Dimtvp * tall
+                : (gap + tall / 2.0 + (data.Dimgap < 0.0 ? gap : 0.0)) * (tad == 4 ? -1.0 : 1.0);
             double tangent = Readable(Math.Atan2(at.Y - vertex.Y, at.X - vertex.X) + Math.PI / 2.0);
             return at - new GeoVector2(-Math.Sin(tangent), Math.Cos(tangent)) * lift;
         }
@@ -695,7 +796,8 @@ namespace GeometryHelper.Dxf.Viewer
             // (level words under DIMTIH across it): "100" of Arial on a line at 30 degrees stands 6.733 in, 6.895 kept level.
             double gap = Math.Abs(data.Dimgap) * scale;
             double width = WordsWidth(data, words, height, out double tall);
-            double inset = data.Dimasz * scale + gap + Chord(width, tall, gap, (data.Dimtih ? 0.0 : readable) - readable);
+            double inset =
+                data.Dimasz * scale + gap + Chord(width, tall, gap, (data.Dimtih ? 0.0 : readable) - readable);
             var above = new GeoVector2(-reads.Y, reads.X);
 
             // The text's point on the line, about which the picture stands the words as DIMTAD says (above it for 1), but under
@@ -721,7 +823,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// Works out for DIMSPACE how far each dimension's line is to move, by handle, into <paramref name="moves"/>; the
         /// number that are not parallel to the base (or, angular, not about its vertex).
         /// </summary>
-        private static int Spaced(CadCommandContext c, DxfDimension baseDimension, IReadOnlyList<string> handles, double spacing, SortedDictionary<string, double> moves)
+        private static int Spaced(
+            CadCommandContext c,
+            DxfDimension baseDimension,
+            IReadOnlyList<string> handles,
+            double spacing,
+            SortedDictionary<string, double> moves
+        )
         {
             Tolerance tolerance = c.Session.Tolerance;
             bool angular = !(baseDimension is DxfRotatedDimension || baseDimension is DxfAlignedDimension);
@@ -750,7 +858,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (string handle in handles)
             {
-                if (string.Equals(handle, baseDimension.Handle, StringComparison.OrdinalIgnoreCase) || !(c.Document.FindEntity(handle) is DxfDimension other))
+                if (
+                    string.Equals(handle, baseDimension.Handle, StringComparison.OrdinalIgnoreCase)
+                    || !(c.Document.FindEntity(handle) is DxfDimension other)
+                )
                 {
                     continue;
                 }
@@ -759,7 +870,10 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (angular)
                 {
-                    if (!AngularRays(other, out GeoPoint2 otherVertex, out _, out _, out double radius) || (otherVertex - vertex).Length > tolerance.EqualPoint)
+                    if (
+                        !AngularRays(other, out GeoPoint2 otherVertex, out _, out _, out double radius)
+                        || (otherVertex - vertex).Length > tolerance.EqualPoint
+                    )
                     {
                         apart++;
                         continue;
@@ -769,7 +883,10 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else
                 {
-                    Chain chain = other is DxfRotatedDimension || other is DxfAlignedDimension ? ChainOf(other, null, false) : null;
+                    Chain chain =
+                        other is DxfRotatedDimension || other is DxfAlignedDimension
+                            ? ChainOf(other, null, false)
+                            : null;
                     double turn = chain == null ? double.NaN : Math.Abs(Math.Sin(chain.Angle - baseAngle));
 
                     if (chain == null || !(turn <= tolerance.EqualVector))
@@ -786,11 +903,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             for (int side = 0; side < 2; side++)
             {
-                sides[side].Sort((a, b) =>
-                {
-                    int byDistance = a.Key.CompareTo(b.Key);
-                    return byDistance != 0 ? byDistance : string.CompareOrdinal(a.Value, b.Value);
-                });
+                sides[side]
+                    .Sort(
+                        (a, b) =>
+                        {
+                            int byDistance = a.Key.CompareTo(b.Key);
+                            return byDistance != 0 ? byDistance : string.CompareOrdinal(a.Value, b.Value);
+                        }
+                    );
 
                 for (int k = 0; k < sides[side].Count; k++)
                 {
@@ -829,7 +949,9 @@ namespace GeometryHelper.Dxf.Viewer
             else
             {
                 AngularRays(dimension, out GeoPoint2 vertex, out _, out _, out double radius);
-                GeoPoint2 arc = dimension is DxfPoint3AngularDimension three ? P2(three.ArcPoint) : P2(((DxfLineAngularDimension2)dimension).ArcPoint);
+                GeoPoint2 arc = dimension is DxfPoint3AngularDimension three
+                    ? P2(three.ArcPoint)
+                    : P2(((DxfLineAngularDimension2)dimension).ArcPoint);
                 GeoVector2 way = (arc - vertex) / (arc - vertex).Length;
                 GeoPoint2 moved = vertex + way * (radius + by);
                 shift = moved - arc;
@@ -854,14 +976,25 @@ namespace GeometryHelper.Dxf.Viewer
         /// The objects that break a dimension, sorted by handle: those picked, or every line, polyline, circle and arc of the
         /// space but the dimension itself.
         /// </summary>
-        private static List<DxfEntity> Cutters(CadDocument document, CadSpace space, DxfDimension dimension, IReadOnlyList<string> picked)
+        private static List<DxfEntity> Cutters(
+            CadDocument document,
+            CadSpace space,
+            DxfDimension dimension,
+            IReadOnlyList<string> picked
+        )
         {
             var cutters = new List<DxfEntity>();
-            IEnumerable<DxfEntity> from = picked == null ? space.Block.Cast<DxfEntity>() : picked.Select(document.FindEntity);
+            IEnumerable<DxfEntity> from =
+                picked == null ? space.Block.Cast<DxfEntity>() : picked.Select(document.FindEntity);
 
             foreach (DxfEntity entity in from)
             {
-                if (entity != null && !ReferenceEquals(entity, dimension) && !entity.IsErased && (entity is DxfLine || entity is DxfPolyline || entity is DxfCircle || entity is DxfArc))
+                if (
+                    entity != null
+                    && !ReferenceEquals(entity, dimension)
+                    && !entity.IsErased
+                    && (entity is DxfLine || entity is DxfPolyline || entity is DxfCircle || entity is DxfArc)
+                )
                 {
                     cutters.Add(entity);
                 }
@@ -887,7 +1020,10 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoVector2 shift = new GeoVector2(dimension.DimBlockPosition.X, dimension.DimBlockPosition.Y);
-            var lines = picture.OfType<DxfLine>().Where(l => !l.IsErased && !string.Equals(l.Layer, "Defpoints", StringComparison.OrdinalIgnoreCase)).ToList();
+            var lines = picture
+                .OfType<DxfLine>()
+                .Where(l => !l.IsErased && !string.Equals(l.Layer, "Defpoints", StringComparison.OrdinalIgnoreCase))
+                .ToList();
             double size = BreakSize(dimension);
 
             if (manual != null)
@@ -914,7 +1050,14 @@ namespace GeometryHelper.Dxf.Viewer
                     GeoVector2 way = (b - a) / (b - a).Length;
                     double t1 = (manual[0] - a).X * way.X + (manual[0] - a).Y * way.Y;
                     double t2 = (manual[1] - a).X * way.X + (manual[1] - a).Y * way.Y;
-                    Cut(picture, nearest, new List<KeyValuePair<double, double>> { new KeyValuePair<double, double>(Math.Min(t1, t2), Math.Max(t1, t2)) });
+                    Cut(
+                        picture,
+                        nearest,
+                        new List<KeyValuePair<double, double>>
+                        {
+                            new KeyValuePair<double, double>(Math.Min(t1, t2), Math.Max(t1, t2)),
+                        }
+                    );
                 }
 
                 return crossed;
@@ -961,12 +1104,24 @@ namespace GeometryHelper.Dxf.Viewer
 
             try
             {
-                IReadOnlyList<DxfTypedValue> stored = dimension.DimensionStyle?.GetXDataForApplication("ACAD_DSTYLE_DIMBREAK");
+                IReadOnlyList<DxfTypedValue> stored = dimension.DimensionStyle?.GetXDataForApplication(
+                    "ACAD_DSTYLE_DIMBREAK"
+                );
 
                 for (int i = 0; stored != null && i + 1 < stored.Count; i++)
                 {
-                    if (stored[i].TypeCode == 1070 && stored[i].Value.Trim() == "391" && stored[i + 1].TypeCode == 1040
-                        && double.TryParse(stored[i + 1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && value >= 0.0)
+                    if (
+                        stored[i].TypeCode == 1070
+                        && stored[i].Value.Trim() == "391"
+                        && stored[i + 1].TypeCode == 1040
+                        && double.TryParse(
+                            stored[i + 1].Value,
+                            NumberStyles.Float,
+                            CultureInfo.InvariantCulture,
+                            out double value
+                        )
+                        && value >= 0.0
+                    )
                     {
                         size = value;
                     }
@@ -1005,7 +1160,14 @@ namespace GeometryHelper.Dxf.Viewer
 
                         for (int i = 0; i + 1 < n || (polyline.Closed && i < n && n > 2); i++)
                         {
-                            SegmentCrossing(a, way, length, polyline.GetPoint2dAt(i), polyline.GetPoint2dAt((i + 1) % n), found);
+                            SegmentCrossing(
+                                a,
+                                way,
+                                length,
+                                polyline.GetPoint2dAt(i),
+                                polyline.GetPoint2dAt((i + 1) % n),
+                                found
+                            );
                         }
 
                         break;
@@ -1013,7 +1175,16 @@ namespace GeometryHelper.Dxf.Viewer
                         CircleCrossing(a, way, length, P2(circle.Center), circle.Radius, 0.0, 2.0 * Math.PI, found);
                         break;
                     case DxfArc arc:
-                        CircleCrossing(a, way, length, P2(arc.Center), arc.Radius, arc.StartAngle, CadGrips.Sweep(arc.StartAngle, arc.EndAngle), found);
+                        CircleCrossing(
+                            a,
+                            way,
+                            length,
+                            P2(arc.Center),
+                            arc.Radius,
+                            arc.StartAngle,
+                            CadGrips.Sweep(arc.StartAngle, arc.EndAngle),
+                            found
+                        );
                         break;
                 }
             }
@@ -1022,7 +1193,14 @@ namespace GeometryHelper.Dxf.Viewer
             return found;
         }
 
-        private static void SegmentCrossing(GeoPoint2 a, GeoVector2 way, double length, GeoPoint2 p, GeoPoint2 q, List<double> found)
+        private static void SegmentCrossing(
+            GeoPoint2 a,
+            GeoVector2 way,
+            double length,
+            GeoPoint2 p,
+            GeoPoint2 q,
+            List<double> found
+        )
         {
             GeoVector2 other = q - p;
             double across = Cross(way, other);
@@ -1041,7 +1219,16 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static void CircleCrossing(GeoPoint2 a, GeoVector2 way, double length, GeoPoint2 center, double radius, double start, double sweep, List<double> found)
+        private static void CircleCrossing(
+            GeoPoint2 a,
+            GeoVector2 way,
+            double length,
+            GeoPoint2 center,
+            double radius,
+            double start,
+            double sweep,
+            List<double> found
+        )
         {
             GeoVector2 from = a - center;
             double b = from.X * way.X + from.Y * way.Y;
@@ -1075,7 +1262,8 @@ namespace GeometryHelper.Dxf.Viewer
         {
             GeoVector2 way = b - a;
             double length2 = way.X * way.X + way.Y * way.Y;
-            double t = length2 <= 0.0 ? 0.0 : Math.Max(0.0, Math.Min(1.0, ((p - a).X * way.X + (p - a).Y * way.Y) / length2));
+            double t =
+                length2 <= 0.0 ? 0.0 : Math.Max(0.0, Math.Min(1.0, ((p - a).X * way.X + (p - a).Y * way.Y) / length2));
             return (p - (a + way * t)).Length;
         }
 
@@ -1111,7 +1299,10 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                var part = new DxfLine(line.StartPoint.Add(way.Multiply(piece.Key)), line.StartPoint.Add(way.Multiply(piece.Value)))
+                var part = new DxfLine(
+                    line.StartPoint.Add(way.Multiply(piece.Key)),
+                    line.StartPoint.Add(way.Multiply(piece.Value))
+                )
                 {
                     Layer = line.Layer,
                     Color = line.Color,

@@ -12,11 +12,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     /// </summary>
     public class ScaleListEditTests
     {
-        private static string[] Names(CadDocument document)
-            => document.Database.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES").Select(s => s.Name).ToArray();
+        private static string[] Names(CadDocument document) =>
+            document
+                .Database.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES")
+                .Select(s => s.Name)
+                .ToArray();
 
-        private static DxfAnnotationScale Scale(CadDocument document, string name)
-            => (DxfAnnotationScale)document.Database.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES").GetContext(name);
+        private static DxfAnnotationScale Scale(CadDocument document, string name) =>
+            (DxfAnnotationScale)
+                document.Database.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES").GetContext(name);
 
         [Fact]
         public void AddRedefineAndList_AsAutoCADsConsoleDoes()
@@ -25,7 +29,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Session(document);
 
             Run(session, "-SCALELISTEDIT", "R", "Y", "A", "GH", "1=3");
-            Assert.Equal("Invalid entry. Expects a ratio entered in the following format: \"1:1\"", session.History.Last());
+            Assert.Equal(
+                "Invalid entry. Expects a ratio entered in the following format: \"1:1\"",
+                session.History.Last()
+            );
             Run(session, "1:3", "A", "gh", "Y", "2:3", "?");
 
             DxfAnnotationScale gh = Scale(document, "GH");
@@ -36,7 +43,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Contains("    ----------             -----------  -------------  ---------------", session.History);
             Assert.Contains(" 1: 1:1                         1.0000        1.0000        1.0000", session.History);
             int at = Names(document).ToList().IndexOf("GH") + 1;
-            Assert.Contains(at.ToString().PadLeft(2) + ": GH                          2.0000        3.0000        0.6667", session.History);
+            Assert.Contains(
+                at.ToString().PadLeft(2) + ": GH                          2.0000        3.0000        0.6667",
+                session.History
+            );
 
             // A no to the redefinition keeps the scale; Exit ends.
             Run(session, "A", "GH", "N", "E");

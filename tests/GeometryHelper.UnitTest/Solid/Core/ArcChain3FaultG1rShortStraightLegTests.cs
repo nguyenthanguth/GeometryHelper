@@ -26,24 +26,31 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly GeoVector3 Normal = new GeoVector3(0, -Math.Sin(Math.PI / 6), Math.Cos(Math.PI / 6));
 
         /// <summary>A tolerance small enough to keep a leg 0.6 tolerances long when the chain or loop is built.</summary>
-        private static readonly Tolerance Build = new Tolerance(1E-9, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-9);
+        private static readonly Tolerance Build = new Tolerance(
+            1E-9,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-9
+        );
 
-        private static Tolerance At(double equalPoint) => new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
+        private static Tolerance At(double equalPoint) =>
+            new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
 
         /// <summary>The point at x, y in the tilted plane and z over it.</summary>
-        private static GeoPoint3 At(double x, double y, double z = 0.0)
-            => Origin.Add(AlongX.Multiply(x)).Add(AlongY.Multiply(y)).Add(Normal.Multiply(z));
+        private static GeoPoint3 At(double x, double y, double z = 0.0) =>
+            Origin.Add(AlongX.Multiply(x)).Add(AlongY.Multiply(y)).Add(Normal.Multiply(z));
 
         /// <summary>The lower half of the circle of radius 5 about (5, 0), from (0, 0) to (10, 0).</summary>
         private static GeoEdge3 Bend() => new GeoEdge3(GeoArc3.FromThreePoints(At(0, 0), At(5, -5), At(10, 0), Build));
 
         /// <summary>The straight edge, the bend and the short leg 0.6 tolerances long.</summary>
-        private static List<GeoEdge3> ChainEdges(double equalPoint) => new List<GeoEdge3>
-        {
-            new GeoEdge3(At(-10, 0), At(0, 0)),
-            Bend(),
-            new GeoEdge3(At(10, 0), At(10, 0.6 * equalPoint)),
-        };
+        private static List<GeoEdge3> ChainEdges(double equalPoint) =>
+            new List<GeoEdge3>
+            {
+                new GeoEdge3(At(-10, 0), At(0, 0)),
+                Bend(),
+                new GeoEdge3(At(10, 0), At(10, 0.6 * equalPoint)),
+            };
 
         /// <summary>The bend, the short leg, and the two straight sides back through (0, 10).</summary>
         private static GeoPolygonArc3 Loop(double equalPoint)
@@ -54,7 +61,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new[] { At(0, 0), At(10, 0), At(10, 0.6 * equalPoint), At(0, 10) },
                 new[] { bend.Bulge, 0.0, 0.0, 0.0 },
                 new[] { bend.Normal, default(GeoVector3), default(GeoVector3), default(GeoVector3) },
-                Build);
+                Build
+            );
         }
 
         /// <summary>The distance from a run of edges to a point, read off 20 000 points along each edge.</summary>
@@ -76,7 +84,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Theory]
         [InlineData(1E-3)]
         [InlineData(1E-2)]
-        public void APointBesideTheEndOfAStraightLegShorterThanTheTolerance_IsTheExactDistanceFromTheChain(double equalPoint)
+        public void APointBesideTheEndOfAStraightLegShorterThanTheTolerance_IsTheExactDistanceFromTheChain(
+            double equalPoint
+        )
         {
             // At a tolerance of 0.001, the leg from (10, 0) to (10, 0.0006) and the point 0.0009 beside its end, out from the
             // bend, or 0.0009 over it: 0.0009 from the chain. Read as its start (10, 0), the leg stood 0.00108 away, the root of
@@ -90,7 +100,11 @@ namespace GeometryHelper.UnitTest.Solid
             double slack = 1E-11;
 
             Assert.Equal(3, chain.EdgeCount);
-            Assert.InRange(beside.DistanceTo(At(10, 0)), Math.Sqrt(1.17) * equalPoint - slack, Math.Sqrt(1.17) * equalPoint + slack);
+            Assert.InRange(
+                beside.DistanceTo(At(10, 0)),
+                Math.Sqrt(1.17) * equalPoint - slack,
+                Math.Sqrt(1.17) * equalPoint + slack
+            );
             Assert.InRange(Sampled(edges, beside), exact - 1E-9, exact + 1E-9);
             Assert.InRange(chain.DistanceTo(beside, t), exact - slack, exact + slack);
             Assert.InRange(chain.DistanceTo(over, t), exact - slack, exact + slack);
@@ -117,7 +131,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Theory]
         [InlineData(1E-3)]
         [InlineData(1E-2)]
-        public void APointBesideAStraightSideShorterThanTheTolerance_IsTheExactDistanceFromTheLoopAndOnIt(double equalPoint)
+        public void APointBesideAStraightSideShorterThanTheTolerance_IsTheExactDistanceFromTheLoopAndOnIt(
+            double equalPoint
+        )
         {
             // At a tolerance of 0.001, the point 0.00098 out beside the middle of the side from (10, 0) to (10, 0.0006): 0.00098
             // from the loop, and on it. Read as its start, the side stood 0.001025 away, the root of 0.0003 squared and 0.00098
@@ -150,12 +166,14 @@ namespace GeometryHelper.UnitTest.Solid
             // tolerances out beside the middle of the leg: on the chain, 0.98 tolerances from it, and further than the tolerance
             // from both ends of the leg, so the chain is not cut there and comes back whole.
             Tolerance t = At(equalPoint);
-            var chain = new GeoPolylineArc3(new List<GeoEdge3>
-            {
-                new GeoEdge3(At(0, 0), At(10, 0)),
-                new GeoEdge3(At(10, 0), At(10, 0.6 * equalPoint)),
-                new GeoEdge3(At(10, 0.6 * equalPoint), At(0, 0.6 * equalPoint)),
-            });
+            var chain = new GeoPolylineArc3(
+                new List<GeoEdge3>
+                {
+                    new GeoEdge3(At(0, 0), At(10, 0)),
+                    new GeoEdge3(At(10, 0), At(10, 0.6 * equalPoint)),
+                    new GeoEdge3(At(10, 0.6 * equalPoint), At(0, 0.6 * equalPoint)),
+                }
+            );
             GeoPoint3 beside = At(10 + 0.98 * equalPoint, 0.3 * equalPoint);
 
             Assert.InRange(chain.DistanceTo(beside, t), 0.98 * equalPoint - 1E-11, 0.98 * equalPoint + 1E-11);
@@ -181,17 +199,35 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPoint3 besideLow = At(10 + 0.98 * equalPoint, 0.1 * equalPoint);
             double slack = 1E-11;
 
-            Assert.InRange(chain.GetClosestPointOnBoundary(besideEnd, t).DistanceTo(At(10, 0.6 * equalPoint)), 0.0, slack);
-            Assert.InRange(chain.GetShortestLineTo(besideEnd, t).Length, 0.9 * equalPoint - slack, 0.9 * equalPoint + slack);
+            Assert.InRange(
+                chain.GetClosestPointOnBoundary(besideEnd, t).DistanceTo(At(10, 0.6 * equalPoint)),
+                0.0,
+                slack
+            );
+            Assert.InRange(
+                chain.GetShortestLineTo(besideEnd, t).Length,
+                0.9 * equalPoint - slack,
+                0.9 * equalPoint + slack
+            );
             Assert.InRange(loop.DistanceTo(besideLow, t), 0.98 * equalPoint - slack, 0.98 * equalPoint + slack);
-            Assert.InRange(loop.GetClosestPointOnBoundary(besideLow, t).DistanceTo(At(10, 0.1 * equalPoint)), 0.0, slack);
-            Assert.InRange(loop.GetShortestLineTo(besideLow, t).Length, 0.98 * equalPoint - slack, 0.98 * equalPoint + slack);
+            Assert.InRange(
+                loop.GetClosestPointOnBoundary(besideLow, t).DistanceTo(At(10, 0.1 * equalPoint)),
+                0.0,
+                slack
+            );
+            Assert.InRange(
+                loop.GetShortestLineTo(besideLow, t).Length,
+                0.98 * equalPoint - slack,
+                0.98 * equalPoint + slack
+            );
         }
 
         [Theory]
         [InlineData(1E-3)]
         [InlineData(1E-2)]
-        public void TheShortestLineFromABallBesideAStraightLegShorterThanTheTolerance_IsAsLongAsTheDistanceAndLandsOnTheLeg(double equalPoint)
+        public void TheShortestLineFromABallBesideAStraightLegShorterThanTheTolerance_IsAsLongAsTheDistanceAndLandsOnTheLeg(
+            double equalPoint
+        )
         {
             // The ball of radius 0.5 tolerances about the point 0.9 tolerances beside the leg's end is 0.4 tolerances from the
             // chain, and its shortest line lands on that end. Read as its start, the leg stood 0.58 tolerances away and the line

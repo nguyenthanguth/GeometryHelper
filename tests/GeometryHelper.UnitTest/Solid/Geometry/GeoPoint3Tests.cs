@@ -97,8 +97,12 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoLine3 line = new GeoLine3(new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(10.0, 0.0, 0.0));
 
-            Assert.True(new GeoPoint3(4.0, 3.0, 0.0).GetClosestPointOnBoundary(line).IsEqualTo(new GeoPoint3(4.0, 0.0, 0.0)));
-            Assert.True(new GeoPoint3(-5.0, 3.0, 0.0).GetClosestPointOnBoundary(line).IsEqualTo(new GeoPoint3(0.0, 0.0, 0.0)));
+            Assert.True(
+                new GeoPoint3(4.0, 3.0, 0.0).GetClosestPointOnBoundary(line).IsEqualTo(new GeoPoint3(4.0, 0.0, 0.0))
+            );
+            Assert.True(
+                new GeoPoint3(-5.0, 3.0, 0.0).GetClosestPointOnBoundary(line).IsEqualTo(new GeoPoint3(0.0, 0.0, 0.0))
+            );
         }
 
         [Fact]
@@ -106,7 +110,9 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoRay3 ray = new GeoRay3(GeoPoint3.Origin, GeoVector3.XAxis);
 
-            Assert.True(new GeoPoint3(4.0, 3.0, 0.0).GetClosestPointOnBoundary(ray).IsEqualTo(new GeoPoint3(4.0, 0.0, 0.0)));
+            Assert.True(
+                new GeoPoint3(4.0, 3.0, 0.0).GetClosestPointOnBoundary(ray).IsEqualTo(new GeoPoint3(4.0, 0.0, 0.0))
+            );
             Assert.True(new GeoPoint3(-4.0, 3.0, 0.0).GetClosestPointOnBoundary(ray).IsEqualTo(GeoPoint3.Origin));
         }
 

@@ -47,8 +47,8 @@ namespace GeometryHelper.UnitTest.Solid
             // Read as a correctly rounding parser reads it, which .NET Framework's is not.
             public double Number(int code) => ExportTests.ParseExactly(Text(code));
 
-            public List<double> Numbers(int code)
-                => Pairs.Where(p => p.Code == code).Select(p => ExportTests.ParseExactly(p.Value)).ToList();
+            public List<double> Numbers(int code) =>
+                Pairs.Where(p => p.Code == code).Select(p => ExportTests.ParseExactly(p.Value)).ToList();
 
             public string Layer => Text(8);
 
@@ -154,8 +154,8 @@ namespace GeometryHelper.UnitTest.Solid
             public List<Record> Everything() => _records.Values.SelectMany(r => r).ToList();
         }
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
         /// <summary>The signed volume under a set of 3DFACEs: a triangle ABC, or a quad as ABC and ACD.</summary>
         private static double VolumeUnder(IEnumerable<Record> faces)
@@ -203,7 +203,9 @@ namespace GeometryHelper.UnitTest.Solid
         /// </summary>
         private static void AssertOwners(Dxf dxf)
         {
-            string modelSpace = dxf.Records("TABLES").Single(r => r.Type == "BLOCK_RECORD" && r.Text(2) == "*Model_Space").Handle;
+            string modelSpace = dxf.Records("TABLES")
+                .Single(r => r.Type == "BLOCK_RECORD" && r.Text(2) == "*Model_Space")
+                .Handle;
             string polyline = null;
 
             foreach (Record entity in dxf.Entities)
@@ -283,21 +285,34 @@ namespace GeometryHelper.UnitTest.Solid
         [Trait("Step", "5")]
         public void TheHeaderStatesTheVersionTheUnitsAndTheExtents()
         {
-            Dxf dxf = Dxf.Of(new DxfWriter()
-                .Add(new GeoLine3(new GeoPoint3(-5, 2, 7), new GeoPoint3(30, -8, 1.5)))
-                .Add(new GeoLine2(new GeoPoint2(1, 1), new GeoPoint2(100, 40))));
+            Dxf dxf = Dxf.Of(
+                new DxfWriter()
+                    .Add(new GeoLine3(new GeoPoint3(-5, 2, 7), new GeoPoint3(30, -8, 1.5)))
+                    .Add(new GeoLine2(new GeoPoint2(1, 1), new GeoPoint2(100, 40)))
+            );
 
             Assert.Equal("AC1015", Assert.Single(dxf.Header("$ACADVER")).Value);
             Assert.Equal("4", Assert.Single(dxf.Header("$INSUNITS")).Value);
 
             List<Pair> min = dxf.Header("$EXTMIN");
             List<Pair> max = dxf.Header("$EXTMAX");
-            Assert.Equal(new[] { -5.0, -8.0, 0.0 }, min.Select(p => double.Parse(p.Value, CultureInfo.InvariantCulture)));
+            Assert.Equal(
+                new[] { -5.0, -8.0, 0.0 },
+                min.Select(p => double.Parse(p.Value, CultureInfo.InvariantCulture))
+            );
             Assert.Equal(new[] { 10, 20, 30 }, min.Select(p => p.Code));
-            Assert.Equal(new[] { 100.0, 40.0, 7.0 }, max.Select(p => double.Parse(p.Value, CultureInfo.InvariantCulture)));
+            Assert.Equal(
+                new[] { 100.0, 40.0, 7.0 },
+                max.Select(p => double.Parse(p.Value, CultureInfo.InvariantCulture))
+            );
 
-            long seed = long.Parse(Assert.Single(dxf.Header("$HANDSEED")).Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-            long highest = dxf.Everything().Where(r => r.Has(5) || r.Has(105))
+            long seed = long.Parse(
+                Assert.Single(dxf.Header("$HANDSEED")).Value,
+                NumberStyles.HexNumber,
+                CultureInfo.InvariantCulture
+            );
+            long highest = dxf.Everything()
+                .Where(r => r.Has(5) || r.Has(105))
                 .Max(r => long.Parse(r.Handle, NumberStyles.HexNumber, CultureInfo.InvariantCulture));
 
             Assert.True(seed > highest, "The handle seed has to be past every handle used.");
@@ -311,16 +326,29 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(
                 new[] { "VPORT", "LTYPE", "LAYER", "STYLE", "VIEW", "UCS", "APPID", "DIMSTYLE", "BLOCK_RECORD" },
-                dxf.Records("TABLES").Where(r => r.Type == "TABLE").Select(r => r.Text(2)));
-            Assert.Equal(new[] { "ByBlock", "ByLayer", "Continuous" }, dxf.Records("TABLES").Where(r => r.Type == "LTYPE").Select(r => r.Text(2)));
-            Assert.Equal(new[] { "*Model_Space", "*Paper_Space" }, dxf.Records("TABLES").Where(r => r.Type == "BLOCK_RECORD").Select(r => r.Text(2)));
-            Assert.Equal(new[] { "*Model_Space", "*Paper_Space" }, dxf.Records("BLOCKS").Where(r => r.Type == "BLOCK").Select(r => r.Text(2)));
+                dxf.Records("TABLES").Where(r => r.Type == "TABLE").Select(r => r.Text(2))
+            );
+            Assert.Equal(
+                new[] { "ByBlock", "ByLayer", "Continuous" },
+                dxf.Records("TABLES").Where(r => r.Type == "LTYPE").Select(r => r.Text(2))
+            );
+            Assert.Equal(
+                new[] { "*Model_Space", "*Paper_Space" },
+                dxf.Records("TABLES").Where(r => r.Type == "BLOCK_RECORD").Select(r => r.Text(2))
+            );
+            Assert.Equal(
+                new[] { "*Model_Space", "*Paper_Space" },
+                dxf.Records("BLOCKS").Where(r => r.Type == "BLOCK").Select(r => r.Text(2))
+            );
             Assert.Equal(2, dxf.Records("BLOCKS").Count(r => r.Type == "ENDBLK"));
             Assert.Equal("DICTIONARY", dxf.Records("OBJECTS")[0].Type);
             Assert.Equal(9, dxf.Records("TABLES").Count(r => r.Type == "ENDTAB"));
             Assert.Equal(
                 new[] { 0.0, 0.0 },
-                dxf.Records("TABLES").Where(r => r.Type == "TABLE" && (r.Text(2) == "VIEW" || r.Text(2) == "UCS")).Select(r => r.Number(70)));
+                dxf.Records("TABLES")
+                    .Where(r => r.Type == "TABLE" && (r.Text(2) == "VIEW" || r.Text(2) == "UCS"))
+                    .Select(r => r.Number(70))
+            );
         }
 
         [Fact]
@@ -354,7 +382,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             AssertOwners(dxf);
             Assert.All(dxf.Entities, e => Assert.Equal("AcDbEntity", e.Pairs.First(p => p.Code == 100).Value));
-            Assert.All(dxf.Entities, e => Assert.True(long.Parse(e.Handle, NumberStyles.HexNumber, CultureInfo.InvariantCulture) >= 0x100));
+            Assert.All(dxf.Entities, e =>
+                Assert.True(long.Parse(e.Handle, NumberStyles.HexNumber, CultureInfo.InvariantCulture) >= 0x100)
+            );
         }
 
         [Fact]
@@ -362,7 +392,9 @@ namespace GeometryHelper.UnitTest.Solid
         public void ALayerIsCreatedOnFirstUseAndEveryEntityIsOnOneInTheTable()
         {
             var a = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0));
-            Dxf dxf = Dxf.Of(new DxfWriter().Add(a, "walls").Add(a).Add(a, "Walls").Add(a, "slab").Add(a, "  ").Add(a, "walls"));
+            Dxf dxf = Dxf.Of(
+                new DxfWriter().Add(a, "walls").Add(a).Add(a, "Walls").Add(a, "slab").Add(a, "  ").Add(a, "walls")
+            );
 
             List<Record> layers = dxf.Records("TABLES").Where(r => r.Type == "LAYER").ToList();
 
@@ -372,7 +404,8 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(new[] { "walls", "0", "walls", "slab", "0", "walls" }, dxf.Entities.Select(e => e.Layer));
             Assert.Equal(
                 layers.Count,
-                dxf.Records("TABLES").Single(r => r.Type == "TABLE" && r.Text(2) == "LAYER").Number(70));
+                dxf.Records("TABLES").Single(r => r.Type == "TABLE" && r.Text(2) == "LAYER").Number(70)
+            );
         }
 
         [Fact]
@@ -394,9 +427,11 @@ namespace GeometryHelper.UnitTest.Solid
         [Trait("Step", "5")]
         public void ALineIsWrittenWithItsTwoEndsAsALine()
         {
-            Dxf dxf = Dxf.Of(new DxfWriter()
-                .Add(new GeoLine2(new GeoPoint2(1, 2), new GeoPoint2(3, 4)))
-                .Add(new GeoLine3(new GeoPoint3(1, 2, 3), new GeoPoint3(-4, 5.5, 6)), "bars"));
+            Dxf dxf = Dxf.Of(
+                new DxfWriter()
+                    .Add(new GeoLine2(new GeoPoint2(1, 2), new GeoPoint2(3, 4)))
+                    .Add(new GeoLine3(new GeoPoint3(1, 2, 3), new GeoPoint3(-4, 5.5, 6)), "bars")
+            );
 
             Assert.Equal(2, dxf.Entities.Count);
             Assert.All(dxf.Entities, e => Assert.Equal("LINE", e.Type));
@@ -445,7 +480,10 @@ namespace GeometryHelper.UnitTest.Solid
         [Trait("Step", "5")]
         public void ASavedFileHoldsTheTextWithoutAByteOrderMark()
         {
-            string path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "dxf-" + Guid.NewGuid().ToString("N") + ".dxf");
+            string path = System.IO.Path.Combine(
+                System.IO.Path.GetTempPath(),
+                "dxf-" + Guid.NewGuid().ToString("N") + ".dxf"
+            );
             var writer = new DxfWriter().Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0)));
 
             try
@@ -509,11 +547,20 @@ namespace GeometryHelper.UnitTest.Solid
         [Trait("Step", "6")]
         public void AChainIsAnOpenLightweightPolylineAndEveryClosedShapeIsAClosedOne()
         {
-            Dxf dxf = Dxf.Of(new DxfWriter()
-                .Add(new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 5)))
-                .Add(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 5), new GeoPoint2(0, 5)))
-                .Add(new GeoRectangle2(new GeoPoint2(15, 10), 30, 20))
-                .Add(new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(4, 0), new GeoPoint2(0, 3))));
+            Dxf dxf = Dxf.Of(
+                new DxfWriter()
+                    .Add(new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 5)))
+                    .Add(
+                        new GeoPolygon2(
+                            new GeoPoint2(0, 0),
+                            new GeoPoint2(10, 0),
+                            new GeoPoint2(10, 5),
+                            new GeoPoint2(0, 5)
+                        )
+                    )
+                    .Add(new GeoRectangle2(new GeoPoint2(15, 10), 30, 20))
+                    .Add(new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(4, 0), new GeoPoint2(0, 3)))
+            );
 
             Assert.All(dxf.Entities, e => Assert.Equal("LWPOLYLINE", e.Type));
             Assert.All(dxf.Entities, e => Assert.Contains(e.Pairs, p => p.Code == 100 && p.Value == "AcDbPolyline"));
@@ -599,7 +646,9 @@ namespace GeometryHelper.UnitTest.Solid
         public void ASemicircleHasTheBulgeOfOne()
         {
             var half = new GeoPolylineArc2(new[] { new GeoEdge2(new GeoArc2(GeoPoint2.Origin, 10, 0, Math.PI)) });
-            var other = new GeoPolylineArc2(new[] { new GeoEdge2(new GeoArc2(GeoPoint2.Origin, 10, 0, Math.PI, true)) });
+            var other = new GeoPolylineArc2(
+                new[] { new GeoEdge2(new GeoArc2(GeoPoint2.Origin, 10, 0, Math.PI, true)) }
+            );
             Dxf dxf = Dxf.Of(new DxfWriter().Add(half).Add(other));
 
             Assert.Equal(1.0, dxf.Entities[0].Numbers(42).Single(), 12);
@@ -613,7 +662,8 @@ namespace GeometryHelper.UnitTest.Solid
             // A square 0..10 whose left side bows out as a semicircle: the edge from (0, 10) back to (0, 0).
             var loop = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10) },
-                new[] { 0.0, 0.0, 0.0, 1.0 });
+                new[] { 0.0, 0.0, 0.0, 1.0 }
+            );
 
             Record polyline = Assert.Single(Dxf.Of(new DxfWriter().Add(loop)).Entities);
 
@@ -630,9 +680,24 @@ namespace GeometryHelper.UnitTest.Solid
         [Trait("Step", "6")]
         public void AFaceIsOneClosedPolylineForItsBoundaryAndOneForEachHole()
         {
-            var plate = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 60), new GeoPoint2(0, 60));
-            var slot = new GeoPolygon2(new GeoPoint2(20, 20), new GeoPoint2(80, 20), new GeoPoint2(80, 40), new GeoPoint2(20, 40));
-            var hole = new GeoPolygon2(new GeoPoint2(5, 5), new GeoPoint2(10, 5), new GeoPoint2(10, 10), new GeoPoint2(5, 10));
+            var plate = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 60),
+                new GeoPoint2(0, 60)
+            );
+            var slot = new GeoPolygon2(
+                new GeoPoint2(20, 20),
+                new GeoPoint2(80, 20),
+                new GeoPoint2(80, 40),
+                new GeoPoint2(20, 40)
+            );
+            var hole = new GeoPolygon2(
+                new GeoPoint2(5, 5),
+                new GeoPoint2(10, 5),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(5, 10)
+            );
             Dxf dxf = Dxf.Of(new DxfWriter().Add(new GeoFace2(plate, new[] { slot, hole }), "plate"));
 
             Assert.Equal(3, dxf.Entities.Count);
@@ -719,7 +784,12 @@ namespace GeometryHelper.UnitTest.Solid
         [Trait("Step", "6")]
         public void AnEllipseIsWrittenWithItsMajorAxisItsRatioAndAWholeTurn()
         {
-            var ellipse = new GeoEllipse2(new GeoPoint2(10, 20), new GeoVector2(Math.Cos(Math.PI / 6), Math.Sin(Math.PI / 6)), 30, 10);
+            var ellipse = new GeoEllipse2(
+                new GeoPoint2(10, 20),
+                new GeoVector2(Math.Cos(Math.PI / 6), Math.Sin(Math.PI / 6)),
+                30,
+                10
+            );
             Record record = Assert.Single(Dxf.Of(new DxfWriter().Add(ellipse, "cams")).Entities);
 
             Assert.Equal("ELLIPSE", record.Type);
@@ -743,7 +813,8 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 var drawn = new GeoPoint2(
                     10 + Math.Cos(t) * axis.X - Math.Sin(t) * ratio * axis.Y,
-                    20 + Math.Cos(t) * axis.Y + Math.Sin(t) * ratio * axis.X);
+                    20 + Math.Cos(t) * axis.Y + Math.Sin(t) * ratio * axis.X
+                );
 
                 Assert.True(drawn.IsEqualTo(ellipse.GetPointAtAngle(t), Tol));
             }
@@ -753,7 +824,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Trait("Step", "6")]
         public void ARayIsWrittenAsARayFromItsOriginAlongItsDirection()
         {
-            Record record = Assert.Single(Dxf.Of(new DxfWriter().Add(new GeoRay2(new GeoPoint2(3, 4), new GeoVector2(0, 2)))).Entities);
+            Record record = Assert.Single(
+                Dxf.Of(new DxfWriter().Add(new GeoRay2(new GeoPoint2(3, 4), new GeoVector2(0, 2)))).Entities
+            );
 
             Assert.Equal("RAY", record.Type);
             Assert.Contains(record.Pairs, p => p.Code == 100 && p.Value == "AcDbRay");
@@ -767,19 +840,35 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // A quarter arc reaches 10 and 10 and no further; a half of a circle reaches round only its way.
             Dxf quarter = Dxf.Of(new DxfWriter().Add(new GeoArc2(GeoPoint2.Origin, 10, 0, Math.PI / 2)));
-            Assert.Equal(new[] { 0.0, 0.0, 0.0 }, quarter.Header("$EXTMIN").Select(p => Math.Round(double.Parse(p.Value, CultureInfo.InvariantCulture), 9)));
-            Assert.Equal(new[] { 10.0, 10.0, 0.0 }, quarter.Header("$EXTMAX").Select(p => Math.Round(double.Parse(p.Value, CultureInfo.InvariantCulture), 9)));
+            Assert.Equal(
+                new[] { 0.0, 0.0, 0.0 },
+                quarter
+                    .Header("$EXTMIN")
+                    .Select(p => Math.Round(double.Parse(p.Value, CultureInfo.InvariantCulture), 9))
+            );
+            Assert.Equal(
+                new[] { 10.0, 10.0, 0.0 },
+                quarter
+                    .Header("$EXTMAX")
+                    .Select(p => Math.Round(double.Parse(p.Value, CultureInfo.InvariantCulture), 9))
+            );
 
             // From minus 45 to 45 degrees, either way round: it reaches 10 on the right, and cos 45 on the left.
-            foreach (GeoArc2 arc in new[]
-            {
-                new GeoArc2(GeoPoint2.Origin, 10, -Math.PI / 4, Math.PI / 4),
-                new GeoArc2(GeoPoint2.Origin, 10, Math.PI / 4, -Math.PI / 4, true),
-            })
+            foreach (
+                GeoArc2 arc in new[]
+                {
+                    new GeoArc2(GeoPoint2.Origin, 10, -Math.PI / 4, Math.PI / 4),
+                    new GeoArc2(GeoPoint2.Origin, 10, Math.PI / 4, -Math.PI / 4, true),
+                }
+            )
             {
                 Dxf dxf = Dxf.Of(new DxfWriter().Add(arc));
-                double[] min = dxf.Header("$EXTMIN").Select(p => double.Parse(p.Value, CultureInfo.InvariantCulture)).ToArray();
-                double[] max = dxf.Header("$EXTMAX").Select(p => double.Parse(p.Value, CultureInfo.InvariantCulture)).ToArray();
+                double[] min = dxf.Header("$EXTMIN")
+                    .Select(p => double.Parse(p.Value, CultureInfo.InvariantCulture))
+                    .ToArray();
+                double[] max = dxf.Header("$EXTMAX")
+                    .Select(p => double.Parse(p.Value, CultureInfo.InvariantCulture))
+                    .ToArray();
 
                 Assert.Equal(10.0 * Math.Cos(Math.PI / 4), min[0], 9);
                 Assert.Equal(-10.0 * Math.Sin(Math.PI / 4), min[1], 9);
@@ -793,7 +882,11 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(35.0, double.Parse(circle.Header("$EXTMAX")[1].Value, CultureInfo.InvariantCulture), 9);
 
             double phi = Math.PI / 6;
-            Dxf ellipse = Dxf.Of(new DxfWriter().Add(new GeoEllipse2(GeoPoint2.Origin, new GeoVector2(Math.Cos(phi), Math.Sin(phi)), 30, 10)));
+            Dxf ellipse = Dxf.Of(
+                new DxfWriter().Add(
+                    new GeoEllipse2(GeoPoint2.Origin, new GeoVector2(Math.Cos(phi), Math.Sin(phi)), 30, 10)
+                )
+            );
             double halfWidth = Math.Sqrt(900 * Math.Cos(phi) * Math.Cos(phi) + 100 * Math.Sin(phi) * Math.Sin(phi));
             double halfHeight = Math.Sqrt(900 * Math.Sin(phi) * Math.Sin(phi) + 100 * Math.Cos(phi) * Math.Cos(phi));
             Assert.Equal(-halfWidth, double.Parse(ellipse.Header("$EXTMIN")[0].Value, CultureInfo.InvariantCulture), 9);
@@ -803,7 +896,11 @@ namespace GeometryHelper.UnitTest.Solid
             var chain = new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0) }, new[] { 1.0 });
             Dxf bowed = Dxf.Of(new DxfWriter().Add(chain));
             Assert.Equal(-5.0, double.Parse(bowed.Header("$EXTMIN")[1].Value, CultureInfo.InvariantCulture), 9);
-            Assert.Equal(0.0, Math.Abs(double.Parse(bowed.Header("$EXTMAX")[1].Value, CultureInfo.InvariantCulture)), 9);
+            Assert.Equal(
+                0.0,
+                Math.Abs(double.Parse(bowed.Header("$EXTMAX")[1].Value, CultureInfo.InvariantCulture)),
+                9
+            );
         }
 
         // ===== Step 7: space ===========================================================================================
@@ -812,7 +909,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Trait("Step", "7")]
         public void ARayInSpaceIsARay()
         {
-            Record record = Assert.Single(Dxf.Of(new DxfWriter().Add(new GeoRay3(new GeoPoint3(1, 2, 3), new GeoVector3(0, 0, 5)))).Entities);
+            Record record = Assert.Single(
+                Dxf.Of(new DxfWriter().Add(new GeoRay3(new GeoPoint3(1, 2, 3), new GeoVector3(0, 0, 5)))).Entities
+            );
 
             Assert.Equal("RAY", record.Type);
             Assert.Equal(new GeoPoint3(1, 2, 3), record.Point(0));
@@ -824,12 +923,31 @@ namespace GeometryHelper.UnitTest.Solid
         public void AChainInSpaceIsAThreeDimensionalPolylineWithItsVerticesAndAnEnd()
         {
             var chain = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 2), new GeoPoint3(10, 10, 5));
-            var loop = new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+            var loop = new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
             Dxf dxf = Dxf.Of(new DxfWriter().Add(chain, "bars").Add(loop));
 
             Assert.Equal(
-                new[] { "POLYLINE", "VERTEX", "VERTEX", "VERTEX", "SEQEND", "POLYLINE", "VERTEX", "VERTEX", "VERTEX", "VERTEX", "SEQEND" },
-                dxf.Entities.Select(e => e.Type));
+                new[]
+                {
+                    "POLYLINE",
+                    "VERTEX",
+                    "VERTEX",
+                    "VERTEX",
+                    "SEQEND",
+                    "POLYLINE",
+                    "VERTEX",
+                    "VERTEX",
+                    "VERTEX",
+                    "VERTEX",
+                    "SEQEND",
+                },
+                dxf.Entities.Select(e => e.Type)
+            );
 
             Record first = dxf.Entities[0];
             Assert.Equal(8.0, first.Number(70));
@@ -838,7 +956,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(9.0, dxf.Entities[5].Number(70));
 
             Assert.All(dxf.Entities.Where(e => e.Type == "VERTEX"), v => Assert.Equal(32.0, v.Number(70)));
-            Assert.All(dxf.Entities.Where(e => e.Type == "VERTEX"), v => Assert.Contains(v.Pairs, p => p.Code == 100 && p.Value == "AcDb3dPolylineVertex"));
+            Assert.All(dxf.Entities.Where(e => e.Type == "VERTEX"), v =>
+                Assert.Contains(v.Pairs, p => p.Code == 100 && p.Value == "AcDb3dPolylineVertex")
+            );
             Assert.Equal(new GeoPoint3(10, 0, 2), dxf.Entities[2].Point(0));
             Assert.Equal(new GeoPoint3(10, 10, 5), dxf.Entities[3].Point(0));
             Assert.Equal("bars", dxf.Entities[4].Layer);
@@ -880,7 +1000,8 @@ namespace GeometryHelper.UnitTest.Solid
                 var drawn = new GeoPoint3(
                     1 + Math.Cos(t) * along.X + Math.Sin(t) * minor.X,
                     2 + Math.Cos(t) * along.Y + Math.Sin(t) * minor.Y,
-                    3 + Math.Cos(t) * along.Z + Math.Sin(t) * minor.Z);
+                    3 + Math.Cos(t) * along.Z + Math.Sin(t) * minor.Z
+                );
 
                 Assert.True(drawn.IsEqualTo(ellipse.GetPointAtAngle(t), Tol));
             }
@@ -928,8 +1049,18 @@ namespace GeometryHelper.UnitTest.Solid
         [Trait("Step", "7")]
         public void ATriangleListAndAFaceWithAHoleAreFacesCoveringTheirArea()
         {
-            var plate = new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 60, 0), new GeoPoint3(0, 60, 0));
-            var slot = new GeoPolygon3(new GeoPoint3(20, 20, 0), new GeoPoint3(80, 20, 0), new GeoPoint3(80, 40, 0), new GeoPoint3(20, 40, 0));
+            var plate = new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 60, 0),
+                new GeoPoint3(0, 60, 0)
+            );
+            var slot = new GeoPolygon3(
+                new GeoPoint3(20, 20, 0),
+                new GeoPoint3(80, 20, 0),
+                new GeoPoint3(80, 40, 0),
+                new GeoPoint3(20, 40, 0)
+            );
             var face = new GeoFace3(plate, new[] { slot });
 
             Dxf dxf = Dxf.Of(new DxfWriter().Add(face, "plate"));
@@ -951,7 +1082,12 @@ namespace GeometryHelper.UnitTest.Solid
         [Trait("Step", "7")]
         public void AMeshWritesOneFacePerCellThatTurnsOneWayAndTrianglesForTheRest()
         {
-            var rectangle = new GeoPolygon3(new GeoPoint3(0, 0, 5), new GeoPoint3(60, 0, 5), new GeoPoint3(60, 40, 5), new GeoPoint3(0, 40, 5));
+            var rectangle = new GeoPolygon3(
+                new GeoPoint3(0, 0, 5),
+                new GeoPoint3(60, 0, 5),
+                new GeoPoint3(60, 40, 5),
+                new GeoPoint3(0, 40, 5)
+            );
             GeoMesh3 grid = new GeoFace3(rectangle).ToMesh(MeshOptions.Grid(20, 20));
             Dxf cells = Dxf.Of(new DxfWriter().Add(grid));
 
@@ -963,12 +1099,19 @@ namespace GeometryHelper.UnitTest.Solid
 
             // A hexagon is one face of six corners, which no 3DFACE holds: four triangles.
             var hexagon = new GeoPolygon3(
-                new GeoPoint3(10, 0, 0), new GeoPoint3(5, 8.66, 0), new GeoPoint3(-5, 8.66, 0),
-                new GeoPoint3(-10, 0, 0), new GeoPoint3(-5, -8.66, 0), new GeoPoint3(5, -8.66, 0));
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(5, 8.66, 0),
+                new GeoPoint3(-5, 8.66, 0),
+                new GeoPoint3(-10, 0, 0),
+                new GeoPoint3(-5, -8.66, 0),
+                new GeoPoint3(5, -8.66, 0)
+            );
             GeoMesh3 one = new GeoFace3(hexagon).ToMesh(MeshKind.Convex);
             Dxf hexagonal = Dxf.Of(new DxfWriter().Add(one));
 
-            int expected = Enumerable.Range(0, one.FaceCount).Sum(f => one.GetFaceIndices(f).Length <= 4 ? 1 : one.GetFaceIndices(f).Length - 2);
+            int expected = Enumerable
+                .Range(0, one.FaceCount)
+                .Sum(f => one.GetFaceIndices(f).Length <= 4 ? 1 : one.GetFaceIndices(f).Length - 2);
             Assert.Equal(4, expected);
             Assert.Equal(expected, hexagonal.Entities.Count);
             Assert.Equal(one.Area, AreaOf(hexagonal.Entities), 6);
@@ -985,7 +1128,12 @@ namespace GeometryHelper.UnitTest.Solid
         public void AMeshFaceThatTurnsBothWaysIsWrittenAsItsTrianglesNotAsOneBentFace()
         {
             // A dart: four corners, one of which turns the wrong way. One 3DFACE would be drawn as the wrong pair of triangles.
-            var dart = new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(40, 10, 0), new GeoPoint3(0, 20, 0), new GeoPoint3(10, 10, 0));
+            var dart = new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(40, 10, 0),
+                new GeoPoint3(0, 20, 0),
+                new GeoPoint3(10, 10, 0)
+            );
             GeoMesh3 mesh = new GeoFace3(dart).ToMesh(MeshOptions.Grid(100, 100));
 
             Assert.Equal(4, mesh.GetFaceIndices(0).Length);
@@ -996,7 +1144,11 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(dart.Area, AreaOf(dxf.Entities), 6);
         }
 
-        private static double Sag(Record polyline, IReadOnlyList<GeoPoint3> vertices, Func<GeoPoint3, double> distanceToCurve)
+        private static double Sag(
+            Record polyline,
+            IReadOnlyList<GeoPoint3> vertices,
+            Func<GeoPoint3, double> distanceToCurve
+        )
         {
             double worst = 0.0;
 
@@ -1011,8 +1163,8 @@ namespace GeometryHelper.UnitTest.Solid
             return worst;
         }
 
-        private static List<GeoPoint3> VerticesOf(Dxf dxf)
-            => dxf.Entities.Where(e => e.Type == "VERTEX").Select(v => v.Point(0)).ToList();
+        private static List<GeoPoint3> VerticesOf(Dxf dxf) =>
+            dxf.Entities.Where(e => e.Type == "VERTEX").Select(v => v.Point(0)).ToList();
 
         [Fact]
         [Trait("Step", "7")]
@@ -1067,8 +1219,16 @@ namespace GeometryHelper.UnitTest.Solid
         public void ACurvedChainAndALoopInSpaceKeepTheirStraightEdgesAndChordTheirArcs()
         {
             // A slot: two straight sides and a half circle at each end, flat on z = 4.
-            var arcRight = GeoArc3.FromThreePoints(new GeoPoint3(60, 0, 4), new GeoPoint3(70, 10, 4), new GeoPoint3(60, 20, 4));
-            var arcLeft = GeoArc3.FromThreePoints(new GeoPoint3(0, 20, 4), new GeoPoint3(-10, 10, 4), new GeoPoint3(0, 0, 4));
+            var arcRight = GeoArc3.FromThreePoints(
+                new GeoPoint3(60, 0, 4),
+                new GeoPoint3(70, 10, 4),
+                new GeoPoint3(60, 20, 4)
+            );
+            var arcLeft = GeoArc3.FromThreePoints(
+                new GeoPoint3(0, 20, 4),
+                new GeoPoint3(-10, 10, 4),
+                new GeoPoint3(0, 0, 4)
+            );
             var edges = new[]
             {
                 new GeoEdge3(new GeoPoint3(0, 0, 4), new GeoPoint3(60, 0, 4)),
@@ -1120,10 +1280,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Trait("Step", "7")]
         public void EveryHandleStaysUniqueWhenPolylinesAndFacesAreMixed()
         {
-            Dxf dxf = Dxf.Of(new DxfWriter()
-                .Add(new GeoCircle3(GeoPoint3.Origin, new GeoVector3(0, 0, 1), 10), 0.1)
-                .Add(Box(0, 0, 0, 10, 10, 10), "box")
-                .Add(new GeoEllipse3(new GeoPoint3(1, 1, 1), new GeoVector3(0, 0, 1), new GeoVector3(1, 0, 0), 5, 2)));
+            Dxf dxf = Dxf.Of(
+                new DxfWriter()
+                    .Add(new GeoCircle3(GeoPoint3.Origin, new GeoVector3(0, 0, 1), 10), 0.1)
+                    .Add(Box(0, 0, 0, 10, 10, 10), "box")
+                    .Add(
+                        new GeoEllipse3(new GeoPoint3(1, 1, 1), new GeoVector3(0, 0, 1), new GeoVector3(1, 0, 0), 5, 2)
+                    )
+            );
 
             List<string> handles = dxf.Everything().Where(r => r.Has(5) || r.Has(105)).Select(r => r.Handle).ToList();
             Assert.Equal(handles.Count, handles.Distinct().Count());
@@ -1133,12 +1297,13 @@ namespace GeometryHelper.UnitTest.Solid
 
         // ===== The review round ======================================================================================
 
-        private static List<string> LayerNames(Dxf dxf)
-            => dxf.Records("TABLES").Where(r => r.Type == "LAYER").Select(l => l.Text(2)).ToList();
+        private static List<string> LayerNames(Dxf dxf) =>
+            dxf.Records("TABLES").Where(r => r.Type == "LAYER").Select(l => l.Text(2)).ToList();
 
         private static readonly GeoLine2 Stub = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0));
 
-        private static bool Throws<T>(Action act) where T : Exception
+        private static bool Throws<T>(Action act)
+            where T : Exception
         {
             try
             {
@@ -1160,12 +1325,14 @@ namespace GeometryHelper.UnitTest.Solid
             string x255 = new string('x', 255);
             string wide = new string('ệ', 60);
 
-            Dxf dxf = Dxf.Of(new DxfWriter()
-                .Add(Stub, x250 + "é")
-                .Add(Stub, x254 + "é")
-                .Add(Stub, x255 + "é")
-                .Add(Stub, wide + "tail" + new string('y', 300))
-                .Add(Stub, wide));
+            Dxf dxf = Dxf.Of(
+                new DxfWriter()
+                    .Add(Stub, x250 + "é")
+                    .Add(Stub, x254 + "é")
+                    .Add(Stub, x255 + "é")
+                    .Add(Stub, wide + "tail" + new string('y', 300))
+                    .Add(Stub, wide)
+            );
 
             List<string> names = LayerNames(dxf);
 
@@ -1185,7 +1352,8 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(new[] { "0", "B\\U+00E9t\\U+00F3n" }, LayerNames(dxf));
             Assert.Equal(
                 new[] { "B\\U+00E9t\\U+00F3n", "B\\U+00E9t\\U+00F3n", "B\\U+00E9t\\U+00F3n" },
-                dxf.Entities.Select(e => e.Layer));
+                dxf.Entities.Select(e => e.Layer)
+            );
         }
 
         [Fact]
@@ -1205,7 +1373,11 @@ namespace GeometryHelper.UnitTest.Solid
             List<Record> objects = dxf.Records("OBJECTS");
             Record root = objects[0];
 
-            string styles = root.Pairs.SkipWhile(p => !(p.Code == 3 && p.Value == "ACAD_PLOTSTYLENAME")).Skip(1).First().Value;
+            string styles = root
+                .Pairs.SkipWhile(p => !(p.Code == 3 && p.Value == "ACAD_PLOTSTYLENAME"))
+                .Skip(1)
+                .First()
+                .Value;
             Record dictionary = objects.Single(o => o.Type == "ACDBDICTIONARYWDFLT");
 
             Assert.Equal(styles, dictionary.Handle);
@@ -1247,17 +1419,18 @@ namespace GeometryHelper.UnitTest.Solid
             List<Record> classes = dxf.Records("CLASSES");
 
             Assert.All(classes, c => Assert.Equal("CLASS", c.Type));
-            Assert.Equal(
-                new[] { "ACDBDICTIONARYWDFLT", "ACDBPLACEHOLDER", "LAYOUT" },
-                classes.Select(c => c.Text(1)));
+            Assert.Equal(new[] { "ACDBDICTIONARYWDFLT", "ACDBPLACEHOLDER", "LAYOUT" }, classes.Select(c => c.Text(1)));
             Assert.Equal(
                 new[] { "AcDbDictionaryWithDefault", "AcDbPlaceHolder", "AcDbLayout" },
-                classes.Select(c => c.Text(2)));
+                classes.Select(c => c.Text(2))
+            );
 
             // The groups run 1, 2, 3, 90, 280, 281 as they do in the CLASSES section ezdxf writes.
             Assert.All(classes, c => Assert.Equal(new[] { 1, 2, 3, 90, 280, 281 }, c.Pairs.Select(p => p.Code)));
             Assert.All(classes, c => Assert.Equal("ObjectDBX Classes", c.Text(3)));
-            Assert.All(classes, c => Assert.Equal(new[] { 0.0, 0.0, 0.0 }, new[] { c.Number(90), c.Number(280), c.Number(281) }));
+            Assert.All(classes, c =>
+                Assert.Equal(new[] { 0.0, 0.0, 0.0 }, new[] { c.Number(90), c.Number(280), c.Number(281) })
+            );
 
             // Every kind of object the OBJECTS section holds that a class is for is one of the three.
             var named = new HashSet<string>(classes.Select(c => c.Text(1)));
@@ -1291,7 +1464,9 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // Texts that read back to these three, which .NET Framework's "R" prints as 4.87215401133157, 3.38241497910694 and
             // -2.16613335402968E-08, other numbers; they are what .NET 10's "R" prints, but that is not what is asked here.
-            Dxf dxf = Dxf.Of(new DxfWriter().Add(new GeoPoint3(4.8721540113315704, 3.3824149791069402, -2.1661333540296802E-08)));
+            Dxf dxf = Dxf.Of(
+                new DxfWriter().Add(new GeoPoint3(4.8721540113315704, 3.3824149791069402, -2.1661333540296802E-08))
+            );
 
             Assert.Equal("4.8721540113315704", dxf.Entities[0].Text(10));
             Assert.Equal("3.3824149791069402", dxf.Entities[0].Text(20));
@@ -1317,14 +1492,18 @@ namespace GeometryHelper.UnitTest.Solid
         [Trait("Step", "R")]
         public void AVertexAndTheEndOfAPolylineBelongToThePolylineNotToTheModelSpace()
         {
-            Dxf dxf = Dxf.Of(new DxfWriter()
-                .Add(new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 2), new GeoPoint3(10, 10, 5)))
-                .Add(new GeoLine3(GeoPoint3.Origin, new GeoPoint3(1, 1, 1)))
-                .Add(new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0))));
+            Dxf dxf = Dxf.Of(
+                new DxfWriter()
+                    .Add(new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 2), new GeoPoint3(10, 10, 5)))
+                    .Add(new GeoLine3(GeoPoint3.Origin, new GeoPoint3(1, 1, 1)))
+                    .Add(new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0)))
+            );
 
             AssertOwners(dxf);
 
-            string modelSpace = dxf.Records("TABLES").Single(r => r.Type == "BLOCK_RECORD" && r.Text(2) == "*Model_Space").Handle;
+            string modelSpace = dxf.Records("TABLES")
+                .Single(r => r.Type == "BLOCK_RECORD" && r.Text(2) == "*Model_Space")
+                .Handle;
             Record first = dxf.Entities[0];
             Assert.Equal(modelSpace, first.Text(330));
             Assert.Equal(first.Handle, dxf.Entities[1].Text(330));
@@ -1335,8 +1514,18 @@ namespace GeometryHelper.UnitTest.Solid
         [Trait("Step", "R")]
         public void ThePlateWithAHoleDrawsItsRimsOnlyAndItsDiagonalsAreHidden()
         {
-            var plate = new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 60, 0), new GeoPoint3(0, 60, 0));
-            var slot = new GeoPolygon3(new GeoPoint3(20, 20, 0), new GeoPoint3(80, 20, 0), new GeoPoint3(80, 40, 0), new GeoPoint3(20, 40, 0));
+            var plate = new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 60, 0),
+                new GeoPoint3(0, 60, 0)
+            );
+            var slot = new GeoPolygon3(
+                new GeoPoint3(20, 20, 0),
+                new GeoPoint3(80, 20, 0),
+                new GeoPoint3(80, 40, 0),
+                new GeoPoint3(20, 40, 0)
+            );
             Dxf dxf = Dxf.Of(new DxfWriter().Add(new GeoFace3(plate, new[] { slot }), "plate"));
 
             // The rims are 320 round the plate and 160 round the slot, each edge once; every other edge is shared by two triangles.
@@ -1362,14 +1551,24 @@ namespace GeometryHelper.UnitTest.Solid
         [Trait("Step", "R")]
         public void TheDiagonalOfAMeshFaceCutIntoTrianglesIsHiddenAndAGridCellKeepsItsFourEdges()
         {
-            var dart = new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(40, 10, 0), new GeoPoint3(0, 20, 0), new GeoPoint3(10, 10, 0));
+            var dart = new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(40, 10, 0),
+                new GeoPoint3(0, 20, 0),
+                new GeoPoint3(10, 10, 0)
+            );
             Dxf cut = Dxf.Of(new DxfWriter().Add(new GeoFace3(dart).ToMesh(MeshOptions.Grid(100, 100))));
 
             Assert.Equal(2, cut.Entities.Count);
             Assert.Equal(2, HiddenEdges(cut.Entities));
             Assert.Equal(dart.Length, VisibleLength(cut.Entities), 6);
 
-            var rectangle = new GeoPolygon3(new GeoPoint3(0, 0, 5), new GeoPoint3(60, 0, 5), new GeoPoint3(60, 40, 5), new GeoPoint3(0, 40, 5));
+            var rectangle = new GeoPolygon3(
+                new GeoPoint3(0, 0, 5),
+                new GeoPoint3(60, 0, 5),
+                new GeoPoint3(60, 40, 5),
+                new GeoPoint3(0, 40, 5)
+            );
             Dxf cells = Dxf.Of(new DxfWriter().Add(new GeoFace3(rectangle).ToMesh(MeshOptions.Grid(20, 20))));
 
             Assert.Equal(6, cells.Entities.Count);
@@ -1395,7 +1594,11 @@ namespace GeometryHelper.UnitTest.Solid
             var aabb = new GeoAabb3(new GeoPoint3(10, 20, 30), new GeoPoint3(40, 60, 100));
             Dxf straight = Dxf.Of(new DxfWriter().Add(aabb));
             Dxf turned = Dxf.Of(new DxfWriter().Add(aabb.ToObb()));
-            Dxf slanted = Dxf.Of(new DxfWriter().Add(new GeoObb3(new GeoPoint3(5, 6, 7), 30, 40, 70, new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 0.5))));
+            Dxf slanted = Dxf.Of(
+                new DxfWriter().Add(
+                    new GeoObb3(new GeoPoint3(5, 6, 7), 30, 40, 70, new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 0.5))
+                )
+            );
 
             foreach (Dxf dxf in new[] { straight, turned, slanted })
             {
@@ -1433,10 +1636,18 @@ namespace GeometryHelper.UnitTest.Solid
         public void ANumberTheShortestFormatGetsWrongOnFrameworkIsWrittenWithSeventeenDigits()
         {
             const double reviewers = 0.84551240822557006;
-            Dxf dxf = Dxf.Of(new DxfWriter().Add(new GeoPoint3(reviewers, -reviewers, 1E-300)).Add(new GeoPoint2(-0.0, 1.5)));
+            Dxf dxf = Dxf.Of(
+                new DxfWriter().Add(new GeoPoint3(reviewers, -reviewers, 1E-300)).Add(new GeoPoint2(-0.0, 1.5))
+            );
 
-            Assert.Equal(BitConverter.DoubleToInt64Bits(reviewers), BitConverter.DoubleToInt64Bits(dxf.Entities[0].Number(10)));
-            Assert.Equal(BitConverter.DoubleToInt64Bits(-reviewers), BitConverter.DoubleToInt64Bits(dxf.Entities[0].Number(20)));
+            Assert.Equal(
+                BitConverter.DoubleToInt64Bits(reviewers),
+                BitConverter.DoubleToInt64Bits(dxf.Entities[0].Number(10))
+            );
+            Assert.Equal(
+                BitConverter.DoubleToInt64Bits(-reviewers),
+                BitConverter.DoubleToInt64Bits(dxf.Entities[0].Number(20))
+            );
             Assert.Equal(1E-300, dxf.Entities[0].Number(30));
             Assert.Equal("0", dxf.Entities[1].Text(10));
 
@@ -1456,7 +1667,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < wanted.Count; i++)
             {
-                Assert.Equal(BitConverter.DoubleToInt64Bits(wanted[i]), BitConverter.DoubleToInt64Bits(many.Entities[i].Number(10)));
+                Assert.Equal(
+                    BitConverter.DoubleToInt64Bits(wanted[i]),
+                    BitConverter.DoubleToInt64Bits(many.Entities[i].Number(10))
+                );
             }
         }
 
@@ -1474,26 +1688,66 @@ namespace GeometryHelper.UnitTest.Solid
 
             yield return new KeyValuePair<string, Action<DxfWriter>>("point2", w => w.Add(bad2, "new"));
             yield return new KeyValuePair<string, Action<DxfWriter>>("point3", w => w.Add(bad3, "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("line2", w => w.Add(new GeoLine2(p2, bad2), "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("line3", w => w.Add(new GeoLine3(bad3, p3), "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("polyline2", w => w.Add(new GeoPolyline2(new GeoPoint2(0, 0), bad2, new GeoPoint2(5, 5)), "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("polygon2", w => w.Add(new GeoPolygon2(new GeoPoint2(0, 0), bad2, new GeoPoint2(5, 5)), "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("polyline3", w => w.Add(new GeoPolyline3(GeoPoint3.Origin, bad3), "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("rectangle", w => w.Add(new GeoRectangle2(bad2, 3, 4), "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("triangle2", w => w.Add(new GeoTriangle2(bad2, p2, new GeoPoint2(4, 4)), "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("chain with arcs", w => w.Add(new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), bad2 }), "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("circle2", w => w.Add(new GeoCircle2(bad2, 3), "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("arc2", w => w.Add(new GeoArc2(bad2, 3, 0, 1), "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("ellipse2", w => w.Add(new GeoEllipse2(bad2, new GeoVector2(1, 0), 3, 2), "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("ray3", w => w.Add(new GeoRay3(new GeoPoint3(nan, 1, 0), new GeoVector3(1, 1, 0)), "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("triangle3", w => w.Add(new GeoTriangle3(new GeoPoint3(nan, 0, 0), p3, new GeoPoint3(4, 4, 4)), "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("triangles", w => w.Add(new[] { good, new GeoTriangle3(new GeoPoint3(0, nan, 0), p3, new GeoPoint3(4, 4, 4)) }, "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("ellipse3", w => w.Add(new GeoEllipse3(new GeoPoint3(nan, 0, 0), up, across, 3, 2), "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("circle3", w => w.Add(new GeoCircle3(new GeoPoint3(nan, 0, 0), up, 3), 0.1, "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("arc3", w => w.Add(new GeoArc3(new GeoPoint3(nan, 0, 0), up, 3, 0, 1), 0.1, "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("aabb", w => w.Add(new GeoAabb3(new GeoPoint3(nan, 0, 0), p3), "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("obb", w => w.Add(new GeoObb3(new GeoPoint3(inf, 0, 0), 1, 2, 3), "new"));
-            yield return new KeyValuePair<string, Action<DxfWriter>>("face2", w => w.Add(new GeoFace2(new GeoPolygon2(new GeoPoint2(0, 0), bad2, new GeoPoint2(5, 5))), "new"));
+            yield return new KeyValuePair<string, Action<DxfWriter>>("line2", w =>
+                w.Add(new GeoLine2(p2, bad2), "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("line3", w =>
+                w.Add(new GeoLine3(bad3, p3), "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("polyline2", w =>
+                w.Add(new GeoPolyline2(new GeoPoint2(0, 0), bad2, new GeoPoint2(5, 5)), "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("polygon2", w =>
+                w.Add(new GeoPolygon2(new GeoPoint2(0, 0), bad2, new GeoPoint2(5, 5)), "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("polyline3", w =>
+                w.Add(new GeoPolyline3(GeoPoint3.Origin, bad3), "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("rectangle", w =>
+                w.Add(new GeoRectangle2(bad2, 3, 4), "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("triangle2", w =>
+                w.Add(new GeoTriangle2(bad2, p2, new GeoPoint2(4, 4)), "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("chain with arcs", w =>
+                w.Add(new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), bad2 }), "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("circle2", w =>
+                w.Add(new GeoCircle2(bad2, 3), "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("arc2", w =>
+                w.Add(new GeoArc2(bad2, 3, 0, 1), "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("ellipse2", w =>
+                w.Add(new GeoEllipse2(bad2, new GeoVector2(1, 0), 3, 2), "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("ray3", w =>
+                w.Add(new GeoRay3(new GeoPoint3(nan, 1, 0), new GeoVector3(1, 1, 0)), "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("triangle3", w =>
+                w.Add(new GeoTriangle3(new GeoPoint3(nan, 0, 0), p3, new GeoPoint3(4, 4, 4)), "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("triangles", w =>
+                w.Add(new[] { good, new GeoTriangle3(new GeoPoint3(0, nan, 0), p3, new GeoPoint3(4, 4, 4)) }, "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("ellipse3", w =>
+                w.Add(new GeoEllipse3(new GeoPoint3(nan, 0, 0), up, across, 3, 2), "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("circle3", w =>
+                w.Add(new GeoCircle3(new GeoPoint3(nan, 0, 0), up, 3), 0.1, "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("arc3", w =>
+                w.Add(new GeoArc3(new GeoPoint3(nan, 0, 0), up, 3, 0, 1), 0.1, "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("aabb", w =>
+                w.Add(new GeoAabb3(new GeoPoint3(nan, 0, 0), p3), "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("obb", w =>
+                w.Add(new GeoObb3(new GeoPoint3(inf, 0, 0), 1, 2, 3), "new")
+            );
+            yield return new KeyValuePair<string, Action<DxfWriter>>("face2", w =>
+                w.Add(new GeoFace2(new GeoPolygon2(new GeoPoint2(0, 0), bad2, new GeoPoint2(5, 5))), "new")
+            );
         }
 
         [Fact]
@@ -1518,11 +1772,18 @@ namespace GeometryHelper.UnitTest.Solid
             foreach (double bulge in new[] { 1E-200, 1E-320 })
             {
                 var chain = new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0) }, new[] { bulge });
-                var loop = new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10) }, new[] { bulge, 0.0, 0.0 });
+                var loop = new GeoPolygonArc2(
+                    new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10) },
+                    new[] { bulge, 0.0, 0.0 }
+                );
                 Dxf dxf = Dxf.Of(new DxfWriter().Add(chain).Add(loop));
 
-                double[] min = dxf.Header("$EXTMIN").Select(p => double.Parse(p.Value, CultureInfo.InvariantCulture)).ToArray();
-                double[] max = dxf.Header("$EXTMAX").Select(p => double.Parse(p.Value, CultureInfo.InvariantCulture)).ToArray();
+                double[] min = dxf.Header("$EXTMIN")
+                    .Select(p => double.Parse(p.Value, CultureInfo.InvariantCulture))
+                    .ToArray();
+                double[] max = dxf.Header("$EXTMAX")
+                    .Select(p => double.Parse(p.Value, CultureInfo.InvariantCulture))
+                    .ToArray();
 
                 Assert.All(min.Concat(max), v => Assert.True(!double.IsNaN(v) && !double.IsInfinity(v)));
                 Assert.Equal(new[] { 0.0, 0.0, 0.0 }, min);
@@ -1531,8 +1792,8 @@ namespace GeometryHelper.UnitTest.Solid
             }
         }
 
-        private static int ChordsFor(double radius, double sweep, double tolerance)
-            => (int)Math.Ceiling(Math.Abs(sweep) / (4.0 * Math.Asin(Math.Sqrt(tolerance / (2.0 * radius)))));
+        private static int ChordsFor(double radius, double sweep, double tolerance) =>
+            (int)Math.Ceiling(Math.Abs(sweep) / (4.0 * Math.Asin(Math.Sqrt(tolerance / (2.0 * radius)))));
 
         [Fact]
         [Trait("Step", "R")]
@@ -1563,8 +1824,16 @@ namespace GeometryHelper.UnitTest.Solid
         public void AChainIsCutEdgeByEdgeSoEachArcKeepsTheToleranceAtItsOwnRadius()
         {
             // A long shallow arc of radius about 50 000, then a half circle of radius 10.
-            GeoArc3 shallow = GeoArc3.FromThreePoints(new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0.025, 0), new GeoPoint3(100, 0, 0));
-            GeoArc3 tight = GeoArc3.FromThreePoints(new GeoPoint3(100, 0, 0), new GeoPoint3(110, 10, 0), new GeoPoint3(100, 20, 0));
+            GeoArc3 shallow = GeoArc3.FromThreePoints(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(50, 0.025, 0),
+                new GeoPoint3(100, 0, 0)
+            );
+            GeoArc3 tight = GeoArc3.FromThreePoints(
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(110, 10, 0),
+                new GeoPoint3(100, 20, 0)
+            );
             var chain = new GeoPolylineArc3(new[] { new GeoEdge3(shallow), new GeoEdge3(tight) });
             const double tolerance = 1E-3;
 
@@ -1582,7 +1851,10 @@ namespace GeometryHelper.UnitTest.Solid
 
                 foreach (GeoArc3 arc in new[] { shallow, tight })
                 {
-                    if (Math.Abs(a.DistanceTo(arc.Center) - arc.Radius) < 1E-6 && Math.Abs(b.DistanceTo(arc.Center) - arc.Radius) < 1E-6)
+                    if (
+                        Math.Abs(a.DistanceTo(arc.Center) - arc.Radius) < 1E-6
+                        && Math.Abs(b.DistanceTo(arc.Center) - arc.Radius) < 1E-6
+                    )
                     {
                         Assert.True(arc.Radius - middle.DistanceTo(arc.Center) <= tolerance + 1E-9);
 
@@ -1618,7 +1890,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(ChordsFor(radius, 2.0 * Math.PI, tolerance), vertices.Count);
             vertices.Add(vertices[0]);
-            Assert.True(Sag(ring.Entities[0], vertices, m => radius - m.DistanceTo(circle.Center)) <= tolerance + 1E-12);
+            Assert.True(
+                Sag(ring.Entities[0], vertices, m => radius - m.DistanceTo(circle.Center)) <= tolerance + 1E-12
+            );
 
             List<GeoPoint3> path = VerticesOf(Dxf.Of(new DxfWriter().Add(arc, tolerance)));
             Assert.Equal(ChordsFor(10.0, arc.SweptAngle, tolerance) + 1, path.Count);
@@ -1644,13 +1918,21 @@ namespace GeometryHelper.UnitTest.Solid
             var circle = new GeoCircle3(GeoPoint3.Origin, up, 1E6);
             var arc = new GeoArc3(GeoPoint3.Origin, up, 1E6, 0, 3);
             var chain = new GeoPolylineArc3(new[] { new GeoEdge3(arc) });
-            var loop = new GeoPolygonArc3(new[]
-            {
-                new GeoEdge3(GeoArc3.FromThreePoints(new GeoPoint3(0, 0, 0), new GeoPoint3(1E6, 1E6, 0), new GeoPoint3(2E6, 0, 0))),
-                new GeoEdge3(new GeoPoint3(2E6, 0, 0), new GeoPoint3(2E6, -100, 0)),
-                new GeoEdge3(new GeoPoint3(2E6, -100, 0), new GeoPoint3(0, -100, 0)),
-                new GeoEdge3(new GeoPoint3(0, -100, 0), new GeoPoint3(0, 0, 0)),
-            });
+            var loop = new GeoPolygonArc3(
+                new[]
+                {
+                    new GeoEdge3(
+                        GeoArc3.FromThreePoints(
+                            new GeoPoint3(0, 0, 0),
+                            new GeoPoint3(1E6, 1E6, 0),
+                            new GeoPoint3(2E6, 0, 0)
+                        )
+                    ),
+                    new GeoEdge3(new GeoPoint3(2E6, 0, 0), new GeoPoint3(2E6, -100, 0)),
+                    new GeoEdge3(new GeoPoint3(2E6, -100, 0), new GeoPoint3(0, -100, 0)),
+                    new GeoEdge3(new GeoPoint3(0, -100, 0), new GeoPoint3(0, 0, 0)),
+                }
+            );
 
             // Thirty edges that each need about 40 000 chords: each is fine, the thirty together are 1.2 million.
             var edges = new List<GeoEdge3>();
@@ -1667,14 +1949,16 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.InRange(one, ChordsFor(1E6, 3, each), ChordsFor(1E6, 3, each) + 1);
             Assert.True(30 * one > 1048576);
 
-            foreach (Action<DxfWriter> act in new Action<DxfWriter>[]
-            {
-                w => w.Add(circle, 1E-9, "new"),
-                w => w.Add(arc, 1E-9, "new"),
-                w => w.Add(chain, 1E-9, "new"),
-                w => w.Add(loop, 1E-9, "new"),
-                w => w.Add(long30, each, "new"),
-            })
+            foreach (
+                Action<DxfWriter> act in new Action<DxfWriter>[]
+                {
+                    w => w.Add(circle, 1E-9, "new"),
+                    w => w.Add(arc, 1E-9, "new"),
+                    w => w.Add(chain, 1E-9, "new"),
+                    w => w.Add(loop, 1E-9, "new"),
+                    w => w.Add(long30, each, "new"),
+                }
+            )
             {
                 var writer = new DxfWriter().Add(Stub, "keep");
                 ArgumentOutOfRangeException refused = Assert.ThrowsAny<ArgumentOutOfRangeException>(() => act(writer));
@@ -1702,23 +1986,29 @@ namespace GeometryHelper.UnitTest.Solid
                 double length = Math.Sqrt(nx * nx + ny * ny + nz * nz);
                 _z = new[] { nx / length, ny / length, nz / length };
 
-                double[] seed = Math.Abs(_z[0]) < 1.0 / 64.0 && Math.Abs(_z[1]) < 1.0 / 64.0 ? new[] { 0.0, 1.0, 0.0 } : new[] { 0.0, 0.0, 1.0 };
+                double[] seed =
+                    Math.Abs(_z[0]) < 1.0 / 64.0 && Math.Abs(_z[1]) < 1.0 / 64.0
+                        ? new[] { 0.0, 1.0, 0.0 }
+                        : new[] { 0.0, 0.0, 1.0 };
                 _x = Unit(Cross(seed, _z));
                 _y = Unit(Cross(_z, _x));
             }
 
             /// <summary>The system of an entity: its extrusion, or the world's up where it has none, as DXF reads it.</summary>
-            public static Ocs Of(Record entity)
-                => entity.Has(210) ? new Ocs(entity.Number(210), entity.Number(220), entity.Number(230)) : new Ocs(0.0, 0.0, 1.0);
+            public static Ocs Of(Record entity) =>
+                entity.Has(210)
+                    ? new Ocs(entity.Number(210), entity.Number(220), entity.Number(230))
+                    : new Ocs(0.0, 0.0, 1.0);
 
-            public GeoPoint3 ToWorld(double x, double y, double z)
-                => new GeoPoint3(
+            public GeoPoint3 ToWorld(double x, double y, double z) =>
+                new GeoPoint3(
                     x * _x[0] + y * _y[0] + z * _z[0],
                     x * _x[1] + y * _y[1] + z * _z[1],
-                    x * _x[2] + y * _y[2] + z * _z[2]);
+                    x * _x[2] + y * _y[2] + z * _z[2]
+                );
 
-            private static double[] Cross(double[] a, double[] b)
-                => new[] { a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0] };
+            private static double[] Cross(double[] a, double[] b) =>
+                new[] { a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0] };
 
             private static double[] Unit(double[] v)
             {
@@ -1793,7 +2083,11 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static GeoArc3 RandomArc(Random random, GeoVector3 normal, bool clockwise)
         {
-            var centre = new GeoPoint3(random.NextDouble() * 2000 - 1000, random.NextDouble() * 2000 - 1000, random.NextDouble() * 2000 - 1000);
+            var centre = new GeoPoint3(
+                random.NextDouble() * 2000 - 1000,
+                random.NextDouble() * 2000 - 1000,
+                random.NextDouble() * 2000 - 1000
+            );
             double radius = 0.5 + random.NextDouble() * 500.0;
             double start = random.NextDouble() * Math.PI * 6.0 - Math.PI * 3.0;
             double sweep = 0.05 + random.NextDouble() * (Math.PI * 2.0 - 0.1);
@@ -1801,8 +2095,11 @@ namespace GeometryHelper.UnitTest.Solid
             return new GeoArc3(centre, normal, radius, start, start + (clockwise ? -sweep : sweep), clockwise);
         }
 
-        private static void AssertNear(GeoPoint3 expected, GeoPoint3 actual, double within, string what)
-            => Assert.True(expected.DistanceTo(actual) <= within, what + ": " + expected + " against " + actual + ", " + expected.DistanceTo(actual) + " apart");
+        private static void AssertNear(GeoPoint3 expected, GeoPoint3 actual, double within, string what) =>
+            Assert.True(
+                expected.DistanceTo(actual) <= within,
+                what + ": " + expected + " against " + actual + ", " + expected.DistanceTo(actual) + " apart"
+            );
 
         /// <summary>The start, the middle and the end of an ARC as the groups of the entity place them, by the reference's own rules.</summary>
         private static GeoPoint3[] WrittenArc(Record arc)
@@ -1821,7 +2118,8 @@ namespace GeometryHelper.UnitTest.Solid
             double from = fromDegrees * Math.PI / 180.0;
             double sweep = sweepDegrees * Math.PI / 180.0;
 
-            GeoPoint3 At(double angle) => ocs.ToWorld(centre.X + radius * Math.Cos(angle), centre.Y + radius * Math.Sin(angle), centre.Z);
+            GeoPoint3 At(double angle) =>
+                ocs.ToWorld(centre.X + radius * Math.Cos(angle), centre.Y + radius * Math.Sin(angle), centre.Z);
 
             return new[] { At(from), At(from + sweep / 2.0), At(from + sweep) };
         }
@@ -1832,14 +2130,19 @@ namespace GeometryHelper.UnitTest.Solid
             double x = Math.Abs(n.X);
             double y = Math.Abs(n.Y);
             double z = Math.Abs(n.Z);
-            double largest = z >= y && z >= x ? n.Z : y >= x ? n.Y : n.X;
+            double largest =
+                z >= y && z >= x ? n.Z
+                : y >= x ? n.Y
+                : n.X;
 
             return largest < 0.0 ? n.Multiply(-1.0) : n;
         }
 
         /// <summary>The extrusion an entity is written with: the groups, or the world's up where it has none.</summary>
-        private static GeoVector3 ExtrusionOf(Record entity)
-            => entity.Has(210) ? new GeoVector3(entity.Number(210), entity.Number(220), entity.Number(230)) : new GeoVector3(0, 0, 1);
+        private static GeoVector3 ExtrusionOf(Record entity) =>
+            entity.Has(210)
+                ? new GeoVector3(entity.Number(210), entity.Number(220), entity.Number(230))
+                : new GeoVector3(0, 0, 1);
 
         /// <summary>
         /// An ARC that draws the arc, about the extrusion that points up in the largest component of the arc's normal: from its start to
@@ -1912,10 +2215,19 @@ namespace GeometryHelper.UnitTest.Solid
 
                 Ocs ocs = Ocs.Of(entity);
                 GeoPoint3 centre = entity.Point(0);
-                AssertNear(circle.Center, ocs.ToWorld(centre.X, centre.Y, centre.Z), 1E-9 * circle.Radius, "the centre");
+                AssertNear(
+                    circle.Center,
+                    ocs.ToWorld(centre.X, centre.Y, centre.Z),
+                    1E-9 * circle.Radius,
+                    "the centre"
+                );
 
                 // A point of the circle by the groups is on the circle: at the radius from the centre, in its plane.
-                GeoPoint3 on = ocs.ToWorld(centre.X + circle.Radius * Math.Cos(1.1), centre.Y + circle.Radius * Math.Sin(1.1), centre.Z);
+                GeoPoint3 on = ocs.ToWorld(
+                    centre.X + circle.Radius * Math.Cos(1.1),
+                    centre.Y + circle.Radius * Math.Sin(1.1),
+                    centre.Z
+                );
                 Assert.True(circle.DistanceTo(on) <= 1E-9 * circle.Radius);
             }
         }
@@ -1949,7 +2261,12 @@ namespace GeometryHelper.UnitTest.Solid
             var up = new GeoVector3(0, 0, 1);
             double s = Math.Sqrt(0.5) * 10.0;
 
-            GeoArc3 counter = GeoArc3.FromThreePoints(new GeoPoint3(10, 0, 5), new GeoPoint3(s, s, 5), new GeoPoint3(0, 10, 5), Tol);
+            GeoArc3 counter = GeoArc3.FromThreePoints(
+                new GeoPoint3(10, 0, 5),
+                new GeoPoint3(s, s, 5),
+                new GeoPoint3(0, 10, 5),
+                Tol
+            );
             Record a = Assert.Single(Dxf.Of(new DxfWriter().Add(counter)).Entities);
 
             Assert.Equal(up.Z, counter.Normal.Z, 12);
@@ -1994,12 +2311,22 @@ namespace GeometryHelper.UnitTest.Solid
 
             foreach (double z in new[] { 1.0, -1.0 })
             {
-                Assert.Equal(flat, new DxfWriter().Add(new GeoCircle3(new GeoPoint3(100, 50, 0), new GeoVector3(0, 0, z), 8), "c").ToString());
+                Assert.Equal(
+                    flat,
+                    new DxfWriter()
+                        .Add(new GeoCircle3(new GeoPoint3(100, 50, 0), new GeoVector3(0, 0, z), 8), "c")
+                        .ToString()
+                );
             }
 
             // And the quarter arc from (110, 50, 5) by (107.07, 42.93, 5), exactly 100 + 10 cos 45 and 50 - 10 sin 45, to (100, 40, 5), whose normal points down: centre (100, 50, 5) and
             // angles about up, 270 to 360, as the GeoArc2 of the same three points gives (a clockwise one, written from its end).
-            GeoArc3 down = GeoArc3.FromThreePoints(new GeoPoint3(110, 50, 5), new GeoPoint3(100 + 10 * Math.Sqrt(0.5), 50 - 10 * Math.Sqrt(0.5), 5), new GeoPoint3(100, 40, 5), Tol);
+            GeoArc3 down = GeoArc3.FromThreePoints(
+                new GeoPoint3(110, 50, 5),
+                new GeoPoint3(100 + 10 * Math.Sqrt(0.5), 50 - 10 * Math.Sqrt(0.5), 5),
+                new GeoPoint3(100, 40, 5),
+                Tol
+            );
             Assert.True(down.Normal.Z < 0.0);
 
             Record entity = Assert.Single(Dxf.Of(new DxfWriter().Add(down)).Entities);
@@ -2025,7 +2352,12 @@ namespace GeometryHelper.UnitTest.Solid
                 double height = random.NextDouble() * 20 - 10;
                 GeoPoint3 Lift(GeoPoint2 p) => new GeoPoint3(p.X, p.Y, height);
 
-                GeoArc3 arc3 = GeoArc3.FromThreePoints(Lift(arc2.StartPoint), Lift(arc2.MidPoint), Lift(arc2.EndPoint), Tol);
+                GeoArc3 arc3 = GeoArc3.FromThreePoints(
+                    Lift(arc2.StartPoint),
+                    Lift(arc2.MidPoint),
+                    Lift(arc2.EndPoint),
+                    Tol
+                );
 
                 Record a = Assert.Single(Dxf.Of(new DxfWriter().Add(arc2)).Entities);
                 Record b = Assert.Single(Dxf.Of(new DxfWriter().Add(arc3)).Entities);
@@ -2035,8 +2367,14 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.Equal(a.Number(20), b.Number(20), 9);
                 Assert.Equal(height, b.Number(30), 9);
                 Assert.Equal(a.Number(40), b.Number(40), 9);
-                Assert.True(AngleApart(a.Number(50), b.Number(50)) < 1E-9, "start " + a.Number(50) + " against " + b.Number(50));
-                Assert.True(AngleApart(a.Number(51), b.Number(51)) < 1E-9, "end " + a.Number(51) + " against " + b.Number(51));
+                Assert.True(
+                    AngleApart(a.Number(50), b.Number(50)) < 1E-9,
+                    "start " + a.Number(50) + " against " + b.Number(50)
+                );
+                Assert.True(
+                    AngleApart(a.Number(51), b.Number(51)) < 1E-9,
+                    "end " + a.Number(51) + " against " + b.Number(51)
+                );
             }
         }
 
@@ -2060,7 +2398,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             foreach (Pair pair in polyline.Pairs)
             {
-                double value = pair.Code == 10 || pair.Code == 20 || pair.Code == 42 ? ExportTests.ParseExactly(pair.Value) : 0.0;
+                double value =
+                    pair.Code == 10 || pair.Code == 20 || pair.Code == 42 ? ExportTests.ParseExactly(pair.Value) : 0.0;
 
                 if (pair.Code == 10)
                 {
@@ -2090,11 +2429,22 @@ namespace GeometryHelper.UnitTest.Solid
         /// A chain or loop in a plane with the given normal: a star of five to seven corners, half the edges straight and the rest arcs of
         /// either bulge, about the normal or against it.
         /// </summary>
-        private static void PlanarEdges(Random random, GeoVector3 normal, int corners, out GeoPoint3[] vertices, out double[] bulges, out GeoVector3[] normals)
+        private static void PlanarEdges(
+            Random random,
+            GeoVector3 normal,
+            int corners,
+            out GeoPoint3[] vertices,
+            out double[] bulges,
+            out GeoVector3[] normals
+        )
         {
             GeoVector3 u = normal.GetPerpendicularVector();
             GeoVector3 v = normal.CrossProduct(u).Normalize();
-            var origin = new GeoPoint3(random.NextDouble() * 1000 - 500, random.NextDouble() * 1000 - 500, random.NextDouble() * 1000 - 500);
+            var origin = new GeoPoint3(
+                random.NextDouble() * 1000 - 500,
+                random.NextDouble() * 1000 - 500,
+                random.NextDouble() * 1000 - 500
+            );
             double[] sizes = { 0.3, 1.0, -0.6, 2.0, -1.0, 0.0, 0.0, 0.5 };
 
             vertices = new GeoPoint3[corners];
@@ -2118,7 +2468,12 @@ namespace GeometryHelper.UnitTest.Solid
             }
         }
 
-        private static void AssertDrawsTheEdges(Record entity, IReadOnlyList<GeoEdge3> edges, bool closed, GeoVector3 plane)
+        private static void AssertDrawsTheEdges(
+            Record entity,
+            IReadOnlyList<GeoEdge3> edges,
+            bool closed,
+            GeoVector3 plane
+        )
         {
             Assert.Equal("LWPOLYLINE", entity.Type);
 
@@ -2139,15 +2494,30 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < edges.Count; i++)
             {
-                AssertNear(edges[i].StartPoint, ocs.ToWorld(written[i][0], written[i][1], elevation), 1E-9 * size, "vertex " + i);
+                AssertNear(
+                    edges[i].StartPoint,
+                    ocs.ToWorld(written[i][0], written[i][1], elevation),
+                    1E-9 * size,
+                    "vertex " + i
+                );
 
                 double[] next = written[(i + 1) % written.Count];
-                AssertNear(edges[i].EndPoint, ocs.ToWorld(next[0], next[1], elevation), 1E-9 * size, "vertex " + (i + 1));
+                AssertNear(
+                    edges[i].EndPoint,
+                    ocs.ToWorld(next[0], next[1], elevation),
+                    1E-9 * size,
+                    "vertex " + (i + 1)
+                );
 
                 if (edges[i].IsArc)
                 {
                     Assert.NotEqual(0.0, written[i][2]);
-                    AssertNear(edges[i].MidPoint, WrittenMiddle(ocs, elevation, written[i], next), 1E-9 * size, "the middle of edge " + i);
+                    AssertNear(
+                        edges[i].MidPoint,
+                        WrittenMiddle(ocs, elevation, written[i], next),
+                        1E-9 * size,
+                        "the middle of edge " + i
+                    );
                 }
                 else
                 {
@@ -2169,7 +2539,14 @@ namespace GeometryHelper.UnitTest.Solid
 
             foreach (GeoVector3 normal in ThousandNormals())
             {
-                PlanarEdges(random, normal, 5 + random.Next(3), out GeoPoint3[] vertices, out double[] bulges, out GeoVector3[] normals);
+                PlanarEdges(
+                    random,
+                    normal,
+                    5 + random.Next(3),
+                    out GeoPoint3[] vertices,
+                    out double[] bulges,
+                    out GeoVector3[] normals
+                );
 
                 // An open chain keeps one fewer bulge than it has vertices.
                 bulges[bulges.Length - 1] = 0.0;
@@ -2194,7 +2571,14 @@ namespace GeometryHelper.UnitTest.Solid
 
             foreach (GeoVector3 normal in ThousandNormals())
             {
-                PlanarEdges(random, normal, 5 + random.Next(3), out GeoPoint3[] vertices, out double[] bulges, out GeoVector3[] normals);
+                PlanarEdges(
+                    random,
+                    normal,
+                    5 + random.Next(3),
+                    out GeoPoint3[] vertices,
+                    out double[] bulges,
+                    out GeoVector3[] normals
+                );
 
                 var loop = new GeoPolygonArc3(vertices, bulges, normals, Tol);
                 Record entity = Assert.Single(Dxf.Of(new DxfWriter().Add(loop, "slots")).Entities);
@@ -2220,7 +2604,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new[] { At(0, 0), At(60, 0), At(60, 20), At(0, 20) },
                 new[] { 0.0, 1.0, 0.0, 1.0 },
                 new[] { default(GeoVector3), normal, default(GeoVector3), normal },
-                Tol);
+                Tol
+            );
 
             Record entity = Assert.Single(Dxf.Of(new DxfWriter().Add(loop, "slot")).Entities);
             List<double[]> vertices = LightweightVertices(entity);
@@ -2236,7 +2621,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             // In its own plane the corners are at x 0 or 60 and y 0 or 20, however the slope is turned: the vertices go as the loop
             // does, and the plane's own x axis is the world's.
-            Assert.Equal(new[] { 0.0, 60.0, 60.0, 0.0 }, vertices.Select(v => v[0]).Select(x => Math.Round(x, 9)).ToArray());
+            Assert.Equal(
+                new[] { 0.0, 60.0, 60.0, 0.0 },
+                vertices.Select(v => v[0]).Select(x => Math.Round(x, 9)).ToArray()
+            );
             Assert.Equal(new[] { 0.0, 1.0, 0.0, 1.0 }, vertices.Select(v => Math.Round(Math.Abs(v[2]), 9)).ToArray());
             Assert.Equal(20.0, Math.Abs(vertices[2][1] - vertices[1][1]), 9);
         }
@@ -2245,14 +2633,22 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static GeoPolylineArc3 BentBar(Random random)
         {
-            GeoPoint3 at = new GeoPoint3(random.NextDouble() * 200 - 100, random.NextDouble() * 200 - 100, random.NextDouble() * 200 - 100);
+            GeoPoint3 at = new GeoPoint3(
+                random.NextDouble() * 200 - 100,
+                random.NextDouble() * 200 - 100,
+                random.NextDouble() * 200 - 100
+            );
             var vertices = new List<GeoPoint3> { at };
             var bulges = new List<double>();
             var normals = new List<GeoVector3>();
 
             for (int i = 0; i < 5; i++)
             {
-                var step = new GeoVector3(random.NextDouble() * 100 - 50, random.NextDouble() * 100 - 50, random.NextDouble() * 100 - 50);
+                var step = new GeoVector3(
+                    random.NextDouble() * 100 - 50,
+                    random.NextDouble() * 100 - 50,
+                    random.NextDouble() * 100 - 50
+                );
                 GeoPoint3 next = vertices[i].Add(step);
 
                 // Every second edge is straight; an arc bows in a plane the chord lies in, with a normal square to it.
@@ -2263,7 +2659,11 @@ namespace GeometryHelper.UnitTest.Solid
                 }
                 else
                 {
-                    var any = new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5);
+                    var any = new GeoVector3(
+                        random.NextDouble() - 0.5,
+                        random.NextDouble() - 0.5,
+                        random.NextDouble() - 0.5
+                    );
                     bulges.Add((random.NextDouble() * 1.9 + 0.1) * (random.Next(2) == 0 ? -1.0 : 1.0));
                     normals.Add(step.CrossProduct(any).Normalize());
                 }
@@ -2318,18 +2718,30 @@ namespace GeometryHelper.UnitTest.Solid
             // A bar 100 long, a quarter bend of radius 20 up, 80 on, a quarter bend of radius 20 to the side, and 60 on.
             GeoPoint3 a = new GeoPoint3(0, 0, 0);
             GeoPoint3 b = new GeoPoint3(100, 0, 0);
-            GeoArc3 first = GeoArc3.FromThreePoints(b, new GeoPoint3(100 + 20 * Math.Sin(Math.PI / 4), 0, 20 - 20 * Math.Cos(Math.PI / 4)), new GeoPoint3(120, 0, 20), Tol);
+            GeoArc3 first = GeoArc3.FromThreePoints(
+                b,
+                new GeoPoint3(100 + 20 * Math.Sin(Math.PI / 4), 0, 20 - 20 * Math.Cos(Math.PI / 4)),
+                new GeoPoint3(120, 0, 20),
+                Tol
+            );
             GeoPoint3 c = new GeoPoint3(120, 0, 100);
-            GeoArc3 second = GeoArc3.FromThreePoints(c, new GeoPoint3(120 + 20 * (1 - Math.Cos(Math.PI / 4)), 20 * Math.Sin(Math.PI / 4), 100), new GeoPoint3(140, 20, 100), Tol);
+            GeoArc3 second = GeoArc3.FromThreePoints(
+                c,
+                new GeoPoint3(120 + 20 * (1 - Math.Cos(Math.PI / 4)), 20 * Math.Sin(Math.PI / 4), 100),
+                new GeoPoint3(140, 20, 100),
+                Tol
+            );
 
-            var bar = new GeoPolylineArc3(new[]
-            {
-                new GeoEdge3(a, b),
-                new GeoEdge3(first),
-                new GeoEdge3(first.EndPoint, c),
-                new GeoEdge3(second),
-                new GeoEdge3(second.EndPoint, new GeoPoint3(140, 80, 100)),
-            });
+            var bar = new GeoPolylineArc3(
+                new[]
+                {
+                    new GeoEdge3(a, b),
+                    new GeoEdge3(first),
+                    new GeoEdge3(first.EndPoint, c),
+                    new GeoEdge3(second),
+                    new GeoEdge3(second.EndPoint, new GeoPoint3(140, 80, 100)),
+                }
+            );
 
             Assert.False(bar.IsPlanar(Tol));
             Dxf dxf = Dxf.Of(new DxfWriter().Add(bar, Tol));
@@ -2350,16 +2762,29 @@ namespace GeometryHelper.UnitTest.Solid
             // Four corners of a square 100 wide with the last one 0.02 off the plane of the others, and a bend on the first edge.
             var up = new GeoVector3(0, 0, 1);
             var chain = new GeoPolylineArc3(
-                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0.02) },
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    new GeoPoint3(100, 100, 0),
+                    new GeoPoint3(0, 100, 0.02),
+                },
                 new[] { 0.4, 0.0, 0.0, 0.0 },
                 new[] { up, default(GeoVector3), default(GeoVector3), default(GeoVector3) },
-                new Tolerance(1E-3, 1E-5, Math.PI / 180.0, 0.05));
+                new Tolerance(1E-3, 1E-5, Math.PI / 180.0, 0.05)
+            );
 
             var strict = new Tolerance(1E-3, 1E-5, Math.PI / 180.0, 1E-3);
             var loose = new Tolerance(1E-3, 1E-5, Math.PI / 180.0, 0.05);
 
-            Assert.Equal(new[] { "ARC", "LINE", "LINE" }, Dxf.Of(new DxfWriter().Add(chain, strict)).Entities.Select(e => e.Type).ToArray());
-            Assert.Equal(new[] { "LWPOLYLINE" }, Dxf.Of(new DxfWriter().Add(chain, loose)).Entities.Select(e => e.Type).ToArray());
+            Assert.Equal(
+                new[] { "ARC", "LINE", "LINE" },
+                Dxf.Of(new DxfWriter().Add(chain, strict)).Entities.Select(e => e.Type).ToArray()
+            );
+            Assert.Equal(
+                new[] { "LWPOLYLINE" },
+                Dxf.Of(new DxfWriter().Add(chain, loose)).Entities.Select(e => e.Type).ToArray()
+            );
         }
 
         [Fact]
@@ -2374,7 +2799,12 @@ namespace GeometryHelper.UnitTest.Solid
 
             foreach (GeoVector3 about in new[] { up, down })
             {
-                var chain = new GeoPolylineArc3(points, new[] { 0.0, 0.5, 0.0 }, new[] { default(GeoVector3), about, default(GeoVector3) }, Tol);
+                var chain = new GeoPolylineArc3(
+                    points,
+                    new[] { 0.0, 0.5, 0.0 },
+                    new[] { default(GeoVector3), about, default(GeoVector3) },
+                    Tol
+                );
                 Record entity = Assert.Single(Dxf.Of(new DxfWriter().Add(chain, Tol)).Entities);
                 List<double[]> vertices = LightweightVertices(entity);
 
@@ -2401,7 +2831,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0) },
                 new[] { 1.8E-5, 0.0, 0.0 },
                 new[] { across, default(GeoVector3), default(GeoVector3) },
-                Tol);
+                Tol
+            );
             Assert.True(chain.IsPlanar(Tol));
 
             Record entity = Assert.Single(Dxf.Of(new DxfWriter().Add(chain, Tol)).Entities);
@@ -2411,7 +2842,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal("LWPOLYLINE", entity.Type);
             Assert.Equal(0.0, vertices[0][2]);
             GeoPoint3 middle = WrittenMiddle(Ocs.Of(entity), entity.Number(38), vertices[0], vertices[1]);
-            Assert.True(middle.DistanceTo(chain.GetEdgeAt(0).MidPoint) <= Tol.EqualPoint, "the middle is " + middle.DistanceTo(chain.GetEdgeAt(0).MidPoint) + " from the arc's");
+            Assert.True(
+                middle.DistanceTo(chain.GetEdgeAt(0).MidPoint) <= Tol.EqualPoint,
+                "the middle is " + middle.DistanceTo(chain.GetEdgeAt(0).MidPoint) + " from the arc's"
+            );
 
             // An arc whose normal is 30 degrees off the plane's: its bow in the plane is its sag times the cosine, 0.00075 * 0.866.
             var tilted = new GeoVector3(0, 0.5, Math.Sqrt(0.75));
@@ -2419,7 +2853,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0) },
                 new[] { 1.5E-5, 0.0, 0.0 },
                 new[] { tilted, default(GeoVector3), default(GeoVector3) },
-                Tol);
+                Tol
+            );
             Assert.True(slanted.IsPlanar(Tol));
 
             Record e2 = Assert.Single(Dxf.Of(new DxfWriter().Add(slanted, Tol)).Entities);
@@ -2437,7 +2872,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Trait("Step", "X3")]
         public void AChainOfNoArcWhoseVerticesLieOnOneLine_IsALineForEachEdge()
         {
-            var chain = new GeoPolylineArc3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 20, 30), new GeoPoint3(20, 40, 60) });
+            var chain = new GeoPolylineArc3(
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 20, 30), new GeoPoint3(20, 40, 60) }
+            );
             Dxf dxf = Dxf.Of(new DxfWriter().Add(chain));
 
             Assert.Equal(new[] { "LINE", "LINE" }, dxf.Entities.Select(e => e.Type).ToArray());
@@ -2482,7 +2919,10 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 { "arc", w => w.Add(new GeoArc3(new GeoPoint3(nan, 0, 0), up, 3, 0, 1), "new") },
                 { "circle", w => w.Add(new GeoCircle3(new GeoPoint3(0, nan, 0), up, 3), "new") },
-                { "chain", w => w.Add(new GeoPolylineArc3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, nan) }), "new") },
+                {
+                    "chain",
+                    w => w.Add(new GeoPolylineArc3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, nan) }), "new")
+                },
             };
 
             foreach (KeyValuePair<string, Action<DxfWriter>> shape in shapes)
@@ -2494,8 +2934,8 @@ namespace GeometryHelper.UnitTest.Solid
             }
         }
 
-        private static double[] Extent(Dxf dxf, string variable)
-            => dxf.Header(variable).Select(p => ExportTests.ParseExactly(p.Value)).ToArray();
+        private static double[] Extent(Dxf dxf, string variable) =>
+            dxf.Header(variable).Select(p => ExportTests.ParseExactly(p.Value)).ToArray();
 
         [Fact]
         [Trait("Step", "X3")]
@@ -2511,14 +2951,24 @@ namespace GeometryHelper.UnitTest.Solid
 
             // A quarter of a circle of radius 10 on the floor, from (10, 0) to (0, 10): the box of its ends and the point of it
             // that reaches furthest, (7.07, 7.07), which is no further than the ends.
-            GeoArc3 quarter = GeoArc3.FromThreePoints(new GeoPoint3(10, 0, 5), new GeoPoint3(Math.Sqrt(0.5) * 10, Math.Sqrt(0.5) * 10, 5), new GeoPoint3(0, 10, 5), Tol);
+            GeoArc3 quarter = GeoArc3.FromThreePoints(
+                new GeoPoint3(10, 0, 5),
+                new GeoPoint3(Math.Sqrt(0.5) * 10, Math.Sqrt(0.5) * 10, 5),
+                new GeoPoint3(0, 10, 5),
+                Tol
+            );
             Dxf part = Dxf.Of(new DxfWriter().Add(quarter));
 
             Assert.Equal(new[] { 0.0, 0.0, 5.0 }, Extent(part, "$EXTMIN"), new Near(1E-9));
             Assert.Equal(new[] { 10.0, 10.0, 5.0 }, Extent(part, "$EXTMAX"), new Near(1E-9));
 
             // A half circle bowing past its ends: from (0, 0) to (20, 0) over the top of y = 10 in the plane x-y at height 2.
-            var half = new GeoPolylineArc3(new[] { new GeoPoint3(0, 0, 2), new GeoPoint3(20, 0, 2) }, new[] { -1.0, 0.0 }, new[] { new GeoVector3(0, 0, 1), default(GeoVector3) }, Tol);
+            var half = new GeoPolylineArc3(
+                new[] { new GeoPoint3(0, 0, 2), new GeoPoint3(20, 0, 2) },
+                new[] { -1.0, 0.0 },
+                new[] { new GeoVector3(0, 0, 1), default(GeoVector3) },
+                Tol
+            );
             Dxf bow = Dxf.Of(new DxfWriter().Add(half, Tol));
 
             Assert.Equal(new[] { 0.0, 0.0, 2.0 }, Extent(bow, "$EXTMIN"), new Near(1E-9));
@@ -2545,20 +2995,31 @@ namespace GeometryHelper.UnitTest.Solid
                 new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 5) },
                 new[] { 0.5, 0.0, 0.0 },
                 new[] { up, default(GeoVector3), default(GeoVector3) },
-                Tol);
+                Tol
+            );
 
-            Dxf dxf = Dxf.Of(new DxfWriter()
-                .Add(new GeoCircle3(GeoPoint3.Origin, new GeoVector3(1, 2, 3), 10), "a")
-                .Add(new GeoArc3(GeoPoint3.Origin, new GeoVector3(1, 2, 3), 10, 0, 2), "b")
-                .Add(Box(0, 0, 0, 10, 10, 10), "box")
-                .Add(bar, Tol, "c")
-                .Add(new GeoPolygonArc3(new[] { new GeoPoint3(0, 0, 1), new GeoPoint3(10, 0, 1), new GeoPoint3(10, 10, 1) }), "d"));
+            Dxf dxf = Dxf.Of(
+                new DxfWriter()
+                    .Add(new GeoCircle3(GeoPoint3.Origin, new GeoVector3(1, 2, 3), 10), "a")
+                    .Add(new GeoArc3(GeoPoint3.Origin, new GeoVector3(1, 2, 3), 10, 0, 2), "b")
+                    .Add(Box(0, 0, 0, 10, 10, 10), "box")
+                    .Add(bar, Tol, "c")
+                    .Add(
+                        new GeoPolygonArc3(
+                            new[] { new GeoPoint3(0, 0, 1), new GeoPoint3(10, 0, 1), new GeoPoint3(10, 10, 1) }
+                        ),
+                        "d"
+                    )
+            );
 
             List<string> handles = dxf.Everything().Where(r => r.Has(5) || r.Has(105)).Select(r => r.Handle).ToList();
             Assert.Equal(handles.Count, handles.Distinct().Count());
 
             AssertOwners(dxf);
-            Assert.Equal(new[] { "0", "a", "b", "box", "c", "d" }, LayerNames(dxf).OrderBy(n => n, StringComparer.Ordinal).ToArray());
+            Assert.Equal(
+                new[] { "0", "a", "b", "box", "c", "d" },
+                LayerNames(dxf).OrderBy(n => n, StringComparer.Ordinal).ToArray()
+            );
         }
 
         [Fact]
@@ -2571,10 +3032,17 @@ namespace GeometryHelper.UnitTest.Solid
 
             var up = new GeoVector3(0, 0, 1);
             var slot = new GeoPolygonArc3(
-                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(60, 0, 0), new GeoPoint3(60, 20, 0), new GeoPoint3(0, 20, 0) },
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(60, 0, 0),
+                    new GeoPoint3(60, 20, 0),
+                    new GeoPoint3(0, 20, 0),
+                },
                 new[] { 0.0, 1.0, 0.0, 1.0 },
                 new[] { default(GeoVector3), up, default(GeoVector3), up },
-                Tol);
+                Tol
+            );
             Assert.Equal(74, VerticesOf(Dxf.Of(new DxfWriter().Add(slot, 0.01))).Count);
         }
 

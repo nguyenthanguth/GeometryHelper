@@ -64,9 +64,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public static CadQuestionWindow ForSave(IReadOnlyList<CadDocument> documents)
         {
             int count = documents?.Count ?? 0;
-            string title = count == 1 ? "Save changes to " + documents[0].Title + "?" : "Save changes to " + count.ToString(CultureInfo.InvariantCulture) + " drawings?";
-            string text = count == 1 ? "The drawing has changes not saved. Closing it without saving drops them." : "These drawings have changes not saved; closing without saving drops them all.";
-            string detail = count == 1 ? documents[0].FileName ?? documents[0].Title : string.Join("\n", documents.Select(d => d.Title));
+            string title =
+                count == 1
+                    ? "Save changes to " + documents[0].Title + "?"
+                    : "Save changes to " + count.ToString(CultureInfo.InvariantCulture) + " drawings?";
+            string text =
+                count == 1
+                    ? "The drawing has changes not saved. Closing it without saving drops them."
+                    : "These drawings have changes not saved; closing without saving drops them all.";
+            string detail =
+                count == 1
+                    ? documents[0].FileName ?? documents[0].Title
+                    : string.Join("\n", documents.Select(d => d.Title));
             var question = new CadQuestionWindow(title, text, detail, "Save", "Don't save");
             question.ThirdButton.Content = "Cancel";
             question.ThirdButton.Visibility = Visibility.Visible;
@@ -97,7 +106,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 "Loading a plugin runs its code with your rights. Load it only if you know where it comes from; to stop being asked, add its folder to the trusted folders in the Plugin manager.",
                 path,
                 "Load",
-                "Don't load");
+                "Don't load"
+            );
 
             if (owner != null && owner.IsVisible)
             {
@@ -125,7 +135,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 "Redefine replaces the drawing's block with the one of the other drawing, and every INSERT of it shows the new one. Don't redefine places the drawing's own.",
                 string.Empty,
                 "Redefine",
-                "Don't redefine");
+                "Don't redefine"
+            );
 
             if (owner != null && owner.IsVisible)
             {
@@ -150,7 +161,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 "Redefine saves the view on screen, or the window picked, under the name in the place of the view it had.",
                 string.Empty,
                 "Redefine",
-                "Don't redefine");
+                "Don't redefine"
+            );
 
             if (owner != null && owner.IsVisible)
             {
@@ -173,7 +185,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>True to purge it, false to keep it, null to stop the purge.</returns>
         public static bool? ConfirmPurgeItem(Window owner, string question)
         {
-            var dialog = new CadQuestionWindow(question, "Purge removes the item from the drawing; U takes the whole purge back.", string.Empty, "Purge this item", "Skip this item");
+            var dialog = new CadQuestionWindow(
+                question,
+                "Purge removes the item from the drawing; U takes the whole purge back.",
+                string.Empty,
+                "Purge this item",
+                "Skip this item"
+            );
             dialog.ThirdButton.Content = "Cancel";
             dialog.ThirdButton.Visibility = Visibility.Visible;
             dialog.NoButton.IsCancel = false;
@@ -189,7 +207,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             dialog.ShowDialog();
-            return dialog.Answer == CadSaveChoice.Save ? true : dialog.Answer == CadSaveChoice.DontSave ? (bool?)false : null;
+            return dialog.Answer == CadSaveChoice.Save ? true
+                : dialog.Answer == CadSaveChoice.DontSave ? (bool?)false
+                : null;
         }
 
         private void OnYes(object sender, RoutedEventArgs e)

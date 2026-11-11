@@ -43,11 +43,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public Func<IReadOnlyList<CadDocument>, CadSaveChoice> AskSaveAll { get; set; }
 
         /// <summary>Gets the command of the x of a row of the file list, given the row: its document closed.</summary>
-        public ICommand CloseFileCommand => _closeFileCommand ?? (_closeFileCommand = new DelegateCommand(p => CloseFile(p as FileRowViewModel)));
+        public ICommand CloseFileCommand =>
+            _closeFileCommand ?? (_closeFileCommand = new DelegateCommand(p => CloseFile(p as FileRowViewModel)));
 
         /// <summary>Gets the documents open with changes not saved, in the order of their files.</summary>
-        public IReadOnlyList<CadDocument> UnsavedDocuments => _files.Values.Where(f => f.Document != null && f.Document.IsModified)
-            .OrderBy(f => f.Path, StringComparer.OrdinalIgnoreCase).Select(f => f.Document).ToList();
+        public IReadOnlyList<CadDocument> UnsavedDocuments =>
+            _files
+                .Values.Where(f => f.Document != null && f.Document.IsModified)
+                .OrderBy(f => f.Path, StringComparer.OrdinalIgnoreCase)
+                .Select(f => f.Document)
+                .ToList();
 
         /// <summary>
         /// Closes a document, as CLOSE does: with changes not saved, <see cref="AskSaveChanges"/> is asked first, and Save saves
@@ -130,8 +135,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         private bool CloseFiles(IEnumerable<KnownFile> files)
         {
-            List<KnownFile> open = files.Where(f => f?.Document != null).Distinct()
-                .OrderBy(f => f.Path, StringComparer.OrdinalIgnoreCase).ThenBy(f => f.Path, StringComparer.Ordinal).ToList();
+            List<KnownFile> open = files
+                .Where(f => f?.Document != null)
+                .Distinct()
+                .OrderBy(f => f.Path, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(f => f.Path, StringComparer.Ordinal)
+                .ToList();
 
             if (open.Count <= 1)
             {
@@ -144,7 +153,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             List<KnownFile> unsaved = open.Where(f => f.Document.IsModified).ToList();
-            CadSaveChoice choice = unsaved.Count == 0 ? CadSaveChoice.DontSave
+            CadSaveChoice choice =
+                unsaved.Count == 0 ? CadSaveChoice.DontSave
                 : unsaved.Count == 1 ? AskSaveChanges?.Invoke(unsaved[0].Document) ?? CadSaveChoice.Cancel
                 : AskSaveAll?.Invoke(unsaved.Select(f => f.Document).ToList()) ?? CadSaveChoice.Cancel;
 
@@ -163,7 +173,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void CloseFile(FileRowViewModel row)
         {
-            if (row != null && !row.IsHeader && row.Path != null && _files.TryGetValue(row.Path, out KnownFile file) && file.Document != null)
+            if (
+                row != null
+                && !row.IsHeader
+                && row.Path != null
+                && _files.TryGetValue(row.Path, out KnownFile file)
+                && file.Document != null
+            )
             {
                 CloseDocument(file.Document);
             }
@@ -223,7 +239,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             _current = null;
-            KnownFile next = _files.Values.Where(f => f.Document != null).OrderBy(f => f.Path, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+            KnownFile next = _files
+                .Values.Where(f => f.Document != null)
+                .OrderBy(f => f.Path, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault();
 
             if (next != null)
             {

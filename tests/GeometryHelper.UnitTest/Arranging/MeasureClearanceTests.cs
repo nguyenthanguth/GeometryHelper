@@ -57,13 +57,19 @@ namespace GeometryHelper.UnitTest.Arranging
             {
                 // A scene a hundred labels wide about a point far off or near the origin, of lines, boxes and triangles,
                 // some a hair from the place, some touching it, some far.
-                double ox = (random.NextDouble() - 0.5) * size * 1000, oy = (random.NextDouble() - 0.5) * size * 1000;
+                double ox = (random.NextDouble() - 0.5) * size * 1000,
+                    oy = (random.NextDouble() - 0.5) * size * 1000;
                 var obstacles = new List<Obstacle>();
-                var moved = new GeoRectangle2(new GeoPoint2(ox, oy), size * (1 + random.NextDouble()), size * (0.5 + random.NextDouble()));
+                var moved = new GeoRectangle2(
+                    new GeoPoint2(ox, oy),
+                    size * (1 + random.NextDouble()),
+                    size * (0.5 + random.NextDouble())
+                );
 
                 for (int k = 0; k < 60; k++)
                 {
-                    double x = ox + (random.NextDouble() - 0.5) * size * 100, y = oy + (random.NextDouble() - 0.5) * size * 100;
+                    double x = ox + (random.NextDouble() - 0.5) * size * 100,
+                        y = oy + (random.NextDouble() - 0.5) * size * 100;
                     double w = size * random.NextDouble() * 5;
 
                     switch (random.Next(4))
@@ -72,16 +78,32 @@ namespace GeometryHelper.UnitTest.Arranging
                             obstacles.Add(new Obstacle(new GeoLine2(x, y, x + w, y + (random.NextDouble() - 0.5) * w)));
                             break;
                         case 1:
-                            obstacles.Add(new Obstacle(new GeoRectangle2(new GeoPoint2(x, y), w + size * 0.1, w * 0.5 + size * 0.1)));
+                            obstacles.Add(
+                                new Obstacle(
+                                    new GeoRectangle2(new GeoPoint2(x, y), w + size * 0.1, w * 0.5 + size * 0.1)
+                                )
+                            );
                             break;
                         case 2:
-                            obstacles.Add(new Obstacle(new GeoPolygon2(new GeoPoint2(x, y), new GeoPoint2(x + w + size, y), new GeoPoint2(x, y + w + size))));
+                            obstacles.Add(
+                                new Obstacle(
+                                    new GeoPolygon2(
+                                        new GeoPoint2(x, y),
+                                        new GeoPoint2(x + w + size, y),
+                                        new GeoPoint2(x, y + w + size)
+                                    )
+                                )
+                            );
                             break;
                         default:
                             // A hair off a side of the place.
                             double right = moved.Center.X + moved.Width / 2;
                             double hair = random.NextDouble() * size * 1E-3;
-                            obstacles.Add(new Obstacle(new GeoLine2(right + hair, moved.Center.Y, right + hair + w, moved.Center.Y + w)));
+                            obstacles.Add(
+                                new Obstacle(
+                                    new GeoLine2(right + hair, moved.Center.Y, right + hair + w, moved.Center.Y + w)
+                                )
+                            );
                             break;
                     }
                 }

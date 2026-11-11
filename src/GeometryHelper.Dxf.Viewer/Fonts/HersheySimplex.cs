@@ -152,7 +152,10 @@ namespace GeometryHelper.Dxf.Viewer
             letters.Add(0xB1, PlusMinus);
             letters.Add(0x2205, Diameter);
             var bytes = new List<byte>(Encoding.ASCII.GetBytes("AutoCAD-86 unifont 1.0\r\n\x1A"));
-            byte[] info = Encoding.ASCII.GetBytes("GeometryHelper Simplex\0").Concat(new byte[] { 21, 7, 0, 0 }).ToArray();
+            byte[] info = Encoding
+                .ASCII.GetBytes("GeometryHelper Simplex\0")
+                .Concat(new byte[] { 21, 7, 0, 0 })
+                .ToArray();
             Word(bytes, letters.Count + 1);
             Word(bytes, 0);
             Word(bytes, info.Length);

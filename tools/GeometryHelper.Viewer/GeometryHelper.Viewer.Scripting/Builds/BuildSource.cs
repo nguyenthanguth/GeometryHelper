@@ -142,9 +142,12 @@ namespace GeometryHelper.Viewer.Builds
         {
             switch (Kind)
             {
-                case BuildSourceKind.Own: return "own library";
-                case BuildSourceKind.Dll: return Dll;
-                default: return string.Format(CultureInfo.InvariantCulture, "commit {0} of {1}", Commit, Repository);
+                case BuildSourceKind.Own:
+                    return "own library";
+                case BuildSourceKind.Dll:
+                    return Dll;
+                default:
+                    return string.Format(CultureInfo.InvariantCulture, "commit {0} of {1}", Commit, Repository);
             }
         }
 
@@ -155,9 +158,12 @@ namespace GeometryHelper.Viewer.Builds
         {
             switch (Kind)
             {
-                case BuildSourceKind.Own: return "own";
-                case BuildSourceKind.Dll: return "dll:" + Dll;
-                default: return "commit:" + Commit;
+                case BuildSourceKind.Own:
+                    return "own";
+                case BuildSourceKind.Dll:
+                    return "dll:" + Dll;
+                default:
+                    return "commit:" + Commit;
             }
         }
     }

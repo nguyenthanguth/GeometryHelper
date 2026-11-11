@@ -30,7 +30,10 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string group in groups.Split(' '))
             {
                 int at = group.IndexOf('=');
-                text.Append(group.Substring(0, at).PadLeft(3)).Append('\n').Append(group.Substring(at + 1)).Append('\n');
+                text.Append(group.Substring(0, at).PadLeft(3))
+                    .Append('\n')
+                    .Append(group.Substring(at + 1))
+                    .Append('\n');
             }
 
             return text.ToString();
@@ -39,8 +42,14 @@ namespace GeometryHelper.UnitTest.Dxf
         /// <summary>ezdxf's drawing of R2018 with entities of their own put last in its ENTITIES section, the handles from C00 free.</summary>
         private static string With(string entities)
         {
-            string text = DxfFileEzdxfDrawings.R2018.Replace("\r\n", "\n").Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nC00\n");
-            int end = text.IndexOf("  0\nENDSEC\n", text.IndexOf("\nENTITIES\n", StringComparison.Ordinal), StringComparison.Ordinal);
+            string text = DxfFileEzdxfDrawings
+                .R2018.Replace("\r\n", "\n")
+                .Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nC00\n");
+            int end = text.IndexOf(
+                "  0\nENDSEC\n",
+                text.IndexOf("\nENTITIES\n", StringComparison.Ordinal),
+                StringComparison.Ordinal
+            );
             return text.Insert(end, entities);
         }
 
@@ -108,7 +117,11 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase r2000 = DxfDatabase.Parse(new DxfWriter().ToString());
             DxfDatabase r2018 = DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2018);
             var dimension = ByHandle<DxfRotatedDimension>(source, "4D");
-            Assert.Contains("100\nAcDbDimension\n280\n0\n", Records(source.ToText()).Single(r => HandleOf(r) == "4D"), StringComparison.Ordinal);
+            Assert.Contains(
+                "100\nAcDbDimension\n280\n0\n",
+                Records(source.ToText()).Single(r => HandleOf(r) == "4D"),
+                StringComparison.Ordinal
+            );
 
             DxfEntity old = source.WblockCloneObjects(new DxfEntity[] { dimension }, r2000.ModelSpace).Single();
             DxfEntity kept = source.WblockCloneObjects(new DxfEntity[] { dimension }, r2018.ModelSpace).Single();
@@ -116,8 +129,17 @@ namespace GeometryHelper.UnitTest.Dxf
             string record = Records(r2000.ToText()).Single(r => HandleOf(r) == old.Handle);
             Assert.Contains("100\nAcDbDimension\n  2\n", record, StringComparison.Ordinal);
             Assert.DoesNotContain("\n280\n", record, StringComparison.Ordinal);
-            Assert.Contains("100\nAcDbDimension\n280\n0\n", Records(r2018.ToText()).Single(r => HandleOf(r) == kept.Handle), StringComparison.Ordinal);
-            Assert.Equal(dimension.DimensionText, ((DxfDimension)DxfDatabase.Parse(r2000.ToText()).ModelSpace.Single(e => e.Handle == old.Handle)).DimensionText);
+            Assert.Contains(
+                "100\nAcDbDimension\n280\n0\n",
+                Records(r2018.ToText()).Single(r => HandleOf(r) == kept.Handle),
+                StringComparison.Ordinal
+            );
+            Assert.Equal(
+                dimension.DimensionText,
+                (
+                    (DxfDimension)DxfDatabase.Parse(r2000.ToText()).ModelSpace.Single(e => e.Handle == old.Handle)
+                ).DimensionText
+            );
         }
 
         [Fact]
@@ -127,7 +149,10 @@ namespace GeometryHelper.UnitTest.Dxf
             // The drawing without its lineweights and its polylines exploded, which R12 has not, as the test of point 55 has it.
             string fixture = DxfDimensionDrawings.R2000;
             int blocks = fixture.IndexOf("\n  2\nBLOCKS\n", StringComparison.Ordinal);
-            DxfDatabase source = DxfDatabase.Parse(fixture.Substring(0, blocks) + System.Text.RegularExpressions.Regex.Replace(fixture.Substring(blocks), "\n370\n-?[0-9]+\n", "\n"));
+            DxfDatabase source = DxfDatabase.Parse(
+                fixture.Substring(0, blocks)
+                    + System.Text.RegularExpressions.Regex.Replace(fixture.Substring(blocks), "\n370\n-?[0-9]+\n", "\n")
+            );
             var dimension = ByHandle<DxfRotatedDimension>(source, "4D");
 
             foreach (DxfBlockTableRecord block in source.BlockTable.Where(b => b.OfType<DxfPolyline>().Any()).ToList())
@@ -152,7 +177,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             source.WblockCloneObjects(new DxfEntity[] { dimension }, target.ModelSpace);
 
-            string record = Records(target.ToText()).Single(r => r.StartsWith("  0\nDIMSTYLE\n", StringComparison.Ordinal) && r.Contains("\n  2\n" + dimension.DimensionStyleName + "\n"));
+            string record = Records(target.ToText())
+                .Single(r =>
+                    r.StartsWith("  0\nDIMSTYLE\n", StringComparison.Ordinal)
+                    && r.Contains("\n  2\n" + dimension.DimensionStyleName + "\n")
+                );
             Assert.Matches("\n 70\n0\n  3\n[^\n]*\n  4\n[^\n]*\n  5\n\n  6\n\n  7\n\n 40\n", record);
         }
 
@@ -167,7 +196,10 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("thin bow tie", -1.0)]
         [InlineData("curled square", 1.0)]
         [InlineData("curled square", -1.0)]
-        public void AClosedPolylineThatCrossesItself_HasNoOffsetEitherWay_AsAutoCadGivesNoneOfTheBowTie(string name, double distance)
+        public void AClosedPolylineThatCrossesItself_HasNoOffsetEitherWay_AsAutoCadGivesNoneOfTheBowTie(
+            string name,
+            double distance
+        )
         {
             // AutoCAD 2021 gave no curve of either bow tie either way, and of the curled square none inwards and outwards one
             // that ran out to x = 206 and -196 on a square 10 wide; the curl's first and third bottom sides cross at (5, 0.05).
@@ -192,8 +224,20 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void APolylineOfThePlaneAndOneInSpace_ThatCrossThemselves_HaveNoOffsetEither()
         {
-            var flat = new DxfPolyline2d(DxfPoly2dType.SimplePoly, Loop79("bow tie").Select(p => P3(p.X, p.Y, 0)), 0.0, true, 0.0, 0.0, null);
-            var standing = new DxfPolyline3d(DxfPoly3dType.SimplePoly, Loop79("bow tie").Select(p => P3(2, p.X, p.Y)), true);
+            var flat = new DxfPolyline2d(
+                DxfPoly2dType.SimplePoly,
+                Loop79("bow tie").Select(p => P3(p.X, p.Y, 0)),
+                0.0,
+                true,
+                0.0,
+                0.0,
+                null
+            );
+            var standing = new DxfPolyline3d(
+                DxfPoly3dType.SimplePoly,
+                Loop79("bow tie").Select(p => P3(2, p.X, p.Y)),
+                true
+            );
 
             Assert.Empty(flat.GetOffsetCurves(1.0));
             Assert.Empty(flat.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(0, 0, -1), 1.0));
@@ -228,11 +272,26 @@ namespace GeometryHelper.UnitTest.Dxf
         // A PFACE of three points and one face, its face record as GeometryHelper 13.0.0 and 13.1.0 wrote it: AcDbVertex before
         // its AcDbFaceRecord, which AutoCAD 2021 refuses ("Class separator for class AcDbFaceRecord expected").
         private static readonly string OldPface =
-            Rec("POLYLINE", "5=C01 330=1F 100=AcDbEntity 8=0 100=AcDbPolyFaceMesh 66=1 10=0.0 20=0.0 30=0.0 70=64 71=3 72=1")
-            + Rec("VERTEX", "5=C02 330=C01 100=AcDbEntity 8=0 100=AcDbVertex 100=AcDbPolyFaceMeshVertex 10=0.0 20=0.0 30=0.0 70=192")
-            + Rec("VERTEX", "5=C03 330=C01 100=AcDbEntity 8=0 100=AcDbVertex 100=AcDbPolyFaceMeshVertex 10=10.0 20=0.0 30=0.0 70=192")
-            + Rec("VERTEX", "5=C04 330=C01 100=AcDbEntity 8=0 100=AcDbVertex 100=AcDbPolyFaceMeshVertex 10=5.0 20=5.0 30=8.0 70=192")
-            + Rec("VERTEX", "5=C05 330=C01 100=AcDbEntity 8=0 100=AcDbVertex 100=AcDbFaceRecord 10=0 20=0 30=0 70=128 71=1 72=2 73=-3")
+            Rec(
+                "POLYLINE",
+                "5=C01 330=1F 100=AcDbEntity 8=0 100=AcDbPolyFaceMesh 66=1 10=0.0 20=0.0 30=0.0 70=64 71=3 72=1"
+            )
+            + Rec(
+                "VERTEX",
+                "5=C02 330=C01 100=AcDbEntity 8=0 100=AcDbVertex 100=AcDbPolyFaceMeshVertex 10=0.0 20=0.0 30=0.0 70=192"
+            )
+            + Rec(
+                "VERTEX",
+                "5=C03 330=C01 100=AcDbEntity 8=0 100=AcDbVertex 100=AcDbPolyFaceMeshVertex 10=10.0 20=0.0 30=0.0 70=192"
+            )
+            + Rec(
+                "VERTEX",
+                "5=C04 330=C01 100=AcDbEntity 8=0 100=AcDbVertex 100=AcDbPolyFaceMeshVertex 10=5.0 20=5.0 30=8.0 70=192"
+            )
+            + Rec(
+                "VERTEX",
+                "5=C05 330=C01 100=AcDbEntity 8=0 100=AcDbVertex 100=AcDbFaceRecord 10=0 20=0 30=0 70=128 71=1 72=2 73=-3"
+            )
             + Rec("SEQEND", "5=C06 330=C01 100=AcDbEntity 8=0");
 
         [Fact]
@@ -253,7 +312,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("C05", HandleOf(Assert.Single(gone)));
             Assert.Equal(
                 "  0\nVERTEX\n  5\nC05\n330\nC01\n100\nAcDbEntity\n  8\n0\n100\nAcDbFaceRecord\n 10\n0\n 20\n0\n 30\n0\n 70\n128\n 71\n1\n 72\n2\n 73\n-3\n",
-                Assert.Single(come));
+                Assert.Single(come)
+            );
             Assert.Equal(saved, db.ToText());
         }
 
@@ -263,7 +323,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(With(OldPface));
             DxfFaceRecord face = ByHandle<DxfPolyFaceMesh>(db, "C01").OfType<DxfFaceRecord>().Single();
 
-            Assert.Equal(new short[] { 1, 2, 3, 0 }, Enumerable.Range(0, 4).Select(i => face.GetVertexAt((short)i)).ToArray());
+            Assert.Equal(
+                new short[] { 1, 2, 3, 0 },
+                Enumerable.Range(0, 4).Select(i => face.GetVertexAt((short)i)).ToArray()
+            );
             Assert.False(face.IsEdgeVisibleAt(2));
 
             string current = With(OldPface.Replace("100\nAcDbVertex\n100\nAcDbFaceRecord\n", "100\nAcDbFaceRecord\n"));
@@ -275,12 +338,14 @@ namespace GeometryHelper.UnitTest.Dxf
         #region Point 54: a table scaled takes the text heights of its table style with it
 
         /// <summary>The dimension drawing of a version, its table F6 of rows 10, 8 and 8 naming no table style, as point 54's.</summary>
-        private static string TableDrawing(string version) => (version == "R2000" ? DxfDimensionDrawings.R2000 : DxfDimensionDrawings.R2018).Replace("\r\n", "\n");
+        private static string TableDrawing(string version) =>
+            (version == "R2000" ? DxfDimensionDrawings.R2000 : DxfDimensionDrawings.R2018).Replace("\r\n", "\n");
 
         private static DxfTable Table(DxfDatabase db) => db.ModelSpace.OfType<DxfTable>().Single();
 
         /// <summary>The table's own part after its last cell: the groups from the first after the last cell's value or overrides to the end of its record.</summary>
-        private static string TableRecord(DxfDatabase db) => Records(db.ToText()).Single(r => r.StartsWith("  0\nACAD_TABLE\n", StringComparison.Ordinal));
+        private static string TableRecord(DxfDatabase db) =>
+            Records(db.ToText()).Single(r => r.StartsWith("  0\nACAD_TABLE\n", StringComparison.Ordinal));
 
         [Theory]
         [InlineData("R2000")]
@@ -306,9 +371,15 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ATableNamingAStyleOfItsDrawing_TakesThatStylesHeights_ItsDataTitleAndHeaderInTheOrderTheStyleGivesThem()
         {
             // The style gives the data 2.5, the title 5 and the header 3.5, in that order, as AutoCAD writes its Standard.
-            string style = Rec("TABLESTYLE", "5=200 330=15 100=AcDbTableStyle 280=0 3=Parts 70=0 71=0 40=1.5 41=1.5 280=0 281=0 7=Standard 140=2.5 170=2 62=0 63=7 283=0 90=512 91=0 7=Standard 140=5.0 170=5 62=0 63=7 283=0 90=512 91=0 7=Standard 140=3.5 170=5 62=0 63=7 283=0 90=512 91=0");
+            string style = Rec(
+                "TABLESTYLE",
+                "5=200 330=15 100=AcDbTableStyle 280=0 3=Parts 70=0 71=0 40=1.5 41=1.5 280=0 281=0 7=Standard 140=2.5 170=2 62=0 63=7 283=0 90=512 91=0 7=Standard 140=5.0 170=5 62=0 63=7 283=0 90=512 91=0 7=Standard 140=3.5 170=5 62=0 63=7 283=0 90=512 91=0"
+            );
             string text = TableDrawing("R2018")
-                .Replace("  0\nDICTIONARY\n  5\n15\n330\nA\n100\nAcDbDictionary\n281\n1\n", "  0\nDICTIONARY\n  5\n15\n330\nA\n100\nAcDbDictionary\n281\n1\n  3\nParts\n350\n200\n" + style)
+                .Replace(
+                    "  0\nDICTIONARY\n  5\n15\n330\nA\n100\nAcDbDictionary\n281\n1\n",
+                    "  0\nDICTIONARY\n  5\n15\n330\nA\n100\nAcDbDictionary\n281\n1\n  3\nParts\n350\n200\n" + style
+                )
                 .Replace("100\nAcDbTable\n280\n0\n343\nE6\n", "100\nAcDbTable\n280\n0\n342\n200\n343\nE6\n")
                 .Replace("$HANDSEED\n  5\n10A\n", "$HANDSEED\n  5\n201\n");
             DxfDatabase db = DxfDatabase.Parse(text);
@@ -331,7 +402,11 @@ namespace GeometryHelper.UnitTest.Dxf
             string text = TableDrawing("R2018")
                 .Replace("$MEASUREMENT\n 70\n1\n", "$MEASUREMENT\n 70\n0\n")
                 .Replace(" 92\n2\n 93\n0\n 94\n0\n", " 92\n2\n 93\n1048576\n 94\n0\n");
-            int end = text.IndexOf("  0\nENDSEC\n", text.IndexOf("\nACAD_TABLE\n  5\nF6\n", StringComparison.Ordinal), StringComparison.Ordinal);
+            int end = text.IndexOf(
+                "  0\nENDSEC\n",
+                text.IndexOf("\nACAD_TABLE\n  5\nF6\n", StringComparison.Ordinal),
+                StringComparison.Ordinal
+            );
             DxfDatabase db = DxfDatabase.Parse(text.Insert(end, "140\n5.0\n"));
 
             Table(db).TransformBy(GeoTransform3.Scaling(2.0));
@@ -358,7 +433,15 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData(0.0, -150.0, 0.0, 1.0, 300.0, -200.0, 1.0, 0.0)]
         [InlineData(280.0, -100.0, 1.0, -1.0, 280.0, -80.0, 0.0, 1.0)]
         public void ATableMirroredInALevelLineOrOneAt45Degrees_StandsAtTheImageOfItsPoint_ItsRowsRunningUp_AsAutoCadLeavesIt(
-            double x, double y, double nx, double ny, double px, double py, double dx, double dy)
+            double x,
+            double y,
+            double nx,
+            double ny,
+            double px,
+            double py,
+            double dx,
+            double dy
+        )
         {
             // Plugin v4, 54x: AutoCAD 2021's TransformBy of the table at (300, -100) mirrored in y = -150 stands at (300, -200)
             // along (1, 0, 0), and in the line at 45 degrees through (280, -100) at (280, -80) along (0, 1, 0), its normal
@@ -373,7 +456,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(read.Direction.IsEqualTo(new GeoVector3(dx, dy, 0), Tol), read.Direction.ToString());
             Assert.True(read.Normal.IsEqualTo(new GeoVector3(0, 0, 1), Tol));
             Assert.Equal(DxfFlowDirection.BottomToTop, read.FlowDirection);
-            Assert.Contains("\n 93\n4\n 94\n0\n 95\n0\n 96\n0\n 70\n1\n141\n", TableRecord(db), StringComparison.Ordinal);
+            Assert.Contains(
+                "\n 93\n4\n 94\n0\n 95\n0\n 96\n0\n 70\n1\n141\n",
+                TableRecord(db),
+                StringComparison.Ordinal
+            );
             Assert.Equal(new[] { DxfTableStyleOverride.FlowDirection }, read.TableStyleOverrides());
         }
 
@@ -425,7 +512,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             viewport.SnapAngle = Math.PI / 6.0;
 
-            Assert.Contains("1040\n0.5235987755982988\n1040\n5", Records(db.ToText()).Single(r => HandleOf(r) == "35"), StringComparison.Ordinal);
+            Assert.Contains(
+                "1040\n0.5235987755982988\n1040\n5",
+                Records(db.ToText()).Single(r => HandleOf(r) == "35"),
+                StringComparison.Ordinal
+            );
             Assert.Equal(Math.PI / 6.0, ByHandle<DxfViewport>(DxfDatabase.Parse(db.ToText()), "35").SnapAngle, 15);
         }
 
@@ -443,15 +534,24 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase read = DxfDatabase.Parse(db.ToText());
             Assert.False(anonymous.IsErased);
             Assert.False(made.IsErased);
-            Assert.All(new[] { anonymous.Name, made.Name }, name => Assert.True(((DxfGroup)read.GroupDictionary[name]).IsAnonymous));
-            Assert.All(new[] { anonymous.Name, made.Name }, name => Assert.Equal(0, ((DxfGroup)read.GroupDictionary[name]).NumEntities));
+            Assert.All(new[] { anonymous.Name, made.Name }, name =>
+                Assert.True(((DxfGroup)read.GroupDictionary[name]).IsAnonymous)
+            );
+            Assert.All(new[] { anonymous.Name, made.Name }, name =>
+                Assert.Equal(0, ((DxfGroup)read.GroupDictionary[name]).NumEntities)
+            );
         }
 
         [Fact]
         public void AFaceOfAPolyfaceMeshOfItsOwnColour_ExplodesInTheMeshsColour_AsAutoCadGivesIt()
         {
             // 58: AutoCAD 2021's Explode gave the face of colour 1 of its own the mesh's BYLAYER.
-            string text = With(OldPface.Replace("  8\n0\n100\nAcDbVertex\n100\nAcDbFaceRecord\n", "  8\n0\n 62\n1\n100\nAcDbFaceRecord\n"));
+            string text = With(
+                OldPface.Replace(
+                    "  8\n0\n100\nAcDbVertex\n100\nAcDbFaceRecord\n",
+                    "  8\n0\n 62\n1\n100\nAcDbFaceRecord\n"
+                )
+            );
             DxfDatabase db = DxfDatabase.Parse(text);
             Assert.Contains("\n 62\n1\n100\nAcDbFaceRecord\n", text, StringComparison.Ordinal);
 
@@ -488,7 +588,10 @@ namespace GeometryHelper.UnitTest.Dxf
             {
                 for (short k = 0; k < 4; k++)
                 {
-                    Assert.True(points[expected[f][k]].IsEqualTo(ends[f].GetVertexAt(k), Tol), "face " + f + " corner " + k);
+                    Assert.True(
+                        points[expected[f][k]].IsEqualTo(ends[f].GetVertexAt(k), Tol),
+                        "face " + f + " corner " + k
+                    );
                 }
             }
         }
@@ -497,18 +600,30 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData(5, false, "0,1,4 2,4,1 4,2,3")]
         [InlineData(6, false, "0,1,5 2,5,1 5,2,4 3,4,2")]
         [InlineData(6, true, "5,4,0 3,0,4 0,3,1 2,1,3")]
-        public void AMeshFaceOfManyCorners_BreaksIntoAutoCadsStripOfTriangles_AloneOrAsTheBaseOfAPyramid(int corners, bool pyramid, string triangles)
+        public void AMeshFaceOfManyCorners_BreaksIntoAutoCadsStripOfTriangles_AloneOrAsTheBaseOfAPyramid(
+            int corners,
+            bool pyramid,
+            string triangles
+        )
         {
             // Plugin v4, 64x: AutoCAD 2021's Explode of a MESH of one face of five or six corners, and of the base of a pyramid
             // on six corners, each triangle given as the numbers of its corners in the face.
-            var groups = new StringBuilder("5=C01 330=17 100=AcDbEntity 8=0 100=AcDbSubDMesh 71=2 72=0 91=0 92=" + (corners + (pyramid ? 1 : 0)));
+            var groups = new StringBuilder(
+                "5=C01 330=17 100=AcDbEntity 8=0 100=AcDbSubDMesh 71=2 72=0 91=0 92=" + (corners + (pyramid ? 1 : 0))
+            );
             var place = new List<GeoPoint3>();
 
             for (int k = 0; k < corners; k++)
             {
                 double angle = 2.0 * Math.PI * k / corners;
                 place.Add(P3(Math.Round(10 * Math.Cos(angle), 6), Math.Round(10 * Math.Sin(angle), 6), 0));
-                groups.Append(" 10=" + place[k].X.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 20=" + place[k].Y.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 30=0");
+                groups.Append(
+                    " 10="
+                        + place[k].X.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        + " 20="
+                        + place[k].Y.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        + " 30=0"
+                );
             }
 
             var list = new List<int> { corners };
@@ -538,7 +653,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 for (short k = 0; k < 4; k++)
                 {
-                    Assert.True(place[numbers[Math.Min((int)k, 2)]].IsEqualTo(faces[f].GetVertexAt(k), Tol), "triangle " + f + " corner " + k);
+                    Assert.True(
+                        place[numbers[Math.Min((int)k, 2)]].IsEqualTo(faces[f].GetVertexAt(k), Tol),
+                        "triangle " + f + " corner " + k
+                    );
                 }
             }
         }

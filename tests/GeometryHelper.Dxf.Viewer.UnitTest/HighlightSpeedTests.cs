@@ -43,8 +43,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             var view = new CadView(1600, 1000);
             view.ZoomTo(list.Bounds);
             var options = new CanvasOptions();
-            byte[] alone = null, together = null;
-            double one = double.MaxValue, threads = double.MaxValue;
+            byte[] alone = null,
+                together = null;
+            double one = double.MaxValue,
+                threads = double.MaxValue;
 
             using (var bitmap = new SKBitmap(1600, 1000))
             using (var canvas = new SKCanvas(bitmap))
@@ -57,17 +59,52 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 for (int run = 0; run < Runs; run++)
                 {
                     Marshal.Copy(scene, 0, bitmap.GetPixels(), scene.Length);
-                    one = Math.Min(one, Time(() => renderer.RenderHighlight(canvas, document, document.ModelSpace, view, options, handles, false)));
+                    one = Math.Min(
+                        one,
+                        Time(() =>
+                            renderer.RenderHighlight(
+                                canvas,
+                                document,
+                                document.ModelSpace,
+                                view,
+                                options,
+                                handles,
+                                false
+                            )
+                        )
+                    );
                     alone = bitmap.Bytes;
                     Marshal.Copy(scene, 0, bitmap.GetPixels(), scene.Length);
-                    threads = Math.Min(threads, Time(() => renderer.RenderHighlight(canvas, document, document.ModelSpace, view, options, handles, false, pixels)));
+                    threads = Math.Min(
+                        threads,
+                        Time(() =>
+                            renderer.RenderHighlight(
+                                canvas,
+                                document,
+                                document.ModelSpace,
+                                view,
+                                options,
+                                handles,
+                                false,
+                                pixels
+                            )
+                        )
+                    );
                     together = bitmap.Bytes;
                 }
 
                 Assert.NotEqual(scene, alone);
             }
 
-            _output.WriteLine("one thread " + one.ToString("0") + " ms, " + Math.Min(16, Environment.ProcessorCount) + " threads " + threads.ToString("0") + " ms");
+            _output.WriteLine(
+                "one thread "
+                    + one.ToString("0")
+                    + " ms, "
+                    + Math.Min(16, Environment.ProcessorCount)
+                    + " threads "
+                    + threads.ToString("0")
+                    + " ms"
+            );
             Assert.Equal(alone, together);
 
             if (Environment.ProcessorCount >= 4)

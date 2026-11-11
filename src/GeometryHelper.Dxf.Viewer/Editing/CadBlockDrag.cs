@@ -24,7 +24,17 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly GeoPoint2 _origin;
         private readonly double _factor;
 
-        internal CadBlockDrag(string block, Lazy<IReadOnlyList<DisplayItem2>> items, CadBlockDragMode mode, GeoPoint2 point, GeoVector3 scale, double rotation, GeoVector3 shift, GeoPoint3 origin, double factor)
+        internal CadBlockDrag(
+            string block,
+            Lazy<IReadOnlyList<DisplayItem2>> items,
+            CadBlockDragMode mode,
+            GeoPoint2 point,
+            GeoVector3 scale,
+            double rotation,
+            GeoVector3 shift,
+            GeoPoint3 origin,
+            double factor
+        )
         {
             Block = block;
             _items = items;
@@ -91,7 +101,13 @@ namespace GeometryHelper.Dxf.Viewer
         internal static IReadOnlyList<DisplayItem2> ItemsOf(CadDocument document, string name)
         {
             DxfBlockTableRecord record = document.Database.BlockTable[name];
-            var definitions = new HashSet<string>(record.OfType<DxfAttributeDefinition>().Where(d => !d.Constant && d.Handle != null).Select(d => d.Handle), StringComparer.OrdinalIgnoreCase);
+            var definitions = new HashSet<string>(
+                record
+                    .OfType<DxfAttributeDefinition>()
+                    .Where(d => !d.Constant && d.Handle != null)
+                    .Select(d => d.Handle),
+                StringComparer.OrdinalIgnoreCase
+            );
             DisplayList2 list = new DisplayBuilder(document.Database, document).Build(record, false);
             return list.Items.Where(i => i.Handle == null || !definitions.Contains(i.Handle)).ToList();
         }

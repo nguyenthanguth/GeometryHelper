@@ -20,13 +20,16 @@ namespace GeometryHelper.UnitTest.Dxf
 
         // AutoCAD 2021's records (after AcDbMLeader, its proxy graphics left out) of words "ABC" 4 high held at (100, 50): a line
         // from (250, 0) and its leader on the right, its dogleg of 8 from (120.67, 48) (D31's d02) ...
-        private const string Right = "270 2|300 CONTEXT_DATA{|40 1.0|10 98.0|20 48.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 100.0|22 50.0|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 120.6666666666666|20 48.0|30 0.0|11 -1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 250.0|20 0.0|30 0.0|91 0|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 295936|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
+        private const string Right =
+            "270 2|300 CONTEXT_DATA{|40 1.0|10 98.0|20 48.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 100.0|22 50.0|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 120.6666666666666|20 48.0|30 0.0|11 -1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 250.0|20 0.0|30 0.0|91 0|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 295936|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
 
         // ... a line from (0, 0) on the left too, its dogleg from (90, 48) (d03) ...
-        private const string Both = "270 2|300 CONTEXT_DATA{|40 1.0|10 98.0|20 48.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 100.0|22 50.0|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 90.0|20 48.0|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 0.0|20 0.0|30 0.0|91 0|305 }|271 0|303 }|302 LEADER{|290 1|291 1|10 120.6666666666666|20 48.0|30 0.0|11 -1.0|21 0.0|31 0.0|90 1|40 8.0|304 LEADER_LINE{|10 250.0|20 0.0|30 0.0|91 1|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 295936|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
+        private const string Both =
+            "270 2|300 CONTEXT_DATA{|40 1.0|10 98.0|20 48.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 100.0|22 50.0|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 90.0|20 48.0|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 0.0|20 0.0|30 0.0|91 0|305 }|271 0|303 }|302 LEADER{|290 1|291 1|10 120.6666666666666|20 48.0|30 0.0|11 -1.0|21 0.0|31 0.0|90 1|40 8.0|304 LEADER_LINE{|10 250.0|20 0.0|30 0.0|91 1|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 295936|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
 
         // ... and the words moved to (160, 40), met on the left by two leaders of their own, both landed at (150, 38) (D31c b-two-landed).
-        private const string TwoLeft = "270 2|300 CONTEXT_DATA{|40 1.0|10 158.0|20 38.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 160.0|22 40.0|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 150.0|20 38.0|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 0.0|20 0.0|30 0.0|91 0|305 }|271 0|303 }|302 LEADER{|290 1|291 1|10 150.0|20 38.0|30 0.0|11 1.0|21 0.0|31 0.0|90 1|40 8.0|304 LEADER_LINE{|91 1|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 296064|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
+        private const string TwoLeft =
+            "270 2|300 CONTEXT_DATA{|40 1.0|10 158.0|20 38.0|30 0.0|41 4.0|140 4.0|145 2.0|174 1|175 1|176 0|177 0|290 1|304 ABC|11 0.0|21 0.0|31 1.0|340 55|12 160.0|22 40.0|32 0.0|13 1.0|23 0.0|33 0.0|42 0.0|43 0.0|44 0.0|45 1.0|170 1|90 -1073741824|171 1|172 5|91 -1073741824|141 0.0|92 0|291 0|292 0|173 0|293 0|142 0.0|143 0.0|294 0|295 0|296 0|110 0.0|120 0.0|130 0.0|111 1.0|121 0.0|131 0.0|112 0.0|122 1.0|132 0.0|297 0|302 LEADER{|290 1|291 1|10 150.0|20 38.0|30 0.0|11 1.0|21 0.0|31 0.0|90 0|40 8.0|304 LEADER_LINE{|10 0.0|20 0.0|30 0.0|91 0|305 }|271 0|303 }|302 LEADER{|290 1|291 1|10 150.0|20 38.0|30 0.0|11 1.0|21 0.0|31 0.0|90 1|40 8.0|304 LEADER_LINE{|91 1|305 }|271 0|303 }|272 9|273 9|301 }|340 67|90 296064|170 1|91 -1056964608|341 5B|171 -2|290 1|291 1|41 8.0|42 4.0|172 2|343 55|173 1|95 1|174 1|175 0|92 -1073741824|292 0|93 -1056964608|10 1.0|20 1.0|30 1.0|43 0.0|176 0|293 0|294 0|178 0|179 1|45 1.0|271 0|272 9|273 9|295 1";
 
         private const string Three = "A\\PBB\\PCCC";
 
@@ -34,9 +37,17 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static GeoPoint3 P(double x, double y) => new GeoPoint3(x, y, 0);
 
-        private static void Near(GeoPoint3 expected, GeoPoint3 actual) => Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
+        private static void Near(GeoPoint3 expected, GeoPoint3 actual) =>
+            Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
 
-        private static void Near(double expected, double actual) => Assert.True(Math.Abs(expected - actual) <= 1E-6, "expected " + expected.ToString("R", CultureInfo.InvariantCulture) + ", got " + actual.ToString("R", CultureInfo.InvariantCulture));
+        private static void Near(double expected, double actual) =>
+            Assert.True(
+                Math.Abs(expected - actual) <= 1E-6,
+                "expected "
+                    + expected.ToString("R", CultureInfo.InvariantCulture)
+                    + ", got "
+                    + actual.ToString("R", CultureInfo.InvariantCulture)
+            );
 
         /// <summary>
         /// A multileader of the drawing given AutoCAD 2021's record: one made and added, then its groups after its AcDbMLeader
@@ -44,7 +55,15 @@ namespace GeometryHelper.UnitTest.Dxf
         /// </summary>
         private static DxfMLeader AutoCads(DxfDatabase db, string record)
         {
-            var made = new DxfMLeader { MText = new DxfMText { Contents = "X", Location = new GeoPoint3(0, 0, 0), TextHeight = 4.0 } };
+            var made = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = "X",
+                    Location = new GeoPoint3(0, 0, 0),
+                    TextHeight = 4.0,
+                },
+            };
             db.ModelSpace.AppendEntity(made);
             List<DxfTypedValue> tail = made.Item.File.TailOf(made.Item, 0);
             int marker = tail.FindIndex(g => g.TypeCode == 100 && g.Value.Trim() == "AcDbMLeader");
@@ -64,7 +83,10 @@ namespace GeometryHelper.UnitTest.Dxf
                     continue;
                 }
 
-                value = code == 340 && value == "67" ? style : (code == 340 || code == 343) && value == "55" ? text : value;
+                value =
+                    code == 340 && value == "67" ? style
+                    : (code == 340 || code == 343) && value == "55" ? text
+                    : value;
                 groups.Add(new KeyValuePair<int, string>(code, value));
             }
 
@@ -75,7 +97,15 @@ namespace GeometryHelper.UnitTest.Dxf
         /// <summary>A multileader made in code as GHD31C made AutoCAD's: words 4 high held at (100, 50), lines from the points given (from (0, 0) where none is).</summary>
         private static DxfMLeader Words(DxfDatabase db, string words = "ABC", params GeoPoint3[] points)
         {
-            var mleader = new DxfMLeader { MText = new DxfMText { Contents = words, Location = P(100, 50), TextHeight = 4.0 } };
+            var mleader = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = words,
+                    Location = P(100, 50),
+                    TextHeight = 4.0,
+                },
+            };
 
             foreach (GeoPoint3 point in points.Length == 0 ? new[] { P(0, 0) } : points)
             {
@@ -133,15 +163,26 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             List<DxfTypedValue> tail = entity.Item.File.TailOf(entity.Item, 0);
             int start = tail.FindIndex(g => int.TryParse(from, out int at) ? g.TypeCode == at : g.Value.Trim() == from);
-            return tail.Skip(start + 1).Where(g => g.TypeCode == code).Skip(skip).Select(g => g.Value.Trim()).FirstOrDefault();
+            return tail.Skip(start + 1)
+                .Where(g => g.TypeCode == code)
+                .Skip(skip)
+                .Select(g => g.Value.Trim())
+                .FirstOrDefault();
         }
 
         /// <summary>The record of an entity as "code value|...", for comparing one before and after.</summary>
-        private static string Record(DxfEntity entity) => string.Join("|", entity.Item.File.TailOf(entity.Item, 0).Select(g => g.TypeCode.ToString(CultureInfo.InvariantCulture) + " " + g.Value.Trim()));
+        private static string Record(DxfEntity entity) =>
+            string.Join(
+                "|",
+                entity
+                    .Item.File.TailOf(entity.Item, 0)
+                    .Select(g => g.TypeCode.ToString(CultureInfo.InvariantCulture) + " " + g.Value.Trim())
+            );
 
         private static double Number(string text) => double.Parse(text, CultureInfo.InvariantCulture);
 
-        private static int Flags(DxfMLeader mleader) => int.Parse(After(mleader, "301", 90), CultureInfo.InvariantCulture);
+        private static int Flags(DxfMLeader mleader) =>
+            int.Parse(After(mleader, "301", 90), CultureInfo.InvariantCulture);
 
         /// <summary>
         /// Writes a group of the multileader's own (after its context data, 301) as text: the first of its code there, or, where it
@@ -160,7 +201,10 @@ namespace GeometryHelper.UnitTest.Dxf
             }
             else
             {
-                groups.Insert(groups.FindIndex(close, g => g.Key == before), new KeyValuePair<int, string>(code, value));
+                groups.Insert(
+                    groups.FindIndex(close, g => g.Key == before),
+                    new KeyValuePair<int, string>(code, value)
+                );
             }
 
             mleader.Item.File.ReplaceTail(mleader.Item, 0, groups);
@@ -176,7 +220,11 @@ namespace GeometryHelper.UnitTest.Dxf
             ts2 = handle;
             var standard = (DxfMLeaderStyle)db.MLeaderStyleDictionary.GetAt("Standard");
             List<DxfTypedValue> tail = standard.Item.File.TailOf(standard.Item, 0);
-            var groups = tail.Select(g => new KeyValuePair<int, string>(g.TypeCode, g.TypeCode == 342 ? handle : g.Value)).ToList();
+            var groups = tail.Select(g => new KeyValuePair<int, string>(
+                    g.TypeCode,
+                    g.TypeCode == 342 ? handle : g.Value
+                ))
+                .ToList();
             standard.Item.File.ReplaceTail(standard.Item, 0, groups);
             Assert.Equal("TS2", standard.TextStyle.Name);
             return db;
@@ -192,12 +240,23 @@ namespace GeometryHelper.UnitTest.Dxf
             // m2-both-attL4 alike): the words at (100, 65.33), the right dogleg from (120.67, 63.33), 173 and 174 of 4, 95 and
             // 175 of 1. The library set both sides.
             DxfMLeader mleader = AutoCads(Drawing(), Both);
-            mleader.MText = new DxfMText { Contents = Three, Location = P(100, 50), TextHeight = 4.0 };
+            mleader.MText = new DxfMText
+            {
+                Contents = Three,
+                Location = P(100, 50),
+                TextHeight = 4.0,
+            };
 
             mleader.TextAttachmentType = DxfTextAttachmentType.AttachmentBottomOfBottom;
 
-            Assert.Equal(DxfTextAttachmentType.AttachmentBottomOfBottom, mleader.GetTextAttachmentType(DxfLeaderDirectionType.LeftLeader));
-            Assert.Equal(DxfTextAttachmentType.AttachmentMiddleOfTop, mleader.GetTextAttachmentType(DxfLeaderDirectionType.RightLeader));
+            Assert.Equal(
+                DxfTextAttachmentType.AttachmentBottomOfBottom,
+                mleader.GetTextAttachmentType(DxfLeaderDirectionType.LeftLeader)
+            );
+            Assert.Equal(
+                DxfTextAttachmentType.AttachmentMiddleOfTop,
+                mleader.GetTextAttachmentType(DxfLeaderDirectionType.RightLeader)
+            );
             Assert.Equal("1", After(mleader, "301", 95));
             Assert.Equal("1", After(mleader, "CONTEXT_DATA{", 175));
             Near(P(100, 65.333333333333329), mleader.TextLocation);
@@ -431,7 +490,10 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("BlockScale", 21)]
         [InlineData("BlockRotation", 22)]
         [InlineData("BlockConnectionType", 23)]
-        public void APropertySetToTheValueItHas_SetsItsBitOfTheOverrides_AndWritesNothingElse_AsAutoCadDoes(string property, int bit)
+        public void APropertySetToTheValueItHas_SetsItsBitOfTheOverrides_AndWritesNothingElse_AsAutoCadDoes(
+            string property,
+            int bit
+        )
         {
             // AutoCAD 2021 (o-*, ok-*): each of these set to the value it had set its bit of the overrides (90), and nothing
             // else changed. The library changed nothing.
@@ -449,42 +511,109 @@ namespace GeometryHelper.UnitTest.Dxf
 
             switch (property)
             {
-                case "LeaderLineType": mleader.LeaderLineType = mleader.LeaderLineType; break;
-                case "LeaderLineColor": mleader.LeaderLineColor = mleader.LeaderLineColor; break;
-                case "LeaderLineWeight": mleader.LeaderLineWeight = mleader.LeaderLineWeight; break;
-                case "EnableLanding": mleader.EnableLanding = mleader.EnableLanding; break;
-                case "LandingGap": mleader.LandingGap = mleader.LandingGap; break;
-                case "EnableDogleg": mleader.EnableDogleg = mleader.EnableDogleg; break;
-                case "DoglegLength": mleader.DoglegLength = mleader.DoglegLength; break;
-                case "SetDoglegLength": mleader.SetDoglegLength(0, mleader.GetDoglegLength(0)); break;
-                case "ArrowSymbol": mleader.ArrowSymbol = mleader.ArrowSymbol; break;
-                case "TextAttachmentType": mleader.TextAttachmentType = mleader.TextAttachmentType; break;
-                case "SetTextAttachmentTypeLeft": mleader.SetTextAttachmentType(mleader.GetTextAttachmentType(DxfLeaderDirectionType.LeftLeader), DxfLeaderDirectionType.LeftLeader); break;
-                case "TextAngleType": mleader.TextAngleType = mleader.TextAngleType; break;
-                case "TextAlignmentType": mleader.TextAlignmentType = mleader.TextAlignmentType; break;
-                case "TextHeight": mleader.TextHeight = mleader.TextHeight; break;
-                case "EnableFrameText": mleader.EnableFrameText = mleader.EnableFrameText; break;
-                case "Scale": mleader.Scale = mleader.Scale; break;
-                case "SetTextAttachmentTypeRight": mleader.SetTextAttachmentType(mleader.GetTextAttachmentType(DxfLeaderDirectionType.RightLeader), DxfLeaderDirectionType.RightLeader); break;
-                case "SetTextAttachmentTypeTop": mleader.SetTextAttachmentType(mleader.GetTextAttachmentType(DxfLeaderDirectionType.TopLeader), DxfLeaderDirectionType.TopLeader); break;
-                case "SetTextAttachmentTypeBottom": mleader.SetTextAttachmentType(mleader.GetTextAttachmentType(DxfLeaderDirectionType.BottomLeader), DxfLeaderDirectionType.BottomLeader); break;
-                case "ExtendLeaderToText": mleader.ExtendLeaderToText = mleader.ExtendLeaderToText; break;
-                case "BlockColor": mleader.BlockColor = mleader.BlockColor; break;
-                case "BlockScale": mleader.BlockScale = mleader.BlockScale; break;
-                case "BlockRotation": mleader.BlockRotation = mleader.BlockRotation; break;
-                case "BlockConnectionType": mleader.BlockConnectionType = mleader.BlockConnectionType; break;
-                default: throw new ArgumentOutOfRangeException(nameof(property), property, "No such case.");
+                case "LeaderLineType":
+                    mleader.LeaderLineType = mleader.LeaderLineType;
+                    break;
+                case "LeaderLineColor":
+                    mleader.LeaderLineColor = mleader.LeaderLineColor;
+                    break;
+                case "LeaderLineWeight":
+                    mleader.LeaderLineWeight = mleader.LeaderLineWeight;
+                    break;
+                case "EnableLanding":
+                    mleader.EnableLanding = mleader.EnableLanding;
+                    break;
+                case "LandingGap":
+                    mleader.LandingGap = mleader.LandingGap;
+                    break;
+                case "EnableDogleg":
+                    mleader.EnableDogleg = mleader.EnableDogleg;
+                    break;
+                case "DoglegLength":
+                    mleader.DoglegLength = mleader.DoglegLength;
+                    break;
+                case "SetDoglegLength":
+                    mleader.SetDoglegLength(0, mleader.GetDoglegLength(0));
+                    break;
+                case "ArrowSymbol":
+                    mleader.ArrowSymbol = mleader.ArrowSymbol;
+                    break;
+                case "TextAttachmentType":
+                    mleader.TextAttachmentType = mleader.TextAttachmentType;
+                    break;
+                case "SetTextAttachmentTypeLeft":
+                    mleader.SetTextAttachmentType(
+                        mleader.GetTextAttachmentType(DxfLeaderDirectionType.LeftLeader),
+                        DxfLeaderDirectionType.LeftLeader
+                    );
+                    break;
+                case "TextAngleType":
+                    mleader.TextAngleType = mleader.TextAngleType;
+                    break;
+                case "TextAlignmentType":
+                    mleader.TextAlignmentType = mleader.TextAlignmentType;
+                    break;
+                case "TextHeight":
+                    mleader.TextHeight = mleader.TextHeight;
+                    break;
+                case "EnableFrameText":
+                    mleader.EnableFrameText = mleader.EnableFrameText;
+                    break;
+                case "Scale":
+                    mleader.Scale = mleader.Scale;
+                    break;
+                case "SetTextAttachmentTypeRight":
+                    mleader.SetTextAttachmentType(
+                        mleader.GetTextAttachmentType(DxfLeaderDirectionType.RightLeader),
+                        DxfLeaderDirectionType.RightLeader
+                    );
+                    break;
+                case "SetTextAttachmentTypeTop":
+                    mleader.SetTextAttachmentType(
+                        mleader.GetTextAttachmentType(DxfLeaderDirectionType.TopLeader),
+                        DxfLeaderDirectionType.TopLeader
+                    );
+                    break;
+                case "SetTextAttachmentTypeBottom":
+                    mleader.SetTextAttachmentType(
+                        mleader.GetTextAttachmentType(DxfLeaderDirectionType.BottomLeader),
+                        DxfLeaderDirectionType.BottomLeader
+                    );
+                    break;
+                case "ExtendLeaderToText":
+                    mleader.ExtendLeaderToText = mleader.ExtendLeaderToText;
+                    break;
+                case "BlockColor":
+                    mleader.BlockColor = mleader.BlockColor;
+                    break;
+                case "BlockScale":
+                    mleader.BlockScale = mleader.BlockScale;
+                    break;
+                case "BlockRotation":
+                    mleader.BlockRotation = mleader.BlockRotation;
+                    break;
+                case "BlockConnectionType":
+                    mleader.BlockConnectionType = mleader.BlockConnectionType;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(property), property, "No such case.");
             }
 
             // BlockScale and BlockRotation wrote the block's matrix as its transform where it stands too (ok-blockscale, ok-blockrot,
             // read again in D31e).
             if (property == "BlockScale" || property == "BlockRotation")
             {
-                before = before.Replace("|47 1|47 0|47 0|47 0|47 0|47 1|47 0|47 0|", "|47 1|47 0|47 0|47 100|47 0|47 1|47 0|47 50|");
+                before = before.Replace(
+                    "|47 1|47 0|47 0|47 0|47 0|47 1|47 0|47 0|",
+                    "|47 1|47 0|47 0|47 100|47 0|47 1|47 0|47 50|"
+                );
             }
 
             Assert.Equal(flags | (1 << bit), Flags(mleader));
-            Assert.Equal(before, Record(mleader).Replace("90 " + (flags | (1 << bit)).ToString(CultureInfo.InvariantCulture), "90 #"));
+            Assert.Equal(
+                before,
+                Record(mleader).Replace("90 " + (flags | (1 << bit)).ToString(CultureInfo.InvariantCulture), "90 #")
+            );
         }
 
         [Fact]
@@ -553,7 +682,18 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("BOX", 0.0, true, 2.0, 118.0, 50.0, 82.0, 50.0, 98.0, 50.0)]
         [InlineData("TAG", 0.0, false, 2.0, 118.0, 50.0, 82.0, 50.0, 98.0, 50.0)]
         [InlineData("ORIGIN", 0.0, false, 2.0, 123.0, 50.0, 77.0, 50.0, 93.0, 50.0)]
-        public void TheScaleOfABlockMetOnOneSide_ScalesTheBlockAndLandsItAtTheDogleg_AsAutoCadDoes(string kind, double from, bool atBase, double scale, double x, double y, double lastX, double lastY, double baseX, double baseY)
+        public void TheScaleOfABlockMetOnOneSide_ScalesTheBlockAndLandsItAtTheDogleg_AsAutoCadDoes(
+            string kind,
+            double from,
+            bool atBase,
+            double scale,
+            double x,
+            double y,
+            double lastX,
+            double lastY,
+            double baseX,
+            double baseY
+        )
         {
             // AutoCAD 2021 (k2-BOX-scale2-after, k5-*): Scale scaled the block as drawn (16) and its doglegs, kept each dogleg's
             // start, and moved the block so that it meets the longer dogleg's end as a leader added would; the base point of the
@@ -573,7 +713,14 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(P(lastX, lastY), mleader.GetLastVertex(0));
             Assert.Equal(scale, Number(After(mleader, "CONTEXT_DATA{", 16)));
             Near(P(1, 1, 1), Pt(mleader.BlockScale));
-            Near(P(baseX, baseY), new GeoPoint3(Number(After(mleader, "CONTEXT_DATA{", 10)), Number(After(mleader, "CONTEXT_DATA{", 20)), 0));
+            Near(
+                P(baseX, baseY),
+                new GeoPoint3(
+                    Number(After(mleader, "CONTEXT_DATA{", 10)),
+                    Number(After(mleader, "CONTEXT_DATA{", 20)),
+                    0
+                )
+            );
             Near(P(x, y), mleader.Explode().OfType<DxfBlockReference>().Single().Position);
         }
 

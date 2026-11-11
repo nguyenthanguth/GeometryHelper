@@ -32,9 +32,32 @@ namespace GeometryHelper.Dxf.Viewer
         /// there, from the centre (the back of the far arrowhead) to the back of the arrowhead inside the rim, broken where it
         /// runs through them.
         /// </remarks>
-        internal static List<DxfEntity> Radial(DxfDimStyleTableRecord style, double dimscale, double textHeight, GeoPoint2 center, double radius, GeoPoint2 chord, GeoPoint2 far, GeoPoint2 location, bool diameter, string words, bool placed = false, bool free = false)
+        internal static List<DxfEntity> Radial(
+            DxfDimStyleTableRecord style,
+            double dimscale,
+            double textHeight,
+            GeoPoint2 center,
+            double radius,
+            GeoPoint2 chord,
+            GeoPoint2 far,
+            GeoPoint2 location,
+            bool diameter,
+            string words,
+            bool placed = false,
+            bool free = false
+        )
         {
-            Sizes(style, dimscale, textHeight, out double scale, out double arrow, out double height, out double gap, out _, out _);
+            Sizes(
+                style,
+                dimscale,
+                textHeight,
+                out double scale,
+                out double arrow,
+                out double height,
+                out double gap,
+                out _,
+                out _
+            );
             var picture = new List<DxfEntity>();
             GeoVector2 u = (chord - center) / radius;
             double along = (location - center).X * u.X + (location - center).Y * u.Y;
@@ -49,7 +72,24 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (free)
             {
-                return FreeRadial(style, picture, text, center, chord, far, location, u, aligned, diameter, width, height, gap, arrow, trim, farTrim);
+                return FreeRadial(
+                    style,
+                    picture,
+                    text,
+                    center,
+                    chord,
+                    far,
+                    location,
+                    u,
+                    aligned,
+                    diameter,
+                    width,
+                    height,
+                    gap,
+                    arrow,
+                    trim,
+                    farTrim
+                );
             }
 
             var words2 = new RoundWords(style, scale, height, gap, width);
@@ -106,8 +146,12 @@ namespace GeometryHelper.Dxf.Viewer
                 // as a linear dimension's do: "%%c6" 4.357 wide fits a diameter of 6 under DIMATFIT 1, but with its arrowheads
                 // under DIMATFIT 0 not even one of 9, as AutoCAD 2021 draws them.
                 double needText = width + 2.0 * gap;
-                double needArrows = CadArrowheads.TakesNoRoom(nearName) && CadArrowheads.TakesNoRoom(farName) ? 0.0 : 2.0 * arrow + 2.0 * gap;
-                bool both = 2.0 * radius >= (words2.On(false) ? needText + 2.0 * arrow : Math.Max(needText, needArrows));
+                double needArrows =
+                    CadArrowheads.TakesNoRoom(nearName) && CadArrowheads.TakesNoRoom(farName)
+                        ? 0.0
+                        : 2.0 * arrow + 2.0 * gap;
+                bool both =
+                    2.0 * radius >= (words2.On(false) ? needText + 2.0 * arrow : Math.Max(needText, needArrows));
                 textOut = !both && !(style.Dimatfit == 1 && 2.0 * radius >= needText);
                 arrowOut = !both && !(style.Dimatfit == 2 && 2.0 * radius >= needArrows);
                 at = !textOut ? 0.0 : radius + (arrowOut ? 2.0 * arrow : trim) + words2.Beside;
@@ -219,22 +263,49 @@ namespace GeometryHelper.Dxf.Viewer
         /// through them. A diameter of 40 at 30 degrees with "%%c40" put 8 out along its line has its line from 17.5 back to
         /// 4.229 and from 11.771 on to 17.5.
         /// </summary>
-        private static List<DxfEntity> FreeRadial(DxfDimStyleTableRecord style, List<DxfEntity> picture, DxfMText text, GeoPoint2 center, GeoPoint2 chord, GeoPoint2 far, GeoPoint2 location, GeoVector2 u, double angle, bool diameter, double width, double height, double gap, double arrow, double trim, double farTrim)
+        private static List<DxfEntity> FreeRadial(
+            DxfDimStyleTableRecord style,
+            List<DxfEntity> picture,
+            DxfMText text,
+            GeoPoint2 center,
+            GeoPoint2 chord,
+            GeoPoint2 far,
+            GeoPoint2 location,
+            GeoVector2 u,
+            double angle,
+            bool diameter,
+            double width,
+            double height,
+            double gap,
+            double arrow,
+            double trim,
+            double farTrim
+        )
         {
             GeoPoint2 from = diameter ? far + u * farTrim : center;
-            var lines = new List<KeyValuePair<GeoPoint2, GeoPoint2>> { new KeyValuePair<GeoPoint2, GeoPoint2>(from, chord - u * trim) };
+            var lines = new List<KeyValuePair<GeoPoint2, GeoPoint2>>
+            {
+                new KeyValuePair<GeoPoint2, GeoPoint2>(from, chord - u * trim),
+            };
             double across = Cross(u, location - center);
             bool onLine = Math.Abs(across) < height / 2.0 + gap;
             double along = (location - center).X * u.X + (location - center).Y * u.Y;
             double reach = (chord - center).Length;
-            bool pushed = !diameter && onLine && along < reach && (along - width / 2.0 - gap <= 0.0 || along + width / 2.0 + gap >= reach);
+            bool pushed =
+                !diameter
+                && onLine
+                && along < reach
+                && (along - width / 2.0 - gap <= 0.0 || along + width / 2.0 + gap >= reach);
 
             if (pushed)
             {
                 // Words on a radius's line over its centre or its rim put its arrowhead outside, pointing in, on a line an
                 // arrowhead long, and its line runs whole from the centre to the rim, as AutoCAD 2021 draws "R20" put 1 out
                 // under DIMTMOVE 2; put 8 out they leave the arrowhead inside and the line broken about them.
-                lines = new List<KeyValuePair<GeoPoint2, GeoPoint2>> { new KeyValuePair<GeoPoint2, GeoPoint2>(center, chord) };
+                lines = new List<KeyValuePair<GeoPoint2, GeoPoint2>>
+                {
+                    new KeyValuePair<GeoPoint2, GeoPoint2>(center, chord),
+                };
 
                 if (trim > 0.0)
                 {
@@ -271,7 +342,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// The centre mark of DIMCEN about a centre, along the axes: a cross DIMCEN long each way, and where DIMCEN is below
         /// nought centre lines from twice its length out to its length past the rim, as AutoCAD 2021 draws them.
         /// </summary>
-        private static void AddCenterMark(List<DxfEntity> picture, DxfDimStyleTableRecord style, GeoPoint2 center, double radius, double scale)
+        private static void AddCenterMark(
+            List<DxfEntity> picture,
+            DxfDimStyleTableRecord style,
+            GeoPoint2 center,
+            double radius,
+            double scale
+        )
         {
             double mark = Math.Abs(style.Dimcen) * scale;
 
@@ -289,7 +366,13 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 foreach (GeoVector2 way in new[] { -x, x, -y, y })
                 {
-                    picture.Add(Lined(new DxfLine(P3(center + way * (2.0 * mark)), P3(center + way * (radius + mark))), style.Dimclrd, style.Dimlwd));
+                    picture.Add(
+                        Lined(
+                            new DxfLine(P3(center + way * (2.0 * mark)), P3(center + way * (radius + mark))),
+                            style.Dimclrd,
+                            style.Dimlwd
+                        )
+                    );
                 }
             }
         }
@@ -298,7 +381,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// The box of a DIMGAP below nought round the words: four lines DIMGAP clear of them, from the lower left as they read,
         /// as AutoCAD 2021 draws it; none where DIMGAP is nought or more.
         /// </summary>
-        private static void AddFrame(List<DxfEntity> picture, DxfDimStyleTableRecord style, GeoPoint2 at, double angle, double width, double height, double gap)
+        private static void AddFrame(
+            List<DxfEntity> picture,
+            DxfDimStyleTableRecord style,
+            GeoPoint2 at,
+            double angle,
+            double width,
+            double height,
+            double gap
+        )
         {
             if (!(style.Dimgap < 0.0))
             {
@@ -376,7 +467,16 @@ namespace GeometryHelper.Dxf.Viewer
             /// Words at the end of a line from <paramref name="start"/> that runs <paramref name="way"/> to <paramref name="bend"/>:
             /// along it, on it (the line stopped a gap short of them) or beside it (run on under them); or kept level on a landing.
             /// </summary>
-            internal GeoPoint2 Along(List<KeyValuePair<GeoPoint2, GeoPoint2>> lines, GeoPoint2 start, GeoPoint2 bend, GeoVector2 way, bool level, bool outside, ref double angle, bool clearOfBend)
+            internal GeoPoint2 Along(
+                List<KeyValuePair<GeoPoint2, GeoPoint2>> lines,
+                GeoPoint2 start,
+                GeoPoint2 bend,
+                GeoVector2 way,
+                bool level,
+                bool outside,
+                ref double angle,
+                bool clearOfBend
+            )
             {
                 bool on = On(level && !outside);
 
@@ -394,7 +494,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                     double landing = on ? _arrow : _width + _gap + (_box ? _gap : 0.0);
                     lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(bend, bend + x * landing));
-                    return on ? bend + x * (_arrow + _gap + _width / 2.0) + up * _onOffset : bend + x * (_gap + _width / 2.0) + up * (Side * _lift);
+                    return on
+                        ? bend + x * (_arrow + _gap + _width / 2.0) + up * _onOffset
+                        : bend + x * (_gap + _width / 2.0) + up * (Side * _lift);
                 }
 
                 var readable = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
@@ -421,7 +523,15 @@ namespace GeometryHelper.Dxf.Viewer
             /// Words at a point of a line drawn whole from <paramref name="from"/> to <paramref name="to"/>: above it, or on it with
             /// the line broken about them; kept level, on it where they stand on a slanting line (DIMTAD 0, 1, 4), else clear of it.
             /// </summary>
-            internal GeoPoint2 Centred(List<KeyValuePair<GeoPoint2, GeoPoint2>> lines, GeoPoint2 from, GeoPoint2 to, GeoPoint2 at, GeoVector2 way, bool level, ref double angle)
+            internal GeoPoint2 Centred(
+                List<KeyValuePair<GeoPoint2, GeoPoint2>> lines,
+                GeoPoint2 from,
+                GeoPoint2 to,
+                GeoPoint2 at,
+                GeoVector2 way,
+                bool level,
+                ref double angle
+            )
             {
                 double lineAngle = angle;
 
@@ -434,7 +544,10 @@ namespace GeometryHelper.Dxf.Viewer
                 var above = new GeoVector2(-readable.Y, readable.X);
                 bool on = On(level);
                 double half = level ? Chord(_width, _height, _gap, angle - lineAngle) : _width / 2.0 + _gap;
-                var whole = new List<KeyValuePair<GeoPoint2, GeoPoint2>> { new KeyValuePair<GeoPoint2, GeoPoint2>(from, to) };
+                var whole = new List<KeyValuePair<GeoPoint2, GeoPoint2>>
+                {
+                    new KeyValuePair<GeoPoint2, GeoPoint2>(from, to),
+                };
                 lines.AddRange(on ? Broken(whole, at, way, half) : whole);
 
                 if (on)
@@ -442,7 +555,10 @@ namespace GeometryHelper.Dxf.Viewer
                     return at + above * _onOffset;
                 }
 
-                double off = level ? (_width / 2.0 + _gap) * Math.Abs(Math.Sin(angle - lineAngle)) + (_height / 2.0 + _gap) * Math.Abs(Math.Cos(angle - lineAngle)) : _lift;
+                double off = level
+                    ? (_width / 2.0 + _gap) * Math.Abs(Math.Sin(angle - lineAngle))
+                        + (_height / 2.0 + _gap) * Math.Abs(Math.Cos(angle - lineAngle))
+                    : _lift;
                 return at + above * (Side * off);
             }
         }
@@ -476,9 +592,33 @@ namespace GeometryHelper.Dxf.Viewer
         /// <paramref name="turned"/> the angle its words were given (Angle), at which they stand on the arc, broken about them.
         /// </para>
         /// </remarks>
-        internal static List<DxfEntity> Angular(DxfDimStyleTableRecord style, double dimscale, double textHeight, GeoPoint2 vertex, double radius, double from, double sweep, double[] near, double[] far, string words, GeoPoint2? placed = null, double before = 0.0, double? turned = null)
+        internal static List<DxfEntity> Angular(
+            DxfDimStyleTableRecord style,
+            double dimscale,
+            double textHeight,
+            GeoPoint2 vertex,
+            double radius,
+            double from,
+            double sweep,
+            double[] near,
+            double[] far,
+            string words,
+            GeoPoint2? placed = null,
+            double before = 0.0,
+            double? turned = null
+        )
         {
-            Sizes(style, dimscale, textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond);
+            Sizes(
+                style,
+                dimscale,
+                textHeight,
+                out double scale,
+                out double arrow,
+                out double height,
+                out double gap,
+                out double offset,
+                out double beyond
+            );
             var picture = new List<DxfEntity>();
             double to = from + sweep;
             bool[] suppressed = { style.Dimse1, style.Dimse2 };
@@ -491,7 +631,16 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 double angle = i == 0 ? from : to;
                 var ray = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
-                measured = measured + ray * ((radius > far[i] ? far[i] : radius < near[i] ? near[i] : radius) / 2.0);
+                measured =
+                    measured
+                    + ray
+                        * (
+                            (
+                                radius > far[i] ? far[i]
+                                : radius < near[i] ? near[i]
+                                : radius
+                            ) / 2.0
+                        );
 
                 if (suppressed[i])
                 {
@@ -504,12 +653,27 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     if (radius + beyond > far[i] + offset)
                     {
-                        picture.Add(Lined(new DxfLine(P3(vertex + ray * (far[i] + offset)), P3(vertex + ray * (radius + beyond))), style.Dimclre, style.Dimlwe));
+                        picture.Add(
+                            Lined(
+                                new DxfLine(P3(vertex + ray * (far[i] + offset)), P3(vertex + ray * (radius + beyond))),
+                                style.Dimclre,
+                                style.Dimlwe
+                            )
+                        );
                     }
                 }
                 else if (radius < near[i] && radius - beyond < near[i] - offset)
                 {
-                    picture.Add(Lined(new DxfLine(P3(vertex + ray * (near[i] - offset)), P3(vertex + ray * Math.Max(0.0, radius - beyond))), style.Dimclre, style.Dimlwe));
+                    picture.Add(
+                        Lined(
+                            new DxfLine(
+                                P3(vertex + ray * (near[i] - offset)),
+                                P3(vertex + ray * Math.Max(0.0, radius - beyond))
+                            ),
+                            style.Dimclre,
+                            style.Dimlwe
+                        )
+                    );
                 }
             }
 
@@ -578,7 +742,8 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 at;
             double textAngle;
             int tad = style.Dimtad == 0 && Math.Abs(style.Dimtvp) >= 0.7 ? 1 : style.Dimtad;
-            double lift = tad != style.Dimtad ? style.Dimtvp * height : gap + height / 2.0 + (style.Dimgap < 0.0 ? gap : 0.0);
+            double lift =
+                tad != style.Dimtad ? style.Dimtvp * height : gap + height / 2.0 + (style.Dimgap < 0.0 ? gap : 0.0);
             double onOffset = tad == 0 ? style.Dimtvp * height : 0.0;
             GeoVector2 away = Heading(from + sweep / 2.0) * radius - measured;
             double middle = from + sweep / 2.0;
@@ -593,12 +758,17 @@ namespace GeometryHelper.Dxf.Viewer
                 double theta = Math.Atan2(placed.Value.Y - vertex.Y, placed.Value.X - vertex.X);
                 double tangent = Readable(theta + Math.PI / 2.0);
                 var up = new GeoVector2(-Math.Sin(tangent), Math.Cos(tangent));
-                double upSide = tad == 4 ? -1.0 : tad == 2 ? Sign(Dot(up, away)) : 1.0;
+                double upSide =
+                    tad == 4 ? -1.0
+                    : tad == 2 ? Sign(Dot(up, away))
+                    : 1.0;
 
                 if (levelInside)
                 {
                     textAngle = 0.0;
-                    double off = (width / 2.0 + gap) * Math.Abs(Math.Sin(tangent)) + (height / 2.0 + gap) * Math.Abs(Math.Cos(tangent));
+                    double off =
+                        (width / 2.0 + gap) * Math.Abs(Math.Sin(tangent))
+                        + (height / 2.0 + gap) * Math.Abs(Math.Cos(tangent));
                     at = onInside ? placed.Value : placed.Value + up * (upSide * off);
                 }
                 else
@@ -629,7 +799,9 @@ namespace GeometryHelper.Dxf.Viewer
                         double flat = at.X >= start.X ? 1.0 : -1.0;
                         GeoPoint2 knee = at - new GeoVector2(flat, 0.0) * (width / 2.0 + gap + arrow);
                         lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(start, knee));
-                        lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(knee, knee + new GeoVector2(flat, 0.0) * arrow));
+                        lines.Add(
+                            new KeyValuePair<GeoPoint2, GeoPoint2>(knee, knee + new GeoVector2(flat, 0.0) * arrow)
+                        );
                     }
                 }
             }
@@ -638,11 +810,17 @@ namespace GeometryHelper.Dxf.Viewer
                 // In the middle of the arc, or next to a ray for DIMJUST 1 and 2 where the words fit there.
                 double along = arrow + gap + width / 2.0;
                 double side = 2.0 * along <= chord ? ChordTurn(radius, along) : 0.0;
-                double theta = side > 0.0 && style.Dimjust == 1 ? to - side : side > 0.0 && style.Dimjust == 2 ? from + side : middle;
+                double theta =
+                    side > 0.0 && style.Dimjust == 1 ? to - side
+                    : side > 0.0 && style.Dimjust == 2 ? from + side
+                    : middle;
                 double tangent = Readable(theta + Math.PI / 2.0);
                 GeoPoint2 point = vertex + Heading(theta) * radius;
                 var up = new GeoVector2(-Math.Sin(tangent), Math.Cos(tangent));
-                double upSide = tad == 4 ? -1.0 : tad == 2 ? Sign(Dot(up, away)) : 1.0;
+                double upSide =
+                    tad == 4 ? -1.0
+                    : tad == 2 ? Sign(Dot(up, away))
+                    : 1.0;
 
                 if (turned.HasValue)
                 {
@@ -652,7 +830,9 @@ namespace GeometryHelper.Dxf.Viewer
                 else if (levelInside)
                 {
                     textAngle = 0.0;
-                    double off = (width / 2.0 + gap) * Math.Abs(Math.Sin(tangent)) + (height / 2.0 + gap) * Math.Abs(Math.Cos(tangent));
+                    double off =
+                        (width / 2.0 + gap) * Math.Abs(Math.Sin(tangent))
+                        + (height / 2.0 + gap) * Math.Abs(Math.Cos(tangent));
                     at = onInside ? point : point + up * (upSide * off);
                 }
                 else
@@ -665,7 +845,18 @@ namespace GeometryHelper.Dxf.Viewer
                 if ((onInside || turned.HasValue) && arrowsInside)
                 {
                     GeoPoint2 middleOfAll = at - Heading(textAngle) * (before / 2.0);
-                    LevelBreak(vertex, radius, middleOfAll, textAngle, width + before, height, gap, theta, out breakFrom, out breakTo);
+                    LevelBreak(
+                        vertex,
+                        radius,
+                        middleOfAll,
+                        textAngle,
+                        width + before,
+                        height,
+                        gap,
+                        theta,
+                        out breakFrom,
+                        out breakTo
+                    );
                 }
             }
             else if (style.Dimtmove != 0 && !style.Dimtoh)
@@ -691,7 +882,9 @@ namespace GeometryHelper.Dxf.Viewer
                 if (style.Dimtmove == 1)
                 {
                     double knee = Math.Max(radius, farthest) + 2.0 * arrow + (towardVertex && tad != 0 ? height : 0.0);
-                    lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(vertex + outward * radius, vertex + outward * knee));
+                    lines.Add(
+                        new KeyValuePair<GeoPoint2, GeoPoint2>(vertex + outward * radius, vertex + outward * knee)
+                    );
                     at = vertex + outward * (knee + gap + height / 2.0);
                 }
                 else if (farthest > radius)
@@ -708,17 +901,24 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 // Outside past the first ray (the second for DIMJUST 1): the arc run on, then a line along it to the words.
                 bool second = style.Dimjust == 1;
-                double clear = !arrowsInside ? 2.0 * arrow : noRoom ? 0.0 : arrow;
+                double clear =
+                    !arrowsInside ? 2.0 * arrow
+                    : noRoom ? 0.0
+                    : arrow;
                 double run = clear > 0.0 ? ChordTurn(radius, clear) : 0.0;
                 double end = second ? to + run : from - run;
 
                 if (run > 0.0)
                 {
-                    arcs.Add(second ? new KeyValuePair<double, double>(to, end) : new KeyValuePair<double, double>(end, from));
+                    arcs.Add(
+                        second ? new KeyValuePair<double, double>(to, end) : new KeyValuePair<double, double>(end, from)
+                    );
                 }
 
                 GeoPoint2 point = vertex + Heading(end) * radius;
-                GeoVector2 way = second ? new GeoVector2(-Math.Sin(end), Math.Cos(end)) : new GeoVector2(Math.Sin(end), -Math.Cos(end));
+                GeoVector2 way = second
+                    ? new GeoVector2(-Math.Sin(end), Math.Cos(end))
+                    : new GeoVector2(Math.Sin(end), -Math.Cos(end));
 
                 // Turned along the arc there, read the way words in the middle of the arc would read.
                 double across = middle - Math.PI / 2.0;
@@ -732,14 +932,28 @@ namespace GeometryHelper.Dxf.Viewer
                     textAngle = 0.0;
                     double flat = Heading(end).X < -1E-9 ? -1.0 : 1.0;
                     var x = new GeoVector2(flat, 0.0);
-                    double upSide = tad == 4 ? -1.0 : tad == 2 ? Sign(away.Y) : 1.0;
-                    lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(point, point + x * (on ? arrow : arrow + width + 2.0 * gap)));
-                    at = point + x * (arrow + gap + width / 2.0) + new GeoVector2(0.0, 1.0) * (on ? onOffset : upSide * lift);
+                    double upSide =
+                        tad == 4 ? -1.0
+                        : tad == 2 ? Sign(away.Y)
+                        : 1.0;
+                    lines.Add(
+                        new KeyValuePair<GeoPoint2, GeoPoint2>(
+                            point,
+                            point + x * (on ? arrow : arrow + width + 2.0 * gap)
+                        )
+                    );
+                    at =
+                        point
+                        + x * (arrow + gap + width / 2.0)
+                        + new GeoVector2(0.0, 1.0) * (on ? onOffset : upSide * lift);
                 }
                 else
                 {
                     textAngle = tangent;
-                    double upSide = tad == 4 ? -1.0 : tad == 2 ? Sign(Dot(up, away)) : 1.0;
+                    double upSide =
+                        tad == 4 ? -1.0
+                        : tad == 2 ? Sign(Dot(up, away))
+                        : 1.0;
 
                     if (!on)
                     {
@@ -791,7 +1005,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (KeyValuePair<double, double> arc in arcs)
             {
-                picture.Add(Lined(new DxfArc(P3(vertex), radius, Turned(arc.Key), Turned(arc.Value)), style.Dimclrd, style.Dimlwd));
+                picture.Add(
+                    Lined(
+                        new DxfArc(P3(vertex), radius, Turned(arc.Key), Turned(arc.Value)),
+                        style.Dimclrd,
+                        style.Dimlwd
+                    )
+                );
             }
 
             foreach (KeyValuePair<GeoPoint2, GeoPoint2> line in lines)
@@ -807,8 +1027,12 @@ namespace GeometryHelper.Dxf.Viewer
                 // Each arrowhead along the chord from its back on the arc to its tip on the ray; one that takes no room, as a tick,
                 // along the arc at its tip, as AutoCAD 2021 turns it.
                 double sign = arrowsInside ? 1.0 : -1.0;
-                GeoVector2 firstWay = CadArrowheads.TakesNoRoom(firstName) ? new GeoVector2(Math.Sin(from), -Math.Cos(from)) * sign : UnitOf(start2 - (vertex + Heading(from + sign * turn) * radius));
-                GeoVector2 secondWay = CadArrowheads.TakesNoRoom(secondName) ? new GeoVector2(-Math.Sin(to), Math.Cos(to)) * sign : UnitOf(end2 - (vertex + Heading(to - sign * turn) * radius));
+                GeoVector2 firstWay = CadArrowheads.TakesNoRoom(firstName)
+                    ? new GeoVector2(Math.Sin(from), -Math.Cos(from)) * sign
+                    : UnitOf(start2 - (vertex + Heading(from + sign * turn) * radius));
+                GeoVector2 secondWay = CadArrowheads.TakesNoRoom(secondName)
+                    ? new GeoVector2(-Math.Sin(to), Math.Cos(to)) * sign
+                    : UnitOf(end2 - (vertex + Heading(to - sign * turn) * radius));
                 AddArrow(picture, style, DxfDimArrowFlag.FirstArrow, start2, firstWay, arrow);
                 AddArrow(picture, style, DxfDimArrowFlag.SecondArrow, end2, secondWay, arrow);
             }
@@ -824,7 +1048,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The angle about the centre of a chord of a length on a circle of a radius: half a turn for a chord past its width.</summary>
-        private static double ChordTurn(double radius, double length) => 2.0 * Math.Asin(Math.Min(1.0, length / (2.0 * radius)));
+        private static double ChordTurn(double radius, double length) =>
+            2.0 * Math.Asin(Math.Min(1.0, length / (2.0 * radius)));
 
         private static GeoVector2 Heading(double angle) => new GeoVector2(Math.Cos(angle), Math.Sin(angle));
 
@@ -836,7 +1061,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// The angles about the vertex between which an arc through words centred on it is taken out: where the arc leaves the
         /// box of the words grown by the gap, either side of the angle of the words.
         /// </summary>
-        private static void LevelBreak(GeoPoint2 vertex, double radius, GeoPoint2 at, double angle, double width, double height, double gap, double theta, out double low, out double high)
+        private static void LevelBreak(
+            GeoPoint2 vertex,
+            double radius,
+            GeoPoint2 at,
+            double angle,
+            double width,
+            double height,
+            double gap,
+            double theta,
+            out double low,
+            out double high
+        )
         {
             var x = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
             var y = new GeoVector2(-x.Y, x.X);
@@ -865,7 +1101,9 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                foreach (double t in new[] { (-qb - Math.Sqrt(disc)) / (2.0 * qa), (-qb + Math.Sqrt(disc)) / (2.0 * qa) })
+                foreach (
+                    double t in new[] { (-qb - Math.Sqrt(disc)) / (2.0 * qa), (-qb + Math.Sqrt(disc)) / (2.0 * qa) }
+                )
                 {
                     if (t < -1E-12 || t > 1.0 + 1E-12)
                     {

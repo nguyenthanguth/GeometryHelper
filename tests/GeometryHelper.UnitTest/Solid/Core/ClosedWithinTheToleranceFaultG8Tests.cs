@@ -34,10 +34,14 @@ namespace GeometryHelper.UnitTest.Solid
 
             switch (which)
             {
-                case 1: return turn;
-                case 2: return GeoTransform3.Translation(new GeoVector3(123456.7, 234567.8, 12345.6));
-                case 3: return far * turn;
-                default: return GeoTransform3.Translation(new GeoVector3(0, 0, 0));
+                case 1:
+                    return turn;
+                case 2:
+                    return GeoTransform3.Translation(new GeoVector3(123456.7, 234567.8, 12345.6));
+                case 3:
+                    return far * turn;
+                default:
+                    return GeoTransform3.Translation(new GeoVector3(0, 0, 0));
             }
         }
 
@@ -54,7 +58,14 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoFace3(new GeoPolygon3(P(100, 0, 0), P(100, 100, 0), P(100, 100, 100), P(100, 0, 100))),
                 new GeoFace3(new GeoPolygon3(P(100, 100, 0), P(0, 100, 0), P(0, 100, 100), P(100, 100, 100))),
                 new GeoFace3(new GeoPolygon3(P(0, 100, 0), P(0, 0, 0), P(0, 0, 100), P(0, 100, 100))),
-                new GeoFace3(new GeoPolygon3(P(0, 0, 100 + gap), P(100, 0, 100 + gap), P(100, 100, 100 + gap), P(0, 100, 100 + gap))),
+                new GeoFace3(
+                    new GeoPolygon3(
+                        P(0, 0, 100 + gap),
+                        P(100, 0, 100 + gap),
+                        P(100, 100, 100 + gap),
+                        P(0, 100, 100 + gap)
+                    )
+                ),
             };
 
             if (specks)
@@ -62,10 +73,30 @@ namespace GeometryHelper.UnitTest.Solid
                 var fine = new Tolerance(1E-9, 1E-9, 1E-9, 1E-9);
                 var added = new List<GeoFace3>();
 
-                foreach (GeoPoint2 corner in new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) })
+                foreach (
+                    GeoPoint2 corner in new[]
+                    {
+                        new GeoPoint2(0, 0),
+                        new GeoPoint2(100, 0),
+                        new GeoPoint2(100, 100),
+                        new GeoPoint2(0, 100),
+                    }
+                )
                 {
                     double z = 100 + gap / 2;
-                    added.Add(new GeoFace3(new GeoPolygon3(new[] { P(corner.X, corner.Y, z), P(corner.X + 1E-5, corner.Y, z), P(corner.X, corner.Y + 1E-5, z) }, fine)));
+                    added.Add(
+                        new GeoFace3(
+                            new GeoPolygon3(
+                                new[]
+                                {
+                                    P(corner.X, corner.Y, z),
+                                    P(corner.X + 1E-5, corner.Y, z),
+                                    P(corner.X, corner.Y + 1E-5, z),
+                                },
+                                fine
+                            )
+                        )
+                    );
                 }
 
                 faces.InsertRange(specksFirst ? 0 : faces.Count, added);
@@ -180,7 +211,8 @@ namespace GeometryHelper.UnitTest.Solid
         private static GeoSolid3 SlidSlab(double height, double slide)
         {
             var fine = new Tolerance(1E-9, 1E-9, 1E-9, 1E-9);
-            GeoFace3 Quad(GeoPoint3 a, GeoPoint3 b, GeoPoint3 c, GeoPoint3 d) => new GeoFace3(new GeoPolygon3(new[] { a, b, c, d }, fine));
+            GeoFace3 Quad(GeoPoint3 a, GeoPoint3 b, GeoPoint3 c, GeoPoint3 d) =>
+                new GeoFace3(new GeoPolygon3(new[] { a, b, c, d }, fine));
 
             return new GeoSolid3(
                 Quad(P(0, 0, 0), P(0, 100, 0), P(100, 100, 0), P(100, 0, 0)),
@@ -188,7 +220,8 @@ namespace GeometryHelper.UnitTest.Solid
                 Quad(P(0, 0, 0), P(100, 0, 0), P(100, 0, height), P(0, 0, height)),
                 Quad(P(100, 0, slide), P(100, 100, slide), P(100, 100, height + slide), P(100, 0, height + slide)),
                 Quad(P(100, 100, 0), P(0, 100, 0), P(0, 100, height), P(100, 100, height)),
-                Quad(P(0, 100, 0), P(0, 0, 0), P(0, 0, height), P(0, 100, height)));
+                Quad(P(0, 100, 0), P(0, 0, 0), P(0, 0, height), P(0, 100, height))
+            );
         }
 
         [Theory]
@@ -215,7 +248,8 @@ namespace GeometryHelper.UnitTest.Solid
         private static GeoSolid3 ShortSidedSlab(double height, double inset)
         {
             var fine = new Tolerance(1E-9, 1E-9, 1E-9, 1E-9);
-            GeoFace3 Quad(GeoPoint3 a, GeoPoint3 b, GeoPoint3 c, GeoPoint3 d) => new GeoFace3(new GeoPolygon3(new[] { a, b, c, d }, fine));
+            GeoFace3 Quad(GeoPoint3 a, GeoPoint3 b, GeoPoint3 c, GeoPoint3 d) =>
+                new GeoFace3(new GeoPolygon3(new[] { a, b, c, d }, fine));
 
             return new GeoSolid3(
                 Quad(P(0, 0, 0), P(0, 100, 0), P(100, 100, 0), P(100, 0, 0)),
@@ -223,13 +257,17 @@ namespace GeometryHelper.UnitTest.Solid
                 Quad(P(0, 0, 0), P(100, 0, 0), P(100, 0, height), P(0, 0, height)),
                 Quad(P(100, 0, inset), P(100, 100, inset), P(100, 100, height - inset), P(100, 0, height - inset)),
                 Quad(P(100, 100, 0), P(0, 100, 0), P(0, 100, height), P(100, 100, height)),
-                Quad(P(0, 100, 0), P(0, 0, 0), P(0, 0, height), P(0, 100, height)));
+                Quad(P(0, 100, 0), P(0, 0, 0), P(0, 0, height), P(0, 100, height))
+            );
         }
 
         [Theory]
         [InlineData(0.0015, 0.0003)]
         [InlineData(0.0012, 0.0001)]
-        public void ASlabWhoseSideIsShortenedLessThanTheToleranceAtEachEnd_IsClosedAndCutIntoCells(double height, double inset)
+        public void ASlabWhoseSideIsShortenedLessThanTheToleranceAtEachEnd_IsClosedAndCutIntoCells(
+            double height,
+            double inset
+        )
         {
             // Each upright edge of the side, 0.0009 or 0.001 long, is no edge, and was left out beside its copy on the face
             // next to it, which then read open; kept with that copy, its corners within the tolerance of the copy's, it closes.
@@ -248,11 +286,22 @@ namespace GeometryHelper.UnitTest.Solid
         private static GeoSolid3 HoledTopWithSpecks(double width)
         {
             var fine = new Tolerance(1E-9, 1E-9, 1E-9, 1E-9);
-            double h = width / 2, inset = (width - 0.00095) / 2;
-            GeoPoint3[] square = { P(50 - h, 50 - h, 100), P(50 + h, 50 - h, 100), P(50 + h, 50 + h, 100), P(50 - h, 50 + h, 100) };
+            double h = width / 2,
+                inset = (width - 0.00095) / 2;
+            GeoPoint3[] square =
+            {
+                P(50 - h, 50 - h, 100),
+                P(50 + h, 50 - h, 100),
+                P(50 + h, 50 + h, 100),
+                P(50 - h, 50 + h, 100),
+            };
             var faces = new List<GeoFace3>
             {
-                new GeoFace3(new GeoPolygon3(new[] { P(0, 0, 100), P(100, 0, 100), P(100, 100, 100), P(0, 100, 100) }, fine), new[] { new GeoPolygon3(square, fine) }, fine),
+                new GeoFace3(
+                    new GeoPolygon3(new[] { P(0, 0, 100), P(100, 0, 100), P(100, 100, 100), P(0, 100, 100) }, fine),
+                    new[] { new GeoPolygon3(square, fine) },
+                    fine
+                ),
                 new GeoFace3(new GeoPolygon3(P(0, 0, 0), P(0, 100, 0), P(100, 100, 0), P(100, 0, 0))),
                 new GeoFace3(new GeoPolygon3(P(0, 0, 0), P(100, 0, 0), P(100, 0, 100), P(0, 0, 100))),
                 new GeoFace3(new GeoPolygon3(P(100, 0, 0), P(100, 100, 0), P(100, 100, 100), P(100, 0, 100))),
@@ -262,9 +311,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int k = 0; k < 4; k++)
             {
-                GeoPoint3 a = square[k], b = square[(k + 1) % 4];
+                GeoPoint3 a = square[k],
+                    b = square[(k + 1) % 4];
                 GeoVector3 along = a.GetVectorTo(b).Multiply(1.0 / width);
-                GeoPoint3 s0 = a.Add(along.Multiply(inset)), s1 = b.Add(along.Multiply(-inset));
+                GeoPoint3 s0 = a.Add(along.Multiply(inset)),
+                    s1 = b.Add(along.Multiply(-inset));
                 GeoPoint3 middle = P((s0.X + s1.X) / 2, (s0.Y + s1.Y) / 2, 100);
                 GeoVector3 inward = middle.GetVectorTo(P(50, 50, 100));
                 GeoPoint3 apex = middle.Add(inward.Multiply(0.0001 / inward.Length));

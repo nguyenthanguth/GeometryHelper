@@ -50,7 +50,6 @@ namespace GeometryHelper.Dxf
         public DxfTimeZone TimeZone
         {
             get => (DxfTimeZone)Whole("$TIMEZONE", 70, (int)DxfTimeZone.Pacific);
-
             set
             {
                 if (value != TimeZone && !Enum.IsDefined(typeof(DxfTimeZone), value))
@@ -96,7 +95,13 @@ namespace GeometryHelper.Dxf
                 words.Append(name[i]);
             }
 
-            return "(UTC" + (minutes < 0 ? "-" : "+") + (whole / 60).ToString("00", CultureInfo.InvariantCulture) + ":" + (whole % 60).ToString("00", CultureInfo.InvariantCulture) + ") " + words;
+            return "(UTC"
+                + (minutes < 0 ? "-" : "+")
+                + (whole / 60).ToString("00", CultureInfo.InvariantCulture)
+                + ":"
+                + (whole % 60).ToString("00", CultureInfo.InvariantCulture)
+                + ") "
+                + words;
         }
 
         /// <summary>
@@ -114,7 +119,13 @@ namespace GeometryHelper.Dxf
 
             if (!(Math.Abs(minutes - whole) <= 1E-9) || Math.Abs(whole) > 24 * 60)
             {
-                throw new ArgumentOutOfRangeException(nameof(offset), offset, "No time zone of AutoCAD is " + offset.ToString(CultureInfo.InvariantCulture) + " hours from universal time.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(offset),
+                    offset,
+                    "No time zone of AutoCAD is "
+                        + offset.ToString(CultureInfo.InvariantCulture)
+                        + " hours from universal time."
+                );
             }
 
             int at = (int)Math.Abs(whole);
@@ -122,7 +133,13 @@ namespace GeometryHelper.Dxf
 
             if (!Enum.IsDefined(typeof(DxfTimeZone), zone))
             {
-                throw new ArgumentOutOfRangeException(nameof(offset), offset, "No time zone of AutoCAD is " + offset.ToString(CultureInfo.InvariantCulture) + " hours from universal time.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(offset),
+                    offset,
+                    "No time zone of AutoCAD is "
+                        + offset.ToString(CultureInfo.InvariantCulture)
+                        + " hours from universal time."
+                );
             }
 
             TimeZone = zone;
@@ -165,7 +182,11 @@ namespace GeometryHelper.Dxf
 
             // 3 652 058 days after the first is 31 December 9999, the last day DateTime holds; a part of it rounded up to the
             // midnight after it is past its end.
-            if (day < FirstJulianDay || day > FirstJulianDay + 3652058.0 || (day == FirstJulianDay + 3652058.0 && milliseconds >= 86400000.0))
+            if (
+                day < FirstJulianDay
+                || day > FirstJulianDay + 3652058.0
+                || (day == FirstJulianDay + 3652058.0 && milliseconds >= 86400000.0)
+            )
             {
                 return default(DateTime);
             }
@@ -174,14 +195,20 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A date as the header writes it, a Julian day and the part of it since midnight.</summary>
-        private static string JulianOf(DateTime date)
-            => Numbers.Exact(FirstJulianDay + (date.Date - DateTime.MinValue).Days + date.TimeOfDay.Ticks / (double)TimeSpan.TicksPerDay);
+        private static string JulianOf(DateTime date) =>
+            Numbers.Exact(
+                FirstJulianDay
+                    + (date.Date - DateTime.MinValue).Days
+                    + date.TimeOfDay.Ticks / (double)TimeSpan.TicksPerDay
+            );
 
         /// <summary>A time of the header given in days, to the millisecond; nought where it gives none or more than a TimeSpan holds.</summary>
         private TimeSpan Days(string name)
         {
             double days = Real(name, 40, 0.0);
-            return Math.Abs(days) < 1E7 ? TimeSpan.FromTicks((long)Math.Round(days * 86400000.0) * TimeSpan.TicksPerMillisecond) : TimeSpan.Zero;
+            return Math.Abs(days) < 1E7
+                ? TimeSpan.FromTicks((long)Math.Round(days * 86400000.0) * TimeSpan.TicksPerMillisecond)
+                : TimeSpan.Zero;
         }
 
         /// <summary>The minutes a time zone is ahead of universal time: its number's thousands are hours, its tens minutes.</summary>

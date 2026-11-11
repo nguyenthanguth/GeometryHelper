@@ -70,27 +70,31 @@ namespace GeometryHelper.TeklaConvert
         /// </summary>
         /// <param name="segments">The sequence of Tekla line segments to convert.</param>
         /// <returns>A list of converted <see cref="GeoLine3"/>.</returns>
-        public static List<GeoLine3> ToGeoLine3(this IEnumerable<TSG.LineSegment> segments) => segments.Select(ToGeoLine3).ToList();
+        public static List<GeoLine3> ToGeoLine3(this IEnumerable<TSG.LineSegment> segments) =>
+            segments.Select(ToGeoLine3).ToList();
 
         /// <summary>
         /// Converts a sequence of Tekla line segments to a list of GeometryHelper 2D line segments.
         /// </summary>
         /// <param name="segments">The sequence of Tekla line segments to convert.</param>
         /// <returns>A list of converted <see cref="GeoLine2"/>.</returns>
-        public static List<GeoLine2> ToGeoLine2(this IEnumerable<TSG.LineSegment> segments) => segments.Select(ToGeoLine2).ToList();
+        public static List<GeoLine2> ToGeoLine2(this IEnumerable<TSG.LineSegment> segments) =>
+            segments.Select(ToGeoLine2).ToList();
 
         /// <summary>
         /// Converts a sequence of GeometryHelper line segments to a list of Tekla line segments.
         /// </summary>
         /// <param name="lines">The sequence of GeometryHelper line segments to convert.</param>
         /// <returns>A list of converted Tekla <see cref="TSG.LineSegment"/>.</returns>
-        public static List<TSG.LineSegment> ToTeklaLineSegment(this IEnumerable<GeoLine3> lines) => lines.Select(ToTeklaLineSegment).ToList();
+        public static List<TSG.LineSegment> ToTeklaLineSegment(this IEnumerable<GeoLine3> lines) =>
+            lines.Select(ToTeklaLineSegment).ToList();
 
         /// <summary>
         /// Converts a sequence of GeometryHelper 2D line segments to a list of Tekla line segments.
         /// </summary>
         /// <param name="lines">The sequence of GeometryHelper 2D line segments to convert.</param>
         /// <returns>A list of converted Tekla <see cref="TSG.LineSegment"/>.</returns>
-        public static List<TSG.LineSegment> ToTeklaLineSegment(this IEnumerable<GeoLine2> lines) => lines.Select(ToTeklaLineSegment).ToList();
+        public static List<TSG.LineSegment> ToTeklaLineSegment(this IEnumerable<GeoLine2> lines) =>
+            lines.Select(ToTeklaLineSegment).ToList();
     }
 }

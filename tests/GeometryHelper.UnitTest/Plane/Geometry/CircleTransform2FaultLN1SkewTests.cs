@@ -18,12 +18,14 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class CircleTransform2FaultLN1SkewTests
     {
-        private static readonly GeoTransform2 Skew = new GeoTransform2(new double[,]
-        {
-            { 1, 0.6, 0 },
-            { 0, 0.8, 0 },
-            { 0, 0, 1 },
-        });
+        private static readonly GeoTransform2 Skew = new GeoTransform2(
+            new double[,]
+            {
+                { 1, 0.6, 0 },
+                { 0, 0.8, 0 },
+                { 0, 0, 1 },
+            }
+        );
 
         private static GeoCircle2 Circle() => new GeoCircle2(new GeoPoint2(10, 20), 100);
 
@@ -48,12 +50,14 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // Y sent to (sin 1E-4, cos 1E-4): both axes a unit long, a ten-thousandth of a radian off square, ten times the
             // vector tolerance.
-            var skew = new GeoTransform2(new double[,]
-            {
-                { 1, Math.Sin(1E-4), 0 },
-                { 0, Math.Cos(1E-4), 0 },
-                { 0, 0, 1 },
-            });
+            var skew = new GeoTransform2(
+                new double[,]
+                {
+                    { 1, Math.Sin(1E-4), 0 },
+                    { 0, Math.Cos(1E-4), 0 },
+                    { 0, 0, 1 },
+                }
+            );
 
             Assert.Throws<InvalidOperationException>(() => skew.Transform(Circle()));
         }
@@ -65,12 +69,14 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The turn of 0.7 radians and a move by (5, 6), every number of it rounded as a file or a float holds it.
             double Round(double value) => toFloat ? (float)value : Math.Round(value, 6);
-            var rounded = new GeoTransform2(new double[,]
-            {
-                { Round(Math.Cos(0.7)), -Round(Math.Sin(0.7)), 5 },
-                { Round(Math.Sin(0.7)), Round(Math.Cos(0.7)), 6 },
-                { 0, 0, 1 },
-            });
+            var rounded = new GeoTransform2(
+                new double[,]
+                {
+                    { Round(Math.Cos(0.7)), -Round(Math.Sin(0.7)), 5 },
+                    { Round(Math.Sin(0.7)), Round(Math.Cos(0.7)), 6 },
+                    { 0, 0, 1 },
+                }
+            );
 
             GeoCircle2 moved = rounded.Transform(Circle());
 
@@ -80,7 +86,8 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ATurnAShiftAMirrorAndAnEvenScaling_StillMoveTheCircle()
         {
-            GeoTransform2 transform = GeoTransform2.Translation(new GeoVector2(5, -7))
+            GeoTransform2 transform = GeoTransform2
+                .Translation(new GeoVector2(5, -7))
                 .Multiply(GeoTransform2.Rotation(0.7))
                 .Multiply(GeoTransform2.Mirror(new GeoLine2(new GeoPoint2(1, 1), new GeoPoint2(3, 2))))
                 .Multiply(GeoTransform2.Scaling(2.5));

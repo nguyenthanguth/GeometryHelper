@@ -61,7 +61,15 @@ namespace GeometryHelper.Drawing
         /// <summary>What the id of a level mark starts with, before the id of its object.</summary>
         private const string LevelPrefix = "L-";
 
-        private static readonly ViewKind[] SlotKinds = { ViewKind.Front, ViewKind.Top, ViewKind.Bottom, ViewKind.Left, ViewKind.Right, ViewKind.Back };
+        private static readonly ViewKind[] SlotKinds =
+        {
+            ViewKind.Front,
+            ViewKind.Top,
+            ViewKind.Bottom,
+            ViewKind.Left,
+            ViewKind.Right,
+            ViewKind.Back,
+        };
 
         /// <summary>
         /// Makes a drawing of a source with settings: its views, dimensions, marks and sheet, written into a DXF that holds
@@ -92,7 +100,17 @@ namespace GeometryHelper.Drawing
             DrawingSettings copy = settings.Clone();
             DrawingContent content = Make(source, copy, tolerance);
             var drawing = new Drawing(content.Id, source, copy, tolerance, content);
-            GeometryHelperLog.Info(string.Format(CultureInfo.InvariantCulture, "DrawingBuilder: {0} objects gave the drawing {1} of {2} views at 1:{3} on {4}.", source.Objects.Count, content.Id, content.Views.Count, Write(content.Scale), content.Sheet.SizeName));
+            GeometryHelperLog.Info(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "DrawingBuilder: {0} objects gave the drawing {1} of {2} views at 1:{3} on {4}.",
+                    source.Objects.Count,
+                    content.Id,
+                    content.Views.Count,
+                    Write(content.Scale),
+                    content.Sheet.SizeName
+                )
+            );
             return drawing;
         }
 
@@ -136,7 +154,15 @@ namespace GeometryHelper.Drawing
 
                     // Marks and symbols only make a view's box larger, so a scale at which the views and their dimensions alone
                     // find no place is passed over before the marks are placed, which takes the longest.
-                    if (!Place(Annotate(made, scale, settings, objects, tolerance, false), settings, sheet, rows, tolerance).AllPlaced)
+                    if (
+                        !Place(
+                            Annotate(made, scale, settings, objects, tolerance, false),
+                            settings,
+                            sheet,
+                            rows,
+                            tolerance
+                        ).AllPlaced
+                    )
                     {
                         continue;
                     }
@@ -165,7 +191,14 @@ namespace GeometryHelper.Drawing
                 size = sizes[sizes.Count - 1];
                 placed = Annotate(made, chosen, settings, objects, tolerance, true);
                 layout = Place(placed, settings, NewSheet(settings.Sheet, size), rows, tolerance);
-                warnings.Add(string.Format(CultureInfo.InvariantCulture, "The views do not fit the sheet at any scale allowed; they are drawn at 1:{0} and {1} of them stand off the sheet.", Write(chosen), layout.Unplaced));
+                warnings.Add(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "The views do not fit the sheet at any scale allowed; they are drawn at 1:{0} and {1} of them stand off the sheet.",
+                        Write(chosen),
+                        layout.Unplaced
+                    )
+                );
                 GeometryHelperLog.Warn("DrawingBuilder: " + warnings[warnings.Count - 1]);
             }
 
@@ -175,24 +208,49 @@ namespace GeometryHelper.Drawing
         }
 
         /// <summary>The elements of the drawing document: the views, then the settings, the sheet and the annotation.</summary>
-        internal static void Elements(DrawingContent content, DrawingSettings settings, out List<DrawingElement> views, out List<DrawingElement> annotations)
+        internal static void Elements(
+            DrawingContent content,
+            DrawingSettings settings,
+            out List<DrawingElement> views,
+            out List<DrawingElement> annotations
+        )
         {
             views = new List<DrawingElement>();
             annotations = new List<DrawingElement>
             {
                 new DrawingElement(SettingsId, "Settings", null, null, settings.ToValues()),
-                new DrawingElement(SheetId, "Sheet", null, null, new[]
-                {
-                    new KeyValuePair<string, string>("Size", content.Sheet.SizeName),
-                    new KeyValuePair<string, string>("Width", Write(content.Sheet.Width)),
-                    new KeyValuePair<string, string>("Height", Write(content.Sheet.Height)),
-                }),
+                new DrawingElement(
+                    SheetId,
+                    "Sheet",
+                    null,
+                    null,
+                    new[]
+                    {
+                        new KeyValuePair<string, string>("Size", content.Sheet.SizeName),
+                        new KeyValuePair<string, string>("Width", Write(content.Sheet.Width)),
+                        new KeyValuePair<string, string>("Height", Write(content.Sheet.Height)),
+                    }
+                ),
                 new DrawingElement(TitleBlockId, "TitleBlock"),
             };
 
             if (content.Sheet.PartListBox.HasValue)
             {
-                annotations.Add(new DrawingElement(PartListId, "PartList", null, null, new[] { new KeyValuePair<string, string>("Rows", content.Sheet.PartList.Count.ToString(CultureInfo.InvariantCulture)) }));
+                annotations.Add(
+                    new DrawingElement(
+                        PartListId,
+                        "PartList",
+                        null,
+                        null,
+                        new[]
+                        {
+                            new KeyValuePair<string, string>(
+                                "Rows",
+                                content.Sheet.PartList.Count.ToString(CultureInfo.InvariantCulture)
+                            ),
+                        }
+                    )
+                );
             }
 
             foreach (DrawingView view in content.Views)
@@ -202,18 +260,28 @@ namespace GeometryHelper.Drawing
                 for (int i = 0; i < view.Dimensions.Count; i++)
                 {
                     DrawingDimension d = view.Dimensions[i];
-                    annotations.Add(new DrawingElement(view.DimensionIds[i], "Dimension", view.Id, d.Links, new[]
-                    {
-                        new KeyValuePair<string, string>("Kind", d.Kind.ToString()),
-                        new KeyValuePair<string, string>("Axis", d.Direction.X > 0.5 ? "X" : "Y"),
-                        new KeyValuePair<string, string>("Text", d.Text),
-                        new KeyValuePair<string, string>("Value", Write(d.Value)),
-                    }));
+                    annotations.Add(
+                        new DrawingElement(
+                            view.DimensionIds[i],
+                            "Dimension",
+                            view.Id,
+                            d.Links,
+                            new[]
+                            {
+                                new KeyValuePair<string, string>("Kind", d.Kind.ToString()),
+                                new KeyValuePair<string, string>("Axis", d.Direction.X > 0.5 ? "X" : "Y"),
+                                new KeyValuePair<string, string>("Text", d.Text),
+                                new KeyValuePair<string, string>("Value", Write(d.Value)),
+                            }
+                        )
+                    );
                 }
 
                 foreach (DrawingMark mark in view.Marks)
                 {
-                    annotations.Add(new DrawingElement(MarkId(view, mark), "Mark", view.Id, mark.Links, mark.ToValues()));
+                    annotations.Add(
+                        new DrawingElement(MarkId(view, mark), "Mark", view.Id, mark.Links, mark.ToValues())
+                    );
                 }
 
                 foreach (DrawingCentreLine line in view.CentreLines)
@@ -238,7 +306,15 @@ namespace GeometryHelper.Drawing
 
                 foreach (LevelMark level in view.LevelMarks)
                 {
-                    annotations.Add(Symbol(view, level.Id, "LevelMark", new DrawingLinks(new[] { level.Id.Substring(LevelPrefix.Length) }), level.Text));
+                    annotations.Add(
+                        Symbol(
+                            view,
+                            level.Id,
+                            "LevelMark",
+                            new DrawingLinks(new[] { level.Id.Substring(LevelPrefix.Length) }),
+                            level.Text
+                        )
+                    );
                 }
             }
         }
@@ -296,7 +372,10 @@ namespace GeometryHelper.Drawing
 
         private static Sheet NewSheet(SheetSettings settings, PaperSize size)
         {
-            Sheet sheet = size == PaperSize.Custom ? Packing.Sheet.Custom(settings.CustomWidth, settings.CustomHeight) : new Sheet(size, settings.Orientation);
+            Sheet sheet =
+                size == PaperSize.Custom
+                    ? Packing.Sheet.Custom(settings.CustomWidth, settings.CustomHeight)
+                    : new Sheet(size, settings.Orientation);
             double edge = settings.Margin + settings.ViewSpacing;
             sheet.OffsetLeft = edge;
             sheet.OffsetRight = edge;
@@ -306,7 +385,13 @@ namespace GeometryHelper.Drawing
         }
 
         /// <summary>Whether every view's crop, at a scale, is no larger than the room the sheet leaves for views.</summary>
-        private static bool MayFit(IReadOnlyList<DrawingView> views, double scale, DrawingSettings settings, Sheet sheet, double tol)
+        private static bool MayFit(
+            IReadOnlyList<DrawingView> views,
+            double scale,
+            DrawingSettings settings,
+            Sheet sheet,
+            double tol
+        )
         {
             double width = sheet.PaperWidth - sheet.OffsetLeft - sheet.OffsetRight;
             double height = sheet.PaperHeight - sheet.OffsetTop - sheet.OffsetBottom;
@@ -367,7 +452,14 @@ namespace GeometryHelper.Drawing
         /// The views at a scale, each dimensioned as the settings say, with its marks and symbols where asked, and the box of
         /// what each draws.
         /// </summary>
-        private static List<DrawingView> Annotate(IReadOnlyList<DrawingView> made, double scale, DrawingSettings settings, Dictionary<string, DrawingObject> objects, Tolerance tolerance, bool annotated)
+        private static List<DrawingView> Annotate(
+            IReadOnlyList<DrawingView> made,
+            double scale,
+            DrawingSettings settings,
+            Dictionary<string, DrawingObject> objects,
+            Tolerance tolerance,
+            bool annotated
+        )
         {
             var views = new List<DrawingView>(made.Count);
             DrawingView marked = null;
@@ -386,7 +478,14 @@ namespace GeometryHelper.Drawing
             foreach (DrawingView source in made)
             {
                 double s = ScaleOf(source, scale, settings);
-                DrawingView view = source.With(source.Kind, source.Frame, source.Crop, s, source.Lines, Ids(source.ObjectIds));
+                DrawingView view = source.With(
+                    source.Kind,
+                    source.Frame,
+                    source.Crop,
+                    s,
+                    source.Lines,
+                    Ids(source.ObjectIds)
+                );
                 var inView = new List<DrawingObject>();
 
                 foreach (string objectId in view.ObjectIds)
@@ -394,9 +493,21 @@ namespace GeometryHelper.Drawing
                     inView.Add(objects[objectId]);
                 }
 
-                if (view.Kind != ViewKind.Isometric && ((view.Kind != ViewKind.Detail && settings.Views.Dimensioned.Contains(view.Kind)) || settings.Views.DimensionedViews.Contains(view.Id)))
+                if (
+                    view.Kind != ViewKind.Isometric
+                    && (
+                        (view.Kind != ViewKind.Detail && settings.Views.Dimensioned.Contains(view.Kind))
+                        || settings.Views.DimensionedViews.Contains(view.Id)
+                    )
+                )
                 {
-                    IReadOnlyList<DrawingDimension> dimensions = Annotator.Dimension(view.Lines, inView, view.Frame.CoordinateSystem, DrawingSettings.CloneDimensions(settings.Dimensions, s), tolerance);
+                    IReadOnlyList<DrawingDimension> dimensions = Annotator.Dimension(
+                        view.Lines,
+                        inView,
+                        view.Frame.CoordinateSystem,
+                        DrawingSettings.CloneDimensions(settings.Dimensions, s),
+                        tolerance
+                    );
                     view.Dimensions = dimensions;
                     view.DimensionIds = DimensionIds(view.Id, dimensions);
                 }
@@ -430,14 +541,35 @@ namespace GeometryHelper.Drawing
                 foreach ((DrawingView view, List<DrawingObject> inView) in toWeld)
                 {
                     SymbolObstacles(view, out List<GeoRectangle2> boxes, out List<GeoLine2> lines);
-                    view.WeldSymbols = WeldSymbol.Find(view.Lines, inView, view.Frame.CoordinateSystem, view.Dimensions, boxes, lines, settings.Symbols, view.Scale, tolerance);
+                    view.WeldSymbols = WeldSymbol.Find(
+                        view.Lines,
+                        inView,
+                        view.Frame.CoordinateSystem,
+                        view.Dimensions,
+                        boxes,
+                        lines,
+                        settings.Symbols,
+                        view.Scale,
+                        tolerance
+                    );
                 }
 
                 // The marks last, clear of every symbol of their view as of its dimensions.
                 foreach ((DrawingView view, List<DrawingObject> inView) in toMark)
                 {
                     SymbolObstacles(view, out List<GeoRectangle2> boxes, out List<GeoLine2> lines);
-                    view.Marks = Marker.Mark(view.Lines, inView, view.Frame.CoordinateSystem, view.Dimensions, boxes, lines, settings.Marks, settings.Marks.Content, view.Scale, tolerance);
+                    view.Marks = Marker.Mark(
+                        view.Lines,
+                        inView,
+                        view.Frame.CoordinateSystem,
+                        view.Dimensions,
+                        boxes,
+                        lines,
+                        settings.Marks,
+                        settings.Marks.Content,
+                        view.Scale,
+                        tolerance
+                    );
                 }
             }
 
@@ -475,7 +607,15 @@ namespace GeometryHelper.Drawing
 
                 foreach (GeoPoint2 end in new[] { section.CutLine.StartPoint, section.CutLine.EndPoint })
                 {
-                    lines.Add(new GeoLine2(end, new GeoPoint2(end.X + section.Direction.X * 2.0 * section.TextHeight, end.Y + section.Direction.Y * 2.0 * section.TextHeight)));
+                    lines.Add(
+                        new GeoLine2(
+                            end,
+                            new GeoPoint2(
+                                end.X + section.Direction.X * 2.0 * section.TextHeight,
+                                end.Y + section.Direction.Y * 2.0 * section.TextHeight
+                            )
+                        )
+                    );
                 }
 
                 boxes.AddRange(section.LetterBoxes);
@@ -497,24 +637,38 @@ namespace GeometryHelper.Drawing
             {
                 double half = 0.5 * level.TextHeight;
                 GeoRectangle2 text = level.TextBox;
-                boxes.Add(Box(level.Point.X - half, level.Point.Y, text.Center.X + 0.5 * text.Width + 0.2 * level.TextHeight, text.Center.Y + 0.5 * text.Height));
+                boxes.Add(
+                    Box(
+                        level.Point.X - half,
+                        level.Point.Y,
+                        text.Center.X + 0.5 * text.Width + 0.2 * level.TextHeight,
+                        text.Center.Y + 0.5 * text.Height
+                    )
+                );
             }
         }
 
-        private static GeoRectangle2 Box(double x0, double y0, double x1, double y1) => new GeoRectangle2(new GeoPoint2((x0 + x1) / 2.0, (y0 + y1) / 2.0), x1 - x0, y1 - y0);
+        private static GeoRectangle2 Box(double x0, double y0, double x1, double y1) =>
+            new GeoRectangle2(new GeoPoint2((x0 + x1) / 2.0, (y0 + y1) / 2.0), x1 - x0, y1 - y0);
 
         /// <summary>
         /// Gives each section its mark in the first view along the axes that sees its plane edge on, and each detail its mark
         /// in the view it is taken from, round its crop; each letter the section's or detail's name.
         /// </summary>
-        private static void SectionAndDetailMarks(List<DrawingView> views, DrawingSettings settings, Tolerance tolerance)
+        private static void SectionAndDetailMarks(
+            List<DrawingView> views,
+            DrawingSettings settings,
+            Tolerance tolerance
+        )
         {
             var sections = new Dictionary<string, List<SectionMark>>(StringComparer.Ordinal);
             var details = new Dictionary<string, List<DetailMark>>(StringComparer.Ordinal);
 
             foreach (SectionViewRequest request in settings.Views.Sections)
             {
-                DrawingView section = views.Find(v => string.Equals(v.Id, "V-SECTION-" + ViewBuilder.Clean(request.Name), StringComparison.Ordinal));
+                DrawingView section = views.Find(v =>
+                    string.Equals(v.Id, "V-SECTION-" + ViewBuilder.Clean(request.Name), StringComparison.Ordinal)
+                );
 
                 if (section == null || !section.SectionPlane.HasValue)
                 {
@@ -528,7 +682,17 @@ namespace GeometryHelper.Drawing
 
                     if (drawnIn != null)
                     {
-                        Add(sections, drawnIn.Id, new SectionMark("SM-" + ViewBuilder.Clean(request.Name), request.Name, request.CutLine.Value, request.LookInView(), settings.Symbols.TextHeight * drawnIn.Scale));
+                        Add(
+                            sections,
+                            drawnIn.Id,
+                            new SectionMark(
+                                "SM-" + ViewBuilder.Clean(request.Name),
+                                request.Name,
+                                request.CutLine.Value,
+                                request.LookInView(),
+                                settings.Symbols.TextHeight * drawnIn.Scale
+                            )
+                        );
                     }
 
                     continue;
@@ -536,10 +700,23 @@ namespace GeometryHelper.Drawing
 
                 foreach (DrawingView parent in views)
                 {
-                    if (Array.IndexOf(SlotKinds, parent.Kind) >= 0 && TryCutLine(parent, section.SectionPlane.Value, tolerance, out GeoLine2 cut, out GeoVector2 look))
+                    if (
+                        Array.IndexOf(SlotKinds, parent.Kind) >= 0
+                        && TryCutLine(
+                            parent,
+                            section.SectionPlane.Value,
+                            tolerance,
+                            out GeoLine2 cut,
+                            out GeoVector2 look
+                        )
+                    )
                     {
                         double height = settings.Symbols.TextHeight * parent.Scale;
-                        Add(sections, parent.Id, new SectionMark("SM-" + ViewBuilder.Clean(request.Name), request.Name, cut, look, height));
+                        Add(
+                            sections,
+                            parent.Id,
+                            new SectionMark("SM-" + ViewBuilder.Clean(request.Name), request.Name, cut, look, height)
+                        );
                         break;
                     }
                 }
@@ -547,13 +724,22 @@ namespace GeometryHelper.Drawing
 
             foreach (DetailViewRequest request in settings.Views.Details)
             {
-                DrawingView detail = views.Find(v => string.Equals(v.Id, "V-DETAIL-" + ViewBuilder.Clean(request.Name), StringComparison.Ordinal));
-                DrawingView parent = detail == null ? null : views.Find(v => string.Equals(v.Id, detail.ParentViewId, StringComparison.Ordinal));
+                DrawingView detail = views.Find(v =>
+                    string.Equals(v.Id, "V-DETAIL-" + ViewBuilder.Clean(request.Name), StringComparison.Ordinal)
+                );
+                DrawingView parent =
+                    detail == null
+                        ? null
+                        : views.Find(v => string.Equals(v.Id, detail.ParentViewId, StringComparison.Ordinal));
 
                 if (parent != null)
                 {
                     double height = settings.Symbols.TextHeight * parent.Scale;
-                    Add(details, parent.Id, DetailMark.Rectangle("DM-" + ViewBuilder.Clean(request.Name), request.Name, detail.Crop, height));
+                    Add(
+                        details,
+                        parent.Id,
+                        DetailMark.Rectangle("DM-" + ViewBuilder.Clean(request.Name), request.Name, detail.Crop, height)
+                    );
                 }
             }
 
@@ -585,12 +771,20 @@ namespace GeometryHelper.Drawing
         /// Where a section's plane meets a view that sees it edge on, across the view's crop, and the way the section looks
         /// in the view; false where the view does not see the plane edge on.
         /// </summary>
-        private static bool TryCutLine(DrawingView view, GeoPlane3 plane, Tolerance tolerance, out GeoLine2 cut, out GeoVector2 look)
+        private static bool TryCutLine(
+            DrawingView view,
+            GeoPlane3 plane,
+            Tolerance tolerance,
+            out GeoLine2 cut,
+            out GeoVector2 look
+        )
         {
             cut = default;
             look = default;
             GeoCoordinateSystem3 cs = view.Frame.CoordinateSystem;
-            double a = plane.Normal.DotProduct(cs.XAxis), b = plane.Normal.DotProduct(cs.YAxis), length = Math.Sqrt(a * a + b * b);
+            double a = plane.Normal.DotProduct(cs.XAxis),
+                b = plane.Normal.DotProduct(cs.YAxis),
+                length = Math.Sqrt(a * a + b * b);
 
             if (!(length > 0.0) || Math.Abs(plane.Normal.DotProduct(cs.ZAxis)) > tolerance.EqualVector * length)
             {
@@ -603,16 +797,28 @@ namespace GeometryHelper.Drawing
             var through = new GeoPoint2(a * c, b * c);
             var along = new GeoVector2(-b, a);
             var crop = new Extent(view.Crop);
-            double low = double.PositiveInfinity, high = double.NegativeInfinity;
+            double low = double.PositiveInfinity,
+                high = double.NegativeInfinity;
 
-            foreach (GeoPoint2 corner in new[] { new GeoPoint2(crop.X0, crop.Y0), new GeoPoint2(crop.X1, crop.Y0), new GeoPoint2(crop.X1, crop.Y1), new GeoPoint2(crop.X0, crop.Y1) })
+            foreach (
+                GeoPoint2 corner in new[]
+                {
+                    new GeoPoint2(crop.X0, crop.Y0),
+                    new GeoPoint2(crop.X1, crop.Y0),
+                    new GeoPoint2(crop.X1, crop.Y1),
+                    new GeoPoint2(crop.X0, crop.Y1),
+                }
+            )
             {
                 double t = (corner.X - through.X) * along.X + (corner.Y - through.Y) * along.Y;
                 low = Math.Min(low, t);
                 high = Math.Max(high, t);
             }
 
-            cut = new GeoLine2(new GeoPoint2(through.X + along.X * low, through.Y + along.Y * low), new GeoPoint2(through.X + along.X * high, through.Y + along.Y * high));
+            cut = new GeoLine2(
+                new GeoPoint2(through.X + along.X * low, through.Y + along.Y * low),
+                new GeoPoint2(through.X + along.X * high, through.Y + along.Y * high)
+            );
 
             // The section looks away from its viewer, against the plane's normal.
             look = new GeoVector2(-a, -b);
@@ -624,7 +830,13 @@ namespace GeometryHelper.Drawing
         /// Elevation reads as a number, its point just right of the upper right corner of the object's box, in the order of
         /// the objects' ids.
         /// </summary>
-        private static LevelMark[] Levels(DrawingView view, List<DrawingObject> inView, SymbolSettings settings, double scale, Tolerance tolerance)
+        private static LevelMark[] Levels(
+            DrawingView view,
+            List<DrawingObject> inView,
+            SymbolSettings settings,
+            double scale,
+            Tolerance tolerance
+        )
         {
             GeoCoordinateSystem3 cs = view.Frame.CoordinateSystem;
 
@@ -638,14 +850,18 @@ namespace GeometryHelper.Drawing
 
             foreach (DrawingObject item in inView)
             {
-                if (!item.Attributes.TryGetValue(LevelMark.ElevationAttribute, out string written)
+                if (
+                    !item.Attributes.TryGetValue(LevelMark.ElevationAttribute, out string written)
                     || !double.TryParse(written, NumberStyles.Float, CultureInfo.InvariantCulture, out double elevation)
-                    || double.IsNaN(elevation) || double.IsInfinity(elevation))
+                    || double.IsNaN(elevation)
+                    || double.IsInfinity(elevation)
+                )
                 {
                     continue;
                 }
 
-                double right = double.NegativeInfinity, top = double.NegativeInfinity;
+                double right = double.NegativeInfinity,
+                    top = double.NegativeInfinity;
 
                 foreach (GeoFace3 face in item.Solid.Faces)
                 {
@@ -659,7 +875,9 @@ namespace GeometryHelper.Drawing
 
                 if (!double.IsInfinity(right))
                 {
-                    marks.Add(new LevelMark(LevelPrefix + item.Id, new GeoPoint2(right + height, top), elevation, height));
+                    marks.Add(
+                        new LevelMark(LevelPrefix + item.Id, new GeoPoint2(right + height, top), elevation, height)
+                    );
                 }
             }
 
@@ -735,7 +953,12 @@ namespace GeometryHelper.Drawing
                 foreach (GeoPoint2 end in new[] { section.CutLine.StartPoint, section.CutLine.EndPoint })
                 {
                     box.Add(end);
-                    box.Add(new GeoPoint2(end.X + section.Direction.X * 2.0 * section.TextHeight, end.Y + section.Direction.Y * 2.0 * section.TextHeight));
+                    box.Add(
+                        new GeoPoint2(
+                            end.X + section.Direction.X * 2.0 * section.TextHeight,
+                            end.Y + section.Direction.Y * 2.0 * section.TextHeight
+                        )
+                    );
                 }
 
                 foreach (GeoRectangle2 letter in section.LetterBoxes)
@@ -770,7 +993,13 @@ namespace GeometryHelper.Drawing
         /// Packs the views and the part list onto a sheet: the views along the axes as one block round the front view, the
         /// others and the part list a box each.
         /// </summary>
-        private static Layout Place(List<DrawingView> views, DrawingSettings settings, Sheet sheet, List<PartListRow> rows, Tolerance tolerance)
+        private static Layout Place(
+            List<DrawingView> views,
+            DrawingSettings settings,
+            Sheet sheet,
+            List<PartListRow> rows,
+            Tolerance tolerance
+        )
         {
             double spacing = settings.Sheet.ViewSpacing;
             var groups = new List<GeoRectangle2[]>();
@@ -809,7 +1038,12 @@ namespace GeometryHelper.Drawing
                     int i = slots[k];
                     at[k] = new GeoPoint2(x[slot[i, 0]], y[slot[i, 1]]);
                     Extent paper = PaperBox(views[i]);
-                    boxes[k] = new GeoRectangle2(at[k].X + paper.X0, at[k].Y + paper.Y0, paper.X1 - paper.X0, paper.Y1 - paper.Y0);
+                    boxes[k] = new GeoRectangle2(
+                        at[k].X + paper.X0,
+                        at[k].Y + paper.Y0,
+                        paper.X1 - paper.X0,
+                        paper.Y1 - paper.Y0
+                    );
                 }
 
                 groups.Add(boxes);
@@ -835,12 +1069,28 @@ namespace GeometryHelper.Drawing
             if (settings.Sheet.PartList && rows.Count > 0)
             {
                 partList = groups.Count;
-                groups.Add(new[] { new GeoRectangle2(0.0, 0.0, DrawingSheet.PartListWidth, DrawingSheet.PartListHeight(rows.Count)) });
+                groups.Add(
+                    new[]
+                    {
+                        new GeoRectangle2(
+                            0.0,
+                            0.0,
+                            DrawingSheet.PartListWidth,
+                            DrawingSheet.PartListHeight(rows.Count)
+                        ),
+                    }
+                );
                 owners.Add(new[] { -1 });
                 origins.Add(new[] { new GeoPoint2(0.0, 0.0) });
             }
 
-            var options = new PackOptions { Spacing = spacing, GroupSpacing = spacing, GroupLayout = GroupLayout.Keep, Tolerance = tolerance };
+            var options = new PackOptions
+            {
+                Spacing = spacing,
+                GroupSpacing = spacing,
+                GroupLayout = GroupLayout.Keep,
+                Tolerance = tolerance,
+            };
             PackResult result = SheetPacker.Pack(groups, sheet, options);
             var layout = new Layout(rows);
             double offSheet = sheet.PaperWidth + spacing;
@@ -853,8 +1103,11 @@ namespace GeometryHelper.Drawing
 
                 for (int k = 1; k < groups[g].Length; k++)
                 {
-                    GeoVector2 first = result.Placements[g][0].Translation, other = result.Placements[g][k].Translation;
-                    whole &= Math.Abs(first.X - other.X) <= tolerance.EqualPoint && Math.Abs(first.Y - other.Y) <= tolerance.EqualPoint;
+                    GeoVector2 first = result.Placements[g][0].Translation,
+                        other = result.Placements[g][k].Translation;
+                    whole &=
+                        Math.Abs(first.X - other.X) <= tolerance.EqualPoint
+                        && Math.Abs(first.Y - other.Y) <= tolerance.EqualPoint;
                 }
 
                 bool onSheet = whole;
@@ -888,7 +1141,12 @@ namespace GeometryHelper.Drawing
 
                     if (g == partList)
                     {
-                        layout.PartListBox = new GeoRectangle2(origin.X, origin.Y, DrawingSheet.PartListWidth, DrawingSheet.PartListHeight(rows.Count));
+                        layout.PartListBox = new GeoRectangle2(
+                            origin.X,
+                            origin.Y,
+                            DrawingSheet.PartListWidth,
+                            DrawingSheet.PartListHeight(rows.Count)
+                        );
                     }
                     else
                     {
@@ -909,7 +1167,8 @@ namespace GeometryHelper.Drawing
                 (box.Center.X - box.Width / 2.0) / s,
                 (box.Center.Y - box.Height / 2.0) / s,
                 (box.Center.X + box.Width / 2.0) / s,
-                (box.Center.Y + box.Height / 2.0) / s);
+                (box.Center.Y + box.Height / 2.0) / s
+            );
         }
 
         private static void Widen(SortedDictionary<int, double[]> reach, int key, double before, double after)
@@ -978,7 +1237,16 @@ namespace GeometryHelper.Drawing
                 }
 
                 double length = Math.Round(Reach(item), MidpointRounding.AwayFromZero);
-                string key = item.Mark + "\u0001" + item.Profile + "\u0001" + item.Material + "\u0001" + length.ToString("000000000000.###", CultureInfo.InvariantCulture) + "\u0001" + item.Name;
+                string key =
+                    item.Mark
+                    + "\u0001"
+                    + item.Profile
+                    + "\u0001"
+                    + item.Material
+                    + "\u0001"
+                    + length.ToString("000000000000.###", CultureInfo.InvariantCulture)
+                    + "\u0001"
+                    + item.Name;
                 counts.TryGetValue(key, out int count);
                 counts[key] = count + 1;
                 rows[key] = new PartListRow(item.Mark, count + 1, item.Profile, item.Material, length, item.Name);
@@ -989,7 +1257,8 @@ namespace GeometryHelper.Drawing
 
         private static double Reach(DrawingObject item)
         {
-            double low = double.PositiveInfinity, high = double.NegativeInfinity;
+            double low = double.PositiveInfinity,
+                high = double.NegativeInfinity;
 
             foreach (GeoFace3 face in item.Solid.Faces)
             {
@@ -1004,12 +1273,28 @@ namespace GeometryHelper.Drawing
             return low > high ? 0.0 : high - low;
         }
 
-        private static DrawingSheet Sheet(DrawingSource source, DrawingSettings settings, PaperSize size, string id, Layout layout)
+        private static DrawingSheet Sheet(
+            DrawingSource source,
+            DrawingSettings settings,
+            PaperSize size,
+            string id,
+            Layout layout
+        )
         {
             Sheet sheet = NewSheet(settings.Sheet, size);
             double margin = settings.Sheet.Margin;
-            var frame = new GeoRectangle2(margin, margin, sheet.PaperWidth - 2.0 * margin, sheet.PaperHeight - 2.0 * margin);
-            var titleBox = new GeoRectangle2(sheet.PaperWidth - margin - TitleBlock.Width, margin, TitleBlock.Width, TitleBlock.Height);
+            var frame = new GeoRectangle2(
+                margin,
+                margin,
+                sheet.PaperWidth - 2.0 * margin,
+                sheet.PaperHeight - 2.0 * margin
+            );
+            var titleBox = new GeoRectangle2(
+                sheet.PaperWidth - margin - TitleBlock.Width,
+                margin,
+                TitleBlock.Width,
+                TitleBlock.Height
+            );
             TitleBlock title = settings.Sheet.TitleBlock.Clone();
 
             if (title.DrawingNumber.Length == 0)
@@ -1033,10 +1318,18 @@ namespace GeometryHelper.Drawing
                 title.Title = main == null ? string.Empty : (main.Name + " " + main.Mark).Trim();
             }
 
-            string name = size == PaperSize.Custom
-                ? Write(sheet.PaperWidth) + "x" + Write(sheet.PaperHeight)
-                : size.ToString();
-            return new DrawingSheet(name, sheet.PaperWidth, sheet.PaperHeight, frame, title, titleBox, layout.Rows, layout.PartListBox);
+            string name =
+                size == PaperSize.Custom ? Write(sheet.PaperWidth) + "x" + Write(sheet.PaperHeight) : size.ToString();
+            return new DrawingSheet(
+                name,
+                sheet.PaperWidth,
+                sheet.PaperHeight,
+                frame,
+                title,
+                titleBox,
+                layout.Rows,
+                layout.PartListBox
+            );
         }
 
         private static string[] Ids(IReadOnlyList<string> ids)
@@ -1074,7 +1367,13 @@ namespace GeometryHelper.Drawing
     /// <summary>What a drawing is made of but its DXF: its id, views, sheet, scale and warnings.</summary>
     internal sealed class DrawingContent
     {
-        public DrawingContent(string id, List<DrawingView> views, DrawingSheet sheet, double scale, List<string> warnings)
+        public DrawingContent(
+            string id,
+            List<DrawingView> views,
+            DrawingSheet sheet,
+            double scale,
+            List<string> warnings
+        )
         {
             Id = id;
             Views = views;
@@ -1111,9 +1410,12 @@ namespace GeometryHelper.Drawing
         }
 
         public Extent(GeoRectangle2 box)
-            : this(box.Center.X - box.Width / 2.0, box.Center.Y - box.Height / 2.0, box.Center.X + box.Width / 2.0, box.Center.Y + box.Height / 2.0)
-        {
-        }
+            : this(
+                box.Center.X - box.Width / 2.0,
+                box.Center.Y - box.Height / 2.0,
+                box.Center.X + box.Width / 2.0,
+                box.Center.Y + box.Height / 2.0
+            ) { }
 
         public void Add(GeoPoint2 p)
         {
@@ -1130,6 +1432,7 @@ namespace GeometryHelper.Drawing
             Add(new GeoPoint2(other.X1, other.Y1));
         }
 
-        public GeoRectangle2 ToRectangle() => new GeoRectangle2(new GeoPoint2((X0 + X1) / 2.0, (Y0 + Y1) / 2.0), X1 - X0, Y1 - Y0);
+        public GeoRectangle2 ToRectangle() =>
+            new GeoRectangle2(new GeoPoint2((X0 + X1) / 2.0, (Y0 + Y1) / 2.0), X1 - X0, Y1 - Y0);
     }
 }

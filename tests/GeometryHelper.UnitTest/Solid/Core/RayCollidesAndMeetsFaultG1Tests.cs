@@ -23,7 +23,11 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly Tolerance WidePlanar = new Tolerance(0.01, 1E-5, Math.PI / 180, 0.05);
 
         private static readonly GeoPolygon3 Square = new GeoPolygon3(
-            new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0));
+            new GeoPoint3(0, 0, 0),
+            new GeoPoint3(100, 0, 0),
+            new GeoPoint3(100, 100, 0),
+            new GeoPoint3(0, 100, 0)
+        );
 
         /// <summary>A box 100 by 100 by 50 whose top lies in the floor.</summary>
         private static GeoSolid3 Block() => new GeoObb3(new GeoPoint3(50, 50, -25), 100, 100, 50).ToSolid();
@@ -40,10 +44,12 @@ namespace GeometryHelper.UnitTest.Solid
             var ray = new GeoRay3(start, new GeoVector3(1, -0.01, 0));
             var triangle = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
 
-            bool collides = shape == "polygon" ? ray.CollidesWith(Square, Thousandth)
+            bool collides =
+                shape == "polygon" ? ray.CollidesWith(Square, Thousandth)
                 : shape == "face" ? ray.CollidesWith(new GeoFace3(Square), Thousandth)
                 : ray.CollidesWith(triangle, Thousandth);
-            GeoPoint3[] places = shape == "polygon" ? ray.GetIntersections(Square, Thousandth)
+            GeoPoint3[] places =
+                shape == "polygon" ? ray.GetIntersections(Square, Thousandth)
                 : shape == "face" ? ray.GetIntersections(new GeoFace3(Square), Thousandth)
                 : ray.GetIntersections(triangle, Thousandth);
 
@@ -97,7 +103,8 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The crossing of each face, rounded off the face's plane, is refused at a tolerance of nought; the body holds the
             // origin and the ray collides, and is given its point nearest the surface, where it leaves.
-            GeoSolid3 box = new GeoObb3(GeoPoint3.Origin, 100, 80, 50).ToSolid()
+            GeoSolid3 box = new GeoObb3(GeoPoint3.Origin, 100, 80, 50)
+                .ToSolid()
                 .TransformBy(GeoTransform3.RotationAxis(GeoPoint3.Origin, new GeoVector3(1, 2, 3), 0.7));
             var ray = new GeoRay3(GeoPoint3.Origin, new GeoVector3(0.3, 0.2, 0.9));
 
@@ -111,7 +118,13 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(-49.995, -40.0075, -0.05, -0.9387, -0.3446, 0.0122)]
         [InlineData(49.998, -39.98, 0.008, 0.211, 0.977, 5.7E-5)]
         public void ARayStartingWithinTheToleranceOfAnOrientedBoxAndRunningPastItsRim_TouchesItAtItsOrigin(
-            double x, double y, double z, double dx, double dy, double dz)
+            double x,
+            double y,
+            double z,
+            double dx,
+            double dy,
+            double dz
+        )
         {
             // The box 100 by 80 by 50 whose top lies in the floor. The ray starts 0.0075 beside a side near its edge, or 0.008
             // over the top 0.002 from the side, and leaves within the point tolerance of its origin; its cut stands within the
@@ -140,7 +153,12 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void APointOfTheArcOnTheLineOfARayBehindItsOrigin_IsNotGivenWhereTheyDoNotTouch()
         {
-            GeoArc3 arc = GeoArc3.FromThreePoints(new GeoPoint3(0, -50, 0), new GeoPoint3(50, 0, 0), new GeoPoint3(0, 50, 0), Thousandth);
+            GeoArc3 arc = GeoArc3.FromThreePoints(
+                new GeoPoint3(0, -50, 0),
+                new GeoPoint3(50, 0, 0),
+                new GeoPoint3(0, 50, 0),
+                Thousandth
+            );
             var ray = new GeoRay3(new GeoPoint3(49.9992, 0, 0.0008), new GeoVector3(-1, 0, 0));
 
             Assert.False(arc.CollidesWith(ray, Thousandth));
@@ -202,9 +220,19 @@ namespace GeometryHelper.UnitTest.Solid
             var at = new GeoVector3(-11521623.845357625, -64124569.86450685, 61809900.33395811).Multiply(far);
             var normal = new GeoVector3(0.38538565846345313, -0.41847365830046684, 0.8224096859590811);
             var along = new GeoVector3(0.5378767117176538, -0.6223050767376763, -0.5687046988185687);
-            var box = new GeoObb3(GeoPoint3.Origin.Add(at).Subtract(normal.Multiply(25)), 100, 80, 50, along, normal.CrossProduct(along)).ToSolid();
+            var box = new GeoObb3(
+                GeoPoint3.Origin.Add(at).Subtract(normal.Multiply(25)),
+                100,
+                80,
+                50,
+                along,
+                normal.CrossProduct(along)
+            ).ToSolid();
             var start = new GeoPoint3(-2.519739920, -13.61707684, -5.762646994).Add(at);
-            var ray = new GeoRay3(start, new GeoVector3(-0.003866325323057974, 0.04962938228997728, -0.9987602194430911));
+            var ray = new GeoRay3(
+                start,
+                new GeoVector3(-0.003866325323057974, 0.04962938228997728, -0.9987602194430911)
+            );
 
             GeoPoint3 leaving = Assert.Single(ray.GetIntersections(box, tolerance));
 
@@ -221,7 +249,17 @@ namespace GeometryHelper.UnitTest.Solid
             var u = new GeoVector3(-0.4914452572907459, -0.8688336114330585, 0.060080901546344344);
             var n = new GeoVector3(-0.8703774655684305, 0.49238416531412854, 0.0009493042633146856);
             GeoVector3 v = n.CrossProduct(u);
-            double[][] profile = { new[] { 0.0, 0 }, new[] { 100.0, 0 }, new[] { 100.0, 100 }, new[] { 80.0, 100 }, new[] { 80.0, 20 }, new[] { 20.0, 20 }, new[] { 20.0, 100 }, new[] { 0.0, 100 } };
+            double[][] profile =
+            {
+                new[] { 0.0, 0 },
+                new[] { 100.0, 0 },
+                new[] { 100.0, 100 },
+                new[] { 80.0, 100 },
+                new[] { 80.0, 20 },
+                new[] { 20.0, 20 },
+                new[] { 20.0, 100 },
+                new[] { 0.0, 100 },
+            };
             var corners = new GeoPoint3[profile.Length];
 
             for (int i = 0; i < profile.Length; i++)
@@ -230,7 +268,9 @@ namespace GeometryHelper.UnitTest.Solid
             }
 
             GeoSolid3 body = GeoSolid3.Extrude(new GeoPolygon3(corners), v.Multiply(100), tolerance);
-            GeoPoint3 start = c.Add(u.Multiply(79.94838496076333)).Add(n.Multiply(20.077697498992876)).Add(v.Multiply(11.935216024022186));
+            GeoPoint3 start = c.Add(u.Multiply(79.94838496076333))
+                .Add(n.Multiply(20.077697498992876))
+                .Add(v.Multiply(11.935216024022186));
             var ray = new GeoRay3(start, new GeoVector3(-0.2741142077055374, 0.9300847396931561, -0.24454811003947585));
 
             Assert.Empty(ray.GetIntersections(body, tolerance));
@@ -239,17 +279,30 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A U 100 wide and 100 high in XZ, its prongs 20 thick and its base 20 thick, drawn 100 along Y.
         /// </summary>
-        private static GeoSolid3 UBody(Tolerance tolerance) => GeoSolid3.Extrude(
-            new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 0, 100), new GeoPoint3(80, 0, 100),
-                new GeoPoint3(80, 0, 20), new GeoPoint3(20, 0, 20), new GeoPoint3(20, 0, 100), new GeoPoint3(0, 0, 100)),
-            new GeoVector3(0, 100, 0),
-            tolerance);
+        private static GeoSolid3 UBody(Tolerance tolerance) =>
+            GeoSolid3.Extrude(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    new GeoPoint3(100, 0, 100),
+                    new GeoPoint3(80, 0, 100),
+                    new GeoPoint3(80, 0, 20),
+                    new GeoPoint3(20, 0, 20),
+                    new GeoPoint3(20, 0, 100),
+                    new GeoPoint3(0, 0, 100)
+                ),
+                new GeoVector3(0, 100, 0),
+                tolerance
+            );
 
         [Theory]
         [InlineData(20.04, 60.0, 0.0)]
         [InlineData(30.0, 20.04, 0.01)]
-        public void ARayStartingFourHundredthsOffTheGapOfAU_IsGivenOnlyWhereItReachesTheFarProng(double x, double z, double rise)
+        public void ARayStartingFourHundredthsOffTheGapOfAU_IsGivenOnlyWhereItReachesTheFarProng(
+            double x,
+            double z,
+            double rise
+        )
         {
             // Within the planar tolerance of five hundredths of the inner wall or the floor, and further than the point tolerance
             // of a hundredth: the start does not touch the body, whatever the ray meets further on.

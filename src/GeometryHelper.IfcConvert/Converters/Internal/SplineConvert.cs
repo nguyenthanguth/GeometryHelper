@@ -46,7 +46,12 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// <param name="options">Optional conversion options; <see cref="IfcConvertOptions.ScaleFactor"/> scales the control points.</param>
         /// <param name="warnings">Receives a message, prefixed with the curve's entity label, for a curve that cannot be read; null to ignore it.</param>
         /// <returns><c>true</c> when the curve could be read; <c>false</c>, with a message, when its numbers do not make a clamped spline.</returns>
-        public static bool TryToGeoSpline3(this IIfcBSplineCurveWithKnots curve, out GeoSpline3 result, IfcConvertOptions options = null, ICollection<string> warnings = null)
+        public static bool TryToGeoSpline3(
+            this IIfcBSplineCurveWithKnots curve,
+            out GeoSpline3 result,
+            IfcConvertOptions options = null,
+            ICollection<string> warnings = null
+        )
         {
             result = null;
 
@@ -71,7 +76,9 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             {
                 if (point?.Coordinates == null || point.Coordinates.Count < 2)
                 {
-                    warnings?.Add($"{itemName}: The B-spline curve has a control point that is not a point and was left out.");
+                    warnings?.Add(
+                        $"{itemName}: The B-spline curve has a control point that is not a point and was left out."
+                    );
                     return false;
                 }
 
@@ -82,7 +89,9 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             // The file gives each distinct knot once with the number of times it is repeated.
             if (curve.Knots.Count != curve.KnotMultiplicities.Count)
             {
-                warnings?.Add($"{itemName}: The B-spline curve has {curve.Knots.Count} knots and {curve.KnotMultiplicities.Count} multiplicities and was left out.");
+                warnings?.Add(
+                    $"{itemName}: The B-spline curve has {curve.Knots.Count} knots and {curve.KnotMultiplicities.Count} multiplicities and was left out."
+                );
                 return false;
             }
 
@@ -115,13 +124,20 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
             try
             {
-                result = new GeoSpline3((int)Math.Max(int.MinValue, Math.Min(int.MaxValue, degree)), points, knots, weights);
+                result = new GeoSpline3(
+                    (int)Math.Max(int.MinValue, Math.Min(int.MaxValue, degree)),
+                    points,
+                    knots,
+                    weights
+                );
                 return true;
             }
             catch (ArgumentException ex)
             {
                 // A periodic curve, its knots not clamped, among them: GeometryHelper's splines start and end at their end control points.
-                warnings?.Add($"{itemName}: The B-spline curve is not one GeometryHelper takes, and was left out: {ex.Message}");
+                warnings?.Add(
+                    $"{itemName}: The B-spline curve is not one GeometryHelper takes, and was left out: {ex.Message}"
+                );
                 return false;
             }
         }
@@ -148,13 +164,21 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
             if (tally.Without > 0)
             {
-                GeometryHelperLog.Debug($"{product.GlobalId} ({IfcTypeNames.GetName(product)}): {tally.Without} representation item(s) hold no B-spline curve and were left out.");
+                GeometryHelperLog.Debug(
+                    $"{product.GlobalId} ({IfcTypeNames.GetName(product)}): {tally.Without} representation item(s) hold no B-spline curve and were left out."
+                );
             }
 
             return splines;
         }
 
-        private static void Collect(IIfcProduct product, IfcConvertOptions options, int depth, List<GeoSpline3> splines, Tally tally)
+        private static void Collect(
+            IIfcProduct product,
+            IfcConvertOptions options,
+            int depth,
+            List<GeoSpline3> splines,
+            Tally tally
+        )
         {
             if (product == null)
             {
@@ -164,7 +188,10 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             // As for solids, a product the options leave out costs nothing.
             string name = product.Name?.ToString();
 
-            if (ProductConvert.IsNameSkipped(name, options.SkipNames) || !ProductConvert.IsNameIncluded(name, options.OnlyNames))
+            if (
+                ProductConvert.IsNameSkipped(name, options.SkipNames)
+                || !ProductConvert.IsNameIncluded(name, options.OnlyNames)
+            )
             {
                 return;
             }
@@ -183,13 +210,19 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
                 // xBIM throws for placements it does not implement (IfcLinearPlacement, IfcGridPlacement).
-                GeometryHelperLog.Warn($"{product.GlobalId} ({IfcTypeNames.GetName(product)}): the placement cannot be evaluated; no spline was read.", ex);
+                GeometryHelperLog.Warn(
+                    $"{product.GlobalId} ({IfcTypeNames.GetName(product)}): the placement cannot be evaluated; no spline was read.",
+                    ex
+                );
                 return;
             }
 
             if (product.Representation?.Representations != null)
             {
-                var outer = options.CoordinateSpace == CoordinateSpace.Local ? new List<GeoTransform3>() : new List<GeoTransform3> { placement };
+                var outer =
+                    options.CoordinateSpace == CoordinateSpace.Local
+                        ? new List<GeoTransform3>()
+                        : new List<GeoTransform3> { placement };
                 var seen = new HashSet<string>(StringComparer.Ordinal);
 
                 foreach (IIfcRepresentation representation in product.Representation.Representations)
@@ -222,7 +255,16 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// and <paramref name="seen"/> the curves read under each path, so that a curve met twice in one place, as an axis and as a directrix,
         /// is read once.
         /// </summary>
-        private static void CollectItem(IIfcProduct product, IIfcRepresentationItem item, IfcConvertOptions options, List<GeoTransform3> outer, string path, HashSet<string> seen, List<GeoSpline3> into, Tally tally)
+        private static void CollectItem(
+            IIfcProduct product,
+            IIfcRepresentationItem item,
+            IfcConvertOptions options,
+            List<GeoTransform3> outer,
+            string path,
+            HashSet<string> seen,
+            List<GeoSpline3> into,
+            Tally tally
+        )
         {
             if (item is IIfcMappedItem mappedItem)
             {
@@ -239,7 +281,10 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                 }
                 catch (Exception ex) when (!(ex is OutOfMemoryException))
                 {
-                    GeometryHelperLog.Warn($"#{item.EntityLabel} {IfcTypeNames.GetName(item)} of {product.GlobalId}: the mapping cannot be evaluated; its splines were left out.", ex);
+                    GeometryHelperLog.Warn(
+                        $"#{item.EntityLabel} {IfcTypeNames.GetName(item)} of {product.GlobalId}: the mapping cannot be evaluated; its splines were left out.",
+                        ex
+                    );
                     return;
                 }
 
@@ -313,7 +358,10 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                 catch (InvalidOperationException ex)
                 {
                     // A mapping that squeezes space onto a plane or a line can squeeze a spline onto one point.
-                    GeometryHelperLog.Warn($"#{curve.EntityLabel} {IfcTypeNames.GetName(curve)} of {product.GlobalId}: its mapping or placement squeezes it onto one point; it is left out.", ex);
+                    GeometryHelperLog.Warn(
+                        $"#{curve.EntityLabel} {IfcTypeNames.GetName(curve)} of {product.GlobalId}: its mapping or placement squeezes it onto one point; it is left out.",
+                        ex
+                    );
                 }
             }
         }
@@ -330,13 +378,21 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             internal bool Directly;
         }
 
-        private static string Text(double? value) => value.HasValue ? value.Value.ToString("R", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+        private static string Text(double? value) =>
+            value.HasValue
+                ? value.Value.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                : string.Empty;
 
         /// <summary>
         /// Gathers the B-spline curves an item is or holds, in the order the file gives them: the item itself, the elements of a geometric
         /// set, the parent curves of the segments of a composite curve, the directrix of a swept disk.
         /// </summary>
-        private static void CurvesOf(IIfcRepresentationItem item, List<Found> curves, int depth, IIfcSweptDiskSolid disk)
+        private static void CurvesOf(
+            IIfcRepresentationItem item,
+            List<Found> curves,
+            int depth,
+            IIfcSweptDiskSolid disk
+        )
         {
             if (item == null || depth > MaxCurveDepth)
             {
@@ -347,14 +403,16 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             {
                 case IIfcBSplineCurveWithKnots spline:
                     bool directly = disk?.Directrix != null && disk.Directrix.EntityLabel == spline.EntityLabel;
-                    curves.Add(new Found
-                    {
-                        Curve = spline,
-                        Disk = disk,
-                        Directly = directly,
-                        From = directly && disk.StartParam.HasValue ? (double?)disk.StartParam.Value : null,
-                        To = directly && disk.EndParam.HasValue ? (double?)disk.EndParam.Value : null,
-                    });
+                    curves.Add(
+                        new Found
+                        {
+                            Curve = spline,
+                            Disk = disk,
+                            Directly = directly,
+                            From = directly && disk.StartParam.HasValue ? (double?)disk.StartParam.Value : null,
+                            To = directly && disk.EndParam.HasValue ? (double?)disk.EndParam.Value : null,
+                        }
+                    );
                     break;
 
                 case IIfcGeometricSet set when set.Elements != null:
@@ -366,7 +424,9 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
                     break;
 
                 case IIfcCompositeCurve composite when composite.Segments != null:
-                    foreach (IIfcCompositeCurveSegment segment in composite.Segments.OfType<IIfcCompositeCurveSegment>())
+                    foreach (
+                        IIfcCompositeCurveSegment segment in composite.Segments.OfType<IIfcCompositeCurveSegment>()
+                    )
                     {
                         CurvesOf(segment.ParentCurve, curves, depth + 1, disk);
                     }
@@ -393,7 +453,9 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             {
                 if (found.Disk.StartParam.HasValue || found.Disk.EndParam.HasValue)
                 {
-                    GeometryHelperLog.Warn($"{name}: the swept disk #{found.Disk.EntityLabel} runs between parameters of its composite directrix, which are not read; the whole curve is given.");
+                    GeometryHelperLog.Warn(
+                        $"{name}: the swept disk #{found.Disk.EntityLabel} runs between parameters of its composite directrix, which are not read; the whole curve is given."
+                    );
                 }
 
                 return spline;
@@ -409,7 +471,9 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
 
             if (!(from >= spline.DomainStart && to <= spline.DomainEnd && from < to))
             {
-                GeometryHelperLog.Warn($"{name}: the swept disk #{found.Disk.EntityLabel} runs from {Text(from)} to {Text(to)}, which is not inside the curve's domain {Text(spline.DomainStart)} to {Text(spline.DomainEnd)} in order; the whole curve is given.");
+                GeometryHelperLog.Warn(
+                    $"{name}: the swept disk #{found.Disk.EntityLabel} runs from {Text(from)} to {Text(to)}, which is not inside the curve's domain {Text(spline.DomainStart)} to {Text(spline.DomainEnd)} in order; the whole curve is given."
+                );
                 return spline;
             }
 
@@ -420,7 +484,10 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
             }
             catch (ArgumentException ex)
             {
-                GeometryHelperLog.Warn($"{name}: the part the swept disk #{found.Disk.EntityLabel} runs along, from {Text(from)} to {Text(to)}, cannot be cut out; the whole curve is given.", ex);
+                GeometryHelperLog.Warn(
+                    $"{name}: the part the swept disk #{found.Disk.EntityLabel} runs along, from {Text(from)} to {Text(to)}, cannot be cut out; the whole curve is given.",
+                    ex
+                );
                 return spline;
             }
         }
@@ -429,16 +496,28 @@ namespace GeometryHelper.IfcConvert.Converters.Internal
         /// Reads the splines of the parts a product aggregates, as <see cref="ProductConvert"/> reads their solids: in global coordinates and,
         /// for local output, brought into the aggregating product's frame.
         /// </summary>
-        private static void CollectAggregatedParts(IIfcProduct product, IfcConvertOptions options, GeoTransform3 placement, int depth, List<GeoSpline3> splines, Tally tally)
+        private static void CollectAggregatedParts(
+            IIfcProduct product,
+            IfcConvertOptions options,
+            GeoTransform3 placement,
+            int depth,
+            List<GeoSpline3> splines,
+            Tally tally
+        )
         {
             IfcConvertOptions partOptions = options.Clone();
             partOptions.CoordinateSpace = CoordinateSpace.Global;
 
             GeoTransform3 globalToHost = null;
 
-            if (options.CoordinateSpace == CoordinateSpace.Local && !placement.TryGetInverse(out globalToHost, options.Tolerance))
+            if (
+                options.CoordinateSpace == CoordinateSpace.Local
+                && !placement.TryGetInverse(out globalToHost, options.Tolerance)
+            )
             {
-                GeometryHelperLog.Warn($"{product.GlobalId} ({IfcTypeNames.GetName(product)}): the placement cannot be inverted, so the splines of its aggregated parts could not be expressed in local coordinates.");
+                GeometryHelperLog.Warn(
+                    $"{product.GlobalId} ({IfcTypeNames.GetName(product)}): the placement cannot be inverted, so the splines of its aggregated parts could not be expressed in local coordinates."
+                );
                 return;
             }
 

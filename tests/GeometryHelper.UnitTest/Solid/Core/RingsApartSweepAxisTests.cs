@@ -34,12 +34,13 @@ namespace GeometryHelper.UnitTest.Solid
         /// </summary>
         private static GeoPoint3 At(double x, double y, bool swapped, bool sloping)
         {
-            double u = swapped ? y : x, v = swapped ? x : y;
+            double u = swapped ? y : x,
+                v = swapped ? x : y;
             return new GeoPoint3(u, v, sloping ? 0.25 * u + 0.5 * v : 0.0);
         }
 
-        private static GeoPolygon3 Ring(bool swapped, bool sloping, params (double X, double Y)[] corners)
-            => new GeoPolygon3(corners.Select(c => At(c.X, c.Y, swapped, sloping)), Within);
+        private static GeoPolygon3 Ring(bool swapped, bool sloping, params (double X, double Y)[] corners) =>
+            new GeoPolygon3(corners.Select(c => At(c.X, c.Y, swapped, sloping)), Within);
 
         /// <summary>
         /// A plate with 40 slots, the tenth moved along by a shift towards the eleventh, which has 4 between them
@@ -49,7 +50,14 @@ namespace GeometryHelper.UnitTest.Solid
         {
             const int slots = 40;
             double width = 10.0 + 6.0 * (slots - 1) + 2.0 + lastGap;
-            GeoPolygon3 boundary = Ring(swapped, sloping, (0, 0), (width, 0), (width, SlotLength + 20), (0, SlotLength + 20));
+            GeoPolygon3 boundary = Ring(
+                swapped,
+                sloping,
+                (0, 0),
+                (width, 0),
+                (width, SlotLength + 20),
+                (0, SlotLength + 20)
+            );
             var holes = new List<GeoPolygon3>();
 
             for (int h = 0; h < slots; h++)
@@ -73,7 +81,14 @@ namespace GeometryHelper.UnitTest.Solid
             holes.Add(Ring(swapped, sloping, (105, y + gap), (110, y + 3 + gap), (100, y + 3 + gap)));
 
             double width = 10.0 + 6.0 * 39 + 2.0 + 10.0;
-            GeoPolygon3 boundary = Ring(swapped, sloping, (0, 0), (width, 0), (width, SlotLength + 30), (0, SlotLength + 30));
+            GeoPolygon3 boundary = Ring(
+                swapped,
+                sloping,
+                (0, 0),
+                (width, 0),
+                (width, SlotLength + 30),
+                (0, SlotLength + 30)
+            );
 
             return new GeoFace3(boundary, holes, Within);
         }
@@ -90,7 +105,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = teeth - 1; i >= 0; i--)
             {
-                double left = 10.0 * i, right = left + 5.0;
+                double left = 10.0 * i,
+                    right = left + 5.0;
 
                 if (i == 29)
                 {
@@ -145,8 +161,16 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     double s = (i + 0.2 + 0.6 * random.NextDouble()) * 8.0 / count;
                     double r = 60.0 + 40.0 * random.NextDouble();
-                    double u = s < 2.0 ? 1.0 : s < 4.0 ? 3.0 - s : s < 6.0 ? -1.0 : s - 7.0;
-                    double v = s < 2.0 ? s - 1.0 : s < 4.0 ? 1.0 : s < 6.0 ? 5.0 - s : -1.0;
+                    double u =
+                        s < 2.0 ? 1.0
+                        : s < 4.0 ? 3.0 - s
+                        : s < 6.0 ? -1.0
+                        : s - 7.0;
+                    double v =
+                        s < 2.0 ? s - 1.0
+                        : s < 4.0 ? 1.0
+                        : s < 6.0 ? 5.0 - s
+                        : -1.0;
                     corners[i] = (20.0 * r * u, r * v);
                 }
 
@@ -161,7 +185,13 @@ namespace GeometryHelper.UnitTest.Solid
                     {
                         holes.Add(Ring(swapped, sloping, (x, -2.5), (x + 5, -2.5), (x + 5, 2.5), (x, 2.5)));
                         int pick = random.Next(6);
-                        x += 5.0 + (pick == 0 ? 0.0006 : pick == 1 ? 0.0014 : 55.0);
+                        x +=
+                            5.0
+                            + (
+                                pick == 0 ? 0.0006
+                                : pick == 1 ? 0.0014
+                                : 55.0
+                            );
                     }
                 }
 
@@ -204,7 +234,11 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(true, false, "032f765c163eef8828aab3fa604ee09b6827e89987d0e300e75a5eda0d830f98")]
         [InlineData(false, true, "018c46140d810a67be6aed03c446edc2f529d9d060a20e9b038b796698bf2983")]
         [InlineData(true, true, "bfc7dd4af734cfe1c9f86a3f9ede02d9a57cad8c2318aa81e820f5f7c09acfe1")]
-        public void PlatesWithSlotsTouchingAndClear_AreMeshedAsBeforeTheAxisWasChosen(bool swapped, bool sloping, string expected)
+        public void PlatesWithSlotsTouchingAndClear_AreMeshedAsBeforeTheAxisWasChosen(
+            bool swapped,
+            bool sloping,
+            string expected
+        )
         {
             Assert.Equal(expected, Hash(Plates(swapped, sloping)));
         }
@@ -217,7 +251,17 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(true, true, "0f98cca8ed0389b6ead7db9123efebcdd79d0d7ca12f480c1b81feb9f55f12d9")]
         public void CombsPinchedAndSpiked_AreMeshedAsBeforeTheAxisWasChosen(bool swapped, bool sloping, string expected)
         {
-            Assert.Equal(expected, Hash(new[] { Comb(swapped, sloping, 2.0), Comb(swapped, sloping, 0.0005), Comb(swapped, sloping, 0.0015) }));
+            Assert.Equal(
+                expected,
+                Hash(
+                    new[]
+                    {
+                        Comb(swapped, sloping, 2.0),
+                        Comb(swapped, sloping, 0.0005),
+                        Comb(swapped, sloping, 0.0015),
+                    }
+                )
+            );
         }
 
         [Theory]
@@ -225,22 +269,31 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(true, false, "cc3ee8a7bfc58a9ab758f472ec485fa773e8c8a32daf2b1b74a78fa6af588df8")]
         [InlineData(false, true, "ca6b6e4c290e4780572f533371ec4d0b0cdc4d79c0fb99fefdfd5b2ff3c9015a")]
         [InlineData(true, true, "9761c6ae5728b4557901f8caa6d3ce2a820793b4b3e7251d53cdf97e1634220f")]
-        public void ScatteredFacesWithHoles_AreMeshedAsBeforeTheAxisWasChosen(bool swapped, bool sloping, string expected)
+        public void ScatteredFacesWithHoles_AreMeshedAsBeforeTheAxisWasChosen(
+            bool swapped,
+            bool sloping,
+            string expected
+        )
         {
             Assert.Equal(expected, Hash(Scattered(swapped, sloping)));
         }
 
-        private static EarClipping.Node Node(double x, double y, bool swapped)
-            => swapped ? new EarClipping.Node(y, x, new GeoPoint3(y, x, 0)) : new EarClipping.Node(x, y, new GeoPoint3(x, y, 0));
+        private static EarClipping.Node Node(double x, double y, bool swapped) =>
+            swapped
+                ? new EarClipping.Node(y, x, new GeoPoint3(y, x, 0))
+                : new EarClipping.Node(x, y, new GeoPoint3(x, y, 0));
 
-        private static List<EarClipping.Node> Loop(bool swapped, params (double X, double Y)[] corners)
-            => corners.Select(c => Node(c.X, c.Y, swapped)).ToList();
+        private static List<EarClipping.Node> Loop(bool swapped, params (double X, double Y)[] corners) =>
+            corners.Select(c => Node(c.X, c.Y, swapped)).ToList();
 
         /// <summary>
         /// The edges of the rings as the check takes them: every edge of each ring, in the order of the rings, then
         /// sorted by where they start along X.
         /// </summary>
-        private static List<EarClipping.RingEdge> Edges(List<EarClipping.Node> outer, List<List<EarClipping.Node>> holes)
+        private static List<EarClipping.RingEdge> Edges(
+            List<EarClipping.Node> outer,
+            List<List<EarClipping.Node>> holes
+        )
         {
             var edges = new List<EarClipping.RingEdge>();
             var rings = new List<List<EarClipping.Node>> { outer };
@@ -252,8 +305,20 @@ namespace GeometryHelper.UnitTest.Solid
 
                 for (int i = 0; i < ring.Count; i++)
                 {
-                    EarClipping.Node a = ring[i], b = ring[(i + 1) % ring.Count];
-                    edges.Add(new EarClipping.RingEdge { A = a, B = b, Ring = r, Index = i, Count = ring.Count, MinX = Math.Min(a.X, b.X), MaxX = Math.Max(a.X, b.X) });
+                    EarClipping.Node a = ring[i],
+                        b = ring[(i + 1) % ring.Count];
+                    edges.Add(
+                        new EarClipping.RingEdge
+                        {
+                            A = a,
+                            B = b,
+                            Ring = r,
+                            Index = i,
+                            Count = ring.Count,
+                            MinX = Math.Min(a.X, b.X),
+                            MaxX = Math.Max(a.X, b.X),
+                        }
+                    );
                 }
             }
 
@@ -273,21 +338,26 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 for (int j = i + 1; j < edges.Count; j++)
                 {
-                    EarClipping.RingEdge e = edges[i], f = edges[j];
+                    EarClipping.RingEdge e = edges[i],
+                        f = edges[j];
 
                     if (f.MinX > e.MaxX + distance)
                     {
                         continue;
                     }
 
-                    double minY = Math.Min(e.A.Y, e.B.Y) - distance, maxY = Math.Max(e.A.Y, e.B.Y) + distance;
+                    double minY = Math.Min(e.A.Y, e.B.Y) - distance,
+                        maxY = Math.Max(e.A.Y, e.B.Y) + distance;
 
                     if (Math.Max(f.A.Y, f.B.Y) < minY || Math.Min(f.A.Y, f.B.Y) > maxY)
                     {
                         continue;
                     }
 
-                    if (e.Ring == f.Ring && (Math.Abs(e.Index - f.Index) == 1 || Math.Abs(e.Index - f.Index) == e.Count - 1))
+                    if (
+                        e.Ring == f.Ring
+                        && (Math.Abs(e.Index - f.Index) == 1 || Math.Abs(e.Index - f.Index) == e.Count - 1)
+                    )
                     {
                         continue;
                     }
@@ -306,7 +376,11 @@ namespace GeometryHelper.UnitTest.Solid
         /// A plate 1 020 long along X with 20 slots along it, 2 wide and 4 apart, X and Y swapped when asked; the tenth
         /// slot moved up towards the eleventh by a shift, and the last a gap from the plate's top edge.
         /// </summary>
-        private static (List<EarClipping.Node> Outer, List<List<EarClipping.Node>> Holes) SlotsAlongX(bool swapped, double shift, double lastGap)
+        private static (List<EarClipping.Node> Outer, List<List<EarClipping.Node>> Holes) SlotsAlongX(
+            bool swapped,
+            double shift,
+            double lastGap
+        )
         {
             const int slots = 20;
             double height = 10.0 + 6.0 * (slots - 1) + 2.0 + lastGap;
@@ -337,7 +411,10 @@ namespace GeometryHelper.UnitTest.Solid
         {
             List<EarClipping.Node> square = Loop(false, (0, 0), (10, 0), (10, 10), (0, 10));
 
-            Assert.Equal(0, EarClipping.SweepAxis(Edges(square, new List<List<EarClipping.Node>>()), Within.EqualPoint));
+            Assert.Equal(
+                0,
+                EarClipping.SweepAxis(Edges(square, new List<List<EarClipping.Node>>()), Within.EqualPoint)
+            );
         }
 
         [Theory]
@@ -353,7 +430,12 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(true, 0.0, 0.0015, false)]
         [InlineData(false, 4.0, 10.0, true)]
         [InlineData(true, 4.0, 10.0, true)]
-        public void SlotsTouchingEachOtherOrThePlate_MeetEitherWayRound(bool swapped, double shift, double lastGap, bool meet)
+        public void SlotsTouchingEachOtherOrThePlate_MeetEitherWayRound(
+            bool swapped,
+            double shift,
+            double lastGap,
+            bool meet
+        )
         {
             (List<EarClipping.Node> outer, List<List<EarClipping.Node>> holes) = SlotsAlongX(swapped, shift, lastGap);
 
@@ -372,11 +454,25 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < 20; i++)
             {
-                double bottom = 10.0 * i, top = bottom + 5.0, middle = bottom + 2.5;
+                double bottom = 10.0 * i,
+                    top = bottom + 5.0,
+                    middle = bottom + 2.5;
 
                 if (i == 9)
                 {
-                    corners.AddRange(new[] { (500.0, bottom), (510.0, middle - 0.5 * pinch), (520.0, bottom), (1000.0, bottom), (1000.0, top), (520.0, top), (510.0, middle + 0.5 * pinch), (500.0, top) });
+                    corners.AddRange(
+                        new[]
+                        {
+                            (500.0, bottom),
+                            (510.0, middle - 0.5 * pinch),
+                            (520.0, bottom),
+                            (1000.0, bottom),
+                            (1000.0, top),
+                            (520.0, top),
+                            (510.0, middle + 0.5 * pinch),
+                            (500.0, top),
+                        }
+                    );
                 }
                 else if (i == 14)
                 {
@@ -433,7 +529,9 @@ namespace GeometryHelper.UnitTest.Solid
 
                 for (int h = 0; h < slots; h++)
                 {
-                    double left = 10.0 + random.Next(50), right = 900.0 + random.Next(100), width = 1.0 + random.Next(3);
+                    double left = 10.0 + random.Next(50),
+                        right = 900.0 + random.Next(100),
+                        width = 1.0 + random.Next(3);
                     holes.Add(Loop(swapped, (left, y), (right, y), (right, y + width), (left, y + width)));
                     y += width + (random.Next(15) == 0 ? random.Next(3) * 0.001 : 3.0);
                 }

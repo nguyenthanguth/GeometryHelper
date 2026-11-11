@@ -43,10 +43,37 @@ namespace GeometryHelper.Dxf
     public partial class DxfDBText : DxfEntity
     {
         // The groups of a TEXT in the order AutoCAD writes them: AcDbText twice, the second holding the vertical mode.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 39, 10, 20, 30, 40, 1, 50, 41, 51, 7, 71, 72, 11, 21, 31, 210, 220, 230, 100, 73 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 39, 10, 20, 30, 40, 1, 50, 41, 51, 7, 71, 72, 11, 21, 31, 210, 220, 230, 100, 73 }
+        );
 
         // The groups of the MTEXT an ATTRIB or ATTDEF embeds (101 on), in the order ezdxf writes them.
-        private static readonly int[] EmbeddedOrder = { 101, 10, 20, 30, 40, 41, 46, 71, 72, 3, 1, 7, 210, 220, 230, 11, 21, 31, 42, 43, 50, 73, 44 };
+        private static readonly int[] EmbeddedOrder =
+        {
+            101,
+            10,
+            20,
+            30,
+            40,
+            41,
+            46,
+            71,
+            72,
+            3,
+            1,
+            7,
+            210,
+            220,
+            230,
+            11,
+            21,
+            31,
+            42,
+            43,
+            50,
+            73,
+            44,
+        };
 
         // The codes an ATTRIB or ATTDEF holds in its second subclass, AcDbAttribute or AcDbAttributeDefinition.
         private static readonly HashSet<int> AttributeCodes = new HashSet<int> { 2, 3, 70, 73, 74, 280 };
@@ -83,25 +110,27 @@ namespace GeometryHelper.Dxf
         /// style Standard, in no file; give it its words and place before it is drawn.
         /// </summary>
         public DxfDBText()
-            : base("TEXT", new[]
-            {
-                new DxfTypedValue(100, "AcDbText"), new DxfTypedValue(10, "0"), new DxfTypedValue(20, "0"), new DxfTypedValue(30, "0"),
-                new DxfTypedValue(40, "2.5"), new DxfTypedValue(1, string.Empty), new DxfTypedValue(100, "AcDbText"),
-            })
-        {
-        }
+            : base(
+                "TEXT",
+                new[]
+                {
+                    new DxfTypedValue(100, "AcDbText"),
+                    new DxfTypedValue(10, "0"),
+                    new DxfTypedValue(20, "0"),
+                    new DxfTypedValue(30, "0"),
+                    new DxfTypedValue(40, "2.5"),
+                    new DxfTypedValue(1, string.Empty),
+                    new DxfTypedValue(100, "AcDbText"),
+                }
+            ) { }
 
         /// <summary>The object of a record of a file.</summary>
         private protected DxfDBText(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>A text made in code from its groups, as <see cref="DxfEntity"/> makes one.</summary>
         private protected DxfDBText(string dxfName, IEnumerable<DxfTypedValue> groups)
-            : base(dxfName, groups)
-        {
-        }
+            : base(dxfName, groups) { }
 
         /// <summary>
         /// Gets or sets the words of the text (group 1), as AutoCAD's <c>TextString</c>: as the file writes them, its special
@@ -141,7 +170,6 @@ namespace GeometryHelper.Dxf
 
                 return DxfReader.Decode(DxfReader.Carets(TextValue(own, 1) ?? string.Empty));
             }
-
             set
             {
                 if (value == null)
@@ -157,7 +185,10 @@ namespace GeometryHelper.Dxf
 
                 if (value.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0)
                 {
-                    throw new ArgumentException("A text is one line: its words have no line break in them.", nameof(value));
+                    throw new ArgumentException(
+                        "A text is one line: its words have no line break in them.",
+                        nameof(value)
+                    );
                 }
 
                 if (!IsAttribute || !Embedded)
@@ -233,10 +264,15 @@ namespace GeometryHelper.Dxf
                     return OcsToWorld(Normal, TextPoint(10) ?? Origin);
                 }
 
-                GeoPoint3 point = shown.Has(ContextText.X) && shown.Has(ContextText.Y) ? new GeoPoint3(0.0, 0.0, Elevation()) : TextPoint(10) ?? Origin;
-                return OcsToWorld(Normal, new GeoPoint3(shown.Value(ContextText.X, point.X), shown.Value(ContextText.Y, point.Y), point.Z));
+                GeoPoint3 point =
+                    shown.Has(ContextText.X) && shown.Has(ContextText.Y)
+                        ? new GeoPoint3(0.0, 0.0, Elevation())
+                        : TextPoint(10) ?? Origin;
+                return OcsToWorld(
+                    Normal,
+                    new GeoPoint3(shown.Value(ContextText.X, point.X), shown.Value(ContextText.Y, point.Y), point.Z)
+                );
             }
-
             set
             {
                 CheckPoint(value);
@@ -283,17 +319,29 @@ namespace GeometryHelper.Dxf
                     return OcsToWorld(Normal, TextPoint(11) ?? Origin);
                 }
 
-                GeoPoint3 point = shown.Has(ContextText.AlignedX) && shown.Has(ContextText.AlignedY) ? Origin : TextPoint(11) ?? Origin;
-                return OcsToWorld(Normal, new GeoPoint3(shown.Value(ContextText.AlignedX, point.X), shown.Value(ContextText.AlignedY, point.Y), Elevation()));
+                GeoPoint3 point =
+                    shown.Has(ContextText.AlignedX) && shown.Has(ContextText.AlignedY)
+                        ? Origin
+                        : TextPoint(11) ?? Origin;
+                return OcsToWorld(
+                    Normal,
+                    new GeoPoint3(
+                        shown.Value(ContextText.AlignedX, point.X),
+                        shown.Value(ContextText.AlignedY, point.Y),
+                        Elevation()
+                    )
+                );
             }
-
             set
             {
                 CheckPoint(value);
                 bool moved = !SamePoint(value, AlignmentPoint);
                 ShownContexts contexts = TextContexts();
 
-                if ((contexts == null || contexts.ShownIsDefault) && (moved || (!IsDefaultAlignment && TextPoint(11) == null)))
+                if (
+                    (contexts == null || contexts.ShownIsDefault)
+                    && (moved || (!IsDefaultAlignment && TextPoint(11) == null))
+                )
                 {
                     SetText(AlignmentGroups(WorldToOcs(Normal, value)));
                 }
@@ -301,7 +349,9 @@ namespace GeometryHelper.Dxf
                 if (contexts != null && moved)
                 {
                     GeoPoint3 point = WorldToOcs(Normal, value);
-                    ContextText.Read(contexts.Shown).Write(ContextText.AlignedX, point.X, ContextText.AlignedY, point.Y);
+                    ContextText
+                        .Read(contexts.Shown)
+                        .Write(ContextText.AlignedX, point.X, ContextText.AlignedY, point.Y);
                 }
 
                 if (moved)
@@ -327,14 +377,19 @@ namespace GeometryHelper.Dxf
                 ShownContexts contexts = TextContexts();
                 return contexts == null ? TextDouble(40, 2.5) : TextDouble(40, 2.5) * contexts.HeightFactor;
             }
-
             set
             {
                 if (!Same(value, Height))
                 {
-                    Guard.Positive(value, nameof(value), "The height of a text has to be a finite number above nought.");
+                    Guard.Positive(
+                        value,
+                        nameof(value),
+                        "The height of a text has to be a finite number above nought."
+                    );
                     ShownContexts contexts = TextContexts();
-                    SetText(NumberGroup(40, contexts == null ? value : value / contexts.HeightFactor, TextDouble(40, 2.5)));
+                    SetText(
+                        NumberGroup(40, contexts == null ? value : value / contexts.HeightFactor, TextDouble(40, 2.5))
+                    );
                     Realign();
                 }
             }
@@ -355,7 +410,6 @@ namespace GeometryHelper.Dxf
                 bool held = TextContexts(out ContextGroups shown) != null && shown.Has(ContextText.Degrees);
                 return (held ? shown.Value(ContextText.Degrees, 0.0) : TextDouble(50, 0.0)) * (Math.PI / 180.0);
             }
-
             set
             {
                 Guard.Finite(value, nameof(value), "An angle has to be a finite number.");
@@ -385,7 +439,6 @@ namespace GeometryHelper.Dxf
         public double WidthFactor
         {
             get => TextDouble(41, 1.0);
-
             set
             {
                 if (!Same(value, WidthFactor))
@@ -406,7 +459,6 @@ namespace GeometryHelper.Dxf
         public double Oblique
         {
             get => TextDouble(51, 0.0) * (Math.PI / 180.0);
-
             set
             {
                 Guard.Finite(value, nameof(value), "An angle has to be a finite number.");
@@ -432,7 +484,6 @@ namespace GeometryHelper.Dxf
         public DxfTextHorizontalMode HorizontalMode
         {
             get => (DxfTextHorizontalMode)Horizontal();
-
             set
             {
                 if (value == HorizontalMode)
@@ -442,14 +493,20 @@ namespace GeometryHelper.Dxf
 
                 if (value < DxfTextHorizontalMode.TextLeft || value > DxfTextHorizontalMode.TextFit)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A horizontal mode is one of AutoCAD's, 0 to 5.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A horizontal mode is one of AutoCAD's, 0 to 5."
+                    );
                 }
 
                 ShownContexts contexts = TextContexts(out ContextGroups shown);
 
                 if (contexts == null || contexts.ShownIsDefault)
                 {
-                    SetText(Join(WholeGroup(72, (int)value, TextInt(72, 0)), Aligned((int)value, TextInt(VerticalCode, 0))));
+                    SetText(
+                        Join(WholeGroup(72, (int)value, TextInt(72, 0)), Aligned((int)value, TextInt(VerticalCode, 0)))
+                    );
                 }
 
                 shown?.Write(ContextText.Horizontal, (int)value);
@@ -468,7 +525,6 @@ namespace GeometryHelper.Dxf
         public DxfTextVerticalMode VerticalMode
         {
             get => (DxfTextVerticalMode)TextInt(VerticalCode, 0);
-
             set
             {
                 if (value == VerticalMode)
@@ -478,10 +534,16 @@ namespace GeometryHelper.Dxf
 
                 if (value < DxfTextVerticalMode.TextBase || value > DxfTextVerticalMode.TextTop)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A vertical mode is one of AutoCAD's, 0 to 3.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A vertical mode is one of AutoCAD's, 0 to 3."
+                    );
                 }
 
-                SetText(Join(WholeGroup(VerticalCode, (int)value, (int)VerticalMode), Aligned(TextInt(72, 0), (int)value)));
+                SetText(
+                    Join(WholeGroup(VerticalCode, (int)value, (int)VerticalMode), Aligned(TextInt(72, 0), (int)value))
+                );
                 Realign();
             }
         }
@@ -502,9 +564,10 @@ namespace GeometryHelper.Dxf
             {
                 int horizontal = Horizontal();
                 int vertical = TextInt(VerticalCode, 0);
-                return horizontal >= 0 && horizontal <= 5 && vertical >= 0 && vertical <= 3 ? (DxfAttachmentPoint)Justifications[horizontal, vertical] : DxfAttachmentPoint.BaseLeft;
+                return horizontal >= 0 && horizontal <= 5 && vertical >= 0 && vertical <= 3
+                    ? (DxfAttachmentPoint)Justifications[horizontal, vertical]
+                    : DxfAttachmentPoint.BaseLeft;
             }
-
             set
             {
                 // The justification it reads as changes nothing, a pair of modes AutoCAD has none for among them.
@@ -523,7 +586,15 @@ namespace GeometryHelper.Dxf
                             // where that is the default, as HorizontalMode writes it.
                             ShownContexts contexts = TextContexts(out ContextGroups shown);
                             bool record = contexts == null || contexts.ShownIsDefault;
-                            SetText(Join(record ? WholeGroup(72, horizontal, TextInt(72, 0)) : new KeyValuePair<int, string>[0], WholeGroup(VerticalCode, vertical, TextInt(VerticalCode, 0)), Aligned(horizontal, vertical)));
+                            SetText(
+                                Join(
+                                    record
+                                        ? WholeGroup(72, horizontal, TextInt(72, 0))
+                                        : new KeyValuePair<int, string>[0],
+                                    WholeGroup(VerticalCode, vertical, TextInt(VerticalCode, 0)),
+                                    Aligned(horizontal, vertical)
+                                )
+                            );
                             shown?.Write(ContextText.Horizontal, horizontal);
                             Realign();
                             return;
@@ -531,7 +602,11 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                throw new ArgumentOutOfRangeException(nameof(value), value, "A text is justified by one of AutoCAD's points, 1 to 24.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    "A text is justified by one of AutoCAD's points, 1 to 24."
+                );
             }
         }
 
@@ -542,7 +617,10 @@ namespace GeometryHelper.Dxf
         private protected bool OwnDefaultAlignment => TextInt(72, 0) == 0 && TextInt(VerticalCode, 0) == 0;
 
         /// <summary>The horizontal mode the text is read with: that of the context it is shown at where it holds one (70), else its record's (72).</summary>
-        private int Horizontal() => TextContexts(out ContextGroups shown) != null && shown.Has(ContextText.Horizontal) ? (int)shown.Value(ContextText.Horizontal, 0.0) : TextInt(72, 0);
+        private int Horizontal() =>
+            TextContexts(out ContextGroups shown) != null && shown.Has(ContextText.Horizontal)
+                ? (int)shown.Value(ContextText.Horizontal, 0.0)
+                : TextInt(72, 0);
 
         /// <summary>Gets or sets whether the text is written backwards (flag 2 of group 71), as AutoCAD's <c>IsMirroredInX</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the text is erased.</exception>
@@ -578,7 +656,6 @@ namespace GeometryHelper.Dxf
                 string name = DxfReader.NameOf(TextValue(7) ?? string.Empty);
                 return name.Length == 0 ? "Standard" : name;
             }
-
             set
             {
                 if (value == null)
@@ -622,14 +699,16 @@ namespace GeometryHelper.Dxf
         public GeoVector3 Normal
         {
             get => TextNormal();
-
             set
             {
                 double length = value.Length;
 
                 if (!value.IsValid || !(length > 0.0) || double.IsInfinity(length))
                 {
-                    throw new ArgumentException("A normal has to be a direction of finite numbers and some length: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "A normal has to be a direction of finite numbers and some length: " + value + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 GeoVector3 unit = Math.Abs(length - 1.0) <= 1E-12 ? value : value.Divide(length);
@@ -654,7 +733,6 @@ namespace GeometryHelper.Dxf
         public double Thickness
         {
             get => GetThickness();
-
             set
             {
                 if (!IsAttribute)
@@ -705,7 +783,10 @@ namespace GeometryHelper.Dxf
             // The contexts are worked out from the record as it is, and written after it; an attribute's of several lines with
             // the MTEXT each holds, as AutoCAD 2021 carries them (check D35b).
             List<KeyValuePair<ContextGroups, double[]>> contexts = _contextsStay ? null : ContextsMoved(transform);
-            List<KeyValuePair<ContextGroups, double[]>> lines = _contextsStay || embedded == null || !Embedded ? null : MTextContext.Moved(TextContexts()?.All, true, transform, Normal);
+            List<KeyValuePair<ContextGroups, double[]>> lines =
+                _contextsStay || embedded == null || !Embedded
+                    ? null
+                    : MTextContext.Moved(TextContexts()?.All, true, transform, Normal);
 
             // A copy GetTransformedCopy moves has the context it is shown at moved alone, and the placing of its record only where
             // that is the default: its height, width factor and lean, which the record holds for every context, are moved
@@ -721,7 +802,15 @@ namespace GeometryHelper.Dxf
 
             if (unplaced)
             {
-                groups = Array.FindAll(groups, g => g.Key != 10 && g.Key != 20 && g.Key != 30 && g.Key != 11 && g.Key != 21 && g.Key != 31 && g.Key != 50);
+                groups = Array.FindAll(groups, g =>
+                    g.Key != 10
+                    && g.Key != 20
+                    && g.Key != 30
+                    && g.Key != 11
+                    && g.Key != 21
+                    && g.Key != 31
+                    && g.Key != 50
+                );
             }
 
             if (embedded != null)
@@ -846,7 +935,8 @@ namespace GeometryHelper.Dxf
         /// of an ATTRIB or ATTDEF, its AcDbText part for a text's code and the part after it for an attribute's (2, 3, 70, 73,
         /// 74 and 280), as ezdxf reads them; the whole record in a file of R12. Null where it has none.
         /// </summary>
-        private protected string TextValue(int code) => IsAttribute ? TextValue(GetOwnGroups(0), code) : GetString(code);
+        private protected string TextValue(int code) =>
+            IsAttribute ? TextValue(GetOwnGroups(0), code) : GetString(code);
 
         /// <summary>The text of the first group of a code in the part of the own groups of an ATTRIB or ATTDEF it belongs to, as <see cref="TextValue(int)"/> reads it.</summary>
         private static string TextValue(IReadOnlyList<DxfTypedValue> own, int code)
@@ -883,10 +973,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The number of a group of the text's part, as the reader reads it; the fallback where it has none.</summary>
-        private protected double TextDouble(int code, double fallback) => Numbers.TryRead(TextValue(code), out double value) && Guard.IsFinite(value) ? value : fallback;
+        private protected double TextDouble(int code, double fallback) =>
+            Numbers.TryRead(TextValue(code), out double value) && Guard.IsFinite(value) ? value : fallback;
 
         /// <summary>The whole number of a group of the text's part; the fallback where it has none.</summary>
-        private protected int TextInt(int code, int fallback) => int.TryParse(TextValue(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+        private protected int TextInt(int code, int fallback) =>
+            int.TryParse(TextValue(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : fallback;
 
         /// <summary>Sets groups of the text's part in one writing of the record, as <see cref="SetText(KeyValuePair{int, string}[])"/> does.</summary>
         private protected void SetText(params KeyValuePair<int, string>[] groups)
@@ -912,7 +1006,12 @@ namespace GeometryHelper.Dxf
         /// Given a type, the attribute's part has it as its 71 (1 one line, 2 an ATTRIB of several, 4 an ATTDEF of several),
         /// and a 72 of nought after it where it has none, as AutoCAD and ezdxf write them from R2018.
         /// </summary>
-        private protected void Rewrite(KeyValuePair<int, string>[] groups, string locked, IReadOnlyList<DxfTypedValue> newEmbedded = null, int? type = null)
+        private protected void Rewrite(
+            KeyValuePair<int, string>[] groups,
+            string locked,
+            IReadOnlyList<DxfTypedValue> newEmbedded = null,
+            int? type = null
+        )
         {
             List<DxfTypedValue> own = new List<DxfTypedValue>(GetOwnGroups(0));
 
@@ -928,7 +1027,8 @@ namespace GeometryHelper.Dxf
             int split = own.FindIndex(1, end - 1, g => g.TypeCode == 100);
             List<DxfTypedValue> text = own.GetRange(1, (split < 0 ? end : split) - 1);
             List<DxfTypedValue> rest = split < 0 ? new List<DxfTypedValue>() : own.GetRange(split, end - split);
-            List<DxfTypedValue> tail = newEmbedded != null ? new List<DxfTypedValue>(newEmbedded) : own.GetRange(end, own.Count - end);
+            List<DxfTypedValue> tail =
+                newEmbedded != null ? new List<DxfTypedValue>(newEmbedded) : own.GetRange(end, own.Count - end);
 
             foreach (KeyValuePair<int, string> group in groups)
             {
@@ -953,7 +1053,9 @@ namespace GeometryHelper.Dxf
                 }
                 else
                 {
-                    int after = rest.FindLastIndex(g => g.TypeCode == 2 || g.TypeCode == 70 || g.TypeCode == 73 || g.TypeCode == 74);
+                    int after = rest.FindLastIndex(g =>
+                        g.TypeCode == 2 || g.TypeCode == 70 || g.TypeCode == 73 || g.TypeCode == 74
+                    );
                     rest.Insert(after < 0 ? rest.Count : after + 1, DxfTypedValue.Read(280, locked));
                 }
             }
@@ -965,11 +1067,27 @@ namespace GeometryHelper.Dxf
 
                 if (at >= 0)
                 {
-                    rest[at] = int.TryParse(rest[at].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int now) && now == type.Value ? rest[at] : DxfTypedValue.Read(71, typed);
+                    rest[at] =
+                        int.TryParse(
+                            rest[at].Value.Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out int now
+                        )
+                        && now == type.Value
+                            ? rest[at]
+                            : DxfTypedValue.Read(71, typed);
                 }
                 else
                 {
-                    int after = rest.FindLastIndex(g => g.TypeCode == 2 || g.TypeCode == 3 || g.TypeCode == 70 || g.TypeCode == 73 || g.TypeCode == 74 || g.TypeCode == 280);
+                    int after = rest.FindLastIndex(g =>
+                        g.TypeCode == 2
+                        || g.TypeCode == 3
+                        || g.TypeCode == 70
+                        || g.TypeCode == 73
+                        || g.TypeCode == 74
+                        || g.TypeCode == 280
+                    );
                     rest.Insert(after < 0 ? rest.Count : after + 1, DxfTypedValue.Read(71, typed));
                     at = after < 0 ? rest.Count - 1 : after + 1;
 
@@ -1028,7 +1146,8 @@ namespace GeometryHelper.Dxf
         private static string Joined(DxfMText value) => value.Text.Replace('\n', ' ');
 
         /// <summary>Words written as the contents of an MTEXT that reads them: their backslashes and braces as the codes <c>\\</c>, <c>\{</c> and <c>\}</c>.</summary>
-        private static string AsContents(string words) => words.Replace("\\", "\\\\").Replace("{", "\\{").Replace("}", "\\}");
+        private static string AsContents(string words) =>
+            words.Replace("\\", "\\\\").Replace("{", "\\{").Replace("}", "\\}");
 
         /// <summary>
         /// What the text's part of an attribute of several lines is given when it is made one of one line: nothing for an
@@ -1063,15 +1182,27 @@ namespace GeometryHelper.Dxf
 
             if (lines.Has(MTextContext.AtX) && lines.Has(MTextContext.AtY))
             {
-                mtext.Location = new GeoPoint3(lines.Value(MTextContext.AtX, 0.0), lines.Value(MTextContext.AtY, 0.0), lines.Value(MTextContext.AtZ, 0.0));
+                mtext.Location = new GeoPoint3(
+                    lines.Value(MTextContext.AtX, 0.0),
+                    lines.Value(MTextContext.AtY, 0.0),
+                    lines.Value(MTextContext.AtZ, 0.0)
+                );
             }
 
             if (lines.Has(MTextContext.AlongX) && lines.Has(MTextContext.AlongY))
             {
-                mtext.Direction = new GeoVector3(lines.Value(MTextContext.AlongX, 0.0), lines.Value(MTextContext.AlongY, 0.0), lines.Value(MTextContext.AlongZ, 0.0));
+                mtext.Direction = new GeoVector3(
+                    lines.Value(MTextContext.AlongX, 0.0),
+                    lines.Value(MTextContext.AlongY, 0.0),
+                    lines.Value(MTextContext.AlongZ, 0.0)
+                );
             }
 
-            if (lines.Has(MTextContext.Attached) && lines.Value(MTextContext.Attached, 1.0) >= 1.0 && lines.Value(MTextContext.Attached, 1.0) <= 9.0)
+            if (
+                lines.Has(MTextContext.Attached)
+                && lines.Value(MTextContext.Attached, 1.0) >= 1.0
+                && lines.Value(MTextContext.Attached, 1.0) <= 9.0
+            )
             {
                 mtext.Attachment = (DxfAttachmentPoint)(int)lines.Value(MTextContext.Attached, 1.0);
             }
@@ -1106,7 +1237,14 @@ namespace GeometryHelper.Dxf
             List<DxfTypedValue> tail = EmbeddedTail();
 
             // The MTEXT it is made of, given back, changes nothing.
-            if (tail != null && tail.Count == theirs.Count && tail.Zip(theirs, (a, b) => a.TypeCode == b.TypeCode && string.Equals(a.Value, b.Value, StringComparison.Ordinal)).All(s => s))
+            if (
+                tail != null
+                && tail.Count == theirs.Count
+                && tail.Zip(theirs, (a, b) =>
+                        a.TypeCode == b.TypeCode && string.Equals(a.Value, b.Value, StringComparison.Ordinal)
+                    )
+                    .All(s => s)
+            )
             {
                 return;
             }
@@ -1116,7 +1254,10 @@ namespace GeometryHelper.Dxf
             CheckStyle(style, nameof(value));
             GeoVector3 normal = value.Normal;
             GeoPoint3 location = WorldToOcs(normal, value.Location);
-            GeoPoint3 along = WorldToOcs(normal, new GeoPoint3(value.Direction.X, value.Direction.Y, value.Direction.Z));
+            GeoPoint3 along = WorldToOcs(
+                normal,
+                new GeoPoint3(value.Direction.X, value.Direction.Y, value.Direction.Z)
+            );
             double degrees = Math.Atan2(along.Y, along.X) * (180.0 / Math.PI) + 0.0;
             int attachment = (int)value.Attachment;
             int horizontal = attachment >= 1 && attachment <= 9 ? (attachment - 1) % 3 : 0;
@@ -1145,14 +1286,18 @@ namespace GeometryHelper.Dxf
                     TextNormalGroups(normal),
                     WholeGroup(72, horizontal, TextInt(72, 0)),
                     WholeGroup(VerticalCode, vertical, TextInt(VerticalCode, 0)),
-                    string.Equals(style, TextValue(7), StringComparison.Ordinal) ? new KeyValuePair<int, string>[0] : Pair(7, style),
+                    string.Equals(style, TextValue(7), StringComparison.Ordinal)
+                        ? new KeyValuePair<int, string>[0]
+                        : Pair(7, style),
                     NumberGroup(40, height, contexts == null ? Height : TextDouble(40, 2.5)),
                     TextValue(41) != null && !keepPoint ? Pair(41, null) : new KeyValuePair<int, string>[0],
                     TextValue(51) != null ? Pair(51, null) : new KeyValuePair<int, string>[0],
-                    TextValue(71) != null ? Pair(71, null) : new KeyValuePair<int, string>[0]),
+                    TextValue(71) != null ? Pair(71, null) : new KeyValuePair<int, string>[0]
+                ),
                 null,
                 embedded,
-                SeveralLines);
+                SeveralLines
+            );
 
             if (contexts != null)
             {
@@ -1209,14 +1354,32 @@ namespace GeometryHelper.Dxf
                 }
 
                 ContextText.Read(item).Write(ContextText.AlignedX, aligned.X, ContextText.AlignedY, aligned.Y);
-                item.File.ReplaceTail(item, flag, new[]
-                {
-                    G(290, "1"), G(101, "Embedded Object"), G(100, "AcDbObjectContextData"), G(70, "4"), G(290, isDefault ? "1" : "0"),
-                    G(100, "AcDbAnnotScaleObjectContextData"), G(340, scale), G(70, ((int)lines.Attachment).ToString(CultureInfo.InvariantCulture)),
-                    G(10, Numbers.Exact(along.X + 0.0)), G(20, Numbers.Exact(along.Y + 0.0)), G(30, Numbers.Exact(along.Z + 0.0)),
-                    G(11, Numbers.Exact(at.X + 0.0)), G(21, Numbers.Exact(at.Y + 0.0)), G(31, Numbers.Exact(at.Z + 0.0)),
-                    G(40, Numbers.Exact(lines.Width + 0.0)), G(41, Numbers.Exact(lines.Height + 0.0)), G(42, "0.0"), G(43, "0.0"), G(71, "0"),
-                });
+                item.File.ReplaceTail(
+                    item,
+                    flag,
+                    new[]
+                    {
+                        G(290, "1"),
+                        G(101, "Embedded Object"),
+                        G(100, "AcDbObjectContextData"),
+                        G(70, "4"),
+                        G(290, isDefault ? "1" : "0"),
+                        G(100, "AcDbAnnotScaleObjectContextData"),
+                        G(340, scale),
+                        G(70, ((int)lines.Attachment).ToString(CultureInfo.InvariantCulture)),
+                        G(10, Numbers.Exact(along.X + 0.0)),
+                        G(20, Numbers.Exact(along.Y + 0.0)),
+                        G(30, Numbers.Exact(along.Z + 0.0)),
+                        G(11, Numbers.Exact(at.X + 0.0)),
+                        G(21, Numbers.Exact(at.Y + 0.0)),
+                        G(31, Numbers.Exact(at.Z + 0.0)),
+                        G(40, Numbers.Exact(lines.Width + 0.0)),
+                        G(41, Numbers.Exact(lines.Height + 0.0)),
+                        G(42, "0.0"),
+                        G(43, "0.0"),
+                        G(71, "0"),
+                    }
+                );
             }
 
             if (before == null)
@@ -1244,7 +1407,8 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        private static KeyValuePair<int, string> G(int code, string value) => new KeyValuePair<int, string>(code, value);
+        private static KeyValuePair<int, string> G(int code, string value) =>
+            new KeyValuePair<int, string>(code, value);
 
         /// <summary>
         /// Makes the attribute of several lines or of one, as AutoCAD's <c>IsMTextAttribute</c> setter does: of several, an MTEXT
@@ -1269,7 +1433,9 @@ namespace GeometryHelper.Dxf
 
             // Letters of another width keep it, the MTEXT's words opening with it, \W0.7000; for 0.7 (check D35d).
             double width = WidthFactor;
-            string narrowed = Same(width, 1.0) ? string.Empty : "\\W" + width.ToString("0.0000", CultureInfo.InvariantCulture) + ";";
+            string narrowed = Same(width, 1.0)
+                ? string.Empty
+                : "\\W" + width.ToString("0.0000", CultureInfo.InvariantCulture) + ";";
             DxfMText made = Placed(new DxfMText { Contents = narrowed + AsContents(TextString) });
             int horizontal = TextInt(72, 0);
 
@@ -1307,7 +1473,14 @@ namespace GeometryHelper.Dxf
             List<DxfTypedValue> now = new List<DxfTypedValue> { DxfTypedValue.Read(101, "Embedded Object") };
             now.AddRange(tail);
 
-            if (moved.Count == now.Count && moved.Zip(now, (a, b) => a.TypeCode == b.TypeCode && string.Equals(a.Value, b.Value, StringComparison.Ordinal)).All(s => s))
+            if (
+                moved.Count == now.Count
+                && moved
+                    .Zip(now, (a, b) =>
+                        a.TypeCode == b.TypeCode && string.Equals(a.Value, b.Value, StringComparison.Ordinal)
+                    )
+                    .All(s => s)
+            )
             {
                 return;
             }
@@ -1324,8 +1497,14 @@ namespace GeometryHelper.Dxf
         {
             int horizontal = TextInt(72, 0);
             int vertical = TextInt(VerticalCode, 0);
-            int across = horizontal == 1 || horizontal == 4 ? 1 : horizontal == 2 ? 2 : 0;
-            int down = vertical == 3 ? 0 : vertical == 2 || (horizontal == 4 && vertical == 0) ? 1 : 2;
+            int across =
+                horizontal == 1 || horizontal == 4 ? 1
+                : horizontal == 2 ? 2
+                : 0;
+            int down =
+                vertical == 3 ? 0
+                : vertical == 2 || (horizontal == 4 && vertical == 0) ? 1
+                : 2;
             GeoVector3 normal = Normal;
             double angle = Rotation;
             GeoPoint3 along = OcsToWorld(normal, new GeoPoint3(Math.Cos(angle), Math.Sin(angle), 0.0));
@@ -1343,7 +1522,9 @@ namespace GeometryHelper.Dxf
         {
             if (!Item.File.Supports(1032))
             {
-                throw new InvalidOperationException("A DXF older than R2018 (AC1032) has no attribute of several lines: an MTEXT embedded in an ATTRIB or ATTDEF came with it.");
+                throw new InvalidOperationException(
+                    "A DXF older than R2018 (AC1032) has no attribute of several lines: an MTEXT embedded in an ATTRIB or ATTDEF came with it."
+                );
             }
         }
 
@@ -1392,13 +1573,22 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfItem item in Item.File.TableItems("STYLE"))
             {
-                if (string.Equals(DxfReader.NameOf(item.File.ValueOf(item, 2) ?? string.Empty), name, StringComparison.OrdinalIgnoreCase))
+                if (
+                    string.Equals(
+                        DxfReader.NameOf(item.File.ValueOf(item, 2) ?? string.Empty),
+                        name,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
                 {
                     return;
                 }
             }
 
-            throw new ArgumentException("The text style " + name + " is not in the file's text style table.", parameter);
+            throw new ArgumentException(
+                "The text style " + name + " is not in the file's text style table.",
+                parameter
+            );
         }
 
         /// <summary>
@@ -1440,10 +1630,13 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            double Number(int code, double fallback) => Numbers.TryRead(Value(code), out double value) && Guard.IsFinite(value) ? value : fallback;
+            double Number(int code, double fallback) =>
+                Numbers.TryRead(Value(code), out double value) && Guard.IsFinite(value) ? value : fallback;
 
-            GeoVector3 Vector(int code, GeoVector3 fallback)
-                => Value(code) == null && Value(code + 10) == null && Value(code + 20) == null ? fallback : new GeoVector3(Number(code, 0.0), Number(code + 10, 0.0), Number(code + 20, 0.0));
+            GeoVector3 Vector(int code, GeoVector3 fallback) =>
+                Value(code) == null && Value(code + 10) == null && Value(code + 20) == null
+                    ? fallback
+                    : new GeoVector3(Number(code, 0.0), Number(code + 10, 0.0), Number(code + 20, 0.0));
 
             GeoVector3 extrusion = Vector(210, new GeoVector3(0.0, 0.0, 1.0));
             var ocs = new DxfOcsTransform(extrusion, transform);
@@ -1456,7 +1649,9 @@ namespace GeometryHelper.Dxf
             else if (Value(50) != null)
             {
                 double angle = Number(50, 0.0) * (Math.PI / 180.0);
-                direction = new DxfOcsTransform.Axes(extrusion).ToWorld(new GeoVector3(Math.Cos(angle), Math.Sin(angle), 0.0));
+                direction = new DxfOcsTransform.Axes(extrusion).ToWorld(
+                    new GeoVector3(Math.Cos(angle), Math.Sin(angle), 0.0)
+                );
             }
             else
             {
@@ -1466,7 +1661,10 @@ namespace GeometryHelper.Dxf
             // The MTEXT of a multiline attribute has no lean: one that would lean it is refused, before anything is written.
             if (DxfOcsTransform.Shears(transform, extrusion, direction))
             {
-                throw new ArgumentException("The transformation shears the attribute's lines of MTEXT, which cannot lean.", nameof(transform));
+                throw new ArgumentException(
+                    "The transformation shears the attribute's lines of MTEXT, which cannot lean.",
+                    nameof(transform)
+                );
             }
 
             GeoVector3 insert = Vector(10, new GeoVector3(0.0, 0.0, 0.0));
@@ -1502,7 +1700,10 @@ namespace GeometryHelper.Dxf
                 double cos = newDirection.DotProduct(newUpright) / (newDirection.Length * newUpright.Length);
                 double newHeight = newUpright.Length * Math.Sin(Math.Acos(Math.Max(-1.0, Math.Min(1.0, cos))));
                 groups.Add(new KeyValuePair<int, string>(40, Numbers.Exact(newHeight + 0.0)));
-                factor = Math.Abs(newHeight - oldHeight) <= 1E-9 * Math.Max(Math.Abs(newHeight), Math.Abs(oldHeight)) ? 1.0 : newHeight / oldHeight;
+                factor =
+                    Math.Abs(newHeight - oldHeight) <= 1E-9 * Math.Max(Math.Abs(newHeight), Math.Abs(oldHeight))
+                        ? 1.0
+                        : newHeight / oldHeight;
             }
 
             if (Value(41) != null)
@@ -1603,7 +1804,10 @@ namespace GeometryHelper.Dxf
 
             if (value.Length == 0 || value.IndexOf(' ') >= 0 || value.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0)
             {
-                throw new ArgumentException("A tag is a word, with no space or line break in it: '" + value + "' is not one.", parameter);
+                throw new ArgumentException(
+                    "A tag is a word, with no space or line break in it: '" + value + "' is not one.",
+                    parameter
+                );
             }
         }
 
@@ -1652,7 +1856,13 @@ namespace GeometryHelper.Dxf
                     }
                     else if (tagged && group.TypeCode == 280)
                     {
-                        return int.TryParse(group.Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int locked) && locked != 0;
+                        return int.TryParse(
+                                group.Value.Trim(),
+                                NumberStyles.Integer,
+                                CultureInfo.InvariantCulture,
+                                out int locked
+                            )
+                            && locked != 0;
                     }
                 }
 
@@ -1670,7 +1880,9 @@ namespace GeometryHelper.Dxf
 
             if (!Item.File.Supports(1021))
             {
-                throw new InvalidOperationException("A DXF older than R2007 (AC1021) has no lock of an attribute's position.");
+                throw new InvalidOperationException(
+                    "A DXF older than R2007 (AC1021) has no lock of an attribute's position."
+                );
             }
 
             Rewrite(new KeyValuePair<int, string>[0], value ? "1" : "0");
@@ -1730,7 +1942,11 @@ namespace GeometryHelper.Dxf
             }
 
             CheckPoint(value);
-            return Join(Pair(11, Numbers.Exact(value.X + 0.0)), Pair(21, Numbers.Exact(value.Y + 0.0)), Pair(31, Numbers.Exact(value.Z + 0.0)));
+            return Join(
+                Pair(11, Numbers.Exact(value.X + 0.0)),
+                Pair(21, Numbers.Exact(value.Y + 0.0)),
+                Pair(31, Numbers.Exact(value.Z + 0.0))
+            );
         }
 
         /// <summary>
@@ -1738,8 +1954,10 @@ namespace GeometryHelper.Dxf
         /// for it, where the modes are not both nought; none for a text aligned left on its baseline, of which AutoCAD writes
         /// none, or one that has the point.
         /// </summary>
-        private KeyValuePair<int, string>[] Aligned(int horizontal, int vertical)
-            => (horizontal != 0 || vertical != 0) && !TextPoint(11).HasValue ? AlignmentGroups(Origin) : new KeyValuePair<int, string>[0];
+        private KeyValuePair<int, string>[] Aligned(int horizontal, int vertical) =>
+            (horizontal != 0 || vertical != 0) && !TextPoint(11).HasValue
+                ? AlignmentGroups(Origin)
+                : new KeyValuePair<int, string>[0];
 
         /// <summary>
         /// The groups that set the normal of the text's part: none where it is the normal read, to the bit; else each group that
@@ -1761,15 +1979,16 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The group that sets a number, none where it is the one read, to the bit.</summary>
-        private protected static KeyValuePair<int, string>[] NumberGroup(int code, double value, double now)
-            => Same(value, now) ? new KeyValuePair<int, string>[0] : Pair(code, Numbers.Exact(value + 0.0));
+        private protected static KeyValuePair<int, string>[] NumberGroup(int code, double value, double now) =>
+            Same(value, now) ? new KeyValuePair<int, string>[0] : Pair(code, Numbers.Exact(value + 0.0));
 
         /// <summary>The group that sets a whole number, none where it is the one read.</summary>
-        private protected static KeyValuePair<int, string>[] WholeGroup(int code, int value, int now)
-            => value == now ? new KeyValuePair<int, string>[0] : Pair(code, value.ToString(CultureInfo.InvariantCulture));
+        private protected static KeyValuePair<int, string>[] WholeGroup(int code, int value, int now) =>
+            value == now ? new KeyValuePair<int, string>[0] : Pair(code, value.ToString(CultureInfo.InvariantCulture));
 
         /// <summary>One group to be set.</summary>
-        private protected static KeyValuePair<int, string>[] Pair(int code, string value) => new[] { new KeyValuePair<int, string>(code, value) };
+        private protected static KeyValuePair<int, string>[] Pair(int code, string value) =>
+            new[] { new KeyValuePair<int, string>(code, value) };
 
         /// <summary>
         /// The groups a transformation gives the text, as ezdxf's <c>Text.transform()</c> gives them: through the system of its
@@ -1783,7 +2002,10 @@ namespace GeometryHelper.Dxf
 
             if (!ocs.NewExtrusion.IsValid)
             {
-                throw new ArgumentException("The transformation flattens the plane of the " + Item.Type + ".", nameof(transform));
+                throw new ArgumentException(
+                    "The transformation flattens the plane of the " + Item.Type + ".",
+                    nameof(transform)
+                );
             }
 
             GeoPoint3 insert = ocs.TransformVertex(TextPoint(10) ?? Origin);
@@ -1815,13 +2037,18 @@ namespace GeometryHelper.Dxf
 
             return Join(
                 TextPointGroups(10, insert),
-                aligned.HasValue ? AlignmentGroups(ocs.TransformVertex(aligned.Value)) : new KeyValuePair<int, string>[0],
+                aligned.HasValue
+                    ? AlignmentGroups(ocs.TransformVertex(aligned.Value))
+                    : new KeyValuePair<int, string>[0],
                 NumberGroup(40, height, TextDouble(40, 2.5)),
                 NumberGroup(50, newRotation, oldRotation),
                 NumberGroup(41, width, TextDouble(41, 1.0)),
                 NumberGroup(51, oblique, TextDouble(51, 0.0)),
-                thickness != 0.0 ? NumberGroup(39, ocs.TransformThickness(thickness), thickness) : new KeyValuePair<int, string>[0],
-                TextNormalGroups(ocs.NewExtrusion));
+                thickness != 0.0
+                    ? NumberGroup(39, ocs.TransformThickness(thickness), thickness)
+                    : new KeyValuePair<int, string>[0],
+                TextNormalGroups(ocs.NewExtrusion)
+            );
         }
 
         /// <summary>The contexts of an annotative text, attribute or definition, as AutoCAD 2021 reads it; null for one of none.</summary>
@@ -1956,14 +2183,18 @@ namespace GeometryHelper.Dxf
 
                 if (context.Has(ContextText.X) && context.Has(ContextText.Y))
                 {
-                    GeoPoint3 point = ocs.TransformVertex(new GeoPoint3(numbers[ContextText.X], numbers[ContextText.Y], elevation));
+                    GeoPoint3 point = ocs.TransformVertex(
+                        new GeoPoint3(numbers[ContextText.X], numbers[ContextText.Y], elevation)
+                    );
                     numbers[ContextText.X] = point.X;
                     numbers[ContextText.Y] = point.Y;
                 }
 
                 if (aligned && context.Has(ContextText.AlignedX) && context.Has(ContextText.AlignedY))
                 {
-                    GeoPoint3 point = ocs.TransformVertex(new GeoPoint3(numbers[ContextText.AlignedX], numbers[ContextText.AlignedY], elevation));
+                    GeoPoint3 point = ocs.TransformVertex(
+                        new GeoPoint3(numbers[ContextText.AlignedX], numbers[ContextText.AlignedY], elevation)
+                    );
                     numbers[ContextText.AlignedX] = point.X;
                     numbers[ContextText.AlignedY] = point.Y;
                 }
@@ -2024,7 +2255,10 @@ namespace GeometryHelper.Dxf
         {
             if (!value.IsValid)
             {
-                throw new ArgumentException("A point has to be of finite numbers: " + value + " is not.", nameof(value));
+                throw new ArgumentException(
+                    "A point has to be of finite numbers: " + value + " is not.",
+                    nameof(value)
+                );
             }
         }
 
@@ -2064,7 +2298,11 @@ namespace GeometryHelper.Dxf
 
             int rank = -1;
 
-            for (int k = attribute ? second + 1 : 1; k < (attribute || second < 0 ? order.Count : second) && rank < 0; k++)
+            for (
+                int k = attribute ? second + 1 : 1;
+                k < (attribute || second < 0 ? order.Count : second) && rank < 0;
+                k++
+            )
             {
                 rank = order[k] == group.Key ? k : -1;
             }
@@ -2075,7 +2313,11 @@ namespace GeometryHelper.Dxf
             {
                 int their = -1;
 
-                for (int k = attribute ? second + 1 : 1; k < (attribute || second < 0 ? order.Count : second) && their < 0; k++)
+                for (
+                    int k = attribute ? second + 1 : 1;
+                    k < (attribute || second < 0 ? order.Count : second) && their < 0;
+                    k++
+                )
                 {
                     their = order[k] == part[i].TypeCode ? k : -1;
                 }
@@ -2130,7 +2372,8 @@ namespace GeometryHelper.Dxf
             {
                 bool attribute = AttributeCodes.Contains(group.Key);
                 bool home = attribute ? rest.Contains(group.Key) : text.Contains(group.Key);
-                bool away = (attribute ? text.Contains(group.Key) : rest.Contains(group.Key)) || tail.Contains(group.Key);
+                bool away =
+                    (attribute ? text.Contains(group.Key) : rest.Contains(group.Key)) || tail.Contains(group.Key);
 
                 if (!home && away)
                 {
@@ -2151,7 +2394,9 @@ namespace GeometryHelper.Dxf
                 return new GeoVector3(0.0, 0.0, 1.0);
             }
 
-            return Math.Abs(length - 1.0) <= 1E-12 ? new GeoVector3(x, y, z) : new GeoVector3(x / length, y / length, z / length);
+            return Math.Abs(length - 1.0) <= 1E-12
+                ? new GeoVector3(x, y, z)
+                : new GeoVector3(x / length, y / length, z / length);
         }
 
         private bool TryNumber(int code, out double value)

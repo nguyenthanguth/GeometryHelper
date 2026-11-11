@@ -86,14 +86,16 @@ namespace GeometryHelper.UnitTest.Dxf
             // first, or a block merged down from the row, kept AutoCAD from merging it; a colour, background or alignment alone
             // did not (w22, w23, w31, m25). Each state is made in the session that unmerges the title, as AutoCAD made it: a file
             // read with the title unmerged has it merged at its first edit (D33c e01 to e20).
-            foreach (Action<DxfTable> fill in new Action<DxfTable>[]
-            {
-                t => t.SetValue(0, 1, "X"),
-                t => t.SetValue(0, 1, " "),
-                t => t.SetValue(0, 1, 0),
-                t => t.MergeCells(new DxfCellRange(0, 1, 1, 1)),
-                t => t.MergeCells(new DxfCellRange(0, 0, 1, 0)),
-            })
+            foreach (
+                Action<DxfTable> fill in new Action<DxfTable>[]
+                {
+                    t => t.SetValue(0, 1, "X"),
+                    t => t.SetValue(0, 1, " "),
+                    t => t.SetValue(0, 1, 0),
+                    t => t.MergeCells(new DxfCellRange(0, 1, 1, 1)),
+                    t => t.MergeCells(new DxfCellRange(0, 0, 1, 0)),
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
                 Table(db).UnmergeCells(new DxfCellRange(0, 0, 0, 1));
@@ -131,8 +133,16 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(string.Empty, read.Format(1, 1));
             Assert.Equal("7", read.TextString(2, 0));
             string record = Record(db.ToText(), "F6");
-            Assert.Contains("301\nCELL_VALUE\n 93\n4\n 90\n1\n 91\n7\n 94\n0\n300\n\n302\n7\n304\n", record, StringComparison.Ordinal);
-            Assert.Contains("301\nCELL_VALUE\n 93\n4\n 90\n4\n  1\nQty\n 94\n0\n300\n\n302\nQty\n304\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                "301\nCELL_VALUE\n 93\n4\n 90\n1\n 91\n7\n 94\n0\n300\n\n302\n7\n304\n",
+                record,
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "301\nCELL_VALUE\n 93\n4\n 90\n4\n  1\nQty\n 94\n0\n300\n\n302\nQty\n304\n",
+                record,
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -143,7 +153,11 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfTable table = Table(db);
             table.SetValue(2, 0, 12.5);
             table.SetFormat(2, 0, "%lu2%pr3");
-            Assert.Contains("301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n12.5\n 94\n0\n300\n%lu2%pr3\n302\n12.500\n304\n", Record(db.ToText(), "F6"), StringComparison.Ordinal);
+            Assert.Contains(
+                "301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n12.5\n 94\n0\n300\n%lu2%pr3\n302\n12.500\n304\n",
+                Record(db.ToText(), "F6"),
+                StringComparison.Ordinal
+            );
 
             table.SetFormat(2, 0, string.Empty);
             Assert.Equal("12.500000", Reread(db).TextString(2, 0));
@@ -160,7 +174,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfTable table = Table(db);
                 table.ResetValue(2, 0);
                 table.SetFormat(2, 0, format);
-                Assert.Contains("301\nCELL_VALUE\n 93\n5\n 90\n512\n 94\n0\n300\n\n302\n\n304\n", Record(db.ToText(), "F6"), StringComparison.Ordinal);
+                Assert.Contains(
+                    "301\nCELL_VALUE\n 93\n5\n 90\n512\n 94\n0\n300\n\n302\n\n304\n",
+                    Record(db.ToText(), "F6"),
+                    StringComparison.Ordinal
+                );
 
                 DxfDatabase block = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
                 Table(block).SetOverrides(2, 1, 0, DxfCellProperties.DataType);
@@ -182,7 +200,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
                 Table(db).SetOverrides(1, 1, 0, given);
                 Assert.Contains("176\n0\n 91\n262144\n178\n", Record(db.ToText(), "F6"), StringComparison.Ordinal);
-                Assert.Equal(DxfCellProperties.DataType | DxfCellProperties.DataFormat, Reread(db).GetOverrides(1, 1, 0));
+                Assert.Equal(
+                    DxfCellProperties.DataType | DxfCellProperties.DataFormat,
+                    Reread(db).GetOverrides(1, 1, 0)
+                );
             }
         }
 
@@ -195,7 +216,10 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             const string Head = " 93\n0\n 94\n0\n 95\n0\n 96\n0\n141\n10.0\n";
             Assert.Contains(Head, DxfDimensionDrawings.R2018, StringComparison.Ordinal);
-            return DxfDimensionDrawings.R2018.Replace(Head, " 93\n6886016\n 94\n0\n 95\n0\n 96\n0\n  7\nGH_TXT\n140\n9.0\n170\n1\n 63\n3\n 64\n1\n140\n9.0\n283\n0\n141\n10.0\n");
+            return DxfDimensionDrawings.R2018.Replace(
+                Head,
+                " 93\n6886016\n 94\n0\n 95\n0\n 96\n0\n  7\nGH_TXT\n140\n9.0\n170\n1\n 63\n3\n 64\n1\n140\n9.0\n283\n0\n141\n10.0\n"
+            );
         }
 
         [Fact]
@@ -214,7 +238,13 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("GH_TXT", read.TextStyle(2, 0).Name);
             Assert.Equal(1, read.ContentColor(2, 0).ColorIndex);
             Assert.Equal(DxfCellAlignment.TopLeft, read.Alignment(2, 1));
-            Assert.Equal(DxfCellProperties.Alignment | DxfCellProperties.ContentColor | DxfCellProperties.TextStyle | DxfCellProperties.TextHeight, read.GetOverrides(2, 1, 0));
+            Assert.Equal(
+                DxfCellProperties.Alignment
+                    | DxfCellProperties.ContentColor
+                    | DxfCellProperties.TextStyle
+                    | DxfCellProperties.TextHeight,
+                read.GetOverrides(2, 1, 0)
+            );
             Assert.NotEmpty(read.TableStyleOverrides());
         }
 
@@ -230,7 +260,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 db = DxfDatabase.Parse(db.ToText());
                 Table(db).ClearTableStyleOverrides(options);
                 string record = Record(db.ToText(), "F6");
-                Assert.Contains("301\nCELL_VALUE\n 93\n5\n 90\n512\n 94\n0\n300\n\n302\n\n304\n", record, StringComparison.Ordinal);
+                Assert.Contains(
+                    "301\nCELL_VALUE\n 93\n5\n 90\n512\n 94\n0\n300\n\n302\n\n304\n",
+                    record,
+                    StringComparison.Ordinal
+                );
                 Assert.DoesNotContain("301\nCELL_VALUE\n 93\n7\n", record, StringComparison.Ordinal);
                 Assert.Equal(DxfCellProperties.Invalid, Reread(db).GetOverrides(2, 1, 0));
             }
@@ -272,7 +306,8 @@ namespace GeometryHelper.UnitTest.Dxf
             // the whole number 1, of 20 onto X1 a whole number of none, of X1 onto 2.5 the text 2.500000. The library kept each
             // value as it was.
             DxfDatabase header = Filled();
-            Table(header).Fill(new DxfCellRange(1, 0, 1, 0), new DxfCellRange(2, 0, 3, 0), DxfTableFillOptions.CopyFormat);
+            Table(header)
+                .Fill(new DxfCellRange(1, 0, 1, 0), new DxfCellRange(2, 0, 3, 0), DxfTableFillOptions.CopyFormat);
             DxfTable read = Reread(header);
             Assert.Equal(DxfDataType.Double, read.DataType(1, 0));
             Assert.Equal(string.Empty, read.TextString(1, 0));
@@ -282,17 +317,35 @@ namespace GeometryHelper.UnitTest.Dxf
             {
                 DxfDatabase db = Filled();
                 Table(db).SetValue(4, 0, value);
-                Table(db).Fill(new DxfCellRange(4, 0, 4, 0), new DxfCellRange(2, 0, 2, 0), DxfTableFillOptions.CopyFormat);
+                Table(db)
+                    .Fill(new DxfCellRange(4, 0, 4, 0), new DxfCellRange(2, 0, 2, 0), DxfTableFillOptions.CopyFormat);
                 DxfTable turned = Reread(db);
                 Assert.Equal(DxfDataType.Double, turned.DataType(4, 0));
-                Assert.Equal(value is int ? "7.000000" : value as string == "12" ? "12.0000" : string.Empty, turned.TextString(4, 0));
+                Assert.Equal(
+                    value is int ? "7.000000"
+                        : value as string == "12" ? "12.0000"
+                        : string.Empty,
+                    turned.TextString(4, 0)
+                );
             }
 
             DxfDatabase rows = Filled();
             DxfTable table = Table(rows);
-            table.Fill(new DxfCellRange(2, 0, 2, 0), new DxfCellRange(2, 2, 2, 2), DxfTableFillOptions.CopyFormat | DxfTableFillOptions.Row);
-            table.Fill(new DxfCellRange(3, 1, 3, 1), new DxfCellRange(3, 2, 3, 2), DxfTableFillOptions.CopyFormat | DxfTableFillOptions.Row);
-            table.Fill(new DxfCellRange(3, 0, 3, 0), new DxfCellRange(3, 1, 3, 1), DxfTableFillOptions.CopyFormat | DxfTableFillOptions.Row);
+            table.Fill(
+                new DxfCellRange(2, 0, 2, 0),
+                new DxfCellRange(2, 2, 2, 2),
+                DxfTableFillOptions.CopyFormat | DxfTableFillOptions.Row
+            );
+            table.Fill(
+                new DxfCellRange(3, 1, 3, 1),
+                new DxfCellRange(3, 2, 3, 2),
+                DxfTableFillOptions.CopyFormat | DxfTableFillOptions.Row
+            );
+            table.Fill(
+                new DxfCellRange(3, 0, 3, 0),
+                new DxfCellRange(3, 1, 3, 1),
+                DxfTableFillOptions.CopyFormat | DxfTableFillOptions.Row
+            );
             DxfTable done = Reread(rows);
             Assert.Equal(1, done.Value(2, 0));
             Assert.Equal(DxfDataType.Long, done.DataType(3, 1));
@@ -306,11 +359,17 @@ namespace GeometryHelper.UnitTest.Dxf
             // D33b f01, f03, f05, f06, f17 (and D33 f14): AutoCAD 2021 filled the header and the title as it filled rows of data,
             // 1.5 copied into Mark, 3.5 of a series into Parts; a guard of what the library did already.
             DxfDatabase db = Filled();
-            Table(db).Fill(new DxfCellRange(1, 0, 1, 0), new DxfCellRange(2, 0, 3, 0), DxfTableFillOptions.CopyContent | DxfTableFillOptions.GenerateSeries);
+            Table(db)
+                .Fill(
+                    new DxfCellRange(1, 0, 1, 0),
+                    new DxfCellRange(2, 0, 3, 0),
+                    DxfTableFillOptions.CopyContent | DxfTableFillOptions.GenerateSeries
+                );
             Assert.Equal("1.500000", Reread(db).TextString(1, 0));
 
             DxfDatabase title = Filled();
-            Table(title).Fill(new DxfCellRange(0, 0, 0, 0), new DxfCellRange(2, 0, 3, 0), DxfTableFillOptions.GenerateSeries);
+            Table(title)
+                .Fill(new DxfCellRange(0, 0, 0, 0), new DxfCellRange(2, 0, 3, 0), DxfTableFillOptions.GenerateSeries);
             Assert.Equal("3.500000", Reread(title).TextString(0, 0));
         }
 

@@ -22,22 +22,35 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class ShortSegmentG1wdTests
     {
-        private static readonly Tolerance Thousandth = new Tolerance(1E-3, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-3);
+        private static readonly Tolerance Thousandth = new Tolerance(
+            1E-3,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-3
+        );
 
-        private static GeoPolygon3 Square()
-            => new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+        private static GeoPolygon3 Square() =>
+            new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
-        private static GeoTriangle3 Triangle() => new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(0, 10, 0));
+        private static GeoTriangle3 Triangle() =>
+            new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(0, 10, 0));
 
         private static GeoSolid3 Box() => new GeoObb3(new GeoPoint3(5, 5, -5), 10, 10, 10).ToSolid();
 
         private static GeoLine3 AlongX() => new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0));
 
         /// <summary>The stub pointing down at (x, y, 0), stopping 0.0006 short of it.</summary>
-        private static GeoLine3 Down(double x, double y) => new GeoLine3(new GeoPoint3(x, y, 0.0015), new GeoPoint3(x, y, 0.0006));
+        private static GeoLine3 Down(double x, double y) =>
+            new GeoLine3(new GeoPoint3(x, y, 0.0015), new GeoPoint3(x, y, 0.0006));
 
         /// <summary>The stub passing down through (x, y, 0).</summary>
-        private static GeoLine3 Through(double x, double y) => new GeoLine3(new GeoPoint3(x, y, 0.0004), new GeoPoint3(x, y, -0.0005));
+        private static GeoLine3 Through(double x, double y) =>
+            new GeoLine3(new GeoPoint3(x, y, 0.0004), new GeoPoint3(x, y, -0.0005));
 
         private static void AssertAt(double x, double y, double z, GeoPoint3 actual)
         {
@@ -95,8 +108,20 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(0.0, fromSegment.Length, 12);
             AssertAt(5, 0, 0, fromSegment.StartPoint);
             Assert.Equal(0.0, stub.GetShortestLineTo(AlongX(), Thousandth).Length, 12);
-            Assert.Equal(0.0, new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0)).GetShortestLineTo(stub, Thousandth).Length, 12);
-            Assert.Equal(0.0, new GeoXLine3(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0)).GetShortestLineTo(stub, Thousandth).Length, 12);
+            Assert.Equal(
+                0.0,
+                new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0))
+                    .GetShortestLineTo(stub, Thousandth)
+                    .Length,
+                12
+            );
+            Assert.Equal(
+                0.0,
+                new GeoXLine3(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0))
+                    .GetShortestLineTo(stub, Thousandth)
+                    .Length,
+                12
+            );
         }
 
         [Fact]
@@ -127,7 +152,10 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AStubPointingAtASpline_IsReadAsItsStart()
         {
-            GeoSpline3 spline = GeoSpline3.FromControlPoints(1, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) });
+            GeoSpline3 spline = GeoSpline3.FromControlPoints(
+                1,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0) }
+            );
             GeoLine3 stub = Down(5, 0);
 
             Assert.Equal(0.0015, spline.DistanceTo(stub, Thousandth), 9);

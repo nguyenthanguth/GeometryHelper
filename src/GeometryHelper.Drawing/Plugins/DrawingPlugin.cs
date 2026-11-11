@@ -38,9 +38,7 @@ namespace GeometryHelper.Drawing.Plugins
 
         /// <summary>Says what the plugin needs, as Tekla's DefineInput does: a view, objects of some kinds, settings.</summary>
         /// <param name="input">The input to add to.</param>
-        public virtual void DefineInput(DrawingPluginInput input)
-        {
-        }
+        public virtual void DefineInput(DrawingPluginInput input) { }
 
         /// <summary>Runs the plugin on a view: reads the context, and adds what it makes through it.</summary>
         /// <param name="context">The view, the objects, the settings, and the way to add dimensions.</param>
@@ -68,9 +66,7 @@ namespace GeometryHelper.Drawing.Plugins
         /// <see cref="DrawingPlugin.DefineInput"/>, the sample Bolt dimensions fills it with a view, the kind Bolt and the
         /// setting Rounding, 1 by default, from 0.01 to 100.
         /// </summary>
-        public DrawingPluginInput()
-        {
-        }
+        public DrawingPluginInput() { }
 
         /// <summary>Gets what the user is asked when picking the view: "Pick a view"; null where the plugin did not ask.</summary>
         public string ViewPrompt { get; private set; }
@@ -107,7 +103,12 @@ namespace GeometryHelper.Drawing.Plugins
         /// <param name="maximum">The greatest value allowed.</param>
         /// <exception cref="ArgumentNullException">Thrown when the name is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the name is empty or declared already, or the default is outside the range.</exception>
-        public void AddSetting(string name, double defaultValue, double minimum = double.NegativeInfinity, double maximum = double.PositiveInfinity)
+        public void AddSetting(
+            string name,
+            double defaultValue,
+            double minimum = double.NegativeInfinity,
+            double maximum = double.PositiveInfinity
+        )
         {
             if (name == null)
             {
@@ -116,12 +117,18 @@ namespace GeometryHelper.Drawing.Plugins
 
             if (name.Trim().Length == 0 || _settings.Exists(s => string.Equals(s.Name, name, StringComparison.Ordinal)))
             {
-                throw new ArgumentException("A setting needs a name of its own; \"" + name + "\" is empty or declared already.", nameof(name));
+                throw new ArgumentException(
+                    "A setting needs a name of its own; \"" + name + "\" is empty or declared already.",
+                    nameof(name)
+                );
             }
 
             if (!(defaultValue >= minimum && defaultValue <= maximum))
             {
-                throw new ArgumentException("The default " + defaultValue + " of " + name + " is outside its range.", nameof(defaultValue));
+                throw new ArgumentException(
+                    "The default " + defaultValue + " of " + name + " is outside its range.",
+                    nameof(defaultValue)
+                );
             }
 
             _settings.Add(new DrawingPluginSetting(name, defaultValue, minimum, maximum));
@@ -152,6 +159,7 @@ namespace GeometryHelper.Drawing.Plugins
         public double Maximum { get; }
 
         /// <inheritdoc/>
-        public override string ToString() => Name + " = " + Default.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        public override string ToString() =>
+            Name + " = " + Default.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 }

@@ -32,7 +32,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoTransform3 nearlyFlat = FromAxes(
                 new GeoVector3(1, 0, 0),
                 new GeoVector3(0, 1, 0),
-                new GeoVector3(0.6, 0.8, 1E-12));
+                new GeoVector3(0.6, 0.8, 1E-12)
+            );
 
             Assert.False(nearlyFlat.TryGetInverse(out _));
         }
@@ -43,7 +44,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoTransform3 nearlyFlat = FromAxes(
                 new GeoVector3(1, 0, 0),
                 new GeoVector3(0, 1, 0),
-                new GeoVector3(0.6, 0.8, 1E-12));
+                new GeoVector3(0.6, 0.8, 1E-12)
+            );
 
             Assert.Throws<InvalidOperationException>(() => nearlyFlat.Inverse());
         }
@@ -67,7 +69,8 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TryGetInverse_AcceptsOrdinaryTransformations()
         {
-            GeoTransform3 moved = GeoTransform3.Translation(new GeoVector3(3, -4, 5))
+            GeoTransform3 moved =
+                GeoTransform3.Translation(new GeoVector3(3, -4, 5))
                 * GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 0.9);
 
             Assert.True(moved.TryGetInverse(out GeoTransform3 inverse));
@@ -84,7 +87,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoTransform3 tilted = FromAxes(
                 new GeoVector3(1, 0, 0),
                 new GeoVector3(0, 1, 0),
-                new GeoVector3(0.6, 0.8, 5E-2));
+                new GeoVector3(0.6, 0.8, 5E-2)
+            );
 
             Assert.True(tilted.TryGetInverse(out _, Tolerance.Global));
             Assert.False(tilted.TryGetInverse(out _, new Tolerance(1E-1, 1E-1)));
@@ -100,7 +104,7 @@ namespace GeometryHelper.UnitTest.Solid
                 { x.X, y.X, z.X, 0.0 },
                 { x.Y, y.Y, z.Y, 0.0 },
                 { x.Z, y.Z, z.Z, 0.0 },
-                { 0.0, 0.0, 0.0, 1.0 }
+                { 0.0, 0.0, 0.0, 1.0 },
             };
 
             return new GeoTransform3(values);
@@ -117,19 +121,25 @@ namespace GeometryHelper.UnitTest.Solid
             // shape whose centroid would divide by nothing, and the constructor is where it is stopped —
             // which is why the guard inside GeoPolygon3.Centroid is a backstop rather than a path a caller
             // can reach. The equivalent guard on GeoSolid3.Centroid is reachable, and is covered below.
-            Assert.Throws<ArgumentException>(() => new GeoPolygon3(
-                new GeoPoint3(0, 0, 0),
-                new GeoPoint3(10, 10, 0),
-                new GeoPoint3(0, 10, 0),
-                new GeoPoint3(10, 1E-17, 0)));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(0, 10, 0),
+                    new GeoPoint3(10, 1E-17, 0)
+                )
+            );
         }
 
         [Fact]
         public void PolygonCentroid_OfAnOrdinaryShape_IsUnaffected()
         {
             GeoPolygon3 square = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(4, 0, 0),
-                new GeoPoint3(4, 4, 0), new GeoPoint3(0, 4, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(4, 0, 0),
+                new GeoPoint3(4, 4, 0),
+                new GeoPoint3(0, 4, 0)
+            );
 
             Assert.True(square.Centroid.IsEqualTo(new GeoPoint3(2, 2, 0)));
         }
@@ -147,7 +157,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoFace3(new GeoPolygon3(a, b, c)),
                 new GeoFace3(new GeoPolygon3(c, b, a)),
                 new GeoFace3(new GeoPolygon3(a, b, c)),
-                new GeoFace3(new GeoPolygon3(c, b, a)));
+                new GeoFace3(new GeoPolygon3(c, b, a))
+            );
 
             Assert.Equal(0.0, sheet.GetVolume(), 9);
 
@@ -183,8 +194,10 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 GeoPoint3[] baseCcw =
                 {
-                    new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y0, z0),
-                    new GeoPoint3(x1, y1, z0), new GeoPoint3(x0, y1, z0)
+                    new GeoPoint3(x0, y0, z0),
+                    new GeoPoint3(x1, y0, z0),
+                    new GeoPoint3(x1, y1, z0),
+                    new GeoPoint3(x0, y1, z0),
                 };
 
                 GeoPoint3[] top = new GeoPoint3[4];

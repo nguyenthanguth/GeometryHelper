@@ -30,7 +30,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < count; i++)
             {
-                points.Add(new GeoPoint3(random.NextDouble() * 100, random.NextDouble() * 100, random.NextDouble() * 0.002));
+                points.Add(
+                    new GeoPoint3(random.NextDouble() * 100, random.NextDouble() * 100, random.NextDouble() * 0.002)
+                );
             }
 
             return points;
@@ -43,10 +45,17 @@ namespace GeometryHelper.UnitTest.Solid
             for (int i = 0; i < count; i++)
             {
                 int face = i % 6;
-                double a = random.NextDouble() * 100, b = random.NextDouble() * 100, off = (random.NextDouble() - 0.5) * 0.002;
-                points.Add(face == 0 ? new GeoPoint3(off, a, b) : face == 1 ? new GeoPoint3(100 + off, a, b)
-                    : face == 2 ? new GeoPoint3(a, off, b) : face == 3 ? new GeoPoint3(a, 100 + off, b)
-                    : face == 4 ? new GeoPoint3(a, b, off) : new GeoPoint3(a, b, 100 + off));
+                double a = random.NextDouble() * 100,
+                    b = random.NextDouble() * 100,
+                    off = (random.NextDouble() - 0.5) * 0.002;
+                points.Add(
+                    face == 0 ? new GeoPoint3(off, a, b)
+                    : face == 1 ? new GeoPoint3(100 + off, a, b)
+                    : face == 2 ? new GeoPoint3(a, off, b)
+                    : face == 3 ? new GeoPoint3(a, 100 + off, b)
+                    : face == 4 ? new GeoPoint3(a, b, off)
+                    : new GeoPoint3(a, b, 100 + off)
+                );
             }
 
             return points;
@@ -58,7 +67,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < count; i++)
             {
-                points.Add(new GeoPoint3(random.NextDouble() * 100, random.NextDouble() * 100, random.NextDouble() * 100));
+                points.Add(
+                    new GeoPoint3(random.NextDouble() * 100, random.NextDouble() * 100, random.NextDouble() * 100)
+                );
             }
 
             return points;
@@ -70,7 +81,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < count; i++)
             {
-                double u = 2 * random.NextDouble() - 1, turn = 2 * Math.PI * random.NextDouble(), across = Math.Sqrt(1 - u * u);
+                double u = 2 * random.NextDouble() - 1,
+                    turn = 2 * Math.PI * random.NextDouble(),
+                    across = Math.Sqrt(1 - u * u);
                 points.Add(new GeoPoint3(50 * across * Math.Cos(turn), 50 * across * Math.Sin(turn), 50 * u));
             }
 
@@ -84,7 +97,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < count; i++)
             {
-                var point = new GeoPoint3(Math.Round(random.NextDouble() * 3) * 10, Math.Round(random.NextDouble() * 3) * 10, Math.Round(random.NextDouble() * 3) * 10);
+                var point = new GeoPoint3(
+                    Math.Round(random.NextDouble() * 3) * 10,
+                    Math.Round(random.NextDouble() * 3) * 10,
+                    Math.Round(random.NextDouble() * 3) * 10
+                );
                 points.Add(point);
                 points.Add(point);
                 points.Add(new GeoPoint3(point.X + 1E-7, point.Y, point.Z));

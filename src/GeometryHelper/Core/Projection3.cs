@@ -46,7 +46,8 @@ namespace GeometryHelper.Core
         /// <param name="vector">The vector to project.</param>
         /// <param name="planeNormal">The plane normal; it need not be normalized.</param>
         /// <returns>The component of the vector lying in the plane, or the vector itself for a degenerate normal.</returns>
-        public static GeoVector3 ProjectOntoPlane(GeoVector3 vector, GeoVector3 planeNormal) => ProjectOntoPlane(vector, planeNormal, Tolerance.Global);
+        public static GeoVector3 ProjectOntoPlane(GeoVector3 vector, GeoVector3 planeNormal) =>
+            ProjectOntoPlane(vector, planeNormal, Tolerance.Global);
 
         /// <summary>
         /// Projects a vector onto a plane through the origin, within a tolerance.
@@ -76,7 +77,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Projects a point onto a line segment, clamped to its endpoints.
         /// </summary>
-        public static GeoPoint3 ProjectToLine(GeoLine3 line, GeoPoint3 point) => ProjectToLine(line, point, Tolerance.Global);
+        public static GeoPoint3 ProjectToLine(GeoLine3 line, GeoPoint3 point) =>
+            ProjectToLine(line, point, Tolerance.Global);
 
         /// <summary>
         /// Projects a point onto a line segment, clamped to its endpoints, within a tolerance.
@@ -92,14 +94,18 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Projects a point onto the infinite line carrying a segment, without clamping.
         /// </summary>
-        public static GeoPoint3 ProjectToInfiniteLine(GeoLine3 line, GeoPoint3 point) => ProjectToInfiniteLine(line, point, Tolerance.Global);
+        public static GeoPoint3 ProjectToInfiniteLine(GeoLine3 line, GeoPoint3 point) =>
+            ProjectToInfiniteLine(line, point, Tolerance.Global);
 
         /// <summary>
         /// Projects a point onto the infinite line carrying a segment, without clamping, within a tolerance.
         /// </summary>
         public static GeoPoint3 ProjectToInfiniteLine(GeoLine3 line, GeoPoint3 point, Tolerance tolerance)
         {
-            return Parametrization3.GetPointAtParameter(line, Parametrization3.GetParameterAtPoint(line, point, tolerance));
+            return Parametrization3.GetPointAtParameter(
+                line,
+                Parametrization3.GetParameterAtPoint(line, point, tolerance)
+            );
         }
 
         /// <summary>
@@ -228,7 +234,8 @@ namespace GeometryHelper.Core
         /// Finds the shortest segment connecting a point on one line segment to a point on another, using
         /// the default tolerance.
         /// </summary>
-        public static GeoLine3 GetShortestLineTo(GeoLine3 line1, GeoLine3 line2) => GetShortestLineTo(line1, line2, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoLine3 line1, GeoLine3 line2) =>
+            GetShortestLineTo(line1, line2, Tolerance.Global);
 
         /// <summary>
         /// Finds the shortest segment connecting a point on one line segment to a point on another, within
@@ -330,16 +337,15 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return new GeoLine3(
-                line1.StartPoint.Add(d1.Multiply(s)),
-                line2.StartPoint.Add(d2.Multiply(t)));
+            return new GeoLine3(line1.StartPoint.Add(d1.Multiply(s)), line2.StartPoint.Add(d2.Multiply(t)));
         }
 
         /// <summary>
         /// Finds the shortest segment connecting two line segments, reading either or both as the infinite
         /// line carrying it, using the default tolerance.
         /// </summary>
-        public static GeoLine3 GetShortestLineTo(GeoLine3 line1, GeoLine3 line2, LineExtension extension) => GetShortestLineTo(line1, line2, extension, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoLine3 line1, GeoLine3 line2, LineExtension extension) =>
+            GetShortestLineTo(line1, line2, extension, Tolerance.Global);
 
         /// <summary>
         /// Finds the shortest segment connecting two line segments, reading either or both as the infinite
@@ -358,18 +364,34 @@ namespace GeometryHelper.Core
         /// the second.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the extension is not a defined value.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoLine3 line1, GeoLine3 line2, LineExtension extension, Tolerance tolerance)
+        public static GeoLine3 GetShortestLineTo(
+            GeoLine3 line1,
+            GeoLine3 line2,
+            LineExtension extension,
+            Tolerance tolerance
+        )
         {
             bool extendFirst;
             bool extendSecond;
 
             switch (extension)
             {
-                case LineExtension.None: return GetShortestLineTo(line1, line2, tolerance);
-                case LineExtension.First: extendFirst = true; extendSecond = false; break;
-                case LineExtension.Second: extendFirst = false; extendSecond = true; break;
-                case LineExtension.Both: extendFirst = true; extendSecond = true; break;
-                default: throw new ArgumentOutOfRangeException(nameof(extension), "Unknown line extension.");
+                case LineExtension.None:
+                    return GetShortestLineTo(line1, line2, tolerance);
+                case LineExtension.First:
+                    extendFirst = true;
+                    extendSecond = false;
+                    break;
+                case LineExtension.Second:
+                    extendFirst = false;
+                    extendSecond = true;
+                    break;
+                case LineExtension.Both:
+                    extendFirst = true;
+                    extendSecond = true;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(extension), "Unknown line extension.");
             }
 
             GeoVector3 d1 = line1.Direction;
@@ -430,9 +452,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return new GeoLine3(
-                line1.StartPoint.Add(d1.Multiply(s)),
-                line2.StartPoint.Add(d2.Multiply(t)));
+            return new GeoLine3(line1.StartPoint.Add(d1.Multiply(s)), line2.StartPoint.Add(d2.Multiply(t)));
         }
 
         /// <summary>
@@ -452,7 +472,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Projects a point onto a polyline, clamped to the chain.
         /// </summary>
-        public static GeoPoint3 ProjectToPolyline(GeoPolyline3 polyline, GeoPoint3 point) => ProjectToPolyline(polyline, point, Tolerance.Global);
+        public static GeoPoint3 ProjectToPolyline(GeoPolyline3 polyline, GeoPoint3 point) =>
+            ProjectToPolyline(polyline, point, Tolerance.Global);
 
         /// <summary>
         /// Projects a point onto a polyline, clamped to the chain, within a tolerance.
@@ -496,7 +517,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Projects a point onto the boundary of a polygon, ignoring its interior.
         /// </summary>
-        public static GeoPoint3 ProjectToPolygonBoundary(GeoPolygon3 polygon, GeoPoint3 point) => ProjectToPolygonBoundary(polygon, point, Tolerance.Global);
+        public static GeoPoint3 ProjectToPolygonBoundary(GeoPolygon3 polygon, GeoPoint3 point) =>
+            ProjectToPolygonBoundary(polygon, point, Tolerance.Global);
 
         /// <summary>
         /// Projects a point onto the boundary of a polygon, ignoring its interior, within a tolerance.
@@ -512,8 +534,8 @@ namespace GeometryHelper.Core
         /// 0.0301496 away.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static GeoPoint3 ProjectToPolygonBoundary(GeoPolygon3 polygon, GeoPoint3 point, Tolerance tolerance)
-            => ProjectToRim(polygon, point, Exactly);
+        public static GeoPoint3 ProjectToPolygonBoundary(GeoPolygon3 polygon, GeoPoint3 point, Tolerance tolerance) =>
+            ProjectToRim(polygon, point, Exactly);
 
         /// <summary>
         /// Projects a point onto the boundary of a polygon, each side read within a tolerance: one no longer than it offers its
@@ -547,7 +569,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Projects a point onto a polygon, read as a filled surface.
         /// </summary>
-        public static GeoPoint3 ProjectToPolygon(GeoPolygon3 polygon, GeoPoint3 point) => ProjectToPolygon(polygon, point, Tolerance.Global);
+        public static GeoPoint3 ProjectToPolygon(GeoPolygon3 polygon, GeoPoint3 point) =>
+            ProjectToPolygon(polygon, point, Tolerance.Global);
 
         /// <summary>
         /// Projects a point onto a polygon, read as a filled surface, within a tolerance.
@@ -563,15 +586,20 @@ namespace GeometryHelper.Core
         /// short: at a hundredth, the polygon (0, 0, 0), (10, 0, 0), (10, 0.006, 0), (0, 10, 0) carries (10.03, 0.003, 0) to
         /// (10, 0.003, 0), 0.03 away, where its side 0.006 long offered its start (10, 0, 0), 0.0301496 away.
         /// </remarks>
-        public static GeoPoint3 ProjectToPolygon(GeoPolygon3 polygon, GeoPoint3 point, Tolerance tolerance)
-            => ProjectToPolygon(polygon, point, tolerance, Exactly);
+        public static GeoPoint3 ProjectToPolygon(GeoPolygon3 polygon, GeoPoint3 point, Tolerance tolerance) =>
+            ProjectToPolygon(polygon, point, tolerance, Exactly);
 
         /// <summary>
         /// Projects a point onto a polygon, read as a filled surface, whether the foot lands inside read within one tolerance
         /// and the point carried onto a side within another: nought for the closest points and the shortest lines, which
         /// measure a side no longer than the point tolerance as the side it is.
         /// </summary>
-        internal static GeoPoint3 ProjectToPolygon(GeoPolygon3 polygon, GeoPoint3 point, Tolerance tolerance, Tolerance sides)
+        internal static GeoPoint3 ProjectToPolygon(
+            GeoPolygon3 polygon,
+            GeoPoint3 point,
+            Tolerance tolerance,
+            Tolerance sides
+        )
         {
             if (polygon == null)
             {
@@ -607,7 +635,8 @@ namespace GeometryHelper.Core
             GeoPoint3 clamped = new GeoPoint3(
                 Math.Max(-box.ExtentX, Math.Min(box.ExtentX, local.X)),
                 Math.Max(-box.ExtentY, Math.Min(box.ExtentY, local.Y)),
-                Math.Max(-box.ExtentZ, Math.Min(box.ExtentZ, local.Z)));
+                Math.Max(-box.ExtentZ, Math.Min(box.ExtentZ, local.Z))
+            );
 
             return box.CoordinateSystem.ToGlobal(clamped);
         }
@@ -664,7 +693,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Projects a point onto the surface of a solid.
         /// </summary>
-        public static GeoPoint3 ProjectToSolid(GeoSolid3 solid, GeoPoint3 point) => ProjectToSolid(solid, point, Tolerance.Global);
+        public static GeoPoint3 ProjectToSolid(GeoSolid3 solid, GeoPoint3 point) =>
+            ProjectToSolid(solid, point, Tolerance.Global);
 
         /// <summary>
         /// Projects a point onto the surface of a solid, within a tolerance.
@@ -689,8 +719,8 @@ namespace GeometryHelper.Core
         /// from it, onto a face across the hole; it is projected onto the hole's wall, 10 off.
         /// </para>
         /// </remarks>
-        public static GeoPoint3 ProjectToSolid(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance)
-            => ProjectToSolid(solid, point, tolerance, false);
+        public static GeoPoint3 ProjectToSolid(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance) =>
+            ProjectToSolid(solid, point, tolerance, false);
 
         /// <summary>
         /// Projects a point onto the surface of a solid, within a tolerance, a point carried onto a side of a face carried
@@ -707,7 +737,9 @@ namespace GeometryHelper.Core
             // Boolean3.FarBody.
             if (Boolean3.FarBody.TryFor(solid, tolerance, out Boolean3.FarBody far))
             {
-                return far.Out(Boolean3.FarFrame.Inside(() => ProjectToSolid(far.Moved, far.In(point), tolerance, exactSides)));
+                return far.Out(
+                    Boolean3.FarFrame.Inside(() => ProjectToSolid(far.Moved, far.In(point), tolerance, exactSides))
+                );
             }
 
             return solid.Openings.Count == 0
@@ -738,15 +770,20 @@ namespace GeometryHelper.Core
         /// 10.11 off, the wall's face read at nought; it is projected onto the wall, 10 off.
         /// </para>
         /// </remarks>
-        internal static GeoPoint3 ProjectToMaterial(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance)
-            => ProjectToMaterial(solid, point, tolerance, false);
+        internal static GeoPoint3 ProjectToMaterial(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance) =>
+            ProjectToMaterial(solid, point, tolerance, false);
 
         /// <summary>
         /// Projects a point onto the surface of a body with openings, as
         /// <see cref="ProjectToMaterial(GeoSolid3, GeoPoint3, Tolerance)"/> does, a point carried onto a side of a face carried
         /// there as the side is when asked.
         /// </summary>
-        private static GeoPoint3 ProjectToMaterial(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance, bool exactSides)
+        private static GeoPoint3 ProjectToMaterial(
+            GeoSolid3 solid,
+            GeoPoint3 point,
+            Tolerance tolerance,
+            bool exactSides
+        )
         {
             // A point tolerance below the rounding of the coordinates reads the faces within it, as the openings are cut.
             Tolerance within = Material3.ToRounding(solid, tolerance);
@@ -793,7 +830,12 @@ namespace GeometryHelper.Core
         /// Projects a point onto the nearest of a set of faces, stepping off any hole cut in a face onto its rim, a point
         /// carried onto a side carried there as the side is, however short, when asked.
         /// </summary>
-        private static GeoPoint3 ProjectToFaces(IReadOnlyList<GeoFace3> faces, GeoPoint3 point, Tolerance tolerance, bool exactSides)
+        private static GeoPoint3 ProjectToFaces(
+            IReadOnlyList<GeoFace3> faces,
+            GeoPoint3 point,
+            Tolerance tolerance,
+            bool exactSides
+        )
         {
             GeoPoint3 best = point;
             double bestDistanceSquared = double.MaxValue;
@@ -809,7 +851,10 @@ namespace GeometryHelper.Core
                     // A point over a hole is not over material, so the nearest position on that face is on
                     // the rim of the hole instead of on the surface behind it; the hole read in the plane of
                     // the boundary, as the face is.
-                    if (Containment3.LocateInPlane(hole, plane, ProjectToPlane(plane, point), tolerance) != PointLocation.OutSide)
+                    if (
+                        Containment3.LocateInPlane(hole, plane, ProjectToPlane(plane, point), tolerance)
+                        != PointLocation.OutSide
+                    )
                     {
                         candidate = ProjectToRim(hole, point, sides);
                         break;
@@ -839,7 +884,8 @@ namespace GeometryHelper.Core
         /// A point on the axis of the circle is the same distance from every point of the circumference,
         /// so any of them is a correct answer; the one at the zero parameter comes back.
         /// </remarks>
-        public static GeoPoint3 ProjectToCircle(GeoCircle3 circle, GeoPoint3 point) => ProjectToCircle(circle, point, Tolerance.Global);
+        public static GeoPoint3 ProjectToCircle(GeoCircle3 circle, GeoPoint3 point) =>
+            ProjectToCircle(circle, point, Tolerance.Global);
 
         /// <summary>
         /// Projects a point onto the circumference of a circle, within a tolerance.
@@ -865,7 +911,8 @@ namespace GeometryHelper.Core
         /// the rim. That is the difference between this and
         /// <see cref="ProjectToCircle(GeoCircle3, GeoPoint3, Tolerance)"/>, which always lands on the rim.
         /// </remarks>
-        public static GeoPoint3 ProjectToDisc(GeoCircle3 circle, GeoPoint3 point) => ProjectToDisc(circle, point, Tolerance.Global);
+        public static GeoPoint3 ProjectToDisc(GeoCircle3 circle, GeoPoint3 point) =>
+            ProjectToDisc(circle, point, Tolerance.Global);
 
         /// <summary>
         /// Projects a point onto a circular disc, read as a filled surface, within a tolerance.

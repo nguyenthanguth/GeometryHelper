@@ -146,7 +146,9 @@ namespace GeometryHelper.Dwg
                 return number;
             }
 
-            return long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out long wide) ? unchecked((int)wide) : 0;
+            return long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out long wide)
+                ? unchecked((int)wide)
+                : 0;
         }
 
         /// <summary>A real number as DXF writes it; 0 for a broken one.</summary>

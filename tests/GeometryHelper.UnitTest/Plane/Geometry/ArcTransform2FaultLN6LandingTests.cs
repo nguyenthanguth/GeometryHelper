@@ -17,8 +17,15 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class ArcTransform2FaultLN6LandingTests
     {
-        private static GeoTransform2 Stretch(double scale, double share)
-            => new GeoTransform2(new double[,] { { scale * (1 + share), 0, 5 }, { 0, scale, 7 }, { 0, 0, 1 } });
+        private static GeoTransform2 Stretch(double scale, double share) =>
+            new GeoTransform2(
+                new double[,]
+                {
+                    { scale * (1 + share), 0, 5 },
+                    { 0, scale, 7 },
+                    { 0, 0, 1 },
+                }
+            );
 
         /// <summary>The farthest any of 4 097 points of the arc, moved, stands off the moved arc's circle.</summary>
         private static double Worst(GeoArc2 arc, GeoTransform2 map, GeoArc2 moved)
@@ -55,7 +62,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Theory]
         [InlineData(3.0)]
         [InlineData(6.0)]
-        public void AnArcOfRadius1E5UnderARoundTransformationScaledByAThousand_IsRefusedWhereItWouldLandOff(double sweep)
+        public void AnArcOfRadius1E5UnderARoundTransformationScaledByAThousand_IsRefusedWhereItWouldLandOff(
+            double sweep
+        )
         {
             var arc = new GeoArc2(new GeoPoint2(3, 4), 1E5, 0.3, 0.3 + sweep, false);
 
@@ -76,8 +85,12 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ACircleAndARectangleUnderTheSame_AreRefused()
         {
-            Assert.Throws<InvalidOperationException>(() => Stretch(1000, 4E-10).Transform(new GeoCircle2(new GeoPoint2(3, 4), 1E5)));
-            Assert.Throws<InvalidOperationException>(() => Stretch(1000, 4E-10).Transform(new GeoRectangle2(new GeoPoint2(0, 0), 2E8, 1E8, 0.3)));
+            Assert.Throws<InvalidOperationException>(() =>
+                Stretch(1000, 4E-10).Transform(new GeoCircle2(new GeoPoint2(3, 4), 1E5))
+            );
+            Assert.Throws<InvalidOperationException>(() =>
+                Stretch(1000, 4E-10).Transform(new GeoRectangle2(new GeoPoint2(0, 0), 2E8, 1E8, 0.3))
+            );
         }
 
         [Fact]

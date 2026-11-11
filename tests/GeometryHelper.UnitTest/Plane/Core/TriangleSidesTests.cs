@@ -12,17 +12,31 @@ namespace GeometryHelper.UnitTest.Plane
     /// </summary>
     public class TriangleSidesTests
     {
-        private static Tolerance At(double equalPoint) => new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
+        private static Tolerance At(double equalPoint) =>
+            new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
 
         /// <summary>The triangle (0, 0), (0, 1), (0.08, 1): its top is 0.08 wide, less than a tolerance of 0.1, and its left side is the line x = 0.</summary>
-        private static GeoTriangle2 Thin() => new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(0, 1), new GeoPoint2(0.08, 1));
+        private static GeoTriangle2 Thin() =>
+            new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(0, 1), new GeoPoint2(0.08, 1));
 
         /// <summary>Read as its longest side, from (0, 0) to (0.08, 1), it stands 0.1099 from x = -0.07 at y = 0.5; it stands 0.07 from it.</summary>
         private const double Truth = 0.07;
 
         public static System.Collections.Generic.IEnumerable<object[]> Shapes()
         {
-            foreach (string kind in new[] { "segment", "polygon", "rectangle", "polyline", "ray", "triangle", "edge", "face" })
+            foreach (
+                string kind in new[]
+                {
+                    "segment",
+                    "polygon",
+                    "rectangle",
+                    "polyline",
+                    "ray",
+                    "triangle",
+                    "edge",
+                    "face",
+                }
+            )
             {
                 yield return new object[] { kind };
             }
@@ -34,50 +48,84 @@ namespace GeometryHelper.UnitTest.Plane
         {
             Tolerance t = At(0.1);
             GeoTriangle2 triangle = Thin();
-            double there, back;
-            bool collides, collidesBack;
+            double there,
+                back;
+            bool collides,
+                collidesBack;
 
             switch (kind)
             {
                 case "segment":
                     var line = new GeoLine2(new GeoPoint2(-1, 0.5), new GeoPoint2(-0.07, 0.5));
-                    there = triangle.DistanceTo(line); back = line.DistanceTo(triangle);
-                    collides = triangle.CollidesWith(line, t); collidesBack = line.CollidesWith(triangle, t);
+                    there = triangle.DistanceTo(line);
+                    back = line.DistanceTo(triangle);
+                    collides = triangle.CollidesWith(line, t);
+                    collidesBack = line.CollidesWith(triangle, t);
                     break;
                 case "polygon":
-                    var polygon = new GeoPolygon2(new GeoPoint2(-1, 0.4), new GeoPoint2(-0.07, 0.4), new GeoPoint2(-0.07, 0.6), new GeoPoint2(-1, 0.6));
-                    there = triangle.DistanceTo(polygon); back = polygon.DistanceTo(triangle);
-                    collides = triangle.CollidesWith(polygon, t); collidesBack = polygon.CollidesWith(triangle, t);
+                    var polygon = new GeoPolygon2(
+                        new GeoPoint2(-1, 0.4),
+                        new GeoPoint2(-0.07, 0.4),
+                        new GeoPoint2(-0.07, 0.6),
+                        new GeoPoint2(-1, 0.6)
+                    );
+                    there = triangle.DistanceTo(polygon);
+                    back = polygon.DistanceTo(triangle);
+                    collides = triangle.CollidesWith(polygon, t);
+                    collidesBack = polygon.CollidesWith(triangle, t);
                     break;
                 case "rectangle":
                     var rect = new GeoRectangle2(new GeoPoint2(-0.57, 0.5), 1, 0.2, 0);
-                    there = triangle.DistanceTo(rect); back = rect.DistanceTo(triangle);
-                    collides = triangle.CollidesWith(rect, t); collidesBack = rect.CollidesWith(triangle, t);
+                    there = triangle.DistanceTo(rect);
+                    back = rect.DistanceTo(triangle);
+                    collides = triangle.CollidesWith(rect, t);
+                    collidesBack = rect.CollidesWith(triangle, t);
                     break;
                 case "polyline":
                     var polyline = new GeoPolyline2(new GeoPoint2(-1, 0.5), new GeoPoint2(-0.07, 0.5));
-                    there = triangle.DistanceTo(polyline); back = polyline.DistanceTo(triangle);
-                    collides = triangle.CollidesWith(polyline, t); collidesBack = polyline.CollidesWith(triangle, t);
+                    there = triangle.DistanceTo(polyline);
+                    back = polyline.DistanceTo(triangle);
+                    collides = triangle.CollidesWith(polyline, t);
+                    collidesBack = polyline.CollidesWith(triangle, t);
                     break;
                 case "ray":
                     var ray = new GeoRay2(new GeoPoint2(-0.07, 0.5), new GeoVector2(-1, 0));
-                    there = triangle.DistanceTo(ray, t); back = ray.DistanceTo(triangle, t);
-                    collides = triangle.CollidesWith(ray, t); collidesBack = ray.CollidesWith(triangle, t);
+                    there = triangle.DistanceTo(ray, t);
+                    back = ray.DistanceTo(triangle, t);
+                    collides = triangle.CollidesWith(ray, t);
+                    collidesBack = ray.CollidesWith(triangle, t);
                     break;
                 case "triangle":
-                    var other = new GeoTriangle2(new GeoPoint2(-1, 0.4), new GeoPoint2(-0.07, 0.5), new GeoPoint2(-1, 0.6));
-                    there = triangle.DistanceTo(other); back = other.DistanceTo(triangle);
-                    collides = triangle.CollidesWith(other, t); collidesBack = other.CollidesWith(triangle, t);
+                    var other = new GeoTriangle2(
+                        new GeoPoint2(-1, 0.4),
+                        new GeoPoint2(-0.07, 0.5),
+                        new GeoPoint2(-1, 0.6)
+                    );
+                    there = triangle.DistanceTo(other);
+                    back = other.DistanceTo(triangle);
+                    collides = triangle.CollidesWith(other, t);
+                    collidesBack = other.CollidesWith(triangle, t);
                     break;
                 case "edge":
                     var edge = new GeoEdge2(new GeoPoint2(-1, 0.5), new GeoPoint2(-0.07, 0.5));
-                    there = triangle.DistanceTo(edge); back = edge.DistanceTo(triangle);
-                    collides = triangle.CollidesWith(edge, t); collidesBack = edge.CollidesWith(triangle, t);
+                    there = triangle.DistanceTo(edge);
+                    back = edge.DistanceTo(triangle);
+                    collides = triangle.CollidesWith(edge, t);
+                    collidesBack = edge.CollidesWith(triangle, t);
                     break;
                 default:
-                    var face = new GeoFace2(new GeoPolygon2(new GeoPoint2(-1, 0.3), new GeoPoint2(-0.07, 0.3), new GeoPoint2(-0.07, 0.7), new GeoPoint2(-1, 0.7)));
-                    there = triangle.DistanceTo(face, t); back = face.DistanceTo(triangle, t);
-                    collides = triangle.CollidesWith(face, t); collidesBack = face.CollidesWith(triangle, t);
+                    var face = new GeoFace2(
+                        new GeoPolygon2(
+                            new GeoPoint2(-1, 0.3),
+                            new GeoPoint2(-0.07, 0.3),
+                            new GeoPoint2(-0.07, 0.7),
+                            new GeoPoint2(-1, 0.7)
+                        )
+                    );
+                    there = triangle.DistanceTo(face, t);
+                    back = face.DistanceTo(triangle, t);
+                    collides = triangle.CollidesWith(face, t);
+                    collidesBack = face.CollidesWith(triangle, t);
                     break;
             }
 
@@ -129,7 +177,11 @@ namespace GeometryHelper.UnitTest.Plane
 
             foreach (double equalPoint in new[] { 1E-3, 1.0 })
             {
-                Assert.True(sliver.GetShortestLineTo(point, At(equalPoint)).StartPoint.IsEqualTo(new GeoPoint2(100, 0.25), exact));
+                Assert.True(
+                    sliver
+                        .GetShortestLineTo(point, At(equalPoint))
+                        .StartPoint.IsEqualTo(new GeoPoint2(100, 0.25), exact)
+                );
             }
         }
 
@@ -139,9 +191,15 @@ namespace GeometryHelper.UnitTest.Plane
             // The corners (0, 1) and (0.004, 1) stand within a global tolerance of 0.01 and not within 0.00001. The triangle is
             // 0.0123 from the left of x = -0.0123 either way.
             var triangle = new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(0, 1), new GeoPoint2(0.004, 1));
-            var polygon = new GeoPolygon2(new GeoPoint2(-1, 0.4), new GeoPoint2(-0.0123, 0.4), new GeoPoint2(-0.0123, 0.6), new GeoPoint2(-1, 0.6));
+            var polygon = new GeoPolygon2(
+                new GeoPoint2(-1, 0.4),
+                new GeoPoint2(-0.0123, 0.4),
+                new GeoPoint2(-0.0123, 0.6),
+                new GeoPoint2(-1, 0.6)
+            );
 
-            double fine, coarse;
+            double fine,
+                coarse;
 
             using (Tolerance.Use(new Tolerance(1E-5, Tolerance.DefaultEqualVector)))
             {

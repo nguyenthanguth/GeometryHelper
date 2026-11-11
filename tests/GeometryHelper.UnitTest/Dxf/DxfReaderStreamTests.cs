@@ -16,8 +16,8 @@ namespace GeometryHelper.UnitTest.Dxf
     {
         private static readonly Tolerance Tol = Tolerance.Default;
 
-        private static string Drawing(string version, string layer)
-            => G(0, "SECTION", 2, "HEADER", 9, "$ACADVER", 1, version, 0, "ENDSEC", 0, "SECTION", 2, "ENTITIES")
+        private static string Drawing(string version, string layer) =>
+            G(0, "SECTION", 2, "HEADER", 9, "$ACADVER", 1, version, 0, "ENDSEC", 0, "SECTION", 2, "ENTITIES")
             + G(0, "LINE", 8, layer, 10, "0", 20, "0", 11, "1", 21, "0", 0, "ENDSEC", 0, "EOF");
 
         /// <summary>A stream that reads and cannot seek, as a network stream reads.</summary>
@@ -38,11 +38,13 @@ namespace GeometryHelper.UnitTest.Dxf
 
             public override long Length => throw new NotSupportedException();
 
-            public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
-
-            public override void Flush()
+            public override long Position
             {
+                get => throw new NotSupportedException();
+                set => throw new NotSupportedException();
             }
+
+            public override void Flush() { }
 
             public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
 
@@ -65,8 +67,14 @@ namespace GeometryHelper.UnitTest.Dxf
             {
                 seeking.Position = junk.Length;
 
-                Assert.Equal("Grün", Assert.Single(DxfReader.Read(seeking, new DxfReadOptions { Tolerance = Tol }).Shapes).Layer);
-                Assert.Equal("Grün", Assert.Single(DxfReader.Read(oneWay, new DxfReadOptions { Tolerance = Tol }).Shapes).Layer);
+                Assert.Equal(
+                    "Grün",
+                    Assert.Single(DxfReader.Read(seeking, new DxfReadOptions { Tolerance = Tol }).Shapes).Layer
+                );
+                Assert.Equal(
+                    "Grün",
+                    Assert.Single(DxfReader.Read(oneWay, new DxfReadOptions { Tolerance = Tol }).Shapes).Layer
+                );
             }
         }
 
@@ -82,7 +90,12 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfDocument read = DxfReader.Read(stream, new DxfReadOptions { Tolerance = Tol });
 
                 Assert.Equal("gr�n", Assert.Single(read.Shapes).Layer);
-                Assert.Contains(read.Warnings, w => w.StartsWith("The file is of R2007 or later so its text is UTF-8, but some of its bytes are not", StringComparison.Ordinal));
+                Assert.Contains(read.Warnings, w =>
+                    w.StartsWith(
+                        "The file is of R2007 or later so its text is UTF-8, but some of its bytes are not",
+                        StringComparison.Ordinal
+                    )
+                );
             }
         }
     }

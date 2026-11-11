@@ -155,12 +155,34 @@ namespace GeometryHelper.Dxf
 
             // The directory: the root, then the streams in their order, a tree of them balanced about the middle, all black.
             int directory = (directoryStart + 1) * Sector;
-            Entry(file, directory, "Root Entry", 5, NoStream, NoStream, sorted.Count == 0 ? NoStream : (uint)(Middle(0, sorted.Count) + 1), root, miniStart < 0 ? End : (uint)miniStart, (ulong)(miniSectors == 0 ? 0 : mini.Count));
+            Entry(
+                file,
+                directory,
+                "Root Entry",
+                5,
+                NoStream,
+                NoStream,
+                sorted.Count == 0 ? NoStream : (uint)(Middle(0, sorted.Count) + 1),
+                root,
+                miniStart < 0 ? End : (uint)miniStart,
+                (ulong)(miniSectors == 0 ? 0 : mini.Count)
+            );
 
             for (int i = 0; i < sorted.Count; i++)
             {
                 Tree(0, sorted.Count, i, out int left, out int right);
-                Entry(file, directory + 128 * (i + 1), sorted[i].Key, 2, left < 0 ? NoStream : (uint)(left + 1), right < 0 ? NoStream : (uint)(right + 1), NoStream, Guid.Empty, starts[i], (ulong)sorted[i].Value.Length);
+                Entry(
+                    file,
+                    directory + 128 * (i + 1),
+                    sorted[i].Key,
+                    2,
+                    left < 0 ? NoStream : (uint)(left + 1),
+                    right < 0 ? NoStream : (uint)(right + 1),
+                    NoStream,
+                    Guid.Empty,
+                    starts[i],
+                    (ulong)sorted[i].Value.Length
+                );
             }
 
             for (int i = sorted.Count + 1; i < directorySectors * 4; i++)
@@ -237,7 +259,14 @@ namespace GeometryHelper.Dxf
             return string.CompareOrdinal(a.ToUpperInvariant(), b.ToUpperInvariant());
         }
 
-        private static void Header(byte[] file, int fatSectors, int difatSectors, int directoryStart, int miniFatStart, int miniFatSectors)
+        private static void Header(
+            byte[] file,
+            int fatSectors,
+            int difatSectors,
+            int directoryStart,
+            int miniFatStart,
+            int miniFatSectors
+        )
         {
             byte[] signature = { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
             signature.CopyTo(file, 0);
@@ -255,7 +284,18 @@ namespace GeometryHelper.Dxf
             PutU32(file, 72, (uint)difatSectors);
         }
 
-        private static void Entry(byte[] file, int offset, string name, byte type, uint left, uint right, uint child, Guid classId, uint start, ulong size)
+        private static void Entry(
+            byte[] file,
+            int offset,
+            string name,
+            byte type,
+            uint left,
+            uint right,
+            uint child,
+            Guid classId,
+            uint start,
+            ulong size
+        )
         {
             byte[] letters = Encoding.Unicode.GetBytes(name);
             Array.Copy(letters, 0, file, offset, Math.Min(letters.Length, 62));

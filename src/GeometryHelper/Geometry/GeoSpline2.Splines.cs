@@ -81,7 +81,8 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the other spline is null.</exception>
         public double DistanceTo(GeoSpline2 other, Tolerance tolerance)
         {
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
 
             return Spline2.DistanceTo(this, other);
         }
@@ -99,7 +100,8 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the two come within the point tolerance of each other, exactly when <see cref="DistanceTo(GeoSpline2, Tolerance)"/> is no more than it; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the other spline is null.</exception>
-        public bool CollidesWith(GeoSpline2 other, Tolerance tolerance) => DistanceTo(other, tolerance) <= tolerance.EqualPoint;
+        public bool CollidesWith(GeoSpline2 other, Tolerance tolerance) =>
+            DistanceTo(other, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Gets the points where this spline crosses another, using the default tolerance.
@@ -121,7 +123,8 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the other spline is null.</exception>
         public GeoPoint2[] GetIntersections(GeoSpline2 other, Tolerance tolerance)
         {
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
 
             return Spline2.GetIntersections(this, other, tolerance);
         }
@@ -132,7 +135,8 @@ namespace GeometryHelper.Geometry
         /// <param name="other">The other spline.</param>
         /// <param name="intersections">The points when the method returns true; empty otherwise.</param>
         /// <exception cref="ArgumentNullException">Thrown when the other spline is null.</exception>
-        public bool TryIntersectWith(GeoSpline2 other, out GeoPoint2[] intersections) => TryIntersectWith(other, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoSpline2 other, out GeoPoint2[] intersections) =>
+            TryIntersectWith(other, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where this spline crosses another, within a tolerance.
@@ -163,7 +167,8 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the other spline is null.</exception>
         public GeoLine2 GetShortestLineTo(GeoSpline2 other, Tolerance tolerance)
         {
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
 
             return Spline2.GetShortestLineTo(this, other);
         }

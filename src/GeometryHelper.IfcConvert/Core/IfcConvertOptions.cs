@@ -5,7 +5,6 @@ using GeometryHelper;
 
 namespace GeometryHelper.IfcConvert.Core
 {
-
     /// <summary>
     /// Configuration options for converting IFC geometry to GeometryHelper GeometryHelper.
     /// </summary>
@@ -109,9 +108,7 @@ namespace GeometryHelper.IfcConvert.Core
         /// Creates a default conversion options instance. Set the other options through their properties, and add
         /// names with <see cref="AddSkipNames(string[])"/> and <see cref="AddOnlyNames(string[])"/>.
         /// </summary>
-        public IfcConvertOptions()
-        {
-        }
+        public IfcConvertOptions() { }
 
         /// <summary>
         /// Adds product names or wildcard patterns to <see cref="SkipNames"/>. Blank entries are ignored and the others
@@ -191,7 +188,7 @@ namespace GeometryHelper.IfcConvert.Core
                 DeflectionTolerance = DeflectionTolerance,
                 ApplyVoids = ApplyVoids,
                 IncludeNonPhysicalProducts = IncludeNonPhysicalProducts,
-                IncludeAggregatedParts = IncludeAggregatedParts
+                IncludeAggregatedParts = IncludeAggregatedParts,
             };
 
             // Copied as they are rather than through AddSkipNames / AddOnlyNames, which trim: the copy must match what
@@ -215,7 +212,10 @@ namespace GeometryHelper.IfcConvert.Core
         // Sorted and in one case, since matching ignores both order and case; joined by a character names do not hold.
         private static string NamesKey(HashSet<string> names)
         {
-            return string.Join("\u001F", names.Select(n => n.ToUpperInvariant()).OrderBy(n => n, StringComparer.Ordinal));
+            return string.Join(
+                "\u001F",
+                names.Select(n => n.ToUpperInvariant()).OrderBy(n => n, StringComparer.Ordinal)
+            );
         }
     }
 }

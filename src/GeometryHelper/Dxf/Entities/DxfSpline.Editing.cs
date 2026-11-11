@@ -37,9 +37,18 @@ namespace GeometryHelper.Dxf
                 }
 
                 bool rational = RecordRational;
-                return new DxfNurbsData(RecordDegree, rational, Closed, FlaggedPeriodic, RecordPoints, RecordKnots, rational ? RecordWeights : null, GetDouble(43, 0.0), GetDouble(42, 0.0));
+                return new DxfNurbsData(
+                    RecordDegree,
+                    rational,
+                    Closed,
+                    FlaggedPeriodic,
+                    RecordPoints,
+                    RecordKnots,
+                    rational ? RecordWeights : null,
+                    GetDouble(43, 0.0),
+                    GetDouble(42, 0.0)
+                );
             }
-
             set
             {
                 if (Same(value, NurbsData))
@@ -47,9 +56,25 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                Guard.NonNegative(value.ControlPointTolerance, nameof(value), "A tolerance has to be a finite number, nought or more.");
-                Guard.NonNegative(value.KnotTolerance, nameof(value), "A tolerance has to be a finite number, nought or more.");
-                SetNurbsData(value.Degree, value.Rational, value.Closed, value.Periodic, value.GetControlPoints(), value.GetKnots(), value.GetWeights());
+                Guard.NonNegative(
+                    value.ControlPointTolerance,
+                    nameof(value),
+                    "A tolerance has to be a finite number, nought or more."
+                );
+                Guard.NonNegative(
+                    value.KnotTolerance,
+                    nameof(value),
+                    "A tolerance has to be a finite number, nought or more."
+                );
+                SetNurbsData(
+                    value.Degree,
+                    value.Rational,
+                    value.Closed,
+                    value.Periodic,
+                    value.GetControlPoints(),
+                    value.GetKnots(),
+                    value.GetWeights()
+                );
                 SetDouble(43, value.ControlPointTolerance, 0.0);
                 SetDouble(42, value.KnotTolerance, 0.0);
             }
@@ -98,7 +123,13 @@ namespace GeometryHelper.Dxf
         {
             get
             {
-                bool tangents = GetString(12) != null || GetString(22) != null || GetString(32) != null || GetString(13) != null || GetString(23) != null || GetString(33) != null;
+                bool tangents =
+                    GetString(12) != null
+                    || GetString(22) != null
+                    || GetString(32) != null
+                    || GetString(13) != null
+                    || GetString(23) != null
+                    || GetString(33) != null;
                 GeoVector3 start = StartFitTangent;
                 GeoVector3 end = EndFitTangent;
                 return new DxfFitData(FitPoints, Degree, FitTolerance)
@@ -110,7 +141,6 @@ namespace GeometryHelper.Dxf
                     Periodic = FlaggedPeriodic,
                 };
             }
-
             set
             {
                 if (Same(value, FitData))
@@ -120,11 +150,28 @@ namespace GeometryHelper.Dxf
 
                 if (value.KnotParam == DxfKnotParameterizationEnum.CustomParameterization)
                 {
-                    throw new NotSupportedException("A spline is fitted through its points by the chord, its square root or one step each: the library fits by no parameters of its own.");
+                    throw new NotSupportedException(
+                        "A spline is fitted through its points by the chord, its square root or one step each: the library fits by no parameters of its own."
+                    );
                 }
 
-                Guard.NonNegative(value.FitTolerance, nameof(value), "A tolerance has to be a finite number, nought or more.");
-                WriteFit(value.GetFitPoints(), value.Degree, value.FitTolerance, value.TangentsExist, value.StartTangent, value.EndTangent, value.Periodic || Closed, value.Periodic, value.KnotParam, nameof(value));
+                Guard.NonNegative(
+                    value.FitTolerance,
+                    nameof(value),
+                    "A tolerance has to be a finite number, nought or more."
+                );
+                WriteFit(
+                    value.GetFitPoints(),
+                    value.Degree,
+                    value.FitTolerance,
+                    value.TangentsExist,
+                    value.StartTangent,
+                    value.EndTangent,
+                    value.Periodic || Closed,
+                    value.Periodic,
+                    value.KnotParam,
+                    nameof(value)
+                );
             }
         }
 
@@ -141,10 +188,22 @@ namespace GeometryHelper.Dxf
 
                 if (data.GetControlPoints().Count == 0)
                 {
-                    throw new InvalidOperationException("The SPLINE has no control points, and no fit points the reader passes a spline through.");
+                    throw new InvalidOperationException(
+                        "The SPLINE has no control points, and no fit points the reader passes a spline through."
+                    );
                 }
 
-                return new DxfSpline(data.Degree, data.Rational, data.Closed, data.Periodic, data.GetControlPoints(), data.GetKnots(), data.GetWeights(), data.ControlPointTolerance, data.KnotTolerance);
+                return new DxfSpline(
+                    data.Degree,
+                    data.Rational,
+                    data.Closed,
+                    data.Periodic,
+                    data.GetControlPoints(),
+                    data.GetKnots(),
+                    data.GetWeights(),
+                    data.ControlPointTolerance,
+                    data.KnotTolerance
+                );
             }
         }
 
@@ -168,7 +227,13 @@ namespace GeometryHelper.Dxf
 
             if (newDegree < p || newDegree > MostDegree)
             {
-                throw new ArgumentOutOfRangeException(nameof(newDegree), newDegree, "A spline's degree is raised from its own, " + p.ToString(CultureInfo.InvariantCulture) + ", to 10 at most.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(newDegree),
+                    newDegree,
+                    "A spline's degree is raised from its own, "
+                        + p.ToString(CultureInfo.InvariantCulture)
+                        + ", to 10 at most."
+                );
             }
 
             DxfNurbsEdit.ElevateDegree(p, u, pw, newDegree - p, out List<double> uh, out List<double[]> qw);
@@ -195,7 +260,10 @@ namespace GeometryHelper.Dxf
 
             if (!controlPoint.IsValid)
             {
-                throw new ArgumentException("A control point has to be of finite numbers: " + controlPoint + " is not.", nameof(controlPoint));
+                throw new ArgumentException(
+                    "A control point has to be of finite numbers: " + controlPoint + " is not.",
+                    nameof(controlPoint)
+                );
             }
 
             Clamped(out int p, out List<double> u, out List<double[]> pw);
@@ -204,7 +272,15 @@ namespace GeometryHelper.Dxf
 
             if (!(knotParam > start && knotParam < end) || DxfNurbsEdit.Multiplicity(u, knotParam) >= p)
             {
-                throw new ArgumentOutOfRangeException(nameof(knotParam), knotParam, "A knot is put inside the spline, which runs from " + start.ToString("R", CultureInfo.InvariantCulture) + " to " + end.ToString("R", CultureInfo.InvariantCulture) + ", and where it stands fewer times than the degree.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(knotParam),
+                    knotParam,
+                    "A knot is put inside the spline, which runs from "
+                        + start.ToString("R", CultureInfo.InvariantCulture)
+                        + " to "
+                        + end.ToString("R", CultureInfo.InvariantCulture)
+                        + ", and where it stands fewer times than the degree."
+                );
             }
 
             int k = DxfNurbsEdit.Span(p, u, pw.Count, knotParam);
@@ -229,12 +305,26 @@ namespace GeometryHelper.Dxf
 
             if (index < 0 || index >= pw.Count)
             {
-                throw new ArgumentOutOfRangeException(nameof(index), index, "The spline has " + pw.Count.ToString(CultureInfo.InvariantCulture) + " control points, from nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(index),
+                    index,
+                    "The spline has "
+                        + pw.Count.ToString(CultureInfo.InvariantCulture)
+                        + " control points, from nought."
+                );
             }
 
             if (pw.Count - 1 < p + 1)
             {
-                throw new InvalidOperationException("A spline of degree " + p.ToString(CultureInfo.InvariantCulture) + " keeps " + (p + 1).ToString(CultureInfo.InvariantCulture) + " control points at least, and this one has " + pw.Count.ToString(CultureInfo.InvariantCulture) + ".");
+                throw new InvalidOperationException(
+                    "A spline of degree "
+                        + p.ToString(CultureInfo.InvariantCulture)
+                        + " keeps "
+                        + (p + 1).ToString(CultureInfo.InvariantCulture)
+                        + " control points at least, and this one has "
+                        + pw.Count.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
 
             int n = pw.Count - 1;
@@ -259,7 +349,13 @@ namespace GeometryHelper.Dxf
 
             if (index < 0 || index > fit.Count)
             {
-                throw new ArgumentOutOfRangeException(nameof(index), index, "A fit point goes in from nought to the count of the fit points, " + fit.Count.ToString(CultureInfo.InvariantCulture) + ".");
+                throw new ArgumentOutOfRangeException(
+                    nameof(index),
+                    index,
+                    "A fit point goes in from nought to the count of the fit points, "
+                        + fit.Count.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
 
             fit.Insert(index, point);
@@ -277,7 +373,11 @@ namespace GeometryHelper.Dxf
 
             if (fit.Count <= 2)
             {
-                throw new InvalidOperationException("A spline through fit points keeps two at least, and this one has " + fit.Count.ToString(CultureInfo.InvariantCulture) + ".");
+                throw new InvalidOperationException(
+                    "A spline through fit points keeps two at least, and this one has "
+                        + fit.Count.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
 
             fit.RemoveAt(index);
@@ -375,7 +475,9 @@ namespace GeometryHelper.Dxf
 
             double[] wantPoint = { point.X - now[0], point.Y - now[1], point.Z - now[2] };
             double[] wantRate = { deriv.X - rate[0], deriv.Y - rate[1], deriv.Z - rate[2] };
-            double g00 = 0.0, g01 = 0.0, g11 = 0.0;
+            double g00 = 0.0,
+                g01 = 0.0,
+                g11 = 0.0;
 
             for (int j = 0; j <= p; j++)
             {
@@ -451,12 +553,24 @@ namespace GeometryHelper.Dxf
         {
             if (degree < 1 || degree > MostDegree)
             {
-                throw new ArgumentOutOfRangeException(nameof(degree), degree, "A spline is rebuilt of a degree from 1 to 10.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(degree),
+                    degree,
+                    "A spline is rebuilt of a degree from 1 to 10."
+                );
             }
 
             if (numCtrlPts < degree + 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(numCtrlPts), numCtrlPts, "A spline of degree " + degree.ToString(CultureInfo.InvariantCulture) + " has " + (degree + 1).ToString(CultureInfo.InvariantCulture) + " control points at least.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(numCtrlPts),
+                    numCtrlPts,
+                    "A spline of degree "
+                        + degree.ToString(CultureInfo.InvariantCulture)
+                        + " has "
+                        + (degree + 1).ToString(CultureInfo.InvariantCulture)
+                        + " control points at least."
+                );
             }
 
             DxfNurbs nurbs = Nurbs();
@@ -509,7 +623,8 @@ namespace GeometryHelper.Dxf
         /// <param name="bToLWPolyline">Whether a flat spline gives a <see cref="DxfPolyline"/>; a <see cref="DxfPolyline2d"/> where false.</param>
         /// <returns>The polyline, of the spline's look, in no file.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the spline has no data that make a spline.</exception>
-        public DxfCurve ToPolyline(bool bConvertAsArcs, bool bToLWPolyline) => ToPolylineWithPrecision(10, bConvertAsArcs, bToLWPolyline);
+        public DxfCurve ToPolyline(bool bConvertAsArcs, bool bToLWPolyline) =>
+            ToPolylineWithPrecision(10, bConvertAsArcs, bToLWPolyline);
 
         /// <summary>
         /// Gets the polyline of a count of vertices that runs along the spline, the library's own reading of AutoCAD's
@@ -541,7 +656,11 @@ namespace GeometryHelper.Dxf
         {
             if (numOfVertices < 2)
             {
-                throw new ArgumentOutOfRangeException(nameof(numOfVertices), numOfVertices, "A polyline has two vertices at least.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(numOfVertices),
+                    numOfVertices,
+                    "A polyline has two vertices at least."
+                );
             }
 
             DxfNurbs nurbs = Nurbs();
@@ -551,7 +670,11 @@ namespace GeometryHelper.Dxf
 
             for (int i = 0; i < numOfVertices; i++)
             {
-                parameters.Add(i == 0 ? nurbs.Start : i == numOfVertices - 1 ? nurbs.End : nurbs.ParameterAtLooseLength(length * i / (numOfVertices - 1)));
+                parameters.Add(
+                    i == 0 ? nurbs.Start
+                    : i == numOfVertices - 1 ? nurbs.End
+                    : nurbs.ParameterAtLooseLength(length * i / (numOfVertices - 1))
+                );
 
                 if (i > 0)
                 {
@@ -632,14 +755,30 @@ namespace GeometryHelper.Dxf
             DxfNurbs nurbs = Nurbs();
             DxfNurbsData data = NurbsData;
             GeoAabb3 box = Box(data.GetControlPoints());
-            double largest = Math.Max(Math.Max(Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Max.X)), Math.Max(Math.Abs(box.Min.Y), Math.Abs(box.Max.Y))), Math.Max(Math.Abs(box.Min.Z), Math.Abs(box.Max.Z)));
+            double largest = Math.Max(
+                Math.Max(
+                    Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Max.X)),
+                    Math.Max(Math.Abs(box.Min.Y), Math.Abs(box.Max.Y))
+                ),
+                Math.Max(Math.Abs(box.Min.Z), Math.Abs(box.Max.Z))
+            );
             var parameters = new List<double> { nurbs.Start };
             var middles = new List<double>();
             double bend = SharpestBend(nurbs, data.GetKnots());
             // The larger of one over the sharpest bend and a ten-thousandth of the length, as AutoCAD's counts give it (D32).
             double loose = Math.Max(bend > 0.0 ? 1.0 / bend : double.PositiveInfinity, nurbs.LooseLength / 10000.0);
             double within = Math.Max(1E-9 * (1.0 + largest), loose / ((precision + 1.0) * (precision + 1.0)));
-            Halve(nurbs, nurbs.Start, nurbs.End, nurbs.PointAt(nurbs.Start), nurbs.PointAt(nurbs.End), within, 0, parameters, middles);
+            Halve(
+                nurbs,
+                nurbs.Start,
+                nurbs.End,
+                nurbs.PointAt(nurbs.Start),
+                nurbs.PointAt(nurbs.End),
+                within,
+                0,
+                parameters,
+                middles
+            );
 
             // A closed spline or one of the flag 2, of fit points or kept by AutoCAD by its fit points (the flag 1024), has its knots
             // where the vertices nearest them were, each arc still bent by the turn along the piece the halving made; the last
@@ -676,10 +815,21 @@ namespace GeometryHelper.Dxf
                 placed = even - 2;
             }
 
-            List<double> places = (flags & 3) != 0 && byFitPoints ? PlaceKnots(parameters, data.GetKnots(), nurbs.Start, nurbs.End, placed) : parameters;
+            List<double> places =
+                (flags & 3) != 0 && byFitPoints
+                    ? PlaceKnots(parameters, data.GetKnots(), nurbs.Start, nurbs.End, placed)
+                    : parameters;
 
             // Arcs are bent by the turn of the spline's tangent along each segment, not through its point halfway.
-            return Polyline(nurbs, parameters, bConvertAsArcs ? null : middles, bConvertAsArcs, bToLWPolyline, keepLast, places);
+            return Polyline(
+                nurbs,
+                parameters,
+                bConvertAsArcs ? null : middles,
+                bConvertAsArcs,
+                bToLWPolyline,
+                keepLast,
+                places
+            );
         }
 
         /// <summary>
@@ -704,7 +854,9 @@ namespace GeometryHelper.Dxf
             double start = u[p];
             double end = u[pw.Count];
             bool closed = Closed && StartPoint.IsEqualTo(EndPoint, Tolerance.Default);
-            List<double> cuts = DxfCurveTools.Cuts(parameters, start, end, closed, nurbs.LengthBetween, x => Within(x - start, end - start, nameof(parameters)));
+            List<double> cuts = DxfCurveTools.Cuts(parameters, start, end, closed, nurbs.LengthBetween, x =>
+                Within(x - start, end - start, nameof(parameters))
+            );
             var pieces = new List<KeyValuePair<List<double>, List<double[]>>>();
 
             if (closed)
@@ -776,7 +928,9 @@ namespace GeometryHelper.Dxf
         {
             if (!DxfCurveTools.TryPlane(NurbsData.GetControlPoints(), Direction(210), out GeoVector3 normal))
             {
-                throw new InvalidOperationException("A spline that does not lie in one plane has no side to be offset to: give the plane's normal.");
+                throw new InvalidOperationException(
+                    "A spline that does not lie in one plane has no side to be offset to: give the plane's normal."
+                );
             }
 
             return Offset(normal, offsetDist);
@@ -804,11 +958,22 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not finite.</exception>
         /// <exception cref="ArgumentException">Thrown when the normal has no length, or the spline does not lie in a plane square to it.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the spline has no data that make a spline.</exception>
-        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(GeoVector3 planeNormal, double offsetDist)
+        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(
+            GeoVector3 planeNormal,
+            double offsetDist
+        )
         {
-            if (!planeNormal.IsValid || !(planeNormal.Length > 0.0) || !DxfCurveTools.TryPlane(NurbsData.GetControlPoints(), planeNormal, out GeoVector3 normal) || !normal.IsParallelTo(planeNormal, Tolerance.Default))
+            if (
+                !planeNormal.IsValid
+                || !(planeNormal.Length > 0.0)
+                || !DxfCurveTools.TryPlane(NurbsData.GetControlPoints(), planeNormal, out GeoVector3 normal)
+                || !normal.IsParallelTo(planeNormal, Tolerance.Default)
+            )
             {
-                throw new ArgumentException("A spline is offset in a plane it lies in: the normal " + planeNormal + " is not square to it.", nameof(planeNormal));
+                throw new ArgumentException(
+                    "A spline is offset in a plane it lies in: the normal " + planeNormal + " is not square to it.",
+                    nameof(planeNormal)
+                );
             }
 
             return Offset(planeNormal.Normalize(), offsetDist);
@@ -831,7 +996,11 @@ namespace GeometryHelper.Dxf
 
             if (newParameter >= u[p] && newParameter <= u[pw.Count])
             {
-                throw new ArgumentOutOfRangeException(nameof(newParameter), newParameter, "The parameter lies on the spline: one past an end extends it.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(newParameter),
+                    newParameter,
+                    "The parameter lies on the spline: one past an end extends it."
+                );
             }
 
             DxfNurbsEdit.Extend(p, u, pw, newParameter);
@@ -851,7 +1020,10 @@ namespace GeometryHelper.Dxf
         {
             if (!toPoint.IsValid)
             {
-                throw new ArgumentException("A point has to be of finite numbers: " + toPoint + " is not.", nameof(toPoint));
+                throw new ArgumentException(
+                    "A point has to be of finite numbers: " + toPoint + " is not.",
+                    nameof(toPoint)
+                );
             }
 
             Clamped(out int p, out List<double> u, out List<double[]> pw);
@@ -887,12 +1059,26 @@ namespace GeometryHelper.Dxf
 
             if (!nearest.IsEqualTo(toPoint, Tolerance.Default))
             {
-                throw new ArgumentException("The point " + toPoint + " is not on the spline run on past its " + (extendStart ? "start" : "end") + ".", nameof(toPoint));
+                throw new ArgumentException(
+                    "The point "
+                        + toPoint
+                        + " is not on the spline run on past its "
+                        + (extendStart ? "start" : "end")
+                        + ".",
+                    nameof(toPoint)
+                );
             }
 
             if (!(s > 1.0))
             {
-                throw new ArgumentException("The point " + toPoint + " is on the spline itself, not past its " + (extendStart ? "start" : "end") + ".", nameof(toPoint));
+                throw new ArgumentException(
+                    "The point "
+                        + toPoint
+                        + " is on the spline itself, not past its "
+                        + (extendStart ? "start" : "end")
+                        + ".",
+                    nameof(toPoint)
+                );
             }
 
             DxfNurbsEdit.Extend(p, u, pw, inner + s * (end - inner));
@@ -907,7 +1093,9 @@ namespace GeometryHelper.Dxf
 
             if (data.GetControlPoints().Count == 0)
             {
-                throw new InvalidOperationException("The SPLINE has no control points, and no fit points the reader passes a spline through.");
+                throw new InvalidOperationException(
+                    "The SPLINE has no control points, and no fit points the reader passes a spline through."
+                );
             }
 
             bool rational = data.Rational && data.GetWeights().Count > 0;
@@ -945,11 +1133,21 @@ namespace GeometryHelper.Dxf
 
             if (kept != flags)
             {
-                var groups = new List<KeyValuePair<int, string>> { new KeyValuePair<int, string>(70, kept.ToString(CultureInfo.InvariantCulture)) };
+                var groups = new List<KeyValuePair<int, string>>
+                {
+                    new KeyValuePair<int, string>(70, kept.ToString(CultureInfo.InvariantCulture)),
+                };
 
                 if ((kept & 8) == 0 && (flags & 8) != 0)
                 {
-                    groups.AddRange(new[] { new KeyValuePair<int, string>(210, null), new KeyValuePair<int, string>(220, null), new KeyValuePair<int, string>(230, null) });
+                    groups.AddRange(
+                        new[]
+                        {
+                            new KeyValuePair<int, string>(210, null),
+                            new KeyValuePair<int, string>(220, null),
+                            new KeyValuePair<int, string>(230, null),
+                        }
+                    );
                 }
 
                 SetGroups(groups.ToArray());
@@ -961,7 +1159,9 @@ namespace GeometryHelper.Dxf
         {
             if (!HasFitData)
             {
-                throw new InvalidOperationException("The spline has no fit points: it is given by its control points alone.");
+                throw new InvalidOperationException(
+                    "The spline has no fit points: it is given by its control points alone."
+                );
             }
 
             return new List<GeoPoint3>(FitPoints);
@@ -971,44 +1171,88 @@ namespace GeometryHelper.Dxf
         private void Refit(List<GeoPoint3> fit, string parameter)
         {
             DxfFitData data = FitData;
-            DxfKnotParameterizationEnum parameters = data.KnotParam == DxfKnotParameterizationEnum.CustomParameterization ? DxfKnotParameterizationEnum.Chord : data.KnotParam;
-            WriteFit(fit, data.Degree, data.FitTolerance, data.TangentsExist, data.StartTangent, data.EndTangent, data.Periodic || Closed, false, parameters, parameter);
+            DxfKnotParameterizationEnum parameters =
+                data.KnotParam == DxfKnotParameterizationEnum.CustomParameterization
+                    ? DxfKnotParameterizationEnum.Chord
+                    : data.KnotParam;
+            WriteFit(
+                fit,
+                data.Degree,
+                data.FitTolerance,
+                data.TangentsExist,
+                data.StartTangent,
+                data.EndTangent,
+                data.Periodic || Closed,
+                false,
+                parameters,
+                parameter
+            );
         }
 
         /// <summary>
         /// How the flags of group 70 say fit points are given their parameters, as AutoCAD 2021 read them (its D32b run): 256 its
         /// own (its cubic given a knot, 1288), 128 one step each (1160), 64 the square root of the chord (1096), else the chord.
         /// </summary>
-        private static DxfKnotParameterizationEnum KnotParameters(int flags)
-            => (flags & FitAtKnots) != 0 ? DxfKnotParameterizationEnum.CustomParameterization : DxfNurbsEdit.Parameters(flags);
+        private static DxfKnotParameterizationEnum KnotParameters(int flags) =>
+            (flags & FitAtKnots) != 0
+                ? DxfKnotParameterizationEnum.CustomParameterization
+                : DxfNurbsEdit.Parameters(flags);
 
         /// <summary>The flag of group 70 AutoCAD writes for fit points of parameters: 32 by the chord, 64 its square root, 128 one step each.</summary>
-        private static int KnotFlag(DxfKnotParameterizationEnum parameters)
-            => parameters == DxfKnotParameterizationEnum.Uniform ? FitByStep : parameters == DxfKnotParameterizationEnum.SqrtChord ? FitBySquareRoot : FitMade;
+        private static int KnotFlag(DxfKnotParameterizationEnum parameters) =>
+            parameters == DxfKnotParameterizationEnum.Uniform ? FitByStep
+            : parameters == DxfKnotParameterizationEnum.SqrtChord ? FitBySquareRoot
+            : FitMade;
 
         /// <summary>Writes fit data and the control points of the spline through them, as <see cref="FitData"/> says.</summary>
-        private void WriteFit(IReadOnlyList<GeoPoint3> fit, int degree, double fitTolerance, bool tangents, GeoVector3 startTangent, GeoVector3 endTangent, bool closed, bool periodic, DxfKnotParameterizationEnum parameters, string parameter)
+        private void WriteFit(
+            IReadOnlyList<GeoPoint3> fit,
+            int degree,
+            double fitTolerance,
+            bool tangents,
+            GeoVector3 startTangent,
+            GeoVector3 endTangent,
+            bool closed,
+            bool periodic,
+            DxfKnotParameterizationEnum parameters,
+            string parameter
+        )
         {
-            if (parameters != DxfKnotParameterizationEnum.Uniform && parameters != DxfKnotParameterizationEnum.SqrtChord)
+            if (
+                parameters != DxfKnotParameterizationEnum.Uniform
+                && parameters != DxfKnotParameterizationEnum.SqrtChord
+            )
             {
                 parameters = DxfKnotParameterizationEnum.Chord;
             }
 
             if (degree < 1 || degree > MostDegree)
             {
-                throw new ArgumentOutOfRangeException(parameter, degree, "A spline is fitted of a degree from 1 to 10.");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    degree,
+                    "A spline is fitted of a degree from 1 to 10."
+                );
             }
 
             if (fit.Count < 2)
             {
-                throw new ArgumentException("A spline is fitted through two points at least, and was given " + fit.Count.ToString(CultureInfo.InvariantCulture) + ".", parameter);
+                throw new ArgumentException(
+                    "A spline is fitted through two points at least, and was given "
+                        + fit.Count.ToString(CultureInfo.InvariantCulture)
+                        + ".",
+                    parameter
+                );
             }
 
             foreach (GeoPoint3 point in fit)
             {
                 if (!point.IsValid)
                 {
-                    throw new ArgumentException("A fit point has to be of finite numbers: " + point + " is not.", parameter);
+                    throw new ArgumentException(
+                        "A fit point has to be of finite numbers: " + point + " is not.",
+                        parameter
+                    );
                 }
             }
 
@@ -1029,7 +1273,10 @@ namespace GeometryHelper.Dxf
 
             if (Distinct(through) < 2)
             {
-                throw new ArgumentException("The fit points are all one point, and a spline through them has no length.", parameter);
+                throw new ArgumentException(
+                    "The fit points are all one point, and a spline through them has no length.",
+                    parameter
+                );
             }
 
             if (periodic && WritePeriodic(fit, parameters))
@@ -1037,9 +1284,22 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            if (!DxfNurbsEdit.InterpolateCubic(through, hasStart ? startTangent : None, hasEnd ? endTangent : None, parameters, out List<GeoPoint3> kept, out List<double> knots, out List<GeoPoint3> points))
+            if (
+                !DxfNurbsEdit.InterpolateCubic(
+                    through,
+                    hasStart ? startTangent : None,
+                    hasEnd ? endTangent : None,
+                    parameters,
+                    out List<GeoPoint3> kept,
+                    out List<double> knots,
+                    out List<GeoPoint3> points
+                )
+            )
             {
-                throw new ArgumentException("The fit points make no cubic through them: its system has no solution.", parameter);
+                throw new ArgumentException(
+                    "The fit points make no cubic through them: its system has no solution.",
+                    parameter
+                );
             }
 
             if (parameters != DxfKnotParameterizationEnum.Chord)
@@ -1070,12 +1330,24 @@ namespace GeometryHelper.Dxf
             // The tangents as given, of their own length: AutoCAD keeps and fits by the length (its 17-l, of 0.82).
             if (hasStart)
             {
-                groups.AddRange(PointGroups(12, new GeoPoint3(startTangent.X, startTangent.Y, startTangent.Z), new GeoPoint3(0.0, 0.0, 0.0)));
+                groups.AddRange(
+                    PointGroups(
+                        12,
+                        new GeoPoint3(startTangent.X, startTangent.Y, startTangent.Z),
+                        new GeoPoint3(0.0, 0.0, 0.0)
+                    )
+                );
             }
 
             if (hasEnd)
             {
-                groups.AddRange(PointGroups(13, new GeoPoint3(endTangent.X, endTangent.Y, endTangent.Z), new GeoPoint3(0.0, 0.0, 0.0)));
+                groups.AddRange(
+                    PointGroups(
+                        13,
+                        new GeoPoint3(endTangent.X, endTangent.Y, endTangent.Z),
+                        new GeoPoint3(0.0, 0.0, 0.0)
+                    )
+                );
             }
 
             SetGroups(groups.ToArray());
@@ -1103,7 +1375,16 @@ namespace GeometryHelper.Dxf
 
             int used = ring.Count >= 3 ? 3 : ring.Count - 1;
 
-            if (Distinct(ring) < ring.Count || !DxfNurbsEdit.InterpolatePeriodic(ring, used, parameters, out List<double> knots, out List<GeoPoint3> points))
+            if (
+                Distinct(ring) < ring.Count
+                || !DxfNurbsEdit.InterpolatePeriodic(
+                    ring,
+                    used,
+                    parameters,
+                    out List<double> knots,
+                    out List<GeoPoint3> points
+                )
+            )
             {
                 return false;
             }
@@ -1142,7 +1423,12 @@ namespace GeometryHelper.Dxf
         {
             if (!(tangent.Length > 0.0))
             {
-                return new[] { new KeyValuePair<int, string>(code, null), new KeyValuePair<int, string>(code + 10, null), new KeyValuePair<int, string>(code + 20, null) };
+                return new[]
+                {
+                    new KeyValuePair<int, string>(code, null),
+                    new KeyValuePair<int, string>(code + 10, null),
+                    new KeyValuePair<int, string>(code + 20, null),
+                };
             }
 
             GeoVector3 unit = tangent.Normalize();
@@ -1163,7 +1449,17 @@ namespace GeometryHelper.Dxf
 
             DxfNurbsData data = NurbsData;
             bool closed = Closed && nurbs.PointAt(nurbs.Start).IsEqualTo(nurbs.PointAt(nurbs.End), Tolerance.Default);
-            DxfSplineOffset.Offset(nurbs, data.GetKnots(), data.Degree, closed, normal, distance, out List<GeoPoint3> points, out List<double> knots, out bool closedOut);
+            DxfSplineOffset.Offset(
+                nurbs,
+                data.GetKnots(),
+                data.Degree,
+                closed,
+                normal,
+                distance,
+                out List<GeoPoint3> points,
+                out List<double> knots,
+                out bool closedOut
+            );
             copy.SetNurbsData(3, false, closedOut, false, points, knots, null);
             return new DxfCurve[] { copy };
         }
@@ -1200,7 +1496,11 @@ namespace GeometryHelper.Dxf
                 GeoPoint3 cp = Point(s + h);
                 GeoPoint3 cm = Point(s - h);
                 GeoVector3 d1 = cm.GetVectorTo(cp).Divide(2.0 * h);
-                GeoVector3 d2 = new GeoVector3(cp.X - 2.0 * c.X + cm.X, cp.Y - 2.0 * c.Y + cm.Y, cp.Z - 2.0 * c.Z + cm.Z).Divide(h * h);
+                GeoVector3 d2 = new GeoVector3(
+                    cp.X - 2.0 * c.X + cm.X,
+                    cp.Y - 2.0 * c.Y + cm.Y,
+                    cp.Z - 2.0 * c.Z + cm.Z
+                ).Divide(h * h);
                 GeoVector3 r = target.GetVectorTo(c);
                 double f = r.DotProduct(d1);
                 double g = d1.DotProduct(d1) + r.DotProduct(d2);
@@ -1235,7 +1535,12 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Cuts clamped data at parameters inside it, in increasing order: each piece's knots and homogeneous points.</summary>
-        private static List<KeyValuePair<List<double>, List<double[]>>> Cut(int p, List<double> u, List<double[]> pw, List<double> cuts)
+        private static List<KeyValuePair<List<double>, List<double[]>>> Cut(
+            int p,
+            List<double> u,
+            List<double[]> pw,
+            List<double> cuts
+        )
         {
             var pieces = new List<KeyValuePair<List<double>, List<double[]>>>();
             var knots = new List<double>(u);
@@ -1270,7 +1575,11 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Two clamped pieces of one degree joined where the first ends and the second starts, the second's knots moved on to follow the first's and its weights scaled to meet.</summary>
-        private static KeyValuePair<List<double>, List<double[]>> Join(int p, KeyValuePair<List<double>, List<double[]>> a, KeyValuePair<List<double>, List<double[]>> b)
+        private static KeyValuePair<List<double>, List<double[]>> Join(
+            int p,
+            KeyValuePair<List<double>, List<double[]>> a,
+            KeyValuePair<List<double>, List<double[]>> b
+        )
         {
             List<double> ua = a.Key;
             List<double> ubk = b.Key;
@@ -1319,7 +1628,10 @@ namespace GeometryHelper.Dxf
             }
 
             double turn = Math.Atan2(to.Y, to.X) - Math.Atan2(from.Y, from.X);
-            turn = turn > Math.PI ? turn - 2.0 * Math.PI : turn <= -Math.PI ? turn + 2.0 * Math.PI : turn;
+            turn =
+                turn > Math.PI ? turn - 2.0 * Math.PI
+                : turn <= -Math.PI ? turn + 2.0 * Math.PI
+                : turn;
             return Math.Tan(turn / 4.0);
         }
 
@@ -1328,7 +1640,17 @@ namespace GeometryHelper.Dxf
         /// it lie within the tolerance of its chord's there, as AutoCAD's <c>ToPolylineWithPrecision</c> does, adding the end and the middle parameter
         /// of each piece kept, in order; a piece halved 20 times over is kept as it is.
         /// </summary>
-        private static void Halve(DxfNurbs nurbs, double a, double b, GeoPoint3 pa, GeoPoint3 pb, double tolerance, int depth, List<double> parameters, List<double> middles)
+        private static void Halve(
+            DxfNurbs nurbs,
+            double a,
+            double b,
+            GeoPoint3 pa,
+            GeoPoint3 pb,
+            double tolerance,
+            int depth,
+            List<double> parameters,
+            List<double> middles
+        )
         {
             double m = 0.5 * (a + b);
             GeoPoint3 pm = nurbs.PointAt(m);
@@ -1365,7 +1687,13 @@ namespace GeometryHelper.Dxf
         /// the place of the one nearest it, the ends aside, the later of two as near, a knot placed there before replaced; at
         /// most a count of them, the first. The halving's parameters, which bend the arcs, are kept.
         /// </summary>
-        private static List<double> PlaceKnots(List<double> parameters, IReadOnlyList<double> knots, double start, double end, int most)
+        private static List<double> PlaceKnots(
+            List<double> parameters,
+            IReadOnlyList<double> knots,
+            double start,
+            double end,
+            int most
+        )
         {
             var places = new List<double>(parameters);
             double previous = start;
@@ -1441,7 +1769,15 @@ namespace GeometryHelper.Dxf
         /// vertex the point at its place, which is its parameter where no places are given. A closed polyline's last vertex,
         /// on its first, is left out, or kept where asked.
         /// </summary>
-        private DxfCurve Polyline(DxfNurbs nurbs, List<double> parameters, List<double> middles, bool arcs, bool lightweight, bool keepLast, List<double> places)
+        private DxfCurve Polyline(
+            DxfNurbs nurbs,
+            List<double> parameters,
+            List<double> middles,
+            bool arcs,
+            bool lightweight,
+            bool keepLast,
+            List<double> places
+        )
         {
             var world = new List<GeoPoint3>(parameters.Count);
 
@@ -1504,7 +1840,15 @@ namespace GeometryHelper.Dxf
                         points.Add(new GeoPoint3(q.X, q.Y, elevation));
                     }
 
-                    var polyline = new DxfPolyline2d(DxfPoly2dType.SimplePoly, points, elevation, closed, 0.0, 0.0, bulges);
+                    var polyline = new DxfPolyline2d(
+                        DxfPoly2dType.SimplePoly,
+                        points,
+                        elevation,
+                        closed,
+                        0.0,
+                        0.0,
+                        bulges
+                    );
                     polyline.Normal = normal;
                     result = polyline;
                 }
@@ -1517,8 +1861,12 @@ namespace GeometryHelper.Dxf
         /// <summary>The box of points.</summary>
         private static GeoAabb3 Box(IReadOnlyList<GeoPoint3> points)
         {
-            double minX = double.PositiveInfinity, minY = double.PositiveInfinity, minZ = double.PositiveInfinity;
-            double maxX = double.NegativeInfinity, maxY = double.NegativeInfinity, maxZ = double.NegativeInfinity;
+            double minX = double.PositiveInfinity,
+                minY = double.PositiveInfinity,
+                minZ = double.PositiveInfinity;
+            double maxX = double.NegativeInfinity,
+                maxY = double.NegativeInfinity,
+                maxZ = double.NegativeInfinity;
 
             foreach (GeoPoint3 p in points)
             {
@@ -1552,16 +1900,30 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether two NURBS data are the same, number for number to the bit.</summary>
-        private static bool Same(DxfNurbsData a, DxfNurbsData b)
-            => a.Degree == b.Degree && a.Rational == b.Rational && a.Closed == b.Closed && a.Periodic == b.Periodic
-                && Same(a.ControlPointTolerance, b.ControlPointTolerance) && Same(a.KnotTolerance, b.KnotTolerance)
-                && SamePoints(a.GetControlPoints(), b.GetControlPoints()) && SameNumbers(a.GetKnots(), b.GetKnots()) && SameNumbers(a.GetWeights(), b.GetWeights());
+        private static bool Same(DxfNurbsData a, DxfNurbsData b) =>
+            a.Degree == b.Degree
+            && a.Rational == b.Rational
+            && a.Closed == b.Closed
+            && a.Periodic == b.Periodic
+            && Same(a.ControlPointTolerance, b.ControlPointTolerance)
+            && Same(a.KnotTolerance, b.KnotTolerance)
+            && SamePoints(a.GetControlPoints(), b.GetControlPoints())
+            && SameNumbers(a.GetKnots(), b.GetKnots())
+            && SameNumbers(a.GetWeights(), b.GetWeights());
 
         /// <summary>Whether two fit data are the same, number for number to the bit.</summary>
-        private static bool Same(DxfFitData a, DxfFitData b)
-            => a.Degree == b.Degree && a.TangentsExist == b.TangentsExist && a.KnotParam == b.KnotParam && a.Periodic == b.Periodic
-                && Same(a.FitTolerance, b.FitTolerance) && SamePoints(a.GetFitPoints(), b.GetFitPoints())
-                && Same(a.StartTangent.X, b.StartTangent.X) && Same(a.StartTangent.Y, b.StartTangent.Y) && Same(a.StartTangent.Z, b.StartTangent.Z)
-                && Same(a.EndTangent.X, b.EndTangent.X) && Same(a.EndTangent.Y, b.EndTangent.Y) && Same(a.EndTangent.Z, b.EndTangent.Z);
+        private static bool Same(DxfFitData a, DxfFitData b) =>
+            a.Degree == b.Degree
+            && a.TangentsExist == b.TangentsExist
+            && a.KnotParam == b.KnotParam
+            && a.Periodic == b.Periodic
+            && Same(a.FitTolerance, b.FitTolerance)
+            && SamePoints(a.GetFitPoints(), b.GetFitPoints())
+            && Same(a.StartTangent.X, b.StartTangent.X)
+            && Same(a.StartTangent.Y, b.StartTangent.Y)
+            && Same(a.StartTangent.Z, b.StartTangent.Z)
+            && Same(a.EndTangent.X, b.EndTangent.X)
+            && Same(a.EndTangent.Y, b.EndTangent.Y)
+            && Same(a.EndTangent.Z, b.EndTangent.Z);
     }
 }

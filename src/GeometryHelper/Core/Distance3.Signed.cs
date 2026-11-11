@@ -34,7 +34,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the distance from a solid to a point, negative for a point inside the body.
         /// </summary>
-        public static double SignedDistanceTo(GeoSolid3 solid, GeoPoint3 point) => SignedDistanceTo(solid, point, Tolerance.Global);
+        public static double SignedDistanceTo(GeoSolid3 solid, GeoPoint3 point) =>
+            SignedDistanceTo(solid, point, Tolerance.Global);
 
         /// <summary>
         /// Calculates the distance from a solid to a point, negative for a point inside the body, within a tolerance.
@@ -68,7 +69,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the distance from an oriented box to a point, negative for a point inside it.
         /// </summary>
-        public static double SignedDistanceTo(GeoObb3 box, GeoPoint3 point) => SignedDistanceTo(box, point, Tolerance.Global);
+        public static double SignedDistanceTo(GeoObb3 box, GeoPoint3 point) =>
+            SignedDistanceTo(box, point, Tolerance.Global);
 
         /// <summary>
         /// Calculates the distance from an oriented box to a point, negative for a point inside it, within a tolerance.
@@ -88,13 +90,15 @@ namespace GeometryHelper.Core
 
             return Signed(
                 point.DistanceTo(Projection3.ProjectToObbSurface(box, point)),
-                Containment3.Locate(box, point, tolerance));
+                Containment3.Locate(box, point, tolerance)
+            );
         }
 
         /// <summary>
         /// Calculates the distance from an axis-aligned box to a point, negative for a point inside it.
         /// </summary>
-        public static double SignedDistanceTo(GeoAabb3 box, GeoPoint3 point) => SignedDistanceTo(box, point, Tolerance.Global);
+        public static double SignedDistanceTo(GeoAabb3 box, GeoPoint3 point) =>
+            SignedDistanceTo(box, point, Tolerance.Global);
 
         /// <summary>
         /// Calculates the distance from an axis-aligned box to a point, negative for a point inside it, within a tolerance.
@@ -105,7 +109,8 @@ namespace GeometryHelper.Core
         {
             return Signed(
                 point.DistanceTo(Projection3.ProjectToObbSurface(box.ToObb(), point)),
-                box.Locate(point, tolerance));
+                box.Locate(point, tolerance)
+            );
         }
 
         /// <summary>
@@ -119,8 +124,8 @@ namespace GeometryHelper.Core
         /// nearest point of the faces and of each opening, kept only where the body called it boundary — could
         /// not find that rim at all, since it is a point of neither alone, and fell back on a distance of nought.
         /// </remarks>
-        private static double ReachToSurface(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance)
-            => point.DistanceTo(Projection3.ProjectToSolid(solid, point, tolerance));
+        private static double ReachToSurface(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance) =>
+            point.DistanceTo(Projection3.ProjectToSolid(solid, point, tolerance));
 
         /// <summary>
         /// Turns a distance to a surface into a signed one, by where the point sits.

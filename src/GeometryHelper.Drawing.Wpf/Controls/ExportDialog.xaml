@@ -1,9 +1,13 @@
-<local:DrawingDialogWindow x:Class="GeometryHelper.Drawing.Wpf.ExportDialog"
-                           xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                           xmlns:local="clr-namespace:GeometryHelper.Drawing.Wpf"
-                           Title="Export" Width="680" Height="520" Background="#262B33">
-
+<local:DrawingDialogWindow
+    x:Class="GeometryHelper.Drawing.Wpf.ExportDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Drawing.Wpf"
+    Title="Export"
+    Width="680"
+    Height="520"
+    Background="#262B33"
+>
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -18,18 +22,45 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="RadioButton">
-                            <Border x:Name="Card" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Padding="10,8" Background="Transparent">
+                            <Border
+                                x:Name="Card"
+                                BorderBrush="{StaticResource GhBorder}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="10,8"
+                                Background="Transparent"
+                            >
                                 <DockPanel>
-                                    <Grid DockPanel.Dock="Left" Width="13" Height="13" Margin="0,1,8,0" VerticalAlignment="Top">
-                                        <Ellipse x:Name="Ring" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1.5" />
-                                        <Ellipse x:Name="Pip" Width="6" Height="6" Fill="{StaticResource GhAccent}" Visibility="Collapsed" />
+                                    <Grid
+                                        DockPanel.Dock="Left"
+                                        Width="13"
+                                        Height="13"
+                                        Margin="0,1,8,0"
+                                        VerticalAlignment="Top"
+                                    >
+                                        <Ellipse
+                                            x:Name="Ring"
+                                            Stroke="{StaticResource GhTextMuted}"
+                                            StrokeThickness="1.5"
+                                        />
+                                        <Ellipse
+                                            x:Name="Pip"
+                                            Width="6"
+                                            Height="6"
+                                            Fill="{StaticResource GhAccent}"
+                                            Visibility="Collapsed"
+                                        />
                                     </Grid>
                                     <ContentPresenter />
                                 </DockPanel>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="Card" Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                    <Setter
+                                        TargetName="Card"
+                                        Property="BorderBrush"
+                                        Value="{StaticResource GhAccent}"
+                                    />
                                     <Setter TargetName="Card" Property="Background" Value="{StaticResource GhInput}" />
                                     <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource GhAccent}" />
                                     <Setter TargetName="Pip" Property="Visibility" Value="Visible" />
@@ -44,7 +75,12 @@
 
     <Border x:Name="Root" Style="{StaticResource DialogRoot}">
         <DockPanel>
-            <Border DockPanel.Dock="Top" Style="{StaticResource DialogBand}" CornerRadius="6,6,0,0" MouseLeftButtonDown="OnHeaderDown">
+            <Border
+                DockPanel.Dock="Top"
+                Style="{StaticResource DialogBand}"
+                CornerRadius="6,6,0,0"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Style="{StaticResource CloseButton}" Click="OnCloseClick" />
                     <TextBlock Style="{StaticResource DialogTitle}" Text="Export" />
@@ -53,13 +89,34 @@
 
             <Border DockPanel.Dock="Bottom" Style="{StaticResource DialogBand}" CornerRadius="0,0,6,6">
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="{Binding ExportText}" Command="{Binding ExportCommand}" IsDefault="True" />
-                    <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Content="Cancel" Command="{Binding CancelCommand}" />
-                    <TextBlock Text="{Binding Notice}" Foreground="{StaticResource GhWarn}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource PrimaryButton}"
+                        Content="{Binding ExportText}"
+                        Command="{Binding ExportCommand}"
+                        IsDefault="True"
+                    />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource SecondaryButton}"
+                        Content="Cancel"
+                        Command="{Binding CancelCommand}"
+                    />
+                    <TextBlock
+                        Text="{Binding Notice}"
+                        Foreground="{StaticResource GhWarn}"
+                        VerticalAlignment="Center"
+                        TextTrimming="CharacterEllipsis"
+                    />
                 </DockPanel>
             </Border>
 
-            <ContentControl DockPanel.Dock="Bottom" Content="{Binding}" ContentTemplate="{StaticResource BusyBand}" Focusable="False" />
+            <ContentControl
+                DockPanel.Dock="Bottom"
+                Content="{Binding}"
+                ContentTemplate="{StaticResource BusyBand}"
+                Focusable="False"
+            />
 
             <Grid Margin="16,14">
                 <Grid.ColumnDefinitions>
@@ -69,17 +126,46 @@
                 </Grid.ColumnDefinitions>
 
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource SectionTitle}" Text="Drawings" Margin="0,0,0,6" />
-                    <TextBlock DockPanel.Dock="Bottom" Text="{Binding SelectedText}" Foreground="{StaticResource GhTextMuted}" Margin="0,6,0,0" />
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        Style="{StaticResource SectionTitle}"
+                        Text="Drawings"
+                        Margin="0,0,0,6"
+                    />
+                    <TextBlock
+                        DockPanel.Dock="Bottom"
+                        Text="{Binding SelectedText}"
+                        Foreground="{StaticResource GhTextMuted}"
+                        Margin="0,6,0,0"
+                    />
                     <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Padding="0,4">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
                             <ItemsControl ItemsSource="{Binding Rows}" Focusable="False">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type local:ExportRow}">
                                         <DockPanel Margin="10,5">
-                                            <CheckBox DockPanel.Dock="Left" Style="{StaticResource GhCheckBox}" IsChecked="{Binding IsChecked, Mode=TwoWay}" Margin="0,0,8,0" VerticalAlignment="Center" />
-                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Sheet}" Foreground="{StaticResource GhTextMuted}" Margin="8,0,0,0" />
-                                            <TextBlock TextTrimming="CharacterEllipsis"><Run Text="{Binding Number, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" " /><Run Text="{Binding Name, Mode=OneWay}" Foreground="{StaticResource GhTextMuted}" /></TextBlock>
+                                            <CheckBox
+                                                DockPanel.Dock="Left"
+                                                Style="{StaticResource GhCheckBox}"
+                                                IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                                Margin="0,0,8,0"
+                                                VerticalAlignment="Center"
+                                            />
+                                            <TextBlock
+                                                DockPanel.Dock="Right"
+                                                Text="{Binding Sheet}"
+                                                Foreground="{StaticResource GhTextMuted}"
+                                                Margin="8,0,0,0"
+                                            />
+                                            <TextBlock TextTrimming="CharacterEllipsis">
+                                                <Run
+                                                    Text="{Binding Number, Mode=OneWay}"
+                                                    FontWeight="SemiBold"
+                                                /><Run Text=" " /><Run
+                                                    Text="{Binding Name, Mode=OneWay}"
+                                                    Foreground="{StaticResource GhTextMuted}"
+                                                />
+                                            </TextBlock>
                                         </DockPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -91,46 +177,110 @@
                 <StackPanel Grid.Column="2">
                     <TextBlock Style="{StaticResource SectionTitle}" Text="Format" Margin="0,0,0,6" />
                     <StackPanel Orientation="Horizontal">
-                        <ToggleButton Style="{StaticResource ChipToggle}" Content="DXF" IsChecked="True" IsHitTestVisible="False" FontWeight="SemiBold" />
+                        <ToggleButton
+                            Style="{StaticResource ChipToggle}"
+                            Content="DXF"
+                            IsChecked="True"
+                            IsHitTestVisible="False"
+                            FontWeight="SemiBold"
+                        />
                         <ToggleButton Style="{StaticResource ChipToggle}" Content="PDF · later" IsEnabled="False" />
                         <ToggleButton Style="{StaticResource ChipToggle}" Content="Print · later" IsEnabled="False" />
                     </StackPanel>
 
                     <TextBlock Style="{StaticResource SectionTitle}" Text="DXF layout" Margin="0,8,0,6" />
-                    <RadioButton Style="{StaticResource LayoutCard}" GroupName="Layout" IsChecked="{Binding LayoutAndViewports, Mode=TwoWay}">
+                    <RadioButton
+                        Style="{StaticResource LayoutCard}"
+                        GroupName="Layout"
+                        IsChecked="{Binding LayoutAndViewports, Mode=TwoWay}"
+                    >
                         <StackPanel>
-                            <TextBlock><Run Text="Layout + viewports" /><Run Text=" (like MVIEW)" Foreground="{StaticResource GhTextMuted}" /></TextBlock>
-                            <TextBlock Style="{StaticResource Muted}" Text="Lines at 1:1 in model space, one viewport per view on the sheet layout." />
+                            <TextBlock>
+                                <Run Text="Layout + viewports" /><Run
+                                    Text=" (like MVIEW)"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                />
+                            </TextBlock>
+                            <TextBlock
+                                Style="{StaticResource Muted}"
+                                Text="Lines at 1:1 in model space, one viewport per view on the sheet layout."
+                            />
                         </StackPanel>
                     </RadioButton>
-                    <RadioButton Style="{StaticResource LayoutCard}" GroupName="Layout" IsChecked="{Binding SheetInModelSpace, Mode=TwoWay}">
+                    <RadioButton
+                        Style="{StaticResource LayoutCard}"
+                        GroupName="Layout"
+                        IsChecked="{Binding SheetInModelSpace, Mode=TwoWay}"
+                    >
                         <StackPanel>
                             <TextBlock Text="Sheet in model space" />
-                            <TextBlock Style="{StaticResource Muted}" Text="The sheet at 1:1, each view drawn at its scale. For viewers that show model space only." />
+                            <TextBlock
+                                Style="{StaticResource Muted}"
+                                Text="The sheet at 1:1, each view drawn at its scale. For viewers that show model space only."
+                            />
                         </StackPanel>
                     </RadioButton>
 
                     <DockPanel Margin="0,6,0,3">
-                        <TextBlock DockPanel.Dock="Left" Width="110" Text="DXF version" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                        <TextBlock
+                            DockPanel.Dock="Left"
+                            Width="110"
+                            Text="DXF version"
+                            Foreground="{StaticResource GhTextMuted}"
+                            VerticalAlignment="Center"
+                        />
                         <Border Style="{StaticResource ValueBox}">
-                            <TextBlock Text="{Binding Version}" Foreground="{StaticResource GhTextMuted}" ToolTip="The version the drawing core writes" />
+                            <TextBlock
+                                Text="{Binding Version}"
+                                Foreground="{StaticResource GhTextMuted}"
+                                ToolTip="The version the drawing core writes"
+                            />
                         </Border>
                     </DockPanel>
                     <DockPanel Margin="0,3">
-                        <TextBlock DockPanel.Dock="Left" Width="110" Text="Folder" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
-                        <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Content="Browse…" Padding="10,3" Click="OnBrowse" />
+                        <TextBlock
+                            DockPanel.Dock="Left"
+                            Width="110"
+                            Text="Folder"
+                            Foreground="{StaticResource GhTextMuted}"
+                            VerticalAlignment="Center"
+                        />
+                        <Button
+                            DockPanel.Dock="Right"
+                            Style="{StaticResource SecondaryButton}"
+                            Content="Browse…"
+                            Padding="10,3"
+                            Click="OnBrowse"
+                        />
                         <Border Style="{StaticResource ValueBox}">
-                            <TextBox Style="{StaticResource GhTextBox}" Text="{Binding Folder, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource GhMonoFont}" />
+                            <TextBox
+                                Style="{StaticResource GhTextBox}"
+                                Text="{Binding Folder, UpdateSourceTrigger=PropertyChanged}"
+                                FontFamily="{StaticResource GhMonoFont}"
+                            />
                         </Border>
                     </DockPanel>
                     <DockPanel Margin="0,3">
-                        <TextBlock DockPanel.Dock="Left" Width="110" Text="File names" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                        <TextBlock
+                            DockPanel.Dock="Left"
+                            Width="110"
+                            Text="File names"
+                            Foreground="{StaticResource GhTextMuted}"
+                            VerticalAlignment="Center"
+                        />
                         <Border Style="{StaticResource ValueBox}">
-                            <TextBox Style="{StaticResource GhTextBox}" Text="{Binding FileNames, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource GhMonoFont}" />
+                            <TextBox
+                                Style="{StaticResource GhTextBox}"
+                                Text="{Binding FileNames, UpdateSourceTrigger=PropertyChanged}"
+                                FontFamily="{StaticResource GhMonoFont}"
+                            />
                         </Border>
                     </DockPanel>
-                    <TextBlock Style="{StaticResource Muted}" Margin="0,8,0,0"
-                               Text="Each drawing is one DXF, its document inside it: it opens in AutoCAD as any DXF and here as a model drawing." />
+                    <TextBlock
+                        Style="{StaticResource Muted}"
+                        Margin="0,8,0,0"
+                        Text="Each drawing is one DXF, its document inside it: it opens in AutoCAD as any DXF and here as a model drawing."
+                    />
                 </StackPanel>
             </Grid>
         </DockPanel>

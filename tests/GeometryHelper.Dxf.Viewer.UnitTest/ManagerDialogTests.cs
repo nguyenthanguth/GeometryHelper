@@ -29,9 +29,24 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             var record = new DxfBlockTableRecord { Name = "GB" };
             db.BlockTable.Add(record);
             record.AppendEntity(new DxfCircle(new GeoPoint3(0, 0, 0), Up, 5));
-            record.AppendEntity(new DxfAttributeDefinition(new GeoPoint3(0, 0, 0), "A", "GRID", "Grid letter", null) { Height = 2.5 });
-            record.AppendEntity(new DxfAttributeDefinition(new GeoPoint3(0, -4, 0), "L1", "LEVEL", "Level name", null) { Height = 2.5, Invisible = true, Verifiable = true });
-            record.AppendEntity(new DxfAttributeDefinition(new GeoPoint3(0, -8, 0), "0", "REV", "Revision", null) { Height = 2.5, Constant = true });
+            record.AppendEntity(
+                new DxfAttributeDefinition(new GeoPoint3(0, 0, 0), "A", "GRID", "Grid letter", null) { Height = 2.5 }
+            );
+            record.AppendEntity(
+                new DxfAttributeDefinition(new GeoPoint3(0, -4, 0), "L1", "LEVEL", "Level name", null)
+                {
+                    Height = 2.5,
+                    Invisible = true,
+                    Verifiable = true,
+                }
+            );
+            record.AppendEntity(
+                new DxfAttributeDefinition(new GeoPoint3(0, -8, 0), "0", "REV", "Revision", null)
+                {
+                    Height = 2.5,
+                    Constant = true,
+                }
+            );
             Place(db.ModelSpace, record, new GeoPoint3(0, 0, 0), "B", "L2");
             Place(db.ModelSpace, record, new GeoPoint3(50, 0, 0), "C", "L3");
             var pair = new DxfBlockTableRecord { Name = "PAIR" };
@@ -41,13 +56,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return CadDocument.From(db, "bubbles.dxf");
         }
 
-        private static void Place(DxfBlockTableRecord owner, DxfBlockTableRecord record, GeoPoint3 at, params string[] values)
+        private static void Place(
+            DxfBlockTableRecord owner,
+            DxfBlockTableRecord record,
+            GeoPoint3 at,
+            params string[] values
+        )
         {
             var insert = new DxfBlockReference(at, record);
             owner.AppendEntity(insert);
             int i = 0;
 
-            foreach (DxfAttributeDefinition definition in record.OfType<DxfAttributeDefinition>().Where(d => !d.Constant))
+            foreach (
+                DxfAttributeDefinition definition in record.OfType<DxfAttributeDefinition>().Where(d => !d.Constant)
+            )
             {
                 var attribute = new DxfAttributeReference();
                 attribute.SetAttributeFromBlock(definition, insert.BlockTransform);
@@ -56,13 +78,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             }
         }
 
-        private static List<DxfAttributeDefinition> Definitions(CadDocument document, string block = "GB")
-            => document.Database.BlockTable[block].OfType<DxfAttributeDefinition>().ToList();
+        private static List<DxfAttributeDefinition> Definitions(CadDocument document, string block = "GB") =>
+            document.Database.BlockTable[block].OfType<DxfAttributeDefinition>().ToList();
 
-        private static DxfBlockReference FirstInsert(CadDocument document) => All<DxfBlockReference>(document.ModelSpace).First(r => r.Name == "GB");
+        private static DxfBlockReference FirstInsert(CadDocument document) =>
+            All<DxfBlockReference>(document.ModelSpace).First(r => r.Name == "GB");
 
         /// <summary>A session whose window answers a request of a name with a handler; true where it handled it.</summary>
-        private static CadCommandSession Answering(CadDocument document, string name, Func<CadUiRequestEventArgs, bool> handler)
+        private static CadCommandSession Answering(
+            CadDocument document,
+            string name,
+            Func<CadUiRequestEventArgs, bool> handler
+        )
         {
             CadCommandSession session = Session(document);
             session.UiRequested += (sender, e) =>
@@ -137,7 +164,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(new[] { "LEVEL", "GRID" }, FirstInsert(document).AttributeCollection.Select(a => a.Tag));
             Assert.Equal(new[] { "L2", "B" }, FirstInsert(document).AttributeCollection.Select(a => a.TextString));
             Assert.Equal(3.5, FirstInsert(document).AttributeCollection[1].Height, 9);
-            Assert.Equal(new[] { "LEVEL", "GRID" }, document.Database.BlockTable["PAIR"].OfType<DxfBlockReference>().Single().AttributeCollection.Select(a => a.Tag));
+            Assert.Equal(
+                new[] { "LEVEL", "GRID" },
+                document
+                    .Database.BlockTable["PAIR"]
+                    .OfType<DxfBlockReference>()
+                    .Single()
+                    .AttributeCollection.Select(a => a.Tag)
+            );
             AssertReopens(document);
 
             Assert.True(document.Undo());
@@ -205,7 +239,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void BattmanWithNoWindow_SaysItIsADialog_AndOfADrawingWithNoAttributedBlocksSaysSo()
         {
             CadCommandSession session = Run(Session(Bubbles()), "BATTMAN");
-            Assert.Equal("BATTMAN is a dialog, and there is no window to show it in: use ATTSYNC and -ATTEDIT.", session.History.Last());
+            Assert.Equal(
+                "BATTMAN is a dialog, and there is no window to show it in: use ATTSYNC and -ATTEDIT.",
+                session.History.Last()
+            );
 
             session = Run(Session(Blank()), "BATTMAN");
             Assert.Equal("This drawing contains no attributed blocks.", session.History.Last());
@@ -246,7 +283,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Run(session, "ATTDIA", "1", "-INSERT", "GB", P(200, 0), Enter, Enter, Enter);
             Assert.False(session.IsRunning);
-            Assert.Equal(new[] { "A", "L1" }, All<DxfBlockReference>(document.ModelSpace).Last().AttributeCollection.Select(a => a.TextString));
+            Assert.Equal(
+                new[] { "A", "L1" },
+                All<DxfBlockReference>(document.ModelSpace).Last().AttributeCollection.Select(a => a.TextString)
+            );
 
             Run(session, "ATTDIA", "0", "-INSERT", "GB", P(300, 0), Enter, Enter, Enter);
             Assert.Equal("Grid letter <A>:", session.PromptText);
@@ -273,14 +313,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             db.BlockTable.Add(gb);
             gb.AppendEntity(new DxfCircle(new GeoPoint3(0, 0, 0), Up, 5) { Layer = "WALLS" });
             db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(500, 0, 0), gb));
-            db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)) { Layer = "WALLS" });
-            db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 10, 0), new GeoPoint3(100, 10, 0)) { Layer = "WALLS" });
+            db.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)) { Layer = "WALLS" }
+            );
+            db.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(0, 10, 0), new GeoPoint3(100, 10, 0)) { Layer = "WALLS" }
+            );
             db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 20, 0), new GeoPoint3(0.0002, 20, 0)));
             return CadDocument.From(db, "nested.dxf");
         }
 
-        private static CadPurgeItem Item(IReadOnlyList<CadPurgeCategory> categories, string kind, string name)
-            => categories.Single(k => k.Name == kind).Items.Single(i => i.Name == name);
+        private static CadPurgeItem Item(IReadOnlyList<CadPurgeCategory> categories, string kind, string name) =>
+            categories.Single(k => k.Name == kind).Items.Single(i => i.Name == name);
 
         [Fact]
         public void PurgeDialog_ListsWhatNothingUses_AndPurgeNestedPurgesWhatThePurgeLeftUnused_AsOneUndoStep()
@@ -302,8 +346,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 else if (e.Name == "PURGE")
                 {
                     var request = (CadPurgeRequest)e.Payload;
-                    Assert.Equal(new[] { "OUTER" }, request.Purgeable.Single(k => k.Name == "Blocks").Items.Select(i => i.Name));
-                    Assert.Equal(new[] { "TMP" }, request.Purgeable.Single(k => k.Name == "Layers").Items.Select(i => i.Name));
+                    Assert.Equal(
+                        new[] { "OUTER" },
+                        request.Purgeable.Single(k => k.Name == "Blocks").Items.Select(i => i.Name)
+                    );
+                    Assert.Equal(
+                        new[] { "TMP" },
+                        request.Purgeable.Single(k => k.Name == "Layers").Items.Select(i => i.Name)
+                    );
                     Assert.Equal(1, request.ZeroLength);
                     Assert.Equal(0, request.EmptyText);
                     Assert.True(request.ConfirmEach);
@@ -312,7 +362,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     purged = request.Purge(new[] { Item(request.Purgeable, "Blocks", "OUTER") });
 
                     Assert.Empty(request.Purgeable.Single(k => k.Name == "Blocks").Items);
-                    Assert.Equal(new[] { "TMP" }, request.Purgeable.Single(k => k.Name == "Layers").Items.Select(i => i.Name));
+                    Assert.Equal(
+                        new[] { "TMP" },
+                        request.Purgeable.Single(k => k.Name == "Layers").Items.Select(i => i.Name)
+                    );
                     reached = true;
                     e.Handled = true;
                 }
@@ -352,8 +405,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     var request = (CadPurgeRequest)e.Payload;
                     request.PurgeNested = false;
                     request.PurgeZeroLength = true;
-                    Assert.Equal(1, request.Purge(new[] { Item(request.Purgeable, "Blocks", "OUTER"), Item(request.Purgeable, "Layers", "TMP") }));
-                    Assert.Equal(new[] { "INNER" }, request.Purgeable.Single(k => k.Name == "Blocks").Items.Select(i => i.Name));
+                    Assert.Equal(
+                        1,
+                        request.Purge(
+                            new[]
+                            {
+                                Item(request.Purgeable, "Blocks", "OUTER"),
+                                Item(request.Purgeable, "Layers", "TMP"),
+                            }
+                        )
+                    );
+                    Assert.Equal(
+                        new[] { "INNER" },
+                        request.Purgeable.Single(k => k.Name == "Blocks").Items.Select(i => i.Name)
+                    );
                     Assert.Equal(0, request.ZeroLength);
                     reached = true;
                     e.Handled = true;
@@ -384,10 +449,27 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "PURGE");
 
             Assert.Equal(
-                new[] { "Layer WALLS is the current layer.", "Used by 2 objects in model space and 0 in layouts.", "Referenced by block GB." },
-                Item(request.InUse, "Layers", "WALLS").Reasons);
-            Assert.Equal(new[] { "Layer 0 cannot be purged: AutoCAD keeps it in every drawing.", "Used by 2 objects in model space and 0 in layouts.", "Referenced by block OUTER." }, Item(request.InUse, "Layers", "0").Reasons);
-            Assert.Equal(new[] { "Used by 1 object in model space and 0 in layouts." }, Item(request.InUse, "Blocks", "GB").Reasons);
+                new[]
+                {
+                    "Layer WALLS is the current layer.",
+                    "Used by 2 objects in model space and 0 in layouts.",
+                    "Referenced by block GB.",
+                },
+                Item(request.InUse, "Layers", "WALLS").Reasons
+            );
+            Assert.Equal(
+                new[]
+                {
+                    "Layer 0 cannot be purged: AutoCAD keeps it in every drawing.",
+                    "Used by 2 objects in model space and 0 in layouts.",
+                    "Referenced by block OUTER.",
+                },
+                Item(request.InUse, "Layers", "0").Reasons
+            );
+            Assert.Equal(
+                new[] { "Used by 1 object in model space and 0 in layouts." },
+                Item(request.InUse, "Blocks", "GB").Reasons
+            );
             Assert.Equal(new[] { "Referenced by block OUTER." }, Item(request.InUse, "Blocks", "INNER").Reasons);
             Assert.DoesNotContain(request.InUse.Single(k => k.Name == "Layers").Items, i => i.Name == "TMP");
             Assert.Equal(2, document.Selection.Handles.Count);
@@ -432,8 +514,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         /// <summary>The names of the drawing's groups, in ordinal order.</summary>
-        private static string[] GroupNames(CadDocument document)
-            => document.Database.GroupDictionary.Select(e => e.Key).OrderBy(n => n, StringComparer.Ordinal).ToArray();
+        private static string[] GroupNames(CadDocument document) =>
+            document.Database.GroupDictionary.Select(e => e.Key).OrderBy(n => n, StringComparer.Ordinal).ToArray();
 
         /// <summary>
         /// AutoCAD 2021's -PURGE Groups of such a drawing: "Deleting group "GONE"." for each group that holds nothing, the
@@ -483,10 +565,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             {
                 request = (CadPurgeRequest)e.Payload;
                 request.ConfirmEach = false;
-                Assert.Equal(new[] { "*A1", "EMPTY", "GONE" }, request.Purgeable.Single(k => k.Name == "Groups").Items.Select(i => i.Name));
+                Assert.Equal(
+                    new[] { "*A1", "EMPTY", "GONE" },
+                    request.Purgeable.Single(k => k.Name == "Groups").Items.Select(i => i.Name)
+                );
                 Assert.Equal(new[] { "Group FULL holds objects." }, Item(request.InUse, "Groups", "FULL").Reasons);
                 Assert.Equal(1, request.Purge(new[] { Item(request.Purgeable, "Groups", "GONE") }));
-                Assert.Equal(new[] { "*A1", "EMPTY" }, request.Purgeable.Single(k => k.Name == "Groups").Items.Select(i => i.Name));
+                Assert.Equal(
+                    new[] { "*A1", "EMPTY" },
+                    request.Purgeable.Single(k => k.Name == "Groups").Items.Select(i => i.Name)
+                );
                 return true;
             });
 
@@ -500,7 +588,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Nested();
             CadCommandSession session = Run(Session(document), "PURGE");
-            Assert.StartsWith("Enter type of unused objects to purge [Blocks/", session.PromptText, StringComparison.Ordinal);
+            Assert.StartsWith(
+                "Enter type of unused objects to purge [Blocks/",
+                session.PromptText,
+                StringComparison.Ordinal
+            );
             Run(session, "A", Enter, "N");
 
             Assert.False(session.IsRunning);
@@ -535,11 +627,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             var db = new DxfDatabase("AC1027");
             var made = new List<string>();
 
-            foreach (DxfEntity entity in new DxfEntity[]
-            {
-                new DxfLine(new GeoPoint3(-20, 0, 0), new GeoPoint3(20, 0, 0)), new DxfCircle(new GeoPoint3(0, 0, 0), Up, 10),
-                new DxfLine(new GeoPoint3(0, -20, 0), new GeoPoint3(0, 20, 0)), new DxfLine(new GeoPoint3(30, 0, 0), new GeoPoint3(40, 0, 0)),
-            })
+            foreach (
+                DxfEntity entity in new DxfEntity[]
+                {
+                    new DxfLine(new GeoPoint3(-20, 0, 0), new GeoPoint3(20, 0, 0)),
+                    new DxfCircle(new GeoPoint3(0, 0, 0), Up, 10),
+                    new DxfLine(new GeoPoint3(0, -20, 0), new GeoPoint3(0, 20, 0)),
+                    new DxfLine(new GeoPoint3(30, 0, 0), new GeoPoint3(40, 0, 0)),
+                }
+            )
             {
                 db.ModelSpace.AppendEntity(entity);
                 made.Add(entity.Handle);
@@ -549,7 +645,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return CadDocument.From(db, "four.dxf");
         }
 
-        private static DxfGroup Group(CadDocument document, string name) => (DxfGroup)document.Database.GroupDictionary.GetAt(name);
+        private static DxfGroup Group(CadDocument document, string name) =>
+            (DxfGroup)document.Database.GroupDictionary.GetAt(name);
 
         [Fact]
         public void ClassicGroup_NewAddRemoveAskOnTheCommandLine_AndTheDialogComesBack_OkKeepingEveryChangeAsOneUndoStep()
@@ -582,7 +679,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                         request.Pick = "Remove";
                         break;
                     default:
-                        Assert.Equal(new[] { h[1], h[2] }, Group(document, "STAIR_CORE").GetAllEntityIds().Select(m => m.Handle));
+                        Assert.Equal(
+                            new[] { h[1], h[2] },
+                            Group(document, "STAIR_CORE").GetAllEntityIds().Select(m => m.Handle)
+                        );
                         request.Action = CadDialogAction.Ok;
                         return true;
                 }
@@ -632,11 +732,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 Assert.False(request.Groups.Single().Selectable);
 
                 Assert.True(request.Reorder(0, 3, 1));
-                Assert.Equal(new[] { h[1], h[2], h[3], h[0] }, Group(document, "P1").GetAllEntityIds().Select(m => m.Handle));
+                Assert.Equal(
+                    new[] { h[1], h[2], h[3], h[0] },
+                    Group(document, "P1").GetAllEntityIds().Select(m => m.Handle)
+                );
                 Assert.False(request.Reorder(3, 3, 2));
                 Assert.StartsWith("Invalid position number", request.Message, StringComparison.Ordinal);
                 Assert.True(request.Reverse());
-                Assert.Equal(new[] { h[0], h[3], h[2], h[1] }, Group(document, "P1").GetAllEntityIds().Select(m => m.Handle));
+                Assert.Equal(
+                    new[] { h[0], h[3], h[2], h[1] },
+                    Group(document, "P1").GetAllEntityIds().Select(m => m.Handle)
+                );
 
                 Assert.True(request.Explode());
                 Assert.Empty(request.Groups);
@@ -727,7 +833,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void ClassicGroupWithNoWindow_AsksAsMinusGroup()
         {
             CadCommandSession session = Run(Session(Blank()), "CLASSICGROUP");
-            Assert.Equal("Enter a group option [?/Order/Add/Remove/Explode/REName/Selectable/Create] <Create>:", session.PromptText);
+            Assert.Equal(
+                "Enter a group option [?/Order/Add/Remove/Explode/REName/Selectable/Create] <Create>:",
+                session.PromptText
+            );
         }
     }
 }

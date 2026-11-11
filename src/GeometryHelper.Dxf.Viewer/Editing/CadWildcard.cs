@@ -15,7 +15,8 @@ namespace GeometryHelper.Dxf.Viewer
     internal static class CadWildcard
     {
         /// <summary>Gets whether a text matches a pattern as a whole.</summary>
-        internal static bool IsMatch(string text, string pattern, bool ignoreCase) => ToRegex(pattern, ignoreCase, true).IsMatch(text ?? string.Empty);
+        internal static bool IsMatch(string text, string pattern, bool ignoreCase) =>
+            ToRegex(pattern, ignoreCase, true).IsMatch(text ?? string.Empty);
 
         /// <summary>
         /// The regular expression of a pattern: anchored at both ends for a whole text, else matching a run inside a text (a
@@ -116,7 +117,10 @@ namespace GeometryHelper.Dxf.Viewer
                 all.Append(negated[i] ? "^(?!" + body + ").*$" : body);
             }
 
-            RegexOptions options = RegexOptions.CultureInvariant | RegexOptions.Singleline | (ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
+            RegexOptions options =
+                RegexOptions.CultureInvariant
+                | RegexOptions.Singleline
+                | (ignoreCase ? RegexOptions.IgnoreCase : RegexOptions.None);
             return new Regex(all.ToString(), options);
         }
     }

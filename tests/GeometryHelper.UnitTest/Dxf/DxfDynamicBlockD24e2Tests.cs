@@ -39,7 +39,11 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The rectangle 100 by 50 of four lines (the right edge, the bottom, the top, the left edge) with Width from (0, 0) to (100, 0).</summary>
-        private static DxfDatabase Panel(out DxfBlockTableRecord block, out DxfBlockLinearParameter width, out DxfLine[] lines)
+        private static DxfDatabase Panel(
+            out DxfBlockTableRecord block,
+            out DxfBlockLinearParameter width,
+            out DxfLine[] lines
+        )
         {
             DxfDatabase db = Drawing("GH_PANEL", out block);
             lines = new[]
@@ -49,7 +53,14 @@ namespace GeometryHelper.UnitTest.Dxf
                 Add(block, new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0))),
                 Add(block, new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(0, 0, 0))),
             };
-            width = block.AddLinearParameter("Width", "Overall width", new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+            width = block.AddLinearParameter(
+                "Width",
+                "Overall width",
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                null
+            );
             return db;
         }
 
@@ -58,10 +69,27 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = Panel(out block, out DxfBlockLinearParameter width, out DxfLine[] lines);
             block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), lines.Take(3));
-            DxfBlockLinearParameter height = block.AddLinearParameter("Height", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0), 20, null);
-            block.AddStretchAction(height, new GeoPoint2(-10, 40), new GeoPoint2(110, 60), new[] { lines[0], lines[2], lines[3] });
-            block.AddLookupParameter("Size", "Panel size", new GeoPoint3(50, -20, 0), new[] { DxfBlockLookupInput.Distance(width), DxfBlockLookupInput.Distance(height) },
-                new[] { new DxfBlockLookupRow("Small", 100, 50), new DxfBlockLookupRow("Large", 200, 80) });
+            DxfBlockLinearParameter height = block.AddLinearParameter(
+                "Height",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(0, 50, 0),
+                20,
+                null
+            );
+            block.AddStretchAction(
+                height,
+                new GeoPoint2(-10, 40),
+                new GeoPoint2(110, 60),
+                new[] { lines[0], lines[2], lines[3] }
+            );
+            block.AddLookupParameter(
+                "Size",
+                "Panel size",
+                new GeoPoint3(50, -20, 0),
+                new[] { DxfBlockLookupInput.Distance(width), DxfBlockLookupInput.Distance(height) },
+                new[] { new DxfBlockLookupRow("Small", 100, 50), new DxfBlockLookupRow("Large", 200, 80) }
+            );
             return db;
         }
 
@@ -69,12 +97,14 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static DxfBlockReference TheInsert(DxfDatabase db) => db.ModelSpace.OfType<DxfBlockReference>().First();
 
-        private static DxfDynamicBlockReferenceProperty Property(DxfBlockReference insert, string name) => insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name);
+        private static DxfDynamicBlockReferenceProperty Property(DxfBlockReference insert, string name) =>
+            insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name);
 
         private static List<T> Shown<T>(DxfBlockReference insert) => insert.BlockTableRecord.OfType<T>().ToList();
 
-        private static bool Is(DxfLine line, double x1, double y1, double x2, double y2)
-            => line.StartPoint.IsEqualTo(new GeoPoint3(x1, y1, 0), Exact) && line.EndPoint.IsEqualTo(new GeoPoint3(x2, y2, 0), Exact);
+        private static bool Is(DxfLine line, double x1, double y1, double x2, double y2) =>
+            line.StartPoint.IsEqualTo(new GeoPoint3(x1, y1, 0), Exact)
+            && line.EndPoint.IsEqualTo(new GeoPoint3(x2, y2, 0), Exact);
 
         private static bool At(GeoPoint3 point, double x, double y) => point.IsEqualTo(new GeoPoint3(x, y, 0), Exact);
 
@@ -82,7 +112,10 @@ namespace GeometryHelper.UnitTest.Dxf
         private static List<DxfItem> Nodes(DxfBlockTableRecord block)
         {
             DxfDBObject graph = block.ExtensionDictionary.GetAt("ACAD_ENHANCEDBLOCK");
-            return graph.Item.Groups.Where(g => g.TypeCode == 360).Select(g => graph.Item.File.ObjectItem(g.Value)).ToList();
+            return graph
+                .Item.Groups.Where(g => g.TypeCode == 360)
+                .Select(g => graph.Item.File.ObjectItem(g.Value))
+                .ToList();
         }
 
         /// <summary>Each edge of the graph of a block, after its nodes: its flags (93), its kind (94) and the indices of the nodes it runs from and to.</summary>
@@ -90,8 +123,11 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDBObject graph = block.ExtensionDictionary.GetAt("ACAD_ENHANCEDBLOCK");
             List<DxfTypedValue> groups = graph.Item.File.TailOf(graph.Item, 0);
-            List<int> numbers = groups.Skip(groups.FindIndex(g => g.TypeCode == 100 && g.Value == "AcDbEvalGraph") + 1)
-                .Where(g => g.TypeCode != 360).Select(g => int.Parse(g.Value.Trim(), CultureInfo.InvariantCulture)).ToList();
+            List<int> numbers = groups
+                .Skip(groups.FindIndex(g => g.TypeCode == 100 && g.Value == "AcDbEvalGraph") + 1)
+                .Where(g => g.TypeCode != 360)
+                .Select(g => int.Parse(g.Value.Trim(), CultureInfo.InvariantCulture))
+                .ToList();
             var edges = new List<int[]>();
 
             for (int at = 2 + Nodes(block).Count * 7; at + 9 < numbers.Count; at += 10)
@@ -106,8 +142,15 @@ namespace GeometryHelper.UnitTest.Dxf
         private static Dictionary<string, List<string>> Cache(DxfBlockReference insert)
         {
             var representation = (DxfDBDictionary)insert.ExtensionDictionary.GetAt("AcDbBlockRepresentation");
-            var data = (DxfDBDictionary)((DxfDBDictionary)representation.GetAt("AppDataCache")).GetAt("ACAD_ENHANCEDBLOCKDATA");
-            return data.ToDictionary(e => e.Key, e => ((DxfXrecord)e.Value).Data.Select(g => g.TypeCode.ToString(CultureInfo.InvariantCulture) + " " + g.Value.Trim()).ToList());
+            var data = (DxfDBDictionary)
+                ((DxfDBDictionary)representation.GetAt("AppDataCache")).GetAt("ACAD_ENHANCEDBLOCKDATA");
+            return data.ToDictionary(
+                e => e.Key,
+                e =>
+                    ((DxfXrecord)e.Value)
+                        .Data.Select(g => g.TypeCode.ToString(CultureInfo.InvariantCulture) + " " + g.Value.Trim())
+                        .ToList()
+            );
         }
 
         // ---- 1. the edges of a lookup action ---------------------------------------------------------------------------------
@@ -123,7 +166,18 @@ namespace GeometryHelper.UnitTest.Dxf
             List<int[]> edges = Edges(Reopened(db).BlockTable["GH_PANEL"]);
             Assert.Equal(23, edges.Count);
             Assert.All(edges.Take(17), e => Assert.Equal(0, e[0]));
-            Assert.Equal(new[] { new[] { 4, 1, 0, 20 }, new[] { 4, 1, 20, 0 }, new[] { 4, 1, 8, 20 }, new[] { 4, 1, 20, 8 }, new[] { 4, 1, 20, 16 }, new[] { 4, 1, 16, 20 } }, edges.Skip(17));
+            Assert.Equal(
+                new[]
+                {
+                    new[] { 4, 1, 0, 20 },
+                    new[] { 4, 1, 20, 0 },
+                    new[] { 4, 1, 8, 20 },
+                    new[] { 4, 1, 20, 8 },
+                    new[] { 4, 1, 20, 16 },
+                    new[] { 4, 1, 16, 20 },
+                },
+                edges.Skip(17)
+            );
             Assert.Equal("BLOCKLOOKUPACTION", Nodes(block)[20].Type);
         }
 
@@ -132,14 +186,31 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // A second lookup reads the graph back and writes it anew: the first lookup's edges keep their 4.
             DxfDatabase db = Sized(out DxfBlockTableRecord block);
-            DxfBlockLinearParameter reach = block.AddLinearParameter("Reach", null, new GeoPoint3(0, 0, 0), new GeoPoint3(60, 0, 0), -40, null);
-            block.AddLookupParameter("Span", null, new GeoPoint3(50, -40, 0), new[] { DxfBlockLookupInput.Distance(reach) },
-                new[] { new DxfBlockLookupRow("Short", 60), new DxfBlockLookupRow("Long", 90) });
+            DxfBlockLinearParameter reach = block.AddLinearParameter(
+                "Reach",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(60, 0, 0),
+                -40,
+                null
+            );
+            block.AddLookupParameter(
+                "Span",
+                null,
+                new GeoPoint3(50, -40, 0),
+                new[] { DxfBlockLookupInput.Distance(reach) },
+                new[] { new DxfBlockLookupRow("Short", 60), new DxfBlockLookupRow("Long", 90) }
+            );
 
             List<int[]> edges = Edges(block);
             List<DxfItem> nodes = Nodes(block);
             Assert.Equal(6 + 4, edges.Count(e => e[0] == 4));
-            Assert.All(edges, e => Assert.Equal(e[0] == 4, nodes[e[2]].Type == "BLOCKLOOKUPACTION" || nodes[e[3]].Type == "BLOCKLOOKUPACTION"));
+            Assert.All(edges, e =>
+                Assert.Equal(
+                    e[0] == 4,
+                    nodes[e[2]].Type == "BLOCKLOOKUPACTION" || nodes[e[3]].Type == "BLOCKLOOKUPACTION"
+                )
+            );
         }
 
         // ---- 2. arrays -------------------------------------------------------------------------------------------------------
@@ -153,7 +224,14 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Drawing("GH_FENCE", out DxfBlockTableRecord block);
             DxfLine rail = Add(block, new DxfLine(new GeoPoint3(0, 10, 0), new GeoPoint3(100, 10, 0)));
             DxfCircle post = Add(block, new DxfCircle(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 5));
-            DxfBlockLinearParameter length = block.AddLinearParameter("Length", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+            DxfBlockLinearParameter length = block.AddLinearParameter(
+                "Length",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                null
+            );
             block.AddStretchAction(length, new GeoPoint2(90, 0), new GeoPoint2(110, 20), new[] { rail });
             block.AddArrayAction(length, new[] { post }, 60);
 
@@ -163,15 +241,31 @@ namespace GeometryHelper.UnitTest.Dxf
             List<DxfCircle> posts = Shown<DxfCircle>(TheInsert(reopened));
             Assert.Equal(new[] { 0.0, 60, 120, 180 }, posts.Select(c => c.Center.X));
             Assert.Null(posts[0].GetXDataForApplication("AcDbBlockArrayActionTag"));
-            Assert.Null(Assert.Single(Shown<DxfLine>(TheInsert(reopened))).GetXDataForApplication("AcDbBlockArrayActionTag"));
+            Assert.Null(
+                Assert.Single(Shown<DxfLine>(TheInsert(reopened))).GetXDataForApplication("AcDbBlockArrayActionTag")
+            );
 
             foreach (DxfCircle copy in posts.Skip(1))
             {
-                Assert.Equal(new[] { "1001 AcDbBlockRepETag", "1070 1", "1071 1", "1005 " + copy.Handle, "1001 AcDbBlockArrayActionTag", "1070 1" },
-                    copy.XData.Select(g => g.TypeCode.ToString(CultureInfo.InvariantCulture) + " " + g.Value.Trim()));
+                Assert.Equal(
+                    new[]
+                    {
+                        "1001 AcDbBlockRepETag",
+                        "1070 1",
+                        "1071 1",
+                        "1005 " + copy.Handle,
+                        "1001 AcDbBlockArrayActionTag",
+                        "1070 1",
+                    },
+                    copy.XData.Select(g => g.TypeCode.ToString(CultureInfo.InvariantCulture) + " " + g.Value.Trim())
+                );
             }
 
-            Assert.Contains("AcDbRegAppTableRecord\n  2\nAcDbBlockArrayActionTag\n", reopened.ToText().Replace("\r\n", "\n"), StringComparison.Ordinal);
+            Assert.Contains(
+                "AcDbRegAppTableRecord\n  2\nAcDbBlockArrayActionTag\n",
+                reopened.ToText().Replace("\r\n", "\n"),
+                StringComparison.Ordinal
+            );
 
             // Set again, the INSERT's own anonymous block is filled anew, its copies tagged as before.
             Property(TheInsert(reopened), "Length").Value = 130.0;
@@ -187,7 +281,14 @@ namespace GeometryHelper.UnitTest.Dxf
             // v21, 24e-s2): rows of 20 in 5 make none, and an array of no rows copies nothing.
             DxfDatabase db = Drawing("GH_GRID", out DxfBlockTableRecord block);
             DxfCircle dot = Add(block, new DxfCircle(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 5));
-            DxfBlockXYParameter xy = block.AddXYParameter("X Distance1", null, "Y Distance1", null, new GeoPoint3(0, 5, 0), new GeoPoint3(5, 0, 0));
+            DxfBlockXYParameter xy = block.AddXYParameter(
+                "X Distance1",
+                null,
+                "Y Distance1",
+                null,
+                new GeoPoint3(0, 5, 0),
+                new GeoPoint3(5, 0, 0)
+            );
             block.AddArrayAction(xy, new[] { dot }, 25, 20);
 
             Property(TheInsert(db), "X Distance1").Value = 80.0;
@@ -199,7 +300,14 @@ namespace GeometryHelper.UnitTest.Dxf
             // AutoCAD drew two bolts for 60 by 30 of columns of 25 and rows of 20 (24e-d), one column for 40 by 70 and three rows.
             DxfDatabase plate = Drawing("GH_PLATE", out DxfBlockTableRecord plateBlock);
             DxfCircle bolt = Add(plateBlock, new DxfCircle(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 5));
-            DxfBlockXYParameter grid = plateBlock.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(40, 30, 0));
+            DxfBlockXYParameter grid = plateBlock.AddXYParameter(
+                "Width",
+                null,
+                "Depth",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(40, 30, 0)
+            );
             plateBlock.AddArrayAction(grid, new[] { bolt }, 25, 20);
             Property(TheInsert(plate), "Width").Value = 60.0;
             Assert.Equal(new[] { 0.0, 25 }, Shown<DxfCircle>(TheInsert(Reopened(plate))).Select(c => c.Center.X));
@@ -216,7 +324,11 @@ namespace GeometryHelper.UnitTest.Dxf
             // AutoCAD 2021 moved the circle of the offset of a quarter turn along x, to (-30, 125), from the INSERT the library
             // had set to Width 200 and written 40 nought for (plugin v21, 24e-b); its own save of the INSERT it set from the block
             // keeps the move's offset, 1.5707963267948966, in the 40 of the move's record, and nought for the others.
-            DxfDatabase db = Panel(out DxfBlockTableRecord block, out DxfBlockLinearParameter width, out DxfLine[] lines);
+            DxfDatabase db = Panel(
+                out DxfBlockTableRecord block,
+                out DxfBlockLinearParameter width,
+                out DxfLine[] lines
+            );
             block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), lines.Take(3));
             DxfLine inner = Add(block, new DxfLine(new GeoPoint3(50, 0, 0), new GeoPoint3(50, 50, 0)));
             block.AddStretchAction(width, new GeoPoint2(45, -10), new GeoPoint2(55, 60), new[] { inner }, 0.5, 0.25);
@@ -228,8 +340,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Property(TheInsert(db), "Width").Value = 200.0;
 
             Dictionary<string, List<string>> cache = Cache(TheInsert(Reopened(db)));
-            List<string> ids = Nodes(block).Where(n => n.Type == "BLOCKSTRETCHACTION" || n.Type == "BLOCKMOVEACTION")
-                .Select(n => n.Groups.First(g => g.TypeCode == 90).Value.Trim()).ToList();
+            List<string> ids = Nodes(block)
+                .Where(n => n.Type == "BLOCKSTRETCHACTION" || n.Type == "BLOCKMOVEACTION")
+                .Select(n => n.Groups.First(g => g.TypeCode == 90).Value.Trim())
+                .ToList();
             Assert.Equal(4, ids.Count);
             Assert.Equal("40 0", cache[ids[0]].Last());
             Assert.Equal("40 0.25", cache[ids[1]].Last());
@@ -249,23 +363,45 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Panel(out DxfBlockTableRecord block, out _, out _);
             string before = db.ToText();
 
-            Assert.Throws<NotSupportedException>(() => block.AddFlipParameter("Hand", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0)));
+            Assert.Throws<NotSupportedException>(() =>
+                block.AddFlipParameter("Hand", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0))
+            );
             Assert.Equal(before, db.ToText());
 
             DxfDatabase door = Drawing("GH_DOOR", out DxfBlockTableRecord doorBlock);
             DxfLine leaf = Add(doorBlock, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(90, 0, 0)));
-            DxfBlockFlipParameter hand = doorBlock.AddFlipParameter("Hand", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0));
+            DxfBlockFlipParameter hand = doorBlock.AddFlipParameter(
+                "Hand",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(0, 50, 0)
+            );
             doorBlock.AddFlipAction(hand, new[] { leaf });
             string flipped = door.ToText();
 
             var origin = new GeoPoint3(0, 0, 0);
-            Assert.Throws<NotSupportedException>(() => doorBlock.AddLinearParameter("Reach", null, origin, new GeoPoint3(90, 0, 0), -10, null));
+            Assert.Throws<NotSupportedException>(() =>
+                doorBlock.AddLinearParameter("Reach", null, origin, new GeoPoint3(90, 0, 0), -10, null)
+            );
             Assert.Throws<NotSupportedException>(() => doorBlock.AddPointParameter("Tag", null, origin));
             Assert.Throws<NotSupportedException>(() => doorBlock.AddRotationParameter("Turn", null, origin, 10, 0));
-            Assert.Throws<NotSupportedException>(() => doorBlock.AddXYParameter("Width", null, "Depth", null, origin, new GeoPoint3(90, 50, 0)));
-            Assert.Throws<NotSupportedException>(() => doorBlock.AddFlipParameter("Side", null, origin, new GeoPoint3(50, 0, 0)));
-            Assert.Throws<NotSupportedException>(() => doorBlock.AddVisibilityParameter("Look", null, origin, new[] { new DxfBlockVisibilityState("All", new[] { leaf }) }));
-            Assert.Throws<NotSupportedException>(() => doorBlock.AddAlignmentParameter(origin, new GeoPoint3(50, 0, 0)));
+            Assert.Throws<NotSupportedException>(() =>
+                doorBlock.AddXYParameter("Width", null, "Depth", null, origin, new GeoPoint3(90, 50, 0))
+            );
+            Assert.Throws<NotSupportedException>(() =>
+                doorBlock.AddFlipParameter("Side", null, origin, new GeoPoint3(50, 0, 0))
+            );
+            Assert.Throws<NotSupportedException>(() =>
+                doorBlock.AddVisibilityParameter(
+                    "Look",
+                    null,
+                    origin,
+                    new[] { new DxfBlockVisibilityState("All", new[] { leaf }) }
+                )
+            );
+            Assert.Throws<NotSupportedException>(() =>
+                doorBlock.AddAlignmentParameter(origin, new GeoPoint3(50, 0, 0))
+            );
             Assert.Throws<NotSupportedException>(() => doorBlock.AddBasePointParameter(origin));
             Assert.Equal(flipped, door.ToText());
 
@@ -286,9 +422,29 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfLine shaft = Add(block, new DxfLine(new GeoPoint3(50, 25, 0), new GeoPoint3(80, 25, 0)));
             DxfCircle hub = Add(block, new DxfCircle(new GeoPoint3(50, 25, 0), GeoVector3.ZAxis, 3));
             DxfCircle tip = Add(block, new DxfCircle(new GeoPoint3(80, 25, 0), GeoVector3.ZAxis, 2));
-            DxfBlockLinearParameter reach = block.AddLinearParameter("Reach", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-            DxfBlockRotationParameter angle = block.AddRotationParameter("Angle", null, new GeoPoint3(50, 25, 0), 30, 0);
-            DxfBlockLinearParameter size = block.AddLinearParameter("Size", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 100, 0), 20, null);
+            DxfBlockLinearParameter reach = block.AddLinearParameter(
+                "Reach",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                null
+            );
+            DxfBlockRotationParameter angle = block.AddRotationParameter(
+                "Angle",
+                null,
+                new GeoPoint3(50, 25, 0),
+                30,
+                0
+            );
+            DxfBlockLinearParameter size = block.AddLinearParameter(
+                "Size",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(0, 100, 0),
+                20,
+                null
+            );
             block.AddStretchAction(reach, new GeoPoint2(70, 15), new GeoPoint2(90, 35), new[] { shaft });
             block.AddMoveAction(reach, new[] { tip });
             string before = db.ToText();
@@ -302,17 +458,35 @@ namespace GeometryHelper.UnitTest.Dxf
             // The other way round: a turned hub refuses a stretch or a move of it, a scaled one too.
             block.AddRotateAction(angle, new[] { hub });
             string turned = db.ToText();
-            Assert.Throws<NotSupportedException>(() => block.AddStretchAction(reach, new GeoPoint2(40, 15), new GeoPoint2(60, 35), new[] { hub }));
+            Assert.Throws<NotSupportedException>(() =>
+                block.AddStretchAction(reach, new GeoPoint2(40, 15), new GeoPoint2(60, 35), new[] { hub })
+            );
             Assert.Throws<NotSupportedException>(() => block.AddMoveAction(reach, new[] { hub }));
             Assert.Equal(turned, db.ToText());
 
             DxfDatabase scaled = Drawing("GH_SCL", out DxfBlockTableRecord scaledBlock);
             DxfLine line = Add(scaledBlock, new DxfLine(new GeoPoint3(20, 10, 0), new GeoPoint3(60, 10, 0)));
-            DxfBlockLinearParameter w = scaledBlock.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-            DxfBlockLinearParameter s = scaledBlock.AddLinearParameter("Size", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 100, 0), 20, null);
+            DxfBlockLinearParameter w = scaledBlock.AddLinearParameter(
+                "Width",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                null
+            );
+            DxfBlockLinearParameter s = scaledBlock.AddLinearParameter(
+                "Size",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(0, 100, 0),
+                20,
+                null
+            );
             scaledBlock.AddScaleAction(s, new[] { line });
             string scaledText = scaled.ToText();
-            Assert.Throws<NotSupportedException>(() => scaledBlock.AddStretchAction(w, new GeoPoint2(50, 0), new GeoPoint2(70, 20), new[] { line }));
+            Assert.Throws<NotSupportedException>(() =>
+                scaledBlock.AddStretchAction(w, new GeoPoint2(50, 0), new GeoPoint2(70, 20), new[] { line })
+            );
             Assert.Throws<NotSupportedException>(() => scaledBlock.AddMoveAction(w, new[] { line }));
             Assert.Equal(scaledText, scaled.ToText());
 
@@ -332,17 +506,35 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Drawing("GH_ROT", out DxfBlockTableRecord block);
             DxfLine shaft = Add(block, new DxfLine(new GeoPoint3(50, 25, 0), new GeoPoint3(80, 25, 0)));
             DxfCircle hub = Add(block, new DxfCircle(new GeoPoint3(50, 25, 0), GeoVector3.ZAxis, 3));
-            DxfBlockLinearParameter reach = block.AddLinearParameter("Reach", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-            DxfBlockRotationParameter angle = block.AddRotationParameter("Angle", null, new GeoPoint3(50, 25, 0), 30, 0);
+            DxfBlockLinearParameter reach = block.AddLinearParameter(
+                "Reach",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                null
+            );
+            DxfBlockRotationParameter angle = block.AddRotationParameter(
+                "Angle",
+                null,
+                new GeoPoint3(50, 25, 0),
+                30,
+                0
+            );
             block.AddStretchAction(reach, new GeoPoint2(70, 15), new GeoPoint2(90, 35), new[] { shaft });
             block.AddRotateAction(angle, new[] { hub });
             DxfItem rotate = Nodes(block).Last();
             DxfFile file = rotate.File;
-            var groups = file.TailOf(rotate, 0).Select(g => new KeyValuePair<int, string>(g.TypeCode, g.Value)).ToList();
+            var groups = file.TailOf(rotate, 0)
+                .Select(g => new KeyValuePair<int, string>(g.TypeCode, g.Value))
+                .ToList();
             int marker = groups.FindIndex(g => g.Key == 100 && g.Value == "AcDbBlockAction");
             int count = groups.FindIndex(marker, g => g.Key == 71);
             groups[count] = new KeyValuePair<int, string>(71, "2");
-            groups.Insert(groups.FindLastIndex(g => g.Key == 330) + 1, new KeyValuePair<int, string>(330, shaft.Handle));
+            groups.Insert(
+                groups.FindLastIndex(g => g.Key == 330) + 1,
+                new KeyValuePair<int, string>(330, shaft.Handle)
+            );
             file.ReplaceTail(rotate, 0, groups);
             DxfDatabase reopened = Reopened(db);
             string before = reopened.ToText();
@@ -369,14 +561,29 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfCircle circle = Add(tagged, new DxfCircle(new GeoPoint3(80, 20, 0), GeoVector3.ZAxis, 5));
             DxfBlockPointParameter tag = tagged.AddPointParameter("Tag", null, new GeoPoint3(80, 20, 0));
             tagged.AddMoveAction(tag, new[] { circle });
-            tagged.AddLookupParameter("Corner", null, new GeoPoint3(0, -10, 0), new[] { DxfBlockLookupInput.X(tag), DxfBlockLookupInput.Y(tag) },
-                new[] { new DxfBlockLookupRow("High", 80, 45), new DxfBlockLookupRow("Low", 80, 20), new DxfBlockLookupRow("Twin", 80, 20) });
+            tagged.AddLookupParameter(
+                "Corner",
+                null,
+                new GeoPoint3(0, -10, 0),
+                new[] { DxfBlockLookupInput.X(tag), DxfBlockLookupInput.Y(tag) },
+                new[]
+                {
+                    new DxfBlockLookupRow("High", 80, 45),
+                    new DxfBlockLookupRow("Low", 80, 20),
+                    new DxfBlockLookupRow("Twin", 80, 20),
+                }
+            );
             Assert.Equal("Low", Property(TheInsert(Reopened(corner)), "Corner").Value);
 
             // A block whose own values are no row's reads the label of no match, allowed then too.
             DxfDatabase other = Panel(out DxfBlockTableRecord panel, out DxfBlockLinearParameter width, out _);
-            panel.AddLookupParameter("Size", null, new GeoPoint3(50, -20, 0), new[] { DxfBlockLookupInput.Distance(width) },
-                new[] { new DxfBlockLookupRow("Small", 80), new DxfBlockLookupRow("Large", 200) });
+            panel.AddLookupParameter(
+                "Size",
+                null,
+                new GeoPoint3(50, -20, 0),
+                new[] { DxfBlockLookupInput.Distance(width) },
+                new[] { new DxfBlockLookupRow("Small", 80), new DxfBlockLookupRow("Large", 200) }
+            );
             DxfDynamicBlockReferenceProperty unmatched = Property(TheInsert(Reopened(other)), "Size");
             Assert.Equal("Custom", unmatched.Value);
             Assert.Equal(new object[] { "Small", "Large", "Custom" }, unmatched.GetAllowedValues());
@@ -398,7 +605,9 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Sized(out DxfBlockTableRecord block);
             DxfItem action = Nodes(block).Last();
             DxfFile file = action.File;
-            var groups = file.TailOf(action, 0).Select(g => new KeyValuePair<int, string>(g.TypeCode, g.Value)).ToList();
+            var groups = file.TailOf(action, 0)
+                .Select(g => new KeyValuePair<int, string>(g.TypeCode, g.Value))
+                .ToList();
             int small = groups.FindIndex(g => g.Key == 302 && g.Value == "Small");
             groups[small] = new KeyValuePair<int, string>(302, "Small ");
             file.ReplaceTail(action, 0, groups);

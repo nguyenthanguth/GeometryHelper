@@ -32,8 +32,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = CadDocument.From(DxfDatabase.Parse(BigDrawing.Text(100000)), "speed-100k.dxf");
             document.GetDisplay(document.ModelSpace);
-            DisplayList2 whole = null, moved = null, off = null, on = null;
-            double first = double.MaxValue, move = double.MaxValue, layerOff = double.MaxValue, layerOn = double.MaxValue;
+            DisplayList2 whole = null,
+                moved = null,
+                off = null,
+                on = null;
+            double first = double.MaxValue,
+                move = double.MaxValue,
+                layerOff = double.MaxValue,
+                layerOn = double.MaxValue;
             string handle = null;
 
             foreach (DxfEntity entity in document.ModelSpace.Block)
@@ -56,7 +62,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             for (int run = 0; run < Runs; run++)
             {
                 var by = new GeoVector3(run % 2 == 0 ? 5 : -5, 0, 0);
-                Assert.True(document.ApplyEdit("MOVE", new[] { new CadEditRecord(CadEditRecordKind.Transformed, handle) }, s => s.Document.FindEntity(handle).TransformBy(GeoTransform3.Translation(by))).Succeeded);
+                Assert.True(
+                    document
+                        .ApplyEdit("MOVE", new[] { new CadEditRecord(CadEditRecordKind.Transformed, handle) }, s =>
+                            s.Document.FindEntity(handle).TransformBy(GeoTransform3.Translation(by))
+                        )
+                        .Succeeded
+                );
                 move = Math.Min(move, Time(() => moved = document.GetDisplay(document.ModelSpace)));
             }
 
@@ -68,7 +80,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 layerOn = Math.Min(layerOn, Time(() => on = document.GetDisplay(document.ModelSpace)));
             }
 
-            _output.WriteLine("whole " + first.ToString("0") + " ms, move " + move.ToString("0") + " ms, layer off " + layerOff.ToString("0") + " ms, layer on " + layerOn.ToString("0") + " ms");
+            _output.WriteLine(
+                "whole "
+                    + first.ToString("0")
+                    + " ms, move "
+                    + move.ToString("0")
+                    + " ms, layer off "
+                    + layerOff.ToString("0")
+                    + " ms, layer on "
+                    + layerOn.ToString("0")
+                    + " ms"
+            );
 
             Assert.Equal(whole.Count, moved.Count);
             Assert.InRange(off.Count, 1, whole.Count * 3 / 4);

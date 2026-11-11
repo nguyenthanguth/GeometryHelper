@@ -27,7 +27,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         /// </summary>
         public static DxfDatabase PlanDatabase()
         {
-            string box = TestDrawings.Block("BOX", TestDrawings.Line(0, 0, 10, 0), TestDrawings.Line(10, 0, 10, 10), TestDrawings.Line(10, 10, 0, 10), TestDrawings.Line(0, 10, 0, 0));
+            string box = TestDrawings.Block(
+                "BOX",
+                TestDrawings.Line(0, 0, 10, 0),
+                TestDrawings.Line(10, 0, 10, 10),
+                TestDrawings.Line(10, 10, 0, 10),
+                TestDrawings.Line(0, 10, 0, 0)
+            );
             DxfDatabase database = TestDrawings.Drawing(
                 TestDrawings.Layer("Steel", 1) + TestDrawings.Layer("Locked", 3),
                 box,
@@ -38,7 +44,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 TestDrawings.Polyline("0", "A5", false, 0, 100, 0, 100, 100, 0, 100, 150, 0),
                 TestDrawings.Text(0, 200, 5, "NOTE", handle: "A6"),
                 TestDrawings.Insert("BOX", 500, 0, handle: "A7"),
-                TestDrawings.Line(0, -50, 100, -50, "Locked", handle: "A8"));
+                TestDrawings.Line(0, -50, 100, -50, "Locked", handle: "A8")
+            );
             database.LayerTable["Locked"].IsLocked = true;
             return database;
         }
@@ -58,23 +65,131 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string entry = "  3\nACAD_PLOTSTYLENAME\n350\n31\n";
             Assert.Contains(entry, text);
             text = text.Replace(entry, "  3\nACAD_MLEADERSTYLE\n350\nF0\n" + entry);
-            string style = string.Join("\n", new[]
-            {
-                "  0", "DICTIONARY", "  5", "F0", "330", "C", "100", "AcDbDictionary", "281", "1", "  3", "Standard", "350", "F1",
-                "  0", "MLEADERSTYLE", "  5", "F1", "102", "{ACAD_REACTORS", "330", "F0", "102", "}", "330", "F0", "100", "AcDbMLeaderStyle",
-                "179", "2", "170", "2", "171", "1", "172", "0", " 90", "2", " 40", "0.0", " 41", "0.0", "173", "1", " 91", "-1056964608",
-                " 92", "-2", "290", "1", " 42", "2.0", "291", "1", " 43", "8.0", "  3", "Standard", " 44", "4.0", "300", string.Empty,
-                "342", "21", "174", "1", "175", "1", "176", "0", "178", "1", " 93", "-1056964608", " 45", "4.0", "292", "0", "297", "0",
-                " 46", "4.0", " 94", "-1056964608", " 47", "1.0", " 49", "1.0", "140", "1.0", "294", "1", "141", "0.0", "177", "0",
-                "142", "1.0", "295", "0", "296", "0", "143", "3.75", "271", "0", "272", "9", "273", "9",
-            }) + "\n";
+            string style =
+                string.Join(
+                    "\n",
+                    new[]
+                    {
+                        "  0",
+                        "DICTIONARY",
+                        "  5",
+                        "F0",
+                        "330",
+                        "C",
+                        "100",
+                        "AcDbDictionary",
+                        "281",
+                        "1",
+                        "  3",
+                        "Standard",
+                        "350",
+                        "F1",
+                        "  0",
+                        "MLEADERSTYLE",
+                        "  5",
+                        "F1",
+                        "102",
+                        "{ACAD_REACTORS",
+                        "330",
+                        "F0",
+                        "102",
+                        "}",
+                        "330",
+                        "F0",
+                        "100",
+                        "AcDbMLeaderStyle",
+                        "179",
+                        "2",
+                        "170",
+                        "2",
+                        "171",
+                        "1",
+                        "172",
+                        "0",
+                        " 90",
+                        "2",
+                        " 40",
+                        "0.0",
+                        " 41",
+                        "0.0",
+                        "173",
+                        "1",
+                        " 91",
+                        "-1056964608",
+                        " 92",
+                        "-2",
+                        "290",
+                        "1",
+                        " 42",
+                        "2.0",
+                        "291",
+                        "1",
+                        " 43",
+                        "8.0",
+                        "  3",
+                        "Standard",
+                        " 44",
+                        "4.0",
+                        "300",
+                        string.Empty,
+                        "342",
+                        "21",
+                        "174",
+                        "1",
+                        "175",
+                        "1",
+                        "176",
+                        "0",
+                        "178",
+                        "1",
+                        " 93",
+                        "-1056964608",
+                        " 45",
+                        "4.0",
+                        "292",
+                        "0",
+                        "297",
+                        "0",
+                        " 46",
+                        "4.0",
+                        " 94",
+                        "-1056964608",
+                        " 47",
+                        "1.0",
+                        " 49",
+                        "1.0",
+                        "140",
+                        "1.0",
+                        "294",
+                        "1",
+                        "141",
+                        "0.0",
+                        "177",
+                        "0",
+                        "142",
+                        "1.0",
+                        "295",
+                        "0",
+                        "296",
+                        "0",
+                        "143",
+                        "3.75",
+                        "271",
+                        "0",
+                        "272",
+                        "9",
+                        "273",
+                        "9",
+                    }
+                ) + "\n";
             int objects = text.IndexOf("OBJECTS\n", StringComparison.Ordinal);
             int end = text.IndexOf("  0\nENDSEC\n", objects, StringComparison.Ordinal);
             text = text.Substring(0, end) + style + text.Substring(end);
             return CadDocument.From(DxfDatabase.Parse(text), "mleader.dxf");
         }
 
-        public static CadCommandSession Session(CadDocument document) => new CadCommandSession(document) { PickAperture = 1.0 };
+        public static CadCommandSession Session(CadDocument document) =>
+            new CadCommandSession(document) { PickAperture = 1.0 };
 
         /// <summary>
         /// Feeds inputs in turn: a text starts a command when none runs and answers the prompt when one does, a point is

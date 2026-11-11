@@ -11,7 +11,17 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     public sealed class DxfLayer
     {
-        internal DxfLayer(string name, int? colour, int? trueColour, string linetype, int? lineweight, bool isOff, bool isFrozen, bool isLocked, bool isPlotted)
+        internal DxfLayer(
+            string name,
+            int? colour,
+            int? trueColour,
+            string linetype,
+            int? lineweight,
+            bool isOff,
+            bool isFrozen,
+            bool isLocked,
+            bool isPlotted
+        )
         {
             Name = name;
             Color = colour;

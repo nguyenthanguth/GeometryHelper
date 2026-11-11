@@ -20,7 +20,10 @@ namespace GeometryHelper.Dxf
 
             if (source.PolyType == DxfPoly2dType.QuadSplinePoly || source.PolyType == DxfPoly2dType.CubicSplinePoly)
             {
-                throw new ArgumentException("A polyline fitted with a spline is not converted, as AutoCAD does not convert one: straighten it first.", "entity");
+                throw new ArgumentException(
+                    "A polyline fitted with a spline is not converted, as AutoCAD does not convert one: straighten it first.",
+                    "entity"
+                );
             }
 
             List<DxfPolyVertex> vertices = source.Model(out _);
@@ -40,23 +43,34 @@ namespace GeometryHelper.Dxf
 
             if (target.IsResident)
             {
-                throw new InvalidOperationException("The polyline that takes another's place is to be in no file: make it in code.");
+                throw new InvalidOperationException(
+                    "The polyline that takes another's place is to be in no file: make it in code."
+                );
             }
 
             if (!source.IsResident)
             {
-                throw new InvalidOperationException("The polyline of the plane is in no file, and has no place to be taken.");
+                throw new InvalidOperationException(
+                    "The polyline of the plane is in no file, and has no place to be taken."
+                );
             }
 
             DxfItem item = source.Item;
 
             if (!item.File.Supports(1014))
             {
-                throw new ArgumentException("A DXF older than R14 (AC1014) has no LWPOLYLINE to take the polyline's place.", "entity");
+                throw new ArgumentException(
+                    "A DXF older than R14 (AC1014) has no LWPOLYLINE to take the polyline's place.",
+                    "entity"
+                );
             }
 
             DxfItem snapshot = item.File.CopyOf(item);
-            item.File.SetShape(item, null, DxfPolyline.Records(vertices, closed, normal, elevation, thickness, generation, constant));
+            item.File.SetShape(
+                item,
+                null,
+                DxfPolyline.Records(vertices, closed, normal, elevation, thickness, generation, constant)
+            );
             Hand(source, target, item, snapshot);
         }
 
@@ -86,7 +100,11 @@ namespace GeometryHelper.Dxf
 
             DxfItem item = source.Item;
             DxfItem snapshot = item.File.CopyOf(item);
-            item.File.SetShape(item, null, DxfPolyline2d.Records(vertices, closed, normal, elevation, thickness, generation));
+            item.File.SetShape(
+                item,
+                null,
+                DxfPolyline2d.Records(vertices, closed, normal, elevation, thickness, generation)
+            );
             Hand(source, target, item, snapshot);
             return target;
         }
@@ -108,7 +126,15 @@ namespace GeometryHelper.Dxf
         {
             if (entity.IsErased)
             {
-                throw new InvalidOperationException("The " + entity.Item.Type + " " + (entity.Handle ?? string.Empty) + " is erased, and is not converted (" + parameter + ").");
+                throw new InvalidOperationException(
+                    "The "
+                        + entity.Item.Type
+                        + " "
+                        + (entity.Handle ?? string.Empty)
+                        + " is erased, and is not converted ("
+                        + parameter
+                        + ")."
+                );
             }
         }
     }

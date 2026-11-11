@@ -17,7 +17,8 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfSupportFileTests
     {
-        private const string Linetypes = ";; Linetypes of GeometryHelper's tests, as acad.lin writes them.\r\n"
+        private const string Linetypes =
+            ";; Linetypes of GeometryHelper's tests, as acad.lin writes them.\r\n"
             + ";;\r\n"
             + "*DASHED,Dashed __ __ __ __ __ __ __ __ __ __ __ __ __ _\r\n"
             + "A,.5,-.25\r\n"
@@ -31,7 +32,8 @@ namespace GeometryHelper.UnitTest.Dxf
             + "*TURNED,Turned text\r\n"
             + "A,.5,[\"T\",STANDARD,R=11,S=.2],-.25\r\n";
 
-        private const string Styles = "MLSTYLE\n  2\nSTANDARD\n 70\n     0\n  3\n\n 62\n   256\n 51\n90.000000\n 52\n90.000000\n 71\n     2\n"
+        private const string Styles =
+            "MLSTYLE\n  2\nSTANDARD\n 70\n     0\n  3\n\n 62\n   256\n 51\n90.000000\n 52\n90.000000\n 71\n     2\n"
             + " 49\n0.500000\n 62\n   256\n  6\nBYLAYER\n 49\n-0.500000\n 62\n   256\n  6\nBYLAYER\n"
             + "  0\nMLSTYLE\n  2\nGH_WALL\n 70\n   273\n  3\nWall 300\n 62\n     8\n 51\n90.000000\n 52\n45.000000\n 71\n     3\n"
             + " 49\n150.000000\n 62\n     1\n  6\nBYLAYER\n 49\n0.000000\n 62\n   256\n  6\nDASHED\n 49\n-150.000000\n 62\n     1\n  6\nBYBLOCK\n  0\n";
@@ -83,9 +85,14 @@ namespace GeometryHelper.UnitTest.Dxf
                 string saved = db.ToText();
                 string standard = db.TextStyleTable["Standard"].Handle;
                 DxfLinetypeTableRecord gas = db.LinetypeTable["GAS_LINE"];
-                Assert.EndsWith("  2\nGAS_LINE\n 70\n0\n  3\nGas line ----GAS----GAS----GAS----GAS----GAS----GAS--\n 72\n65\n 73\n3\n 40\n0.95\n"
-                    + " 49\n0.5\n 74\n0\n 49\n-0.2\n 74\n2\n 75\n0\n340\n" + standard + "\n 46\n0.1\n 50\n0\n 44\n-0.1\n 45\n-0.05\n  9\nGAS\n 49\n-0.25\n 74\n0\n",
-                    Records(saved).Single(r => HandleOf(r) == gas.Handle), StringComparison.Ordinal);
+                Assert.EndsWith(
+                    "  2\nGAS_LINE\n 70\n0\n  3\nGas line ----GAS----GAS----GAS----GAS----GAS----GAS--\n 72\n65\n 73\n3\n 40\n0.95\n"
+                        + " 49\n0.5\n 74\n0\n 49\n-0.2\n 74\n2\n 75\n0\n340\n"
+                        + standard
+                        + "\n 46\n0.1\n 50\n0\n 44\n-0.1\n 45\n-0.05\n  9\nGAS\n 49\n-0.25\n 74\n0\n",
+                    Records(saved).Single(r => HandleOf(r) == gas.Handle),
+                    StringComparison.Ordinal
+                );
                 OnlyTheseChanged(text, saved, gas.Handle, db.LinetypeTable["DASHED"].Handle, db.LinetypeTable.Handle);
 
                 DxfLinetypeTableRecord read = DxfDatabase.Parse(saved).LinetypeTable["GAS_LINE"];
@@ -103,7 +110,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 // A rotation is written in the degrees the file gives, 11 and not 11.000000000000002 of a trip through radians.
                 db.LoadLineTypeFile("TURNED", Path.Combine(folder, "gh.lin"));
-                Assert.Contains(" 46\n0.2\n 50\n11\n", Records(db.ToText()).Single(r => HandleOf(r) == db.LinetypeTable["TURNED"].Handle), StringComparison.Ordinal);
+                Assert.Contains(
+                    " 46\n0.2\n 50\n11\n",
+                    Records(db.ToText()).Single(r => HandleOf(r) == db.LinetypeTable["TURNED"].Handle),
+                    StringComparison.Ordinal
+                );
             });
         }
 
@@ -125,7 +136,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal("ltypeshp.shx", fence.ShapeStyleAt(1).FileName);
                 Assert.Equal(string.Empty, fence.ShapeStyleAt(1).Name);
                 Assert.Equal(0.1, fence.ShapeScaleAt(1));
-                Assert.Equal(new[] { 0.25, -0.1, -0.1, 1.0 }, Enumerable.Range(0, fence.NumDashes).Select(fence.DashLengthAt));
+                Assert.Equal(
+                    new[] { 0.25, -0.1, -0.1, 1.0 },
+                    Enumerable.Range(0, fence.NumDashes).Select(fence.DashLengthAt)
+                );
 
                 // A shape by its number needs no file; A= turns it from the x axis, in degrees.
                 DxfLinetypeTableRecord tracks = read.LinetypeTable["TRACKS"];
@@ -148,12 +162,19 @@ namespace GeometryHelper.UnitTest.Dxf
                 // DASHED is there already, and the file of shapes FENCELINE1 names by name is not beside the file.
                 db.LoadLineTypeFile("*", Path.Combine(folder, "gh.lin"));
 
-                Assert.Equal(new[] { "ByBlock", "ByLayer", "Continuous", "DASHED", "GAS_LINE", "TRACKS", "TURNED" }, db.LinetypeTable.Select(l => l.Name));
-                Assert.Throws<ArgumentException>(() => db.LoadLineTypeFile("FENCELINE1", Path.Combine(folder, "gh.lin")));
+                Assert.Equal(
+                    new[] { "ByBlock", "ByLayer", "Continuous", "DASHED", "GAS_LINE", "TRACKS", "TURNED" },
+                    db.LinetypeTable.Select(l => l.Name)
+                );
+                Assert.Throws<ArgumentException>(() =>
+                    db.LoadLineTypeFile("FENCELINE1", Path.Combine(folder, "gh.lin"))
+                );
                 Assert.Throws<ArgumentException>(() => db.LoadLineTypeFile("dashed", Path.Combine(folder, "gh.lin")));
                 Assert.Throws<ArgumentException>(() => db.LoadLineTypeFile("HIDDEN", Path.Combine(folder, "gh.lin")));
                 db.LoadLineTypeFile("NONE*", Path.Combine(folder, "gh.lin"));
-                Assert.Throws<FileNotFoundException>(() => db.LoadLineTypeFile("DASHED", Path.Combine(folder, "none.lin")));
+                Assert.Throws<FileNotFoundException>(() =>
+                    db.LoadLineTypeFile("DASHED", Path.Combine(folder, "none.lin"))
+                );
                 Assert.Throws<ArgumentNullException>(() => db.LoadLineTypeFile(null, Path.Combine(folder, "gh.lin")));
                 Assert.Throws<ArgumentNullException>(() => db.LoadLineTypeFile("DASHED", null));
             });
@@ -172,8 +193,18 @@ namespace GeometryHelper.UnitTest.Dxf
                 db.LoadLineTypeFile("*", Path.Combine(folder, "gh.lin"));
 
                 DxfDatabase read = DxfDatabase.Parse(db.ToText());
-                Assert.Equal(new[] { "ByBlock", "ByLayer", "Continuous", "DASHED" }, read.LinetypeTable.Select(l => l.Name));
-                Assert.DoesNotContain(" 74\n", Records(db.ToText()).Single(r => r.Contains("\n  2\nDASHED\n") && r.StartsWith("  0\nLTYPE\n", StringComparison.Ordinal)), StringComparison.Ordinal);
+                Assert.Equal(
+                    new[] { "ByBlock", "ByLayer", "Continuous", "DASHED" },
+                    read.LinetypeTable.Select(l => l.Name)
+                );
+                Assert.DoesNotContain(
+                    " 74\n",
+                    Records(db.ToText())
+                        .Single(r =>
+                            r.Contains("\n  2\nDASHED\n") && r.StartsWith("  0\nLTYPE\n", StringComparison.Ordinal)
+                        ),
+                    StringComparison.Ordinal
+                );
             });
         }
 
@@ -181,7 +212,8 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ALinetypeOfShapesADrawingCannotPointAt_IsRefused_AndNoStyleOfShapesIsLeftBehind()
         {
             // A drawing of R2000 that writes no handles, so that no dash can point at the style of ltypeshp.shx.
-            const string text = "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1015\n  0\nENDSEC\n"
+            const string text =
+                "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1015\n  0\nENDSEC\n"
                 + "  0\nSECTION\n  2\nTABLES\n"
                 + "  0\nTABLE\n  2\nLTYPE\n 70\n1\n  0\nLTYPE\n  2\nCONTINUOUS\n 70\n0\n  3\nSolid line\n 72\n65\n 73\n0\n 40\n0.0\n  0\nENDTAB\n"
                 + "  0\nTABLE\n  2\nSTYLE\n 70\n1\n  0\nSTYLE\n  2\nSTANDARD\n 70\n0\n 40\n0.0\n 41\n1.0\n 50\n0.0\n 71\n0\n 42\n2.5\n  3\ntxt\n  4\n\n  0\nENDTAB\n"
@@ -216,9 +248,12 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfDBDictionary styles = db.MLStyleDictionary;
                 var wall = (DxfMlineStyle)styles.GetAt("GH_WALL");
                 Assert.Equal(styles.Handle, wall.OwnerHandle);
-                Assert.EndsWith("100\nAcDbMlineStyle\n  2\nGH_WALL\n 70\n273\n  3\nWall 300\n 62\n8\n 51\n90.000000\n 52\n45.000000\n 71\n3\n"
-                    + " 49\n150.000000\n 62\n1\n  6\nBYLAYER\n 49\n0.000000\n 62\n256\n  6\nDASHED\n 49\n-150.000000\n 62\n1\n  6\nBYBLOCK\n",
-                    Records(db.ToText()).Single(r => HandleOf(r) == wall.Handle), StringComparison.Ordinal);
+                Assert.EndsWith(
+                    "100\nAcDbMlineStyle\n  2\nGH_WALL\n 70\n273\n  3\nWall 300\n 62\n8\n 51\n90.000000\n 52\n45.000000\n 71\n3\n"
+                        + " 49\n150.000000\n 62\n1\n  6\nBYLAYER\n 49\n0.000000\n 62\n256\n  6\nDASHED\n 49\n-150.000000\n 62\n1\n  6\nBYBLOCK\n",
+                    Records(db.ToText()).Single(r => HandleOf(r) == wall.Handle),
+                    StringComparison.Ordinal
+                );
 
                 var read = (DxfMlineStyle)DxfDatabase.Parse(db.ToText()).MLStyleDictionary.GetAt("GH_WALL");
                 Assert.Equal("GH_WALL", read.Name);
@@ -239,7 +274,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Throws<ArgumentException>(() => db.LoadMlineStyleFile("GH_WALL", mln));
                 Assert.Throws<ArgumentException>(() => db.LoadMlineStyleFile("STANDARD", mln));
                 Assert.Throws<ArgumentException>(() => db.LoadMlineStyleFile("GH_NONE", mln));
-                Assert.Throws<InvalidOperationException>(() => DxfDatabase.Parse(DxfFileEzdxfDrawings.R12).LoadMlineStyleFile("STANDARD", mln));
+                Assert.Throws<InvalidOperationException>(() =>
+                    DxfDatabase.Parse(DxfFileEzdxfDrawings.R12).LoadMlineStyleFile("STANDARD", mln)
+                );
             });
         }
 

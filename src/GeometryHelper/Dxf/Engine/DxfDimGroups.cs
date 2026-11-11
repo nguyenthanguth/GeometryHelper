@@ -97,12 +97,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The number of the first group of a code within a part, as the reader reads one; the fallback where there is none, or not a finite number.</summary>
-        internal double Real(int code, Range part, double fallback)
-            => Numbers.TryRead(Text(code, part), out double value) && Guard.IsFinite(value) ? value : fallback;
+        internal double Real(int code, Range part, double fallback) =>
+            Numbers.TryRead(Text(code, part), out double value) && Guard.IsFinite(value) ? value : fallback;
 
         /// <summary>The whole number of the first group of a code within a part; the fallback where there is none, or not a whole number.</summary>
-        internal int Whole(int code, Range part, int fallback)
-            => int.TryParse(Text(code, part)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+        internal int Whole(int code, Range part, int fallback) =>
+            int.TryParse(Text(code, part)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : fallback;
 
         /// <summary>
         /// The point of a code and the codes 10 and 20 above it within a part, as the reader reads one: a coordinate the record
@@ -169,7 +171,10 @@ namespace GeometryHelper.Dxf
             {
                 int at = code + 10 * i;
 
-                if (BitConverter.DoubleToInt64Bits(values[i]) != BitConverter.DoubleToInt64Bits(was[i]) || Find(at, Part(part)) < 0)
+                if (
+                    BitConverter.DoubleToInt64Bits(values[i]) != BitConverter.DoubleToInt64Bits(was[i])
+                    || Find(at, Part(part)) < 0
+                )
                 {
                     Set(at, Numbers.Exact(values[i] + 0.0), Part(part), order);
                 }
@@ -249,7 +254,9 @@ namespace GeometryHelper.Dxf
                 return after + 1;
             }
 
-            return part.From < List.Count && part.From < part.To && List[part.From].Key == 100 ? part.From + 1 : part.From;
+            return part.From < List.Count && part.From < part.To && List[part.From].Key == 100
+                ? part.From + 1
+                : part.From;
         }
 
         /// <summary>
@@ -280,7 +287,10 @@ namespace GeometryHelper.Dxf
 
             for (int i = 0; i < List.Count; i++)
             {
-                if (List[i].Key != _was[i].Key || !string.Equals(List[i].Value, _was[i].Value, StringComparison.Ordinal))
+                if (
+                    List[i].Key != _was[i].Key
+                    || !string.Equals(List[i].Value, _was[i].Value, StringComparison.Ordinal)
+                )
                 {
                     return false;
                 }
@@ -290,7 +300,10 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The part a range stands for once the list has changed: the base or the later subclasses, as given.</summary>
-        private Range Part(Range part) => Split < 0 ? All : part.From == 0 ? Base : Sub;
+        private Range Part(Range part) =>
+            Split < 0 ? All
+            : part.From == 0 ? Base
+            : Sub;
 
         private static int IndexIn(IReadOnlyList<int> order, int code)
         {

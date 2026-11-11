@@ -77,10 +77,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Settings = (settings ?? throw new ArgumentNullException(nameof(settings))).Clone();
             Title = editing ? "Hatch Editor" : "Hatch Creation";
             string own = Settings.PatternFile;
-            _patternFile = string.IsNullOrWhiteSpace(own) || string.Equals(own, CadPatternFile.BuiltInName, StringComparison.OrdinalIgnoreCase) ? null : own;
+            _patternFile =
+                string.IsNullOrWhiteSpace(own)
+                || string.Equals(own, CadPatternFile.BuiltInName, StringComparison.OrdinalIgnoreCase)
+                    ? null
+                    : own;
             _patterns = Find(document, _patternFile, out _fromFile, out string fault);
             _message = fault ?? string.Empty;
-            _pattern = Patterns.FirstOrDefault(p => string.Equals(p.Name, Settings.PatternName, StringComparison.OrdinalIgnoreCase));
+            _pattern = Patterns.FirstOrDefault(p =>
+                string.Equals(p.Name, Settings.PatternName, StringComparison.OrdinalIgnoreCase)
+            );
             _angle = Text(Settings.Angle);
             _scale = Text(Settings.Scale);
             _spacing = Text(Settings.Spacing);
@@ -146,7 +152,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get => _patternFile;
             set
             {
-                string file = string.IsNullOrWhiteSpace(value) || string.Equals(value.Trim(), CadPatternFile.BuiltInName, StringComparison.OrdinalIgnoreCase) ? null : value.Trim();
+                string file =
+                    string.IsNullOrWhiteSpace(value)
+                    || string.Equals(value.Trim(), CadPatternFile.BuiltInName, StringComparison.OrdinalIgnoreCase)
+                        ? null
+                        : value.Trim();
 
                 if (!Set(ref _patternFile, file))
                 {
@@ -164,7 +174,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _builtInCommand.RaiseCanExecuteChanged();
                 // The pattern chosen kept by its name; one of the file left gives way to ANSI31; one offered by no file stays as named.
                 string name = before?.Name ?? Settings.PatternName;
-                HatchPatternChoice kept = _patterns.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+                HatchPatternChoice kept = _patterns.FirstOrDefault(p =>
+                    string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)
+                );
 
                 if (kept != null || before != null)
                 {
@@ -192,10 +204,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             get
             {
-                int own = CadPatternFile.BuiltIn.Count(p => !string.Equals(p.Name, "SOLID", StringComparison.OrdinalIgnoreCase));
+                int own = CadPatternFile.BuiltIn.Count(p =>
+                    !string.Equals(p.Name, "SOLID", StringComparison.OrdinalIgnoreCase)
+                );
                 string count = own.ToString(CultureInfo.InvariantCulture);
-                return _patternFile == null ? count + " built-in patterns."
-                    : "The " + count + " built-in patterns, then " + _fromFile.ToString(CultureInfo.InvariantCulture) + " from this file; a built-in name wins.";
+                return _patternFile == null
+                    ? count + " built-in patterns."
+                    : "The "
+                        + count
+                        + " built-in patterns, then "
+                        + _fromFile.ToString(CultureInfo.InvariantCulture)
+                        + " from this file; a built-in name wins.";
             }
         }
 
@@ -229,10 +248,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the words under the preview: the pattern's description (ANSI Iron, Brick, Stone masonry), or for a pattern of the
         /// file chosen its name and the file's, "GRATING-30 · from steel-works.pat".
         /// </summary>
-        public string PatternCaption
-            => _pattern == null ? string.Empty
-               : _patternFile != null && string.Equals(_pattern.File, _patternFile, StringComparison.OrdinalIgnoreCase) ? _pattern.Name + " · from " + _pattern.Source
-               : _pattern.Description;
+        public string PatternCaption =>
+            _pattern == null ? string.Empty
+            : _patternFile != null && string.Equals(_pattern.File, _patternFile, StringComparison.OrdinalIgnoreCase)
+                ? _pattern.Name + " · from " + _pattern.Source
+            : _pattern.Description;
 
         /// <summary>Gets or sets the angle in degrees, as typed.</summary>
         public string Angle
@@ -276,7 +296,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public IReadOnlyList<string> IsoPenWidths => LinetypeManagerViewModel.IsoPenWidths;
 
         /// <summary>Gets whether the pattern is an ISO one (ACAD_ISO...), drawn for a pen of 1 mm, whose pen width is its scale.</summary>
-        public bool IsIso => IsPattern && (Settings.PatternName ?? string.Empty).StartsWith("ACAD_ISO", StringComparison.OrdinalIgnoreCase);
+        public bool IsIso =>
+            IsPattern
+            && (Settings.PatternName ?? string.Empty).StartsWith("ACAD_ISO", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>Gets or sets the ISO pen width: chosen, it sets the scale to the width in millimetres.</summary>
         public string IsoPenWidth
@@ -404,10 +426,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             using (var canvas = new SKCanvas(bitmap))
             using (var renderer = new SkiaCanvasRenderer())
             {
-                renderer.Render(canvas, document, document.ModelSpace, view, new CanvasOptions { Background = 0x1A1E24 });
+                renderer.Render(
+                    canvas,
+                    document,
+                    document.ModelSpace,
+                    view,
+                    new CanvasOptions { Background = 0x1A1E24 }
+                );
                 canvas.Flush();
                 var picture = new WriteableBitmap(width, height, 96.0, 96.0, PixelFormats.Pbgra32, null);
-                picture.WritePixels(new Int32Rect(0, 0, width, height), bitmap.GetPixels(), bitmap.ByteCount, bitmap.RowBytes);
+                picture.WritePixels(
+                    new Int32Rect(0, 0, width, height),
+                    bitmap.GetPixels(),
+                    bitmap.ByteCount,
+                    bitmap.RowBytes
+                );
                 picture.Freeze();
                 return picture;
             }
@@ -472,7 +505,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             string typed = (value ?? string.Empty).Trim();
 
-            if (!double.TryParse(typed, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) || double.IsNaN(number) || double.IsInfinity(number) || (positive && !(number > 0.0)))
+            if (
+                !double.TryParse(typed, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+                || double.IsNaN(number)
+                || double.IsInfinity(number)
+                || (positive && !(number > 0.0))
+            )
             {
                 Message = what + (positive ? " is a number above nought." : " is a number.");
                 return false;
@@ -489,7 +527,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// The presenter's own patterns, then those of the file chosen, counted, then those of the user's support folders, each
         /// name once; the fault where the file chosen cannot be read.
         /// </summary>
-        private static IReadOnlyList<HatchPatternChoice> Find(CadDocument document, string chosen, out int fromChosen, out string fault)
+        private static IReadOnlyList<HatchPatternChoice> Find(
+            CadDocument document,
+            string chosen,
+            out int fromChosen,
+            out string fault
+        )
         {
             var choices = new List<HatchPatternChoice>();
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -499,9 +542,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 foreach (CadHatchPattern pattern in patterns)
                 {
-                    if (!string.Equals(pattern.Name, "SOLID", StringComparison.OrdinalIgnoreCase) && names.Add(pattern.Name))
+                    if (
+                        !string.Equals(pattern.Name, "SOLID", StringComparison.OrdinalIgnoreCase)
+                        && names.Add(pattern.Name)
+                    )
                     {
-                        choices.Add(new HatchPatternChoice(pattern.Name.ToUpperInvariant(), pattern.Description, file(pattern), source));
+                        choices.Add(
+                            new HatchPatternChoice(
+                                pattern.Name.ToUpperInvariant(),
+                                pattern.Description,
+                                file(pattern),
+                                source
+                            )
+                        );
                     }
                 }
             }
@@ -524,7 +577,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 string name = Path.GetFileNameWithoutExtension(path);
 
                 // A pattern in a file of its own name is found on the support path, as AutoCAD finds a custom one; any other by its file.
-                Add(Read(path, out _), p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase) ? null : path, Path.GetFileName(path));
+                Add(
+                    Read(path, out _),
+                    p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase) ? null : path,
+                    Path.GetFileName(path)
+                );
             }
 
             return choices.AsReadOnly();
@@ -537,7 +594,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 read = true;
                 return CadPatternFile.Read(path);
             }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException || e is NotSupportedException)
+            catch (Exception e)
+                when (e is IOException
+                    || e is UnauthorizedAccessException
+                    || e is ArgumentException
+                    || e is NotSupportedException
+                )
             {
                 GeometryHelperLog.Debug("HatchSettingsViewModel: " + path + " was not read (" + e.Message + ").");
                 read = false;

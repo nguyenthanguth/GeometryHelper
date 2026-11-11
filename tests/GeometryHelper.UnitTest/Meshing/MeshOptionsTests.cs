@@ -46,7 +46,9 @@ namespace GeometryHelper.UnitTest.Meshing
             Assert.Throws<ArgumentOutOfRangeException>(() => MeshOptions.Grid(100, 100, -1));
             Assert.Throws<ArgumentOutOfRangeException>(() => MeshOptions.Grid(100, 100, double.PositiveInfinity));
             Assert.Throws<ArgumentOutOfRangeException>(() => MeshOptions.Grid(100, 100, 0, (GridAlignment)7));
-            Assert.Throws<ArgumentOutOfRangeException>(() => MeshOptions.Grid(100, 100, 0, GridAlignment.Start, (GridAlignment)7));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                MeshOptions.Grid(100, 100, 0, GridAlignment.Start, (GridAlignment)7)
+            );
             Assert.Throws<ArgumentOutOfRangeException>(() => MeshOptions.Grid(100, 100, P(double.NaN, 0)));
             Assert.Throws<ArgumentOutOfRangeException>(() => MeshOptions.Strips(double.NaN));
             Assert.Throws<ArgumentOutOfRangeException>(() => new MeshOptions(MeshKind.Triangles, chordTolerance: -0.1));
@@ -70,10 +72,26 @@ namespace GeometryHelper.UnitTest.Meshing
         [Fact]
         public void OptionsSayWhatTheyAre()
         {
-            Assert.Equal("(Kind: Triangles, AngleRad: along the shape, ChordTolerance: automatic)", MeshOptions.Triangles.ToString());
-            Assert.Equal("(Kind: Grid, Cell: 1200 x 600, Joint: 3, AngleRad: 0.5, Align: CenterCell/Start, ChordTolerance: 0.1)",
-                new MeshOptions(MeshKind.Grid, 1200, 600, 3, 0.5, GridAlignment.CenterCell, chordTolerance: 0.1).ToString());
-            Assert.StartsWith("(Kind: Grid, Cell: 10 x 10, Joint: 0, AngleRad: along the shape, Origin: ", MeshOptions.Grid(10, 10, P(1, 2)).ToString());
+            Assert.Equal(
+                "(Kind: Triangles, AngleRad: along the shape, ChordTolerance: automatic)",
+                MeshOptions.Triangles.ToString()
+            );
+            Assert.Equal(
+                "(Kind: Grid, Cell: 1200 x 600, Joint: 3, AngleRad: 0.5, Align: CenterCell/Start, ChordTolerance: 0.1)",
+                new MeshOptions(
+                    MeshKind.Grid,
+                    1200,
+                    600,
+                    3,
+                    0.5,
+                    GridAlignment.CenterCell,
+                    chordTolerance: 0.1
+                ).ToString()
+            );
+            Assert.StartsWith(
+                "(Kind: Grid, Cell: 10 x 10, Joint: 0, AngleRad: along the shape, Origin: ",
+                MeshOptions.Grid(10, 10, P(1, 2)).ToString()
+            );
         }
 
         [Fact]

@@ -125,7 +125,9 @@ namespace GeometryHelper.Dxf.Viewer
                 // grown so that its ends lie outside the ring, crosses an edge.
                 DisplayBox around = Bounds(ring);
                 around = around.Inflate(Math.Max(1.0, Math.Max(around.Width, around.Height)));
-                touches = ray.TryClip(around, out double x0, out double y0, out double x1, out double y1) && Crosses(ring, x0, y0, x1, y1);
+                touches =
+                    ray.TryClip(around, out double x0, out double y0, out double x1, out double y1)
+                    && Crosses(ring, x0, y0, x1, y1);
                 return false;
             }
 
@@ -142,7 +144,10 @@ namespace GeometryHelper.Dxf.Viewer
                     bool vertexIn = Contains(ring, xy[2 * k], xy[2 * k + 1]);
                     touches |= vertexIn;
                     inside &= vertexIn;
-                    int next = k + 1 < n ? k + 1 : chain.Value && n > 2 ? 0 : -1;
+                    int next =
+                        k + 1 < n ? k + 1
+                        : chain.Value && n > 2 ? 0
+                        : -1;
 
                     if (next >= 0 && Crosses(ring, xy[2 * k], xy[2 * k + 1], xy[2 * next], xy[2 * next + 1]))
                     {
@@ -161,7 +166,8 @@ namespace GeometryHelper.Dxf.Viewer
             if (item is DisplayRay2 ray)
             {
                 DisplayBox around = bounds.Inflate(Math.Max(1.0, Math.Max(bounds.Width, bounds.Height)));
-                return ray.TryClip(around, out double x0, out double y0, out double x1, out double y1) && MeetsFence(fence, x0, y0, x1, y1);
+                return ray.TryClip(around, out double x0, out double y0, out double x1, out double y1)
+                    && MeetsFence(fence, x0, y0, x1, y1);
             }
 
             foreach (KeyValuePair<double[], bool> chain in Chains(item))
@@ -196,7 +202,12 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 c = fence[i - 1];
                 GeoPoint2 d = fence[i];
 
-                if (Math.Max(ax, bx) < Math.Min(c.X, d.X) || Math.Min(ax, bx) > Math.Max(c.X, d.X) || Math.Max(ay, by) < Math.Min(c.Y, d.Y) || Math.Min(ay, by) > Math.Max(c.Y, d.Y))
+                if (
+                    Math.Max(ax, bx) < Math.Min(c.X, d.X)
+                    || Math.Min(ax, bx) > Math.Max(c.X, d.X)
+                    || Math.Max(ay, by) < Math.Min(c.Y, d.Y)
+                    || Math.Min(ay, by) > Math.Max(c.Y, d.Y)
+                )
                 {
                     continue;
                 }
@@ -207,7 +218,12 @@ namespace GeometryHelper.Dxf.Viewer
                 double d4 = Side(ax, ay, bx, by, d.X, d.Y);
 
                 // Of opposite sides or on the line, each of the other; two segments along one line meet where their boxes do.
-                if (!(d1 > 0.0 && d2 > 0.0) && !(d1 < 0.0 && d2 < 0.0) && !(d3 > 0.0 && d4 > 0.0) && !(d3 < 0.0 && d4 < 0.0))
+                if (
+                    !(d1 > 0.0 && d2 > 0.0)
+                    && !(d1 < 0.0 && d2 < 0.0)
+                    && !(d3 > 0.0 && d4 > 0.0)
+                    && !(d3 < 0.0 && d4 < 0.0)
+                )
                 {
                     return true;
                 }
@@ -227,12 +243,18 @@ namespace GeometryHelper.Dxf.Viewer
                 case DisplaySegments2 segments:
                     for (int i = 0; i + 3 < segments.Xy.Count; i += 4)
                     {
-                        yield return new KeyValuePair<double[], bool>(new[] { segments.Xy[i], segments.Xy[i + 1], segments.Xy[i + 2], segments.Xy[i + 3] }, false);
+                        yield return new KeyValuePair<double[], bool>(
+                            new[] { segments.Xy[i], segments.Xy[i + 1], segments.Xy[i + 2], segments.Xy[i + 3] },
+                            false
+                        );
                     }
 
                     break;
                 case DisplayArc2 arc:
-                    yield return new KeyValuePair<double[], bool>(arc.Flatten(Math.Max(arc.Radius * 1E-3, 1E-9)), false);
+                    yield return new KeyValuePair<double[], bool>(
+                        arc.Flatten(Math.Max(arc.Radius * 1E-3, 1E-9)),
+                        false
+                    );
                     break;
                 case DisplayFill2 fill:
                     foreach (double[] ring in fill.Rings)
@@ -246,7 +268,10 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (!box.IsEmpty)
                     {
-                        yield return new KeyValuePair<double[], bool>(new[] { box.MinX, box.MinY, box.MaxX, box.MinY, box.MaxX, box.MaxY, box.MinX, box.MaxY }, true);
+                        yield return new KeyValuePair<double[], bool>(
+                            new[] { box.MinX, box.MinY, box.MaxX, box.MinY, box.MaxX, box.MaxY, box.MinX, box.MaxY },
+                            true
+                        );
                     }
 
                     break;
@@ -280,7 +305,12 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 c = ring[j];
                 GeoPoint2 d = ring[i];
 
-                if (Math.Max(ax, bx) < Math.Min(c.X, d.X) || Math.Min(ax, bx) > Math.Max(c.X, d.X) || Math.Max(ay, by) < Math.Min(c.Y, d.Y) || Math.Min(ay, by) > Math.Max(c.Y, d.Y))
+                if (
+                    Math.Max(ax, bx) < Math.Min(c.X, d.X)
+                    || Math.Min(ax, bx) > Math.Max(c.X, d.X)
+                    || Math.Max(ay, by) < Math.Min(c.Y, d.Y)
+                    || Math.Min(ay, by) > Math.Max(c.Y, d.Y)
+                )
                 {
                     continue;
                 }
@@ -290,7 +320,10 @@ namespace GeometryHelper.Dxf.Viewer
                 double d3 = Side(ax, ay, bx, by, c.X, c.Y);
                 double d4 = Side(ax, ay, bx, by, d.X, d.Y);
 
-                if (((d1 > 0.0 && d2 < 0.0) || (d1 < 0.0 && d2 > 0.0)) && ((d3 > 0.0 && d4 < 0.0) || (d3 < 0.0 && d4 > 0.0)))
+                if (
+                    ((d1 > 0.0 && d2 < 0.0) || (d1 < 0.0 && d2 > 0.0))
+                    && ((d3 > 0.0 && d4 < 0.0) || (d3 < 0.0 && d4 > 0.0))
+                )
                 {
                     return true;
                 }
@@ -299,7 +332,8 @@ namespace GeometryHelper.Dxf.Viewer
             return false;
         }
 
-        private static double Side(double ax, double ay, double bx, double by, double px, double py) => (bx - ax) * (py - ay) - (by - ay) * (px - ax);
+        private static double Side(double ax, double ay, double bx, double by, double px, double py) =>
+            (bx - ax) * (py - ay) - (by - ay) * (px - ax);
 
         private static DisplayBox Bounds(IReadOnlyList<GeoPoint2> points)
         {

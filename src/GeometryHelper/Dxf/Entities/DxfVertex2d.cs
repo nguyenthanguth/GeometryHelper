@@ -23,15 +23,15 @@ namespace GeometryHelper.Dxf
     public sealed class DxfVertex2d : DxfVertex
     {
         // The groups of AcDbVertex and AcDb2dVertex in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 100, 10, 20, 30, 40, 41, 42, 70, 50, 71, 72, 73, 74, 91 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 100, 10, 20, 30, 40, 41, 42, 70, 50, 71, 72, 73, 74, 91 }
+        );
 
         private static readonly GeoPoint3 Origin = new GeoPoint3(0.0, 0.0, 0.0);
 
         /// <summary>Initializes a vertex at the origin with no bulge and no width, as AutoCAD's <c>new Vertex2d()</c>, in no polyline.</summary>
         public DxfVertex2d()
-            : this(Origin, 0.0, 0.0, 0.0, 0.0)
-        {
-        }
+            : this(Origin, 0.0, 0.0, 0.0, 0.0) { }
 
         /// <summary>
         /// Initializes a vertex, as AutoCAD's <c>new Vertex2d(position, bulge, startWidth, endWidth, tangent)</c>, in no polyline
@@ -45,14 +45,10 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a number is not finite, or a width is below nought.</exception>
         public DxfVertex2d(GeoPoint3 position, double bulge, double startWidth, double endWidth, double tangent)
-            : base(Groups(position, bulge, startWidth, endWidth, tangent))
-        {
-        }
+            : base(Groups(position, bulge, startWidth, endWidth, tangent)) { }
 
         private DxfVertex2d(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets or sets the point of the vertex (groups 10 and 20), in the system of the polyline's normal, as AutoCAD's
@@ -68,7 +64,6 @@ namespace GeometryHelper.Dxf
                 GeoPoint3 point = DxfFollowers.Point(OwnGroups(), 10, Origin);
                 return Polyline is DxfPolyline2d polyline ? new GeoPoint3(point.X, point.Y, polyline.Elevation) : point;
             }
-
             set => SetGroups(DxfFollowers.PointChanges(OwnGroups(), 10, value, Origin, Polyline == null ? 3 : 2));
         }
 
@@ -88,7 +83,6 @@ namespace GeometryHelper.Dxf
         public double StartWidth
         {
             get => DxfFollowers.Number(OwnGroups(), 40, 0.0);
-
             set
             {
                 Guard.NonNegative(value, nameof(value), "A width has to be a finite number, nought or more.");
@@ -102,7 +96,6 @@ namespace GeometryHelper.Dxf
         public double EndWidth
         {
             get => DxfFollowers.Number(OwnGroups(), 41, 0.0);
-
             set
             {
                 Guard.NonNegative(value, nameof(value), "A width has to be a finite number, nought or more.");
@@ -119,7 +112,6 @@ namespace GeometryHelper.Dxf
         public double Tangent
         {
             get => DxfFollowers.Number(OwnGroups(), 50, 0.0) * Math.PI / 180.0;
-
             set
             {
                 Guard.Finite(value, nameof(value), "A direction has to be a finite number.");
@@ -137,7 +129,6 @@ namespace GeometryHelper.Dxf
         public bool TangentUsed
         {
             get => (DxfFollowers.Whole(OwnGroups(), 70, 0) & 2) != 0;
-
             set
             {
                 IReadOnlyList<DxfTypedValue> groups = OwnGroups();
@@ -204,17 +195,26 @@ namespace GeometryHelper.Dxf
         }
 
         [DxfType("VERTEX")]
-        internal static DxfEntity Create(DxfItem item)
-            => item.Parent != null && (ParentFlags(item) & (8 | 16 | 64)) == 0 ? new DxfVertex2d(item) : null;
+        internal static DxfEntity Create(DxfItem item) =>
+            item.Parent != null && (ParentFlags(item) & (8 | 16 | 64)) == 0 ? new DxfVertex2d(item) : null;
 
         /// <inheritdoc/>
         private protected override IReadOnlyList<int> GroupOrder => Order;
 
-        private static IEnumerable<DxfTypedValue> Groups(GeoPoint3 position, double bulge, double startWidth, double endWidth, double tangent)
+        private static IEnumerable<DxfTypedValue> Groups(
+            GeoPoint3 position,
+            double bulge,
+            double startWidth,
+            double endWidth,
+            double tangent
+        )
         {
             if (!position.IsValid)
             {
-                throw new ArgumentException("A vertex has to be of finite numbers: " + position + " is not.", nameof(position));
+                throw new ArgumentException(
+                    "A vertex has to be of finite numbers: " + position + " is not.",
+                    nameof(position)
+                );
             }
 
             Guard.Finite(bulge, nameof(bulge), "A bulge has to be a finite number.");

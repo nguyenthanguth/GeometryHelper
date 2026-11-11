@@ -19,13 +19,15 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
 
-        private static readonly GeoTransform3 Shear = new GeoTransform3(new[,]
-        {
-            { 0.9210609940028851, -0.3894183423086505, 0.0, 1.0 },
-            { 0.778836684617301, 1.8421219880057702, 0.0, 2.0 },
-            { 0.0, 0.0, 1.0, 3.0 },
-            { 0.0, 0.0, 0.0, 1.0 },
-        });
+        private static readonly GeoTransform3 Shear = new GeoTransform3(
+            new[,]
+            {
+                { 0.9210609940028851, -0.3894183423086505, 0.0, 1.0 },
+                { 0.778836684617301, 1.8421219880057702, 0.0, 2.0 },
+                { 0.0, 0.0, 1.0, 3.0 },
+                { 0.0, 0.0, 0.0, 1.0 },
+            }
+        );
 
         [Fact]
         public void TheXlineOfEzdxf_IsReadAsEzdxfReadsIt_ToTheBit()
@@ -67,7 +69,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(Bits(new GeoPoint3(0, -5, 0)), Bits(xline.GetPointAtParameter(-10.0)));
             Assert.Equal(-10.0, xline.GetParameterAtPoint(new GeoPoint3(0, -5, 0)));
             Assert.Equal(-10.0, xline.GetDistAtPoint(new GeoPoint3(0, -5, 0)));
-            Assert.Equal(Bits(new GeoPoint3(0, -100, 0)), Bits(xline.GetClosestPointTo(new GeoPoint3(7, -100, 0), false)));
+            Assert.Equal(
+                Bits(new GeoPoint3(0, -100, 0)),
+                Bits(xline.GetClosestPointTo(new GeoPoint3(7, -100, 0), false))
+            );
             Assert.Throws<ArgumentException>(() => xline.GetParameterAtPoint(new GeoPoint3(1, 5, 0)));
             Assert.Throws<NotSupportedException>(() => xline.Extend(1.0));
 
@@ -143,7 +148,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(Bits(new GeoVector3(1, 0, 0)), Bits(again.UnitDir));
             }
 
-            Assert.Throws<ArgumentException>(() => DxfDatabase.Parse(DxfFileEzdxfDrawings.R12).ModelSpace.AppendEntity(new DxfXline()));
+            Assert.Throws<ArgumentException>(() =>
+                DxfDatabase.Parse(DxfFileEzdxfDrawings.R12).ModelSpace.AppendEntity(new DxfXline())
+            );
         }
 
         [Fact]
@@ -167,8 +174,12 @@ namespace GeometryHelper.UnitTest.Dxf
 
             xline.TransformBy(Shear);
 
-            Assert.True(xline.BasePoint.DistanceTo(new GeoPoint3(-0.9470917115432527, 11.210609940028851, 3.0)) <= 1E-12);
-            Assert.True(xline.UnitDir.Subtract(new GeoVector3(-0.20682574854393662, 0.9783777949949806, 0.0)).Length <= 1E-12);
+            Assert.True(
+                xline.BasePoint.DistanceTo(new GeoPoint3(-0.9470917115432527, 11.210609940028851, 3.0)) <= 1E-12
+            );
+            Assert.True(
+                xline.UnitDir.Subtract(new GeoVector3(-0.20682574854393662, 0.9783777949949806, 0.0)).Length <= 1E-12
+            );
         }
     }
 }

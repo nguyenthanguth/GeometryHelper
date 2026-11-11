@@ -60,8 +60,11 @@ namespace GeometryHelper.Drawing.Projection
         /// Thrown when an object has no id or no body, two objects have the same id, or the frame's axes are not of unit
         /// length and square to each other.
         /// </exception>
-        public static ProjectedView2 Project(IEnumerable<ProjectionInput> inputs, GeoCoordinateSystem3 frame, Tolerance tolerance)
-            => Project(inputs, frame, ProjectionOptions.Default, tolerance);
+        public static ProjectedView2 Project(
+            IEnumerable<ProjectionInput> inputs,
+            GeoCoordinateSystem3 frame,
+            Tolerance tolerance
+        ) => Project(inputs, frame, ProjectionOptions.Default, tolerance);
 
         /// <summary>
         /// Projects bodies into a view: the lines seen and hidden, and, for a section, the faces the plane cuts.
@@ -91,7 +94,12 @@ namespace GeometryHelper.Drawing.Projection
         /// Thrown when an object has no id or no body, two objects have the same id, the frame's axes are not of unit length
         /// and square to each other, or the section plane is seen edge-on.
         /// </exception>
-        public static ProjectedView2 Project(IEnumerable<ProjectionInput> inputs, GeoCoordinateSystem3 frame, ProjectionOptions options, Tolerance tolerance)
+        public static ProjectedView2 Project(
+            IEnumerable<ProjectionInput> inputs,
+            GeoCoordinateSystem3 frame,
+            ProjectionOptions options,
+            Tolerance tolerance
+        )
         {
             if (inputs == null)
             {
@@ -105,7 +113,10 @@ namespace GeometryHelper.Drawing.Projection
 
             if (!frame.IsValid)
             {
-                throw new ArgumentException("A view frame needs axes of unit length, square to each other.", nameof(frame));
+                throw new ArgumentException(
+                    "A view frame needs axes of unit length, square to each other.",
+                    nameof(frame)
+                );
             }
 
             var objects = new List<ProjectionInput>();
@@ -143,7 +154,10 @@ namespace GeometryHelper.Drawing.Projection
 
                 if (!(Math.Abs(facing) > tolerance.EqualVector))
                 {
-                    throw new ArgumentException("A section plane seen edge-on has no side away from the viewer.", nameof(options));
+                    throw new ArgumentException(
+                        "A section plane seen edge-on has no side away from the viewer.",
+                        nameof(options)
+                    );
                 }
 
                 // The normal is turned to the viewer, so that the part below the plane is the part kept.
@@ -196,7 +210,17 @@ namespace GeometryHelper.Drawing.Projection
                     continue;
                 }
 
-                ViewBody.Add(body, k, frame, cutInView, options.SmoothAngleRad, tolerance, ref faceBase, edges, occluders);
+                ViewBody.Add(
+                    body,
+                    k,
+                    frame,
+                    cutInView,
+                    options.SmoothAngleRad,
+                    tolerance,
+                    ref faceBase,
+                    edges,
+                    occluders
+                );
             }
 
             List<Piece2> pieces = Occlusion.Run(edges, occluders, tol);
@@ -216,12 +240,34 @@ namespace GeometryHelper.Drawing.Projection
 
             if (outOfDepth > 0)
             {
-                GeometryHelperLog.Debug(string.Format(CultureInfo.InvariantCulture, "ViewProjector: {0} of {1} objects lie outside the depth of the view and were left out.", outOfDepth, objects.Count));
+                GeometryHelperLog.Debug(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "ViewProjector: {0} of {1} objects lie outside the depth of the view and were left out.",
+                        outOfDepth,
+                        objects.Count
+                    )
+                );
             }
 
-            GeometryHelperLog.Info(string.Format(CultureInfo.InvariantCulture, "ViewProjector: {0} objects gave {1} seen lines, {2} hidden lines and {3} section faces.", objects.Count, visible.Count, hidden.Count, sections.Count));
+            GeometryHelperLog.Info(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "ViewProjector: {0} objects gave {1} seen lines, {2} hidden lines and {3} section faces.",
+                    objects.Count,
+                    visible.Count,
+                    hidden.Count,
+                    sections.Count
+                )
+            );
             bool empty = visible.Count == 0 && hidden.Count == 0 && sections.Count == 0;
-            return new ProjectedView2(visible.ToArray(), hidden.ToArray(), sections.ToArray(), Bounds(all, sections), empty);
+            return new ProjectedView2(
+                visible.ToArray(),
+                hidden.ToArray(),
+                sections.ToArray(),
+                Bounds(all, sections),
+                empty
+            );
         }
 
         /// <summary>
@@ -241,7 +287,9 @@ namespace GeometryHelper.Drawing.Projection
                 return material;
             }
 
-            GeometryHelperLog.Warn("ViewProjector: the openings of object " + input.Id + " could not be cut in; it is drawn without them.");
+            GeometryHelperLog.Warn(
+                "ViewProjector: the openings of object " + input.Id + " could not be cut in; it is drawn without them."
+            );
             return solid.WithOpenings(new GeoSolid3[0]);
         }
 
@@ -278,7 +326,11 @@ namespace GeometryHelper.Drawing.Projection
                 return null;
             }
 
-            GeometryHelperLog.Warn("ViewProjector: the section plane crosses object " + id + " but it could not be split; it is drawn whole.");
+            GeometryHelperLog.Warn(
+                "ViewProjector: the section plane crosses object "
+                    + id
+                    + " but it could not be split; it is drawn whole."
+            );
             return body;
         }
 
@@ -326,7 +378,10 @@ namespace GeometryHelper.Drawing.Projection
             }
             catch (ArgumentException exception)
             {
-                GeometryHelperLog.Warn("ViewProjector: a section face of object " + id + " is no polygon in the view and was left out.", exception);
+                GeometryHelperLog.Warn(
+                    "ViewProjector: a section face of object " + id + " is no polygon in the view and was left out.",
+                    exception
+                );
                 return null;
             }
         }
@@ -346,8 +401,10 @@ namespace GeometryHelper.Drawing.Projection
 
         private static GeoRectangle2 Bounds(List<ProjectedEdge2> edges, List<ProjectedFace2> sections)
         {
-            double x0 = double.PositiveInfinity, y0 = double.PositiveInfinity;
-            double x1 = double.NegativeInfinity, y1 = double.NegativeInfinity;
+            double x0 = double.PositiveInfinity,
+                y0 = double.PositiveInfinity;
+            double x1 = double.NegativeInfinity,
+                y1 = double.NegativeInfinity;
 
             void Grow(double x, double y)
             {
@@ -401,30 +458,39 @@ namespace GeometryHelper.Drawing.Projection
         private static int CompareEdges(ProjectedEdge2 a, ProjectedEdge2 b)
         {
             int c = CompareIds(a.ObjectIds, b.ObjectIds);
-            if (c != 0) return c;
+            if (c != 0)
+                return c;
             c = a.Kind.CompareTo(b.Kind);
-            if (c != 0) return c;
+            if (c != 0)
+                return c;
             c = a.Visibility.CompareTo(b.Visibility);
-            if (c != 0) return c;
+            if (c != 0)
+                return c;
             c = a.IsArc.CompareTo(b.IsArc);
-            if (c != 0) return c;
+            if (c != 0)
+                return c;
 
             if (!a.IsArc)
             {
                 c = a.Line.StartPoint.X.CompareTo(b.Line.StartPoint.X);
-                if (c != 0) return c;
+                if (c != 0)
+                    return c;
                 c = a.Line.StartPoint.Y.CompareTo(b.Line.StartPoint.Y);
-                if (c != 0) return c;
+                if (c != 0)
+                    return c;
                 c = a.Line.EndPoint.X.CompareTo(b.Line.EndPoint.X);
                 return c != 0 ? c : a.Line.EndPoint.Y.CompareTo(b.Line.EndPoint.Y);
             }
 
             c = a.Arc.Center.X.CompareTo(b.Arc.Center.X);
-            if (c != 0) return c;
+            if (c != 0)
+                return c;
             c = a.Arc.Center.Y.CompareTo(b.Arc.Center.Y);
-            if (c != 0) return c;
+            if (c != 0)
+                return c;
             c = a.Arc.Radius.CompareTo(b.Arc.Radius);
-            if (c != 0) return c;
+            if (c != 0)
+                return c;
             c = a.Arc.StartAngle.CompareTo(b.Arc.StartAngle);
             return c != 0 ? c : a.Arc.SweptAngle.CompareTo(b.Arc.SweptAngle);
         }
@@ -450,13 +516,16 @@ namespace GeometryHelper.Drawing.Projection
         private static int CompareFaces(ProjectedFace2 a, ProjectedFace2 b)
         {
             int c = string.CompareOrdinal(a.ObjectId, b.ObjectId);
-            if (c != 0) return c;
+            if (c != 0)
+                return c;
             GeoPoint2 pa = a.Face.Boundary.Vertices[0];
             GeoPoint2 pb = b.Face.Boundary.Vertices[0];
             c = pa.X.CompareTo(pb.X);
-            if (c != 0) return c;
+            if (c != 0)
+                return c;
             c = pa.Y.CompareTo(pb.Y);
-            if (c != 0) return c;
+            if (c != 0)
+                return c;
             c = a.Face.Boundary.VertexCount.CompareTo(b.Face.Boundary.VertexCount);
             return c != 0 ? c : a.Face.Area.CompareTo(b.Face.Area);
         }

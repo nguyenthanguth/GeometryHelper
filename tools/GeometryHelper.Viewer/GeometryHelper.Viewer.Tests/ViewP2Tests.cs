@@ -13,7 +13,12 @@ namespace GeometryHelper.Viewer.Tests
         public void APointOfTheScene_ShowsWhereTheRayThroughThatPlaceComesBackToIt(bool orthographic)
         {
             var box = new Bounds3(new Vec3(0, 0, 0), new Vec3(1000, 600, 300));
-            var camera = new ViewCamera { Orthographic = orthographic, Azimuth = 0.7, Elevation = 0.5 };
+            var camera = new ViewCamera
+            {
+                Orthographic = orthographic,
+                Azimuth = 0.7,
+                Elevation = 0.5,
+            };
             camera.Fit(box, 1.25);
             var map = new ScreenMap(camera, box, 1000.0, 800.0);
 
@@ -23,7 +28,10 @@ namespace GeometryHelper.Viewer.Tests
                 Assert.True(depth > 0.0);
                 map.GetRay(x, y, out Vec3 origin, out Vec3 direction);
                 Vec3 toPoint = point - origin;
-                Assert.True((toPoint - direction * Vec3.Dot(toPoint, direction)).Length < 1E-9, "the ray misses " + point);
+                Assert.True(
+                    (toPoint - direction * Vec3.Dot(toPoint, direction)).Length < 1E-9,
+                    "the ray misses " + point
+                );
             }
 
             // The target is the middle of the picture.
@@ -36,7 +44,13 @@ namespace GeometryHelper.Viewer.Tests
         public void InPerspective_APointBehindTheCameraIsNotInThePicture_AndASegmentIsCutAtTheNearPlane()
         {
             var box = new Bounds3(new Vec3(-1000, -1000, -1000), new Vec3(1000, 1000, 1000));
-            var camera = new ViewCamera { Azimuth = 0.0, Elevation = 0.0, Distance = 100.0, Target = new Vec3(0, 0, 0) };
+            var camera = new ViewCamera
+            {
+                Azimuth = 0.0,
+                Elevation = 0.0,
+                Distance = 100.0,
+                Target = new Vec3(0, 0, 0),
+            };
             var map = new ScreenMap(camera, box, 800.0, 600.0);
 
             // The camera stands at x = 100 looking along -X.
@@ -45,7 +59,10 @@ namespace GeometryHelper.Viewer.Tests
 
             Assert.True(map.ClipSegment(new Vec3(500, 0, 0), new Vec3(-500, 0, 0), out Vec3 from, out Vec3 to));
             Assert.Equal(100.0 - map.ClipDepth, from.X, 9);
-            Assert.True(map.TryProject(from, out _, out _, out _), "the end of a segment cut at the near plane is in the picture");
+            Assert.True(
+                map.TryProject(from, out _, out _, out _),
+                "the end of a segment cut at the near plane is in the picture"
+            );
             Assert.Equal(-500.0, to.X);
             Assert.False(map.ClipSegment(new Vec3(500, 0, 0), new Vec3(300, 0, 0), out _, out _));
         }
@@ -56,7 +73,12 @@ namespace GeometryHelper.Viewer.Tests
         public void TurningAboutAPoint_KeepsThatPointWhereItIsOnTheScreen(bool orthographic)
         {
             var box = new Bounds3(new Vec3(0, 0, 0), new Vec3(1000, 600, 300));
-            var camera = new ViewCamera { Orthographic = orthographic, Azimuth = 0.4, Elevation = 0.3 };
+            var camera = new ViewCamera
+            {
+                Orthographic = orthographic,
+                Azimuth = 0.4,
+                Elevation = 0.3,
+            };
             camera.Fit(box, 1.25);
             Vec3 centre = new Vec3(900, 100, 250);
 
@@ -68,7 +90,14 @@ namespace GeometryHelper.Viewer.Tests
             camera.RotateAbout(centre, 0.9, 0.2);
 
             Assert.NotEqual(target, camera.Target);
-            Assert.True(new ScreenMap(camera, box, 1000.0, 800.0).TryProject(centre, out double x1, out double y1, out double d1));
+            Assert.True(
+                new ScreenMap(camera, box, 1000.0, 800.0).TryProject(
+                    centre,
+                    out double x1,
+                    out double y1,
+                    out double d1
+                )
+            );
             Assert.Equal(x0, x1, 7);
             Assert.Equal(y0, y1, 7);
 
@@ -103,13 +132,22 @@ namespace GeometryHelper.Viewer.Tests
                 var camera = new ViewCamera { Target = new Vec3(100, 100, 100), Distance = distance };
                 camera.ClipPlanes(box, out double near, out double far);
 
-                Assert.True(far / near <= ViewCamera.MaxDepthRatio * (1.0 + 1E-12), "ratio " + far / near + " at " + distance);
+                Assert.True(
+                    far / near <= ViewCamera.MaxDepthRatio * (1.0 + 1E-12),
+                    "ratio " + far / near + " at " + distance
+                );
                 Assert.True(near <= distance * 0.01 + 1E-15);
                 Assert.True(far >= distance * 2.0, "the target and what is behind it up to its own distance are kept");
             }
 
             // 2 mm from the target the far plane is 20 m away, so the 60 m box is cut there.
-            var close = new ViewCamera { Target = new Vec3(100, 100, 100), Distance = 2.0, Azimuth = Math.PI, Elevation = 0.0 };
+            var close = new ViewCamera
+            {
+                Target = new Vec3(100, 100, 100),
+                Distance = 2.0,
+                Azimuth = Math.PI,
+                Elevation = 0.0,
+            };
             close.ClipPlanes(box, out _, out double farOfClose);
             Assert.Equal(2.0 * 0.01 * ViewCamera.MaxDepthRatio, farOfClose, 6);
         }
@@ -119,12 +157,24 @@ namespace GeometryHelper.Viewer.Tests
         {
             // The camera stands inside a box 1000 across, 500 from the far wall: the sphere round the box reaches 909, the far wall 500.
             var box = new Bounds3(new Vec3(0, 0, 0), new Vec3(1000, 1000, 1000));
-            var camera = new ViewCamera { Azimuth = 0.0, Elevation = 0.0, Distance = 100.0, Target = new Vec3(400, 500, 500) };
+            var camera = new ViewCamera
+            {
+                Azimuth = 0.0,
+                Elevation = 0.0,
+                Distance = 100.0,
+                Target = new Vec3(400, 500, 500),
+            };
 
             camera.ClipPlanes(box, out double near, out double far);
 
             Vec3 eye = camera.Position;
-            double deepest = new[] { 0.0, 1000.0 }.SelectMany(x => new[] { 0.0, 1000.0 }.SelectMany(y => new[] { 0.0, 1000.0 }.Select(z => Vec3.Dot(new Vec3(x, y, z) - eye, camera.Forward)))).Max();
+            double deepest = new[] { 0.0, 1000.0 }
+                .SelectMany(x =>
+                    new[] { 0.0, 1000.0 }.SelectMany(y =>
+                        new[] { 0.0, 1000.0 }.Select(z => Vec3.Dot(new Vec3(x, y, z) - eye, camera.Forward))
+                    )
+                )
+                .Max();
             Assert.Equal(deepest * 1.05, far, 9);
             Assert.True(far < 600.0);
             Assert.True(near > 0.0);
@@ -134,7 +184,13 @@ namespace GeometryHelper.Viewer.Tests
         public void ASceneBehindTheCamera_AddsNothingToTheFarPlane()
         {
             var behind = new Bounds3(new Vec3(200, -50, -50), new Vec3(300, 50, 50));
-            var camera = new ViewCamera { Azimuth = 0.0, Elevation = 0.0, Distance = 100.0, Target = new Vec3(0, 0, 0) };
+            var camera = new ViewCamera
+            {
+                Azimuth = 0.0,
+                Elevation = 0.0,
+                Distance = 100.0,
+                Target = new Vec3(0, 0, 0),
+            };
 
             camera.ClipPlanes(behind, out _, out double far);
 
@@ -161,8 +217,14 @@ namespace GeometryHelper.Viewer.Tests
 
             int total = capped.Items.Sum(item => item.Polylines[0].Points.Length);
             Assert.InRange(total, 19000, 20000);
-            Assert.InRange(capped.Items[0].Polylines[0].Points.Length, 180, within.Items[0].Polylines[0].Points.Length - 1);
-            Assert.True(capped.Items[1].Polylines[0].Points.Length < 54414 && capped.Items[1].Polylines[0].Points.Length > 180);
+            Assert.InRange(
+                capped.Items[0].Polylines[0].Points.Length,
+                180,
+                within.Items[0].Polylines[0].Points.Length - 1
+            );
+            Assert.True(
+                capped.Items[1].Polylines[0].Points.Length < 54414 && capped.Items[1].Polylines[0].Points.Length > 180
+            );
             Assert.True(capped.Items[2].Polylines[0].Points.Length <= 4968);
             string warning = Assert.Single(capped.Warnings);
             Assert.Contains("over the cap of 20000", warning, StringComparison.Ordinal);
@@ -172,13 +234,21 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Equal(within.Bounds.Min, capped.Bounds.Min);
             Assert.Equal(within.Bounds.Max, capped.Bounds.Max);
         }
+
         [Fact]
         public void ACapTheCurvesCannotMeet_CutsEveryCurveAndSaysThePointsAreStillOver()
         {
             Scene scene = new SceneWriter()
                 .Add(new GeoCircle2(new GeoPoint2(0, 0), 500.0))
                 .Add(new GeoCircle2(new GeoPoint2(0, 0), 600.0))
-                .Add(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10)))
+                .Add(
+                    new GeoPolygon2(
+                        new GeoPoint2(0, 0),
+                        new GeoPoint2(10, 0),
+                        new GeoPoint2(10, 10),
+                        new GeoPoint2(0, 10)
+                    )
+                )
                 .Scene;
 
             Primitives capped = Primitives.Build(scene, 100);

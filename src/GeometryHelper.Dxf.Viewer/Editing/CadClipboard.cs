@@ -54,7 +54,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="spaceName">The space copied from, Model or a layout's name; null for none.</param>
         /// <param name="count">How many objects were copied.</param>
         /// <exception cref="ArgumentException">Thrown when there is neither a drawing nor text.</exception>
-        public CadClipboardData(string drawing, string text, string source = null, string sourceName = null, string spaceName = null, int count = 0)
+        public CadClipboardData(
+            string drawing,
+            string text,
+            string source = null,
+            string sourceName = null,
+            string spaceName = null,
+            int count = 0
+        )
         {
             if (drawing == null && text == null)
             {

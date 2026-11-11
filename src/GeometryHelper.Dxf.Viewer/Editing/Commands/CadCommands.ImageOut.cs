@@ -51,7 +51,10 @@ namespace GeometryHelper.Dxf.Viewer
                 while (true)
                 {
                     yield return CadPrompt.ForString("Enter file name", offered);
-                    file = c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim().Trim('"') : offered;
+                    file =
+                        c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0
+                            ? c.Input.Text.Trim().Trim('"')
+                            : offered;
 
                     if (file.IndexOfAny(Path.GetInvalidPathChars()) < 0)
                     {
@@ -110,7 +113,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The file an image is offered as: the drawing's name beside the drawing, in Documents for a drawing of no file.</summary>
         private static string ImageFileName(CadDocument document, string extension)
         {
-            string folder = document.HasFile ? Path.GetDirectoryName(document.FileName) : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string folder = document.HasFile
+                ? Path.GetDirectoryName(document.FileName)
+                : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             string name = Path.GetFileNameWithoutExtension(document.Title);
 
             foreach (char bad in Path.GetInvalidFileNameChars())

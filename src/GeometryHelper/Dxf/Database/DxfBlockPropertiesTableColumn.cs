@@ -18,7 +18,17 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     public sealed class DxfBlockPropertiesTableColumn
     {
-        private DxfBlockPropertiesTableColumn(DxfBlockTableRecord block, int node, string handle, string name, string connection, DxfBlockParameterValueSet valueSet, bool isAngle, DxfAttributeDefinition attribute, IReadOnlyList<string> states = null)
+        private DxfBlockPropertiesTableColumn(
+            DxfBlockTableRecord block,
+            int node,
+            string handle,
+            string name,
+            string connection,
+            DxfBlockParameterValueSet valueSet,
+            bool isAngle,
+            DxfAttributeDefinition attribute,
+            IReadOnlyList<string> states = null
+        )
         {
             States = states;
             Block = block;
@@ -72,7 +82,16 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(parameter));
             }
 
-            return new DxfBlockPropertiesTableColumn(parameter.Block, parameter.Node, parameter.Handle, parameter.Name, "UpdatedDistance", parameter.ValueSet, false, null);
+            return new DxfBlockPropertiesTableColumn(
+                parameter.Block,
+                parameter.Node,
+                parameter.Handle,
+                parameter.Name,
+                "UpdatedDistance",
+                parameter.ValueSet,
+                false,
+                null
+            );
         }
 
         /// <summary>
@@ -90,7 +109,16 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(parameter));
             }
 
-            return new DxfBlockPropertiesTableColumn(parameter.Block, parameter.Node, parameter.Handle, parameter.XName, "UpdatedDistanceX", parameter.XValueSet, false, null);
+            return new DxfBlockPropertiesTableColumn(
+                parameter.Block,
+                parameter.Node,
+                parameter.Handle,
+                parameter.XName,
+                "UpdatedDistanceX",
+                parameter.XValueSet,
+                false,
+                null
+            );
         }
 
         /// <summary>
@@ -107,7 +135,16 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(parameter));
             }
 
-            return new DxfBlockPropertiesTableColumn(parameter.Block, parameter.Node, parameter.Handle, parameter.YName, "UpdatedDistanceY", parameter.YValueSet, false, null);
+            return new DxfBlockPropertiesTableColumn(
+                parameter.Block,
+                parameter.Node,
+                parameter.Handle,
+                parameter.YName,
+                "UpdatedDistanceY",
+                parameter.YValueSet,
+                false,
+                null
+            );
         }
 
         /// <summary>
@@ -124,7 +161,16 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(parameter));
             }
 
-            return new DxfBlockPropertiesTableColumn(parameter.Block, parameter.Node, parameter.Handle, parameter.DistanceName, "UpdatedDistance", parameter.DistanceValueSet, false, null);
+            return new DxfBlockPropertiesTableColumn(
+                parameter.Block,
+                parameter.Node,
+                parameter.Handle,
+                parameter.DistanceName,
+                "UpdatedDistance",
+                parameter.DistanceValueSet,
+                false,
+                null
+            );
         }
 
         /// <summary>
@@ -141,7 +187,16 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(parameter));
             }
 
-            return new DxfBlockPropertiesTableColumn(parameter.Block, parameter.Node, parameter.Handle, parameter.AngleName, "UpdatedAngle", parameter.AngleValueSet, true, null);
+            return new DxfBlockPropertiesTableColumn(
+                parameter.Block,
+                parameter.Node,
+                parameter.Handle,
+                parameter.AngleName,
+                "UpdatedAngle",
+                parameter.AngleValueSet,
+                true,
+                null
+            );
         }
 
         /// <summary>
@@ -158,7 +213,16 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(parameter));
             }
 
-            return new DxfBlockPropertiesTableColumn(parameter.Block, parameter.Node, parameter.Handle, parameter.Name, "UpdatedAngle", parameter.ValueSet, true, null);
+            return new DxfBlockPropertiesTableColumn(
+                parameter.Block,
+                parameter.Node,
+                parameter.Handle,
+                parameter.Name,
+                "UpdatedAngle",
+                parameter.ValueSet,
+                true,
+                null
+            );
         }
 
         /// <summary>
@@ -181,7 +245,15 @@ namespace GeometryHelper.Dxf
 
             DxfItem node = block.IsResident ? DxfDynamicBlockWriter.NodeOf(block, "BLOCKVISIBILITYPARAMETER") : null;
 
-            if (node == null || !int.TryParse(DxfDynamicProperties.Text(DxfDynamicProperties.Section(node.Groups, "AcDbEvalExpr"), 90)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int id))
+            if (
+                node == null
+                || !int.TryParse(
+                    DxfDynamicProperties.Text(DxfDynamicProperties.Section(node.Groups, "AcDbEvalExpr"), 90)?.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int id
+                )
+            )
             {
                 throw new ArgumentException("The block " + block.Name + " has no visibility parameter.", nameof(block));
             }
@@ -198,7 +270,17 @@ namespace GeometryHelper.Dxf
             }
 
             string name = DxfReader.NameOf(DxfDynamicProperties.Text(own, 301) ?? string.Empty);
-            return new DxfBlockPropertiesTableColumn(block, id, node.Handle, name, "VisibilityState", null, false, null, states.AsReadOnly());
+            return new DxfBlockPropertiesTableColumn(
+                block,
+                id,
+                node.Handle,
+                name,
+                "VisibilityState",
+                null,
+                false,
+                null,
+                states.AsReadOnly()
+            );
         }
 
         /// <summary>
@@ -215,7 +297,16 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(definition));
             }
 
-            return new DxfBlockPropertiesTableColumn(null, 0, definition.Handle, definition.Tag, string.Empty, null, false, definition);
+            return new DxfBlockPropertiesTableColumn(
+                null,
+                0,
+                definition.Handle,
+                definition.Tag,
+                string.Empty,
+                null,
+                false,
+                definition
+            );
         }
     }
 }

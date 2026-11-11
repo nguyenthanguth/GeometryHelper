@@ -19,17 +19,51 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Adds the variables of the window to a command line's registry, ORTHOMODE and LWDISPLAY of the drawing replaced by those the window draws by.</summary>
         private void AddWindowVariables(CadCommandRegistry registry)
         {
-            registry.AddVariable(CadSystemVariable.Integer("OSMODE", 0, 32767, () => (int)SnapModes | (FindToggle("OSNAP").IsOn ? 0 : SnapsOff), SetOsmode));
+            registry.AddVariable(
+                CadSystemVariable.Integer(
+                    "OSMODE",
+                    0,
+                    32767,
+                    () => (int)SnapModes | (FindToggle("OSNAP").IsOn ? 0 : SnapsOff),
+                    SetOsmode
+                )
+            );
             registry.AddVariable(ToggleVariable("ORTHOMODE", "ORTHO"));
             registry.AddVariable(ToggleVariable("SNAPMODE", "SNAP"));
             registry.AddVariable(ToggleVariable("GRIDMODE", "GRID"));
             registry.AddVariable(CadSystemVariable.Real("POLARANG", 360.0, () => _settings.PolarAngle, SetPolarAngle));
-            registry.AddVariable(CadSystemVariable.Integer("POLARMODE", 0, 15, () => _settings.PolarMode, SetPolarMode));
+            registry.AddVariable(
+                CadSystemVariable.Integer("POLARMODE", 0, 15, () => _settings.PolarMode, SetPolarMode)
+            );
             registry.AddVariable(CadSystemVariable.Integer("AUTOSNAP", 0, 63, Autosnap, SetAutosnap));
             registry.AddVariable(CadSystemVariable.Integer("DYNMODE", -3, 3, DynamicMode, SetDynamicMode));
-            registry.AddVariable(CadSystemVariable.Integer("PICKBOX", 1, 50, () => _settings.PickboxPixels, v => ChangeSettings(s => s.PickboxPixels = v)));
-            registry.AddVariable(CadSystemVariable.Integer("APERTURE", 2, 50, () => _settings.AperturePixels, v => ChangeSettings(s => s.AperturePixels = v)));
-            registry.AddVariable(CadSystemVariable.Integer("LWDISPLAY", 0, 1, () => ShowLineWeights ? 1 : 0, v => SetLineWeightDisplay(v != 0)));
+            registry.AddVariable(
+                CadSystemVariable.Integer(
+                    "PICKBOX",
+                    1,
+                    50,
+                    () => _settings.PickboxPixels,
+                    v => ChangeSettings(s => s.PickboxPixels = v)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Integer(
+                    "APERTURE",
+                    2,
+                    50,
+                    () => _settings.AperturePixels,
+                    v => ChangeSettings(s => s.AperturePixels = v)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Integer(
+                    "LWDISPLAY",
+                    0,
+                    1,
+                    () => ShowLineWeights ? 1 : 0,
+                    v => SetLineWeightDisplay(v != 0)
+                )
+            );
         }
 
         /// <summary>
@@ -51,8 +85,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>A switch of the status bar as a variable of 0 and 1.</summary>
-        private CadSystemVariable ToggleVariable(string name, string toggle)
-            => CadSystemVariable.Integer(name, 0, 1, () => FindToggle(toggle).IsOn ? 1 : 0, v => FindToggle(toggle).IsOn = v != 0);
+        private CadSystemVariable ToggleVariable(string name, string toggle) =>
+            CadSystemVariable.Integer(
+                name,
+                0,
+                1,
+                () => FindToggle(toggle).IsOn ? 1 : 0,
+                v => FindToggle(toggle).IsOn = v != 0
+            );
 
         /// <summary>OSMODE set: the snaps of its bits ticked, and OSNAP off where it holds 16384, as AutoCAD reads it.</summary>
         private void SetOsmode(int value)
@@ -65,9 +105,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// AUTOSNAP as AutoCAD reads it: 1 the marker, 2 the snap's tooltip, 4 the magnet, 8 POLAR, 16 OTRACK, 32 the tooltips
         /// of polar, tracking and ortho; 63 with everything on.
         /// </summary>
-        private int Autosnap()
-            => (Snap.ShowsMarker ? 1 : 0) | (Snap.ShowsSnapTip ? 2 : 0) | (Snap.Magnet ? 4 : 0) | (FindToggle("POLAR").IsOn ? 8 : 0)
-                | (FindToggle("OTRACK").IsOn ? 16 : 0) | (Snap.ShowsTrackingTip ? 32 : 0);
+        private int Autosnap() =>
+            (Snap.ShowsMarker ? 1 : 0)
+            | (Snap.ShowsSnapTip ? 2 : 0)
+            | (Snap.Magnet ? 4 : 0)
+            | (FindToggle("POLAR").IsOn ? 8 : 0)
+            | (FindToggle("OTRACK").IsOn ? 16 : 0)
+            | (Snap.ShowsTrackingTip ? 32 : 0);
 
         /// <summary>AUTOSNAP set: the canvas draws the marker, the tips and the magnet by its bits 1, 2, 4 and 32, POLAR follows 8 and OTRACK 16.</summary>
         private void SetAutosnap(int value)

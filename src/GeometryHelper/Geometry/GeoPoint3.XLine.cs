@@ -31,7 +31,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment leaving this point and landing on an infinite line, within a tolerance.
         /// </summary>
-        public GeoLine3 GetShortestLineTo(GeoXLine3 xline, Tolerance tolerance) => Projection3.GetShortestLineTo(xline, this, tolerance).Reverse();
+        public GeoLine3 GetShortestLineTo(GeoXLine3 xline, Tolerance tolerance) =>
+            Projection3.GetShortestLineTo(xline, this, tolerance).Reverse();
 
         #endregion
     }

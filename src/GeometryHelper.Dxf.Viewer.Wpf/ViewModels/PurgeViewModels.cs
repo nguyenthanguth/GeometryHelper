@@ -18,7 +18,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private bool _isChecked = true;
         private bool _isExpanded;
 
-        internal PurgeNodeViewModel(PurgeViewModel owner, string name, int level, CadPurgeItem item, IReadOnlyList<PurgeNodeViewModel> children, bool counted)
+        internal PurgeNodeViewModel(
+            PurgeViewModel owner,
+            string name,
+            int level,
+            CadPurgeItem item,
+            IReadOnlyList<PurgeNodeViewModel> children,
+            bool counted
+        )
         {
             _owner = owner;
             Name = name;
@@ -49,7 +56,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public IReadOnlyList<PurgeNodeViewModel> Children { get; }
 
         /// <summary>Gets the twisty: ▾ opened, ▸ closed, nothing where there is nothing under it.</summary>
-        public string Twisty => Children.Count == 0 ? string.Empty : _isExpanded ? "▾" : "▸";
+        public string Twisty =>
+            Children.Count == 0 ? string.Empty
+            : _isExpanded ? "▾"
+            : "▸";
 
         /// <summary>Gets whether there is anything of it to purge or to show; a kind of none is greyed.</summary>
         public bool IsEnabled => Item != null || Leaves.Any();
@@ -88,7 +98,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>The objects under the row, its own where it is one.</summary>
-        internal IEnumerable<PurgeNodeViewModel> Leaves => Item != null ? new[] { this } : Children.SelectMany(c => c.Leaves);
+        internal IEnumerable<PurgeNodeViewModel> Leaves =>
+            Item != null ? new[] { this } : Children.SelectMany(c => c.Leaves);
     }
 
     /// <summary>
@@ -99,7 +110,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </summary>
     public sealed class PurgeViewModel : ObservableObject
     {
-        private readonly ObservableCollection<PurgeNodeViewModel> _shown = new ObservableCollection<PurgeNodeViewModel>();
+        private readonly ObservableCollection<PurgeNodeViewModel> _shown =
+            new ObservableCollection<PurgeNodeViewModel>();
         private BlockPictures _pictures;
         private string _mode = "Purgeable Items";
         private PurgeNodeViewModel _root;
@@ -170,27 +182,65 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets or sets whether each object is asked about before it is purged.</summary>
-        public bool ConfirmEach { get => Request.ConfirmEach; set { Request.ConfirmEach = value; Raise(nameof(ConfirmEach)); } }
+        public bool ConfirmEach
+        {
+            get => Request.ConfirmEach;
+            set
+            {
+                Request.ConfirmEach = value;
+                Raise(nameof(ConfirmEach));
+            }
+        }
 
         /// <summary>Gets or sets whether what a purge leaves unused is purged too.</summary>
-        public bool PurgeNested { get => Request.PurgeNested; set { Request.PurgeNested = value; Raise(nameof(PurgeNested)); } }
+        public bool PurgeNested
+        {
+            get => Request.PurgeNested;
+            set
+            {
+                Request.PurgeNested = value;
+                Raise(nameof(PurgeNested));
+            }
+        }
 
         /// <summary>Gets or sets whether the geometry of no length is purged too.</summary>
-        public bool PurgeZeroLength { get => Request.PurgeZeroLength; set { Request.PurgeZeroLength = value; Raise(nameof(PurgeZeroLength)); } }
+        public bool PurgeZeroLength
+        {
+            get => Request.PurgeZeroLength;
+            set
+            {
+                Request.PurgeZeroLength = value;
+                Raise(nameof(PurgeZeroLength));
+            }
+        }
 
         /// <summary>Gets or sets whether the texts of no content are purged too.</summary>
-        public bool PurgeEmptyText { get => Request.PurgeEmptyText; set { Request.PurgeEmptyText = value; Raise(nameof(PurgeEmptyText)); } }
+        public bool PurgeEmptyText
+        {
+            get => Request.PurgeEmptyText;
+            set
+            {
+                Request.PurgeEmptyText = value;
+                Raise(nameof(PurgeEmptyText));
+            }
+        }
 
         /// <summary>Gets "Purge zero-length geometry (2)".</summary>
-        public string ZeroLengthText => "Purge zero-length geometry (" + Request.ZeroLength.ToString(CultureInfo.InvariantCulture) + ")";
+        public string ZeroLengthText =>
+            "Purge zero-length geometry (" + Request.ZeroLength.ToString(CultureInfo.InvariantCulture) + ")";
 
         /// <summary>Gets "Purge empty text objects (1)".</summary>
-        public string EmptyTextText => "Purge empty text objects (" + Request.EmptyText.ToString(CultureInfo.InvariantCulture) + ")";
+        public string EmptyTextText =>
+            "Purge empty text objects (" + Request.EmptyText.ToString(CultureInfo.InvariantCulture) + ")";
 
         /// <summary>Gets the line beside Close: how many objects can be purged, or how to see why one cannot.</summary>
-        public string FootNote => IsPurgeable
-            ? Request.Purgeable.Sum(k => k.Items.Count).ToString(CultureInfo.InvariantCulture) + " named items · " + (Request.ZeroLength + Request.EmptyText).ToString(CultureInfo.InvariantCulture) + " unnamed objects can be purged"
-            : "Pick an item to see why it cannot be purged";
+        public string FootNote =>
+            IsPurgeable
+                ? Request.Purgeable.Sum(k => k.Items.Count).ToString(CultureInfo.InvariantCulture)
+                    + " named items · "
+                    + (Request.ZeroLength + Request.EmptyText).ToString(CultureInfo.InvariantCulture)
+                    + " unnamed objects can be purged"
+                : "Pick an item to see why it cannot be purged";
 
         /// <summary>
         /// Gets the picture of the object chosen in Purgeable Items, white on black: a block, a text style or a dimension
@@ -217,14 +267,33 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             _pictures = _pictures ?? new BlockPictures(database, Request.Document.Fonts, 180, 180);
                             return _pictures.Draw(item.Name);
                         case "Text Styles":
-                            return database.TextStyleTable.Has(item.Name) ? CadStylePreview.Text(CadTextStyleSettings.Of(database.TextStyleTable[item.Name]), Request.Document.Fonts, 180, 180) : null;
+                            return database.TextStyleTable.Has(item.Name)
+                                ? CadStylePreview.Text(
+                                    CadTextStyleSettings.Of(database.TextStyleTable[item.Name]),
+                                    Request.Document.Fonts,
+                                    180,
+                                    180
+                                )
+                                : null;
                         case "Dimension Styles":
-                            return database.DimStyleTable.Has(item.Name) ? CadStylePreview.Dimensions(database, CadDimStyleEditor.Read(database.DimStyleTable[item.Name]), Request.Document.Fonts, 180, 180) : null;
+                            return database.DimStyleTable.Has(item.Name)
+                                ? CadStylePreview.Dimensions(
+                                    database,
+                                    CadDimStyleEditor.Read(database.DimStyleTable[item.Name]),
+                                    Request.Document.Fonts,
+                                    180,
+                                    180
+                                )
+                                : null;
                         default:
                             return null;
                     }
                 }
-                catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException || exception is FormatException)
+                catch (Exception exception)
+                    when (exception is ArgumentException
+                        || exception is InvalidOperationException
+                        || exception is FormatException
+                    )
                 {
                     GeometryHelperLog.Debug("PurgeViewModel: no preview of " + item.Name + ": " + exception.Message);
                     return null;
@@ -233,15 +302,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets the line under the preview: "Block DOOR_OLD · not used anywhere.", or what to pick.</summary>
-        public string PreviewNote => _selected?.Item == null
-            ? "Pick an item to see it. Blocks, dimension styles and text styles show a preview; the other kinds show their name only."
-            : Singular(_selected.Item.Kind) + " " + _selected.Item.Name + " · not used anywhere.";
+        public string PreviewNote =>
+            _selected?.Item == null
+                ? "Pick an item to see it. Blocks, dimension styles and text styles show a preview; the other kinds show their name only."
+                : Singular(_selected.Item.Kind) + " " + _selected.Item.Name + " · not used anywhere.";
 
         /// <summary>Gets the heading of the reasons: "Layer WALLS"; empty where no object in use is chosen.</summary>
-        public string ReasonsTitle => _selected?.Item == null || IsPurgeable ? string.Empty : Singular(_selected.Item.Kind) + " " + _selected.Item.Name;
+        public string ReasonsTitle =>
+            _selected?.Item == null || IsPurgeable
+                ? string.Empty
+                : Singular(_selected.Item.Kind) + " " + _selected.Item.Name;
 
         /// <summary>Gets the reasons the object chosen cannot be purged.</summary>
-        public IReadOnlyList<string> Reasons => _selected?.Item == null || IsPurgeable ? Array.Empty<string>() : _selected.Item.Reasons;
+        public IReadOnlyList<string> Reasons =>
+            _selected?.Item == null || IsPurgeable ? Array.Empty<string>() : _selected.Item.Reasons;
 
         /// <summary>Gets whether Select Objects can run: an object in use is chosen, and objects of the space shown use it.</summary>
         public bool CanSelectObjects => IsNonPurgeable && _selected?.Item != null && _selected.Item.Objects.Count > 0;
@@ -306,7 +380,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             foreach (CadPurgeCategory category in categories)
             {
-                var items = category.Items.Select(i => new PurgeNodeViewModel(this, i.Name, 2, i, null, false)).ToList();
+                var items = category
+                    .Items.Select(i => new PurgeNodeViewModel(this, i.Name, 2, i, null, false))
+                    .ToList();
                 kinds.Add(new PurgeNodeViewModel(this, category.Name, 1, null, items, true));
             }
 
@@ -318,7 +394,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private static string Singular(string kind)
         {
-            string name = kind.EndsWith("ies", StringComparison.Ordinal) ? kind.Substring(0, kind.Length - 3) + "y" : kind.TrimEnd('s');
+            string name = kind.EndsWith("ies", StringComparison.Ordinal)
+                ? kind.Substring(0, kind.Length - 3) + "y"
+                : kind.TrimEnd('s');
             return name.Length > 0 ? name.Substring(0, 1) + name.Substring(1).ToLowerInvariant() : name;
         }
     }

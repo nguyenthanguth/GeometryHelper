@@ -14,16 +14,26 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     public class Pedit3dTests
     {
         private const string Options = "Enter an option [Close/Join/Edit vertex/Spline curve/Decurve/Reverse/Undo]:";
-        private const string ClosedOptions = "Enter an option [Open/Join/Edit vertex/Spline curve/Decurve/Reverse/Undo]:";
-        private const string VertexOptions = "Enter a vertex editing option [Next/Previous/Break/Insert/Move/Regen/Straighten/eXit] <N>:";
+        private const string ClosedOptions =
+            "Enter an option [Open/Join/Edit vertex/Spline curve/Decurve/Reverse/Undo]:";
+        private const string VertexOptions =
+            "Enter a vertex editing option [Next/Previous/Break/Insert/Move/Regen/Straighten/eXit] <N>:";
 
-        private static readonly GeoPoint3[] Corners = { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 10), new GeoPoint3(100, 100, 20), new GeoPoint3(0, 100, 30) };
+        private static readonly GeoPoint3[] Corners =
+        {
+            new GeoPoint3(0, 0, 0),
+            new GeoPoint3(100, 0, 10),
+            new GeoPoint3(100, 100, 20),
+            new GeoPoint3(0, 100, 30),
+        };
 
         private static CadDocument Drawn(out CadCommandSession session)
         {
             CadDocument document = Blank();
             session = Session(document);
-            document.ApplyEdit("draw", null, s => s.Append(document.ModelSpace, new DxfPolyline3d(DxfPoly3dType.SimplePoly, Corners, false)));
+            document.ApplyEdit("draw", null, s =>
+                s.Append(document.ModelSpace, new DxfPolyline3d(DxfPoly3dType.SimplePoly, Corners, false))
+            );
             return document;
         }
 
@@ -38,7 +48,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             for (int i = 0; i < vertices.Count; i++)
             {
                 Near(new GeoPoint3(xyzf[4 * i], xyzf[4 * i + 1], xyzf[4 * i + 2]), vertices[i].Position, 1E-8);
-                int flags = vertices[i].VertexType == DxfVertex3dType.ControlVertex ? 48 : vertices[i].VertexType == DxfVertex3dType.FitVertex ? 40 : 32;
+                int flags =
+                    vertices[i].VertexType == DxfVertex3dType.ControlVertex ? 48
+                    : vertices[i].VertexType == DxfVertex3dType.FitVertex ? 40
+                    : 32;
                 Assert.Equal((int)xyzf[4 * i + 3], flags);
             }
         }
@@ -79,9 +92,59 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(DxfPoly3dType.CubicSplinePoly, polyline.PolyType);
             Vertices(
                 polyline,
-                0, 0, 0, 48, 0, 0, 0, 40, 32.8125, 4.296875, 3.75, 40, 56.25, 15.625, 7.5, 40, 70.3125, 31.640625, 11.25, 40,
-                75, 50, 15, 40, 70.3125, 68.359375, 18.75, 40, 56.25, 84.375, 22.5, 40, 32.8125, 95.703125, 26.25, 40, 0, 100, 30, 40,
-                100, 0, 10, 48, 100, 100, 20, 48, 0, 100, 30, 48);
+                0,
+                0,
+                0,
+                48,
+                0,
+                0,
+                0,
+                40,
+                32.8125,
+                4.296875,
+                3.75,
+                40,
+                56.25,
+                15.625,
+                7.5,
+                40,
+                70.3125,
+                31.640625,
+                11.25,
+                40,
+                75,
+                50,
+                15,
+                40,
+                70.3125,
+                68.359375,
+                18.75,
+                40,
+                56.25,
+                84.375,
+                22.5,
+                40,
+                32.8125,
+                95.703125,
+                26.25,
+                40,
+                0,
+                100,
+                30,
+                40,
+                100,
+                0,
+                10,
+                48,
+                100,
+                100,
+                20,
+                48,
+                0,
+                100,
+                30,
+                48
+            );
 
             // Closed, fitted again round the frame: 32 vertices of the curve, the first at (83.3333, 16.6667, 10).
             Run(session, "C");
@@ -122,7 +185,29 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "N", "I");
             Assert.Equal("Specify location for new vertex:", session.PromptText);
             Run(session, P(150, 50), "X", Enter);
-            Vertices(Assert.Single(Polylines(document)), 0, 0, 0, 32, 100, 0, 10, 32, 150, 50, 0, 32, 100, 100, 20, 32, 0, 100, 30, 32);
+            Vertices(
+                Assert.Single(Polylines(document)),
+                0,
+                0,
+                0,
+                32,
+                100,
+                0,
+                10,
+                32,
+                150,
+                50,
+                0,
+                32,
+                100,
+                100,
+                20,
+                32,
+                0,
+                100,
+                30,
+                32
+            );
             Run(session, "U");
 
             Run(session, "PEDIT", P(50, 0), "E", "N", "M", P(150, 50), "X", Enter);
@@ -159,10 +244,59 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "PEDIT", P(50, 0), "S", "E", "N", "M", P(150, 50), "X", Enter);
             Vertices(
                 Assert.Single(Polylines(document)),
-                0, 0, 0, 48, 0, 0, 0, 40, 47.16796875, 18.65234375, 0.87890625, 40, 77.34375, 36.71875, 3.28125, 40,
-                92.28515625, 53.61328125, 6.85546875, 40, 93.75, 68.75, 11.25, 40, 83.49609375, 81.54296875, 16.11328125, 40,
-                63.28125, 91.40625, 21.09375, 40, 34.86328125, 97.75390625, 25.83984375, 40, 0, 100, 30, 40,
-                150, 50, 0, 48, 100, 100, 20, 48, 0, 100, 30, 48);
+                0,
+                0,
+                0,
+                48,
+                0,
+                0,
+                0,
+                40,
+                47.16796875,
+                18.65234375,
+                0.87890625,
+                40,
+                77.34375,
+                36.71875,
+                3.28125,
+                40,
+                92.28515625,
+                53.61328125,
+                6.85546875,
+                40,
+                93.75,
+                68.75,
+                11.25,
+                40,
+                83.49609375,
+                81.54296875,
+                16.11328125,
+                40,
+                63.28125,
+                91.40625,
+                21.09375,
+                40,
+                34.86328125,
+                97.75390625,
+                25.83984375,
+                40,
+                0,
+                100,
+                30,
+                40,
+                150,
+                50,
+                0,
+                48,
+                100,
+                100,
+                20,
+                48,
+                0,
+                100,
+                30,
+                48
+            );
         }
     }
 }

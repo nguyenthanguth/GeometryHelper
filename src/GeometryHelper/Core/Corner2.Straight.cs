@@ -34,7 +34,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Rounds every corner of a straight chain by the same radius.
         /// </summary>
-        public static GeoPolylineArc2 Fillet(GeoPolyline2 polyline, double radius) => Fillet(polyline, radius, Tolerance.Global);
+        public static GeoPolylineArc2 Fillet(GeoPolyline2 polyline, double radius) =>
+            Fillet(polyline, radius, Tolerance.Global);
 
         /// <summary>
         /// Rounds every corner of a straight chain by the same radius, within a tolerance.
@@ -57,7 +58,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Rounds the corners of a straight chain, one radius each.
         /// </summary>
-        public static GeoPolylineArc2 Fillet(GeoPolyline2 polyline, IReadOnlyList<double> radii) => Fillet(polyline, radii, Tolerance.Global);
+        public static GeoPolylineArc2 Fillet(GeoPolyline2 polyline, IReadOnlyList<double> radii) =>
+            Fillet(polyline, radii, Tolerance.Global);
 
         /// <summary>
         /// Rounds the corners of a straight chain, one radius each, within a tolerance.
@@ -80,8 +82,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Rounds one corner of a straight chain.
         /// </summary>
-        public static bool TryFilletAt(GeoPolyline2 polyline, int index, double radius, out GeoPolylineArc2 result)
-            => TryFilletAt(polyline, index, radius, out result, Tolerance.Global);
+        public static bool TryFilletAt(GeoPolyline2 polyline, int index, double radius, out GeoPolylineArc2 result) =>
+            TryFilletAt(polyline, index, radius, out result, Tolerance.Global);
 
         /// <summary>
         /// Rounds one corner of a straight chain, within a tolerance.
@@ -93,7 +95,13 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the corner was rounded; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryFilletAt(GeoPolyline2 polyline, int index, double radius, out GeoPolylineArc2 result, Tolerance tolerance)
+        public static bool TryFilletAt(
+            GeoPolyline2 polyline,
+            int index,
+            double radius,
+            out GeoPolylineArc2 result,
+            Tolerance tolerance
+        )
         {
             if (polyline == null)
             {
@@ -110,7 +118,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Rounds every corner of a straight loop by the same radius.
         /// </summary>
-        public static GeoPolygonArc2 Fillet(GeoPolygon2 polygon, double radius) => Fillet(polygon, radius, Tolerance.Global);
+        public static GeoPolygonArc2 Fillet(GeoPolygon2 polygon, double radius) =>
+            Fillet(polygon, radius, Tolerance.Global);
 
         /// <summary>
         /// Rounds every corner of a straight loop by the same radius, within a tolerance.
@@ -133,7 +142,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Rounds the corners of a straight loop, one radius each.
         /// </summary>
-        public static GeoPolygonArc2 Fillet(GeoPolygon2 polygon, IReadOnlyList<double> radii) => Fillet(polygon, radii, Tolerance.Global);
+        public static GeoPolygonArc2 Fillet(GeoPolygon2 polygon, IReadOnlyList<double> radii) =>
+            Fillet(polygon, radii, Tolerance.Global);
 
         /// <summary>
         /// Rounds the corners of a straight loop, one radius each, within a tolerance.
@@ -156,8 +166,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Rounds one corner of a straight loop.
         /// </summary>
-        public static bool TryFilletAt(GeoPolygon2 polygon, int index, double radius, out GeoPolygonArc2 result)
-            => TryFilletAt(polygon, index, radius, out result, Tolerance.Global);
+        public static bool TryFilletAt(GeoPolygon2 polygon, int index, double radius, out GeoPolygonArc2 result) =>
+            TryFilletAt(polygon, index, radius, out result, Tolerance.Global);
 
         /// <summary>
         /// Rounds one corner of a straight loop, within a tolerance.
@@ -169,7 +179,13 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the corner was rounded; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TryFilletAt(GeoPolygon2 polygon, int index, double radius, out GeoPolygonArc2 result, Tolerance tolerance)
+        public static bool TryFilletAt(
+            GeoPolygon2 polygon,
+            int index,
+            double radius,
+            out GeoPolygonArc2 result,
+            Tolerance tolerance
+        )
         {
             if (polygon == null)
             {
@@ -206,7 +222,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// The loop read as a curved one, corner for corner, every bulge at nought.
         /// </summary>
-        private static GeoPolygonArc2 Widened(GeoPolygon2 polygon) => GeoPolygonArc2.FromEdges(polygon.Vertices, null, default(Tolerance));
+        private static GeoPolygonArc2 Widened(GeoPolygon2 polygon) =>
+            GeoPolygonArc2.FromEdges(polygon.Vertices, null, default(Tolerance));
 
         #endregion
     }

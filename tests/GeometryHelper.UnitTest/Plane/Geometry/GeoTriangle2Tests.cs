@@ -16,7 +16,8 @@ namespace GeometryHelper.UnitTest.Plane
         private static readonly Tolerance Tolerance = Tolerance.Default;
 
         /// <summary>A right triangle with legs 4 and 3 along the axes, counter-clockwise.</summary>
-        private static GeoTriangle2 Right() => new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(4, 0), new GeoPoint2(0, 3));
+        private static GeoTriangle2 Right() =>
+            new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(4, 0), new GeoPoint2(0, 3));
 
         [Fact]
         public void ItKeepsItsVerticesInTheOrderGiven()
@@ -134,7 +135,11 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(sliver.IsDegenerate(Tolerance));
             Assert.False(thin.IsDegenerate(Tolerance));
             Assert.False(thin.IsDegenerate(new Tolerance()));
-            Assert.True(new GeoTriangle2(new GeoPoint2(2, 2), new GeoPoint2(2, 2), new GeoPoint2(2, 2)).IsDegenerate(new Tolerance()));
+            Assert.True(
+                new GeoTriangle2(new GeoPoint2(2, 2), new GeoPoint2(2, 2), new GeoPoint2(2, 2)).IsDegenerate(
+                    new Tolerance()
+                )
+            );
         }
 
         [Fact]
@@ -228,10 +233,15 @@ namespace GeometryHelper.UnitTest.Plane
         public void TransformingThroughEitherFormGivesTheSameTriangle()
         {
             GeoTriangle2 t = Right();
-            GeoTransform2 motion = GeoTransform2.Translation(new GeoVector2(3, -4)).Multiply(GeoTransform2.Rotation(0.7));
+            GeoTransform2 motion = GeoTransform2
+                .Translation(new GeoVector2(3, -4))
+                .Multiply(GeoTransform2.Rotation(0.7));
 
             Assert.Equal(motion.Transform(t), t.TransformBy(motion));
-            Assert.Equal(new GeoTriangle2(motion.Transform(t.A), motion.Transform(t.B), motion.Transform(t.C)), t.TransformBy(motion));
+            Assert.Equal(
+                new GeoTriangle2(motion.Transform(t.A), motion.Transform(t.B), motion.Transform(t.C)),
+                t.TransformBy(motion)
+            );
             Assert.Equal(t.Area, t.TransformBy(motion).Area, 9);
             Assert.Throws<ArgumentNullException>(() => t.TransformBy(null));
         }
@@ -265,7 +275,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ItGoesIntoSpaceAndComesBack()
         {
-            var frame = new GeoCoordinateSystem3(new GeoPlane3(new GeoPoint3(100, -50, 30), new GeoVector3(0.3, -0.4, 0.86).Normalize()));
+            var frame = new GeoCoordinateSystem3(
+                new GeoPlane3(new GeoPoint3(100, -50, 30), new GeoVector3(0.3, -0.4, 0.86).Normalize())
+            );
             GeoTriangle2 t = Right();
 
             GeoTriangle3 lifted = t.ToTriangle3(frame);
@@ -297,7 +309,9 @@ namespace GeometryHelper.UnitTest.Plane
         public void ItIsValidWhenEveryCornerIs()
         {
             Assert.True(Right().IsValid);
-            Assert.False(new GeoTriangle2(new GeoPoint2(double.NaN, 0), new GeoPoint2(1, 0), new GeoPoint2(0, 1)).IsValid);
+            Assert.False(
+                new GeoTriangle2(new GeoPoint2(double.NaN, 0), new GeoPoint2(1, 0), new GeoPoint2(0, 1)).IsValid
+            );
         }
 
         [Fact]

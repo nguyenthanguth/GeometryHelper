@@ -78,7 +78,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             foreach (SolidBooleanOptions options in new[] { Plain, WithFallback })
             {
-                Assert.True(body.TrySubtractAll(tools, out GeoSolid3 left, options, Welding, out SubtractReport report));
+                Assert.True(
+                    body.TrySubtractAll(tools, out GeoSolid3 left, options, Welding, out SubtractReport report)
+                );
                 Assert.Equal(new[] { 0 }, report.Skipped);
                 Assert.Equal(0, report.Taken);
                 Assert.Empty(report.Closed);
@@ -115,7 +117,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.True(body.TrySubtractAll(tools, out GeoSolid3 today, WithFallback, out SubtractReport before));
             Assert.Equal(new[] { 0 }, before.WithinFallback);
 
-            Assert.True(body.TrySubtractAll(tools, out GeoSolid3 left, WithFallback, Welding, out SubtractReport report));
+            Assert.True(
+                body.TrySubtractAll(tools, out GeoSolid3 left, WithFallback, Welding, out SubtractReport report)
+            );
             Assert.Equal(today, left);
             Assert.Equal(new[] { 0 }, report.WithinFallback);
             Assert.Empty(report.Skipped);
@@ -131,7 +135,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // Within a thousandth the cut keeps both: the crack is too wide for the welds, and as a hole, 0.08, larger than
             // may be filled. Within a hundredth the crack closes and the corner stays open: not valid, skipped today, and
             // closed by filling the corner, 0.035, no weld.
-            GeoSolid3 body = ClosingTestBodies.WithCornerCutOffOpen(ClosingTestBodies.BoxCrackedThroughTheFront(0.008), new GeoPoint3(30, 20, 10), 0.2);
+            GeoSolid3 body = ClosingTestBodies.WithCornerCutOffOpen(
+                ClosingTestBodies.BoxCrackedThroughTheFront(0.008),
+                new GeoPoint3(30, 20, 10),
+                0.2
+            );
             GeoSolid3[] tools = { ClosingTestBodies.PostThrough() };
             var filling = new SolidClosingOptions(Fine, 0.005, 0.05, 0.0, FillStrategy.WhenUnambiguous);
 
@@ -140,7 +148,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.True(body.TrySubtract(tools[0], out GeoSolid3 within, Plain, out _));
             Assert.False(within.TryClose(out _, filling, out _));
 
-            Assert.True(body.TrySubtractAll(tools, out GeoSolid3 left, WithFallback, filling, out SubtractReport report));
+            Assert.True(
+                body.TrySubtractAll(tools, out GeoSolid3 left, WithFallback, filling, out SubtractReport report)
+            );
             Assert.Equal(new[] { 0 }, report.Closed);
             Assert.Empty(report.Skipped);
             SolidRepair3 fill = Assert.Single(Assert.Single(report.Closings).Repairs);
@@ -171,7 +181,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             foreach (SolidBooleanOptions options in new[] { Plain, WithFallback })
             {
-                Assert.True(body.TrySubtractAll(tools, out GeoSolid3 left, options, Welding, out SubtractReport report));
+                Assert.True(
+                    body.TrySubtractAll(tools, out GeoSolid3 left, options, Welding, out SubtractReport report)
+                );
                 Assert.Equal(new[] { 0 }, report.Skipped);
                 Assert.Empty(report.Closed);
                 Assert.Same(body, left);
@@ -186,7 +198,15 @@ namespace GeometryHelper.UnitTest.Solid.Core
             GeoSolid3 body = ClosingTestBodies.BoxCrackedThroughTheFront(0.005);
             GeoSolid3[] tools = { ClosingTestBodies.PostThrough() };
 
-            Assert.True(body.TrySubtractAll(tools, out GeoSolid3 left, Plain, new SolidClosingOptions(Hundredth, 0.005), out SubtractReport report));
+            Assert.True(
+                body.TrySubtractAll(
+                    tools,
+                    out GeoSolid3 left,
+                    Plain,
+                    new SolidClosingOptions(Hundredth, 0.005),
+                    out SubtractReport report
+                )
+            );
             Assert.Equal(new[] { 0 }, report.Skipped);
             Assert.Empty(report.Closed);
             Assert.Same(body, left);
@@ -198,7 +218,12 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // The first tool's cut cannot be worked out, and with no body to close it is skipped; the second's is closed, and
             // the box is whole again for the third, taken as it is. Without closing, all three are skipped: the crack stays.
             GeoSolid3 body = ClosingTestBodies.BoxCrackedThroughTheFront(0.005);
-            GeoSolid3[] tools = { ClosingTestBodies.PostThroughWithItsTopTurned(), ClosingTestBodies.PostThrough(), ClosingTestBodies.NotchInTheTop() };
+            GeoSolid3[] tools =
+            {
+                ClosingTestBodies.PostThroughWithItsTopTurned(),
+                ClosingTestBodies.PostThrough(),
+                ClosingTestBodies.NotchInTheTop(),
+            };
 
             Assert.True(body.TrySubtractAll(tools, out _, Plain, out SubtractReport before));
             Assert.Equal(new[] { 0, 1, 2 }, before.Skipped);
@@ -219,7 +244,12 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void TheSameCall_GivesTheSameReport_AndTheSameBody()
         {
             GeoSolid3 body = ClosingTestBodies.BoxCrackedThroughTheFront(0.005);
-            GeoSolid3[] tools = { ClosingTestBodies.PostThroughWithItsTopTurned(), ClosingTestBodies.PostThrough(), ClosingTestBodies.NotchInTheTop() };
+            GeoSolid3[] tools =
+            {
+                ClosingTestBodies.PostThroughWithItsTopTurned(),
+                ClosingTestBodies.PostThrough(),
+                ClosingTestBodies.NotchInTheTop(),
+            };
 
             Assert.True(body.TrySubtractAll(tools, out GeoSolid3 first, Plain, Welding, out SubtractReport one));
             Assert.True(body.TrySubtractAll(tools, out GeoSolid3 second, Plain, Welding, out SubtractReport two));
@@ -227,7 +257,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.Equal(one.ToString(), two.ToString());
             Assert.Equal(one.Skipped, two.Skipped);
             Assert.Equal(one.Closed, two.Closed);
-            Assert.Equal(one.Closings.Select(closing => closing.ToString()), two.Closings.Select(closing => closing.ToString()));
+            Assert.Equal(
+                one.Closings.Select(closing => closing.ToString()),
+                two.Closings.Select(closing => closing.ToString())
+            );
         }
 
         [Fact]
@@ -249,14 +282,18 @@ namespace GeometryHelper.UnitTest.Solid.Core
             GeoSolid3 body = ClosingTestBodies.Box();
             GeoSolid3[] tools = { ClosingTestBodies.PostThrough() };
 
-            ArgumentNullException thrown = Assert.Throws<ArgumentNullException>(() => body.TrySubtractAll(tools, out _, Plain, null, out _));
+            ArgumentNullException thrown = Assert.Throws<ArgumentNullException>(() =>
+                body.TrySubtractAll(tools, out _, Plain, null, out _)
+            );
             Assert.Equal("closing", thrown.ParamName);
-            thrown = Assert.Throws<ArgumentNullException>(() => Boolean3.TrySubtractAll(body, tools, out _, Plain, null, out _));
+            thrown = Assert.Throws<ArgumentNullException>(() =>
+                Boolean3.TrySubtractAll(body, tools, out _, Plain, null, out _)
+            );
             Assert.Equal("closing", thrown.ParamName);
         }
 
         // Within a millionth of what it should hold.
-        private static void AssertVolume(double expected, GeoSolid3 body)
-            => Assert.InRange(body.GetVolume(Fine), expected * (1.0 - 1E-6), expected * (1.0 + 1E-6));
+        private static void AssertVolume(double expected, GeoSolid3 body) =>
+            Assert.InRange(body.GetVolume(Fine), expected * (1.0 - 1E-6), expected * (1.0 + 1E-6));
     }
 }

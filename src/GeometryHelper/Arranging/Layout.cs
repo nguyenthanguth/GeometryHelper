@@ -19,8 +19,17 @@ namespace GeometryHelper.Arranging
         /// <param name="maximumShift">The maximum longitudinal shift distance.</param>
         /// <param name="positiveOpen">Whether the label may stand on the side the perpendicular points to.</param>
         /// <param name="negativeOpen">Whether the label may stand on the other side.</param>
-        internal Layout(GeoPoint2 anchor, GeoVector2 direction, GeoVector2 perpendicular,
-            double height, double positiveOffset, double negativeOffset, double maximumShift, bool positiveOpen, bool negativeOpen)
+        internal Layout(
+            GeoPoint2 anchor,
+            GeoVector2 direction,
+            GeoVector2 perpendicular,
+            double height,
+            double positiveOffset,
+            double negativeOffset,
+            double maximumShift,
+            bool positiveOpen,
+            bool negativeOpen
+        )
         {
             Anchor = anchor;
             Direction = direction;
@@ -35,20 +44,28 @@ namespace GeometryHelper.Arranging
 
         /// <summary>Gets the anchor point on the path segment.</summary>
         internal GeoPoint2 Anchor { get; }
+
         /// <summary>Gets the longitudinal direction axis of the path.</summary>
         internal GeoVector2 Direction { get; }
+
         /// <summary>Gets the perpendicular direction axis of the path.</summary>
         internal GeoVector2 Perpendicular { get; }
+
         /// <summary>Gets the actual height of the label.</summary>
         internal double Height { get; }
+
         /// <summary>Gets how far from the path the centre of the first row lies on the side <see cref="Perpendicular"/> points to.</summary>
         internal double PositiveOffset { get; }
+
         /// <summary>Gets how far from the path the centre of the first row lies on the other side.</summary>
         internal double NegativeOffset { get; }
+
         /// <summary>Gets the maximum longitudinal shift distance.</summary>
         internal double MaximumShift { get; }
+
         /// <summary>Gets whether the label may stand on the side <see cref="Perpendicular"/> points to.</summary>
         internal bool PositiveOpen { get; }
+
         /// <summary>Gets whether the label may stand on the other side.</summary>
         internal bool NegativeOpen { get; }
 
@@ -59,8 +76,7 @@ namespace GeometryHelper.Arranging
         /// the scene lies far from the origin, steps by a twentieth as it does at the origin.
         /// </summary>
         /// <param name="tolerance">The tolerance of the options.</param>
-        internal double GetSlideStep(Tolerance tolerance)
-            => StepsByHeight(tolerance) ? Height : MaximumShift / 20.0;
+        internal double GetSlideStep(Tolerance tolerance) => StepsByHeight(tolerance) ? Height : MaximumShift / 20.0;
 
         /// <summary>
         /// Gets how many steps of <see cref="GetSlideStep(Tolerance)"/> a row slides each way: twenty where the step is a
@@ -80,7 +96,9 @@ namespace GeometryHelper.Arranging
             double count = System.Math.Floor((MaximumShift + tolerance.EqualPoint) / Height);
 
             // A label of no height steps by nothing, and goes on until the cap on candidates stops it.
-            return !(count < long.MaxValue) ? long.MaxValue : count < 0.0 ? 0 : (long)count;
+            return !(count < long.MaxValue) ? long.MaxValue
+                : count < 0.0 ? 0
+                : (long)count;
         }
 
         /// <summary>
@@ -95,8 +113,8 @@ namespace GeometryHelper.Arranging
         /// <param name="positiveSide">True for the side <see cref="Perpendicular"/> points to, false for the other.</param>
         /// <param name="level">The row, counted from nought, the first.</param>
         /// <param name="rowGap">The gap between rows.</param>
-        internal double GetRowOffset(bool positiveSide, int level, double rowGap)
-            => (positiveSide ? PositiveOffset : NegativeOffset) + level * (Height + rowGap);
+        internal double GetRowOffset(bool positiveSide, int level, double rowGap) =>
+            (positiveSide ? PositiveOffset : NegativeOffset) + level * (Height + rowGap);
 
         /// <summary>
         /// Gets the way from <see cref="Anchor"/> straight across the leader to the centre of a row.

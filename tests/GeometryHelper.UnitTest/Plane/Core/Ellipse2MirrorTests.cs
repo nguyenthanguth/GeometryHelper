@@ -30,7 +30,15 @@ namespace GeometryHelper.UnitTest.Plane
         {
             GeoEllipse2 ellipse = Ellipse2Oracle.Tilted();
 
-            foreach (GeoPoint2 point in new[] { ellipse.Center, Near(ellipse), Ellipse2Oracle.OffRim(ellipse, 4.0, -0.0004), new GeoPoint2(900, 900) })
+            foreach (
+                GeoPoint2 point in new[]
+                {
+                    ellipse.Center,
+                    Near(ellipse),
+                    Ellipse2Oracle.OffRim(ellipse, 4.0, -0.0004),
+                    new GeoPoint2(900, 900),
+                }
+            )
             {
                 Assert.Equal(Ellipse2.Contains(ellipse, point, Global), ellipse.Contains(point, Global));
                 Assert.Equal(ellipse.Contains(point, Global), ellipse.Contains(point));
@@ -44,7 +52,10 @@ namespace GeometryHelper.UnitTest.Plane
                 Assert.Equal(ellipse.IsPointOn(point, Global), ellipse.IsPointOn(point));
                 Assert.Equal(Ellipse2.IsPointOn(ellipse, point), ellipse.IsPointOn(point));
 
-                Assert.Equal(Ellipse2.GetClosestPointOnBoundary(ellipse, point), ellipse.GetClosestPointOnBoundary(point));
+                Assert.Equal(
+                    Ellipse2.GetClosestPointOnBoundary(ellipse, point),
+                    ellipse.GetClosestPointOnBoundary(point)
+                );
                 Assert.Equal(Ellipse2.GetAngleAtPoint(ellipse, point), ellipse.GetAngleAtPoint(point));
             }
         }
@@ -105,8 +116,14 @@ namespace GeometryHelper.UnitTest.Plane
                 Assert.Equal(Ellipse2.GetPointAtAngle(ellipse, value * 6), ellipse.GetPointAtAngle(value * 6));
                 Assert.Equal(Ellipse2.GetPointAtParameter(ellipse, value), ellipse.GetPointAtParameter(value));
                 Assert.Equal(Ellipse2.GetDistanceAtParameter(ellipse, value), ellipse.GetDistanceAtParameter(value));
-                Assert.Equal(Ellipse2.GetParameterAtDistance(ellipse, value * 1000), ellipse.GetParameterAtDistance(value * 1000));
-                Assert.Equal(Ellipse2.GetPointAtDistance(ellipse, value * 1000), ellipse.GetPointAtDistance(value * 1000));
+                Assert.Equal(
+                    Ellipse2.GetParameterAtDistance(ellipse, value * 1000),
+                    ellipse.GetParameterAtDistance(value * 1000)
+                );
+                Assert.Equal(
+                    Ellipse2.GetPointAtDistance(ellipse, value * 1000),
+                    ellipse.GetPointAtDistance(value * 1000)
+                );
             }
 
             Assert.Equal(Ellipse2.GetParameterAtPoint(ellipse, point), ellipse.GetParameterAtPoint(point));
@@ -117,17 +134,33 @@ namespace GeometryHelper.UnitTest.Plane
         public void AnEllipseIsTransformedAndCutTheSameWhicheverWayItIsAsked()
         {
             GeoEllipse2 ellipse = Ellipse2Oracle.Tilted();
-            var shear = new GeoTransform2(new double[,] { { 1, 0.4, 5 }, { 0, 1, -3 }, { 0, 0, 1 } });
+            var shear = new GeoTransform2(
+                new double[,]
+                {
+                    { 1, 0.4, 5 },
+                    { 0, 1, -3 },
+                    { 0, 0, 1 },
+                }
+            );
 
             Assert.Equal(Ellipse2.TransformBy(ellipse, shear), ellipse.TransformBy(shear));
 
-            Assert.Equal(Ellipse2.ToPolygonByChordTolerance(ellipse, 0.05).Vertices, ellipse.ToPolygonByChordTolerance(0.05).Vertices);
+            Assert.Equal(
+                Ellipse2.ToPolygonByChordTolerance(ellipse, 0.05).Vertices,
+                ellipse.ToPolygonByChordTolerance(0.05).Vertices
+            );
             Assert.Equal(Ellipse2.ToPolygonByChordTolerance(ellipse, 0.0).Vertices, ellipse.ToPolygon().Vertices);
-            Assert.Equal(Ellipse2.ToPolygonBySpacing(ellipse, 31.0).Vertices, ellipse.ToPolygonBySpacing(31.0).Vertices);
+            Assert.Equal(
+                Ellipse2.ToPolygonBySpacing(ellipse, 31.0).Vertices,
+                ellipse.ToPolygonBySpacing(31.0).Vertices
+            );
             Assert.Equal(Ellipse2.ToPolygon(ellipse, 12).Vertices, ellipse.ToPolygon(12).Vertices);
 
             // Asked twice, the same polygon: no state carried from one call to the next.
-            Assert.Equal(ellipse.ToPolygonByChordTolerance(0.05).Vertices, ellipse.ToPolygonByChordTolerance(0.05).Vertices);
+            Assert.Equal(
+                ellipse.ToPolygonByChordTolerance(0.05).Vertices,
+                ellipse.ToPolygonByChordTolerance(0.05).Vertices
+            );
         }
 
         [Fact]
@@ -144,7 +177,14 @@ namespace GeometryHelper.UnitTest.Plane
             var options = new MeshOptions(MeshKind.Triangles, chordTolerance: 0.05);
             GeoMesh2 fromStatic = Mesh2.ToMesh(ellipse, options, Global);
 
-            foreach (GeoMesh2 mesh in new[] { ellipse.ToMesh(options, Global), ellipse.ToMesh(options), Mesh2.ToMesh(ellipse, options) })
+            foreach (
+                GeoMesh2 mesh in new[]
+                {
+                    ellipse.ToMesh(options, Global),
+                    ellipse.ToMesh(options),
+                    Mesh2.ToMesh(ellipse, options),
+                }
+            )
             {
                 Assert.Equal(fromStatic.Vertices, mesh.Vertices);
                 Assert.Equal(fromStatic.Area, mesh.Area);

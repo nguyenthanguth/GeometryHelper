@@ -76,7 +76,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     public sealed class ViewManagerViewModel : ObservableObject
     {
         private readonly ObservableCollection<ViewNodeViewModel> _nodes = new ObservableCollection<ViewNodeViewModel>();
-        private ObservableCollection<ViewPropertyViewModel> _properties = new ObservableCollection<ViewPropertyViewModel>();
+        private ObservableCollection<ViewPropertyViewModel> _properties =
+            new ObservableCollection<ViewPropertyViewModel>();
         private ViewNodeViewModel _selected;
         private string _name = string.Empty;
         private string _height = string.Empty;
@@ -130,13 +131,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool IsNamedChosen => _selected != null && _selected.IsNamed;
 
         /// <summary>Gets or sets the name of the view chosen, as typed; written on Apply or OK.</summary>
-        public string ViewName { get => _name; set => Set(ref _name, value ?? string.Empty); }
+        public string ViewName
+        {
+            get => _name;
+            set => Set(ref _name, value ?? string.Empty);
+        }
 
         /// <summary>Gets or sets the height of the view chosen, as typed.</summary>
-        public string ViewHeight { get => _height; set => Set(ref _height, value ?? string.Empty); }
+        public string ViewHeight
+        {
+            get => _height;
+            set => Set(ref _height, value ?? string.Empty);
+        }
 
         /// <summary>Gets or sets the width of the view chosen, as typed.</summary>
-        public string ViewWidth { get => _width; set => Set(ref _width, value ?? string.Empty); }
+        public string ViewWidth
+        {
+            get => _width;
+            set => Set(ref _width, value ?? string.Empty);
+        }
 
         /// <summary>Gets the view Set Current chose, restored on Apply or OK; empty for none.</summary>
         public string ToRestore => Request.ToRestore ?? string.Empty;
@@ -234,15 +247,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
-            if (!double.TryParse(_height.Replace(" ", string.Empty), NumberStyles.Float, CultureInfo.InvariantCulture, out double height)
-                || !double.TryParse(_width.Replace(" ", string.Empty), NumberStyles.Float, CultureInfo.InvariantCulture, out double width))
+            if (
+                !double.TryParse(
+                    _height.Replace(" ", string.Empty),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out double height
+                )
+                || !double.TryParse(
+                    _width.Replace(" ", string.Empty),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out double width
+                )
+            )
             {
                 Request.Resize(double.NaN, double.NaN);
                 Raise(nameof(Message));
                 return false;
             }
 
-            CadViewRow now = Request.Views.FirstOrDefault(v => string.Equals(v.Name, Request.Selected, StringComparison.OrdinalIgnoreCase)) ?? row;
+            CadViewRow now = Request.Views.FirstOrDefault(v =>
+                string.Equals(v.Name, Request.Selected, StringComparison.OrdinalIgnoreCase)
+            ) ?? row;
             bool same = Number(height) == Number(now.Height) && Number(width) == Number(now.Width);
             return same || Changed(Request.Resize(height, width));
         }
@@ -276,7 +303,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             _nodes.Add(new ViewNodeViewModel("Preset Views", 0, null, true, false));
-            _selected = _nodes.FirstOrDefault(n => n.IsNamed && string.Equals(n.Name, chosen, StringComparison.OrdinalIgnoreCase)) ?? _nodes[0];
+            _selected = _nodes.FirstOrDefault(n =>
+                n.IsNamed && string.Equals(n.Name, chosen, StringComparison.OrdinalIgnoreCase)
+            ) ?? _nodes[0];
             Request.Selected = _selected.IsNamed ? _selected.Name : null;
             Raise(nameof(Selected));
             Show();
@@ -325,12 +354,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(ViewWidth));
         }
 
-        private static ViewPropertyViewModel Heading(string label) => new ViewPropertyViewModel(label, string.Empty, true, true);
+        private static ViewPropertyViewModel Heading(string label) =>
+            new ViewPropertyViewModel(label, string.Empty, true, true);
 
-        private static ViewPropertyViewModel Row(string label, string value, bool readOnly) => new ViewPropertyViewModel(label, value, readOnly, false);
+        private static ViewPropertyViewModel Row(string label, string value, bool readOnly) =>
+            new ViewPropertyViewModel(label, value, readOnly, false);
 
         /// <summary>A number as the board writes it, two places, thousands set apart by a space: 14 400.00.</summary>
-        private static string Number(double value) => value.ToString("#,0.00", new NumberFormatInfo { NumberGroupSeparator = " ", NumberDecimalSeparator = "." });
+        private static string Number(double value) =>
+            value.ToString("#,0.00", new NumberFormatInfo { NumberGroupSeparator = " ", NumberDecimalSeparator = "." });
     }
 
     /// <summary>
@@ -355,7 +387,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public Func<string, bool> AskRedefine { get; set; }
 
         /// <summary>Gets or sets the view's name.</summary>
-        public string ViewName { get => Request.NewName; set { Request.NewName = value ?? string.Empty; Raise(nameof(ViewName)); } }
+        public string ViewName
+        {
+            get => Request.NewName;
+            set
+            {
+                Request.NewName = value ?? string.Empty;
+                Raise(nameof(ViewName));
+            }
+        }
 
         /// <summary>Gets or sets whether the boundary is the display (Current display).</summary>
         public bool CurrentDisplay
@@ -389,16 +429,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private bool _window;
 
         /// <summary>Gets the size of the window picked, as Window 14 400 × 9 000; empty where none is.</summary>
-        public string WindowText => Request.NewWindow == null ? string.Empty
-            : "Window " + Request.NewWindow.Value.Width.ToString("#,0.##", Spaced) + " × " + Request.NewWindow.Value.Height.ToString("#,0.##", Spaced);
+        public string WindowText =>
+            Request.NewWindow == null
+                ? string.Empty
+                : "Window "
+                    + Request.NewWindow.Value.Width.ToString("#,0.##", Spaced)
+                    + " × "
+                    + Request.NewWindow.Value.Height.ToString("#,0.##", Spaced);
 
         /// <summary>Gets or sets whether a layer snapshot is saved with the view.</summary>
-        public bool SaveLayerSnapshot { get => Request.NewLayerSnapshot; set { Request.NewLayerSnapshot = value; Raise(nameof(SaveLayerSnapshot)); } }
+        public bool SaveLayerSnapshot
+        {
+            get => Request.NewLayerSnapshot;
+            set
+            {
+                Request.NewLayerSnapshot = value;
+                Raise(nameof(SaveLayerSnapshot));
+            }
+        }
 
         /// <summary>Gets what the last OK said where it was refused; empty where none was.</summary>
         public string Message => Request.Message ?? string.Empty;
 
-        private static NumberFormatInfo Spaced => new NumberFormatInfo { NumberGroupSeparator = " ", NumberDecimalSeparator = "." };
+        private static NumberFormatInfo Spaced =>
+            new NumberFormatInfo { NumberGroupSeparator = " ", NumberDecimalSeparator = "." };
 
         /// <summary>Define window's pick: the dialogs closed for the command line to ask two corners.</summary>
         public void Pick()

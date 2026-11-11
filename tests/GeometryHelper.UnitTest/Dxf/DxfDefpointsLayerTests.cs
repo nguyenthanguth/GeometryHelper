@@ -24,8 +24,14 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.False(read.LayerTable["Defpoints"].IsPlottable);
             Assert.True(read.LayerTable["Steel"].IsPlottable);
-            string defpoints = db.ToText().Split(new[] { "  0\nLAYER\n" }, StringSplitOptions.None).Skip(1)
-                .Select(r => r.IndexOf("\n  0\n", StringComparison.Ordinal) < 0 ? r : r.Substring(0, r.IndexOf("\n  0\n", StringComparison.Ordinal)))
+            string defpoints = db.ToText()
+                .Split(new[] { "  0\nLAYER\n" }, StringSplitOptions.None)
+                .Skip(1)
+                .Select(r =>
+                    r.IndexOf("\n  0\n", StringComparison.Ordinal) < 0
+                        ? r
+                        : r.Substring(0, r.IndexOf("\n  0\n", StringComparison.Ordinal))
+                )
                 .Single(r => r.Contains("\n  2\nDefpoints\n"));
             Assert.Contains(" 70\n0\n 62\n7\n  6\nContinuous\n290\n0\n", defpoints, StringComparison.OrdinalIgnoreCase);
         }

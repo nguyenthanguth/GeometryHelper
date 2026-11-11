@@ -53,32 +53,224 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var table = new MirrorTable(Strict, Loose);
 
-            Try(table, Arcs(), Face(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Circles(), Face(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Edges(), Face(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Lines(), Face(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Polygons(), Face(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Loops(), Face(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Polylines(), Face(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Chains(), Face(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
+            Try(
+                table,
+                Arcs(),
+                Face(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Circles(),
+                Face(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Edges(),
+                Face(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Lines(),
+                Face(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Polygons(),
+                Face(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Loops(),
+                Face(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Polylines(),
+                Face(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Chains(),
+                Face(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
 
-            Try(table, Arcs(), Rectangle(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Circles(), Rectangle(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Edges(), Rectangle(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Lines(), Rectangle(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Polygons(), Rectangle(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Loops(), Rectangle(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Polylines(), Rectangle(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Chains(), Rectangle(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
+            Try(
+                table,
+                Arcs(),
+                Rectangle(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Circles(),
+                Rectangle(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Edges(),
+                Rectangle(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Lines(),
+                Rectangle(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Polygons(),
+                Rectangle(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Loops(),
+                Rectangle(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Polylines(),
+                Rectangle(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Chains(),
+                Rectangle(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
 
-            Try(table, Arcs(), Triangle(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Circles(), Triangle(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Edges(), Triangle(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Lines(), Triangle(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Polygons(), Triangle(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Loops(), Triangle(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Polylines(), Triangle(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
-            Try(table, Chains(), Triangle(), (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p), (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p), (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p), (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p));
+            Try(
+                table,
+                Arcs(),
+                Triangle(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Circles(),
+                Triangle(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Edges(),
+                Triangle(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Lines(),
+                Triangle(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Polygons(),
+                Triangle(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Loops(),
+                Triangle(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Polylines(),
+                Triangle(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
+            Try(
+                table,
+                Chains(),
+                Triangle(),
+                (a, b) => (a.TryIntersectWith(b, out GeoPoint2[] p), p),
+                (a, b, t) => (a.TryIntersectWith(b, out GeoPoint2[] p, t), p),
+                (a, b) => (b.TryIntersectWith(a, out GeoPoint2[] p), p),
+                (a, b, t) => (b.TryIntersectWith(a, out GeoPoint2[] p, t), p)
+            );
 
             return table;
         }
@@ -90,7 +282,8 @@ namespace GeometryHelper.UnitTest.Plane
             Func<TA, TB, (bool, GeoPoint2[])> mine,
             Func<TA, TB, Tolerance, (bool, GeoPoint2[])> mineWithin,
             Func<TA, TB, (bool, GeoPoint2[])> theirs,
-            Func<TA, TB, Tolerance, (bool, GeoPoint2[])> theirsWithin)
+            Func<TA, TB, Tolerance, (bool, GeoPoint2[])> theirsWithin
+        )
         {
             table.Add(
                 typeof(TA).Name + ".TryIntersectWith(" + typeof(TB).Name + ")",
@@ -99,14 +292,16 @@ namespace GeometryHelper.UnitTest.Plane
                 mineWithin,
                 theirs,
                 theirsWithin,
-                MirrorTable.Same);
+                MirrorTable.Same
+            );
         }
 
         #region Regions sharing the bottom edge y = 0, x from 0 to 100
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
-        private static GeoPolygon2 Box(double x0, double y0, double x1, double y1) => new GeoPolygon2(P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1));
+        private static GeoPolygon2 Box(double x0, double y0, double x1, double y1) =>
+            new GeoPolygon2(P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1));
 
         private static GeoFace2 Face() => new GeoFace2(Box(0, 0, 100, 60), new[] { Box(60, 10, 90, 40) });
 
@@ -124,14 +319,23 @@ namespace GeometryHelper.UnitTest.Plane
         /// moved to (30, 15), inside all three, and to (73, 24), in the face's hole and across the long side
         /// of the triangle.
         /// </summary>
-        private static IEnumerable<(string Case, T Shape)> Cases<T>(Func<T, GeoVector2, T> move, T crossing, T resting, T small, params (string Case, T Shape)[] more)
+        private static IEnumerable<(string Case, T Shape)> Cases<T>(
+            Func<T, GeoVector2, T> move,
+            T crossing,
+            T resting,
+            T small,
+            params (string Case, T Shape)[] more
+        )
         {
             yield return ("crossing the bottom", move(crossing, new GeoVector2(30, 0)));
             yield return ("touching the bottom from below", move(resting, new GeoVector2(30, 0)));
             yield return ("0.4 below the bottom", move(resting, new GeoVector2(30, -0.4)));
             yield return ("50 below the bottom", move(resting, new GeoVector2(30, -50)));
             yield return ("inside all three", move(small, new GeoVector2(30, 15)));
-            yield return ("in the face's hole and across the triangle's long side", move(small, new GeoVector2(73, 24)));
+            yield return (
+                "in the face's hole and across the triangle's long side",
+                move(small, new GeoVector2(73, 24))
+            );
 
             foreach ((string Case, T Shape) c in more)
             {
@@ -139,65 +343,96 @@ namespace GeometryHelper.UnitTest.Plane
             }
         }
 
-        private static IEnumerable<(string Case, GeoArc2 Shape)> Arcs() => Cases(
-            (a, v) => a.Translate(v),
-            new GeoArc2(P(0, -5), 10, 0, Math.PI),
-            new GeoArc2(P(0, -10), 10, Math.PI / 4, 3 * Math.PI / 4),
-            new GeoArc2(P(0, 0), 5, 0, Math.PI),
-            // Rising from (-38, -12) to 25 above (50, 0) and down again: in through the left side, through
-            // the hole, out through the right side or the long side.
-            ("across, out of both sides", new GeoArc2(P(50, -100), 125, Math.PI / 4, 3 * Math.PI / 4)));
+        private static IEnumerable<(string Case, GeoArc2 Shape)> Arcs() =>
+            Cases(
+                (a, v) => a.Translate(v),
+                new GeoArc2(P(0, -5), 10, 0, Math.PI),
+                new GeoArc2(P(0, -10), 10, Math.PI / 4, 3 * Math.PI / 4),
+                new GeoArc2(P(0, 0), 5, 0, Math.PI),
+                // Rising from (-38, -12) to 25 above (50, 0) and down again: in through the left side, through
+                // the hole, out through the right side or the long side.
+                ("across, out of both sides", new GeoArc2(P(50, -100), 125, Math.PI / 4, 3 * Math.PI / 4))
+            );
 
-        private static IEnumerable<(string Case, GeoCircle2 Shape)> Circles() => Cases(
-            (c, v) => c.Translate(v),
-            new GeoCircle2(P(0, 0), 10),
-            new GeoCircle2(P(0, -10), 10),
-            new GeoCircle2(P(0, 0), 5),
-            ("around all three", new GeoCircle2(P(50, 30), 200)));
+        private static IEnumerable<(string Case, GeoCircle2 Shape)> Circles() =>
+            Cases(
+                (c, v) => c.Translate(v),
+                new GeoCircle2(P(0, 0), 10),
+                new GeoCircle2(P(0, -10), 10),
+                new GeoCircle2(P(0, 0), 5),
+                ("around all three", new GeoCircle2(P(50, 30), 200))
+            );
 
-        private static IEnumerable<(string Case, GeoEdge2 Shape)> Edges() => Cases(
-            (e, v) => e.Translate(v),
-            new GeoEdge2(new GeoArc2(P(0, -5), 10, 0, Math.PI)),
-            new GeoEdge2(new GeoArc2(P(0, -10), 10, Math.PI / 4, 3 * Math.PI / 4)),
-            new GeoEdge2(P(-10, -5), P(10, 5)),
-            ("straight up through the bottom", new GeoEdge2(P(30, -20), P(30, 20))),
-            ("straight across, out of both sides", new GeoEdge2(P(-10, 20), P(110, 20))));
+        private static IEnumerable<(string Case, GeoEdge2 Shape)> Edges() =>
+            Cases(
+                (e, v) => e.Translate(v),
+                new GeoEdge2(new GeoArc2(P(0, -5), 10, 0, Math.PI)),
+                new GeoEdge2(new GeoArc2(P(0, -10), 10, Math.PI / 4, 3 * Math.PI / 4)),
+                new GeoEdge2(P(-10, -5), P(10, 5)),
+                ("straight up through the bottom", new GeoEdge2(P(30, -20), P(30, 20))),
+                ("straight across, out of both sides", new GeoEdge2(P(-10, 20), P(110, 20)))
+            );
 
-        private static IEnumerable<(string Case, GeoLine2 Shape)> Lines() => Cases(
-            (l, v) => l.Translate(v),
-            new GeoLine2(P(0, -20), P(0, 20)),
-            new GeoLine2(P(0, -20), P(0, 0)),
-            new GeoLine2(P(-10, -5), P(10, 5)),
-            ("across, out of both sides and through the hole", new GeoLine2(P(-10, 20), P(110, 20))));
+        private static IEnumerable<(string Case, GeoLine2 Shape)> Lines() =>
+            Cases(
+                (l, v) => l.Translate(v),
+                new GeoLine2(P(0, -20), P(0, 20)),
+                new GeoLine2(P(0, -20), P(0, 0)),
+                new GeoLine2(P(-10, -5), P(10, 5)),
+                ("across, out of both sides and through the hole", new GeoLine2(P(-10, 20), P(110, 20)))
+            );
 
-        private static IEnumerable<(string Case, GeoPolygon2 Shape)> Polygons() => Cases(
-            (p, v) => p.Translate(v),
-            Box(-10, -10, 10, 10),
-            new GeoPolygon2(P(0, 0), P(-10, -10), P(0, -20), P(10, -10)),
-            Box(-5, -5, 5, 5),
-            ("around all three", Box(-50, -50, 200, 200)));
+        private static IEnumerable<(string Case, GeoPolygon2 Shape)> Polygons() =>
+            Cases(
+                (p, v) => p.Translate(v),
+                Box(-10, -10, 10, 10),
+                new GeoPolygon2(P(0, 0), P(-10, -10), P(0, -20), P(10, -10)),
+                Box(-5, -5, 5, 5),
+                ("around all three", Box(-50, -50, 200, 200))
+            );
 
-        private static IEnumerable<(string Case, GeoPolygonArc2 Shape)> Loops() => Cases(
-            (l, v) => l.Translate(v),
-            new GeoPolygonArc2(new[] { P(-10, -10), P(10, -10), P(10, 10), P(-10, 10) }, new[] { 0.0, 0.5, 0.0, 0.0 }),
-            new GeoPolygonArc2(new[] { P(0, 0), P(-10, -10), P(0, -20), P(10, -10) }, new[] { 0.0, 0.0, 0.3, 0.0 }),
-            new GeoPolygonArc2(new[] { P(-5, -5), P(5, -5), P(5, 5), P(-5, 5) }, new[] { 0.3, 0.0, 0.0, 0.0 }),
-            ("around all three", new GeoPolygonArc2(new[] { P(-50, -50), P(200, -50), P(200, 200), P(-50, 200) }, new[] { 0.0, 0.2, 0.0, 0.0 })));
+        private static IEnumerable<(string Case, GeoPolygonArc2 Shape)> Loops() =>
+            Cases(
+                (l, v) => l.Translate(v),
+                new GeoPolygonArc2(
+                    new[] { P(-10, -10), P(10, -10), P(10, 10), P(-10, 10) },
+                    new[] { 0.0, 0.5, 0.0, 0.0 }
+                ),
+                new GeoPolygonArc2(new[] { P(0, 0), P(-10, -10), P(0, -20), P(10, -10) }, new[] { 0.0, 0.0, 0.3, 0.0 }),
+                new GeoPolygonArc2(new[] { P(-5, -5), P(5, -5), P(5, 5), P(-5, 5) }, new[] { 0.3, 0.0, 0.0, 0.0 }),
+                (
+                    "around all three",
+                    new GeoPolygonArc2(
+                        new[] { P(-50, -50), P(200, -50), P(200, 200), P(-50, 200) },
+                        new[] { 0.0, 0.2, 0.0, 0.0 }
+                    )
+                )
+            );
 
-        private static IEnumerable<(string Case, GeoPolyline2 Shape)> Polylines() => Cases(
-            (p, v) => p.Translate(v),
-            // Up and down through the bottom three times, at x = 15, 25 and 35 once moved.
-            new GeoPolyline2(P(-20, -10), P(-10, 10), P(0, -10), P(10, 10)),
-            new GeoPolyline2(P(-20, -20), P(0, 0), P(20, -20)),
-            new GeoPolyline2(P(-10, -5), P(0, 5), P(10, -5)),
-            ("across, out of both sides and through the hole", new GeoPolyline2(P(-10, 20), P(110, 20), P(110, -30))));
+        private static IEnumerable<(string Case, GeoPolyline2 Shape)> Polylines() =>
+            Cases(
+                (p, v) => p.Translate(v),
+                // Up and down through the bottom three times, at x = 15, 25 and 35 once moved.
+                new GeoPolyline2(P(-20, -10), P(-10, 10), P(0, -10), P(10, 10)),
+                new GeoPolyline2(P(-20, -20), P(0, 0), P(20, -20)),
+                new GeoPolyline2(P(-10, -5), P(0, 5), P(10, -5)),
+                (
+                    "across, out of both sides and through the hole",
+                    new GeoPolyline2(P(-10, 20), P(110, 20), P(110, -30))
+                )
+            );
 
-        private static IEnumerable<(string Case, GeoPolylineArc2 Shape)> Chains() => Cases(
-            (c, v) => c.Translate(v),
-            new GeoPolylineArc2(new[] { P(-20, -10), P(0, 10), P(20, -10) }, new[] { 0.4, -0.4 }),
-            new GeoPolylineArc2(new[] { P(-20, -20), P(0, 0), P(20, -20), P(40, -20) }, new[] { 0.0, 0.0, 1.0 }),
-            new GeoPolylineArc2(new[] { P(-10, -5), P(0, 5), P(10, -5) }, new[] { 0.3, 0.0 }),
-            ("across, out of both sides and through the hole", new GeoPolylineArc2(new[] { P(-10, 20), P(110, 20), P(110, -30) }, new[] { 0.1, 0.0 })));
+        private static IEnumerable<(string Case, GeoPolylineArc2 Shape)> Chains() =>
+            Cases(
+                (c, v) => c.Translate(v),
+                new GeoPolylineArc2(new[] { P(-20, -10), P(0, 10), P(20, -10) }, new[] { 0.4, -0.4 }),
+                new GeoPolylineArc2(new[] { P(-20, -20), P(0, 0), P(20, -20), P(40, -20) }, new[] { 0.0, 0.0, 1.0 }),
+                new GeoPolylineArc2(new[] { P(-10, -5), P(0, 5), P(10, -5) }, new[] { 0.3, 0.0 }),
+                (
+                    "across, out of both sides and through the hole",
+                    new GeoPolylineArc2(new[] { P(-10, 20), P(110, 20), P(110, -30) }, new[] { 0.1, 0.0 })
+                )
+            );
 
         #endregion
     }

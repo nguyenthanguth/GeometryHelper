@@ -144,7 +144,11 @@ namespace GeometryHelper.Dxf
             get => _maxPlacedEntities;
             set
             {
-                Guard.Positive(value, nameof(value), "The number of entities the INSERTs may place has to be above nought.");
+                Guard.Positive(
+                    value,
+                    nameof(value),
+                    "The number of entities the INSERTs may place has to be above nought."
+                );
                 _maxPlacedEntities = value;
             }
         }

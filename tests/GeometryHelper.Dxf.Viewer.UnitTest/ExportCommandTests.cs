@@ -14,7 +14,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     /// </summary>
     public class ExportCommandTests : IDisposable
     {
-        private readonly string _folder = Path.Combine(Path.GetTempPath(), "gk", "export-" + Guid.NewGuid().ToString("N"));
+        private readonly string _folder = Path.Combine(
+            Path.GetTempPath(),
+            "gk",
+            "export-" + Guid.NewGuid().ToString("N")
+        );
 
         public ExportCommandTests()
         {
@@ -35,17 +39,26 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
         private CadDocument TwoLines()
         {
-            CadDocument document = CadDocument.From(TestDrawings.Drawing(
-                null,
-                null,
-                TestDrawings.Line(10, 20, 190, 20, handle: "A1"),
-                TestDrawings.Line(10, 80, 190, 80, handle: "A2")));
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(
+                    null,
+                    null,
+                    TestDrawings.Line(10, 20, 190, 20, handle: "A1"),
+                    TestDrawings.Line(10, 80, 190, 80, handle: "A2")
+                )
+            );
             document.SaveAs(Path.Combine(_folder, "two-lines.dxf"));
             return document;
         }
 
         /// <summary>A session whose window answers EXPORT's or -EXPORT's dialog with a file and a type, and keeps the images and plots it is handed.</summary>
-        private static CadCommandSession Stubbed(CadDocument document, Func<CadExportJob, string> file, string type, List<object> written, List<CadExportJob> asked)
+        private static CadCommandSession Stubbed(
+            CadDocument document,
+            Func<CadExportJob, string> file,
+            string type,
+            List<object> written,
+            List<CadExportJob> asked
+        )
         {
             CadCommandSession session = Session(document);
             session.UiRequested += (sender, e) =>
@@ -54,7 +67,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 {
                     case "EXPORT":
                     case "-EXPORT":
-                        asked.Add(new CadExportJob(e.Export.Title, e.Export.FileTypes, e.Export.FileType, e.Export.FileName));
+                        asked.Add(
+                            new CadExportJob(e.Export.Title, e.Export.FileTypes, e.Export.FileType, e.Export.FileName)
+                        );
                         e.Export.FileName = file(e.Export);
                         e.Export.FileType = type ?? e.Export.FileType;
                         e.Handled = true;
@@ -88,10 +103,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(
                 new[]
                 {
-                    "3D DWF (*.dwf)", "3D DWFx (*.dwfx)", "ACIS (*.sat)", "Bitmap (*.bmp)", "Block (*.dwg)", "DXX Extract (*.dxx)", "Encapsulated PS (*.eps)",
-                    "IGES (*.iges;*.igs)", "Lithography (*.stl)", "Metafile (*.wmf)", "V7 DGN (*.dgn)", "V8 DGN (*.dgn)",
+                    "3D DWF (*.dwf)",
+                    "3D DWFx (*.dwfx)",
+                    "ACIS (*.sat)",
+                    "Bitmap (*.bmp)",
+                    "Block (*.dwg)",
+                    "DXX Extract (*.dxx)",
+                    "Encapsulated PS (*.eps)",
+                    "IGES (*.iges;*.igs)",
+                    "Lithography (*.stl)",
+                    "Metafile (*.wmf)",
+                    "V7 DGN (*.dgn)",
+                    "V8 DGN (*.dgn)",
                 },
-                job.FileTypes);
+                job.FileTypes
+            );
             Assert.Equal(new[] { ".iges", ".igs" }, CadExportJob.ExtensionsOf(job.FileTypes[7]));
             Assert.Equal("Select objects or <all objects and viewports>:", session.PromptText);
             Run(session, Enter);
@@ -109,13 +135,24 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = TwoLines();
             var written = new List<object>();
             var asked = new List<CadExportJob>();
-            CadCommandSession session = Stubbed(document, j => Path.Combine(_folder, "plan.wmf"), "Metafile (*.wmf)", written, asked);
+            CadCommandSession session = Stubbed(
+                document,
+                j => Path.Combine(_folder, "plan.wmf"),
+                "Metafile (*.wmf)",
+                written,
+                asked
+            );
 
             Run(session, "EXPORT");
 
             Assert.False(session.IsRunning);
             Assert.Empty(written);
-            Assert.Contains(session.History, l => l.StartsWith("Metafile (*.wmf) has no writer in the presenter: nothing was exported.", StringComparison.Ordinal));
+            Assert.Contains(session.History, l =>
+                l.StartsWith(
+                    "Metafile (*.wmf) has no writer in the presenter: nothing was exported.",
+                    StringComparison.Ordinal
+                )
+            );
 
             // Bitmap is offered first; the next EXPORT offers the type last chosen.
             Assert.Equal(CadExportJob.Bitmap, asked[0].FileType);
@@ -138,7 +175,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("Enter file name <" + Path.Combine(_folder, "two-lines.bmp") + ">:", session.PromptText);
             Run(session, "plan.dgn");
             Assert.False(session.IsRunning);
-            Assert.Contains(session.History, l => l.StartsWith("V7 DGN (*.dgn) has no writer", StringComparison.Ordinal));
+            Assert.Contains(session.History, l =>
+                l.StartsWith("V7 DGN (*.dgn) has no writer", StringComparison.Ordinal)
+            );
 
             // A name of no listed extension has the type's added.
             Run(session, "EXPORT");
@@ -201,13 +240,25 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, Enter);
             Assert.Equal("Enter paper units [Inches/Millimeters] <Millimeters>:", session.PromptText);
             Run(session, Enter);
-            Assert.StartsWith("Enter drawing orientation [Portrait/Landscape]", session.PromptText, StringComparison.Ordinal);
+            Assert.StartsWith(
+                "Enter drawing orientation [Portrait/Landscape]",
+                session.PromptText,
+                StringComparison.Ordinal
+            );
             Run(session, "L");
-            Assert.StartsWith("Enter plot scale (Plotted Millimeters=Drawing Units) or [Fit] <", session.PromptText, StringComparison.Ordinal);
+            Assert.StartsWith(
+                "Enter plot scale (Plotted Millimeters=Drawing Units) or [Fit] <",
+                session.PromptText,
+                StringComparison.Ordinal
+            );
             Run(session, "F");
             Assert.StartsWith("Plot with plot styles? [Yes/No]", session.PromptText, StringComparison.Ordinal);
             Run(session, Enter);
-            Assert.StartsWith("Enter plot style table name (enter . for none) or [?]", session.PromptText, StringComparison.Ordinal);
+            Assert.StartsWith(
+                "Enter plot style table name (enter . for none) or [?]",
+                session.PromptText,
+                StringComparison.Ordinal
+            );
             Run(session, Enter);
             Assert.StartsWith("Plot with lineweights? [Yes/No]", session.PromptText, StringComparison.Ordinal);
             Run(session, Enter);
@@ -234,7 +285,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "-EXPORT");
             Run(session, Enter);
             Assert.False(session.IsRunning);
-            Assert.Equal("DWFx files have no writer in the presenter: nothing was exported. Answer Pdf for a PDF.", session.History.Last());
+            Assert.Equal(
+                "DWFx files have no writer in the presenter: nothing was exported. Answer Pdf for a PDF.",
+                session.History.Last()
+            );
 
             Run(session, "-EXPORT");
             Run(session, "D");

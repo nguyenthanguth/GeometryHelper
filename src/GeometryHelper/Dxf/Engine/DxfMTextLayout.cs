@@ -117,7 +117,15 @@ namespace GeometryHelper.Dxf
         /// it is.</item>
         /// </list>
         /// </summary>
-        internal static DxfMTextLayout Of(DxfFont font, DxfFonts.Big big, string contents, double height, double width, double factor, bool exactly)
+        internal static DxfMTextLayout Of(
+            DxfFont font,
+            DxfFonts.Big big,
+            string contents,
+            double height,
+            double width,
+            double factor,
+            bool exactly
+        )
         {
             List<DxfFonts.Letter> letters = DxfFonts.MTextLetters(font, big, contents, height);
 
@@ -192,14 +200,30 @@ namespace GeometryHelper.Dxf
                 actualWidth = Math.Max(actualWidth, line.ActualWidth);
                 int from = spans[i].Key;
                 int to = spans[i].Value;
-                double lineHigh = exactly ? height : line.Count == 0 ? high : line.Top;
-                bool restyled = from > 0 && from < letters.Count && !letters[from - 1].IsParagraph && letters[from - 1].Height != letters[from].Height;
-                lines.Add(new Line(line, () => Runs(font, big, letters, from, to, lineHigh, height), baseline, restyled ? 0.0 : line.WordsStart));
+                double lineHigh =
+                    exactly ? height
+                    : line.Count == 0 ? high
+                    : line.Top;
+                bool restyled =
+                    from > 0
+                    && from < letters.Count
+                    && !letters[from - 1].IsParagraph
+                    && letters[from - 1].Height != letters[from].Height;
+                lines.Add(
+                    new Line(
+                        line,
+                        () => Runs(font, big, letters, from, to, lineHigh, height),
+                        baseline,
+                        restyled ? 0.0 : line.WordsStart
+                    )
+                );
             }
 
             DxfTextLine last = measured[measured.Count - 1];
-            double actualHeight = exactly ? height + ((spans.Count - 1) * factor * height * 5.0 / 3.0) + (height / 3.0)
-                : spans.Count == 1 && (last.Count > 0 || letters.Count == 0) ? last.ActualHeight : lastTop - top + last.Depth;
+            double actualHeight =
+                exactly ? height + ((spans.Count - 1) * factor * height * 5.0 / 3.0) + (height / 3.0)
+                : spans.Count == 1 && (last.Count > 0 || letters.Count == 0) ? last.ActualHeight
+                : lastTop - top + last.Depth;
             return new DxfMTextLayout(lines, actualWidth, actualHeight);
         }
 
@@ -207,7 +231,17 @@ namespace GeometryHelper.Dxf
         /// Lays out the letters of a paragraph, from one place up to another, in lines wrapped at a width, adding each line's
         /// span and its letters measured; false where a letter is not measured.
         /// </summary>
-        private static bool Wrap(DxfFont font, DxfFonts.Big big, List<DxfFonts.Letter> letters, int from, int to, double height, double width, List<KeyValuePair<int, int>> spans, List<DxfTextLine> measured)
+        private static bool Wrap(
+            DxfFont font,
+            DxfFonts.Big big,
+            List<DxfFonts.Letter> letters,
+            int from,
+            int to,
+            double height,
+            double width,
+            List<KeyValuePair<int, int>> spans,
+            List<DxfTextLine> measured
+        )
         {
             int start = from;
             int kept = -1;
@@ -281,10 +315,16 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether a letter is one of Chinese, Japanese or Korean writing, broken before and after: of the CJK blocks, kana, Hangul and the full-width forms.</summary>
-        private static bool IsIdeographic(int c) => (c >= 0x2E80 && c <= 0x9FFF) || (c >= 0xAC00 && c <= 0xD7AF) || (c >= 0xF900 && c <= 0xFAFF) || (c >= 0xFF00 && c <= 0xFFEF) || (c >= 0x20000 && c <= 0x3FFFF);
+        private static bool IsIdeographic(int c) =>
+            (c >= 0x2E80 && c <= 0x9FFF)
+            || (c >= 0xAC00 && c <= 0xD7AF)
+            || (c >= 0xF900 && c <= 0xFAFF)
+            || (c >= 0xFF00 && c <= 0xFFEF)
+            || (c >= 0x20000 && c <= 0x3FFFF);
 
         /// <summary>Whether a letter is a sign a line does not begin with: commas, full stops, colons, the closing brackets and quotes, the ellipsis, the middle dot, the long vowel mark and the iteration mark.</summary>
-        private static bool Closes(int c) => c <= 0xFFFF && "、。，．：；？！）〉》」』】〕］｝“”‘’…・ー々".IndexOf((char)c) >= 0;
+        private static bool Closes(int c) =>
+            c <= 0xFFFF && "、。，．：；？！）〉》」』】〕］｝“”‘’…・ー々".IndexOf((char)c) >= 0;
 
         /// <summary>Whether a letter is an opening bracket a line does not end with.</summary>
         private static bool Opens(int c) => c <= 0xFFFF && "（〈《「『【〔［｛".IndexOf((char)c) >= 0;
@@ -293,7 +333,15 @@ namespace GeometryHelper.Dxf
         /// The runs of letters of one look of a line, from one place up to another, each where the pen stands at its start; none
         /// where the letters before one are not measured. The spaces at the end of the line are left out of its last run.
         /// </summary>
-        private static List<Run> Runs(DxfFont font, DxfFonts.Big big, List<DxfFonts.Letter> letters, int from, int to, double lineHigh, double height)
+        private static List<Run> Runs(
+            DxfFont font,
+            DxfFonts.Big big,
+            List<DxfFonts.Letter> letters,
+            int from,
+            int to,
+            double lineHigh,
+            double height
+        )
         {
             int end = to;
 
@@ -327,9 +375,15 @@ namespace GeometryHelper.Dxf
                     pen = before.Advance;
                 }
 
-                double rise = look.Align == 1 ? (lineHigh - look.Height) / 2.0 : look.Align == 2 ? lineHigh - look.Height : 0.0;
+                double rise =
+                    look.Align == 1 ? (lineHigh - look.Height) / 2.0
+                    : look.Align == 2 ? lineHigh - look.Height
+                    : 0.0;
                 var words = new StringBuilder((k - start) + 9);
-                words.Append((look.Marks & 1) != 0 ? "%%U" : string.Empty).Append((look.Marks & 2) != 0 ? "%%O" : string.Empty).Append((look.Marks & 4) != 0 ? "%%K" : string.Empty);
+                words
+                    .Append((look.Marks & 1) != 0 ? "%%U" : string.Empty)
+                    .Append((look.Marks & 2) != 0 ? "%%O" : string.Empty)
+                    .Append((look.Marks & 4) != 0 ? "%%K" : string.Empty);
 
                 for (int j = start; j < k; j++)
                 {
@@ -345,7 +399,12 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether two letters are of one look: of one height, width, spread, hold, lines and colour.</summary>
-        private static bool SameLook(DxfFonts.Letter a, DxfFonts.Letter b)
-            => a.Height == b.Height && a.Width == b.Width && a.Track == b.Track && a.Align == b.Align && a.Marks == b.Marks && a.Tint == b.Tint;
+        private static bool SameLook(DxfFonts.Letter a, DxfFonts.Letter b) =>
+            a.Height == b.Height
+            && a.Width == b.Width
+            && a.Track == b.Track
+            && a.Align == b.Align
+            && a.Marks == b.Marks
+            && a.Tint == b.Tint;
     }
 }

@@ -78,7 +78,15 @@ namespace GeometryHelper.UnitTest.Plane
         /// Draws a spline: a degree, control points in a box of a random size anywhere near the origin, inner knots,
         /// and, for half of them, weights.
         /// </summary>
-        internal static SplineOracle Draw(Random r, int dim, int maxDegree = 5, bool rational = true, bool multiples = true, bool thinSpans = false, int extra = 7)
+        internal static SplineOracle Draw(
+            Random r,
+            int dim,
+            int maxDegree = 5,
+            bool rational = true,
+            bool multiples = true,
+            bool thinSpans = false,
+            int extra = 7
+        )
         {
             int degree = 1 + r.Next(maxDegree);
             int count = degree + 1 + r.Next(extra);
@@ -109,7 +117,13 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>The kinds of near-degenerate spline <see cref="Nasty"/> draws.</summary>
         internal static readonly string[] NastyKinds =
         {
-            "FarFromTheOrigin", "RepeatedControlPoints", "AllOnALine", "SpansAMillionthWide", "HighDegree", "WeightsAThousandfoldApart", "ACusp"
+            "FarFromTheOrigin",
+            "RepeatedControlPoints",
+            "AllOnALine",
+            "SpansAMillionthWide",
+            "HighDegree",
+            "WeightsAThousandfoldApart",
+            "ACusp",
         };
 
         /// <summary>
@@ -263,10 +277,14 @@ namespace GeometryHelper.UnitTest.Plane
         {
             switch (r.Next(6))
             {
-                case 0: return o.Start;
-                case 1: return o.End;
-                case 2: return o.Knots[o.Degree + r.Next(o.Count - o.Degree + 1)];
-                default: return o.Start + (o.End - o.Start) * r.NextDouble();
+                case 0:
+                    return o.Start;
+                case 1:
+                    return o.End;
+                case 2:
+                    return o.Knots[o.Degree + r.Next(o.Count - o.Degree + 1)];
+                default:
+                    return o.Start + (o.End - o.Start) * r.NextDouble();
             }
         }
 
@@ -281,10 +299,18 @@ namespace GeometryHelper.UnitTest.Plane
 
             switch (r.Next(4))
             {
-                case 0: reach = 0.0; break;
-                case 1: reach = scale * 0.01; break;
-                case 2: reach = scale * 0.3; break;
-                default: reach = scale * 3.0; break;
+                case 0:
+                    reach = 0.0;
+                    break;
+                case 1:
+                    reach = scale * 0.01;
+                    break;
+                case 2:
+                    reach = scale * 0.3;
+                    break;
+                default:
+                    reach = scale * 3.0;
+                    break;
             }
 
             for (int c = 0; c < o.Dim; c++)
@@ -400,7 +426,11 @@ namespace GeometryHelper.UnitTest.Plane
                 Aabb = () =>
                 {
                     GeoRectangle2 box = s.GetAabb();
-                    return new[] { new[] { box.Center.X - box.Width * 0.5, box.Center.Y - box.Height * 0.5 }, new[] { box.Center.X + box.Width * 0.5, box.Center.Y + box.Height * 0.5 } };
+                    return new[]
+                    {
+                        new[] { box.Center.X - box.Width * 0.5, box.Center.Y - box.Height * 0.5 },
+                        new[] { box.Center.X + box.Width * 0.5, box.Center.Y + box.Height * 0.5 },
+                    };
                 },
                 Split = u => s.SplitAtKnot(u).Select(Wrap).ToArray(),
                 Reverse = () => Wrap(s.Reverse()),

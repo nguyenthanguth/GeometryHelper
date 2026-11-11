@@ -80,7 +80,10 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.NotEmpty(container.Header);
             Assert.NotEmpty(container.Classes);
             Assert.True(container.ObjectMap.Count > 100);
-            Assert.Equal(container.ObjectMap.Select(pair => pair.Key).OrderBy(handle => handle), container.ObjectMap.Select(pair => pair.Key));
+            Assert.Equal(
+                container.ObjectMap.Select(pair => pair.Key).OrderBy(handle => handle),
+                container.ObjectMap.Select(pair => pair.Key)
+            );
             Assert.Equal(container.ObjectMap.Count, container.ObjectMap.Select(pair => pair.Key).Distinct().Count());
         }
 
@@ -207,7 +210,9 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.Throws<FormatException>(() => DwgLz77.Decompress(tooLong, 0, tooLong.Length, new byte[4]));
             Assert.Throws<FormatException>(() => DwgLz77.Decompress(tooFar, 0, tooFar.Length, new byte[64]));
             Assert.Throws<FormatException>(() => DwgLz77.Decompress(noEnd, 0, noEnd.Length, new byte[64]));
-            Assert.Throws<FormatException>(() => DwgLz77.Decompress(endlessLength, 0, endlessLength.Length, new byte[64]));
+            Assert.Throws<FormatException>(() =>
+                DwgLz77.Decompress(endlessLength, 0, endlessLength.Length, new byte[64])
+            );
         }
 
         [Fact]
@@ -226,9 +231,7 @@ namespace GeometryHelper.UnitTest.Dwg
                     int written = DwgLz77.Decompress(page, 0, page.Length, output);
                     Assert.InRange(written, 0, output.Length);
                 }
-                catch (FormatException)
-                {
-                }
+                catch (FormatException) { }
             }
         }
 
@@ -237,7 +240,10 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("curves_AC1024", "AC1024")]
         [InlineData("curves_AC1027", "AC1027")]
         [InlineData("curves_AC1032", "AC1032")]
-        public void ADrawingOfR2004AndLater_GivesItsVersion_ItsCodePage_AndItsObjectsByRisingHandle(string drawing, string version)
+        public void ADrawingOfR2004AndLater_GivesItsVersion_ItsCodePage_AndItsObjectsByRisingHandle(
+            string drawing,
+            string version
+        )
         {
             byte[] file = DwgAnswerKey.Dwg(drawing);
             DwgContainer container = DwgContainer.Read(file);
@@ -248,7 +254,10 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.NotEmpty(container.Header);
             Assert.NotEmpty(container.Classes);
             Assert.True(container.ObjectMap.Count > 100);
-            Assert.Equal(container.ObjectMap.Select(pair => pair.Key).OrderBy(handle => handle), container.ObjectMap.Select(pair => pair.Key));
+            Assert.Equal(
+                container.ObjectMap.Select(pair => pair.Key).OrderBy(handle => handle),
+                container.ObjectMap.Select(pair => pair.Key)
+            );
             Assert.All(container.ObjectMap, pair => Assert.InRange(pair.Value, 1, container.Objects.LongLength - 1));
 
             // The pages decompress to a few times the file, well inside what the reader allows.
@@ -305,8 +314,14 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.Equal("AC1021", container.Version);
             Assert.Equal("ANSI_1252", container.CodePage);
             Assert.Equal(0, container.Measurement);
-            Assert.True(container.Header.Length > 700, "The header variables hold " + container.Header.Length + " bytes.");
-            Assert.True(container.ObjectMap.Count > 190, "The object map holds " + container.ObjectMap.Count + " objects.");
+            Assert.True(
+                container.Header.Length > 700,
+                "The header variables hold " + container.Header.Length + " bytes."
+            );
+            Assert.True(
+                container.ObjectMap.Count > 190,
+                "The object map holds " + container.ObjectMap.Count + " objects."
+            );
             Assert.All(container.ObjectMap, entry => Assert.InRange(entry.Value, 1, container.Objects.LongLength - 1));
         }
 
@@ -382,9 +397,7 @@ namespace GeometryHelper.UnitTest.Dwg
                     int written = DwgLz21.Decompress(input, 0, input.Length, output);
                     Assert.InRange(written, 0, output.Length);
                 }
-                catch (FormatException)
-                {
-                }
+                catch (FormatException) { }
             }
         }
 
@@ -401,6 +414,7 @@ namespace GeometryHelper.UnitTest.Dwg
         }
 
         /// <summary>Where a section starts: record <paramref name="section"/> of the locator, nine bytes each from 0x19, its seeker after its number.</summary>
-        internal static int SectionStart(byte[] file, int section) => BitConverter.ToInt32(file, 0x19 + (9 * section) + 1);
+        internal static int SectionStart(byte[] file, int section) =>
+            BitConverter.ToInt32(file, 0x19 + (9 * section) + 1);
     }
 }

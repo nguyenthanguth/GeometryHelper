@@ -20,7 +20,13 @@ namespace GeometryHelper.Viewer
         /// </summary>
         public const int GridLinesAcross = 20;
 
-        private static readonly WorkPlane _global = new WorkPlane(default(Vec3), new Vec3(1.0, 0.0, 0.0), new Vec3(0.0, 1.0, 0.0), new Vec3(0.0, 0.0, 1.0), "global");
+        private static readonly WorkPlane _global = new WorkPlane(
+            default(Vec3),
+            new Vec3(1.0, 0.0, 0.0),
+            new Vec3(0.0, 1.0, 0.0),
+            new Vec3(0.0, 0.0, 1.0),
+            "global"
+        );
 
         private WorkPlane(Vec3 origin, Vec3 x, Vec3 y, Vec3 z, string description)
         {
@@ -29,7 +35,11 @@ namespace GeometryHelper.Viewer
             YAxis = y;
             ZAxis = z;
             Description = description;
-            IsGlobal = origin.Equals(default(Vec3)) && x.Equals(new Vec3(1.0, 0.0, 0.0)) && y.Equals(new Vec3(0.0, 1.0, 0.0)) && z.Equals(new Vec3(0.0, 0.0, 1.0));
+            IsGlobal =
+                origin.Equals(default(Vec3))
+                && x.Equals(new Vec3(1.0, 0.0, 0.0))
+                && y.Equals(new Vec3(0.0, 1.0, 0.0))
+                && z.Equals(new Vec3(0.0, 0.0, 1.0));
         }
 
         /// <summary>
@@ -84,7 +94,10 @@ namespace GeometryHelper.Viewer
 
             if (x.Equals(default(Vec3)))
             {
-                throw new ArgumentException("The point on the x axis is the origin; the axis has no direction.", nameof(onX));
+                throw new ArgumentException(
+                    "The point on the x axis is the origin; the axis has no direction.",
+                    nameof(onX)
+                );
             }
 
             Vec3 toThird = inPlane - origin;
@@ -93,7 +106,10 @@ namespace GeometryHelper.Viewer
             // A point whose distance from the x axis is a billionth of its distance from the origin is on the axis.
             if (!(across.Length > 1E-9 * toThird.Length) || toThird.Length == 0.0)
             {
-                throw new ArgumentException("The three points are on a line; they do not tell a plane.", nameof(inPlane));
+                throw new ArgumentException(
+                    "The three points are on a line; they do not tell a plane.",
+                    nameof(inPlane)
+                );
             }
 
             return Orthonormal(origin, x, across, "3 points");
@@ -173,7 +189,8 @@ namespace GeometryHelper.Viewer
         /// Takes a direction or an offset of the scene to the plane: the same turn as <see cref="ToLocal"/> without the shift to the origin.
         /// </summary>
         /// <param name="world">The vector, in world coordinates.</param>
-        public Vec3 DirectionToLocal(Vec3 world) => new Vec3(Vec3.Dot(world, XAxis), Vec3.Dot(world, YAxis), Vec3.Dot(world, ZAxis));
+        public Vec3 DirectionToLocal(Vec3 world) =>
+            new Vec3(Vec3.Dot(world, XAxis), Vec3.Dot(world, YAxis), Vec3.Dot(world, ZAxis));
 
         /// <summary>
         /// Takes a direction given along the axes of the plane to the scene.
@@ -239,7 +256,13 @@ namespace GeometryHelper.Viewer
 
             for (int i = 0; i < 8; i++)
             {
-                Vec3 local = ToLocal(new Vec3((i & 1) == 0 ? scene.Min.X : scene.Max.X, (i & 2) == 0 ? scene.Min.Y : scene.Max.Y, (i & 4) == 0 ? scene.Min.Z : scene.Max.Z));
+                Vec3 local = ToLocal(
+                    new Vec3(
+                        (i & 1) == 0 ? scene.Min.X : scene.Max.X,
+                        (i & 2) == 0 ? scene.Min.Y : scene.Max.Y,
+                        (i & 4) == 0 ? scene.Min.Z : scene.Max.Z
+                    )
+                );
                 lowX = Math.Min(lowX, local.X);
                 highX = Math.Max(highX, local.X);
                 lowY = Math.Min(lowY, local.Y);
@@ -255,12 +278,16 @@ namespace GeometryHelper.Viewer
 
             for (double x = minX; x <= maxX + step * 0.5; x += step)
             {
-                lines.Add(new DrawPolyline(new[] { ToWorld(new Vec3(x, minY, 0.0)), ToWorld(new Vec3(x, maxY, 0.0)) }, false));
+                lines.Add(
+                    new DrawPolyline(new[] { ToWorld(new Vec3(x, minY, 0.0)), ToWorld(new Vec3(x, maxY, 0.0)) }, false)
+                );
             }
 
             for (double y = minY; y <= maxY + step * 0.5; y += step)
             {
-                lines.Add(new DrawPolyline(new[] { ToWorld(new Vec3(minX, y, 0.0)), ToWorld(new Vec3(maxX, y, 0.0)) }, false));
+                lines.Add(
+                    new DrawPolyline(new[] { ToWorld(new Vec3(minX, y, 0.0)), ToWorld(new Vec3(maxX, y, 0.0)) }, false)
+                );
             }
 
             return lines;
@@ -274,16 +301,29 @@ namespace GeometryHelper.Viewer
         {
             double power = Math.Pow(10.0, Math.Floor(Math.Log10(raw)));
             double scaled = raw / power;
-            return (scaled <= 1.0 ? 1.0 : scaled <= 2.0 ? 2.0 : scaled <= 5.0 ? 5.0 : 10.0) * power;
+            return (
+                    scaled <= 1.0 ? 1.0
+                    : scaled <= 2.0 ? 2.0
+                    : scaled <= 5.0 ? 5.0
+                    : 10.0
+                ) * power;
         }
 
         /// <summary>
         /// Describes the plane for the status bar and the output: how it was made, and its origin and axes.
         /// </summary>
-        public override string ToString()
-            => IsGlobal
+        public override string ToString() =>
+            IsGlobal
                 ? "global (z = 0)"
-                : Description + ": origin " + Origin + ", x " + Format(XAxis) + ", y " + Format(YAxis) + ", z " + Format(ZAxis);
+                : Description
+                    + ": origin "
+                    + Origin
+                    + ", x "
+                    + Format(XAxis)
+                    + ", y "
+                    + Format(YAxis)
+                    + ", z "
+                    + Format(ZAxis);
 
         private static string Format(Vec3 v) => "(" + Short(v.X) + ", " + Short(v.Y) + ", " + Short(v.Z) + ")";
 

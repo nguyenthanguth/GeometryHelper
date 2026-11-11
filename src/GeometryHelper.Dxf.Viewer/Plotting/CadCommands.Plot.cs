@@ -32,7 +32,12 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> PlotDialog(CadCommandContext c, string name)
         {
             CadSpace space = c.Space;
-            var job = new CadPlotJob(space, CadPlotSettings.Read(c.Document, space), c.Session.View?.VisibleBox ?? DisplayBox.Empty, null);
+            var job = new CadPlotJob(
+                space,
+                CadPlotSettings.Read(c.Document, space),
+                c.Session.View?.VisibleBox ?? DisplayBox.Empty,
+                null
+            );
             bool dialogs = name != "PLOT" || Kept(c.Session, "cmddia", 1.0) != 0.0;
 
             while (true)
@@ -59,7 +64,10 @@ namespace GeometryHelper.Dxf.Viewer
                     string extension = PlotExtension(job.Settings.DeviceName);
                     string offered = Path.ChangeExtension(PlotFileName(c.Document, space), extension);
                     yield return CadPrompt.ForString("Enter file name", offered);
-                    string file = c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim().Trim('"') : offered;
+                    string file =
+                        c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0
+                            ? c.Input.Text.Trim().Trim('"')
+                            : offered;
                     file = file.EndsWith(extension, StringComparison.OrdinalIgnoreCase) ? file : file + extension;
 
                     if (c.Session.Request("-PLOT", c.Document, new CadPlotJob(space, job.Settings, job.Display, file)))
@@ -88,7 +96,12 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         GeoPoint2 second = c.Input.Point;
                         job.Settings.Area = CadPlotArea.Window;
-                        job.Settings.Window = new DisplayBox(Math.Min(first.X, second.X), Math.Min(first.Y, second.Y), Math.Max(first.X, second.X), Math.Max(first.Y, second.Y));
+                        job.Settings.Window = new DisplayBox(
+                            Math.Min(first.X, second.X),
+                            Math.Min(first.Y, second.Y),
+                            Math.Max(first.X, second.X),
+                            Math.Max(first.Y, second.Y)
+                        );
                     }
                 }
             }
@@ -115,7 +128,10 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                if (c.Input.Kind == CadInputKind.Text && !string.Equals(c.Input.Text.Trim(), space.Name, StringComparison.OrdinalIgnoreCase))
+                if (
+                    c.Input.Kind == CadInputKind.Text
+                    && !string.Equals(c.Input.Text.Trim(), space.Name, StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     CadSpace named = SpaceNamed(c.Document, c.Input.Text.Trim());
 
@@ -175,9 +191,22 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     string typed = c.Input.Text.Trim();
 
-                    if (!string.Equals(typed, CadPlotSettings.PdfDevice, StringComparison.OrdinalIgnoreCase) && !CadPlotSettings.IsRasterDevice(typed))
+                    if (
+                        !string.Equals(typed, CadPlotSettings.PdfDevice, StringComparison.OrdinalIgnoreCase)
+                        && !CadPlotSettings.IsRasterDevice(typed)
+                    )
                     {
-                        c.Write("Printer/plotter \"" + typed + "\" not found: the presenter plots with " + CadPlotSettings.PdfDevice + ", " + CadPlotSettings.PngDevice + " or " + CadPlotSettings.JpgDevice + ".");
+                        c.Write(
+                            "Printer/plotter \""
+                                + typed
+                                + "\" not found: the presenter plots with "
+                                + CadPlotSettings.PdfDevice
+                                + ", "
+                                + CadPlotSettings.PngDevice
+                                + " or "
+                                + CadPlotSettings.JpgDevice
+                                + "."
+                        );
                         continue;
                     }
 
@@ -200,7 +229,10 @@ namespace GeometryHelper.Dxf.Viewer
             string extension = PlotExtension(settings.DeviceName);
             string offered = Path.ChangeExtension(PlotFileName(c.Document, space), extension);
             yield return CadPrompt.ForString("Enter file name", offered);
-            string file = c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim().Trim('"') : offered;
+            string file =
+                c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0
+                    ? c.Input.Text.Trim().Trim('"')
+                    : offered;
 
             if (!file.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
             {
@@ -233,11 +265,22 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!c.Session.Request("-PLOT", c.Document, new CadPlotJob(space, settings, display, file)))
             {
-                c.Write("Plotting to a file needs the window's " + (settings.IsRaster ? "image" : "PDF") + " writer: nothing was written.");
+                c.Write(
+                    "Plotting to a file needs the window's "
+                        + (settings.IsRaster ? "image" : "PDF")
+                        + " writer: nothing was written."
+                );
                 yield break;
             }
 
-            c.Write("Effective plotting area:  " + Mm(page.Area.Width * page.Scale) + " wide by " + Mm(page.Area.Height * page.Scale) + " high" + (settings.IsRaster ? " (pixels)" : string.Empty));
+            c.Write(
+                "Effective plotting area:  "
+                    + Mm(page.Area.Width * page.Scale)
+                    + " wide by "
+                    + Mm(page.Area.Height * page.Scale)
+                    + " high"
+                    + (settings.IsRaster ? " (pixels)" : string.Empty)
+            );
             c.Write("Plot written to " + file + ".");
         }
 
@@ -254,14 +297,24 @@ namespace GeometryHelper.Dxf.Viewer
                 ? CadPrompt.ForKeyword("Enter paper units", new[] { "Pixels" }, "Pixels")
                 : CadPrompt.ForKeyword("Enter paper units", new[] { "Inches", "Millimeters" }, "Millimeters");
             bool inches = c.Input.Is("Inches");
-            string units = settings.IsRaster ? "Pixels" : inches ? "Inches" : "Millimeters";
-            yield return CadPrompt.ForKeyword("Enter drawing orientation", new[] { "Portrait", "Landscape" }, settings.Landscape ? "Landscape" : "Portrait");
+            string units =
+                settings.IsRaster ? "Pixels"
+                : inches ? "Inches"
+                : "Millimeters";
+            yield return CadPrompt.ForKeyword(
+                "Enter drawing orientation",
+                new[] { "Portrait", "Landscape" },
+                settings.Landscape ? "Landscape" : "Portrait"
+            );
             settings.Landscape = c.Input.IsNone ? settings.Landscape : c.Input.Is("Landscape");
             yield return CadPrompt.ForKeyword("Plot upside down?", PlotYesNo, settings.UpsideDown ? "Yes" : "No");
             settings.UpsideDown = c.Input.IsNone ? settings.UpsideDown : c.Input.Is("Yes");
 
-            string[] areas = space.IsModel ? new[] { "Display", "Extents", "Limits", "Window" } : new[] { "Display", "Extents", "Layout", "Window" };
-            CadPlotArea current = space.IsModel && settings.Area == CadPlotArea.Layout ? CadPlotArea.Extents : settings.Area;
+            string[] areas = space.IsModel
+                ? new[] { "Display", "Extents", "Limits", "Window" }
+                : new[] { "Display", "Extents", "Layout", "Window" };
+            CadPlotArea current =
+                space.IsModel && settings.Area == CadPlotArea.Layout ? CadPlotArea.Extents : settings.Area;
             yield return CadPrompt.ForKeyword("Enter plot area", areas, current.ToString());
 
             if (!c.Input.IsNone)
@@ -278,7 +331,12 @@ namespace GeometryHelper.Dxf.Viewer
                 first = c.Input.IsPoint ? c.Input.Point : first;
                 yield return CadPrompt.ForPoint("Enter upper right corner of window", first, null, Corner(second));
                 second = c.Input.IsPoint ? c.Input.Point : second;
-                settings.Window = new DisplayBox(Math.Min(first.X, second.X), Math.Min(first.Y, second.Y), Math.Max(first.X, second.X), Math.Max(first.Y, second.Y));
+                settings.Window = new DisplayBox(
+                    Math.Min(first.X, second.X),
+                    Math.Min(first.Y, second.Y),
+                    Math.Max(first.X, second.X),
+                    Math.Max(first.Y, second.Y)
+                );
             }
 
             double unit = inches ? 25.4 : 1.0;
@@ -290,7 +348,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                string offset = settings.Centered ? "Center" : Mm(settings.OffsetX / unit) + "," + Mm(settings.OffsetY / unit);
+                string offset = settings.Centered
+                    ? "Center"
+                    : Mm(settings.OffsetX / unit) + "," + Mm(settings.OffsetY / unit);
                 yield return CadPrompt.ForKeywordOrText("Enter plot offset (x,y) or", new[] { "Center" }, offset);
 
                 if (c.Input.Is("Center"))
@@ -321,11 +381,19 @@ namespace GeometryHelper.Dxf.Viewer
             if (space.IsModel)
             {
                 // A 2D plot is as displayed whatever is answered, as AutoCAD plots 2D Wireframe.
-                yield return CadPrompt.ForKeyword("Enter shade plot setting", new[] { "As displayed", "legacy Wireframe", "legacy Hidden", "Visual styles", "Rendered" }, "As displayed");
+                yield return CadPrompt.ForKeyword(
+                    "Enter shade plot setting",
+                    new[] { "As displayed", "legacy Wireframe", "legacy Hidden", "Visual styles", "Rendered" },
+                    "As displayed"
+                );
             }
             else
             {
-                yield return CadPrompt.ForKeyword("Scale lineweights with plot scale?", PlotYesNo, settings.ScaleLineweights ? "Yes" : "No");
+                yield return CadPrompt.ForKeyword(
+                    "Scale lineweights with plot scale?",
+                    PlotYesNo,
+                    settings.ScaleLineweights ? "Yes" : "No"
+                );
                 settings.ScaleLineweights = c.Input.IsNone ? settings.ScaleLineweights : c.Input.Is("Yes");
 
                 // Paper space plots after its viewports and shows its objects, whatever is answered.
@@ -354,7 +422,9 @@ namespace GeometryHelper.Dxf.Viewer
                 if (c.Input.Kind == CadInputKind.Text)
                 {
                     // A raster device takes an image's size, the listed ones or the user's own "2480 x 1754".
-                    CadPaper paper = settings.IsRaster ? PixelsNamed(c.Input.Text.Trim()) : PaperNamed(c.Input.Text.Trim());
+                    CadPaper paper = settings.IsRaster
+                        ? PixelsNamed(c.Input.Text.Trim())
+                        : PaperNamed(c.Input.Text.Trim());
 
                     if (paper == null)
                     {
@@ -370,12 +440,23 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>"Enter plot scale (Plotted Millimeters=Drawing Units) or [Fit]", in the paper units given.</summary>
-        private static IEnumerable<CadPrompt> PlotScale(CadCommandContext c, CadPlotSettings settings, double unit, string units)
+        private static IEnumerable<CadPrompt> PlotScale(
+            CadCommandContext c,
+            CadPlotSettings settings,
+            double unit,
+            string units
+        )
         {
             while (true)
             {
-                string scale =settings.FitToPaper ? "Fit" : Number(settings.PaperUnits / unit) + "=" + Number(settings.DrawingUnits);
-                yield return CadPrompt.ForKeywordOrText("Enter plot scale (Plotted " + units + "=Drawing Units) or", new[] { "Fit" }, scale);
+                string scale = settings.FitToPaper
+                    ? "Fit"
+                    : Number(settings.PaperUnits / unit) + "=" + Number(settings.DrawingUnits);
+                yield return CadPrompt.ForKeywordOrText(
+                    "Enter plot scale (Plotted " + units + "=Drawing Units) or",
+                    new[] { "Fit" },
+                    scale
+                );
 
                 if (c.Input.Is("Fit"))
                 {
@@ -401,13 +482,24 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>"Plot with plot styles?", "Enter plot style table name (enter . for none) or [?]" and "Plot with lineweights?".</summary>
         private static IEnumerable<CadPrompt> PlotStyles(CadCommandContext c, CadPlotSettings settings)
         {
-            yield return CadPrompt.ForKeyword("Plot with plot styles?", PlotYesNo, settings.PlotWithPlotStyles ? "Yes" : "No");
+            yield return CadPrompt.ForKeyword(
+                "Plot with plot styles?",
+                PlotYesNo,
+                settings.PlotWithPlotStyles ? "Yes" : "No"
+            );
             settings.PlotWithPlotStyles = c.Input.IsNone ? settings.PlotWithPlotStyles : c.Input.Is("Yes");
 
             while (true)
             {
-                string table = settings.StyleTable == CadPlotStyleTable.Monochrome ? "monochrome.ctb" : settings.StyleTable == CadPlotStyleTable.Grayscale ? "grayscale.ctb" : ".";
-                yield return CadPrompt.ForKeywordOrText("Enter plot style table name (enter . for none) or", new[] { "?" }, table);
+                string table =
+                    settings.StyleTable == CadPlotStyleTable.Monochrome ? "monochrome.ctb"
+                    : settings.StyleTable == CadPlotStyleTable.Grayscale ? "grayscale.ctb"
+                    : ".";
+                yield return CadPrompt.ForKeywordOrText(
+                    "Enter plot style table name (enter . for none) or",
+                    new[] { "?" },
+                    table
+                );
 
                 if (c.Input.Is("?"))
                 {
@@ -419,7 +511,9 @@ namespace GeometryHelper.Dxf.Viewer
                 if (c.Input.Kind == CadInputKind.Text)
                 {
                     string typed = c.Input.Text.Trim();
-                    string bare = typed.EndsWith(".ctb", StringComparison.OrdinalIgnoreCase) ? typed.Substring(0, typed.Length - 4) : typed;
+                    string bare = typed.EndsWith(".ctb", StringComparison.OrdinalIgnoreCase)
+                        ? typed.Substring(0, typed.Length - 4)
+                        : typed;
 
                     if (typed == ".")
                     {
@@ -443,7 +537,11 @@ namespace GeometryHelper.Dxf.Viewer
                 break;
             }
 
-            yield return CadPrompt.ForKeyword("Plot with lineweights?", PlotYesNo, settings.PlotLineweights ? "Yes" : "No");
+            yield return CadPrompt.ForKeyword(
+                "Plot with lineweights?",
+                PlotYesNo,
+                settings.PlotLineweights ? "Yes" : "No"
+            );
             settings.PlotLineweights = c.Input.IsNone ? settings.PlotLineweights : c.Input.Is("Yes");
         }
 
@@ -465,8 +563,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             foreach (CadPaper paper in CadPaper.Standard)
             {
-                if (string.Equals(typed, paper.Label, StringComparison.OrdinalIgnoreCase) || string.Equals(typed, paper.Name, StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(typed, paper.CanonicalName, StringComparison.OrdinalIgnoreCase))
+                if (
+                    string.Equals(typed, paper.Label, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(typed, paper.Name, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(typed, paper.CanonicalName, StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     return paper;
                 }
@@ -476,9 +577,10 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The extension of a plotter's file: .png, .jpg or .pdf.</summary>
-        internal static string PlotExtension(string device)
-            => string.Equals(device, CadPlotSettings.PngDevice, StringComparison.OrdinalIgnoreCase) ? ".png"
-                : string.Equals(device, CadPlotSettings.JpgDevice, StringComparison.OrdinalIgnoreCase) ? ".jpg" : ".pdf";
+        internal static string PlotExtension(string device) =>
+            string.Equals(device, CadPlotSettings.PngDevice, StringComparison.OrdinalIgnoreCase) ? ".png"
+            : string.Equals(device, CadPlotSettings.JpgDevice, StringComparison.OrdinalIgnoreCase) ? ".jpg"
+            : ".pdf";
 
         /// <summary>
         /// The size of an image typed at -PLOT's paper size: a listed one by its label or name, or the user's own as
@@ -488,17 +590,29 @@ namespace GeometryHelper.Dxf.Viewer
         {
             foreach (CadPaper paper in CadPaper.PixelSizes)
             {
-                if (string.Equals(typed, paper.Label, StringComparison.OrdinalIgnoreCase) || string.Equals(typed, paper.Name, StringComparison.OrdinalIgnoreCase))
+                if (
+                    string.Equals(typed, paper.Label, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(typed, paper.Name, StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     return paper;
                 }
             }
 
-            string[] sides = typed.Replace("Pixels", string.Empty).Replace("pixels", string.Empty).Split(new[] { 'x', 'X' }, StringSplitOptions.None);
+            string[] sides = typed
+                .Replace("Pixels", string.Empty)
+                .Replace("pixels", string.Empty)
+                .Split(new[] { 'x', 'X' }, StringSplitOptions.None);
 
-            if (sides.Length == 2 && int.TryParse(sides[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int width)
+            if (
+                sides.Length == 2
+                && int.TryParse(sides[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int width)
                 && int.TryParse(sides[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int height)
-                && width >= CadPaper.MinPixels && width <= CadPaper.MaxPixels && height >= CadPaper.MinPixels && height <= CadPaper.MaxPixels)
+                && width >= CadPaper.MinPixels
+                && width <= CadPaper.MaxPixels
+                && height >= CadPaper.MinPixels
+                && height <= CadPaper.MaxPixels
+            )
             {
                 return CadPaper.Pixels(width, height);
             }
@@ -509,7 +623,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The file a plot is offered as: the drawing's name and the space's beside the drawing, in Documents for a drawing of no file.</summary>
         private static string PlotFileName(CadDocument document, CadSpace space)
         {
-            string folder = document.HasFile ? Path.GetDirectoryName(document.FileName) : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string folder = document.HasFile
+                ? Path.GetDirectoryName(document.FileName)
+                : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             string name = Path.GetFileNameWithoutExtension(document.Title) + "-" + space.Name;
 
             foreach (char bad in Path.GetInvalidFileNameChars())
@@ -529,7 +645,10 @@ namespace GeometryHelper.Dxf.Viewer
             return parts.Length == 2
                 && double.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out paper)
                 && double.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out drawing)
-                && paper > 0.0 && drawing > 0.0 && !double.IsInfinity(paper) && !double.IsInfinity(drawing);
+                && paper > 0.0
+                && drawing > 0.0
+                && !double.IsInfinity(paper)
+                && !double.IsInfinity(drawing);
         }
 
         /// <summary>An offset typed as x,y, both finite.</summary>
@@ -541,10 +660,16 @@ namespace GeometryHelper.Dxf.Viewer
             return parts.Length == 2
                 && double.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out x)
                 && double.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out y)
-                && !double.IsInfinity(x) && !double.IsInfinity(y) && !double.IsNaN(x) && !double.IsNaN(y);
+                && !double.IsInfinity(x)
+                && !double.IsInfinity(y)
+                && !double.IsNaN(x)
+                && !double.IsNaN(y);
         }
 
-        private static string Corner(GeoPoint2 point) => point.X.ToString("0.000000", CultureInfo.InvariantCulture) + "," + point.Y.ToString("0.000000", CultureInfo.InvariantCulture);
+        private static string Corner(GeoPoint2 point) =>
+            point.X.ToString("0.000000", CultureInfo.InvariantCulture)
+            + ","
+            + point.Y.ToString("0.000000", CultureInfo.InvariantCulture);
 
         private static string Mm(double value) => value.ToString("0.00", CultureInfo.InvariantCulture);
     }

@@ -25,7 +25,11 @@ namespace GeometryHelper.Drawing.UnitTest.Plugins
         private const string SampleName = "GeometryHelper.Drawing.SamplePlugin";
         private const string PluginName = "Bolt dimensions";
         private readonly ITestOutputHelper _output;
-        private readonly string _root = Path.Combine(Path.GetTempPath(), "gk-drawing-plugin-tests", Guid.NewGuid().ToString("N"));
+        private readonly string _root = Path.Combine(
+            Path.GetTempPath(),
+            "gk-drawing-plugin-tests",
+            Guid.NewGuid().ToString("N")
+        );
 
         public DrawingPluginTests(ITestOutputHelper output)
         {
@@ -45,21 +49,33 @@ namespace GeometryHelper.Drawing.UnitTest.Plugins
             }
         }
 
-        private static string BuiltSample => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SamplePlugin", SampleName + ".dll");
+        private static string BuiltSample =>
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SamplePlugin", SampleName + ".dll");
 
         /// <summary>TC5, its bolts moved apart along the world's X by a distance each side.</summary>
         private static DrawingSource TC5(double apart = 0.0)
         {
             TestBody body = TestBodies.TC5();
-            IEnumerable<TestPart> parts = body.Parts.Select(p => !p.Object.Id.StartsWith("TC5-bolt-", StringComparison.Ordinal) ? p
-                : p.TransformBy(GeoTransform3.Translation(new GeoVector3(p.Object.Frame.Origin.X < 0 ? -apart : apart, 0, 0))));
+            IEnumerable<TestPart> parts = body.Parts.Select(p =>
+                !p.Object.Id.StartsWith("TC5-bolt-", StringComparison.Ordinal)
+                    ? p
+                    : p.TransformBy(
+                        GeoTransform3.Translation(new GeoVector3(p.Object.Frame.Origin.X < 0 ? -apart : apart, 0, 0))
+                    )
+            );
             return new DrawingSource(parts.Select(p => p.Object));
         }
 
-        private CadPluginManager Manager() => new CadPluginManager(new CadPluginAssemblyLoader(), Path.Combine(_root, "plugins"), Path.Combine(_root, "plugins.json"), Path.Combine(_root, "copies"))
-        {
-            ConfirmUntrusted = path => true,
-        };
+        private CadPluginManager Manager() =>
+            new CadPluginManager(
+                new CadPluginAssemblyLoader(),
+                Path.Combine(_root, "plugins"),
+                Path.Combine(_root, "plugins.json"),
+                Path.Combine(_root, "copies")
+            )
+            {
+                ConfirmUntrusted = path => true,
+            };
 
         private string Package(string kind = "drawing")
         {
@@ -68,9 +84,18 @@ namespace GeometryHelper.Drawing.UnitTest.Plugins
             using (FileStream stream = File.Create(path))
             using (var zip = new ZipArchive(stream, ZipArchiveMode.Create))
             {
-                using (var writer = new StreamWriter(zip.CreateEntry(CadPluginManifest.FileName).Open(), new UTF8Encoding(false)))
+                using (
+                    var writer = new StreamWriter(
+                        zip.CreateEntry(CadPluginManifest.FileName).Open(),
+                        new UTF8Encoding(false)
+                    )
+                )
                 {
-                    writer.Write("{ \"id\": \"bolt-dimensions\", \"name\": \"Bolt tools\", \"version\": \"1.0.0\", \"kind\": \"" + kind + "\", \"minimumApiVersion\": \"1.0\" }");
+                    writer.Write(
+                        "{ \"id\": \"bolt-dimensions\", \"name\": \"Bolt tools\", \"version\": \"1.0.0\", \"kind\": \""
+                            + kind
+                            + "\", \"minimumApiVersion\": \"1.0\" }"
+                    );
                 }
 
                 zip.CreateEntryFromFile(BuiltSample, SampleName + ".dll");
@@ -79,10 +104,15 @@ namespace GeometryHelper.Drawing.UnitTest.Plugins
             return path;
         }
 
-        private static List<DrawingElement> PluginDimensions(Drawing drawing, string runId = "R-1")
-            => drawing.Elements.Where(e => e.Kind == "Dimension" && e.Id.StartsWith("V-FRONT/" + runId + "/", StringComparison.Ordinal)).ToList();
+        private static List<DrawingElement> PluginDimensions(Drawing drawing, string runId = "R-1") =>
+            drawing
+                .Elements.Where(e =>
+                    e.Kind == "Dimension" && e.Id.StartsWith("V-FRONT/" + runId + "/", StringComparison.Ordinal)
+                )
+                .ToList();
 
-        private static string Value(DrawingElement element, string name) => element.Values.Single(v => v.Key == name).Value;
+        private static string Value(DrawingElement element, string name) =>
+            element.Values.Single(v => v.Key == name).Value;
 
         private void Write(Drawing drawing)
         {
@@ -121,7 +151,13 @@ namespace GeometryHelper.Drawing.UnitTest.Plugins
                 Assert.Equal(new[] { "10", "15", "300", "50", "50" }, dimensions.Select(d => Value(d, "Text")));
                 Assert.Equal("V-FRONT/R-1/D-HoleGroup-Y-1", dimensions[2].Id);
                 Assert.Equal(before + dimensions.Count, drawing.Elements.Count);
-                Assert.All(dimensions, d => Assert.Equal(double.Parse(Value(d, "Value"), System.Globalization.CultureInfo.InvariantCulture), Dimension(drawing.Database, d.Id).Measurement, 6));
+                Assert.All(dimensions, d =>
+                    Assert.Equal(
+                        double.Parse(Value(d, "Value"), System.Globalization.CultureInfo.InvariantCulture),
+                        Dimension(drawing.Database, d.Id).Measurement,
+                        6
+                    )
+                );
                 Assert.Equal(new[] { run }, DrawingDocumentStore.Read(drawing.Database).PluginRuns);
             }
         }
@@ -139,7 +175,12 @@ namespace GeometryHelper.Drawing.UnitTest.Plugins
                 drawing.RunPlugin(catalog.Find(PluginName), "V-FRONT");
                 CadDocument document = drawing.OpenInPresenter();
                 string pitch = PluginDimensions(drawing).Single(d => Value(d, "Text") == "300").Id;
-                Assert.True(document.Owners.TryApply(document, new CadEdit(Dimension(document.Database, pitch).Handle, CadEditKind.Move, newValue: "0,10")));
+                Assert.True(
+                    document.Owners.TryApply(
+                        document,
+                        new CadEdit(Dimension(document.Database, pitch).Handle, CadEditKind.Move, newValue: "0,10")
+                    )
+                );
 
                 UpdateReport report = drawing.Update(TC5(20));
                 Write(drawing);
@@ -172,8 +213,16 @@ namespace GeometryHelper.Drawing.UnitTest.Plugins
             catalog.Add(new Recording());
             Drawing drawing = DrawingBuilder.Build(TC5(), AssemblyOnA3(), Tol);
             drawing.Plugins = catalog;
-            drawing.RunPlugin(catalog.Find("Recording"), "V-FRONT", new[] { "TC5-bolt-1" }, new[] { new KeyValuePair<string, double>("Gap", 8) });
-            Assert.Equal(new[] { new KeyValuePair<string, string>("Gap", "8") }, Assert.Single(drawing.PluginRuns).Settings);
+            drawing.RunPlugin(
+                catalog.Find("Recording"),
+                "V-FRONT",
+                new[] { "TC5-bolt-1" },
+                new[] { new KeyValuePair<string, double>("Gap", 8) }
+            );
+            Assert.Equal(
+                new[] { new KeyValuePair<string, string>("Gap", "8") },
+                Assert.Single(drawing.PluginRuns).Settings
+            );
 
             UpdateReport report = drawing.Update(new DrawingSource(TC5().Objects.Where(o => o.Id != "TC5-bolt-1")));
 
@@ -189,12 +238,20 @@ namespace GeometryHelper.Drawing.UnitTest.Plugins
             Drawing drawing = DrawingBuilder.Build(TC5(), AssemblyOnA3(), Tol);
             IReadOnlyList<DrawingElement> before = drawing.Elements;
 
-            InvalidOperationException thrown = Assert.Throws<InvalidOperationException>(() => drawing.RunPlugin(new Recording { Fail = true }, "V-FRONT"));
+            InvalidOperationException thrown = Assert.Throws<InvalidOperationException>(() =>
+                drawing.RunPlugin(new Recording { Fail = true }, "V-FRONT")
+            );
 
             Assert.Contains("Recording failed: on purpose", thrown.Message);
             Assert.Equal(before, drawing.Elements);
             Assert.Empty(drawing.PluginRuns);
-            Assert.Throws<ArgumentOutOfRangeException>(() => drawing.RunPlugin(new Recording(), "V-FRONT", settings: new[] { new KeyValuePair<string, double>("Gap", 500) }));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                drawing.RunPlugin(
+                    new Recording(),
+                    "V-FRONT",
+                    settings: new[] { new KeyValuePair<string, double>("Gap", 500) }
+                )
+            );
         }
 
         [Fact]
@@ -289,7 +346,15 @@ namespace GeometryHelper.Drawing.UnitTest.Plugins
                 var settings = context.Settings.Dimensions;
                 settings.Scale = context.View.Scale;
                 settings.Overall = false;
-                context.AddDimensions(GeometryHelper.Drawing.Annotation.Annotator.Dimension(context.View.Lines, context.Objects, context.View.Frame.CoordinateSystem, settings, context.Tolerance));
+                context.AddDimensions(
+                    GeometryHelper.Drawing.Annotation.Annotator.Dimension(
+                        context.View.Lines,
+                        context.Objects,
+                        context.View.Frame.CoordinateSystem,
+                        settings,
+                        context.Tolerance
+                    )
+                );
             }
         }
     }

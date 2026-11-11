@@ -45,7 +45,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             session.FeedSelection(new[] { a, b });
 
             // Clockwise round line A: a window lasso.
-            var ring = new[] { new GeoPoint2(-1, -1), new GeoPoint2(-1, 1), new GeoPoint2(11, 1), new GeoPoint2(11, -1) };
+            var ring = new[]
+            {
+                new GeoPoint2(-1, -1),
+                new GeoPoint2(-1, 1),
+                new GeoPoint2(11, 1),
+                new GeoPoint2(11, -1),
+            };
             CadPicking.LassoDone(document, document.ModelSpace, session, ring, true);
 
             Assert.Equal(new[] { b }, session.Gathering);

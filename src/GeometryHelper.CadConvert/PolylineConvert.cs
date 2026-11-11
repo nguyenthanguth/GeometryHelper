@@ -22,7 +22,10 @@ namespace GeometryHelper.CadConvert
         {
             double width = extents.MaxPoint.X - extents.MinPoint.X;
             double height = extents.MaxPoint.Y - extents.MinPoint.Y;
-            var center = new GeoPoint2((extents.MinPoint.X + extents.MaxPoint.X) / 2.0, (extents.MinPoint.Y + extents.MaxPoint.Y) / 2.0);
+            var center = new GeoPoint2(
+                (extents.MinPoint.X + extents.MaxPoint.X) / 2.0,
+                (extents.MinPoint.Y + extents.MaxPoint.Y) / 2.0
+            );
             return new GeoRectangle2(center, width, height, 0.0);
         }
 
@@ -31,7 +34,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="extentsList">The sequence of AutoCAD 2D bounding boxes to convert.</param>
         /// <returns>A list of converted <see cref="GeoRectangle2"/>.</returns>
-        public static List<GeoRectangle2> ToGeoRectangle2(this IEnumerable<Extents2d> extentsList) => extentsList.Select(ToGeoRectangle2).ToList();
+        public static List<GeoRectangle2> ToGeoRectangle2(this IEnumerable<Extents2d> extentsList) =>
+            extentsList.Select(ToGeoRectangle2).ToList();
 
         /// <summary>
         /// Converts a AutoCAD Extents3d to a GeometryHelper 2D rectangle (discarding the Z coordinate).
@@ -42,7 +46,10 @@ namespace GeometryHelper.CadConvert
         {
             double width = extents.MaxPoint.X - extents.MinPoint.X;
             double height = extents.MaxPoint.Y - extents.MinPoint.Y;
-            var center = new GeoPoint2((extents.MinPoint.X + extents.MaxPoint.X) / 2.0, (extents.MinPoint.Y + extents.MaxPoint.Y) / 2.0);
+            var center = new GeoPoint2(
+                (extents.MinPoint.X + extents.MaxPoint.X) / 2.0,
+                (extents.MinPoint.Y + extents.MaxPoint.Y) / 2.0
+            );
             return new GeoRectangle2(center, width, height, 0.0);
         }
 
@@ -51,8 +58,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="extentsList">The sequence of AutoCAD 3D bounding boxes to convert.</param>
         /// <returns>A list of converted <see cref="GeoRectangle2"/>.</returns>
-        public static List<GeoRectangle2> ToGeoRectangle2(this IEnumerable<Extents3d> extentsList) => extentsList.Select(ToGeoRectangle2).ToList();
-
+        public static List<GeoRectangle2> ToGeoRectangle2(this IEnumerable<Extents3d> extentsList) =>
+            extentsList.Select(ToGeoRectangle2).ToList();
 
         /// <summary>
         /// Counts the segments of an AutoCAD polyline that are arcs.
@@ -108,7 +115,8 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="polyline"/> is null.</exception>
         public static GeoPolylineArc2 ToGeoPolylineArc2(this Polyline polyline)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             ReadVertices(polyline, out List<GeoPoint2> points, out List<double> bulges);
 
@@ -131,7 +139,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="polylines">The sequence of AutoCAD Polylines to convert.</param>
         /// <returns>A list of converted <see cref="GeoPolylineArc2"/>.</returns>
-        public static List<GeoPolylineArc2> ToGeoPolylineArc2(this IEnumerable<Polyline> polylines) => polylines.Select(ToGeoPolylineArc2).ToList();
+        public static List<GeoPolylineArc2> ToGeoPolylineArc2(this IEnumerable<Polyline> polylines) =>
+            polylines.Select(ToGeoPolylineArc2).ToList();
 
         /// <summary>
         /// Converts an AutoCAD Polyline to a GeometryHelper 2D loop, keeping its arcs.
@@ -146,7 +155,8 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="polyline"/> is null.</exception>
         public static GeoPolygonArc2 ToGeoPolygonArc2(this Polyline polyline)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             ReadVertices(polyline, out List<GeoPoint2> points, out List<double> bulges);
 
@@ -158,7 +168,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="polylines">The sequence of AutoCAD Polylines to convert.</param>
         /// <returns>A list of converted <see cref="GeoPolygonArc2"/>.</returns>
-        public static List<GeoPolygonArc2> ToGeoPolygonArc2(this IEnumerable<Polyline> polylines) => polylines.Select(ToGeoPolygonArc2).ToList();
+        public static List<GeoPolygonArc2> ToGeoPolygonArc2(this IEnumerable<Polyline> polylines) =>
+            polylines.Select(ToGeoPolygonArc2).ToList();
 
         /// <summary>
         /// Converts a AutoCAD Polyline to a GeometryHelper 2D polyline, cutting any arcs into straight
@@ -189,7 +200,8 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoPolyline2 ToGeoPolyline2(this Polyline polyline, double chordTolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             GeoPolylineArc2 chain = polyline.ToGeoPolylineArc2();
 
@@ -201,8 +213,9 @@ namespace GeometryHelper.CadConvert
             GeoPolyline2 flat = chain.Flatten(chordTolerance);
 
             GeometryHelperLog.Debug(
-                $"The AutoCAD polyline has {CountArcs(polyline)} arc segment(s); they were cut into straight pieces, " +
-                $"{chain.VertexCount} vertices becoming {flat.VertexCount}.");
+                $"The AutoCAD polyline has {CountArcs(polyline)} arc segment(s); they were cut into straight pieces, "
+                    + $"{chain.VertexCount} vertices becoming {flat.VertexCount}."
+            );
 
             return flat;
         }
@@ -212,7 +225,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="polylines">The sequence of AutoCAD Polylines to convert.</param>
         /// <returns>A list of converted <see cref="GeoPolyline2"/>.</returns>
-        public static List<GeoPolyline2> ToGeoPolyline2(this IEnumerable<Polyline> polylines) => polylines.Select(polyline => polyline.ToGeoPolyline2()).ToList();
+        public static List<GeoPolyline2> ToGeoPolyline2(this IEnumerable<Polyline> polylines) =>
+            polylines.Select(polyline => polyline.ToGeoPolyline2()).ToList();
 
         /// <summary>
         /// Converts a AutoCAD Polyline to a GeometryHelper 2D polygon, cutting any arcs into straight pieces.
@@ -239,7 +253,8 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoPolygon2 ToGeoPolygon2(this Polyline polyline, double chordTolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             GeoPolygonArc2 loop = polyline.ToGeoPolygonArc2();
 
@@ -251,8 +266,9 @@ namespace GeometryHelper.CadConvert
             GeoPolygon2 flat = loop.Flatten(chordTolerance);
 
             GeometryHelperLog.Debug(
-                $"The AutoCAD polyline has {CountArcs(polyline)} arc segment(s); they were cut into straight pieces, " +
-                $"{loop.VertexCount} vertices becoming {flat.VertexCount}.");
+                $"The AutoCAD polyline has {CountArcs(polyline)} arc segment(s); they were cut into straight pieces, "
+                    + $"{loop.VertexCount} vertices becoming {flat.VertexCount}."
+            );
 
             return flat;
         }
@@ -262,7 +278,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="polylines">The sequence of AutoCAD Polylines to convert.</param>
         /// <returns>A list of converted <see cref="GeoPolygon2"/>.</returns>
-        public static List<GeoPolygon2> ToGeoPolygon2(this IEnumerable<Polyline> polylines) => polylines.Select(polyline => polyline.ToGeoPolygon2()).ToList();
+        public static List<GeoPolygon2> ToGeoPolygon2(this IEnumerable<Polyline> polylines) =>
+            polylines.Select(polyline => polyline.ToGeoPolygon2()).ToList();
 
         /// <summary>
         /// Tries to convert a AutoCAD Polyline to a GeometryHelper 2D polyline without approximating
@@ -303,7 +320,6 @@ namespace GeometryHelper.CadConvert
             return true;
         }
 
-
         /// <summary>
         /// Converts a AutoCAD Circle to a GeometryHelper 2D circle.
         /// </summary>
@@ -312,7 +328,8 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="circle"/> is null.</exception>
         public static GeoCircle2 ToGeoCircle2(this Circle circle)
         {
-            if (circle == null) throw new ArgumentNullException(nameof(circle));
+            if (circle == null)
+                throw new ArgumentNullException(nameof(circle));
             return new GeoCircle2(circle.Center.ToGeoPoint2(), circle.Radius);
         }
 
@@ -321,7 +338,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="circles">The sequence of AutoCAD Circles to convert.</param>
         /// <returns>A list of converted <see cref="GeoCircle2"/>.</returns>
-        public static List<GeoCircle2> ToGeoCircle2(this IEnumerable<Circle> circles) => circles.Select(ToGeoCircle2).ToList();
+        public static List<GeoCircle2> ToGeoCircle2(this IEnumerable<Circle> circles) =>
+            circles.Select(ToGeoCircle2).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper 2D polyline to a AutoCAD Polyline.
@@ -331,7 +349,8 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="geoPolyline"/> is null.</exception>
         public static Polyline ToAcadPolyline(this GeoPolyline2 geoPolyline)
         {
-            if (geoPolyline == null) throw new ArgumentNullException(nameof(geoPolyline));
+            if (geoPolyline == null)
+                throw new ArgumentNullException(nameof(geoPolyline));
             var result = new Polyline();
             for (int i = 0; i < geoPolyline.VertexCount; i++)
             {
@@ -345,7 +364,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="polylines">The sequence of GeometryHelper 2D polylines to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Polyline"/>.</returns>
-        public static List<Polyline> ToAcadPolyline(this IEnumerable<GeoPolyline2> polylines) => polylines.Select(ToAcadPolyline).ToList();
+        public static List<Polyline> ToAcadPolyline(this IEnumerable<GeoPolyline2> polylines) =>
+            polylines.Select(ToAcadPolyline).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper 2D polygon to a closed AutoCAD Polyline.
@@ -355,7 +375,8 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="geoPolygon"/> is null.</exception>
         public static Polyline ToAcadPolyline(this GeoPolygon2 geoPolygon)
         {
-            if (geoPolygon == null) throw new ArgumentNullException(nameof(geoPolygon));
+            if (geoPolygon == null)
+                throw new ArgumentNullException(nameof(geoPolygon));
 
             var result = new Polyline();
 
@@ -373,7 +394,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="polygons">The sequence of GeometryHelper 2D polygons to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Polyline"/>.</returns>
-        public static List<Polyline> ToAcadPolyline(this IEnumerable<GeoPolygon2> polygons) => polygons.Select(ToAcadPolyline).ToList();
+        public static List<Polyline> ToAcadPolyline(this IEnumerable<GeoPolygon2> polygons) =>
+            polygons.Select(ToAcadPolyline).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper 2D chain that may curve to an AutoCAD Polyline, arcs and all.
@@ -388,7 +410,8 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="chain"/> is null.</exception>
         public static Polyline ToAcadPolyline(this GeoPolylineArc2 chain)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             var result = new Polyline();
 
@@ -407,7 +430,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="chains">The sequence of GeometryHelper 2D chains to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Polyline"/>.</returns>
-        public static List<Polyline> ToAcadPolyline(this IEnumerable<GeoPolylineArc2> chains) => chains.Select(ToAcadPolyline).ToList();
+        public static List<Polyline> ToAcadPolyline(this IEnumerable<GeoPolylineArc2> chains) =>
+            chains.Select(ToAcadPolyline).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper 2D loop that may curve to a closed AutoCAD Polyline, arcs and all.
@@ -421,7 +445,8 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="loop"/> is null.</exception>
         public static Polyline ToAcadPolyline(this GeoPolygonArc2 loop)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             var result = new Polyline();
 
@@ -440,8 +465,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="loops">The sequence of GeometryHelper 2D loops to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Polyline"/>.</returns>
-        public static List<Polyline> ToAcadPolyline(this IEnumerable<GeoPolygonArc2> loops) => loops.Select(ToAcadPolyline).ToList();
-
+        public static List<Polyline> ToAcadPolyline(this IEnumerable<GeoPolygonArc2> loops) =>
+            loops.Select(ToAcadPolyline).ToList();
 
         /// <summary>
         /// Tries to convert a 4-vertex closed AutoCAD Polyline to a GeometryHelper 2D rectangle.
@@ -452,7 +477,8 @@ namespace GeometryHelper.CadConvert
         public static bool TryToGeoRectangle2(this Polyline polyline, out GeoRectangle2 rect)
         {
             rect = default(GeoRectangle2);
-            if (polyline == null) return false;
+            if (polyline == null)
+                return false;
 
             if (polyline.NumberOfVertices != 4 || !polyline.Closed)
             {

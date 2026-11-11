@@ -28,7 +28,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
         private static bool On(MainViewModel model, string name) => model.Toggles.Single(t => t.Name == name).IsOn;
 
-        private static void Show(MainViewModel model, string label) => model.ActivateFileCommand.Execute(model.FileRows.Single(r => r.Label == label));
+        private static void Show(MainViewModel model, string label) =>
+            model.ActivateFileCommand.Execute(model.FileRows.Single(r => r.Label == label));
 
         [Fact]
         public void EachDrawingOpened_ShowsItsOwnSnapGridOrthoAndLineweights_AsItsTabIsShown()

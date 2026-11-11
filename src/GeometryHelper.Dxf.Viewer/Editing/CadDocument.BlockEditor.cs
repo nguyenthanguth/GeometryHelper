@@ -50,8 +50,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The space of a name, the Block Editor's among them; null for none or a null name.</summary>
-        private CadSpace SpaceNamed(string name)
-            => name == null ? null : AllSpaces.Find(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
+        private CadSpace SpaceNamed(string name) =>
+            name == null ? null : AllSpaces.Find(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
 
         /// <summary>
         /// Opens the Block Editor on a block, as BEDIT: the block shown alone in a space of its own, made the current space;
@@ -95,7 +95,12 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 DxfBlockTableRecord found = Database.BlockTable[name];
 
-                if (found.IsLayout || found.IsAnonymous || found.IsFromExternalReference || found.Name.StartsWith("*", StringComparison.Ordinal))
+                if (
+                    found.IsLayout
+                    || found.IsAnonymous
+                    || found.IsFromExternalReference
+                    || found.Name.StartsWith("*", StringComparison.Ordinal)
+                )
                 {
                     return CadEditResult.Refuse("The block " + found.Name + " cannot be edited in the Block Editor.");
                 }
@@ -109,11 +114,15 @@ namespace GeometryHelper.Dxf.Viewer
             if (!whole && !exists)
             {
                 string made = name;
-                CadEditResult result = ApplyEdit("BEDIT", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New block", null, made) }, s =>
-                {
-                    var record = new DxfBlockTableRecord { Name = made, Origin = new GeoPoint3(0.0, 0.0, 0.0) };
-                    s.Database.BlockTable.Add(record);
-                });
+                CadEditResult result = ApplyEdit(
+                    "BEDIT",
+                    new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New block", null, made) },
+                    s =>
+                    {
+                        var record = new DxfBlockTableRecord { Name = made, Origin = new GeoPoint3(0.0, 0.0, 0.0) };
+                        s.Database.BlockTable.Add(record);
+                    }
+                );
 
                 if (!result.Succeeded)
                 {
@@ -121,8 +130,20 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            CadSpace space = whole ? ModelSpace : new CadSpace(this, CadBlockEditor.SpacePrefix + name, true, Database.BlockTable[name], null);
-            Show(new CadBlockEditor(this, whole ? CadBlockEditor.CurrentDrawing : name, space, !whole && !exists, start, _position, CurrentSpace));
+            CadSpace space = whole
+                ? ModelSpace
+                : new CadSpace(this, CadBlockEditor.SpacePrefix + name, true, Database.BlockTable[name], null);
+            Show(
+                new CadBlockEditor(
+                    this,
+                    whole ? CadBlockEditor.CurrentDrawing : name,
+                    space,
+                    !whole && !exists,
+                    start,
+                    _position,
+                    CurrentSpace
+                )
+            );
             GeometryHelperLog.Info("CadDocument: the Block Editor opened " + _blockEditor.Name + ".");
             return CadEditResult.Done(Array.Empty<CadEditRecord>());
         }
@@ -169,7 +190,16 @@ namespace GeometryHelper.Dxf.Viewer
             _indexes.Remove(editor.Space);
             _stale.Remove(editor.Space);
             Selection.Clear();
-            Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Regen, null, Array.Empty<string>(), new[] { editor.Space }, false));
+            Changed?.Invoke(
+                this,
+                new CadDocumentChangedEventArgs(
+                    CadChangeKind.Regen,
+                    null,
+                    Array.Empty<string>(),
+                    new[] { editor.Space },
+                    false
+                )
+            );
             return CadEditResult.Done(Array.Empty<CadEditRecord>());
         }
 
@@ -181,7 +211,9 @@ namespace GeometryHelper.Dxf.Viewer
         {
             shown = null;
             hidden = null;
-            return _blockEditor != null && ReferenceEquals(_blockEditor.Space.Block, block) && _blockEditor.StateSets(out shown, out hidden);
+            return _blockEditor != null
+                && ReferenceEquals(_blockEditor.Space.Block, block)
+                && _blockEditor.StateSets(out shown, out hidden);
         }
 
         /// <summary>
@@ -264,27 +296,41 @@ namespace GeometryHelper.Dxf.Viewer
 
             Discard(editor.DiscardTarget);
             editor.Space.IsBlockEditor = false;
-            CadEditResult result = ApplyEdit("BSAVEAS", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New block", null, name) }, s =>
-            {
-                var record = new DxfBlockTableRecord { Name = name, Origin = origin };
-                s.Database.BlockTable.Add(record);
-                KeepValue(() => record.Comments = description, description.Length > 0);
-                KeepValue(() => record.Units = units, record.Units != units);
-                KeepValue(() => record.Explodable = explodable, record.Explodable != explodable);
-                KeepValue(() => record.BlockScaling = scaling, record.BlockScaling != scaling);
-
-                if (content.Count > 0)
+            CadEditResult result = ApplyEdit(
+                "BSAVEAS",
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New block", null, name) },
+                s =>
                 {
-                    edited.WblockCloneObjects(content, record);
+                    var record = new DxfBlockTableRecord { Name = name, Origin = origin };
+                    s.Database.BlockTable.Add(record);
+                    KeepValue(() => record.Comments = description, description.Length > 0);
+                    KeepValue(() => record.Units = units, record.Units != units);
+                    KeepValue(() => record.Explodable = explodable, record.Explodable != explodable);
+                    KeepValue(() => record.BlockScaling = scaling, record.BlockScaling != scaling);
+
+                    if (content.Count > 0)
+                    {
+                        edited.WblockCloneObjects(content, record);
+                    }
                 }
-            });
+            );
 
             if (!result.Succeeded)
             {
                 // The block opened is shown again as it was read back; a new one never saved is gone, and the editor with it.
                 if (editor.IsCurrentDrawing || Database.BlockTable.Has(editor.Name))
                 {
-                    Show(new CadBlockEditor(this, editor.Name, editor.IsCurrentDrawing ? ModelSpace : SpaceOf(editor.Name), false, editor.Start, _position, editor.Previous));
+                    Show(
+                        new CadBlockEditor(
+                            this,
+                            editor.Name,
+                            editor.IsCurrentDrawing ? ModelSpace : SpaceOf(editor.Name),
+                            false,
+                            editor.Start,
+                            _position,
+                            editor.Previous
+                        )
+                    );
                 }
                 else
                 {
@@ -347,9 +393,20 @@ namespace GeometryHelper.Dxf.Viewer
             _byHandle = null;
             Selection.Clear();
             CurrentSpace = _spaces.Contains(editor.Previous) ? editor.Previous : ModelSpace;
-            GeometryHelperLog.Info("CadDocument: the Block Editor closed " + editor.Name + (saved ? ", saved." : ", not saved."));
+            GeometryHelperLog.Info(
+                "CadDocument: the Block Editor closed " + editor.Name + (saved ? ", saved." : ", not saved.")
+            );
             BlockEditorChanged?.Invoke(this, EventArgs.Empty);
-            Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Regen, null, Array.Empty<string>(), AllSpaces.ToArray(), false));
+            Changed?.Invoke(
+                this,
+                new CadDocumentChangedEventArgs(
+                    CadChangeKind.Regen,
+                    null,
+                    Array.Empty<string>(),
+                    AllSpaces.ToArray(),
+                    false
+                )
+            );
         }
 
         /// <summary>Why the Block Editor cannot save or close now; null where it can.</summary>
@@ -378,7 +435,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A new space of the Block Editor over the block of a name in the drawing as it stands.</summary>
-        private CadSpace SpaceOf(string name) => new CadSpace(this, CadBlockEditor.SpacePrefix + name, true, Database.BlockTable[name], null);
+        private CadSpace SpaceOf(string name) =>
+            new CadSpace(this, CadBlockEditor.SpacePrefix + name, true, Database.BlockTable[name], null);
 
         /// <summary>Points the Block Editor's space at its block in a drawing read again, as undo reads it; left as it is where the drawing has no such block.</summary>
         private void RebindBlockEditor(DxfDatabase database)
@@ -450,7 +508,16 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             _position = target;
-            Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Rollback, "BCLOSE", Array.Empty<string>(), AllSpaces.ToArray(), true));
+            Changed?.Invoke(
+                this,
+                new CadDocumentChangedEventArgs(
+                    CadChangeKind.Rollback,
+                    "BCLOSE",
+                    Array.Empty<string>(),
+                    AllSpaces.ToArray(),
+                    true
+                )
+            );
         }
 
         /// <summary>Forgets the steps undone, which no redo reaches once the Block Editor has saved or discarded.</summary>
@@ -507,7 +574,15 @@ namespace GeometryHelper.Dxf.Viewer
         // The visibility state chosen in the Visibility State box; null for the block's first.
         private string _state;
 
-        internal CadBlockEditor(CadDocument document, string name, CadSpace space, bool isNew, int start, int floor, CadSpace previous)
+        internal CadBlockEditor(
+            CadDocument document,
+            string name,
+            CadSpace space,
+            bool isNew,
+            int start,
+            int floor,
+            CadSpace previous
+        )
         {
             _document = document;
             Name = name;
@@ -652,7 +727,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 return Space.Block.GetVisibilityStates();
             }
-            catch (Exception exception) when (exception is NotSupportedException || exception is InvalidOperationException || exception is ArgumentException)
+            catch (Exception exception)
+                when (exception is NotSupportedException
+                    || exception is InvalidOperationException
+                    || exception is ArgumentException
+                )
             {
                 return Array.Empty<DxfBlockVisibilityState>();
             }
@@ -667,6 +746,7 @@ namespace GeometryHelper.Dxf.Viewer
         internal static readonly string[] Names = Array.ConvertAll(Values, CadCommands.UnitName);
 
         /// <summary>The place of a unit's name in <see cref="Names"/>, letters of either case alike; -1 for none.</summary>
-        internal static int IndexOf(string name) => Array.FindIndex(Names, n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase));
+        internal static int IndexOf(string name) =>
+            Array.FindIndex(Names, n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase));
     }
 }

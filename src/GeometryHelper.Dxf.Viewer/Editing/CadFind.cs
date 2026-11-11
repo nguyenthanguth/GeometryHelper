@@ -54,7 +54,16 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>One text FIND found: the object it is in, where that is, and the text as the result list shows it.</summary>
     public sealed class CadFindResult
     {
-        internal CadFindResult(string handle, string location, string objectType, string text, string target, int row, int column, int count)
+        internal CadFindResult(
+            string handle,
+            string location,
+            string objectType,
+            string text,
+            string target,
+            int row,
+            int column,
+            int count
+        )
         {
             Handle = handle;
             Location = location;
@@ -110,7 +119,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="selected">The objects of <see cref="CadFindScope.SelectedObjects"/>; null for none.</param>
         /// <returns>The texts found, each object once.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
-        public static IReadOnlyList<CadFindResult> Find(CadDocument document, string what, CadFindOptions options, CadFindScope scope, IEnumerable<string> selected = null)
+        public static IReadOnlyList<CadFindResult> Find(
+            CadDocument document,
+            string what,
+            CadFindOptions options,
+            CadFindScope scope,
+            IEnumerable<string> selected = null
+        )
         {
             if (document == null)
             {
@@ -180,8 +195,20 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="options">The options it was found with; null for the defaults.</param>
         /// <returns>What came of it.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document or the result is null.</exception>
-        public static CadEditResult Replace(CadDocument document, CadFindResult result, string what, string with, CadFindOptions options)
-            => ReplaceAll(document, new[] { result ?? throw new ArgumentNullException(nameof(result)) }, what, with, options);
+        public static CadEditResult Replace(
+            CadDocument document,
+            CadFindResult result,
+            string what,
+            string with,
+            CadFindOptions options
+        ) =>
+            ReplaceAll(
+                document,
+                new[] { result ?? throw new ArgumentNullException(nameof(result)) },
+                what,
+                with,
+                options
+            );
 
         /// <summary>Replaces the text searched for in every result, as Replace All does: one undo step "FIND".</summary>
         /// <param name="document">The document.</param>
@@ -191,7 +218,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="options">The options it was found with; null for the defaults.</param>
         /// <returns>What came of it.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document or the results are null.</exception>
-        public static CadEditResult ReplaceAll(CadDocument document, IReadOnlyList<CadFindResult> results, string what, string with, CadFindOptions options)
+        public static CadEditResult ReplaceAll(
+            CadDocument document,
+            IReadOnlyList<CadFindResult> results,
+            string what,
+            string with,
+            CadFindOptions options
+        )
         {
             if (document == null)
             {
@@ -213,7 +246,16 @@ namespace GeometryHelper.Dxf.Viewer
             // A text of a block found through each of its INSERTs is replaced once.
             foreach (CadFindResult result in results)
             {
-                if (result != null && seen.Add(result.Target + "|" + result.Row.ToString(CultureInfo.InvariantCulture) + "|" + result.Column.ToString(CultureInfo.InvariantCulture)))
+                if (
+                    result != null
+                    && seen.Add(
+                        result.Target
+                            + "|"
+                            + result.Row.ToString(CultureInfo.InvariantCulture)
+                            + "|"
+                            + result.Column.ToString(CultureInfo.InvariantCulture)
+                    )
+                )
                 {
                     unique.Add(result);
                 }
@@ -226,9 +268,23 @@ namespace GeometryHelper.Dxf.Viewer
                 bool own = document.FindEntity(result.Target) != null;
 
                 // A text of a block is the block's, not an entity of a space: it goes as a change of the tables, as BEDIT's would.
-                records.Add(own
-                    ? new CadEditRecord(CadEditRecordKind.PropertyChanged, result.Target, "Contents", result.Text, null)
-                    : new CadEditRecord(CadEditRecordKind.TableChanged, null, "Block text", result.Text, result.Target));
+                records.Add(
+                    own
+                        ? new CadEditRecord(
+                            CadEditRecordKind.PropertyChanged,
+                            result.Target,
+                            "Contents",
+                            result.Text,
+                            null
+                        )
+                        : new CadEditRecord(
+                            CadEditRecordKind.TableChanged,
+                            null,
+                            "Block text",
+                            result.Text,
+                            result.Target
+                        )
+                );
             }
 
             return document.ApplyEdit("FIND", records, s =>
@@ -248,18 +304,29 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The regular expression of the text searched for.</summary>
         internal static Regex Pattern(string what, CadFindOptions options)
         {
-            string body = options.UseWildcards ? CadWildcard.ToRegex(what, !options.MatchCase, false).ToString() : Regex.Escape(what);
+            string body = options.UseWildcards
+                ? CadWildcard.ToRegex(what, !options.MatchCase, false).ToString()
+                : Regex.Escape(what);
 
             if (options.WholeWords)
             {
                 body = "(?<![\\p{L}\\p{Nd}_])(?:" + body + ")(?![\\p{L}\\p{Nd}_])";
             }
 
-            RegexOptions flags = RegexOptions.CultureInvariant | RegexOptions.Singleline | (options.MatchCase ? RegexOptions.None : RegexOptions.IgnoreCase);
+            RegexOptions flags =
+                RegexOptions.CultureInvariant
+                | RegexOptions.Singleline
+                | (options.MatchCase ? RegexOptions.None : RegexOptions.IgnoreCase);
             return new Regex(body, flags);
         }
 
-        private static void ReplaceIn(CadDocument document, DxfDBObject value, CadFindResult result, Regex pattern, string with)
+        private static void ReplaceIn(
+            CadDocument document,
+            DxfDBObject value,
+            CadFindResult result,
+            Regex pattern,
+            string with
+        )
         {
             switch (value)
             {
@@ -322,7 +389,8 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static string ReplacePlain(string text, Regex pattern, string with) => pattern.Replace(text ?? string.Empty, with.Replace("$", "$$"));
+        private static string ReplacePlain(string text, Regex pattern, string with) =>
+            pattern.Replace(text ?? string.Empty, with.Replace("$", "$$"));
 
         /// <summary>
         /// Replaces each match in the words of an MTEXT's contents, its codes kept: the words of a match taken out one by one,
@@ -425,7 +493,16 @@ namespace GeometryHelper.Dxf.Viewer
                         i++;
                         break;
                     case 'U':
-                        if (i + 6 < contents.Length && contents[i + 2] == '+' && int.TryParse(contents.Substring(i + 3, 4), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int letter))
+                        if (
+                            i + 6 < contents.Length
+                            && contents[i + 2] == '+'
+                            && int.TryParse(
+                                contents.Substring(i + 3, 4),
+                                NumberStyles.HexNumber,
+                                CultureInfo.InvariantCulture,
+                                out int letter
+                            )
+                        )
                         {
                             plain.Append((char)letter);
                             starts.Add(i);
@@ -462,7 +539,12 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A text written into MTEXT contents: its back slashes and braces escaped, a line feed a new paragraph.</summary>
-        private static string Escape(string text) => text.Replace("\\", "\\\\").Replace("{", "\\{").Replace("}", "\\}").Replace("\r\n", "\\P").Replace("\n", "\\P");
+        private static string Escape(string text) =>
+            text.Replace("\\", "\\\\")
+                .Replace("{", "\\{")
+                .Replace("}", "\\}")
+                .Replace("\r\n", "\\P")
+                .Replace("\n", "\\P");
 
         /// <summary>One run of a search: the pattern, the options, the layers hidden, and the results it adds to.</summary>
         private sealed class Search
@@ -474,7 +556,13 @@ namespace GeometryHelper.Dxf.Viewer
             private readonly HashSet<string> _hidden;
             private readonly List<CadFindResult> _results;
 
-            internal Search(CadDocument document, Regex pattern, CadFindOptions options, HashSet<string> hidden, List<CadFindResult> results)
+            internal Search(
+                CadDocument document,
+                Regex pattern,
+                CadFindOptions options,
+                HashSet<string> hidden,
+                List<CadFindResult> results
+            )
             {
                 _document = document;
                 _pattern = pattern;
@@ -511,7 +599,15 @@ namespace GeometryHelper.Dxf.Viewer
                     case DxfMText mtext:
                         if (_options.Text)
                         {
-                            Add(top, entity.Handle, location, "MText", Plain(mtext.Contents ?? string.Empty, out _, out _), -1, -1);
+                            Add(
+                                top,
+                                entity.Handle,
+                                location,
+                                "MText",
+                                Plain(mtext.Contents ?? string.Empty, out _, out _),
+                                -1,
+                                -1
+                            );
                         }
 
                         break;
@@ -529,7 +625,15 @@ namespace GeometryHelper.Dxf.Viewer
 
                             if (words != null)
                             {
-                                Add(top, entity.Handle, location, "Multileader", Plain(words.Contents ?? string.Empty, out _, out _), -1, -1);
+                                Add(
+                                    top,
+                                    entity.Handle,
+                                    location,
+                                    "Multileader",
+                                    Plain(words.Contents ?? string.Empty, out _, out _),
+                                    -1,
+                                    -1
+                                );
                             }
                         }
 
@@ -541,7 +645,15 @@ namespace GeometryHelper.Dxf.Viewer
                             {
                                 for (int column = 0; column < table.NumColumns; column++)
                                 {
-                                    Add(top, entity.Handle, location, "Table cell", table.TextString(row, column), row, column);
+                                    Add(
+                                        top,
+                                        entity.Handle,
+                                        location,
+                                        "Table cell",
+                                        table.TextString(row, column),
+                                        row,
+                                        column
+                                    );
                                 }
                             }
                         }

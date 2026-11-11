@@ -54,7 +54,9 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(double.PositiveInfinity, double.PositiveInfinity)]
         public void ARadiusThatIsNotAPositiveFiniteNumberIsRefused(double majorRadius, double minorRadius)
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoEllipse2(Centre, GeoVector2.XAxis, majorRadius, minorRadius));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new GeoEllipse2(Centre, GeoVector2.XAxis, majorRadius, minorRadius)
+            );
         }
 
         [Theory]
@@ -140,8 +142,12 @@ namespace GeometryHelper.UnitTest.Plane
             var ellipse = new GeoEllipse2(Centre, GeoVector2.XAxis, 300, 100);
 
             // 0.0004 off is within the thousandth; 0.003 off is three times over it.
-            Assert.True(ellipse.IsEqualTo(new GeoEllipse2(new GeoPoint2(40.0004, -25), GeoVector2.XAxis, 300, 100), Tol));
-            Assert.False(ellipse.IsEqualTo(new GeoEllipse2(new GeoPoint2(40, -25.003), GeoVector2.XAxis, 300, 100), Tol));
+            Assert.True(
+                ellipse.IsEqualTo(new GeoEllipse2(new GeoPoint2(40.0004, -25), GeoVector2.XAxis, 300, 100), Tol)
+            );
+            Assert.False(
+                ellipse.IsEqualTo(new GeoEllipse2(new GeoPoint2(40, -25.003), GeoVector2.XAxis, 300, 100), Tol)
+            );
             Assert.True(ellipse.IsEqualTo(new GeoEllipse2(Centre, GeoVector2.XAxis, 300.0004, 100), Tol));
             Assert.False(ellipse.IsEqualTo(new GeoEllipse2(Centre, GeoVector2.XAxis, 300.003, 100), Tol));
             Assert.True(ellipse.IsEqualTo(new GeoEllipse2(Centre, GeoVector2.XAxis, 300, 99.9996), Tol));

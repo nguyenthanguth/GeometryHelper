@@ -46,7 +46,13 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Gets whether all three components are finite numbers.
         /// </summary>
-        public bool IsFinite => !double.IsNaN(X) && !double.IsInfinity(X) && !double.IsNaN(Y) && !double.IsInfinity(Y) && !double.IsNaN(Z) && !double.IsInfinity(Z);
+        public bool IsFinite =>
+            !double.IsNaN(X)
+            && !double.IsInfinity(X)
+            && !double.IsNaN(Y)
+            && !double.IsInfinity(Y)
+            && !double.IsNaN(Z)
+            && !double.IsInfinity(Z);
 
         /// <summary>
         /// Adds two vectors.
@@ -76,7 +82,8 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Gets the cross product of two vectors.
         /// </summary>
-        public static Vec3 Cross(Vec3 a, Vec3 b) => new Vec3(a.Y * b.Z - a.Z * b.Y, a.Z * b.X - a.X * b.Z, a.X * b.Y - a.Y * b.X);
+        public static Vec3 Cross(Vec3 a, Vec3 b) =>
+            new Vec3(a.Y * b.Z - a.Z * b.Y, a.Z * b.X - a.X * b.Z, a.X * b.Y - a.Y * b.X);
 
         /// <summary>
         /// Gets the vector scaled to length one, or the zero vector where it has no length.
@@ -84,7 +91,9 @@ namespace GeometryHelper.Viewer
         public Vec3 Normalized()
         {
             double length = Length;
-            return length > 0.0 && !double.IsInfinity(length) ? new Vec3(X / length, Y / length, Z / length) : default(Vec3);
+            return length > 0.0 && !double.IsInfinity(length)
+                ? new Vec3(X / length, Y / length, Z / length)
+                : default(Vec3);
         }
 
         /// <summary>
@@ -113,8 +122,8 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Describes the vector with its components in the invariant culture, to ten significant digits.
         /// </summary>
-        public override string ToString()
-            => string.Format(CultureInfo.InvariantCulture, "({0:G10}, {1:G10}, {2:G10})", X, Y, Z);
+        public override string ToString() =>
+            string.Format(CultureInfo.InvariantCulture, "({0:G10}, {1:G10}, {2:G10})", X, Y, Z);
     }
 
     /// <summary>
@@ -155,7 +164,8 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Gets the middle of the box; the origin where the box is empty.
         /// </summary>
-        public Vec3 Center => HasValue ? new Vec3((Min.X + Max.X) * 0.5, (Min.Y + Max.Y) * 0.5, (Min.Z + Max.Z) * 0.5) : default(Vec3);
+        public Vec3 Center =>
+            HasValue ? new Vec3((Min.X + Max.X) * 0.5, (Min.Y + Max.Y) * 0.5, (Min.Z + Max.Z) * 0.5) : default(Vec3);
 
         /// <summary>
         /// Gets the extent along each axis; zero where the box is empty.
@@ -184,7 +194,8 @@ namespace GeometryHelper.Viewer
 
             return new Bounds3(
                 new Vec3(Math.Min(Min.X, point.X), Math.Min(Min.Y, point.Y), Math.Min(Min.Z, point.Z)),
-                new Vec3(Math.Max(Max.X, point.X), Math.Max(Max.Y, point.Y), Math.Max(Max.Z, point.Z)));
+                new Vec3(Math.Max(Max.X, point.X), Math.Max(Max.Y, point.Y), Math.Max(Max.Z, point.Z))
+            );
         }
 
         /// <summary>

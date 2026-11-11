@@ -108,7 +108,9 @@ namespace GeometryHelper.UnitTest.Packing
             Assert.True(frame.Bounds.LowerLeft.IsEqualTo(new GeoPoint2(1000.0, -500.0)));
             Assert.True(frame.Bounds.UpperRight.IsEqualTo(new GeoPoint2(1000.0 + 4200.0, -500.0 + 2970.0)));
             Assert.True(frame.UsableArea.LowerLeft.IsEqualTo(new GeoPoint2(1000.0 + 200.0, -500.0 + 150.0)));
-            Assert.True(frame.UsableArea.UpperRight.IsEqualTo(new GeoPoint2(1000.0 + 4200.0 - 100.0, -500.0 + 2970.0 - 50.0)));
+            Assert.True(
+                frame.UsableArea.UpperRight.IsEqualTo(new GeoPoint2(1000.0 + 4200.0 - 100.0, -500.0 + 2970.0 - 50.0))
+            );
         }
 
         /// <summary>
@@ -138,7 +140,12 @@ namespace GeometryHelper.UnitTest.Packing
         [Fact]
         public void TheSheetsAfterTheFirst_StepByTheirScaledSizeAndSpacing()
         {
-            var sheet = new Sheet(PaperSize.A1) { Scale = 50.0, SheetSpacing = 100.0, NewSheet = SheetDirection.Bottom };
+            var sheet = new Sheet(PaperSize.A1)
+            {
+                Scale = 50.0,
+                SheetSpacing = 100.0,
+                NewSheet = SheetDirection.Bottom,
+            };
 
             // 594 + 100 mm of paper at 1:50.
             Assert.True(sheet.GetFrame(2).Bounds.LowerLeft.IsEqualTo(new GeoPoint2(0.0, -2 * 34700.0)));
@@ -164,8 +171,12 @@ namespace GeometryHelper.UnitTest.Packing
         {
             var sheet = new Sheet(PaperSize.A3);
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.PlaceCorner((SheetCorner)9, new GeoPoint2(0.0, 0.0)));
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.PlaceCorner(SheetCorner.UpperRight, new GeoPoint2(double.NaN, 0.0)));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                sheet.PlaceCorner((SheetCorner)9, new GeoPoint2(0.0, 0.0))
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                sheet.PlaceCorner(SheetCorner.UpperRight, new GeoPoint2(double.NaN, 0.0))
+            );
         }
 
         [Fact]

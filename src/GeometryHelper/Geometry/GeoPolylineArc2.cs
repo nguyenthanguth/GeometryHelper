@@ -39,9 +39,7 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the vertices are null.</exception>
         /// <exception cref="ArgumentException">Thrown when fewer than two distinct vertices are given.</exception>
         public GeoPolylineArc2(IEnumerable<GeoPoint2> vertices)
-            : this(vertices, null)
-        {
-        }
+            : this(vertices, null) { }
 
         /// <summary>
         /// Initializes a chain whose pieces may be arcs.
@@ -57,9 +55,7 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the vertices are null.</exception>
         /// <exception cref="ArgumentException">Thrown when fewer than two distinct vertices are given.</exception>
         public GeoPolylineArc2(IEnumerable<GeoPoint2> vertices, IEnumerable<double> bulges)
-            : this(vertices, bulges, Tolerance.Global)
-        {
-        }
+            : this(vertices, bulges, Tolerance.Global) { }
 
         /// <summary>
         /// Initializes a chain whose pieces may be arcs, a vertex going only where it lands within a tolerance of the
@@ -71,7 +67,8 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         private GeoPolylineArc2(IEnumerable<GeoPoint2> vertices, IEnumerable<double> bulges, Tolerance tolerance)
         {
-            if (vertices == null) throw new ArgumentNullException(nameof(vertices));
+            if (vertices == null)
+                throw new ArgumentNullException(nameof(vertices));
 
             List<GeoPoint2> kept = new List<GeoPoint2>();
             List<double> keptBulges = new List<double>();
@@ -114,9 +111,7 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the edges are null.</exception>
         /// <exception cref="ArgumentException">Thrown when no edges are given, or one does not start where the one before it ended.</exception>
         public GeoPolylineArc2(IEnumerable<GeoEdge2> edges)
-            : this(edges, Tolerance.Global)
-        {
-        }
+            : this(edges, Tolerance.Global) { }
 
         /// <summary>
         /// Initializes a chain from edges that run end to end within a tolerance.
@@ -129,7 +124,8 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         private GeoPolylineArc2(IEnumerable<GeoEdge2> edges, Tolerance tolerance)
         {
-            if (edges == null) throw new ArgumentNullException(nameof(edges));
+            if (edges == null)
+                throw new ArgumentNullException(nameof(edges));
 
             var vertices = new List<GeoPoint2>();
             var bulges = new List<double>();
@@ -173,8 +169,8 @@ namespace GeometryHelper.Geometry
         /// at 1E-3, would refuse the two.
         /// </remarks>
         /// <exception cref="ArgumentException">Thrown when no edges are given, or one does not start within the tolerance of where the one before it ended.</exception>
-        internal static GeoPolylineArc2 FromEdges(IEnumerable<GeoEdge2> edges, Tolerance tolerance)
-            => new GeoPolylineArc2(edges, tolerance);
+        internal static GeoPolylineArc2 FromEdges(IEnumerable<GeoEdge2> edges, Tolerance tolerance) =>
+            new GeoPolylineArc2(edges, tolerance);
 
         /// <summary>
         /// Initializes a chain from a straight one, with no bulges.
@@ -186,9 +182,7 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public GeoPolylineArc2(GeoPolyline2 polyline)
-            : this((polyline ?? throw new ArgumentNullException(nameof(polyline))).Vertices, null)
-        {
-        }
+            : this((polyline ?? throw new ArgumentNullException(nameof(polyline))).Vertices, null) { }
 
         /// <summary>
         /// Gets the vertex at an index.
@@ -473,7 +467,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Chamfers every corner that has room for it, within a tolerance.
         /// </summary>
-        public GeoPolylineArc2 Chamfer(double distance1, double distance2, Tolerance tolerance) => Corner2.Chamfer(this, distance1, distance2, tolerance);
+        public GeoPolylineArc2 Chamfer(double distance1, double distance2, Tolerance tolerance) =>
+            Corner2.Chamfer(this, distance1, distance2, tolerance);
 
         /// <summary>
         /// Rounds every corner that has room for it with an arc of a given radius.
@@ -569,6 +564,7 @@ namespace GeometryHelper.Geometry
         {
             return $"GeoPolylineArc2[{VertexCount} vertices, {EdgeCount} edges, Length:{Length:0.###}]";
         }
+
         #region Asking and measuring
 
         /// <summary>
@@ -584,12 +580,14 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance along the chain at a normalized parameter.
         /// </summary>
-        public double GetDistanceAtParameter(double parameter) => Parametrization2.GetDistanceAtParameter(this, parameter);
+        public double GetDistanceAtParameter(double parameter) =>
+            Parametrization2.GetDistanceAtParameter(this, parameter);
 
         /// <summary>
         /// Gets the normalized parameter at a distance along the chain.
         /// </summary>
-        public double GetParameterAtDistance(double distance) => Parametrization2.GetParameterAtDistance(this, distance);
+        public double GetParameterAtDistance(double distance) =>
+            Parametrization2.GetParameterAtDistance(this, distance);
 
         /// <summary>
         /// Gets the normalized parameter of the point of the chain nearest a point.
@@ -599,7 +597,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the normalized parameter of the point of the chain nearest a point, within a tolerance.
         /// </summary>
-        public double GetParameterAtPoint(GeoPoint2 point, Tolerance tolerance) => Parametrization2.GetParameterAtPoint(this, point, tolerance);
+        public double GetParameterAtPoint(GeoPoint2 point, Tolerance tolerance) =>
+            Parametrization2.GetParameterAtPoint(this, point, tolerance);
 
         /// <summary>
         /// Gets how far along the chain the point nearest a point lies.
@@ -614,7 +613,8 @@ namespace GeometryHelper.Geometry
         /// (10, 0.006) and back to (0, 0.006) puts (10.03, 0.003) 10.003 along, beside the middle of its edge 0.006 long,
         /// where it put it 10 along, at that edge's start.
         /// </remarks>
-        public double GetDistanceAtPoint(GeoPoint2 point, Tolerance tolerance) => Parametrization2.GetDistanceAtPoint(this, point, tolerance);
+        public double GetDistanceAtPoint(GeoPoint2 point, Tolerance tolerance) =>
+            Parametrization2.GetDistanceAtPoint(this, point, tolerance);
 
         /// <summary>
         /// Determines whether a point lies on the chain.
@@ -634,7 +634,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Says where a point lies against the chain, within a tolerance.
         /// </summary>
-        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) => Containment2.Locate(this, point, tolerance);
+        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) =>
+            Containment2.Locate(this, point, tolerance);
 
         #endregion
 
@@ -643,20 +644,24 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Cuts the chain in two at a distance along it.
         /// </summary>
-        public bool TrySplitAtDistance(double distance, out GeoPolylineArc2 first, out GeoPolylineArc2 second)
-            => Splition2.TrySplitAtDistance(this, distance, out first, out second);
+        public bool TrySplitAtDistance(double distance, out GeoPolylineArc2 first, out GeoPolylineArc2 second) =>
+            Splition2.TrySplitAtDistance(this, distance, out first, out second);
 
         /// <summary>
         /// Cuts the chain in two at a distance along it, within a tolerance.
         /// </summary>
-        public bool TrySplitAtDistance(double distance, out GeoPolylineArc2 first, out GeoPolylineArc2 second, Tolerance tolerance)
-            => Splition2.TrySplitAtDistance(this, distance, out first, out second, tolerance);
+        public bool TrySplitAtDistance(
+            double distance,
+            out GeoPolylineArc2 first,
+            out GeoPolylineArc2 second,
+            Tolerance tolerance
+        ) => Splition2.TrySplitAtDistance(this, distance, out first, out second, tolerance);
 
         /// <summary>
         /// Splits the chain at an arc length from its start, the pieces as a list, using the default tolerance.
         /// </summary>
-        public bool TrySplitAtDistance(double distance, out GeoPolylineArc2[] pieces)
-            => TrySplitAtDistance(distance, out pieces, Tolerance.Global);
+        public bool TrySplitAtDistance(double distance, out GeoPolylineArc2[] pieces) =>
+            TrySplitAtDistance(distance, out pieces, Tolerance.Global);
 
         /// <summary>
         /// Splits the chain at an arc length from its start, the pieces as a list, within a tolerance.
@@ -680,59 +685,72 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Cuts the chain in two at a point on it.
         /// </summary>
-        public bool TrySplitBy(GeoPoint2 point, out GeoPolylineArc2 first, out GeoPolylineArc2 second)
-            => Splition2.TrySplitBy(this, point, out first, out second);
+        public bool TrySplitBy(GeoPoint2 point, out GeoPolylineArc2 first, out GeoPolylineArc2 second) =>
+            Splition2.TrySplitBy(this, point, out first, out second);
 
         /// <summary>
         /// Cuts the chain in two at a point on it, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoPoint2 point, out GeoPolylineArc2 first, out GeoPolylineArc2 second, Tolerance tolerance)
-            => Splition2.TrySplitBy(this, point, out first, out second, tolerance);
+        public bool TrySplitBy(
+            GeoPoint2 point,
+            out GeoPolylineArc2 first,
+            out GeoPolylineArc2 second,
+            Tolerance tolerance
+        ) => Splition2.TrySplitBy(this, point, out first, out second, tolerance);
 
         /// <summary>
         /// Cuts the chain wherever it meets a straight segment.
         /// </summary>
-        public bool TrySplitBy(GeoLine2 cutter, out GeoPolylineArc2[] pieces) => Splition2.TrySplitBy(this, cutter, out pieces);
+        public bool TrySplitBy(GeoLine2 cutter, out GeoPolylineArc2[] pieces) =>
+            Splition2.TrySplitBy(this, cutter, out pieces);
 
         /// <summary>
         /// Cuts the chain wherever it meets a straight segment, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoLine2 cutter, out GeoPolylineArc2[] pieces, Tolerance tolerance) => Splition2.TrySplitBy(this, cutter, out pieces, tolerance);
+        public bool TrySplitBy(GeoLine2 cutter, out GeoPolylineArc2[] pieces, Tolerance tolerance) =>
+            Splition2.TrySplitBy(this, cutter, out pieces, tolerance);
 
         /// <summary>
         /// Cuts the chain wherever it meets an arc.
         /// </summary>
-        public bool TrySplitBy(GeoArc2 cutter, out GeoPolylineArc2[] pieces) => Splition2.TrySplitBy(this, cutter, out pieces);
+        public bool TrySplitBy(GeoArc2 cutter, out GeoPolylineArc2[] pieces) =>
+            Splition2.TrySplitBy(this, cutter, out pieces);
 
         /// <summary>
         /// Cuts the chain wherever it meets an arc, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoArc2 cutter, out GeoPolylineArc2[] pieces, Tolerance tolerance) => Splition2.TrySplitBy(this, cutter, out pieces, tolerance);
+        public bool TrySplitBy(GeoArc2 cutter, out GeoPolylineArc2[] pieces, Tolerance tolerance) =>
+            Splition2.TrySplitBy(this, cutter, out pieces, tolerance);
 
         /// <summary>
         /// Cuts the chain wherever it meets a straight loop.
         /// </summary>
-        public bool TrySplitBy(GeoPolygon2 cutter, out GeoPolylineArc2[] pieces) => Splition2.TrySplitBy(this, cutter, out pieces);
+        public bool TrySplitBy(GeoPolygon2 cutter, out GeoPolylineArc2[] pieces) =>
+            Splition2.TrySplitBy(this, cutter, out pieces);
 
         /// <summary>
         /// Cuts the chain wherever it meets a loop that may curve.
         /// </summary>
-        public bool TrySplitBy(GeoPolygonArc2 cutter, out GeoPolylineArc2[] pieces) => Splition2.TrySplitBy(this, cutter, out pieces);
+        public bool TrySplitBy(GeoPolygonArc2 cutter, out GeoPolylineArc2[] pieces) =>
+            Splition2.TrySplitBy(this, cutter, out pieces);
 
         /// <summary>
         /// Cuts the chain at points on it.
         /// </summary>
-        public bool TrySplitBy(GeoPoint2[] points, out GeoPolylineArc2[] pieces) => Splition2.TrySplitBy(this, points, out pieces);
+        public bool TrySplitBy(GeoPoint2[] points, out GeoPolylineArc2[] pieces) =>
+            Splition2.TrySplitBy(this, points, out pieces);
 
         /// <summary>
         /// Cuts the chain at distances along it.
         /// </summary>
-        public GeoPolylineArc2[] SplitAtDistances(IEnumerable<double> distances) => Splition2.SplitAtDistances(this, distances);
+        public GeoPolylineArc2[] SplitAtDistances(IEnumerable<double> distances) =>
+            Splition2.SplitAtDistances(this, distances);
 
         /// <summary>
         /// Cuts the chain at distances along it, within a tolerance.
         /// </summary>
-        public GeoPolylineArc2[] SplitAtDistances(IEnumerable<double> distances, Tolerance tolerance) => Splition2.SplitAtDistances(this, distances, tolerance);
+        public GeoPolylineArc2[] SplitAtDistances(IEnumerable<double> distances, Tolerance tolerance) =>
+            Splition2.SplitAtDistances(this, distances, tolerance);
 
         /// <summary>
         /// Gets the loop that closes the chain, joining its last vertex back to its first.
@@ -751,14 +769,18 @@ namespace GeometryHelper.Geometry
             }
             catch (ArgumentException exception)
             {
-                throw new InvalidOperationException("This chain has too few distinct vertices to close into a loop.", exception);
+                throw new InvalidOperationException(
+                    "This chain has too few distinct vertices to close into a loop.",
+                    exception
+                );
             }
         }
 
         /// <summary>
         /// Determines whether two chains hold exactly the same vertices and bulges.
         /// </summary>
-        public static bool operator ==(GeoPolylineArc2 left, GeoPolylineArc2 right) => left is null ? right is null : left.Equals(right);
+        public static bool operator ==(GeoPolylineArc2 left, GeoPolylineArc2 right) =>
+            left is null ? right is null : left.Equals(right);
 
         /// <summary>
         /// Determines whether two chains hold different vertices or bulges.
@@ -772,14 +794,19 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Chamfers one corner of the chain, using the default tolerance.
         /// </summary>
-        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolylineArc2 result)
-            => Corner2.TryChamferAt(this, index, distance1, distance2, out result);
+        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolylineArc2 result) =>
+            Corner2.TryChamferAt(this, index, distance1, distance2, out result);
 
         /// <summary>
         /// Chamfers one corner of the chain, within a tolerance.
         /// </summary>
-        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolylineArc2 result, Tolerance tolerance)
-            => Corner2.TryChamferAt(this, index, distance1, distance2, out result, tolerance);
+        public bool TryChamferAt(
+            int index,
+            double distance1,
+            double distance2,
+            out GeoPolylineArc2 result,
+            Tolerance tolerance
+        ) => Corner2.TryChamferAt(this, index, distance1, distance2, out result, tolerance);
 
         /// <summary>
         /// Translates a chain by a vector.
@@ -803,7 +830,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Offsets the chain, within a tolerance.
         /// </summary>
-        public GeoPolylineArc2[] Offset(double distance, Tolerance tolerance) => Offset2.Offset(this, distance, tolerance);
+        public GeoPolylineArc2[] Offset(double distance, Tolerance tolerance) =>
+            Offset2.Offset(this, distance, tolerance);
 
         /// <summary>
         /// Offsets the chain, filling opened corners a given way.
@@ -813,17 +841,20 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Offsets the chain, filling opened corners a given way, within a tolerance.
         /// </summary>
-        public GeoPolylineArc2[] Offset(double distance, OffsetJoin join, Tolerance tolerance) => Offset2.Offset(this, distance, join, tolerance);
+        public GeoPolylineArc2[] Offset(double distance, OffsetJoin join, Tolerance tolerance) =>
+            Offset2.Offset(this, distance, join, tolerance);
 
         /// <summary>
         /// Offsets the chain, with options.
         /// </summary>
-        public GeoPolylineArc2[] Offset(double distance, OffsetOptions options) => Offset2.Offset(this, distance, options);
+        public GeoPolylineArc2[] Offset(double distance, OffsetOptions options) =>
+            Offset2.Offset(this, distance, options);
 
         /// <summary>
         /// Offsets the chain, with options, within a tolerance.
         /// </summary>
-        public GeoPolylineArc2[] Offset(double distance, OffsetOptions options, Tolerance tolerance) => Offset2.Offset(this, distance, options, tolerance);
+        public GeoPolylineArc2[] Offset(double distance, OffsetOptions options, Tolerance tolerance) =>
+            Offset2.Offset(this, distance, options, tolerance);
 
         /// <summary>
         /// Lays the chain out in a plane in space, cutting its arcs into straight pieces.
@@ -844,7 +875,8 @@ namespace GeometryHelper.Geometry
         /// <param name="chordTolerance">The largest gap allowed between a piece and the arc it replaces, in drawing units. Zero picks the automatic share of each radius.</param>
         /// <returns>The chain in space, straight throughout.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 pieces for one arc, as <see cref="Flatten(double)"/>.</exception>
-        public GeoPolyline3 ToPolyline3(GeoCoordinateSystem3 frame, double chordTolerance) => Flatten(chordTolerance).ToPolyline3(frame);
+        public GeoPolyline3 ToPolyline3(GeoCoordinateSystem3 frame, double chordTolerance) =>
+            Flatten(chordTolerance).ToPolyline3(frame);
 
         /// <summary>
         /// Rounds the corners of the chain, each by its own radius.
@@ -861,7 +893,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Rounds the corners of the chain, each by its own radius, within a tolerance.
         /// </summary>
-        public GeoPolylineArc2 Fillet(IReadOnlyList<double> radii, Tolerance tolerance) => Corner2.Fillet(this, radii, tolerance);
+        public GeoPolylineArc2 Fillet(IReadOnlyList<double> radii, Tolerance tolerance) =>
+            Corner2.Fillet(this, radii, tolerance);
 
         /// <summary>
         /// Rounds one corner of the chain, using the default tolerance.
@@ -870,14 +903,14 @@ namespace GeometryHelper.Geometry
         /// <param name="radius">The radius of the arc to put there.</param>
         /// <param name="result">The filleted chain, or the chain unchanged when the method returns false.</param>
         /// <returns>true if the corner had room for the arc; otherwise, false.</returns>
-        public bool TryFilletAt(int index, double radius, out GeoPolylineArc2 result)
-            => Corner2.TryFilletAt(this, index, radius, out result);
+        public bool TryFilletAt(int index, double radius, out GeoPolylineArc2 result) =>
+            Corner2.TryFilletAt(this, index, radius, out result);
 
         /// <summary>
         /// Rounds one corner of the chain, within a tolerance.
         /// </summary>
-        public bool TryFilletAt(int index, double radius, out GeoPolylineArc2 result, Tolerance tolerance)
-            => Corner2.TryFilletAt(this, index, radius, out result, tolerance);
+        public bool TryFilletAt(int index, double radius, out GeoPolylineArc2 result, Tolerance tolerance) =>
+            Corner2.TryFilletAt(this, index, radius, out result, tolerance);
 
         #region Extending and trimming
 
@@ -894,28 +927,32 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Lengthens the chain along its end leg, within a tolerance.
         /// </summary>
-        public GeoPolylineArc2 Extend(double distance, LineEnd end, Tolerance tolerance) => Lengthen2.Extend(this, distance, end, tolerance);
+        public GeoPolylineArc2 Extend(double distance, LineEnd end, Tolerance tolerance) =>
+            Lengthen2.Extend(this, distance, end, tolerance);
 
         /// <summary>
         /// Lengthens the chain along its end leg until the whole chain is a given length.
         /// </summary>
-        public GeoPolylineArc2 ExtendToLength(double length, LineEnd end) => Lengthen2.ExtendToLength(this, length, end);
+        public GeoPolylineArc2 ExtendToLength(double length, LineEnd end) =>
+            Lengthen2.ExtendToLength(this, length, end);
 
         /// <summary>
         /// Lengthens the chain along its end leg until the whole chain is a given length, within a tolerance.
         /// </summary>
-        public GeoPolylineArc2 ExtendToLength(double length, LineEnd end, Tolerance tolerance) => Lengthen2.ExtendToLength(this, length, end, tolerance);
+        public GeoPolylineArc2 ExtendToLength(double length, LineEnd end, Tolerance tolerance) =>
+            Lengthen2.ExtendToLength(this, length, end, tolerance);
 
         /// <summary>
         /// Shortens the chain at one end back to a point on it.
         /// </summary>
-        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoPolylineArc2 result) => Lengthen2.TryTrimTo(this, point, end, out result);
+        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoPolylineArc2 result) =>
+            Lengthen2.TryTrimTo(this, point, end, out result);
 
         /// <summary>
         /// Shortens the chain at one end back to a point on it, within a tolerance.
         /// </summary>
-        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoPolylineArc2 result, Tolerance tolerance)
-            => Lengthen2.TryTrimTo(this, point, end, out result, tolerance);
+        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoPolylineArc2 result, Tolerance tolerance) =>
+            Lengthen2.TryTrimTo(this, point, end, out result, tolerance);
 
         #endregion
 
@@ -937,6 +974,5 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         /// <returns>The hierarchy; it is a snapshot and holds no reference back to this shape.</returns>
         public Spatial.GeoBvh2 BuildIndex() => Spatial.GeoBvh2.FromPolylineArc(this);
-
     }
 }

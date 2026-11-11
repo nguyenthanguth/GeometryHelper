@@ -34,13 +34,15 @@ namespace GeometryHelper.UnitTest.Plane
         /// thousandth. The nearest pair is the two ends, <see cref="CornerGap"/> apart: the end of the first projects
         /// before the start of the second, and the start of the second past the end of the first.
         /// </summary>
-        private static GeoLine2 Leaving() => new GeoLine2(P(10.00135, 0.00077942286340599), P(15.00135, 8.66102540378444));
+        private static GeoLine2 Leaving() =>
+            new GeoLine2(P(10.00135, 0.00077942286340599), P(15.00135, 8.66102540378444));
 
         [Fact]
         public void TwoCornersOneAndAHalfThousandthsApart_DoNotCollideAtAThousandth()
         {
             // The audit's repro: true on 2755f30, from either side and through the static form.
-            GeoLine2 a = Along(), b = Leaving();
+            GeoLine2 a = Along(),
+                b = Leaving();
 
             Assert.False(Collision2.CollidesWith(a, b, Thousandth));
             Assert.False(Collision2.CollidesWith(b, a, Thousandth));
@@ -52,7 +54,8 @@ namespace GeometryHelper.UnitTest.Plane
         public void TwoCornersOneAndAHalfThousandthsApart_MeasureTheirGapAtEveryTolerance()
         {
             // Nought on 2755f30 at 1E-3 and 0.1, where the slack let the lines' crossing count as a touch.
-            GeoLine2 a = Along(), b = Leaving();
+            GeoLine2 a = Along(),
+                b = Leaving();
 
             foreach (var tolerance in new[] { TenThousandth, Thousandth, Tenth })
             {
@@ -66,7 +69,8 @@ namespace GeometryHelper.UnitTest.Plane
         public void TwoCornersOneAndAHalfThousandthsApart_CollideAtATenthAndAtTwoThousandths()
         {
             // Guards: the gap is within these.
-            GeoLine2 a = Along(), b = Leaving();
+            GeoLine2 a = Along(),
+                b = Leaving();
             var twoThousandths = new GeometryHelper.Tolerance(2E-3, 1E-5);
 
             Assert.True(a.CollidesWith(b, Tenth));
@@ -169,7 +173,15 @@ namespace GeometryHelper.UnitTest.Plane
             // not simple at 1E-3. It goes through Collision2.CollidesWith(segment, segment). (The corners of Leaving are
             // 0.00135 apart on X, so the sweep never compares them.) At 2E-3 the corners are within the tolerance.
             var polygon = new GeoPolygon2(
-                P(0, 0), P(10, 0), P(10, -5), P(20, -5), P(20, 12), P(11.0009, 9.0009), P(10.0009, 0.0009), P(0, 10));
+                P(0, 0),
+                P(10, 0),
+                P(10, -5),
+                P(20, -5),
+                P(20, 12),
+                P(11.0009, 9.0009),
+                P(10.0009, 0.0009),
+                P(0, 10)
+            );
 
             Assert.True(polygon.IsSimple(Thousandth));
             Assert.True(polygon.IsSimple(TenThousandth));
@@ -199,7 +211,8 @@ namespace GeometryHelper.UnitTest.Plane
         /// <see cref="CornerGap"/> from the corner, its line crossing the top side's at (100.0009, 100), within the slack of
         /// both.
         /// </summary>
-        private static GeoLine2 LeavingTheCorner() => new GeoLine2(P(100.00135, 100.00077942286340599), P(105.00135, 108.66102540378444));
+        private static GeoLine2 LeavingTheCorner() =>
+            new GeoLine2(P(100.00135, 100.00077942286340599), P(105.00135, 108.66102540378444));
 
         /// <summary>
         /// The triangle with its corner where <see cref="LeavingTheCorner"/> starts, its sides leaving at 60 and 31.4
@@ -208,7 +221,8 @@ namespace GeometryHelper.UnitTest.Plane
         private static GeoPolygon2 TriangleAtTheCorner()
         {
             GeoLine2 side = LeavingTheCorner();
-            GeoVector2 dir = U(1, Math.Sqrt(3)), turned = U(Math.Cos(Math.PI / 3 - 0.5), Math.Sin(Math.PI / 3 - 0.5));
+            GeoVector2 dir = U(1, Math.Sqrt(3)),
+                turned = U(Math.Cos(Math.PI / 3 - 0.5), Math.Sin(Math.PI / 3 - 0.5));
 
             return new GeoPolygon2(side.StartPoint, side.StartPoint.Add(dir * 10), side.StartPoint.Add(turned * 10));
         }

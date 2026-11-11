@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using GeometryHelper;
+using GeometryHelper.Geometry;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Models;
-using GeometryHelper.Geometry;
 using Tekla.Structures.Model;
 using TSG = Tekla.Structures.Geometry3d;
 
@@ -114,7 +114,10 @@ namespace GeometryHelper.TeklaConvert
         /// </param>
         /// <returns>New options for this reference model.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="referenceModel"/> is null.</exception>
-        public static IfcConvertOptions CreateIfcConvertOptions(this ReferenceModel referenceModel, IfcConvertOptions options = null)
+        public static IfcConvertOptions CreateIfcConvertOptions(
+            this ReferenceModel referenceModel,
+            IfcConvertOptions options = null
+        )
         {
             if (referenceModel == null)
             {
@@ -156,7 +159,10 @@ namespace GeometryHelper.TeklaConvert
         /// included, so an assembly returning its parts as well would count each of them twice. A file that cannot be
         /// read, or fails part-way, is left out as a whole rather than returned incomplete.
         /// </remarks>
-        public static GeoSolid3[] ToGeoSolids(this IEnumerable<ReferenceModel> referenceModels, IfcConvertOptions options = null)
+        public static GeoSolid3[] ToGeoSolids(
+            this IEnumerable<ReferenceModel> referenceModels,
+            IfcConvertOptions options = null
+        )
         {
             return ToIfcGeometries(referenceModels, options).SelectMany(p => p.Solids).ToArray();
         }
@@ -170,7 +176,10 @@ namespace GeometryHelper.TeklaConvert
         /// <param name="options">The conversion settings; see <see cref="CreateIfcConvertOptions"/>.</param>
         /// <returns>One entry per physical product; empty when the file cannot be read or is not IFC.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="referenceModel"/> is null.</exception>
-        public static IReadOnlyList<IfcProductGeometry> ToIfcGeometries(this ReferenceModel referenceModel, IfcConvertOptions options = null)
+        public static IReadOnlyList<IfcProductGeometry> ToIfcGeometries(
+            this ReferenceModel referenceModel,
+            IfcConvertOptions options = null
+        )
         {
             if (referenceModel == null)
             {
@@ -198,7 +207,10 @@ namespace GeometryHelper.TeklaConvert
         /// inserted twice is parsed once and placed twice, so its products come back twice with the same GlobalId.
         /// <c>ReferenceModel.GetReferenceModelObjectByExternalGuid</c> with the GlobalId leads to the Tekla object.
         /// </remarks>
-        public static IReadOnlyList<IfcProductGeometry> ToIfcGeometries(this IEnumerable<ReferenceModel> referenceModels, IfcConvertOptions options = null)
+        public static IReadOnlyList<IfcProductGeometry> ToIfcGeometries(
+            this IEnumerable<ReferenceModel> referenceModels,
+            IfcConvertOptions options = null
+        )
         {
             if (referenceModels == null)
             {
@@ -222,7 +234,8 @@ namespace GeometryHelper.TeklaConvert
                 }
 
                 IfcStoreCache cache = TryOpen(frame.IfcFilePath);
-                List<IfcProductGeometry> geometries = cache == null ? null : ConvertWholeModel(cache, frame.Options, frame.IfcToWorkPlane);
+                List<IfcProductGeometry> geometries =
+                    cache == null ? null : ConvertWholeModel(cache, frame.Options, frame.IfcToWorkPlane);
 
                 if (geometries != null)
                 {
@@ -231,7 +244,9 @@ namespace GeometryHelper.TeklaConvert
                 }
             }
 
-            GeometryHelperLog.Info($"ReferenceModelConvert: {products.Count} IFC products ({products.Sum(p => p.Solids.Count)} bodies) from {read} of {models.Count} reference models.");
+            GeometryHelperLog.Info(
+                $"ReferenceModelConvert: {products.Count} IFC products ({products.Sum(p => p.Solids.Count)} bodies) from {read} of {models.Count} reference models."
+            );
             return products;
         }
 
@@ -259,7 +274,11 @@ namespace GeometryHelper.TeklaConvert
         /// Reads the frame of every IFC reference model, keyed by its id, switching the work plane to global once
         /// for all of them. Reference models that are not IFC, or that Tekla cannot describe, are left out.
         /// </summary>
-        internal static Dictionary<int, Frame> ReadFrames(IEnumerable<ReferenceModel> referenceModels, IfcConvertOptions options, bool wholeModel)
+        internal static Dictionary<int, Frame> ReadFrames(
+            IEnumerable<ReferenceModel> referenceModels,
+            IfcConvertOptions options,
+            bool wholeModel
+        )
         {
             Dictionary<int, Frame> frames = new Dictionary<int, Frame>();
 
@@ -292,26 +311,34 @@ namespace GeometryHelper.TeklaConvert
                         // Selecting again refreshes what the object holds in the plane now current.
                         if (!referenceModel.Select())
                         {
-                            GeometryHelperLog.Warn($"Reference model {referenceModel.Identifier.ID} could not be read from Tekla; it is left out.");
+                            GeometryHelperLog.Warn(
+                                $"Reference model {referenceModel.Identifier.ID} could not be read from Tekla; it is left out."
+                            );
                             continue;
                         }
 
                         string ifcFilePath = ResolveIfcFilePath(modelPath, referenceModel.ActiveFilePath);
                         if (ifcFilePath == null)
                         {
-                            GeometryHelperLog.Debug($"Reference model {referenceModel.Identifier.ID} ('{referenceModel.ActiveFilePath}') is not an IFC file; it is left out.");
+                            GeometryHelperLog.Debug(
+                                $"Reference model {referenceModel.Identifier.ID} ('{referenceModel.ActiveFilePath}') is not an IFC file; it is left out."
+                            );
                             continue;
                         }
 
                         frames[referenceModel.Identifier.ID] = new Frame(
                             ifcFilePath,
                             CreateOptions(referenceModel.Scale, options, wholeModel),
-                            ComposeIfcToWorkPlane(referenceModel.GetCoordinateSystem(), globalToWorkPlane));
+                            ComposeIfcToWorkPlane(referenceModel.GetCoordinateSystem(), globalToWorkPlane)
+                        );
                     }
                     catch (Exception exception)
                     {
                         // A reference model Tekla cannot describe is left out; the others are still read.
-                        GeometryHelperLog.Warn($"Reference model {referenceModel.Identifier.ID} could not be read from Tekla; it is left out.", exception);
+                        GeometryHelperLog.Warn(
+                            $"Reference model {referenceModel.Identifier.ID} could not be read from Tekla; it is left out.",
+                            exception
+                        );
                     }
                 }
             }
@@ -356,7 +383,10 @@ namespace GeometryHelper.TeklaConvert
             catch (Exception exception)
             {
                 // Characters or a length Windows does not accept in a path.
-                GeometryHelperLog.Warn($"The path '{activeFilePath}' cannot be resolved against the model folder '{modelPath}'.", exception);
+                GeometryHelperLog.Warn(
+                    $"The path '{activeFilePath}' cannot be resolved against the model folder '{modelPath}'.",
+                    exception
+                );
                 return null;
             }
         }
@@ -367,9 +397,10 @@ namespace GeometryHelper.TeklaConvert
         /// </summary>
         internal static IfcConvertOptions CreateOptions(double scale, IfcConvertOptions options, bool wholeModel)
         {
-            IfcConvertOptions result = options != null
-                ? options.Clone()
-                : new IfcConvertOptions { ApplyVoids = false, IncludeAggregatedParts = true };
+            IfcConvertOptions result =
+                options != null
+                    ? options.Clone()
+                    : new IfcConvertOptions { ApplyVoids = false, IncludeAggregatedParts = true };
 
             result.TargetUnit = LengthUnit.Millimeters;
             result.ScaleFactor = scale > 0.0 && !double.IsInfinity(scale) ? scale : 1.0;
@@ -387,7 +418,10 @@ namespace GeometryHelper.TeklaConvert
         /// IFC coordinates to the work plane: first where the reference model sits in global coordinates, then from
         /// global into the work plane (<c>TransformationPlane.TransformationMatrixToLocal</c>).
         /// </summary>
-        internal static GeoTransform3 ComposeIfcToWorkPlane(TSG.CoordinateSystem ifcFrameInGlobal, TSG.Matrix globalToWorkPlane)
+        internal static GeoTransform3 ComposeIfcToWorkPlane(
+            TSG.CoordinateSystem ifcFrameInGlobal,
+            TSG.Matrix globalToWorkPlane
+        )
         {
             GeoTransform3 ifcToGlobal = GeoTransform3.FromCoordinateSystem(ifcFrameInGlobal.ToGeoCoordinateSystem3());
             return globalToWorkPlane.ToGeoTransform3() * ifcToGlobal;
@@ -400,7 +434,11 @@ namespace GeometryHelper.TeklaConvert
         /// transformation itself collapses is left out, added to the product's warnings and logged. Null, logged, when
         /// the product cannot be carried at all. Cached geometry is never changed, since the copy is made of new objects.
         /// </summary>
-        internal static IfcProductGeometry TransformGeometry(IfcProductGeometry geometry, GeoTransform3 transform, Tolerance tolerance)
+        internal static IfcProductGeometry TransformGeometry(
+            IfcProductGeometry geometry,
+            GeoTransform3 transform,
+            Tolerance tolerance
+        )
         {
             IfcProductGeometry moved;
             try
@@ -409,14 +447,19 @@ namespace GeometryHelper.TeklaConvert
             }
             catch (Exception exception)
             {
-                GeometryHelperLog.Warn($"{geometry.GlobalId} ({geometry.IfcType}) could not be carried into the work plane; it is left out.", exception);
+                GeometryHelperLog.Warn(
+                    $"{geometry.GlobalId} ({geometry.IfcType}) could not be carried into the work plane; it is left out.",
+                    exception
+                );
                 return null;
             }
 
             // TransformBy appends what it left out to the warnings the product already had.
             foreach (string warning in moved.Warnings.Skip(geometry.Warnings.Count))
             {
-                GeometryHelperLog.Warn($"{geometry.GlobalId} ({geometry.IfcType}) carried into the work plane: {warning}");
+                GeometryHelperLog.Warn(
+                    $"{geometry.GlobalId} ({geometry.IfcType}) carried into the work plane: {warning}"
+                );
             }
 
             return moved;
@@ -433,7 +476,11 @@ namespace GeometryHelper.TeklaConvert
         /// carrying touches no file. Each is carried under the tolerance in force here, a scope the caller opened
         /// included, which the other threads would not see otherwise.
         /// </remarks>
-        internal static List<IfcProductGeometry> ConvertWholeModel(IfcStoreCache cache, IfcConvertOptions options, GeoTransform3 transform)
+        internal static List<IfcProductGeometry> ConvertWholeModel(
+            IfcStoreCache cache,
+            IfcConvertOptions options,
+            GeoTransform3 transform
+        )
         {
             try
             {
@@ -456,7 +503,10 @@ namespace GeometryHelper.TeklaConvert
             }
             catch (Exception exception)
             {
-                GeometryHelperLog.Warn($"Reading every product of '{cache.FilePath}' failed part-way; the file is left out.", exception);
+                GeometryHelperLog.Warn(
+                    $"Reading every product of '{cache.FilePath}' failed part-way; the file is left out.",
+                    exception
+                );
                 return null;
             }
         }
@@ -483,13 +533,18 @@ namespace GeometryHelper.TeklaConvert
 
             if (!model.GetConnectionStatus())
             {
-                throw new InvalidOperationException("Tekla Structures is not running, or this process cannot connect to it.");
+                throw new InvalidOperationException(
+                    "Tekla Structures is not running, or this process cannot connect to it."
+                );
             }
 
             return model;
         }
 
-        private static TSG.CoordinateSystem ReadFrameInGlobal(ReferenceModel referenceModel, WorkPlaneHandler workPlaneHandler)
+        private static TSG.CoordinateSystem ReadFrameInGlobal(
+            ReferenceModel referenceModel,
+            WorkPlaneHandler workPlaneHandler
+        )
         {
             TransformationPlane currentPlane = workPlaneHandler.GetCurrentTransformationPlane();
 

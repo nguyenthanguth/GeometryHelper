@@ -39,7 +39,7 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
                 new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(10, 0)),
-                new GeoLine2(new GeoPoint2(10, 0), new GeoPoint2(15, 0))
+                new GeoLine2(new GeoPoint2(10, 0), new GeoPoint2(15, 0)),
             };
 
             var result = Merge2.ConsecutiveLines(segments, Tolerance.Global);
@@ -55,7 +55,7 @@ namespace GeometryHelper.UnitTest.Plane
             var segments = new[]
             {
                 new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(4, 0)),
-                new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(10, 0))
+                new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(10, 0)),
             };
 
             var result = Merge2.ConsecutiveLines(segments, Tolerance.Global);
@@ -75,7 +75,7 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
                 new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(10, 0)),
                 new GeoLine2(new GeoPoint2(12, 0), new GeoPoint2(15, 0)), // Disjoint
-                new GeoLine2(new GeoPoint2(15, 0), new GeoPoint2(20, 0))  // Continuous from previous
+                new GeoLine2(new GeoPoint2(15, 0), new GeoPoint2(20, 0)), // Continuous from previous
             };
 
             var result = Merge2.ConsecutiveLines(segments, Tolerance.Global);
@@ -93,7 +93,7 @@ namespace GeometryHelper.UnitTest.Plane
             var segments = new[]
             {
                 new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
-                new GeoLine2(new GeoPoint2(5.05, 0), new GeoPoint2(10, 0)) // gap is 0.05
+                new GeoLine2(new GeoPoint2(5.05, 0), new GeoPoint2(10, 0)), // gap is 0.05
             };
 
             // Custom tolerance smaller than gap
@@ -115,8 +115,8 @@ namespace GeometryHelper.UnitTest.Plane
             var segments = new[]
             {
                 new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
-                new GeoLine2(new GeoPoint2(7, 0), new GeoPoint2(12, 0)),  // Gap from 5 to 7
-                new GeoLine2(new GeoPoint2(15, 0), new GeoPoint2(20, 0))  // Gap from 12 to 15
+                new GeoLine2(new GeoPoint2(7, 0), new GeoPoint2(12, 0)), // Gap from 5 to 7
+                new GeoLine2(new GeoPoint2(15, 0), new GeoPoint2(20, 0)), // Gap from 12 to 15
             };
 
             var result = Merge2.Join(segments, Tolerance.Global);
@@ -133,8 +133,8 @@ namespace GeometryHelper.UnitTest.Plane
             var segments = new[]
             {
                 new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
-                new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(12, 0)),  // Touches at (5,0), extends the run
-                new GeoLine2(new GeoPoint2(12, 0), new GeoPoint2(17, 0))  // Touches at (12,0), extends the run
+                new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(12, 0)), // Touches at (5,0), extends the run
+                new GeoLine2(new GeoPoint2(12, 0), new GeoPoint2(17, 0)), // Touches at (12,0), extends the run
             };
 
             var result = Merge2.Join(segments, Tolerance.Global);
@@ -151,8 +151,8 @@ namespace GeometryHelper.UnitTest.Plane
             var segments = new[]
             {
                 new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
-                new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(12, 0)),  // Touches at (5,0), extends the run
-                new GeoLine2(new GeoPoint2(12, 0), new GeoPoint2(7, 0))   // Touches at (12,0), doubles back
+                new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(12, 0)), // Touches at (5,0), extends the run
+                new GeoLine2(new GeoPoint2(12, 0), new GeoPoint2(7, 0)), // Touches at (12,0), doubles back
             };
 
             var result = Merge2.Join(segments, Tolerance.Global);
@@ -173,8 +173,8 @@ namespace GeometryHelper.UnitTest.Plane
             var segments = new[]
             {
                 new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
-                new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(5, 5)),    // Touches at (5,0), bend
-                new GeoLine2(new GeoPoint2(10, 5), new GeoPoint2(5, 5))   // Touches at (5,5), bend
+                new GeoLine2(new GeoPoint2(5, 0), new GeoPoint2(5, 5)), // Touches at (5,0), bend
+                new GeoLine2(new GeoPoint2(10, 5), new GeoPoint2(5, 5)), // Touches at (5,5), bend
             };
 
             var result = Merge2.Join(segments, Tolerance.Global);
@@ -279,7 +279,7 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
                 new GeoPolyline2(new GeoPoint2(5, 0), new GeoPoint2(5, 5)), // bend
-                new GeoPolyline2(new GeoPoint2(5, 5), new GeoPoint2(10, 5)) // bend
+                new GeoPolyline2(new GeoPoint2(5, 5), new GeoPoint2(10, 5)), // bend
             };
 
             var result = Merge2.ConsecutivePolylines(polylines, Tolerance.Global);
@@ -298,7 +298,7 @@ namespace GeometryHelper.UnitTest.Plane
             var polylines = new[]
             {
                 new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
-                new GeoPolyline2(new GeoPoint2(6, 0), new GeoPoint2(10, 0))
+                new GeoPolyline2(new GeoPoint2(6, 0), new GeoPoint2(10, 0)),
             };
 
             var result = Merge2.ConsecutivePolylines(polylines, Tolerance.Global);
@@ -314,13 +314,13 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(5, 0)),
                 new GeoPolyline2(new GeoPoint2(5, 0), new GeoPoint2(5, 5)),
                 new GeoPolyline2(new GeoPoint2(7, 7), new GeoPoint2(10, 10)), // disjoint
-                new GeoPolyline2(new GeoPoint2(10, 10), new GeoPoint2(13, 13)) // continuous (collinear at 10,10)
+                new GeoPolyline2(new GeoPoint2(10, 10), new GeoPoint2(13, 13)), // continuous (collinear at 10,10)
             };
 
             var result = Merge2.ConsecutivePolylines(polylines, Tolerance.Global);
 
             Assert.Equal(2, result.Length);
-            
+
             // First merged stretch
             Assert.Equal(3, result[0].VertexCount);
             Assert.Equal(new GeoPoint2(0, 0), result[0][0]);

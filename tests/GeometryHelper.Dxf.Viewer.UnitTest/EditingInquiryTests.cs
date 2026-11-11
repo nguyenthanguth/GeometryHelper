@@ -43,7 +43,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             CadCommandSession session = Measure(document, "DIST", P(0, 0), P(0, -20));
 
-            Assert.Contains("Distance = 20.0000,  Angle in XY Plane = 270.00,  Angle from XY Plane = 0.00", session.History);
+            Assert.Contains(
+                "Distance = 20.0000,  Angle in XY Plane = 270.00,  Angle from XY Plane = 0.00",
+                session.History
+            );
         }
 
         [Fact]

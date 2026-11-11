@@ -16,13 +16,17 @@ namespace GeometryHelper.UnitTest.Plane
     /// </summary>
     public class ArcChainMirrorTests
     {
-        private static GeoPolygonArc2 Loop() => new GeoPolygonArc2(
-            new[] { new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 50), new GeoPoint2(0, 50) },
-            new[] { 0.0, 1.0, 0.0, 1.0 });
+        private static GeoPolygonArc2 Loop() =>
+            new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 50), new GeoPoint2(0, 50) },
+                new[] { 0.0, 1.0, 0.0, 1.0 }
+            );
 
-        private static GeoPolylineArc2 Chain() => new GeoPolylineArc2(
-            new[] { new GeoPoint2(-300, 10), new GeoPoint2(-100, 10), new GeoPoint2(-100, 120) },
-            new[] { 0.0, 0.4 });
+        private static GeoPolylineArc2 Chain() =>
+            new GeoPolylineArc2(
+                new[] { new GeoPoint2(-300, 10), new GeoPoint2(-100, 10), new GeoPoint2(-100, 120) },
+                new[] { 0.0, 0.4 }
+            );
 
         private static GeoLine2 Line() => new GeoLine2(new GeoPoint2(100, -80), new GeoPoint2(100, 140));
 
@@ -30,11 +34,16 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static GeoCircle2 Circle() => new GeoCircle2(new GeoPoint2(100, 25), 140.0);
 
-        private static GeoPolyline2 Straight() => new GeoPolyline2(
-            new GeoPoint2(-50, -60), new GeoPoint2(250, -60), new GeoPoint2(250, 160));
+        private static GeoPolyline2 Straight() =>
+            new GeoPolyline2(new GeoPoint2(-50, -60), new GeoPoint2(250, -60), new GeoPoint2(250, 160));
 
-        private static GeoPolygon2 Plate() => new GeoPolygon2(
-            new GeoPoint2(60, 10), new GeoPoint2(140, 10), new GeoPoint2(140, 40), new GeoPoint2(60, 40));
+        private static GeoPolygon2 Plate() =>
+            new GeoPolygon2(
+                new GeoPoint2(60, 10),
+                new GeoPoint2(140, 10),
+                new GeoPoint2(140, 40),
+                new GeoPoint2(60, 40)
+            );
 
         [Fact]
         public void EveryMeasurementOnALoopReadsTheSameBothWays()
@@ -48,12 +57,19 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(Distance2.DistanceTo(loop, Plate()), loop.DistanceTo(Plate()), 12);
             Assert.Equal(Distance2.DistanceTo(loop, Chain()), loop.DistanceTo(Chain()), 12);
             Assert.Equal(Distance2.DistanceTo(loop, Loop()), loop.DistanceTo(Loop()), 12);
-            Assert.Equal(Distance2.DistanceTo(loop, new GeoPoint2(400, 25)), loop.DistanceTo(new GeoPoint2(400, 25)), 12);
+            Assert.Equal(
+                Distance2.DistanceTo(loop, new GeoPoint2(400, 25)),
+                loop.DistanceTo(new GeoPoint2(400, 25)),
+                12
+            );
 
             Assert.Equal(Intersection2.GetIntersections(loop, Line()).Length, loop.GetIntersections(Line()).Length);
             Assert.Equal(Intersection2.GetIntersections(loop, Arc()).Length, loop.GetIntersections(Arc()).Length);
             Assert.Equal(Intersection2.GetIntersections(loop, Circle()).Length, loop.GetIntersections(Circle()).Length);
-            Assert.Equal(Intersection2.GetIntersections(loop, Straight()).Length, loop.GetIntersections(Straight()).Length);
+            Assert.Equal(
+                Intersection2.GetIntersections(loop, Straight()).Length,
+                loop.GetIntersections(Straight()).Length
+            );
             Assert.Equal(Intersection2.GetIntersections(loop, Plate()).Length, loop.GetIntersections(Plate()).Length);
             Assert.Equal(Intersection2.GetIntersections(loop, Chain()).Length, loop.GetIntersections(Chain()).Length);
             Assert.Equal(Intersection2.GetIntersections(loop, Loop()).Length, loop.GetIntersections(Loop()).Length);
@@ -100,8 +116,14 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Equal(Intersection2.GetIntersections(chain, Line()).Length, chain.GetIntersections(Line()).Length);
             Assert.Equal(Intersection2.GetIntersections(chain, Arc()).Length, chain.GetIntersections(Arc()).Length);
-            Assert.Equal(Intersection2.GetIntersections(chain, Circle()).Length, chain.GetIntersections(Circle()).Length);
-            Assert.Equal(Intersection2.GetIntersections(chain, Straight()).Length, chain.GetIntersections(Straight()).Length);
+            Assert.Equal(
+                Intersection2.GetIntersections(chain, Circle()).Length,
+                chain.GetIntersections(Circle()).Length
+            );
+            Assert.Equal(
+                Intersection2.GetIntersections(chain, Straight()).Length,
+                chain.GetIntersections(Straight()).Length
+            );
             Assert.Equal(Intersection2.GetIntersections(chain, Plate()).Length, chain.GetIntersections(Plate()).Length);
             Assert.Equal(Intersection2.GetIntersections(chain, Chain()).Length, chain.GetIntersections(Chain()).Length);
             Assert.Equal(Intersection2.GetIntersections(chain, Loop()).Length, chain.GetIntersections(Loop()).Length);
@@ -192,7 +214,9 @@ namespace GeometryHelper.UnitTest.Plane
 
             GeoPolylineArc2 chain = Chain();
 
-            Assert.True(Projection2.ProjectToPolylineArc(chain, point).IsEqualTo(chain.GetClosestPointOnBoundary(point)));
+            Assert.True(
+                Projection2.ProjectToPolylineArc(chain, point).IsEqualTo(chain.GetClosestPointOnBoundary(point))
+            );
             Assert.Equal(Containment2.Locate(chain, point), chain.Locate(point));
             Assert.Equal(Parametrization2.GetDistanceAtPoint(chain, point), chain.GetDistanceAtPoint(point), 12);
         }
@@ -224,14 +248,31 @@ namespace GeometryHelper.UnitTest.Plane
 
             // And the ones that reshape the chain.
             Assert.True(loop.Offset(10.0)[0].IsEqualTo(loop.Offset(10.0, global)[0]));
-            Assert.True(loop.Offset(10.0, OffsetJoin.Round)[0].IsEqualTo(loop.Offset(10.0, OffsetJoin.Round, global)[0]));
-            Assert.True(loop.Offset(10.0, OffsetOptions.Default)[0].IsEqualTo(loop.Offset(10.0, OffsetOptions.Default, global)[0]));
+            Assert.True(
+                loop.Offset(10.0, OffsetJoin.Round)[0].IsEqualTo(loop.Offset(10.0, OffsetJoin.Round, global)[0])
+            );
+            Assert.True(
+                loop.Offset(10.0, OffsetOptions.Default)[0]
+                    .IsEqualTo(loop.Offset(10.0, OffsetOptions.Default, global)[0])
+            );
             Assert.True(chain.Offset(10.0)[0].IsEqualTo(chain.Offset(10.0, global)[0]));
-            Assert.True(chain.Offset(10.0, OffsetJoin.Miter)[0].IsEqualTo(chain.Offset(10.0, OffsetJoin.Miter, global)[0]));
-            Assert.True(chain.Offset(10.0, OffsetOptions.Default)[0].IsEqualTo(chain.Offset(10.0, OffsetOptions.Default, global)[0]));
+            Assert.True(
+                chain.Offset(10.0, OffsetJoin.Miter)[0].IsEqualTo(chain.Offset(10.0, OffsetJoin.Miter, global)[0])
+            );
+            Assert.True(
+                chain
+                    .Offset(10.0, OffsetOptions.Default)[0]
+                    .IsEqualTo(chain.Offset(10.0, OffsetOptions.Default, global)[0])
+            );
 
-            Assert.Equal(loop.SplitAtDistances(new[] { 100.0, 300.0 }).Length, loop.SplitAtDistances(new[] { 100.0, 300.0 }, global).Length);
-            Assert.Equal(chain.SplitAtDistances(new[] { 100.0 }).Length, chain.SplitAtDistances(new[] { 100.0 }, global).Length);
+            Assert.Equal(
+                loop.SplitAtDistances(new[] { 100.0, 300.0 }).Length,
+                loop.SplitAtDistances(new[] { 100.0, 300.0 }, global).Length
+            );
+            Assert.Equal(
+                chain.SplitAtDistances(new[] { 100.0 }).Length,
+                chain.SplitAtDistances(new[] { 100.0 }, global).Length
+            );
         }
 
         [Fact]
@@ -242,42 +283,50 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Equal(
                 Splition2.TrySplitBy(loop, Line(), out GeoPolylineArc2[] fromStatic),
-                loop.TrySplitBy(Line(), out GeoPolylineArc2[] fromInstance));
+                loop.TrySplitBy(Line(), out GeoPolylineArc2[] fromInstance)
+            );
             Assert.Equal(fromStatic.Length, fromInstance.Length);
 
             Assert.Equal(
                 Splition2.TrySplitBy(loop, Plate(), out GeoPolylineArc2[] byPlate),
-                loop.TrySplitBy(Plate(), out GeoPolylineArc2[] byPlateAgain));
+                loop.TrySplitBy(Plate(), out GeoPolylineArc2[] byPlateAgain)
+            );
             Assert.Equal(byPlate.Length, byPlateAgain.Length);
 
             Assert.Equal(
                 Splition2.TrySplitAtDistance(chain, 100.0, out GeoPolylineArc2 a, out GeoPolylineArc2 b),
-                chain.TrySplitAtDistance(100.0, out GeoPolylineArc2 c, out GeoPolylineArc2 d));
+                chain.TrySplitAtDistance(100.0, out GeoPolylineArc2 c, out GeoPolylineArc2 d)
+            );
             Assert.True(a.IsEqualTo(c));
             Assert.True(b.IsEqualTo(d));
 
             Assert.Equal(
                 Splition2.TrySplitBy(chain, chain.GetPointAtDistance(150.0), out _, out _),
-                chain.TrySplitBy(chain.GetPointAtDistance(150.0), out _, out _));
+                chain.TrySplitBy(chain.GetPointAtDistance(150.0), out _, out _)
+            );
 
             Assert.Equal(
                 Splition2.TrySplitBy(chain, Loop(), out GeoPolylineArc2[] byLoop),
-                chain.TrySplitBy(Loop(), out GeoPolylineArc2[] byLoopAgain));
+                chain.TrySplitBy(Loop(), out GeoPolylineArc2[] byLoopAgain)
+            );
             Assert.Equal(byLoop.Length, byLoopAgain.Length);
 
             Assert.Equal(
                 Splition2.TrySplitBy(chain, new[] { chain.GetPointAtDistance(80.0) }, out GeoPolylineArc2[] byPoints),
-                chain.TrySplitBy(new[] { chain.GetPointAtDistance(80.0) }, out GeoPolylineArc2[] byPointsAgain));
+                chain.TrySplitBy(new[] { chain.GetPointAtDistance(80.0) }, out GeoPolylineArc2[] byPointsAgain)
+            );
             Assert.Equal(byPoints.Length, byPointsAgain.Length);
 
             Assert.Equal(
                 Splition2.TrySplitBy(chain, Arc(), out GeoPolylineArc2[] byArc),
-                chain.TrySplitBy(Arc(), out GeoPolylineArc2[] byArcAgain));
+                chain.TrySplitBy(Arc(), out GeoPolylineArc2[] byArcAgain)
+            );
             Assert.Equal(byArc.Length, byArcAgain.Length);
 
             Assert.Equal(
                 Splition2.TrySplitBy(chain, Plate(), out GeoPolylineArc2[] byPlateOnChain),
-                chain.TrySplitBy(Plate(), out GeoPolylineArc2[] byPlateOnChainAgain));
+                chain.TrySplitBy(Plate(), out GeoPolylineArc2[] byPlateOnChainAgain)
+            );
             Assert.Equal(byPlateOnChain.Length, byPlateOnChainAgain.Length);
         }
     }

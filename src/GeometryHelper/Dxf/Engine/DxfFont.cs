@@ -20,7 +20,15 @@ namespace GeometryHelper.Dxf
         /// <summary>A letter as it is drawn: the pen's last x, and the points of its ink, in the font's units.</summary>
         internal sealed class Glyph
         {
-            internal Glyph(double advance, double[] xs, double[] ys, bool inksOrigin = false, bool isWhole = true, double penBottom = 0.0, double penTop = 0.0)
+            internal Glyph(
+                double advance,
+                double[] xs,
+                double[] ys,
+                bool inksOrigin = false,
+                bool isWhole = true,
+                double penBottom = 0.0,
+                double penTop = 0.0
+            )
             {
                 Advance = advance;
                 Xs = xs;

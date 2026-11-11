@@ -50,13 +50,9 @@ namespace GeometryHelper.UnitTest.Plane
             var ptOutSide = new GeoPoint2(15, 5);
 
             var rect = new GeoRectangle2(new GeoPoint2(5, 5), 10, 10, 0);
-            var poly = new GeoPolygon2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10),
-                new GeoPoint2(0, 10)
-            });
+            var poly = new GeoPolygon2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10) }
+            );
 
             // Rectangle
             Assert.Equal(PointLocation.Inside, ptInside.LocateIn(rect));
@@ -114,6 +110,5 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.False(off.IsPointOn(line, new Tolerance(1E-4, 1E-4)));
             Assert.True(off.IsPointOn(line, new Tolerance(5.0, 5.0)));
         }
-
     }
 }

@@ -50,7 +50,12 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         public void ADetailMarkDrawsItsCircleOrRectangleAndItsLetterAtTheUpperRight()
         {
             DetailMark circle = DetailMark.Circle("D-B", "B", new GeoPoint2(0, 0), 250, 50);
-            DetailMark rectangle = DetailMark.Rectangle("D-C", "C", new GeoRectangle2(new GeoPoint2(100, 50), 200, 100), 50);
+            DetailMark rectangle = DetailMark.Rectangle(
+                "D-C",
+                "C",
+                new GeoRectangle2(new GeoPoint2(100, 50), 200, 100),
+                50
+            );
 
             Near(191.78, Math.Round(circle.LetterBox.Center.X - 25, 2));
             Near(240, rectangle.LetterBox.Center.X);
@@ -90,15 +95,29 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         [Fact]
         public void BadArgumentsAreRefused()
         {
-            Assert.Throws<ArgumentException>(() => new SectionMark("S", "A", new GeoLine2(0, 0, 0, 0), new GeoVector2(1, 0), 1));
-            Assert.Throws<ArgumentException>(() => new SectionMark("S", "A", new GeoLine2(0, 0, 100, 0), new GeoVector2(1, 0), 1));
-            Assert.Throws<ArgumentException>(() => new SectionMark("S", "", new GeoLine2(0, 0, 100, 0), new GeoVector2(0, 1), 1));
-            Assert.Throws<ArgumentNullException>(() => new SectionMark(null, "A", new GeoLine2(0, 0, 100, 0), new GeoVector2(0, 1), 1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new SectionMark("S", "A", new GeoLine2(0, 0, 100, 0), new GeoVector2(0, 1), 0));
+            Assert.Throws<ArgumentException>(() =>
+                new SectionMark("S", "A", new GeoLine2(0, 0, 0, 0), new GeoVector2(1, 0), 1)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new SectionMark("S", "A", new GeoLine2(0, 0, 100, 0), new GeoVector2(1, 0), 1)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                new SectionMark("S", "", new GeoLine2(0, 0, 100, 0), new GeoVector2(0, 1), 1)
+            );
+            Assert.Throws<ArgumentNullException>(() =>
+                new SectionMark(null, "A", new GeoLine2(0, 0, 100, 0), new GeoVector2(0, 1), 1)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new SectionMark("S", "A", new GeoLine2(0, 0, 100, 0), new GeoVector2(0, 1), 0)
+            );
             Assert.Throws<ArgumentOutOfRangeException>(() => DetailMark.Circle("D", "B", new GeoPoint2(0, 0), 0, 1));
-            Assert.Throws<ArgumentException>(() => DetailMark.Rectangle("D", "B", new GeoRectangle2(new GeoPoint2(0, 0), 0, 10), 1));
+            Assert.Throws<ArgumentException>(() =>
+                DetailMark.Rectangle("D", "B", new GeoRectangle2(new GeoPoint2(0, 0), 0, 10), 1)
+            );
             Assert.Throws<ArgumentException>(() => new LevelMark("L", new GeoPoint2(0, 0), double.NaN, 1));
-            Assert.Throws<ArgumentNullException>(() => new SectionMark("S", "A", new GeoLine2(0, 0, 100, 0), new GeoVector2(0, 1), 1).WriteTo(null, Placement));
+            Assert.Throws<ArgumentNullException>(() =>
+                new SectionMark("S", "A", new GeoLine2(0, 0, 100, 0), new GeoVector2(0, 1), 1).WriteTo(null, Placement)
+            );
         }
     }
 }

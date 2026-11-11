@@ -45,16 +45,40 @@ namespace GeometryHelper
         /// </summary>
         public override string ToString()
         {
-            string at = string.Format(CultureInfo.InvariantCulture, "({0:0.###}, {1:0.###}, {2:0.###})", Location.X, Location.Y, Location.Z);
+            string at = string.Format(
+                CultureInfo.InvariantCulture,
+                "({0:0.###}, {1:0.###}, {2:0.###})",
+                Location.X,
+                Location.Y,
+                Location.Z
+            );
 
             switch (Kind)
             {
                 case SolidRepairKind.Weld:
-                    return string.Format(CultureInfo.InvariantCulture, "SolidRepair3[{0} moving {1:G4} at {2}]", Kind, Size, at);
+                    return string.Format(
+                        CultureInfo.InvariantCulture,
+                        "SolidRepair3[{0} moving {1:G4} at {2}]",
+                        Kind,
+                        Size,
+                        at
+                    );
                 case SolidRepairKind.SplitEdge:
-                    return string.Format(CultureInfo.InvariantCulture, "SolidRepair3[{0} {1:G4} off the edge at {2}]", Kind, Size, at);
+                    return string.Format(
+                        CultureInfo.InvariantCulture,
+                        "SolidRepair3[{0} {1:G4} off the edge at {2}]",
+                        Kind,
+                        Size,
+                        at
+                    );
                 default:
-                    return string.Format(CultureInfo.InvariantCulture, "SolidRepair3[{0} of {1:G4} in area at {2}]", Kind, Size, at);
+                    return string.Format(
+                        CultureInfo.InvariantCulture,
+                        "SolidRepair3[{0} of {1:G4} in area at {2}]",
+                        Kind,
+                        Size,
+                        at
+                    );
             }
         }
     }

@@ -31,7 +31,8 @@ namespace GeometryHelper.Dxf.Viewer
 
                 var from = new GeoPoint2(c.Remembered("draw.last.x", 0.0), c.Remembered("draw.last.y", 0.0));
                 var way = new GeoVector2(c.Remembered("draw.last.dx", 1.0), c.Remembered("draw.last.dy", 0.0));
-                yield return CadPrompt.ForPoint("Specify end point of arc" + HoldCtrl, from)
+                yield return CadPrompt
+                    .ForPoint("Specify end point of arc" + HoldCtrl, from)
                     .Previewing(CadPreview.MakingOne(c, input => ArcLeavingOf(c, from, way, input.Point)));
 
                 if (c.Input.IsPoint)
@@ -86,7 +87,8 @@ namespace GeometryHelper.Dxf.Viewer
 
                     while (true)
                     {
-                        yield return CadPrompt.ForPoint("Specify end point of arc", second)
+                        yield return CadPrompt
+                            .ForPoint("Specify end point of arc", second)
                             .Previewing(CadPreview.MakingOne(c, input => ArcThrough(c, first, second, input.Point)));
 
                         if (!c.Input.IsPoint)
@@ -96,14 +98,31 @@ namespace GeometryHelper.Dxf.Viewer
 
                         GeoPoint2 last = c.Input.Point;
 
-                        if (CadGrips.ArcThrough(start, second, last, out GeoPoint2 through, out double radius, out _, out _))
+                        if (
+                            CadGrips.ArcThrough(
+                                start,
+                                second,
+                                last,
+                                out GeoPoint2 through,
+                                out double radius,
+                                out _,
+                                out _
+                            )
+                        )
                         {
-                            if (AddedHandle(c.Apply(null, s => s.Append(c.Space, ArcThrough(c, first, second, last)))) != null)
+                            if (
+                                AddedHandle(c.Apply(null, s => s.Append(c.Space, ArcThrough(c, first, second, last))))
+                                != null
+                            )
                             {
                                 // Drawn counter-clockwise where the second point lies left of the way from the start to the end.
                                 GeoVector2 outward = (last - through) / radius;
                                 bool ccw = Cross(last - start, second - start) < 0.0;
-                                RememberLast(c, last, ccw ? new GeoVector2(-outward.Y, outward.X) : new GeoVector2(outward.Y, -outward.X));
+                                RememberLast(
+                                    c,
+                                    last,
+                                    ccw ? new GeoVector2(-outward.Y, outward.X) : new GeoVector2(outward.Y, -outward.X)
+                                );
                             }
 
                             yield break;
@@ -139,8 +158,16 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The arc through three points, as ARC makes it; null where they lie in a line.</summary>
-        private static DxfArc ArcThrough(CadCommandContext c, GeoPoint2 start, GeoPoint2 second, GeoPoint2 last)
-            => CadGrips.ArcThrough(start, second, last, out GeoPoint2 through, out double radius, out double a0, out double a1)
+        private static DxfArc ArcThrough(CadCommandContext c, GeoPoint2 start, GeoPoint2 second, GeoPoint2 last) =>
+            CadGrips.ArcThrough(
+                start,
+                second,
+                last,
+                out GeoPoint2 through,
+                out double radius,
+                out double a0,
+                out double a1
+            )
                 ? Current(c, new DxfArc(P3(through), radius, a0, a1))
                 : null;
 
@@ -156,8 +183,15 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             double a0 = Math.Atan2(start.Y - center.Y, start.X - center.X);
-            yield return CadPrompt.ForPoint("Specify end point of arc" + HoldCtrl, center, new[] { "Angle", "chord Length" })
-                .Previewing(CadPreview.MakingOne(c, input => MakeArc(c,center, radius, a0, SweepTo(c, center, a0, input.Point, false)), true));
+            yield return CadPrompt
+                .ForPoint("Specify end point of arc" + HoldCtrl, center, new[] { "Angle", "chord Length" })
+                .Previewing(
+                    CadPreview.MakingOne(
+                        c,
+                        input => MakeArc(c, center, radius, a0, SweepTo(c, center, a0, input.Point, false)),
+                        true
+                    )
+                );
             double sweep;
 
             if (c.Input.IsPoint)
@@ -172,8 +206,16 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (c.Input.Is("Angle"))
             {
-                yield return CadPrompt.ForAngle("Specify included angle" + HoldCtrl, center).Turning()
-                    .Previewing(CadPreview.MakingOne(c, input => MakeArc(c,center, radius, a0, Included(c, input.Number, false)), true));
+                yield return CadPrompt
+                    .ForAngle("Specify included angle" + HoldCtrl, center)
+                    .Turning()
+                    .Previewing(
+                        CadPreview.MakingOne(
+                            c,
+                            input => MakeArc(c, center, radius, a0, Included(c, input.Number, false)),
+                            true
+                        )
+                    );
 
                 if (c.Input.Kind != CadInputKind.Number || !IncludedAngle(c, out sweep))
                 {
@@ -182,8 +224,15 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (c.Input.Is("chord Length"))
             {
-                yield return CadPrompt.ForDistance("Specify length of chord" + HoldCtrl, start)
-                    .Previewing(CadPreview.MakingOne(c, input => MakeArc(c,center, radius, a0, ChordSweep(c, radius, input.Number, false)), true));
+                yield return CadPrompt
+                    .ForDistance("Specify length of chord" + HoldCtrl, start)
+                    .Previewing(
+                        CadPreview.MakingOne(
+                            c,
+                            input => MakeArc(c, center, radius, a0, ChordSweep(c, radius, input.Number, false)),
+                            true
+                        )
+                    );
 
                 if (c.Input.Kind != CadInputKind.Number)
                 {
@@ -230,7 +279,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The sweep a chord's length cuts off a circle, the longer arc for a length below nought; NaN where the chord does not fit.</summary>
         private static double ChordSweep(CadCommandContext c, double radius, double chord, bool control)
         {
-            if (Math.Abs(chord) <= c.Session.Tolerance.EqualPoint || Math.Abs(chord) > 2.0 * radius + c.Session.Tolerance.EqualPoint)
+            if (
+                Math.Abs(chord) <= c.Session.Tolerance.EqualPoint
+                || Math.Abs(chord) > 2.0 * radius + c.Session.Tolerance.EqualPoint
+            )
             {
                 return double.NaN;
             }
@@ -260,7 +312,8 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForPoint("Specify center point of arc" + HoldCtrl, end, new[] { "Angle", "Direction", "Radius" })
+            yield return CadPrompt
+                .ForPoint("Specify center point of arc" + HoldCtrl, end, new[] { "Angle", "Direction", "Radius" })
                 .Previewing(CadPreview.MakingOne(c, input => ArcAbout(c, start, end, input.Point, false), true));
             double sweep;
 
@@ -283,8 +336,16 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (c.Input.Is("Angle"))
             {
-                yield return CadPrompt.ForAngle("Specify included angle" + HoldCtrl, start).Turning()
-                    .Previewing(CadPreview.MakingOne(c, input => ArcOfEnds(c, start, end, Included(c, input.Number, false)), true));
+                yield return CadPrompt
+                    .ForAngle("Specify included angle" + HoldCtrl, start)
+                    .Turning()
+                    .Previewing(
+                        CadPreview.MakingOne(
+                            c,
+                            input => ArcOfEnds(c, start, end, Included(c, input.Number, false)),
+                            true
+                        )
+                    );
 
                 if (c.Input.Kind != CadInputKind.Number || !IncludedAngle(c, out sweep))
                 {
@@ -293,8 +354,15 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (c.Input.Is("Direction"))
             {
-                yield return CadPrompt.ForAngle("Specify tangent direction for the start point of arc" + HoldCtrl, start)
-                    .Previewing(CadPreview.MakingOne(c, input => ArcLeavingOf(c, start, Direction(c, input.Number, chord, false), end), true));
+                yield return CadPrompt
+                    .ForAngle("Specify tangent direction for the start point of arc" + HoldCtrl, start)
+                    .Previewing(
+                        CadPreview.MakingOne(
+                            c,
+                            input => ArcLeavingOf(c, start, Direction(c, input.Number, chord, false), end),
+                            true
+                        )
+                    );
 
                 if (c.Input.Kind != CadInputKind.Number)
                 {
@@ -306,8 +374,15 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (c.Input.Is("Radius"))
             {
-                yield return CadPrompt.ForDistance("Specify radius of arc" + HoldCtrl, end)
-                    .Previewing(CadPreview.MakingOne(c, input => ArcOfEnds(c, start, end, RadiusSweep(c, length, input.Number, false)), true));
+                yield return CadPrompt
+                    .ForDistance("Specify radius of arc" + HoldCtrl, end)
+                    .Previewing(
+                        CadPreview.MakingOne(
+                            c,
+                            input => ArcOfEnds(c, start, end, RadiusSweep(c, length, input.Number, false)),
+                            true
+                        )
+                    );
 
                 if (c.Input.Kind != CadInputKind.Number)
                 {
@@ -331,7 +406,13 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The arc of a start and an end about a centre picked, as ARC makes it; null where the centre is either end.</summary>
-        private static DxfArc ArcAbout(CadCommandContext c, GeoPoint2 start, GeoPoint2 end, GeoPoint2 center, bool control)
+        private static DxfArc ArcAbout(
+            CadCommandContext c,
+            GeoPoint2 start,
+            GeoPoint2 end,
+            GeoPoint2 center,
+            bool control
+        )
         {
             double radius = (start - center).Length;
 
@@ -341,7 +422,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             double a0 = Math.Atan2(start.Y - center.Y, start.X - center.X);
-            return MakeArc(c,center, radius, a0, SweepTo(c, center, a0, end, control));
+            return MakeArc(c, center, radius, a0, SweepTo(c, center, a0, end, control));
         }
 
         /// <summary>The way an arc leaves its start at an angle answered, mirrored over the chord where Ctrl was held.</summary>
@@ -379,7 +460,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// half turn, the half chord over the tangent of half the sweep from its middle. Added where <paramref name="add"/>;
         /// null for a sweep of NaN.
         /// </summary>
-        private static DxfArc ArcOfEnds(CadCommandContext c, GeoPoint2 start, GeoPoint2 end, double sweep, bool add = false)
+        private static DxfArc ArcOfEnds(
+            CadCommandContext c,
+            GeoPoint2 start,
+            GeoPoint2 end,
+            double sweep,
+            bool add = false
+        )
         {
             if (double.IsNaN(sweep))
             {
@@ -400,7 +487,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            return MakeArc(c,centre, radius, from, sweep);
+            return MakeArc(c, centre, radius, from, sweep);
         }
 
         /// <summary>
@@ -430,7 +517,11 @@ namespace GeometryHelper.Dxf.Viewer
                 sweep = -sweep;
             }
 
-            return Math.Abs(sweep) <= c.Session.Tolerance.EqualAngleRad || Math.Abs(sweep) >= 2.0 * Math.PI - c.Session.Tolerance.EqualAngleRad ? double.NaN : sweep;
+            return
+                Math.Abs(sweep) <= c.Session.Tolerance.EqualAngleRad
+                || Math.Abs(sweep) >= 2.0 * Math.PI - c.Session.Tolerance.EqualAngleRad
+                ? double.NaN
+                : sweep;
         }
 
         /// <summary>The arc that leaves a point a way and ends at another, as ARC goes on from the last line; said so where the end lies on that way.</summary>
@@ -446,13 +537,21 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The arc that leaves a point a way and ends at another, as <see cref="ArcLeaving"/> makes it; null where the end lies on that way.</summary>
-        private static DxfArc ArcLeavingOf(CadCommandContext c, GeoPoint2 start, GeoVector2 way, GeoPoint2 end)
-            => Leaving(c, start, way, end, out GeoPoint2 center, out double radius, out double sweep)
-                ? MakeArc(c,center, radius, Math.Atan2(start.Y - center.Y, start.X - center.X), sweep)
+        private static DxfArc ArcLeavingOf(CadCommandContext c, GeoPoint2 start, GeoVector2 way, GeoPoint2 end) =>
+            Leaving(c, start, way, end, out GeoPoint2 center, out double radius, out double sweep)
+                ? MakeArc(c, center, radius, Math.Atan2(start.Y - center.Y, start.X - center.X), sweep)
                 : null;
 
         /// <summary>The centre, radius and sweep of the arc that leaves a point a way and ends at another; false where the end lies on that way.</summary>
-        private static bool Leaving(CadCommandContext c, GeoPoint2 start, GeoVector2 way, GeoPoint2 end, out GeoPoint2 center, out double radius, out double sweep)
+        private static bool Leaving(
+            CadCommandContext c,
+            GeoPoint2 start,
+            GeoVector2 way,
+            GeoPoint2 end,
+            out GeoPoint2 center,
+            out double radius,
+            out double sweep
+        )
         {
             GeoVector2 chord = end - start;
             double length = chord.Length;
@@ -461,7 +560,10 @@ namespace GeometryHelper.Dxf.Viewer
             radius = 0.0;
             sweep = 0.0;
 
-            if (length <= c.Session.Tolerance.EqualPoint || Math.Abs(Math.Sin(turn)) * length <= c.Session.Tolerance.EqualPoint)
+            if (
+                length <= c.Session.Tolerance.EqualPoint
+                || Math.Abs(Math.Sin(turn)) * length <= c.Session.Tolerance.EqualPoint
+            )
             {
                 return false;
             }
@@ -497,13 +599,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static void AddArc(CadCommandContext c, GeoPoint2 center, double radius, double from, double sweep)
         {
-            string handle = AddedHandle(c.Apply(null, s => s.Append(c.Space, MakeArc(c,center, radius, from, sweep))));
+            string handle = AddedHandle(c.Apply(null, s => s.Append(c.Space, MakeArc(c, center, radius, from, sweep))));
 
             if (handle != null)
             {
                 double at = from + sweep;
                 var point = new GeoPoint2(center.X + radius * Math.Cos(at), center.Y + radius * Math.Sin(at));
-                var way = sweep >= 0.0 ? new GeoVector2(-Math.Sin(at), Math.Cos(at)) : new GeoVector2(Math.Sin(at), -Math.Cos(at));
+                var way =
+                    sweep >= 0.0
+                        ? new GeoVector2(-Math.Sin(at), Math.Cos(at))
+                        : new GeoVector2(Math.Sin(at), -Math.Cos(at));
                 RememberLast(c, point, way);
             }
         }

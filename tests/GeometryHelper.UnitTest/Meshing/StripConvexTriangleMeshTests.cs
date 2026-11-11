@@ -18,26 +18,45 @@ namespace GeometryHelper.UnitTest.Meshing
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
-        private static GeoPolygon2 Box(double x0, double y0, double x1, double y1) => new GeoPolygon2(P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1));
+        private static GeoPolygon2 Box(double x0, double y0, double x1, double y1) =>
+            new GeoPolygon2(P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1));
 
-        private static readonly GeoPolygon2 L = new GeoPolygon2(P(0, 0), P(2000, 0), P(2000, 1000), P(1000, 1000), P(1000, 2000), P(0, 2000));
+        private static readonly GeoPolygon2 L = new GeoPolygon2(
+            P(0, 0),
+            P(2000, 0),
+            P(2000, 1000),
+            P(1000, 1000),
+            P(1000, 2000),
+            P(0, 2000)
+        );
 
         /// <summary>A slab with three openings, one of them a triangle, and a hole touching the boundary.</summary>
         private static readonly GeoFace2 Slab = new GeoFace2(
             new GeoPolygon2(P(0, 0), P(9000, 0), P(9000, 4000), P(4500, 4000), P(4500, 8000), P(0, 8000)),
-            new[] { Box(1500, 1500, 2700, 2400), new GeoPolygon2(P(6000, 1200), P(7600, 1600), P(7000, 2900)), Box(1800, 5600, 3000, 6600) });
+            new[]
+            {
+                Box(1500, 1500, 2700, 2400),
+                new GeoPolygon2(P(6000, 1200), P(7600, 1600), P(7000, 2900)),
+                Box(1800, 5600, 3000, 6600),
+            }
+        );
 
         /// <summary>Holes that touch each other and the boundary, which ear clipping cannot reduce and strips cut instead.</summary>
         private static readonly GeoFace2 Touching = new GeoFace2(
             Box(0, 0, 1000, 600),
-            new[] { Box(100, 100, 300, 300), Box(300, 300, 500, 500), Box(700, 0, 900, 200) });
+            new[] { Box(100, 100, 300, 300), Box(300, 300, 500, 500), Box(700, 0, 900, 200) }
+        );
 
         private static IEnumerable<object[]> Shapes()
         {
             yield return new object[] { "L", new GeoFace2(L) };
             yield return new object[] { "slab", Slab };
             yield return new object[] { "touching", Touching };
-            yield return new object[] { "far", new GeoFace2(new GeoPolygon2(L.Vertices.Select(p => P(p.X + 512345.5, p.Y + 7012345.25)))) };
+            yield return new object[]
+            {
+                "far",
+                new GeoFace2(new GeoPolygon2(L.Vertices.Select(p => P(p.X + 512345.5, p.Y + 7012345.25)))),
+            };
         }
 
         public static IEnumerable<object[]> ShapesAndKinds()
@@ -90,7 +109,10 @@ namespace GeometryHelper.UnitTest.Meshing
                     case MeshKind.Strips:
                         // A trapezoid whose parallel sides run along the X axis, or a triangle where it comes to a point.
                         Assert.True(turns.Count == 3 || turns.Count == 4, $"{name}: a piece of {turns.Count} corners");
-                        Assert.True(turns.Count(t => turns.Count(o => Math.Abs(o.Y - t.Y) <= 1E-6) >= 2) >= 2, $"{name}: {MeshAssert.Describe(piece)} has no side along the strips");
+                        Assert.True(
+                            turns.Count(t => turns.Count(o => Math.Abs(o.Y - t.Y) <= 1E-6) >= 2) >= 2,
+                            $"{name}: {MeshAssert.Describe(piece)} has no side along the strips"
+                        );
                         break;
                 }
             }
@@ -104,7 +126,10 @@ namespace GeometryHelper.UnitTest.Meshing
                 GeoPoint2 corner = polygon[i];
                 GeoPoint2 next = polygon[(i + 1) % polygon.VertexCount];
 
-                if (new GeoLine2(previous, next).DistanceTo(corner) > Tolerance.EqualPoint && previous.GetVectorTo(corner).CrossProduct(corner.GetVectorTo(next)) < 0.0)
+                if (
+                    new GeoLine2(previous, next).DistanceTo(corner) > Tolerance.EqualPoint
+                    && previous.GetVectorTo(corner).CrossProduct(corner.GetVectorTo(next)) < 0.0
+                )
                 {
                     return false;
                 }
@@ -124,7 +149,9 @@ namespace GeometryHelper.UnitTest.Meshing
 
             foreach (GeoTriangle2 triangle in mesh.ToTriangles())
             {
-                Assert.Contains(surface, t => new HashSet<GeoPoint2> { t.A, t.B, t.C }.SetEquals(new[] { triangle.A, triangle.B, triangle.C }));
+                Assert.Contains(surface, t =>
+                    new HashSet<GeoPoint2> { t.A, t.B, t.C }.SetEquals(new[] { triangle.A, triangle.B, triangle.C })
+                );
             }
         }
 
@@ -143,7 +170,11 @@ namespace GeometryHelper.UnitTest.Meshing
         [Fact]
         public void AConvexShapeIsOnePiece()
         {
-            var hexagon = new GeoPolygon2(Enumerable.Range(0, 6).Select(i => P(1000 * Math.Cos(i * Math.PI / 3), 1000 * Math.Sin(i * Math.PI / 3))));
+            var hexagon = new GeoPolygon2(
+                Enumerable
+                    .Range(0, 6)
+                    .Select(i => P(1000 * Math.Cos(i * Math.PI / 3), 1000 * Math.Sin(i * Math.PI / 3)))
+            );
             GeoMesh2 mesh = hexagon.ToMesh(MeshKind.Convex);
 
             Assert.Equal(1, mesh.FaceCount);
@@ -185,7 +216,10 @@ namespace GeometryHelper.UnitTest.Meshing
 
             // Measured across the strips, every corner of a piece stands on one of the lines through the slab's corners.
             var across = new GeoVector2(-Math.Sin(angle), Math.Cos(angle));
-            double[] lines = Slab.Boundary.Vertices.Concat(Slab.Holes.SelectMany(h => h.Vertices)).Select(p => p.X * across.X + p.Y * across.Y).ToArray();
+            double[] lines = Slab
+                .Boundary.Vertices.Concat(Slab.Holes.SelectMany(h => h.Vertices))
+                .Select(p => p.X * across.X + p.Y * across.Y)
+                .ToArray();
 
             foreach (GeoPoint2 vertex in mesh.Vertices)
             {

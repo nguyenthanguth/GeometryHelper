@@ -34,8 +34,17 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "3F", dictionary.Handle);
-            Assert.StartsWith("  0\nCIRCLE\n  5\n3F\n102\n{ACAD_XDICTIONARY\n360\n" + dictionary.Handle + "\n102\n}\n330\n17\n", Records(saved).Single(r => HandleOf(r) == "3F"), StringComparison.Ordinal);
-            Assert.Equal("  0\nDICTIONARY\n  5\n" + dictionary.Handle + "\n102\n{ACAD_REACTORS\n330\n3F\n102\n}\n330\n3F\n100\nAcDbDictionary\n280\n1\n281\n1\n", Records(saved).Single(r => HandleOf(r) == dictionary.Handle));
+            Assert.StartsWith(
+                "  0\nCIRCLE\n  5\n3F\n102\n{ACAD_XDICTIONARY\n360\n" + dictionary.Handle + "\n102\n}\n330\n17\n",
+                Records(saved).Single(r => HandleOf(r) == "3F"),
+                StringComparison.Ordinal
+            );
+            Assert.Equal(
+                "  0\nDICTIONARY\n  5\n"
+                    + dictionary.Handle
+                    + "\n102\n{ACAD_REACTORS\n330\n3F\n102\n}\n330\n3F\n100\nAcDbDictionary\n280\n1\n281\n1\n",
+                Records(saved).Single(r => HandleOf(r) == dictionary.Handle)
+            );
 
             line.ReleaseExtensionDictionary();
             Assert.Null(line.ExtensionDictionary);
@@ -63,7 +72,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("GH_DATA", dictionary.NameAt(data));
             Assert.Equal(dictionary.Handle, data.OwnerHandle);
             Assert.Equal(new[] { "GH_DATA", "GH_MORE" }, dictionary.Select(e => e.Key));
-            Assert.Contains("  3\nGH_DATA\n360\n" + data.Handle + "\n", Records(db.ToText()).Single(r => HandleOf(r) == dictionary.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "  3\nGH_DATA\n360\n" + data.Handle + "\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == dictionary.Handle),
+                StringComparison.Ordinal
+            );
 
             dictionary.SetName("GH_DATA", "GH_FIRST");
             Assert.Equal(new[] { "GH_FIRST", "GH_MORE" }, dictionary.Select(e => e.Key));
@@ -116,7 +129,9 @@ namespace GeometryHelper.UnitTest.Dxf
             line.ExtensionDictionary.SetAt("GH_DICT", new DxfDBDictionary());
             Assert.Throws<ArgumentException>(() => line.SetBinaryDataForKey("GH_DICT", data));
             Assert.Throws<InvalidOperationException>(() => new DxfLine().SetBinaryDataForKey("x", data));
-            Assert.Throws<InvalidOperationException>(() => DxfDatabase.Parse(DxfFileEzdxfDrawings.R12).ModelSpace.First().CreateExtensionDictionary());
+            Assert.Throws<InvalidOperationException>(() =>
+                DxfDatabase.Parse(DxfFileEzdxfDrawings.R12).ModelSpace.First().CreateExtensionDictionary()
+            );
         }
 
         [Fact]
@@ -126,12 +141,22 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfLine line = ByHandle<DxfLine>(db, "3E");
             line.XData = new[]
             {
-                new DxfTypedValue(1001, "GHPROBE"), new DxfTypedValue(1000, "kept"),
-                new DxfTypedValue(1010, "1"), new DxfTypedValue(1020, "2"), new DxfTypedValue(1030, "3"),
-                new DxfTypedValue(1011, "1"), new DxfTypedValue(1021, "2"), new DxfTypedValue(1031, "3"),
-                new DxfTypedValue(1012, "1"), new DxfTypedValue(1022, "0"), new DxfTypedValue(1032, "0"),
-                new DxfTypedValue(1013, "1"), new DxfTypedValue(1023, "0"), new DxfTypedValue(1033, "0"),
-                new DxfTypedValue(1041, "2.5"), new DxfTypedValue(1042, "1.5"),
+                new DxfTypedValue(1001, "GHPROBE"),
+                new DxfTypedValue(1000, "kept"),
+                new DxfTypedValue(1010, "1"),
+                new DxfTypedValue(1020, "2"),
+                new DxfTypedValue(1030, "3"),
+                new DxfTypedValue(1011, "1"),
+                new DxfTypedValue(1021, "2"),
+                new DxfTypedValue(1031, "3"),
+                new DxfTypedValue(1012, "1"),
+                new DxfTypedValue(1022, "0"),
+                new DxfTypedValue(1032, "0"),
+                new DxfTypedValue(1013, "1"),
+                new DxfTypedValue(1023, "0"),
+                new DxfTypedValue(1033, "0"),
+                new DxfTypedValue(1041, "2.5"),
+                new DxfTypedValue(1042, "1.5"),
             };
             string before = db.ToText();
 
@@ -143,11 +168,16 @@ namespace GeometryHelper.UnitTest.Dxf
             line.XDataTransformBy(GeoTransform3.Translation(new GeoVector3(10, 0, 0)) * GeoTransform3.Scaling(2));
             Assert.Equal(
                 new[] { "GHPROBE", "kept", "1", "2", "3", "12", "4", "6", "2", "0", "0", "1", "0", "0", "5", "3" },
-                line.XData.Select(g => g.Value));
+                line.XData.Select(g => g.Value)
+            );
             OnlyTheseChanged(before, db.ToText(), "3E");
 
             line.XDataTransformBy(GeoTransform3.RotationZ(Math.PI / 2));
-            Assert.Equal(-4.0, double.Parse(line.XData[5].Value, System.Globalization.CultureInfo.InvariantCulture), 12);
+            Assert.Equal(
+                -4.0,
+                double.Parse(line.XData[5].Value, System.Globalization.CultureInfo.InvariantCulture),
+                12
+            );
             Assert.Equal("1", line.XData[12].Value);
             Assert.Throws<ArgumentNullException>(() => line.XDataTransformBy(null));
         }
@@ -160,10 +190,21 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfLine line = ByHandle<DxfLine>(db, "3E");
 
             Assert.Equal(0, line.Hyperlinks.Count);
-            line.Hyperlinks.Add(new DxfHyperLink { Name = "https://example.com/B-12.pdf", Description = "Plate B-12", SubLocation = "Sheet 2" });
+            line.Hyperlinks.Add(
+                new DxfHyperLink
+                {
+                    Name = "https://example.com/B-12.pdf",
+                    Description = "Plate B-12",
+                    SubLocation = "Sheet 2",
+                }
+            );
             line.Hyperlinks.Add(new DxfHyperLink { Name = "file:///C:/plans/a.dwg" });
 
-            Assert.EndsWith("1001\nPE_URL\n1000\nhttps://example.com/B-12.pdf\n1002\n{\n1000\nPlate B-12\n1000\nSheet 2\n1002\n}\n1000\nfile:///C:/plans/a.dwg\n", Records(db.ToText()).Single(r => HandleOf(r) == "3E"), StringComparison.Ordinal);
+            Assert.EndsWith(
+                "1001\nPE_URL\n1000\nhttps://example.com/B-12.pdf\n1002\n{\n1000\nPlate B-12\n1000\nSheet 2\n1002\n}\n1000\nfile:///C:/plans/a.dwg\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "3E"),
+                StringComparison.Ordinal
+            );
             DxfHyperLinkCollection read = ByHandle<DxfLine>(DxfDatabase.Parse(db.ToText()), "3E").Hyperlinks;
             Assert.Equal(2, read.Count);
             Assert.Equal("Plate B-12", read[0].DisplayString);
@@ -184,7 +225,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfBlockTableRecord bolt = db.BlockTable["BOLT"];
             bolt.Hyperlinks.Add(new DxfHyperLink { Name = "https://example.com/bolts" });
-            Assert.Equal("https://example.com/bolts", DxfDatabase.Parse(db.ToText()).BlockTable["BOLT"].Hyperlinks[0].Name);
+            Assert.Equal(
+                "https://example.com/bolts",
+                DxfDatabase.Parse(db.ToText()).BlockTable["BOLT"].Hyperlinks[0].Name
+            );
         }
 
         [Fact]
@@ -228,8 +272,13 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string[] handles =
             {
-                line.ExtensionDictionary.Handle, line.ExtensionDictionary.GetAt("GH_BIN").Handle, s.Handle, s.GetAt("T").Handle,
-                made.ExtensionDictionary.Handle, layer.ExtensionDictionary.Handle, layer.ExtensionDictionary.GetAt("GH_BIN").Handle,
+                line.ExtensionDictionary.Handle,
+                line.ExtensionDictionary.GetAt("GH_BIN").Handle,
+                s.Handle,
+                s.GetAt("T").Handle,
+                made.ExtensionDictionary.Handle,
+                layer.ExtensionDictionary.Handle,
+                layer.ExtensionDictionary.GetAt("GH_BIN").Handle,
                 layer.ExtensionDictionary.GetAt("S").Handle,
             };
 
@@ -239,7 +288,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string saved = db.ToText();
             Assert.DoesNotContain(Records(saved), r => handles.Contains(HandleOf(r)));
-            Assert.Equal(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018).ModelSpace.Count - 1, DxfDatabase.Parse(saved).ModelSpace.Count);
+            Assert.Equal(
+                DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018).ModelSpace.Count - 1,
+                DxfDatabase.Parse(saved).ModelSpace.Count
+            );
         }
 
         [Fact]
@@ -249,9 +301,11 @@ namespace GeometryHelper.UnitTest.Dxf
             // T lists S back, S owned by T and T by S.
             string text = DxfFileEzdxfDrawings.R2018.Replace(
                 "  5\n92\n330\n3E\n100\nAcDbDictionary\n280\n1\n281\n1\n",
-                "  5\n92\n330\n3E\n100\nAcDbDictionary\n280\n1\n281\n1\n  3\nS\n360\n80\n");
+                "  5\n92\n330\n3E\n100\nAcDbDictionary\n280\n1\n281\n1\n  3\nS\n360\n80\n"
+            );
             int end = text.LastIndexOf("  0\nENDSEC\n", StringComparison.Ordinal);
-            text = text.Substring(0, end)
+            text =
+                text.Substring(0, end)
                 + "  0\nDICTIONARY\n  5\n80\n330\n82\n100\nAcDbDictionary\n280\n1\n281\n1\n  3\nT\n360\n82\n"
                 + "  0\nDICTIONARY\n  5\n82\n330\n80\n100\nAcDbDictionary\n280\n1\n281\n1\n  3\nBACK\n360\n80\n"
                 + text.Substring(end);
@@ -273,9 +327,13 @@ namespace GeometryHelper.UnitTest.Dxf
             // The extension dictionary 92 of the LINE 3E owns its entries hard (280 1), but lists one entry soft, by 350.
             string text = DxfFileEzdxfDrawings.R2018.Replace(
                 "  5\n92\n330\n3E\n100\nAcDbDictionary\n280\n1\n281\n1\n",
-                "  5\n92\n330\n3E\n100\nAcDbDictionary\n280\n1\n281\n1\n  3\nGH_SOFT\n350\n80\n");
+                "  5\n92\n330\n3E\n100\nAcDbDictionary\n280\n1\n281\n1\n  3\nGH_SOFT\n350\n80\n"
+            );
             int end = text.LastIndexOf("  0\nENDSEC\n", StringComparison.Ordinal);
-            text = text.Substring(0, end) + "  0\nXRECORD\n  5\n80\n330\n92\n100\nAcDbXrecord\n280\n1\n  1\nkept\n" + text.Substring(end);
+            text =
+                text.Substring(0, end)
+                + "  0\nXRECORD\n  5\n80\n330\n92\n100\nAcDbXrecord\n280\n1\n  1\nkept\n"
+                + text.Substring(end);
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfDBDictionary dictionary = ByHandle<DxfLine>(db, "3E").ExtensionDictionary;
             Assert.Equal(new[] { "GH_SOFT" }, dictionary.Select(e => e.Key));
@@ -283,7 +341,11 @@ namespace GeometryHelper.UnitTest.Dxf
             var added = new DxfDBDictionary();
             dictionary.SetAt("GH_NEW", added);
 
-            Assert.EndsWith("281\n1\n  3\nGH_SOFT\n350\n80\n  3\nGH_NEW\n360\n" + added.Handle + "\n", Records(db.ToText()).Single(r => HandleOf(r) == "92"), StringComparison.Ordinal);
+            Assert.EndsWith(
+                "281\n1\n  3\nGH_SOFT\n350\n80\n  3\nGH_NEW\n360\n" + added.Handle + "\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "92"),
+                StringComparison.Ordinal
+            );
         }
     }
 }

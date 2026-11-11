@@ -26,8 +26,20 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal(3, spline.Degree);
             Assert.Equal(5, spline.NumControlPoints);
-            Assert.Equal(Bits(new GeoPoint3(FromBits(0x3ff9a5ad56a0caae), FromBits(0x401e79a898c1bdc4), FromBits(0x3fc9c563b39bd6a7))), Bits(spline.GetControlPointAt(1)));
-            Assert.Equal(new[] { 0.0, 0.0, 0.0, 0.0, FromBits(0x3fdf7d895a27ca80), 1.0, 1.0, 1.0, 1.0 }, spline.Knots.ToArray());
+            Assert.Equal(
+                Bits(
+                    new GeoPoint3(
+                        FromBits(0x3ff9a5ad56a0caae),
+                        FromBits(0x401e79a898c1bdc4),
+                        FromBits(0x3fc9c563b39bd6a7)
+                    )
+                ),
+                Bits(spline.GetControlPointAt(1))
+            );
+            Assert.Equal(
+                new[] { 0.0, 0.0, 0.0, 0.0, FromBits(0x3fdf7d895a27ca80), 1.0, 1.0, 1.0, 1.0 },
+                spline.Knots.ToArray()
+            );
             Assert.Empty(spline.Weights);
             Assert.Equal(1.0, spline.WeightAt(3));
             Assert.False(spline.IsRational);
@@ -55,7 +67,10 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ASplinesShape_IsTheReaders_AndItIsWalkedByItsKnots()
         {
             DxfSpline spline = ByHandle<DxfSpline>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000), "70");
-            DxfDocument read = DxfReader.Parse(DxfFileEzdxfDrawings.R2000, new DxfReadOptions { Tolerance = Tolerance.Default });
+            DxfDocument read = DxfReader.Parse(
+                DxfFileEzdxfDrawings.R2000,
+                new DxfReadOptions { Tolerance = Tolerance.Default }
+            );
             var shape = (GeoSpline3)Assert.Single(spline.GetGeometry());
 
             Assert.Equal(read.Shapes.Single(s => s.Handle == "70").Shape, shape);
@@ -66,7 +81,17 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(0.6, spline.GetParameterAtPoint(spline.GetPointAtParameter(0.6)), 9);
 
             // A spline of degree 1 from (0, 0, 0) to (3, 4, 0) is the segment: half way along at its parameter 0.5.
-            var line = new DxfSpline(1, false, false, false, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(3, 4, 0) }, new[] { 0.0, 0.0, 1.0, 1.0 }, null, 0.0, 0.0);
+            var line = new DxfSpline(
+                1,
+                false,
+                false,
+                false,
+                new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(3, 4, 0) },
+                new[] { 0.0, 0.0, 1.0, 1.0 },
+                null,
+                0.0,
+                0.0
+            );
             Assert.Equal(2.5, line.GetDistanceAtParameter(0.5), 14);
             Assert.True(line.GetFirstDerivative(0.5).IsEqualTo(new GeoVector3(3, 4, 0), Tolerance.Default));
             Assert.Equal(Bits(new GeoVector3(0, 0, 0)), Bits(line.GetSecondDerivative(0.5)));
@@ -75,7 +100,14 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void EverySetterGivenTheValueItGives_LeavesTheFileByteForByte()
         {
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018, DxfReaderRoundTripTests.OneOfEach().ToString() })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R2000,
+                    DxfFileEzdxfDrawings.R2018,
+                    DxfReaderRoundTripTests.OneOfEach().ToString(),
+                }
+            )
             {
                 SettingWhatItHasChangesNothing<DxfSpline>(text, spline =>
                 {
@@ -178,22 +210,121 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // Two splines as broken files have them: degree 3 with 3 knots for 4 control points, and degree 3 with 2 knots for 2
             // control points and 3 weights. Setting what they give writes nothing; setting anything else is still refused.
-            string text = string.Join("\n", new[]
-            {
-                "  0", "SECTION", "  2", "ENTITIES",
-                "  0", "SPLINE", "  5", "2A", "100", "AcDbEntity", "  8", "0", "100", "AcDbSpline",
-                " 70", "4", " 71", "3", " 72", "3", " 73", "4", " 74", "0",
-                " 40", "0.0", " 40", "0.5", " 40", "1.0",
-                " 41", "1.0", " 41", "2.0", " 41", "1.0", " 41", "1.0",
-                " 10", "0.0", " 20", "0.0", " 30", "0.0", " 10", "1.0", " 20", "2.0", " 30", "0.0",
-                " 10", "3.0", " 20", "2.0", " 30", "0.0", " 10", "4.0", " 20", "0.0", " 30", "0.0",
-                "  0", "SPLINE", "  5", "2B", "100", "AcDbEntity", "  8", "0", "100", "AcDbSpline",
-                " 70", "4", " 71", "3", " 72", "2", " 73", "2", " 74", "0",
-                " 40", "0.0", " 40", "1.0",
-                " 41", "1.0", " 41", "1.0", " 41", "1.0",
-                " 10", "0.0", " 20", "0.0", " 30", "0.0", " 10", "5.0", " 20", "0.0", " 30", "0.0",
-                "  0", "ENDSEC", "  0", "EOF", string.Empty,
-            });
+            string text = string.Join(
+                "\n",
+                new[]
+                {
+                    "  0",
+                    "SECTION",
+                    "  2",
+                    "ENTITIES",
+                    "  0",
+                    "SPLINE",
+                    "  5",
+                    "2A",
+                    "100",
+                    "AcDbEntity",
+                    "  8",
+                    "0",
+                    "100",
+                    "AcDbSpline",
+                    " 70",
+                    "4",
+                    " 71",
+                    "3",
+                    " 72",
+                    "3",
+                    " 73",
+                    "4",
+                    " 74",
+                    "0",
+                    " 40",
+                    "0.0",
+                    " 40",
+                    "0.5",
+                    " 40",
+                    "1.0",
+                    " 41",
+                    "1.0",
+                    " 41",
+                    "2.0",
+                    " 41",
+                    "1.0",
+                    " 41",
+                    "1.0",
+                    " 10",
+                    "0.0",
+                    " 20",
+                    "0.0",
+                    " 30",
+                    "0.0",
+                    " 10",
+                    "1.0",
+                    " 20",
+                    "2.0",
+                    " 30",
+                    "0.0",
+                    " 10",
+                    "3.0",
+                    " 20",
+                    "2.0",
+                    " 30",
+                    "0.0",
+                    " 10",
+                    "4.0",
+                    " 20",
+                    "0.0",
+                    " 30",
+                    "0.0",
+                    "  0",
+                    "SPLINE",
+                    "  5",
+                    "2B",
+                    "100",
+                    "AcDbEntity",
+                    "  8",
+                    "0",
+                    "100",
+                    "AcDbSpline",
+                    " 70",
+                    "4",
+                    " 71",
+                    "3",
+                    " 72",
+                    "2",
+                    " 73",
+                    "2",
+                    " 74",
+                    "0",
+                    " 40",
+                    "0.0",
+                    " 40",
+                    "1.0",
+                    " 41",
+                    "1.0",
+                    " 41",
+                    "1.0",
+                    " 41",
+                    "1.0",
+                    " 10",
+                    "0.0",
+                    " 20",
+                    "0.0",
+                    " 30",
+                    "0.0",
+                    " 10",
+                    "5.0",
+                    " 20",
+                    "0.0",
+                    " 30",
+                    "0.0",
+                    "  0",
+                    "ENDSEC",
+                    "  0",
+                    "EOF",
+                    string.Empty,
+                }
+            );
 
             SettingWhatItHasChangesNothing<DxfSpline>(text, spline =>
             {
@@ -220,14 +351,42 @@ namespace GeometryHelper.UnitTest.Dxf
             // The spline 6F, given by its 4 fit points alone, given the cubic of 4 control points from (0, 0, 0) to (4, 0, 0).
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             DxfSpline spline = ByHandle<DxfSpline>(db, "6F");
-            var points = new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(1, 2, 0), new GeoPoint3(3, 2, 0), new GeoPoint3(4, 0, 0) };
+            var points = new[]
+            {
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(1, 2, 0),
+                new GeoPoint3(3, 2, 0),
+                new GeoPoint3(4, 0, 0),
+            };
 
-            Assert.Throws<ArgumentException>(() => spline.SetNurbsData(3, false, false, false, points, new[] { 0.0, 0, 0, 1, 1, 1, 1 }, null));
-            Assert.Throws<ArgumentException>(() => spline.SetNurbsData(3, true, false, false, points, new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 }, new[] { 1.0, 1.0 }));
-            Assert.Throws<ArgumentException>(() => spline.SetNurbsData(4, false, false, false, points, new[] { 0.0, 0, 0, 0, 0, 1, 1, 1, 1 }, null));
+            Assert.Throws<ArgumentException>(() =>
+                spline.SetNurbsData(3, false, false, false, points, new[] { 0.0, 0, 0, 1, 1, 1, 1 }, null)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                spline.SetNurbsData(
+                    3,
+                    true,
+                    false,
+                    false,
+                    points,
+                    new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 },
+                    new[] { 1.0, 1.0 }
+                )
+            );
+            Assert.Throws<ArgumentException>(() =>
+                spline.SetNurbsData(4, false, false, false, points, new[] { 0.0, 0, 0, 0, 0, 1, 1, 1, 1 }, null)
+            );
             Assert.Equal(4, spline.NumFitPoints);
 
-            spline.SetNurbsData(3, true, false, false, points, new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 }, new[] { 1.0, 0.5, 2.0, 1.0 });
+            spline.SetNurbsData(
+                3,
+                true,
+                false,
+                false,
+                points,
+                new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 },
+                new[] { 1.0, 0.5, 2.0, 1.0 }
+            );
 
             DxfSpline again = ByHandle<DxfSpline>(DxfDatabase.Parse(db.ToText()), "6F");
             Assert.Equal(0, again.NumFitPoints);
@@ -255,10 +414,36 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ASplineMadeInCode_IsAppendedFromR2000On_AndRefusedByR12()
         {
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R12,
+                    DxfFileEzdxfDrawings.R2000,
+                    DxfFileEzdxfDrawings.R2018,
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                var spline = new DxfSpline(3, true, false, false, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(1, 2, 0), new GeoPoint3(3, 2, 0), new GeoPoint3(4, 0, 0) }, new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 }, new[] { 1.0, 0.5, 2.0, 1.0 }, 1E-10, 1E-10) { Layer = "rebar" };
+                var spline = new DxfSpline(
+                    3,
+                    true,
+                    false,
+                    false,
+                    new[]
+                    {
+                        new GeoPoint3(0, 0, 0),
+                        new GeoPoint3(1, 2, 0),
+                        new GeoPoint3(3, 2, 0),
+                        new GeoPoint3(4, 0, 0),
+                    },
+                    new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 },
+                    new[] { 1.0, 0.5, 2.0, 1.0 },
+                    1E-10,
+                    1E-10
+                )
+                {
+                    Layer = "rebar",
+                };
 
                 if (text == DxfFileEzdxfDrawings.R12)
                 {
@@ -287,11 +472,26 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfSpline again = ByHandle<DxfSpline>(DxfDatabase.Parse(db.ToText()), "70");
             DxfPolylineTests.Near(new GeoPoint3(10, -5, 2.5), again.GetControlPointAt(0));
-            DxfPolylineTests.Near(new GeoPoint3(7.653057708339265, 2.206512871368604, 4.292829506983384), again.GetControlPointAt(1));
-            DxfPolylineTests.Near(new GeoPoint3(19.6869059325053, -10.168129255390173, 3.160223294023397), again.GetControlPointAt(2));
-            DxfPolylineTests.Near(new GeoPoint3(13.899012124006417, 5.3250928812218685, -0.4051591316809251), again.GetControlPointAt(3));
-            DxfPolylineTests.Near(new GeoPoint3(19.774409885058102, 1.5300142690344236, -0.11147947437564953), again.GetControlPointAt(4));
-            Assert.Equal(new[] { 0.0, 0.0, 0.0, 0.0, FromBits(0x3fdf7d895a27ca80), 1.0, 1.0, 1.0, 1.0 }, again.Knots.ToArray());
+            DxfPolylineTests.Near(
+                new GeoPoint3(7.653057708339265, 2.206512871368604, 4.292829506983384),
+                again.GetControlPointAt(1)
+            );
+            DxfPolylineTests.Near(
+                new GeoPoint3(19.6869059325053, -10.168129255390173, 3.160223294023397),
+                again.GetControlPointAt(2)
+            );
+            DxfPolylineTests.Near(
+                new GeoPoint3(13.899012124006417, 5.3250928812218685, -0.4051591316809251),
+                again.GetControlPointAt(3)
+            );
+            DxfPolylineTests.Near(
+                new GeoPoint3(19.774409885058102, 1.5300142690344236, -0.11147947437564953),
+                again.GetControlPointAt(4)
+            );
+            Assert.Equal(
+                new[] { 0.0, 0.0, 0.0, 0.0, FromBits(0x3fdf7d895a27ca80), 1.0, 1.0, 1.0, 1.0 },
+                again.Knots.ToArray()
+            );
         }
     }
 }

@@ -16,11 +16,12 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Strict = new Tolerance(1E-3, 1E-5);
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(P(x0, y0, z0), P(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(P(x0, y0, z0), P(x1, y1, z1)).ToObb().ToSolid();
 
         /// <summary>The plate 100 by 100 by 20 with the hole 20 by 20 at 40 to 60 through it, overshooting both faces by one.</summary>
-        private static GeoSolid3 Plate() => Box(0, 0, 0, 100, 100, 20).WithOpenings(new[] { Box(40, 40, -1, 60, 60, 21) });
+        private static GeoSolid3 Plate() =>
+            Box(0, 0, 0, 100, 100, 20).WithOpenings(new[] { Box(40, 40, -1, 60, 60, 21) });
 
         #region A body with an opening
 
@@ -65,7 +66,13 @@ namespace GeometryHelper.UnitTest.Solid
             // The arc over the top of the circle about (0, -1E6, 0), 100 long, crossing the plane x = 0 at the origin.
             double radius = 1E6;
             double half = 5E-5;
-            GeoArc3 arc = ArcFrom(P(0, -radius, 0), GeoVector3.ZAxis, radius, P(radius * Math.Sin(half), radius * Math.Cos(half) - radius, 0), 2 * half);
+            GeoArc3 arc = ArcFrom(
+                P(0, -radius, 0),
+                GeoVector3.ZAxis,
+                radius,
+                P(radius * Math.Sin(half), radius * Math.Cos(half) - radius, 0),
+                2 * half
+            );
 
             // A line up through the middle of the arc, along Z.
             GeoPoint3[] crossings = X(0, 0, -300, 0, 0, 1).GetIntersections(arc, Strict);

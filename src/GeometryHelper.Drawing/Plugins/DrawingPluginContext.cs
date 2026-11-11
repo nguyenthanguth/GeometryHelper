@@ -24,7 +24,15 @@ namespace GeometryHelper.Drawing.Plugins
         private readonly DrawingSettings _settings;
         private readonly Dictionary<string, double> _values;
 
-        internal DrawingPluginContext(DrawingPluginRun run, DrawingView view, IReadOnlyList<DrawingObject> objects, DrawingSource source, DrawingSettings settings, Dictionary<string, double> values, Tolerance tolerance)
+        internal DrawingPluginContext(
+            DrawingPluginRun run,
+            DrawingView view,
+            IReadOnlyList<DrawingObject> objects,
+            DrawingSource source,
+            DrawingSettings settings,
+            Dictionary<string, double> values,
+            Tolerance tolerance
+        )
         {
             RunId = run.Id;
             View = view;
@@ -94,7 +102,9 @@ namespace GeometryHelper.Drawing.Plugins
 
             foreach (DrawingDimension dimension in dimensions)
             {
-                _dimensions.Add(dimension ?? throw new ArgumentNullException(nameof(dimensions), "A dimension is null."));
+                _dimensions.Add(
+                    dimension ?? throw new ArgumentNullException(nameof(dimensions), "A dimension is null.")
+                );
             }
         }
 

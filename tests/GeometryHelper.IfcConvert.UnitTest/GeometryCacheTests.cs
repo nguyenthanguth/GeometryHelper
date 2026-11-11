@@ -1,10 +1,10 @@
 using System;
 using System.IO;
 using System.Linq;
+using GeometryHelper.Geometry;
 using GeometryHelper.IfcConvert.Core;
 using GeometryHelper.IfcConvert.Core.Internal;
 using GeometryHelper.IfcConvert.Models;
-using GeometryHelper.Geometry;
 using Xbim.Common;
 using Xbim.Common.Step21;
 using Xbim.Ifc;
@@ -20,7 +20,8 @@ namespace GeometryHelper.IfcConvert.UnitTest
     public class GeometryCacheTests
     {
         // Minimal IFC box: 1.0 x 0.5 x 2.0 m, unit = METRE
-        private const string MinimalIfcBoxStep = @"ISO-10303-21;
+        private const string MinimalIfcBoxStep =
+            @"ISO-10303-21;
 HEADER;
 FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');
 FILE_NAME('cache_test.ifc','2026-09-18T00:00:00',('Tester'),('TestOrg'),'xBIM','xBIM','');
@@ -70,7 +71,10 @@ END-ISO-10303-21;
                     Assert.Same(geom1, geom2);
                 }
             }
-            finally { TryDelete(tempFile); }
+            finally
+            {
+                TryDelete(tempFile);
+            }
         }
 
         [Fact]
@@ -96,7 +100,10 @@ END-ISO-10303-21;
                     Assert.NotEqual(geom1.TotalVolume, geom2.TotalVolume, 0);
                 }
             }
-            finally { TryDelete(tempFile); }
+            finally
+            {
+                TryDelete(tempFile);
+            }
         }
 
         [Fact]
@@ -120,7 +127,10 @@ END-ISO-10303-21;
                     Assert.Same(solid1, solid2);
                 }
             }
-            finally { TryDelete(tempFile); }
+            finally
+            {
+                TryDelete(tempFile);
+            }
         }
 
         [Fact]
@@ -134,7 +144,7 @@ END-ISO-10303-21;
                 TargetUnit = LengthUnit.Original,
                 ApplyVoids = false,
                 TessellateNonPlanarFaces = true,
-                DeflectionTolerance = 0.5
+                DeflectionTolerance = 0.5,
             };
             var opts2 = new IfcConvertOptions
             {
@@ -143,7 +153,7 @@ END-ISO-10303-21;
                 TargetUnit = LengthUnit.Original,
                 ApplyVoids = false,
                 TessellateNonPlanarFaces = true,
-                DeflectionTolerance = 0.5
+                DeflectionTolerance = 0.5,
             };
 
             Assert.Equal(opts1.GetCacheKey(), opts2.GetCacheKey());
@@ -201,9 +211,18 @@ END-ISO-10303-21;
         public void GetCacheKey_SkipNamesAndOnlyNames_AreKeptApart()
         {
             // Skipping "A" and keeping only "A" give opposite results; so do lists that differ only in how they split.
-            Assert.NotEqual(new IfcConvertOptions { SkipNames = { "A" } }.GetCacheKey(), new IfcConvertOptions { OnlyNames = { "A" } }.GetCacheKey());
-            Assert.NotEqual(new IfcConvertOptions { OnlyNames = { "A,B" } }.GetCacheKey(), new IfcConvertOptions { OnlyNames = { "A", "B" } }.GetCacheKey());
-            Assert.NotEqual(new IfcConvertOptions { SkipNames = { "A,B" } }.GetCacheKey(), new IfcConvertOptions { SkipNames = { "A", "B" } }.GetCacheKey());
+            Assert.NotEqual(
+                new IfcConvertOptions { SkipNames = { "A" } }.GetCacheKey(),
+                new IfcConvertOptions { OnlyNames = { "A" } }.GetCacheKey()
+            );
+            Assert.NotEqual(
+                new IfcConvertOptions { OnlyNames = { "A,B" } }.GetCacheKey(),
+                new IfcConvertOptions { OnlyNames = { "A", "B" } }.GetCacheKey()
+            );
+            Assert.NotEqual(
+                new IfcConvertOptions { SkipNames = { "A,B" } }.GetCacheKey(),
+                new IfcConvertOptions { SkipNames = { "A", "B" } }.GetCacheKey()
+            );
         }
 
         [Fact]
@@ -221,7 +240,10 @@ END-ISO-10303-21;
                     Assert.Null(solid);
                 }
             }
-            finally { TryDelete(tempFile); }
+            finally
+            {
+                TryDelete(tempFile);
+            }
         }
 
         [Fact]
@@ -240,14 +262,19 @@ END-ISO-10303-21;
                     Assert.Null(model.GetGeometry("   "));
                 }
             }
-            finally { TryDelete(tempFile); }
+            finally
+            {
+                TryDelete(tempFile);
+            }
         }
 
         [Fact]
         [Trait("Category", "Catalog")]
         public void GetProductCatalog_EmptyStore_ReturnsEmptyList()
         {
-            using (var store = IfcStore.Create(CreateCredentials(), XbimSchemaVersion.Ifc4, XbimStoreType.InMemoryModel))
+            using (
+                var store = IfcStore.Create(CreateCredentials(), XbimSchemaVersion.Ifc4, XbimStoreType.InMemoryModel)
+            )
             using (var cache = new IfcStoreCache(store))
             {
                 var catalog = cache.GetProductCatalog();
@@ -278,7 +305,10 @@ END-ISO-10303-21;
                     Assert.True(geomMm.TotalVolume > 1e8, "Volume scaled to mm^3 must be very large");
                 }
             }
-            finally { TryDelete(tempFile); }
+            finally
+            {
+                TryDelete(tempFile);
+            }
         }
 
         [Fact]
@@ -303,12 +333,20 @@ END-ISO-10303-21;
                     Assert.True(bb.Max.Y - bb.Min.Y > 0.2, "Depth (Y) should be approximately 0.5m");
                 }
             }
-            finally { TryDelete(tempFile); }
+            finally
+            {
+                TryDelete(tempFile);
+            }
         }
 
         private static void TryDelete(string path)
         {
-            try { if (File.Exists(path)) File.Delete(path); } catch { }
+            try
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
+            }
+            catch { }
         }
 
         private static XbimEditorCredentials CreateCredentials()
@@ -321,7 +359,7 @@ END-ISO-10303-21;
                 ApplicationVersion = "3.2.0",
                 EditorsFamilyName = "Unit",
                 EditorsGivenName = "Test",
-                EditorsOrganisationName = "GeometryHelper"
+                EditorsOrganisationName = "GeometryHelper",
             };
         }
     }

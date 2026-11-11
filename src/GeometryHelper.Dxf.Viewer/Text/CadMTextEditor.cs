@@ -31,7 +31,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="styleFont">The font of the MTEXT's style: a TrueType family (Arial) or an SHX file (romans); null for none known.</param>
         /// <param name="styleIsShx">Whether the style's font is an SHX file, whose letters cannot be bold or italic.</param>
         /// <param name="defaultAlignment">How a paragraph with no alignment code is aligned, l, c or r, as the MTEXT's attachment says.</param>
-        public CadMTextEditor(string contents, double height, string styleFont = null, bool styleIsShx = false, char defaultAlignment = 'l')
+        public CadMTextEditor(
+            string contents,
+            double height,
+            string styleFont = null,
+            bool styleIsShx = false,
+            char defaultAlignment = 'l'
+        )
         {
             Height = height;
             StyleFont = styleFont;
@@ -147,7 +153,13 @@ namespace GeometryHelper.Dxf.Viewer
         public bool CanRedo => _redo.Count > 0;
 
         /// <summary>Gets whether the words differ from what they were when the editor opened.</summary>
-        public bool IsModified => !string.Equals(Contents, Original, StringComparison.Ordinal) && !string.Equals(Contents, CadMTextContent.Parse(Original, Height).Write(Height, DefaultAlignment), StringComparison.Ordinal);
+        public bool IsModified =>
+            !string.Equals(Contents, Original, StringComparison.Ordinal)
+            && !string.Equals(
+                Contents,
+                CadMTextContent.Parse(Original, Height).Write(Height, DefaultAlignment),
+                StringComparison.Ordinal
+            );
 
         /// <summary>Gets the words with their codes, as AutoCAD writes them.</summary>
         public string Contents => Content.Write(Height, DefaultAlignment);
@@ -171,7 +183,12 @@ namespace GeometryHelper.Dxf.Viewer
                         continue;
                     }
 
-                    if (cell.Code == null && runs.Count > 0 && runs[runs.Count - 1].Code == null && runs[runs.Count - 1].Look.Equals(cell.Look))
+                    if (
+                        cell.Code == null
+                        && runs.Count > 0
+                        && runs[runs.Count - 1].Code == null
+                        && runs[runs.Count - 1].Look.Equals(cell.Look)
+                    )
                     {
                         runs[runs.Count - 1] = new CadMTextRun(runs[runs.Count - 1].Text + cell.Text, cell.Look);
                     }
@@ -189,7 +206,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the look of a place: of its letter, the look the letters typed there take for a break.</summary>
         /// <param name="index">The place.</param>
         /// <returns>The look.</returns>
-        public CadMTextLook LookAt(int index) => index >= 0 && index < _cells.Count ? _cells[index].Look : CadMTextLook.Plain;
+        public CadMTextLook LookAt(int index) =>
+            index >= 0 && index < _cells.Count ? _cells[index].Look : CadMTextLook.Plain;
 
         /// <summary>Gets the letters a place shows: a line feed for a paragraph break.</summary>
         /// <param name="index">The place.</param>
@@ -266,7 +284,10 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (string.IsNullOrEmpty(shown) || string.IsNullOrEmpty(code))
             {
-                throw new ArgumentException("A symbol has a letter and a code.", string.IsNullOrEmpty(shown) ? nameof(shown) : nameof(code));
+                throw new ArgumentException(
+                    "A symbol has a letter and a code.",
+                    string.IsNullOrEmpty(shown) ? nameof(shown) : nameof(code)
+                );
             }
 
             Save();
@@ -339,7 +360,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gives the letters a font: a TrueType family keeping bold and italic, or an SHX file; null for the style's.</summary>
         /// <param name="font">The family or file.</param>
         /// <param name="shx">Whether it is an SHX file.</param>
-        public void SetFont(string font, bool shx) => Restyle(l => shx ? l.WithShx(font) : l.WithTrueType(font, font == null && StyleIsShx ? false : l.Bold, font == null && StyleIsShx ? false : l.Italic));
+        public void SetFont(string font, bool shx) =>
+            Restyle(l =>
+                shx
+                    ? l.WithShx(font)
+                    : l.WithTrueType(
+                        font,
+                        font == null && StyleIsShx ? false : l.Bold,
+                        font == null && StyleIsShx ? false : l.Italic
+                    )
+            );
 
         /// <summary>Gives the letters a colour of the index: 256 ByLayer, 0 ByBlock; null for the MTEXT's own.</summary>
         /// <param name="index">The index.</param>
@@ -347,7 +377,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gives the letters a height in drawing units; the MTEXT's own height or less than nought is none of their own.</summary>
         /// <param name="height">The height.</param>
-        public void SetHeight(double height) => Restyle(l => l.WithHeight(height > 0.0 && height != Height ? (double?)height : null));
+        public void SetHeight(double height) =>
+            Restyle(l => l.WithHeight(height > 0.0 && height != Height ? (double?)height : null));
 
         /// <summary>Slants the letters by degrees; nought is none of their own.</summary>
         /// <param name="degrees">The slant.</param>
@@ -355,11 +386,13 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Spaces the letters by a factor of their usual spacing; 1 is none of their own.</summary>
         /// <param name="factor">The factor, above nought.</param>
-        public void SetTracking(double factor) => Restyle(l => l.WithTracking(factor > 0.0 && factor != 1.0 ? (double?)factor : null));
+        public void SetTracking(double factor) =>
+            Restyle(l => l.WithTracking(factor > 0.0 && factor != 1.0 ? (double?)factor : null));
 
         /// <summary>Widens or narrows the letters by a factor; 1 is none of their own.</summary>
         /// <param name="factor">The factor, above nought.</param>
-        public void SetWidthFactor(double factor) => Restyle(l => l.WithWidthFactor(factor > 0.0 && factor != 1.0 ? (double?)factor : null));
+        public void SetWidthFactor(double factor) =>
+            Restyle(l => l.WithWidthFactor(factor > 0.0 && factor != 1.0 ? (double?)factor : null));
 
         /// <summary>Clears the codes of the selected letters (Clear formatting), as AutoCAD's Remove Character Formatting.</summary>
         public void ClearFormatting() => Restyle(l => CadMTextLook.Plain);
@@ -381,7 +414,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (!cell.Break && cell.Code == null)
                 {
-                    _cells[i] = new Cell(upper ? cell.Text.ToUpperInvariant() : cell.Text.ToLowerInvariant(), cell.Look, null);
+                    _cells[i] = new Cell(
+                        upper ? cell.Text.ToUpperInvariant() : cell.Text.ToLowerInvariant(),
+                        cell.Look,
+                        null
+                    );
                 }
             }
 
@@ -581,7 +618,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             string font = look.Font ?? StyleFont;
             bool own = font == null || string.Equals(font, StyleFont, StringComparison.OrdinalIgnoreCase);
-            return !bold && !italic && own ? look.WithTrueType(null, false, false) : look.WithTrueType(font, bold, italic);
+            return !bold && !italic && own
+                ? look.WithTrueType(null, false, false)
+                : look.WithTrueType(font, bold, italic);
         }
 
         private void Restyle(Func<CadMTextLook, CadMTextLook> change)
@@ -683,7 +722,14 @@ namespace GeometryHelper.Dxf.Viewer
             _redo.Clear();
         }
 
-        private State Capture() => new State(new List<Cell>(_cells), new List<char>(_alignments), new List<string>(_paragraphCodes), Caret, Anchor);
+        private State Capture() =>
+            new State(
+                new List<Cell>(_cells),
+                new List<char>(_alignments),
+                new List<string>(_paragraphCodes),
+                Caret,
+                Anchor
+            );
 
         private void Restore(State state)
         {

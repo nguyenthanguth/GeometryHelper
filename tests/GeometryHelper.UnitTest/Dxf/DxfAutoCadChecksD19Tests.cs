@@ -23,7 +23,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static GeoPoint3 P3(double x, double y, double z) => new GeoPoint3(x, y, z);
 
-        private static string G(int code, string value) => code.ToString(CultureInfo.InvariantCulture).PadLeft(3) + "\n" + value + "\n";
+        private static string G(int code, string value) =>
+            code.ToString(CultureInfo.InvariantCulture).PadLeft(3) + "\n" + value + "\n";
 
         private static string G(int code, double value) => G(code, value.ToString("R", CultureInfo.InvariantCulture));
 
@@ -107,13 +108,49 @@ namespace GeometryHelper.UnitTest.Dxf
         /// </summary>
         private static string StaticColumnsOfR2000()
         {
-            string info = G(1000, "ACAD_MTEXT_COLUMN_INFO_BEGIN") + G(1070, "75") + G(1070, "1") + G(1070, "79") + G(1070, "0") + G(1070, "76") + G(1070, "2")
-                + G(1070, "78") + G(1070, "0") + G(1070, "48") + G(1040, "50.0") + G(1070, "49") + G(1040, "10.0") + G(1000, "ACAD_MTEXT_COLUMN_INFO_END");
-            string column = G(0, "MTEXT") + G(5, "B1") + G(330, "17") + G(100, "AcDbEntity") + G(8, "0") + G(100, "AcDbMText") + G(10, "60.0") + G(20, "40.0")
-                + G(30, "0.0") + G(40, "3.0") + G(41, "50.0") + G(71, "1") + G(1, "column") + G(1001, "ACAD") + info;
-            string data = G(1001, "ACAD") + info + G(1000, "ACAD_MTEXT_COLUMNS_BEGIN") + G(1070, "47") + G(1070, "2") + G(1005, "B1") + G(1000, "ACAD_MTEXT_COLUMNS_END");
-            return DxfFileEzdxfDrawings.R2000
-                .Replace("\n 41\n40.0\n 71\n1\n  1\n{\\fArial|b1;Bold}\\Pline two é\n  0\n", "\n 41\n50.0\n 71\n1\n  1\n{\\fArial|b1;Bold}\\Pline two é\n" + data + column + "  0\n");
+            string info =
+                G(1000, "ACAD_MTEXT_COLUMN_INFO_BEGIN")
+                + G(1070, "75")
+                + G(1070, "1")
+                + G(1070, "79")
+                + G(1070, "0")
+                + G(1070, "76")
+                + G(1070, "2")
+                + G(1070, "78")
+                + G(1070, "0")
+                + G(1070, "48")
+                + G(1040, "50.0")
+                + G(1070, "49")
+                + G(1040, "10.0")
+                + G(1000, "ACAD_MTEXT_COLUMN_INFO_END");
+            string column =
+                G(0, "MTEXT")
+                + G(5, "B1")
+                + G(330, "17")
+                + G(100, "AcDbEntity")
+                + G(8, "0")
+                + G(100, "AcDbMText")
+                + G(10, "60.0")
+                + G(20, "40.0")
+                + G(30, "0.0")
+                + G(40, "3.0")
+                + G(41, "50.0")
+                + G(71, "1")
+                + G(1, "column")
+                + G(1001, "ACAD")
+                + info;
+            string data =
+                G(1001, "ACAD")
+                + info
+                + G(1000, "ACAD_MTEXT_COLUMNS_BEGIN")
+                + G(1070, "47")
+                + G(1070, "2")
+                + G(1005, "B1")
+                + G(1000, "ACAD_MTEXT_COLUMNS_END");
+            return DxfFileEzdxfDrawings.R2000.Replace(
+                "\n 41\n40.0\n 71\n1\n  1\n{\\fArial|b1;Bold}\\Pline two é\n  0\n",
+                "\n 41\n50.0\n 71\n1\n  1\n{\\fArial|b1;Bold}\\Pline two é\n" + data + column + "  0\n"
+            );
         }
 
         [Fact]
@@ -169,10 +206,23 @@ namespace GeometryHelper.UnitTest.Dxf
         private static DxfSpline SavedByAutoCad(int flags, double[] knots, GeoPoint3[] points)
         {
             var record = new StringBuilder();
-            record.Append(G(0, "SPLINE")).Append(G(5, "F00")).Append(G(330, "17")).Append(G(100, "AcDbEntity")).Append(G(8, "0")).Append(G(100, "AcDbSpline"))
-                .Append(G(210, "0.0")).Append(G(220, "0.0")).Append(G(230, "1.0")).Append(G(70, flags.ToString(CultureInfo.InvariantCulture))).Append(G(71, "3"))
-                .Append(G(72, knots.Length.ToString(CultureInfo.InvariantCulture))).Append(G(73, points.Length.ToString(CultureInfo.InvariantCulture)))
-                .Append(G(74, "0")).Append(G(42, "0.000000001")).Append(G(43, "0.0000000001"));
+            record
+                .Append(G(0, "SPLINE"))
+                .Append(G(5, "F00"))
+                .Append(G(330, "17"))
+                .Append(G(100, "AcDbEntity"))
+                .Append(G(8, "0"))
+                .Append(G(100, "AcDbSpline"))
+                .Append(G(210, "0.0"))
+                .Append(G(220, "0.0"))
+                .Append(G(230, "1.0"))
+                .Append(G(70, flags.ToString(CultureInfo.InvariantCulture)))
+                .Append(G(71, "3"))
+                .Append(G(72, knots.Length.ToString(CultureInfo.InvariantCulture)))
+                .Append(G(73, points.Length.ToString(CultureInfo.InvariantCulture)))
+                .Append(G(74, "0"))
+                .Append(G(42, "0.000000001"))
+                .Append(G(43, "0.0000000001"));
 
             foreach (double knot in knots)
             {
@@ -184,32 +234,62 @@ namespace GeometryHelper.UnitTest.Dxf
                 record.Append(G(10, point.X)).Append(G(20, point.Y)).Append(G(30, point.Z));
             }
 
-            string text = DxfFileEzdxfDrawings.R2018.Replace("\r\n", "\n").Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nF01\n")
-                .Replace("  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n", record + "  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n");
+            string text = DxfFileEzdxfDrawings
+                .R2018.Replace("\r\n", "\n")
+                .Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nF01\n")
+                .Replace(
+                    "  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n",
+                    record + "  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n"
+                );
             return ByHandle<DxfSpline>(DxfDatabase.Parse(text), "F00");
         }
 
         // AutoCAD's periodic cubic through (0, 0), (30, 0), (30, 15) and (20, 15), its knots 0, 30, 45, 55 and 80.
-        private static DxfSpline Halfway(int flags) => SavedByAutoCad(
-            flags,
-            new[] { 0.0, 0, 0, 0, 30, 45, 55, 80, 80, 80, 80 },
-            new[]
-            {
-                P3(0.0000000000000007, -0.0000000000000004, 0), P3(1.9696772796188, -6.041152263374485, 0), P3(33.61425167857916, -10.88065843621399, 0),
-                P3(33.34423507327991, 17.56241426611796, 0), P3(14.65605371453325, 14.81893004115226, 0), P3(-1.641397733015665, 5.03429355281207, 0),
-                P3(0.0000000000000007, -0.0000000000000004, 0),
-            });
+        private static DxfSpline Halfway(int flags) =>
+            SavedByAutoCad(
+                flags,
+                new[] { 0.0, 0, 0, 0, 30, 45, 55, 80, 80, 80, 80 },
+                new[]
+                {
+                    P3(0.0000000000000007, -0.0000000000000004, 0),
+                    P3(1.9696772796188, -6.041152263374485, 0),
+                    P3(33.61425167857916, -10.88065843621399, 0),
+                    P3(33.34423507327991, 17.56241426611796, 0),
+                    P3(14.65605371453325, 14.81893004115226, 0),
+                    P3(-1.641397733015665, 5.03429355281207, 0),
+                    P3(0.0000000000000007, -0.0000000000000004, 0),
+                }
+            );
 
         // AutoCAD's closed cubic through (0, 0), (40, 0), (50, 30) and (10, 25), not periodic, its knots the chords.
-        private static DxfSpline ClosedClamped(int flags) => SavedByAutoCad(
-            flags,
-            new[] { 0.0, 0, 0, 0, 40, 71.6227766016838, 111.9340653431765, 138.859889378849, 138.859889378849, 138.859889378849, 138.859889378849 },
-            new[]
-            {
-                P3(0.0000000000000016, 0, 0), P3(4.762265129346506, -9.87516948054726, 0), P3(44.57965357801522, -10.52612047361797, 0),
-                P3(60.52497076467425, 41.58068210387638, 0), P3(8.562414603983973, 34.00936527765936, 0), P3(-3.205697822100078, 6.647426893891477, 0),
-                P3(0.0000000000000016, 0, 0),
-            });
+        private static DxfSpline ClosedClamped(int flags) =>
+            SavedByAutoCad(
+                flags,
+                new[]
+                {
+                    0.0,
+                    0,
+                    0,
+                    0,
+                    40,
+                    71.6227766016838,
+                    111.9340653431765,
+                    138.859889378849,
+                    138.859889378849,
+                    138.859889378849,
+                    138.859889378849,
+                },
+                new[]
+                {
+                    P3(0.0000000000000016, 0, 0),
+                    P3(4.762265129346506, -9.87516948054726, 0),
+                    P3(44.57965357801522, -10.52612047361797, 0),
+                    P3(60.52497076467425, 41.58068210387638, 0),
+                    P3(8.562414603983973, 34.00936527765936, 0),
+                    P3(-3.205697822100078, 6.647426893891477, 0),
+                    P3(0.0000000000000016, 0, 0),
+                }
+            );
 
         [Fact]
         public void ASpline_IsPeriodicByTheFlag2048OfIts70Alone_AsAutoCadReadIt()
@@ -218,8 +298,14 @@ namespace GeometryHelper.UnitTest.Dxf
             // or 32 (3083) still; 11 and 2048 (2059) periodic, and 1024 (1035) or 32 (43) not. Each is closed (the flag 1).
             var cases = new[]
             {
-                (Halfway(3115), true), (Halfway(1067), false), (Halfway(2091), true), (Halfway(3083), true),
-                (ClosedClamped(11), false), (ClosedClamped(2059), true), (ClosedClamped(1035), false), (ClosedClamped(43), false),
+                (Halfway(3115), true),
+                (Halfway(1067), false),
+                (Halfway(2091), true),
+                (Halfway(3083), true),
+                (ClosedClamped(11), false),
+                (ClosedClamped(2059), true),
+                (ClosedClamped(1035), false),
+                (ClosedClamped(43), false),
             };
 
             foreach (var (spline, periodic) in cases)
@@ -238,8 +324,14 @@ namespace GeometryHelper.UnitTest.Dxf
             GeoPoint3[] clamped = { P3(0, 0, 0), P3(40, 0, 0), P3(50, 30, 0), P3(10, 25, 0), P3(0, 0, 0) };
             var cases = new[]
             {
-                (Halfway(3115), halfway), (Halfway(1067), halfway), (Halfway(2091), null), (Halfway(3083), halfway),
-                (ClosedClamped(11), null), (ClosedClamped(2059), null), (ClosedClamped(1035), clamped), (ClosedClamped(43), null),
+                (Halfway(3115), halfway),
+                (Halfway(1067), halfway),
+                (Halfway(2091), null),
+                (Halfway(3083), halfway),
+                (ClosedClamped(11), null),
+                (ClosedClamped(2059), null),
+                (ClosedClamped(1035), clamped),
+                (ClosedClamped(43), null),
             };
 
             foreach (var (spline, wanted) in cases)
@@ -252,8 +344,14 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 for (int i = 0; wanted != null && i < wanted.Length; i++)
                 {
-                    Assert.True(wanted[i].IsEqualTo(spline.FitPoints[i], Tight), flags + ", fit point " + i + ": " + spline.FitPoints[i]);
-                    Assert.True(wanted[i].IsEqualTo(spline.GetFitPointAt(i), Tight), flags + ", fit point " + i + ": " + spline.GetFitPointAt(i));
+                    Assert.True(
+                        wanted[i].IsEqualTo(spline.FitPoints[i], Tight),
+                        flags + ", fit point " + i + ": " + spline.FitPoints[i]
+                    );
+                    Assert.True(
+                        wanted[i].IsEqualTo(spline.GetFitPointAt(i), Tight),
+                        flags + ", fit point " + i + ": " + spline.GetFitPointAt(i)
+                    );
                 }
 
                 Assert.Throws<ArgumentOutOfRangeException>(() => spline.GetFitPointAt(wanted?.Length ?? 0));
@@ -264,7 +362,11 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ASplineOfTheFlag1024WhoseDataMakeNoSpline_HasNoFitPoints()
         {
             // A knot short of what the seven control points of a cubic ask for: no curve, so no points at its knots, and no throw.
-            DxfSpline spline = SavedByAutoCad(3115, new[] { 0.0, 0, 0, 0, 30, 45, 55, 80, 80, 80 }, Enumerable.Range(0, 7).Select(i => P3(i, i % 2, 0)).ToArray());
+            DxfSpline spline = SavedByAutoCad(
+                3115,
+                new[] { 0.0, 0, 0, 0, 30, 45, 55, 80, 80, 80 },
+                Enumerable.Range(0, 7).Select(i => P3(i, i % 2, 0)).ToArray()
+            );
 
             Assert.Equal(0, spline.NumFitPoints);
             Assert.False(spline.HasFitData);
@@ -281,14 +383,30 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfSpline spline = Halfway(3115);
             DxfNurbsData data = spline.NurbsData;
 
-            spline.SetNurbsData(data.Degree, data.Rational, data.Closed, false, data.GetControlPoints(), data.GetKnots(), data.GetWeights());
+            spline.SetNurbsData(
+                data.Degree,
+                data.Rational,
+                data.Closed,
+                false,
+                data.GetControlPoints(),
+                data.GetKnots(),
+                data.GetWeights()
+            );
 
             Assert.Equal("11", Flags(spline));
             Assert.False(spline.IsPeriodic);
             Assert.False(spline.HasFitData);
 
             DxfSpline kept = Halfway(3115);
-            kept.SetNurbsData(data.Degree, data.Rational, data.Closed, true, data.GetControlPoints(), data.GetKnots(), data.GetWeights());
+            kept.SetNurbsData(
+                data.Degree,
+                data.Rational,
+                data.Closed,
+                true,
+                data.GetControlPoints(),
+                data.GetKnots(),
+                data.GetWeights()
+            );
             Assert.Equal("2059", Flags(kept));
             Assert.True(kept.IsPeriodic);
 
@@ -305,7 +423,17 @@ namespace GeometryHelper.UnitTest.Dxf
             // Plugin v8, 17f: AutoCAD 2021 read the library's 17-f, its 70 of 3, as not periodic. The flag 2 is written as before,
             // and its NURBS data carry it.
             var points = new[] { P3(0, 0, 0), P3(10, 0, 0), P3(10, 10, 0), P3(0, 0, 0) };
-            var spline = new DxfSpline(3, false, true, true, points, new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 }, null, 0.0000000001, 0.000000001);
+            var spline = new DxfSpline(
+                3,
+                false,
+                true,
+                true,
+                points,
+                new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 },
+                null,
+                0.0000000001,
+                0.000000001
+            );
 
             Assert.Equal("3", Flags(spline));
             Assert.False(spline.IsPeriodic);

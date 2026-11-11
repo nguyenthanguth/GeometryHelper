@@ -14,7 +14,8 @@ var source = new GeoPolygonArc2(
         new GeoPoint2(30, 55),
         new GeoPoint2(10, 70),
     },
-    new[] { 0.0, 0.0, 0.5, 0.0, -0.35, 0.0 });
+    new[] { 0.0, 0.0, 0.5, 0.0, -0.35, 0.0 }
+);
 
 Show(source, layer: "source", name: "source loop", color: "#202020", props: new { vertices = 6, arcs = 2 });
 
@@ -32,7 +33,18 @@ foreach (var join in joins)
         GeoPolygonArc2[] result = source.Offset(distance, join.Options);
         string layer = (distance > 0 ? "out " : "in ") + join.Name;
 
-        Show(result, layer: layer, name: layer, color: join.Color, props: new { distance, join = join.Name, loops = result.Length });
+        Show(
+            result,
+            layer: layer,
+            name: layer,
+            color: join.Color,
+            props: new
+            {
+                distance,
+                join = join.Name,
+                loops = result.Length,
+            }
+        );
         Note(layer + ": " + result.Length + " loop(s), " + result.Sum(loop => loop.VertexCount) + " vertices");
     }
 }

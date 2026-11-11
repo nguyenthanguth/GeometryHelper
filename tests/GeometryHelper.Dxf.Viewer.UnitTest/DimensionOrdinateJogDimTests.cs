@@ -21,8 +21,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             public bool TryApply(CadDocument document, CadEdit edit) => false;
         }
 
-        private static List<DxfLine> PictureLines(DxfDimension dimension)
-            => dimension.DimBlock.OfType<DxfLine>().Where(l => !l.IsErased && l.Layer != "Defpoints").ToList();
+        private static List<DxfLine> PictureLines(DxfDimension dimension) =>
+            dimension.DimBlock.OfType<DxfLine>().Where(l => !l.IsErased && l.Layer != "Defpoints").ToList();
 
         private static double Scale(DxfDimStyleTableRecord style) => style.Dimscale > 0.0 ? style.Dimscale : 1.0;
 
@@ -145,7 +145,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(600 - lift, words.Location.X, 9);
             Assert.Equal(-30 - gap - (-30 - gap - leader.EndPoint.Y) / 2.0, words.Location.Y, 9);
             Assert.Equal(Math.PI / 2.0, words.Rotation, 9);
-            Assert.Contains(dimension.DimBlock.OfType<DxfDBPoint>(), p => Math.Abs(p.Position.X) < 1E-9 && Math.Abs(p.Position.Y) < 1E-9);
+            Assert.Contains(dimension.DimBlock.OfType<DxfDBPoint>(), p =>
+                Math.Abs(p.Position.X) < 1E-9 && Math.Abs(p.Position.Y) < 1E-9
+            );
         }
 
         [Fact]
@@ -237,16 +239,24 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             double height = 1.5 * dimension.Dimtxt * Scale(style);
             List<DxfLine> picture = PictureLines(dimension);
             Assert.Equal(lines + 4, picture.Count);
-            Assert.Contains(picture, l => Math.Abs(l.EndPoint.X - (20 - height / 2)) < 1E-9 && Math.Abs(l.EndPoint.Y + 30) < 1E-9);
-            Assert.Contains(picture, l => Math.Abs(l.EndPoint.X - (20 - height / 6)) < 1E-9 && Math.Abs(l.EndPoint.Y - (-30 + height / 2)) < 1E-9);
-            Assert.Contains(picture, l => Math.Abs(l.EndPoint.X - (20 + height / 6)) < 1E-9 && Math.Abs(l.EndPoint.Y - (-30 - height / 2)) < 1E-9);
+            Assert.Contains(picture, l =>
+                Math.Abs(l.EndPoint.X - (20 - height / 2)) < 1E-9 && Math.Abs(l.EndPoint.Y + 30) < 1E-9
+            );
+            Assert.Contains(picture, l =>
+                Math.Abs(l.EndPoint.X - (20 - height / 6)) < 1E-9 && Math.Abs(l.EndPoint.Y - (-30 + height / 2)) < 1E-9
+            );
+            Assert.Contains(picture, l =>
+                Math.Abs(l.EndPoint.X - (20 + height / 6)) < 1E-9 && Math.Abs(l.EndPoint.Y - (-30 - height / 2)) < 1E-9
+            );
             Assert.Contains("ACAD_DSTYLE_DIMJAG_POSITION", document.Database.ToText(), StringComparison.Ordinal);
             AssertReopens(document);
 
             Run(session, "DIMJOGLINE", "R");
             Assert.Equal("Select jog to remove:", session.PromptText);
             Run(session, (object)new[] { handle });
-            Assert.Null(Entity<DxfRotatedDimension>(document, handle).GetXDataForApplication("ACAD_DSTYLE_DIMJAG_POSITION"));
+            Assert.Null(
+                Entity<DxfRotatedDimension>(document, handle).GetXDataForApplication("ACAD_DSTYLE_DIMJAG_POSITION")
+            );
             Assert.Equal(lines, PictureLines(Entity<DxfRotatedDimension>(document, handle)).Count);
 
             Assert.True(document.Undo());
@@ -292,11 +302,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string before = document.Database.ToText();
 
             Run(session, "DIM");
-            Assert.Equal("Select objects or specify first extension line origin or [Angular/Baseline/Continue/Ordinate/aLign/Distribute/LAyer/Undo]:", session.PromptText);
+            Assert.Equal(
+                "Select objects or specify first extension line origin or [Angular/Baseline/Continue/Ordinate/aLign/Distribute/LAyer/Undo]:",
+                session.PromptText
+            );
             Run(session, P(50, 0));
-            Assert.Equal("Specify dimension line location or second line for angle or [Mtext/Text/text aNgle/Undo]:", session.PromptText);
+            Assert.Equal(
+                "Specify dimension line location or second line for angle or [Mtext/Text/text aNgle/Undo]:",
+                session.PromptText
+            );
             Run(session, P(50, -30));
-            Assert.StartsWith("Select objects or specify first extension line origin", session.PromptText, StringComparison.Ordinal);
+            Assert.StartsWith(
+                "Select objects or specify first extension line origin",
+                session.PromptText,
+                StringComparison.Ordinal
+            );
 
             // Beside the slanting line, square to a point of it: along it, 50.
             Run(session, P(15, 20), P(-5, 35));
@@ -309,7 +329,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.Equal(100, Assert.Single(All<DxfRotatedDimension>(document.ModelSpace)).Measurement, 9);
             Assert.Equal(50, Assert.Single(All<DxfAlignedDimension>(document.ModelSpace)).Measurement, 9);
-            Assert.Equal(Math.Atan2(40, 30), Assert.Single(All<DxfLineAngularDimension2>(document.ModelSpace)).Measurement, 9);
+            Assert.Equal(
+                Math.Atan2(40, 30),
+                Assert.Single(All<DxfLineAngularDimension2>(document.ModelSpace)).Measurement,
+                9
+            );
             Assert.Equal("DIM", document.NextUndo.Name);
 
             // The whole run is one undo step.
@@ -325,10 +349,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "C", P(0, 0), "20", "A", P(100, 0), P(120, 20), P(140, 0));
 
             Run(session, "DIM", P(20, 0));
-            Assert.Equal("Specify diameter dimension location or [Radius/Angular/Mtext/Text/text aNgle/Undo]:", session.PromptText);
+            Assert.Equal(
+                "Specify diameter dimension location or [Radius/Angular/Mtext/Text/text aNgle/Undo]:",
+                session.PromptText
+            );
             Run(session, P(30, 30), P(-20, 0), "R", P(-30, -30));
             Run(session, P(120, 20));
-            Assert.Equal("Specify radius dimension location or [Diameter/Angular/Mtext/Text/text aNgle/Undo]:", session.PromptText);
+            Assert.Equal(
+                "Specify radius dimension location or [Diameter/Angular/Mtext/Text/text aNgle/Undo]:",
+                session.PromptText
+            );
             Run(session, P(130, 40));
 
             Run(session, P(0, 100));
@@ -336,7 +366,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, P(80, 100), P(40, 130), Enter);
 
             Assert.Equal(40, Assert.Single(All<DxfDiametricDimension>(document.ModelSpace)).Measurement, 9);
-            Assert.Equal(new[] { 20.0, 20.0 }, All<DxfRadialDimension>(document.ModelSpace).Select(d => Math.Round(d.Measurement, 9)));
+            Assert.Equal(
+                new[] { 20.0, 20.0 },
+                All<DxfRadialDimension>(document.ModelSpace).Select(d => Math.Round(d.Measurement, 9))
+            );
             Assert.Equal(80, Assert.Single(All<DxfRotatedDimension>(document.ModelSpace)).Measurement, 9);
         }
 
@@ -375,7 +408,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "DIM", "L", new[] { dimensions[0].Handle }, new[] { dimensions[1].Handle }, Enter);
             Assert.Equal(-30, Entity<DxfRotatedDimension>(document, dimensions[1].Handle).DimLinePoint.Y, 9);
 
-            Run(session, "D", Enter, new[] { dimensions[0].Handle }, new[] { dimensions[2].Handle, dimensions[3].Handle }, Enter, Enter);
+            Run(
+                session,
+                "D",
+                Enter,
+                new[] { dimensions[0].Handle },
+                new[] { dimensions[2].Handle, dimensions[3].Handle },
+                Enter,
+                Enter
+            );
             Assert.Equal(-60, Entity<DxfRotatedDimension>(document, dimensions[3].Handle).DimLinePoint.Y, 9);
             Assert.Equal(-90, Entity<DxfRotatedDimension>(document, dimensions[2].Handle).DimLinePoint.Y, 9);
         }

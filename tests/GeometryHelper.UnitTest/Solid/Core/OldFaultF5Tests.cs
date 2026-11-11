@@ -36,7 +36,8 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static GeoObb3 Bar(double gap)
         {
-            double sine = 0.1, cosine = Math.Sqrt(1 - sine * sine);
+            double sine = 0.1,
+                cosine = Math.Sqrt(1 - sine * sine);
             GeoVector3 along = new GeoVector3(cosine, 0, 0).Add(M.Multiply(sine));
             GeoVector3 across = N.Add(along.CrossProduct(N)).Multiply(1 / Math.Sqrt(2));
             GeoPoint3 centre = Pt(5, 10, 10).Add(N.Multiply(gap + 3 * Math.Sqrt(2)));
@@ -44,11 +45,16 @@ namespace GeometryHelper.UnitTest.Solid
             return new GeoObb3(centre, 40, 6, 6, along, across);
         }
 
-        private static GeoPoint3[] Corners(GeoObb3 box)
-            => (from i in new[] { -1, 1 }
+        private static GeoPoint3[] Corners(GeoObb3 box) =>
+            (
+                from i in new[] { -1, 1 }
                 from j in new[] { -1, 1 }
                 from k in new[] { -1, 1 }
-                select box.Center.Add(box.AxisX.Multiply(i * box.ExtentX)).Add(box.AxisY.Multiply(j * box.ExtentY)).Add(box.AxisZ.Multiply(k * box.ExtentZ))).ToArray();
+                select box
+                    .Center.Add(box.AxisX.Multiply(i * box.ExtentX))
+                    .Add(box.AxisY.Multiply(j * box.ExtentY))
+                    .Add(box.AxisZ.Multiply(k * box.ExtentZ))
+            ).ToArray();
 
         private static double Along(GeoPoint3 p) => p.X * N.X + p.Y * N.Y + p.Z * N.Z;
 

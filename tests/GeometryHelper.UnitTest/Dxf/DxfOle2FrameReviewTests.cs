@@ -24,7 +24,10 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             var b = new StringBuilder();
             records(b);
-            return ByHandle<DxfOle2Frame>(DxfDatabase.Parse(DxfOle2FrameDrawings.With(DxfFileEzdxfDrawings.R2018, b.ToString())), handle);
+            return ByHandle<DxfOle2Frame>(
+                DxfDatabase.Parse(DxfOle2FrameDrawings.With(DxfFileEzdxfDrawings.R2018, b.ToString())),
+                handle
+            );
         }
 
         /// <summary>Where the directory entry of a stream of a compound file of version 3 begins.</summary>
@@ -47,7 +50,21 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ALinkWhoseRelativeMonikerIsNotRead_GivesItsAbsoluteOne_EachSizeCountingItsOwn4Bytes()
         {
             // The relative moniker begins with an anti moniker, which the library does not read: its size passes it.
-            DxfOle2Frame frame = Read("D20", b => DxfOle2FrameDrawings.Frame(b, "D20", false, "Microsoft Excel Worksheet", 1, DxfOle2FrameDrawings.Head(DxfOle2FrameDrawings.Square(0, 0, 60, 40), 0x80, DxfOle2FrameDrawings.LinkCompound(true)), true));
+            DxfOle2Frame frame = Read("D20", b =>
+                DxfOle2FrameDrawings.Frame(
+                    b,
+                    "D20",
+                    false,
+                    "Microsoft Excel Worksheet",
+                    1,
+                    DxfOle2FrameDrawings.Head(
+                        DxfOle2FrameDrawings.Square(0, 0, 60, 40),
+                        0x80,
+                        DxfOle2FrameDrawings.LinkCompound(true)
+                    ),
+                    true
+                )
+            );
 
             Assert.True(frame.IsLinked);
             Assert.Equal("C:\\Drawings\\cost.xlsx!Sheet1!R1C1:R4C3", frame.LinkName);
@@ -57,7 +74,21 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AFilePackedOfAnEmptyUserType_IsNamedByItsGroup3()
         {
-            DxfOle2Frame frame = Read("D20", b => DxfOle2FrameDrawings.Frame(b, "D20", false, "OLE Package", 2, DxfOle2FrameDrawings.Head(DxfOle2FrameDrawings.Square(0, 0, 40, 30), 0x80, DxfOle2FrameDrawings.PackageCompound(string.Empty)), true));
+            DxfOle2Frame frame = Read("D20", b =>
+                DxfOle2FrameDrawings.Frame(
+                    b,
+                    "D20",
+                    false,
+                    "OLE Package",
+                    2,
+                    DxfOle2FrameDrawings.Head(
+                        DxfOle2FrameDrawings.Square(0, 0, 40, 30),
+                        0x80,
+                        DxfOle2FrameDrawings.PackageCompound(string.Empty)
+                    ),
+                    true
+                )
+            );
 
             Assert.Equal(DxfOle2FrameItemType.Embedded, frame.Type);
             Assert.Equal("OLE Package", frame.UserType);
@@ -71,7 +102,10 @@ namespace GeometryHelper.UnitTest.Dxf
             string owner = made.ModelSpace.Handle;
 
             // As accoreconsole writes a frame it could not read: 70, 73 and the extended data alone.
-            string bare = "  0\nOLE2FRAME\n  5\nF00\n330\n" + owner + "\n100\nAcDbEntity\n  8\n0\n100\nAcDbOle2Frame\n 70\n2\n 73\n2\n"
+            string bare =
+                "  0\nOLE2FRAME\n  5\nF00\n330\n"
+                + owner
+                + "\n100\nAcDbEntity\n  8\n0\n100\nAcDbOle2Frame\n 70\n2\n 73\n2\n"
                 + "1001\nACAD\n1000\nOLEBEGIN\n1070\n70\n1070\n1\n1070\n71\n1070\n1\n1070\n40\n1040\n0.0\n1000\nOLEEND\n";
             DxfDatabase db = DxfDatabase.Parse(DxfOle2FrameDrawings.With(made.ToText(), bare));
             DxfOle2Frame frame = ByHandle<DxfOle2Frame>(db, "F00");
@@ -95,7 +129,23 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AFrameWithNoGroup73_IsPlottedAt1_AndOneOfNoWidthIsScaled0()
         {
-            DxfOle2Frame frame = Read("D20", b => DxfOle2FrameDrawings.Frame(b, "D20", false, "Picture (Device Independent Bitmap)", 3, DxfOle2FrameDrawings.Head(DxfOle2FrameDrawings.Square(5, 5, 0, 20), 0x80, DxfOle2FrameDrawings.DibCompound()), true, null, -1));
+            DxfOle2Frame frame = Read("D20", b =>
+                DxfOle2FrameDrawings.Frame(
+                    b,
+                    "D20",
+                    false,
+                    "Picture (Device Independent Bitmap)",
+                    3,
+                    DxfOle2FrameDrawings.Head(
+                        DxfOle2FrameDrawings.Square(5, 5, 0, 20),
+                        0x80,
+                        DxfOle2FrameDrawings.DibCompound()
+                    ),
+                    true,
+                    null,
+                    -1
+                )
+            );
 
             Assert.Equal(1, frame.OutputQuality);
             Assert.Equal(0.0, frame.WcsWidth);
@@ -119,7 +169,11 @@ namespace GeometryHelper.UnitTest.Dxf
             // CONTENTS of 5 000 bytes in sectors of its own, its first sector pointing back at itself.
             var contents = new byte[5000];
             new Random(3).NextBytes(contents);
-            byte[] big = DxfOle2FrameDrawings.Compound(DxfOle2FrameDrawings.StaticDib, 9, DxfOle2FrameDrawings.Stream("CONTENTS", contents));
+            byte[] big = DxfOle2FrameDrawings.Compound(
+                DxfOle2FrameDrawings.StaticDib,
+                9,
+                DxfOle2FrameDrawings.Stream("CONTENTS", contents)
+            );
             uint start = BitConverter.ToUInt32(big, EntryOf(big, "CONTENTS") + 116);
             Assert.Equal(contents, DxfCompoundFile.Read(big, 0, big.Length, out _).Stream("CONTENTS", out _));
             BitConverter.GetBytes(start).CopyTo(big, 512 + 4 * (int)start);
@@ -131,9 +185,23 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ACompObjOfAProgIdOfLength0_HasItsUnicodeNameIgnored_AsMsOledsSays()
         {
-            foreach (var (progId, expected) in new[] { ("Thing.1", "Unicode Thing"), ((string)null, "Ansi Thing"), (new string('x', 40), "Ansi Thing") })
+            foreach (
+                var (progId, expected) in new[]
+                {
+                    ("Thing.1", "Unicode Thing"),
+                    ((string)null, "Ansi Thing"),
+                    (new string('x', 40), "Ansi Thing"),
+                }
+            )
             {
-                byte[] file = DxfOle2FrameDrawings.Compound(DxfOle2FrameDrawings.Package, 9, DxfOle2FrameDrawings.Stream("\u0001CompObj", DxfOle2FrameDrawings.CompObj("Ansi Thing", 0, progId, "Unicode Thing")));
+                byte[] file = DxfOle2FrameDrawings.Compound(
+                    DxfOle2FrameDrawings.Package,
+                    9,
+                    DxfOle2FrameDrawings.Stream(
+                        "\u0001CompObj",
+                        DxfOle2FrameDrawings.CompObj("Ansi Thing", 0, progId, "Unicode Thing")
+                    )
+                );
 
                 Assert.Equal(expected, DxfOleData.UserTypeOf(DxfCompoundFile.Read(file, 0, file.Length, out _)));
             }
@@ -142,7 +210,27 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ARotationAnotherWriterStoredAsNaN_IsGivenAsNaN()
         {
-            DxfOle2Frame frame = Read("D20", b => DxfOle2FrameDrawings.Frame(b, "D20", false, "Picture (Device Independent Bitmap)", 3, DxfOle2FrameDrawings.Head(DxfOle2FrameDrawings.Square(0, 0, 30, 20), 0x80, DxfOle2FrameDrawings.DibCompound()), true, null, 2, "1", "1", "NaN", "1"));
+            DxfOle2Frame frame = Read("D20", b =>
+                DxfOle2FrameDrawings.Frame(
+                    b,
+                    "D20",
+                    false,
+                    "Picture (Device Independent Bitmap)",
+                    3,
+                    DxfOle2FrameDrawings.Head(
+                        DxfOle2FrameDrawings.Square(0, 0, 30, 20),
+                        0x80,
+                        DxfOle2FrameDrawings.DibCompound()
+                    ),
+                    true,
+                    null,
+                    2,
+                    "1",
+                    "1",
+                    "NaN",
+                    "1"
+                )
+            );
 
             Assert.True(double.IsNaN(frame.Rotation));
             Assert.True(frame.LockAspect);

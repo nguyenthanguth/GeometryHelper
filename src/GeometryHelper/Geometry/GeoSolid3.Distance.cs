@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -40,7 +40,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Calculates the distance from this solid to a point, negative for a point in the material, within a tolerance.
         /// </summary>
-        public double SignedDistanceTo(GeoPoint3 point, Tolerance tolerance) => Distance3.SignedDistanceTo(this, point, tolerance);
+        public double SignedDistanceTo(GeoPoint3 point, Tolerance tolerance) =>
+            Distance3.SignedDistanceTo(this, point, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this solid to a point, within a tolerance.
@@ -137,7 +138,8 @@ namespace GeometryHelper.Geometry
         /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
         /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
-        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) => Distance3.DistanceTo(this, triangle, tolerance);
+        public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Distance3.DistanceTo(this, triangle, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this solid to a polygon.
@@ -167,7 +169,8 @@ namespace GeometryHelper.Geometry
         /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
         /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
-        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) => Distance3.DistanceTo(this, polygon, tolerance);
+        public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Distance3.DistanceTo(this, polygon, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this solid to a polyline.
@@ -197,7 +200,8 @@ namespace GeometryHelper.Geometry
         /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
         /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
-        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(this, polyline, tolerance);
+        public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Distance3.DistanceTo(this, polyline, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this solid to a plane.

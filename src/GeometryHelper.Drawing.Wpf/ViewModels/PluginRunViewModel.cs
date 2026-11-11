@@ -17,7 +17,11 @@ namespace GeometryHelper.Drawing.Wpf
         internal PluginObjectRow(DrawingObject item, Action ticked)
         {
             Id = item.Id;
-            Text = item.Kind + " " + item.Mark + (string.IsNullOrEmpty(item.Profile) ? string.Empty : " · " + item.Profile);
+            Text =
+                item.Kind
+                + " "
+                + item.Mark
+                + (string.IsNullOrEmpty(item.Profile) ? string.Empty : " · " + item.Profile);
             _ticked = ticked;
         }
 
@@ -61,7 +65,8 @@ namespace GeometryHelper.Drawing.Wpf
         public string Name => _setting.Name;
 
         /// <summary>Gets its default and range in words: "1 by default, from 0.01 to 100".</summary>
-        public string RangeText => DrawingWorkspace.Exact(_setting.Default) + " by default" + DrawingWorkspace.RangeOf(_setting);
+        public string RangeText =>
+            DrawingWorkspace.Exact(_setting.Default) + " by default" + DrawingWorkspace.RangeOf(_setting);
 
         /// <summary>Gets or sets the value as typed; one that is not a number in the range shows why, and Run waits for a good one.</summary>
         public string Text
@@ -71,7 +76,11 @@ namespace GeometryHelper.Drawing.Wpf
             {
                 _text = value ?? string.Empty;
 
-                if (double.TryParse(_text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double number) && number >= _setting.Minimum && number <= _setting.Maximum)
+                if (
+                    double.TryParse(_text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+                    && number >= _setting.Minimum
+                    && number <= _setting.Maximum
+                )
                 {
                     Value = number;
                     Error = string.Empty;
@@ -79,7 +88,13 @@ namespace GeometryHelper.Drawing.Wpf
                 else
                 {
                     string range = DrawingWorkspace.RangeOf(_setting);
-                    Error = Name + (range.Length == 0 ? " has to be a number." : " has to be a number" + range.Substring(1) + ".");
+                    Error =
+                        Name
+                        + (
+                            range.Length == 0
+                                ? " has to be a number."
+                                : " has to be a number" + range.Substring(1) + "."
+                        );
                 }
 
                 Raise(nameof(Text));
@@ -171,7 +186,11 @@ namespace GeometryHelper.Drawing.Wpf
                     string failure = null;
                     _input = value == null ? null : DrawingWorkspace.InputOf(value, out failure);
                     Notice = failure;
-                    _settings = (_input?.Settings ?? (IReadOnlyList<DrawingPluginSetting>)Array.Empty<DrawingPluginSetting>()).Select(s => new PluginValueRow(s, Changed)).ToList();
+                    _settings = (
+                        _input?.Settings ?? (IReadOnlyList<DrawingPluginSetting>)Array.Empty<DrawingPluginSetting>()
+                    )
+                        .Select(s => new PluginValueRow(s, Changed))
+                        .ToList();
                     Raise(nameof(Settings));
                     Raise(nameof(HasSettings));
                     Raise(nameof(PluginText));
@@ -181,8 +200,16 @@ namespace GeometryHelper.Drawing.Wpf
         }
 
         /// <summary>Gets the plugin's version and what it asks for in the view: "Version 1.0.0.0 · asks for a view and its bolts".</summary>
-        public string PluginText => _plugin == null ? string.Empty
-            : "Version " + _plugin.Version + (_input == null ? string.Empty : " · " + (_input.ObjectsPrompt ?? _input.ViewPrompt ?? "runs in a view"));
+        public string PluginText =>
+            _plugin == null
+                ? string.Empty
+                : "Version "
+                    + _plugin.Version
+                    + (
+                        _input == null
+                            ? string.Empty
+                            : " · " + (_input.ObjectsPrompt ?? _input.ViewPrompt ?? "runs in a view")
+                    );
 
         /// <summary>Gets the views of the drawing.</summary>
         public IReadOnlyList<DrawingView> Views { get; }
@@ -201,7 +228,12 @@ namespace GeometryHelper.Drawing.Wpf
         }
 
         /// <summary>Gets the title of the objects: "Bolts of the view", or "Objects of the view" for a plugin that asks for any kind.</summary>
-        public string ObjectsTitle => (_input == null || _input.ObjectKinds.Count == 0 ? "Objects" : string.Join(", ", _input.ObjectKinds.Select(k => k + "s"))) + " of the view";
+        public string ObjectsTitle =>
+            (
+                _input == null || _input.ObjectKinds.Count == 0
+                    ? "Objects"
+                    : string.Join(", ", _input.ObjectKinds.Select(k => k + "s"))
+            ) + " of the view";
 
         /// <summary>Gets the objects of the view of the kinds the plugin asks for, in the view's order, each ticked at first.</summary>
         public IReadOnlyList<PluginObjectRow> Objects => _objects;
@@ -212,7 +244,11 @@ namespace GeometryHelper.Drawing.Wpf
             get
             {
                 int ticked = _objects.Count(o => o.IsChecked);
-                string count = ticked.ToString(CultureInfo.InvariantCulture) + " of " + _objects.Count.ToString(CultureInfo.InvariantCulture) + " ticked";
+                string count =
+                    ticked.ToString(CultureInfo.InvariantCulture)
+                    + " of "
+                    + _objects.Count.ToString(CultureInfo.InvariantCulture)
+                    + " ticked";
                 return _objects.Count == 0 ? "None in this view: the plugin is given none."
                     : ticked == _objects.Count ? count + ": every one of the view, those an update adds too."
                     : ticked == 0 ? count + ": tick one at least."
@@ -234,8 +270,12 @@ namespace GeometryHelper.Drawing.Wpf
         }
 
         /// <summary>Gets whether Run can be pressed: a plugin and a view chosen, an object ticked where the view has any, and every setting taken.</summary>
-        public bool CanRun => _plugin != null && _input != null && _view != null
-            && (_objects.Count == 0 || _objects.Any(o => o.IsChecked)) && _settings.All(s => !s.HasError);
+        public bool CanRun =>
+            _plugin != null
+            && _input != null
+            && _view != null
+            && (_objects.Count == 0 || _objects.Any(o => o.IsChecked))
+            && _settings.All(s => !s.HasError);
 
         /// <summary>Gets the command of Run.</summary>
         public ICommand RunCommand { get; }
@@ -255,8 +295,12 @@ namespace GeometryHelper.Drawing.Wpf
                 return null;
             }
 
-            List<string> ids = _objects.All(o => o.IsChecked) ? null : _objects.Where(o => o.IsChecked).Select(o => o.Id).ToList();
-            List<KeyValuePair<string, double>> values = _settings.Select(s => new KeyValuePair<string, double>(s.Name, s.Value)).ToList();
+            List<string> ids = _objects.All(o => o.IsChecked)
+                ? null
+                : _objects.Where(o => o.IsChecked).Select(o => o.Id).ToList();
+            List<KeyValuePair<string, double>> values = _settings
+                .Select(s => new KeyValuePair<string, double>(s.Name, s.Value))
+                .ToList();
             if (_workspace.Current != _drawing)
             {
                 Notice = _drawing.Number + " is no longer the drawing shown: show it again first.";
@@ -285,7 +329,11 @@ namespace GeometryHelper.Drawing.Wpf
             {
                 foreach (string id in _view.ObjectIds)
                 {
-                    if (source.TryGetObject(id, out DrawingObject item) && (_input.ObjectKinds.Count == 0 || _input.ObjectKinds.Contains(item.Kind)) && !rows.Exists(r => r.Id == id))
+                    if (
+                        source.TryGetObject(id, out DrawingObject item)
+                        && (_input.ObjectKinds.Count == 0 || _input.ObjectKinds.Contains(item.Kind))
+                        && !rows.Exists(r => r.Id == id)
+                    )
                     {
                         rows.Add(new PluginObjectRow(item, Changed));
                     }

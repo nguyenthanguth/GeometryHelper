@@ -1,6 +1,7 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+>
     <!-- Line icons on a 24 by 24 grid, the paths of the design (open-source shapes, never Autodesk's). -->
     <Geometry x:Key="GhIconNew">M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5</Geometry>
     <Geometry x:Key="GhIconOpen">M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z</Geometry>
@@ -25,7 +26,9 @@
     <Geometry x:Key="GhIconScale">M4 20V10h10v10zM14 10l6-6M14 4h6v6</Geometry>
     <Geometry x:Key="GhIconMirror">M12 3v18M7 7 3 12l4 5zM17 7l4 5-4 5z</Geometry>
     <Geometry x:Key="GhIconErase">M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3</Geometry>
-    <Geometry x:Key="GhIconExplode">M12 12h.01M12 3v5M12 16v5M3 12h5M16 12h5M6 6l3 3M18 6l-3 3M6 18l3-3M18 18l-3-3</Geometry>
+    <Geometry x:Key="GhIconExplode">
+        M12 12h.01M12 3v5M12 16v5M3 12h5M16 12h5M6 6l3 3M18 6l-3 3M6 18l3-3M18 18l-3-3
+    </Geometry>
     <Geometry x:Key="GhIconStretch">M3 8h10v8H3zM13 12h8M18 9l3 3-3 3</Geometry>
     <Geometry x:Key="GhIconTrim">M9 3v18M3 12h6M14 9l6 6M20 9l-6 6</Geometry>
     <Geometry x:Key="GhIconExtend">M20 3v18M4 12h16M16 8l4 4-4 4</Geometry>
@@ -47,7 +50,9 @@
     <Geometry x:Key="GhIconCurrent">M4 12l5 5L20 6</Geometry>
     <Geometry x:Key="GhIconMatch">M4 4h10v6H4zM10 14h10v6H10zM9 10v4</Geometry>
     <Geometry x:Key="GhIconMatchProperties">M5 3h10v6H5zM9 9v4M9 13h8v8H9z</Geometry>
-    <Geometry x:Key="GhIconPaste">M9 4h6v3H9zM6 5H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-1</Geometry>
+    <Geometry x:Key="GhIconPaste">
+        M9 4h6v3H9zM6 5H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-1
+    </Geometry>
     <Geometry x:Key="GhIconPan">M9 11V5a2 2 0 0 1 4 0v6M13 9a2 2 0 0 1 4 0v4a7 7 0 0 1-14 0v-3a2 2 0 0 1 4 0</Geometry>
     <Geometry x:Key="GhIconExtents">M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5</Geometry>
     <Geometry x:Key="GhIconSaveAs">M5 3h11l3 3v6M5 3v18h7M8 3v5h7V3M14 21l7-7-2-2-7 7v2z</Geometry>
@@ -62,14 +67,18 @@
     <Geometry x:Key="GhIconId">M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11zM12 10h.01</Geometry>
     <Geometry x:Key="GhIconList">M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01</Geometry>
     <Geometry x:Key="GhIconZoomWindow">M10 10m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0M20 20l-5.6-5.6M7.5 8h5v4h-5z</Geometry>
-    <Geometry x:Key="GhIconZoomPrevious">M10 10m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0M20 20l-5.6-5.6M13 10H7M9 8l-2 2 2 2</Geometry>
+    <Geometry x:Key="GhIconZoomPrevious">
+        M10 10m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0M20 20l-5.6-5.6M13 10H7M9 8l-2 2 2 2
+    </Geometry>
     <Geometry x:Key="GhIconZoomIn">M10 10m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0M20 20l-5.6-5.6M10 7v6M7 10h6</Geometry>
     <Geometry x:Key="GhIconZoomOut">M10 10m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0M20 20l-5.6-5.6M7 10h6</Geometry>
     <Geometry x:Key="GhIconModel">M5 19V5M5 19h14M5 19l6-6M3 7l2-2 2 2M17 17l2 2-2 2</Geometry>
     <Geometry x:Key="GhIconLayout">M3 5h18v14H3zM6 8h8v8H6zM16 15h3</Geometry>
     <Geometry x:Key="GhIconPanelLeft">M3 4h18v16H3zM9 4v16</Geometry>
     <Geometry x:Key="GhIconPanelRight">M3 4h18v16H3zM15 4v16</Geometry>
-    <Geometry x:Key="GhIconGrid">M6 6h.01M12 6h.01M18 6h.01M6 12h.01M12 12h.01M18 12h.01M6 18h.01M12 18h.01M18 18h.01</Geometry>
+    <Geometry x:Key="GhIconGrid">
+        M6 6h.01M12 6h.01M18 6h.01M6 12h.01M12 12h.01M18 12h.01M6 18h.01M12 18h.01M18 18h.01
+    </Geometry>
     <Geometry x:Key="GhIconSnap">M6 6h.01M18 6h.01M6 18h.01M18 18h.01M12 7v10M7 12h10</Geometry>
     <Geometry x:Key="GhIconOrtho">M5 3v16h16M2 6l3-3 3 3M18 16l3 3-3 3</Geometry>
     <Geometry x:Key="GhIconPolar">M4 20h16M4 20 16 8M4 20 10 6M10 20a6 6 0 0 0-1.8-4.2</Geometry>
@@ -85,11 +94,21 @@
     <Geometry x:Key="GhIconBringAbove">M4 15h16M8 10l4-4 4 4M12 6v9M4 20h16</Geometry>
     <Geometry x:Key="GhIconSendUnder">M4 9h16M8 14l4 4 4-4M12 18V9M4 4h16</Geometry>
     <Geometry x:Key="GhIconTextToFront">M4 6V4h10v2M9 4v12M6 16h6M18 21v-8M16 15l2-2 2 2</Geometry>
-    <Geometry x:Key="GhIconPasteBlock">M9 4h6v3H9zM6 5H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-1M8 11h8v6H8z</Geometry>
-    <Geometry x:Key="GhIconPasteOriginal">M9 4h6v3H9zM6 5H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-1M8 18v-6M8 18h6</Geometry>
-    <Geometry x:Key="GhIconPasteSpecial">M9 4h6v3H9zM6 5H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-1M12 11l1.2 2.5 2.8.4-2 2 .5 2.8-2.5-1.3-2.5 1.3.5-2.8-2-2 2.8-.4z</Geometry>
-    <Geometry x:Key="GhIconCut">M6 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0M18 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0M8 16 18 3M16 16 6 3</Geometry>
-    <Geometry x:Key="GhIconCopyBase">M9 9h11v11H9zM4 4h11v3M4 4v11h3M9 20m-1.5 0a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0</Geometry>
+    <Geometry x:Key="GhIconPasteBlock">
+        M9 4h6v3H9zM6 5H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-1M8 11h8v6H8z
+    </Geometry>
+    <Geometry x:Key="GhIconPasteOriginal">
+        M9 4h6v3H9zM6 5H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-1M8 18v-6M8 18h6
+    </Geometry>
+    <Geometry x:Key="GhIconPasteSpecial">
+        M9 4h6v3H9zM6 5H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-1M12 11l1.2 2.5 2.8.4-2 2 .5 2.8-2.5-1.3-2.5 1.3.5-2.8-2-2 2.8-.4z
+    </Geometry>
+    <Geometry x:Key="GhIconCut">
+        M6 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0M18 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0M8 16 18 3M16 16 6 3
+    </Geometry>
+    <Geometry x:Key="GhIconCopyBase">
+        M9 9h11v11H9zM4 4h11v3M4 4v11h3M9 20m-1.5 0a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0
+    </Geometry>
     <Geometry x:Key="GhIconQuickSelect">M4 4h10v10H4zM14 14l6 6M7 9h4</Geometry>
     <Geometry x:Key="GhIconTable">M3 5h18v14H3zM3 10h18M3 15h18M9 5v14</Geometry>
     <Geometry x:Key="GhIconQuickDim">M3 18h18M3 15v6M9 15v6M15 15v6M21 15v6M13 3 8 10h5l-2 5</Geometry>
@@ -110,21 +129,30 @@
     <Geometry x:Key="GhIconManageAttributes">M4 6h10M4 12h10M4 18h10M18 5v14M16 8l2-3 2 3</Geometry>
     <Geometry x:Key="GhIconBlockEditor">M4 4h9v9H4zM14 20l6-6 2 2-6 6h-2z</Geometry>
     <Geometry x:Key="GhIconBasePoint">M12 12m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0M12 3v6M12 15v6M3 12h6M15 12h6</Geometry>
-    <Geometry x:Key="GhIconAttach">M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 14h6M12 11v6</Geometry>
+    <Geometry x:Key="GhIconAttach">
+        M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 14h6M12 11v6
+    </Geometry>
     <Geometry x:Key="GhIconClip">M6 2v16h16M2 6h16v16</Geometry>
-    <Geometry x:Key="GhIconExternalReferences">M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM8 13h8</Geometry>
+    <Geometry x:Key="GhIconExternalReferences">
+        M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM8 13h8
+    </Geometry>
     <Geometry x:Key="GhIconAdjust">M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M12 3v18</Geometry>
     <Geometry x:Key="GhIconUnderlayLayers">M12 3 3 8l9 5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5</Geometry>
     <Geometry x:Key="GhIconImageFrame">M4 4h16v16H4zM8 8h8v8H8z</Geometry>
     <Geometry x:Key="GhIconTransparency">M4 4h10v10H4zM10 10h10v10H10z</Geometry>
-    <Geometry x:Key="GhIconSnapUnderlay">M12 3v4M12 17v4M3 12h4M17 12h4M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0</Geometry>
+    <Geometry x:Key="GhIconSnapUnderlay">
+        M12 3v4M12 17v4M3 12h4M17 12h4M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0
+    </Geometry>
 
     <Geometry x:Key="GhIconPluginCommand">M5 9h14M5 15h14M10 3 8 21M16 3l-2 18</Geometry>
     <Geometry x:Key="GhIconPluginLoad">M12 3v12M7 10l5 5 5-5M4 21h16</Geometry>
     <Geometry x:Key="GhIconPluginUnload">M12 21V9M7 14l5-5 5 5M4 3h16</Geometry>
     <Geometry x:Key="GhIconPluginManager">M4 6h16M4 12h16M4 18h10</Geometry>
-    <Geometry x:Key="GhIconGear">M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM4 12h2M18 12h2M12 4v2M12 18v2M6.3 6.3l1.4 1.4M16.3 16.3l1.4 1.4M6.3 17.7l1.4-1.4M16.3 7.7l1.4-1.4</Geometry>
+    <Geometry x:Key="GhIconGear">
+        M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM4 12h2M18 12h2M12 4v2M12 18v2M6.3 6.3l1.4 1.4M16.3 16.3l1.4 1.4M6.3 17.7l1.4-1.4M16.3 7.7l1.4-1.4
+    </Geometry>
     <Geometry x:Key="GhIconKeyboard">M3 7h18v10H3zM6 10h.01M9 10h.01M12 10h.01M15 10h.01M18 10h.01M8 14h8</Geometry>
-    <Geometry x:Key="GhIconPalette">M12 3a9 9 0 1 0 0 18c1 0 1.5-.8 1.5-1.5 0-1.5-1-1.5-1-2.5S13.5 15 15 15h2a4 4 0 0 0 4-4c0-4.4-4-8-9-8zM7.5 11h.01M10 7.5h.01M14 7.5h.01</Geometry>
-
+    <Geometry x:Key="GhIconPalette">
+        M12 3a9 9 0 1 0 0 18c1 0 1.5-.8 1.5-1.5 0-1.5-1-1.5-1-2.5S13.5 15 15 15h2a4 4 0 0 0 4-4c0-4.4-4-8-9-8zM7.5 11h.01M10 7.5h.01M14 7.5h.01
+    </Geometry>
 </ResourceDictionary>

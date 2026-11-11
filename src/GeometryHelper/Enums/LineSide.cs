@@ -24,6 +24,6 @@ namespace GeometryHelper.Enums
         /// <summary>
         /// The point lies on the line carrying the segment, within tolerance.
         /// </summary>
-        On
+        On,
     }
 }

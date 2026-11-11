@@ -27,7 +27,12 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(0.0, moved.Normal.GetAngleTo(Tilted.Normal), 12);
             Assert.Equal(1.0, moved.Normal.Length, 14);
-            Assert.True(moved.Origin.IsEqualTo(new GeoPoint3(scale, 2 * scale, 3 * scale), new Tolerance(1E-9 * scale, 1E-9, 1E-9, 1E-9 * scale)));
+            Assert.True(
+                moved.Origin.IsEqualTo(
+                    new GeoPoint3(scale, 2 * scale, 3 * scale),
+                    new Tolerance(1E-9 * scale, 1E-9, 1E-9, 1E-9 * scale)
+                )
+            );
         }
 
         [Fact]
@@ -51,7 +56,8 @@ namespace GeometryHelper.UnitTest.Solid
             var carried = new GeoVector3(
                 inverse[0, 0] * n.X + inverse[1, 0] * n.Y + inverse[2, 0] * n.Z,
                 inverse[0, 1] * n.X + inverse[1, 1] * n.Y + inverse[2, 1] * n.Z,
-                inverse[0, 2] * n.X + inverse[1, 2] * n.Y + inverse[2, 2] * n.Z);
+                inverse[0, 2] * n.X + inverse[1, 2] * n.Y + inverse[2, 2] * n.Z
+            );
             GeoPlane3 before = new GeoPlane3(map.Transform(Tilted.Origin), carried);
 
             GeoPlane3 moved = map.Transform(Tilted);

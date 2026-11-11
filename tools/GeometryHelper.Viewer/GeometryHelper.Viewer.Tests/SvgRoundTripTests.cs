@@ -19,13 +19,31 @@ namespace GeometryHelper.Viewer.Tests
 
         private static List<double> Flatten(IEnumerable<GeoPoint2> points) => points.SelectMany(Imp.P2).ToList();
 
-        private static void Within(IReadOnlyList<double> expected, IReadOnlyList<double> actual, double allowed, string what = "")
+        private static void Within(
+            IReadOnlyList<double> expected,
+            IReadOnlyList<double> actual,
+            double allowed,
+            string what = ""
+        )
         {
-            Assert.True(expected.Count == actual.Count, what + ": " + expected.Count + " numbers expected, " + actual.Count + " found");
+            Assert.True(
+                expected.Count == actual.Count,
+                what + ": " + expected.Count + " numbers expected, " + actual.Count + " found"
+            );
 
             for (int i = 0; i < expected.Count; i++)
             {
-                Assert.True(Math.Abs(expected[i] - actual[i]) <= allowed, what + ": number " + i + " is " + actual[i].ToString("R") + " where " + expected[i].ToString("R") + " was drawn");
+                Assert.True(
+                    Math.Abs(expected[i] - actual[i]) <= allowed,
+                    what
+                        + ": number "
+                        + i
+                        + " is "
+                        + actual[i].ToString("R")
+                        + " where "
+                        + expected[i].ToString("R")
+                        + " was drawn"
+                );
             }
         }
 
@@ -97,7 +115,12 @@ namespace GeometryHelper.Viewer.Tests
         public void ACircle_IsACircle_AndAnEllipse_AnEllipseTurnedTheWayItWasDrawn()
         {
             var circle = new GeoCircle2(new GeoPoint2(12.5, -7.25), 33.125);
-            var ellipse = new GeoEllipse2(new GeoPoint2(40.0, 25.0), new GeoVector2(Math.Cos(Math.PI / 6.0), Math.Sin(Math.PI / 6.0)), 30.0, 10.0);
+            var ellipse = new GeoEllipse2(
+                new GeoPoint2(40.0, 25.0),
+                new GeoVector2(Math.Cos(Math.PI / 6.0), Math.Sin(Math.PI / 6.0)),
+                30.0,
+                10.0
+            );
 
             Scene scene = Read(new SvgWriter().Add(circle).Add(ellipse));
 
@@ -132,9 +155,28 @@ namespace GeometryHelper.Viewer.Tests
                 double sweep = d[4];
 
                 Assert.Equal(arc.SweptAngle < 0.0, sweep < 0.0);
-                Within(new[] { arc.Center.X, arc.Center.Y, arc.Radius }, new[] { centre[0], centre[1], read }, 2E-5, "centre and radius");
-                Within(Imp.P2(arc.StartPoint), new[] { centre[0] + (read * Math.Cos(start)), centre[1] + (read * Math.Sin(start)) }, 2E-5, "start");
-                Within(Imp.P2(arc.EndPoint), new[] { centre[0] + (read * Math.Cos(start + sweep)), centre[1] + (read * Math.Sin(start + sweep)) }, 2E-5, "end");
+                Within(
+                    new[] { arc.Center.X, arc.Center.Y, arc.Radius },
+                    new[] { centre[0], centre[1], read },
+                    2E-5,
+                    "centre and radius"
+                );
+                Within(
+                    Imp.P2(arc.StartPoint),
+                    new[] { centre[0] + (read * Math.Cos(start)), centre[1] + (read * Math.Sin(start)) },
+                    2E-5,
+                    "start"
+                );
+                Within(
+                    Imp.P2(arc.EndPoint),
+                    new[]
+                    {
+                        centre[0] + (read * Math.Cos(start + sweep)),
+                        centre[1] + (read * Math.Sin(start + sweep)),
+                    },
+                    2E-5,
+                    "end"
+                );
             }
         }
 
@@ -143,7 +185,8 @@ namespace GeometryHelper.Viewer.Tests
         {
             var chain = new GeoPolylineArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(200, 40), new GeoPoint2(300, 40) },
-                new[] { 0.4, 0.0, -0.3, 0.0 });
+                new[] { 0.4, 0.0, -0.3, 0.0 }
+            );
             SceneItem item = Imp.Only(Read(new SvgWriter().Add(chain)));
 
             Assert.Equal("GeoPolylineArc2", item.Kind);
@@ -155,7 +198,8 @@ namespace GeometryHelper.Viewer.Tests
         {
             var loop = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
-                new[] { 0.0, 0.5, 0.0, 0.3 });
+                new[] { 0.0, 0.5, 0.0, 0.3 }
+            );
             SceneItem item = Imp.Only(Read(new SvgWriter().Add(loop)));
 
             Assert.Equal("GeoPolygonArc2", item.Kind);
@@ -166,7 +210,10 @@ namespace GeometryHelper.Viewer.Tests
         public void ASemicircleEdge_IsASemicircle_ThoughItsRadiusIsPrintedToSixPlaces()
         {
             // A radius and a chord that agree to a millionth cannot tell a half circle from a hair short of one; the half circle is the reading.
-            var loop = new GeoPolygonArc2(new[] { new GeoPoint2(0.123457, 0.0), new GeoPoint2(33.333333, 0.0), new GeoPoint2(33.333333, 40.0) }, new[] { 1.0, 0.0, 0.0 });
+            var loop = new GeoPolygonArc2(
+                new[] { new GeoPoint2(0.123457, 0.0), new GeoPoint2(33.333333, 0.0), new GeoPoint2(33.333333, 40.0) },
+                new[] { 1.0, 0.0, 0.0 }
+            );
             SceneItem item = Imp.Only(Read(new SvgWriter().Add(loop)));
 
             Assert.InRange(Imp.Of(item).Skip(6).First(), 1.0 - 1E-12, 1.0 + 1E-12);
@@ -201,18 +248,26 @@ namespace GeometryHelper.Viewer.Tests
         public void ARay_IsASegmentFromItsOriginAlongItsDirection()
         {
             var ray = new GeoRay2(new GeoPoint2(10.0, 20.0), new GeoVector2(3.0, 4.0));
-            Scene scene = Read(new SvgWriter().Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 100))).Add(ray));
+            Scene scene = Read(
+                new SvgWriter().Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 100))).Add(ray)
+            );
             List<double> line = Imp.Of(scene.Items[1]);
 
             Assert.Equal("GeoLine2", scene.Items[1].Kind);
             Within(new[] { 10.0, 20.0 }, new[] { line[0], line[1] }, Printed);
-            Assert.True(Math.Abs(((line[2] - line[0]) * ray.Direction.Y) - ((line[3] - line[1]) * ray.Direction.X)) < 1E-5);
+            Assert.True(
+                Math.Abs(((line[2] - line[0]) * ray.Direction.Y) - ((line[3] - line[1]) * ray.Direction.X)) < 1E-5
+            );
         }
 
         [Fact]
         public void ALabel_IsText()
         {
-            Scene scene = Read(new SvgWriter().Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 50))).Text(new GeoPoint2(20.5, 10.25), "a < b & c", "blue"));
+            Scene scene = Read(
+                new SvgWriter()
+                    .Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 50)))
+                    .Text(new GeoPoint2(20.5, 10.25), "a < b & c", "blue")
+            );
             SceneItem item = scene.Items.Single(i => i.Kind == SceneKinds.Text);
 
             Assert.Equal("a < b & c", item.Data.GetProperty("text").GetString());
@@ -235,12 +290,14 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AWrittenPicture_IsAValidScene()
         {
-            Scene scene = Read(new SvgWriter()
-                .Add((GeoPolygon2)SampleShapes.Make("GeoPolygon2", 1), "red", "#ffcccc")
-                .Add((GeoFace2)SampleShapes.Make("GeoFace2", 2))
-                .Add(new GeoCircle2(new GeoPoint2(1.0, 2.0), 3.0))
-                .Add(new GeoArc2(new GeoPoint2(0.0, 0.0), 10.0, 0.0, 2.0))
-                .Add(new GeoPoint2(4.0, 5.0)));
+            Scene scene = Read(
+                new SvgWriter()
+                    .Add((GeoPolygon2)SampleShapes.Make("GeoPolygon2", 1), "red", "#ffcccc")
+                    .Add((GeoFace2)SampleShapes.Make("GeoFace2", 2))
+                    .Add(new GeoCircle2(new GeoPoint2(1.0, 2.0), 3.0))
+                    .Add(new GeoArc2(new GeoPoint2(0.0, 0.0), 10.0, 0.0, 2.0))
+                    .Add(new GeoPoint2(4.0, 5.0))
+            );
 
             Assert.Empty(scene.LoadWarnings);
             Imp.IsAValidScene(scene);

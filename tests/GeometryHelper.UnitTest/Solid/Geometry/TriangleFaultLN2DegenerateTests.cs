@@ -19,7 +19,11 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Default = Tolerance.Default;
 
-        private static readonly GeoTriangle3 Small = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(0.002, 0, 0), new GeoPoint3(0, 0.002, 0));
+        private static readonly GeoTriangle3 Small = new GeoTriangle3(
+            new GeoPoint3(0, 0, 0),
+            new GeoPoint3(0.002, 0, 0),
+            new GeoPoint3(0, 0.002, 0)
+        );
 
         [Fact]
         public void ATriangle0Point002Across_IsATriangleWithANormal()
@@ -32,7 +36,11 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ASliverThinnerThanTheTolerance_HasNoArea()
         {
-            var sliver = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(1000, 0, 0), new GeoPoint3(500, 0.0004, 0));
+            var sliver = new GeoTriangle3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(1000, 0, 0),
+                new GeoPoint3(500, 0.0004, 0)
+            );
 
             Assert.True(sliver.IsDegenerate(Default));
             Assert.False(sliver.IsDegenerate(new Tolerance(1E-4, 1E-5)));
@@ -48,8 +56,17 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Throws<InvalidOperationException>(() => flat.Normal);
         }
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoObb3(new GeoCoordinateSystem3(new GeoPoint3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), GeoVector3.XAxis, GeoVector3.YAxis), x1 - x0, y1 - y0, z1 - z0).ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoObb3(
+                new GeoCoordinateSystem3(
+                    new GeoPoint3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2),
+                    GeoVector3.XAxis,
+                    GeoVector3.YAxis
+                ),
+                x1 - x0,
+                y1 - y0,
+                z1 - z0
+            ).ToSolid();
 
         [Fact]
         public void ABodyWithAnOpeningNearItsCorner_AnswersAtAFineTolerance()
@@ -61,8 +78,17 @@ namespace GeometryHelper.UnitTest.Solid
             for (int i = 0; i < 300; i++)
             {
                 var line = new GeoLine3(
-                    new GeoPoint3(random.NextDouble() * 40 - 5, random.NextDouble() * 30 - 5, random.NextDouble() * 20 - 5),
-                    new GeoPoint3(random.NextDouble() * 40 - 5, random.NextDouble() * 30 - 5, random.NextDouble() * 20 - 5));
+                    new GeoPoint3(
+                        random.NextDouble() * 40 - 5,
+                        random.NextDouble() * 30 - 5,
+                        random.NextDouble() * 20 - 5
+                    ),
+                    new GeoPoint3(
+                        random.NextDouble() * 40 - 5,
+                        random.NextDouble() * 30 - 5,
+                        random.NextDouble() * 20 - 5
+                    )
+                );
 
                 GeoPoint3[] crossings = body.GetIntersections(line, fine);
                 GeoLine3 shortest = line.GetShortestLineTo(body, fine);

@@ -15,8 +15,8 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     public class NearestPairTests
     {
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
         /// <summary>
         /// Parts of every kind the clash check meets, crowded into a small space so that some overlap, some touch,
@@ -29,15 +29,32 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int k = 0; k < count; k++)
             {
-                double x = rng.Next(0, 30) * 10, y = rng.Next(0, 30) * 10, z = rng.Next(0, 10) * 10;
+                double x = rng.Next(0, 30) * 10,
+                    y = rng.Next(0, 30) * 10,
+                    z = rng.Next(0, 10) * 10;
 
                 switch (k % 3)
                 {
                     case 0:
-                        GeoSolid3 box = Box(x, y, z, x + rng.Next(1, 8) * 10, y + rng.Next(1, 8) * 10, z + rng.Next(1, 8) * 10);
-                        parts.Add(rng.NextDouble() < 0.5
-                            ? box.TransformBy(GeoTransform3.RotationAxis(box.GetAabb().Center, new GeoVector3(rng.NextDouble(), rng.NextDouble(), 1), rng.NextDouble()))
-                            : box);
+                        GeoSolid3 box = Box(
+                            x,
+                            y,
+                            z,
+                            x + rng.Next(1, 8) * 10,
+                            y + rng.Next(1, 8) * 10,
+                            z + rng.Next(1, 8) * 10
+                        );
+                        parts.Add(
+                            rng.NextDouble() < 0.5
+                                ? box.TransformBy(
+                                    GeoTransform3.RotationAxis(
+                                        box.GetAabb().Center,
+                                        new GeoVector3(rng.NextDouble(), rng.NextDouble(), 1),
+                                        rng.NextDouble()
+                                    )
+                                )
+                                : box
+                        );
                         break;
 
                     case 1:
@@ -46,7 +63,12 @@ namespace GeometryHelper.UnitTest.Solid
                         break;
 
                     default:
-                        var hole = GeoSolid3.Cylinder(new GeoPoint3(x + 25, y + 25, z - 5), new GeoPoint3(x + 25, y + 25, z + 15), 8, 12);
+                        var hole = GeoSolid3.Cylinder(
+                            new GeoPoint3(x + 25, y + 25, z - 5),
+                            new GeoPoint3(x + 25, y + 25, z + 15),
+                            8,
+                            12
+                        );
                         parts.Add(Box(x, y, z, x + 50, y + 50, z + 10).WithOpenings(new[] { hole }));
                         break;
                 }
@@ -89,7 +111,8 @@ namespace GeometryHelper.UnitTest.Solid
         public void TwoIndexesAreAsNearAsWeighingEveryPairOfTrianglesSays()
         {
             GeoPreparedSolid3[] parts = Parts(11, 18).Select(p => p.Prepare()).ToArray();
-            int measured = 0, touching = 0;
+            int measured = 0,
+                touching = 0;
 
             for (int i = 0; i < parts.Length; i++)
             {
@@ -98,7 +121,10 @@ namespace GeometryHelper.UnitTest.Solid
                     double expected = ScanDistance(parts[i].Surface, parts[j].Surface);
                     double walked = parts[i].Index.DistanceTo(parts[j].Index);
 
-                    Assert.True(Math.Abs(expected - walked) <= 1E-9 * Math.Max(1.0, expected), $"{i}-{j}: scan {expected}, walk {walked}");
+                    Assert.True(
+                        Math.Abs(expected - walked) <= 1E-9 * Math.Max(1.0, expected),
+                        $"{i}-{j}: scan {expected}, walk {walked}"
+                    );
                     Assert.Equal(walked, parts[j].Index.DistanceTo(parts[i].Index), 9);
 
                     measured++;
@@ -106,7 +132,10 @@ namespace GeometryHelper.UnitTest.Solid
                 }
             }
 
-            Assert.True(touching > 3 && touching < measured - 50, $"{touching} of {measured} pairs touch; the test needs both kinds");
+            Assert.True(
+                touching > 3 && touching < measured - 50,
+                $"{touching} of {measured} pairs touch; the test needs both kinds"
+            );
         }
 
         [Fact]
@@ -120,8 +149,19 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     double expected = ScanSegment(parts[i].Surface, parts[j].Surface);
 
-                    Assert.True(parts[i].Index.TryGetShortestLineTo(parts[j].Index, double.PositiveInfinity, Tolerance.Global, out GeoLine3 line));
-                    Assert.True(Math.Abs(expected - line.Length) <= 1E-9 * Math.Max(1.0, expected), $"{i}-{j}: scan {expected}, walk {line.Length}");
+                    Assert.True(
+                        parts[i]
+                            .Index.TryGetShortestLineTo(
+                                parts[j].Index,
+                                double.PositiveInfinity,
+                                Tolerance.Global,
+                                out GeoLine3 line
+                            )
+                    );
+                    Assert.True(
+                        Math.Abs(expected - line.Length) <= 1E-9 * Math.Max(1.0, expected),
+                        $"{i}-{j}: scan {expected}, walk {line.Length}"
+                    );
 
                     // It leaves the first surface and lands on the second.
                     Assert.True(parts[i].Index.GetClosestPoint(line.StartPoint).DistanceTo(line.StartPoint) < 1E-9);
@@ -134,7 +174,8 @@ namespace GeometryHelper.UnitTest.Solid
         public void AReachAnswersOnlyForWhatComesNearerThanIt()
         {
             GeoPreparedSolid3[] parts = Parts(13, 18).Select(p => p.Prepare()).ToArray();
-            int near = 0, beyond = 0;
+            int near = 0,
+                beyond = 0;
 
             var distances = new Dictionary<(int, int), double>();
             for (int i = 0; i < parts.Length; i++)
@@ -162,7 +203,8 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     double distance = distances[(i, j)];
 
-                    bool found = parts[i].Index.TryGetShortestLineTo(parts[j].Index, reach, Tolerance.Global, out GeoLine3 line);
+                    bool found = parts[i]
+                        .Index.TryGetShortestLineTo(parts[j].Index, reach, Tolerance.Global, out GeoLine3 line);
 
                     Assert.Equal(distance < reach, found);
 
@@ -211,8 +253,10 @@ namespace GeometryHelper.UnitTest.Solid
                     GeoLine3 expected = Projection3.GetShortestLineTo(parts[i].Material, parts[j].Material);
                     GeoLine3 walked = parts[i].GetShortestLineTo(parts[j]);
 
-                    Assert.True(Math.Abs(expected.Length - walked.Length) <= 1E-9 * Math.Max(1.0, expected.Length),
-                        $"{i}-{j}: faces {expected.Length}, walk {walked.Length}");
+                    Assert.True(
+                        Math.Abs(expected.Length - walked.Length) <= 1E-9 * Math.Max(1.0, expected.Length),
+                        $"{i}-{j}: faces {expected.Length}, walk {walked.Length}"
+                    );
                     Assert.True(parts[i].DistanceTo(walked.StartPoint) < 1E-9 || parts[i].Contains(walked.StartPoint));
                     Assert.True(parts[i].Index.GetClosestPoint(walked.StartPoint).DistanceTo(walked.StartPoint) < 1E-9);
                     Assert.True(parts[j].Index.GetClosestPoint(walked.EndPoint).DistanceTo(walked.EndPoint) < 1E-9);

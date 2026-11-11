@@ -49,7 +49,10 @@ namespace GeometryHelper.UnitTest.Common
             Assert.True(Math.Abs(viaStatics - degrees) <= bound, $"static round trip of {degrees} gave {viaStatics}");
 
             double viaInstance = Angle.FromDegrees(degrees).Degrees;
-            Assert.True(Math.Abs(viaInstance - degrees) <= bound, $"instance round trip of {degrees} gave {viaInstance}");
+            Assert.True(
+                Math.Abs(viaInstance - degrees) <= bound,
+                $"instance round trip of {degrees} gave {viaInstance}"
+            );
         }
 
         [Fact]
@@ -102,7 +105,7 @@ namespace GeometryHelper.UnitTest.Common
         [InlineData(270.0, 270.0)]
         [InlineData(360.0, 0.0)]
         [InlineData(450.0, 90.0)]
-        [InlineData(-90.0, 270.0)]      // the turn that reaches the same direction
+        [InlineData(-90.0, 270.0)] // the turn that reaches the same direction
         [InlineData(-270.0, 90.0)]
         [InlineData(720.0, 0.0)]
         [InlineData(-720.0, 0.0)]
@@ -118,9 +121,9 @@ namespace GeometryHelper.UnitTest.Common
         [Theory]
         [InlineData(0.0, 0.0)]
         [InlineData(90.0, 90.0)]
-        [InlineData(180.0, 180.0)]      // the range is half-open at -PI, so PI stays positive
+        [InlineData(180.0, 180.0)] // the range is half-open at -PI, so PI stays positive
         [InlineData(-180.0, 180.0)]
-        [InlineData(270.0, -90.0)]      // the shortest rotation to the same direction
+        [InlineData(270.0, -90.0)] // the shortest rotation to the same direction
         [InlineData(-270.0, 90.0)]
         [InlineData(360.0, 0.0)]
         [InlineData(540.0, 180.0)]
@@ -211,7 +214,7 @@ namespace GeometryHelper.UnitTest.Common
         public void IsEqualTo_UsesTheAngularTolerance()
         {
             var a = Angle.FromDegrees(90.0);
-            var justUnder = Angle.FromDegrees(90.5);   // half a degree, inside the 1 degree default
+            var justUnder = Angle.FromDegrees(90.5); // half a degree, inside the 1 degree default
             var justOver = Angle.FromDegrees(92.0);
 
             Assert.True(a.IsEqualTo(justUnder));
@@ -255,12 +258,7 @@ namespace GeometryHelper.UnitTest.Common
         [Fact]
         public void Sorting_UsesTheComparableImplementation()
         {
-            var angles = new[]
-            {
-                Angle.FromDegrees(180),
-                Angle.FromDegrees(-90),
-                Angle.FromDegrees(45)
-            };
+            var angles = new[] { Angle.FromDegrees(180), Angle.FromDegrees(-90), Angle.FromDegrees(45) };
 
             Array.Sort(angles);
 
@@ -420,7 +418,6 @@ namespace GeometryHelper.UnitTest.Common
             Assert.Equal(a.GetHashCode(), b.GetHashCode());
             Assert.True(a == b);
         }
-    
 
         #endregion
 
@@ -443,7 +440,10 @@ namespace GeometryHelper.UnitTest.Common
         [InlineData(450.0, 90.0)]
         [InlineData(-270.0, 90.0)]
         [InlineData(721.0, 1.0)]
-        public void ToReadableDegrees_TurnsATextUpsideDownAHalfTurn_WithinATenthOfARadianOfUpright(double degrees, double readable)
+        public void ToReadableDegrees_TurnsATextUpsideDownAHalfTurn_WithinATenthOfARadianOfUpright(
+            double degrees,
+            double readable
+        )
         {
             Assert.Equal(readable, Angle.ToReadableDegrees(degrees), 9);
             Assert.Equal(readable, Angle.ToReadableDegrees(degrees, Angle.FromRadians(0.1)), 9);
@@ -503,7 +503,10 @@ namespace GeometryHelper.UnitTest.Common
         [InlineData(3.0 * Math.PI / 2.0, Math.PI / 2.0)]
         [InlineData(5.0 * Math.PI / 2.0, Math.PI / 2.0)]
         [InlineData(-3.0 * Math.PI / 2.0, Math.PI / 2.0)]
-        public void ToReadableRadians_TurnsATextUpsideDownAHalfTurn_WithinATenthOfARadianOfUpright(double radians, double readable)
+        public void ToReadableRadians_TurnsATextUpsideDownAHalfTurn_WithinATenthOfARadianOfUpright(
+            double radians,
+            double readable
+        )
         {
             Assert.Equal(readable, Angle.ToReadableRadians(radians), 12);
             Assert.Equal(readable, Angle.ToReadableRadians(radians, Angle.FromRadians(0.1)), 12);
@@ -527,12 +530,17 @@ namespace GeometryHelper.UnitTest.Common
                     Assert.Equal(Math.Round(halfTurns), halfTurns, 9);
 
                     double wrapped = Angle.FromRadians(radians).NormalizeSigned().Radians;
-                    bool nearBound = Math.Abs(Math.Abs(wrapped) - (Math.PI / 2.0 + tolerance.Radians)) < 1E-9
+                    bool nearBound =
+                        Math.Abs(Math.Abs(wrapped) - (Math.PI / 2.0 + tolerance.Radians)) < 1E-9
                         || Math.Abs(Math.Abs(wrapped) - (Math.PI / 2.0 - tolerance.Radians)) < 1E-9;
 
                     if (!nearBound)
                     {
-                        Assert.Equal(Angle.ToRadians(Angle.ToReadableDegrees(Angle.ToDegrees(radians), tolerance)), readable, 9);
+                        Assert.Equal(
+                            Angle.ToRadians(Angle.ToReadableDegrees(Angle.ToDegrees(radians), tolerance)),
+                            readable,
+                            9
+                        );
                     }
                 }
             }
@@ -541,20 +549,59 @@ namespace GeometryHelper.UnitTest.Common
         [Fact]
         public void ToReadableRadians_RefusesAnAngleOrAToleranceItCannotUse()
         {
-            Assert.Equal("radians", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableRadians(double.NaN)).ParamName);
-            Assert.Equal("radians", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableRadians(double.NegativeInfinity)).ParamName);
-            Assert.Equal("tolerance", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableRadians(0.5, Angle.FromRadians(-0.1))).ParamName);
-            Assert.Equal("tolerance", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableRadians(0.5, Angle.Right)).ParamName);
+            Assert.Equal(
+                "radians",
+                Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableRadians(double.NaN)).ParamName
+            );
+            Assert.Equal(
+                "radians",
+                Assert
+                    .Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableRadians(double.NegativeInfinity))
+                    .ParamName
+            );
+            Assert.Equal(
+                "tolerance",
+                Assert
+                    .Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableRadians(0.5, Angle.FromRadians(-0.1)))
+                    .ParamName
+            );
+            Assert.Equal(
+                "tolerance",
+                Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableRadians(0.5, Angle.Right)).ParamName
+            );
         }
 
         [Fact]
         public void ToReadableDegrees_RefusesAnAngleOrAToleranceItCannotUse()
         {
-            Assert.Equal("degrees", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableDegrees(double.NaN)).ParamName);
-            Assert.Equal("degrees", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableDegrees(double.PositiveInfinity)).ParamName);
-            Assert.Equal("tolerance", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableDegrees(10.0, Angle.FromDegrees(-1.0))).ParamName);
-            Assert.Equal("tolerance", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableDegrees(10.0, Angle.Right)).ParamName);
-            Assert.Equal("tolerance", Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableDegrees(10.0, Angle.FromRadians(double.NaN))).ParamName);
+            Assert.Equal(
+                "degrees",
+                Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableDegrees(double.NaN)).ParamName
+            );
+            Assert.Equal(
+                "degrees",
+                Assert
+                    .Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableDegrees(double.PositiveInfinity))
+                    .ParamName
+            );
+            Assert.Equal(
+                "tolerance",
+                Assert
+                    .Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableDegrees(10.0, Angle.FromDegrees(-1.0)))
+                    .ParamName
+            );
+            Assert.Equal(
+                "tolerance",
+                Assert.Throws<ArgumentOutOfRangeException>(() => Angle.ToReadableDegrees(10.0, Angle.Right)).ParamName
+            );
+            Assert.Equal(
+                "tolerance",
+                Assert
+                    .Throws<ArgumentOutOfRangeException>(() =>
+                        Angle.ToReadableDegrees(10.0, Angle.FromRadians(double.NaN))
+                    )
+                    .ParamName
+            );
         }
 
         #endregion

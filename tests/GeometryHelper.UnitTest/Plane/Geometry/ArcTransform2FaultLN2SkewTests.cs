@@ -22,19 +22,23 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class ArcTransform2FaultLN2SkewTests
     {
-        private static readonly GeoTransform2 Skew = new GeoTransform2(new double[,]
-        {
-            { 1, 0.6, 0 },
-            { 0, 0.8, 0 },
-            { 0, 0, 1 },
-        });
+        private static readonly GeoTransform2 Skew = new GeoTransform2(
+            new double[,]
+            {
+                { 1, 0.6, 0 },
+                { 0, 0.8, 0 },
+                { 0, 0, 1 },
+            }
+        );
 
-        private static readonly GeoTransform2 SlightSkew = new GeoTransform2(new double[,]
-        {
-            { 1, 0.000001, 0 },
-            { 0, 1, 0 },
-            { 0, 0, 1 },
-        });
+        private static readonly GeoTransform2 SlightSkew = new GeoTransform2(
+            new double[,]
+            {
+                { 1, 0.000001, 0 },
+                { 0, 1, 0 },
+                { 0, 0, 1 },
+            }
+        );
 
         private static readonly Tolerance Tight = new Tolerance(1E-9, 1E-9);
 
@@ -71,7 +75,8 @@ namespace GeometryHelper.UnitTest.Plane
             var edge = new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), 0.5);
             var chain = new GeoPolylineArc2(
                 new List<GeoPoint2> { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(150, 80) },
-                new List<double> { 0.5, -0.3 });
+                new List<double> { 0.5, -0.3 }
+            );
 
             Assert.Throws<InvalidOperationException>(() => arc.TransformBy(Skew));
             Assert.Throws<InvalidOperationException>(() => edge.TransformBy(Skew));
@@ -82,8 +87,15 @@ namespace GeometryHelper.UnitTest.Plane
         public void AChainOfArcsUnderTheSkew_StaysJoined()
         {
             var chain = new GeoPolylineArc2(
-                new List<GeoPoint2> { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(150, 80), new GeoPoint2(40, 120) },
-                new List<double> { 0.5, -0.3, 0.8 });
+                new List<GeoPoint2>
+                {
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(100, 0),
+                    new GeoPoint2(150, 80),
+                    new GeoPoint2(40, 120),
+                },
+                new List<double> { 0.5, -0.3, 0.8 }
+            );
 
             GeoPolylineArc2 moved = chain.TransformBy(SlightSkew);
 
@@ -96,7 +108,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void AMirroredSkew_TurnsTheArcTheOtherWay()
         {
-            GeoTransform2 mirrored = GeoTransform2.Mirror(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(1, 0))).Multiply(SlightSkew);
+            GeoTransform2 mirrored = GeoTransform2
+                .Mirror(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(1, 0)))
+                .Multiply(SlightSkew);
             var arc = new GeoArc2(new GeoPoint2(10, -20), 50, 0.3, 2.9);
 
             GeoArc2 moved = arc.TransformBy(mirrored);
@@ -137,12 +151,14 @@ namespace GeometryHelper.UnitTest.Plane
             // The turn of 0.7 radians with each number rounded to six places on its own: it carries a circle, by the rule of
             // the ball, but is no exact turn. However short of a whole turn the arc is, it moves, its ends within the rounding
             // of the turn of where they land.
-            var rounded = new GeoTransform2(new double[,]
-            {
-                { 0.764842, -0.644217, 1000 },
-                { 0.644218, 0.764843, 2000 },
-                { 0, 0, 1 },
-            });
+            var rounded = new GeoTransform2(
+                new double[,]
+                {
+                    { 0.764842, -0.644217, 1000 },
+                    { 0.644218, 0.764843, 2000 },
+                    { 0, 0, 1 },
+                }
+            );
             var arc = new GeoArc2(new GeoPoint2(10, 20), 100, 0.5, 0.5 + 2.0 * Math.PI - shortOfATurn);
 
             GeoArc2 moved = arc.TransformBy(rounded);
@@ -155,7 +171,8 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ATurnAShiftAMirrorAndAnEvenScaling_StillMoveTheArcByItsCentre()
         {
-            GeoTransform2 transform = GeoTransform2.Translation(new GeoVector2(5, -7))
+            GeoTransform2 transform = GeoTransform2
+                .Translation(new GeoVector2(5, -7))
                 .Multiply(GeoTransform2.Rotation(0.7))
                 .Multiply(GeoTransform2.Mirror(new GeoLine2(new GeoPoint2(1, 1), new GeoPoint2(3, 2))))
                 .Multiply(GeoTransform2.Scaling(2.5));

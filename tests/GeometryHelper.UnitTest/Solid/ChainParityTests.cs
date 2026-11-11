@@ -19,11 +19,19 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class ChainParityTests
     {
-        private static readonly Type[] Chains = { typeof(GeoPolyline2), typeof(GeoPolylineArc2), typeof(GeoPolyline3), typeof(GeoPolylineArc3) };
+        private static readonly Type[] Chains =
+        {
+            typeof(GeoPolyline2),
+            typeof(GeoPolylineArc2),
+            typeof(GeoPolyline3),
+            typeof(GeoPolylineArc3),
+        };
 
-        private static GeoPolyline2 Bar2() => new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 60));
+        private static GeoPolyline2 Bar2() =>
+            new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 60));
 
-        private static GeoPolyline3 Bar3() => new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 60, 30));
+        private static GeoPolyline3 Bar3() =>
+            new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 60, 30));
 
         [Fact]
         public void EveryChainHasTheSameMembersInTheSameShape()
@@ -37,9 +45,22 @@ namespace GeometryHelper.UnitTest.Solid
                     Assert.True(chain.GetProperty(name)?.PropertyType == point, $"{chain.Name}.{name}");
                 }
 
-                Assert.NotNull(chain.GetMethod("TrySplitAtDistance", new[] { typeof(double), chain.MakeByRefType(), chain.MakeByRefType() }));
-                Assert.NotNull(chain.GetMethod("TrySplitAtDistance", new[] { typeof(double), chain.MakeArrayType().MakeByRefType() }));
-                Assert.Equal(chain.MakeArrayType(), chain.GetMethod("SplitAtDistances", new[] { typeof(IEnumerable<double>) })?.ReturnType);
+                Assert.NotNull(
+                    chain.GetMethod(
+                        "TrySplitAtDistance",
+                        new[] { typeof(double), chain.MakeByRefType(), chain.MakeByRefType() }
+                    )
+                );
+                Assert.NotNull(
+                    chain.GetMethod(
+                        "TrySplitAtDistance",
+                        new[] { typeof(double), chain.MakeArrayType().MakeByRefType() }
+                    )
+                );
+                Assert.Equal(
+                    chain.MakeArrayType(),
+                    chain.GetMethod("SplitAtDistances", new[] { typeof(IEnumerable<double>) })?.ReturnType
+                );
             }
 
             foreach (Type edge in new[] { typeof(GeoEdge2), typeof(GeoEdge3) })
@@ -63,11 +84,17 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(bent.MidPoint.DistanceTo(bent.GetPointAtDistance(bent.Length / 2)) < 1E-12);
             Assert.True(inSpace.MidPoint.DistanceTo(new GeoPoint3(inSpace.Length / 2, 0, 0)) < 1E-9);
-            Assert.True(bentInSpace.MidPoint.DistanceTo(bentInSpace.GetPointAtDistance(bentInSpace.Length / 2)) < 1E-12);
+            Assert.True(
+                bentInSpace.MidPoint.DistanceTo(bentInSpace.GetPointAtDistance(bentInSpace.Length / 2)) < 1E-12
+            );
 
             var arc = new GeoArc2(new GeoPoint2(0, 0), 10, 0, Math.PI);
             Assert.True(new GeoEdge2(arc).MidPoint.DistanceTo(new GeoPoint2(0, 10)) < 1E-9);
-            Assert.True(new GeoEdge3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)).MidPoint.DistanceTo(new GeoPoint3(5, 0, 0)) < 1E-12);
+            Assert.True(
+                new GeoEdge3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)).MidPoint.DistanceTo(
+                    new GeoPoint3(5, 0, 0)
+                ) < 1E-12
+            );
         }
 
         [Fact]

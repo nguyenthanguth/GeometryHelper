@@ -43,8 +43,12 @@ namespace GeometryHelper.Benchmarks.Scenarios
         /// </summary>
         internal static IEnumerable<BenchmarkCase> All()
         {
-            yield return new BenchmarkCase("EarClipping.AxisTrap.Slots.X", 4 * Slots + 4, "edges", false, () => Slotted(false));
-            yield return new BenchmarkCase("EarClipping.AxisTrap.Slots.Y", 4 * Slots + 4, "edges", false, () => Slotted(true));
+            yield return new BenchmarkCase("EarClipping.AxisTrap.Slots.X", 4 * Slots + 4, "edges", false, () =>
+                Slotted(false)
+            );
+            yield return new BenchmarkCase("EarClipping.AxisTrap.Slots.Y", 4 * Slots + 4, "edges", false, () =>
+                Slotted(true)
+            );
             yield return new BenchmarkCase("EarClipping.AxisTrap.Comb.X", 4 * Teeth, "edges", false, () => Comb(false));
             yield return new BenchmarkCase("EarClipping.AxisTrap.Comb.Y", 4 * Teeth, "edges", false, () => Comb(true));
             yield return new BenchmarkCase("EarClipping.Small", SmallCount, "faces", false, Small);
@@ -57,20 +61,31 @@ namespace GeometryHelper.Benchmarks.Scenarios
         {
             GeoPoint3 At(double x, double y) => swapped ? new GeoPoint3(y, x, 0.0) : new GeoPoint3(x, y, 0.0);
 
-            double width = 6.0 * Slots + 20.0, height = SlotLength + 20.0;
+            double width = 6.0 * Slots + 20.0,
+                height = SlotLength + 20.0;
             var boundary = new GeoPolygon3(new[] { At(0, 0), At(width, 0), At(width, height), At(0, height) }, Within);
             var holes = new List<GeoPolygon3>(Slots);
 
             for (int h = 0; h < Slots; h++)
             {
                 double x = 10.0 + 6.0 * h;
-                holes.Add(new GeoPolygon3(new[] { At(x, 10), At(x + 2, 10), At(x + 2, 10 + SlotLength), At(x, 10 + SlotLength) }, Within));
+                holes.Add(
+                    new GeoPolygon3(
+                        new[] { At(x, 10), At(x + 2, 10), At(x + 2, 10 + SlotLength), At(x, 10 + SlotLength) },
+                        Within
+                    )
+                );
             }
 
             var face = new GeoFace3(boundary, holes, Within);
             GeoFace3[] faces = { face };
 
-            return Fixture.Of(() => faces.Select(f => f.TriangulateSurface(Within)).ToArray(), Sign, Describe, Pairs(face));
+            return Fixture.Of(
+                () => faces.Select(f => f.TriangulateSurface(Within)).ToArray(),
+                Sign,
+                Describe,
+                Pairs(face)
+            );
         }
 
         private const int Teeth = 500;
@@ -89,7 +104,8 @@ namespace GeometryHelper.Benchmarks.Scenarios
 
             for (int i = Teeth - 1; i >= 0; i--)
             {
-                double left = 10.0 * i, right = left + 5.0;
+                double left = 10.0 * i,
+                    right = left + 5.0;
                 corners.Add(At(right, ToothLength));
                 corners.Add(At(left, ToothLength));
 
@@ -103,7 +119,12 @@ namespace GeometryHelper.Benchmarks.Scenarios
             var face = new GeoFace3(new GeoPolygon3(corners, Within), null, Within);
             GeoFace3[] faces = { face };
 
-            return Fixture.Of(() => faces.Select(f => f.TriangulateSurface(Within)).ToArray(), Sign, Describe, Pairs(face));
+            return Fixture.Of(
+                () => faces.Select(f => f.TriangulateSurface(Within)).ToArray(),
+                Sign,
+                Describe,
+                Pairs(face)
+            );
         }
 
         /// <summary>
@@ -120,7 +141,8 @@ namespace GeometryHelper.Benchmarks.Scenarios
 
             for (int k = 0; k < faces.Length; k++)
             {
-                double cx = random.Next(100000), cy = random.Next(100000);
+                double cx = random.Next(100000),
+                    cy = random.Next(100000);
                 int count = 4 + random.Next(9);
                 var corners = new GeoPoint3[count];
 
@@ -141,8 +163,11 @@ namespace GeometryHelper.Benchmarks.Scenarios
                     for (int h = 0; h < holeCount; h++)
                     {
                         // Side by side along x, 7 apart, so that they keep clear of each other.
-                        double x = cx - 10.0 + 7.0 * h, y = cy - 2.5;
-                        holes.Add(new GeoPolygon3(new[] { On(x, y), On(x + 5, y), On(x + 5, y + 5), On(x, y + 5) }, Within));
+                        double x = cx - 10.0 + 7.0 * h,
+                            y = cy - 2.5;
+                        holes.Add(
+                            new GeoPolygon3(new[] { On(x, y), On(x + 5, y), On(x + 5, y + 5), On(x, y + 5) }, Within)
+                        );
                     }
                 }
 
@@ -190,7 +215,8 @@ namespace GeometryHelper.Benchmarks.Scenarios
 
                 for (int i = 0; i < corners.Count; i++)
                 {
-                    GeoPoint3 a = frame.ToLocal(corners[i]), b = frame.ToLocal(corners[(i + 1) % corners.Count]);
+                    GeoPoint3 a = frame.ToLocal(corners[i]),
+                        b = frame.ToLocal(corners[(i + 1) % corners.Count]);
                     lowX.Add(Math.Min(a.X, b.X));
                     highX.Add(Math.Max(a.X, b.X));
                     lowY.Add(Math.Min(a.Y, b.Y));
@@ -198,8 +224,10 @@ namespace GeometryHelper.Benchmarks.Scenarios
                 }
             }
 
-            return SweepPairs.Describe(SweepPairs.Count(lowX, highX, Within.EqualPoint), SweepPairs.Count(lowY, highY, Within.EqualPoint))
-                + " (in the face's frame)";
+            return SweepPairs.Describe(
+                    SweepPairs.Count(lowX, highX, Within.EqualPoint),
+                    SweepPairs.Count(lowY, highY, Within.EqualPoint)
+                ) + " (in the face's frame)";
         }
 
         /// <summary>
@@ -220,7 +248,10 @@ namespace GeometryHelper.Benchmarks.Scenarios
             }
         }
 
-        private static string Describe(GeoTriangle3[][] results)
-            => Report.Count(results.Sum(t => (long)t.Length)) + " triangles from " + Report.Count(results.Length) + " faces";
+        private static string Describe(GeoTriangle3[][] results) =>
+            Report.Count(results.Sum(t => (long)t.Length))
+            + " triangles from "
+            + Report.Count(results.Length)
+            + " faces";
     }
 }

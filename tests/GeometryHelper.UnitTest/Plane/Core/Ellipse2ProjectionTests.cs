@@ -31,12 +31,18 @@ namespace GeometryHelper.UnitTest.Plane
             return Ellipse2Oracle.RimTo(ellipse, p => all.Min(line => Ellipse2Oracle.PointToSegment(p, line)));
         }
 
-        private static double PointToEdge(GeoPoint2 point, GeoEdge2 edge) => edge.IsArc
-            ? Ellipse2Oracle.PointToArc(point, edge.ToArc())
-            : Ellipse2Oracle.PointToSegment(point, edge.ToLine());
+        private static double PointToEdge(GeoPoint2 point, GeoEdge2 edge) =>
+            edge.IsArc
+                ? Ellipse2Oracle.PointToArc(point, edge.ToArc())
+                : Ellipse2Oracle.PointToSegment(point, edge.ToLine());
 
         // The segment leaves the rim, lands on the other shape, and is as long as the gap between them.
-        private static void AssertJoins(GeoEllipse2 ellipse, GeoLine2 shortest, Func<GeoPoint2, double> toOther, double gap)
+        private static void AssertJoins(
+            GeoEllipse2 ellipse,
+            GeoLine2 shortest,
+            Func<GeoPoint2, double> toOther,
+            double gap
+        )
         {
             Assert.InRange(Ellipse2Oracle.GapToRim(ellipse, shortest.StartPoint), 0.0, 1E-9);
             Assert.InRange(toOther(shortest.EndPoint), 0.0, 1E-9);
@@ -51,7 +57,12 @@ namespace GeometryHelper.UnitTest.Plane
             GeoEllipse2 ellipse = Tilted();
             GeoLine2 line = Ellipse2Oracle.FrameLine(ellipse, 100, 250, 450, -50);
 
-            AssertJoins(ellipse, ellipse.GetShortestLineTo(line, Strict), p => Ellipse2Oracle.PointToSegment(p, line), RimToSegments(ellipse, new[] { line }));
+            AssertJoins(
+                ellipse,
+                ellipse.GetShortestLineTo(line, Strict),
+                p => Ellipse2Oracle.PointToSegment(p, line),
+                RimToSegments(ellipse, new[] { line })
+            );
         }
 
         [Fact]
@@ -76,7 +87,12 @@ namespace GeometryHelper.UnitTest.Plane
             GeoLine2 shortest = ellipse.GetShortestLineTo(line, Strict);
 
             Assert.Equal(0.0, ellipse.DistanceTo(line, Strict));
-            AssertJoins(ellipse, shortest, p => p.DistanceTo(line.EndPoint), Ellipse2Oracle.ClosestDistance(300, 100, 200, 30));
+            AssertJoins(
+                ellipse,
+                shortest,
+                p => p.DistanceTo(line.EndPoint),
+                Ellipse2Oracle.ClosestDistance(300, 100, 200, 30)
+            );
         }
 
         [Fact]
@@ -107,10 +123,30 @@ namespace GeometryHelper.UnitTest.Plane
             var triangle = new GeoTriangle2(corners[0], corners[1], corners[2]);
             GeoLine2[] triangleEdges = { triangle.GetEdgeAt(0), triangle.GetEdgeAt(1), triangle.GetEdgeAt(2) };
 
-            AssertJoins(ellipse, ellipse.GetShortestLineTo(polyline, Strict), p => polyline.GetEdges().Min(e => Ellipse2Oracle.PointToSegment(p, e)), RimToSegments(ellipse, polyline.GetEdges()));
-            AssertJoins(ellipse, ellipse.GetShortestLineTo(polygon, Strict), p => Ellipse2Oracle.PointToOutline(p, polygon), RimToSegments(ellipse, polygon.GetEdges()));
-            AssertJoins(ellipse, ellipse.GetShortestLineTo(rectangle, Strict), p => Ellipse2Oracle.PointToOutline(p, rectangle.ToPolygon()), RimToSegments(ellipse, rectangle.GetEdges()));
-            AssertJoins(ellipse, ellipse.GetShortestLineTo(triangle, Strict), p => triangleEdges.Min(e => Ellipse2Oracle.PointToSegment(p, e)), RimToSegments(ellipse, triangleEdges));
+            AssertJoins(
+                ellipse,
+                ellipse.GetShortestLineTo(polyline, Strict),
+                p => polyline.GetEdges().Min(e => Ellipse2Oracle.PointToSegment(p, e)),
+                RimToSegments(ellipse, polyline.GetEdges())
+            );
+            AssertJoins(
+                ellipse,
+                ellipse.GetShortestLineTo(polygon, Strict),
+                p => Ellipse2Oracle.PointToOutline(p, polygon),
+                RimToSegments(ellipse, polygon.GetEdges())
+            );
+            AssertJoins(
+                ellipse,
+                ellipse.GetShortestLineTo(rectangle, Strict),
+                p => Ellipse2Oracle.PointToOutline(p, rectangle.ToPolygon()),
+                RimToSegments(ellipse, rectangle.GetEdges())
+            );
+            AssertJoins(
+                ellipse,
+                ellipse.GetShortestLineTo(triangle, Strict),
+                p => triangleEdges.Min(e => Ellipse2Oracle.PointToSegment(p, e)),
+                RimToSegments(ellipse, triangleEdges)
+            );
         }
 
         [Fact]
@@ -122,7 +158,12 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Equal(0.0, ellipse.DistanceTo(inside, Strict));
             Assert.InRange(shortest.Length, 50.0, 100.0);
-            AssertJoins(ellipse, shortest, p => Ellipse2Oracle.PointToOutline(p, inside), RimToSegments(ellipse, inside.GetEdges()));
+            AssertJoins(
+                ellipse,
+                shortest,
+                p => Ellipse2Oracle.PointToOutline(p, inside),
+                RimToSegments(ellipse, inside.GetEdges())
+            );
         }
 
         [Fact]
@@ -131,7 +172,12 @@ namespace GeometryHelper.UnitTest.Plane
             GeoEllipse2 ellipse = Tilted();
             GeoPolygon2 round = Ellipse2Oracle.FramePolygon(ellipse, -400, -200, 400, -200, 400, 160, -400, 160);
 
-            AssertJoins(ellipse, ellipse.GetShortestLineTo(round, Strict), p => Ellipse2Oracle.PointToOutline(p, round), 60.0);
+            AssertJoins(
+                ellipse,
+                ellipse.GetShortestLineTo(round, Strict),
+                p => Ellipse2Oracle.PointToOutline(p, round),
+                60.0
+            );
         }
 
         [Fact]
@@ -153,11 +199,26 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The hole, 400 by 160 about the centre, is 60 from the top; the outline is hundreds away (Face2.cs:305-325).
             GeoEllipse2 ellipse = Upright();
-            GeoPolygon2 outline = Ellipse2Oracle.FramePolygon(ellipse, -2000, -2000, 2000, -2000, 2000, 2000, -2000, 2000);
+            GeoPolygon2 outline = Ellipse2Oracle.FramePolygon(
+                ellipse,
+                -2000,
+                -2000,
+                2000,
+                -2000,
+                2000,
+                2000,
+                -2000,
+                2000
+            );
             GeoPolygon2 hole = Ellipse2Oracle.FramePolygon(ellipse, -400, -200, 400, -200, 400, 160, -400, 160);
             var face = new GeoFace2(outline, new[] { hole });
 
-            AssertJoins(ellipse, ellipse.GetShortestLineTo(face, Strict), p => Ellipse2Oracle.PointToOutline(p, hole), 60.0);
+            AssertJoins(
+                ellipse,
+                ellipse.GetShortestLineTo(face, Strict),
+                p => Ellipse2Oracle.PointToOutline(p, hole),
+                60.0
+            );
         }
 
         [Fact]
@@ -167,8 +228,16 @@ namespace GeometryHelper.UnitTest.Plane
             GeoLine2 line = Ellipse2Oracle.FrameLine(ellipse, 100, 250, 450, -50);
             GeoArc2 arc = Ellipse2Oracle.FrameArc(ellipse, 0, 250, 50, Math.PI, 2 * Math.PI);
 
-            Assert.Equal(ellipse.GetShortestLineTo(line, Strict), ellipse.GetShortestLineTo(new GeoEdge2(line.StartPoint, line.EndPoint), Strict));
-            AssertJoins(ellipse, ellipse.GetShortestLineTo(new GeoEdge2(arc), Strict), p => Ellipse2Oracle.PointToArc(p, arc), 100.0);
+            Assert.Equal(
+                ellipse.GetShortestLineTo(line, Strict),
+                ellipse.GetShortestLineTo(new GeoEdge2(line.StartPoint, line.EndPoint), Strict)
+            );
+            AssertJoins(
+                ellipse,
+                ellipse.GetShortestLineTo(new GeoEdge2(arc), Strict),
+                p => Ellipse2Oracle.PointToArc(p, arc),
+                100.0
+            );
         }
 
         #endregion
@@ -195,7 +264,12 @@ namespace GeometryHelper.UnitTest.Plane
             GeoEllipse2 ellipse = Upright();
             GeoCircle2 circle = Ellipse2Oracle.FrameCircle(ellipse, 50, 0, 30);
 
-            AssertJoins(ellipse, ellipse.GetShortestLineTo(circle, Strict), p => Math.Abs(p.DistanceTo(circle.Center) - 30), Ellipse2Oracle.ClosestDistance(300, 100, 50, 0) - 30);
+            AssertJoins(
+                ellipse,
+                ellipse.GetShortestLineTo(circle, Strict),
+                p => Math.Abs(p.DistanceTo(circle.Center) - 30),
+                Ellipse2Oracle.ClosestDistance(300, 100, 50, 0) - 30
+            );
         }
 
         [Fact]
@@ -243,8 +317,18 @@ namespace GeometryHelper.UnitTest.Plane
             GeoArc2 facing = Ellipse2Oracle.FrameArc(ellipse, 0, 250, 50, Math.PI, 2 * Math.PI);
             GeoArc2 inside = Ellipse2Oracle.FrameArc(ellipse, 0, 0, 60, 0.3, 2.0);
 
-            AssertJoins(ellipse, ellipse.GetShortestLineTo(facing, Strict), p => Ellipse2Oracle.PointToArc(p, facing), 100.0);
-            AssertJoins(ellipse, ellipse.GetShortestLineTo(inside, Strict), p => Ellipse2Oracle.PointToArc(p, inside), Ellipse2Oracle.RimTo(ellipse, p => Ellipse2Oracle.PointToArc(p, inside)));
+            AssertJoins(
+                ellipse,
+                ellipse.GetShortestLineTo(facing, Strict),
+                p => Ellipse2Oracle.PointToArc(p, facing),
+                100.0
+            );
+            AssertJoins(
+                ellipse,
+                ellipse.GetShortestLineTo(inside, Strict),
+                p => Ellipse2Oracle.PointToArc(p, inside),
+                Ellipse2Oracle.RimTo(ellipse, p => Ellipse2Oracle.PointToArc(p, inside))
+            );
         }
 
         [Fact]
@@ -266,20 +350,36 @@ namespace GeometryHelper.UnitTest.Plane
         public void TheShortestLineToACurvedChainApart_IsAsLongAsTheGapToItsNearestEdge()
         {
             GeoEllipse2 ellipse = Tilted();
-            var chain = new GeoPolylineArc2(Ellipse2Oracle.FramePoints(ellipse, -300, 160, -60, 140, 60, 140, 200, 220), new[] { 0.0, -1.0, 0.4, 0.0 });
+            var chain = new GeoPolylineArc2(
+                Ellipse2Oracle.FramePoints(ellipse, -300, 160, -60, 140, 60, 140, 200, 220),
+                new[] { 0.0, -1.0, 0.4, 0.0 }
+            );
             GeoEdge2[] edges = chain.GetEdges().ToArray();
 
-            AssertJoins(ellipse, ellipse.GetShortestLineTo(chain, Strict), p => edges.Min(e => PointToEdge(p, e)), Ellipse2Oracle.RimTo(ellipse, p => edges.Min(e => PointToEdge(p, e))));
+            AssertJoins(
+                ellipse,
+                ellipse.GetShortestLineTo(chain, Strict),
+                p => edges.Min(e => PointToEdge(p, e)),
+                Ellipse2Oracle.RimTo(ellipse, p => edges.Min(e => PointToEdge(p, e)))
+            );
         }
 
         [Fact]
         public void AnEllipseInsideACurvedLoop_IsJoinedOutToTheLoop()
         {
             GeoEllipse2 ellipse = Tilted();
-            var round = new GeoPolygonArc2(Ellipse2Oracle.FramePoints(ellipse, -400, -200, 400, -200, 400, 200, -400, 200), new[] { 0.2, 0.0, 0.2, 0.0 });
+            var round = new GeoPolygonArc2(
+                Ellipse2Oracle.FramePoints(ellipse, -400, -200, 400, -200, 400, 200, -400, 200),
+                new[] { 0.2, 0.0, 0.2, 0.0 }
+            );
             GeoEdge2[] edges = round.GetEdges().ToArray();
 
-            AssertJoins(ellipse, ellipse.GetShortestLineTo(round, Strict), p => edges.Min(e => PointToEdge(p, e)), Ellipse2Oracle.RimTo(ellipse, p => edges.Min(e => PointToEdge(p, e))));
+            AssertJoins(
+                ellipse,
+                ellipse.GetShortestLineTo(round, Strict),
+                p => edges.Min(e => PointToEdge(p, e)),
+                Ellipse2Oracle.RimTo(ellipse, p => edges.Min(e => PointToEdge(p, e)))
+            );
         }
 
         #endregion
@@ -290,7 +390,10 @@ namespace GeometryHelper.UnitTest.Plane
         public void TheShortestLineToACopyAbove_RunsFromTheTopToItsBottom()
         {
             GeoEllipse2 ellipse = Tilted();
-            GeoLine2 shortest = ellipse.GetShortestLineTo(Ellipse2Oracle.FrameEllipse(ellipse, 0, 250, 0, 300, 100), Strict);
+            GeoLine2 shortest = ellipse.GetShortestLineTo(
+                Ellipse2Oracle.FrameEllipse(ellipse, 0, 250, 0, 300, 100),
+                Strict
+            );
 
             Assert.InRange(shortest.StartPoint.DistanceTo(Ellipse2Oracle.FromFrame(ellipse, 0, 100)), 0.0, 1E-3);
             Assert.InRange(shortest.EndPoint.DistanceTo(Ellipse2Oracle.FromFrame(ellipse, 0, 150)), 0.0, 1E-3);
@@ -306,17 +409,37 @@ namespace GeometryHelper.UnitTest.Plane
             GeoLine2 shortest = ellipse.GetShortestLineTo(inner, Strict);
 
             Assert.Equal(0.0, ellipse.DistanceTo(inner, Strict));
-            AssertJoins(ellipse, shortest, p => Ellipse2Oracle.GapToRim(inner, p), Ellipse2Oracle.RimToRim(ellipse, inner));
+            AssertJoins(
+                ellipse,
+                shortest,
+                p => Ellipse2Oracle.GapToRim(inner, p),
+                Ellipse2Oracle.RimToRim(ellipse, inner)
+            );
         }
 
         [Fact]
         public void TheShortestLineBetweenTwoEllipsesApart_JoinsTheirRimsAcrossTheGap()
         {
             // The far pair of 510.7 by 95.6 and 98.2 by 0.37, 362.528 apart (the second row of the distance table).
-            var first = new GeoEllipse2(new GeoPoint2(-354.102, -14.719), new GeoVector2(Math.Cos(4.597074), Math.Sin(4.597074)), 510.745, 95.5613);
-            var second = new GeoEllipse2(new GeoPoint2(-395.9041, -918.101), new GeoVector2(Math.Cos(0.499146), Math.Sin(0.499146)), 98.244, 0.3696);
+            var first = new GeoEllipse2(
+                new GeoPoint2(-354.102, -14.719),
+                new GeoVector2(Math.Cos(4.597074), Math.Sin(4.597074)),
+                510.745,
+                95.5613
+            );
+            var second = new GeoEllipse2(
+                new GeoPoint2(-395.9041, -918.101),
+                new GeoVector2(Math.Cos(0.499146), Math.Sin(0.499146)),
+                98.244,
+                0.3696
+            );
 
-            AssertJoins(first, first.GetShortestLineTo(second, Strict), p => Ellipse2Oracle.GapToRim(second, p), 362.52764221318999);
+            AssertJoins(
+                first,
+                first.GetShortestLineTo(second, Strict),
+                p => Ellipse2Oracle.GapToRim(second, p),
+                362.52764221318999
+            );
         }
 
         [Fact]
@@ -348,7 +471,10 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(polygon.GetEdges().OrderBy(gap).First(), ellipse.GetClosestEdge(polygon, Strict));
             Assert.Equal(polyline.GetEdges().OrderBy(gap).First(), ellipse.GetClosestEdge(polyline, Strict));
             Assert.Equal(rectangle.GetEdges().OrderBy(gap).First(), ellipse.GetClosestEdge(rectangle, Strict));
-            Assert.Equal(new[] { triangle.GetEdgeAt(0), triangle.GetEdgeAt(1), triangle.GetEdgeAt(2) }.OrderBy(gap).First(), ellipse.GetClosestEdge(triangle, Strict));
+            Assert.Equal(
+                new[] { triangle.GetEdgeAt(0), triangle.GetEdgeAt(1), triangle.GetEdgeAt(2) }.OrderBy(gap).First(),
+                ellipse.GetClosestEdge(triangle, Strict)
+            );
         }
 
         [Fact]
@@ -377,7 +503,10 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The square from x = 350 to 450 beside the tip, its left side bowed 12 towards the tip by the bulge 0.3.
             GeoEllipse2 ellipse = Upright();
-            var loop = new GeoPolygonArc2(Ellipse2Oracle.FramePoints(ellipse, 350, -40, 450, -40, 450, 40, 350, 40), new[] { 0.0, 0.5, 0.0, 0.3 });
+            var loop = new GeoPolygonArc2(
+                Ellipse2Oracle.FramePoints(ellipse, 350, -40, 450, -40, 450, 40, 350, 40),
+                new[] { 0.0, 0.5, 0.0, 0.3 }
+            );
             GeoEdge2 closest = ellipse.GetClosestEdge(loop, Strict);
 
             Assert.Equal(loop.GetEdges().ElementAt(3), closest);
@@ -390,7 +519,10 @@ namespace GeometryHelper.UnitTest.Plane
             // Above the top: a straight edge from (-300, 160) to (-60, 180), a half turn from there to (60, 180) bowed down
             // to (0, 120), 20 above the top, and a shallow arc on to (200, 220), every point of which is further off.
             GeoEllipse2 ellipse = Upright();
-            var chain = new GeoPolylineArc2(Ellipse2Oracle.FramePoints(ellipse, -300, 160, -60, 180, 60, 180, 200, 220), new[] { 0.0, 1.0, 0.4, 0.0 });
+            var chain = new GeoPolylineArc2(
+                Ellipse2Oracle.FramePoints(ellipse, -300, 160, -60, 180, 60, 180, 200, 220),
+                new[] { 0.0, 1.0, 0.4, 0.0 }
+            );
             GeoEdge2 closest = ellipse.GetClosestEdge(chain, Strict);
 
             Assert.Equal(chain.GetEdges().ElementAt(1), closest);

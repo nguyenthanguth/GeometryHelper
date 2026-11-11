@@ -18,36 +18,83 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Tight = new Tolerance(1E-10, 1E-10, Math.PI / 180, 1E-10);
 
-        private static GeoSolid3 Turned(GeoSolid3 part, GeoVector3 axis, double angle)
-            => part.TransformBy(GeoTransform3.RotationAxis(GeoPoint3.Origin, axis, angle));
+        private static GeoSolid3 Turned(GeoSolid3 part, GeoVector3 axis, double angle) =>
+            part.TransformBy(GeoTransform3.RotationAxis(GeoPoint3.Origin, axis, angle));
 
         /// <summary>
         /// An I 11 long, its flange tip and inner side met at a corner by a prism of twelve sides passing it.
         /// </summary>
-        private static (GeoSolid3 A, GeoSolid3 B) IAndPrism() => (
-            Turned(GeoSolid3.Extrude(
-                    new GeoPolygon2(
-                        new GeoPoint2(-12.5, 0), new GeoPoint2(12.5, 0), new GeoPoint2(12.5, 4), new GeoPoint2(3, 4), new GeoPoint2(3, 72),
-                        new GeoPoint2(12.5, 72), new GeoPoint2(12.5, 76), new GeoPoint2(-12.5, 76), new GeoPoint2(-12.5, 72), new GeoPoint2(-3, 72),
-                        new GeoPoint2(-3, 4), new GeoPoint2(-12.5, 4)),
-                    new GeoCoordinateSystem3(new GeoPoint3(-25, -25, 23), GeoVector3.XAxis, GeoVector3.YAxis), 11),
-                new GeoVector3(-0.2993645834733567, 0.44856412473533491, -0.31418844909136578), 0.24493570357790945),
-            Turned(GeoSolid3.Cylinder(new GeoPoint3(-22, -27, -3), new GeoPoint3(-83, 2, 71), 17, 12),
-                new GeoVector3(0.28093027592679964, 0.22354216767639956, -0.19311523888870852), 2.2736830349423376));
+        private static (GeoSolid3 A, GeoSolid3 B) IAndPrism() =>
+            (
+                Turned(
+                    GeoSolid3.Extrude(
+                        new GeoPolygon2(
+                            new GeoPoint2(-12.5, 0),
+                            new GeoPoint2(12.5, 0),
+                            new GeoPoint2(12.5, 4),
+                            new GeoPoint2(3, 4),
+                            new GeoPoint2(3, 72),
+                            new GeoPoint2(12.5, 72),
+                            new GeoPoint2(12.5, 76),
+                            new GeoPoint2(-12.5, 76),
+                            new GeoPoint2(-12.5, 72),
+                            new GeoPoint2(-3, 72),
+                            new GeoPoint2(-3, 4),
+                            new GeoPoint2(-12.5, 4)
+                        ),
+                        new GeoCoordinateSystem3(new GeoPoint3(-25, -25, 23), GeoVector3.XAxis, GeoVector3.YAxis),
+                        11
+                    ),
+                    new GeoVector3(-0.2993645834733567, 0.44856412473533491, -0.31418844909136578),
+                    0.24493570357790945
+                ),
+                Turned(
+                    GeoSolid3.Cylinder(new GeoPoint3(-22, -27, -3), new GeoPoint3(-83, 2, 71), 17, 12),
+                    new GeoVector3(0.28093027592679964, 0.22354216767639956, -0.19311523888870852),
+                    2.2736830349423376
+                )
+            );
 
         /// <summary>
         /// Two bars bent twice, crossing.
         /// </summary>
-        private static (GeoSolid3 A, GeoSolid3 B) CrossingBars() => (
-            Turned(GeoSolid3.Pipe(new GeoPolyline3(new GeoPoint3(-6, -2, -36), new GeoPoint3(-59, 2, -7), new GeoPoint3(-61, 12, 30), new GeoPoint3(-29, -11, 26)).Fillet(17), 6, 0.3),
-                new GeoVector3(-0.44080992086828219, 0.079094676104883965, 0.49383613699760109), 2.1122341910899776),
-            Turned(GeoSolid3.Pipe(new GeoPolyline3(new GeoPoint3(-2, -37, 17), new GeoPoint3(-17, -24, 28), new GeoPoint3(-11, -77, 55), new GeoPoint3(-38, -91, 9)).Fillet(15), 10, 0.3),
-                new GeoVector3(-0.14885957010502909, -0.38470693625728924, 0.3328549544479954), 1.72172328071749));
+        private static (GeoSolid3 A, GeoSolid3 B) CrossingBars() =>
+            (
+                Turned(
+                    GeoSolid3.Pipe(
+                        new GeoPolyline3(
+                            new GeoPoint3(-6, -2, -36),
+                            new GeoPoint3(-59, 2, -7),
+                            new GeoPoint3(-61, 12, 30),
+                            new GeoPoint3(-29, -11, 26)
+                        ).Fillet(17),
+                        6,
+                        0.3
+                    ),
+                    new GeoVector3(-0.44080992086828219, 0.079094676104883965, 0.49383613699760109),
+                    2.1122341910899776
+                ),
+                Turned(
+                    GeoSolid3.Pipe(
+                        new GeoPolyline3(
+                            new GeoPoint3(-2, -37, 17),
+                            new GeoPoint3(-17, -24, 28),
+                            new GeoPoint3(-11, -77, 55),
+                            new GeoPoint3(-38, -91, 9)
+                        ).Fillet(15),
+                        10,
+                        0.3
+                    ),
+                    new GeoVector3(-0.14885957010502909, -0.38470693625728924, 0.3328549544479954),
+                    1.72172328071749
+                )
+            );
 
-        private static double Shared(GeoSolid3 a, GeoSolid3 b) => Boolean3.Intersect(a, b, Tight).Sum(piece => piece.GetVolume());
+        private static double Shared(GeoSolid3 a, GeoSolid3 b) =>
+            Boolean3.Intersect(a, b, Tight).Sum(piece => piece.GetVolume());
 
-        private static void AssertNear(double expected, double actual, double scale, string what)
-            => Assert.True(Math.Abs(actual - expected) <= 5E-6 * scale, $"{what}: {actual:R}, expected {expected:R}");
+        private static void AssertNear(double expected, double actual, double scale, string what) =>
+            Assert.True(Math.Abs(actual - expected) <= 5E-6 * scale, $"{what}: {actual:R}, expected {expected:R}");
 
         [Fact]
         public void APrismPassingTheCornerOfAnI_UnitesWithIt_Closed()
@@ -60,7 +107,12 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(a.TryUnion(b, out GeoSolid3 union));
             Assert.True(union.IsClosed());
-            AssertNear(a.GetVolume() + b.GetVolume() - Shared(a, b), union.GetVolume(), a.GetVolume() + b.GetVolume(), "the union");
+            AssertNear(
+                a.GetVolume() + b.GetVolume() - Shared(a, b),
+                union.GetVolume(),
+                a.GetVolume() + b.GetVolume(),
+                "the union"
+            );
         }
 
         [Fact]

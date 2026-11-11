@@ -61,8 +61,15 @@ namespace GeometryHelper.UnitTest.Dwg
             foreach (string name in new[] { "curves_AC1032", "blocks_AC1018", "props_AC1024", "blocks_AC1027" })
             {
                 byte[] file = DwgAnswerKey.Dwg(name);
-                List<KeyValuePair<string, byte[]>> sections = DwgContainer.SectionsOf(file, out Dictionary<string, int[]> layout);
-                var writer = new DwgContainerWriter(Encoding.ASCII.GetString(file, 0, 6), file[0x0B], file[0x13] | (file[0x14] << 8));
+                List<KeyValuePair<string, byte[]>> sections = DwgContainer.SectionsOf(
+                    file,
+                    out Dictionary<string, int[]> layout
+                );
+                var writer = new DwgContainerWriter(
+                    Encoding.ASCII.GetString(file, 0, 6),
+                    file[0x0B],
+                    file[0x13] | (file[0x14] << 8)
+                );
 
                 foreach (KeyValuePair<string, byte[]> section in sections)
                 {

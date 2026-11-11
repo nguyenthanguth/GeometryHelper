@@ -34,7 +34,16 @@ namespace GeometryHelper.Core
         /// measured from that plane's own point, and the rounding left is that distance's, divided by the sine of the
         /// angle between the planes.
         /// </remarks>
-        internal static bool TryGetMeetingLineFrom(GeoPoint3 center, GeoVector3 normal, double reach, GeoPlane3 plane, Tolerance tolerance, out GeoVector3 offset, out GeoVector3 direction, out double rounding)
+        internal static bool TryGetMeetingLineFrom(
+            GeoPoint3 center,
+            GeoVector3 normal,
+            double reach,
+            GeoPlane3 plane,
+            Tolerance tolerance,
+            out GeoVector3 offset,
+            out GeoVector3 direction,
+            out double rounding
+        )
         {
             GeoVector3 other = plane.Normal;
             GeoVector3 cross = normal.CrossProduct(other);
@@ -63,7 +72,8 @@ namespace GeometryHelper.Core
             // is a part in 1E16 over the sine again. A plane whose point is stored far along the line adds nothing, since
             // its coordinates there put nothing into the height.
             GeoPoint3 stored = plane.Origin;
-            double terms = (Math.Abs(center.X) + Math.Abs(stored.X)) * Math.Abs(other.X)
+            double terms =
+                (Math.Abs(center.X) + Math.Abs(stored.X)) * Math.Abs(other.X)
                 + (Math.Abs(center.Y) + Math.Abs(stored.Y)) * Math.Abs(other.Y)
                 + (Math.Abs(center.Z) + Math.Abs(stored.Z)) * Math.Abs(other.Z);
             rounding = Epsilon * (terms / sine + 4.0 * offset.Length * (1.0 + 1.0 / sine));

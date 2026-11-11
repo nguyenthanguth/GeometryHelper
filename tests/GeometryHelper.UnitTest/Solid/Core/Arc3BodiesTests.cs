@@ -24,8 +24,8 @@ namespace GeometryHelper.UnitTest.Solid
         /// A half turn of radius 100 in the plane y = 50, arching from (-100, 50, 0) over (0, 50, 100) to
         /// (100, 50, 0) — so it goes in through one wall of the cube and out through the other.
         /// </summary>
-        private static GeoArc3 Arching() => GeoArc3.FromThreePoints(
-            new GeoPoint3(-100, 50, 0), new GeoPoint3(0, 50, 100), new GeoPoint3(100, 50, 0));
+        private static GeoArc3 Arching() =>
+            GeoArc3.FromThreePoints(new GeoPoint3(-100, 50, 0), new GeoPoint3(0, 50, 100), new GeoPoint3(100, 50, 0));
 
         [Fact]
         public void AnArcThroughABoxGoesInOneSideAndOutTheOther()
@@ -60,7 +60,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             // A small arc about the middle of the cube.
             GeoArc3 inside = GeoArc3.FromThreePoints(
-                new GeoPoint3(60, 50, 50), new GeoPoint3(50, 60, 50), new GeoPoint3(40, 50, 50));
+                new GeoPoint3(60, 50, 50),
+                new GeoPoint3(50, 60, 50),
+                new GeoPoint3(40, 50, 50)
+            );
 
             Assert.Empty(Arc3.GetIntersections(inside, crate));
             Assert.True(Arc3.CollidesWith(inside, crate));
@@ -93,7 +96,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             // A small arc inside the duct: it is in the hole, not in the material.
             GeoArc3 inDuct = GeoArc3.FromThreePoints(
-                new GeoPoint3(55, 50, 50), new GeoPoint3(50, 55, 50), new GeoPoint3(45, 50, 50));
+                new GeoPoint3(55, 50, 50),
+                new GeoPoint3(50, 55, 50),
+                new GeoPoint3(45, 50, 50)
+            );
 
             Assert.False(Arc3.CollidesWith(inDuct, pierced));
             Assert.Empty(Arc3.GetIntersections(inDuct, pierced));
@@ -103,14 +109,18 @@ namespace GeometryHelper.UnitTest.Solid
 
             // And an arc reaching out of the duct into the material does touch it, crossing the duct wall.
             GeoArc3 outOfDuct = GeoArc3.FromThreePoints(
-                new GeoPoint3(50, 50, 50), new GeoPoint3(70, 50, 60), new GeoPoint3(90, 50, 50));
+                new GeoPoint3(50, 50, 50),
+                new GeoPoint3(70, 50, 60),
+                new GeoPoint3(90, 50, 50)
+            );
 
             Assert.True(Arc3.CollidesWith(outOfDuct, pierced));
             Assert.NotEmpty(Arc3.GetIntersections(outOfDuct, pierced));
 
             // Every crossing the body gives is one the body itself calls a boundary point.
-            Assert.All(Arc3.GetIntersections(outOfDuct, pierced),
-                point => Assert.Equal(0.0, pierced.SignedDistanceTo(point), 3));
+            Assert.All(Arc3.GetIntersections(outOfDuct, pierced), point =>
+                Assert.Equal(0.0, pierced.SignedDistanceTo(point), 3)
+            );
         }
 
         [Fact]
@@ -144,7 +154,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             // An arc through the corner at (100, 100, 100), where three faces meet: it must be one answer.
             GeoArc3 throughCorner = GeoArc3.FromThreePoints(
-                new GeoPoint3(200, 100, 100), new GeoPoint3(100, 100, 100), new GeoPoint3(100, 200, 100));
+                new GeoPoint3(200, 100, 100),
+                new GeoPoint3(100, 100, 100),
+                new GeoPoint3(100, 200, 100)
+            );
 
             GeoPoint3[] crossings = Arc3.GetIntersections(throughCorner, crate);
 

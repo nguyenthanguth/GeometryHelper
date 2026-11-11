@@ -13,7 +13,8 @@ namespace GeometryHelper.Viewer.Tests
 {
     public class SideRunnerTests : IClassFixture<CompareFixture>
     {
-        private const string Script = @"
+        private const string Script =
+            @"
 var loop = new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100.1234567890123, 60), new GeoPoint2(0, 60) }, new[] { 0.0, 0.5, 0.0, 0.0 });
 Show(loop, layer: ""source"", name: ""loop"", props: new { width = 100.5, join = ""Round"" });
 Show(loop.Offset(5, new OffsetOptions(OffsetJoin.Miter)), layer: ""out"", name: ""miter"");
@@ -36,7 +37,12 @@ Note(""two lines"" + ""\nof one note"");
             return path;
         }
 
-        private static async Task<(int Exit, string Out, string Err)> RunRunnerAsync(string runnerFolder, string script, string output, bool measure)
+        private static async Task<(int Exit, string Out, string Err)> RunRunnerAsync(
+            string runnerFolder,
+            string script,
+            string output,
+            bool measure
+        )
         {
             var outLines = new List<string>();
             var errLines = new List<string>();
@@ -54,7 +60,8 @@ Note(""two lines"" + ""\nof one note"");
                 TimeSpan.FromSeconds(120),
                 outLines.Add,
                 errLines.Add,
-                CancellationToken.None);
+                CancellationToken.None
+            );
 
             return (result.ExitCode, string.Join("\n", outLines), string.Join("\n", errLines));
         }
@@ -65,11 +72,21 @@ Note(""two lines"" + ""\nof one note"");
             using (var folder = new TempFolder())
             {
                 string script = WriteScript(folder, Script);
-                ScriptRunResult inProcess = await ScriptHost.RunAsync(File.ReadAllText(script), script, null, CancellationToken.None);
+                ScriptRunResult inProcess = await ScriptHost.RunAsync(
+                    File.ReadAllText(script),
+                    script,
+                    null,
+                    CancellationToken.None
+                );
                 Assert.True(inProcess.Succeeded, string.Join("\n", inProcess.Errors));
                 string expected = new SceneWriter(inProcess.Scene).ToJson();
 
-                var run = await RunRunnerAsync(_fixture.Environment.RunnerFolder, script, folder.Combine("out.ghscene.json"), false);
+                var run = await RunRunnerAsync(
+                    _fixture.Environment.RunnerFolder,
+                    script,
+                    folder.Combine("out.ghscene.json"),
+                    false
+                );
 
                 Assert.Equal(0, run.Exit);
                 Assert.Equal(expected, File.ReadAllText(folder.Combine("out.ghscene.json")));
@@ -84,10 +101,20 @@ Note(""two lines"" + ""\nof one note"");
             using (var folder = new TempFolder())
             {
                 string script = WriteScript(folder, Script);
-                ScriptRunResult inProcess = await ScriptHost.RunAsync(File.ReadAllText(script), script, null, CancellationToken.None);
+                ScriptRunResult inProcess = await ScriptHost.RunAsync(
+                    File.ReadAllText(script),
+                    script,
+                    null,
+                    CancellationToken.None
+                );
                 string expected = new SceneWriter(inProcess.Scene).ToJson();
 
-                var run = await RunRunnerAsync(_fixture.Environment.RunnerFolder, script, folder.Combine("out.ghscene.json"), true);
+                var run = await RunRunnerAsync(
+                    _fixture.Environment.RunnerFolder,
+                    script,
+                    folder.Combine("out.ghscene.json"),
+                    true
+                );
 
                 Assert.Equal(0, run.Exit);
                 Scene scene = SceneReader.ReadFile(folder.Combine("out.ghscene.json"));
@@ -103,7 +130,11 @@ Note(""two lines"" + ""\nof one note"");
 
                 foreach (SceneItem item in scene.Items)
                 {
-                    foreach (string key in item.Properties.Keys.Where(k => k.StartsWith(RunnerMeasures.Prefix, StringComparison.Ordinal)).ToList())
+                    foreach (
+                        string key in item
+                            .Properties.Keys.Where(k => k.StartsWith(RunnerMeasures.Prefix, StringComparison.Ordinal))
+                            .ToList()
+                    )
                     {
                         item.Properties.Remove(key);
                     }
@@ -121,7 +152,20 @@ Note(""two lines"" + ""\nof one note"");
                 string script = WriteScript(folder, Script);
                 var log = new List<string>();
 
-                SideRunResult result = await SideRunner.RunAsync(_fixture.Environment, script, BuildSource.Own, "left", line => { lock (log) { log.Add(line); } }, CancellationToken.None);
+                SideRunResult result = await SideRunner.RunAsync(
+                    _fixture.Environment,
+                    script,
+                    BuildSource.Own,
+                    "left",
+                    line =>
+                    {
+                        lock (log)
+                        {
+                            log.Add(line);
+                        }
+                    },
+                    CancellationToken.None
+                );
 
                 Assert.True(result.Succeeded, string.Join("\n", result.Errors));
                 Assert.Equal(4, result.Scene.Items.Count);
@@ -130,7 +174,11 @@ Note(""two lines"" + ""\nof one note"");
                 Assert.Equal(RunnerCache.KeyOf(typeof(Tolerance).Assembly.Location), result.LibraryKey);
 
                 // The DLL that ran was the copy in the runner cache, not the one the viewer holds.
-                Assert.StartsWith(Path.Combine(_fixture.Environment.RunnersFolder, result.LibraryKey), result.LibraryLine, StringComparison.OrdinalIgnoreCase);
+                Assert.StartsWith(
+                    Path.Combine(_fixture.Environment.RunnersFolder, result.LibraryKey),
+                    result.LibraryLine,
+                    StringComparison.OrdinalIgnoreCase
+                );
                 Assert.All(log, line => Assert.StartsWith("[left] ", line, StringComparison.Ordinal));
                 Assert.Empty(Directory.GetFiles(_fixture.Environment.ScenesFolder));
                 Assert.True(result.Elapsed > TimeSpan.Zero);
@@ -148,13 +196,29 @@ Note(""two lines"" + ""\nof one note"");
                 string script = WriteScript(folder, "Show(new GeoPoint2(1, 2));");
                 var log = new List<string>();
 
-                SideRunResult own = await SideRunner.RunAsync(_fixture.Environment, script, BuildSource.Own, "left", null, CancellationToken.None);
-                SideRunResult other = await SideRunner.RunAsync(_fixture.Environment, script, BuildSource.FromDll(copy), "right", log.Add, CancellationToken.None);
+                SideRunResult own = await SideRunner.RunAsync(
+                    _fixture.Environment,
+                    script,
+                    BuildSource.Own,
+                    "left",
+                    null,
+                    CancellationToken.None
+                );
+                SideRunResult other = await SideRunner.RunAsync(
+                    _fixture.Environment,
+                    script,
+                    BuildSource.FromDll(copy),
+                    "right",
+                    log.Add,
+                    CancellationToken.None
+                );
 
                 Assert.True(other.Succeeded, string.Join("\n", other.Errors));
                 Assert.Equal(own.LibraryKey, other.LibraryKey);
                 Assert.Contains(log, line => line.Contains("runner cache hit", StringComparison.Ordinal));
-                Assert.Single(Directory.GetDirectories(_fixture.Environment.RunnersFolder), d => !d.Contains(".tmp-", StringComparison.Ordinal));
+                Assert.Single(Directory.GetDirectories(_fixture.Environment.RunnersFolder), d =>
+                    !d.Contains(".tmp-", StringComparison.Ordinal)
+                );
             }
         }
 
@@ -163,9 +227,20 @@ Note(""two lines"" + ""\nof one note"");
         {
             using (var folder = new TempFolder())
             {
-                string script = WriteScript(folder, "var a = 1;\nint b = \"text\";\nShow(new GeoPoint2(a, 1));\n", "broken.csx");
+                string script = WriteScript(
+                    folder,
+                    "var a = 1;\nint b = \"text\";\nShow(new GeoPoint2(a, 1));\n",
+                    "broken.csx"
+                );
 
-                SideRunResult result = await SideRunner.RunAsync(_fixture.Environment, script, BuildSource.Own, "right", null, CancellationToken.None);
+                SideRunResult result = await SideRunner.RunAsync(
+                    _fixture.Environment,
+                    script,
+                    BuildSource.Own,
+                    "right",
+                    null,
+                    CancellationToken.None
+                );
 
                 Assert.False(result.Succeeded);
                 Assert.Null(result.Scene);
@@ -180,9 +255,20 @@ Note(""two lines"" + ""\nof one note"");
         {
             using (var folder = new TempFolder())
             {
-                string script = WriteScript(folder, "Show(new GeoPoint2(1, 2));\nvar tooFew = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(1, 0));\n", "throws.csx");
+                string script = WriteScript(
+                    folder,
+                    "Show(new GeoPoint2(1, 2));\nvar tooFew = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(1, 0));\n",
+                    "throws.csx"
+                );
 
-                SideRunResult result = await SideRunner.RunAsync(_fixture.Environment, script, BuildSource.Own, "left", null, CancellationToken.None);
+                SideRunResult result = await SideRunner.RunAsync(
+                    _fixture.Environment,
+                    script,
+                    BuildSource.Own,
+                    "left",
+                    null,
+                    CancellationToken.None
+                );
 
                 Assert.False(result.Succeeded);
                 string error = Assert.Single(result.Errors);
@@ -196,9 +282,19 @@ Note(""two lines"" + ""\nof one note"");
         {
             using (var folder = new TempFolder())
             {
-                string script = WriteScript(folder, "Tol = new Tolerance(0.05, 1E-4, 0.02, 0.07);\nShow(new GeoPoint2(1, 2));");
+                string script = WriteScript(
+                    folder,
+                    "Tol = new Tolerance(0.05, 1E-4, 0.02, 0.07);\nShow(new GeoPoint2(1, 2));"
+                );
 
-                SideRunResult result = await SideRunner.RunAsync(_fixture.Environment, script, BuildSource.Own, "left", null, CancellationToken.None);
+                SideRunResult result = await SideRunner.RunAsync(
+                    _fixture.Environment,
+                    script,
+                    BuildSource.Own,
+                    "left",
+                    null,
+                    CancellationToken.None
+                );
 
                 Assert.True(result.Succeeded, string.Join("\n", result.Errors));
                 Assert.Equal(0.05, result.Scene.EqualPoint);
@@ -215,10 +311,21 @@ Note(""two lines"" + ""\nof one note"");
             {
                 string script = WriteScript(folder, "Show(new GeoPoint2(1, 2));");
 
-                SideRunResult result = await SideRunner.RunAsync(_fixture.Environment, script, BuildSource.FromDll(folder.Combine("nothing.dll")), "right", null, CancellationToken.None);
+                SideRunResult result = await SideRunner.RunAsync(
+                    _fixture.Environment,
+                    script,
+                    BuildSource.FromDll(folder.Combine("nothing.dll")),
+                    "right",
+                    null,
+                    CancellationToken.None
+                );
 
                 Assert.False(result.Succeeded);
-                Assert.Contains("There is no GeometryHelper.dll", Assert.Single(result.Errors), StringComparison.Ordinal);
+                Assert.Contains(
+                    "There is no GeometryHelper.dll",
+                    Assert.Single(result.Errors),
+                    StringComparison.Ordinal
+                );
             }
         }
 
@@ -237,11 +344,19 @@ Note(""two lines"" + ""\nof one note"");
             }
         }
 
-        private static Process StartInnocentBystander()
-            => Process.Start(new ProcessStartInfo("ping", "-n 60 127.0.0.1") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true });
+        private static Process StartInnocentBystander() =>
+            Process.Start(
+                new ProcessStartInfo("ping", "-n 60 127.0.0.1")
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                }
+            );
 
         // The script says its own process id and starts a grandchild that sleeps, saying that one's id too.
-        private const string Sleeper = @"
+        private const string Sleeper =
+            @"
 Note(""runner "" + Environment.ProcessId);
 var grandchild = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(""ping"", ""-n 120 127.0.0.1"") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true });
 Note(""grandchild "" + grandchild.Id);
@@ -249,7 +364,10 @@ System.Threading.Thread.Sleep(120000);
 Show(new GeoPoint2(1, 2));
 ";
 
-        private static int IdFrom(SideRunResult result, string word) => int.Parse(result.Notes.Single(n => n.StartsWith(word + " ", StringComparison.Ordinal)).Substring(word.Length + 1));
+        private static int IdFrom(SideRunResult result, string word) =>
+            int.Parse(
+                result.Notes.Single(n => n.StartsWith(word + " ", StringComparison.Ordinal)).Substring(word.Length + 1)
+            );
 
         [Fact]
         public async Task ARunThatOutlastsItsTime_IsKilledWithItsGrandchild_AndOnlyThose()
@@ -269,7 +387,14 @@ Show(new GeoPoint2(1, 2));
                     string script = WriteScript(folder, Sleeper);
                     var clock = Stopwatch.StartNew();
 
-                    SideRunResult result = await SideRunner.RunAsync(environment, script, BuildSource.Own, "left", null, CancellationToken.None);
+                    SideRunResult result = await SideRunner.RunAsync(
+                        environment,
+                        script,
+                        BuildSource.Own,
+                        "left",
+                        null,
+                        CancellationToken.None
+                    );
 
                     Assert.True(result.TimedOut);
                     Assert.False(result.Succeeded);
@@ -315,7 +440,8 @@ Show(new GeoPoint2(1, 2));
                             seen.TrySetResult(true);
                         }
                     },
-                    cancel.Token);
+                    cancel.Token
+                );
 
                 Assert.Same(seen.Task, await Task.WhenAny(seen.Task, Task.Delay(TimeSpan.FromSeconds(90))));
                 var clock = Stopwatch.StartNew();

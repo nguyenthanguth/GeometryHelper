@@ -11,7 +11,9 @@ namespace GeometryHelper.Viewer.Tests
         {
             Scene scene = new SceneWriter().Add(shape).Scene;
             Primitives primitives = Primitives.Build(scene);
-            return ItemMeasures.Describe(scene.Items[0], scene, primitives.Items[0]).ToDictionary(pair => pair.Key, pair => pair.Value);
+            return ItemMeasures
+                .Describe(scene.Items[0], scene, primitives.Items[0])
+                .ToDictionary(pair => pair.Key, pair => pair.Value);
         }
 
         [Fact]
@@ -25,21 +27,36 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Equal("1", numbers["Openings"]);
             Assert.Equal("yes", numbers["Closed"]);
             // The library gives the box of the faces; what is drawn goes out to the hole, cut from -1 to 11.
-            Assert.Equal("0, 0, 0", numbers["Bounds min (library)"].Replace("(", string.Empty).Replace(")", string.Empty));
-            Assert.Equal("30, 20, 10", numbers["Bounds max (library)"].Replace("(", string.Empty).Replace(")", string.Empty));
+            Assert.Equal(
+                "0, 0, 0",
+                numbers["Bounds min (library)"].Replace("(", string.Empty).Replace(")", string.Empty)
+            );
+            Assert.Equal(
+                "30, 20, 10",
+                numbers["Bounds max (library)"].Replace("(", string.Empty).Replace(")", string.Empty)
+            );
         }
 
         [Fact]
         public void APolygonArc_HasItsVerticesArcsLengthAndArea()
         {
-            var loop = new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10) }, new[] { 1.0, 0.0, 0.0, 0.0 });
+            var loop = new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10) },
+                new[] { 1.0, 0.0, 0.0, 0.0 }
+            );
 
             Dictionary<string, string> numbers = Measure(loop);
 
             Assert.Equal("4", numbers["Vertices"]);
             Assert.Equal("1", numbers["Arcs"]);
-            Assert.Equal((loop.Area).ToString("G10", System.Globalization.CultureInfo.InvariantCulture), numbers["Area"]);
-            Assert.Equal((loop.Length).ToString("G10", System.Globalization.CultureInfo.InvariantCulture), numbers["Length"]);
+            Assert.Equal(
+                (loop.Area).ToString("G10", System.Globalization.CultureInfo.InvariantCulture),
+                numbers["Area"]
+            );
+            Assert.Equal(
+                (loop.Length).ToString("G10", System.Globalization.CultureInfo.InvariantCulture),
+                numbers["Length"]
+            );
         }
 
         [Fact]

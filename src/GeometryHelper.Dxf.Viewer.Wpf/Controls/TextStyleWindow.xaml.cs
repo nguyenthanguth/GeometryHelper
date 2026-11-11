@@ -28,8 +28,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             model.AskName = (title, offered) => StyleNameWindow.Ask(this, new StyleNameViewModel(title, offered, null));
             model.AskSave = question =>
             {
-                MessageBoxResult answer = MessageBox.Show(this, question, "Text Style", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-                return answer == MessageBoxResult.Yes ? true : answer == MessageBoxResult.No ? (bool?)false : null;
+                MessageBoxResult answer = MessageBox.Show(
+                    this,
+                    question,
+                    "Text Style",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Question
+                );
+                return answer == MessageBoxResult.Yes ? true
+                    : answer == MessageBoxResult.No ? (bool?)false
+                    : null;
             };
         }
 

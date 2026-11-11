@@ -43,8 +43,8 @@ namespace GeometryHelper.TeklaConvert
         /// <summary>
         /// Converts a Tekla polyline to a chain that may curve, bending it at each turn.
         /// </summary>
-        public static GeoPolylineArc3 ToGeoPolylineArc3(this TSG.PolyLine shape, IList<double> bendingRadii)
-            => shape.ToGeoPolylineArc3(bendingRadii, Tolerance.Global);
+        public static GeoPolylineArc3 ToGeoPolylineArc3(this TSG.PolyLine shape, IList<double> bendingRadii) =>
+            shape.ToGeoPolylineArc3(bendingRadii, Tolerance.Global);
 
         /// <summary>
         /// Converts a Tekla polyline to a chain that may curve, bending it at each turn, within a tolerance.
@@ -58,7 +58,11 @@ namespace GeometryHelper.TeklaConvert
         /// <param name="tolerance">The tolerance; Tekla coordinates run large, so this is worth giving.</param>
         /// <returns>The chain: straight runs with a tangent arc at every bend that had room for one.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="shape"/> is null.</exception>
-        public static GeoPolylineArc3 ToGeoPolylineArc3(this TSG.PolyLine shape, IList<double> bendingRadii, Tolerance tolerance)
+        public static GeoPolylineArc3 ToGeoPolylineArc3(
+            this TSG.PolyLine shape,
+            IList<double> bendingRadii,
+            Tolerance tolerance
+        )
         {
             return ReadPoints(shape).ToGeoPolylineArc3(bendingRadii, tolerance);
         }
@@ -71,7 +75,8 @@ namespace GeometryHelper.TeklaConvert
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="polyline"/> is null.</exception>
         public static TSG.PolyLine ToTeklaPolyLine(this GeoPolyline3 polyline)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return new TSG.PolyLine(new ArrayList(polyline.Vertices.ToTeklaPoint()));
         }
@@ -91,7 +96,8 @@ namespace GeometryHelper.TeklaConvert
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static TSG.PolyLine ToTeklaPolyLine(this GeoPolylineArc3 chain, double chordTolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return chain.ToPolyline3(chordTolerance).ToTeklaPolyLine();
         }
@@ -101,7 +107,8 @@ namespace GeometryHelper.TeklaConvert
         /// </summary>
         private static List<TSG.Point> ReadPoints(TSG.PolyLine shape)
         {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            if (shape == null)
+                throw new ArgumentNullException(nameof(shape));
 
             return PointConvert.ReadTeklaPoints(shape.Points, nameof(shape));
         }

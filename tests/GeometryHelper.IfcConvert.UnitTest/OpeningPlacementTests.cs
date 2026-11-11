@@ -10,7 +10,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
         // Opening: 0.4 x 1.0 x 1.0 through the wall thickness, placed relative to the wall at (0.4,0,0.5),
         // so it only notches the wall end (x 0.2..0.6 against wall x -0.5..0.5): removed 0.3 x 0.5 x 1 = 0.15.
         // If the opening were positioned in the wrong frame it would cut the middle (x -0.2..0.2) and remove 0.2.
-        private static readonly string WallWithRelativeOpening = IfcTestFile.CommonHeader() + @"
+        private static readonly string WallWithRelativeOpening =
+            IfcTestFile.CommonHeader()
+            + @"
 #20=IFCRECTANGLEPROFILEDEF(.AREA.,$,#5,1.,0.5);
 #21=IFCEXTRUDEDAREASOLID(#20,#8,#9,2.);
 #22=IFCSHAPEREPRESENTATION(#11,'Body','SweptSolid',(#21));
@@ -32,7 +34,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
 
         // Wall 1 x 0.5 x 2 with a round r = 0.1 opening drilled through its thickness (along Y) at mid height:
         // V = 1 - pi * 0.01 * 0.5.
-        private static readonly string WallWithRoundOpening = IfcTestFile.CommonHeader() + @"
+        private static readonly string WallWithRoundOpening =
+            IfcTestFile.CommonHeader()
+            + @"
 #20=IFCRECTANGLEPROFILEDEF(.AREA.,$,#5,1.,0.5);
 #21=IFCEXTRUDEDAREASOLID(#20,#8,#9,2.);
 #22=IFCSHAPEREPRESENTATION(#11,'Body','SweptSolid',(#21));
@@ -59,8 +63,10 @@ namespace GeometryHelper.IfcConvert.UnitTest
             {
                 var geom = model.GetGeometry("0000000000000000000002", new IfcConvertOptions { ApplyVoids = true });
                 double expected = 1.0 - System.Math.PI * 0.01 * 0.5;
-                Assert.True(System.Math.Abs(geom.TotalVolume - expected) / expected < 0.001,
-                    $"volume {geom.TotalVolume:F5} vs expected {expected:F5}");
+                Assert.True(
+                    System.Math.Abs(geom.TotalVolume - expected) / expected < 0.001,
+                    $"volume {geom.TotalVolume:F5} vs expected {expected:F5}"
+                );
             });
         }
 

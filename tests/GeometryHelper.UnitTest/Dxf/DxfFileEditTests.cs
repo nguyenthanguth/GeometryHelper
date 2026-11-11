@@ -94,23 +94,263 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static DxfItem ByHandle(DxfFile file, string handle) => file.ModelSpace.Single(i => i.Handle == handle);
 
-        private static ulong Hex(string handle) => ulong.Parse(handle.Trim(), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+        private static ulong Hex(string handle) =>
+            ulong.Parse(handle.Trim(), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
 
         /// <summary>Every handle of a text, the header's left out.</summary>
-        private static List<ulong> Handles(string text)
-            => Records(text).Where(r => !r.Contains("\nHEADER\n")).Select(HandleOf).Where(h => h != null).Select(Hex).ToList();
+        private static List<ulong> Handles(string text) =>
+            Records(text)
+                .Where(r => !r.Contains("\nHEADER\n"))
+                .Select(HandleOf)
+                .Where(h => h != null)
+                .Select(Hex)
+                .ToList();
 
-        private static string Bits(GeoPoint3 p)
-            => BitConverter.DoubleToInt64Bits(p.X).ToString("x", CultureInfo.InvariantCulture) + "," + BitConverter.DoubleToInt64Bits(p.Y).ToString("x", CultureInfo.InvariantCulture) + "," + BitConverter.DoubleToInt64Bits(p.Z).ToString("x", CultureInfo.InvariantCulture);
+        private static string Bits(GeoPoint3 p) =>
+            BitConverter.DoubleToInt64Bits(p.X).ToString("x", CultureInfo.InvariantCulture)
+            + ","
+            + BitConverter.DoubleToInt64Bits(p.Y).ToString("x", CultureInfo.InvariantCulture)
+            + ","
+            + BitConverter.DoubleToInt64Bits(p.Z).ToString("x", CultureInfo.InvariantCulture);
 
-        private static readonly string Hand = G(0, "SECTION", 2, "HEADER", 9, "$ACADVER", 1, "AC1015", 9, "$HANDSEED", 5, "40", 9, "$EXTMIN", 10, "0", 20, "0", 30, "0", 9, "$EXTMAX", 10, "100", 20, "50", 30, "0", 0, "ENDSEC")
-            + G(0, "SECTION", 2, "TABLES", 0, "TABLE", 2, "LTYPE", 5, "5", 70, "1", 0, "LTYPE", 5, "16", 2, "Continuous", 70, "0", 0, "LTYPE", 5, "17", 2, "DASHED", 70, "0", 0, "ENDTAB")
-            + G(0, "TABLE", 2, "LAYER", 5, "2", 330, "0", 100, "AcDbSymbolTable", 70, "1", 0, "LAYER", 5, "10", 330, "2", 100, "AcDbSymbolTableRecord", 100, "AcDbLayerTableRecord", 2, "0", 70, "0", 62, "7", 6, "Continuous", 0, "ENDTAB")
-            + G(0, "TABLE", 2, "BLOCK_RECORD", 5, "1", 70, "1", 0, "BLOCK_RECORD", 5, "1F", 330, "1", 100, "AcDbSymbolTableRecord", 100, "AcDbBlockTableRecord", 2, "*Model_Space", 0, "ENDTAB", 0, "ENDSEC")
+        private static readonly string Hand =
+            G(
+                0,
+                "SECTION",
+                2,
+                "HEADER",
+                9,
+                "$ACADVER",
+                1,
+                "AC1015",
+                9,
+                "$HANDSEED",
+                5,
+                "40",
+                9,
+                "$EXTMIN",
+                10,
+                "0",
+                20,
+                "0",
+                30,
+                "0",
+                9,
+                "$EXTMAX",
+                10,
+                "100",
+                20,
+                "50",
+                30,
+                "0",
+                0,
+                "ENDSEC"
+            )
+            + G(
+                0,
+                "SECTION",
+                2,
+                "TABLES",
+                0,
+                "TABLE",
+                2,
+                "LTYPE",
+                5,
+                "5",
+                70,
+                "1",
+                0,
+                "LTYPE",
+                5,
+                "16",
+                2,
+                "Continuous",
+                70,
+                "0",
+                0,
+                "LTYPE",
+                5,
+                "17",
+                2,
+                "DASHED",
+                70,
+                "0",
+                0,
+                "ENDTAB"
+            )
+            + G(
+                0,
+                "TABLE",
+                2,
+                "LAYER",
+                5,
+                "2",
+                330,
+                "0",
+                100,
+                "AcDbSymbolTable",
+                70,
+                "1",
+                0,
+                "LAYER",
+                5,
+                "10",
+                330,
+                "2",
+                100,
+                "AcDbSymbolTableRecord",
+                100,
+                "AcDbLayerTableRecord",
+                2,
+                "0",
+                70,
+                "0",
+                62,
+                "7",
+                6,
+                "Continuous",
+                0,
+                "ENDTAB"
+            )
+            + G(
+                0,
+                "TABLE",
+                2,
+                "BLOCK_RECORD",
+                5,
+                "1",
+                70,
+                "1",
+                0,
+                "BLOCK_RECORD",
+                5,
+                "1F",
+                330,
+                "1",
+                100,
+                "AcDbSymbolTableRecord",
+                100,
+                "AcDbBlockTableRecord",
+                2,
+                "*Model_Space",
+                0,
+                "ENDTAB",
+                0,
+                "ENDSEC"
+            )
             + G(0, "SECTION", 2, "ENTITIES")
-            + G(0, "LINE", 5, "30", 330, "1F", 100, "AcDbEntity", 8, "0", 62, "     1", 100, "AcDbLine", 39, "5.000", 10, "0", 20, "0", 30, "0", 11, "100", 21, "50", 31, "0", 1001, "ACAD", 1000, "a note")
-            + G(0, "ELLIPSE", 5, "31", 330, "1F", 100, "AcDbEntity", 8, "0", 100, "AcDbEllipse", 10, "10", 20, "20", 30, "0", 11, "30", 21, "0", 31, "0", 210, "0", 220, "0", 230, "1", 40, "0.5", 41, "0", 42, "6.283185307179586")
-            + G(0, "HATCH", 5, "32", 330, "1F", 100, "AcDbEntity", 8, "0", 100, "AcDbHatch", 10, "0", 20, "0", 30, "0", 210, "0", 220, "0", 230, "1", 2, "SOLID", 70, "1", 71, "0", 91, "0", 75, "0", 76, "1", 98, "0")
+            + G(
+                0,
+                "LINE",
+                5,
+                "30",
+                330,
+                "1F",
+                100,
+                "AcDbEntity",
+                8,
+                "0",
+                62,
+                "     1",
+                100,
+                "AcDbLine",
+                39,
+                "5.000",
+                10,
+                "0",
+                20,
+                "0",
+                30,
+                "0",
+                11,
+                "100",
+                21,
+                "50",
+                31,
+                "0",
+                1001,
+                "ACAD",
+                1000,
+                "a note"
+            )
+            + G(
+                0,
+                "ELLIPSE",
+                5,
+                "31",
+                330,
+                "1F",
+                100,
+                "AcDbEntity",
+                8,
+                "0",
+                100,
+                "AcDbEllipse",
+                10,
+                "10",
+                20,
+                "20",
+                30,
+                "0",
+                11,
+                "30",
+                21,
+                "0",
+                31,
+                "0",
+                210,
+                "0",
+                220,
+                "0",
+                230,
+                "1",
+                40,
+                "0.5",
+                41,
+                "0",
+                42,
+                "6.283185307179586"
+            )
+            + G(
+                0,
+                "HATCH",
+                5,
+                "32",
+                330,
+                "1F",
+                100,
+                "AcDbEntity",
+                8,
+                "0",
+                100,
+                "AcDbHatch",
+                10,
+                "0",
+                20,
+                "0",
+                30,
+                "0",
+                210,
+                "0",
+                220,
+                "0",
+                230,
+                "1",
+                2,
+                "SOLID",
+                70,
+                "1",
+                71,
+                "0",
+                91,
+                "0",
+                75,
+                "0",
+                76,
+                "1",
+                98,
+                "0"
+            )
             + G(0, "ENDSEC", 0, "EOF");
 
         #endregion
@@ -122,8 +362,15 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             string[] texts =
             {
-                DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018, Hand, Hand.Replace("\n", "\r\n"),
-                DxfReaderRoundTripTests.OneOfEach().Add(new DxfText(new GeoPoint3(1, 2, 0), new GeoVector3(0, 0, 1), 2.5, 0.3, "Grid A")).ToString(),
+                DxfFileEzdxfDrawings.R12,
+                DxfFileEzdxfDrawings.R2000,
+                DxfFileEzdxfDrawings.R2018,
+                Hand,
+                Hand.Replace("\n", "\r\n"),
+                DxfReaderRoundTripTests
+                    .OneOfEach()
+                    .Add(new DxfText(new GeoPoint3(1, 2, 0), new GeoVector3(0, 0, 1), 2.5, 0.3, "Grid A"))
+                    .ToString(),
             };
 
             foreach (string text in texts)
@@ -183,7 +430,10 @@ namespace GeometryHelper.UnitTest.Dxf
             // Every group but those of the geometry is kept, in its order: the handle, the extension dictionary, the reactors,
             // the owner, the marker, the layer, and the extended data after.
             int[] geometry = { 10, 20, 30, 11, 21, 31 };
-            Assert.Equal(was.Where(g => !geometry.Contains(g.TypeCode)).Select(g => g.ToString()), line.Groups.Where(g => !geometry.Contains(g.TypeCode)).Select(g => g.ToString()));
+            Assert.Equal(
+                was.Where(g => !geometry.Contains(g.TypeCode)).Select(g => g.ToString()),
+                line.Groups.Where(g => !geometry.Contains(g.TypeCode)).Select(g => g.ToString())
+            );
             Assert.Contains(line.Groups, g => g.TypeCode == 1001);
 
             // One record differs besides the header, the line's; in the header, no handle given, ezdxf's extents, unset (1E+20
@@ -192,8 +442,13 @@ namespace GeometryHelper.UnitTest.Dxf
             Differ(text, saved, out List<string> gone, out List<string> come);
             Assert.Equal("3E", HandleOf(Assert.Single(gone, r => !r.Contains("\nHEADER\n"))));
             Assert.Equal("3E", HandleOf(Assert.Single(come, r => !r.Contains("\nHEADER\n"))));
-            Func<string, string[]> others = t => DxfFile.Parse(t).Header.Where(v => v.Key != "$EXTMIN" && v.Key != "$EXTMAX")
-                .OrderBy(v => v.Key, StringComparer.Ordinal).Select(v => v.Key + " " + string.Join(" ", v.Value.Select(g => g.ToString()))).ToArray();
+            Func<string, string[]> others = t =>
+                DxfFile
+                    .Parse(t)
+                    .Header.Where(v => v.Key != "$EXTMIN" && v.Key != "$EXTMAX")
+                    .OrderBy(v => v.Key, StringComparer.Ordinal)
+                    .Select(v => v.Key + " " + string.Join(" ", v.Value.Select(g => g.ToString())))
+                    .ToArray();
             Assert.Equal(others(text), others(saved));
             Assert.Equal(Bits(new GeoPoint3(1.25, -2.5, 0.3)), Bits(DxfDatabase.Parse(saved).Extmin));
             Assert.Equal(Bits(new GeoPoint3(100.1, 0.2, 3.0000000000000004)), Bits(DxfDatabase.Parse(saved).Extmax));
@@ -237,7 +492,10 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AChainSetInAFileOfR12_IsAPolylineWithItsVertices_ReadBackAsTheLightweightOneIs()
         {
-            var loop = new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(60, 0), new GeoPoint2(60, 20), new GeoPoint2(0, 20) }, new[] { 0.0, 1.0, 0.0, 1.0 });
+            var loop = new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(60, 0), new GeoPoint2(60, 20), new GeoPoint2(0, 20) },
+                new[] { 0.0, 1.0, 0.0, 1.0 }
+            );
             DxfFile r12 = DxfFile.Parse(DxfFileEzdxfDrawings.R12);
             DxfItem line = ByHandle(r12, "41");
 
@@ -253,16 +511,28 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string saved = r12.ToText();
             DxfDocument read = DxfReader.Parse(saved, new DxfReadOptions { Tolerance = Tol, PlanAs2D = true });
-            DxfDocument other = DxfReader.Parse(r2000.ToText(), new DxfReadOptions { Tolerance = Tol, PlanAs2D = true });
+            DxfDocument other = DxfReader.Parse(
+                r2000.ToText(),
+                new DxfReadOptions { Tolerance = Tol, PlanAs2D = true }
+            );
             var mine = (GeoPolygonArc2)read.Shapes.Single(e => e.Handle == "41").Shape;
             var theirs = (GeoPolygonArc2)other.Shapes.Single(e => e.Handle == added.Handle).Shape;
-            Assert.Equal(theirs.Vertices.Select(p => Bits(new GeoPoint3(p.X, p.Y, 0))), mine.Vertices.Select(p => Bits(new GeoPoint3(p.X, p.Y, 0))));
-            Assert.Equal(theirs.Bulges.Select(BitConverter.DoubleToInt64Bits), mine.Bulges.Select(BitConverter.DoubleToInt64Bits));
+            Assert.Equal(
+                theirs.Vertices.Select(p => Bits(new GeoPoint3(p.X, p.Y, 0))),
+                mine.Vertices.Select(p => Bits(new GeoPoint3(p.X, p.Y, 0)))
+            );
+            Assert.Equal(
+                theirs.Bulges.Select(BitConverter.DoubleToInt64Bits),
+                mine.Bulges.Select(BitConverter.DoubleToInt64Bits)
+            );
 
             // Its records have no subclass markers, the vertices handles of their own, as $HANDLING is 1, and its end.
             Differ(DxfFileEzdxfDrawings.R12, saved, out _, out List<string> come);
             List<string> mineRecords = come.Where(r => !r.Contains("\nHEADER\n")).ToList();
-            Assert.Equal(new[] { "POLYLINE", "VERTEX", "VERTEX", "VERTEX", "VERTEX", "SEQEND" }, mineRecords.Select(r => r.Split('\n')[1]));
+            Assert.Equal(
+                new[] { "POLYLINE", "VERTEX", "VERTEX", "VERTEX", "VERTEX", "SEQEND" },
+                mineRecords.Select(r => r.Split('\n')[1])
+            );
             Assert.All(mineRecords, r => Assert.DoesNotContain("\n100\n", r, StringComparison.Ordinal));
             Assert.All(mineRecords, r => Assert.NotNull(HandleOf(r)));
         }
@@ -278,15 +548,31 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("POLYLINE", added.Type);
             Assert.Contains(added.Groups, g => g.TypeCode == 100 && g.Value == "AcDb2dPolyline");
             Assert.Equal(3, added.Groups.Count(g => g.TypeCode == 100 && g.Value == "AcDb2dVertex"));
-            var read = (GeoPolygon3)DxfReader.Parse(r13.ToText(), new DxfReadOptions { Tolerance = Tol }).Shapes.Single(e => e.Handle == added.Handle).Shape;
-            Assert.Equal(new[] { "0,0,0", "10,0,0", "0,10,0" }, read.Vertices.Select(p => p.X.ToString(CultureInfo.InvariantCulture) + "," + p.Y.ToString(CultureInfo.InvariantCulture) + "," + p.Z.ToString(CultureInfo.InvariantCulture)));
+            var read = (GeoPolygon3)
+                DxfReader
+                    .Parse(r13.ToText(), new DxfReadOptions { Tolerance = Tol })
+                    .Shapes.Single(e => e.Handle == added.Handle)
+                    .Shape;
+            Assert.Equal(
+                new[] { "0,0,0", "10,0,0", "0,10,0" },
+                read.Vertices.Select(p =>
+                    p.X.ToString(CultureInfo.InvariantCulture)
+                    + ","
+                    + p.Y.ToString(CultureInfo.InvariantCulture)
+                    + ","
+                    + p.Z.ToString(CultureInfo.InvariantCulture)
+                )
+            );
 
             // A circle of paper space made a 3D polyline: its vertices are of paper space too, and it stays in PaperSpace.
             DxfFile paper = DxfFile.Parse(DxfFileEzdxfDrawings.R2000);
             DxfItem circle = paper.PaperSpace.Single(i => i.Handle == "9C");
             circle.Shape = new GeoPolyline3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(5, 5, 5) });
 
-            Assert.Equal(new[] { "1", "1", "1", "1" }, circle.Groups.Where(g => g.TypeCode == 67).Select(g => g.Value.Trim()));
+            Assert.Equal(
+                new[] { "1", "1", "1", "1" },
+                circle.Groups.Where(g => g.TypeCode == 67).Select(g => g.Value.Trim())
+            );
             DxfFile again = Opened(Saved(paper));
             Assert.Equal("POLYLINE", again.PaperSpace.Single(i => i.Handle == "9C").Type);
             Assert.DoesNotContain(again.ModelSpace, i => i.Handle == "9C");
@@ -299,21 +585,51 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfItem line = ByHandle(r12, "41");
             byte[] before = Saved(r12);
 
-            Assert.Throws<ArgumentException>(() => line.Shape = new GeoEllipse3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), new GeoVector3(1, 0, 0), 10, 5));
-            Assert.Throws<ArgumentException>(() => line.Shape = GeoSpline3.FromCircle(new GeoCircle3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 10)));
-            Assert.Throws<ArgumentException>(() => line.Shape = new GeoXLine3(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0)));
-            Assert.Throws<ArgumentException>(() => line.Shape = new DxfText(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 2.5, 0, "two\nlines", true));
-            Assert.Throws<ArgumentException>(() => r12.ModelSpace.Add(GeoSpline3.FromCircle(new GeoCircle3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 10))));
+            Assert.Throws<ArgumentException>(() =>
+                line.Shape = new GeoEllipse3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoVector3(0, 0, 1),
+                    new GeoVector3(1, 0, 0),
+                    10,
+                    5
+                )
+            );
+            Assert.Throws<ArgumentException>(() =>
+                line.Shape = GeoSpline3.FromCircle(new GeoCircle3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 10))
+            );
+            Assert.Throws<ArgumentException>(() =>
+                line.Shape = new GeoXLine3(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0))
+            );
+            Assert.Throws<ArgumentException>(() =>
+                line.Shape = new DxfText(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 2.5, 0, "two\nlines", true)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                r12.ModelSpace.Add(
+                    GeoSpline3.FromCircle(new GeoCircle3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 10))
+                )
+            );
 
             // A box is six faces, and an entity is one.
-            Assert.Throws<ArgumentException>(() => line.Shape = new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 1)));
+            Assert.Throws<ArgumentException>(() =>
+                line.Shape = new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 1))
+            );
             Assert.Throws<ArgumentException>(() => line.Shape = "not a shape");
             Assert.Throws<ArgumentNullException>(() => line.Shape = null);
             Assert.Equal(before, Saved(r12));
 
             DxfFile r2000 = DxfFile.Parse(DxfFileEzdxfDrawings.R2000);
-            Assert.Throws<InvalidOperationException>(() => r2000.ModelSpace.Single(i => i.Type == "HATCH").Shape = new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)));
-            Assert.Throws<InvalidOperationException>(() => r2000.ModelSpace.First(i => i.Type == "INSERT").Shape = new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)));
+            Assert.Throws<InvalidOperationException>(() =>
+                r2000.ModelSpace.Single(i => i.Type == "HATCH").Shape = new GeoLine3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(1, 0, 0)
+                )
+            );
+            Assert.Throws<InvalidOperationException>(() =>
+                r2000.ModelSpace.First(i => i.Type == "INSERT").Shape = new GeoLine3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(1, 0, 0)
+                )
+            );
 
             // The entities of a block are changed as those of the drawing are, since A1 made the blocks editable.
             DxfItem inBlock = r2000.Blocks.Values.First(b => b.Items.Count > 0).Items[0];
@@ -342,9 +658,17 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("0", ellipse.Layer);
 
             string record = Records(file.ToText()).Single(r => HandleOf(r) == "30");
-            Assert.Contains("  8\n0\n  6\ndashed\n 62\n   256\n370\n35\n100\nAcDbLine\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                "  8\n0\n  6\ndashed\n 62\n   256\n370\n35\n100\nAcDbLine\n",
+                record,
+                StringComparison.Ordinal
+            );
             Assert.DoesNotContain(" 39\n", record, StringComparison.Ordinal);
-            Assert.Contains("100\nAcDbEntity\n  8\n0\n 62\n0\n100\nAcDbEllipse\n", Records(file.ToText()).Single(r => HandleOf(r) == "31"), StringComparison.Ordinal);
+            Assert.Contains(
+                "100\nAcDbEntity\n  8\n0\n 62\n0\n100\nAcDbEllipse\n",
+                Records(file.ToText()).Single(r => HandleOf(r) == "31"),
+                StringComparison.Ordinal
+            );
 
             Assert.Throws<ArgumentException>(() => line.Linetype = "CENTER");
             Assert.Throws<ArgumentOutOfRangeException>(() => line.Colour = 257);
@@ -371,7 +695,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfLayer layer = Assert.Single(file.LayerTable, l => l.Name == "rebar");
             Assert.Equal(7, layer.Color);
             Assert.Equal("Continuous", layer.Linetype);
-            Assert.Equal(new[] { "REBAR", "REBAR", "REBAR", "REBAR" }, polyline.Groups.Where(g => g.TypeCode == 8).Skip(1).Select(g => g.Value));
+            Assert.Equal(
+                new[] { "REBAR", "REBAR", "REBAR", "REBAR" },
+                polyline.Groups.Where(g => g.TypeCode == 8).Skip(1).Select(g => g.Value)
+            );
 
             DxfFile again = Opened(Saved(file));
             Assert.Single(again.LayerTable, l => string.Equals(l.Name, "rebar", StringComparison.OrdinalIgnoreCase));
@@ -391,8 +718,19 @@ namespace GeometryHelper.UnitTest.Dxf
             ulong most = Handles(text).Max();
 
             DxfItem circle = file.ModelSpace.Add(new GeoCircle2(new GeoPoint2(1000, -500), 12.5), "holes");
-            DxfItem chain = file.ModelSpace.Add(new GeoPolyline3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 1), new GeoPoint3(2, 0, 5) }));
-            DxfItem look = file.ModelSpace.Add(new DxfShape(new GeoLine3(new GeoPoint3(1, 2, 3), new GeoPoint3(4, 5, 6)), "holes", color: 1, linetype: "Continuous", lineWeight: 50, thickness: 3.0));
+            DxfItem chain = file.ModelSpace.Add(
+                new GeoPolyline3(new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 1), new GeoPoint3(2, 0, 5) })
+            );
+            DxfItem look = file.ModelSpace.Add(
+                new DxfShape(
+                    new GeoLine3(new GeoPoint3(1, 2, 3), new GeoPoint3(4, 5, 6)),
+                    "holes",
+                    color: 1,
+                    linetype: "Continuous",
+                    lineWeight: 50,
+                    thickness: 3.0
+                )
+            );
 
             Assert.Equal(count + 3, file.ModelSpace.Count);
             Assert.Same(look, file.ModelSpace[count + 2]);
@@ -409,7 +747,12 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(Hex(file.Header["$HANDSEED"][0].Value) > handles.Max());
 
             // The model space owns what is added, the polyline its vertices, and the new ones stand before the ENDSEC of the entities.
-            string owner = Records(text).Single(r => r.Contains("\n*Model_Space\n") && r.StartsWith("  0\nBLOCK_RECORD\n", StringComparison.Ordinal)).Split('\n')[3].Trim();
+            string owner = Records(text)
+                .Single(r =>
+                    r.Contains("\n*Model_Space\n") && r.StartsWith("  0\nBLOCK_RECORD\n", StringComparison.Ordinal)
+                )
+                .Split('\n')[3]
+                .Trim();
             Assert.Contains(new DxfTypedValue(330, owner).ToString(), circle.Groups.Select(g => g.ToString()));
             Assert.Equal(4, chain.Groups.Count(g => g.TypeCode == 330 && g.Value == chain.Handle));
             List<string> records = Records(saved);
@@ -419,7 +762,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // Read back as written, the new layer in the table.
             DxfFile again = Opened(Saved(file));
-            Assert.Equal(Bits(new GeoPoint3(1000, -500, 0)), Bits(((GeoCircle3)ByHandle(again, circle.Handle).Shape).Center));
+            Assert.Equal(
+                Bits(new GeoPoint3(1000, -500, 0)),
+                Bits(((GeoCircle3)ByHandle(again, circle.Handle).Shape).Center)
+            );
             Assert.Single(again.LayerTable, l => l.Name == "holes");
             Assert.Equal(count + 3, again.ModelSpace.Count);
         }
@@ -449,7 +795,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.DoesNotContain("340\n3E\n", group, StringComparison.Ordinal);
             Assert.DoesNotContain(records, r => HandleOf(r) == "92");
             Differ(text, saved, out List<string> gone, out List<string> come);
-            Assert.Equal(new[] { "3E", "44", "45", "46", "47", "48", "90", "92" }, gone.Select(HandleOf).OrderBy(h => h, StringComparer.Ordinal));
+            Assert.Equal(
+                new[] { "3E", "44", "45", "46", "47", "48", "90", "92" },
+                gone.Select(HandleOf).OrderBy(h => h, StringComparer.Ordinal)
+            );
             Assert.Equal("90", HandleOf(Assert.Single(come)));
 
             // The removed is read still, not changed, and its handle is not given again.
@@ -482,13 +831,19 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // A file of R2000 with no handle anywhere, as many writers write one: a handle 1 for the new entity is the one
             // ezdxf gives the first LINE, and it then throws the new one out.
-            DxfFile file = DxfFile.Parse(R2000(G(0, "LINE", 8, "0", 10, "0", 20, "0", 30, "0", 11, "1", 21, "1", 31, "0")));
+            DxfFile file = DxfFile.Parse(
+                R2000(G(0, "LINE", 8, "0", 10, "0", 20, "0", 30, "0", 11, "1", 21, "1", 31, "0"))
+            );
 
             DxfItem circle = file.ModelSpace.Add(new GeoCircle2(new GeoPoint2(5, 5), 2));
 
             Assert.Null(circle.Handle);
             Assert.DoesNotContain(circle.Groups, g => g.TypeCode == 5 || g.TypeCode == 330);
-            Assert.StartsWith("  0\nCIRCLE\n100\nAcDbEntity\n  8\n0\n100\nAcDbCircle\n", Records(file.ToText()).Single(r => r.StartsWith("  0\nCIRCLE\n", StringComparison.Ordinal)), StringComparison.Ordinal);
+            Assert.StartsWith(
+                "  0\nCIRCLE\n100\nAcDbEntity\n  8\n0\n100\nAcDbCircle\n",
+                Records(file.ToText()).Single(r => r.StartsWith("  0\nCIRCLE\n", StringComparison.Ordinal)),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -532,7 +887,9 @@ namespace GeometryHelper.UnitTest.Dxf
         public void WhatIsWritten_FollowsTheFilesLineEndsPaddingAndCodePage()
         {
             // A file of R2000 in the page 1252 with CRLF and padded codes: the layer café as the byte 0xE9.
-            byte[] crlf = Encoding.ASCII.GetBytes(Hand.Replace("AC1015\n", "AC1015\n  9\n$DWGCODEPAGE\n  3\nANSI_1252\n").Replace("\n", "\r\n"));
+            byte[] crlf = Encoding.ASCII.GetBytes(
+                Hand.Replace("AC1015\n", "AC1015\n  9\n$DWGCODEPAGE\n  3\nANSI_1252\n").Replace("\n", "\r\n")
+            );
             DxfFile page = Opened(crlf);
             page.ModelSpace.Add(new GeoPoint3(1, 2, 3), "café");
             byte[] saved = Saved(page);
@@ -542,13 +899,20 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("café", Opened(saved).LayerTable.Last().Name);
 
             // The same in the page 932, which has no e acute: its escape.
-            DxfFile japanese = Opened(Encoding.ASCII.GetBytes(Hand.Replace("AC1015\n", "AC1015\n  9\n$DWGCODEPAGE\n  3\nANSI_932\n")));
+            DxfFile japanese = Opened(
+                Encoding.ASCII.GetBytes(Hand.Replace("AC1015\n", "AC1015\n  9\n$DWGCODEPAGE\n  3\nANSI_932\n"))
+            );
             DxfItem point = japanese.ModelSpace.Add(new GeoPoint3(1, 2, 3), "café");
             Assert.Equal("caf\\U+00E9", point.Layer);
             Assert.Equal("café", japanese.LayerTable.Last().Name);
 
             // R2018 in UTF-8, the codes not padded, lines ended by LF.
-            string plain = Hand.Replace("AC1015", "AC1032").Replace("  0\n", "0\n").Replace("  2\n", "2\n").Replace("  5\n", "5\n").Replace("  8\n", "8\n").Replace(" 10\n", "10\n");
+            string plain = Hand.Replace("AC1015", "AC1032")
+                .Replace("  0\n", "0\n")
+                .Replace("  2\n", "2\n")
+                .Replace("  5\n", "5\n")
+                .Replace("  8\n", "8\n")
+                .Replace(" 10\n", "10\n");
             DxfFile utf8 = DxfFile.Parse(plain);
             utf8.ModelSpace.Add(new GeoPoint3(1, 2, 3), "café");
             byte[] written = Saved(utf8);

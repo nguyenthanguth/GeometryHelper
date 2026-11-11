@@ -51,7 +51,16 @@ namespace GeometryHelper.Viewer
         /// </returns>
         /// <remarks>Where the view has clip planes, only what they leave is judged: an item they cut away wholly is never selected.</remarks>
         /// <exception cref="ArgumentNullException">Thrown when the primitives or the map is null.</exception>
-        public static List<int> Select(Primitives primitives, ScreenMap map, double x1, double y1, double x2, double y2, BoxMode mode, Func<int, bool> visible)
+        public static List<int> Select(
+            Primitives primitives,
+            ScreenMap map,
+            double x1,
+            double y1,
+            double x2,
+            double y2,
+            BoxMode mode,
+            Func<int, bool> visible
+        )
         {
             if (primitives == null)
             {
@@ -180,10 +189,12 @@ namespace GeometryHelper.Viewer
 
                 for (int s = 0; s < segments; s++)
                 {
-                    if (map.ClipSegment(line.Points[s], line.Points[(s + 1) % count], out Vec3 from, out Vec3 to)
+                    if (
+                        map.ClipSegment(line.Points[s], line.Points[(s + 1) % count], out Vec3 from, out Vec3 to)
                         && map.TryProject(from, out double ax, out double ay, out _)
                         && map.TryProject(to, out double bx, out double by, out _)
-                        && SegmentTouches(ax, ay, bx, by, rect))
+                        && SegmentTouches(ax, ay, bx, by, rect)
+                    )
                     {
                         return true;
                     }

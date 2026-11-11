@@ -18,9 +18,7 @@ namespace GeometryHelper
         /// <summary>Gets the one instance.</summary>
         internal static PackedKeys Instance { get; } = new PackedKeys();
 
-        private PackedKeys()
-        {
-        }
+        private PackedKeys() { }
 
         /// <inheritdoc/>
         public bool Equals(long x, long y) => x == y;

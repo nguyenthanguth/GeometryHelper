@@ -180,14 +180,29 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Gets one line that counts the rows by status.
         /// </summary>
-        public string Summary
-            => Items.Count.ToString(CultureInfo.InvariantCulture) + " item(s): "
-               + Count(CompareStatus.Identical).ToString(CultureInfo.InvariantCulture) + " identical, "
-               + Count(CompareStatus.Changed).ToString(CultureInfo.InvariantCulture) + " changed, "
-               + Count(CompareStatus.OnlyLeft).ToString(CultureInfo.InvariantCulture) + " only left, "
-               + Count(CompareStatus.OnlyRight).ToString(CultureInfo.InvariantCulture) + " only right"
-               + (Count(CompareStatus.NumbersDiffer) > 0 ? ", " + Count(CompareStatus.NumbersDiffer).ToString(CultureInfo.InvariantCulture) + " with other numbers" : string.Empty)
-               + (ReorderedCount > 0 ? ", " + ReorderedCount.ToString(CultureInfo.InvariantCulture) + " moved" : string.Empty);
+        public string Summary =>
+            Items.Count.ToString(CultureInfo.InvariantCulture)
+            + " item(s): "
+            + Count(CompareStatus.Identical).ToString(CultureInfo.InvariantCulture)
+            + " identical, "
+            + Count(CompareStatus.Changed).ToString(CultureInfo.InvariantCulture)
+            + " changed, "
+            + Count(CompareStatus.OnlyLeft).ToString(CultureInfo.InvariantCulture)
+            + " only left, "
+            + Count(CompareStatus.OnlyRight).ToString(CultureInfo.InvariantCulture)
+            + " only right"
+            + (
+                Count(CompareStatus.NumbersDiffer) > 0
+                    ? ", "
+                        + Count(CompareStatus.NumbersDiffer).ToString(CultureInfo.InvariantCulture)
+                        + " with other numbers"
+                    : string.Empty
+            )
+            + (
+                ReorderedCount > 0
+                    ? ", " + ReorderedCount.ToString(CultureInfo.InvariantCulture) + " moved"
+                    : string.Empty
+            );
 
         /// <summary>
         /// Pairs the items of two scenes and compares each pair.
@@ -231,7 +246,11 @@ namespace GeometryHelper.Viewer
 
             for (int j = 0; j < right.Items.Count; j++)
             {
-                if (!right.Items[j].AutoName && byName.TryGetValue(right.Items[j].Layer + "\u0001" + right.Items[j].Name, out Queue<int> queue) && queue.Count > 0)
+                if (
+                    !right.Items[j].AutoName
+                    && byName.TryGetValue(right.Items[j].Layer + "\u0001" + right.Items[j].Name, out Queue<int> queue)
+                    && queue.Count > 0
+                )
                 {
                     int i = queue.Dequeue();
                     partner[i] = j;
@@ -247,13 +266,32 @@ namespace GeometryHelper.Viewer
             {
                 if (partner[i] < 0)
                 {
-                    Enqueue(byData, left.Items[i].Layer + "\u0001" + left.Items[i].Kind + "\u0001" + left.Items[i].Data.GetRawText(), i);
+                    Enqueue(
+                        byData,
+                        left.Items[i].Layer
+                            + "\u0001"
+                            + left.Items[i].Kind
+                            + "\u0001"
+                            + left.Items[i].Data.GetRawText(),
+                        i
+                    );
                 }
             }
 
             for (int j = 0; j < right.Items.Count; j++)
             {
-                if (!taken[j] && byData.TryGetValue(right.Items[j].Layer + "\u0001" + right.Items[j].Kind + "\u0001" + right.Items[j].Data.GetRawText(), out Queue<int> queue) && queue.Count > 0)
+                if (
+                    !taken[j]
+                    && byData.TryGetValue(
+                        right.Items[j].Layer
+                            + "\u0001"
+                            + right.Items[j].Kind
+                            + "\u0001"
+                            + right.Items[j].Data.GetRawText(),
+                        out Queue<int> queue
+                    )
+                    && queue.Count > 0
+                )
                 {
                     int i = queue.Dequeue();
                     var same = new DataDiff();
@@ -283,7 +321,11 @@ namespace GeometryHelper.Viewer
 
             for (int j = 0; j < right.Items.Count; j++)
             {
-                if (!taken[j] && byKind.TryGetValue(right.Items[j].Layer + "\u0001" + right.Items[j].Kind, out Queue<int> queue) && queue.Count > 0)
+                if (
+                    !taken[j]
+                    && byKind.TryGetValue(right.Items[j].Layer + "\u0001" + right.Items[j].Kind, out Queue<int> queue)
+                    && queue.Count > 0
+                )
                 {
                     int i = queue.Dequeue();
                     partner[i] = j;
@@ -297,9 +339,11 @@ namespace GeometryHelper.Viewer
 
             for (int i = 0; i < left.Items.Count; i++)
             {
-                rows.Add(partner[i] < 0
-                    ? OneSided(left.Items[i], i, -1, CompareStatus.OnlyLeft)
-                    : Pair(left.Items[i], right.Items[partner[i]], i, partner[i], how[i], moved[i]));
+                rows.Add(
+                    partner[i] < 0
+                        ? OneSided(left.Items[i], i, -1, CompareStatus.OnlyLeft)
+                        : Pair(left.Items[i], right.Items[partner[i]], i, partner[i], how[i], moved[i])
+                );
             }
 
             for (int j = 0; j < right.Items.Count; j++)
@@ -416,7 +460,14 @@ namespace GeometryHelper.Viewer
             };
         }
 
-        private static ComparedItem Pair(SceneItem left, SceneItem right, int leftIndex, int rightIndex, CompareMatch match, bool moved)
+        private static ComparedItem Pair(
+            SceneItem left,
+            SceneItem right,
+            int leftIndex,
+            int rightIndex,
+            CompareMatch match,
+            bool moved
+        )
         {
             bool sameKind = string.Equals(left.Kind, right.Kind, StringComparison.Ordinal);
             var diff = new DataDiff();
@@ -433,7 +484,10 @@ namespace GeometryHelper.Viewer
 
             // The numbers each build gave are compared too: a measuring fix in one build changes them with the data the same.
             List<string> measures = MeasureDifferences(left, right);
-            CompareStatus status = !diff.Same ? CompareStatus.Changed : measures.Count > 0 ? CompareStatus.NumbersDiffer : CompareStatus.Identical;
+            CompareStatus status =
+                !diff.Same ? CompareStatus.Changed
+                : measures.Count > 0 ? CompareStatus.NumbersDiffer
+                : CompareStatus.Identical;
 
             var row = new ComparedItem
             {
@@ -467,9 +521,13 @@ namespace GeometryHelper.Viewer
 
                 if (!diff.Same && row.RightKind == null)
                 {
-                    parts.Add(!row.SameShape
-                        ? "the numbers have a different layout (vertices added or taken away)"
-                        : row.DifferingNumbers.ToString(CultureInfo.InvariantCulture) + " number(s) differ, by at most " + row.MaxDelta.ToString("G10", CultureInfo.InvariantCulture));
+                    parts.Add(
+                        !row.SameShape
+                            ? "the numbers have a different layout (vertices added or taken away)"
+                            : row.DifferingNumbers.ToString(CultureInfo.InvariantCulture)
+                                + " number(s) differ, by at most "
+                                + row.MaxDelta.ToString("G10", CultureInfo.InvariantCulture)
+                    );
                 }
 
                 row.Difference = string.Join(", ", parts);
@@ -511,7 +569,11 @@ namespace GeometryHelper.Viewer
 
                 bool numeric = key[0] != "closed" && key[0] != "note" && key[0] != "error";
 
-                if (numeric && double.TryParse(a, NumberStyles.Float, CultureInfo.InvariantCulture, out double x) && double.TryParse(b, NumberStyles.Float, CultureInfo.InvariantCulture, out double y))
+                if (
+                    numeric
+                    && double.TryParse(a, NumberStyles.Float, CultureInfo.InvariantCulture, out double x)
+                    && double.TryParse(b, NumberStyles.Float, CultureInfo.InvariantCulture, out double y)
+                )
                 {
                     if (BitConverter.DoubleToInt64Bits(x) != BitConverter.DoubleToInt64Bits(y))
                     {
@@ -520,26 +582,46 @@ namespace GeometryHelper.Viewer
                 }
                 else
                 {
-                    told.Add(key[1] + ": left " + (a == null ? "none" : "'" + a + "'") + ", right " + (b == null ? "none" : "'" + b + "'"));
+                    told.Add(
+                        key[1]
+                            + ": left "
+                            + (a == null ? "none" : "'" + a + "'")
+                            + ", right "
+                            + (b == null ? "none" : "'" + b + "'")
+                    );
                 }
             }
 
             return told;
         }
 
-        private static string Signed(double value) => (value >= 0.0 ? "+" : string.Empty) + value.ToString("G10", CultureInfo.InvariantCulture);
+        private static string Signed(double value) =>
+            (value >= 0.0 ? "+" : string.Empty) + value.ToString("G10", CultureInfo.InvariantCulture);
 
         private static IReadOnlyList<string> NotesOf(Scene left, Scene right)
         {
             var notes = new List<string>();
 
-            if (!Same(left.EqualPoint, right.EqualPoint) || !Same(left.EqualVector, right.EqualVector) || !Same(left.EqualAngleRad, right.EqualAngleRad) || !Same(left.EqualPlanar, right.EqualPlanar))
+            if (
+                !Same(left.EqualPoint, right.EqualPoint)
+                || !Same(left.EqualVector, right.EqualVector)
+                || !Same(left.EqualAngleRad, right.EqualAngleRad)
+                || !Same(left.EqualPlanar, right.EqualPlanar)
+            )
             {
                 notes.Add(
-                    "the scenes were written at different tolerances: left " + Describe(left) + ", right " + Describe(right));
+                    "the scenes were written at different tolerances: left "
+                        + Describe(left)
+                        + ", right "
+                        + Describe(right)
+                );
             }
 
-            foreach (string kind in left.UnknownKinds.Union(right.UnknownKinds, StringComparer.Ordinal).OrderBy(k => k, StringComparer.Ordinal))
+            foreach (
+                string kind in left
+                    .UnknownKinds.Union(right.UnknownKinds, StringComparer.Ordinal)
+                    .OrderBy(k => k, StringComparer.Ordinal)
+            )
             {
                 notes.Add("the kind '" + kind + "' is compared by its numbers but not drawn");
             }
@@ -547,11 +629,18 @@ namespace GeometryHelper.Viewer
             return notes;
         }
 
-        private static bool Same(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
+        private static bool Same(double a, double b) =>
+            BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
 
-        private static string Describe(Scene scene)
-            => "point " + scene.EqualPoint.ToString("G10", CultureInfo.InvariantCulture) + ", vector " + scene.EqualVector.ToString("G10", CultureInfo.InvariantCulture)
-               + ", angle " + scene.EqualAngleRad.ToString("G10", CultureInfo.InvariantCulture) + ", planar " + scene.EqualPlanar.ToString("G10", CultureInfo.InvariantCulture);
+        private static string Describe(Scene scene) =>
+            "point "
+            + scene.EqualPoint.ToString("G10", CultureInfo.InvariantCulture)
+            + ", vector "
+            + scene.EqualVector.ToString("G10", CultureInfo.InvariantCulture)
+            + ", angle "
+            + scene.EqualAngleRad.ToString("G10", CultureInfo.InvariantCulture)
+            + ", planar "
+            + scene.EqualPlanar.ToString("G10", CultureInfo.InvariantCulture);
 
         /// <summary>
         /// Compares two <see cref="JsonElement"/>s number by number, by the bits of each number.

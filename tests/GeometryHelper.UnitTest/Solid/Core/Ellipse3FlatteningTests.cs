@@ -19,7 +19,11 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static readonly Tolerance Tol = Tolerance.Default;
 
-        private static void AssertLifted(Ellipse3Oracle.Specimen specimen, IReadOnlyList<GeoPoint2> flat, IReadOnlyList<GeoPoint3> lifted)
+        private static void AssertLifted(
+            Ellipse3Oracle.Specimen specimen,
+            IReadOnlyList<GeoPoint2> flat,
+            IReadOnlyList<GeoPoint3> lifted
+        )
         {
             Assert.Equal(flat.Count, lifted.Count);
 
@@ -38,12 +42,20 @@ namespace GeometryHelper.UnitTest.Solid
             GeoEllipse2 flat = specimen.Flat();
 
             AssertLifted(specimen, flat.ToPolygon().Vertices, ellipse.ToPolygon().Vertices);
-            AssertLifted(specimen, flat.ToPolygonByChordTolerance(0.5).Vertices, ellipse.ToPolygonByChordTolerance(0.5).Vertices);
+            AssertLifted(
+                specimen,
+                flat.ToPolygonByChordTolerance(0.5).Vertices,
+                ellipse.ToPolygonByChordTolerance(0.5).Vertices
+            );
             AssertLifted(specimen, flat.ToPolygonBySpacing(25).Vertices, ellipse.ToPolygonBySpacing(25).Vertices);
             AssertLifted(specimen, flat.ToPolygon(7).Vertices, ellipse.ToPolygon(7).Vertices);
 
             AssertLifted(specimen, flat.ToPolyline().Vertices, ellipse.ToPolyline().Vertices);
-            AssertLifted(specimen, flat.ToPolylineByChordTolerance(0.5).Vertices, ellipse.ToPolylineByChordTolerance(0.5).Vertices);
+            AssertLifted(
+                specimen,
+                flat.ToPolylineByChordTolerance(0.5).Vertices,
+                ellipse.ToPolylineByChordTolerance(0.5).Vertices
+            );
             AssertLifted(specimen, flat.ToPolylineBySpacing(25).Vertices, ellipse.ToPolylineBySpacing(25).Vertices);
             AssertLifted(specimen, flat.ToPolyline(7).Vertices, ellipse.ToPolyline(7).Vertices);
         }
@@ -92,7 +104,13 @@ namespace GeometryHelper.UnitTest.Solid
             int circles = circle.ToPolygonByChordTolerance(0.0).VertexCount;
             int ellipses = GeoEllipse3.FromCircle(circle).ToPolygonByChordTolerance(0.0).VertexCount;
 
-            Assert.Equal(GeoEllipse2.FromCircle(new GeoCircle2(new GeoPoint2(0, 0), 250)).ToPolygonByChordTolerance(0.0).VertexCount, ellipses);
+            Assert.Equal(
+                GeoEllipse2
+                    .FromCircle(new GeoCircle2(new GeoPoint2(0, 0), 250))
+                    .ToPolygonByChordTolerance(0.0)
+                    .VertexCount,
+                ellipses
+            );
             Assert.InRange(ellipses, circles, circles + 3);
             Assert.Equal(0, ellipses % 4);
         }
@@ -142,7 +160,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             foreach (MeshPlacement3 placement in new[] { MeshPlacement3.World, MeshPlacement3.Own })
             {
-                GeoMesh3 grid = ellipse.ToMesh(MeshOptions.Grid(400, 400, 0, GridAlignment.CenterCell, GridAlignment.CenterCell), placement, Tol);
+                GeoMesh3 grid = ellipse.ToMesh(
+                    MeshOptions.Grid(400, 400, 0, GridAlignment.CenterCell, GridAlignment.CenterCell),
+                    placement,
+                    Tol
+                );
 
                 Assert.Equal(rim.Area, grid.Area, 1E-3);
                 Assert.True(grid.FaceCount > 20);
@@ -150,7 +172,10 @@ namespace GeometryHelper.UnitTest.Solid
                 foreach (GeoPoint3 vertex in grid.Vertices)
                 {
                     specimen.Read(vertex, out double u, out double v, out double h);
-                    Assert.True((u / 1500) * (u / 1500) + (v / 600) * (v / 600) <= 1 + 1E-9, $"{vertex} lies outside the disc");
+                    Assert.True(
+                        (u / 1500) * (u / 1500) + (v / 600) * (v / 600) <= 1 + 1E-9,
+                        $"{vertex} lies outside the disc"
+                    );
                     Assert.True(Math.Abs(h) < 1E-9, $"{vertex} lies off the disc's plane");
                 }
             }

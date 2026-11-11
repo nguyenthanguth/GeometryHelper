@@ -22,8 +22,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
         private static GeoPoint3 Pt(double x, double y, double z) => new GeoPoint3(x, y, z);
 
-        private static GeoPolygon3 Square(double x0, double y0, double x1, double y1, double z)
-            => new GeoPolygon3(Pt(x0, y0, z), Pt(x1, y0, z), Pt(x1, y1, z), Pt(x0, y1, z));
+        private static GeoPolygon3 Square(double x0, double y0, double x1, double y1, double z) =>
+            new GeoPolygon3(Pt(x0, y0, z), Pt(x1, y0, z), Pt(x1, y1, z), Pt(x0, y1, z));
 
         private static GeoFace3 Plate() => new GeoFace3(Square(0, 0, 100, 100, 0), new[] { Square(30, 30, 70, 70, 0) });
 
@@ -275,7 +275,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void ARayLyingInTheFloorTowardsTheTriangle_TouchesIt_AndAwayFromIt_TouchesNothing()
         {
             Assert.True(Collision3.CollidesWith(new GeoRay3(Pt(-10, 10, 0), GeoVector3.XAxis), Triangle(), Tol));
-            Assert.False(Collision3.CollidesWith(new GeoRay3(Pt(-10, 10, 0), GeoVector3.XAxis.Negate()), Triangle(), Tol));
+            Assert.False(
+                Collision3.CollidesWith(new GeoRay3(Pt(-10, 10, 0), GeoVector3.XAxis.Negate()), Triangle(), Tol)
+            );
         }
 
         [Fact]
@@ -356,9 +358,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             Assert.Null(Record.Exception(() => Intersection3.GetIntersections(sliver, new GeoFace3(Across()), Coarse)));
             Assert.Null(Record.Exception(() => Intersection3.GetIntersections(sliver, Across(), Coarse)));
-            Assert.Null(Record.Exception(() => Intersection3.GetIntersections(new GeoFace3(Across()), SliverSquare(), Coarse)));
+            Assert.Null(
+                Record.Exception(() => Intersection3.GetIntersections(new GeoFace3(Across()), SliverSquare(), Coarse))
+            );
             Assert.Null(Record.Exception(() => Intersection3.GetIntersections(AcrossTriangle(), sliver, Coarse)));
-            Assert.Null(Record.Exception(() => Intersection3.GetIntersections(AcrossTriangle(), SliverSquare(), Coarse)));
+            Assert.Null(
+                Record.Exception(() => Intersection3.GetIntersections(AcrossTriangle(), SliverSquare(), Coarse))
+            );
             Assert.Null(Record.Exception(() => Intersection3.GetIntersections(SliverSquare(), Across(), Coarse)));
         }
     }

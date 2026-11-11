@@ -23,7 +23,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             _folder.Write("test.shx", ShxFiles.Unifont());
             var database = new DxfDatabase("AC1027");
             database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "GH_SHX", FileName = "test.shx" });
-            var mtext = new DxfMText { Contents = contents, Location = new GeoPoint3(0, 0, 0), TextHeight = 10.0, Width = width };
+            var mtext = new DxfMText
+            {
+                Contents = contents,
+                Location = new GeoPoint3(0, 0, 0),
+                TextHeight = 10.0,
+                Width = width,
+            };
             database.ModelSpace.AppendEntity(mtext);
             mtext.TextStyleName = "GH_SHX";
             more?.Invoke(mtext);
@@ -71,7 +77,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [InlineData(DxfAttachmentPoint.TopRight, -17.0, -10.0)]
         [InlineData(DxfAttachmentPoint.MiddleLeft, 0.0, 3.0 + (1.0 / 3.0))]
         [InlineData(DxfAttachmentPoint.BottomRight, -17.0, 50.0 / 3.0)]
-        public void TheBlockOfLinesHangsByItsAttachmentPoint_TheInkOfEachLineSetInTheWidth(DxfAttachmentPoint attachment, double x, double y)
+        public void TheBlockOfLinesHangsByItsAttachmentPoint_TheInkOfEachLineSetInTheWidth(
+            DxfAttachmentPoint attachment,
+            double x,
+            double y
+        )
         {
             DisplayText2 shown = Shown("II II II", 20.0, t => t.Attachment = attachment);
 
@@ -119,7 +129,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Foot(5.0, baseline + 10.0 + (10.0 / 3.0), parts[1]);
             Foot(3.0, baseline, parts[2]);
             Foot(8.0 + (10.0 / 7.0), baseline, parts[3]);
-            Assert.Equal(new[] { 3.0, bar, 7.0, bar }, Assert.Single(shown.Parts.OfType<DisplayPolyline2>()).Xy.Select(v => Math.Round(v, 9)).ToArray());
+            Assert.Equal(
+                new[] { 3.0, bar, 7.0, bar },
+                Assert.Single(shown.Parts.OfType<DisplayPolyline2>()).Xy.Select(v => Math.Round(v, 9)).ToArray()
+            );
             Assert.Equal("II/III", shown.Text);
         }
 
@@ -201,10 +214,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // The lines are 20 wide and 10 + 50 / 3 high down to the last baseline: the frame 5 around them, the mask 2.
             DisplayPolyline2 frame = Assert.IsType<DisplayPolyline2>(framed.Parts[0]);
             Assert.True(frame.Closed);
-            Assert.Equal(new[] { -5.0, -31.666666667, 25.0, -31.666666667, 25.0, 5.0, -5.0, 5.0 }, frame.Xy.Select(v => Math.Round(v, 9)).ToArray());
+            Assert.Equal(
+                new[] { -5.0, -31.666666667, 25.0, -31.666666667, 25.0, 5.0, -5.0, 5.0 },
+                frame.Xy.Select(v => Math.Round(v, 9)).ToArray()
+            );
 
             DisplayFill2 mask = Assert.IsType<DisplayFill2>(masked.Parts[0]);
-            Assert.Equal(new[] { -2.0, -28.666666667, 22.0, -28.666666667, 22.0, 2.0, -2.0, 2.0 }, Assert.Single(mask.Rings).Select(v => Math.Round(v, 9)).ToArray());
+            Assert.Equal(
+                new[] { -2.0, -28.666666667, 22.0, -28.666666667, 22.0, 2.0, -2.0, 2.0 },
+                Assert.Single(mask.Rings).Select(v => Math.Round(v, 9)).ToArray()
+            );
             Assert.Equal(0xFF0000, mask.Style.Rgb);
             Assert.True(Math.Abs(masked.Parts.OfType<DisplayText2>().First().Strokes[0][0]) < Close);
         }

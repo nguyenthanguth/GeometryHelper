@@ -32,14 +32,15 @@ namespace GeometryHelper.UnitTest.Plane
         /// circle has radius R = 100 (1 + b^2) / 4b about (50, R - s), with sagitta s = 50 b, and subtracting the two
         /// circles' equations gives y = (2 R s - s^2 - 700) / (60 - 2 R + 2 s), then x = 50 - sqrt(1600 - (y - 30)^2).
         /// </summary>
-        public static TheoryData<double, double, double, double> Crossings => new TheoryData<double, double, double, double>
-        {
-            // bulge, x, y, how close the crossing is asked to be: the arc's centre, 2.5E10 off for a bulge of 1E-9, is
-            // itself held only to 4E-6, so that one is asked within 1E-5; the others within 1E-7.
-            { 1E-6, 23.542527709622146, -3.6000043200087842E-05, 1E-7 },
-            { 1E-7, 23.542490971371453, -3.6000004320000878E-06, 1E-7 },
-            { 1E-9, 23.542486930174256, -3.6000000043200002E-08, 1E-5 },
-        };
+        public static TheoryData<double, double, double, double> Crossings =>
+            new TheoryData<double, double, double, double>
+            {
+                // bulge, x, y, how close the crossing is asked to be: the arc's centre, 2.5E10 off for a bulge of 1E-9, is
+                // itself held only to 4E-6, so that one is asked within 1E-5; the others within 1E-7.
+                { 1E-6, 23.542527709622146, -3.6000043200087842E-05, 1E-7 },
+                { 1E-7, 23.542490971371453, -3.6000004320000878E-06, 1E-7 },
+                { 1E-9, 23.542486930174256, -3.6000000043200002E-08, 1E-5 },
+            };
 
         [Fact]
         public void AnEdgeBowedByATenMillionthCrossingAnArc_CollidesWithItAskedFromEitherSide()
@@ -59,7 +60,12 @@ namespace GeometryHelper.UnitTest.Plane
 
         [Theory]
         [MemberData(nameof(Crossings))]
-        public void ANearlyFlatArcCrossingAnOrdinaryArc_CrossesAtTheSamePointWhicheverIsAskedFirst(double bulge, double x, double y, double within)
+        public void ANearlyFlatArcCrossingAnOrdinaryArc_CrossesAtTheSamePointWhicheverIsAskedFirst(
+            double bulge,
+            double x,
+            double y,
+            double within
+        )
         {
             // The arcs themselves, through the static form both ways round, and the edge's own forms.
             GeoArc2 flat = NearlyFlat(bulge).ToArc();
@@ -105,7 +111,13 @@ namespace GeometryHelper.UnitTest.Plane
             var circle = new GeoCircle2(P(50, 30), 40);
             const double y = -2.7999993280001613E-06;
 
-            foreach (GeoPoint2[] crossings in new[] { huge.GetIntersections(circle, Thousandth), circle.GetIntersections(huge, Thousandth) })
+            foreach (
+                GeoPoint2[] crossings in new[]
+                {
+                    huge.GetIntersections(circle, Thousandth),
+                    circle.GetIntersections(huge, Thousandth),
+                }
+            )
             {
                 Assert.Equal(2, crossings.Length);
                 Array.Sort(crossings, (a, b) => a.X.CompareTo(b.X));

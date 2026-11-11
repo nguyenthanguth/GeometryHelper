@@ -22,8 +22,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
         private static readonly SolidBooleanOptions Touching = new SolidBooleanOptions(Fine, 0.01);
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
         private static GeoSolid3 Slab() => Box(0, 0, 0, 1000, 1000, 300);
 
@@ -122,7 +122,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void AFaceAtASlantPartlyFurtherThanTheContact_IsNotMoved()
         {
             // The tool's face runs from 0.002 inside the slab's at y = -100 to 0.03 inside at y = 1100.
-            var plan = new[] { new GeoPoint3(0.002, -100, 0), new GeoPoint3(500, -100, 0), new GeoPoint3(500, 1100, 0), new GeoPoint3(0.03, 1100, 0) };
+            var plan = new[]
+            {
+                new GeoPoint3(0.002, -100, 0),
+                new GeoPoint3(500, -100, 0),
+                new GeoPoint3(500, 1100, 0),
+                new GeoPoint3(0.03, 1100, 0),
+            };
             GeoSolid3 tool = Prism(plan, -100, 400);
 
             Assert.True(Slab().TrySubtract(tool, out GeoSolid3 plain, Plain, out _));
@@ -167,7 +173,12 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [Fact]
         public void TakingAwayATool_ThatTakesAll_LeavesNothing()
         {
-            GeoSolid3[] tools = { Box(300, 300, -100, 700, 700, 400), Box(-1, -1, -1, 1001, 1001, 301), Box(0, 0, 0, 10, 10, 10) };
+            GeoSolid3[] tools =
+            {
+                Box(300, 300, -100, 700, 700, 400),
+                Box(-1, -1, -1, 1001, 1001, 301),
+                Box(0, 0, 0, 10, 10, 10),
+            };
 
             Assert.False(Slab().TrySubtractAll(tools, out GeoSolid3 left, Touching, out SubtractReport report));
             Assert.Null(left);
@@ -194,7 +205,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [Fact]
         public void AFallback_LeavesAValidResultAsItIs()
         {
-            var withFallback = new SolidBooleanOptions(Fine, 0.01, new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01));
+            var withFallback = new SolidBooleanOptions(
+                Fine,
+                0.01,
+                new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01)
+            );
             GeoSolid3 tool = Box(300, 300, -100, 700, 700, 400);
 
             Assert.True(Slab().TrySubtract(tool, out GeoSolid3 a, withFallback, out _));
@@ -208,8 +223,12 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.Throws<ArgumentOutOfRangeException>(() => new SolidBooleanOptions(Fine, -0.01));
             Assert.Throws<ArgumentOutOfRangeException>(() => new SolidBooleanOptions(Fine, double.NaN));
             Assert.Throws<ArgumentOutOfRangeException>(() => new SolidBooleanOptions(Fine, double.PositiveInfinity));
-            Assert.Throws<ArgumentNullException>(() => Slab().TrySubtract(Slab(), out _, (SolidBooleanOptions)null, out _));
-            Assert.Throws<ArgumentException>(() => Slab().TrySubtractAll(new GeoSolid3[] { null }, out _, Touching, out _));
+            Assert.Throws<ArgumentNullException>(() =>
+                Slab().TrySubtract(Slab(), out _, (SolidBooleanOptions)null, out _)
+            );
+            Assert.Throws<ArgumentException>(() =>
+                Slab().TrySubtractAll(new GeoSolid3[] { null }, out _, Touching, out _)
+            );
         }
 
         [Fact]
@@ -217,7 +236,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             var fallback = new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01);
             Assert.Equal(new SolidBooleanOptions(Fine, 0.01, fallback), new SolidBooleanOptions(Fine, 0.01, fallback));
-            Assert.Equal(new SolidBooleanOptions(Fine, 0.01, fallback).GetHashCode(), new SolidBooleanOptions(Fine, 0.01, fallback).GetHashCode());
+            Assert.Equal(
+                new SolidBooleanOptions(Fine, 0.01, fallback).GetHashCode(),
+                new SolidBooleanOptions(Fine, 0.01, fallback).GetHashCode()
+            );
             Assert.NotEqual(new SolidBooleanOptions(Fine, 0.01), new SolidBooleanOptions(Fine, 0.02));
             Assert.NotEqual(new SolidBooleanOptions(Fine, 0.01), new SolidBooleanOptions(Fine, 0.01, fallback));
             Assert.Equal(new SolidBooleanOptions(Fine), SolidBooleanOptions.Default);

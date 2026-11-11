@@ -27,7 +27,9 @@ namespace GeometryHelper.Dxf
     public sealed class DxfSun : DxfDBObject
     {
         // The groups of AcDbSun in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 90, 290, 63, 421, 40, 291, 91, 92, 292, 70, 71, 280 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 90, 290, 63, 421, 40, 291, 91, 92, 292, 70, 71, 280 }
+        );
 
         // The Julian day of 1 January of the year 1, the first day a DateTime holds.
         private const long FirstJulianDay = 1721426;
@@ -39,8 +41,18 @@ namespace GeometryHelper.Dxf
         // The groups a sun made in code is written with after its marker, as ezdxf writes a new one.
         private readonly List<KeyValuePair<int, string>> _made = new List<KeyValuePair<int, string>>
         {
-            Pair(90, "1"), Pair(290, "1"), Pair(63, "7"), Pair(421, "16777215"), Pair(40, "1.0"), Pair(291, "1"),
-            Pair(91, "2456922"), Pair(92, "43200"), Pair(292, "0"), Pair(70, "0"), Pair(71, "256"), Pair(280, "1"),
+            Pair(90, "1"),
+            Pair(290, "1"),
+            Pair(63, "7"),
+            Pair(421, "16777215"),
+            Pair(40, "1.0"),
+            Pair(291, "1"),
+            Pair(91, "2456922"),
+            Pair(92, "43200"),
+            Pair(292, "0"),
+            Pair(70, "0"),
+            Pair(71, "256"),
+            Pair(280, "1"),
         };
 
         /// <summary>
@@ -48,14 +60,10 @@ namespace GeometryHelper.Dxf
         /// white, of intensity 1, casting shadows traced along the rays, on 21 September 2014 at noon; given to a viewport by
         /// <see cref="DxfViewport.SetSun"/>.
         /// </summary>
-        public DxfSun()
-        {
-        }
+        public DxfSun() { }
 
         internal DxfSun(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets whether the sun is on (group 290), as AutoCAD's <c>IsOn</c>; on where the record gives none.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the sun is erased.</exception>
@@ -86,7 +94,6 @@ namespace GeometryHelper.Dxf
 
                 return DxfColor.OfIndex(index);
             }
-
             set
             {
                 if (value == null)
@@ -101,11 +108,17 @@ namespace GeometryHelper.Dxf
 
                 if (value.ColorMethod != DxfColorMethod.ByAci && value.ColorMethod != DxfColorMethod.ByColor)
                 {
-                    throw new ArgumentException("The light of a sun is of a colour of the index or a true colour.", nameof(value));
+                    throw new ArgumentException(
+                        "The light of a sun is of a colour of the index or a true colour.",
+                        nameof(value)
+                    );
                 }
 
                 bool rgb = value.ColorMethod == DxfColorMethod.ByColor;
-                Set(Pair(63, value.ColorIndex.ToString(CultureInfo.InvariantCulture)), Pair(421, rgb ? value.ColorValue.ToString(CultureInfo.InvariantCulture) : null));
+                Set(
+                    Pair(63, value.ColorIndex.ToString(CultureInfo.InvariantCulture)),
+                    Pair(421, rgb ? value.ColorValue.ToString(CultureInfo.InvariantCulture) : null)
+                );
             }
         }
 
@@ -115,7 +128,6 @@ namespace GeometryHelper.Dxf
         public double Intensity
         {
             get => Real(40, 1.0);
-
             set
             {
                 Guard.NonNegative(value, nameof(value), "The intensity of a sun is a finite number of nought or more.");
@@ -153,15 +165,21 @@ namespace GeometryHelper.Dxf
 
                 return new DateTime(day * TimeSpan.TicksPerDay + seconds * TimeSpan.TicksPerSecond);
             }
-
             set
             {
-                string day = (value.Ticks / TimeSpan.TicksPerDay + FirstJulianDay).ToString(CultureInfo.InvariantCulture);
-                string seconds = (value.TimeOfDay.Ticks / TimeSpan.TicksPerSecond).ToString(CultureInfo.InvariantCulture);
+                string day = (value.Ticks / TimeSpan.TicksPerDay + FirstJulianDay).ToString(
+                    CultureInfo.InvariantCulture
+                );
+                string seconds = (value.TimeOfDay.Ticks / TimeSpan.TicksPerSecond).ToString(
+                    CultureInfo.InvariantCulture
+                );
 
                 // Judged by the groups as written, so that a day or a time the record gives unreadably is written even where the
                 // date set is the one shown in its place.
-                if (string.Equals(Value(91)?.Trim(), day, StringComparison.Ordinal) && string.Equals(Value(92)?.Trim(), seconds, StringComparison.Ordinal))
+                if (
+                    string.Equals(Value(91)?.Trim(), day, StringComparison.Ordinal)
+                    && string.Equals(Value(92)?.Trim(), seconds, StringComparison.Ordinal)
+                )
                 {
                     return;
                 }
@@ -193,7 +211,6 @@ namespace GeometryHelper.Dxf
         public DxfShadowType ShadowType
         {
             get => (DxfShadowType)Whole(70, 0);
-
             set
             {
                 if (value == ShadowType)
@@ -203,7 +220,11 @@ namespace GeometryHelper.Dxf
 
                 if (value != DxfShadowType.RayTraced && value != DxfShadowType.Maps)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The shadows of a sun are traced along the rays (0) or drawn from maps (1), as the DXF reference gives them.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "The shadows of a sun are traced along the rays (0) or drawn from maps (1), as the DXF reference gives them."
+                    );
                 }
 
                 Set(Pair(70, ((int)value).ToString(CultureInfo.InvariantCulture)));
@@ -216,7 +237,6 @@ namespace GeometryHelper.Dxf
         public short ShadowMapSize
         {
             get => (short)Whole(71, 256);
-
             set
             {
                 if (value == ShadowMapSize)
@@ -226,7 +246,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < 64 || value > 4096 || (value & (value - 1)) != 0)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A map of shadows is 64, 128, 256, 512, 1024, 2048 or 4096, as AutoCAD's shadow parameters take it.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A map of shadows is 64, 128, 256, 512, 1024, 2048 or 4096, as AutoCAD's shadow parameters take it."
+                    );
                 }
 
                 Set(Pair(71, value.ToString(CultureInfo.InvariantCulture)));
@@ -239,7 +263,6 @@ namespace GeometryHelper.Dxf
         public byte ShadowMapSoftness
         {
             get => (byte)Math.Max(0, Math.Min(255, Whole(280, 1)));
-
             set
             {
                 if (value == ShadowMapSoftness)
@@ -249,7 +272,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < 1 || value > 10)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The softness of mapped shadows runs from 1 to 10, as AutoCAD's shadow parameters take it.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "The softness of mapped shadows runs from 1 to 10, as AutoCAD's shadow parameters take it."
+                    );
                 }
 
                 Set(Pair(280, value.ToString(CultureInfo.InvariantCulture)));
@@ -263,7 +290,8 @@ namespace GeometryHelper.Dxf
         /// <summary>The groups a sun made in code is written with, after its subclass marker, in AutoCAD's order.</summary>
         internal IReadOnlyList<KeyValuePair<int, string>> MadeGroups => _made.AsReadOnly();
 
-        private static KeyValuePair<int, string> Pair(int code, string value) => new KeyValuePair<int, string>(code, value);
+        private static KeyValuePair<int, string> Pair(int code, string value) =>
+            new KeyValuePair<int, string>(code, value);
 
         /// <summary>The value of the first group of a code of AcDbSun, as made in code or as the file writes it; null where it has none.</summary>
         private string Value(int code)
@@ -285,12 +313,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A whole number of AcDbSun; the fallback where it has none, or not a whole number.</summary>
-        private int Whole(int code, int fallback)
-            => int.TryParse(Value(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+        private int Whole(int code, int fallback) =>
+            int.TryParse(Value(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : fallback;
 
         /// <summary>A number of AcDbSun; the fallback where it has none, or not a finite number.</summary>
-        private double Real(int code, double fallback)
-            => Numbers.TryRead(Value(code), out double value) && Guard.IsFinite(value) ? value : fallback;
+        private double Real(int code, double fallback) =>
+            Numbers.TryRead(Value(code), out double value) && Guard.IsFinite(value) ? value : fallback;
 
         /// <summary>Sets a flag of AcDbSun, written 1 or 0; nothing where it is as it was.</summary>
         private void SetFlag(int code, bool value, bool now)

@@ -125,7 +125,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.Plugins
                     Default.LoadFromAssemblyName(new AssemblyName(name.Name));
                     return true;
                 }
-                catch (Exception exception) when (exception is FileNotFoundException || exception is FileLoadException || exception is BadImageFormatException)
+                catch (Exception exception)
+                    when (exception is FileNotFoundException
+                        || exception is FileLoadException
+                        || exception is BadImageFormatException
+                    )
                 {
                     return false;
                 }
@@ -193,16 +197,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.Plugins
 
         /// <summary>Does nothing: an assembly loaded into an AppDomain stays until the process ends.</summary>
         /// <param name="assemblies">The assemblies.</param>
-        public override void Unload(IReadOnlyList<Assembly> assemblies)
-        {
-        }
+        public override void Unload(IReadOnlyList<Assembly> assemblies) { }
 
         /// <summary>The presenter's own assembly of a simple name, loaded from outside the plugins' copies; null where there is none.</summary>
         private static Assembly Shared(string name)
         {
             foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
-                if (!string.Equals(assembly.GetName().Name, name, StringComparison.OrdinalIgnoreCase) || assembly.IsDynamic)
+                if (
+                    !string.Equals(assembly.GetName().Name, name, StringComparison.OrdinalIgnoreCase)
+                    || assembly.IsDynamic
+                )
                 {
                     continue;
                 }
@@ -224,7 +229,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.Plugins
             {
                 foreach (KeyValuePair<string, string> folder in Folders)
                 {
-                    if (!string.IsNullOrEmpty(location) && location.StartsWith(folder.Key + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                    if (
+                        !string.IsNullOrEmpty(location)
+                        && location.StartsWith(
+                            folder.Key + Path.DirectorySeparatorChar,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
                     {
                         return true;
                     }
@@ -245,13 +256,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.Plugins
             }
 
             // The folder of the plugin that asks first, then every plugin's, the latest loaded first.
-            string asking = args.RequestingAssembly != null && !args.RequestingAssembly.IsDynamic ? Path.GetDirectoryName(args.RequestingAssembly.Location) : null;
+            string asking =
+                args.RequestingAssembly != null && !args.RequestingAssembly.IsDynamic
+                    ? Path.GetDirectoryName(args.RequestingAssembly.Location)
+                    : null;
             var folders = new List<KeyValuePair<string, string>>();
 
             lock (Gate)
             {
-                folders.AddRange(Folders.FindAll(f => string.Equals(f.Key, asking, StringComparison.OrdinalIgnoreCase)));
-                folders.AddRange(Folders.FindAll(f => !string.Equals(f.Key, asking, StringComparison.OrdinalIgnoreCase)));
+                folders.AddRange(
+                    Folders.FindAll(f => string.Equals(f.Key, asking, StringComparison.OrdinalIgnoreCase))
+                );
+                folders.AddRange(
+                    Folders.FindAll(f => !string.Equals(f.Key, asking, StringComparison.OrdinalIgnoreCase))
+                );
             }
 
             foreach (KeyValuePair<string, string> folder in folders)

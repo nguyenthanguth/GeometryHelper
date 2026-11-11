@@ -47,7 +47,9 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPoint3 fromArc = Assert.Single(Arc3.GetIntersections(arc, flat, TenThousandth));
 
             Assert.InRange(fromFlat.DistanceTo(fromArc), 0.0, 1E-12);
-            double offTheCircle = Math.Abs(Math.Sqrt((fromFlat.X - 50) * (fromFlat.X - 50) + (fromFlat.Y - 30) * (fromFlat.Y - 30)) - 40);
+            double offTheCircle = Math.Abs(
+                Math.Sqrt((fromFlat.X - 50) * (fromFlat.X - 50) + (fromFlat.Y - 30) * (fromFlat.Y - 30)) - 40
+            );
             Assert.InRange(offTheCircle, 0.0, 1E-6);
             Assert.InRange(fromFlat.Y, -50 * bulge - 1E-6, 1E-6);
             Assert.Equal(23.5425, fromFlat.X, 4);

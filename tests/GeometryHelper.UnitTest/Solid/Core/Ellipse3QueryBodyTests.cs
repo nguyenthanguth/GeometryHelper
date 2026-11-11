@@ -29,10 +29,13 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static GeoAabb3 Crate() => new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 100));
 
-        private static GeoSolid3 Pierced() => Crate().ToObb().ToSolid().WithOpenings(new[]
-        {
-            new GeoAabb3(new GeoPoint3(40, 40, -10), new GeoPoint3(60, 60, 110)).ToObb().ToSolid(),
-        });
+        private static GeoSolid3 Pierced() =>
+            Crate()
+                .ToObb()
+                .ToSolid()
+                .WithOpenings(
+                    new[] { new GeoAabb3(new GeoPoint3(40, 40, -10), new GeoPoint3(60, 60, 110)).ToObb().ToSolid() }
+                );
 
         /// <summary>A level ellipse about (50, 50, z), its major axis along X.</summary>
         private static Specimen Level(double z, double a, double b) =>
@@ -42,10 +45,14 @@ namespace GeometryHelper.UnitTest.Solid
         /// 80 by 30 level at mid-height: it reaches from x = -30 to 130, out through the walls x = 0 and x = 100 at
         /// y = 50 ± 23.42, and from y = 20 to 80, inside the other two.
         /// </summary>
-        private static GeoPoint3[] ThroughTheWalls(double z) => new[]
-        {
-            new GeoPoint3(0, 50 - AtWall, z), new GeoPoint3(0, 50 + AtWall, z), new GeoPoint3(100, 50 - AtWall, z), new GeoPoint3(100, 50 + AtWall, z),
-        };
+        private static GeoPoint3[] ThroughTheWalls(double z) =>
+            new[]
+            {
+                new GeoPoint3(0, 50 - AtWall, z),
+                new GeoPoint3(0, 50 + AtWall, z),
+                new GeoPoint3(100, 50 - AtWall, z),
+                new GeoPoint3(100, 50 + AtWall, z),
+            };
 
         [Fact]
         public void AnEllipseThroughABoxCrossesTwoOfItsWallsTwiceEach()
@@ -69,7 +76,8 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The cube and the ellipse both turned 30 degrees about the vertical through (50, 50): the four crossings
             // turn with them.
-            double c = Math.Cos(Math.PI / 6), s = Math.Sin(Math.PI / 6);
+            double c = Math.Cos(Math.PI / 6),
+                s = Math.Sin(Math.PI / 6);
             var axisX = new GeoVector3(c, s, 0);
             var axisY = new GeoVector3(-s, c, 0);
             var centre = new GeoPoint3(50, 50, 50);
@@ -96,7 +104,13 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AnEllipseWellClearOfABoxTouchesNothing()
         {
-            GeoEllipse3 ellipse = new Specimen(new GeoPoint3(550, 50, 50), GeoVector3.XAxis, GeoVector3.YAxis, 80, 30).Build();
+            GeoEllipse3 ellipse = new Specimen(
+                new GeoPoint3(550, 50, 50),
+                GeoVector3.XAxis,
+                GeoVector3.YAxis,
+                80,
+                30
+            ).Build();
 
             Assert.Empty(ellipse.GetIntersections(Crate(), Tol));
             Assert.False(ellipse.CollidesWith(Crate(), Tol));
@@ -168,7 +182,10 @@ namespace GeometryHelper.UnitTest.Solid
             GeoEllipse3 ellipse = Level(50, 15, 5).Build();
             GeoPoint3[] expected =
             {
-                new GeoPoint3(40, 50 - v, 50), new GeoPoint3(40, 50 + v, 50), new GeoPoint3(60, 50 - v, 50), new GeoPoint3(60, 50 + v, 50),
+                new GeoPoint3(40, 50 - v, 50),
+                new GeoPoint3(40, 50 + v, 50),
+                new GeoPoint3(60, 50 - v, 50),
+                new GeoPoint3(60, 50 + v, 50),
             };
 
             SamePoints(expected, ellipse.GetIntersections(Pierced(), Tol), Close);
@@ -198,7 +215,11 @@ namespace GeometryHelper.UnitTest.Solid
             var e = new Specimen(new GeoPoint3(50, 50, 100), GeoVector3.ZAxis, GeoVector3.XAxis, 30, 8);
             GeoSolid3 cube = Crate().ToObb().ToSolid();
 
-            SamePoints(new[] { new GeoPoint3(42, 50, 100), new GeoPoint3(58, 50, 100) }, e.Build().GetIntersections(cube, Tol), Close);
+            SamePoints(
+                new[] { new GeoPoint3(42, 50, 100), new GeoPoint3(58, 50, 100) },
+                e.Build().GetIntersections(cube, Tol),
+                Close
+            );
             Assert.True(e.Build().CollidesWith(cube, Tol));
             Assert.Empty(e.Build().GetIntersections(Pierced(), Tol));
             Assert.False(e.Build().CollidesWith(Pierced(), Tol));

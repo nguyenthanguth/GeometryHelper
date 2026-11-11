@@ -45,7 +45,9 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             Version = data.Version?.Trim() ?? string.Empty;
             Author = data.Author?.Trim() ?? string.Empty;
             Kind = string.IsNullOrWhiteSpace(data.Kind) ? CommandKind : data.Kind.Trim().ToLowerInvariant();
-            MinimumApiVersion = string.IsNullOrWhiteSpace(data.MinimumApiVersion) ? new Version(1, 0) : System.Version.Parse(data.MinimumApiVersion.Trim());
+            MinimumApiVersion = string.IsNullOrWhiteSpace(data.MinimumApiVersion)
+                ? new Version(1, 0)
+                : System.Version.Parse(data.MinimumApiVersion.Trim());
             var commands = new List<string>();
 
             foreach (string command in data.Commands ?? new List<string>())
@@ -93,12 +95,22 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
         {
             if (!string.Equals(Kind, CommandKind, StringComparison.Ordinal))
             {
-                return "The plugin " + Name + " is of the kind \"" + Kind + "\", and this presenter loads command plugins only.";
+                return "The plugin "
+                    + Name
+                    + " is of the kind \""
+                    + Kind
+                    + "\", and this presenter loads command plugins only.";
             }
 
             if (MinimumApiVersion > CadPlugin.ApiVersion)
             {
-                return "The plugin " + Name + " needs version " + MinimumApiVersion + " of the plugin API, and this presenter has " + CadPlugin.ApiVersion + ": it needs a newer presenter.";
+                return "The plugin "
+                    + Name
+                    + " needs version "
+                    + MinimumApiVersion
+                    + " of the plugin API, and this presenter has "
+                    + CadPlugin.ApiVersion
+                    + ": it needs a newer presenter.";
             }
 
             return null;
@@ -125,9 +137,13 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                     data = (Data)new DataContractJsonSerializer(typeof(Data)).ReadObject(stream);
                 }
             }
-            catch (Exception exception) when (exception is SerializationException || exception is System.Xml.XmlException)
+            catch (Exception exception)
+                when (exception is SerializationException || exception is System.Xml.XmlException)
             {
-                throw new FormatException("The plugin's manifest is not JSON of the form plugin.json has: " + exception.Message, exception);
+                throw new FormatException(
+                    "The plugin's manifest is not JSON of the form plugin.json has: " + exception.Message,
+                    exception
+                );
             }
 
             if (data == null || string.IsNullOrWhiteSpace(data.Name))
@@ -135,9 +151,16 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 throw new FormatException("The plugin's manifest gives no name.");
             }
 
-            if (!string.IsNullOrWhiteSpace(data.MinimumApiVersion) && !System.Version.TryParse(data.MinimumApiVersion.Trim(), out _))
+            if (
+                !string.IsNullOrWhiteSpace(data.MinimumApiVersion)
+                && !System.Version.TryParse(data.MinimumApiVersion.Trim(), out _)
+            )
             {
-                throw new FormatException("The plugin's manifest gives the API version \"" + data.MinimumApiVersion + "\", which is not a version.");
+                throw new FormatException(
+                    "The plugin's manifest gives the API version \""
+                        + data.MinimumApiVersion
+                        + "\", which is not a version."
+                );
             }
 
             return new CadPluginManifest(data);
@@ -165,7 +188,8 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             {
                 using (ZipArchive zip = ZipFile.OpenRead(path))
                 {
-                    ZipArchiveEntry entry = CadPluginPackage.ManifestEntry(zip) ?? throw new FileNotFoundException("The package has no " + FileName + " at its top.", path);
+                    ZipArchiveEntry entry = CadPluginPackage.ManifestEntry(zip)
+                        ?? throw new FileNotFoundException("The package has no " + FileName + " at its top.", path);
 
                     using (var reader = new StreamReader(entry.Open(), Encoding.UTF8))
                     {
@@ -244,7 +268,9 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
             CadPluginManifest manifest = CadPluginManifest.Read(packagePath);
             string root = Path.GetFullPath(folder);
-            string inside = root.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) ? root : root + Path.DirectorySeparatorChar;
+            string inside = root.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+                ? root
+                : root + Path.DirectorySeparatorChar;
 
             using (ZipArchive zip = ZipFile.OpenRead(packagePath))
             {
@@ -256,7 +282,13 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
                     if (!target.StartsWith(inside, StringComparison.OrdinalIgnoreCase))
                     {
-                        throw new FormatException("The package " + packagePath + " has an entry that lands outside the folder: " + entry.FullName + ".");
+                        throw new FormatException(
+                            "The package "
+                                + packagePath
+                                + " has an entry that lands outside the folder: "
+                                + entry.FullName
+                                + "."
+                        );
                     }
 
                     targets.Add(new KeyValuePair<ZipArchiveEntry, string>(entry, target));
@@ -267,7 +299,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 foreach (KeyValuePair<ZipArchiveEntry, string> target in targets)
                 {
                     // An entry whose name ends in a slash is a folder.
-                    if (target.Key.FullName.EndsWith("/", StringComparison.Ordinal) || target.Key.FullName.EndsWith("\\", StringComparison.Ordinal))
+                    if (
+                        target.Key.FullName.EndsWith("/", StringComparison.Ordinal)
+                        || target.Key.FullName.EndsWith("\\", StringComparison.Ordinal)
+                    )
                     {
                         Directory.CreateDirectory(target.Value);
                         continue;

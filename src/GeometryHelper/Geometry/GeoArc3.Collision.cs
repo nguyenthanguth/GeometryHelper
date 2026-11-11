@@ -1,6 +1,6 @@
 using System;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -68,7 +68,8 @@ namespace GeometryHelper.Geometry
         /// Checks whether this arc touches the rim of an ellipse in space, within a tolerance: the answer the ellipse gives
         /// asked of the arc, <see cref="GeoEllipse3.CollidesWith(GeoArc3, Tolerance)"/>.
         /// </summary>
-        public bool CollidesWith(GeoEllipse3 ellipse, Tolerance tolerance) => Ellipse3.CollidesWith(ellipse, this, tolerance);
+        public bool CollidesWith(GeoEllipse3 ellipse, Tolerance tolerance) =>
+            Ellipse3.CollidesWith(ellipse, this, tolerance);
 
         /// <summary>
         /// Checks whether this arc touches a triangle, using the default tolerance.
@@ -78,7 +79,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this arc touches a triangle, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) => Arc3.CollidesWith(this, triangle, tolerance);
+        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Arc3.CollidesWith(this, triangle, tolerance);
 
         /// <summary>
         /// Checks whether this arc touches a polygon, using the default tolerance.
@@ -88,7 +90,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this arc touches a polygon, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) => Arc3.CollidesWith(this, polygon, tolerance);
+        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Arc3.CollidesWith(this, polygon, tolerance);
 
         /// <summary>
         /// Checks whether this arc touches a face, using the default tolerance.
@@ -141,10 +144,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="edge">The edge.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoEdge3 edge, Tolerance tolerance)
-            => edge.IsArc
-                ? CollidesWith(edge.ToArc(), tolerance)
-                : CollidesWith(edge.ToLine(), tolerance);
+        public bool CollidesWith(GeoEdge3 edge, Tolerance tolerance) =>
+            edge.IsArc ? CollidesWith(edge.ToArc(), tolerance) : CollidesWith(edge.ToLine(), tolerance);
 
         /// <summary>
         /// Checks whether this arc touches a curved chain.
@@ -157,7 +158,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="chain">The curved chain.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance) => ArcChain3.CollidesWith(chain, this, tolerance);
+        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance) =>
+            ArcChain3.CollidesWith(chain, this, tolerance);
 
         /// <summary>
         /// Checks whether this arc touches a curved loop.
@@ -170,7 +172,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="loop">The curved loop.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance) => ArcChain3.CollidesWith(loop, this, tolerance);
+        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance) =>
+            ArcChain3.CollidesWith(loop, this, tolerance);
 
         /// <summary>
         /// Checks whether this arc touches a straight chain: the same answer as
@@ -184,7 +187,7 @@ namespace GeometryHelper.Geometry
         /// <see cref="GeoPolyline3.CollidesWith(GeoArc3, Tolerance)"/>.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance)
-            => Collision3.CollidesWith(polyline, this, tolerance);
+        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Collision3.CollidesWith(polyline, this, tolerance);
     }
 }

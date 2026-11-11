@@ -37,13 +37,21 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             watch.Stop();
-            Assert.True(watch.Elapsed.TotalSeconds < seconds, count.ToString(CultureInfo.InvariantCulture) + " entries took " + watch.Elapsed.TotalSeconds.ToString(CultureInfo.InvariantCulture) + " s.");
+            Assert.True(
+                watch.Elapsed.TotalSeconds < seconds,
+                count.ToString(CultureInfo.InvariantCulture)
+                    + " entries took "
+                    + watch.Elapsed.TotalSeconds.ToString(CultureInfo.InvariantCulture)
+                    + " s."
+            );
             Assert.Equal(count, dictionary.Count);
             Assert.True(dictionary.Contains(Name(count - 1).ToLowerInvariant()));
             Assert.IsType<DxfXrecord>(dictionary.GetAt(Name(count / 2)));
 
             // The entries are read back in the order they were added.
-            DxfDBDictionary read = Assert.IsType<DxfDBDictionary>(DxfDatabase.Parse(database.ToText()).NamedObjectsDictionary["GH_PROBE"]);
+            DxfDBDictionary read = Assert.IsType<DxfDBDictionary>(
+                DxfDatabase.Parse(database.ToText()).NamedObjectsDictionary["GH_PROBE"]
+            );
             int at = 0;
 
             foreach (DxfDBDictionaryEntry entry in read)

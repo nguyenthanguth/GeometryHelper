@@ -46,7 +46,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="database">The drawing.</param>
         /// <returns>The blocks.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the drawing is null.</exception>
-        public static IReadOnlyList<DxfBlockTableRecord> Named(DxfDatabase database) => CadCommands.NamedBlocks(database ?? throw new ArgumentNullException(nameof(database)));
+        public static IReadOnlyList<DxfBlockTableRecord> Named(DxfDatabase database) =>
+            CadCommands.NamedBlocks(database ?? throw new ArgumentNullException(nameof(database)));
 
         /// <summary>Gets whether AutoCAD takes a name for a block: 1 to 255 letters, none of &lt;&gt;/\":;?*|,=` and no space at either end.</summary>
         /// <param name="name">The name.</param>
@@ -97,7 +98,8 @@ namespace GeometryHelper.Dxf.Viewer
         public CadBlockDefinitionRequest(CadDocument document)
         {
             Document = document ?? throw new ArgumentNullException(nameof(document));
-            Units = document.Database.Insunits == DxfUnits.Undefined ? DxfUnits.Millimeters : document.Database.Insunits;
+            Units =
+                document.Database.Insunits == DxfUnits.Undefined ? DxfUnits.Millimeters : document.Database.Insunits;
         }
 
         /// <summary>Gets the document the block is made in.</summary>
@@ -203,7 +205,8 @@ namespace GeometryHelper.Dxf.Viewer
         public CadWriteBlockRequest(CadDocument document)
         {
             Document = document ?? throw new ArgumentNullException(nameof(document));
-            Units = document.Database.Insunits == DxfUnits.Undefined ? DxfUnits.Millimeters : document.Database.Insunits;
+            Units =
+                document.Database.Insunits == DxfUnits.Undefined ? DxfUnits.Millimeters : document.Database.Insunits;
         }
 
         /// <summary>Gets the document written from.</summary>
@@ -400,7 +403,12 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     public sealed class CadAttributeEditRequest
     {
-        internal CadAttributeEditRequest(CadDocument document, string insert, string block, IReadOnlyList<CadAttributeRow> rows)
+        internal CadAttributeEditRequest(
+            CadDocument document,
+            string insert,
+            string block,
+            IReadOnlyList<CadAttributeRow> rows
+        )
         {
             Document = document ?? throw new ArgumentNullException(nameof(document));
             Insert = insert;
@@ -420,7 +428,9 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(document));
             }
 
-            return document.FindEntity(insert) is DxfBlockReference reference && reference.AttributeCollection.Count > 0 ? CadCommands.Rows(document, insert) : null;
+            return document.FindEntity(insert) is DxfBlockReference reference && reference.AttributeCollection.Count > 0
+                ? CadCommands.Rows(document, insert)
+                : null;
         }
 
         /// <summary>Gets the document.</summary>

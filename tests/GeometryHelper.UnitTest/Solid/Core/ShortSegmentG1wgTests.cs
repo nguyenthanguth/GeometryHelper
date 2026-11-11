@@ -25,17 +25,39 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class ShortSegmentG1wgTests
     {
-        private static readonly Tolerance Billionth = new Tolerance(1E-9, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-9);
+        private static readonly Tolerance Billionth = new Tolerance(
+            1E-9,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-9
+        );
 
-        private static readonly Tolerance Hundredth = new Tolerance(1E-2, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-2);
+        private static readonly Tolerance Hundredth = new Tolerance(
+            1E-2,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-2
+        );
 
         private static GeoSolid3 Box() => new GeoObb3(new GeoPoint3(5, 5, -5), 10, 10, 10).ToSolid();
 
-        private static GeoPoint3[] Corners()
-            => new[] { new GeoPoint3(-7, -7, 0), new GeoPoint3(0, 0, 0), new GeoPoint3(0.008, 0, 0), new GeoPoint3(7, -7, 0) };
+        private static GeoPoint3[] Corners() =>
+            new[]
+            {
+                new GeoPoint3(-7, -7, 0),
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(0.008, 0, 0),
+                new GeoPoint3(7, -7, 0),
+            };
 
-        private static GeoPoint3[] Stepping()
-            => new[] { new GeoPoint3(2, 5, 0.054), new GeoPoint3(5, 5, 0.004), new GeoPoint3(5, 5, -0.005), new GeoPoint3(8, 5, -0.055) };
+        private static GeoPoint3[] Stepping() =>
+            new[]
+            {
+                new GeoPoint3(2, 5, 0.054),
+                new GeoPoint3(5, 5, 0.004),
+                new GeoPoint3(5, 5, -0.005),
+                new GeoPoint3(8, 5, -0.055),
+            };
 
         private static void AssertAt(double x, double y, double z, GeoPoint3 actual)
         {
@@ -81,10 +103,16 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ALoop_CrossingTheTopOfABoxByItsShortSideAlone_CrossesItThereAndWhereItClimbsBackOut()
         {
-            var loop = new GeoPolygonArc3(new[]
-            {
-                new GeoPoint3(2, 5, 0.054), new GeoPoint3(5, 5, 0.004), new GeoPoint3(5, 5, -0.005), new GeoPoint3(8, 5, -0.055), new GeoPoint3(8, 5, 3),
-            });
+            var loop = new GeoPolygonArc3(
+                new[]
+                {
+                    new GeoPoint3(2, 5, 0.054),
+                    new GeoPoint3(5, 5, 0.004),
+                    new GeoPoint3(5, 5, -0.005),
+                    new GeoPoint3(8, 5, -0.055),
+                    new GeoPoint3(8, 5, 3),
+                }
+            );
             GeoPoint3[] crossings = loop.GetIntersections(Box(), Hundredth);
 
             Assert.Equal(2, crossings.Length);
@@ -95,7 +123,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AChainCrossingTheTopOfABoxByItsShortLegAlone_IsCutThere()
         {
-            Assert.True(new GeoPolylineArc3(Stepping()).TrySplitBy(Box(), out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside, Hundredth));
+            Assert.True(
+                new GeoPolylineArc3(Stepping()).TrySplitBy(
+                    Box(),
+                    out GeoPolylineArc3[] inside,
+                    out GeoPolylineArc3[] outside,
+                    Hundredth
+                )
+            );
             Assert.InRange(Assert.Single(inside).StartPoint.DistanceTo(new GeoPoint3(5, 5, 0)), 0.0, 0.01);
             Assert.InRange(Assert.Single(outside).EndPoint.DistanceTo(new GeoPoint3(5, 5, 0)), 0.0, 0.01);
         }

@@ -35,9 +35,7 @@ namespace GeometryHelper.Dxf
     public sealed class DxfDataLink : DxfDBObject
     {
         internal DxfDataLink(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets or sets the name of the link, as AutoCAD's <c>Name</c>: the name of its entry in the dictionary that holds it,
@@ -51,7 +49,6 @@ namespace GeometryHelper.Dxf
         public string Name
         {
             get => Dictionary()?.NameOf(this);
-
             set
             {
                 if (value == null)
@@ -65,7 +62,10 @@ namespace GeometryHelper.Dxf
                 }
 
                 InFile("be renamed");
-                DxfDBDictionary dictionary = Dictionary() ?? throw new InvalidOperationException("The data link " + Handle + " is in no dictionary to be named in.");
+                DxfDBDictionary dictionary = Dictionary()
+                    ?? throw new InvalidOperationException(
+                        "The data link " + Handle + " is in no dictionary to be named in."
+                    );
                 dictionary.Rename(this, value);
             }
         }
@@ -131,8 +131,21 @@ namespace GeometryHelper.Dxf
             int minute = Whole(174, 0);
             int second = Whole(175, 0);
             int millisecond = Whole(176, 0);
-            bool dated = year >= 1 && year <= 9999 && month >= 1 && month <= 12 && day >= 1 && day <= DateTime.DaysInMonth(year, month)
-                && hour >= 0 && hour < 24 && minute >= 0 && minute < 60 && second >= 0 && second < 60 && millisecond >= 0 && millisecond < 1000;
+            bool dated =
+                year >= 1
+                && year <= 9999
+                && month >= 1
+                && month <= 12
+                && day >= 1
+                && day <= DateTime.DaysInMonth(year, month)
+                && hour >= 0
+                && hour < 24
+                && minute >= 0
+                && minute < 60
+                && second >= 0
+                && second < 60
+                && millisecond >= 0
+                && millisecond < 1000;
             time = dated ? new DateTime(year, month, day, hour, minute, second, millisecond) : DateTime.MinValue;
             errorMessage = StatusMessage();
             return Whole(93, 0);
@@ -181,14 +194,23 @@ namespace GeometryHelper.Dxf
             }
 
             DxfItem owner = Item.File.ObjectItem(OwnerHandle);
-            return owner != null && OfObject(owner) is DxfDBDictionary dictionary && dictionary.NameOf(this) != null ? dictionary : null;
+            return owner != null && OfObject(owner) is DxfDBDictionary dictionary && dictionary.NameOf(this) != null
+                ? dictionary
+                : null;
         }
 
         /// <summary>A text of AcDbDataLink, the first group of its code; empty where the record has none.</summary>
         private string Text(int code) => DxfReader.Decode(Item.File.ValueOf(Item, code) ?? string.Empty);
 
-        private int Whole(int code, int fallback)
-            => int.TryParse(Item.File.ValueOf(Item, code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+        private int Whole(int code, int fallback) =>
+            int.TryParse(
+                Item.File.ValueOf(Item, code)?.Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int value
+            )
+                ? value
+                : fallback;
 
         /// <summary>The message of the last update: the 304 before the count of custom data (94), the texts of the custom data being after it.</summary>
         private string StatusMessage()

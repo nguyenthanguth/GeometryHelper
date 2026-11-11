@@ -23,10 +23,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool ShowLineWeights => _current?.Drafting.LineWeights ?? _settings.ShowLineWeights;
 
         /// <summary>Gets the spacing of the grid across: the drawing's GRIDUNIT, its snap spacing where that is nought, 10 with no drawing.</summary>
-        public double GridSpacingX => _current == null ? 10.0 : _current.Drafting.GridX > 0.0 ? _current.Drafting.GridX : _current.Drafting.SnapX;
+        public double GridSpacingX =>
+            _current == null ? 10.0
+            : _current.Drafting.GridX > 0.0 ? _current.Drafting.GridX
+            : _current.Drafting.SnapX;
 
         /// <summary>Gets the spacing of the grid up: the drawing's GRIDUNIT, its snap spacing where that is nought, 10 with no drawing.</summary>
-        public double GridSpacingY => _current == null ? 10.0 : _current.Drafting.GridY > 0.0 ? _current.Drafting.GridY : _current.Drafting.SnapY;
+        public double GridSpacingY =>
+            _current == null ? 10.0
+            : _current.Drafting.GridY > 0.0 ? _current.Drafting.GridY
+            : _current.Drafting.SnapY;
 
         /// <summary>The <c>*Active</c> viewport of a drawing, which holds its snap and grid; null where it has none.</summary>
         private static DxfViewportTableRecord ActiveViewport(CadDocument document)
@@ -146,7 +152,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case "ORTHO":
                     state.Ortho = toggle.IsOn;
-                    WriteToDrawing("ORTHOMODE", () => WriteHeaderFlag(database, "$ORTHOMODE", toggle.IsOn, v => database.Orthomode = v));
+                    WriteToDrawing("ORTHOMODE", () =>
+                        WriteHeaderFlag(database, "$ORTHOMODE", toggle.IsOn, v => database.Orthomode = v)
+                    );
                     break;
             }
         }
@@ -194,7 +202,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             _current.Drafting.LineWeights = on;
             DxfDatabase database = _current.Document.Database;
-            WriteToDrawing("LWDISPLAY", () => WriteHeaderFlag(database, "$LWDISPLAY", on, v => database.LineWeightDisplay = v));
+            WriteToDrawing("LWDISPLAY", () =>
+                WriteHeaderFlag(database, "$LWDISPLAY", on, v => database.LineWeightDisplay = v)
+            );
             Raise(nameof(ShowLineWeights));
         }
 

@@ -58,7 +58,13 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
             }
-            catch (Exception e) when (e is ArgumentException || e is IOException || e is NotSupportedException || e is UnauthorizedAccessException || e is System.Security.SecurityException)
+            catch (Exception e)
+                when (e is ArgumentException
+                    || e is IOException
+                    || e is NotSupportedException
+                    || e is UnauthorizedAccessException
+                    || e is System.Security.SecurityException
+                )
             {
                 GeometryHelperLog.Debug("CadSupportFiles: " + name + " was not looked for (" + e.Message + ").");
             }
@@ -92,17 +98,29 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 try
                 {
-                    foreach (string path in Directory.GetFiles(folder, "*" + extension).OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
+                    foreach (
+                        string path in Directory
+                            .GetFiles(folder, "*" + extension)
+                            .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                    )
                     {
                         string name = Path.GetFileName(path);
 
-                        if (!found.ContainsKey(name) && string.Equals(Path.GetExtension(path), extension, StringComparison.OrdinalIgnoreCase))
+                        if (
+                            !found.ContainsKey(name)
+                            && string.Equals(Path.GetExtension(path), extension, StringComparison.OrdinalIgnoreCase)
+                        )
                         {
                             found.Add(name, path);
                         }
                     }
                 }
-                catch (Exception e) when (e is ArgumentException || e is IOException || e is UnauthorizedAccessException || e is System.Security.SecurityException)
+                catch (Exception e)
+                    when (e is ArgumentException
+                        || e is IOException
+                        || e is UnauthorizedAccessException
+                        || e is System.Security.SecurityException
+                    )
                 {
                     GeometryHelperLog.Debug("CadSupportFiles: " + folder + " was not listed (" + e.Message + ").");
                 }
@@ -176,12 +194,18 @@ namespace GeometryHelper.Dxf.Viewer
         public IReadOnlyList<string> SupportFolders
         {
             get => _supportFolders;
-            set => _supportFolders = (value ?? throw new ArgumentNullException(nameof(value))).Where(f => !string.IsNullOrWhiteSpace(f)).Select(f => f.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase).ToList().AsReadOnly();
+            set =>
+                _supportFolders = (value ?? throw new ArgumentNullException(nameof(value)))
+                    .Where(f => !string.IsNullOrWhiteSpace(f))
+                    .Select(f => f.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList()
+                    .AsReadOnly();
         }
 
         /// <summary>The folder of the drawing's file; null for a drawing of no file.</summary>
-        internal string DrawingFolder => _hasPath && !string.IsNullOrEmpty(FileName) ? Path.GetDirectoryName(Path.GetFullPath(FileName)) : null;
+        internal string DrawingFolder =>
+            _hasPath && !string.IsNullOrEmpty(FileName) ? Path.GetDirectoryName(Path.GetFullPath(FileName)) : null;
 
         /// <summary>The folders of <see cref="CadSupportFiles"/>, parted by semicolons, as <see cref="DxfDatabase.PatternSearchPath"/> takes them.</summary>
         internal string PatternSearchPath => string.Join(";", CadSupportFiles.FoldersOf(this));

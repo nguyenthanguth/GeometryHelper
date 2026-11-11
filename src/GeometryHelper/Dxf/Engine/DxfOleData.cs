@@ -66,7 +66,11 @@ namespace GeometryHelper.Dxf
 
                 foreach (char c in group.Value ?? string.Empty)
                 {
-                    int digit = c >= '0' && c <= '9' ? c - '0' : c >= 'A' && c <= 'F' ? c - 'A' + 10 : c >= 'a' && c <= 'f' ? c - 'a' + 10 : -1;
+                    int digit =
+                        c >= '0' && c <= '9' ? c - '0'
+                        : c >= 'A' && c <= 'F' ? c - 'A' + 10
+                        : c >= 'a' && c <= 'f' ? c - 'a' + 10
+                        : -1;
 
                     if (digit < 0)
                     {
@@ -102,7 +106,14 @@ namespace GeometryHelper.Dxf
         /// or BI_BITFIELDS for 16 and 32 bits), its pixels within the bytes; its size in pixels and its pixels a metre, 3 780
         /// (96 dots an inch) where it gives none. False, with the reason, for any other.
         /// </summary>
-        internal static bool TryBitmap(byte[] bmp, out int across, out int up, out int perMetreX, out int perMetreY, out string why)
+        internal static bool TryBitmap(
+            byte[] bmp,
+            out int across,
+            out int up,
+            out int perMetreX,
+            out int perMetreY,
+            out string why
+        )
         {
             across = up = perMetreX = perMetreY = 0;
             why = null;
@@ -130,7 +141,14 @@ namespace GeometryHelper.Dxf
 
             if (!(width > 0) || height == 0 || height == int.MinValue || planes != 1)
             {
-                why = "it is " + width + " by " + height + " pixels in " + planes + " planes, not one plane of some pixels";
+                why =
+                    "it is "
+                    + width
+                    + " by "
+                    + height
+                    + " pixels in "
+                    + planes
+                    + " planes, not one plane of some pixels";
                 return false;
             }
 
@@ -142,7 +160,10 @@ namespace GeometryHelper.Dxf
 
             if (compression != 0 && !(compression == 3 && (bits == 16 || bits == 32)))
             {
-                why = "it is compressed (" + compression + "), and a static picture holds a bitmap of its pixels as they are";
+                why =
+                    "it is compressed ("
+                    + compression
+                    + "), and a static picture holds a bitmap of its pixels as they are";
                 return false;
             }
 
@@ -151,7 +172,14 @@ namespace GeometryHelper.Dxf
 
             if (offBits < 14 + header || offBits + pixels > bmp.Length)
             {
-                why = "its pixels, " + pixels + " bytes from " + offBits + ", are not within its " + bmp.Length + " bytes";
+                why =
+                    "its pixels, "
+                    + pixels
+                    + " bytes from "
+                    + offBits
+                    + ", are not within its "
+                    + bmp.Length
+                    + " bytes";
                 return false;
             }
 
@@ -172,12 +200,18 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal static byte[] StaticPicture(byte[] bmp, GeoPoint3[] corners, int himetricWidth, int himetricHeight)
         {
-            byte[] compound = DxfCompoundFileWriter.Write(StaticDib, new[]
-            {
-                new KeyValuePair<string, byte[]>("\u0001Ole", new byte[] { 0x01, 0x00, 0x00, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }),
-                new KeyValuePair<string, byte[]>("\u0001CompObj", DibCompObj()),
-                new KeyValuePair<string, byte[]>("CONTENTS", bmp),
-            });
+            byte[] compound = DxfCompoundFileWriter.Write(
+                StaticDib,
+                new[]
+                {
+                    new KeyValuePair<string, byte[]>(
+                        "\u0001Ole",
+                        new byte[] { 0x01, 0x00, 0x00, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+                    ),
+                    new KeyValuePair<string, byte[]>("\u0001CompObj", DibCompObj()),
+                    new KeyValuePair<string, byte[]>("CONTENTS", bmp),
+                }
+            );
 
             var binary = new byte[HeadSize + compound.Length];
             binary[0] = 0x80;
@@ -352,12 +386,17 @@ namespace GeometryHelper.Dxf
         {
             byte[] ole = file.Stream("\u0001Ole", out _);
 
-            if (file.RootClassId == StdOleLink || (ole != null && ole.Length >= 8 && (DxfCompoundFile.U32(ole, 4) & 1) != 0))
+            if (
+                file.RootClassId == StdOleLink
+                || (ole != null && ole.Length >= 8 && (DxfCompoundFile.U32(ole, 4) & 1) != 0)
+            )
             {
                 return DxfOle2FrameItemType.Link;
             }
 
-            return PictureOf(file.RootClassId) != DxfOlePictureFormat.None ? DxfOle2FrameItemType.Static : DxfOle2FrameItemType.Embedded;
+            return PictureOf(file.RootClassId) != DxfOlePictureFormat.None
+                ? DxfOle2FrameItemType.Static
+                : DxfOle2FrameItemType.Embedded;
         }
 
         /// <summary>
@@ -392,7 +431,10 @@ namespace GeometryHelper.Dxf
 
             // The clipboard format, then the ProgID, whose length of 0 or over 0x28 says the Unicode strings after it are to be
             // ignored, as MS-OLEDS 2.3.8 says; then the marker of the Unicode strings.
-            uint progId = ansi != null && SkipClipboardFormat(stream, ref at, 1) && at + 4 <= stream.Length ? DxfCompoundFile.U32(stream, at) : 0;
+            uint progId =
+                ansi != null && SkipClipboardFormat(stream, ref at, 1) && at + 4 <= stream.Length
+                    ? DxfCompoundFile.U32(stream, at)
+                    : 0;
 
             if (progId == 0 || progId > 0x28 || AnsiString(stream, ref at) == null)
             {
@@ -540,9 +582,17 @@ namespace GeometryHelper.Dxf
                 default:
                     long header = contents.Length >= 4 ? DxfCompoundFile.U32(contents, 0) : -1;
                     long from = 4 + header;
-                    long size = header >= 0 && from + 52 <= contents.Length ? DxfCompoundFile.U32(contents, (int)from + 48) : -1;
+                    long size =
+                        header >= 0 && from + 52 <= contents.Length
+                            ? DxfCompoundFile.U32(contents, (int)from + 48)
+                            : -1;
 
-                    if (size < 108 || from + size > contents.Length || DxfCompoundFile.U32(contents, (int)from) != 1 || DxfCompoundFile.U32(contents, (int)from + 40) != 0x464D4520)
+                    if (
+                        size < 108
+                        || from + size > contents.Length
+                        || DxfCompoundFile.U32(contents, (int)from) != 1
+                        || DxfCompoundFile.U32(contents, (int)from + 40) != 0x464D4520
+                    )
                     {
                         why = "its CONTENTS does not hold an enhanced metafile after the copy of its header";
                         return null;
@@ -556,8 +606,11 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The kind of picture of a static object by the class of its storage; none for another class.</summary>
-        private static DxfOlePictureFormat PictureOf(Guid classId)
-            => classId == StaticDib ? DxfOlePictureFormat.Dib : classId == StaticMetafile ? DxfOlePictureFormat.Metafile : classId == StaticEnhancedMetafile ? DxfOlePictureFormat.EnhancedMetafile : DxfOlePictureFormat.None;
+        private static DxfOlePictureFormat PictureOf(Guid classId) =>
+            classId == StaticDib ? DxfOlePictureFormat.Dib
+            : classId == StaticMetafile ? DxfOlePictureFormat.Metafile
+            : classId == StaticEnhancedMetafile ? DxfOlePictureFormat.EnhancedMetafile
+            : DxfOlePictureFormat.None;
 
         /// <summary>
         /// Reads a moniker (MS-OLEDS's MONIKERSTREAM: its class, then its data) up to an end: a file moniker's path, an item
@@ -695,7 +748,10 @@ namespace GeometryHelper.Dxf
 
             byte[] ansi = Until(data, at, (int)size);
             int unicode = (int)size - ansi.Length - 1;
-            string text = unicode >= 2 ? Encoding.Unicode.GetString(data, at + ansi.Length + 1, unicode & ~1) : Ascii(ansi) ?? Latin1.GetString(ansi);
+            string text =
+                unicode >= 2
+                    ? Encoding.Unicode.GetString(data, at + ansi.Length + 1, unicode & ~1)
+                    : Ascii(ansi) ?? Latin1.GetString(ansi);
             at += (int)size;
             return text;
         }

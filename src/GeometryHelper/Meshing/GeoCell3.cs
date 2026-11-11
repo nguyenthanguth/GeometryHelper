@@ -32,7 +32,19 @@ namespace GeometryHelper.Meshing
         /// <param name="volume">The volume of the material.</param>
         /// <param name="low">Where along each axis the cut bounding the material from below stands, NaN where the body does.</param>
         /// <param name="high">Where along each axis the cut bounding the material from above stands, NaN where the body does.</param>
-        internal GeoCell3(int i, int j, int k, int piece, GeoObb3 box, GeoSolid3 solid, GeoObb3 material, bool whole, double volume, double[] low, double[] high)
+        internal GeoCell3(
+            int i,
+            int j,
+            int k,
+            int piece,
+            GeoObb3 box,
+            GeoSolid3 solid,
+            GeoObb3 material,
+            bool whole,
+            double volume,
+            double[] low,
+            double[] high
+        )
         {
             I = i;
             J = j;
@@ -137,14 +149,26 @@ namespace GeometryHelper.Meshing
         /// </summary>
         /// <param name="box">How a box is moved.</param>
         /// <param name="solid">How a body is moved.</param>
-        internal GeoCell3 Moved(Func<GeoObb3, GeoObb3> box, Func<GeoSolid3, GeoSolid3> solid)
-            => new GeoCell3(I, J, K, Piece, box(Box), _solid == null ? null : solid(_solid), _material == null ? null : box(_material), IsWhole, Volume, Low, High);
+        internal GeoCell3 Moved(Func<GeoObb3, GeoObb3> box, Func<GeoSolid3, GeoSolid3> solid) =>
+            new GeoCell3(
+                I,
+                J,
+                K,
+                Piece,
+                box(Box),
+                _solid == null ? null : solid(_solid),
+                _material == null ? null : box(_material),
+                IsWhole,
+                Volume,
+                Low,
+                High
+            );
 
         /// <summary>
         /// Describes the cell.
         /// </summary>
-        public override string ToString()
-            => string.Format(
+        public override string ToString() =>
+            string.Format(
                 CultureInfo.InvariantCulture,
                 "Cell3({0}, {1}, {2}{3}, {4}, Volume: {5:0.###})",
                 I,
@@ -152,6 +176,7 @@ namespace GeometryHelper.Meshing
                 K,
                 Piece > 0 ? ", piece " + Piece : string.Empty,
                 IsWhole ? "whole" : "cut",
-                Volume);
+                Volume
+            );
     }
 }

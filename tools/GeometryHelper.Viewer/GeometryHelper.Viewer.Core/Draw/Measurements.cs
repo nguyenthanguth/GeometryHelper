@@ -96,10 +96,25 @@ namespace GeometryHelper.Viewer
 
             if (library.From.HasValue && library.To.HasValue)
             {
-                AddLine(pair + ": GetShortestLineTo " + Measurements.N((library.To.Value - library.From.Value).Length) + " long, from " + library.From.Value + " to " + library.To.Value);
+                AddLine(
+                    pair
+                        + ": GetShortestLineTo "
+                        + Measurements.N((library.To.Value - library.From.Value).Length)
+                        + " long, from "
+                        + library.From.Value
+                        + " to "
+                        + library.To.Value
+                );
                 Drawing.LibraryLines.Add(new DrawPolyline(new[] { library.From.Value, library.To.Value }, false));
                 Vec3 middle = (library.From.Value + library.To.Value) * 0.5;
-                Drawing.Labels.Add(new DrawLabel(middle, "library " + Measurements.Short(library.Distance ?? (library.To.Value - library.From.Value).Length), 0.0));
+                Drawing.Labels.Add(
+                    new DrawLabel(
+                        middle,
+                        "library "
+                            + Measurements.Short(library.Distance ?? (library.To.Value - library.From.Value).Length),
+                        0.0
+                    )
+                );
             }
 
             foreach (string note in library.Notes)
@@ -132,7 +147,12 @@ namespace GeometryHelper.Viewer
                 throw new ArgumentNullException(nameof(library));
             }
 
-            double value = library.Distance ?? (library.From.HasValue && library.To.HasValue ? (library.To.Value - library.From.Value).Length : double.NaN);
+            double value = library.Distance
+                ?? (
+                    library.From.HasValue && library.To.HasValue
+                        ? (library.To.Value - library.From.Value).Length
+                        : double.NaN
+                );
             var result = new MeasureResult("distance", value, 0.0);
 
             result.AddLine("Distance between " + library.FirstName + " and " + library.SecondName);
@@ -164,7 +184,20 @@ namespace GeometryHelper.Viewer
             double length = d.Length;
             var result = new MeasureResult("distance", length, plan);
 
-            result.AddLine("Distance " + N(length) + "  (dx " + N(e.X) + ", dy " + N(e.Y) + ", dz " + N(e.Z) + "; in plan " + N(plan) + (onWork ? "; along the axes of the work plane" : string.Empty) + ")");
+            result.AddLine(
+                "Distance "
+                    + N(length)
+                    + "  (dx "
+                    + N(e.X)
+                    + ", dy "
+                    + N(e.Y)
+                    + ", dz "
+                    + N(e.Z)
+                    + "; in plan "
+                    + N(plan)
+                    + (onWork ? "; along the axes of the work plane" : string.Empty)
+                    + ")"
+            );
             result.AddLine("  from " + first + " to " + second);
             result.Drawing.Lines.Add(new DrawPolyline(new[] { first, second }, false));
             result.Drawing.Points.Add(first);
@@ -199,7 +232,15 @@ namespace GeometryHelper.Viewer
             double degrees = angle * 180.0 / Math.PI;
             var result = new MeasureResult("angle", angle, 0.0);
 
-            result.AddLine("Angle " + N(degrees) + " deg  (" + N(angle) + " rad; the other way round " + N(360.0 - degrees) + " deg)");
+            result.AddLine(
+                "Angle "
+                    + N(degrees)
+                    + " deg  ("
+                    + N(angle)
+                    + " rad; the other way round "
+                    + N(360.0 - degrees)
+                    + " deg)"
+            );
             result.AddLine("  at " + vertex + ", legs " + N(a.Length) + " and " + N(b.Length) + " long");
             result.Drawing.Lines.Add(new DrawPolyline(new[] { first, vertex, second }, false));
             result.Drawing.Points.Add(first);
@@ -273,7 +314,14 @@ namespace GeometryHelper.Viewer
                 }
                 else
                 {
-                    result.AddLine("  arc, swept " + N(Math.Abs(curve.Sweep) * 180.0 / Math.PI) + " deg, " + N(length) + " long, chord " + N((curve.End - curve.Start).Length));
+                    result.AddLine(
+                        "  arc, swept "
+                            + N(Math.Abs(curve.Sweep) * 180.0 / Math.PI)
+                            + " deg, "
+                            + N(length)
+                            + " long, chord "
+                            + N((curve.End - curve.Start).Length)
+                    );
                 }
 
                 result.Drawing.Labels.Add(new DrawLabel((curve.Center + onCurve) * 0.5, "R " + Short(radius), 0.0));
@@ -286,7 +334,9 @@ namespace GeometryHelper.Viewer
 
                 result.AddLine("Ellipse, semi-axes " + N(major) + " and " + N(minor) + ": it has no one radius");
                 result.AddLine("  centre " + curve.Center + ", normal " + curve.Normal);
-                result.Drawing.Labels.Add(new DrawLabel((curve.Center + onCurve) * 0.5, "a " + Short(major) + " b " + Short(minor), 0.0));
+                result.Drawing.Labels.Add(
+                    new DrawLabel((curve.Center + onCurve) * 0.5, "a " + Short(major) + " b " + Short(minor), 0.0)
+                );
             }
 
             result.Drawing.Lines.Add(new DrawPolyline(new[] { curve.Center, onCurve }, false));

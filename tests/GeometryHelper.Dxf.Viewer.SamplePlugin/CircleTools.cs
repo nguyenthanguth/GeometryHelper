@@ -62,7 +62,9 @@ namespace GeometryHelper.Dxf.Viewer.SamplePlugin
             string layer = Layer;
             double height = TextHeight;
             bool newLayer = !c.Database.LayerTable.Has(layer);
-            CadEditRecord[] planned = newLayer ? new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New layer", null, layer) } : null;
+            CadEditRecord[] planned = newLayer
+                ? new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New layer", null, layer) }
+                : null;
 
             // A refusal or failure is written on the command line by Apply itself, and nothing is changed.
             CadEditResult result = c.Apply(planned, s =>

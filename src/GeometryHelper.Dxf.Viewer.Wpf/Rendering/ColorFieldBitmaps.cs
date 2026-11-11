@@ -39,7 +39,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                         for (int x = 0; x < width; x++)
                         {
-                            pixels[y * width + x] = SelectColorViewModel.HslToRgb(360.0 * x / (width - 1), saturation, 50.0);
+                            pixels[y * width + x] = SelectColorViewModel.HslToRgb(
+                                360.0 * x / (width - 1),
+                                saturation,
+                                50.0
+                            );
                         }
                     }
 
@@ -64,7 +68,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     for (int y = 0; y < height; y++)
                     {
-                        pixels[y] = SelectColorViewModel.HslToRgb(hue, saturation, 100.0 * (1.0 - y / (double)(height - 1)));
+                        pixels[y] = SelectColorViewModel.HslToRgb(
+                            hue,
+                            saturation,
+                            100.0 * (1.0 - y / (double)(height - 1))
+                        );
                     }
 
                     _luminance = Make(1, height, pixels);
@@ -88,7 +96,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     for (int v = 0; v < 256; v++)
                     {
-                        pixels[v] = channel == 0 ? (v << 16) | (first << 8) | second : channel == 1 ? (first << 16) | (v << 8) | second : (first << 16) | (second << 8) | v;
+                        pixels[v] =
+                            channel == 0 ? (v << 16) | (first << 8) | second
+                            : channel == 1 ? (first << 16) | (v << 8) | second
+                            : (first << 16) | (second << 8) | v;
                     }
 
                     Channels[channel] = Make(256, 1, pixels);

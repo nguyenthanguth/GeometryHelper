@@ -1,23 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <!-- The assembly attributes are generated from the package metadata below rather than written by
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <!-- The assembly attributes are generated from the package metadata below rather than written by
          hand, so the version lives in one place. The four geometry libraries still carry a hand-written
          Properties/AssemblyInfo.cs; this project has none, and generating is what keeps its identity
          from falling back to 0.0.0.0. -->
-    <PlatformTarget>x64</PlatformTarget>
+        <PlatformTarget>x64</PlatformTarget>
 
-    <!-- 1. Configure NuGet Package generation and XML Documentation -->
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <!-- 1. Configure NuGet Package generation and XML Documentation -->
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
-    <PackageId>GeometryHelper.CadConvert</PackageId>
-    <Description>Converts geometry between AutoCAD and GeometryHelper: points, vectors, lines, polylines, polygons, circles, and bounding boxes.</Description>
-    <PackageTags>autocad bim geometry 2d 3d interop conversion</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>
+        <PackageId>GeometryHelper.CadConvert</PackageId>
+        <Description>Converts geometry between AutoCAD and GeometryHelper: points, vectors, lines, polylines, polygons, circles, and bounding boxes.</Description>
+        <PackageTags>autocad bim geometry 2d 3d interop conversion</PackageTags>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageIcon>icon.png</PackageIcon>
+        <PackageReleaseNotes>
       Converts geometry between AutoCAD and GeometryHelper, both ways: points, vectors, line segments
       and Line entities, polylines and polygons with the arcs their bulges draw, arcs, circles,
       ellipses, rays, xlines, splines, and Extents2d/Extents3d as rectangles.
@@ -79,36 +78,35 @@
         segment out of a list.
     </PackageReleaseNotes>
 
-    <!-- The AutoCAD assemblies are referenced but never packed: Private=false keeps them out of the
+        <!-- The AutoCAD assemblies are referenced but never packed: Private=false keeps them out of the
          build output, so nothing of Autodesk's ends up inside the package. See README.md. -->
-    <IsPackable>true</IsPackable>
+        <IsPackable>true</IsPackable>
 
-    <DebugType>embedded</DebugType>
-    <EmbedAllSources>true</EmbedAllSources>
-  </PropertyGroup>
+        <DebugType>embedded</DebugType>
+        <EmbedAllSources>true</EmbedAllSources>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="accoremgd">
-      <HintPath>Lib\accoremgd.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="acdbmgd">
-      <HintPath>Lib\acdbmgd.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="acmgd">
-      <HintPath>Lib\acmgd.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-  </ItemGroup>
+    <ItemGroup>
+        <Reference Include="accoremgd">
+            <HintPath>Lib\accoremgd.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="acdbmgd">
+            <HintPath>Lib\acdbmgd.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="acmgd">
+            <HintPath>Lib\acmgd.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
-    <None Include="icon.png" Pack="true" PackagePath="\" />
-  </ItemGroup>
-
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+        <None Include="icon.png" Pack="true" PackagePath="\" />
+    </ItemGroup>
 </Project>

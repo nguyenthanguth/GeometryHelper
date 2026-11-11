@@ -31,7 +31,11 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>A touch is found from a nearly double root: its place along the rim to 1E-6.</summary>
         private const double AgreeAtATouch = 1E-6;
 
-        private static readonly GeoCircle3 Circle = new GeoCircle3(new GeoPoint3(100, 200, 300), new GeoVector3(1, -1, 2), R);
+        private static readonly GeoCircle3 Circle = new GeoCircle3(
+            new GeoPoint3(100, 200, 300),
+            new GeoVector3(1, -1, 2),
+            R
+        );
 
         /// <summary>The circle's own frame, in which every shape here is placed.</summary>
         private static Specimen Frame()
@@ -45,11 +49,18 @@ namespace GeometryHelper.UnitTest.Solid
         {
             Specimen f = Frame();
             yield return GeoEllipse3.FromCircle(Circle);
-            yield return new GeoEllipse3(Circle.Center, Circle.Normal, f.U.Multiply(Math.Cos(0.4)).Add(f.V.Multiply(Math.Sin(0.4))), R, R);
+            yield return new GeoEllipse3(
+                Circle.Center,
+                Circle.Normal,
+                f.U.Multiply(Math.Cos(0.4)).Add(f.V.Multiply(Math.Sin(0.4))),
+                R,
+                R
+            );
         }
 
         /// <summary>A circle of the frame: about (u, v, h) with the frame's normal, or about a point with another normal.</summary>
-        private static GeoCircle3 InFrame(double u, double v, double h, double radius) => new GeoCircle3(Frame().At(u, v, h), Frame().N, radius);
+        private static GeoCircle3 InFrame(double u, double v, double h, double radius) =>
+            new GeoCircle3(Frame().At(u, v, h), Frame().N, radius);
 
         private static GeoPolygon3 FramePolygon(double h, params double[] uv)
         {
@@ -92,7 +103,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < circle.Length; i++)
             {
-                Assert.True(circle[i].DistanceTo(ellipse[i]) <= within, $"{what}, point {i}: circle {circle[i]}, ellipse {ellipse[i]}");
+                Assert.True(
+                    circle[i].DistanceTo(ellipse[i]) <= within,
+                    $"{what}, point {i}: circle {circle[i]}, ellipse {ellipse[i]}"
+                );
             }
         }
 
@@ -104,7 +118,13 @@ namespace GeometryHelper.UnitTest.Solid
             }
         }
 
-        private static void Same(string what, bool circleTried, GeoPoint3[] circleOut, bool ellipseTried, GeoPoint3[] ellipseOut)
+        private static void Same(
+            string what,
+            bool circleTried,
+            GeoPoint3[] circleOut,
+            bool ellipseTried,
+            GeoPoint3[] ellipseOut
+        )
         {
             if (circleTried != ellipseTried)
             {
@@ -124,7 +144,10 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 ["leaning through a chord"] = new GeoPlane3(first, normal),
                 ["through a tangent"] = new GeoPlane3(f.Rim(1.2), LeanAbout(f, tangent, 40 * Math.PI / 180)),
-                ["five thousandths clear"] = new GeoPlane3(f.Rim(1.2).Add(tangent.CrossProduct(f.N).Multiply(0.005)), LeanAbout(f, tangent, 40 * Math.PI / 180)),
+                ["five thousandths clear"] = new GeoPlane3(
+                    f.Rim(1.2).Add(tangent.CrossProduct(f.N).Multiply(0.005)),
+                    LeanAbout(f, tangent, 40 * Math.PI / 180)
+                ),
                 ["parallel"] = new GeoPlane3(f.At(10, 10, 5), f.N),
                 ["its own"] = new GeoPlane3(f.At(100, 30, 0), f.N.Negate()),
                 ["across the centre"] = new GeoPlane3(f.Center, f.U),
@@ -135,7 +158,11 @@ namespace GeometryHelper.UnitTest.Solid
                 foreach (KeyValuePair<string, GeoPlane3> plane in planes)
                 {
                     Alike(plane.Key, Circle.CollidesWith(plane.Value, Tol), ellipse.CollidesWith(plane.Value, Tol));
-                    Same(plane.Key, Circle.GetIntersections(plane.Value, Tol), ellipse.GetIntersections(plane.Value, Tol));
+                    Same(
+                        plane.Key,
+                        Circle.GetIntersections(plane.Value, Tol),
+                        ellipse.GetIntersections(plane.Value, Tol)
+                    );
                     bool c = Circle.TryIntersectWith(plane.Value, out GeoPoint3[] co, Tol);
                     bool e = ellipse.TryIntersectWith(plane.Value, out GeoPoint3[] eo, Tol);
                     Same(plane.Key, c, co, e, eo);
@@ -158,7 +185,10 @@ namespace GeometryHelper.UnitTest.Solid
                 ["through the disc"] = new GeoLine3(f.At(30, -20, -50), f.At(30, -20, 50)),
                 ["through a rim point"] = new GeoLine3(rim.Add(lean.Multiply(-40)), rim.Add(lean.Multiply(40))),
                 ["outside"] = new GeoLine3(f.At(400, 0, -50), f.At(400, 0, 50)),
-                ["along a tangent"] = new GeoLine3(f.Rim(1.0).Add(tangent.Multiply(-200)), f.Rim(1.0).Add(tangent.Multiply(200))),
+                ["along a tangent"] = new GeoLine3(
+                    f.Rim(1.0).Add(tangent.Multiply(-200)),
+                    f.Rim(1.0).Add(tangent.Multiply(200))
+                ),
                 ["inside"] = new GeoLine3(f.At(-200, 50, 0), f.At(200, 50, 0)),
                 ["from the centre to the rim"] = new GeoLine3(f.Center, f.Rim(0.5)),
                 ["five above"] = new GeoLine3(f.At(-400, 50, 5), f.At(400, 50, 5)),
@@ -213,7 +243,11 @@ namespace GeometryHelper.UnitTest.Solid
                 ["inside, about the centre"] = InFrame(0, 0, 0, 150),
                 ["a touch four ten-thousandths inside"] = InFrame(0, 150 - 0.0004, 0, 100),
                 ["well outside"] = InFrame(700, 0, 0, 100),
-                ["across, touching the line of the planes"] = new GeoCircle3(touch.Add(inTouchPlane.Multiply(80)), touchNormal, 80),
+                ["across, touching the line of the planes"] = new GeoCircle3(
+                    touch.Add(inTouchPlane.Multiply(80)),
+                    touchNormal,
+                    80
+                ),
             };
         }
 
@@ -230,13 +264,25 @@ namespace GeometryHelper.UnitTest.Solid
 
                     Alike(other.Key, collides, ellipse.CollidesWith(other.Value, Tol));
                     Same(other.Key, expected, ellipse.GetIntersections(other.Value, Tol));
-                    Same(other.Key, tried, triedOut, ellipse.TryIntersectWith(other.Value, out GeoPoint3[] eo, Tol), eo);
+                    Same(
+                        other.Key,
+                        tried,
+                        triedOut,
+                        ellipse.TryIntersectWith(other.Value, out GeoPoint3[] eo, Tol),
+                        eo
+                    );
 
                     // The other circle as an ellipse too.
                     GeoEllipse3 asEllipse = GeoEllipse3.FromCircle(other.Value);
                     Alike(other.Key + ", as an ellipse", collides, ellipse.CollidesWith(asEllipse, Tol));
                     Same(other.Key + ", as an ellipse", expected, ellipse.GetIntersections(asEllipse, Tol));
-                    Same(other.Key + ", as an ellipse", tried, triedOut, ellipse.TryIntersectWith(asEllipse, out GeoPoint3[] ao, Tol), ao);
+                    Same(
+                        other.Key + ", as an ellipse",
+                        tried,
+                        triedOut,
+                        ellipse.TryIntersectWith(asEllipse, out GeoPoint3[] ao, Tol),
+                        ao
+                    );
                 }
             }
         }
@@ -249,13 +295,26 @@ namespace GeometryHelper.UnitTest.Solid
             GeoCircle3 across = CircleThroughTwo(first, second, normal, 30);
             GeoVector3 x = across.Center.GetVectorTo(first).Normalize();
             GeoVector3 y = across.Normal.CrossProduct(x);
-            GeoPoint3 On(double angle) => across.Center.Add(x.Multiply(across.Radius * Math.Cos(angle))).Add(y.Multiply(across.Radius * Math.Sin(angle)));
-            GeoPoint3 far = across.Center.Add(first.Add(first.GetVectorTo(second).Multiply(0.5)).GetVectorTo(across.Center).Normalize().Multiply(across.Radius));
+            GeoPoint3 On(double angle) =>
+                across
+                    .Center.Add(x.Multiply(across.Radius * Math.Cos(angle)))
+                    .Add(y.Multiply(across.Radius * Math.Sin(angle)));
+            GeoPoint3 far = across.Center.Add(
+                first
+                    .Add(first.GetVectorTo(second).Multiply(0.5))
+                    .GetVectorTo(across.Center)
+                    .Normalize()
+                    .Multiply(across.Radius)
+            );
             var arcs = new Dictionary<string, GeoArc3>
             {
                 ["across, over both"] = GeoArc3.FromThreePoints(first, far, second),
                 ["across, about one"] = GeoArc3.FromThreePoints(On(-0.2), On(0.05), On(0.2)),
-                ["in the plane, apart"] = GeoArc3.FromThreePoints(f.At(150 + 200, 40, 0), f.At(150, 240, 0), f.At(150 - 200, 40, 0)),
+                ["in the plane, apart"] = GeoArc3.FromThreePoints(
+                    f.At(150 + 200, 40, 0),
+                    f.At(150, 240, 0),
+                    f.At(150 - 200, 40, 0)
+                ),
                 ["on the circle itself"] = GeoArc3.FromThreePoints(f.Rim(0.2), f.Rim(1.0), f.Rim(2.0)),
                 ["inside"] = GeoArc3.FromThreePoints(f.At(0, 50, 0), f.At(35.36, 35.36, 0), f.At(50, 0, 0)),
             };
@@ -283,26 +342,53 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPoint3 middle = first.Add(chord.Multiply(0.5));
             var triangles = new Dictionary<string, GeoTriangle3>
             {
-                ["standing across"] = new GeoTriangle3(first.Add(chord.Multiply(-0.5)).Add(w.Multiply(-20)), second.Add(chord.Multiply(0.5)).Add(w.Multiply(-20)), middle.Add(w.Multiply(200))),
-                ["standing through the disc"] = new GeoTriangle3(middle.Add(chord.Multiply(-0.1)).Add(w.Multiply(-20)), middle.Add(chord.Multiply(0.1)).Add(w.Multiply(-20)), middle.Add(w.Multiply(30))),
+                ["standing across"] = new GeoTriangle3(
+                    first.Add(chord.Multiply(-0.5)).Add(w.Multiply(-20)),
+                    second.Add(chord.Multiply(0.5)).Add(w.Multiply(-20)),
+                    middle.Add(w.Multiply(200))
+                ),
+                ["standing through the disc"] = new GeoTriangle3(
+                    middle.Add(chord.Multiply(-0.1)).Add(w.Multiply(-20)),
+                    middle.Add(chord.Multiply(0.1)).Add(w.Multiply(-20)),
+                    middle.Add(w.Multiply(30))
+                ),
                 ["in the plane, across"] = FrameTriangle(0, -50, -50, 400, -50, -50, 150),
                 ["in the plane, inside"] = FrameTriangle(0, -20, -20, 20, -20, 0, 20),
                 ["in the plane, holding it"] = FrameTriangle(0, -1000, -1000, 1000, -1000, 0, 1000),
             };
             var polygons = new Dictionary<string, GeoPolygon3>
             {
-                ["standing across"] = new GeoPolygon3(first.Add(chord.Multiply(-0.3)).Add(w.Multiply(-30)), second.Add(chord.Multiply(0.3)).Add(w.Multiply(-30)), second.Add(chord.Multiply(0.3)).Add(w.Multiply(30)), first.Add(chord.Multiply(-0.3)).Add(w.Multiply(30))),
+                ["standing across"] = new GeoPolygon3(
+                    first.Add(chord.Multiply(-0.3)).Add(w.Multiply(-30)),
+                    second.Add(chord.Multiply(0.3)).Add(w.Multiply(-30)),
+                    second.Add(chord.Multiply(0.3)).Add(w.Multiply(30)),
+                    first.Add(chord.Multiply(-0.3)).Add(w.Multiply(30))
+                ),
                 ["in the plane, across"] = FramePolygon(0, -100, -300, 100, -300, 100, 300, -100, 300),
                 ["in the plane, holding it"] = FramePolygon(0, -400, -400, 400, -400, 400, 400, -400, 400),
             };
             var faces = new Dictionary<string, GeoFace3>
             {
-                ["in the plane, a hole across the rim"] = new GeoFace3(FramePolygon(0, -400, -400, 400, -400, 400, 400, -400, 400), new[] { FramePolygon(0, 200, -50, 350, -50, 350, 50, 200, 50) }),
-                ["in the plane, in a hole"] = new GeoFace3(FramePolygon(0, -1000, -1000, 1000, -1000, 1000, 1000, -1000, 1000), new[] { FramePolygon(0, -400, -400, 400, -400, 400, 400, -400, 400) }),
-                ["standing across, a hole about one point"] = new GeoFace3(polygons["standing across"], new[]
-                {
-                    new GeoPolygon3(first.Add(chord.Normalize().Multiply(-10)).Add(w.Multiply(-10)), first.Add(chord.Normalize().Multiply(10)).Add(w.Multiply(-10)), first.Add(chord.Normalize().Multiply(10)).Add(w.Multiply(10)), first.Add(chord.Normalize().Multiply(-10)).Add(w.Multiply(10))),
-                }),
+                ["in the plane, a hole across the rim"] = new GeoFace3(
+                    FramePolygon(0, -400, -400, 400, -400, 400, 400, -400, 400),
+                    new[] { FramePolygon(0, 200, -50, 350, -50, 350, 50, 200, 50) }
+                ),
+                ["in the plane, in a hole"] = new GeoFace3(
+                    FramePolygon(0, -1000, -1000, 1000, -1000, 1000, 1000, -1000, 1000),
+                    new[] { FramePolygon(0, -400, -400, 400, -400, 400, 400, -400, 400) }
+                ),
+                ["standing across, a hole about one point"] = new GeoFace3(
+                    polygons["standing across"],
+                    new[]
+                    {
+                        new GeoPolygon3(
+                            first.Add(chord.Normalize().Multiply(-10)).Add(w.Multiply(-10)),
+                            first.Add(chord.Normalize().Multiply(10)).Add(w.Multiply(-10)),
+                            first.Add(chord.Normalize().Multiply(10)).Add(w.Multiply(10)),
+                            first.Add(chord.Normalize().Multiply(-10)).Add(w.Multiply(10))
+                        ),
+                    }
+                ),
             };
 
             foreach (GeoEllipse3 ellipse in AsEllipses())
@@ -310,22 +396,52 @@ namespace GeometryHelper.UnitTest.Solid
                 foreach (KeyValuePair<string, GeoTriangle3> t in triangles)
                 {
                     Alike(t.Key, Circle.CollidesWith(t.Value, Tol), ellipse.CollidesWith(t.Value, Tol));
-                    Same("triangle " + t.Key, Circle.GetIntersections(t.Value, Tol), ellipse.GetIntersections(t.Value, Tol));
-                    Same("triangle " + t.Key, Circle.TryIntersectWith(t.Value, out GeoPoint3[] co, Tol), co, ellipse.TryIntersectWith(t.Value, out GeoPoint3[] eo, Tol), eo);
+                    Same(
+                        "triangle " + t.Key,
+                        Circle.GetIntersections(t.Value, Tol),
+                        ellipse.GetIntersections(t.Value, Tol)
+                    );
+                    Same(
+                        "triangle " + t.Key,
+                        Circle.TryIntersectWith(t.Value, out GeoPoint3[] co, Tol),
+                        co,
+                        ellipse.TryIntersectWith(t.Value, out GeoPoint3[] eo, Tol),
+                        eo
+                    );
                 }
 
                 foreach (KeyValuePair<string, GeoPolygon3> p in polygons)
                 {
                     Alike(p.Key, Circle.CollidesWith(p.Value, Tol), ellipse.CollidesWith(p.Value, Tol));
-                    Same("polygon " + p.Key, Circle.GetIntersections(p.Value, Tol), ellipse.GetIntersections(p.Value, Tol));
-                    Same("polygon " + p.Key, Circle.TryIntersectWith(p.Value, out GeoPoint3[] co, Tol), co, ellipse.TryIntersectWith(p.Value, out GeoPoint3[] eo, Tol), eo);
+                    Same(
+                        "polygon " + p.Key,
+                        Circle.GetIntersections(p.Value, Tol),
+                        ellipse.GetIntersections(p.Value, Tol)
+                    );
+                    Same(
+                        "polygon " + p.Key,
+                        Circle.TryIntersectWith(p.Value, out GeoPoint3[] co, Tol),
+                        co,
+                        ellipse.TryIntersectWith(p.Value, out GeoPoint3[] eo, Tol),
+                        eo
+                    );
                 }
 
                 foreach (KeyValuePair<string, GeoFace3> face in faces)
                 {
                     Alike(face.Key, Circle.CollidesWith(face.Value, Tol), ellipse.CollidesWith(face.Value, Tol));
-                    Same("face " + face.Key, Circle.GetIntersections(face.Value, Tol), ellipse.GetIntersections(face.Value, Tol));
-                    Same("face " + face.Key, Circle.TryIntersectWith(face.Value, out GeoPoint3[] co, Tol), co, ellipse.TryIntersectWith(face.Value, out GeoPoint3[] eo, Tol), eo);
+                    Same(
+                        "face " + face.Key,
+                        Circle.GetIntersections(face.Value, Tol),
+                        ellipse.GetIntersections(face.Value, Tol)
+                    );
+                    Same(
+                        "face " + face.Key,
+                        Circle.TryIntersectWith(face.Value, out GeoPoint3[] co, Tol),
+                        co,
+                        ellipse.TryIntersectWith(face.Value, out GeoPoint3[] eo, Tol),
+                        eo
+                    );
                 }
             }
         }
@@ -339,8 +455,14 @@ namespace GeometryHelper.UnitTest.Solid
             Specimen f = Frame();
             GeoPoint3 c = Circle.Center;
             var obb = new GeoObb3(f.Rim(0.3), 120, 120, 120, f.U, f.V);
-            var aabb = new GeoAabb3(new GeoPoint3(c.X - 150, c.Y - 150, c.Z - 150), new GeoPoint3(c.X + 150, c.Y + 150, c.Z + 150));
-            var small = new GeoAabb3(new GeoPoint3(c.X - 50, c.Y - 50, c.Z - 50), new GeoPoint3(c.X + 50, c.Y + 50, c.Z + 50));
+            var aabb = new GeoAabb3(
+                new GeoPoint3(c.X - 150, c.Y - 150, c.Z - 150),
+                new GeoPoint3(c.X + 150, c.Y + 150, c.Z + 150)
+            );
+            var small = new GeoAabb3(
+                new GeoPoint3(c.X - 50, c.Y - 50, c.Z - 50),
+                new GeoPoint3(c.X + 50, c.Y + 50, c.Z + 50)
+            );
             GeoSolid3 duct = new GeoObb3(c, 40, 40, 600, f.U, f.V).ToSolid();
             var solids = new Dictionary<string, GeoSolid3>
             {
@@ -353,20 +475,42 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 Alike("oriented box", Circle.CollidesWith(obb, Tol), ellipse.CollidesWith(obb, Tol));
                 Same("oriented box", Circle.GetIntersections(obb, Tol), ellipse.GetIntersections(obb, Tol));
-                Same("oriented box", Circle.TryIntersectWith(obb, out GeoPoint3[] oc, Tol), oc, ellipse.TryIntersectWith(obb, out GeoPoint3[] oe, Tol), oe);
+                Same(
+                    "oriented box",
+                    Circle.TryIntersectWith(obb, out GeoPoint3[] oc, Tol),
+                    oc,
+                    ellipse.TryIntersectWith(obb, out GeoPoint3[] oe, Tol),
+                    oe
+                );
 
                 foreach (GeoAabb3 box in new[] { aabb, small, default(GeoAabb3) })
                 {
                     Alike($"world box {box}", Circle.CollidesWith(box, Tol), ellipse.CollidesWith(box, Tol));
                     Same($"world box {box}", Circle.GetIntersections(box, Tol), ellipse.GetIntersections(box, Tol));
-                    Same($"world box {box}", Circle.TryIntersectWith(box, out GeoPoint3[] bc, Tol), bc, ellipse.TryIntersectWith(box, out GeoPoint3[] be, Tol), be);
+                    Same(
+                        $"world box {box}",
+                        Circle.TryIntersectWith(box, out GeoPoint3[] bc, Tol),
+                        bc,
+                        ellipse.TryIntersectWith(box, out GeoPoint3[] be, Tol),
+                        be
+                    );
                 }
 
                 foreach (KeyValuePair<string, GeoSolid3> solid in solids)
                 {
                     Alike(solid.Key, Circle.CollidesWith(solid.Value, Tol), ellipse.CollidesWith(solid.Value, Tol));
-                    Same(solid.Key, Circle.GetIntersections(solid.Value, Tol), ellipse.GetIntersections(solid.Value, Tol));
-                    Same(solid.Key, Circle.TryIntersectWith(solid.Value, out GeoPoint3[] sc, Tol), sc, ellipse.TryIntersectWith(solid.Value, out GeoPoint3[] se, Tol), se);
+                    Same(
+                        solid.Key,
+                        Circle.GetIntersections(solid.Value, Tol),
+                        ellipse.GetIntersections(solid.Value, Tol)
+                    );
+                    Same(
+                        solid.Key,
+                        Circle.TryIntersectWith(solid.Value, out GeoPoint3[] sc, Tol),
+                        sc,
+                        ellipse.TryIntersectWith(solid.Value, out GeoPoint3[] se, Tol),
+                        se
+                    );
                 }
             }
         }
@@ -380,22 +524,42 @@ namespace GeometryHelper.UnitTest.Solid
             var edges = new Dictionary<string, GeoEdge3>
             {
                 ["straight"] = new GeoEdge3(f.At(-400, 50, 0), f.At(400, 50, 0)),
-                ["curved"] = new GeoEdge3(GeoArc3.FromThreePoints(f.At(400, 40, 0), f.At(150, 240, 0), f.At(-50, 40, 0))),
+                ["curved"] = new GeoEdge3(
+                    GeoArc3.FromThreePoints(f.At(400, 40, 0), f.At(150, 240, 0), f.At(-50, 40, 0))
+                ),
             };
-            var chain = new GeoPolylineArc3(new[]
-            {
-                new GeoEdge3(f.At(-400, 0, 0), f.At(0, 300, 0)), new GeoEdge3(bigQuarter), new GeoEdge3(f.At(300, 0, 0), f.At(400, -100, 0)),
-            });
-            var loop = new GeoPolygonArc3(new[] { f.At(-100, -300, 0), f.At(100, -300, 0), f.At(100, 300, 0), f.At(-100, 300, 0) });
-            var round = new GeoPolygonArc3(new[] { f.At(-400, -400, 0), f.At(400, -400, 0), f.At(400, 400, 0), f.At(-400, 400, 0) });
+            var chain = new GeoPolylineArc3(
+                new[]
+                {
+                    new GeoEdge3(f.At(-400, 0, 0), f.At(0, 300, 0)),
+                    new GeoEdge3(bigQuarter),
+                    new GeoEdge3(f.At(300, 0, 0), f.At(400, -100, 0)),
+                }
+            );
+            var loop = new GeoPolygonArc3(
+                new[] { f.At(-100, -300, 0), f.At(100, -300, 0), f.At(100, 300, 0), f.At(-100, 300, 0) }
+            );
+            var round = new GeoPolygonArc3(
+                new[] { f.At(-400, -400, 0), f.At(400, -400, 0), f.At(400, 400, 0), f.At(-400, 400, 0) }
+            );
 
             foreach (GeoEllipse3 ellipse in AsEllipses())
             {
                 foreach (KeyValuePair<string, GeoEdge3> edge in edges)
                 {
                     Alike(edge.Key, Circle.CollidesWith(edge.Value, Tol), ellipse.CollidesWith(edge.Value, Tol));
-                    Same("edge " + edge.Key, Circle.GetIntersections(edge.Value, Tol), ellipse.GetIntersections(edge.Value, Tol));
-                    Same("edge " + edge.Key, Circle.TryIntersectWith(edge.Value, out GeoPoint3[] co, Tol), co, ellipse.TryIntersectWith(edge.Value, out GeoPoint3[] eo, Tol), eo);
+                    Same(
+                        "edge " + edge.Key,
+                        Circle.GetIntersections(edge.Value, Tol),
+                        ellipse.GetIntersections(edge.Value, Tol)
+                    );
+                    Same(
+                        "edge " + edge.Key,
+                        Circle.TryIntersectWith(edge.Value, out GeoPoint3[] co, Tol),
+                        co,
+                        ellipse.TryIntersectWith(edge.Value, out GeoPoint3[] eo, Tol),
+                        eo
+                    );
                 }
 
                 Alike("chain", Circle.CollidesWith(chain, Tol), ellipse.CollidesWith(chain, Tol));

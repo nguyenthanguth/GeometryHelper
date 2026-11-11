@@ -29,12 +29,18 @@ namespace GeometryHelper.UnitTest.Takeoff
 
         // Faces within a hundredth put onto each other, and a cut not valid worked out again within a hundredth: the
         // setting measured best on the 79 864 parts of sel2.
-        private static readonly SolidBooleanOptions Contact = new SolidBooleanOptions(Fine, 0.01, new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01));
+        private static readonly SolidBooleanOptions Contact = new SolidBooleanOptions(
+            Fine,
+            0.01,
+            new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01)
+        );
 
         /// <summary>The two settings of the boolean every box case runs with.</summary>
-        public static IEnumerable<object[]> Settings() => new[] { new object[] { "plain" }, new object[] { "contact" } };
+        public static IEnumerable<object[]> Settings() =>
+            new[] { new object[] { "plain" }, new object[] { "contact" } };
 
-        private static VolumeTakeoffOptions Options(string setting) => new VolumeTakeoffOptions(setting == "contact" ? Contact : Plain);
+        private static VolumeTakeoffOptions Options(string setting) =>
+            new VolumeTakeoffOptions(setting == "contact" ? Contact : Plain);
 
         // Runs the set and holds every result to the oracle, with no issue on any item.
         private static IReadOnlyList<VolumeTakeoffResult> RunChecked(BoxSet set, string setting)
@@ -45,7 +51,12 @@ namespace GeometryHelper.UnitTest.Takeoff
             return results;
         }
 
-        private static void AssertTaken(VolumeTakeoffResult result, double gross, double net, params (int By, double Volume)[] deductions)
+        private static void AssertTaken(
+            VolumeTakeoffResult result,
+            double gross,
+            double net,
+            params (int By, double Volume)[] deductions
+        )
         {
             double within = Relative * gross;
             Assert.Equal(gross, result.GrossVolume, within);
@@ -219,7 +230,10 @@ namespace GeometryHelper.UnitTest.Takeoff
         {
             // The two cubes of HalfOverlap with a null between them: the later still gives the earlier half of itself, the
             // deduction naming the earlier by its index in the list, nulls counted.
-            var set = new BoxSet(new[] { HalfOverlap(0, 0).Boxes[0], null, HalfOverlap(0, 0).Boxes[1] }, new[] { 0, 0, 0 });
+            var set = new BoxSet(
+                new[] { HalfOverlap(0, 0).Boxes[0], null, HalfOverlap(0, 0).Boxes[1] },
+                new[] { 0, 0, 0 }
+            );
             VolumeItem[] items = set.ToItems();
 
             IReadOnlyList<VolumeTakeoffResult> results = VolumeTakeoff.Run(items, Options(setting));
@@ -241,7 +255,11 @@ namespace GeometryHelper.UnitTest.Takeoff
         public void TheSameSolidTwice_TheLaterKeepsNothing(string setting)
         {
             // Two items on one GeoSolid3 instance, each with its own name.
-            BoxSet set = new BoxSet(new[] { ThreeCopies().Boxes[0], ThreeCopies().Boxes[0] }, new[] { 0, 0 }, new[] { -1, 0 });
+            BoxSet set = new BoxSet(
+                new[] { ThreeCopies().Boxes[0], ThreeCopies().Boxes[0] },
+                new[] { 0, 0 },
+                new[] { -1, 0 }
+            );
             VolumeItem[] items = set.ToItems();
             Assert.Same(items[0].Solid, items[1].Solid);
 
@@ -308,7 +326,14 @@ namespace GeometryHelper.UnitTest.Takeoff
             // The column 300 by 400 by 2 000 turned 30 degrees about z, through a slab 2 000 by 2 000 by 200 it crosses
             // wholly: what they share is its section, 120 000, by the slab's 200, 24 000 000, whatever the turn.
             double turn = Math.PI / 6.0;
-            GeoSolid3 column = new GeoObb3(new GeoPoint3(0, 0, 0), 300, 400, 2000, new GeoVector3(Math.Cos(turn), Math.Sin(turn), 0), new GeoVector3(-Math.Sin(turn), Math.Cos(turn), 0)).ToSolid();
+            GeoSolid3 column = new GeoObb3(
+                new GeoPoint3(0, 0, 0),
+                300,
+                400,
+                2000,
+                new GeoVector3(Math.Cos(turn), Math.Sin(turn), 0),
+                new GeoVector3(-Math.Sin(turn), Math.Cos(turn), 0)
+            ).ToSolid();
             GeoSolid3 slab = new Box(-1000, -1000, 0, 1000, 1000, 200).ToSolid();
             VolumeItem[] items = { new VolumeItem(slab, "slab", 0), new VolumeItem(column, "column", 3) };
 
@@ -348,7 +373,14 @@ namespace GeometryHelper.UnitTest.Takeoff
             // the box keeps between 56 249 805.6 and all of itself, and the takeoff has no issue. At 120c78b the boolean
             // throws on the pair, and the takeoff can only say it could not work the overlap out.
             GeoSolid3 box = new Box(0, 0, 0, 250, 250, 900).ToSolid();
-            GeoSolid3 wedge = GeoSolid3.Extrude(new GeoPolygon3(new[] { new GeoPoint3(249.994, 90, 0), new GeoPoint3(250, 90, 0), new GeoPoint3(250, 162, 0) }, Fine), new GeoVector3(0, 0, 900), Fine);
+            GeoSolid3 wedge = GeoSolid3.Extrude(
+                new GeoPolygon3(
+                    new[] { new GeoPoint3(249.994, 90, 0), new GeoPoint3(250, 90, 0), new GeoPoint3(250, 162, 0) },
+                    Fine
+                ),
+                new GeoVector3(0, 0, 900),
+                Fine
+            );
             VolumeItem[] items = { new VolumeItem(box, "box", 0), new VolumeItem(wedge, "wedge", 1) };
 
             IReadOnlyList<VolumeTakeoffResult> results = VolumeTakeoff.Run(items, Options("contact"));
@@ -390,11 +422,25 @@ namespace GeometryHelper.UnitTest.Takeoff
         {
             VolumeItem[] items = FourAtACorner().ToItems();
 
-            Assert.Equal("solid", Assert.Throws<ArgumentNullException>(() => new VolumeItem(null, "slab", 3)).ParamName);
-            Assert.Equal("boolean", Assert.Throws<ArgumentNullException>(() => new VolumeTakeoffOptions(null)).ParamName);
+            Assert.Equal(
+                "solid",
+                Assert.Throws<ArgumentNullException>(() => new VolumeItem(null, "slab", 3)).ParamName
+            );
+            Assert.Equal(
+                "boolean",
+                Assert.Throws<ArgumentNullException>(() => new VolumeTakeoffOptions(null)).ParamName
+            );
             Assert.Equal("items", Assert.Throws<ArgumentNullException>(() => VolumeTakeoff.Run(null)).ParamName);
-            Assert.Equal("items", Assert.Throws<ArgumentNullException>(() => VolumeTakeoff.Run(null, VolumeTakeoffOptions.Default)).ParamName);
-            Assert.Equal("options", Assert.Throws<ArgumentNullException>(() => VolumeTakeoff.Run(items, null)).ParamName);
+            Assert.Equal(
+                "items",
+                Assert
+                    .Throws<ArgumentNullException>(() => VolumeTakeoff.Run(null, VolumeTakeoffOptions.Default))
+                    .ParamName
+            );
+            Assert.Equal(
+                "options",
+                Assert.Throws<ArgumentNullException>(() => VolumeTakeoff.Run(items, null)).ParamName
+            );
         }
 
         #endregion
@@ -420,7 +466,9 @@ namespace GeometryHelper.UnitTest.Takeoff
         [InlineData(int.MinValue)]
         public void AParallelismOfNoughtOrBelowMinusOne_Throws(int maxDegreeOfParallelism)
         {
-            ArgumentOutOfRangeException thrown = Assert.Throws<ArgumentOutOfRangeException>(() => new VolumeTakeoffOptions(Plain, maxDegreeOfParallelism));
+            ArgumentOutOfRangeException thrown = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new VolumeTakeoffOptions(Plain, maxDegreeOfParallelism)
+            );
             Assert.Equal("maxDegreeOfParallelism", thrown.ParamName);
         }
 
@@ -449,7 +497,10 @@ namespace GeometryHelper.UnitTest.Takeoff
         public void OptionsAlike_AreEqual_AndOptionsThatDifferInEither_AreNot()
         {
             var options = new VolumeTakeoffOptions(Contact, 2);
-            var alike = new VolumeTakeoffOptions(new SolidBooleanOptions(Fine, 0.01, new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01)), 2);
+            var alike = new VolumeTakeoffOptions(
+                new SolidBooleanOptions(Fine, 0.01, new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01)),
+                2
+            );
 
             Assert.Equal(options, alike);
             Assert.True(options.Equals((object)alike));
@@ -475,7 +526,9 @@ namespace GeometryHelper.UnitTest.Takeoff
             GeoSolid3 cube = new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 100, 100)).ToObb().ToSolid();
             var open = new GeoSolid3(cube.Faces.Skip(1));
 
-            VolumeTakeoffResult result = Assert.Single(VolumeTakeoff.Run(new[] { new VolumeItem(open, "OPEN", 0) }, new VolumeTakeoffOptions(Plain)));
+            VolumeTakeoffResult result = Assert.Single(
+                VolumeTakeoff.Run(new[] { new VolumeItem(open, "OPEN", 0) }, new VolumeTakeoffOptions(Plain))
+            );
 
             Assert.False(result.IsExact);
             Assert.StartsWith("the solid's own volume is not to be trusted", Assert.Single(result.Issues));

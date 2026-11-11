@@ -284,7 +284,6 @@ namespace GeometryHelper.Dxf
                 IReadOnlyList<object> shapes = Shapes;
                 return shapes.Count == 1 ? shapes[0] : null;
             }
-
             set => _file.SetShape(this, value);
         }
 
@@ -314,7 +313,8 @@ namespace GeometryHelper.Dxf
         internal object Wrapper => Volatile.Read(ref _wrapper);
 
         /// <summary>Keeps the object that stands for the record, where none is kept yet; the one kept either way.</summary>
-        internal object KeepWrapper(object wrapper) => Interlocked.CompareExchange(ref _wrapper, wrapper, null) ?? wrapper;
+        internal object KeepWrapper(object wrapper) =>
+            Interlocked.CompareExchange(ref _wrapper, wrapper, null) ?? wrapper;
 
         /// <summary>Makes another object stand for the record, as a converted polyline takes the place of the one it was made from.</summary>
         internal void ReplaceWrapper(object wrapper) => Volatile.Write(ref _wrapper, wrapper);
@@ -400,7 +400,8 @@ namespace GeometryHelper.Dxf
         /// Gives the entity as a line for debugging: its type, its handle and its layer.
         /// </summary>
         /// <returns>The entity as a line, such as <c>LINE 2F on steel</c>.</returns>
-        public override string ToString() => Type + (Handle != null ? " " + Handle : string.Empty) + " on " + (Layer ?? "0");
+        public override string ToString() =>
+            Type + (Handle != null ? " " + Handle : string.Empty) + " on " + (Layer ?? "0");
 
         /// <summary>Extended data a record of an entity is to be given: the index of the record, its type, and the groups.</summary>
         internal sealed class PendingData

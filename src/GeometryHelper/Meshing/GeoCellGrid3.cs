@@ -37,7 +37,15 @@ namespace GeometryHelper.Meshing
         /// <param name="joint">The gap between neighbouring cells; nought for none.</param>
         /// <param name="tolerance">The tolerance the cells were cut within.</param>
         /// <param name="asked">The tolerance the cells were asked within, where they were cut within a coarser one; the one they were cut within where null.</param>
-        internal GeoCellGrid3(GeoCoordinateSystem3 frame, double[][] starts, double[][] ends, GeoCell3[] cells, double joint, Tolerance tolerance, Tolerance? asked = null)
+        internal GeoCellGrid3(
+            GeoCoordinateSystem3 frame,
+            double[][] starts,
+            double[][] ends,
+            GeoCell3[] cells,
+            double joint,
+            Tolerance tolerance,
+            Tolerance? asked = null
+        )
         {
             Frame = frame;
             _starts = starts;
@@ -200,13 +208,29 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Describes the grid.
         /// </summary>
-        public override string ToString()
-            => string.Format(CultureInfo.InvariantCulture, "GeoCellGrid3[{0} x {1} x {2}, Cells: {3}, Volume: {4}]", CountX, CountY, CountZ, CellCount, Volume);
+        public override string ToString() =>
+            string.Format(
+                CultureInfo.InvariantCulture,
+                "GeoCellGrid3[{0} x {1} x {2}, Cells: {3}, Volume: {4}]",
+                CountX,
+                CountY,
+                CountZ,
+                CellCount,
+                Volume
+            );
 
         /// <summary>
         /// The box between two places along each axis of a frame, measured from its origin.
         /// </summary>
-        internal static GeoObb3 BoxOf(GeoCoordinateSystem3 frame, double x0, double x1, double y0, double y1, double z0, double z1)
+        internal static GeoObb3 BoxOf(
+            GeoCoordinateSystem3 frame,
+            double x0,
+            double x1,
+            double y0,
+            double y1,
+            double z0,
+            double z1
+        )
         {
             GeoPoint3 center = frame.ToGlobal(new GeoPoint3(0.5 * (x0 + x1), 0.5 * (y0 + y1), 0.5 * (z0 + z1)));
             return new GeoObb3(frame.WithOrigin(center), x1 - x0, y1 - y0, z1 - z0);

@@ -32,7 +32,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(10.0, 0.0, 0.0),
                 new GeoPoint3(10.0, 10.0, 0.0),
-                new GeoPoint3(0.0, 10.0, 0.0));
+                new GeoPoint3(0.0, 10.0, 0.0)
+            );
 
             GeoFace3 face = new GeoFace3(square);
 
@@ -57,13 +58,15 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(10.0, 0.0, 0.0),
                 new GeoPoint3(10.0, 10.0, 0.0),
-                new GeoPoint3(0.0, 10.0, 0.0));
+                new GeoPoint3(0.0, 10.0, 0.0)
+            );
 
             GeoPolygon3 floatingHole = new GeoPolygon3(
                 new GeoPoint3(4.0, 4.0, 5.0),
                 new GeoPoint3(6.0, 4.0, 5.0),
                 new GeoPoint3(6.0, 6.0, 5.0),
-                new GeoPoint3(4.0, 6.0, 5.0));
+                new GeoPoint3(4.0, 6.0, 5.0)
+            );
 
             Assert.Throws<ArgumentException>(() => new GeoFace3(boundary, new[] { floatingHole }));
         }
@@ -106,13 +109,15 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(10.0, 0.0, 0.0),
                 new GeoPoint3(10.0, 10.0, 0.0),
-                new GeoPoint3(0.0, 10.0, 0.0));
+                new GeoPoint3(0.0, 10.0, 0.0)
+            );
 
             GeoPolygon3 hole = new GeoPolygon3(
                 new GeoPoint3(4.0, 4.0, 0.0),
                 new GeoPoint3(6.0, 4.0, 0.0),
                 new GeoPoint3(6.0, 6.0, 0.0),
-                new GeoPoint3(4.0, 6.0, 0.0));
+                new GeoPoint3(4.0, 6.0, 0.0)
+            );
 
             return new GeoFace3(boundary, new[] { hole });
         }
@@ -124,10 +129,13 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void FewerThanFourFacesCannotEncloseAVolume()
         {
-            GeoFace3 face = new GeoFace3(new GeoPolygon3(
-                new GeoPoint3(0.0, 0.0, 0.0),
-                new GeoPoint3(1.0, 0.0, 0.0),
-                new GeoPoint3(0.0, 1.0, 0.0)));
+            GeoFace3 face = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(0.0, 0.0, 0.0),
+                    new GeoPoint3(1.0, 0.0, 0.0),
+                    new GeoPoint3(0.0, 1.0, 0.0)
+                )
+            );
 
             Assert.Throws<ArgumentException>(() => new GeoSolid3(face, face, face));
         }
@@ -155,7 +163,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoFace3(new GeoPolygon3(a, c, b)),
                 new GeoFace3(new GeoPolygon3(a, b, d)),
                 new GeoFace3(new GeoPolygon3(b, c, d)),
-                new GeoFace3(new GeoPolygon3(c, a, d)));
+                new GeoFace3(new GeoPolygon3(c, a, d))
+            );
 
             // One sixth of the box spanned by the three edges at the right-angled corner.
             Assert.Equal(36.0, tetrahedron.GetVolume(), 6);
@@ -166,7 +175,9 @@ namespace GeometryHelper.UnitTest.Solid
         public void VolumeDoesNotDependOnWhereTheSolidSitsInSpace()
         {
             GeoSolid3 atOrigin = MakeUnitCube();
-            GeoSolid3 farAway = atOrigin.TransformBy(GeoTransform3.Translation(new GeoVector3(10000.0, -5000.0, 3000.0)));
+            GeoSolid3 farAway = atOrigin.TransformBy(
+                GeoTransform3.Translation(new GeoVector3(10000.0, -5000.0, 3000.0))
+            );
 
             Assert.Equal(atOrigin.GetVolume(), farAway.GetVolume(), 3);
         }
@@ -241,7 +252,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void CentroidOfACubeIsItsMiddle()
         {
-            Assert.True(MakeUnitCube().GetCentroid().IsEqualTo(new GeoPoint3(5.0, 5.0, 5.0), new Tolerance(1E-6, 1E-6)));
+            Assert.True(
+                MakeUnitCube().GetCentroid().IsEqualTo(new GeoPoint3(5.0, 5.0, 5.0), new Tolerance(1E-6, 1E-6))
+            );
         }
 
         [Fact]
@@ -349,11 +362,19 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoSolid3 first = MakeBoxSolid(GeoPoint3.Origin, new GeoPoint3(10.0, 10.0, 10.0));
 
-            Assert.True(GeometryHelper.Core.Collision3.CollidesWith(
-                first, MakeBoxSolid(new GeoPoint3(5.0, 5.0, 5.0), new GeoPoint3(15.0, 15.0, 15.0))));
+            Assert.True(
+                GeometryHelper.Core.Collision3.CollidesWith(
+                    first,
+                    MakeBoxSolid(new GeoPoint3(5.0, 5.0, 5.0), new GeoPoint3(15.0, 15.0, 15.0))
+                )
+            );
 
-            Assert.False(GeometryHelper.Core.Collision3.CollidesWith(
-                first, MakeBoxSolid(new GeoPoint3(20.0, 20.0, 20.0), new GeoPoint3(30.0, 30.0, 30.0))));
+            Assert.False(
+                GeometryHelper.Core.Collision3.CollidesWith(
+                    first,
+                    MakeBoxSolid(new GeoPoint3(20.0, 20.0, 20.0), new GeoPoint3(30.0, 30.0, 30.0))
+                )
+            );
         }
 
         [Fact]

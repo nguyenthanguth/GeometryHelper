@@ -83,16 +83,50 @@ namespace GeometryHelper.Dxf
         /// <param name="intersectionObjectHandle">The handle of the second entity of an intersection; null for any other snap.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is not 0 to 3.</exception>
         /// <exception cref="ArgumentNullException">Thrown when the handle is null.</exception>
-        public DxfOsnapPointRef(int pointIndex, DxfOsnapType osnapType, string objectHandle, int gsMarker, double nearParameter, GeoPoint3 point, string intersectionObjectHandle)
-            : this(pointIndex, osnapType, objectHandle ?? throw new ArgumentNullException(nameof(objectHandle)), 2, gsMarker, nearParameter, point, intersectionObjectHandle, 2, 0, null)
-        {
-        }
+        public DxfOsnapPointRef(
+            int pointIndex,
+            DxfOsnapType osnapType,
+            string objectHandle,
+            int gsMarker,
+            double nearParameter,
+            GeoPoint3 point,
+            string intersectionObjectHandle
+        )
+            : this(
+                pointIndex,
+                osnapType,
+                objectHandle ?? throw new ArgumentNullException(nameof(objectHandle)),
+                2,
+                gsMarker,
+                nearParameter,
+                point,
+                intersectionObjectHandle,
+                2,
+                0,
+                null
+            ) { }
 
-        internal DxfOsnapPointRef(int pointIndex, DxfOsnapType osnapType, string objectHandle, int subentType, int gsMarker, double nearParameter, GeoPoint3 point, string intersectionObjectHandle, int intersectionSubentType, int intersectionGsMarker, DxfOsnapPointRef lastPointReference)
+        internal DxfOsnapPointRef(
+            int pointIndex,
+            DxfOsnapType osnapType,
+            string objectHandle,
+            int subentType,
+            int gsMarker,
+            double nearParameter,
+            GeoPoint3 point,
+            string intersectionObjectHandle,
+            int intersectionSubentType,
+            int intersectionGsMarker,
+            DxfOsnapPointRef lastPointReference
+        )
         {
             if (pointIndex < 0 || pointIndex > 3)
             {
-                throw new ArgumentOutOfRangeException(nameof(pointIndex), pointIndex, "A dimension has four points to tie, 0 to 3.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(pointIndex),
+                    pointIndex,
+                    "A dimension has four points to tie, 0 to 3."
+                );
             }
 
             PointIndex = pointIndex;
@@ -165,8 +199,32 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(lastPoint));
             }
 
-            var last = new DxfOsnapPointRef(lastPoint.PointIndex, lastPoint.OsnapType, lastPoint.ObjectHandle, lastPoint.SubentType, lastPoint.GsMarker, lastPoint.NearParameter, lastPoint.Point, lastPoint.IntersectionObjectHandle, lastPoint.IntersectionSubentType, lastPoint.IntersectionGsMarker, null);
-            return new DxfOsnapPointRef(PointIndex, OsnapType, ObjectHandle, SubentType, GsMarker, NearParameter, Point, IntersectionObjectHandle, IntersectionSubentType, IntersectionGsMarker, last);
+            var last = new DxfOsnapPointRef(
+                lastPoint.PointIndex,
+                lastPoint.OsnapType,
+                lastPoint.ObjectHandle,
+                lastPoint.SubentType,
+                lastPoint.GsMarker,
+                lastPoint.NearParameter,
+                lastPoint.Point,
+                lastPoint.IntersectionObjectHandle,
+                lastPoint.IntersectionSubentType,
+                lastPoint.IntersectionGsMarker,
+                null
+            );
+            return new DxfOsnapPointRef(
+                PointIndex,
+                OsnapType,
+                ObjectHandle,
+                SubentType,
+                GsMarker,
+                NearParameter,
+                Point,
+                IntersectionObjectHandle,
+                IntersectionSubentType,
+                IntersectionGsMarker,
+                last
+            );
         }
 
         /// <summary>
@@ -175,12 +233,24 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <param name="point">The point drawn from, in world coordinates.</param>
         /// <returns>The copy.</returns>
-        public DxfOsnapPointRef WithLastPoint(GeoPoint3 point)
-            => new DxfOsnapPointRef(PointIndex, OsnapType, ObjectHandle, SubentType, GsMarker, NearParameter, Point, IntersectionObjectHandle, IntersectionSubentType, IntersectionGsMarker,
-                new DxfOsnapPointRef(PointIndex, DxfOsnapType.None, null, 0, 0, 0.0, point, null, 0, 0, null));
+        public DxfOsnapPointRef WithLastPoint(GeoPoint3 point) =>
+            new DxfOsnapPointRef(
+                PointIndex,
+                OsnapType,
+                ObjectHandle,
+                SubentType,
+                GsMarker,
+                NearParameter,
+                Point,
+                IntersectionObjectHandle,
+                IntersectionSubentType,
+                IntersectionGsMarker,
+                new DxfOsnapPointRef(PointIndex, DxfOsnapType.None, null, 0, 0, 0.0, point, null, 0, 0, null)
+            );
 
         /// <inheritdoc/>
-        public override string ToString() => PointIndex.ToString(CultureInfo.InvariantCulture) + " " + OsnapType + " " + ObjectHandle;
+        public override string ToString() =>
+            PointIndex.ToString(CultureInfo.InvariantCulture) + " " + OsnapType + " " + ObjectHandle;
 
         /// <summary>Reads the references of a DIMASSOC from its groups after its 71.</summary>
         internal static List<DxfOsnapPointRef> Read(IReadOnlyList<DxfTypedValue> groups, int from, int flags)
@@ -240,18 +310,42 @@ namespace GeometryHelper.Dxf
 
                 switch (groups[j].TypeCode)
                 {
-                    case 72: type = Whole(value); break;
-                    case 331: handle = value; break;
-                    case 73: subent = Whole(value); break;
-                    case 91: marker = Whole(value); break;
-                    case 40: parameter = Real(value); break;
-                    case 10: x = Real(value); break;
-                    case 20: y = Real(value); break;
-                    case 30: z = Real(value); break;
-                    case 332: other = value; break;
-                    case 74: otherSubent = Whole(value); break;
-                    case 92: otherMarker = Whole(value); break;
-                    case 75: hasLast = Whole(value) == 1; break;
+                    case 72:
+                        type = Whole(value);
+                        break;
+                    case 331:
+                        handle = value;
+                        break;
+                    case 73:
+                        subent = Whole(value);
+                        break;
+                    case 91:
+                        marker = Whole(value);
+                        break;
+                    case 40:
+                        parameter = Real(value);
+                        break;
+                    case 10:
+                        x = Real(value);
+                        break;
+                    case 20:
+                        y = Real(value);
+                        break;
+                    case 30:
+                        z = Real(value);
+                        break;
+                    case 332:
+                        other = value;
+                        break;
+                    case 74:
+                        otherSubent = Whole(value);
+                        break;
+                    case 92:
+                        otherMarker = Whole(value);
+                        break;
+                    case 75:
+                        hasLast = Whole(value) == 1;
+                        break;
                 }
             }
 
@@ -264,7 +358,19 @@ namespace GeometryHelper.Dxf
                 last = ReadOne(groups, ref i, index);
             }
 
-            return new DxfOsnapPointRef(index, (DxfOsnapType)type, handle, subent, marker, parameter, new GeoPoint3(x, y, z), other, otherSubent, otherMarker, last);
+            return new DxfOsnapPointRef(
+                index,
+                (DxfOsnapType)type,
+                handle,
+                subent,
+                marker,
+                parameter,
+                new GeoPoint3(x, y, z),
+                other,
+                otherSubent,
+                otherMarker,
+                last
+            );
         }
 
         /// <summary>
@@ -299,11 +405,14 @@ namespace GeometryHelper.Dxf
             LastPointReference?.Write(groups);
         }
 
-        private static KeyValuePair<int, string> Pair(int code, string value) => new KeyValuePair<int, string>(code, value);
+        private static KeyValuePair<int, string> Pair(int code, string value) =>
+            new KeyValuePair<int, string>(code, value);
 
-        private static int Whole(string value) => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) ? number : 0;
+        private static int Whole(string value) =>
+            int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) ? number : 0;
 
-        private static double Real(string value) => double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) ? number : 0.0;
+        private static double Real(string value) =>
+            double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) ? number : 0.0;
     }
 
     /// <summary>
@@ -322,9 +431,7 @@ namespace GeometryHelper.Dxf
         internal const string Key = "ACAD_DIMASSOC";
 
         internal DxfDimAssoc(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets the handle of the dimension the object ties (the group 330 after its subclass marker).</summary>
         public string DimensionHandle
@@ -332,7 +439,9 @@ namespace GeometryHelper.Dxf
             get
             {
                 IReadOnlyList<DxfTypedValue> groups = Groups(out int at);
-                return at >= 0 && at + 1 < groups.Count && groups[at + 1].TypeCode == 330 ? (groups[at + 1].Value ?? string.Empty).Trim() : null;
+                return at >= 0 && at + 1 < groups.Count && groups[at + 1].TypeCode == 330
+                    ? (groups[at + 1].Value ?? string.Empty).Trim()
+                    : null;
             }
         }
 
@@ -348,7 +457,9 @@ namespace GeometryHelper.Dxf
             get
             {
                 IReadOnlyList<DxfTypedValue> groups = Groups(out int at);
-                return at < 0 ? (IReadOnlyList<DxfOsnapPointRef>)Array.Empty<DxfOsnapPointRef>() : DxfOsnapPointRef.Read(groups, at + 1, AssociativityFlags).AsReadOnly();
+                return at < 0
+                    ? (IReadOnlyList<DxfOsnapPointRef>)Array.Empty<DxfOsnapPointRef>()
+                    : DxfOsnapPointRef.Read(groups, at + 1, AssociativityFlags).AsReadOnly();
             }
         }
 
@@ -356,7 +467,10 @@ namespace GeometryHelper.Dxf
         public override string ToString() => "DIMASSOC " + (Handle ?? string.Empty);
 
         /// <summary>The groups AutoCAD 2021 writes after the subclass marker: the dimension, the flags 90, 70 and 71, then each reference.</summary>
-        internal static List<KeyValuePair<int, string>> Body(string dimension, IReadOnlyList<DxfOsnapPointRef> references)
+        internal static List<KeyValuePair<int, string>> Body(
+            string dimension,
+            IReadOnlyList<DxfOsnapPointRef> references
+        )
         {
             int flags = 0;
 
@@ -387,7 +501,10 @@ namespace GeometryHelper.Dxf
         {
             DxfFile file = InFile("be changed");
             List<DxfTypedValue> tail = file.TailOf(Item, 0);
-            int from = tail.FindIndex(g => g.TypeCode == 100 && string.Equals((g.Value ?? string.Empty).Trim(), "AcDbDimAssoc", StringComparison.Ordinal));
+            int from = tail.FindIndex(g =>
+                g.TypeCode == 100
+                && string.Equals((g.Value ?? string.Empty).Trim(), "AcDbDimAssoc", StringComparison.Ordinal)
+            );
             file.ReplaceTail(Item, from < 0 ? tail.Count : from, body);
         }
 
@@ -404,7 +521,10 @@ namespace GeometryHelper.Dxf
 
             for (int i = 0; i < groups.Count; i++)
             {
-                if (groups[i].TypeCode == 100 && string.Equals((groups[i].Value ?? string.Empty).Trim(), "AcDbDimAssoc", StringComparison.Ordinal))
+                if (
+                    groups[i].TypeCode == 100
+                    && string.Equals((groups[i].Value ?? string.Empty).Trim(), "AcDbDimAssoc", StringComparison.Ordinal)
+                )
                 {
                     at = i;
                     break;
@@ -420,7 +540,15 @@ namespace GeometryHelper.Dxf
 
             for (int i = Math.Max(0, at); i < groups.Count && groups[i].TypeCode != 1; i++)
             {
-                if (groups[i].TypeCode == code && int.TryParse((groups[i].Value ?? string.Empty).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
+                if (
+                    groups[i].TypeCode == code
+                    && int.TryParse(
+                        (groups[i].Value ?? string.Empty).Trim(),
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int value
+                    )
+                )
                 {
                     return value;
                 }

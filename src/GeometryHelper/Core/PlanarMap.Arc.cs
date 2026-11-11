@@ -44,7 +44,8 @@ namespace GeometryHelper.Core
                 frame.ZAxis,
                 arc.Radius,
                 ToPoint3(frame, arc.StartPoint),
-                arc.SweptAngle);
+                arc.SweptAngle
+            );
         }
 
         /// <summary>
@@ -63,8 +64,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Lays an arc out in a frame when it lies in the plane of that frame.
         /// </summary>
-        public static bool TryToArc2(GeoCoordinateSystem3 frame, GeoArc3 arc, out GeoArc2 result)
-            => TryToArc2(frame, arc, out result, Tolerance.Global);
+        public static bool TryToArc2(GeoCoordinateSystem3 frame, GeoArc3 arc, out GeoArc2 result) =>
+            TryToArc2(frame, arc, out result, Tolerance.Global);
 
         /// <summary>
         /// Lays an arc out in a frame when it lies in the plane of that frame, within a tolerance.
@@ -115,9 +116,10 @@ namespace GeometryHelper.Core
             GeoPoint2 centre = ProjectToPoint2(frame, arc.Center);
             double from = Math.Atan2(start.Y - centre.Y, start.X - centre.X);
 
-            result = Math.Abs(sweep) >= 2.0 * Math.PI
-                ? new GeoArc2(centre, arc.Radius, 0.0, 0.0, sweep < 0.0)
-                : new GeoArc2(centre, arc.Radius, from, from + sweep, sweep < 0.0);
+            result =
+                Math.Abs(sweep) >= 2.0 * Math.PI
+                    ? new GeoArc2(centre, arc.Radius, 0.0, 0.0, sweep < 0.0)
+                    : new GeoArc2(centre, arc.Radius, from, from + sweep, sweep < 0.0);
             return true;
         }
 
@@ -136,16 +138,14 @@ namespace GeometryHelper.Core
             GeoPoint3 start = ToPoint3(frame, edge.StartPoint);
             GeoPoint3 end = ToPoint3(frame, edge.EndPoint);
 
-            return edge.IsArc
-                ? new GeoEdge3(start, end, edge.Bulge, frame.ZAxis)
-                : new GeoEdge3(start, end);
+            return edge.IsArc ? new GeoEdge3(start, end, edge.Bulge, frame.ZAxis) : new GeoEdge3(start, end);
         }
 
         /// <summary>
         /// Lays an edge out in a frame when it lies in the plane of that frame.
         /// </summary>
-        public static bool TryToEdge2(GeoCoordinateSystem3 frame, GeoEdge3 edge, out GeoEdge2 result)
-            => TryToEdge2(frame, edge, out result, Tolerance.Global);
+        public static bool TryToEdge2(GeoCoordinateSystem3 frame, GeoEdge3 edge, out GeoEdge2 result) =>
+            TryToEdge2(frame, edge, out result, Tolerance.Global);
 
         /// <summary>
         /// Lays an edge out in a frame when it lies in the plane of that frame, within a tolerance.
@@ -161,12 +161,19 @@ namespace GeometryHelper.Core
         /// that barely bows lies in the plane however its own is turned, and comes down with its bulge as it is,
         /// within its stand-off of its shadow.
         /// </remarks>
-        public static bool TryToEdge2(GeoCoordinateSystem3 frame, GeoEdge3 edge, out GeoEdge2 result, Tolerance tolerance)
+        public static bool TryToEdge2(
+            GeoCoordinateSystem3 frame,
+            GeoEdge3 edge,
+            out GeoEdge2 result,
+            Tolerance tolerance
+        )
         {
             result = default(GeoEdge2);
 
-            if (!TryToPoint2(frame, edge.StartPoint, out GeoPoint2 start, tolerance) ||
-                !TryToPoint2(frame, edge.EndPoint, out GeoPoint2 end, tolerance))
+            if (
+                !TryToPoint2(frame, edge.StartPoint, out GeoPoint2 start, tolerance)
+                || !TryToPoint2(frame, edge.EndPoint, out GeoPoint2 end, tolerance)
+            )
             {
                 return false;
             }
@@ -201,7 +208,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPolylineArc3 ToPolylineArc3(GeoCoordinateSystem3 frame, GeoPolylineArc2 chain)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             var edges = new List<GeoEdge3>(chain.EdgeCount);
 
@@ -216,8 +224,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Lays a chain that may curve out in a frame when the whole of it lies in the plane of that frame.
         /// </summary>
-        public static bool TryToPolylineArc2(GeoCoordinateSystem3 frame, GeoPolylineArc3 chain, out GeoPolylineArc2 result)
-            => TryToPolylineArc2(frame, chain, out result, Tolerance.Global);
+        public static bool TryToPolylineArc2(
+            GeoCoordinateSystem3 frame,
+            GeoPolylineArc3 chain,
+            out GeoPolylineArc2 result
+        ) => TryToPolylineArc2(frame, chain, out result, Tolerance.Global);
 
         /// <summary>
         /// Lays a chain that may curve out in a frame when the whole of it lies in the plane of that frame, within a tolerance.
@@ -236,9 +247,11 @@ namespace GeometryHelper.Core
             GeoCoordinateSystem3 frame,
             GeoPolylineArc3 chain,
             out GeoPolylineArc2 result,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             result = null;
 

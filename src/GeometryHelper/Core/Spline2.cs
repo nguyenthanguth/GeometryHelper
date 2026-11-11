@@ -55,7 +55,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the range along a line, from its origin, that the control hull of a spline covers.
         /// </summary>
-        private static void Cover(GeoSpline2 spline, GeoPoint2 origin, GeoVector2 direction, out double lowest, out double highest)
+        private static void Cover(
+            GeoSpline2 spline,
+            GeoPoint2 origin,
+            GeoVector2 direction,
+            out double lowest,
+            out double highest
+        )
         {
             var min = new double[2];
             var max = new double[2];
@@ -78,7 +84,16 @@ namespace GeometryHelper.Core
             Cover(spline, ray.Origin, ray.Direction, out _, out double highest);
             double stop = Math.Max(highest, 0.0) + Math.Max(1.0, highest);
 
-            return new LinePartner(ray.Origin.X, ray.Origin.Y, ray.Direction.X, ray.Direction.Y, 0.0, stop, true, false);
+            return new LinePartner(
+                ray.Origin.X,
+                ray.Origin.Y,
+                ray.Direction.X,
+                ray.Direction.Y,
+                0.0,
+                stop,
+                true,
+                false
+            );
         }
 
         private static LinePartner Endless(GeoSpline2 spline, GeoXLine2 xline)
@@ -86,7 +101,16 @@ namespace GeometryHelper.Core
             Cover(spline, xline.Origin, xline.Direction, out double lowest, out double highest);
             double pad = Math.Max(1.0, highest - lowest);
 
-            return new LinePartner(xline.Origin.X, xline.Origin.Y, xline.Direction.X, xline.Direction.Y, lowest - pad, highest + pad, false, false);
+            return new LinePartner(
+                xline.Origin.X,
+                xline.Origin.Y,
+                xline.Direction.X,
+                xline.Direction.Y,
+                lowest - pad,
+                highest + pad,
+                false,
+                false
+            );
         }
 
         private static ArcPartner Round(GeoArc2 arc)
@@ -95,17 +119,43 @@ namespace GeometryHelper.Core
             GeoPoint2 end = arc.EndPoint;
             bool whole = Math.Abs(arc.SweptAngle) >= 2.0 * Math.PI;
 
-            return new ArcPartner(arc.Center.X, arc.Center.Y, arc.Radius, arc.StartAngle, arc.SweptAngle, whole, start.X, start.Y, end.X, end.Y);
+            return new ArcPartner(
+                arc.Center.X,
+                arc.Center.Y,
+                arc.Radius,
+                arc.StartAngle,
+                arc.SweptAngle,
+                whole,
+                start.X,
+                start.Y,
+                end.X,
+                end.Y
+            );
         }
 
         private static ArcPartner Round(GeoCircle2 circle)
         {
-            return new ArcPartner(circle.Center.X, circle.Center.Y, circle.Radius, 0.0, 2.0 * Math.PI, true, circle.Center.X + circle.Radius, circle.Center.Y, circle.Center.X + circle.Radius, circle.Center.Y);
+            return new ArcPartner(
+                circle.Center.X,
+                circle.Center.Y,
+                circle.Radius,
+                0.0,
+                2.0 * Math.PI,
+                true,
+                circle.Center.X + circle.Radius,
+                circle.Center.Y,
+                circle.Center.X + circle.Radius,
+                circle.Center.Y
+            );
         }
 
         private static void Add(SplineShape shape, GeoEdge2 edge)
         {
-            shape.Parts.Add(ArcChain2.Straight(edge, out GeoLine2 straight) ? (Partner)Segment(straight.StartPoint, straight.EndPoint) : Round(edge.ToArc()));
+            shape.Parts.Add(
+                ArcChain2.Straight(edge, out GeoLine2 straight)
+                    ? (Partner)Segment(straight.StartPoint, straight.EndPoint)
+                    : Round(edge.ToArc())
+            );
         }
 
         private static void AddAll(SplineShape shape, IEnumerable<GeoLine2> edges)
@@ -118,7 +168,8 @@ namespace GeometryHelper.Core
 
         private static SplineShape Required(GeoPolygon2 polygon)
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             return new SplineShape();
         }
@@ -149,7 +200,8 @@ namespace GeometryHelper.Core
 
         internal static SplineShape Of(GeoSpline2 spline, GeoPolyline2 polyline)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             var shape = new SplineShape();
             AddAll(shape, polyline.GetEdges());
@@ -194,7 +246,8 @@ namespace GeometryHelper.Core
 
         internal static SplineShape Of(GeoSpline2 spline, GeoFace2 face)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             var shape = new SplineShape();
             AddAll(shape, face.Boundary.GetEdges());
@@ -272,7 +325,8 @@ namespace GeometryHelper.Core
 
         internal static SplineShape Of(GeoSpline2 spline, GeoPolylineArc2 chain)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             var shape = new SplineShape();
 
@@ -286,7 +340,8 @@ namespace GeometryHelper.Core
 
         internal static SplineShape Of(GeoSpline2 spline, GeoPolygonArc2 loop)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             var shape = new SplineShape();
 
@@ -366,7 +421,9 @@ namespace GeometryHelper.Core
             GeoSpline2 first = Precedes(other, spline) ? other : spline;
             GeoSpline2 second = ReferenceEquals(first, spline) ? other : spline;
 
-            return first.Curve.TryGetNearest(Against(second), out Contact nearest) ? nearest.Gap : double.PositiveInfinity;
+            return first.Curve.TryGetNearest(Against(second), out Contact nearest)
+                ? nearest.Gap
+                : double.PositiveInfinity;
         }
 
         /// <summary>

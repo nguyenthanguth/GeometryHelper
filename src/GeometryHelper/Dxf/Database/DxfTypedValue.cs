@@ -43,7 +43,10 @@ namespace GeometryHelper.Dxf
 
             if (value.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0)
             {
-                throw new ArgumentException("The value of a group is one line, with no line break in it.", nameof(value));
+                throw new ArgumentException(
+                    "The value of a group is one line, with no line break in it.",
+                    nameof(value)
+                );
             }
 
             TypeCode = (short)typeCode;
@@ -75,6 +78,7 @@ namespace GeometryHelper.Dxf
         /// Gets the group as the two lines of a file would print it, the code and the value with a space between.
         /// </summary>
         /// <returns>The code, a space, and the value: <c>8 steel</c>.</returns>
-        public override string ToString() => TypeCode.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " + Value;
+        public override string ToString() =>
+            TypeCode.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " + Value;
     }
 }

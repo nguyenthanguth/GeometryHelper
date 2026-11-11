@@ -39,7 +39,12 @@ namespace GeometryHelper.Drawing.UnitTest
             Line(database.ModelSpace, 600);
             new CadOwnerTag("Someone.Else", "X-1").WriteTo(Line(database.ModelSpace, 900));
             DrawingEntityTags.Tag(Line(database.ModelSpace, 1200), "D-7", "V-1");
-            var mark = new DxfDBText { TextString = "P1", Position = new GeoPoint3(50, 50, 0), Height = 3.5 };
+            var mark = new DxfDBText
+            {
+                TextString = "P1",
+                Position = new GeoPoint3(50, 50, 0),
+                Height = 3.5,
+            };
             database.PaperSpace.AppendEntity(mark);
             DrawingEntityTags.Tag(mark, "M-3", null);
             return database;
@@ -53,7 +58,14 @@ namespace GeometryHelper.Drawing.UnitTest
             IReadOnlyList<DxfEntity> found = DrawingEntityTags.Find(database);
             int removed = DrawingEntityTags.RemoveAll(database);
 
-            Assert.Equal(new[] { "B-12", "B-12", "D-7", "M-3" }, found.Select(e => { DrawingEntityTags.TryRead(e, out string id, out _); return id; }));
+            Assert.Equal(
+                new[] { "B-12", "B-12", "D-7", "M-3" },
+                found.Select(e =>
+                {
+                    DrawingEntityTags.TryRead(e, out string id, out _);
+                    return id;
+                })
+            );
             Assert.Equal(4, removed);
             DxfDatabase after = SavedAndOpened(database);
             Assert.Empty(DrawingEntityTags.Find(after));
@@ -108,8 +120,21 @@ namespace GeometryHelper.Drawing.UnitTest
             var registry = new CadOwnerRegistry();
 
             List<DxfEntity> entities = opened.ModelSpace.Cast<DxfEntity>().ToList();
-            Assert.Equal(entities.Select(e => e.Handle).OrderBy(h => h, System.StringComparer.Ordinal), model.Items.Select(i => i.Handle).Distinct().OrderBy(h => h, System.StringComparer.Ordinal));
-            Assert.Equal(new[] { CadEditRule.ReadOnly, CadEditRule.ReadOnly, CadEditRule.Free, CadEditRule.ReadOnly, CadEditRule.ReadOnly }, entities.Select(registry.GetEditRule));
+            Assert.Equal(
+                entities.Select(e => e.Handle).OrderBy(h => h, System.StringComparer.Ordinal),
+                model.Items.Select(i => i.Handle).Distinct().OrderBy(h => h, System.StringComparer.Ordinal)
+            );
+            Assert.Equal(
+                new[]
+                {
+                    CadEditRule.ReadOnly,
+                    CadEditRule.ReadOnly,
+                    CadEditRule.Free,
+                    CadEditRule.ReadOnly,
+                    CadEditRule.ReadOnly,
+                },
+                entities.Select(registry.GetEditRule)
+            );
             Assert.Equal(DrawingDocumentStoreTests.Beam(), DrawingDocumentStore.Read(opened));
         }
     }

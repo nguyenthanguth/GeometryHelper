@@ -23,7 +23,8 @@ namespace GeometryHelper.Geometry
         /// <param name="line">The line segment.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the spline comes within the point tolerance of a line segment, exactly when <see cref="DistanceTo(GeoLine2, Tolerance)"/> is no more than it; otherwise, false.</returns>
-        public bool CollidesWith(GeoLine2 line, Tolerance tolerance) => DistanceTo(line, tolerance) <= tolerance.EqualPoint;
+        public bool CollidesWith(GeoLine2 line, Tolerance tolerance) =>
+            DistanceTo(line, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether this spline touches a ray, using the default tolerance.
@@ -36,7 +37,8 @@ namespace GeometryHelper.Geometry
         /// <param name="ray">The ray.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the spline comes within the point tolerance of a ray, exactly when <see cref="DistanceTo(GeoRay2, Tolerance)"/> is no more than it; otherwise, false.</returns>
-        public bool CollidesWith(GeoRay2 ray, Tolerance tolerance) => DistanceTo(ray, tolerance) <= tolerance.EqualPoint;
+        public bool CollidesWith(GeoRay2 ray, Tolerance tolerance) =>
+            DistanceTo(ray, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether this spline touches an infinite line, using the default tolerance.
@@ -49,7 +51,8 @@ namespace GeometryHelper.Geometry
         /// <param name="xline">The infinite line.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the spline comes within the point tolerance of an infinite line, exactly when <see cref="DistanceTo(GeoXLine2, Tolerance)"/> is no more than it; otherwise, false.</returns>
-        public bool CollidesWith(GeoXLine2 xline, Tolerance tolerance) => DistanceTo(xline, tolerance) <= tolerance.EqualPoint;
+        public bool CollidesWith(GeoXLine2 xline, Tolerance tolerance) =>
+            DistanceTo(xline, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether this spline touches a polyline, using the default tolerance.
@@ -64,7 +67,8 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the spline comes within the point tolerance of a polyline, exactly when <see cref="DistanceTo(GeoPolyline2, Tolerance)"/> is no more than it; otherwise, false.</returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the polyline is null.</exception>
-        public bool CollidesWith(GeoPolyline2 polyline, Tolerance tolerance) => DistanceTo(polyline, tolerance) <= tolerance.EqualPoint;
+        public bool CollidesWith(GeoPolyline2 polyline, Tolerance tolerance) =>
+            DistanceTo(polyline, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether this spline touches a polygon, using the default tolerance.
@@ -79,7 +83,8 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the spline comes within the point tolerance of a polygon, exactly when <see cref="DistanceTo(GeoPolygon2, Tolerance)"/> is no more than it; otherwise, false.</returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
-        public bool CollidesWith(GeoPolygon2 polygon, Tolerance tolerance) => DistanceTo(polygon, tolerance) <= tolerance.EqualPoint;
+        public bool CollidesWith(GeoPolygon2 polygon, Tolerance tolerance) =>
+            DistanceTo(polygon, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether this spline touches a rectangle, using the default tolerance.
@@ -92,7 +97,8 @@ namespace GeometryHelper.Geometry
         /// <param name="rect">The rectangle.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the spline comes within the point tolerance of a rectangle, exactly when <see cref="DistanceTo(GeoRectangle2, Tolerance)"/> is no more than it; otherwise, false.</returns>
-        public bool CollidesWith(GeoRectangle2 rect, Tolerance tolerance) => DistanceTo(rect, tolerance) <= tolerance.EqualPoint;
+        public bool CollidesWith(GeoRectangle2 rect, Tolerance tolerance) =>
+            DistanceTo(rect, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether this spline touches a triangle, using the default tolerance.
@@ -105,7 +111,8 @@ namespace GeometryHelper.Geometry
         /// <param name="triangle">The triangle.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the spline comes within the point tolerance of a triangle, exactly when <see cref="DistanceTo(GeoTriangle2, Tolerance)"/> is no more than it; otherwise, false.</returns>
-        public bool CollidesWith(GeoTriangle2 triangle, Tolerance tolerance) => DistanceTo(triangle, tolerance) <= tolerance.EqualPoint;
+        public bool CollidesWith(GeoTriangle2 triangle, Tolerance tolerance) =>
+            DistanceTo(triangle, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether this spline touches a face, using the default tolerance.
@@ -120,7 +127,8 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the spline comes within the point tolerance of a face, exactly when <see cref="DistanceTo(GeoFace2, Tolerance)"/> is no more than it; otherwise, false.</returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
-        public bool CollidesWith(GeoFace2 face, Tolerance tolerance) => DistanceTo(face, tolerance) <= tolerance.EqualPoint;
+        public bool CollidesWith(GeoFace2 face, Tolerance tolerance) =>
+            DistanceTo(face, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether this spline touches an arc, using the default tolerance.
@@ -133,7 +141,8 @@ namespace GeometryHelper.Geometry
         /// <param name="arc">The arc.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the spline comes within the point tolerance of an arc, exactly when <see cref="DistanceTo(GeoArc2, Tolerance)"/> is no more than it; otherwise, false.</returns>
-        public bool CollidesWith(GeoArc2 arc, Tolerance tolerance) => DistanceTo(arc, tolerance) <= tolerance.EqualPoint;
+        public bool CollidesWith(GeoArc2 arc, Tolerance tolerance) =>
+            DistanceTo(arc, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether this spline touches a circle, using the default tolerance.
@@ -146,7 +155,8 @@ namespace GeometryHelper.Geometry
         /// <param name="circle">The circle.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the spline comes within the point tolerance of a circle, exactly when <see cref="DistanceTo(GeoCircle2, Tolerance)"/> is no more than it; otherwise, false.</returns>
-        public bool CollidesWith(GeoCircle2 circle, Tolerance tolerance) => DistanceTo(circle, tolerance) <= tolerance.EqualPoint;
+        public bool CollidesWith(GeoCircle2 circle, Tolerance tolerance) =>
+            DistanceTo(circle, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether this spline touches an ellipse, using the default tolerance.
@@ -159,7 +169,8 @@ namespace GeometryHelper.Geometry
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the spline comes within the point tolerance of an ellipse, exactly when <see cref="DistanceTo(GeoEllipse2, Tolerance)"/> is no more than it; otherwise, false.</returns>
-        public bool CollidesWith(GeoEllipse2 ellipse, Tolerance tolerance) => DistanceTo(ellipse, tolerance) <= tolerance.EqualPoint;
+        public bool CollidesWith(GeoEllipse2 ellipse, Tolerance tolerance) =>
+            DistanceTo(ellipse, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether this spline touches an edge, using the default tolerance.
@@ -172,7 +183,8 @@ namespace GeometryHelper.Geometry
         /// <param name="edge">The edge.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the spline comes within the point tolerance of an edge, exactly when <see cref="DistanceTo(GeoEdge2, Tolerance)"/> is no more than it; otherwise, false.</returns>
-        public bool CollidesWith(GeoEdge2 edge, Tolerance tolerance) => DistanceTo(edge, tolerance) <= tolerance.EqualPoint;
+        public bool CollidesWith(GeoEdge2 edge, Tolerance tolerance) =>
+            DistanceTo(edge, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether this spline touches a curved chain, using the default tolerance.
@@ -187,7 +199,8 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the spline comes within the point tolerance of a curved chain, exactly when <see cref="DistanceTo(GeoPolylineArc2, Tolerance)"/> is no more than it; otherwise, false.</returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the curved chain is null.</exception>
-        public bool CollidesWith(GeoPolylineArc2 chain, Tolerance tolerance) => DistanceTo(chain, tolerance) <= tolerance.EqualPoint;
+        public bool CollidesWith(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            DistanceTo(chain, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether this spline touches a curved loop, using the default tolerance.
@@ -202,6 +215,7 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the spline comes within the point tolerance of a curved loop, exactly when <see cref="DistanceTo(GeoPolygonArc2, Tolerance)"/> is no more than it; otherwise, false.</returns>
         /// <exception cref="System.ArgumentNullException">Thrown when the curved loop is null.</exception>
-        public bool CollidesWith(GeoPolygonArc2 loop, Tolerance tolerance) => DistanceTo(loop, tolerance) <= tolerance.EqualPoint;
+        public bool CollidesWith(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            DistanceTo(loop, tolerance) <= tolerance.EqualPoint;
     }
 }

@@ -14,8 +14,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     {
         private bool _isSelected;
 
-        internal CommandSuggestionViewModel(string name, string command, bool isVariable, int hit, int hitLength, string note, string synonymOf, bool startsMidString, string iconKey,
-            string contentType = null, bool startsContent = false, Action run = null)
+        internal CommandSuggestionViewModel(
+            string name,
+            string command,
+            bool isVariable,
+            int hit,
+            int hitLength,
+            string note,
+            string synonymOf,
+            bool startsMidString,
+            string iconKey,
+            string contentType = null,
+            bool startsContent = false,
+            Action run = null
+        )
         {
             Name = name;
             Command = command;
@@ -137,20 +149,67 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             new KeyValuePair<string, string>("PRINT", "PLOT"),
         };
 
-        private static readonly Dictionary<string, string> Icons = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly Dictionary<string, string> Icons = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase
+        )
         {
-            ["LINE"] = "GhIconLine", ["PLINE"] = "GhIconPolyline", ["CIRCLE"] = "GhIconCircle", ["ARC"] = "GhIconArc", ["TEXT"] = "GhIconText",
-            ["MTEXT"] = "GhIconMText", ["MOVE"] = "GhIconMove", ["COPY"] = "GhIconCopy", ["ROTATE"] = "GhIconRotate", ["SCALE"] = "GhIconScale",
-            ["MIRROR"] = "GhIconMirror", ["ERASE"] = "GhIconErase", ["EXPLODE"] = "GhIconExplode", ["STRETCH"] = "GhIconStretch", ["TRIM"] = "GhIconTrim",
-            ["EXTEND"] = "GhIconExtend", ["FILLET"] = "GhIconFillet", ["CHAMFER"] = "GhIconChamfer", ["OFFSET"] = "GhIconOffset", ["BREAK"] = "GhIconBreak",
-            ["JOIN"] = "GhIconJoin", ["LENGTHEN"] = "GhIconLengthen", ["ALIGN"] = "GhIconAlign", ["RECTANG"] = "GhIconRectangle", ["ELLIPSE"] = "GhIconEllipse",
-            ["POINT"] = "GhIconPoint", ["PAN"] = "GhIconPan", ["ZOOM"] = "GhIconZoomIn", ["NEW"] = "GhIconNew", ["OPEN"] = "GhIconOpen", ["QSAVE"] = "GhIconSave",
-            ["SAVE"] = "GhIconSave", ["SAVEAS"] = "GhIconSaveAs", ["INSERT"] = "GhIconInsertBlock", ["BLOCK"] = "GhIconCreateBlock", ["WBLOCK"] = "GhIconWriteBlock",
-            ["MATCHPROP"] = "GhIconMatchProperties", ["LAYMCUR"] = "GhIconCurrent", ["LAYMCH"] = "GhIconMatch", ["PASTECLIP"] = "GhIconPaste", ["TABLE"] = "GhIconTable",
-            ["QSELECT"] = "GhIconQuickSelect", ["DIST"] = "GhIconDistance", ["AREA"] = "GhIconArea", ["ID"] = "GhIconId", ["LIST"] = "GhIconList",
-            ["DIMLINEAR"] = "GhIconDimension", ["DIMALIGNED"] = "GhIconAligned", ["DIMANGULAR"] = "GhIconAngular", ["DIMRADIUS"] = "GhIconRadius",
-            ["DIMDIAMETER"] = "GhIconDiameter", ["QLEADER"] = "GhIconLeader", ["MLEADER"] = "GhIconLeader", ["GROUP"] = "GhIconGroup", ["UNGROUP"] = "GhIconUngroup",
-            ["OPTIONS"] = "GhIconGear", ["DSETTINGS"] = "GhIconGear",
+            ["LINE"] = "GhIconLine",
+            ["PLINE"] = "GhIconPolyline",
+            ["CIRCLE"] = "GhIconCircle",
+            ["ARC"] = "GhIconArc",
+            ["TEXT"] = "GhIconText",
+            ["MTEXT"] = "GhIconMText",
+            ["MOVE"] = "GhIconMove",
+            ["COPY"] = "GhIconCopy",
+            ["ROTATE"] = "GhIconRotate",
+            ["SCALE"] = "GhIconScale",
+            ["MIRROR"] = "GhIconMirror",
+            ["ERASE"] = "GhIconErase",
+            ["EXPLODE"] = "GhIconExplode",
+            ["STRETCH"] = "GhIconStretch",
+            ["TRIM"] = "GhIconTrim",
+            ["EXTEND"] = "GhIconExtend",
+            ["FILLET"] = "GhIconFillet",
+            ["CHAMFER"] = "GhIconChamfer",
+            ["OFFSET"] = "GhIconOffset",
+            ["BREAK"] = "GhIconBreak",
+            ["JOIN"] = "GhIconJoin",
+            ["LENGTHEN"] = "GhIconLengthen",
+            ["ALIGN"] = "GhIconAlign",
+            ["RECTANG"] = "GhIconRectangle",
+            ["ELLIPSE"] = "GhIconEllipse",
+            ["POINT"] = "GhIconPoint",
+            ["PAN"] = "GhIconPan",
+            ["ZOOM"] = "GhIconZoomIn",
+            ["NEW"] = "GhIconNew",
+            ["OPEN"] = "GhIconOpen",
+            ["QSAVE"] = "GhIconSave",
+            ["SAVE"] = "GhIconSave",
+            ["SAVEAS"] = "GhIconSaveAs",
+            ["INSERT"] = "GhIconInsertBlock",
+            ["BLOCK"] = "GhIconCreateBlock",
+            ["WBLOCK"] = "GhIconWriteBlock",
+            ["MATCHPROP"] = "GhIconMatchProperties",
+            ["LAYMCUR"] = "GhIconCurrent",
+            ["LAYMCH"] = "GhIconMatch",
+            ["PASTECLIP"] = "GhIconPaste",
+            ["TABLE"] = "GhIconTable",
+            ["QSELECT"] = "GhIconQuickSelect",
+            ["DIST"] = "GhIconDistance",
+            ["AREA"] = "GhIconArea",
+            ["ID"] = "GhIconId",
+            ["LIST"] = "GhIconList",
+            ["DIMLINEAR"] = "GhIconDimension",
+            ["DIMALIGNED"] = "GhIconAligned",
+            ["DIMANGULAR"] = "GhIconAngular",
+            ["DIMRADIUS"] = "GhIconRadius",
+            ["DIMDIAMETER"] = "GhIconDiameter",
+            ["QLEADER"] = "GhIconLeader",
+            ["MLEADER"] = "GhIconLeader",
+            ["GROUP"] = "GhIconGroup",
+            ["UNGROUP"] = "GhIconUngroup",
+            ["OPTIONS"] = "GhIconGear",
+            ["DSETTINGS"] = "GhIconGear",
         };
 
         private IReadOnlyList<CommandSuggestionViewModel> _suggestions = Array.Empty<CommandSuggestionViewModel>();
@@ -194,7 +253,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             string typed = CommandText.Trim();
 
-            if (!_settings.AutoComplete || _current == null || IsCommandRunning || typed.Length == 0 || typed.IndexOfAny(new[] { ' ', '\t' }) >= 0)
+            if (
+                !_settings.AutoComplete
+                || _current == null
+                || IsCommandRunning
+                || typed.Length == 0
+                || typed.IndexOfAny(new[] { ' ', '\t' }) >= 0
+            )
             {
                 CloseSuggestions();
                 return;
@@ -228,7 +293,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            int index = Math.Max(0, Math.Min(_suggestions.Count - 1, _suggestions.ToList().FindIndex(s => s.IsSelected) + step));
+            int index = Math.Max(
+                0,
+                Math.Min(_suggestions.Count - 1, _suggestions.ToList().FindIndex(s => s.IsSelected) + step)
+            );
 
             foreach (CommandSuggestionViewModel row in _suggestions)
             {
@@ -276,27 +344,68 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public IReadOnlyList<CadMenuItemViewModel> CommandLineMenu(string selectedText = null)
         {
             string clipboard = ClipboardText();
-            var recent = _settings.RecentCommands.Select(name => new CadMenuItemViewModel(name, () => RunRecentCommand(name))).ToList();
+            var recent = _settings
+                .RecentCommands.Select(name => new CadMenuItemViewModel(name, () => RunRecentCommand(name)))
+                .ToList();
             var input = new List<CadMenuItemViewModel>
             {
-                new CadMenuItemViewModel("AutoComplete", () => ChangeSettings(s => s.AutoComplete = !s.AutoComplete), isChecked: _settings.AutoComplete),
-                new CadMenuItemViewModel("AutoCorrect", () => ChangeSettings(s => s.AutoCorrect = !s.AutoCorrect), isChecked: _settings.AutoCorrect),
-                new CadMenuItemViewModel("Search System Variables", () => ChangeSettings(s => s.SearchSystemVariables = !s.SearchSystemVariables), isChecked: _settings.SearchSystemVariables),
-                new CadMenuItemViewModel("Search Content", () => ChangeSettings(s => s.SearchContent = !s.SearchContent), isChecked: _settings.SearchContent),
-                new CadMenuItemViewModel("Mid-string Search", () => ChangeSettings(s => s.MidStringSearch = !s.MidStringSearch), isChecked: _settings.MidStringSearch),
+                new CadMenuItemViewModel(
+                    "AutoComplete",
+                    () => ChangeSettings(s => s.AutoComplete = !s.AutoComplete),
+                    isChecked: _settings.AutoComplete
+                ),
+                new CadMenuItemViewModel(
+                    "AutoCorrect",
+                    () => ChangeSettings(s => s.AutoCorrect = !s.AutoCorrect),
+                    isChecked: _settings.AutoCorrect
+                ),
+                new CadMenuItemViewModel(
+                    "Search System Variables",
+                    () => ChangeSettings(s => s.SearchSystemVariables = !s.SearchSystemVariables),
+                    isChecked: _settings.SearchSystemVariables
+                ),
+                new CadMenuItemViewModel(
+                    "Search Content",
+                    () => ChangeSettings(s => s.SearchContent = !s.SearchContent),
+                    isChecked: _settings.SearchContent
+                ),
+                new CadMenuItemViewModel(
+                    "Mid-string Search",
+                    () => ChangeSettings(s => s.MidStringSearch = !s.MidStringSearch),
+                    isChecked: _settings.MidStringSearch
+                ),
                 CadMenuItemViewModel.Separator(),
-                new CadMenuItemViewModel("Delay Time…", () => StartCommand("INPUTSEARCHDELAY"), _current != null, _current == null ? "Needs a drawing open: the delay is asked on the command line." : null),
+                new CadMenuItemViewModel(
+                    "Delay Time…",
+                    () => StartCommand("INPUTSEARCHDELAY"),
+                    _current != null,
+                    _current == null ? "Needs a drawing open: the delay is asked on the command line." : null
+                ),
             };
 
             return new[]
             {
-                recent.Count > 0 ? new CadMenuItemViewModel("Recent Commands", recent) : new CadMenuItemViewModel("Recent Commands", () => { }, false, "No command has been run yet."),
+                recent.Count > 0
+                    ? new CadMenuItemViewModel("Recent Commands", recent)
+                    : new CadMenuItemViewModel("Recent Commands", () => { }, false, "No command has been run yet."),
                 new CadMenuItemViewModel("Input Settings", input),
                 CadMenuItemViewModel.Separator(),
-                new CadMenuItemViewModel("Copy", () => WriteClipboardText?.Invoke(selectedText), !string.IsNullOrEmpty(selectedText) && WriteClipboardText != null),
-                new CadMenuItemViewModel("Copy History", () => WriteClipboardText?.Invoke(string.Join(Environment.NewLine, History)), History.Count > 0 && WriteClipboardText != null),
+                new CadMenuItemViewModel(
+                    "Copy",
+                    () => WriteClipboardText?.Invoke(selectedText),
+                    !string.IsNullOrEmpty(selectedText) && WriteClipboardText != null
+                ),
+                new CadMenuItemViewModel(
+                    "Copy History",
+                    () => WriteClipboardText?.Invoke(string.Join(Environment.NewLine, History)),
+                    History.Count > 0 && WriteClipboardText != null
+                ),
                 new CadMenuItemViewModel("Paste", () => PasteToCommandLine(clipboard, false), clipboard.Length > 0),
-                new CadMenuItemViewModel("Paste To CmdLine", () => PasteToCommandLine(clipboard, true), clipboard.Length > 0),
+                new CadMenuItemViewModel(
+                    "Paste To CmdLine",
+                    () => PasteToCommandLine(clipboard, true),
+                    clipboard.Length > 0
+                ),
                 CadMenuItemViewModel.Separator(),
                 new CadMenuItemViewModel("Options…", () => RequestSettings(null)),
             };
@@ -358,7 +467,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 return ReadClipboardText?.Invoke() ?? string.Empty;
             }
-            catch (Exception exception) when (exception is InvalidOperationException || exception is System.Runtime.InteropServices.ExternalException)
+            catch (Exception exception)
+                when (exception is InvalidOperationException
+                    || exception is System.Runtime.InteropServices.ExternalException
+                )
             {
                 GeometryHelperLog.Warn("MainViewModel: the clipboard could not be read.", exception);
                 return string.Empty;
@@ -393,7 +505,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             while (true)
             {
-                yield return CadPrompt.ForInteger("Enter the delay time in milliseconds", null, _settings.AutoCompleteDelay.ToString(CultureInfo.InvariantCulture));
+                yield return CadPrompt.ForInteger(
+                    "Enter the delay time in milliseconds",
+                    null,
+                    _settings.AutoCompleteDelay.ToString(CultureInfo.InvariantCulture)
+                );
 
                 if (c.Input.Kind != CadInputKind.Number)
                 {
@@ -426,14 +542,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             foreach (CadCommand command in registry.Commands)
             {
-                candidates.Add(new Candidate(command.Name.ToUpperInvariant(), command.Name.ToUpperInvariant(), false, null));
+                candidates.Add(
+                    new Candidate(command.Name.ToUpperInvariant(), command.Name.ToUpperInvariant(), false, null)
+                );
             }
 
             foreach (KeyValuePair<string, string> synonym in Synonyms)
             {
                 if (registry.Find(synonym.Key) == null && registry.Find(synonym.Value) is CadCommand target)
                 {
-                    candidates.Add(new Candidate(synonym.Key, target.Name.ToUpperInvariant(), false, target.Name.ToUpperInvariant()));
+                    candidates.Add(
+                        new Candidate(
+                            synonym.Key,
+                            target.Name.ToUpperInvariant(),
+                            false,
+                            target.Name.ToUpperInvariant()
+                        )
+                    );
                 }
             }
 
@@ -443,7 +568,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     if (registry.Find(variable.Name) == null)
                     {
-                        candidates.Add(new Candidate(variable.Name.ToUpperInvariant(), variable.Name.ToUpperInvariant(), true, null));
+                        candidates.Add(
+                            new Candidate(
+                                variable.Name.ToUpperInvariant(),
+                                variable.Name.ToUpperInvariant(),
+                                true,
+                                null
+                            )
+                        );
                     }
                 }
             }
@@ -452,8 +584,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 if (rows.Count < MostRows && taken.Add(candidate.Name))
                 {
-                    rows.Add(new CommandSuggestionViewModel(candidate.Name, candidate.Command, candidate.IsVariable, hit, key.Length,
-                        note ?? (candidate.IsVariable ? "system variable" : string.Empty), candidate.SynonymOf, midString, candidate.IsVariable ? null : IconOf(candidate.Command)));
+                    rows.Add(
+                        new CommandSuggestionViewModel(
+                            candidate.Name,
+                            candidate.Command,
+                            candidate.IsVariable,
+                            hit,
+                            key.Length,
+                            note ?? (candidate.IsVariable ? "system variable" : string.Empty),
+                            candidate.SynonymOf,
+                            midString,
+                            candidate.IsVariable ? null : IconOf(candidate.Command)
+                        )
+                    );
                 }
             }
 
@@ -465,21 +608,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Add(exact, 0, null, false);
             }
 
-            if (aliases.TryGetValue(key, out string aliased) && candidates.FirstOrDefault(c => c.SynonymOf == null && c.Name == aliased.ToUpperInvariant()) is Candidate alias)
+            if (
+                aliases.TryGetValue(key, out string aliased)
+                && candidates.FirstOrDefault(c => c.SynonymOf == null && c.Name == aliased.ToUpperInvariant())
+                    is Candidate alias
+            )
             {
                 Add(alias, Math.Max(0, alias.Name.IndexOf(key, StringComparison.Ordinal)), "alias " + key, false);
             }
 
             string corrected = _settings.AutoCorrect ? _settings.CorrectionOf(key) : null;
 
-            if (corrected != null && candidates.FirstOrDefault(c => c.SynonymOf == null && c.Name == corrected) is Candidate correction)
+            if (
+                corrected != null
+                && candidates.FirstOrDefault(c => c.SynonymOf == null && c.Name == corrected) is Candidate correction
+            )
             {
-                Add(correction, Math.Max(0, correction.Name.IndexOf(key, StringComparison.Ordinal)), "AutoCorrect", false);
+                Add(
+                    correction,
+                    Math.Max(0, correction.Name.IndexOf(key, StringComparison.Ordinal)),
+                    "AutoCorrect",
+                    false
+                );
             }
 
             // Then the names that begin with the letters: commands and synonyms by use, then by name; then the variables.
-            foreach (Candidate candidate in candidates.Where(c => c.Name.StartsWith(key, StringComparison.Ordinal))
-                .OrderBy(c => c.IsVariable).ThenByDescending(c => Uses(c.Command)).ThenBy(c => c.Name, StringComparer.Ordinal))
+            foreach (
+                Candidate candidate in candidates
+                    .Where(c => c.Name.StartsWith(key, StringComparison.Ordinal))
+                    .OrderBy(c => c.IsVariable)
+                    .ThenByDescending(c => Uses(c.Command))
+                    .ThenBy(c => c.Name, StringComparer.Ordinal)
+            )
             {
                 Add(candidate, 0, null, false);
             }
@@ -489,11 +649,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 bool first = true;
 
-                foreach (Candidate candidate in candidates.Where(c => c.Name.IndexOf(key, 1, StringComparison.Ordinal) > 0 && !c.Name.StartsWith(key, StringComparison.Ordinal))
-                    .OrderByDescending(c => Uses(c.Command)).ThenBy(c => c.Name.IndexOf(key, StringComparison.Ordinal)).ThenBy(c => c.Name, StringComparer.Ordinal))
+                foreach (
+                    Candidate candidate in candidates
+                        .Where(c =>
+                            c.Name.IndexOf(key, 1, StringComparison.Ordinal) > 0
+                            && !c.Name.StartsWith(key, StringComparison.Ordinal)
+                        )
+                        .OrderByDescending(c => Uses(c.Command))
+                        .ThenBy(c => c.Name.IndexOf(key, StringComparison.Ordinal))
+                        .ThenBy(c => c.Name, StringComparer.Ordinal)
+                )
                 {
                     int count = rows.Count;
-                    Add(candidate, candidate.Name.IndexOf(key, StringComparison.Ordinal), null, first && rows.Count > 0);
+                    Add(
+                        candidate,
+                        candidate.Name.IndexOf(key, StringComparison.Ordinal),
+                        null,
+                        first && rows.Count > 0
+                    );
 
                     if (rows.Count > count)
                     {
@@ -521,24 +694,62 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             var rows = new List<CommandSuggestionViewModel>();
             var kinds = new[]
             {
-                new ContentKind("Block", new[] { "BLOCK", "INSERT" }, "-INSERT", "GhIconInsertBlock", CadBlocks.Named(database).Select(b => b.Name)),
+                new ContentKind(
+                    "Block",
+                    new[] { "BLOCK", "INSERT" },
+                    "-INSERT",
+                    "GhIconInsertBlock",
+                    CadBlocks.Named(database).Select(b => b.Name)
+                ),
                 new ContentKind("Layer", new[] { "LAYER" }, "CLAYER", "GhIconLayers", _layers.Select(l => l.Name)),
-                new ContentKind("Hatch", new[] { "HATCH" }, "HATCH", IconOf("HATCH"), CadPatternFile.BuiltIn.Select(p => p.Name)),
-                new ContentKind("Text Style", new[] { "TEXTSTYLE", "STYLE" }, "TEXTSTYLE", "GhIconText", CadTextStyleEditor.Styles(database).Select(s => s.Name)),
-                new ContentKind("Dim Style", new[] { "DIMSTYLE" }, "DIMSTYLE", "GhIconDimension", CadDimStyleEditor.Styles(database).Select(s => s.Name)),
+                new ContentKind(
+                    "Hatch",
+                    new[] { "HATCH" },
+                    "HATCH",
+                    IconOf("HATCH"),
+                    CadPatternFile.BuiltIn.Select(p => p.Name)
+                ),
+                new ContentKind(
+                    "Text Style",
+                    new[] { "TEXTSTYLE", "STYLE" },
+                    "TEXTSTYLE",
+                    "GhIconText",
+                    CadTextStyleEditor.Styles(database).Select(s => s.Name)
+                ),
+                new ContentKind(
+                    "Dim Style",
+                    new[] { "DIMSTYLE" },
+                    "DIMSTYLE",
+                    "GhIconDimension",
+                    CadDimStyleEditor.Styles(database).Select(s => s.Name)
+                ),
             };
 
             foreach (ContentKind kind in kinds)
             {
                 bool every = kind.Keywords.Contains(key);
-                IEnumerable<string> names = kind.Names.Where(n => !string.IsNullOrEmpty(n)).Distinct(StringComparer.OrdinalIgnoreCase);
+                IEnumerable<string> names = kind
+                    .Names.Where(n => !string.IsNullOrEmpty(n))
+                    .Distinct(StringComparer.OrdinalIgnoreCase);
                 IEnumerable<string> begin = names.Where(n => n.StartsWith(key, StringComparison.OrdinalIgnoreCase));
-                IEnumerable<string> inside = _settings.MidStringSearch || every
-                    ? names.Where(n => !n.StartsWith(key, StringComparison.OrdinalIgnoreCase) && (every || n.IndexOf(key, StringComparison.OrdinalIgnoreCase) > 0))
-                    : Enumerable.Empty<string>();
+                IEnumerable<string> inside =
+                    _settings.MidStringSearch || every
+                        ? names.Where(n =>
+                            !n.StartsWith(key, StringComparison.OrdinalIgnoreCase)
+                            && (every || n.IndexOf(key, StringComparison.OrdinalIgnoreCase) > 0)
+                        )
+                        : Enumerable.Empty<string>();
 
-                foreach (string name in begin.OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ThenBy(n => n, StringComparer.Ordinal)
-                    .Concat(inside.OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ThenBy(n => n, StringComparer.Ordinal)))
+                foreach (
+                    string name in begin
+                        .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                        .ThenBy(n => n, StringComparer.Ordinal)
+                        .Concat(
+                            inside
+                                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                                .ThenBy(n => n, StringComparer.Ordinal)
+                        )
+                )
                 {
                     if (rows.Count == MostRows)
                     {
@@ -548,8 +759,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     int hit = Math.Max(0, name.IndexOf(key, StringComparison.OrdinalIgnoreCase));
                     int length = name.IndexOf(key, StringComparison.OrdinalIgnoreCase) < 0 ? 0 : key.Length;
                     string chosen = name;
-                    rows.Add(new CommandSuggestionViewModel(name, kind.Command, false, hit, length, kind.Name, null, false, kind.IconKey,
-                        kind.Name, !first && rows.Count == 0, () => ActOnContent(kind.Name, chosen)));
+                    rows.Add(
+                        new CommandSuggestionViewModel(
+                            name,
+                            kind.Command,
+                            false,
+                            hit,
+                            length,
+                            kind.Name,
+                            null,
+                            false,
+                            kind.IconKey,
+                            kind.Name,
+                            !first && rows.Count == 0,
+                            () => ActOnContent(kind.Name, chosen)
+                        )
+                    );
                 }
             }
 
@@ -602,16 +827,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private int Uses(string name) => _settings.CommandUses.TryGetValue(name, out int count) ? count : 0;
 
         /// <summary>The icon of a command: its own where the icon set has one, the layers' for the LAY commands, the prompt's for any other.</summary>
-        private static string IconOf(string command)
-            => Icons.TryGetValue(command, out string key) ? key
-                : command.StartsWith("LAY", StringComparison.Ordinal) ? "GhIconLayers"
-                : command.StartsWith("DIM", StringComparison.Ordinal) ? "GhIconDimension"
-                : "GhIconPrompt";
+        private static string IconOf(string command) =>
+            Icons.TryGetValue(command, out string key) ? key
+            : command.StartsWith("LAY", StringComparison.Ordinal) ? "GhIconLayers"
+            : command.StartsWith("DIM", StringComparison.Ordinal) ? "GhIconDimension"
+            : "GhIconPrompt";
 
         /// <summary>A kind of named object Search Content lists: its name, the keywords that list it whole, the command that acts on it, its icon and the names of the drawing.</summary>
         private sealed class ContentKind
         {
-            public ContentKind(string name, string[] keywords, string command, string iconKey, IEnumerable<string> names)
+            public ContentKind(
+                string name,
+                string[] keywords,
+                string command,
+                string iconKey,
+                IEnumerable<string> names
+            )
             {
                 Name = name;
                 Keywords = keywords;

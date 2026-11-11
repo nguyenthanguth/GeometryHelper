@@ -18,17 +18,19 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>
         /// A square of side one hundred whose right-hand side swells into a half circle reaching x = 150.
         /// </summary>
-        private static GeoPolygonArc2 Slot() => new GeoPolygonArc2(
-            new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
-            new[] { 0.0, 1.0, 0.0, 0.0 });
+        private static GeoPolygonArc2 Slot() =>
+            new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
+                new[] { 0.0, 1.0, 0.0, 0.0 }
+            );
 
         private static GeoPolylineArc2 OpenSlot() => Slot().ToPolylineArc2();
 
-        private static bool OnBoundary(GeoPolygonArc2 loop, GeoPoint2 point)
-            => loop.GetClosestPointOnBoundary(point).DistanceTo(point) < 1E-7;
+        private static bool OnBoundary(GeoPolygonArc2 loop, GeoPoint2 point) =>
+            loop.GetClosestPointOnBoundary(point).DistanceTo(point) < 1E-7;
 
-        private static bool OnBoundary(GeoPolylineArc2 chain, GeoPoint2 point)
-            => chain.GetClosestPointOnBoundary(point).DistanceTo(point) < 1E-7;
+        private static bool OnBoundary(GeoPolylineArc2 chain, GeoPoint2 point) =>
+            chain.GetClosestPointOnBoundary(point).DistanceTo(point) < 1E-7;
 
         [Fact]
         public void TheSegmentLeavesTheBulgeAndLandsOnWhatIsAskedAbout()
@@ -56,10 +58,20 @@ namespace GeometryHelper.UnitTest.Plane
             var arc = new GeoArc2(new GeoPoint2(400, 50), 20.0, Math.PI / 2, 3 * Math.PI / 2);
             var circle = new GeoCircle2(new GeoPoint2(400, 50), 20.0);
             var polygon = new GeoPolygon2(
-                new GeoPoint2(400, 0), new GeoPoint2(500, 0), new GeoPoint2(500, 100), new GeoPoint2(400, 100));
+                new GeoPoint2(400, 0),
+                new GeoPoint2(500, 0),
+                new GeoPoint2(500, 100),
+                new GeoPoint2(400, 100)
+            );
             var polyline = new GeoPolyline2(new GeoPoint2(400, 0), new GeoPoint2(400, 100));
-            var otherLoop = new GeoPolygonArc2(new GeoPolygon2(
-                new GeoPoint2(400, 0), new GeoPoint2(500, 0), new GeoPoint2(500, 100), new GeoPoint2(400, 100)));
+            var otherLoop = new GeoPolygonArc2(
+                new GeoPolygon2(
+                    new GeoPoint2(400, 0),
+                    new GeoPoint2(500, 0),
+                    new GeoPoint2(500, 100),
+                    new GeoPoint2(400, 100)
+                )
+            );
             var otherChain = otherLoop.ToPolylineArc2();
 
             Assert.Equal(slot.DistanceTo(line), slot.GetShortestLineTo(line).Length, 9);
@@ -79,22 +91,34 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(open.DistanceTo(otherChain), open.GetShortestLineTo(otherChain).Length, 9);
 
             // Every one of them leaves the shape it was asked of.
-            foreach (GeoLine2 joining in new[]
-            {
-                slot.GetShortestLineTo(line), slot.GetShortestLineTo(arc), slot.GetShortestLineTo(circle),
-                slot.GetShortestLineTo(polygon), slot.GetShortestLineTo(polyline),
-                slot.GetShortestLineTo(otherLoop), slot.GetShortestLineTo(otherChain)
-            })
+            foreach (
+                GeoLine2 joining in new[]
+                {
+                    slot.GetShortestLineTo(line),
+                    slot.GetShortestLineTo(arc),
+                    slot.GetShortestLineTo(circle),
+                    slot.GetShortestLineTo(polygon),
+                    slot.GetShortestLineTo(polyline),
+                    slot.GetShortestLineTo(otherLoop),
+                    slot.GetShortestLineTo(otherChain),
+                }
+            )
             {
                 Assert.True(OnBoundary(slot, joining.StartPoint), "start off the loop");
             }
 
-            foreach (GeoLine2 joining in new[]
-            {
-                open.GetShortestLineTo(line), open.GetShortestLineTo(arc), open.GetShortestLineTo(circle),
-                open.GetShortestLineTo(polygon), open.GetShortestLineTo(polyline),
-                open.GetShortestLineTo(otherLoop), open.GetShortestLineTo(otherChain)
-            })
+            foreach (
+                GeoLine2 joining in new[]
+                {
+                    open.GetShortestLineTo(line),
+                    open.GetShortestLineTo(arc),
+                    open.GetShortestLineTo(circle),
+                    open.GetShortestLineTo(polygon),
+                    open.GetShortestLineTo(polyline),
+                    open.GetShortestLineTo(otherLoop),
+                    open.GetShortestLineTo(otherChain),
+                }
+            )
             {
                 Assert.True(OnBoundary(open, joining.StartPoint), "start off the chain");
             }
@@ -139,18 +163,32 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolylineArc2 open = OpenSlot();
             var line = new GeoLine2(new GeoPoint2(400, 0), new GeoPoint2(400, 100));
             var polygon = new GeoPolygon2(
-                new GeoPoint2(400, 0), new GeoPoint2(500, 0), new GeoPoint2(500, 100), new GeoPoint2(400, 100));
+                new GeoPoint2(400, 0),
+                new GeoPoint2(500, 0),
+                new GeoPoint2(500, 100),
+                new GeoPoint2(400, 100)
+            );
 
             Assert.True(Projection2.GetShortestLineTo(slot, line).IsEqualTo(slot.GetShortestLineTo(line), Tight));
-            Assert.True(Projection2.GetShortestLineTo(slot, line, Tolerance.Global).IsEqualTo(slot.GetShortestLineTo(line, Tolerance.Global), Tight));
+            Assert.True(
+                Projection2
+                    .GetShortestLineTo(slot, line, Tolerance.Global)
+                    .IsEqualTo(slot.GetShortestLineTo(line, Tolerance.Global), Tight)
+            );
             Assert.True(Projection2.GetShortestLineTo(slot, polygon).IsEqualTo(slot.GetShortestLineTo(polygon), Tight));
             Assert.True(Projection2.GetShortestLineTo(open, line).IsEqualTo(open.GetShortestLineTo(line), Tight));
-            Assert.True(Projection2.GetShortestLineTo(open, polygon, Tolerance.Global).IsEqualTo(open.GetShortestLineTo(polygon, Tolerance.Global), Tight));
+            Assert.True(
+                Projection2
+                    .GetShortestLineTo(open, polygon, Tolerance.Global)
+                    .IsEqualTo(open.GetShortestLineTo(polygon, Tolerance.Global), Tight)
+            );
 
             Assert.Throws<ArgumentNullException>(() => Projection2.GetShortestLineTo((GeoPolygonArc2)null, line));
             Assert.Throws<ArgumentNullException>(() => Projection2.GetShortestLineTo((GeoPolylineArc2)null, line));
             Assert.Throws<ArgumentNullException>(() => Projection2.GetShortestLineTo(slot, (GeoPolygon2)null));
-            Assert.Throws<ArgumentNullException>(() => Projection2.GetShortestLineTo(open, (GeoPolylineArc2)null, Tolerance.Global));
+            Assert.Throws<ArgumentNullException>(() =>
+                Projection2.GetShortestLineTo(open, (GeoPolylineArc2)null, Tolerance.Global)
+            );
         }
 
         [Fact]
@@ -158,8 +196,14 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The segment turns round, but it joins the same two points.
             GeoPolygonArc2 slot = Slot();
-            var otherLoop = new GeoPolygonArc2(new GeoPolygon2(
-                new GeoPoint2(400, 0), new GeoPoint2(500, 0), new GeoPoint2(500, 100), new GeoPoint2(400, 100)));
+            var otherLoop = new GeoPolygonArc2(
+                new GeoPolygon2(
+                    new GeoPoint2(400, 0),
+                    new GeoPoint2(500, 0),
+                    new GeoPoint2(500, 100),
+                    new GeoPoint2(400, 100)
+                )
+            );
 
             GeoLine2 there = slot.GetShortestLineTo(otherLoop);
             GeoLine2 back = otherLoop.GetShortestLineTo(slot);

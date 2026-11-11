@@ -167,15 +167,27 @@ namespace GeometryHelper.Internal.Nurbs
         /// keeps on average: a curve through three points 100 apart along a line, given the tangent along that line at
         /// each end, comes out as that line, run at an even speed.
         /// </remarks>
-        internal static NurbsCurve Interpolate(int dim, double[] fit, int degree, double[] startTangent, double[] endTangent)
-            => Interpolate(dim, fit, degree, startTangent, endTangent, false);
+        internal static NurbsCurve Interpolate(
+            int dim,
+            double[] fit,
+            int degree,
+            double[] startTangent,
+            double[] endTangent
+        ) => Interpolate(dim, fit, degree, startTangent, endTangent, false);
 
         /// <summary>
         /// Makes the curve as <see cref="Interpolate(int, double[], int, double[], double[])"/> does; with tangents and
         /// <paramref name="natural"/>, its inner knots are the parameters of the inner fit points themselves rather than their
         /// averages, as ezdxf's <c>fit_points_to_cad_cv</c> places them for a spline of an odd degree ("natural").
         /// </summary>
-        internal static NurbsCurve Interpolate(int dim, double[] fit, int degree, double[] startTangent, double[] endTangent, bool natural)
+        internal static NurbsCurve Interpolate(
+            int dim,
+            double[] fit,
+            int degree,
+            double[] startTangent,
+            double[] endTangent,
+            bool natural
+        )
         {
             int count = fit.Length / dim;
             int n = count - 1;
@@ -221,7 +233,8 @@ namespace GeometryHelper.Internal.Nurbs
                     control[k] = fit[k];
                     control[dim + k] = fit[k] + knots[p + 1] / p * startTangent[k] * total;
                     control[(points - 1) * dim + k] = fit[n * dim + k];
-                    control[(points - 2) * dim + k] = fit[n * dim + k] - (1.0 - knots[points - 1]) / p * endTangent[k] * total;
+                    control[(points - 2) * dim + k] =
+                        fit[n * dim + k] - (1.0 - knots[points - 1]) / p * endTangent[k] * total;
                 }
             }
 
@@ -261,7 +274,9 @@ namespace GeometryHelper.Internal.Nurbs
 
                     if (offset < 0 || offset > 2 * p)
                     {
-                        throw new InvalidOperationException("The fit points do not make a banded system of the width a spline of this degree has.");
+                        throw new InvalidOperationException(
+                            "The fit points do not make a banded system of the width a spline of this degree has."
+                        );
                     }
 
                     matrix[row][offset] = basis[j];
@@ -349,7 +364,6 @@ namespace GeometryHelper.Internal.Nurbs
         /// <param name="columns">The number of right-hand sides.</param>
         private static void SolveBanded(double[][] matrix, double[][] rhs, int size, int kl, int ku, int columns)
         {
-
             // The rows are held so that the entry of row i and column j is at j - i + kl. A matrix built with p each side
             // has its entries in places 0 to 2p, which is inside the width.
             for (int c = 0; c < size; c++)
@@ -371,7 +385,9 @@ namespace GeometryHelper.Internal.Nurbs
 
                 if (!(largest > 0.0))
                 {
-                    throw new InvalidOperationException("The fit points make a singular system, so no curve of this degree runs through them.");
+                    throw new InvalidOperationException(
+                        "The fit points make a singular system, so no curve of this degree runs through them."
+                    );
                 }
 
                 int reach = Math.Min(c + kl + ku, size - 1);

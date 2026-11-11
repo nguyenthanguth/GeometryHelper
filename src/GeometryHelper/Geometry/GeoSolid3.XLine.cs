@@ -20,7 +20,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this solid touches an infinite line, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoXLine3 xline, Tolerance tolerance) => Collision3.CollidesWith(xline, this, tolerance);
+        public bool CollidesWith(GeoXLine3 xline, Tolerance tolerance) =>
+            Collision3.CollidesWith(xline, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this solid to an infinite line, using the default tolerance.
@@ -42,7 +43,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the points where an infinite line crosses the surface of this solid, within a tolerance.
         /// </summary>
-        public GeoPoint3[] GetIntersections(GeoXLine3 xline, Tolerance tolerance) => Intersection3.GetIntersections(xline, this, tolerance);
+        public GeoPoint3[] GetIntersections(GeoXLine3 xline, Tolerance tolerance) =>
+            Intersection3.GetIntersections(xline, this, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this solid and landing on an infinite line, using the default tolerance.
@@ -52,7 +54,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment leaving this solid and landing on an infinite line, within a tolerance.
         /// </summary>
-        public GeoLine3 GetShortestLineTo(GeoXLine3 xline, Tolerance tolerance) => Projection3.GetShortestLineTo(xline, this, tolerance).Reverse();
+        public GeoLine3 GetShortestLineTo(GeoXLine3 xline, Tolerance tolerance) =>
+            Projection3.GetShortestLineTo(xline, this, tolerance).Reverse();
 
         #endregion
     }

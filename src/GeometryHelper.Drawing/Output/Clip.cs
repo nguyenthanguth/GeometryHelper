@@ -26,12 +26,15 @@ namespace GeometryHelper.Drawing
 
             double dx = end.X - start.X;
             double dy = end.Y - start.Y;
-            double t0 = 0.0, t1 = 1.0;
+            double t0 = 0.0,
+                t1 = 1.0;
 
-            if (!Narrow(-dx, start.X - box.X0, ref t0, ref t1)
+            if (
+                !Narrow(-dx, start.X - box.X0, ref t0, ref t1)
                 || !Narrow(dx, box.X1 - start.X, ref t0, ref t1)
                 || !Narrow(-dy, start.Y - box.Y0, ref t0, ref t1)
-                || !Narrow(dy, box.Y1 - start.Y, ref t0, ref t1))
+                || !Narrow(dy, box.Y1 - start.Y, ref t0, ref t1)
+            )
             {
                 return false;
             }
@@ -50,11 +53,23 @@ namespace GeometryHelper.Drawing
         /// Cuts an arc running anticlockwise from a start angle through a sweep at a box: the pieces inside, each its start
         /// angle and sweep; a whole circle wholly inside is one null piece.
         /// </summary>
-        public static List<double[]> Arc(GeoPoint2 centre, double radius, double start, double sweep, bool circle, Extent box)
+        public static List<double[]> Arc(
+            GeoPoint2 centre,
+            double radius,
+            double start,
+            double sweep,
+            bool circle,
+            Extent box
+        )
         {
             var pieces = new List<double[]>();
 
-            if (centre.X - radius >= box.X0 && centre.X + radius <= box.X1 && centre.Y - radius >= box.Y0 && centre.Y + radius <= box.Y1)
+            if (
+                centre.X - radius >= box.X0
+                && centre.X + radius <= box.X1
+                && centre.Y - radius >= box.Y0
+                && centre.Y + radius <= box.Y1
+            )
             {
                 pieces.Add(circle ? null : new[] { start, sweep });
                 return pieces;
@@ -87,7 +102,10 @@ namespace GeometryHelper.Drawing
                 }
 
                 // A piece that goes on from the one before is one arc with it.
-                if (pieces.Count > 0 && Math.Abs(pieces[pieces.Count - 1][0] + pieces[pieces.Count - 1][1] - (start + from)) <= 1E-12)
+                if (
+                    pieces.Count > 0
+                    && Math.Abs(pieces[pieces.Count - 1][0] + pieces[pieces.Count - 1][1] - (start + from)) <= 1E-12
+                )
                 {
                     pieces[pieces.Count - 1][1] += to - from;
                 }
@@ -100,7 +118,8 @@ namespace GeometryHelper.Drawing
             return pieces;
         }
 
-        private static bool Inside(GeoPoint2 p, Extent box) => p.X >= box.X0 && p.X <= box.X1 && p.Y >= box.Y0 && p.Y <= box.Y1;
+        private static bool Inside(GeoPoint2 p, Extent box) =>
+            p.X >= box.X0 && p.X <= box.X1 && p.Y >= box.Y0 && p.Y <= box.Y1;
 
         private static bool Narrow(double p, double q, ref double t0, ref double t1)
         {
@@ -134,7 +153,15 @@ namespace GeometryHelper.Drawing
         }
 
         /// <summary>The angles past the start at which a circle crosses the line x = at (or y = at), inside the sweep.</summary>
-        private static void Cross(double centre, double radius, double at, bool alongY, double start, double sweep, List<double> cuts)
+        private static void Cross(
+            double centre,
+            double radius,
+            double at,
+            bool alongY,
+            double start,
+            double sweep,
+            List<double> cuts
+        )
         {
             double c = (at - centre) / radius;
 

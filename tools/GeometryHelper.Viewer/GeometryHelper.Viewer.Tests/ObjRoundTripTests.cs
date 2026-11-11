@@ -21,13 +21,15 @@ namespace GeometryHelper.Viewer.Tests
         public void AChainOfAwkwardNumbers_ComesBackToTheBit()
         {
             // The numbers a text format loses first: a tenth, a number with seventeen digits, the smallest and a subnormal, and minus nought.
-            var chain = new GeoPolyline3(new[]
-            {
-                new GeoPoint3(0.1, 1E-300, 123456789.12345678),
-                new GeoPoint3(-0.0, 5E-324, 4.8721540113315704),
-                new GeoPoint3(1.7976931348623157E300, -2.2250738585072014E-308, 0.30000000000000004),
-                new GeoPoint3(1.0 / 3.0, 2.0 / 3.0, Math.PI),
-            });
+            var chain = new GeoPolyline3(
+                new[]
+                {
+                    new GeoPoint3(0.1, 1E-300, 123456789.12345678),
+                    new GeoPoint3(-0.0, 5E-324, 4.8721540113315704),
+                    new GeoPoint3(1.7976931348623157E300, -2.2250738585072014E-308, 0.30000000000000004),
+                    new GeoPoint3(1.0 / 3.0, 2.0 / 3.0, Math.PI),
+                }
+            );
 
             SceneItem item = Imp.Only(Read(new ObjWriter().Add(chain, "chain")));
 
@@ -166,11 +168,17 @@ namespace GeometryHelper.Viewer.Tests
             SceneItem item = Imp.Only(Read(new ObjWriter().Add(mesh, "plate")));
 
             Assert.Equal(mesh.FaceCount, Imp.MeshFaces(item).Count);
-            Imp.SameBits(mesh.Vertices.SelectMany(Imp.P3).ToList(), Imp.MeshPoints(item).SelectMany(p => new[] { p.X, p.Y, p.Z }).ToList());
+            Imp.SameBits(
+                mesh.Vertices.SelectMany(Imp.P3).ToList(),
+                Imp.MeshPoints(item).SelectMany(p => new[] { p.X, p.Y, p.Z }).ToList()
+            );
 
             for (int f = 0; f < mesh.FaceCount; f++)
             {
-                Assert.Equal(Imp.Key(mesh.GetFaceIndices(f).Select(i => mesh.Vertices[i])), Imp.Key(Imp.MeshFaces(item)[f]));
+                Assert.Equal(
+                    Imp.Key(mesh.GetFaceIndices(f).Select(i => mesh.Vertices[i])),
+                    Imp.Key(Imp.MeshFaces(item)[f])
+                );
             }
         }
 
@@ -208,7 +216,10 @@ namespace GeometryHelper.Viewer.Tests
             Vec3[] points = DataJson.Points(item.Data, "points", 3);
 
             Imp.AssertOnCircle(points, circle.Center, circle.Normal, circle.Radius);
-            Assert.True(new BitKey(points[0]).Equals(new BitKey(points[points.Length - 1])), "OBJ has no closed line: the last vertex is the first");
+            Assert.True(
+                new BitKey(points[0]).Equals(new BitKey(points[points.Length - 1])),
+                "OBJ has no closed line: the last vertex is the first"
+            );
         }
 
         [Fact]
@@ -235,11 +246,19 @@ namespace GeometryHelper.Viewer.Tests
             var chain = new GeoPolylineArc3(
                 new[] { new GeoPoint3(0, 0, 5), new GeoPoint3(100, 0, 5), new GeoPoint3(200, 40, 5) },
                 new[] { 0.4, 0.0, 0.0 },
-                new[] { up, up, up });
+                new[] { up, up, up }
+            );
             var loop = new GeoPolygonArc3(
-                new[] { new GeoPoint3(0, 0, 5), new GeoPoint3(100, 0, 5), new GeoPoint3(100, 100, 5), new GeoPoint3(0, 100, 5) },
+                new[]
+                {
+                    new GeoPoint3(0, 0, 5),
+                    new GeoPoint3(100, 0, 5),
+                    new GeoPoint3(100, 100, 5),
+                    new GeoPoint3(0, 100, 5),
+                },
                 new[] { 0.0, 0.5, 0.0, 0.0 },
-                new[] { up, up, up, up });
+                new[] { up, up, up, up }
+            );
 
             Scene scene = Read(new ObjWriter().Add(chain, 0.05, "chain").Add(loop, 0.05, "loop"));
 
@@ -259,10 +278,12 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void SeveralShapes_AreSeveralItemsNamedAsGiven()
         {
-            Scene scene = Read(new ObjWriter()
-                .Add(SampleShapes.Box(10.0, 10.0, 10.0, false), Tol, "plate one")
-                .Add(new GeoPoint3(1.0, 2.0, 3.0), "dot")
-                .Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(5, 5, 5))));
+            Scene scene = Read(
+                new ObjWriter()
+                    .Add(SampleShapes.Box(10.0, 10.0, 10.0, false), Tol, "plate one")
+                    .Add(new GeoPoint3(1.0, 2.0, 3.0), "dot")
+                    .Add(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(5, 5, 5)))
+            );
 
             Assert.Empty(scene.LoadWarnings);
             Assert.Equal(new[] { "plate_one", "dot", "shape3" }, scene.Items.Select(i => i.Name).ToArray());

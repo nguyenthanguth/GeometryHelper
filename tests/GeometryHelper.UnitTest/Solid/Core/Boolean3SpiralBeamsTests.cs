@@ -17,8 +17,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
     public class Boolean3SpiralBeamsTests
     {
         private static readonly SolidBooleanOptions Options = new SolidBooleanOptions(
-            new Tolerance(0.001, 1e-5, Tolerance.DefaultEqualAngleRad, 0.001), 0.01,
-            new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01));
+            new Tolerance(0.001, 1e-5, Tolerance.DefaultEqualAngleRad, 0.001),
+            0.01,
+            new Tolerance(0.01, 0.01, Tolerance.DefaultEqualAngleRad, 0.01)
+        );
 
         // The most cells either may be cut into: cut by every plane everywhere, the girder was cut into 36 509.
         private const long MostCells = 10000;
@@ -40,7 +42,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             for (int k = 0; k < n; k++)
             {
-                double a = a0 + (a1 - a0) * k / n, b = a0 + (a1 - a0) * (k + 1) / n;
+                double a = a0 + (a1 - a0) * k / n,
+                    b = a0 + (a1 - a0) * (k + 1) / n;
                 faces.Add(Face(P(r1, a, h0), P(r1, b, h0), P(r1, b, h1), P(r1, a, h1)));
                 faces.Add(Face(P(r0, a, h0), P(r0, a, h1), P(r0, b, h1), P(r0, b, h0)));
                 faces.Add(Face(P(r0, a, h0), P(r0, b, h0), P(r1, b, h0)));
@@ -64,12 +67,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
         // The two faceted 56 and 66 times, the girder's top a hair over the ramp's floor.
         private static GeoSolid3 FineRamp() => Spiral(3000, 10600, 0, 300, 0, Math.PI, 56);
 
-        private static GeoSolid3 FineGirder(double top) => Spiral(10500, 11100, top - 500, top, 0.01, Math.PI - 0.01, 66);
+        private static GeoSolid3 FineGirder(double top) =>
+            Spiral(10500, 11100, top - 500, top, 0.01, Math.PI - 0.01, 66);
 
         // The finer ramp with a spiral tube 110 by 100 inside it as an opening, near its outer edge, from 100 to 200 over its
         // floor: 80 clear of the girder's top all along it, though its box and the girder's both reach round the half turn.
-        private static GeoSolid3 FineRampWithATube()
-            => new GeoSolid3(FineRamp().Faces, new[] { Spiral(10450, 10560, 100, 200, 0.2, Math.PI - 0.2, 24) });
+        private static GeoSolid3 FineRampWithATube() =>
+            new GeoSolid3(FineRamp().Faces, new[] { Spiral(10450, 10560, 100, 200, 0.2, Math.PI - 0.2, 24) });
 
         private static double Sliced(GeoSolid3 part, GeoSolid3 within)
         {
@@ -80,7 +84,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [Fact]
         public void TheCommonPartOfTwoSpiralBeams_IsCutInAFewThousandCells_AndHoldsWhatSlicingGives()
         {
-            GeoSolid3 girder = Girder(), ramp = Ramp();
+            GeoSolid3 girder = Girder(),
+                ramp = Ramp();
             double expected = Sliced(girder, ramp);
 
             long before = Boolean3.CellsMade;
@@ -97,11 +102,16 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [Fact]
         public void TheTakeoffOfTwoSpiralBeams_IsCutInAFewThousandCells_AndDeductsWhatSlicingGives()
         {
-            GeoSolid3 girder = Girder(), ramp = Ramp();
+            GeoSolid3 girder = Girder(),
+                ramp = Ramp();
             double expected = Sliced(girder, ramp);
             Assert.True(Boolean3.TryIntersect(girder, ramp, out GeoSolid3 common, Options, out _));
             double slack = Options.Tolerance.EqualPoint * common.GetSurfaceArea(Options.Tolerance);
-            var items = new List<VolumeItem> { new VolumeItem(girder, "girder", 4, 0), new VolumeItem(ramp, "ramp", 6, 1) };
+            var items = new List<VolumeItem>
+            {
+                new VolumeItem(girder, "girder", 4, 0),
+                new VolumeItem(ramp, "ramp", 6, 1),
+            };
 
             // One thread: the take-off runs on this one, which the count of cells is kept for.
             long before = Boolean3.CellsMade;
@@ -116,7 +126,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [Fact]
         public void TheRampLessTheGirder_IsCutInAFewThousandCells_AndLeavesWhatSlicingGives()
         {
-            GeoSolid3 girder = Girder(), ramp = Ramp();
+            GeoSolid3 girder = Girder(),
+                ramp = Ramp();
             double expected = ramp.GetVolume(Options.Tolerance) - Sliced(girder, ramp);
             Assert.True(Boolean3.TryIntersect(girder, ramp, out GeoSolid3 common, Options, out _));
             double slack = Options.Tolerance.EqualPoint * common.GetSurfaceArea(Options.Tolerance);
@@ -134,8 +145,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [Fact]
         public void TheUnionOfTwoSpiralBeams_IsCutInAFewThousandCells_AndHoldsWhatSlicingGives()
         {
-            GeoSolid3 girder = Girder(), ramp = Ramp();
-            double expected = ramp.GetVolume(Options.Tolerance) + girder.GetVolume(Options.Tolerance) - Sliced(girder, ramp);
+            GeoSolid3 girder = Girder(),
+                ramp = Ramp();
+            double expected =
+                ramp.GetVolume(Options.Tolerance) + girder.GetVolume(Options.Tolerance) - Sliced(girder, ramp);
             Assert.True(Boolean3.TryIntersect(girder, ramp, out GeoSolid3 common, Options, out _));
             double slack = Options.Tolerance.EqualPoint * common.GetSurfaceArea(Options.Tolerance);
 
@@ -154,7 +167,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // The tube was cut into the ramp: the girder less the ramp was cut into 640 222 cells in 202 seconds and was not
             // worked out.
-            GeoSolid3 girder = FineGirder(20), ramp = FineRampWithATube();
+            GeoSolid3 girder = FineGirder(20),
+                ramp = FineRampWithATube();
             double expected = girder.GetVolume(Options.Tolerance) - Sliced(girder, ramp);
 
             long before = Boolean3.CellsMade;
@@ -171,9 +185,14 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void TheTakeoffOfTheGirderAndARampWithATubeClearOfIt_IsCutAsWithoutTheTube_AndDeductsWhatSlicingGives()
         {
             // The common part was cut into 29 681 cells, the tube cut in; it makes the 18 345 of the ramp without it.
-            GeoSolid3 girder = FineGirder(20), ramp = FineRampWithATube();
+            GeoSolid3 girder = FineGirder(20),
+                ramp = FineRampWithATube();
             double expected = Sliced(girder, ramp);
-            var items = new List<VolumeItem> { new VolumeItem(girder, "girder", 4, 0), new VolumeItem(ramp, "ramp", 6, 1) };
+            var items = new List<VolumeItem>
+            {
+                new VolumeItem(girder, "girder", 4, 0),
+                new VolumeItem(ramp, "ramp", 6, 1),
+            };
 
             // One thread: the take-off runs on this one, which the count of cells is kept for.
             long before = Boolean3.CellsMade;
@@ -191,7 +210,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // Within a hundredth, the ramp cut came out open, and sealed it did not add up; the cells of both cut by every
             // plane of both had a cell judged apart, and that open result, welded closed, was taken unchecked: 35 554.6
             // cubic millimetres short of what is left, an eighth of the 263 740.0 the two share.
-            GeoSolid3 girder = FineGirder(0.002), ramp = FineRamp();
+            GeoSolid3 girder = FineGirder(0.002),
+                ramp = FineRamp();
             double expected = ramp.GetVolume(Options.Tolerance) - Sliced(girder, ramp);
             Assert.True(Boolean3.TryIntersect(girder, ramp, out GeoSolid3 common, Options, out _));
             double slack = Options.Tolerance.EqualPoint * common.GetSurfaceArea(Options.Tolerance);

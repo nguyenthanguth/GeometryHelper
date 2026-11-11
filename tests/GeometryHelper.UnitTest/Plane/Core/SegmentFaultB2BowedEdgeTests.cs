@@ -42,7 +42,11 @@ namespace GeometryHelper.UnitTest.Plane
         [Theory]
         [InlineData(1E-3, 99.9995, 19.9995)]
         [InlineData(1E-4, 99.99995, 19.99995)]
-        public void APointHalfTheToleranceUnderTheChordOfAnInwardBow_IsOutside(double equalPoint, double y, double distance)
+        public void APointHalfTheToleranceUnderTheChordOfAnInwardBow_IsOutside(
+            double equalPoint,
+            double y,
+            double distance
+        )
         {
             // Half the tolerance under the chord, as (50, 99.95) is at 0.1; the arc is y - 80 below it.
             GeoPolygonArc2 loop = SquareWithBowedTop(-0.4);

@@ -13,8 +13,8 @@ namespace GeometryHelper.UnitTest.Plane
         private static GeoLine2 Segment() => new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 0));
 
         // An L of three vertices: 10 along X, then 10 up. Total length 20, corner at distance 10.
-        private static GeoPolyline2 OpenPath() => new GeoPolyline2(
-            new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10));
+        private static GeoPolyline2 OpenPath() =>
+            new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10));
 
         #region Line - split at a distance
 
@@ -30,10 +30,10 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Theory]
-        [InlineData(0.0)]      // on the start point
-        [InlineData(10.0)]     // on the end point
-        [InlineData(-1.0)]     // before the start
-        [InlineData(11.0)]     // past the end
+        [InlineData(0.0)] // on the start point
+        [InlineData(10.0)] // on the end point
+        [InlineData(-1.0)] // before the start
+        [InlineData(11.0)] // past the end
         [InlineData(double.NaN)]
         public void Line_SplitAtDistance_RefusesPositionsThatCutNothing(double distance)
         {
@@ -152,8 +152,7 @@ namespace GeometryHelper.UnitTest.Plane
         public void Line_SplitAtDistances_SortsAndDropsUnusablePositions()
         {
             // Unsorted, with one duplicate, one at the start, and two outside the segment.
-            GeoLine2[] pieces = Splition2.SplitAtDistances(
-                Segment(), new[] { 8.0, -3.0, 2.0, 8.0, 0.0, 40.0 });
+            GeoLine2[] pieces = Splition2.SplitAtDistances(Segment(), new[] { 8.0, -3.0, 2.0, 8.0, 0.0, 40.0 });
 
             Assert.Equal(3, pieces.Length);
             Assert.True(pieces[0].EndPoint.IsEqualTo(new GeoPoint2(2, 0)));
@@ -211,7 +210,9 @@ namespace GeometryHelper.UnitTest.Plane
         public void Polyline_SplitAtDistance_CutsExactlyOnACorner()
         {
             // Distance2 10 is the corner vertex itself; neither piece should gain a duplicate vertex.
-            Assert.True(Splition2.TrySplitAtDistance(OpenPath(), 10.0, out GeoPolyline2 first, out GeoPolyline2 second));
+            Assert.True(
+                Splition2.TrySplitAtDistance(OpenPath(), 10.0, out GeoPolyline2 first, out GeoPolyline2 second)
+            );
 
             Assert.Equal(2, first.VertexCount);
             Assert.True(first[0].IsEqualTo(new GeoPoint2(0, 0)));
@@ -228,7 +229,15 @@ namespace GeometryHelper.UnitTest.Plane
             var tolerance = new Tolerance(0.5, 0.5);
 
             // Just past the corner: snapping keeps the second piece from starting with a sliver edge.
-            Assert.True(Splition2.TrySplitAtDistance(OpenPath(), 10.2, out GeoPolyline2 first, out GeoPolyline2 second, tolerance));
+            Assert.True(
+                Splition2.TrySplitAtDistance(
+                    OpenPath(),
+                    10.2,
+                    out GeoPolyline2 first,
+                    out GeoPolyline2 second,
+                    tolerance
+                )
+            );
 
             Assert.Equal(2, first.VertexCount);
             Assert.True(first[1].IsEqualTo(new GeoPoint2(10, 0)));
@@ -248,8 +257,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Polyline_SplitAtDistance_RejectsNullSubject()
         {
-            Assert.Throws<ArgumentNullException>(
-                () => Splition2.TrySplitAtDistance(null, 5.0, out GeoPolyline2 _, out GeoPolyline2 _));
+            Assert.Throws<ArgumentNullException>(() =>
+                Splition2.TrySplitAtDistance(null, 5.0, out GeoPolyline2 _, out GeoPolyline2 _)
+            );
         }
 
         #endregion
@@ -259,7 +269,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Polyline_SplitByPoint_CutsAtThePoint()
         {
-            Assert.True(Splition2.TrySplitBy(OpenPath(), new GeoPoint2(10, 4), out GeoPolyline2 first, out GeoPolyline2 second));
+            Assert.True(
+                Splition2.TrySplitBy(OpenPath(), new GeoPoint2(10, 4), out GeoPolyline2 first, out GeoPolyline2 second)
+            );
 
             Assert.True(first[first.VertexCount - 1].IsEqualTo(new GeoPoint2(10, 4)));
             Assert.True(second[0].IsEqualTo(new GeoPoint2(10, 4)));
@@ -298,8 +310,12 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // A zigzag that crosses y = 0 three times.
             var zigzag = new GeoPolyline2(
-                new GeoPoint2(0, -4), new GeoPoint2(2, 4), new GeoPoint2(4, -4),
-                new GeoPoint2(6, 4), new GeoPoint2(8, 4));
+                new GeoPoint2(0, -4),
+                new GeoPoint2(2, 4),
+                new GeoPoint2(4, -4),
+                new GeoPoint2(6, 4),
+                new GeoPoint2(8, 4)
+            );
             var cutter = new GeoLine2(new GeoPoint2(-1, 0), new GeoPoint2(9, 0));
 
             Assert.True(Splition2.TrySplitBy(zigzag, cutter, out GeoPolyline2[] pieces));
@@ -311,8 +327,12 @@ namespace GeometryHelper.UnitTest.Plane
         public void Polyline_SplitByLine_TrySplitBySupportsMoreThanOneCrossing()
         {
             var zigzag = new GeoPolyline2(
-                new GeoPoint2(0, -4), new GeoPoint2(2, 4), new GeoPoint2(4, -4),
-                new GeoPoint2(6, 4), new GeoPoint2(8, 4));
+                new GeoPoint2(0, -4),
+                new GeoPoint2(2, 4),
+                new GeoPoint2(4, -4),
+                new GeoPoint2(6, 4),
+                new GeoPoint2(8, 4)
+            );
             var cutter = new GeoLine2(new GeoPoint2(-1, 0), new GeoPoint2(9, 0));
 
             Assert.True(Splition2.TrySplitBy(zigzag, cutter, out GeoPolyline2[] pieces));
@@ -353,7 +373,10 @@ namespace GeometryHelper.UnitTest.Plane
                 Tolerance.Global = new Tolerance(5.0, 5.0);
 
                 GeoPolyline2[] pieces = Splition2.SplitAtDistances(
-                    OpenPath(), new[] { 5.0 }, new Tolerance(1E-4, 1E-4));
+                    OpenPath(),
+                    new[] { 5.0 },
+                    new Tolerance(1E-4, 1E-4)
+                );
 
                 Assert.Equal(2, pieces.Length);
                 Assert.Equal(2, pieces[0].VertexCount);

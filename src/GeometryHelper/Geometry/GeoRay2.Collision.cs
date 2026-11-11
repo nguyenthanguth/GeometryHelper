@@ -34,7 +34,8 @@ namespace GeometryHelper.Geometry
         /// Determines whether this ray touches or overlaps a curved loop, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public bool CollidesWith(GeoPolygonArc2 loop, Tolerance tolerance) => Collision2.CollidesWith(loop, this, tolerance);
+        public bool CollidesWith(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Collision2.CollidesWith(loop, this, tolerance);
 
         /// <summary>
         /// Determines whether this ray touches or overlaps a curved chain.
@@ -46,7 +47,8 @@ namespace GeometryHelper.Geometry
         /// Determines whether this ray touches or overlaps a curved chain, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public bool CollidesWith(GeoPolylineArc2 chain, Tolerance tolerance) => Collision2.CollidesWith(chain, this, tolerance);
+        public bool CollidesWith(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Collision2.CollidesWith(chain, this, tolerance);
 
         /// <summary>
         /// Checks whether this ray touches a line segment using the default tolerance.
@@ -83,7 +85,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this ray starts inside a rectangle or runs into it, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoRectangle2 rect, Tolerance tolerance) => Collision2.CollidesWith(rect, this, tolerance);
+        public bool CollidesWith(GeoRectangle2 rect, Tolerance tolerance) =>
+            Collision2.CollidesWith(rect, this, tolerance);
 
         /// <summary>
         /// Checks whether this ray starts inside a polygon or runs into it, using the default tolerance.
@@ -95,7 +98,8 @@ namespace GeometryHelper.Geometry
         /// Checks whether this ray starts inside a polygon or runs into it, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public bool CollidesWith(GeoPolygon2 poly, Tolerance tolerance) => Collision2.CollidesWith(poly, this, tolerance);
+        public bool CollidesWith(GeoPolygon2 poly, Tolerance tolerance) =>
+            Collision2.CollidesWith(poly, this, tolerance);
 
         /// <summary>
         /// Checks whether this ray starts inside a circle or runs into it, using the default tolerance.
@@ -105,7 +109,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this ray starts inside a circle or runs into it, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoCircle2 circle, Tolerance tolerance) => Collision2.CollidesWith(circle, this, tolerance);
+        public bool CollidesWith(GeoCircle2 circle, Tolerance tolerance) =>
+            Collision2.CollidesWith(circle, this, tolerance);
 
         /// <summary>
         /// Checks whether this ray touches a polyline using the default tolerance.
@@ -117,7 +122,8 @@ namespace GeometryHelper.Geometry
         /// Checks whether this ray touches a polyline within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public bool CollidesWith(GeoPolyline2 polyline, Tolerance tolerance) => Collision2.CollidesWith(polyline, this, tolerance);
+        public bool CollidesWith(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Collision2.CollidesWith(polyline, this, tolerance);
 
         /// <summary>
         /// Checks whether this ray reaches the material of a face, using the default tolerance.
@@ -144,10 +150,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this ray touches an edge, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoEdge2 edge, Tolerance tolerance)
-            => edge.IsArc
-                ? CollidesWith(edge.ToArc(), tolerance)
-                : CollidesWith(edge.ToLine(), tolerance);
+        public bool CollidesWith(GeoEdge2 edge, Tolerance tolerance) =>
+            edge.IsArc ? CollidesWith(edge.ToArc(), tolerance) : CollidesWith(edge.ToLine(), tolerance);
 
         #region Triangles
 
@@ -159,7 +163,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this ray starts inside a triangle or runs into it, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.CollidesWith(triangle, this, tolerance);
+        public bool CollidesWith(GeoTriangle2 triangle, Tolerance tolerance) =>
+            Triangle2.CollidesWith(triangle, this, tolerance);
 
         #endregion
 
@@ -173,7 +178,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this ray touches an infinite line, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoXLine2 xline, Tolerance tolerance) => Collision2.CollidesWith(xline, this, tolerance);
+        public bool CollidesWith(GeoXLine2 xline, Tolerance tolerance) =>
+            Collision2.CollidesWith(xline, this, tolerance);
 
         #endregion
     }

@@ -20,7 +20,8 @@ namespace GeometryHelper.TeklaConvert
         /// <summary>
         /// Converts the geometry of a bar to a chain that may curve.
         /// </summary>
-        public static GeoPolylineArc3 ToGeoPolylineArc3(this TSM.RebarGeometry geometry) => geometry.ToGeoPolylineArc3(Tolerance.Global);
+        public static GeoPolylineArc3 ToGeoPolylineArc3(this TSM.RebarGeometry geometry) =>
+            geometry.ToGeoPolylineArc3(Tolerance.Global);
 
         /// <summary>
         /// Converts the geometry of a bar to a chain that may curve, within a tolerance.
@@ -32,11 +33,15 @@ namespace GeometryHelper.TeklaConvert
         /// <exception cref="ArgumentException">Thrown when the geometry holds no shape, or fewer than two distinct points.</exception>
         public static GeoPolylineArc3 ToGeoPolylineArc3(this TSM.RebarGeometry geometry, Tolerance tolerance)
         {
-            if (geometry == null) throw new ArgumentNullException(nameof(geometry));
+            if (geometry == null)
+                throw new ArgumentNullException(nameof(geometry));
 
             if (geometry.Shape == null)
             {
-                throw new ArgumentException("A rebar geometry with no shape has no points to follow.", nameof(geometry));
+                throw new ArgumentException(
+                    "A rebar geometry with no shape has no points to follow.",
+                    nameof(geometry)
+                );
             }
 
             return geometry.Shape.ToGeoPolylineArc3(BendingRadii(geometry), tolerance);
@@ -54,7 +59,8 @@ namespace GeometryHelper.TeklaConvert
         /// </remarks>
         public static double ToBarRadius(this TSM.RebarGeometry geometry)
         {
-            if (geometry == null) throw new ArgumentNullException(nameof(geometry));
+            if (geometry == null)
+                throw new ArgumentNullException(nameof(geometry));
 
             return geometry.Diameter * 0.5;
         }
@@ -62,6 +68,7 @@ namespace GeometryHelper.TeklaConvert
         /// <summary>
         /// Reads the bending radii of a geometry, which Tekla holds in an untyped list.
         /// </summary>
-        private static List<double> BendingRadii(TSM.RebarGeometry geometry) => PointConvert.ReadTeklaRadii(geometry.BendingRadiuses);
+        private static List<double> BendingRadii(TSM.RebarGeometry geometry) =>
+            PointConvert.ReadTeklaRadii(geometry.BendingRadiuses);
     }
 }

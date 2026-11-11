@@ -58,7 +58,11 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(1.0 - 1E-6, 1)]
         public void APartCutOffWithinThePointToleranceOfAnEnd_FlattensToTheChainOfItsCorners(double share, int which)
         {
-            GeoSpline2 spline = GeoSpline2.Interpolate(new[] { P(0, 0), P(30, 20), P(60, -10), P(100, 0) }, 3, Thousandth);
+            GeoSpline2 spline = GeoSpline2.Interpolate(
+                new[] { P(0, 0), P(30, 20), P(60, -10), P(100, 0) },
+                3,
+                Thousandth
+            );
             GeoSpline2[] parts = spline.Split(share);
             GeoSpline2 part = parts[which];
 
@@ -86,7 +90,11 @@ namespace GeometryHelper.UnitTest.Plane
             // 100 about (at, at), 2.3E-8 off it 0.002 either side of the touch: a million out the snap is 1E-7.
             var circle = new GeoCircle2(P(at, at), 100);
             GeoSpline2 ring = GeoSpline2.FromCircle(circle);
-            GeoSpline2 bow = GeoSpline2.Interpolate(new[] { P(at - 300, at + 100.5), P(at, at + 100), P(at + 300, at + 100.5) }, 2, Thousandth);
+            GeoSpline2 bow = GeoSpline2.Interpolate(
+                new[] { P(at - 300, at + 100.5), P(at, at + 100), P(at + 300, at + 100.5) },
+                2,
+                Thousandth
+            );
             GeoPoint2 top = P(at, at + 100);
 
             Assert.Single(bow.GetIntersections(circle, Thousandth));
@@ -98,7 +106,9 @@ namespace GeometryHelper.UnitTest.Plane
         public void ALineCuttingACircleSplineOfRadius10000InAChordOf0009_MeetsItTwice()
         {
             // The chord is 1.01E-9 deep, a snap at a size of 10 000: two crossings, as the circle has them.
-            double r = 10000.0, half = 0.0045, depth = r - Math.Sqrt(r * r - half * half);
+            double r = 10000.0,
+                half = 0.0045,
+                depth = r - Math.Sqrt(r * r - half * half);
             var circle = new GeoCircle2(P(0, 0), r);
             var line = new GeoLine2(P(-20, r - depth), P(20, r - depth));
 
@@ -114,8 +124,15 @@ namespace GeometryHelper.UnitTest.Plane
         public void ABowThatASegmentSplineCutsAFewSnapsDeepFarOut_IsCrossedTwice(double at, double rise, double depth)
         {
             // The bow is x² rise / 90 000 over its lowest point, and the segment the depth above it cuts it at x = +-300 √(depth / rise).
-            GeoSpline2 bow = GeoSpline2.Interpolate(new[] { P(at - 300, at + 100 + rise), P(at, at + 100), P(at + 300, at + 100 + rise) }, 2, Thousandth);
-            GeoSpline2 segment = GeoSpline2.FromControlPoints(1, new[] { P(at - 50, at + 100 + depth), P(at + 50, at + 100 + depth) });
+            GeoSpline2 bow = GeoSpline2.Interpolate(
+                new[] { P(at - 300, at + 100 + rise), P(at, at + 100), P(at + 300, at + 100 + rise) },
+                2,
+                Thousandth
+            );
+            GeoSpline2 segment = GeoSpline2.FromControlPoints(
+                1,
+                new[] { P(at - 50, at + 100 + depth), P(at + 50, at + 100 + depth) }
+            );
             double half = 300.0 * Math.Sqrt(depth / rise);
 
             GeoPoint2[] places = bow.GetIntersections(segment, Thousandth);
@@ -143,11 +160,20 @@ namespace GeometryHelper.UnitTest.Plane
             // The cubic's offset from the line is 1.1E-4 under it at the start and 4.4E-4 over it at the end, and crosses it at 20, 40 and 60
             // with lobes of 7E-6 between, under the hundredth of the tolerance a crossing inside a stretch along swings to: once, at the
             // change in the middle, 40, whichever is asked and turned.
-            GeoSpline2 line = GeoSpline2.FromControlPoints(3, new[] { P(0, 0), P(33.333333333333336, 0), P(66.66666666666667, 0), P(100, 0) });
-            GeoSpline2 cubic = GeoSpline2.FromControlPoints(3, new[]
-            {
-                P(0, -0.00011040000000000001), P(33.333333333333336, 0.00022693333333333334), P(66.66666666666667, -0.00035573333333333327), P(100, 0.0004415999999999999),
-            });
+            GeoSpline2 line = GeoSpline2.FromControlPoints(
+                3,
+                new[] { P(0, 0), P(33.333333333333336, 0), P(66.66666666666667, 0), P(100, 0) }
+            );
+            GeoSpline2 cubic = GeoSpline2.FromControlPoints(
+                3,
+                new[]
+                {
+                    P(0, -0.00011040000000000001),
+                    P(33.333333333333336, 0.00022693333333333334),
+                    P(66.66666666666667, -0.00035573333333333327),
+                    P(100, 0.0004415999999999999),
+                }
+            );
 
             AssertCrossesAt(line, cubic, 40.0);
         }
@@ -157,8 +183,21 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The offset is 1E-10 (x - 20)(x - 40)(x - 60)(x - 80): lobes of 3.8E-4, 1.5E-5, 9E-6, 1.5E-5 and 3.8E-4. The middle one is noise,
             // and the two lobes either side of it swing the same way: the crossings at 20 and 80.
-            GeoSpline2 line = GeoSpline2.FromControlPoints(4, new[] { P(0, 0), P(25, 0), P(50, 0), P(75, 0), P(100, 0) });
-            GeoSpline2 quartic = GeoSpline2.FromControlPoints(4, new[] { P(0, 0.000384), P(25, -0.000616), P(50, 0.00071733333333333333), P(75, -0.000616), P(100, 0.000384) });
+            GeoSpline2 line = GeoSpline2.FromControlPoints(
+                4,
+                new[] { P(0, 0), P(25, 0), P(50, 0), P(75, 0), P(100, 0) }
+            );
+            GeoSpline2 quartic = GeoSpline2.FromControlPoints(
+                4,
+                new[]
+                {
+                    P(0, 0.000384),
+                    P(25, -0.000616),
+                    P(50, 0.00071733333333333333),
+                    P(75, -0.000616),
+                    P(100, 0.000384),
+                }
+            );
 
             Assert.Equal(9E-6, quartic.DistanceTo(P(50, 0)), 9);
             AssertCrossesAt(line, quartic, 20.0, 80.0);
@@ -170,8 +209,14 @@ namespace GeometryHelper.UnitTest.Plane
             // A zigzag of 45 degrees moved 2.6E-5 along X: its edges are 1.8E-5 off each other, either way in turn, and cross at each corner.
             // With two shallow edges between, 8.7E-7 off each other either way, the two steep ones either side swing opposite ways: once.
             var move = new GeoVector2(2.6E-5, 0);
-            GeoSpline2 zigzag = GeoSpline2.FromControlPoints(1, new[] { P(0, 0), P(10, 10), P(20, 0), P(30, 10), P(40, 0) });
-            GeoSpline2 shallow = GeoSpline2.FromControlPoints(1, new[] { P(0, 0), P(10, 10), P(40, 9), P(70, 10), P(80, 0) });
+            GeoSpline2 zigzag = GeoSpline2.FromControlPoints(
+                1,
+                new[] { P(0, 0), P(10, 10), P(20, 0), P(30, 10), P(40, 0) }
+            );
+            GeoSpline2 shallow = GeoSpline2.FromControlPoints(
+                1,
+                new[] { P(0, 0), P(10, 10), P(40, 9), P(70, 10), P(80, 0) }
+            );
 
             AssertCrossesAt(zigzag, zigzag.Translate(move), 10.0, 20.0, 30.0);
             AssertCrossesAt(shallow, shallow.Translate(move), 40.0);
@@ -184,8 +229,16 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // A polyline 2.3E-9 (x - 20)(x - 40)(x - root) off the line, with a corner at the root, where the offset sampled in 64 or 65
             // steps along the stretch is nought exactly: lobes of 1.15E-4 under and 4.1E-4 over the line either side of two small ones.
-            var corners = Enumerable.Range(0, 11).Select(i => 10.0 * i).Concat(new[] { root }).Distinct().OrderBy(x => x);
-            GeoSpline2 copy = GeoSpline2.FromControlPoints(1, corners.Select(x => P(x, 2.3E-9 * (x - 20) * (x - 40) * (x - root))).ToArray());
+            var corners = Enumerable
+                .Range(0, 11)
+                .Select(i => 10.0 * i)
+                .Concat(new[] { root })
+                .Distinct()
+                .OrderBy(x => x);
+            GeoSpline2 copy = GeoSpline2.FromControlPoints(
+                1,
+                corners.Select(x => P(x, 2.3E-9 * (x - 20) * (x - 40) * (x - root))).ToArray()
+            );
             GeoSpline2 line = GeoSpline2.FromControlPoints(1, new[] { P(0, 0), P(100, 0) });
 
             AssertCrossesOnce(line, copy);
@@ -197,11 +250,20 @@ namespace GeometryHelper.UnitTest.Plane
             // A million out the crossing in the middle, at 40, is so shallow that the two run along each other within the snap, 1E-7, for
             // 0.1 either side of it, which is no crossing; the next change is.
             double o = 1E6;
-            GeoSpline2 line = GeoSpline2.FromControlPoints(3, new[] { P(o, o), P(o + 33.333333333333336, o), P(o + 66.66666666666667, o), P(o + 100, o) });
-            GeoSpline2 cubic = GeoSpline2.FromControlPoints(3, new[]
-            {
-                P(o, o - 0.00011040000000000001), P(o + 33.333333333333336, o + 0.00022693333333333334), P(o + 66.66666666666667, o - 0.00035573333333333327), P(o + 100, o + 0.0004415999999999999),
-            });
+            GeoSpline2 line = GeoSpline2.FromControlPoints(
+                3,
+                new[] { P(o, o), P(o + 33.333333333333336, o), P(o + 66.66666666666667, o), P(o + 100, o) }
+            );
+            GeoSpline2 cubic = GeoSpline2.FromControlPoints(
+                3,
+                new[]
+                {
+                    P(o, o - 0.00011040000000000001),
+                    P(o + 33.333333333333336, o + 0.00022693333333333334),
+                    P(o + 66.66666666666667, o - 0.00035573333333333327),
+                    P(o + 100, o + 0.0004415999999999999),
+                }
+            );
 
             AssertCrossesOnce(line, cubic);
         }
@@ -211,12 +273,19 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The copy moved 2.6E-5 is 2.2E-5 to one side of the second edge and 1.6E-5 to the other of the rest: the change of the offset
             // between them is at the corner (13.47, 27.67), where it jumps across nought, and the crossing is found beside it.
-            GeoSpline2 spline = GeoSpline2.FromControlPoints(1, new[]
-            {
-                P(-9.69378137015448, -6.831675226256099), P(0.5228475716537107, -25.33829304172578), P(13.473887910821423, 27.670696320790192),
-                P(14.352296164423365, 17.7753015271273), P(18.023392282437246, -7.1473311619587845), P(21.68079689689018, -11.745057488672927),
-                P(23.61878139601032, -27.34590659725755),
-            });
+            GeoSpline2 spline = GeoSpline2.FromControlPoints(
+                1,
+                new[]
+                {
+                    P(-9.69378137015448, -6.831675226256099),
+                    P(0.5228475716537107, -25.33829304172578),
+                    P(13.473887910821423, 27.670696320790192),
+                    P(14.352296164423365, 17.7753015271273),
+                    P(18.023392282437246, -7.1473311619587845),
+                    P(21.68079689689018, -11.745057488672927),
+                    P(23.61878139601032, -27.34590659725755),
+                }
+            );
 
             AssertCrossesOnce(spline, spline.Translate(new GeoVector2(1.81077685984494E-05, -1.865767178361249E-05)));
         }
@@ -233,12 +302,18 @@ namespace GeometryHelper.UnitTest.Plane
             GeoTransform2 turn = GeoTransform2.Rotation(P(0, 0), 0.7);
             GeoTransform2 back = GeoTransform2.Rotation(P(0, 0), -0.7);
 
-            foreach (GeoPoint2[] places in new[]
-            {
-                first.GetIntersections(second, Thousandth),
-                second.GetIntersections(first, Thousandth),
-                first.TransformBy(turn).GetIntersections(second.TransformBy(turn), Thousandth).Select(p => p.TransformBy(back)).ToArray(),
-            })
+            foreach (
+                GeoPoint2[] places in new[]
+                {
+                    first.GetIntersections(second, Thousandth),
+                    second.GetIntersections(first, Thousandth),
+                    first
+                        .TransformBy(turn)
+                        .GetIntersections(second.TransformBy(turn), Thousandth)
+                        .Select(p => p.TransformBy(back))
+                        .ToArray(),
+                }
+            )
             {
                 Assert.InRange(Math.Abs(Assert.Single(places).X - o - 50.0), 0.0, 1E-3);
             }
@@ -267,12 +342,18 @@ namespace GeometryHelper.UnitTest.Plane
             GeoTransform2 turn = GeoTransform2.Rotation(P(0, 0), 0.7);
             GeoTransform2 back = GeoTransform2.Rotation(P(0, 0), -0.7);
 
-            foreach (GeoPoint2[] places in new[]
-            {
-                first.GetIntersections(second, Thousandth),
-                second.GetIntersections(first, Thousandth),
-                first.TransformBy(turn).GetIntersections(second.TransformBy(turn), Thousandth).Select(p => p.TransformBy(back)).ToArray(),
-            })
+            foreach (
+                GeoPoint2[] places in new[]
+                {
+                    first.GetIntersections(second, Thousandth),
+                    second.GetIntersections(first, Thousandth),
+                    first
+                        .TransformBy(turn)
+                        .GetIntersections(second.TransformBy(turn), Thousandth)
+                        .Select(p => p.TransformBy(back))
+                        .ToArray(),
+                }
+            )
             {
                 GeoPoint2 place = Assert.Single(places);
                 Assert.InRange(first.DistanceTo(place), 0.0, 1E-6);
@@ -288,12 +369,18 @@ namespace GeometryHelper.UnitTest.Plane
             GeoTransform2 turn = GeoTransform2.Rotation(P(0, 0), 0.7);
             GeoTransform2 back = GeoTransform2.Rotation(P(0, 0), -0.7);
 
-            foreach (GeoPoint2[] places in new[]
-            {
-                first.GetIntersections(second, Thousandth),
-                second.GetIntersections(first, Thousandth),
-                first.TransformBy(turn).GetIntersections(second.TransformBy(turn), Thousandth).Select(p => p.TransformBy(back)).ToArray(),
-            })
+            foreach (
+                GeoPoint2[] places in new[]
+                {
+                    first.GetIntersections(second, Thousandth),
+                    second.GetIntersections(first, Thousandth),
+                    first
+                        .TransformBy(turn)
+                        .GetIntersections(second.TransformBy(turn), Thousandth)
+                        .Select(p => p.TransformBy(back))
+                        .ToArray(),
+                }
+            )
             {
                 Assert.Equal(xs.Length, places.Length);
 
@@ -314,7 +401,13 @@ namespace GeometryHelper.UnitTest.Plane
             double move = 0.000114591323311716;
             double angle = 5.0135053818051265;
             var arc = new GeoArc2(centre, radius, 1.7763877141901236, 1.7763877141901236 - 0.007015186556453309, true);
-            var other = new GeoArc2(P(centre.X + move * Math.Cos(angle), centre.Y + move * Math.Sin(angle)), radius - 0.00019831970813605917, 1.7714472582854681, 1.7714472582854681 - 0.013354062483875022, true);
+            var other = new GeoArc2(
+                P(centre.X + move * Math.Cos(angle), centre.Y + move * Math.Sin(angle)),
+                radius - 0.00019831970813605917,
+                1.7714472582854681,
+                1.7714472582854681 - 0.013354062483875022,
+                true
+            );
             GeoSpline2 spline = GeoSpline2.FromArc(arc);
 
             Assert.Empty(arc.GetIntersections(other, Thousandth));
@@ -336,7 +429,11 @@ namespace GeometryHelper.UnitTest.Plane
 
             GeoPoint2[] places = spline.GetIntersections(copy, Thousandth);
             GeoPoint2[] asked = copy.GetIntersections(spline, Thousandth);
-            GeoPoint2[] turned = spline.TransformBy(turn).GetIntersections(copy.TransformBy(turn), Thousandth).Select(p => p.TransformBy(back)).ToArray();
+            GeoPoint2[] turned = spline
+                .TransformBy(turn)
+                .GetIntersections(copy.TransformBy(turn), Thousandth)
+                .Select(p => p.TransformBy(back))
+                .ToArray();
 
             Assert.Equal(expected, places.Length);
             Assert.Equal(expected, asked.Length);
@@ -357,11 +454,17 @@ namespace GeometryHelper.UnitTest.Plane
             // the spline, 1.5E-5 from the copy, was given as a place. The third place is where the spline crosses itself, square on, at
             // (-9.126, -1.245): its other branch crosses the copy there twice, 0.00072 apart, which is one place (G6). The count of two
             // left it out, the parts inside the stretch the two lie along never being cut against the copy's other branch.
-            GeoSpline2 spline = GeoSpline2.FromControlPoints(2, new[]
-            {
-                P(11.145065157276147, -23.358664202205215), P(-25.06507479355907, 10.221748678116942), P(14.831623567655509, 12.513038191251942),
-                P(-21.560436120052096, -7.946054617849204), P(-28.635031403338086, -22.31766032628606),
-            });
+            GeoSpline2 spline = GeoSpline2.FromControlPoints(
+                2,
+                new[]
+                {
+                    P(11.145065157276147, -23.358664202205215),
+                    P(-25.06507479355907, 10.221748678116942),
+                    P(14.831623567655509, 12.513038191251942),
+                    P(-21.560436120052096, -7.946054617849204),
+                    P(-28.635031403338086, -22.31766032628606),
+                }
+            );
 
             AssertTheSameWhicheverWay(spline, new GeoVector2(-0.00031086647951441887, -0.0006647301861314643), 3);
         }
@@ -371,11 +474,18 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The point of the copy square from the spline's start is 0.0005 from it, and the distance falls from there on to the crossing
             // 0.11 along: no least, but read as the distance to the spline's start it was one.
-            GeoSpline2 spline = GeoSpline2.FromControlPoints(3, new[]
-            {
-                P(-12.225403293140886, -9.97391013427354), P(-16.287349204666608, 5.912460459355479), P(-7.5055616616763015, -19.356271070128432),
-                P(5.196753467990433, -10.297554303099192), P(14.028597541166747, -20.991967204488798), P(9.386412705940387, 26.254452437280886),
-            });
+            GeoSpline2 spline = GeoSpline2.FromControlPoints(
+                3,
+                new[]
+                {
+                    P(-12.225403293140886, -9.97391013427354),
+                    P(-16.287349204666608, 5.912460459355479),
+                    P(-7.5055616616763015, -19.356271070128432),
+                    P(5.196753467990433, -10.297554303099192),
+                    P(14.028597541166747, -20.991967204488798),
+                    P(9.386412705940387, 26.254452437280886),
+                }
+            );
 
             AssertTheSameWhicheverWay(spline, new GeoVector2(0.0003758292984923857, 0.00056110800854353), 2);
         }
@@ -385,12 +495,19 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The crossing at (-8.973, 12.223) inside a stretch along was found by the offset changing sign and lost to a meeting found
             // nearer by a few units of rounding, which is no crossing; so was the one at (-8.201, -13.571) turned.
-            GeoSpline2 spline = GeoSpline2.FromControlPoints(4, new[]
-            {
-                P(-29.208839228008333, -29.239437980223187), P(10.574688827886565, -1.5779355315388799), P(-10.461179781919896, 23.843027564623867),
-                P(-16.57373824462934, 2.6700865629455506), P(-26.05396927150617, -21.536769984074294), P(5.075757231132945, -11.3943708415117),
-                P(28.706179903217674, 4.130605614804943),
-            });
+            GeoSpline2 spline = GeoSpline2.FromControlPoints(
+                4,
+                new[]
+                {
+                    P(-29.208839228008333, -29.239437980223187),
+                    P(10.574688827886565, -1.5779355315388799),
+                    P(-10.461179781919896, 23.843027564623867),
+                    P(-16.57373824462934, 2.6700865629455506),
+                    P(-26.05396927150617, -21.536769984074294),
+                    P(5.075757231132945, -11.3943708415117),
+                    P(28.706179903217674, 4.130605614804943),
+                }
+            );
 
             AssertTheSameWhicheverWay(spline, new GeoVector2(0.0005506786728196616, 9.642891641517413E-05), 3);
         }
@@ -404,16 +521,52 @@ namespace GeometryHelper.UnitTest.Plane
             // is the least of the ellipse's distance to 400 001 points of the spline, brought down by golden sections.
             double[] xy =
             {
-                668.5171, 171.218, 716.7793, 87.3742, 965.1187, -344.0553, 1038.2734, -471.1438, 723.1073, 76.3807,
-                839.9177, -126.5489, 593.8112, 301.0013, 999.1978, -403.2595, 1130.5672, -631.4818, 836.6781, -120.9209,
+                668.5171,
+                171.218,
+                716.7793,
+                87.3742,
+                965.1187,
+                -344.0553,
+                1038.2734,
+                -471.1438,
+                723.1073,
+                76.3807,
+                839.9177,
+                -126.5489,
+                593.8112,
+                301.0013,
+                999.1978,
+                -403.2595,
+                1130.5672,
+                -631.4818,
+                836.6781,
+                -120.9209,
             };
             double[] knots =
             {
-                -3.554, -3.554, -3.554, -3.554, -3.554, -3.2816503765237317, -3.0570896596007473, -2.5295528850853417, -2.323912166608231,
-                -1.8721801269955598, -1.5179999999999998, -1.5179999999999998, -1.5179999999999998, -1.5179999999999998, -1.5179999999999998,
+                -3.554,
+                -3.554,
+                -3.554,
+                -3.554,
+                -3.554,
+                -3.2816503765237317,
+                -3.0570896596007473,
+                -2.5295528850853417,
+                -2.323912166608231,
+                -1.8721801269955598,
+                -1.5179999999999998,
+                -1.5179999999999998,
+                -1.5179999999999998,
+                -1.5179999999999998,
+                -1.5179999999999998,
             };
             var spline = new GeoSpline2(4, Enumerable.Range(0, 10).Select(i => P(xy[2 * i], xy[2 * i + 1])), knots);
-            var ellipse = new GeoEllipse2(P(1165.1204377918925, 95.5979710904034), new GeoVector2(-0.7063017126460878, -0.7079109341670061), 354.51068914118105, 49.37420340985297);
+            var ellipse = new GeoEllipse2(
+                P(1165.1204377918925, 95.5979710904034),
+                new GeoVector2(-0.7063017126460878, -0.7079109341670061),
+                354.51068914118105,
+                49.37420340985297
+            );
 
             double distance = spline.DistanceTo(ellipse, Thousandth);
 

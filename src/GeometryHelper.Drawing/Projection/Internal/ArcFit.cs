@@ -55,15 +55,17 @@ namespace GeometryHelper.Drawing.Projection
             return edges;
         }
 
-        private static bool SameClass(Piece2 a, Piece2 b)
-            => a.Visibility == b.Visibility && a.Kind == b.Kind && Piece2.CompareObjects(a.Objects, b.Objects) == 0;
+        private static bool SameClass(Piece2 a, Piece2 b) =>
+            a.Visibility == b.Visibility && a.Kind == b.Kind && Piece2.CompareObjects(a.Objects, b.Objects) == 0;
 
         private static int CompareByClass(Piece2 a, Piece2 b)
         {
             int c = a.Visibility.CompareTo(b.Visibility);
-            if (c != 0) return c;
+            if (c != 0)
+                return c;
             c = a.Kind.CompareTo(b.Kind);
-            if (c != 0) return c;
+            if (c != 0)
+                return c;
             c = Piece2.CompareObjects(a.Objects, b.Objects);
             return c != 0 ? c : Piece2.Compare(a, b);
         }
@@ -87,7 +89,17 @@ namespace GeometryHelper.Drawing.Projection
             private readonly Dictionary<CellKey, int> _heads = new Dictionary<CellKey, int>();
             private readonly List<int> _next = new List<int>();
 
-            internal Chains(List<Piece2> pieces, int lo, int hi, double tol, double maxTurn, EdgeVisibility visibility, EdgeKind kind, string[] objectIds, List<ProjectedEdge2> edges)
+            internal Chains(
+                List<Piece2> pieces,
+                int lo,
+                int hi,
+                double tol,
+                double maxTurn,
+                EdgeVisibility visibility,
+                EdgeKind kind,
+                string[] objectIds,
+                List<ProjectedEdge2> edges
+            )
             {
                 _pieces = pieces;
                 _lo = lo;
@@ -230,9 +242,19 @@ namespace GeometryHelper.Drawing.Projection
                             ys[k] = _ny[nodes[k]];
                         }
 
-                        if (TryCircle(xs, ys, 0, n - 1, out double cx, out double cy, out double r) && Within(xs, ys, 0, n - 1, cx, cy, r, _tol))
+                        if (
+                            TryCircle(xs, ys, 0, n - 1, out double cx, out double cy, out double r)
+                            && Within(xs, ys, 0, n - 1, cx, cy, r, _tol)
+                        )
                         {
-                            _edges.Add(new ProjectedEdge2(new GeoArc2(new GeoPoint2(cx, cy), r, 0.0, 0.0), _visibility, _kind, _objectIds));
+                            _edges.Add(
+                                new ProjectedEdge2(
+                                    new GeoArc2(new GeoPoint2(cx, cy), r, 0.0, 0.0),
+                                    _visibility,
+                                    _kind,
+                                    _objectIds
+                                )
+                            );
                             return;
                         }
                     }
@@ -307,7 +329,7 @@ namespace GeometryHelper.Drawing.Projection
                         // The whole stretch is not one arc: the longest that is, from its start, found by halving.
                         if (best < 0)
                         {
-                            for (int low = i + 3, high = m - 1; low <= high;)
+                            for (int low = i + 3, high = m - 1; low <= high; )
                             {
                                 int middle = (low + high) / 2;
 
@@ -339,10 +361,30 @@ namespace GeometryHelper.Drawing.Projection
             /// <summary>
             /// Whether the corners from i to m lie on one circle as an arc of the chain should, with the circle found.
             /// </summary>
-            private bool TryRun(double[] xs, double[] ys, double[] turns, int i, int m, int n, bool openStart, bool openEnd)
-                => TryRun(xs, ys, turns, i, m, n, openStart, openEnd, out _, out _, out _);
+            private bool TryRun(
+                double[] xs,
+                double[] ys,
+                double[] turns,
+                int i,
+                int m,
+                int n,
+                bool openStart,
+                bool openEnd
+            ) => TryRun(xs, ys, turns, i, m, n, openStart, openEnd, out _, out _, out _);
 
-            private bool TryRun(double[] xs, double[] ys, double[] turns, int i, int m, int n, bool openStart, bool openEnd, out double cx, out double cy, out double r)
+            private bool TryRun(
+                double[] xs,
+                double[] ys,
+                double[] turns,
+                int i,
+                int m,
+                int n,
+                bool openStart,
+                bool openEnd,
+                out double cx,
+                out double cy,
+                out double r
+            )
             {
                 cx = cy = r = 0.0;
                 bool freeStart = openStart && i == 0;
@@ -371,7 +413,10 @@ namespace GeometryHelper.Drawing.Projection
 
                 double sagitta = r * (1.0 - Math.Cos(0.5 * steepest)) + _tol;
 
-                if (freeStart && !Within(xs, ys, i, i, cx, cy, r, sagitta) || freeEnd && !Within(xs, ys, m, m, cx, cy, r, sagitta))
+                if (
+                    freeStart && !Within(xs, ys, i, i, cx, cy, r, sagitta)
+                    || freeEnd && !Within(xs, ys, m, m, cx, cy, r, sagitta)
+                )
                 {
                     return false;
                 }
@@ -384,9 +429,10 @@ namespace GeometryHelper.Drawing.Projection
 
                 for (int k = i + 1; k < m; k++)
                 {
-                    double d = chord > 0.0
-                        ? Math.Abs(chordX * (ys[k] - ys[i]) - chordY * (xs[k] - xs[i])) / chord
-                        : Math.Sqrt((xs[k] - xs[i]) * (xs[k] - xs[i]) + (ys[k] - ys[i]) * (ys[k] - ys[i]));
+                    double d =
+                        chord > 0.0
+                            ? Math.Abs(chordX * (ys[k] - ys[i]) - chordY * (xs[k] - xs[i])) / chord
+                            : Math.Sqrt((xs[k] - xs[i]) * (xs[k] - xs[i]) + (ys[k] - ys[i]) * (ys[k] - ys[i]));
                     off = Math.Max(off, d);
                 }
 
@@ -414,13 +460,23 @@ namespace GeometryHelper.Drawing.Projection
                 return true;
             }
 
-            private void EmitArc(double[] xs, double[] ys, double[] turns, int i, int m, int n, bool openStart, bool openEnd)
+            private void EmitArc(
+                double[] xs,
+                double[] ys,
+                double[] turns,
+                int i,
+                int m,
+                int n,
+                bool openStart,
+                bool openEnd
+            )
             {
                 TryRun(xs, ys, turns, i, m, n, openStart, openEnd, out double cx, out double cy, out double r);
                 double start = Math.Atan2(ys[i] - cy, xs[i] - cx);
                 double end = Math.Atan2(ys[m] - cy, xs[m] - cx);
                 var center = new GeoPoint2(cx, cy);
-                GeoArc2 arc = turns[i + 1] > 0.0 ? new GeoArc2(center, r, start, end) : new GeoArc2(center, r, end, start);
+                GeoArc2 arc =
+                    turns[i + 1] > 0.0 ? new GeoArc2(center, r, start, end) : new GeoArc2(center, r, end, start);
                 _edges.Add(new ProjectedEdge2(arc, _visibility, _kind, _objectIds));
             }
 
@@ -495,10 +551,19 @@ namespace GeometryHelper.Drawing.Projection
         /// <summary>
         /// The circle nearest the corners from a to b, by least squares on the algebraic distance about their middle.
         /// </summary>
-        private static bool TryCircle(double[] xs, double[] ys, int a, int b, out double cx, out double cy, out double r)
+        private static bool TryCircle(
+            double[] xs,
+            double[] ys,
+            int a,
+            int b,
+            out double cx,
+            out double cy,
+            out double r
+        )
         {
             int count = b - a + 1;
-            double mx = 0.0, my = 0.0;
+            double mx = 0.0,
+                my = 0.0;
 
             for (int k = a; k <= b; k++)
             {
@@ -508,7 +573,13 @@ namespace GeometryHelper.Drawing.Projection
 
             mx /= count;
             my /= count;
-            double suu = 0.0, svv = 0.0, suv = 0.0, suuu = 0.0, svvv = 0.0, suvv = 0.0, svuu = 0.0;
+            double suu = 0.0,
+                svv = 0.0,
+                suv = 0.0,
+                suuu = 0.0,
+                svvv = 0.0,
+                suvv = 0.0,
+                svuu = 0.0;
 
             for (int k = a; k <= b; k++)
             {

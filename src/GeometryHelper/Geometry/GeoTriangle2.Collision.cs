@@ -25,7 +25,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this triangle touches a curved loop, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoPolygonArc2 loop, Tolerance tolerance) => Triangle2.CollidesWith(this, loop, tolerance);
+        public bool CollidesWith(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Triangle2.CollidesWith(this, loop, tolerance);
 
         /// <summary>
         /// Checks whether this triangle touches a curved chain, using the default tolerance.
@@ -35,7 +36,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this triangle touches a curved chain, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoPolylineArc2 chain, Tolerance tolerance) => Triangle2.CollidesWith(this, chain, tolerance);
+        public bool CollidesWith(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Triangle2.CollidesWith(this, chain, tolerance);
 
         /// <summary>
         /// Checks whether this triangle touches a rectangle, using the default tolerance.
@@ -45,7 +47,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this triangle touches a rectangle, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoRectangle2 rect, Tolerance tolerance) => Triangle2.CollidesWith(this, rect, tolerance);
+        public bool CollidesWith(GeoRectangle2 rect, Tolerance tolerance) =>
+            Triangle2.CollidesWith(this, rect, tolerance);
 
         /// <summary>
         /// Checks whether this triangle touches a segment, using the default tolerance.
@@ -65,7 +68,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this triangle touches a polygon, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoPolygon2 polygon, Tolerance tolerance) => Triangle2.CollidesWith(this, polygon, tolerance);
+        public bool CollidesWith(GeoPolygon2 polygon, Tolerance tolerance) =>
+            Triangle2.CollidesWith(this, polygon, tolerance);
 
         /// <summary>
         /// Checks whether this triangle touches a circle, using the default tolerance.
@@ -75,7 +79,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this triangle touches a circle, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoCircle2 circle, Tolerance tolerance) => Triangle2.CollidesWith(this, circle, tolerance);
+        public bool CollidesWith(GeoCircle2 circle, Tolerance tolerance) =>
+            Triangle2.CollidesWith(this, circle, tolerance);
 
         /// <summary>
         /// Checks whether this triangle touches a polyline, using the default tolerance.
@@ -85,7 +90,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this triangle touches a polyline, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoPolyline2 polyline, Tolerance tolerance) => Triangle2.CollidesWith(this, polyline, tolerance);
+        public bool CollidesWith(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Triangle2.CollidesWith(this, polyline, tolerance);
 
         /// <summary>
         /// Checks whether this triangle touches a face, using the default tolerance.
@@ -115,7 +121,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this triangle touches another triangle, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoTriangle2 other, Tolerance tolerance) => Triangle2.CollidesWith(this, other, tolerance);
+        public bool CollidesWith(GeoTriangle2 other, Tolerance tolerance) =>
+            Triangle2.CollidesWith(this, other, tolerance);
 
         #region Rays
 
@@ -141,7 +148,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this triangle touches an infinite line, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoXLine2 xline, Tolerance tolerance) => Triangle2.CollidesWith(this, xline, tolerance);
+        public bool CollidesWith(GeoXLine2 xline, Tolerance tolerance) =>
+            Triangle2.CollidesWith(this, xline, tolerance);
 
         #endregion
     }

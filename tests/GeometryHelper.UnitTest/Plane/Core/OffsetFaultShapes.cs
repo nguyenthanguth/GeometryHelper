@@ -50,17 +50,36 @@ namespace GeometryHelper.UnitTest.Plane
         /// </summary>
         internal sealed class Piece
         {
-            internal double Ax, Ay, Bx, By, Cx, Cy, Radius, StartAngle, Sweep;
+            internal double Ax,
+                Ay,
+                Bx,
+                By,
+                Cx,
+                Cy,
+                Radius,
+                StartAngle,
+                Sweep;
             internal bool IsArc;
 
             internal static Piece Of(GeoPoint2 a, GeoPoint2 b, double bulge)
             {
-                var p = new Piece { Ax = a.X, Ay = a.Y, Bx = b.X, By = b.Y };
-                double dx = b.X - a.X, dy = b.Y - a.Y, chord = Math.Sqrt(dx * dx + dy * dy);
-                if (bulge == 0.0 || chord == 0.0) return p;
+                var p = new Piece
+                {
+                    Ax = a.X,
+                    Ay = a.Y,
+                    Bx = b.X,
+                    By = b.Y,
+                };
+                double dx = b.X - a.X,
+                    dy = b.Y - a.Y,
+                    chord = Math.Sqrt(dx * dx + dy * dy);
+                if (bulge == 0.0 || chord == 0.0)
+                    return p;
                 p.IsArc = true;
                 p.Sweep = 4.0 * Math.Atan(bulge);
-                double s = chord / 2, h = bulge * s, k = (s * s - h * h) / (2 * h);
+                double s = chord / 2,
+                    h = bulge * s,
+                    k = (s * s - h * h) / (2 * h);
                 p.Cx = (a.X + b.X) / 2 - dy / chord * k;
                 p.Cy = (a.Y + b.Y) / 2 + dx / chord * k;
                 p.Radius = (s * s + h * h) / (2 * Math.Abs(h));
@@ -87,13 +106,15 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 if (!IsArc)
                 {
-                    double dx = Bx - Ax, dy = By - Ay;
+                    double dx = Bx - Ax,
+                        dy = By - Ay;
                     double t = Math.Max(0.0, Math.Min(1.0, ((x - Ax) * dx + (y - Ay) * dy) / (dx * dx + dy * dy)));
                     return Math.Sqrt(Sq(x - Ax - dx * t) + Sq(y - Ay - dy * t));
                 }
                 double phi = Math.Atan2(y - Cy, x - Cx);
                 double turned = Sweep > 0 ? Wrap(phi - StartAngle) : Wrap(StartAngle - phi);
-                if (turned <= Math.Abs(Sweep)) return Math.Abs(Math.Sqrt(Sq(x - Cx) + Sq(y - Cy)) - Radius);
+                if (turned <= Math.Abs(Sweep))
+                    return Math.Abs(Math.Sqrt(Sq(x - Cx) + Sq(y - Cy)) - Radius);
                 return Math.Min(Math.Sqrt(Sq(x - Ax) + Sq(y - Ay)), Math.Sqrt(Sq(x - Bx) + Sq(y - By)));
             }
 
@@ -109,9 +130,11 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>The pieces of a chain or a loop given by its vertices and bulges.</summary>
         internal static Piece[] PiecesOf(IReadOnlyList<GeoPoint2> vertices, IReadOnlyList<double> bulges, bool closed)
         {
-            int n = vertices.Count, count = closed ? n : n - 1;
+            int n = vertices.Count,
+                count = closed ? n : n - 1;
             var pieces = new Piece[count];
-            for (int i = 0; i < count; i++) pieces[i] = Piece.Of(vertices[i], vertices[(i + 1) % n], bulges == null ? 0.0 : bulges[i]);
+            for (int i = 0; i < count; i++)
+                pieces[i] = Piece.Of(vertices[i], vertices[(i + 1) % n], bulges == null ? 0.0 : bulges[i]);
             return pieces;
         }
 
@@ -127,7 +150,8 @@ namespace GeometryHelper.UnitTest.Plane
         internal static double DistanceTo(Piece[] pieces, double x, double y)
         {
             double best = double.PositiveInfinity;
-            foreach (Piece p in pieces) best = Math.Min(best, p.DistanceTo(x, y));
+            foreach (Piece p in pieces)
+                best = Math.Min(best, p.DistanceTo(x, y));
             return best;
         }
 
@@ -154,7 +178,10 @@ namespace GeometryHelper.UnitTest.Plane
         internal static double LengthOf(Piece[] pieces)
         {
             double sum = 0.0;
-            foreach (Piece p in pieces) sum += p.IsArc ? Math.Abs(p.Sweep) * p.Radius : Math.Sqrt((p.Bx - p.Ax) * (p.Bx - p.Ax) + (p.By - p.Ay) * (p.By - p.Ay));
+            foreach (Piece p in pieces)
+                sum += p.IsArc
+                    ? Math.Abs(p.Sweep) * p.Radius
+                    : Math.Sqrt((p.Bx - p.Ax) * (p.Bx - p.Ax) + (p.By - p.Ay) * (p.By - p.Ay));
             return sum;
         }
 
@@ -169,8 +196,10 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 for (int j = i + 2; j < n; j++)
                 {
-                    if (i == 0 && j == n - 1) continue;
-                    if (Cross(loop[i], loop[(i + 1) % n], loop[j], loop[(j + 1) % n])) return true;
+                    if (i == 0 && j == n - 1)
+                        continue;
+                    if (Cross(loop[i], loop[(i + 1) % n], loop[j], loop[(j + 1) % n]))
+                        return true;
                 }
             }
             return false;
@@ -178,11 +207,15 @@ namespace GeometryHelper.UnitTest.Plane
 
         private static bool Cross(GeoPoint2 a, GeoPoint2 b, GeoPoint2 c, GeoPoint2 d)
         {
-            double d1 = Side(c, d, a), d2 = Side(c, d, b), d3 = Side(a, b, c), d4 = Side(a, b, d);
+            double d1 = Side(c, d, a),
+                d2 = Side(c, d, b),
+                d3 = Side(a, b, c),
+                d4 = Side(a, b, d);
             return d1 * d2 < 0 && d3 * d4 < 0;
         }
 
-        private static double Side(GeoPoint2 a, GeoPoint2 b, GeoPoint2 p) => (b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X);
+        private static double Side(GeoPoint2 a, GeoPoint2 b, GeoPoint2 p) =>
+            (b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X);
 
         #endregion
 
@@ -202,8 +235,8 @@ namespace GeometryHelper.UnitTest.Plane
         /// A bent bar: 10 straight along x, a quarter turn of radius 5 about (10, 5) up to (15, 5), and 10 straight up. Both
         /// bends run on tangentially from the straights, so neither joint is a corner.
         /// </summary>
-        internal static GeoPolylineArc2 BentBar()
-            => Chain(new[] { P(0, 0), P(10, 0), P(15, 5), P(15, 15) }, 0.0, Math.Tan(Math.PI / 8));
+        internal static GeoPolylineArc2 BentBar() =>
+            Chain(new[] { P(0, 0), P(10, 0), P(15, 5), P(15, 15) }, 0.0, Math.Tan(Math.PI / 8));
 
         #endregion
 
@@ -214,8 +247,8 @@ namespace GeometryHelper.UnitTest.Plane
         /// (8.68667, -6.11046)) whose start tangent turns 167.87 degrees to the left, so it rises 0.14 above the axis and
         /// curls back down to (2.4529, -6.5606).
         /// </summary>
-        internal static GeoPolylineArc2 CurlingBack()
-            => Chain(new[] { P(0, 0), P(10, 0), P(2.4529041977722796, -6.560590289905073) }, 0.0, 0.5);
+        internal static GeoPolylineArc2 CurlingBack() =>
+            Chain(new[] { P(0, 0), P(10, 0), P(2.4529041977722796, -6.560590289905073) }, 0.0, 0.5);
 
         /// <summary>A hairpin 1 wide: 10 along x, 1 down, and 9 back, ending 1 short of the start.</summary>
         internal static GeoPoint2[] Hairpin() => new[] { P(0, 0), P(10, 0), P(10, -1), P(1, -1) };
@@ -228,8 +261,8 @@ namespace GeometryHelper.UnitTest.Plane
         /// The rectangle 100 by 30 from the origin with its right side bowed 6 inwards (bulge -0.4: radius 21.75 about
         /// (115.75, 15)), so that growing it by 40 runs that side's radius out.
         /// </summary>
-        internal static GeoPolygonArc2 RectangleWithBowedInSide()
-            => Loop(new[] { P(0, 0), P(100, 0), P(100, 30), P(0, 30) }, 0.0, -0.4, 0.0, 0.0);
+        internal static GeoPolygonArc2 RectangleWithBowedInSide() =>
+            Loop(new[] { P(0, 0), P(100, 0), P(100, 30), P(0, 30) }, 0.0, -0.4, 0.0, 0.0);
 
         #endregion
 
@@ -239,7 +272,8 @@ namespace GeometryHelper.UnitTest.Plane
         internal static GeoPoint2[] Square10() => new[] { P(0, 0), P(10, 0), P(10, 10), P(0, 10) };
 
         /// <summary>The triangle with a 10 degree tip at the origin, its two long sides 100.</summary>
-        internal static GeoPoint2[] TenDegreeTip() => new[] { P(0, 0), P(100, 0), P(98.4807753012208, 17.364817766693) };
+        internal static GeoPoint2[] TenDegreeTip() =>
+            new[] { P(0, 0), P(100, 0), P(98.4807753012208, 17.364817766693) };
 
         #endregion
 
@@ -250,8 +284,8 @@ namespace GeometryHelper.UnitTest.Plane
         /// tan(pi / 16): radius 13.06563 about (-2.07107, 5)). It leaves (10, 0) at 67.5 degrees and reaches (10, 10) at
         /// 112.5, so both corners beside it turn 67.5 degrees.
         /// </summary>
-        internal static GeoPolygonArc2 SquareWithItsRightSideBowedOut()
-            => Loop(Square10(), 0.0, Math.Tan(Math.PI / 16.0), 0.0, 0.0);
+        internal static GeoPolygonArc2 SquareWithItsRightSideBowedOut() =>
+            Loop(Square10(), 0.0, Math.Tan(Math.PI / 16.0), 0.0, 0.0);
 
         /// <summary>
         /// The chain from (100, 0) to the origin and on round an arc of bulge 0.05 (radius 501.25, 11.45 degrees), 100 long,
@@ -267,8 +301,8 @@ namespace GeometryHelper.UnitTest.Plane
         /// The chain 100 along x from the origin, then clockwise round an arc of bulge -0.9 (radius 36.25582 about
         /// (123.16667, 27.88889), 167.95 degrees) to (140, 60): the corner (100, 0) turns 140.28 degrees to the left.
         /// </summary>
-        internal static GeoPolylineArc2 StraightIntoATightArc()
-            => Chain(new[] { P(0, 0), P(100, 0), P(140, 60) }, 0.0, -0.9);
+        internal static GeoPolylineArc2 StraightIntoATightArc() =>
+            Chain(new[] { P(0, 0), P(100, 0), P(140, 60) }, 0.0, -0.9);
 
         #endregion
 
@@ -281,7 +315,8 @@ namespace GeometryHelper.UnitTest.Plane
         internal static GeoPolyline2 Zigzag(int count)
         {
             var points = new GeoPoint2[count];
-            for (int i = 0; i < count; i++) points[i] = P(2.0 * i, i % 2 == 0 ? 0.0 : 3.0);
+            for (int i = 0; i < count; i++)
+                points[i] = P(2.0 * i, i % 2 == 0 ? 0.0 : 3.0);
             return new GeoPolyline2(points);
         }
 
@@ -294,8 +329,8 @@ namespace GeometryHelper.UnitTest.Plane
         /// 0.0012 radians (under the 2 pi / 4 096 = 0.00153 a piece that Tessellation allows), radius 83 333.34, 100.000006
         /// long, adding a segment of 1.00000002 to the 5 000 of the rectangle.
         /// </summary>
-        internal static GeoPolygonArc2 RectangleWithANearlyFlatBottom()
-            => Loop(new[] { P(0, 0), P(100, 0), P(100, 50), P(0, 50) }, 0.0003);
+        internal static GeoPolygonArc2 RectangleWithANearlyFlatBottom() =>
+            Loop(new[] { P(0, 0), P(100, 0), P(100, 50), P(0, 50) }, 0.0003);
 
         /// <summary>
         /// A loop of two arcs from the origin and a straight edge back: in along the circle of radius 10 about (0, 10) from
@@ -322,14 +357,17 @@ namespace GeometryHelper.UnitTest.Plane
         /// the second, to p = (-7.818, 3.764) and r = (-8.573, 2.412): it crosses itself at X, 1.990 from the origin, where a
         /// lens about 0.025 wide is left between the arcs, wound against the rest. The straight edge r p meets neither circle.
         /// </summary>
-        internal static GeoPolygonArc2 ArcsCrossingBesideTheirCorner()
-            => TwoArcsFromTheOrigin(SweepToX(10.0) + Math.PI * 40.0 / 180.0, SweepToX(Math.Sqrt(401.0)) + Math.PI * 20.0 / 180.0);
+        internal static GeoPolygonArc2 ArcsCrossingBesideTheirCorner() =>
+            TwoArcsFromTheOrigin(
+                SweepToX(10.0) + Math.PI * 40.0 / 180.0,
+                SweepToX(Math.Sqrt(401.0)) + Math.PI * 20.0 / 180.0
+            );
 
         /// <summary>
         /// The loop of <see cref="TwoArcsFromTheOrigin"/> run 70 % of the way to X round each circle: the same corner, simple.
         /// </summary>
-        internal static GeoPolygonArc2 ArcsStoppingShortOfTheirCrossing()
-            => TwoArcsFromTheOrigin(0.7 * SweepToX(10.0), 0.7 * SweepToX(Math.Sqrt(401.0)));
+        internal static GeoPolygonArc2 ArcsStoppingShortOfTheirCrossing() =>
+            TwoArcsFromTheOrigin(0.7 * SweepToX(10.0), 0.7 * SweepToX(Math.Sqrt(401.0)));
 
         /// <summary>
         /// A gear of <paramref name="teeth"/> teeth: 2 teeth vertices, pi / teeth apart, by turns on the circles of radius 100
@@ -345,7 +383,8 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int i = 0; i < points.Length; i++)
             {
-                double angle = Math.PI * i / teeth, radius = i % 2 == 0 ? 100.0 : 95.0;
+                double angle = Math.PI * i / teeth,
+                    radius = i % 2 == 0 ? 100.0 : 95.0;
                 points[i] = P(radius * Math.Cos(angle), radius * Math.Sin(angle));
                 bulges[i] = i % 2 == 0 ? 0.2 : -0.1;
             }
@@ -366,15 +405,17 @@ namespace GeometryHelper.UnitTest.Plane
         /// 30 + 2d with mitered corners. The miter corner of the slot's left mouth, (d, d), stands sqrt((w - d)^2 + d^2) from its
         /// right mouth, (w, 0): just past d when w is just past d.
         /// </summary>
-        internal static GeoPolygonArc2 RectangleWithASlot(double width)
-            => Loop(new[] { P(-20, -30), P(20, -30), P(20, 0), P(width, 0), P(width, -15), P(0, -15), P(0, 0), P(-20, 0) });
+        internal static GeoPolygonArc2 RectangleWithASlot(double width) =>
+            Loop(
+                new[] { P(-20, -30), P(20, -30), P(20, 0), P(width, 0), P(width, -15), P(0, -15), P(0, 0), P(-20, 0) }
+            );
 
         /// <summary>
         /// The square of side 10 with a needle 6 long standing on its top at x = 4, 0.0005 wide at its foot: thinner than
         /// the default point tolerance, so that at 1E-3 its tip turns back within the tolerance and the loop is not simple.
         /// </summary>
-        internal static GeoPolygonArc2 SquareWithANeedle()
-            => Loop(new[] { P(0, 0), P(10, 0), P(10, 10), P(4.0005, 10), P(4, 16), P(4, 10), P(0, 10) });
+        internal static GeoPolygonArc2 SquareWithANeedle() =>
+            Loop(new[] { P(0, 0), P(10, 0), P(10, 10), P(4.0005, 10), P(4, 16), P(4, 10), P(0, 10) });
 
         /// <summary>
         /// A loop running clockwise: straight from (-4, -3) to (2, 1), round an arc of bulge -0.6 to (5, 8), round an arc of
@@ -382,50 +423,80 @@ namespace GeometryHelper.UnitTest.Plane
         /// between the straight and the first arc opens; mitered, the first arc is run on back round its circle to the
         /// miter, and the second arc's offset crosses that run-on at (2.39, 1.08), away from the corner the two arcs share.
         /// </summary>
-        internal static GeoPolygonArc2 LoopPinchedBesideAMiter()
-            => Loop(new[] { P(-4, -3), P(2, 1), P(5, 8), P(-4, -5) }, 0.0, -0.6, -0.25);
+        internal static GeoPolygonArc2 LoopPinchedBesideAMiter() =>
+            Loop(new[] { P(-4, -3), P(2, 1), P(5, 8), P(-4, -5) }, 0.0, -0.6, -0.25);
 
         /// <summary>
         /// A loop of the S2 crossing fuzz (seed 2, random loop 100) that crosses itself twice: grown by 0.3 at 1E-3 its corner at
         /// (3.4164, -7.0194), a tip of 22.6 degrees between two arcs all but straight, is met by a piece cut back to a sliver
         /// 1.94E-4 long that runs the wrong way.
         /// </summary>
-        internal static GeoPolygonArc2 LoopWithASliverBeforeATip() => new GeoPolygonArc2(
-            new[] { P(3.4163702621200915, -7.0193847627469275), P(8.8754816441216882, 7.4948687653499064), P(-2.0016640108086472, -8.9877581684793153), P(-2.6410758367930889, -6.0746122319598737), P(3.48895770194426, 0.97154249948055593) },
-            new[] { 0.089899056027596291, -0.39261626111930992, 0.0, 0.37293859332471069, -0.066002536456101768 });
+        internal static GeoPolygonArc2 LoopWithASliverBeforeATip() =>
+            new GeoPolygonArc2(
+                new[]
+                {
+                    P(3.4163702621200915, -7.0193847627469275),
+                    P(8.8754816441216882, 7.4948687653499064),
+                    P(-2.0016640108086472, -8.9877581684793153),
+                    P(-2.6410758367930889, -6.0746122319598737),
+                    P(3.48895770194426, 0.97154249948055593),
+                },
+                new[] { 0.089899056027596291, -0.39261626111930992, 0.0, 0.37293859332471069, -0.066002536456101768 }
+            );
 
         /// <summary>
         /// The square of side 10 with a notch from its top down to (5, 0.05), its right side an arc of bulge 0.1 and its left
         /// an arc of bulge -0.1: grown by 2 with miters, the corner at (0, 10) is cut square 20 from it along its bisector,
         /// and the cut's ends stand further from the corner than that, 21.34 at (4.714, 30.810).
         /// </summary>
-        internal static GeoPolygonArc2 SquareWithABowedNotch()
-            => Loop(new[] { P(0, 0), P(10, 0), P(10, 10), P(5, 0.05), P(0, 10) }, 0.0, 0.0, 0.1, -0.1);
+        internal static GeoPolygonArc2 SquareWithABowedNotch() =>
+            Loop(new[] { P(0, 0), P(10, 0), P(10, 10), P(5, 0.05), P(0, 10) }, 0.0, 0.0, 0.1, -0.1);
 
         /// <summary>
         /// The audit's case GA 10570 (offset seed 1), a comb of straight edges about (-14, 10): grown by 2.5 with chamfers,
         /// two square cuts across its gaps meet within a few tolerances.
         /// </summary>
-        internal static GeoPolygonArc2 AuditComb10570() => new GeoPolygonArc2(new[]
-        {
-            P(-10.16017998073694, 11.022759588985529), P(-10.085305938013004, 10.593369820921398), P(-15.996116797282214, 9.5626831634230154),
-            P(-15.908043732382326, 9.0575992714059161), P(-9.9972328731131164, 10.088285928904298), P(-9.9223588303891823, 9.6588961608401682),
-            P(-18.296007547687228, 8.1987567293841259), P(-18.533828698034988, 9.5626201575294871),
-        });
+        internal static GeoPolygonArc2 AuditComb10570() =>
+            new GeoPolygonArc2(
+                new[]
+                {
+                    P(-10.16017998073694, 11.022759588985529),
+                    P(-10.085305938013004, 10.593369820921398),
+                    P(-15.996116797282214, 9.5626831634230154),
+                    P(-15.908043732382326, 9.0575992714059161),
+                    P(-9.9972328731131164, 10.088285928904298),
+                    P(-9.9223588303891823, 9.6588961608401682),
+                    P(-18.296007547687228, 8.1987567293841259),
+                    P(-18.533828698034988, 9.5626201575294871),
+                }
+            );
 
         /// <summary>
         /// The audit's case GA 1094 (offset seed 1), a notched quadrilateral placed 1E4 out, its notch's bottom an arc of bulge
         /// -0.003: grown by 80 with a miter limit of 2, the moved bottom of the notch and the moved side beside it run along
         /// each other and cross twice.
         /// </summary>
-        internal static GeoPolygonArc2 AuditNotch1094() => Loop(
-            new[]
-            {
-                P(13317.627233135339, 25942.109211321032), P(13232.517966740832, 25994.610761524706), P(13195.766881598262, 25935.034275048551),
-                P(13240.64695062357, 25907.349002963667), P(13255.427457695561, 25931.309402398656), P(13268.595324084486, 25923.186510173397),
-                P(13253.814817012497, 25899.226110738411), P(13280.876147992769, 25882.532724844878),
-            },
-            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.003);
+        internal static GeoPolygonArc2 AuditNotch1094() =>
+            Loop(
+                new[]
+                {
+                    P(13317.627233135339, 25942.109211321032),
+                    P(13232.517966740832, 25994.610761524706),
+                    P(13195.766881598262, 25935.034275048551),
+                    P(13240.64695062357, 25907.349002963667),
+                    P(13255.427457695561, 25931.309402398656),
+                    P(13268.595324084486, 25923.186510173397),
+                    P(13253.814817012497, 25899.226110738411),
+                    P(13280.876147992769, 25882.532724844878),
+                },
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                -0.003
+            );
 
         #endregion
     }

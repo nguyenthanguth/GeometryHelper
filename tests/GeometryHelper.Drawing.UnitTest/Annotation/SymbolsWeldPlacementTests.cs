@@ -30,19 +30,58 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         private static DrawingObject[] TC5WithWelds()
         {
             List<DrawingObject> objects = Objects(TestBodies.TC5()).ToList();
-            objects.Add(Weld("TC5-weld-1", new GeoPoint3(130, 0, 30), "Fillet", "Arrow", "a6", "250", "TC5-base", "TC5-column"));
-            objects.Add(Weld("TC5-weld-2", new GeoPoint3(-130, 0, 30), "Fillet", "Both", "a6", "250", "TC5-base", "TC5-column"));
-            objects.Add(Weld("TC5-weld-3", new GeoPoint3(10, 100, 30), "VButt", "Other", "s8", null, "TC5-base", "TC5-stiffener-3"));
+            objects.Add(
+                Weld("TC5-weld-1", new GeoPoint3(130, 0, 30), "Fillet", "Arrow", "a6", "250", "TC5-base", "TC5-column")
+            );
+            objects.Add(
+                Weld("TC5-weld-2", new GeoPoint3(-130, 0, 30), "Fillet", "Both", "a6", "250", "TC5-base", "TC5-column")
+            );
+            objects.Add(
+                Weld(
+                    "TC5-weld-3",
+                    new GeoPoint3(10, 100, 30),
+                    "VButt",
+                    "Other",
+                    "s8",
+                    null,
+                    "TC5-base",
+                    "TC5-stiffener-3"
+                )
+            );
             return objects.ToArray();
         }
 
         /// <summary>A view of TC5 and its welds at a scale: its dimensions, its centre lines and its weld symbols placed.</summary>
-        private static (ProjectedView2 View, IReadOnlyList<DrawingDimension> Dimensions, GeoLine2[] CentreLines, IReadOnlyList<WeldSymbol> Symbols) Placed(DrawingObject[] objects, GeoCoordinateSystem3 frame, double scale)
+        private static (
+            ProjectedView2 View,
+            IReadOnlyList<DrawingDimension> Dimensions,
+            GeoLine2[] CentreLines,
+            IReadOnlyList<WeldSymbol> Symbols
+        ) Placed(DrawingObject[] objects, GeoCoordinateSystem3 frame, double scale)
         {
             ProjectedView2 view = Project(objects, frame);
-            IReadOnlyList<DrawingDimension> dimensions = Annotator.Dimension(view, objects, frame, new DimensionSettings { Scale = scale }, Tol);
-            GeoLine2[] centres = DrawingCentreLine.Find(view, objects, new SymbolSettings(), scale, Tol).Select(l => l.Line).ToArray();
-            IReadOnlyList<WeldSymbol> symbols = WeldSymbol.Find(view, objects, frame, dimensions, NoBoxes, centres, new SymbolSettings(), scale, Tol);
+            IReadOnlyList<DrawingDimension> dimensions = Annotator.Dimension(
+                view,
+                objects,
+                frame,
+                new DimensionSettings { Scale = scale },
+                Tol
+            );
+            GeoLine2[] centres = DrawingCentreLine
+                .Find(view, objects, new SymbolSettings(), scale, Tol)
+                .Select(l => l.Line)
+                .ToArray();
+            IReadOnlyList<WeldSymbol> symbols = WeldSymbol.Find(
+                view,
+                objects,
+                frame,
+                dimensions,
+                NoBoxes,
+                centres,
+                new SymbolSettings(),
+                scale,
+                Tol
+            );
             return (view, dimensions, centres, symbols);
         }
 
@@ -53,12 +92,20 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             var found = new List<string>();
             int count = 0;
 
-            foreach ((string name, GeoCoordinateSystem3 frame) in new[] { ("front", Front), ("top", Top), ("right", Right) })
+            foreach (
+                (string name, GeoCoordinateSystem3 frame) in new[] { ("front", Front), ("top", Top), ("right", Right) }
+            )
             {
                 foreach (double scale in new[] { 2.0, 5.0, 10.0, 20.0 })
                 {
                     var placed = Placed(objects, frame, scale);
-                    IReadOnlyList<WeldSymbol> ruled = WeldSymbol.Find(placed.View, objects, frame, new SymbolSettings(), scale);
+                    IReadOnlyList<WeldSymbol> ruled = WeldSymbol.Find(
+                        placed.View,
+                        objects,
+                        frame,
+                        new SymbolSettings(),
+                        scale
+                    );
                     count += placed.Symbols.Count;
 
                     // Each symbol keeps its weld: the same symbols, their arrows ending at their welds' middles.
@@ -66,7 +113,15 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
                     Assert.Equal(ruled.Select(w => w.ArrowTip), placed.Symbols.Select(w => w.ArrowTip));
                     Assert.Equal(ruled.Select(w => w.Links), placed.Symbols.Select(w => w.Links));
 
-                    foreach (string overlap in WeldSymbol.FindOverlaps(placed.Symbols, placed.Dimensions, NoBoxes, placed.CentreLines, Tol))
+                    foreach (
+                        string overlap in WeldSymbol.FindOverlaps(
+                            placed.Symbols,
+                            placed.Dimensions,
+                            NoBoxes,
+                            placed.CentreLines,
+                            Tol
+                        )
+                    )
                     {
                         found.Add(name + " 1:" + scale + ": " + overlap);
                     }
@@ -87,10 +142,16 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             foreach (DrawingView view in drawing.Views)
             {
                 GeoLine2[] centres = view.CentreLines.Select(l => l.Line).ToArray();
-                found.AddRange(WeldSymbol.FindOverlaps(view.WeldSymbols, view.Dimensions, NoBoxes, centres, Tol).Select(o => view.Id + ": " + o));
+                found.AddRange(
+                    WeldSymbol
+                        .FindOverlaps(view.WeldSymbols, view.Dimensions, NoBoxes, centres, Tol)
+                        .Select(o => view.Id + ": " + o)
+                );
                 GeoRectangle2[] welds = view.WeldSymbols.Select(w => w.Bounds).ToArray();
                 GeoLine2[] arrows = view.WeldSymbols.Select(w => new GeoLine2(w.Knee, w.ArrowTip)).ToArray();
-                found.AddRange(Marker.FindOverlaps(view.Marks, view.Dimensions, welds, arrows, Tol).Select(o => view.Id + ": " + o));
+                found.AddRange(
+                    Marker.FindOverlaps(view.Marks, view.Dimensions, welds, arrows, Tol).Select(o => view.Id + ": " + o)
+                );
             }
 
             found.ForEach(_output.WriteLine);
@@ -103,11 +164,27 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         public void ASymbolWithNothingInTheWayStaysWhereTheRulePutsIt()
         {
             DrawingObject plate = Part("P-1", Box(0, 0, 0, 300, 200, 20), true);
-            DrawingObject[] objects = { plate, Weld("W-1", new GeoPoint3(100, 0, 30), "Fillet", "Arrow", "a5", "200", "P-1", "P-2") };
+            DrawingObject[] objects =
+            {
+                plate,
+                Weld("W-1", new GeoPoint3(100, 0, 30), "Fillet", "Arrow", "a5", "200", "P-1", "P-2"),
+            };
             ProjectedView2 view = Project(objects, Front);
 
             WeldSymbol ruled = Assert.Single(WeldSymbol.Find(view, objects, Front, new SymbolSettings(), 10));
-            WeldSymbol placed = Assert.Single(WeldSymbol.Find(view, objects, Front, new DrawingDimension[0], NoBoxes, new GeoLine2[0], new SymbolSettings(), 10, Tol));
+            WeldSymbol placed = Assert.Single(
+                WeldSymbol.Find(
+                    view,
+                    objects,
+                    Front,
+                    new DrawingDimension[0],
+                    NoBoxes,
+                    new GeoLine2[0],
+                    new SymbolSettings(),
+                    10,
+                    Tol
+                )
+            );
 
             Assert.Equal(ruled.Knee, placed.Knee);
             Assert.Equal(ruled.ReferenceLine, placed.ReferenceLine);
@@ -122,12 +199,26 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             ProjectedView2 view = Project(objects, Front);
             var wall = new GeoRectangle2(new GeoPoint2(1000, 0), 1980, 4000);
 
-            WeldSymbol symbol = Assert.Single(WeldSymbol.Find(view, objects, Front, new DrawingDimension[0], new[] { wall }, new GeoLine2[0], new SymbolSettings(), 10, Tol));
+            WeldSymbol symbol = Assert.Single(
+                WeldSymbol.Find(
+                    view,
+                    objects,
+                    Front,
+                    new DrawingDimension[0],
+                    new[] { wall },
+                    new GeoLine2[0],
+                    new SymbolSettings(),
+                    10,
+                    Tol
+                )
+            );
 
             Assert.True(symbol.Knee.X < symbol.ArrowTip.X, symbol.Knee.ToString());
             Assert.True(symbol.ReferenceLine.EndPoint.X < symbol.Knee.X, symbol.ReferenceLine.ToString());
             Near(7.6 * 25, symbol.ReferenceLine.Length);
-            Assert.Empty(WeldSymbol.FindOverlaps(new[] { symbol }, new DrawingDimension[0], new[] { wall }, new GeoLine2[0], Tol));
+            Assert.Empty(
+                WeldSymbol.FindOverlaps(new[] { symbol }, new DrawingDimension[0], new[] { wall }, new GeoLine2[0], Tol)
+            );
 
             // Drawn as on a line run to the right: "a5" first, then the triangle, then "200", all left of the knee.
             var database = new DxfDatabase("AC1027");
@@ -143,7 +234,9 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         {
             DrawingObject[] objects = TC5WithWelds();
 
-            foreach ((string name, GeoCoordinateSystem3 frame) in new[] { ("front", Front), ("top", Top), ("right", Right) })
+            foreach (
+                (string name, GeoCoordinateSystem3 frame) in new[] { ("front", Front), ("top", Top), ("right", Right) }
+            )
             {
                 foreach (double scale in new[] { 2.0, 10.0, 20.0 })
                 {

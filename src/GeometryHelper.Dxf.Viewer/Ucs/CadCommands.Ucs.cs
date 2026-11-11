@@ -14,9 +14,22 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static partial class CadCommands
     {
-        private static readonly string[] UcsOptions = { "Face", "NAmed", "OBject", "Previous", "View", "World", "X", "Y", "Z", "ZAxis" };
+        private static readonly string[] UcsOptions =
+        {
+            "Face",
+            "NAmed",
+            "OBject",
+            "Previous",
+            "View",
+            "World",
+            "X",
+            "Y",
+            "Z",
+            "ZAxis",
+        };
 
-        private const string NotInPlan = "The presenter shows the drawing from above: a UCS that leaves the plan is not available here.";
+        private const string NotInPlan =
+            "The presenter shows the drawing from above: a UCS that leaves the plan is not available here.";
 
         /// <summary>
         /// UCS, as AutoCAD 2021 asks it: an origin, then a point on the X axis and one in the XY plane, each Enter keeping what
@@ -72,12 +85,16 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (c.Input.Is("Z"))
             {
-                yield return CadPrompt.ForAngle("Specify rotation angle about Z axis", Origin2(c.Session.Ucs), null, "90").Turning();
+                yield return CadPrompt
+                    .ForAngle("Specify rotation angle about Z axis", Origin2(c.Session.Ucs), null, "90")
+                    .Turning();
 
                 if (c.Input.IsNone || c.Input.Kind == CadInputKind.Number)
                 {
                     CadUcs ucs = c.Session.Ucs;
-                    systems.SetCurrent(Turned(ucs, Origin2(ucs), ucs.AngleToWorld(c.Input.IsNone ? Math.PI / 2.0 : c.Input.Number)));
+                    systems.SetCurrent(
+                        Turned(ucs, Origin2(ucs), ucs.AngleToWorld(c.Input.IsNone ? Math.PI / 2.0 : c.Input.Number))
+                    );
                 }
             }
             else if (c.Input.Is("ZAxis"))
@@ -93,7 +110,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Kind == CadInputKind.Selection && c.Input.Handles.Count > 0)
                 {
-                    CadUcs aligned = UcsOfObject(c.Document.FindEntity(c.Input.Handles[0]), c.Input.Point, c.Session.Tolerance);
+                    CadUcs aligned = UcsOfObject(
+                        c.Document.FindEntity(c.Input.Handles[0]),
+                        c.Input.Point,
+                        c.Session.Tolerance
+                    );
 
                     if (aligned == null)
                     {
@@ -114,9 +135,22 @@ namespace GeometryHelper.Dxf.Viewer
                     yield return prompt;
                 }
             }
-            else if (typed == "S" || typed == "SAVE" || typed == "R" || typed == "RESTORE" || typed == "D" || typed == "DEL" || typed == "DELETE" || typed == "?")
+            else if (
+                typed == "S"
+                || typed == "SAVE"
+                || typed == "R"
+                || typed == "RESTORE"
+                || typed == "D"
+                || typed == "DEL"
+                || typed == "DELETE"
+                || typed == "?"
+            )
             {
-                string option = typed == "?" ? "?" : typed.StartsWith("S", StringComparison.Ordinal) ? "Save" : typed.StartsWith("R", StringComparison.Ordinal) ? "Restore" : "Delete";
+                string option =
+                    typed == "?" ? "?"
+                    : typed.StartsWith("S", StringComparison.Ordinal) ? "Save"
+                    : typed.StartsWith("R", StringComparison.Ordinal) ? "Restore"
+                    : "Delete";
 
                 foreach (CadPrompt prompt in UcsNamed(c, option))
                 {
@@ -125,7 +159,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (typed == "G" || typed == "ORTHOGRAPHIC")
             {
-                yield return CadPrompt.ForKeyword("Enter an option", new[] { "Top", "Bottom", "Front", "Back", "Left", "Right" }, "Top");
+                yield return CadPrompt.ForKeyword(
+                    "Enter an option",
+                    new[] { "Top", "Bottom", "Front", "Back", "Left", "Right" },
+                    "Top"
+                );
 
                 if (c.Input.IsNone || c.Input.Is("Top"))
                 {
@@ -142,7 +180,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (c.Input.Is("X") || c.Input.Is("Y") || c.Input.Is("Face"))
             {
-                c.Write("Rotation about the X or Y axis and a UCS on a face are not available in a 2D view. " + NotInPlan);
+                c.Write(
+                    "Rotation about the X or Y axis and a UCS on a face are not available in a 2D view. " + NotInPlan
+                );
             }
             else if (typed != null)
             {
@@ -266,7 +306,9 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else if (!systems.Restore(name))
                     {
-                        c.Write("The UCS " + found.Name + " is not parallel to the view, and is kept as it is. " + NotInPlan);
+                        c.Write(
+                            "The UCS " + found.Name + " is not parallel to the view, and is kept as it is. " + NotInPlan
+                        );
                     }
                 }
 
@@ -291,7 +333,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (systems.Find(name) != null)
                 {
-                    yield return CadPrompt.ForKeyword("UCS " + systems.Find(name).Name + " already exists. Replace it?", new[] { "Yes", "No" }, "No");
+                    yield return CadPrompt.ForKeyword(
+                        "UCS " + systems.Find(name).Name + " already exists. Replace it?",
+                        new[] { "Yes", "No" },
+                        "No"
+                    );
 
                     if (!c.Input.Is("Yes"))
                     {
@@ -325,7 +371,14 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
-                c.Write(deleted == 0 ? "No matching UCS names found." : deleted.ToString(CultureInfo.InvariantCulture) + " UCS" + (deleted == 1 ? string.Empty : "s") + " deleted.");
+                c.Write(
+                    deleted == 0
+                        ? "No matching UCS names found."
+                        : deleted.ToString(CultureInfo.InvariantCulture)
+                            + " UCS"
+                            + (deleted == 1 ? string.Empty : "s")
+                            + " deleted."
+                );
             }
         }
 
@@ -341,7 +394,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (c.Input.Is("All"))
             {
-                yield return CadPrompt.ForKeyword("Enter an option", new[] { "ON", "OFF", "Noorigin", "ORigin" }, systems.IconOn ? "ON" : "OFF");
+                yield return CadPrompt.ForKeyword(
+                    "Enter an option",
+                    new[] { "ON", "OFF", "Noorigin", "ORigin" },
+                    systems.IconOn ? "ON" : "OFF"
+                );
             }
 
             if (c.Input.Is("ON") || c.Input.Is("OFF"))
@@ -365,7 +422,11 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> Plan(CadCommandContext c)
         {
             CadUcsManager systems = c.Document.Ucs;
-            yield return CadPrompt.ForKeyword("Enter an option", new[] { "Current ucs", "Ucs", "World" }, "Current ucs");
+            yield return CadPrompt.ForKeyword(
+                "Enter an option",
+                new[] { "Current ucs", "Ucs", "World" },
+                "Current ucs"
+            );
             CadUcs of = c.Session.Ucs;
 
             if (c.Input.Is("World"))
@@ -398,7 +459,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (Math.Abs(Math.Sin(of.Angle)) > c.Session.Tolerance.EqualVector || Math.Cos(of.Angle) < 0.0)
             {
-                c.Write("PLAN does not turn this view: the world's Y stays up, and the grid and the crosshair follow the UCS instead.");
+                c.Write(
+                    "PLAN does not turn this view: the world's Y stays up, and the grid and the crosshair follow the UCS instead."
+                );
             }
 
             CadView view = c.Session.View;
@@ -415,7 +478,9 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (!c.Session.Request("UCSMAN"))
             {
-                c.Write("There is no UCS dialog here: the named systems are listed below, and UCS NAmed restores, saves and deletes them.");
+                c.Write(
+                    "There is no UCS dialog here: the named systems are listed below, and UCS NAmed restores, saves and deletes them."
+                );
                 ListUcs(c, "*");
             }
 
@@ -438,7 +503,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                 GeoPoint3 origin = current.ToUcs(ucs.Origin);
                 c.Write(string.Empty);
-                c.Write("\"" + ucs.Name + "\"" + (ucs.IsPlanar ? string.Empty : "  (not parallel to the view: kept, not made current here)"));
+                c.Write(
+                    "\""
+                        + ucs.Name
+                        + "\""
+                        + (ucs.IsPlanar ? string.Empty : "  (not parallel to the view: kept, not made current here)")
+                );
                 c.Write("Origin = " + Triple(origin.X, origin.Y, origin.Z) + ", X Axis = " + Axis(current, ucs.XAxis));
                 c.Write("Y Axis = " + Axis(current, ucs.YAxis) + ", Z Axis = " + Axis(current, ucs.ZAxis));
             }
@@ -461,8 +531,10 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfArc arc:
                     // The origin at the centre, the X axis through the end nearer the pick.
                     GeoPoint2 centre = Flat(arc.Center);
-                    GeoPoint2 first = centre + new GeoVector2(Math.Cos(arc.StartAngle), Math.Sin(arc.StartAngle)) * arc.Radius;
-                    GeoPoint2 last = centre + new GeoVector2(Math.Cos(arc.EndAngle), Math.Sin(arc.EndAngle)) * arc.Radius;
+                    GeoPoint2 first =
+                        centre + new GeoVector2(Math.Cos(arc.StartAngle), Math.Sin(arc.StartAngle)) * arc.Radius;
+                    GeoPoint2 last =
+                        centre + new GeoVector2(Math.Cos(arc.EndAngle), Math.Sin(arc.EndAngle)) * arc.Radius;
                     return Through(centre, (picked - last).Length < (picked - first).Length ? last : first, tolerance);
                 case DxfPolyline polyline when polyline.NumberOfVertices >= 2:
                     // The origin at the start, the X axis along the first segment.
@@ -488,7 +560,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A system moved to a new origin, its axes and the height of its origin kept.</summary>
-        private static CadUcs Moved(CadUcs ucs, GeoPoint2 origin) => new CadUcs(new GeoPoint3(origin.X, origin.Y, ucs.Origin.Z), ucs.XAxis, ucs.YAxis);
+        private static CadUcs Moved(CadUcs ucs, GeoPoint2 origin) =>
+            new CadUcs(new GeoPoint3(origin.X, origin.Y, ucs.Origin.Z), ucs.XAxis, ucs.YAxis);
 
         /// <summary>A system in the plan at an origin, its X axis at an angle from the world's, the height of the origin kept.</summary>
         private static CadUcs Turned(CadUcs ucs, GeoPoint2 origin, double angle)
@@ -511,7 +584,14 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 string pattern = part.Trim();
 
-                if (pattern.Length > 0 && Regex.IsMatch(name, "^" + Regex.Escape(pattern).Replace("\\*", ".*").Replace("\\?", ".") + "$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                if (
+                    pattern.Length > 0
+                    && Regex.IsMatch(
+                        name,
+                        "^" + Regex.Escape(pattern).Replace("\\*", ".*").Replace("\\?", ".") + "$",
+                        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant
+                    )
+                )
                 {
                     return true;
                 }
@@ -520,8 +600,10 @@ namespace GeometryHelper.Dxf.Viewer
             return false;
         }
 
-        private static string Axis(CadUcs current, GeoVector3 axis) => Triple(axis.DotProduct(current.XAxis), axis.DotProduct(current.YAxis), axis.DotProduct(current.ZAxis));
+        private static string Axis(CadUcs current, GeoVector3 axis) =>
+            Triple(axis.DotProduct(current.XAxis), axis.DotProduct(current.YAxis), axis.DotProduct(current.ZAxis));
 
-        private static string Triple(double x, double y, double z) => "<" + Length(x) + "," + Length(y) + "," + Length(z) + ">";
+        private static string Triple(double x, double y, double z) =>
+            "<" + Length(x) + "," + Length(y) + "," + Length(z) + ">";
     }
 }

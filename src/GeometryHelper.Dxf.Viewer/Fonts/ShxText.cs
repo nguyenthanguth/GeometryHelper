@@ -22,13 +22,31 @@ namespace GeometryHelper.Dxf.Viewer
         /// baseline to the last pen for a line on the left, the width of its box for one centred or on the right. A letter
         /// neither font has is drawn as the font's question mark; a space the font has not moves the pen by its A.
         /// </summary>
-        internal static List<double[]> Strokes(CadFontFace face, string text, double x, double y, double height, double rotation, double widthFactor, int horizontal, int vertical, double oblique, bool backward, double descent, out double width)
+        internal static List<double[]> Strokes(
+            CadFontFace face,
+            string text,
+            double x,
+            double y,
+            double height,
+            double rotation,
+            double widthFactor,
+            int horizontal,
+            int vertical,
+            double oblique,
+            bool backward,
+            double descent,
+            out double width
+        )
         {
             string[] lines = text.Split('\n');
             double step = 1.25 * height;
             double top = height;
             double bottom = -(lines.Length - 1) * step;
-            double shift = vertical == 0 ? 0.0 : vertical == 1 ? -(bottom - descent) : vertical == 2 ? -(top + bottom) / 2.0 : -top;
+            double shift =
+                vertical == 0 ? 0.0
+                : vertical == 1 ? -(bottom - descent)
+                : vertical == 2 ? -(top + bottom) / 2.0
+                : -top;
             double slant = Math.Tan(oblique);
             double cos = Math.Cos(rotation);
             double sin = Math.Sin(rotation);
@@ -79,10 +97,24 @@ namespace GeometryHelper.Dxf.Viewer
 
                 bool inked = inkLeft <= inkRight;
                 bool spaced = line.Length > 0 && line[line.Length - 1] == ' ';
-                double boxLeft = spaced ? (inked ? Math.Min(0.0, inkLeft) : 0.0) : inked ? inkLeft : 0.0;
-                double boxRight = spaced ? (inked ? Math.Max(pen, inkRight) : pen) : inked ? inkRight : 0.0;
-                width = Math.Max(width, horizontal == 0 ? pen : horizontal == 1 ? boxRight - boxLeft : boxRight);
-                double left = horizontal == 0 ? 0.0 : horizontal == 1 ? -(boxLeft + boxRight) / 2.0 : -boxRight;
+                double boxLeft =
+                    spaced ? (inked ? Math.Min(0.0, inkLeft) : 0.0)
+                    : inked ? inkLeft
+                    : 0.0;
+                double boxRight =
+                    spaced ? (inked ? Math.Max(pen, inkRight) : pen)
+                    : inked ? inkRight
+                    : 0.0;
+                width = Math.Max(
+                    width,
+                    horizontal == 0 ? pen
+                        : horizontal == 1 ? boxRight - boxLeft
+                        : boxRight
+                );
+                double left =
+                    horizontal == 0 ? 0.0
+                    : horizontal == 1 ? -(boxLeft + boxRight) / 2.0
+                    : -boxRight;
                 double baseline = shift - (l * step);
 
                 for (int k = 0; k < placed.Count; k++)
@@ -162,14 +194,22 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>A letter of the font: by its byte in a font of shapes, °, ± and Ø as 127, 128 and 129; by its Unicode number in a unifont, Ø as ∅ first.</summary>
         private static ShxGlyph Own(ShxFont font, int c)
         {
-            int sign = c == 0xB0 ? 127 : c == 0xB1 ? 128 : c == 0xD8 || c == 0x2205 ? 129 : 0;
+            int sign =
+                c == 0xB0 ? 127
+                : c == 0xB1 ? 128
+                : c == 0xD8 || c == 0x2205 ? 129
+                : 0;
 
             if (font.Kind == ShxFontKind.Shapes)
             {
-                return sign != 0 ? font.GlyphOf(sign) ?? font.GlyphOf(c) : c < 256 ? font.GlyphOf(c) : null;
+                return sign != 0 ? font.GlyphOf(sign) ?? font.GlyphOf(c)
+                    : c < 256 ? font.GlyphOf(c)
+                    : null;
             }
 
-            return (c == 0xD8 ? font.GlyphOf(0x2205) : null) ?? font.GlyphOf(c) ?? (sign != 0 ? font.GlyphOf(sign) : null);
+            return (c == 0xD8 ? font.GlyphOf(0x2205) : null)
+                ?? font.GlyphOf(c)
+                ?? (sign != 0 ? font.GlyphOf(sign) : null);
         }
 
         /// <summary>A letter of the big font: the text's letter as bytes of the big font's code page, ASCII as itself; one of two bytes, or a byte that opens a pair with the next letter's byte, or a byte alone.</summary>

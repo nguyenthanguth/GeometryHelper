@@ -74,14 +74,10 @@ namespace GeometryHelper.Dxf
         /// and the text style Standard. Give it leaders with <see cref="AddLeaderLine(GeoPoint3)"/> and words with <see cref="MText"/>.
         /// </summary>
         public DxfMLeader()
-            : base("MULTILEADER", Fresh())
-        {
-        }
+            : base("MULTILEADER", Fresh()) { }
 
         private DxfMLeader(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         [DxfType("MULTILEADER")]
         internal static DxfEntity Create(DxfItem item) => new DxfMLeader(item);
@@ -103,7 +99,6 @@ namespace GeometryHelper.Dxf
         public DxfContentType ContentType
         {
             get => (DxfContentType)Whole(Text(Read().After, 172), 2);
-
             set
             {
                 if (value == ContentType)
@@ -113,7 +108,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < DxfContentType.NoneContent || value > DxfContentType.ToleranceContent)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A content is none, a block, words or a feature control frame, 0 to 3.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A content is none, a block, words or a feature control frame, 0 to 3."
+                    );
                 }
 
                 Rec rec = Read();
@@ -121,11 +120,16 @@ namespace GeometryHelper.Dxf
 
                 if (value != DxfContentType.NoneContent)
                 {
-                    bool held = value == DxfContentType.MTextContent ? HasSection(ctx, 290, MTextCodes) : value == DxfContentType.BlockContent && HasSection(ctx, 296, BlockCodes);
+                    bool held =
+                        value == DxfContentType.MTextContent
+                            ? HasSection(ctx, 290, MTextCodes)
+                            : value == DxfContentType.BlockContent && HasSection(ctx, 296, BlockCodes);
 
                     if (!held)
                     {
-                        throw new InvalidOperationException("The MULTILEADER holds no " + value + ": give it words by MText or a block by BlockContent.");
+                        throw new InvalidOperationException(
+                            "The MULTILEADER holds no " + value + ": give it words by MText or a block by BlockContent."
+                        );
                     }
                 }
                 else
@@ -147,10 +151,14 @@ namespace GeometryHelper.Dxf
 
             switch (ContentType)
             {
-                case DxfContentType.MTextContent: return ctx != null && HasSection(ctx, 290, MTextCodes);
-                case DxfContentType.BlockContent: return ctx != null && HasSection(ctx, 296, BlockCodes);
-                case DxfContentType.ToleranceContent: return true;
-                default: return false;
+                case DxfContentType.MTextContent:
+                    return ctx != null && HasSection(ctx, 290, MTextCodes);
+                case DxfContentType.BlockContent:
+                    return ctx != null && HasSection(ctx, 296, BlockCodes);
+                case DxfContentType.ToleranceContent:
+                    return true;
+                default:
+                    return false;
             }
         }
 
@@ -252,7 +260,12 @@ namespace GeometryHelper.Dxf
                 string textStyle = Text(m, 340)?.Trim();
                 DxfDatabase database = Database();
 
-                if (textStyle != null && database != null && database.TryGetObject(textStyle, out DxfDBObject found) && found is DxfTextStyleTableRecord record)
+                if (
+                    textStyle != null
+                    && database != null
+                    && database.TryGetObject(textStyle, out DxfDBObject found)
+                    && found is DxfTextStyleTableRecord record
+                )
                 {
                     mtext.TextStyleName = record.Name;
                 }
@@ -271,7 +284,6 @@ namespace GeometryHelper.Dxf
 
                 return mtext;
             }
-
             set
             {
                 Rec rec = Read();
@@ -337,7 +349,14 @@ namespace GeometryHelper.Dxf
 
                 // The content lined up as the words are held (176 of the context data), with bits 14 and 26 where that changes it,
                 // as AutoCAD 2021 writes it (check D38b b-held2-N, b-align1-N).
-                if (Put(ctx.Head, 176, (((int)value.Attachment - 1) % 3).ToString(CultureInfo.InvariantCulture), ContextOrder))
+                if (
+                    Put(
+                        ctx.Head,
+                        176,
+                        (((int)value.Attachment - 1) % 3).ToString(CultureInfo.InvariantCulture),
+                        ContextOrder
+                    )
+                )
                 {
                     SetBit(rec, 14);
                     SetBit(rec, 26);
@@ -413,7 +432,6 @@ namespace GeometryHelper.Dxf
         public GeoPoint3 TextLocation
         {
             get => ContentPoint(290, MTextCodes, 12);
-
             set
             {
                 if (SamePoint(value, TextLocation))
@@ -435,7 +453,8 @@ namespace GeometryHelper.Dxf
                 PutPoint(ctx.Head, 12, value, ContextOrder, from, to);
 
                 // The landings and the base point move with the words, as AutoCAD 2021 moves them.
-                GeoPoint3 Moved(GeoPoint3 p) => new GeoPoint3(p.X + (value.X - was.X), p.Y + (value.Y - was.Y), p.Z + (value.Z - was.Z));
+                GeoPoint3 Moved(GeoPoint3 p) =>
+                    new GeoPoint3(p.X + (value.X - was.X), p.Y + (value.Y - was.Y), p.Z + (value.Z - was.Z));
                 MovePoint(ctx.Head, 10, Moved, ContextOrder, 0, -1);
 
                 foreach (LeaderPart leader in ctx.Leaders)
@@ -522,7 +541,10 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when the side is not known.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the type is not one of <see cref="DxfTextAttachmentType"/>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the top or the bottom is set in a file older than R2010 (AC1024), or the MULTILEADER is erased.</exception>
-        public void SetTextAttachmentType(DxfTextAttachmentType textAttachmentType, DxfLeaderDirectionType leaderDirection)
+        public void SetTextAttachmentType(
+            DxfTextAttachmentType textAttachmentType,
+            DxfLeaderDirectionType leaderDirection
+        )
         {
             AttachmentCodes(leaderDirection, out int code, out int context, out _, out int bit);
             bool vertical = code == 272 || code == 273;
@@ -579,9 +601,11 @@ namespace GeometryHelper.Dxf
             get
             {
                 Rec rec = Read();
-                return (DxfTextAlignmentType)Whole(rec.Context == null ? null : Text(rec.Context.Head, 176), Whole(Text(rec.After, 175), 0));
+                return (DxfTextAlignmentType)Whole(
+                    rec.Context == null ? null : Text(rec.Context.Head, 176),
+                    Whole(Text(rec.After, 175), 0)
+                );
             }
-
             set
             {
                 if (value == TextAlignmentType)
@@ -592,7 +616,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < DxfTextAlignmentType.LeftAlignment || value > DxfTextAlignmentType.RightAlignment)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "Words are lined up on the left, in the middle or on the right, 0 to 2.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "Words are lined up on the left, in the middle or on the right, 0 to 2."
+                    );
                 }
 
                 Rec rec = Read();
@@ -629,7 +657,6 @@ namespace GeometryHelper.Dxf
         public DxfTextAttachmentDirection TextAttachmentDirection
         {
             get => (DxfTextAttachmentDirection)Whole(Text(Read().After, 271), 0);
-
             set
             {
                 if (value == TextAttachmentDirection)
@@ -637,9 +664,16 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                if (value < DxfTextAttachmentDirection.AttachmentHorizontal || value > DxfTextAttachmentDirection.AttachmentVertical)
+                if (
+                    value < DxfTextAttachmentDirection.AttachmentHorizontal
+                    || value > DxfTextAttachmentDirection.AttachmentVertical
+                )
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "Leaders meet the words on the left and right, 0, or the top and bottom, 1.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "Leaders meet the words on the left and right, 0, or the top and bottom, 1."
+                    );
                 }
 
                 Item.File.Requires(1024, "the attachment direction of a MULTILEADER", "R2010 (AC1024)");
@@ -674,7 +708,6 @@ namespace GeometryHelper.Dxf
         public bool ExtendLeaderToText
         {
             get => Whole(Text(Read().After, 295), 0) != 0;
-
             set
             {
                 if (value != ExtendLeaderToText)
@@ -711,7 +744,6 @@ namespace GeometryHelper.Dxf
                 string handle = BlockText(rec, 341) ?? Text(rec.After, 344);
                 return handle == null ? null : BlockByHandle(handle.Trim());
             }
-
             set
             {
                 if (value == null)
@@ -726,7 +758,10 @@ namespace GeometryHelper.Dxf
 
                 if (value.Handle == null || BlockByHandle(value.Handle) != value || value.IsLayout)
                 {
-                    throw new ArgumentException("The content of a MULTILEADER is a block of its own drawing, not a layout.", nameof(value));
+                    throw new ArgumentException(
+                        "The content of a MULTILEADER is a block of its own drawing, not a layout.",
+                        nameof(value)
+                    );
                 }
 
                 Rec rec = Read();
@@ -768,7 +803,6 @@ namespace GeometryHelper.Dxf
         public GeoPoint3 BlockPosition
         {
             get => ContentPoint(296, BlockCodes, 15);
-
             set
             {
                 if (SamePoint(value, BlockPosition))
@@ -784,7 +818,8 @@ namespace GeometryHelper.Dxf
 
                 // The landings and the base point move with the block, its matrix left, as AutoCAD 2021 moves them
                 // (k5-BOX-moved-left, d4-k-blockscale2-moved).
-                GeoPoint3 Moved(GeoPoint3 p) => new GeoPoint3(p.X + (value.X - was.X), p.Y + (value.Y - was.Y), p.Z + (value.Z - was.Z));
+                GeoPoint3 Moved(GeoPoint3 p) =>
+                    new GeoPoint3(p.X + (value.X - was.X), p.Y + (value.Y - was.Y), p.Z + (value.Z - was.Z));
                 MovePoint(rec.Context.Head, 10, Moved, ContextOrder, 0, -1);
 
                 foreach (LeaderPart leader in rec.Context.Leaders)
@@ -824,14 +859,18 @@ namespace GeometryHelper.Dxf
                 }
 
                 double scale = ScaleOf(rec.Context);
-                return PointOf(BlockGroups(rec, out _, out _), 16, new GeoPoint3(scale, scale, scale)).ToVector().Multiply(1.0 / scale);
+                return PointOf(BlockGroups(rec, out _, out _), 16, new GeoPoint3(scale, scale, scale))
+                    .ToVector()
+                    .Multiply(1.0 / scale);
             }
-
             set
             {
                 if (!value.IsValid || value.X == 0.0 || value.Y == 0.0 || value.Z == 0.0)
                 {
-                    throw new ArgumentException("A block is scaled by finite numbers other than nought: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "A block is scaled by finite numbers other than nought: " + value + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 // Set as it is too, as AutoCAD 2021 sets it (c3-k-moved-blockscale1, c3-k-transform2-blockscale1).
@@ -845,7 +884,14 @@ namespace GeometryHelper.Dxf
                 if (from >= 0)
                 {
                     double scale = ScaleOf(ctx);
-                    PutPoint(ctx.Head, 16, new GeoPoint3(p.X * scale, p.Y * scale, p.Z * scale), ContextOrder, from, to);
+                    PutPoint(
+                        ctx.Head,
+                        16,
+                        new GeoPoint3(p.X * scale, p.Y * scale, p.Z * scale),
+                        ContextOrder,
+                        from,
+                        to
+                    );
                     Rebased(rec, ctx);
                 }
 
@@ -873,7 +919,6 @@ namespace GeometryHelper.Dxf
                 Rec rec = Read();
                 return Num(Text(rec.After, 43), Num(BlockText(rec, 46), 0.0));
             }
-
             set
             {
                 Guard.Finite(value, nameof(value), "An angle has to be a finite number.");
@@ -889,8 +934,11 @@ namespace GeometryHelper.Dxf
                 {
                     // Drawn turned from the plane's x axis as the block's own plane sees it, as AutoCAD 2021 draws it
                     // (k-rot90-blockrot30, k-mirrorxy-blockrot30): nought where the plane is the world's.
-                    GeoVector3 normal = PointOf(ctx.Head.GetRange(from, to - from), 14, new GeoPoint3(0.0, 0.0, 1.0)).ToVector();
-                    GeoVector3 planeX = new DxfOcsTransform.Axes(normal.Length > 0.0 ? normal : new GeoVector3(0.0, 0.0, 1.0)).FromWorld(PointOf(ctx.Head, 111, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
+                    GeoVector3 normal = PointOf(ctx.Head.GetRange(from, to - from), 14, new GeoPoint3(0.0, 0.0, 1.0))
+                        .ToVector();
+                    GeoVector3 planeX = new DxfOcsTransform.Axes(
+                        normal.Length > 0.0 ? normal : new GeoVector3(0.0, 0.0, 1.0)
+                    ).FromWorld(PointOf(ctx.Head, 111, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
                     double plane = Math.Atan2(planeX.Y, planeX.X);
                     PutNumber(ctx.Head, 46, plane == 0.0 ? value : value + plane, 0.0, ContextOrder, from, to);
                     Rebased(rec, ctx);
@@ -917,7 +965,6 @@ namespace GeometryHelper.Dxf
         public DxfBlockConnectionType BlockConnectionType
         {
             get => (DxfBlockConnectionType)Whole(Text(Read().After, 176), 0);
-
             set
             {
                 SetTopEnum(176, (int)value, (int)BlockConnectionType, 0, 1, 23);
@@ -987,12 +1034,18 @@ namespace GeometryHelper.Dxf
 
             if (attDefId.Handle == null)
             {
-                throw new ArgumentException("The definition of an attribute is named by its handle, and this one is in no file.", nameof(attDefId));
+                throw new ArgumentException(
+                    "The definition of an attribute is named by its handle, and this one is in no file.",
+                    nameof(attDefId)
+                );
             }
 
             string value = attributeValue.TextString;
 
-            if (string.Equals(value, GetBlockAttribute(attDefId).TextString, StringComparison.Ordinal) && AttributeAt(Read().After, attDefId.Handle) >= 0)
+            if (
+                string.Equals(value, GetBlockAttribute(attDefId).TextString, StringComparison.Ordinal)
+                && AttributeAt(Read().After, attDefId.Handle) >= 0
+            )
             {
                 return;
             }
@@ -1018,7 +1071,14 @@ namespace GeometryHelper.Dxf
                         count++;
                     }
 
-                    if (rec.After[i].Key == 330 || rec.After[i].Key == 177 || rec.After[i].Key == 44 || rec.After[i].Key == 302 || rec.After[i].Key == 345 || rec.After[i].Key == 94)
+                    if (
+                        rec.After[i].Key == 330
+                        || rec.After[i].Key == 177
+                        || rec.After[i].Key == 44
+                        || rec.After[i].Key == 302
+                        || rec.After[i].Key == 345
+                        || rec.After[i].Key == 94
+                    )
                     {
                         last = i;
                     }
@@ -1026,7 +1086,10 @@ namespace GeometryHelper.Dxf
 
                 int put = last >= 0 ? last + 1 : Math.Max(0, rec.After.FindIndex(g => g.Key == 294));
                 put = last < 0 && rec.After.FindIndex(g => g.Key == 294) < 0 ? rec.After.Count : put;
-                rec.After.InsertRange(put, new[] { G(330, attDefId.Handle), G(177, count), G(44, "1.0"), G(302, value) });
+                rec.After.InsertRange(
+                    put,
+                    new[] { G(330, attDefId.Handle), G(177, count), G(44, "1.0"), G(302, value) }
+                );
             }
 
             Write(rec);
@@ -1054,9 +1117,10 @@ namespace GeometryHelper.Dxf
             get
             {
                 Rec rec = Read();
-                return rec.Context == null || Text(rec.Context.Head, 140) == null ? Num(Text(rec.After, 42), 4.0) : Unscaled(rec.Context, 140, 4.0);
+                return rec.Context == null || Text(rec.Context.Head, 140) == null
+                    ? Num(Text(rec.After, 42), 4.0)
+                    : Unscaled(rec.Context, 140, 4.0);
             }
-
             set
             {
                 Guard.NonNegative(value, nameof(value), "An arrow's size has to be a finite number, nought or more.");
@@ -1083,7 +1147,6 @@ namespace GeometryHelper.Dxf
                 string handle = Text(Read().After, 342);
                 return handle == null ? null : BlockByHandle(handle.Trim());
             }
-
             set
             {
                 if (ReferenceEquals(value, ArrowSymbol))
@@ -1094,7 +1157,10 @@ namespace GeometryHelper.Dxf
 
                 if (value != null && (value.Handle == null || BlockByHandle(value.Handle) != value))
                 {
-                    throw new ArgumentException("The arrow of a MULTILEADER is a block of its own drawing.", nameof(value));
+                    throw new ArgumentException(
+                        "The arrow of a MULTILEADER is a block of its own drawing.",
+                        nameof(value)
+                    );
                 }
 
                 Rec rec = Read();
@@ -1148,14 +1214,17 @@ namespace GeometryHelper.Dxf
                 Rec rec = Read();
                 LeaderPart first = rec.Context != null && rec.Context.Leaders.Count > 0 ? rec.Context.Leaders[0] : null;
 
-                if (first == null || Text(first.Head, 40) == null || Whole(Text(first.Head, 271) ?? Text(first.Tail, 271), 0) != 0)
+                if (
+                    first == null
+                    || Text(first.Head, 40) == null
+                    || Whole(Text(first.Head, 271) ?? Text(first.Tail, 271), 0) != 0
+                )
                 {
                     return Num(Text(rec.After, 41), 8.0);
                 }
 
                 return Num(Text(first.Head, 40), 8.0) / ScaleOf(rec.Context);
             }
-
             set
             {
                 if (Same(value, DoglegLength))
@@ -1207,14 +1276,18 @@ namespace GeometryHelper.Dxf
         public double LandingGap
         {
             get => Unscaled(Context(Read()), 145, 2.0);
-            set => SetContextNumber(145, value, 2.0, 5, false, (rec, ctx, was) => Regapped(rec, ctx, Num(Text(ctx.Head, 145), 2.0) - was));
+            set =>
+                SetContextNumber(145, value, 2.0, 5, false, (rec, ctx, was) =>
+                    Regapped(rec, ctx, Num(Text(ctx.Head, 145), 2.0) - was)
+                );
         }
 
         /// <summary>Gets the direction of a leader's dogleg (groups 11, 21 and 31 of the leader), as AutoCAD's <c>GetDogleg</c>, in the world.</summary>
         /// <param name="leaderIndex">The index of the leader.</param>
         /// <returns>The direction.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the MULTILEADER has no leader of the index.</exception>
-        public GeoVector3 GetDogleg(int leaderIndex) => PointOf(FindLeader(Read(), leaderIndex).Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector();
+        public GeoVector3 GetDogleg(int leaderIndex) =>
+            PointOf(FindLeader(Read(), leaderIndex).Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector();
 
         /// <summary>
         /// Gives a leader's dogleg its direction, as AutoCAD's <c>SetDogleg</c>. A leader of no landing yet (<see cref="AddLeader"/>),
@@ -1235,7 +1308,10 @@ namespace GeometryHelper.Dxf
         {
             if (!vector.IsValid || !(vector.Length > 0.0))
             {
-                throw new ArgumentException("A dogleg runs along a direction of some length: " + vector + " is not.", nameof(vector));
+                throw new ArgumentException(
+                    "A dogleg runs along a direction of some length: " + vector + " is not.",
+                    nameof(vector)
+                );
             }
 
             Rec rec = Read();
@@ -1296,7 +1372,11 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the MULTILEADER is erased.</exception>
         public void SetDoglegLength(int leaderIndex, double doglegLength)
         {
-            Guard.NonNegative(doglegLength, nameof(doglegLength), "A dogleg's length has to be a finite number, nought or more.");
+            Guard.NonNegative(
+                doglegLength,
+                nameof(doglegLength),
+                "A dogleg's length has to be a finite number, nought or more."
+            );
             Rec rec = Read();
             LeaderPart leader = FindLeader(rec, leaderIndex);
             double drawn = doglegLength * Num(Text(Context(rec).Head, 40), 1.0);
@@ -1304,7 +1384,10 @@ namespace GeometryHelper.Dxf
 
             if (!Same(drawn, Num(Text(leader.Head, 40), double.NaN)))
             {
-                var before = new List<KeyValuePair<LeaderPart, double>> { new KeyValuePair<LeaderPart, double>(leader, Num(Text(leader.Head, 40), 1.0)) };
+                var before = new List<KeyValuePair<LeaderPart, double>>
+                {
+                    new KeyValuePair<LeaderPart, double>(leader, Num(Text(leader.Head, 40), 1.0)),
+                };
                 PutNumber(leader.Head, 40, drawn, double.NaN, LeaderOrder);
                 Relengthened(rec, Context(rec), before);
             }
@@ -1371,7 +1454,10 @@ namespace GeometryHelper.Dxf
 
                 foreach (DxfDBDictionaryEntry entry in Styles())
                 {
-                    if (handle != null && string.Equals(entry.Value?.Handle, handle, StringComparison.OrdinalIgnoreCase))
+                    if (
+                        handle != null
+                        && string.Equals(entry.Value?.Handle, handle, StringComparison.OrdinalIgnoreCase)
+                    )
                     {
                         return entry.Key;
                     }
@@ -1379,7 +1465,6 @@ namespace GeometryHelper.Dxf
 
                 return null;
             }
-
             set
             {
                 if (value == null)
@@ -1394,7 +1479,10 @@ namespace GeometryHelper.Dxf
 
                 foreach (DxfDBDictionaryEntry entry in Styles())
                 {
-                    if (string.Equals(entry.Key, value.Trim(), StringComparison.OrdinalIgnoreCase) && entry.Value?.Handle != null)
+                    if (
+                        string.Equals(entry.Key, value.Trim(), StringComparison.OrdinalIgnoreCase)
+                        && entry.Value?.Handle != null
+                    )
                     {
                         Rec rec = Read();
                         SetTop(rec, 340, entry.Value.Handle, -1);
@@ -1436,7 +1524,6 @@ namespace GeometryHelper.Dxf
         public double Scale
         {
             get => Num(Text(Context(Read()).Head, 40), 1.0);
-
             set
             {
                 if (Same(value, Scale))
@@ -1531,7 +1618,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gets the plane of the MULTILEADER, as AutoCAD's <c>GetPlane</c>: through the origin of its context's plane (110), of its <see cref="Normal"/>.</summary>
         /// <returns>The plane.</returns>
-        public override GeoPlane3 GetPlane() => new GeoPlane3(PointOf(Context(Read()).Head, 110, new GeoPoint3(0.0, 0.0, 0.0)), Normal);
+        public override GeoPlane3 GetPlane() =>
+            new GeoPlane3(PointOf(Context(Read()).Head, 110, new GeoPoint3(0.0, 0.0, 0.0)), Normal);
 
         /// <summary>
         /// Gets the box the MULTILEADER's points fill, as AutoCAD's <c>GeometricExtents</c> reaches them: the vertices of every
@@ -1568,7 +1656,11 @@ namespace GeometryHelper.Dxf
 
                 if (points.Count == 0)
                 {
-                    throw new InvalidOperationException("The MULTILEADER " + (Handle ?? string.Empty) + " has no line and no content: it has no extents.");
+                    throw new InvalidOperationException(
+                        "The MULTILEADER "
+                            + (Handle ?? string.Empty)
+                            + " has no line and no content: it has no extents."
+                    );
                 }
 
                 double[] box = { points[0].X, points[0].Y, points[0].Z, points[0].X, points[0].Y, points[0].Z };
@@ -1612,13 +1704,15 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gets the indices of the leaders (90 of each), in their order, as AutoCAD's <c>GetLeaderIndexes</c>.</summary>
         /// <returns>The indices.</returns>
-        public IReadOnlyList<int> GetLeaderIndexes() => (Read().Context?.Leaders ?? new List<LeaderPart>()).ConvertAll(l => l.Index).AsReadOnly();
+        public IReadOnlyList<int> GetLeaderIndexes() =>
+            (Read().Context?.Leaders ?? new List<LeaderPart>()).ConvertAll(l => l.Index).AsReadOnly();
 
         /// <summary>Gets the indices of the lines of a leader (91 of each), in their order, as AutoCAD's <c>GetLeaderLineIndexes</c>.</summary>
         /// <param name="leaderIndex">The index of the leader.</param>
         /// <returns>The indices.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the MULTILEADER has no leader of the index.</exception>
-        public IReadOnlyList<int> GetLeaderLineIndexes(int leaderIndex) => FindLeader(Read(), leaderIndex).Lines.ConvertAll(l => l.Index).AsReadOnly();
+        public IReadOnlyList<int> GetLeaderLineIndexes(int leaderIndex) =>
+            FindLeader(Read(), leaderIndex).Lines.ConvertAll(l => l.Index).AsReadOnly();
 
         /// <summary>Gets the index of the leader a line is of, as AutoCAD's <c>GetLeaderIndex</c>.</summary>
         /// <param name="leaderLineIndex">The index of the line.</param>
@@ -1668,7 +1762,8 @@ namespace GeometryHelper.Dxf
         /// <param name="leaderLineIndex">The index of the line.</param>
         /// <returns>The vertex.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the MULTILEADER has no line of the index.</exception>
-        public GeoPoint3 GetLastVertex(int leaderLineIndex) => GetVertex(leaderLineIndex, VerticesCount(leaderLineIndex) - 1);
+        public GeoPoint3 GetLastVertex(int leaderLineIndex) =>
+            GetVertex(leaderLineIndex, VerticesCount(leaderLineIndex) - 1);
 
         /// <summary>
         /// Moves a vertex of a leader line, as AutoCAD's <c>SetVertex</c>: one of its own; the last, the end of its leader's
@@ -1711,7 +1806,8 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the MULTILEADER has no line of the index.</exception>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MULTILEADER is erased.</exception>
-        public void SetLastVertex(int leaderLineIndex, GeoPoint3 point) => SetVertex(leaderLineIndex, VerticesCount(leaderLineIndex) - 1, point);
+        public void SetLastVertex(int leaderLineIndex, GeoPoint3 point) =>
+            SetVertex(leaderLineIndex, VerticesCount(leaderLineIndex) - 1, point);
 
         /// <summary>
         /// Puts a vertex in before the first of a leader line, where its arrow goes, as AutoCAD's <c>AddFirstVertex</c>. On a line
@@ -1811,7 +1907,9 @@ namespace GeometryHelper.Dxf
                 index = Math.Max(index, other.Index + 1);
             }
 
-            GeoPoint3 along = direction.HasValue ? Pt(direction.Value) : PointOf(ctx.Head, 111, new GeoPoint3(1.0, 0.0, 0.0));
+            GeoPoint3 along = direction.HasValue
+                ? Pt(direction.Value)
+                : PointOf(ctx.Head, 111, new GeoPoint3(1.0, 0.0, 0.0));
             var head = new List<KeyValuePair<int, string>> { G(290, landed ? "1" : "0"), G(291, "1") };
             head.AddRange(PointGroups(10, start));
             head.AddRange(PointGroups(11, along));
@@ -1922,7 +2020,10 @@ namespace GeometryHelper.Dxf
                     AddLeaderAt(rec, ctx, landing, back);
                     chosen = ctx.Leaders[ctx.Leaders.Count - 1];
                 }
-                else if (ContentType == DxfContentType.BlockContent && BlockLanding(rec, ctx, point, out landing, out GeoVector3 dogleg))
+                else if (
+                    ContentType == DxfContentType.BlockContent
+                    && BlockLanding(rec, ctx, point, out landing, out GeoVector3 dogleg)
+                )
                 {
                     AddLeaderAt(rec, ctx, landing, dogleg);
                     chosen = ctx.Leaders[ctx.Leaders.Count - 1];
@@ -1946,8 +2047,19 @@ namespace GeometryHelper.Dxf
                         // A point on the left of the base point of words met on their sides: the dogleg ends there, as AutoCAD 2021
                         // lands a leader it adds (check D38 g-*-addL, D38b b-held2-L); else it starts there.
                         Axes(ctx, out GeoVector3 x, out _);
-                        bool left = HasSection(ctx, 290, MTextCodes) && Whole(Text(rec.After, 271), 0) == 0 && point.GetVectorTo(basePoint).DotProduct(x) > 0.0;
-                        AddLeaderAt(rec, ctx, left ? basePoint.Add(x.Multiply(-(Num(Text(rec.After, 41), 8.0) * Num(Text(ctx.Head, 40), 1.0)))) : basePoint);
+                        bool left =
+                            HasSection(ctx, 290, MTextCodes)
+                            && Whole(Text(rec.After, 271), 0) == 0
+                            && point.GetVectorTo(basePoint).DotProduct(x) > 0.0;
+                        AddLeaderAt(
+                            rec,
+                            ctx,
+                            left
+                                ? basePoint.Add(
+                                    x.Multiply(-(Num(Text(rec.After, 41), 8.0) * Num(Text(ctx.Head, 40), 1.0)))
+                                )
+                                : basePoint
+                        );
                         chosen = ctx.Leaders[ctx.Leaders.Count - 1];
                     }
                 }
@@ -2004,7 +2116,12 @@ namespace GeometryHelper.Dxf
             // D31): under words from 100 to 110.67 a point at 103 is met on the left, one at 108 on the right.
             GeoPoint3 side = measured ? words.Add(x.Multiply(width / 2.0)) : words;
 
-            if (!(x.Length > 0.0) || !(y.Length > 0.0) || !AlongPlane(ctx, along, x) || !(point.GetVectorTo(side).DotProduct(x) > 0.0))
+            if (
+                !(x.Length > 0.0)
+                || !(y.Length > 0.0)
+                || !AlongPlane(ctx, along, x)
+                || !(point.GetVectorTo(side).DotProduct(x) > 0.0)
+            )
             {
                 return false;
             }
@@ -2016,7 +2133,8 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            double back = Num(Text(ctx.Head, 145), 2.0) + (Num(Text(rec.After, 41), 8.0) * Num(Text(ctx.Head, 40), 1.0));
+            double back =
+                Num(Text(ctx.Head, 145), 2.0) + (Num(Text(rec.After, 41), 8.0) * Num(Text(ctx.Head, 40), 1.0));
             landing = words.Add(x.Multiply(-back)).Add(y.Multiply(-below));
             return true;
         }
@@ -2047,7 +2165,10 @@ namespace GeometryHelper.Dxf
             List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
             int held = Whole(Text(m, 171), 1);
             GeoPoint3 at = PointOf(m, 12, new GeoPoint3(0.0, 0.0, 0.0));
-            GeoPoint3 middle = held == 2 && !Reversed(ctx) ? at : at.Add(x.Multiply((Reversed(ctx) || held == 3 ? -width : width) / 2.0));
+            GeoPoint3 middle =
+                held == 2 && !Reversed(ctx)
+                    ? at
+                    : at.Add(x.Multiply((Reversed(ctx) || held == 3 ? -width : width) / 2.0));
 
             if (point.GetVectorTo(middle).DotProduct(x) > 0.0)
             {
@@ -2124,7 +2245,10 @@ namespace GeometryHelper.Dxf
         {
             if (!vec.IsValid)
             {
-                throw new ArgumentException("A move is along a vector of finite numbers: " + vec + " is not.", nameof(vec));
+                throw new ArgumentException(
+                    "A move is along a vector of finite numbers: " + vec + " is not.",
+                    nameof(vec)
+                );
             }
 
             if (type == DxfMoveType.MoveAllPoints)
@@ -2135,7 +2259,11 @@ namespace GeometryHelper.Dxf
 
             if (type != DxfMoveType.MoveAllExceptArrowHeaderPoints && type != DxfMoveType.MoveContentAndDoglegPoints)
             {
-                throw new ArgumentOutOfRangeException(nameof(type), type, "A move is of everything, all but the arrows, or the content and doglegs, 0 to 2.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(type),
+                    type,
+                    "A move is of everything, all but the arrows, or the content and doglegs, 0 to 2."
+                );
             }
 
             Rec rec = Read();

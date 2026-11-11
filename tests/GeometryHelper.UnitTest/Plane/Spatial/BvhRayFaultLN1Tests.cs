@@ -44,8 +44,8 @@ namespace GeometryHelper.UnitTest.Plane
             return found.ToArray();
         }
 
-        private static bool Same(GeoPoint2[] scanned, GeoPoint2[] found)
-            => scanned.Length == found.Length && scanned.All(p => found.Any(q => q.DistanceTo(p) <= 1E-9));
+        private static bool Same(GeoPoint2[] scanned, GeoPoint2[] found) =>
+            scanned.Length == found.Length && scanned.All(p => found.Any(q => q.DistanceTo(p) <= 1E-9));
 
         [Fact]
         public void AnEdgeNearlyAlongTheRay_IsJudgedByItsOwnLength_WhateverElseIsIndexed()
@@ -78,14 +78,23 @@ namespace GeometryHelper.UnitTest.Plane
                     double length = random.NextDouble() * 150 + 0.5;
                     bool away = random.Next(4) == 0;
                     double offset = away ? random.NextDouble() * 3000 - 1500 : (random.NextDouble() - 0.5) * 0.003;
-                    double rise = away ? (random.NextDouble() - 0.5) * 100 : (random.NextDouble() - 0.5) * 0.003 - offset;
+                    double rise = away
+                        ? (random.NextDouble() - 0.5) * 100
+                        : (random.NextDouble() - 0.5) * 0.003 - offset;
                     var from = new GeoPoint2(x, height + offset);
                     var to = new GeoPoint2(x + length, height + offset + rise);
-                    edges.Add(random.Next(5) == 0 ? new GeoEdge2(from, to, random.NextDouble() * 0.02 - 0.01) : new GeoEdge2(from, to));
+                    edges.Add(
+                        random.Next(5) == 0
+                            ? new GeoEdge2(from, to, random.NextDouble() * 0.02 - 0.01)
+                            : new GeoEdge2(from, to)
+                    );
                 }
 
                 var direction = new GeoVector2(random.Next(2) == 0 ? 1 : -1, (random.NextDouble() - 0.5) * 0.0005);
-                var ray = new GeoRay2(new GeoPoint2(random.NextDouble() * 800 - 400, height + (random.NextDouble() - 0.5) * 0.002), direction);
+                var ray = new GeoRay2(
+                    new GeoPoint2(random.NextDouble() * 800 - 400, height + (random.NextDouble() - 0.5) * 0.002),
+                    direction
+                );
 
                 GeoPoint2[] scanned = Scan(edges, ray, Thousandth);
                 GeoPoint2[] found = new GeoBvh2(edges).GetIntersections(ray, Thousandth);
@@ -112,20 +121,24 @@ namespace GeometryHelper.UnitTest.Plane
                 for (int j = 0; j < 30; j++)
                 {
                     edges.Add(new GeoEdge2(new GeoPoint2(i * 10, j * 10), new GeoPoint2(i * 10 + 8, j * 10 + 1)));
-                    edges.Add(new GeoEdge2(new GeoPoint2(i * 10 + 8, j * 10 + 1), new GeoPoint2(i * 10 + 7, j * 10 + 8), 0.3));
+                    edges.Add(
+                        new GeoEdge2(new GeoPoint2(i * 10 + 8, j * 10 + 1), new GeoPoint2(i * 10 + 7, j * 10 + 8), 0.3)
+                    );
                 }
             }
 
             var index = new GeoBvh2(edges);
 
-            foreach (GeoRay2 ray in new[]
-            {
-                new GeoRay2(new GeoPoint2(-5, -5), new GeoVector2(1, 1)),
-                new GeoRay2(new GeoPoint2(150.5, 3.3), new GeoVector2(1, 0.31)),
-                new GeoRay2(new GeoPoint2(150.5, 3.3), new GeoVector2(-1, -0.31)),
-                new GeoRay2(new GeoPoint2(3, 3), GeoVector2.YAxis),
-                new GeoRay2(new GeoPoint2(400, 400), new GeoVector2(-1, -1)),
-            })
+            foreach (
+                GeoRay2 ray in new[]
+                {
+                    new GeoRay2(new GeoPoint2(-5, -5), new GeoVector2(1, 1)),
+                    new GeoRay2(new GeoPoint2(150.5, 3.3), new GeoVector2(1, 0.31)),
+                    new GeoRay2(new GeoPoint2(150.5, 3.3), new GeoVector2(-1, -0.31)),
+                    new GeoRay2(new GeoPoint2(3, 3), GeoVector2.YAxis),
+                    new GeoRay2(new GeoPoint2(400, 400), new GeoVector2(-1, -1)),
+                }
+            )
             {
                 GeoPoint2[] scanned = Scan(edges, ray, Strict);
 
@@ -137,11 +150,18 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ARayPointingAwayFromEverything_CrossesNothing()
         {
-            var edges = new[] { new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(100, 0)), new GeoEdge2(new GeoPoint2(100, 0), new GeoPoint2(100, 100)) };
+            var edges = new[]
+            {
+                new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(100, 0)),
+                new GeoEdge2(new GeoPoint2(100, 0), new GeoPoint2(100, 100)),
+            };
             var index = new GeoBvh2(edges);
 
             Assert.Empty(index.GetIntersections(new GeoRay2(new GeoPoint2(200, 50), GeoVector2.XAxis), Thousandth));
-            Assert.Equal(2, index.GetIntersections(new GeoRay2(new GeoPoint2(200, 50), new GeoVector2(-1, -0.3)), Thousandth).Length);
+            Assert.Equal(
+                2,
+                index.GetIntersections(new GeoRay2(new GeoPoint2(200, 50), new GeoVector2(-1, -0.3)), Thousandth).Length
+            );
         }
     }
 }

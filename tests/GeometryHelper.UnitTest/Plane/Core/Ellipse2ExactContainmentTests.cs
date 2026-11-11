@@ -15,12 +15,18 @@ namespace GeometryHelper.UnitTest.Plane
         private static readonly Tolerance Tol = Tolerance.Default;
 
         /// <summary>An ellipse 0.0002 by 0.0001 whose centre stands 0.0004 right of x = 100, so that its rim is 0.0002 off.</summary>
-        private static GeoEllipse2 Speck() => new GeoEllipse2(new GeoPoint2(100.0004, 50), GeoVector2.XAxis, 0.0002, 0.0001);
+        private static GeoEllipse2 Speck() =>
+            new GeoEllipse2(new GeoPoint2(100.0004, 50), GeoVector2.XAxis, 0.0002, 0.0001);
 
         [Fact]
         public void ATinyEllipseWhoseCentreIsInsideTheToleranceOfAPolygon_IsTheGapFromIt()
         {
-            var polygon = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+            var polygon = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(0, 100)
+            );
 
             Assert.InRange(Speck().DistanceTo(polygon, Tol), 0.0002 - 1E-11, 0.0002 + 1E-11);
             Assert.True(Speck().CollidesWith(polygon, Tol));
@@ -40,7 +46,8 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var loop = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
-                new[] { 0.0, 0, 0, 0 });
+                new[] { 0.0, 0, 0, 0 }
+            );
 
             Assert.InRange(Speck().DistanceTo(loop, Tol), 0.0002 - 1E-11, 0.0002 + 1E-11);
             Assert.True(Speck().CollidesWith(loop, Tol));
@@ -50,7 +57,12 @@ namespace GeometryHelper.UnitTest.Plane
         public void ATinyEllipseBeyondTheToleranceOfAPolygon_IsTheGapFromItAndDoesNotCollide()
         {
             // A control: 0.0008 right of the side, at a tolerance of 0.0001, the rim is 0.0006 off and past the tolerance.
-            var polygon = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+            var polygon = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(0, 100)
+            );
             var speck = new GeoEllipse2(new GeoPoint2(100.0008, 50), GeoVector2.XAxis, 0.0002, 0.0001);
             var tight = new Tolerance(0.0001, Tolerance.DefaultEqualVector);
 
@@ -73,12 +85,16 @@ namespace GeometryHelper.UnitTest.Plane
         private static Tolerance At(double equalPoint) => new Tolerance(equalPoint, Tolerance.DefaultEqualVector);
 
         /// <summary>The left half of the circle of radius r whose leftmost point, (60.0005, 0), is 0.0005 off the end of the ellipse 60 by 25.</summary>
-        private static GeoArc2 TinyArc(double r) => new GeoArc2(new GeoPoint2(60.0005 + r, 0), r, Math.PI / 2, 3 * Math.PI / 2);
+        private static GeoArc2 TinyArc(double r) =>
+            new GeoArc2(new GeoPoint2(60.0005 + r, 0), r, Math.PI / 2, 3 * Math.PI / 2);
 
         [Theory]
         [InlineData(0.0008, 0.001)]
         [InlineData(0.05, 0.1)]
-        public void AnArcNoLargerThanTheToleranceHalfAToleranceOffTheRim_IsThatFarAwayAndCollides(double radius, double equalPoint)
+        public void AnArcNoLargerThanTheToleranceHalfAToleranceOffTheRim_IsThatFarAwayAndCollides(
+            double radius,
+            double equalPoint
+        )
         {
             // GetParameterAtPoint snaps a point within the tolerance of the arc's centre to its start, so the arc used to be
             // weighed at its two ends only: 0.0013 for the first, 0.0506 for the second.
@@ -130,8 +146,22 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // 600 ellipses, in the hole of a square plate, outside it, and across its rims, at four tolerances.
             var plate = new GeoFace2(
-                new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200)),
-                new[] { new GeoPolygon2(new GeoPoint2(60, 60), new GeoPoint2(140, 60), new GeoPoint2(140, 140), new GeoPoint2(60, 140)) });
+                new GeoPolygon2(
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(200, 0),
+                    new GeoPoint2(200, 200),
+                    new GeoPoint2(0, 200)
+                ),
+                new[]
+                {
+                    new GeoPolygon2(
+                        new GeoPoint2(60, 60),
+                        new GeoPoint2(140, 60),
+                        new GeoPoint2(140, 140),
+                        new GeoPoint2(60, 140)
+                    ),
+                }
+            );
             var random = new Random(4172);
             int collided = 0;
             int apart = 0;
@@ -143,7 +173,10 @@ namespace GeometryHelper.UnitTest.Plane
                 double turn = Math.PI * random.NextDouble();
                 var ellipse = new GeoEllipse2(
                     new GeoPoint2(-40 + 280 * random.NextDouble(), -40 + 280 * random.NextDouble()),
-                    new GeoVector2(Math.Cos(turn), Math.Sin(turn)), a, b);
+                    new GeoVector2(Math.Cos(turn), Math.Sin(turn)),
+                    a,
+                    b
+                );
                 Tolerance tol = At(new[] { 1E-4, 1E-3, 1E-2, 0.5 }[i % 4]);
 
                 bool collides = ellipse.CollidesWith(plate, tol);
@@ -163,10 +196,12 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         /// <summary>The triangle (0, 0), (0, 100), (0.08, 100): its top is 0.08 wide, less than a tolerance of 0.1, and its left side is the line x = 0.</summary>
-        private static GeoTriangle2 Sliver() => new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(0, 100), new GeoPoint2(0.08, 100));
+        private static GeoTriangle2 Sliver() =>
+            new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(0, 100), new GeoPoint2(0.08, 100));
 
         /// <summary>The ellipse 30 by 10 whose right end, (-0.15, 50), is 0.15 off the left side of the sliver; read as its longest side, (0, 0) to (0.08, 100), the triangle stands 0.19 away.</summary>
-        private static GeoEllipse2 BesideTheSliver() => new GeoEllipse2(new GeoPoint2(-30.15, 50), GeoVector2.XAxis, 30, 10);
+        private static GeoEllipse2 BesideTheSliver() =>
+            new GeoEllipse2(new GeoPoint2(-30.15, 50), GeoVector2.XAxis, 30, 10);
 
         [Fact]
         public void ASliverTriangleWithASideShorterThanTheTolerance_IsMeasuredBySidesNotAsItsLongestSide()
@@ -185,7 +220,10 @@ namespace GeometryHelper.UnitTest.Plane
         [Theory]
         [InlineData(0.14, false)]
         [InlineData(0.17, true)]
-        public void ASliverTriangleWithASideShorterThanTheTolerance_CollidesWhereItsSidesComeWithinTheTolerance(double equalPoint, bool expected)
+        public void ASliverTriangleWithASideShorterThanTheTolerance_CollidesWhereItsSidesComeWithinTheTolerance(
+            double equalPoint,
+            bool expected
+        )
         {
             // 0.15 away by its sides; the longest side alone, 0.19 away, would not collide at 0.17.
             Assert.Equal(expected, BesideTheSliver().CollidesWith(Sliver(), At(equalPoint)));

@@ -39,7 +39,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (owner != null && owner.WindowState != WindowState.Minimized)
             {
                 window.WindowStartupLocation = WindowStartupLocation.Manual;
-                Rect bounds = owner.WindowState == WindowState.Maximized ? SystemParameters.WorkArea : new Rect(owner.Left, owner.Top, owner.ActualWidth, owner.ActualHeight);
+                Rect bounds =
+                    owner.WindowState == WindowState.Maximized
+                        ? SystemParameters.WorkArea
+                        : new Rect(owner.Left, owner.Top, owner.ActualWidth, owner.ActualHeight);
                 window.Left = bounds.Left;
                 window.Top = bounds.Top;
                 window.Width = bounds.Width;

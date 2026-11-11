@@ -63,31 +63,55 @@ namespace GeometryHelper.UnitTest.Solid
                     angles[i] = 2 * Math.PI * i / n + U(0, 2 * Math.PI / n * 0.8);
                 }
 
-                return new GeoPolygon2(angles.Select(a =>
-                {
-                    double r = U(rMin, rMax);
-                    return new GeoPoint2(c.X + r * Math.Cos(a), c.Y + r * Math.Sin(a));
-                }));
+                return new GeoPolygon2(
+                    angles.Select(a =>
+                    {
+                        double r = U(rMin, rMax);
+                        return new GeoPoint2(c.X + r * Math.Cos(a), c.Y + r * Math.Sin(a));
+                    })
+                );
             }
 
             public object Shape2(int kind)
             {
                 switch (kind)
                 {
-                    case 0: return P2();
-                    case 1: return new GeoLine2(P2(), P2());
-                    case 2: { double s = U(0, 6); return new GeoArc2(P2(), U(10, 60), s, s + U(0.3, 5.5)); }
-                    case 3: return new GeoCircle2(P2(), U(10, 60));
-                    case 4: return new GeoPolyline2(P2(), P2(), P2(), P2());
-                    case 5: return Star(P2(), 20, 60, 6);
-                    case 6: return new GeoRectangle2(P2(), U(20, 80), U(20, 80), U(0, 3));
-                    case 7: return new GeoPolygonArc2(Star(P2(), 30, 60, 5)).Fillet(4.0);
-                    case 8: return new GeoPolylineArc2(new GeoPolyline2(P2(), P2(), P2())).Fillet(5.0);
+                    case 0:
+                        return P2();
+                    case 1:
+                        return new GeoLine2(P2(), P2());
+                    case 2:
+                    {
+                        double s = U(0, 6);
+                        return new GeoArc2(P2(), U(10, 60), s, s + U(0.3, 5.5));
+                    }
+                    case 3:
+                        return new GeoCircle2(P2(), U(10, 60));
+                    case 4:
+                        return new GeoPolyline2(P2(), P2(), P2(), P2());
+                    case 5:
+                        return Star(P2(), 20, 60, 6);
+                    case 6:
+                        return new GeoRectangle2(P2(), U(20, 80), U(20, 80), U(0, 3));
+                    case 7:
+                        return new GeoPolygonArc2(Star(P2(), 30, 60, 5)).Fillet(4.0);
+                    case 8:
+                        return new GeoPolylineArc2(new GeoPolyline2(P2(), P2(), P2())).Fillet(5.0);
                     case 9:
                     {
                         GeoPoint2 c = P2();
-                        var outer = new GeoPolygon2(new GeoPoint2(c.X - 50, c.Y - 50), new GeoPoint2(c.X + 50, c.Y - 50), new GeoPoint2(c.X + 50, c.Y + 50), new GeoPoint2(c.X - 50, c.Y + 50));
-                        var hole = new GeoPolygon2(new GeoPoint2(c.X - 15, c.Y - 15), new GeoPoint2(c.X + 15, c.Y - 15), new GeoPoint2(c.X + 15, c.Y + 15), new GeoPoint2(c.X - 15, c.Y + 15));
+                        var outer = new GeoPolygon2(
+                            new GeoPoint2(c.X - 50, c.Y - 50),
+                            new GeoPoint2(c.X + 50, c.Y - 50),
+                            new GeoPoint2(c.X + 50, c.Y + 50),
+                            new GeoPoint2(c.X - 50, c.Y + 50)
+                        );
+                        var hole = new GeoPolygon2(
+                            new GeoPoint2(c.X - 15, c.Y - 15),
+                            new GeoPoint2(c.X + 15, c.Y - 15),
+                            new GeoPoint2(c.X + 15, c.Y + 15),
+                            new GeoPoint2(c.X - 15, c.Y + 15)
+                        );
                         return new GeoFace2(outer, new[] { hole });
                     }
                     default:
@@ -110,8 +134,7 @@ namespace GeometryHelper.UnitTest.Solid
                 do
                 {
                     v = new GeoVector3(U(-1, 1), U(-1, 1), U(-1, 1));
-                }
-                while (v.Length < 0.2);
+                } while (v.Length < 0.2);
 
                 return v.Normalize();
             }
@@ -121,38 +144,80 @@ namespace GeometryHelper.UnitTest.Solid
                 var plane = new GeoPlane3(c, V3());
                 plane.GetAxes(out GeoVector3 u, out GeoVector3 v);
 
-                return new GeoPolygon3(Enumerable.Range(0, n).Select(i =>
-                {
-                    double a = 2 * Math.PI * i / n + U(0, 2 * Math.PI / n * 0.8);
-                    double r = U(rMin, rMax);
-                    return c.Add(u.Multiply(r * Math.Cos(a))).Add(v.Multiply(r * Math.Sin(a)));
-                }));
+                return new GeoPolygon3(
+                    Enumerable
+                        .Range(0, n)
+                        .Select(i =>
+                        {
+                            double a = 2 * Math.PI * i / n + U(0, 2 * Math.PI / n * 0.8);
+                            double r = U(rMin, rMax);
+                            return c.Add(u.Multiply(r * Math.Cos(a))).Add(v.Multiply(r * Math.Sin(a)));
+                        })
+                );
             }
 
             public object Shape3(int kind)
             {
                 switch (kind)
                 {
-                    case 0: return P3();
-                    case 1: return new GeoLine3(P3(), P3());
-                    case 2: return new GeoRay3(P3(), V3());
-                    case 3: return new GeoPlane3(P3(), V3());
-                    case 4: return new GeoTriangle3(P3(), P3(), P3());
-                    case 5: return Planar(P3(), 20, 60, 6);
-                    case 6: return new GeoFace3(Planar(P3(), 30, 60, 5));
-                    case 7: { GeoVector3 x = V3(); GeoVector3 y = x.CrossProduct(V3()).Normalize(); return new GeoObb3(P3(), U(10, 80), U(10, 80), U(10, 80), x, y); }
-                    case 8: { GeoPoint3 a = P3(); return new GeoAabb3(a, a.Add(new GeoVector3(U(10, 80), U(10, 80), U(10, 80)))); }
-                    case 9: { GeoPoint3 c = P3(); double s = U(10, 50); return new GeoAabb3(new GeoPoint3(c.X - s, c.Y - s, c.Z - s), new GeoPoint3(c.X + s, c.Y + s, c.Z + s)).ToObb().ToSolid(); }
-                    case 10: return new GeoPolyline3(P3(), P3(), P3(), P3());
-                    case 11: { GeoPoint3 a = P3(); return GeoArc3.FromThreePoints(a, a.Add(V3().Multiply(U(20, 60))), a.Add(V3().Multiply(U(20, 60)))); }
-                    case 12: return new GeoCircle3(P3(), V3(), U(10, 60));
-                    default: return new GeoPolyline3(P3(), P3(), P3()).Fillet(5.0);
+                    case 0:
+                        return P3();
+                    case 1:
+                        return new GeoLine3(P3(), P3());
+                    case 2:
+                        return new GeoRay3(P3(), V3());
+                    case 3:
+                        return new GeoPlane3(P3(), V3());
+                    case 4:
+                        return new GeoTriangle3(P3(), P3(), P3());
+                    case 5:
+                        return Planar(P3(), 20, 60, 6);
+                    case 6:
+                        return new GeoFace3(Planar(P3(), 30, 60, 5));
+                    case 7:
+                    {
+                        GeoVector3 x = V3();
+                        GeoVector3 y = x.CrossProduct(V3()).Normalize();
+                        return new GeoObb3(P3(), U(10, 80), U(10, 80), U(10, 80), x, y);
+                    }
+                    case 8:
+                    {
+                        GeoPoint3 a = P3();
+                        return new GeoAabb3(a, a.Add(new GeoVector3(U(10, 80), U(10, 80), U(10, 80))));
+                    }
+                    case 9:
+                    {
+                        GeoPoint3 c = P3();
+                        double s = U(10, 50);
+                        return new GeoAabb3(
+                            new GeoPoint3(c.X - s, c.Y - s, c.Z - s),
+                            new GeoPoint3(c.X + s, c.Y + s, c.Z + s)
+                        )
+                            .ToObb()
+                            .ToSolid();
+                    }
+                    case 10:
+                        return new GeoPolyline3(P3(), P3(), P3(), P3());
+                    case 11:
+                    {
+                        GeoPoint3 a = P3();
+                        return GeoArc3.FromThreePoints(
+                            a,
+                            a.Add(V3().Multiply(U(20, 60))),
+                            a.Add(V3().Multiply(U(20, 60)))
+                        );
+                    }
+                    case 12:
+                        return new GeoCircle3(P3(), V3(), U(10, 60));
+                    default:
+                        return new GeoPolyline3(P3(), P3(), P3()).Fillet(5.0);
                 }
             }
 
             public GeoTransform3 Turn() => GeoTransform3.RotationAxis(P3(), V3(), U(0, 6));
 
-            public GeoTransform3 Far() => GeoTransform3.Translation(new GeoVector3(U(-1e6, 1e6), U(-1e6, 1e6), U(-1e5, 1e5)));
+            public GeoTransform3 Far() =>
+                GeoTransform3.Translation(new GeoVector3(U(-1e6, 1e6), U(-1e6, 1e6), U(-1e5, 1e5)));
 
             #endregion
 
@@ -218,7 +283,12 @@ namespace GeometryHelper.UnitTest.Solid
 
                     if (c.Value != d.Value <= 1E-4)
                     {
-                        Note("COLLIDES BUT APART, OR TOUCHES BUT NOT", a, b, "collides " + c.Value + ", distance " + d.Value);
+                        Note(
+                            "COLLIDES BUT APART, OR TOUCHES BUT NOT",
+                            a,
+                            b,
+                            "collides " + c.Value + ", distance " + d.Value
+                        );
                     }
                 }
 
@@ -283,7 +353,12 @@ namespace GeometryHelper.UnitTest.Solid
                     Note("MOVED (" + how + ") CHANGES THE DISTANCE", a, b, before + " -> " + after);
                 }
 
-                if (before > 1E-3 && Call(a, "CollidesWith", b) is bool was && Call(movedA, "CollidesWith", movedB) is bool now && was != now)
+                if (
+                    before > 1E-3
+                    && Call(a, "CollidesWith", b) is bool was
+                    && Call(movedA, "CollidesWith", movedB) is bool now
+                    && was != now
+                )
                 {
                     Note("MOVED (" + how + ") CHANGES THE COLLISION", a, b, was + " -> " + now);
                 }
@@ -312,7 +387,12 @@ namespace GeometryHelper.UnitTest.Solid
 
                         if (!c)
                         {
-                            Note("INSIDE BUT NOT TOUCHING", container, probe, "asked from the " + (from == container ? "container" : "probe"));
+                            Note(
+                                "INSIDE BUT NOT TOUCHING",
+                                container,
+                                probe,
+                                "asked from the " + (from == container ? "container" : "probe")
+                            );
                         }
                     }
 
@@ -328,7 +408,9 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static object Call(object target, string name, object argument)
         {
-            MethodInfo method = target.GetType().GetMethod(name, BindingFlags.Public | BindingFlags.Instance, null, new[] { argument.GetType() }, null);
+            MethodInfo method = target
+                .GetType()
+                .GetMethod(name, BindingFlags.Public | BindingFlags.Instance, null, new[] { argument.GetType() }, null);
 
             if (method == null)
             {
@@ -401,8 +483,18 @@ namespace GeometryHelper.UnitTest.Solid
         public void AShapeWhollyInsideAClosedOneIsNoughtAwayAndTouches()
         {
             var sweeper = new Sweeper(1);
-            var square = new GeoPolygon2(new GeoPoint2(-100, -100), new GeoPoint2(100, -100), new GeoPoint2(100, 100), new GeoPoint2(-100, 100));
-            var small = new GeoPolygon2(new GeoPoint2(-20, -20), new GeoPoint2(20, -20), new GeoPoint2(20, 20), new GeoPoint2(-20, 20));
+            var square = new GeoPolygon2(
+                new GeoPoint2(-100, -100),
+                new GeoPoint2(100, -100),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(-100, 100)
+            );
+            var small = new GeoPolygon2(
+                new GeoPoint2(-20, -20),
+                new GeoPoint2(20, -20),
+                new GeoPoint2(20, 20),
+                new GeoPoint2(-20, 20)
+            );
             object[] containers2 =
             {
                 new GeoCircle2(new GeoPoint2(0, 0), 150),
@@ -420,21 +512,30 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoEdge2(new GeoPoint2(-20, 0), new GeoPoint2(20, 5)),
                 new GeoEdge2(new GeoArc2(new GeoPoint2(0, 0), 30, 0, Math.PI)),
                 new GeoPolyline2(new GeoPoint2(-20, 0), new GeoPoint2(20, 0), new GeoPoint2(20, 20)),
-                new GeoPolylineArc2(new GeoPolyline2(new GeoPoint2(-20, 0), new GeoPoint2(20, 0), new GeoPoint2(20, 20))).Fillet(5),
+                new GeoPolylineArc2(
+                    new GeoPolyline2(new GeoPoint2(-20, 0), new GeoPoint2(20, 0), new GeoPoint2(20, 20))
+                ).Fillet(5),
                 small,
                 new GeoRectangle2(new GeoPoint2(0, 0), 40, 40),
                 new GeoPolygonArc2(small).Fillet(5),
                 new GeoFace2(small),
             };
 
-            GeoSolid3 cube = new GeoAabb3(new GeoPoint3(-100, -100, -100), new GeoPoint3(100, 100, 100)).ToObb().ToSolid();
+            GeoSolid3 cube = new GeoAabb3(new GeoPoint3(-100, -100, -100), new GeoPoint3(100, 100, 100))
+                .ToObb()
+                .ToSolid();
             object[] containers3 =
             {
                 cube,
                 new GeoObb3(GeoPoint3.Origin, 200, 200, 200),
                 new GeoAabb3(new GeoPoint3(-100, -100, -100), new GeoPoint3(100, 100, 100)),
             };
-            var poly = new GeoPolygon3(new GeoPoint3(-20, -20, 5), new GeoPoint3(20, -20, 5), new GeoPoint3(20, 20, 5), new GeoPoint3(-20, 20, 5));
+            var poly = new GeoPolygon3(
+                new GeoPoint3(-20, -20, 5),
+                new GeoPoint3(20, -20, 5),
+                new GeoPoint3(20, 20, 5),
+                new GeoPoint3(-20, 20, 5)
+            );
             object[] probes3 =
             {
                 new GeoPoint3(10, 5, 3),

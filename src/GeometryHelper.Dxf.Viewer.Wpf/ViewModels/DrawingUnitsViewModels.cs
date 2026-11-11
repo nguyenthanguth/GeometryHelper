@@ -13,8 +13,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </summary>
     public sealed class DrawingUnitsViewModel : ObservableObject
     {
-        private static readonly string[] LengthNames = { "Scientific", "Decimal", "Engineering", "Architectural", "Fractional" };
-        private static readonly string[] AngleNames = { "Decimal Degrees", "Deg/Min/Sec", "Grads", "Radians", "Surveyor's Units" };
+        private static readonly string[] LengthNames =
+        {
+            "Scientific",
+            "Decimal",
+            "Engineering",
+            "Architectural",
+            "Fractional",
+        };
+        private static readonly string[] AngleNames =
+        {
+            "Decimal Degrees",
+            "Deg/Min/Sec",
+            "Grads",
+            "Radians",
+            "Surveyor's Units",
+        };
 
         /// <summary>Makes the dialog over a request.</summary>
         /// <param name="request">The request of UNITS.</param>
@@ -32,7 +46,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public Func<DirectionControlViewModel, bool> ShowDirection { get; set; }
 
         /// <summary>Gets the length types, in the order of the board's list: Decimal, Architectural, Engineering, Fractional, Scientific.</summary>
-        public IReadOnlyList<string> LengthTypes { get; } = new[] { "Decimal", "Architectural", "Engineering", "Fractional", "Scientific" };
+        public IReadOnlyList<string> LengthTypes { get; } =
+            new[] { "Decimal", "Architectural", "Engineering", "Fractional", "Scientific" };
 
         /// <summary>Gets the angle types: Decimal Degrees, Deg/Min/Sec, Grads, Radians, Surveyor's Units.</summary>
         public IReadOnlyList<string> AngleTypes => AngleNames;
@@ -111,10 +126,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets or sets whether angles grow clockwise (ANGDIR).</summary>
-        public bool Clockwise { get => Request.Clockwise; set { Request.Clockwise = value; Changed(nameof(Clockwise)); } }
+        public bool Clockwise
+        {
+            get => Request.Clockwise;
+            set
+            {
+                Request.Clockwise = value;
+                Changed(nameof(Clockwise));
+            }
+        }
 
         /// <summary>Gets or sets the units of Insertion scale (INSUNITS).</summary>
-        public DxfUnits InsertionUnits { get => Request.InsertionUnits; set { Request.InsertionUnits = value; Changed(nameof(InsertionUnits)); } }
+        public DxfUnits InsertionUnits
+        {
+            get => Request.InsertionUnits;
+            set
+            {
+                Request.InsertionUnits = value;
+                Changed(nameof(InsertionUnits));
+            }
+        }
 
         /// <summary>Gets the first line of Sample Output.</summary>
         public string SampleLength => Request.SampleLength;
@@ -148,7 +179,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case 3:
                     return "0'-0" + (places == 0 ? string.Empty : "." + new string('0', places)) + "\"";
                 case 4:
-                    return places == 0 ? "0'-0\"" : "0'-0 1/" + (1 << places).ToString(CultureInfo.InvariantCulture) + "\"";
+                    return places == 0
+                        ? "0'-0\""
+                        : "0'-0 1/" + (1 << places).ToString(CultureInfo.InvariantCulture) + "\"";
                 case 5:
                     return places == 0 ? "0" : "0 1/" + (1 << places).ToString(CultureInfo.InvariantCulture);
                 case 1:
@@ -164,7 +197,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 case 1:
                 case 4:
-                    string dms = places == 0 ? "0d" : places <= 2 ? "0d" + new string('0', places) + "'" : "0d00'" + new string('0', Math.Min(2, places - 2)) + (places > 4 ? "." + new string('0', places - 4) : string.Empty) + "\"";
+                    string dms =
+                        places == 0 ? "0d"
+                        : places <= 2 ? "0d" + new string('0', places) + "'"
+                        : "0d00'"
+                            + new string('0', Math.Min(2, places - 2))
+                            + (places > 4 ? "." + new string('0', places - 4) : string.Empty)
+                            + "\"";
                     return Request.AngleUnits == 4 ? "N " + dms + " E" : dms;
                 case 2:
                     return (places == 0 ? "0" : "0." + new string('0', places)) + "g";
@@ -213,16 +252,32 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public CadUnitsRequest Request { get; }
 
         /// <summary>Gets or sets whether East (0) is chosen.</summary>
-        public bool East { get => Is(0.0); set => Choose(value, 0.0); }
+        public bool East
+        {
+            get => Is(0.0);
+            set => Choose(value, 0.0);
+        }
 
         /// <summary>Gets or sets whether North (90) is chosen.</summary>
-        public bool North { get => Is(90.0); set => Choose(value, 90.0); }
+        public bool North
+        {
+            get => Is(90.0);
+            set => Choose(value, 90.0);
+        }
 
         /// <summary>Gets or sets whether West (180) is chosen.</summary>
-        public bool West { get => Is(180.0); set => Choose(value, 180.0); }
+        public bool West
+        {
+            get => Is(180.0);
+            set => Choose(value, 180.0);
+        }
 
         /// <summary>Gets or sets whether South (270) is chosen.</summary>
-        public bool South { get => Is(270.0); set => Choose(value, 270.0); }
+        public bool South
+        {
+            get => Is(270.0);
+            set => Choose(value, 270.0);
+        }
 
         /// <summary>Gets or sets whether Other is chosen, which opens Angle and its pick.</summary>
         public bool Other
@@ -239,7 +294,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets or sets the angle of Other as typed, in the angle units of the dialog.</summary>
-        public string Angle { get => _angle; set => Set(ref _angle, value ?? string.Empty); }
+        public string Angle
+        {
+            get => _angle;
+            set => Set(ref _angle, value ?? string.Empty);
+        }
 
         /// <summary>Pick an angle: the dialogs closed for the command line to ask two points.</summary>
         public void Pick() => Request.Action = CadDialogAction.SelectObjects;

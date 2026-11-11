@@ -16,13 +16,18 @@ namespace GeometryHelper.Core
     /// </remarks>
     internal static class BoxFit
     {
-        internal static GeoRectangle2 Rectangle(IEnumerable<GeoPoint2> points, Tolerance tolerance) => Rectangle(points, tolerance, null);
+        internal static GeoRectangle2 Rectangle(IEnumerable<GeoPoint2> points, Tolerance tolerance) =>
+            Rectangle(points, tolerance, null);
 
         /// <summary>
         /// Gets the rectangle of least area round points, the first found of any as small, and, where a list is given for them, every
         /// rectangle tried, one along each edge of their hull, that is as small to rounding, in the order tried.
         /// </summary>
-        private static GeoRectangle2 Rectangle(IEnumerable<GeoPoint2> points, Tolerance tolerance, List<GeoRectangle2> tried)
+        private static GeoRectangle2 Rectangle(
+            IEnumerable<GeoPoint2> points,
+            Tolerance tolerance,
+            List<GeoRectangle2> tried
+        )
         {
             if (points == null)
             {
@@ -36,7 +41,9 @@ namespace GeometryHelper.Core
                 throw new ArgumentException("There are no points to fit round.", nameof(points));
             }
 
-            IReadOnlyList<GeoPoint2> corners = ConvexHull2.TryOf(all, out GeoPolygon2 hull, tolerance) ? hull.Vertices : all;
+            IReadOnlyList<GeoPoint2> corners = ConvexHull2.TryOf(all, out GeoPolygon2 hull, tolerance)
+                ? hull.Vertices
+                : all;
             var directions = new List<GeoVector2>();
 
             if (hull != null)
@@ -59,7 +66,16 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < directions.Count; i++)
             {
-                double area = Spans(corners, directions[i], out GeoVector2 along, out GeoVector2 across, out double minS, out double maxS, out double minT, out double maxT);
+                double area = Spans(
+                    corners,
+                    directions[i],
+                    out GeoVector2 along,
+                    out GeoVector2 across,
+                    out double minS,
+                    out double maxS,
+                    out double minT,
+                    out double maxT
+                );
 
                 if (areas != null)
                 {
@@ -78,7 +94,16 @@ namespace GeometryHelper.Core
             {
                 if (!(Math.Abs(areas[i] - least) > 1E-9 * Math.Max(Math.Abs(areas[i]), Math.Abs(least))))
                 {
-                    Spans(corners, directions[i], out GeoVector2 along, out GeoVector2 across, out double minS, out double maxS, out double minT, out double maxT);
+                    Spans(
+                        corners,
+                        directions[i],
+                        out GeoVector2 along,
+                        out GeoVector2 across,
+                        out double minS,
+                        out double maxS,
+                        out double minT,
+                        out double maxT
+                    );
                     tried.Add(Around(along, across, minS, maxS, minT, maxT));
                 }
             }
@@ -89,7 +114,16 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the area of the rectangle round some corners along a direction, and how far they reach along it and across it.
         /// </summary>
-        private static double Spans(IReadOnlyList<GeoPoint2> corners, GeoVector2 direction, out GeoVector2 along, out GeoVector2 across, out double minS, out double maxS, out double minT, out double maxT)
+        private static double Spans(
+            IReadOnlyList<GeoPoint2> corners,
+            GeoVector2 direction,
+            out GeoVector2 along,
+            out GeoVector2 across,
+            out double minS,
+            out double maxS,
+            out double minT,
+            out double maxT
+        )
         {
             double length = direction.Length;
             along = length > 0.0 ? direction.Multiply(1.0 / length) : new GeoVector2(1.0, 0.0);
@@ -116,7 +150,14 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the rectangle a direction and the reach of some corners along it and across it make.
         /// </summary>
-        private static GeoRectangle2 Around(GeoVector2 along, GeoVector2 across, double minS, double maxS, double minT, double maxT)
+        private static GeoRectangle2 Around(
+            GeoVector2 along,
+            GeoVector2 across,
+            double minS,
+            double maxS,
+            double minT,
+            double maxT
+        )
         {
             double s0 = (minS + maxS) * 0.5;
             double t0 = (minT + maxT) * 0.5;
@@ -207,9 +248,18 @@ namespace GeometryHelper.Core
                         double sin = Math.Sin(base_.AngleRad);
                         GeoVector3 axisX = u.Multiply(cos).Add(v.Multiply(sin));
                         GeoVector3 axisY = u.Multiply(-sin).Add(v.Multiply(cos));
-                        GeoVector3 centre = u.Multiply(base_.Center.X).Add(v.Multiply(base_.Center.Y)).Add(normal.Multiply((minN + maxN) * 0.5));
+                        GeoVector3 centre = u.Multiply(base_.Center.X)
+                            .Add(v.Multiply(base_.Center.Y))
+                            .Add(normal.Multiply((minN + maxN) * 0.5));
 
-                        best = new GeoObb3(new GeoPoint3(centre.X, centre.Y, centre.Z), base_.Width, base_.Height, depth, axisX, axisY);
+                        best = new GeoObb3(
+                            new GeoPoint3(centre.X, centre.Y, centre.Z),
+                            base_.Width,
+                            base_.Height,
+                            depth,
+                            axisX,
+                            axisY
+                        );
                     }
                 }
             }
@@ -230,7 +280,14 @@ namespace GeometryHelper.Core
         /// tetrahedron on (0, 0, 0), (24, 0, 0), (0, 18, 0) and (0, 0, 40) fits 13.548779 by 27.340984 by 46.647615, where
         /// turned it was given 13.548779 by 30 by 42.513057, as large, the one of the two on its long face found first.
         /// </remarks>
-        private static bool Smaller(double volume, double width, double height, double depth, double least, GeoObb3 best)
+        private static bool Smaller(
+            double volume,
+            double width,
+            double height,
+            double depth,
+            double least,
+            GeoObb3 best
+        )
         {
             if (Math.Abs(volume - least) > 1E-9 * Math.Max(Math.Abs(volume), Math.Abs(least)))
             {
@@ -425,7 +482,8 @@ namespace GeometryHelper.Core
                     // Each edge once, with the face on either side of it; the second side is -1 until it is found.
                     for (int i = 0; i < at.Length; i++)
                     {
-                        int a = at[i], b = at[(i + 1) % at.Length];
+                        int a = at[i],
+                            b = at[(i + 1) % at.Length];
                         long key = ((long)Math.Min(a, b) << 32) | (uint)Math.Max(a, b);
 
                         if (edges.TryGetValue(key, out int edge) && _sides[edge].Item2 < 0)
@@ -445,14 +503,20 @@ namespace GeometryHelper.Core
                 _taken = new int[_corners.Count];
 
                 // How far the corners lie from their middle, which bounds every side of a box round them by twice that.
-                double x = 0.0, y = 0.0, z = 0.0, size = 0.0;
+                double x = 0.0,
+                    y = 0.0,
+                    z = 0.0,
+                    size = 0.0;
 
                 foreach (GeoPoint3 corner in _corners)
                 {
                     x += corner.X;
                     y += corner.Y;
                     z += corner.Z;
-                    size = Math.Max(size, Math.Max(Math.Abs(corner.X), Math.Max(Math.Abs(corner.Y), Math.Abs(corner.Z))));
+                    size = Math.Max(
+                        size,
+                        Math.Max(Math.Abs(corner.X), Math.Max(Math.Abs(corner.Y), Math.Abs(corner.Z)))
+                    );
                 }
 
                 var middle = new GeoPoint3(x / _corners.Count, y / _corners.Count, z / _corners.Count);
@@ -471,7 +535,14 @@ namespace GeometryHelper.Core
             /// Projects the corners, each once, onto the plane of a face and its normal, where none is read at nought or
             /// beyond what a product holds; false, and the points to be projected copy by copy, where one is.
             /// </summary>
-            internal bool TryProject(GeoVector3 normal, GeoVector3 u, GeoVector3 v, List<GeoPoint2> flat, out double minN, out double maxN)
+            internal bool TryProject(
+                GeoVector3 normal,
+                GeoVector3 u,
+                GeoVector3 v,
+                List<GeoPoint2> flat,
+                out double minN,
+                out double maxN
+            )
             {
                 flat.Clear();
                 minN = double.PositiveInfinity;
@@ -506,7 +577,8 @@ namespace GeometryHelper.Core
                     return false;
                 }
 
-                double low, high;
+                double low,
+                    high;
 
                 // The corners on an edge between a face turned towards the normal and one turned away, or on an edge with one face,
                 // taken in the order of the edges: on a small hull read one by one, which is faster than through the trees.
@@ -536,7 +608,8 @@ namespace GeometryHelper.Core
 
                 // Less than the least rectangle round the rim's hull by rounding, and less what growing a rectangle by the
                 // slack on every side adds to it, its sides no longer than twice the reach.
-                double area = LeastArea(_rim, _tolerance) * (1.0 - 1E-6) - 8.0 * _slack * _reach - 4.0 * _slack * _slack;
+                double area =
+                    LeastArea(_rim, _tolerance) * (1.0 - 1E-6) - 8.0 * _slack * _reach - 4.0 * _slack * _slack;
                 double volume = (high - low) * area * (1.0 - 1E-12);
 
                 return volume > least * (1.0 + 3E-9);
@@ -618,7 +691,8 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    GeoVector3 a = _normals[f], b = _normals[g];
+                    GeoVector3 a = _normals[f],
+                        b = _normals[g];
                     closed.Add(e);
                     edges.Add(Math.Min(a.X, b.X));
                     edges.Add(Math.Min(a.Y, b.Y));
@@ -672,7 +746,9 @@ namespace GeometryHelper.Core
                     if (left >= 0)
                     {
                         int right = tree.Right(node);
-                        bool leftFirst = most ? tree.Most(left, normal) >= tree.Most(right, normal) : tree.Least(left, normal) <= tree.Least(right, normal);
+                        bool leftFirst = most
+                            ? tree.Most(left, normal) >= tree.Most(right, normal)
+                            : tree.Least(left, normal) <= tree.Least(right, normal);
                         _stack.Push(leftFirst ? right : left);
                         _stack.Push(leftFirst ? left : right);
                         continue;
@@ -749,12 +825,15 @@ namespace GeometryHelper.Core
 
                 IReadOnlyList<GeoPoint2> c = hull.Vertices;
                 int m = c.Count;
-                int top = -1, right = -1, left = -1;
+                int top = -1,
+                    right = -1,
+                    left = -1;
                 double least = double.PositiveInfinity;
 
                 for (int i = 0; i < m; i++)
                 {
-                    GeoPoint2 a = c[i], b = c[(i + 1) % m];
+                    GeoPoint2 a = c[i],
+                        b = c[(i + 1) % m];
                     double length = a.DistanceTo(b);
 
                     if (!(length > 0.0))
@@ -762,7 +841,8 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    double ax = (b.X - a.X) / length, ay = (b.Y - a.Y) / length;
+                    double ax = (b.X - a.X) / length,
+                        ay = (b.Y - a.Y) / length;
 
                     if (top < 0)
                     {
@@ -831,13 +911,20 @@ namespace GeometryHelper.Core
 
             private struct Node
             {
-                public double MinX, MinY, MinZ, MaxX, MaxY, MaxZ;
+                public double MinX,
+                    MinY,
+                    MinZ,
+                    MaxX,
+                    MaxY,
+                    MaxZ;
 
                 /// <summary>The run of the order the box holds, from the first to the one after the last.</summary>
-                public int From, To;
+                public int From,
+                    To;
 
                 /// <summary>The two boxes it was cut into, or -1 for a box that holds its things itself.</summary>
-                public int Left, Right;
+                public int Left,
+                    Right;
             }
 
             /// <param name="things">Six numbers a thing: the least X, Y and Z of its box, then the most.</param>
@@ -877,14 +964,18 @@ namespace GeometryHelper.Core
             internal double Most(int node, GeoVector3 d)
             {
                 ref Node n = ref _nodes[node];
-                return Math.Max(d.X * n.MinX, d.X * n.MaxX) + Math.Max(d.Y * n.MinY, d.Y * n.MaxY) + Math.Max(d.Z * n.MinZ, d.Z * n.MaxZ);
+                return Math.Max(d.X * n.MinX, d.X * n.MaxX)
+                    + Math.Max(d.Y * n.MinY, d.Y * n.MaxY)
+                    + Math.Max(d.Z * n.MinZ, d.Z * n.MaxZ);
             }
 
             /// <summary>The least a box reaches along a direction, read at its corners.</summary>
             internal double Least(int node, GeoVector3 d)
             {
                 ref Node n = ref _nodes[node];
-                return Math.Min(d.X * n.MinX, d.X * n.MaxX) + Math.Min(d.Y * n.MinY, d.Y * n.MaxY) + Math.Min(d.Z * n.MinZ, d.Z * n.MaxZ);
+                return Math.Min(d.X * n.MinX, d.X * n.MaxX)
+                    + Math.Min(d.Y * n.MinY, d.Y * n.MaxY)
+                    + Math.Min(d.Z * n.MinZ, d.Z * n.MaxZ);
             }
 
             private int Build(int from, int to)
@@ -922,8 +1013,13 @@ namespace GeometryHelper.Core
                     return index;
                 }
 
-                double sx = node.MaxX - node.MinX, sy = node.MaxY - node.MinY, sz = node.MaxZ - node.MinZ;
-                int axis = sx >= sy && sx >= sz ? 0 : sy >= sz ? 1 : 2;
+                double sx = node.MaxX - node.MinX,
+                    sy = node.MaxY - node.MinY,
+                    sz = node.MaxZ - node.MinZ;
+                int axis =
+                    sx >= sy && sx >= sz ? 0
+                    : sy >= sz ? 1
+                    : 2;
 
                 for (int i = from; i < to; i++)
                 {
@@ -968,8 +1064,8 @@ namespace GeometryHelper.Core
         {
             internal static SameBits Instance { get; } = new SameBits();
 
-            public bool Equals(GeoPoint3 a, GeoPoint3 b)
-                => BitConverter.DoubleToInt64Bits(a.X) == BitConverter.DoubleToInt64Bits(b.X)
+            public bool Equals(GeoPoint3 a, GeoPoint3 b) =>
+                BitConverter.DoubleToInt64Bits(a.X) == BitConverter.DoubleToInt64Bits(b.X)
                 && BitConverter.DoubleToInt64Bits(a.Y) == BitConverter.DoubleToInt64Bits(b.Y)
                 && BitConverter.DoubleToInt64Bits(a.Z) == BitConverter.DoubleToInt64Bits(b.Z);
 

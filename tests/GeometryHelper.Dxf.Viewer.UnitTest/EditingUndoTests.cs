@@ -11,8 +11,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 {
     public class EditingUndoTests
     {
-        private static CadEditResult MoveA1(CadDocument document, double dx)
-            => document.ApplyEdit("MOVE", new[] { new CadEditRecord(CadEditRecordKind.Transformed, "A1") }, s => s.Document.FindEntity("A1").TransformBy(GeoTransform3.Translation(new GeoVector3(dx, 0, 0))));
+        private static CadEditResult MoveA1(CadDocument document, double dx) =>
+            document.ApplyEdit("MOVE", new[] { new CadEditRecord(CadEditRecordKind.Transformed, "A1") }, s =>
+                s.Document.FindEntity("A1").TransformBy(GeoTransform3.Translation(new GeoVector3(dx, 0, 0)))
+            );
 
         [Fact]
         public void AnEditIsOneUndoStep_AndUndoingItGivesTheDrawingBackByteForByte()
@@ -46,8 +48,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Plan();
             string start = document.Database.ToText();
 
-            document.ApplyEdit("LINE", null, s => s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(5, 5, 0), new GeoPoint3(50, 60, 0))));
-            document.ApplyEdit("ERASE", new[] { new CadEditRecord(CadEditRecordKind.Erased, "A2") }, s => s.Document.FindEntity("A2").Erase());
+            document.ApplyEdit("LINE", null, s =>
+                s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(5, 5, 0), new GeoPoint3(50, 60, 0)))
+            );
+            document.ApplyEdit("ERASE", new[] { new CadEditRecord(CadEditRecordKind.Erased, "A2") }, s =>
+                s.Document.FindEntity("A2").Erase()
+            );
             CadPropertyEditor.Set(document, new[] { "A3" }, "Radius", "25");
             CadLayerEditor.Add(document, "Walls");
             CadLayerEditor.SetCurrent(document, "Walls");
@@ -76,12 +82,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             CadEditResult result = document.ApplyEdit(
                 "MOVE",
-                new[] { new CadEditRecord(CadEditRecordKind.Transformed, "A2"), new CadEditRecord(CadEditRecordKind.Transformed, "A1") },
+                new[]
+                {
+                    new CadEditRecord(CadEditRecordKind.Transformed, "A2"),
+                    new CadEditRecord(CadEditRecordKind.Transformed, "A1"),
+                },
                 s =>
                 {
                     s.Document.FindEntity("A2").TransformBy(GeoTransform3.Translation(new GeoVector3(1, 0, 0)));
                     s.Document.FindEntity("A1").TransformBy(GeoTransform3.Translation(new GeoVector3(1, 0, 0)));
-                });
+                }
+            );
 
             Assert.True(result.Refused);
             Assert.Equal("This line belongs to the model", result.Message);
@@ -97,11 +108,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Plan();
             string start = document.Database.ToText();
 
-            CadEditResult result = document.ApplyEdit("ERASE", new[] { new CadEditRecord(CadEditRecordKind.Erased, "A1") }, s =>
-            {
-                s.Document.FindEntity("A1").Erase();
-                throw new InvalidOperationException("half done");
-            });
+            CadEditResult result = document.ApplyEdit(
+                "ERASE",
+                new[] { new CadEditRecord(CadEditRecordKind.Erased, "A1") },
+                s =>
+                {
+                    s.Document.FindEntity("A1").Erase();
+                    throw new InvalidOperationException("half done");
+                }
+            );
 
             Assert.False(result.Succeeded);
             Assert.False(result.Refused);
@@ -118,8 +133,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string start = document.Database.ToText();
 
             document.BeginGroup("LINE");
-            document.ApplyEdit("LINE", null, s => s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))));
-            document.ApplyEdit("LINE", null, s => s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(1, 1, 0), new GeoPoint3(2, 0, 0))));
+            document.ApplyEdit("LINE", null, s =>
+                s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0)))
+            );
+            document.ApplyEdit("LINE", null, s =>
+                s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(1, 1, 0), new GeoPoint3(2, 0, 0)))
+            );
             Assert.True(document.IsModified);
             Assert.False(document.CanUndo);
             document.EndGroup();
@@ -130,7 +149,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(start, document.Database.ToText());
 
             document.BeginGroup("LINE");
-            document.ApplyEdit("LINE", null, s => s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))));
+            document.ApplyEdit("LINE", null, s =>
+                s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0)))
+            );
             CadEditResult failed = document.ApplyEdit("LINE", null, s => throw new ArgumentException("no"));
             document.EndGroup();
 
@@ -144,13 +165,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Blank();
             CadSpace layout = document.Spaces[1];
-            document.ApplyEdit("LINE", null, s => s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0))));
+            document.ApplyEdit("LINE", null, s =>
+                s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)))
+            );
             DisplayList2 model = document.GetDisplay(document.ModelSpace);
             DisplayList2 paper = document.GetDisplay(layout);
             var seen = new List<CadDocumentChangedEventArgs>();
             document.Changed += (sender, e) => seen.Add(e);
 
-            CadEditResult added = document.ApplyEdit("CIRCLE", null, s => s.Append(layout, new DxfCircle(new GeoPoint3(50, 50, 0), new GeoVector3(0, 0, 1), 5)));
+            CadEditResult added = document.ApplyEdit("CIRCLE", null, s =>
+                s.Append(layout, new DxfCircle(new GeoPoint3(50, 50, 0), new GeoVector3(0, 0, 1), 5))
+            );
 
             CadDocumentChangedEventArgs change = Assert.Single(seen);
             Assert.Equal(CadChangeKind.Edit, change.Kind);
@@ -175,7 +200,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             var seen = new List<CadDocumentChangedEventArgs>();
             document.Changed += (sender, e) => seen.Add(e);
 
-            document.ApplyEdit("LINE", null, s => s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0))));
+            document.ApplyEdit("LINE", null, s =>
+                s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)))
+            );
 
             Assert.Equal(document.Spaces, Assert.Single(seen).Spaces);
         }
@@ -199,13 +226,23 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Plan();
             Assert.Equal(8, document.EntityCount);
 
-            document.ApplyEdit("LINE", null, s => s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))));
+            document.ApplyEdit("LINE", null, s =>
+                s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0)))
+            );
             Assert.Equal(9, document.EntityCount);
-            document.ApplyEdit("ERASE", new[] { new CadEditRecord(CadEditRecordKind.Erased, "A1"), new CadEditRecord(CadEditRecordKind.Erased, "A2") }, s =>
-            {
-                s.Document.FindEntity("A1").Erase();
-                s.Document.FindEntity("A2").Erase();
-            });
+            document.ApplyEdit(
+                "ERASE",
+                new[]
+                {
+                    new CadEditRecord(CadEditRecordKind.Erased, "A1"),
+                    new CadEditRecord(CadEditRecordKind.Erased, "A2"),
+                },
+                s =>
+                {
+                    s.Document.FindEntity("A1").Erase();
+                    s.Document.FindEntity("A2").Erase();
+                }
+            );
             Assert.Equal(7, document.EntityCount);
 
             document.Undo();
@@ -276,7 +313,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void TheSelectionLosesWhatAnUndoTakesAway()
         {
             CadDocument document = Plan();
-            CadEditResult added = document.ApplyEdit("LINE", null, s => s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0))));
+            CadEditResult added = document.ApplyEdit("LINE", null, s =>
+                s.Append(s.Document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0)))
+            );
             string handle = added.Records[0].Handle;
             document.Selection.Set(new[] { handle, "A1" });
 
@@ -299,7 +338,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             public bool Allows(CadDocument document, DxfEntity entity, CadEditRecord record, out string reason)
             {
                 Asked.Add(record.Handle);
-                reason = string.Equals(entity.Handle, _refused, StringComparison.OrdinalIgnoreCase) ? "This line belongs to the model" : null;
+                reason = string.Equals(entity.Handle, _refused, StringComparison.OrdinalIgnoreCase)
+                    ? "This line belongs to the model"
+                    : null;
                 return reason == null;
             }
         }

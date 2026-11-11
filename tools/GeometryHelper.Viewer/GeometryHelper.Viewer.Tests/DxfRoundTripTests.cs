@@ -166,7 +166,11 @@ namespace GeometryHelper.Viewer.Tests
             SceneItem item = Imp.Only(Read(new DxfWriter().Add(arc)));
 
             Assert.True(arc.SweptAngle < 0.0);
-            Imp.Near(new[] { arc.Center.X, arc.Center.Y, arc.Radius, arc.EndAngle, -arc.SweptAngle }, Imp.Of(item), Close);
+            Imp.Near(
+                new[] { arc.Center.X, arc.Center.Y, arc.Radius, arc.EndAngle, -arc.SweptAngle },
+                Imp.Of(item),
+                Close
+            );
         }
 
         [Fact]
@@ -225,7 +229,10 @@ namespace GeometryHelper.Viewer.Tests
             var face = (GeoFace3)SampleShapes.Make("GeoFace3", 5);
             SceneItem item = Imp.Only(Read(new DxfWriter().Add(face, Tol)));
 
-            Assert.Equal(Imp.Keys(face.TriangulateSurface(Tol)).OrderBy(k => k, StringComparer.Ordinal).ToList(), Imp.Keys(item).OrderBy(k => k, StringComparer.Ordinal).ToList());
+            Assert.Equal(
+                Imp.Keys(face.TriangulateSurface(Tol)).OrderBy(k => k, StringComparer.Ordinal).ToList(),
+                Imp.Keys(item).OrderBy(k => k, StringComparer.Ordinal).ToList()
+            );
         }
 
         [Fact]
@@ -233,13 +240,20 @@ namespace GeometryHelper.Viewer.Tests
         {
             GeoSolid3 solid = SampleShapes.Box(30.0, 20.0, 10.0, true);
             SceneItem item = Imp.Only(Read(new DxfWriter().Add(solid, Tol, "box")));
-            List<string> expected = Imp.Keys(solid.TriangulateSurface(Tol)).OrderBy(k => k, StringComparer.Ordinal).ToList();
+            List<string> expected = Imp.Keys(solid.TriangulateSurface(Tol))
+                .OrderBy(k => k, StringComparer.Ordinal)
+                .ToList();
 
             Assert.Equal("GeoMesh3", item.Kind);
             Assert.Equal(expected, Imp.Keys(item).OrderBy(k => k, StringComparer.Ordinal).ToList());
 
             // The triangles share their corners to the bit, so the mesh has the distinct corners of the triangles and no more.
-            int distinct = solid.TriangulateSurface(Tol).SelectMany(t => new[] { t.A, t.B, t.C }).Select(p => Imp.Key(p)).Distinct().Count();
+            int distinct = solid
+                .TriangulateSurface(Tol)
+                .SelectMany(t => new[] { t.A, t.B, t.C })
+                .Select(p => Imp.Key(p))
+                .Distinct()
+                .Count();
             Assert.Equal(distinct, Imp.MeshPoints(item).Length);
             Assert.True(distinct < 3 * expected.Count);
         }
@@ -290,7 +304,9 @@ namespace GeometryHelper.Viewer.Tests
                 }
             }
 
-            Assert.All(Imp.MeshPoints(item), p => Assert.Contains(mesh.Vertices, v => Imp.Key(new[] { p }) == Imp.Key(v)));
+            Assert.All(Imp.MeshPoints(item), p =>
+                Assert.Contains(mesh.Vertices, v => Imp.Key(new[] { p }) == Imp.Key(v))
+            );
         }
 
         [Fact]
@@ -299,15 +315,25 @@ namespace GeometryHelper.Viewer.Tests
             var aabb = new GeoAabb3(new GeoPoint3(0.1, 0.2, 0.3), new GeoPoint3(30.1, 20.2, 10.3));
             var obb = (GeoObb3)SampleShapes.Make("GeoObb3", 2);
 
-            foreach ((object box, GeoPoint3[] corners) in new[] { ((object)aabb, aabb.GetCorners()), (obb, obb.GetCorners()) })
+            foreach (
+                (object box, GeoPoint3[] corners) in new[]
+                {
+                    ((object)aabb, aabb.GetCorners()),
+                    (obb, obb.GetCorners()),
+                }
+            )
             {
-                SceneItem item = Imp.Only(box is GeoAabb3 a ? Read(new DxfWriter().Add(a)) : Read(new DxfWriter().Add((GeoObb3)box)));
+                SceneItem item = Imp.Only(
+                    box is GeoAabb3 a ? Read(new DxfWriter().Add(a)) : Read(new DxfWriter().Add((GeoObb3)box))
+                );
                 List<Vec3[]> faces = Imp.MeshFaces(item);
 
                 Assert.Equal(6, faces.Count);
                 Assert.All(faces, f => Assert.Equal(4, f.Length));
                 Assert.Equal(8, Imp.MeshPoints(item).Length);
-                Assert.All(Imp.MeshPoints(item), p => Assert.Contains(corners, c => Imp.Key(new[] { p }) == Imp.Key(c)));
+                Assert.All(Imp.MeshPoints(item), p =>
+                    Assert.Contains(corners, c => Imp.Key(new[] { p }) == Imp.Key(c))
+                );
             }
         }
 
@@ -333,11 +359,19 @@ namespace GeometryHelper.Viewer.Tests
             var chain = new GeoPolylineArc3(
                 new[] { new GeoPoint3(0, 0, 5), new GeoPoint3(100, 0, 5), new GeoPoint3(200, 40, 5) },
                 new[] { 0.4, 0.0, 0.0 },
-                new[] { up, up, up });
+                new[] { up, up, up }
+            );
             var loop = new GeoPolygonArc3(
-                new[] { new GeoPoint3(0, 0, 5), new GeoPoint3(100, 0, 5), new GeoPoint3(100, 100, 5), new GeoPoint3(0, 100, 5) },
+                new[]
+                {
+                    new GeoPoint3(0, 0, 5),
+                    new GeoPoint3(100, 0, 5),
+                    new GeoPoint3(100, 100, 5),
+                    new GeoPoint3(0, 100, 5),
+                },
                 new[] { 0.0, 0.5, 0.0, 0.0 },
-                new[] { up, up, up, up });
+                new[] { up, up, up, up }
+            );
 
             SceneItem a = Imp.Only(Read(new DxfWriter().Add(chain, 0.05)));
             SceneItem b = Imp.Only(Read(new DxfWriter().Add(loop, 0.05)));
@@ -348,15 +382,24 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Contains(DataJson.Points(b.Data, "points", 3), p => p.Equals(new Vec3(100, 100, 5)));
         }
 
-        private static void AssertSamePoint(GeoPoint3 expected, GeoPoint3 actual, double radius, string what)
-            => Assert.True(expected.DistanceTo(actual) <= 1E-9 * radius, what + ": " + expected + " against " + actual + ", " + expected.DistanceTo(actual) + " apart");
+        private static void AssertSamePoint(GeoPoint3 expected, GeoPoint3 actual, double radius, string what) =>
+            Assert.True(
+                expected.DistanceTo(actual) <= 1E-9 * radius,
+                what + ": " + expected + " against " + actual + ", " + expected.DistanceTo(actual) + " apart"
+            );
 
         [Fact]
         public void AnArcInSpaceWrittenExactly_ComesBackTheSameArc_EitherWayRound()
         {
             // An arc 120 degrees round a circle of radius 40 standing on the normal (1, 2, 3), centred at (10, -20, 30): the viewer takes the
             // ARC and its extrusion back to world points and names the arc by three of them.
-            var counter = new GeoArc3(new GeoPoint3(10, -20, 30), new GeoVector3(1, 2, 3), 40, 0.4, 0.4 + 2.0 * Math.PI / 3.0);
+            var counter = new GeoArc3(
+                new GeoPoint3(10, -20, 30),
+                new GeoVector3(1, 2, 3),
+                40,
+                0.4,
+                0.4 + 2.0 * Math.PI / 3.0
+            );
             GeoArc3 clockwise = counter.Reverse();
 
             foreach (GeoArc3 arc in new[] { counter, clockwise })
@@ -372,8 +415,18 @@ namespace GeometryHelper.Viewer.Tests
                 AssertSamePoint(arc.MidPoint, back.MidPoint, arc.Radius, "the middle");
 
                 // The viewer reads the ARC counter-clockwise about the extrusion, so a clockwise arc comes back from its end to its start.
-                AssertSamePoint(arc.IsClockwise ? arc.EndPoint : arc.StartPoint, back.StartPoint, arc.Radius, "the first end");
-                AssertSamePoint(arc.IsClockwise ? arc.StartPoint : arc.EndPoint, back.EndPoint, arc.Radius, "the last end");
+                AssertSamePoint(
+                    arc.IsClockwise ? arc.EndPoint : arc.StartPoint,
+                    back.StartPoint,
+                    arc.Radius,
+                    "the first end"
+                );
+                AssertSamePoint(
+                    arc.IsClockwise ? arc.StartPoint : arc.EndPoint,
+                    back.EndPoint,
+                    arc.Radius,
+                    "the last end"
+                );
             }
         }
 
@@ -404,7 +457,8 @@ namespace GeometryHelper.Viewer.Tests
                 new[] { At(0, 0), At(60, 0), At(60, 20), At(0, 20) },
                 new[] { 0.0, 1.0, 0.0, 1.0 },
                 new[] { default(GeoVector3), normal, default(GeoVector3), normal },
-                Tol);
+                Tol
+            );
 
             SceneItem item = Imp.Only(Read(new DxfWriter().Add(loop)));
             Assert.Equal("GeoPolygonArc3", item.Kind);
@@ -429,23 +483,38 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ABarBentInTwoPlanesWrittenExactly_ComesBackAsItsLinesAndArcs()
         {
-            GeoArc3 first = GeoArc3.FromThreePoints(new GeoPoint3(100, 0, 0), new GeoPoint3(100 + 20 * Math.Sin(Math.PI / 4), 0, 20 - 20 * Math.Cos(Math.PI / 4)), new GeoPoint3(120, 0, 20), Tol);
-            GeoArc3 second = GeoArc3.FromThreePoints(new GeoPoint3(120, 0, 100), new GeoPoint3(120 + 20 * (1 - Math.Cos(Math.PI / 4)), 20 * Math.Sin(Math.PI / 4), 100), new GeoPoint3(140, 20, 100), Tol);
+            GeoArc3 first = GeoArc3.FromThreePoints(
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100 + 20 * Math.Sin(Math.PI / 4), 0, 20 - 20 * Math.Cos(Math.PI / 4)),
+                new GeoPoint3(120, 0, 20),
+                Tol
+            );
+            GeoArc3 second = GeoArc3.FromThreePoints(
+                new GeoPoint3(120, 0, 100),
+                new GeoPoint3(120 + 20 * (1 - Math.Cos(Math.PI / 4)), 20 * Math.Sin(Math.PI / 4), 100),
+                new GeoPoint3(140, 20, 100),
+                Tol
+            );
 
-            var bar = new GeoPolylineArc3(new[]
-            {
-                new GeoEdge3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)),
-                new GeoEdge3(first),
-                new GeoEdge3(first.EndPoint, new GeoPoint3(120, 0, 100)),
-                new GeoEdge3(second),
-                new GeoEdge3(second.EndPoint, new GeoPoint3(140, 80, 100)),
-            });
+            var bar = new GeoPolylineArc3(
+                new[]
+                {
+                    new GeoEdge3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)),
+                    new GeoEdge3(first),
+                    new GeoEdge3(first.EndPoint, new GeoPoint3(120, 0, 100)),
+                    new GeoEdge3(second),
+                    new GeoEdge3(second.EndPoint, new GeoPoint3(140, 80, 100)),
+                }
+            );
 
             Scene scene = Read(new DxfWriter().Add(bar, Tol, "bar"));
 
             Assert.Empty(scene.LoadWarnings);
             // The first edge lies on the floor, and is read as the segment of the plane it is.
-            Assert.Equal(new[] { "GeoLine2", "GeoArc3", "GeoLine3", "GeoArc3", "GeoLine3" }, scene.Items.Select(i => i.Kind).ToArray());
+            Assert.Equal(
+                new[] { "GeoLine2", "GeoArc3", "GeoLine3", "GeoArc3", "GeoLine3" },
+                scene.Items.Select(i => i.Kind).ToArray()
+            );
 
             List<GeoEdge3> edges = bar.GetEdges().ToList();
 
@@ -468,9 +537,19 @@ namespace GeometryHelper.Viewer.Tests
                     var arc = (GeoArc3)shape;
                     // An arc whose normal points down is written about up, and so runs the other way: the same ends, either way round.
                     bool turned = edges[i].StartPoint.DistanceTo(arc.StartPoint) > 1E-6;
-                    AssertSamePoint(turned ? edges[i].EndPoint : edges[i].StartPoint, arc.StartPoint, 20.0, "the start of edge " + i);
+                    AssertSamePoint(
+                        turned ? edges[i].EndPoint : edges[i].StartPoint,
+                        arc.StartPoint,
+                        20.0,
+                        "the start of edge " + i
+                    );
                     AssertSamePoint(edges[i].MidPoint, arc.MidPoint, 20.0, "the middle of edge " + i);
-                    AssertSamePoint(turned ? edges[i].StartPoint : edges[i].EndPoint, arc.EndPoint, 20.0, "the end of edge " + i);
+                    AssertSamePoint(
+                        turned ? edges[i].StartPoint : edges[i].EndPoint,
+                        arc.EndPoint,
+                        20.0,
+                        "the end of edge " + i
+                    );
                 }
             }
         }
@@ -478,11 +557,13 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheLayersAreTheLayers_WithTheirNames()
         {
-            Scene scene = Read(new DxfWriter()
-                .Add(new GeoPoint2(1.0, 2.0))
-                .Add(new GeoPoint2(3.0, 4.0), "walls")
-                .Add(new GeoPoint2(5.0, 6.0), "Façade")
-                .Add(new GeoPoint2(7.0, 8.0), "WALLS"));
+            Scene scene = Read(
+                new DxfWriter()
+                    .Add(new GeoPoint2(1.0, 2.0))
+                    .Add(new GeoPoint2(3.0, 4.0), "walls")
+                    .Add(new GeoPoint2(5.0, 6.0), "Façade")
+                    .Add(new GeoPoint2(7.0, 8.0), "WALLS")
+            );
 
             Assert.Empty(scene.LoadWarnings);
             Assert.Equal(new[] { "0", "walls", "Façade" }, scene.Layers.Select(l => l.Name).ToArray());
@@ -493,7 +574,9 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheSameFileWithWindowsLineEnds_ReadsTheSame()
         {
-            var writer = new DxfWriter().Add((GeoPolyline3)SampleShapes.Make("GeoPolyline3", 4)).Add(SampleShapes.Box(10.0, 10.0, 10.0, false), Tol, "box");
+            var writer = new DxfWriter()
+                .Add((GeoPolyline3)SampleShapes.Make("GeoPolyline3", 4))
+                .Add(SampleShapes.Box(10.0, 10.0, 10.0, false), Tol, "box");
             Scene unix = SceneImport.ReadText(writer.ToString(), "dxf");
             Scene windows = SceneImport.ReadText(writer.ToString().Replace("\n", "\r\n"), "dxf");
 
@@ -509,19 +592,26 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AWrittenFile_IsAValidScene()
         {
-            Scene scene = Read(new DxfWriter()
-                .Add((GeoPolygon3)SampleShapes.Make("GeoPolygon3", 1), "a")
-                .Add((GeoFace2)SampleShapes.Make("GeoFace2", 2), "b")
-                .Add((GeoCircle2)SampleShapes.Make("GeoCircle2", 3), "c")
-                .Add(SampleShapes.Box(30.0, 20.0, 10.0, true), Tol, "d"));
+            Scene scene = Read(
+                new DxfWriter()
+                    .Add((GeoPolygon3)SampleShapes.Make("GeoPolygon3", 1), "a")
+                    .Add((GeoFace2)SampleShapes.Make("GeoFace2", 2), "b")
+                    .Add((GeoCircle2)SampleShapes.Make("GeoCircle2", 3), "c")
+                    .Add(SampleShapes.Box(30.0, 20.0, 10.0, true), Tol, "d")
+            );
 
             Assert.Empty(scene.LoadWarnings);
             Imp.IsAValidScene(scene);
         }
 
-        private static GeoSolid3 Translate(GeoSolid3 solid, double dx, double dy, double dz)
-            => new GeoSolid3(solid.Faces.Select(face => new GeoFace3(
-                new GeoPolygon3(face.Boundary.Vertices.Select(p => new GeoPoint3(p.X + dx, p.Y + dy, p.Z + dz))),
-                face.Holes.Select(h => new GeoPolygon3(h.Vertices.Select(p => new GeoPoint3(p.X + dx, p.Y + dy, p.Z + dz)))))));
+        private static GeoSolid3 Translate(GeoSolid3 solid, double dx, double dy, double dz) =>
+            new GeoSolid3(
+                solid.Faces.Select(face => new GeoFace3(
+                    new GeoPolygon3(face.Boundary.Vertices.Select(p => new GeoPoint3(p.X + dx, p.Y + dy, p.Z + dz))),
+                    face.Holes.Select(h => new GeoPolygon3(
+                        h.Vertices.Select(p => new GeoPoint3(p.X + dx, p.Y + dy, p.Z + dz))
+                    ))
+                ))
+            );
     }
 }

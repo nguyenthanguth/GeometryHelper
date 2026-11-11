@@ -18,15 +18,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>How far a hard space moves the pen in an SHX font, which has none: AutoCAD draws it from Arial, 569 units of its 1466 (0.97033 at 2.5 high).</summary>
         private const double HardSpace = 569.0 / 1466.0;
 
-        private static readonly ConditionalWeakTable<CadFontFace, CadTextInk[]> Kept = new ConditionalWeakTable<CadFontFace, CadTextInk[]>();
-        private static readonly Dictionary<string, DxfTrueTypeFont> Files = new Dictionary<string, DxfTrueTypeFont>(StringComparer.OrdinalIgnoreCase);
+        private static readonly ConditionalWeakTable<CadFontFace, CadTextInk[]> Kept =
+            new ConditionalWeakTable<CadFontFace, CadTextInk[]>();
+        private static readonly Dictionary<string, DxfTrueTypeFont> Files = new Dictionary<string, DxfTrueTypeFont>(
+            StringComparer.OrdinalIgnoreCase
+        );
 
         private readonly CadFontFace _face;
         private readonly bool _bold;
         private readonly bool _italic;
         private readonly DxfTrueTypeFont _file;
         private readonly Dictionary<int, Letter> _letters = new Dictionary<int, Letter>();
-        private readonly Dictionary<double, Dictionary<int, double[]>> _leans = new Dictionary<double, Dictionary<int, double[]>>();
+        private readonly Dictionary<double, Dictionary<int, double[]>> _leans =
+            new Dictionary<double, Dictionary<int, double[]>>();
         private double _drawFactor = double.NaN;
 
         private CadTextInk(CadFontFace face, bool bold, bool italic)
@@ -257,7 +261,8 @@ namespace GeometryHelper.Dxf.Viewer
             if (glyph == null)
             {
                 Func<string, bool, bool, string, double> measure = CadTrueTypeFonts.MeasureWidth;
-                double advance = measure != null ? measure(_face.Name, _bold, _italic, text.Substring(from, i - from)) : 0.6;
+                double advance =
+                    measure != null ? measure(_face.Name, _bold, _italic, text.Substring(from, i - from)) : 0.6;
                 return new Letter(advance, 0.0, blank ? 0.0 : advance, 0.0, blank ? 0.0 : 1.0, !blank);
             }
 
@@ -300,7 +305,12 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         font = DxfTrueTypeFont.Read(File.ReadAllBytes(path));
                     }
-                    catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException || exception is IndexOutOfRangeException)
+                    catch (Exception exception)
+                        when (exception is IOException
+                            || exception is UnauthorizedAccessException
+                            || exception is ArgumentException
+                            || exception is IndexOutOfRangeException
+                        )
                     {
                         GeometryHelperLog.Warn("CadTextInk: the font " + path + " could not be read.", exception);
                         font = null;

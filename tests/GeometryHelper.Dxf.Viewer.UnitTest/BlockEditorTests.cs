@@ -32,7 +32,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return Run(session, inputs);
         }
 
-        private static int Lines(CadDocument document, string block) => document.Database.BlockTable[block].Count(e => e is DxfLine && !e.IsErased);
+        private static int Lines(CadDocument document, string block) =>
+            document.Database.BlockTable[block].Count(e => e is DxfLine && !e.IsErased);
 
         /// <summary>The items model space draws for its first INSERT: one per line of the block as it was last drawn.</summary>
         private static int DrawnOfFirstDoor(CadDocument document)
@@ -83,7 +84,19 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Doors();
             string start = document.Database.ToText();
-            CadCommandSession session = Start(document, "-BEDIT", "DOOR", "LINE", P(0, 0), P(0, 2100), Enter, "ERASE", P(450, 0), Enter, "BCLOSE");
+            CadCommandSession session = Start(
+                document,
+                "-BEDIT",
+                "DOOR",
+                "LINE",
+                P(0, 0),
+                P(0, 2100),
+                Enter,
+                "ERASE",
+                P(450, 0),
+                Enter,
+                "BCLOSE"
+            );
 
             Assert.Equal("Save changes to DOOR? [Save/Discard/Cancel] <Save>:", session.PromptText);
             Run(session, "D");
@@ -98,7 +111,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void BcloseCancelled_KeepsTheEditorOpen_WithItsChanges()
         {
             CadDocument document = Doors();
-            CadCommandSession session = Start(document, "-BEDIT", "DOOR", "LINE", P(0, 0), P(0, 2100), Enter, "BCLOSE", "C");
+            CadCommandSession session = Start(
+                document,
+                "-BEDIT",
+                "DOOR",
+                "LINE",
+                P(0, 0),
+                P(0, 2100),
+                Enter,
+                "BCLOSE",
+                "C"
+            );
 
             Assert.NotNull(document.BlockEditor);
             Assert.Equal(2, Lines(document, "DOOR"));
@@ -111,7 +134,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Doors();
             string start = document.Database.ToText();
-            CadCommandSession session = Start(document, "-BEDIT", "DOOR", "LINE", P(0, 0), P(0, 2100), Enter, "BSAVEAS", "DOOR_OPEN");
+            CadCommandSession session = Start(
+                document,
+                "-BEDIT",
+                "DOOR",
+                "LINE",
+                P(0, 0),
+                P(0, 2100),
+                Enter,
+                "BSAVEAS",
+                "DOOR_OPEN"
+            );
 
             Assert.Equal(1, Lines(document, "DOOR"));
             Assert.Equal(2, Lines(document, "DOOR_OPEN"));
@@ -132,7 +165,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Doors();
             Start(document, "-B", "SILL", P(0, 0), Enter);
-            CadCommandSession session = Start(document, "-BEDIT", "DOOR", "LINE", P(0, 0), P(0, 2100), Enter, "BSAVEAS", "SILL");
+            CadCommandSession session = Start(
+                document,
+                "-BEDIT",
+                "DOOR",
+                "LINE",
+                P(0, 0),
+                P(0, 2100),
+                Enter,
+                "BSAVEAS",
+                "SILL"
+            );
 
             Assert.Contains("Block \"SILL\" already exists.", session.History);
             Assert.Equal("DOOR", document.BlockEditor.Name);
@@ -162,7 +205,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Doors();
             string start = document.Database.ToText();
-            Start(document, "-BEDIT", CadBlockEditor.CurrentDrawing, "LINE", P(0, 3000), P(900, 3000), Enter, "BCLOSE", "D");
+            Start(
+                document,
+                "-BEDIT",
+                CadBlockEditor.CurrentDrawing,
+                "LINE",
+                P(0, 3000),
+                P(900, 3000),
+                Enter,
+                "BCLOSE",
+                "D"
+            );
 
             Assert.Empty(All<DxfLine>(document.ModelSpace));
             Assert.Equal(start, document.Database.ToText());
@@ -220,7 +273,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Doors();
             Start(document, "-B", "SILL", P(0, 0), Enter);
-            CadCommandSession session = Start(document, "-BEDIT", "DOOR", "LINE", P(0, 0), P(0, 2100), Enter, "CIRCLE", P(0, 0), "50");
+            CadCommandSession session = Start(
+                document,
+                "-BEDIT",
+                "DOOR",
+                "LINE",
+                P(0, 0),
+                P(0, 2100),
+                Enter,
+                "CIRCLE",
+                P(0, 0),
+                "50"
+            );
 
             Assert.Equal(2, Lines(document, "DOOR"));
             Run(session, "U");
@@ -257,11 +321,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadPropertyGroup block = info.Groups[0];
 
             Assert.Equal("Block", block.Title);
-            Assert.Equal(new[] { "Name", "Description", "Units", "Allow exploding", "Scale uniformly", "Annotative" }, block.Rows.Select(r => r.Label));
+            Assert.Equal(
+                new[] { "Name", "Description", "Units", "Allow exploding", "Scale uniformly", "Annotative" },
+                block.Rows.Select(r => r.Label)
+            );
             Assert.True(block.Rows[0].IsReadOnly);
             Assert.True(block.Rows[5].IsReadOnly);
 
-            Assert.True(CadPropertyEditor.Set(document, null, "Description", "Single-leaf door, 900 clear opening.").Succeeded);
+            Assert.True(
+                CadPropertyEditor.Set(document, null, "Description", "Single-leaf door, 900 clear opening.").Succeeded
+            );
             Assert.True(CadPropertyEditor.Set(document, null, "Scale uniformly", "Yes").Succeeded);
 
             Assert.Equal("Single-leaf door, 900 clear opening.", document.Database.BlockTable["DOOR"].Comments);

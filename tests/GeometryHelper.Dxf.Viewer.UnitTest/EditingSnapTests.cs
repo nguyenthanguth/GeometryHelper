@@ -63,7 +63,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void TwoLinesCrossing_GiveTheirIntersectionExactly()
         {
-            PickIndex index = Index(TestDrawings.Line(0, 0, 60, 60, handle: "A1"), TestDrawings.Line(0, 40, 80, 0, handle: "A2"));
+            PickIndex index = Index(
+                TestDrawings.Line(0, 0, 60, 60, handle: "A1"),
+                TestDrawings.Line(0, 40, 80, 0, handle: "A2")
+            );
             ObjectSnap snap = Snaps(CadSnapModes.Intersection);
 
             Snapped(snap.Snap(index, P(27, 26), 2.0), CadSnapKind.Intersection, 80.0 / 3.0, 80.0 / 3.0);
@@ -76,7 +79,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 TestDrawings.Arc(0, 0, 10, 0, 90, handle: "A4"),
                 TestDrawings.Line(0, 5, 20, 5, handle: "A1"),
                 TestDrawings.Circle(100, 0, 10, handle: "A3"),
-                TestDrawings.Circle(112, 0, 10, handle: "A5"));
+                TestDrawings.Circle(112, 0, 10, handle: "A5")
+            );
             ObjectSnap snap = Snaps(CadSnapModes.Intersection);
 
             Snapped(snap.Snap(index, P(8.5, 5.3), 1.0), CadSnapKind.Intersection, Math.Sqrt(75.0), 5);
@@ -86,7 +90,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void PerpendicularGivesTheFootFromTheBasePoint_WhereverTheCursorIsOnTheLine()
         {
-            PickIndex index = Index(TestDrawings.Line(0, 0, 100, 0, handle: "A1"), TestDrawings.Circle(200, 0, 10, handle: "A3"));
+            PickIndex index = Index(
+                TestDrawings.Line(0, 0, 100, 0, handle: "A1"),
+                TestDrawings.Circle(200, 0, 10, handle: "A3")
+            );
             ObjectSnap snap = Snaps(CadSnapModes.Perpendicular);
 
             Snapped(snap.Snap(index, P(20, 0.5), 1.0, P(50, 30)), CadSnapKind.Perpendicular, 50, 0);
@@ -109,7 +116,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void NearestIsThePointOfTheObjectUnderTheCursor()
         {
-            PickIndex index = Index(TestDrawings.Line(0, 0, 100, 0, handle: "A1"), TestDrawings.Circle(200, 0, 10, handle: "A3"));
+            PickIndex index = Index(
+                TestDrawings.Line(0, 0, 100, 0, handle: "A1"),
+                TestDrawings.Circle(200, 0, 10, handle: "A3")
+            );
             ObjectSnap snap = Snaps(CadSnapModes.Nearest);
 
             Snapped(snap.Snap(index, P(40, 0.7), 1.0), CadSnapKind.Nearest, 40, 0);
@@ -130,7 +140,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void AnInsertIsSnappedToWhereItPlacesTheLinesOfItsBlock()
         {
             string block = TestDrawings.Block("BAR", TestDrawings.Line(0, 0, 10, 0));
-            CadDocument document = CadDocument.From(TestDrawings.Drawing(null, block, TestDrawings.Insert("BAR", 500, 500, 2.0, 90.0, handle: "B1")), "snap.dxf");
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(null, block, TestDrawings.Insert("BAR", 500, 500, 2.0, 90.0, handle: "B1")),
+                "snap.dxf"
+            );
             ObjectSnap snap = Snaps(CadSnapModes.Endpoint);
 
             CadSnapResult result = snap.Snap(document.GetPickIndex(document.ModelSpace), P(500.4, 519.6), 1.0);
@@ -175,7 +188,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void AnObjectSnapUnderTheAperture_WinsOverGridSnapOrthoAndPolar()
         {
             PickIndex index = Index(TestDrawings.Line(0, 0, 4000, 3000, handle: "A1"));
-            var snap = new ObjectSnap(Tight) { Modes = CadSnapModes.Endpoint, GridSnap = true, GridX = 10, GridY = 10 };
+            var snap = new ObjectSnap(Tight)
+            {
+                Modes = CadSnapModes.Endpoint,
+                GridSnap = true,
+                GridX = 10,
+                GridY = 10,
+            };
 
             Snapped(snap.Snap(index, P(3987, 2988), 50.0, P(1000, 500)), CadSnapKind.Endpoint, 4000, 3000);
             snap.Ortho = true;
@@ -192,19 +211,25 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
         // Three walls of a room 4000 by 3000 and a column at its middle, written by hand as R12: no header, no tables, no handles.
         private const string HandleLessRoom =
-            "  0\nSECTION\n  2\nENTITIES\n" +
-            "  0\nLINE\n  8\n0\n 10\n0\n 20\n0\n 30\n0\n 11\n4000\n 21\n0\n 31\n0\n" +
-            "  0\nLINE\n  8\n0\n 10\n4000\n 20\n0\n 30\n0\n 11\n4000\n 21\n3000\n 31\n0\n" +
-            "  0\nLINE\n  8\n0\n 10\n4000\n 20\n3000\n 30\n0\n 11\n0\n 21\n3000\n 31\n0\n" +
-            "  0\nCIRCLE\n  8\n0\n 10\n2000\n 20\n1500\n 30\n0\n 40\n300\n" +
-            "  0\nENDSEC\n  0\nEOF\n";
+            "  0\nSECTION\n  2\nENTITIES\n"
+            + "  0\nLINE\n  8\n0\n 10\n0\n 20\n0\n 30\n0\n 11\n4000\n 21\n0\n 31\n0\n"
+            + "  0\nLINE\n  8\n0\n 10\n4000\n 20\n0\n 30\n0\n 11\n4000\n 21\n3000\n 31\n0\n"
+            + "  0\nLINE\n  8\n0\n 10\n4000\n 20\n3000\n 30\n0\n 11\n0\n 21\n3000\n 31\n0\n"
+            + "  0\nCIRCLE\n  8\n0\n 10\n2000\n 20\n1500\n 30\n0\n 40\n300\n"
+            + "  0\nENDSEC\n  0\nEOF\n";
 
         [Fact]
         public void AHandleLessDrawingOfR12_IsSnappedAsOneWithHandles_ObjectSnapBeforeTheGrid()
         {
             CadDocument document = CadDocument.From(DxfDatabase.Parse(HandleLessRoom), "room.dxf");
             PickIndex index = document.GetPickIndex(document.ModelSpace);
-            var snap = new ObjectSnap(Tight) { Modes = CadSnapModes.Endpoint | CadSnapModes.Center, GridSnap = true, GridX = 10, GridY = 10 };
+            var snap = new ObjectSnap(Tight)
+            {
+                Modes = CadSnapModes.Endpoint | CadSnapModes.Center,
+                GridSnap = true,
+                GridX = 10,
+                GridY = 10,
+            };
 
             CadSnapResult corner = snap.Snap(index, P(3987, 2988), 50.0, P(1000, 500));
             Snapped(corner, CadSnapKind.Endpoint, 4000, 3000);
@@ -219,7 +244,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = CadDocument.From(DxfDatabase.Parse(HandleLessRoom), "room.dxf");
             string bottom = Assert.Single(document.GetPickIndex(document.ModelSpace).Pick(2000, 0.4, 1.0));
 
-            Assert.True(document.ApplyEdit("ERASE", new[] { new CadEditRecord(CadEditRecordKind.Erased, bottom) }, s => s.Document.FindEntity(bottom).Erase()).Succeeded);
+            Assert.True(
+                document
+                    .ApplyEdit("ERASE", new[] { new CadEditRecord(CadEditRecordKind.Erased, bottom) }, s =>
+                        s.Document.FindEntity(bottom).Erase()
+                    )
+                    .Succeeded
+            );
             PickedIs(document, P(4000, 1500), 4000, 0, 4000, 3000);
             document.Undo();
             PickedIs(document, P(2000, 0), 0, 0, 4000, 0);
@@ -238,15 +269,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void AHandleLessDrawingOfR12WithAHeader_IsGivenHandlesAndItsHeaderTheSeed_ItsLineEndsKept()
         {
-            string text = ("  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1009\n  9\n$HANDLING\n 70\n     0\n  0\nENDSEC\n" +
-                HandleLessRoom).Replace("\n", "\r\n");
+            string text = (
+                "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1009\n  9\n$HANDLING\n 70\n     0\n  0\nENDSEC\n"
+                + HandleLessRoom
+            ).Replace("\n", "\r\n");
             CadDocument document = CadDocument.Open(new MemoryStream(Encoding.ASCII.GetBytes(text)), "room.dxf");
 
             string saved = document.Database.ToText();
             Assert.Contains("$HANDLING\r\n 70\r\n     1\r\n", saved, StringComparison.Ordinal);
             Assert.Contains("$HANDSEED\r\n  5\r\n5\r\n", saved, StringComparison.Ordinal);
             Assert.DoesNotContain("\r\r", saved, StringComparison.Ordinal);
-            Assert.Equal(new[] { "1", "2", "3", "4" }, document.ModelSpace.Block.OfType<DxfEntity>().Select(e => e.Handle));
+            Assert.Equal(
+                new[] { "1", "2", "3", "4" },
+                document.ModelSpace.Block.OfType<DxfEntity>().Select(e => e.Handle)
+            );
             Assert.Equal(4, saved.Split(new[] { "\r\n  5\r\n" }, StringSplitOptions.None).Length - 2);
         }
 

@@ -23,7 +23,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="vectors">The sequence of AutoCAD 2D vectors to convert.</param>
         /// <returns>A list of converted <see cref="GeoVector2"/>.</returns>
-        public static List<GeoVector2> ToGeoVector2(this IEnumerable<Vector2d> vectors) => vectors.Select(ToGeoVector2).ToList();
+        public static List<GeoVector2> ToGeoVector2(this IEnumerable<Vector2d> vectors) =>
+            vectors.Select(ToGeoVector2).ToList();
 
         /// <summary>
         /// Converts a AutoCAD 3D vector to a GeometryHelper 2D vector (discarding the Z coordinate).
@@ -37,7 +38,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="vectors">The sequence of AutoCAD 3D vectors to convert.</param>
         /// <returns>A list of converted <see cref="GeoVector2"/>.</returns>
-        public static List<GeoVector2> ToGeoVector2(this IEnumerable<Vector3d> vectors) => vectors.Select(ToGeoVector2).ToList();
+        public static List<GeoVector2> ToGeoVector2(this IEnumerable<Vector3d> vectors) =>
+            vectors.Select(ToGeoVector2).ToList();
 
         /// <summary>
         /// Converts a AutoCAD 3D vector to a GeometryHelper 3D vector.
@@ -51,7 +53,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="vectors">The sequence of AutoCAD 3D vectors to convert.</param>
         /// <returns>A list of converted <see cref="GeoVector3"/>.</returns>
-        public static List<GeoVector3> ToGeoVector3(this IEnumerable<Vector3d> vectors) => vectors.Select(ToGeoVector3).ToList();
+        public static List<GeoVector3> ToGeoVector3(this IEnumerable<Vector3d> vectors) =>
+            vectors.Select(ToGeoVector3).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper 2D vector to a AutoCAD 2D vector.
@@ -65,7 +68,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="vectors">The sequence of GeometryHelper 2D vectors to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Vector2d"/>.</returns>
-        public static List<Vector2d> ToAcadVector2(this IEnumerable<GeoVector2> vectors) => vectors.Select(ToAcadVector2).ToList();
+        public static List<Vector2d> ToAcadVector2(this IEnumerable<GeoVector2> vectors) =>
+            vectors.Select(ToAcadVector2).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper 2D vector to a AutoCAD 3D vector (with Z = 0).
@@ -79,7 +83,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="vectors">The sequence of GeometryHelper 2D vectors to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Vector3d"/>.</returns>
-        public static List<Vector3d> ToAcadVector3(this IEnumerable<GeoVector2> vectors) => vectors.Select(ToAcadVector3).ToList();
+        public static List<Vector3d> ToAcadVector3(this IEnumerable<GeoVector2> vectors) =>
+            vectors.Select(ToAcadVector3).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper 3D vector to a AutoCAD 3D vector.
@@ -93,6 +98,7 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="vectors">The sequence of GeometryHelper 3D vectors to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Vector3d"/>.</returns>
-        public static List<Vector3d> ToAcadVector3(this IEnumerable<GeoVector3> vectors) => vectors.Select(ToAcadVector3).ToList();
+        public static List<Vector3d> ToAcadVector3(this IEnumerable<GeoVector3> vectors) =>
+            vectors.Select(ToAcadVector3).ToList();
     }
 }

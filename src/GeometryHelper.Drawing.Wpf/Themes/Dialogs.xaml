@@ -1,7 +1,8 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:gh="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf;assembly=GeometryHelper.Dxf.Viewer.Wpf">
-
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:gh="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf;assembly=GeometryHelper.Dxf.Viewer.Wpf"
+>
     <!-- The pieces the model drawing's dialogs share, on the design tokens of Dark.xaml. -->
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
@@ -92,7 +93,14 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToggleButton">
-                    <Border x:Name="Chrome" Background="Transparent" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Padding="9,2">
+                    <Border
+                        x:Name="Chrome"
+                        Background="Transparent"
+                        BorderBrush="{StaticResource GhBorder}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="9,2"
+                    >
                         <ContentPresenter />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -156,15 +164,31 @@
 
     <!-- The busy band: what the heavy work does, and Stop. -->
     <DataTemplate x:Key="BusyBand">
-        <Border Background="{StaticResource GhInput}" CornerRadius="4" Padding="12,8" Margin="16,0,16,10"
-                Visibility="{Binding IsBusy, Converter={StaticResource Shown}}">
+        <Border
+            Background="{StaticResource GhInput}"
+            CornerRadius="4"
+            Padding="12,8"
+            Margin="16,0,16,10"
+            Visibility="{Binding IsBusy, Converter={StaticResource Shown}}"
+        >
             <DockPanel>
-                <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Content="Stop" Command="{Binding StopCommand}" />
-                <ProgressBar DockPanel.Dock="Bottom" IsIndeterminate="{Binding IsBusy}" Height="3" Margin="0,6,0,0" Foreground="{StaticResource GhAccent}"
-                             Background="{StaticResource GhBorder}" BorderThickness="0" />
+                <Button
+                    DockPanel.Dock="Right"
+                    Style="{StaticResource SecondaryButton}"
+                    Content="Stop"
+                    Command="{Binding StopCommand}"
+                />
+                <ProgressBar
+                    DockPanel.Dock="Bottom"
+                    IsIndeterminate="{Binding IsBusy}"
+                    Height="3"
+                    Margin="0,6,0,0"
+                    Foreground="{StaticResource GhAccent}"
+                    Background="{StaticResource GhBorder}"
+                    BorderThickness="0"
+                />
                 <TextBlock Text="{Binding BusyText}" VerticalAlignment="Center" />
             </DockPanel>
         </Border>
     </DataTemplate>
-
 </ResourceDictionary>

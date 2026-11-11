@@ -34,7 +34,11 @@ namespace GeometryHelper.Takeoff
 
             if (maxDegreeOfParallelism == 0 || maxDegreeOfParallelism < -1)
             {
-                throw new ArgumentOutOfRangeException(nameof(maxDegreeOfParallelism), maxDegreeOfParallelism, "Use -1 for every processor, or a positive count.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(maxDegreeOfParallelism),
+                    maxDegreeOfParallelism,
+                    "Use -1 for every processor, or a positive count."
+                );
             }
 
             Boolean = boolean;
@@ -81,7 +85,8 @@ namespace GeometryHelper.Takeoff
                 CultureInfo.InvariantCulture,
                 "(Boolean: {0}, MaxDegreeOfParallelism: {1})",
                 Boolean,
-                MaxDegreeOfParallelism);
+                MaxDegreeOfParallelism
+            );
         }
     }
 }

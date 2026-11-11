@@ -19,9 +19,7 @@ namespace GeometryHelper.Dxf
     public sealed class DxfMlineStyle : DxfDBObject
     {
         internal DxfMlineStyle(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets the name of the style (group 2), as AutoCAD's <c>Name</c>, such as <c>STANDARD</c>.</summary>
         public string Name => DxfReader.NameOf(Text(2) ?? string.Empty).Trim();
@@ -64,7 +62,9 @@ namespace GeometryHelper.Dxf
         {
             get
             {
-                return int.TryParse(Text(62)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int index) ? DxfColor.OfIndex(index) : DxfColor.ByLayer;
+                return int.TryParse(Text(62)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int index)
+                    ? DxfColor.OfIndex(index)
+                    : DxfColor.ByLayer;
             }
         }
 
@@ -80,7 +80,9 @@ namespace GeometryHelper.Dxf
 
                 foreach (DxfMline.Element element in DxfMline.Style.Read(Item.File.ObjectGroupsOf(Item)).Elements)
                 {
-                    elements.Add(new DxfMlineStyleElement(element.Offset, DxfColor.OfIndex(element.Colour), element.Linetype));
+                    elements.Add(
+                        new DxfMlineStyleElement(element.Offset, DxfColor.OfIndex(element.Colour), element.Linetype)
+                    );
                 }
 
                 return elements.AsReadOnly();
@@ -91,7 +93,10 @@ namespace GeometryHelper.Dxf
         /// <returns>The line, such as <c>MLINESTYLE 18 STANDARD</c>.</returns>
         public override string ToString() => "MLINESTYLE " + (Handle ?? string.Empty) + " " + Name;
 
-        private int Flags => int.TryParse(Text(70)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags) ? flags : 0;
+        private int Flags =>
+            int.TryParse(Text(70)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags)
+                ? flags
+                : 0;
 
         /// <summary>The first group of a code of the style's own part, before its elements; null where it has none.</summary>
         private string Text(int code)
@@ -112,7 +117,8 @@ namespace GeometryHelper.Dxf
             return null;
         }
 
-        private double Real(int code, double fallback) => Numbers.TryRead(Text(code), out double value) && Guard.IsFinite(value) ? value : fallback;
+        private double Real(int code, double fallback) =>
+            Numbers.TryRead(Text(code), out double value) && Guard.IsFinite(value) ? value : fallback;
     }
 
     /// <summary>

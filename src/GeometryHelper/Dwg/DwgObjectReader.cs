@@ -74,9 +74,18 @@ namespace GeometryHelper.Dwg
                 var one = new DwgClass();
                 one.Number = reader.BitShort();
                 one.ProxyFlags = reader.BitShort();
-                one.Application = strings != null ? strings.TextUnicode() : number >= 1021 ? new byte[0] : reader.Text();
-                one.CppName = strings != null ? strings.TextUnicode() : number >= 1021 ? new byte[0] : reader.Text();
-                one.DxfName = strings != null ? strings.TextUnicode() : number >= 1021 ? new byte[0] : reader.Text();
+                one.Application =
+                    strings != null ? strings.TextUnicode()
+                    : number >= 1021 ? new byte[0]
+                    : reader.Text();
+                one.CppName =
+                    strings != null ? strings.TextUnicode()
+                    : number >= 1021 ? new byte[0]
+                    : reader.Text();
+                one.DxfName =
+                    strings != null ? strings.TextUnicode()
+                    : number >= 1021 ? new byte[0]
+                    : reader.Text();
                 one.WasZombie = reader.Bit();
                 one.IsEntity = reader.BitShort() == 0x1F2;
 
@@ -106,25 +115,111 @@ namespace GeometryHelper.Dwg
     {
         private static readonly int[] LineWeights =
         {
-            0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53, 60, 70, 80, 90, 100, 106, 120, 140, 158, 200, 211,
+            0,
+            5,
+            9,
+            13,
+            15,
+            18,
+            20,
+            25,
+            30,
+            35,
+            40,
+            50,
+            53,
+            60,
+            70,
+            80,
+            90,
+            100,
+            106,
+            120,
+            140,
+            158,
+            200,
+            211,
         };
 
         private static readonly Dictionary<int, string> FixedTypes = new Dictionary<int, string>
         {
-            { 0x01, "TEXT" }, { 0x02, "ATTRIB" }, { 0x03, "ATTDEF" }, { 0x04, "BLOCK" }, { 0x05, "ENDBLK" }, { 0x06, "SEQEND" },
-            { 0x07, "INSERT" }, { 0x08, "INSERT" }, { 0x0A, "VERTEX" }, { 0x0B, "VERTEX" }, { 0x0C, "VERTEX" }, { 0x0D, "VERTEX" },
-            { 0x0E, "VERTEX" }, { 0x0F, "POLYLINE" }, { 0x10, "POLYLINE" }, { 0x11, "ARC" }, { 0x12, "CIRCLE" }, { 0x13, "LINE" },
-            { 0x14, "DIMENSION" }, { 0x15, "DIMENSION" }, { 0x16, "DIMENSION" }, { 0x17, "DIMENSION" }, { 0x18, "DIMENSION" },
-            { 0x19, "DIMENSION" }, { 0x1A, "DIMENSION" }, { 0x1B, "POINT" }, { 0x1C, "3DFACE" }, { 0x1D, "POLYLINE" },
-            { 0x1E, "POLYLINE" }, { 0x1F, "SOLID" }, { 0x20, "TRACE" }, { 0x21, "SHAPE" }, { 0x22, "VIEWPORT" }, { 0x23, "ELLIPSE" },
-            { 0x24, "SPLINE" }, { 0x25, "REGION" }, { 0x26, "3DSOLID" }, { 0x27, "BODY" }, { 0x28, "RAY" }, { 0x29, "XLINE" },
-            { 0x2A, "DICTIONARY" }, { 0x2B, "OLEFRAME" }, { 0x2C, "MTEXT" }, { 0x2D, "LEADER" }, { 0x2E, "TOLERANCE" },
-            { 0x2F, "MLINE" }, { 0x30, "BLOCK_RECORD" }, { 0x31, "BLOCK_RECORD" }, { 0x32, "LAYER" }, { 0x33, "LAYER" },
-            { 0x34, "STYLE" }, { 0x35, "STYLE" }, { 0x38, "LTYPE" }, { 0x39, "LTYPE" }, { 0x3C, "VIEW" }, { 0x3D, "VIEW" },
-            { 0x3E, "UCS" }, { 0x3F, "UCS" }, { 0x40, "VPORT" }, { 0x41, "VPORT" }, { 0x42, "APPID" }, { 0x43, "APPID" },
-            { 0x44, "DIMSTYLE" }, { 0x45, "DIMSTYLE" }, { 0x46, "VP_ENT_HDR" }, { 0x47, "VP_ENT_HDR" }, { 0x48, "GROUP" },
-            { 0x49, "MLINESTYLE" }, { 0x4A, "OLE2FRAME" }, { 0x4B, "DUMMY" }, { 0x4C, "LONG_TRANSACTION" }, { 0x4D, "LWPOLYLINE" },
-            { 0x4E, "HATCH" }, { 0x4F, "XRECORD" }, { 0x50, "ACDBPLACEHOLDER" }, { 0x51, "VBA_PROJECT" }, { 0x52, "LAYOUT" },
+            { 0x01, "TEXT" },
+            { 0x02, "ATTRIB" },
+            { 0x03, "ATTDEF" },
+            { 0x04, "BLOCK" },
+            { 0x05, "ENDBLK" },
+            { 0x06, "SEQEND" },
+            { 0x07, "INSERT" },
+            { 0x08, "INSERT" },
+            { 0x0A, "VERTEX" },
+            { 0x0B, "VERTEX" },
+            { 0x0C, "VERTEX" },
+            { 0x0D, "VERTEX" },
+            { 0x0E, "VERTEX" },
+            { 0x0F, "POLYLINE" },
+            { 0x10, "POLYLINE" },
+            { 0x11, "ARC" },
+            { 0x12, "CIRCLE" },
+            { 0x13, "LINE" },
+            { 0x14, "DIMENSION" },
+            { 0x15, "DIMENSION" },
+            { 0x16, "DIMENSION" },
+            { 0x17, "DIMENSION" },
+            { 0x18, "DIMENSION" },
+            { 0x19, "DIMENSION" },
+            { 0x1A, "DIMENSION" },
+            { 0x1B, "POINT" },
+            { 0x1C, "3DFACE" },
+            { 0x1D, "POLYLINE" },
+            { 0x1E, "POLYLINE" },
+            { 0x1F, "SOLID" },
+            { 0x20, "TRACE" },
+            { 0x21, "SHAPE" },
+            { 0x22, "VIEWPORT" },
+            { 0x23, "ELLIPSE" },
+            { 0x24, "SPLINE" },
+            { 0x25, "REGION" },
+            { 0x26, "3DSOLID" },
+            { 0x27, "BODY" },
+            { 0x28, "RAY" },
+            { 0x29, "XLINE" },
+            { 0x2A, "DICTIONARY" },
+            { 0x2B, "OLEFRAME" },
+            { 0x2C, "MTEXT" },
+            { 0x2D, "LEADER" },
+            { 0x2E, "TOLERANCE" },
+            { 0x2F, "MLINE" },
+            { 0x30, "BLOCK_RECORD" },
+            { 0x31, "BLOCK_RECORD" },
+            { 0x32, "LAYER" },
+            { 0x33, "LAYER" },
+            { 0x34, "STYLE" },
+            { 0x35, "STYLE" },
+            { 0x38, "LTYPE" },
+            { 0x39, "LTYPE" },
+            { 0x3C, "VIEW" },
+            { 0x3D, "VIEW" },
+            { 0x3E, "UCS" },
+            { 0x3F, "UCS" },
+            { 0x40, "VPORT" },
+            { 0x41, "VPORT" },
+            { 0x42, "APPID" },
+            { 0x43, "APPID" },
+            { 0x44, "DIMSTYLE" },
+            { 0x45, "DIMSTYLE" },
+            { 0x46, "VP_ENT_HDR" },
+            { 0x47, "VP_ENT_HDR" },
+            { 0x48, "GROUP" },
+            { 0x49, "MLINESTYLE" },
+            { 0x4A, "OLE2FRAME" },
+            { 0x4B, "DUMMY" },
+            { 0x4C, "LONG_TRANSACTION" },
+            { 0x4D, "LWPOLYLINE" },
+            { 0x4E, "HATCH" },
+            { 0x4F, "XRECORD" },
+            { 0x50, "ACDBPLACEHOLDER" },
+            { 0x51, "VBA_PROJECT" },
+            { 0x52, "LAYOUT" },
         };
 
         private readonly byte[] _file;
@@ -184,7 +279,9 @@ namespace GeometryHelper.Dwg
                 return LineWeights[index];
             }
 
-            return index == 30 ? -2 : index == 31 ? -3 : -1;
+            return index == 30 ? -2
+                : index == 31 ? -3
+                : -1;
         }
 
         /// <summary>
@@ -248,7 +345,11 @@ namespace GeometryHelper.Dwg
 
             if (_object.Handle != handle)
             {
-                throw new FormatException("The object carries the handle " + _object.Handle.ToString("X", CultureInfo.InvariantCulture) + ", not the one the object map gives it.");
+                throw new FormatException(
+                    "The object carries the handle "
+                        + _object.Handle.ToString("X", CultureInfo.InvariantCulture)
+                        + ", not the one the object map gives it."
+                );
             }
 
             DwgClass ofClass = null;
@@ -256,7 +357,8 @@ namespace GeometryHelper.Dwg
             if (FixedTypes.TryGetValue(type, out string name))
             {
                 _object.Name = name;
-                _object.IsEntity = type < 0x2A || (type >= 0x2B && type <= 0x2F) || type == 0x4A || type == 0x4D || type == 0x4E;
+                _object.IsEntity =
+                    type < 0x2A || (type >= 0x2B && type <= 0x2F) || type == 0x4A || type == 0x4D || type == 0x4E;
             }
             else if (_classes.TryGetValue(type, out ofClass))
             {
@@ -401,9 +503,15 @@ namespace GeometryHelper.Dwg
 
             switch (linetype)
             {
-                case 1: _object.Common.Add(new DwgGroup(6, "ByBlock")); break;
-                case 2: _object.Common.Add(new DwgGroup(6, "Continuous")); break;
-                case 3: _object.Common.Add(new DwgGroup(6, new DwgName(H(), "ByLayer"))); break;
+                case 1:
+                    _object.Common.Add(new DwgGroup(6, "ByBlock"));
+                    break;
+                case 2:
+                    _object.Common.Add(new DwgGroup(6, "Continuous"));
+                    break;
+                case 3:
+                    _object.Common.Add(new DwgGroup(6, new DwgName(H(), "ByLayer")));
+                    break;
             }
 
             ulong materialHandle = material == 3 ? H() : 0;
@@ -494,7 +602,10 @@ namespace GeometryHelper.Dwg
 
             if (!later)
             {
-                colour.Raw = colour.Index == 256 ? unchecked((int)0xC0000000) : colour.Index == 0 ? unchecked((int)0xC1000000) : unchecked((int)0xC3000000) | (colour.Index & 0xFF);
+                colour.Raw =
+                    colour.Index == 256 ? unchecked((int)0xC0000000)
+                    : colour.Index == 0 ? unchecked((int)0xC1000000)
+                    : unchecked((int)0xC3000000) | (colour.Index & 0xFF);
                 return colour;
             }
 
@@ -504,14 +615,20 @@ namespace GeometryHelper.Dwg
 
             switch ((rgb >> 24) & 0xFF)
             {
-                case 0xC0: colour.Index = 256; break;
-                case 0xC1: colour.Index = 0; break;
+                case 0xC0:
+                    colour.Index = 256;
+                    break;
+                case 0xC1:
+                    colour.Index = 0;
+                    break;
                 case 0xC2:
                     // DXF writes a true colour with the nearest index of the palette; the index the file holds beside it is not that.
                     colour.Rgb = rgb & 0xFFFFFF;
                     colour.Index = GeometryHelper.Dxf.DxfColor.OfRgb(colour.Rgb, null).ColorIndex;
                     break;
-                case 0xC3: colour.Index = rgb & 0xFF; break;
+                case 0xC3:
+                    colour.Index = rgb & 0xFF;
+                    break;
             }
 
             if ((names & 1) != 0)
@@ -531,7 +648,13 @@ namespace GeometryHelper.Dwg
         /// Adds the groups of a colour: <paramref name="indexCode"/> the index (of an entity only where it is not by layer),
         /// <paramref name="rgbCode"/> a true colour, 430 the name of a colour of a book, 440 a transparency.
         /// </summary>
-        private static void AddColour(List<DwgGroup> groups, DwgColour colour, bool entity, int indexCode = 62, int rgbCode = 420)
+        private static void AddColour(
+            List<DwgGroup> groups,
+            DwgColour colour,
+            bool entity,
+            int indexCode = 62,
+            int rgbCode = 420
+        )
         {
             if (!entity || colour.Index != 256)
             {
@@ -545,7 +668,14 @@ namespace GeometryHelper.Dwg
 
             if (colour.Name != null && colour.Name.Length > 0)
             {
-                groups.Add(new DwgGroup(430, colour.BookName != null && colour.BookName.Length > 0 ? Join(colour.BookName, colour.Name) : colour.Name));
+                groups.Add(
+                    new DwgGroup(
+                        430,
+                        colour.BookName != null && colour.BookName.Length > 0
+                            ? Join(colour.BookName, colour.Name)
+                            : colour.Name
+                    )
+                );
             }
 
             if (colour.Transparency != -1)
@@ -642,7 +772,11 @@ namespace GeometryHelper.Dwg
                             _object.XData.Add(new DwgGroup(1071, values.RawLong()));
                             break;
                         default:
-                            throw new FormatException("The extended data of the object have a value of the unknown kind " + kind.ToString(CultureInfo.InvariantCulture) + ".");
+                            throw new FormatException(
+                                "The extended data of the object have a value of the unknown kind "
+                                    + kind.ToString(CultureInfo.InvariantCulture)
+                                    + "."
+                            );
                     }
                 }
             }
@@ -674,7 +808,8 @@ namespace GeometryHelper.Dwg
 
         private static double Degrees(double radians) => radians * 180.0 / Math.PI;
 
-        private static bool IsDefaultExtrusion(double[] extrusion) => extrusion[0] == 0.0 && extrusion[1] == 0.0 && extrusion[2] == 1.0;
+        private static bool IsDefaultExtrusion(double[] extrusion) =>
+            extrusion[0] == 0.0 && extrusion[1] == 0.0 && extrusion[2] == 1.0;
 
         /// <summary>Adds a group where <paramref name="value"/> is not the 0 that DXF leaves out.</summary>
         private void AddNonZero(int code, double value)
@@ -707,50 +842,116 @@ namespace GeometryHelper.Dwg
         {
             switch (type)
             {
-                case 0x01: return ReadText(0);
-                case 0x02: return ReadText(1);
-                case 0x03: return ReadText(2);
-                case 0x04: _object.RecordName = T(); return true;
-                case 0x05: _object.Add(100, "AcDbBlockEnd"); return true;
-                case 0x06: return true;
-                case 0x07: ReadInsert(false); return true;
-                case 0x08: ReadInsert(true); return true;
-                case 0x0A: ReadVertex2D(); return true;
-                case 0x0B: ReadVertex3D("AcDb3dPolylineVertex"); return true;
-                case 0x0C: ReadVertex3D("AcDbPolygonMeshVertex"); return true;
-                case 0x0D: ReadVertex3D("AcDbPolyFaceMeshVertex"); return true;
-                case 0x0E: ReadFaceRecord(); return true;
-                case 0x0F: ReadPolyline2D(); return true;
-                case 0x10: ReadPolyline3D(); return true;
-                case 0x11: ReadCircle(true); return true;
-                case 0x12: ReadCircle(false); return true;
-                case 0x13: ReadLine(); return true;
+                case 0x01:
+                    return ReadText(0);
+                case 0x02:
+                    return ReadText(1);
+                case 0x03:
+                    return ReadText(2);
+                case 0x04:
+                    _object.RecordName = T();
+                    return true;
+                case 0x05:
+                    _object.Add(100, "AcDbBlockEnd");
+                    return true;
+                case 0x06:
+                    return true;
+                case 0x07:
+                    ReadInsert(false);
+                    return true;
+                case 0x08:
+                    ReadInsert(true);
+                    return true;
+                case 0x0A:
+                    ReadVertex2D();
+                    return true;
+                case 0x0B:
+                    ReadVertex3D("AcDb3dPolylineVertex");
+                    return true;
+                case 0x0C:
+                    ReadVertex3D("AcDbPolygonMeshVertex");
+                    return true;
+                case 0x0D:
+                    ReadVertex3D("AcDbPolyFaceMeshVertex");
+                    return true;
+                case 0x0E:
+                    ReadFaceRecord();
+                    return true;
+                case 0x0F:
+                    ReadPolyline2D();
+                    return true;
+                case 0x10:
+                    ReadPolyline3D();
+                    return true;
+                case 0x11:
+                    ReadCircle(true);
+                    return true;
+                case 0x12:
+                    ReadCircle(false);
+                    return true;
+                case 0x13:
+                    ReadLine();
+                    return true;
                 case 0x14:
                 case 0x15:
                 case 0x16:
                 case 0x17:
                 case 0x18:
                 case 0x19:
-                case 0x1A: ReadDimension(type); return true;
-                case 0x1B: ReadPoint(); return true;
-                case 0x1C: ReadFace(); return true;
-                case 0x1D: ReadPolyfaceMesh(); return true;
-                case 0x1E: ReadPolygonMesh(); return true;
+                case 0x1A:
+                    ReadDimension(type);
+                    return true;
+                case 0x1B:
+                    ReadPoint();
+                    return true;
+                case 0x1C:
+                    ReadFace();
+                    return true;
+                case 0x1D:
+                    ReadPolyfaceMesh();
+                    return true;
+                case 0x1E:
+                    ReadPolygonMesh();
+                    return true;
                 case 0x1F:
-                case 0x20: ReadSolid(); return true;
-                case 0x22: ReadViewport(); return true;
-                case 0x23: ReadEllipse(); return true;
-                case 0x24: ReadSpline(); return true;
+                case 0x20:
+                    ReadSolid();
+                    return true;
+                case 0x22:
+                    ReadViewport();
+                    return true;
+                case 0x23:
+                    ReadEllipse();
+                    return true;
+                case 0x24:
+                    ReadSpline();
+                    return true;
                 case 0x25:
-                case 0x27: return ReadModelerGeometry(false);
-                case 0x26: return ReadModelerGeometry(true);
-                case 0x28: ReadRay("AcDbRay"); return true;
-                case 0x29: ReadRay("AcDbXline"); return true;
-                case 0x2A: ReadDictionary(false); return true;
-                case 0x2C: ReadMText(); return true;
-                case 0x2D: ReadLeader(); return true;
-                case 0x2E: ReadTolerance(); return true;
-                case 0x2F: ReadMLine(); return true;
+                case 0x27:
+                    return ReadModelerGeometry(false);
+                case 0x26:
+                    return ReadModelerGeometry(true);
+                case 0x28:
+                    ReadRay("AcDbRay");
+                    return true;
+                case 0x29:
+                    ReadRay("AcDbXline");
+                    return true;
+                case 0x2A:
+                    ReadDictionary(false);
+                    return true;
+                case 0x2C:
+                    ReadMText();
+                    return true;
+                case 0x2D:
+                    ReadLeader();
+                    return true;
+                case 0x2E:
+                    ReadTolerance();
+                    return true;
+                case 0x2F:
+                    ReadMLine();
+                    return true;
                 case 0x30:
                 case 0x32:
                 case 0x34:
@@ -760,45 +961,110 @@ namespace GeometryHelper.Dwg
                 case 0x40:
                 case 0x42:
                 case 0x44:
-                case 0x46: ReadControl(type); return true;
-                case 0x31: ReadBlockHeader(); return true;
-                case 0x33: ReadLayer(); return true;
-                case 0x35: ReadStyle(); return true;
-                case 0x39: ReadLinetype(); return true;
-                case 0x3D: ReadView(); return true;
-                case 0x3F: ReadUcs(); return true;
-                case 0x41: ReadVport(); return true;
-                case 0x43: ReadAppId(); return true;
-                case 0x45: ReadDimStyle(); return true;
-                case 0x48: ReadGroup(); return true;
-                case 0x49: ReadMLineStyle(); return true;
-                case 0x4D: ReadLwPolyline(); return true;
-                case 0x4E: ReadHatch(); return true;
-                case 0x4F: ReadXRecord(); return true;
-                case 0x50: return true;
-                case 0x52: ReadLayout(); return true;
+                case 0x46:
+                    ReadControl(type);
+                    return true;
+                case 0x31:
+                    ReadBlockHeader();
+                    return true;
+                case 0x33:
+                    ReadLayer();
+                    return true;
+                case 0x35:
+                    ReadStyle();
+                    return true;
+                case 0x39:
+                    ReadLinetype();
+                    return true;
+                case 0x3D:
+                    ReadView();
+                    return true;
+                case 0x3F:
+                    ReadUcs();
+                    return true;
+                case 0x41:
+                    ReadVport();
+                    return true;
+                case 0x43:
+                    ReadAppId();
+                    return true;
+                case 0x45:
+                    ReadDimStyle();
+                    return true;
+                case 0x48:
+                    ReadGroup();
+                    return true;
+                case 0x49:
+                    ReadMLineStyle();
+                    return true;
+                case 0x4D:
+                    ReadLwPolyline();
+                    return true;
+                case 0x4E:
+                    ReadHatch();
+                    return true;
+                case 0x4F:
+                    ReadXRecord();
+                    return true;
+                case 0x50:
+                    return true;
+                case 0x52:
+                    ReadLayout();
+                    return true;
             }
 
             switch (_object.Name)
             {
-                case "ACDBDICTIONARYWDFLT": ReadDictionary(true); return true;
-                case "DICTIONARYVAR": ReadDictionaryVariable(); return true;
-                case "SCALE": ReadScale(); return true;
-                case "ACDBPLACEHOLDER": return true;
-                case "LAYOUT": ReadLayout(); return true;
-                case "XRECORD": ReadXRecord(); return true;
-                case "LWPOLYLINE": ReadLwPolyline(); return true;
-                case "HATCH": ReadHatch(); return true;
-                case "MULTILEADER": ReadMultiLeader(); return true;
-                case "MLEADERSTYLE": ReadMultiLeaderStyle(); return true;
-                case "IMAGE": ReadRasterImage("AcDbRasterImage"); return true;
-                case "WIPEOUT": ReadRasterImage("AcDbWipeout"); return true;
-                case "IMAGEDEF": ReadImageDefinition(); return true;
-                case "IMAGEDEF_REACTOR": ReadImageDefinitionReactor(); return true;
-                case "DBCOLOR": ReadBookColour(); return true;
-                case "ACAD_TABLE": return ReadTable();
-                case "TABLESTYLE": return ReadTableStyle();
-                default: return false;
+                case "ACDBDICTIONARYWDFLT":
+                    ReadDictionary(true);
+                    return true;
+                case "DICTIONARYVAR":
+                    ReadDictionaryVariable();
+                    return true;
+                case "SCALE":
+                    ReadScale();
+                    return true;
+                case "ACDBPLACEHOLDER":
+                    return true;
+                case "LAYOUT":
+                    ReadLayout();
+                    return true;
+                case "XRECORD":
+                    ReadXRecord();
+                    return true;
+                case "LWPOLYLINE":
+                    ReadLwPolyline();
+                    return true;
+                case "HATCH":
+                    ReadHatch();
+                    return true;
+                case "MULTILEADER":
+                    ReadMultiLeader();
+                    return true;
+                case "MLEADERSTYLE":
+                    ReadMultiLeaderStyle();
+                    return true;
+                case "IMAGE":
+                    ReadRasterImage("AcDbRasterImage");
+                    return true;
+                case "WIPEOUT":
+                    ReadRasterImage("AcDbWipeout");
+                    return true;
+                case "IMAGEDEF":
+                    ReadImageDefinition();
+                    return true;
+                case "IMAGEDEF_REACTOR":
+                    ReadImageDefinitionReactor();
+                    return true;
+                case "DBCOLOR":
+                    ReadBookColour();
+                    return true;
+                case "ACAD_TABLE":
+                    return ReadTable();
+                case "TABLESTYLE":
+                    return ReadTableStyle();
+                default:
+                    return false;
             }
         }
     }

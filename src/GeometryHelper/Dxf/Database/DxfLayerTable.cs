@@ -56,7 +56,10 @@ namespace GeometryHelper.Dxf
         {
             if (!(record is DxfLayerTableRecord layer))
             {
-                throw new ArgumentException("The layer table takes a DxfLayerTableRecord, and was given a " + record.GetType().Name + ".", "value");
+                throw new ArgumentException(
+                    "The layer table takes a DxfLayerTableRecord, and was given a " + record.GetType().Name + ".",
+                    "value"
+                );
             }
 
             layer.AddTo(_file);
@@ -94,7 +97,9 @@ namespace GeometryHelper.Dxf
     public sealed class DxfLayerTableRecord : DxfSymbolTableRecord
     {
         // The groups of AcDbLayerTableRecord in the order AutoCAD writes them, after AcDbSymbolTableRecord.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 100, 2, 70, 62, 420, 6, 290, 370, 390, 347 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 100, 2, 70, 62, 420, 6, 290, 370, 390, 347 }
+        );
 
         // The sections whose records name a layer by name.
         private static readonly string[] Naming = { "TABLES", "ENTITIES", "BLOCKS", "OBJECTS" };
@@ -115,14 +120,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Initializes a layer made in code, to be added to a <see cref="DxfLayerTable"/> with its <see cref="DxfSymbolTableRecord.Name"/> given.
         /// </summary>
-        public DxfLayerTableRecord()
-        {
-        }
+        public DxfLayerTableRecord() { }
 
         private DxfLayerTableRecord(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets or sets the colour of the layer (group 62), as AutoCAD's <c>Color</c> by its index: 1 to 255, whether the layer
@@ -142,7 +143,6 @@ namespace GeometryHelper.Dxf
                 int colour = Math.Abs(Whole(62, 7));
                 return colour >= 1 && colour <= 255 ? colour : 7;
             }
-
             set
             {
                 if (Item != null && value == ColorIndex)
@@ -152,7 +152,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < 1 || value > 255)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The colour of a layer is an AutoCAD colour index from 1 to 255.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "The colour of a layer is an AutoCAD colour index from 1 to 255."
+                    );
                 }
 
                 if (Item == null)
@@ -180,9 +184,10 @@ namespace GeometryHelper.Dxf
             get
             {
                 int? colour = TrueColor;
-                return colour.HasValue ? DxfColor.OfRgb(colour.Value, Item == null ? null : Item.File.ValueOf(Item, 430)) : DxfColor.OfIndex(ColorIndex);
+                return colour.HasValue
+                    ? DxfColor.OfRgb(colour.Value, Item == null ? null : Item.File.ValueOf(Item, 430))
+                    : DxfColor.OfIndex(ColorIndex);
             }
-
             set
             {
                 if (value == null)
@@ -197,7 +202,10 @@ namespace GeometryHelper.Dxf
 
                 if (value.ColorMethod != DxfColorMethod.ByAci && value.ColorMethod != DxfColorMethod.ByColor)
                 {
-                    throw new ArgumentException("A layer is of a colour of the index or a true colour: " + value.ColorMethod + " is neither.", nameof(value));
+                    throw new ArgumentException(
+                        "A layer is of a colour of the index or a true colour: " + value.ColorMethod + " is neither.",
+                        nameof(value)
+                    );
                 }
 
                 TrueColor = value.IsByColor ? value.ColorValue : (int?)null;
@@ -227,9 +235,10 @@ namespace GeometryHelper.Dxf
                 }
 
                 string text = Item.File.ValueOf(Item, 420);
-                return int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int colour) ? colour & 0xFFFFFF : (int?)null;
+                return int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int colour)
+                    ? colour & 0xFFFFFF
+                    : (int?)null;
             }
-
             set
             {
                 if (Item != null && value == TrueColor)
@@ -239,7 +248,11 @@ namespace GeometryHelper.Dxf
 
                 if (value.HasValue && (value.Value < 0 || value.Value > 0xFFFFFF))
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A true colour is red, green and blue, 0 to 0xFFFFFF.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A true colour is red, green and blue, 0 to 0xFFFFFF."
+                    );
                 }
 
                 if (Item == null)
@@ -272,7 +285,6 @@ namespace GeometryHelper.Dxf
                 string name = DxfReader.NameOf(Item.File.ValueOf(Item, 6) ?? string.Empty);
                 return name.Length == 0 ? "Continuous" : name;
             }
-
             set
             {
                 if (value == null)
@@ -288,7 +300,10 @@ namespace GeometryHelper.Dxf
                 {
                     if (!Item.File.LinetypeListed(value))
                     {
-                        throw new ArgumentException("The linetype " + value + " is not in the file's linetype table.", nameof(value));
+                        throw new ArgumentException(
+                            "The linetype " + value + " is not in the file's linetype table.",
+                            nameof(value)
+                        );
                     }
 
                     Set(6, value);
@@ -306,7 +321,6 @@ namespace GeometryHelper.Dxf
         public DxfLineWeight LineWeight
         {
             get => Item == null ? _lineWeight : (DxfLineWeight)Whole(370, -3);
-
             set
             {
                 // The weight it has changes nothing, whatever the file holds.
@@ -315,9 +329,17 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                if (value == DxfLineWeight.ByLayer || value == DxfLineWeight.ByBlock || (value != DxfLineWeight.ByLineWeightDefault && !DxfShape.IsLineweight((int)value)))
+                if (
+                    value == DxfLineWeight.ByLayer
+                    || value == DxfLineWeight.ByBlock
+                    || (value != DxfLineWeight.ByLineWeightDefault && !DxfShape.IsLineweight((int)value))
+                )
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The lineweight of a layer is one of AutoCAD's, or the default.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "The lineweight of a layer is one of AutoCAD's, or the default."
+                    );
                 }
 
                 if (Item == null)
@@ -339,7 +361,6 @@ namespace GeometryHelper.Dxf
         public bool IsOff
         {
             get => Item == null ? _off : Whole(62, 7) < 0;
-
             set
             {
                 if (Item == null)
@@ -358,7 +379,6 @@ namespace GeometryHelper.Dxf
         public bool IsFrozen
         {
             get => Item == null ? _frozen : (Flags & 1) != 0;
-
             set
             {
                 if (Item == null)
@@ -376,7 +396,6 @@ namespace GeometryHelper.Dxf
         public bool IsLocked
         {
             get => Item == null ? _locked : (Flags & 4) != 0;
-
             set
             {
                 if (Item == null)
@@ -395,7 +414,6 @@ namespace GeometryHelper.Dxf
         public bool IsPlottable
         {
             get => Item == null ? _plotted : Whole(290, 1) != 0;
-
             set
             {
                 if (Item == null)
@@ -418,7 +436,6 @@ namespace GeometryHelper.Dxf
         public bool ViewportVisibilityDefault
         {
             get => Item == null ? _frozenInNewViewports : (Flags & 2) != 0;
-
             set
             {
                 if (Item == null)
@@ -492,7 +509,6 @@ namespace GeometryHelper.Dxf
 
                 return string.Empty;
             }
-
             set
             {
                 if (value == null)
@@ -505,9 +521,15 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                XData = value.Length == 0
-                    ? new[] { new DxfTypedValue(1001, DescriptionApplication) }
-                    : new[] { new DxfTypedValue(1001, DescriptionApplication), new DxfTypedValue(1000, string.Empty), new DxfTypedValue(1000, value) };
+                XData =
+                    value.Length == 0
+                        ? new[] { new DxfTypedValue(1001, DescriptionApplication) }
+                        : new[]
+                        {
+                            new DxfTypedValue(1001, DescriptionApplication),
+                            new DxfTypedValue(1000, string.Empty),
+                            new DxfTypedValue(1000, value),
+                        };
             }
         }
 
@@ -533,7 +555,15 @@ namespace GeometryHelper.Dxf
 
                 for (int i = 1; data != null && i < data.Count; i++)
                 {
-                    if (data[i].TypeCode == 1071 && int.TryParse(data[i].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
+                    if (
+                        data[i].TypeCode == 1071
+                        && int.TryParse(
+                            data[i].Value.Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out int value
+                        )
+                    )
                     {
                         return DxfTransparency.OfValue(value);
                     }
@@ -541,7 +571,6 @@ namespace GeometryHelper.Dxf
 
                 return new DxfTransparency(255);
             }
-
             set
             {
                 if (value == Transparency)
@@ -551,7 +580,10 @@ namespace GeometryHelper.Dxf
 
                 if (!value.IsByAlpha)
                 {
-                    throw new ArgumentException("A layer's transparency is by alpha, from 0 clear to 255 solid: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "A layer's transparency is by alpha, from 0 clear to 255 solid: " + value + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 if (Item != null && !value.IsSolid)
@@ -561,7 +593,11 @@ namespace GeometryHelper.Dxf
 
                 XData = value.IsSolid
                     ? new[] { new DxfTypedValue(1001, TransparencyApplication) }
-                    : new[] { new DxfTypedValue(1001, TransparencyApplication), new DxfTypedValue(1071, value.Value.ToString(CultureInfo.InvariantCulture)) };
+                    : new[]
+                    {
+                        new DxfTypedValue(1001, TransparencyApplication),
+                        new DxfTypedValue(1071, value.Value.ToString(CultureInfo.InvariantCulture)),
+                    };
             }
         }
 
@@ -592,7 +628,10 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(viewport));
             }
 
-            return viewport.Handle != null && DxfLayerViewportProperties.Overrides(this).Exists(o => string.Equals(o.Key, viewport.Handle, StringComparison.OrdinalIgnoreCase));
+            return viewport.Handle != null
+                && DxfLayerViewportProperties
+                    .Overrides(this)
+                    .Exists(o => string.Equals(o.Key, viewport.Handle, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>
@@ -672,17 +711,27 @@ namespace GeometryHelper.Dxf
 
             if (IsKept(name))
             {
-                throw new InvalidOperationException("The layer " + name + " is layer 0, Defpoints or the current layer, which AutoCAD keeps.");
+                throw new InvalidOperationException(
+                    "The layer " + name + " is layer 0, Defpoints or the current layer, which AutoCAD keeps."
+                );
             }
 
             if (IsUsed)
             {
-                throw new InvalidOperationException("The layer " + name + " has entities on it, and is not erased, as AutoCAD erases a layer only when nothing is on it.");
+                throw new InvalidOperationException(
+                    "The layer "
+                        + name
+                        + " has entities on it, and is not erased, as AutoCAD erases a layer only when nothing is on it."
+                );
             }
 
             if (Item.File.PointedAt(Handle) || FrozenByName())
             {
-                throw new InvalidOperationException("The layer " + name + " is pointed at by an object of the file, as a viewport that freezes it, and is not erased.");
+                throw new InvalidOperationException(
+                    "The layer "
+                        + name
+                        + " is pointed at by an object of the file, as a viewport that freezes it, and is not erased."
+                );
             }
 
             Item.File.RemoveTableRecord(Item, "LAYER");
@@ -705,7 +754,9 @@ namespace GeometryHelper.Dxf
 
             if (IsDependent)
             {
-                throw new InvalidOperationException("The layer " + old + " comes from an external reference, and is renamed in its own drawing.");
+                throw new InvalidOperationException(
+                    "The layer " + old + " comes from an external reference, and is renamed in its own drawing."
+                );
             }
 
             if (IsErased)
@@ -717,13 +768,24 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfItem other in file.TableItems("LAYER"))
             {
-                if (other != Item && string.Equals(DxfReader.NameOf(file.ValueOf(other, 2) ?? string.Empty), name, StringComparison.OrdinalIgnoreCase))
+                if (
+                    other != Item
+                    && string.Equals(
+                        DxfReader.NameOf(file.ValueOf(other, 2) ?? string.Empty),
+                        name,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
                 {
-                    throw new ArgumentException("The layer table has a layer named " + name + " already, letters of either case the same.", "value");
+                    throw new ArgumentException(
+                        "The layer table has a layer named " + name + " already, letters of either case the same.",
+                        "value"
+                    );
                 }
             }
 
-            bool current = file.Database != null && string.Equals(file.Database.Clayer, old, StringComparison.OrdinalIgnoreCase);
+            bool current =
+                file.Database != null && string.Equals(file.Database.Clayer, old, StringComparison.OrdinalIgnoreCase);
             Set(2, name);
             file.Rename(Naming, (type, code) => code == 8 && type != "XRECORD", 1003, old, name);
 
@@ -732,7 +794,9 @@ namespace GeometryHelper.Dxf
                 file.SetHeader("$CLAYER", new[] { new DxfTypedValue(8, name) });
             }
 
-            GeometryHelperLog.Info("DxfDatabase: the layer " + old + " was renamed " + name + ", with every entity on it.");
+            GeometryHelperLog.Info(
+                "DxfDatabase: the layer " + old + " was renamed " + name + ", with every entity on it."
+            );
         }
 
         /// <summary>
@@ -763,36 +827,68 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether a layer is one AutoCAD keeps whatever is on it: layer 0, Defpoints and the current layer.</summary>
-        private bool IsKept(string name)
-            => name == "0" || string.Equals(name, "Defpoints", StringComparison.OrdinalIgnoreCase) || (Item.File.Database != null && string.Equals(Item.File.Database.Clayer, name, StringComparison.OrdinalIgnoreCase));
+        private bool IsKept(string name) =>
+            name == "0"
+            || string.Equals(name, "Defpoints", StringComparison.OrdinalIgnoreCase)
+            || (
+                Item.File.Database != null
+                && string.Equals(Item.File.Database.Clayer, name, StringComparison.OrdinalIgnoreCase)
+            );
 
         /// <summary>The object of a LAYER record, made once.</summary>
-        internal static DxfLayerTableRecord Of(DxfItem item) => item.Wrapper as DxfLayerTableRecord ?? (DxfLayerTableRecord)item.KeepWrapper(new DxfLayerTableRecord(item));
+        internal static DxfLayerTableRecord Of(DxfItem item) =>
+            item.Wrapper as DxfLayerTableRecord ?? (DxfLayerTableRecord)item.KeepWrapper(new DxfLayerTableRecord(item));
 
         /// <summary>Writes the layer made in code into a file's layer table, and stands for its record from then on.</summary>
         internal void AddTo(DxfFile file)
         {
             if (_lineWeight != DxfLineWeight.ByLineWeightDefault && !file.Supports(1015))
             {
-                throw new ArgumentException("A DXF of version " + (file.Version ?? "R12") + " has no lineweights, which came with R2000 (AC1015).", "value");
+                throw new ArgumentException(
+                    "A DXF of version "
+                        + (file.Version ?? "R12")
+                        + " has no lineweights, which came with R2000 (AC1015).",
+                    "value"
+                );
             }
 
             if (_trueColour.HasValue && !file.Supports(1018))
             {
-                throw new ArgumentException("A DXF of version " + (file.Version ?? "R12") + " has no true colours, which came with R2004 (AC1018).", "value");
+                throw new ArgumentException(
+                    "A DXF of version "
+                        + (file.Version ?? "R12")
+                        + " has no true colours, which came with R2004 (AC1018).",
+                    "value"
+                );
             }
 
             if (!file.LinetypeListed(_linetype))
             {
-                throw new ArgumentException("The linetype " + _linetype + " is not in the file's linetype table.", "value");
+                throw new ArgumentException(
+                    "The linetype " + _linetype + " is not in the file's linetype table.",
+                    "value"
+                );
             }
 
             if (!Transparency.IsSolid && !file.Supports(1018))
             {
-                throw new ArgumentException("A DXF of version " + (file.Version ?? "R12") + " has no transparency, which came with R2004 (AC1018).", "value");
+                throw new ArgumentException(
+                    "A DXF of version "
+                        + (file.Version ?? "R12")
+                        + " has no transparency, which came with R2004 (AC1018).",
+                    "value"
+                );
             }
 
-            DxfItem item = file.AddLayer(Name, (_off ? -_colour : _colour), _trueColour, _linetype, (int)_lineWeight, (_frozen ? 1 : 0) | (_frozenInNewViewports ? 2 : 0) | (_locked ? 4 : 0) | MadeDependence, _plotted);
+            DxfItem item = file.AddLayer(
+                Name,
+                (_off ? -_colour : _colour),
+                _trueColour,
+                _linetype,
+                (int)_lineWeight,
+                (_frozen ? 1 : 0) | (_frozenInNewViewports ? 2 : 0) | (_locked ? 4 : 0) | MadeDependence,
+                _plotted
+            );
 
             if (item == null)
             {
@@ -802,18 +898,35 @@ namespace GeometryHelper.Dxf
             Bind(item);
         }
 
-        private int Whole(int code, int fallback)
-            => int.TryParse(Item.File.ValueOf(Item, code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+        private int Whole(int code, int fallback) =>
+            int.TryParse(
+                Item.File.ValueOf(Item, code)?.Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int value
+            )
+                ? value
+                : fallback;
 
-        private void Set(int code, string value) => Item.File.SetValues(Item, new[] { new KeyValuePair<int, string>(code, value) }, Order, false);
+        private void Set(int code, string value) =>
+            Item.File.SetValues(Item, new[] { new KeyValuePair<int, string>(code, value) }, Order, false);
 
-        private void SetFlag(int flag, bool on) => Set(70, (on ? Flags | flag : Flags & ~flag).ToString(CultureInfo.InvariantCulture));
+        private void SetFlag(int flag, bool on) =>
+            Set(70, (on ? Flags | flag : Flags & ~flag).ToString(CultureInfo.InvariantCulture));
 
         private void Since(int version, string what, string since, bool needed)
         {
             if (needed && !Item.File.Supports(version))
             {
-                throw new InvalidOperationException("A DXF of version " + (Item.File.Version ?? "R12") + " has no " + what + ", which came with " + since + ".");
+                throw new InvalidOperationException(
+                    "A DXF of version "
+                        + (Item.File.Version ?? "R12")
+                        + " has no "
+                        + what
+                        + ", which came with "
+                        + since
+                        + "."
+                );
             }
         }
     }

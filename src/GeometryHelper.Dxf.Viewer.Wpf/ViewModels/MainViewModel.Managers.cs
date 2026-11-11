@@ -47,7 +47,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case string question when e.Name == "PURGEITEM" && ConfirmPurgeItem != null:
                     bool? answer = ConfirmPurgeItem(question);
-                    e.Answer = answer == null ? null : answer.Value ? "Yes" : "No";
+                    e.Answer =
+                        answer == null ? null
+                        : answer.Value ? "Yes"
+                        : "No";
                     e.Handled = true;
                     break;
                 case CadGroupManagerRequest groups when ShowGroupManager != null:

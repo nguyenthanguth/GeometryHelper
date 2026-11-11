@@ -199,4 +199,3 @@ namespace GeometryHelper.UnitTest.Plane
         }
     }
 }
-

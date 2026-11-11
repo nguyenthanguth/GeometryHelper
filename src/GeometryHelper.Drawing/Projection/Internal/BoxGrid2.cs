@@ -29,19 +29,27 @@ namespace GeometryHelper.Drawing.Projection
         /// Builds the grid of boxes, each widened by a margin.
         /// </summary>
         internal BoxGrid2(double[] minX, double[] minY, double[] maxX, double[] maxY, int count, double margin)
-            : this(minX, minY, maxX, maxY, count, margin, count)
-        {
-        }
+            : this(minX, minY, maxX, maxY, count, margin, count) { }
 
         /// <summary>
         /// Builds the grid of boxes, each widened by a margin, its cells shaped as for a number of boxes over the same extent:
         /// the boxes left once others the same are dropped find in it what all of them would, less those dropped.
         /// </summary>
-        internal BoxGrid2(double[] minX, double[] minY, double[] maxX, double[] maxY, int count, double margin, int shapedFor)
+        internal BoxGrid2(
+            double[] minX,
+            double[] minY,
+            double[] maxX,
+            double[] maxY,
+            int count,
+            double margin,
+            int shapedFor
+        )
         {
             _stamps = new int[count];
-            double x0 = double.PositiveInfinity, y0 = double.PositiveInfinity;
-            double x1 = double.NegativeInfinity, y1 = double.NegativeInfinity;
+            double x0 = double.PositiveInfinity,
+                y0 = double.PositiveInfinity;
+            double x1 = double.NegativeInfinity,
+                y1 = double.NegativeInfinity;
 
             for (int i = 0; i < count; i++)
             {

@@ -33,7 +33,12 @@ namespace GeometryHelper.Core
         /// <param name="intersection">The resulting intersection point if successful.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the line segments intersect within tolerance; otherwise, false.</returns>
-        public static bool TryIntersectWith(GeoLine2 line1, GeoLine2 line2, out GeoPoint2 intersection, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoLine2 line1,
+            GeoLine2 line2,
+            out GeoPoint2 intersection,
+            Tolerance tolerance
+        )
         {
             return TryIntersectWith(line1, line2, LineExtension.None, out intersection, tolerance);
         }
@@ -47,7 +52,12 @@ namespace GeometryHelper.Core
         /// <param name="extension">Which of the two may be reached past its endpoints.</param>
         /// <param name="intersection">The resulting intersection point if successful.</param>
         /// <returns>true if the lines meet within the reach allowed; otherwise, false.</returns>
-        public static bool TryIntersectWith(GeoLine2 line1, GeoLine2 line2, LineExtension extension, out GeoPoint2 intersection)
+        public static bool TryIntersectWith(
+            GeoLine2 line1,
+            GeoLine2 line2,
+            LineExtension extension,
+            out GeoPoint2 intersection
+        )
         {
             return TryIntersectWith(line1, line2, extension, out intersection, Tolerance.Global);
         }
@@ -82,7 +92,13 @@ namespace GeometryHelper.Core
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the extension is not a defined value.</exception>
-        public static bool TryIntersectWith(GeoLine2 line1, GeoLine2 line2, LineExtension extension, out GeoPoint2 intersection, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoLine2 line1,
+            GeoLine2 line2,
+            LineExtension extension,
+            out GeoPoint2 intersection,
+            Tolerance tolerance
+        )
         {
             return extension == LineExtension.None
                 ? TryCross(line1, true, line2, true, out intersection, tolerance)
@@ -100,7 +116,14 @@ namespace GeometryHelper.Core
         /// <param name="secondGiven">true when the second segment is one you give.</param>
         /// <param name="crossing">The point, clamped onto both.</param>
         /// <param name="tolerance">The tolerance.</param>
-        internal static bool TryCross(GeoLine2 first, bool firstGiven, GeoLine2 second, bool secondGiven, out GeoPoint2 crossing, Tolerance tolerance)
+        internal static bool TryCross(
+            GeoLine2 first,
+            bool firstGiven,
+            GeoLine2 second,
+            bool secondGiven,
+            out GeoPoint2 crossing,
+            Tolerance tolerance
+        )
         {
             if (Crossing(first, second, LineExtension.None, out crossing, tolerance))
             {
@@ -111,7 +134,13 @@ namespace GeometryHelper.Core
             bool secondShort = secondGiven && Stub2.ReadsAsStart(second, tolerance);
 
             return (firstShort || secondShort)
-                && Crossing(first, second, LineExtension.None, out crossing, Stub2.AsItIs(firstShort ? first : second, tolerance));
+                && Crossing(
+                    first,
+                    second,
+                    LineExtension.None,
+                    out crossing,
+                    Stub2.AsItIs(firstShort ? first : second, tolerance)
+                );
         }
 
         /// <summary>
@@ -120,18 +149,37 @@ namespace GeometryHelper.Core
         /// segment no longer than the point tolerance having no direction and crossing nothing. The sides of shapes are
         /// crossed so, and the segments split or tested for lying in a polygon.
         /// </summary>
-        internal static bool Crossing(GeoLine2 line1, GeoLine2 line2, LineExtension extension, out GeoPoint2 intersection, Tolerance tolerance)
+        internal static bool Crossing(
+            GeoLine2 line1,
+            GeoLine2 line2,
+            LineExtension extension,
+            out GeoPoint2 intersection,
+            Tolerance tolerance
+        )
         {
             bool extendFirst;
             bool extendSecond;
 
             switch (extension)
             {
-                case LineExtension.None: extendFirst = false; extendSecond = false; break;
-                case LineExtension.First: extendFirst = true; extendSecond = false; break;
-                case LineExtension.Second: extendFirst = false; extendSecond = true; break;
-                case LineExtension.Both: extendFirst = true; extendSecond = true; break;
-                default: throw new ArgumentOutOfRangeException(nameof(extension), "Unknown line extension.");
+                case LineExtension.None:
+                    extendFirst = false;
+                    extendSecond = false;
+                    break;
+                case LineExtension.First:
+                    extendFirst = true;
+                    extendSecond = false;
+                    break;
+                case LineExtension.Second:
+                    extendFirst = false;
+                    extendSecond = true;
+                    break;
+                case LineExtension.Both:
+                    extendFirst = true;
+                    extendSecond = true;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(extension), "Unknown line extension.");
             }
 
             intersection = new GeoPoint2(0, 0);
@@ -149,7 +197,16 @@ namespace GeometryHelper.Core
 
             double rCrossS = r.CrossProduct(s);
 
-            if (IsParallelOver(Math.Abs(rCrossS) / (rLength * sLength), extendFirst, extendSecond, rLength, sLength, tolerance))
+            if (
+                IsParallelOver(
+                    Math.Abs(rCrossS) / (rLength * sLength),
+                    extendFirst,
+                    extendSecond,
+                    rLength,
+                    sLength,
+                    tolerance
+                )
+            )
             {
                 return false; // parallel or collinear
             }
@@ -210,15 +267,20 @@ namespace GeometryHelper.Core
         /// CollidesWith said true and DistanceTo nought. Only two infinite lines have no length to measure over,
         /// and those still go by the angle.
         /// </remarks>
-        internal static bool IsParallelOver(double sine, bool extendFirst, bool extendSecond, double length1, double length2, Tolerance tolerance)
+        internal static bool IsParallelOver(
+            double sine,
+            bool extendFirst,
+            bool extendSecond,
+            double length1,
+            double length2,
+            Tolerance tolerance
+        )
         {
             double reach = extendFirst
                 ? (extendSecond ? 0.0 : length2)
                 : (extendSecond ? length1 : Math.Max(length1, length2));
 
-            return reach > 0.0
-                ? sine * reach <= tolerance.EqualPoint
-                : sine <= tolerance.EqualAngleSin;
+            return reach > 0.0 ? sine * reach <= tolerance.EqualPoint : sine <= tolerance.EqualAngleSin;
         }
 
         /// <summary>
@@ -252,7 +314,12 @@ namespace GeometryHelper.Core
         /// Gets the intersection point between two line segments, reading either or both as the infinite line
         /// carrying it, within tolerance. Returns null if they do not meet within the reach allowed.
         /// </summary>
-        public static GeoPoint2? GetIntersection(GeoLine2 line1, GeoLine2 line2, LineExtension extension, Tolerance tolerance)
+        public static GeoPoint2? GetIntersection(
+            GeoLine2 line1,
+            GeoLine2 line2,
+            LineExtension extension,
+            Tolerance tolerance
+        )
         {
             return TryIntersectWith(line1, line2, extension, out GeoPoint2 pt, tolerance) ? pt : (GeoPoint2?)null;
         }
@@ -294,7 +361,12 @@ namespace GeometryHelper.Core
         /// at (-0.0012, 0) only. A segment no longer than the tolerance is read as its start.
         /// </para>
         /// </remarks>
-        public static bool TryIntersectWith(GeoCircle2 circle, GeoLine2 line, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoCircle2 circle,
+            GeoLine2 line,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             return TryIntersectWith(circle, line, out intersections, tolerance, true);
         }
@@ -314,7 +386,13 @@ namespace GeometryHelper.Core
         /// where its line runs within the tolerance inside the rim, a foot up to the tolerance past an end is taken at
         /// that end however far it is from the rim, and a crossing taken at an end is kept beside the other.
         /// </param>
-        internal static bool TryIntersectWith(GeoCircle2 circle, GeoLine2 line, out GeoPoint2[] intersections, Tolerance tolerance, bool touches)
+        internal static bool TryIntersectWith(
+            GeoCircle2 circle,
+            GeoLine2 line,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance,
+            bool touches
+        )
         {
             GeoVector2 d = line.Direction;
             double dLength = d.Length;
@@ -322,7 +400,10 @@ namespace GeometryHelper.Core
             if (dLength <= tolerance.EqualPoint)
             {
                 // Degenerate segment: it can only meet the circle if its single point lies on the circumference.
-                if (Math.Abs(Distance2.DistanceTo(circle.Center, line.StartPoint) - circle.Radius) <= tolerance.EqualPoint)
+                if (
+                    Math.Abs(Distance2.DistanceTo(circle.Center, line.StartPoint) - circle.Radius)
+                    <= tolerance.EqualPoint
+                )
                 {
                     intersections = new[] { line.StartPoint };
                     return true;
@@ -349,9 +430,10 @@ namespace GeometryHelper.Core
             // Outside the rim, within the tolerance of it, the line touches at the foot of the perpendicular. Inside, it
             // crosses twice, and the two are one only when they lie within twice the tolerance of each other: a line a
             // hair inside the rim still crosses it where it does, which may be well away from the foot.
-            double halfChord = centerDistance >= circle.Radius
-                ? 0.0
-                : Math.Sqrt(circle.Radius * circle.Radius - centerDistance * centerDistance) / dLength;
+            double halfChord =
+                centerDistance >= circle.Radius
+                    ? 0.0
+                    : Math.Sqrt(circle.Radius * circle.Radius - centerDistance * centerDistance) / dLength;
 
             bool merged = halfChord * dLength <= tolerance.EqualPoint;
 
@@ -361,8 +443,13 @@ namespace GeometryHelper.Core
 
                 // Outside the rim, a foot up to the tolerance past an end leaves that end further from the rim than the
                 // line is: it touches only where the end itself comes within the tolerance.
-                if (touches && points.Count > 0 && centerDistance >= circle.Radius && (centerParameter < 0.0 || centerParameter > 1.0)
-                    && Distance2.DistanceTo(circle.Center, points[0]) - circle.Radius > tolerance.EqualPoint)
+                if (
+                    touches
+                    && points.Count > 0
+                    && centerDistance >= circle.Radius
+                    && (centerParameter < 0.0 || centerParameter > 1.0)
+                    && Distance2.DistanceTo(circle.Center, points[0]) - circle.Radius > tolerance.EqualPoint
+                )
                 {
                     points.Clear();
                 }
@@ -374,7 +461,11 @@ namespace GeometryHelper.Core
 
                 // A crossing up to the tolerance past an end, taken at that end, within twice the tolerance of the other
                 // crossing is the same touch: the segment runs into the rim and stops within the tolerance of it.
-                if (touches && points.Count == 2 && Distance2.DistanceTo(points[0], points[1]) <= 2.0 * tolerance.EqualPoint)
+                if (
+                    touches
+                    && points.Count == 2
+                    && Distance2.DistanceTo(points[0], points[1]) <= 2.0 * tolerance.EqualPoint
+                )
                 {
                     bool firstPast = centerParameter - halfChord < 0.0 || centerParameter - halfChord > 1.0;
                     bool secondPast = centerParameter + halfChord < 0.0 || centerParameter + halfChord > 1.0;
@@ -400,7 +491,8 @@ namespace GeometryHelper.Core
 
             // Inside the rim within the tolerance of it, a segment that crosses it nowhere along its length may still lie
             // within the tolerance of it: it touches once, at the foot when the foot is on it.
-            bool insideTheRim = centerDistance < circle.Radius && centerDistance >= circle.Radius - tolerance.EqualPoint;
+            bool insideTheRim =
+                centerDistance < circle.Radius && centerDistance >= circle.Radius - tolerance.EqualPoint;
 
             if (points.Count == 0 && !merged && insideTheRim)
             {
@@ -425,9 +517,16 @@ namespace GeometryHelper.Core
         /// the point tolerance of it: the point nearest the centre where the segment lies outside the circle, else the
         /// end further from the centre, the start where the two are as far.
         /// </summary>
-        private static void AddNearestToTheRim(List<GeoPoint2> points, GeoCircle2 circle, GeoLine2 line, double centerParameter, Tolerance tolerance)
+        private static void AddNearestToTheRim(
+            List<GeoPoint2> points,
+            GeoCircle2 circle,
+            GeoLine2 line,
+            double centerParameter,
+            Tolerance tolerance
+        )
         {
-            GeoPoint2 nearest = centerParameter <= 0.0 ? line.StartPoint
+            GeoPoint2 nearest =
+                centerParameter <= 0.0 ? line.StartPoint
                 : centerParameter >= 1.0 ? line.EndPoint
                 : line.GetPointAtParameter(centerParameter);
             double nearestDistance = Distance2.DistanceTo(circle.Center, nearest);
@@ -499,14 +598,21 @@ namespace GeometryHelper.Core
         /// (0.0006, 0) cross at (-833.33324, 552.77094) and (-833.33324, -552.77094).
         /// </para>
         /// </remarks>
-        public static bool TryIntersectWith(GeoCircle2 c1, GeoCircle2 c2, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoCircle2 c1,
+            GeoCircle2 c2,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             double d = Distance2.DistanceTo(c1.Center, c2.Center);
 
             // Separate circles, one inside the other, one circle, or two about one centre.
-            if (d > c1.Radius + c2.Radius + tolerance.EqualPoint ||
-                d < Math.Abs(c1.Radius - c2.Radius) - tolerance.EqualPoint ||
-                (d <= tolerance.EqualPoint && AboutOneCentre(d, Scale(c1, c2), c1.Radius, c2.Radius, tolerance)))
+            if (
+                d > c1.Radius + c2.Radius + tolerance.EqualPoint
+                || d < Math.Abs(c1.Radius - c2.Radius) - tolerance.EqualPoint
+                || (d <= tolerance.EqualPoint && AboutOneCentre(d, Scale(c1, c2), c1.Radius, c2.Radius, tolerance))
+            )
             {
                 intersections = Array.Empty<GeoPoint2>();
                 return false;
@@ -527,7 +633,8 @@ namespace GeometryHelper.Core
                 {
                     new GeoPoint2(
                         0.5 * (c1.Center.X + c2.Center.X) + reach * ux,
-                        0.5 * (c1.Center.Y + c2.Center.Y) + reach * uy)
+                        0.5 * (c1.Center.Y + c2.Center.Y) + reach * uy
+                    ),
                 };
                 return true;
             }
@@ -537,11 +644,16 @@ namespace GeometryHelper.Core
             // to a circle of radius 40, the root of the difference of two such squares, came out 0.076 off, so the edge
             // missed an arc it crosses. Of two circles of one radius, the one whose centre comes first by X, then by Y,
             // is worked from, so the answer is the same to the last bit whichever is asked first.
-            double firstRadius = c1.Radius, secondRadius = c2.Radius;
-            GeoPoint2 first = c1.Center, second = c2.Center;
-            bool fromSecond = secondRadius < firstRadius
-                || (!(firstRadius < secondRadius)
-                    && (second.X < first.X || (!(first.X < second.X) && second.Y < first.Y)));
+            double firstRadius = c1.Radius,
+                secondRadius = c2.Radius;
+            GeoPoint2 first = c1.Center,
+                second = c2.Center;
+            bool fromSecond =
+                secondRadius < firstRadius
+                || (
+                    !(firstRadius < secondRadius)
+                    && (second.X < first.X || (!(first.X < second.X) && second.Y < first.Y))
+                );
 
             double nearX = fromSecond ? second.X : first.X;
             double nearY = fromSecond ? second.Y : first.Y;
@@ -556,9 +668,7 @@ namespace GeometryHelper.Core
             double hSq = nearRadius * nearRadius - a * a;
             double h = hSq > 0 ? Math.Sqrt(hSq) : 0.0;
 
-            GeoPoint2 p2 = new GeoPoint2(
-                nearX + a * towardsX / d,
-                nearY + a * towardsY / d);
+            GeoPoint2 p2 = new GeoPoint2(nearX + a * towardsX / d, nearY + a * towardsY / d);
 
             if (h <= tolerance.EqualPoint)
             {
@@ -569,11 +679,7 @@ namespace GeometryHelper.Core
             double rx = -(c2.Center.Y - c1.Center.Y) * (h / d);
             double ry = (c2.Center.X - c1.Center.X) * (h / d);
 
-            intersections = new[]
-            {
-                new GeoPoint2(p2.X + rx, p2.Y + ry),
-                new GeoPoint2(p2.X - rx, p2.Y - ry)
-            };
+            intersections = new[] { new GeoPoint2(p2.X + rx, p2.Y + ry), new GeoPoint2(p2.X - rx, p2.Y - ry) };
             return true;
         }
 
@@ -627,7 +733,13 @@ namespace GeometryHelper.Core
         /// rule of the line without ends (see <see cref="XLine2"/>), whose crossing is no crossing where a double cannot place it.
         /// </para>
         /// </remarks>
-        internal static bool AboutOneCentre(double apart, double scale, double firstRadius, double secondRadius, Tolerance tolerance)
+        internal static bool AboutOneCentre(
+            double apart,
+            double scale,
+            double firstRadius,
+            double secondRadius,
+            Tolerance tolerance
+        )
         {
             if (apart + Math.Abs(firstRadius - secondRadius) <= tolerance.EqualPoint)
             {
@@ -642,10 +754,14 @@ namespace GeometryHelper.Core
         /// The largest coordinate of the centres of two circles, or radius, whichever is larger: the size of the numbers whose
         /// rounding <see cref="AboutOneCentre(double, double, double, double, Tolerance)"/> weighs.
         /// </summary>
-        private static double Scale(GeoCircle2 c1, GeoCircle2 c2)
-            => Math.Max(
-                Math.Max(Math.Max(Math.Abs(c1.Center.X), Math.Abs(c1.Center.Y)), Math.Max(Math.Abs(c2.Center.X), Math.Abs(c2.Center.Y))),
-                Math.Max(c1.Radius, c2.Radius));
+        private static double Scale(GeoCircle2 c1, GeoCircle2 c2) =>
+            Math.Max(
+                Math.Max(
+                    Math.Max(Math.Abs(c1.Center.X), Math.Abs(c1.Center.Y)),
+                    Math.Max(Math.Abs(c2.Center.X), Math.Abs(c2.Center.Y))
+                ),
+                Math.Max(c1.Radius, c2.Radius)
+            );
 
         #endregion
 
@@ -750,7 +866,8 @@ namespace GeometryHelper.Core
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoPolygon2 poly, GeoLine2 line, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             List<GeoPoint2> points = new List<GeoPoint2>();
             foreach (var edge in poly.GetEdges())
@@ -776,8 +893,10 @@ namespace GeometryHelper.Core
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoPolygon2 poly1, GeoPolygon2 poly2, Tolerance tolerance)
         {
-            if (poly1 == null) throw new ArgumentNullException(nameof(poly1));
-            if (poly2 == null) throw new ArgumentNullException(nameof(poly2));
+            if (poly1 == null)
+                throw new ArgumentNullException(nameof(poly1));
+            if (poly2 == null)
+                throw new ArgumentNullException(nameof(poly2));
 
             List<GeoPoint2> points = new List<GeoPoint2>();
             foreach (var e1 in poly1.GetEdges())
@@ -806,7 +925,8 @@ namespace GeometryHelper.Core
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoPolygon2 poly, GeoRectangle2 rect, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             List<GeoPoint2> points = new List<GeoPoint2>();
             GeoLine2[] rectEdges = rect.GetEdges();
@@ -837,7 +957,8 @@ namespace GeometryHelper.Core
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoPolygon2 poly, GeoCircle2 circle, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             List<GeoPoint2> points = new List<GeoPoint2>();
             foreach (var edge in poly.GetEdges())
@@ -868,9 +989,15 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to calculate all intersection points between a polyline and a line segment within tolerance.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolyline2 polyline, GeoLine2 line, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolyline2 polyline,
+            GeoLine2 line,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             List<GeoPoint2> points = new List<GeoPoint2>();
             for (int i = 0; i < polyline.EdgeCount; i++)
@@ -915,8 +1042,10 @@ namespace GeometryHelper.Core
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoPolyline2 pl1, GeoPolyline2 pl2, Tolerance tolerance)
         {
-            if (pl1 == null) throw new ArgumentNullException(nameof(pl1));
-            if (pl2 == null) throw new ArgumentNullException(nameof(pl2));
+            if (pl1 == null)
+                throw new ArgumentNullException(nameof(pl1));
+            if (pl2 == null)
+                throw new ArgumentNullException(nameof(pl2));
 
             List<GeoPoint2> points = new List<GeoPoint2>();
             for (int i = 0; i < pl1.EdgeCount; i++)
@@ -948,7 +1077,8 @@ namespace GeometryHelper.Core
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoPolyline2 polyline, GeoRectangle2 rect, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             List<GeoPoint2> points = new List<GeoPoint2>();
             GeoLine2[] rectEdges = rect.GetEdges();
@@ -981,7 +1111,8 @@ namespace GeometryHelper.Core
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoPolyline2 polyline, GeoCircle2 circle, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             List<GeoPoint2> points = new List<GeoPoint2>();
             for (int i = 0; i < polyline.EdgeCount; i++)
@@ -1011,8 +1142,10 @@ namespace GeometryHelper.Core
         /// </summary>
         public static GeoPoint2[] GetIntersections(GeoPolyline2 polyline, GeoPolygon2 poly, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             List<GeoPoint2> points = new List<GeoPoint2>();
             for (int i = 0; i < polyline.EdgeCount; i++)
@@ -1065,7 +1198,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static bool IsSimple(GeoPolygon2 polygon, Tolerance tolerance)
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             int count = polygon.EdgeCount;
             GeoLine2[] edges = new GeoLine2[count];
@@ -1112,8 +1246,10 @@ namespace GeometryHelper.Core
                         GeoLine2 incoming = iThenJ ? edges[i] : edges[j];
                         GeoLine2 outgoing = iThenJ ? edges[j] : edges[i];
 
-                        if (Containment2.IsPointOn(outgoing, incoming.StartPoint, tolerance) ||
-                            Containment2.IsPointOn(incoming, outgoing.EndPoint, tolerance))
+                        if (
+                            Containment2.IsPointOn(outgoing, incoming.StartPoint, tolerance)
+                            || Containment2.IsPointOn(incoming, outgoing.EndPoint, tolerance)
+                        )
                         {
                             return false;
                         }
@@ -1139,7 +1275,13 @@ namespace GeometryHelper.Core
         /// slack past either endpoint. The slack is converted from a distance into parameter space so
         /// that it stays the same real distance regardless of how long the segment is.
         /// </summary>
-        private static void AddPointOnSegment(List<GeoPoint2> points, GeoLine2 line, double parameter, double lineLength, Tolerance tolerance)
+        private static void AddPointOnSegment(
+            List<GeoPoint2> points,
+            GeoLine2 line,
+            double parameter,
+            double lineLength,
+            Tolerance tolerance
+        )
         {
             double parameterTolerance = tolerance.EqualPoint / lineLength;
             if (parameter < -parameterTolerance || parameter > 1.0 + parameterTolerance)
@@ -1174,7 +1316,8 @@ namespace GeometryHelper.Core
         /// Gets the points where a chain that may curve meets a straight segment.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoLine2 line) => GetIntersections(chain, line, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoLine2 line) =>
+            GetIntersections(chain, line, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a chain that may curve meets a straight segment, within a tolerance.
@@ -1186,8 +1329,9 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoLine2 line, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+
             return ArcChain2.Intersections(ArcChain2.EdgesOf(chain), line, tolerance);
         }
 
@@ -1195,14 +1339,20 @@ namespace GeometryHelper.Core
         /// Tries to find where a chain that may curve meets a straight segment.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolylineArc2 chain, GeoLine2 line, out GeoPoint2[] intersections) => TryIntersectWith(chain, line, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolylineArc2 chain, GeoLine2 line, out GeoPoint2[] intersections) =>
+            TryIntersectWith(chain, line, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a chain that may curve meets a straight segment, within a tolerance.
         /// </summary>
         /// <returns>true when they meet anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolylineArc2 chain, GeoLine2 line, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolylineArc2 chain,
+            GeoLine2 line,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(chain, line, tolerance);
 
@@ -1213,7 +1363,8 @@ namespace GeometryHelper.Core
         /// Gets the points where a chain that may curve meets an arc.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoArc2 arc) => GetIntersections(chain, arc, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoArc2 arc) =>
+            GetIntersections(chain, arc, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a chain that may curve meets an arc, within a tolerance.
@@ -1225,8 +1376,9 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoArc2 arc, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+
             return ArcChain2.Intersections(ArcChain2.EdgesOf(chain), arc, tolerance);
         }
 
@@ -1234,14 +1386,20 @@ namespace GeometryHelper.Core
         /// Tries to find where a chain that may curve meets an arc.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolylineArc2 chain, GeoArc2 arc, out GeoPoint2[] intersections) => TryIntersectWith(chain, arc, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolylineArc2 chain, GeoArc2 arc, out GeoPoint2[] intersections) =>
+            TryIntersectWith(chain, arc, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a chain that may curve meets an arc, within a tolerance.
         /// </summary>
         /// <returns>true when they meet anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolylineArc2 chain, GeoArc2 arc, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolylineArc2 chain,
+            GeoArc2 arc,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(chain, arc, tolerance);
 
@@ -1252,7 +1410,8 @@ namespace GeometryHelper.Core
         /// Gets the points where a chain that may curve meets a circle.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoCircle2 circle) => GetIntersections(chain, circle, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoCircle2 circle) =>
+            GetIntersections(chain, circle, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a chain that may curve meets a circle, within a tolerance.
@@ -1264,8 +1423,9 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoCircle2 circle, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+
             return ArcChain2.Intersections(ArcChain2.EdgesOf(chain), circle, tolerance);
         }
 
@@ -1273,14 +1433,20 @@ namespace GeometryHelper.Core
         /// Tries to find where a chain that may curve meets a circle.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolylineArc2 chain, GeoCircle2 circle, out GeoPoint2[] intersections) => TryIntersectWith(chain, circle, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolylineArc2 chain, GeoCircle2 circle, out GeoPoint2[] intersections) =>
+            TryIntersectWith(chain, circle, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a chain that may curve meets a circle, within a tolerance.
         /// </summary>
         /// <returns>true when they meet anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolylineArc2 chain, GeoCircle2 circle, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolylineArc2 chain,
+            GeoCircle2 circle,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(chain, circle, tolerance);
 
@@ -1291,7 +1457,8 @@ namespace GeometryHelper.Core
         /// Gets the points where a chain that may curve meets a straight chain.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoPolyline2 polyline) => GetIntersections(chain, polyline, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoPolyline2 polyline) =>
+            GetIntersections(chain, polyline, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a chain that may curve meets a straight chain, within a tolerance.
@@ -1303,9 +1470,11 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-            
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
+
             return ArcChain2.Intersections(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polyline), tolerance);
         }
 
@@ -1313,14 +1482,23 @@ namespace GeometryHelper.Core
         /// Tries to find where a chain that may curve meets a straight chain.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolylineArc2 chain, GeoPolyline2 polyline, out GeoPoint2[] intersections) => TryIntersectWith(chain, polyline, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(
+            GeoPolylineArc2 chain,
+            GeoPolyline2 polyline,
+            out GeoPoint2[] intersections
+        ) => TryIntersectWith(chain, polyline, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a chain that may curve meets a straight chain, within a tolerance.
         /// </summary>
         /// <returns>true when they meet anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolylineArc2 chain, GeoPolyline2 polyline, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolylineArc2 chain,
+            GeoPolyline2 polyline,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(chain, polyline, tolerance);
 
@@ -1331,7 +1509,8 @@ namespace GeometryHelper.Core
         /// Gets the points where a chain that may curve meets a straight loop.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoPolygon2 polygon) => GetIntersections(chain, polygon, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoPolygon2 polygon) =>
+            GetIntersections(chain, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a chain that may curve meets a straight loop, within a tolerance.
@@ -1343,9 +1522,11 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoPolygon2 polygon, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
-            
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
+
             return ArcChain2.Intersections(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polygon), tolerance);
         }
 
@@ -1353,14 +1534,23 @@ namespace GeometryHelper.Core
         /// Tries to find where a chain that may curve meets a straight loop.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolylineArc2 chain, GeoPolygon2 polygon, out GeoPoint2[] intersections) => TryIntersectWith(chain, polygon, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(
+            GeoPolylineArc2 chain,
+            GeoPolygon2 polygon,
+            out GeoPoint2[] intersections
+        ) => TryIntersectWith(chain, polygon, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a chain that may curve meets a straight loop, within a tolerance.
         /// </summary>
         /// <returns>true when they meet anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolylineArc2 chain, GeoPolygon2 polygon, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolylineArc2 chain,
+            GeoPolygon2 polygon,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(chain, polygon, tolerance);
 
@@ -1371,7 +1561,8 @@ namespace GeometryHelper.Core
         /// Gets the points where a chain that may curve meets a chain that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoPolylineArc2 other) => GetIntersections(chain, other, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoPolylineArc2 other) =>
+            GetIntersections(chain, other, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a chain that may curve meets a chain that may curve, within a tolerance.
@@ -1383,9 +1574,11 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoPolylineArc2 other, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (other == null) throw new ArgumentNullException(nameof(other));
-            
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
+
             return ArcChain2.Intersections(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(other), tolerance);
         }
 
@@ -1393,14 +1586,23 @@ namespace GeometryHelper.Core
         /// Tries to find where a chain that may curve meets a chain that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolylineArc2 chain, GeoPolylineArc2 other, out GeoPoint2[] intersections) => TryIntersectWith(chain, other, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(
+            GeoPolylineArc2 chain,
+            GeoPolylineArc2 other,
+            out GeoPoint2[] intersections
+        ) => TryIntersectWith(chain, other, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a chain that may curve meets a chain that may curve, within a tolerance.
         /// </summary>
         /// <returns>true when they meet anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolylineArc2 chain, GeoPolylineArc2 other, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolylineArc2 chain,
+            GeoPolylineArc2 other,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(chain, other, tolerance);
 
@@ -1411,7 +1613,8 @@ namespace GeometryHelper.Core
         /// Gets the points where a chain that may curve meets a loop that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoPolygonArc2 loop) => GetIntersections(chain, loop, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoPolygonArc2 loop) =>
+            GetIntersections(chain, loop, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a chain that may curve meets a loop that may curve, within a tolerance.
@@ -1423,9 +1626,11 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoPolylineArc2 chain, GeoPolygonArc2 loop, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+
             return ArcChain2.Intersections(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(loop), tolerance);
         }
 
@@ -1433,14 +1638,23 @@ namespace GeometryHelper.Core
         /// Tries to find where a chain that may curve meets a loop that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolylineArc2 chain, GeoPolygonArc2 loop, out GeoPoint2[] intersections) => TryIntersectWith(chain, loop, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(
+            GeoPolylineArc2 chain,
+            GeoPolygonArc2 loop,
+            out GeoPoint2[] intersections
+        ) => TryIntersectWith(chain, loop, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a chain that may curve meets a loop that may curve, within a tolerance.
         /// </summary>
         /// <returns>true when they meet anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryIntersectWith(GeoPolylineArc2 chain, GeoPolygonArc2 loop, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolylineArc2 chain,
+            GeoPolygonArc2 loop,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(chain, loop, tolerance);
 
@@ -1451,7 +1665,8 @@ namespace GeometryHelper.Core
         /// Gets the points where a loop that may curve meets a straight segment.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoLine2 line) => GetIntersections(loop, line, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoLine2 line) =>
+            GetIntersections(loop, line, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a loop that may curve meets a straight segment, within a tolerance.
@@ -1463,8 +1678,9 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoLine2 line, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+
             return ArcChain2.Intersections(ArcChain2.EdgesOf(loop), line, tolerance);
         }
 
@@ -1472,14 +1688,20 @@ namespace GeometryHelper.Core
         /// Tries to find where a loop that may curve meets a straight segment.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoLine2 line, out GeoPoint2[] intersections) => TryIntersectWith(loop, line, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoLine2 line, out GeoPoint2[] intersections) =>
+            TryIntersectWith(loop, line, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a loop that may curve meets a straight segment, within a tolerance.
         /// </summary>
         /// <returns>true when they meet anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoLine2 line, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolygonArc2 loop,
+            GeoLine2 line,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(loop, line, tolerance);
 
@@ -1490,7 +1712,8 @@ namespace GeometryHelper.Core
         /// Gets the points where a loop that may curve meets an arc.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoArc2 arc) => GetIntersections(loop, arc, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoArc2 arc) =>
+            GetIntersections(loop, arc, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a loop that may curve meets an arc, within a tolerance.
@@ -1502,8 +1725,9 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoArc2 arc, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+
             return ArcChain2.Intersections(ArcChain2.EdgesOf(loop), arc, tolerance);
         }
 
@@ -1511,14 +1735,20 @@ namespace GeometryHelper.Core
         /// Tries to find where a loop that may curve meets an arc.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoArc2 arc, out GeoPoint2[] intersections) => TryIntersectWith(loop, arc, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoArc2 arc, out GeoPoint2[] intersections) =>
+            TryIntersectWith(loop, arc, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a loop that may curve meets an arc, within a tolerance.
         /// </summary>
         /// <returns>true when they meet anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoArc2 arc, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolygonArc2 loop,
+            GeoArc2 arc,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(loop, arc, tolerance);
 
@@ -1529,7 +1759,8 @@ namespace GeometryHelper.Core
         /// Gets the points where a loop that may curve meets a circle.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoCircle2 circle) => GetIntersections(loop, circle, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoCircle2 circle) =>
+            GetIntersections(loop, circle, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a loop that may curve meets a circle, within a tolerance.
@@ -1541,8 +1772,9 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoCircle2 circle, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+
             return ArcChain2.Intersections(ArcChain2.EdgesOf(loop), circle, tolerance);
         }
 
@@ -1550,14 +1782,20 @@ namespace GeometryHelper.Core
         /// Tries to find where a loop that may curve meets a circle.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoCircle2 circle, out GeoPoint2[] intersections) => TryIntersectWith(loop, circle, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoCircle2 circle, out GeoPoint2[] intersections) =>
+            TryIntersectWith(loop, circle, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a loop that may curve meets a circle, within a tolerance.
         /// </summary>
         /// <returns>true when they meet anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoCircle2 circle, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolygonArc2 loop,
+            GeoCircle2 circle,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(loop, circle, tolerance);
 
@@ -1568,7 +1806,8 @@ namespace GeometryHelper.Core
         /// Gets the points where a loop that may curve meets a straight chain.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoPolyline2 polyline) => GetIntersections(loop, polyline, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoPolyline2 polyline) =>
+            GetIntersections(loop, polyline, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a loop that may curve meets a straight chain, within a tolerance.
@@ -1580,9 +1819,11 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-            
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
+
             return ArcChain2.Intersections(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polyline), tolerance);
         }
 
@@ -1590,14 +1831,23 @@ namespace GeometryHelper.Core
         /// Tries to find where a loop that may curve meets a straight chain.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoPolyline2 polyline, out GeoPoint2[] intersections) => TryIntersectWith(loop, polyline, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(
+            GeoPolygonArc2 loop,
+            GeoPolyline2 polyline,
+            out GeoPoint2[] intersections
+        ) => TryIntersectWith(loop, polyline, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a loop that may curve meets a straight chain, within a tolerance.
         /// </summary>
         /// <returns>true when they meet anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoPolyline2 polyline, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolygonArc2 loop,
+            GeoPolyline2 polyline,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(loop, polyline, tolerance);
 
@@ -1608,7 +1858,8 @@ namespace GeometryHelper.Core
         /// Gets the points where a loop that may curve meets a straight loop.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoPolygon2 polygon) => GetIntersections(loop, polygon, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoPolygon2 polygon) =>
+            GetIntersections(loop, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a loop that may curve meets a straight loop, within a tolerance.
@@ -1620,9 +1871,11 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoPolygon2 polygon, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
-            
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
+
             return ArcChain2.Intersections(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polygon), tolerance);
         }
 
@@ -1630,14 +1883,20 @@ namespace GeometryHelper.Core
         /// Tries to find where a loop that may curve meets a straight loop.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoPolygon2 polygon, out GeoPoint2[] intersections) => TryIntersectWith(loop, polygon, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoPolygon2 polygon, out GeoPoint2[] intersections) =>
+            TryIntersectWith(loop, polygon, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a loop that may curve meets a straight loop, within a tolerance.
         /// </summary>
         /// <returns>true when they meet anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoPolygon2 polygon, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolygonArc2 loop,
+            GeoPolygon2 polygon,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(loop, polygon, tolerance);
 
@@ -1648,7 +1907,8 @@ namespace GeometryHelper.Core
         /// Gets the points where a loop that may curve meets a chain that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoPolylineArc2 chain) => GetIntersections(loop, chain, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoPolylineArc2 chain) =>
+            GetIntersections(loop, chain, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a loop that may curve meets a chain that may curve, within a tolerance.
@@ -1660,9 +1920,11 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoPolylineArc2 chain, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+
             return ArcChain2.Intersections(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(chain), tolerance);
         }
 
@@ -1670,14 +1932,23 @@ namespace GeometryHelper.Core
         /// Tries to find where a loop that may curve meets a chain that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoPolylineArc2 chain, out GeoPoint2[] intersections) => TryIntersectWith(loop, chain, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(
+            GeoPolygonArc2 loop,
+            GeoPolylineArc2 chain,
+            out GeoPoint2[] intersections
+        ) => TryIntersectWith(loop, chain, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a loop that may curve meets a chain that may curve, within a tolerance.
         /// </summary>
         /// <returns>true when they meet anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoPolylineArc2 chain, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolygonArc2 loop,
+            GeoPolylineArc2 chain,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(loop, chain, tolerance);
 
@@ -1688,7 +1959,8 @@ namespace GeometryHelper.Core
         /// Gets the points where a loop that may curve meets a loop that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoPolygonArc2 other) => GetIntersections(loop, other, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoPolygonArc2 other) =>
+            GetIntersections(loop, other, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a loop that may curve meets a loop that may curve, within a tolerance.
@@ -1700,9 +1972,11 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoPolygonArc2 loop, GeoPolygonArc2 other, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (other == null) throw new ArgumentNullException(nameof(other));
-            
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
+
             return ArcChain2.Intersections(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(other), tolerance);
         }
 
@@ -1710,14 +1984,20 @@ namespace GeometryHelper.Core
         /// Tries to find where a loop that may curve meets a loop that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoPolygonArc2 other, out GeoPoint2[] intersections) => TryIntersectWith(loop, other, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoPolygonArc2 other, out GeoPoint2[] intersections) =>
+            TryIntersectWith(loop, other, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a loop that may curve meets a loop that may curve, within a tolerance.
         /// </summary>
         /// <returns>true when they meet anywhere; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool TryIntersectWith(GeoPolygonArc2 loop, GeoPolygonArc2 other, out GeoPoint2[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolygonArc2 loop,
+            GeoPolygonArc2 other,
+            out GeoPoint2[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(loop, other, tolerance);
 
@@ -1725,6 +2005,5 @@ namespace GeometryHelper.Core
         }
 
         #endregion
-
     }
 }

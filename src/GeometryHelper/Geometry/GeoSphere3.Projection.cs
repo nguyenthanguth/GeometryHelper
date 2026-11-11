@@ -111,7 +111,11 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoArc3 arc, Tolerance tolerance)
         {
-            return Sphere3.Join(this, arc.GetClosestPointOnBoundary(Center, default(Tolerance)), DistanceTo(arc, tolerance));
+            return Sphere3.Join(
+                this,
+                arc.GetClosestPointOnBoundary(Center, default(Tolerance)),
+                DistanceTo(arc, tolerance)
+            );
         }
 
         /// <summary>
@@ -125,7 +129,11 @@ namespace GeometryHelper.Geometry
         /// <returns>A segment from the surface of the ball to the point of the shape nearest its centre, as long as the distance between them; of no length where they meet.</returns>
         public GeoLine3 GetShortestLineTo(GeoCircle3 circle, Tolerance tolerance)
         {
-            return Sphere3.Join(this, Projection3.ProjectToDisc(circle, Center, tolerance), DistanceTo(circle, tolerance));
+            return Sphere3.Join(
+                this,
+                Projection3.ProjectToDisc(circle, Center, tolerance),
+                DistanceTo(circle, tolerance)
+            );
         }
 
         /// <summary>
@@ -139,7 +147,11 @@ namespace GeometryHelper.Geometry
         /// <returns>A segment from the surface of the ball to the point of the shape nearest its centre, as long as the distance between them; of no length where they meet.</returns>
         public GeoLine3 GetShortestLineTo(GeoEllipse3 ellipse, Tolerance tolerance)
         {
-            return Sphere3.Join(this, Ellipse3.GetClosestPointOnSurface(ellipse, Center, tolerance), DistanceTo(ellipse, tolerance));
+            return Sphere3.Join(
+                this,
+                Ellipse3.GetClosestPointOnSurface(ellipse, Center, tolerance),
+                DistanceTo(ellipse, tolerance)
+            );
         }
 
         /// <summary>
@@ -189,7 +201,11 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(polyline));
             }
 
-            return Sphere3.Join(this, Projection3.ProjectToPolyline(polyline, Center, default(Tolerance)), DistanceTo(polyline, tolerance));
+            return Sphere3.Join(
+                this,
+                Projection3.ProjectToPolyline(polyline, Center, default(Tolerance)),
+                DistanceTo(polyline, tolerance)
+            );
         }
 
         /// <summary>
@@ -213,7 +229,11 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(polygon));
             }
 
-            return Sphere3.Join(this, Projection3.ProjectToPolygon(polygon, Center, tolerance, default(Tolerance)), DistanceTo(polygon, tolerance));
+            return Sphere3.Join(
+                this,
+                Projection3.ProjectToPolygon(polygon, Center, tolerance, default(Tolerance)),
+                DistanceTo(polygon, tolerance)
+            );
         }
 
         /// <summary>
@@ -301,7 +321,11 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(face));
             }
 
-            return Sphere3.Join(this, Projection3.ProjectToFace(face, Center, tolerance, default(Tolerance)), DistanceTo(face, tolerance));
+            return Sphere3.Join(
+                this,
+                Projection3.ProjectToFace(face, Center, tolerance, default(Tolerance)),
+                DistanceTo(face, tolerance)
+            );
         }
 
         /// <summary>
@@ -376,7 +400,11 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(solid));
             }
 
-            return Sphere3.Join(this, (Gap3.Holds(solid, Center) ? Center : Projection3.ProjectToSolid(solid, Center, tolerance, true)), DistanceTo(solid, tolerance));
+            return Sphere3.Join(
+                this,
+                (Gap3.Holds(solid, Center) ? Center : Projection3.ProjectToSolid(solid, Center, tolerance, true)),
+                DistanceTo(solid, tolerance)
+            );
         }
 
         /// <summary>

@@ -17,12 +17,37 @@ namespace GeometryHelper.Dwg
     {
         private static readonly int[] LineWeights =
         {
-            0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53, 60, 70, 80, 90, 100, 106, 120, 140, 158, 200, 211,
+            0,
+            5,
+            9,
+            13,
+            15,
+            18,
+            20,
+            25,
+            30,
+            35,
+            40,
+            50,
+            53,
+            60,
+            70,
+            80,
+            90,
+            100,
+            106,
+            120,
+            140,
+            158,
+            200,
+            211,
         };
 
         private readonly DwgDrawing _drawing;
         private readonly int _version;
-        private readonly Dictionary<string, int> _classes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, int> _classes = new Dictionary<string, int>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private readonly HashSet<ulong> _written;
         private readonly ulong _modelSpace;
         private readonly ulong _paperSpace;
@@ -70,8 +95,10 @@ namespace GeometryHelper.Dwg
         {
             switch (lineWeight)
             {
-                case -2: return 30;
-                case -3: return 31;
+                case -2:
+                    return 30;
+                case -3:
+                    return 31;
             }
 
             int index = Array.IndexOf(LineWeights, lineWeight);
@@ -90,16 +117,26 @@ namespace GeometryHelper.Dwg
             {
                 switch (type.Substring(6))
                 {
-                    case "BLOCK_RECORD": return 0x30;
-                    case "LAYER": return 0x32;
-                    case "STYLE": return 0x34;
-                    case "LTYPE": return 0x38;
-                    case "VIEW": return 0x3C;
-                    case "UCS": return 0x3E;
-                    case "VPORT": return 0x40;
-                    case "APPID": return 0x42;
-                    case "DIMSTYLE": return 0x44;
-                    default: return -1;
+                    case "BLOCK_RECORD":
+                        return 0x30;
+                    case "LAYER":
+                        return 0x32;
+                    case "STYLE":
+                        return 0x34;
+                    case "LTYPE":
+                        return 0x38;
+                    case "VIEW":
+                        return 0x3C;
+                    case "UCS":
+                        return 0x3E;
+                    case "VPORT":
+                        return 0x40;
+                    case "APPID":
+                        return 0x42;
+                    case "DIMSTYLE":
+                        return 0x44;
+                    default:
+                        return -1;
                 }
             }
 
@@ -110,50 +147,94 @@ namespace GeometryHelper.Dwg
 
             switch (type)
             {
-                case "TEXT": return 0x01;
-                case "ATTRIB": return Embedded(record) ? -1 : 0x02;
-                case "ATTDEF": return Embedded(record) ? -1 : 0x03;
-                case "BLOCK": return 0x04;
-                case "ENDBLK": return 0x05;
-                case "SEQEND": return 0x06;
-                case "INSERT": return record.Body.Exists(g => g.Key == 100 && g.Value.Trim() == "AcDbMInsertBlock") ? 0x08 : 0x07;
-                case "VERTEX": return VertexType(record);
-                case "POLYLINE": return PolylineType(record);
-                case "DIMENSION": return DimensionType(record);
-                case "ARC": return 0x11;
-                case "CIRCLE": return 0x12;
-                case "LINE": return 0x13;
-                case "POINT": return 0x1B;
-                case "3DFACE": return 0x1C;
-                case "SOLID": return 0x1F;
-                case "TRACE": return 0x20;
-                case "VIEWPORT": return 0x22;
-                case "LEADER": return 0x2D;
-                case "TOLERANCE": return 0x2E;
-                case "MLINE": return 0x2F;
-                case "HATCH": return 0x4E;
-                case "ELLIPSE": return 0x23;
-                case "SPLINE": return 0x24;
-                case "RAY": return 0x28;
-                case "XLINE": return 0x29;
-                case "DICTIONARY": return 0x2A;
-                case "MTEXT": return 0x2C;
-                case "BLOCK_RECORD": return 0x31;
-                case "LAYER": return 0x33;
-                case "STYLE": return 0x35;
-                case "LTYPE": return 0x39;
-                case "VIEW": return 0x3D;
-                case "UCS": return 0x3F;
-                case "VPORT": return 0x41;
-                case "APPID": return 0x43;
-                case "DIMSTYLE": return 0x45;
-                case "GROUP": return 0x48;
-                case "MLINESTYLE": return 0x49;
-                case "LWPOLYLINE": return 0x4D;
-                case "XRECORD": return 0x4F;
-                case "ACDBPLACEHOLDER": return 0x50;
-                case "LAYOUT": return 0x52;
-                default: return -1;
+                case "TEXT":
+                    return 0x01;
+                case "ATTRIB":
+                    return Embedded(record) ? -1 : 0x02;
+                case "ATTDEF":
+                    return Embedded(record) ? -1 : 0x03;
+                case "BLOCK":
+                    return 0x04;
+                case "ENDBLK":
+                    return 0x05;
+                case "SEQEND":
+                    return 0x06;
+                case "INSERT":
+                    return record.Body.Exists(g => g.Key == 100 && g.Value.Trim() == "AcDbMInsertBlock") ? 0x08 : 0x07;
+                case "VERTEX":
+                    return VertexType(record);
+                case "POLYLINE":
+                    return PolylineType(record);
+                case "DIMENSION":
+                    return DimensionType(record);
+                case "ARC":
+                    return 0x11;
+                case "CIRCLE":
+                    return 0x12;
+                case "LINE":
+                    return 0x13;
+                case "POINT":
+                    return 0x1B;
+                case "3DFACE":
+                    return 0x1C;
+                case "SOLID":
+                    return 0x1F;
+                case "TRACE":
+                    return 0x20;
+                case "VIEWPORT":
+                    return 0x22;
+                case "LEADER":
+                    return 0x2D;
+                case "TOLERANCE":
+                    return 0x2E;
+                case "MLINE":
+                    return 0x2F;
+                case "HATCH":
+                    return 0x4E;
+                case "ELLIPSE":
+                    return 0x23;
+                case "SPLINE":
+                    return 0x24;
+                case "RAY":
+                    return 0x28;
+                case "XLINE":
+                    return 0x29;
+                case "DICTIONARY":
+                    return 0x2A;
+                case "MTEXT":
+                    return 0x2C;
+                case "BLOCK_RECORD":
+                    return 0x31;
+                case "LAYER":
+                    return 0x33;
+                case "STYLE":
+                    return 0x35;
+                case "LTYPE":
+                    return 0x39;
+                case "VIEW":
+                    return 0x3D;
+                case "UCS":
+                    return 0x3F;
+                case "VPORT":
+                    return 0x41;
+                case "APPID":
+                    return 0x43;
+                case "DIMSTYLE":
+                    return 0x45;
+                case "GROUP":
+                    return 0x48;
+                case "MLINESTYLE":
+                    return 0x49;
+                case "LWPOLYLINE":
+                    return 0x4D;
+                case "XRECORD":
+                    return 0x4F;
+                case "ACDBPLACEHOLDER":
+                    return 0x50;
+                case "LAYOUT":
+                    return 0x52;
+                default:
+                    return -1;
             }
         }
 
@@ -168,11 +249,16 @@ namespace GeometryHelper.Dwg
 
                 switch (group.Value.Trim())
                 {
-                    case "AcDb2dVertex": return 0x0A;
-                    case "AcDb3dPolylineVertex": return 0x0B;
-                    case "AcDbPolygonMeshVertex": return 0x0C;
-                    case "AcDbPolyFaceMeshVertex": return 0x0D;
-                    case "AcDbFaceRecord": return 0x0E;
+                    case "AcDb2dVertex":
+                        return 0x0A;
+                    case "AcDb3dPolylineVertex":
+                        return 0x0B;
+                    case "AcDbPolygonMeshVertex":
+                        return 0x0C;
+                    case "AcDbPolyFaceMeshVertex":
+                        return 0x0D;
+                    case "AcDbFaceRecord":
+                        return 0x0E;
                 }
             }
 
@@ -193,12 +279,18 @@ namespace GeometryHelper.Dwg
 
                 switch (group.Value.Trim())
                 {
-                    case "AcDbOrdinateDimension": return 0x14;
-                    case "AcDbRotatedDimension": return 0x15;
-                    case "AcDb3PointAngularDimension": return 0x17;
-                    case "AcDb2LineAngularDimension": return 0x18;
-                    case "AcDbRadialDimension": return 0x19;
-                    case "AcDbDiametricDimension": return 0x1A;
+                    case "AcDbOrdinateDimension":
+                        return 0x14;
+                    case "AcDbRotatedDimension":
+                        return 0x15;
+                    case "AcDb3PointAngularDimension":
+                        return 0x17;
+                    case "AcDb2LineAngularDimension":
+                        return 0x18;
+                    case "AcDbRadialDimension":
+                        return 0x19;
+                    case "AcDbDiametricDimension":
+                        return 0x1A;
                 }
             }
 
@@ -216,10 +308,14 @@ namespace GeometryHelper.Dwg
 
                 switch (group.Value.Trim())
                 {
-                    case "AcDb2dPolyline": return 0x0F;
-                    case "AcDb3dPolyline": return 0x10;
-                    case "AcDbPolyFaceMesh": return 0x1D;
-                    case "AcDbPolygonMesh": return 0x1E;
+                    case "AcDb2dPolyline":
+                        return 0x0F;
+                    case "AcDb3dPolyline":
+                        return 0x10;
+                    case "AcDbPolyFaceMesh":
+                        return 0x1D;
+                    case "AcDbPolygonMesh":
+                        return 0x1E;
                 }
             }
 
@@ -231,19 +327,32 @@ namespace GeometryHelper.Dwg
         {
             switch (type)
             {
-                case "ACDBDICTIONARYWDFLT": return () => WriteDictionary(true);
-                case "DICTIONARYVAR": return WriteDictionaryVariable;
-                case "SCALE": return WriteScale;
-                case "ACDBPLACEHOLDER": return () => { };
-                case "LAYOUT": return WriteLayout;
-                case "XRECORD": return WriteXRecord;
-                case "LWPOLYLINE": return WriteLwPolyline;
-                case "DBCOLOR": return WriteBookColour;
-                case "IMAGE": return () => WriteRasterImage("AcDbRasterImage");
-                case "WIPEOUT": return () => WriteRasterImage("AcDbWipeout");
-                case "IMAGEDEF": return WriteImageDefinition;
-                case "IMAGEDEF_REACTOR": return () => _data.BitLong(_record.Of("AcDbRasterImageDefReactor").Int(90, 2));
-                default: return null;
+                case "ACDBDICTIONARYWDFLT":
+                    return () => WriteDictionary(true);
+                case "DICTIONARYVAR":
+                    return WriteDictionaryVariable;
+                case "SCALE":
+                    return WriteScale;
+                case "ACDBPLACEHOLDER":
+                    return () => { };
+                case "LAYOUT":
+                    return WriteLayout;
+                case "XRECORD":
+                    return WriteXRecord;
+                case "LWPOLYLINE":
+                    return WriteLwPolyline;
+                case "DBCOLOR":
+                    return WriteBookColour;
+                case "IMAGE":
+                    return () => WriteRasterImage("AcDbRasterImage");
+                case "WIPEOUT":
+                    return () => WriteRasterImage("AcDbWipeout");
+                case "IMAGEDEF":
+                    return WriteImageDefinition;
+                case "IMAGEDEF_REACTOR":
+                    return () => _data.BitLong(_record.Of("AcDbRasterImageDefReactor").Int(90, 2));
+                default:
+                    return null;
             }
         }
 
@@ -280,7 +389,8 @@ namespace GeometryHelper.Dwg
             _data.Handle(0, record.Handle);
             WriteExtendedData();
             // An object of a class is an entity where its record is one (IMAGE, WIPEOUT); a fixed type says it by its number.
-            bool entity = type < 500 ? IsEntity(type) : record.Body.Exists(g => g.Key == 100 && g.Value.Trim() == "AcDbEntity");
+            bool entity =
+                type < 500 ? IsEntity(type) : record.Body.Exists(g => g.Key == 100 && g.Value.Trim() == "AcDbEntity");
 
             if (entity)
             {
@@ -308,7 +418,8 @@ namespace GeometryHelper.Dwg
             return Finish();
         }
 
-        private static bool IsEntity(int type) => type < 0x2A || (type >= 0x2B && type <= 0x2F) || type == 0x4A || type == 0x4D || type == 0x4E;
+        private static bool IsEntity(int type) =>
+            type < 0x2A || (type >= 0x2B && type <= 0x2F) || type == 0x4A || type == 0x4D || type == 0x4E;
 
         /// <summary>The data, the strings and the handles put together, with the sizes and the check sum around them.</summary>
         private byte[] Finish()
@@ -541,8 +652,14 @@ namespace GeometryHelper.Dwg
                 case 1013:
                     values.WriteByte((byte)(code - 1000));
                     double x = DwgRecord.Double(value);
-                    double y = i + 1 < groups.Count && groups[i + 1].Key == code + 10 ? DwgRecord.Double(groups[++i].Value) : 0.0;
-                    double z = i + 1 < groups.Count && groups[i + 1].Key == code + 20 ? DwgRecord.Double(groups[++i].Value) : 0.0;
+                    double y =
+                        i + 1 < groups.Count && groups[i + 1].Key == code + 10
+                            ? DwgRecord.Double(groups[++i].Value)
+                            : 0.0;
+                    double z =
+                        i + 1 < groups.Count && groups[i + 1].Key == code + 20
+                            ? DwgRecord.Double(groups[++i].Value)
+                            : 0.0;
                     RawDouble(values, x);
                     RawDouble(values, y);
                     RawDouble(values, z);
@@ -592,7 +709,12 @@ namespace GeometryHelper.Dwg
 
             for (int i = 0; i < bytes.Length; i++)
             {
-                byte.TryParse(hex.Substring(2 * i, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out bytes[i]);
+                byte.TryParse(
+                    hex.Substring(2 * i, 2),
+                    NumberStyles.HexNumber,
+                    CultureInfo.InvariantCulture,
+                    out bytes[i]
+                );
             }
 
             return bytes;
@@ -624,7 +746,10 @@ namespace GeometryHelper.Dwg
             }
 
             ulong owner = _record.Container != 0 ? _record.Container : _record.Owner;
-            int mode = owner == _modelSpace && owner != 0 ? 2 : owner == _paperSpace && owner != 0 ? 1 : 0;
+            int mode =
+                owner == _modelSpace && owner != 0 ? 2
+                : owner == _paperSpace && owner != 0 ? 1
+                : 0;
 
             if (_record.Type == "VERTEX" || _record.Type == "ATTRIB" || _record.Type == "SEQEND")
             {
@@ -666,9 +791,11 @@ namespace GeometryHelper.Dwg
             WriteEntityColour(all);
             _data.BitDouble(all.Double(48, 1.0));
             string linetype = all.Text(6, "ByLayer").Trim();
-            int linetypeKind = linetype.Equals("ByLayer", StringComparison.OrdinalIgnoreCase) ? 0
+            int linetypeKind =
+                linetype.Equals("ByLayer", StringComparison.OrdinalIgnoreCase) ? 0
                 : linetype.Equals("ByBlock", StringComparison.OrdinalIgnoreCase) ? 1
-                : linetype.Equals("Continuous", StringComparison.OrdinalIgnoreCase) ? 2 : 3;
+                : linetype.Equals("Continuous", StringComparison.OrdinalIgnoreCase) ? 2
+                : 3;
             ulong linetypeHandle = linetypeKind == 3 ? _drawing.HandleOf("LTYPE", linetype) : 0;
 
             if (linetypeKind == 3 && !_written.Contains(linetypeHandle))
@@ -800,7 +927,8 @@ namespace GeometryHelper.Dwg
             }
 
             _data.BitShort(0);
-            int value = rgb >= 0 ? unchecked((int)0xC2000000) | (rgb & 0xFFFFFF)
+            int value =
+                rgb >= 0 ? unchecked((int)0xC2000000) | (rgb & 0xFFFFFF)
                 : index == 256 ? unchecked((int)0xC0000000)
                 : index == 0 ? unchecked((int)0xC1000000)
                 : unchecked((int)0xC3000000) | (index & 0xFF);
@@ -836,61 +964,126 @@ namespace GeometryHelper.Dwg
         /// <summary>The written DBCOLOR whose name (group 430) is <paramref name="name"/>; 0 for none.</summary>
         private ulong BookColourOf(string name)
         {
-            DwgRecord found = _drawing.Objects.Find(record => record.Type == "DBCOLOR" && _written.Contains(record.Handle)
-                && string.Equals(record.Of("AcDbColor").Text(430).Trim(), name.Trim(), StringComparison.Ordinal));
+            DwgRecord found = _drawing.Objects.Find(record =>
+                record.Type == "DBCOLOR"
+                && _written.Contains(record.Handle)
+                && string.Equals(record.Of("AcDbColor").Text(430).Trim(), name.Trim(), StringComparison.Ordinal)
+            );
             return found?.Handle ?? 0;
         }
 
         private static double Radians(double degrees) => degrees * Math.PI / 180.0;
 
-        private static bool IsDefaultExtrusion(double[] extrusion) => extrusion[0] == 0.0 && extrusion[1] == 0.0 && extrusion[2] == 1.0;
+        private static bool IsDefaultExtrusion(double[] extrusion) =>
+            extrusion[0] == 0.0 && extrusion[1] == 0.0 && extrusion[2] == 1.0;
 
         private void WriteBody(int type)
         {
             switch (type)
             {
-                case 0x01: WriteText(0); return;
-                case 0x02: WriteText(1); return;
-                case 0x03: WriteText(2); return;
-                case 0x04: T(_record.Of("AcDbBlockBegin").Text(2)); return;
+                case 0x01:
+                    WriteText(0);
+                    return;
+                case 0x02:
+                    WriteText(1);
+                    return;
+                case 0x03:
+                    WriteText(2);
+                    return;
+                case 0x04:
+                    T(_record.Of("AcDbBlockBegin").Text(2));
+                    return;
                 case 0x05:
-                case 0x06: return;
-                case 0x07: WriteInsert(false); return;
-                case 0x08: WriteInsert(true); return;
-                case 0x0A: WriteVertex2D(); return;
+                case 0x06:
+                    return;
+                case 0x07:
+                    WriteInsert(false);
+                    return;
+                case 0x08:
+                    WriteInsert(true);
+                    return;
+                case 0x0A:
+                    WriteVertex2D();
+                    return;
                 case 0x0B:
                 case 0x0C:
-                case 0x0D: WriteVertex3D(); return;
-                case 0x0E: WriteFaceRecord(); return;
-                case 0x0F: WritePolyline2D(); return;
-                case 0x10: WritePolyline3D(); return;
-                case 0x11: WriteCircle(true); return;
-                case 0x12: WriteCircle(false); return;
-                case 0x13: WriteLine(); return;
+                case 0x0D:
+                    WriteVertex3D();
+                    return;
+                case 0x0E:
+                    WriteFaceRecord();
+                    return;
+                case 0x0F:
+                    WritePolyline2D();
+                    return;
+                case 0x10:
+                    WritePolyline3D();
+                    return;
+                case 0x11:
+                    WriteCircle(true);
+                    return;
+                case 0x12:
+                    WriteCircle(false);
+                    return;
+                case 0x13:
+                    WriteLine();
+                    return;
                 case 0x14:
                 case 0x15:
                 case 0x16:
                 case 0x17:
                 case 0x18:
                 case 0x19:
-                case 0x1A: WriteDimension(type); return;
-                case 0x1B: WritePoint(); return;
-                case 0x1C: WriteFace(); return;
-                case 0x1D: WritePolyfaceMesh(); return;
-                case 0x1E: WritePolygonMesh(); return;
+                case 0x1A:
+                    WriteDimension(type);
+                    return;
+                case 0x1B:
+                    WritePoint();
+                    return;
+                case 0x1C:
+                    WriteFace();
+                    return;
+                case 0x1D:
+                    WritePolyfaceMesh();
+                    return;
+                case 0x1E:
+                    WritePolygonMesh();
+                    return;
                 case 0x1F:
-                case 0x20: WriteSolid(); return;
-                case 0x22: WriteViewport(); return;
-                case 0x2D: WriteLeader(); return;
-                case 0x2E: WriteTolerance(); return;
-                case 0x2F: WriteMLine(); return;
-                case 0x4E: WriteHatch(); return;
-                case 0x23: WriteEllipse(); return;
-                case 0x24: WriteSpline(); return;
+                case 0x20:
+                    WriteSolid();
+                    return;
+                case 0x22:
+                    WriteViewport();
+                    return;
+                case 0x2D:
+                    WriteLeader();
+                    return;
+                case 0x2E:
+                    WriteTolerance();
+                    return;
+                case 0x2F:
+                    WriteMLine();
+                    return;
+                case 0x4E:
+                    WriteHatch();
+                    return;
+                case 0x23:
+                    WriteEllipse();
+                    return;
+                case 0x24:
+                    WriteSpline();
+                    return;
                 case 0x28:
-                case 0x29: WriteRay(); return;
-                case 0x2A: WriteDictionary(false); return;
-                case 0x2C: WriteMText(); return;
+                case 0x29:
+                    WriteRay();
+                    return;
+                case 0x2A:
+                    WriteDictionary(false);
+                    return;
+                case 0x2C:
+                    WriteMText();
+                    return;
                 case 0x30:
                 case 0x32:
                 case 0x34:
@@ -899,22 +1092,53 @@ namespace GeometryHelper.Dwg
                 case 0x3E:
                 case 0x40:
                 case 0x42:
-                case 0x44: WriteControl(type); return;
-                case 0x31: WriteBlockHeader(); return;
-                case 0x33: WriteLayer(); return;
-                case 0x35: WriteStyle(); return;
-                case 0x39: WriteLinetype(); return;
-                case 0x3D: WriteView(); return;
-                case 0x3F: WriteUcs(); return;
-                case 0x41: WriteVport(); return;
-                case 0x43: WriteAppId(); return;
-                case 0x45: WriteDimStyle(); return;
-                case 0x48: WriteGroup(); return;
-                case 0x49: WriteMLineStyle(); return;
-                case 0x4D: WriteLwPolyline(); return;
-                case 0x4F: WriteXRecord(); return;
-                case 0x50: return;
-                case 0x52: WriteLayout(); return;
+                case 0x44:
+                    WriteControl(type);
+                    return;
+                case 0x31:
+                    WriteBlockHeader();
+                    return;
+                case 0x33:
+                    WriteLayer();
+                    return;
+                case 0x35:
+                    WriteStyle();
+                    return;
+                case 0x39:
+                    WriteLinetype();
+                    return;
+                case 0x3D:
+                    WriteView();
+                    return;
+                case 0x3F:
+                    WriteUcs();
+                    return;
+                case 0x41:
+                    WriteVport();
+                    return;
+                case 0x43:
+                    WriteAppId();
+                    return;
+                case 0x45:
+                    WriteDimStyle();
+                    return;
+                case 0x48:
+                    WriteGroup();
+                    return;
+                case 0x49:
+                    WriteMLineStyle();
+                    return;
+                case 0x4D:
+                    WriteLwPolyline();
+                    return;
+                case 0x4F:
+                    WriteXRecord();
+                    return;
+                case 0x50:
+                    return;
+                case 0x52:
+                    WriteLayout();
+                    return;
             }
 
             Encoder(_record.Type)?.Invoke();

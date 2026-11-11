@@ -16,7 +16,14 @@ namespace GeometryHelper.UnitTest.Dxf
         public void BackwardsAndUpsideDown_AreWrittenAsGroup71_ForAStyleOfAFileAndOneMadeInCode()
         {
             var db = new DxfDatabase("AC1027");
-            db.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "GH_MIRROR", FileName = "romans.shx", FlagBits = 6 });
+            db.TextStyleTable.Add(
+                new DxfTextStyleTableRecord
+                {
+                    Name = "GH_MIRROR",
+                    FileName = "romans.shx",
+                    FlagBits = 6,
+                }
+            );
             DxfTextStyleTableRecord standard = db.TextStyleTable["Standard"];
             standard.FlagBits = 2;
 
@@ -33,9 +40,21 @@ namespace GeometryHelper.UnitTest.Dxf
             var db = new DxfDatabase("AC1027");
             db.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "GH_NOTES", FileName = "romans.shx" });
             db.Textstyle = "GH_NOTES";
-            var text = new DxfDBText { Position = new GeoPoint3(0, 0, 0), Height = 2.5, TextString = "BEAM B-12", TextStyleName = "GH_NOTES" };
+            var text = new DxfDBText
+            {
+                Position = new GeoPoint3(0, 0, 0),
+                Height = 2.5,
+                TextString = "BEAM B-12",
+                TextStyleName = "GH_NOTES",
+            };
             db.ModelSpace.AppendEntity(text);
-            var mtext = new DxfMText { Location = new GeoPoint3(0, 10, 0), TextHeight = 2.5, Contents = "PLATE", TextStyleName = "GH_NOTES" };
+            var mtext = new DxfMText
+            {
+                Location = new GeoPoint3(0, 10, 0),
+                TextHeight = 2.5,
+                Contents = "PLATE",
+                TextStyleName = "GH_NOTES",
+            };
             db.ModelSpace.AppendEntity(mtext);
 
             db.TextStyleTable["GH_NOTES"].Name = "GH_LABELS";
@@ -55,7 +74,15 @@ namespace GeometryHelper.UnitTest.Dxf
             var db = new DxfDatabase("AC1027");
             db.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "GH_USED", FileName = "romans.shx" });
             db.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "GH_SPARE", FileName = "romans.shx" });
-            db.ModelSpace.AppendEntity(new DxfDBText { Position = new GeoPoint3(0, 0, 0), Height = 2.5, TextString = "A", TextStyleName = "GH_USED" });
+            db.ModelSpace.AppendEntity(
+                new DxfDBText
+                {
+                    Position = new GeoPoint3(0, 0, 0),
+                    Height = 2.5,
+                    TextString = "A",
+                    TextStyleName = "GH_USED",
+                }
+            );
 
             Assert.Throws<InvalidOperationException>(() => db.TextStyleTable["Standard"].Erase());
             Assert.Throws<InvalidOperationException>(() => db.TextStyleTable["GH_USED"].Erase());
@@ -71,7 +98,9 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             var db = new DxfDatabase("AC1027");
             db.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "GH_DIMS", FileName = "romans.shx" });
-            db.DimStyleTable.Add(new DxfDimStyleTableRecord { Name = "GH_25", Dimtxsty = db.TextStyleTable["GH_DIMS"] });
+            db.DimStyleTable.Add(
+                new DxfDimStyleTableRecord { Name = "GH_25", Dimtxsty = db.TextStyleTable["GH_DIMS"] }
+            );
 
             Assert.Throws<InvalidOperationException>(() => db.TextStyleTable["GH_DIMS"].Erase());
         }

@@ -12,15 +12,28 @@ namespace GeometryHelper.UnitTest.Plane
     /// </summary>
     public class Arc2ExactReviewTests
     {
-        private static Tolerance At(double equalPoint) => new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
+        private static Tolerance At(double equalPoint) =>
+            new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
 
         #region Collisions with arcs in chains and loops
 
-        private static readonly GeoPoint2[] Corners = { new GeoPoint2(0, 0), new GeoPoint2(40, 0), new GeoPoint2(70, 25), new GeoPoint2(100, 25) };
+        private static readonly GeoPoint2[] Corners =
+        {
+            new GeoPoint2(0, 0),
+            new GeoPoint2(40, 0),
+            new GeoPoint2(70, 25),
+            new GeoPoint2(100, 25),
+        };
         private static readonly double[] Bulges = { 0.0, -0.35, 0.0, 0.0 };
 
         /// <summary>The arc about (25.858, -47.958) of radius 50 whose end stands 0.00012 from the vertex (40, 0) of the chain.</summary>
-        private static GeoArc2 NearArc() => new GeoArc2(new GeoPoint2(25.858140813193945, -47.95846739069786), 50.0, 5.3172292646646655, 7.5672292646646655);
+        private static GeoArc2 NearArc() =>
+            new GeoArc2(
+                new GeoPoint2(25.858140813193945, -47.95846739069786),
+                50.0,
+                5.3172292646646655,
+                7.5672292646646655
+            );
 
         private static double Bulge(GeoArc2 arc) => Math.Tan(arc.SweptAngle / 4);
 
@@ -37,15 +50,21 @@ namespace GeometryHelper.UnitTest.Plane
 
         [Theory]
         [MemberData(nameof(NearShapes))]
-        public void ACurvedChainOrLoopWhoseArcEndStands1Point2TolerancesOffAnArc_IsThatFarAndDoesNotCollideEitherWayRound(string curved, string other)
+        public void ACurvedChainOrLoopWhoseArcEndStands1Point2TolerancesOffAnArc_IsThatFarAndDoesNotCollideEitherWayRound(
+            string curved,
+            string other
+        )
         {
             Tolerance t = At(1E-4);
             GeoArc2 arc = NearArc();
-            GeoPoint2 p0 = arc.StartPoint, p1 = arc.EndPoint;
+            GeoPoint2 p0 = arc.StartPoint,
+                p1 = arc.EndPoint;
             double b = Bulge(arc);
 
-            double there, back;
-            bool collides, collidesBack;
+            double there,
+                back;
+            bool collides,
+                collidesBack;
 
             GeoPolylineArc2 chain = new GeoPolylineArc2(Corners, Bulges);
             GeoPolygonArc2 loop = new GeoPolygonArc2(Corners, Bulges);
@@ -55,18 +74,24 @@ namespace GeometryHelper.UnitTest.Plane
                 switch (other)
                 {
                     case "arc":
-                        there = chain.DistanceTo(arc, t); back = arc.DistanceTo(chain, t);
-                        collides = chain.CollidesWith(arc, t); collidesBack = arc.CollidesWith(chain, t);
+                        there = chain.DistanceTo(arc, t);
+                        back = arc.DistanceTo(chain, t);
+                        collides = chain.CollidesWith(arc, t);
+                        collidesBack = arc.CollidesWith(chain, t);
                         break;
                     case "one-edge chain":
                         var oc = new GeoPolylineArc2(new[] { p0, p1 }, new[] { b, 0.0 });
-                        there = chain.DistanceTo(oc, t); back = oc.DistanceTo(chain, t);
-                        collides = chain.CollidesWith(oc, t); collidesBack = oc.CollidesWith(chain, t);
+                        there = chain.DistanceTo(oc, t);
+                        back = oc.DistanceTo(chain, t);
+                        collides = chain.CollidesWith(oc, t);
+                        collidesBack = oc.CollidesWith(chain, t);
                         break;
                     default:
                         var ol = new GeoPolygonArc2(new[] { p0, p1, new GeoPoint2(120, -100) }, new[] { b, 0.0, 0.0 });
-                        there = chain.DistanceTo(ol, t); back = ol.DistanceTo(chain, t);
-                        collides = chain.CollidesWith(ol, t); collidesBack = ol.CollidesWith(chain, t);
+                        there = chain.DistanceTo(ol, t);
+                        back = ol.DistanceTo(chain, t);
+                        collides = chain.CollidesWith(ol, t);
+                        collidesBack = ol.CollidesWith(chain, t);
                         break;
                 }
             }
@@ -75,18 +100,24 @@ namespace GeometryHelper.UnitTest.Plane
                 switch (other)
                 {
                     case "arc":
-                        there = loop.DistanceTo(arc, t); back = arc.DistanceTo(loop, t);
-                        collides = loop.CollidesWith(arc, t); collidesBack = arc.CollidesWith(loop, t);
+                        there = loop.DistanceTo(arc, t);
+                        back = arc.DistanceTo(loop, t);
+                        collides = loop.CollidesWith(arc, t);
+                        collidesBack = arc.CollidesWith(loop, t);
                         break;
                     case "one-edge chain":
                         var oc = new GeoPolylineArc2(new[] { p0, p1 }, new[] { b, 0.0 });
-                        there = loop.DistanceTo(oc, t); back = oc.DistanceTo(loop, t);
-                        collides = loop.CollidesWith(oc, t); collidesBack = oc.CollidesWith(loop, t);
+                        there = loop.DistanceTo(oc, t);
+                        back = oc.DistanceTo(loop, t);
+                        collides = loop.CollidesWith(oc, t);
+                        collidesBack = oc.CollidesWith(loop, t);
                         break;
                     default:
                         var ol = new GeoPolygonArc2(new[] { p0, p1, new GeoPoint2(120, -100) }, new[] { b, 0.0, 0.0 });
-                        there = loop.DistanceTo(ol, t); back = ol.DistanceTo(loop, t);
-                        collides = loop.CollidesWith(ol, t); collidesBack = ol.CollidesWith(loop, t);
+                        there = loop.DistanceTo(ol, t);
+                        back = ol.DistanceTo(loop, t);
+                        collides = loop.CollidesWith(ol, t);
+                        collidesBack = ol.CollidesWith(loop, t);
                         break;
                 }
             }
@@ -113,7 +144,10 @@ namespace GeometryHelper.UnitTest.Plane
             var circle = new GeoCircle2(new GeoPoint2(0, 0), 10);
             var arc = new GeoArc2(new GeoPoint2(0, 20.1), 10, -Math.PI / 2 + past, -Math.PI / 2 + 1.3);
             var chain = new GeoPolylineArc2(new[] { arc.StartPoint, arc.EndPoint }, new[] { Bulge(arc), 0.0 });
-            var loop = new GeoPolygonArc2(new[] { arc.StartPoint, arc.EndPoint, new GeoPoint2(40, 15) }, new[] { Bulge(arc), 0.0, 0.0 });
+            var loop = new GeoPolygonArc2(
+                new[] { arc.StartPoint, arc.EndPoint, new GeoPoint2(40, 15) },
+                new[] { Bulge(arc), 0.0, 0.0 }
+            );
 
             Assert.InRange(circle.DistanceTo(arc, t), apart - 1E-9, apart + 1E-9);
             Assert.InRange(circle.DistanceTo(chain, t), apart - 1E-9, apart + 1E-9);
@@ -154,8 +188,14 @@ namespace GeometryHelper.UnitTest.Plane
         {
             Tolerance t = At(1E-3);
             var chain = new GeoPolylineArc2(
-                new[] { new GeoPoint2(35.72107653588144, -48.20793182784032), new GeoPoint2(29.767563779901206, -40.17327652320027), new GeoPoint2(-28.347403052789055, 41.18767704256609) },
-                new[] { 0.0, 0.98269726311569, 0.0 });
+                new[]
+                {
+                    new GeoPoint2(35.72107653588144, -48.20793182784032),
+                    new GeoPoint2(29.767563779901206, -40.17327652320027),
+                    new GeoPoint2(-28.347403052789055, 41.18767704256609),
+                },
+                new[] { 0.0, 0.98269726311569, 0.0 }
+            );
 
             Assert.Equal(0.0, chain.DistanceTo(NearlyConcentric, t));
             Assert.Equal(0.0, NearlyConcentric.DistanceTo(chain, t));
@@ -201,7 +241,9 @@ namespace GeometryHelper.UnitTest.Plane
         {
             Tolerance t = At(1E-3);
             var chain = new GeoPolylineArc2(
-                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) }, new[] { 0.0, 0.5, 0.0 });
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) },
+                new[] { 0.0, 0.5, 0.0 }
+            );
             var overStraight = new GeoLine2(new GeoPoint2(50, -0.0004), new GeoPoint2(50, 0.0002));
             // The arc bows out to the right of the edge from (100, 0) to (100, 100), through (125, 50) at its middle.
             var overArc = new GeoLine2(new GeoPoint2(125 - 0.0004, 50), new GeoPoint2(125 + 0.0002, 50));

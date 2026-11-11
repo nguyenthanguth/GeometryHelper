@@ -71,7 +71,13 @@ namespace GeometryHelper.Drawing.Annotation
         /// <exception cref="ArgumentNullException">Thrown when the view, the objects or the settings are null.</exception>
         /// <exception cref="ArgumentException">Thrown when an object is null or two objects have the same id.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the scale is not a finite number above nought.</exception>
-        public static IReadOnlyList<DrawingCentreLine> Find(ProjectedView2 view, IEnumerable<DrawingObject> objects, SymbolSettings settings, double scale, Tolerance tolerance)
+        public static IReadOnlyList<DrawingCentreLine> Find(
+            ProjectedView2 view,
+            IEnumerable<DrawingObject> objects,
+            SymbolSettings settings,
+            double scale,
+            Tolerance tolerance
+        )
         {
             if (view == null)
             {
@@ -90,7 +96,11 @@ namespace GeometryHelper.Drawing.Annotation
 
             if (!(scale > 0.0) || double.IsInfinity(scale))
             {
-                throw new ArgumentOutOfRangeException(nameof(scale), scale, "The scale has to be a finite number above nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(scale),
+                    scale,
+                    "The scale has to be a finite number above nought."
+                );
             }
 
             double tol = tolerance.EqualPoint;
@@ -126,7 +136,11 @@ namespace GeometryHelper.Drawing.Annotation
 
                     foreach (string id in edge.ObjectIds)
                     {
-                        if (!byId.TryGetValue(id, out DrawingObject item) || item.Kind == DrawingObjectKind.Weld || item.Kind == DrawingObjectKind.Rebar)
+                        if (
+                            !byId.TryGetValue(id, out DrawingObject item)
+                            || item.Kind == DrawingObjectKind.Weld
+                            || item.Kind == DrawingObjectKind.Rebar
+                        )
                         {
                             continue;
                         }
@@ -147,7 +161,8 @@ namespace GeometryHelper.Drawing.Annotation
             foreach (KeyValuePair<string, List<GeoArc2>> entry in arcsOf)
             {
                 DrawingObject item = byId[entry.Key];
-                string key = item.Kind == DrawingObjectKind.Part ? "0\u0001" + item.Id
+                string key =
+                    item.Kind == DrawingObjectKind.Part ? "0\u0001" + item.Id
                     : item.Kind == DrawingObjectKind.Hole ? "1\u0001" + (item.ParentId ?? item.Id)
                     : "2\u0001" + MarkTexts.BoltGroupKey(item);
 
@@ -186,15 +201,36 @@ namespace GeometryHelper.Drawing.Annotation
 
             foreach (Pending p in level)
             {
-                lines.Add(new DrawingCentreLine("CL-" + (lines.Count + 1).ToString(CultureInfo.InvariantCulture), new GeoLine2(p.From, p.Across, p.To, p.Across), p.Ids, scale));
+                lines.Add(
+                    new DrawingCentreLine(
+                        "CL-" + (lines.Count + 1).ToString(CultureInfo.InvariantCulture),
+                        new GeoLine2(p.From, p.Across, p.To, p.Across),
+                        p.Ids,
+                        scale
+                    )
+                );
             }
 
             foreach (Pending p in upright)
             {
-                lines.Add(new DrawingCentreLine("CL-" + (lines.Count + 1).ToString(CultureInfo.InvariantCulture), new GeoLine2(p.Across, p.From, p.Across, p.To), p.Ids, scale));
+                lines.Add(
+                    new DrawingCentreLine(
+                        "CL-" + (lines.Count + 1).ToString(CultureInfo.InvariantCulture),
+                        new GeoLine2(p.Across, p.From, p.Across, p.To),
+                        p.Ids,
+                        scale
+                    )
+                );
             }
 
-            GeometryHelperLog.Info(string.Format(CultureInfo.InvariantCulture, "DrawingCentreLine.Find: {0} circles gave {1} centre lines.", taken.Count, lines.Count));
+            GeometryHelperLog.Info(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "DrawingCentreLine.Find: {0} circles gave {1} centre lines.",
+                    taken.Count,
+                    lines.Count
+                )
+            );
             return lines;
         }
 
@@ -226,26 +262,36 @@ namespace GeometryHelper.Drawing.Annotation
         internal void Write(DxfDatabase database, ViewPlacement2 placement, string id)
         {
             SymbolDxf.CentreLayer(database);
-            DxfLine line = SymbolDxf.Line(database, placement, Line.StartPoint, Line.EndPoint, ProjectedView2.CentreLayer, id);
+            DxfLine line = SymbolDxf.Line(
+                database,
+                placement,
+                Line.StartPoint,
+                Line.EndPoint,
+                ProjectedView2.CentreLayer,
+                id
+            );
             line.LinetypeScale = 0.1 * Scale / placement.Scale;
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"Centre line {Id} ({Line.StartPoint.X:0.###}, {Line.StartPoint.Y:0.###})-({Line.EndPoint.X:0.###}, {Line.EndPoint.Y:0.###})";
+        public override string ToString() =>
+            $"Centre line {Id} ({Line.StartPoint.X:0.###}, {Line.StartPoint.Y:0.###})-({Line.EndPoint.X:0.###}, {Line.EndPoint.Y:0.###})";
 
         /// <summary>
         /// The whole circles among the arcs of an object: arcs about one centre and of one radius adding up to a full turn.
         /// </summary>
         private static List<Circle> Circles(string id, List<GeoArc2> arcs, double tol)
         {
-            arcs.Sort((a, b) =>
-            {
-                int c = a.Center.X.CompareTo(b.Center.X);
-                c = c != 0 ? c : a.Center.Y.CompareTo(b.Center.Y);
-                c = c != 0 ? c : a.Radius.CompareTo(b.Radius);
-                c = c != 0 ? c : a.StartAngle.CompareTo(b.StartAngle);
-                return c != 0 ? c : a.SweptAngle.CompareTo(b.SweptAngle);
-            });
+            arcs.Sort(
+                (a, b) =>
+                {
+                    int c = a.Center.X.CompareTo(b.Center.X);
+                    c = c != 0 ? c : a.Center.Y.CompareTo(b.Center.Y);
+                    c = c != 0 ? c : a.Radius.CompareTo(b.Radius);
+                    c = c != 0 ? c : a.StartAngle.CompareTo(b.StartAngle);
+                    return c != 0 ? c : a.SweptAngle.CompareTo(b.SweptAngle);
+                }
+            );
 
             var used = new bool[arcs.Count];
             var circles = new List<Circle>();
@@ -261,7 +307,11 @@ namespace GeometryHelper.Drawing.Annotation
 
                 for (int j = i; j < arcs.Count && arcs[j].Center.X <= arcs[i].Center.X + tol; j++)
                 {
-                    if (!used[j] && Math.Abs(arcs[j].Center.Y - arcs[i].Center.Y) <= tol && Math.Abs(arcs[j].Radius - arcs[i].Radius) <= tol)
+                    if (
+                        !used[j]
+                        && Math.Abs(arcs[j].Center.Y - arcs[i].Center.Y) <= tol
+                        && Math.Abs(arcs[j].Radius - arcs[i].Radius) <= tol
+                    )
                     {
                         used[j] = true;
                         turn += Math.Abs(arcs[j].SweptAngle);
@@ -270,7 +320,15 @@ namespace GeometryHelper.Drawing.Annotation
 
                 if (turn >= FullTurn * (1.0 - 1E-9))
                 {
-                    circles.Add(new Circle { Id = id, X = arcs[i].Center.X, Y = arcs[i].Center.Y, Radius = arcs[i].Radius });
+                    circles.Add(
+                        new Circle
+                        {
+                            Id = id,
+                            X = arcs[i].Center.X,
+                            Y = arcs[i].Center.Y,
+                            Radius = arcs[i].Radius,
+                        }
+                    );
                 }
             }
 
@@ -280,13 +338,15 @@ namespace GeometryHelper.Drawing.Annotation
         /// <summary>The largest of the circles about each centre of a group, in the order of X, then Y, then id.</summary>
         private static List<Circle> Largest(List<Circle> circles, double tol)
         {
-            circles.Sort((a, b) =>
-            {
-                int c = a.X.CompareTo(b.X);
-                c = c != 0 ? c : a.Y.CompareTo(b.Y);
-                c = c != 0 ? c : b.Radius.CompareTo(a.Radius);
-                return c != 0 ? c : string.CompareOrdinal(a.Id, b.Id);
-            });
+            circles.Sort(
+                (a, b) =>
+                {
+                    int c = a.X.CompareTo(b.X);
+                    c = c != 0 ? c : a.Y.CompareTo(b.Y);
+                    c = c != 0 ? c : b.Radius.CompareTo(a.Radius);
+                    return c != 0 ? c : string.CompareOrdinal(a.Id, b.Id);
+                }
+            );
 
             var kept = new List<Circle>();
 
@@ -300,11 +360,23 @@ namespace GeometryHelper.Drawing.Annotation
                 }
                 else if (circle.Radius > kept[same].Radius)
                 {
-                    kept[same] = new Circle { Id = kept[same].Id + "\u0001" + circle.Id, X = kept[same].X, Y = kept[same].Y, Radius = circle.Radius };
+                    kept[same] = new Circle
+                    {
+                        Id = kept[same].Id + "\u0001" + circle.Id,
+                        X = kept[same].X,
+                        Y = kept[same].Y,
+                        Radius = circle.Radius,
+                    };
                 }
                 else if (!string.Equals(kept[same].Id, circle.Id, StringComparison.Ordinal))
                 {
-                    kept[same] = new Circle { Id = kept[same].Id + "\u0001" + circle.Id, X = kept[same].X, Y = kept[same].Y, Radius = kept[same].Radius };
+                    kept[same] = new Circle
+                    {
+                        Id = kept[same].Id + "\u0001" + circle.Id,
+                        X = kept[same].X,
+                        Y = kept[same].Y,
+                        Radius = kept[same].Radius,
+                    };
                 }
             }
 
@@ -318,12 +390,17 @@ namespace GeometryHelper.Drawing.Annotation
         private static void Rows(List<Circle> circles, bool levelRows, double extension, double tol, List<Pending> rows)
         {
             var sorted = new List<Circle>(circles);
-            sorted.Sort((a, b) =>
-            {
-                int c = levelRows ? a.Y.CompareTo(b.Y) : a.X.CompareTo(b.X);
-                c = c != 0 ? c : levelRows ? a.X.CompareTo(b.X) : a.Y.CompareTo(b.Y);
-                return c != 0 ? c : string.CompareOrdinal(a.Id, b.Id);
-            });
+            sorted.Sort(
+                (a, b) =>
+                {
+                    int c = levelRows ? a.Y.CompareTo(b.Y) : a.X.CompareTo(b.X);
+                    c =
+                        c != 0 ? c
+                        : levelRows ? a.X.CompareTo(b.X)
+                        : a.Y.CompareTo(b.Y);
+                    return c != 0 ? c : string.CompareOrdinal(a.Id, b.Id);
+                }
+            );
 
             int start = 0;
 
@@ -337,7 +414,8 @@ namespace GeometryHelper.Drawing.Annotation
                     end++;
                 }
 
-                double from = double.PositiveInfinity, to = double.NegativeInfinity;
+                double from = double.PositiveInfinity,
+                    to = double.NegativeInfinity;
                 var ids = new SortedSet<string>(StringComparer.Ordinal);
 
                 for (int k = start; k < end; k++)
@@ -352,7 +430,15 @@ namespace GeometryHelper.Drawing.Annotation
                     }
                 }
 
-                rows.Add(new Pending { Across = across, From = from, To = to, Ids = new List<string>(ids).ToArray() });
+                rows.Add(
+                    new Pending
+                    {
+                        Across = across,
+                        From = from,
+                        To = to,
+                        Ids = new List<string>(ids).ToArray(),
+                    }
+                );
                 start = end;
             }
         }

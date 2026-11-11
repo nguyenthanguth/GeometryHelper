@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -71,9 +71,7 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the sequence is null.</exception>
         /// <exception cref="ArgumentException">Thrown when fewer than four faces are given, or one is null.</exception>
         public GeoSolid3(IEnumerable<GeoFace3> faces)
-            : this(faces, null)
-        {
-        }
+            : this(faces, null) { }
 
         /// <summary>
         /// Initializes a solid from its bounding faces and the solids carved out of it.
@@ -137,9 +135,7 @@ namespace GeometryHelper.Geometry
         /// Initializes a solid directly from face arguments.
         /// </summary>
         public GeoSolid3(params GeoFace3[] faces)
-            : this((IEnumerable<GeoFace3>)faces, null)
-        {
-        }
+            : this((IEnumerable<GeoFace3>)faces, null) { }
 
         /// <summary>
         /// Creates a copy of this solid, faces and openings included.
@@ -530,13 +526,16 @@ namespace GeometryHelper.Geometry
 
             if (left > 0)
             {
-                GeometryHelperLog.Debug(string.Format(
-                    CultureInfo.InvariantCulture,
-                    "GeoSolid3.Triangulate: {0} of {1} faces, {2:G6} square units, thinner than the tolerance of {3:G6}, were left out of the mesh whole.",
-                    left,
-                    _faces.Length,
-                    leftArea,
-                    tolerance.EqualPoint));
+                GeometryHelperLog.Debug(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "GeoSolid3.Triangulate: {0} of {1} faces, {2:G6} square units, thinner than the tolerance of {3:G6}, were left out of the mesh whole.",
+                        left,
+                        _faces.Length,
+                        leftArea,
+                        tolerance.EqualPoint
+                    )
+                );
             }
 
             return triangles;
@@ -605,15 +604,16 @@ namespace GeometryHelper.Geometry
         /// into triangles holding 29 999.99, its bottom lost, where it holds 58 800.
         /// </para>
         /// </remarks>
-        public GeoTriangle3[] TriangulateSurface(Tolerance tolerance)
-            => Boolean3.MaterialToRead(this, Openings, tolerance)?.Triangulate(tolerance) ?? new GeoTriangle3[0];
+        public GeoTriangle3[] TriangulateSurface(Tolerance tolerance) =>
+            Boolean3.MaterialToRead(this, Openings, tolerance)?.Triangulate(tolerance) ?? new GeoTriangle3[0];
 
         /// <summary>
         /// Cuts the body into cells as the options say, along the world's axes, using the default tolerance.
         /// </summary>
         /// <param name="options">How each axis of the grid is divided, the joint, and the snap distance.</param>
         /// <returns>The grid of cells.</returns>
-        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options) => Meshing.Mesh3.ToCells(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
+        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options) =>
+            Meshing.Mesh3.ToCells(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Cuts the body into cells as the options say, along the world's axes, within a tolerance.
@@ -621,7 +621,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How each axis of the grid is divided, the joint, and the snap distance.</param>
         /// <param name="tolerance">The tolerance it is cut within: which cells are whole, and the least a cut is snapped by.</param>
         /// <returns>The grid of cells.</returns>
-        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Tolerance tolerance) => Meshing.Mesh3.ToCells(this, options, Meshing.MeshPlacement3.World, tolerance);
+        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Tolerance tolerance) =>
+            Meshing.Mesh3.ToCells(this, options, Meshing.MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Cuts the body into cells as the options say, its grid standing as the placement says, using the default
@@ -630,7 +631,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How each axis of the grid is divided, the joint, and the snap distance.</param>
         /// <param name="placement">Which way the grid's axes run, and where a cell starts.</param>
         /// <returns>The grid of cells.</returns>
-        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Meshing.MeshPlacement3 placement) => Meshing.Mesh3.ToCells(this, options, placement, Tolerance.Global);
+        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Meshing.MeshPlacement3 placement) =>
+            Meshing.Mesh3.ToCells(this, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Cuts the body into cells as the options say, its grid standing as the placement says, within a tolerance: blocks,
@@ -645,7 +647,11 @@ namespace GeometryHelper.Geometry
         /// Thrown when the body is not closed, a cell is no larger than the point tolerance along an axis it divides, or the grid would lay more
         /// cells than a grid may have.
         /// </exception>
-        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Meshing.MeshPlacement3 placement, Tolerance tolerance) => Meshing.Mesh3.ToCells(this, options, placement, tolerance);
+        public Meshing.GeoCellGrid3 ToCells(
+            Meshing.CellOptions3 options,
+            Meshing.MeshPlacement3 placement,
+            Tolerance tolerance
+        ) => Meshing.Mesh3.ToCells(this, options, placement, tolerance);
 
         /// <summary>
         /// Cuts every opening into this body, giving one without openings whose faces are the surface of its
@@ -731,7 +737,8 @@ namespace GeometryHelper.Geometry
         /// cut in the plane of the other's; it holds 153 731.64 now, to 3E-5.
         /// </para>
         /// </remarks>
-        public bool TryCutOpenings(out GeoSolid3 material, Tolerance tolerance) => Boolean3.TryCutOpenings(this, out material, tolerance);
+        public bool TryCutOpenings(out GeoSolid3 material, Tolerance tolerance) =>
+            Boolean3.TryCutOpenings(this, out material, tolerance);
 
         #endregion
 
@@ -788,7 +795,8 @@ namespace GeometryHelper.Geometry
         /// closed both ways.
         /// </para>
         /// </remarks>
-        public bool IsClosed(Tolerance tolerance) => Shells3.HasEdges(_faces, tolerance) && Shells3.ClosesAsRead(this, tolerance);
+        public bool IsClosed(Tolerance tolerance) =>
+            Shells3.HasEdges(_faces, tolerance) && Shells3.ClosesAsRead(this, tolerance);
 
         /// <summary>
         /// Checks whether the boundary closes, the ends of the edges matched first, each to the first corner seen within the
@@ -920,7 +928,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Locates a point relative to this solid, within a tolerance.
         /// </summary>
-        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) => Containment3.Locate(this, point, tolerance);
+        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) =>
+            Containment3.Locate(this, point, tolerance);
 
         /// <summary>
         /// Checks whether this solid holds a point, using the default tolerance.
@@ -989,7 +998,8 @@ namespace GeometryHelper.Geometry
         /// false: a hull 20 across cut 0.0011 inside a face, at the default tolerance, gives a slab of 0.022 cubic
         /// millimetres, closed.
         /// </remarks>
-        public bool TrySplitBy(GeoPlane3 cutter, out GeoSolid3 above, out GeoSolid3 below) => Splition3.TrySplitBy(this, cutter, out above, out below);
+        public bool TrySplitBy(GeoPlane3 cutter, out GeoSolid3 above, out GeoSolid3 below) =>
+            Splition3.TrySplitBy(this, cutter, out above, out below);
 
         /// <summary>
         /// Splits this solid by a plane, within a tolerance.
@@ -1001,7 +1011,8 @@ namespace GeometryHelper.Geometry
         /// false: a hull 20 across cut 0.0011 inside a face, at the default tolerance, gives a slab of 0.022 cubic
         /// millimetres, closed.
         /// </remarks>
-        public bool TrySplitBy(GeoPlane3 cutter, out GeoSolid3 above, out GeoSolid3 below, Tolerance tolerance) => Splition3.TrySplitBy(this, cutter, out above, out below, tolerance);
+        public bool TrySplitBy(GeoPlane3 cutter, out GeoSolid3 above, out GeoSolid3 below, Tolerance tolerance) =>
+            Splition3.TrySplitBy(this, cutter, out above, out below, tolerance);
 
         /// <summary>
         /// Joins this solid with another, using the default tolerance.
@@ -1011,55 +1022,72 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Joins this solid with another, within a tolerance.
         /// </summary>
-        public bool TryUnion(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance) => Boolean3.TryUnion(this, other, out result, tolerance);
+        public bool TryUnion(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance) =>
+            Boolean3.TryUnion(this, other, out result, tolerance);
 
         /// <summary>
         /// Joins this solid with another, saying how it came out, using the default tolerance.
         /// </summary>
-        public bool TryUnion(GeoSolid3 other, out GeoSolid3 result, out BooleanOutcome outcome) => Boolean3.TryUnion(this, other, out result, out outcome);
+        public bool TryUnion(GeoSolid3 other, out GeoSolid3 result, out BooleanOutcome outcome) =>
+            Boolean3.TryUnion(this, other, out result, out outcome);
 
         /// <summary>
         /// Joins this solid with another, within a tolerance, saying how it came out; see
         /// <see cref="Boolean3.TryUnion(GeoSolid3, GeoSolid3, out GeoSolid3, Tolerance, out BooleanOutcome)"/>.
         /// </summary>
-        public bool TryUnion(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome)
-            => Boolean3.TryUnion(this, other, out result, tolerance, out outcome);
+        public bool TryUnion(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome) =>
+            Boolean3.TryUnion(this, other, out result, tolerance, out outcome);
 
         /// <summary>
         /// Joins this solid with another as the options say, saying how it came out; see
         /// <see cref="Boolean3.TryUnion(GeoSolid3, GeoSolid3, out GeoSolid3, SolidBooleanOptions, out BooleanOutcome)"/>.
         /// </summary>
-        public bool TryUnion(GeoSolid3 other, out GeoSolid3 result, SolidBooleanOptions options, out BooleanOutcome outcome)
-            => Boolean3.TryUnion(this, other, out result, options, out outcome);
+        public bool TryUnion(
+            GeoSolid3 other,
+            out GeoSolid3 result,
+            SolidBooleanOptions options,
+            out BooleanOutcome outcome
+        ) => Boolean3.TryUnion(this, other, out result, options, out outcome);
 
         /// <summary>
         /// Gets the part this solid shares with another, using the default tolerance.
         /// </summary>
-        public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result) => Boolean3.TryIntersect(this, other, out result);
+        public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result) =>
+            Boolean3.TryIntersect(this, other, out result);
 
         /// <summary>
         /// Gets the part this solid shares with another, within a tolerance.
         /// </summary>
-        public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance) => Boolean3.TryIntersect(this, other, out result, tolerance);
+        public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance) =>
+            Boolean3.TryIntersect(this, other, out result, tolerance);
 
         /// <summary>
         /// Gets the part this solid shares with another, saying how it came out, using the default tolerance.
         /// </summary>
-        public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result, out BooleanOutcome outcome) => Boolean3.TryIntersect(this, other, out result, out outcome);
+        public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result, out BooleanOutcome outcome) =>
+            Boolean3.TryIntersect(this, other, out result, out outcome);
 
         /// <summary>
         /// Gets the part this solid shares with another, within a tolerance, saying how it came out; see
         /// <see cref="Boolean3.TryIntersect(GeoSolid3, GeoSolid3, out GeoSolid3, Tolerance, out BooleanOutcome)"/>.
         /// </summary>
-        public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome)
-            => Boolean3.TryIntersect(this, other, out result, tolerance, out outcome);
+        public bool TryIntersect(
+            GeoSolid3 other,
+            out GeoSolid3 result,
+            Tolerance tolerance,
+            out BooleanOutcome outcome
+        ) => Boolean3.TryIntersect(this, other, out result, tolerance, out outcome);
 
         /// <summary>
         /// Gets the part this solid shares with another as the options say, saying how it came out; see
         /// <see cref="Boolean3.TryIntersect(GeoSolid3, GeoSolid3, out GeoSolid3, SolidBooleanOptions, out BooleanOutcome)"/>.
         /// </summary>
-        public bool TryIntersect(GeoSolid3 other, out GeoSolid3 result, SolidBooleanOptions options, out BooleanOutcome outcome)
-            => Boolean3.TryIntersect(this, other, out result, options, out outcome);
+        public bool TryIntersect(
+            GeoSolid3 other,
+            out GeoSolid3 result,
+            SolidBooleanOptions options,
+            out BooleanOutcome outcome
+        ) => Boolean3.TryIntersect(this, other, out result, options, out outcome);
 
         /// <summary>
         /// Gets every separate region this body shares with another, one body each.
@@ -1074,7 +1102,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets every separate region this body shares with another, one body each, within a tolerance.
         /// </summary>
-        public GeoSolid3[] Intersect(GeoSolid3 other, Tolerance tolerance) => Boolean3.Intersect(this, other, tolerance);
+        public GeoSolid3[] Intersect(GeoSolid3 other, Tolerance tolerance) =>
+            Boolean3.Intersect(this, other, tolerance);
 
         /// <summary>
         /// Splits this body into the pieces of material that do not touch.
@@ -1099,13 +1128,14 @@ namespace GeometryHelper.Geometry
         /// face of each lies in one plane, facing the other. Only contact with area is a patch — two bodies meeting
         /// along an edge or at a point have none, and <c>CollidesWith</c> is what reports them.
         /// </remarks>
-        public bool TryGetContact(GeoSolid3 other, out GeoFace3[] contact) => Boolean3.TryGetContact(this, other, out contact);
+        public bool TryGetContact(GeoSolid3 other, out GeoFace3[] contact) =>
+            Boolean3.TryGetContact(this, other, out contact);
 
         /// <summary>
         /// Gets the patches where this body and another lie against each other, face to face, within a tolerance.
         /// </summary>
-        public bool TryGetContact(GeoSolid3 other, out GeoFace3[] contact, Tolerance tolerance)
-            => Boolean3.TryGetContact(this, other, out contact, tolerance);
+        public bool TryGetContact(GeoSolid3 other, out GeoFace3[] contact, Tolerance tolerance) =>
+            Boolean3.TryGetContact(this, other, out contact, tolerance);
 
         /// <summary>
         /// Takes another solid out of this one, using the default tolerance.
@@ -1115,41 +1145,60 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Takes another solid out of this one, within a tolerance.
         /// </summary>
-        public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance) => Boolean3.TrySubtract(this, tool, out result, tolerance);
+        public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance) =>
+            Boolean3.TrySubtract(this, tool, out result, tolerance);
 
         /// <summary>
         /// Takes another solid out of this one, saying how it came out, using the default tolerance.
         /// </summary>
-        public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result, out BooleanOutcome outcome) => Boolean3.TrySubtract(this, tool, out result, out outcome);
+        public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result, out BooleanOutcome outcome) =>
+            Boolean3.TrySubtract(this, tool, out result, out outcome);
 
         /// <summary>
         /// Takes another solid out of this one, within a tolerance, saying how it came out; see
         /// <see cref="Boolean3.TrySubtract(GeoSolid3, GeoSolid3, out GeoSolid3, Tolerance, out BooleanOutcome)"/>.
         /// </summary>
-        public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome)
-            => Boolean3.TrySubtract(this, tool, out result, tolerance, out outcome);
+        public bool TrySubtract(
+            GeoSolid3 tool,
+            out GeoSolid3 result,
+            Tolerance tolerance,
+            out BooleanOutcome outcome
+        ) => Boolean3.TrySubtract(this, tool, out result, tolerance, out outcome);
 
         /// <summary>
         /// Takes another solid out of this one as the options say, saying how it came out; see
         /// <see cref="Boolean3.TrySubtract(GeoSolid3, GeoSolid3, out GeoSolid3, SolidBooleanOptions, out BooleanOutcome)"/>.
         /// </summary>
-        public bool TrySubtract(GeoSolid3 tool, out GeoSolid3 result, SolidBooleanOptions options, out BooleanOutcome outcome)
-            => Boolean3.TrySubtract(this, tool, out result, options, out outcome);
+        public bool TrySubtract(
+            GeoSolid3 tool,
+            out GeoSolid3 result,
+            SolidBooleanOptions options,
+            out BooleanOutcome outcome
+        ) => Boolean3.TrySubtract(this, tool, out result, options, out outcome);
 
         /// <summary>
         /// Takes bodies out of this solid one after another as the options say, each result checked, and says what it
         /// did; see <see cref="Boolean3.TrySubtractAll(GeoSolid3, IEnumerable{GeoSolid3}, out GeoSolid3, SolidBooleanOptions, out SubtractReport)"/>.
         /// </summary>
-        public bool TrySubtractAll(IEnumerable<GeoSolid3> tools, out GeoSolid3 result, SolidBooleanOptions options, out SubtractReport report)
-            => Boolean3.TrySubtractAll(this, tools, out result, options, out report);
+        public bool TrySubtractAll(
+            IEnumerable<GeoSolid3> tools,
+            out GeoSolid3 result,
+            SolidBooleanOptions options,
+            out SubtractReport report
+        ) => Boolean3.TrySubtractAll(this, tools, out result, options, out report);
 
         /// <summary>
         /// Takes bodies out of this solid one after another as the options say, each result checked, and closes a cut that
         /// would be skipped where that can be done and the body closed holds what the cut can leave; see
         /// <see cref="Boolean3.TrySubtractAll(GeoSolid3, IEnumerable{GeoSolid3}, out GeoSolid3, SolidBooleanOptions, SolidClosingOptions, out SubtractReport)"/>.
         /// </summary>
-        public bool TrySubtractAll(IEnumerable<GeoSolid3> tools, out GeoSolid3 result, SolidBooleanOptions options, SolidClosingOptions closing, out SubtractReport report)
-            => Boolean3.TrySubtractAll(this, tools, out result, options, closing, out report);
+        public bool TrySubtractAll(
+            IEnumerable<GeoSolid3> tools,
+            out GeoSolid3 result,
+            SolidBooleanOptions options,
+            SolidClosingOptions closing,
+            out SubtractReport report
+        ) => Boolean3.TrySubtractAll(this, tools, out result, options, closing, out report);
 
         #endregion
 
@@ -1322,14 +1371,17 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the two made a body; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
-        public bool TryUnion(GeoObb3 other, out GeoSolid3 result, Tolerance tolerance)
-            => AsBody(other, nameof(other)) is GeoSolid3 box ? Boolean3.TryUnion(this, box, out result, tolerance) : NoBody(out result);
+        public bool TryUnion(GeoObb3 other, out GeoSolid3 result, Tolerance tolerance) =>
+            AsBody(other, nameof(other)) is GeoSolid3 box
+                ? Boolean3.TryUnion(this, box, out result, tolerance)
+                : NoBody(out result);
 
         /// <summary>
         /// Keeps what this body and a box both enclose.
         /// </summary>
         /// <remarks>A box is read as the body it bounds, which is exact: six flat faces, no fitting and no approximation. The answer is a <see cref="GeoSolid3"/> because a boolean of two boxes is hardly ever a box. A box flat on some axis bounds no body, and the answer is false.</remarks>
-        public bool TryIntersect(GeoObb3 other, out GeoSolid3 result) => TryIntersect(other, out result, Tolerance.Global);
+        public bool TryIntersect(GeoObb3 other, out GeoSolid3 result) =>
+            TryIntersect(other, out result, Tolerance.Global);
 
         /// <summary>
         /// Keeps what this body and a box both enclose, within a tolerance.
@@ -1339,8 +1391,10 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the two made a body; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
-        public bool TryIntersect(GeoObb3 other, out GeoSolid3 result, Tolerance tolerance)
-            => AsBody(other, nameof(other)) is GeoSolid3 box ? Boolean3.TryIntersect(this, box, out result, tolerance) : NoBody(out result);
+        public bool TryIntersect(GeoObb3 other, out GeoSolid3 result, Tolerance tolerance) =>
+            AsBody(other, nameof(other)) is GeoSolid3 box
+                ? Boolean3.TryIntersect(this, box, out result, tolerance)
+                : NoBody(out result);
 
         /// <summary>
         /// Takes a box out of this body.
@@ -1356,8 +1410,10 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the two made a body; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
-        public bool TrySubtract(GeoObb3 tool, out GeoSolid3 result, Tolerance tolerance)
-            => AsBody(tool, nameof(tool)) is GeoSolid3 box ? Boolean3.TrySubtract(this, box, out result, tolerance) : NoBody(out result);
+        public bool TrySubtract(GeoObb3 tool, out GeoSolid3 result, Tolerance tolerance) =>
+            AsBody(tool, nameof(tool)) is GeoSolid3 box
+                ? Boolean3.TrySubtract(this, box, out result, tolerance)
+                : NoBody(out result);
 
         /// <summary>
         /// Reads a box as the body it bounds, complaining in the caller's own words when it is null; null for a box flat on
@@ -1432,6 +1488,5 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance the openings are cut in and the surface meshed to.</param>
         /// <returns>The prepared body; a snapshot, safe to share between threads.</returns>
         public Spatial.GeoPreparedSolid3 Prepare(Tolerance tolerance) => new Spatial.GeoPreparedSolid3(this, tolerance);
-
     }
 }

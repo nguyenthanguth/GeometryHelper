@@ -264,7 +264,13 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForPoint("Specify corner of window, enter a scale factor (nX or nXP)", null, new[] { "All", "Extents", "Previous", "Window" }, "real time", true);
+            yield return CadPrompt.ForPoint(
+                "Specify corner of window, enter a scale factor (nX or nXP)",
+                null,
+                new[] { "All", "Extents", "Previous", "Window" },
+                "real time",
+                true
+            );
             DisplayBox before = view.VisibleBox;
             CadSpace shown = c.Document.CurrentSpace;
 
@@ -284,16 +290,24 @@ namespace GeometryHelper.Dxf.Viewer
             else if (c.Input.Kind == CadInputKind.Text)
             {
                 string typed = c.Input.Text.Trim();
-                bool relative = typed.EndsWith("X", StringComparison.OrdinalIgnoreCase) && !typed.EndsWith("XP", StringComparison.OrdinalIgnoreCase);
+                bool relative =
+                    typed.EndsWith("X", StringComparison.OrdinalIgnoreCase)
+                    && !typed.EndsWith("XP", StringComparison.OrdinalIgnoreCase);
                 string number = relative ? typed.Substring(0, typed.Length - 1) : typed;
 
                 if (typed.EndsWith("XP", StringComparison.OrdinalIgnoreCase))
                 {
-                    c.Write("nXP scales the view of a viewport to paper space, which needs a viewport's model space (MSPACE): the view is as it was.");
+                    c.Write(
+                        "nXP scales the view of a viewport to paper space, which needs a viewport's model space (MSPACE): the view is as it was."
+                    );
                     yield break;
                 }
 
-                if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double factor) || !(factor > 0.0) || double.IsInfinity(factor))
+                if (
+                    !double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double factor)
+                    || !(factor > 0.0)
+                    || double.IsInfinity(factor)
+                )
                 {
                     c.Write("Requires a point, a scale factor above nought (nX or nXP), or an option keyword.");
                     yield break;
@@ -354,7 +368,12 @@ namespace GeometryHelper.Dxf.Viewer
                     second = CadViewports.ToPaper(through, second);
                 }
 
-                var box = new DisplayBox(Math.Min(first.X, second.X), Math.Min(first.Y, second.Y), Math.Max(first.X, second.X), Math.Max(first.Y, second.Y));
+                var box = new DisplayBox(
+                    Math.Min(first.X, second.X),
+                    Math.Min(first.Y, second.Y),
+                    Math.Max(first.X, second.X),
+                    Math.Max(first.Y, second.Y)
+                );
 
                 if (box.Width <= 0.0 || box.Height <= 0.0)
                 {
@@ -379,7 +398,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> ZoomThrough(CadCommandContext c, string handle)
         {
-            yield return CadPrompt.ForPoint("Specify corner of window, enter a scale factor (nX or nXP)", null, new[] { "All", "Extents", "Previous", "Window" }, "real time", true);
+            yield return CadPrompt.ForPoint(
+                "Specify corner of window, enter a scale factor (nX or nXP)",
+                null,
+                new[] { "All", "Extents", "Previous", "Window" },
+                "real time",
+                true
+            );
             var viewport = (DxfViewport)c.Document.FindEntity(handle);
 
             if (viewport == null)
@@ -411,7 +436,15 @@ namespace GeometryHelper.Dxf.Viewer
                 string typed = c.Input.Text.Trim();
                 bool paper = typed.EndsWith("XP", StringComparison.OrdinalIgnoreCase);
                 bool relative = !paper && typed.EndsWith("X", StringComparison.OrdinalIgnoreCase);
-                string number = typed.Substring(0, typed.Length - (paper ? 2 : relative ? 1 : 0));
+                string number = typed.Substring(
+                    0,
+                    typed.Length
+                        - (
+                            paper ? 2
+                            : relative ? 1
+                            : 0
+                        )
+                );
 
                 if (!TryFactor(number, out double factor))
                 {
@@ -473,7 +506,12 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 GeoPoint2 second = c.Input.Point;
-                var box = new DisplayBox(Math.Min(first.X, second.X), Math.Min(first.Y, second.Y), Math.Max(first.X, second.X), Math.Max(first.Y, second.Y));
+                var box = new DisplayBox(
+                    Math.Min(first.X, second.X),
+                    Math.Min(first.Y, second.Y),
+                    Math.Max(first.X, second.X),
+                    Math.Max(first.Y, second.Y)
+                );
 
                 if (box.Width <= 0.0 || box.Height <= 0.0)
                 {
@@ -488,7 +526,12 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            if (c.Apply(c.Document.ViewRecord(handle, center, height), CadDocument.ViewWriter(handle, center, height)).Succeeded)
+            if (
+                c.Apply(
+                    c.Document.ViewRecord(handle, center, height),
+                    CadDocument.ViewWriter(handle, center, height)
+                ).Succeeded
+            )
             {
                 c.Session.Views.Add(handle, wasCenter, wasHeight);
             }
@@ -502,8 +545,21 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (slash > 0)
             {
-                if (!double.TryParse(text.Substring(0, slash), NumberStyles.Float, CultureInfo.InvariantCulture, out double over)
-                    || !double.TryParse(text.Substring(slash + 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double under) || under == 0.0)
+                if (
+                    !double.TryParse(
+                        text.Substring(0, slash),
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out double over
+                    )
+                    || !double.TryParse(
+                        text.Substring(slash + 1),
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out double under
+                    )
+                    || under == 0.0
+                )
                 {
                     return false;
                 }
@@ -550,7 +606,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                 GeoPoint2 center = viewport.ViewCenter - shift;
 
-                if (c.Apply(c.Document.ViewRecord(handle, center, viewport.ViewHeight), CadDocument.ViewWriter(handle, center, viewport.ViewHeight)).Succeeded)
+                if (
+                    c.Apply(
+                        c.Document.ViewRecord(handle, center, viewport.ViewHeight),
+                        CadDocument.ViewWriter(handle, center, viewport.ViewHeight)
+                    ).Succeeded
+                )
                 {
                     c.Session.Views.Add(handle, wasCenter, wasHeight);
                 }
@@ -622,7 +683,15 @@ namespace GeometryHelper.Dxf.Viewer
 
             int next = c.Document.Spaces.Count;
 
-            while (c.Document.Spaces.Any(s => string.Equals(s.Name, "Layout" + next.ToString(CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase)))
+            while (
+                c.Document.Spaces.Any(s =>
+                    string.Equals(
+                        s.Name,
+                        "Layout" + next.ToString(CultureInfo.InvariantCulture),
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+            )
             {
                 next++;
             }
@@ -643,12 +712,15 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New layout", null, name) }, s =>
-            {
-                var layout = new DxfLayout { LayoutName = name };
-                layout.AddToLayoutDictionary(s.Database, null);
-                layout.Initialize();
-            });
+            CadEditResult result = c.Apply(
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New layout", null, name) },
+                s =>
+                {
+                    var layout = new DxfLayout { LayoutName = name };
+                    layout.AddToLayoutDictionary(s.Database, null);
+                    layout.Initialize();
+                }
+            );
 
             if (result.Succeeded)
             {
@@ -662,6 +734,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// A direction as the default of a prompt for one, in degrees counted as the drawing counts angles: from ANGBASE,
         /// clockwise with ANGDIR 1, so that a text along east is offered as 90 where angles are counted from north.
         /// </summary>
-        private static string Counted(CadCommandContext c, double direction) => Number(c.Session.CountAngle(direction) * 180.0 / Math.PI);
+        private static string Counted(CadCommandContext c, double direction) =>
+            Number(c.Session.CountAngle(direction) * 180.0 / Math.PI);
     }
 }

@@ -42,7 +42,11 @@ namespace GeometryHelper.UnitTest.Solid
                     double u = (double)i / N;
                     double v = (double)j / N;
                     double w = 1.0 - u - v;
-                    var p = P(w * t.A.X + u * t.B.X + v * t.C.X, w * t.A.Y + u * t.B.Y + v * t.C.Y, w * t.A.Z + u * t.B.Z + v * t.C.Z);
+                    var p = P(
+                        w * t.A.X + u * t.B.X + v * t.C.X,
+                        w * t.A.Y + u * t.B.Y + v * t.C.Y,
+                        w * t.A.Z + u * t.B.Z + v * t.C.Z
+                    );
 
                     worst = Math.Max(worst, radius - Dist(p, center));
                 }
@@ -51,7 +55,12 @@ namespace GeometryHelper.UnitTest.Solid
             return worst;
         }
 
-        private static string Key(GeoPoint3 p) => BitConverter.DoubleToInt64Bits(p.X) + "," + BitConverter.DoubleToInt64Bits(p.Y) + "," + BitConverter.DoubleToInt64Bits(p.Z);
+        private static string Key(GeoPoint3 p) =>
+            BitConverter.DoubleToInt64Bits(p.X)
+            + ","
+            + BitConverter.DoubleToInt64Bits(p.Y)
+            + ","
+            + BitConverter.DoubleToInt64Bits(p.Z);
 
         private static void AssertClosedAndOutward(GeoTriangle3[] mesh, GeoPoint3 center)
         {
@@ -73,9 +82,15 @@ namespace GeometryHelper.UnitTest.Solid
 
                 // Counter-clockwise seen from outside: the corners wind about the outward direction, whose triple product with
                 // the corners from the centre is positive.
-                double ax = t.A.X - center.X, ay = t.A.Y - center.Y, az = t.A.Z - center.Z;
-                double bx = t.B.X - center.X, by = t.B.Y - center.Y, bz = t.B.Z - center.Z;
-                double cx = t.C.X - center.X, cy = t.C.Y - center.Y, cz = t.C.Z - center.Z;
+                double ax = t.A.X - center.X,
+                    ay = t.A.Y - center.Y,
+                    az = t.A.Z - center.Z;
+                double bx = t.B.X - center.X,
+                    by = t.B.Y - center.Y,
+                    bz = t.B.Z - center.Z;
+                double cx = t.C.X - center.X,
+                    cy = t.C.Y - center.Y,
+                    cz = t.C.Z - center.Z;
                 double triple = ax * (by * cz - bz * cy) + ay * (bz * cx - bx * cz) + az * (bx * cy - by * cx);
 
                 Assert.True(triple > 0.0, "a facet faces inwards or has no area");
@@ -105,13 +120,16 @@ namespace GeometryHelper.UnitTest.Solid
                 { 1.0, 0.3 },
                 { 1000.0, 5.0 },
                 { 0.01, 0.0001 },
-                { 7.3, 0.0 }
+                { 7.3, 0.0 },
             };
         }
 
         [Theory]
         [MemberData(nameof(Cases))]
-        public void ABallIsMeshedWithEveryCornerOnTheSphere_TheSurfaceClosed_AndAllWoundOutwards(double radius, double chord)
+        public void ABallIsMeshedWithEveryCornerOnTheSphere_TheSurfaceClosed_AndAllWoundOutwards(
+            double radius,
+            double chord
+        )
         {
             var center = P(12.5, -7.25, 3.0);
             var ball = new GeoSphere3(center, radius);
@@ -125,7 +143,10 @@ namespace GeometryHelper.UnitTest.Solid
                 foreach (GeoPoint3 corner in new[] { t.A, t.B, t.C })
                 {
                     Assert.Equal(radius, Dist(corner, center), 9);
-                    Assert.True(Math.Abs(Dist(corner, center) - radius) <= 4E-15 * (radius + 20.0), "a corner is off the sphere");
+                    Assert.True(
+                        Math.Abs(Dist(corner, center) - radius) <= 4E-15 * (radius + 20.0),
+                        "a corner is off the sphere"
+                    );
                 }
             }
 
@@ -134,7 +155,10 @@ namespace GeometryHelper.UnitTest.Solid
 
         [Theory]
         [MemberData(nameof(Cases))]
-        public void NoFacetOfTheMeshStraysFurtherThanTheChordTolerance_AndTheCutIsNotFinerThanItNeeds(double radius, double chord)
+        public void NoFacetOfTheMeshStraysFurtherThanTheChordTolerance_AndTheCutIsNotFinerThanItNeeds(
+            double radius,
+            double chord
+        )
         {
             double tolerance = chord > 0.0 ? chord : 0.002 * radius;
             var center = P(0, 0, 0);
@@ -149,7 +173,10 @@ namespace GeometryHelper.UnitTest.Solid
                 int n = (int)Math.Round(Math.Sqrt(mesh.Length / 20.0));
                 double finer = Math.Pow((double)(n - 1) / n, 2.0);
 
-                Assert.True(worst >= tolerance * finer * 0.5, "the cut is finer than it needs to be: " + worst + " against " + tolerance);
+                Assert.True(
+                    worst >= tolerance * finer * 0.5,
+                    "the cut is finer than it needs to be: " + worst + " against " + tolerance
+                );
             }
         }
 
@@ -213,7 +240,10 @@ namespace GeometryHelper.UnitTest.Solid
             var ball = new GeoSphere3(P(0, 0, 0), 50);
 
             Assert.Equal(ball.TriangulateSurface(0.1), ball.TriangulateSurface(0.0));
-            Assert.Equal(ball.TriangulateSurface(0.1).Length, new GeoSphere3(P(0, 0, 0), 1).TriangulateSurface(0.002).Length);
+            Assert.Equal(
+                ball.TriangulateSurface(0.1).Length,
+                new GeoSphere3(P(0, 0, 0), 1).TriangulateSurface(0.002).Length
+            );
         }
 
         [Fact]
@@ -222,7 +252,10 @@ namespace GeometryHelper.UnitTest.Solid
             var ball = new GeoSphere3(P(1, 2, 3), 10);
 
             Assert.Equal(ball.TriangulateSurface(0.02), ball.TriangulateSurface(0.02));
-            Assert.Equal(ball.TriangulateSurface(0.02).Length, new GeoSphere3(P(1E6, -3E6, 5E5), 10).TriangulateSurface(0.02).Length);
+            Assert.Equal(
+                ball.TriangulateSurface(0.02).Length,
+                new GeoSphere3(P(1E6, -3E6, 5E5), 10).TriangulateSurface(0.02).Length
+            );
         }
 
         [Fact]
@@ -275,7 +308,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TheRefusalNamesTheToleranceAskedFor()
         {
-            ArgumentOutOfRangeException e = Assert.Throws<ArgumentOutOfRangeException>(() => new GeoSphere3(P(0, 0, 0), 50).TriangulateSurface(1E-4));
+            ArgumentOutOfRangeException e = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new GeoSphere3(P(0, 0, 0), 50).TriangulateSurface(1E-4)
+            );
 
             Assert.Equal("chordTolerance", e.ParamName);
             Assert.Contains("1048576", e.Message);

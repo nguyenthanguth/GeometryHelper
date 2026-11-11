@@ -14,27 +14,155 @@ namespace GeometryHelper.Dwg
     /// </summary>
     internal sealed partial class DwgContainer
     {
-        private static readonly byte[] HeaderStart = { 0xCF, 0x7B, 0x1F, 0x23, 0xFD, 0xDE, 0x38, 0xA9, 0x5F, 0x7C, 0x68, 0xB8, 0x4E, 0x6D, 0x33, 0x5F };
-        private static readonly byte[] HeaderEnd = { 0x30, 0x84, 0xE0, 0xDC, 0x02, 0x21, 0xC7, 0x56, 0xA0, 0x83, 0x97, 0x47, 0xB1, 0x92, 0xCC, 0xA0 };
-        private static readonly byte[] ClassesStart = { 0x8D, 0xA1, 0xC4, 0xB8, 0xC4, 0xA9, 0xF8, 0xC5, 0xC0, 0xDC, 0xF4, 0x5F, 0xE7, 0xCF, 0xB6, 0x8A };
-        private static readonly byte[] ClassesEnd = { 0x72, 0x5E, 0x3B, 0x47, 0x3B, 0x56, 0x07, 0x3A, 0x3F, 0x23, 0x0B, 0xA0, 0x18, 0x30, 0x49, 0x75 };
-        private static readonly byte[] FileHeaderEnd = { 0x95, 0xA0, 0x4E, 0x28, 0x99, 0x82, 0x1A, 0xE5, 0x5E, 0x41, 0xE0, 0x5F, 0x9D, 0x3A, 0x4D, 0x00 };
+        private static readonly byte[] HeaderStart =
+        {
+            0xCF,
+            0x7B,
+            0x1F,
+            0x23,
+            0xFD,
+            0xDE,
+            0x38,
+            0xA9,
+            0x5F,
+            0x7C,
+            0x68,
+            0xB8,
+            0x4E,
+            0x6D,
+            0x33,
+            0x5F,
+        };
+        private static readonly byte[] HeaderEnd =
+        {
+            0x30,
+            0x84,
+            0xE0,
+            0xDC,
+            0x02,
+            0x21,
+            0xC7,
+            0x56,
+            0xA0,
+            0x83,
+            0x97,
+            0x47,
+            0xB1,
+            0x92,
+            0xCC,
+            0xA0,
+        };
+        private static readonly byte[] ClassesStart =
+        {
+            0x8D,
+            0xA1,
+            0xC4,
+            0xB8,
+            0xC4,
+            0xA9,
+            0xF8,
+            0xC5,
+            0xC0,
+            0xDC,
+            0xF4,
+            0x5F,
+            0xE7,
+            0xCF,
+            0xB6,
+            0x8A,
+        };
+        private static readonly byte[] ClassesEnd =
+        {
+            0x72,
+            0x5E,
+            0x3B,
+            0x47,
+            0x3B,
+            0x56,
+            0x07,
+            0x3A,
+            0x3F,
+            0x23,
+            0x0B,
+            0xA0,
+            0x18,
+            0x30,
+            0x49,
+            0x75,
+        };
+        private static readonly byte[] FileHeaderEnd =
+        {
+            0x95,
+            0xA0,
+            0x4E,
+            0x28,
+            0x99,
+            0x82,
+            0x1A,
+            0xE5,
+            0x5E,
+            0x41,
+            0xE0,
+            0x5F,
+            0x9D,
+            0x3A,
+            0x4D,
+            0x00,
+        };
 
         /// <summary>
         /// The names AutoCAD writes into <c>$DWGCODEPAGE</c> for the code page numbers of a DWG file header, by number.
         /// </summary>
         private static readonly string[] CodePageNames =
         {
-            "ANSI_1252", "ASCII", "ISO8859-1", "ISO8859-2", "ISO8859-3", "ISO8859-4", "ISO8859-5", "ISO8859-6", "ISO8859-7",
-            "ISO8859-8", "ISO8859-9", "DOS437", "DOS850", "DOS852", "DOS855", "DOS857", "DOS860", "DOS861", "DOS863", "DOS864",
-            "DOS865", "DOS869", "DOS932", "MACINTOSH", "BIG5", "KSC5601", "JOHAB", "DOS866", "ANSI_1250", "ANSI_1251",
-            "ANSI_1252", "GB2312", "ANSI_1253", "ANSI_1254", "ANSI_1255", "ANSI_1256", "ANSI_1257", "ANSI_874", "ANSI_932",
-            "ANSI_936", "ANSI_949", "ANSI_950", "ANSI_1361", "ANSI_1200", "ANSI_1258",
+            "ANSI_1252",
+            "ASCII",
+            "ISO8859-1",
+            "ISO8859-2",
+            "ISO8859-3",
+            "ISO8859-4",
+            "ISO8859-5",
+            "ISO8859-6",
+            "ISO8859-7",
+            "ISO8859-8",
+            "ISO8859-9",
+            "DOS437",
+            "DOS850",
+            "DOS852",
+            "DOS855",
+            "DOS857",
+            "DOS860",
+            "DOS861",
+            "DOS863",
+            "DOS864",
+            "DOS865",
+            "DOS869",
+            "DOS932",
+            "MACINTOSH",
+            "BIG5",
+            "KSC5601",
+            "JOHAB",
+            "DOS866",
+            "ANSI_1250",
+            "ANSI_1251",
+            "ANSI_1252",
+            "GB2312",
+            "ANSI_1253",
+            "ANSI_1254",
+            "ANSI_1255",
+            "ANSI_1256",
+            "ANSI_1257",
+            "ANSI_874",
+            "ANSI_932",
+            "ANSI_936",
+            "ANSI_949",
+            "ANSI_950",
+            "ANSI_1361",
+            "ANSI_1200",
+            "ANSI_1258",
         };
 
-        private DwgContainer()
-        {
-        }
+        private DwgContainer() { }
 
         /// <summary>The version string at the start of the file, such as <c>AC1015</c>.</summary>
         public string Version { get; private set; }
@@ -77,7 +205,14 @@ namespace GeometryHelper.Dwg
             {
                 byte b = file[i];
 
-                if (!((b >= (byte)'0' && b <= (byte)'9') || (b >= (byte)'A' && b <= (byte)'Z') || b == (byte)'.' || (b >= (byte)'a' && b <= (byte)'z')))
+                if (
+                    !(
+                        (b >= (byte)'0' && b <= (byte)'9')
+                        || (b >= (byte)'A' && b <= (byte)'Z')
+                        || b == (byte)'.'
+                        || (b >= (byte)'a' && b <= (byte)'z')
+                    )
+                )
                 {
                     return null;
                 }
@@ -93,16 +228,26 @@ namespace GeometryHelper.Dwg
         {
             switch (version)
             {
-                case "AC1009": return "AutoCAD R11 and R12";
-                case "AC1012": return "AutoCAD R13";
-                case "AC1014": return "AutoCAD R14";
-                case "AC1015": return "AutoCAD 2000";
-                case "AC1018": return "AutoCAD 2004";
-                case "AC1021": return "AutoCAD 2007";
-                case "AC1024": return "AutoCAD 2010";
-                case "AC1027": return "AutoCAD 2013";
-                case "AC1032": return "AutoCAD 2018";
-                default: return "a release not known";
+                case "AC1009":
+                    return "AutoCAD R11 and R12";
+                case "AC1012":
+                    return "AutoCAD R13";
+                case "AC1014":
+                    return "AutoCAD R14";
+                case "AC1015":
+                    return "AutoCAD 2000";
+                case "AC1018":
+                    return "AutoCAD 2004";
+                case "AC1021":
+                    return "AutoCAD 2007";
+                case "AC1024":
+                    return "AutoCAD 2010";
+                case "AC1027":
+                    return "AutoCAD 2013";
+                case "AC1032":
+                    return "AutoCAD 2018";
+                default:
+                    return "a release not known";
             }
         }
 
@@ -117,7 +262,9 @@ namespace GeometryHelper.Dwg
 
             if (version == null)
             {
-                throw new FormatException("The data is not a DWG file: it does not start with a version such as AC1015.");
+                throw new FormatException(
+                    "The data is not a DWG file: it does not start with a version such as AC1015."
+                );
             }
 
             switch (version)
@@ -132,16 +279,27 @@ namespace GeometryHelper.Dwg
                 case "AC1021":
                     return ReadR21(file, version);
                 default:
-                    throw new NotSupportedException("The DWG version " + version + " (" + ReleaseOf(version) + ") is not read yet; DWG files of "
-                        + "AC1015 (AutoCAD 2000), AC1018 (AutoCAD 2004), AC1021 (AutoCAD 2007), AC1024 (AutoCAD 2010), AC1027 (AutoCAD 2013) "
-                        + "and AC1032 (AutoCAD 2018) are.");
+                    throw new NotSupportedException(
+                        "The DWG version "
+                            + version
+                            + " ("
+                            + ReleaseOf(version)
+                            + ") is not read yet; DWG files of "
+                            + "AC1015 (AutoCAD 2000), AC1018 (AutoCAD 2004), AC1021 (AutoCAD 2007), AC1024 (AutoCAD 2010), AC1027 (AutoCAD 2013) "
+                            + "and AC1032 (AutoCAD 2018) are."
+                    );
             }
         }
 
         /// <summary>The number of a version, such as 1018 for AC1018, for comparing versions; 0 where it is not of that form.</summary>
         public static int NumberOf(string version)
         {
-            return version != null && version.Length == 6 && int.TryParse(version.Substring(2), NumberStyles.None, CultureInfo.InvariantCulture, out int number) ? number : 0;
+            return
+                version != null
+                && version.Length == 6
+                && int.TryParse(version.Substring(2), NumberStyles.None, CultureInfo.InvariantCulture, out int number)
+                ? number
+                : 0;
         }
 
         private static DwgContainer ReadR15(byte[] file, string version)
@@ -155,7 +313,11 @@ namespace GeometryHelper.Dwg
 
             if (count < 3 || count > 16)
             {
-                throw new FormatException("The DWG file header names " + count.ToString(CultureInfo.InvariantCulture) + " sections; a file of AC1015 has 3 to 6.");
+                throw new FormatException(
+                    "The DWG file header names "
+                        + count.ToString(CultureInfo.InvariantCulture)
+                        + " sections; a file of AC1015 has 3 to 6."
+                );
             }
 
             var seekers = new long[count];
@@ -175,7 +337,11 @@ namespace GeometryHelper.Dwg
 
                 if (seeker + size > file.LongLength)
                 {
-                    throw new FormatException("The DWG file is cut short: its section " + number.ToString(CultureInfo.InvariantCulture) + " would end past the end of the file.");
+                    throw new FormatException(
+                        "The DWG file is cut short: its section "
+                            + number.ToString(CultureInfo.InvariantCulture)
+                            + " would end past the end of the file."
+                    );
                 }
             }
 
@@ -225,7 +391,9 @@ namespace GeometryHelper.Dwg
                 throw new FormatException("The DWG section of the " + name + " does not start with its sentinel.");
             }
 
-            long dataSize = (uint)(file[seeker + 16] | (file[seeker + 17] << 8) | (file[seeker + 18] << 16) | (file[seeker + 19] << 24));
+            long dataSize = (uint)(
+                file[seeker + 16] | (file[seeker + 17] << 8) | (file[seeker + 18] << 16) | (file[seeker + 19] << 24)
+            );
 
             if (dataSize + 38 > size)
             {
@@ -295,7 +463,11 @@ namespace GeometryHelper.Dwg
 
                     if (offset <= 0 || offset >= objects)
                     {
-                        throw new FormatException("The DWG object map places the object " + handle.ToString("X", CultureInfo.InvariantCulture) + " outside the file.");
+                        throw new FormatException(
+                            "The DWG object map places the object "
+                                + handle.ToString("X", CultureInfo.InvariantCulture)
+                                + " outside the file."
+                        );
                     }
 
                     map.Add(new KeyValuePair<ulong, long>(handle, offset));

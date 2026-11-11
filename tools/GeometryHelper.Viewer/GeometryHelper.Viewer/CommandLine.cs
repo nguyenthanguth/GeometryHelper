@@ -95,7 +95,10 @@ namespace GeometryHelper.Viewer
 
                         if (arg.Equals("--views", StringComparison.OrdinalIgnoreCase))
                         {
-                            if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int views) || (views != 1 && views != 2 && views != 4))
+                            if (
+                                !int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int views)
+                                || (views != 1 && views != 2 && views != 4)
+                            )
                             {
                                 line.Problem = "--views is 1, 2 or 4, not '" + value + "'.";
                                 return line;
@@ -105,7 +108,10 @@ namespace GeometryHelper.Viewer
                         }
                         else if (arg.Equals("--scale", StringComparison.OrdinalIgnoreCase))
                         {
-                            if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int scale) || !ScreenshotOptions.IsScale(scale))
+                            if (
+                                !int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int scale)
+                                || !ScreenshotOptions.IsScale(scale)
+                            )
                             {
                                 line.Problem = "--scale is 1, 2 or 4, not '" + value + "'.";
                                 return line;
@@ -115,7 +121,10 @@ namespace GeometryHelper.Viewer
                         }
                         else if (arg.Equals("--background", StringComparison.OrdinalIgnoreCase))
                         {
-                            if (!Enum.TryParse(value, true, out ScreenshotBackground background) || !Enum.IsDefined(typeof(ScreenshotBackground), background))
+                            if (
+                                !Enum.TryParse(value, true, out ScreenshotBackground background)
+                                || !Enum.IsDefined(typeof(ScreenshotBackground), background)
+                            )
                             {
                                 line.Problem = "--background is window, white or transparent, not '" + value + "'.";
                                 return line;

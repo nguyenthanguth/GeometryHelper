@@ -87,7 +87,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(leader.GetPointAtParameter(1.5).IsEqualTo(new GeoPoint3(15, 10, 0), Tol));
             Assert.Equal(10.0 * Math.Sqrt(2.0) + 10.0, leader.GetDistanceAtParameter(2.0), 12);
             Assert.Equal(1.5, leader.GetParameterAtPoint(new GeoPoint3(15, 10, 0)), 12);
-            Assert.True(leader.GetClosestPointTo(new GeoPoint3(15, 12, 0), false).IsEqualTo(new GeoPoint3(15, 10, 0), Tol));
+            Assert.True(
+                leader.GetClosestPointTo(new GeoPoint3(15, 12, 0), false).IsEqualTo(new GeoPoint3(15, 10, 0), Tol)
+            );
             Assert.Equal(new[] { 0.0, 0.0, 1.0, 2.0, 2.0 }, leader.Spline.Knots);
 
             DxfLeader splined = ByHandle<DxfLeader>(db, "B2");
@@ -179,8 +181,16 @@ namespace GeometryHelper.UnitTest.Dxf
             OnlyTheseChanged(text, db.ToText(), "B2", "B3");
 
             string record = Records(db.ToText()).Single(r => HandleOf(r) == "B3");
-            Assert.Contains("1001\nACAD\n1000\nDSTYLE\n1002\n{\n1070\n41\n1040\n3\n1070\n176\n1070\n5\n1070\n341\n1005\nB5\n1002\n}\n", record, StringComparison.Ordinal);
-            Assert.Contains("1070\n41\n1040\n4\n1070\n147\n", Records(db.ToText()).Single(r => HandleOf(r) == "B2"), StringComparison.Ordinal);
+            Assert.Contains(
+                "1001\nACAD\n1000\nDSTYLE\n1002\n{\n1070\n41\n1040\n3\n1070\n176\n1070\n5\n1070\n341\n1005\nB5\n1002\n}\n",
+                record,
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "1070\n41\n1040\n4\n1070\n147\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "B2"),
+                StringComparison.Ordinal
+            );
 
             DxfDatabase back = DxfDatabase.Parse(db.ToText());
             Assert.Equal(3.0, ByHandle<DxfLeader>(back, "B3").Dimasz);
@@ -231,7 +241,14 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ALeaderMadeInCode_IsAppendedFromR2000On_AndRefusedByR12()
         {
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R12,
+                    DxfFileEzdxfDrawings.R2000,
+                    DxfFileEzdxfDrawings.R2018,
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
                 var leader = new DxfLeader { ColorIndex = 1 };
@@ -278,7 +295,15 @@ namespace GeometryHelper.UnitTest.Dxf
             // vertices moved, the direction of the hook (1, 0, 0) turned and scaled to (2 cos 30, 2 sin 30, 0); past ezdxf, the
             // offset of the annotation turned and scaled.
             double c = Math.Sqrt(3.0);
-            var transform = new GeoTransform3(new double[,] { { c, -1, 0, 5 }, { 1, c, 0, -7 }, { 0, 0, 2, 3 }, { 0, 0, 0, 1 } });
+            var transform = new GeoTransform3(
+                new double[,]
+                {
+                    { c, -1, 0, 5 },
+                    { 1, c, 0, -7 },
+                    { 0, 0, 2, 3 },
+                    { 0, 0, 0, 1 },
+                }
+            );
 
             foreach (string text in Drawings)
             {
@@ -289,7 +314,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfLeader back = ByHandle<DxfLeader>(DxfDatabase.Parse(db.ToText()), "B2");
                 Assert.True(back.FirstVertex.IsEqualTo(new GeoPoint3(600 * c + 5, 600 - 7, 3), Tol));
                 Assert.True(back.VertexAt(1).IsEqualTo(transform.Transform(new GeoPoint3(610, 20, 0)), Tol));
-                Assert.Contains("\n211\n1.7320508075688772\n221\n1\n", Records(db.ToText()).Single(r => HandleOf(r) == "B2"), StringComparison.Ordinal);
+                Assert.Contains(
+                    "\n211\n1.7320508075688772\n221\n1\n",
+                    Records(db.ToText()).Single(r => HandleOf(r) == "B2"),
+                    StringComparison.Ordinal
+                );
                 Assert.True(back.AnnotationOffset.IsEqualTo(new GeoVector3(-2 * c + 1.25, -2 - 1.25 * c, 0), Tol));
                 Assert.Equal(3.5, back.Dimasz);
             }
@@ -314,8 +343,18 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             GeoPoint3[] vertices = Enumerable.Range(0, leader.NumVertices).Select(leader.VertexAt).ToArray();
-            Assert.True(box.Min.IsEqualTo(new GeoPoint3(vertices.Min(p => p.X), vertices.Min(p => p.Y), vertices.Min(p => p.Z)), Tol));
-            Assert.True(box.Max.IsEqualTo(new GeoPoint3(vertices.Max(p => p.X), vertices.Max(p => p.Y), vertices.Max(p => p.Z)), Tol));
+            Assert.True(
+                box.Min.IsEqualTo(
+                    new GeoPoint3(vertices.Min(p => p.X), vertices.Min(p => p.Y), vertices.Min(p => p.Z)),
+                    Tol
+                )
+            );
+            Assert.True(
+                box.Max.IsEqualTo(
+                    new GeoPoint3(vertices.Max(p => p.X), vertices.Max(p => p.Y), vertices.Max(p => p.Z)),
+                    Tol
+                )
+            );
             Assert.True(entity.GetPlane().Normal.IsEqualTo(leader.Normal, Tol));
 
             var bent = new DxfLeader();
@@ -328,7 +367,10 @@ namespace GeometryHelper.UnitTest.Dxf
             // B2 is splined: its box is that of the spline it explodes into with no arrow.
             DxfLeader splined = ByHandle<DxfLeader>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018), "B2");
             splined.HasArrowHead = false;
-            Assert.Equal(Bits(Assert.Single(splined.Explode().OfType<DxfSpline>()).GeometricExtents.Max), Bits(((DxfEntity)splined).GeometricExtents.Max));
+            Assert.Equal(
+                Bits(Assert.Single(splined.Explode().OfType<DxfSpline>()).GeometricExtents.Max),
+                Bits(((DxfEntity)splined).GeometricExtents.Max)
+            );
         }
 
         [Fact]
@@ -336,7 +378,9 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             var leader = new DxfLeader();
-            var none = Assert.Throws<InvalidOperationException>(() => leader.GetClosestPointTo(new GeoPoint3(0, 0, 0), false));
+            var none = Assert.Throws<InvalidOperationException>(() =>
+                leader.GetClosestPointTo(new GeoPoint3(0, 0, 0), false)
+            );
             Assert.Contains("no vertex", none.Message, StringComparison.Ordinal);
             Assert.Throws<ArgumentException>(() => db.ModelSpace.AppendEntity(leader));
 

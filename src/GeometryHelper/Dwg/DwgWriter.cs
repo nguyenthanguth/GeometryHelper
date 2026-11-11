@@ -130,7 +130,13 @@ namespace GeometryHelper.Dwg
 
             if (named != "AC1032")
             {
-                throw new NotSupportedException("A DWG file of " + named + " (" + DwgContainer.ReleaseOf(named) + ") is not written; AC1032 (AutoCAD 2018) is.");
+                throw new NotSupportedException(
+                    "A DWG file of "
+                        + named
+                        + " ("
+                        + DwgContainer.ReleaseOf(named)
+                        + ") is not written; AC1032 (AutoCAD 2018) is."
+                );
             }
 
             return named;
@@ -150,17 +156,27 @@ namespace GeometryHelper.Dwg
 
                 foreach (KeyValuePair<string, int> pair in writer.LeftOut)
                 {
-                    line.Append(' ').Append(pair.Key).Append(' ').Append(pair.Value.ToString(CultureInfo.InvariantCulture));
+                    line.Append(' ')
+                        .Append(pair.Key)
+                        .Append(' ')
+                        .Append(pair.Value.ToString(CultureInfo.InvariantCulture));
                     left += pair.Value;
                 }
 
                 GeometryHelperLog.Warn(line.ToString());
             }
 
-            GeometryHelperLog.Info("DwgWriter: wrote a DWG of " + DwgContainer.ReleaseOf(named) + " with "
-                + writer.Written.ToString(CultureInfo.InvariantCulture) + " objects, "
-                + left.ToString(CultureInfo.InvariantCulture) + " of types not written yet left out, "
-                + bytes.Length.ToString(CultureInfo.InvariantCulture) + " bytes.");
+            GeometryHelperLog.Info(
+                "DwgWriter: wrote a DWG of "
+                    + DwgContainer.ReleaseOf(named)
+                    + " with "
+                    + writer.Written.ToString(CultureInfo.InvariantCulture)
+                    + " objects, "
+                    + left.ToString(CultureInfo.InvariantCulture)
+                    + " of types not written yet left out, "
+                    + bytes.Length.ToString(CultureInfo.InvariantCulture)
+                    + " bytes."
+            );
             return bytes;
         }
     }

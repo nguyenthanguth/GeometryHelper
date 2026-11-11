@@ -23,7 +23,11 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfLine line = ByHandle<DxfLine>(db, "3E");
             var group = (DxfGroup)db.GroupDictionary.Cast<DxfDBDictionaryEntry>().Single().Value;
             int place = db.ModelSpace.ToList().IndexOf(line);
-            var circle = new DxfCircle(new GeoPoint3(10, 20, 0), new GeoVector3(0, 0, 1), 5) { Layer = "holes", ColorIndex = 3 };
+            var circle = new DxfCircle(new GeoPoint3(10, 20, 0), new GeoVector3(0, 0, 1), 5)
+            {
+                Layer = "holes",
+                ColorIndex = 3,
+            };
 
             line.HandOverTo(circle, true, true);
 
@@ -45,9 +49,16 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("GHPROBE", line.XData[0].Value);
 
             string saved = db.ToText();
-            Assert.StartsWith("  0\nCIRCLE\n  5\n3E\n102\n{ACAD_XDICTIONARY\n360\n92\n102\n}\n102\n{ACAD_REACTORS\n330\n90\n102\n}\n330\n17\n100\nAcDbEntity\n  8\nholes\n",
-                Records(saved).Single(r => HandleOf(r) == "3E"), StringComparison.Ordinal);
-            Assert.EndsWith("1001\nGHPROBE\n1000\nnote é\n1040\n3.25\n1070\n7\n", Records(saved).Single(r => HandleOf(r) == "3E"), StringComparison.Ordinal);
+            Assert.StartsWith(
+                "  0\nCIRCLE\n  5\n3E\n102\n{ACAD_XDICTIONARY\n360\n92\n102\n}\n102\n{ACAD_REACTORS\n330\n90\n102\n}\n330\n17\n100\nAcDbEntity\n  8\nholes\n",
+                Records(saved).Single(r => HandleOf(r) == "3E"),
+                StringComparison.Ordinal
+            );
+            Assert.EndsWith(
+                "1001\nGHPROBE\n1000\nnote é\n1040\n3.25\n1070\n7\n",
+                Records(saved).Single(r => HandleOf(r) == "3E"),
+                StringComparison.Ordinal
+            );
             OnlyTheseChanged(text, saved, "3E", db.LayerTable["holes"].Handle, db.LayerTable.Handle);
 
             DxfDatabase read = DxfDatabase.Parse(saved);
@@ -118,10 +129,15 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<ArgumentNullException>(() => line.HandOverTo(null, true, true));
             Assert.Throws<ArgumentException>(() => line.HandOverTo(line, true, true));
             Assert.Throws<ArgumentException>(() => line.HandOverTo(resident, true, true));
-            Assert.Throws<NotSupportedException>(() => line.HandOverTo(new DxfLayerTableRecord { Name = "x" }, true, true));
+            Assert.Throws<NotSupportedException>(() =>
+                line.HandOverTo(new DxfLayerTableRecord { Name = "x" }, true, true)
+            );
             Assert.Throws<NotSupportedException>(() => db.LayerTable["steel"].HandOverTo(new DxfLine(), true, true));
             Assert.Throws<InvalidOperationException>(() => new DxfLine().HandOverTo(new DxfLine(), true, true));
-            Assert.Throws<ArgumentException>(() => ByHandle<DxfLine>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R12), "41").HandOverTo(new DxfMText { Contents = "B-12" }, true, true));
+            Assert.Throws<ArgumentException>(() =>
+                ByHandle<DxfLine>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R12), "41")
+                    .HandOverTo(new DxfMText { Contents = "B-12" }, true, true)
+            );
             Assert.Equal(text, db.ToText());
 
             line.Erase();
@@ -133,11 +149,20 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             DxfBlockTableRecord bolt = db.BlockTable["BOLT"];
-            bolt.XData = new[] { new DxfTypedValue(1001, "AcDbDynamicBlockGUID"), new DxfTypedValue(1000, "{3C8E1F3B-7D44-4C93-9F53-5E1C3C2B1A10}") };
+            bolt.XData = new[]
+            {
+                new DxfTypedValue(1001, "AcDbDynamicBlockGUID"),
+                new DxfTypedValue(1000, "{3C8E1F3B-7D44-4C93-9F53-5E1C3C2B1A10}"),
+            };
             bolt.CreateExtensionDictionary();
             bolt.ExtensionDictionary.SetAt("ACAD_ENHANCEDBLOCK", new DxfDBDictionary());
             DxfBlockTableRecord anonymous = db.BlockTable["*D1"];
-            anonymous.XData = new[] { new DxfTypedValue(1001, "AcDbBlockRepBTag"), new DxfTypedValue(1070, "1"), new DxfTypedValue(1005, bolt.Handle) };
+            anonymous.XData = new[]
+            {
+                new DxfTypedValue(1001, "AcDbBlockRepBTag"),
+                new DxfTypedValue(1070, "1"),
+                new DxfTypedValue(1005, bolt.Handle),
+            };
             insert = new DxfBlockReference(new GeoPoint3(500, 0, 0), anonymous);
             db.ModelSpace.AppendEntity(insert);
             insert.CreateExtensionDictionary();
@@ -194,7 +219,10 @@ namespace GeometryHelper.UnitTest.Dxf
             direct.ConvertToStaticBlock();
             Assert.Equal("*U2", direct.Name);
             Assert.Equal(db.BlockTable["BOLT"].Count, direct.BlockTableRecord.Count);
-            Assert.Equal(db.BlockTable["BOLT"].HasAttributeDefinitions, direct.BlockTableRecord.HasAttributeDefinitions);
+            Assert.Equal(
+                db.BlockTable["BOLT"].HasAttributeDefinitions,
+                direct.BlockTableRecord.HasAttributeDefinitions
+            );
         }
 
         [Fact]
@@ -203,11 +231,16 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Dynamic(out DxfBlockReference insert);
             string text = db.ToText();
 
-            Assert.Throws<InvalidOperationException>(() => ByHandle<DxfBlockReference>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018), "65").ConvertToStaticBlock("X"));
+            Assert.Throws<InvalidOperationException>(() =>
+                ByHandle<DxfBlockReference>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018), "65")
+                    .ConvertToStaticBlock("X")
+            );
             Assert.Throws<ArgumentException>(() => insert.ConvertToStaticBlock("frame"));
             Assert.Throws<ArgumentException>(() => insert.ConvertToStaticBlock("A|B"));
             Assert.Throws<ArgumentNullException>(() => insert.ConvertToStaticBlock(null));
-            Assert.Throws<InvalidOperationException>(() => new DxfBlockReference(new GeoPoint3(0, 0, 0), db.BlockTable["*D1"]).ConvertToStaticBlock());
+            Assert.Throws<InvalidOperationException>(() =>
+                new DxfBlockReference(new GeoPoint3(0, 0, 0), db.BlockTable["*D1"]).ConvertToStaticBlock()
+            );
             Assert.Equal(text, db.ToText());
         }
     }

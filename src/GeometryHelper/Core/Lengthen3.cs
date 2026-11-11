@@ -43,7 +43,8 @@ namespace GeometryHelper.Core
         /// Thrown when the distance is not a finite number, the end is not a defined value, or the segment
         /// would be shortened to nothing or past its other end.
         /// </exception>
-        public static GeoLine3 Extend(GeoLine3 line, double distance, LineEnd end) => Extend(line, distance, end, Tolerance.Global);
+        public static GeoLine3 Extend(GeoLine3 line, double distance, LineEnd end) =>
+            Extend(line, distance, end, Tolerance.Global);
 
         /// <summary>
         /// Lengthens one end of a segment by a distance, within a tolerance. A negative distance shortens it.
@@ -80,7 +81,8 @@ namespace GeometryHelper.Core
         /// Thrown when a distance is not a finite number, or the segment would be shortened to nothing or past
         /// itself.
         /// </exception>
-        public static GeoLine3 Extend(GeoLine3 line, double startDistance, double endDistance) => Extend(line, startDistance, endDistance, Tolerance.Global);
+        public static GeoLine3 Extend(GeoLine3 line, double startDistance, double endDistance) =>
+            Extend(line, startDistance, endDistance, Tolerance.Global);
 
         /// <summary>
         /// Lengthens both ends of a segment, each by its own distance, within a tolerance. A negative distance
@@ -107,12 +109,14 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentOutOfRangeException(
                     startDistance < 0.0 ? nameof(startDistance) : nameof(endDistance),
-                    "Shortening by this much would leave nothing of the segment, or turn it round.");
+                    "Shortening by this much would leave nothing of the segment, or turn it round."
+                );
             }
 
             return new GeoLine3(
                 line.StartPoint.Subtract(unit.Multiply(startDistance)),
-                line.EndPoint.Add(unit.Multiply(endDistance)));
+                line.EndPoint.Add(unit.Multiply(endDistance))
+            );
         }
 
         /// <summary>
@@ -128,7 +132,8 @@ namespace GeometryHelper.Core
         /// Thrown when the length is not a finite number greater than the tolerance, or the end is not a defined
         /// value.
         /// </exception>
-        public static GeoLine3 ExtendToLength(GeoLine3 line, double length, LineEnd end) => ExtendToLength(line, length, end, Tolerance.Global);
+        public static GeoLine3 ExtendToLength(GeoLine3 line, double length, LineEnd end) =>
+            ExtendToLength(line, length, end, Tolerance.Global);
 
         /// <summary>
         /// Moves one end of a segment so that the segment measures a given length, within a tolerance. The
@@ -151,7 +156,10 @@ namespace GeometryHelper.Core
 
             if (length <= tolerance.EqualPoint)
             {
-                throw new ArgumentOutOfRangeException(nameof(length), "A segment must be longer than the point tolerance.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(length),
+                    "A segment must be longer than the point tolerance."
+                );
             }
 
             GeoVector3 unit = GetUnitDirection(line, tolerance);
@@ -173,7 +181,8 @@ namespace GeometryHelper.Core
         /// <param name="end">The end that moves.</param>
         /// <param name="result">The extended segment, or the segment unchanged when the method returns false.</param>
         /// <returns>true if the foot lies at or beyond the end; false if reaching it would shorten the segment.</returns>
-        public static bool TryExtendTo(GeoLine3 line, GeoPoint3 point, LineEnd end, out GeoLine3 result) => TryExtendTo(line, point, end, out result, Tolerance.Global);
+        public static bool TryExtendTo(GeoLine3 line, GeoPoint3 point, LineEnd end, out GeoLine3 result) =>
+            TryExtendTo(line, point, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Extends one end of a segment to the foot of the perpendicular from a point, within a tolerance.
@@ -184,9 +193,17 @@ namespace GeometryHelper.Core
         /// <param name="result">The extended segment, or the segment unchanged when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the foot lies at or beyond the end; false if reaching it would shorten the segment.</returns>
-        public static bool TryExtendTo(GeoLine3 line, GeoPoint3 point, LineEnd end, out GeoLine3 result, Tolerance tolerance)
+        public static bool TryExtendTo(
+            GeoLine3 line,
+            GeoPoint3 point,
+            LineEnd end,
+            out GeoLine3 result,
+            Tolerance tolerance
+        )
         {
-            return TryMove(line, end, tolerance, true, out result, (reach, found) => found.Add(reach.Anchor.GetVectorTo(point).DotProduct(reach.Unit)));
+            return TryMove(line, end, tolerance, true, out result, (reach, found) =>
+                found.Add(reach.Anchor.GetVectorTo(point).DotProduct(reach.Unit))
+            );
         }
 
         /// <summary>
@@ -197,7 +214,8 @@ namespace GeometryHelper.Core
         /// <param name="end">The end that moves.</param>
         /// <param name="result">The extended segment, or the segment unchanged when the method returns false.</param>
         /// <returns>true if the extension meets the boundary; otherwise, false.</returns>
-        public static bool TryExtendTo(GeoLine3 line, GeoLine3 boundary, LineEnd end, out GeoLine3 result) => TryExtendTo(line, boundary, end, out result, Tolerance.Global);
+        public static bool TryExtendTo(GeoLine3 line, GeoLine3 boundary, LineEnd end, out GeoLine3 result) =>
+            TryExtendTo(line, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Extends one end of a segment until it meets another segment, within a tolerance.
@@ -214,9 +232,17 @@ namespace GeometryHelper.Core
         /// bridge from <see cref="Projection3.GetShortestLineTo(GeoLine3, GeoLine3, LineExtension, Tolerance)"/>
         /// with <see cref="LineExtension.Both"/> and extend to its start point.
         /// </remarks>
-        public static bool TryExtendTo(GeoLine3 line, GeoLine3 boundary, LineEnd end, out GeoLine3 result, Tolerance tolerance)
+        public static bool TryExtendTo(
+            GeoLine3 line,
+            GeoLine3 boundary,
+            LineEnd end,
+            out GeoLine3 result,
+            Tolerance tolerance
+        )
         {
-            return TryMove(line, end, tolerance, true, out result, (reach, found) => AddCrossing(found, reach, boundary, tolerance));
+            return TryMove(line, end, tolerance, true, out result, (reach, found) =>
+                AddCrossing(found, reach, boundary, tolerance)
+            );
         }
 
         /// <summary>
@@ -227,7 +253,8 @@ namespace GeometryHelper.Core
         /// <param name="end">The end that moves.</param>
         /// <param name="result">The extended segment, or the segment unchanged when the method returns false.</param>
         /// <returns>true if the plane lies at or beyond the end; false if it is behind or parallel.</returns>
-        public static bool TryExtendTo(GeoLine3 line, GeoPlane3 plane, LineEnd end, out GeoLine3 result) => TryExtendTo(line, plane, end, out result, Tolerance.Global);
+        public static bool TryExtendTo(GeoLine3 line, GeoPlane3 plane, LineEnd end, out GeoLine3 result) =>
+            TryExtendTo(line, plane, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Extends one end of a segment until it pierces a plane, within a tolerance.
@@ -238,9 +265,17 @@ namespace GeometryHelper.Core
         /// <param name="result">The extended segment, or the segment unchanged when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the plane lies at or beyond the end; false if it is behind or parallel.</returns>
-        public static bool TryExtendTo(GeoLine3 line, GeoPlane3 plane, LineEnd end, out GeoLine3 result, Tolerance tolerance)
+        public static bool TryExtendTo(
+            GeoLine3 line,
+            GeoPlane3 plane,
+            LineEnd end,
+            out GeoLine3 result,
+            Tolerance tolerance
+        )
         {
-            return TryMove(line, end, tolerance, true, out result, (reach, found) => AddPlaneCrossing(found, reach, plane, tolerance));
+            return TryMove(line, end, tolerance, true, out result, (reach, found) =>
+                AddPlaneCrossing(found, reach, plane, tolerance)
+            );
         }
 
         /// <summary>
@@ -251,7 +286,8 @@ namespace GeometryHelper.Core
         /// <param name="end">The end that moves.</param>
         /// <param name="result">The extended segment, or the segment unchanged when the method returns false.</param>
         /// <returns>true if the extension meets the polygon; otherwise, false.</returns>
-        public static bool TryExtendTo(GeoLine3 line, GeoPolygon3 boundary, LineEnd end, out GeoLine3 result) => TryExtendTo(line, boundary, end, out result, Tolerance.Global);
+        public static bool TryExtendTo(GeoLine3 line, GeoPolygon3 boundary, LineEnd end, out GeoLine3 result) =>
+            TryExtendTo(line, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Extends one end of a segment until it meets a polygon, within a tolerance: where it pierces the
@@ -264,11 +300,20 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the extension meets the polygon; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static bool TryExtendTo(GeoLine3 line, GeoPolygon3 boundary, LineEnd end, out GeoLine3 result, Tolerance tolerance)
+        public static bool TryExtendTo(
+            GeoLine3 line,
+            GeoPolygon3 boundary,
+            LineEnd end,
+            out GeoLine3 result,
+            Tolerance tolerance
+        )
         {
-            if (boundary == null) throw new ArgumentNullException(nameof(boundary));
+            if (boundary == null)
+                throw new ArgumentNullException(nameof(boundary));
 
-            return TryMove(line, end, tolerance, true, out result, (reach, found) => AddCrossings(found, reach, boundary, tolerance));
+            return TryMove(line, end, tolerance, true, out result, (reach, found) =>
+                AddCrossings(found, reach, boundary, tolerance)
+            );
         }
 
         /// <summary>
@@ -279,7 +324,8 @@ namespace GeometryHelper.Core
         /// <param name="end">The end that moves.</param>
         /// <param name="result">The extended segment, or the segment unchanged when the method returns false.</param>
         /// <returns>true if the extension meets the face; otherwise, false.</returns>
-        public static bool TryExtendTo(GeoLine3 line, GeoFace3 boundary, LineEnd end, out GeoLine3 result) => TryExtendTo(line, boundary, end, out result, Tolerance.Global);
+        public static bool TryExtendTo(GeoLine3 line, GeoFace3 boundary, LineEnd end, out GeoLine3 result) =>
+            TryExtendTo(line, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Extends one end of a segment until it meets a face, within a tolerance: where it pierces the
@@ -293,11 +339,20 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the extension meets the face; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static bool TryExtendTo(GeoLine3 line, GeoFace3 boundary, LineEnd end, out GeoLine3 result, Tolerance tolerance)
+        public static bool TryExtendTo(
+            GeoLine3 line,
+            GeoFace3 boundary,
+            LineEnd end,
+            out GeoLine3 result,
+            Tolerance tolerance
+        )
         {
-            if (boundary == null) throw new ArgumentNullException(nameof(boundary));
+            if (boundary == null)
+                throw new ArgumentNullException(nameof(boundary));
 
-            return TryMove(line, end, tolerance, true, out result, (reach, found) => AddCrossings(found, reach, boundary, tolerance));
+            return TryMove(line, end, tolerance, true, out result, (reach, found) =>
+                AddCrossings(found, reach, boundary, tolerance)
+            );
         }
 
         /// <summary>
@@ -308,7 +363,8 @@ namespace GeometryHelper.Core
         /// <param name="end">The end that moves.</param>
         /// <param name="result">The extended segment, or the segment unchanged when the method returns false.</param>
         /// <returns>true if the extension meets the surface; otherwise, false.</returns>
-        public static bool TryExtendTo(GeoLine3 line, GeoSolid3 boundary, LineEnd end, out GeoLine3 result) => TryExtendTo(line, boundary, end, out result, Tolerance.Global);
+        public static bool TryExtendTo(GeoLine3 line, GeoSolid3 boundary, LineEnd end, out GeoLine3 result) =>
+            TryExtendTo(line, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Extends one end of a segment until it meets the surface of a solid, within a tolerance. An end
@@ -325,11 +381,20 @@ namespace GeometryHelper.Core
         /// running into a hole stops at the body's outer face, not at the wall of the hole.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the solid is null.</exception>
-        public static bool TryExtendTo(GeoLine3 line, GeoSolid3 boundary, LineEnd end, out GeoLine3 result, Tolerance tolerance)
+        public static bool TryExtendTo(
+            GeoLine3 line,
+            GeoSolid3 boundary,
+            LineEnd end,
+            out GeoLine3 result,
+            Tolerance tolerance
+        )
         {
-            if (boundary == null) throw new ArgumentNullException(nameof(boundary));
+            if (boundary == null)
+                throw new ArgumentNullException(nameof(boundary));
 
-            return TryMove(line, end, tolerance, true, out result, (reach, found) => AddCrossings(found, reach, boundary, tolerance));
+            return TryMove(line, end, tolerance, true, out result, (reach, found) =>
+                AddCrossings(found, reach, boundary, tolerance)
+            );
         }
 
         #endregion
@@ -344,7 +409,8 @@ namespace GeometryHelper.Core
         /// <param name="end">The end that moves.</param>
         /// <param name="result">The trimmed segment, or the segment unchanged when the method returns false.</param>
         /// <returns>true if the foot lies within the segment, short of the other end; otherwise, false.</returns>
-        public static bool TryTrimTo(GeoLine3 line, GeoPoint3 point, LineEnd end, out GeoLine3 result) => TryTrimTo(line, point, end, out result, Tolerance.Global);
+        public static bool TryTrimTo(GeoLine3 line, GeoPoint3 point, LineEnd end, out GeoLine3 result) =>
+            TryTrimTo(line, point, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Trims one end of a segment back to the foot of the perpendicular from a point, within a tolerance.
@@ -355,9 +421,17 @@ namespace GeometryHelper.Core
         /// <param name="result">The trimmed segment, or the segment unchanged when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the foot lies within the segment, short of the other end; otherwise, false.</returns>
-        public static bool TryTrimTo(GeoLine3 line, GeoPoint3 point, LineEnd end, out GeoLine3 result, Tolerance tolerance)
+        public static bool TryTrimTo(
+            GeoLine3 line,
+            GeoPoint3 point,
+            LineEnd end,
+            out GeoLine3 result,
+            Tolerance tolerance
+        )
         {
-            return TryMove(line, end, tolerance, false, out result, (reach, found) => found.Add(reach.Anchor.GetVectorTo(point).DotProduct(reach.Unit)));
+            return TryMove(line, end, tolerance, false, out result, (reach, found) =>
+                found.Add(reach.Anchor.GetVectorTo(point).DotProduct(reach.Unit))
+            );
         }
 
         /// <summary>
@@ -368,7 +442,8 @@ namespace GeometryHelper.Core
         /// <param name="end">The end that moves.</param>
         /// <param name="result">The trimmed segment, or the segment unchanged when the method returns false.</param>
         /// <returns>true if the boundary crosses the segment; otherwise, false.</returns>
-        public static bool TryTrimTo(GeoLine3 line, GeoLine3 boundary, LineEnd end, out GeoLine3 result) => TryTrimTo(line, boundary, end, out result, Tolerance.Global);
+        public static bool TryTrimTo(GeoLine3 line, GeoLine3 boundary, LineEnd end, out GeoLine3 result) =>
+            TryTrimTo(line, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Trims one end of a segment back to where another segment crosses it, within a tolerance.
@@ -379,9 +454,17 @@ namespace GeometryHelper.Core
         /// <param name="result">The trimmed segment, or the segment unchanged when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the boundary crosses the segment; otherwise, false.</returns>
-        public static bool TryTrimTo(GeoLine3 line, GeoLine3 boundary, LineEnd end, out GeoLine3 result, Tolerance tolerance)
+        public static bool TryTrimTo(
+            GeoLine3 line,
+            GeoLine3 boundary,
+            LineEnd end,
+            out GeoLine3 result,
+            Tolerance tolerance
+        )
         {
-            return TryMove(line, end, tolerance, false, out result, (reach, found) => AddCrossing(found, reach, boundary, tolerance));
+            return TryMove(line, end, tolerance, false, out result, (reach, found) =>
+                AddCrossing(found, reach, boundary, tolerance)
+            );
         }
 
         /// <summary>
@@ -392,7 +475,8 @@ namespace GeometryHelper.Core
         /// <param name="end">The end that moves.</param>
         /// <param name="result">The trimmed segment, or the segment unchanged when the method returns false.</param>
         /// <returns>true if the plane crosses the segment short of the other end; otherwise, false.</returns>
-        public static bool TryTrimTo(GeoLine3 line, GeoPlane3 plane, LineEnd end, out GeoLine3 result) => TryTrimTo(line, plane, end, out result, Tolerance.Global);
+        public static bool TryTrimTo(GeoLine3 line, GeoPlane3 plane, LineEnd end, out GeoLine3 result) =>
+            TryTrimTo(line, plane, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Trims one end of a segment back to where it pierces a plane, within a tolerance.
@@ -403,9 +487,17 @@ namespace GeometryHelper.Core
         /// <param name="result">The trimmed segment, or the segment unchanged when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the plane crosses the segment short of the other end; otherwise, false.</returns>
-        public static bool TryTrimTo(GeoLine3 line, GeoPlane3 plane, LineEnd end, out GeoLine3 result, Tolerance tolerance)
+        public static bool TryTrimTo(
+            GeoLine3 line,
+            GeoPlane3 plane,
+            LineEnd end,
+            out GeoLine3 result,
+            Tolerance tolerance
+        )
         {
-            return TryMove(line, end, tolerance, false, out result, (reach, found) => AddPlaneCrossing(found, reach, plane, tolerance));
+            return TryMove(line, end, tolerance, false, out result, (reach, found) =>
+                AddPlaneCrossing(found, reach, plane, tolerance)
+            );
         }
 
         /// <summary>
@@ -416,7 +508,8 @@ namespace GeometryHelper.Core
         /// <param name="end">The end that moves.</param>
         /// <param name="result">The trimmed segment, or the segment unchanged when the method returns false.</param>
         /// <returns>true if the polygon meets the segment short of the other end; otherwise, false.</returns>
-        public static bool TryTrimTo(GeoLine3 line, GeoPolygon3 boundary, LineEnd end, out GeoLine3 result) => TryTrimTo(line, boundary, end, out result, Tolerance.Global);
+        public static bool TryTrimTo(GeoLine3 line, GeoPolygon3 boundary, LineEnd end, out GeoLine3 result) =>
+            TryTrimTo(line, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Trims one end of a segment back to the nearest place it meets a polygon, within a tolerance.
@@ -428,11 +521,20 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the polygon meets the segment short of the other end; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static bool TryTrimTo(GeoLine3 line, GeoPolygon3 boundary, LineEnd end, out GeoLine3 result, Tolerance tolerance)
+        public static bool TryTrimTo(
+            GeoLine3 line,
+            GeoPolygon3 boundary,
+            LineEnd end,
+            out GeoLine3 result,
+            Tolerance tolerance
+        )
         {
-            if (boundary == null) throw new ArgumentNullException(nameof(boundary));
+            if (boundary == null)
+                throw new ArgumentNullException(nameof(boundary));
 
-            return TryMove(line, end, tolerance, false, out result, (reach, found) => AddCrossings(found, reach, boundary, tolerance));
+            return TryMove(line, end, tolerance, false, out result, (reach, found) =>
+                AddCrossings(found, reach, boundary, tolerance)
+            );
         }
 
         /// <summary>
@@ -443,7 +545,8 @@ namespace GeometryHelper.Core
         /// <param name="end">The end that moves.</param>
         /// <param name="result">The trimmed segment, or the segment unchanged when the method returns false.</param>
         /// <returns>true if the face meets the segment short of the other end; otherwise, false.</returns>
-        public static bool TryTrimTo(GeoLine3 line, GeoFace3 boundary, LineEnd end, out GeoLine3 result) => TryTrimTo(line, boundary, end, out result, Tolerance.Global);
+        public static bool TryTrimTo(GeoLine3 line, GeoFace3 boundary, LineEnd end, out GeoLine3 result) =>
+            TryTrimTo(line, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Trims one end of a segment back to the nearest place it meets a face, within a tolerance.
@@ -455,11 +558,20 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the face meets the segment short of the other end; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static bool TryTrimTo(GeoLine3 line, GeoFace3 boundary, LineEnd end, out GeoLine3 result, Tolerance tolerance)
+        public static bool TryTrimTo(
+            GeoLine3 line,
+            GeoFace3 boundary,
+            LineEnd end,
+            out GeoLine3 result,
+            Tolerance tolerance
+        )
         {
-            if (boundary == null) throw new ArgumentNullException(nameof(boundary));
+            if (boundary == null)
+                throw new ArgumentNullException(nameof(boundary));
 
-            return TryMove(line, end, tolerance, false, out result, (reach, found) => AddCrossings(found, reach, boundary, tolerance));
+            return TryMove(line, end, tolerance, false, out result, (reach, found) =>
+                AddCrossings(found, reach, boundary, tolerance)
+            );
         }
 
         /// <summary>
@@ -471,7 +583,8 @@ namespace GeometryHelper.Core
         /// <param name="end">The end that moves.</param>
         /// <param name="result">The trimmed segment, or the segment unchanged when the method returns false.</param>
         /// <returns>true if the surface meets the segment short of the other end; otherwise, false.</returns>
-        public static bool TryTrimTo(GeoLine3 line, GeoSolid3 boundary, LineEnd end, out GeoLine3 result) => TryTrimTo(line, boundary, end, out result, Tolerance.Global);
+        public static bool TryTrimTo(GeoLine3 line, GeoSolid3 boundary, LineEnd end, out GeoLine3 result) =>
+            TryTrimTo(line, boundary, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Trims one end of a segment back to the nearest place it meets the surface of a solid, within a
@@ -484,11 +597,20 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the surface meets the segment short of the other end; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the solid is null.</exception>
-        public static bool TryTrimTo(GeoLine3 line, GeoSolid3 boundary, LineEnd end, out GeoLine3 result, Tolerance tolerance)
+        public static bool TryTrimTo(
+            GeoLine3 line,
+            GeoSolid3 boundary,
+            LineEnd end,
+            out GeoLine3 result,
+            Tolerance tolerance
+        )
         {
-            if (boundary == null) throw new ArgumentNullException(nameof(boundary));
+            if (boundary == null)
+                throw new ArgumentNullException(nameof(boundary));
 
-            return TryMove(line, end, tolerance, false, out result, (reach, found) => AddCrossings(found, reach, boundary, tolerance));
+            return TryMove(line, end, tolerance, false, out result, (reach, found) =>
+                AddCrossings(found, reach, boundary, tolerance)
+            );
         }
 
         #endregion
@@ -503,8 +625,12 @@ namespace GeometryHelper.Core
         /// <param name="result1">The first segment ending at the corner, or unchanged when the method returns false.</param>
         /// <param name="result2">The second segment ending at the corner, or unchanged when the method returns false.</param>
         /// <returns>true if the two lines meet; false if they are parallel, pass each other, or one is too short.</returns>
-        public static bool TryTrimExtendToCorner(GeoLine3 line1, GeoLine3 line2, out GeoLine3 result1, out GeoLine3 result2)
-            => TryTrimExtendToCorner(line1, line2, out result1, out result2, Tolerance.Global);
+        public static bool TryTrimExtendToCorner(
+            GeoLine3 line1,
+            GeoLine3 line2,
+            out GeoLine3 result1,
+            out GeoLine3 result2
+        ) => TryTrimExtendToCorner(line1, line2, out result1, out result2, Tolerance.Global);
 
         /// <summary>
         /// Trims or extends two segments so that they meet in a corner, within a tolerance.
@@ -520,12 +646,22 @@ namespace GeometryHelper.Core
         /// tolerance apart, and the corner is placed half way across that gap so that both results end on the
         /// same point. Each segment keeps its end farther from the corner, as in <c>Lengthen2</c>.
         /// </remarks>
-        public static bool TryTrimExtendToCorner(GeoLine3 line1, GeoLine3 line2, out GeoLine3 result1, out GeoLine3 result2, Tolerance tolerance)
+        public static bool TryTrimExtendToCorner(
+            GeoLine3 line1,
+            GeoLine3 line2,
+            out GeoLine3 result1,
+            out GeoLine3 result2,
+            Tolerance tolerance
+        )
         {
             result1 = line1;
             result2 = line2;
 
-            if (line1.IsDegenerate(tolerance) || line2.IsDegenerate(tolerance) || Parallel3.IsParallel(line1, line2, tolerance))
+            if (
+                line1.IsDegenerate(tolerance)
+                || line2.IsDegenerate(tolerance)
+                || Parallel3.IsParallel(line1, line2, tolerance)
+            )
             {
                 return false;
             }
@@ -587,7 +723,14 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Moves one end of a segment to the nearest boundary position on the side asked for.
         /// </summary>
-        private static bool TryMove(GeoLine3 line, LineEnd end, Tolerance tolerance, bool outward, out GeoLine3 result, CrossingCollector collect)
+        private static bool TryMove(
+            GeoLine3 line,
+            LineEnd end,
+            Tolerance tolerance,
+            bool outward,
+            out GeoLine3 result,
+            CrossingCollector collect
+        )
         {
             ValidateEnd(end);
             result = line;
@@ -705,7 +848,8 @@ namespace GeometryHelper.Core
             GeoPlane3 plane,
             Func<GeoPoint3, bool> contains,
             IEnumerable<GeoLine3> edges,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             double denominator = reach.Unit.DotProduct(plane.Normal);
 
@@ -740,7 +884,8 @@ namespace GeometryHelper.Core
                 polygon.GetPlane(),
                 point => Containment3.Contains(polygon, point, tolerance),
                 polygon.GetEdges(),
-                tolerance);
+                tolerance
+            );
         }
 
         private static void AddCrossings(List<double> found, Reach reach, GeoFace3 face, Tolerance tolerance)
@@ -758,7 +903,8 @@ namespace GeometryHelper.Core
                 face.GetPlane(),
                 point => Containment3.Contains(face, point, tolerance),
                 edges,
-                tolerance);
+                tolerance
+            );
         }
 
         private static void AddCrossings(List<double> found, Reach reach, GeoSolid3 solid, Tolerance tolerance)

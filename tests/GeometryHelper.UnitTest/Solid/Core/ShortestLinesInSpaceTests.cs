@@ -58,7 +58,8 @@ namespace GeometryHelper.UnitTest.Solid
 
         public static TheoryData<string> Rows() => Names(Table.Value);
 
-        public static TheoryData<string> RowsWithAnOtherSide() => Names(Table.Value.Where(r => r.Back != null && !(r.OneMember && r.Tie)));
+        public static TheoryData<string> RowsWithAnOtherSide() =>
+            Names(Table.Value.Where(r => r.Back != null && !(r.OneMember && r.Tie)));
 
         public static TheoryData<string> SampledRows() => Names(Table.Value.Where(r => r.Sampled != null));
 
@@ -139,177 +140,503 @@ namespace GeometryHelper.UnitTest.Solid
             var rows = new List<Row>();
 
             // A point against each shape. The point's line leaves the point; the shape's leaves the shape.
-            AddPair(rows, Point, Arc, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b, t),
+            AddPair(
+                rows,
+                Point,
+                Arc,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b, t),
                 Contact("on the arc", P(0, 10, 0), Bow(), P(0, 10, 0)),
                 // Radius 10 about the origin, so 25 out over the middle is 15 off the rim.
                 Gap("beyond the rim over the middle", P(0, 25, 0), Bow(), 15, P(0, 25, 0), P(0, 10, 0)),
                 // 6 in from the rim and 3 up: the square root of 36 + 9.
                 Gap("inside the circle and above its plane", P(0, 4, 3), Bow(), Math.Sqrt(45), P(0, 4, 3), P(0, 10, 0)),
                 // The nearest point of the whole circle is off the half kept, so it is the end at (10, 0, 0): 15 and 5 away.
-                Gap("past an end", P(25, -5, 0), Bow(), Math.Sqrt(250), P(25, -5, 0), P(10, 0, 0)));
+                Gap("past an end", P(25, -5, 0), Bow(), Math.Sqrt(250), P(25, -5, 0), P(10, 0, 0))
+            );
 
-            AddPair(rows, Point, Circle, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b),
+            AddPair(
+                rows,
+                Point,
+                Circle,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b),
                 Contact("on the disc", P(3, 4, 0), Disc(), P(3, 4, 0)),
                 // The disc is filled: straight down 12 onto (3, 4, 0), 5 from the centre of a disc of radius 10.
                 Gap("above the disc", P(3, 4, 12), Disc(), 12, P(3, 4, 12), P(3, 4, 0)),
                 // 6 out from the rim and 8 up: 10.
-                Gap("beyond the rim", P(16, 0, 8), Disc(), 10, P(16, 0, 8), P(10, 0, 0)));
+                Gap("beyond the rim", P(16, 0, 8), Disc(), 10, P(16, 0, 8), P(10, 0, 0))
+            );
 
-            AddPair(rows, Point, Edge, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b, t),
+            AddPair(
+                rows,
+                Point,
+                Edge,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b, t),
                 Contact("on the straight edge", P(13, 0, 0), StraightEdge(), P(13, 0, 0)),
                 Gap("beside the straight edge", P(20, 6, 8), StraightEdge(), 10, P(20, 6, 8), P(20, 0, 0)),
                 Gap("past the end of the straight edge", P(46, 8, 0), StraightEdge(), 10, P(46, 8, 0), P(40, 0, 0)),
                 Contact("on the bent edge", P(0, 10, 0), BowEdge(), P(0, 10, 0)),
-                Gap("beyond the bent edge", P(0, 25, 0), BowEdge(), 15, P(0, 25, 0), P(0, 10, 0)));
+                Gap("beyond the bent edge", P(0, 25, 0), BowEdge(), 15, P(0, 25, 0), P(0, 10, 0))
+            );
 
-            AddPair(rows, Point, Face, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b, t),
+            AddPair(
+                rows,
+                Point,
+                Face,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b, t),
                 Contact("on the material", P(5, 5, 0), Plate(), P(5, 5, 0)),
                 Gap("above the material", P(5, 5, 9), Plate(), 9, P(5, 5, 9), P(5, 5, 0)),
                 // Over the hole from (15, 15) to (25, 25): 3 across to its rim at y = 25 and 4 down, so 5.
                 Gap("above the hole", P(20, 22, 4), Plate(), 5, P(20, 22, 4), P(20, 25, 0)),
-                Gap("beyond the outline", P(46, 20, 8), Plate(), 10, P(46, 20, 8), P(40, 20, 0)));
+                Gap("beyond the outline", P(46, 20, 8), Plate(), 10, P(46, 20, 8), P(40, 20, 0))
+            );
 
-            AddPair(rows, Point, Line, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b),
+            AddPair(
+                rows,
+                Point,
+                Line,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b),
                 Contact("on the segment", P(13, 0, 0), Rod(), P(13, 0, 0)),
                 Gap("beside the segment", P(20, 6, 8), Rod(), 10, P(20, 6, 8), P(20, 0, 0)),
-                Gap("before the start", P(-6, 0, 8), Rod(), 10, P(-6, 0, 8), P(0, 0, 0)));
+                Gap("before the start", P(-6, 0, 8), Rod(), 10, P(-6, 0, 8), P(0, 0, 0))
+            );
 
-            AddPair(rows, Point, Plane, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b),
+            AddPair(
+                rows,
+                Point,
+                Plane,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b),
                 Contact("on the plane", P(3, 4, 0), Floor(), P(3, 4, 0)),
                 Gap("above", P(3, 4, 12), Floor(), 12, P(3, 4, 12), P(3, 4, 0)),
-                Gap("below", P(3, 4, -5), Floor(), 5, P(3, 4, -5), P(3, 4, 0)));
+                Gap("below", P(3, 4, -5), Floor(), 5, P(3, 4, -5), P(3, 4, 0))
+            );
 
-            AddPair(rows, Point, Polygon, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b),
+            AddPair(
+                rows,
+                Point,
+                Polygon,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b),
                 Contact("on the surface", P(5, 5, 0), Ell(), P(5, 5, 0)),
                 Gap("above the surface", P(5, 5, 7), Ell(), 7, P(5, 5, 7), P(5, 5, 0)),
                 // Over the notch of the L: 5 across to the edge at y = 10 and 12 up, so 13.
                 Gap("above the notch", P(25, 15, 12), Ell(), 13, P(25, 15, 12), P(25, 10, 0)),
                 Gap("beyond the outline", P(46, 5, 8), Ell(), 10, P(46, 5, 8), P(40, 5, 0)),
                 // In the notch, 15 from the edge at y = 10 (the third) and 15 from the edge at x = 10 (the fourth).
-                Gap("as near two edges, so on the first", P(25, 25, 0), Ell(), 15, P(25, 25, 0), P(25, 10, 0)));
+                Gap("as near two edges, so on the first", P(25, 25, 0), Ell(), 15, P(25, 25, 0), P(25, 10, 0))
+            );
 
-            AddPair(rows, Point, Polyline, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b),
+            AddPair(
+                rows,
+                Point,
+                Polyline,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b),
                 Contact("on the chain", P(30, 20, 0), Zig(), P(30, 20, 0)),
                 Gap("beside the first edge", P(10, 6, 8), Zig(), 10, P(10, 6, 8), P(10, 0, 0)),
                 // 10 from the second edge at x = 20 and 10 from the third at y = 20.
                 Gap("as near two edges, so on the first", P(30, 10, 0), Zig(), 10, P(30, 10, 0), P(20, 10, 0)),
-                Gap("past the last vertex", P(46, 28, 0), Zig(), 10, P(46, 28, 0), P(40, 20, 0)));
+                Gap("past the last vertex", P(46, 28, 0), Zig(), 10, P(46, 28, 0), P(40, 20, 0))
+            );
 
-            AddPair(rows, Point, Chain, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b, t),
+            AddPair(
+                rows,
+                Point,
+                Chain,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b, t),
                 Contact("on the bend", P(0, -10, 0), Hook(), P(0, -10, 0)),
                 Gap("beside the straight run", P(-20, 6, 8), Hook(), 10, P(-20, 6, 8), P(-20, 0, 0)),
-                Gap("below the bend", P(0, -25, 0), Hook(), 15, P(0, -25, 0), P(0, -10, 0)));
+                Gap("below the bend", P(0, -25, 0), Hook(), 15, P(0, -25, 0), P(0, -10, 0))
+            );
 
-            AddPair(rows, Point, Ray, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b),
+            AddPair(
+                rows,
+                Point,
+                Ray,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b),
                 Contact("on the ray", P(13, 0, 0), Beam(), P(13, 0, 0)),
                 Gap("beside the ray", P(20, 6, 8), Beam(), 10, P(20, 6, 8), P(20, 0, 0)),
-                Gap("behind the origin", P(-6, 0, 8), Beam(), 10, P(-6, 0, 8), P(0, 0, 0)));
+                Gap("behind the origin", P(-6, 0, 8), Beam(), 10, P(-6, 0, 8), P(0, 0, 0))
+            );
 
-            AddPair(rows, Point, Triangle, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b),
+            AddPair(
+                rows,
+                Point,
+                Triangle,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b),
                 Contact("on the surface", P(5, 5, 0), Tri(), P(5, 5, 0)),
                 Gap("above the surface", P(5, 5, 9), Tri(), 9, P(5, 5, 9), P(5, 5, 0)),
                 // The long edge runs x + y = 40, so (30, 30) is 20 / sqrt(2) * 2 = sqrt(200) from (20, 20).
                 Gap("beyond the long edge", P(30, 30, 0), Tri(), Math.Sqrt(200), P(30, 30, 0), P(20, 20, 0)),
-                Gap("beyond a corner", P(-6, -8, 0), Tri(), 10, P(-6, -8, 0), P(0, 0, 0)));
+                Gap("beyond a corner", P(-6, -8, 0), Tri(), 10, P(-6, -8, 0), P(0, 0, 0))
+            );
 
             // The ellipse is asked; nothing takes an ellipse, so there is no other side.
-            AddPair(rows, Ellipse, Point, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), null, null, (a, b, t) => a.DistanceTo(b),
+            AddPair(
+                rows,
+                Ellipse,
+                Point,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                null,
+                null,
+                (a, b, t) => a.DistanceTo(b),
                 Contact("on the disc", Oval(), P(5, 2, 0), P(5, 2, 0)),
                 Gap("above the disc", Oval(), P(5, 2, 7), 7, P(5, 2, 0), P(5, 2, 7)),
                 // Major radius 20 along x: 10 beyond its end.
-                Gap("beyond the end of the major axis", Oval(), P(30, 0, 0), 10, P(20, 0, 0), P(30, 0, 0)));
+                Gap("beyond the end of the major axis", Oval(), P(30, 0, 0), 10, P(20, 0, 0), P(30, 0, 0))
+            );
 
             // The segment against the plane z = 0, a polygon and a chain.
-            AddPair(rows, Line, Plane, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b),
+            AddPair(
+                rows,
+                Line,
+                Plane,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b),
                 // From z = -4 to 6: through the plane four tenths of the way along.
                 Contact("crossing", L(5, 5, -4, 5, 5, 6), Floor(), P(5, 5, 0)),
                 Contact("touching at its start", L(5, 5, 0, 9, 8, 7), Floor(), P(5, 5, 0)),
                 Contact("lying in the plane, so at its start", L(2, 3, 0, 12, 3, 0), Floor(), P(2, 3, 0)),
                 Gap("slanting away, from its nearer end", L(10, 0, 9, 0, 0, 3), Floor(), 3, P(0, 0, 3), P(0, 0, 0)),
                 Gap("parallel, from its start", L(2, 3, 5, 12, 3, 5), Floor(), 5, P(2, 3, 5), P(2, 3, 0)),
-                Gap("below", L(0, 0, -4, 10, 0, -6), Floor(), 4, P(0, 0, -4), P(0, 0, 0)));
+                Gap("below", L(0, 0, -4, 10, 0, -6), Floor(), 4, P(0, 0, -4), P(0, 0, 0))
+            );
 
-            AddPair(rows, Line, Polygon, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b, t),
+            AddPair(
+                rows,
+                Line,
+                Polygon,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b, t),
                 Contact("crossing the surface", L(5, 5, -4, 5, 5, 6), Ell(), P(5, 5, 0)),
                 Contact("ending on the surface", L(5, 5, 9, 5, 5, 0), Ell(), P(5, 5, 0)),
                 Contact("lying in its plane across the outline", L(35, 5, 0, 50, 5, 0), Ell()),
                 Gap("straight down from its nearer end", L(5, 5, 11, 5, 5, 3), Ell(), 3, P(5, 5, 3), P(5, 5, 0)),
                 Gap("above the notch", L(25, 15, 12, 30, 30, 12), Ell(), 13, P(25, 15, 12), P(25, 10, 0)),
                 Gap("beyond the outline", L(46, 5, 0, 50, 5, 0), Ell(), 6, P(46, 5, 0), P(40, 5, 0)),
-                Tied(Gap("parallel above the surface", L(2, 3, 5, 8, 3, 5), Ell(), 5)));
+                Tied(Gap("parallel above the surface", L(2, 3, 5, 8, 3, 5), Ell(), 5))
+            );
 
-            AddPair(rows, Line, Polyline, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b, t),
+            AddPair(
+                rows,
+                Line,
+                Polyline,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b, t),
                 Contact("crossing the first edge", L(10, -5, 0, 10, 5, 0), Zig(), P(10, 0, 0)),
                 Contact("ending on the last edge", L(30, 30, 0, 30, 20, 0), Zig(), P(30, 20, 0)),
                 Gap("passing over", L(10, -5, 4, 10, 5, 4), Zig(), 4, P(10, 0, 4), P(10, 0, 0)),
                 Gap("apart, from the last vertex", L(46, 28, 0, 56, 40, 0), Zig(), 10, P(46, 28, 0), P(40, 20, 0)),
-                Tied(Gap("parallel to the first edge", L(2, 6, 8, 12, 6, 8), Zig(), 10)));
+                Tied(Gap("parallel to the first edge", L(2, 6, 8, 12, 6, 8), Zig(), 10))
+            );
 
             // The plane z = 0 against a chain, and planes against a box 40 by 40 by 20 on the origin.
-            AddPair(rows, Plane, Polyline, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b, t),
+            AddPair(
+                rows,
+                Plane,
+                Polyline,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b, t),
                 // Down through z = 0 at (5, 0, 0) on the first edge and back up at (15, 0, 0) on the second.
-                Contact("crossing twice, so at the first edge's crossing", Floor(), PL(P(0, 0, 5), P(10, 0, -5), P(20, 0, 5)), P(5, 0, 0)),
+                Contact(
+                    "crossing twice, so at the first edge's crossing",
+                    Floor(),
+                    PL(P(0, 0, 5), P(10, 0, -5), P(20, 0, 5)),
+                    P(5, 0, 0)
+                ),
                 Contact("touching at a vertex", Floor(), PL(P(0, 0, 5), P(10, 0, 0), P(20, 0, 5)), P(10, 0, 0)),
-                Contact("lying in the plane, so at its first vertex", Floor(), PL(P(2, 3, 0), P(12, 3, 0), P(12, 13, 0)), P(2, 3, 0)),
+                Contact(
+                    "lying in the plane, so at its first vertex",
+                    Floor(),
+                    PL(P(2, 3, 0), P(12, 3, 0), P(12, 13, 0)),
+                    P(2, 3, 0)
+                ),
                 // The second and third vertices are both 3 up; the first of them is taken.
-                Gap("apart, with two vertices as near, from the first", Floor(), PL(P(0, 0, 9), P(10, 0, 3), P(20, 0, 3), P(30, 0, 9)), 3, P(10, 0, 0), P(10, 0, 3)),
-                Gap("parallel, from its first vertex", Floor(), PL(P(0, 0, 7), P(10, 0, 7), P(10, 10, 7)), 7, P(0, 0, 0), P(0, 0, 7)),
+                Gap(
+                    "apart, with two vertices as near, from the first",
+                    Floor(),
+                    PL(P(0, 0, 9), P(10, 0, 3), P(20, 0, 3), P(30, 0, 9)),
+                    3,
+                    P(10, 0, 0),
+                    P(10, 0, 3)
+                ),
+                Gap(
+                    "parallel, from its first vertex",
+                    Floor(),
+                    PL(P(0, 0, 7), P(10, 0, 7), P(10, 10, 7)),
+                    7,
+                    P(0, 0, 0),
+                    P(0, 0, 7)
+                ),
                 Gap("below", Floor(), PL(P(0, 0, -4), P(10, 0, -6)), 4, P(0, 0, 0), P(0, 0, -4)),
                 // DistanceTo reads a chain within the point tolerance, a thousandth, as touching: 0.0004 is
                 // within it and 0.004 clear of it, so the pair sits either side of the band. The line is not snapped.
-                InBand(Gap("four ten-thousandths above, within the tolerance", Floor(), PL(P(0, 0, 0.0004), P(10, 0, 6)), 0.0004, P(0, 0, 0), P(0, 0, 0.0004))),
-                Gap("four thousandths above, clear of the tolerance", Floor(), PL(P(0, 0, 0.004), P(10, 0, 6)), 0.004, P(0, 0, 0), P(0, 0, 0.004)));
+                InBand(
+                    Gap(
+                        "four ten-thousandths above, within the tolerance",
+                        Floor(),
+                        PL(P(0, 0, 0.0004), P(10, 0, 6)),
+                        0.0004,
+                        P(0, 0, 0),
+                        P(0, 0, 0.0004)
+                    )
+                ),
+                Gap(
+                    "four thousandths above, clear of the tolerance",
+                    Floor(),
+                    PL(P(0, 0, 0.004), P(10, 0, 6)),
+                    0.004,
+                    P(0, 0, 0),
+                    P(0, 0, 0.004)
+                )
+            );
 
-            AddPair(rows, Plane, Solid, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b, t),
+            AddPair(
+                rows,
+                Plane,
+                Solid,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b, t),
                 Contact("crossing the body", Level(10), Block()),
                 Contact("on its top face", Level(20), Block()),
                 // x + y + z = 100 meets the box at its corner (40, 40, 20) and nowhere else.
-                Contact("through one corner only", new GeoPlane3(P(40, 40, 20), new GeoVector3(1, 1, 1)), Block(), P(40, 40, 20)),
+                Contact(
+                    "through one corner only",
+                    new GeoPlane3(P(40, 40, 20), new GeoVector3(1, 1, 1)),
+                    Block(),
+                    P(40, 40, 20)
+                ),
                 Tied(Gap("parallel above its top", Level(26), Block(), 6)),
                 // x + y + z = 106 is 6 / sqrt(3) from that corner, whose foot is (42, 42, 22).
-                Gap("slanting past one corner", new GeoPlane3(P(42, 42, 22), new GeoVector3(1, 1, 1)), Block(), 6 / Math.Sqrt(3), P(42, 42, 22), P(40, 40, 20)),
-                InBand(Tied(Gap("four ten-thousandths above its top, within the tolerance", Level(20.0004), Block(), 0.0004))),
-                Tied(Gap("four thousandths above its top, clear of the tolerance", Level(20.004), Block(), 0.004)));
+                Gap(
+                    "slanting past one corner",
+                    new GeoPlane3(P(42, 42, 22), new GeoVector3(1, 1, 1)),
+                    Block(),
+                    6 / Math.Sqrt(3),
+                    P(42, 42, 22),
+                    P(40, 40, 20)
+                ),
+                InBand(
+                    Tied(
+                        Gap("four ten-thousandths above its top, within the tolerance", Level(20.0004), Block(), 0.0004)
+                    )
+                ),
+                Tied(Gap("four thousandths above its top, clear of the tolerance", Level(20.004), Block(), 0.004))
+            );
 
             // The L-shaped polygon against chains, and polygons against the box.
-            AddPair(rows, Polygon, Polyline, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b, t),
+            AddPair(
+                rows,
+                Polygon,
+                Polyline,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b, t),
                 Contact("pierced by an edge", Ell(), PL(P(5, 5, -4), P(5, 5, 6), P(15, 5, 6)), P(5, 5, 0)),
                 Contact("with a vertex on the surface", Ell(), PL(P(5, 5, 9), P(5, 5, 0), P(15, 5, 9)), P(5, 5, 0)),
-                Gap("straight down to its nearest vertex", Ell(), PL(P(5, 5, 11), P(5, 5, 3), P(9, 5, 11)), 3, P(5, 5, 0), P(5, 5, 3)),
-                Gap("above the notch", Ell(), PL(P(25, 15, 12), P(30, 30, 12), P(38, 32, 12)), 13, P(25, 10, 0), P(25, 15, 12)),
-                Gap("beyond the outline in its plane", Ell(), PL(P(46, 5, 0), P(50, 5, 0), P(50, 20, 0)), 6, P(40, 5, 0), P(46, 5, 0)),
-                Tied(Gap("parallel above the surface", Ell(), PL(P(2, 3, 5), P(8, 3, 5), P(8, 6, 5)), 5)));
+                Gap(
+                    "straight down to its nearest vertex",
+                    Ell(),
+                    PL(P(5, 5, 11), P(5, 5, 3), P(9, 5, 11)),
+                    3,
+                    P(5, 5, 0),
+                    P(5, 5, 3)
+                ),
+                Gap(
+                    "above the notch",
+                    Ell(),
+                    PL(P(25, 15, 12), P(30, 30, 12), P(38, 32, 12)),
+                    13,
+                    P(25, 10, 0),
+                    P(25, 15, 12)
+                ),
+                Gap(
+                    "beyond the outline in its plane",
+                    Ell(),
+                    PL(P(46, 5, 0), P(50, 5, 0), P(50, 20, 0)),
+                    6,
+                    P(40, 5, 0),
+                    P(46, 5, 0)
+                ),
+                Tied(Gap("parallel above the surface", Ell(), PL(P(2, 3, 5), P(8, 3, 5), P(8, 6, 5)), 5))
+            );
 
-            AddPair(rows, Polygon, Solid, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b, t),
-                Contact("cutting through the body", PG(P(20, -10, 5), P(20, 50, 5), P(20, 50, 15), P(20, -10, 15)), Block()),
+            AddPair(
+                rows,
+                Polygon,
+                Solid,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b, t),
+                Contact(
+                    "cutting through the body",
+                    PG(P(20, -10, 5), P(20, 50, 5), P(20, 50, 15), P(20, -10, 15)),
+                    Block()
+                ),
                 Contact("resting on its top", PG(P(10, 10, 20), P(30, 10, 20), P(30, 30, 20), P(10, 30, 20)), Block()),
-                Gap("beside a face, from its nearest corner", PG(P(50, 10, 10), P(60, 10, 10), P(60, 20, 10)), Block(), 10, P(50, 10, 10), P(40, 10, 10)),
-                Tied(Gap("parallel above its top", PG(P(10, 10, 26), P(30, 10, 26), P(30, 30, 26), P(10, 30, 26)), Block(), 6)),
+                Gap(
+                    "beside a face, from its nearest corner",
+                    PG(P(50, 10, 10), P(60, 10, 10), P(60, 20, 10)),
+                    Block(),
+                    10,
+                    P(50, 10, 10),
+                    P(40, 10, 10)
+                ),
+                Tied(
+                    Gap(
+                        "parallel above its top",
+                        PG(P(10, 10, 26), P(30, 10, 26), P(30, 30, 26), P(10, 30, 26)),
+                        Block(),
+                        6
+                    )
+                ),
                 // z = 4 + (x - 10) / 10 + (y - 10) / 10: corners 4, 6, 8 and 6 up, every one at least 10 in
                 // from the sides, so the nearest face is the bottom, 4 under (10, 10, 4).
-                Depth("inside the body, out to the nearest face", PG(P(10, 10, 4), P(30, 10, 6), P(30, 30, 8), P(10, 30, 6)), Block(), 4, P(10, 10, 4), P(10, 10, 0)));
+                Depth(
+                    "inside the body, out to the nearest face",
+                    PG(P(10, 10, 4), P(30, 10, 6), P(30, 30, 8), P(10, 30, 6)),
+                    Block(),
+                    4,
+                    P(10, 10, 4),
+                    P(10, 10, 0)
+                )
+            );
 
             // Chains against a chain, the box and a triangle.
-            AddPair(rows, Polyline, Polyline, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b, t),
+            AddPair(
+                rows,
+                Polyline,
+                Polyline,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b, t),
                 Contact("crossing once", Zig(), PL(P(10, -5, 0), P(10, 5, 0), P(14, 9, 0)), P(10, 0, 0)),
                 Contact("ending on it", Zig(), PL(P(2, -10, 0), P(6, -6, 0), P(10, 0, 0)), P(10, 0, 0)),
                 Gap("passing over", Zig(), PL(P(10, -5, 4), P(10, 5, 4), P(14, 9, 4)), 4, P(10, 0, 0), P(10, 0, 4)),
-                Tied(Gap("parallel to the first edge", Zig(), PL(P(2, 6, 8), P(12, 6, 8)), 10)));
+                Tied(Gap("parallel to the first edge", Zig(), PL(P(2, 6, 8), P(12, 6, 8)), 10))
+            );
 
-            AddPair(rows, Polyline, Solid, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b, t),
+            AddPair(
+                rows,
+                Polyline,
+                Solid,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b, t),
                 Contact("passing through the body", PL(P(20, 20, -5), P(20, 20, 30), P(25, 20, 30)), Block()),
-                Contact("with a vertex on its top", PL(P(20, 20, 30), P(20, 20, 20), P(25, 25, 30)), Block(), P(20, 20, 20)),
-                Gap("beside a face", PL(P(50, 10, 10), P(60, 10, 10), P(60, 20, 15)), Block(), 10, P(50, 10, 10), P(40, 10, 10)),
+                Contact(
+                    "with a vertex on its top",
+                    PL(P(20, 20, 30), P(20, 20, 20), P(25, 25, 30)),
+                    Block(),
+                    P(20, 20, 20)
+                ),
+                Gap(
+                    "beside a face",
+                    PL(P(50, 10, 10), P(60, 10, 10), P(60, 20, 15)),
+                    Block(),
+                    10,
+                    P(50, 10, 10),
+                    P(40, 10, 10)
+                ),
                 Tied(Gap("parallel above its top", PL(P(2, 3, 26), P(12, 3, 26)), Block(), 6)),
                 // Vertices 4, 8 and 8 in from their nearest faces: the first, 4 over the bottom.
-                Depth("inside the body, out to the nearest face", PL(P(10, 10, 4), P(30, 10, 8), P(30, 30, 12)), Block(), 4, P(10, 10, 4), P(10, 10, 0)));
+                Depth(
+                    "inside the body, out to the nearest face",
+                    PL(P(10, 10, 4), P(30, 10, 8), P(30, 30, 12)),
+                    Block(),
+                    4,
+                    P(10, 10, 4),
+                    P(10, 10, 0)
+                )
+            );
 
-            AddPair(rows, Polyline, Triangle, (a, b, t) => a.GetShortestLineTo(b, t), (a, b) => a.GetShortestLineTo(b), (b, a, t) => b.GetShortestLineTo(a, t), (b, a) => b.GetShortestLineTo(a), (a, b, t) => a.DistanceTo(b, t),
+            AddPair(
+                rows,
+                Polyline,
+                Triangle,
+                (a, b, t) => a.GetShortestLineTo(b, t),
+                (a, b) => a.GetShortestLineTo(b),
+                (b, a, t) => b.GetShortestLineTo(a, t),
+                (b, a) => b.GetShortestLineTo(a),
+                (a, b, t) => a.DistanceTo(b, t),
                 Contact("piercing it", PL(P(5, 5, -4), P(5, 5, 6), P(9, 5, 6)), Tri(), P(5, 5, 0)),
                 Contact("with a vertex on the surface", PL(P(5, 5, 9), P(5, 5, 0), P(9, 5, 9)), Tri(), P(5, 5, 0)),
                 Gap("straight down", PL(P(5, 5, 11), P(5, 5, 3), P(9, 5, 11)), Tri(), 3, P(5, 5, 3), P(5, 5, 0)),
-                Gap("beyond the long edge", PL(P(30, 30, 0), P(40, 40, 0)), Tri(), Math.Sqrt(200), P(30, 30, 0), P(20, 20, 0)),
-                Tied(Gap("parallel above the surface", PL(P(2, 3, 5), P(8, 3, 5)), Tri(), 5)));
+                Gap(
+                    "beyond the long edge",
+                    PL(P(30, 30, 0), P(40, 40, 0)),
+                    Tri(),
+                    Math.Sqrt(200),
+                    P(30, 30, 0),
+                    P(20, 20, 0)
+                ),
+                Tied(Gap("parallel above the surface", PL(P(2, 3, 5), P(8, 3, 5)), Tri(), 5))
+            );
 
             return rows;
         }
@@ -322,7 +649,11 @@ namespace GeometryHelper.UnitTest.Solid
             // The chain distances used to keep the least of their candidates by Math.Min, which carries a NaN through;
             // read off the shortest line, a strict comparison dropped a NaN met after the first edge and answered 50.
             var tolerance = new Tolerance(1E-3, 1E-5);
-            var chain = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(double.NaN, 0, 0));
+            var chain = new GeoPolyline3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(double.NaN, 0, 0)
+            );
             var segment = new GeoLine3(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0));
             var other = new GeoPolyline3(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0));
 
@@ -376,14 +707,53 @@ namespace GeometryHelper.UnitTest.Solid
             internal bool ChainOrRegion;
         }
 
-        private static Case<TA, TB> Gap<TA, TB>(string name, TA asked, TB argument, double expected, GeoPoint3? start = null, GeoPoint3? end = null)
-            => new Case<TA, TB> { Name = name, Asked = asked, Argument = argument, Expected = expected, Start = start, End = end };
+        private static Case<TA, TB> Gap<TA, TB>(
+            string name,
+            TA asked,
+            TB argument,
+            double expected,
+            GeoPoint3? start = null,
+            GeoPoint3? end = null
+        ) =>
+            new Case<TA, TB>
+            {
+                Name = name,
+                Asked = asked,
+                Argument = argument,
+                Expected = expected,
+                Start = start,
+                End = end,
+            };
 
-        private static Case<TA, TB> Contact<TA, TB>(string name, TA asked, TB argument, GeoPoint3? at = null)
-            => new Case<TA, TB> { Name = name, Asked = asked, Argument = argument, Expected = 0.0, Start = at, End = at };
+        private static Case<TA, TB> Contact<TA, TB>(string name, TA asked, TB argument, GeoPoint3? at = null) =>
+            new Case<TA, TB>
+            {
+                Name = name,
+                Asked = asked,
+                Argument = argument,
+                Expected = 0.0,
+                Start = at,
+                End = at,
+            };
 
-        private static Case<TA, TB> Depth<TA, TB>(string name, TA asked, TB argument, double depth, GeoPoint3 start, GeoPoint3 end)
-            => new Case<TA, TB> { Name = name, Asked = asked, Argument = argument, Expected = depth, Inside = true, Start = start, End = end };
+        private static Case<TA, TB> Depth<TA, TB>(
+            string name,
+            TA asked,
+            TB argument,
+            double depth,
+            GeoPoint3 start,
+            GeoPoint3 end
+        ) =>
+            new Case<TA, TB>
+            {
+                Name = name,
+                Asked = asked,
+                Argument = argument,
+                Expected = depth,
+                Inside = true,
+                Start = start,
+                End = end,
+            };
 
         /// <summary>A case whose nearest pairs are a whole run, so that no point is fixed.</summary>
         private static Case<TA, TB> Tied<TA, TB>(Case<TA, TB> c)
@@ -419,32 +789,37 @@ namespace GeometryHelper.UnitTest.Solid
             Func<TB, TA, Tolerance, GeoLine3> back,
             Func<TB, TA, GeoLine3> plainBack,
             Func<TA, TB, Tolerance, double> distance,
-            params Case<TA, TB>[] cases)
+            params Case<TA, TB>[] cases
+        )
         {
             bool sampled = asked.ChainOrRegion || argument.ChainOrRegion;
 
             foreach (Case<TA, TB> c in cases)
             {
-                rows.Add(new Row
-                {
-                    Name = typeof(TA).Name + "-" + typeof(TB).Name + ": " + c.Name,
-                    Line = t => line(c.Asked, c.Argument, t),
-                    PlainLine = () => plainLine(c.Asked, c.Argument),
-                    Back = back == null ? null : (Func<Tolerance, GeoLine3>)(t => back(c.Argument, c.Asked, t)),
-                    PlainBack = plainBack == null ? null : (Func<GeoLine3>)(() => plainBack(c.Argument, c.Asked)),
-                    Distance = t => distance(c.Asked, c.Argument, t),
-                    OffAsked = p => asked.Off(c.Asked, p),
-                    OffArgument = p => argument.Off(c.Argument, p),
-                    Sampled = sampled ? (Func<(double, double)>)(() => Oracle(asked, c.Asked, argument, c.Argument)) : null,
-                    Expected = c.Expected,
-                    Inside = c.Inside,
-                    Band = c.Band,
-                    Tie = c.Tie,
-                    OneMember = typeof(TA) == typeof(TB),
-                    On = c.On,
-                    Start = c.Start,
-                    End = c.End
-                });
+                rows.Add(
+                    new Row
+                    {
+                        Name = typeof(TA).Name + "-" + typeof(TB).Name + ": " + c.Name,
+                        Line = t => line(c.Asked, c.Argument, t),
+                        PlainLine = () => plainLine(c.Asked, c.Argument),
+                        Back = back == null ? null : (Func<Tolerance, GeoLine3>)(t => back(c.Argument, c.Asked, t)),
+                        PlainBack = plainBack == null ? null : (Func<GeoLine3>)(() => plainBack(c.Argument, c.Asked)),
+                        Distance = t => distance(c.Asked, c.Argument, t),
+                        OffAsked = p => asked.Off(c.Asked, p),
+                        OffArgument = p => argument.Off(c.Argument, p),
+                        Sampled = sampled
+                            ? (Func<(double, double)>)(() => Oracle(asked, c.Asked, argument, c.Argument))
+                            : null,
+                        Expected = c.Expected,
+                        Inside = c.Inside,
+                        Band = c.Band,
+                        Tie = c.Tie,
+                        OneMember = typeof(TA) == typeof(TB),
+                        On = c.On,
+                        Start = c.Start,
+                        End = c.End,
+                    }
+                );
             }
         }
 
@@ -499,7 +874,9 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 foreach (GeoPoint3 q in theirs)
                 {
-                    double dx = p.X - q.X, dy = p.Y - q.Y, dz = p.Z - q.Z;
+                    double dx = p.X - q.X,
+                        dy = p.Y - q.Y,
+                        dz = p.Z - q.Z;
                     nearest = Math.Min(nearest, dx * dx + dy * dy + dz * dz);
                 }
             }
@@ -514,7 +891,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i + 1 < vertices.Count; i++)
             {
-                GeoPoint3 s = vertices[i], e = vertices[i + 1];
+                GeoPoint3 s = vertices[i],
+                    e = vertices[i + 1];
                 int n = Math.Max(1, (int)Math.Ceiling(s.DistanceTo(e) / CurveSpacing));
 
                 for (int k = 0; k < n; k++)
@@ -563,11 +941,14 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static GeoVector3 Normal(IReadOnlyList<GeoPoint3> corners)
         {
-            double nx = 0, ny = 0, nz = 0;
+            double nx = 0,
+                ny = 0,
+                nz = 0;
 
             for (int i = 0; i < corners.Count; i++)
             {
-                GeoPoint3 p = corners[i], q = corners[(i + 1) % corners.Count];
+                GeoPoint3 p = corners[i],
+                    q = corners[(i + 1) % corners.Count];
                 nx += (p.Y - q.Y) * (p.Z + q.Z);
                 ny += (p.Z - q.Z) * (p.X + q.X);
                 nz += (p.X - q.X) * (p.Y + q.Y);
@@ -617,7 +998,7 @@ namespace GeometryHelper.UnitTest.Solid
         {
             Off = (s, p) => s.DistanceTo(p),
             Samples = s => (new[] { s }, 0.0),
-            Exact = s => p => s.DistanceTo(p)
+            Exact = s => p => s.DistanceTo(p),
         };
 
         private static readonly Kit<GeoArc3> Arc = new Kit<GeoArc3> { Off = (s, p) => s.DistanceTo(p) };
@@ -633,44 +1014,47 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly Kit<GeoLine3> Line = new Kit<GeoLine3>
         {
             Off = (s, p) => s.DistanceTo(p),
-            Samples = s => AlongSegments(new[] { s.StartPoint, s.EndPoint })
+            Samples = s => AlongSegments(new[] { s.StartPoint, s.EndPoint }),
         };
 
         private static readonly Kit<GeoPlane3> Plane = new Kit<GeoPlane3>
         {
             Off = (s, p) => Math.Abs(s.SignedDistanceTo(p)),
-            Exact = s => p => Math.Abs(s.Origin.GetVectorTo(p).DotProduct(s.Normal.Normalize()))
+            Exact = s => p => Math.Abs(s.Origin.GetVectorTo(p).DotProduct(s.Normal.Normalize())),
         };
 
         private static readonly Kit<GeoPolygon3> Polygon = new Kit<GeoPolygon3>
         {
             Off = (s, p) => s.DistanceTo(p),
             Samples = s => OverRegion(s.Vertices),
-            ChainOrRegion = true
+            ChainOrRegion = true,
         };
 
         private static readonly Kit<GeoPolyline3> Polyline = new Kit<GeoPolyline3>
         {
             Off = (s, p) => s.DistanceTo(p),
             Samples = s => AlongSegments(s.Vertices),
-            ChainOrRegion = true
+            ChainOrRegion = true,
         };
 
-        private static readonly Kit<GeoPolylineArc3> Chain = new Kit<GeoPolylineArc3> { Off = (s, p) => s.DistanceTo(p) };
+        private static readonly Kit<GeoPolylineArc3> Chain = new Kit<GeoPolylineArc3>
+        {
+            Off = (s, p) => s.DistanceTo(p),
+        };
 
         private static readonly Kit<GeoRay3> Ray = new Kit<GeoRay3> { Off = (s, p) => s.DistanceTo(p) };
 
         private static readonly Kit<GeoTriangle3> Triangle = new Kit<GeoTriangle3>
         {
             Off = (s, p) => s.DistanceTo(p),
-            Samples = s => OverRegion(new[] { s.A, s.B, s.C })
+            Samples = s => OverRegion(new[] { s.A, s.B, s.C }),
         };
 
         /// <summary>Every body here is <see cref="Block"/>, so its surface is measured in closed form.</summary>
         private static readonly Kit<GeoSolid3> Solid = new Kit<GeoSolid3>
         {
             Off = (s, p) => Math.Abs(s.SignedDistanceTo(p, Within)),
-            Exact = s => BoxSurface(P(0, 0, 0), P(40, 40, 20))
+            Exact = s => BoxSurface(P(0, 0, 0), P(40, 40, 20)),
         };
 
         #endregion
@@ -679,13 +1063,15 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
 
-        private static GeoLine3 L(double x0, double y0, double z0, double x1, double y1, double z1) => new GeoLine3(P(x0, y0, z0), P(x1, y1, z1));
+        private static GeoLine3 L(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoLine3(P(x0, y0, z0), P(x1, y1, z1));
 
         private static GeoPolyline3 PL(params GeoPoint3[] vertices) => new GeoPolyline3(vertices);
 
         private static GeoPolygon3 PG(params GeoPoint3[] vertices) => new GeoPolygon3(vertices);
 
-        private static GeoPolygon3 Square(double x0, double y0, double x1, double y1) => PG(P(x0, y0, 0), P(x1, y0, 0), P(x1, y1, 0), P(x0, y1, 0));
+        private static GeoPolygon3 Square(double x0, double y0, double x1, double y1) =>
+            PG(P(x0, y0, 0), P(x1, y0, 0), P(x1, y1, 0), P(x0, y1, 0));
 
         /// <summary>The half circle of radius 10 about the origin in z = 0 on the side y &gt;= 0, taken from the edge.</summary>
         private static GeoArc3 Bow() => BowEdge().ToArc();
@@ -713,13 +1099,19 @@ namespace GeometryHelper.UnitTest.Solid
         private static GeoPlane3 Level(double z) => new GeoPlane3(P(0, 0, z), Up);
 
         /// <summary>An L in z = 0, 40 by 40 with the square from (10, 10) to (40, 40) notched out.</summary>
-        private static GeoPolygon3 Ell() => PG(P(0, 0, 0), P(40, 0, 0), P(40, 10, 0), P(10, 10, 0), P(10, 40, 0), P(0, 40, 0));
+        private static GeoPolygon3 Ell() =>
+            PG(P(0, 0, 0), P(40, 0, 0), P(40, 10, 0), P(10, 10, 0), P(10, 40, 0), P(0, 40, 0));
 
         /// <summary>A chain along x to 20, up y to 20, and along x again to 40, in z = 0.</summary>
         private static GeoPolyline3 Zig() => PL(P(0, 0, 0), P(20, 0, 0), P(20, 20, 0), P(40, 20, 0));
 
         /// <summary>A run from (-30, 0, 0) to (-10, 0, 0), then the half circle of radius 10 under the origin to (10, 0, 0).</summary>
-        private static GeoPolylineArc3 Hook() => new GeoPolylineArc3(new[] { P(-30, 0, 0), P(-10, 0, 0), P(10, 0, 0) }, new[] { 0.0, 1.0 }, new[] { Up, Up });
+        private static GeoPolylineArc3 Hook() =>
+            new GeoPolylineArc3(
+                new[] { P(-30, 0, 0), P(-10, 0, 0), P(10, 0, 0) },
+                new[] { 0.0, 1.0 },
+                new[] { Up, Up }
+            );
 
         private static GeoTriangle3 Tri() => new GeoTriangle3(P(0, 0, 0), P(40, 0, 0), P(0, 40, 0));
 

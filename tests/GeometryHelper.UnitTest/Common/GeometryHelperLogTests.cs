@@ -42,7 +42,16 @@ namespace GeometryHelper.UnitTest.Common
             GeometryHelperLog.Warn("w", error);
             GeometryHelperLog.Err("e", error);
 
-            Assert.Equal(new[] { GeometryHelperLogLevel.Debug, GeometryHelperLogLevel.Info, GeometryHelperLogLevel.Warn, GeometryHelperLogLevel.Err }, _written.Select(w => w.Level));
+            Assert.Equal(
+                new[]
+                {
+                    GeometryHelperLogLevel.Debug,
+                    GeometryHelperLogLevel.Info,
+                    GeometryHelperLogLevel.Warn,
+                    GeometryHelperLogLevel.Err,
+                },
+                _written.Select(w => w.Level)
+            );
             Assert.Equal(new[] { "d", "i", "w", "e" }, _written.Select(w => w.Message));
             Assert.Null(_written[0].Exception);
             Assert.Same(error, _written[2].Exception);
@@ -65,7 +74,8 @@ namespace GeometryHelper.UnitTest.Common
         [Fact]
         public void AWriterThatThrows_DoesNotBreakTheCaller()
         {
-            GeometryHelperLog.Writer = (level, message, exception) => throw new InvalidOperationException("The writer is broken.");
+            GeometryHelperLog.Writer = (level, message, exception) =>
+                throw new InvalidOperationException("The writer is broken.");
 
             Assert.Null(Record.Exception(() => GeometryHelperLog.Warn("w")));
             Assert.Null(Record.Exception(() => GeometryHelperLog.Err("e", new Exception("inner"))));
@@ -97,7 +107,10 @@ namespace GeometryHelper.UnitTest.Common
                 Trace.Listeners.Remove(listener);
             }
 
-            Assert.Contains("GeometryHelper: WARN Reference model 7 is not IFC. [IOException: locked]", text.ToString());
+            Assert.Contains(
+                "GeometryHelper: WARN Reference model 7 is not IFC. [IOException: locked]",
+                text.ToString()
+            );
         }
 
         /// <summary>
@@ -107,7 +120,9 @@ namespace GeometryHelper.UnitTest.Common
         [Fact]
         public void TheWriterIsCalledOneMessageAtATime_EvenFromManyThreads()
         {
-            int inside = 0, overlapped = 0, written = 0;
+            int inside = 0,
+                overlapped = 0,
+                written = 0;
             GeometryHelperLog.Writer = (level, message, exception) =>
             {
                 if (Interlocked.Increment(ref inside) > 1)
@@ -120,7 +135,9 @@ namespace GeometryHelper.UnitTest.Common
                 Interlocked.Decrement(ref inside);
             };
 
-            Parallel.For(0, 64, new ParallelOptions { MaxDegreeOfParallelism = 8 }, i => GeometryHelperLog.Warn("message " + i));
+            Parallel.For(0, 64, new ParallelOptions { MaxDegreeOfParallelism = 8 }, i =>
+                GeometryHelperLog.Warn("message " + i)
+            );
 
             Assert.Equal(64, written);
             Assert.Equal(0, overlapped);
@@ -131,7 +148,10 @@ namespace GeometryHelper.UnitTest.Common
         {
             Assert.Equal("INFO done", GeometryHelperLog.Format(GeometryHelperLogLevel.Info, "done", null));
             Assert.Equal("DEBUG ", GeometryHelperLog.Format(GeometryHelperLogLevel.Debug, null, null));
-            Assert.Equal("ERR failed [ArgumentException: bad]", GeometryHelperLog.Format(GeometryHelperLogLevel.Err, "failed", new ArgumentException("bad")));
+            Assert.Equal(
+                "ERR failed [ArgumentException: bad]",
+                GeometryHelperLog.Format(GeometryHelperLogLevel.Err, "failed", new ArgumentException("bad"))
+            );
         }
     }
 }

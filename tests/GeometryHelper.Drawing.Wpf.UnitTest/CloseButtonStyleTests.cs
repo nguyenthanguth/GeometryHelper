@@ -23,7 +23,10 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
                 {
                     // Registers the pack scheme, which the dictionary is loaded through, with no Application running.
                     _ = PackUriHelper.UriSchemePack;
-                    var dialogs = (ResourceDictionary)Application.LoadComponent(new Uri("/GeometryHelper.Drawing.Wpf;component/Themes/Dialogs.xaml", UriKind.Relative));
+                    var dialogs = (ResourceDictionary)
+                        Application.LoadComponent(
+                            new Uri("/GeometryHelper.Drawing.Wpf;component/Themes/Dialogs.xaml", UriKind.Relative)
+                        );
                     var style = (Style)dialogs["CloseButton"];
                     Assert.Same(dialogs["GhTitleCloseButton"], style.BasedOn);
 

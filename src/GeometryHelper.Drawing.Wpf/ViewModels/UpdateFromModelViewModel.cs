@@ -99,8 +99,10 @@ namespace GeometryHelper.Drawing.Wpf
             _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
             Drawing = drawing ?? throw new ArgumentNullException(nameof(drawing));
             Sources = workspace.Providers.Where(p => p.IsAvailable).ToList();
-            _provider = Sources.Contains(drawing.Provider) ? drawing.Provider
-                : Sources.FirstOrDefault(p => string.Equals(p.Name, drawing.SourceName, StringComparison.Ordinal)) ?? Sources.FirstOrDefault();
+            _provider = Sources.Contains(drawing.Provider)
+                ? drawing.Provider
+                : Sources.FirstOrDefault(p => string.Equals(p.Name, drawing.SourceName, StringComparison.Ordinal))
+                    ?? Sources.FirstOrDefault();
             UpdateCommand = new DelegateCommand(_ => _ = UpdateAsync(), _ => !IsBusy && _newSource != null);
             CancelCommand = new DelegateCommand(_ => Close(false));
         }
@@ -135,7 +137,9 @@ namespace GeometryHelper.Drawing.Wpf
         }
 
         /// <summary>Gets whether the model changed at all.</summary>
-        public bool HasChanges => _preview != null && _preview.AddedObjects.Count + _preview.RemovedObjects.Count + _preview.ChangedObjects.Count > 0;
+        public bool HasChanges =>
+            _preview != null
+            && _preview.AddedObjects.Count + _preview.RemovedObjects.Count + _preview.ChangedObjects.Count > 0;
 
         /// <summary>Gets the objects of the model changed, added and taken away, each list in the order of the ids.</summary>
         public IReadOnlyList<ModelChangeRow> Changes
@@ -189,13 +193,22 @@ namespace GeometryHelper.Drawing.Wpf
 
             if (provider == null)
             {
-                Summary = old == null
-                    ? "The model " + Drawing.Number + " was made from is not at hand: the drawing was opened from its file, and no source can give objects now."
-                    : "No source can give objects now.";
+                Summary =
+                    old == null
+                        ? "The model "
+                            + Drawing.Number
+                            + " was made from is not at hand: the drawing was opened from its file, and no source can give objects now."
+                        : "No source can give objects now.";
                 return null;
             }
 
-            string copy = Path.Combine(Path.GetTempPath(), "gk", "drawing", "update-preview", Guid.NewGuid().ToString("N") + ".dxf");
+            string copy = Path.Combine(
+                Path.GetTempPath(),
+                "gk",
+                "drawing",
+                "update-preview",
+                Guid.NewGuid().ToString("N") + ".dxf"
+            );
             Directory.CreateDirectory(Path.GetDirectoryName(copy));
             Drawing.Drawing.Save(copy);
             Tolerance tolerance = _workspace.Tolerance;
@@ -247,7 +260,12 @@ namespace GeometryHelper.Drawing.Wpf
 
             if (newSource == null)
             {
-                Summary = "None of the objects " + Drawing.Number + " draws is in " + provider.Name + ": choose the source the drawing was made from.";
+                Summary =
+                    "None of the objects "
+                    + Drawing.Number
+                    + " draws is in "
+                    + provider.Name
+                    + ": choose the source the drawing was made from.";
                 _newSource = null;
                 ((DelegateCommand)UpdateCommand).RaiseCanExecuteChanged();
                 return null;
@@ -294,9 +312,14 @@ namespace GeometryHelper.Drawing.Wpf
 
                 try
                 {
-                    PreparedUpdate prepared = await RunAsync("Making " + Drawing.Number + " again from " + _provider.Name + "…", () => drawing.Prepare(source, null));
+                    PreparedUpdate prepared = await RunAsync(
+                        "Making " + Drawing.Number + " again from " + _provider.Name + "…",
+                        () => drawing.Prepare(source, null)
+                    );
                     _workspace.ThrowIfClosed(Drawing);
-                    report = _workspace.WriteChange(Drawing, _provider, Drawing.PresetName, () => drawing.Apply(prepared));
+                    report = _workspace.WriteChange(Drawing, _provider, Drawing.PresetName, () =>
+                        drawing.Apply(prepared)
+                    );
                 }
                 finally
                 {
@@ -309,15 +332,25 @@ namespace GeometryHelper.Drawing.Wpf
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
-                _workspace.ShowMessage(MessageViewModel.Failure("Drawing not updated", Drawing.Number + " was left as it was.", ex));
+                _workspace.ShowMessage(
+                    MessageViewModel.Failure("Drawing not updated", Drawing.Number + " was left as it was.", ex)
+                );
                 return null;
             }
 
             Report = report;
             Drawing.IsOutOfDate = false;
             _workspace.Changed(Drawing);
-            _workspace.Say(Drawing.Number + " updated: " + DrawingWorkspace.Count(report.EditsKept.Count, "hand edit") + " kept, "
-                + report.EditsDropped.Count.ToString(CultureInfo.InvariantCulture) + " no longer " + (report.EditsDropped.Count == 1 ? "applies" : "apply") + ".");
+            _workspace.Say(
+                Drawing.Number
+                    + " updated: "
+                    + DrawingWorkspace.Count(report.EditsKept.Count, "hand edit")
+                    + " kept, "
+                    + report.EditsDropped.Count.ToString(CultureInfo.InvariantCulture)
+                    + " no longer "
+                    + (report.EditsDropped.Count == 1 ? "applies" : "apply")
+                    + "."
+            );
 
             foreach (DroppedEdit dropped in report.EditsDropped)
             {
@@ -337,9 +370,19 @@ namespace GeometryHelper.Drawing.Wpf
 
             foreach (string id in report.ChangedObjects)
             {
-                if (old != null && old.TryGetObject(id, out DrawingObject before) && now.TryGetObject(id, out DrawingObject after))
+                if (
+                    old != null
+                    && old.TryGetObject(id, out DrawingObject before)
+                    && now.TryGetObject(id, out DrawingObject after)
+                )
                 {
-                    rows.Add(new ModelChangeRow(Name(after), ModelChangeKind.Changed, SourceComparer.Describe(before, after, _workspace.Tolerance)));
+                    rows.Add(
+                        new ModelChangeRow(
+                            Name(after),
+                            ModelChangeKind.Changed,
+                            SourceComparer.Describe(before, after, _workspace.Tolerance)
+                        )
+                    );
                 }
             }
 
@@ -347,14 +390,28 @@ namespace GeometryHelper.Drawing.Wpf
             {
                 if (now.TryGetObject(id, out DrawingObject added))
                 {
-                    rows.Add(new ModelChangeRow(Name(added), ModelChangeKind.Added, "New " + DrawingProperties.KindName(added.Kind) + (added.Profile.Length == 0 ? string.Empty : " " + added.Profile)
-                        + (added.ParentId == null ? string.Empty : " in " + added.ParentId)));
+                    rows.Add(
+                        new ModelChangeRow(
+                            Name(added),
+                            ModelChangeKind.Added,
+                            "New "
+                                + DrawingProperties.KindName(added.Kind)
+                                + (added.Profile.Length == 0 ? string.Empty : " " + added.Profile)
+                                + (added.ParentId == null ? string.Empty : " in " + added.ParentId)
+                        )
+                    );
                 }
             }
 
             foreach (string id in report.RemovedObjects)
             {
-                rows.Add(new ModelChangeRow(old != null && old.TryGetObject(id, out DrawingObject removed) ? Name(removed) : id, ModelChangeKind.Removed, "No longer in the model"));
+                rows.Add(
+                    new ModelChangeRow(
+                        old != null && old.TryGetObject(id, out DrawingObject removed) ? Name(removed) : id,
+                        ModelChangeKind.Removed,
+                        "No longer in the model"
+                    )
+                );
             }
 
             Changes = rows;
@@ -371,35 +428,57 @@ namespace GeometryHelper.Drawing.Wpf
 
             foreach (DrawingEdit edit in Drawing.Drawing.Edits)
             {
-                edits.Add(dropped.TryGetValue(edit, out string reason)
-                    ? new HandEditRow(Describe(edit), false, "No longer applies: " + reason)
-                    : new HandEditRow(Describe(edit), true, "Kept"));
+                edits.Add(
+                    dropped.TryGetValue(edit, out string reason)
+                        ? new HandEditRow(Describe(edit), false, "No longer applies: " + reason)
+                        : new HandEditRow(Describe(edit), true, "Kept")
+                );
             }
 
             Edits = edits;
             string since = Drawing.LastMade.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
-            Summary = old == null
-                ? "The drawing was opened from its file, which does not keep the model it was made from: Update makes it again from " + _provider.Name
-                  + ", " + report.AddedObjects.Count.ToString(CultureInfo.InvariantCulture) + " added, " + report.RemovedObjects.Count.ToString(CultureInfo.InvariantCulture)
-                  + " removed; hand edits that still apply are kept."
+            Summary =
+                old == null
+                    ? "The drawing was opened from its file, which does not keep the model it was made from: Update makes it again from "
+                        + _provider.Name
+                        + ", "
+                        + report.AddedObjects.Count.ToString(CultureInfo.InvariantCulture)
+                        + " added, "
+                        + report.RemovedObjects.Count.ToString(CultureInfo.InvariantCulture)
+                        + " removed; hand edits that still apply are kept."
                 : HasChanges
-                ? "The model changed since " + since + ": " + report.ChangedObjects.Count.ToString(CultureInfo.InvariantCulture) + " changed, "
-                  + report.AddedObjects.Count.ToString(CultureInfo.InvariantCulture) + " added, " + report.RemovedObjects.Count.ToString(CultureInfo.InvariantCulture)
-                  + " removed. The drawing will be made again; hand edits that still apply are kept."
-                : "The model has not changed since " + since + ". Update makes the drawing again all the same; hand edits are kept.";
+                    ? "The model changed since "
+                        + since
+                        + ": "
+                        + report.ChangedObjects.Count.ToString(CultureInfo.InvariantCulture)
+                        + " changed, "
+                        + report.AddedObjects.Count.ToString(CultureInfo.InvariantCulture)
+                        + " added, "
+                        + report.RemovedObjects.Count.ToString(CultureInfo.InvariantCulture)
+                        + " removed. The drawing will be made again; hand edits that still apply are kept."
+                : "The model has not changed since "
+                    + since
+                    + ". Update makes the drawing again all the same; hand edits are kept.";
             // The preview is made with no plugins, so every run the drawing keeps is among those to run again.
             int runs = report.PluginRunsToRunAgain.Count + report.PluginRunsRun.Count + report.PluginRunsDropped.Count;
-            PluginText = runs == 0
-                ? "No plugin is set to run on update."
-                : DrawingWorkspace.Count(runs, "plugin run") + " kept in the drawing, run again with the drawing plugins loaded; a run whose objects have gone is dropped.";
+            PluginText =
+                runs == 0
+                    ? "No plugin is set to run on update."
+                    : DrawingWorkspace.Count(runs, "plugin run")
+                        + " kept in the drawing, run again with the drawing plugins loaded; a run whose objects have gone is dropped.";
             Raise(nameof(HasChanges));
         }
 
         /// <summary>A hand edit in words, as the design writes them: "Mark P1 moved 40, 0", "Dimension 3000: text set to …".</summary>
         private string Describe(DrawingEdit edit)
         {
-            DrawingElement element = Drawing.Drawing.Elements.FirstOrDefault(e => string.Equals(e.Id, edit.ObjectId, StringComparison.Ordinal));
-            string what = element == null ? edit.ObjectId : element.Kind + " " + (Value(element, "Text") ?? Value(element, "Name") ?? element.Id);
+            DrawingElement element = Drawing.Drawing.Elements.FirstOrDefault(e =>
+                string.Equals(e.Id, edit.ObjectId, StringComparison.Ordinal)
+            );
+            string what =
+                element == null
+                    ? edit.ObjectId
+                    : element.Kind + " " + (Value(element, "Text") ?? Value(element, "Name") ?? element.Id);
 
             switch (edit.Kind)
             {
@@ -408,16 +487,23 @@ namespace GeometryHelper.Drawing.Wpf
                 case CadEditKind.Erase:
                     return what + " erased";
                 case CadEditKind.Property:
-                    return what + ": " + (edit.Property ?? "value") + " set to \"" + (edit.NewValue ?? string.Empty) + "\"";
+                    return what
+                        + ": "
+                        + (edit.Property ?? "value")
+                        + " set to \""
+                        + (edit.NewValue ?? string.Empty)
+                        + "\"";
                 default:
                     return what + " " + edit.Kind.ToString().ToLowerInvariant();
             }
         }
 
-        private static string Value(DrawingElement element, string name) => element.Values.Where(v => v.Key == name).Select(v => v.Value).FirstOrDefault(v => !string.IsNullOrEmpty(v));
+        private static string Value(DrawingElement element, string name) =>
+            element.Values.Where(v => v.Key == name).Select(v => v.Value).FirstOrDefault(v => !string.IsNullOrEmpty(v));
 
-        private static string Name(DrawingObject item)
-            => (item.Mark.Length > 0 ? item.Mark + " · " : string.Empty) + (item.Name.Length > 0 ? item.Name.Substring(0, 1) + item.Name.Substring(1).ToLowerInvariant() : item.Id);
+        private static string Name(DrawingObject item) =>
+            (item.Mark.Length > 0 ? item.Mark + " · " : string.Empty)
+            + (item.Name.Length > 0 ? item.Name.Substring(0, 1) + item.Name.Substring(1).ToLowerInvariant() : item.Id);
 
         private static void TryDelete(string path)
         {

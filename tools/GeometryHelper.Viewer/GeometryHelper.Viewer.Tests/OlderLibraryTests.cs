@@ -24,7 +24,11 @@ namespace GeometryHelper.Viewer.Tests
 
         private static string FindRepositoryRoot()
         {
-            for (DirectoryInfo directory = new DirectoryInfo(AppContext.BaseDirectory); directory != null; directory = directory.Parent)
+            for (
+                DirectoryInfo directory = new DirectoryInfo(AppContext.BaseDirectory);
+                directory != null;
+                directory = directory.Parent
+            )
             {
                 if (File.Exists(Path.Combine(directory.FullName, "src", "GeometryHelper", "GeometryHelper.csproj")))
                 {
@@ -44,7 +48,11 @@ namespace GeometryHelper.Viewer.Tests
                 File.Copy(file, Path.Combine(to, Path.GetFileName(file)), true);
             }
 
-            foreach (string directory in Directory.GetDirectories(from).Where(d => !new[] { "bin", "obj" }.Contains(Path.GetFileName(d))))
+            foreach (
+                string directory in Directory
+                    .GetDirectories(from)
+                    .Where(d => !new[] { "bin", "obj" }.Contains(Path.GetFileName(d)))
+            )
             {
                 CopySources(directory, Path.Combine(to, Path.GetFileName(directory)));
             }
@@ -71,9 +79,28 @@ namespace GeometryHelper.Viewer.Tests
                     }
                 }
 
-                var info = new ProcessStartInfo("dotnet") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = tree };
+                var info = new ProcessStartInfo("dotnet")
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    WorkingDirectory = tree,
+                };
 
-                foreach (string argument in new[] { "build", Path.Combine(tree, "src", "GeometryHelper", "GeometryHelper.csproj"), "-c", "Release", "-nologo", "-v:q", "-p:GeometryHelperVersion=12.1.0", "-p:GeneratePackageOnBuild=false" })
+                foreach (
+                    string argument in new[]
+                    {
+                        "build",
+                        Path.Combine(tree, "src", "GeometryHelper", "GeometryHelper.csproj"),
+                        "-c",
+                        "Release",
+                        "-nologo",
+                        "-v:q",
+                        "-p:GeometryHelperVersion=12.1.0",
+                        "-p:GeneratePackageOnBuild=false",
+                    }
+                )
                 {
                     info.ArgumentList.Add(argument);
                 }
@@ -86,14 +113,35 @@ namespace GeometryHelper.Viewer.Tests
                     Assert.True(build.ExitCode == 0, output + errors);
                 }
 
-                string older = Path.Combine(tree, "src", "GeometryHelper", "bin", "Release", "netstandard2.0", "GeometryHelper.dll");
+                string older = Path.Combine(
+                    tree,
+                    "src",
+                    "GeometryHelper",
+                    "bin",
+                    "Release",
+                    "netstandard2.0",
+                    "GeometryHelper.dll"
+                );
                 Assert.Equal(new Version(12, 1, 0, 0), System.Reflection.AssemblyName.GetAssemblyName(older).Version);
-                Assert.True(System.Reflection.AssemblyName.GetAssemblyName(typeof(Tolerance).Assembly.Location).Version > new Version(12, 1, 0, 0));
+                Assert.True(
+                    System.Reflection.AssemblyName.GetAssemblyName(typeof(Tolerance).Assembly.Location).Version
+                        > new Version(12, 1, 0, 0)
+                );
 
                 string script = folder.Combine("run.csx");
-                File.WriteAllText(script, "Show(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(0, 10)), name: \"tri\");");
+                File.WriteAllText(
+                    script,
+                    "Show(new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(0, 10)), name: \"tri\");"
+                );
 
-                SideRunResult result = await SideRunner.RunAsync(_fixture.Environment, script, BuildSource.FromDll(older), "left", null, CancellationToken.None);
+                SideRunResult result = await SideRunner.RunAsync(
+                    _fixture.Environment,
+                    script,
+                    BuildSource.FromDll(older),
+                    "left",
+                    null,
+                    CancellationToken.None
+                );
 
                 Assert.True(result.Succeeded, string.Join("\n", result.Errors));
                 Assert.EndsWith(" 12.1.0.0", result.LibraryLine, StringComparison.Ordinal);

@@ -20,8 +20,13 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>The gap is exact to rounding: 4E-14 of the largest coordinate here, 200, with room.</summary>
         private const double Allowance = 1E-11;
 
-        private static GeoPolygon2 Box(double left, double bottom, double right, double top) => new GeoPolygon2(
-            new GeoPoint2(left, bottom), new GeoPoint2(right, bottom), new GeoPoint2(right, top), new GeoPoint2(left, top));
+        private static GeoPolygon2 Box(double left, double bottom, double right, double top) =>
+            new GeoPolygon2(
+                new GeoPoint2(left, bottom),
+                new GeoPoint2(right, bottom),
+                new GeoPoint2(right, top),
+                new GeoPoint2(left, top)
+            );
 
         /// <summary>The ellipse 60 by 25 about the origin, its major axis along X: its ends are (±60, 0) and (0, ±25).</summary>
         private static GeoEllipse2 Oval() => new GeoEllipse2(new GeoPoint2(0, 0), GeoVector2.XAxis, 60, 25);
@@ -30,7 +35,8 @@ namespace GeometryHelper.UnitTest.Plane
         private static GeoEllipse2 Thin() => new GeoEllipse2(new GeoPoint2(0, 0), GeoVector2.XAxis, 60, 0.5);
 
         /// <summary>The ellipse 60 by 25 about (10, -5), turned 0.35 rad.</summary>
-        private static GeoEllipse2 Turned() => new GeoEllipse2(new GeoPoint2(10, -5), new GeoVector2(Math.Cos(0.35), Math.Sin(0.35)), 60, 25);
+        private static GeoEllipse2 Turned() =>
+            new GeoEllipse2(new GeoPoint2(10, -5), new GeoVector2(Math.Cos(0.35), Math.Sin(0.35)), 60, 25);
 
         private static Tolerance At(double equalPoint) => new Tolerance(equalPoint, Tolerance.DefaultEqualVector);
 
@@ -75,7 +81,13 @@ namespace GeometryHelper.UnitTest.Plane
         /// then 20 aside (the chain's second edge bulging 0.3); the loop and the face are the triangle with that start as
         /// its tip and its other corners 40 out and 20 either side (the loop's far side bulging 0.3).
         /// </summary>
-        private static (double Distance, bool Collides) FromTheEllipse(GeoEllipse2 ellipse, string kind, double t, double h, Tolerance tol)
+        private static (double Distance, bool Collides) FromTheEllipse(
+            GeoEllipse2 ellipse,
+            string kind,
+            double t,
+            double h,
+            Tolerance tol
+        )
         {
             (GeoPoint2 start, GeoVector2 n) = OffTheRim(ellipse, t, h);
             var side = new GeoVector2(-n.Y, n.X);
@@ -124,7 +136,9 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         private static GeoEllipse2 Named(string ellipse) =>
-            ellipse == "oval" ? Oval() : ellipse == "thin" ? Thin() : Turned();
+            ellipse == "oval" ? Oval()
+            : ellipse == "thin" ? Thin()
+            : Turned();
 
         #region F4: a polyline, a chain, a loop or a face half a tolerance off the rim
 
@@ -151,7 +165,12 @@ namespace GeometryHelper.UnitTest.Plane
 
         [Theory]
         [MemberData(nameof(HalfAToleranceOffCases))]
-        public void AShapeStartingHalfAToleranceOffTheRim_IsThatFarAndCollides(string ellipse, string kind, double t, double equalPoint)
+        public void AShapeStartingHalfAToleranceOffTheRim_IsThatFarAndCollides(
+            string ellipse,
+            string kind,
+            double t,
+            double equalPoint
+        )
         {
             Tolerance tol = At(equalPoint);
             double h = tol.EqualPoint / 2;
@@ -259,7 +278,10 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData("loop holding it", 0.0)]
         [InlineData("face holding it", 0.0)]
         [InlineData("polyline inside it", 0.0)]
-        public void ATangencyACrossingAWideGapOrAHold_ReadsAsItDidAndCollidesWithinTheTolerance(string kind, double expected)
+        public void ATangencyACrossingAWideGapOrAHold_ReadsAsItDidAndCollidesWithinTheTolerance(
+            string kind,
+            double expected
+        )
         {
             // Five tolerances off is 60.005 less 60, 0.005 to within 4E-15.
             GeoEllipse2 oval = Oval();
@@ -290,7 +312,10 @@ namespace GeometryHelper.UnitTest.Plane
 
                 case "chain five tolerances off":
                 {
-                    var chain = new GeoPolylineArc2(new[] { start, new GeoPoint2(100, 0), new GeoPoint2(100, 20) }, new[] { 0, 0.3, 0 });
+                    var chain = new GeoPolylineArc2(
+                        new[] { start, new GeoPoint2(100, 0), new GeoPoint2(100, 20) },
+                        new[] { 0, 0.3, 0 }
+                    );
                     AssertMeasured(Tol, expected, oval.DistanceTo(chain, Tol), oval.CollidesWith(chain, Tol));
                     break;
                 }
@@ -298,7 +323,16 @@ namespace GeometryHelper.UnitTest.Plane
                 case "loop holding it":
                 {
                     // Its right side 0.0005 off the end (60, 0): held all the same.
-                    var loop = new GeoPolygonArc2(new[] { new GeoPoint2(-70, -40), new GeoPoint2(60.0005, -40), new GeoPoint2(60.0005, 40), new GeoPoint2(-70, 40) }, new[] { 0, 0, 0.3, 0 });
+                    var loop = new GeoPolygonArc2(
+                        new[]
+                        {
+                            new GeoPoint2(-70, -40),
+                            new GeoPoint2(60.0005, -40),
+                            new GeoPoint2(60.0005, 40),
+                            new GeoPoint2(-70, 40),
+                        },
+                        new[] { 0, 0, 0.3, 0 }
+                    );
                     AssertMeasured(Tol, expected, oval.DistanceTo(loop, Tol), oval.CollidesWith(loop, Tol));
                     break;
                 }

@@ -1,23 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <UseWPF>true</UseWPF>
+        <PlatformTarget>x64</PlatformTarget>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <RootNamespace>GeometryHelper.Dxf.App</RootNamespace>
+        <AssemblyName>GeometryHelper.Dxf.App</AssemblyName>
+        <StartupObject>GeometryHelper.Dxf.App.Program</StartupObject>
+        <Description>GeometryHelper DXF: the standalone app that opens, edits and plots DXF drawings, laid out as AutoCAD 2D.</Description>
+        <IsPackable>false</IsPackable>
+        <NoWarn>$(NoWarn);MSB3277</NoWarn>
+    </PropertyGroup>
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <UseWPF>true</UseWPF>
-    <PlatformTarget>x64</PlatformTarget>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <RootNamespace>GeometryHelper.Dxf.App</RootNamespace>
-    <AssemblyName>GeometryHelper.Dxf.App</AssemblyName>
-    <StartupObject>GeometryHelper.Dxf.App.Program</StartupObject>
-    <Description>GeometryHelper DXF: the standalone app that opens, edits and plots DXF drawings, laid out as AutoCAD 2D.</Description>
-    <IsPackable>false</IsPackable>
-    <NoWarn>$(NoWarn);MSB3277</NoWarn>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\GeometryHelper.Dxf.Viewer.Wpf\GeometryHelper.Dxf.Viewer.Wpf.csproj" />
-    <ProjectReference Include="..\GeometryHelper.Dxf.Viewer\GeometryHelper.Dxf.Viewer.csproj" />
-    <ProjectReference Include="..\GeometryHelper\GeometryHelper.csproj" />
-  </ItemGroup>
-
+    <ItemGroup>
+        <ProjectReference Include="..\GeometryHelper.Dxf.Viewer.Wpf\GeometryHelper.Dxf.Viewer.Wpf.csproj" />
+        <ProjectReference Include="..\GeometryHelper.Dxf.Viewer\GeometryHelper.Dxf.Viewer.csproj" />
+        <ProjectReference Include="..\GeometryHelper\GeometryHelper.csproj" />
+    </ItemGroup>
 </Project>

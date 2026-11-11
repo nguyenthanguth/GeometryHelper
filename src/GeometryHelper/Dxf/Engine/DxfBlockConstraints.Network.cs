@@ -35,7 +35,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A value set as AutoCAD 2021 takes it: read back from the text <see cref="Written"/> gives, as it solved Height 612.3456789012345 of its Fluorescent sample at 612.345678901 (plugin D27b).</summary>
-        internal static double Rounded(double value) => double.Parse(Written(value), NumberStyles.Float, CultureInfo.InvariantCulture);
+        internal static double Rounded(double value) =>
+            double.Parse(Written(value), NumberStyles.Float, CultureInfo.InvariantCulture);
 
         /// <summary>
         /// Takes out the copy of a network an anonymous block holds, where it holds one: each object of the network erased,
@@ -55,7 +56,10 @@ namespace GeometryHelper.Dxf
 
             DxfDBObject held = DxfDynamicProperties.Entry(entry as DxfDBDictionary, "ACAD_ASSOCNETWORK");
             DxfFile file = anonymous.Item.File;
-            List<DxfItem> tree = held?.Item != null && held.Item.Type == "ACDBASSOCNETWORK" ? Tree(file, held.Item) : new List<DxfItem>();
+            List<DxfItem> tree =
+                held?.Item != null && held.Item.Type == "ACDBASSOCNETWORK"
+                    ? Tree(file, held.Item)
+                    : new List<DxfItem>();
             var mine = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             tree.ForEach(i => mine.Add(i.Handle));
 
@@ -99,7 +103,12 @@ namespace GeometryHelper.Dxf
         /// <summary>Points the chain slot (9 the previous, 10 the next) of a dependency outside the network taken out at the handle given.</summary>
         private static void Relink(DxfFile file, string handle, HashSet<string> mine, int slot, string to)
         {
-            if (handle == "0" || mine.Contains(handle) || !(file.ObjectItem(handle) is DxfItem other) || other.IsRemoved)
+            if (
+                handle == "0"
+                || mine.Contains(handle)
+                || !(file.ObjectItem(handle) is DxfItem other)
+                || other.IsRemoved
+            )
             {
                 return;
             }
@@ -125,7 +134,16 @@ namespace GeometryHelper.Dxf
             List<KeyValuePair<int, string>> groups = Raw(owner);
             int at = Start(owner.Groups, "AcDbAssocNetwork");
 
-            if (at < 0 || at + 2 >= groups.Count || !int.TryParse(groups[at + 2].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int count))
+            if (
+                at < 0
+                || at + 2 >= groups.Count
+                || !int.TryParse(
+                    groups[at + 2].Value.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int count
+                )
+            )
             {
                 return;
             }
@@ -135,7 +153,10 @@ namespace GeometryHelper.Dxf
                 if (string.Equals(groups[i].Value.Trim(), network.Handle, StringComparison.OrdinalIgnoreCase))
                 {
                     groups.RemoveAt(i);
-                    groups[at + 2] = new KeyValuePair<int, string>(90, (count - 1).ToString(CultureInfo.InvariantCulture));
+                    groups[at + 2] = new KeyValuePair<int, string>(
+                        90,
+                        (count - 1).ToString(CultureInfo.InvariantCulture)
+                    );
                     file.ReplaceTail(owner, 0, groups);
                     return;
                 }
@@ -146,7 +167,10 @@ namespace GeometryHelper.Dxf
         private static DxfItem OwningNetwork(DxfFile file, DxfItem network)
         {
             int at = Start(network.Groups, "AcDbAssocAction");
-            DxfItem owner = at < 0 || at + 2 >= network.Groups.Count || network.Groups[at + 2].TypeCode != 330 ? null : file.ObjectItem(network.Groups[at + 2].Value.Trim());
+            DxfItem owner =
+                at < 0 || at + 2 >= network.Groups.Count || network.Groups[at + 2].TypeCode != 330
+                    ? null
+                    : file.ObjectItem(network.Groups[at + 2].Value.Trim());
             return owner != null && owner.Type == "ACDBASSOCNETWORK" && !owner.IsRemoved ? owner : null;
         }
 
@@ -167,7 +191,13 @@ namespace GeometryHelper.Dxf
         /// having worked, as AutoCAD wrote the lines of its Window sample flipped. Nothing is written where the constraints
         /// hold a node the library does not read, the network is owned by no network, or a geometry's copy cannot be read.
         /// </summary>
-        internal void Copy(DxfBlockTableRecord anonymous, IReadOnlyDictionary<string, DxfEntity> sources, IReadOnlyDictionary<string, DxfEntity> copies, IDictionary<string, double> given, IReadOnlyDictionary<string, object> held)
+        internal void Copy(
+            DxfBlockTableRecord anonymous,
+            IReadOnlyDictionary<string, DxfEntity> sources,
+            IReadOnlyDictionary<string, DxfEntity> copies,
+            IDictionary<string, double> given,
+            IReadOnlyDictionary<string, object> held
+        )
         {
             DxfFile file = _file;
             DxfItem top = OwningNetwork(file, _network);
@@ -199,7 +229,15 @@ namespace GeometryHelper.Dxf
             // the block has it.
             foreach (Node shape in _shapes)
             {
-                List<Node> on = shape.Kind != Kind.Construction ? null : shape.Links.FindAll(r => r != null && r.Class == "AcPointCurveConstraint" && r.Links.Count > 0 && Is(r.Links[0], Kind.Point));
+                List<Node> on =
+                    shape.Kind != Kind.Construction
+                        ? null
+                        : shape.Links.FindAll(r =>
+                            r != null
+                            && r.Class == "AcPointCurveConstraint"
+                            && r.Links.Count > 0
+                            && Is(r.Links[0], Kind.Point)
+                        );
 
                 if (on == null)
                 {
@@ -218,7 +256,10 @@ namespace GeometryHelper.Dxf
                 x[shape.At + 2] = q[0];
                 x[shape.At + 3] = q[1];
 
-                if (!Put(patched[shape.Group.Handle], shape.DataAt, 0, p) || !Put(patched[shape.Group.Handle], shape.DataAt, 1, Minus(q, p)))
+                if (
+                    !Put(patched[shape.Group.Handle], shape.DataAt, 0, p)
+                    || !Put(patched[shape.Group.Handle], shape.DataAt, 1, Minus(q, p))
+                )
                 {
                     return;
                 }
@@ -236,9 +277,20 @@ namespace GeometryHelper.Dxf
                 b.Group(100, "AcDbDictionary");
                 b.Group(281, "1");
             });
-            DxfItem network = ((DxfDBDictionary)DxfDBObject.OfObject(dictionary)).Add("ACAD_ASSOCNETWORK", "ACDBASSOCNETWORK", b => b.Group(100, "AcDbAssocAction"));
-            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [inner.Handle] = dictionary.Handle, [_network.Handle] = network.Handle };
-            var made = new Dictionary<string, DxfItem>(StringComparer.OrdinalIgnoreCase) { [_network.Handle] = network };
+            DxfItem network = ((DxfDBDictionary)DxfDBObject.OfObject(dictionary)).Add(
+                "ACAD_ASSOCNETWORK",
+                "ACDBASSOCNETWORK",
+                b => b.Group(100, "AcDbAssocAction")
+            );
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                [inner.Handle] = dictionary.Handle,
+                [_network.Handle] = network.Handle,
+            };
+            var made = new Dictionary<string, DxfItem>(StringComparer.OrdinalIgnoreCase)
+            {
+                [_network.Handle] = network,
+            };
 
             foreach (DxfItem item in tree)
             {
@@ -261,16 +313,29 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfItem item in tree)
             {
-                List<KeyValuePair<int, string>> groups = patched.TryGetValue(item.Handle, out List<KeyValuePair<int, string>> own) ? own : Raw(item);
+                List<KeyValuePair<int, string>> groups = patched.TryGetValue(
+                    item.Handle,
+                    out List<KeyValuePair<int, string>> own
+                )
+                    ? own
+                    : Raw(item);
                 int dependency = Start(item.Groups, "AcDbAssocDependency");
-                string outside = dependency >= 0 && Dependency(item.Groups, dependency) && !map.ContainsKey(groups[dependency + 7].Value.Trim()) ? groups[dependency + 7].Value.Trim() : null;
+                string outside =
+                    dependency >= 0
+                    && Dependency(item.Groups, dependency)
+                    && !map.ContainsKey(groups[dependency + 7].Value.Trim())
+                        ? groups[dependency + 7].Value.Trim()
+                        : null;
                 DxfItem target = outside == null ? null : file.ObjectItem(outside);
 
                 for (int i = 0; i < groups.Count; i++)
                 {
                     int code = groups[i].Key;
 
-                    if ((code == 330 || code == 340 || code == 350 || code == 360) && map.TryGetValue(groups[i].Value.Trim(), out string to))
+                    if (
+                        (code == 330 || code == 340 || code == 350 || code == 360)
+                        && map.TryGetValue(groups[i].Value.Trim(), out string to)
+                    )
                     {
                         groups[i] = new KeyValuePair<int, string>(code, to);
                     }
@@ -327,7 +392,11 @@ namespace GeometryHelper.Dxf
             {
                 int at = Start(item.Groups, "AcDbAssocDependency");
 
-                if (at >= 0 && Dependency(item.Groups, at) && copies.TryGetValue(item.Groups[at + 7].Value.Trim(), out DxfEntity entity))
+                if (
+                    at >= 0
+                    && Dependency(item.Groups, at)
+                    && copies.TryGetValue(item.Groups[at + 7].Value.Trim(), out DxfEntity entity)
+                )
                 {
                     file.SetReactor(entity.Item, map[item.Handle], true);
                 }
@@ -338,13 +407,23 @@ namespace GeometryHelper.Dxf
             foreach (Rule rule in _rules)
             {
                 List<DxfTypedValue> ties = rule.Variable == null ? null : rule.Rest.FindAll(g => g.TypeCode == 340);
-                DxfItem tie = ties == null || ties.Count < 2 ? null : file.ObjectItem(ties[1].Value?.Trim() ?? string.Empty);
+                DxfItem tie =
+                    ties == null || ties.Count < 2 ? null : file.ObjectItem(ties[1].Value?.Trim() ?? string.Empty);
                 int at = tie == null ? -1 : Start(tie.Groups, "AcDbAssocDependency");
 
-                if (at >= 0 && Dependency(tie.Groups, at) && copies.TryGetValue(tie.Groups[at + 7].Value.Trim(), out DxfEntity entity) && entity is DxfDimension dimension
-                    && values.TryGetValue(rule.Variable.Name, out double now))
+                if (
+                    at >= 0
+                    && Dependency(tie.Groups, at)
+                    && copies.TryGetValue(tie.Groups[at + 7].Value.Trim(), out DxfEntity entity)
+                    && entity is DxfDimension dimension
+                    && values.TryGetValue(rule.Variable.Name, out double now)
+                )
                 {
-                    dimension.DimensionText = Shown(now, file.Database, rule.Class.EndsWith("AngleConstraint", StringComparison.Ordinal));
+                    dimension.DimensionText = Shown(
+                        now,
+                        file.Database,
+                        rule.Class.EndsWith("AngleConstraint", StringComparison.Ordinal)
+                    );
                     Measure(rule, dimension, x);
                 }
             }
@@ -362,8 +441,23 @@ namespace GeometryHelper.Dxf
             List<KeyValuePair<int, string>> groups = Raw(top);
             int at = Start(top.Groups, "AcDbAssocNetwork");
 
-            if (at < 0 || at + 2 >= groups.Count || !int.TryParse(groups[at + 1].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int next)
-                || !int.TryParse(groups[at + 2].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int count) || at + 3 + count > groups.Count)
+            if (
+                at < 0
+                || at + 2 >= groups.Count
+                || !int.TryParse(
+                    groups[at + 1].Value.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int next
+                )
+                || !int.TryParse(
+                    groups[at + 2].Value.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int count
+                )
+                || at + 3 + count > groups.Count
+            )
             {
                 return;
             }
@@ -386,11 +480,24 @@ namespace GeometryHelper.Dxf
 
             foreach (KeyValuePair<int, string> group in own)
             {
-                if (group.Key == 360 && file.ObjectItem(group.Value.Trim()) is DxfItem child && !ReferenceEquals(child, network))
+                if (
+                    group.Key == 360
+                    && file.ObjectItem(group.Value.Trim()) is DxfItem child
+                    && !ReferenceEquals(child, network)
+                )
                 {
                     int head = Start(child.Groups, "AcDbAssocAction");
 
-                    if (head >= 0 && head + 4 < child.Groups.Count && int.TryParse(child.Groups[head + 4].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int index))
+                    if (
+                        head >= 0
+                        && head + 4 < child.Groups.Count
+                        && int.TryParse(
+                            child.Groups[head + 4].Value.Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out int index
+                        )
+                    )
                     {
                         highest = Math.Max(highest, index);
                     }
@@ -431,93 +538,131 @@ namespace GeometryHelper.Dxf
         /// Writes the values set into a copy of an object of the network: a variable's value and expression, a dependency on a
         /// variable's value, a body of a dimension or a parameter its text, as <see cref="Copy"/> says.
         /// </summary>
-        private void Values(DxfItem item, List<KeyValuePair<int, string>> groups, Dictionary<string, double> values, Dictionary<string, bool> wholes, IReadOnlyDictionary<string, object> held)
+        private void Values(
+            DxfItem item,
+            List<KeyValuePair<int, string>> groups,
+            Dictionary<string, double> values,
+            Dictionary<string, bool> wholes,
+            IReadOnlyDictionary<string, object> held
+        )
         {
             switch (item.Type)
             {
                 case "ACDBASSOCVARIABLE":
+                {
+                    int at = Start(item.Groups, "AcDbAssocVariable");
+                    Variable variable = _variables.Find(v =>
+                        string.Equals(v.Handle, item.Handle, StringComparison.OrdinalIgnoreCase)
+                    );
+
+                    if (at < 0 || variable == null || at + 5 >= groups.Count)
                     {
-                        int at = Start(item.Groups, "AcDbAssocVariable");
-                        Variable variable = _variables.Find(v => string.Equals(v.Handle, item.Handle, StringComparison.OrdinalIgnoreCase));
+                        return;
+                    }
 
-                        if (at < 0 || variable == null || at + 5 >= groups.Count)
+                    if (held.TryGetValue(item.Handle, out object user))
+                    {
+                        if (user is string text && !(variable.Value is string own && own == text))
                         {
-                            return;
+                            groups[at + 5] = new KeyValuePair<int, string>(1, text);
                         }
-
-                        if (held.TryGetValue(item.Handle, out object user))
+                        else if (user is double real && !(variable.Value is double was && was.Equals(real)))
                         {
-                            if (user is string text && !(variable.Value is string own && own == text))
-                            {
-                                groups[at + 5] = new KeyValuePair<int, string>(1, text);
-                            }
-                            else if (user is double real && !(variable.Value is double was && was.Equals(real)))
-                            {
-                                groups[at + 5] = new KeyValuePair<int, string>(40, Numbers.Exact(real + 0.0));
-                            }
-
-                            return;
-                        }
-
-                        if (Changed(variable.Name, variable, values, wholes, out KeyValuePair<int, string> value))
-                        {
-                            groups[at + 5] = value;
-
-                            if (!variable.Worked)
-                            {
-                                groups[at + 2] = new KeyValuePair<int, string>(1, Written(values[variable.Name]));
-                            }
+                            groups[at + 5] = new KeyValuePair<int, string>(40, Numbers.Exact(real + 0.0));
                         }
 
                         return;
                     }
+
+                    if (Changed(variable.Name, variable, values, wholes, out KeyValuePair<int, string> value))
+                    {
+                        groups[at + 5] = value;
+
+                        if (!variable.Worked)
+                        {
+                            groups[at + 2] = new KeyValuePair<int, string>(1, Written(values[variable.Name]));
+                        }
+                    }
+
+                    return;
+                }
 
                 case "ACDBASSOCVALUEDEPENDENCY":
+                {
+                    int at = Start(item.Groups, "AcDbAssocValueDependency");
+                    int head = Start(item.Groups, "AcDbAssocDependency");
+                    string on = head >= 0 && Dependency(item.Groups, head) ? item.Groups[head + 7].Value.Trim() : null;
+                    Variable variable = _variables.Find(v =>
+                        string.Equals(v.Handle, on, StringComparison.OrdinalIgnoreCase)
+                    );
+
+                    if (at < 0 || variable == null || at + 2 >= groups.Count)
                     {
-                        int at = Start(item.Groups, "AcDbAssocValueDependency");
-                        int head = Start(item.Groups, "AcDbAssocDependency");
-                        string on = head >= 0 && Dependency(item.Groups, head) ? item.Groups[head + 7].Value.Trim() : null;
-                        Variable variable = _variables.Find(v => string.Equals(v.Handle, on, StringComparison.OrdinalIgnoreCase));
-
-                        if (at < 0 || variable == null || at + 2 >= groups.Count)
-                        {
-                            return;
-                        }
-
-                        if (held.TryGetValue(variable.Handle, out object user))
-                        {
-                            groups[at + 2] = user is string text ? new KeyValuePair<int, string>(1, text) : new KeyValuePair<int, string>(40, Numbers.Exact((double)user + 0.0));
-                        }
-                        else if (Changed(variable.Name, variable, values, wholes, out KeyValuePair<int, string> value))
-                        {
-                            groups[at + 2] = value;
-                        }
-
                         return;
                     }
+
+                    if (held.TryGetValue(variable.Handle, out object user))
+                    {
+                        groups[at + 2] = user is string text
+                            ? new KeyValuePair<int, string>(1, text)
+                            : new KeyValuePair<int, string>(40, Numbers.Exact((double)user + 0.0));
+                    }
+                    else if (Changed(variable.Name, variable, values, wholes, out KeyValuePair<int, string> value))
+                    {
+                        groups[at + 2] = value;
+                    }
+
+                    return;
+                }
 
                 case "ASSOCDIMDEPENDENCYBODY":
                 case "BLOCKPARAMDEPENDENCYBODY":
+                {
+                    int at = Start(item.Groups, "AcDbImpAssocDimDependencyBodyBase");
+                    string owner = _file.OwnerOf(item);
+                    Rule rule = _rules.Find(r =>
+                        r.Variable != null
+                        && r.Rest.FindAll(g => g.TypeCode == 340).Count > 1
+                        && string.Equals(
+                            r.Rest.FindAll(g => g.TypeCode == 340)[1].Value?.Trim(),
+                            owner,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    );
+
+                    if (
+                        at < 0
+                        || rule == null
+                        || at + 1 >= groups.Count
+                        || groups[at + 1].Key != 1
+                        || !values.TryGetValue(rule.Variable.Name, out double now)
+                    )
                     {
-                        int at = Start(item.Groups, "AcDbImpAssocDimDependencyBodyBase");
-                        string owner = _file.OwnerOf(item);
-                        Rule rule = _rules.Find(r => r.Variable != null && r.Rest.FindAll(g => g.TypeCode == 340).Count > 1
-                            && string.Equals(r.Rest.FindAll(g => g.TypeCode == 340)[1].Value?.Trim(), owner, StringComparison.OrdinalIgnoreCase));
-
-                        if (at < 0 || rule == null || at + 1 >= groups.Count || groups[at + 1].Key != 1 || !values.TryGetValue(rule.Variable.Name, out double now))
-                        {
-                            return;
-                        }
-
-                        string shown = Shown(now, _file.Database, rule.Class.EndsWith("AngleConstraint", StringComparison.Ordinal));
-                        groups[at + 1] = new KeyValuePair<int, string>(1, item.Type == "ASSOCDIMDEPENDENCYBODY" ? shown : rule.Variable.Name + "=" + shown);
                         return;
                     }
+
+                    string shown = Shown(
+                        now,
+                        _file.Database,
+                        rule.Class.EndsWith("AngleConstraint", StringComparison.Ordinal)
+                    );
+                    groups[at + 1] = new KeyValuePair<int, string>(
+                        1,
+                        item.Type == "ASSOCDIMDEPENDENCYBODY" ? shown : rule.Variable.Name + "=" + shown
+                    );
+                    return;
+                }
             }
         }
 
         /// <summary>Whether a numeric variable's value at the values set is not the one it keeps, and its group if so: a whole value (90) or a real (40).</summary>
-        private static bool Changed(string name, Variable variable, Dictionary<string, double> values, Dictionary<string, bool> wholes, out KeyValuePair<int, string> group)
+        private static bool Changed(
+            string name,
+            Variable variable,
+            Dictionary<string, double> values,
+            Dictionary<string, bool> wholes,
+            out KeyValuePair<int, string> group
+        )
         {
             group = default(KeyValuePair<int, string>);
 
@@ -533,9 +678,10 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            group = whole && Math.Abs(now) < 2147483648.0
-                ? new KeyValuePair<int, string>(90, ((long)Math.Round(now)).ToString(CultureInfo.InvariantCulture))
-                : new KeyValuePair<int, string>(40, Numbers.Exact(now + 0.0));
+            group =
+                whole && Math.Abs(now) < 2147483648.0
+                    ? new KeyValuePair<int, string>(90, ((long)Math.Round(now)).ToString(CultureInfo.InvariantCulture))
+                    : new KeyValuePair<int, string>(40, Numbers.Exact(now + 0.0));
             return true;
         }
 
@@ -549,14 +695,20 @@ namespace GeometryHelper.Dxf
         {
             int places = angle ? database?.Auprec ?? 0 : database?.Luprec ?? 4;
             int zeros = database?.Dimzin ?? 0;
-            string text = value.ToString("F" + places.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+            string text = value.ToString(
+                "F" + places.ToString(CultureInfo.InvariantCulture),
+                CultureInfo.InvariantCulture
+            );
 
             if ((zeros & 8) != 0 && text.IndexOf('.') >= 0)
             {
                 text = text.TrimEnd('0').TrimEnd('.');
             }
 
-            if ((zeros & 4) != 0 && (text.StartsWith("0.", StringComparison.Ordinal) || text.StartsWith("-0.", StringComparison.Ordinal)))
+            if (
+                (zeros & 4) != 0
+                && (text.StartsWith("0.", StringComparison.Ordinal) || text.StartsWith("-0.", StringComparison.Ordinal))
+            )
             {
                 text = text.Replace("0.", ".");
             }
@@ -569,13 +721,24 @@ namespace GeometryHelper.Dxf
         /// base point, direction, start and end, an arc its centre, radius, start and end, a circle its centre and radius, of
         /// a LINE, an ARC, a CIRCLE or an edge of an LWPOLYLINE as the copy has it; false where the copy cannot be read so.
         /// </summary>
-        private bool Snapshot(Node shape, IReadOnlyDictionary<string, DxfEntity> sources, IReadOnlyDictionary<string, DxfEntity> copies, List<KeyValuePair<int, string>> groups, double[] x)
+        private bool Snapshot(
+            Node shape,
+            IReadOnlyDictionary<string, DxfEntity> sources,
+            IReadOnlyDictionary<string, DxfEntity> copies,
+            List<KeyValuePair<int, string>> groups,
+            double[] x
+        )
         {
             DxfItem dependency = shape.Dependency == null ? null : _file.ObjectItem(shape.Dependency);
-            List<DxfTypedValue> held = dependency == null ? null : DxfDynamicProperties.Section(dependency.Groups, "AcDbAssocDependency");
+            List<DxfTypedValue> held =
+                dependency == null ? null : DxfDynamicProperties.Section(dependency.Groups, "AcDbAssocDependency");
             string handle = held == null ? null : DxfDynamicProperties.Text(held, 330)?.Trim();
 
-            if (handle == null || !sources.TryGetValue(handle, out DxfEntity source) || !copies.TryGetValue(handle, out DxfEntity copy))
+            if (
+                handle == null
+                || !sources.TryGetValue(handle, out DxfEntity source)
+                || !copies.TryGetValue(handle, out DxfEntity copy)
+            )
             {
                 return false;
             }
@@ -597,8 +760,16 @@ namespace GeometryHelper.Dxf
             {
                 centre = new[] { arc.Center.X, arc.Center.Y };
                 radius = arc.Radius;
-                start = new[] { centre[0] + radius * Math.Cos(arc.StartAngle), centre[1] + radius * Math.Sin(arc.StartAngle) };
-                end = new[] { centre[0] + radius * Math.Cos(arc.EndAngle), centre[1] + radius * Math.Sin(arc.EndAngle) };
+                start = new[]
+                {
+                    centre[0] + radius * Math.Cos(arc.StartAngle),
+                    centre[1] + radius * Math.Sin(arc.StartAngle),
+                };
+                end = new[]
+                {
+                    centre[0] + radius * Math.Cos(arc.EndAngle),
+                    centre[1] + radius * Math.Sin(arc.EndAngle),
+                };
             }
             else if (kind == "AcDbAssocSingleEdgePersSubentId" && copy is DxfCircle circle && shape.Kind == Kind.Circle)
             {
@@ -606,14 +777,28 @@ namespace GeometryHelper.Dxf
                 radius = circle.Radius;
                 start = end = centre;
             }
-            else if (kind == "AcDbAssocEdgePersSubentId" && named + 3 < part.Count && copy is DxfPolyline polyline && source is DxfPolyline own
-                && Whole(part[named + 2], out int from) && Whole(part[named + 3], out int to))
+            else if (
+                kind == "AcDbAssocEdgePersSubentId"
+                && named + 3 < part.Count
+                && copy is DxfPolyline polyline
+                && source is DxfPolyline own
+                && Whole(part[named + 2], out int from)
+                && Whole(part[named + 3], out int to)
+            )
             {
-                List<int> ids = DxfDynamicProperties.Section(own.Item.Groups, "AcDbPolyline").FindAll(g => g.TypeCode == 91).ConvertAll(g => Whole(g, out int id) ? id : int.MinValue);
+                List<int> ids = DxfDynamicProperties
+                    .Section(own.Item.Groups, "AcDbPolyline")
+                    .FindAll(g => g.TypeCode == 91)
+                    .ConvertAll(g => Whole(g, out int id) ? id : int.MinValue);
                 int i = ids.IndexOf(from);
                 int j = ids.IndexOf(to);
 
-                if (i < 0 || j < 0 || ids.Count != polyline.NumberOfVertices || (shape.Kind != Kind.Line && shape.Kind != Kind.Arc))
+                if (
+                    i < 0
+                    || j < 0
+                    || ids.Count != polyline.NumberOfVertices
+                    || (shape.Kind != Kind.Line && shape.Kind != Kind.Arc)
+                )
                 {
                     return false;
                 }
@@ -633,7 +818,8 @@ namespace GeometryHelper.Dxf
 
                     // The centre lies off the chord's middle to its left by half the chord times (1 - b^2) / (2 b); an arc of a
                     // negative bulge runs counter-clockwise from the edge's end to its start.
-                    double dx = b.X - a.X, dy = b.Y - a.Y;
+                    double dx = b.X - a.X,
+                        dy = b.Y - a.Y;
                     double chord = Math.Sqrt(dx * dx + dy * dy);
                     double off = (1.0 - bulge * bulge) / (4.0 * bulge);
                     centre = new[] { 0.5 * (a.X + b.X) - dy * off, 0.5 * (a.Y + b.Y) + dx * off };
@@ -657,7 +843,9 @@ namespace GeometryHelper.Dxf
             switch (shape.Kind)
             {
                 case Kind.Line:
-                    double length = Math.Sqrt((end[0] - start[0]) * (end[0] - start[0]) + (end[1] - start[1]) * (end[1] - start[1]));
+                    double length = Math.Sqrt(
+                        (end[0] - start[0]) * (end[0] - start[0]) + (end[1] - start[1]) * (end[1] - start[1])
+                    );
 
                     if (!(length > 0.0))
                     {
@@ -668,15 +856,25 @@ namespace GeometryHelper.Dxf
                     x[at + 1] = start[1];
                     x[at + 2] = end[0];
                     x[at + 3] = end[1];
-                    return Put(groups, shape.DataAt, 0, start) && Put(groups, shape.DataAt, 1, new[] { (end[0] - start[0]) / length, (end[1] - start[1]) / length })
-                        && Put(groups, shape.DataAt, 2, start) && Put(groups, shape.DataAt, 3, end);
+                    return Put(groups, shape.DataAt, 0, start)
+                        && Put(
+                            groups,
+                            shape.DataAt,
+                            1,
+                            new[] { (end[0] - start[0]) / length, (end[1] - start[1]) / length }
+                        )
+                        && Put(groups, shape.DataAt, 2, start)
+                        && Put(groups, shape.DataAt, 3, end);
                 case Kind.Arc:
                     x[at] = centre[0];
                     x[at + 1] = centre[1];
                     x[at + 2] = radius;
                     x[at + 3] = Math.Atan2(start[1] - centre[1], start[0] - centre[0]);
                     x[at + 4] = Math.Atan2(end[1] - centre[1], end[0] - centre[0]);
-                    return Put(groups, shape.DataAt, 0, centre) && Put(groups, shape.DataAt, 3, start) && Put(groups, shape.DataAt, 4, end) && PutRadius(groups, shape.DataAt, radius);
+                    return Put(groups, shape.DataAt, 0, centre)
+                        && Put(groups, shape.DataAt, 3, start)
+                        && Put(groups, shape.DataAt, 4, end)
+                        && PutRadius(groups, shape.DataAt, radius);
                 default:
                     x[at] = centre[0];
                     x[at + 1] = centre[1];
@@ -727,13 +925,15 @@ namespace GeometryHelper.Dxf
                 bool turned = Far(first, p0) + Far(second, q0) > Far(first, q0) + Far(second, p0);
                 double[] one = turned ? q : p;
                 double[] two = turned ? p : q;
-                double dx = two[0] - second.X, dy = two[1] - second.Y;
+                double dx = two[0] - second.X,
+                    dy = two[1] - second.Y;
 
                 // A rotated dimension's line point is where its line meets the second extension line, as AutoCAD 2021 put
                 // Fluorescent's Width at (550, -91.28) once its second point came to x = 550.
                 if (dimension is DxfRotatedDimension along)
                 {
-                    double cos = Math.Cos(along.Rotation), sin = Math.Sin(along.Rotation);
+                    double cos = Math.Cos(along.Rotation),
+                        sin = Math.Sin(along.Rotation);
                     double run = (two[0] - line.X) * cos + (two[1] - line.Y) * sin;
                     dx = run * cos;
                     dy = run * sin;
@@ -775,7 +975,8 @@ namespace GeometryHelper.Dxf
 
                 GeoPoint3[] points = { angular.XLine1Start, angular.XLine1End, angular.XLine2Start, angular.XLine2End };
                 var moved = new GeoPoint3[4];
-                double dx = 0.0, dy = 0.0;
+                double dx = 0.0,
+                    dy = 0.0;
 
                 for (int i = 0; i < 4; i++)
                 {
@@ -817,7 +1018,10 @@ namespace GeometryHelper.Dxf
                 double[] o = Point(rule.Links[0], x);
                 GeoPoint3 Move(GeoPoint3 p)
                 {
-                    Node nearest = Far(p, Point(rule.Links[1], start)) <= Far(p, Point(rule.Links[2], start)) ? rule.Links[1] : rule.Links[2];
+                    Node nearest =
+                        Far(p, Point(rule.Links[1], start)) <= Far(p, Point(rule.Links[2], start))
+                            ? rule.Links[1]
+                            : rule.Links[2];
                     double[] was = Point(nearest, start);
                     double[] now = Point(nearest, x);
                     return new GeoPoint3(p.X + now[0] - was[0], p.Y + now[1] - was[1], p.Z);
@@ -826,7 +1030,8 @@ namespace GeometryHelper.Dxf
                 GeoPoint3 centre = three.CenterPoint;
                 GeoPoint3 arc = three.ArcPoint;
                 GeoPoint3 text = dimension.TextPosition;
-                double dx = o[0] - o0[0], dy = o[1] - o0[1];
+                double dx = o[0] - o0[0],
+                    dy = o[1] - o0[1];
                 three.XLine1Point = Move(three.XLine1Point);
                 three.XLine2Point = Move(three.XLine2Point);
                 three.CenterPoint = new GeoPoint3(centre.X + dx, centre.Y + dy, centre.Z);
@@ -838,7 +1043,8 @@ namespace GeometryHelper.Dxf
                 Node round = rule.Links[0];
                 GeoPoint3 centre = radial.Center;
                 GeoPoint3 chord = radial.ChordPoint;
-                double ux = chord.X - centre.X, uy = chord.Y - centre.Y;
+                double ux = chord.X - centre.X,
+                    uy = chord.Y - centre.Y;
                 double length = Math.Sqrt(ux * ux + uy * uy);
 
                 if (!(length > 0.0))
@@ -847,7 +1053,8 @@ namespace GeometryHelper.Dxf
                 }
 
                 double r = x[round.At + 2];
-                double cx = x[round.At], cy = x[round.At + 1];
+                double cx = x[round.At],
+                    cy = x[round.At + 1];
                 GeoPoint3 text = dimension.TextPosition;
                 radial.Center = new GeoPoint3(cx, cy, centre.Z);
                 radial.ChordPoint = new GeoPoint3(cx + ux / length * r, cy + uy / length * r, chord.Z);
@@ -925,7 +1132,12 @@ namespace GeometryHelper.Dxf
 
                 foreach (DxfTypedValue group in item.Groups)
                 {
-                    if (group.TypeCode == 360 && file.ObjectItem(group.Value?.Trim() ?? string.Empty) is DxfItem owned && !owned.IsRemoved && seen.Add(owned.Handle))
+                    if (
+                        group.TypeCode == 360
+                        && file.ObjectItem(group.Value?.Trim() ?? string.Empty) is DxfItem owned
+                        && !owned.IsRemoved
+                        && seen.Add(owned.Handle)
+                    )
                     {
                         queue.Enqueue(owned);
                     }
@@ -968,7 +1180,11 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether a dependency's groups from the place given are as every sample writes them: the object it depends on (330, its eighth), then a 290, the previous and the next dependency on that object (330, 330).</summary>
-        private static bool Dependency(IReadOnlyList<DxfTypedValue> groups, int at)
-            => at + 10 < groups.Count && groups[at + 7].TypeCode == 330 && groups[at + 8].TypeCode == 290 && groups[at + 9].TypeCode == 330 && groups[at + 10].TypeCode == 330;
+        private static bool Dependency(IReadOnlyList<DxfTypedValue> groups, int at) =>
+            at + 10 < groups.Count
+            && groups[at + 7].TypeCode == 330
+            && groups[at + 8].TypeCode == 290
+            && groups[at + 9].TypeCode == 330
+            && groups[at + 10].TypeCode == 330;
     }
 }

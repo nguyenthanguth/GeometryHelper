@@ -43,12 +43,66 @@ namespace GeometryHelper.Dxf
     public sealed partial class DxfMText : DxfEntity
     {
         // The groups of AcDbMText in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 10, 20, 30, 40, 41, 46, 71, 72, 3, 1, 7, 210, 220, 230, 11, 21, 31, 42, 43, 50, 73, 44, 90, 63, 421, 431, 45, 441 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[]
+            {
+                100,
+                10,
+                20,
+                30,
+                40,
+                41,
+                46,
+                71,
+                72,
+                3,
+                1,
+                7,
+                210,
+                220,
+                230,
+                11,
+                21,
+                31,
+                42,
+                43,
+                50,
+                73,
+                44,
+                90,
+                63,
+                421,
+                431,
+                45,
+                441,
+            }
+        );
 
         private static readonly int[] Words = { 1, 3 };
 
         // The groups of the object an MTEXT of R2018 embeds for its columns (101 on), in the order ezdxf and AutoCAD write them.
-        private static readonly int[] EmbeddedOrder = { 101, 70, 10, 20, 30, 11, 21, 31, 40, 41, 42, 43, 71, 72, 44, 45, 73, 74, 46 };
+        private static readonly int[] EmbeddedOrder =
+        {
+            101,
+            70,
+            10,
+            20,
+            30,
+            11,
+            21,
+            31,
+            40,
+            41,
+            42,
+            43,
+            71,
+            72,
+            44,
+            45,
+            73,
+            74,
+            46,
+        };
 
         // Single spacing of the lines against the height of the letters, as AutoCAD spaces them.
         private const double SingleSpacing = 5.0 / 3.0;
@@ -67,24 +121,26 @@ namespace GeometryHelper.Dxf
         /// layer 0 in the text style Standard, in no file; give it its words and place before it is drawn.
         /// </summary>
         public DxfMText()
-            : base("MTEXT", new[]
-            {
-                new DxfTypedValue(100, "AcDbMText"), new DxfTypedValue(10, "0"), new DxfTypedValue(20, "0"), new DxfTypedValue(30, "0"),
-                new DxfTypedValue(40, "2.5"), new DxfTypedValue(71, "1"), new DxfTypedValue(1, string.Empty),
-            })
-        {
-        }
+            : base(
+                "MTEXT",
+                new[]
+                {
+                    new DxfTypedValue(100, "AcDbMText"),
+                    new DxfTypedValue(10, "0"),
+                    new DxfTypedValue(20, "0"),
+                    new DxfTypedValue(30, "0"),
+                    new DxfTypedValue(40, "2.5"),
+                    new DxfTypedValue(71, "1"),
+                    new DxfTypedValue(1, string.Empty),
+                }
+            ) { }
 
         private DxfMText(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>An MTEXT made in code of its own groups, its marker AcDbMText first.</summary>
         private DxfMText(IEnumerable<DxfTypedValue> groups)
-            : base("MTEXT", groups)
-        {
-        }
+            : base("MTEXT", groups) { }
 
         /// <summary>
         /// Gets or sets the words of the MTEXT with their formatting (groups 3 and 1), as AutoCAD's <c>Contents</c>: as the file
@@ -110,7 +166,6 @@ namespace GeometryHelper.Dxf
         public string Contents
         {
             get => DxfReader.Decode(DxfReader.Carets(Written));
-
             set
             {
                 if (value == null)
@@ -121,14 +176,20 @@ namespace GeometryHelper.Dxf
                 // The words it has, as the file writes them or as they read, a line break read from an escape among them, change nothing.
                 string written = Written;
 
-                if (string.Equals(value, written, StringComparison.Ordinal) || string.Equals(value, Contents, StringComparison.Ordinal))
+                if (
+                    string.Equals(value, written, StringComparison.Ordinal)
+                    || string.Equals(value, Contents, StringComparison.Ordinal)
+                )
                 {
                     return;
                 }
 
                 if (value.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0)
                 {
-                    throw new ArgumentException("The words of an MTEXT have no line break in them: a new paragraph is written \\P.", nameof(value));
+                    throw new ArgumentException(
+                        "The words of an MTEXT have no line break in them: a new paragraph is written \\P.",
+                        nameof(value)
+                    );
                 }
 
                 SetWritten(DxfReader.InCaretForm(value));
@@ -275,9 +336,15 @@ namespace GeometryHelper.Dxf
             get
             {
                 GeoPoint3 own = Point(10, Origin);
-                return Shown(out ContextGroups shown) != null && shown.Has(MTextContext.AtX) && shown.Has(MTextContext.AtY) ? new GeoPoint3(shown.Value(MTextContext.AtX, 0.0), shown.Value(MTextContext.AtY, 0.0), shown.Value(MTextContext.AtZ, own.Z)) : own;
+                return
+                    Shown(out ContextGroups shown) != null && shown.Has(MTextContext.AtX) && shown.Has(MTextContext.AtY)
+                    ? new GeoPoint3(
+                        shown.Value(MTextContext.AtX, 0.0),
+                        shown.Value(MTextContext.AtY, 0.0),
+                        shown.Value(MTextContext.AtZ, own.Z)
+                    )
+                    : own;
             }
-
             set
             {
                 ShownContexts contexts = Shown(out ContextGroups shown);
@@ -290,7 +357,10 @@ namespace GeometryHelper.Dxf
 
                 if (!value.IsValid)
                 {
-                    throw new ArgumentException("A point has to be of finite numbers: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "A point has to be of finite numbers: " + value + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 GeoPoint3 now = Location;
@@ -329,12 +399,15 @@ namespace GeometryHelper.Dxf
                 ShownContexts contexts = Shown(out _);
                 return contexts == null ? Number(40, 2.5) : Number(40, 2.5) * contexts.HeightFactor;
             }
-
             set
             {
                 if (!Same(value, TextHeight))
                 {
-                    Guard.Positive(value, nameof(value), "The height of a text has to be a finite number above nought.");
+                    Guard.Positive(
+                        value,
+                        nameof(value),
+                        "The height of a text has to be a finite number above nought."
+                    );
                     List<DxfMText> columns = ColumnTexts();
                     ShownContexts contexts = Shown(out _);
                     SetNumber(40, contexts == null ? value : value / contexts.HeightFactor, 2.5);
@@ -372,7 +445,6 @@ namespace GeometryHelper.Dxf
                 ColumnSet columns = SpanningColumns();
                 return columns != null ? Span(columns, true) : ShownWidth();
             }
-
             set
             {
                 ColumnSet columns = SpanningColumns();
@@ -393,18 +465,28 @@ namespace GeometryHelper.Dxf
                     }
                     else
                     {
-                        Guard.NonNegative(value, nameof(value), "The width of an MTEXT has to be a finite number of nought or more.");
+                        Guard.NonNegative(
+                            value,
+                            nameof(value),
+                            "The width of an MTEXT has to be a finite number of nought or more."
+                        );
                     }
 
                     shown?.Write(MTextContext.Wide, value);
                     return;
                 }
 
-                Guard.NonNegative(value, nameof(value), "The width of an MTEXT has to be a finite number of nought or more.");
+                Guard.NonNegative(
+                    value,
+                    nameof(value),
+                    "The width of an MTEXT has to be a finite number of nought or more."
+                );
 
                 if (IsErased)
                 {
-                    throw new InvalidOperationException("The MTEXT " + (Handle ?? string.Empty) + " is erased, and is not changed.");
+                    throw new InvalidOperationException(
+                        "The MTEXT " + (Handle ?? string.Empty) + " is erased, and is not changed."
+                    );
                 }
             }
         }
@@ -417,18 +499,24 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The width the lines wrap at as the MTEXT is read: that of the context it is shown at (40) where it holds one, else <see cref="WrapWidth"/>.</summary>
-        private double ShownWidth() => Shown(out ContextGroups shown) != null && shown.Has(MTextContext.Wide) ? shown.Value(MTextContext.Wide, 0.0) : WrapWidth;
+        private double ShownWidth() =>
+            Shown(out ContextGroups shown) != null && shown.Has(MTextContext.Wide)
+                ? shown.Value(MTextContext.Wide, 0.0)
+                : WrapWidth;
 
         /// <summary>The width of group 41 as the record gives it, nought where it gives none; set, written there.</summary>
         private double WrapWidth
         {
             get => Number(41, 0.0);
-
             set
             {
                 if (!Same(value, WrapWidth))
                 {
-                    Guard.NonNegative(value, nameof(value), "The width of an MTEXT has to be a finite number of nought or more.");
+                    Guard.NonNegative(
+                        value,
+                        nameof(value),
+                        "The width of an MTEXT has to be a finite number of nought or more."
+                    );
                     SetNumber(41, value, 0.0);
                 }
             }
@@ -451,13 +539,19 @@ namespace GeometryHelper.Dxf
         /// R2007 on an MTEXT that is not in columns of one height.</exception>
         public double Height
         {
-            get => Shown(out ContextGroups shown) != null && shown.Has(MTextContext.High) ? shown.Value(MTextContext.High, 0.0) : OwnHeight;
-
+            get =>
+                Shown(out ContextGroups shown) != null && shown.Has(MTextContext.High)
+                    ? shown.Value(MTextContext.High, 0.0)
+                    : OwnHeight;
             set
             {
                 if (!Same(value, Height))
                 {
-                    Guard.NonNegative(value, nameof(value), "The height of an MTEXT's box has to be a finite number of nought or more.");
+                    Guard.NonNegative(
+                        value,
+                        nameof(value),
+                        "The height of an MTEXT's box has to be a finite number of nought or more."
+                    );
 
                     // An annotative one's box is its context's own, as its width is (check D35b).
                     ShownContexts contexts = Shown(out ContextGroups shown);
@@ -476,9 +570,15 @@ namespace GeometryHelper.Dxf
                     {
                         ColumnSet columns = Columns();
 
-                        if (!columns.InXData || columns.Type == DxfColumnType.NoColumns || (columns.Type == DxfColumnType.DynamicColumns && !columns.Auto))
+                        if (
+                            !columns.InXData
+                            || columns.Type == DxfColumnType.NoColumns
+                            || (columns.Type == DxfColumnType.DynamicColumns && !columns.Auto)
+                        )
                         {
-                            throw new InvalidOperationException("A DXF older than R2007 (AC1021) has no height of an MTEXT's box but in the extended data of its columns.");
+                            throw new InvalidOperationException(
+                                "A DXF older than R2007 (AC1021) has no height of an MTEXT's box but in the extended data of its columns."
+                            );
                         }
 
                         columns.Defined = value;
@@ -494,7 +594,10 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The height of the MTEXT's box as its record gives it, as <see cref="Height"/> reads one of no contexts.</summary>
-        private double OwnHeight => Value(46) != null ? Number(46, 0.0) : !Item.File.Supports(1021) ? Columns().Defined ?? 0.0 : OneHeight(Columns());
+        private double OwnHeight =>
+            Value(46) != null ? Number(46, 0.0)
+            : !Item.File.Supports(1021) ? Columns().Defined ?? 0.0
+            : OneHeight(Columns());
 
         /// <summary>
         /// Gets the width the MTEXT's words take, as AutoCAD's <c>ActualWidth</c>: where the drawing's
@@ -548,7 +651,9 @@ namespace GeometryHelper.Dxf
             {
                 DxfMTextLayout layout = Layout();
                 double wrap = Width;
-                return layout == null || layout.Lines.Count != 1 || (wrap > 0.0 && !(layout.ActualWidth < wrap)) ? (double?)null : layout.ActualWidth;
+                return layout == null || layout.Lines.Count != 1 || (wrap > 0.0 && !(layout.ActualWidth < wrap))
+                    ? (double?)null
+                    : layout.ActualWidth;
             }
         }
 
@@ -578,8 +683,12 @@ namespace GeometryHelper.Dxf
                 double left = -(attachment % 3) * wide / 2.0;
                 double top = (attachment / 3) * layout.ActualHeight / 2.0;
                 GeoTransform3 frame = Frame();
-                double minX = double.PositiveInfinity, minY = double.PositiveInfinity, minZ = double.PositiveInfinity;
-                double maxX = double.NegativeInfinity, maxY = double.NegativeInfinity, maxZ = double.NegativeInfinity;
+                double minX = double.PositiveInfinity,
+                    minY = double.PositiveInfinity,
+                    minZ = double.PositiveInfinity;
+                double maxX = double.NegativeInfinity,
+                    maxY = double.NegativeInfinity,
+                    maxZ = double.NegativeInfinity;
 
                 foreach (double x in new[] { left, left + wide })
                 {
@@ -611,13 +720,28 @@ namespace GeometryHelper.Dxf
 
             DxfTextStyleTableRecord style = TextStyle;
 
-            if (style == null || !Same(style.XScale, 1.0) || style.ObliquingAngle != 0.0 || ColumnType != DxfColumnType.NoColumns)
+            if (
+                style == null
+                || !Same(style.XScale, 1.0)
+                || style.ObliquingAngle != 0.0
+                || ColumnType != DxfColumnType.NoColumns
+            )
             {
                 return null;
             }
 
             DxfFont font = fonts.FontOf(style, out DxfFonts.Big big);
-            return font == null ? null : DxfMTextLayout.Of(font, big, Written, TextHeight, Width, LineSpacingFactor, LineSpacingStyle == DxfLineSpacingStyle.Exactly);
+            return font == null
+                ? null
+                : DxfMTextLayout.Of(
+                    font,
+                    big,
+                    Written,
+                    TextHeight,
+                    Width,
+                    LineSpacingFactor,
+                    LineSpacingStyle == DxfLineSpacingStyle.Exactly
+                );
         }
 
         /// <summary>
@@ -634,9 +758,20 @@ namespace GeometryHelper.Dxf
         {
             get
             {
-                if (Shown(out ContextGroups shown) != null && shown.Has(MTextContext.AlongX) && shown.Has(MTextContext.AlongY))
+                if (
+                    Shown(out ContextGroups shown) != null
+                    && shown.Has(MTextContext.AlongX)
+                    && shown.Has(MTextContext.AlongY)
+                )
                 {
-                    GeoVector3 along = Plane(Normal, new GeoVector3(shown.Value(MTextContext.AlongX, 0.0), shown.Value(MTextContext.AlongY, 0.0), shown.Value(MTextContext.AlongZ, 0.0)));
+                    GeoVector3 along = Plane(
+                        Normal,
+                        new GeoVector3(
+                            shown.Value(MTextContext.AlongX, 0.0),
+                            shown.Value(MTextContext.AlongY, 0.0),
+                            shown.Value(MTextContext.AlongZ, 0.0)
+                        )
+                    );
                     return Turn(Math.Atan2(along.Y, along.X));
                 }
 
@@ -648,7 +783,6 @@ namespace GeometryHelper.Dxf
 
                 return Turn(Number(50, 0.0) * (Math.PI / 180.0));
             }
-
             set
             {
                 Guard.Finite(value, nameof(value), "An angle has to be a finite number.");
@@ -685,14 +819,23 @@ namespace GeometryHelper.Dxf
         {
             get
             {
-                if (Shown(out ContextGroups shown) != null && shown.Has(MTextContext.AlongX) && shown.Has(MTextContext.AlongY))
+                if (
+                    Shown(out ContextGroups shown) != null
+                    && shown.Has(MTextContext.AlongX)
+                    && shown.Has(MTextContext.AlongY)
+                )
                 {
-                    return DxfOcsTransform.Normalized(new GeoVector3(shown.Value(MTextContext.AlongX, 0.0), shown.Value(MTextContext.AlongY, 0.0), shown.Value(MTextContext.AlongZ, 0.0)));
+                    return DxfOcsTransform.Normalized(
+                        new GeoVector3(
+                            shown.Value(MTextContext.AlongX, 0.0),
+                            shown.Value(MTextContext.AlongY, 0.0),
+                            shown.Value(MTextContext.AlongZ, 0.0)
+                        )
+                    );
                 }
 
                 return OwnDirection;
             }
-
             set
             {
                 GeoVector3 now = Direction;
@@ -707,7 +850,10 @@ namespace GeometryHelper.Dxf
 
                 if (!value.IsValid || !(length > 0.0) || double.IsInfinity(length))
                 {
-                    throw new ArgumentException("A direction has to be of finite numbers and some length: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "A direction has to be of finite numbers and some length: " + value + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 GeoVector3 unit = DxfOcsTransform.Normalized(value);
@@ -718,11 +864,18 @@ namespace GeometryHelper.Dxf
                 }
 
                 GeoVector3 plane = Plane(Normal, unit);
-                var groups = new List<KeyValuePair<int, string>>(PointChanges(11, new GeoPoint3(unit.X, unit.Y, unit.Z), Origin));
+                var groups = new List<KeyValuePair<int, string>>(
+                    PointChanges(11, new GeoPoint3(unit.X, unit.Y, unit.Z), Origin)
+                );
 
                 if (Value(50) != null)
                 {
-                    groups.Add(new KeyValuePair<int, string>(50, Numbers.Exact(Math.Atan2(plane.Y, plane.X) * (180.0 / Math.PI) + 0.0)));
+                    groups.Add(
+                        new KeyValuePair<int, string>(
+                            50,
+                            Numbers.Exact(Math.Atan2(plane.Y, plane.X) * (180.0 / Math.PI) + 0.0)
+                        )
+                    );
                 }
 
                 ShownContexts contexts = Shown(out ContextGroups shown);
@@ -774,8 +927,10 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased.</exception>
         public DxfAttachmentPoint Attachment
         {
-            get => Shown(out ContextGroups shown) != null && shown.Has(MTextContext.Attached) ? (DxfAttachmentPoint)(int)shown.Value(MTextContext.Attached, 1.0) : OwnAttachment;
-
+            get =>
+                Shown(out ContextGroups shown) != null && shown.Has(MTextContext.Attached)
+                    ? (DxfAttachmentPoint)(int)shown.Value(MTextContext.Attached, 1.0)
+                    : OwnAttachment;
             set
             {
                 if (value == Attachment)
@@ -785,7 +940,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < DxfAttachmentPoint.TopLeft || value > DxfAttachmentPoint.BottomRight)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "An MTEXT is held by one of its nine points, 1 to 9.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "An MTEXT is held by one of its nine points, 1 to 9."
+                    );
                 }
 
                 ShownContexts contexts = Shown(out ContextGroups shown);
@@ -811,7 +970,6 @@ namespace GeometryHelper.Dxf
         public DxfFlowDirection FlowDirection
         {
             get => (DxfFlowDirection)WholeNumber(72, 1);
-
             set
             {
                 if (value == FlowDirection)
@@ -821,7 +979,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < DxfFlowDirection.NotSet || value > DxfFlowDirection.ByStyle)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A flow direction is one of AutoCAD's, 0 to 5.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A flow direction is one of AutoCAD's, 0 to 5."
+                    );
                 }
 
                 SetWhole(72, (int)value, 1);
@@ -837,7 +999,6 @@ namespace GeometryHelper.Dxf
         public DxfLineSpacingStyle LineSpacingStyle
         {
             get => (DxfLineSpacingStyle)WholeNumber(73, 1);
-
             set
             {
                 if (value == LineSpacingStyle)
@@ -847,7 +1008,11 @@ namespace GeometryHelper.Dxf
 
                 if (value != DxfLineSpacingStyle.AtLeast && value != DxfLineSpacingStyle.Exactly)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A line spacing style is 1, at least, or 2, exactly.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A line spacing style is 1, at least, or 2, exactly."
+                    );
                 }
 
                 SetWhole(73, (int)value, 1);
@@ -864,7 +1029,6 @@ namespace GeometryHelper.Dxf
         public double LineSpacingFactor
         {
             get => Number(44, 1.0);
-
             set
             {
                 if (Same(value, LineSpacingFactor))
@@ -874,7 +1038,11 @@ namespace GeometryHelper.Dxf
 
                 if (!(value >= 0.25 && value <= 4.0))
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A line spacing factor runs from 0.25 to 4, as AutoCAD takes it.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A line spacing factor runs from 0.25 to 4, as AutoCAD takes it."
+                    );
                 }
 
                 SetNumber(44, value, 1.0);
@@ -899,7 +1067,6 @@ namespace GeometryHelper.Dxf
                 string name = DxfReader.NameOf(Value(7) ?? string.Empty);
                 return name.Length == 0 ? "Standard" : name;
             }
-
             set
             {
                 if (value == null)
@@ -961,7 +1128,6 @@ namespace GeometryHelper.Dxf
         public GeoVector3 Normal
         {
             get => MNormal();
-
             set
             {
                 KeyValuePair<int, string>[] normal = NormalChanges(value);
@@ -978,7 +1144,11 @@ namespace GeometryHelper.Dxf
                 // Along the x axis of the new plane, annotative or not (check D35c, D35d).
                 Carried(() =>
                 {
-                    Set(contexts == null || contexts.ShownIsDefault ? Join(normal, Turned(unit, 0.0, contexts != null || HasDirection(), Value(50) != null)) : normal);
+                    Set(
+                        contexts == null || contexts.ShownIsDefault
+                            ? Join(normal, Turned(unit, 0.0, contexts != null || HasDirection(), Value(50) != null))
+                            : normal
+                    );
                     WriteDirection(shown, World(unit, new GeoVector3(1.0, 0.0, 0.0)));
                 });
             }
@@ -1015,14 +1185,17 @@ namespace GeometryHelper.Dxf
         public double BackgroundScaleFactor
         {
             get => Number(45, 1.5);
-
             set
             {
                 if (!Same(value, BackgroundScaleFactor))
                 {
                     if (!(value >= 1.0 && value <= 5.0))
                     {
-                        throw new ArgumentOutOfRangeException(nameof(value), value, "A background scale factor runs from 1 to 5, as AutoCAD takes it.");
+                        throw new ArgumentOutOfRangeException(
+                            nameof(value),
+                            value,
+                            "A background scale factor runs from 1 to 5, as AutoCAD takes it."
+                        );
                     }
 
                     Since(1018, "background of an MTEXT");
@@ -1054,7 +1227,6 @@ namespace GeometryHelper.Dxf
 
                 return index.HasValue ? DxfColor.OfIndex(index.Value) : null;
             }
-
             set
             {
                 if (Equals(value, BackgroundFillColor))
@@ -1066,20 +1238,33 @@ namespace GeometryHelper.Dxf
                 {
                     // A background on keeps its 63, BYLAYER, which AutoCAD refuses the file without.
                     string index = (WholeNumber(90, 0) & 3) != 0 ? "256" : null;
-                    Set(new KeyValuePair<int, string>(63, index), new KeyValuePair<int, string>(421, null), new KeyValuePair<int, string>(431, null));
+                    Set(
+                        new KeyValuePair<int, string>(63, index),
+                        new KeyValuePair<int, string>(421, null),
+                        new KeyValuePair<int, string>(431, null)
+                    );
                     return;
                 }
 
                 if (!value.IsByAci && !value.IsByColor)
                 {
-                    throw new ArgumentException("A background is of a colour of the index or a true colour: " + value.ColorMethod + " is neither.", nameof(value));
+                    throw new ArgumentException(
+                        "A background is of a colour of the index or a true colour: "
+                            + value.ColorMethod
+                            + " is neither.",
+                        nameof(value)
+                    );
                 }
 
                 Since(1018, "background of an MTEXT");
                 Set(
                     new KeyValuePair<int, string>(63, value.ColorIndex.ToString(CultureInfo.InvariantCulture)),
-                    new KeyValuePair<int, string>(421, value.IsByColor ? value.ColorValue.ToString(CultureInfo.InvariantCulture) : null),
-                    new KeyValuePair<int, string>(431, null));
+                    new KeyValuePair<int, string>(
+                        421,
+                        value.IsByColor ? value.ColorValue.ToString(CultureInfo.InvariantCulture) : null
+                    ),
+                    new KeyValuePair<int, string>(431, null)
+                );
             }
         }
 
@@ -1106,7 +1291,6 @@ namespace GeometryHelper.Dxf
         public DxfColumnType ColumnType
         {
             get => Columns().Type;
-
             set
             {
                 if (value == ColumnType)
@@ -1116,7 +1300,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < DxfColumnType.NoColumns || value > DxfColumnType.DynamicColumns)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A column type is one of AutoCAD's, 0 to 2.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A column type is one of AutoCAD's, 0 to 2."
+                    );
                 }
 
                 if (value != DxfColumnType.NoColumns)
@@ -1151,7 +1339,6 @@ namespace GeometryHelper.Dxf
         public int ColumnCount
         {
             get => Columns().Count;
-
             set
             {
                 if (value == ColumnCount)
@@ -1161,7 +1348,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < 1)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "An MTEXT in columns has 1 column or more.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "An MTEXT in columns has 1 column or more."
+                    );
                 }
 
                 ColumnSet columns = WithColumns();
@@ -1179,7 +1370,6 @@ namespace GeometryHelper.Dxf
         public double ColumnWidth
         {
             get => Columns().Width;
-
             set
             {
                 if (Same(value, ColumnWidth))
@@ -1203,7 +1393,6 @@ namespace GeometryHelper.Dxf
         public double ColumnGutterWidth
         {
             get => Columns().Gutter;
-
             set
             {
                 if (Same(value, ColumnGutterWidth))
@@ -1211,7 +1400,11 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                Guard.NonNegative(value, nameof(value), "The gutter between columns has to be a finite number of nought or more.");
+                Guard.NonNegative(
+                    value,
+                    nameof(value),
+                    "The gutter between columns has to be a finite number of nought or more."
+                );
                 ColumnSet columns = WithColumns();
                 columns.Gutter = value;
                 WrapWidth = Span(columns);
@@ -1229,7 +1422,6 @@ namespace GeometryHelper.Dxf
         public bool ColumnAutoHeight
         {
             get => Columns().Auto;
-
             set
             {
                 if (value == ColumnAutoHeight)
@@ -1249,7 +1441,6 @@ namespace GeometryHelper.Dxf
         public bool ColumnFlowReversed
         {
             get => Columns().Reversed;
-
             set
             {
                 if (value == ColumnFlowReversed)
@@ -1294,17 +1485,29 @@ namespace GeometryHelper.Dxf
         /// their own heights.</exception>
         public void SetColumnHeight(int index, double height)
         {
-            Guard.NonNegative(height, nameof(height), "The height of a column has to be a finite number of nought or more.");
+            Guard.NonNegative(
+                height,
+                nameof(height),
+                "The height of a column has to be a finite number of nought or more."
+            );
             ColumnSet columns = Columns();
 
             if (columns.Type != DxfColumnType.DynamicColumns || columns.Auto)
             {
-                throw new InvalidOperationException("Only dynamic columns of their own heights (ColumnAutoHeight false) have a height each: the others take the MTEXT's Height.");
+                throw new InvalidOperationException(
+                    "Only dynamic columns of their own heights (ColumnAutoHeight false) have a height each: the others take the MTEXT's Height."
+                );
             }
 
             if (index < 0 || index >= columns.Count)
             {
-                throw new ArgumentOutOfRangeException(nameof(index), index, "The MTEXT has " + columns.Count.ToString(CultureInfo.InvariantCulture) + " columns, counted from nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(index),
+                    index,
+                    "The MTEXT has "
+                        + columns.Count.ToString(CultureInfo.InvariantCulture)
+                        + " columns, counted from nought."
+                );
             }
 
             if (index < columns.Heights.Count && Same(columns.Heights[index], height))
@@ -1333,11 +1536,19 @@ namespace GeometryHelper.Dxf
         public void SetStaticColumns(double width, double gutter, int count)
         {
             Guard.Positive(width, nameof(width), "The width of a column has to be a finite number above nought.");
-            Guard.NonNegative(gutter, nameof(gutter), "The gutter between columns has to be a finite number of nought or more.");
+            Guard.NonNegative(
+                gutter,
+                nameof(gutter),
+                "The gutter between columns has to be a finite number of nought or more."
+            );
 
             if (count < 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(count), count, "An MTEXT in columns has 1 column or more.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(count),
+                    count,
+                    "An MTEXT in columns has 1 column or more."
+                );
             }
 
             CheckColumnsWritable();
@@ -1369,7 +1580,11 @@ namespace GeometryHelper.Dxf
         public void SetDynamicColumns(double width, double gutter, bool autoHeight)
         {
             Guard.Positive(width, nameof(width), "The width of a column has to be a finite number above nought.");
-            Guard.NonNegative(gutter, nameof(gutter), "The gutter between columns has to be a finite number of nought or more.");
+            Guard.NonNegative(
+                gutter,
+                nameof(gutter),
+                "The gutter between columns has to be a finite number of nought or more."
+            );
             CheckColumnsWritable();
             ColumnSet columns = Columns();
             columns.Type = DxfColumnType.DynamicColumns;
@@ -1392,7 +1607,6 @@ namespace GeometryHelper.Dxf
         public double LineSpaceDistance
         {
             get => LineSpacingFactor * TextHeight * SingleSpacing;
-
             set
             {
                 if (Same(value, LineSpaceDistance))
@@ -1405,7 +1619,11 @@ namespace GeometryHelper.Dxf
 
                 if (!(factor >= 0.25 && factor <= 4.0))
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A line spacing runs from 0.25 to 4 times single spacing, 5/3 of the height of the letters.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A line spacing runs from 0.25 to 4 times single spacing, 5/3 of the height of the letters."
+                    );
                 }
 
                 LineSpacingFactor = factor;
@@ -1439,12 +1657,14 @@ namespace GeometryHelper.Dxf
 
                 switch ((raw >> 24) & 0xFF)
                 {
-                    case 2: return new DxfTransparency((byte)(raw & 0xFF));
-                    case 1: return new DxfTransparency(DxfTransparencyMethod.ByBlock);
-                    default: return new DxfTransparency(DxfTransparencyMethod.ByLayer);
+                    case 2:
+                        return new DxfTransparency((byte)(raw & 0xFF));
+                    case 1:
+                        return new DxfTransparency(DxfTransparencyMethod.ByBlock);
+                    default:
+                        return new DxfTransparency(DxfTransparencyMethod.ByLayer);
                 }
             }
-
             set
             {
                 if (value == BackgroundTransparency)
@@ -1456,10 +1676,22 @@ namespace GeometryHelper.Dxf
 
                 switch (value.Method)
                 {
-                    case DxfTransparencyMethod.ByLayer: raw = null; break;
-                    case DxfTransparencyMethod.ByBlock: raw = 0x01000000.ToString(CultureInfo.InvariantCulture); break;
-                    case DxfTransparencyMethod.ByAlpha: raw = (0x02000000 | value.Alpha).ToString(CultureInfo.InvariantCulture); break;
-                    default: throw new ArgumentException("A transparency is by layer, by block or of an alpha: " + value.Method + " is none of them.", nameof(value));
+                    case DxfTransparencyMethod.ByLayer:
+                        raw = null;
+                        break;
+                    case DxfTransparencyMethod.ByBlock:
+                        raw = 0x01000000.ToString(CultureInfo.InvariantCulture);
+                        break;
+                    case DxfTransparencyMethod.ByAlpha:
+                        raw = (0x02000000 | value.Alpha).ToString(CultureInfo.InvariantCulture);
+                        break;
+                    default:
+                        throw new ArgumentException(
+                            "A transparency is by layer, by block or of an alpha: "
+                                + value.Method
+                                + " is none of them.",
+                            nameof(value)
+                        );
                 }
 
                 Since(1021, "transparency of an MTEXT's background");
@@ -1487,7 +1719,11 @@ namespace GeometryHelper.Dxf
         {
             if (value < DxfAttachmentPoint.TopLeft || value > DxfAttachmentPoint.BottomRight)
             {
-                throw new ArgumentOutOfRangeException(nameof(value), value, "An MTEXT is held by one of its nine points, 1 to 9.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    "An MTEXT is held by one of its nine points, 1 to 9."
+                );
             }
 
             DxfAttachmentPoint now = Attachment;
@@ -1502,17 +1738,24 @@ namespace GeometryHelper.Dxf
             int down = ((int)value - 1) / 3 - ((int)now - 1) / 3;
             ShownContexts contexts = Shown(out _);
             double wrap = contexts == null ? WrapWidth : ShownWidth();
-            double width = wrap > 0.0 ? wrap : Value(42) != null ? ActualWidth : double.NaN;
+            double width =
+                wrap > 0.0 ? wrap
+                : Value(42) != null ? ActualWidth
+                : double.NaN;
             double height = Value(43) != null ? ActualHeight : double.NaN;
 
             if (across != 0 && double.IsNaN(width))
             {
-                throw new InvalidOperationException("The MTEXT gives no width (41) nor width of its words (42) to move it across by.");
+                throw new InvalidOperationException(
+                    "The MTEXT gives no width (41) nor width of its words (42) to move it across by."
+                );
             }
 
             if (down != 0 && double.IsNaN(height))
             {
-                throw new InvalidOperationException("The MTEXT gives no height of its words (43) to move it up or down by.");
+                throw new InvalidOperationException(
+                    "The MTEXT gives no height of its words (43) to move it up or down by."
+                );
             }
 
             GeoVector3 along = Direction;
@@ -1534,7 +1777,12 @@ namespace GeometryHelper.Dxf
 
             if (contexts == null)
             {
-                Set(Join(PointChanges(10, moved, Origin), new[] { new KeyValuePair<int, string>(71, ((int)value).ToString(CultureInfo.InvariantCulture)) }));
+                Set(
+                    Join(
+                        PointChanges(10, moved, Origin),
+                        new[] { new KeyValuePair<int, string>(71, ((int)value).ToString(CultureInfo.InvariantCulture)) }
+                    )
+                );
                 return;
             }
 
@@ -1574,11 +1822,17 @@ namespace GeometryHelper.Dxf
 
             // An MTEXT has no lean: a transformation that leans its frame is refused, before anything is written, as a circle
             // refuses one that makes it an ellipse.
-            GeoVector3 frame = HasDirection() ? Point(11, Origin).ToVector() : Value(50) != null ? OwnDirection : new GeoVector3(1.0, 0.0, 0.0);
+            GeoVector3 frame =
+                HasDirection() ? Point(11, Origin).ToVector()
+                : Value(50) != null ? OwnDirection
+                : new GeoVector3(1.0, 0.0, 0.0);
 
             if (DxfOcsTransform.Shears(transform, Normal, frame))
             {
-                throw new ArgumentException("The transformation shears the MTEXT, which cannot lean: its direction and its upright would no longer be square.", nameof(transform));
+                throw new ArgumentException(
+                    "The transformation shears the MTEXT, which cannot lean: its direction and its upright would no longer be square.",
+                    nameof(transform)
+                );
             }
 
             // A copy holds the words of its column MTEXTs before it is moved, as it is not moved with them; an MTEXT of a
@@ -1587,14 +1841,22 @@ namespace GeometryHelper.Dxf
             List<DxfMText> linked = ColumnTexts();
             GeoVector3 normal = Normal;
             var ocs = new DxfOcsTransform(normal, transform);
-            GeoVector3 oldDirection = HasDirection() ? Point(11, Origin).ToVector() : Value(50) != null ? OwnDirection : new GeoVector3(1.0, 0.0, 0.0);
+            GeoVector3 oldDirection =
+                HasDirection() ? Point(11, Origin).ToVector()
+                : Value(50) != null ? OwnDirection
+                : new GeoVector3(1.0, 0.0, 0.0);
             GeoVector3 newDirection = transform.Transform(oldDirection);
             GeoVector3 upright = DxfOcsTransform.Cross(normal, oldDirection);
             double oldHeight = Number(40, 2.5);
             GeoVector3 newUpright = transform.Transform(upright.Multiply(oldHeight / upright.Length));
             double newHeight = newUpright.Length * Math.Sin(Between(newDirection, newUpright));
 
-            if (!ocs.NewExtrusion.IsValid || !(newHeight > 0.0) || !Guard.IsFinite(newHeight) || !(newDirection.Length > 0.0))
+            if (
+                !ocs.NewExtrusion.IsValid
+                || !(newHeight > 0.0)
+                || !Guard.IsFinite(newHeight)
+                || !(newDirection.Length > 0.0)
+            )
             {
                 throw new ArgumentException("The transformation flattens the MTEXT.", nameof(transform));
             }
@@ -1639,9 +1901,17 @@ namespace GeometryHelper.Dxf
             }
 
             // The contexts are worked out from the record as it is, and written after it.
-            List<KeyValuePair<ContextGroups, double[]>> contexts = MTextContext.Moved(Shown(out _)?.All, false, transform, normal);
+            List<KeyValuePair<ContextGroups, double[]>> contexts = MTextContext.Moved(
+                Shown(out _)?.All,
+                false,
+                transform,
+                normal
+            );
             string contents = Written;
-            string scaled = Math.Abs(oldHeight) > 1E-12 && !Close(oldHeight, newHeight) ? ScaledHeights(contents, newHeight / oldHeight) : contents;
+            string scaled =
+                Math.Abs(oldHeight) > 1E-12 && !Close(oldHeight, newHeight)
+                    ? ScaledHeights(contents, newHeight / oldHeight)
+                    : contents;
             Set(groups.ToArray());
             SetWritten(scaled);
             WriteMoved(contexts);
@@ -1747,9 +2017,17 @@ namespace GeometryHelper.Dxf
             GeoVector3 newDirection = Direction;
             GeoVector3 newNormal = Normal;
 
-            if (Same(location.X, newLocation.X) && Same(location.Y, newLocation.Y) && Same(location.Z, newLocation.Z)
-                && Same(direction.X, newDirection.X) && Same(direction.Y, newDirection.Y) && Same(direction.Z, newDirection.Z)
-                && Same(normal.X, newNormal.X) && Same(normal.Y, newNormal.Y) && Same(normal.Z, newNormal.Z))
+            if (
+                Same(location.X, newLocation.X)
+                && Same(location.Y, newLocation.Y)
+                && Same(location.Z, newLocation.Z)
+                && Same(direction.X, newDirection.X)
+                && Same(direction.Y, newDirection.Y)
+                && Same(direction.Z, newDirection.Z)
+                && Same(normal.X, newNormal.X)
+                && Same(normal.Y, newNormal.Y)
+                && Same(normal.Z, newNormal.Z)
+            )
             {
                 return;
             }
@@ -1774,13 +2052,15 @@ namespace GeometryHelper.Dxf
             GeoVector3 x = Direction;
             GeoVector3 y = DxfOcsTransform.Cross(z, x);
             GeoPoint3 o = Location;
-            return new GeoTransform3(new double[,]
-            {
-                { x.X, y.X, z.X, o.X },
-                { x.Y, y.Y, z.Y, o.Y },
-                { x.Z, y.Z, z.Z, o.Z },
-                { 0.0, 0.0, 0.0, 1.0 },
-            });
+            return new GeoTransform3(
+                new double[,]
+                {
+                    { x.X, y.X, z.X, o.X },
+                    { x.Y, y.Y, z.Y, o.Y },
+                    { x.Z, y.Z, z.Z, o.Z },
+                    { 0.0, 0.0, 0.0, 1.0 },
+                }
+            );
         }
 
         /// <summary>
@@ -1812,7 +2092,9 @@ namespace GeometryHelper.Dxf
                     column.Set(new KeyValuePair<int, string>(46, Numbers.Exact(height + 0.0)));
                 }
 
-                List<DxfTypedValue> data = (column.GetXDataForApplication("ACAD") ?? new DxfTypedValue[0]).Skip(1).ToList();
+                List<DxfTypedValue> data = (column.GetXDataForApplication("ACAD") ?? new DxfTypedValue[0])
+                    .Skip(1)
+                    .ToList();
                 int at = Find(data, "ACAD_MTEXT_DEFINED_HEIGHT");
                 int end = at < 0 ? -1 : End(data, at);
 
@@ -1826,7 +2108,10 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                bool same = at >= 0 && data.GetRange(at, end - at + 1).Any(g => g.TypeCode == 1040 && Numbers.TryRead(g.Value, out double now) && Same(now, height));
+                bool same =
+                    at >= 0
+                    && data.GetRange(at, end - at + 1)
+                        .Any(g => g.TypeCode == 1040 && Numbers.TryRead(g.Value, out double now) && Same(now, height));
 
                 if (same)
                 {
@@ -1864,7 +2149,11 @@ namespace GeometryHelper.Dxf
             Unlink();
             ColumnSet columns = Columns();
 
-            if (owner.File != null && columns.Type != DxfColumnType.NoColumns && owner.File.Supports(1032) != columns.Embedded)
+            if (
+                owner.File != null
+                && columns.Type != DxfColumnType.NoColumns
+                && owner.File.Supports(1032) != columns.Embedded
+            )
             {
                 bool embedded = owner.File.Supports(1032);
                 WriteColumns(columns, embedded);
@@ -1897,15 +2186,36 @@ namespace GeometryHelper.Dxf
             attachment = attachment >= 1 && attachment <= 9 ? attachment - 1 : 0;
             int row = attachment / 3;
             int column = attachment % 3;
-            double first = row == 0 ? -height : row == 1 ? (height + (count - 1) * pitch) / 2.0 - height : (count - 1) * pitch;
-            double top = layout == null ? 0.0 : row == 0 ? 0.0 : row == 1 ? layout.ActualHeight / 2.0 : layout.ActualHeight;
+            double first =
+                row == 0 ? -height
+                : row == 1 ? (height + (count - 1) * pitch) / 2.0 - height
+                : (count - 1) * pitch;
+            double top =
+                layout == null ? 0.0
+                : row == 0 ? 0.0
+                : row == 1 ? layout.ActualHeight / 2.0
+                : layout.ActualHeight;
             string style = Value(7);
             DxfFile source = IsResident ? Item.File : Item.File.Origin;
 
             // The style is kept where the drawing has it, or is given it by the copying, by name; else Standard.
-            style = style != null && (target == null
-                || target.TableItems("STYLE").Exists(s => string.Equals(DxfReader.NameOf(s.File.ValueOf(s, 2) ?? string.Empty), DxfReader.NameOf(style), StringComparison.OrdinalIgnoreCase))
-                || target.CopiesRecordFrom(source, "STYLE", style)) ? style : null;
+            style =
+                style != null
+                && (
+                    target == null
+                    || target
+                        .TableItems("STYLE")
+                        .Exists(s =>
+                            string.Equals(
+                                DxfReader.NameOf(s.File.ValueOf(s, 2) ?? string.Empty),
+                                DxfReader.NameOf(style),
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                        )
+                    || target.CopiesRecordFrom(source, "STYLE", style)
+                )
+                    ? style
+                    : null;
             double degrees = DxfOcsTransform.Degrees(Rotation);
             GeoPoint3 location = Location;
             var texts = new List<DxfEntity>();
@@ -1913,7 +2223,10 @@ namespace GeometryHelper.Dxf
             for (int k = 0, part = 0; k < count; part++)
             {
                 // Each line of a layout breaks into its runs of one look, a TEXT each (check F4).
-                DxfMTextLayout.Run run = layout == null ? null : layout.Lines[k].Runs.Count == 0 ? null : layout.Lines[k].Runs[part];
+                DxfMTextLayout.Run run =
+                    layout == null ? null
+                    : layout.Lines[k].Runs.Count == 0 ? null
+                    : layout.Lines[k].Runs[part];
                 string words = layout == null ? lines[k] : run?.Words ?? string.Empty;
                 int line = k;
 
@@ -1934,7 +2247,10 @@ namespace GeometryHelper.Dxf
                 if (layout == null)
                 {
                     double rise = first - line * pitch;
-                    at = WorldToOcs(normal, new GeoPoint3(location.X + up.X * rise, location.Y + up.Y * rise, location.Z + up.Z * rise));
+                    at = WorldToOcs(
+                        normal,
+                        new GeoPoint3(location.X + up.X * rise, location.Y + up.Y * rise, location.Z + up.Z * rise)
+                    );
                 }
                 else
                 {
@@ -1942,13 +2258,25 @@ namespace GeometryHelper.Dxf
                     DxfTextLine measure = layout.Lines[line].Measure;
                     double rise = top + layout.Lines[line].Baseline + run.Rise;
                     double across = (-column * measure.ActualWidth / 2.0) - layout.Lines[line].Start + run.Pen;
-                    at = WorldToOcs(normal, new GeoPoint3(location.X + (along.X * across) + (up.X * rise), location.Y + (along.Y * across) + (up.Y * rise), location.Z + (along.Z * across) + (up.Z * rise)));
+                    at = WorldToOcs(
+                        normal,
+                        new GeoPoint3(
+                            location.X + (along.X * across) + (up.X * rise),
+                            location.Y + (along.Y * across) + (up.Y * rise),
+                            location.Z + (along.Z * across) + (up.Z * rise)
+                        )
+                    );
                 }
 
                 var own = new List<KeyValuePair<int, string>>
                 {
-                    G(100, "AcDbText"), G(10, Numbers.Exact(at.X + 0.0)), G(20, Numbers.Exact(at.Y + 0.0)), G(30, Numbers.Exact(at.Z + 0.0)),
-                    G(40, Numbers.Exact((run == null ? height : run.Height) + 0.0)), G(1, words), G(50, Numbers.Exact(degrees + 0.0)),
+                    G(100, "AcDbText"),
+                    G(10, Numbers.Exact(at.X + 0.0)),
+                    G(20, Numbers.Exact(at.Y + 0.0)),
+                    G(30, Numbers.Exact(at.Z + 0.0)),
+                    G(40, Numbers.Exact((run == null ? height : run.Height) + 0.0)),
+                    G(1, words),
+                    G(50, Numbers.Exact(degrees + 0.0)),
                 };
 
                 if (run != null && run.Width != 1.0)
@@ -1979,7 +2307,8 @@ namespace GeometryHelper.Dxf
             return texts;
         }
 
-        private static KeyValuePair<int, string> G(int code, string value) => new KeyValuePair<int, string>(code, value);
+        private static KeyValuePair<int, string> G(int code, string value) =>
+            new KeyValuePair<int, string>(code, value);
 
         /// <summary>
         /// The paragraphs of the MTEXT's words without their formatting, as <see cref="Text"/> reads them, a column break
@@ -2069,8 +2398,8 @@ namespace GeometryHelper.Dxf
         internal static DxfEntity Create(DxfItem item) => new DxfMText(item);
 
         /// <summary>A new MTEXT in no file of the groups an ATTRIB or ATTDEF embeds of one (those after its 101), as AutoCAD's <c>MTextAttribute</c> gives it.</summary>
-        internal static DxfMText OfEmbedded(IEnumerable<DxfTypedValue> groups)
-            => new DxfMText(new[] { new DxfTypedValue(100, "AcDbMText") }.Concat(groups));
+        internal static DxfMText OfEmbedded(IEnumerable<DxfTypedValue> groups) =>
+            new DxfMText(new[] { new DxfTypedValue(100, "AcDbMText") }.Concat(groups));
 
         /// <summary>A new MTEXT in no file written in one go: the groups of its entity after its layer (its colour), then <c>100 AcDbMText</c> and its own; for the many a table's block is drawn with.</summary>
         internal static DxfMText OfGroups(IEnumerable<DxfTypedValue> groups) => new DxfMText(groups);
@@ -2083,7 +2412,12 @@ namespace GeometryHelper.Dxf
         {
             List<DxfTypedValue> data = (GetXDataForApplication("ACAD") ?? new DxfTypedValue[0]).ToList();
             int at = Find(data, "ACAD_MTEXT_COLUMNS");
-            return at < 0 ? new string[0] : data.GetRange(at, End(data, at) - at + 1).Where(g => g.TypeCode == 1005).Select(g => g.Value.Trim()).ToList();
+            return at < 0
+                ? new string[0]
+                : data.GetRange(at, End(data, at) - at + 1)
+                    .Where(g => g.TypeCode == 1005)
+                    .Select(g => g.Value.Trim())
+                    .ToList();
         }
 
         /// <summary>
@@ -2154,8 +2488,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The MTEXT's own groups, after its marker and before an embedded object of its columns (101), as an ATTRIB or ATTDEF embeds them.</summary>
-        internal static List<DxfTypedValue> OwnOf(DxfMText mtext)
-            => mtext.GetOwnGroups(0).Skip(1).TakeWhile(g => g.TypeCode != 101).ToList();
+        internal static List<DxfTypedValue> OwnOf(DxfMText mtext) =>
+            mtext.GetOwnGroups(0).Skip(1).TakeWhile(g => g.TypeCode != 101).ToList();
 
         /// <summary>
         /// The groups an ATTRIB or ATTDEF embeds of an MTEXT, after its 101: the MTEXT's own, and those AutoCAD always writes
@@ -2167,10 +2501,17 @@ namespace GeometryHelper.Dxf
             List<DxfTypedValue> own = OwnOf(mtext);
             var defaults = new[]
             {
-                new KeyValuePair<int, string>(10, "0"), new KeyValuePair<int, string>(20, "0"), new KeyValuePair<int, string>(30, "0"),
-                new KeyValuePair<int, string>(40, "2.5"), new KeyValuePair<int, string>(41, "0"), new KeyValuePair<int, string>(46, "0"),
-                new KeyValuePair<int, string>(71, "1"), new KeyValuePair<int, string>(72, "5"), new KeyValuePair<int, string>(7, "Standard"),
-                new KeyValuePair<int, string>(73, "1"), new KeyValuePair<int, string>(44, "1"),
+                new KeyValuePair<int, string>(10, "0"),
+                new KeyValuePair<int, string>(20, "0"),
+                new KeyValuePair<int, string>(30, "0"),
+                new KeyValuePair<int, string>(40, "2.5"),
+                new KeyValuePair<int, string>(41, "0"),
+                new KeyValuePair<int, string>(46, "0"),
+                new KeyValuePair<int, string>(71, "1"),
+                new KeyValuePair<int, string>(72, "5"),
+                new KeyValuePair<int, string>(7, "Standard"),
+                new KeyValuePair<int, string>(73, "1"),
+                new KeyValuePair<int, string>(44, "1"),
             };
 
             foreach (KeyValuePair<int, string> group in defaults)
@@ -2217,7 +2558,14 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                if (double.TryParse(part.Substring(0, index), NumberStyles.Float, CultureInfo.InvariantCulture, out double size))
+                if (
+                    double.TryParse(
+                        part.Substring(0, index),
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out double size
+                    )
+                )
                 {
                     scaled.Append(General(size * factor));
                 }
@@ -2237,16 +2585,26 @@ namespace GeometryHelper.Dxf
             }
 
             string e = value.ToString("E2", CultureInfo.InvariantCulture);
-            int exponent = int.Parse(e.Substring(e.IndexOf('E') + 1), NumberStyles.Integer, CultureInfo.InvariantCulture);
+            int exponent = int.Parse(
+                e.Substring(e.IndexOf('E') + 1),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture
+            );
 
             if (exponent < -4 || exponent >= 3)
             {
                 string mantissa = e.Substring(0, e.IndexOf('E'));
                 mantissa = mantissa.IndexOf('.') >= 0 ? mantissa.TrimEnd('0').TrimEnd('.') : mantissa;
-                return mantissa + "e" + (exponent < 0 ? "-" : "+") + Math.Abs(exponent).ToString("00", CultureInfo.InvariantCulture);
+                return mantissa
+                    + "e"
+                    + (exponent < 0 ? "-" : "+")
+                    + Math.Abs(exponent).ToString("00", CultureInfo.InvariantCulture);
             }
 
-            string fixedPoint = value.ToString("F" + Math.Max(0, 2 - exponent).ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+            string fixedPoint = value.ToString(
+                "F" + Math.Max(0, 2 - exponent).ToString(CultureInfo.InvariantCulture),
+                CultureInfo.InvariantCulture
+            );
             return fixedPoint.IndexOf('.') >= 0 ? fixedPoint.TrimEnd('0').TrimEnd('.') : fixedPoint;
         }
 
@@ -2264,7 +2622,8 @@ namespace GeometryHelper.Dxf
             return Math.Acos(Math.Max(-1.0, Math.Min(1.0, cos)));
         }
 
-        private static bool Close(double a, double b) => Math.Abs(a - b) <= Math.Max(1E-9 * Math.Max(Math.Abs(a), Math.Abs(b)), 0.0);
+        private static bool Close(double a, double b) =>
+            Math.Abs(a - b) <= Math.Max(1E-9 * Math.Max(Math.Abs(a), Math.Abs(b)), 0.0);
 
         /// <summary>A direction of the world in the system of a normal's plane, as the reader takes one there.</summary>
         private static GeoVector3 Plane(GeoVector3 normal, GeoVector3 direction)
@@ -2355,9 +2714,13 @@ namespace GeometryHelper.Dxf
             return null;
         }
 
-        private double Number(int code, double fallback) => Numbers.TryRead(Value(code), out double value) && Guard.IsFinite(value) ? value : fallback;
+        private double Number(int code, double fallback) =>
+            Numbers.TryRead(Value(code), out double value) && Guard.IsFinite(value) ? value : fallback;
 
-        private int WholeNumber(int code, int fallback) => int.TryParse(Value(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+        private int WholeNumber(int code, int fallback) =>
+            int.TryParse(Value(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : fallback;
 
         private bool TryNumber(int code, out double value)
         {
@@ -2390,7 +2753,9 @@ namespace GeometryHelper.Dxf
                 return new GeoVector3(0.0, 0.0, 1.0);
             }
 
-            return Math.Abs(length - 1.0) <= 1E-12 ? new GeoVector3(x, y, z) : new GeoVector3(x / length, y / length, z / length);
+            return Math.Abs(length - 1.0) <= 1E-12
+                ? new GeoVector3(x, y, z)
+                : new GeoVector3(x / length, y / length, z / length);
         }
 
         /// <summary>The groups that set a point: the coordinates that differ from those read, to the bit, and those left out with them.</summary>
@@ -2398,7 +2763,10 @@ namespace GeometryHelper.Dxf
         {
             if (!value.IsValid)
             {
-                throw new ArgumentException("A point has to be of finite numbers: " + value + " is not.", nameof(value));
+                throw new ArgumentException(
+                    "A point has to be of finite numbers: " + value + " is not.",
+                    nameof(value)
+                );
             }
 
             GeoPoint3 now = Point(code, fallback);
@@ -2412,7 +2780,10 @@ namespace GeometryHelper.Dxf
 
             if (!value.IsValid || !(length > 0.0) || double.IsInfinity(length))
             {
-                throw new ArgumentException("A normal has to be a direction of finite numbers and some length: " + value + " is not.", nameof(value));
+                throw new ArgumentException(
+                    "A normal has to be a direction of finite numbers and some length: " + value + " is not.",
+                    nameof(value)
+                );
             }
 
             GeoVector3 unit = Math.Abs(length - 1.0) <= 1E-12 ? value : value.Divide(length);
@@ -2513,7 +2884,9 @@ namespace GeometryHelper.Dxf
 
             foreach (KeyValuePair<int, string> group in groups)
             {
-                misplaced |= head.FindIndex(g => g.TypeCode == group.Key) < 0 && own.FindIndex(embedded, g => g.TypeCode == group.Key) >= 0;
+                misplaced |=
+                    head.FindIndex(g => g.TypeCode == group.Key) < 0
+                    && own.FindIndex(embedded, g => g.TypeCode == group.Key) >= 0;
             }
 
             if (!misplaced)
@@ -2641,15 +3014,34 @@ namespace GeometryHelper.Dxf
                 {
                     switch (group.TypeCode)
                     {
-                        case 71: read.Type = (DxfColumnType)Whole(group.Value); break;
-                        case 72: read.Count = Whole(group.Value); counted = true; break;
-                        case 73: read.Auto = Whole(group.Value) != 0; break;
-                        case 74: read.Reversed = Whole(group.Value) != 0; break;
-                        case 44: read.Width = Real(group.Value); break;
-                        case 45: read.Gutter = Real(group.Value); break;
-                        case 46: read.Heights.Add(Real(group.Value)); break;
-                        case 41: read.Defined = read.Defined ?? Real(group.Value); break;
-                        case 42: total = Real(group.Value); break;
+                        case 71:
+                            read.Type = (DxfColumnType)Whole(group.Value);
+                            break;
+                        case 72:
+                            read.Count = Whole(group.Value);
+                            counted = true;
+                            break;
+                        case 73:
+                            read.Auto = Whole(group.Value) != 0;
+                            break;
+                        case 74:
+                            read.Reversed = Whole(group.Value) != 0;
+                            break;
+                        case 44:
+                            read.Width = Real(group.Value);
+                            break;
+                        case 45:
+                            read.Gutter = Real(group.Value);
+                            break;
+                        case 46:
+                            read.Heights.Add(Real(group.Value));
+                            break;
+                        case 41:
+                            read.Defined = read.Defined ?? Real(group.Value);
+                            break;
+                        case 42:
+                            total = Real(group.Value);
+                            break;
                     }
                 }
 
@@ -2658,7 +3050,11 @@ namespace GeometryHelper.Dxf
                 if (counted && read.Count == 0)
                 {
                     double each = Math.Abs(read.Width + read.Gutter);
-                    read.Count = read.Heights.Count > 0 ? read.Heights.Count : total > 0.0 && each > 1E-6 ? (int)Math.Round((total + read.Gutter) / each, MidpointRounding.ToEven) : 0;
+                    read.Count =
+                        read.Heights.Count > 0 ? read.Heights.Count
+                        : total > 0.0 && each > 1E-6
+                            ? (int)Math.Round((total + read.Gutter) / each, MidpointRounding.ToEven)
+                        : 0;
                 }
 
                 return read;
@@ -2667,7 +3063,9 @@ namespace GeometryHelper.Dxf
             // Before R2007, which brought columns, AutoCAD 2021 takes the column data for columns only with the MTEXTs of the
             // later columns linked (ACAD_MTEXT_COLUMNS), as it writes them; the data alone it reads as no columns (its 09-d).
             IReadOnlyList<DxfTypedValue> acad = GetXDataForApplication("ACAD");
-            bool columns = Item.File.Supports(1021) || (acad != null && acad.Any(g => g.TypeCode == 1000 && g.Value.Trim() == "ACAD_MTEXT_COLUMNS_BEGIN"));
+            bool columns =
+                Item.File.Supports(1021)
+                || (acad != null && acad.Any(g => g.TypeCode == 1000 && g.Value.Trim() == "ACAD_MTEXT_COLUMNS_BEGIN"));
             bool inside = false;
             bool defined = false;
             int? code = null;
@@ -2678,8 +3076,12 @@ namespace GeometryHelper.Dxf
                 if (group.TypeCode == 1000)
                 {
                     string name = group.Value.Trim();
-                    inside = columns && (name == "ACAD_MTEXT_COLUMN_INFO_BEGIN" || (inside && name != "ACAD_MTEXT_COLUMN_INFO_END"));
-                    defined = name == "ACAD_MTEXT_DEFINED_HEIGHT_BEGIN" || (defined && name != "ACAD_MTEXT_DEFINED_HEIGHT_END");
+                    inside =
+                        columns
+                        && (name == "ACAD_MTEXT_COLUMN_INFO_BEGIN" || (inside && name != "ACAD_MTEXT_COLUMN_INFO_END"));
+                    defined =
+                        name == "ACAD_MTEXT_DEFINED_HEIGHT_BEGIN"
+                        || (defined && name != "ACAD_MTEXT_DEFINED_HEIGHT_END");
                     read.InXData |= inside;
                     continue;
                 }
@@ -2710,13 +3112,27 @@ namespace GeometryHelper.Dxf
 
                 switch (code.Value)
                 {
-                    case 75: read.Type = (DxfColumnType)Whole(group.Value); break;
-                    case 76: read.Count = Whole(group.Value); break;
-                    case 79: read.Auto = Whole(group.Value) != 0; break;
-                    case 78: read.Reversed = Whole(group.Value) != 0; break;
-                    case 48: read.Width = Real(group.Value); break;
-                    case 49: read.Gutter = Real(group.Value); break;
-                    case 50: heights = Whole(group.Value); break;
+                    case 75:
+                        read.Type = (DxfColumnType)Whole(group.Value);
+                        break;
+                    case 76:
+                        read.Count = Whole(group.Value);
+                        break;
+                    case 79:
+                        read.Auto = Whole(group.Value) != 0;
+                        break;
+                    case 78:
+                        read.Reversed = Whole(group.Value) != 0;
+                        break;
+                    case 48:
+                        read.Width = Real(group.Value);
+                        break;
+                    case 49:
+                        read.Gutter = Real(group.Value);
+                        break;
+                    case 50:
+                        heights = Whole(group.Value);
+                        break;
                 }
 
                 code = null;
@@ -2734,7 +3150,9 @@ namespace GeometryHelper.Dxf
         {
             if (!Item.File.Supports(1021) && !HasBlock("ACAD_MTEXT_COLUMNS"))
             {
-                throw new InvalidOperationException("A DXF older than R2007 (AC1021) keeps an MTEXT's columns with an MTEXT of its own for each column after the first (ACAD_MTEXT_COLUMNS), as AutoCAD writes them, and AutoCAD 2021 reads the column data alone as no columns: the library makes no column MTEXT.");
+                throw new InvalidOperationException(
+                    "A DXF older than R2007 (AC1021) keeps an MTEXT's columns with an MTEXT of its own for each column after the first (ACAD_MTEXT_COLUMNS), as AutoCAD writes them, and AutoCAD 2021 reads the column data alone as no columns: the library makes no column MTEXT."
+                );
             }
         }
 
@@ -2745,7 +3163,9 @@ namespace GeometryHelper.Dxf
 
             if (columns.Type == DxfColumnType.NoColumns)
             {
-                throw new InvalidOperationException("The MTEXT is in no columns: give it some first, by ColumnType, SetStaticColumns or SetDynamicColumns.");
+                throw new InvalidOperationException(
+                    "The MTEXT is in no columns: give it some first, by ColumnType, SetStaticColumns or SetDynamicColumns."
+                );
             }
 
             return columns;
@@ -2786,7 +3206,10 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            List<DxfTypedValue> tail = at < 0 ? new List<DxfTypedValue> { DxfTypedValue.Read(101, "Embedded Object") } : own.GetRange(at, own.Count - at);
+            List<DxfTypedValue> tail =
+                at < 0
+                    ? new List<DxfTypedValue> { DxfTypedValue.Read(101, "Embedded Object") }
+                    : own.GetRange(at, own.Count - at);
             int end = at < 0 ? own.Count : at;
 
             if (columns != null)
@@ -2851,7 +3274,11 @@ namespace GeometryHelper.Dxf
         {
             ColumnSet now = Columns();
 
-            if (columns == null ? !now.InXData && !HasBlock("ACAD_MTEXT_DEFINED_HEIGHT") && !HasBlock("ACAD_MTEXT_COLUMNS") : now.InXData && !now.Embedded && SameData(now, columns))
+            if (
+                columns == null
+                    ? !now.InXData && !HasBlock("ACAD_MTEXT_DEFINED_HEIGHT") && !HasBlock("ACAD_MTEXT_COLUMNS")
+                    : now.InXData && !now.Embedded && SameData(now, columns)
+            )
             {
                 return;
             }
@@ -2867,12 +3294,18 @@ namespace GeometryHelper.Dxf
                 info = new List<DxfTypedValue>
                 {
                     new DxfTypedValue(1000, "ACAD_MTEXT_COLUMN_INFO_BEGIN"),
-                    new DxfTypedValue(1070, "75"), Short((int)columns.Type),
-                    new DxfTypedValue(1070, "79"), Short(columns.Auto ? 1 : 0),
-                    new DxfTypedValue(1070, "76"), Short(columns.Count),
-                    new DxfTypedValue(1070, "78"), Short(columns.Reversed ? 1 : 0),
-                    new DxfTypedValue(1070, "48"), new DxfTypedValue(1040, Numbers.Exact(columns.Width + 0.0)),
-                    new DxfTypedValue(1070, "49"), new DxfTypedValue(1040, Numbers.Exact(columns.Gutter + 0.0)),
+                    new DxfTypedValue(1070, "75"),
+                    Short((int)columns.Type),
+                    new DxfTypedValue(1070, "79"),
+                    Short(columns.Auto ? 1 : 0),
+                    new DxfTypedValue(1070, "76"),
+                    Short(columns.Count),
+                    new DxfTypedValue(1070, "78"),
+                    Short(columns.Reversed ? 1 : 0),
+                    new DxfTypedValue(1070, "48"),
+                    new DxfTypedValue(1040, Numbers.Exact(columns.Width + 0.0)),
+                    new DxfTypedValue(1070, "49"),
+                    new DxfTypedValue(1040, Numbers.Exact(columns.Gutter + 0.0)),
                 };
 
                 if (manual)
@@ -2944,7 +3377,10 @@ namespace GeometryHelper.Dxf
             if (height != null && !heightPut)
             {
                 int links = Find(rest, "ACAD_MTEXT_COLUMNS");
-                rest.InsertRange(links >= 0 ? End(rest, links) + 1 : End(rest, Find(rest, "ACAD_MTEXT_COLUMN_INFO")) + 1, height);
+                rest.InsertRange(
+                    links >= 0 ? End(rest, links) + 1 : End(rest, Find(rest, "ACAD_MTEXT_COLUMN_INFO")) + 1,
+                    height
+                );
             }
 
             var written = new List<DxfTypedValue> { new DxfTypedValue(1001, "ACAD") };
@@ -2960,9 +3396,18 @@ namespace GeometryHelper.Dxf
             bool manual = columns.Type == DxfColumnType.DynamicColumns && !columns.Auto;
             double defined = DefinedToWrite(columns);
 
-            return now.Type == columns.Type && now.Count == columns.Count && now.Auto == columns.Auto && now.Reversed == columns.Reversed
-                && Same(now.Width, columns.Width) && Same(now.Gutter, columns.Gutter)
-                && (manual ? now.Heights.Count == columns.Heights.Count && now.Heights.Zip(columns.Heights, Same).All(s => s) : now.Heights.Count == 0)
+            return now.Type == columns.Type
+                && now.Count == columns.Count
+                && now.Auto == columns.Auto
+                && now.Reversed == columns.Reversed
+                && Same(now.Width, columns.Width)
+                && Same(now.Gutter, columns.Gutter)
+                && (
+                    manual
+                        ? now.Heights.Count == columns.Heights.Count
+                            && now.Heights.Zip(columns.Heights, Same).All(s => s)
+                        : now.Heights.Count == 0
+                )
                 && (defined > 0.0 ? now.Defined.HasValue && Same(now.Defined.Value, defined) : !now.Defined.HasValue);
         }
 
@@ -2981,8 +3426,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The height of one box of columns as read: the defined height, but for dynamic columns of their own heights, which have none.</summary>
-        private static double OneHeight(ColumnSet columns)
-            => columns.Type == DxfColumnType.DynamicColumns && !columns.Auto ? 0.0 : columns.Defined ?? 0.0;
+        private static double OneHeight(ColumnSet columns) =>
+            columns.Type == DxfColumnType.DynamicColumns && !columns.Auto ? 0.0 : columns.Defined ?? 0.0;
 
         /// <summary>
         /// The width the MTEXT has in its columns, as AutoCAD 2021 writes its group 41: from R2018, in the embedded object, that
@@ -2991,22 +3436,29 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private double Span(ColumnSet columns) => Span(columns, Item.File.Supports(1032));
 
-        private static double Span(ColumnSet columns, bool embedded)
-            => embedded && columns.Count > 1 ? columns.Count * columns.Width + (columns.Count - 1) * columns.Gutter : columns.Width;
+        private static double Span(ColumnSet columns, bool embedded) =>
+            embedded && columns.Count > 1
+                ? columns.Count * columns.Width + (columns.Count - 1) * columns.Gutter
+                : columns.Width;
 
         /// <summary>Whether the extended data of ACAD holds a block of a name, between its _BEGIN and _END.</summary>
-        private bool HasBlock(string name) => Find((GetXDataForApplication("ACAD") ?? new DxfTypedValue[0]).ToList(), name) >= 0;
+        private bool HasBlock(string name) =>
+            Find((GetXDataForApplication("ACAD") ?? new DxfTypedValue[0]).ToList(), name) >= 0;
 
         /// <summary>Where a block of the extended data of ACAD begins (its 1000 name_BEGIN); -1 where it has none.</summary>
-        private static int Find(List<DxfTypedValue> data, string name)
-            => data.FindIndex(g => g.TypeCode == 1000 && string.Equals(g.Value.Trim(), name + "_BEGIN", StringComparison.Ordinal));
+        private static int Find(List<DxfTypedValue> data, string name) =>
+            data.FindIndex(g =>
+                g.TypeCode == 1000 && string.Equals(g.Value.Trim(), name + "_BEGIN", StringComparison.Ordinal)
+            );
 
         /// <summary>Where the block beginning at a place ends (its 1000 name_END), the last group where it has no end.</summary>
         private static int End(List<DxfTypedValue> data, int begin)
         {
             string name = data[begin].Value.Trim();
             string end = name.Substring(0, name.Length - "_BEGIN".Length) + "_END";
-            int at = data.FindIndex(begin + 1, g => g.TypeCode == 1000 && string.Equals(g.Value.Trim(), end, StringComparison.Ordinal));
+            int at = data.FindIndex(begin + 1, g =>
+                g.TypeCode == 1000 && string.Equals(g.Value.Trim(), end, StringComparison.Ordinal)
+            );
             return at < 0 ? data.Count - 1 : at;
         }
 
@@ -3041,7 +3493,11 @@ namespace GeometryHelper.Dxf
         {
             int at = tail.FindIndex(1, g => g.TypeCode == code);
 
-            if (at >= 0 && int.TryParse(tail[at].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int now) && now == value)
+            if (
+                at >= 0
+                && int.TryParse(tail[at].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int now)
+                && now == value
+            )
             {
                 return;
             }
@@ -3150,11 +3606,16 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        private static int Whole(string text) => int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : 0;
+        private static int Whole(string text) =>
+            int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : 0;
 
-        private static double Real(string text) => Numbers.TryRead(text, out double value) && Guard.IsFinite(value) ? value : 0.0;
+        private static double Real(string text) =>
+            Numbers.TryRead(text, out double value) && Guard.IsFinite(value) ? value : 0.0;
 
-        private int? WholeOrNull(int code) => int.TryParse(Value(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : (int?)null;
+        private int? WholeOrNull(int code) =>
+            int.TryParse(Value(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : (int?)null;
 
         /// <summary>The groups that turn the MTEXT to an angle in a plane: its direction, its angle, or both.</summary>
         private KeyValuePair<int, string>[] Turned(GeoVector3 normal, double angle, bool direction, bool degrees)
@@ -3197,7 +3658,10 @@ namespace GeometryHelper.Dxf
             // there are none, BYLAYER and 1.5, and from R2007 the transparency by layer. A frame alone needs them in a
             // drawing of R2018, where AutoCAD 2021 discards one whose MTEXT has group 90 of 16 and nothing after it, and
             // must not have them in an older one, which it discards with them.
-            var groups = new List<KeyValuePair<int, string>> { new KeyValuePair<int, string>(90, next.ToString(CultureInfo.InvariantCulture)) };
+            var groups = new List<KeyValuePair<int, string>>
+            {
+                new KeyValuePair<int, string>(90, next.ToString(CultureInfo.InvariantCulture)),
+            };
 
             if (Value(63) == null)
             {
@@ -3221,8 +3685,19 @@ namespace GeometryHelper.Dxf
         {
             if (!Item.File.Supports(version))
             {
-                string release = version == 1018 ? "R2004" : version == 1021 ? "R2007" : "R2018";
-                throw new InvalidOperationException("A DXF older than " + release + " (AC" + version.ToString(CultureInfo.InvariantCulture) + ") has no " + what + ".");
+                string release =
+                    version == 1018 ? "R2004"
+                    : version == 1021 ? "R2007"
+                    : "R2018";
+                throw new InvalidOperationException(
+                    "A DXF older than "
+                        + release
+                        + " (AC"
+                        + version.ToString(CultureInfo.InvariantCulture)
+                        + ") has no "
+                        + what
+                        + "."
+                );
             }
         }
     }

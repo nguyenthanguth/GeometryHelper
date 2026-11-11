@@ -209,7 +209,14 @@ namespace GeometryHelper.Dxf
         /// Raises the degree of a clamped spline by some steps (A5.9): the curve kept exactly, each inner knot standing as many
         /// times more as the steps, so that the curve is as smooth there as it was.
         /// </summary>
-        internal static void ElevateDegree(int p, List<double> u, List<double[]> pw, int t, out List<double> uh, out List<double[]> qw)
+        internal static void ElevateDegree(
+            int p,
+            List<double> u,
+            List<double[]> pw,
+            int t,
+            out List<double> uh,
+            out List<double[]> qw
+        )
         {
             int n = pw.Count - 1;
             int m = n + p + 1;
@@ -462,7 +469,9 @@ namespace GeometryHelper.Dxf
             {
                 if (!(q[3] > 0.0))
                 {
-                    throw new InvalidOperationException("The spline cannot run on so far: a weight would reach nought.");
+                    throw new InvalidOperationException(
+                        "The spline cannot run on so far: a weight would reach nought."
+                    );
                 }
             }
 
@@ -634,7 +643,14 @@ namespace GeometryHelper.Dxf
         /// (9.69) spreads them, so that every span holds some of the points.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the system has no solution, as for points that leave a span empty.</exception>
-        internal static void LeastSquares(IReadOnlyList<GeoPoint3> q, IReadOnlyList<double> ub, int p, int count, out List<double> knots, out List<GeoPoint3> points)
+        internal static void LeastSquares(
+            IReadOnlyList<GeoPoint3> q,
+            IReadOnlyList<double> ub,
+            int p,
+            int count,
+            out List<double> knots,
+            out List<GeoPoint3> points
+        )
         {
             int m = q.Count - 1;
             int n = count - 1;
@@ -806,8 +822,13 @@ namespace GeometryHelper.Dxf
                 double[] a = i < p - 1 ? left[i] : pw[i];
                 double[] b = i + m > n - p + 1 ? right[i + m] : pw[i + m];
 
-                if (!(Math.Abs(a[3] - b[3]) <= tolerance.EqualVector * largest)
-                    || !new GeoPoint3(a[0] / a[3], a[1] / a[3], a[2] / a[3]).IsEqualTo(new GeoPoint3(b[0] / b[3], b[1] / b[3], b[2] / b[3]), tolerance))
+                if (
+                    !(Math.Abs(a[3] - b[3]) <= tolerance.EqualVector * largest)
+                    || !new GeoPoint3(a[0] / a[3], a[1] / a[3], a[2] / a[3]).IsEqualTo(
+                        new GeoPoint3(b[0] / b[3], b[1] / b[3], b[2] / b[3]),
+                        tolerance
+                    )
+                )
                 {
                     return false;
                 }
@@ -843,7 +864,15 @@ namespace GeometryHelper.Dxf
         /// through five points 0, 1, 2, 3 and 4, its control points AutoCAD's to 3E-14, its D32b run). False where the points
         /// are all one, or the system has no solution.
         /// </summary>
-        internal static bool InterpolateCubic(IReadOnlyList<GeoPoint3> fit, GeoVector3 start, GeoVector3 end, DxfKnotParameterizationEnum parameters, out List<GeoPoint3> through, out List<double> knots, out List<GeoPoint3> points)
+        internal static bool InterpolateCubic(
+            IReadOnlyList<GeoPoint3> fit,
+            GeoVector3 start,
+            GeoVector3 end,
+            DxfKnotParameterizationEnum parameters,
+            out List<GeoPoint3> through,
+            out List<double> knots,
+            out List<GeoPoint3> points
+        )
         {
             knots = null;
             points = null;
@@ -959,15 +988,19 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The step of the parameter from a point to the next a chord apart: the chord, its square root, or 1.</summary>
-        internal static double Step(double chord, DxfKnotParameterizationEnum parameters)
-            => parameters == DxfKnotParameterizationEnum.Uniform ? 1.0 : parameters == DxfKnotParameterizationEnum.SqrtChord ? Math.Sqrt(chord) : chord;
+        internal static double Step(double chord, DxfKnotParameterizationEnum parameters) =>
+            parameters == DxfKnotParameterizationEnum.Uniform ? 1.0
+            : parameters == DxfKnotParameterizationEnum.SqrtChord ? Math.Sqrt(chord)
+            : chord;
 
         /// <summary>
         /// The parameters a SPLINE's group 70 says its fit points are given, as AutoCAD 2021 writes them: by the square root of
         /// the chord where the flag 64 is set (its 1096), one step each where 128 is (1160), else by the chord (1064, 32).
         /// </summary>
-        internal static DxfKnotParameterizationEnum Parameters(int flags)
-            => (flags & 128) != 0 ? DxfKnotParameterizationEnum.Uniform : (flags & 64) != 0 ? DxfKnotParameterizationEnum.SqrtChord : DxfKnotParameterizationEnum.Chord;
+        internal static DxfKnotParameterizationEnum Parameters(int flags) =>
+            (flags & 128) != 0 ? DxfKnotParameterizationEnum.Uniform
+            : (flags & 64) != 0 ? DxfKnotParameterizationEnum.SqrtChord
+            : DxfKnotParameterizationEnum.Chord;
 
         /// <summary>
         /// Whether AutoCAD 2021 reads a SPLINE of fit points as another curve than its control points give, and that curve: it
@@ -980,13 +1013,27 @@ namespace GeometryHelper.Dxf
         /// are their fit to 3E-13, so that they are read as their records hold them, to the bit; the library's 17-g of v9,
         /// closed cubics of 70 11 through 5 and 6 fit points, are not, and AutoCAD read them as their fits.
         /// </summary>
-        internal static bool FitsAnew(IReadOnlyList<GeoPoint3> fit, GeoVector3 start, GeoVector3 end, double fitTolerance, int flags, int degree, IReadOnlyList<GeoPoint3> points, IReadOnlyList<double> knots, IReadOnlyList<double> weights, out List<double> fitKnots, out List<GeoPoint3> fitPoints)
+        internal static bool FitsAnew(
+            IReadOnlyList<GeoPoint3> fit,
+            GeoVector3 start,
+            GeoVector3 end,
+            double fitTolerance,
+            int flags,
+            int degree,
+            IReadOnlyList<GeoPoint3> points,
+            IReadOnlyList<double> knots,
+            IReadOnlyList<double> weights,
+            out List<double> fitKnots,
+            out List<GeoPoint3> fitPoints
+        )
         {
             fitKnots = null;
             fitPoints = null;
 
             DxfKnotParameterizationEnum parameters = Parameters(flags);
-            return fit.Count >= 2 && fitTolerance <= SeamGap && (flags & 2048) == 0
+            return fit.Count >= 2
+                && fitTolerance <= SeamGap
+                && (flags & 2048) == 0
                 && !IsTheFit(fit, start, end, parameters, degree, points, knots, weights)
                 && InterpolateCubic(fit, start, end, parameters, out _, out fitKnots, out fitPoints);
         }
@@ -999,7 +1046,16 @@ namespace GeometryHelper.Dxf
         /// derivative the tangent gives, or no second derivative where none is given. The system having one solution, a curve
         /// that meets them is the fit's.
         /// </summary>
-        private static bool IsTheFit(IReadOnlyList<GeoPoint3> fit, GeoVector3 start, GeoVector3 end, DxfKnotParameterizationEnum parameters, int degree, IReadOnlyList<GeoPoint3> points, IReadOnlyList<double> knots, IReadOnlyList<double> weights)
+        private static bool IsTheFit(
+            IReadOnlyList<GeoPoint3> fit,
+            GeoVector3 start,
+            GeoVector3 end,
+            DxfKnotParameterizationEnum parameters,
+            int degree,
+            IReadOnlyList<GeoPoint3> points,
+            IReadOnlyList<double> knots,
+            IReadOnlyList<double> weights
+        )
         {
             if (degree != 3)
             {
@@ -1046,7 +1102,9 @@ namespace GeometryHelper.Dxf
             for (int j = 1; j < n; j++)
             {
                 double[,] basis = BasisDerivatives(3, knots, 3 + j, knots[3 + j], 0);
-                double x = 0.0, y = 0.0, z = 0.0;
+                double x = 0.0,
+                    y = 0.0,
+                    z = 0.0;
 
                 for (int a = 0; a <= 3; a++)
                 {
@@ -1062,23 +1120,46 @@ namespace GeometryHelper.Dxf
             }
 
             return EndHolds(points[0], points[1], points[2], knots[4], knots[5], start, same)
-                && EndHolds(points[m - 1], points[m - 2], points[m - 3], t - knots[m - 1], t - knots[m - 2], -end, same);
+                && EndHolds(
+                    points[m - 1],
+                    points[m - 2],
+                    points[m - 3],
+                    t - knots[m - 1],
+                    t - knots[m - 2],
+                    -end,
+                    same
+                );
         }
 
         /// <summary>
         /// Whether an end of a cubic meets the condition of <see cref="InterpolateCubic"/> there: the derivative from its end
         /// point towards the next the tangent, by the first span over 3, or of no tangent, no second derivative.
         /// </summary>
-        private static bool EndHolds(GeoPoint3 p0, GeoPoint3 p1, GeoPoint3 p2, double a, double b, GeoVector3 tangent, Tolerance same)
+        private static bool EndHolds(
+            GeoPoint3 p0,
+            GeoPoint3 p1,
+            GeoPoint3 p2,
+            double a,
+            double b,
+            GeoVector3 tangent,
+            Tolerance same
+        )
         {
             if (tangent.Length > 0.0)
             {
                 double share = a / 3.0;
-                return new GeoPoint3(p1.X - p0.X, p1.Y - p0.Y, p1.Z - p0.Z).IsEqualTo(new GeoPoint3(share * tangent.X, share * tangent.Y, share * tangent.Z), same);
+                return new GeoPoint3(p1.X - p0.X, p1.Y - p0.Y, p1.Z - p0.Z).IsEqualTo(
+                    new GeoPoint3(share * tangent.X, share * tangent.Y, share * tangent.Z),
+                    same
+                );
             }
 
             double s = a + b;
-            return new GeoPoint3(b / s * p0.X - p1.X + a / s * p2.X, b / s * p0.Y - p1.Y + a / s * p2.Y, b / s * p0.Z - p1.Z + a / s * p2.Z).IsEqualTo(new GeoPoint3(0.0, 0.0, 0.0), same);
+            return new GeoPoint3(
+                b / s * p0.X - p1.X + a / s * p2.X,
+                b / s * p0.Y - p1.Y + a / s * p2.Y,
+                b / s * p0.Z - p1.Z + a / s * p2.Z
+            ).IsEqualTo(new GeoPoint3(0.0, 0.0, 0.0), same);
         }
 
         /// <summary>The fit points, one after another within AutoCAD's point tolerance of their size taken as one, and that tolerance.</summary>
@@ -1118,7 +1199,13 @@ namespace GeometryHelper.Dxf
         /// chord is of no length, or the system has no solution, as for any spline of an even degree through an even count of
         /// points, whose system is singular.
         /// </summary>
-        internal static bool InterpolatePeriodic(IReadOnlyList<GeoPoint3> ring, int p, DxfKnotParameterizationEnum parameters, out List<double> knots, out List<GeoPoint3> points)
+        internal static bool InterpolatePeriodic(
+            IReadOnlyList<GeoPoint3> ring,
+            int p,
+            DxfKnotParameterizationEnum parameters,
+            out List<double> knots,
+            out List<GeoPoint3> points
+        )
         {
             knots = null;
             points = null;
@@ -1381,7 +1468,9 @@ namespace GeometryHelper.Dxf
                     {
                         if (!(sum > 1E-300))
                         {
-                            throw new InvalidOperationException("The points do not give the spline a control point of its own for every span.");
+                            throw new InvalidOperationException(
+                                "The points do not give the spline a control point of its own for every span."
+                            );
                         }
 
                         u[i, 0] = Math.Sqrt(sum);

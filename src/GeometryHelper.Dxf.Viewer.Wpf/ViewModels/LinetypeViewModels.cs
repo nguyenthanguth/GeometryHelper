@@ -18,7 +18,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     {
         private bool _isCurrent;
 
-        internal LinetypeRowViewModel(string name, string description, IReadOnlyList<double> dashes, CadLinetypeDefinition pending, string path)
+        internal LinetypeRowViewModel(
+            string name,
+            string description,
+            IReadOnlyList<double> dashes,
+            CadLinetypeDefinition pending,
+            string path
+        )
         {
             Name = name;
             Description = description ?? string.Empty;
@@ -101,7 +107,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     public sealed class LinetypeManagerViewModel : ObservableObject
     {
         /// <summary>The ISO pen widths offered, in millimetres: an ISO linetype is drawn for a pen of 1 mm, so the width is its scale.</summary>
-        public static readonly IReadOnlyList<string> IsoPenWidths = Array.AsReadOnly(new[] { "0.13 mm", "0.18 mm", "0.25 mm", "0.35 mm", "0.5 mm", "0.7 mm", "1.0 mm", "1.4 mm", "2.0 mm" });
+        public static readonly IReadOnlyList<string> IsoPenWidths = Array.AsReadOnly(
+            new[] { "0.13 mm", "0.18 mm", "0.25 mm", "0.35 mm", "0.5 mm", "0.7 mm", "1.0 mm", "1.4 mm", "2.0 mm" }
+        );
 
         private readonly List<string> _deleted = new List<string>();
         private LinetypeRowViewModel _selected;
@@ -126,8 +134,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             foreach (string name in new[] { "ByLayer", "ByBlock" }.Concat(CadLinetypes.Names(database)))
             {
-                DxfLinetypeTableRecord record = database.LinetypeTable.FirstOrDefault(l => string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase));
-                Rows.Add(new LinetypeRowViewModel(name, record?.AsciiDescription, CadLinetypes.DashesOf(database, name), null, null));
+                DxfLinetypeTableRecord record = database.LinetypeTable.FirstOrDefault(l =>
+                    string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase)
+                );
+                Rows.Add(
+                    new LinetypeRowViewModel(
+                        name,
+                        record?.AsciiDescription,
+                        CadLinetypes.DashesOf(database, name),
+                        null,
+                        null
+                    )
+                );
             }
 
             MarkCurrent();
@@ -185,7 +203,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return;
                 }
 
-                _objectScale = Text(double.Parse(value.Replace("mm", string.Empty).Trim(), CultureInfo.InvariantCulture));
+                _objectScale = Text(
+                    double.Parse(value.Replace("mm", string.Empty).Trim(), CultureInfo.InvariantCulture)
+                );
                 Raise(nameof(CurrentObjectScale));
             }
         }
@@ -272,7 +292,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 // One of the presenter's own set, listed by the Load dialog before a file's, is written from its definition.
                 string from = CadLinetypeFile.BuiltIn.Contains(linetype) ? CadLinetypeFile.BuiltInName : path;
                 _deleted.RemoveAll(d => string.Equals(d, linetype.Name, StringComparison.OrdinalIgnoreCase));
-                Rows.Add(new LinetypeRowViewModel(linetype.Name, linetype.Description, linetype.Elements.Select(e => e.Length).ToList(), linetype, from));
+                Rows.Add(
+                    new LinetypeRowViewModel(
+                        linetype.Name,
+                        linetype.Description,
+                        linetype.Elements.Select(e => e.Length).ToList(),
+                        linetype,
+                        from
+                    )
+                );
             }
 
             Message = present.Count == 0 ? string.Empty : "Already loaded: " + string.Join(", ", present) + ".";
@@ -308,7 +336,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (CadLinetypes.IsKept(row.Name))
             {
-                Message = "The linetype " + row.Name + " cannot be deleted: AutoCAD keeps ByLayer, ByBlock and Continuous.";
+                Message =
+                    "The linetype " + row.Name + " cannot be deleted: AutoCAD keeps ByLayer, ByBlock and Continuous.";
                 return false;
             }
 
@@ -352,17 +381,35 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (!string.Equals(current, database.Celtype, StringComparison.Ordinal))
             {
-                planned.Add(new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$CELTYPE", database.Celtype, current));
+                planned.Add(
+                    new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$CELTYPE", database.Celtype, current)
+                );
             }
 
             if (global != database.Ltscale)
             {
-                planned.Add(new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$LTSCALE", Text(database.Ltscale), Text(global)));
+                planned.Add(
+                    new CadEditRecord(
+                        CadEditRecordKind.SettingChanged,
+                        null,
+                        "$LTSCALE",
+                        Text(database.Ltscale),
+                        Text(global)
+                    )
+                );
             }
 
             if (objects != database.Celtscale)
             {
-                planned.Add(new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$CELTSCALE", Text(database.Celtscale), Text(objects)));
+                planned.Add(
+                    new CadEditRecord(
+                        CadEditRecordKind.SettingChanged,
+                        null,
+                        "$CELTSCALE",
+                        Text(database.Celtscale),
+                        Text(objects)
+                    )
+                );
             }
 
             if (planned.Count == 0 && loads.Count == 0 && _deleted.Count == 0)
@@ -377,7 +424,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     try
                     {
-                        if (string.Equals(row.PendingPath, CadLinetypeFile.BuiltInName, StringComparison.OrdinalIgnoreCase))
+                        if (
+                            string.Equals(
+                                row.PendingPath,
+                                CadLinetypeFile.BuiltInName,
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                        )
                         {
                             CadLinetypes.Add(s.Database, row.Pending);
                         }
@@ -386,7 +439,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             s.Database.LoadLineTypeFile(row.Name, row.PendingPath);
                         }
 
-                        s.Record(new CadEditRecord(CadEditRecordKind.TableChanged, null, "Load linetype", null, row.Name));
+                        s.Record(
+                            new CadEditRecord(CadEditRecordKind.TableChanged, null, "Load linetype", null, row.Name)
+                        );
                     }
                     catch (ArgumentException e)
                     {
@@ -400,7 +455,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     s.Record(new CadEditRecord(CadEditRecordKind.TableChanged, null, "Delete linetype", name, null));
                 }
 
-                if (!string.Equals(current, s.Database.Celtype, StringComparison.Ordinal) && (CadLinetypes.IsKept(current) || s.Database.LinetypeTable.Has(current)))
+                if (
+                    !string.Equals(current, s.Database.Celtype, StringComparison.Ordinal)
+                    && (CadLinetypes.IsKept(current) || s.Database.LinetypeTable.Has(current))
+                )
                 {
                     s.Database.Celtype = current;
                 }
@@ -425,7 +483,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             string typed = (value ?? string.Empty).Trim();
 
-            if (!double.TryParse(typed, NumberStyles.Float, CultureInfo.InvariantCulture, out double scale) || !(scale > 0.0) || double.IsInfinity(scale))
+            if (
+                !double.TryParse(typed, NumberStyles.Float, CultureInfo.InvariantCulture, out double scale)
+                || !(scale > 0.0)
+                || double.IsInfinity(scale)
+            )
             {
                 Message = what + " is a number above nought.";
                 Raise(what == "Global scale factor" ? nameof(GlobalScale) : nameof(CurrentObjectScale));
@@ -436,8 +498,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Set(ref field, typed, what == "Global scale factor" ? nameof(GlobalScale) : nameof(CurrentObjectScale));
         }
 
-        private static double Parse(string text, double fallback)
-            => double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && value > 0.0 && !double.IsInfinity(value) ? value : fallback;
+        private static double Parse(string text, double fallback) =>
+            double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+            && value > 0.0
+            && !double.IsInfinity(value)
+                ? value
+                : fallback;
 
         private static string Text(double value) => value.ToString("0.####", CultureInfo.InvariantCulture);
     }
@@ -527,13 +593,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets whether the presenter's own set is listed alone, no file chosen.</summary>
-        public bool IsBuiltIn => string.Equals((_file ?? string.Empty).Trim(), CadLinetypeFile.BuiltInName, StringComparison.OrdinalIgnoreCase);
+        public bool IsBuiltIn =>
+            string.Equals(
+                (_file ?? string.Empty).Trim(),
+                CadLinetypeFile.BuiltInName,
+                StringComparison.OrdinalIgnoreCase
+            );
 
         /// <summary>Gets the words of the file box: <see cref="BuiltInText"/>, or the path of the file chosen.</summary>
         public string FileText => IsBuiltIn ? BuiltInText : FilePath ?? _file;
 
         /// <summary>Gets the line under the file box.</summary>
-        public string Hint => "A .lin file chosen with Browse… lists its linetypes after the built-in ones; a built-in name wins.";
+        public string Hint =>
+            "A .lin file chosen with Browse… lists its linetypes after the built-in ones; a built-in name wins.";
 
         /// <summary>Gets the file the linetypes are read from: a full path, or <see cref="CadLinetypeFile.BuiltInName"/>.</summary>
         public string FilePath { get; private set; }
@@ -542,7 +614,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public ObservableCollection<LoadLinetypeRowViewModel> Rows { get; }
 
         /// <summary>Gets the linetypes chosen.</summary>
-        public IReadOnlyList<CadLinetypeDefinition> Chosen => Rows.Where(r => r.IsChosen).Select(r => r.Definition).ToList();
+        public IReadOnlyList<CadLinetypeDefinition> Chosen =>
+            Rows.Where(r => r.IsChosen).Select(r => r.Definition).ToList();
 
         /// <summary>Gets why the file cannot be read; empty where it was.</summary>
         public string Message
@@ -598,7 +671,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 linetypes = FilePath == null ? null : CadLinetypeFile.Read(FilePath);
             }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException || e is NotSupportedException)
+            catch (Exception e)
+                when (e is IOException
+                    || e is UnauthorizedAccessException
+                    || e is ArgumentException
+                    || e is NotSupportedException
+                )
             {
                 linetypes = null;
             }
@@ -677,7 +755,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             CadLinetypeLoad load = CadLinetypes.Load(Document, dialog.Chosen, dialog.FilePath);
-            Message = string.Join(" ", load.Refused.Concat(load.Result.Succeeded ? Enumerable.Empty<string>() : new[] { load.Result.Message }));
+            Message = string.Join(
+                " ",
+                load.Refused.Concat(load.Result.Succeeded ? Enumerable.Empty<string>() : new[] { load.Result.Message })
+            );
             Refill(load.Loaded.FirstOrDefault() ?? Linetype);
         }
 
@@ -688,10 +769,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             foreach (string name in CadLinetypes.Names(Document.Database))
             {
                 DxfLinetypeTableRecord record = Document.Database.LinetypeTable[name];
-                Rows.Add(new LinetypeRowViewModel(name, record.AsciiDescription, CadLinetypes.DashesOf(Document.Database, name), null, null));
+                Rows.Add(
+                    new LinetypeRowViewModel(
+                        name,
+                        record.AsciiDescription,
+                        CadLinetypes.DashesOf(Document.Database, name),
+                        null,
+                        null
+                    )
+                );
             }
 
-            SelectedRow = Rows.FirstOrDefault(r => string.Equals(r.Name, chosen, StringComparison.OrdinalIgnoreCase)) ?? Rows.FirstOrDefault();
+            SelectedRow = Rows.FirstOrDefault(r => string.Equals(r.Name, chosen, StringComparison.OrdinalIgnoreCase))
+                ?? Rows.FirstOrDefault();
         }
     }
 }

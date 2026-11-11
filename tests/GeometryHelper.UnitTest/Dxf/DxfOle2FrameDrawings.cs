@@ -60,31 +60,123 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             var b = new StringBuilder();
             byte[] dib = DibCompound();
-            Frame(b, "D10", false, "Picture (Device Independent Bitmap)", 3, Head(Square(10, 20, 30, 20), 0x80, dib), true);
-            Frame(b, "D11", false, "Picture (Metafile)", 3, Head(Square(100, 0, 30, 20), 0x80, MetafileCompound()), true);
-            Frame(b, "D12", false, "Picture (Enhanced Metafile)", 3, Head(Square(200, 0, 30, 20), 0x80, EnhancedMetafileCompound()), true);
+            Frame(
+                b,
+                "D10",
+                false,
+                "Picture (Device Independent Bitmap)",
+                3,
+                Head(Square(10, 20, 30, 20), 0x80, dib),
+                true
+            );
+            Frame(
+                b,
+                "D11",
+                false,
+                "Picture (Metafile)",
+                3,
+                Head(Square(100, 0, 30, 20), 0x80, MetafileCompound()),
+                true
+            );
+            Frame(
+                b,
+                "D12",
+                false,
+                "Picture (Enhanced Metafile)",
+                3,
+                Head(Square(200, 0, 30, 20), 0x80, EnhancedMetafileCompound()),
+                true
+            );
             Frame(b, "D13", false, "OLE Package", 2, Head(Square(300, 0, 40, 30), 0x80, PackageCompound()), true);
-            Frame(b, "D14", false, "Microsoft Excel Worksheet", 1, Head(Square(400, 0, 60, 40), 0x80, LinkCompound()), true);
+            Frame(
+                b,
+                "D14",
+                false,
+                "Microsoft Excel Worksheet",
+                1,
+                Head(Square(400, 0, 60, 40), 0x80, LinkCompound()),
+                true
+            );
 
             byte[] broken = (byte[])dib.Clone();
             broken[0] = 0;
             Frame(b, "D15", false, "Something Else", 2, Head(Square(0, 100, 30, 20), 0x80, broken), true);
 
             GeoPoint3[] moved = Square(10, 20, 30, 20).Select(p => new GeoPoint3(p.X + 100, p.Y + 50, p.Z)).ToArray();
-            Frame(b, "D16", false, "Picture (Device Independent Bitmap)", 3, Head(moved, 0x80, dib), true, Square(10, 20, 30, 20));
-            Frame(b, "D17", true, "Picture (Device Independent Bitmap)", 3, Head(Square(5, 5, 30, 20), 0x01, dib), true);
-            Frame(b, "D18", false, "Something Else", 2, Enumerable.Range(0, 50).Select(i => (byte)i).ToArray(), true, Square(0, 200, 40, 20));
+            Frame(
+                b,
+                "D16",
+                false,
+                "Picture (Device Independent Bitmap)",
+                3,
+                Head(moved, 0x80, dib),
+                true,
+                Square(10, 20, 30, 20)
+            );
+            Frame(
+                b,
+                "D17",
+                true,
+                "Picture (Device Independent Bitmap)",
+                3,
+                Head(Square(5, 5, 30, 20), 0x01, dib),
+                true
+            );
+            Frame(
+                b,
+                "D18",
+                false,
+                "Something Else",
+                2,
+                Enumerable.Range(0, 50).Select(i => (byte)i).ToArray(),
+                true,
+                Square(0, 200, 40, 20)
+            );
 
             double turn = Math.PI / 6;
-            GeoPoint3[] turned = Square(0, 300, 30, 20).Select(p => new GeoPoint3(Math.Cos(turn) * p.X - Math.Sin(turn) * (p.Y - 300), 300 + Math.Sin(turn) * p.X + Math.Cos(turn) * (p.Y - 300), 0)).ToArray();
-            Frame(b, "D19", false, "Picture (Device Independent Bitmap)", 3, Head(turned, 0x80, dib), true, null, 0, "0", "0", "0.5235987755982988", "1");
-            Frame(b, "D1A", false, "Picture (Device Independent Bitmap)", 3, Head(Square(50, 300, 30, 20), 0x80, dib), false);
+            GeoPoint3[] turned = Square(0, 300, 30, 20)
+                .Select(p => new GeoPoint3(
+                    Math.Cos(turn) * p.X - Math.Sin(turn) * (p.Y - 300),
+                    300 + Math.Sin(turn) * p.X + Math.Cos(turn) * (p.Y - 300),
+                    0
+                ))
+                .ToArray();
+            Frame(
+                b,
+                "D19",
+                false,
+                "Picture (Device Independent Bitmap)",
+                3,
+                Head(turned, 0x80, dib),
+                true,
+                null,
+                0,
+                "0",
+                "0",
+                "0.5235987755982988",
+                "1"
+            );
+            Frame(
+                b,
+                "D1A",
+                false,
+                "Picture (Device Independent Bitmap)",
+                3,
+                Head(Square(50, 300, 30, 20), 0x80, dib),
+                false
+            );
             return b.ToString();
         }
 
         /// <summary>The corners upper left, upper right, lower right and lower left of a frame along x and y from its lower left corner.</summary>
-        internal static GeoPoint3[] Square(double x, double y, double width, double height)
-            => new[] { new GeoPoint3(x, y + height, 0), new GeoPoint3(x + width, y + height, 0), new GeoPoint3(x + width, y, 0), new GeoPoint3(x, y, 0) };
+        internal static GeoPoint3[] Square(double x, double y, double width, double height) =>
+            new[]
+            {
+                new GeoPoint3(x, y + height, 0),
+                new GeoPoint3(x + width, y + height, 0),
+                new GeoPoint3(x + width, y, 0),
+                new GeoPoint3(x, y, 0),
+            };
 
         /// <summary>A .bmp of 3 by 2 pixels of 24 bits, 3 780 pixels a metre (96 dots an inch): 78 bytes.</summary>
         internal static byte[] Bitmap()
@@ -179,19 +271,37 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The compound file of a static bitmap, as ole32's <c>OleCreateStaticFromData</c> and <c>OleSave</c> write it.</summary>
-        internal static byte[] DibCompound(int shift = 9)
-            => Compound(StaticDib, shift, Stream("\u0001Ole", OleStream()), Stream("\u0001CompObj", CompObj("Picture (Device Independent Bitmap)", 8, "StaticDib")), Stream("CONTENTS", Bitmap()));
+        internal static byte[] DibCompound(int shift = 9) =>
+            Compound(
+                StaticDib,
+                shift,
+                Stream("\u0001Ole", OleStream()),
+                Stream("\u0001CompObj", CompObj("Picture (Device Independent Bitmap)", 8, "StaticDib")),
+                Stream("CONTENTS", Bitmap())
+            );
 
         /// <summary>The compound file of a static metafile.</summary>
-        internal static byte[] MetafileCompound()
-            => Compound(StaticMetafile, 9, Stream("\u0001Ole", OleStream()), Stream("\u0001CompObj", CompObj("Picture (Metafile)", 3, "StaticMetafile")), Stream("CONTENTS", PlaceableMetafile()));
+        internal static byte[] MetafileCompound() =>
+            Compound(
+                StaticMetafile,
+                9,
+                Stream("\u0001Ole", OleStream()),
+                Stream("\u0001CompObj", CompObj("Picture (Metafile)", 3, "StaticMetafile")),
+                Stream("CONTENTS", PlaceableMetafile())
+            );
 
         /// <summary>The compound file of a static enhanced metafile: its CONTENTS the size of its header, a copy of it, then the metafile.</summary>
         internal static byte[] EnhancedMetafileCompound()
         {
             byte[] emf = EnhancedMetafile();
             byte[] contents = U32(108).Concat(emf.Take(108)).Concat(emf).ToArray();
-            return Compound(StaticEnhancedMetafile, 9, Stream("\u0001Ole", OleStream()), Stream("\u0001CompObj", CompObj("Picture (Enhanced Metafile)", 14, null)), Stream("CONTENTS", contents));
+            return Compound(
+                StaticEnhancedMetafile,
+                9,
+                Stream("\u0001Ole", OleStream()),
+                Stream("\u0001CompObj", CompObj("Picture (Enhanced Metafile)", 14, null)),
+                Stream("CONTENTS", contents)
+            );
         }
 
         /// <summary>The compound file of a file packed, as <c>OleCreateFromFile</c> writes one for a type of no application of OLE.</summary>
@@ -208,7 +318,12 @@ namespace GeometryHelper.UnitTest.Dxf
             native.AddRange(U32(5));
             native.AddRange(Encoding.ASCII.GetBytes("hello"));
             byte[] stream = U32((uint)native.Count).Concat(native).ToArray();
-            return Compound(Package, 9, Stream("\u0001CompObj", CompObj(userType, 0, "Package")), Stream("\u0001Ole10Native", stream));
+            return Compound(
+                Package,
+                9,
+                Stream("\u0001CompObj", CompObj(userType, 0, "Package")),
+                Stream("\u0001Ole10Native", stream)
+            );
         }
 
         /// <summary>
@@ -222,9 +337,18 @@ namespace GeometryHelper.UnitTest.Dxf
             byte[] item = Moniker(ItemMonikerClass, ItemMoniker("!", "Sheet1!R1C1:R4C3"));
             byte[] file = Moniker(FileMonikerClass, FileMoniker(1, "cost.xlsx", false));
             byte[] relative = antiRelative
-                ? Moniker(CompositeMonikerClass, U32(3).Concat(Moniker(AntiMonikerClass, U32(1))).Concat(file).Concat(item).ToArray())
+                ? Moniker(
+                    CompositeMonikerClass,
+                    U32(3).Concat(Moniker(AntiMonikerClass, U32(1))).Concat(file).Concat(item).ToArray()
+                )
                 : Moniker(CompositeMonikerClass, U32(2).Concat(file).Concat(item).ToArray());
-            byte[] absolute = Moniker(CompositeMonikerClass, U32(2).Concat(Moniker(FileMonikerClass, FileMoniker(0, "C:\\Drawings\\cost.xlsx", true))).Concat(item).ToArray());
+            byte[] absolute = Moniker(
+                CompositeMonikerClass,
+                U32(2)
+                    .Concat(Moniker(FileMonikerClass, FileMoniker(0, "C:\\Drawings\\cost.xlsx", true)))
+                    .Concat(item)
+                    .ToArray()
+            );
             var ole = new List<byte>();
             ole.AddRange(U32(0x02000001));
             ole.AddRange(U32(1));
@@ -240,7 +364,12 @@ namespace GeometryHelper.UnitTest.Dxf
             ole.AddRange(U32(0));
             ole.AddRange(U32(0));
             ole.AddRange(new byte[24]);
-            return Compound(StdOleLink, 9, Stream("\u0001Ole", ole.ToArray()), Stream("\u0001CompObj", CompObj("Microsoft Excel Worksheet", 0, "Excel.Sheet.12")));
+            return Compound(
+                StdOleLink,
+                9,
+                Stream("\u0001Ole", ole.ToArray()),
+                Stream("\u0001CompObj", CompObj("Microsoft Excel Worksheet", 0, "Excel.Sheet.12"))
+            );
         }
 
         /// <summary>The <c>\1Ole</c> stream of an object embedded or static (MS-OLEDS 2.3.3): 20 bytes, no moniker.</summary>
@@ -250,7 +379,12 @@ namespace GeometryHelper.UnitTest.Dxf
         /// The <c>\1CompObj</c> stream (MS-OLEDS 2.3.8): its header, user type, clipboard format (0 for none), ProgID (null for
         /// one of length 0), then its Unicode user type, empty unless given, and empty Unicode clipboard format and ProgID.
         /// </summary>
-        internal static byte[] CompObj(string userType, uint clipboardFormat, string progId, string unicodeUserType = null)
+        internal static byte[] CompObj(
+            string userType,
+            uint clipboardFormat,
+            string progId,
+            string unicodeUserType = null
+        )
         {
             var b = new List<byte>();
             b.AddRange(U32(0xFFFE0001));
@@ -434,7 +568,11 @@ namespace GeometryHelper.UnitTest.Dxf
             int[] left = Enumerable.Repeat(-1, n).ToArray();
             int[] right = Enumerable.Repeat(-1, n).ToArray();
             var red = new bool[n];
-            List<int> sorted = Enumerable.Range(0, n).OrderBy(i => streams[i].Key.Length).ThenBy(i => streams[i].Key.ToUpperInvariant(), StringComparer.Ordinal).ToList();
+            List<int> sorted = Enumerable
+                .Range(0, n)
+                .OrderBy(i => streams[i].Key.Length)
+                .ThenBy(i => streams[i].Key.ToUpperInvariant(), StringComparer.Ordinal)
+                .ToList();
             int depth = 0;
 
             while ((1 << (depth + 1)) - 1 < n)
@@ -460,11 +598,35 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             int top = Build(0, n - 1, 0);
-            Entry(entries, 0, "Root Entry", 5, false, -1, -1, top, root, mini.Count == 0 ? End : (uint)miniStart, (ulong)mini.Count);
+            Entry(
+                entries,
+                0,
+                "Root Entry",
+                5,
+                false,
+                -1,
+                -1,
+                top,
+                root,
+                mini.Count == 0 ? End : (uint)miniStart,
+                (ulong)mini.Count
+            );
 
             for (int i = 0; i < n; i++)
             {
-                Entry(entries, i + 1, streams[i].Key, 2, red[i], left[i], right[i], -1, Guid.Empty, starts[i], (ulong)streams[i].Value.Length);
+                Entry(
+                    entries,
+                    i + 1,
+                    streams[i].Key,
+                    2,
+                    red[i],
+                    left[i],
+                    right[i],
+                    -1,
+                    Guid.Empty,
+                    starts[i],
+                    (ulong)streams[i].Value.Length
+                );
             }
 
             for (int i = n + 1; i < entries.Length / 128; i++)
@@ -487,7 +649,8 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>A stream of a compound file, by its name.</summary>
-        internal static KeyValuePair<string, byte[]> Stream(string name, byte[] data) => new KeyValuePair<string, byte[]>(name, data);
+        internal static KeyValuePair<string, byte[]> Stream(string name, byte[] data) =>
+            new KeyValuePair<string, byte[]>(name, data);
 
         /// <summary>
         /// The binary of an OLE2FRAME: AutoCAD's head (its signature's first byte, then 0x55; the corners upper left, upper right,
@@ -524,19 +687,48 @@ namespace GeometryHelper.UnitTest.Dxf
         /// the frame given), its quality (73) unless below nought, its binary in lines of 32 bytes, and its extended data between
         /// OLEBEGIN and OLEEND where asked.
         /// </summary>
-        internal static void Frame(StringBuilder b, string handle, bool paper, string userType, int type, byte[] binary, bool data, GeoPoint3[] groups = null, int quality = 2, string auto = "1", string locked = "1", string rotation = "0", string turned = "0")
+        internal static void Frame(
+            StringBuilder b,
+            string handle,
+            bool paper,
+            string userType,
+            int type,
+            byte[] binary,
+            bool data,
+            GeoPoint3[] groups = null,
+            int quality = 2,
+            string auto = "1",
+            string locked = "1",
+            string rotation = "0",
+            string turned = "0"
+        )
         {
-            GeoPoint3[] corners = groups ?? new[] { Corner(binary, 0), Corner(binary, 1), Corner(binary, 2), Corner(binary, 3) };
-            b.Append("  0\nOLE2FRAME\n  5\n").Append(handle).Append("\n330\n").Append(paper ? "1B" : "17").Append("\n100\nAcDbEntity\n");
-            b.Append(paper ? " 67\n1\n" : string.Empty).Append("  8\n0\n100\nAcDbOle2Frame\n 70\n2\n  3\n").Append(userType).Append('\n');
+            GeoPoint3[] corners = groups
+                ?? new[] { Corner(binary, 0), Corner(binary, 1), Corner(binary, 2), Corner(binary, 3) };
+            b.Append("  0\nOLE2FRAME\n  5\n")
+                .Append(handle)
+                .Append("\n330\n")
+                .Append(paper ? "1B" : "17")
+                .Append("\n100\nAcDbEntity\n");
+            b.Append(paper ? " 67\n1\n" : string.Empty)
+                .Append("  8\n0\n100\nAcDbOle2Frame\n 70\n2\n  3\n")
+                .Append(userType)
+                .Append('\n');
             Point(b, 10, corners[0]);
             Point(b, 11, corners[2]);
             b.Append(" 71\n").Append(type).Append("\n 72\n").Append(paper ? 1 : 0).Append('\n');
-            b.Append(quality < 0 ? string.Empty : " 73\n" + quality + "\n").Append(" 90\n").Append(binary.Length).Append('\n');
+            b.Append(quality < 0 ? string.Empty : " 73\n" + quality + "\n")
+                .Append(" 90\n")
+                .Append(binary.Length)
+                .Append('\n');
 
             for (int at = 0; at < binary.Length; at += 32)
             {
-                b.Append("310\n").Append(BitConverter.ToString(binary, at, Math.Min(32, binary.Length - at)).Replace("-", string.Empty)).Append('\n');
+                b.Append("310\n")
+                    .Append(
+                        BitConverter.ToString(binary, at, Math.Min(32, binary.Length - at)).Replace("-", string.Empty)
+                    )
+                    .Append('\n');
             }
 
             b.Append("  1\nOLE\n");
@@ -544,19 +736,49 @@ namespace GeometryHelper.UnitTest.Dxf
             if (data)
             {
                 b.Append("1001\nACAD\n1000\nOLEBEGIN\n");
-                b.Append("1070\n70\n1070\n").Append(auto).Append("\n1070\n71\n1070\n").Append(locked).Append("\n1070\n40\n1040\n").Append(rotation).Append('\n');
-                b.Append("1070\n41\n1040\n").Append(Text(corners[1].X - corners[0].X)).Append("\n1070\n42\n1040\n").Append(Text(corners[0].Y - corners[3].Y)).Append('\n');
-                b.Append("1070\n72\n1070\n").Append(turned).Append("\n1070\n3\n1000\n\n1070\n90\n1071\n12\n1070\n43\n1040\n0.1666666666666666\n");
+                b.Append("1070\n70\n1070\n")
+                    .Append(auto)
+                    .Append("\n1070\n71\n1070\n")
+                    .Append(locked)
+                    .Append("\n1070\n40\n1040\n")
+                    .Append(rotation)
+                    .Append('\n');
+                b.Append("1070\n41\n1040\n")
+                    .Append(Text(corners[1].X - corners[0].X))
+                    .Append("\n1070\n42\n1040\n")
+                    .Append(Text(corners[0].Y - corners[3].Y))
+                    .Append('\n');
+                b.Append("1070\n72\n1070\n")
+                    .Append(turned)
+                    .Append("\n1070\n3\n1000\n\n1070\n90\n1071\n12\n1070\n43\n1040\n0.1666666666666666\n");
                 b.Append("1070\n4\n1000\n\n1070\n91\n1071\n12\n1070\n44\n1040\n0.1666666666666666\n1000\nOLEEND\n");
             }
         }
 
         /// <summary>A corner of the head of a binary, 0 the upper left; the origin where the binary is too short.</summary>
-        private static GeoPoint3 Corner(byte[] binary, int k)
-            => binary.Length < 98 ? new GeoPoint3(0, 0, 0) : new GeoPoint3(BitConverter.ToDouble(binary, 2 + 24 * k), BitConverter.ToDouble(binary, 10 + 24 * k), BitConverter.ToDouble(binary, 18 + 24 * k));
+        private static GeoPoint3 Corner(byte[] binary, int k) =>
+            binary.Length < 98
+                ? new GeoPoint3(0, 0, 0)
+                : new GeoPoint3(
+                    BitConverter.ToDouble(binary, 2 + 24 * k),
+                    BitConverter.ToDouble(binary, 10 + 24 * k),
+                    BitConverter.ToDouble(binary, 18 + 24 * k)
+                );
 
-        private static void Point(StringBuilder b, int code, GeoPoint3 p)
-            => b.Append(' ').Append(code).Append('\n').Append(Text(p.X)).Append("\n ").Append(code + 10).Append('\n').Append(Text(p.Y)).Append("\n ").Append(code + 20).Append('\n').Append(Text(p.Z)).Append('\n');
+        private static void Point(StringBuilder b, int code, GeoPoint3 p) =>
+            b.Append(' ')
+                .Append(code)
+                .Append('\n')
+                .Append(Text(p.X))
+                .Append("\n ")
+                .Append(code + 10)
+                .Append('\n')
+                .Append(Text(p.Y))
+                .Append("\n ")
+                .Append(code + 20)
+                .Append('\n')
+                .Append(Text(p.Z))
+                .Append('\n');
 
         private static string Text(double d) => d.ToString("R", CultureInfo.InvariantCulture);
 
@@ -590,10 +812,26 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>An item moniker's data: its delimiter and its item, each of its size and ANSI letters closed by a nought.</summary>
-        private static byte[] ItemMoniker(string delimiter, string item)
-            => U32((uint)delimiter.Length + 1).Concat(Ansi(delimiter)).Concat(U32((uint)item.Length + 1)).Concat(Ansi(item)).ToArray();
+        private static byte[] ItemMoniker(string delimiter, string item) =>
+            U32((uint)delimiter.Length + 1)
+                .Concat(Ansi(delimiter))
+                .Concat(U32((uint)item.Length + 1))
+                .Concat(Ansi(item))
+                .ToArray();
 
-        private static void Entry(byte[] entries, int index, string name, byte type, bool red, int left, int right, int child, Guid classId, uint start, ulong size)
+        private static void Entry(
+            byte[] entries,
+            int index,
+            string name,
+            byte type,
+            bool red,
+            int left,
+            int right,
+            int child,
+            Guid classId,
+            uint start,
+            ulong size
+        )
         {
             int at = index * 128;
             byte[] text = Encoding.Unicode.GetBytes(name + "\0");

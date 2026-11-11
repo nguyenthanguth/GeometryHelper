@@ -13,8 +13,27 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>().Single();
         }
 
-        private static string MirroredInsert(string block, double x, double y)
-            => TestDrawings.Entity("INSERT", "0", 256, "B1", "2", block, "10", x, "20", y, "30", 0.0, "41", -1.0, "42", 1.0, "43", 1.0);
+        private static string MirroredInsert(string block, double x, double y) =>
+            TestDrawings.Entity(
+                "INSERT",
+                "0",
+                256,
+                "B1",
+                "2",
+                block,
+                "10",
+                x,
+                "20",
+                y,
+                "30",
+                0.0,
+                "41",
+                -1.0,
+                "42",
+                1.0,
+                "43",
+                1.0
+            );
 
         [Fact]
         public void TextInABlockInsertedMirrored_IsDrawnBackwards_RunningLeftFromItsPoint()
@@ -34,8 +53,48 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ATextWrittenBackwards_IsDrawnBackwards_AndOneUpsideDownIsBackwardsTurnedHalfRound()
         {
-            DisplayText2 backward = Shown(null, TestDrawings.Entity("TEXT", "0", 256, "T1", "10", 0.0, "20", 0.0, "30", 0.0, "40", 5.0, "1", "AB", "71", 2));
-            DisplayText2 upsideDown = Shown(null, TestDrawings.Entity("TEXT", "0", 256, "T1", "10", 0.0, "20", 0.0, "30", 0.0, "40", 5.0, "1", "AB", "71", 4));
+            DisplayText2 backward = Shown(
+                null,
+                TestDrawings.Entity(
+                    "TEXT",
+                    "0",
+                    256,
+                    "T1",
+                    "10",
+                    0.0,
+                    "20",
+                    0.0,
+                    "30",
+                    0.0,
+                    "40",
+                    5.0,
+                    "1",
+                    "AB",
+                    "71",
+                    2
+                )
+            );
+            DisplayText2 upsideDown = Shown(
+                null,
+                TestDrawings.Entity(
+                    "TEXT",
+                    "0",
+                    256,
+                    "T1",
+                    "10",
+                    0.0,
+                    "20",
+                    0.0,
+                    "30",
+                    0.0,
+                    "40",
+                    5.0,
+                    "1",
+                    "AB",
+                    "71",
+                    4
+                )
+            );
 
             Assert.True(backward.IsBackward);
             Assert.Equal(0.0, backward.Rotation, 12);

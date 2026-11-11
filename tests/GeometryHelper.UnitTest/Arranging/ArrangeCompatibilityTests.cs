@@ -34,7 +34,12 @@ namespace GeometryHelper.UnitTest.Arranging
     /// </remarks>
     public class ArrangeCompatibilityTests : ArrangeTestKit
     {
-        private static readonly Tolerance ToleranceOf620 = new Tolerance(1E-4, 1E-4, Tolerance.DefaultEqualAngleRad, 1E-4);
+        private static readonly Tolerance ToleranceOf620 = new Tolerance(
+            1E-4,
+            1E-4,
+            Tolerance.DefaultEqualAngleRad,
+            1E-4
+        );
 
         private const string CandidatesOf620 = "4fe5a272fb975c29e83629334124ba60ab0d3453e1048c77028fdf675d551e61";
 
@@ -46,14 +51,30 @@ namespace GeometryHelper.UnitTest.Arranging
             var text = new StringBuilder();
             var leaders = new[]
             {
-                new GeoLine2(0, 0, 100, 0), new GeoLine2(100, 0, 0, 0), new GeoLine2(0, 0, 0, 100), new GeoLine2(0, 100, 0, 0),
-                new GeoLine2(0, 0, 100, 100), new GeoLine2(0, 100, 100, 0), new GeoLine2(10, 20, 250, 60), new GeoLine2(3000, 1200, -500, 4000),
+                new GeoLine2(0, 0, 100, 0),
+                new GeoLine2(100, 0, 0, 0),
+                new GeoLine2(0, 0, 0, 100),
+                new GeoLine2(0, 100, 0, 0),
+                new GeoLine2(0, 0, 100, 100),
+                new GeoLine2(0, 100, 100, 0),
+                new GeoLine2(10, 20, 250, 60),
+                new GeoLine2(3000, 1200, -500, 4000),
             };
             var optionSets = new[]
             {
                 new ArrangeOptions(),
-                new ArrangeOptions { RowGap = 5.0, PerpendicularLevels = 4, LongitudinalOvershootRatio = 0.3 },
-                new ArrangeOptions { PerpendicularLevels = 1, LongitudinalOvershootRatio = 0.0, MinimumBoxSize = 0.5 },
+                new ArrangeOptions
+                {
+                    RowGap = 5.0,
+                    PerpendicularLevels = 4,
+                    LongitudinalOvershootRatio = 0.3,
+                },
+                new ArrangeOptions
+                {
+                    PerpendicularLevels = 1,
+                    LongitudinalOvershootRatio = 0.0,
+                    MinimumBoxSize = 0.5,
+                },
             };
 
             foreach (GeoLine2 leader in leaders)
@@ -64,7 +85,12 @@ namespace GeometryHelper.UnitTest.Arranging
                     {
                         foreach (ArrangeOptions options in optionSets)
                         {
-                            var item = new ArrangeItem { Leader = leader, Box = new GeoRectangle2(new GeoPoint2(7, -3), 20.0, 10.0, angle), Offset = offset };
+                            var item = new ArrangeItem
+                            {
+                                Leader = leader,
+                                Box = new GeoRectangle2(new GeoPoint2(7, -3), 20.0, 10.0, angle),
+                                Offset = offset,
+                            };
                             foreach (GeoPoint2 p in item.GetPlacePoints(options))
                             {
                                 text.Append(Number(p.X)).Append(',').Append(Number(p.Y)).Append(' ');
@@ -83,8 +109,14 @@ namespace GeometryHelper.UnitTest.Arranging
         public void TheResults_AreThoseOf620()
         {
             var text = new StringBuilder();
-            Append(text, Arranger.Run(Crowd(lifted: false), new ArrangeOptions { RowGap = 5.0, Tolerance = ToleranceOf620 }));
-            Append(text, Arranger.Run(Crowd(lifted: true), new ArrangeOptions { RowGap = 5.0, Tolerance = ToleranceOf620 }));
+            Append(
+                text,
+                Arranger.Run(Crowd(lifted: false), new ArrangeOptions { RowGap = 5.0, Tolerance = ToleranceOf620 })
+            );
+            Append(
+                text,
+                Arranger.Run(Crowd(lifted: true), new ArrangeOptions { RowGap = 5.0, Tolerance = ToleranceOf620 })
+            );
 
             for (int seed = 1; seed <= 6; seed++)
             {
@@ -111,12 +143,25 @@ namespace GeometryHelper.UnitTest.Arranging
                 Offset = 12.0,
                 BlockPolygons = new[]
                 {
-                    new GeoPolygon2(new GeoPoint2(45, 10), new GeoPoint2(55, 10), new GeoPoint2(55, 30), new GeoPoint2(45, 30)),
-                    new GeoPolygon2(new GeoPoint2(45, -30), new GeoPoint2(55, -30), new GeoPoint2(55, -10), new GeoPoint2(45, -10)),
+                    new GeoPolygon2(
+                        new GeoPoint2(45, 10),
+                        new GeoPoint2(55, 10),
+                        new GeoPoint2(55, 30),
+                        new GeoPoint2(45, 30)
+                    ),
+                    new GeoPolygon2(
+                        new GeoPoint2(45, -30),
+                        new GeoPoint2(55, -30),
+                        new GeoPoint2(55, -10),
+                        new GeoPoint2(45, -10)
+                    ),
                 },
             };
 
-            ArrangeResult result = Arranger.Run(new[] { label }, new ArrangeOptions { RowGap = 5.0, PerpendicularLevels = 3 })[0];
+            ArrangeResult result = Arranger.Run(
+                new[] { label },
+                new ArrangeOptions { RowGap = 5.0, PerpendicularLevels = 3 }
+            )[0];
 
             Assert.True(result.Placed);
             Assert.Equal(-16.25, result.Translation.X, 9);
@@ -129,7 +174,11 @@ namespace GeometryHelper.UnitTest.Arranging
         {
             foreach (ArrangeResult r in results)
             {
-                text.Append(Number(r.Translation.X)).Append(',').Append(Number(r.Translation.Y)).Append(r.Placed ? '+' : '-').Append(' ');
+                text.Append(Number(r.Translation.X))
+                    .Append(',')
+                    .Append(Number(r.Translation.Y))
+                    .Append(r.Placed ? '+' : '-')
+                    .Append(' ');
             }
 
             text.AppendLine();
@@ -150,7 +199,15 @@ namespace GeometryHelper.UnitTest.Arranging
         /// </summary>
         private static List<ArrangeItem> Crowd(bool lifted)
         {
-            var regions = new[] { new GeoPolygon2(new GeoPoint2(40, 40), new GeoPoint2(90, 40), new GeoPoint2(90, 80), new GeoPoint2(40, 80)) };
+            var regions = new[]
+            {
+                new GeoPolygon2(
+                    new GeoPoint2(40, 40),
+                    new GeoPoint2(90, 40),
+                    new GeoPoint2(90, 80),
+                    new GeoPoint2(40, 80)
+                ),
+            };
             var lines = new List<GeoLine2>();
             if (lifted)
             {
@@ -166,14 +223,16 @@ namespace GeometryHelper.UnitTest.Arranging
                 double a = i * 0.7;
                 var start = new GeoPoint2(20 * (i % 6), 25 * (i / 6));
                 var leader = new GeoLine2(start, new GeoPoint2(start.X + 60 * Math.Cos(a), start.Y + 60 * Math.Sin(a)));
-                items.Add(new ArrangeItem
-                {
-                    Leader = leader,
-                    Box = new GeoRectangle2(leader.MidPoint, 18.0 + (i % 4) * 3, 8.0 + (i % 3) * 2, (i % 5) * 0.2),
-                    Offset = 3.0 + (i % 7),
-                    BlockPolygons = regions,
-                    BlockLines = lifted && i % 2 == 0 ? lines : new List<GeoLine2>(),
-                });
+                items.Add(
+                    new ArrangeItem
+                    {
+                        Leader = leader,
+                        Box = new GeoRectangle2(leader.MidPoint, 18.0 + (i % 4) * 3, 8.0 + (i % 3) * 2, (i % 5) * 0.2),
+                        Offset = 3.0 + (i % 7),
+                        BlockPolygons = regions,
+                        BlockLines = lifted && i % 2 == 0 ? lines : new List<GeoLine2>(),
+                    }
+                );
             }
 
             return items;
@@ -192,9 +251,18 @@ namespace GeometryHelper.UnitTest.Arranging
             var regions = new List<GeoPolygon2>();
             for (int k = 0; k < 4; k++)
             {
-                double x = random.NextDouble() * 600 * scale, y = random.NextDouble() * 400 * scale;
-                double w = (10 + random.NextDouble() * 60) * scale, h = (10 + random.NextDouble() * 60) * scale;
-                regions.Add(new GeoPolygon2(new GeoPoint2(x, y), new GeoPoint2(x + w, y), new GeoPoint2(x + w, y + h), new GeoPoint2(x, y + h)));
+                double x = random.NextDouble() * 600 * scale,
+                    y = random.NextDouble() * 400 * scale;
+                double w = (10 + random.NextDouble() * 60) * scale,
+                    h = (10 + random.NextDouble() * 60) * scale;
+                regions.Add(
+                    new GeoPolygon2(
+                        new GeoPoint2(x, y),
+                        new GeoPoint2(x + w, y),
+                        new GeoPoint2(x + w, y + h),
+                        new GeoPoint2(x, y + h)
+                    )
+                );
             }
 
             var leaders = new List<GeoLine2>();
@@ -203,25 +271,37 @@ namespace GeometryHelper.UnitTest.Arranging
                 var start = new GeoPoint2(random.NextDouble() * 600 * scale, random.NextDouble() * 400 * scale);
                 double a = random.Next(4) == 0 ? random.Next(4) * Math.PI / 2 : random.NextDouble() * 2 * Math.PI;
                 double length = (20 + random.NextDouble() * 150) * scale;
-                leaders.Add(new GeoLine2(start, new GeoPoint2(start.X + length * Math.Cos(a), start.Y + length * Math.Sin(a))));
+                leaders.Add(
+                    new GeoLine2(start, new GeoPoint2(start.X + length * Math.Cos(a), start.Y + length * Math.Sin(a)))
+                );
             }
 
             var items = new List<ArrangeItem>();
             foreach (GeoLine2 leader in leaders)
             {
-                double along = Math.Atan2(leader.EndPoint.Y - leader.StartPoint.Y, leader.EndPoint.X - leader.StartPoint.X);
-                double width = (15 + random.NextDouble() * 40) * scale, height = (8 + random.NextDouble() * 12) * scale;
-                GeoPoint2 centre = random.Next(3) == 0
-                    ? new GeoPoint2(leader.MidPoint.X + (random.NextDouble() - 0.5) * 40 * scale, leader.MidPoint.Y + (random.NextDouble() - 0.5) * 40 * scale)
-                    : leader.MidPoint;
-                items.Add(new ArrangeItem
-                {
-                    Leader = leader,
-                    Box = new GeoRectangle2(centre, width, height, random.Next(2) == 0 ? along : 0.0),
-                    Offset = random.Next(5) == 0 ? 50.0 : random.NextDouble() * 30 * scale,
-                    BlockPolygons = regions,
-                    BlockLines = seed % 2 == 0 ? leaders : (IReadOnlyList<GeoLine2>)Array.Empty<GeoLine2>(),
-                });
+                double along = Math.Atan2(
+                    leader.EndPoint.Y - leader.StartPoint.Y,
+                    leader.EndPoint.X - leader.StartPoint.X
+                );
+                double width = (15 + random.NextDouble() * 40) * scale,
+                    height = (8 + random.NextDouble() * 12) * scale;
+                GeoPoint2 centre =
+                    random.Next(3) == 0
+                        ? new GeoPoint2(
+                            leader.MidPoint.X + (random.NextDouble() - 0.5) * 40 * scale,
+                            leader.MidPoint.Y + (random.NextDouble() - 0.5) * 40 * scale
+                        )
+                        : leader.MidPoint;
+                items.Add(
+                    new ArrangeItem
+                    {
+                        Leader = leader,
+                        Box = new GeoRectangle2(centre, width, height, random.Next(2) == 0 ? along : 0.0),
+                        Offset = random.Next(5) == 0 ? 50.0 : random.NextDouble() * 30 * scale,
+                        BlockPolygons = regions,
+                        BlockLines = seed % 2 == 0 ? leaders : (IReadOnlyList<GeoLine2>)Array.Empty<GeoLine2>(),
+                    }
+                );
             }
 
             options = new ArrangeOptions

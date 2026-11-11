@@ -37,7 +37,10 @@ namespace GeometryHelper.Core
 
             if (!(Math.Abs(rise) > tolerance.EqualPlanar))
             {
-                throw new ArgumentException("The direction lies in the plane of the profile, so the profile would sweep out no volume.", nameof(direction));
+                throw new ArgumentException(
+                    "The direction lies in the plane of the profile, so the profile would sweep out no volume.",
+                    nameof(direction)
+                );
             }
 
             // Every ring is wound counter-clockwise about the way the profile moves; a hole the same way as
@@ -65,7 +68,12 @@ namespace GeometryHelper.Core
             return Outwards(faces);
         }
 
-        internal static GeoSolid3 Extrude(GeoFace2 profile, GeoCoordinateSystem3 placement, double length, Tolerance tolerance)
+        internal static GeoSolid3 Extrude(
+            GeoFace2 profile,
+            GeoCoordinateSystem3 placement,
+            double length,
+            Tolerance tolerance
+        )
         {
             if (profile == null)
             {
@@ -81,10 +89,20 @@ namespace GeometryHelper.Core
                 holes.Add(Placed(hole, placement));
             }
 
-            return Extrude(new GeoFace3(Placed(profile.Boundary, placement), holes), placement.ZAxis.Multiply(length), tolerance);
+            return Extrude(
+                new GeoFace3(Placed(profile.Boundary, placement), holes),
+                placement.ZAxis.Multiply(length),
+                tolerance
+            );
         }
 
-        internal static GeoSolid3 Cylinder(GeoPoint3 start, GeoPoint3 end, double radius, int segments, Tolerance tolerance)
+        internal static GeoSolid3 Cylinder(
+            GeoPoint3 start,
+            GeoPoint3 end,
+            double radius,
+            int segments,
+            Tolerance tolerance
+        )
         {
             Guard.Positive(radius, nameof(radius), "A cylinder must have a positive radius.");
             Tessellation.RequireSegmentCount(segments, 3);
@@ -113,7 +131,12 @@ namespace GeometryHelper.Core
 
         #region Along a path
 
-        internal static GeoSolid3 Sweep(GeoPolygon2 profile, IReadOnlyList<GeoPoint3> path, GeoVector3? up, Tolerance tolerance)
+        internal static GeoSolid3 Sweep(
+            GeoPolygon2 profile,
+            IReadOnlyList<GeoPoint3> path,
+            GeoVector3? up,
+            Tolerance tolerance
+        )
         {
             if (profile == null)
             {
@@ -173,7 +196,10 @@ namespace GeometryHelper.Core
 
                 if (cosine < SharpestTurnCosine)
                 {
-                    throw new ArgumentException("The path turns back on itself at vertex " + i + ", so no section can be set there.", nameof(path));
+                    throw new ArgumentException(
+                        "The path turns back on itself at vertex " + i + ", so no section can be set there.",
+                        nameof(path)
+                    );
                 }
 
                 // The section at a bend lies on the plane halving it, where the sides of the piece before
@@ -228,7 +254,14 @@ namespace GeometryHelper.Core
             return new GeoPolygon2(corners);
         }
 
-        private static GeoPoint3[] Section(GeoPoint3 at, GeoVector3 x, GeoVector3 y, List<GeoPoint2> corners, GeoVector3? mitre, GeoVector3 travel)
+        private static GeoPoint3[] Section(
+            GeoPoint3 at,
+            GeoVector3 x,
+            GeoVector3 y,
+            List<GeoPoint2> corners,
+            GeoVector3? mitre,
+            GeoVector3 travel
+        )
         {
             var section = new GeoPoint3[corners.Count];
 
@@ -268,7 +301,10 @@ namespace GeometryHelper.Core
 
             if (!across.TryGetNormal(out GeoVector3 unit, tolerance))
             {
-                throw new ArgumentException("The up direction runs along the start of the path, so it says nothing about which way the profile stands.", nameof(up));
+                throw new ArgumentException(
+                    "The up direction runs along the start of the path, so it says nothing about which way the profile stands.",
+                    nameof(up)
+                );
             }
 
             return unit;
@@ -278,7 +314,13 @@ namespace GeometryHelper.Core
 
         #region Round an axis
 
-        internal static GeoSolid3 Revolve(GeoPolygon2 profile, GeoCoordinateSystem3 placement, double angle, double chordTolerance, Tolerance tolerance)
+        internal static GeoSolid3 Revolve(
+            GeoPolygon2 profile,
+            GeoCoordinateSystem3 placement,
+            double angle,
+            double chordTolerance,
+            Tolerance tolerance
+        )
         {
             if (profile == null)
             {
@@ -289,7 +331,11 @@ namespace GeometryHelper.Core
 
             if (angle > 2.0 * Math.PI + 1E-9)
             {
-                throw new ArgumentOutOfRangeException(nameof(angle), angle, "A profile revolves through a whole turn at most.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(angle),
+                    angle,
+                    "A profile revolves through a whole turn at most."
+                );
             }
 
             bool whole = angle >= 2.0 * Math.PI - 1E-9;
@@ -299,7 +345,10 @@ namespace GeometryHelper.Core
             {
                 if (corner.X < -tolerance.EqualPoint)
                 {
-                    throw new ArgumentException("The profile reaches across the axis; it has to lie on one side of it, X nought or more.", nameof(profile));
+                    throw new ArgumentException(
+                        "The profile reaches across the axis; it has to lie on one side of it, X nought or more.",
+                        nameof(profile)
+                    );
                 }
 
                 reach = Math.Max(reach, corner.X);
@@ -307,7 +356,10 @@ namespace GeometryHelper.Core
 
             if (!(reach > tolerance.EqualPoint))
             {
-                throw new ArgumentException("The profile lies along the axis, so it would sweep out no volume.", nameof(profile));
+                throw new ArgumentException(
+                    "The profile lies along the axis, so it would sweep out no volume.",
+                    nameof(profile)
+                );
             }
 
             int steps = Math.Max(whole ? 3 : 1, Tessellation.SegmentsForArc(reach, angle, chordTolerance));
@@ -336,7 +388,9 @@ namespace GeometryHelper.Core
                 for (int k = 0; k < corners.Count; k++)
                 {
                     double u = Math.Max(0.0, corners[k].X);
-                    sections[j][k] = placement.Origin.Add(placement.YAxis.Multiply(corners[k].Y)).Add(radial.Multiply(u));
+                    sections[j][k] = placement
+                        .Origin.Add(placement.YAxis.Multiply(corners[k].Y))
+                        .Add(radial.Multiply(u));
                 }
             }
 
@@ -349,7 +403,9 @@ namespace GeometryHelper.Core
 
             if (!whole)
             {
-                faces.Add(new GeoFace3(new GeoPolygon3(Distinct(Reversed(new List<GeoPoint3>(sections[0])), tolerance))));
+                faces.Add(
+                    new GeoFace3(new GeoPolygon3(Distinct(Reversed(new List<GeoPoint3>(sections[0])), tolerance)))
+                );
                 faces.Add(new GeoFace3(new GeoPolygon3(Distinct(new List<GeoPoint3>(sections[count - 1]), tolerance))));
             }
 
@@ -438,9 +494,11 @@ namespace GeometryHelper.Core
                 GeoPoint3 a = ring[i];
                 GeoPoint3 b = ring[(i + 1) % ring.Count];
 
-                faces.Add(new GeoFace3(hole
-                    ? new GeoPolygon3(b, a, a.Add(by), b.Add(by))
-                    : new GeoPolygon3(a, b, b.Add(by), a.Add(by))));
+                faces.Add(
+                    new GeoFace3(
+                        hole ? new GeoPolygon3(b, a, a.Add(by), b.Add(by)) : new GeoPolygon3(a, b, b.Add(by), a.Add(by))
+                    )
+                );
             }
         }
 
@@ -454,7 +512,10 @@ namespace GeometryHelper.Core
             for (int k = 0; k < from.Length; k++)
             {
                 int next = (k + 1) % from.Length;
-                List<GeoPoint3> side = Distinct(new List<GeoPoint3> { from[k], from[next], to[next], to[k] }, Tolerance.Global);
+                List<GeoPoint3> side = Distinct(
+                    new List<GeoPoint3> { from[k], from[next], to[next], to[k] },
+                    Tolerance.Global
+                );
 
                 if (side.Count >= 3)
                 {

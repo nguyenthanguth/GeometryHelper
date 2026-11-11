@@ -38,7 +38,14 @@ namespace GeometryHelper.Viewer.Builds
         /// <param name="keep">How many finished entries to keep, the newest by their marker; at least one.</param>
         /// <param name="spare">An entry in use now, which is never deleted; may be null.</param>
         /// <param name="protection">An entry whose marker was touched within this long is never deleted, however many are newer: a run, in this viewer or another, may be using it.</param>
-        internal static void Trim(string root, string folder, string markerName, int keep, string spare, TimeSpan protection)
+        internal static void Trim(
+            string root,
+            string folder,
+            string markerName,
+            int keep,
+            string spare,
+            TimeSpan protection
+        )
         {
             if (!Directory.Exists(folder) || !IsInside(root, folder))
             {
@@ -53,13 +60,21 @@ namespace GeometryHelper.Viewer.Builds
                 string name = Path.GetFileName(entry);
 
                 // What an interrupted copy or build left: named for being a temporary, and old.
-                if ((name.Contains(".tmp-") || name.Contains(".old-") || name.StartsWith(".stage-", StringComparison.Ordinal)) && now - Directory.GetLastWriteTimeUtc(entry) > LeftoverAge)
+                if (
+                    (
+                        name.Contains(".tmp-")
+                        || name.Contains(".old-")
+                        || name.StartsWith(".stage-", StringComparison.Ordinal)
+                    )
+                    && now - Directory.GetLastWriteTimeUtc(entry) > LeftoverAge
+                )
                 {
                     TryDelete(root, entry);
                 }
             }
 
-            var finished = Directory.GetDirectories(folder)
+            var finished = Directory
+                .GetDirectories(folder)
                 .Where(d => File.Exists(Path.Combine(d, markerName)))
                 .Select(d => new { Path = d, Used = File.GetLastWriteTimeUtc(Path.Combine(d, markerName)) })
                 .OrderByDescending(e => e.Used)
@@ -68,7 +83,13 @@ namespace GeometryHelper.Viewer.Builds
 
             foreach (var entry in finished.Skip(Math.Max(CompareEnvironment.MinimumCacheKeep, keep)))
             {
-                if (now - entry.Used > protection && !spared.Contains(Path.GetFullPath(entry.Path).TrimEnd(Path.DirectorySeparatorChar), StringComparer.OrdinalIgnoreCase))
+                if (
+                    now - entry.Used > protection
+                    && !spared.Contains(
+                        Path.GetFullPath(entry.Path).TrimEnd(Path.DirectorySeparatorChar),
+                        StringComparer.OrdinalIgnoreCase
+                    )
+                )
                 {
                     TryDelete(root, entry.Path);
                 }

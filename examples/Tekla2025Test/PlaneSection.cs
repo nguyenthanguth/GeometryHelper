@@ -70,7 +70,8 @@ namespace Tekla2025Test
                 // ModelObjectSelector too, hence the full name).
                 var parts = new List<Part>();
                 var referenceObjects = new List<ReferenceModelObject>();
-                ModelObjectEnumerator selection = new Tekla.Structures.Model.UI.ModelObjectSelector().GetSelectedObjects();
+                ModelObjectEnumerator selection =
+                    new Tekla.Structures.Model.UI.ModelObjectSelector().GetSelectedObjects();
                 while (selection.MoveNext())
                 {
                     if (selection.Current is Part part)
@@ -123,7 +124,11 @@ namespace Tekla2025Test
                 int products = 0;
                 if (referenceObjects.Count > 0)
                 {
-                    foreach (IfcProductGeometry product in referenceObjects.ToIfcGeometries(new IfcConvertOptions { ApplyVoids = CutIfcOpenings }))
+                    foreach (
+                        IfcProductGeometry product in referenceObjects.ToIfcGeometries(
+                            new IfcConvertOptions { ApplyVoids = CutIfcOpenings }
+                        )
+                    )
                     {
                         sections.Add(Cut($"{NameOf(product)} ({product.GlobalId})", product.Solids, plane));
                         products++;
@@ -147,7 +152,19 @@ namespace Tekla2025Test
                     model.CommitChanges();
                 }
 
-                MessageBox.Show(Summary(sections, parts.Count, unreadable, referenceObjects.Count, products, frame, cutting.Elapsed, partBodies), "Section");
+                MessageBox.Show(
+                    Summary(
+                        sections,
+                        parts.Count,
+                        unreadable,
+                        referenceObjects.Count,
+                        products,
+                        frame,
+                        cutting.Elapsed,
+                        partBodies
+                    ),
+                    "Section"
+                );
             }
             catch (Exception ex)
             {
@@ -199,7 +216,9 @@ namespace Tekla2025Test
         {
             frame = default;
             var picker = new Tekla.Structures.Model.UI.Picker();
-            TSG.Point first, second, third;
+            TSG.Point first,
+                second,
+                third;
 
             try
             {
@@ -216,12 +235,19 @@ namespace Tekla2025Test
             try
             {
                 GeoPoint3 origin = first.ToGeoPoint3();
-                frame = new GeoCoordinateSystem3(origin, origin.GetVectorTo(second.ToGeoPoint3()), origin.GetVectorTo(third.ToGeoPoint3()));
+                frame = new GeoCoordinateSystem3(
+                    origin,
+                    origin.GetVectorTo(second.ToGeoPoint3()),
+                    origin.GetVectorTo(third.ToGeoPoint3())
+                );
                 return true;
             }
             catch (ArgumentException)
             {
-                MessageBox.Show("The three points lie on one line, or two of them on each other, so they make no plane.", "Section");
+                MessageBox.Show(
+                    "The three points lie on one line, or two of them on each other, so they make no plane.",
+                    "Section"
+                );
                 return false;
             }
         }
@@ -239,12 +265,16 @@ namespace Tekla2025Test
 
             foreach (GeoSolid3 body in bodies)
             {
-                if (!Straddles(body.GetAabb().GetCorners(), plane) ||
-                    !Straddles(body.Faces.SelectMany(face => face.Boundary.Vertices), plane))
+                if (
+                    !Straddles(body.GetAabb().GetCorners(), plane)
+                    || !Straddles(body.Faces.SelectMany(face => face.Boundary.Vertices), plane)
+                )
                 {
                     // Three points picked on a face of the body make a plane along that face: every corner is on it or
                     // to one side, so the plane touches the body and cuts nothing.
-                    touched |= body.Faces.Any(face => face.Boundary.Vertices.All(v => Containment3.GetSide(plane, v) == PlaneSide.On));
+                    touched |= body.Faces.Any(face =>
+                        face.Boundary.Vertices.All(v => Containment3.GetSide(plane, v) == PlaneSide.On)
+                    );
                     continue;
                 }
 
@@ -254,7 +284,14 @@ namespace Tekla2025Test
                 open |= cut.Length == 0 && !body.IsClosed();
             }
 
-            return new ObjectSection { Name = name, Faces = faces.ToArray(), Crossed = crossed, Open = open, Touched = touched && !crossed };
+            return new ObjectSection
+            {
+                Name = name,
+                Faces = faces.ToArray(),
+                Crossed = crossed,
+                Open = open,
+                Touched = touched && !crossed,
+            };
         }
 
         /// <summary>
@@ -284,7 +321,16 @@ namespace Tekla2025Test
         /// <summary>
         /// What was cut and drawn, and a line to each object.
         /// </summary>
-        private static string Summary(List<ObjectSection> sections, int parts, int unreadable, int referenceObjects, int products, GeoCoordinateSystem3 frame, TimeSpan time, List<GeoSolid3> partBodies)
+        private static string Summary(
+            List<ObjectSection> sections,
+            int parts,
+            int unreadable,
+            int referenceObjects,
+            int products,
+            GeoCoordinateSystem3 frame,
+            TimeSpan time,
+            List<GeoSolid3> partBodies
+        )
         {
             int faces = sections.Sum(section => section.Faces.Length);
             int cut = sections.Count(section => section.Faces.Length > 0);
@@ -294,25 +340,38 @@ namespace Tekla2025Test
             string notRead = unreadable > 0 ? $" ({unreadable} whose solid could not be read)" : string.Empty;
             var text = new StringBuilder();
 
-            text.AppendLine($"{parts} part(s){notRead} and {referenceObjects} IFC object(s) ({products} product(s)) against the " +
-                $"plane through the three points: {cut} cut, {faces} face(s), in {time.TotalMilliseconds:0} ms.");
+            text.AppendLine(
+                $"{parts} part(s){notRead} and {referenceObjects} IFC object(s) ({products} product(s)) against the "
+                    + $"plane through the three points: {cut} cut, {faces} face(s), in {time.TotalMilliseconds:0} ms."
+            );
 
             if (crossedOnly > 0)
             {
-                text.AppendLine($"{crossedOnly} crossed by the plane gave no section, {open} of them because a body is not closed.");
+                text.AppendLine(
+                    $"{crossedOnly} crossed by the plane gave no section, {open} of them because a body is not closed."
+                );
             }
 
             if (touched > 0)
             {
-                text.AppendLine($"{touched} lie against the plane along a face and are not cut: a plane along a face touches a body without cutting it.");
+                text.AppendLine(
+                    $"{touched} lie against the plane along a face and are not cut: a plane along a face touches a body without cutting it."
+                );
             }
 
-            text.AppendLine("Sections drawn red, holes white." + (DrawPartBodies && partBodies.Count > 0
-                ? $" Part bodies as read dashed blue, holes cyan: {partBodies.Count} bodies, {partBodies.Sum(body => body.Faces.Count)} faces."
-                : string.Empty));
+            text.AppendLine(
+                "Sections drawn red, holes white."
+                    + (
+                        DrawPartBodies && partBodies.Count > 0
+                            ? $" Part bodies as read dashed blue, holes cyan: {partBodies.Count} bodies, {partBodies.Sum(body => body.Faces.Count)} faces."
+                            : string.Empty
+                    )
+            );
             text.AppendLine("Pressing the button again, or closing the test window, takes them out.");
             text.AppendLine();
-            text.AppendLine(sections.Count > ListedObjects ? $"The first {ListedObjects} of {sections.Count}:" : "Each object:");
+            text.AppendLine(
+                sections.Count > ListedObjects ? $"The first {ListedObjects} of {sections.Count}:" : "Each object:"
+            );
 
             foreach (ObjectSection section in sections.Take(ListedObjects))
             {
@@ -330,21 +389,24 @@ namespace Tekla2025Test
         {
             if (section.Faces.Length == 0)
             {
-                return section.Name + (section.Touched ? ": the plane lies along a face of it, touching it without cutting it"
-                    : !section.Crossed ? ": not reached by the plane"
-                    : section.Open ? ": crossed, but its body is not closed, so it cannot be cut"
-                    : ": crossed, but no section");
+                return section.Name
+                    + (
+                        section.Touched ? ": the plane lies along a face of it, touching it without cutting it"
+                        : !section.Crossed ? ": not reached by the plane"
+                        : section.Open ? ": crossed, but its body is not closed, so it cannot be cut"
+                        : ": crossed, but no section"
+                    );
             }
 
-            GeoPoint2[] corners = section.Faces
-                .Select(face => face.ProjectToFace2(frame))
+            GeoPoint2[] corners = section
+                .Faces.Select(face => face.ProjectToFace2(frame))
                 .SelectMany(face => face.Boundary.Vertices)
                 .ToArray();
             double along = corners.Max(corner => corner.X) - corners.Min(corner => corner.X);
             double across = corners.Max(corner => corner.Y) - corners.Min(corner => corner.Y);
 
-            return $"{section.Name}: {section.Faces.Length} face(s), {section.Faces.Sum(face => face.Area):0} mm2, " +
-                $"{along:0} x {across:0} mm along the first two points and across";
+            return $"{section.Name}: {section.Faces.Length} face(s), {section.Faces.Sum(face => face.Area):0} mm2, "
+                + $"{along:0} x {across:0} mm along the first two points and across";
         }
 
         /// <summary>

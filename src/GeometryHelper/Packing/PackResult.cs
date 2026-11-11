@@ -11,7 +11,9 @@ namespace GeometryHelper.Packing
     {
         internal PackResult(PackPlacement[][] placements, SheetFrame[] sheets, double utilization)
         {
-            Placements = Array.AsReadOnly(placements.Select(group => (IReadOnlyList<PackPlacement>)Array.AsReadOnly(group)).ToArray());
+            Placements = Array.AsReadOnly(
+                placements.Select(group => (IReadOnlyList<PackPlacement>)Array.AsReadOnly(group)).ToArray()
+            );
             Sheets = Array.AsReadOnly(sheets);
             Utilization = utilization;
         }

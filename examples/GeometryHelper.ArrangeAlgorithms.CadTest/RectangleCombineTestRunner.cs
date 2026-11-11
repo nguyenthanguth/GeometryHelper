@@ -3,8 +3,8 @@ using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
-using GeometryHelper.Geometry;
 using GeometryHelper.CadConvert;
+using GeometryHelper.Geometry;
 
 namespace GeometryHelper.ArrangeAlgorithms.CadTest
 {
@@ -13,7 +13,8 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
         public void RunRectangleCombineTest()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
-            if (doc == null) return;
+            if (doc == null)
+                return;
             Editor ed = doc.Editor;
             Database db = doc.Database;
 
@@ -45,8 +46,8 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
             {
                 try
                 {
-                    BlockTableRecord modelSpace = (BlockTableRecord)tr.GetObject(
-                        SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForWrite);
+                    BlockTableRecord modelSpace = (BlockTableRecord)
+                        tr.GetObject(SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForWrite);
 
                     // Read selected polyline and check if it is a rectangle
                     Polyline poly = tr.GetObject(rectRes.ObjectId, OpenMode.ForRead) as Polyline;
@@ -92,10 +93,18 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     modelSpace.AppendEntity(acadCombined);
                     tr.AddNewlyCreatedDBObject(acadCombined, true);
 
-                    ed.WriteMessage("\n[Rectangle Combine] Successfully combined the rectangle and the oriented bounding box of the circle.");
-                    ed.WriteMessage($"\n[Rectangle Combine] Original Rect: Center({rect.Center.X:F2},{rect.Center.Y:F2}), Dim({rect.Width:F2}x{rect.Height:F2}), Angle({rect.AngleRad:F2} rad)");
-                    ed.WriteMessage($"\n[Rectangle Combine] Circle: Center({geoCircle.Center.X:F2},{geoCircle.Center.Y:F2}), Radius({geoCircle.Radius:F2})");
-                    ed.WriteMessage($"\n[Rectangle Combine] Combined Rect: Center({combined.Center.X:F2},{combined.Center.Y:F2}), Dim({combined.Width:F2}x{combined.Height:F2})");
+                    ed.WriteMessage(
+                        "\n[Rectangle Combine] Successfully combined the rectangle and the oriented bounding box of the circle."
+                    );
+                    ed.WriteMessage(
+                        $"\n[Rectangle Combine] Original Rect: Center({rect.Center.X:F2},{rect.Center.Y:F2}), Dim({rect.Width:F2}x{rect.Height:F2}), Angle({rect.AngleRad:F2} rad)"
+                    );
+                    ed.WriteMessage(
+                        $"\n[Rectangle Combine] Circle: Center({geoCircle.Center.X:F2},{geoCircle.Center.Y:F2}), Radius({geoCircle.Radius:F2})"
+                    );
+                    ed.WriteMessage(
+                        $"\n[Rectangle Combine] Combined Rect: Center({combined.Center.X:F2},{combined.Center.Y:F2}), Dim({combined.Width:F2}x{combined.Height:F2})"
+                    );
 
                     tr.Commit();
                 }

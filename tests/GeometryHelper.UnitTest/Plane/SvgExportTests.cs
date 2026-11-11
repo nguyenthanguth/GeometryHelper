@@ -19,11 +19,19 @@ namespace GeometryHelper.UnitTest.Plane
         private static readonly XNamespace Ns = "http://www.w3.org/2000/svg";
         private static readonly Tolerance Tolerance = Tolerance.Default;
 
-        private static GeoPolygon2 Rectangle(double width, double height)
-            => new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(width, 0), new GeoPoint2(width, height), new GeoPoint2(0, height));
+        private static GeoPolygon2 Rectangle(double width, double height) =>
+            new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(width, 0),
+                new GeoPoint2(width, height),
+                new GeoPoint2(0, height)
+            );
 
-        private static double[] ViewBox(XDocument picture)
-            => ((string)picture.Root.Attribute("viewBox")).Split(' ').Select(s => double.Parse(s, CultureInfo.InvariantCulture)).ToArray();
+        private static double[] ViewBox(XDocument picture) =>
+            ((string)picture.Root.Attribute("viewBox"))
+                .Split(' ')
+                .Select(s => double.Parse(s, CultureInfo.InvariantCulture))
+                .ToArray();
 
         /// <summary>The corners a path of M, L and Z commands goes through, in the order it goes.</summary>
         private static List<GeoPoint2> Corners(string d)
@@ -35,9 +43,12 @@ namespace GeometryHelper.UnitTest.Plane
             {
                 if (tokens[i] == "M" || tokens[i] == "L")
                 {
-                    corners.Add(new GeoPoint2(
-                        double.Parse(tokens[i + 1], CultureInfo.InvariantCulture),
-                        double.Parse(tokens[i + 2], CultureInfo.InvariantCulture)));
+                    corners.Add(
+                        new GeoPoint2(
+                            double.Parse(tokens[i + 1], CultureInfo.InvariantCulture),
+                            double.Parse(tokens[i + 2], CultureInfo.InvariantCulture)
+                        )
+                    );
                 }
             }
 
@@ -62,7 +73,12 @@ namespace GeometryHelper.UnitTest.Plane
         public void AnEllipseThirtyByTenTurnedThirtyDegreesReadsBackWithItsRadiiAndTurn()
         {
             double turn = Math.PI / 6.0;
-            var ellipse = new GeoEllipse2(new GeoPoint2(50, 20), new GeoVector2(Math.Cos(turn), Math.Sin(turn)), 30, 10);
+            var ellipse = new GeoEllipse2(
+                new GeoPoint2(50, 20),
+                new GeoVector2(Math.Cos(turn), Math.Sin(turn)),
+                30,
+                10
+            );
 
             XDocument picture = XDocument.Parse(new SvgWriter().Add(ellipse, "red", "#eeeeee").ToString());
             XElement drawn = Assert.Single(picture.Descendants(Ns + "ellipse"));
@@ -80,10 +96,19 @@ namespace GeometryHelper.UnitTest.Plane
         public void AnEllipseGrowsThePictureByItsBoundingBoxNotByItsMajorRadiusSquared()
         {
             double turn = Math.PI / 6.0;
-            var ellipse = new GeoEllipse2(new GeoPoint2(50, 20), new GeoVector2(Math.Cos(turn), Math.Sin(turn)), 30, 10);
+            var ellipse = new GeoEllipse2(
+                new GeoPoint2(50, 20),
+                new GeoVector2(Math.Cos(turn), Math.Sin(turn)),
+                30,
+                10
+            );
 
-            double halfWidth = Math.Sqrt(30 * 30 * Math.Cos(turn) * Math.Cos(turn) + 10 * 10 * Math.Sin(turn) * Math.Sin(turn));
-            double halfHeight = Math.Sqrt(30 * 30 * Math.Sin(turn) * Math.Sin(turn) + 10 * 10 * Math.Cos(turn) * Math.Cos(turn));
+            double halfWidth = Math.Sqrt(
+                30 * 30 * Math.Cos(turn) * Math.Cos(turn) + 10 * 10 * Math.Sin(turn) * Math.Sin(turn)
+            );
+            double halfHeight = Math.Sqrt(
+                30 * 30 * Math.Sin(turn) * Math.Sin(turn) + 10 * 10 * Math.Cos(turn) * Math.Cos(turn)
+            );
             double margin = 0.05 * Math.Max(2 * halfWidth, 2 * halfHeight);
 
             double[] box = ViewBox(XDocument.Parse(new SvgWriter().Add(ellipse).ToString()));
@@ -134,7 +159,10 @@ namespace GeometryHelper.UnitTest.Plane
                 Assert.Equal("none", (string)drawn.Attribute("fill"));
 
                 // The picture is fitted to the whole circle, as it is for the circle itself.
-                Assert.Equal(ViewBox(XDocument.Parse(new SvgWriter().Add(new GeoCircle2(turn.Center, turn.Radius)).ToString())), ViewBox(picture));
+                Assert.Equal(
+                    ViewBox(XDocument.Parse(new SvgWriter().Add(new GeoCircle2(turn.Center, turn.Radius)).ToString())),
+                    ViewBox(picture)
+                );
             }
         }
 
@@ -188,7 +216,13 @@ namespace GeometryHelper.UnitTest.Plane
         public void AnArcOfAThousandthOfARadianLessThanAWholeTurn_StaysAPath_AndATinyArcToo()
         {
             // 1E-3 short of a turn at radius 10 ends 0.01 from its start, which six places show; a sweep of 1E-9 is a speck, not a circle.
-            foreach (GeoArc2 arc in new[] { new GeoArc2(new GeoPoint2(0, 0), 10, 0.0, -1E-3), new GeoArc2(new GeoPoint2(0, 0), 10, 0.0, 1E-9) })
+            foreach (
+                GeoArc2 arc in new[]
+                {
+                    new GeoArc2(new GeoPoint2(0, 0), 10, 0.0, -1E-3),
+                    new GeoArc2(new GeoPoint2(0, 0), 10, 0.0, 1E-9),
+                }
+            )
             {
                 XDocument picture = XDocument.Parse(new SvgWriter().Add(arc).ToString());
 
@@ -254,10 +288,12 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ARayFromTheOriginAlongXEndsOnTheRightEdgeOfThePicture()
         {
-            XDocument picture = XDocument.Parse(new SvgWriter()
-                .Add(Rectangle(100, 100))
-                .Add(new GeoRay2(new GeoPoint2(0, 0), new GeoVector2(1, 0)), "red")
-                .ToString());
+            XDocument picture = XDocument.Parse(
+                new SvgWriter()
+                    .Add(Rectangle(100, 100))
+                    .Add(new GeoRay2(new GeoPoint2(0, 0), new GeoVector2(1, 0)), "red")
+                    .ToString()
+            );
 
             double[] box = ViewBox(picture);
             XElement ray = picture.Descendants(Ns + "path").Single(p => (string)p.Attribute("stroke") == "red");
@@ -275,17 +311,25 @@ namespace GeometryHelper.UnitTest.Plane
         public void ARayLeavesThePictureByTheEdgeItMeetsFirst()
         {
             // The picture is 100 by 50, a margin of 5 on every side: up and to the right at 45 degrees the top comes first.
-            XDocument up = XDocument.Parse(new SvgWriter()
-                .Add(Rectangle(100, 50))
-                .Add(new GeoRay2(new GeoPoint2(0, 0), new GeoVector2(1, 1)), "red")
-                .ToString());
-            XDocument back = XDocument.Parse(new SvgWriter()
-                .Add(Rectangle(100, 50))
-                .Add(new GeoRay2(new GeoPoint2(10, 10), new GeoVector2(-1, 0)), "red")
-                .ToString());
+            XDocument up = XDocument.Parse(
+                new SvgWriter()
+                    .Add(Rectangle(100, 50))
+                    .Add(new GeoRay2(new GeoPoint2(0, 0), new GeoVector2(1, 1)), "red")
+                    .ToString()
+            );
+            XDocument back = XDocument.Parse(
+                new SvgWriter()
+                    .Add(Rectangle(100, 50))
+                    .Add(new GeoRay2(new GeoPoint2(10, 10), new GeoVector2(-1, 0)), "red")
+                    .ToString()
+            );
 
-            List<GeoPoint2> upEnds = Corners((string)up.Descendants(Ns + "path").Single(p => (string)p.Attribute("stroke") == "red").Attribute("d"));
-            List<GeoPoint2> backEnds = Corners((string)back.Descendants(Ns + "path").Single(p => (string)p.Attribute("stroke") == "red").Attribute("d"));
+            List<GeoPoint2> upEnds = Corners(
+                (string)up.Descendants(Ns + "path").Single(p => (string)p.Attribute("stroke") == "red").Attribute("d")
+            );
+            List<GeoPoint2> backEnds = Corners(
+                (string)back.Descendants(Ns + "path").Single(p => (string)p.Attribute("stroke") == "red").Attribute("d")
+            );
 
             Assert.Equal(55.0, upEnds[1].X, 5);
             Assert.Equal(55.0, upEnds[1].Y, 5);
@@ -296,10 +340,14 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void TheOriginOfARayGrowsThePictureButItsLengthDoesNot()
         {
-            double[] box = ViewBox(XDocument.Parse(new SvgWriter()
-                .Add(Rectangle(100, 100))
-                .Add(new GeoRay2(new GeoPoint2(200, 0), new GeoVector2(1, 0)))
-                .ToString()));
+            double[] box = ViewBox(
+                XDocument.Parse(
+                    new SvgWriter()
+                        .Add(Rectangle(100, 100))
+                        .Add(new GeoRay2(new GeoPoint2(200, 0), new GeoVector2(1, 0)))
+                        .ToString()
+                )
+            );
 
             // 200 wide, 100 high: a margin of 10 each side, and no further.
             Assert.Equal(-10.0, box[0], 5);
@@ -312,7 +360,10 @@ namespace GeometryHelper.UnitTest.Plane
         {
             const string label = "a<b & \"c\"";
 
-            string svg = new SvgWriter().Add(Rectangle(100, 100)).Text(new GeoPoint2(10, 20), label, "green").ToString();
+            string svg = new SvgWriter()
+                .Add(Rectangle(100, 100))
+                .Text(new GeoPoint2(10, 20), label, "green")
+                .ToString();
             XDocument picture = XDocument.Parse(svg);
             XElement text = Assert.Single(picture.Descendants(Ns + "text"));
 
@@ -326,7 +377,9 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ALabelsPlaceGrowsThePicture()
         {
-            double[] box = ViewBox(XDocument.Parse(new SvgWriter().Add(Rectangle(100, 100)).Text(new GeoPoint2(300, 50), "far").ToString()));
+            double[] box = ViewBox(
+                XDocument.Parse(new SvgWriter().Add(Rectangle(100, 100)).Text(new GeoPoint2(300, 50), "far").ToString())
+            );
 
             Assert.Equal(300.0 + 0.05 * 300.0, box[0] + box[2], 5);
         }

@@ -132,7 +132,8 @@ namespace GeometryHelper.UnitTest.Common
             Assert.Equal(12, mesh.Length);
 
             var skin = new GeoSolid3(
-                mesh.Select(triangle => new GeoFace3(new GeoPolygon3(triangle.A, triangle.B, triangle.C))).ToArray());
+                mesh.Select(triangle => new GeoFace3(new GeoPolygon3(triangle.A, triangle.B, triangle.C))).ToArray()
+            );
 
             Assert.Equal(12, skin.Faces.Count);
             Assert.Equal(6, skin.MergeCoplanarFaces().Faces.Count);
@@ -161,10 +162,15 @@ namespace GeometryHelper.UnitTest.Common
             // Merge2's four were the only public methods in the library with no default-tolerance twin.
             Assert.Equal(Merge2.Join(segments, global).Length, Merge2.Join(segments).Length);
             Assert.Equal(Merge2.ConsecutiveLines(segments, global).Length, Merge2.ConsecutiveLines(segments).Length);
-            Assert.Equal(Merge2.ConsecutivePolylines(chains, global).Length, Merge2.ConsecutivePolylines(chains).Length);
+            Assert.Equal(
+                Merge2.ConsecutivePolylines(chains, global).Length,
+                Merge2.ConsecutivePolylines(chains).Length
+            );
             Assert.Equal(
                 Merge2.Polylines(chains[0], chains[1], global).Length,
-                Merge2.Polylines(chains[0], chains[1]).Length, 9);
+                Merge2.Polylines(chains[0], chains[1]).Length,
+                9
+            );
 
             Assert.Equal(segments.Join(global).Length, segments.Join().Length);
             Assert.Equal(segments.MergeConsecutive(global).Length, segments.MergeConsecutive().Length);

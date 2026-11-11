@@ -25,30 +25,71 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static GeoPolygon2 I(double h, double b, double tw, double tf)
         {
-            double x = b / 2, y = h / 2, w = tw / 2, f = y - tf;
+            double x = b / 2,
+                y = h / 2,
+                w = tw / 2,
+                f = y - tf;
             return new GeoPolygon2(
-                new GeoPoint2(-x, -y), new GeoPoint2(x, -y), new GeoPoint2(x, -f), new GeoPoint2(w, -f),
-                new GeoPoint2(w, f), new GeoPoint2(x, f), new GeoPoint2(x, y), new GeoPoint2(-x, y),
-                new GeoPoint2(-x, f), new GeoPoint2(-w, f), new GeoPoint2(-w, -f), new GeoPoint2(-x, -f));
+                new GeoPoint2(-x, -y),
+                new GeoPoint2(x, -y),
+                new GeoPoint2(x, -f),
+                new GeoPoint2(w, -f),
+                new GeoPoint2(w, f),
+                new GeoPoint2(x, f),
+                new GeoPoint2(x, y),
+                new GeoPoint2(-x, y),
+                new GeoPoint2(-x, f),
+                new GeoPoint2(-w, f),
+                new GeoPoint2(-w, -f),
+                new GeoPoint2(-x, -f)
+            );
         }
 
-        private static GeoPolygon2 Channel(double h, double b, double tw, double tf)
-            => new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(b, 0), new GeoPoint2(b, tf), new GeoPoint2(tw, tf),
-                new GeoPoint2(tw, h - tf), new GeoPoint2(b, h - tf), new GeoPoint2(b, h), new GeoPoint2(0, h));
+        private static GeoPolygon2 Channel(double h, double b, double tw, double tf) =>
+            new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(b, 0),
+                new GeoPoint2(b, tf),
+                new GeoPoint2(tw, tf),
+                new GeoPoint2(tw, h - tf),
+                new GeoPoint2(b, h - tf),
+                new GeoPoint2(b, h),
+                new GeoPoint2(0, h)
+            );
 
-        private static GeoPolygon2 Tee(double h, double b, double tw, double tf)
-            => new GeoPolygon2(
-                new GeoPoint2(-b / 2, h), new GeoPoint2(-b / 2, h - tf), new GeoPoint2(-tw / 2, h - tf), new GeoPoint2(-tw / 2, 0),
-                new GeoPoint2(tw / 2, 0), new GeoPoint2(tw / 2, h - tf), new GeoPoint2(b / 2, h - tf), new GeoPoint2(b / 2, h));
+        private static GeoPolygon2 Tee(double h, double b, double tw, double tf) =>
+            new GeoPolygon2(
+                new GeoPoint2(-b / 2, h),
+                new GeoPoint2(-b / 2, h - tf),
+                new GeoPoint2(-tw / 2, h - tf),
+                new GeoPoint2(-tw / 2, 0),
+                new GeoPoint2(tw / 2, 0),
+                new GeoPoint2(tw / 2, h - tf),
+                new GeoPoint2(b / 2, h - tf),
+                new GeoPoint2(b / 2, h)
+            );
 
-        private static GeoPolygon2 Angle(double a, double b, double t)
-            => new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(b, 0), new GeoPoint2(b, t), new GeoPoint2(t, t), new GeoPoint2(t, a), new GeoPoint2(0, a));
+        private static GeoPolygon2 Angle(double a, double b, double t) =>
+            new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(b, 0),
+                new GeoPoint2(b, t),
+                new GeoPoint2(t, t),
+                new GeoPoint2(t, a),
+                new GeoPoint2(0, a)
+            );
 
-        private static GeoPolygon2 Zed(double h, double b, double t)
-            => new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(b, 0), new GeoPoint2(b, t), new GeoPoint2(t, t), new GeoPoint2(t, h),
-                new GeoPoint2(t - b, h), new GeoPoint2(t - b, h - t), new GeoPoint2(0, h - t));
+        private static GeoPolygon2 Zed(double h, double b, double t) =>
+            new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(b, 0),
+                new GeoPoint2(b, t),
+                new GeoPoint2(t, t),
+                new GeoPoint2(t, h),
+                new GeoPoint2(t - b, h),
+                new GeoPoint2(t - b, h - t),
+                new GeoPoint2(0, h - t)
+            );
 
         private static IEnumerable<(string Name, GeoPolygon2 Outline)> Sections()
         {
@@ -75,13 +116,25 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     var frame = new GeoCoordinateSystem3(
                         new GeoPoint3(rng.Next(-5000, 5000), rng.Next(-5000, 5000), rng.Next(-5000, 5000)),
-                        GeoVector3.XAxis, GeoVector3.YAxis);
-                    GeoSolid3 bar = GeoSolid3.Extrude(outline, frame, 1000)
-                        .TransformBy(GeoTransform3.RotationAxis(frame.Origin, new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() - 0.5), rng.NextDouble() * 6));
+                        GeoVector3.XAxis,
+                        GeoVector3.YAxis
+                    );
+                    GeoSolid3 bar = GeoSolid3
+                        .Extrude(outline, frame, 1000)
+                        .TransformBy(
+                            GeoTransform3.RotationAxis(
+                                frame.Origin,
+                                new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() - 0.5),
+                                rng.NextDouble() * 6
+                            )
+                        );
 
                     foreach (GeoFace3 face in bar.Faces)
                     {
-                        Assert.True(EarClipping.TryTriangulate(face, Tol, out GeoTriangle3[] triangles), $"{name}: the ear clipping gave up");
+                        Assert.True(
+                            EarClipping.TryTriangulate(face, Tol, out GeoTriangle3[] triangles),
+                            $"{name}: the ear clipping gave up"
+                        );
                         Assert.Equal(face.Area, triangles.Sum(t => t.Area), 6);
                         Assert.Equal(face.Area, face.TriangulateSurface(Tol).Sum(t => t.Area), 6);
 
@@ -100,7 +153,11 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void APointBetweenTheFlangesInThePlaneOfTheEndIsNotOnTheColumn()
         {
-            GeoSolid3 column = GeoSolid3.Extrude(I(300, 300, 10, 15), new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis), 4000);
+            GeoSolid3 column = GeoSolid3.Extrude(
+                I(300, 300, 10, 15),
+                new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis),
+                4000
+            );
             GeoPreparedSolid3 prepared = column.Prepare();
 
             foreach (double z in new[] { 0.0, 4000.0 })
@@ -112,7 +169,9 @@ namespace GeometryHelper.UnitTest.Solid
             }
 
             // A block standing clear in the gap, level with the top: nothing touches it.
-            GeoSolid3 block = new GeoAabb3(new GeoPoint3(-140, -100, 3900), new GeoPoint3(-20, 100, 4000)).ToObb().ToSolid();
+            GeoSolid3 block = new GeoAabb3(new GeoPoint3(-140, -100, 3900), new GeoPoint3(-20, 100, 4000))
+                .ToObb()
+                .ToSolid();
             Assert.False(prepared.CollidesWith(block.Prepare()));
         }
     }

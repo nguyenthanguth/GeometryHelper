@@ -63,9 +63,7 @@ namespace GeometryHelper.Core
             private readonly bool _full;
 
             private Curve(GeoArc3 arc)
-                : this(arc.Center, arc.Normal, arc.Radius, arc.StartAngle, arc.SweptAngle)
-            {
-            }
+                : this(arc.Center, arc.Normal, arc.Radius, arc.StartAngle, arc.SweptAngle) { }
 
             private Curve(GeoPoint3 centre, GeoVector3 normal, double radius, double start, double sweep)
             {
@@ -120,7 +118,14 @@ namespace GeometryHelper.Core
                 {
                     for (int axis = 0; axis < 3; axis++)
                     {
-                        double turning = Math.Atan2(axis == 0 ? _vx : axis == 1 ? _vy : _vz, axis == 0 ? _ux : axis == 1 ? _uy : _uz);
+                        double turning = Math.Atan2(
+                            axis == 0 ? _vx
+                                : axis == 1 ? _vy
+                                : _vz,
+                            axis == 0 ? _ux
+                                : axis == 1 ? _uy
+                                : _uz
+                        );
 
                         for (int half = 0; half < 2; half++)
                         {
@@ -233,7 +238,8 @@ namespace GeometryHelper.Core
 
                 if (from.GetDistanceSquaredTo(to) <= tolerance.EqualPoint * tolerance.EqualPoint)
                 {
-                    double rounding = 1E-12 * Math.Max(1.0, Math.Max(Math.Abs(from.X), Math.Max(Math.Abs(from.Y), Math.Abs(from.Z))));
+                    double rounding =
+                        1E-12 * Math.Max(1.0, Math.Max(Math.Abs(from.X), Math.Max(Math.Abs(from.Y), Math.Abs(from.Z))));
 
                     return gap <= rounding ? 0.0 : PointGap(from);
                 }
@@ -295,12 +301,24 @@ namespace GeometryHelper.Core
 
                 double best = Math.Min(
                     Math.Min(PointGap(from), PointGap(to)),
-                    Math.Min(PointToSegment(StartPoint, from, to), PointToSegment(EndPoint, from, to)));
+                    Math.Min(PointToSegment(StartPoint, from, to), PointToSegment(EndPoint, from, to))
+                );
 
                 var found = new double[64];
                 var seeds = new double[32];
 
-                if (!Turns(from, to, found, out int count, seeds, out int seedCount, out double lowest, out double highest))
+                if (
+                    !Turns(
+                        from,
+                        to,
+                        found,
+                        out int count,
+                        seeds,
+                        out int seedCount,
+                        out double lowest,
+                        out double highest
+                    )
+                )
                 {
                     // The offset from the line does not change along the arc: the segment runs along the axis of its circle.
                     return best;
@@ -326,7 +344,15 @@ namespace GeometryHelper.Core
             /// minimised round, between the limits of its sweep: false where the distance does not change along the arc.
             /// </summary>
             private bool Turns(
-                GeoPoint3 from, GeoPoint3 to, double[] found, out int count, double[] seeds, out int seedCount, out double lowest, out double highest)
+                GeoPoint3 from,
+                GeoPoint3 to,
+                double[] found,
+                out int count,
+                double[] seeds,
+                out int seedCount,
+                out double lowest,
+                out double highest
+            )
             {
                 double dx = to.X - from.X;
                 double dy = to.Y - from.Y;
@@ -381,7 +407,14 @@ namespace GeometryHelper.Core
             /// Gets the least distance from the points of the arc within a hundredth of a radian of an angle, and between the limits,
             /// to a segment, by golden section, and the angle it was found at.
             /// </summary>
-            private double NearestRound(GeoPoint3 from, GeoPoint3 to, double centre, double low, double high, out double at)
+            private double NearestRound(
+                GeoPoint3 from,
+                GeoPoint3 to,
+                double centre,
+                double low,
+                double high,
+                out double at
+            )
             {
                 double ratio = (Math.Sqrt(5.0) - 1.0) / 2.0;
                 double a = Math.Max(low, centre - 0.01);
@@ -390,10 +423,16 @@ namespace GeometryHelper.Core
                 double x2 = a + ratio * (b - a);
                 double f1 = PointToSegment(At(x1), from, to);
                 double f2 = PointToSegment(At(x2), from, to);
-                double x0 = centre < a ? a : centre > b ? b : centre;
+                double x0 =
+                    centre < a ? a
+                    : centre > b ? b
+                    : centre;
                 double best = Math.Min(Math.Min(f1, f2), PointToSegment(At(x0), from, to));
 
-                at = best == f1 ? x1 : best == f2 ? x2 : x0;
+                at =
+                    best == f1 ? x1
+                    : best == f2 ? x2
+                    : x0;
 
                 for (int i = 0; i < 70 && b - a > 1E-10; i++)
                 {
@@ -440,7 +479,8 @@ namespace GeometryHelper.Core
             {
                 if (from.GetDistanceSquaredTo(to) <= tolerance.EqualPoint * tolerance.EqualPoint)
                 {
-                    double rounding = 1E-12 * Math.Max(1.0, Math.Max(Math.Abs(from.X), Math.Max(Math.Abs(from.Y), Math.Abs(from.Z))));
+                    double rounding =
+                        1E-12 * Math.Max(1.0, Math.Max(Math.Abs(from.X), Math.Max(Math.Abs(from.Y), Math.Abs(from.Z))));
 
                     if (GapToSegment(from, to) > rounding)
                     {
@@ -480,15 +520,27 @@ namespace GeometryHelper.Core
                     return new GeoPoint3(
                         StartPoint.X + (EndPoint.X - StartPoint.X) * along,
                         StartPoint.Y + (EndPoint.Y - StartPoint.Y) * along,
-                        StartPoint.Z + (EndPoint.Z - StartPoint.Z) * along);
+                        StartPoint.Z + (EndPoint.Z - StartPoint.Z) * along
+                    );
                 }
 
                 var places = new List<GeoPoint3> { StartPoint, EndPoint, NearestTo(from), NearestTo(to) };
                 var found = new double[64];
                 var seeds = new double[32];
 
-                if (from.GetDistanceSquaredTo(to) > 0.0
-                    && Turns(from, to, found, out int count, seeds, out int seedCount, out double lowest, out double highest))
+                if (
+                    from.GetDistanceSquaredTo(to) > 0.0
+                    && Turns(
+                        from,
+                        to,
+                        found,
+                        out int count,
+                        seeds,
+                        out int seedCount,
+                        out double lowest,
+                        out double highest
+                    )
+                )
                 {
                     for (int k = 0; k < count; k++)
                     {
@@ -589,15 +641,29 @@ namespace GeometryHelper.Core
                     {
                         double along = Block.NearestAlong(StartPoint, EndPoint, from, to);
 
-                        places.Add(new GeoPoint3(
-                            StartPoint.X + (EndPoint.X - StartPoint.X) * along,
-                            StartPoint.Y + (EndPoint.Y - StartPoint.Y) * along,
-                            StartPoint.Z + (EndPoint.Z - StartPoint.Z) * along));
+                        places.Add(
+                            new GeoPoint3(
+                                StartPoint.X + (EndPoint.X - StartPoint.X) * along,
+                                StartPoint.Y + (EndPoint.Y - StartPoint.Y) * along,
+                                StartPoint.Z + (EndPoint.Z - StartPoint.Z) * along
+                            )
+                        );
                         continue;
                     }
 
-                    if (!(from.GetDistanceSquaredTo(to) > 0.0)
-                        || !Turns(from, to, found, out int count, seeds, out int seedCount, out double lowest, out double highest))
+                    if (
+                        !(from.GetDistanceSquaredTo(to) > 0.0)
+                        || !Turns(
+                            from,
+                            to,
+                            found,
+                            out int count,
+                            seeds,
+                            out int seedCount,
+                            out double lowest,
+                            out double highest
+                        )
+                    )
                     {
                         continue;
                     }
@@ -730,8 +796,8 @@ namespace GeometryHelper.Core
             /// Gets the distance from the point of the circle at an angle to a region, the point being on the arc; infinite where
             /// the arc does not sweep that far.
             /// </summary>
-            private double Candidate(Region region, double angle)
-                => Sweeps(angle) ? region.PointGap(At(angle)) : double.MaxValue;
+            private double Candidate(Region region, double angle) =>
+                Sweeps(angle) ? region.PointGap(At(angle)) : double.MaxValue;
 
             /// <summary>
             /// Gets the exact gap between the arc and the surface of a body: the least over its faces, a face read by its material.
@@ -836,7 +902,8 @@ namespace GeometryHelper.Core
 
                 double best = Math.Min(
                     Math.Min(PointGap(other.StartPoint), PointGap(other.EndPoint)),
-                    Math.Min(other.PointGap(StartPoint), other.PointGap(EndPoint)));
+                    Math.Min(other.PointGap(StartPoint), other.PointGap(EndPoint))
+                );
 
                 if (best <= stopAt)
                 {
@@ -856,7 +923,8 @@ namespace GeometryHelper.Core
                     // this one is no nearer than the copy less that.
                     double nearest = Math.Min(
                         Math.Min(PointGap(copy.StartPoint), PointGap(copy.EndPoint)),
-                        Math.Min(copy.PointGap(StartPoint), copy.PointGap(EndPoint)));
+                        Math.Min(copy.PointGap(StartPoint), copy.PointGap(EndPoint))
+                    );
 
                     if (nearest - shift > stopAt * (1.0 + 1E-6) + 1E-9)
                     {
@@ -917,7 +985,11 @@ namespace GeometryHelper.Core
                 double dz = other._cz - _cz;
                 double along = dx * _nx + dy * _ny + dz * _nz;
                 var centre = new GeoPoint3(_cx + along * _nx, _cy + along * _ny, _cz + along * _nz);
-                double across = Math.Sqrt((dx - along * _nx) * (dx - along * _nx) + (dy - along * _ny) * (dy - along * _ny) + (dz - along * _nz) * (dz - along * _nz));
+                double across = Math.Sqrt(
+                    (dx - along * _nx) * (dx - along * _nx)
+                        + (dy - along * _ny) * (dy - along * _ny)
+                        + (dz - along * _nz) * (dz - along * _nz)
+                );
 
                 shift = across + other._radius * 2.0 * Math.Sin(0.5 * turn);
 
@@ -981,7 +1053,8 @@ namespace GeometryHelper.Core
                 double oz = dz - along * _nz;
                 double reach = _radius + other._radius + Math.Abs(dx) + Math.Abs(dy) + Math.Abs(dz);
 
-                return Math.Sqrt(nx * nx + ny * ny + nz * nz) <= 1E-14 && Math.Sqrt(ox * ox + oy * oy + oz * oz) <= 1E-13 * reach;
+                return Math.Sqrt(nx * nx + ny * ny + nz * nz) <= 1E-14
+                    && Math.Sqrt(ox * ox + oy * oy + oz * oz) <= 1E-13 * reach;
             }
 
             /// <summary>
@@ -1006,7 +1079,12 @@ namespace GeometryHelper.Core
             private int Reaches(Curve other, double stopAt, out double found)
             {
                 double limit = stopAt * (1.0 + 1E-6) + 1E-12;
-                var state = new Proof { Budget = 500, Bound = double.MaxValue, Lipschitz = other._full ? LipschitzTo(other) : _radius };
+                var state = new Proof
+                {
+                    Budget = 500,
+                    Bound = double.MaxValue,
+                    Lipschitz = other._full ? LipschitzTo(other) : _radius,
+                };
                 const int pieces = 16;
                 double step = _sweep / pieces;
                 double from = other.PointGap(At(_start));
@@ -1023,7 +1101,16 @@ namespace GeometryHelper.Core
                         return Within;
                     }
 
-                    int verdict = Stretch(other, _start + step * i, _start + step * (i + 1), from, to, stopAt, limit, state);
+                    int verdict = Stretch(
+                        other,
+                        _start + step * i,
+                        _start + step * (i + 1),
+                        from,
+                        to,
+                        stopAt,
+                        limit,
+                        state
+                    );
 
                     if (verdict == Within)
                     {
@@ -1087,7 +1174,16 @@ namespace GeometryHelper.Core
                 internal double Lipschitz;
             }
 
-            private int Stretch(Curve other, double a, double b, double fa, double fb, double stopAt, double limit, Proof state)
+            private int Stretch(
+                Curve other,
+                double a,
+                double b,
+                double fa,
+                double fb,
+                double stopAt,
+                double limit,
+                Proof state
+            )
             {
                 double width = Math.Abs(b - a);
                 double low = 0.5 * (fa + fb - state.Lipschitz * width);
@@ -1137,7 +1233,10 @@ namespace GeometryHelper.Core
             /// </summary>
             private double Walk(Curve other, double stopAt)
             {
-                int steps = Math.Max(24, Math.Min(900, (int)Math.Ceiling(Math.Abs(_sweep) / (stopAt > 0.0 ? 0.03 : 0.01))));
+                int steps = Math.Max(
+                    24,
+                    Math.Min(900, (int)Math.Ceiling(Math.Abs(_sweep) / (stopAt > 0.0 ? 0.03 : 0.01)))
+                );
                 double step = _sweep / steps;
                 var at = new double[steps + 1];
 
@@ -1169,12 +1268,14 @@ namespace GeometryHelper.Core
                     }
                 }
 
-                lows.Sort((p, q) =>
-                {
-                    int by = at[p].CompareTo(at[q]);
+                lows.Sort(
+                    (p, q) =>
+                    {
+                        int by = at[p].CompareTo(at[q]);
 
-                    return by != 0 ? by : p.CompareTo(q);
-                });
+                        return by != 0 ? by : p.CompareTo(q);
+                    }
+                );
 
                 for (int n = 0; n < Math.Min(8, lows.Count); n++)
                 {
@@ -1246,7 +1347,16 @@ namespace GeometryHelper.Core
         /// for the caller to minimise the distance itself round.
         /// </remarks>
         private static int Stationary(
-            double c1, double s1, double s2, double c2, double low, double high, double[] found, double[] seeds, out int seedCount)
+            double c1,
+            double s1,
+            double s2,
+            double c2,
+            double low,
+            double high,
+            double[] found,
+            double[] seeds,
+            out int seedCount
+        )
         {
             seedCount = 0;
 
@@ -1254,11 +1364,37 @@ namespace GeometryHelper.Core
             // from the middle of the sweep that is outside an arc of up to a half turn, so no root of the arc's lies near it; a
             // longer arc is solved again from a quarter turn on, where the roots that stood there are well away from it.
             double middle = 0.5 * (low + high);
-            int count = Quartic(c1, s1, s2, c2, middle, low, high, found, 0, seeds, ref seedCount, out bool nearSingular);
+            int count = Quartic(
+                c1,
+                s1,
+                s2,
+                c2,
+                middle,
+                low,
+                high,
+                found,
+                0,
+                seeds,
+                ref seedCount,
+                out bool nearSingular
+            );
 
             if (nearSingular && high - low > Math.PI)
             {
-                count = Quartic(c1, s1, s2, c2, middle + 0.5 * Math.PI, low, high, found, count, seeds, ref seedCount, out nearSingular);
+                count = Quartic(
+                    c1,
+                    s1,
+                    s2,
+                    c2,
+                    middle + 0.5 * Math.PI,
+                    low,
+                    high,
+                    found,
+                    count,
+                    seeds,
+                    ref seedCount,
+                    out nearSingular
+                );
             }
 
             return count;
@@ -1268,7 +1404,19 @@ namespace GeometryHelper.Core
         /// Solves the quartic for the angle measured from an origin, and adds the candidates it gives between the limits.
         /// </summary>
         private static int Quartic(
-            double c1, double s1, double s2, double c2, double origin, double low, double high, double[] found, int count, double[] seeds, ref int seedCount, out bool nearSingular)
+            double c1,
+            double s1,
+            double s2,
+            double c2,
+            double origin,
+            double low,
+            double high,
+            double[] found,
+            int count,
+            double[] seeds,
+            ref int seedCount,
+            out bool nearSingular
+        )
         {
             // c1 cos t + s1 sin t + s2 sin 2t + c2 cos 2t for t = origin + p: the same form in p, its coefficients turned.
             double cosOrigin = Math.Cos(origin);
@@ -1281,7 +1429,10 @@ namespace GeometryHelper.Core
             double e2 = -c2 * sinTwice + s2 * cosTwice;
 
             var a = new[] { d1 + d2, 2.0 * e1 + 4.0 * e2, -6.0 * d2, 2.0 * e1 - 4.0 * e2, d2 - d1 };
-            double biggest = Math.Max(Math.Max(Math.Abs(a[0]), Math.Abs(a[1])), Math.Max(Math.Max(Math.Abs(a[2]), Math.Abs(a[3])), Math.Abs(a[4])));
+            double biggest = Math.Max(
+                Math.Max(Math.Abs(a[0]), Math.Abs(a[1])),
+                Math.Max(Math.Max(Math.Abs(a[2]), Math.Abs(a[3])), Math.Abs(a[4]))
+            );
 
             nearSingular = false;
 
@@ -1345,9 +1496,15 @@ namespace GeometryHelper.Core
 
                         // A root the slope barely leaves, or one far out where z is large and the quartic is known loosely, is minimised
                         // round on the distance itself, whatever its slope.
-                        if (isRoot && seedCount < seeds.Length
-                            && ((i < rootCount && Math.Abs(zs[i]) > 1E3)
-                                || Math.Abs(Slope(c1, s1, s2, c2, polished)) <= 1E-6 * (Math.Abs(c1) + Math.Abs(s1) + 2.0 * Math.Abs(s2) + 2.0 * Math.Abs(c2))))
+                        if (
+                            isRoot
+                            && seedCount < seeds.Length
+                            && (
+                                (i < rootCount && Math.Abs(zs[i]) > 1E3)
+                                || Math.Abs(Slope(c1, s1, s2, c2, polished))
+                                    <= 1E-6 * (Math.Abs(c1) + Math.Abs(s1) + 2.0 * Math.Abs(s2) + 2.0 * Math.Abs(c2))
+                            )
+                        )
                         {
                             seeds[seedCount++] = polished >= low && polished <= high ? polished : at;
                         }
@@ -1363,7 +1520,16 @@ namespace GeometryHelper.Core
         /// leaving it where a step would carry it far; where it stands for a root, and the steps do not settle it, the nearest
         /// place round it where the polynomial changes sign.
         /// </summary>
-        private static double Refined(double c1, double s1, double s2, double c2, double angle, double low, double high, bool root)
+        private static double Refined(
+            double c1,
+            double s1,
+            double s2,
+            double c2,
+            double angle,
+            double low,
+            double high,
+            bool root
+        )
         {
             for (int i = 0; i < 4; i++)
             {

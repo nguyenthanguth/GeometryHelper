@@ -66,7 +66,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The size of a symbol on the grid of a tile, the point in its middle.</summary>
         private const double SymbolSize = 16.0;
 
-        private static readonly int[] Modes = { 0, 1, 2, 3, 4, 32, 33, 34, 35, 36, 64, 65, 66, 67, 68, 96, 97, 98, 99, 100 };
+        private static readonly int[] Modes =
+        {
+            0,
+            1,
+            2,
+            3,
+            4,
+            32,
+            33,
+            34,
+            35,
+            36,
+            64,
+            65,
+            66,
+            67,
+            68,
+            96,
+            97,
+            98,
+            99,
+            100,
+        };
         private static readonly string[] ShapeNames = { "dot", "nothing", "plus", "cross", "tick" };
         private static IReadOnlyList<KeyValuePair<string, bool>> _symbols;
 
@@ -89,7 +111,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _startRelative = _relative = _startPdsize <= 0.0;
             _startSize = _size = Text(_startPdsize == 0.0 ? 5.0 : Math.Abs(_startPdsize));
             IReadOnlyList<KeyValuePair<string, bool>> symbols = Symbols();
-            Tiles = Modes.Select((m, i) => new PointStyleTileViewModel(this, m, Label(m), symbols[i].Key, symbols[i].Value)).ToList().AsReadOnly();
+            Tiles = Modes
+                .Select((m, i) => new PointStyleTileViewModel(this, m, Label(m), symbols[i].Key, symbols[i].Value))
+                .ToList()
+                .AsReadOnly();
         }
 
         /// <summary>Gets the document.</summary>
@@ -175,7 +200,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             get
             {
-                if (!TryParseSize(out double size) || (_relative == _startRelative && string.Equals(_size.Trim(), _startSize, StringComparison.Ordinal)))
+                if (
+                    !TryParseSize(out double size)
+                    || (
+                        _relative == _startRelative && string.Equals(_size.Trim(), _startSize, StringComparison.Ordinal)
+                    )
+                )
                 {
                     return _startPdsize;
                 }
@@ -205,12 +235,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (mode != _startMode)
             {
-                records.Add(new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$PDMODE", _startMode.ToString(CultureInfo.InvariantCulture), mode.ToString(CultureInfo.InvariantCulture)));
+                records.Add(
+                    new CadEditRecord(
+                        CadEditRecordKind.SettingChanged,
+                        null,
+                        "$PDMODE",
+                        _startMode.ToString(CultureInfo.InvariantCulture),
+                        mode.ToString(CultureInfo.InvariantCulture)
+                    )
+                );
             }
 
             if (size.CompareTo(_startPdsize) != 0)
             {
-                records.Add(new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$PDSIZE", _startPdsize.ToString("R", CultureInfo.InvariantCulture), size.ToString("R", CultureInfo.InvariantCulture)));
+                records.Add(
+                    new CadEditRecord(
+                        CadEditRecordKind.SettingChanged,
+                        null,
+                        "$PDSIZE",
+                        _startPdsize.ToString("R", CultureInfo.InvariantCulture),
+                        size.ToString("R", CultureInfo.InvariantCulture)
+                    )
+                );
             }
 
             if (records.Count == 0)
@@ -225,14 +271,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             });
         }
 
-        private bool TryParseSize(out double size)
-            => double.TryParse((_size ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out size) && size > 0.0 && !double.IsInfinity(size);
+        private bool TryParseSize(out double size) =>
+            double.TryParse((_size ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out size)
+            && size > 0.0
+            && !double.IsInfinity(size);
 
         private static string Text(double value) => value.ToString("0.0000", CultureInfo.InvariantCulture);
 
         private static string Label(int mode)
         {
-            string around = (mode & 96) == 96 ? ", circle and square around" : (mode & 32) != 0 ? ", circle around" : (mode & 64) != 0 ? ", square around" : string.Empty;
+            string around =
+                (mode & 96) == 96 ? ", circle and square around"
+                : (mode & 32) != 0 ? ", circle around"
+                : (mode & 64) != 0 ? ", square around"
+                : string.Empty;
             return "PDMODE " + mode.ToString(CultureInfo.InvariantCulture) + ", " + ShapeNames[mode & 31] + around;
         }
 
@@ -264,8 +316,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         // A circle about the point: two halves, as path data draws no whole circle in one arc.
                         string r = Number(arc.Radius);
                         Append(path, "M", arc.Cx + arc.Radius, arc.Cy);
-                        path.Append(" A").Append(r).Append(',').Append(r).Append(" 0 1 0 ").Append(Number(16.0 + arc.Cx - arc.Radius)).Append(',').Append(Number(16.0 - arc.Cy));
-                        path.Append(" A").Append(r).Append(',').Append(r).Append(" 0 1 0 ").Append(Number(16.0 + arc.Cx + arc.Radius)).Append(',').Append(Number(16.0 - arc.Cy));
+                        path.Append(" A")
+                            .Append(r)
+                            .Append(',')
+                            .Append(r)
+                            .Append(" 0 1 0 ")
+                            .Append(Number(16.0 + arc.Cx - arc.Radius))
+                            .Append(',')
+                            .Append(Number(16.0 - arc.Cy));
+                        path.Append(" A")
+                            .Append(r)
+                            .Append(',')
+                            .Append(r)
+                            .Append(" 0 1 0 ")
+                            .Append(Number(16.0 + arc.Cx + arc.Radius))
+                            .Append(',')
+                            .Append(Number(16.0 - arc.Cy));
                     }
                     else if (item is DisplayPolyline2 line && line.Xy.Count == 2)
                     {
@@ -293,9 +359,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>A point of the drawing on the 32 by 32 grid of a tile, y turned down.</summary>
-        private static void Append(StringBuilder path, string verb, double x, double y)
-            => path.Append(' ').Append(verb).Append(Number(16.0 + x)).Append(',').Append(Number(16.0 - y));
+        private static void Append(StringBuilder path, string verb, double x, double y) =>
+            path.Append(' ').Append(verb).Append(Number(16.0 + x)).Append(',').Append(Number(16.0 - y));
 
-        private static string Number(double value) => (Math.Abs(value) < 5E-7 ? 0.0 : value).ToString("0.###", CultureInfo.InvariantCulture);
+        private static string Number(double value) =>
+            (Math.Abs(value) < 5E-7 ? 0.0 : value).ToString("0.###", CultureInfo.InvariantCulture);
     }
 }

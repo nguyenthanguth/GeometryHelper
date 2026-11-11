@@ -30,7 +30,8 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Breaks a polygon into faces as the options say, using the default tolerance.
         /// </summary>
-        public static GeoMesh2 ToMesh(GeoPolygon2 polygon, MeshOptions options) => ToMesh(polygon, options, Tolerance.Global);
+        public static GeoMesh2 ToMesh(GeoPolygon2 polygon, MeshOptions options) =>
+            ToMesh(polygon, options, Tolerance.Global);
 
         /// <summary>
         /// Breaks a polygon into faces as the options say, within a tolerance.
@@ -87,7 +88,8 @@ namespace GeometryHelper.Meshing
         /// Breaks a loop with arcs into faces as the options say, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
-        public static GeoMesh2 ToMesh(GeoPolygonArc2 loop, MeshOptions options) => ToMesh(loop, options, Tolerance.Global);
+        public static GeoMesh2 ToMesh(GeoPolygonArc2 loop, MeshOptions options) =>
+            ToMesh(loop, options, Tolerance.Global);
 
         /// <summary>
         /// Breaks a loop with arcs into faces as the options say, within a tolerance, each arc flattened by the options'
@@ -111,13 +113,19 @@ namespace GeometryHelper.Meshing
             }
 
             Check(options);
-            return Mesh(new GeoFace2(loop.Flatten(options.ChordTolerance)), options, options.AngleRad ?? 0.0, tolerance);
+            return Mesh(
+                new GeoFace2(loop.Flatten(options.ChordTolerance)),
+                options,
+                options.AngleRad ?? 0.0,
+                tolerance
+            );
         }
 
         /// <summary>
         /// Breaks a rectangle into faces as the options say, using the default tolerance.
         /// </summary>
-        public static GeoMesh2 ToMesh(GeoRectangle2 rectangle, MeshOptions options) => ToMesh(rectangle, options, Tolerance.Global);
+        public static GeoMesh2 ToMesh(GeoRectangle2 rectangle, MeshOptions options) =>
+            ToMesh(rectangle, options, Tolerance.Global);
 
         /// <summary>
         /// Breaks a rectangle into faces as the options say, within a tolerance, a grid and strips running along its own
@@ -145,7 +153,10 @@ namespace GeometryHelper.Meshing
                 return Empty(options.Kind, tolerance);
             }
 
-            var corners = new GeoPolygon2(new[] { rectangle.LowerLeft, rectangle.LowerRight, rectangle.UpperRight, rectangle.UpperLeft }, 4);
+            var corners = new GeoPolygon2(
+                new[] { rectangle.LowerLeft, rectangle.LowerRight, rectangle.UpperRight, rectangle.UpperLeft },
+                4
+            );
             return Mesh(new GeoFace2(corners), options, options.AngleRad ?? rectangle.AngleRad, tolerance);
         }
 
@@ -153,7 +164,8 @@ namespace GeometryHelper.Meshing
         /// Breaks a disc into faces as the options say, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
-        public static GeoMesh2 ToMesh(GeoCircle2 circle, MeshOptions options) => ToMesh(circle, options, Tolerance.Global);
+        public static GeoMesh2 ToMesh(GeoCircle2 circle, MeshOptions options) =>
+            ToMesh(circle, options, Tolerance.Global);
 
         /// <summary>
         /// Breaks a disc into faces as the options say, within a tolerance, its rim flattened by the options' chord
@@ -204,7 +216,8 @@ namespace GeometryHelper.Meshing
         /// Breaks the region of an ellipse into faces as the options say, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
-        public static GeoMesh2 ToMesh(GeoEllipse2 ellipse, MeshOptions options) => ToMesh(ellipse, options, Tolerance.Global);
+        public static GeoMesh2 ToMesh(GeoEllipse2 ellipse, MeshOptions options) =>
+            ToMesh(ellipse, options, Tolerance.Global);
 
         /// <summary>
         /// Breaks the region of an ellipse into faces as the options say, within a tolerance, its rim flattened by the
@@ -264,7 +277,10 @@ namespace GeometryHelper.Meshing
                 case MeshKind.Convex:
                     return MeshOptions.Convex;
                 case MeshKind.Grid:
-                    throw new ArgumentException("A grid needs the size of its cells: pass MeshOptions.Grid(cellWidth, cellHeight).", nameof(kind));
+                    throw new ArgumentException(
+                        "A grid needs the size of its cells: pass MeshOptions.Grid(cellWidth, cellHeight).",
+                        nameof(kind)
+                    );
                 default:
                     return new MeshOptions(kind);
             }
@@ -289,12 +305,20 @@ namespace GeometryHelper.Meshing
         {
             if (columns < 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(columns), columns, "A rectangle divides into one column at the least.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(columns),
+                    columns,
+                    "A rectangle divides into one column at the least."
+                );
             }
 
             if (rows < 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(rows), rows, "A rectangle divides into one row at the least.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(rows),
+                    rows,
+                    "A rectangle divides into one row at the least."
+                );
             }
 
             double width = rectangle.Width / columns;
@@ -310,7 +334,10 @@ namespace GeometryHelper.Meshing
                 for (int c = 0; c < columns; c++)
                 {
                     double x = (c + 0.5) * width - 0.5 * rectangle.Width;
-                    var center = new GeoPoint2(rectangle.Center.X + x * cos - y * sin, rectangle.Center.Y + x * sin + y * cos);
+                    var center = new GeoPoint2(
+                        rectangle.Center.X + x * cos - y * sin,
+                        rectangle.Center.Y + x * sin + y * cos
+                    );
                     cells[r * columns + c] = new GeoRectangle2(center, width, height, rectangle.AngleRad);
                 }
             }
@@ -343,7 +370,8 @@ namespace GeometryHelper.Meshing
             return scale;
         }
 
-        internal static GeoMesh2 Empty(MeshKind kind, Tolerance tolerance) => new GeoMesh2(kind, new GeoPoint2[0], new int[0][], new bool[0], tolerance);
+        internal static GeoMesh2 Empty(MeshKind kind, Tolerance tolerance) =>
+            new GeoMesh2(kind, new GeoPoint2[0], new int[0][], new bool[0], tolerance);
 
         /// <summary>
         /// Breaks the material of a straight-edged face up as the options say.
@@ -351,9 +379,15 @@ namespace GeometryHelper.Meshing
         internal static GeoMesh2 Mesh(GeoFace2 face, MeshOptions options, double angleRad, Tolerance tolerance)
         {
             // The pieces are laid out from the boundary's first corner, or a grid's origin, and reach a cell past the shape.
-            GeoPoint2 from = options.Kind == MeshKind.Grid && options.Origin.HasValue ? options.Origin.Value : face.Boundary[0];
-            double reach = options.Kind == MeshKind.Grid ? 2.0 * (options.CellWidth + options.CellHeight + options.Joint) : 0.0;
-            var builder = new MeshBuilder2(tolerance, Scale(face.Boundary.Vertices), ClipperRegion.Extent(face.Boundary.Vertices, from) + reach);
+            GeoPoint2 from =
+                options.Kind == MeshKind.Grid && options.Origin.HasValue ? options.Origin.Value : face.Boundary[0];
+            double reach =
+                options.Kind == MeshKind.Grid ? 2.0 * (options.CellWidth + options.CellHeight + options.Joint) : 0.0;
+            var builder = new MeshBuilder2(
+                tolerance,
+                Scale(face.Boundary.Vertices),
+                ClipperRegion.Extent(face.Boundary.Vertices, from) + reach
+            );
             builder.Seed(face.Boundary.Vertices);
 
             foreach (GeoPolygon2 hole in face.Holes)
@@ -397,7 +431,8 @@ namespace GeometryHelper.Meshing
             var frame = new GeoCoordinateSystem3(
                 new GeoPoint3(face.Boundary[0].X, face.Boundary[0].Y, 0.0),
                 new GeoVector3(sin, -cos, 0.0),
-                new GeoVector3(cos, sin, 0.0));
+                new GeoVector3(cos, sin, 0.0)
+            );
 
             foreach (GeoFace3 lifted in Triangulation2.Lift(face, tolerance))
             {

@@ -48,7 +48,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // The top's front edge runs through corners of its own bowed out of the front, in the top's plane; the front's top
             // edge is straight. One corner is a corner standing off the edge beside it; fifty-nine are a crack half a unit
             // between corners, its middle 0.004 wide.
-            GeoSolid3 body = ClosingTestBodies.BoxCrackedAlongTheFront(ClosingTestBodies.Bowed(corners, sag, Out, false), new GeoPoint3[0]);
+            GeoSolid3 body = ClosingTestBodies.BoxCrackedAlongTheFront(
+                ClosingTestBodies.Bowed(corners, sag, Out, false),
+                new GeoPoint3[0]
+            );
             Assert.False(body.Validate(Fine).IsClosed);
 
             SolidClosing3 report = AssertCrackClosed(body, 0.005, sag, out GeoSolid3 closed);
@@ -62,7 +65,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // The top's front edge through seven corners bowed out by 0.003 in the top's plane, the front's top edge straight
             // through two of its own at x = 20 and 10, none of them pairing.
             var front = new List<GeoPoint3> { new GeoPoint3(20, 0, 10), new GeoPoint3(10, 0, 10) };
-            GeoSolid3 body = ClosingTestBodies.BoxCrackedAlongTheFront(ClosingTestBodies.Bowed(7, 0.003, Out, false), front);
+            GeoSolid3 body = ClosingTestBodies.BoxCrackedAlongTheFront(
+                ClosingTestBodies.Bowed(7, 0.003, Out, false),
+                front
+            );
             Assert.False(body.Validate(Fine).IsClosed);
 
             AssertCrackClosed(body, 0.005, 0.003, out GeoSolid3 closed);
@@ -88,13 +94,19 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [InlineData(5, 0.002, 3, 0.002)]
         [InlineData(3, 0.002, 4, 0.002)]
         [InlineData(2, 0.0015, 1, 0.002)]
-        public void ACrackTwistedBetweenTheTwoFaces_IsClosed(int topCorners, double topSag, int frontCorners, double frontSag)
+        public void ACrackTwistedBetweenTheTwoFaces_IsClosed(
+            int topCorners,
+            double topSag,
+            int frontCorners,
+            double frontSag
+        )
         {
             // The top's front edge bowed out in the top's plane and the front's top edge bowed down in the front's, through
             // corners at other places: the two sides of the crack lie in no one plane, no wider apart than 0.003 anywhere.
             GeoSolid3 body = ClosingTestBodies.BoxCrackedAlongTheFront(
                 ClosingTestBodies.Bowed(topCorners, topSag, Out, false),
-                ClosingTestBodies.Bowed(frontCorners, frontSag, Down, true));
+                ClosingTestBodies.Bowed(frontCorners, frontSag, Down, true)
+            );
             Assert.False(body.Validate(Fine).IsClosed);
 
             SolidClosing3 report = AssertCrackClosed(body, 0.005, 0.003, out GeoSolid3 closed);
@@ -108,10 +120,15 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // Bowed out by 0.008 through five corners, the crack is 0.0044 wide at the corners nearest its ends and up to
             // 0.008 between: the two nearest the ends are within five thousandths of the front's edge, and put on it they
             // would leave the three between as near to the pieces of it. No reach of five thousandths closes 0.008.
-            GeoSolid3 body = ClosingTestBodies.BoxCrackedAlongTheFront(ClosingTestBodies.Bowed(5, 0.008, Out, false), new GeoPoint3[0]);
+            GeoSolid3 body = ClosingTestBodies.BoxCrackedAlongTheFront(
+                ClosingTestBodies.Bowed(5, 0.008, Out, false),
+                new GeoPoint3[0]
+            );
             GeoPoint3[] c = ClosingTestBodies.Corners();
 
-            Assert.False(body.TryClose(out GeoSolid3 notClosed, new SolidClosingOptions(Fine, 0.005), out SolidClosing3 report));
+            Assert.False(
+                body.TryClose(out GeoSolid3 notClosed, new SolidClosingOptions(Fine, 0.005), out SolidClosing3 report)
+            );
             Assert.Equal(ClosingFailure.GapTooWide, report.Failure);
             Assert.Null(notClosed);
             Assert.Empty(report.Repairs);
@@ -124,7 +141,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [Fact]
         public void ACrackWiderThanTheGap_IsClosedWithinAWiderOne()
         {
-            GeoSolid3 body = ClosingTestBodies.BoxCrackedAlongTheFront(ClosingTestBodies.Bowed(5, 0.008, Out, false), new GeoPoint3[0]);
+            GeoSolid3 body = ClosingTestBodies.BoxCrackedAlongTheFront(
+                ClosingTestBodies.Bowed(5, 0.008, Out, false),
+                new GeoPoint3[0]
+            );
 
             AssertCrackClosed(body, 0.01, 0.008, out GeoSolid3 closed);
             Assert.InRange(closed.GetVolume(Fine), Volume - 0.008 * 300.0, Volume + 0.008 * 300.0);
@@ -134,7 +154,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
         // no larger than the crack is wide.
         private static SolidClosing3 AssertCrackClosed(GeoSolid3 body, double gap, double widest, out GeoSolid3 closed)
         {
-            Assert.True(body.TryClose(out closed, new SolidClosingOptions(Fine, gap), out SolidClosing3 report), report.ToString());
+            Assert.True(
+                body.TryClose(out closed, new SolidClosingOptions(Fine, gap), out SolidClosing3 report),
+                report.ToString()
+            );
             SolidValidation3 check = closed.Validate(Fine);
             Assert.True(check.IsValid, check.ToString());
             Assert.Equal(ClosingFailure.None, report.Failure);
@@ -142,7 +165,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.NotEmpty(report.Repairs);
             Assert.Equal(0, ClosingTestBodies.Needles(closed));
             Assert.Equal(0, ClosingTestBodies.BackToBack(closed));
-            Assert.All(report.Repairs, repair => Assert.Contains(repair.Kind, new[] { SolidRepairKind.Weld, SolidRepairKind.SplitEdge }));
+            Assert.All(report.Repairs, repair =>
+                Assert.Contains(repair.Kind, new[] { SolidRepairKind.Weld, SolidRepairKind.SplitEdge })
+            );
             Assert.All(report.Repairs, repair => Assert.InRange(repair.Size, 0.0, widest + 1E-9));
             return report;
         }

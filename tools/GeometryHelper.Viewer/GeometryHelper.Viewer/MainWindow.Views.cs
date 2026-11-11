@@ -27,13 +27,14 @@ namespace GeometryHelper.Viewer
         /// </summary>
         private ViewPane Active => _panes[_layout.Active];
 
-        private ViewPane PaneOf(object viewport) => _panes.FirstOrDefault(p => p != null && ReferenceEquals(p.Viewport, viewport));
+        private ViewPane PaneOf(object viewport) =>
+            _panes.FirstOrDefault(p => p != null && ReferenceEquals(p.Viewport, viewport));
 
         /// <summary>
         /// Takes a view as it is now, with the clip planes that cut the scene in it.
         /// </summary>
-        private ScreenMap MapOf(ViewPane pane)
-            => new ScreenMap(pane.Camera, _model.Primitives?.Bounds ?? default(Bounds3), pane.Width, pane.Height, _clips);
+        private ScreenMap MapOf(ViewPane pane) =>
+            new ScreenMap(pane.Camera, _model.Primitives?.Bounds ?? default(Bounds3), pane.Width, pane.Height, _clips);
 
         private ScreenMap MakeMap() => MapOf(Active);
 
@@ -162,7 +163,9 @@ namespace GeometryHelper.Viewer
             pane.Slot.Linked = !pane.Slot.Linked;
             LinkMenu.IsChecked = pane.Slot.Linked;
             pane.UpdateCaption(_layout.Count > 1);
-            SetMessage(pane.Slot.Linked ? "view linked: it zooms and pans with the other linked views" : "view not linked");
+            SetMessage(
+                pane.Slot.Linked ? "view linked: it zooms and pans with the other linked views" : "view not linked"
+            );
 
             if (pane.Slot.Linked)
             {
@@ -202,7 +205,9 @@ namespace GeometryHelper.Viewer
         private Task<ClipResult> ClipAsync(Primitives primitives, ClipSet clips)
         {
             bool caps = _clipCaps;
-            return clips.IsActive ? Task.Run(() => ClipResult.Build(primitives, clips, caps)) : Task.FromResult(ClipResult.Build(primitives, clips, caps));
+            return clips.IsActive
+                ? Task.Run(() => ClipResult.Build(primitives, clips, caps))
+                : Task.FromResult(ClipResult.Build(primitives, clips, caps));
         }
 
         /// <summary>
@@ -221,7 +226,11 @@ namespace GeometryHelper.Viewer
         /// </summary>
         private async Task SettleAsync()
         {
-            for (int tries = 0; tries < 200 && (_clipRunning || _panes.Any(p => p != null && p.View.IsRebasing)); tries++)
+            for (
+                int tries = 0;
+                tries < 200 && (_clipRunning || _panes.Any(p => p != null && p.View.IsRebasing));
+                tries++
+            )
             {
                 await Task.Delay(50);
             }
@@ -259,7 +268,12 @@ namespace GeometryHelper.Viewer
                 return;
             }
 
-            string name = NameDialog.Ask(this, "Save the view", "Name of the view:", "view " + (_model.Scene.Views.Count + 1).ToString(CultureInfo.InvariantCulture));
+            string name = NameDialog.Ask(
+                this,
+                "Save the view",
+                "Name of the view:",
+                "view " + (_model.Scene.Views.Count + 1).ToString(CultureInfo.InvariantCulture)
+            );
 
             if (!string.IsNullOrWhiteSpace(name))
             {
@@ -283,7 +297,20 @@ namespace GeometryHelper.Viewer
 
             RebuildSavedViewsMenu();
             KeepViewFile(view);
-            Log("view saved: " + name + " (eye " + view.Eye + ", target " + view.Target + (view.Orthographic ? ", ortho, " + view.Width.ToString("G6", CultureInfo.InvariantCulture) + " wide" : ", perspective") + "). Save the scene to keep it in the file.");
+            Log(
+                "view saved: "
+                    + name
+                    + " (eye "
+                    + view.Eye
+                    + ", target "
+                    + view.Target
+                    + (
+                        view.Orthographic
+                            ? ", ortho, " + view.Width.ToString("G6", CultureInfo.InvariantCulture) + " wide"
+                            : ", perspective"
+                    )
+                    + "). Save the scene to keep it in the file."
+            );
             SetMessage("view saved: " + name);
         }
 
@@ -337,7 +364,11 @@ namespace GeometryHelper.Viewer
                 return;
             }
 
-            ScreenshotOptions options = ScreenshotDialog.Ask(this, _settings.Screenshot ?? new ScreenshotOptions(), _layout.Count > 1);
+            ScreenshotOptions options = ScreenshotDialog.Ask(
+                this,
+                _settings.Screenshot ?? new ScreenshotOptions(),
+                _layout.Count > 1
+            );
 
             if (options == null)
             {
@@ -350,7 +381,10 @@ namespace GeometryHelper.Viewer
                 Title = "Save the picture",
                 Filter = "PNG picture (*.png)|*.png",
                 FileName = "view.png",
-                InitialDirectory = _settings.LastFolder != null && Directory.Exists(_settings.LastFolder) ? _settings.LastFolder : null,
+                InitialDirectory =
+                    _settings.LastFolder != null && Directory.Exists(_settings.LastFolder)
+                        ? _settings.LastFolder
+                        : null,
             };
 
             if (dialog.ShowDialog(this) != true)
@@ -363,7 +397,8 @@ namespace GeometryHelper.Viewer
                 string note = await SaveScreenshotAsync(dialog.FileName, options);
                 Log("picture written to " + dialog.FileName + " (" + note + ")");
             }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is InvalidOperationException)
+            catch (Exception e)
+                when (e is IOException || e is UnauthorizedAccessException || e is InvalidOperationException)
             {
                 Log("Cannot save the picture " + dialog.FileName + ": " + e.Message);
             }
@@ -391,7 +426,14 @@ namespace GeometryHelper.Viewer
                 encoder.Save(stream);
             }
 
-            return picture.PixelWidth + " x " + picture.PixelHeight + ", " + (options.AllViews ? _layout.Count + " view(s)" : "the active view") + ", " + options.Background.ToString().ToLowerInvariant() + " background";
+            return picture.PixelWidth
+                + " x "
+                + picture.PixelHeight
+                + ", "
+                + (options.AllViews ? _layout.Count + " view(s)" : "the active view")
+                + ", "
+                + options.Background.ToString().ToLowerInvariant()
+                + " background";
         }
 
         /// <summary>
@@ -414,14 +456,32 @@ namespace GeometryHelper.Viewer
             if (_layout.Count == 1 && options.Scale == 1 && options.Background == ScreenshotBackground.Window)
             {
                 ViewHost.UpdateLayout();
-                var window = new RenderTargetBitmap((int)Math.Ceiling(ViewHost.ActualWidth), (int)Math.Ceiling(ViewHost.ActualHeight), 96.0, 96.0, PixelFormats.Pbgra32);
+                var window = new RenderTargetBitmap(
+                    (int)Math.Ceiling(ViewHost.ActualWidth),
+                    (int)Math.Ceiling(ViewHost.ActualHeight),
+                    96.0,
+                    96.0,
+                    PixelFormats.Pbgra32
+                );
                 window.Render(ViewHost);
                 window.Freeze();
                 return window;
             }
 
-            IReadOnlyList<ViewCell> cells = options.Cells(_layout, Panes.ActualWidth, Panes.ActualHeight, ViewHostPanel.Gap);
-            options.PictureSize(_layout, Panes.ActualWidth, Panes.ActualHeight, ViewHostPanel.Gap, out int width, out int height);
+            IReadOnlyList<ViewCell> cells = options.Cells(
+                _layout,
+                Panes.ActualWidth,
+                Panes.ActualHeight,
+                ViewHostPanel.Gap
+            );
+            options.PictureSize(
+                _layout,
+                Panes.ActualWidth,
+                Panes.ActualHeight,
+                ViewHostPanel.Gap,
+                out int width,
+                out int height
+            );
             var drawing = new DrawingVisual();
 
             using (DrawingContext context = drawing.RenderOpen())
@@ -429,7 +489,11 @@ namespace GeometryHelper.Viewer
                 if (options.Background == ScreenshotBackground.White)
                 {
                     // The views are white; what shows between them, where there are several, is a light grey line so that the layout can be read.
-                    context.DrawRectangle(new SolidColorBrush(Color.FromRgb(0xD0, 0xD3, 0xD9)), null, new Rect(0, 0, width, height));
+                    context.DrawRectangle(
+                        new SolidColorBrush(Color.FromRgb(0xD0, 0xD3, 0xD9)),
+                        null,
+                        new Rect(0, 0, width, height)
+                    );
                 }
                 else if (options.Background == ScreenshotBackground.Window)
                 {
@@ -444,9 +508,15 @@ namespace GeometryHelper.Viewer
                     int top = (int)Math.Round(cell.Y);
                     int w = Math.Max(1, Math.Min(width, (int)Math.Ceiling(cell.X + cell.Width - 1E-6)) - left);
                     int h = Math.Max(1, Math.Min(height, (int)Math.Ceiling(cell.Y + cell.Height - 1E-6)) - top);
-                    BitmapSource image = options.Background == ScreenshotBackground.Transparent
-                        ? await RenderTransparentAsync(pane, w, h)
-                        : RenderView(pane, w, h, options.Background == ScreenshotBackground.White ? (Color?)Colors.White : null);
+                    BitmapSource image =
+                        options.Background == ScreenshotBackground.Transparent
+                            ? await RenderTransparentAsync(pane, w, h)
+                            : RenderView(
+                                pane,
+                                w,
+                                h,
+                                options.Background == ScreenshotBackground.White ? (Color?)Colors.White : null
+                            );
                     context.DrawImage(image, new Rect(left, top, w, h));
                 }
             }
@@ -518,7 +588,9 @@ namespace GeometryHelper.Viewer
 
             for (int i = 0; i < result.Length; i += 4)
             {
-                double covered = ((white[i] - black[i]) + (white[i + 1] - black[i + 1]) + (white[i + 2] - black[i + 2])) / (3.0 * 255.0);
+                double covered =
+                    ((white[i] - black[i]) + (white[i + 1] - black[i + 1]) + (white[i + 2] - black[i + 2]))
+                    / (3.0 * 255.0);
                 double alpha = Math.Max(0.0, Math.Min(1.0, 1.0 - covered));
 
                 if (alpha < 1.0 / 512.0)
@@ -532,7 +604,16 @@ namespace GeometryHelper.Viewer
                 result[i + 3] = (byte)(alpha * 255.0 + 0.5);
             }
 
-            BitmapSource matte = BitmapSource.Create(width, height, 96.0, 96.0, PixelFormats.Bgra32, null, result, stride);
+            BitmapSource matte = BitmapSource.Create(
+                width,
+                height,
+                96.0,
+                96.0,
+                PixelFormats.Bgra32,
+                null,
+                result,
+                stride
+            );
             matte.Freeze();
             return matte;
         }
@@ -565,7 +646,16 @@ namespace GeometryHelper.Viewer
             {
                 await RunCommandsAsync(_command.Commands);
                 Console.WriteLine(Output.Text);
-                Console.WriteLine("status: " + SnapText.Text + " | " + SnapsText.Text + " | " + SelectionText.Text + " | " + MessageText.Text);
+                Console.WriteLine(
+                    "status: "
+                        + SnapText.Text
+                        + " | "
+                        + SnapsText.Text
+                        + " | "
+                        + SelectionText.Text
+                        + " | "
+                        + MessageText.Text
+                );
             }
 
             // The graphics card draws the scene on its own schedule; a few frames are given to it before the picture is taken.
@@ -577,12 +667,22 @@ namespace GeometryHelper.Viewer
 
             try
             {
-                var options = new ScreenshotOptions { AllViews = true, Scale = _command.Scale, Background = _command.Background };
+                var options = new ScreenshotOptions
+                {
+                    AllViews = true,
+                    Scale = _command.Scale,
+                    Background = _command.Background,
+                };
                 string note = await SaveScreenshotAsync(_command.Screenshot, options, 0);
                 Console.WriteLine("Wrote " + _command.Screenshot + " (" + note + ").");
                 Application.Current.Shutdown(0);
             }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException || e is InvalidOperationException)
+            catch (Exception e)
+                when (e is IOException
+                    || e is UnauthorizedAccessException
+                    || e is ArgumentException
+                    || e is InvalidOperationException
+                )
             {
                 Console.Error.WriteLine("FAILED to write " + _command.Screenshot + ": " + e.Message);
                 Application.Current.Shutdown(1);
@@ -600,9 +700,21 @@ namespace GeometryHelper.Viewer
         {
             if (words[at].StartsWith("@", StringComparison.Ordinal))
             {
-                double[] c = words[at++].Substring(1).Split(',').Select(w => double.Parse(w, CultureInfo.InvariantCulture)).ToArray();
+                double[] c = words[at++]
+                    .Substring(1)
+                    .Split(',')
+                    .Select(w => double.Parse(w, CultureInfo.InvariantCulture))
+                    .ToArray();
 
-                if (!MakeMap().TryProject(new Vec3(c[0], c[1], c.Length > 2 ? c[2] : 0.0), out double px, out double py, out _))
+                if (
+                    !MakeMap()
+                        .TryProject(
+                            new Vec3(c[0], c[1], c.Length > 2 ? c[2] : 0.0),
+                            out double px,
+                            out double py,
+                            out _
+                        )
+                )
                 {
                     throw new InvalidOperationException("the point " + words[at - 1] + " is not in the picture");
                 }
@@ -610,7 +722,10 @@ namespace GeometryHelper.Viewer
                 return new Point(px, py);
             }
 
-            var p = new Point(double.Parse(words[at], CultureInfo.InvariantCulture), double.Parse(words[at + 1], CultureInfo.InvariantCulture));
+            var p = new Point(
+                double.Parse(words[at], CultureInfo.InvariantCulture),
+                double.Parse(words[at + 1], CultureInfo.InvariantCulture)
+            );
             at += 2;
             return p;
         }
@@ -620,12 +735,21 @@ namespace GeometryHelper.Viewer
             switch (word.ToLowerInvariant())
             {
                 case "plan":
-                case "top": return 0;
-                case "front": return 1;
-                case "right": return 2;
-                case "iso": return 3;
+                case "top":
+                    return 0;
+                case "front":
+                    return 1;
+                case "right":
+                    return 2;
+                case "iso":
+                    return 3;
                 default:
-                    return int.TryParse(word, NumberStyles.Integer, CultureInfo.InvariantCulture, out int slot) && slot >= 0 && slot < ViewLayout.MaxViews ? slot : -1;
+                    return
+                        int.TryParse(word, NumberStyles.Integer, CultureInfo.InvariantCulture, out int slot)
+                        && slot >= 0
+                        && slot < ViewLayout.MaxViews
+                        ? slot
+                        : -1;
             }
         }
 
@@ -633,11 +757,21 @@ namespace GeometryHelper.Viewer
         {
             switch (word.ToLowerInvariant())
             {
-                case "wireframe": mode = RenderMode.Wireframe; return true;
-                case "shaded": mode = RenderMode.Shaded; return true;
-                case "edges": mode = RenderMode.ShadedEdges; return true;
-                case "transparent": mode = RenderMode.Transparent; return true;
-                default: mode = RenderMode.ShadedEdges; return false;
+                case "wireframe":
+                    mode = RenderMode.Wireframe;
+                    return true;
+                case "shaded":
+                    mode = RenderMode.Shaded;
+                    return true;
+                case "edges":
+                    mode = RenderMode.ShadedEdges;
+                    return true;
+                case "transparent":
+                    mode = RenderMode.Transparent;
+                    return true;
+                default:
+                    mode = RenderMode.ShadedEdges;
+                    return false;
             }
         }
 
@@ -660,9 +794,33 @@ namespace GeometryHelper.Viewer
                     foreach (int slot in _layout.Shown)
                     {
                         ViewPane pane = _panes[slot];
-                        Log("view " + slot + (slot == _layout.Active ? " (active)" : string.Empty) + ": " + pane.Width.ToString("0.#", CultureInfo.InvariantCulture) + " x " + pane.Height.ToString("0.#", CultureInfo.InvariantCulture)
-                            + ", " + pane.Mode + (pane.Camera.Orthographic ? ", ortho " + (2.0 * pane.Camera.Distance * pane.Camera.HalfHeightRatio * pane.Aspect).ToString("G6", CultureInfo.InvariantCulture) + " wide" : ", perspective") + (pane.Slot.Linked ? ", linked" : string.Empty)
-                            + ", target " + pane.Camera.Target + ", distance " + pane.Camera.Distance.ToString("G6", CultureInfo.InvariantCulture) + ", render origin " + pane.View.Origin);
+                        Log(
+                            "view "
+                                + slot
+                                + (slot == _layout.Active ? " (active)" : string.Empty)
+                                + ": "
+                                + pane.Width.ToString("0.#", CultureInfo.InvariantCulture)
+                                + " x "
+                                + pane.Height.ToString("0.#", CultureInfo.InvariantCulture)
+                                + ", "
+                                + pane.Mode
+                                + (
+                                    pane.Camera.Orthographic
+                                        ? ", ortho "
+                                            + (
+                                                2.0 * pane.Camera.Distance * pane.Camera.HalfHeightRatio * pane.Aspect
+                                            ).ToString("G6", CultureInfo.InvariantCulture)
+                                            + " wide"
+                                        : ", perspective"
+                                )
+                                + (pane.Slot.Linked ? ", linked" : string.Empty)
+                                + ", target "
+                                + pane.Camera.Target
+                                + ", distance "
+                                + pane.Camera.Distance.ToString("G6", CultureInfo.InvariantCulture)
+                                + ", render origin "
+                                + pane.View.Origin
+                        );
                     }
 
                     return true;
@@ -677,7 +835,8 @@ namespace GeometryHelper.Viewer
                 }
 
                 case "grid":
-                    GridMenu.IsChecked = words.Length < 2 || !words[1].Equals("off", StringComparison.OrdinalIgnoreCase);
+                    GridMenu.IsChecked =
+                        words.Length < 2 || !words[1].Equals("off", StringComparison.OrdinalIgnoreCase);
                     SetGrid(GridMenu.IsChecked == true);
                     return true;
 
@@ -722,10 +881,18 @@ namespace GeometryHelper.Viewer
 
                     switch (words[2].ToLowerInvariant())
                     {
-                        case "top": view = StandardView.Top; break;
-                        case "front": view = StandardView.Front; break;
-                        case "right": view = StandardView.Right; break;
-                        default: view = StandardView.Iso; break;
+                        case "top":
+                            view = StandardView.Top;
+                            break;
+                        case "front":
+                            view = StandardView.Front;
+                            break;
+                        case "right":
+                            view = StandardView.Right;
+                            break;
+                        default:
+                            view = StandardView.Iso;
+                            break;
                     }
 
                     if (slot < 0 || _panes[slot] == null)
@@ -772,7 +939,12 @@ namespace GeometryHelper.Viewer
                 {
                     // clipsweep n from to steps interval: the plane n is dragged from one offset to another in so many steps, a step every interval milliseconds as a mouse moves, and
                     // the output says how many cuts were shown while it went and how long the scene took to settle after it was let go.
-                    if (words.Length < 6 || !int.TryParse(words[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) || number < 1 || number > _clips.Count)
+                    if (
+                        words.Length < 6
+                        || !int.TryParse(words[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int number)
+                        || number < 1
+                        || number > _clips.Count
+                    )
                     {
                         Log("--do: clipsweep n from to steps interval needs the number of a clip plane");
                         return true;
@@ -789,7 +961,10 @@ namespace GeometryHelper.Viewer
 
                     for (int step = 0; step <= steps; step++)
                     {
-                        SetClips(_clips.Replace(index, _clips.Planes[index].WithOffset(from + (to - from) * step / steps)), index);
+                        SetClips(
+                            _clips.Replace(index, _clips.Planes[index].WithOffset(from + (to - from) * step / steps)),
+                            index
+                        );
                         await Task.Delay(interval);
                     }
 
@@ -797,19 +972,48 @@ namespace GeometryHelper.Viewer
                     int shownWhile = _model.ClipsShown - shownBefore;
                     EndClipDrag();
                     await SettleAsync();
-                    Log("clipsweep: " + (steps + 1) + " moves of the plane " + interval + " ms apart took " + dragged + " ms and " + shownWhile + " cut(s) were shown while it moved; the full cut was in place " + (clock.ElapsedMilliseconds - dragged) + " ms after it was let go");
+                    Log(
+                        "clipsweep: "
+                            + (steps + 1)
+                            + " moves of the plane "
+                            + interval
+                            + " ms apart took "
+                            + dragged
+                            + " ms and "
+                            + shownWhile
+                            + " cut(s) were shown while it moved; the full cut was in place "
+                            + (clock.ElapsedMilliseconds - dragged)
+                            + " ms after it was let go"
+                    );
                     return true;
                 }
 
                 case "clipcaps":
-                    ClipCapsMenu.IsChecked = words.Length < 2 || !words[1].Equals("off", StringComparison.OrdinalIgnoreCase);
+                    ClipCapsMenu.IsChecked =
+                        words.Length < 2 || !words[1].Equals("off", StringComparison.OrdinalIgnoreCase);
                     OnClipCapsToggled(null, null);
                     return true;
 
                 case "showtime":
-                    Log("showtime: " + _model.ViewBuildMilliseconds.Count + " view(s) made their elements for the scene on the UI thread in "
-                        + string.Join(" + ", _model.ViewBuildMilliseconds.Select(m => m.ToString("F1", CultureInfo.InvariantCulture))) + " ms = "
-                        + _model.ViewBuildMilliseconds.Sum().ToString("F1", CultureInfo.InvariantCulture) + " ms, of which making the geometry " + string.Join(" + ", _model.GeometryMilliseconds.Select(m => m.ToString("F1", CultureInfo.InvariantCulture))) + " ms; " + _model.Geometry.Builds + " set(s) of geometry made");
+                    Log(
+                        "showtime: "
+                            + _model.ViewBuildMilliseconds.Count
+                            + " view(s) made their elements for the scene on the UI thread in "
+                            + string.Join(
+                                " + ",
+                                _model.ViewBuildMilliseconds.Select(m => m.ToString("F1", CultureInfo.InvariantCulture))
+                            )
+                            + " ms = "
+                            + _model.ViewBuildMilliseconds.Sum().ToString("F1", CultureInfo.InvariantCulture)
+                            + " ms, of which making the geometry "
+                            + string.Join(
+                                " + ",
+                                _model.GeometryMilliseconds.Select(m => m.ToString("F1", CultureInfo.InvariantCulture))
+                            )
+                            + " ms; "
+                            + _model.Geometry.Builds
+                            + " set(s) of geometry made"
+                    );
                     return true;
 
                 case "saveview":
@@ -827,7 +1031,9 @@ namespace GeometryHelper.Viewer
                 case "restoreview":
                 {
                     string name = string.Join(" ", words.Skip(1));
-                    SavedView view = _model.Scene?.Views.FirstOrDefault(v => string.Equals(v.Name, name, StringComparison.Ordinal));
+                    SavedView view = _model.Scene?.Views.FirstOrDefault(v =>
+                        string.Equals(v.Name, name, StringComparison.Ordinal)
+                    );
 
                     if (view == null)
                     {
@@ -843,7 +1049,12 @@ namespace GeometryHelper.Viewer
 
                 case "shot":
                 {
-                    var options = new ScreenshotOptions { AllViews = true, Scale = 1, Background = ScreenshotBackground.Window };
+                    var options = new ScreenshotOptions
+                    {
+                        AllViews = true,
+                        Scale = 1,
+                        Background = ScreenshotBackground.Window,
+                    };
 
                     foreach (string word in words.Skip(2))
                     {
@@ -855,11 +1066,17 @@ namespace GeometryHelper.Viewer
                         {
                             options.AllViews = true;
                         }
-                        else if (int.TryParse(word, NumberStyles.Integer, CultureInfo.InvariantCulture, out int scale) && ScreenshotOptions.IsScale(scale))
+                        else if (
+                            int.TryParse(word, NumberStyles.Integer, CultureInfo.InvariantCulture, out int scale)
+                            && ScreenshotOptions.IsScale(scale)
+                        )
                         {
                             options.Scale = scale;
                         }
-                        else if (Enum.TryParse(word, true, out ScreenshotBackground background) && Enum.IsDefined(typeof(ScreenshotBackground), background))
+                        else if (
+                            Enum.TryParse(word, true, out ScreenshotBackground background)
+                            && Enum.IsDefined(typeof(ScreenshotBackground), background)
+                        )
                         {
                             options.Background = background;
                         }

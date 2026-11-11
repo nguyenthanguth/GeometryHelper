@@ -22,10 +22,11 @@ namespace GeometryHelper.UnitTest.Solid
         /// The cube with a twenty-square duct bored right through it along z, from x = 40 to 60 and y = 40
         /// to 60. The duct runs past both faces so its ends are not walls of the body.
         /// </summary>
-        private static GeoSolid3 Pierced() => Cube().WithOpenings(new[]
-        {
-            new GeoAabb3(new GeoPoint3(40, 40, -10), new GeoPoint3(60, 60, 110)).ToObb().ToSolid()
-        });
+        private static GeoSolid3 Pierced() =>
+            Cube()
+                .WithOpenings(
+                    new[] { new GeoAabb3(new GeoPoint3(40, 40, -10), new GeoPoint3(60, 60, 110)).ToObb().ToSolid() }
+                );
 
         [Fact]
         public void APointWithinTheToleranceOfTheSurfaceIsNoughtAway()
@@ -120,27 +121,61 @@ namespace GeometryHelper.UnitTest.Solid
                     {
                         var point = new GeoPoint3(i * 10.0, j * 10.0, k * 10.0);
 
-                        foreach (double signed in new[]
-                        {
-                            cube.SignedDistanceTo(point), pierced.SignedDistanceTo(point),
-                            obb.SignedDistanceTo(point), aabb.SignedDistanceTo(point)
-                        })
+                        foreach (
+                            double signed in new[]
+                            {
+                                cube.SignedDistanceTo(point),
+                                pierced.SignedDistanceTo(point),
+                                obb.SignedDistanceTo(point),
+                                aabb.SignedDistanceTo(point),
+                            }
+                        )
                         {
                             // The magnitude is a distance, so it is never negative in itself.
                             Assert.True(Math.Abs(signed) >= 0.0);
                         }
 
                         string at = " at (" + point.X + "," + point.Y + "," + point.Z + ")";
-                        Follows(cube.SignedDistanceTo(point), cube.Locate(point), ref inside, ref outside, ref onSurface, "cube" + at);
-                        Follows(pierced.SignedDistanceTo(point), pierced.Locate(point), ref inside, ref outside, ref onSurface, "pierced" + at);
-                        Follows(obb.SignedDistanceTo(point), obb.Locate(point), ref inside, ref outside, ref onSurface, "obb" + at);
-                        Follows(aabb.SignedDistanceTo(point), aabb.Locate(point), ref inside, ref outside, ref onSurface, "aabb" + at);
+                        Follows(
+                            cube.SignedDistanceTo(point),
+                            cube.Locate(point),
+                            ref inside,
+                            ref outside,
+                            ref onSurface,
+                            "cube" + at
+                        );
+                        Follows(
+                            pierced.SignedDistanceTo(point),
+                            pierced.Locate(point),
+                            ref inside,
+                            ref outside,
+                            ref onSurface,
+                            "pierced" + at
+                        );
+                        Follows(
+                            obb.SignedDistanceTo(point),
+                            obb.Locate(point),
+                            ref inside,
+                            ref outside,
+                            ref onSurface,
+                            "obb" + at
+                        );
+                        Follows(
+                            aabb.SignedDistanceTo(point),
+                            aabb.Locate(point),
+                            ref inside,
+                            ref outside,
+                            ref onSurface,
+                            "aabb" + at
+                        );
 
                         // An unpierced box has one surface and no openings, so its magnitude is the distance
                         // to the surface point the projection hands back.
                         Assert.Equal(
                             point.DistanceTo(cube.GetClosestPointOnBoundary(point)),
-                            Math.Abs(cube.SignedDistanceTo(point)), 6);
+                            Math.Abs(cube.SignedDistanceTo(point)),
+                            6
+                        );
                     }
                 }
             }
@@ -156,7 +191,8 @@ namespace GeometryHelper.UnitTest.Solid
             ref int inside,
             ref int outside,
             ref int onSurface,
-            string what)
+            string what
+        )
         {
             switch (where)
             {
@@ -166,7 +202,10 @@ namespace GeometryHelper.UnitTest.Solid
                     break;
 
                 case PointLocation.OnSide:
-                    Assert.True(Math.Abs(signed) <= Tolerance.Global.EqualPoint, "on the surface but " + signed + " " + what);
+                    Assert.True(
+                        Math.Abs(signed) <= Tolerance.Global.EqualPoint,
+                        "on the surface but " + signed + " " + what
+                    );
                     onSurface++;
                     break;
 

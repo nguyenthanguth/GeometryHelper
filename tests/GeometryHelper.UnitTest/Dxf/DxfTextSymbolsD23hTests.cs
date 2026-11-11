@@ -17,11 +17,26 @@ namespace GeometryHelper.UnitTest.Dxf
     {
         private static readonly string[] Symbols =
         {
-            DxfTextSymbols.Degree, DxfTextSymbols.PlusMinus, DxfTextSymbols.Diameter, DxfTextSymbols.AlmostEqual,
-            DxfTextSymbols.Angle, DxfTextSymbols.BoundaryLine, DxfTextSymbols.CenterLine, DxfTextSymbols.Delta,
-            DxfTextSymbols.ElectricalPhase, DxfTextSymbols.FlowLine, DxfTextSymbols.Identity, DxfTextSymbols.InitialLength,
-            DxfTextSymbols.MonumentLine, DxfTextSymbols.NotEqual, DxfTextSymbols.Ohm, DxfTextSymbols.Omega,
-            DxfTextSymbols.PropertyLine, DxfTextSymbols.Subscript2, DxfTextSymbols.Squared, DxfTextSymbols.Cubed,
+            DxfTextSymbols.Degree,
+            DxfTextSymbols.PlusMinus,
+            DxfTextSymbols.Diameter,
+            DxfTextSymbols.AlmostEqual,
+            DxfTextSymbols.Angle,
+            DxfTextSymbols.BoundaryLine,
+            DxfTextSymbols.CenterLine,
+            DxfTextSymbols.Delta,
+            DxfTextSymbols.ElectricalPhase,
+            DxfTextSymbols.FlowLine,
+            DxfTextSymbols.Identity,
+            DxfTextSymbols.InitialLength,
+            DxfTextSymbols.MonumentLine,
+            DxfTextSymbols.NotEqual,
+            DxfTextSymbols.Ohm,
+            DxfTextSymbols.Omega,
+            DxfTextSymbols.PropertyLine,
+            DxfTextSymbols.Subscript2,
+            DxfTextSymbols.Squared,
+            DxfTextSymbols.Cubed,
             DxfTextSymbols.NonBreakingSpace,
         };
 
@@ -31,8 +46,22 @@ namespace GeometryHelper.UnitTest.Dxf
         private static byte[] Saved(string version, string words)
         {
             var db = new DxfDatabase(version);
-            db.ModelSpace.AppendEntity(new DxfMText { Contents = words, Location = P(0, 0), TextHeight = 2.5 });
-            db.ModelSpace.AppendEntity(new DxfDBText { TextString = words, Position = P(0, 10), Height = 2.5 });
+            db.ModelSpace.AppendEntity(
+                new DxfMText
+                {
+                    Contents = words,
+                    Location = P(0, 0),
+                    TextHeight = 2.5,
+                }
+            );
+            db.ModelSpace.AppendEntity(
+                new DxfDBText
+                {
+                    TextString = words,
+                    Position = P(0, 10),
+                    Height = 2.5,
+                }
+            );
 
             using (var stream = new MemoryStream())
             {
@@ -42,8 +71,8 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The lines of a file, read as Latin-1 so that each byte is one character, that are the given words.</summary>
-        private static int CountLines(byte[] file, string latin1)
-            => Encoding.GetEncoding("ISO-8859-1").GetString(file).Split('\n').Count(line => line.TrimEnd('\r') == latin1);
+        private static int CountLines(byte[] file, string latin1) =>
+            Encoding.GetEncoding("ISO-8859-1").GetString(file).Split('\n').Count(line => line.TrimEnd('\r') == latin1);
 
         [Theory]
         [InlineData(DxfTextSymbols.Degree, 0x00B0)]
@@ -102,7 +131,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(words, mtext.Contents);
                 Assert.Equal(words, mtext.Text);
                 Assert.Equal(words, db.ModelSpace.OfType<DxfDBText>().Single().TextString);
-                Assert.All(DxfReader.Read(new MemoryStream(file)).Shapes.Select(s => s.Shape).OfType<DxfText>(), text => Assert.Equal(words, text.Value));
+                Assert.All(DxfReader.Read(new MemoryStream(file)).Shapes.Select(s => s.Shape).OfType<DxfText>(), text =>
+                    Assert.Equal(words, text.Value)
+                );
                 Assert.Equal(2, DxfReader.Read(new MemoryStream(file)).Shapes.Count(s => s.Shape is DxfText));
             }
         }
@@ -112,7 +143,8 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // AutoCAD 2021's own DxfOut to R2004 of an MTEXT and a TEXT of these words, in the page ANSI_1252.
             string all = "x" + string.Concat(Symbols) + "y";
-            string written = "x°±\\U+2205\\U+2248\\U+2220\\U+E100\\U+2104\\U+0394\\U+0278\\U+E101\\U+2261\\U+E200\\U+E102"
+            string written =
+                "x°±\\U+2205\\U+2248\\U+2220\\U+E100\\U+2104\\U+0394\\U+0278\\U+E101\\U+2261\\U+E200\\U+E102"
                 + "\\U+2260\\U+2126\\U+03A9\\U+214A\\U+2082²³ y";
 
             Assert.Equal(2, CountLines(Saved("AC1018", all), written));
@@ -125,7 +157,14 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal(2, CountLines(Saved("AC1018", words), "\\U+220520"));
             Assert.Equal(2, CountLines(Saved("AC1032", words), "â\u0088\u008520"));
-            Assert.Equal("∅20", DxfDatabase.Open(new MemoryStream(Saved("AC1018", words))).ModelSpace.OfType<DxfMText>().Single().Contents);
+            Assert.Equal(
+                "∅20",
+                DxfDatabase
+                    .Open(new MemoryStream(Saved("AC1018", words)))
+                    .ModelSpace.OfType<DxfMText>()
+                    .Single()
+                    .Contents
+            );
         }
 
         [Theory]

@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -152,7 +152,9 @@ namespace GeometryHelper.UnitTest.Solid
             GeoObb3 box = new GeoObb3(GeoPoint3.Origin, 10.0, 10.0, 10.0);
             GeoPoint3 outside = new GeoPoint3(20.0, 0.0, 0.0);
 
-            Assert.True(Projection3.ProjectToObb(box, outside).IsEqualTo(Projection3.ProjectToObbSurface(box, outside)));
+            Assert.True(
+                Projection3.ProjectToObb(box, outside).IsEqualTo(Projection3.ProjectToObbSurface(box, outside))
+            );
             Assert.True(Projection3.ProjectToObb(box, outside).IsEqualTo(new GeoPoint3(5.0, 0.0, 0.0)));
         }
 
@@ -163,7 +165,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(10.0, 0.0, 0.0),
                 new GeoPoint3(10.0, 10.0, 0.0),
-                new GeoPoint3(0.0, 10.0, 0.0));
+                new GeoPoint3(0.0, 10.0, 0.0)
+            );
 
             GeoPoint3 middle = new GeoPoint3(5.0, 5.0, 0.0);
 
@@ -177,10 +180,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoLine3 a = new GeoLine3(new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(10.0, 0.0, 0.0));
             GeoLine3 b = new GeoLine3(new GeoPoint3(3.0, 7.0, 2.0), new GeoPoint3(8.0, 9.0, -4.0));
 
-            Assert.Equal(
-                Projection3.GetShortestLineTo(a, b).Length,
-                Projection3.GetShortestLineTo(b, a).Length,
-                9);
+            Assert.Equal(Projection3.GetShortestLineTo(a, b).Length, Projection3.GetShortestLineTo(b, a).Length, 9);
         }
 
         [Fact]
@@ -257,7 +257,11 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPoint3 point = new GeoPoint3(2.0, 3.0, 4.0);
             GeoLine3 line = new GeoLine3(GeoPoint3.Origin, new GeoPoint3(10.0, 0.0, 0.0));
             GeoRay3 ray = new GeoRay3(GeoPoint3.Origin, GeoVector3.XAxis);
-            GeoTriangle3 triangle = new GeoTriangle3(GeoPoint3.Origin, new GeoPoint3(4.0, 0.0, 0.0), new GeoPoint3(0.0, 3.0, 0.0));
+            GeoTriangle3 triangle = new GeoTriangle3(
+                GeoPoint3.Origin,
+                new GeoPoint3(4.0, 0.0, 0.0),
+                new GeoPoint3(0.0, 3.0, 0.0)
+            );
 
             Assert.Equal(Distance3.DistanceTo(line, point), line.DistanceTo(point), 12);
             Assert.Equal(Distance3.DistanceTo(ray, point), ray.DistanceTo(point), 12);
@@ -279,14 +283,9 @@ namespace GeometryHelper.UnitTest.Solid
             GeoLine3 line = new GeoLine3(GeoPoint3.Origin, new GeoPoint3(10.0, 0.0, 0.0));
             GeoPoint3 point = new GeoPoint3(5.0, 1.0, 0.0);
 
-            Assert.Equal(
-                Containment3.IsPointOn(line, point),
-                Containment3.IsPointOn(line, point, Tolerance.Global));
+            Assert.Equal(Containment3.IsPointOn(line, point), Containment3.IsPointOn(line, point, Tolerance.Global));
 
-            Assert.Equal(
-                Distance3.DistanceTo(line, point),
-                Distance3.DistanceTo(line, point, Tolerance.Global),
-                12);
+            Assert.Equal(Distance3.DistanceTo(line, point), Distance3.DistanceTo(line, point, Tolerance.Global), 12);
         }
 
         #endregion

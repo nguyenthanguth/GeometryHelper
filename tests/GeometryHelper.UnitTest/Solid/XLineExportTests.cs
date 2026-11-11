@@ -83,7 +83,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ALineInThePlaneIsAnXLineThroughItsOriginAlongItsUnitDirection()
         {
-            Entity entity = Assert.Single(EntitiesOf(new DxfWriter().Add(new GeoXLine2(new GeoPoint2(3, 4), new GeoVector2(0, 2)))));
+            Entity entity = Assert.Single(
+                EntitiesOf(new DxfWriter().Add(new GeoXLine2(new GeoPoint2(3, 4), new GeoVector2(0, 2))))
+            );
 
             Assert.Equal("XLINE", entity.Type);
             Assert.Equal(new[] { "AcDbEntity", "AcDbXline" }, entity.Markers);
@@ -95,7 +97,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ALineInSpaceIsAnXLineThroughItsOriginAlongItsUnitDirection()
         {
-            Entity entity = Assert.Single(EntitiesOf(new DxfWriter().Add(new GeoXLine3(new GeoPoint3(1, 2, 3), new GeoVector3(0, 0, 5)), "axes")));
+            Entity entity = Assert.Single(
+                EntitiesOf(new DxfWriter().Add(new GeoXLine3(new GeoPoint3(1, 2, 3), new GeoVector3(0, 0, 5)), "axes"))
+            );
 
             Assert.Equal("XLINE", entity.Type);
             Assert.Equal(new[] { "AcDbEntity", "AcDbXline" }, entity.Markers);
@@ -121,13 +125,16 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // Nothing is known of how far it runs, so the header is what the points at its origins would make it.
             var line = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(10, 5));
-            DxfWriter withLines = new DxfWriter().Add(line)
+            DxfWriter withLines = new DxfWriter()
+                .Add(line)
                 .Add(new GeoXLine2(new GeoPoint2(5000, 5000), GeoVector2.XAxis))
                 .Add(new GeoXLine3(new GeoPoint3(-900, 0, 40), GeoVector3.ZAxis));
-            DxfWriter withPoints = new DxfWriter().Add(line)
+            DxfWriter withPoints = new DxfWriter()
+                .Add(line)
                 .Add(new GeoPoint2(5000, 5000))
                 .Add(new GeoPoint3(-900, 0, 40));
-            DxfWriter withRays = new DxfWriter().Add(line)
+            DxfWriter withRays = new DxfWriter()
+                .Add(line)
                 .Add(new GeoRay2(new GeoPoint2(5000, 5000), GeoVector2.XAxis))
                 .Add(new GeoRay3(new GeoPoint3(-900, 0, 40), GeoVector3.ZAxis));
 
@@ -139,10 +146,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void TheOldShapesAreWrittenAsTheyWereWhenALineIsAddedAfterThem()
         {
             // The text up to the first XLINE is the text of the writer without it: only what comes after is new.
-            Func<DxfWriter> old = () => new DxfWriter()
-                .Add(new GeoRay2(new GeoPoint2(3, 4), new GeoVector2(0, 2)), "rays")
-                .Add(new GeoLine3(GeoPoint3.Origin, new GeoPoint3(1, 2, 3)))
-                .Add(new GeoRay3(new GeoPoint3(1, 2, 3), new GeoVector3(0, 0, 5)));
+            Func<DxfWriter> old = () =>
+                new DxfWriter()
+                    .Add(new GeoRay2(new GeoPoint2(3, 4), new GeoVector2(0, 2)), "rays")
+                    .Add(new GeoLine3(GeoPoint3.Origin, new GeoPoint3(1, 2, 3)))
+                    .Add(new GeoRay3(new GeoPoint3(1, 2, 3), new GeoVector3(0, 0, 5)));
 
             List<Entity> before = EntitiesOf(old());
             List<Entity> after = EntitiesOf(old().Add(new GeoXLine2(GeoPoint2.Origin, GeoVector2.YAxis)));
@@ -167,29 +175,47 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Throws<ArgumentException>(() => writer.Add(default(GeoXLine2)));
             Assert.Throws<ArgumentException>(() => writer.Add(default(GeoXLine3)));
-            Assert.ThrowsAny<ArgumentException>(() => writer.Add(new GeoXLine2(new GeoPoint2(nan, 0), GeoVector2.XAxis)));
-            Assert.ThrowsAny<ArgumentException>(() => writer.Add(new GeoXLine3(new GeoPoint3(0, nan, 0), GeoVector3.XAxis), "new"));
+            Assert.ThrowsAny<ArgumentException>(() =>
+                writer.Add(new GeoXLine2(new GeoPoint2(nan, 0), GeoVector2.XAxis))
+            );
+            Assert.ThrowsAny<ArgumentException>(() =>
+                writer.Add(new GeoXLine3(new GeoPoint3(0, nan, 0), GeoVector3.XAxis), "new")
+            );
             Assert.Equal(before, writer.ToString());
         }
 
         // ----- SVG -----------------------------------------------------------------------------------------------------
 
-        private static GeoPolygon2 Square() => new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+        private static GeoPolygon2 Square() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
 
         private static GeoPoint2[] EndsOf(string svg, string colour)
         {
-            XElement path = XDocument.Parse(svg).Descendants(Ns + "path").Single(p => (string)p.Attribute("stroke") == colour);
+            XElement path = XDocument
+                .Parse(svg)
+                .Descendants(Ns + "path")
+                .Single(p => (string)p.Attribute("stroke") == colour);
             string[] words = ((string)path.Attribute("d")).Split(' ');
 
             Assert.Equal(new[] { "M", "L" }, new[] { words[0], words[3] });
-            return new[] { new GeoPoint2(Parse(words[1]), Parse(words[2])), new GeoPoint2(Parse(words[4]), Parse(words[5])) };
+            return new[]
+            {
+                new GeoPoint2(Parse(words[1]), Parse(words[2])),
+                new GeoPoint2(Parse(words[4]), Parse(words[5])),
+            };
         }
 
         [Fact]
         public void ALineInASvgPictureRunsFromEdgeToEdgeBothWays()
         {
             // The picture is the square 0 to 100 with a margin of 5: the line along X through (50, 50) runs from x = -5 to 105.
-            GeoPoint2[] ends = EndsOf(new SvgWriter().Add(Square()).Add(new GeoXLine2(new GeoPoint2(50, 50), GeoVector2.XAxis), "red").ToString(), "red");
+            GeoPoint2[] ends = EndsOf(
+                new SvgWriter()
+                    .Add(Square())
+                    .Add(new GeoXLine2(new GeoPoint2(50, 50), GeoVector2.XAxis), "red")
+                    .ToString(),
+                "red"
+            );
 
             Assert.Equal(-5.0, ends[0].X, 6);
             Assert.Equal(50.0, ends[0].Y, 6);
@@ -201,9 +227,27 @@ namespace GeometryHelper.UnitTest.Solid
         public void ASvgLineLeavesByTheEdgeItMeetsFirstEachWay_AndTheWayItIsMadeDoesNotMatter()
         {
             // A slant through (10, 10) at 45 degrees leaves by the corner (-5, -5) and (105, 105); one of slope 1/2 leaves by the sides.
-            GeoPoint2[] diagonal = EndsOf(new SvgWriter().Add(Square()).Add(new GeoXLine2(new GeoPoint2(10, 10), new GeoVector2(1, 1)), "red").ToString(), "red");
-            GeoPoint2[] turned = EndsOf(new SvgWriter().Add(Square()).Add(new GeoXLine2(new GeoPoint2(10, 10), new GeoVector2(-1, -1)), "red").ToString(), "red");
-            GeoPoint2[] gentle = EndsOf(new SvgWriter().Add(Square()).Add(new GeoXLine2(new GeoPoint2(10, 10), new GeoVector2(2, 1)), "red").ToString(), "red");
+            GeoPoint2[] diagonal = EndsOf(
+                new SvgWriter()
+                    .Add(Square())
+                    .Add(new GeoXLine2(new GeoPoint2(10, 10), new GeoVector2(1, 1)), "red")
+                    .ToString(),
+                "red"
+            );
+            GeoPoint2[] turned = EndsOf(
+                new SvgWriter()
+                    .Add(Square())
+                    .Add(new GeoXLine2(new GeoPoint2(10, 10), new GeoVector2(-1, -1)), "red")
+                    .ToString(),
+                "red"
+            );
+            GeoPoint2[] gentle = EndsOf(
+                new SvgWriter()
+                    .Add(Square())
+                    .Add(new GeoXLine2(new GeoPoint2(10, 10), new GeoVector2(2, 1)), "red")
+                    .ToString(),
+                "red"
+            );
 
             Assert.Equal(-5.0, diagonal[0].X, 5);
             Assert.Equal(-5.0, diagonal[0].Y, 5);
@@ -223,11 +267,21 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TheOriginOfASvgLineGrowsThePictureAsARaysDoes_ButItsDirectionDoesNot()
         {
-            double[] ViewBoxOf(SvgWriter writer) => ((string)XDocument.Parse(writer.ToString()).Root.Attribute("viewBox")).Split(' ').Select(Parse).ToArray();
+            double[] ViewBoxOf(SvgWriter writer) =>
+                ((string)XDocument.Parse(writer.ToString()).Root.Attribute("viewBox"))
+                    .Split(' ')
+                    .Select(Parse)
+                    .ToArray();
 
-            double[] withLine = ViewBoxOf(new SvgWriter().Add(Square()).Add(new GeoXLine2(new GeoPoint2(200, 0), GeoVector2.XAxis)));
-            double[] withRay = ViewBoxOf(new SvgWriter().Add(Square()).Add(new GeoRay2(new GeoPoint2(200, 0), GeoVector2.XAxis)));
-            double[] along = ViewBoxOf(new SvgWriter().Add(Square()).Add(new GeoXLine2(new GeoPoint2(50, 50), GeoVector2.XAxis)));
+            double[] withLine = ViewBoxOf(
+                new SvgWriter().Add(Square()).Add(new GeoXLine2(new GeoPoint2(200, 0), GeoVector2.XAxis))
+            );
+            double[] withRay = ViewBoxOf(
+                new SvgWriter().Add(Square()).Add(new GeoRay2(new GeoPoint2(200, 0), GeoVector2.XAxis))
+            );
+            double[] along = ViewBoxOf(
+                new SvgWriter().Add(Square()).Add(new GeoXLine2(new GeoPoint2(50, 50), GeoVector2.XAxis))
+            );
 
             Assert.Equal(withRay, withLine);
             Assert.Equal(new[] { -5.0, -105.0, 110.0, 110.0 }, ViewBoxOf(new SvgWriter().Add(Square())));
@@ -245,8 +299,11 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static List<GeoPoint3> Vertices(string obj)
         {
-            return obj.Split('\n').Where(l => l.StartsWith("v ", StringComparison.Ordinal))
-                .Select(l => l.Split(' ')).Select(w => new GeoPoint3(Parse(w[1]), Parse(w[2]), Parse(w[3]))).ToList();
+            return obj.Split('\n')
+                .Where(l => l.StartsWith("v ", StringComparison.Ordinal))
+                .Select(l => l.Split(' '))
+                .Select(w => new GeoPoint3(Parse(w[1]), Parse(w[2]), Parse(w[3])))
+                .ToList();
         }
 
         [Fact]
@@ -272,15 +329,21 @@ namespace GeometryHelper.UnitTest.Solid
             List<GeoPoint3> ray = Vertices(new ObjWriter().Add(xline.ToRay(), 25).ToString());
 
             Assert.True(line[1].DistanceTo(ray[1]) < 1E-9);
-            Assert.True(line[0].DistanceTo(xline.Reverse().ToRay().Origin.Add(xline.Reverse().Direction.Multiply(25))) < 1E-9);
+            Assert.True(
+                line[0].DistanceTo(xline.Reverse().ToRay().Origin.Add(xline.Reverse().Direction.Multiply(25))) < 1E-9
+            );
         }
 
         [Fact]
         public void AnObjLineWithNoDirectionOrALengthThatIsNoNumberIsRefused()
         {
             Assert.Throws<ArgumentException>(() => new ObjWriter().Add(default(GeoXLine3), 10));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new ObjWriter().Add(new GeoXLine3(GeoPoint3.Origin, GeoVector3.XAxis), -1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new ObjWriter().Add(new GeoXLine3(GeoPoint3.Origin, GeoVector3.XAxis), double.NaN));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new ObjWriter().Add(new GeoXLine3(GeoPoint3.Origin, GeoVector3.XAxis), -1)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new ObjWriter().Add(new GeoXLine3(GeoPoint3.Origin, GeoVector3.XAxis), double.NaN)
+            );
         }
 
         // ----- WKT -----------------------------------------------------------------------------------------------------
@@ -288,8 +351,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ALineInWktIsALineStringOfItsLengthCentredOnItsOrigin()
         {
-            Assert.Equal("LINESTRING (-40 20, 60 20)", Wkt.Write(new GeoXLine2(new GeoPoint2(10, 20), GeoVector2.XAxis), 100));
-            Assert.Equal("LINESTRING Z (1 -13 -17, 1 17 23)", Wkt.Write(new GeoXLine3(new GeoPoint3(1, 2, 3), new GeoVector3(0, 3, 4)), 50));
+            Assert.Equal(
+                "LINESTRING (-40 20, 60 20)",
+                Wkt.Write(new GeoXLine2(new GeoPoint2(10, 20), GeoVector2.XAxis), 100)
+            );
+            Assert.Equal(
+                "LINESTRING Z (1 -13 -17, 1 17 23)",
+                Wkt.Write(new GeoXLine3(new GeoPoint3(1, 2, 3), new GeoVector3(0, 3, 4)), 50)
+            );
         }
 
         [Fact]
@@ -297,8 +366,12 @@ namespace GeometryHelper.UnitTest.Solid
         {
             Assert.Throws<ArgumentException>(() => Wkt.Write(default(GeoXLine2), 10));
             Assert.Throws<ArgumentException>(() => Wkt.Write(default(GeoXLine3), 10));
-            Assert.Throws<ArgumentOutOfRangeException>(() => Wkt.Write(new GeoXLine2(GeoPoint2.Origin, GeoVector2.XAxis), -1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => Wkt.Write(new GeoXLine3(GeoPoint3.Origin, GeoVector3.XAxis), double.PositiveInfinity));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                Wkt.Write(new GeoXLine2(GeoPoint2.Origin, GeoVector2.XAxis), -1)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                Wkt.Write(new GeoXLine3(GeoPoint3.Origin, GeoVector3.XAxis), double.PositiveInfinity)
+            );
         }
     }
 }

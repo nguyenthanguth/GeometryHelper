@@ -63,7 +63,9 @@ namespace GeometryHelper.Dxf
 
         private static Dictionary<string, Func<DxfItem, DxfEntity>[]> Find()
         {
-            var found = new SortedDictionary<string, SortedDictionary<string, Func<DxfItem, DxfEntity>>>(StringComparer.Ordinal);
+            var found = new SortedDictionary<string, SortedDictionary<string, Func<DxfItem, DxfEntity>>>(
+                StringComparer.Ordinal
+            );
 
             foreach (Type type in typeof(DxfEntity).Assembly.GetTypes())
             {
@@ -72,13 +74,22 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                foreach (MethodInfo method in type.GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.DeclaredOnly))
+                foreach (
+                    MethodInfo method in type.GetMethods(
+                        BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.DeclaredOnly
+                    )
+                )
                 {
                     foreach (DxfTypeAttribute mark in method.GetCustomAttributes<DxfTypeAttribute>())
                     {
                         var make = (Func<DxfItem, DxfEntity>)method.CreateDelegate(typeof(Func<DxfItem, DxfEntity>));
 
-                        if (!found.TryGetValue(mark.DxfName, out SortedDictionary<string, Func<DxfItem, DxfEntity>> makers))
+                        if (
+                            !found.TryGetValue(
+                                mark.DxfName,
+                                out SortedDictionary<string, Func<DxfItem, DxfEntity>> makers
+                            )
+                        )
                         {
                             makers = new SortedDictionary<string, Func<DxfItem, DxfEntity>>(StringComparer.Ordinal);
                             found.Add(mark.DxfName, makers);
@@ -88,7 +99,15 @@ namespace GeometryHelper.Dxf
 
                         if (makers.ContainsKey(key))
                         {
-                            throw new InvalidOperationException("The class " + type.FullName + " marks two methods named " + method.Name + " for the type " + mark.DxfName + ".");
+                            throw new InvalidOperationException(
+                                "The class "
+                                    + type.FullName
+                                    + " marks two methods named "
+                                    + method.Name
+                                    + " for the type "
+                                    + mark.DxfName
+                                    + "."
+                            );
                         }
 
                         makers.Add(key, make);

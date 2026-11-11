@@ -30,7 +30,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>The plot as it was laid on its sheet.</returns>
         /// <exception cref="ArgumentNullException">Thrown when an argument is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when there is nothing to plot.</exception>
-        public static CadPlotPage Write(string path, CadDocument document, CadSpace space, CadPlotSettings settings, DisplayBox display)
+        public static CadPlotPage Write(
+            string path,
+            CadDocument document,
+            CadSpace space,
+            CadPlotSettings settings,
+            DisplayBox display
+        )
         {
             if (path == null)
             {
@@ -39,7 +45,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             byte[] pdf = Make(document, space, settings, display, out CadPlotPage page);
             File.WriteAllBytes(path, pdf);
-            GeometryHelperLog.Info("CadPdfWriter: " + space.Name + " plotted to " + path + ", " + Mm(page.SheetWidth) + " by " + Mm(page.SheetHeight) + " mm at 1:" + (1.0 / page.Scale).ToString("0.####", CultureInfo.InvariantCulture) + ".");
+            GeometryHelperLog.Info(
+                "CadPdfWriter: "
+                    + space.Name
+                    + " plotted to "
+                    + path
+                    + ", "
+                    + Mm(page.SheetWidth)
+                    + " by "
+                    + Mm(page.SheetHeight)
+                    + " mm at 1:"
+                    + (1.0 / page.Scale).ToString("0.####", CultureInfo.InvariantCulture)
+                    + "."
+            );
             return page;
         }
 
@@ -52,7 +70,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>The plot as it was laid on its sheet.</returns>
         /// <exception cref="ArgumentNullException">Thrown when an argument is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when there is nothing to plot.</exception>
-        public static CadPlotPage Write(Stream stream, CadDocument document, CadSpace space, CadPlotSettings settings, DisplayBox display)
+        public static CadPlotPage Write(
+            Stream stream,
+            CadDocument document,
+            CadSpace space,
+            CadPlotSettings settings,
+            DisplayBox display
+        )
         {
             if (stream == null)
             {
@@ -64,9 +88,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return page;
         }
 
-        private static byte[] Make(CadDocument document, CadSpace space, CadPlotSettings settings, DisplayBox display, out CadPlotPage page)
+        private static byte[] Make(
+            CadDocument document,
+            CadSpace space,
+            CadPlotSettings settings,
+            DisplayBox display,
+            out CadPlotPage page
+        )
         {
-            page = CadPlotPage.Compute(document ?? throw new ArgumentNullException(nameof(document)), space ?? throw new ArgumentNullException(nameof(space)), settings ?? throw new ArgumentNullException(nameof(settings)), display);
+            page = CadPlotPage.Compute(
+                document ?? throw new ArgumentNullException(nameof(document)),
+                space ?? throw new ArgumentNullException(nameof(space)),
+                settings ?? throw new ArgumentNullException(nameof(settings)),
+                display
+            );
 
             if (page.IsEmpty)
             {
@@ -85,41 +120,54 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // One PDF at a time: SkiaSharp's PDF writer shares the typefaces its font manager caches, and two pages written at
             // once lost the map from their glyphs to letters in 3 to 6 of 64, their text no longer found.
             lock (Writing)
-            using (var memory = new MemoryStream())
-            {
-                var metadata = new SKDocumentPdfMetadata(SKDocumentPdfMetadata.DefaultRasterDpi)
+                using (var memory = new MemoryStream())
                 {
-                    Title = document.Title + " - " + space.Name,
-                    Creator = CadPlotSettings.PdfDevice,
-                    Producer = CadPlotSettings.PdfDevice,
-                };
+                    var metadata = new SKDocumentPdfMetadata(SKDocumentPdfMetadata.DefaultRasterDpi)
+                    {
+                        Title = document.Title + " - " + space.Name,
+                        Creator = CadPlotSettings.PdfDevice,
+                        Producer = CadPlotSettings.PdfDevice,
+                    };
 
-                using (SKDocument pdf = SKDocument.CreatePdf(memory, metadata))
-                using (var renderer = new SkiaCanvasRenderer())
-                {
-                    SKCanvas canvas = pdf.BeginPage(roundedWidth, roundedHeight);
-                    canvas.Translate(0f, (float)(roundedHeight - height));
-                    renderer.RenderPlot(canvas, document, space, page, settings, SheetToPoints(page));
-                    pdf.EndPage();
-                    pdf.Close();
+                    using (SKDocument pdf = SKDocument.CreatePdf(memory, metadata))
+                    using (var renderer = new SkiaCanvasRenderer())
+                    {
+                        SKCanvas canvas = pdf.BeginPage(roundedWidth, roundedHeight);
+                        canvas.Translate(0f, (float)(roundedHeight - height));
+                        renderer.RenderPlot(canvas, document, space, page, settings, SheetToPoints(page));
+                        pdf.EndPage();
+                        pdf.Close();
+                    }
+
+                    written = memory.ToArray();
                 }
-
-                written = memory.ToArray();
-            }
 
             return ExactPage(written, roundedWidth, roundedHeight, width, height);
         }
 
         /// <summary>From the sheet's millimetres, Y upward, to a PDF page's points, Y downward from its top.</summary>
-        internal static Affine2 SheetToPoints(CadPlotPage page)
-            => new Affine2(CadPlotPage.PointsPerMillimetre, 0.0, 0.0, -CadPlotPage.PointsPerMillimetre, 0.0, page.SheetHeightPoints);
+        internal static Affine2 SheetToPoints(CadPlotPage page) =>
+            new Affine2(
+                CadPlotPage.PointsPerMillimetre,
+                0.0,
+                0.0,
+                -CadPlotPage.PointsPerMillimetre,
+                0.0,
+                page.SheetHeightPoints
+            );
 
         /// <summary>
         /// The PDF with each page's <c>/MediaBox [0 0 1191 842]</c> given its exact size, as <c>[0 0 1190.5512 841.8898]</c>, the
         /// offsets of its cross-reference table moved with the bytes added. The box is looked for only in the dictionaries of
         /// the objects the table lists, never in a stream; a file not laid out as SkiaSharp writes one is left as it is.
         /// </summary>
-        internal static byte[] ExactPage(byte[] pdf, double roundedWidth, double roundedHeight, double width, double height)
+        internal static byte[] ExactPage(
+            byte[] pdf,
+            double roundedWidth,
+            double roundedHeight,
+            double width,
+            double height
+        )
         {
             Encoding latin = Encoding.GetEncoding(28591);
             string text = latin.GetString(pdf);
@@ -135,8 +183,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             int numberStart = startxref + "startxref".Length;
             int numberEnd = text.IndexOf("%%EOF", numberStart, StringComparison.Ordinal);
 
-            if (numberEnd < 0 || !int.TryParse(text.Substring(numberStart, numberEnd - numberStart).Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out int xref)
-                || xref <= 0 || xref >= text.Length || string.CompareOrdinal(text, xref, "xref", 0, 4) != 0)
+            if (
+                numberEnd < 0
+                || !int.TryParse(
+                    text.Substring(numberStart, numberEnd - numberStart).Trim(),
+                    NumberStyles.None,
+                    CultureInfo.InvariantCulture,
+                    out int xref
+                )
+                || xref <= 0
+                || xref >= text.Length
+                || string.CompareOrdinal(text, xref, "xref", 0, 4) != 0
+            )
             {
                 return pdf;
             }
@@ -151,7 +209,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 int lineEnd = text.IndexOf('\n', at);
                 string[] head = text.Substring(at, lineEnd - at).Trim().Split(' ');
 
-                if (head.Length != 2 || !int.TryParse(head[1], NumberStyles.None, CultureInfo.InvariantCulture, out int count))
+                if (
+                    head.Length != 2
+                    || !int.TryParse(head[1], NumberStyles.None, CultureInfo.InvariantCulture, out int count)
+                )
                 {
                     return pdf;
                 }
@@ -160,7 +221,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 for (int i = 0; i < count; i++, at += 20)
                 {
-                    if (at + 20 > text.Length || !int.TryParse(text.Substring(at, 10), NumberStyles.None, CultureInfo.InvariantCulture, out int offset))
+                    if (
+                        at + 20 > text.Length
+                        || !int.TryParse(
+                            text.Substring(at, 10),
+                            NumberStyles.None,
+                            CultureInfo.InvariantCulture,
+                            out int offset
+                        )
+                    )
                     {
                         return pdf;
                     }
@@ -226,12 +295,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 if (offsets[i] > 0)
                 {
-                    built.Remove(Moved(entries[i]), 10).Insert(Moved(entries[i]), Moved(offsets[i]).ToString("D10", CultureInfo.InvariantCulture));
+                    built
+                        .Remove(Moved(entries[i]), 10)
+                        .Insert(Moved(entries[i]), Moved(offsets[i]).ToString("D10", CultureInfo.InvariantCulture));
                 }
             }
 
             int numberAt = Moved(numberStart);
-            built.Remove(numberAt, numberEnd - numberStart).Insert(numberAt, "\n" + Moved(xref).ToString(CultureInfo.InvariantCulture) + "\n");
+            built
+                .Remove(numberAt, numberEnd - numberStart)
+                .Insert(numberAt, "\n" + Moved(xref).ToString(CultureInfo.InvariantCulture) + "\n");
             return latin.GetBytes(built.ToString());
         }
 

@@ -274,7 +274,12 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            if (double.IsInfinity(box.MinX) || double.IsInfinity(box.MinY) || double.IsInfinity(box.MaxX) || double.IsInfinity(box.MaxY))
+            if (
+                double.IsInfinity(box.MinX)
+                || double.IsInfinity(box.MinY)
+                || double.IsInfinity(box.MaxX)
+                || double.IsInfinity(box.MaxY)
+            )
             {
                 ix0 = -1;
                 return false;
@@ -395,11 +400,13 @@ namespace GeometryHelper.Dxf.Viewer
             if (handles.Count > 1)
             {
                 // On top is last in the list, an entity's items lying together; drawn first is first in it.
-                handles.Sort((a, b) =>
-                {
-                    int byOrder = ByDrawOrder ? Top(b).CompareTo(Top(a)) : First(a).CompareTo(First(b));
-                    return byOrder != 0 ? byOrder : string.CompareOrdinal(a, b);
-                });
+                handles.Sort(
+                    (a, b) =>
+                    {
+                        int byOrder = ByDrawOrder ? Top(b).CompareTo(Top(a)) : First(a).CompareTo(First(b));
+                        return byOrder != 0 ? byOrder : string.CompareOrdinal(a, b);
+                    }
+                );
             }
 
             return handles;
@@ -514,7 +521,12 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     var ray = (DisplayRay2)_list.Items[i];
 
-                    if (!string.IsNullOrEmpty(ray.Handle) && _list.InsertionPointsOf(ray.Handle).Count > 0 && ray.Bounds.Intersects(box) && !reach.Meets(ray))
+                    if (
+                        !string.IsNullOrEmpty(ray.Handle)
+                        && _list.InsertionPointsOf(ray.Handle).Count > 0
+                        && ray.Bounds.Intersects(box)
+                        && !reach.Meets(ray)
+                    )
                     {
                         indices.Add(i);
                     }
@@ -720,7 +732,10 @@ namespace GeometryHelper.Dxf.Viewer
 
                 for (int k = 0, at = 0; at < lines.Length; k++, at += 4)
                 {
-                    if (reach.PassesNear(lines[at], lines[at + 1], lines[at + 2], lines[at + 3]) && _rayItems[k].TryClip(reach.Box, out _, out _, out _, out _))
+                    if (
+                        reach.PassesNear(lines[at], lines[at + 1], lines[at + 2], lines[at + 3])
+                        && _rayItems[k].TryClip(reach.Box, out _, out _, out _, out _)
+                    )
                     {
                         (found ?? (found = new List<int>())).Add(_rays[k]);
                     }
@@ -746,7 +761,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             public RayReach(DisplayBox box)
             {
-                _box = box.Inflate(Math.Max(box.Width, box.Height) + 1E-9 * (1.0 + Math.Abs(box.MinX) + Math.Abs(box.MinY) + Math.Abs(box.MaxX) + Math.Abs(box.MaxY)));
+                _box = box.Inflate(
+                    Math.Max(box.Width, box.Height)
+                        + 1E-9
+                            * (1.0 + Math.Abs(box.MinX) + Math.Abs(box.MinY) + Math.Abs(box.MaxX) + Math.Abs(box.MaxY))
+                );
                 _cx = (_box.MinX + _box.MaxX) / 2.0;
                 _cy = (_box.MinY + _box.MaxY) / 2.0;
 
@@ -765,7 +784,8 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             /// <summary>Whether a line without end meets the grown box.</summary>
-            public bool Meets(DisplayRay2 ray) => PassesNear(ray.X, ray.Y, ray.Dx, ray.Dy) && ray.TryClip(_box, out _, out _, out _, out _);
+            public bool Meets(DisplayRay2 ray) =>
+                PassesNear(ray.X, ray.Y, ray.Dx, ray.Dy) && ray.TryClip(_box, out _, out _, out _, out _);
         }
 
         private void CellRange(DisplayBox box, out int ix0, out int iy0, out int ix1, out int iy1)
@@ -776,7 +796,10 @@ namespace GeometryHelper.Dxf.Viewer
             iy1 = Clamp((int)Math.Floor((box.MaxY - _y0) / _cellH));
         }
 
-        private int Clamp(int cell) => cell < 0 ? 0 : cell >= _n ? _n - 1 : cell;
+        private int Clamp(int cell) =>
+            cell < 0 ? 0
+            : cell >= _n ? _n - 1
+            : cell;
 
         /// <summary>
         /// The runs of a display list a document made by handle: each entity's items stand together, so an entity is found by
@@ -785,7 +808,9 @@ namespace GeometryHelper.Dxf.Viewer
         private sealed class RunsByHandle
         {
             // The first run of each handle, and the next run of the same handle after each (-1 for none); looked up only, never enumerated.
-            private readonly Dictionary<string, int> _first = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            private readonly Dictionary<string, int> _first = new Dictionary<string, int>(
+                StringComparer.OrdinalIgnoreCase
+            );
             private readonly int[] _next;
             private readonly IReadOnlyList<DisplayRun> _runs;
 
@@ -812,7 +837,11 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         string handle = items[i].Handle;
 
-                        if (!ReferenceEquals(handle, run.Handle) && !(string.IsNullOrEmpty(handle) && string.IsNullOrEmpty(run.Handle)) && !string.Equals(handle, run.Handle, StringComparison.OrdinalIgnoreCase))
+                        if (
+                            !ReferenceEquals(handle, run.Handle)
+                            && !(string.IsNullOrEmpty(handle) && string.IsNullOrEmpty(run.Handle))
+                            && !string.Equals(handle, run.Handle, StringComparison.OrdinalIgnoreCase)
+                        )
                         {
                             return;
                         }

@@ -4,9 +4,9 @@ using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
+using GeometryHelper.CadConvert;
 using GeometryHelper.Core;
 using GeometryHelper.Geometry;
-using GeometryHelper.CadConvert;
 
 namespace GeometryHelper.ArrangeAlgorithms.CadTest
 {
@@ -22,7 +22,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
         {
             if (subject is Line line && cutter is GeoPoint2 point)
             {
-                ed.WriteMessage($"\n  [Handler] Đang xử lý: Cắt Line (Chiều dài gốc: {line.Length:F2}) bằng Điểm ({point.X:F2}, {point.Y:F2}).");
+                ed.WriteMessage(
+                    $"\n  [Handler] Đang xử lý: Cắt Line (Chiều dài gốc: {line.Length:F2}) bằng Điểm ({point.X:F2}, {point.Y:F2})."
+                );
                 GeoLine2 geoLine = line.ToGeoLine2();
 
                 ed.WriteMessage("\n  [Handler] Đang tính toán vị trí cắt...");
@@ -45,12 +47,16 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     tr.AddNewlyCreatedDBObject(acadSecond, true);
 
                     line.Erase();
-                    ed.WriteMessage($"\n  [Handler] Cắt thành công! Đoạn 1 (Màu đỏ, Layer: Split_Part1) dài: {first.Length:F2}, Đoạn 2 (Màu xanh, Layer: Split_Part2) dài: {second.Length:F2}.");
+                    ed.WriteMessage(
+                        $"\n  [Handler] Cắt thành công! Đoạn 1 (Màu đỏ, Layer: Split_Part1) dài: {first.Length:F2}, Đoạn 2 (Màu xanh, Layer: Split_Part2) dài: {second.Length:F2}."
+                    );
                     return true;
                 }
                 else
                 {
-                    ed.WriteMessage("\n  [Handler] Cắt thất bại: Điểm chọn không nằm trên đường thẳng (Line) hoặc trùng với điểm đầu/cuối.");
+                    ed.WriteMessage(
+                        "\n  [Handler] Cắt thất bại: Điểm chọn không nằm trên đường thẳng (Line) hoặc trùng với điểm đầu/cuối."
+                    );
                 }
             }
             else
@@ -68,7 +74,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
         {
             if (subject is Polyline polyline && cutter is GeoPoint2 point)
             {
-                ed.WriteMessage($"\n  [Handler] Đang xử lý: Cắt Polyline (Chiều dài gốc: {polyline.Length:F2}) bằng Điểm ({point.X:F2}, {point.Y:F2}).");
+                ed.WriteMessage(
+                    $"\n  [Handler] Đang xử lý: Cắt Polyline (Chiều dài gốc: {polyline.Length:F2}) bằng Điểm ({point.X:F2}, {point.Y:F2})."
+                );
                 GeoPolyline2 geoPolyline = polyline.ToGeoPolyline2();
 
                 ed.WriteMessage("\n  [Handler] Đang tính toán vị trí cắt...");
@@ -91,12 +99,16 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     tr.AddNewlyCreatedDBObject(acadSecond, true);
 
                     polyline.Erase();
-                    ed.WriteMessage($"\n  [Handler] Cắt thành công! Đoạn 1 (Màu đỏ, Layer: Split_Part1) dài: {first.Length:F2}, Đoạn 2 (Màu xanh, Layer: Split_Part2) dài: {second.Length:F2}.");
+                    ed.WriteMessage(
+                        $"\n  [Handler] Cắt thành công! Đoạn 1 (Màu đỏ, Layer: Split_Part1) dài: {first.Length:F2}, Đoạn 2 (Màu xanh, Layer: Split_Part2) dài: {second.Length:F2}."
+                    );
                     return true;
                 }
                 else
                 {
-                    ed.WriteMessage("\n  [Handler] Cắt thất bại: Điểm chọn không nằm trên Polyline hoặc trùng với các điểm nút.");
+                    ed.WriteMessage(
+                        "\n  [Handler] Cắt thất bại: Điểm chọn không nằm trên Polyline hoặc trùng với các điểm nút."
+                    );
                 }
             }
             else
@@ -137,12 +149,16 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     tr.AddNewlyCreatedDBObject(acadSecond, true);
 
                     line.Erase();
-                    ed.WriteMessage($"\n  [Handler] Cắt thành công! Đoạn 1 (Màu đỏ, Layer: Split_Part1) dài: {first.Length:F2}, Đoạn 2 (Màu xanh, Layer: Split_Part2) dài: {second.Length:F2}.");
+                    ed.WriteMessage(
+                        $"\n  [Handler] Cắt thành công! Đoạn 1 (Màu đỏ, Layer: Split_Part1) dài: {first.Length:F2}, Đoạn 2 (Màu xanh, Layer: Split_Part2) dài: {second.Length:F2}."
+                    );
                     return true;
                 }
                 else
                 {
-                    ed.WriteMessage("\n  [Handler] Cắt thất bại: Hai đường thẳng không giao nhau hoặc giao điểm không nằm trong đoạn thẳng chính.");
+                    ed.WriteMessage(
+                        "\n  [Handler] Cắt thất bại: Hai đường thẳng không giao nhau hoặc giao điểm không nằm trong đoạn thẳng chính."
+                    );
                 }
             }
             else
@@ -160,7 +176,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
         {
             if (subject is Polyline polyline && cutter is GeoLine2 cutterLine)
             {
-                ed.WriteMessage($"\n  [Handler] Đang xử lý: Cắt Polyline (Chiều dài gốc: {polyline.Length:F2}) bằng Line cắt.");
+                ed.WriteMessage(
+                    $"\n  [Handler] Đang xử lý: Cắt Polyline (Chiều dài gốc: {polyline.Length:F2}) bằng Line cắt."
+                );
                 GeoPolyline2 geoPolyline = polyline.ToGeoPolyline2();
 
                 ed.WriteMessage("\n  [Handler] Đang tính toán giao điểm giữa Polyline và Line...");
@@ -190,7 +208,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     }
 
                     polyline.Erase();
-                    ed.WriteMessage($"\n  [Handler] Cắt thành công! Đã chia Polyline thành {pieces.Length} phần (Xen kẽ Layer: Split_Part1/Split_Part2 và màu Đỏ/Xanh).");
+                    ed.WriteMessage(
+                        $"\n  [Handler] Cắt thành công! Đã chia Polyline thành {pieces.Length} phần (Xen kẽ Layer: Split_Part1/Split_Part2 và màu Đỏ/Xanh)."
+                    );
                     return true;
                 }
                 else
@@ -242,12 +262,16 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     }
 
                     line.Erase();
-                    ed.WriteMessage($"\n  [Handler] Cắt thành công! Số đoạn bên trong Polygon (Màu Cyan, Layer: Split_Inside): {inside.Length}, Số đoạn bên ngoài (Màu Magenta, Layer: Split_Outside): {outside.Length}.");
+                    ed.WriteMessage(
+                        $"\n  [Handler] Cắt thành công! Số đoạn bên trong Polygon (Màu Cyan, Layer: Split_Inside): {inside.Length}, Số đoạn bên ngoài (Màu Magenta, Layer: Split_Outside): {outside.Length}."
+                    );
                     return true;
                 }
                 else
                 {
-                    ed.WriteMessage("\n  [Handler] Cắt thất bại: Đường thẳng không giao cắt với biên Polygon (toàn bộ nằm trong hoặc toàn bộ nằm ngoài).");
+                    ed.WriteMessage(
+                        "\n  [Handler] Cắt thất bại: Đường thẳng không giao cắt với biên Polygon (toàn bộ nằm trong hoặc toàn bộ nằm ngoài)."
+                    );
                 }
             }
             else
@@ -265,7 +289,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
         {
             if (subject is Polyline polyline && cutter is GeoPolygon2 polygon)
             {
-                ed.WriteMessage($"\n  [Handler] Đang xử lý: Cắt Polyline (Chiều dài gốc: {polyline.Length:F2}) bằng Polygon.");
+                ed.WriteMessage(
+                    $"\n  [Handler] Đang xử lý: Cắt Polyline (Chiều dài gốc: {polyline.Length:F2}) bằng Polygon."
+                );
                 GeoPolyline2 geoPolyline = polyline.ToGeoPolyline2();
 
                 ed.WriteMessage("\n  [Handler] Đang tính toán các đoạn cắt nằm trong/ngoài Polygon...");
@@ -294,7 +320,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     }
 
                     polyline.Erase();
-                    ed.WriteMessage($"\n  [Handler] Cắt thành công! Số đoạn bên trong Polygon (Màu Cyan, Layer: Split_Inside): {inside.Length}, Số đoạn bên ngoài (Màu Magenta, Layer: Split_Outside): {outside.Length}.");
+                    ed.WriteMessage(
+                        $"\n  [Handler] Cắt thành công! Số đoạn bên trong Polygon (Màu Cyan, Layer: Split_Inside): {inside.Length}, Số đoạn bên ngoài (Màu Magenta, Layer: Split_Outside): {outside.Length}."
+                    );
                     return true;
                 }
                 else
@@ -304,12 +332,13 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
             }
             else
             {
-                ed.WriteMessage("\n  [Handler] Lỗi: Đối tượng chính không phải Polyline hoặc Polygon cắt không hợp lệ.");
+                ed.WriteMessage(
+                    "\n  [Handler] Lỗi: Đối tượng chính không phải Polyline hoặc Polygon cắt không hợp lệ."
+                );
             }
             return false;
         }
     }
-
 
     // 9. Line split by Multiple Points
     public class LineSplitByMultiplePointsHandler : ISplitHandler
@@ -393,7 +422,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     }
 
                     line.Erase();
-                    ed.WriteMessage($"\n  [Handler] Cắt thành công! Đã chia Line thành {inside.Length} phần trong và {outside.Length} phần ngoài.");
+                    ed.WriteMessage(
+                        $"\n  [Handler] Cắt thành công! Đã chia Line thành {inside.Length} phần trong và {outside.Length} phần ngoài."
+                    );
                     return true;
                 }
                 else
@@ -722,7 +753,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     }
 
                     polyline.Erase();
-                    ed.WriteMessage($"\n  [Handler] Cắt thành công! Đã chia Polyline thành {inside.Length} phần trong và {outside.Length} phần ngoài.");
+                    ed.WriteMessage(
+                        $"\n  [Handler] Cắt thành công! Đã chia Polyline thành {inside.Length} phần trong và {outside.Length} phần ngoài."
+                    );
                     return true;
                 }
                 else
@@ -804,7 +837,7 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                 { "Polyline_MultipleLines", new PolylineSplitByMultipleLinesHandler() },
                 { "Polyline_MultiplePolylines", new PolylineSplitByMultiplePolylinesHandler() },
                 { "Polyline_MultiplePolygons", new PolylineSplitByMultiplePolygonsHandler() },
-                { "Polyline_Polyline", new PolylineSplitByPolylineHandler() }
+                { "Polyline_Polyline", new PolylineSplitByPolylineHandler() },
             };
         }
 
@@ -827,7 +860,8 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
         public void RunSplitTest()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
-            if (doc == null) return;
+            if (doc == null)
+                return;
             Editor ed = doc.Editor;
             Database db = doc.Database;
 
@@ -836,7 +870,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
             try
             {
                 // 1. Select the main object (Subject)
-                PromptEntityOptions optSubject = new PromptEntityOptions("\nChọn đối tượng chính cần cắt (Line hoặc Polyline):");
+                PromptEntityOptions optSubject = new PromptEntityOptions(
+                    "\nChọn đối tượng chính cần cắt (Line hoặc Polyline):"
+                );
                 optSubject.SetRejectMessage("\nChỉ chấp nhận chọn Line hoặc Polyline.");
                 optSubject.AddAllowedClass(typeof(Line), exactMatch: false);
                 optSubject.AddAllowedClass(typeof(Polyline), exactMatch: false);
@@ -872,35 +908,59 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                 }
 
                 string splitType = resType.StringResult;
-                if (splitType.Equals("Point", StringComparison.OrdinalIgnoreCase) || splitType.Equals("PO", StringComparison.OrdinalIgnoreCase))
+                if (
+                    splitType.Equals("Point", StringComparison.OrdinalIgnoreCase)
+                    || splitType.Equals("PO", StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     splitType = "Point";
                 }
-                else if (splitType.Equals("Line", StringComparison.OrdinalIgnoreCase) || splitType.Equals("L", StringComparison.OrdinalIgnoreCase))
+                else if (
+                    splitType.Equals("Line", StringComparison.OrdinalIgnoreCase)
+                    || splitType.Equals("L", StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     splitType = "Line";
                 }
-                else if (splitType.Equals("MLines", StringComparison.OrdinalIgnoreCase) || splitType.Equals("ML", StringComparison.OrdinalIgnoreCase))
+                else if (
+                    splitType.Equals("MLines", StringComparison.OrdinalIgnoreCase)
+                    || splitType.Equals("ML", StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     splitType = "MultipleLines";
                 }
-                else if (splitType.Equals("Polyline", StringComparison.OrdinalIgnoreCase) || splitType.Equals("PL", StringComparison.OrdinalIgnoreCase))
+                else if (
+                    splitType.Equals("Polyline", StringComparison.OrdinalIgnoreCase)
+                    || splitType.Equals("PL", StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     splitType = "Polyline";
                 }
-                else if (splitType.Equals("Polygon", StringComparison.OrdinalIgnoreCase) || splitType.Equals("PG", StringComparison.OrdinalIgnoreCase))
+                else if (
+                    splitType.Equals("Polygon", StringComparison.OrdinalIgnoreCase)
+                    || splitType.Equals("PG", StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     splitType = "Polygon";
                 }
-                else if (splitType.Equals("MPoints", StringComparison.OrdinalIgnoreCase) || splitType.Equals("MP", StringComparison.OrdinalIgnoreCase))
+                else if (
+                    splitType.Equals("MPoints", StringComparison.OrdinalIgnoreCase)
+                    || splitType.Equals("MP", StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     splitType = "MultiplePoints";
                 }
-                else if (splitType.Equals("MPolylines", StringComparison.OrdinalIgnoreCase) || splitType.Equals("MPL", StringComparison.OrdinalIgnoreCase))
+                else if (
+                    splitType.Equals("MPolylines", StringComparison.OrdinalIgnoreCase)
+                    || splitType.Equals("MPL", StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     splitType = "MultiplePolylines";
                 }
-                else if (splitType.Equals("MPolygons", StringComparison.OrdinalIgnoreCase) || splitType.Equals("MPG", StringComparison.OrdinalIgnoreCase))
+                else if (
+                    splitType.Equals("MPolygons", StringComparison.OrdinalIgnoreCase)
+                    || splitType.Equals("MPG", StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     splitType = "MultiplePolygons";
                 }
@@ -962,11 +1022,15 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         {
                             if (!polylineCutter.Closed)
                             {
-                                ed.WriteMessage("\n[LỖI] Polyline đã chọn không khép kín. Không thể làm Polygon dao cắt.");
+                                ed.WriteMessage(
+                                    "\n[LỖI] Polyline đã chọn không khép kín. Không thể làm Polygon dao cắt."
+                                );
                                 return;
                             }
                             cutter = polylineCutter.ToGeoPolygon2();
-                            ed.WriteMessage($"\n-> Đã chọn Polyline làm Polygon cắt (Chu vi: {polylineCutter.Length:F2}, Số đỉnh: {polylineCutter.NumberOfVertices})");
+                            ed.WriteMessage(
+                                $"\n-> Đã chọn Polyline làm Polygon cắt (Chu vi: {polylineCutter.Length:F2}, Số đỉnh: {polylineCutter.NumberOfVertices})"
+                            );
                         }
                     }
                 }
@@ -1015,7 +1079,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         if (tr.GetObject(resCutter.ObjectId, OpenMode.ForRead) is Polyline polylineCutter)
                         {
                             cutter = polylineCutter.ToGeoPolyline2();
-                            ed.WriteMessage($"\n-> Đã chọn Polyline làm dao cắt (Chiều dài: {polylineCutter.Length:F2}, Số đỉnh: {polylineCutter.NumberOfVertices})");
+                            ed.WriteMessage(
+                                $"\n-> Đã chọn Polyline làm dao cắt (Chiều dài: {polylineCutter.Length:F2}, Số đỉnh: {polylineCutter.NumberOfVertices})"
+                            );
                         }
                     }
                 }
@@ -1024,7 +1090,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     var pointList = new List<GeoPoint2>();
                     while (true)
                     {
-                        PromptPointOptions optPt = new PromptPointOptions($"\nChọn điểm thứ {pointList.Count + 1} để cắt (Nhấn Enter để kết thúc chọn):");
+                        PromptPointOptions optPt = new PromptPointOptions(
+                            $"\nChọn điểm thứ {pointList.Count + 1} để cắt (Nhấn Enter để kết thúc chọn):"
+                        );
                         optPt.AllowNone = true;
                         PromptPointResult resPt = ed.GetPoint(optPt);
                         if (resPt.Status == PromptStatus.None)
@@ -1050,7 +1118,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                 {
                     var optSel = new PromptSelectionOptions();
                     optSel.MessageForAdding = "\nChọn các Polyline khép kín làm các Polygon cắt:";
-                    var filter = new SelectionFilter(new[] { new TypedValue((int)DxfCode.Start, "LWPOLYLINE,POLYLINE") });
+                    var filter = new SelectionFilter(
+                        new[] { new TypedValue((int)DxfCode.Start, "LWPOLYLINE,POLYLINE") }
+                    );
 
                     PromptSelectionResult resSel = ed.GetSelection(optSel, filter);
                     if (resSel.Status != PromptStatus.OK)
@@ -1068,7 +1138,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                             {
                                 if (!polylineCutter.Closed)
                                 {
-                                    ed.WriteMessage($"\n[CẢNH BÁO] Polyline ID {selObj.ObjectId} không khép kín. Bỏ qua không dùng làm Polygon cắt.");
+                                    ed.WriteMessage(
+                                        $"\n[CẢNH BÁO] Polyline ID {selObj.ObjectId} không khép kín. Bỏ qua không dùng làm Polygon cắt."
+                                    );
                                     continue;
                                 }
                                 polyList.Add(polylineCutter.ToGeoPolygon2());
@@ -1087,7 +1159,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                 {
                     var optSel = new PromptSelectionOptions();
                     optSel.MessageForAdding = "\nChọn các Polyline làm dao cắt:";
-                    var filter = new SelectionFilter(new[] { new TypedValue((int)DxfCode.Start, "LWPOLYLINE,POLYLINE") });
+                    var filter = new SelectionFilter(
+                        new[] { new TypedValue((int)DxfCode.Start, "LWPOLYLINE,POLYLINE") }
+                    );
 
                     PromptSelectionResult resSel = ed.GetSelection(optSel, filter);
                     if (resSel.Status != PromptStatus.OK)
@@ -1149,7 +1223,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n[LỖI NGOẠI LỆ] Có lỗi xảy ra trong quá trình split test: {ex.Message}\n{ex.StackTrace}");
+                ed.WriteMessage(
+                    $"\n[LỖI NGOẠI LỆ] Có lỗi xảy ra trong quá trình split test: {ex.Message}\n{ex.StackTrace}"
+                );
             }
             finally
             {

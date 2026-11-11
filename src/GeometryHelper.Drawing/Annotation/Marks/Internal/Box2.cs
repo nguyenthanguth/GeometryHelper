@@ -32,9 +32,14 @@ namespace GeometryHelper.Drawing.Annotation
             }
 
             // Liang and Barsky: the part of the line from p to q inside the box shrunk by the tolerance.
-            double dx = q.X - p.X, dy = q.Y - p.Y, t0 = 0.0, t1 = 1.0;
-            return Clip(-dx, p.X - x0, ref t0, ref t1) && Clip(dx, x1 - p.X, ref t0, ref t1)
-                && Clip(-dy, p.Y - y0, ref t0, ref t1) && Clip(dy, y1 - p.Y, ref t0, ref t1)
+            double dx = q.X - p.X,
+                dy = q.Y - p.Y,
+                t0 = 0.0,
+                t1 = 1.0;
+            return Clip(-dx, p.X - x0, ref t0, ref t1)
+                && Clip(dx, x1 - p.X, ref t0, ref t1)
+                && Clip(-dy, p.Y - y0, ref t0, ref t1)
+                && Clip(dy, y1 - p.Y, ref t0, ref t1)
                 && t0 <= t1;
         }
 
@@ -47,7 +52,10 @@ namespace GeometryHelper.Drawing.Annotation
 
             if (x > x0 && x < x1 && y > y0 && y < y1)
             {
-                double left = x - x0, right = x1 - x, down = y - y0, up = y1 - y;
+                double left = x - x0,
+                    right = x1 - x,
+                    down = y - y0,
+                    up = y1 - y;
                 double least = Math.Min(Math.Min(left, right), Math.Min(down, up));
 
                 if (least == left)
@@ -96,20 +104,27 @@ namespace GeometryHelper.Drawing.Annotation
         }
 
         /// <summary>A box square to the axes from its least corner and its size.</summary>
-        internal static GeoRectangle2 FromCorner(double x, double y, double width, double height)
-            => new GeoRectangle2(new GeoPoint2(x + width * 0.5, y + height * 0.5), width, height);
+        internal static GeoRectangle2 FromCorner(double x, double y, double width, double height) =>
+            new GeoRectangle2(new GeoPoint2(x + width * 0.5, y + height * 0.5), width, height);
 
         /// <summary>A thin box round a line, as wide as twice a half-width, for keeping labels off it.</summary>
         internal static GeoPolygon2 Around(GeoPoint2 p, GeoPoint2 q, double half)
         {
-            double dx = q.X - p.X, dy = q.Y - p.Y, length = Math.Sqrt(dx * dx + dy * dy);
-            double ux = length > 0.0 ? dx / length : 1.0, uy = length > 0.0 ? dy / length : 0.0;
-            double ax = -uy * half, ay = ux * half, bx = ux * half, by = uy * half;
+            double dx = q.X - p.X,
+                dy = q.Y - p.Y,
+                length = Math.Sqrt(dx * dx + dy * dy);
+            double ux = length > 0.0 ? dx / length : 1.0,
+                uy = length > 0.0 ? dy / length : 0.0;
+            double ax = -uy * half,
+                ay = ux * half,
+                bx = ux * half,
+                by = uy * half;
             return new GeoPolygon2(
                 new GeoPoint2(p.X - bx - ax, p.Y - by - ay),
                 new GeoPoint2(q.X + bx - ax, q.Y + by - ay),
                 new GeoPoint2(q.X + bx + ax, q.Y + by + ay),
-                new GeoPoint2(p.X - bx + ax, p.Y - by + ay));
+                new GeoPoint2(p.X - bx + ax, p.Y - by + ay)
+            );
         }
 
         private static bool Clip(double p, double q, ref double t0, ref double t1)

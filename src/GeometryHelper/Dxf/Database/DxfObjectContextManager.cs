@@ -37,7 +37,9 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(collectionName));
             }
 
-            return string.Equals(collectionName.Trim(), AnnotationScales, StringComparison.OrdinalIgnoreCase) ? new DxfObjectContextCollection(_database) : null;
+            return string.Equals(collectionName.Trim(), AnnotationScales, StringComparison.OrdinalIgnoreCase)
+                ? new DxfObjectContextCollection(_database)
+                : null;
         }
     }
 }

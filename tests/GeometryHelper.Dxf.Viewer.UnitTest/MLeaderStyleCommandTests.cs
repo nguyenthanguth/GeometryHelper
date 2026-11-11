@@ -20,11 +20,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string text = CadTemplate.CreateMetric().ToText().Replace("\r\n", "\n");
             string classes = "  0\nSECTION\n  2\nCLASSES\n";
             Assert.Contains(classes, text);
-            text = text.Replace(classes, classes + "  0\nCLASS\n  1\nDICTIONARYVAR\n  2\nAcDbDictionaryVar\n  3\nObjectDBX Classes\n 90\n0\n 91\n1\n280\n0\n281\n0\n");
+            text = text.Replace(
+                classes,
+                classes
+                    + "  0\nCLASS\n  1\nDICTIONARYVAR\n  2\nAcDbDictionaryVar\n  3\nObjectDBX Classes\n 90\n0\n 91\n1\n280\n0\n281\n0\n"
+            );
             return CadDocument.From(DxfDatabase.Parse(text), "metric.dxf");
         }
 
-        private static DxfMLeaderStyle Style(CadDocument document, string name) => (DxfMLeaderStyle)document.Database.MLeaderStyleDictionary[name];
+        private static DxfMLeaderStyle Style(CadDocument document, string name) =>
+            (DxfMLeaderStyle)document.Database.MLeaderStyleDictionary[name];
 
         [Fact]
         public void AMultileaderStyleAdded_OnADrawingWithNoObjectsSection_MakesTheNamedObjectDictionary_AsAutoCadOpensOne()
@@ -34,7 +39,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string text = new DxfDatabase("AC1027").ToText().Replace("\r\n", "\n");
             int objects = text.IndexOf("  0\nSECTION\n  2\nOBJECTS\n", StringComparison.Ordinal);
             int end = text.IndexOf("  0\nENDSEC\n", objects, StringComparison.Ordinal) + "  0\nENDSEC\n".Length;
-            CadDocument document = CadDocument.From(DxfDatabase.Parse(text.Substring(0, objects) + text.Substring(end)), "noobjects.dxf");
+            CadDocument document = CadDocument.From(
+                DxfDatabase.Parse(text.Substring(0, objects) + text.Substring(end)),
+                "noobjects.dxf"
+            );
             Assert.Null(document.Database.NamedObjectsDictionary);
 
             Assert.True(CadMLeaderStyleEditor.AddStandard(document).Succeeded);
@@ -121,7 +129,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "MLD", P(100, 0), P(130, 20), "TWO");
             DxfMLeader[] both = All<DxfMLeader>(document.ModelSpace).ToArray();
             string own = both[1].Handle;
-            Assert.True(document.ApplyEdit("Properties", new[] { new CadEditRecord(CadEditRecordKind.PropertyChanged, own, "Text height", "4", "6") }, s => ((DxfMLeader)s.Document.FindEntity(own)).TextHeight = 6).Succeeded);
+            Assert.True(
+                document
+                    .ApplyEdit(
+                        "Properties",
+                        new[] { new CadEditRecord(CadEditRecordKind.PropertyChanged, own, "Text height", "4", "6") },
+                        s => ((DxfMLeader)s.Document.FindEntity(own)).TextHeight = 6
+                    )
+                    .Succeeded
+            );
 
             var settings = CadMLeaderStyleSettings.Of(Style(document, "Standard"));
             settings.TextHeight = 2.5;
@@ -148,7 +164,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(CadMLeaderStyleEditor.Add(document, "Unused", null).Succeeded);
             Run(Session(document), "MLD", P(0, 0), P(30, 20), "ONE");
 
-            Assert.Equal("The Standard multileader style cannot be deleted.", CadMLeaderStyleEditor.WhyNotDeleted(document.Database, "Standard"));
+            Assert.Equal(
+                "The Standard multileader style cannot be deleted.",
+                CadMLeaderStyleEditor.WhyNotDeleted(document.Database, "Standard")
+            );
             Assert.False(CadMLeaderStyleEditor.Delete(document, "Standard").Succeeded);
             Assert.Null(CadMLeaderStyleEditor.WhyNotDeleted(document.Database, "Unused"));
             Assert.Single(CadMLeaderStyleEditor.Uses(document.Database, "Standard"));
@@ -162,7 +181,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = BlankWithMLeaderStyle();
             CadCommandSession session = Session(document);
             Run(session, "MLS");
-            Assert.Equal("Current multileader style: \"Standard\". The Multileader Style Manager is shown by the window.", session.History.Last());
+            Assert.Equal(
+                "Current multileader style: \"Standard\". The Multileader Style Manager is shown by the window.",
+                session.History.Last()
+            );
 
             string asked = null;
             session.UiRequested += (sender, e) =>

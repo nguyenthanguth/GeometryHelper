@@ -21,7 +21,8 @@ namespace GeometryHelper.Geometry
         /// <see cref="TryIntersectWith(GeoPlane3, out GeoRay3)"/> gives the same line as a ray, which names it and can only
         /// stand for it; this gives it as the infinite line it is.
         /// </remarks>
-        public bool TryGetIntersectionLine(GeoPlane3 other, out GeoXLine3 intersection) => TryGetIntersectionLine(other, out intersection, Tolerance.Global);
+        public bool TryGetIntersectionLine(GeoPlane3 other, out GeoXLine3 intersection) =>
+            TryGetIntersectionLine(other, out intersection, Tolerance.Global);
 
         /// <summary>
         /// Tries to find the line where this plane meets another plane, as an infinite line, within a tolerance.
@@ -36,7 +37,8 @@ namespace GeometryHelper.Geometry
         /// are asked: its origin is the point of the line nearest the world origin, and its direction the cross product of the
         /// two normals, so asked of the wall first the line runs the other way.
         /// </remarks>
-        public bool TryGetIntersectionLine(GeoPlane3 other, out GeoXLine3 intersection, Tolerance tolerance) => Intersection3.TryGetIntersectionLine(this, other, out intersection, tolerance);
+        public bool TryGetIntersectionLine(GeoPlane3 other, out GeoXLine3 intersection, Tolerance tolerance) =>
+            Intersection3.TryGetIntersectionLine(this, other, out intersection, tolerance);
 
         /// <summary>
         /// Determines whether this plane touches an infinite line, using the default tolerance.
@@ -46,7 +48,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this plane touches an infinite line, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoXLine3 xline, Tolerance tolerance) => Collision3.CollidesWith(xline, this, tolerance);
+        public bool CollidesWith(GeoXLine3 xline, Tolerance tolerance) =>
+            Collision3.CollidesWith(xline, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this plane to an infinite line, using the default tolerance.
@@ -68,14 +71,16 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the point where an infinite line crosses this plane, within a tolerance.
         /// </summary>
-        public GeoPoint3[] GetIntersections(GeoXLine3 xline, Tolerance tolerance) => Intersection3.GetIntersections(xline, this, tolerance);
+        public GeoPoint3[] GetIntersections(GeoXLine3 xline, Tolerance tolerance) =>
+            Intersection3.GetIntersections(xline, this, tolerance);
 
         /// <summary>
         /// Tries to find the point where an infinite line crosses this plane, using the default tolerance.
         /// </summary>
         /// <param name="xline">The infinite line.</param>
         /// <param name="intersection">The crossing point if successful.</param>
-        public bool TryIntersectWith(GeoXLine3 xline, out GeoPoint3 intersection) => TryIntersectWith(xline, out intersection, Tolerance.Global);
+        public bool TryIntersectWith(GeoXLine3 xline, out GeoPoint3 intersection) =>
+            TryIntersectWith(xline, out intersection, Tolerance.Global);
 
         /// <summary>
         /// Tries to find the point where an infinite line crosses this plane, within a tolerance.
@@ -83,7 +88,8 @@ namespace GeometryHelper.Geometry
         /// <param name="xline">The infinite line.</param>
         /// <param name="intersection">The crossing point if successful.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool TryIntersectWith(GeoXLine3 xline, out GeoPoint3 intersection, Tolerance tolerance) => Intersection3.TryIntersectWith(xline, this, out intersection, tolerance);
+        public bool TryIntersectWith(GeoXLine3 xline, out GeoPoint3 intersection, Tolerance tolerance) =>
+            Intersection3.TryIntersectWith(xline, this, out intersection, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this plane and landing on an infinite line, using the default tolerance.
@@ -93,7 +99,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment leaving this plane and landing on an infinite line, within a tolerance.
         /// </summary>
-        public GeoLine3 GetShortestLineTo(GeoXLine3 xline, Tolerance tolerance) => Projection3.GetShortestLineTo(xline, this, tolerance).Reverse();
+        public GeoLine3 GetShortestLineTo(GeoXLine3 xline, Tolerance tolerance) =>
+            Projection3.GetShortestLineTo(xline, this, tolerance).Reverse();
 
         #endregion
     }

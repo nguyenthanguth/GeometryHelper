@@ -16,7 +16,9 @@ namespace GeometryHelper.Dxf
             private static readonly IReadOnlyList<string> NoNames = Array.AsReadOnly(new string[0]);
 
             private readonly List<Block> _blocks = new List<Block>();
-            private readonly Dictionary<string, Block> _blockNames = new Dictionary<string, Block>(StringComparer.OrdinalIgnoreCase);
+            private readonly Dictionary<string, Block> _blockNames = new Dictionary<string, Block>(
+                StringComparer.OrdinalIgnoreCase
+            );
             private readonly List<KeyValuePair<int, Record>> _pending = new List<KeyValuePair<int, Record>>();
             private readonly List<Block> _active = new List<Block>();
             private readonly List<string> _missingNames = new List<string>();
@@ -81,7 +83,8 @@ namespace GeometryHelper.Dxf
                     Header = header;
                     Flags = header.Int(70, 0);
                     Gathering = new Gathering(Items.Add);
-                    IsLayout = name.StartsWith("*Model_Space", StringComparison.OrdinalIgnoreCase)
+                    IsLayout =
+                        name.StartsWith("*Model_Space", StringComparison.OrdinalIgnoreCase)
                         || name.StartsWith("*Paper_Space", StringComparison.OrdinalIgnoreCase)
                         || name.StartsWith("$Model_Space", StringComparison.OrdinalIgnoreCase)
                         || name.StartsWith("$Paper_Space", StringComparison.OrdinalIgnoreCase);
@@ -176,7 +179,11 @@ namespace GeometryHelper.Dxf
                 private Placement(double[] m)
                 {
                     _m = m;
-                    Mirrors = m[0] * (m[5] * m[10] - m[6] * m[9]) - m[1] * (m[4] * m[10] - m[6] * m[8]) + m[2] * (m[4] * m[9] - m[5] * m[8]) < 0.0;
+                    Mirrors =
+                        m[0] * (m[5] * m[10] - m[6] * m[9])
+                            - m[1] * (m[4] * m[10] - m[6] * m[8])
+                            + m[2] * (m[4] * m[9] - m[5] * m[8])
+                        < 0.0;
                 }
 
                 /// <summary>Whether the placement turns space over, as a mirror does: the determinant of its linear part below nought.</summary>
@@ -199,7 +206,10 @@ namespace GeometryHelper.Dxf
                         {
                             for (int column = 0; column < 4; column++)
                             {
-                                double sum = o[row * 4] * m[column] + o[row * 4 + 1] * m[4 + column] + o[row * 4 + 2] * m[8 + column];
+                                double sum =
+                                    o[row * 4] * m[column]
+                                    + o[row * 4 + 1] * m[4 + column]
+                                    + o[row * 4 + 2] * m[8 + column];
                                 c[row * 4 + column] = column == 3 ? sum + o[row * 4 + 3] : sum;
                             }
                         }
@@ -213,9 +223,19 @@ namespace GeometryHelper.Dxf
                         }
                     }
 
-                    bool identity = c[0] == 1.0 && c[1] == 0.0 && c[2] == 0.0 && c[3] == 0.0
-                        && c[4] == 0.0 && c[5] == 1.0 && c[6] == 0.0 && c[7] == 0.0
-                        && c[8] == 0.0 && c[9] == 0.0 && c[10] == 1.0 && c[11] == 0.0;
+                    bool identity =
+                        c[0] == 1.0
+                        && c[1] == 0.0
+                        && c[2] == 0.0
+                        && c[3] == 0.0
+                        && c[4] == 0.0
+                        && c[5] == 1.0
+                        && c[6] == 0.0
+                        && c[7] == 0.0
+                        && c[8] == 0.0
+                        && c[9] == 0.0
+                        && c[10] == 1.0
+                        && c[11] == 0.0;
 
                     return identity ? null : new Placement(c);
                 }
@@ -230,7 +250,8 @@ namespace GeometryHelper.Dxf
                     var placed = new GeoPoint3(
                         m[0] * p.X + m[1] * p.Y + m[2] * p.Z + m[3],
                         m[4] * p.X + m[5] * p.Y + m[6] * p.Z + m[7],
-                        m[8] * p.X + m[9] * p.Y + m[10] * p.Z + m[11]);
+                        m[8] * p.X + m[9] * p.Y + m[10] * p.Z + m[11]
+                    );
 
                     if (!IsFinite(placed))
                     {
@@ -244,7 +265,11 @@ namespace GeometryHelper.Dxf
                 internal GeoVector3 Linear(GeoVector3 v)
                 {
                     double[] m = _m;
-                    return new GeoVector3(m[0] * v.X + m[1] * v.Y + m[2] * v.Z, m[4] * v.X + m[5] * v.Y + m[6] * v.Z, m[8] * v.X + m[9] * v.Y + m[10] * v.Z);
+                    return new GeoVector3(
+                        m[0] * v.X + m[1] * v.Y + m[2] * v.Z,
+                        m[4] * v.X + m[5] * v.Y + m[6] * v.Z,
+                        m[8] * v.X + m[9] * v.Y + m[10] * v.Z
+                    );
                 }
             }
 
@@ -274,9 +299,10 @@ namespace GeometryHelper.Dxf
 
                     // A placement that keeps the floor the floor gives its normal straight up or down, to the bit.
                     Collapsed = !(length > 1E-12 * U.Length * V.Length) || double.IsInfinity(length);
-                    Normal = Collapsed
-                        ? default(GeoVector3)
-                        : n.X == 0.0 && n.Y == 0.0 ? new GeoVector3(0.0, 0.0, n.Z > 0.0 ? 1.0 : -1.0) : new GeoVector3(n.X / length, n.Y / length, n.Z / length);
+                    Normal =
+                        Collapsed ? default(GeoVector3)
+                        : n.X == 0.0 && n.Y == 0.0 ? new GeoVector3(0.0, 0.0, n.Z > 0.0 ? 1.0 : -1.0)
+                        : new GeoVector3(n.X / length, n.Y / length, n.Z / length);
                 }
 
                 /// <summary>The image of the plane's x axis.</summary>
@@ -308,7 +334,8 @@ namespace GeometryHelper.Dxf
                     double alongV = V.Length;
                     double gap = GeoTransform2.RoundGap(alongU, alongV, U.DotProduct(V), radius);
 
-                    return !Collapsed && (gap <= tolerance.EqualPoint || gap <= 1E-12 * radius * Math.Max(alongU, alongV));
+                    return !Collapsed
+                        && (gap <= tolerance.EqualPoint || gap <= 1E-12 * radius * Math.Max(alongU, alongV));
                 }
             }
 
@@ -394,7 +421,10 @@ namespace GeometryHelper.Dxf
 
                         if (need > _budget.Left && stopped)
                         {
-                            Skip(insert.Type, "whose size was not worked out, the reading having worked out as many blocks as it works out");
+                            Skip(
+                                insert.Type,
+                                "whose size was not worked out, the reading having worked out as many blocks as it works out"
+                            );
                             _sizing.Refuse(_forBlocks);
                             return;
                         }
@@ -486,9 +516,7 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>An entity placed past what the bound on the entities placed from blocks leaves.</summary>
-            private sealed class PastTheBound : Exception
-            {
-            }
+            private sealed class PastTheBound : Exception { }
 
             /// <summary>
             /// What a reading has counted and the layers it has met, taken before an INSERT is placed, so that an INSERT taken
@@ -508,18 +536,39 @@ namespace GeometryHelper.Dxf
                 {
                     _layers = r._layers.Count;
                     _skipped = new List<KeyValuePair<string, int>>(r._skipped).ToArray();
-                    _reasons = new List<KeyValuePair<string, SortedDictionary<string, int>>>(r._reasons).ConvertAll(p => new KeyValuePair<string, KeyValuePair<string, int>[]>(p.Key, new List<KeyValuePair<string, int>>(p.Value).ToArray())).ToArray();
-                    _failures = new List<KeyValuePair<string, Failure>>(r._failures).ConvertAll(p => new KeyValuePair<string, KeyValuePair<int, Exception>>(p.Key, new KeyValuePair<int, Exception>(p.Value.Count, p.Value.First))).ToArray();
+                    _reasons = new List<KeyValuePair<string, SortedDictionary<string, int>>>(r._reasons)
+                        .ConvertAll(p => new KeyValuePair<string, KeyValuePair<string, int>[]>(
+                            p.Key,
+                            new List<KeyValuePair<string, int>>(p.Value).ToArray()
+                        ))
+                        .ToArray();
+                    _failures = new List<KeyValuePair<string, Failure>>(r._failures)
+                        .ConvertAll(p => new KeyValuePair<string, KeyValuePair<int, Exception>>(
+                            p.Key,
+                            new KeyValuePair<int, Exception>(p.Value.Count, p.Value.First)
+                        ))
+                        .ToArray();
                     _counts = Counts(r);
                     _missingNames = r._missingNames.Count;
                     _firstLoop = r._firstLoop;
                 }
 
-                private static int[] Counts(Reading r) => new[]
-                {
-                    r._fitSplines, r._periodicSplines, r._openedLoops, r._droppedFaces, r._looseFaces, r._badLook, r._refusedSplines,
-                    r._missingInserts, r._selfInserts, r._deepInserts, r._xrefInserts, r._hugeArrays,
-                };
+                private static int[] Counts(Reading r) =>
+                    new[]
+                    {
+                        r._fitSplines,
+                        r._periodicSplines,
+                        r._openedLoops,
+                        r._droppedFaces,
+                        r._looseFaces,
+                        r._badLook,
+                        r._refusedSplines,
+                        r._missingInserts,
+                        r._selfInserts,
+                        r._deepInserts,
+                        r._xrefInserts,
+                        r._hugeArrays,
+                    };
 
                 internal void Restore(Reading r)
                 {
@@ -554,7 +603,10 @@ namespace GeometryHelper.Dxf
 
                     foreach (KeyValuePair<string, KeyValuePair<int, Exception>> failure in _failures)
                     {
-                        r._failures.Add(failure.Key, new Failure { Count = failure.Value.Key, First = failure.Value.Value });
+                        r._failures.Add(
+                            failure.Key,
+                            new Failure { Count = failure.Value.Key, First = failure.Value.Value }
+                        );
                     }
 
                     int k = 0;
@@ -613,8 +665,14 @@ namespace GeometryHelper.Dxf
                 if (degrees % 90.0 == 0.0)
                 {
                     int quarter = ((int)(degrees / 90.0) % 4 + 4) % 4;
-                    cos = quarter == 0 ? 1.0 : quarter == 2 ? -1.0 : 0.0;
-                    sin = quarter == 1 ? 1.0 : quarter == 3 ? -1.0 : 0.0;
+                    cos =
+                        quarter == 0 ? 1.0
+                        : quarter == 2 ? -1.0
+                        : 0.0;
+                    sin =
+                        quarter == 1 ? 1.0
+                        : quarter == 3 ? -1.0
+                        : 0.0;
                 }
                 else
                 {
@@ -628,8 +686,16 @@ namespace GeometryHelper.Dxf
                 GeoVector3 n = ocs.Normal;
 
                 // The columns of the linear part: the turned and scaled axes of the INSERT's system.
-                var x = new GeoVector3((cos * u.X + sin * v.X) * sx, (cos * u.Y + sin * v.Y) * sx, (cos * u.Z + sin * v.Z) * sx);
-                var y = new GeoVector3((cos * v.X - sin * u.X) * sy, (cos * v.Y - sin * u.Y) * sy, (cos * v.Z - sin * u.Z) * sy);
+                var x = new GeoVector3(
+                    (cos * u.X + sin * v.X) * sx,
+                    (cos * u.Y + sin * v.Y) * sx,
+                    (cos * u.Z + sin * v.Z) * sx
+                );
+                var y = new GeoVector3(
+                    (cos * v.X - sin * u.X) * sy,
+                    (cos * v.Y - sin * u.Y) * sy,
+                    (cos * v.Z - sin * u.Z) * sy
+                );
                 var z = new GeoVector3(n.X * sz, n.Y * sz, n.Z * sz);
 
                 double columnSpacing = Scaled(insert.Real(44, 0.0));
@@ -649,12 +715,23 @@ namespace GeometryHelper.Dxf
                     {
                         double ox = column * columnSpacing;
                         double oy = row * rowSpacing;
-                        GeoPoint3 origin = ocs.World(new GeoPoint3(at.X + cos * ox - sin * oy, at.Y + sin * ox + cos * oy, at.Z));
+                        GeoPoint3 origin = ocs.World(
+                            new GeoPoint3(at.X + cos * ox - sin * oy, at.Y + sin * ox + cos * oy, at.Z)
+                        );
                         double[] m =
                         {
-                            x.X, y.X, z.X, origin.X - (x.X * basePoint.X + y.X * basePoint.Y + z.X * basePoint.Z),
-                            x.Y, y.Y, z.Y, origin.Y - (x.Y * basePoint.X + y.Y * basePoint.Y + z.Y * basePoint.Z),
-                            x.Z, y.Z, z.Z, origin.Z - (x.Z * basePoint.X + y.Z * basePoint.Y + z.Z * basePoint.Z),
+                            x.X,
+                            y.X,
+                            z.X,
+                            origin.X - (x.X * basePoint.X + y.X * basePoint.Y + z.X * basePoint.Z),
+                            x.Y,
+                            y.Y,
+                            z.Y,
+                            origin.Y - (x.Y * basePoint.X + y.Y * basePoint.Y + z.Y * basePoint.Z),
+                            x.Z,
+                            y.Z,
+                            z.Z,
+                            origin.Z - (x.Z * basePoint.X + y.Z * basePoint.Y + z.Z * basePoint.Z),
                         };
 
                         cells.Add(Placement.Then(_place, m));
@@ -809,7 +886,14 @@ namespace GeometryHelper.Dxf
             {
                 string name = Decode((insert.Text(2) ?? string.Empty).Trim());
 
-                if (!_expandBlocks || insert.Unreadable() != null || name.Length == 0 || !_blockNames.TryGetValue(name, out Block block) || block.IsLayout || block.IsExternal)
+                if (
+                    !_expandBlocks
+                    || insert.Unreadable() != null
+                    || name.Length == 0
+                    || !_blockNames.TryGetValue(name, out Block block)
+                    || block.IsLayout
+                    || block.IsExternal
+                )
                 {
                     return null;
                 }
@@ -883,7 +967,15 @@ namespace GeometryHelper.Dxf
                             }
                             else if (context == 2 && code == 170)
                             {
-                                if (int.TryParse(r.ValueAt(i).Trim(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int kind) && kind == 0)
+                                if (
+                                    int.TryParse(
+                                        r.ValueAt(i).Trim(),
+                                        System.Globalization.NumberStyles.Integer,
+                                        System.Globalization.CultureInfo.InvariantCulture,
+                                        out int kind
+                                    )
+                                    && kind == 0
+                                )
                                 {
                                     return 0;
                                 }
@@ -940,7 +1032,10 @@ namespace GeometryHelper.Dxf
 
             private static long Plus(long a, long b) => a > long.MaxValue - b ? long.MaxValue : a + b;
 
-            private static long Times(long a, long b) => a == 0 || b == 0 ? 0 : a > long.MaxValue / b ? long.MaxValue : a * b;
+            private static long Times(long a, long b) =>
+                a == 0 || b == 0 ? 0
+                : a > long.MaxValue / b ? long.MaxValue
+                : a * b;
 
             /// <summary>
             /// How many entities the INSERTs may still place from blocks in a reading, shared by the drawing and the blocks read
@@ -973,9 +1068,7 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>An array of a MINSERT of more cells than are placed.</summary>
-            private sealed class TooManyCells : Exception
-            {
-            }
+            private sealed class TooManyCells : Exception { }
 
             /// <summary>
             /// Places the INSERTs of the drawing, each where it stood among the entities, now that every block is in: a file
@@ -1057,33 +1150,99 @@ namespace GeometryHelper.Dxf
 
             private void BlockWarnings()
             {
-                Warn(_againNames.Count, " block was defined again under a name already defined, and the first definition kept: " + Names(_againNames) + ".", " blocks were defined again under names already defined, and the first definitions kept: " + Names(_againNames) + ".");
-                Warn(_missingInserts, " INSERT names a block the file does not define and was left out: " + Names(_missingNames) + ".", " INSERTs name blocks the file does not define and were left out: " + Names(_missingNames) + ".");
-                Warn(_selfInserts, " INSERT of a block inside itself was not placed again, so as not to place it without end: " + _firstLoop + ".", " INSERTs of blocks inside themselves were not placed again, so as not to place them without end: " + _firstLoop + " the first.");
-                Warn(_deepInserts, " INSERT nested more than 64 deep was not placed.", " INSERTs nested more than 64 deep were not placed.");
-                Warn(_hugeArrays, " MINSERT of more than 1 048 576 cells was not placed.", " MINSERTs of more than 1 048 576 cells were not placed.");
+                Warn(
+                    _againNames.Count,
+                    " block was defined again under a name already defined, and the first definition kept: "
+                        + Names(_againNames)
+                        + ".",
+                    " blocks were defined again under names already defined, and the first definitions kept: "
+                        + Names(_againNames)
+                        + "."
+                );
+                Warn(
+                    _missingInserts,
+                    " INSERT names a block the file does not define and was left out: " + Names(_missingNames) + ".",
+                    " INSERTs name blocks the file does not define and were left out: " + Names(_missingNames) + "."
+                );
+                Warn(
+                    _selfInserts,
+                    " INSERT of a block inside itself was not placed again, so as not to place it without end: "
+                        + _firstLoop
+                        + ".",
+                    " INSERTs of blocks inside themselves were not placed again, so as not to place them without end: "
+                        + _firstLoop
+                        + " the first."
+                );
+                Warn(
+                    _deepInserts,
+                    " INSERT nested more than 64 deep was not placed.",
+                    " INSERTs nested more than 64 deep were not placed."
+                );
+                Warn(
+                    _hugeArrays,
+                    " MINSERT of more than 1 048 576 cells was not placed.",
+                    " MINSERTs of more than 1 048 576 cells were not placed."
+                );
 
                 if (_budget.Refused > 0)
                 {
-                    string wanted = _budget.Wanted == long.MaxValue ? "more than " + Number(long.MaxValue) : Number(_budget.Wanted);
-                    string inBlocks = _budget.RefusedInBlocks > 0 ? ", " + Number(_budget.RefusedInBlocks) + " of them inside the blocks read for Blocks" : string.Empty;
+                    string wanted =
+                        _budget.Wanted == long.MaxValue ? "more than " + Number(long.MaxValue) : Number(_budget.Wanted);
+                    string inBlocks =
+                        _budget.RefusedInBlocks > 0
+                            ? ", " + Number(_budget.RefusedInBlocks) + " of them inside the blocks read for Blocks"
+                            : string.Empty;
 
-                    _warnings.Add(Number(_budget.Refused) + (_budget.Refused == 1 ? " INSERT was" : " INSERTs were") + " not placed" + inBlocks + ": the entities placed from blocks would have passed DxfReadOptions.MaxPlacedEntities, " + Number(_budget.Most) + ", had they placed the " + wanted + " more they would have taken.");
+                    _warnings.Add(
+                        Number(_budget.Refused)
+                            + (_budget.Refused == 1 ? " INSERT was" : " INSERTs were")
+                            + " not placed"
+                            + inBlocks
+                            + ": the entities placed from blocks would have passed DxfReadOptions.MaxPlacedEntities, "
+                            + Number(_budget.Most)
+                            + ", had they placed the "
+                            + wanted
+                            + " more they would have taken."
+                    );
                 }
 
                 if (_sizing.Refused > 0)
                 {
-                    string inBlocks = _sizing.RefusedInBlocks > 0 ? ", " + Number(_sizing.RefusedInBlocks) + " of them inside the blocks read for Blocks" : string.Empty;
+                    string inBlocks =
+                        _sizing.RefusedInBlocks > 0
+                            ? ", " + Number(_sizing.RefusedInBlocks) + " of them inside the blocks read for Blocks"
+                            : string.Empty;
 
-                    _warnings.Add(Number(_sizing.Refused) + (_sizing.Refused == 1 ? " INSERT was" : " INSERTs were") + " not placed" + inBlocks + ": the reading had worked out the sizes of " + Number(_sizing.Most) + " blocks, as many as it works out, and not yet what " + (_sizing.Refused == 1 ? "its block places" : "their blocks place") + ", so " + (_sizing.Refused == 1 ? "it" : "they") + " could not be held to DxfReadOptions.MaxPlacedEntities.");
+                    _warnings.Add(
+                        Number(_sizing.Refused)
+                            + (_sizing.Refused == 1 ? " INSERT was" : " INSERTs were")
+                            + " not placed"
+                            + inBlocks
+                            + ": the reading had worked out the sizes of "
+                            + Number(_sizing.Most)
+                            + " blocks, as many as it works out, and not yet what "
+                            + (_sizing.Refused == 1 ? "its block places" : "their blocks place")
+                            + ", so "
+                            + (_sizing.Refused == 1 ? "it" : "they")
+                            + " could not be held to DxfReadOptions.MaxPlacedEntities."
+                    );
                 }
-                Warn(_xrefInserts, " INSERT of an external reference was not placed: the drawing it refers to is another file, which is not read.", " INSERTs of external references were not placed: the drawings they refer to are other files, which are not read.");
-                Warn(_layoutEntities, " entity of the blocks of the layouts (*Model_Space, *Paper_Space) was not read: the drawing is read from its ENTITIES section.", " entities of the blocks of the layouts (*Model_Space, *Paper_Space) were not read: the drawing is read from its ENTITIES section.");
+                Warn(
+                    _xrefInserts,
+                    " INSERT of an external reference was not placed: the drawing it refers to is another file, which is not read.",
+                    " INSERTs of external references were not placed: the drawings they refer to are other files, which are not read."
+                );
+                Warn(
+                    _layoutEntities,
+                    " entity of the blocks of the layouts (*Model_Space, *Paper_Space) was not read: the drawing is read from its ENTITIES section.",
+                    " entities of the blocks of the layouts (*Model_Space, *Paper_Space) were not read: the drawing is read from its ENTITIES section."
+                );
             }
 
             /// <summary>Names in the order they were met, the first ten of them.</summary>
-            private static string Names(List<string> names)
-                => string.Join(", ", names.GetRange(0, Math.Min(10, names.Count))) + (names.Count > 10 ? " and " + Number(names.Count - 10) + " more" : string.Empty);
+            private static string Names(List<string> names) =>
+                string.Join(", ", names.GetRange(0, Math.Min(10, names.Count)))
+                + (names.Count > 10 ? " and " + Number(names.Count - 10) + " more" : string.Empty);
 
             #endregion
 
@@ -1126,7 +1285,14 @@ namespace GeometryHelper.Dxf
             /// about the placed normal, which a mirror turns over; on the floor, asked for, the arc of the plane, clockwise
             /// where it is mirrored. Else the spline that is exactly the part of the ellipse it becomes.
             /// </summary>
-            private void PlacedArc(Record r, Frame frame, GeoPoint3 centre, double radius, double startDegrees, double endDegrees)
+            private void PlacedArc(
+                Record r,
+                Frame frame,
+                GeoPoint3 centre,
+                double radius,
+                double startDegrees,
+                double endDegrees
+            )
             {
                 if (frame.Collapsed)
                 {
@@ -1166,13 +1332,18 @@ namespace GeometryHelper.Dxf
                     // The angle a of the plane is the turn of its x axis plus a, or less a where it is mirrored.
                     double turn = Math.Atan2(frame.U.Y, frame.U.X);
 
-                    Add(r, frame.Normal.Z > 0.0
-                        ? new GeoArc2(Plan(c), placed, turn + start, turn + end)
-                        : new GeoArc2(Plan(c), placed, turn - start, turn - end, true));
+                    Add(
+                        r,
+                        frame.Normal.Z > 0.0
+                            ? new GeoArc2(Plan(c), placed, turn + start, turn + end)
+                            : new GeoArc2(Plan(c), placed, turn - start, turn - end, true)
+                    );
                     return;
                 }
 
-                GeoPoint3 first = frame.World(new GeoPoint3(centre.X + radius * Math.Cos(start), centre.Y + radius * Math.Sin(start), centre.Z));
+                GeoPoint3 first = frame.World(
+                    new GeoPoint3(centre.X + radius * Math.Cos(start), centre.Y + radius * Math.Sin(start), centre.Z)
+                );
                 Add(r, GeoArc3.FromCircle(c, frame.Normal, placed, first, sweep));
             }
 
@@ -1180,7 +1351,17 @@ namespace GeometryHelper.Dxf
             /// An ELLIPSE placed: the ellipse whose semi-axes are the images of its own, exactly, under any placement that does
             /// not flatten its plane, and a part of it the spline that is exactly that part.
             /// </summary>
-            private void PlacedEllipse(Record r, GeoPoint3 centre, GeoVector3 normal, GeoVector3 axis, double major, double minor, double from, double span, bool whole)
+            private void PlacedEllipse(
+                Record r,
+                GeoPoint3 centre,
+                GeoVector3 normal,
+                GeoVector3 axis,
+                double major,
+                double minor,
+                double from,
+                double span,
+                bool whole
+            )
             {
                 EllipseAxes(normal, axis, major, out GeoVector3 u, out GeoVector3 w);
                 GeoVector3 placedU = _place.Linear(u);
@@ -1198,23 +1379,42 @@ namespace GeometryHelper.Dxf
                 }
 
                 bool level = cross.X == 0.0 && cross.Y == 0.0;
-                GeoVector3 n = level ? new GeoVector3(0.0, 0.0, cross.Z > 0.0 ? 1.0 : -1.0) : new GeoVector3(cross.X / area, cross.Y / area, cross.Z / area);
+                GeoVector3 n = level
+                    ? new GeoVector3(0.0, 0.0, cross.Z > 0.0 ? 1.0 : -1.0)
+                    : new GeoVector3(cross.X / area, cross.Y / area, cross.Z / area);
                 bool flat = _planAs2D && level && c.Z == 0.0 && placedU.Z == 0.0 && placedW.Z == 0.0;
 
-                Add(r, whole ? Stretched(c, along, across, n, flat) : ArcPieces(c, placedU, placedW, major, minor, from, span, flat));
+                Add(
+                    r,
+                    whole
+                        ? Stretched(c, along, across, n, flat)
+                        : ArcPieces(c, placedU, placedW, major, minor, from, span, flat)
+                );
             }
 
             /// <summary>
             /// The ellipse of two conjugate semi-axes, the images of two square to each other: its radii and its major axis are
             /// their singular values and direction, as <see cref="GeoEllipse3.TransformBy(GeoTransform3)"/> finds them.
             /// </summary>
-            private static object Stretched(GeoPoint3 centre, GeoVector3 along, GeoVector3 across, GeoVector3 normal, bool flat)
+            private static object Stretched(
+                GeoPoint3 centre,
+                GeoVector3 along,
+                GeoVector3 across,
+                GeoVector3 normal,
+                bool flat
+            )
             {
                 if (flat)
                 {
                     var flatAlong = new GeoVector2(along.X, along.Y);
                     var flatAcross = new GeoVector2(across.X, across.Y);
-                    return Ellipse2.FromSemiAxes(Plan(centre), flatAlong, flatAcross, Math.Abs(flatAlong.X * flatAcross.Y - flatAlong.Y * flatAcross.X), out _);
+                    return Ellipse2.FromSemiAxes(
+                        Plan(centre),
+                        flatAlong,
+                        flatAcross,
+                        Math.Abs(flatAlong.X * flatAcross.Y - flatAlong.Y * flatAcross.X),
+                        out _
+                    );
                 }
 
                 return Ellipse3.FromSemiAxes(centre, normal, along, across, along.CrossProduct(across).Length);
@@ -1311,9 +1511,30 @@ namespace GeometryHelper.Dxf
                     GeoPoint3 c = frame.World(new GeoPoint3(arc.Center.X, arc.Center.Y, p.Z));
                     bool flat = _planAs2D && frame.OnFloor && c.Z == 0.0;
 
-                    Add(r, arc.SweptAngle > 0.0
-                        ? ArcPieces(c, frame.U, frame.V, arc.Radius, arc.Radius, arc.StartAngle, arc.SweptAngle, flat)
-                        : ArcPieces(c, frame.U, frame.V.Multiply(-1.0), arc.Radius, arc.Radius, -arc.StartAngle, -arc.SweptAngle, flat));
+                    Add(
+                        r,
+                        arc.SweptAngle > 0.0
+                            ? ArcPieces(
+                                c,
+                                frame.U,
+                                frame.V,
+                                arc.Radius,
+                                arc.Radius,
+                                arc.StartAngle,
+                                arc.SweptAngle,
+                                flat
+                            )
+                            : ArcPieces(
+                                c,
+                                frame.U,
+                                frame.V.Multiply(-1.0),
+                                arc.Radius,
+                                arc.Radius,
+                                -arc.StartAngle,
+                                -arc.SweptAngle,
+                                flat
+                            )
+                    );
                     made++;
                 }
 

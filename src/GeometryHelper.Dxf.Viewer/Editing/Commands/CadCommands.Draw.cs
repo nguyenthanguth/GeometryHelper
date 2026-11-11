@@ -30,7 +30,9 @@ namespace GeometryHelper.Dxf.Viewer
                 if (c.Input.IsPoint)
                 {
                     GeoPoint2 next = c.Input.Point;
-                    string handle = AddedHandle(c.Apply(null, s => s.Append(c.Space, Current(c, new DxfLine(P3(last), P3(next))))));
+                    string handle = AddedHandle(
+                        c.Apply(null, s => s.Append(c.Space, Current(c, new DxfLine(P3(last), P3(next)))))
+                    );
 
                     if (handle != null)
                     {
@@ -55,7 +57,10 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     GeoPoint2 first = points[0];
 
-                    if (AddedHandle(c.Apply(null, s => s.Append(c.Space, Current(c, new DxfLine(P3(last), P3(first)))))) != null)
+                    if (
+                        AddedHandle(c.Apply(null, s => s.Append(c.Space, Current(c, new DxfLine(P3(last), P3(first))))))
+                        != null
+                    )
                     {
                         RememberLast(c, first, first - last);
                     }
@@ -71,7 +76,11 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static IEnumerable<CadPrompt> Circle(CadCommandContext c)
         {
-            yield return CadPrompt.ForPoint("Specify center point for circle", null, new[] { "3P", "2P", "Ttr (tan tan radius)" });
+            yield return CadPrompt.ForPoint(
+                "Specify center point for circle",
+                null,
+                new[] { "3P", "2P", "Ttr (tan tan radius)" }
+            );
             GeoPoint2 center;
             double radius;
 
@@ -79,7 +88,13 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 var touches = new List<Touch>();
 
-                foreach (string message in new[] { "Specify point on object for first tangent of circle", "Specify point on object for second tangent of circle" })
+                foreach (
+                    string message in new[]
+                    {
+                        "Specify point on object for first tangent of circle",
+                        "Specify point on object for second tangent of circle",
+                    }
+                )
                 {
                     foreach (CadPrompt prompt in AskTouch(c, message, null, touches, true))
                     {
@@ -96,11 +111,31 @@ namespace GeometryHelper.Dxf.Viewer
 
                 // The circle of the radius touching both, of the centres the shapes moved by it either way cross, the one whose
                 // points of touching lie nearest the picks, as FILLET finds its arc.
-                bool Touching(double r, out GeoPoint2 at)
-                    => Tangent(touches[0].Shape, touches[0].Pick, touches[1].Shape, touches[1].Pick, r, c.Session.Tolerance, out at, out _, out _);
+                bool Touching(double r, out GeoPoint2 at) =>
+                    Tangent(
+                        touches[0].Shape,
+                        touches[0].Pick,
+                        touches[1].Shape,
+                        touches[1].Pick,
+                        r,
+                        c.Session.Tolerance,
+                        out at,
+                        out _,
+                        out _
+                    );
 
-                yield return CadPrompt.ForDistance("Specify radius of circle", touches[1].Pick, null, last > 0.0 ? Length(last) : null)
-                    .Previewing(CadPreview.MakingOne(c, input => input.Number > 0.0 && Touching(input.Number, out GeoPoint2 at) ? MakeCircle(c, at, input.Number) : null, true));
+                yield return CadPrompt
+                    .ForDistance("Specify radius of circle", touches[1].Pick, null, last > 0.0 ? Length(last) : null)
+                    .Previewing(
+                        CadPreview.MakingOne(
+                            c,
+                            input =>
+                                input.Number > 0.0 && Touching(input.Number, out GeoPoint2 at)
+                                    ? MakeCircle(c, at, input.Number)
+                                    : null,
+                            true
+                        )
+                    );
                 radius = c.Input.Kind == CadInputKind.Number ? c.Input.Number : last;
 
                 if (radius <= 0.0)
@@ -125,8 +160,19 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 GeoPoint2 a = c.Input.Point;
-                yield return CadPrompt.ForPoint("Specify second end point of circle's diameter", a)
-                    .Previewing(CadPreview.MakingOne(c, input => (input.Point - a).Length > 0.0 ? MakeCircle(c, new GeoPoint2((a.X + input.Point.X) / 2.0, (a.Y + input.Point.Y) / 2.0), (input.Point - a).Length / 2.0) : null));
+                yield return CadPrompt
+                    .ForPoint("Specify second end point of circle's diameter", a)
+                    .Previewing(
+                        CadPreview.MakingOne(c, input =>
+                            (input.Point - a).Length > 0.0
+                                ? MakeCircle(
+                                    c,
+                                    new GeoPoint2((a.X + input.Point.X) / 2.0, (a.Y + input.Point.Y) / 2.0),
+                                    (input.Point - a).Length / 2.0
+                                )
+                                : null
+                        )
+                    );
 
                 if (!c.Input.IsPoint)
                 {
@@ -142,18 +188,34 @@ namespace GeometryHelper.Dxf.Viewer
                 // Each point a point on the circle, or, typed _tan before it is picked, a line, an arc or a circle it touches, as
                 // the Draw ribbon's Tan, Tan, Tan runs CIRCLE 3P with a tangent snap at each.
                 var touches = new List<Touch>();
-                string[] messages = { "Specify first point on circle", "Specify second point on circle", "Specify third point on circle" };
+                string[] messages =
+                {
+                    "Specify first point on circle",
+                    "Specify second point on circle",
+                    "Specify third point on circle",
+                };
 
                 // The circle of the two given and the third at the cursor, as it is made once the third is given.
                 DxfEntity Third(Touch third)
                 {
                     var three = new List<Touch>(touches) { third };
-                    return CircleOf(three, c.Session.Tolerance, out GeoPoint2 at, out double r) && r > 0.0 ? MakeCircle(c, at, r) : null;
+                    return CircleOf(three, c.Session.Tolerance, out GeoPoint2 at, out double r) && r > 0.0
+                        ? MakeCircle(c, at, r)
+                        : null;
                 }
 
                 for (int i = 0; i < 3; i++)
                 {
-                    foreach (CadPrompt prompt in AskTouch(c, messages[i], i == 0 ? (GeoPoint2?)null : touches[i - 1].Pick, touches, false, i == 2 ? Third : (Func<Touch, DxfEntity>)null))
+                    foreach (
+                        CadPrompt prompt in AskTouch(
+                            c,
+                            messages[i],
+                            i == 0 ? (GeoPoint2?)null : touches[i - 1].Pick,
+                            touches,
+                            false,
+                            i == 2 ? Third : (Func<Touch, DxfEntity>)null
+                        )
+                    )
                     {
                         yield return prompt;
                     }
@@ -181,13 +243,27 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 at = center;
                 double last = c.Remembered("circle", 0.0);
                 string offered = last > 0.0 ? Length(last) : null;
-                yield return CadPrompt.ForDistance("Specify radius of circle", center, new[] { "Diameter" }, offered)
-                    .Previewing(CadPreview.MakingOne(c, input => input.Number > 0.0 ? MakeCircle(c, at, input.Number) : null, true));
+                yield return CadPrompt
+                    .ForDistance("Specify radius of circle", center, new[] { "Diameter" }, offered)
+                    .Previewing(
+                        CadPreview.MakingOne(
+                            c,
+                            input => input.Number > 0.0 ? MakeCircle(c, at, input.Number) : null,
+                            true
+                        )
+                    );
 
                 if (c.Input.Is("Diameter"))
                 {
-                    yield return CadPrompt.ForDistance("Specify diameter of circle", center, null, last > 0.0 ? Length(2.0 * last) : null)
-                        .Previewing(CadPreview.MakingOne(c, input => input.Number > 0.0 ? MakeCircle(c, at, input.Number / 2.0) : null, true));
+                    yield return CadPrompt
+                        .ForDistance("Specify diameter of circle", center, null, last > 0.0 ? Length(2.0 * last) : null)
+                        .Previewing(
+                            CadPreview.MakingOne(
+                                c,
+                                input => input.Number > 0.0 ? MakeCircle(c, at, input.Number / 2.0) : null,
+                                true
+                            )
+                        );
                     radius = c.Input.Kind == CadInputKind.Number ? c.Input.Number / 2.0 : last;
                 }
                 else
@@ -213,11 +289,17 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The circle CIRCLE makes, and previews, of a centre and a radius, in the current layer and colour.</summary>
-        private static DxfCircle MakeCircle(CadCommandContext c, GeoPoint2 center, double radius) => Current(c, new DxfCircle(P3(center), Up, radius));
+        private static DxfCircle MakeCircle(CadCommandContext c, GeoPoint2 center, double radius) =>
+            Current(c, new DxfCircle(P3(center), Up, radius));
 
         /// <summary>The circle through three points, or through some and touching the objects of the others.</summary>
-        private static bool CircleOf(List<Touch> touches, Tolerance tolerance, out GeoPoint2 center, out double radius)
-            => touches.TrueForAll(t => t.Shape == null)
+        private static bool CircleOf(
+            List<Touch> touches,
+            Tolerance tolerance,
+            out GeoPoint2 center,
+            out double radius
+        ) =>
+            touches.TrueForAll(t => t.Shape == null)
                 ? CadGrips.CircleThrough(touches[0].Pick, touches[1].Pick, touches[2].Pick, out center, out radius)
                 : CircleTouching(touches, tolerance, out center, out radius);
 
@@ -240,7 +322,12 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 GeoPoint2 b = ucs.ToUcs(other);
 
-                if (!(Math.Abs(b.X - a.X) > c.Session.Tolerance.EqualPoint && Math.Abs(b.Y - a.Y) > c.Session.Tolerance.EqualPoint))
+                if (
+                    !(
+                        Math.Abs(b.X - a.X) > c.Session.Tolerance.EqualPoint
+                        && Math.Abs(b.Y - a.Y) > c.Session.Tolerance.EqualPoint
+                    )
+                )
                 {
                     return null;
                 }
@@ -258,7 +345,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify other corner point", first).Previewing(CadPreview.MakingOne(c, input => Make(input.Point)));
+                yield return CadPrompt
+                    .ForPoint("Specify other corner point", first)
+                    .Previewing(CadPreview.MakingOne(c, input => Make(input.Point)));
 
                 if (!c.Input.IsPoint)
                 {
@@ -354,7 +443,8 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 // The longer half is the major axis; the shorter lies square to it.
-                GeoVector2 major = length > first.Length ? new GeoVector2(-first.Y, first.X) / first.Length * length : first;
+                GeoVector2 major =
+                    length > first.Length ? new GeoVector2(-first.Y, first.X) / first.Length * length : first;
                 double ratio = Math.Min(length, first.Length) / Math.Max(length, first.Length);
 
                 // The ellipse measures its angles from its major axis.
@@ -364,20 +454,47 @@ namespace GeometryHelper.Dxf.Viewer
                     to += Math.Atan2(given.Y, given.X) - Math.Atan2(major.Y, major.X);
                 }
 
-                return Current(c, new DxfEllipse(P3(middle), new GeoVector3(0.0, 0.0, 1.0), new GeoVector3(major.X, major.Y, 0.0), ratio, from, to));
+                return Current(
+                    c,
+                    new DxfEllipse(
+                        P3(middle),
+                        new GeoVector3(0.0, 0.0, 1.0),
+                        new GeoVector3(major.X, major.Y, 0.0),
+                        ratio,
+                        from,
+                        to
+                    )
+                );
             }
 
-            yield return CadPrompt.ForDistance("Specify distance to other axis", center, new[] { "Rotation" })
-                .Previewing(CadPreview.MakingOne(c, input => Make(Math.Abs(input.Number), 0.0, 2.0 * Math.PI, false), true));
+            yield return CadPrompt
+                .ForDistance("Specify distance to other axis", center, new[] { "Rotation" })
+                .Previewing(
+                    CadPreview.MakingOne(c, input => Make(Math.Abs(input.Number), 0.0, 2.0 * Math.PI, false), true)
+                );
             double other;
 
             if (c.Input.Is("Rotation"))
             {
-                yield return CadPrompt.ForAngle("Specify rotation around major axis", center).Turning()
-                    .Previewing(CadPreview.MakingOne(c, input => Math.Abs(Math.Cos(input.Number)) < Math.Cos(89.4 * Math.PI / 180.0) ? null : Make(first.Length * Math.Abs(Math.Cos(input.Number)), 0.0, 2.0 * Math.PI, false), true));
+                yield return CadPrompt
+                    .ForAngle("Specify rotation around major axis", center)
+                    .Turning()
+                    .Previewing(
+                        CadPreview.MakingOne(
+                            c,
+                            input =>
+                                Math.Abs(Math.Cos(input.Number)) < Math.Cos(89.4 * Math.PI / 180.0)
+                                    ? null
+                                    : Make(first.Length * Math.Abs(Math.Cos(input.Number)), 0.0, 2.0 * Math.PI, false),
+                            true
+                        )
+                    );
 
                 // AutoCAD takes a rotation below 89.4 degrees, the other half the first's times its cosine.
-                if (c.Input.Kind != CadInputKind.Number || Math.Abs(Math.Cos(c.Input.Number)) < Math.Cos(89.4 * Math.PI / 180.0))
+                if (
+                    c.Input.Kind != CadInputKind.Number
+                    || Math.Abs(Math.Cos(c.Input.Number)) < Math.Cos(89.4 * Math.PI / 180.0)
+                )
                 {
                     c.Write("*Invalid* Requires an angle from 0 to 89.4 degrees.");
                     yield break;
@@ -408,7 +525,9 @@ namespace GeometryHelper.Dxf.Viewer
                 // An angle typed is from the first axis end, clockwise with ANGDIR 1; one picked is the way to the point, made from
                 // that end too (the session gives a pick at these prompts less ANGBASE, which is put back here).
                 double fromUcs = c.Session.Ucs.AngleToUcs(Math.Atan2(axis.Y, axis.X)) - c.Database.Angbase;
-                yield return CadPrompt.ForAngle("Specify start angle", center).Turning()
+                yield return CadPrompt
+                    .ForAngle("Specify start angle", center)
+                    .Turning()
                     .Previewing(CadPreview.MakingOne(c, input => Make(other, 0.0, 2.0 * Math.PI, false), true));
 
                 if (c.Input.Kind != CadInputKind.Number)
@@ -418,18 +537,33 @@ namespace GeometryHelper.Dxf.Viewer
 
                 start = Typed(c.Input) ? c.Input.Number : c.Input.Number - fromUcs;
                 double begin = start;
-                yield return CadPrompt.ForAngle("Specify end angle", center, new[] { "Included angle" }).Turning()
-                    .Previewing(CadPreview.MakingOne(c, input => Make(other, begin, input.Number - fromUcs, true), true));
+                yield return CadPrompt
+                    .ForAngle("Specify end angle", center, new[] { "Included angle" })
+                    .Turning()
+                    .Previewing(
+                        CadPreview.MakingOne(c, input => Make(other, begin, input.Number - fromUcs, true), true)
+                    );
 
                 if (c.Input.Is("Included angle"))
                 {
-                    yield return CadPrompt.ForAngle("Specify included angle for arc", center, null, "180").Turning()
-                        .Previewing(CadPreview.MakingOne(c, input => Make(other, begin, input.Number - fromUcs, true), true));
-                    end = c.Input.IsNone ? start + Math.PI : c.Input.Kind != CadInputKind.Number ? double.NaN : Typed(c.Input) ? start + c.Input.Number : c.Input.Number - fromUcs;
+                    yield return CadPrompt
+                        .ForAngle("Specify included angle for arc", center, null, "180")
+                        .Turning()
+                        .Previewing(
+                            CadPreview.MakingOne(c, input => Make(other, begin, input.Number - fromUcs, true), true)
+                        );
+                    end =
+                        c.Input.IsNone ? start + Math.PI
+                        : c.Input.Kind != CadInputKind.Number ? double.NaN
+                        : Typed(c.Input) ? start + c.Input.Number
+                        : c.Input.Number - fromUcs;
                 }
                 else
                 {
-                    end = c.Input.Kind == CadInputKind.Number ? (Typed(c.Input) ? c.Input.Number : c.Input.Number - fromUcs) : double.NaN;
+                    end =
+                        c.Input.Kind == CadInputKind.Number
+                            ? (Typed(c.Input) ? c.Input.Number : c.Input.Number - fromUcs)
+                            : double.NaN;
                 }
 
                 if (double.IsNaN(end))
@@ -444,7 +578,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>POINT: one point object where the point is given, drawn as the drawing's PDMODE says.</summary>
         private static IEnumerable<CadPrompt> Point(CadCommandContext c)
         {
-            c.Write("Current point modes:  PDMODE=" + c.Database.Pdmode.ToString(CultureInfo.InvariantCulture) + "  PDSIZE=" + Length(c.Database.Pdsize));
+            c.Write(
+                "Current point modes:  PDMODE="
+                    + c.Database.Pdmode.ToString(CultureInfo.InvariantCulture)
+                    + "  PDSIZE="
+                    + Length(c.Database.Pdsize)
+            );
             yield return CadPrompt.ForPoint("Specify a point");
 
             if (c.Input.IsPoint)
@@ -458,7 +597,9 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (!HasMLeaderStyle(c.Database))
             {
-                c.Write("The drawing has no multileader style to draw in: one made by AutoCAD's MLEADERSTYLE is needed.");
+                c.Write(
+                    "The drawing has no multileader style to draw in: one made by AutoCAD's MLEADERSTYLE is needed."
+                );
                 yield break;
             }
 
@@ -473,8 +614,23 @@ namespace GeometryHelper.Dxf.Viewer
             string style = CadMLeaderStyleEditor.Current(c.Database);
 
             // The leader and its landing to the cursor, made as the multileader is but of no words yet, as AutoCAD drags them.
-            yield return CadPrompt.ForPoint("Specify leader landing location", arrow).Previewing(CadPreview.MakingOne(c, input =>
-                (input.Point - arrow).Length > c.Session.Tolerance.EqualPoint ? Current(c, CadMLeaderStyleEditor.Make(CadMLeaderStyleEditor.Find(c.Database, style), P3(arrow), P3(input.Point), " ")) : null));
+            yield return CadPrompt
+                .ForPoint("Specify leader landing location", arrow)
+                .Previewing(
+                    CadPreview.MakingOne(c, input =>
+                        (input.Point - arrow).Length > c.Session.Tolerance.EqualPoint
+                            ? Current(
+                                c,
+                                CadMLeaderStyleEditor.Make(
+                                    CadMLeaderStyleEditor.Find(c.Database, style),
+                                    P3(arrow),
+                                    P3(input.Point),
+                                    " "
+                                )
+                            )
+                            : null
+                    )
+                );
 
             if (!c.Input.IsPoint)
             {
@@ -495,7 +651,12 @@ namespace GeometryHelper.Dxf.Viewer
             string name = CadMLeaderStyleEditor.Current(c.Database);
             c.Apply(null, s =>
             {
-                DxfMLeader mleader = CadMLeaderStyleEditor.Make(CadMLeaderStyleEditor.Find(s.Database, name), P3(arrow), P3(landing), words);
+                DxfMLeader mleader = CadMLeaderStyleEditor.Make(
+                    CadMLeaderStyleEditor.Find(s.Database, name),
+                    P3(arrow),
+                    P3(landing),
+                    words
+                );
                 s.Append(c.Space, Current(c, mleader));
                 mleader.MLeaderStyle = name;
                 mleader.SetFromStyle();
@@ -507,7 +668,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (!c.Session.Request("MLEADERSTYLE", c.Document))
             {
-                c.Write("Current multileader style: \"" + CadMLeaderStyleEditor.Current(c.Database) + "\". The Multileader Style Manager is shown by the window.");
+                c.Write(
+                    "Current multileader style: \""
+                        + CadMLeaderStyleEditor.Current(c.Database)
+                        + "\". The Multileader Style Manager is shown by the window."
+                );
             }
 
             yield break;
@@ -582,7 +747,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 var viewport = new DxfViewport();
                 s.Append(space, Current(c, viewport));
-                viewport.CenterPoint = new GeoPoint3((frame.MinX + frame.MaxX) / 2.0, (frame.MinY + frame.MaxY) / 2.0, 0.0);
+                viewport.CenterPoint = new GeoPoint3(
+                    (frame.MinX + frame.MaxX) / 2.0,
+                    (frame.MinY + frame.MaxY) / 2.0,
+                    0.0
+                );
                 viewport.Width = frame.Width;
                 viewport.Height = frame.Height;
                 viewport.ViewCenter = viewCenter;

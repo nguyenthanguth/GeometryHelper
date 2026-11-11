@@ -28,7 +28,14 @@ namespace GeometryHelper.Dxf
         /// <param name="offsetY">The y of that step.</param>
         /// <param name="dashes">The dashes, a length above nought drawn, below it left out, nought a dot; none for a solid line.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a number is not finite.</exception>
-        public DxfPatternDefinition(double angle, double baseX, double baseY, double offsetX, double offsetY, IEnumerable<double> dashes)
+        public DxfPatternDefinition(
+            double angle,
+            double baseX,
+            double baseY,
+            double offsetX,
+            double offsetY,
+            IEnumerable<double> dashes
+        )
         {
             Guard.Finite(angle, nameof(angle), "An angle has to be a finite number.");
             Guard.Finite(baseX, nameof(baseX), "A coordinate has to be a finite number.");

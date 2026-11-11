@@ -30,8 +30,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public event EventHandler<string> StyleDialogRequested;
 
         /// <summary>Gets the text styles of the drawing for the text style box, then <see cref="ManageTextStyles"/>; empty with no drawing.</summary>
-        public IReadOnlyList<string> TextStyleNames
-            => _current == null ? Array.Empty<string>() : CadTextStyleEditor.Styles(_current.Document.Database).Select(s => s.Name).Concat(new[] { ManageTextStyles }).ToList();
+        public IReadOnlyList<string> TextStyleNames =>
+            _current == null
+                ? Array.Empty<string>()
+                : CadTextStyleEditor
+                    .Styles(_current.Document.Database)
+                    .Select(s => s.Name)
+                    .Concat(new[] { ManageTextStyles })
+                    .ToList();
 
         /// <summary>
         /// Gets or sets the current text style, as the text style box shows and sets it (one undo step); set to
@@ -42,7 +48,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get => _current == null ? null : CadTextStyleEditor.Current(_current.Document.Database);
             set
             {
-                if (_current == null || value == null || string.Equals(value, CurrentTextStyle, StringComparison.Ordinal))
+                if (
+                    _current == null
+                    || value == null
+                    || string.Equals(value, CurrentTextStyle, StringComparison.Ordinal)
+                )
                 {
                     return;
                 }
@@ -66,11 +76,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         public string TextHeight
         {
-            get => _current == null ? string.Empty
-                : (_current.Session.Remembered.TryGetValue("text.height", out double height) ? height : SafeTextSize(_current.Document.Database)).ToString("0.####", CultureInfo.InvariantCulture);
+            get =>
+                _current == null
+                    ? string.Empty
+                    : (
+                        _current.Session.Remembered.TryGetValue("text.height", out double height)
+                            ? height
+                            : SafeTextSize(_current.Document.Database)
+                    ).ToString("0.####", CultureInfo.InvariantCulture);
             set
             {
-                if (_current != null && double.TryParse((value ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double height) && height > 0.0 && !double.IsInfinity(height))
+                if (
+                    _current != null
+                    && double.TryParse(
+                        (value ?? string.Empty).Trim(),
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out double height
+                    )
+                    && height > 0.0
+                    && !double.IsInfinity(height)
+                )
                 {
                     _current.Session.Remembered["text.height"] = height;
                 }
@@ -80,8 +106,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets the dimension styles of the drawing for the dimension style box, then <see cref="ManageDimensionStyles"/>.</summary>
-        public IReadOnlyList<string> DimStyleNames
-            => _current == null ? Array.Empty<string>() : CadDimStyleEditor.Styles(_current.Document.Database).Select(s => s.Name).Concat(new[] { ManageDimensionStyles }).ToList();
+        public IReadOnlyList<string> DimStyleNames =>
+            _current == null
+                ? Array.Empty<string>()
+                : CadDimStyleEditor
+                    .Styles(_current.Document.Database)
+                    .Select(s => s.Name)
+                    .Concat(new[] { ManageDimensionStyles })
+                    .ToList();
 
         /// <summary>
         /// Gets or sets the current dimension style, as the dimension style box shows and sets it (one undo step); set to
@@ -92,7 +124,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get => _current == null ? null : CadDimStyleEditor.Current(_current.Document.Database);
             set
             {
-                if (_current == null || value == null || string.Equals(value, CurrentDimStyle, StringComparison.Ordinal))
+                if (
+                    _current == null
+                    || value == null
+                    || string.Equals(value, CurrentDimStyle, StringComparison.Ordinal)
+                )
                 {
                     return;
                 }
@@ -121,12 +157,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     styles = _current?.Document.Database.MLeaderStyleDictionary;
                 }
-                catch (Exception exception) when (exception is InvalidOperationException || exception is ArgumentException)
+                catch (Exception exception)
+                    when (exception is InvalidOperationException || exception is ArgumentException)
                 {
                     styles = null;
                 }
 
-                return styles == null ? Array.Empty<string>() : styles.Select(e => e.Key).OrderBy(k => k, StringComparer.OrdinalIgnoreCase).ThenBy(k => k, StringComparer.Ordinal).ToList();
+                return styles == null
+                    ? Array.Empty<string>()
+                    : styles
+                        .Select(e => e.Key)
+                        .OrderBy(k => k, StringComparer.OrdinalIgnoreCase)
+                        .ThenBy(k => k, StringComparer.Ordinal)
+                        .ToList();
             }
         }
 
@@ -134,14 +177,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool HasMLeaderStyles => MLeaderStyleNames.Count > 0;
 
         /// <summary>Gets the items of the text style box: the styles, the current one ticked, then "Text style…" under a line.</summary>
-        public IReadOnlyList<StyleBoxItemViewModel> TextStyleItems => Items(TextStyleNames, CurrentTextStyle, ManageTextStyles);
+        public IReadOnlyList<StyleBoxItemViewModel> TextStyleItems =>
+            Items(TextStyleNames, CurrentTextStyle, ManageTextStyles);
 
         /// <summary>Gets the items of the dimension style box: the styles, the current one ticked, a model drawing's marked "model", then "Dimension style…".</summary>
-        public IReadOnlyList<StyleBoxItemViewModel> DimStyleItems => Items(DimStyleNames, CurrentDimStyle, ManageDimensionStyles);
+        public IReadOnlyList<StyleBoxItemViewModel> DimStyleItems =>
+            Items(DimStyleNames, CurrentDimStyle, ManageDimensionStyles);
 
         /// <summary>Gets the items of the multileader style box: the styles, the current one ticked, then "Multileader style…" under a line.</summary>
-        public IReadOnlyList<StyleBoxItemViewModel> MLeaderStyleItems
-            => _current == null ? Array.Empty<StyleBoxItemViewModel>() : Items(MLeaderStyleNames.Concat(new[] { ManageMLeaderStyles }).ToList(), CurrentMLeaderStyle, ManageMLeaderStyles);
+        public IReadOnlyList<StyleBoxItemViewModel> MLeaderStyleItems =>
+            _current == null
+                ? Array.Empty<StyleBoxItemViewModel>()
+                : Items(
+                    MLeaderStyleNames.Concat(new[] { ManageMLeaderStyles }).ToList(),
+                    CurrentMLeaderStyle,
+                    ManageMLeaderStyles
+                );
 
         /// <summary>
         /// Gets or sets the current multileader style (CMLEADERSTYLE), as the multileader style box shows and sets it (one undo
@@ -155,19 +206,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     return _current?.Document.Database.MLeaderstyle;
                 }
-                catch (Exception exception) when (exception is InvalidOperationException || exception is ArgumentException)
+                catch (Exception exception)
+                    when (exception is InvalidOperationException || exception is ArgumentException)
                 {
                     return null;
                 }
             }
-
             set
             {
                 if (_current != null && value == ManageMLeaderStyles)
                 {
                     RequestStyleDialog("MLEADERSTYLE");
                 }
-                else if (_current != null && value != null && MLeaderStyleNames.Contains(value) && !string.Equals(value, CurrentMLeaderStyle, StringComparison.Ordinal))
+                else if (
+                    _current != null
+                    && value != null
+                    && MLeaderStyleNames.Contains(value)
+                    && !string.Equals(value, CurrentMLeaderStyle, StringComparison.Ordinal)
+                )
                 {
                     SayRefused(CadMLeaderStyleEditor.SetCurrent(_current.Document, value));
                 }
@@ -178,16 +234,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Makes the Text Style dialog's view model over the drawing shown.</summary>
         /// <returns>The view model; null with no drawing.</returns>
-        public TextStyleViewModel CreateTextStyle() => _current == null ? null : new TextStyleViewModel(_current.Document);
+        public TextStyleViewModel CreateTextStyle() =>
+            _current == null ? null : new TextStyleViewModel(_current.Document);
 
         /// <summary>Makes the Dimension Style Manager's view model over the drawing shown.</summary>
         /// <returns>The view model; null with no drawing or one of no dimension style.</returns>
-        public DimStyleManagerViewModel CreateDimStyleManager()
-            => _current == null || CadDimStyleEditor.Current(_current.Document.Database) == null ? null : new DimStyleManagerViewModel(_current.Document);
+        public DimStyleManagerViewModel CreateDimStyleManager() =>
+            _current == null || CadDimStyleEditor.Current(_current.Document.Database) == null
+                ? null
+                : new DimStyleManagerViewModel(_current.Document);
 
         /// <summary>Makes the Multileader Style Manager's view model over the drawing shown, Standard added to a drawing of no multileader style.</summary>
         /// <returns>The view model; null with no drawing.</returns>
-        public MLeaderStyleManagerViewModel CreateMLeaderStyleManager() => _current == null ? null : new MLeaderStyleManagerViewModel(_current.Document);
+        public MLeaderStyleManagerViewModel CreateMLeaderStyleManager() =>
+            _current == null ? null : new MLeaderStyleManagerViewModel(_current.Document);
 
         /// <summary>Asks the window for a style dialog; with no window, says so on the command line.</summary>
         /// <param name="name">STYLE, DIMSTYLE, TABLESTYLE or MLEADERSTYLE.</param>
@@ -196,7 +256,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             if (StyleDialogRequested == null)
             {
-                Say((name == "STYLE" ? "The Text Style dialog" : name == "TABLESTYLE" ? "The Table Style dialog" : name == "MLEADERSTYLE" ? "The Multileader Style Manager" : "The Dimension Style Manager") + " is shown by the window.");
+                Say(
+                    (
+                        name == "STYLE" ? "The Text Style dialog"
+                        : name == "TABLESTYLE" ? "The Table Style dialog"
+                        : name == "MLEADERSTYLE" ? "The Multileader Style Manager"
+                        : "The Dimension Style Manager"
+                    ) + " is shown by the window."
+                );
                 return false;
             }
 
@@ -236,10 +303,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>The items of a style box from its names, the dialog's item last where the names end in it.</summary>
-        private static IReadOnlyList<StyleBoxItemViewModel> Items(IReadOnlyList<string> names, string current, string dialog)
-            => names.Select(n => n == dialog
-                    ? new StyleBoxItemViewModel(n, false, string.Empty, true)
-                    : new StyleBoxItemViewModel(n, string.Equals(n, current, StringComparison.OrdinalIgnoreCase), CadDimStyleEditor.IsModelStyle(n) ? "model" : string.Empty, false))
+        private static IReadOnlyList<StyleBoxItemViewModel> Items(
+            IReadOnlyList<string> names,
+            string current,
+            string dialog
+        ) =>
+            names
+                .Select(n =>
+                    n == dialog
+                        ? new StyleBoxItemViewModel(n, false, string.Empty, true)
+                        : new StyleBoxItemViewModel(
+                            n,
+                            string.Equals(n, current, StringComparison.OrdinalIgnoreCase),
+                            CadDimStyleEditor.IsModelStyle(n) ? "model" : string.Empty,
+                            false
+                        )
+                )
                 .ToList();
 
         private void SayRefused(CadEditResult result)

@@ -22,9 +22,17 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static GeoPoint3 P(double x, double y) => new GeoPoint3(x, y, 0);
 
-        private static void Near(GeoPoint3 expected, GeoPoint3 actual) => Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
+        private static void Near(GeoPoint3 expected, GeoPoint3 actual) =>
+            Assert.True(expected.IsEqualTo(actual, Close), "expected " + expected + ", got " + actual);
 
-        private static void Near(double expected, double actual) => Assert.True(Math.Abs(expected - actual) <= 1E-6, "expected " + expected.ToString("R", CultureInfo.InvariantCulture) + ", got " + actual.ToString("R", CultureInfo.InvariantCulture));
+        private static void Near(double expected, double actual) =>
+            Assert.True(
+                Math.Abs(expected - actual) <= 1E-6,
+                "expected "
+                    + expected.ToString("R", CultureInfo.InvariantCulture)
+                    + ", got "
+                    + actual.ToString("R", CultureInfo.InvariantCulture)
+            );
 
         private static void NearAll(double[] expected, double[] actual)
         {
@@ -72,7 +80,12 @@ namespace GeometryHelper.UnitTest.Dxf
             var mleader = new DxfMLeader();
             db.ModelSpace.AppendEntity(mleader);
             before?.Invoke(mleader);
-            mleader.MText = new DxfMText { Contents = "ABC", Location = P(100, 50), TextHeight = 4.0 };
+            mleader.MText = new DxfMText
+            {
+                Contents = "ABC",
+                Location = P(100, 50),
+                TextHeight = 4.0,
+            };
 
             foreach (GeoPoint3 point in points)
             {
@@ -83,7 +96,10 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         private static GeoPoint3[] Points(string side) =>
-            side == "left" ? new[] { P(0, 0) } : side == "right" ? new[] { P(250, 0) } : side == "both" ? new[] { P(0, 0), P(250, 0) } : new GeoPoint3[0];
+            side == "left" ? new[] { P(0, 0) }
+            : side == "right" ? new[] { P(250, 0) }
+            : side == "both" ? new[] { P(0, 0), P(250, 0) }
+            : new GeoPoint3[0];
 
         /// <summary>A leader of no lines added, and a line of no vertex in it; the line's index.</summary>
         private static int Empty(DxfMLeader mleader, GeoVector3? dogleg = null)
@@ -121,30 +137,52 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             List<DxfTypedValue> tail = Tail(entity);
             int start = tail.FindIndex(g => int.TryParse(from, out int at) ? g.TypeCode == at : g.Value.Trim() == from);
-            return tail.Skip(start + 1).Where(g => g.TypeCode == code).Skip(skip).Select(g => g.Value.Trim()).FirstOrDefault();
+            return tail.Skip(start + 1)
+                .Where(g => g.TypeCode == code)
+                .Skip(skip)
+                .Select(g => g.Value.Trim())
+                .FirstOrDefault();
         }
 
         /// <summary>The text of the first group of a code of a leader of the context data (its LEADER{ section, counted from nought).</summary>
         private static string OfLeader(DxfEntity entity, int leader, int code)
         {
             List<DxfTypedValue> tail = Tail(entity);
-            int start = Enumerable.Range(0, tail.Count).Where(i => tail[i].Value.Trim() == "LEADER{").Skip(leader).First();
-            return tail.Skip(start + 1).TakeWhile(g => g.TypeCode != 303).Where(g => g.TypeCode == code).Select(g => g.Value.Trim()).FirstOrDefault();
+            int start = Enumerable
+                .Range(0, tail.Count)
+                .Where(i => tail[i].Value.Trim() == "LEADER{")
+                .Skip(leader)
+                .First();
+            return tail.Skip(start + 1)
+                .TakeWhile(g => g.TypeCode != 303)
+                .Where(g => g.TypeCode == code)
+                .Select(g => g.Value.Trim())
+                .FirstOrDefault();
         }
 
         /// <summary>The point a leader's dogleg starts at, as written (its 10, 20 and 30).</summary>
         private static GeoPoint3 LeaderPoint(DxfEntity entity, int leader) =>
-            new GeoPoint3(Number(OfLeader(entity, leader, 10)), Number(OfLeader(entity, leader, 20)), Number(OfLeader(entity, leader, 30)));
+            new GeoPoint3(
+                Number(OfLeader(entity, leader, 10)),
+                Number(OfLeader(entity, leader, 20)),
+                Number(OfLeader(entity, leader, 30))
+            );
 
         private static double Number(string text) => double.Parse(text, CultureInfo.InvariantCulture);
 
-        private static int Flags(DxfMLeader mleader) => int.Parse(After(mleader, "301", 90), CultureInfo.InvariantCulture);
+        private static int Flags(DxfMLeader mleader) =>
+            int.Parse(After(mleader, "301", 90), CultureInfo.InvariantCulture);
 
         /// <summary>The block's matrix (its 47 groups), row by row, as written.</summary>
-        private static double[] Matrix(DxfMLeader mleader, int rows = 2) => Enumerable.Range(0, 4 * rows).Select(i => Number(After(mleader, "296", 47, i))).ToArray();
+        private static double[] Matrix(DxfMLeader mleader, int rows = 2) =>
+            Enumerable.Range(0, 4 * rows).Select(i => Number(After(mleader, "296", 47, i))).ToArray();
 
         private static GeoPoint3 Point(DxfMLeader mleader, string from, int code, int skip = 0) =>
-            new GeoPoint3(Number(After(mleader, from, code, skip)), Number(After(mleader, from, code + 10, skip)), Number(After(mleader, from, code + 20, skip)));
+            new GeoPoint3(
+                Number(After(mleader, from, code, skip)),
+                Number(After(mleader, from, code + 10, skip)),
+                Number(After(mleader, from, code + 20, skip))
+            );
 
         private static List<DxfLine> Doglegs(DxfMLeader mleader) => mleader.Explode().OfType<DxfLine>().ToList();
 
@@ -178,7 +216,8 @@ namespace GeometryHelper.UnitTest.Dxf
             // AutoCAD 2021: AddFirstVertex at (-20, 80) on the line of a leader just added made it the leader's landing, the line
             // of one vertex, the dogleg drawn from (-20, 80) to (-12, 80), the content left (a1-addfirst, a1-k-addfirst). The
             // library put the point before a landing at the base point.
-            DxfMLeader mleader = content == "words" ? OfWords(Drawing(), Points("left")) : OfBox(Drawing(), Points("left"));
+            DxfMLeader mleader =
+                content == "words" ? OfWords(Drawing(), Points("left")) : OfBox(Drawing(), Points("left"));
             int line = Empty(mleader);
 
             mleader.AddFirstVertex(line, P(-20, 80));
@@ -186,7 +225,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(1, mleader.VerticesCount(line));
             Near(P(-20, 80), mleader.GetLastVertex(line));
             Assert.Equal("1", OfLeader(mleader, 1, 290));
-            Assert.Contains(Doglegs(mleader), d => d.StartPoint.IsEqualTo(P(-20, 80), Close) && d.EndPoint.IsEqualTo(P(-12, 80), Close));
+            Assert.Contains(Doglegs(mleader), d =>
+                d.StartPoint.IsEqualTo(P(-20, 80), Close) && d.EndPoint.IsEqualTo(P(-12, 80), Close)
+            );
             Near(P(100, 50), content == "words" ? mleader.TextLocation : mleader.BlockPosition);
         }
 
@@ -230,12 +271,18 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("words", 1.0, 90.0, 48.0)]
         [InlineData("block", 1.0, 82.0, 55.0)]
         [InlineData("block", -1.0, 128.0, 55.0)]
-        public void SetDogleg_OnALeaderOfNoLanding_LandsItAtTheContent_AndAVertexGoesBeforeIt_AsAutoCadDoes(string content, double along, double x, double y)
+        public void SetDogleg_OnALeaderOfNoLanding_LandsItAtTheContent_AndAVertexGoesBeforeIt_AsAutoCadDoes(
+            string content,
+            double along,
+            double x,
+            double y
+        )
         {
             // AutoCAD 2021: SetDogleg on a leader just added landed it on the side of the content it runs from, its first vertex
             // then put before the landing: along x on the left of the words from (90, 48) (a1-setdogleg-addfirst), against x on
             // the right of the box from (128, 55) (a1-k-negdogleg-addfirst).
-            DxfMLeader mleader = content == "words" ? OfWords(Drawing(), Points("left")) : OfBox(Drawing(), Points("left"));
+            DxfMLeader mleader =
+                content == "words" ? OfWords(Drawing(), Points("left")) : OfBox(Drawing(), Points("left"));
             int line = Empty(mleader, new GeoVector3(along, 0, 0));
 
             mleader.AddFirstVertex(line, P(along > 0 ? -20 : 270, 80));
@@ -275,7 +322,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             List<DxfLine> doglegs = Doglegs(mleader);
             Assert.Equal(2, doglegs.Count);
-            Assert.All(doglegs, d => Assert.True(d.StartPoint.IsEqualTo(P(128, 55), Close) && d.EndPoint.IsEqualTo(P(120, 55), Close)));
+            Assert.All(doglegs, d =>
+                Assert.True(d.StartPoint.IsEqualTo(P(128, 55), Close) && d.EndPoint.IsEqualTo(P(120, 55), Close))
+            );
         }
 
         [Theory]
@@ -287,7 +336,8 @@ namespace GeometryHelper.UnitTest.Dxf
             // (60, -10): the words to (160, 40), the first landed from (150, 38), the second's line of one vertex (40, 70)
             // (s2-two-base); the box to (160, 40), the first from (142, 45) (k-two-unlanded-base). The library moved them by
             // (-58, 22), to (42, 72).
-            DxfMLeader mleader = content == "words" ? OfWords(Drawing(), Points("left")) : OfBox(Drawing(), Points("left"));
+            DxfMLeader mleader =
+                content == "words" ? OfWords(Drawing(), Points("left")) : OfBox(Drawing(), Points("left"));
 
             SecondLeft(mleader);
 
@@ -304,7 +354,13 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("LandingGap", 150.0, 150.0, 163.0, 40.0)]
         [InlineData("TextHeight", 150.0, 150.0, 160.0, 43.0)]
         [InlineData("Scale", 142.0, 142.0, 162.0, 42.0)]
-        public void TwoLeadersMadeByTheLibrary_AreEditedAsAutoCadsOwn(string change, double first, double second, double x, double y)
+        public void TwoLeadersMadeByTheLibrary_AreEditedAsAutoCadsOwn(
+            string change,
+            double first,
+            double second,
+            double x,
+            double y
+        )
         {
             // AutoCAD 2021, on the two leaders it made so (s2-two-base): a dogleg of 15 given to the first started it at (143, 38)
             // and landed the second from (150, 38) (d6-two-setdl0), given to the second (d6-two-setdl1), to both (d-two-dl15); a gap
@@ -315,12 +371,24 @@ namespace GeometryHelper.UnitTest.Dxf
 
             switch (change)
             {
-                case "SetDoglegLength0": mleader.SetDoglegLength(0, 15); break;
-                case "SetDoglegLength1": mleader.SetDoglegLength(1, 15); break;
-                case "DoglegLength": mleader.DoglegLength = 15; break;
-                case "LandingGap": mleader.LandingGap = 5; break;
-                case "TextHeight": mleader.TextHeight = 10; break;
-                default: mleader.Scale = 2; break;
+                case "SetDoglegLength0":
+                    mleader.SetDoglegLength(0, 15);
+                    break;
+                case "SetDoglegLength1":
+                    mleader.SetDoglegLength(1, 15);
+                    break;
+                case "DoglegLength":
+                    mleader.DoglegLength = 15;
+                    break;
+                case "LandingGap":
+                    mleader.LandingGap = 5;
+                    break;
+                case "TextHeight":
+                    mleader.TextHeight = 10;
+                    break;
+                default:
+                    mleader.Scale = 2;
+                    break;
             }
 
             Near(P(first, 38), mleader.GetLastVertex(0));
@@ -444,7 +512,12 @@ namespace GeometryHelper.UnitTest.Dxf
         [Theory]
         [InlineData(0.0, 90.0, -50.0, 100.0)]
         [InlineData(30.0, 120.0, -48.169872981077845, 105.49038105676658)]
-        public void TheBlockRotationSetOnATurnedMultileader_TurnsTheBlockFromItsPlane_AsAutoCadDoes(double degrees, double drawn, double x, double y)
+        public void TheBlockRotationSetOnATurnedMultileader_TurnsTheBlockFromItsPlane_AsAutoCadDoes(
+            double degrees,
+            double drawn,
+            double x,
+            double y
+        )
         {
             // AutoCAD 2021: on the box turned a quarter by TransformBy, BlockRotation 0 kept it drawn turned a quarter at (-50, 100)
             // (c3-k-rot90-blockrot0), and 30 degrees drew it turned 120 at (-48.17, 105.49) (k-rot90-blockrot30). The library drew
@@ -572,7 +645,16 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Drawing();
             var record = new DxfTextStyleTableRecord { Name = "TS2" };
             db.TextStyleTable.Add(record);
-            var mleader = new DxfMLeader { MText = new DxfMText { Contents = "ABC", Location = P(100, 50), TextHeight = 4.0, TextStyleName = "TS2" } };
+            var mleader = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = "ABC",
+                    Location = P(100, 50),
+                    TextHeight = 4.0,
+                    TextStyleName = "TS2",
+                },
+            };
 
             db.ModelSpace.AppendEntity(mleader);
 
@@ -592,14 +674,36 @@ namespace GeometryHelper.UnitTest.Dxf
             db.TextStyleTable.Add(record);
             var standard = (DxfMLeaderStyle)db.MLeaderStyleDictionary.GetAt("Standard");
             List<DxfTypedValue> tail = standard.Item.File.TailOf(standard.Item, 0);
-            standard.Item.File.ReplaceTail(standard.Item, 0, tail.Select(g => new KeyValuePair<int, string>(g.TypeCode, g.TypeCode == 342 ? record.Handle : g.Value)).ToList());
+            standard.Item.File.ReplaceTail(
+                standard.Item,
+                0,
+                tail.Select(g => new KeyValuePair<int, string>(g.TypeCode, g.TypeCode == 342 ? record.Handle : g.Value))
+                    .ToList()
+            );
 
-            var same = new DxfMLeader { MText = new DxfMText { Contents = "ABC", Location = P(100, 50), TextHeight = 4.0, TextStyleName = "TS2" } };
+            var same = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = "ABC",
+                    Location = P(100, 50),
+                    TextHeight = 4.0,
+                    TextStyleName = "TS2",
+                },
+            };
             db.ModelSpace.AppendEntity(same);
             Assert.Equal(record.Handle, After(same, "301", 343));
             Assert.Equal(0, Flags(same) & (1 << 11));
 
-            var none = new DxfMLeader { MText = new DxfMText { Contents = "ABC", Location = P(100, 50), TextHeight = 4.0 } };
+            var none = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = "ABC",
+                    Location = P(100, 50),
+                    TextHeight = 4.0,
+                },
+            };
             db.ModelSpace.AppendEntity(none);
             Assert.Equal(record.Handle, After(none, "301", 343));
             Assert.Equal(record.Handle, After(none, "CONTEXT_DATA{", 340));

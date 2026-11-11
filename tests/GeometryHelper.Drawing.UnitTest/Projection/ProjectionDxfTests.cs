@@ -31,7 +31,12 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
             DxfDatabase read = DxfDatabase.Parse(database.ToText());
             Assert.Equal("HIDDEN", read.LayerTable["Hidden"].LinetypeName);
             Assert.Equal("CENTER", read.LayerTable["Centre"].LinetypeName);
-            Assert.Equal(new[] { 6.35, -3.175 }, Enumerable.Range(0, read.LinetypeTable["HIDDEN"].NumDashes).Select(read.LinetypeTable["HIDDEN"].DashLengthAt));
+            Assert.Equal(
+                new[] { 6.35, -3.175 },
+                Enumerable
+                    .Range(0, read.LinetypeTable["HIDDEN"].NumDashes)
+                    .Select(read.LinetypeTable["HIDDEN"].DashLengthAt)
+            );
             Assert.Equal(2, read.ModelSpace.OfType<DxfCircle>().Count(c => c.Layer == "Visible"));
             Assert.Equal(8, read.ModelSpace.OfType<DxfLine>().Count(l => l.Layer == "Visible"));
             Assert.Equal(4, read.ModelSpace.OfType<DxfLine>().Count(l => l.Layer == "Hidden"));
@@ -43,8 +48,18 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
             // The plate of TC1 cut half way up its thickness, seen from above: one face 300 by 200 with its four holes of 22;
             // and a tube 168.3 by 6 cut across, seen along it: one ring.
             GeoSolid3 plate = TestBodies.TC1().Parts[0].Object.Solid;
-            ProjectedView2 top = ViewProjector.Project(new[] { new ProjectionInput("plate", plate) }, Top, new ProjectionOptions(sectionPlane: new GeoPlane3(new GeoPoint3(0, 0, 10), GeoVector3.ZAxis)), Tol);
-            ProjectedView2 end = ViewProjector.Project(new[] { new ProjectionInput("tube", Tube(168.3, 6, 1000, 32)) }, Right, new ProjectionOptions(sectionPlane: new GeoPlane3(new GeoPoint3(500, 0, 0), GeoVector3.XAxis)), Tol);
+            ProjectedView2 top = ViewProjector.Project(
+                new[] { new ProjectionInput("plate", plate) },
+                Top,
+                new ProjectionOptions(sectionPlane: new GeoPlane3(new GeoPoint3(0, 0, 10), GeoVector3.ZAxis)),
+                Tol
+            );
+            ProjectedView2 end = ViewProjector.Project(
+                new[] { new ProjectionInput("tube", Tube(168.3, 6, 1000, 32)) },
+                Right,
+                new ProjectionOptions(sectionPlane: new GeoPlane3(new GeoPoint3(500, 0, 0), GeoVector3.XAxis)),
+                Tol
+            );
             var database = new DxfDatabase("AC1027") { PatternSearchPath = PatternFolder() };
 
             top.WriteTo(database, 2.0);
@@ -67,7 +82,10 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
                 Assert.Equal("ANSI31", hatches[i].PatternName);
                 Assert.Equal(2.0, hatches[i].PatternScale);
                 Assert.Equal(1, hatches[i].NumberOfPatternDefinitions);
-                Assert.True(Math.Abs(hatches[i].Area - face.Area) <= Tol.EqualPoint * perimeter, hatches[i].Area + " / " + face.Area);
+                Assert.True(
+                    Math.Abs(hatches[i].Area - face.Area) <= Tol.EqualPoint * perimeter,
+                    hatches[i].Area + " / " + face.Area
+                );
             }
 
             // The lines are still on their layers, and the hatching is under them.
@@ -85,7 +103,13 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
             var bodies = new (string Name, ProjectionInput[] Inputs)[]
             {
                 ("box", new[] { new ProjectionInput("box", Box(0, 0, 0, 300, 200, 100)) }),
-                ("plate", new[] { new ProjectionInput("plate", PlateWithHoles(300, 200, 20, 22, 24, P(60, 100), P(240, 100))) }),
+                (
+                    "plate",
+                    new[]
+                    {
+                        new ProjectionInput("plate", PlateWithHoles(300, 200, 20, 22, 24, P(60, 100), P(240, 100))),
+                    }
+                ),
                 ("angle", new[] { new ProjectionInput("angle", Angle(100, 10, 1000)) }),
                 ("tube", new[] { new ProjectionInput("tube", Tube(168.3, 6, 1000, 32)) }),
                 ("beam", BeamWithEndPlates()),
@@ -96,7 +120,15 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
 
             foreach ((string name, ProjectionInput[] inputs) in bodies)
             {
-                foreach ((string view, GeoCoordinateSystem3 frame) in new[] { ("top", Top), ("front", Front), ("right", Right), ("iso", Iso) })
+                foreach (
+                    (string view, GeoCoordinateSystem3 frame) in new[]
+                    {
+                        ("top", Top),
+                        ("front", Front),
+                        ("right", Right),
+                        ("iso", Iso),
+                    }
+                )
                 {
                     ProjectedView2 projected = ViewProjector.Project(inputs, frame, Tol);
                     string path = SavePicture(projected, name + "-" + view);
@@ -105,8 +137,12 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
                 }
             }
 
-            var section = new ProjectionOptions(sectionPlane: new GeoPlane3(new GeoPoint3(500, 0, 0), GeoVector3.XAxis));
-            _output.WriteLine(SavePicture(ViewProjector.Project(BeamWithEndPlates(), Right, section, Tol), "beam-section"));
+            var section = new ProjectionOptions(
+                sectionPlane: new GeoPlane3(new GeoPoint3(500, 0, 0), GeoVector3.XAxis)
+            );
+            _output.WriteLine(
+                SavePicture(ViewProjector.Project(BeamWithEndPlates(), Right, section, Tol), "beam-section")
+            );
         }
     }
 }

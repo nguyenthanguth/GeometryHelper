@@ -22,7 +22,13 @@ namespace GeometryHelper
         private readonly GeoPoint3[] _centroids;
         private readonly double[] _areas;
 
-        internal MeasureComparison3(double[] volumes, GeoPoint3[] centroids, double[] areas, double referenceSpread, bool openingsCut)
+        internal MeasureComparison3(
+            double[] volumes,
+            GeoPoint3[] centroids,
+            double[] areas,
+            double referenceSpread,
+            bool openingsCut
+        )
         {
             _volumes = volumes;
             _centroids = centroids;
@@ -30,7 +36,9 @@ namespace GeometryHelper
             ReferenceSpread = referenceSpread;
             OpeningsCut = openingsCut;
 
-            double least = double.MaxValue, most = double.MinValue, apart = 0.0;
+            double least = double.MaxValue,
+                most = double.MinValue,
+                apart = 0.0;
 
             for (int i = 0; i < volumes.Length; i++)
             {
@@ -62,7 +70,11 @@ namespace GeometryHelper
         {
             if (method < AreaMethod.Faces || method > AreaMethod.Surface)
             {
-                throw new ArgumentOutOfRangeException(nameof(method), method, "Unknown way of reading the faces of a body.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(method),
+                    method,
+                    "Unknown way of reading the faces of a body."
+                );
             }
 
             return _areas[(int)method];
@@ -93,15 +105,19 @@ namespace GeometryHelper
         {
             if (method < VolumeMethod.Fan || method > VolumeMethod.FlatFaces)
             {
-                throw new ArgumentOutOfRangeException(nameof(method), method, "Unknown way of reading the faces of a body.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(method),
+                    method,
+                    "Unknown way of reading the faces of a body."
+                );
             }
 
             return (int)method;
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-            => string.Format(
+        public override string ToString() =>
+            string.Format(
                 CultureInfo.InvariantCulture,
                 "MeasureComparison3[Volume: Fan {0:0.###}, Surface {1:0.###}, FlatFaces {2:0.###}, spread {3:G3}, reference spread {4:G3}; Area: Faces {5:0.###}, Surface {6:0.###}{7}]",
                 _volumes[(int)VolumeMethod.Fan],
@@ -111,6 +127,7 @@ namespace GeometryHelper
                 ReferenceSpread,
                 _areas[(int)AreaMethod.Faces],
                 _areas[(int)AreaMethod.Surface],
-                OpeningsCut ? string.Empty : "; openings not cut");
+                OpeningsCut ? string.Empty : "; openings not cut"
+            );
     }
 }

@@ -101,7 +101,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Locates a point relative to a triangle, using the default tolerance.
         /// </summary>
-        public static PointLocation Locate(GeoTriangle3 triangle, GeoPoint3 point) => Locate(triangle, point, Tolerance.Global);
+        public static PointLocation Locate(GeoTriangle3 triangle, GeoPoint3 point) =>
+            Locate(triangle, point, Tolerance.Global);
 
         /// <summary>
         /// Locates a point relative to a triangle, within a tolerance.
@@ -169,7 +170,8 @@ namespace GeometryHelper.Core
         /// Checks whether a triangle holds a point, on its surface or along its edges, using the default
         /// tolerance.
         /// </summary>
-        public static bool Contains(GeoTriangle3 triangle, GeoPoint3 point) => Contains(triangle, point, Tolerance.Global);
+        public static bool Contains(GeoTriangle3 triangle, GeoPoint3 point) =>
+            Contains(triangle, point, Tolerance.Global);
 
         /// <summary>
         /// Checks whether a triangle holds a point, on its surface or along its edges, within a tolerance.
@@ -186,7 +188,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a point lies on a polyline, using the default tolerance.
         /// </summary>
-        public static bool IsPointOn(GeoPolyline3 polyline, GeoPoint3 point) => IsPointOn(polyline, point, Tolerance.Global);
+        public static bool IsPointOn(GeoPolyline3 polyline, GeoPoint3 point) =>
+            IsPointOn(polyline, point, Tolerance.Global);
 
         /// <summary>
         /// Checks whether a point lies on a polyline, within a tolerance.
@@ -208,7 +211,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Locates a point relative to a polygon, using the default tolerance.
         /// </summary>
-        public static PointLocation Locate(GeoPolygon3 polygon, GeoPoint3 point) => Locate(polygon, point, Tolerance.Global);
+        public static PointLocation Locate(GeoPolygon3 polygon, GeoPoint3 point) =>
+            Locate(polygon, point, Tolerance.Global);
 
         /// <summary>
         /// Locates a point relative to a polygon, within a tolerance.
@@ -286,8 +290,7 @@ namespace GeometryHelper.Core
                 double ju = previousOffset.DotProduct(uAxis);
                 double jv = previousOffset.DotProduct(vAxis);
 
-                if (iv > pv != jv > pv &&
-                    pu < (ju - iu) * (pv - iv) / (jv - iv) + iu)
+                if (iv > pv != jv > pv && pu < (ju - iu) * (pv - iv) / (jv - iv) + iu)
                 {
                     inside = !inside;
                 }
@@ -313,7 +316,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a point lies on the boundary of a polygon, using the default tolerance.
         /// </summary>
-        public static bool IsPointOn(GeoPolygon3 polygon, GeoPoint3 point) => IsPointOn(polygon, point, Tolerance.Global);
+        public static bool IsPointOn(GeoPolygon3 polygon, GeoPoint3 point) =>
+            IsPointOn(polygon, point, Tolerance.Global);
 
         /// <summary>
         /// Checks whether a point lies on the boundary of a polygon, within a tolerance.
@@ -479,7 +483,10 @@ namespace GeometryHelper.Core
 
                 // The foot of the point on the face is held up to the tolerance past its rim: this is where a point is on
                 // the surface, and it is read so, not as the exact gap Distance3.DistanceTo(GeoFace3, GeoPoint3) gives.
-                if (Distance3.DistanceTo(Projection3.ProjectToFace(face, point, tolerance, tolerance), point) <= tolerance.EqualPoint)
+                if (
+                    Distance3.DistanceTo(Projection3.ProjectToFace(face, point, tolerance, tolerance), point)
+                    <= tolerance.EqualPoint
+                )
                 {
                     return PointLocation.OnSide;
                 }
@@ -526,7 +533,7 @@ namespace GeometryHelper.Core
                 new GeoVector3(-0.2672612419124244, 0.5345224838248488, 0.8017837257372732),
                 new GeoVector3(0.8017837257372732, -0.2672612419124244, 0.5345224838248488),
                 new GeoVector3(0.4082482904638631, 0.8164965809277261, -0.4082482904638631),
-                new GeoVector3(-0.6666666666666666, 0.3333333333333333, 0.6666666666666666)
+                new GeoVector3(-0.6666666666666666, 0.3333333333333333, 0.6666666666666666),
             };
 
             // A crossing landing this close to the rim of a face is what makes the parity unreliable: a face
@@ -598,7 +605,9 @@ namespace GeometryHelper.Core
                     GeoVector3 a = point.GetVectorTo(triangle.A);
                     GeoVector3 b = point.GetVectorTo(triangle.B);
                     GeoVector3 c = point.GetVectorTo(triangle.C);
-                    double la = a.Length, lb = b.Length, lc = c.Length;
+                    double la = a.Length,
+                        lb = b.Length,
+                        lc = c.Length;
                     double across = a.DotProduct(b.CrossProduct(c));
                     double along = la * lb * lc + a.DotProduct(b) * lc + a.DotProduct(c) * lb + b.DotProduct(c) * la;
 
@@ -660,7 +669,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Locates a point relative to a circular disc, using the default tolerance.
         /// </summary>
-        public static PointLocation Locate(GeoCircle3 circle, GeoPoint3 point) => Locate(circle, point, Tolerance.Global);
+        public static PointLocation Locate(GeoCircle3 circle, GeoPoint3 point) =>
+            Locate(circle, point, Tolerance.Global);
 
         /// <summary>
         /// Locates a point relative to a circular disc, within a tolerance.
@@ -771,7 +781,12 @@ namespace GeometryHelper.Core
         /// Locates a point against a ring laid onto a plane: within the point tolerance of a side, along the plane, it is on
         /// it, and otherwise inside or outside as the ring winds about it there.
         /// </summary>
-        internal static PointLocation LocateInPlane(GeoPolygon3 ring, GeoPlane3 plane, GeoPoint3 point, Tolerance tolerance)
+        internal static PointLocation LocateInPlane(
+            GeoPolygon3 ring,
+            GeoPlane3 plane,
+            GeoPoint3 point,
+            Tolerance tolerance
+        )
         {
             if (DistanceInPlane(ring, plane, point) <= tolerance.EqualPoint)
             {
@@ -803,7 +818,8 @@ namespace GeometryHelper.Core
                 GeoVector3 side = Laid(corners[(i + 1) % corners.Count]).Subtract(a);
                 GeoVector3 toPoint = at.Subtract(a);
                 double lengthSquared = side.LengthSquared;
-                double t = lengthSquared > 0.0 ? Math.Max(0.0, Math.Min(1.0, toPoint.DotProduct(side) / lengthSquared)) : 0.0;
+                double t =
+                    lengthSquared > 0.0 ? Math.Max(0.0, Math.Min(1.0, toPoint.DotProduct(side) / lengthSquared)) : 0.0;
                 nearestSquared = Math.Min(nearestSquared, toPoint.Subtract(side.Multiply(t)).LengthSquared);
             }
 

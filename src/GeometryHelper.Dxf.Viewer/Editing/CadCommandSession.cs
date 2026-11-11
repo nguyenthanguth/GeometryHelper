@@ -134,7 +134,10 @@ namespace GeometryHelper.Dxf.Viewer
         public CadView View { get; set; }
 
         /// <summary>The view of the canvas in the units of the space worked in: through the viewport worked in, in model units; else <see cref="View"/>.</summary>
-        internal CadView WorkView => View != null && Document.ActiveViewport is DxfViewport viewport ? CadViewports.ModelView(View, viewport) : View;
+        internal CadView WorkView =>
+            View != null && Document.ActiveViewport is DxfViewport viewport
+                ? CadViewports.ModelView(View, viewport)
+                : View;
 
         /// <summary>
         /// Gets or sets how near a picked point must come to an object to pick it, in drawing units: the pick box in pixels
@@ -250,7 +253,9 @@ namespace GeometryHelper.Dxf.Viewer
             // With PICKFIRST 0 a command asks for its objects whatever was selected before it, as AutoCAD's.
             if (command.UsesSelection && Document.PickFirst != 0)
             {
-                foreach (string handle in new SortedSet<string>(Document.Selection.Handles, StringComparer.OrdinalIgnoreCase))
+                foreach (
+                    string handle in new SortedSet<string>(Document.Selection.Handles, StringComparer.OrdinalIgnoreCase)
+                )
                 {
                     if (Document.FindEntity(handle) != null)
                     {
@@ -392,7 +397,9 @@ namespace GeometryHelper.Dxf.Viewer
                     return AnswerPoint(point, Prompt.Text, control);
                 case CadPromptKind.Selection:
                 case CadPromptKind.Entity:
-                    IReadOnlyList<string> picked = Document.GetPickIndex(Document.WorkingSpace).Pick(point.X, point.Y, PickAperture);
+                    IReadOnlyList<string> picked = Document
+                        .GetPickIndex(Document.WorkingSpace)
+                        .Pick(point.X, point.Y, PickAperture);
 
                     if (picked.Count == 0)
                     {
@@ -405,7 +412,15 @@ namespace GeometryHelper.Dxf.Viewer
                     if (Prompt.Kind == CadPromptKind.Entity && Document.FindEntity(picked[0]) != null)
                     {
                         // The point the object was picked at goes with it, as UCS OBject takes the end of a line nearer the pick.
-                        return Answer(new CadInput(CadInputKind.Selection, point, 0.0, null, new[] { picked[0] }) { Shift = shift, IsPickedAt = true }, Prompt.Text, null);
+                        return Answer(
+                            new CadInput(CadInputKind.Selection, point, 0.0, null, new[] { picked[0] })
+                            {
+                                Shift = shift,
+                                IsPickedAt = true,
+                            },
+                            Prompt.Text,
+                            null
+                        );
                     }
 
                     return TakeSelection(new[] { picked[0] }, point, shift, null, false);
@@ -522,7 +537,9 @@ namespace GeometryHelper.Dxf.Viewer
                         return Feed(pickedAt);
                     }
 
-                    return Prompt.Kind == CadPromptKind.Selection ? InvalidSelection(echo) : Invalid("*Invalid selection*", echo);
+                    return Prompt.Kind == CadPromptKind.Selection
+                        ? InvalidSelection(echo)
+                        : Invalid("*Invalid selection*", echo);
                 case CadPromptKind.Point:
                     if (TryNeeded(typed, out GeoPoint2 needed))
                     {
@@ -538,7 +555,9 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         // Direct distance entry: the distance along the rubber band, from the base point towards the cursor.
                         GeoPoint2 from = Prompt.BasePoint.Value;
-                        GeoVector2 toward = Cursor.HasValue ? (IsTrackingOn() ? Square(from, Cursor.Value) : Cursor.Value) - from : new GeoVector2(1.0, 0.0);
+                        GeoVector2 toward = Cursor.HasValue
+                            ? (IsTrackingOn() ? Square(from, Cursor.Value) : Cursor.Value) - from
+                            : new GeoVector2(1.0, 0.0);
                         double length = toward.Length;
                         GeoVector2 unit = length > 0.0 ? toward / length : new GeoVector2(1.0, 0.0);
                         GeoPoint2 reached = from + unit * along;
@@ -550,7 +569,10 @@ namespace GeometryHelper.Dxf.Viewer
                         return Answer(new CadInput(CadInputKind.Text, default, 0.0, typed, null), echo, null);
                     }
 
-                    return Invalid(Prompt.Keywords.Count > 0 ? "Point or option keyword required." : "Invalid point.", echo);
+                    return Invalid(
+                        Prompt.Keywords.Count > 0 ? "Point or option keyword required." : "Invalid point.",
+                        echo
+                    );
                 case CadPromptKind.Distance:
                     if (TryLength(typed, out double distance))
                     {
@@ -559,7 +581,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (Prompt.BasePoint != null && TryPoint(typed, out GeoPoint2 far))
                     {
-                        return Answer(new CadInput(CadInputKind.Number, far, (far - Prompt.BasePoint.Value).Length, typed, null), echo, far);
+                        return Answer(
+                            new CadInput(CadInputKind.Number, far, (far - Prompt.BasePoint.Value).Length, typed, null),
+                            echo,
+                            far
+                        );
                     }
 
                     return Invalid("Requires numeric distance, second point, or option keyword.", echo);
@@ -572,7 +598,11 @@ namespace GeometryHelper.Dxf.Viewer
                     if (Prompt.BasePoint != null && TryPoint(typed, out GeoPoint2 toward2))
                     {
                         GeoVector2 way = toward2 - Prompt.BasePoint.Value;
-                        return Answer(new CadInput(CadInputKind.Number, toward2, PickedAngle(Prompt, way), typed, null), echo, toward2);
+                        return Answer(
+                            new CadInput(CadInputKind.Number, toward2, PickedAngle(Prompt, way), typed, null),
+                            echo,
+                            toward2
+                        );
                     }
 
                     return Invalid("Requires valid numeric angle or second point.", echo);
@@ -590,7 +620,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="remove">Whether they are taken out, as a pick or a box with Shift held takes them out.</param>
         /// <returns>Whether the prompt took them.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the handles are null.</exception>
-        public bool FeedSelection(IEnumerable<string> handles, bool remove = false) => TakeSelection(handles, null, remove, null, false);
+        public bool FeedSelection(IEnumerable<string> handles, bool remove = false) =>
+            TakeSelection(handles, null, remove, null, false);
 
         /// <summary>
         /// Answers "Select objects:" with the objects a window or crossing box dragged on the canvas took, as
@@ -603,10 +634,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="remove">Whether they are taken out, as a box with Shift held takes them out.</param>
         /// <returns>Whether the prompt took them.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the handles are null.</exception>
-        public bool FeedSelection(IEnumerable<string> handles, DisplayBox window, bool crossing, bool remove = false) => TakeSelection(handles, null, remove, window, crossing);
+        public bool FeedSelection(IEnumerable<string> handles, DisplayBox window, bool crossing, bool remove = false) =>
+            TakeSelection(handles, null, remove, window, crossing);
 
         /// <summary>Answers "Select objects:" with objects, a click's point with them where one picked them, or a window's box, or takes them out.</summary>
-        private bool TakeSelection(IEnumerable<string> handles, GeoPoint2? clicked, bool remove, DisplayBox? window, bool crossing)
+        private bool TakeSelection(
+            IEnumerable<string> handles,
+            GeoPoint2? clicked,
+            bool remove,
+            DisplayBox? window,
+            bool crossing
+        )
         {
             if (handles == null)
             {
@@ -635,7 +673,11 @@ namespace GeometryHelper.Dxf.Viewer
                     return Invalid("Nothing selected.");
                 }
 
-                return Answer(new CadInput(CadInputKind.Selection, default, 0.0, null, new[] { found[0] }), Prompt.Text, null);
+                return Answer(
+                    new CadInput(CadInputKind.Selection, default, 0.0, null, new[] { found[0] }),
+                    Prompt.Text,
+                    null
+                );
             }
 
             if (Prompt.Kind != CadPromptKind.Selection)
@@ -723,7 +765,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string keyword = Prompt.MatchKeyword(Prompt.Default);
-            Answer(keyword != null ? new CadInput(CadInputKind.Keyword, default, 0.0, keyword, null) : CadInput.Nothing, Prompt.Text, null);
+            Answer(
+                keyword != null ? new CadInput(CadInputKind.Keyword, default, 0.0, keyword, null) : CadInput.Nothing,
+                Prompt.Text,
+                null
+            );
         }
 
         /// <summary>Esc: ends the command running, keeping what it made, with "*Cancel*" in the history.</summary>
@@ -794,7 +840,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// ("text.height"); a host sets a default here, as Global settings sets the text height of TEXT and MTEXT, their width
         /// factor ("text.widthFactor") and the height of the text of the dimensions DIM* makes ("dim.text.height").
         /// </summary>
-        public Dictionary<string, double> Remembered { get; } = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, double> Remembered { get; } =
+            new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Gets whether a command asks the window for a file by its file dialog, as AutoCAD's FILEDIA 1, the default; FILEDIA 0
@@ -862,12 +909,22 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var handles = new List<string>(_gathered);
             List<KeyValuePair<string, GeoPoint2>> clicks = _clicks.FindAll(p => !_whole.Contains(p.Key));
-            List<Tuple<string, DisplayBox, bool>> windows = _windows.FindAll(w => _gathered.Contains(w.Item1) && !_unwindowed.Contains(w.Item1));
+            List<Tuple<string, DisplayBox, bool>> windows = _windows.FindAll(w =>
+                _gathered.Contains(w.Item1) && !_unwindowed.Contains(w.Item1)
+            );
             string echo = Prompt.Text;
             ClearGathering();
             RememberSelection(handles);
             ResetOptions();
-            Answer(new CadInput(CadInputKind.Selection, default, 0.0, null, handles) { Clicks = clicks, Windows = windows }, echo, null);
+            Answer(
+                new CadInput(CadInputKind.Selection, default, 0.0, null, handles)
+                {
+                    Clicks = clicks,
+                    Windows = windows,
+                },
+                echo,
+                null
+            );
         }
 
         /// <summary>
@@ -905,14 +962,24 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (changed.Count > 0)
             {
-                _steps.Add(new KeyValuePair<List<string>, List<string>>(remove ? new List<string>() : changed, remove ? changed : new List<string>()));
+                _steps.Add(
+                    new KeyValuePair<List<string>, List<string>>(
+                        remove ? new List<string>() : changed,
+                        remove ? changed : new List<string>()
+                    )
+                );
             }
 
             string found = handles.Count.ToString(CultureInfo.InvariantCulture) + " found";
 
             if (remove)
             {
-                found += ", " + changed.Count.ToString(CultureInfo.InvariantCulture) + " removed, " + _gathered.Count.ToString(CultureInfo.InvariantCulture) + " total";
+                found +=
+                    ", "
+                    + changed.Count.ToString(CultureInfo.InvariantCulture)
+                    + " removed, "
+                    + _gathered.Count.ToString(CultureInfo.InvariantCulture)
+                    + " total";
             }
             else
             {
@@ -948,14 +1015,25 @@ namespace GeometryHelper.Dxf.Viewer
             switch (Prompt.Kind)
             {
                 case CadPromptKind.Point:
-                    return Answer(new CadInput(CadInputKind.Point, point, 0.0, null, null) { Control = control, Snap = _snapFed }, echo, point);
+                    return Answer(
+                        new CadInput(CadInputKind.Point, point, 0.0, null, null) { Control = control, Snap = _snapFed },
+                        echo,
+                        point
+                    );
                 case CadPromptKind.Distance:
                     if (Prompt.BasePoint == null)
                     {
                         return Invalid("Requires numeric distance or option keyword.");
                     }
 
-                    return Answer(new CadInput(CadInputKind.Number, point, (point - Prompt.BasePoint.Value).Length, null, null) { Control = control }, echo, point);
+                    return Answer(
+                        new CadInput(CadInputKind.Number, point, (point - Prompt.BasePoint.Value).Length, null, null)
+                        {
+                            Control = control,
+                        },
+                        echo,
+                        point
+                    );
                 default:
                     if (Prompt.BasePoint == null)
                     {
@@ -963,7 +1041,14 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     GeoVector2 way = point - Prompt.BasePoint.Value;
-                    return Answer(new CadInput(CadInputKind.Number, point, PickedAngle(Prompt, way), null, null) { Control = control }, echo, point);
+                    return Answer(
+                        new CadInput(CadInputKind.Number, point, PickedAngle(Prompt, way), null, null)
+                        {
+                            Control = control,
+                        },
+                        echo,
+                        point
+                    );
             }
         }
 
@@ -1024,7 +1109,8 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            Prompt = _body.Current ?? throw new InvalidOperationException("The command " + Current.Name + " asked a null prompt.");
+            Prompt = _body.Current
+                ?? throw new InvalidOperationException("The command " + Current.Name + " asked a null prompt.");
 
             if (Prompt.Kind == CadPromptKind.Selection)
             {
@@ -1062,7 +1148,10 @@ namespace GeometryHelper.Dxf.Viewer
             }
             catch (Exception exception)
             {
-                GeometryHelperLog.Warn("CadCommandSession: the command " + Current?.Name + " failed to end.", exception);
+                GeometryHelperLog.Warn(
+                    "CadCommandSession: the command " + Current?.Name + " failed to end.",
+                    exception
+                );
             }
 
             bool cleared = outcome == CadCommandOutcome.Completed && _context != null && _context.ClearsSelection;
@@ -1109,7 +1198,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (!Feed(lines[i]))
                 {
-                    Write("Script stopped at line " + (i + 1).ToString(CultureInfo.InvariantCulture) + ": " + lines[i].Trim());
+                    Write(
+                        "Script stopped at line "
+                            + (i + 1).ToString(CultureInfo.InvariantCulture)
+                            + ": "
+                            + lines[i].Trim()
+                    );
                     return;
                 }
             }
@@ -1143,7 +1237,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (polar > 0)
             {
-                if (!TryLength(text.Substring(0, polar), out double length) || !TryAngle(text.Substring(polar + 1), null, out double angle))
+                if (
+                    !TryLength(text.Substring(0, polar), out double length)
+                    || !TryAngle(text.Substring(polar + 1), null, out double angle)
+                )
                 {
                     return false;
                 }
@@ -1154,8 +1251,13 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 string[] parts = text.Split(',');
 
-                if (parts.Length < 2 || parts.Length > 3 || !TryLength(parts[0], out double x) || !TryLength(parts[1], out double y)
-                    || (parts.Length == 3 && !TryLength(parts[2], out _)))
+                if (
+                    parts.Length < 2
+                    || parts.Length > 3
+                    || !TryLength(parts[0], out double x)
+                    || !TryLength(parts[1], out double y)
+                    || (parts.Length == 3 && !TryLength(parts[2], out _))
+                )
                 {
                     return false;
                 }
@@ -1167,11 +1269,14 @@ namespace GeometryHelper.Dxf.Viewer
             return true;
         }
 
-        private static bool TryNumber(string text, out double value)
-            => double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value) && !double.IsNaN(value) && !double.IsInfinity(value);
+        private static bool TryNumber(string text, out double value) =>
+            double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+            && !double.IsNaN(value)
+            && !double.IsInfinity(value);
 
         /// <summary>A length typed, read in the drawing's LUNITS: feet and inches in engineering and architectural units, as AutoCAD reads them.</summary>
-        private bool TryLength(string text, out double value) => CadUnits.TryLength(text, Document.Database.Lunits, out value);
+        private bool TryLength(string text, out double value) =>
+            CadUnits.TryLength(text, Document.Database.Lunits, out value);
 
         /// <summary>
         /// An angle typed, read in the drawing's AUNITS: grads or radians where they are its units, and any angle with its own
@@ -1209,7 +1314,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (prompt == null || !prompt.AsksPlainAngle)
             {
-                radians = CadUnits.ToDirection(radians, prompt != null && prompt.AsksTurn ? 0.0 : database.Angbase, database.Angdir);
+                radians = CadUnits.ToDirection(
+                    radians,
+                    prompt != null && prompt.AsksTurn ? 0.0 : database.Angbase,
+                    database.Angdir
+                );
             }
 
             return true;
@@ -1236,6 +1345,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         /// <param name="direction">The direction, in radians counter-clockwise from the X axis of the UCS.</param>
         /// <returns>The angle counted, in radians.</returns>
-        public double CountAngle(double direction) => CadUnits.FromDirection(direction, Document.Database.Angbase, Document.Database.Angdir);
+        public double CountAngle(double direction) =>
+            CadUnits.FromDirection(direction, Document.Database.Angbase, Document.Database.Angdir);
     }
 }

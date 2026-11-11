@@ -29,12 +29,24 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             var made = new List<string>();
-            string[] keywords = { "Angular", "Baseline", "Continue", "Ordinate", "aLign", "Distribute", "LAyer", "Undo" };
+            string[] keywords =
+            {
+                "Angular",
+                "Baseline",
+                "Continue",
+                "Ordinate",
+                "aLign",
+                "Distribute",
+                "LAyer",
+                "Undo",
+            };
 
             while (true)
             {
                 GeoPoint2 lastBefore = c.Session.LastPoint;
-                yield return CadPrompt.ForPoint("Select objects or specify first extension line origin", null, keywords).SnappingFrom(lastBefore);
+                yield return CadPrompt
+                    .ForPoint("Select objects or specify first extension line origin", null, keywords)
+                    .SnappingFrom(lastBefore);
                 IEnumerable<CadPrompt> step;
 
                 if (c.Input.IsPoint)
@@ -103,8 +115,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The handles of the dimensions of the current space, in the order it holds them.</summary>
-        private static List<string> Dimensions(CadCommandContext c)
-            => c.Space.Block.OfType<DxfDimension>().Where(d => !d.IsErased).Select(d => d.Handle).ToList();
+        private static List<string> Dimensions(CadCommandContext c) =>
+            c.Space.Block.OfType<DxfDimension>().Where(d => !d.IsErased).Select(d => d.Handle).ToList();
 
         /// <summary>The line, circle or arc under a point picked, as DIM highlights one under the cursor; null for none.</summary>
         private static DxfEntity Dimensionable(CadCommandContext c, GeoPoint2 at)
@@ -140,8 +152,16 @@ namespace GeometryHelper.Dxf.Viewer
             while (true)
             {
                 yield return picked is DxfLine
-                    ? CadPrompt.ForPoint("Specify dimension line location or second line for angle", null, new[] { "Mtext", "Text", "text aNgle", "Undo" })
-                    : CadPrompt.ForPoint(diameter ? "Specify diameter dimension location" : "Specify radius dimension location", Center(picked), new[] { diameter ? "Radius" : "Diameter", "Angular", "Mtext", "Text", "text aNgle", "Undo" });
+                    ? CadPrompt.ForPoint(
+                        "Specify dimension line location or second line for angle",
+                        null,
+                        new[] { "Mtext", "Text", "text aNgle", "Undo" }
+                    )
+                    : CadPrompt.ForPoint(
+                        diameter ? "Specify diameter dimension location" : "Specify radius dimension location",
+                        Center(picked),
+                        new[] { diameter ? "Radius" : "Diameter", "Angular", "Mtext", "Text", "text aNgle", "Undo" }
+                    );
 
                 if (c.Input.Is("Mtext") || c.Input.Is("Text"))
                 {
@@ -222,7 +242,11 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                CadDimAssociation.Tie(c, MakeLinear(c, style, Beside(c, p1, p2, at), p1, p2, at, text, null, textAngle), CadDimAssociation.LineEnds(line));
+                CadDimAssociation.Tie(
+                    c,
+                    MakeLinear(c, style, Beside(c, p1, p2, at), p1, p2, at, text, null, textAngle),
+                    CadDimAssociation.LineEnds(line)
+                );
                 yield break;
             }
 
@@ -233,11 +257,18 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (handle != null)
             {
-                c.Write("Dimension text = " + ((DxfDimension)c.Document.FindEntity(handle)).DimBlock.OfType<DxfMText>().Select(m => m.Contents).FirstOrDefault());
+                c.Write(
+                    "Dimension text = "
+                        + ((DxfDimension)c.Document.FindEntity(handle))
+                            .DimBlock.OfType<DxfMText>()
+                            .Select(m => m.Contents)
+                            .FirstOrDefault()
+                );
             }
         }
 
-        private static GeoPoint2 Center(DxfEntity entity) => entity is DxfCircle circle ? P2(circle.Center) : P2(((DxfArc)entity).Center);
+        private static GeoPoint2 Center(DxfEntity entity) =>
+            entity is DxfCircle circle ? P2(circle.Center) : P2(((DxfArc)entity).Center);
 
         /// <summary>
         /// Whether DIM measures a line along itself: where it slants, in the UCS, and the point lies beside it, square to some
@@ -248,7 +279,10 @@ namespace GeometryHelper.Dxf.Viewer
             GeoVector2 way = c.Session.Ucs.ToUcs(p2 - p1);
             double length = way.Length;
 
-            if (Math.Abs(way.X) <= c.Session.Tolerance.EqualVector * length || Math.Abs(way.Y) <= c.Session.Tolerance.EqualVector * length)
+            if (
+                Math.Abs(way.X) <= c.Session.Tolerance.EqualVector * length
+                || Math.Abs(way.Y) <= c.Session.Tolerance.EqualVector * length
+            )
             {
                 return false;
             }
@@ -268,7 +302,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (distribute)
             {
-                yield return CadPrompt.ForKeyword("Specify method of distribution", new[] { "Equal", "Offset" }, "Equal");
+                yield return CadPrompt.ForKeyword(
+                    "Specify method of distribution",
+                    new[] { "Equal", "Offset" },
+                    "Equal"
+                );
 
                 if (!c.Input.Is("Equal") && !c.Input.Is("Offset"))
                 {
@@ -293,7 +331,9 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForSelection(distribute ? "Select dimensions to distribute" : "Select dimensions to align");
+            yield return CadPrompt.ForSelection(
+                distribute ? "Select dimensions to distribute" : "Select dimensions to align"
+            );
 
             if (c.Input.Kind != CadInputKind.Selection)
             {
@@ -329,11 +369,17 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (apart > 0)
             {
-                c.Write(apart.ToString(CultureInfo.InvariantCulture) + (apart == 1 ? " dimension is" : " dimensions are") + " not parallel to the base dimension and stays where it is.");
+                c.Write(
+                    apart.ToString(CultureInfo.InvariantCulture)
+                        + (apart == 1 ? " dimension is" : " dimensions are")
+                        + " not parallel to the base dimension and stays where it is."
+                );
             }
 
             List<DxfDimension> dimensions = Changeable(c, moves.Keys.ToList(), "Dimension line position", d => true);
-            ChangeDimensions(c, dimensions, "Dimension line position", Values(offset), d => ShiftLine(d, baseDimension.Handle, moves[d.Handle], c.Document));
+            ChangeDimensions(c, dimensions, "Dimension line position", Values(offset), d =>
+                ShiftLine(d, baseDimension.Handle, moves[d.Handle], c.Document)
+            );
         }
 
         /// <summary>DIM's LAyer: the layer the dimensions made next go on, a layer of the drawing by its name, or Use current (".").</summary>

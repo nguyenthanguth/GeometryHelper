@@ -69,8 +69,19 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int q = 0; q <= 8000; q++)
             {
-                double x = q * 0.1, y = q * 1E-3;
-                strips.Add(new GeoPolygon2(new List<GeoPoint2> { new GeoPoint2(x, y), new GeoPoint2(x + 1E5, y), new GeoPoint2(x + 1E5, y + 1), new GeoPoint2(x, y + 1) }));
+                double x = q * 0.1,
+                    y = q * 1E-3;
+                strips.Add(
+                    new GeoPolygon2(
+                        new List<GeoPoint2>
+                        {
+                            new GeoPoint2(x, y),
+                            new GeoPoint2(x + 1E5, y),
+                            new GeoPoint2(x + 1E5, y + 1),
+                            new GeoPoint2(x, y + 1),
+                        }
+                    )
+                );
             }
 
             AppDomain.MonitoringIsEnabled = true;
@@ -100,7 +111,17 @@ namespace GeometryHelper.UnitTest.Plane
             for (int i = 0; i < 40000; i++)
             {
                 double x = 10.0 * i;
-                squares.Add(new GeoPolygon2(new List<GeoPoint2> { new GeoPoint2(x, 0), new GeoPoint2(x + 10, 0), new GeoPoint2(x + 10, 10), new GeoPoint2(x, 10) }));
+                squares.Add(
+                    new GeoPolygon2(
+                        new List<GeoPoint2>
+                        {
+                            new GeoPoint2(x, 0),
+                            new GeoPoint2(x + 10, 0),
+                            new GeoPoint2(x + 10, 10),
+                            new GeoPoint2(x, 10),
+                        }
+                    )
+                );
             }
 
             var watch = Stopwatch.StartNew();

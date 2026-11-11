@@ -41,9 +41,7 @@ namespace GeometryHelper.Geometry
         /// <param name="startPoint">Where the edge starts.</param>
         /// <param name="endPoint">Where the edge ends.</param>
         public GeoEdge2(GeoPoint2 startPoint, GeoPoint2 endPoint)
-            : this(startPoint, endPoint, 0.0)
-        {
-        }
+            : this(startPoint, endPoint, 0.0) { }
 
         /// <summary>
         /// Initializes an edge between two points, straight or bulged into an arc.
@@ -77,7 +75,10 @@ namespace GeometryHelper.Geometry
         {
             if (Math.Abs(Math.Abs(arc.SweptAngle) - Math.PI * 2.0) <= 1E-12)
             {
-                throw new ArgumentOutOfRangeException(nameof(arc), "An arc sweeping a whole turn has no chord, so it is no edge of a chain.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(arc),
+                    "An arc sweeping a whole turn has no chord, so it is no edge of a chain."
+                );
             }
 
             StartPoint = arc.StartPoint;
@@ -110,7 +111,9 @@ namespace GeometryHelper.Geometry
         /// middle, so the reach is no more than that middle's plus three radii, and up to a half turn no more than the middle's
         /// plus 1.5 l / |b|. Past a half turn the sag is more than half the chord, and plain.
         /// </remarks>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining
+        )]
         private bool BowsPlainly()
         {
             double magnitude = Math.Abs(Bulge);
@@ -118,7 +121,8 @@ namespace GeometryHelper.Geometry
             double middle = Math.Abs(StartPoint.X + EndPoint.X) + Math.Abs(StartPoint.Y + EndPoint.Y);
 
             return !(magnitude <= 1.0)
-                || magnitude * magnitude * along * 0.35 > (magnitude * middle * 0.5 + 1.5 * along) * Core.Arc2.FlatFraction;
+                || magnitude * magnitude * along * 0.35
+                    > (magnitude * middle * 0.5 + 1.5 * along) * Core.Arc2.FlatFraction;
         }
 
         /// <summary>
@@ -158,7 +162,9 @@ namespace GeometryHelper.Geometry
         {
             if (IsArc)
             {
-                throw new InvalidOperationException("This edge is an arc; ask for its chord if a straight segment is what is wanted.");
+                throw new InvalidOperationException(
+                    "This edge is an arc; ask for its chord if a straight segment is what is wanted."
+                );
             }
 
             return new GeoLine2(StartPoint, EndPoint);
@@ -195,7 +201,8 @@ namespace GeometryHelper.Geometry
 
             return new GeoPoint2(
                 StartPoint.X + (EndPoint.X - StartPoint.X) * parameter,
-                StartPoint.Y + (EndPoint.Y - StartPoint.Y) * parameter);
+                StartPoint.Y + (EndPoint.Y - StartPoint.Y) * parameter
+            );
         }
 
         /// <summary>
@@ -224,7 +231,9 @@ namespace GeometryHelper.Geometry
             GeoVector2 along = StartPoint.GetVectorTo(EndPoint);
             double reach = StartPoint.GetVectorTo(point).DotProduct(along) / (length * length);
 
-            return reach < 0.0 ? 0.0 : reach > 1.0 ? 1.0 : reach;
+            return reach < 0.0 ? 0.0
+                : reach > 1.0 ? 1.0
+                : reach;
         }
 
         /// <summary>
@@ -305,9 +314,11 @@ namespace GeometryHelper.Geometry
             double side = Bulge > 0.0 ? 1.0 : -1.0;
             var onTheArcsSide = new GeoPoint2(
                 (StartPoint.X + EndPoint.X) * 0.5 + side * along.Y,
-                (StartPoint.Y + EndPoint.Y) * 0.5 - side * along.X);
+                (StartPoint.Y + EndPoint.Y) * 0.5 - side * along.X
+            );
 
-            return Core.ArcChain2.BeforeChord(EndPoint, StartPoint, point) == Core.ArcChain2.BeforeChord(EndPoint, StartPoint, onTheArcsSide);
+            return Core.ArcChain2.BeforeChord(EndPoint, StartPoint, point)
+                == Core.ArcChain2.BeforeChord(EndPoint, StartPoint, onTheArcsSide);
         }
 
         /// <summary>
@@ -323,7 +334,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vector">How far to move it.</param>
         /// <returns>The moved edge, bulged exactly as this one is.</returns>
-        public GeoEdge2 Translate(GeoVector2 vector) => new GeoEdge2(StartPoint.Add(vector), EndPoint.Add(vector), Bulge);
+        public GeoEdge2 Translate(GeoVector2 vector) =>
+            new GeoEdge2(StartPoint.Add(vector), EndPoint.Add(vector), Bulge);
 
         /// <summary>
         /// Gets the edge turned about a point.
@@ -513,6 +525,7 @@ namespace GeometryHelper.Geometry
                 ? $"GeoEdge2[{StartPoint} -> {EndPoint}, bulge {Bulge:0.####}]"
                 : $"GeoEdge2[{StartPoint} -> {EndPoint}]";
         }
+
         #region Extending and trimming
 
         /// <summary>
@@ -569,7 +582,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Shortens the edge at one end back to a point on it.
         /// </summary>
-        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoEdge2 result) => TryTrimTo(point, end, out result, Tolerance.Global);
+        public bool TryTrimTo(GeoPoint2 point, LineEnd end, out GeoEdge2 result) =>
+            TryTrimTo(point, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Shortens the edge at one end back to a point on it, within a tolerance.
@@ -614,8 +628,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="point">The point.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool IsPointOn(GeoPoint2 point, Tolerance tolerance)
-            => IsArc ? ToArc().IsPointOn(point, tolerance) : ToLine().IsPointOn(point, tolerance);
+        public bool IsPointOn(GeoPoint2 point, Tolerance tolerance) =>
+            IsArc ? ToArc().IsPointOn(point, tolerance) : ToLine().IsPointOn(point, tolerance);
 
         /// <summary>
         /// Says where a point lies with respect to this edge.
@@ -631,8 +645,7 @@ namespace GeometryHelper.Geometry
         /// <param name="point">The point.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns><c>OnSide</c> when the point is on the edge; otherwise, <c>OutSide</c>.</returns>
-        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance)
-            => IsPointOn(point, tolerance) ? PointLocation.OnSide : PointLocation.OutSide;
-
+        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) =>
+            IsPointOn(point, tolerance) ? PointLocation.OnSide : PointLocation.OutSide;
     }
 }

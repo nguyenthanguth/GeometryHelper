@@ -48,18 +48,18 @@ namespace GeometryHelper.UnitTest.Dxf
         internal static string Bits(GeoVector3 v) => Bits(v.X) + "," + Bits(v.Y) + "," + Bits(v.Z);
 
         /// <summary>The bits of a number.</summary>
-        internal static string Bits(double d) => BitConverter.DoubleToInt64Bits(d).ToString("x", CultureInfo.InvariantCulture);
+        internal static string Bits(double d) =>
+            BitConverter.DoubleToInt64Bits(d).ToString("x", CultureInfo.InvariantCulture);
 
         /// <summary>The number of the bits ezdxf prints with float.hex, as <c>0x4049bfffffffffff</c> for 51.49999999999999.</summary>
         internal static double FromBits(long bits) => BitConverter.Int64BitsToDouble(bits);
 
         /// <summary>Every entity of a drawing: of model space, paper space and every block.</summary>
-        internal static IEnumerable<DxfEntity> Everything(DxfDatabase db)
-            => db.BlockTable.SelectMany(b => b);
+        internal static IEnumerable<DxfEntity> Everything(DxfDatabase db) => db.BlockTable.SelectMany(b => b);
 
         /// <summary>The entity of a handle, of model space, paper space or any block.</summary>
-        internal static T ByHandle<T>(DxfDatabase db, string handle) where T : DxfEntity
-            => Everything(db).OfType<T>().First(e => e.Handle == handle);
+        internal static T ByHandle<T>(DxfDatabase db, string handle)
+            where T : DxfEntity => Everything(db).OfType<T>().First(e => e.Handle == handle);
 
         /// <summary>The records of a text, each its lines from its group 0 to the next, line ends made LF.</summary>
         internal static List<string> Records(string text)
@@ -120,7 +120,8 @@ namespace GeometryHelper.UnitTest.Dxf
         /// The no-op rule: every setter given the value its getter gives leaves the drawing byte for byte. The action sets
         /// each property of an entity to its own value.
         /// </summary>
-        internal static void SettingWhatItHasChangesNothing<T>(string text, Action<T> setEach) where T : DxfEntity
+        internal static void SettingWhatItHasChangesNothing<T>(string text, Action<T> setEach)
+            where T : DxfEntity
         {
             DxfDatabase db = DxfDatabase.Parse(text);
             byte[] before = Saved(db);
@@ -144,12 +145,20 @@ namespace GeometryHelper.UnitTest.Dxf
         internal static void OnlyTheseChanged(string before, string after, params string[] handles)
         {
             Differ(before, after, out List<string> gone, out List<string> come);
-            string[] goneHandles = gone.Where(r => !r.Contains("\nHEADER\n")).Select(HandleOf).OrderBy(h => h, StringComparer.Ordinal).ToArray();
-            string[] comeHandles = come.Where(r => !r.Contains("\nHEADER\n")).Select(HandleOf).OrderBy(h => h, StringComparer.Ordinal).ToArray();
+            string[] goneHandles = gone.Where(r => !r.Contains("\nHEADER\n"))
+                .Select(HandleOf)
+                .OrderBy(h => h, StringComparer.Ordinal)
+                .ToArray();
+            string[] comeHandles = come.Where(r => !r.Contains("\nHEADER\n"))
+                .Select(HandleOf)
+                .OrderBy(h => h, StringComparer.Ordinal)
+                .ToArray();
 
             Assert.All(comeHandles, h => Assert.Contains(h, handles));
             Assert.All(goneHandles, h => Assert.Contains(h, handles));
-            Assert.All(handles, h => Assert.True(comeHandles.Contains(h) || goneHandles.Contains(h), "The record " + h + " did not change."));
+            Assert.All(handles, h =>
+                Assert.True(comeHandles.Contains(h) || goneHandles.Contains(h), "The record " + h + " did not change.")
+            );
         }
     }
 }

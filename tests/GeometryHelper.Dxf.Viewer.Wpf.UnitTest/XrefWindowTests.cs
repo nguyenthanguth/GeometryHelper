@@ -26,7 +26,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             DxfDatabase database = CadTemplate.CreateMetric();
             database.LayerTable.Add(new DxfLayerTableRecord { Name = "GRID" });
-            database.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1000, 0, 0)) { Layer = "GRID" });
+            database.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1000, 0, 0)) { Layer = "GRID" }
+            );
             database.ModelSpace.AppendEntity(new DxfCircle(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 100.0));
             Directory.CreateDirectory(Path.Combine(folder.FullPath, "xref"));
             return folder.Write(Path.Combine("xref", "grid.dxf"), database);
@@ -129,7 +131,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             using (var folder = new TestFolder())
             {
                 MainViewModel model = Plan(folder, out string grid, out _);
-                const string Line = "External Reference Files Have Changed: grid needs reloading. Reload it with -XREF Reload or in the External References palette.";
+                const string Line =
+                    "External Reference Files Have Changed: grid needs reloading. Reload it with -XREF Reload or in the External References palette.";
                 Assert.False(model.Document.Xrefs.WatchFiles);
                 model.WatchReferenceFiles = true;
                 Assert.True(model.Document.Xrefs.WatchFiles);
@@ -162,11 +165,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             {
                 Grid(folder);
                 DxfDatabase plan = CadTemplate.CreateMetric();
-                plan.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 5000, 0), plan.AttachXref("grid.dxf", "grid")));
+                plan.ModelSpace.AppendEntity(
+                    new DxfBlockReference(new GeoPoint3(0, 5000, 0), plan.AttachXref("grid.dxf", "grid"))
+                );
                 string planPath = folder.Write(Path.Combine("xref", "plan.dxf"), plan);
                 var model = new MainViewModel();
                 Assert.True(model.Open(folder.Write("site.dxf", CadTemplate.CreateMetric())));
-                foreach (string answer in new[] { "-XREF", "A", planPath, "0,0", string.Empty, string.Empty, string.Empty })
+                foreach (
+                    string answer in new[] { "-XREF", "A", planPath, "0,0", string.Empty, string.Empty, string.Empty }
+                )
                 {
                     model.Execute(answer);
                 }
@@ -193,7 +200,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 palette.Selected = palette.Rows[1];
                 palette.UnloadCommand.Execute(null);
-                Assert.Equal(new[] { "Opened", "Unloaded", "Orphaned" }, palette.Rows.Select(r => r.StatusText).ToArray());
+                Assert.Equal(
+                    new[] { "Opened", "Unloaded", "Orphaned" },
+                    palette.Rows.Select(r => r.StatusText).ToArray()
+                );
             }
         }
 
@@ -268,7 +278,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 string logo = Logo(folder);
                 var model = new MainViewModel();
                 Assert.True(model.Open(folder.Write("plan-level2.dxf", CadTemplate.CreateMetric())));
-                var dialog = new AttachReferenceViewModel(new CadAttachRequest(model.Document, CadAttachKind.Image)) { FileName = logo };
+                var dialog = new AttachReferenceViewModel(new CadAttachRequest(model.Document, CadAttachKind.Image))
+                {
+                    FileName = logo,
+                };
 
                 Assert.Equal("Attach Image", dialog.Title);
                 Assert.Equal("Resolution", dialog.UnitTitle);
@@ -293,9 +306,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 {
                     MainViewModel model = Plan(folder, out _, out _);
                     var palette = new ExternalReferencesWindow(new ExternalReferencesViewModel(model));
-                    var dialog = new AttachReferenceWindow(new AttachReferenceViewModel(new CadAttachRequest(model.Document, CadAttachKind.Image)));
+                    var dialog = new AttachReferenceWindow(
+                        new AttachReferenceViewModel(new CadAttachRequest(model.Document, CadAttachKind.Image))
+                    );
 
-                    foreach ((Window window, FrameworkElement body) in new (Window, FrameworkElement)[] { (palette, palette.Body), (dialog, dialog.Body) })
+                    foreach (
+                        (Window window, FrameworkElement body) in new (Window, FrameworkElement)[]
+                        {
+                            (palette, palette.Body),
+                            (dialog, dialog.Body),
+                        }
+                    )
                     {
                         Style title = (Style)window.FindResource("GhTitleCloseButton");
                         object context = window.DataContext;
@@ -303,7 +324,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         body.DataContext = context;
                         Layout(body);
                         Button cross = Assert.Single(Descendants(body).OfType<Button>(), b => b.Style == title);
-                        Assert.Equal(Color.FromRgb(0xF2, 0x6B, 0x3A), ((SolidColorBrush)Descendants(cross).OfType<IconView>().Single().Stroke).Color);
+                        Assert.Equal(
+                            Color.FromRgb(0xF2, 0x6B, 0x3A),
+                            ((SolidColorBrush)Descendants(cross).OfType<IconView>().Single().Stroke).Color
+                        );
                         window.Close();
                     }
 
@@ -315,14 +339,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     var attach = (ContextMenu)palette.FindResource("AttachMenu");
                     List<MenuItem> items = attach.Items.OfType<MenuItem>().ToList();
                     Assert.Equal(8, items.Count);
-                    Assert.Equal(6, items.Count(i => !i.IsEnabled && ((string)i.Header).EndsWith("not offered", StringComparison.Ordinal)));
+                    Assert.Equal(
+                        6,
+                        items.Count(i =>
+                            !i.IsEnabled && ((string)i.Header).EndsWith("not offered", StringComparison.Ordinal)
+                        )
+                    );
 
                     var rowStyle = (Style)Descendants(palette.Body).OfType<ListBox>().Single().ItemContainerStyle;
-                    var rowMenu = (ContextMenu)rowStyle.Setters.OfType<Setter>().Single(s => s.Property == FrameworkElement.ContextMenuProperty).Value;
-                    Assert.Equal(new[] { "Open", "Attach…", "Unload", "Reload", "Detach", "Bind…" }, rowMenu.Items.OfType<MenuItem>().Select(i => (string)i.Header).ToArray());
+                    var rowMenu = (ContextMenu)
+                        rowStyle
+                            .Setters.OfType<Setter>()
+                            .Single(s => s.Property == FrameworkElement.ContextMenuProperty)
+                            .Value;
+                    Assert.Equal(
+                        new[] { "Open", "Attach…", "Unload", "Reload", "Detach", "Bind…" },
+                        rowMenu.Items.OfType<MenuItem>().Select(i => (string)i.Header).ToArray()
+                    );
                     Assert.False(rowMenu.Items.OfType<MenuItem>().Last().IsEnabled);
 
-                    List<string> dialogTexts = Descendants(dialog.Body).OfType<TextBlock>().Select(t => t.Text).ToList();
+                    List<string> dialogTexts = Descendants(dialog.Body)
+                        .OfType<TextBlock>()
+                        .Select(t => t.Text)
+                        .ToList();
                     Assert.Contains("Attach Image", dialogTexts);
                     Assert.Contains("Resolution", dialogTexts);
                 }

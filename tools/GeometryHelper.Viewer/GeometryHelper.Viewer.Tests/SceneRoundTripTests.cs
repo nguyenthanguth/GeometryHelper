@@ -53,7 +53,8 @@ namespace GeometryHelper.Viewer.Tests
             return numbers;
         }
 
-        private static List<double> NumbersOfAll(Scene scene) => scene.Items.SelectMany(item => NumbersOf(item.Data)).ToList();
+        private static List<double> NumbersOfAll(Scene scene) =>
+            scene.Items.SelectMany(item => NumbersOf(item.Data)).ToList();
 
         private static SceneItem Encode(object shape) => new SceneWriter().Add(shape).Scene.Items.Single();
 
@@ -65,7 +66,8 @@ namespace GeometryHelper.Viewer.Tests
             {
                 Assert.True(
                     BitConverter.DoubleToInt64Bits(expected[i]) == BitConverter.DoubleToInt64Bits(actual[i]),
-                    "number " + i + ": " + expected[i].ToString("G17") + " came back as " + actual[i].ToString("G17"));
+                    "number " + i + ": " + expected[i].ToString("G17") + " came back as " + actual[i].ToString("G17")
+                );
             }
         }
 
@@ -75,7 +77,17 @@ namespace GeometryHelper.Viewer.Tests
         {
             object shape = SampleShapes.Make(kind, 11);
             var writer = new SceneWriter("round trip");
-            writer.Add(shape, layer: "a", name: "item", props: new { distance = 0.1, join = "Round", flag = true });
+            writer.Add(
+                shape,
+                layer: "a",
+                name: "item",
+                props: new
+                {
+                    distance = 0.1,
+                    join = "Round",
+                    flag = true,
+                }
+            );
 
             string json = writer.ToJson();
             Scene read = SceneReader.Read(json);
@@ -103,9 +115,18 @@ namespace GeometryHelper.Viewer.Tests
                 if (kind == "GeoMesh2" || kind == "GeoMesh3")
                 {
                     // The library has no constructor of a mesh, so the faces come back as polygons, with the very corners the mesh has.
-                    object[] faces = kind == "GeoMesh2" ? ((Meshing.GeoMesh2)shape).GetFaces() : (object[])((Meshing.GeoMesh3)shape).GetFaces();
+                    object[] faces =
+                        kind == "GeoMesh2"
+                            ? ((Meshing.GeoMesh2)shape).GetFaces()
+                            : (object[])((Meshing.GeoMesh3)shape).GetFaces();
                     Assert.Equal(faces.Length, ((Array)rebuilt).Length);
-                    worst = Math.Max(worst, Distance(NumbersOfAll(new SceneWriter().Add(faces).Scene), NumbersOfAll(new SceneWriter().Add(rebuilt).Scene)));
+                    worst = Math.Max(
+                        worst,
+                        Distance(
+                            NumbersOfAll(new SceneWriter().Add(faces).Scene),
+                            NumbersOfAll(new SceneWriter().Add(rebuilt).Scene)
+                        )
+                    );
                     continue;
                 }
 
@@ -116,12 +137,25 @@ namespace GeometryHelper.Viewer.Tests
             // Every constructor that keeps what it is given leaves the numbers as they were. Those that scale a direction to
             // length one again (a ray, the normal or major axis of an arc, a circle, an ellipse or a plane, the axes of a box), or work
             // the sweep of an arc out again from its two angles, can move the last digit; over a hundred shapes of each, by two at most.
-            Assert.True(worst <= (ConstructorScalesItsDirections.Contains(kind) ? 1E-13 : 0.0), kind + " came back " + worst + " away");
+            Assert.True(
+                worst <= (ConstructorScalesItsDirections.Contains(kind) ? 1E-13 : 0.0),
+                kind + " came back " + worst + " away"
+            );
         }
 
         private static readonly HashSet<string> ConstructorScalesItsDirections = new HashSet<string>
         {
-            "GeoRay2", "GeoRay3", "GeoXLine2", "GeoXLine3", "GeoArc2", "GeoArc3", "GeoCircle3", "GeoEllipse2", "GeoEllipse3", "GeoObb3", "GeoPlane3",
+            "GeoRay2",
+            "GeoRay3",
+            "GeoXLine2",
+            "GeoXLine3",
+            "GeoArc2",
+            "GeoArc3",
+            "GeoCircle3",
+            "GeoEllipse2",
+            "GeoEllipse3",
+            "GeoObb3",
+            "GeoPlane3",
         };
 
         /// <summary>
@@ -137,12 +171,19 @@ namespace GeometryHelper.Viewer.Tests
             {
                 if (BitConverter.DoubleToInt64Bits(expected[i]) != BitConverter.DoubleToInt64Bits(actual[i]))
                 {
-                    worst = Math.Max(worst, Math.Max(Math.Abs(expected[i] - actual[i]) / Math.Max(1.0, Math.Abs(expected[i])), double.Epsilon));
+                    worst = Math.Max(
+                        worst,
+                        Math.Max(
+                            Math.Abs(expected[i] - actual[i]) / Math.Max(1.0, Math.Abs(expected[i])),
+                            double.Epsilon
+                        )
+                    );
                 }
             }
 
             return worst;
         }
+
         [Fact]
         public void AnOpeningOfASolid_SurvivesTheRoundTrip()
         {
@@ -159,7 +200,19 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void NumbersThatAreHardToWrite_ComeBackTheSame()
         {
-            double[] hard = { 0.1, 1E-300, 5E-324, double.MaxValue, -double.MaxValue, 123456789.12345678, 1.0 / 3.0, Math.PI, 0.30000000000000004, 1E-15 };
+            double[] hard =
+            {
+                0.1,
+                1E-300,
+                5E-324,
+                double.MaxValue,
+                -double.MaxValue,
+                123456789.12345678,
+                1.0 / 3.0,
+                Math.PI,
+                0.30000000000000004,
+                1E-15,
+            };
 
             foreach (double x in hard)
             {
@@ -187,7 +240,9 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void NumbersJsonCannotCarry_AreWrittenAsTextAndReadBack()
         {
-            var writer = new SceneWriter().Add(new GeoPoint3(double.NaN, double.PositiveInfinity, double.NegativeInfinity));
+            var writer = new SceneWriter().Add(
+                new GeoPoint3(double.NaN, double.PositiveInfinity, double.NegativeInfinity)
+            );
             Scene read = SceneReader.Read(writer.ToJson());
             var rebuilt = (GeoPoint3)read.Items.Single().ToGeometry();
 
@@ -236,7 +291,10 @@ namespace GeometryHelper.Viewer.Tests
             writer.Add(new GeoPoint2(1, 2), layer: "first");
             writer.Add(new GeoPoint2(1, 2), layer: "second");
 
-            Assert.Equal(new[] { SceneColor.FromCycle(0), SceneColor.FromCycle(1) }, writer.Scene.Layers.Select(l => l.Color));
+            Assert.Equal(
+                new[] { SceneColor.FromCycle(0), SceneColor.FromCycle(1) },
+                writer.Scene.Layers.Select(l => l.Color)
+            );
             Assert.Equal("default", new SceneWriter().Add(new GeoPoint2(0, 0)).Scene.Items.Single().Layer);
         }
 
@@ -251,12 +309,25 @@ namespace GeometryHelper.Viewer.Tests
 
                 var writer = new SceneWriter().Add(
                     new GeoPoint2(0, 0),
-                    props: new Dictionary<string, object> { ["zeta"] = 1.5, ["alpha"] = "x", ["mid"] = 3, ["flag"] = false });
+                    props: new Dictionary<string, object>
+                    {
+                        ["zeta"] = 1.5,
+                        ["alpha"] = "x",
+                        ["mid"] = 3,
+                        ["flag"] = false,
+                    }
+                );
 
                 string json = writer.ToJson();
 
-                Assert.True(json.IndexOf("\"alpha\"", StringComparison.Ordinal) < json.IndexOf("\"flag\"", StringComparison.Ordinal));
-                Assert.True(json.IndexOf("\"flag\"", StringComparison.Ordinal) < json.IndexOf("\"zeta\"", StringComparison.Ordinal));
+                Assert.True(
+                    json.IndexOf("\"alpha\"", StringComparison.Ordinal)
+                        < json.IndexOf("\"flag\"", StringComparison.Ordinal)
+                );
+                Assert.True(
+                    json.IndexOf("\"flag\"", StringComparison.Ordinal)
+                        < json.IndexOf("\"zeta\"", StringComparison.Ordinal)
+                );
                 Assert.Equal("1.5", SceneReader.Read(json).Items.Single().Properties["zeta"]);
                 Assert.Equal("false", SceneReader.Read(json).Items.Single().Properties["flag"]);
             }
@@ -269,7 +340,8 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AnItemOfAKindTheViewerDoesNotKnow_IsKeptListedAndWrittenAgain()
         {
-            const string json = "{\"format\":\"ghscene\",\"version\":1,\"items\":[{\"name\":\"x\",\"layer\":\"l\",\"kind\":\"GeoHologram9\",\"data\":{\"q\":[1,2]}}]}";
+            const string json =
+                "{\"format\":\"ghscene\",\"version\":1,\"items\":[{\"name\":\"x\",\"layer\":\"l\",\"kind\":\"GeoHologram9\",\"data\":{\"q\":[1,2]}}]}";
 
             Scene read = SceneReader.Read(json);
 
@@ -304,7 +376,10 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void Save_WritesTheSameTextToAFile()
         {
-            string path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ghscene-" + Guid.NewGuid().ToString("N") + ".ghscene.json");
+            string path = System.IO.Path.Combine(
+                System.IO.Path.GetTempPath(),
+                "ghscene-" + Guid.NewGuid().ToString("N") + ".ghscene.json"
+            );
 
             try
             {

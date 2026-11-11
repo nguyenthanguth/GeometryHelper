@@ -18,10 +18,12 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly Tolerance Fine = new Tolerance(1E-4, 1E-6);
 
         /// <summary>The edge from the origin to (0.01, 0, 0), bowing by a thousandth towards -Y in the plane z = 0.</summary>
-        private static GeoEdge3 Short() => new GeoEdge3(GeoPoint3.Origin, new GeoPoint3(0.01, 0, 0), 1E-3, GeoVector3.ZAxis);
+        private static GeoEdge3 Short() =>
+            new GeoEdge3(GeoPoint3.Origin, new GeoPoint3(0.01, 0, 0), 1E-3, GeoVector3.ZAxis);
 
         /// <summary>The edge from the origin to (100, 0, 0), bowing by a billionth: 0.00000005 off its chord.</summary>
-        private static GeoEdge3 Long() => new GeoEdge3(GeoPoint3.Origin, new GeoPoint3(100, 0, 0), 1E-9, GeoVector3.ZAxis);
+        private static GeoEdge3 Long() =>
+            new GeoEdge3(GeoPoint3.Origin, new GeoPoint3(100, 0, 0), 1E-9, GeoVector3.ZAxis);
 
         private static double Sweep(double bulge) => 4 * Math.Atan(bulge);
 
@@ -66,10 +68,17 @@ namespace GeometryHelper.UnitTest.Solid
         public void ALoopWithAFlatSide_IsMeasuredRoundItsArc()
         {
             var loop = new GeoPolygonArc3(
-                new[] { GeoPoint3.Origin, new GeoPoint3(0.01, 0, 0), new GeoPoint3(0.01, 0.01, 0), new GeoPoint3(0, 0.01, 0) },
+                new[]
+                {
+                    GeoPoint3.Origin,
+                    new GeoPoint3(0.01, 0, 0),
+                    new GeoPoint3(0.01, 0.01, 0),
+                    new GeoPoint3(0, 0.01, 0),
+                },
                 new[] { -1E-3, 0, 0, 0 },
                 new[] { GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis },
-                Fine);
+                Fine
+            );
 
             Assert.Equal(0.03 + Sweep(1E-3) * Radius(0.01, 1E-3), loop.Length, 15);
         }
@@ -81,7 +90,8 @@ namespace GeometryHelper.UnitTest.Solid
             var bar = new GeoPolylineArc3(
                 new[] { GeoPoint3.Origin, new GeoPoint3(1, 0, 0), new GeoPoint3(1, 1, 0) },
                 new[] { 1E-6, 0 },
-                new[] { GeoVector3.ZAxis, GeoVector3.ZAxis });
+                new[] { GeoVector3.ZAxis, GeoVector3.ZAxis }
+            );
             var box = new GeoAabb3(new GeoPoint3(0.4, -0.1, -0.1), new GeoPoint3(0.6, 0.1, 0.1));
 
             Assert.True(bar.CollidesWith(box, Fine));
@@ -159,7 +169,8 @@ namespace GeometryHelper.UnitTest.Solid
             var bar = new GeoPolylineArc3(
                 new[] { GeoPoint3.Origin, new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0) },
                 new[] { 1E-12, 0 },
-                new[] { GeoVector3.ZAxis, GeoVector3.ZAxis });
+                new[] { GeoVector3.ZAxis, GeoVector3.ZAxis }
+            );
             GeoPolylineArc3 turned = bar.TransformBy(turn);
 
             Assert.Equal(3, turned.VertexCount);
@@ -209,13 +220,15 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoVector3 d = direction.Normalize();
             double k = factor - 1;
-            return new GeoTransform3(new double[,]
-            {
-                { 1 + k * d.X * d.X, k * d.X * d.Y, k * d.X * d.Z, 0 },
-                { k * d.Y * d.X, 1 + k * d.Y * d.Y, k * d.Y * d.Z, 0 },
-                { k * d.Z * d.X, k * d.Z * d.Y, 1 + k * d.Z * d.Z, 0 },
-                { 0, 0, 0, 1 },
-            });
+            return new GeoTransform3(
+                new double[,]
+                {
+                    { 1 + k * d.X * d.X, k * d.X * d.Y, k * d.X * d.Z, 0 },
+                    { k * d.Y * d.X, 1 + k * d.Y * d.Y, k * d.Y * d.Z, 0 },
+                    { k * d.Z * d.X, k * d.Z * d.Y, 1 + k * d.Z * d.Z, 0 },
+                    { 0, 0, 0, 1 },
+                }
+            );
         }
 
         [Fact]
@@ -223,9 +236,16 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // Pressing space onto z = 0 has no inverse, but it keeps this loop's own plane, so the loop comes down whole.
             var loop = new GeoPolygonArc3(
-                new[] { new GeoPoint3(0, 0, 500), new GeoPoint3(1000, 0, 500), new GeoPoint3(1000, 1000, 500), new GeoPoint3(0, 1000, 500) },
+                new[]
+                {
+                    new GeoPoint3(0, 0, 500),
+                    new GeoPoint3(1000, 0, 500),
+                    new GeoPoint3(1000, 1000, 500),
+                    new GeoPoint3(0, 1000, 500),
+                },
                 new[] { 0.3, 0, 0, 0 },
-                new[] { GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis });
+                new[] { GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis, GeoVector3.ZAxis }
+            );
 
             GeoPolygonArc3 pressed = loop.TransformBy(GeoTransform3.Scaling(1, 1, 0));
 
@@ -238,7 +258,12 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // A half circle 1 000 across, its normal 0.002 off +Z, stretched to twice its height: its plane's two axes
             // stretch alike to within 0.000004, but its points land up to 0.003 off any circle about its own centre.
-            var edge = new GeoEdge3(GeoPoint3.Origin, new GeoPoint3(0, 1000, 0), 1, new GeoVector3(Math.Sin(0.002), 0, Math.Cos(0.002)));
+            var edge = new GeoEdge3(
+                GeoPoint3.Origin,
+                new GeoPoint3(0, 1000, 0),
+                1,
+                new GeoVector3(Math.Sin(0.002), 0, Math.Cos(0.002))
+            );
             GeoTransform3 stretch = GeoTransform3.Scaling(1, 1, 2);
 
             // The moved middle lies on the moved arc, though not halfway round it. A bulge this close to a half turn
@@ -306,7 +331,10 @@ namespace GeometryHelper.UnitTest.Solid
             var edge = new GeoEdge3(GeoPoint3.Origin, new GeoPoint3(0.01, 0, 0), -1E-3, GeoVector3.ZAxis);
 
             Assert.True(edge.MidPoint.DistanceTo(new GeoPoint3(0.005, 5E-6, 0)) < 1E-14);
-            Assert.True(edge.TransformBy(GeoTransform3.Scaling(-1, 1, 1)).MidPoint.DistanceTo(new GeoPoint3(-0.005, 5E-6, 0)) < 1E-14);
+            Assert.True(
+                edge.TransformBy(GeoTransform3.Scaling(-1, 1, 1)).MidPoint.DistanceTo(new GeoPoint3(-0.005, 5E-6, 0))
+                    < 1E-14
+            );
         }
 
         [Fact]

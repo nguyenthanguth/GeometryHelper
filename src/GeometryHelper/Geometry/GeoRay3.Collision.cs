@@ -17,7 +17,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this ray touches a solid, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) => Collision3.CollidesWith(this, solid, tolerance);
+        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) =>
+            Collision3.CollidesWith(this, solid, tolerance);
 
         /// <summary>
         /// Checks whether this ray runs into a triangle, using the default tolerance.
@@ -27,7 +28,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this ray runs into a triangle, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) => Collision3.CollidesWith(this, triangle, tolerance);
+        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Collision3.CollidesWith(this, triangle, tolerance);
 
         /// <summary>
         /// Checks whether this ray runs into a polygon, using the default tolerance.
@@ -37,7 +39,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this ray runs into a polygon, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) => Collision3.CollidesWith(this, polygon, tolerance);
+        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Collision3.CollidesWith(this, polygon, tolerance);
 
         /// <summary>
         /// Checks whether this ray runs into a face, using the default tolerance.
@@ -68,6 +71,7 @@ namespace GeometryHelper.Geometry
         /// Checks whether this ray starts inside an oriented box or runs into it, within a tolerance.
         /// </summary>
         public bool CollidesWith(GeoObb3 box, Tolerance tolerance) => Collision3.CollidesWith(this, box, tolerance);
+
         /// <summary>
         /// Checks whether this ray touches an arc, using the default tolerance.
         /// </summary>
@@ -125,8 +129,8 @@ namespace GeometryHelper.Geometry
         /// <see cref="GeoPolygonArc3.CollidesWith(GeoRay3, Tolerance)"/>.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance)
-            => ArcChain3.CollidesWith(loop, this, tolerance);
+        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance) =>
+            ArcChain3.CollidesWith(loop, this, tolerance);
 
         /// <summary>
         /// Checks whether this ray touches a straight chain: the same answer as
@@ -140,8 +144,8 @@ namespace GeometryHelper.Geometry
         /// <see cref="GeoPolyline3.CollidesWith(GeoRay3, Tolerance)"/>.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance)
-            => Collision3.CollidesWith(polyline, this, tolerance);
+        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Collision3.CollidesWith(polyline, this, tolerance);
 
         /// <summary>
         /// Checks whether this ray touches a curved chain: the same answer as
@@ -155,8 +159,8 @@ namespace GeometryHelper.Geometry
         /// <see cref="GeoPolylineArc3.CollidesWith(GeoRay3, Tolerance)"/>.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance)
-            => ArcChain3.CollidesWith(chain, this, tolerance);
+        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance) =>
+            ArcChain3.CollidesWith(chain, this, tolerance);
 
         /// <summary>
         /// Checks whether this ray touches a plane: the same answer as
@@ -179,7 +183,8 @@ namespace GeometryHelper.Geometry
         /// A ray from (0, 0, 10) pointing straight down crosses the floor plane at the origin; one lying in the floor
         /// touches it everywhere and crosses it nowhere.
         /// </remarks>
-        public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance) => Collision3.CollidesWith(this, plane, tolerance);
+        public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance) =>
+            Collision3.CollidesWith(this, plane, tolerance);
 
         /// <summary>
         /// Checks whether this ray and another touch: the same answer as

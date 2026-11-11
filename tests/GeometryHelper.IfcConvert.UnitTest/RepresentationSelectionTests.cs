@@ -6,7 +6,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
     public class RepresentationSelectionTests
     {
         // 1 x 0.5 x 2 body plus a larger 3 x 3 x 3 'Box' representation (IfcBoundingBox).
-        private static readonly string WallWithBodyAndBox = IfcTestFile.CommonHeader() + @"
+        private static readonly string WallWithBodyAndBox =
+            IfcTestFile.CommonHeader()
+            + @"
 #20=IFCRECTANGLEPROFILEDEF(.AREA.,$,#5,1.,0.5);
 #21=IFCEXTRUDEDAREASOLID(#20,#8,#9,2.);
 #22=IFCSHAPEREPRESENTATION(#11,'Body','SweptSolid',(#21));
@@ -19,7 +21,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
 ";
 
         // Exporters that leave RepresentationIdentifier unset must still produce geometry.
-        private static readonly string WallWithUnnamedRepresentation = IfcTestFile.CommonHeader() + @"
+        private static readonly string WallWithUnnamedRepresentation =
+            IfcTestFile.CommonHeader()
+            + @"
 #20=IFCRECTANGLEPROFILEDEF(.AREA.,$,#5,1.,0.5);
 #21=IFCEXTRUDEDAREASOLID(#20,#8,#9,2.);
 #22=IFCSHAPEREPRESENTATION(#11,$,'SweptSolid',(#21));

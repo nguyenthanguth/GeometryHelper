@@ -59,7 +59,10 @@ namespace GeometryHelper.Dxf
         {
             if (!(record is DxfUcsTableRecord ucs))
             {
-                throw new ArgumentException("The UCS table takes a DxfUcsTableRecord, and was given a " + record.GetType().Name + ".", "value");
+                throw new ArgumentException(
+                    "The UCS table takes a DxfUcsTableRecord, and was given a " + record.GetType().Name + ".",
+                    "value"
+                );
             }
 
             ucs.AddTo(_file);
@@ -79,7 +82,9 @@ namespace GeometryHelper.Dxf
     public sealed class DxfUcsTableRecord : DxfSymbolTableRecord
     {
         // The groups of AcDbUCSTableRecord in the order AutoCAD writes them, after AcDbSymbolTableRecord.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 100, 2, 70, 10, 20, 30, 11, 21, 31, 12, 22, 32, 79, 146, 346, 71, 13, 23, 33 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 100, 2, 70, 10, 20, 30, 11, 21, 31, 12, 22, 32, 79, 146, 346, 71, 13, 23, 33 }
+        );
 
         // The header variables that name a system of the table.
         private static readonly string[] Naming = { "$UCSNAME", "$PUCSNAME", "$UCSBASE", "$PUCSBASE" };
@@ -89,14 +94,10 @@ namespace GeometryHelper.Dxf
         private GeoVector3 _yAxis = GeoVector3.YAxis;
 
         /// <summary>Initializes a system made in code, the world's, to be added to a <see cref="DxfUcsTable"/> with its <see cref="DxfSymbolTableRecord.Name"/> given.</summary>
-        public DxfUcsTableRecord()
-        {
-        }
+        public DxfUcsTableRecord() { }
 
         private DxfUcsTableRecord(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets the origin of the system (groups 10, 20, 30) in world coordinates, as AutoCAD's <c>Origin</c>; the world's origin where the record gives none.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
@@ -104,12 +105,14 @@ namespace GeometryHelper.Dxf
         public GeoPoint3 Origin
         {
             get => Item == null ? _origin : Triple(10, 0.0, 0.0, 0.0, (x, y, z) => new GeoPoint3(x, y, z));
-
             set
             {
                 if (!value.IsValid)
                 {
-                    throw new ArgumentException("A point has to be of finite numbers: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "A point has to be of finite numbers: " + value + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 GeoPoint3 now = Origin;
@@ -168,7 +171,11 @@ namespace GeometryHelper.Dxf
 
             if (Item.File.PointedAt(Handle))
             {
-                throw new InvalidOperationException("The UCS " + name + " is pointed at by an object of the file, as a viewport whose system it is, and is not erased.");
+                throw new InvalidOperationException(
+                    "The UCS "
+                        + name
+                        + " is pointed at by an object of the file, as a viewport whose system it is, and is not erased."
+                );
             }
 
             DxfFile file = Item.File;
@@ -177,7 +184,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The object of a UCS record, made once.</summary>
-        internal static DxfUcsTableRecord Of(DxfItem item) => item.Wrapper as DxfUcsTableRecord ?? (DxfUcsTableRecord)item.KeepWrapper(new DxfUcsTableRecord(item));
+        internal static DxfUcsTableRecord Of(DxfItem item) =>
+            item.Wrapper as DxfUcsTableRecord ?? (DxfUcsTableRecord)item.KeepWrapper(new DxfUcsTableRecord(item));
 
         /// <summary>Writes the system made in code into a file's UCS table, and stands for its record from then on.</summary>
         internal void AddTo(DxfFile file)
@@ -221,9 +229,20 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfItem other in file.TableItems("UCS"))
             {
-                if (other != Item && !other.IsRemoved && string.Equals(DxfReader.NameOf(file.ValueOf(other, 2) ?? string.Empty), name, StringComparison.OrdinalIgnoreCase))
+                if (
+                    other != Item
+                    && !other.IsRemoved
+                    && string.Equals(
+                        DxfReader.NameOf(file.ValueOf(other, 2) ?? string.Empty),
+                        name,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
                 {
-                    throw new ArgumentException("The UCS table has a system named " + name + " already, letters of either case the same.", "value");
+                    throw new ArgumentException(
+                        "The UCS table has a system named " + name + " already, letters of either case the same.",
+                        "value"
+                    );
                 }
             }
 
@@ -238,7 +257,15 @@ namespace GeometryHelper.Dxf
             {
                 IReadOnlyList<DxfTypedValue> groups = file.HeaderOf(variable);
 
-                if (groups != null && groups.Count > 0 && string.Equals(DxfReader.NameOf(groups[0].Value ?? string.Empty), old, StringComparison.OrdinalIgnoreCase))
+                if (
+                    groups != null
+                    && groups.Count > 0
+                    && string.Equals(
+                        DxfReader.NameOf(groups[0].Value ?? string.Empty),
+                        old,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
                 {
                     file.SetHeader(variable, new[] { new DxfTypedValue(2, name) });
                 }
@@ -249,7 +276,10 @@ namespace GeometryHelper.Dxf
         {
             if (!(Guard.IsFinite(value.X) && Guard.IsFinite(value.Y) && Guard.IsFinite(value.Z)) || value.Length <= 0.0)
             {
-                throw new ArgumentException("An axis has to be a direction of finite numbers and some length: " + value + " is not.", nameof(value));
+                throw new ArgumentException(
+                    "An axis has to be a direction of finite numbers and some length: " + value + " is not.",
+                    nameof(value)
+                );
             }
 
             if (Item == null)
@@ -262,18 +292,26 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        private void SetTriple(int code, double x, double y, double z)
-            => Item.File.SetValues(Item, new[]
-            {
-                new KeyValuePair<int, string>(code, Numbers.Exact(x + 0.0)),
-                new KeyValuePair<int, string>(code + 10, Numbers.Exact(y + 0.0)),
-                new KeyValuePair<int, string>(code + 20, Numbers.Exact(z + 0.0)),
-            }, Order, false);
+        private void SetTriple(int code, double x, double y, double z) =>
+            Item.File.SetValues(
+                Item,
+                new[]
+                {
+                    new KeyValuePair<int, string>(code, Numbers.Exact(x + 0.0)),
+                    new KeyValuePair<int, string>(code + 10, Numbers.Exact(y + 0.0)),
+                    new KeyValuePair<int, string>(code + 20, Numbers.Exact(z + 0.0)),
+                },
+                Order,
+                false
+            );
 
-        private T Triple<T>(int code, double x, double y, double z, Func<double, double, double, T> make)
-            => make(Real(code, x), Real(code + 10, y), Real(code + 20, z));
+        private T Triple<T>(int code, double x, double y, double z, Func<double, double, double, T> make) =>
+            make(Real(code, x), Real(code + 10, y), Real(code + 20, z));
 
-        private double Real(int code, double fallback) => Numbers.TryRead(Item.File.ValueOf(Item, code), out double value) && Guard.IsFinite(value) ? value : fallback;
+        private double Real(int code, double fallback) =>
+            Numbers.TryRead(Item.File.ValueOf(Item, code), out double value) && Guard.IsFinite(value)
+                ? value
+                : fallback;
 
         private static void Write(DxfFile.Builder b, int code, double x, double y, double z)
         {
@@ -282,6 +320,7 @@ namespace GeometryHelper.Dxf
             b.Group(code + 20, Numbers.Exact(z + 0.0));
         }
 
-        private static bool Same(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
+        private static bool Same(double a, double b) =>
+            BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
     }
 }

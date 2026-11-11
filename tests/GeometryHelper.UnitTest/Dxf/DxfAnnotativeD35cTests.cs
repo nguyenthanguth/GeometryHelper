@@ -26,8 +26,12 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static readonly DxfTypedValue[] AnnotativeXData =
         {
-            new DxfTypedValue(1001, "AcadAnnotative"), new DxfTypedValue(1000, "AnnotativeData"), new DxfTypedValue(1002, "{"),
-            new DxfTypedValue(1070, "1"), new DxfTypedValue(1070, "1"), new DxfTypedValue(1002, "}"),
+            new DxfTypedValue(1001, "AcadAnnotative"),
+            new DxfTypedValue(1000, "AnnotativeData"),
+            new DxfTypedValue(1002, "{"),
+            new DxfTypedValue(1070, "1"),
+            new DxfTypedValue(1070, "1"),
+            new DxfTypedValue(1002, "}"),
         };
 
         // The valve of AutoCAD's sample: its own point, and that of its context of 1:1 (plugin D35b I1).
@@ -67,21 +71,54 @@ namespace GeometryHelper.UnitTest.Dxf
         private static string N(double value) => value.ToString("R", CultureInfo.InvariantCulture);
 
         /// <summary>The own groups of a context of an MTEXT, AutoCAD's order: attachment, direction, location, width, box, extents, columns.</summary>
-        private static string MTextGroups(int attachment, double dx, double dy, double x, double y, double width, double box)
-            => " 70\n" + attachment.ToString(CultureInfo.InvariantCulture) + "\n 10\n" + N(dx) + "\n 20\n" + N(dy) + "\n 30\n0.0\n 11\n" + N(x) + "\n 21\n" + N(y)
-                + "\n 31\n0.0\n 40\n" + N(width) + "\n 41\n" + N(box) + "\n 42\n0.0\n 43\n0.0\n 71\n0\n";
+        private static string MTextGroups(
+            int attachment,
+            double dx,
+            double dy,
+            double x,
+            double y,
+            double width,
+            double box
+        ) =>
+            " 70\n"
+            + attachment.ToString(CultureInfo.InvariantCulture)
+            + "\n 10\n"
+            + N(dx)
+            + "\n 20\n"
+            + N(dy)
+            + "\n 30\n0.0\n 11\n"
+            + N(x)
+            + "\n 21\n"
+            + N(y)
+            + "\n 31\n0.0\n 40\n"
+            + N(width)
+            + "\n 41\n"
+            + N(box)
+            + "\n 42\n0.0\n 43\n0.0\n 71\n0\n";
 
         /// <summary>Those of an INSERT's: the angle, the point, the scale factors.</summary>
-        private static string InsertGroups(double degrees, double x, double y, double scale)
-            => " 50\n" + N(degrees) + "\n 10\n" + N(x) + "\n 20\n" + N(y) + "\n 30\n0.0\n 41\n" + N(scale) + "\n 42\n" + N(scale) + "\n 43\n" + N(scale) + "\n";
+        private static string InsertGroups(double degrees, double x, double y, double scale) =>
+            " 50\n"
+            + N(degrees)
+            + "\n 10\n"
+            + N(x)
+            + "\n 20\n"
+            + N(y)
+            + "\n 30\n0.0\n 41\n"
+            + N(scale)
+            + "\n 42\n"
+            + N(scale)
+            + "\n 43\n"
+            + N(scale)
+            + "\n";
 
         /// <summary>Those of an attribute's: the horizontal mode, the angle, the two points, the flag of no MTEXT after them.</summary>
-        private static string AttributeGroups(double x, double y)
-            => " 70\n0\n 50\n0.0\n 10\n" + N(x) + "\n 20\n" + N(y) + "\n 11\n0.0\n 21\n0.0\n290\n0\n";
+        private static string AttributeGroups(double x, double y) =>
+            " 70\n0\n 50\n0.0\n 10\n" + N(x) + "\n 20\n" + N(y) + "\n 11\n0.0\n 21\n0.0\n290\n0\n";
 
         /// <summary>Those of a TEXT's.</summary>
-        private static string TextGroups(double degrees, double x, double y)
-            => " 70\n0\n 50\n" + N(degrees) + "\n 10\n" + N(x) + "\n 20\n" + N(y) + "\n 11\n0.0\n 21\n0.0\n";
+        private static string TextGroups(double degrees, double x, double y) =>
+            " 70\n0\n 50\n" + N(degrees) + "\n 10\n" + N(x) + "\n 20\n" + N(y) + "\n 11\n0.0\n 21\n0.0\n";
 
         /// <summary>
         /// The ezdxf drawing of R2018 with the scales 1:1 (F0), 1:2 (F1) and 1:4 (F2) in its list, its INSERT 65 at (13.883,
@@ -92,18 +129,35 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             string text = DxfFileEzdxfDrawings.R2018;
             Assert.Contains(ScaleList, text, StringComparison.Ordinal);
-            string scales = Scale("F0", "1:1", "1", "1", "1") + Scale("F1", "1:2", "1", "2", "0") + Scale("F2", "1:4", "1", "4", "0");
+            string scales =
+                Scale("F0", "1:1", "1", "1", "1")
+                + Scale("F1", "1:2", "1", "2", "0")
+                + Scale("F2", "1:4", "1", "4", "0");
             int end = text.LastIndexOf("  0\nENDSEC\n", StringComparison.Ordinal);
-            text = (text.Substring(0, end) + scales + text.Substring(end)).Replace(ScaleList, ScaleList + "  3\nA0\n350\nF0\n  3\nA1\n350\nF1\n  3\nA2\n350\nF2\n");
-            text = Swap(text, "65", "\n 10\n50.0\n 20\n60.0\n 30\n0.0\n 41\n1.5\n 42\n-1.5\n 43\n2.0\n 50\n45.0\n", "\n 10\n" + N(OwnX) + "\n 20\n" + N(ValveY) + "\n 30\n0.0\n");
-            text = Swap(text, "67", "\n 10\n50.0\n 20\n59.0\n 30\n0.0\n 40\n2.5\n", "\n 10\n0.6779381070854527\n 20\n" + N(SampleY) + "\n 30\n0.0\n 40\n3.0\n");
+            text = (text.Substring(0, end) + scales + text.Substring(end)).Replace(
+                ScaleList,
+                ScaleList + "  3\nA0\n350\nF0\n  3\nA1\n350\nF1\n  3\nA2\n350\nF2\n"
+            );
+            text = Swap(
+                text,
+                "65",
+                "\n 10\n50.0\n 20\n60.0\n 30\n0.0\n 41\n1.5\n 42\n-1.5\n 43\n2.0\n 50\n45.0\n",
+                "\n 10\n" + N(OwnX) + "\n 20\n" + N(ValveY) + "\n 30\n0.0\n"
+            );
+            text = Swap(
+                text,
+                "67",
+                "\n 10\n50.0\n 20\n59.0\n 30\n0.0\n 40\n2.5\n",
+                "\n 10\n0.6779381070854527\n 20\n" + N(SampleY) + "\n 30\n0.0\n 40\n3.0\n"
+            );
 
             DxfDatabase db = DxfDatabase.Parse(text);
             var owners = new Dictionary<string, string>();
 
             foreach (KeyValuePair<string, Context[]> held in contexts)
             {
-                DxfEntity entity = held.Key == "67" ? Insert(db).AttributeCollection[0] : ByHandle<DxfEntity>(db, held.Key);
+                DxfEntity entity =
+                    held.Key == "67" ? Insert(db).AttributeCollection[0] : ByHandle<DxfEntity>(db, held.Key);
                 entity.XData = AnnotativeXData;
                 entity.CreateExtensionDictionary();
                 var manager = new DxfDBDictionary { TreatElementsAsHard = true };
@@ -124,9 +178,25 @@ namespace GeometryHelper.UnitTest.Dxf
                 for (int i = 0; i < held.Value.Length; i++)
                 {
                     Context c = held.Value[i];
-                    records.Append("  0\n" + c.Type + "\n  5\n" + c.Handle + "\n102\n{ACAD_REACTORS\n330\n" + owner + "\n102\n}\n330\n" + owner
-                        + "\n100\nAcDbObjectContextData\n 70\n4\n290\n" + (c.IsDefault ? "1" : "0") + "\n100\nAcDbAnnotScaleObjectContextData\n340\n" + c.Scale + "\n" + c.Groups);
-                    entries.Append("  3\n*A" + (i + 1).ToString(CultureInfo.InvariantCulture) + "\n350\n" + c.Handle + "\n");
+                    records.Append(
+                        "  0\n"
+                            + c.Type
+                            + "\n  5\n"
+                            + c.Handle
+                            + "\n102\n{ACAD_REACTORS\n330\n"
+                            + owner
+                            + "\n102\n}\n330\n"
+                            + owner
+                            + "\n100\nAcDbObjectContextData\n 70\n4\n290\n"
+                            + (c.IsDefault ? "1" : "0")
+                            + "\n100\nAcDbAnnotScaleObjectContextData\n340\n"
+                            + c.Scale
+                            + "\n"
+                            + c.Groups
+                    );
+                    entries.Append(
+                        "  3\n*A" + (i + 1).ToString(CultureInfo.InvariantCulture) + "\n350\n" + c.Handle + "\n"
+                    );
                 }
 
                 end = text.LastIndexOf("  0\nENDSEC\n", StringComparison.Ordinal);
@@ -138,8 +208,18 @@ namespace GeometryHelper.UnitTest.Dxf
             return text;
         }
 
-        private static string Scale(string handle, string name, string paper, string drawing, string unit)
-            => "  0\nSCALE\n  5\n" + handle + "\n102\n{ACAD_REACTORS\n330\n14\n102\n}\n330\n14\n100\nAcDbScale\n 70\n0\n300\n" + name + "\n140\n" + paper + "\n141\n" + drawing + "\n290\n" + unit + "\n";
+        private static string Scale(string handle, string name, string paper, string drawing, string unit) =>
+            "  0\nSCALE\n  5\n"
+            + handle
+            + "\n102\n{ACAD_REACTORS\n330\n14\n102\n}\n330\n14\n100\nAcDbScale\n 70\n0\n300\n"
+            + name
+            + "\n140\n"
+            + paper
+            + "\n141\n"
+            + drawing
+            + "\n290\n"
+            + unit
+            + "\n";
 
         /// <summary>The text with the part of a record replaced.</summary>
         private static string Swap(string text, string handle, string from, string to)
@@ -149,7 +229,8 @@ namespace GeometryHelper.UnitTest.Dxf
             return text.Replace(record, record.Replace(from, to));
         }
 
-        private static KeyValuePair<string, Context[]> On(string handle, params Context[] contexts) => new KeyValuePair<string, Context[]>(handle, contexts);
+        private static KeyValuePair<string, Context[]> On(string handle, params Context[] contexts) =>
+            new KeyValuePair<string, Context[]>(handle, contexts);
 
         private static DxfBlockReference Insert(DxfDatabase db) => ByHandle<DxfBlockReference>(db, "65");
 
@@ -158,29 +239,58 @@ namespace GeometryHelper.UnitTest.Dxf
         private static DxfMText Words(DxfDatabase db) => ByHandle<DxfMText>(db, "73");
 
         /// <summary>The TEXT 64 shown at (11, 12) turned 15 degrees at 1:1, beside its default of 1:2 at (40, 12) (plugin D35b G2).</summary>
-        private static string Grid()
-            => Drawing(On("64", new Context("E01", TextContext, "F0", false, TextGroups(15.0, 11.0, 12.0)), new Context("E02", TextContext, "F1", true, TextGroups(0.0, 40.0, 12.0))));
+        private static string Grid() =>
+            Drawing(
+                On(
+                    "64",
+                    new Context("E01", TextContext, "F0", false, TextGroups(15.0, 11.0, 12.0)),
+                    new Context("E02", TextContext, "F1", true, TextGroups(0.0, 40.0, 12.0))
+                )
+            );
 
         /// <summary>
         /// The MTEXT 73 of two contexts, as AutoCAD 2021 read its M1 (plugin D35b W1, W2): of 1:1 at (14, 44) turned 30 degrees,
         /// held by its middle, 30 wide in a box 15 high; of 1:2 at (60, 44), unturned, 80 wide in a box 40 high.
         /// </summary>
-        private static string Note(bool unitIsDefault)
-            => Drawing(On(
-                "73",
-                new Context("E01", MTextContext, "F0", unitIsDefault, MTextGroups(5, 0.8660254037844387, 0.5, 14.0, 44.0, 30.0, 15.0)),
-                new Context("E02", MTextContext, "F1", !unitIsDefault, MTextGroups(1, 1.0, 0.0, 60.0, 44.0, 80.0, 40.0))));
+        private static string Note(bool unitIsDefault) =>
+            Drawing(
+                On(
+                    "73",
+                    new Context(
+                        "E01",
+                        MTextContext,
+                        "F0",
+                        unitIsDefault,
+                        MTextGroups(5, 0.8660254037844387, 0.5, 14.0, 44.0, 30.0, 15.0)
+                    ),
+                    new Context(
+                        "E02",
+                        MTextContext,
+                        "F1",
+                        !unitIsDefault,
+                        MTextGroups(1, 1.0, 0.0, 60.0, 44.0, 80.0, 40.0)
+                    )
+                )
+            );
 
         /// <summary>
         /// The INSERT 65 as AutoCAD 2021 read the sample's valve (plugin D35b I2): of 1:1 at (113.883, 279.776) turned 45
         /// degrees, scaled by 2, beside its default of 1:2 at (-50, 279.776) turned 10 degrees, scaled by 3.
         /// </summary>
-        private static KeyValuePair<string, Context[]> ValveContexts()
-            => On("65", new Context("E01", InsertContext, "F0", false, InsertGroups(45.0, ShownX, ValveY, 2.0)), new Context("E02", InsertContext, "F1", true, InsertGroups(10.0, -50.0, ValveY, 3.0)));
+        private static KeyValuePair<string, Context[]> ValveContexts() =>
+            On(
+                "65",
+                new Context("E01", InsertContext, "F0", false, InsertGroups(45.0, ShownX, ValveY, 2.0)),
+                new Context("E02", InsertContext, "F1", true, InsertGroups(10.0, -50.0, ValveY, 3.0))
+            );
 
         /// <summary>The ATTRIB 67 shown at ATT_DVSUP's point at 1:1, beside its default of 1:2 at (-100, 265.33).</summary>
-        private static KeyValuePair<string, Context[]> SampleContexts()
-            => On("67", new Context("E03", AttributeContext, "F0", false, AttributeGroups(SampleX, SampleY)), new Context("E04", AttributeContext, "F1", true, AttributeGroups(-100.0, SampleY)));
+        private static KeyValuePair<string, Context[]> SampleContexts() =>
+            On(
+                "67",
+                new Context("E03", AttributeContext, "F0", false, AttributeGroups(SampleX, SampleY)),
+                new Context("E04", AttributeContext, "F1", true, AttributeGroups(-100.0, SampleY))
+            );
 
         /// <summary>The numbers of a context's groups after its scale (340), by code, the first of each, up to its MTEXT.</summary>
         private static Dictionary<int, double> ContextOf(string text, string handle) => NumbersOf(text, handle, 1);
@@ -205,7 +315,16 @@ namespace GeometryHelper.UnitTest.Dxf
                     continue;
                 }
 
-                if (after && !numbers.ContainsKey(code) && double.TryParse(lines[i + 1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
+                if (
+                    after
+                    && !numbers.ContainsKey(code)
+                    && double.TryParse(
+                        lines[i + 1].Trim(),
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out double value
+                    )
+                )
                 {
                     numbers[code] = value;
                 }
@@ -235,7 +354,16 @@ namespace GeometryHelper.UnitTest.Dxf
                     break;
                 }
 
-                if (seen == turn && !numbers.ContainsKey(code) && double.TryParse(lines[i + 1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
+                if (
+                    seen == turn
+                    && !numbers.ContainsKey(code)
+                    && double.TryParse(
+                        lines[i + 1].Trim(),
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out double value
+                    )
+                )
                 {
                     numbers[code] = value;
                 }
@@ -244,7 +372,11 @@ namespace GeometryHelper.UnitTest.Dxf
             return numbers;
         }
 
-        private static void Near(double expected, double actual) => Assert.True(Math.Abs(expected - actual) <= 1E-9 * Math.Max(1.0, Math.Abs(expected)), "expected " + N(expected) + ", got " + N(actual));
+        private static void Near(double expected, double actual) =>
+            Assert.True(
+                Math.Abs(expected - actual) <= 1E-9 * Math.Max(1.0, Math.Abs(expected)),
+                "expected " + N(expected) + ", got " + N(actual)
+            );
 
         private static void Near(GeoPoint3 expected, GeoPoint3 actual)
         {
@@ -264,11 +396,15 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             foreach (string name in new[] { "1:1", "1:2", "1:4" })
             {
-                Assert.Equal(scales.Contains(name), o.HasContext(db.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES").GetContext(name)));
+                Assert.Equal(
+                    scales.Contains(name),
+                    o.HasContext(db.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES").GetContext(name))
+                );
             }
         }
 
-        private static DxfObjectContext ScaleNamed(DxfDatabase db, string name) => db.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES").GetContext(name);
+        private static DxfObjectContext ScaleNamed(DxfDatabase db, string name) =>
+            db.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES").GetContext(name);
 
         // ---- 1. copies ------------------------------------------------------------------------------------------------------
 
@@ -435,7 +571,10 @@ namespace GeometryHelper.UnitTest.Dxf
             // of 1:2 and its record left (plugin D35c I2 bt).
             DxfDatabase db = DxfDatabase.Parse(Drawing(ValveContexts()));
             var origin = new GeoPoint3(0.0, 0.0, 0.0);
-            GeoTransform3 placing = GeoTransform3.Translation(new GeoVector3(50.0, 300.0, 0.0)) * GeoTransform3.RotationAxis(origin, new GeoVector3(0.0, 0.0, 1.0), 0.5) * GeoTransform3.Scaling(origin, 3.0);
+            GeoTransform3 placing =
+                GeoTransform3.Translation(new GeoVector3(50.0, 300.0, 0.0))
+                * GeoTransform3.RotationAxis(origin, new GeoVector3(0.0, 0.0, 1.0), 0.5)
+                * GeoTransform3.Scaling(origin, 3.0);
             Insert(db).BlockTransform = placing;
             Near(placing.Transform(Insert(db).BlockTableRecord.Origin), Insert(db).Position);
             Near(0.5, Insert(db).Rotation);

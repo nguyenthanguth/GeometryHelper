@@ -21,7 +21,12 @@ namespace GeometryHelper.UnitTest.Dxf
     {
         private static readonly Tolerance Tol = Tolerance.Default;
 
-        private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
+        private static readonly string[] Drawings =
+        {
+            DxfFileEzdxfDrawings.R12,
+            DxfFileEzdxfDrawings.R2000,
+            DxfFileEzdxfDrawings.R2018,
+        };
 
         #region Opened and saved
 
@@ -43,7 +48,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             try
             {
-                System.IO.File.WriteAllBytes(from, Encoding.GetEncoding(1252).GetBytes(DxfFileEzdxfDrawings.R2000.Replace("\n", "\r\n")));
+                System.IO.File.WriteAllBytes(
+                    from,
+                    Encoding.GetEncoding(1252).GetBytes(DxfFileEzdxfDrawings.R2000.Replace("\n", "\r\n"))
+                );
                 DxfDatabase.Open(from).Save(to);
                 Assert.Equal(System.IO.File.ReadAllBytes(from), System.IO.File.ReadAllBytes(to));
             }
@@ -59,7 +67,14 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AFileTheReaderRefuses_IsRefusedWithTheReadersMessage()
         {
-            foreach (string text in new[] { G(0, "SECTION", 2, "HEADER", 0, "ENDSEC", 0, "EOF"), string.Empty, "AutoCAD Binary DXF\r\n\u001a\0" })
+            foreach (
+                string text in new[]
+                {
+                    G(0, "SECTION", 2, "HEADER", 0, "ENDSEC", 0, "EOF"),
+                    string.Empty,
+                    "AutoCAD Binary DXF\r\n\u001a\0",
+                }
+            )
             {
                 string expected = Assert.Throws<FormatException>(() => DxfReader.Parse(text)).Message;
 
@@ -90,13 +105,19 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase r2000 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
             DxfDatabase r12 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R12);
 
-            Assert.Equal(new[] { "*Model_Space", "*Paper_Space", "BOLT", "FRAME", "*D1", "_CLOSEDFILLED", "*Paper_Space0" }, r2000.BlockTable.Select(b => b.Name));
+            Assert.Equal(
+                new[] { "*Model_Space", "*Paper_Space", "BOLT", "FRAME", "*D1", "_CLOSEDFILLED", "*Paper_Space0" },
+                r2000.BlockTable.Select(b => b.Name)
+            );
             Assert.Same(r2000.ModelSpace, r2000.BlockTable[DxfBlockTableRecord.ModelSpace]);
             Assert.Same(r2000.PaperSpace, r2000.BlockTable["*PAPER_SPACE"]);
             Assert.Same(r2000.BlockTable["bolt"], r2000.BlockTable["BOLT"]);
             Assert.Equal("17", r2000.ModelSpace.Handle);
             Assert.Equal(new GeoPoint3(1, 2, 0), r2000.BlockTable["BOLT"].Origin);
-            Assert.Equal(new[] { true, true, false, false, false, false, true }, r2000.BlockTable.Select(b => b.IsLayout));
+            Assert.Equal(
+                new[] { true, true, false, false, false, false, true },
+                r2000.BlockTable.Select(b => b.IsLayout)
+            );
             Assert.True(r2000.BlockTable["*D1"].IsAnonymous);
             Assert.True(r2000.BlockTable["BOLT"].HasAttributeDefinitions);
             Assert.False(r2000.BlockTable.Has("NOPE"));
@@ -113,7 +134,10 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TheEntities_AreOfTheirClasses_TheSameObjectEachTime_AndTheReadersShapes()
         {
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
-            DxfDocument read = DxfReader.Parse(DxfFileEzdxfDrawings.R2000, new DxfReadOptions { Tolerance = Tol, ExpandBlocks = false });
+            DxfDocument read = DxfReader.Parse(
+                DxfFileEzdxfDrawings.R2000,
+                new DxfReadOptions { Tolerance = Tol, ExpandBlocks = false }
+            );
             List<DxfEntity> first = db.ModelSpace.ToList();
 
             Assert.Equal(first, db.ModelSpace.ToList());
@@ -123,7 +147,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.All(first, e => Assert.Same(db.ModelSpace, e.Owner));
 
             // An IMAGE gives its frame, which the reader does not read.
-            Assert.Equal(read.Shapes.Count(s => s.Type != "INSERT"), first.Where(e => e.Item.Type != "INSERT" && !(e is DxfRasterImage)).Sum(e => e.GetGeometry().Count));
+            Assert.Equal(
+                read.Shapes.Count(s => s.Type != "INSERT"),
+                first.Where(e => e.Item.Type != "INSERT" && !(e is DxfRasterImage)).Sum(e => e.GetGeometry().Count)
+            );
         }
 
         [Fact]
@@ -141,12 +168,19 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Same(block, db.BlockTable["gh_block"]);
                 Assert.Equal(1, block.Count);
                 Assert.Equal("GH_BLOCK", block.Single().BlockName);
-                Assert.Throws<ArgumentException>(() => db.BlockTable.Add(new DxfBlockTableRecord { Name = "gh_block" }));
+                Assert.Throws<ArgumentException>(() =>
+                    db.BlockTable.Add(new DxfBlockTableRecord { Name = "gh_block" })
+                );
 
                 string saved = db.ToText();
-                DxfBlock read = DxfReader.Parse(saved, new DxfReadOptions { Tolerance = Tol }).Blocks.Single(b => b.Name == "GH_BLOCK");
+                DxfBlock read = DxfReader
+                    .Parse(saved, new DxfReadOptions { Tolerance = Tol })
+                    .Blocks.Single(b => b.Name == "GH_BLOCK");
                 Assert.Equal(new GeoPoint3(1, 2, 0), read.BasePoint);
-                Assert.Equal(new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)), Assert.Single(read.Shapes).Shape);
+                Assert.Equal(
+                    new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)),
+                    Assert.Single(read.Shapes).Shape
+                );
                 DxfDatabase again = DxfDatabase.Parse(saved);
                 Assert.Equal(new GeoPoint3(1, 2, 0), again.BlockTable["GH_BLOCK"].Origin);
                 Assert.Equal("parts", Assert.IsType<DxfLine>(Assert.Single(again.BlockTable["GH_BLOCK"])).Layer);
@@ -169,7 +203,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(2, db.BlockTable["BOLT"].Count);
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, line.Handle, "36");
-            Assert.Contains("100\nAcDbEntity\n 67\n1\n", Records(saved).Single(r => HandleOf(r) == line.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "100\nAcDbEntity\n 67\n1\n",
+                Records(saved).Single(r => HandleOf(r) == line.Handle),
+                StringComparison.Ordinal
+            );
             DxfDatabase again = DxfDatabase.Parse(saved);
             Assert.Contains(again.PaperSpace, e => e.Handle == line.Handle);
             Assert.DoesNotContain(again.BlockTable["BOLT"], e => e is DxfLine);
@@ -238,7 +276,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(DxfLineWeight.LineWeight035, again.LineWeight);
             Assert.Equal(0xFF8000, again.TrueColor);
             Assert.Equal("Continuous", again.LinetypeName);
-            Assert.Contains(" 62\n-6\n", Records(saved).Single(r => HandleOf(r) == steel.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                " 62\n-6\n",
+                Records(saved).Single(r => HandleOf(r) == steel.Handle),
+                StringComparison.Ordinal
+            );
             DxfLayer read = DxfReader.Parse(saved, new DxfReadOptions { Tolerance = Tol }).GetLayer("steel");
             Assert.True(read.IsOff && read.IsFrozen && read.IsLocked && !read.IsPlotted);
 
@@ -246,7 +288,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<ArgumentException>(() => steel.LinetypeName = "NOPE");
             Assert.Throws<ArgumentOutOfRangeException>(() => steel.ColorIndex = 256);
             Assert.Throws<ArgumentOutOfRangeException>(() => steel.LineWeight = DxfLineWeight.ByLayer);
-            Assert.Throws<InvalidOperationException>(() => DxfDatabase.Parse(DxfFileEzdxfDrawings.R12).LayerTable["steel"].LineWeight = DxfLineWeight.LineWeight050);
+            Assert.Throws<InvalidOperationException>(() =>
+                DxfDatabase.Parse(DxfFileEzdxfDrawings.R12).LayerTable["steel"].LineWeight = DxfLineWeight.LineWeight050
+            );
         }
 
         [Fact]
@@ -255,11 +299,22 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (string text in Drawings)
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                var dashed = new DxfLinetypeTableRecord { Name = "GH_DASHED", AsciiDescription = "__ __ __", NumDashes = 2 };
+                var dashed = new DxfLinetypeTableRecord
+                {
+                    Name = "GH_DASHED",
+                    AsciiDescription = "__ __ __",
+                    NumDashes = 2,
+                };
                 dashed.SetDashLengthAt(0, 0.5);
                 dashed.SetDashLengthAt(1, -0.25);
                 db.LinetypeTable.Add(dashed);
-                var layer = new DxfLayerTableRecord { Name = "GH_Layer", ColorIndex = 3, LinetypeName = "GH_DASHED", IsLocked = true };
+                var layer = new DxfLayerTableRecord
+                {
+                    Name = "GH_Layer",
+                    ColorIndex = 3,
+                    LinetypeName = "GH_DASHED",
+                    IsLocked = true,
+                };
                 db.LayerTable.Add(layer);
                 DxfLine line = db.ModelSpace.OfType<DxfLine>().First();
                 line.Linetype = "GH_DASHED";
@@ -267,7 +322,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 Assert.Equal(0.75, dashed.PatternLength);
                 Assert.NotNull(layer.Handle);
-                Assert.Throws<ArgumentException>(() => db.LayerTable.Add(new DxfLayerTableRecord { Name = "gh_layer" }));
+                Assert.Throws<ArgumentException>(() =>
+                    db.LayerTable.Add(new DxfLayerTableRecord { Name = "gh_layer" })
+                );
                 Assert.Throws<ArgumentException>(() => db.LayerTable.Add(new DxfLayerTableRecord { Name = "a:b" }));
                 Assert.Throws<InvalidOperationException>(() => dashed.NumDashes = 3);
 
@@ -291,7 +348,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("txt", standard.FileName);
             Assert.Equal(0.0, standard.TextSize);
             Assert.Equal(1.0, standard.XScale);
-            Assert.Throws<ArgumentException>(() => DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000).TextStyleTable.Add(new DxfLayerTableRecord { Name = "x" }));
+            Assert.Throws<ArgumentException>(() =>
+                DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000).TextStyleTable.Add(new DxfLayerTableRecord { Name = "x" })
+            );
         }
 
         #endregion
@@ -361,26 +420,49 @@ namespace GeometryHelper.UnitTest.Dxf
             IReadOnlyList<DxfTypedValue> probe = line.GetXDataForApplication("ghprobe");
 
             Assert.Equal("GHPROBE", probe[0].Value);
-            line.XData = new[] { new DxfTypedValue(1001, "GH_APP"), new DxfTypedValue(1000, "hello"), new DxfTypedValue(1040, "2.5") };
+            line.XData = new[]
+            {
+                new DxfTypedValue(1001, "GH_APP"),
+                new DxfTypedValue(1000, "hello"),
+                new DxfTypedValue(1040, "2.5"),
+            };
             Assert.Equal(new[] { "GHPROBE", "GH_APP" }, line.XData.Where(g => g.TypeCode == 1001).Select(g => g.Value));
             line.XData = new[] { new DxfTypedValue(1001, "GHPROBE") };
             Assert.Null(line.GetXDataForApplication("GHPROBE"));
             Assert.Equal(new[] { "1001 GH_APP", "1000 hello", "1040 2.5" }, line.XData.Select(g => g.ToString()));
-            Assert.Contains(Records(db.ToText()), r => r.StartsWith("  0\nAPPID\n", StringComparison.Ordinal) && r.Contains("\nGH_APP\n"));
+            Assert.Contains(Records(db.ToText()), r =>
+                r.StartsWith("  0\nAPPID\n", StringComparison.Ordinal) && r.Contains("\nGH_APP\n")
+            );
 
             Assert.Throws<ArgumentException>(() => line.XData = new[] { new DxfTypedValue(1000, "no application") });
-            Assert.Throws<ArgumentException>(() => line.XData = new[] { new DxfTypedValue(1001, "A"), new DxfTypedValue(8, "0") });
+            Assert.Throws<ArgumentException>(() =>
+                line.XData = new[] { new DxfTypedValue(1001, "A"), new DxfTypedValue(8, "0") }
+            );
 
             // Given before the line is added, it is written with it.
-            var made = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 1)) { XData = new[] { new DxfTypedValue(1001, "GH_NEW"), new DxfTypedValue(1070, "7") } };
+            var made = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 1))
+            {
+                XData = new[] { new DxfTypedValue(1001, "GH_NEW"), new DxfTypedValue(1070, "7") },
+            };
             db.ModelSpace.AppendEntity(made);
-            Assert.Equal("7", ByHandle<DxfLine>(DxfDatabase.Parse(db.ToText()), made.Handle).GetXDataForApplication("GH_NEW")[1].Value);
+            Assert.Equal(
+                "7",
+                ByHandle<DxfLine>(DxfDatabase.Parse(db.ToText()), made.Handle).GetXDataForApplication("GH_NEW")[1].Value
+            );
         }
 
         [Fact]
         public void AColour_IsAsAutoCADGivesIt_AndAnEntitysColourAgreesWithItsIndexAndTrueColour()
         {
-            Assert.Equal(new byte[] { 255, 0, 0 }, new[] { DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1).Red, DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1).Green, DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1).Blue });
+            Assert.Equal(
+                new byte[] { 255, 0, 0 },
+                new[]
+                {
+                    DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1).Red,
+                    DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1).Green,
+                    DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1).Blue,
+                }
+            );
             Assert.Equal(30, DxfColor.FromRgb(255, 128, 0).ColorIndex);
             Assert.Equal(0xFF8000, DxfColor.FromRgb(255, 128, 0).ColorValue);
             Assert.True(DxfColor.ByLayer.IsByLayer);
@@ -399,7 +481,9 @@ namespace GeometryHelper.UnitTest.Dxf
             line.Color = DxfColor.FromColorIndex(DxfColorMethod.ByAci, 4);
             Assert.Null(line.TrueColor);
             Assert.Equal(4, line.ColorIndex);
-            Assert.Throws<InvalidOperationException>(() => ByHandle<DxfLine>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000), "3E").Color = DxfColor.FromRgb(1, 2, 3));
+            Assert.Throws<InvalidOperationException>(() =>
+                ByHandle<DxfLine>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000), "3E").Color = DxfColor.FromRgb(1, 2, 3)
+            );
         }
 
         [Theory]
@@ -444,15 +528,20 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("MESH", hatch.DxfName);
             Assert.Equal(hatch.Groups.Count, hatch.Groups.Count);
             Assert.Empty(hatch.GetGeometry());
-            Assert.Throws<NotSupportedException>(() => hatch.TransformBy(GeoTransform3.Translation(new GeoVector3(1, 0, 0))));
-            Assert.Throws<NotSupportedException>(() => hatch.GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(1, 0, 0))));
+            Assert.Throws<NotSupportedException>(() =>
+                hatch.TransformBy(GeoTransform3.Translation(new GeoVector3(1, 0, 0)))
+            );
+            Assert.Throws<NotSupportedException>(() =>
+                hatch.GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(1, 0, 0)))
+            );
             Assert.IsType<DxfUnknownEntity>(hatch.GetTransformedCopy(GeoTransform3.Identity));
 
             hatch.ColorIndex = 2;
             hatch.Visible = false;
             hatch.LinetypeScale = 2.0;
             OnlyTheseChanged(text, db.ToText(), "93");
-            DxfUnknownEntity again = (DxfUnknownEntity)DxfDatabase.Parse(db.ToText()).ModelSpace.Single(e => e.Handle == "93");
+            DxfUnknownEntity again = (DxfUnknownEntity)
+                DxfDatabase.Parse(db.ToText()).ModelSpace.Single(e => e.Handle == "93");
             Assert.Equal(2, again.ColorIndex);
             Assert.False(again.Visible);
             Assert.Equal(2.0, again.LinetypeScale);
@@ -465,7 +554,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDocument placed = DxfReader.Parse(DxfFileEzdxfDrawings.R2000, new DxfReadOptions { Tolerance = Tol });
             DxfEntity insert = db.ModelSpace.Single(e => e.Handle == "65");
 
-            Assert.Equal(placed.Shapes.Count(s => s.InsertHandles.Count > 0 && s.InsertHandles[0] == "65"), insert.GetGeometry().Count);
+            Assert.Equal(
+                placed.Shapes.Count(s => s.InsertHandles.Count > 0 && s.InsertHandles[0] == "65"),
+                insert.GetGeometry().Count
+            );
         }
 
         #endregion
@@ -478,7 +570,9 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase r12 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R12);
             DxfDatabase r2000 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
 
-            Assert.Throws<ArgumentException>(() => r12.ModelSpace.AppendEntity(new DxfLine { LineWeight = DxfLineWeight.LineWeight050 }));
+            Assert.Throws<ArgumentException>(() =>
+                r12.ModelSpace.AppendEntity(new DxfLine { LineWeight = DxfLineWeight.LineWeight050 })
+            );
             Assert.Throws<ArgumentException>(() => r2000.ModelSpace.AppendEntity(new DxfLine { TrueColor = 0xFF0000 }));
             Assert.Throws<ArgumentException>(() => r2000.ModelSpace.AppendEntity(new DxfLine { Linetype = "NOPE" }));
             Assert.Throws<ArgumentNullException>(() => r2000.ModelSpace.AppendEntity(null));

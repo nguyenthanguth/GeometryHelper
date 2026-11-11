@@ -39,7 +39,13 @@ namespace GeometryHelper.Dxf.Viewer
 
                 recovered = CadRecovery.Open(name, out report);
             }
-            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException || exception is NotSupportedException || exception is FormatException)
+            catch (Exception exception)
+                when (exception is IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is ArgumentException
+                    || exception is NotSupportedException
+                    || exception is FormatException
+                )
             {
                 c.Write("Cannot recover \"" + name + "\": " + exception.Message);
                 yield break;
@@ -79,9 +85,19 @@ namespace GeometryHelper.Dxf.Viewer
 
             // Only what the audit fixes in place makes an undo step: an INSERT of no block, a handle two records have and the
             // like are told, and RECOVER fixes the second.
-            if (c.Input.Is("Yes") && report.Repairs.Any(r => r.Kind >= DxfRepairKind.BadNumber && r.Kind <= DxfRepairKind.WrongLoopCount || (r.Kind >= DxfRepairKind.MissingLayer && r.Kind <= DxfRepairKind.MissingDimStyle) || r.Kind == DxfRepairKind.BrokenDictionaryEntry))
+            if (
+                c.Input.Is("Yes")
+                && report.Repairs.Any(r =>
+                    r.Kind >= DxfRepairKind.BadNumber && r.Kind <= DxfRepairKind.WrongLoopCount
+                    || (r.Kind >= DxfRepairKind.MissingLayer && r.Kind <= DxfRepairKind.MissingDimStyle)
+                    || r.Kind == DxfRepairKind.BrokenDictionaryEntry
+                )
+            )
             {
-                CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Audit", null, null) }, s => report = s.Database.Audit(true));
+                CadEditResult result = c.Apply(
+                    new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Audit", null, null) },
+                    s => report = s.Database.Audit(true)
+                );
 
                 if (!result.Succeeded)
                 {

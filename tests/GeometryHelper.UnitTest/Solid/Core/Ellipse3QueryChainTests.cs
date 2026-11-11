@@ -45,7 +45,14 @@ namespace GeometryHelper.UnitTest.Solid
             foreach (GeoEdge3 edge in edges)
             {
                 GeoPoint2[] crossings = edge.IsArc
-                    ? flat.GetIntersections(GeoArc2.FromThreePoints(e.Foot(edge.ToArc().StartPoint), e.Foot(edge.ToArc().MidPoint), e.Foot(edge.ToArc().EndPoint)), Tol)
+                    ? flat.GetIntersections(
+                        GeoArc2.FromThreePoints(
+                            e.Foot(edge.ToArc().StartPoint),
+                            e.Foot(edge.ToArc().MidPoint),
+                            e.Foot(edge.ToArc().EndPoint)
+                        ),
+                        Tol
+                    )
                     : flat.GetIntersections(new GeoLine2(e.Foot(edge.StartPoint), e.Foot(edge.EndPoint)), Tol);
                 foreach (GeoPoint2 point in crossings)
                 {
@@ -100,10 +107,14 @@ namespace GeometryHelper.UnitTest.Solid
             // From (-400, 0) straight to (0, 150), which cuts the rim twice, at s = 0.400 and 0.483 along it; round the
             // quarter to (150, 0), cutting it once at (118.585, 91.856); straight on to (400, 0), cutting it at (300, 0).
             Specimen e = Tilted();
-            var chain = new GeoPolylineArc3(new[]
-            {
-                new GeoEdge3(e.At(-400, 0, 0), e.At(0, 150, 0)), new GeoEdge3(Quarter(e)), new GeoEdge3(e.At(150, 0, 0), e.At(400, 0, 0)),
-            });
+            var chain = new GeoPolylineArc3(
+                new[]
+                {
+                    new GeoEdge3(e.At(-400, 0, 0), e.At(0, 150, 0)),
+                    new GeoEdge3(Quarter(e)),
+                    new GeoEdge3(e.At(150, 0, 0), e.At(400, 0, 0)),
+                }
+            );
 
             GeoPoint3[] crossings = e.Build().GetIntersections(chain, Tol);
 
@@ -130,9 +141,11 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // Two straight edges: up through the rim point at t = 2 along N + 0.3 U, then on through the rim point at t = 4.
             Specimen e = Tilted();
-            GeoPoint3 first = e.Rim(2.0), second = e.Rim(4.0);
+            GeoPoint3 first = e.Rim(2.0),
+                second = e.Rim(4.0);
             GeoVector3 d = e.N.Add(e.U.Multiply(0.3)).Normalize();
-            GeoPoint3 below = first.Add(d.Multiply(-40)), above = first.Add(d.Multiply(40));
+            GeoPoint3 below = first.Add(d.Multiply(-40)),
+                above = first.Add(d.Multiply(40));
             GeoPoint3 beyond = above.Add(above.GetVectorTo(second).Multiply(1.5));
             var chain = new GeoPolylineArc3(new[] { below, above, beyond });
 
@@ -146,9 +159,15 @@ namespace GeometryHelper.UnitTest.Solid
             // x = ±100, y = ±200 crosses the rim at (±100, ±94.28) on its long sides. The loop (±400, ±200) runs round the
             // ellipse and (±50, ±20) inside it: neither has an edge that reaches the rim.
             Specimen e = Tilted();
-            var across = new GeoPolygonArc3(new[] { e.At(-100, -200, 0), e.At(100, -200, 0), e.At(100, 200, 0), e.At(-100, 200, 0) });
-            var round = new GeoPolygonArc3(new[] { e.At(-400, -200, 0), e.At(400, -200, 0), e.At(400, 200, 0), e.At(-400, 200, 0) });
-            var inside = new GeoPolygonArc3(new[] { e.At(-50, -20, 0), e.At(50, -20, 0), e.At(50, 20, 0), e.At(-50, 20, 0) });
+            var across = new GeoPolygonArc3(
+                new[] { e.At(-100, -200, 0), e.At(100, -200, 0), e.At(100, 200, 0), e.At(-100, 200, 0) }
+            );
+            var round = new GeoPolygonArc3(
+                new[] { e.At(-400, -200, 0), e.At(400, -200, 0), e.At(400, 200, 0), e.At(-400, 200, 0) }
+            );
+            var inside = new GeoPolygonArc3(
+                new[] { e.At(-50, -20, 0), e.At(50, -20, 0), e.At(50, 20, 0), e.At(-50, 20, 0) }
+            );
 
             GeoPoint3[] crossings = e.Build().GetIntersections(across, Tol);
 

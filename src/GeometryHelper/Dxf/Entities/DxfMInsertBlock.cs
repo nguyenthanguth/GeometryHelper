@@ -29,9 +29,7 @@ namespace GeometryHelper.Dxf
         /// it its block before it is added to a drawing.
         /// </summary>
         public DxfMInsertBlock()
-            : base("AcDbMInsertBlock", new GeoPoint3(0.0, 0.0, 0.0), null, Cells(1, 1, 0.0, 0.0))
-        {
-        }
+            : base("AcDbMInsertBlock", new GeoPoint3(0.0, 0.0, 0.0), null, Cells(1, 1, 0.0, 0.0)) { }
 
         /// <summary>
         /// Initializes a MINSERT of a block, as AutoCAD's <c>new MInsertBlock(position, blockTableRecord, columns, rows,
@@ -47,15 +45,23 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentNullException">Thrown when the block is null.</exception>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number, or the block is a layout.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a count is below 1 or a spacing is not a finite number.</exception>
-        public DxfMInsertBlock(GeoPoint3 position, DxfBlockTableRecord blockTableRecord, short columns, short rows, double colSpacing, double rowSpacing)
-            : base("AcDbMInsertBlock", position, blockTableRecord ?? throw new ArgumentNullException(nameof(blockTableRecord)), Cells(columns, rows, colSpacing, rowSpacing))
-        {
-        }
+        public DxfMInsertBlock(
+            GeoPoint3 position,
+            DxfBlockTableRecord blockTableRecord,
+            short columns,
+            short rows,
+            double colSpacing,
+            double rowSpacing
+        )
+            : base(
+                "AcDbMInsertBlock",
+                position,
+                blockTableRecord ?? throw new ArgumentNullException(nameof(blockTableRecord)),
+                Cells(columns, rows, colSpacing, rowSpacing)
+            ) { }
 
         private DxfMInsertBlock(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets how many columns the array has (group 70), as AutoCAD's <c>Columns</c>; 1 where the record gives none.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the count set is below 1.</exception>
@@ -63,7 +69,6 @@ namespace GeometryHelper.Dxf
         public short Columns
         {
             get => (short)GetInt(70, 1);
-
             set
             {
                 if (value != Columns)
@@ -80,7 +85,6 @@ namespace GeometryHelper.Dxf
         public short Rows
         {
             get => (short)GetInt(71, 1);
-
             set
             {
                 if (value != Rows)
@@ -117,8 +121,10 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <returns>Never: the call is refused.</returns>
         /// <exception cref="NotSupportedException">Thrown always.</exception>
-        public override IReadOnlyList<DxfEntity> Explode()
-            => throw new NotSupportedException("A MINSERT is not exploded, as AutoCAD's Explode refuses one, of one cell or more: ExplodeToOwnerSpace gives its first cell.");
+        public override IReadOnlyList<DxfEntity> Explode() =>
+            throw new NotSupportedException(
+                "A MINSERT is not exploded, as AutoCAD's Explode refuses one, of one cell or more: ExplodeToOwnerSpace gives its first cell."
+            );
 
         /// <summary>
         /// Gets the box of the block placed in the MINSERT's first cell, as AutoCAD 2021's <c>GeometricExtents</c> of a MINSERT
@@ -145,7 +151,13 @@ namespace GeometryHelper.Dxf
 
             if ((long)first.Count * columns * rows > 2000000L)
             {
-                throw new InvalidOperationException("The MINSERT's " + (columns * rows).ToString(CultureInfo.InvariantCulture) + " cells would hold " + ((long)first.Count * columns * rows).ToString(CultureInfo.InvariantCulture) + " entities, more than the 2 000 000 the reader places.");
+                throw new InvalidOperationException(
+                    "The MINSERT's "
+                        + (columns * rows).ToString(CultureInfo.InvariantCulture)
+                        + " cells would hold "
+                        + ((long)first.Count * columns * rows).ToString(CultureInfo.InvariantCulture)
+                        + " entities, more than the 2 000 000 the reader places."
+                );
             }
 
             OcsAxes(Normal, out GeoVector3 u, out GeoVector3 v);
@@ -164,7 +176,9 @@ namespace GeometryHelper.Dxf
                         continue;
                     }
 
-                    GeoTransform3 move = GeoTransform3.Translation(along.Multiply(column * ColumnSpacing).Add(across.Multiply(row * RowSpacing)));
+                    GeoTransform3 move = GeoTransform3.Translation(
+                        along.Multiply(column * ColumnSpacing).Add(across.Multiply(row * RowSpacing))
+                    );
 
                     foreach (DxfEntity part in first)
                     {

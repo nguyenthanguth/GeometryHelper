@@ -44,7 +44,8 @@ namespace GeometryHelper.Core
         /// The triangle with corners (0, 0, 0), (100, 0, 0) and (0, 100, 0) and the upright one with corners
         /// (0, 50, -50), (100, 50, -50) and (0, 50, 50) cross at (50, 50, 0) and (0, 50, 0).
         /// </remarks>
-        public static GeoPoint3[] GetIntersections(GeoTriangle3 triangle1, GeoTriangle3 triangle2) => GetIntersections(triangle1, triangle2, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoTriangle3 triangle1, GeoTriangle3 triangle2) =>
+            GetIntersections(triangle1, triangle2, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where two triangles cross, within a tolerance.
@@ -87,8 +88,14 @@ namespace GeometryHelper.Core
 
             if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame))
             {
-                return Lift(frame, Triangle2.GetIntersections(
-                    PlanarMap.ProjectToTriangle2(frame, triangle1), PlanarMap.ProjectToTriangle2(frame, triangle2), tolerance));
+                return Lift(
+                    frame,
+                    Triangle2.GetIntersections(
+                        PlanarMap.ProjectToTriangle2(frame, triangle1),
+                        PlanarMap.ProjectToTriangle2(frame, triangle2),
+                        tolerance
+                    )
+                );
             }
 
             AddCrossings(found, EdgesOf(triangle1), triangle2, tolerance);
@@ -104,8 +111,11 @@ namespace GeometryHelper.Core
         /// The triangle with corners (0, 0, 0), (100, 0, 0) and (0, 100, 0) and the upright one with corners
         /// (0, 50, -50), (100, 50, -50) and (0, 50, 50) cross at two points.
         /// </remarks>
-        public static bool TryIntersectWith(GeoTriangle3 triangle1, GeoTriangle3 triangle2, out GeoPoint3[] intersections)
-            => TryIntersectWith(triangle1, triangle2, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(
+            GeoTriangle3 triangle1,
+            GeoTriangle3 triangle2,
+            out GeoPoint3[] intersections
+        ) => TryIntersectWith(triangle1, triangle2, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where two triangles cross, within a tolerance.
@@ -119,7 +129,12 @@ namespace GeometryHelper.Core
         /// The triangle with corners (0, 0, 0), (100, 0, 0) and (0, 100, 0) and the upright one with corners
         /// (0, 50, -50), (100, 50, -50) and (0, 50, 50) cross at two points.
         /// </remarks>
-        public static bool TryIntersectWith(GeoTriangle3 triangle1, GeoTriangle3 triangle2, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoTriangle3 triangle1,
+            GeoTriangle3 triangle2,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(triangle1, triangle2, tolerance);
 
@@ -134,7 +149,8 @@ namespace GeometryHelper.Core
         /// across it along y = 50 from z = -50 to 50 cross at (50, 50, 0) and (0, 50, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoTriangle3 triangle, GeoPolygon3 polygon) => GetIntersections(triangle, polygon, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoTriangle3 triangle, GeoPolygon3 polygon) =>
+            GetIntersections(triangle, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a triangle and a polygon cross, within a tolerance.
@@ -179,13 +195,15 @@ namespace GeometryHelper.Core
                 return new GeoPoint3[0];
             }
 
-            if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
-                && PlanarMap.TryProjectToPolygon2(frame, polygon, tolerance, out GeoPolygon2 flatPolygon))
+            if (
+                Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
+                && PlanarMap.TryProjectToPolygon2(frame, polygon, tolerance, out GeoPolygon2 flatPolygon)
+            )
             {
-                return Lift(frame, Triangle2.GetIntersections(
-                    PlanarMap.ProjectToTriangle2(frame, triangle),
-                    flatPolygon,
-                    tolerance));
+                return Lift(
+                    frame,
+                    Triangle2.GetIntersections(PlanarMap.ProjectToTriangle2(frame, triangle), flatPolygon, tolerance)
+                );
             }
 
             AddCrossings(found, EdgesOf(triangle), polygon, tolerance);
@@ -202,8 +220,11 @@ namespace GeometryHelper.Core
         /// across it along y = 50 from z = -50 to 50 cross at two points.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static bool TryIntersectWith(GeoTriangle3 triangle, GeoPolygon3 polygon, out GeoPoint3[] intersections)
-            => TryIntersectWith(triangle, polygon, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(
+            GeoTriangle3 triangle,
+            GeoPolygon3 polygon,
+            out GeoPoint3[] intersections
+        ) => TryIntersectWith(triangle, polygon, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a triangle and a polygon cross, within a tolerance.
@@ -218,7 +239,12 @@ namespace GeometryHelper.Core
         /// across it along y = 50 from z = -50 to 50 cross at two points.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static bool TryIntersectWith(GeoTriangle3 triangle, GeoPolygon3 polygon, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoTriangle3 triangle,
+            GeoPolygon3 polygon,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(triangle, polygon, tolerance);
 
@@ -234,7 +260,8 @@ namespace GeometryHelper.Core
         /// and (50, 50, 10), do not meet.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoTriangle3 triangle, GeoFace3 face) => GetIntersections(triangle, face, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoTriangle3 triangle, GeoFace3 face) =>
+            GetIntersections(triangle, face, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a triangle and the material of a face cross, within a tolerance.
@@ -281,13 +308,15 @@ namespace GeometryHelper.Core
                 return new GeoPoint3[0];
             }
 
-            if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
-                && PlanarMap.TryProjectToFace2(frame, face, tolerance, out GeoFace2 flatFace))
+            if (
+                Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
+                && PlanarMap.TryProjectToFace2(frame, face, tolerance, out GeoFace2 flatFace)
+            )
             {
-                return Lift(frame, Triangle2.GetIntersections(
-                    PlanarMap.ProjectToTriangle2(frame, triangle),
-                    flatFace,
-                    tolerance));
+                return Lift(
+                    frame,
+                    Triangle2.GetIntersections(PlanarMap.ProjectToTriangle2(frame, triangle), flatFace, tolerance)
+                );
             }
 
             AddCrossings(found, EdgesOf(triangle), face, tolerance);
@@ -304,8 +333,8 @@ namespace GeometryHelper.Core
         /// (40, 50, -10), (60, 50, -10) and (50, 50, 10) standing in the hole, do not meet, and the answer is false.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static bool TryIntersectWith(GeoTriangle3 triangle, GeoFace3 face, out GeoPoint3[] intersections)
-            => TryIntersectWith(triangle, face, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoTriangle3 triangle, GeoFace3 face, out GeoPoint3[] intersections) =>
+            TryIntersectWith(triangle, face, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a triangle and the material of a face cross, within a tolerance.
@@ -320,7 +349,12 @@ namespace GeometryHelper.Core
         /// (40, 50, -10), (60, 50, -10) and (50, 50, 10) standing in the hole, do not meet, and the answer is false.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static bool TryIntersectWith(GeoTriangle3 triangle, GeoFace3 face, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoTriangle3 triangle,
+            GeoFace3 face,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(triangle, face, tolerance);
 
@@ -335,7 +369,8 @@ namespace GeometryHelper.Core
         /// y = 50 from z = -50 to 50, cross at (100, 50, 0) and (0, 50, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when either polygon is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoPolygon3 polygon1, GeoPolygon3 polygon2) => GetIntersections(polygon1, polygon2, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolygon3 polygon1, GeoPolygon3 polygon2) =>
+            GetIntersections(polygon1, polygon2, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where two polygons cross, within a tolerance.
@@ -374,14 +409,13 @@ namespace GeometryHelper.Core
                 return new GeoPoint3[0];
             }
 
-            if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
+            if (
+                Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
                 && PlanarMap.TryProjectToPolygon2(frame, polygon1, tolerance, out GeoPolygon2 flatPolygon1)
-                && PlanarMap.TryProjectToPolygon2(frame, polygon2, tolerance, out GeoPolygon2 flatPolygon2))
+                && PlanarMap.TryProjectToPolygon2(frame, polygon2, tolerance, out GeoPolygon2 flatPolygon2)
+            )
             {
-                return Lift(frame, Intersection2.GetIntersections(
-                    flatPolygon1,
-                    flatPolygon2,
-                    tolerance));
+                return Lift(frame, Intersection2.GetIntersections(flatPolygon1, flatPolygon2, tolerance));
             }
 
             var found = new List<GeoPoint3>();
@@ -400,8 +434,11 @@ namespace GeometryHelper.Core
         /// y = 50 from z = -50 to 50, cross at two points.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when either polygon is null.</exception>
-        public static bool TryIntersectWith(GeoPolygon3 polygon1, GeoPolygon3 polygon2, out GeoPoint3[] intersections)
-            => TryIntersectWith(polygon1, polygon2, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(
+            GeoPolygon3 polygon1,
+            GeoPolygon3 polygon2,
+            out GeoPoint3[] intersections
+        ) => TryIntersectWith(polygon1, polygon2, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where two polygons cross, within a tolerance.
@@ -416,7 +453,12 @@ namespace GeometryHelper.Core
         /// y = 50 from z = -50 to 50, cross at two points.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when either polygon is null.</exception>
-        public static bool TryIntersectWith(GeoPolygon3 polygon1, GeoPolygon3 polygon2, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolygon3 polygon1,
+            GeoPolygon3 polygon2,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(polygon1, polygon2, tolerance);
 
@@ -432,7 +474,8 @@ namespace GeometryHelper.Core
         /// (70, 50, 0) and (30, 50, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face or the polygon is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoFace3 face, GeoPolygon3 polygon) => GetIntersections(face, polygon, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoFace3 face, GeoPolygon3 polygon) =>
+            GetIntersections(face, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where the material of a face and a polygon cross, within a tolerance.
@@ -471,14 +514,13 @@ namespace GeometryHelper.Core
                 return new GeoPoint3[0];
             }
 
-            if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
+            if (
+                Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
                 && PlanarMap.TryProjectToFace2(frame, face, tolerance, out GeoFace2 flatFace)
-                && PlanarMap.TryProjectToPolygon2(frame, polygon, tolerance, out GeoPolygon2 flatPolygon))
+                && PlanarMap.TryProjectToPolygon2(frame, polygon, tolerance, out GeoPolygon2 flatPolygon)
+            )
             {
-                return Lift(frame, Face2.GetIntersections(
-                    flatFace,
-                    flatPolygon,
-                    tolerance));
+                return Lift(frame, Face2.GetIntersections(flatFace, flatPolygon, tolerance));
             }
 
             var found = new List<GeoPoint3>();
@@ -497,8 +539,8 @@ namespace GeometryHelper.Core
         /// upright across it along y = 50 from z = -50 to 50, cross at four points.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face or the polygon is null.</exception>
-        public static bool TryIntersectWith(GeoFace3 face, GeoPolygon3 polygon, out GeoPoint3[] intersections)
-            => TryIntersectWith(face, polygon, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoFace3 face, GeoPolygon3 polygon, out GeoPoint3[] intersections) =>
+            TryIntersectWith(face, polygon, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the material of a face and a polygon cross, within a tolerance.
@@ -513,7 +555,12 @@ namespace GeometryHelper.Core
         /// upright across it along y = 50 from z = -50 to 50, cross at four points.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face or the polygon is null.</exception>
-        public static bool TryIntersectWith(GeoFace3 face, GeoPolygon3 polygon, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoFace3 face,
+            GeoPolygon3 polygon,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(face, polygon, tolerance);
 
@@ -530,7 +577,8 @@ namespace GeometryHelper.Core
         /// crosses nothing.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when either face is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoFace3 face1, GeoFace3 face2) => GetIntersections(face1, face2, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoFace3 face1, GeoFace3 face2) =>
+            GetIntersections(face1, face2, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where the materials of two faces cross, within a tolerance.
@@ -570,14 +618,13 @@ namespace GeometryHelper.Core
                 return new GeoPoint3[0];
             }
 
-            if (Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
+            if (
+                Flat.InOnePlane(first, second, tolerance, out GeoCoordinateSystem3 frame)
                 && PlanarMap.TryProjectToFace2(frame, face1, tolerance, out GeoFace2 flatFace1)
-                && PlanarMap.TryProjectToFace2(frame, face2, tolerance, out GeoFace2 flatFace2))
+                && PlanarMap.TryProjectToFace2(frame, face2, tolerance, out GeoFace2 flatFace2)
+            )
             {
-                return Lift(frame, Face2.GetIntersections(
-                    flatFace1,
-                    flatFace2,
-                    tolerance));
+                return Lift(frame, Face2.GetIntersections(flatFace1, flatFace2, tolerance));
             }
 
             var found = new List<GeoPoint3>();
@@ -596,8 +643,8 @@ namespace GeometryHelper.Core
         /// and the answer is false.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when either face is null.</exception>
-        public static bool TryIntersectWith(GeoFace3 face1, GeoFace3 face2, out GeoPoint3[] intersections)
-            => TryIntersectWith(face1, face2, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoFace3 face1, GeoFace3 face2, out GeoPoint3[] intersections) =>
+            TryIntersectWith(face1, face2, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the materials of two faces cross, within a tolerance.
@@ -612,7 +659,12 @@ namespace GeometryHelper.Core
         /// and the answer is false.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when either face is null.</exception>
-        public static bool TryIntersectWith(GeoFace3 face1, GeoFace3 face2, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoFace3 face1,
+            GeoFace3 face2,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(face1, face2, tolerance);
 
@@ -630,7 +682,8 @@ namespace GeometryHelper.Core
         /// The floor plane and the triangle with corners (0, 50, -50), (100, 50, -50) and (0, 50, 50) cross at
         /// (50, 50, 0) and (0, 50, 0). A triangle lying in the plane crosses it nowhere.
         /// </remarks>
-        public static GeoPoint3[] GetIntersections(GeoPlane3 plane, GeoTriangle3 triangle) => GetIntersections(plane, triangle, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPlane3 plane, GeoTriangle3 triangle) =>
+            GetIntersections(plane, triangle, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where the edges of a triangle cross a plane, within a tolerance.
@@ -668,8 +721,8 @@ namespace GeometryHelper.Core
         /// The floor plane and the triangle with corners (0, 50, -50), (100, 50, -50) and (0, 50, 50) cross at two
         /// points.
         /// </remarks>
-        public static bool TryIntersectWith(GeoPlane3 plane, GeoTriangle3 triangle, out GeoPoint3[] intersections)
-            => TryIntersectWith(plane, triangle, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPlane3 plane, GeoTriangle3 triangle, out GeoPoint3[] intersections) =>
+            TryIntersectWith(plane, triangle, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the edges of a triangle cross a plane, within a tolerance.
@@ -683,7 +736,12 @@ namespace GeometryHelper.Core
         /// The floor plane and the triangle with corners (0, 50, -50), (100, 50, -50) and (0, 50, 50) cross at two
         /// points; a triangle lying in the floor crosses it nowhere, and the answer is false.
         /// </remarks>
-        public static bool TryIntersectWith(GeoPlane3 plane, GeoTriangle3 triangle, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPlane3 plane,
+            GeoTriangle3 triangle,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(plane, triangle, tolerance);
 
@@ -698,7 +756,8 @@ namespace GeometryHelper.Core
         /// (100, 50, 0) and (0, 50, 0). A polygon lying in the plane crosses it nowhere.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoPlane3 plane, GeoPolygon3 polygon) => GetIntersections(plane, polygon, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPlane3 plane, GeoPolygon3 polygon) =>
+            GetIntersections(plane, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where the edges of a polygon cross a plane, within a tolerance.
@@ -742,8 +801,8 @@ namespace GeometryHelper.Core
         /// The floor plane and a square 100 by 100 standing upright along y = 50 from z = -50 to 50 cross at two points.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static bool TryIntersectWith(GeoPlane3 plane, GeoPolygon3 polygon, out GeoPoint3[] intersections)
-            => TryIntersectWith(plane, polygon, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPlane3 plane, GeoPolygon3 polygon, out GeoPoint3[] intersections) =>
+            TryIntersectWith(plane, polygon, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the edges of a polygon cross a plane, within a tolerance.
@@ -758,7 +817,12 @@ namespace GeometryHelper.Core
         /// a square lying in the floor crosses it nowhere, and the answer is false.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static bool TryIntersectWith(GeoPlane3 plane, GeoPolygon3 polygon, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPlane3 plane,
+            GeoPolygon3 polygon,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(plane, polygon, tolerance);
 
@@ -774,7 +838,8 @@ namespace GeometryHelper.Core
         /// the rim of the hole.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoPlane3 plane, GeoFace3 face) => GetIntersections(plane, face, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPlane3 plane, GeoFace3 face) =>
+            GetIntersections(plane, face, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where the edges of a face, outline and holes, cross a plane, within a tolerance.
@@ -820,8 +885,8 @@ namespace GeometryHelper.Core
         /// from z = -50 to 50, cross at four points.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static bool TryIntersectWith(GeoPlane3 plane, GeoFace3 face, out GeoPoint3[] intersections)
-            => TryIntersectWith(plane, face, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPlane3 plane, GeoFace3 face, out GeoPoint3[] intersections) =>
+            TryIntersectWith(plane, face, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the edges of a face cross a plane, within a tolerance.
@@ -836,7 +901,12 @@ namespace GeometryHelper.Core
         /// from z = -50 to 50, cross at four points.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static bool TryIntersectWith(GeoPlane3 plane, GeoFace3 face, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPlane3 plane,
+            GeoFace3 face,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(plane, face, tolerance);
 
@@ -854,7 +924,8 @@ namespace GeometryHelper.Core
         /// A ray from (0, 0, 10) pointing straight down crosses the floor plane at the origin; one lying in the floor
         /// crosses it nowhere.
         /// </remarks>
-        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoPlane3 plane) => GetIntersections(ray, plane, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoPlane3 plane) =>
+            GetIntersections(ray, plane, Tolerance.Global);
 
         /// <summary>
         /// Gets where a ray crosses a plane, as a list, within a tolerance.
@@ -884,7 +955,8 @@ namespace GeometryHelper.Core
         /// A ray from (20, 20, 10) pointing straight down crosses the triangle with corners (0, 0, 0), (100, 0, 0) and
         /// (0, 100, 0) at (20, 20, 0).
         /// </remarks>
-        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoTriangle3 triangle) => GetIntersections(ray, triangle, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoTriangle3 triangle) =>
+            GetIntersections(ray, triangle, Tolerance.Global);
 
         /// <summary>
         /// Gets where a ray crosses a triangle, as a list, within a tolerance.
@@ -907,7 +979,8 @@ namespace GeometryHelper.Core
         /// (0, 100, 0) at (20, 20, 0). The ray from (50, -0.0006, 0.0003) along (1, -0.01, 0), 0.00067 from the triangle and
         /// running away from it, touches it at its origin, where it collided and was given nothing.
         /// </remarks>
-        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoTriangle3 triangle, Tolerance tolerance) => Meeting(ray, triangle, tolerance);
+        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoTriangle3 triangle, Tolerance tolerance) =>
+            Meeting(ray, triangle, tolerance);
 
         /// <summary>
         /// Gets where a ray crosses a polygon, as a list, using the default tolerance.
@@ -917,7 +990,8 @@ namespace GeometryHelper.Core
         /// origin at (20, 20, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoPolygon3 polygon) => GetIntersections(ray, polygon, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoPolygon3 polygon) =>
+            GetIntersections(ray, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets where a ray crosses a polygon, as a list, within a tolerance.
@@ -941,7 +1015,8 @@ namespace GeometryHelper.Core
         /// away from it, touches it at its origin, where it collided and was given nothing.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoPolygon3 polygon, Tolerance tolerance) => Meeting(ray, polygon, tolerance);
+        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoPolygon3 polygon, Tolerance tolerance) =>
+            Meeting(ray, polygon, tolerance);
 
         /// <summary>
         /// Gets where a ray crosses the material of a face, as a list, using the default tolerance.
@@ -951,7 +1026,8 @@ namespace GeometryHelper.Core
         /// 100 by 100 in the floor and crosses nothing; from (20, 20, 10) it crosses the material at (20, 20, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoFace3 face) => GetIntersections(ray, face, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoFace3 face) =>
+            GetIntersections(ray, face, Tolerance.Global);
 
         /// <summary>
         /// Gets where a ray crosses the material of a face, as a list, within a tolerance.
@@ -976,7 +1052,8 @@ namespace GeometryHelper.Core
         /// origin, where it collided and was given nothing.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoFace3 face, Tolerance tolerance) => Meeting(ray, face, tolerance);
+        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoFace3 face, Tolerance tolerance) =>
+            Meeting(ray, face, tolerance);
 
         /// <summary>
         /// Gets where two rays cross, as a list, using the default tolerance.
@@ -985,7 +1062,8 @@ namespace GeometryHelper.Core
         /// A ray from the origin along X and one from (50, -50, 0) along Y cross at (50, 0, 0). Two rays along one line
         /// meet along a length and name no place.
         /// </remarks>
-        public static GeoPoint3[] GetIntersections(GeoRay3 ray1, GeoRay3 ray2) => GetIntersections(ray1, ray2, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoRay3 ray1, GeoRay3 ray2) =>
+            GetIntersections(ray1, ray2, Tolerance.Global);
 
         /// <summary>
         /// Gets where two rays cross, as a list, within a tolerance.
@@ -1021,8 +1099,8 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// A ray from the origin along X and one from (50, -50, 0) along Y cross at (50, 0, 0).
         /// </remarks>
-        public static bool TryIntersectWith(GeoRay3 ray1, GeoRay3 ray2, out GeoPoint3[] intersections)
-            => TryIntersectWith(ray1, ray2, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoRay3 ray1, GeoRay3 ray2, out GeoPoint3[] intersections) =>
+            TryIntersectWith(ray1, ray2, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where two rays cross, within a tolerance.
@@ -1036,7 +1114,12 @@ namespace GeometryHelper.Core
         /// A ray from the origin along X and one from (50, -50, 0) along Y cross at (50, 0, 0); two rays along the X axis
         /// from 0 and from 100, facing each other, meet along a length and the answer is false.
         /// </remarks>
-        public static bool TryIntersectWith(GeoRay3 ray1, GeoRay3 ray2, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoRay3 ray1,
+            GeoRay3 ray2,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(ray1, ray2, tolerance);
 
@@ -1100,7 +1183,13 @@ namespace GeometryHelper.Core
         /// </summary>
         internal readonly struct Flat
         {
-            private Flat(GeoVector3 normal, GeoPlane3 plane, IReadOnlyList<GeoPoint3> outline, IReadOnlyList<GeoPolygon3> holes, GeoAabb3 box)
+            private Flat(
+                GeoVector3 normal,
+                GeoPlane3 plane,
+                IReadOnlyList<GeoPoint3> outline,
+                IReadOnlyList<GeoPolygon3> holes,
+                GeoAabb3 box
+            )
             {
                 Normal = normal;
                 Plane = plane;
@@ -1138,14 +1227,19 @@ namespace GeometryHelper.Core
                 GeoPoint3[] outline = { triangle.A, triangle.B, triangle.C };
 
                 return new Flat(
-                    normal, new GeoPlane3(triangle.A, normal), outline, new GeoPolygon3[0], triangle.GetAabb());
+                    normal,
+                    new GeoPlane3(triangle.A, normal),
+                    outline,
+                    new GeoPolygon3[0],
+                    triangle.GetAabb()
+                );
             }
 
-            internal static Flat Of(GeoPolygon3 polygon)
-                => new Flat(polygon.Normal, polygon.GetPlane(), polygon.Vertices, new GeoPolygon3[0], polygon.GetAabb());
+            internal static Flat Of(GeoPolygon3 polygon) =>
+                new Flat(polygon.Normal, polygon.GetPlane(), polygon.Vertices, new GeoPolygon3[0], polygon.GetAabb());
 
-            internal static Flat Of(GeoFace3 face)
-                => new Flat(face.Boundary.Normal, face.GetPlane(), face.Boundary.Vertices, face.Holes, face.GetAabb());
+            internal static Flat Of(GeoFace3 face) =>
+                new Flat(face.Boundary.Normal, face.GetPlane(), face.Boundary.Vertices, face.Holes, face.GetAabb());
 
             /// <summary>
             /// Determines whether the whole shape, holes and all, lies in a plane within the planar tolerance.
@@ -1186,16 +1280,22 @@ namespace GeometryHelper.Core
                 GeoAabb3 a = first.Box;
                 GeoAabb3 b = second.Box;
 
-                if (a.Min.X - apart > b.Max.X || b.Min.X - apart > a.Max.X ||
-                    a.Min.Y - apart > b.Max.Y || b.Min.Y - apart > a.Max.Y ||
-                    a.Min.Z - apart > b.Max.Z || b.Min.Z - apart > a.Max.Z)
+                if (
+                    a.Min.X - apart > b.Max.X
+                    || b.Min.X - apart > a.Max.X
+                    || a.Min.Y - apart > b.Max.Y
+                    || b.Min.Y - apart > a.Max.Y
+                    || a.Min.Z - apart > b.Max.Z
+                    || b.Min.Z - apart > a.Max.Z
+                )
                 {
                     return true;
                 }
 
                 double clear = 2.0 * Math.Max(tolerance.EqualPoint, tolerance.EqualPlanar);
 
-                return StandsClear(second.Plane, first.Outline, clear) || StandsClear(first.Plane, second.Outline, clear);
+                return StandsClear(second.Plane, first.Outline, clear)
+                    || StandsClear(first.Plane, second.Outline, clear);
             }
 
             private static bool StandsClear(GeoPlane3 plane, IReadOnlyList<GeoPoint3> corners, double clear)
@@ -1225,7 +1325,12 @@ namespace GeometryHelper.Core
             /// two touch, so either way round has to be enough. The frame is the first shape's where the second lies in
             /// its plane, and otherwise the second's, so that the shape the other lies on is laid out exactly.
             /// </remarks>
-            internal static bool InOnePlane(Flat first, Flat second, Tolerance tolerance, out GeoCoordinateSystem3 frame)
+            internal static bool InOnePlane(
+                Flat first,
+                Flat second,
+                Tolerance tolerance,
+                out GeoCoordinateSystem3 frame
+            )
             {
                 frame = default(GeoCoordinateSystem3);
 
@@ -1251,8 +1356,8 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>The edges of a triangle, A to B first.</summary>
-        internal static GeoLine3[] EdgesOf(GeoTriangle3 triangle)
-            => new[] { triangle.GetEdgeAt(0), triangle.GetEdgeAt(1), triangle.GetEdgeAt(2) };
+        internal static GeoLine3[] EdgesOf(GeoTriangle3 triangle) =>
+            new[] { triangle.GetEdgeAt(0), triangle.GetEdgeAt(1), triangle.GetEdgeAt(2) };
 
         /// <summary>The edges of a polygon, in order round it.</summary>
         internal static GeoLine3[] EdgesOf(GeoPolygon3 polygon) => polygon.GetEdges();
@@ -1270,7 +1375,12 @@ namespace GeometryHelper.Core
             return edges;
         }
 
-        private static void AddCrossings(List<GeoPoint3> found, IEnumerable<GeoLine3> edges, GeoTriangle3 triangle, Tolerance tolerance)
+        private static void AddCrossings(
+            List<GeoPoint3> found,
+            IEnumerable<GeoLine3> edges,
+            GeoTriangle3 triangle,
+            Tolerance tolerance
+        )
         {
             foreach (GeoLine3 edge in edges)
             {
@@ -1281,7 +1391,12 @@ namespace GeometryHelper.Core
             }
         }
 
-        private static void AddCrossings(List<GeoPoint3> found, IEnumerable<GeoLine3> edges, GeoPolygon3 polygon, Tolerance tolerance)
+        private static void AddCrossings(
+            List<GeoPoint3> found,
+            IEnumerable<GeoLine3> edges,
+            GeoPolygon3 polygon,
+            Tolerance tolerance
+        )
         {
             foreach (GeoLine3 edge in edges)
             {
@@ -1292,7 +1407,12 @@ namespace GeometryHelper.Core
             }
         }
 
-        private static void AddCrossings(List<GeoPoint3> found, IEnumerable<GeoLine3> edges, GeoFace3 face, Tolerance tolerance)
+        private static void AddCrossings(
+            List<GeoPoint3> found,
+            IEnumerable<GeoLine3> edges,
+            GeoFace3 face,
+            Tolerance tolerance
+        )
         {
             foreach (GeoLine3 edge in edges)
             {
@@ -1303,12 +1423,19 @@ namespace GeometryHelper.Core
             }
         }
 
-        private static void AddCrossings(List<GeoPoint3> found, IEnumerable<GeoLine3> edges, GeoPlane3 plane, Tolerance tolerance)
+        private static void AddCrossings(
+            List<GeoPoint3> found,
+            IEnumerable<GeoLine3> edges,
+            GeoPlane3 plane,
+            Tolerance tolerance
+        )
         {
             foreach (GeoLine3 edge in edges)
             {
-                if (TryCross(edge, plane, out GeoPoint3 crossing, tolerance) ||
-                    TryReachRefused(edge, plane, out crossing))
+                if (
+                    TryCross(edge, plane, out GeoPoint3 crossing, tolerance)
+                    || TryReachRefused(edge, plane, out crossing)
+                )
                 {
                     Arc3.AddOnce(found, crossing, tolerance);
                 }

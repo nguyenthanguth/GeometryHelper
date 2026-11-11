@@ -59,14 +59,14 @@ namespace GeometryHelper.Core
         /// box alone. It was not asked further than a millionth outside, which 2E9 out is less than the body holds: the ray
         /// from 1.4E-6 over the top of a box there, pointing away, was nought from it and did not collide.
         /// </remarks>
-        internal static bool RayTouches(GeoSolid3 material, GeoRay3 ray, Tolerance tolerance)
-            => Gap3.SurfaceRayWithin(material, ray, tolerance.EqualPoint) || Gap3.Holds(material, ray.Origin);
+        internal static bool RayTouches(GeoSolid3 material, GeoRay3 ray, Tolerance tolerance) =>
+            Gap3.SurfaceRayWithin(material, ray, tolerance.EqualPoint) || Gap3.Holds(material, ray.Origin);
 
         /// <summary>
         /// Determines whether the origin of a ray stands within the point tolerance of the surface of a body, where a meeting at
         /// the origin is a meeting with the surface: one held deeper in the body meets no surface there.
         /// </summary>
-        internal static bool StartTouches(GeoSolid3 material, GeoRay3 ray, Tolerance tolerance)
-            => !(Gap3.SurfacePoint(material, ray.Origin) > tolerance.EqualPoint);
+        internal static bool StartTouches(GeoSolid3 material, GeoRay3 ray, Tolerance tolerance) =>
+            !(Gap3.SurfacePoint(material, ray.Origin) > tolerance.EqualPoint);
     }
 }

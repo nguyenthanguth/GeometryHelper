@@ -61,12 +61,14 @@ namespace GeometryHelper.Geometry
             Min = new GeoPoint3(
                 Math.Min(corner1.X, corner2.X),
                 Math.Min(corner1.Y, corner2.Y),
-                Math.Min(corner1.Z, corner2.Z));
+                Math.Min(corner1.Z, corner2.Z)
+            );
 
             Max = new GeoPoint3(
                 Math.Max(corner1.X, corner2.X),
                 Math.Max(corner1.Y, corner2.Y),
-                Math.Max(corner1.Z, corner2.Z));
+                Math.Max(corner1.Z, corner2.Z)
+            );
 
             HasValue = true;
         }
@@ -179,7 +181,7 @@ namespace GeometryHelper.Geometry
                 new GeoPoint3(Min.X, Min.Y, Max.Z),
                 new GeoPoint3(Max.X, Min.Y, Max.Z),
                 new GeoPoint3(Max.X, Max.Y, Max.Z),
-                new GeoPoint3(Min.X, Max.Y, Max.Z)
+                new GeoPoint3(Min.X, Max.Y, Max.Z),
             };
         }
 
@@ -192,9 +194,12 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public GeoAabb3 Union(GeoPoint3 point)
         {
-            return IsEmpty ? new GeoAabb3(point, point) : new GeoAabb3(
-                new GeoPoint3(Math.Min(Min.X, point.X), Math.Min(Min.Y, point.Y), Math.Min(Min.Z, point.Z)),
-                new GeoPoint3(Math.Max(Max.X, point.X), Math.Max(Max.Y, point.Y), Math.Max(Max.Z, point.Z)));
+            return IsEmpty
+                ? new GeoAabb3(point, point)
+                : new GeoAabb3(
+                    new GeoPoint3(Math.Min(Min.X, point.X), Math.Min(Min.Y, point.Y), Math.Min(Min.Z, point.Z)),
+                    new GeoPoint3(Math.Max(Max.X, point.X), Math.Max(Max.Y, point.Y), Math.Max(Max.Z, point.Z))
+                );
         }
 
         /// <summary>
@@ -287,17 +292,25 @@ namespace GeometryHelper.Geometry
 
             double t = tolerance.EqualPoint;
 
-            if (point.X < Min.X - t || point.X > Max.X + t ||
-                point.Y < Min.Y - t || point.Y > Max.Y + t ||
-                point.Z < Min.Z - t || point.Z > Max.Z + t)
+            if (
+                point.X < Min.X - t
+                || point.X > Max.X + t
+                || point.Y < Min.Y - t
+                || point.Y > Max.Y + t
+                || point.Z < Min.Z - t
+                || point.Z > Max.Z + t
+            )
             {
                 return PointLocation.OutSide;
             }
 
             bool onSurface =
-                Math.Abs(point.X - Min.X) <= t || Math.Abs(point.X - Max.X) <= t ||
-                Math.Abs(point.Y - Min.Y) <= t || Math.Abs(point.Y - Max.Y) <= t ||
-                Math.Abs(point.Z - Min.Z) <= t || Math.Abs(point.Z - Max.Z) <= t;
+                Math.Abs(point.X - Min.X) <= t
+                || Math.Abs(point.X - Max.X) <= t
+                || Math.Abs(point.Y - Min.Y) <= t
+                || Math.Abs(point.Y - Max.Y) <= t
+                || Math.Abs(point.Z - Min.Z) <= t
+                || Math.Abs(point.Z - Max.Z) <= t;
 
             return onSurface ? PointLocation.OnSide : PointLocation.Inside;
         }
@@ -338,9 +351,12 @@ namespace GeometryHelper.Geometry
 
             double t = tolerance.EqualPoint;
 
-            return other.Min.X >= Min.X - t && other.Max.X <= Max.X + t &&
-                   other.Min.Y >= Min.Y - t && other.Max.Y <= Max.Y + t &&
-                   other.Min.Z >= Min.Z - t && other.Max.Z <= Max.Z + t;
+            return other.Min.X >= Min.X - t
+                && other.Max.X <= Max.X + t
+                && other.Min.Y >= Min.Y - t
+                && other.Max.Y <= Max.Y + t
+                && other.Min.Z >= Min.Z - t
+                && other.Max.Z <= Max.Z + t;
         }
 
         /// <summary>
@@ -348,7 +364,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="options">How each axis of the grid is divided, the joint, and the snap distance.</param>
         /// <returns>The grid of cells.</returns>
-        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options) => Meshing.Mesh3.ToCells(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
+        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options) =>
+            Meshing.Mesh3.ToCells(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Cuts the box into cells as the options say, along the world's axes, within a tolerance.
@@ -356,7 +373,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How each axis of the grid is divided, the joint, and the snap distance.</param>
         /// <param name="tolerance">The tolerance it is cut within: which cells are whole, and the least a cut is snapped by.</param>
         /// <returns>The grid of cells.</returns>
-        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Tolerance tolerance) => Meshing.Mesh3.ToCells(this, options, Meshing.MeshPlacement3.World, tolerance);
+        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Tolerance tolerance) =>
+            Meshing.Mesh3.ToCells(this, options, Meshing.MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Cuts the box into cells as the options say, its grid standing as the placement says, using the default
@@ -365,7 +383,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How each axis of the grid is divided, the joint, and the snap distance.</param>
         /// <param name="placement">Which way the grid's axes run, and where a cell starts.</param>
         /// <returns>The grid of cells.</returns>
-        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Meshing.MeshPlacement3 placement) => Meshing.Mesh3.ToCells(this, options, placement, Tolerance.Global);
+        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Meshing.MeshPlacement3 placement) =>
+            Meshing.Mesh3.ToCells(this, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Cuts the box into cells as the options say, its grid standing as the placement says, within a tolerance: blocks,
@@ -380,7 +399,11 @@ namespace GeometryHelper.Geometry
         /// Thrown when a cell is no larger than the point tolerance along an axis it divides, or the grid would lay more
         /// cells than a grid may have.
         /// </exception>
-        public Meshing.GeoCellGrid3 ToCells(Meshing.CellOptions3 options, Meshing.MeshPlacement3 placement, Tolerance tolerance) => Meshing.Mesh3.ToCells(this, options, placement, tolerance);
+        public Meshing.GeoCellGrid3 ToCells(
+            Meshing.CellOptions3 options,
+            Meshing.MeshPlacement3 placement,
+            Tolerance tolerance
+        ) => Meshing.Mesh3.ToCells(this, options, placement, tolerance);
 
         /// <summary>
         /// Gets this box as an oriented box aligned with the world axes.
@@ -427,7 +450,6 @@ namespace GeometryHelper.Geometry
             {
                 return 0;
             }
-
             unchecked
             {
                 return (Min.GetHashCode() * 397) ^ Max.GetHashCode();
@@ -472,7 +494,8 @@ namespace GeometryHelper.Geometry
         /// the <c>out</c> of a <c>Try</c> method holds when the method said false — may not be, and answers
         /// questions without complaint all the same.
         /// </remarks>
-        public bool IsValid => IsEmpty || (Min.IsValid && Max.IsValid && Min.X <= Max.X && Min.Y <= Max.Y && Min.Z <= Max.Z);
+        public bool IsValid =>
+            IsEmpty || (Min.IsValid && Max.IsValid && Min.X <= Max.X && Min.Y <= Max.Y && Min.Z <= Max.Z);
 
         /// <summary>
         /// Returns a string that represents the current box.

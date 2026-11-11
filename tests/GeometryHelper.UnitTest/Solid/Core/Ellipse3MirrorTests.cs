@@ -30,7 +30,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoPoint3[] points =
             {
-                specimen.Center, specimen.OffRim(1.1, 0.5, 0.0), specimen.OffRim(4.0, -0.0004, 0.0), specimen.At(100, 20, 40),
+                specimen.Center,
+                specimen.OffRim(1.1, 0.5, 0.0),
+                specimen.OffRim(4.0, -0.0004, 0.0),
+                specimen.At(100, 20, 40),
                 specimen.At(900, 900, -300),
             };
 
@@ -50,16 +53,31 @@ namespace GeometryHelper.UnitTest.Solid
 
                 Assert.Equal(Ellipse3.DistanceTo(ellipse, point), ellipse.DistanceTo(point));
                 Assert.Equal(Ellipse3.DistanceTo(ellipse, point, Global), ellipse.DistanceTo(point));
-                Assert.Equal(Ellipse3.GetClosestPointOnSurface(ellipse, point), ellipse.GetClosestPointOnSurface(point));
-                Assert.Equal(Ellipse3.GetClosestPointOnSurface(ellipse, point, Global), ellipse.GetClosestPointOnSurface(point));
-                Assert.Equal(Ellipse3.GetClosestPointOnBoundary(ellipse, point), ellipse.GetClosestPointOnBoundary(point));
+                Assert.Equal(
+                    Ellipse3.GetClosestPointOnSurface(ellipse, point),
+                    ellipse.GetClosestPointOnSurface(point)
+                );
+                Assert.Equal(
+                    Ellipse3.GetClosestPointOnSurface(ellipse, point, Global),
+                    ellipse.GetClosestPointOnSurface(point)
+                );
+                Assert.Equal(
+                    Ellipse3.GetClosestPointOnBoundary(ellipse, point),
+                    ellipse.GetClosestPointOnBoundary(point)
+                );
 
                 Assert.Equal(Ellipse3.GetAngleAtPoint(ellipse, point), ellipse.GetAngleAtPoint(point));
                 Assert.Equal(Ellipse3.GetParameterAtPoint(ellipse, point), ellipse.GetParameterAtPoint(point));
-                Assert.Equal(Ellipse3.GetParameterAtPoint(ellipse, point, Global), ellipse.GetParameterAtPoint(point, Global));
+                Assert.Equal(
+                    Ellipse3.GetParameterAtPoint(ellipse, point, Global),
+                    ellipse.GetParameterAtPoint(point, Global)
+                );
                 Assert.Equal(ellipse.GetParameterAtPoint(point, Global), ellipse.GetParameterAtPoint(point));
                 Assert.Equal(Ellipse3.GetDistanceAtPoint(ellipse, point), ellipse.GetDistanceAtPoint(point));
-                Assert.Equal(Ellipse3.GetDistanceAtPoint(ellipse, point, Global), ellipse.GetDistanceAtPoint(point, Global));
+                Assert.Equal(
+                    Ellipse3.GetDistanceAtPoint(ellipse, point, Global),
+                    ellipse.GetDistanceAtPoint(point, Global)
+                );
                 Assert.Equal(ellipse.GetDistanceAtPoint(point, Global), ellipse.GetDistanceAtPoint(point));
             }
         }
@@ -116,7 +134,10 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.Equal(Ellipse3.GetPointAtParameter(ellipse, x), ellipse.GetPointAtParameter(x));
                 Assert.Equal(Ellipse3.GetDistanceAtParameter(ellipse, x), ellipse.GetDistanceAtParameter(x));
                 Assert.Equal(Ellipse3.GetPointAtDistance(ellipse, x * 1000), ellipse.GetPointAtDistance(x * 1000));
-                Assert.Equal(Ellipse3.GetParameterAtDistance(ellipse, x * 1000), ellipse.GetParameterAtDistance(x * 1000));
+                Assert.Equal(
+                    Ellipse3.GetParameterAtDistance(ellipse, x * 1000),
+                    ellipse.GetParameterAtDistance(x * 1000)
+                );
             }
         }
 
@@ -126,12 +147,20 @@ namespace GeometryHelper.UnitTest.Solid
             Ellipse3Oracle.Specimen specimen = Ellipse3Oracle.Tilted();
             GeoEllipse3 ellipse = specimen.Build();
             GeoCircle3 circle = Ellipse3Oracle.CircleTiltedSixty();
-            GeoTransform3 motion = GeoTransform3.Translation(new GeoVector3(3, -4, 5)) * GeoTransform3.Scaling(2, 1, 0.5);
+            GeoTransform3 motion =
+                GeoTransform3.Translation(new GeoVector3(3, -4, 5)) * GeoTransform3.Scaling(2, 1, 0.5);
             var plane = new GeoPlane3(new GeoPoint3(10, 20, -30), new GeoVector3(0.2, -0.3, 1));
-            var frame = new GeoCoordinateSystem3(new GeoPoint3(100, 200, 300), new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 1));
+            var frame = new GeoCoordinateSystem3(
+                new GeoPoint3(100, 200, 300),
+                new GeoVector3(1, 1, 0),
+                new GeoVector3(-1, 1, 1)
+            );
             GeoEllipse2 flat = Plane.Ellipse2Oracle.Tilted();
 
-            Assert.Equal(Ellipse3.Translate(ellipse, new GeoVector3(1, 2, 3)), ellipse.Translate(new GeoVector3(1, 2, 3)));
+            Assert.Equal(
+                Ellipse3.Translate(ellipse, new GeoVector3(1, 2, 3)),
+                ellipse.Translate(new GeoVector3(1, 2, 3))
+            );
             Assert.Equal(Ellipse3.TransformBy(ellipse, motion), ellipse.TransformBy(motion));
             Assert.Equal(motion.Transform(ellipse), ellipse.TransformBy(motion));
             Assert.Equal(Ellipse3.GetAabb(ellipse), ellipse.GetAabb());
@@ -149,16 +178,25 @@ namespace GeometryHelper.UnitTest.Solid
             GeoEllipse3 ellipse = Ellipse3Oracle.Tilted().Build();
 
             Assert.Equal(Ellipse3.ToPolygonByChordTolerance(ellipse, 0.0).Vertices, ellipse.ToPolygon().Vertices);
-            Assert.Equal(Ellipse3.ToPolygonByChordTolerance(ellipse, 0.5).Vertices, ellipse.ToPolygonByChordTolerance(0.5).Vertices);
+            Assert.Equal(
+                Ellipse3.ToPolygonByChordTolerance(ellipse, 0.5).Vertices,
+                ellipse.ToPolygonByChordTolerance(0.5).Vertices
+            );
             Assert.Equal(Ellipse3.ToPolygonBySpacing(ellipse, 25).Vertices, ellipse.ToPolygonBySpacing(25).Vertices);
             Assert.Equal(Ellipse3.ToPolygon(ellipse, 7).Vertices, ellipse.ToPolygon(7).Vertices);
             Assert.Equal(Ellipse3.ToPolylineByChordTolerance(ellipse, 0.0).Vertices, ellipse.ToPolyline().Vertices);
-            Assert.Equal(Ellipse3.ToPolylineByChordTolerance(ellipse, 0.5).Vertices, ellipse.ToPolylineByChordTolerance(0.5).Vertices);
+            Assert.Equal(
+                Ellipse3.ToPolylineByChordTolerance(ellipse, 0.5).Vertices,
+                ellipse.ToPolylineByChordTolerance(0.5).Vertices
+            );
             Assert.Equal(Ellipse3.ToPolylineBySpacing(ellipse, 25).Vertices, ellipse.ToPolylineBySpacing(25).Vertices);
             Assert.Equal(Ellipse3.ToPolyline(ellipse, 7).Vertices, ellipse.ToPolyline(7).Vertices);
 
             MeshOptions grid = MeshOptions.Grid(40, 40);
-            AssertSameMesh(Mesh3.ToMesh(ellipse, grid, MeshPlacement3.Own, Global), ellipse.ToMesh(grid, MeshPlacement3.Own, Global));
+            AssertSameMesh(
+                Mesh3.ToMesh(ellipse, grid, MeshPlacement3.Own, Global),
+                ellipse.ToMesh(grid, MeshPlacement3.Own, Global)
+            );
             AssertSameMesh(ellipse.ToMesh(grid, MeshPlacement3.Own, Global), ellipse.ToMesh(grid, MeshPlacement3.Own));
             AssertSameMesh(Mesh3.ToMesh(ellipse, grid, MeshPlacement3.Own), ellipse.ToMesh(grid, MeshPlacement3.Own));
             AssertSameMesh(Mesh3.ToMesh(ellipse, grid, Global), ellipse.ToMesh(grid, Global));

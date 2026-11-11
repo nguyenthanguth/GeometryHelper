@@ -44,10 +44,23 @@ namespace GeometryHelper.Dxf
     public class DxfBlockReference : DxfEntity
     {
         // The groups of AcDbBlockReference (and AcDbMInsertBlock) in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 66, 2, 10, 20, 30, 41, 42, 43, 50, 70, 71, 44, 45, 210, 220, 230 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 66, 2, 10, 20, 30, 41, 42, 43, 50, 70, 71, 44, 45, 210, 220, 230 }
+        );
 
         // The types whose thickness a placed shape's is written to.
-        private static readonly HashSet<string> Thick = new HashSet<string>(StringComparer.Ordinal) { "LINE", "POINT", "CIRCLE", "ARC", "LWPOLYLINE", "POLYLINE", "TEXT", "SOLID", "TRACE" };
+        private static readonly HashSet<string> Thick = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "LINE",
+            "POINT",
+            "CIRCLE",
+            "ARC",
+            "LWPOLYLINE",
+            "POLYLINE",
+            "TEXT",
+            "SOLID",
+            "TRACE",
+        };
 
         private static readonly GeoPoint3 Origin = new GeoPoint3(0.0, 0.0, 0.0);
 
@@ -80,18 +93,19 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentNullException">Thrown when the block is null.</exception>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number, or the block is a layout.</exception>
         public DxfBlockReference(GeoPoint3 position, DxfBlockTableRecord blockTableRecord)
-            : this("AcDbBlockReference", position, blockTableRecord, null)
-        {
-        }
+            : this("AcDbBlockReference", position, blockTableRecord, null) { }
 
         /// <summary>The object of a record of a file.</summary>
         private protected DxfBlockReference(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>An INSERT made in code under a subclass marker, with the groups of an array after its point where given.</summary>
-        private protected DxfBlockReference(string marker, GeoPoint3 position, DxfBlockTableRecord blockTableRecord, IEnumerable<DxfTypedValue> array)
+        private protected DxfBlockReference(
+            string marker,
+            GeoPoint3 position,
+            DxfBlockTableRecord blockTableRecord,
+            IEnumerable<DxfTypedValue> array
+        )
             : base("INSERT", Groups(marker, position, blockTableRecord, array))
         {
             _record = blockTableRecord;
@@ -128,13 +142,15 @@ namespace GeometryHelper.Dxf
 
                 return Item.File.BlockSource(Item) is DxfFile source ? Resolve(source, name) : null;
             }
-
             set
             {
                 DxfBlockTableRecord now = BlockTableRecord;
 
                 // The block it places already, or none where the drawing has none of its name: nothing to check or write.
-                if (ReferenceEquals(value, now) && (value == null || string.Equals(value.Name, Name, StringComparison.Ordinal)))
+                if (
+                    ReferenceEquals(value, now)
+                    && (value == null || string.Equals(value.Name, Name, StringComparison.Ordinal))
+                )
                 {
                     return;
                 }
@@ -150,14 +166,20 @@ namespace GeometryHelper.Dxf
                 {
                     if (value.File != Item.File)
                     {
-                        throw new ArgumentException("The block " + value.Name + " is of another drawing than the INSERT.", nameof(value));
+                        throw new ArgumentException(
+                            "The block " + value.Name + " is of another drawing than the INSERT.",
+                            nameof(value)
+                        );
                     }
 
                     DxfBlockTableRecord owner = Owner as DxfBlockTableRecord;
 
                     if (owner != null && !owner.IsLayout && Inserts(value, owner, null, out _))
                     {
-                        throw new ArgumentException("The block " + value.Name + " would make the block " + owner.Name + " insert itself.", nameof(value));
+                        throw new ArgumentException(
+                            "The block " + value.Name + " would make the block " + owner.Name + " insert itself.",
+                            nameof(value)
+                        );
                     }
                 }
 
@@ -190,9 +212,11 @@ namespace GeometryHelper.Dxf
             {
                 GeoPoint3 own = GetPoint(10, Origin);
                 bool held = Shown(out ContextGroups shown) != null && shown.Has(AtX) && shown.Has(AtY);
-                return OcsToWorld(Normal, held ? new GeoPoint3(shown.Value(AtX, 0.0), shown.Value(AtY, 0.0), shown.Value(AtZ, own.Z)) : own);
+                return OcsToWorld(
+                    Normal,
+                    held ? new GeoPoint3(shown.Value(AtX, 0.0), shown.Value(AtY, 0.0), shown.Value(AtZ, own.Z)) : own
+                );
             }
-
             set
             {
                 CheckPoint(value);
@@ -208,11 +232,14 @@ namespace GeometryHelper.Dxf
                         return;
                     }
 
-                    Place(contexts.ShownIsDefault ? PointGroups(10, point, Origin) : new KeyValuePair<int, string>[0], () =>
-                    {
-                        shown.Write(AtX, point.X, AtY, point.Y);
-                        shown.Write(AtZ, point.Z);
-                    });
+                    Place(
+                        contexts.ShownIsDefault ? PointGroups(10, point, Origin) : new KeyValuePair<int, string>[0],
+                        () =>
+                        {
+                            shown.Write(AtX, point.X, AtY, point.Y);
+                            shown.Write(AtZ, point.Z);
+                        }
+                    );
                 }
             }
         }
@@ -233,7 +260,6 @@ namespace GeometryHelper.Dxf
                 bool held = Shown(out ContextGroups shown) != null && shown.Has(AtDegrees);
                 return (held ? shown.Value(AtDegrees, 0.0) : GetDouble(50, 0.0)) * (Math.PI / 180.0);
             }
-
             set
             {
                 Guard.Finite(value, nameof(value), "An angle has to be a finite number.");
@@ -249,7 +275,9 @@ namespace GeometryHelper.Dxf
                         return;
                     }
 
-                    Place(contexts.ShownIsDefault ? new[] { angle } : new KeyValuePair<int, string>[0], () => shown.Write(AtDegrees, DxfOcsTransform.Degrees(value)));
+                    Place(contexts.ShownIsDefault ? new[] { angle } : new KeyValuePair<int, string>[0], () =>
+                        shown.Write(AtDegrees, DxfOcsTransform.Degrees(value))
+                    );
                 }
             }
         }
@@ -275,9 +303,12 @@ namespace GeometryHelper.Dxf
                     return own;
                 }
 
-                return new GeoVector3(shown.Value(ScaledX, own.X), shown.Value(ScaledY, own.Y), shown.Value(ScaledZ, own.Z));
+                return new GeoVector3(
+                    shown.Value(ScaledX, own.X),
+                    shown.Value(ScaledY, own.Y),
+                    shown.Value(ScaledZ, own.Z)
+                );
             }
-
             set
             {
                 GeoVector3 now = ScaleFactors;
@@ -289,7 +320,10 @@ namespace GeometryHelper.Dxf
 
                 if (!value.IsValid || value.X == 0.0 || value.Y == 0.0 || value.Z == 0.0)
                 {
-                    throw new ArgumentException("Scale factors have to be finite numbers, none of them nought: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "Scale factors have to be finite numbers, none of them nought: " + value + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 ShownContexts contexts = Shown(out _);
@@ -302,16 +336,23 @@ namespace GeometryHelper.Dxf
 
                 GeoVector3 own = OwnScale();
                 double toDefault = contexts.ShownRatio / contexts.DefaultRatio;
-                Place(Join(Factor(41, value.X * toDefault, own.X), Factor(42, value.Y * toDefault, own.Y), Factor(43, value.Z * toDefault, own.Z)), () =>
-                {
-                    for (int i = 0; i < contexts.All.Count; i++)
+                Place(
+                    Join(
+                        Factor(41, value.X * toDefault, own.X),
+                        Factor(42, value.Y * toDefault, own.Y),
+                        Factor(43, value.Z * toDefault, own.Z)
+                    ),
+                    () =>
                     {
-                        double k = contexts.ShownRatio / contexts.Ratios[i];
-                        ContextGroups context = ContextGroups.Read(contexts.All[i], ContextCodes);
-                        context.Write(ScaledX, value.X * k, ScaledY, value.Y * k);
-                        context.Write(ScaledZ, value.Z * k);
+                        for (int i = 0; i < contexts.All.Count; i++)
+                        {
+                            double k = contexts.ShownRatio / contexts.Ratios[i];
+                            ContextGroups context = ContextGroups.Read(contexts.All[i], ContextCodes);
+                            context.Write(ScaledX, value.X * k, ScaledY, value.Y * k);
+                            context.Write(ScaledZ, value.Z * k);
+                        }
                     }
-                });
+                );
             }
         }
 
@@ -334,12 +375,17 @@ namespace GeometryHelper.Dxf
             base.LeaveContexts();
             _contexts = null;
             GeoVector3 own = OwnScale();
-            SetGroups(Join(
-                PointGroups(10, WorldToOcs(Normal, position), Origin),
-                Factor(41, scale.X, own.X),
-                Factor(42, scale.Y, own.Y),
-                Factor(43, scale.Z, own.Z),
-                Same(degrees, GetDouble(50, 0.0)) ? new KeyValuePair<int, string>[0] : new[] { new KeyValuePair<int, string>(50, Numbers.Exact(degrees + 0.0)) }));
+            SetGroups(
+                Join(
+                    PointGroups(10, WorldToOcs(Normal, position), Origin),
+                    Factor(41, scale.X, own.X),
+                    Factor(42, scale.Y, own.Y),
+                    Factor(43, scale.Z, own.Z),
+                    Same(degrees, GetDouble(50, 0.0))
+                        ? new KeyValuePair<int, string>[0]
+                        : new[] { new KeyValuePair<int, string>(50, Numbers.Exact(degrees + 0.0)) }
+                )
+            );
         }
 
         /// <summary>The scale factors as the record gives them, as <see cref="ScaleFactors"/> reads those of an INSERT of no contexts.</summary>
@@ -421,7 +467,6 @@ namespace GeometryHelper.Dxf
         public GeoTransform3 BlockTransform
         {
             get => PlacedFrom(BlockTableRecord?.Origin ?? Origin);
-
             set
             {
                 if (value == null)
@@ -447,8 +492,19 @@ namespace GeometryHelper.Dxf
 
                 // The INSERT that stands unturned at the origin of the world, with no normal of its own, carried by the transformation.
                 GeoPoint3 origin = BlockTableRecord?.Origin ?? Origin;
-                System(new GeoPoint3(0.0, 0.0, 0.0), new GeoVector3(1.0, 1.0, 1.0), 0.0, new GeoVector3(0.0, 0.0, 1.0), value, nameof(value),
-                    out GeoVector3 scale, out double rotation, out GeoVector3 normal, out _, out _);
+                System(
+                    new GeoPoint3(0.0, 0.0, 0.0),
+                    new GeoVector3(1.0, 1.0, 1.0),
+                    0.0,
+                    new GeoVector3(0.0, 0.0, 1.0),
+                    value,
+                    nameof(value),
+                    out GeoVector3 scale,
+                    out double rotation,
+                    out GeoVector3 normal,
+                    out _,
+                    out _
+                );
                 GeoPoint3 position = value.Transform(origin);
                 GeoVector3 factors = ScaleFactors;
                 double degrees = rotation;
@@ -461,33 +517,49 @@ namespace GeometryHelper.Dxf
                     // default, as its point, angle and scale factors are (check D35c).
                     GeoPoint3 point = WorldToOcs(normal, position);
                     GeoVector3 own = OwnScale();
-                    KeyValuePair<int, string>[] turned = Same(normal.X, normalNow.X) && Same(normal.Y, normalNow.Y) && Same(normal.Z, normalNow.Z) ? new KeyValuePair<int, string>[0] : NormalGroups(normal);
-                    Place(contexts.ShownIsDefault
-                        ? Join(
-                            PointGroups(10, point, Origin),
-                            Factor(41, scale.X, own.X),
-                            Factor(42, scale.Y, own.Y),
-                            Factor(43, scale.Z, own.Z),
-                            Same(degrees, GetDouble(50, 0.0)) ? new KeyValuePair<int, string>[0] : new[] { new KeyValuePair<int, string>(50, Numbers.Exact(degrees + 0.0)) },
-                            turned)
-                        : turned, () =>
+                    KeyValuePair<int, string>[] turned =
+                        Same(normal.X, normalNow.X) && Same(normal.Y, normalNow.Y) && Same(normal.Z, normalNow.Z)
+                            ? new KeyValuePair<int, string>[0]
+                            : NormalGroups(normal);
+                    Place(
+                        contexts.ShownIsDefault
+                            ? Join(
+                                PointGroups(10, point, Origin),
+                                Factor(41, scale.X, own.X),
+                                Factor(42, scale.Y, own.Y),
+                                Factor(43, scale.Z, own.Z),
+                                Same(degrees, GetDouble(50, 0.0))
+                                    ? new KeyValuePair<int, string>[0]
+                                    : new[] { new KeyValuePair<int, string>(50, Numbers.Exact(degrees + 0.0)) },
+                                turned
+                            )
+                            : turned,
+                        () =>
                         {
                             shown.Write(AtX, point.X, AtY, point.Y);
                             shown.Write(AtZ, point.Z);
                             shown.Write(AtDegrees, degrees);
                             shown.Write(ScaledX, scale.X, ScaledY, scale.Y);
                             shown.Write(ScaledZ, scale.Z);
-                        });
+                        }
+                    );
                     return;
                 }
 
-                Place(Join(
-                    PointGroups(10, WorldToOcs(normal, position), Origin),
-                    Factor(41, scale.X, factors.X),
-                    Factor(42, scale.Y, factors.Y),
-                    Factor(43, scale.Z, factors.Z),
-                    Same(degrees * (Math.PI / 180.0), Rotation) ? new KeyValuePair<int, string>[0] : new[] { new KeyValuePair<int, string>(50, Numbers.Exact(degrees + 0.0)) },
-                    Same(normal.X, normalNow.X) && Same(normal.Y, normalNow.Y) && Same(normal.Z, normalNow.Z) ? new KeyValuePair<int, string>[0] : NormalGroups(normal)));
+                Place(
+                    Join(
+                        PointGroups(10, WorldToOcs(normal, position), Origin),
+                        Factor(41, scale.X, factors.X),
+                        Factor(42, scale.Y, factors.Y),
+                        Factor(43, scale.Z, factors.Z),
+                        Same(degrees * (Math.PI / 180.0), Rotation)
+                            ? new KeyValuePair<int, string>[0]
+                            : new[] { new KeyValuePair<int, string>(50, Numbers.Exact(degrees + 0.0)) },
+                        Same(normal.X, normalNow.X) && Same(normal.Y, normalNow.Y) && Same(normal.Z, normalNow.Z)
+                            ? new KeyValuePair<int, string>[0]
+                            : NormalGroups(normal)
+                    )
+                );
             }
         }
 
@@ -496,7 +568,8 @@ namespace GeometryHelper.Dxf
         /// in the order of the file, read as they stand; empty where it has none. Each ATTRIB is the same object while its
         /// record is there; <see cref="DxfAttributeCollection.AppendAttribute"/> adds one.
         /// </summary>
-        public DxfAttributeCollection AttributeCollection => _collection ?? (_collection = new DxfAttributeCollection(this));
+        public DxfAttributeCollection AttributeCollection =>
+            _collection ?? (_collection = new DxfAttributeCollection(this));
 
         /// <summary>The ATTRIBs of the INSERT as they stand, in the order of the file.</summary>
         internal IReadOnlyList<DxfAttributeReference> Attributes()
@@ -528,12 +601,17 @@ namespace GeometryHelper.Dxf
 
             if (attribute.IsResident || attribute.IsErased || attribute.Record != 0)
             {
-                throw new InvalidOperationException("The ATTRIB is of a file or an INSERT already: append one made in code.");
+                throw new InvalidOperationException(
+                    "The ATTRIB is of a file or an INSERT already: append one made in code."
+                );
             }
 
             if (attribute.Tag.Length == 0)
             {
-                throw new ArgumentException("An ATTRIB is named by its tag: give it one before it is appended.", nameof(attribute));
+                throw new ArgumentException(
+                    "An ATTRIB is named by its tag: give it one before it is appended.",
+                    nameof(attribute)
+                );
             }
 
             // Its text style, as a TEXT's is checked when it is added; an INSERT in no drawing has its ATTRIBs checked when it is.
@@ -577,7 +655,14 @@ namespace GeometryHelper.Dxf
                     return DxfUnits.Undefined;
                 }
 
-                return int.TryParse(record.File.ValueOf(record, 70)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int units) ? (DxfUnits)units : DxfUnits.Undefined;
+                return int.TryParse(
+                    record.File.ValueOf(record, 70)?.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int units
+                )
+                    ? (DxfUnits)units
+                    : DxfUnits.Undefined;
             }
         }
 
@@ -595,7 +680,17 @@ namespace GeometryHelper.Dxf
                 DxfBlockTableRecord record = BlockTableRecord;
                 IReadOnlyList<DxfTypedValue> insunits = record?.File?.HeaderOf("$INSUNITS");
                 double block = Millimetres((int)BlockUnit);
-                double drawing = insunits != null && insunits.Count > 0 && int.TryParse(insunits[0].Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int units) ? Millimetres(units) : 0.0;
+                double drawing =
+                    insunits != null
+                    && insunits.Count > 0
+                    && int.TryParse(
+                        insunits[0].Value?.Trim(),
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int units
+                    )
+                        ? Millimetres(units)
+                        : 0.0;
                 return block > 0.0 && drawing > 0.0 ? block / drawing : 1.0;
             }
         }
@@ -627,13 +722,16 @@ namespace GeometryHelper.Dxf
         /// to the block's own, and <see cref="GetDynamicGrips"/> gives the custom grips that drive them.
         /// <see cref="ConvertToStaticBlock(string)"/> makes the INSERT place a plain copy of what it draws.
         /// </remarks>
-        public bool IsDynamicBlock => Dynamic(out _) is DxfBlockTableRecord dynamic && dynamic.IsDynamicBlock && ScaledAlike();
+        public bool IsDynamicBlock =>
+            Dynamic(out _) is DxfBlockTableRecord dynamic && dynamic.IsDynamicBlock && ScaledAlike();
 
         /// <summary>Whether the INSERT is scaled alike along its axes, within 1E-9 of the largest; a mirror is scaled alike.</summary>
         private bool ScaledAlike()
         {
             GeoVector3 factors = ScaleFactors;
-            double x = Math.Abs(factors.X), y = Math.Abs(factors.Y), z = Math.Abs(factors.Z);
+            double x = Math.Abs(factors.X),
+                y = Math.Abs(factors.Y),
+                z = Math.Abs(factors.Z);
             double most = Math.Max(x, Math.Max(y, z));
             return Math.Abs(x - y) <= 1E-9 * most && Math.Abs(x - z) <= 1E-9 * most;
         }
@@ -701,7 +799,8 @@ namespace GeometryHelper.Dxf
         /// record of saved data too short to be read gives the block's own value.
         /// </para>
         /// </remarks>
-        public IReadOnlyList<DxfDynamicBlockReferenceProperty> DynamicBlockReferencePropertyCollection => DxfDynamicProperties.Of(this, Dynamic(out _));
+        public IReadOnlyList<DxfDynamicBlockReferenceProperty> DynamicBlockReferencePropertyCollection =>
+            DxfDynamicProperties.Of(this, Dynamic(out _));
 
         /// <summary>
         /// Gets the custom grips AutoCAD shows on the INSERT of a dynamic block selected, where its values put them: a new list
@@ -728,7 +827,10 @@ namespace GeometryHelper.Dxf
         /// its base point (1 000, 500) and its direction (1, 0).
         /// </para>
         /// </remarks>
-        public IReadOnlyList<DxfDynamicBlockGrip> GetDynamicGrips() => IsDynamicBlock ? DxfDynamicProperties.Grips(this, Dynamic(out _)) : new List<DxfDynamicBlockGrip>().AsReadOnly();
+        public IReadOnlyList<DxfDynamicBlockGrip> GetDynamicGrips() =>
+            IsDynamicBlock
+                ? DxfDynamicProperties.Grips(this, Dynamic(out _))
+                : new List<DxfDynamicBlockGrip>().AsReadOnly();
 
         /// <summary>
         /// Puts every dynamic property of the INSERT back to the dynamic block's own value, as AutoCAD's <c>ResetBlock</c> and
@@ -745,7 +847,9 @@ namespace GeometryHelper.Dxf
         {
             if (!IsResident || IsErased || Item.File.Database == null)
             {
-                throw new InvalidOperationException("The INSERT of " + Name + " is in no drawing, or is erased, and is not reset.");
+                throw new InvalidOperationException(
+                    "The INSERT of " + Name + " is in no drawing, or is erased, and is not reset."
+                );
             }
 
             DxfBlockTableRecord dynamic = Dynamic(out DxfBlockTableRecord anonymous);
@@ -767,7 +871,14 @@ namespace GeometryHelper.Dxf
                 extension.Remove("AcDbBlockRepresentation");
             }
 
-            GeometryHelperLog.Info("DxfDatabase: the INSERT " + (Handle ?? string.Empty) + " of the dynamic block " + dynamic.Name + " is reset" + (anonymous == null ? "." : " from " + anonymous.Name + "."));
+            GeometryHelperLog.Info(
+                "DxfDatabase: the INSERT "
+                    + (Handle ?? string.Empty)
+                    + " of the dynamic block "
+                    + dynamic.Name
+                    + " is reset"
+                    + (anonymous == null ? "." : " from " + anonymous.Name + ".")
+            );
         }
 
         /// <summary>
@@ -812,7 +923,9 @@ namespace GeometryHelper.Dxf
 
             if (this is DxfMInsertBlock)
             {
-                throw new InvalidOperationException("A MINSERT has no extents best fit, as AutoCAD 2021's GeometryExtentsBestFit refused its MINSERTs (eInvalidExtents): GeometricExtents gives its first cell's.");
+                throw new InvalidOperationException(
+                    "A MINSERT has no extents best fit, as AutoCAD 2021's GeometryExtentsBestFit refused its MINSERTs (eInvalidExtents): GeometricExtents gives its first cell's."
+                );
             }
 
             if (IsResident && DxfOcsTransform.IsIdentity(parentTransform))
@@ -835,7 +948,9 @@ namespace GeometryHelper.Dxf
 
             if (box == null)
             {
-                throw new InvalidOperationException("The INSERT of " + Name + " places no shape the library reads to give it extents.");
+                throw new InvalidOperationException(
+                    "The INSERT of " + Name + " places no shape the library reads to give it extents."
+                );
             }
 
             return new GeoAabb3(new GeoPoint3(box[0], box[1], box[2]), new GeoPoint3(box[3], box[4], box[5]));
@@ -864,7 +979,11 @@ namespace GeometryHelper.Dxf
         {
             if (!(IsResident && Owner is DxfBlockTableRecord owner))
             {
-                throw new InvalidOperationException("The INSERT of " + Name + " is in no block of a drawing to be exploded into: append it to one first.");
+                throw new InvalidOperationException(
+                    "The INSERT of "
+                        + Name
+                        + " is in no block of a drawing to be exploded into: append it to one first."
+                );
             }
 
             IReadOnlyList<DxfEntity> parts = FirstCell();
@@ -918,7 +1037,10 @@ namespace GeometryHelper.Dxf
 
             if (database.BlockTable.Has(newBlockName))
             {
-                throw new ArgumentException("The drawing has a block named " + newBlockName + " already, letters of either case the same.", nameof(newBlockName));
+                throw new ArgumentException(
+                    "The drawing has a block named " + newBlockName + " already, letters of either case the same.",
+                    nameof(newBlockName)
+                );
             }
 
             MakeStatic(database, source, new DxfBlockTableRecord { Name = newBlockName }, false);
@@ -935,7 +1057,12 @@ namespace GeometryHelper.Dxf
         public void ConvertToStaticBlock()
         {
             DxfBlockTableRecord source = StaticSource(out DxfDatabase database);
-            MakeStatic(database, source, new DxfBlockTableRecord { Name = database.BlockTable.FreeAnonymousName("*U"), MadeFlags = 1 }, true);
+            MakeStatic(
+                database,
+                source,
+                new DxfBlockTableRecord { Name = database.BlockTable.FreeAnonymousName("*U"), MadeFlags = 1 },
+                true
+            );
         }
 
         /// <summary>The block a dynamic INSERT draws, its anonymous copy or the dynamic block itself, and its drawing; refused for an INSERT that places none.</summary>
@@ -945,21 +1072,30 @@ namespace GeometryHelper.Dxf
 
             if (database == null || IsErased)
             {
-                throw new InvalidOperationException("The INSERT of " + Name + " is in no drawing, or is erased, and is not made static.");
+                throw new InvalidOperationException(
+                    "The INSERT of " + Name + " is in no drawing, or is erased, and is not made static."
+                );
             }
 
             DxfBlockTableRecord dynamic = Dynamic(out DxfBlockTableRecord anonymous);
 
             if (dynamic == null)
             {
-                throw new InvalidOperationException("The INSERT of " + Name + " places no dynamic block to make static.");
+                throw new InvalidOperationException(
+                    "The INSERT of " + Name + " places no dynamic block to make static."
+                );
             }
 
             return anonymous ?? dynamic;
         }
 
         /// <summary>Fills a new block with copies of a block's entities and makes the INSERT place it, as <see cref="ConvertToStaticBlock(string)"/> says.</summary>
-        private void MakeStatic(DxfDatabase database, DxfBlockTableRecord source, DxfBlockTableRecord made, bool anonymous)
+        private void MakeStatic(
+            DxfDatabase database,
+            DxfBlockTableRecord source,
+            DxfBlockTableRecord made,
+            bool anonymous
+        )
         {
             made.Origin = source.Origin;
             made.MadeFlags |= source.HasAttributeDefinitions ? 2 : 0;
@@ -1006,7 +1142,15 @@ namespace GeometryHelper.Dxf
                 extension.Remove("AcDbBlockRepresentation");
             }
 
-            GeometryHelperLog.Info("DxfDatabase: the INSERT " + (Handle ?? string.Empty) + " of the dynamic block " + source.Name + " places the static block " + made.Name + ".");
+            GeometryHelperLog.Info(
+                "DxfDatabase: the INSERT "
+                    + (Handle ?? string.Empty)
+                    + " of the dynamic block "
+                    + source.Name
+                    + " places the static block "
+                    + made.Name
+                    + "."
+            );
         }
 
         /// <summary>
@@ -1082,7 +1226,19 @@ namespace GeometryHelper.Dxf
             GeoVector3 normalNow = Normal;
             GeoVector3 scaleNow = OwnScale();
             double degreesNow = GetDouble(50, 0.0);
-            GeoPoint3 insert = System(GetPoint(10, Origin), scaleNow, degreesNow, normalNow, transform, nameof(transform), out GeoVector3 scale, out double degrees, out GeoVector3 normal, out double xStretch, out double yStretch);
+            GeoPoint3 insert = System(
+                GetPoint(10, Origin),
+                scaleNow,
+                degreesNow,
+                normalNow,
+                transform,
+                nameof(transform),
+                out GeoVector3 scale,
+                out double degrees,
+                out GeoVector3 normal,
+                out double xStretch,
+                out double yStretch
+            );
             KeyValuePair<int, string>[] array = ArrayGroups(xStretch, yStretch);
 
             // The contexts of an annotative one are carried each as its record is, from its own point, angle and factors, as
@@ -1099,9 +1255,29 @@ namespace GeometryHelper.Dxf
                 {
                     ContextGroups context = ContextGroups.Read(item, ContextCodes);
                     double[] numbers = context.Copy();
-                    var at = new GeoPoint3(context.Value(AtX, own.X), context.Value(AtY, own.Y), context.Value(AtZ, own.Z));
-                    var factors = new GeoVector3(context.Value(ScaledX, scaleNow.X), context.Value(ScaledY, scaleNow.Y), context.Value(ScaledZ, scaleNow.Z));
-                    GeoPoint3 moved = System(at, factors, context.Value(AtDegrees, degreesNow), normalNow, transform, nameof(transform), out GeoVector3 scaled, out double turned, out _, out _, out _);
+                    var at = new GeoPoint3(
+                        context.Value(AtX, own.X),
+                        context.Value(AtY, own.Y),
+                        context.Value(AtZ, own.Z)
+                    );
+                    var factors = new GeoVector3(
+                        context.Value(ScaledX, scaleNow.X),
+                        context.Value(ScaledY, scaleNow.Y),
+                        context.Value(ScaledZ, scaleNow.Z)
+                    );
+                    GeoPoint3 moved = System(
+                        at,
+                        factors,
+                        context.Value(AtDegrees, degreesNow),
+                        normalNow,
+                        transform,
+                        nameof(transform),
+                        out GeoVector3 scaled,
+                        out double turned,
+                        out _,
+                        out _,
+                        out _
+                    );
                     numbers[AtX] = moved.X;
                     numbers[AtY] = moved.Y;
                     numbers[AtZ] = moved.Z;
@@ -1113,14 +1289,19 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            SetGroups(Join(
-                PointGroups(10, insert, Origin),
-                Factor(41, scale.X, scaleNow.X),
-                Factor(42, scale.Y, scaleNow.Y),
-                Factor(43, scale.Z, scaleNow.Z),
-                Same(degrees, degreesNow) ? new KeyValuePair<int, string>[0] : new[] { new KeyValuePair<int, string>(50, Numbers.Exact(degrees + 0.0)) },
-                array,
-                NormalGroups(normal)));
+            SetGroups(
+                Join(
+                    PointGroups(10, insert, Origin),
+                    Factor(41, scale.X, scaleNow.X),
+                    Factor(42, scale.Y, scaleNow.Y),
+                    Factor(43, scale.Z, scaleNow.Z),
+                    Same(degrees, degreesNow)
+                        ? new KeyValuePair<int, string>[0]
+                        : new[] { new KeyValuePair<int, string>(50, Numbers.Exact(degrees + 0.0)) },
+                    array,
+                    NormalGroups(normal)
+                )
+            );
 
             WriteMoved(contexts);
             Carry(Attributes(), transform);
@@ -1150,19 +1331,35 @@ namespace GeometryHelper.Dxf
             // added, as AutoCAD's deep clone does, rather than the block of its name there.
             DxfFile origin = Item.File.Origin;
 
-            if (Item.OriginBlock != null && !Item.OriginBlock.Head.IsRemoved && origin != null && owner.File != null && origin != owner.File
-                && Name.StartsWith("*", StringComparison.Ordinal))
+            if (
+                Item.OriginBlock != null
+                && !Item.OriginBlock.Head.IsRemoved
+                && origin != null
+                && owner.File != null
+                && origin != owner.File
+                && Name.StartsWith("*", StringComparison.Ordinal)
+            )
             {
                 _record = null;
                 DropEmbeddedBefore(owner);
                 return;
             }
 
-            DxfBlockTableRecord block = _record != null && string.Equals(_record.Name, Name, StringComparison.OrdinalIgnoreCase) ? _record : owner.File == null ? null : Resolve(owner.File, Name);
+            DxfBlockTableRecord block =
+                _record != null && string.Equals(_record.Name, Name, StringComparison.OrdinalIgnoreCase) ? _record
+                : owner.File == null ? null
+                : Resolve(owner.File, Name);
 
             // A copy of another drawing whose block this drawing has none of the name of brings that block, with the blocks it
             // inserts, as AutoCAD's WblockCloneObjects brings it; one of a name this drawing has places this drawing's own.
-            if (block == null && Item.OriginBlock != null && !Item.OriginBlock.Head.IsRemoved && origin != null && owner.File != null && origin != owner.File)
+            if (
+                block == null
+                && Item.OriginBlock != null
+                && !Item.OriginBlock.Head.IsRemoved
+                && origin != null
+                && owner.File != null
+                && origin != owner.File
+            )
             {
                 _record = null;
                 DropEmbeddedBefore(owner);
@@ -1171,7 +1368,14 @@ namespace GeometryHelper.Dxf
 
             // An INSERT of a block its own drawing has not, copied by DxfDatabase.Insert, comes as it is, naming it, as AutoCAD's
             // Insert copies it, placing nothing.
-            if (block == null && owner.File != null && owner.File.CopiesDangling && origin != null && origin != owner.File && Item.OriginBlock == null)
+            if (
+                block == null
+                && owner.File != null
+                && owner.File.CopiesDangling
+                && origin != null
+                && origin != owner.File
+                && Item.OriginBlock == null
+            )
             {
                 _record = null;
                 DropEmbeddedBefore(owner);
@@ -1187,13 +1391,22 @@ namespace GeometryHelper.Dxf
 
             if (block.File != owner.File)
             {
-                throw new ArgumentException("The block " + block.Name + " is of another drawing than the block the INSERT is added to.", "entity");
+                throw new ArgumentException(
+                    "The block " + block.Name + " is of another drawing than the block the INSERT is added to.",
+                    "entity"
+                );
             }
 
             // A block no INSERT of the drawing names is held by no block, so that the block it is to insert cannot reach it: the
             // walk down the blocks that one inserts is not needed, as each INSERT of a block built from the bottom up finds once
             // the names the INSERTs give are kept, from the first walk of more than LongWalk blocks on.
-            if (!owner.IsLayout && (string.Equals(block.Name, owner.Name, StringComparison.OrdinalIgnoreCase) || !owner.File.InsertsNone(owner.Name)))
+            if (
+                !owner.IsLayout
+                && (
+                    string.Equals(block.Name, owner.Name, StringComparison.OrdinalIgnoreCase)
+                    || !owner.File.InsertsNone(owner.Name)
+                )
+            )
             {
                 bool round = Inserts(block, owner, owner.File.Roundless, out int walked);
 
@@ -1204,7 +1417,10 @@ namespace GeometryHelper.Dxf
 
                 if (round)
                 {
-                    throw new ArgumentException("The INSERT of " + block.Name + " would make the block " + owner.Name + " insert itself.", "entity");
+                    throw new ArgumentException(
+                        "The INSERT of " + block.Name + " would make the block " + owner.Name + " insert itself.",
+                        "entity"
+                    );
                 }
             }
 
@@ -1228,7 +1444,8 @@ namespace GeometryHelper.Dxf
         private protected override IReadOnlyList<int> GroupOrder => Order;
 
         /// <summary>The groups a transformation gives the array of a MINSERT, by how far it stretches the turned x and y axes (the y below nought where mirrored): none for an INSERT.</summary>
-        private protected virtual KeyValuePair<int, string>[] ArrayGroups(double xStretch, double yStretch) => new KeyValuePair<int, string>[0];
+        private protected virtual KeyValuePair<int, string>[] ArrayGroups(double xStretch, double yStretch) =>
+            new KeyValuePair<int, string>[0];
 
         /// <summary>How many cells the INSERT places its block in: 1, a MINSERT's columns by its rows.</summary>
         private protected virtual int CellCount => 1;
@@ -1246,31 +1463,56 @@ namespace GeometryHelper.Dxf
 
             switch (units)
             {
-                case 1: return 25.4;
-                case 2: return 304.8;
-                case 3: return 1609344.0;
-                case 4: return 1.0;
-                case 5: return 10.0;
-                case 6: return 1000.0;
-                case 7: return 1E6;
-                case 8: return 2.54E-5;
-                case 9: return 0.0254;
-                case 10: return 914.4;
-                case 11: return 1E-7;
-                case 12: return 1E-6;
-                case 13: return 1E-3;
-                case 14: return 100.0;
-                case 15: return 1E4;
-                case 16: return 1E5;
-                case 17: return 1E12;
-                case 18: return 1.495978707E14;
-                case 19: return 9.4607304725808E18;
-                case 20: return 3.0856775814913673E19;
-                case 21: return SurveyFoot;
-                case 22: return SurveyFoot / 12.0;
-                case 23: return SurveyFoot * 3.0;
-                case 24: return SurveyFoot * 5280.0;
-                default: return 0.0;
+                case 1:
+                    return 25.4;
+                case 2:
+                    return 304.8;
+                case 3:
+                    return 1609344.0;
+                case 4:
+                    return 1.0;
+                case 5:
+                    return 10.0;
+                case 6:
+                    return 1000.0;
+                case 7:
+                    return 1E6;
+                case 8:
+                    return 2.54E-5;
+                case 9:
+                    return 0.0254;
+                case 10:
+                    return 914.4;
+                case 11:
+                    return 1E-7;
+                case 12:
+                    return 1E-6;
+                case 13:
+                    return 1E-3;
+                case 14:
+                    return 100.0;
+                case 15:
+                    return 1E4;
+                case 16:
+                    return 1E5;
+                case 17:
+                    return 1E12;
+                case 18:
+                    return 1.495978707E14;
+                case 19:
+                    return 9.4607304725808E18;
+                case 20:
+                    return 3.0856775814913673E19;
+                case 21:
+                    return SurveyFoot;
+                case 22:
+                    return SurveyFoot / 12.0;
+                case 23:
+                    return SurveyFoot * 3.0;
+                case 24:
+                    return SurveyFoot * 5280.0;
+                default:
+                    return 0.0;
             }
         }
 
@@ -1280,7 +1522,13 @@ namespace GeometryHelper.Dxf
         /// being measured are held on a stack of their own rather than the thread's, each with the name of its block, so that
         /// 3 000 blocks nested one inside the next are measured as one is.
         /// </summary>
-        private static void Measure(DxfBlockReference insert, GeoTransform3 transform, Walk walk, bool firstCell, ref double[] box)
+        private static void Measure(
+            DxfBlockReference insert,
+            GeoTransform3 transform,
+            Walk walk,
+            bool firstCell,
+            ref double[] box
+        )
         {
             IReadOnlyList<DxfEntity> first = firstCell ? insert.FirstCell() : insert.EveryCell();
             walk.Spend(first.Count);
@@ -1311,7 +1559,9 @@ namespace GeometryHelper.Dxf
 
                     if (!walk.Path.Add(name))
                     {
-                        throw new ArgumentException("The INSERT of " + name + " would make the block " + name + " insert itself.");
+                        throw new ArgumentException(
+                            "The INSERT of " + name + " would make the block " + name + " insert itself."
+                        );
                     }
 
                     IReadOnlyList<DxfEntity> parts = nested.EveryCell();
@@ -1339,7 +1589,15 @@ namespace GeometryHelper.Dxf
 
                 if (box == null)
                 {
-                    box = new[] { extents.Min.X, extents.Min.Y, extents.Min.Z, extents.Max.X, extents.Max.Y, extents.Max.Z };
+                    box = new[]
+                    {
+                        extents.Min.X,
+                        extents.Min.Y,
+                        extents.Min.Z,
+                        extents.Max.X,
+                        extents.Max.Y,
+                        extents.Max.Z,
+                    };
                     continue;
                 }
 
@@ -1396,7 +1654,10 @@ namespace GeometryHelper.Dxf
 
             if (found != null && found.Type == "BLOCK_RECORD")
             {
-                DxfBlockTableRecord dynamic = Resolve(block.File, DxfReader.NameOf(found.File.ValueOf(found, 2) ?? string.Empty));
+                DxfBlockTableRecord dynamic = Resolve(
+                    block.File,
+                    DxfReader.NameOf(found.File.ValueOf(found, 2) ?? string.Empty)
+                );
                 anonymous = dynamic == null ? null : block;
                 return dynamic;
             }
@@ -1405,7 +1666,10 @@ namespace GeometryHelper.Dxf
             {
                 if (string.Equals(item.Handle, handle, StringComparison.OrdinalIgnoreCase))
                 {
-                    DxfBlockTableRecord dynamic = Resolve(block.File, DxfReader.NameOf(item.File.ValueOf(item, 2) ?? string.Empty));
+                    DxfBlockTableRecord dynamic = Resolve(
+                        block.File,
+                        DxfReader.NameOf(item.File.ValueOf(item, 2) ?? string.Empty)
+                    );
                     anonymous = dynamic == null ? null : block;
                     return dynamic;
                 }
@@ -1415,8 +1679,10 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The group that sets a scale factor, none where it is the one read, to the bit.</summary>
-        private protected static KeyValuePair<int, string>[] Factor(int code, double value, double now)
-            => Same(value, now) ? new KeyValuePair<int, string>[0] : new[] { new KeyValuePair<int, string>(code, Numbers.Exact(value + 0.0)) };
+        private protected static KeyValuePair<int, string>[] Factor(int code, double value, double now) =>
+            Same(value, now)
+                ? new KeyValuePair<int, string>[0]
+                : new[] { new KeyValuePair<int, string>(code, Numbers.Exact(value + 0.0)) };
 
         /// <summary>
         /// The INSERT of a system carried by a transformation, as ezdxf's <c>InsertCoordinateSystem.transform</c> carries it, but
@@ -1425,7 +1691,19 @@ namespace GeometryHelper.Dxf
         /// comes out mirrored, for the spacing of a MINSERT. Refused where those axes come out no longer square, which an INSERT
         /// does not hold: a turned INSERT stretched unlike along the world's axes.
         /// </summary>
-        private static GeoPoint3 System(GeoPoint3 insert, GeoVector3 scaleNow, double degreesNow, GeoVector3 normalNow, GeoTransform3 transform, string parameter, out GeoVector3 scale, out double degrees, out GeoVector3 normal, out double xStretch, out double yStretch)
+        private static GeoPoint3 System(
+            GeoPoint3 insert,
+            GeoVector3 scaleNow,
+            double degreesNow,
+            GeoVector3 normalNow,
+            GeoTransform3 transform,
+            string parameter,
+            out GeoVector3 scale,
+            out double degrees,
+            out GeoVector3 normal,
+            out double xStretch,
+            out double yStretch
+        )
         {
             const double Tol = 1E-9;
             var axes = new DxfOcsTransform.Axes(normalNow);
@@ -1450,7 +1728,14 @@ namespace GeometryHelper.Dxf
             double yScale = uy.Length * scaleNow.Y;
             double zScale = uz.Length * scaleNow.Z;
 
-            if (!(ux.Length > 0.0) || !(uy.Length > 0.0) || !(uz.Length > 0.0) || !ux.IsValid || !uy.IsValid || !uz.IsValid)
+            if (
+                !(ux.Length > 0.0)
+                || !(uy.Length > 0.0)
+                || !(uz.Length > 0.0)
+                || !ux.IsValid
+                || !uy.IsValid
+                || !uz.IsValid
+            )
             {
                 throw new ArgumentException("The transformation flattens the INSERT.", parameter);
             }
@@ -1459,9 +1744,16 @@ namespace GeometryHelper.Dxf
             uy = DxfOcsTransform.Normalized(uy);
             uz = DxfOcsTransform.Normalized(uz);
 
-            if (Math.Abs(ux.DotProduct(uz)) > Tol || Math.Abs(ux.DotProduct(uy)) > Tol || Math.Abs(uz.DotProduct(uy)) > Tol)
+            if (
+                Math.Abs(ux.DotProduct(uz)) > Tol
+                || Math.Abs(ux.DotProduct(uy)) > Tol
+                || Math.Abs(uz.DotProduct(uy)) > Tol
+            )
             {
-                throw new ArgumentException("The transformation would shear the INSERT: its axes would no longer be square, which an INSERT does not hold.", parameter);
+                throw new ArgumentException(
+                    "The transformation would shear the INSERT: its axes would no longer be square, which an INSERT does not hold.",
+                    parameter
+                );
             }
 
             GeoVector3 expected = DxfOcsTransform.Cross(uz, ux);
@@ -1478,7 +1770,8 @@ namespace GeometryHelper.Dxf
             normal = uz;
             return ocs.TransformVertex(insert);
 
-            bool Close(double a, double b) => Math.Abs(a - b) <= Math.Max(1E-9 * Math.Max(Math.Abs(a), Math.Abs(b)), Tol);
+            bool Close(double a, double b) =>
+                Math.Abs(a - b) <= Math.Max(1E-9 * Math.Max(Math.Abs(a), Math.Abs(b)), Tol);
         }
 
         /// <summary>The block of a name of a file: the record the block table gives for it; null where the file has none.</summary>
@@ -1498,7 +1791,13 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfItem item in file.TableItems("BLOCK_RECORD"))
             {
-                if (string.Equals(DxfReader.NameOf(item.File.ValueOf(item, 2) ?? string.Empty), block.Name, StringComparison.OrdinalIgnoreCase))
+                if (
+                    string.Equals(
+                        DxfReader.NameOf(item.File.ValueOf(item, 2) ?? string.Empty),
+                        block.Name,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
                 {
                     record = item;
                     break;
@@ -1516,7 +1815,12 @@ namespace GeometryHelper.Dxf
         /// walked whole that inserts none of the owner's name joins them, where no INSERT of it or of a block it inserts names
         /// a block the drawing has not, nor one erased, which a block merged later could stand for.
         /// </summary>
-        private static bool Inserts(DxfBlockTableRecord block, DxfBlockTableRecord owner, HashSet<DxfBlockTableRecord> roundless, out int walked)
+        private static bool Inserts(
+            DxfBlockTableRecord block,
+            DxfBlockTableRecord owner,
+            HashSet<DxfBlockTableRecord> roundless,
+            out int walked
+        )
         {
             walked = 0;
             string wanted = owner.Name;
@@ -1617,18 +1921,27 @@ namespace GeometryHelper.Dxf
         {
             if (block.File == null)
             {
-                throw new ArgumentException("The block " + block.Name + " is in no drawing: add it to a block table first.", parameter);
+                throw new ArgumentException(
+                    "The block " + block.Name + " is in no drawing: add it to a block table first.",
+                    parameter
+                );
             }
 
             if (block.IsLayout)
             {
-                throw new ArgumentException("The block " + block.Name + " is a layout, which an INSERT does not place.", parameter);
+                throw new ArgumentException(
+                    "The block " + block.Name + " is a layout, which an INSERT does not place.",
+                    parameter
+                );
             }
 
             // An erased block is no longer of the drawing, as one of a name it has not.
             if (block.Gone)
             {
-                throw new ArgumentException("The drawing has no block " + block.Name + " for the INSERT to place: it was erased.", parameter);
+                throw new ArgumentException(
+                    "The drawing has no block " + block.Name + " for the INSERT to place: it was erased.",
+                    parameter
+                );
             }
         }
 
@@ -1636,13 +1949,21 @@ namespace GeometryHelper.Dxf
         {
             if (!value.IsValid)
             {
-                throw new ArgumentException("A point has to be of finite numbers: " + value + " is not.", nameof(value));
+                throw new ArgumentException(
+                    "A point has to be of finite numbers: " + value + " is not.",
+                    nameof(value)
+                );
             }
         }
 
         private static bool SamePoint(GeoPoint3 a, GeoPoint3 b) => Same(a.X, b.X) && Same(a.Y, b.Y) && Same(a.Z, b.Z);
 
-        private static IEnumerable<DxfTypedValue> Groups(string marker, GeoPoint3 position, DxfBlockTableRecord block, IEnumerable<DxfTypedValue> array)
+        private static IEnumerable<DxfTypedValue> Groups(
+            string marker,
+            GeoPoint3 position,
+            DxfBlockTableRecord block,
+            IEnumerable<DxfTypedValue> array
+        )
         {
             CheckPoint(position);
 
@@ -1667,7 +1988,10 @@ namespace GeometryHelper.Dxf
         {
             if (block.IsLayout)
             {
-                throw new ArgumentException("The block " + block.Name + " is a layout, which an INSERT does not place.", "blockTableRecord");
+                throw new ArgumentException(
+                    "The block " + block.Name + " is a layout, which an INSERT does not place.",
+                    "blockTableRecord"
+                );
             }
 
             return block.Name;
@@ -1685,13 +2009,15 @@ namespace GeometryHelper.Dxf
             GeoVector3 x = u.Multiply(cos).Add(v.Multiply(sin)).Multiply(scale.X);
             GeoVector3 y = v.Multiply(cos).Subtract(u.Multiply(sin)).Multiply(scale.Y);
             GeoVector3 z = normal.Multiply(scale.Z);
-            return new GeoTransform3(new double[,]
-            {
-                { x.X, y.X, z.X, 0.0 },
-                { x.Y, y.Y, z.Y, 0.0 },
-                { x.Z, y.Z, z.Z, 0.0 },
-                { 0.0, 0.0, 0.0, 1.0 },
-            });
+            return new GeoTransform3(
+                new double[,]
+                {
+                    { x.X, y.X, z.X, 0.0 },
+                    { x.Y, y.Y, z.Y, 0.0 },
+                    { x.Z, y.Z, z.Z, 0.0 },
+                    { 0.0, 0.0, 0.0, 1.0 },
+                }
+            );
         }
 
         /// <summary>The placing of the block with its move to the insertion point, its origin left out.</summary>
@@ -1699,13 +2025,15 @@ namespace GeometryHelper.Dxf
         {
             GeoTransform3 placing = Placing();
             GeoPoint3 at = Position;
-            return new GeoTransform3(new double[,]
-            {
-                { placing[0, 0], placing[0, 1], placing[0, 2], at.X },
-                { placing[1, 0], placing[1, 1], placing[1, 2], at.Y },
-                { placing[2, 0], placing[2, 1], placing[2, 2], at.Z },
-                { 0.0, 0.0, 0.0, 1.0 },
-            });
+            return new GeoTransform3(
+                new double[,]
+                {
+                    { placing[0, 0], placing[0, 1], placing[0, 2], at.X },
+                    { placing[1, 0], placing[1, 1], placing[1, 2], at.Y },
+                    { placing[2, 0], placing[2, 1], placing[2, 2], at.Z },
+                    { 0.0, 0.0, 0.0, 1.0 },
+                }
+            );
         }
 
         /// <summary>Writes groups of the INSERT's placing at once, and carries its ATTRIBs by the change of placing.</summary>
@@ -1784,7 +2112,14 @@ namespace GeometryHelper.Dxf
         {
             DxfBlockTableRecord block = BlockToExplode(file);
             var parts = new List<DxfEntity>();
-            PlaceParts(block.ToList(), block.Origin, file ?? block.File, depth, parts, depth == 0 ? new Walk(Name, block.Name) : null);
+            PlaceParts(
+                block.ToList(),
+                block.Origin,
+                file ?? block.File,
+                depth,
+                parts,
+                depth == 0 ? new Walk(Name, block.Name) : null
+            );
             return parts;
         }
 
@@ -1795,7 +2130,14 @@ namespace GeometryHelper.Dxf
         /// exploded first, what the INSERTs to explode in their turn make is counted, and a block that inserts itself found,
         /// before any of them is exploded.
         /// </summary>
-        private void PlaceParts(IReadOnlyList<DxfEntity> entities, GeoPoint3 origin, DxfFile file, int depth, List<DxfEntity> into, Walk walk = null)
+        private void PlaceParts(
+            IReadOnlyList<DxfEntity> entities,
+            GeoPoint3 origin,
+            DxfFile file,
+            int depth,
+            List<DxfEntity> into,
+            Walk walk = null
+        )
         {
             GeoTransform3 placing = PlacedFrom(origin);
             var slots = new List<object>();
@@ -1888,7 +2230,8 @@ namespace GeometryHelper.Dxf
         private DxfBlockTableRecord BlockToExplode(DxfFile file)
         {
             DxfFile drawing = file != null && file.IsDetached ? file.Origin : file;
-            DxfBlockTableRecord block = BlockTableRecord ?? (drawing == null || drawing.IsDetached ? null : Resolve(drawing, Name));
+            DxfBlockTableRecord block = BlockTableRecord
+                ?? (drawing == null || drawing.IsDetached ? null : Resolve(drawing, Name));
 
             if (block == null)
             {
@@ -1914,7 +2257,13 @@ namespace GeometryHelper.Dxf
         /// each INSERT moved, kept in the list to be placed again, and one for each INSERT exploded in its turn, whose parts are
         /// counted so; an INSERT exploded of a block already on the walk's path refused.
         /// </summary>
-        private void CountPlaced(IReadOnlyList<DxfEntity> entities, GeoPoint3 origin, DxfFile file, Walk walk, List<DxfBlockReference> inserts)
+        private void CountPlaced(
+            IReadOnlyList<DxfEntity> entities,
+            GeoPoint3 origin,
+            DxfFile file,
+            Walk walk,
+            List<DxfBlockReference> inserts
+        )
         {
             GeoTransform3 placing = PlacedFrom(origin);
 
@@ -1949,13 +2298,21 @@ namespace GeometryHelper.Dxf
         /// Counts an INSERT of the block exploded in its turn, as <see cref="PlaceParts"/> explodes it: one for it, and its parts
         /// placed so; refused when its block is already on the walk's path, being exploded further out.
         /// </summary>
-        private void CountExploded(DxfBlockReference nested, GeoPoint3 origin, DxfFile file, Walk walk, List<DxfBlockReference> inserts)
+        private void CountExploded(
+            DxfBlockReference nested,
+            GeoPoint3 origin,
+            DxfFile file,
+            Walk walk,
+            List<DxfBlockReference> inserts
+        )
         {
             DxfBlockTableRecord block = nested.BlockToExplode(file);
 
             if (!walk.Path.Add(block.Name))
             {
-                throw new ArgumentException("The INSERT of " + block.Name + " would make the block " + block.Name + " insert itself.");
+                throw new ArgumentException(
+                    "The INSERT of " + block.Name + " would make the block " + block.Name + " insert itself."
+                );
             }
 
             walk.Spend(1);
@@ -1988,8 +2345,13 @@ namespace GeometryHelper.Dxf
 
                 if (_left < 0)
                 {
-                    throw new InvalidOperationException("Exploding the INSERT of " + _name + " would make more than " + _most.ToString(CultureInfo.InvariantCulture)
-                        + " entities, the bound of DxfReadOptions.MaxPlacedEntities.");
+                    throw new InvalidOperationException(
+                        "Exploding the INSERT of "
+                            + _name
+                            + " would make more than "
+                            + _most.ToString(CultureInfo.InvariantCulture)
+                            + " entities, the bound of DxfReadOptions.MaxPlacedEntities."
+                    );
                 }
             }
         }
@@ -2003,7 +2365,8 @@ namespace GeometryHelper.Dxf
         {
             var text = new StringBuilder();
 
-            void Group(int code, string value) => text.Append(code.ToString(CultureInfo.InvariantCulture)).Append('\n').Append(value).Append('\n');
+            void Group(int code, string value) =>
+                text.Append(code.ToString(CultureInfo.InvariantCulture)).Append('\n').Append(value).Append('\n');
 
             Group(0, "SECTION");
             Group(2, "HEADER");
@@ -2072,10 +2435,24 @@ namespace GeometryHelper.Dxf
                 shapes[i] = new List<DxfShape>();
             }
 
-            foreach (DxfShape shape in DxfReader.Parse(text.ToString(), new DxfReadOptions { Tolerance = Tolerance.Default }).Shapes)
+            foreach (
+                DxfShape shape in DxfReader
+                    .Parse(text.ToString(), new DxfReadOptions { Tolerance = Tolerance.Default })
+                    .Shapes
+            )
             {
-                if (shape.BlockPath.Count == 1 && shape.Layer.Length > 1 && shape.Layer[0] == 'E'
-                    && int.TryParse(shape.Layer.Substring(1), NumberStyles.None, CultureInfo.InvariantCulture, out int at) && at < shapes.Length)
+                if (
+                    shape.BlockPath.Count == 1
+                    && shape.Layer.Length > 1
+                    && shape.Layer[0] == 'E'
+                    && int.TryParse(
+                        shape.Layer.Substring(1),
+                        NumberStyles.None,
+                        CultureInfo.InvariantCulture,
+                        out int at
+                    )
+                    && at < shapes.Length
+                )
                 {
                     shapes[at].Add(shape);
                 }
@@ -2090,13 +2467,15 @@ namespace GeometryHelper.Dxf
             GeoTransform3 placing = Placing();
             GeoVector3 shift = placing.Transform(new GeoVector3(origin.X, origin.Y, origin.Z));
             GeoPoint3 at = Position;
-            return new GeoTransform3(new double[,]
-            {
-                { placing[0, 0], placing[0, 1], placing[0, 2], at.X - shift.X },
-                { placing[1, 0], placing[1, 1], placing[1, 2], at.Y - shift.Y },
-                { placing[2, 0], placing[2, 1], placing[2, 2], at.Z - shift.Z },
-                { 0.0, 0.0, 0.0, 1.0 },
-            });
+            return new GeoTransform3(
+                new double[,]
+                {
+                    { placing[0, 0], placing[0, 1], placing[0, 2], at.X - shift.X },
+                    { placing[1, 0], placing[1, 1], placing[1, 2], at.Y - shift.Y },
+                    { placing[2, 0], placing[2, 1], placing[2, 2], at.Z - shift.Z },
+                    { 0.0, 0.0, 0.0, 1.0 },
+                }
+            );
         }
 
         /// <summary>A new entity of a placed shape with the look of the entity of the block it came of.</summary>

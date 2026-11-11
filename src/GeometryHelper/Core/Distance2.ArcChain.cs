@@ -30,9 +30,11 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static double DistanceTo(GeoPolygon2 poly, GeoArc2 arc, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
-            if (Containment2.Contains(poly, arc.StartPoint, Exactly)) return 0.0;
+            if (Containment2.Contains(poly, arc.StartPoint, Exactly))
+                return 0.0;
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(poly), arc);
         }
@@ -40,7 +42,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance from a polyline to an arc.
         /// </summary>
-        public static double DistanceTo(GeoPolyline2 polyline, GeoArc2 arc) => DistanceTo(polyline, arc, Tolerance.Global);
+        public static double DistanceTo(GeoPolyline2 polyline, GeoArc2 arc) =>
+            DistanceTo(polyline, arc, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance from a polyline to an arc, within a tolerance.
@@ -48,7 +51,8 @@ namespace GeometryHelper.Core
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         public static double DistanceTo(GeoPolyline2 polyline, GeoArc2 arc, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return ArcChain2.DistanceTo(ArcChain2.EdgesOf(polyline), arc);
         }
@@ -70,7 +74,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance from a rectangle to a loop that may curve.
         /// </summary>
-        public static double DistanceTo(GeoRectangle2 rect, GeoPolygonArc2 loop) => DistanceTo(rect, loop, Tolerance.Global);
+        public static double DistanceTo(GeoRectangle2 rect, GeoPolygonArc2 loop) =>
+            DistanceTo(rect, loop, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance from a rectangle to a loop that may curve, within a tolerance.
@@ -84,7 +89,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance from a rectangle to a chain that may curve.
         /// </summary>
-        public static double DistanceTo(GeoRectangle2 rect, GeoPolylineArc2 chain) => DistanceTo(rect, chain, Tolerance.Global);
+        public static double DistanceTo(GeoRectangle2 rect, GeoPolylineArc2 chain) =>
+            DistanceTo(rect, chain, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance from a rectangle to a chain that may curve, within a tolerance.

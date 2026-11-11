@@ -19,24 +19,51 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class ArcLoopShapingG1woTests
     {
-        private static readonly Tolerance Millionth = new Tolerance(1E-6, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-6);
-        private static readonly Tolerance Billionth = new Tolerance(1E-9, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-9);
-        private static readonly Tolerance Thousandth = new Tolerance(1E-3, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-3);
-        private static readonly Tolerance Tight = new Tolerance(1E-12, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-12);
+        private static readonly Tolerance Millionth = new Tolerance(
+            1E-6,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-6
+        );
+        private static readonly Tolerance Billionth = new Tolerance(
+            1E-9,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-9
+        );
+        private static readonly Tolerance Thousandth = new Tolerance(
+            1E-3,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-3
+        );
+        private static readonly Tolerance Tight = new Tolerance(
+            1E-12,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-12
+        );
 
         private static GeoPoint3 P(double x, double y) => new GeoPoint3(x, y, 0);
 
-        private static GeoPolygonArc3 Loop(params GeoPoint3[] corners) => new GeoPolygonArc3(corners, null, null, Tight);
+        private static GeoPolygonArc3 Loop(params GeoPoint3[] corners) =>
+            new GeoPolygonArc3(corners, null, null, Tight);
 
         // The rectangle 100 by 50 standing in the plane x = 20.
-        private static GeoPolygonArc3 Rectangle()
-            => Loop(new GeoPoint3(20, 0, 0), new GeoPoint3(20, 100, 0), new GeoPoint3(20, 100, 50), new GeoPoint3(20, 0, 50));
+        private static GeoPolygonArc3 Rectangle() =>
+            Loop(
+                new GeoPoint3(20, 0, 0),
+                new GeoPoint3(20, 100, 0),
+                new GeoPoint3(20, 100, 50),
+                new GeoPoint3(20, 0, 50)
+            );
 
         // The square 10 by 10 at the origin with the leg (10, 0) to (10.0004, 0.0004), 0.00057 long, after its corner (10, 0).
-        private static GeoPoint3[] Stepped() => new[] { P(0, 0), P(10, 0), P(10.0004, 0.0004), P(10.0004, 10), P(0, 10) };
+        private static GeoPoint3[] Stepped() =>
+            new[] { P(0, 0), P(10, 0), P(10.0004, 0.0004), P(10.0004, 10), P(0, 10) };
 
-        private static double[] RadiiOf(GeoPolygonArc3 loop)
-            => loop.GetEdges().Where(edge => edge.IsArc).Select(edge => edge.ToArc().Radius).ToArray();
+        private static double[] RadiiOf(GeoPolygonArc3 loop) =>
+            loop.GetEdges().Where(edge => edge.IsArc).Select(edge => edge.ToArc().Radius).ToArray();
 
         [Fact]
         public void ARectangleFilletedAtFiveTenThousandthsAtAMillionth_KeepsItsFourArcs()
@@ -153,14 +180,30 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint2(0.0009376765621625675, -0.0006347071621864863),
                 new GeoPoint2(0.0043361567432226465, 0.00045632681245736057),
             };
-            double[] bulges = { -0.14142376707933088, 0.2816892583769231, 0, 0, -0.1578680273414906, 0, 0.08600113773066609, 0, 0 };
+            double[] bulges =
+            {
+                -0.14142376707933088,
+                0.2816892583769231,
+                0,
+                0,
+                -0.1578680273414906,
+                0,
+                0.08600113773066609,
+                0,
+                0,
+            };
             const double Distance = 0.0013689049144938797;
 
             var chain = new GeoPolylineArc2(corners, bulges);
-            var larger = new GeoPolylineArc2(corners.Select(corner => new GeoPoint2(corner.X * 1E6, corner.Y * 1E6)), bulges);
+            var larger = new GeoPolylineArc2(
+                corners.Select(corner => new GeoPoint2(corner.X * 1E6, corner.Y * 1E6)),
+                bulges
+            );
 
             GeoPolylineArc2 grown = Assert.Single(Offset2.Offset(chain, Distance, OffsetJoin.Miter, Billionth));
-            GeoPolylineArc2 reference = Assert.Single(Offset2.Offset(larger, Distance * 1E6, OffsetJoin.Miter, Thousandth));
+            GeoPolylineArc2 reference = Assert.Single(
+                Offset2.Offset(larger, Distance * 1E6, OffsetJoin.Miter, Thousandth)
+            );
 
             Assert.Equal(reference.Length * 1E-6, grown.Length, 12);
         }

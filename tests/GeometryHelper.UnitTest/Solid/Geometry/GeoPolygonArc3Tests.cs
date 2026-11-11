@@ -22,23 +22,30 @@ namespace GeometryHelper.UnitTest.Solid
         /// A frame standing away from the origin and tilted about every axis, so nothing passes by accident
         /// of the identity.
         /// </summary>
-        private static GeoCoordinateSystem3 Tilted()
-            => new GeoCoordinateSystem3(new GeoPlane3(new GeoPoint3(37, -14, 52), new GeoVector3(2, -3, 6)));
+        private static GeoCoordinateSystem3 Tilted() =>
+            new GeoCoordinateSystem3(new GeoPlane3(new GeoPoint3(37, -14, 52), new GeoVector3(2, -3, 6)));
 
         /// <summary>
         /// A square of side one hundred whose right-hand side swells into a half circle reaching x = 150.
         /// </summary>
-        private static GeoPolygonArc2 Slot() => new GeoPolygonArc2(
-            new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
-            new[] { 0.0, 1.0, 0.0, 0.0 });
+        private static GeoPolygonArc2 Slot() =>
+            new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
+                new[] { 0.0, 1.0, 0.0, 0.0 }
+            );
 
         private static GeoPolygonArc3 SlotInSpace() => new GeoPolygonArc3(Tilted(), Slot());
 
         /// <summary>
         /// A stirrup set out by its corners, three hundred by two hundred, lying in the XY plane.
         /// </summary>
-        private static GeoPolygon3 Stirrup() => new GeoPolygon3(
-            new GeoPoint3(0, 0, 0), new GeoPoint3(300, 0, 0), new GeoPoint3(300, 200, 0), new GeoPoint3(0, 200, 0));
+        private static GeoPolygon3 Stirrup() =>
+            new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(300, 200, 0),
+                new GeoPoint3(0, 200, 0)
+            );
 
         [Fact]
         public void ALoopLiftedIntoSpaceKeepsEveryMeasurementThePlaneGaveIt()
@@ -70,8 +77,10 @@ namespace GeometryHelper.UnitTest.Solid
             // Four corners of a box lid that do not share a plane.
             var notFlat = new[]
             {
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0),
-                new GeoPoint3(100, 100, 50), new GeoPoint3(0, 100, 0)
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 100, 50),
+                new GeoPoint3(0, 100, 0),
             };
 
             Assert.Throws<ArgumentException>(() => new GeoPolygonArc3(notFlat));
@@ -79,26 +88,34 @@ namespace GeometryHelper.UnitTest.Solid
             // Flat corners, but an arc bulging out of their plane.
             var corners = new[]
             {
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0),
-                new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0)
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 100, 0),
+                new GeoPoint3(0, 100, 0),
             };
 
-            Assert.Throws<ArgumentException>(() => new GeoPolygonArc3(
-                corners,
-                new[] { 0.5, 0.0, 0.0, 0.0 },
-                new[] { new GeoVector3(0, 1, 0), default(GeoVector3), default(GeoVector3), default(GeoVector3) }));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoPolygonArc3(
+                    corners,
+                    new[] { 0.5, 0.0, 0.0, 0.0 },
+                    new[] { new GeoVector3(0, 1, 0), default(GeoVector3), default(GeoVector3), default(GeoVector3) }
+                )
+            );
 
             // The same bulge in the plane of the loop is fine.
             var fine = new GeoPolygonArc3(
                 corners,
                 new[] { 0.5, 0.0, 0.0, 0.0 },
-                new[] { new GeoVector3(0, 0, 1), default(GeoVector3), default(GeoVector3), default(GeoVector3) });
+                new[] { new GeoVector3(0, 0, 1), default(GeoVector3), default(GeoVector3), default(GeoVector3) }
+            );
 
             Assert.Equal(1, fine.GetEdges().Count(edge => edge.IsArc));
 
             // Fewer than three distinct corners is no loop.
             Assert.Throws<ArgumentException>(() => new GeoPolygonArc3(new[] { corners[0], corners[1] }));
-            Assert.Throws<ArgumentNullException>(() => new GeoPolygonArc3((System.Collections.Generic.IEnumerable<GeoPoint3>)null));
+            Assert.Throws<ArgumentNullException>(() =>
+                new GeoPolygonArc3((System.Collections.Generic.IEnumerable<GeoPoint3>)null)
+            );
             Assert.Throws<ArgumentNullException>(() => new GeoPolygonArc3((GeoPolygon3)null));
         }
 
@@ -160,8 +177,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.All(tie.GetEdges().Where(edge => edge.IsArc), edge => Assert.Equal(40.0, edge.ToArc().Radius, 6));
 
             // Every bend turns in the plane of the tie, because the tie is flat.
-            Assert.All(tie.GetEdges().Where(edge => edge.IsArc),
-                edge => Assert.True(edge.Normal.IsParallelTo(new GeoVector3(0, 0, 1), Loose)));
+            Assert.All(tie.GetEdges().Where(edge => edge.IsArc), edge =>
+                Assert.True(edge.Normal.IsParallelTo(new GeoVector3(0, 0, 1), Loose))
+            );
 
             // The bar is shorter than the set-out, by 2r - pi r / 2 at each of the four bends.
             double savedPerBend = 2.0 * 40.0 - Math.PI * 40.0 / 2.0;
@@ -206,13 +224,15 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoPolygonArc3 loop = SlotInSpace();
 
-            foreach (GeoTransform3 move in new[]
-            {
-                GeoTransform3.RotationX(0.5),
-                GeoTransform3.RotationAxis(new GeoVector3(1, 2, -1), 1.2),
-                GeoTransform3.Translation(new GeoVector3(9, -8, 7)),
-                GeoTransform3.Mirror(GeoPlane3.XY)
-            })
+            foreach (
+                GeoTransform3 move in new[]
+                {
+                    GeoTransform3.RotationX(0.5),
+                    GeoTransform3.RotationAxis(new GeoVector3(1, 2, -1), 1.2),
+                    GeoTransform3.Translation(new GeoVector3(9, -8, 7)),
+                    GeoTransform3.Mirror(GeoPlane3.XY),
+                }
+            )
             {
                 GeoPolygonArc3 moved = loop.TransformBy(move);
 
@@ -253,9 +273,10 @@ namespace GeometryHelper.UnitTest.Solid
             for (int i = 0; i <= 20; i++)
             {
                 Assert.True(
-                    loop.GetPointAtParameter(i / 20.0).IsEqualTo(
-                        PlanarMap.ToPoint3(frame, Slot().GetPointAtParameter(i / 20.0)), Loose),
-                    "at " + i);
+                    loop.GetPointAtParameter(i / 20.0)
+                        .IsEqualTo(PlanarMap.ToPoint3(frame, Slot().GetPointAtParameter(i / 20.0)), Loose),
+                    "at " + i
+                );
             }
 
             // The box holds the bulge, which reaches past every vertex.

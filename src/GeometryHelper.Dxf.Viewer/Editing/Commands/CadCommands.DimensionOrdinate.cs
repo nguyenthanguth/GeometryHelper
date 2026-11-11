@@ -52,7 +52,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             // The feature is the ordinate's point 1, tied as AutoCAD 2021 ties it (group 90 of its DIMASSOC 2): a perpendicular or a
             // tangent drawn from the last point, which is not tied with it.
-            DxfOsnapPointRef tied = CadDimAssociation.WithoutLastPoint(CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap, last));
+            DxfOsnapPointRef tied = CadDimAssociation.WithoutLastPoint(
+                CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap, last)
+            );
 
             bool? xDatum = null;
             string text = null;
@@ -64,15 +66,33 @@ namespace GeometryHelper.Dxf.Viewer
                 string words = text;
                 bool? chosen = xDatum;
                 double? turned = turn;
-                yield return CadPrompt.ForPoint("Specify leader endpoint", feature, new[] { "Xdatum", "Ydatum", "Mtext", "Text", "Angle" })
+                yield return CadPrompt
+                    .ForPoint(
+                        "Specify leader endpoint",
+                        feature,
+                        new[] { "Xdatum", "Ydatum", "Mtext", "Text", "Angle" }
+                    )
                     .Previewing(DimPreview(c, input =>
-                    {
-                        CadUcs system = c.Session.Ucs;
-                        GeoVector2 way = system.ToUcs(input.Point - feature);
+                        {
+                            CadUcs system = c.Session.Ucs;
+                            GeoVector2 way = system.ToUcs(input.Point - feature);
 
-                        return (input.Point - feature).Length <= c.Session.Tolerance.EqualPoint ? null
-                            : OrdinateMade(c, style, chosen ?? Math.Abs(way.Y) > Math.Abs(way.X), new GeoPoint2(system.Origin.X, system.Origin.Y), system.Angle, feature, input.Point, words, turned, out _, out _);
-                    }));
+                            return (input.Point - feature).Length <= c.Session.Tolerance.EqualPoint
+                                ? null
+                                : OrdinateMade(
+                                    c,
+                                    style,
+                                    chosen ?? Math.Abs(way.Y) > Math.Abs(way.X),
+                                    new GeoPoint2(system.Origin.X, system.Origin.Y),
+                                    system.Angle,
+                                    feature,
+                                    input.Point,
+                                    words,
+                                    turned,
+                                    out _,
+                                    out _
+                                );
+                        }));
 
                 if (c.Input.Is("Xdatum") || c.Input.Is("Ydatum"))
                 {
@@ -117,7 +137,11 @@ namespace GeometryHelper.Dxf.Viewer
             GeoVector2 leader = ucs.ToUcs(end - feature);
             bool alongX = xDatum ?? Math.Abs(leader.Y) > Math.Abs(leader.X);
             var origin = new GeoPoint2(ucs.Origin.X, ucs.Origin.Y);
-            CadDimAssociation.Tie(c, OrdinateDimension(c, style, alongX, origin, ucs.Angle, feature, end, text, turn, true), new[] { tied });
+            CadDimAssociation.Tie(
+                c,
+                OrdinateDimension(c, style, alongX, origin, ucs.Angle, feature, end, text, turn, true),
+                new[] { tied }
+            );
         }
 
         /// <summary>
@@ -125,7 +149,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// <paramref name="turn"/>, its leader ending at a point; its words given or the measurement, turned where
         /// <paramref name="textAngle"/> says. The handle of the dimension, or null where it was not made.
         /// </summary>
-        private static string OrdinateDimension(CadCommandContext c, DxfDimStyleTableRecord style, bool xDatum, GeoPoint2 origin, double turn, GeoPoint2 feature, GeoPoint2 end, string text, double? textAngle, bool echo)
+        private static string OrdinateDimension(
+            CadCommandContext c,
+            DxfDimStyleTableRecord style,
+            bool xDatum,
+            GeoPoint2 origin,
+            double turn,
+            GeoPoint2 feature,
+            GeoPoint2 end,
+            string text,
+            double? textAngle,
+            bool echo
+        )
         {
             if ((end - feature).Length <= c.Session.Tolerance.EqualPoint)
             {
@@ -137,7 +172,19 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            List<DxfEntity> picture = OrdinateMade(c, style, xDatum, origin, turn, feature, end, text, textAngle, out DxfOrdinateDimension made, out string words);
+            List<DxfEntity> picture = OrdinateMade(
+                c,
+                style,
+                xDatum,
+                origin,
+                turn,
+                feature,
+                end,
+                text,
+                textAngle,
+                out DxfOrdinateDimension made,
+                out string words
+            );
 
             if (echo)
             {
@@ -151,20 +198,41 @@ namespace GeometryHelper.Dxf.Viewer
         /// The picture of an ordinate dimension and the dimension, as <see cref="OrdinateDimension"/> adds them and the prompt
         /// of the leader's end previews them.
         /// </summary>
-        private static List<DxfEntity> OrdinateMade(CadCommandContext c, DxfDimStyleTableRecord style, bool xDatum, GeoPoint2 origin, double turn, GeoPoint2 feature, GeoPoint2 end, string text, double? textAngle, out DxfOrdinateDimension made, out string words)
+        private static List<DxfEntity> OrdinateMade(
+            CadCommandContext c,
+            DxfDimStyleTableRecord style,
+            bool xDatum,
+            GeoPoint2 origin,
+            double turn,
+            GeoPoint2 feature,
+            GeoPoint2 end,
+            string text,
+            double? textAngle,
+            out DxfOrdinateDimension made,
+            out string words
+        )
         {
-            made = new DxfOrdinateDimension(xDatum, P3(feature), P3(end), text ?? string.Empty, null) { Origin = P3(origin) };
+            made = new DxfOrdinateDimension(xDatum, P3(feature), P3(end), text ?? string.Empty, null)
+            {
+                Origin = P3(origin),
+            };
 
             if (turn != 0.0)
             {
                 made.HorizontalRotation = -turn;
             }
 
-            var axis = xDatum ? new GeoVector2(Math.Cos(turn), Math.Sin(turn)) : new GeoVector2(-Math.Sin(turn), Math.Cos(turn));
+            var axis = xDatum
+                ? new GeoVector2(Math.Cos(turn), Math.Sin(turn))
+                : new GeoVector2(-Math.Sin(turn), Math.Cos(turn));
             double measured = Math.Abs((feature - origin).X * axis.X + (feature - origin).Y * axis.Y);
             words = Words(style, made, measured, text, string.Empty);
             double textHeight = TextHeight(c, style);
-            return WithTextAngle(made, Ordinate(style, Dimscale(c), textHeight, origin, feature, end, xDatum, turn, words), textAngle);
+            return WithTextAngle(
+                made,
+                Ordinate(style, Dimscale(c), textHeight, origin, feature, end, xDatum, turn, words),
+                textAngle
+            );
         }
 
         /// <summary>
@@ -178,9 +246,29 @@ namespace GeometryHelper.Dxf.Viewer
         /// An X datum of the point (300, 40) with its leader ending at (310, 80), arrowheads of 2.5: the leader runs up from
         /// (300, 40.625) to (300, 70), across to (310, 75) and up to (310, 80), as AutoCAD 2021 draws it.
         /// </remarks>
-        internal static List<DxfEntity> Ordinate(DxfDimStyleTableRecord style, double dimscale, double textHeight, GeoPoint2 origin, GeoPoint2 feature, GeoPoint2 end, bool xDatum, double turn, string words)
+        internal static List<DxfEntity> Ordinate(
+            DxfDimStyleTableRecord style,
+            double dimscale,
+            double textHeight,
+            GeoPoint2 origin,
+            GeoPoint2 feature,
+            GeoPoint2 end,
+            bool xDatum,
+            double turn,
+            string words
+        )
         {
-            Sizes(style, dimscale, textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out _);
+            Sizes(
+                style,
+                dimscale,
+                textHeight,
+                out double scale,
+                out double arrow,
+                out double height,
+                out double gap,
+                out double offset,
+                out _
+            );
             var picture = new List<DxfEntity>();
             var x = new GeoVector2(Math.Cos(turn), Math.Sin(turn));
             var y = new GeoVector2(-Math.Sin(turn), Math.Cos(turn));
@@ -208,13 +296,22 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else
             {
-                picture.Add(Lined(new DxfLine(P3(feature + way * offset), P3(feature + way * first)), style.Dimclre, style.Dimlwe));
+                picture.Add(
+                    Lined(
+                        new DxfLine(P3(feature + way * offset), P3(feature + way * first)),
+                        style.Dimclre,
+                        style.Dimlwe
+                    )
+                );
                 picture.Add(Lined(new DxfLine(P3(feature + way * first), P3(jogged)), style.Dimclre, style.Dimlwe));
                 picture.Add(Lined(new DxfLine(P3(jogged), P3(last)), style.Dimclre, style.Dimlwe));
             }
 
             var above = new GeoVector2(-Math.Sin(angle), Math.Cos(angle));
-            double lift = tad == 0 ? 0.0 : tad == 4 ? -(gap + height / 2.0) : gap + height / 2.0;
+            double lift =
+                tad == 0 ? 0.0
+                : tad == 4 ? -(gap + height / 2.0)
+                : gap + height / 2.0;
             ((DxfMText)text).Location = P3(end + way * (gap + width / 2.0) + above * lift);
             picture.Add(text);
             picture.Add(Definition(feature));
@@ -224,7 +321,12 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The picture of an ordinate dimension of the drawing from its points.</summary>
-        private static List<DxfEntity> OrdinatePicture(DxfDimension dimension, DxfDimStyleTableRecord style, double textHeight, DxfOrdinateDimension ordinate)
+        private static List<DxfEntity> OrdinatePicture(
+            DxfDimension dimension,
+            DxfDimStyleTableRecord style,
+            double textHeight,
+            DxfOrdinateDimension ordinate
+        )
         {
             GeoPoint2 feature = P2(ordinate.DefiningPoint);
             GeoPoint2 end = P2(ordinate.LeaderEndPoint);
@@ -234,7 +336,17 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            return Ordinate(style, style.Dimscale, textHeight, P2(ordinate.Origin), feature, end, ordinate.UsingXAxis, -ordinate.HorizontalRotation, Formatted(dimension, ordinate.Measurement, string.Empty));
+            return Ordinate(
+                style,
+                style.Dimscale,
+                textHeight,
+                P2(ordinate.Origin),
+                feature,
+                end,
+                ordinate.UsingXAxis,
+                -ordinate.HorizontalRotation,
+                Formatted(dimension, ordinate.Measurement, string.Empty)
+            );
         }
     }
 }

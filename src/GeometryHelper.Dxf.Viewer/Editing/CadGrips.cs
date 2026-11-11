@@ -68,9 +68,7 @@ namespace GeometryHelper.Dxf.Viewer
     public sealed class CadGrip
     {
         internal CadGrip(int index, CadGripKind kind, GeoPoint2 point)
-            : this(index, kind, point, null)
-        {
-        }
+            : this(index, kind, point, null) { }
 
         internal CadGrip(int index, CadGripKind kind, GeoPoint2 point, DxfDynamicBlockGrip custom)
         {
@@ -78,7 +76,8 @@ namespace GeometryHelper.Dxf.Viewer
             Kind = kind;
             Point = point;
             Custom = custom;
-            Direction = custom == null ? new GeoVector2(0.0, 0.0) : new GeoVector2(custom.Direction.X, custom.Direction.Y);
+            Direction =
+                custom == null ? new GeoVector2(0.0, 0.0) : new GeoVector2(custom.Direction.X, custom.Direction.Y);
         }
 
         /// <summary>
@@ -138,17 +137,23 @@ namespace GeometryHelper.Dxf.Viewer
 
             var grips = new List<CadGrip>();
 
-            void Add(CadGripKind kind, double x, double y) => grips.Add(new CadGrip(grips.Count, kind, new GeoPoint2(x, y)));
+            void Add(CadGripKind kind, double x, double y) =>
+                grips.Add(new CadGrip(grips.Count, kind, new GeoPoint2(x, y)));
 
             // A point of an arc's or a polyline's own plane, put in the world.
-            void AddOwn(CadGripKind kind, GeoPoint2 own, bool below) => grips.Add(new CadGrip(grips.Count, kind, Own(own, below)));
+            void AddOwn(CadGripKind kind, GeoPoint2 own, bool below) =>
+                grips.Add(new CadGrip(grips.Count, kind, Own(own, below)));
 
             switch (entity)
             {
                 case DxfLine line:
                     Add(CadGripKind.End, line.StartPoint.X, line.StartPoint.Y);
                     Add(CadGripKind.End, line.EndPoint.X, line.EndPoint.Y);
-                    Add(CadGripKind.Middle, (line.StartPoint.X + line.EndPoint.X) / 2.0, (line.StartPoint.Y + line.EndPoint.Y) / 2.0);
+                    Add(
+                        CadGripKind.Middle,
+                        (line.StartPoint.X + line.EndPoint.X) / 2.0,
+                        (line.StartPoint.Y + line.EndPoint.Y) / 2.0
+                    );
                     break;
                 case DxfCircle circle when IsPlan(circle.Normal):
                     Add(CadGripKind.Center, circle.Center.X, circle.Center.Y);
@@ -158,44 +163,70 @@ namespace GeometryHelper.Dxf.Viewer
                     Add(CadGripKind.Quadrant, circle.Center.X, circle.Center.Y - circle.Radius);
                     break;
                 case DxfArc arc when IsPlan(arc.Normal):
-                    {
-                        bool below = arc.Normal.Z < 0.0;
-                        GeoPoint2 c = Own(new GeoPoint2(arc.Center.X, arc.Center.Y), below);
-                        double middle = arc.StartAngle + Sweep(arc.StartAngle, arc.EndAngle) / 2.0;
-                        AddOwn(CadGripKind.End, new GeoPoint2(c.X + arc.Radius * Math.Cos(arc.StartAngle), c.Y + arc.Radius * Math.Sin(arc.StartAngle)), below);
-                        AddOwn(CadGripKind.End, new GeoPoint2(c.X + arc.Radius * Math.Cos(arc.EndAngle), c.Y + arc.Radius * Math.Sin(arc.EndAngle)), below);
-                        AddOwn(CadGripKind.Middle, new GeoPoint2(c.X + arc.Radius * Math.Cos(middle), c.Y + arc.Radius * Math.Sin(middle)), below);
-                        Add(CadGripKind.Center, arc.Center.X, arc.Center.Y);
-                        break;
-                    }
+                {
+                    bool below = arc.Normal.Z < 0.0;
+                    GeoPoint2 c = Own(new GeoPoint2(arc.Center.X, arc.Center.Y), below);
+                    double middle = arc.StartAngle + Sweep(arc.StartAngle, arc.EndAngle) / 2.0;
+                    AddOwn(
+                        CadGripKind.End,
+                        new GeoPoint2(
+                            c.X + arc.Radius * Math.Cos(arc.StartAngle),
+                            c.Y + arc.Radius * Math.Sin(arc.StartAngle)
+                        ),
+                        below
+                    );
+                    AddOwn(
+                        CadGripKind.End,
+                        new GeoPoint2(
+                            c.X + arc.Radius * Math.Cos(arc.EndAngle),
+                            c.Y + arc.Radius * Math.Sin(arc.EndAngle)
+                        ),
+                        below
+                    );
+                    AddOwn(
+                        CadGripKind.Middle,
+                        new GeoPoint2(c.X + arc.Radius * Math.Cos(middle), c.Y + arc.Radius * Math.Sin(middle)),
+                        below
+                    );
+                    Add(CadGripKind.Center, arc.Center.X, arc.Center.Y);
+                    break;
+                }
 
                 case DxfPolyline polyline when IsPlan(polyline.Normal):
+                {
+                    int n = polyline.NumberOfVertices;
+
+                    bool below = polyline.Normal.Z < 0.0;
+
+                    for (int i = 0; i < n; i++)
                     {
-                        int n = polyline.NumberOfVertices;
-
-                        bool below = polyline.Normal.Z < 0.0;
-
-                        for (int i = 0; i < n; i++)
-                        {
-                            AddOwn(CadGripKind.Vertex, polyline.GetPoint2dAt(i), below);
-                        }
-
-                        int segments = polyline.Closed && n > 2 ? n : n - 1;
-
-                        for (int i = 0; i < segments; i++)
-                        {
-                            AddOwn(CadGripKind.SegmentMiddle, SegmentMiddle(polyline.GetPoint2dAt(i), polyline.GetPoint2dAt((i + 1) % n), polyline.GetBulgeAt(i)), below);
-                        }
-
-                        break;
+                        AddOwn(CadGripKind.Vertex, polyline.GetPoint2dAt(i), below);
                     }
+
+                    int segments = polyline.Closed && n > 2 ? n : n - 1;
+
+                    for (int i = 0; i < segments; i++)
+                    {
+                        AddOwn(
+                            CadGripKind.SegmentMiddle,
+                            SegmentMiddle(
+                                polyline.GetPoint2dAt(i),
+                                polyline.GetPoint2dAt((i + 1) % n),
+                                polyline.GetBulgeAt(i)
+                            ),
+                            below
+                        );
+                    }
+
+                    break;
+                }
 
                 case DxfDBText text:
-                    {
-                        GeoPoint3 at = IsLeftOnBaseline(text) ? text.Position : text.AlignmentPoint;
-                        Add(CadGripKind.Insertion, at.X, at.Y);
-                        break;
-                    }
+                {
+                    GeoPoint3 at = IsLeftOnBaseline(text) ? text.Position : text.AlignmentPoint;
+                    Add(CadGripKind.Insertion, at.X, at.Y);
+                    break;
+                }
 
                 case DxfMText mtext:
                     MTextGrips(mtext, (kind, at) => Add(kind, at.X, at.Y));
@@ -205,7 +236,14 @@ namespace GeometryHelper.Dxf.Viewer
 
                     foreach (DxfDynamicBlockGrip custom in CadDynamicBlocks.GripsOf(insert))
                     {
-                        grips.Add(new CadGrip(grips.Count, CadDynamicBlocks.KindOf(custom), new GeoPoint2(custom.Position.X, custom.Position.Y), custom));
+                        grips.Add(
+                            new CadGrip(
+                                grips.Count,
+                                CadDynamicBlocks.KindOf(custom),
+                                new GeoPoint2(custom.Position.X, custom.Position.Y),
+                                custom
+                            )
+                        );
                     }
 
                     break;
@@ -213,18 +251,18 @@ namespace GeometryHelper.Dxf.Viewer
                     DimensionGrips(dimension, (kind, at) => Add(kind, at.X, at.Y));
                     break;
                 case DxfViewport viewport when !(viewport.On && viewport.Number == 1):
-                    {
-                        // The four corners from the lower left round counter-clockwise, then the middle; the viewport of the sheet has none.
-                        GeoPoint3 c = viewport.CenterPoint;
-                        double w = viewport.Width / 2.0;
-                        double h = viewport.Height / 2.0;
-                        Add(CadGripKind.Corner, c.X - w, c.Y - h);
-                        Add(CadGripKind.Corner, c.X + w, c.Y - h);
-                        Add(CadGripKind.Corner, c.X + w, c.Y + h);
-                        Add(CadGripKind.Corner, c.X - w, c.Y + h);
-                        Add(CadGripKind.Center, c.X, c.Y);
-                        break;
-                    }
+                {
+                    // The four corners from the lower left round counter-clockwise, then the middle; the viewport of the sheet has none.
+                    GeoPoint3 c = viewport.CenterPoint;
+                    double w = viewport.Width / 2.0;
+                    double h = viewport.Height / 2.0;
+                    Add(CadGripKind.Corner, c.X - w, c.Y - h);
+                    Add(CadGripKind.Corner, c.X + w, c.Y - h);
+                    Add(CadGripKind.Corner, c.X + w, c.Y + h);
+                    Add(CadGripKind.Corner, c.X - w, c.Y + h);
+                    Add(CadGripKind.Center, c.X, c.Y);
+                    break;
+                }
             }
 
             return grips;
@@ -311,9 +349,27 @@ namespace GeometryHelper.Dxf.Viewer
                         return true;
                     });
                 case CadGripKind.Corner when entity is DxfMText:
-                    return ResizeMText(document, (DxfMText)entity, handle, property, was, went, gripIndex - (grips.Count - 4), to);
+                    return ResizeMText(
+                        document,
+                        (DxfMText)entity,
+                        handle,
+                        property,
+                        was,
+                        went,
+                        gripIndex - (grips.Count - 4),
+                        to
+                    );
                 case CadGripKind.Corner:
-                    return Resize(document, (DxfViewport)entity, handle, property, was, went, grips[(gripIndex + 2) % 4].Point, to);
+                    return Resize(
+                        document,
+                        (DxfViewport)entity,
+                        handle,
+                        property,
+                        was,
+                        went,
+                        grips[(gripIndex + 2) % 4].Point,
+                        to
+                    );
                 case CadGripKind.Center:
                 case CadGripKind.Insertion:
                     return Move(document, handle, property, shift, CadCommands.Values(shift.X, shift.Y));
@@ -324,101 +380,122 @@ namespace GeometryHelper.Dxf.Viewer
             switch (entity)
             {
                 case DxfLine _:
-                    return Reshape(document, handle, property, was, went, () => document.FindEntity(handle) is DxfLine l && Set(l, gripIndex == 0, to));
+                    return Reshape(document, handle, property, was, went, () =>
+                        document.FindEntity(handle) is DxfLine l && Set(l, gripIndex == 0, to)
+                    );
                 case DxfCircle circle:
+                {
+                    double radius = (to - new GeoPoint2(circle.Center.X, circle.Center.Y)).Length;
+
+                    if (radius <= 0.0)
                     {
-                        double radius = (to - new GeoPoint2(circle.Center.X, circle.Center.Y)).Length;
-
-                        if (radius <= 0.0)
-                        {
-                            return CadEditResult.Refuse("A circle needs a radius above nought.");
-                        }
-
-                        return Reshape(document, handle, property, was, went, () =>
-                        {
-                            ((DxfCircle)document.FindEntity(handle)).Radius = radius;
-                            return true;
-                        });
+                        return CadEditResult.Refuse("A circle needs a radius above nought.");
                     }
+
+                    return Reshape(document, handle, property, was, went, () =>
+                    {
+                        ((DxfCircle)document.FindEntity(handle)).Radius = radius;
+                        return true;
+                    });
+                }
 
                 case DxfArc arc:
+                {
+                    // Worked in the arc's own plane, where its angles run counter-clockwise, and put back in the world.
+                    bool below = arc.Normal.Z < 0.0;
+                    GeoPoint2 p1 = Own(gripIndex == 0 ? to : grips[0].Point, below);
+                    GeoPoint2 p2 = Own(gripIndex == 2 ? to : grips[2].Point, below);
+                    GeoPoint2 p3 = Own(gripIndex == 1 ? to : grips[1].Point, below);
+
+                    if (
+                        !ArcThrough(
+                            p1,
+                            p2,
+                            p3,
+                            out GeoPoint2 center,
+                            out double radius,
+                            out double from,
+                            out double till
+                        )
+                    )
                     {
-                        // Worked in the arc's own plane, where its angles run counter-clockwise, and put back in the world.
-                        bool below = arc.Normal.Z < 0.0;
-                        GeoPoint2 p1 = Own(gripIndex == 0 ? to : grips[0].Point, below);
-                        GeoPoint2 p2 = Own(gripIndex == 2 ? to : grips[2].Point, below);
-                        GeoPoint2 p3 = Own(gripIndex == 1 ? to : grips[1].Point, below);
-
-                        if (!ArcThrough(p1, p2, p3, out GeoPoint2 center, out double radius, out double from, out double till))
-                        {
-                            return CadEditResult.Refuse("The three points of the arc lie in a line.");
-                        }
-
-                        return Reshape(document, handle, property, was, went, () =>
-                        {
-                            var a = (DxfArc)document.FindEntity(handle);
-                            GeoPoint2 world = Own(center, below);
-                            a.Center = new GeoPoint3(world.X, world.Y, a.Center.Z);
-                            a.Radius = radius;
-                            a.StartAngle = from;
-                            a.EndAngle = till;
-                            return true;
-                        });
+                        return CadEditResult.Refuse("The three points of the arc lie in a line.");
                     }
+
+                    return Reshape(document, handle, property, was, went, () =>
+                    {
+                        var a = (DxfArc)document.FindEntity(handle);
+                        GeoPoint2 world = Own(center, below);
+                        a.Center = new GeoPoint3(world.X, world.Y, a.Center.Z);
+                        a.Radius = radius;
+                        a.StartAngle = from;
+                        a.EndAngle = till;
+                        return true;
+                    });
+                }
 
                 case DxfPolyline polyline:
+                {
+                    // Worked in the polyline's own plane, where its vertices and bulges are written.
+                    int n = polyline.NumberOfVertices;
+                    bool below = polyline.Normal.Z < 0.0;
+                    GeoPoint2 own = Own(to, below);
+                    GeoVector2 shifted = own - Own(grip.Point, below);
+
+                    if (grip.Kind == CadGripKind.Vertex)
                     {
-                        // Worked in the polyline's own plane, where its vertices and bulges are written.
-                        int n = polyline.NumberOfVertices;
-                        bool below = polyline.Normal.Z < 0.0;
-                        GeoPoint2 own = Own(to, below);
-                        GeoVector2 shifted = own - Own(grip.Point, below);
-
-                        if (grip.Kind == CadGripKind.Vertex)
-                        {
-                            return Reshape(document, handle, property, was, went, () =>
-                            {
-                                ((DxfPolyline)document.FindEntity(handle)).SetPointAt(gripIndex, own);
-                                return true;
-                            });
-                        }
-
-                        int segment = gripIndex - n;
-                        int next = (segment + 1) % n;
-                        GeoPoint2 a = polyline.GetPoint2dAt(segment);
-                        GeoPoint2 b = polyline.GetPoint2dAt(next);
-                        double bulge = polyline.GetBulgeAt(segment);
-
-                        if (Math.Abs(bulge) < 1E-12)
-                        {
-                            // A straight segment is moved whole, its two vertices with it, as AutoCAD's Stretch moves it.
-                            return Reshape(document, handle, property, was, went, () =>
-                            {
-                                var p = (DxfPolyline)document.FindEntity(handle);
-                                p.SetPointAt(segment, a + shifted);
-                                p.SetPointAt(next, b + shifted);
-                                return true;
-                            });
-                        }
-
-                        if (!BulgeThrough(a, own, b, out double bent))
-                        {
-                            return CadEditResult.Refuse("The three points of the arc lie in a line.");
-                        }
-
                         return Reshape(document, handle, property, was, went, () =>
                         {
-                            ((DxfPolyline)document.FindEntity(handle)).SetBulgeAt(segment, bent);
+                            ((DxfPolyline)document.FindEntity(handle)).SetPointAt(gripIndex, own);
                             return true;
                         });
                     }
+
+                    int segment = gripIndex - n;
+                    int next = (segment + 1) % n;
+                    GeoPoint2 a = polyline.GetPoint2dAt(segment);
+                    GeoPoint2 b = polyline.GetPoint2dAt(next);
+                    double bulge = polyline.GetBulgeAt(segment);
+
+                    if (Math.Abs(bulge) < 1E-12)
+                    {
+                        // A straight segment is moved whole, its two vertices with it, as AutoCAD's Stretch moves it.
+                        return Reshape(document, handle, property, was, went, () =>
+                        {
+                            var p = (DxfPolyline)document.FindEntity(handle);
+                            p.SetPointAt(segment, a + shifted);
+                            p.SetPointAt(next, b + shifted);
+                            return true;
+                        });
+                    }
+
+                    if (!BulgeThrough(a, own, b, out double bent))
+                    {
+                        return CadEditResult.Refuse("The three points of the arc lie in a line.");
+                    }
+
+                    return Reshape(document, handle, property, was, went, () =>
+                    {
+                        ((DxfPolyline)document.FindEntity(handle)).SetBulgeAt(segment, bent);
+                        return true;
+                    });
+                }
             }
 
             return CadEditResult.Refuse("The grip cannot be dragged.");
         }
 
         /// <summary>A viewport's frame from a corner kept to a corner dragged, its scale and the centre of its view kept.</summary>
-        private static CadEditResult Resize(CadDocument document, DxfViewport viewport, string handle, string property, string was, string went, GeoPoint2 kept, GeoPoint2 to)
+        private static CadEditResult Resize(
+            CadDocument document,
+            DxfViewport viewport,
+            string handle,
+            string property,
+            string was,
+            string went,
+            GeoPoint2 kept,
+            GeoPoint2 to
+        )
         {
             double width = Math.Abs(to.X - kept.X);
             double height = Math.Abs(to.Y - kept.Y);
@@ -442,13 +519,28 @@ namespace GeometryHelper.Dxf.Viewer
             });
         }
 
-        private static CadEditResult Move(CadDocument document, string handle, string property, GeoVector3 shift, string value)
+        private static CadEditResult Move(
+            CadDocument document,
+            string handle,
+            string property,
+            GeoVector3 shift,
+            string value
+        )
         {
             var record = new CadEditRecord(CadEditRecordKind.Transformed, handle, property, null, value);
-            return document.ApplyEdit("GRIP", new[] { record }, s => document.FindEntity(handle).TransformBy(GeoTransform3.Translation(shift)));
+            return document.ApplyEdit("GRIP", new[] { record }, s =>
+                document.FindEntity(handle).TransformBy(GeoTransform3.Translation(shift))
+            );
         }
 
-        private static CadEditResult Reshape(CadDocument document, string handle, string property, string was, string went, Func<bool> write)
+        private static CadEditResult Reshape(
+            CadDocument document,
+            string handle,
+            string property,
+            string was,
+            string went,
+            Func<bool> write
+        )
         {
             var record = new CadEditRecord(CadEditRecordKind.Reshaped, handle, property, was, went);
             return document.ApplyEdit("GRIP", new[] { record }, s => write());
@@ -469,7 +561,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Whether a normal is the plan's, seen from above or, as AutoCAD's MIRROR leaves an arc, from below.</summary>
-        private static bool IsPlan(GeoVector3 normal) => Math.Abs(normal.Z) > 1E-12 && Math.Abs(normal.X) < 1E-12 && Math.Abs(normal.Y) < 1E-12;
+        private static bool IsPlan(GeoVector3 normal) =>
+            Math.Abs(normal.Z) > 1E-12 && Math.Abs(normal.X) < 1E-12 && Math.Abs(normal.Y) < 1E-12;
 
         /// <summary>
         /// A point of the plan in the own plane of an entity seen from below (normal (0, 0, -1)), whose x runs against the
@@ -477,8 +570,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static GeoPoint2 Own(GeoPoint2 point, bool below) => below ? new GeoPoint2(-point.X, point.Y) : point;
 
-        private static bool IsLeftOnBaseline(DxfDBText text)
-            => text.HorizontalMode == DxfTextHorizontalMode.TextLeft && text.VerticalMode == DxfTextVerticalMode.TextBase;
+        private static bool IsLeftOnBaseline(DxfDBText text) =>
+            text.HorizontalMode == DxfTextHorizontalMode.TextLeft && text.VerticalMode == DxfTextVerticalMode.TextBase;
 
         /// <summary>The counter-clockwise sweep from one angle to another, above nought and at most a whole turn.</summary>
         internal static double Sweep(double from, double to)
@@ -538,7 +631,15 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The arc from p1 through p2 to p3, as a centre, a radius and the counter-clockwise angles of its start and end.</summary>
-        internal static bool ArcThrough(GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 p3, out GeoPoint2 center, out double radius, out double start, out double end)
+        internal static bool ArcThrough(
+            GeoPoint2 p1,
+            GeoPoint2 p2,
+            GeoPoint2 p3,
+            out GeoPoint2 center,
+            out double radius,
+            out double start,
+            out double end
+        )
         {
             start = 0.0;
             end = 0.0;
@@ -567,7 +668,13 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The circle through three points; false where they lie in a line or two are one.</summary>
-        internal static bool CircleThrough(GeoPoint2 a, GeoPoint2 b, GeoPoint2 c, out GeoPoint2 center, out double radius)
+        internal static bool CircleThrough(
+            GeoPoint2 a,
+            GeoPoint2 b,
+            GeoPoint2 c,
+            out GeoPoint2 center,
+            out double radius
+        )
         {
             double d = 2.0 * (a.X * (b.Y - c.Y) + b.X * (c.Y - a.Y) + c.X * (a.Y - b.Y));
             double scale = Math.Max((b - a).Length * (c - a).Length, 1E-300);
@@ -584,7 +691,8 @@ namespace GeometryHelper.Dxf.Viewer
             double c2 = c.X * c.X + c.Y * c.Y;
             center = new GeoPoint2(
                 (a2 * (b.Y - c.Y) + b2 * (c.Y - a.Y) + c2 * (a.Y - b.Y)) / d,
-                (a2 * (c.X - b.X) + b2 * (a.X - c.X) + c2 * (b.X - a.X)) / d);
+                (a2 * (c.X - b.X) + b2 * (a.X - c.X) + c2 * (b.X - a.X)) / d
+            );
             radius = (a - center).Length;
             return radius > 0.0;
         }

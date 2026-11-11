@@ -46,7 +46,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             using (var folder = new TestFolder())
             {
                 MainViewModel model = Open(folder);
-                int shown = model.Document.ModelSpace.Block.Count(e => !string.IsNullOrEmpty(e.Handle) && !model.Document.Database.LayerTable[e.Layer].IsFrozen);
+                int shown = model.Document.ModelSpace.Block.Count(e =>
+                    !string.IsNullOrEmpty(e.Handle) && !model.Document.Database.LayerTable[e.Layer].IsFrozen
+                );
                 Assert.True(shown > 0);
 
                 Assert.True(model.RunKey("Ctrl+A"));

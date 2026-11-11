@@ -63,7 +63,14 @@ namespace GeometryHelper.UnitTest.Dwg
         /// <summary>The header variables that are those of the moment of saving, or that AutoCAD sets as it reads the file.</summary>
         private static readonly string[] OfTheSave =
         {
-            "$ACADMAINTVER", "$TDCREATE", "$TDUPDATE", "$HANDSEED", "$TDINDWG", "$TDUSRTIMER", "$INTERFEREOBJVS", "$INTERFEREVPVS",
+            "$ACADMAINTVER",
+            "$TDCREATE",
+            "$TDUPDATE",
+            "$HANDSEED",
+            "$TDINDWG",
+            "$TDUSRTIMER",
+            "$INTERFEREOBJVS",
+            "$INTERFEREVPVS",
         };
 
         private static readonly Regex Escape = new Regex(@"\\U\+([0-9A-Fa-f]{4})", RegexOptions.CultureInvariant);
@@ -77,7 +84,9 @@ namespace GeometryHelper.UnitTest.Dwg
         private static byte[] Resource(string name)
         {
             var assembly = typeof(DwgAnswerKey).Assembly;
-            string found = assembly.GetManifestResourceNames().Single(n => n.EndsWith(".Dwg.Data." + name, StringComparison.Ordinal));
+            string found = assembly
+                .GetManifestResourceNames()
+                .Single(n => n.EndsWith(".Dwg.Data." + name, StringComparison.Ordinal));
 
             using (Stream packed = assembly.GetManifestResourceStream(found))
             using (var unpack = new GZipStream(packed, CompressionMode.Decompress))
@@ -119,7 +128,8 @@ namespace GeometryHelper.UnitTest.Dwg
                 }
             }
 
-            public override string ToString() => Section + " " + Type + " " + Key + ": " + string.Join(" ", Groups.Select(g => g.Key + "=" + g.Value));
+            public override string ToString() =>
+                Section + " " + Type + " " + Key + ": " + string.Join(" ", Groups.Select(g => g.Key + "=" + g.Value));
         }
 
         /// <summary>What a comparison found.</summary>
@@ -173,7 +183,11 @@ namespace GeometryHelper.UnitTest.Dwg
                 else
                 {
                     int handleCode = one.Type == "DIMSTYLE" ? 105 : 5;
-                    one.Key = "X:" + one.Groups.Where(g => g.Key == handleCode).Select(g => g.Value.ToUpperInvariant()).FirstOrDefault();
+                    one.Key =
+                        "X:"
+                        + one.Groups.Where(g => g.Key == handleCode)
+                            .Select(g => g.Value.ToUpperInvariant())
+                            .FirstOrDefault();
                 }
 
                 if (!keys.Add(one.Key))
@@ -212,7 +226,9 @@ namespace GeometryHelper.UnitTest.Dwg
                 }
                 else if (current != null)
                 {
-                    current.Groups.Add(new KeyValuePair<int, string>(code, code == 1 || code == 3 ? value : value.Trim()));
+                    current.Groups.Add(
+                        new KeyValuePair<int, string>(code, code == 1 || code == 3 ? value : value.Trim())
+                    );
                 }
             }
 
@@ -220,12 +236,20 @@ namespace GeometryHelper.UnitTest.Dwg
             return records;
         }
 
-        private static bool IsNumber(int code) => (code >= 10 && code <= 59) || (code >= 110 && code <= 149) || (code >= 210 && code <= 239)
-            || (code >= 460 && code <= 469) || (code >= 1010 && code <= 1059);
+        private static bool IsNumber(int code) =>
+            (code >= 10 && code <= 59)
+            || (code >= 110 && code <= 149)
+            || (code >= 210 && code <= 239)
+            || (code >= 460 && code <= 469)
+            || (code >= 1010 && code <= 1059);
 
-        private static bool IsHandle(int code) => code == 5 || code == 105 || code == 1005 || (code >= 320 && code <= 369) || (code >= 390 && code <= 399);
+        private static bool IsHandle(int code) =>
+            code == 5 || code == 105 || code == 1005 || (code >= 320 && code <= 369) || (code >= 390 && code <= 399);
 
-        private static string Letters(string text) => Escape.Replace(text, m => ((char)int.Parse(m.Groups[1].Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture)).ToString());
+        private static string Letters(string text) =>
+            Escape.Replace(text, m =>
+                ((char)int.Parse(m.Groups[1].Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture)).ToString()
+            );
 
         /// <summary>
         /// Compares the DXF the reader made with the answer key. <paramref name="alsoIgnored"/> names header variables
@@ -237,7 +261,10 @@ namespace GeometryHelper.UnitTest.Dwg
             List<Record> gotList = WithoutWhatAutoCadAdds(Parse(gotDxf));
             Dictionary<string, Record> key = keyList.ToDictionary(r => r.Key, StringComparer.Ordinal);
             Dictionary<string, Record> got = gotList.ToDictionary(r => r.Key, StringComparer.Ordinal);
-            var ignored = new HashSet<string>(OfTheSave.Concat(alsoIgnored).Select(n => "H:" + n), StringComparer.Ordinal);
+            var ignored = new HashSet<string>(
+                OfTheSave.Concat(alsoIgnored).Select(n => "H:" + n),
+                StringComparer.Ordinal
+            );
             var gotTypes = new HashSet<string>(gotList.Select(r => r.Type), StringComparer.Ordinal);
             var keyToGot = new Dictionary<string, string>(StringComparer.Ordinal);
             var gotToKey = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -274,7 +301,9 @@ namespace GeometryHelper.UnitTest.Dwg
                 Pair(one.Key, one.Key);
             }
 
-            var pending = new Queue<string>(keyList.Where(r => r.Section == "OBJECTS" && got.ContainsKey(r.Key)).Select(r => r.Key));
+            var pending = new Queue<string>(
+                keyList.Where(r => r.Section == "OBJECTS" && got.ContainsKey(r.Key)).Select(r => r.Key)
+            );
 
             while (work.Count > 0 || pending.Count > 0)
             {
@@ -298,7 +327,9 @@ namespace GeometryHelper.UnitTest.Dwg
 
                 if (a.Section != b.Section || a.Type != b.Type)
                 {
-                    result.Differences.Add(k + ": the key has " + a.Section + " " + a.Type + ", the reader " + b.Section + " " + b.Type);
+                    result.Differences.Add(
+                        k + ": the key has " + a.Section + " " + a.Type + ", the reader " + b.Section + " " + b.Type
+                    );
                     continue;
                 }
 
@@ -313,13 +344,21 @@ namespace GeometryHelper.UnitTest.Dwg
                     groups = WithoutBookData(groups);
                 }
 
-                if (a.Type == "XRECORD" && groups.Count > a.Groups.Count && a.Owner != null && key.TryGetValue("X:" + a.Owner.ToUpperInvariant(), out Record holder)
-                    && holder.Groups.Any(g => g.Key == 3 && g.Value == "ACAD_XREC_ROUNDTRIP"))
+                if (
+                    a.Type == "XRECORD"
+                    && groups.Count > a.Groups.Count
+                    && a.Owner != null
+                    && key.TryGetValue("X:" + a.Owner.ToUpperInvariant(), out Record holder)
+                    && holder.Groups.Any(g => g.Key == 3 && g.Value == "ACAD_XREC_ROUNDTRIP")
+                )
                 {
                     // The round-trip data of R2000: AutoCAD takes the values it knows into the object and keeps the rest.
                     groups = groups.GetRange(0, a.Groups.Count);
                 }
-                string fault = groups.Count != a.Groups.Count ? "the key has " + a.Groups.Count + " groups, the reader " + groups.Count : null;
+                string fault =
+                    groups.Count != a.Groups.Count
+                        ? "the key has " + a.Groups.Count + " groups, the reader " + groups.Count
+                        : null;
 
                 bool graphics = false;
 
@@ -333,17 +372,31 @@ namespace GeometryHelper.UnitTest.Dwg
 
                     string head = v1.TrimEnd();
 
-                    if (same && code == 1 && (a.Type == "REGION" || a.Type == "3DSOLID" || a.Type == "BODY") && a.Groups.FindIndex(g => g.Key == 1) + 1 == i
-                        && head.EndsWith(" o", StringComparison.Ordinal) && v2.StartsWith(head.Substring(0, head.Length - 1), StringComparison.Ordinal))
+                    if (
+                        same
+                        && code == 1
+                        && (a.Type == "REGION" || a.Type == "3DSOLID" || a.Type == "BODY")
+                        && a.Groups.FindIndex(g => g.Key == 1) + 1 == i
+                        && head.EndsWith(" o", StringComparison.Ordinal)
+                        && v2.StartsWith(head.Substring(0, head.Length - 1), StringComparison.Ordinal)
+                    )
                     {
                         // The second line of the SAT data of an ACIS entity ends in the date it was saved, counted by its
                         // length; AutoCAD writes it empty (the count 0, "o" as SAT data keeps it) as it writes the DXF.
                         continue;
                     }
 
-                    if (same && code == 93 && a.Type == "ACAD_TABLE" && i > 0 && a.Groups[i - 1].Value == "CELL_VALUE"
-                        && int.TryParse(v1, NumberStyles.Integer, CultureInfo.InvariantCulture, out int f1) && int.TryParse(v2, NumberStyles.Integer, CultureInfo.InvariantCulture, out int f2)
-                        && (f1 & 1) != 0 && (f1 & ~4) == (f2 & ~4))
+                    if (
+                        same
+                        && code == 93
+                        && a.Type == "ACAD_TABLE"
+                        && i > 0
+                        && a.Groups[i - 1].Value == "CELL_VALUE"
+                        && int.TryParse(v1, NumberStyles.Integer, CultureInfo.InvariantCulture, out int f1)
+                        && int.TryParse(v2, NumberStyles.Integer, CultureInfo.InvariantCulture, out int f2)
+                        && (f1 & 1) != 0
+                        && (f1 & ~4) == (f2 & ~4)
+                    )
                     {
                         // The flags of an empty cell value: the file holds 7; AutoCAD's DXF of R2007 writes 3 for most and 7
                         // for some, of its own state. Compared without flag 4.
@@ -359,7 +412,8 @@ namespace GeometryHelper.UnitTest.Dwg
 
                     if (same && IsNumber(code))
                     {
-                        same = double.TryParse(v1, NumberStyles.Float, CultureInfo.InvariantCulture, out double x)
+                        same =
+                            double.TryParse(v1, NumberStyles.Float, CultureInfo.InvariantCulture, out double x)
                             && double.TryParse(v2, NumberStyles.Float, CultureInfo.InvariantCulture, out double y)
                             && Math.Abs(x - y) <= 1E-9 * Math.Max(1.0, Math.Abs(x));
                     }
@@ -392,16 +446,30 @@ namespace GeometryHelper.UnitTest.Dwg
                     }
                     else if (same && v1 != v2)
                     {
-                        same = (k == "H:$CMLSTYLE" && string.Equals(v1, v2, StringComparison.OrdinalIgnoreCase))
+                        same =
+                            (k == "H:$CMLSTYLE" && string.Equals(v1, v2, StringComparison.OrdinalIgnoreCase))
                             || (a.Type == "CLASS" && code == 91)
                             || Letters(v1) == Letters(v2)
-                            || (long.TryParse(v1, NumberStyles.Integer, CultureInfo.InvariantCulture, out long m)
-                                && long.TryParse(v2, NumberStyles.Integer, CultureInfo.InvariantCulture, out long n) && m == n);
+                            || (
+                                long.TryParse(v1, NumberStyles.Integer, CultureInfo.InvariantCulture, out long m)
+                                && long.TryParse(v2, NumberStyles.Integer, CultureInfo.InvariantCulture, out long n)
+                                && m == n
+                            );
                     }
 
                     if (!same)
                     {
-                        fault = "group " + i + ": the key has " + code + "=" + v1 + ", the reader " + groups[i].Key + "=" + v2;
+                        fault =
+                            "group "
+                            + i
+                            + ": the key has "
+                            + code
+                            + "="
+                            + v1
+                            + ", the reader "
+                            + groups[i].Key
+                            + "="
+                            + v2;
                         break;
                     }
                 }
@@ -417,11 +485,17 @@ namespace GeometryHelper.UnitTest.Dwg
 
             foreach (Record one in keyList.Where(r => !keyToGot.ContainsKey(r.Key) && !ignored.Contains(r.Key)))
             {
-                Count(gotTypes.Contains(one.Type) && UnderUnread(key, one.Key, gotTypes) ? keyUnder : result.Missing,
-                    one.Type == "CLASS" ? "CLASS " + one.Key.Substring(2) : one.Type);
+                Count(
+                    gotTypes.Contains(one.Type) && UnderUnread(key, one.Key, gotTypes) ? keyUnder : result.Missing,
+                    one.Type == "CLASS" ? "CLASS " + one.Key.Substring(2) : one.Type
+                );
             }
 
-            foreach (Record one in gotList.Where(r => !gotToKey.ContainsKey(r.Key) && !ignored.Contains(r.Key) && !roundTrip.Contains(r.Key)))
+            foreach (
+                Record one in gotList.Where(r =>
+                    !gotToKey.ContainsKey(r.Key) && !ignored.Contains(r.Key) && !roundTrip.Contains(r.Key)
+                )
+            )
             {
                 if (UnderUnread(got, one.Key, gotTypes))
                 {
@@ -429,22 +503,39 @@ namespace GeometryHelper.UnitTest.Dwg
                 }
                 else
                 {
-                    result.Differences.Add("the reader made a record the key has not: " + one.Section + " " + one.Type + " " + one.Key);
+                    result.Differences.Add(
+                        "the reader made a record the key has not: " + one.Section + " " + one.Type + " " + one.Key
+                    );
                 }
             }
 
             if (!keyUnder.SequenceEqual(gotUnder))
             {
-                result.Differences.Add("under the types not read the key has " + string.Join(" ", keyUnder) + ", the reader " + string.Join(" ", gotUnder));
+                result.Differences.Add(
+                    "under the types not read the key has "
+                        + string.Join(" ", keyUnder)
+                        + ", the reader "
+                        + string.Join(" ", gotUnder)
+                );
             }
 
-            List<string> keyOrder = keyList.Where(r => r.Section != "OBJECTS" && keyToGot.TryGetValue(r.Key, out string g) && g == r.Key).Select(r => r.Key).ToList();
-            List<string> gotOrder = gotList.Where(r => r.Section != "OBJECTS" && gotToKey.TryGetValue(r.Key, out string g) && g == r.Key).Select(r => r.Key).ToList();
+            List<string> keyOrder = keyList
+                .Where(r => r.Section != "OBJECTS" && keyToGot.TryGetValue(r.Key, out string g) && g == r.Key)
+                .Select(r => r.Key)
+                .ToList();
+            List<string> gotOrder = gotList
+                .Where(r => r.Section != "OBJECTS" && gotToKey.TryGetValue(r.Key, out string g) && g == r.Key)
+                .Select(r => r.Key)
+                .ToList();
 
             if (!keyOrder.SequenceEqual(gotOrder))
             {
-                int at = Enumerable.Range(0, Math.Min(keyOrder.Count, gotOrder.Count)).First(i => keyOrder[i] != gotOrder[i]);
-                result.Differences.Add("the order differs first where the key has " + keyOrder[at] + " and the reader " + gotOrder[at]);
+                int at = Enumerable
+                    .Range(0, Math.Min(keyOrder.Count, gotOrder.Count))
+                    .First(i => keyOrder[i] != gotOrder[i]);
+                result.Differences.Add(
+                    "the order differs first where the key has " + keyOrder[at] + " and the reader " + gotOrder[at]
+                );
             }
 
             return result;
@@ -479,21 +570,32 @@ namespace GeometryHelper.UnitTest.Dwg
                     }
                 }
 
-                if (one.Type == "DICTIONARY" && one.Groups.Any(g => g.Key == 3 && g.Value == "ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP"))
+                if (
+                    one.Type == "DICTIONARY"
+                    && one.Groups.Any(g => g.Key == 3 && g.Value == "ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP")
+                )
                 {
                     dropped.Add(one.Key);
-                    dropped.UnionWith(one.Groups.Where(g => g.Key == 360 || g.Key == 350).Select(g => "X:" + g.Value.ToUpperInvariant()));
+                    dropped.UnionWith(
+                        one.Groups.Where(g => g.Key == 360 || g.Key == 350)
+                            .Select(g => "X:" + g.Value.ToUpperInvariant())
+                    );
                 }
             }
 
             // And what those records own, at any depth.
-            for (bool more = true; more;)
+            for (bool more = true; more; )
             {
                 more = false;
 
                 foreach (Record one in records)
                 {
-                    if (one.Section == "OBJECTS" && one.Owner != null && !dropped.Contains(one.Key) && dropped.Contains("X:" + one.Owner.ToUpperInvariant()))
+                    if (
+                        one.Section == "OBJECTS"
+                        && one.Owner != null
+                        && !dropped.Contains(one.Key)
+                        && dropped.Contains("X:" + one.Owner.ToUpperInvariant())
+                    )
                     {
                         more |= dropped.Add(one.Key);
                     }
@@ -514,14 +616,24 @@ namespace GeometryHelper.UnitTest.Dwg
         /// holds only <c>ACAD_XREC_ROUNDTRIP</c>, whose records are then expected, and the extended data that start with
         /// <c>RTT</c>.
         /// </summary>
-        private static List<KeyValuePair<int, string>> WithoutRoundTrip(Record a, Record b, Dictionary<string, Record> got, HashSet<string> roundTrip)
+        private static List<KeyValuePair<int, string>> WithoutRoundTrip(
+            Record a,
+            Record b,
+            Dictionary<string, Record> got,
+            HashSet<string> roundTrip
+        )
         {
             var groups = new List<KeyValuePair<int, string>>(b.Groups);
             int open = groups.FindIndex(g => g.Key == 102 && g.Value == "{ACAD_XDICTIONARY");
 
-            if (open >= 0 && open + 2 < groups.Count && !a.Groups.Any(g => g.Key == 102 && g.Value == "{ACAD_XDICTIONARY")
+            if (
+                open >= 0
+                && open + 2 < groups.Count
+                && !a.Groups.Any(g => g.Key == 102 && g.Value == "{ACAD_XDICTIONARY")
                 && got.TryGetValue("X:" + groups[open + 1].Value.ToUpperInvariant(), out Record dictionary)
-                && dictionary.Type == "DICTIONARY" && dictionary.Groups.Where(g => g.Key == 3).All(g => g.Value == "ACAD_XREC_ROUNDTRIP"))
+                && dictionary.Type == "DICTIONARY"
+                && dictionary.Groups.Where(g => g.Key == 3).All(g => g.Value == "ACAD_XREC_ROUNDTRIP")
+            )
             {
                 roundTrip.Add(dictionary.Key);
 
@@ -535,8 +647,13 @@ namespace GeometryHelper.UnitTest.Dwg
 
             int data = groups.FindIndex(g => g.Key == 1001 && g.Value == "ACAD");
 
-            if (data >= 0 && data + 1 < groups.Count && groups[data + 1].Key == 1000 && groups[data + 1].Value.StartsWith("RTT", StringComparison.Ordinal)
-                && !a.Groups.Any(g => g.Key == 1000 && g.Value.StartsWith("RTT", StringComparison.Ordinal)))
+            if (
+                data >= 0
+                && data + 1 < groups.Count
+                && groups[data + 1].Key == 1000
+                && groups[data + 1].Value.StartsWith("RTT", StringComparison.Ordinal)
+                && !a.Groups.Any(g => g.Key == 1000 && g.Value.StartsWith("RTT", StringComparison.Ordinal))
+            )
             {
                 int end = groups.FindIndex(data + 1, g => g.Key == 1001);
                 groups.RemoveRange(data, (end < 0 ? groups.Count : end) - data);
@@ -549,7 +666,9 @@ namespace GeometryHelper.UnitTest.Dwg
         private static List<KeyValuePair<int, string>> WithoutBookData(List<KeyValuePair<int, string>> groups)
         {
             int at = groups.FindIndex(g => g.Key == 1001 && g.Value == "ACAD");
-            return at >= 0 && at + 1 < groups.Count && groups[at + 1].Value == "DBColXD" ? groups.GetRange(0, at) : groups;
+            return at >= 0 && at + 1 < groups.Count && groups[at + 1].Value == "DBColXD"
+                ? groups.GetRange(0, at)
+                : groups;
         }
 
         /// <summary>Whether the owners of a record lead to a record that is not there or is of a type the reader does not read.</summary>

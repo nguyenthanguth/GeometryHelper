@@ -23,8 +23,8 @@ namespace GeometryHelper.UnitTest.Common
         private static readonly Tolerance Loose = new Tolerance(1E-7, 1E-7);
 
         /// <summary>A chain in z = 0: along x to (400, 0), then up to (400, 200).</summary>
-        private static GeoPolyline3 Chain() => new GeoPolyline3(
-            new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0));
+        private static GeoPolyline3 Chain() =>
+            new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0));
 
         #region A straight chain in space
 
@@ -43,7 +43,8 @@ namespace GeometryHelper.UnitTest.Common
             Assert.Single(found);
 
             // The union over the segments is the whole claim, so it must agree with asking each one.
-            GeoPoint3[] bySegment = Enumerable.Range(0, chain.EdgeCount)
+            GeoPoint3[] bySegment = Enumerable
+                .Range(0, chain.EdgeCount)
                 .SelectMany(i => chain.GetEdgeAt(i).GetIntersections(wall))
                 .ToArray();
 
@@ -79,14 +80,24 @@ namespace GeometryHelper.UnitTest.Common
 
             var box = new GeoObb3(new GeoPoint3(200, 0, 0), 100, 100, 100);
             var square = new GeoAabb3(new GeoPoint3(150, -50, -50), new GeoPoint3(250, 50, 50));
-            var triangle = new GeoTriangle3(new GeoPoint3(300, -50, -50), new GeoPoint3(300, 50, -50), new GeoPoint3(300, 0, 50));
+            var triangle = new GeoTriangle3(
+                new GeoPoint3(300, -50, -50),
+                new GeoPoint3(300, 50, -50),
+                new GeoPoint3(300, 0, 50)
+            );
             var polygon = new GeoPolygon3(
-                new GeoPoint3(350, -50, -50), new GeoPoint3(350, 50, -50),
-                new GeoPoint3(350, 50, 50), new GeoPoint3(350, -50, 50));
+                new GeoPoint3(350, -50, -50),
+                new GeoPoint3(350, 50, -50),
+                new GeoPoint3(350, 50, 50),
+                new GeoPoint3(350, -50, 50)
+            );
             var line = new GeoLine3(new GeoPoint3(100, -50, 0), new GeoPoint3(100, 50, 0));
             var ray = new GeoRay3(new GeoPoint3(50, -50, 0), new GeoVector3(0, 1, 0));
             GeoArc3 arc = GeoArc3.FromThreePoints(
-                new GeoPoint3(250, -50, 0), new GeoPoint3(220, 0, 0), new GeoPoint3(250, 50, 0));
+                new GeoPoint3(250, -50, 0),
+                new GeoPoint3(220, 0, 0),
+                new GeoPoint3(250, 50, 0)
+            );
             var circle = new GeoCircle3(new GeoPoint3(280, 0, 0), GeoVector3.YAxis, 40.0);
             GeoSolid3 body = box.ToSolid();
 
@@ -120,7 +131,10 @@ namespace GeometryHelper.UnitTest.Common
         {
             GeoPolyline3 chain = Chain();
             var across = new GeoPolyline3(
-                new GeoPoint3(200, -50, 0), new GeoPoint3(200, 50, 0), new GeoPoint3(300, 50, 0));
+                new GeoPoint3(200, -50, 0),
+                new GeoPoint3(200, 50, 0),
+                new GeoPoint3(300, 50, 0)
+            );
 
             GeoPoint3[] crossings = chain.GetIntersections(across);
 
@@ -160,7 +174,11 @@ namespace GeometryHelper.UnitTest.Common
         public void AFaceAndARectangleReportWhetherTheyMeetAnythingAtAll()
         {
             var boundary = new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 200), new GeoPoint2(0, 200));
+                new GeoPoint2(0, 0),
+                new GeoPoint2(200, 0),
+                new GeoPoint2(200, 200),
+                new GeoPoint2(0, 200)
+            );
             var face = new GeoFace2(boundary);
             var rect = new GeoRectangle2(new GeoPoint2(100, 100), 200.0, 200.0);
 
@@ -181,8 +199,14 @@ namespace GeometryHelper.UnitTest.Common
             var arc = new GeoArc2(new GeoPoint2(100, 0), 50.0, 0.0, Math.PI);
             var circle = new GeoCircle2(new GeoPoint2(100, 0), 50.0);
             var chain = new GeoPolyline2(new GeoPoint2(-50, 100), new GeoPoint2(50, 100));
-            var loop = new GeoPolygonArc2(new GeoPolygon2(
-                new GeoPoint2(150, 150), new GeoPoint2(250, 150), new GeoPoint2(250, 250), new GeoPoint2(150, 250)));
+            var loop = new GeoPolygonArc2(
+                new GeoPolygon2(
+                    new GeoPoint2(150, 150),
+                    new GeoPoint2(250, 150),
+                    new GeoPoint2(250, 250),
+                    new GeoPoint2(150, 250)
+                )
+            );
 
             Assert.Equal(face.GetIntersections(arc).Length > 0, face.TryIntersectWith(arc, out _));
             Assert.Equal(face.GetIntersections(circle).Length > 0, face.TryIntersectWith(circle, out _));
@@ -198,7 +222,8 @@ namespace GeometryHelper.UnitTest.Common
             // And the tolerance twin gives the tolerance twin's answer.
             Assert.Equal(
                 face.TryIntersectWith(crossing, out GeoPoint2[] a),
-                face.TryIntersectWith(crossing, out GeoPoint2[] b, Tolerance.Global));
+                face.TryIntersectWith(crossing, out GeoPoint2[] b, Tolerance.Global)
+            );
             Assert.Equal(a.Length, b.Length);
         }
 
@@ -224,11 +249,15 @@ namespace GeometryHelper.UnitTest.Common
             Assert.Equal(PointLocation.OutSide, ray.Locate(new GeoPoint3(-5000, 0, 0)));
 
             // Locate and IsPointOn are the one answer read two ways, so they cannot disagree.
-            foreach (GeoPoint3 point in new[]
-                     {
-                         new GeoPoint3(50, 0, 0), new GeoPoint3(50, 10, 0),
-                         new GeoPoint3(400, 100, 0), new GeoPoint3(-1, 0, 0),
-                     })
+            foreach (
+                GeoPoint3 point in new[]
+                {
+                    new GeoPoint3(50, 0, 0),
+                    new GeoPoint3(50, 10, 0),
+                    new GeoPoint3(400, 100, 0),
+                    new GeoPoint3(-1, 0, 0),
+                }
+            )
             {
                 Assert.Equal(line.IsPointOn(point), line.Locate(point) == PointLocation.OnSide);
                 Assert.Equal(chain.IsPointOn(point), chain.Locate(point) == PointLocation.OnSide);
@@ -237,8 +266,12 @@ namespace GeometryHelper.UnitTest.Common
 
             // Never Inside: there is nothing to be inside of, even where a chain's ends happen to meet.
             var closed = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0),
-                new GeoPoint3(0, 100, 0), new GeoPoint3(0, 0, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 100, 0),
+                new GeoPoint3(0, 100, 0),
+                new GeoPoint3(0, 0, 0)
+            );
 
             Assert.Equal(PointLocation.OutSide, closed.Locate(new GeoPoint3(50, 50, 0)));
         }
@@ -267,8 +300,14 @@ namespace GeometryHelper.UnitTest.Common
             Assert.Equal(straight.Locate(new GeoPoint2(50, 0)), inSpace.Locate(new GeoPoint3(50, 0, 0)));
             Assert.Equal(straight.Locate(new GeoPoint2(50, 10)), inSpace.Locate(new GeoPoint3(50, 10, 0)));
 
-            Assert.Equal(straight.IsPointOn(new GeoPoint2(50, 0)), straight.IsPointOn(new GeoPoint2(50, 0), Tolerance.Global));
-            Assert.Equal(straight.Locate(new GeoPoint2(50, 0)), straight.Locate(new GeoPoint2(50, 0), Tolerance.Global));
+            Assert.Equal(
+                straight.IsPointOn(new GeoPoint2(50, 0)),
+                straight.IsPointOn(new GeoPoint2(50, 0), Tolerance.Global)
+            );
+            Assert.Equal(
+                straight.Locate(new GeoPoint2(50, 0)),
+                straight.Locate(new GeoPoint2(50, 0), Tolerance.Global)
+            );
         }
 
         #endregion

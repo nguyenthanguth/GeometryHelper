@@ -33,7 +33,9 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
             Drawing drawing = DrawingBuilder.Build(source, DrawingSettings.Assembly, Tol);
             watch.Stop();
 
-            _output.WriteLine($"50 parts, assembly preset: {watch.Elapsed.TotalMilliseconds:0} ms, {drawing.Views.Count} views at 1:{drawing.Scale} on {drawing.Sheet.SizeName}, {DrawingEntityTags.Find(drawing.Database).Count} entities, {drawing.Views.Sum(v => v.Dimensions.Count)} dimensions");
+            _output.WriteLine(
+                $"50 parts, assembly preset: {watch.Elapsed.TotalMilliseconds:0} ms, {drawing.Views.Count} views at 1:{drawing.Scale} on {drawing.Sheet.SizeName}, {DrawingEntityTags.Find(drawing.Database).Count} entities, {drawing.Views.Sum(v => v.Dimensions.Count)} dimensions"
+            );
             drawing.Save(Path.Combine(Folder(), "tc10-5x1.dxf"));
             _output.WriteLine(SavePicture(drawing.Database, DrawingDxfWriter.LayoutName, "tc10-5x1-layout"));
             Assert.True(watch.Elapsed.TotalSeconds < 1.0, watch.Elapsed.ToString());
@@ -49,7 +51,9 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
             Drawing drawing = DrawingBuilder.Build(source, DrawingSettings.General, Tol);
             watch.Stop();
 
-            _output.WriteLine($"1 000 members, general preset: {watch.Elapsed.TotalMilliseconds:0} ms, {drawing.Views.Count} views at 1:{drawing.Scale} on {drawing.Sheet.SizeName}, {DrawingEntityTags.Find(drawing.Database).Count} entities, {drawing.Views.Sum(v => v.Marks.Count)} marks");
+            _output.WriteLine(
+                $"1 000 members, general preset: {watch.Elapsed.TotalMilliseconds:0} ms, {drawing.Views.Count} views at 1:{drawing.Scale} on {drawing.Sheet.SizeName}, {DrawingEntityTags.Find(drawing.Database).Count} entities, {drawing.Views.Sum(v => v.Marks.Count)} marks"
+            );
             drawing.Save(Path.Combine(Folder(), "tc10-10x10.dxf"));
             _output.WriteLine(SavePicture(drawing.Database, DrawingDxfWriter.LayoutName, "tc10-10x10-layout"));
             Assert.True(watch.Elapsed.TotalSeconds < 60.0, watch.Elapsed.ToString());

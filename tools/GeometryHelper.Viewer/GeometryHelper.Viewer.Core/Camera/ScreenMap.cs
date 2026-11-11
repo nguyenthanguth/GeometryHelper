@@ -137,8 +137,11 @@ namespace GeometryHelper.Viewer
         /// view, and in proportion to the distance from the eye in a perspective one.
         /// </summary>
         /// <param name="point">The point.</param>
-        public double PixelSizeAt(Vec3 point)
-            => 2.0 * (_camera.Orthographic ? _camera.Distance : Math.Max(DepthOf(point), Near)) * _camera.HalfHeightRatio / Height;
+        public double PixelSizeAt(Vec3 point) =>
+            2.0
+            * (_camera.Orthographic ? _camera.Distance : Math.Max(DepthOf(point), Near))
+            * _camera.HalfHeightRatio
+            / Height;
 
         /// <summary>
         /// Takes a point of the scene to the picture.
@@ -195,16 +198,16 @@ namespace GeometryHelper.Viewer
         /// <param name="y">Where it is down the picture, in pixels from the top.</param>
         /// <param name="origin">The eye for a perspective view; for an orthographic one the point on the plane through the target, whose ray runs both ways.</param>
         /// <param name="direction">The unit direction of the ray.</param>
-        public void GetRay(double x, double y, out Vec3 origin, out Vec3 direction)
-            => _camera.GetRay(2.0 * x / Width - 1.0, 1.0 - 2.0 * y / Height, _aspect, _scene, out origin, out direction);
+        public void GetRay(double x, double y, out Vec3 origin, out Vec3 direction) =>
+            _camera.GetRay(2.0 * x / Width - 1.0, 1.0 - 2.0 * y / Height, _aspect, _scene, out origin, out direction);
 
         /// <summary>
         /// Gets the point of the plane through the target, square to the view, that shows at a place in the picture.
         /// </summary>
         /// <param name="x">Where it is across the picture, in pixels from the left.</param>
         /// <param name="y">Where it is down the picture, in pixels from the top.</param>
-        public Vec3 PointOnTargetPlane(double x, double y)
-            => _camera.PointOnTargetPlane(2.0 * x / Width - 1.0, 1.0 - 2.0 * y / Height, _aspect);
+        public Vec3 PointOnTargetPlane(double x, double y) =>
+            _camera.PointOnTargetPlane(2.0 * x / Width - 1.0, 1.0 - 2.0 * y / Height, _aspect);
 
         /// <summary>
         /// Cuts a segment to the part that shows: between the near and far planes of a perspective view, and on the kept side of every clip plane.

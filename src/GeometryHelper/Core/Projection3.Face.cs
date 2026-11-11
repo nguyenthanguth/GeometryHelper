@@ -18,7 +18,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the point of a face nearest another point.
         /// </summary>
-        public static GeoPoint3 ProjectToFace(GeoFace3 face, GeoPoint3 point) => ProjectToFace(face, point, Tolerance.Global);
+        public static GeoPoint3 ProjectToFace(GeoFace3 face, GeoPoint3 point) =>
+            ProjectToFace(face, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the point of a face nearest another point, within a tolerance.
@@ -42,8 +43,8 @@ namespace GeometryHelper.Core
         /// offered its start (10, 0, 0), 0.0301496 away.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static GeoPoint3 ProjectToFace(GeoFace3 face, GeoPoint3 point, Tolerance tolerance)
-            => ProjectToFace(face, point, tolerance, Exactly);
+        public static GeoPoint3 ProjectToFace(GeoFace3 face, GeoPoint3 point, Tolerance tolerance) =>
+            ProjectToFace(face, point, tolerance, Exactly);
 
         /// <summary>
         /// Gets the point of a face nearest another point, whether the foot lands on the material read within one tolerance

@@ -76,13 +76,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets the items of the Paste button's arrow, as AutoCAD's: Paste, Paste as Block, Paste to Original Coordinates, Paste Special.</summary>
         /// <returns>The items.</returns>
-        public System.Collections.Generic.IReadOnlyList<CadMenuItemViewModel> PasteMenu() => new[]
-        {
-            new CadMenuItemViewModel("Paste", () => StartCommand("PASTECLIP"), HasDocument, "PASTECLIP  Ctrl+V"),
-            new CadMenuItemViewModel("Paste as Block", () => StartCommand("PASTEBLOCK"), HasDocument, "PASTEBLOCK  Ctrl+Shift+V"),
-            new CadMenuItemViewModel("Paste to Original Coordinates", () => StartCommand("PASTEORIG"), HasDocument, "PASTEORIG"),
-            new CadMenuItemViewModel("Paste Special…", () => StartCommand("PASTESPEC"), HasDocument, "PASTESPEC"),
-        };
+        public System.Collections.Generic.IReadOnlyList<CadMenuItemViewModel> PasteMenu() =>
+            new[]
+            {
+                new CadMenuItemViewModel("Paste", () => StartCommand("PASTECLIP"), HasDocument, "PASTECLIP  Ctrl+V"),
+                new CadMenuItemViewModel(
+                    "Paste as Block",
+                    () => StartCommand("PASTEBLOCK"),
+                    HasDocument,
+                    "PASTEBLOCK  Ctrl+Shift+V"
+                ),
+                new CadMenuItemViewModel(
+                    "Paste to Original Coordinates",
+                    () => StartCommand("PASTEORIG"),
+                    HasDocument,
+                    "PASTEORIG"
+                ),
+                new CadMenuItemViewModel("Paste Special…", () => StartCommand("PASTESPEC"), HasDocument, "PASTESPEC"),
+            };
 
         /// <summary>Ends the edit of a single-line text with its words, as Enter or a click outside its box ends it: the same words change nothing.</summary>
         /// <param name="words">The words.</param>
@@ -176,9 +187,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         _settings.Save(SettingsPath);
                     }
-                    catch (Exception ex) when (ex is System.IO.IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+                    catch (Exception ex)
+                        when (ex is System.IO.IOException
+                            || ex is UnauthorizedAccessException
+                            || ex is ArgumentException
+                            || ex is NotSupportedException
+                        )
                     {
-                        GeometryHelperLog.Warn("MainViewModel: Global settings were not saved after Always perform my current choice.", ex);
+                        GeometryHelperLog.Warn(
+                            "MainViewModel: Global settings were not saved after Always perform my current choice.",
+                            ex
+                        );
                     }
                 }
             }
@@ -197,7 +216,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CadCommandSession session = Session;
             DxfEntity entity = Document?.FindEntity(handle);
 
-            if (session == null || session.IsRunning || !(entity is DxfDBText || entity is DxfMText || entity is DxfDimension) || entity is DxfAttributeDefinition)
+            if (
+                session == null
+                || session.IsRunning
+                || !(entity is DxfDBText || entity is DxfMText || entity is DxfDimension)
+                || entity is DxfAttributeDefinition
+            )
             {
                 return false;
             }
@@ -222,7 +246,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (now != null && now.Kind == CadInPlaceKind.MText)
             {
                 StyleFontOf(now.StyleName, out string font, out bool shx);
-                double spacing = now.Handle != null && Document?.FindEntity(now.Handle) is DxfMText mtext ? mtext.LineSpacingFactor : 1.0;
+                double spacing =
+                    now.Handle != null && Document?.FindEntity(now.Handle) is DxfMText mtext
+                        ? mtext.LineSpacingFactor
+                        : 1.0;
                 _textEditor = new TextEditorViewModel(this, now, font, shx, spacing);
                 ((CadTextEditorTab)TextEditorTab).Show(_textEditor);
                 SelectedTab = TextEditorTab;
@@ -266,7 +293,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return 0xFFFFFF;
             }
 
-            DisplayItem2 item = document.GetDisplay(document.CurrentSpace).Items.FirstOrDefault(i => string.Equals(i.Handle, handle, StringComparison.OrdinalIgnoreCase));
+            DisplayItem2 item = document
+                .GetDisplay(document.CurrentSpace)
+                .Items.FirstOrDefault(i => string.Equals(i.Handle, handle, StringComparison.OrdinalIgnoreCase));
             return item?.Style.Rgb ?? 0xFFFFFF;
         }
 
@@ -305,13 +334,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 font = typeface;
             }
-            else if (file.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase) || file.EndsWith(".ttc", StringComparison.OrdinalIgnoreCase) || file.EndsWith(".otf", StringComparison.OrdinalIgnoreCase))
+            else if (
+                file.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase)
+                || file.EndsWith(".ttc", StringComparison.OrdinalIgnoreCase)
+                || file.EndsWith(".otf", StringComparison.OrdinalIgnoreCase)
+            )
             {
                 font = CadTrueTypeFonts.FamilyOf(file) ?? System.IO.Path.GetFileNameWithoutExtension(file);
             }
             else if (file.Length > 0)
             {
-                font = file.EndsWith(".shx", StringComparison.OrdinalIgnoreCase) ? file.Substring(0, file.Length - 4) : file;
+                font = file.EndsWith(".shx", StringComparison.OrdinalIgnoreCase)
+                    ? file.Substring(0, file.Length - 4)
+                    : file;
                 shx = true;
             }
         }

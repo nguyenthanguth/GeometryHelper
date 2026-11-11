@@ -27,7 +27,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             for (int i = 0; i + 1 < lines.Length; i += 2)
             {
-                pairs.Add(new KeyValuePair<int, string>(int.Parse(lines[i].Trim(), System.Globalization.CultureInfo.InvariantCulture), lines[i + 1].Trim()));
+                pairs.Add(
+                    new KeyValuePair<int, string>(
+                        int.Parse(lines[i].Trim(), System.Globalization.CultureInfo.InvariantCulture),
+                        lines[i + 1].Trim()
+                    )
+                );
             }
 
             int at = pairs.FindIndex(p => p.Key == 2 && p.Value == layer);
@@ -60,7 +65,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             {
                 MainViewModel model = Room(folder, out _);
 
-                foreach (AciSwatchViewModel swatch in dialog.StandardColors.Concat(dialog.GridColors).Concat(dialog.GreyColors))
+                foreach (
+                    AciSwatchViewModel swatch in dialog
+                        .StandardColors.Concat(dialog.GridColors)
+                        .Concat(dialog.GreyColors)
+                )
                 {
                     Assert.True(CadLayerEditor.SetColor(model.Document, "COLUMNS", swatch.Index).Succeeded);
                     Assert.Equal(swatch.Rgb, model.Document.Layers.Single(l => l.Name == "COLUMNS").Rgb);
@@ -144,7 +153,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     model.Document.Database.Save(path);
                     List<KeyValuePair<int, string>> groups = LayerGroups(path, name);
                     Assert.Contains(new KeyValuePair<int, string>(420, "660510"), groups);
-                    Assert.Contains(new KeyValuePair<int, string>(62, layer.Color.ColorIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)), groups);
+                    Assert.Contains(
+                        new KeyValuePair<int, string>(
+                            62,
+                            layer.Color.ColorIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        ),
+                        groups
+                    );
 
                     model.Undo();
 
@@ -173,7 +188,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             Assert.False(CadLayerEditor.SetColor(document, "OLD", DxfColor.FromRgb(10, 20, 30)).Succeeded);
             Assert.False(CadLayerEditor.SetColor(document, "OLD", DxfColor.ByLayer).Succeeded);
-            Assert.True(CadLayerEditor.SetColor(document, "OLD", DxfColor.FromColorIndex(DxfColorMethod.ByAci, 30)).Succeeded);
+            Assert.True(
+                CadLayerEditor.SetColor(document, "OLD", DxfColor.FromColorIndex(DxfColorMethod.ByAci, 30)).Succeeded
+            );
             Assert.Equal(30, db.LayerTable["OLD"].ColorIndex);
         }
 
@@ -233,7 +250,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             {
                 MainViewModel model = Room(folder, out string bottom);
                 model.Document.Selection.Set(new[] { bottom });
-                PropertyRowViewModel color = model.PropertyGroups.SelectMany(g => g.Rows).Single(r => r.Label == "Color");
+                PropertyRowViewModel color = model
+                    .PropertyGroups.SelectMany(g => g.Rows)
+                    .Single(r => r.Label == "Color");
                 Assert.Contains(MainViewModel.SelectColorOption, color.Options);
                 bool offered = false;
                 model.PickColor = dialog =>
@@ -251,7 +270,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 DxfEntity line = model.Document.FindEntity(bottom);
                 Assert.True(line.Color.IsByColor);
                 Assert.Equal(0x0A141E, line.Color.ColorValue);
-                Assert.Equal("10,20,30", model.PropertyGroups.SelectMany(g => g.Rows).Single(r => r.Label == "Color").Value);
+                Assert.Equal(
+                    "10,20,30",
+                    model.PropertyGroups.SelectMany(g => g.Rows).Single(r => r.Label == "Color").Value
+                );
             }
         }
 
@@ -289,7 +311,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 // Global settings › Canvas and cursor › Input shows it, and OK applies it.
                 GlobalSettingsViewModel options = model.CreateGlobalSettings("Canvas and cursor");
-                GlobalSettingRow row = options.Sections.SelectMany(s => s.Rows).Single(r => r.Label == "Dynamic input at the cursor (DYN, F12)");
+                GlobalSettingRow row = options
+                    .Sections.SelectMany(s => s.Rows)
+                    .Single(r => r.Label == "Dynamic input at the cursor (DYN, F12)");
                 Assert.False(row.IsOn);
                 row.IsOn = true;
                 options.ApplyCommand.Execute(null);

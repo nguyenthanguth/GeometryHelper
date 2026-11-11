@@ -32,7 +32,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 bool drawingOnly = Plugin.DrawingPlugins.Count > 0 && Plugin.Plugin?.Commands.Count == 0;
                 string kind = Plugin.Manifest?.Kind ?? (drawingOnly ? CadPluginManifest.DrawingKind : null);
-                return string.IsNullOrEmpty(kind) ? "Command" : char.ToUpperInvariant(kind[0]) + kind.Substring(1).ToLowerInvariant();
+                return string.IsNullOrEmpty(kind)
+                    ? "Command"
+                    : char.ToUpperInvariant(kind[0]) + kind.Substring(1).ToLowerInvariant();
             }
         }
 
@@ -43,7 +45,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string Version => Plugin.Plugin?.Version ?? Plugin.Manifest?.Version ?? string.Empty;
 
         /// <summary>Gets its commands' names then its drawing plugins' while it is loaded, or the manifest's commands while it is not.</summary>
-        public string Commands => string.Join(", ", (IEnumerable<string>)Plugin.Plugin?.Commands.Select(c => c.Name).Concat(Plugin.DrawingPlugins) ?? Plugin.Manifest?.Commands ?? Array.Empty<string>());
+        public string Commands =>
+            string.Join(
+                ", ",
+                (IEnumerable<string>)Plugin.Plugin?.Commands.Select(c => c.Name).Concat(Plugin.DrawingPlugins)
+                    ?? Plugin.Manifest?.Commands
+                    ?? Array.Empty<string>()
+            );
 
         /// <summary>Gets the file it was loaded from.</summary>
         public string File => Plugin.Path;
@@ -114,13 +122,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             LoadCommand = new DelegateCommand(_ => LoadRequested?.Invoke(this, EventArgs.Empty));
             InstallCommand = new DelegateCommand(_ => InstallRequested?.Invoke(this, EventArgs.Empty));
             ReloadCommand = new DelegateCommand(_ => Show(_manager.Reload(_selected.Name)), _ => _selected != null);
-            UnloadCommand = new DelegateCommand(_ => Show(_manager.Unload(_selected.Name)), _ => _selected != null && _selected.IsLoaded);
-            RemoveCommand = new DelegateCommand(_ => Show(_manager.Uninstall(_selected.Name)), _ => _selected != null && _selected.Plugin.IsInstalled);
+            UnloadCommand = new DelegateCommand(
+                _ => Show(_manager.Unload(_selected.Name)),
+                _ => _selected != null && _selected.IsLoaded
+            );
+            RemoveCommand = new DelegateCommand(
+                _ => Show(_manager.Uninstall(_selected.Name)),
+                _ => _selected != null && _selected.Plugin.IsInstalled
+            );
             ToggleLoadedCommand = new DelegateCommand(p => ToggleLoaded(p as PluginRowViewModel));
             FilterCommand = new DelegateCommand(p => Filter = p as string ?? "All");
             AddFolderCommand = new DelegateCommand(_ => AddFolderRequested?.Invoke(this, EventArgs.Empty));
-            RemoveFolderCommand = new DelegateCommand(_ => RemoveFolder(_selectedFolder), _ => _selectedFolder != null && !string.Equals(_selectedFolder, _manager.PluginFolder, StringComparison.OrdinalIgnoreCase));
-            SettingsCommand = new DelegateCommand(_ => SettingsRequested?.Invoke(this, EventArgs.Empty), _ => HasSettings);
+            RemoveFolderCommand = new DelegateCommand(
+                _ => RemoveFolder(_selectedFolder),
+                _ =>
+                    _selectedFolder != null
+                    && !string.Equals(_selectedFolder, _manager.PluginFolder, StringComparison.OrdinalIgnoreCase)
+            );
+            SettingsCommand = new DelegateCommand(
+                _ => SettingsRequested?.Invoke(this, EventArgs.Empty),
+                _ => HasSettings
+            );
             _manager.PluginsChanged += OnPluginsChanged;
             _manager.LogChanged += OnLogChanged;
             Refresh();
@@ -178,10 +200,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string AllChipText => "All " + _manager.Plugins.Count.ToString(CultureInfo.InvariantCulture);
 
         /// <summary>Gets the chip of command plugins: "Command plugins 1".</summary>
-        public string CommandChipText => "Command plugins " + _manager.Plugins.Select(p => new PluginRowViewModel(p)).Count(r => r.IsCommandKind).ToString(CultureInfo.InvariantCulture);
+        public string CommandChipText =>
+            "Command plugins "
+            + _manager
+                .Plugins.Select(p => new PluginRowViewModel(p))
+                .Count(r => r.IsCommandKind)
+                .ToString(CultureInfo.InvariantCulture);
 
         /// <summary>Gets the chip of drawing plugins: "Drawing plugins 0".</summary>
-        public string DrawingChipText => "Drawing plugins " + _manager.Plugins.Select(p => new PluginRowViewModel(p)).Count(r => !r.IsCommandKind).ToString(CultureInfo.InvariantCulture);
+        public string DrawingChipText =>
+            "Drawing plugins "
+            + _manager
+                .Plugins.Select(p => new PluginRowViewModel(p))
+                .Count(r => !r.IsCommandKind)
+                .ToString(CultureInfo.InvariantCulture);
 
         /// <summary>Gets or sets the plugin selected.</summary>
         public PluginRowViewModel Selected
@@ -197,11 +229,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets the title of the selected plugin's card: "Number circles 1.0.0".</summary>
-        public string SelectedTitle => _selected == null ? "No plugin selected" : (_selected.Plugin.Manifest?.Name ?? _selected.Name) + " " + _selected.Version;
+        public string SelectedTitle =>
+            _selected == null
+                ? "No plugin selected"
+                : (_selected.Plugin.Manifest?.Name ?? _selected.Name) + " " + _selected.Version;
 
         /// <summary>Gets the selected plugin's commands, one line each: "NUMCIRCLES (NC): Number the selected circles".</summary>
-        public IReadOnlyList<string> SelectedCommands => _selected?.Plugin.Plugin?.Commands
-            .Select(c => c.Name + (string.IsNullOrEmpty(c.Alias) ? string.Empty : " (" + c.Alias + ")") + (string.IsNullOrEmpty(c.Description) ? string.Empty : ": " + c.Description)).ToList()
+        public IReadOnlyList<string> SelectedCommands =>
+            _selected
+                ?.Plugin.Plugin?.Commands.Select(c =>
+                    c.Name
+                    + (string.IsNullOrEmpty(c.Alias) ? string.Empty : " (" + c.Alias + ")")
+                    + (string.IsNullOrEmpty(c.Description) ? string.Empty : ": " + c.Description)
+                )
+                .ToList()
             ?? (IReadOnlyList<string>)Array.Empty<string>();
 
         /// <summary>Gets the selected plugin's author and the least API version it needs.</summary>
@@ -215,13 +256,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 string author = _selected.Plugin.Manifest?.Author;
-                Version api = _selected.Plugin.Manifest?.MinimumApiVersion ?? _selected.Plugin.Plugin?.RequiredApiVersion;
-                return "Author: " + (string.IsNullOrEmpty(author) ? "not given" : author) + " · Least API version " + (api?.ToString() ?? "1.0") + " · this presenter " + CadPlugin.ApiVersion;
+                Version api = _selected.Plugin.Manifest?.MinimumApiVersion
+                    ?? _selected.Plugin.Plugin?.RequiredApiVersion;
+                return "Author: "
+                    + (string.IsNullOrEmpty(author) ? "not given" : author)
+                    + " · Least API version "
+                    + (api?.ToString() ?? "1.0")
+                    + " · this presenter "
+                    + CadPlugin.ApiVersion;
             }
         }
 
         /// <summary>Gets what is wrong with the selected plugin, as its loading found it; empty for nothing.</summary>
-        public string SelectedProblems => _selected?.Plugin.Plugin == null ? string.Empty : string.Join(" ", _selected.Plugin.Plugin.Problems);
+        public string SelectedProblems =>
+            _selected?.Plugin.Plugin == null ? string.Empty : string.Join(" ", _selected.Plugin.Plugin.Problems);
 
         /// <summary>Gets or sets whether the selected plugin loads at every start (the startup list); installed plugins always do.</summary>
         public bool SelectedLoadAtStart
@@ -291,12 +339,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Loads a plugin from a path, as Load .dll does after its dialog.</summary>
         /// <param name="path">The path.</param>
         /// <returns>What came of it.</returns>
-        public CadPluginResult Load(string path) => Show(_manager.Load(path ?? throw new ArgumentNullException(nameof(path))));
+        public CadPluginResult Load(string path) =>
+            Show(_manager.Load(path ?? throw new ArgumentNullException(nameof(path))));
 
         /// <summary>Installs a package, as Install .ghplugin does after its dialog.</summary>
         /// <param name="path">The path of the package.</param>
         /// <returns>What came of it.</returns>
-        public CadPluginResult Install(string path) => Show(_manager.Install(path ?? throw new ArgumentNullException(nameof(path))));
+        public CadPluginResult Install(string path) =>
+            Show(_manager.Install(path ?? throw new ArgumentNullException(nameof(path))));
 
         /// <summary>Trusts a folder.</summary>
         /// <param name="folder">The folder.</param>
@@ -321,7 +371,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Makes the view model of the selected plugin's settings; null where it is not loaded or declares none.</summary>
         /// <returns>The view model.</returns>
-        public PluginSettingsViewModel CreateSettings() => HasSettings ? new PluginSettingsViewModel(_selected.Plugin.Plugin) : null;
+        public PluginSettingsViewModel CreateSettings() =>
+            HasSettings ? new PluginSettingsViewModel(_selected.Plugin.Plugin) : null;
 
         /// <summary>Lets go of the manager.</summary>
         public void Dispose()
@@ -364,7 +415,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
             }
 
-            _selected = Rows.FirstOrDefault(r => string.Equals(r.Name, selected, StringComparison.OrdinalIgnoreCase)) ?? Rows.FirstOrDefault();
+            _selected = Rows.FirstOrDefault(r => string.Equals(r.Name, selected, StringComparison.OrdinalIgnoreCase))
+                ?? Rows.FirstOrDefault();
             Raise(nameof(Selected));
             Raise(nameof(AllChipText));
             Raise(nameof(CommandChipText));
@@ -424,10 +476,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             get
             {
-                string range = _setting.Kind == CadSettingKind.Number || _setting.Kind == CadSettingKind.Integer
-                    ? (double.IsInfinity(_setting.Minimum) && double.IsInfinity(_setting.Maximum) ? string.Empty
-                        : " From " + Write(_setting.Minimum) + " to " + Write(_setting.Maximum) + ".")
-                    : string.Empty;
+                string range =
+                    _setting.Kind == CadSettingKind.Number || _setting.Kind == CadSettingKind.Integer
+                        ? (
+                            double.IsInfinity(_setting.Minimum) && double.IsInfinity(_setting.Maximum)
+                                ? string.Empty
+                                : " From " + Write(_setting.Minimum) + " to " + Write(_setting.Maximum) + "."
+                        )
+                        : string.Empty;
                 return (_setting.Description ?? string.Empty) + range;
             }
         }
@@ -493,7 +549,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether the value typed was refused.</summary>
         public bool HasError => _error.Length > 0;
 
-        private static string Write(object value) => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        private static string Write(object value) =>
+            Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
 
         private static string FirstSentence(string message)
         {

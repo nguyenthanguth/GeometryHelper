@@ -31,7 +31,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="styleName">The text style.</param>
         /// <param name="attachment">How an MTEXT is attached at its location, 1 top left to 9 bottom right; 1 for a TEXT.</param>
         /// <exception cref="ArgumentNullException">Thrown when the value is null.</exception>
-        public CadInPlaceEdit(CadInPlaceKind kind, string handle, string value, GeoPoint2 location, double height, double rotation, double width, string styleName, int attachment)
+        public CadInPlaceEdit(
+            CadInPlaceKind kind,
+            string handle,
+            string value,
+            GeoPoint2 location,
+            double height,
+            double rotation,
+            double width,
+            string styleName,
+            int attachment
+        )
         {
             Kind = kind;
             Handle = handle;
@@ -84,7 +94,10 @@ namespace GeometryHelper.Dxf.Viewer
         public double? NewLineSpacing { get; set; }
 
         /// <summary>Gets whether the editor changed the box: its width, attachment or line spacing.</summary>
-        public bool ChangesBox => (NewWidth.HasValue && NewWidth.Value >= 0.0 && NewWidth.Value != Width) || NewAttachment.HasValue || NewLineSpacing.HasValue;
+        public bool ChangesBox =>
+            (NewWidth.HasValue && NewWidth.Value >= 0.0 && NewWidth.Value != Width)
+            || NewAttachment.HasValue
+            || NewLineSpacing.HasValue;
 
         /// <summary>Gets the row of the table cell edited, from nought, where <see cref="Handle"/> is a table's; -1 for any other text.</summary>
         public int TableRow { get; internal set; } = -1;

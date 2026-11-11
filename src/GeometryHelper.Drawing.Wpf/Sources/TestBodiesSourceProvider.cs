@@ -40,15 +40,17 @@ namespace GeometryHelper.Drawing.Wpf
         public string Name => _changed ? "Test bodies, changed" : "Test bodies";
 
         /// <inheritdoc/>
-        public string Description => _changed
-            ? "The test bodies with the beam B1 made 3 500 long and a stiffener added, to try Update from model"
-            : "Objects built in code: a beam with end plates, a column base with bolts, a small frame";
+        public string Description =>
+            _changed
+                ? "The test bodies with the beam B1 made 3 500 long and a stiffener added, to try Update from model"
+                : "Objects built in code: a beam with end plates, a column base with bolts, a small frame";
 
         /// <summary>Gets true: the bodies are built in code.</summary>
         public bool IsAvailable => true;
 
         /// <inheritdoc/>
-        public string AvailabilityText => _changed ? "Built in · 3 assemblies, 17 objects" : "Built in · 3 assemblies, 16 objects";
+        public string AvailabilityText =>
+            _changed ? "Built in · 3 assemblies, 17 objects" : "Built in · 3 assemblies, 16 objects";
 
         /// <summary>Gives the objects of the three assemblies, built anew.</summary>
         /// <returns>The objects in the order of their ids.</returns>
@@ -65,8 +67,26 @@ namespace GeometryHelper.Drawing.Wpf
         private void Beam(List<DrawingObject> objects)
         {
             double length = _changed ? 3500.0 : 3000.0;
-            GeoSolid3 beam = GeoSolid3.Extrude(ISection(290, 300, 14, 8.5), Section(GeoPoint3.Origin), length, _tolerance);
-            objects.Add(new DrawingObject("B1-beam", DrawingObjectKind.Part, beam, Member(GeoPoint3.Origin), "BEAM", "B1", "HEA300", "S355", "B1", true));
+            GeoSolid3 beam = GeoSolid3.Extrude(
+                ISection(290, 300, 14, 8.5),
+                Section(GeoPoint3.Origin),
+                length,
+                _tolerance
+            );
+            objects.Add(
+                new DrawingObject(
+                    "B1-beam",
+                    DrawingObjectKind.Part,
+                    beam,
+                    Member(GeoPoint3.Origin),
+                    "BEAM",
+                    "B1",
+                    "HEA300",
+                    "S355",
+                    "B1",
+                    true
+                )
+            );
 
             GeoPoint2[] holes = { P(-100, -120), P(100, -120), P(-100, 120), P(100, 120) };
             GeoFace2 plate = new GeoFace2(Rectangle(-150, -170, 150, 170), Circles(holes, 11));
@@ -75,7 +95,19 @@ namespace GeometryHelper.Drawing.Wpf
             {
                 GeoCoordinateSystem3 frame = Section(new GeoPoint3(x, 0, 0));
                 string id = "B1-plate-" + (x < 0 ? "1" : "2");
-                objects.Add(new DrawingObject(id, DrawingObjectKind.Part, GeoSolid3.Extrude(plate, frame, 20, _tolerance), frame, "END PLATE", "P1", "PL20*300", "S355", "B1"));
+                objects.Add(
+                    new DrawingObject(
+                        id,
+                        DrawingObjectKind.Part,
+                        GeoSolid3.Extrude(plate, frame, 20, _tolerance),
+                        frame,
+                        "END PLATE",
+                        "P1",
+                        "PL20*300",
+                        "S355",
+                        "B1"
+                    )
+                );
             }
 
             if (_changed)
@@ -83,7 +115,19 @@ namespace GeometryHelper.Drawing.Wpf
                 // Between the flanges on the near side of the web: 4.25 off the beam's axis to the flange's edge at 150.
                 GeoCoordinateSystem3 frame = Section(new GeoPoint3(length / 2.0 - 5.0, 0, 0));
                 GeoSolid3 stiffener = GeoSolid3.Extrude(Rectangle(4.25, -131, 150, 131), frame, 10, _tolerance);
-                objects.Add(new DrawingObject("B1-stiffener-1", DrawingObjectKind.Part, stiffener, frame, "STIFFENER", "S1", "PL10*146", "S355", "B1"));
+                objects.Add(
+                    new DrawingObject(
+                        "B1-stiffener-1",
+                        DrawingObjectKind.Part,
+                        stiffener,
+                        frame,
+                        "STIFFENER",
+                        "S1",
+                        "PL10*146",
+                        "S355",
+                        "B1"
+                    )
+                );
             }
         }
 
@@ -93,29 +137,108 @@ namespace GeometryHelper.Drawing.Wpf
             GeoPoint2[] corners = { P(-150, -150), P(150, -150), P(-150, 150), P(150, 150) };
 
             GeoFace2 basePlate = new GeoFace2(Rectangle(-200, -200, 200, 200), Circles(corners, 11));
-            Add(objects, move, "C1-base", DrawingObjectKind.Part, GeoSolid3.Extrude(basePlate, GeoCoordinateSystem3.Global, 25, _tolerance), GeoCoordinateSystem3.Global, "BASE PLATE", "P2", "PL25*400", "S355", "C1");
+            Add(
+                objects,
+                move,
+                "C1-base",
+                DrawingObjectKind.Part,
+                GeoSolid3.Extrude(basePlate, GeoCoordinateSystem3.Global, 25, _tolerance),
+                GeoCoordinateSystem3.Global,
+                "BASE PLATE",
+                "P2",
+                "PL25*400",
+                "S355",
+                "C1"
+            );
 
             // The column's frame: X up its length, Y across the flanges towards the world's X.
             var columnFrame = new GeoCoordinateSystem3(new GeoPoint3(0, 0, 25), GeoVector3.ZAxis, GeoVector3.XAxis);
-            var placement = new GeoCoordinateSystem3(new GeoPoint3(0, 0, 25), GeoVector3.YAxis.Negate(), GeoVector3.XAxis);
-            Add(objects, move, "C1-column", DrawingObjectKind.Part, GeoSolid3.Extrude(ISection(250, 250, 14, 9), placement, 1500, _tolerance), columnFrame, "COLUMN", "C1", "HEB250", "S355", "C1", true);
+            var placement = new GeoCoordinateSystem3(
+                new GeoPoint3(0, 0, 25),
+                GeoVector3.YAxis.Negate(),
+                GeoVector3.XAxis
+            );
+            Add(
+                objects,
+                move,
+                "C1-column",
+                DrawingObjectKind.Part,
+                GeoSolid3.Extrude(ISection(250, 250, 14, 9), placement, 1500, _tolerance),
+                columnFrame,
+                "COLUMN",
+                "C1",
+                "HEB250",
+                "S355",
+                "C1",
+                true
+            );
 
             var inXz = new GeoCoordinateSystem3(new GeoPoint3(0, 5, 0), GeoVector3.XAxis, GeoVector3.ZAxis);
             var inYz = new GeoCoordinateSystem3(new GeoPoint3(-5, 0, 0), GeoVector3.YAxis, GeoVector3.ZAxis);
-            GeoPolygon2[] flangeSides = { new GeoPolygon2(P(125, 25), P(200, 25), P(125, 175)), new GeoPolygon2(P(-200, 25), P(-125, 25), P(-125, 175)) };
-            GeoPolygon2[] webSides = { new GeoPolygon2(P(4.5, 25), P(200, 25), P(4.5, 175)), new GeoPolygon2(P(-200, 25), P(-4.5, 25), P(-4.5, 175)) };
+            GeoPolygon2[] flangeSides =
+            {
+                new GeoPolygon2(P(125, 25), P(200, 25), P(125, 175)),
+                new GeoPolygon2(P(-200, 25), P(-125, 25), P(-125, 175)),
+            };
+            GeoPolygon2[] webSides =
+            {
+                new GeoPolygon2(P(4.5, 25), P(200, 25), P(4.5, 175)),
+                new GeoPolygon2(P(-200, 25), P(-4.5, 25), P(-4.5, 175)),
+            };
 
             for (int i = 0; i < 2; i++)
             {
-                Add(objects, move, "C1-stiffener-" + (i + 1), DrawingObjectKind.Part, GeoSolid3.Extrude(flangeSides[i], inXz, 10, _tolerance), inXz, "STIFFENER", "S2", "PL10", "S355", "C1");
-                Add(objects, move, "C1-stiffener-" + (i + 3), DrawingObjectKind.Part, GeoSolid3.Extrude(webSides[i], inYz, 10, _tolerance), inYz, "STIFFENER", "S3", "PL10", "S355", "C1");
+                Add(
+                    objects,
+                    move,
+                    "C1-stiffener-" + (i + 1),
+                    DrawingObjectKind.Part,
+                    GeoSolid3.Extrude(flangeSides[i], inXz, 10, _tolerance),
+                    inXz,
+                    "STIFFENER",
+                    "S2",
+                    "PL10",
+                    "S355",
+                    "C1"
+                );
+                Add(
+                    objects,
+                    move,
+                    "C1-stiffener-" + (i + 3),
+                    DrawingObjectKind.Part,
+                    GeoSolid3.Extrude(webSides[i], inYz, 10, _tolerance),
+                    inYz,
+                    "STIFFENER",
+                    "S3",
+                    "PL10",
+                    "S355",
+                    "C1"
+                );
             }
 
             for (int i = 0; i < corners.Length; i++)
             {
                 var start = new GeoPoint3(corners[i].X, corners[i].Y, -30);
-                GeoSolid3 bolt = GeoSolid3.Cylinder(start, new GeoPoint3(corners[i].X, corners[i].Y, 50), 10, HoleSegments, _tolerance);
-                Add(objects, move, "C1-bolt-" + (i + 1), DrawingObjectKind.Bolt, bolt, new GeoCoordinateSystem3(start, GeoVector3.ZAxis, GeoVector3.XAxis), "BOLT", "M20", "M20*80", "8.8", "C1");
+                GeoSolid3 bolt = GeoSolid3.Cylinder(
+                    start,
+                    new GeoPoint3(corners[i].X, corners[i].Y, 50),
+                    10,
+                    HoleSegments,
+                    _tolerance
+                );
+                Add(
+                    objects,
+                    move,
+                    "C1-bolt-" + (i + 1),
+                    DrawingObjectKind.Bolt,
+                    bolt,
+                    new GeoCoordinateSystem3(start, GeoVector3.ZAxis, GeoVector3.XAxis),
+                    "BOLT",
+                    "M20",
+                    "M20*80",
+                    "8.8",
+                    "C1"
+                );
             }
         }
 
@@ -128,25 +251,79 @@ namespace GeometryHelper.Drawing.Wpf
                 var foot = new GeoPoint3(4000.0 * i, 0, 0);
                 var frame = new GeoCoordinateSystem3(foot, GeoVector3.ZAxis, GeoVector3.XAxis);
                 var placement = new GeoCoordinateSystem3(foot, GeoVector3.YAxis.Negate(), GeoVector3.XAxis);
-                Add(objects, move, "F1-column-" + (i + 1), DrawingObjectKind.Part, GeoSolid3.Extrude(ISection(200, 200, 10, 6.5), placement, 3000, _tolerance), frame, "COLUMN", "C2", "HEB200", "S355", "F1");
+                Add(
+                    objects,
+                    move,
+                    "F1-column-" + (i + 1),
+                    DrawingObjectKind.Part,
+                    GeoSolid3.Extrude(ISection(200, 200, 10, 6.5), placement, 3000, _tolerance),
+                    frame,
+                    "COLUMN",
+                    "C2",
+                    "HEB200",
+                    "S355",
+                    "F1"
+                );
             }
 
             var start = new GeoPoint3(-100, 0, 3150);
-            Add(objects, move, "F1-beam", DrawingObjectKind.Part, GeoSolid3.Extrude(ISection(300, 150, 10.7, 7.1), Section(start), 4200, _tolerance), Member(start), "BEAM", "B2", "IPE300", "S355", "F1", true);
+            Add(
+                objects,
+                move,
+                "F1-beam",
+                DrawingObjectKind.Part,
+                GeoSolid3.Extrude(ISection(300, 150, 10.7, 7.1), Section(start), 4200, _tolerance),
+                Member(start),
+                "BEAM",
+                "B2",
+                "IPE300",
+                "S355",
+                "F1",
+                true
+            );
         }
 
-        private static void Add(List<DrawingObject> objects, GeoTransform3 move, string id, DrawingObjectKind kind, GeoSolid3 body, GeoCoordinateSystem3 frame, string name, string mark, string profile, string material, string parent, bool isMain = false)
-            => objects.Add(new DrawingObject(id, kind, body.TransformBy(move), frame.TransformBy(move), name, mark, profile, material, parent, isMain));
+        private static void Add(
+            List<DrawingObject> objects,
+            GeoTransform3 move,
+            string id,
+            DrawingObjectKind kind,
+            GeoSolid3 body,
+            GeoCoordinateSystem3 frame,
+            string name,
+            string mark,
+            string profile,
+            string material,
+            string parent,
+            bool isMain = false
+        ) =>
+            objects.Add(
+                new DrawingObject(
+                    id,
+                    kind,
+                    body.TransformBy(move),
+                    frame.TransformBy(move),
+                    name,
+                    mark,
+                    profile,
+                    material,
+                    parent,
+                    isMain
+                )
+            );
 
         /// <summary>The frame of a member lying along the world's X from a point, its Y up along the world's Z.</summary>
-        private static GeoCoordinateSystem3 Member(GeoPoint3 start) => new GeoCoordinateSystem3(start, GeoVector3.XAxis, GeoVector3.ZAxis);
+        private static GeoCoordinateSystem3 Member(GeoPoint3 start) =>
+            new GeoCoordinateSystem3(start, GeoVector3.XAxis, GeoVector3.ZAxis);
 
         /// <summary>Where a section of a member along the world's X is drawn: across along the world's Y, up along Z.</summary>
-        private static GeoCoordinateSystem3 Section(GeoPoint3 origin) => new GeoCoordinateSystem3(origin, GeoVector3.YAxis, GeoVector3.ZAxis);
+        private static GeoCoordinateSystem3 Section(GeoPoint3 origin) =>
+            new GeoCoordinateSystem3(origin, GeoVector3.YAxis, GeoVector3.ZAxis);
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
-        private static GeoPolygon2 Rectangle(double x0, double y0, double x1, double y1) => new GeoPolygon2(P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1));
+        private static GeoPolygon2 Rectangle(double x0, double y0, double x1, double y1) =>
+            new GeoPolygon2(P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1));
 
         /// <summary>Holes of a radius round centres, each a polygon of <see cref="HoleSegments"/> corners running anticlockwise, the first on the line of X.</summary>
         private static GeoPolygon2[] Circles(GeoPoint2[] centres, double radius)
@@ -172,8 +349,24 @@ namespace GeometryHelper.Drawing.Wpf
         /// <summary>An I-section centred on the origin, drawn anticlockwise: across along X, up along Y.</summary>
         private static GeoPolygon2 ISection(double depth, double width, double flange, double web)
         {
-            double w = width / 2, d = depth / 2, t = web / 2, f = d - flange;
-            return new GeoPolygon2(P(-w, -d), P(w, -d), P(w, -f), P(t, -f), P(t, f), P(w, f), P(w, d), P(-w, d), P(-w, f), P(-t, f), P(-t, -f), P(-w, -f));
+            double w = width / 2,
+                d = depth / 2,
+                t = web / 2,
+                f = d - flange;
+            return new GeoPolygon2(
+                P(-w, -d),
+                P(w, -d),
+                P(w, -f),
+                P(t, -f),
+                P(t, f),
+                P(w, f),
+                P(w, d),
+                P(-w, d),
+                P(-w, f),
+                P(-t, f),
+                P(-t, -f),
+                P(-w, -f)
+            );
         }
 
         /// <inheritdoc/>

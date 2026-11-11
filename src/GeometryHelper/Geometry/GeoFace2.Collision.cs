@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -59,7 +59,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether a polyline reaches the material of this face, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoPolyline2 polyline, Tolerance tolerance) => Face2.CollidesWith(this, polyline, tolerance);
+        public bool CollidesWith(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Face2.CollidesWith(this, polyline, tolerance);
 
         /// <summary>
         /// Checks whether a polygon reaches the material of this face.
@@ -69,7 +70,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether a polygon reaches the material of this face, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoPolygon2 polygon, Tolerance tolerance) => Face2.CollidesWith(this, polygon, tolerance);
+        public bool CollidesWith(GeoPolygon2 polygon, Tolerance tolerance) =>
+            Face2.CollidesWith(this, polygon, tolerance);
 
         /// <summary>
         /// Checks whether a curved loop reaches the material of this face.
@@ -89,7 +91,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether a curved chain reaches the material of this face, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoPolylineArc2 chain, Tolerance tolerance) => Face2.CollidesWith(this, chain, tolerance);
+        public bool CollidesWith(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Face2.CollidesWith(this, chain, tolerance);
 
         /// <summary>
         /// Checks whether this face touches an edge.
@@ -99,10 +102,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this face touches an edge, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoEdge2 edge, Tolerance tolerance)
-            => edge.IsArc
-                ? CollidesWith(edge.ToArc(), tolerance)
-                : CollidesWith(edge.ToLine(), tolerance);
+        public bool CollidesWith(GeoEdge2 edge, Tolerance tolerance) =>
+            edge.IsArc ? CollidesWith(edge.ToArc(), tolerance) : CollidesWith(edge.ToLine(), tolerance);
 
         #region Triangles
 
@@ -114,7 +115,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this face touches a triangle, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.CollidesWith(triangle, this, tolerance);
+        public bool CollidesWith(GeoTriangle2 triangle, Tolerance tolerance) =>
+            Triangle2.CollidesWith(triangle, this, tolerance);
 
         #endregion
 

@@ -102,9 +102,7 @@ namespace GeometryHelper.Drawing.Wpf
         public void Stop() => _cancel?.Cancel();
 
         /// <summary>Called when <see cref="IsBusy"/> changes, so that commands can say whether they run.</summary>
-        protected virtual void OnBusyChanged()
-        {
-        }
+        protected virtual void OnBusyChanged() { }
 
         /// <summary>
         /// Runs heavy work off the UI thread, showing what it does, and comes back on the caller's thread. Stopped, it throws
@@ -154,8 +152,8 @@ namespace GeometryHelper.Drawing.Wpf
         /// <summary>Writes a length as the design does, thousands set apart by a space and no more places than it has: 3 000, 2.5.</summary>
         /// <param name="value">The length.</param>
         /// <returns>The text.</returns>
-        internal static string Length(double value)
-            => value.ToString("#,0.##", new NumberFormatInfo { NumberGroupSeparator = " ", NumberDecimalSeparator = "." });
+        internal static string Length(double value) =>
+            value.ToString("#,0.##", new NumberFormatInfo { NumberGroupSeparator = " ", NumberDecimalSeparator = "." });
     }
 
     /// <summary>How a message looks: its icon and colour.</summary>
@@ -194,7 +192,14 @@ namespace GeometryHelper.Drawing.Wpf
         /// <param name="detail">A detail in monospace, as the error's type; null for none.</param>
         /// <param name="actionText">The label of an action button, as "Open folder"; null for none.</param>
         /// <param name="action">What the action does; null for none.</param>
-        public MessageViewModel(MessageKind kind, string title, string text, string detail = null, string actionText = null, Action action = null)
+        public MessageViewModel(
+            MessageKind kind,
+            string title,
+            string text,
+            string detail = null,
+            string actionText = null,
+            Action action = null
+        )
         {
             Kind = kind;
             Title = title ?? string.Empty;
@@ -244,9 +249,20 @@ namespace GeometryHelper.Drawing.Wpf
         /// <returns>The message.</returns>
         public static MessageViewModel Failure(string title, string text, Exception error)
         {
-            Exception inner = error is AggregateException aggregate && aggregate.InnerExceptions.Count == 1 ? aggregate.InnerExceptions[0] : error;
-            string where = inner?.TargetSite == null ? string.Empty : " in " + inner.TargetSite.DeclaringType?.Name + "." + inner.TargetSite.Name;
-            return new MessageViewModel(MessageKind.Error, title, text + (inner == null ? string.Empty : " " + inner.Message), inner == null ? null : inner.GetType().Name + where);
+            Exception inner =
+                error is AggregateException aggregate && aggregate.InnerExceptions.Count == 1
+                    ? aggregate.InnerExceptions[0]
+                    : error;
+            string where =
+                inner?.TargetSite == null
+                    ? string.Empty
+                    : " in " + inner.TargetSite.DeclaringType?.Name + "." + inner.TargetSite.Name;
+            return new MessageViewModel(
+                MessageKind.Error,
+                title,
+                text + (inner == null ? string.Empty : " " + inner.Message),
+                inner == null ? null : inner.GetType().Name + where
+            );
         }
 
         /// <inheritdoc/>

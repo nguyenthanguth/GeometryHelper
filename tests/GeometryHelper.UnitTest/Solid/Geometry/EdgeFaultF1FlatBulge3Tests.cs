@@ -28,7 +28,13 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ASquareInSpaceWhoseBottomBowsATrillionth_CountsNoEdgeCurved()
         {
-            var corners = new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0) };
+            var corners = new[]
+            {
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 100, 0),
+                new GeoPoint3(0, 100, 0),
+            };
             var up = new GeoVector3(0, 0, 1);
             var square = new GeoPolygonArc3(corners, new[] { 1E-12, 0.0, 0.0, 0.0 }, new[] { up, up, up, up });
             var chain = new GeoPolylineArc3(corners, new[] { 1E-12, 0.0, 0.0, 0.0 }, new[] { up, up, up, up });

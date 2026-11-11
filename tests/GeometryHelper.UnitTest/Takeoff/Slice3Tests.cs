@@ -25,7 +25,11 @@ namespace GeometryHelper.UnitTest.Takeoff
         private const int Sets = 1000;
 
         // Slices and asks it to succeed: the volume of the subject within any of the bodies within and outside all those outside.
-        private static double Slice(GeoSolid3 subject, IReadOnlyList<GeoSolid3> within, IReadOnlyList<GeoSolid3> outside)
+        private static double Slice(
+            GeoSolid3 subject,
+            IReadOnlyList<GeoSolid3> within,
+            IReadOnlyList<GeoSolid3> outside
+        )
         {
             Assert.True(Slice3.TryVolume(subject, within, outside, out double volume), "the slicing failed");
             return volume;
@@ -55,7 +59,9 @@ namespace GeometryHelper.UnitTest.Takeoff
                 }
                 else if (!(Math.Abs(volume - expected) <= within))
                 {
-                    failures.Add($"seed {seed}: {volume:R}, the cells' {expected:R}, off by {volume - expected:G3}\n{set}");
+                    failures.Add(
+                        $"seed {seed}: {volume:R}, the cells' {expected:R}, off by {volume - expected:G3}\n{set}"
+                    );
                 }
             }
 
@@ -68,7 +74,9 @@ namespace GeometryHelper.UnitTest.Takeoff
             // The joint of VolumeTakeoffTestKit.Joint: the slab within the beam is 3 000 by 400 by 200, 240 000 000, less the
             // block the column holds, 24 000 000: the 216 000 000 the beam takes from the slab in the takeoff.
             BoxSet joint = Joint();
-            GeoSolid3 slab = joint.Boxes[0].ToSolid(), beam = joint.Boxes[1].ToSolid(), column = joint.Boxes[2].ToSolid();
+            GeoSolid3 slab = joint.Boxes[0].ToSolid(),
+                beam = joint.Boxes[1].ToSolid(),
+                column = joint.Boxes[2].ToSolid();
 
             Assert.Equal(2.16E8, Slice(slab, new[] { beam }, new[] { column }), Relative * 1.8E9);
             Assert.Equal(2.4E8, Slice(slab, new[] { beam }, None), Relative * 1.8E9);
@@ -112,7 +120,11 @@ namespace GeometryHelper.UnitTest.Takeoff
             // a quarter of it in the duct, so 24 000 000.
             BoxSet set = ColumnThroughADuct();
 
-            Assert.Equal(2.4E7, Slice(set.Boxes[0].ToSolid(), new[] { set.Boxes[1].ToSolid() }, None), Relative * 1.728E9);
+            Assert.Equal(
+                2.4E7,
+                Slice(set.Boxes[0].ToSolid(), new[] { set.Boxes[1].ToSolid() }, None),
+                Relative * 1.728E9
+            );
         }
 
         [Fact]
@@ -122,7 +134,11 @@ namespace GeometryHelper.UnitTest.Takeoff
             // 24 000 000; the 200 by 200 by 200 in the duct is no material of the column.
             BoxSet set = HollowColumnThroughASlab();
 
-            Assert.Equal(2.4E7, Slice(set.Boxes[0].ToSolid(), new[] { set.Boxes[1].ToSolid() }, None), Relative * 1.152E9);
+            Assert.Equal(
+                2.4E7,
+                Slice(set.Boxes[0].ToSolid(), new[] { set.Boxes[1].ToSolid() }, None),
+                Relative * 1.152E9
+            );
         }
 
         [Fact]
@@ -133,7 +149,11 @@ namespace GeometryHelper.UnitTest.Takeoff
             BoxSet set = HollowColumnThroughASlab();
             GeoSolid3 all = new Box(-2000, -2000, -2000, 2000, 2000, 2000).ToSolid();
 
-            Assert.Equal(1.128E9, Slice(set.Boxes[0].ToSolid(), new[] { all }, new[] { set.Boxes[1].ToSolid() }), Relative * 1.152E9);
+            Assert.Equal(
+                1.128E9,
+                Slice(set.Boxes[0].ToSolid(), new[] { all }, new[] { set.Boxes[1].ToSolid() }),
+                Relative * 1.152E9
+            );
         }
 
         [Fact]
@@ -201,8 +221,8 @@ namespace GeometryHelper.UnitTest.Takeoff
             GeoSolid3 open = Tetrahedron(300, 300, 300, leaveOutHalfTheSlantedFace: true).Translate(move);
             GeoSolid3 cube = new Box(0, 0, 0, 1000, 1000, 1000).ToSolid();
 
-            bool Sliced(GeoSolid3 tetrahedron, out double volume)
-                => role == "subject" ? Slice3.TryVolume(tetrahedron, new[] { cube }, None, out volume)
+            bool Sliced(GeoSolid3 tetrahedron, out double volume) =>
+                role == "subject" ? Slice3.TryVolume(tetrahedron, new[] { cube }, None, out volume)
                 : role == "within" ? Slice3.TryVolume(cube, new[] { tetrahedron }, None, out volume)
                 : Slice3.TryVolume(cube, new[] { cube }, new[] { tetrahedron }, out volume);
 
@@ -218,7 +238,9 @@ namespace GeometryHelper.UnitTest.Takeoff
             // than the slicing tells apart, and what lies between them, 1E6 by 1E-7, a tenth, is far below a part in a billion
             // of the cube's 1E9 either way it is read.
             GeoSolid3 cube = new Box(0, 0, 0, 1000, 1000, 1000).ToSolid();
-            GeoSolid3 above = new GeoAabb3(new GeoPoint3(-500, -500, 1E-7), new GeoPoint3(1500, 1500, 2000)).ToObb().ToSolid();
+            GeoSolid3 above = new GeoAabb3(new GeoPoint3(-500, -500, 1E-7), new GeoPoint3(1500, 1500, 2000))
+                .ToObb()
+                .ToSolid();
 
             Assert.Equal(1E9, Slice(cube, new[] { above }, None), Relative * 1E9);
         }
@@ -240,18 +262,23 @@ namespace GeometryHelper.UnitTest.Takeoff
         {
             // The slab of ColumnThroughADuct, with its duct, within the column and outside a block over a corner of it.
             BoxSet set = ColumnThroughADuct();
-            GeoSolid3 slab = set.Boxes[0].ToSolid(), column = set.Boxes[1].ToSolid();
+            GeoSolid3 slab = set.Boxes[0].ToSolid(),
+                column = set.Boxes[1].ToSolid();
             GeoSolid3 block = new Box(1300, 1300, -500, 1500, 1500, 500).ToSolid();
             GeoSolid3[] all = { slab, column, block };
             int[] faces = all.Select(body => body.Faces.Count).ToArray();
-            long[] volumes = all.Select(body => BitConverter.DoubleToInt64Bits(body.GetVolume(Tolerance.Default))).ToArray();
+            long[] volumes = all.Select(body => BitConverter.DoubleToInt64Bits(body.GetVolume(Tolerance.Default)))
+                .ToArray();
 
             double first = Slice(slab, new[] { column }, new[] { block });
             double second = Slice(slab, new[] { column }, new[] { block });
 
             Assert.Equal(BitConverter.DoubleToInt64Bits(first), BitConverter.DoubleToInt64Bits(second));
             Assert.Equal(faces, all.Select(body => body.Faces.Count));
-            Assert.Equal(volumes, all.Select(body => BitConverter.DoubleToInt64Bits(body.GetVolume(Tolerance.Default))));
+            Assert.Equal(
+                volumes,
+                all.Select(body => BitConverter.DoubleToInt64Bits(body.GetVolume(Tolerance.Default)))
+            );
         }
 
         #endregion
@@ -293,7 +320,14 @@ namespace GeometryHelper.UnitTest.Takeoff
             // where the section stops growing as a polynomial: those heights are levels too, or the slicing is not exact.
             double lean = Math.PI / 6.0;
             GeoSolid3 cube = new Box(0, 0, 0, 1000, 1000, 1000).ToSolid();
-            GeoSolid3 bar = new GeoObb3(new GeoPoint3(500, 500, 500), 3000, 200, 200, new GeoVector3(Math.Cos(lean), 0, Math.Sin(lean)), new GeoVector3(0, 1, 0)).ToSolid();
+            GeoSolid3 bar = new GeoObb3(
+                new GeoPoint3(500, 500, 500),
+                3000,
+                200,
+                200,
+                new GeoVector3(Math.Cos(lean), 0, Math.Sin(lean)),
+                new GeoVector3(0, 1, 0)
+            ).ToSolid();
 
             Assert.Equal(40000.0 * 1000.0 / Math.Cos(lean), Slice(cube, new[] { bar }, None), Relative * 1E9);
         }
@@ -322,7 +356,11 @@ namespace GeometryHelper.UnitTest.Takeoff
             GeoSolid3 upright = new Box(-500, -500, 0, 500, 500, 300).ToSolid();
             GeoSolid3 turned = TurnedBox(new GeoPoint3(0, 0, 150), 1000, 1000, 300, Math.PI / 4.0, 0.0);
 
-            Assert.Equal(2.0 * 1E6 * (Math.Sqrt(2.0) - 1.0) * 300.0, Slice(turned, new[] { upright }, None), Relative * 3E8);
+            Assert.Equal(
+                2.0 * 1E6 * (Math.Sqrt(2.0) - 1.0) * 300.0,
+                Slice(turned, new[] { upright }, None),
+                Relative * 3E8
+            );
         }
 
         [Fact]
@@ -330,10 +368,20 @@ namespace GeometryHelper.UnitTest.Takeoff
         {
             // A column of radius 200 on 32 sides, corners on the circle, 2 000 long, through a slab 200 thick: 16 times 200
             // squared times sin(pi / 16), 124 857.8, by 200.
-            GeoSolid3 column = GeoSolid3.Cylinder(new GeoPoint3(0, 0, -1000), new GeoPoint3(0, 0, 1000), 200, 32, Tolerance.Default);
+            GeoSolid3 column = GeoSolid3.Cylinder(
+                new GeoPoint3(0, 0, -1000),
+                new GeoPoint3(0, 0, 1000),
+                200,
+                32,
+                Tolerance.Default
+            );
             GeoSolid3 slab = new Box(-1000, -1000, 0, 1000, 1000, 200).ToSolid();
 
-            Assert.Equal(16.0 * 200.0 * 200.0 * Math.Sin(Math.PI / 16.0) * 200.0, Slice(slab, new[] { column }, None), Relative * 8E8);
+            Assert.Equal(
+                16.0 * 200.0 * 200.0 * Math.Sin(Math.PI / 16.0) * 200.0,
+                Slice(slab, new[] { column }, None),
+                Relative * 8E8
+            );
         }
 
         [Fact]
@@ -342,10 +390,20 @@ namespace GeometryHelper.UnitTest.Takeoff
             // A pipe of radius 200 on 24 sides lying along x at height 500, 2 000 long, through a wall 200 thick across it: 12
             // times 200 squared times sin(pi / 12), 124 233.0, by 200. Every level cuts the pipe in a strip whose width
             // changes between its corners, and the slicing must add those up exactly.
-            GeoSolid3 pipe = GeoSolid3.Cylinder(new GeoPoint3(-1000, 0, 500), new GeoPoint3(1000, 0, 500), 200, 24, Tolerance.Default);
+            GeoSolid3 pipe = GeoSolid3.Cylinder(
+                new GeoPoint3(-1000, 0, 500),
+                new GeoPoint3(1000, 0, 500),
+                200,
+                24,
+                Tolerance.Default
+            );
             GeoSolid3 wall = new Box(0, -1000, 0, 200, 1000, 1000).ToSolid();
 
-            Assert.Equal(12.0 * 200.0 * 200.0 * Math.Sin(Math.PI / 12.0) * 200.0, Slice(wall, new[] { pipe }, None), Relative * 4E8);
+            Assert.Equal(
+                12.0 * 200.0 * 200.0 * Math.Sin(Math.PI / 12.0) * 200.0,
+                Slice(wall, new[] { pipe }, None),
+                Relative * 4E8
+            );
         }
 
         [Fact]

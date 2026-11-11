@@ -48,7 +48,9 @@ namespace GeometryHelper.Dxf
     /// </summary>
     internal sealed class DxfDimVariable
     {
-        private static readonly Dictionary<string, DxfDimVariable> ByName = new Dictionary<string, DxfDimVariable>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, DxfDimVariable> ByName = new Dictionary<string, DxfDimVariable>(
+            StringComparer.Ordinal
+        );
 
         private DxfDimVariable(string name, int code, DxfDimKind kind, int since, string fallback, int r12Code)
         {
@@ -82,100 +84,183 @@ namespace GeometryHelper.Dxf
         internal bool Second => Code == 70;
 
         /// <summary>Whether it points at a record of a table.</summary>
-        internal bool IsReference => Kind == DxfDimKind.Block || Kind == DxfDimKind.Linetype || Kind == DxfDimKind.TextStyle;
+        internal bool IsReference =>
+            Kind == DxfDimKind.Block || Kind == DxfDimKind.Linetype || Kind == DxfDimKind.TextStyle;
 
         /// <summary>
         /// The variables, in the order AutoCAD writes them in a DIMSTYLE record: the 74 of AutoCAD's
         /// <c>DimStyleTableRecord</c> that a DXF file holds.
         /// </summary>
-        internal static IReadOnlyList<DxfDimVariable> All { get; } = Array.AsReadOnly(new[]
-        {
-            Make("Dimpost", 3, DxfDimKind.Text, 1009, string.Empty),
-            Make("Dimapost", 4, DxfDimKind.Text, 1009, string.Empty),
-            Make("Dimscale", 40, DxfDimKind.Real, 1009, "1.0"),
-            Make("Dimasz", 41, DxfDimKind.Real, 1009, "0.18"),
-            Make("Dimexo", 42, DxfDimKind.Real, 1009, "0.0625"),
-            Make("Dimdli", 43, DxfDimKind.Real, 1009, "0.38"),
-            Make("Dimexe", 44, DxfDimKind.Real, 1009, "0.18"),
-            Make("Dimrnd", 45, DxfDimKind.Real, 1009, "0.0"),
-            Make("Dimdle", 46, DxfDimKind.Real, 1009, "0.0"),
-            Make("Dimtp", 47, DxfDimKind.Real, 1009, "0.0"),
-            Make("Dimtm", 48, DxfDimKind.Real, 1009, "0.0"),
-            Make("Dimfxlen", 49, DxfDimKind.Real, 1021, "1.0"),
-            Make("Dimjogang", 50, DxfDimKind.Angle, 1021, "45.0"),
-            Make("Dimtxt", 140, DxfDimKind.Real, 1009, "0.18"),
-            Make("Dimcen", 141, DxfDimKind.Real, 1009, "0.09"),
-            Make("Dimtsz", 142, DxfDimKind.Real, 1009, "0.0"),
-            Make("Dimaltf", 143, DxfDimKind.Real, 1009, "25.4"),
-            Make("Dimlfac", 144, DxfDimKind.Real, 1009, "1.0"),
-            Make("Dimtvp", 145, DxfDimKind.Real, 1009, "0.0"),
-            Make("Dimtfac", 146, DxfDimKind.Real, 1009, "1.0"),
-            Make("Dimgap", 147, DxfDimKind.Real, 1009, "0.09"),
-            Make("Dimaltrnd", 148, DxfDimKind.Real, 1015, "0.0"),
-            Make("Dimtfill", 69, DxfDimKind.Whole, 1021, "0"),
-            Make("Dimtfillclr", 70, DxfDimKind.Colour, 1021, "0"),
-            Make("Dimtol", 71, DxfDimKind.Flag, 1009, "0"),
-            Make("Dimlim", 72, DxfDimKind.Flag, 1009, "0"),
-            Make("Dimtih", 73, DxfDimKind.Flag, 1009, "1"),
-            Make("Dimtoh", 74, DxfDimKind.Flag, 1009, "1"),
-            Make("Dimse1", 75, DxfDimKind.Flag, 1009, "0"),
-            Make("Dimse2", 76, DxfDimKind.Flag, 1009, "0"),
-            Make("Dimtad", 77, DxfDimKind.Whole, 1009, "0"),
-            Make("Dimzin", 78, DxfDimKind.Whole, 1009, "0"),
-            Make("Dimazin", 79, DxfDimKind.Whole, 1015, "0"),
-            Make("Dimarcsym", 90, DxfDimKind.Whole, 1015, "0"),
-            Make("Dimalt", 170, DxfDimKind.Flag, 1009, "0"),
-            Make("Dimaltd", 171, DxfDimKind.Whole, 1009, "2"),
-            Make("Dimtofl", 172, DxfDimKind.Flag, 1009, "0"),
-            Make("Dimsah", 173, DxfDimKind.Flag, 1009, "0"),
-            Make("Dimtix", 174, DxfDimKind.Flag, 1009, "0"),
-            Make("Dimsoxd", 175, DxfDimKind.Flag, 1009, "0"),
-            Make("Dimclrd", 176, DxfDimKind.Colour, 1009, "0"),
-            Make("Dimclre", 177, DxfDimKind.Colour, 1009, "0"),
-            Make("Dimclrt", 178, DxfDimKind.Colour, 1009, "0"),
-            Make("Dimadec", 179, DxfDimKind.Whole, 1015, "0"),
-            Make("Dimdec", 271, DxfDimKind.Whole, 1015, "4"),
-            Make("Dimtdec", 272, DxfDimKind.Whole, 1015, "4"),
-            Make("Dimaltu", 273, DxfDimKind.Whole, 1015, "2"),
-            Make("Dimalttd", 274, DxfDimKind.Whole, 1015, "2"),
-            Make("Dimaunit", 275, DxfDimKind.Whole, 1015, "0"),
-            Make("Dimfrac", 276, DxfDimKind.Whole, 1015, "0"),
-            Make("Dimlunit", 277, DxfDimKind.Whole, 1015, "2"),
-            Make("Dimdsep", 278, DxfDimKind.Letter, 1015, "46"),
-            Make("Dimtmove", 279, DxfDimKind.Whole, 1015, "0"),
-            Make("Dimjust", 280, DxfDimKind.Whole, 1015, "0"),
-            Make("Dimsd1", 281, DxfDimKind.Flag, 1015, "0"),
-            Make("Dimsd2", 282, DxfDimKind.Flag, 1015, "0"),
-            Make("Dimtolj", 283, DxfDimKind.Whole, 1015, "1"),
-            Make("Dimtzin", 284, DxfDimKind.Whole, 1015, "0"),
-            Make("Dimaltz", 285, DxfDimKind.Whole, 1015, "0"),
-            Make("Dimalttz", 286, DxfDimKind.Whole, 1015, "0"),
-            Make("Dimupt", 288, DxfDimKind.Flag, 1015, "0"),
-            Make("Dimatfit", 289, DxfDimKind.Whole, 1015, "3"),
-            Make("DimfxlenOn", 290, DxfDimKind.Flag, 1021, "0"),
-            Make("Dimtxtdirection", 294, DxfDimKind.Flag, 1024, "0"),
-            Make("Dimtxsty", 340, DxfDimKind.TextStyle, 1015, null),
-            Make("Dimldrblk", 341, DxfDimKind.Block, 1015, null),
-            Make("Dimblk", 342, DxfDimKind.Block, 1009, null, 5),
-            Make("Dimblk1", 343, DxfDimKind.Block, 1009, null, 6),
-            Make("Dimblk2", 344, DxfDimKind.Block, 1009, null, 7),
-            Make("Dimltype", 345, DxfDimKind.Linetype, 1021, null),
-            Make("Dimltex1", 346, DxfDimKind.Linetype, 1021, null),
-            Make("Dimltex2", 347, DxfDimKind.Linetype, 1021, null),
-            Make("Dimlwd", 371, DxfDimKind.Weight, 1015, "-2"),
-            Make("Dimlwe", 372, DxfDimKind.Weight, 1015, "-2"),
-        });
+        internal static IReadOnlyList<DxfDimVariable> All { get; } =
+            Array.AsReadOnly(
+                new[]
+                {
+                    Make("Dimpost", 3, DxfDimKind.Text, 1009, string.Empty),
+                    Make("Dimapost", 4, DxfDimKind.Text, 1009, string.Empty),
+                    Make("Dimscale", 40, DxfDimKind.Real, 1009, "1.0"),
+                    Make("Dimasz", 41, DxfDimKind.Real, 1009, "0.18"),
+                    Make("Dimexo", 42, DxfDimKind.Real, 1009, "0.0625"),
+                    Make("Dimdli", 43, DxfDimKind.Real, 1009, "0.38"),
+                    Make("Dimexe", 44, DxfDimKind.Real, 1009, "0.18"),
+                    Make("Dimrnd", 45, DxfDimKind.Real, 1009, "0.0"),
+                    Make("Dimdle", 46, DxfDimKind.Real, 1009, "0.0"),
+                    Make("Dimtp", 47, DxfDimKind.Real, 1009, "0.0"),
+                    Make("Dimtm", 48, DxfDimKind.Real, 1009, "0.0"),
+                    Make("Dimfxlen", 49, DxfDimKind.Real, 1021, "1.0"),
+                    Make("Dimjogang", 50, DxfDimKind.Angle, 1021, "45.0"),
+                    Make("Dimtxt", 140, DxfDimKind.Real, 1009, "0.18"),
+                    Make("Dimcen", 141, DxfDimKind.Real, 1009, "0.09"),
+                    Make("Dimtsz", 142, DxfDimKind.Real, 1009, "0.0"),
+                    Make("Dimaltf", 143, DxfDimKind.Real, 1009, "25.4"),
+                    Make("Dimlfac", 144, DxfDimKind.Real, 1009, "1.0"),
+                    Make("Dimtvp", 145, DxfDimKind.Real, 1009, "0.0"),
+                    Make("Dimtfac", 146, DxfDimKind.Real, 1009, "1.0"),
+                    Make("Dimgap", 147, DxfDimKind.Real, 1009, "0.09"),
+                    Make("Dimaltrnd", 148, DxfDimKind.Real, 1015, "0.0"),
+                    Make("Dimtfill", 69, DxfDimKind.Whole, 1021, "0"),
+                    Make("Dimtfillclr", 70, DxfDimKind.Colour, 1021, "0"),
+                    Make("Dimtol", 71, DxfDimKind.Flag, 1009, "0"),
+                    Make("Dimlim", 72, DxfDimKind.Flag, 1009, "0"),
+                    Make("Dimtih", 73, DxfDimKind.Flag, 1009, "1"),
+                    Make("Dimtoh", 74, DxfDimKind.Flag, 1009, "1"),
+                    Make("Dimse1", 75, DxfDimKind.Flag, 1009, "0"),
+                    Make("Dimse2", 76, DxfDimKind.Flag, 1009, "0"),
+                    Make("Dimtad", 77, DxfDimKind.Whole, 1009, "0"),
+                    Make("Dimzin", 78, DxfDimKind.Whole, 1009, "0"),
+                    Make("Dimazin", 79, DxfDimKind.Whole, 1015, "0"),
+                    Make("Dimarcsym", 90, DxfDimKind.Whole, 1015, "0"),
+                    Make("Dimalt", 170, DxfDimKind.Flag, 1009, "0"),
+                    Make("Dimaltd", 171, DxfDimKind.Whole, 1009, "2"),
+                    Make("Dimtofl", 172, DxfDimKind.Flag, 1009, "0"),
+                    Make("Dimsah", 173, DxfDimKind.Flag, 1009, "0"),
+                    Make("Dimtix", 174, DxfDimKind.Flag, 1009, "0"),
+                    Make("Dimsoxd", 175, DxfDimKind.Flag, 1009, "0"),
+                    Make("Dimclrd", 176, DxfDimKind.Colour, 1009, "0"),
+                    Make("Dimclre", 177, DxfDimKind.Colour, 1009, "0"),
+                    Make("Dimclrt", 178, DxfDimKind.Colour, 1009, "0"),
+                    Make("Dimadec", 179, DxfDimKind.Whole, 1015, "0"),
+                    Make("Dimdec", 271, DxfDimKind.Whole, 1015, "4"),
+                    Make("Dimtdec", 272, DxfDimKind.Whole, 1015, "4"),
+                    Make("Dimaltu", 273, DxfDimKind.Whole, 1015, "2"),
+                    Make("Dimalttd", 274, DxfDimKind.Whole, 1015, "2"),
+                    Make("Dimaunit", 275, DxfDimKind.Whole, 1015, "0"),
+                    Make("Dimfrac", 276, DxfDimKind.Whole, 1015, "0"),
+                    Make("Dimlunit", 277, DxfDimKind.Whole, 1015, "2"),
+                    Make("Dimdsep", 278, DxfDimKind.Letter, 1015, "46"),
+                    Make("Dimtmove", 279, DxfDimKind.Whole, 1015, "0"),
+                    Make("Dimjust", 280, DxfDimKind.Whole, 1015, "0"),
+                    Make("Dimsd1", 281, DxfDimKind.Flag, 1015, "0"),
+                    Make("Dimsd2", 282, DxfDimKind.Flag, 1015, "0"),
+                    Make("Dimtolj", 283, DxfDimKind.Whole, 1015, "1"),
+                    Make("Dimtzin", 284, DxfDimKind.Whole, 1015, "0"),
+                    Make("Dimaltz", 285, DxfDimKind.Whole, 1015, "0"),
+                    Make("Dimalttz", 286, DxfDimKind.Whole, 1015, "0"),
+                    Make("Dimupt", 288, DxfDimKind.Flag, 1015, "0"),
+                    Make("Dimatfit", 289, DxfDimKind.Whole, 1015, "3"),
+                    Make("DimfxlenOn", 290, DxfDimKind.Flag, 1021, "0"),
+                    Make("Dimtxtdirection", 294, DxfDimKind.Flag, 1024, "0"),
+                    Make("Dimtxsty", 340, DxfDimKind.TextStyle, 1015, null),
+                    Make("Dimldrblk", 341, DxfDimKind.Block, 1015, null),
+                    Make("Dimblk", 342, DxfDimKind.Block, 1009, null, 5),
+                    Make("Dimblk1", 343, DxfDimKind.Block, 1009, null, 6),
+                    Make("Dimblk2", 344, DxfDimKind.Block, 1009, null, 7),
+                    Make("Dimltype", 345, DxfDimKind.Linetype, 1021, null),
+                    Make("Dimltex1", 346, DxfDimKind.Linetype, 1021, null),
+                    Make("Dimltex2", 347, DxfDimKind.Linetype, 1021, null),
+                    Make("Dimlwd", 371, DxfDimKind.Weight, 1015, "-2"),
+                    Make("Dimlwe", 372, DxfDimKind.Weight, 1015, "-2"),
+                }
+            );
 
         /// <summary>
         /// The codes of a DIMSTYLE record's own groups in the order AutoCAD writes them, a 100 where a marker stands, the
         /// record's name and flags first; DIMTFILLCLR, the second 70, has its place after DIMTFILL (69).
         /// </summary>
-        internal static IReadOnlyList<int> StyleOrder { get; } = Array.AsReadOnly(new[]
-        {
-            100, 2, 70, 3, 4, 5, 6, 7, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 140, 141, 142, 143, 144, 145, 146, 147, 148, 69,
-            71, 72, 73, 74, 75, 76, 77, 78, 79, 90, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 271, 272, 273, 274, 275, 276,
-            277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 288, 289, 290, 294, 340, 341, 342, 343, 344, 345, 346, 347, 371, 372,
-        });
+        internal static IReadOnlyList<int> StyleOrder { get; } =
+            Array.AsReadOnly(
+                new[]
+                {
+                    100,
+                    2,
+                    70,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    40,
+                    41,
+                    42,
+                    43,
+                    44,
+                    45,
+                    46,
+                    47,
+                    48,
+                    49,
+                    50,
+                    140,
+                    141,
+                    142,
+                    143,
+                    144,
+                    145,
+                    146,
+                    147,
+                    148,
+                    69,
+                    71,
+                    72,
+                    73,
+                    74,
+                    75,
+                    76,
+                    77,
+                    78,
+                    79,
+                    90,
+                    170,
+                    171,
+                    172,
+                    173,
+                    174,
+                    175,
+                    176,
+                    177,
+                    178,
+                    179,
+                    271,
+                    272,
+                    273,
+                    274,
+                    275,
+                    276,
+                    277,
+                    278,
+                    279,
+                    280,
+                    281,
+                    282,
+                    283,
+                    284,
+                    285,
+                    286,
+                    288,
+                    289,
+                    290,
+                    294,
+                    340,
+                    341,
+                    342,
+                    343,
+                    344,
+                    345,
+                    346,
+                    347,
+                    371,
+                    372,
+                }
+            );
 
         /// <summary>The variable of a name as AutoCAD's .NET gives it.</summary>
         internal static DxfDimVariable Named(string name) => ByName[name];
@@ -226,9 +311,14 @@ namespace GeometryHelper.Dxf
             switch (Kind)
             {
                 case DxfDimKind.Real:
-                    return Numbers.TryRead(text, out double real) && Guard.IsFinite(real) ? real : double.Parse(Fallback, CultureInfo.InvariantCulture);
+                    return Numbers.TryRead(text, out double real) && Guard.IsFinite(real)
+                        ? real
+                        : double.Parse(Fallback, CultureInfo.InvariantCulture);
                 case DxfDimKind.Angle:
-                    double degrees = Numbers.TryRead(text, out double angle) && Guard.IsFinite(angle) ? angle : double.Parse(Fallback, CultureInfo.InvariantCulture);
+                    double degrees =
+                        Numbers.TryRead(text, out double angle) && Guard.IsFinite(angle)
+                            ? angle
+                            : double.Parse(Fallback, CultureInfo.InvariantCulture);
                     return degrees * (Math.PI / 180.0);
                 case DxfDimKind.Text:
                     return text ?? Fallback;
@@ -282,7 +372,8 @@ namespace GeometryHelper.Dxf
 
             if (IsReference)
             {
-                return ReferenceEquals(a, b) || (a is DxfDBObject x && b is DxfDBObject y && x.Item != null && x.Item == y.Item);
+                return ReferenceEquals(a, b)
+                    || (a is DxfDBObject x && b is DxfDBObject y && x.Item != null && x.Item == y.Item);
             }
 
             return Equals(a, b);
@@ -311,7 +402,10 @@ namespace GeometryHelper.Dxf
 
                     if (((string)value).IndexOf('\n') >= 0 || ((string)value).IndexOf('\r') >= 0)
                     {
-                        throw new ArgumentException("The " + Name + " is one line, with no line break in it.", parameter);
+                        throw new ArgumentException(
+                            "The " + Name + " is one line, with no line break in it.",
+                            parameter
+                        );
                     }
 
                     break;
@@ -325,14 +419,25 @@ namespace GeometryHelper.Dxf
 
                     if (!colour.IsByAci && !colour.IsByLayer && !colour.IsByBlock)
                     {
-                        throw new ArgumentException("The " + Name + " of a dimension style is a colour of AutoCAD's index, BYLAYER or BYBLOCK: a " + colour.ColorMethod + " is not written.", parameter);
+                        throw new ArgumentException(
+                            "The "
+                                + Name
+                                + " of a dimension style is a colour of AutoCAD's index, BYLAYER or BYBLOCK: a "
+                                + colour.ColorMethod
+                                + " is not written.",
+                            parameter
+                        );
                     }
 
                     break;
                 case DxfDimKind.Weight:
                     if (!Enum.IsDefined(typeof(DxfLineWeight), value))
                     {
-                        throw new ArgumentOutOfRangeException(parameter, value, "The " + Name + " is one of AutoCAD's lineweights.");
+                        throw new ArgumentOutOfRangeException(
+                            parameter,
+                            value,
+                            "The " + Name + " is one of AutoCAD's lineweights."
+                        );
                     }
 
                     break;
@@ -344,7 +449,10 @@ namespace GeometryHelper.Dxf
 
                     if (value is DxfBlockTableRecord block && block.IsLayout)
                     {
-                        throw new ArgumentException("The " + Name + " is a block of arrows, not a layout: " + block.Name + " is one.", parameter);
+                        throw new ArgumentException(
+                            "The " + Name + " is a block of arrows, not a layout: " + block.Name + " is one.",
+                            parameter
+                        );
                     }
 
                     break;
@@ -376,7 +484,12 @@ namespace GeometryHelper.Dxf
             }
 
             // A whole number written as a real, as some writers write a 1070, reads as the whole number it is.
-            if (Numbers.TryRead(text, out double real) && Guard.IsFinite(real) && real == Math.Floor(real) && Math.Abs(real) <= int.MaxValue)
+            if (
+                Numbers.TryRead(text, out double real)
+                && Guard.IsFinite(real)
+                && real == Math.Floor(real)
+                && Math.Abs(real) <= int.MaxValue
+            )
             {
                 return (int)real;
             }
@@ -385,9 +498,20 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The version said in a message: R12, R2000, R2007 or R2010, with AutoCAD's number.</summary>
-        internal string SinceSaid => Since >= 1024 ? "R2010 (AC1024)" : Since >= 1021 ? "R2007 (AC1021)" : Since >= 1015 ? "R2000 (AC1015)" : "R12 (AC1009)";
+        internal string SinceSaid =>
+            Since >= 1024 ? "R2010 (AC1024)"
+            : Since >= 1021 ? "R2007 (AC1021)"
+            : Since >= 1015 ? "R2000 (AC1015)"
+            : "R12 (AC1009)";
 
-        private static DxfDimVariable Make(string name, int code, DxfDimKind kind, int since, string fallback, int r12Code = 0)
+        private static DxfDimVariable Make(
+            string name,
+            int code,
+            DxfDimKind kind,
+            int since,
+            string fallback,
+            int r12Code = 0
+        )
         {
             var variable = new DxfDimVariable(name, code, kind, since, fallback, r12Code);
             ByName.Add(name, variable);

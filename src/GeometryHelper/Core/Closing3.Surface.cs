@@ -193,8 +193,8 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="one">The one face.</param>
         /// <param name="other">The other.</param>
-        private static bool SameShape(GeoFace3 one, GeoFace3 other)
-            => one.Boundary.VertexCount == other.Boundary.VertexCount && one.Holes.Count == other.Holes.Count;
+        private static bool SameShape(GeoFace3 one, GeoFace3 other) =>
+            one.Boundary.VertexCount == other.Boundary.VertexCount && one.Holes.Count == other.Holes.Count;
 
         /// <summary>
         /// The stretches each face has an edge on, by index, in order; null for a face with none.
@@ -243,8 +243,11 @@ namespace GeometryHelper.Core
         private static void Settle(Work work, List<int> group, List<bool> same, List<int>[] along)
         {
             int first = group[0];
-            int alike = 0, against = 0;
-            bool anyOdd = false, anyEven = false, anyRound = false;
+            int alike = 0,
+                against = 0;
+            bool anyOdd = false,
+                anyEven = false,
+                anyRound = false;
 
             foreach (int s in along[first] ?? new List<int>())
             {
@@ -424,7 +427,10 @@ namespace GeometryHelper.Core
                             return false;
                         }
                     }
-                    else if (FindOdd(parent, odd, a, out _) != FindOdd(parent, odd, b, out _) && IsWholeEdge(stretch, live, work.Tolerance.EqualPoint))
+                    else if (
+                        FindOdd(parent, odd, a, out _) != FindOdd(parent, odd, b, out _)
+                        && IsWholeEdge(stretch, live, work.Tolerance.EqualPoint)
+                    )
                     {
                         TryJoin(parent, odd, a, b, apart);
                     }
@@ -464,7 +470,8 @@ namespace GeometryHelper.Core
 
             foreach (List<int> shell in shells)
             {
-                double even = 0.0, other = 0.0;
+                double even = 0.0,
+                    other = 0.0;
                 bool any = false;
 
                 foreach (int f in shell)
@@ -534,7 +541,13 @@ namespace GeometryHelper.Core
         /// six thousand faces, one copy of a corner of it welded, is so oriented in no more than it takes to add its volume.
         /// </para>
         /// </remarks>
-        private static List<int> Reorient(Work work, List<GeoFace3> built, List<int> from, List<Stretch> stretches, List<int> localOf)
+        private static List<int> Reorient(
+            Work work,
+            List<GeoFace3> built,
+            List<int> from,
+            List<Stretch> stretches,
+            List<int> localOf
+        )
         {
             int count = built.Count;
             var parent = new int[count];
@@ -590,7 +603,13 @@ namespace GeometryHelper.Core
                     // A face asked to be turned both ways is left as it is: the check reads the body after.
                     bool apart = stretch.Forward[0] == stretch.Forward[1];
 
-                    if (pass == 0 || (FindOdd(parent, odd, a, out _) != FindOdd(parent, odd, b, out _) && IsWholeEdge(stretch, both, work.Tolerance.EqualPoint)))
+                    if (
+                        pass == 0
+                        || (
+                            FindOdd(parent, odd, a, out _) != FindOdd(parent, odd, b, out _)
+                            && IsWholeEdge(stretch, both, work.Tolerance.EqualPoint)
+                        )
+                    )
                     {
                         TryJoin(parent, odd, a, b, apart);
                     }
@@ -622,7 +641,8 @@ namespace GeometryHelper.Core
 
             foreach (List<int> shell in shells)
             {
-                double even = 0.0, other = 0.0;
+                double even = 0.0,
+                    other = 0.0;
 
                 foreach (int k in shell)
                 {
@@ -702,7 +722,13 @@ namespace GeometryHelper.Core
         /// nothing of which way it faces.
         /// </para>
         /// </remarks>
-        private static bool[] TurnedOutwards(IReadOnlyList<GeoFace3> faces, List<List<int>> shells, bool[] turn, bool[] closed, Tolerance tolerance)
+        private static bool[] TurnedOutwards(
+            IReadOnlyList<GeoFace3> faces,
+            List<List<int>> shells,
+            bool[] turn,
+            bool[] closed,
+            Tolerance tolerance
+        )
         {
             int count = shells.Count;
             var oriented = new List<GeoFace3>[count];
@@ -742,7 +768,10 @@ namespace GeometryHelper.Core
                 for (int t = 0; t < count && !nested; t++)
                 {
                     // A shell still open may yet hold one in its box, however little of the sphere round it its faces cover.
-                    nested = t != s && boxes[t].Contains(boxes[s], tolerance) && (!closed[t] || Holds(oriented[t], oriented[s], tolerance));
+                    nested =
+                        t != s
+                        && boxes[t].Contains(boxes[s], tolerance)
+                        && (!closed[t] || Holds(oriented[t], oriented[s], tolerance));
                 }
 
                 if (nested)
@@ -1200,9 +1229,7 @@ namespace GeometryHelper.Core
             /// <param name="skip">For each face, whether it is left out; null where none is.</param>
             /// <param name="tolerance">The tolerance two boxes meet within.</param>
             internal FaceBoxes(IReadOnlyList<GeoFace3> faces, bool[] skip, Tolerance tolerance)
-                : this(BoxesOf(faces, skip), skip, tolerance)
-            {
-            }
+                : this(BoxesOf(faces, skip), skip, tolerance) { }
 
             /// <summary>
             /// Files boxes, each by its index.
@@ -1312,7 +1339,8 @@ namespace GeometryHelper.Core
                 double high = Coordinate(box.Max, _axis) + reach;
 
                 // The first box filed that starts no earlier than the longest box before the one asked about.
-                int first = 0, past = _lows.Length;
+                int first = 0,
+                    past = _lows.Length;
 
                 while (first < past)
                 {

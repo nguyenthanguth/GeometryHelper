@@ -48,9 +48,21 @@ namespace GeometryHelper.UnitTest.Solid
         {
             double[] far = { 0.0, 1E3, 1E5, 1E6 };
             double reach = far[random.Next(far.Length)];
-            GeoPoint3 origin = new GeoPoint3(reach * (random.NextDouble() - 0.5), reach * (random.NextDouble() - 0.5), reach * (random.NextDouble() - 0.5));
-            GeoVector3 x = new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5);
-            GeoVector3 y = new GeoVector3(random.NextDouble() - 0.5, random.NextDouble() - 0.5, random.NextDouble() - 0.5);
+            GeoPoint3 origin = new GeoPoint3(
+                reach * (random.NextDouble() - 0.5),
+                reach * (random.NextDouble() - 0.5),
+                reach * (random.NextDouble() - 0.5)
+            );
+            GeoVector3 x = new GeoVector3(
+                random.NextDouble() - 0.5,
+                random.NextDouble() - 0.5,
+                random.NextDouble() - 0.5
+            );
+            GeoVector3 y = new GeoVector3(
+                random.NextDouble() - 0.5,
+                random.NextDouble() - 0.5,
+                random.NextDouble() - 0.5
+            );
 
             return new GeoCoordinateSystem3(origin, x.Normalize(), y.Normalize());
         }
@@ -59,23 +71,49 @@ namespace GeometryHelper.UnitTest.Solid
         {
             switch (shape)
             {
-                case GeoLine2 s: return PlanarMap.ToLine3(frame, s);
-                case GeoRay2 s: return PlanarMap.ToRay3(frame, s);
-                case GeoXLine2 s: return PlanarMap.ToXLine3(frame, s);
-                case GeoPolyline2 s: return PlanarMap.ToPolyline3(frame, s);
-                case GeoPolygon2 s: return PlanarMap.ToPolygon3(frame, s);
-                case GeoTriangle2 s: return PlanarMap.ToTriangle3(frame, s);
-                case GeoFace2 s: return PlanarMap.ToFace3(frame, s);
-                case GeoArc2 s: return PlanarMap.ToArc3(frame, s);
-                case GeoCircle2 s: return new GeoCircle3(PlanarMap.ToPoint3(frame, s.Center), frame.ZAxis, s.Radius);
-                case GeoEllipse2 s: return PlanarMap.ToEllipse3(frame, s);
-                case GeoEdge2 s: return PlanarMap.ToEdge3(frame, s);
-                case GeoPolylineArc2 s: return PlanarMap.ToPolylineArc3(frame, s);
-                default: throw new NotSupportedException(shape.GetType().Name);
+                case GeoLine2 s:
+                    return PlanarMap.ToLine3(frame, s);
+                case GeoRay2 s:
+                    return PlanarMap.ToRay3(frame, s);
+                case GeoXLine2 s:
+                    return PlanarMap.ToXLine3(frame, s);
+                case GeoPolyline2 s:
+                    return PlanarMap.ToPolyline3(frame, s);
+                case GeoPolygon2 s:
+                    return PlanarMap.ToPolygon3(frame, s);
+                case GeoTriangle2 s:
+                    return PlanarMap.ToTriangle3(frame, s);
+                case GeoFace2 s:
+                    return PlanarMap.ToFace3(frame, s);
+                case GeoArc2 s:
+                    return PlanarMap.ToArc3(frame, s);
+                case GeoCircle2 s:
+                    return new GeoCircle3(PlanarMap.ToPoint3(frame, s.Center), frame.ZAxis, s.Radius);
+                case GeoEllipse2 s:
+                    return PlanarMap.ToEllipse3(frame, s);
+                case GeoEdge2 s:
+                    return PlanarMap.ToEdge3(frame, s);
+                case GeoPolylineArc2 s:
+                    return PlanarMap.ToPolylineArc3(frame, s);
+                default:
+                    throw new NotSupportedException(shape.GetType().Name);
             }
         }
 
-        private static string Name(SplineOracle o, string kind, int draw) => kind + ", draw " + draw + ": degree " + o.Degree + ", " + o.Count + " points " + string.Join(" ", o.Points.Select(v => v.ToString("R"))) + ", knots " + string.Join(" ", o.Knots.Select(v => v.ToString("R"))) + ", weights " + string.Join(" ", o.Weights.Select(v => v.ToString("R")));
+        private static string Name(SplineOracle o, string kind, int draw) =>
+            kind
+            + ", draw "
+            + draw
+            + ": degree "
+            + o.Degree
+            + ", "
+            + o.Count
+            + " points "
+            + string.Join(" ", o.Points.Select(v => v.ToString("R")))
+            + ", knots "
+            + string.Join(" ", o.Knots.Select(v => v.ToString("R")))
+            + ", weights "
+            + string.Join(" ", o.Weights.Select(v => v.ToString("R")));
 
         [Theory]
         [MemberData(nameof(Kinds))]
@@ -101,11 +139,21 @@ namespace GeometryHelper.UnitTest.Solid
 
                 for (int k = 0; k < 3; k++)
                 {
-                    MeetShape shape = Spline2MeetShapes.Draw(random, kind, 0.5 * (box[0] + box[2]), 0.5 * (box[1] + box[3]), size);
+                    MeetShape shape = Spline2MeetShapes.Draw(
+                        random,
+                        kind,
+                        0.5 * (box[0] + box[2]),
+                        0.5 * (box[1] + box[3]),
+                        size
+                    );
                     Spline2MeetOracle.Answer expected = Spline2MeetOracle.Ask(o, shape, 1E-3);
                     double slack = 1E-9 * size + 64.0 * 2.220446049250313E-16 * coordinates * 16.0;
 
-                    if (Math.Abs(expected.Distance - 1E-3) <= 4.0 * slack || expected.Leasts.Any(v => Math.Abs(v - 1E-3) <= 4.0 * slack) || expected.LongestLevel >= Math.Min(1.0, 0.25 * size))
+                    if (
+                        Math.Abs(expected.Distance - 1E-3) <= 4.0 * slack
+                        || expected.Leasts.Any(v => Math.Abs(v - 1E-3) <= 4.0 * slack)
+                        || expected.LongestLevel >= Math.Min(1.0, 0.25 * size)
+                    )
                     {
                         left++;
                         continue;
@@ -118,22 +166,52 @@ namespace GeometryHelper.UnitTest.Solid
 
                     double inPlane = XLine2Probe.Distance(flat, shape.Shape, XLine2Probe.Strict);
                     double inSpace = XLine3Probe.Distance(laid, shape3, XLine3Probe.Strict);
-                    double reach = 1E-7 * size + 1E-9 * Math.Max(coordinates, Math.Abs(frame.Origin.X) + Math.Abs(frame.Origin.Y) + Math.Abs(frame.Origin.Z));
+                    double reach =
+                        1E-7 * size
+                        + 1E-9
+                            * Math.Max(
+                                coordinates,
+                                Math.Abs(frame.Origin.X) + Math.Abs(frame.Origin.Y) + Math.Abs(frame.Origin.Z)
+                            );
                     worst = Math.Max(worst, Math.Abs(inSpace - inPlane) / size);
 
-                    Assert.True(Math.Abs(inSpace - inPlane) <= reach, label + ": the distance is " + inSpace.ToString("R") + " in space and " + inPlane.ToString("R") + " in the plane");
+                    Assert.True(
+                        Math.Abs(inSpace - inPlane) <= reach,
+                        label
+                            + ": the distance is "
+                            + inSpace.ToString("R")
+                            + " in space and "
+                            + inPlane.ToString("R")
+                            + " in the plane"
+                    );
                     Assert.Equal(inPlane <= 1E-3, XLine3Probe.Collides(laid, shape3, XLine3Probe.Strict));
 
                     GeoPoint2[] flatPlaces = XLine2Probe.Crossings(flat, shape.Shape, XLine2Probe.Strict);
                     GeoPoint3[] spacePlaces = XLine3Probe.Crossings(laid, shape3, XLine3Probe.Strict);
                     Assert.True(
                         flatPlaces.Length == spacePlaces.Length,
-                        label + ": " + spacePlaces.Length + " places in space " + string.Join(" ", spacePlaces) + " and " + flatPlaces.Length + " in the plane " + string.Join(" ", flatPlaces));
+                        label
+                            + ": "
+                            + spacePlaces.Length
+                            + " places in space "
+                            + string.Join(" ", spacePlaces)
+                            + " and "
+                            + flatPlaces.Length
+                            + " in the plane "
+                            + string.Join(" ", flatPlaces)
+                    );
 
                     for (int i = 0; i < flatPlaces.Length; i++)
                     {
                         GeoPoint3 expectedPlace = PlanarMap.ToPoint3(frame, flatPlaces[i]);
-                        Assert.True(spacePlaces.Any(p => p.DistanceTo(expectedPlace) <= 2E-3 + reach), label + ": the place " + expectedPlace + " of the plane is not among " + string.Join(" ", spacePlaces));
+                        Assert.True(
+                            spacePlaces.Any(p => p.DistanceTo(expectedPlace) <= 2E-3 + reach),
+                            label
+                                + ": the place "
+                                + expectedPlace
+                                + " of the plane is not among "
+                                + string.Join(" ", spacePlaces)
+                        );
                     }
 
                     places += flatPlaces.Length;
@@ -141,7 +219,18 @@ namespace GeometryHelper.UnitTest.Solid
                 }
             }
 
-            _output.WriteLine(kind + ": " + checkedCount + " pairs laid in space agree with the plane (" + places + " places, " + left + " left out as at the tolerance); worst distance difference " + worst.ToString("0.0E+0") + " of the size");
+            _output.WriteLine(
+                kind
+                    + ": "
+                    + checkedCount
+                    + " pairs laid in space agree with the plane ("
+                    + places
+                    + " places, "
+                    + left
+                    + " left out as at the tolerance); worst distance difference "
+                    + worst.ToString("0.0E+0")
+                    + " of the size"
+            );
             Assert.True(checkedCount > 30, "too few pairs checked: " + checkedCount);
         }
     }

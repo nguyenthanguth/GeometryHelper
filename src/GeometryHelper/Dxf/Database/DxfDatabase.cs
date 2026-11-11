@@ -79,9 +79,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when the version is none of those six: a drawing of R12 to R14 is not
         /// made this way, its records not those of the writer's drawing.</exception>
         public DxfDatabase(string version)
-            : this(DxfFile.Parse(Empty(version)))
-        {
-        }
+            : this(DxfFile.Parse(Empty(version))) { }
 
         /// <summary>The file the drawing is kept in.</summary>
         internal DxfFile File { get; }
@@ -101,7 +99,12 @@ namespace GeometryHelper.Dxf
 
             if (Array.IndexOf(NewVersions, named) < 0)
             {
-                throw new ArgumentException("A new drawing is of AC1015 (R2000), AC1018, AC1021, AC1024, AC1027 or AC1032 (R2018); " + version + " is none of them.", nameof(version));
+                throw new ArgumentException(
+                    "A new drawing is of AC1015 (R2000), AC1018, AC1021, AC1024, AC1027 or AC1032 (R2018); "
+                        + version
+                        + " is none of them.",
+                    nameof(version)
+                );
             }
 
             return new DxfWriter { Version = named, CodePage = "ANSI_1252" }.ToString();
@@ -222,19 +225,23 @@ namespace GeometryHelper.Dxf
         public DxfBlockTable BlockTable => _blockTable;
 
         /// <summary>Gets the layer table, as <see cref="DxfLayerTable"/> says.</summary>
-        public DxfLayerTable LayerTable => _layerTable ?? (_layerTable = new DxfLayerTable(File, File.TableItem("LAYER")));
+        public DxfLayerTable LayerTable =>
+            _layerTable ?? (_layerTable = new DxfLayerTable(File, File.TableItem("LAYER")));
 
         /// <summary>Gets the text style table, read, as <see cref="DxfTextStyleTable"/> says.</summary>
-        public DxfTextStyleTable TextStyleTable => _textStyleTable ?? (_textStyleTable = new DxfTextStyleTable(File, File.TableItem("STYLE")));
+        public DxfTextStyleTable TextStyleTable =>
+            _textStyleTable ?? (_textStyleTable = new DxfTextStyleTable(File, File.TableItem("STYLE")));
 
         /// <summary>
         /// Gets the dimension style table of the drawing, as AutoCAD's <c>DimStyleTableId</c> gives its id: the styles of its
         /// DIMSTYLE records, as <see cref="DxfDimStyleTable"/> says.
         /// </summary>
-        public DxfDimStyleTable DimStyleTable => _dimStyleTable ?? (_dimStyleTable = new DxfDimStyleTable(File, File.TableItem("DIMSTYLE")));
+        public DxfDimStyleTable DimStyleTable =>
+            _dimStyleTable ?? (_dimStyleTable = new DxfDimStyleTable(File, File.TableItem("DIMSTYLE")));
 
         /// <summary>Gets the linetype table, as <see cref="DxfLinetypeTable"/> says.</summary>
-        public DxfLinetypeTable LinetypeTable => _linetypeTable ?? (_linetypeTable = new DxfLinetypeTable(File, File.TableItem("LTYPE")));
+        public DxfLinetypeTable LinetypeTable =>
+            _linetypeTable ?? (_linetypeTable = new DxfLinetypeTable(File, File.TableItem("LTYPE")));
 
         #endregion
 
@@ -286,7 +293,10 @@ namespace GeometryHelper.Dxf
 
             if (!name.StartsWith("$", StringComparison.Ordinal) || name.Length < 2)
             {
-                throw new ArgumentException("The name of a variable of the header begins with $: '" + name + "' does not.", nameof(name));
+                throw new ArgumentException(
+                    "The name of a variable of the header begins with $: '" + name + "' does not.",
+                    nameof(name)
+                );
             }
 
             if (groups.Length == 0)
@@ -298,7 +308,10 @@ namespace GeometryHelper.Dxf
             {
                 if (group.Value == null || group.TypeCode == 0 || group.TypeCode == 9)
                 {
-                    throw new ArgumentException("A variable of the header has no group 0 or 9, which would end it.", nameof(groups));
+                    throw new ArgumentException(
+                        "A variable of the header has no group 0 or 9, which would end it.",
+                        nameof(groups)
+                    );
                 }
             }
 
@@ -306,7 +319,9 @@ namespace GeometryHelper.Dxf
 
             if (upper == "$ACADVER" || upper == "$DWGCODEPAGE" || upper == "$HANDSEED")
             {
-                throw new InvalidOperationException("The variable " + name + " is the file's to keep: it is set as the file is saved.");
+                throw new InvalidOperationException(
+                    "The variable " + name + " is the file's to keep: it is set as the file is saved."
+                );
             }
 
             File.SetHeader(name, groups);
@@ -326,7 +341,6 @@ namespace GeometryHelper.Dxf
                 string name = DxfReader.NameOf(First("$CLAYER", 8) ?? string.Empty);
                 return name.Length == 0 ? "0" : name;
             }
-
             set
             {
                 if (value == null)
@@ -352,8 +366,17 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when set in a file older than R2000 (AC1015), which has no <c>$INSUNITS</c>.</exception>
         public DxfUnits Insunits
         {
-            get => int.TryParse(First("$INSUNITS", 70)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int units) && units >= 0 && units <= 24 ? (DxfUnits)units : DxfUnits.Undefined;
-
+            get =>
+                int.TryParse(
+                    First("$INSUNITS", 70)?.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int units
+                )
+                && units >= 0
+                && units <= 24
+                    ? (DxfUnits)units
+                    : DxfUnits.Undefined;
             set
             {
                 if ((int)value < 0 || (int)value > 24)
@@ -364,7 +387,10 @@ namespace GeometryHelper.Dxf
                 if (value != Insunits)
                 {
                     File.Requires(1015, "$INSUNITS", "R2000 (AC1015)");
-                    File.SetHeader("$INSUNITS", new[] { new DxfTypedValue(70, ((int)value).ToString(CultureInfo.InvariantCulture)) });
+                    File.SetHeader(
+                        "$INSUNITS",
+                        new[] { new DxfTypedValue(70, ((int)value).ToString(CultureInfo.InvariantCulture)) }
+                    );
                 }
             }
         }
@@ -427,7 +453,8 @@ namespace GeometryHelper.Dxf
 
             for (int i = 0; i < 3; i++)
             {
-                values[i] = Numbers.TryRead(First(name, 10 + 10 * i), out double value) && Guard.IsFinite(value) ? value : 0.0;
+                values[i] =
+                    Numbers.TryRead(First(name, 10 + 10 * i), out double value) && Guard.IsFinite(value) ? value : 0.0;
             }
 
             return new GeoPoint3(values[0], values[1], values[2]);
@@ -437,23 +464,32 @@ namespace GeometryHelper.Dxf
         {
             if (!value.IsValid)
             {
-                throw new ArgumentException("A point has to be of finite numbers: " + value + " is not.", nameof(value));
+                throw new ArgumentException(
+                    "A point has to be of finite numbers: " + value + " is not.",
+                    nameof(value)
+                );
             }
 
             GeoPoint3 now = Point(name);
 
-            if (BitConverter.DoubleToInt64Bits(value.X) == BitConverter.DoubleToInt64Bits(now.X) && BitConverter.DoubleToInt64Bits(value.Y) == BitConverter.DoubleToInt64Bits(now.Y)
-                && BitConverter.DoubleToInt64Bits(value.Z) == BitConverter.DoubleToInt64Bits(now.Z))
+            if (
+                BitConverter.DoubleToInt64Bits(value.X) == BitConverter.DoubleToInt64Bits(now.X)
+                && BitConverter.DoubleToInt64Bits(value.Y) == BitConverter.DoubleToInt64Bits(now.Y)
+                && BitConverter.DoubleToInt64Bits(value.Z) == BitConverter.DoubleToInt64Bits(now.Z)
+            )
             {
                 return;
             }
 
-            File.SetHeader(name, new[]
-            {
-                new DxfTypedValue(10, Numbers.Exact(value.X + 0.0)),
-                new DxfTypedValue(20, Numbers.Exact(value.Y + 0.0)),
-                new DxfTypedValue(30, Numbers.Exact(value.Z + 0.0)),
-            });
+            File.SetHeader(
+                name,
+                new[]
+                {
+                    new DxfTypedValue(10, Numbers.Exact(value.X + 0.0)),
+                    new DxfTypedValue(20, Numbers.Exact(value.Y + 0.0)),
+                    new DxfTypedValue(30, Numbers.Exact(value.Z + 0.0)),
+                }
+            );
         }
 
         #endregion

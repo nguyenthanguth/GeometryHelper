@@ -22,7 +22,9 @@ namespace GeometryHelper.Viewer
         private readonly CancellationToken _cancel;
         private readonly DxfDocument _document;
         private readonly List<FaceSet> _faceSets = new List<FaceSet>();
-        private readonly Dictionary<string, FaceSet> _faceSetIndex = new Dictionary<string, FaceSet>(StringComparer.Ordinal);
+        private readonly Dictionary<string, FaceSet> _faceSetIndex = new Dictionary<string, FaceSet>(
+            StringComparer.Ordinal
+        );
 
         private DxfReader(ImportBuilder builder, CancellationToken cancel, DxfDocument document)
         {
@@ -61,8 +63,14 @@ namespace GeometryHelper.Viewer
             return Take(b, Dxf.DxfReader.Read(stream, Options(b)), cancel);
         }
 
-        private static DxfReadOptions Options(ImportBuilder b)
-            => new DxfReadOptions { PlanAs2D = true, ExpandBlocks = true, KeepGroups = false, Tolerance = b.Scene.Tolerance };
+        private static DxfReadOptions Options(ImportBuilder b) =>
+            new DxfReadOptions
+            {
+                PlanAs2D = true,
+                ExpandBlocks = true,
+                KeepGroups = false,
+                Tolerance = b.Scene.Tolerance,
+            };
 
         private static Scene Take(ImportBuilder b, DxfDocument document, CancellationToken cancel)
         {
@@ -76,7 +84,13 @@ namespace GeometryHelper.Viewer
             {
                 if (layer.IsOff || layer.IsFrozen)
                 {
-                    _b.Warn("DXF: the layer '" + layer.Name + "' is " + (layer.IsFrozen ? "frozen" : "turned off") + " in the file and is hidden; tick it in the scene tree to see it");
+                    _b.Warn(
+                        "DXF: the layer '"
+                            + layer.Name
+                            + "' is "
+                            + (layer.IsFrozen ? "frozen" : "turned off")
+                            + " in the file and is hidden; tick it in the scene tree to see it"
+                    );
                 }
             }
 
@@ -99,7 +113,15 @@ namespace GeometryHelper.Viewer
                 if (e.Shape is DxfText label)
                 {
                     GeoPoint3 at = label.Position;
-                    Emit(SceneKinds.Text, ImportData.Text(new Vec3(at.X, at.Y, at.Z), label.Value, label.Height), e.Type, e.Layer, ItemColour(e), e.Handle, name);
+                    Emit(
+                        SceneKinds.Text,
+                        ImportData.Text(new Vec3(at.X, at.Y, at.Z), label.Value, label.Height),
+                        e.Type,
+                        e.Layer,
+                        ItemColour(e),
+                        e.Handle,
+                        name
+                    );
                     continue;
                 }
 
@@ -107,7 +129,13 @@ namespace GeometryHelper.Viewer
 
                 if (kind == null)
                 {
-                    _b.Warn("DXF: a " + e.Type + " the reader gave as a " + e.Shape.GetType().Name + ", which the viewer does not draw, was left out");
+                    _b.Warn(
+                        "DXF: a "
+                            + e.Type
+                            + " the reader gave as a "
+                            + e.Shape.GetType().Name
+                            + ", which the viewer does not draw, was left out"
+                    );
                     continue;
                 }
 
@@ -124,19 +152,29 @@ namespace GeometryHelper.Viewer
             // Every type is counted, INSERT too: the library gives a warning of its own for some of what it leaves out, not for all.
             foreach (KeyValuePair<string, int> skipped in _document.Skipped)
             {
-                _b.Warn("DXF: " + skipped.Value.ToString(CultureInfo.InvariantCulture) + " " + skipped.Key + " entity(ies) are not read, as the library's DxfReader counts them; a warning above gives the reason where it has one");
+                _b.Warn(
+                    "DXF: "
+                        + skipped.Value.ToString(CultureInfo.InvariantCulture)
+                        + " "
+                        + skipped.Key
+                        + " entity(ies) are not read, as the library's DxfReader counts them; a warning above gives the reason where it has one"
+                );
             }
         }
 
         #region Layers and colours
 
-        private static string Hex(int rgb)
-            => "#" + ((rgb >> 16) & 255).ToString("X2", CultureInfo.InvariantCulture) + ((rgb >> 8) & 255).ToString("X2", CultureInfo.InvariantCulture) + (rgb & 255).ToString("X2", CultureInfo.InvariantCulture);
+        private static string Hex(int rgb) =>
+            "#"
+            + ((rgb >> 16) & 255).ToString("X2", CultureInfo.InvariantCulture)
+            + ((rgb >> 8) & 255).ToString("X2", CultureInfo.InvariantCulture)
+            + (rgb & 255).ToString("X2", CultureInfo.InvariantCulture);
 
         /// <summary>
         /// The colour of an entity: its true colour, else that of its colour index, each its own or taken from the INSERT that places it.
         /// </summary>
-        private static string ItemColour(DxfShape e) => e.TrueColor.HasValue ? Hex(e.TrueColor.Value) : AciColour(e.Color ?? 0);
+        private static string ItemColour(DxfShape e) =>
+            e.TrueColor.HasValue ? Hex(e.TrueColor.Value) : AciColour(e.Color ?? 0);
 
         /// <summary>
         /// The colour of an AutoCAD colour index as #RRGGBB. Seven is white on a dark screen and black on a white page, a colour of nothing in
@@ -149,14 +187,23 @@ namespace GeometryHelper.Viewer
                 return null;
             }
 
-            int r, g, b;
+            int r,
+                g,
+                b;
 
             if (index <= 9)
             {
                 int[][] basic =
                 {
-                    new[] { 255, 0, 0 }, new[] { 255, 255, 0 }, new[] { 0, 255, 0 }, new[] { 0, 255, 255 }, new[] { 0, 0, 255 }, new[] { 255, 0, 255 },
-                    new[] { 255, 255, 255 }, new[] { 65, 65, 65 }, new[] { 128, 128, 128 },
+                    new[] { 255, 0, 0 },
+                    new[] { 255, 255, 0 },
+                    new[] { 0, 255, 0 },
+                    new[] { 0, 255, 255 },
+                    new[] { 0, 0, 255 },
+                    new[] { 255, 0, 255 },
+                    new[] { 255, 255, 255 },
+                    new[] { 65, 65, 65 },
+                    new[] { 128, 128, 128 },
                 };
                 int[] c = basic[index - 1];
                 r = c[0];
@@ -179,7 +226,10 @@ namespace GeometryHelper.Viewer
                 Hsv(hue, saturation, value, out r, out g, out b);
             }
 
-            return "#" + r.ToString("X2", CultureInfo.InvariantCulture) + g.ToString("X2", CultureInfo.InvariantCulture) + b.ToString("X2", CultureInfo.InvariantCulture);
+            return "#"
+                + r.ToString("X2", CultureInfo.InvariantCulture)
+                + g.ToString("X2", CultureInfo.InvariantCulture)
+                + b.ToString("X2", CultureInfo.InvariantCulture);
         }
 
         private static void Hsv(double hue, double saturation, double value, out int r, out int g, out int b)
@@ -188,31 +238,45 @@ namespace GeometryHelper.Viewer
             double h = hue / 60.0;
             double x = c * (1.0 - Math.Abs(h % 2.0 - 1.0));
             double m = value - c;
-            double rr, gg, bb;
+            double rr,
+                gg,
+                bb;
 
             if (h < 1.0)
             {
-                rr = c; gg = x; bb = 0.0;
+                rr = c;
+                gg = x;
+                bb = 0.0;
             }
             else if (h < 2.0)
             {
-                rr = x; gg = c; bb = 0.0;
+                rr = x;
+                gg = c;
+                bb = 0.0;
             }
             else if (h < 3.0)
             {
-                rr = 0.0; gg = c; bb = x;
+                rr = 0.0;
+                gg = c;
+                bb = x;
             }
             else if (h < 4.0)
             {
-                rr = 0.0; gg = x; bb = c;
+                rr = 0.0;
+                gg = x;
+                bb = c;
             }
             else if (h < 5.0)
             {
-                rr = x; gg = 0.0; bb = c;
+                rr = x;
+                gg = 0.0;
+                bb = c;
             }
             else
             {
-                rr = c; gg = 0.0; bb = x;
+                rr = c;
+                gg = 0.0;
+                bb = x;
             }
 
             r = (int)Math.Floor((rr + m) * 255.0 + 1E-9);
@@ -223,7 +287,15 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Adds an item on a layer, making the layer with the colour and visibility the layer table gave it.
         /// </summary>
-        private void Emit(string kind, System.Text.Json.JsonElement data, string type, string layer, string color, string handle, string name)
+        private void Emit(
+            string kind,
+            System.Text.Json.JsonElement data,
+            string type,
+            string layer,
+            string color,
+            string handle,
+            string name
+        )
         {
             EnsureLayer(layer);
             SceneItem item = _b.Add(kind, data, layer, name, color, "DXF " + type);
@@ -245,7 +317,11 @@ namespace GeometryHelper.Viewer
 
             if (info != null)
             {
-                _b.Layer(layer, info.TrueColor.HasValue ? Hex(info.TrueColor.Value) : AciColour(info.Color ?? 0), !info.IsOff && !info.IsFrozen);
+                _b.Layer(
+                    layer,
+                    info.TrueColor.HasValue ? Hex(info.TrueColor.Value) : AciColour(info.Color ?? 0),
+                    !info.IsOff && !info.IsFrozen
+                );
             }
             else
             {
@@ -263,7 +339,9 @@ namespace GeometryHelper.Viewer
         /// </summary>
         private void AddFace(DxfShape e)
         {
-            IReadOnlyList<GeoPoint3> corners = e.Shape is GeoTriangle3 t ? (IReadOnlyList<GeoPoint3>)new[] { t.A, t.B, t.C } : ((GeoFace3)e.Shape).Boundary.Vertices;
+            IReadOnlyList<GeoPoint3> corners = e.Shape is GeoTriangle3 t
+                ? (IReadOnlyList<GeoPoint3>)new[] { t.A, t.B, t.C }
+                : ((GeoFace3)e.Shape).Boundary.Vertices;
             string color = ItemColour(e);
             string key = e.Layer + "|" + color;
 
@@ -293,8 +371,18 @@ namespace GeometryHelper.Viewer
 
                 for (int p = 0; p < pieces.Count; p++)
                 {
-                    MeshShells.Extract(set.Weld.Points, set.Weld.Faces, pieces[p].Faces, false, out List<Vec3> points, out List<int[]> faces);
-                    string name = set.Layer + " mesh" + (pieces.Count > 1 ? " " + (p + 1).ToString(CultureInfo.InvariantCulture) : string.Empty);
+                    MeshShells.Extract(
+                        set.Weld.Points,
+                        set.Weld.Faces,
+                        pieces[p].Faces,
+                        false,
+                        out List<Vec3> points,
+                        out List<int[]> faces
+                    );
+                    string name =
+                        set.Layer
+                        + " mesh"
+                        + (pieces.Count > 1 ? " " + (p + 1).ToString(CultureInfo.InvariantCulture) : string.Empty);
                     _b.Add("GeoMesh3", ImportData.Mesh(points, faces, 3), set.Layer, name, set.Color, "DXF 3DFACE");
                 }
             }

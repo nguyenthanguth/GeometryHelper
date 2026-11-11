@@ -58,7 +58,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private void OnAlwaysText(object sender, MouseButtonEventArgs e) => AlwaysBox.IsChecked = AlwaysBox.IsChecked != true;
+        private void OnAlwaysText(object sender, MouseButtonEventArgs e) =>
+            AlwaysBox.IsChecked = AlwaysBox.IsChecked != true;
 
         private void OnYes(object sender, RoutedEventArgs e)
         {

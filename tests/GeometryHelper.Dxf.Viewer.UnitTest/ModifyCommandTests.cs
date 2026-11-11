@@ -14,8 +14,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     /// </summary>
     public class ModifyCommandTests
     {
-        private static CadDocument Drawing(params string[] entities)
-            => CadDocument.From(TestDrawings.Drawing(TestDrawings.Layer("Steel", 1), string.Empty, entities), "modify.dxf");
+        private static CadDocument Drawing(params string[] entities) =>
+            CadDocument.From(
+                TestDrawings.Drawing(TestDrawings.Layer("Steel", 1), string.Empty, entities),
+                "modify.dxf"
+            );
 
         private static CadCommandSession Start(CadDocument document, params object[] inputs)
         {
@@ -25,8 +28,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         private static List<T> Made<T>(CadDocument document, params string[] old)
-            where T : DxfEntity
-            => All<T>(document.ModelSpace).Where(e => !old.Contains(e.Handle)).ToList();
+            where T : DxfEntity => All<T>(document.ModelSpace).Where(e => !old.Contains(e.Handle)).ToList();
 
         private static void UndoesToStart(CadDocument document, string start, string step)
         {
@@ -37,7 +39,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
         private static double Height(GeoPoint3 from, GeoPoint3 to, GeoPoint3 middle)
         {
-            double cx = to.X - from.X, cy = to.Y - from.Y;
+            double cx = to.X - from.X,
+                cy = to.Y - from.Y;
             double chord = Math.Sqrt(cx * cx + cy * cy);
             return Math.Abs((middle.X - (from.X + to.X) / 2.0) * -cy + (middle.Y - (from.Y + to.Y) / 2.0) * cx) / chord;
         }
@@ -72,7 +75,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void OffsetACircleInwardAndAnArcOutward_ChangeTheirRadiiByTheDistance()
         {
-            CadDocument document = Drawing(TestDrawings.Circle(0, 0, 20, handle: "B1"), TestDrawings.Arc(100, 0, 20, 0, 90, handle: "B2"));
+            CadDocument document = Drawing(
+                TestDrawings.Circle(0, 0, 20, handle: "B1"),
+                TestDrawings.Arc(100, 0, 20, 0, 90, handle: "B2")
+            );
 
             Start(document, "OFFSET", "5", P(20, 0), P(3, 0), P(120, 0), P(130, 30), Enter);
 
@@ -88,7 +94,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Drawing(
                 TestDrawings.Polyline("0", "B1", true, 0, 0, 0, 100, 0, 0, 100, 50, 0, 0, 50, 0),
-                TestDrawings.Polyline("0", "B2", false, 200, 0, 1, 250, 0, 0, 300, 0, 0));
+                TestDrawings.Polyline("0", "B2", false, 200, 0, 1, 250, 0, 0, 300, 0, 0)
+            );
 
             Start(document, "O", "5", P(50, 0), P(50, -2), P(280, 0), P(280, 3), Enter);
 
@@ -97,7 +104,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfPolyline grown = made[0];
             Assert.True(grown.Closed);
             Assert.Equal(4, grown.NumberOfVertices);
-            var corners = Enumerable.Range(0, 4).Select(i => grown.GetPoint2dAt(i)).OrderBy(p => p.X).ThenBy(p => p.Y).ToList();
+            var corners = Enumerable
+                .Range(0, 4)
+                .Select(i => grown.GetPoint2dAt(i))
+                .OrderBy(p => p.X)
+                .ThenBy(p => p.Y)
+                .ToList();
             Near(P(-5, -5), corners[0]);
             Near(P(-5, 55), corners[1]);
             Near(P(105, -5), corners[2]);
@@ -126,7 +138,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             session = Start(document, "O", "10", P(50, 0), "M");
             Assert.Equal("Specify point on side to offset or [Exit/Undo] <next object>:", session.PromptText);
             Run(session, P(50, -100), P(50, -100), P(50, -100), Enter, Enter);
-            var levels = Made<DxfLine>(document, "B1", through.Handle).Select(l => l.StartPoint.Y).OrderBy(y => y).ToList();
+            var levels = Made<DxfLine>(document, "B1", through.Handle)
+                .Select(l => l.StartPoint.Y)
+                .OrderBy(y => y)
+                .ToList();
             Assert.Equal(new[] { -30.0, -20.0, -10.0 }, levels.Select(y => Math.Round(y, 9)));
             Assert.Equal("OFFSET", document.NextUndo.Name);
         }
@@ -146,7 +161,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void OffsetWithEraseAndLayerCurrent_ErasesTheSourceAndPutsTheCopyOnTheCurrentLayer()
         {
-            DxfDatabase database = TestDrawings.Drawing(TestDrawings.Layer("Steel", 1), string.Empty, TestDrawings.Line(0, 0, 100, 0, handle: "B1"));
+            DxfDatabase database = TestDrawings.Drawing(
+                TestDrawings.Layer("Steel", 1),
+                string.Empty,
+                TestDrawings.Line(0, 0, 100, 0, handle: "B1")
+            );
             database.Clayer = "Steel";
             CadDocument document = CadDocument.From(database, "modify.dxf");
             string start = document.Database.ToText();
@@ -165,7 +184,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void OffsetOfTextOrAnOwnedLine_RefusesTheTextAndCopiesTheLineAsThePresentersOwn()
         {
-            CadDocument document = Drawing(TestDrawings.Text(0, 50, 5, "NOTE", handle: "B2"), TestDrawings.Line(0, 0, 100, 0, handle: "B1"));
+            CadDocument document = Drawing(
+                TestDrawings.Text(0, 50, 5, "NOTE", handle: "B2"),
+                TestDrawings.Line(0, 0, 100, 0, handle: "B1")
+            );
             new CadOwnerTag("Test.Nobody", "L-1").WriteTo(document.FindEntity("B1"));
 
             CadCommandSession session = Start(document, "O", "5", new[] { "B2" });
@@ -179,7 +201,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void FilletOfTwoCrossingLines_RoundsTheQuadrantPicked_TheArcTangentToBoth()
         {
-            CadDocument document = Drawing(TestDrawings.Line(-50, 0, 100, 0, handle: "B1"), TestDrawings.Line(0, -50, 0, 100, handle: "B2"));
+            CadDocument document = Drawing(
+                TestDrawings.Line(-50, 0, 100, 0, handle: "B1"),
+                TestDrawings.Line(0, -50, 0, 100, handle: "B2")
+            );
             string start = document.Database.ToText();
 
             CadCommandSession session = Start(document, "F");
@@ -211,7 +236,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void FilletOfRadiusNought_RunsTwoLinesThatDoNotMeetToTheirCorner()
         {
-            CadDocument document = Drawing(TestDrawings.Line(0, 0, 40, 0, handle: "B1"), TestDrawings.Line(50, 10, 50, 60, handle: "B2"));
+            CadDocument document = Drawing(
+                TestDrawings.Line(0, 0, 40, 0, handle: "B1"),
+                TestDrawings.Line(50, 10, 50, 60, handle: "B2")
+            );
 
             Start(document, "F", "R", "0", P(20, 0), P(50, 30));
 
@@ -223,7 +251,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void FilletOfParallelLines_JoinsThemByAHalfCircleAtTheEndPicked()
         {
-            CadDocument document = Drawing(TestDrawings.Line(0, 0, 100, 0, handle: "B1"), TestDrawings.Line(0, 20, 80, 20, handle: "B2"));
+            CadDocument document = Drawing(
+                TestDrawings.Line(0, 0, 100, 0, handle: "B1"),
+                TestDrawings.Line(0, 20, 80, 20, handle: "B2")
+            );
 
             Start(document, "F", P(90, 0), P(40, 20));
 
@@ -238,9 +269,19 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void FilletOfALineAndAnArc_TrimsBothToTheirPointsOfTouching()
         {
-            CadDocument document = Drawing(TestDrawings.Line(0, 0, 100, 0, handle: "B1"), TestDrawings.Arc(50, 30, 20, 180, 360, handle: "B2"));
+            CadDocument document = Drawing(
+                TestDrawings.Line(0, 0, 100, 0, handle: "B1"),
+                TestDrawings.Arc(50, 30, 20, 180, 360, handle: "B2")
+            );
 
-            Start(document, "F", "R", "6", P(20, 0), P(50 + 20 * Math.Cos(Math.PI * 7 / 6), 30 + 20 * Math.Sin(Math.PI * 7 / 6)));
+            Start(
+                document,
+                "F",
+                "R",
+                "6",
+                P(20, 0),
+                P(50 + 20 * Math.Cos(Math.PI * 7 / 6), 30 + 20 * Math.Sin(Math.PI * 7 / 6))
+            );
 
             DxfArc fillet = Assert.Single(Made<DxfArc>(document, "B2"));
             Near(new GeoPoint3(40, 6, 0), fillet.Center);
@@ -257,7 +298,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void FilletPolyline_RoundsEveryCornerWithRoom_AndCountsThoseTooShort()
         {
-            CadDocument document = Drawing(TestDrawings.Polyline("0", "B1", true, 0, 0, 0, 100, 0, 0, 100, 50, 0, 0, 50, 0));
+            CadDocument document = Drawing(
+                TestDrawings.Polyline("0", "B1", true, 0, 0, 0, 100, 0, 0, 100, 50, 0, 0, 50, 0)
+            );
             string start = document.Database.ToText();
 
             CadCommandSession session = Start(document, "F", "P");
@@ -296,8 +339,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void FilletMultipleWithUndo_KeepsTheFirstCorner_AndIsOneStep()
         {
             CadDocument document = Drawing(
-                TestDrawings.Line(0, 0, 100, 0, handle: "B1"), TestDrawings.Line(0, 0, 0, 100, handle: "B2"),
-                TestDrawings.Line(200, 0, 300, 0, handle: "B3"), TestDrawings.Line(200, 0, 200, 100, handle: "B4"));
+                TestDrawings.Line(0, 0, 100, 0, handle: "B1"),
+                TestDrawings.Line(0, 0, 0, 100, handle: "B2"),
+                TestDrawings.Line(200, 0, 300, 0, handle: "B3"),
+                TestDrawings.Line(200, 0, 200, 100, handle: "B4")
+            );
             string start = document.Database.ToText();
 
             Start(document, "F", "M", P(50, 0), P(0, 50), P(250, 0), P(200, 50), "U", Enter);
@@ -311,7 +357,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void FilletNoTrim_LeavesTheLines_AndAnOwnedLineIsRefusedInWords()
         {
-            CadDocument document = Drawing(TestDrawings.Line(0, 0, 100, 0, handle: "B1"), TestDrawings.Line(0, 0, 0, 100, handle: "B2"));
+            CadDocument document = Drawing(
+                TestDrawings.Line(0, 0, 100, 0, handle: "B1"),
+                TestDrawings.Line(0, 0, 0, 100, handle: "B2")
+            );
 
             Start(document, "F", "T", "N", P(50, 0), P(0, 50));
             Assert.Single(All<DxfArc>(document.ModelSpace));
@@ -327,16 +376,25 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ChamferByTwoDistances_CutsTenAlongTheFirstAndFiveAlongTheSecond()
         {
-            CadDocument document = Drawing(TestDrawings.Line(-50, 0, 100, 0, handle: "B1"), TestDrawings.Line(0, -50, 0, 100, handle: "B2"));
+            CadDocument document = Drawing(
+                TestDrawings.Line(-50, 0, 100, 0, handle: "B1"),
+                TestDrawings.Line(0, -50, 0, 100, handle: "B2")
+            );
             string start = document.Database.ToText();
 
             CadCommandSession session = Start(document, "CHA");
             Assert.Contains("(TRIM mode) Current chamfer Dist1 = 0.0000, Dist2 = 0.0000", session.History);
-            Assert.Equal("Select first line or [Undo/Polyline/Distance/Angle/Trim/mEthod/Multiple]:", session.PromptText);
+            Assert.Equal(
+                "Select first line or [Undo/Polyline/Distance/Angle/Trim/mEthod/Multiple]:",
+                session.PromptText
+            );
             Run(session, "D", "10");
             Assert.Equal("Specify second chamfer distance <10.0000>:", session.PromptText);
             Run(session, "5", P(60, 0));
-            Assert.Equal("Select second line or shift-select to apply corner or [Distance/Angle/Method]:", session.PromptText);
+            Assert.Equal(
+                "Select second line or shift-select to apply corner or [Distance/Angle/Method]:",
+                session.PromptText
+            );
             Run(session, P(0, 60));
 
             Assert.Equal(10.0, document.Database.Chamfera);
@@ -352,14 +410,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ChamferByALengthAndAnAngle_CutsAtThirtyDegreesFromTheFirstLine()
         {
-            CadDocument document = Drawing(TestDrawings.Line(0, 0, 100, 0, handle: "B1"), TestDrawings.Line(0, 0, 0, 100, handle: "B2"));
+            CadDocument document = Drawing(
+                TestDrawings.Line(0, 0, 100, 0, handle: "B1"),
+                TestDrawings.Line(0, 0, 0, 100, handle: "B2")
+            );
 
             CadCommandSession session = Start(document, "CHA", "A", "10", "30", P(50, 0), P(0, 50));
 
             DxfLine cut = Assert.Single(Made<DxfLine>(document, "B1", "B2"));
             Near(new GeoPoint3(10, 0, 0), cut.StartPoint);
             Near(new GeoPoint3(0, 10 * Math.Tan(Math.PI / 6), 0), cut.EndPoint);
-            Assert.Equal(Math.PI / 6, Math.Atan2(cut.EndPoint.Y - cut.StartPoint.Y, cut.StartPoint.X - cut.EndPoint.X), 12);
+            Assert.Equal(
+                Math.PI / 6,
+                Math.Atan2(cut.EndPoint.Y - cut.StartPoint.Y, cut.StartPoint.X - cut.EndPoint.X),
+                12
+            );
 
             Run(session, "CHA");
             Assert.Contains("(TRIM mode) Current chamfer Length = 10.0000, Angle = 30", session.History);
@@ -368,7 +433,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ChamferPolyline_CutsEveryCorner()
         {
-            CadDocument document = Drawing(TestDrawings.Polyline("0", "B1", true, 0, 0, 0, 100, 0, 0, 100, 50, 0, 0, 50, 0));
+            CadDocument document = Drawing(
+                TestDrawings.Polyline("0", "B1", true, 0, 0, 0, 100, 0, 0, 100, 50, 0, 0, 50, 0)
+            );
 
             CadCommandSession session = Start(document, "CHA", "D", "5", "5", "P", P(50, 0));
 
@@ -388,7 +455,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 TestDrawings.Polyline("0", "B2", false, 0, 10, 0, 100, 10, 0, 100, 50, 0),
                 TestDrawings.Circle(100, 80, 5, handle: "B3"),
                 TestDrawings.Line(95, 30, 105, 30, handle: "B4"),
-                TestDrawings.Line(0, 120, 50, 120, handle: "B5"));
+                TestDrawings.Line(0, 120, 50, 120, handle: "B5")
+            );
             string start = document.Database.ToText();
 
             CadCommandSession session = Start(document, "S");
@@ -419,24 +487,47 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Drawing(TestDrawings.Arc(0, 0, 10, 0, 90, handle: "B1"));
             var arc = Entity<DxfArc>(document, "B1");
-            double before = Height(arc.StartPoint, arc.EndPoint, arc.GetPointAtParameter((arc.StartParam + arc.EndParam) / 2.0));
+            double before = Height(
+                arc.StartPoint,
+                arc.EndPoint,
+                arc.GetPointAtParameter((arc.StartParam + arc.EndParam) / 2.0)
+            );
 
             Start(document, "S", "C", P(5, -5), P(15, 5), Enter, P(0, 0), P(10, 0));
 
             arc = Entity<DxfArc>(document, "B1");
             Near(new GeoPoint3(20, 0, 0), arc.StartPoint, 1E-9);
             Near(new GeoPoint3(0, 10, 0), arc.EndPoint, 1E-9);
-            Assert.Equal(before, Height(arc.StartPoint, arc.EndPoint, arc.GetPointAtParameter((arc.StartParam + arc.EndParam) / 2.0)), 9);
+            Assert.Equal(
+                before,
+                Height(arc.StartPoint, arc.EndPoint, arc.GetPointAtParameter((arc.StartParam + arc.EndParam) / 2.0)),
+                9
+            );
             Assert.Equal(10 - 10 * Math.Sqrt(0.5), before, 12);
         }
 
         [Fact]
         public void StretchByACrossingPolygon_MovesTheVerticesInsideIt_AndRefusesAnOwnedLine()
         {
-            CadDocument document = Drawing(TestDrawings.Line(0, 0, 100, 0, handle: "B1"), TestDrawings.Line(0, 10, 100, 10, handle: "B2"));
+            CadDocument document = Drawing(
+                TestDrawings.Line(0, 0, 100, 0, handle: "B1"),
+                TestDrawings.Line(0, 10, 100, 10, handle: "B2")
+            );
             new CadOwnerTag("Test.Nobody", "L-1").WriteTo(document.FindEntity("B2"));
 
-            CadCommandSession session = Start(document, "S", "CP", P(90, -5), P(110, -5), P(110, 20), P(90, 20), Enter, Enter, "D", "0,15");
+            CadCommandSession session = Start(
+                document,
+                "S",
+                "CP",
+                P(90, -5),
+                P(110, -5),
+                P(110, 20),
+                P(90, 20),
+                Enter,
+                Enter,
+                "D",
+                "0,15"
+            );
 
             Near(new GeoPoint3(100, 15, 0), Entity<DxfLine>(document, "B1").EndPoint);
             Near(new GeoPoint3(100, 10, 0), Entity<DxfLine>(document, "B2").EndPoint);
@@ -468,7 +559,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void AlignByOneAndByThreePairs_MovesOrTurnsTheObjectsOver()
         {
-            CadDocument document = Drawing(TestDrawings.Line(0, 0, 10, 0, handle: "B1"), TestDrawings.Line(5, 0, 5, 5, handle: "B2"));
+            CadDocument document = Drawing(
+                TestDrawings.Line(0, 0, 10, 0, handle: "B1"),
+                TestDrawings.Line(5, 0, 5, 5, handle: "B2")
+            );
 
             Start(document, "AL", new[] { "B1" }, Enter, P(0, 0), P(3, 4), Enter);
             Near(new GeoPoint3(13, 4, 0), Entity<DxfLine>(document, "B1").EndPoint);
@@ -486,15 +580,27 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             CadCommandSession session = Start(document, "ARRAYRECT", new[] { "B1" }, Enter);
             Assert.Contains("Type = Rectangular  Associative = No", session.History);
-            Assert.Equal("Select grip to edit array or [ASsociative/Base point/COUnt/Spacing/COLumns/Rows/Levels/eXit] <eXit>:", session.PromptText);
+            Assert.Equal(
+                "Select grip to edit array or [ASsociative/Base point/COUnt/Spacing/COLumns/Rows/Levels/eXit] <eXit>:",
+                session.PromptText
+            );
             Run(session, "AS", "Y");
-            Assert.Contains("Associative arrays are not built: the items are made as separate objects (ARRAYASSOCIATIVITY 0).", session.History);
+            Assert.Contains(
+                "Associative arrays are not built: the items are made as separate objects (ARRAYASSOCIATIVITY 0).",
+                session.History
+            );
             Run(session, "COU", "3", "2", "S", "20", "15", "X");
 
             List<DxfLine> lines = All<DxfLine>(document.ModelSpace);
             Assert.Equal(6, lines.Count);
-            var starts = lines.Select(l => (Math.Round(l.StartPoint.X, 9), Math.Round(l.StartPoint.Y, 9))).OrderBy(p => p).ToList();
-            Assert.Equal(new[] { (0.0, 0.0), (0.0, 15.0), (20.0, 0.0), (20.0, 15.0), (40.0, 0.0), (40.0, 15.0) }, starts);
+            var starts = lines
+                .Select(l => (Math.Round(l.StartPoint.X, 9), Math.Round(l.StartPoint.Y, 9)))
+                .OrderBy(p => p)
+                .ToList();
+            Assert.Equal(
+                new[] { (0.0, 0.0), (0.0, 15.0), (20.0, 0.0), (20.0, 15.0), (40.0, 0.0), (40.0, 15.0) },
+                starts
+            );
             UndoesToStart(document, start, "ARRAYRECT");
         }
 
@@ -530,7 +636,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("Specify the distance between columns (|||):", session.PromptText);
             Run(session, "20");
             Assert.Equal(6, All<DxfLine>(document.ModelSpace).Count);
-            Assert.Contains(All<DxfLine>(document.ModelSpace), l => Math.Abs(l.StartPoint.X - 40) < 1E-9 && Math.Abs(l.StartPoint.Y - 10) < 1E-9);
+            Assert.Contains(All<DxfLine>(document.ModelSpace), l =>
+                Math.Abs(l.StartPoint.X - 40) < 1E-9 && Math.Abs(l.StartPoint.Y - 10) < 1E-9
+            );
 
             document.Undo();
             Start(document, "-ARRAY", new[] { "B1" }, Enter, "P", P(0, 0), "4", Enter, "N");

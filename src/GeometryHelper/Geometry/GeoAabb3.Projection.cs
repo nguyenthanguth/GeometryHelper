@@ -26,7 +26,8 @@ namespace GeometryHelper.Geometry
             return new GeoPoint3(
                 Math.Max(Min.X, Math.Min(Max.X, point.X)),
                 Math.Max(Min.Y, Math.Min(Max.Y, point.Y)),
-                Math.Max(Min.Z, Math.Min(Max.Z, point.Z)));
+                Math.Max(Min.Z, Math.Min(Max.Z, point.Z))
+            );
         }
     }
 }

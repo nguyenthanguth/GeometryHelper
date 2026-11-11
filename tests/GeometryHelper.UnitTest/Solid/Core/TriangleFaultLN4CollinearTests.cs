@@ -37,7 +37,11 @@ namespace GeometryHelper.UnitTest.Solid
             GeoVector3 up = side.CrossProduct(along).Normalize();
 
             return GeoArc3.FromThreePoints(
-                Middle.Add(up.Multiply(off + 1)).Add(side.Multiply(-3)), Middle.Add(up.Multiply(off)), Middle.Add(up.Multiply(off + 1)).Add(side.Multiply(3)), Default);
+                Middle.Add(up.Multiply(off + 1)).Add(side.Multiply(-3)),
+                Middle.Add(up.Multiply(off)),
+                Middle.Add(up.Multiply(off + 1)).Add(side.Multiply(3)),
+                Default
+            );
         }
 
         [Theory]
@@ -77,13 +81,15 @@ namespace GeometryHelper.UnitTest.Solid
             var sliver = new GeoTriangle3(
                 new GeoPoint3(4.0767664015650595, 8.403841819802226, 1.5144763288621217),
                 new GeoPoint3(75.20450224059516, -42.59911254061243, 49.91623263875975),
-                new GeoPoint3(39.64063432107841, -17.097635360405224, 25.715354483813318));
+                new GeoPoint3(39.64063432107841, -17.097635360405224, 25.715354483813318)
+            );
             var arc = new GeoArc3(
                 new GeoPoint3(31.655260075260102, -1.9249805757814578, 18.11740498997277),
                 new GeoVector3(-0.2991985783599241, 0.09460561973430275, 0.9494893298094976),
                 7.7156257651353375,
                 0,
-                2);
+                2
+            );
 
             Assert.True(sliver.IsDegenerate(Default));
             Assert.True(Arc3.CollidesWith(arc, sliver, Default));
@@ -96,7 +102,8 @@ namespace GeometryHelper.UnitTest.Solid
             var triangle = new GeoTriangle3(
                 new GeoPoint3(5.842443437242155, 4.3388700132904905, 1.8095674513883737),
                 new GeoPoint3(1.416801915031768, 7.172257219432319, 5.460463223838199),
-                new GeoPoint3(3.6296226761369614, 5.755563616361405, 3.6350153376132868));
+                new GeoPoint3(3.6296226761369614, 5.755563616361405, 3.6350153376132868)
+            );
             var onSide = new GeoPoint3(1.8307779963589077, 6.907221172885283, 5.118957135369981);
 
             Assert.True(triangle.DistanceTo(onSide) < 1E-12);
@@ -107,10 +114,18 @@ namespace GeometryHelper.UnitTest.Solid
         public void AnEllipseAgainstATriangleOnALine_IsAnsweredAsItsSides()
         {
             var line = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(50, 0, 0));
-            var ellipse = new GeoEllipse3(new GeoPoint3(50, 0, 5), new GeoVector3(0, 1, 0), new GeoVector3(0, 0, 1), 5, 3);
+            var ellipse = new GeoEllipse3(
+                new GeoPoint3(50, 0, 5),
+                new GeoVector3(0, 1, 0),
+                new GeoVector3(0, 0, 1),
+                5,
+                3
+            );
 
             Assert.True(ellipse.CollidesWith(line, Default));
-            Assert.True(Assert.Single(ellipse.GetIntersections(line, Default)).DistanceTo(new GeoPoint3(50, 0, 0)) < 1E-9);
+            Assert.True(
+                Assert.Single(ellipse.GetIntersections(line, Default)).DistanceTo(new GeoPoint3(50, 0, 0)) < 1E-9
+            );
         }
     }
 }

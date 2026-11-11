@@ -134,7 +134,9 @@ namespace GeometryHelper.UnitTest.Plane
             // sides and four quarter circles of 2: area 100 + 80 + 4 pi = 192.56637.
             GeoPolygonArc2 square = Loop(Square10());
 
-            GeoPolygonArc2 one = Assert.Single(Offset2.Offset(square, 2.0, new OffsetOptions(OffsetJoin.Round), Thousandth));
+            GeoPolygonArc2 one = Assert.Single(
+                Offset2.Offset(square, 2.0, new OffsetOptions(OffsetJoin.Round), Thousandth)
+            );
 
             Assert.Equal(180.0 + 4.0 * Math.PI, one.Area, 1E-9);
             Assert.True(WorstOffDistance(PiecesOf(one), PiecesOf(square), 2.0) <= 1E-9);

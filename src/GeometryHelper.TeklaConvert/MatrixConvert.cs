@@ -1,5 +1,5 @@
-using GeometryHelper.Geometry;
 using System;
+using GeometryHelper.Geometry;
 using TSG = Tekla.Structures.Geometry3d;
 
 namespace GeometryHelper.TeklaConvert

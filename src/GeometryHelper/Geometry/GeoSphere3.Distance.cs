@@ -43,7 +43,13 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         public double DistanceTo(GeoLine3 line, Tolerance tolerance)
         {
-            if (Stub3.ReadsAsStart(line, tolerance) && Stub3.Meets(Sphere3.Reach(this, Distance3.DistanceTo(line, Center, Stub3.AsItIs(line, tolerance))), line))
+            if (
+                Stub3.ReadsAsStart(line, tolerance)
+                && Stub3.Meets(
+                    Sphere3.Reach(this, Distance3.DistanceTo(line, Center, Stub3.AsItIs(line, tolerance))),
+                    line
+                )
+            )
             {
                 return 0.0;
             }
@@ -150,7 +156,13 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         public double DistanceTo(GeoEdge3 edge, Tolerance tolerance)
         {
-            if (Stub3.ReadsAsStart(edge, tolerance) && Stub3.Meets(Sphere3.Reach(this, edge.DistanceTo(Center, Stub3.AsItIs(edge.ToLine(), tolerance))), edge.ToLine()))
+            if (
+                Stub3.ReadsAsStart(edge, tolerance)
+                && Stub3.Meets(
+                    Sphere3.Reach(this, edge.DistanceTo(Center, Stub3.AsItIs(edge.ToLine(), tolerance))),
+                    edge.ToLine()
+                )
+            )
             {
                 return 0.0;
             }
@@ -369,7 +381,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The ball of radius 50 about (200, 0, 0) is 140 from the ball of radius 10 about the origin, 200 less 60, whichever way round it is asked, and nought from one of radius 160 about the origin, which overlaps it.
         /// </remarks>
-        public double DistanceTo(GeoSphere3 other) => Math.Max(0.0, Sphere3.FromCenter(this, other.Center) - (Radius + other.Radius));
+        public double DistanceTo(GeoSphere3 other) =>
+            Math.Max(0.0, Sphere3.FromCenter(this, other.Center) - (Radius + other.Radius));
 
         /// <summary>
         /// Calculates the distance from this ball to a point, negative for a point inside it.
@@ -385,7 +398,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Nought where <see cref="Locate(GeoPoint3, Tolerance)"/> says the point is on the surface, so that the two agree.
         /// </remarks>
-        public double SignedDistanceTo(GeoPoint3 point, Tolerance tolerance) => Sphere3.SignedDistanceTo(this, point, tolerance);
+        public double SignedDistanceTo(GeoPoint3 point, Tolerance tolerance) =>
+            Sphere3.SignedDistanceTo(this, point, tolerance);
 
         /// <summary>
         /// Calculates the distance from the surface of this ball to a point, whichever side of it the point is on.

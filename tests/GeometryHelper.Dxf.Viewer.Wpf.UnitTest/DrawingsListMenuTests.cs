@@ -77,8 +77,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Dictionary<string, bool> onShown = Menu(model, Row(model, "a.dxf"));
             Dictionary<string, bool> onClosed = Menu(model, Row(model, "c.dxf"));
 
-            Assert.Equal(new[] { "Open", "Close", "Close Selected Drawings", "Close All Other Drawings", "Close All Drawings" },
-                model.FileRowMenu(Row(model, "a.dxf")).Where(i => !i.IsSeparator).Select(i => i.Header));
+            Assert.Equal(
+                new[] { "Open", "Close", "Close Selected Drawings", "Close All Other Drawings", "Close All Drawings" },
+                model.FileRowMenu(Row(model, "a.dxf")).Where(i => !i.IsSeparator).Select(i => i.Header)
+            );
             Assert.False(onShown["Open"]);
             Assert.True(onShown["Close"]);
             Assert.False(onShown["Close Selected Drawings"]);
@@ -189,10 +191,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             return new MainViewModel();
         }
 
-        private static FileRowViewModel Row(MainViewModel model, string label) => model.FileRows.Single(r => r.Label == label);
+        private static FileRowViewModel Row(MainViewModel model, string label) =>
+            model.FileRows.Single(r => r.Label == label);
 
-        private static Dictionary<string, bool> Menu(MainViewModel model, FileRowViewModel row)
-            => model.FileRowMenu(row).Where(i => !i.IsSeparator).ToDictionary(i => i.Header, i => i.IsEnabled);
+        private static Dictionary<string, bool> Menu(MainViewModel model, FileRowViewModel row) =>
+            model.FileRowMenu(row).Where(i => !i.IsSeparator).ToDictionary(i => i.Header, i => i.IsEnabled);
 
         private static void Run(MainViewModel model, FileRowViewModel row, string header)
         {
@@ -204,7 +207,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         private static void AddLine(MainViewModel model)
         {
             CadDocument document = model.Document;
-            Assert.True(document.ApplyEdit("LINE", null, scope => scope.Append(document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 0)))).Succeeded);
+            Assert.True(
+                document
+                    .ApplyEdit("LINE", null, scope =>
+                        scope.Append(document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 0)))
+                    )
+                    .Succeeded
+            );
         }
 
         /// <summary>An extension that writes down each document it is told is closed.</summary>

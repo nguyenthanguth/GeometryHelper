@@ -44,9 +44,21 @@ namespace GeometryHelper.Dxf
         /// maximum is not above the minimum, or the increment is not above nought.</exception>
         public static DxfBlockParameterValueSet Increments(double minimum, double maximum, double increment)
         {
-            Guard.NonNegative(minimum, nameof(minimum), "The minimum of a distance is a finite number of nought or more.");
-            Guard.Positive(maximum - minimum, nameof(maximum), "The maximum of a distance is a finite number above its minimum.");
-            Guard.Positive(increment, nameof(increment), "The increment of a distance is a finite number above nought.");
+            Guard.NonNegative(
+                minimum,
+                nameof(minimum),
+                "The minimum of a distance is a finite number of nought or more."
+            );
+            Guard.Positive(
+                maximum - minimum,
+                nameof(maximum),
+                "The maximum of a distance is a finite number above its minimum."
+            );
+            Guard.Positive(
+                increment,
+                nameof(increment),
+                "The increment of a distance is a finite number above nought."
+            );
             return new DxfBlockParameterValueSet(minimum, maximum, increment, new double[0]);
         }
 

@@ -12,11 +12,26 @@ namespace GeometryHelper.UnitTest.Packing
     /// </summary>
     public class ClusterTests
     {
-        private static List<Cluster> Build(Footprint[] boxes, GroupLayout layout, double spacing = 0.0, double usableWidth = 1000.0, double usableHeight = 1000.0)
-            => ClusterBuilder.Build(0, boxes, Enumerable.Range(0, boxes.Length).ToArray(), layout, spacing, usableWidth, usableHeight, 1e-9);
+        private static List<Cluster> Build(
+            Footprint[] boxes,
+            GroupLayout layout,
+            double spacing = 0.0,
+            double usableWidth = 1000.0,
+            double usableHeight = 1000.0
+        ) =>
+            ClusterBuilder.Build(
+                0,
+                boxes,
+                Enumerable.Range(0, boxes.Length).ToArray(),
+                layout,
+                spacing,
+                usableWidth,
+                usableHeight,
+                1e-9
+            );
 
-        private static Footprint[] Squares(int count, double side)
-            => Enumerable.Range(0, count).Select(i => new Footprint(i * 1000.0, -i * 500.0, side, side)).ToArray();
+        private static Footprint[] Squares(int count, double side) =>
+            Enumerable.Range(0, count).Select(i => new Footprint(i * 1000.0, -i * 500.0, side, side)).ToArray();
 
         // Whether no two boxes of a block come closer than the gap.
         private static void AssertApart(Cluster cluster, Footprint[] boxes, double gap)
@@ -25,11 +40,15 @@ namespace GeometryHelper.UnitTest.Packing
             {
                 for (int j = i + 1; j < cluster.Members.Count; j++)
                 {
-                    Footprint a = boxes[cluster.Members[i]], b = boxes[cluster.Members[j]];
+                    Footprint a = boxes[cluster.Members[i]],
+                        b = boxes[cluster.Members[j]];
                     (double ax, double ay) = cluster.Offsets[i];
                     (double bx, double by) = cluster.Offsets[j];
-                    bool apart = ax + a.Width + gap <= bx + 1e-9 || bx + b.Width + gap <= ax + 1e-9
-                        || ay + a.Height + gap <= by + 1e-9 || by + b.Height + gap <= ay + 1e-9;
+                    bool apart =
+                        ax + a.Width + gap <= bx + 1e-9
+                        || bx + b.Width + gap <= ax + 1e-9
+                        || ay + a.Height + gap <= by + 1e-9
+                        || by + b.Height + gap <= ay + 1e-9;
                     Assert.True(apart, $"boxes {i} and {j}");
                 }
             }
@@ -68,7 +87,13 @@ namespace GeometryHelper.UnitTest.Packing
         [Fact]
         public void AViewAndItsSections_MakeACompactBlock()
         {
-            Footprint[] boxes = { new Footprint(0, 0, 100, 60), new Footprint(0, 0, 30, 15), new Footprint(0, 0, 30, 15), new Footprint(0, 0, 30, 15) };
+            Footprint[] boxes =
+            {
+                new Footprint(0, 0, 100, 60),
+                new Footprint(0, 0, 30, 15),
+                new Footprint(0, 0, 30, 15),
+                new Footprint(0, 0, 30, 15),
+            };
             Cluster block = Assert.Single(Build(boxes, GroupLayout.Compact, spacing: 2.0));
 
             AssertApart(block, boxes, 2.0);
@@ -83,7 +108,12 @@ namespace GeometryHelper.UnitTest.Packing
         [Fact]
         public void KeptBoxes_StandAsGiven()
         {
-            Footprint[] boxes = { new Footprint(100, 100, 20, 10), new Footprint(130, 100, 20, 10), new Footprint(105, 105, 45, 20) };
+            Footprint[] boxes =
+            {
+                new Footprint(100, 100, 20, 10),
+                new Footprint(130, 100, 20, 10),
+                new Footprint(105, 105, 45, 20),
+            };
             Cluster block = Assert.Single(Build(boxes, GroupLayout.Keep));
 
             Assert.True(block.Kept);
@@ -121,8 +151,17 @@ namespace GeometryHelper.UnitTest.Packing
         public void AGroupOfManyBoxes_HoldsEachOnceInItsOrder()
         {
             var random = new Random(3);
-            Footprint[] boxes = Enumerable.Range(0, 300).Select(i => new Footprint(0, 0, 5 + random.Next(40), 5 + random.Next(30))).ToArray();
-            List<Cluster> clusters = Build(boxes, GroupLayout.Compact, spacing: 1.0, usableWidth: 400.0, usableHeight: 300.0);
+            Footprint[] boxes = Enumerable
+                .Range(0, 300)
+                .Select(i => new Footprint(0, 0, 5 + random.Next(40), 5 + random.Next(30)))
+                .ToArray();
+            List<Cluster> clusters = Build(
+                boxes,
+                GroupLayout.Compact,
+                spacing: 1.0,
+                usableWidth: 400.0,
+                usableHeight: 300.0
+            );
 
             Assert.Equal(Enumerable.Range(0, 300), clusters.SelectMany(c => c.Members));
             foreach (Cluster block in clusters)

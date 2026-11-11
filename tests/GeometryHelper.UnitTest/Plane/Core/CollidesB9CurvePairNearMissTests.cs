@@ -34,7 +34,8 @@ namespace GeometryHelper.UnitTest.Plane
         private static GeoPolylineArc2 TopChain() => new GeoPolylineArc2(new[] { P(50, 0), P(-50, 0) }, new[] { 1.0 });
 
         /// <summary>The curved loop of that half circle closed by two straight edges through (0, -50).</summary>
-        private static GeoPolygonArc2 TopLoop() => new GeoPolygonArc2(new[] { P(50, 0), P(-50, 0), P(0, -50) }, new[] { 1.0, 0.0, 0.0 });
+        private static GeoPolygonArc2 TopLoop() =>
+            new GeoPolygonArc2(new[] { P(50, 0), P(-50, 0), P(0, -50) }, new[] { 1.0, 0.0, 0.0 });
 
         #endregion
 
@@ -48,12 +49,15 @@ namespace GeometryHelper.UnitTest.Plane
         /// meet the circle about gap / sin 10 degrees further, 0.0029 past its end for a gap of 0.0005, outside the end
         /// slack of a crossing at a thousandth; so the nearest pair is its end and (0, 50), gap apart.
         /// </summary>
-        private static GeoPolyline2 DescendingPolyline(double gap)
-            => new GeoPolyline2(P(-10 * Math.Cos(Slope), 50 + gap + 10 * Math.Sin(Slope)), Low(gap));
+        private static GeoPolyline2 DescendingPolyline(double gap) =>
+            new GeoPolyline2(P(-10 * Math.Cos(Slope), 50 + gap + 10 * Math.Sin(Slope)), Low(gap));
 
         /// <summary>The same segment as a straight chain.</summary>
-        private static GeoPolylineArc2 DescendingChain(double gap)
-            => new GeoPolylineArc2(new[] { P(-10 * Math.Cos(Slope), 50 + gap + 10 * Math.Sin(Slope)), Low(gap) }, new[] { 0.0 });
+        private static GeoPolylineArc2 DescendingChain(double gap) =>
+            new GeoPolylineArc2(
+                new[] { P(-10 * Math.Cos(Slope), 50 + gap + 10 * Math.Sin(Slope)), Low(gap) },
+                new[] { 0.0 }
+            );
 
         /// <summary>
         /// The arc of radius 20 sweeping one radian counter-clockwise down to (0, 50 + gap), arriving there at 10 degrees
@@ -89,8 +93,10 @@ namespace GeometryHelper.UnitTest.Plane
         /// </summary>
         private sealed class Pair
         {
-            internal Func<Tolerance, bool> Collides, CollidesBack;
-            internal Func<Tolerance, double> Distance, DistanceBack;
+            internal Func<Tolerance, bool> Collides,
+                CollidesBack;
+            internal Func<Tolerance, double> Distance,
+                DistanceBack;
         }
 
         private static Pair Make(string name, double gap)
@@ -98,99 +104,186 @@ namespace GeometryHelper.UnitTest.Plane
             switch (name)
             {
                 case "arc-arc":
+                {
+                    GeoArc2 a = UpperHalf(),
+                        b = DescendingArc(gap);
+                    return new Pair
                     {
-                        GeoArc2 a = UpperHalf(), b = DescendingArc(gap);
-                        return new Pair { Collides = t => a.CollidesWith(b, t), CollidesBack = t => b.CollidesWith(a, t), Distance = t => a.DistanceTo(b, t), DistanceBack = t => b.DistanceTo(a, t) };
-                    }
+                        Collides = t => a.CollidesWith(b, t),
+                        CollidesBack = t => b.CollidesWith(a, t),
+                        Distance = t => a.DistanceTo(b, t),
+                        DistanceBack = t => b.DistanceTo(a, t),
+                    };
+                }
 
                 case "arc-polyline":
+                {
+                    GeoArc2 a = UpperHalf();
+                    GeoPolyline2 b = DescendingPolyline(gap);
+                    return new Pair
                     {
-                        GeoArc2 a = UpperHalf();
-                        GeoPolyline2 b = DescendingPolyline(gap);
-                        return new Pair { Collides = t => a.CollidesWith(b, t), CollidesBack = t => b.CollidesWith(a, t), Distance = t => a.DistanceTo(b, t), DistanceBack = t => b.DistanceTo(a, t) };
-                    }
+                        Collides = t => a.CollidesWith(b, t),
+                        CollidesBack = t => b.CollidesWith(a, t),
+                        Distance = t => a.DistanceTo(b, t),
+                        DistanceBack = t => b.DistanceTo(a, t),
+                    };
+                }
 
                 case "chain-polyline":
+                {
+                    GeoPolylineArc2 a = TopChain();
+                    GeoPolyline2 b = DescendingPolyline(gap);
+                    return new Pair
                     {
-                        GeoPolylineArc2 a = TopChain();
-                        GeoPolyline2 b = DescendingPolyline(gap);
-                        return new Pair { Collides = t => a.CollidesWith(b, t), CollidesBack = t => b.CollidesWith(a, t), Distance = t => a.DistanceTo(b, t), DistanceBack = t => b.DistanceTo(a, t) };
-                    }
+                        Collides = t => a.CollidesWith(b, t),
+                        CollidesBack = t => b.CollidesWith(a, t),
+                        Distance = t => a.DistanceTo(b, t),
+                        DistanceBack = t => b.DistanceTo(a, t),
+                    };
+                }
 
                 case "chain-arc":
+                {
+                    GeoPolylineArc2 a = TopChain();
+                    GeoArc2 b = DescendingArc(gap);
+                    return new Pair
                     {
-                        GeoPolylineArc2 a = TopChain();
-                        GeoArc2 b = DescendingArc(gap);
-                        return new Pair { Collides = t => a.CollidesWith(b, t), CollidesBack = t => b.CollidesWith(a, t), Distance = t => a.DistanceTo(b, t), DistanceBack = t => b.DistanceTo(a, t) };
-                    }
+                        Collides = t => a.CollidesWith(b, t),
+                        CollidesBack = t => b.CollidesWith(a, t),
+                        Distance = t => a.DistanceTo(b, t),
+                        DistanceBack = t => b.DistanceTo(a, t),
+                    };
+                }
 
                 case "arc-chain":
+                {
+                    GeoArc2 a = UpperHalf();
+                    GeoPolylineArc2 b = DescendingChain(gap);
+                    return new Pair
                     {
-                        GeoArc2 a = UpperHalf();
-                        GeoPolylineArc2 b = DescendingChain(gap);
-                        return new Pair { Collides = t => a.CollidesWith(b, t), CollidesBack = t => b.CollidesWith(a, t), Distance = t => a.DistanceTo(b, t), DistanceBack = t => b.DistanceTo(a, t) };
-                    }
+                        Collides = t => a.CollidesWith(b, t),
+                        CollidesBack = t => b.CollidesWith(a, t),
+                        Distance = t => a.DistanceTo(b, t),
+                        DistanceBack = t => b.DistanceTo(a, t),
+                    };
+                }
 
                 case "chain-chain":
+                {
+                    GeoPolylineArc2 a = TopChain(),
+                        b = DescendingChain(gap);
+                    return new Pair
                     {
-                        GeoPolylineArc2 a = TopChain(), b = DescendingChain(gap);
-                        return new Pair { Collides = t => a.CollidesWith(b, t), CollidesBack = t => b.CollidesWith(a, t), Distance = t => a.DistanceTo(b, t), DistanceBack = t => b.DistanceTo(a, t) };
-                    }
+                        Collides = t => a.CollidesWith(b, t),
+                        CollidesBack = t => b.CollidesWith(a, t),
+                        Distance = t => a.DistanceTo(b, t),
+                        DistanceBack = t => b.DistanceTo(a, t),
+                    };
+                }
 
                 case "chain-curved chain":
+                {
+                    GeoPolylineArc2 a = TopChain();
+                    var b = new GeoPolylineArc2(new[] { new GeoEdge2(DescendingArc(gap)) });
+                    return new Pair
                     {
-                        GeoPolylineArc2 a = TopChain();
-                        var b = new GeoPolylineArc2(new[] { new GeoEdge2(DescendingArc(gap)) });
-                        return new Pair { Collides = t => a.CollidesWith(b, t), CollidesBack = t => b.CollidesWith(a, t), Distance = t => a.DistanceTo(b, t), DistanceBack = t => b.DistanceTo(a, t) };
-                    }
+                        Collides = t => a.CollidesWith(b, t),
+                        CollidesBack = t => b.CollidesWith(a, t),
+                        Distance = t => a.DistanceTo(b, t),
+                        DistanceBack = t => b.DistanceTo(a, t),
+                    };
+                }
 
                 case "loop-arc":
+                {
+                    GeoPolygonArc2 a = TopLoop();
+                    GeoArc2 b = DescendingArc(gap);
+                    return new Pair
                     {
-                        GeoPolygonArc2 a = TopLoop();
-                        GeoArc2 b = DescendingArc(gap);
-                        return new Pair { Collides = t => a.CollidesWith(b, t), CollidesBack = t => b.CollidesWith(a, t), Distance = t => a.DistanceTo(b, t), DistanceBack = t => b.DistanceTo(a, t) };
-                    }
+                        Collides = t => a.CollidesWith(b, t),
+                        CollidesBack = t => b.CollidesWith(a, t),
+                        Distance = t => a.DistanceTo(b, t),
+                        DistanceBack = t => b.DistanceTo(a, t),
+                    };
+                }
 
                 case "loop-polyline":
+                {
+                    GeoPolygonArc2 a = TopLoop();
+                    GeoPolyline2 b = DescendingPolyline(gap);
+                    return new Pair
                     {
-                        GeoPolygonArc2 a = TopLoop();
-                        GeoPolyline2 b = DescendingPolyline(gap);
-                        return new Pair { Collides = t => a.CollidesWith(b, t), CollidesBack = t => b.CollidesWith(a, t), Distance = t => a.DistanceTo(b, t), DistanceBack = t => b.DistanceTo(a, t) };
-                    }
+                        Collides = t => a.CollidesWith(b, t),
+                        CollidesBack = t => b.CollidesWith(a, t),
+                        Distance = t => a.DistanceTo(b, t),
+                        DistanceBack = t => b.DistanceTo(a, t),
+                    };
+                }
 
                 case "loop-chain":
+                {
+                    GeoPolygonArc2 a = TopLoop();
+                    GeoPolylineArc2 b = DescendingChain(gap);
+                    return new Pair
                     {
-                        GeoPolygonArc2 a = TopLoop();
-                        GeoPolylineArc2 b = DescendingChain(gap);
-                        return new Pair { Collides = t => a.CollidesWith(b, t), CollidesBack = t => b.CollidesWith(a, t), Distance = t => a.DistanceTo(b, t), DistanceBack = t => b.DistanceTo(a, t) };
-                    }
+                        Collides = t => a.CollidesWith(b, t),
+                        CollidesBack = t => b.CollidesWith(a, t),
+                        Distance = t => a.DistanceTo(b, t),
+                        DistanceBack = t => b.DistanceTo(a, t),
+                    };
+                }
 
                 case "loop-loop":
+                {
+                    GeoPolygonArc2 a = TopLoop(),
+                        b = HangingLoop(gap);
+                    return new Pair
                     {
-                        GeoPolygonArc2 a = TopLoop(), b = HangingLoop(gap);
-                        return new Pair { Collides = t => a.CollidesWith(b, t), CollidesBack = t => b.CollidesWith(a, t), Distance = t => a.DistanceTo(b, t), DistanceBack = t => b.DistanceTo(a, t) };
-                    }
+                        Collides = t => a.CollidesWith(b, t),
+                        CollidesBack = t => b.CollidesWith(a, t),
+                        Distance = t => a.DistanceTo(b, t),
+                        DistanceBack = t => b.DistanceTo(a, t),
+                    };
+                }
 
                 case "circle-arc":
+                {
+                    GeoCircle2 a = Circle();
+                    GeoArc2 b = DescendingArc(gap);
+                    return new Pair
                     {
-                        GeoCircle2 a = Circle();
-                        GeoArc2 b = DescendingArc(gap);
-                        return new Pair { Collides = t => a.CollidesWith(b, t), CollidesBack = t => b.CollidesWith(a, t), Distance = t => a.DistanceTo(b, t), DistanceBack = t => b.DistanceTo(a, t) };
-                    }
+                        Collides = t => a.CollidesWith(b, t),
+                        CollidesBack = t => b.CollidesWith(a, t),
+                        Distance = t => a.DistanceTo(b, t),
+                        DistanceBack = t => b.DistanceTo(a, t),
+                    };
+                }
 
                 case "circle-chain":
+                {
+                    GeoCircle2 a = Circle();
+                    GeoPolylineArc2 b = DescendingChain(gap);
+                    return new Pair
                     {
-                        GeoCircle2 a = Circle();
-                        GeoPolylineArc2 b = DescendingChain(gap);
-                        return new Pair { Collides = t => a.CollidesWith(b, t), CollidesBack = t => b.CollidesWith(a, t), Distance = t => a.DistanceTo(b, t), DistanceBack = t => b.DistanceTo(a, t) };
-                    }
+                        Collides = t => a.CollidesWith(b, t),
+                        CollidesBack = t => b.CollidesWith(a, t),
+                        Distance = t => a.DistanceTo(b, t),
+                        DistanceBack = t => b.DistanceTo(a, t),
+                    };
+                }
 
                 case "circle-loop":
+                {
+                    GeoCircle2 a = Circle();
+                    GeoPolygonArc2 b = HangingLoop(gap);
+                    return new Pair
                     {
-                        GeoCircle2 a = Circle();
-                        GeoPolygonArc2 b = HangingLoop(gap);
-                        return new Pair { Collides = t => a.CollidesWith(b, t), CollidesBack = t => b.CollidesWith(a, t), Distance = t => a.DistanceTo(b, t), DistanceBack = t => b.DistanceTo(a, t) };
-                    }
+                        Collides = t => a.CollidesWith(b, t),
+                        CollidesBack = t => b.CollidesWith(a, t),
+                        Distance = t => a.DistanceTo(b, t),
+                        DistanceBack = t => b.DistanceTo(a, t),
+                    };
+                }
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(name), name, "No such pair.");
@@ -212,7 +305,9 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData("circle-arc")]
         [InlineData("circle-chain")]
         [InlineData("circle-loop")]
-        public void ACurveComingFiveTenThousandthsShortOfAnother_CollidesAtAThousandthAndATenthButNotATenThousandth(string name)
+        public void ACurveComingFiveTenThousandthsShortOfAnother_CollidesAtAThousandthAndATenthButNotATenThousandth(
+            string name
+        )
         {
             // Half a thousandth apart: more than 1E-4, within 1E-3 and 0.1. The distance is the gap at the two tighter
             // tolerances, where nothing crosses within the end slack.
@@ -261,8 +356,20 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // Arc-Arc#191 of the audit: the end of the second arc lies 0.0005 from the first (the oracle's distance, and
             // the library's own), and their circles cross well away from both. On 2755f30 false even at 0.1.
-            var first = new GeoArc2(P(21.391250534677738, 33.4279742297677), 30, -0.12414555675539819, -0.12414555675539819 - 3, true);
-            var second = new GeoArc2(P(26.081473765001391, 32.868166562574061), 25.27606689709987, 3.6511742160359923, 3.6511742160359923 + 3.1889034258615707, false);
+            var first = new GeoArc2(
+                P(21.391250534677738, 33.4279742297677),
+                30,
+                -0.12414555675539819,
+                -0.12414555675539819 - 3,
+                true
+            );
+            var second = new GeoArc2(
+                P(26.081473765001391, 32.868166562574061),
+                25.27606689709987,
+                3.6511742160359923,
+                3.6511742160359923 + 3.1889034258615707,
+                false
+            );
 
             Assert.Equal(Gap, first.DistanceTo(second, Thousandth), 1E-9);
             Assert.False(Collision2.CollidesWith(first, second, TenThousandth));
@@ -363,7 +470,9 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData("chain")]
         [InlineData("curved chain")]
         [InlineData("loop")]
-        public void ACurveComingFiveTenThousandthsShortOfAStraightClosedShape_CollidesAtAThousandthButNotATenThousandth(string near)
+        public void ACurveComingFiveTenThousandthsShortOfAStraightClosedShape_CollidesAtAThousandthButNotATenThousandth(
+            string near
+        )
         {
             // The near curves of the theory above, against the polygon, the rectangle, the triangle and the face whose
             // top is y = 50 (Collision2.ArcChain.cs:94, Collision2.cs:631, :883 and the forms through them).
@@ -377,32 +486,72 @@ namespace GeometryHelper.UnitTest.Plane
             switch (near)
             {
                 case "arc":
+                {
+                    GeoArc2 c = DescendingArc(Gap);
+                    asks = new Func<GeometryHelper.Tolerance, bool>[]
                     {
-                        GeoArc2 c = DescendingArc(Gap);
-                        asks = new Func<GeometryHelper.Tolerance, bool>[] { t => c.CollidesWith(polygon, t), t => polygon.CollidesWith(c, t), t => c.CollidesWith(rectangle, t), t => rectangle.CollidesWith(c, t), t => c.CollidesWith(triangle, t), t => triangle.CollidesWith(c, t), t => c.CollidesWith(face, t), t => face.CollidesWith(c, t) };
-                        break;
-                    }
+                        t => c.CollidesWith(polygon, t),
+                        t => polygon.CollidesWith(c, t),
+                        t => c.CollidesWith(rectangle, t),
+                        t => rectangle.CollidesWith(c, t),
+                        t => c.CollidesWith(triangle, t),
+                        t => triangle.CollidesWith(c, t),
+                        t => c.CollidesWith(face, t),
+                        t => face.CollidesWith(c, t),
+                    };
+                    break;
+                }
 
                 case "chain":
+                {
+                    GeoPolylineArc2 c = DescendingChain(Gap);
+                    asks = new Func<GeometryHelper.Tolerance, bool>[]
                     {
-                        GeoPolylineArc2 c = DescendingChain(Gap);
-                        asks = new Func<GeometryHelper.Tolerance, bool>[] { t => c.CollidesWith(polygon, t), t => polygon.CollidesWith(c, t), t => c.CollidesWith(rectangle, t), t => rectangle.CollidesWith(c, t), t => c.CollidesWith(triangle, t), t => triangle.CollidesWith(c, t), t => c.CollidesWith(face, t), t => face.CollidesWith(c, t) };
-                        break;
-                    }
+                        t => c.CollidesWith(polygon, t),
+                        t => polygon.CollidesWith(c, t),
+                        t => c.CollidesWith(rectangle, t),
+                        t => rectangle.CollidesWith(c, t),
+                        t => c.CollidesWith(triangle, t),
+                        t => triangle.CollidesWith(c, t),
+                        t => c.CollidesWith(face, t),
+                        t => face.CollidesWith(c, t),
+                    };
+                    break;
+                }
 
                 case "curved chain":
+                {
+                    var c = new GeoPolylineArc2(new[] { new GeoEdge2(DescendingArc(Gap)) });
+                    asks = new Func<GeometryHelper.Tolerance, bool>[]
                     {
-                        var c = new GeoPolylineArc2(new[] { new GeoEdge2(DescendingArc(Gap)) });
-                        asks = new Func<GeometryHelper.Tolerance, bool>[] { t => c.CollidesWith(polygon, t), t => polygon.CollidesWith(c, t), t => c.CollidesWith(rectangle, t), t => rectangle.CollidesWith(c, t), t => c.CollidesWith(triangle, t), t => triangle.CollidesWith(c, t), t => c.CollidesWith(face, t), t => face.CollidesWith(c, t) };
-                        break;
-                    }
+                        t => c.CollidesWith(polygon, t),
+                        t => polygon.CollidesWith(c, t),
+                        t => c.CollidesWith(rectangle, t),
+                        t => rectangle.CollidesWith(c, t),
+                        t => c.CollidesWith(triangle, t),
+                        t => triangle.CollidesWith(c, t),
+                        t => c.CollidesWith(face, t),
+                        t => face.CollidesWith(c, t),
+                    };
+                    break;
+                }
 
                 default:
+                {
+                    GeoPolygonArc2 c = HangingLoop(Gap);
+                    asks = new Func<GeometryHelper.Tolerance, bool>[]
                     {
-                        GeoPolygonArc2 c = HangingLoop(Gap);
-                        asks = new Func<GeometryHelper.Tolerance, bool>[] { t => c.CollidesWith(polygon, t), t => polygon.CollidesWith(c, t), t => c.CollidesWith(rectangle, t), t => rectangle.CollidesWith(c, t), t => c.CollidesWith(triangle, t), t => triangle.CollidesWith(c, t), t => c.CollidesWith(face, t), t => face.CollidesWith(c, t) };
-                        break;
-                    }
+                        t => c.CollidesWith(polygon, t),
+                        t => polygon.CollidesWith(c, t),
+                        t => c.CollidesWith(rectangle, t),
+                        t => rectangle.CollidesWith(c, t),
+                        t => c.CollidesWith(triangle, t),
+                        t => triangle.CollidesWith(c, t),
+                        t => c.CollidesWith(face, t),
+                        t => face.CollidesWith(c, t),
+                    };
+                    break;
+                }
             }
 
             foreach (Func<GeometryHelper.Tolerance, bool> ask in asks)
@@ -434,8 +583,16 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // Edge-Edge#370 of the audit: they share their start point exactly and leave it 1E-5 rad apart, one bowed by
             // -1E-7; their distance is 7E-10, but on 2755f30 they did not collide at 1E-4, from either side.
-            var bowed = new GeoEdge2(P(74.529013770878777, 81.543504810679465), P(111.83421153607796, 77.24277921629124), 0.3);
-            var flat = new GeoEdge2(P(74.529013770878777, 81.543504810679465), P(78.360617379513513, 78.331213761241813), -1E-07);
+            var bowed = new GeoEdge2(
+                P(74.529013770878777, 81.543504810679465),
+                P(111.83421153607796, 77.24277921629124),
+                0.3
+            );
+            var flat = new GeoEdge2(
+                P(74.529013770878777, 81.543504810679465),
+                P(78.360617379513513, 78.331213761241813),
+                -1E-07
+            );
 
             foreach (var tolerance in new[] { TenThousandth, Thousandth, Tenth })
             {

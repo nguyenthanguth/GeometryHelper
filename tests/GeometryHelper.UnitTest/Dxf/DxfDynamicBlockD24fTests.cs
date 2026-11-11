@@ -45,7 +45,14 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = Drawing("GH_GRID", out block);
             DxfCircle dot = Add(block, new DxfCircle(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 5));
-            DxfBlockXYParameter xy = block.AddXYParameter("X Distance1", null, "Y Distance1", null, new GeoPoint3(0, 5, 0), new GeoPoint3(5, 0, 0));
+            DxfBlockXYParameter xy = block.AddXYParameter(
+                "X Distance1",
+                null,
+                "Y Distance1",
+                null,
+                new GeoPoint3(0, 5, 0),
+                new GeoPoint3(5, 0, 0)
+            );
             block.AddArrayAction(xy, new[] { dot }, 25, 20);
             return db;
         }
@@ -54,9 +61,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static DxfBlockReference TheInsert(DxfDatabase db) => db.ModelSpace.OfType<DxfBlockReference>().First();
 
-        private static DxfDynamicBlockReferenceProperty Property(DxfBlockReference insert, string name) => insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name);
+        private static DxfDynamicBlockReferenceProperty Property(DxfBlockReference insert, string name) =>
+            insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name);
 
-        private static double ValueOf(DxfBlockReference insert, string name) => Assert.IsType<double>(Property(insert, name).Value);
+        private static double ValueOf(DxfBlockReference insert, string name) =>
+            Assert.IsType<double>(Property(insert, name).Value);
 
         private static List<T> Shown<T>(DxfBlockReference insert) => insert.BlockTableRecord.OfType<T>().ToList();
 
@@ -64,7 +73,10 @@ namespace GeometryHelper.UnitTest.Dxf
         private static string IdOf(DxfBlockTableRecord block, string type)
         {
             DxfDBObject graph = block.ExtensionDictionary.GetAt("ACAD_ENHANCEDBLOCK");
-            DxfItem node = graph.Item.Groups.Where(g => g.TypeCode == 360).Select(g => graph.Item.File.ObjectItem(g.Value)).First(n => n.Type == type);
+            DxfItem node = graph
+                .Item.Groups.Where(g => g.TypeCode == 360)
+                .Select(g => graph.Item.File.ObjectItem(g.Value))
+                .First(n => n.Type == type);
             return node.Groups.First(g => g.TypeCode == 90).Value.Trim();
         }
 
@@ -75,20 +87,32 @@ namespace GeometryHelper.UnitTest.Dxf
         private static void Grip(DxfBlockReference insert, string id, GeoPoint3 basePoint, GeoPoint3 endPoint)
         {
             var representation = (DxfDBDictionary)insert.ExtensionDictionary.GetAt("AcDbBlockRepresentation");
-            var data = (DxfDBDictionary)((DxfDBDictionary)representation.GetAt("AppDataCache")).GetAt("ACAD_ENHANCEDBLOCKDATA");
+            var data = (DxfDBDictionary)
+                ((DxfDBDictionary)representation.GetAt("AppDataCache")).GetAt("ACAD_ENHANCEDBLOCKDATA");
             DxfItem record = data.GetAt(id).Item;
             DxfFile file = record.File;
 
             // The record's groups as the file holds them: its head (1071) is of codes Data does not take.
-            var groups = file.TailOf(record, 0).Select(g => new KeyValuePair<int, string>(g.TypeCode, g.Value)).ToList();
+            var groups = file.TailOf(record, 0)
+                .Select(g => new KeyValuePair<int, string>(g.TypeCode, g.Value))
+                .ToList();
             int at = groups.FindIndex(g => g.Key == 10);
             var points = new[] { basePoint, endPoint };
 
             for (int i = 0; i < 2; i++)
             {
-                groups[at + 3 * i] = new KeyValuePair<int, string>(10, points[i].X.ToString("R", CultureInfo.InvariantCulture));
-                groups[at + 3 * i + 1] = new KeyValuePair<int, string>(20, points[i].Y.ToString("R", CultureInfo.InvariantCulture));
-                groups[at + 3 * i + 2] = new KeyValuePair<int, string>(30, points[i].Z.ToString("R", CultureInfo.InvariantCulture));
+                groups[at + 3 * i] = new KeyValuePair<int, string>(
+                    10,
+                    points[i].X.ToString("R", CultureInfo.InvariantCulture)
+                );
+                groups[at + 3 * i + 1] = new KeyValuePair<int, string>(
+                    20,
+                    points[i].Y.ToString("R", CultureInfo.InvariantCulture)
+                );
+                groups[at + 3 * i + 2] = new KeyValuePair<int, string>(
+                    30,
+                    points[i].Z.ToString("R", CultureInfo.InvariantCulture)
+                );
             }
 
             file.ReplaceTail(record, 0, groups);
@@ -104,7 +128,12 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Grid(out DxfBlockTableRecord block);
             Property(TheInsert(db), "X Distance1").Value = SampleX;
             Property(TheInsert(db), "Y Distance1").Value = SampleY;
-            Grip(TheInsert(db), IdOf(block, "BLOCKXYPARAMETER"), new GeoPoint3(0, SampleY, 0), new GeoPoint3(SampleX, 0, 0));
+            Grip(
+                TheInsert(db),
+                IdOf(block, "BLOCKXYPARAMETER"),
+                new GeoPoint3(0, SampleY, 0),
+                new GeoPoint3(SampleX, 0, 0)
+            );
             DxfDatabase reopened = Reopened(db);
             DxfBlockReference insert = TheInsert(reopened);
             string before = reopened.ToText();
@@ -127,7 +156,14 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Drawing("GH_PANEL", out DxfBlockTableRecord block);
             DxfLine right = Add(block, new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0)));
             DxfLine bottom = Add(block, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)));
-            DxfBlockLinearParameter width = block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                null
+            );
             block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { right, bottom });
             Property(TheInsert(db), "Width").Value = 200.0;
             Grip(TheInsert(db), IdOf(block, "BLOCKLINEARPARAMETER"), new GeoPoint3(50, 0, 0), new GeoPoint3(200, 0, 0));
@@ -150,7 +186,12 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = Grid(out DxfBlockTableRecord block);
             Property(TheInsert(db), "X Distance1").Value = SampleX;
             Property(TheInsert(db), "Y Distance1").Value = SampleY;
-            Grip(TheInsert(db), IdOf(block, "BLOCKXYPARAMETER"), new GeoPoint3(1E-4, 5 - 1E-4, 0), new GeoPoint3(SampleX, 5 - SampleY, 0));
+            Grip(
+                TheInsert(db),
+                IdOf(block, "BLOCKXYPARAMETER"),
+                new GeoPoint3(1E-4, 5 - 1E-4, 0),
+                new GeoPoint3(SampleX, 5 - SampleY, 0)
+            );
             DxfDatabase reopened = Reopened(db);
 
             Property(TheInsert(reopened), "Y Distance1").Value = 45.0;

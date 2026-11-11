@@ -34,7 +34,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
                 CadPluginResult loaded = manager.Load(path);
 
                 Assert.False(refused.Succeeded);
-                Assert.Equal(path + " is outside the trusted folders, and loading it was not confirmed.", refused.Message);
+                Assert.Equal(
+                    path + " is outside the trusted folders, and loading it was not confirmed.",
+                    refused.Message
+                );
                 Assert.False(declined.Succeeded);
                 Assert.True(loaded.Succeeded, loaded.ToString());
                 Assert.Equal(new[] { path, path }, asked);
@@ -62,7 +65,8 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
 
                 try
                 {
-                    GeometryHelperLog.Writer = (level, text, exception) => lines.Add(GeometryHelperLog.Format(level, text, exception));
+                    GeometryHelperLog.Writer = (level, text, exception) =>
+                        lines.Add(GeometryHelperLog.Format(level, text, exception));
                     result = manager.Load(path);
                 }
                 finally
@@ -71,7 +75,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
                 }
 
                 Assert.True(result.Succeeded, result.ToString());
-                Assert.Equal("Loaded " + PluginFiles.SampleName + " " + result.Plugin.Plugin.Version + ": FAILNOW, NUMCIRCLES.", result.Message);
+                Assert.Equal(
+                    "Loaded " + PluginFiles.SampleName + " " + result.Plugin.Plugin.Version + ": FAILNOW, NUMCIRCLES.",
+                    result.Message
+                );
                 Assert.True(result.Plugin.IsTrusted);
                 CadPluginLogEntry entry = Assert.Single(manager.Log);
                 Assert.Equal(CadPluginAction.Load, entry.Action);
@@ -79,7 +86,16 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
                 Assert.Equal(path, entry.Path);
                 Assert.True(entry.Trusted);
                 Assert.Equal(1, changes);
-                Assert.Contains(lines, l => l.StartsWith("INFO CadPluginManager: Load " + PluginFiles.SampleName + " from " + path + " (trusted): Loaded", StringComparison.Ordinal));
+                Assert.Contains(lines, l =>
+                    l.StartsWith(
+                        "INFO CadPluginManager: Load "
+                            + PluginFiles.SampleName
+                            + " from "
+                            + path
+                            + " (trusted): Loaded",
+                        StringComparison.Ordinal
+                    )
+                );
             }
         }
 
@@ -89,7 +105,17 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
             string path = _files.Sample();
             var loader = new RecordingLoader();
 
-            using (var manager = new CadPluginManager(loader, _files.PluginFolder, _files.SettingsPath, _files.ShadowFolder) { ConfirmUntrusted = p => true })
+            using (
+                var manager = new CadPluginManager(
+                    loader,
+                    _files.PluginFolder,
+                    _files.SettingsPath,
+                    _files.ShadowFolder
+                )
+                {
+                    ConfirmUntrusted = p => true,
+                }
+            )
             {
                 Assert.True(manager.Load(path).Succeeded);
 
@@ -97,7 +123,11 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
                 File.Delete(path);
 
                 string copy = Assert.Single(loader.Files);
-                Assert.StartsWith(manager.ShadowFolder + Path.DirectorySeparatorChar, copy, StringComparison.OrdinalIgnoreCase);
+                Assert.StartsWith(
+                    manager.ShadowFolder + Path.DirectorySeparatorChar,
+                    copy,
+                    StringComparison.OrdinalIgnoreCase
+                );
                 Assert.Equal(Path.GetFileName(path), Path.GetFileName(copy));
                 Assert.Equal(Path.GetDirectoryName(path), loader.ProbeFolder);
                 Assert.False(File.Exists(path));
@@ -122,7 +152,12 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
 
                 Assert.True(unloaded.Succeeded);
                 Assert.False(manager.CanUnload);
-                Assert.Equal("Switched " + PluginFiles.SampleName + " off: its commands are gone, and its code stays loaded until the presenter restarts.", unloaded.Message);
+                Assert.Equal(
+                    "Switched "
+                        + PluginFiles.SampleName
+                        + " off: its commands are gone, and its code stays loaded until the presenter restarts.",
+                    unloaded.Message
+                );
                 Assert.Null(early.Find("NUMCIRCLES"));
                 Assert.Null(late.Find("NC"));
                 Assert.False(loaded.Plugin.IsLoaded);
@@ -149,7 +184,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
                 session.Feed("anything");
 
                 Assert.Equal(CadCommandOutcome.Failed, session.LastOutcome);
-                Assert.Contains("*Error* The plugin " + PluginFiles.SampleName + " was unloaded while FAILNOW ran.", session.History);
+                Assert.Contains(
+                    "*Error* The plugin " + PluginFiles.SampleName + " was unloaded while FAILNOW ran.",
+                    session.History
+                );
                 Assert.Empty(PluginFiles.Texts(document));
             }
         }
@@ -168,7 +206,9 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
 
                 Assert.True(reloaded.Succeeded, reloaded.ToString());
                 Assert.StartsWith("Reloaded " + PluginFiles.SampleName, reloaded.Message, StringComparison.Ordinal);
-                Assert.Contains(reloaded.Warnings, w => w.Contains(".NET Framework takes a new build when the presenter restarts"));
+                Assert.Contains(reloaded.Warnings, w =>
+                    w.Contains(".NET Framework takes a new build when the presenter restarts")
+                );
                 Assert.Equal(new[] { CadPluginAction.Load, CadPluginAction.Reload }, manager.Log.Select(l => l.Action));
                 CadDocument document = PluginFiles.Circles();
                 CadCommandSession session = PluginFiles.Session(document, registry);
@@ -206,7 +246,14 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
             }
 
             // Not on disk: a manager made again asks again.
-            using (var again = new CadPluginManager(new Wpf.Plugins.CadPluginAssemblyLoader(), _files.PluginFolder, _files.SettingsPath, Path.Combine(_files.ShadowFolder, "again")))
+            using (
+                var again = new CadPluginManager(
+                    new Wpf.Plugins.CadPluginAssemblyLoader(),
+                    _files.PluginFolder,
+                    _files.SettingsPath,
+                    Path.Combine(_files.ShadowFolder, "again")
+                )
+            )
             {
                 again.ConfirmUntrusted = p =>
                 {
@@ -234,7 +281,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
                 CadPluginResult refused = manager.Reload(PluginFiles.SampleName);
 
                 Assert.False(refused.Succeeded);
-                Assert.Equal("There is no file " + path + " to reload " + PluginFiles.SampleName + " from.", refused.Message);
+                Assert.Equal(
+                    "There is no file " + path + " to reload " + PluginFiles.SampleName + " from.",
+                    refused.Message
+                );
                 Assert.True(manager.Find(PluginFiles.SampleName).IsLoaded);
                 Assert.NotNull(registry.Find("NUMCIRCLES"));
             }
@@ -252,7 +302,14 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
                 CadPluginResult again = manager.Load("\"" + path + "\"");
 
                 Assert.False(again.Succeeded);
-                Assert.Equal("The plugin " + PluginFiles.SampleName + " is loaded already, from " + path + "; PLUGINRELOAD loads it again.", again.Message);
+                Assert.Equal(
+                    "The plugin "
+                        + PluginFiles.SampleName
+                        + " is loaded already, from "
+                        + path
+                        + "; PLUGINRELOAD loads it again.",
+                    again.Message
+                );
             }
         }
 
@@ -273,14 +330,19 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
                 Assert.NotNull(registry.Find("NUMCIRCLES"));
 
                 session.Feed("PLUGINUNLOAD");
-                Assert.Equal("Enter the name of the plugin to unload <" + PluginFiles.SampleName + ">:", session.PromptText);
+                Assert.Equal(
+                    "Enter the name of the plugin to unload <" + PluginFiles.SampleName + ">:",
+                    session.PromptText
+                );
                 session.Enter();
                 Assert.Null(registry.Find("NUMCIRCLES"));
 
                 session.Feed("PLUGINRELOAD");
                 session.Feed(PluginFiles.SampleName);
                 Assert.NotNull(registry.Find("NUMCIRCLES"));
-                Assert.Contains(session.History, h => h.StartsWith("Reloaded " + PluginFiles.SampleName, StringComparison.Ordinal));
+                Assert.Contains(session.History, h =>
+                    h.StartsWith("Reloaded " + PluginFiles.SampleName, StringComparison.Ordinal)
+                );
 
                 Assert.True(manager.Detach(registry));
                 Assert.Null(registry.Find("NUMCIRCLES"));
@@ -336,7 +398,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
                 Assert.Equal(folder, installed.Plugin.Path);
                 Assert.Equal(Path.Combine(folder, "icon.png"), installed.Plugin.IconPath);
                 Assert.True(File.Exists(Path.Combine(folder, PluginFiles.SampleName + ".dll")));
-                Assert.Equal(new[] { CadPluginAction.Install, CadPluginAction.Load }, manager.Log.Select(l => l.Action));
+                Assert.Equal(
+                    new[] { CadPluginAction.Install, CadPluginAction.Load },
+                    manager.Log.Select(l => l.Action)
+                );
             }
 
             using (CadPluginManager manager = _files.Manager())
@@ -377,7 +442,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
                 CadPluginResult refused = manager.Load(package);
 
                 Assert.False(refused.Succeeded);
-                Assert.Equal("The plugin Number circles needs version 2.0 of the plugin API, and this presenter has 1.0: it needs a newer presenter.", refused.Message);
+                Assert.Equal(
+                    "The plugin Number circles needs version 2.0 of the plugin API, and this presenter has 1.0: it needs a newer presenter.",
+                    refused.Message
+                );
                 Assert.False(Directory.Exists(manager.ShadowFolder));
                 Assert.Empty(manager.Plugins);
                 Assert.False(Assert.Single(manager.Log).Succeeded);
@@ -409,13 +477,26 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
         {
             string folder = Path.Combine(_files.PluginFolder, "with-copies");
             Directory.CreateDirectory(folder);
-            File.WriteAllText(Path.Combine(folder, CadPluginManifest.FileName), PluginFiles.Manifest("with-copies", "With copies"));
+            File.WriteAllText(
+                Path.Combine(folder, CadPluginManifest.FileName),
+                PluginFiles.Manifest("with-copies", "With copies")
+            );
             File.Copy(PluginFiles.BuiltSample, Path.Combine(folder, PluginFiles.SampleName + ".dll"));
-            File.Copy(typeof(CadPlugin).Assembly.Location, Path.Combine(folder, Path.GetFileName(typeof(CadPlugin).Assembly.Location)));
+            File.Copy(
+                typeof(CadPlugin).Assembly.Location,
+                Path.Combine(folder, Path.GetFileName(typeof(CadPlugin).Assembly.Location))
+            );
             var registry = CadCommandRegistry.CreateDefault();
             var loader = new RecordingLoader();
 
-            using (var manager = new CadPluginManager(loader, _files.PluginFolder, _files.SettingsPath, _files.ShadowFolder))
+            using (
+                var manager = new CadPluginManager(
+                    loader,
+                    _files.PluginFolder,
+                    _files.SettingsPath,
+                    _files.ShadowFolder
+                )
+            )
             {
                 manager.Attach(registry);
 
@@ -447,7 +528,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
                 CadPluginResult refused = manager.Load(path);
 
                 Assert.False(refused.Succeeded);
-                Assert.Equal("There is no plugin " + path + ": a plugin is a .dll, a .ghplugin, or the folder of one installed.", refused.Message);
+                Assert.Equal(
+                    "There is no plugin " + path + ": a plugin is a .dll, a .ghplugin, or the folder of one installed.",
+                    refused.Message
+                );
             }
         }
 

@@ -53,8 +53,8 @@ namespace GeometryHelper.Drawing.Annotation
         /// The key bolts are grouped by: their attribute BoltGroup where they have one; otherwise their assembly with their
         /// size and length, so that bolts of one size in one assembly are one group.
         /// </summary>
-        internal static string BoltGroupKey(DrawingObject bolt)
-            => bolt.Attributes.TryGetValue(BoltGroupAttribute, out string group)
+        internal static string BoltGroupKey(DrawingObject bolt) =>
+            bolt.Attributes.TryGetValue(BoltGroupAttribute, out string group)
                 ? "G\u0001" + group
                 : "P\u0001" + (bolt.ParentId ?? string.Empty) + "\u0001" + Diameter(bolt) + "\u0001" + Length(bolt);
 
@@ -81,7 +81,9 @@ namespace GeometryHelper.Drawing.Annotation
         internal static GeoPoint3 AxisCentre(DrawingObject bolt)
         {
             GeoCoordinateSystem3 own = bolt.Frame;
-            return Extent(bolt.Solid, own, out double min, out double max) ? own.Origin.Add(own.XAxis.Multiply(0.5 * (min + max))) : own.Origin;
+            return Extent(bolt.Solid, own, out double min, out double max)
+                ? own.Origin.Add(own.XAxis.Multiply(0.5 * (min + max)))
+                : own.Origin;
         }
 
         /// <summary>Twice the furthest a corner of a body stands off its frame's X axis: the diameter of a faceted bolt.</summary>
@@ -135,7 +137,9 @@ namespace GeometryHelper.Drawing.Annotation
                 return length;
             }
 
-            return Extent(item.Solid, item.Frame, out double min, out double max) ? DrawingDimension.Format(max - min, 1.0) : string.Empty;
+            return Extent(item.Solid, item.Frame, out double min, out double max)
+                ? DrawingDimension.Format(max - min, 1.0)
+                : string.Empty;
         }
 
         /// <summary>The diameter of a bolt or a hole, without its M: the attribute Diameter, or the body's to a tenth; empty for a part.</summary>
@@ -146,7 +150,9 @@ namespace GeometryHelper.Drawing.Annotation
                 return string.Empty;
             }
 
-            return item.Attributes.TryGetValue(DiameterAttribute, out string diameter) ? diameter : DrawingDimension.Format(AxisDiameter(item), 0.1);
+            return item.Attributes.TryGetValue(DiameterAttribute, out string diameter)
+                ? diameter
+                : DrawingDimension.Format(AxisDiameter(item), 0.1);
         }
     }
 }

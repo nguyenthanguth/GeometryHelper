@@ -10,7 +10,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
         // (Axis1 = +Y) and translates +10 Y.
         // IFC semantics (as implemented by xBIM and IfcOpenShell): world = Target * Origin * local.
         //   (0,0,1) -> origin -> (5,0,1) -> rotate -> (0,5,1) -> translate -> (0,15,1)
-        private static readonly string WallWithMappedItem = IfcTestFile.CommonHeader() + @"
+        private static readonly string WallWithMappedItem =
+            IfcTestFile.CommonHeader()
+            + @"
 #20=IFCRECTANGLEPROFILEDEF(.AREA.,$,#5,1.,0.5);
 #21=IFCEXTRUDEDAREASOLID(#20,#8,#9,2.);
 #22=IFCSHAPEREPRESENTATION(#11,'Body','SweptSolid',(#21));
@@ -33,7 +35,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
         //   Target * Origin (IfcOpenShell, this library) -> (5, 12, 1)
         //   Origin * Target (xBIM Xbim3DModelContext)    -> (-5, 2, 1)
         //   Target * Origin^-1 (STEP Part 43 wording)    -> (0, 13, 1)
-        private static readonly string WallWithRotatedMappingOrigin = IfcTestFile.CommonHeader() + @"
+        private static readonly string WallWithRotatedMappingOrigin =
+            IfcTestFile.CommonHeader()
+            + @"
 #19=IFCCARTESIANPOINT((2.,0.));
 #18=IFCAXIS2PLACEMENT2D(#19,$);
 #20=IFCRECTANGLEPROFILEDEF(.AREA.,$,#18,1.,0.5);

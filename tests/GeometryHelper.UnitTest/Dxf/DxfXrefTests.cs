@@ -30,10 +30,13 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Same(column, db.BlockTable["column"]);
 
             string saved = db.ToText();
-            string block = Records(saved).Single(r => r.StartsWith("  0\nBLOCK\n", StringComparison.Ordinal) && r.Contains("\n  2\nCOLUMN\n"));
+            string block = Records(saved)
+                .Single(r => r.StartsWith("  0\nBLOCK\n", StringComparison.Ordinal) && r.Contains("\n  2\nCOLUMN\n"));
             Assert.Contains("  2\nCOLUMN\n 70\n4\n", block, StringComparison.Ordinal);
             Assert.EndsWith("  3\nCOLUMN\n  1\ncolumn.dwg\n", block, StringComparison.Ordinal);
-            Assert.Single(Records(saved), r => r.StartsWith("  0\nBLOCK_RECORD\n", StringComparison.Ordinal) && r.Contains("\n  2\nCOLUMN\n"));
+            Assert.Single(Records(saved), r =>
+                r.StartsWith("  0\nBLOCK_RECORD\n", StringComparison.Ordinal) && r.Contains("\n  2\nCOLUMN\n")
+            );
 
             DxfBlockTableRecord read = DxfDatabase.Parse(saved).BlockTable["COLUMN"];
             Assert.True(read.IsFromExternalReference);
@@ -50,7 +53,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.True(grid.IsFromExternalReference);
             Assert.True(grid.IsFromOverlayReference);
-            string block = Records(db.ToText()).Single(r => r.StartsWith("  0\nBLOCK\n", StringComparison.Ordinal) && r.Contains("\n  2\nGRID\n"));
+            string block = Records(db.ToText())
+                .Single(r => r.StartsWith("  0\nBLOCK\n", StringComparison.Ordinal) && r.Contains("\n  2\nGRID\n"));
             Assert.Contains("  2\nGRID\n 70\n12\n", block, StringComparison.Ordinal);
             Assert.EndsWith("  3\nGRID\n  1\nC:\\plans\\grid.dwg\n", block, StringComparison.Ordinal);
             Assert.DoesNotContain("BLOCK_RECORD", db.ToText(), StringComparison.Ordinal);
@@ -99,8 +103,14 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 // AutoCAD saves an external reference it resolved with flag 32 as well: 70 of 36.
                 string saved = db.ToText();
-                string head = Records(saved).Single(r => r.StartsWith("  0\nBLOCK\n", StringComparison.Ordinal) && r.Contains("\n  2\nCOLUMN\n"));
-                string resolvedText = saved.Replace(head, head.Replace("  2\nCOLUMN\n 70\n4\n", "  2\nCOLUMN\n 70\n36\n"));
+                string head = Records(saved)
+                    .Single(r =>
+                        r.StartsWith("  0\nBLOCK\n", StringComparison.Ordinal) && r.Contains("\n  2\nCOLUMN\n")
+                    );
+                string resolvedText = saved.Replace(
+                    head,
+                    head.Replace("  2\nCOLUMN\n 70\n4\n", "  2\nCOLUMN\n 70\n36\n")
+                );
                 string resolvedPath = Path.Combine(folder, "resolved.dxf");
                 File.WriteAllText(resolvedPath, resolvedText);
                 DxfBlockTableRecord resolved = DxfDatabase.Open(resolvedPath).BlockTable["COLUMN"];
@@ -122,13 +132,16 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // A layer and a linetype the reference COLUMN brought, flagged as AutoCAD flags them (16 dependent, 32 resolved).
             const string LayerHead = "  2\nLAYER\n  5\n1\n330\n0\n100\nAcDbSymbolTable\n 70\n4\n";
-            const string Layer = "  0\nLAYER\n  5\nF101\n330\n1\n100\nAcDbSymbolTableRecord\n100\nAcDbLayerTableRecord\n  2\nCOLUMN|steel\n 70\n48\n 62\n1\n  6\nContinuous\n";
+            const string Layer =
+                "  0\nLAYER\n  5\nF101\n330\n1\n100\nAcDbSymbolTableRecord\n100\nAcDbLayerTableRecord\n  2\nCOLUMN|steel\n 70\n48\n 62\n1\n  6\nContinuous\n";
             const string LinetypeHead = "  2\nLTYPE\n  5\n2\n330\n0\n100\nAcDbSymbolTable\n 70\n3\n";
-            const string Linetype = "  0\nLTYPE\n  5\nF102\n330\n2\n100\nAcDbSymbolTableRecord\n100\nAcDbLinetypeTableRecord\n  2\nCOLUMN|DASHED\n 70\n48\n  3\n\n 72\n65\n 73\n0\n 40\n0.0\n";
+            const string Linetype =
+                "  0\nLTYPE\n  5\nF102\n330\n2\n100\nAcDbSymbolTableRecord\n100\nAcDbLinetypeTableRecord\n  2\nCOLUMN|DASHED\n 70\n48\n  3\n\n 72\n65\n 73\n0\n 40\n0.0\n";
             string text = DxfFileEzdxfDrawings.R2018;
             Assert.Contains(LayerHead, text, StringComparison.Ordinal);
             Assert.Contains(LinetypeHead, text, StringComparison.Ordinal);
-            text = text.Replace(LayerHead, LayerHead.Replace(" 70\n4\n", " 70\n5\n") + Layer).Replace(LinetypeHead, LinetypeHead.Replace(" 70\n3\n", " 70\n4\n") + Linetype);
+            text = text.Replace(LayerHead, LayerHead.Replace(" 70\n4\n", " 70\n5\n") + Layer)
+                .Replace(LinetypeHead, LinetypeHead.Replace(" 70\n3\n", " 70\n4\n") + Linetype);
             DxfDatabase db = DxfDatabase.Parse(text);
             Assert.True(db.LayerTable["COLUMN|steel"].IsDependent);
 
@@ -215,7 +228,8 @@ namespace GeometryHelper.UnitTest.Dxf
             column.PathName = "..\\xref\\column.dxf";
 
             Assert.Equal("..\\xref\\column.dxf", column.PathName);
-            string block = Records(db.ToText()).Single(r => r.StartsWith("  0\nBLOCK\n", StringComparison.Ordinal) && r.Contains("\n  2\nCOLUMN\n"));
+            string block = Records(db.ToText())
+                .Single(r => r.StartsWith("  0\nBLOCK\n", StringComparison.Ordinal) && r.Contains("\n  2\nCOLUMN\n"));
             Assert.EndsWith("  3\nCOLUMN\n  1\n..\\xref\\column.dxf\n", block, StringComparison.Ordinal);
             Assert.Equal("..\\xref\\column.dxf", DxfDatabase.Parse(db.ToText()).BlockTable["COLUMN"].PathName);
 
@@ -239,12 +253,22 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             DxfBlockTableRecord x = db.AttachXref(".\\x.dwg", "x");
-            var dashed = new DxfLinetypeTableRecord { Name = "x|DASHED", AsciiDescription = "Dashed __ __ __", NumDashes = 2 };
+            var dashed = new DxfLinetypeTableRecord
+            {
+                Name = "x|DASHED",
+                AsciiDescription = "Dashed __ __ __",
+                NumDashes = 2,
+            };
             dashed.SetDashLengthAt(0, 0.5);
             dashed.SetDashLengthAt(1, -0.25);
             dashed.SetDependent(true, true);
             db.LinetypeTable.Add(dashed);
-            var wall = new DxfLayerTableRecord { Name = "x|WALL", ColorIndex = 3, LinetypeName = "x|DASHED" };
+            var wall = new DxfLayerTableRecord
+            {
+                Name = "x|WALL",
+                ColorIndex = 3,
+                LinetypeName = "x|DASHED",
+            };
             wall.SetDependent(true, true);
             db.LayerTable.Add(wall);
 

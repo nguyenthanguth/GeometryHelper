@@ -27,8 +27,8 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static readonly Tolerance Tight = new Tolerance(1E-10, 1E-10, Tolerance.DefaultEqualAngleRad, 1E-10);
 
-        private static GeoSolid3 Block(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Block(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
         /// <summary>
         /// A convex part of some kind near the middle of a small space, turned any way: a block, a round bar, or a
@@ -42,23 +42,50 @@ namespace GeometryHelper.UnitTest.Solid
             switch (rng.Next(3))
             {
                 case 0:
-                    part = Block(at.X, at.Y, at.Z, at.X + rng.Next(5, 80), at.Y + rng.Next(5, 80), at.Z + rng.Next(5, 80));
+                    part = Block(
+                        at.X,
+                        at.Y,
+                        at.Z,
+                        at.X + rng.Next(5, 80),
+                        at.Y + rng.Next(5, 80),
+                        at.Z + rng.Next(5, 80)
+                    );
                     break;
                 case 1:
-                    part = GeoSolid3.Cylinder(at, at.Add(new GeoVector3(rng.Next(-80, 81), rng.Next(-80, 81), rng.Next(20, 90))), rng.Next(3, 25), 6 + 2 * rng.Next(0, 8));
+                    part = GeoSolid3.Cylinder(
+                        at,
+                        at.Add(new GeoVector3(rng.Next(-80, 81), rng.Next(-80, 81), rng.Next(20, 90))),
+                        rng.Next(3, 25),
+                        6 + 2 * rng.Next(0, 8)
+                    );
                     break;
                 default:
                     // A convex outline: points on an ellipse, taken in order round it.
                     int corners = rng.Next(3, 9);
-                    double a = rng.Next(10, 50), b = rng.Next(10, 50), start = rng.NextDouble();
-                    var outline = new GeoPolygon2(Enumerable.Range(0, corners)
-                        .Select(k => start + 2 * Math.PI * (k + 0.3 * rng.NextDouble()) / corners)
-                        .Select(t => new GeoPoint2(a * Math.Cos(t), b * Math.Sin(t))));
-                    part = GeoSolid3.Extrude(outline, new GeoCoordinateSystem3(at, GeoVector3.XAxis, GeoVector3.YAxis), rng.Next(5, 70));
+                    double a = rng.Next(10, 50),
+                        b = rng.Next(10, 50),
+                        start = rng.NextDouble();
+                    var outline = new GeoPolygon2(
+                        Enumerable
+                            .Range(0, corners)
+                            .Select(k => start + 2 * Math.PI * (k + 0.3 * rng.NextDouble()) / corners)
+                            .Select(t => new GeoPoint2(a * Math.Cos(t), b * Math.Sin(t)))
+                    );
+                    part = GeoSolid3.Extrude(
+                        outline,
+                        new GeoCoordinateSystem3(at, GeoVector3.XAxis, GeoVector3.YAxis),
+                        rng.Next(5, 70)
+                    );
                     break;
             }
 
-            return part.TransformBy(GeoTransform3.RotationAxis(GeoPoint3.Origin, new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() - 0.5), rng.NextDouble() * 6));
+            return part.TransformBy(
+                GeoTransform3.RotationAxis(
+                    GeoPoint3.Origin,
+                    new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() - 0.5),
+                    rng.NextDouble() * 6
+                )
+            );
         }
 
         [Fact]
@@ -70,12 +97,41 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.True(Boolean3.IsConvex(ConvexPart(rng), Tol));
             }
 
-            var l = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(80, 0), new GeoPoint2(80, 20), new GeoPoint2(20, 20), new GeoPoint2(20, 80), new GeoPoint2(0, 80));
+            var l = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(80, 0),
+                new GeoPoint2(80, 20),
+                new GeoPoint2(20, 20),
+                new GeoPoint2(20, 80),
+                new GeoPoint2(0, 80)
+            );
             GeoSolid3 block = Block(0, 0, 0, 100, 100, 20);
 
-            Assert.False(Boolean3.IsConvex(GeoSolid3.Extrude(l, new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis), 30), Tol));
-            Assert.False(Boolean3.IsConvex(block.WithOpenings(new[] { GeoSolid3.Cylinder(new GeoPoint3(50, 50, -5), new GeoPoint3(50, 50, 25), 5, 8) }), Tol));
-            Assert.True(block.WithOpenings(new[] { GeoSolid3.Cylinder(new GeoPoint3(50, 50, -5), new GeoPoint3(50, 50, 25), 5, 8) }).TryCutOpenings(out GeoSolid3 holed));
+            Assert.False(
+                Boolean3.IsConvex(
+                    GeoSolid3.Extrude(
+                        l,
+                        new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis),
+                        30
+                    ),
+                    Tol
+                )
+            );
+            Assert.False(
+                Boolean3.IsConvex(
+                    block.WithOpenings(
+                        new[] { GeoSolid3.Cylinder(new GeoPoint3(50, 50, -5), new GeoPoint3(50, 50, 25), 5, 8) }
+                    ),
+                    Tol
+                )
+            );
+            Assert.True(
+                block
+                    .WithOpenings(
+                        new[] { GeoSolid3.Cylinder(new GeoPoint3(50, 50, -5), new GeoPoint3(50, 50, 25), 5, 8) }
+                    )
+                    .TryCutOpenings(out GeoSolid3 holed)
+            );
             Assert.False(Boolean3.IsConvex(holed, Tol));
 
             // Faces turned inwards: not taken for convex, so left to the general boolean.
@@ -86,11 +142,13 @@ namespace GeometryHelper.UnitTest.Solid
         public void WhereTheClippingAnswersItIsTheRegion()
         {
             var rng = new Random(21);
-            int answered = 0, overlapping = 0;
+            int answered = 0,
+                overlapping = 0;
 
             for (int k = 0; k < 400; k++)
             {
-                GeoSolid3 a = ConvexPart(rng), b = ConvexPart(rng);
+                GeoSolid3 a = ConvexPart(rng),
+                    b = ConvexPart(rng);
 
                 GeoSolid3[] exact = Boolean3.Intersect(a, b, Tight);
                 double exactVolume = exact.Sum(p => p.GetVolume());
@@ -110,13 +168,22 @@ namespace GeometryHelper.UnitTest.Solid
                 // as much volume, at most, as every face moved out or in by the point tolerance.
                 double surface = piece.Faces.Sum(f => f.Area);
                 double allowed = Tol.EqualPoint * surface;
-                Assert.True(Math.Abs(exactVolume - piece.GetVolume()) <= allowed, $"volume {piece.GetVolume()}, exactly {exactVolume}, allowed {allowed}");
+                Assert.True(
+                    Math.Abs(exactVolume - piece.GetVolume()) <= allowed,
+                    $"volume {piece.GetVolume()}, exactly {exactVolume}, allowed {allowed}"
+                );
 
                 GeoPoint3 middle = exact.Length == 1 ? exact[0].GetCentroid() : piece.GetCentroid();
-                Assert.True(middle.DistanceTo(piece.GetCentroid()) <= allowed / piece.GetVolume() * 10.0 + 1E-9, $"middles {middle} and {piece.GetCentroid()}");
+                Assert.True(
+                    middle.DistanceTo(piece.GetCentroid()) <= allowed / piece.GetVolume() * 10.0 + 1E-9,
+                    $"middles {middle} and {piece.GetCentroid()}"
+                );
             }
 
-            Assert.True(answered > 80 && answered >= overlapping * 8 / 10, $"clipping answered {answered} of {overlapping} overlapping pairs");
+            Assert.True(
+                answered > 80 && answered >= overlapping * 8 / 10,
+                $"clipping answered {answered} of {overlapping} overlapping pairs"
+            );
         }
 
         /// <summary>
@@ -131,7 +198,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int k = 0; k < 200 && checkedPairs < 8; k++)
             {
-                GeoSolid3 a = ConvexPart(rng), b = ConvexPart(rng);
+                GeoSolid3 a = ConvexPart(rng),
+                    b = ConvexPart(rng);
 
                 if (!Boolean3.TryIntersectConvex(a, b, Tol, out GeoSolid3[] clipped) || clipped[0].GetVolume() < 500)
                 {
@@ -140,7 +208,9 @@ namespace GeometryHelper.UnitTest.Solid
 
                 checkedPairs++;
                 GeoSolid3 piece = clipped[0];
-                GeoPreparedSolid3 pa = a.Prepare(), pb = b.Prepare(), pr = piece.Prepare();
+                GeoPreparedSolid3 pa = a.Prepare(),
+                    pb = b.Prepare(),
+                    pr = piece.Prepare();
                 GeoAabb3 box = piece.GetAabb();
                 double boxVolume = (box.Max.X - box.Min.X) * (box.Max.Y - box.Min.Y) * (box.Max.Z - box.Min.Z);
                 int both = 0;
@@ -151,7 +221,8 @@ namespace GeometryHelper.UnitTest.Solid
                     var probe = new GeoPoint3(
                         box.Min.X + (box.Max.X - box.Min.X) * rng.NextDouble(),
                         box.Min.Y + (box.Max.Y - box.Min.Y) * rng.NextDouble(),
-                        box.Min.Z + (box.Max.Z - box.Min.Z) * rng.NextDouble());
+                        box.Min.Z + (box.Max.Z - box.Min.Z) * rng.NextDouble()
+                    );
 
                     bool inBoth = pa.Contains(probe) && pb.Contains(probe);
                     both += inBoth ? 1 : 0;
@@ -164,7 +235,10 @@ namespace GeometryHelper.UnitTest.Solid
 
                 double counted = boxVolume * both / samples;
                 double error = boxVolume * Math.Sqrt(Math.Max(both, 1)) / samples;
-                Assert.True(Math.Abs(counted - piece.GetVolume()) <= 5.0 * error, $"counted {counted} +/- {error}, clipped {piece.GetVolume()}");
+                Assert.True(
+                    Math.Abs(counted - piece.GetVolume()) <= 5.0 * error,
+                    $"counted {counted} +/- {error}, clipped {piece.GetVolume()}"
+                );
             }
 
             Assert.True(checkedPairs >= 8, $"only {checkedPairs} pairs checked");
@@ -184,7 +258,14 @@ namespace GeometryHelper.UnitTest.Solid
             }
 
             // In by a millimetre: plainly a region, and the clipping answers.
-            Assert.True(Boolean3.TryIntersectConvex(Block(0, 0, 0, 50, 50, 50), Block(49, 10, 10, 90, 40, 40), Tol, out GeoSolid3[] slab));
+            Assert.True(
+                Boolean3.TryIntersectConvex(
+                    Block(0, 0, 0, 50, 50, 50),
+                    Block(49, 10, 10, 90, 40, 40),
+                    Tol,
+                    out GeoSolid3[] slab
+                )
+            );
             Assert.Equal(1.0 * 30 * 30, Assert.Single(slab).GetVolume(), 6);
         }
 
@@ -202,7 +283,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int k = 0; k <= 2240; k++)
             {
-                GeoSolid3 a = ConvexPart(rng), b = ConvexPart(rng);
+                GeoSolid3 a = ConvexPart(rng),
+                    b = ConvexPart(rng);
 
                 if (k == 1556 || k == 2240)
                 {
@@ -219,7 +301,10 @@ namespace GeometryHelper.UnitTest.Solid
 
                 Assert.True(exact > 50, $"pair {pair.Key}: the tight boolean gives only {exact}");
                 Assert.True(Math.Abs(plain - exact) <= 1E-3 * exact, $"pair {pair.Key}: {plain}, exactly {exact}");
-                Assert.True(Math.Abs(otherWay - exact) <= 1E-3 * exact, $"pair {pair.Key} the other way: {otherWay}, exactly {exact}");
+                Assert.True(
+                    Math.Abs(otherWay - exact) <= 1E-3 * exact,
+                    $"pair {pair.Key} the other way: {otherWay}, exactly {exact}"
+                );
             }
         }
 
@@ -241,15 +326,27 @@ namespace GeometryHelper.UnitTest.Solid
                 double allowed = 1E-6 * (a.GetVolume() + b.GetVolume());
                 string pair = $"seed {seed}, pair {index}";
 
-                Assert.True(Math.Abs(Boolean3.Intersect(a, b, Tol).Sum(p => p.GetVolume()) - shared) <= allowed, $"{pair}: the first with the second");
-                Assert.True(Math.Abs(Boolean3.Intersect(b, a, Tol).Sum(p => p.GetVolume()) - shared) <= allowed, $"{pair}: the second with the first");
+                Assert.True(
+                    Math.Abs(Boolean3.Intersect(a, b, Tol).Sum(p => p.GetVolume()) - shared) <= allowed,
+                    $"{pair}: the first with the second"
+                );
+                Assert.True(
+                    Math.Abs(Boolean3.Intersect(b, a, Tol).Sum(p => p.GetVolume()) - shared) <= allowed,
+                    $"{pair}: the second with the first"
+                );
 
                 Assert.True(Boolean3.TryUnion(a, b, out GeoSolid3 union, Tol), pair);
-                Assert.True(Math.Abs(union.GetVolume() - (a.GetVolume() + b.GetVolume() - shared)) <= allowed, $"{pair}: union {union.GetVolume()}");
+                Assert.True(
+                    Math.Abs(union.GetVolume() - (a.GetVolume() + b.GetVolume() - shared)) <= allowed,
+                    $"{pair}: union {union.GetVolume()}"
+                );
                 Assert.True(union.IsClosed(), $"{pair}: the union is open");
 
                 Assert.True(Boolean3.TrySubtract(a, b, out GeoSolid3 rest, Tol), pair);
-                Assert.True(Math.Abs(rest.GetVolume() - (a.GetVolume() - shared)) <= allowed, $"{pair}: difference {rest.GetVolume()}");
+                Assert.True(
+                    Math.Abs(rest.GetVolume() - (a.GetVolume() - shared)) <= allowed,
+                    $"{pair}: difference {rest.GetVolume()}"
+                );
                 Assert.True(rest.IsClosed(), $"{pair}: the difference is open");
             }
         }
@@ -263,7 +360,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int k = 0; ; k++)
             {
-                GeoSolid3 a = ConvexPart(rng), b = ConvexPart(rng);
+                GeoSolid3 a = ConvexPart(rng),
+                    b = ConvexPart(rng);
 
                 if (k == index)
                 {
@@ -284,15 +382,34 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < 8; i++)
             {
-                parts.Add(GeoSolid3.Cylinder(new GeoPoint3(-20, 20 + i * 40, 0), new GeoPoint3(340, 20 + i * 40, rng.Next(-3, 4)), 8, 12));
-                parts.Add(GeoSolid3.Cylinder(new GeoPoint3(20 + i * 40, -20, 14), new GeoPoint3(20 + i * 40, 340, 14 + rng.Next(-3, 4)), 8, 12));
+                parts.Add(
+                    GeoSolid3.Cylinder(
+                        new GeoPoint3(-20, 20 + i * 40, 0),
+                        new GeoPoint3(340, 20 + i * 40, rng.Next(-3, 4)),
+                        8,
+                        12
+                    )
+                );
+                parts.Add(
+                    GeoSolid3.Cylinder(
+                        new GeoPoint3(20 + i * 40, -20, 14),
+                        new GeoPoint3(20 + i * 40, 340, 14 + rng.Next(-3, 4)),
+                        8,
+                        12
+                    )
+                );
             }
 
             for (int i = 0; i < 20; i++)
             {
-                double x = rng.Next(0, 300), y = rng.Next(0, 300);
-                parts.Add(Block(x, y, -10, x + rng.Next(10, 50), y + rng.Next(10, 50), rng.Next(0, 30))
-                    .TransformBy(GeoTransform3.RotationAxis(new GeoPoint3(x, y, 0), GeoVector3.ZAxis, rng.NextDouble())));
+                double x = rng.Next(0, 300),
+                    y = rng.Next(0, 300);
+                parts.Add(
+                    Block(x, y, -10, x + rng.Next(10, 50), y + rng.Next(10, 50), rng.Next(0, 30))
+                        .TransformBy(
+                            GeoTransform3.RotationAxis(new GeoPoint3(x, y, 0), GeoVector3.ZAxis, rng.NextDouble())
+                        )
+                );
             }
 
             GeoPreparedSolid3[] prepared = parts.Select(p => p.Prepare()).ToArray();
@@ -308,13 +425,18 @@ namespace GeometryHelper.UnitTest.Solid
                         continue;
                     }
 
-                    double shared = Boolean3.Intersect(prepared[i].Material, prepared[j].Material, Tol).Sum(p => p.GetVolume());
+                    double shared = Boolean3
+                        .Intersect(prepared[i].Material, prepared[j].Material, Tol)
+                        .Sum(p => p.GetVolume());
                     byHand.Add((i, j, shared > 0 ? ClashKind.Hard : ClashKind.Touch, shared));
                 }
             }
 
             Assert.True(byHand.Count(p => p.Item3 == ClashKind.Hard) > 40, $"only {byHand.Count} colliding pairs");
-            Assert.Equal(byHand.Select(p => (p.Item1, p.Item2, p.Item3)), found.Select(r => (r.First, r.Second, r.Kind)));
+            Assert.Equal(
+                byHand.Select(p => (p.Item1, p.Item2, p.Item3)),
+                found.Select(r => (r.First, r.Second, r.Kind))
+            );
 
             // The check clips convex pairs at the ordinary tolerance, so its corners may move by that much, as they may
             // in WhereTheClippingAnswersItIsTheRegion; the boolean by hand cuts one part by the other's planes alone
@@ -323,7 +445,10 @@ namespace GeometryHelper.UnitTest.Solid
             for (int k = 0; k < found.Length; k++)
             {
                 double allowed = Tol.EqualPoint * found[k].Overlaps.Sum(piece => piece.Faces.Sum(f => f.Area)) + 1E-9;
-                Assert.True(Math.Abs(byHand[k].Item4 - found[k].Volume) <= allowed, $"pair {found[k].First}-{found[k].Second}: {found[k].Volume}, by hand {byHand[k].Item4}, allowed {allowed}");
+                Assert.True(
+                    Math.Abs(byHand[k].Item4 - found[k].Volume) <= allowed,
+                    $"pair {found[k].First}-{found[k].Second}: {found[k].Volume}, by hand {byHand[k].Item4}, allowed {allowed}"
+                );
             }
         }
     }

@@ -19,7 +19,8 @@ namespace GeometryHelper.Core
         /// Gets every point where a ray crosses the boundary of a face.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoRay2 ray) => GetIntersections(face, ray, Tolerance.Global);
+        public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoRay2 ray) =>
+            GetIntersections(face, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a ray crosses the boundary of a face, within a tolerance.
@@ -27,7 +28,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static GeoPoint2[] GetIntersections(GeoFace2 face, GeoRay2 ray, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             return GetIntersections(face, Ray2.CutPast(ray, face, tolerance), tolerance);
         }
@@ -44,7 +46,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static bool CollidesWith(GeoFace2 face, GeoRay2 ray, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             return CollidesWith(face, Ray2.CutPast(ray, face, tolerance), tolerance);
         }
@@ -53,7 +56,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment leaving the boundary of a face and landing on a ray.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoRay2 ray) => GetShortestLineTo(face, ray, Tolerance.Global);
+        public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoRay2 ray) =>
+            GetShortestLineTo(face, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment leaving the boundary of a face and landing on a ray, within a tolerance.
@@ -61,7 +65,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static GeoLine2 GetShortestLineTo(GeoFace2 face, GeoRay2 ray, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             return GetShortestLineTo(face, Ray2.CutPast(ray, face, tolerance), tolerance);
         }
@@ -86,7 +91,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static double DistanceTo(GeoFace2 face, GeoRay2 ray, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             return DistanceTo(face, Ray2.CutPast(ray, face, tolerance), tolerance);
         }

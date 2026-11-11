@@ -94,7 +94,12 @@ namespace GeometryHelper.Internal.Nurbs
                 return;
             }
 
-            Intersection2.TryIntersectWith(new GeoCircle2(first.Cx, first.Cy, r1), new GeoCircle2(second.Cx, second.Cy, r2), out GeoPoint2[] points, tolerance);
+            Intersection2.TryIntersectWith(
+                new GeoCircle2(first.Cx, first.Cy, r1),
+                new GeoCircle2(second.Cx, second.Cy, r2),
+                out GeoPoint2[] points,
+                tolerance
+            );
 
             foreach (GeoPoint2 point in points)
             {
@@ -109,7 +114,15 @@ namespace GeometryHelper.Internal.Nurbs
         /// Offers the places two arcs come nearest, measured as they are: the crossings, where the circles cross, and the points of the
         /// first circle on the line through the centres.
         /// </summary>
-        private static void Nearest(NurbsCurve a, int piece, PieceArc first, PieceArc second, double apart, Partner partner, Hunt hunt)
+        private static void Nearest(
+            NurbsCurve a,
+            int piece,
+            PieceArc first,
+            PieceArc second,
+            double apart,
+            Partner partner,
+            Hunt hunt
+        )
         {
             if (!(apart > 0.0))
             {
@@ -136,12 +149,28 @@ namespace GeometryHelper.Internal.Nurbs
 
                 for (int side = -1; side <= 1; side += 2)
                 {
-                    Look(a, piece, first, first.Cx + along * ux - side * across * uy, first.Cy + along * uy + side * across * ux, partner, hunt);
+                    Look(
+                        a,
+                        piece,
+                        first,
+                        first.Cx + along * ux - side * across * uy,
+                        first.Cy + along * uy + side * across * ux,
+                        partner,
+                        hunt
+                    );
                 }
             }
         }
 
-        private static void Look(NurbsCurve a, int piece, PieceArc first, double x, double y, Partner partner, Hunt hunt)
+        private static void Look(
+            NurbsCurve a,
+            int piece,
+            PieceArc first,
+            double x,
+            double y,
+            Partner partner,
+            Hunt hunt
+        )
         {
             if (first.Holds(x, y, hunt.Snap))
             {
@@ -161,7 +190,14 @@ namespace GeometryHelper.Internal.Nurbs
 
             if (second.Whole)
             {
-                hunt.Runs.Add(new Hunt.AlongRun { Part = partner.Position, From = from, To = to });
+                hunt.Runs.Add(
+                    new Hunt.AlongRun
+                    {
+                        Part = partner.Position,
+                        From = from,
+                        To = to,
+                    }
+                );
                 return;
             }
 
@@ -170,10 +206,17 @@ namespace GeometryHelper.Internal.Nurbs
             const double Turn = 2.0 * Math.PI;
             double low = first.Sweep >= 0.0 ? first.Start : first.Start + first.Sweep;
             double length = Math.Abs(first.Sweep);
-            double startAngle = Math.Atan2(second.Cy + second.Radius * Math.Sin(second.Start) - first.Cy, second.Cx + second.Radius * Math.Cos(second.Start) - first.Cx);
-            double endAngle = Math.Atan2(second.Cy + second.Radius * Math.Sin(second.Start + second.Sweep) - first.Cy, second.Cx + second.Radius * Math.Cos(second.Start + second.Sweep) - first.Cx);
+            double startAngle = Math.Atan2(
+                second.Cy + second.Radius * Math.Sin(second.Start) - first.Cy,
+                second.Cx + second.Radius * Math.Cos(second.Start) - first.Cx
+            );
+            double endAngle = Math.Atan2(
+                second.Cy + second.Radius * Math.Sin(second.Start + second.Sweep) - first.Cy,
+                second.Cx + second.Radius * Math.Cos(second.Start + second.Sweep) - first.Cx
+            );
             double otherLow = second.Sweep >= 0.0 ? startAngle : endAngle;
-            double drift = (second.Sweep >= 0.0 ? endAngle - startAngle : startAngle - endAngle) - Math.Abs(second.Sweep);
+            double drift =
+                (second.Sweep >= 0.0 ? endAngle - startAngle : startAngle - endAngle) - Math.Abs(second.Sweep);
             drift -= Turn * Math.Floor(drift / Turn + 0.5);
             double pad = hunt.Reach / first.Radius;
             double otherLength = Math.Abs(second.Sweep) + drift + 2.0 * pad;
@@ -193,7 +236,14 @@ namespace GeometryHelper.Internal.Nurbs
 
                 double k0 = AtAngle(a, piece, first, u0, low, length);
                 double k1 = AtAngle(a, piece, first, u1, low, length);
-                hunt.Runs.Add(new Hunt.AlongRun { Part = partner.Position, From = Math.Min(k0, k1), To = Math.Max(k0, k1) });
+                hunt.Runs.Add(
+                    new Hunt.AlongRun
+                    {
+                        Part = partner.Position,
+                        From = Math.Min(k0, k1),
+                        To = Math.Max(k0, k1),
+                    }
+                );
             }
         }
 
@@ -215,7 +265,12 @@ namespace GeometryHelper.Internal.Nurbs
                 return forward ? pieces.To[piece] : pieces.From[piece];
             }
 
-            return KnotOn(a, piece, first.Cx + first.Radius * Math.Cos(angle), first.Cy + first.Radius * Math.Sin(angle));
+            return KnotOn(
+                a,
+                piece,
+                first.Cx + first.Radius * Math.Cos(angle),
+                first.Cy + first.Radius * Math.Sin(angle)
+            );
         }
 
         /// <summary>
@@ -226,7 +281,9 @@ namespace GeometryHelper.Internal.Nurbs
             double knot = a.ClosestParameter(new[] { x, y }, out _);
             BezierPieces pieces = a.Pieces;
 
-            return knot < pieces.From[piece] ? pieces.From[piece] : knot > pieces.To[piece] ? pieces.To[piece] : knot;
+            return knot < pieces.From[piece] ? pieces.From[piece]
+                : knot > pieces.To[piece] ? pieces.To[piece]
+                : knot;
         }
 
         /// <summary>
@@ -237,25 +294,35 @@ namespace GeometryHelper.Internal.Nurbs
         {
             var point = new double[a.Dim];
             a.PointAt(knot, point);
-            double gap = partner.Gap(point[0], point[1], 0.0, out double qx, out double qy, out double qz, out double other);
+            double gap = partner.Gap(
+                point[0],
+                point[1],
+                0.0,
+                out double qx,
+                out double qy,
+                out double qz,
+                out double other
+            );
             bool meets = gap <= hunt.Snap;
 
-            hunt.Offer(new Contact
-            {
-                Knot = knot,
-                Gap = meets ? 0.0 : gap,
-                Raw = gap,
-                Px = point[0],
-                Py = point[1],
-                Qx = meets ? point[0] : qx,
-                Qy = meets ? point[1] : qy,
-                Other = other,
-                Part = partner.Position,
-                Verified = meets,
-                Crossing = meets,
-                Least = !meets,
-                From = partner
-            });
+            hunt.Offer(
+                new Contact
+                {
+                    Knot = knot,
+                    Gap = meets ? 0.0 : gap,
+                    Raw = gap,
+                    Px = point[0],
+                    Py = point[1],
+                    Qx = meets ? point[0] : qx,
+                    Qy = meets ? point[1] : qy,
+                    Other = other,
+                    Part = partner.Position,
+                    Verified = meets,
+                    Crossing = meets,
+                    Least = !meets,
+                    From = partner,
+                }
+            );
 
             if (meets)
             {
@@ -266,9 +333,13 @@ namespace GeometryHelper.Internal.Nurbs
         /// <summary>
         /// Gets the largest coordinate of the centres of two arcs, or radius, whichever is larger, as the circles' rule weighs rounding by.
         /// </summary>
-        private static double Scale(PieceArc first, PieceArc second)
-            => Math.Max(
-                Math.Max(Math.Max(Math.Abs(first.Cx), Math.Abs(first.Cy)), Math.Max(Math.Abs(second.Cx), Math.Abs(second.Cy))),
-                Math.Max(first.Radius, second.Radius));
+        private static double Scale(PieceArc first, PieceArc second) =>
+            Math.Max(
+                Math.Max(
+                    Math.Max(Math.Abs(first.Cx), Math.Abs(first.Cy)),
+                    Math.Max(Math.Abs(second.Cx), Math.Abs(second.Cy))
+                ),
+                Math.Max(first.Radius, second.Radius)
+            );
     }
 }

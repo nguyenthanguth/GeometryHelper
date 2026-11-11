@@ -36,7 +36,12 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// The normals of the three great circles drawn on a ball and read for its snaps: the planes through its centre square to X, to Y and to Z.
         /// </summary>
-        internal static readonly Vec3[] GreatCircleNormals = { new Vec3(1.0, 0.0, 0.0), new Vec3(0.0, 1.0, 0.0), new Vec3(0.0, 0.0, 1.0) };
+        internal static readonly Vec3[] GreatCircleNormals =
+        {
+            new Vec3(1.0, 0.0, 0.0),
+            new Vec3(0.0, 1.0, 0.0),
+            new Vec3(0.0, 0.0, 1.0),
+        };
 
         internal static Primitives Build(Scene scene, int maxPoints)
         {
@@ -74,7 +79,11 @@ namespace GeometryHelper.Viewer
                 List<int> balls = curved.Where(i => scene.Items[i].Kind == "GeoSphere3").ToList();
                 double ballTolerance = ChooseBallTolerance(scene, balls, curveRule.ChordTolerance);
 
-                ChordRule RuleFor(int index) => new ChordRule(curveRule.ChordTolerance, curveRule.AngleOnly) { BallTolerance = scene.Items[index].Kind == "GeoSphere3" ? ballTolerance : 0.0 };
+                ChordRule RuleFor(int index) =>
+                    new ChordRule(curveRule.ChordTolerance, curveRule.AngleOnly)
+                    {
+                        BallTolerance = scene.Items[index].Kind == "GeoSphere3" ? ballTolerance : 0.0,
+                    };
 
                 foreach (int i in curved)
                 {
@@ -104,10 +113,19 @@ namespace GeometryHelper.Viewer
                 {
                     long after = balls.Sum(i => (long)items[i].Triangles.Count);
                     result.Warnings.Add(
-                        "the " + balls.Count + " ball(s) of the scene would take more triangles than the budget of " + MostBallTrianglesInAScene + " at the chord tolerance of "
-                        + curveRule.ChordTolerance.ToString("G3", System.Globalization.CultureInfo.InvariantCulture) + ": they are all cut within "
-                        + ballTolerance.ToString("G3", System.Globalization.CultureInfo.InvariantCulture) + " of their spheres instead, which leaves " + after + " triangles"
-                        + (after > MostBallTrianglesInAScene ? ", still over the budget" : string.Empty));
+                        "the "
+                            + balls.Count
+                            + " ball(s) of the scene would take more triangles than the budget of "
+                            + MostBallTrianglesInAScene
+                            + " at the chord tolerance of "
+                            + curveRule.ChordTolerance.ToString("G3", System.Globalization.CultureInfo.InvariantCulture)
+                            + ": they are all cut within "
+                            + ballTolerance.ToString("G3", System.Globalization.CultureInfo.InvariantCulture)
+                            + " of their spheres instead, which leaves "
+                            + after
+                            + " triangles"
+                            + (after > MostBallTrianglesInAScene ? ", still over the budget" : string.Empty)
+                    );
                 }
 
                 foreach (ItemPrimitives item in items)
@@ -220,7 +238,10 @@ namespace GeometryHelper.Viewer
                     }
                     else
                     {
-                        points += Math.Max(spline.Points(new ChordRule(Chord, true)).Length, (long)Math.Ceiling(fine * Math.Sqrt(Chord / rule.ChordTolerance)));
+                        points += Math.Max(
+                            spline.Points(new ChordRule(Chord, true)).Length,
+                            (long)Math.Ceiling(fine * Math.Sqrt(Chord / rule.ChordTolerance))
+                        );
                     }
                 }
 
@@ -243,7 +264,9 @@ namespace GeometryHelper.Viewer
                     case "GeoArc2":
                     case "GeoArc3":
                         count.Fixed += 1;
-                        count.Turns.Add(new KeyValuePair<double, double>(DataJson.Number(d, "sweep"), DataJson.Number(d, "radius")));
+                        count.Turns.Add(
+                            new KeyValuePair<double, double>(DataJson.Number(d, "sweep"), DataJson.Number(d, "radius"))
+                        );
                         break;
 
                     case "GeoCircle2":
@@ -254,14 +277,24 @@ namespace GeometryHelper.Viewer
                     case "GeoSphere3":
                         for (int circle = 0; circle < GreatCircleNormals.Length; circle++)
                         {
-                            count.Turns.Add(new KeyValuePair<double, double>(2.0 * Math.PI, DataJson.Number(d, "radius")));
+                            count.Turns.Add(
+                                new KeyValuePair<double, double>(2.0 * Math.PI, DataJson.Number(d, "radius"))
+                            );
                         }
 
                         break;
 
                     case "GeoEllipse2":
                     case "GeoEllipse3":
-                        count.Turns.Add(new KeyValuePair<double, double>(2.0 * Math.PI, Math.Max(Math.Abs(DataJson.Number(d, "majorRadius")), Math.Abs(DataJson.Number(d, "minorRadius")))));
+                        count.Turns.Add(
+                            new KeyValuePair<double, double>(
+                                2.0 * Math.PI,
+                                Math.Max(
+                                    Math.Abs(DataJson.Number(d, "majorRadius")),
+                                    Math.Abs(DataJson.Number(d, "minorRadius"))
+                                )
+                            )
+                        );
                         break;
 
                     case "GeoSpline2":
@@ -289,10 +322,22 @@ namespace GeometryHelper.Viewer
                             double chord = (points[(k + 1) % points.Length] - points[k]).Length;
                             bool normal = !space || (k < normals.Count && normals[k].Length > 0.0);
 
-                            if (bulge != 0.0 && !double.IsNaN(bulge) && !double.IsInfinity(bulge) && chord > 0.0 && !double.IsInfinity(chord) && normal)
+                            if (
+                                bulge != 0.0
+                                && !double.IsNaN(bulge)
+                                && !double.IsInfinity(bulge)
+                                && chord > 0.0
+                                && !double.IsInfinity(chord)
+                                && normal
+                            )
                             {
                                 count.Fixed -= 1;
-                                count.Turns.Add(new KeyValuePair<double, double>(4.0 * Math.Atan(bulge), chord * (1.0 + bulge * bulge) / (4.0 * Math.Abs(bulge))));
+                                count.Turns.Add(
+                                    new KeyValuePair<double, double>(
+                                        4.0 * Math.Atan(bulge),
+                                        chord * (1.0 + bulge * bulge) / (4.0 * Math.Abs(bulge))
+                                    )
+                                );
                             }
                         }
 
@@ -300,7 +345,8 @@ namespace GeometryHelper.Viewer
                     }
                 }
             }
-            catch (Exception e) when (e is FormatException || e is InvalidOperationException || e is KeyNotFoundException)
+            catch (Exception e)
+                when (e is FormatException || e is InvalidOperationException || e is KeyNotFoundException)
             {
                 // The numbers are wrong: the drawing of the item says so, and it takes no points here.
             }
@@ -311,7 +357,14 @@ namespace GeometryHelper.Viewer
         /// cap, and otherwise at one coarser tolerance for all of them, the finest at which they do, found by counting the pieces and not by cutting
         /// the curves; failing any, by the angle alone, 2 degrees a piece. Where it is not the chord tolerance of the scene it says so, once.
         /// </summary>
-        private static ChordRule ChooseRule(Scene scene, ItemPrimitives[] items, List<int> curved, int maxPoints, List<string> warnings, Dictionary<int, SplineCut> cuts)
+        private static ChordRule ChooseRule(
+            Scene scene,
+            ItemPrimitives[] items,
+            List<int> curved,
+            int maxPoints,
+            List<string> warnings,
+            Dictionary<int, SplineCut> cuts
+        )
         {
             double chord = ChordOf(scene);
             var rule = new ChordRule(chord);
@@ -379,12 +432,30 @@ namespace GeometryHelper.Viewer
             var g3 = System.Globalization.CultureInfo.InvariantCulture;
 
             warnings.Add(
-                "the lines of the scene would take " + before + " points at the chord tolerance of " + chord.ToString("G3", g3) + ", over the cap of " + maxPoints
-                + ": its " + curved.Count + " curve(s) are cut "
-                + (chosen.AngleOnly ? "at 2 degrees a piece, whatever the chord tolerance" : "at a chord tolerance of " + chosen.ChordTolerance.ToString("G3", g3) + " (2 degrees a piece at most)")
-                + " instead, which leaves " + after + " points" + (after > maxPoints ? ", still over the cap, for the rest is not curves" : string.Empty));
+                "the lines of the scene would take "
+                    + before
+                    + " points at the chord tolerance of "
+                    + chord.ToString("G3", g3)
+                    + ", over the cap of "
+                    + maxPoints
+                    + ": its "
+                    + curved.Count
+                    + " curve(s) are cut "
+                    + (
+                        chosen.AngleOnly
+                            ? "at 2 degrees a piece, whatever the chord tolerance"
+                            : "at a chord tolerance of "
+                                + chosen.ChordTolerance.ToString("G3", g3)
+                                + " (2 degrees a piece at most)"
+                    )
+                    + " instead, which leaves "
+                    + after
+                    + " points"
+                    + (after > maxPoints ? ", still over the cap, for the rest is not curves" : string.Empty)
+            );
             return chosen;
         }
+
         /// <summary>
         /// Gets how many triangles the balls of a scene take, by the formula (a ball cut within a tolerance takes about 6 r / tolerance, at least the
         /// twenty of an icosahedron and at most <see cref="MostBallTriangles"/>).
@@ -422,7 +493,8 @@ namespace GeometryHelper.Viewer
                         radii.Add(radius);
                     }
                 }
-                catch (Exception e) when (e is FormatException || e is InvalidOperationException || e is KeyNotFoundException)
+                catch (Exception e)
+                    when (e is FormatException || e is InvalidOperationException || e is KeyNotFoundException)
                 {
                     // The numbers are wrong: the drawing of the item says so, and it takes no triangles here.
                 }
@@ -473,29 +545,61 @@ namespace GeometryHelper.Viewer
         private static SplineCut CutOf(SceneItem item)
         {
             JsonElement d = item.Data;
-            return SplineCut.Of(DataJson.Degree(d), DataJson.Points(d, "points", item.Kind == "GeoSpline2" ? 2 : 3), DataJson.Numbers(DataJson.Get(d, "knots")), DataJson.Weights(d));
+            return SplineCut.Of(
+                DataJson.Degree(d),
+                DataJson.Points(d, "points", item.Kind == "GeoSpline2" ? 2 : 3),
+                DataJson.Numbers(DataJson.Get(d, "knots")),
+                DataJson.Weights(d)
+            );
         }
 
-        private static bool IsUnbounded(string kind) => kind == "GeoRay2" || kind == "GeoRay3" || kind == "GeoXLine2" || kind == "GeoXLine3" || kind == "GeoPlane3";
+        private static bool IsUnbounded(string kind) =>
+            kind == "GeoRay2" || kind == "GeoRay3" || kind == "GeoXLine2" || kind == "GeoXLine3" || kind == "GeoPlane3";
 
         /// <summary>
         /// Gets how far a chord may lie from its curve: a tenth of the point tolerance of the scene, so that the drawing never
         /// differs from the curve by more than a tenth of what the library takes as one place.
         /// </summary>
-        private static double ChordOf(Scene scene)
-            => scene.EqualPoint > 0.0 && !double.IsInfinity(scene.EqualPoint) ? scene.EqualPoint / 10.0 : Scene.DefaultEqualPoint / 10.0;
+        private static double ChordOf(Scene scene) =>
+            scene.EqualPoint > 0.0 && !double.IsInfinity(scene.EqualPoint)
+                ? scene.EqualPoint / 10.0
+                : Scene.DefaultEqualPoint / 10.0;
 
-        private static ItemPrimitives BuildItem(Scene scene, SceneItem item, int index, double extent, ChordRule rule, Bounds3 around = default(Bounds3), Dictionary<int, SplineCut> cuts = null)
+        private static ItemPrimitives BuildItem(
+            Scene scene,
+            SceneItem item,
+            int index,
+            double extent,
+            ChordRule rule,
+            Bounds3 around = default(Bounds3),
+            Dictionary<int, SplineCut> cuts = null
+        )
         {
             using (LibraryLog log = Viewer.LibraryLog.Begin())
             {
-                ItemPrimitives built = BuildItemCore(scene, item, index, extent, rule, around, cuts != null && cuts.TryGetValue(index, out SplineCut cut) ? cut : null);
+                ItemPrimitives built = BuildItemCore(
+                    scene,
+                    item,
+                    index,
+                    extent,
+                    rule,
+                    around,
+                    cuts != null && cuts.TryGetValue(index, out SplineCut cut) ? cut : null
+                );
                 built.LibraryLog.AddRange(log.Lines.Distinct(StringComparer.Ordinal));
                 return built;
             }
         }
 
-        private static ItemPrimitives BuildItemCore(Scene scene, SceneItem item, int index, double extent, ChordRule rule, Bounds3 around, SplineCut cut)
+        private static ItemPrimitives BuildItemCore(
+            Scene scene,
+            SceneItem item,
+            int index,
+            double extent,
+            ChordRule rule,
+            Bounds3 around,
+            SplineCut cut
+        )
         {
             var p = new ItemPrimitives { ItemIndex = index };
             rule = rule ?? new ChordRule(ChordOf(scene));
@@ -507,18 +611,42 @@ namespace GeometryHelper.Viewer
 
                 switch (item.Kind)
                 {
-                    case "GeoPoint2": p.Points.Add(DataJson.Point(d, 2)); break;
-                    case "GeoPoint3": p.Points.Add(DataJson.Point(d, 3)); break;
-                    case "GeoLine2": Line(p, false, DataJson.Point(d, "a", 2), DataJson.Point(d, "b", 2)); break;
-                    case "GeoLine3": Line(p, false, DataJson.Point(d, "a", 3), DataJson.Point(d, "b", 3)); break;
-                    case "GeoRay2": fixedBounds = Ray(p, DataJson.Point(d, "a", 2), DataJson.Point(d, "b", 2), extent); break;
-                    case "GeoRay3": fixedBounds = Ray(p, DataJson.Point(d, "a", 3), DataJson.Point(d, "b", 3), extent); break;
-                    case "GeoXLine2": fixedBounds = XLine(p, DataJson.Point(d, "a", 2), DataJson.Point(d, "b", 2), extent, around); break;
-                    case "GeoXLine3": fixedBounds = XLine(p, DataJson.Point(d, "a", 3), DataJson.Point(d, "b", 3), extent, around); break;
-                    case "GeoPolyline2": Line(p, false, DataJson.Points(d, "points", 2)); break;
-                    case "GeoPolygon2": Line(p, true, DataJson.Points(d, "points", 2)); break;
-                    case "GeoPolyline3": Line(p, false, DataJson.Points(d, "points", 3)); break;
-                    case "GeoPolygon3": Line(p, true, DataJson.Points(d, "points", 3)); break;
+                    case "GeoPoint2":
+                        p.Points.Add(DataJson.Point(d, 2));
+                        break;
+                    case "GeoPoint3":
+                        p.Points.Add(DataJson.Point(d, 3));
+                        break;
+                    case "GeoLine2":
+                        Line(p, false, DataJson.Point(d, "a", 2), DataJson.Point(d, "b", 2));
+                        break;
+                    case "GeoLine3":
+                        Line(p, false, DataJson.Point(d, "a", 3), DataJson.Point(d, "b", 3));
+                        break;
+                    case "GeoRay2":
+                        fixedBounds = Ray(p, DataJson.Point(d, "a", 2), DataJson.Point(d, "b", 2), extent);
+                        break;
+                    case "GeoRay3":
+                        fixedBounds = Ray(p, DataJson.Point(d, "a", 3), DataJson.Point(d, "b", 3), extent);
+                        break;
+                    case "GeoXLine2":
+                        fixedBounds = XLine(p, DataJson.Point(d, "a", 2), DataJson.Point(d, "b", 2), extent, around);
+                        break;
+                    case "GeoXLine3":
+                        fixedBounds = XLine(p, DataJson.Point(d, "a", 3), DataJson.Point(d, "b", 3), extent, around);
+                        break;
+                    case "GeoPolyline2":
+                        Line(p, false, DataJson.Points(d, "points", 2));
+                        break;
+                    case "GeoPolygon2":
+                        Line(p, true, DataJson.Points(d, "points", 2));
+                        break;
+                    case "GeoPolyline3":
+                        Line(p, false, DataJson.Points(d, "points", 3));
+                        break;
+                    case "GeoPolygon3":
+                        Line(p, true, DataJson.Points(d, "points", 3));
+                        break;
 
                     case "GeoPolylineArc2":
                     {
@@ -537,38 +665,91 @@ namespace GeometryHelper.Viewer
                     case "GeoPolylineArc3":
                     {
                         Vec3[] points = DataJson.Points(d, "points", 3);
-                        Line(p, false, ArcTessellation.Chain3(rule, points, DataJson.Bulges(d, points.Length), Normals(d), false));
+                        Line(
+                            p,
+                            false,
+                            ArcTessellation.Chain3(rule, points, DataJson.Bulges(d, points.Length), Normals(d), false)
+                        );
                         break;
                     }
 
                     case "GeoPolygonArc3":
                     {
                         Vec3[] points = DataJson.Points(d, "points", 3);
-                        Line(p, true, ArcTessellation.Chain3(rule, points, DataJson.Bulges(d, points.Length), Normals(d), true));
+                        Line(
+                            p,
+                            true,
+                            ArcTessellation.Chain3(rule, points, DataJson.Bulges(d, points.Length), Normals(d), true)
+                        );
                         break;
                     }
 
                     case "GeoArc2":
-                        Line(p, false, ArcTessellation.Arc2(rule, DataJson.Point(d, "center", 2), DataJson.Number(d, "radius"), DataJson.Number(d, "start"), DataJson.Number(d, "sweep")));
+                        Line(
+                            p,
+                            false,
+                            ArcTessellation.Arc2(
+                                rule,
+                                DataJson.Point(d, "center", 2),
+                                DataJson.Number(d, "radius"),
+                                DataJson.Number(d, "start"),
+                                DataJson.Number(d, "sweep")
+                            )
+                        );
                         break;
 
                     case "GeoArc3":
-                        Line(p, false, ArcTessellation.Arc3(rule, DataJson.Point(d, "center", 3), DataJson.Point(d, "normal", 3), DataJson.Number(d, "radius"), DataJson.Number(d, "start"), DataJson.Number(d, "sweep")));
+                        Line(
+                            p,
+                            false,
+                            ArcTessellation.Arc3(
+                                rule,
+                                DataJson.Point(d, "center", 3),
+                                DataJson.Point(d, "normal", 3),
+                                DataJson.Number(d, "radius"),
+                                DataJson.Number(d, "start"),
+                                DataJson.Number(d, "sweep")
+                            )
+                        );
                         break;
 
                     case "GeoCircle2":
-                        Line(p, true, ArcTessellation.Circle2(rule, DataJson.Point(d, "center", 2), DataJson.Number(d, "radius")));
+                        Line(
+                            p,
+                            true,
+                            ArcTessellation.Circle2(rule, DataJson.Point(d, "center", 2), DataJson.Number(d, "radius"))
+                        );
                         break;
 
                     case "GeoCircle3":
-                        Line(p, true, ArcTessellation.Circle3(rule, DataJson.Point(d, "center", 3), DataJson.Point(d, "normal", 3), DataJson.Number(d, "radius")));
+                        Line(
+                            p,
+                            true,
+                            ArcTessellation.Circle3(
+                                rule,
+                                DataJson.Point(d, "center", 3),
+                                DataJson.Point(d, "normal", 3),
+                                DataJson.Number(d, "radius")
+                            )
+                        );
                         break;
 
                     case "GeoEllipse2":
                     {
                         Vec3 major = DataJson.Point(d, "majorAxis", 2).Normalized();
                         Vec3 minor = new Vec3(-major.Y, major.X, 0.0);
-                        Line(p, true, ArcTessellation.Ellipse(rule, DataJson.Point(d, "center", 2), major, minor, DataJson.Number(d, "majorRadius"), DataJson.Number(d, "minorRadius")));
+                        Line(
+                            p,
+                            true,
+                            ArcTessellation.Ellipse(
+                                rule,
+                                DataJson.Point(d, "center", 2),
+                                major,
+                                minor,
+                                DataJson.Number(d, "majorRadius"),
+                                DataJson.Number(d, "minorRadius")
+                            )
+                        );
                         break;
                     }
 
@@ -576,7 +757,18 @@ namespace GeometryHelper.Viewer
                     {
                         Vec3 major = DataJson.Point(d, "majorAxis", 3).Normalized();
                         Vec3 minor = Vec3.Cross(DataJson.Point(d, "normal", 3).Normalized(), major);
-                        Line(p, true, ArcTessellation.Ellipse(rule, DataJson.Point(d, "center", 3), major, minor, DataJson.Number(d, "majorRadius"), DataJson.Number(d, "minorRadius")));
+                        Line(
+                            p,
+                            true,
+                            ArcTessellation.Ellipse(
+                                rule,
+                                DataJson.Point(d, "center", 3),
+                                major,
+                                minor,
+                                DataJson.Number(d, "majorRadius"),
+                                DataJson.Number(d, "minorRadius")
+                            )
+                        );
                         break;
                     }
 
@@ -605,7 +797,12 @@ namespace GeometryHelper.Viewer
 
                     case "GeoFace2":
                         FaceLoops(p, d, 2);
-                        Surface(p, scene, () => ((GeoFace2)item.ToGeometry()).TriangulateSurface().Select(t => new DrawTriangle(V(t.A), V(t.B), V(t.C))).ToList());
+                        Surface(p, scene, () =>
+                            ((GeoFace2)item.ToGeometry())
+                                .TriangulateSurface()
+                                .Select(t => new DrawTriangle(V(t.A), V(t.B), V(t.C)))
+                                .ToList()
+                        );
                         break;
 
                     case "GeoFace3":
@@ -648,7 +845,10 @@ namespace GeometryHelper.Viewer
                     case SceneKinds.Text:
                     {
                         Vec3 at = DataJson.Point(d, "at", 3);
-                        string text = DataJson.TryGet(d, "text", out JsonElement t) && t.ValueKind == JsonValueKind.String ? t.GetString() : string.Empty;
+                        string text =
+                            DataJson.TryGet(d, "text", out JsonElement t) && t.ValueKind == JsonValueKind.String
+                                ? t.GetString()
+                                : string.Empty;
                         double height = DataJson.TryGet(d, "height", out JsonElement h) ? DataJson.Number(h) : 0.0;
                         p.Labels.Add(new DrawLabel(at, text, height));
                         break;
@@ -675,11 +875,27 @@ namespace GeometryHelper.Viewer
             if (rule.Capped && (item.Kind == "GeoSpline2" || item.Kind == "GeoSpline3"))
             {
                 int most = 1 << SplineTessellation.MostHalvings;
-                Warn(p, "a Bézier piece of the spline would take more than " + most + " chords at a chord tolerance of " + rule.ChordTolerance.ToString("G3", System.Globalization.CultureInfo.InvariantCulture) + " and is cut in that many, halved " + SplineTessellation.MostHalvings + " times");
+                Warn(
+                    p,
+                    "a Bézier piece of the spline would take more than "
+                        + most
+                        + " chords at a chord tolerance of "
+                        + rule.ChordTolerance.ToString("G3", System.Globalization.CultureInfo.InvariantCulture)
+                        + " and is cut in that many, halved "
+                        + SplineTessellation.MostHalvings
+                        + " times"
+                );
             }
             else if (rule.Capped)
             {
-                Warn(p, "a curve would take more than " + ChordRule.MaxPiecesPerTurn + " pieces a turn at a chord tolerance of " + rule.ChordTolerance.ToString("G3", System.Globalization.CultureInfo.InvariantCulture) + " and is cut in that many");
+                Warn(
+                    p,
+                    "a curve would take more than "
+                        + ChordRule.MaxPiecesPerTurn
+                        + " pieces a turn at a chord tolerance of "
+                        + rule.ChordTolerance.ToString("G3", System.Globalization.CultureInfo.InvariantCulture)
+                        + " and is cut in that many"
+                );
             }
 
             p.Bounds = fixedBounds ?? Measure(p, rule.Extremes);
@@ -691,7 +907,8 @@ namespace GeometryHelper.Viewer
 
         private static Vec3 V(GeoPoint3 point) => new Vec3(point.X, point.Y, point.Z);
 
-        private static DrawTriangle T(GeoTriangle3 triangle) => new DrawTriangle(V(triangle.A), V(triangle.B), V(triangle.C));
+        private static DrawTriangle T(GeoTriangle3 triangle) =>
+            new DrawTriangle(V(triangle.A), V(triangle.B), V(triangle.C));
 
         private static void Line(ItemPrimitives p, bool closed, params Vec3[] points)
         {
@@ -705,8 +922,8 @@ namespace GeometryHelper.Viewer
             }
         }
 
-        private static IReadOnlyList<Vec3> Normals(JsonElement d)
-            => DataJson.TryGet(d, "normals", out JsonElement list) ? DataJson.Points(list, 3) : new Vec3[0];
+        private static IReadOnlyList<Vec3> Normals(JsonElement d) =>
+            DataJson.TryGet(d, "normals", out JsonElement list) ? DataJson.Points(list, 3) : new Vec3[0];
 
         /// <summary>
         /// Draws a ray as a dot at its origin and, once the extent of the scene is known, a line out to it.
@@ -741,10 +958,12 @@ namespace GeometryHelper.Viewer
                 double near = double.NegativeInfinity;
                 double far = double.PositiveInfinity;
 
-                if (Slab(origin.X, unit.X, around.Min.X - margin, around.Max.X + margin, ref near, ref far)
+                if (
+                    Slab(origin.X, unit.X, around.Min.X - margin, around.Max.X + margin, ref near, ref far)
                     && Slab(origin.Y, unit.Y, around.Min.Y - margin, around.Max.Y + margin, ref near, ref far)
                     && Slab(origin.Z, unit.Z, around.Min.Z - margin, around.Max.Z + margin, ref near, ref far)
-                    && near <= far)
+                    && near <= far
+                )
                 {
                     Line(p, false, origin + unit * near, origin + unit * far);
                 }
@@ -841,9 +1060,18 @@ namespace GeometryHelper.Viewer
 
             if (p.Triangles.Count > 0 && within > basis && within > ChordOf(scene) * 100.0)
             {
-                Warn(p, "its mesh is cut in " + p.Triangles.Count + " triangles, within " + within.ToString("G3", System.Globalization.CultureInfo.InvariantCulture)
-                    + " of the sphere and not within the chord tolerance of " + ChordOf(scene).ToString("G3", System.Globalization.CultureInfo.InvariantCulture)
-                    + ": a ball is drawn with at most " + MostBallTriangles + " triangles (its circles, snaps and measures are exact)");
+                Warn(
+                    p,
+                    "its mesh is cut in "
+                        + p.Triangles.Count
+                        + " triangles, within "
+                        + within.ToString("G3", System.Globalization.CultureInfo.InvariantCulture)
+                        + " of the sphere and not within the chord tolerance of "
+                        + ChordOf(scene).ToString("G3", System.Globalization.CultureInfo.InvariantCulture)
+                        + ": a ball is drawn with at most "
+                        + MostBallTriangles
+                        + " triangles (its circles, snaps and measures are exact)"
+                );
             }
         }
 
@@ -856,9 +1084,16 @@ namespace GeometryHelper.Viewer
             double cos = Math.Cos(angle);
             double sin = Math.Sin(angle);
 
-            Vec3 Corner(double x, double y) => new Vec3(center.X + x * cos - y * sin, center.Y + x * sin + y * cos, 0.0);
+            Vec3 Corner(double x, double y) =>
+                new Vec3(center.X + x * cos - y * sin, center.Y + x * sin + y * cos, 0.0);
 
-            return new[] { Corner(-halfWidth, -halfHeight), Corner(halfWidth, -halfHeight), Corner(halfWidth, halfHeight), Corner(-halfWidth, halfHeight) };
+            return new[]
+            {
+                Corner(-halfWidth, -halfHeight),
+                Corner(halfWidth, -halfHeight),
+                Corner(halfWidth, halfHeight),
+                Corner(-halfWidth, halfHeight),
+            };
         }
 
         private static void FaceLoops(ItemPrimitives p, JsonElement d, int dimension)
@@ -904,7 +1139,14 @@ namespace GeometryHelper.Viewer
             }
             catch (Exception e) when (!(e is OutOfMemoryException))
             {
-                Warn(p, "the library could not cut its surface into triangles (" + e.GetType().Name + ": " + e.Message + "); only its outline is drawn");
+                Warn(
+                    p,
+                    "the library could not cut its surface into triangles ("
+                        + e.GetType().Name
+                        + ": "
+                        + e.Message
+                        + "); only its outline is drawn"
+                );
             }
         }
 
@@ -924,14 +1166,21 @@ namespace GeometryHelper.Viewer
                     () =>
                     {
                         var solid = (GeoSolid3)item.ToGeometry();
-                        List<DrawTriangle> all = (solid.Openings.Count == 0 ? solid.Faces.SelectMany(FaceCutter.Cut).ToArray() : solid.TriangulateSurface()).Select(T).ToList();
+                        List<DrawTriangle> all = (
+                            solid.Openings.Count == 0
+                                ? solid.Faces.SelectMany(FaceCutter.Cut).ToArray()
+                                : solid.TriangulateSurface()
+                        )
+                            .Select(T)
+                            .ToList();
                         closed = solid.IsClosed(scene.Tolerance);
 
                         // A body with openings that gives nothing is not drawn face by face, which would show the material the
                         // openings took: it is warned of, and the library's own log of why goes to the output with it.
                         return Tuple.Create(all, all.Count == 0 && solid.Faces.Count > 0 && solid.Openings.Count > 0);
                     },
-                    out string note);
+                    out string note
+                );
 
                 if (note != null)
                 {
@@ -955,7 +1204,8 @@ namespace GeometryHelper.Viewer
             }
             catch (Exception e) when (!(e is OutOfMemoryException))
             {
-                trouble = "the library could not cut the surface of the body (" + e.GetType().Name + ": " + e.Message + ")";
+                trouble =
+                    "the library could not cut the surface of the body (" + e.GetType().Name + ": " + e.Message + ")";
             }
 
             int refused = 0;
@@ -968,7 +1218,12 @@ namespace GeometryHelper.Viewer
 
                 try
                 {
-                    p.Triangles.AddRange(scene.Run(() => FaceCutter.Cut(GeometryDecoder.DecodeFace3(face)).Select(T).ToList(), out string faceNote));
+                    p.Triangles.AddRange(
+                        scene.Run(
+                            () => FaceCutter.Cut(GeometryDecoder.DecodeFace3(face)).Select(T).ToList(),
+                            out string faceNote
+                        )
+                    );
                     rebuilt |= faceNote != null;
                 }
                 catch (Exception e) when (!(e is OutOfMemoryException))
@@ -977,8 +1232,17 @@ namespace GeometryHelper.Viewer
                 }
             }
 
-            Warn(p, trouble + "; its " + faces + " faces are drawn one by one with the openings ignored" + (refused > 0 ? ", " + refused + " of them could not be drawn" : string.Empty) + (rebuilt ? "; some were rebuilt and measured at 1E-12" : string.Empty));
+            Warn(
+                p,
+                trouble
+                    + "; its "
+                    + faces
+                    + " faces are drawn one by one with the openings ignored"
+                    + (refused > 0 ? ", " + refused + " of them could not be drawn" : string.Empty)
+                    + (rebuilt ? "; some were rebuilt and measured at 1E-12" : string.Empty)
+            );
         }
+
         /// <summary>
         /// Gets whether every edge of a mesh is used by exactly two of its faces, going by the indices of its corners, which is what makes a mesh a closed body.
         /// </summary>
@@ -1032,14 +1296,24 @@ namespace GeometryHelper.Viewer
 
                 try
                 {
-                    cut = dimension == 2
-                        ? new GeoPolygon2(corners.Select(c => new GeoPoint2(c.X, c.Y))).TriangulateSurface().Select(t => new DrawTriangle(V(t.A), V(t.B), V(t.C))).ToList()
-                        : new GeoPolygon3(corners.Select(c => new GeoPoint3(c.X, c.Y, c.Z))).Triangulate().Select(T).ToList();
+                    cut =
+                        dimension == 2
+                            ? new GeoPolygon2(corners.Select(c => new GeoPoint2(c.X, c.Y)))
+                                .TriangulateSurface()
+                                .Select(t => new DrawTriangle(V(t.A), V(t.B), V(t.C)))
+                                .ToList()
+                            : new GeoPolygon3(corners.Select(c => new GeoPoint3(c.X, c.Y, c.Z)))
+                                .Triangulate()
+                                .Select(T)
+                                .ToList();
                 }
                 catch (ArgumentException)
                 {
                     // A face the library will not take as a polygon is drawn as a fan from its first corner.
-                    cut = Enumerable.Range(1, corners.Length - 2).Select(k => new DrawTriangle(corners[0], corners[k], corners[k + 1])).ToList();
+                    cut = Enumerable
+                        .Range(1, corners.Length - 2)
+                        .Select(k => new DrawTriangle(corners[0], corners[k], corners[k + 1]))
+                        .ToList();
                     p.Warning = "a mesh face the library refuses as a polygon is drawn as a fan";
                 }
 
@@ -1058,11 +1332,20 @@ namespace GeometryHelper.Viewer
             Vec3 min = DataJson.Point(d, "min", 3);
             Vec3 max = DataJson.Point(d, "max", 3);
 
-            Box(p, new[]
-            {
-                new Vec3(min.X, min.Y, min.Z), new Vec3(max.X, min.Y, min.Z), new Vec3(max.X, max.Y, min.Z), new Vec3(min.X, max.Y, min.Z),
-                new Vec3(min.X, min.Y, max.Z), new Vec3(max.X, min.Y, max.Z), new Vec3(max.X, max.Y, max.Z), new Vec3(min.X, max.Y, max.Z),
-            });
+            Box(
+                p,
+                new[]
+                {
+                    new Vec3(min.X, min.Y, min.Z),
+                    new Vec3(max.X, min.Y, min.Z),
+                    new Vec3(max.X, max.Y, min.Z),
+                    new Vec3(min.X, max.Y, min.Z),
+                    new Vec3(min.X, min.Y, max.Z),
+                    new Vec3(max.X, min.Y, max.Z),
+                    new Vec3(max.X, max.Y, max.Z),
+                    new Vec3(min.X, max.Y, max.Z),
+                }
+            );
         }
 
         private static void Obb(ItemPrimitives p, JsonElement d)
@@ -1075,11 +1358,20 @@ namespace GeometryHelper.Viewer
             Vec3 dy = axisY * (DataJson.Number(d, "sizeY") * 0.5);
             Vec3 dz = axisZ * (DataJson.Number(d, "sizeZ") * 0.5);
 
-            Box(p, new[]
-            {
-                center - dx - dy - dz, center + dx - dy - dz, center + dx + dy - dz, center - dx + dy - dz,
-                center - dx - dy + dz, center + dx - dy + dz, center + dx + dy + dz, center - dx + dy + dz,
-            });
+            Box(
+                p,
+                new[]
+                {
+                    center - dx - dy - dz,
+                    center + dx - dy - dz,
+                    center + dx + dy - dz,
+                    center - dx + dy - dz,
+                    center - dx - dy + dz,
+                    center + dx - dy + dz,
+                    center + dx + dy + dz,
+                    center - dx + dy + dz,
+                }
+            );
         }
 
         /// <summary>
@@ -1098,8 +1390,12 @@ namespace GeometryHelper.Viewer
 
             int[][] faces =
             {
-                new[] { 0, 3, 2, 1 }, new[] { 4, 5, 6, 7 }, new[] { 0, 1, 5, 4 },
-                new[] { 1, 2, 6, 5 }, new[] { 2, 3, 7, 6 }, new[] { 3, 0, 4, 7 },
+                new[] { 0, 3, 2, 1 },
+                new[] { 4, 5, 6, 7 },
+                new[] { 0, 1, 5, 4 },
+                new[] { 1, 2, 6, 5 },
+                new[] { 2, 3, 7, 6 },
+                new[] { 3, 0, 4, 7 },
             };
 
             foreach (int[] f in faces)
@@ -1109,7 +1405,8 @@ namespace GeometryHelper.Viewer
             }
         }
 
-        private static void Warn(ItemPrimitives p, string text) => p.Warning = p.Warning == null ? text : p.Warning + "; " + text;
+        private static void Warn(ItemPrimitives p, string text) =>
+            p.Warning = p.Warning == null ? text : p.Warning + "; " + text;
 
         /// <summary>
         /// Takes out of the drawing every coordinate that is not a finite number, so that none reaches the graphics card: a point
@@ -1156,7 +1453,12 @@ namespace GeometryHelper.Viewer
 
                 // A loop's closing segment joins its last point to its first: where both are finite it is kept, by running the
                 // last run on into the first.
-                if (line.Closed && runs.Count > 1 && line.Points[0].IsFinite && line.Points[line.Points.Length - 1].IsFinite)
+                if (
+                    line.Closed
+                    && runs.Count > 1
+                    && line.Points[0].IsFinite
+                    && line.Points[line.Points.Length - 1].IsFinite
+                )
                 {
                     List<Vec3> last = runs[runs.Count - 1];
                     last.AddRange(runs[0]);

@@ -54,14 +54,20 @@ namespace GeometryHelper.Drawing
             set => _content = value ?? throw new ArgumentNullException(nameof(Content));
         }
 
-        internal MarkSettings Clone() => new MarkSettings
-        {
-            MainParts = MainParts,
-            Fittings = Fittings,
-            _textHeight = _textHeight,
-            _offset = _offset,
-            _content = new MarkContent { Part = _content.Part, Assembly = _content.Assembly, Bolt = _content.Bolt },
-        };
+        internal MarkSettings Clone() =>
+            new MarkSettings
+            {
+                MainParts = MainParts,
+                Fittings = Fittings,
+                _textHeight = _textHeight,
+                _offset = _offset,
+                _content = new MarkContent
+                {
+                    Part = _content.Part,
+                    Assembly = _content.Assembly,
+                    Bolt = _content.Bolt,
+                },
+            };
 
         private static double Positive(double value, string name)
         {

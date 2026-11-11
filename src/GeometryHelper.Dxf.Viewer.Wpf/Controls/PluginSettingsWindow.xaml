@@ -1,10 +1,17 @@
-<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.PluginSettingsWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
-        Title="{Binding Title}" Width="460" SizeToContent="Height" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" Background="#262B33">
-
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.PluginSettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="{Binding Title}"
+    Width="460"
+    SizeToContent="Height"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -15,20 +22,59 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="6"
-            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
-            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        CornerRadius="6"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
         <DockPanel>
-            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" CornerRadius="6,6,0,0" MouseLeftButtonDown="OnHeaderDown">
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                CornerRadius="6,6,0,0"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnClose" ToolTip="Close" />
-                    <TextBlock FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"><Run Text="Settings of " /><Run Text="{Binding Title, Mode=OneWay}" /></TextBlock>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnClose"
+                        ToolTip="Close"
+                    />
+                    <TextBlock FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center">
+                        <Run Text="Settings of " /><Run Text="{Binding Title, Mode=OneWay}" />
+                    </TextBlock>
                 </DockPanel>
             </Border>
-            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10" CornerRadius="0,0,6,6">
+            <Border
+                DockPanel.Dock="Bottom"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                CornerRadius="0,0,6,6"
+            >
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhCloseButton}" Content="Close" Click="OnClose" IsDefault="True" IsCancel="True" />
-                    <TextBlock Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" Text="Each value is taken as it is set." />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhCloseButton}"
+                        Content="Close"
+                        Click="OnClose"
+                        IsDefault="True"
+                        IsCancel="True"
+                    />
+                    <TextBlock
+                        Foreground="{StaticResource GhTextMuted}"
+                        VerticalAlignment="Center"
+                        Text="Each value is taken as it is set."
+                    />
                 </DockPanel>
             </Border>
             <ItemsControl x:Name="RowsList" Margin="16,12" Focusable="False">
@@ -40,23 +86,63 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding Label}" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
-                                <Border Grid.Column="1" Background="{StaticResource GhInput}" CornerRadius="2" Padding="6,3"
-                                        Visibility="{Binding IsNumber, Converter={StaticResource Shown}}">
-                                    <TextBox Style="{StaticResource GhTextBox}" Text="{Binding Value, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GhMonoFont}" />
+                                <TextBlock
+                                    Text="{Binding Label}"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    VerticalAlignment="Center"
+                                />
+                                <Border
+                                    Grid.Column="1"
+                                    Background="{StaticResource GhInput}"
+                                    CornerRadius="2"
+                                    Padding="6,3"
+                                    Visibility="{Binding IsNumber, Converter={StaticResource Shown}}"
+                                >
+                                    <TextBox
+                                        Style="{StaticResource GhTextBox}"
+                                        Text="{Binding Value, UpdateSourceTrigger=LostFocus}"
+                                        FontFamily="{StaticResource GhMonoFont}"
+                                    />
                                 </Border>
-                                <Border Grid.Column="1" Background="{StaticResource GhInput}" CornerRadius="2" Padding="6,3"
-                                        Visibility="{Binding IsText, Converter={StaticResource Shown}}">
-                                    <TextBox Style="{StaticResource GhTextBox}" Text="{Binding Value, UpdateSourceTrigger=LostFocus}" />
+                                <Border
+                                    Grid.Column="1"
+                                    Background="{StaticResource GhInput}"
+                                    CornerRadius="2"
+                                    Padding="6,3"
+                                    Visibility="{Binding IsText, Converter={StaticResource Shown}}"
+                                >
+                                    <TextBox
+                                        Style="{StaticResource GhTextBox}"
+                                        Text="{Binding Value, UpdateSourceTrigger=LostFocus}"
+                                    />
                                 </Border>
-                                <CheckBox Grid.Column="1" Style="{StaticResource GhCheckBox}" IsChecked="{Binding IsOn, Mode=TwoWay}" VerticalAlignment="Center"
-                                          Visibility="{Binding IsBoolean, Converter={StaticResource Shown}}" />
-                                <ComboBox Grid.Column="1" Style="{StaticResource GhComboBox}" ItemsSource="{Binding Choices}" SelectedItem="{Binding Value, Mode=TwoWay}"
-                                          Visibility="{Binding IsChoice, Converter={StaticResource Shown}}" />
+                                <CheckBox
+                                    Grid.Column="1"
+                                    Style="{StaticResource GhCheckBox}"
+                                    IsChecked="{Binding IsOn, Mode=TwoWay}"
+                                    VerticalAlignment="Center"
+                                    Visibility="{Binding IsBoolean, Converter={StaticResource Shown}}"
+                                />
+                                <ComboBox
+                                    Grid.Column="1"
+                                    Style="{StaticResource GhComboBox}"
+                                    ItemsSource="{Binding Choices}"
+                                    SelectedItem="{Binding Value, Mode=TwoWay}"
+                                    Visibility="{Binding IsChoice, Converter={StaticResource Shown}}"
+                                />
                             </Grid>
-                            <TextBlock Text="{Binding Description}" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" Margin="0,2,0,0" />
-                            <TextBlock Text="{Binding Error}" Foreground="{StaticResource GhError}" TextWrapping="Wrap"
-                                       Visibility="{Binding HasError, Converter={StaticResource Shown}}" />
+                            <TextBlock
+                                Text="{Binding Description}"
+                                Foreground="{StaticResource GhTextMuted}"
+                                TextWrapping="Wrap"
+                                Margin="0,2,0,0"
+                            />
+                            <TextBlock
+                                Text="{Binding Error}"
+                                Foreground="{StaticResource GhError}"
+                                TextWrapping="Wrap"
+                                Visibility="{Binding HasError, Converter={StaticResource Shown}}"
+                            />
                         </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

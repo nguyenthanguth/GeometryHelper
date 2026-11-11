@@ -23,8 +23,16 @@ namespace GeometryHelper.Drawing.UnitTest.Output
         private static IEnumerable<DxfEntity> Live(IEnumerable<DxfEntity> space) => space.Where(e => !e.IsErased);
 
         /// <summary>The visible lines of a view drawing an object, in a space.</summary>
-        private static List<DxfLine> Lines(IEnumerable<DxfEntity> space, string objectId, string viewId)
-            => Live(space).OfType<DxfLine>().Where(e => e.Layer == "Visible" && DrawingEntityTags.TryRead(e, out string o, out string v) && o == objectId && v == viewId).ToList();
+        private static List<DxfLine> Lines(IEnumerable<DxfEntity> space, string objectId, string viewId) =>
+            Live(space)
+                .OfType<DxfLine>()
+                .Where(e =>
+                    e.Layer == "Visible"
+                    && DrawingEntityTags.TryRead(e, out string o, out string v)
+                    && o == objectId
+                    && v == viewId
+                )
+                .ToList();
 
         [Fact]
         public void AsALayoutTheLinesAreAtOneToOneInModelSpaceAndEachViewIsAViewportAtItsScaleLookingAtThem()
@@ -36,13 +44,25 @@ namespace GeometryHelper.Drawing.UnitTest.Output
             Assert.Equal(3000.0, beam.Max(l => l.StartPoint.DistanceTo(l.EndPoint)), 6);
 
             DxfLayout layout = SheetLayout(database);
-            List<DxfViewport> viewports = layout.GetViewports().Where(v => DrawingEntityTags.TryRead(v, out _, out _)).ToList();
-            Assert.Equal(new[] { "V-FRONT", "V-TOP", "V-RIGHT" }, viewports.Select(v => { DrawingEntityTags.TryRead(v, out string id, out _); return id; }));
+            List<DxfViewport> viewports = layout
+                .GetViewports()
+                .Where(v => DrawingEntityTags.TryRead(v, out _, out _))
+                .ToList();
+            Assert.Equal(
+                new[] { "V-FRONT", "V-TOP", "V-RIGHT" },
+                viewports.Select(v =>
+                {
+                    DrawingEntityTags.TryRead(v, out string id, out _);
+                    return id;
+                })
+            );
             Assert.False(database.TileMode);
 
             foreach (DrawingView view in drawing.Views)
             {
-                DxfViewport viewport = viewports.Single(v => DrawingEntityTags.TryRead(v, out string id, out _) && id == view.Id);
+                DxfViewport viewport = viewports.Single(v =>
+                    DrawingEntityTags.TryRead(v, out string id, out _) && id == view.Id
+                );
                 Assert.Equal(1.0 / view.Scale, viewport.CustomScale, 9);
                 Assert.Equal(view.SheetBox.Center.X, viewport.CenterPoint.X, 6);
                 Assert.Equal(view.SheetBox.Width, viewport.Width, 6);
@@ -53,7 +73,12 @@ namespace GeometryHelper.Drawing.UnitTest.Output
 
             // The front view's lines lie where its viewport looks: the beam's start at the front view's origin in model space.
             DrawingView front = drawing.Views[0];
-            Assert.Contains(beam, l => l.StartPoint.DistanceTo(new GeoPoint3(front.ModelOrigin.X, front.ModelOrigin.Y - 150, 0)) <= Tol.EqualPoint || l.EndPoint.DistanceTo(new GeoPoint3(front.ModelOrigin.X, front.ModelOrigin.Y - 150, 0)) <= Tol.EqualPoint);
+            Assert.Contains(beam, l =>
+                l.StartPoint.DistanceTo(new GeoPoint3(front.ModelOrigin.X, front.ModelOrigin.Y - 150, 0))
+                    <= Tol.EqualPoint
+                || l.EndPoint.DistanceTo(new GeoPoint3(front.ModelOrigin.X, front.ModelOrigin.Y - 150, 0))
+                    <= Tol.EqualPoint
+            );
         }
 
         [Fact]
@@ -95,19 +120,35 @@ namespace GeometryHelper.Drawing.UnitTest.Output
         [Fact]
         public void EveryEntityWrittenIsTaggedWithTheDrawingAndTheIdOfWhatItDraws()
         {
-            foreach (DrawingExportMode mode in new[] { DrawingExportMode.LayoutAndViewports, DrawingExportMode.SheetInModelSpace })
+            foreach (
+                DrawingExportMode mode in new[]
+                {
+                    DrawingExportMode.LayoutAndViewports,
+                    DrawingExportMode.SheetInModelSpace,
+                }
+            )
             {
                 Drawing drawing = DrawingBuilder.Build(TC2(), AssemblyOnA3(mode), Tol);
                 DxfDatabase database = SavedAndOpened(drawing.Database);
-                var ids = new HashSet<string>(drawing.Elements.Select(e => e.Id).Concat(drawing.Source.Objects.Select(o => o.Id)), StringComparer.Ordinal);
+                var ids = new HashSet<string>(
+                    drawing.Elements.Select(e => e.Id).Concat(drawing.Source.Objects.Select(o => o.Id)),
+                    StringComparer.Ordinal
+                );
 
                 var spaces = new List<DxfBlockTableRecord> { database.ModelSpace };
-                spaces.AddRange(database.Layouts.Where(l => l.LayoutName != "Model" && l.BlockTableRecord != null).Select(l => l.BlockTableRecord));
+                spaces.AddRange(
+                    database
+                        .Layouts.Where(l => l.LayoutName != "Model" && l.BlockTableRecord != null)
+                        .Select(l => l.BlockTableRecord)
+                );
                 List<DxfEntity> all = spaces.SelectMany(s => Live(s.Cast<DxfEntity>())).ToList();
                 List<DxfEntity> untagged = all.Where(e => !DrawingEntityTags.TryRead(e, out _, out _)).ToList();
 
                 // Only the viewport that shows the sheet itself, which the layout is given, is not the drawing's.
-                Assert.True(untagged.All(e => e is DxfViewport), string.Join(", ", untagged.Select(e => e.GetType().Name)));
+                Assert.True(
+                    untagged.All(e => e is DxfViewport),
+                    string.Join(", ", untagged.Select(e => e.GetType().Name))
+                );
                 Assert.Equal(mode == DrawingExportMode.LayoutAndViewports ? 1 : 0, untagged.Count);
                 Assert.All(all.Except(untagged), e =>
                 {
@@ -158,7 +199,13 @@ namespace GeometryHelper.Drawing.UnitTest.Output
         [Fact]
         public void TheSameSourceAndSettingsGiveTheSameBytesEitherWay()
         {
-            foreach (DrawingExportMode mode in new[] { DrawingExportMode.LayoutAndViewports, DrawingExportMode.SheetInModelSpace })
+            foreach (
+                DrawingExportMode mode in new[]
+                {
+                    DrawingExportMode.LayoutAndViewports,
+                    DrawingExportMode.SheetInModelSpace,
+                }
+            )
             {
                 DrawingSettings settings = AssemblyOnA3(mode);
                 settings.Views.Sections.Add(new SectionViewRequest("A", ViewKind.Right, 0.5));
@@ -178,8 +225,12 @@ namespace GeometryHelper.Drawing.UnitTest.Output
             settings.Sheet.TitleBlock.Company = "HDC";
             DxfDatabase database = SavedAndOpened(DrawingBuilder.Build(TC2(), settings, Tol).Database);
 
-            DxfBlockReference insert = Tagged(SheetLayout(database).BlockTableRecord.Cast<DxfEntity>(), "GH-TITLE").OfType<DxfBlockReference>().Single();
-            Dictionary<string, string> texts = insert.AttributeCollection.Cast<DxfAttributeReference>().ToDictionary(a => a.Tag, a => a.TextString);
+            DxfBlockReference insert = Tagged(SheetLayout(database).BlockTableRecord.Cast<DxfEntity>(), "GH-TITLE")
+                .OfType<DxfBlockReference>()
+                .Single();
+            Dictionary<string, string> texts = insert
+                .AttributeCollection.Cast<DxfAttributeReference>()
+                .ToDictionary(a => a.Tag, a => a.TextString);
 
             Assert.Equal(DrawingDxfWriter.TitleBlockName, insert.Name);
             Assert.Equal("BEAM B1", texts["TITLE"]);
@@ -195,26 +246,66 @@ namespace GeometryHelper.Drawing.UnitTest.Output
         {
             DxfDatabase database = SavedAndOpened(DrawingBuilder.Build(TC2(), AssemblyOnA3(), Tol).Database);
 
-            List<string> texts = Tagged(SheetLayout(database).BlockTableRecord.Cast<DxfEntity>(), "GH-PARTLIST").OfType<DxfDBText>().Select(t => t.TextString).ToList();
+            List<string> texts = Tagged(SheetLayout(database).BlockTableRecord.Cast<DxfEntity>(), "GH-PARTLIST")
+                .OfType<DxfDBText>()
+                .Select(t => t.TextString)
+                .ToList();
 
-            Assert.Equal(new[] { "MARK", "QTY", "PROFILE", "MATERIAL", "LENGTH", "NAME", "B1", "1", "I300*150*12*8", "S355", "3000", "BEAM", "P1", "1", "PL20*200", "S355", "200", "PLATE" }, texts);
+            Assert.Equal(
+                new[]
+                {
+                    "MARK",
+                    "QTY",
+                    "PROFILE",
+                    "MATERIAL",
+                    "LENGTH",
+                    "NAME",
+                    "B1",
+                    "1",
+                    "I300*150*12*8",
+                    "S355",
+                    "3000",
+                    "BEAM",
+                    "P1",
+                    "1",
+                    "PL20*200",
+                    "S355",
+                    "200",
+                    "PLATE",
+                },
+                texts
+            );
         }
 
         [Fact]
         public void ADetailIsCutAtItsRectangleOnTheSheet()
         {
             DrawingSettings settings = AssemblyOnA3(DrawingExportMode.SheetInModelSpace);
-            settings.Views.Details.Add(new DetailViewRequest("B", ViewKind.Front, new GeoRectangle2(2800, -200, 300, 400), 4));
+            settings.Views.Details.Add(
+                new DetailViewRequest("B", ViewKind.Front, new GeoRectangle2(2800, -200, 300, 400), 4)
+            );
             Drawing drawing = DrawingBuilder.Build(TC2(), settings, Tol);
             DrawingView detail = drawing.Views.Single(v => v.Kind == ViewKind.Detail);
             DxfDatabase database = SavedAndOpened(drawing.Database);
 
-            List<DxfLine> lines = Live(database.ModelSpace).OfType<DxfLine>().Where(e => DrawingEntityTags.TryRead(e, out string o, out string v) && v == detail.Id && (o == "TC2-beam" || o == "TC2-endplate")).ToList();
-            double x0 = detail.SheetOrigin.X + 2800 / detail.Scale, x1 = detail.SheetOrigin.X + 3100 / detail.Scale;
+            List<DxfLine> lines = Live(database.ModelSpace)
+                .OfType<DxfLine>()
+                .Where(e =>
+                    DrawingEntityTags.TryRead(e, out string o, out string v)
+                    && v == detail.Id
+                    && (o == "TC2-beam" || o == "TC2-endplate")
+                )
+                .ToList();
+            double x0 = detail.SheetOrigin.X + 2800 / detail.Scale,
+                x1 = detail.SheetOrigin.X + 3100 / detail.Scale;
 
             Assert.NotEmpty(lines);
-            Assert.All(lines, l => Assert.InRange(Math.Min(l.StartPoint.X, l.EndPoint.X), x0 - Tol.EqualPoint, x1 + Tol.EqualPoint));
-            Assert.All(lines, l => Assert.InRange(Math.Max(l.StartPoint.X, l.EndPoint.X), x0 - Tol.EqualPoint, x1 + Tol.EqualPoint));
+            Assert.All(lines, l =>
+                Assert.InRange(Math.Min(l.StartPoint.X, l.EndPoint.X), x0 - Tol.EqualPoint, x1 + Tol.EqualPoint)
+            );
+            Assert.All(lines, l =>
+                Assert.InRange(Math.Max(l.StartPoint.X, l.EndPoint.X), x0 - Tol.EqualPoint, x1 + Tol.EqualPoint)
+            );
             Assert.True(detail.Scale < drawing.Scale, detail.Title);
             _output.WriteLine(detail.Title + " of a drawing at 1:" + drawing.Scale);
         }
@@ -224,7 +315,9 @@ namespace GeometryHelper.Drawing.UnitTest.Output
         {
             DrawingSettings settings = AssemblyOnA3();
             settings.Views.Sections.Add(new SectionViewRequest("A", ViewKind.Right, 0.5));
-            settings.Views.Details.Add(new DetailViewRequest("B", ViewKind.Front, new GeoRectangle2(2800, -200, 300, 400), 4));
+            settings.Views.Details.Add(
+                new DetailViewRequest("B", ViewKind.Front, new GeoRectangle2(2800, -200, 300, 400), 4)
+            );
             Drawing drawing = DrawingBuilder.Build(TC2(), settings, Tol);
             drawing.Save(Path.Combine(Folder(), "tc2-layout.dxf"));
             Drawing flat = DrawingBuilder.Build(TC2(), AssemblyOnA3(DrawingExportMode.SheetInModelSpace), Tol);
@@ -232,7 +325,9 @@ namespace GeometryHelper.Drawing.UnitTest.Output
 
             CadDocument document = CadDocument.From(SavedAndOpened(drawing.Database));
             Assert.Contains(document.Spaces, s => s.Name == DrawingDxfWriter.LayoutName);
-            Assert.False(document.GetDisplay(document.Spaces.Single(s => s.Name == DrawingDxfWriter.LayoutName)).Bounds.IsEmpty);
+            Assert.False(
+                document.GetDisplay(document.Spaces.Single(s => s.Name == DrawingDxfWriter.LayoutName)).Bounds.IsEmpty
+            );
 
             _output.WriteLine(SavePicture(drawing.Database, DrawingDxfWriter.LayoutName, "tc2-layout"));
             _output.WriteLine(SavePicture(drawing.Database, "Model", "tc2-model"));

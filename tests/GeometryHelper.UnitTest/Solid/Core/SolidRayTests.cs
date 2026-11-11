@@ -18,12 +18,11 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A box a hundred on each side with its near-lower-left corner at the origin.
         /// </summary>
-        private static GeoSolid3 Box() => new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 100, 100))
-            .ToObb()
-            .ToSolid();
+        private static GeoSolid3 Box() =>
+            new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 100, 100)).ToObb().ToSolid();
 
-        private static bool OnSurface(GeoSolid3 solid, GeoPoint3 point)
-            => solid.GetClosestPointOnBoundary(point).DistanceTo(point) < 1E-7;
+        private static bool OnSurface(GeoSolid3 solid, GeoPoint3 point) =>
+            solid.GetClosestPointOnBoundary(point).DistanceTo(point) < 1E-7;
 
         [Fact]
         public void ARayRunningAtTheBodyGoesInOneSideAndOutTheOther()
@@ -108,12 +107,14 @@ namespace GeometryHelper.UnitTest.Solid
                 var origin = new GeoPoint3(
                     random.NextDouble() * 800 - 400,
                     random.NextDouble() * 800 - 400,
-                    random.NextDouble() * 800 - 400);
+                    random.NextDouble() * 800 - 400
+                );
 
                 var direction = new GeoVector3(
                     random.NextDouble() * 2 - 1,
                     random.NextDouble() * 2 - 1,
-                    random.NextDouble() * 2 - 1);
+                    random.NextDouble() * 2 - 1
+                );
 
                 if (direction.Length < 1E-6)
                 {
@@ -146,7 +147,10 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 box = Box();
             var ray = new GeoRay3(new GeoPoint3(-200, 50, 50), new GeoVector3(1, 0, 0));
             var triangle = new GeoTriangle3(
-                new GeoPoint3(300, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(300, 100, 0));
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(300, 100, 0)
+            );
 
             Assert.Equal(Distance3.DistanceTo(ray, box), box.DistanceTo(ray), 9);
             Assert.Equal(Collision3.CollidesWith(ray, box), box.CollidesWith(ray));
@@ -155,10 +159,7 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(box.DistanceTo(ray), box.DistanceTo(ray, Tolerance.Global), 9);
 
             // A ray against a single face, and the segment joining them, agree with each other too.
-            Assert.Equal(
-                Distance3.DistanceTo(ray, triangle),
-                Projection3.GetShortestLineTo(ray, triangle).Length,
-                9);
+            Assert.Equal(Distance3.DistanceTo(ray, triangle), Projection3.GetShortestLineTo(ray, triangle).Length, 9);
 
             Assert.Throws<ArgumentNullException>(() => Distance3.DistanceTo(ray, (GeoSolid3)null));
             Assert.Throws<ArgumentNullException>(() => Collision3.CollidesWith(ray, (GeoSolid3)null));

@@ -43,19 +43,27 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentException">Thrown when the ellipse is an elliptical arc, sweeping less than a whole turn.</exception>
         public static GeoEllipse3 ToGeoEllipse3(this Ellipse ellipse)
         {
-            if (ellipse == null) throw new ArgumentNullException(nameof(ellipse));
+            if (ellipse == null)
+                throw new ArgumentNullException(nameof(ellipse));
 
             if (!IsWholeTurn(ellipse))
             {
                 throw new ArgumentException(
                     "This AutoCAD ellipse is an elliptical arc, sweeping less than a whole turn, and GeometryHelper has no elliptical arc; only a whole ellipse is read.",
-                    nameof(ellipse));
+                    nameof(ellipse)
+                );
             }
 
             GeoVector3 majorAxis = ellipse.MajorAxis.ToGeoVector3();
             double majorRadius = majorAxis.Length;
 
-            return new GeoEllipse3(ellipse.Center.ToGeoPoint3(), ellipse.Normal.ToGeoVector3(), majorAxis, majorRadius, majorRadius * ellipse.RadiusRatio);
+            return new GeoEllipse3(
+                ellipse.Center.ToGeoPoint3(),
+                ellipse.Normal.ToGeoVector3(),
+                majorAxis,
+                majorRadius,
+                majorRadius * ellipse.RadiusRatio
+            );
         }
 
         /// <summary>
@@ -63,7 +71,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="ellipses">The sequence of AutoCAD Ellipses to convert.</param>
         /// <returns>A list of converted <see cref="GeoEllipse3"/>.</returns>
-        public static List<GeoEllipse3> ToGeoEllipse3(this IEnumerable<Ellipse> ellipses) => ellipses.Select(ToGeoEllipse3).ToList();
+        public static List<GeoEllipse3> ToGeoEllipse3(this IEnumerable<Ellipse> ellipses) =>
+            ellipses.Select(ToGeoEllipse3).ToList();
 
         /// <summary>
         /// Converts an AutoCAD Ellipse to a GeometryHelper 2D ellipse, as it is seen in plan.
@@ -77,14 +86,16 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="ellipse"/> is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the ellipse is an elliptical arc, sweeping less than a whole turn.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the ellipse stands square to the XY plane, where in plan it would flatten into a segment rather than an ellipse.</exception>
-        public static GeoEllipse2 ToGeoEllipse2(this Ellipse ellipse) => ellipse.ToGeoEllipse3().ProjectToEllipse2(GeoCoordinateSystem3.Global);
+        public static GeoEllipse2 ToGeoEllipse2(this Ellipse ellipse) =>
+            ellipse.ToGeoEllipse3().ProjectToEllipse2(GeoCoordinateSystem3.Global);
 
         /// <summary>
         /// Converts a sequence of AutoCAD Ellipses to a list of GeometryHelper 2D ellipses, as they are seen in plan.
         /// </summary>
         /// <param name="ellipses">The sequence of AutoCAD Ellipses to convert.</param>
         /// <returns>A list of converted <see cref="GeoEllipse2"/>.</returns>
-        public static List<GeoEllipse2> ToGeoEllipse2(this IEnumerable<Ellipse> ellipses) => ellipses.Select(ToGeoEllipse2).ToList();
+        public static List<GeoEllipse2> ToGeoEllipse2(this IEnumerable<Ellipse> ellipses) =>
+            ellipses.Select(ToGeoEllipse2).ToList();
 
         /// <summary>
         /// Tries to convert an AutoCAD Ellipse to a GeometryHelper 2D ellipse, as it is seen in plan.
@@ -124,14 +135,16 @@ namespace GeometryHelper.CadConvert
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="circle"/> is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the circle stands square to the XY plane, where in plan it would flatten into a segment rather than an ellipse.</exception>
-        public static GeoEllipse2 ToGeoEllipse2(this Circle circle) => circle.ToGeoCircle3().ProjectToEllipse2(GeoCoordinateSystem3.Global);
+        public static GeoEllipse2 ToGeoEllipse2(this Circle circle) =>
+            circle.ToGeoCircle3().ProjectToEllipse2(GeoCoordinateSystem3.Global);
 
         /// <summary>
         /// Converts a sequence of AutoCAD Circles to a list of GeometryHelper 2D ellipses, as they are seen in plan.
         /// </summary>
         /// <param name="circles">The sequence of AutoCAD Circles to convert.</param>
         /// <returns>A list of converted <see cref="GeoEllipse2"/>.</returns>
-        public static List<GeoEllipse2> ToGeoEllipse2(this IEnumerable<Circle> circles) => circles.Select(ToGeoEllipse2).ToList();
+        public static List<GeoEllipse2> ToGeoEllipse2(this IEnumerable<Circle> circles) =>
+            circles.Select(ToGeoEllipse2).ToList();
 
         /// <summary>
         /// Tries to convert an AutoCAD Circle to a GeometryHelper 2D ellipse, as it is seen in plan.
@@ -176,7 +189,8 @@ namespace GeometryHelper.CadConvert
                 geoEllipse.MajorAxis.Multiply(geoEllipse.MajorRadius).ToAcadVector3(),
                 geoEllipse.MinorRadius / geoEllipse.MajorRadius,
                 0.0,
-                Math.PI * 2.0);
+                Math.PI * 2.0
+            );
         }
 
         /// <summary>
@@ -184,7 +198,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="ellipses">The sequence of GeometryHelper ellipses to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Ellipse"/>.</returns>
-        public static List<Ellipse> ToAcadEllipse(this IEnumerable<GeoEllipse3> ellipses) => ellipses.Select(ToAcadEllipse).ToList();
+        public static List<Ellipse> ToAcadEllipse(this IEnumerable<GeoEllipse3> ellipses) =>
+            ellipses.Select(ToAcadEllipse).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper 2D ellipse to an AutoCAD Ellipse in the XY plane.
@@ -196,13 +211,15 @@ namespace GeometryHelper.CadConvert
         /// <see cref="GeoCoordinateSystem3.Global"/>, so an ellipse 300 by 150 centred at (100, 200) is written centred at
         /// (100, 200, 0) with a major axis 300 long and a radius ratio of 0.5.
         /// </remarks>
-        public static Ellipse ToAcadEllipse(this GeoEllipse2 geoEllipse) => geoEllipse.ToEllipse3(GeoCoordinateSystem3.Global).ToAcadEllipse();
+        public static Ellipse ToAcadEllipse(this GeoEllipse2 geoEllipse) =>
+            geoEllipse.ToEllipse3(GeoCoordinateSystem3.Global).ToAcadEllipse();
 
         /// <summary>
         /// Converts a sequence of GeometryHelper 2D ellipses to a list of AutoCAD Ellipses.
         /// </summary>
         /// <param name="ellipses">The sequence of GeometryHelper 2D ellipses to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Ellipse"/>.</returns>
-        public static List<Ellipse> ToAcadEllipse(this IEnumerable<GeoEllipse2> ellipses) => ellipses.Select(ToAcadEllipse).ToList();
+        public static List<Ellipse> ToAcadEllipse(this IEnumerable<GeoEllipse2> ellipses) =>
+            ellipses.Select(ToAcadEllipse).ToList();
     }
 }

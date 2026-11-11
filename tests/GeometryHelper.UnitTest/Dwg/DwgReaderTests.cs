@@ -90,7 +90,10 @@ namespace GeometryHelper.UnitTest.Dwg
             DxfDocument solid = DwgReader.Read(Drawing("curves"), new DxfReadOptions { PlanAs2D = false });
 
             Assert.NotEmpty(flat.Shapes);
-            Assert.Equal(flat.Shapes.Count + flat.Skipped.Values.Sum(), solid.Shapes.Count + solid.Skipped.Values.Sum());
+            Assert.Equal(
+                flat.Shapes.Count + flat.Skipped.Values.Sum(),
+                solid.Shapes.Count + solid.Skipped.Values.Sum()
+            );
         }
 
         [Fact]
@@ -138,7 +141,9 @@ namespace GeometryHelper.UnitTest.Dwg
         [Fact]
         public void AFileThatIsNotThere_IsAnInputOutputFault()
         {
-            Assert.ThrowsAny<IOException>(() => DwgReader.Open(Path.Combine(Path.GetTempPath(), "GeometryHelper-no-such-file.dwg")));
+            Assert.ThrowsAny<IOException>(() =>
+                DwgReader.Open(Path.Combine(Path.GetTempPath(), "GeometryHelper-no-such-file.dwg"))
+            );
         }
     }
 }

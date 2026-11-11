@@ -42,7 +42,9 @@ namespace GeometryHelper.UnitTest.Arranging
         {
             // Above is tried first and is 0.0004 clear, below 0.0008: at a ten-thousandth both are free and below is the
             // more open. Read at the global thousandth, both counted as nought and above won.
-            ArrangeResult result = Arranger.Run(new[] { Label() }, new ArrangeOptions { Tolerance = TenThousandth }).Single();
+            ArrangeResult result = Arranger
+                .Run(new[] { Label() }, new ArrangeOptions { Tolerance = TenThousandth })
+                .Single();
 
             Assert.True(result.Placed);
             Assert.Equal(0.0, result.Translation.X, 9);

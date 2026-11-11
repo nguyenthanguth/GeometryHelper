@@ -65,12 +65,41 @@ namespace GeometryHelper.Drawing.Annotation
         /// <summary>The attribute the id of the part welded on is read from: "WeldSecondaryPart".</summary>
         public const string SecondaryPartAttribute = "WeldSecondaryPart";
 
-        private WeldSymbol(string weldId, WeldType type, WeldSide side, string size, string length, GeoPoint2 tip, double textHeight, DrawingLinks links)
-            : this(weldId, type, side, size, length, tip, new GeoPoint2(tip.X + 2.0 * textHeight, tip.Y + 2.0 * textHeight), false, textHeight, links)
-        {
-        }
+        private WeldSymbol(
+            string weldId,
+            WeldType type,
+            WeldSide side,
+            string size,
+            string length,
+            GeoPoint2 tip,
+            double textHeight,
+            DrawingLinks links
+        )
+            : this(
+                weldId,
+                type,
+                side,
+                size,
+                length,
+                tip,
+                new GeoPoint2(tip.X + 2.0 * textHeight, tip.Y + 2.0 * textHeight),
+                false,
+                textHeight,
+                links
+            ) { }
 
-        private WeldSymbol(string weldId, WeldType type, WeldSide side, string size, string length, GeoPoint2 tip, GeoPoint2 knee, bool leftward, double textHeight, DrawingLinks links)
+        private WeldSymbol(
+            string weldId,
+            WeldType type,
+            WeldSide side,
+            string size,
+            string length,
+            GeoPoint2 tip,
+            GeoPoint2 knee,
+            bool leftward,
+            double textHeight,
+            DrawingLinks links
+        )
         {
             Id = "W-" + weldId;
             WeldId = weldId;
@@ -88,7 +117,10 @@ namespace GeometryHelper.Drawing.Annotation
             if (!leftward)
             {
                 SymbolStart = Knee.X + 0.5 * textHeight + sizeWidth;
-                ReferenceLine = new GeoLine2(Knee, new GeoPoint2(SymbolStart + textHeight + lengthWidth + 0.5 * textHeight, Knee.Y));
+                ReferenceLine = new GeoLine2(
+                    Knee,
+                    new GeoPoint2(SymbolStart + textHeight + lengthWidth + 0.5 * textHeight, Knee.Y)
+                );
                 return;
             }
 
@@ -139,9 +171,17 @@ namespace GeometryHelper.Drawing.Annotation
         {
             get
             {
-                double below = Side == WeldSide.Arrow ? 0.5 * TextHeight : Side == WeldSide.Other ? 1.5 * TextHeight : TextHeight;
+                double below =
+                    Side == WeldSide.Arrow ? 0.5 * TextHeight
+                    : Side == WeldSide.Other ? 1.5 * TextHeight
+                    : TextHeight;
                 double above = Side == WeldSide.Other ? 0.0 : TextHeight;
-                return Box2.FromCorner(Math.Min(Knee.X, ReferenceLine.EndPoint.X), Knee.Y - below, ReferenceLine.Length, below + above);
+                return Box2.FromCorner(
+                    Math.Min(Knee.X, ReferenceLine.EndPoint.X),
+                    Knee.Y - below,
+                    ReferenceLine.Length,
+                    below + above
+                );
             }
         }
 
@@ -163,10 +203,23 @@ namespace GeometryHelper.Drawing.Annotation
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the scale is not a finite number above nought.</exception>
         /// <exception cref="NotSupportedException">Thrown when the settings ask for <see cref="WeldStandard.AwsA24"/>: which
         /// standard the drawings use is open question Q3 of the drawing plan, and only ISO 2553 is drawn until it is answered.</exception>
-        public static IReadOnlyList<WeldSymbol> Find(ProjectedView2 view, IEnumerable<DrawingObject> objects, GeoCoordinateSystem3 frame, SymbolSettings settings, double scale)
+        public static IReadOnlyList<WeldSymbol> Find(
+            ProjectedView2 view,
+            IEnumerable<DrawingObject> objects,
+            GeoCoordinateSystem3 frame,
+            SymbolSettings settings,
+            double scale
+        )
         {
             List<WeldSymbol> symbols = Ruled(view, objects, frame, settings, scale, out int welds);
-            GeometryHelperLog.Info(string.Format(CultureInfo.InvariantCulture, "WeldSymbol.Find: {0} welds gave {1} symbols.", welds, symbols.Count));
+            GeometryHelperLog.Info(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "WeldSymbol.Find: {0} welds gave {1} symbols.",
+                    welds,
+                    symbols.Count
+                )
+            );
             return symbols;
         }
 
@@ -213,7 +266,8 @@ namespace GeometryHelper.Drawing.Annotation
             IEnumerable<GeoLine2> clearOfLines,
             SymbolSettings settings,
             double scale,
-            Tolerance tolerance)
+            Tolerance tolerance
+        )
         {
             List<DrawingDimension> dims = Dimensions(dimensions);
 
@@ -228,14 +282,38 @@ namespace GeometryHelper.Drawing.Annotation
             }
 
             List<WeldSymbol> ruled = Ruled(view, objects, frame, settings, scale, out int welds);
-            List<WeldSymbol> symbols = WeldPlacer.Place(ruled, view, dims, new List<GeoRectangle2>(clearOfBoxes), new List<GeoLine2>(clearOfLines), tolerance, out List<string> stuck);
+            List<WeldSymbol> symbols = WeldPlacer.Place(
+                ruled,
+                view,
+                dims,
+                new List<GeoRectangle2>(clearOfBoxes),
+                new List<GeoLine2>(clearOfLines),
+                tolerance,
+                out List<string> stuck
+            );
 
             if (stuck.Count > 0)
             {
-                GeometryHelperLog.Debug(string.Format(CultureInfo.InvariantCulture, "WeldSymbol.Find: {0} symbols found no place clear of the dimensions and the other symbols and were left where the rule puts them: {1}.", stuck.Count, string.Join(", ", stuck)));
+                GeometryHelperLog.Debug(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "WeldSymbol.Find: {0} symbols found no place clear of the dimensions and the other symbols and were left where the rule puts them: {1}.",
+                        stuck.Count,
+                        string.Join(", ", stuck)
+                    )
+                );
             }
 
-            GeometryHelperLog.Info(string.Format(CultureInfo.InvariantCulture, "WeldSymbol.Find: {0} welds gave {1} symbols, {2} left over something (tolerance {3}).", welds, symbols.Count, stuck.Count, tolerance.EqualPoint));
+            GeometryHelperLog.Info(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "WeldSymbol.Find: {0} welds gave {1} symbols, {2} left over something (tolerance {3}).",
+                    welds,
+                    symbols.Count,
+                    stuck.Count,
+                    tolerance.EqualPoint
+                )
+            );
             return symbols;
         }
 
@@ -259,7 +337,13 @@ namespace GeometryHelper.Drawing.Annotation
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the symbols, the dimensions, the boxes or the lines are null.</exception>
         /// <exception cref="ArgumentException">Thrown when a symbol or a dimension is null.</exception>
-        public static IReadOnlyList<string> FindOverlaps(IEnumerable<WeldSymbol> symbols, IEnumerable<DrawingDimension> dimensions, IEnumerable<GeoRectangle2> clearOfBoxes, IEnumerable<GeoLine2> clearOfLines, Tolerance tolerance)
+        public static IReadOnlyList<string> FindOverlaps(
+            IEnumerable<WeldSymbol> symbols,
+            IEnumerable<DrawingDimension> dimensions,
+            IEnumerable<GeoRectangle2> clearOfBoxes,
+            IEnumerable<GeoLine2> clearOfLines,
+            Tolerance tolerance
+        )
         {
             if (symbols == null)
             {
@@ -297,7 +381,18 @@ namespace GeometryHelper.Drawing.Annotation
 
                 for (int j = i + 1; j < list.Count; j++)
                 {
-                    Marker.MarkClash(a.Id, a.Bounds, a.Knee, a.ArrowTip, list[j].Id, list[j].Bounds, list[j].Knee, list[j].ArrowTip, tol, found);
+                    Marker.MarkClash(
+                        a.Id,
+                        a.Bounds,
+                        a.Knee,
+                        a.ArrowTip,
+                        list[j].Id,
+                        list[j].Bounds,
+                        list[j].Knee,
+                        list[j].ArrowTip,
+                        tol,
+                        found
+                    );
                 }
             }
 
@@ -305,11 +400,18 @@ namespace GeometryHelper.Drawing.Annotation
         }
 
         /// <summary>The symbol of the same weld with its knee at a point, its reference line run to the left or to the right.</summary>
-        internal WeldSymbol At(GeoPoint2 knee, bool leftward)
-            => new WeldSymbol(WeldId, Type, Side, Size, Length, ArrowTip, knee, leftward, TextHeight, Links);
+        internal WeldSymbol At(GeoPoint2 knee, bool leftward) =>
+            new WeldSymbol(WeldId, Type, Side, Size, Length, ArrowTip, knee, leftward, TextHeight, Links);
 
         /// <summary>The symbols of a view's welds at the places the rule gives them, and how many welds the objects hold.</summary>
-        private static List<WeldSymbol> Ruled(ProjectedView2 view, IEnumerable<DrawingObject> objects, GeoCoordinateSystem3 frame, SymbolSettings settings, double scale, out int weldCount)
+        private static List<WeldSymbol> Ruled(
+            ProjectedView2 view,
+            IEnumerable<DrawingObject> objects,
+            GeoCoordinateSystem3 frame,
+            SymbolSettings settings,
+            double scale,
+            out int weldCount
+        )
         {
             if (view == null)
             {
@@ -323,7 +425,10 @@ namespace GeometryHelper.Drawing.Annotation
 
             if (!frame.IsValid)
             {
-                throw new ArgumentException("The frame has to have three unit axes square to each other.", nameof(frame));
+                throw new ArgumentException(
+                    "The frame has to have three unit axes square to each other.",
+                    nameof(frame)
+                );
             }
 
             if (settings == null)
@@ -333,12 +438,18 @@ namespace GeometryHelper.Drawing.Annotation
 
             if (!(scale > 0.0) || double.IsInfinity(scale))
             {
-                throw new ArgumentOutOfRangeException(nameof(scale), scale, "The scale has to be a finite number above nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(scale),
+                    scale,
+                    "The scale has to be a finite number above nought."
+                );
             }
 
             if (settings.WeldStandard != WeldStandard.Iso2553)
             {
-                throw new NotSupportedException("Weld symbols are drawn to ISO 2553 only for now: whether the drawings use ISO 2553 or AWS A2.4 is open question Q3 of the drawing plan.");
+                throw new NotSupportedException(
+                    "Weld symbols are drawn to ISO 2553 only for now: whether the drawings use ISO 2553 or AWS A2.4 is open question Q3 of the drawing plan."
+                );
             }
 
             var welds = new List<DrawingObject>();
@@ -387,14 +498,21 @@ namespace GeometryHelper.Drawing.Annotation
                     continue;
                 }
 
-                if (!TryRead(weld, TypeAttribute, WeldType.Fillet, out WeldType type) || !TryRead(weld, SideAttribute, WeldSide.Arrow, out WeldSide side))
+                if (
+                    !TryRead(weld, TypeAttribute, WeldType.Fillet, out WeldType type)
+                    || !TryRead(weld, SideAttribute, WeldSide.Arrow, out WeldSide side)
+                )
                 {
                     skipped.Add(weld.Id);
                     continue;
                 }
 
                 GeoAabb3 box = weld.Solid.GetAabb();
-                var middle = new GeoPoint3((box.Min.X + box.Max.X) / 2.0, (box.Min.Y + box.Max.Y) / 2.0, (box.Min.Z + box.Max.Z) / 2.0);
+                var middle = new GeoPoint3(
+                    (box.Min.X + box.Max.X) / 2.0,
+                    (box.Min.Y + box.Max.Y) / 2.0,
+                    (box.Min.Z + box.Max.Z) / 2.0
+                );
                 GeoPoint3 local = frame.ToLocal(middle);
                 var parts = new List<string> { weld.Id };
 
@@ -411,12 +529,30 @@ namespace GeometryHelper.Drawing.Annotation
                 weld.Attributes.TryGetValue(SizeAttribute, out string size);
                 weld.Attributes.TryGetValue(LengthAttribute, out string length);
                 var links = new DrawingLinks(parts, new[] { new DrawingLinkPoint3(weld.Id, middle) });
-                symbols.Add(new WeldSymbol(weld.Id, type, side, size ?? string.Empty, length ?? string.Empty, new GeoPoint2(local.X, local.Y), height, links));
+                symbols.Add(
+                    new WeldSymbol(
+                        weld.Id,
+                        type,
+                        side,
+                        size ?? string.Empty,
+                        length ?? string.Empty,
+                        new GeoPoint2(local.X, local.Y),
+                        height,
+                        links
+                    )
+                );
             }
 
             if (skipped.Count > 0)
             {
-                GeometryHelperLog.Debug(string.Format(CultureInfo.InvariantCulture, "WeldSymbol.Find: {0} welds of a kind or side not known got no symbol: {1}.", skipped.Count, string.Join(", ", skipped)));
+                GeometryHelperLog.Debug(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "WeldSymbol.Find: {0} welds of a kind or side not known got no symbol: {1}.",
+                        skipped.Count,
+                        string.Join(", ", skipped)
+                    )
+                );
             }
 
             weldCount = welds.Count;
@@ -475,14 +611,29 @@ namespace GeometryHelper.Drawing.Annotation
             double h = TextHeight;
             SymbolDxf.Line(database, placement, Knee, ArrowTip, layer, id);
             double run = Knee.DistanceTo(ArrowTip);
-            SymbolDxf.Arrow(database, placement, ArrowTip, new GeoVector2((ArrowTip.X - Knee.X) / run, (ArrowTip.Y - Knee.Y) / run), 0.5 * h, layer, id);
+            SymbolDxf.Arrow(
+                database,
+                placement,
+                ArrowTip,
+                new GeoVector2((ArrowTip.X - Knee.X) / run, (ArrowTip.Y - Knee.Y) / run),
+                0.5 * h,
+                layer,
+                id
+            );
             SymbolDxf.Line(database, placement, ReferenceLine.StartPoint, ReferenceLine.EndPoint, layer, id);
             double dashed = Knee.Y - 0.5 * h;
 
             if (Side != WeldSide.Both)
             {
                 SymbolDxf.HiddenLinetype(database);
-                DxfLine line = SymbolDxf.Line(database, placement, new GeoPoint2(Knee.X, dashed), new GeoPoint2(ReferenceLine.EndPoint.X, dashed), layer, id);
+                DxfLine line = SymbolDxf.Line(
+                    database,
+                    placement,
+                    new GeoPoint2(Knee.X, dashed),
+                    new GeoPoint2(ReferenceLine.EndPoint.X, dashed),
+                    layer,
+                    id
+                );
                 line.Linetype = "HIDDEN";
                 line.LinetypeScale = SymbolChecks.PatternScale(h, placement);
             }
@@ -512,18 +663,33 @@ namespace GeometryHelper.Drawing.Annotation
         /// </summary>
         internal GeoLine2[] Strokes(double baseY, double sign)
         {
-            double x = SymbolStart, h = TextHeight, top = baseY + sign * h;
+            double x = SymbolStart,
+                h = TextHeight,
+                top = baseY + sign * h;
 
             switch (Type)
             {
                 case WeldType.SquareButt:
-                    return new[] { new GeoLine2(x + 0.25 * h, baseY, x + 0.25 * h, top), new GeoLine2(x + 0.75 * h, baseY, x + 0.75 * h, top) };
+                    return new[]
+                    {
+                        new GeoLine2(x + 0.25 * h, baseY, x + 0.25 * h, top),
+                        new GeoLine2(x + 0.75 * h, baseY, x + 0.75 * h, top),
+                    };
                 case WeldType.VButt:
-                    return new[] { new GeoLine2(x, top, x + 0.5 * h, baseY), new GeoLine2(x + 0.5 * h, baseY, x + h, top) };
+                    return new[]
+                    {
+                        new GeoLine2(x, top, x + 0.5 * h, baseY),
+                        new GeoLine2(x + 0.5 * h, baseY, x + h, top),
+                    };
                 case WeldType.BevelButt:
                     return new[] { new GeoLine2(x, baseY, x, top), new GeoLine2(x, baseY, x + 0.7 * h, top) };
                 default:
-                    return new[] { new GeoLine2(x, baseY, x, top), new GeoLine2(x, top, x + h, baseY), new GeoLine2(x, baseY, x + h, baseY) };
+                    return new[]
+                    {
+                        new GeoLine2(x, baseY, x, top),
+                        new GeoLine2(x, top, x + h, baseY),
+                        new GeoLine2(x, baseY, x + h, baseY),
+                    };
             }
         }
 
@@ -543,13 +709,29 @@ namespace GeometryHelper.Drawing.Annotation
             if (Size.Length > 0)
             {
                 double width = SymbolDxf.TextWidth(Size, h);
-                SymbolDxf.Text(database, placement, new GeoPoint2(SymbolStart - 0.3 * h - 0.5 * width, middle), h, Size, layer, id);
+                SymbolDxf.Text(
+                    database,
+                    placement,
+                    new GeoPoint2(SymbolStart - 0.3 * h - 0.5 * width, middle),
+                    h,
+                    Size,
+                    layer,
+                    id
+                );
             }
 
             if (Length.Length > 0)
             {
                 double width = SymbolDxf.TextWidth(Length, h);
-                SymbolDxf.Text(database, placement, new GeoPoint2(SymbolStart + 1.3 * h + 0.5 * width, middle), h, Length, layer, id);
+                SymbolDxf.Text(
+                    database,
+                    placement,
+                    new GeoPoint2(SymbolStart + 1.3 * h + 0.5 * width, middle),
+                    h,
+                    Length,
+                    layer,
+                    id
+                );
             }
         }
 

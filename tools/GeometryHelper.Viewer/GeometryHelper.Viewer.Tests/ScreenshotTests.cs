@@ -9,7 +9,22 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheCommandLine_TakesTheViewsTheScaleAndTheBackgroundOfAPicture()
         {
-            CommandLine line = CommandLine.Parse(new[] { "box.csx", "--screenshot", "out.png", "--views", "4", "--scale", "2", "--background", "Transparent", "--mode", "wireframe" });
+            CommandLine line = CommandLine.Parse(
+                new[]
+                {
+                    "box.csx",
+                    "--screenshot",
+                    "out.png",
+                    "--views",
+                    "4",
+                    "--scale",
+                    "2",
+                    "--background",
+                    "Transparent",
+                    "--mode",
+                    "wireframe",
+                }
+            );
 
             Assert.Null(line.Problem);
             Assert.Equal("box.csx", line.File);

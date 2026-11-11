@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -12,12 +12,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Constructor_CalculatesVerticesAndLength()
         {
-            var vertices = new List<GeoPoint2>
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10)
-            };
+            var vertices = new List<GeoPoint2> { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10) };
 
             var polyline = new GeoPolyline2(vertices);
 
@@ -34,7 +29,7 @@ namespace GeometryHelper.UnitTest.Plane
                 new GeoPoint2(0, 0),
                 new GeoPoint2(10, 0),
                 new GeoPoint2(10, 10),
-                new GeoPoint2(0, 10)
+                new GeoPoint2(0, 10),
             };
 
             var polyline = new GeoPolyline2(vertices);
@@ -53,12 +48,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void DistanceAndLocate_CalculatesCorrectly()
         {
-            var polyline = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10)
-            });
+            var polyline = new GeoPolyline2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10) });
 
             Assert.Equal(PointLocation.OnSide, polyline.Locate(new GeoPoint2(5, 0)));
             Assert.Equal(PointLocation.OnSide, polyline.Locate(new GeoPoint2(10, 5)));
@@ -70,12 +60,7 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void GetIntersections_FindsSegmentIntersections()
         {
-            var polyline = new GeoPolyline2(new[]
-            {
-                new GeoPoint2(0, 0),
-                new GeoPoint2(10, 0),
-                new GeoPoint2(10, 10)
-            });
+            var polyline = new GeoPolyline2(new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10) });
 
             var line = new GeoLine2(new GeoPoint2(5, -5), new GeoPoint2(5, 5));
             var pts = polyline.GetIntersections(line);
@@ -83,6 +68,7 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Single(pts);
             Assert.True(pts[0].IsEqualTo(new GeoPoint2(5, 0)));
         }
+
         [Fact]
         public void Polyline_TranslateAndRotate_PreserveShape()
         {
@@ -123,8 +109,7 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(2, new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(1, 1), new GeoPoint2(2, 0)).EdgeCount);
 
             Assert.Throws<ArgumentException>(() => new GeoPolyline2(new GeoPoint2(0, 0)));
-            Assert.Throws<ArgumentException>(
-                () => new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(0, 0)));
+            Assert.Throws<ArgumentException>(() => new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(0, 0)));
 
             // Splitting and cloning go through the trusted constructor, and never produce a shorter one.
             var path = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10));
@@ -158,4 +143,3 @@ namespace GeometryHelper.UnitTest.Plane
         }
     }
 }
-

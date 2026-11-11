@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -55,7 +55,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Throws<ArgumentException>(() => line.OffsetInPlane(1.0, GeoVector3.XAxis));
             Assert.Throws<ArgumentException>(() => line.OffsetInPlane(1.0, new GeoVector3(-5, 0, 0)));
             Assert.Throws<ArgumentException>(() => line.OffsetInPlane(1.0, GeoVector3.Zero));
-            Assert.Throws<InvalidOperationException>(() => new GeoLine3(1, 1, 1, 1, 1, 1).OffsetInPlane(1.0, GeoVector3.ZAxis));
+            Assert.Throws<InvalidOperationException>(() =>
+                new GeoLine3(1, 1, 1, 1, 1, 1).OffsetInPlane(1.0, GeoVector3.ZAxis)
+            );
             Assert.Throws<ArgumentOutOfRangeException>(() => line.OffsetInPlane(double.NaN, GeoVector3.ZAxis));
         }
 
@@ -137,7 +139,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             AssertLine(new GeoLine3(0, 3, 4, 10, 3, 4), line.OffsetThrough(new GeoPoint3(25, 3, 4)));
             AssertLine(line, line.OffsetThrough(new GeoPoint3(5, 0, 0)));
-            Assert.Throws<InvalidOperationException>(() => new GeoLine3(1, 1, 1, 1, 1, 1).OffsetThrough(new GeoPoint3(0, 0, 0)));
+            Assert.Throws<InvalidOperationException>(() =>
+                new GeoLine3(1, 1, 1, 1, 1, 1).OffsetThrough(new GeoPoint3(0, 0, 0))
+            );
         }
 
         [Fact]
@@ -147,13 +151,24 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < 200; i++)
             {
-                var line = new GeoLine3(rng.NextDouble() * 100, rng.NextDouble() * 100, rng.NextDouble() * 100,
-                                        rng.NextDouble() * 100, rng.NextDouble() * 100, rng.NextDouble() * 100);
+                var line = new GeoLine3(
+                    rng.NextDouble() * 100,
+                    rng.NextDouble() * 100,
+                    rng.NextDouble() * 100,
+                    rng.NextDouble() * 100,
+                    rng.NextDouble() * 100,
+                    rng.NextDouble() * 100
+                );
                 var normal = new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() - 0.5);
-                if (line.Length < 1.0 || normal.CrossProduct(line.Direction).Length < 0.1 * normal.Length * line.Length) { continue; }
+                if (line.Length < 1.0 || normal.CrossProduct(line.Direction).Length < 0.1 * normal.Length * line.Length)
+                {
+                    continue;
+                }
                 double distance = rng.NextDouble() * 40 - 20;
 
-                foreach (GeoLine3 moved in new[] { line.OffsetInPlane(distance, normal), line.Offset(distance, normal) })
+                foreach (
+                    GeoLine3 moved in new[] { line.OffsetInPlane(distance, normal), line.Offset(distance, normal) }
+                )
                 {
                     Assert.Equal(line.Length, moved.Length, 9);
                     Assert.True(line.Direction.IsCodirectionalTo(moved.Direction));
@@ -170,19 +185,33 @@ namespace GeometryHelper.UnitTest.Solid
             var normal = new GeoVector3(0.2, 0.1, 1.0);
             var point = new GeoPoint3(3, 3, 3);
 
-            foreach (GeoTransform3 motion in new[]
-            {
-                GeoTransform3.RotationAxis(new GeoVector3(1.0, 2.0, 3.0), 1.3),
-                GeoTransform3.Translation(new GeoVector3(1000, -500, 250)).Multiply(GeoTransform3.RotationZ(2.2))
-            })
+            foreach (
+                GeoTransform3 motion in new[]
+                {
+                    GeoTransform3.RotationAxis(new GeoVector3(1.0, 2.0, 3.0), 1.3),
+                    GeoTransform3.Translation(new GeoVector3(1000, -500, 250)).Multiply(GeoTransform3.RotationZ(2.2)),
+                }
+            )
             {
                 GeoLine3 moved = line.TransformBy(motion);
                 GeoVector3 movedNormal = normal.TransformBy(motion);
 
-                AssertLine(line.OffsetInPlane(2.0, normal).TransformBy(motion), moved.OffsetInPlane(2.0, movedNormal), 1e-8);
+                AssertLine(
+                    line.OffsetInPlane(2.0, normal).TransformBy(motion),
+                    moved.OffsetInPlane(2.0, movedNormal),
+                    1e-8
+                );
                 AssertLine(line.Offset(2.0, normal).TransformBy(motion), moved.Offset(2.0, movedNormal), 1e-8);
-                AssertLine(line.Offset(2.0, -1.0, normal).TransformBy(motion), moved.Offset(2.0, -1.0, movedNormal), 1e-8);
-                AssertLine(line.OffsetThrough(point).TransformBy(motion), moved.OffsetThrough(point.TransformBy(motion)), 1e-8);
+                AssertLine(
+                    line.Offset(2.0, -1.0, normal).TransformBy(motion),
+                    moved.Offset(2.0, -1.0, movedNormal),
+                    1e-8
+                );
+                AssertLine(
+                    line.OffsetThrough(point).TransformBy(motion),
+                    moved.OffsetThrough(point.TransformBy(motion)),
+                    1e-8
+                );
             }
         }
 
@@ -193,10 +222,16 @@ namespace GeometryHelper.UnitTest.Solid
             var up = GeoVector3.ZAxis;
 
             Assert.Equal(Offset3.OffsetInPlane(line, 2.0, up), line.OffsetInPlane(2.0, up));
-            Assert.Equal(Offset3.OffsetInPlane(line, 2.0, up, Tolerance.Global), line.OffsetInPlane(2.0, up, Tolerance.Global));
+            Assert.Equal(
+                Offset3.OffsetInPlane(line, 2.0, up, Tolerance.Global),
+                line.OffsetInPlane(2.0, up, Tolerance.Global)
+            );
             Assert.Equal(Offset3.Offset(line, 2.0, up), line.Offset(2.0, up));
             Assert.Equal(Offset3.Offset(line, 2.0, 1.0, up), line.Offset(2.0, 1.0, up));
-            Assert.Equal(Offset3.OffsetThrough(line, new GeoPoint3(0, 0, 0)), line.OffsetThrough(new GeoPoint3(0, 0, 0)));
+            Assert.Equal(
+                Offset3.OffsetThrough(line, new GeoPoint3(0, 0, 0)),
+                line.OffsetThrough(new GeoPoint3(0, 0, 0))
+            );
         }
 
         #endregion
@@ -237,10 +272,27 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < 200; i++)
             {
-                var a = new GeoLine3(rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10));
-                var b = new GeoLine3(rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10), rng.Next(-9, 10));
+                var a = new GeoLine3(
+                    rng.Next(-9, 10),
+                    rng.Next(-9, 10),
+                    rng.Next(-9, 10),
+                    rng.Next(-9, 10),
+                    rng.Next(-9, 10),
+                    rng.Next(-9, 10)
+                );
+                var b = new GeoLine3(
+                    rng.Next(-9, 10),
+                    rng.Next(-9, 10),
+                    rng.Next(-9, 10),
+                    rng.Next(-9, 10),
+                    rng.Next(-9, 10),
+                    rng.Next(-9, 10)
+                );
 
-                Assert.Equal(Projection3.GetShortestLineTo(a, b), Projection3.GetShortestLineTo(a, b, LineExtension.None));
+                Assert.Equal(
+                    Projection3.GetShortestLineTo(a, b),
+                    Projection3.GetShortestLineTo(a, b, LineExtension.None)
+                );
 
                 // Allowing either line to reach further can only bring them closer.
                 double none = a.GetShortestLineTo(b, LineExtension.None).Length;
@@ -257,12 +309,32 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0; i < 200; i++)
             {
-                var a = new GeoLine3(rng.NextDouble() * 10, rng.NextDouble() * 10, rng.NextDouble() * 10, rng.NextDouble() * 10, rng.NextDouble() * 10, rng.NextDouble() * 10);
-                var b = new GeoLine3(rng.NextDouble() * 10, rng.NextDouble() * 10, rng.NextDouble() * 10, rng.NextDouble() * 10, rng.NextDouble() * 10, rng.NextDouble() * 10);
-                if (a.Length < 0.5 || b.Length < 0.5 || a.IsParallelTo(b)) { continue; }
+                var a = new GeoLine3(
+                    rng.NextDouble() * 10,
+                    rng.NextDouble() * 10,
+                    rng.NextDouble() * 10,
+                    rng.NextDouble() * 10,
+                    rng.NextDouble() * 10,
+                    rng.NextDouble() * 10
+                );
+                var b = new GeoLine3(
+                    rng.NextDouble() * 10,
+                    rng.NextDouble() * 10,
+                    rng.NextDouble() * 10,
+                    rng.NextDouble() * 10,
+                    rng.NextDouble() * 10,
+                    rng.NextDouble() * 10
+                );
+                if (a.Length < 0.5 || b.Length < 0.5 || a.IsParallelTo(b))
+                {
+                    continue;
+                }
 
                 GeoLine3 bridge = a.GetShortestLineTo(b, LineExtension.Both);
-                if (bridge.Length < 1e-6) { continue; }
+                if (bridge.Length < 1e-6)
+                {
+                    continue;
+                }
 
                 Assert.Equal(0.0, bridge.Direction.DotProduct(a.Direction) / (bridge.Length * a.Length), 9);
                 Assert.Equal(0.0, bridge.Direction.DotProduct(b.Direction) / (bridge.Length * b.Length), 9);

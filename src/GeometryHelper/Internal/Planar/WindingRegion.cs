@@ -17,7 +17,7 @@ namespace GeometryHelper.Internal.Planar
         NonZero,
 
         /// <summary>Inside where the loops wind round a point an odd number of times.</summary>
-        EvenOdd
+        EvenOdd,
     }
 
     /// <summary>
@@ -142,7 +142,11 @@ namespace GeometryHelper.Internal.Planar
 
             if (pass == MaxSplitPasses)
             {
-                GeometryHelperLog.Debug("Planar region: crossings were still being found after " + MaxSplitPasses + " passes; the outline may be off near them.");
+                GeometryHelperLog.Debug(
+                    "Planar region: crossings were still being found after "
+                        + MaxSplitPasses
+                        + " passes; the outline may be off near them."
+                );
             }
 
             Arrangement arrangement = Arrangement.Build(edges, store.Points);
@@ -208,7 +212,11 @@ namespace GeometryHelper.Internal.Planar
             // A sweep along X tries every pair whose X runs overlap, which along teeth running in X is every pair; where
             // a sweep along Y would try fewer than half as many, the same pairs are found so and tried in the same order.
             // Counting the pairs costs two sorts, more than a sweep of a few hundred edges, which is left along X.
-            if (count > SweepChoiceEdges && IsFinite(minX, maxX, minY, maxY) && PairsAlong(minY, maxY, snap) < PairsAlong(minX, maxX, snap) / 2)
+            if (
+                count > SweepChoiceEdges
+                && IsFinite(minX, maxX, minY, maxY)
+                && PairsAlong(minY, maxY, snap) < PairsAlong(minX, maxX, snap) / 2
+            )
             {
                 any = TestPairsFoundAlongY(edges, store, snap, splits, order, minX, maxX, minY, maxY);
             }
@@ -314,7 +322,17 @@ namespace GeometryHelper.Internal.Planar
         /// as it was, to the pair. An offset of a comb of 4 000 teeth running along the frame's X, in a plane in space,
         /// spent 4.8 of its 4.9 seconds sweeping along X.
         /// </remarks>
-        private static bool TestPairsFoundAlongY(List<WorkEdge> edges, VertexStore store, double snap, List<int>[] splits, int[] order, double[] minX, double[] maxX, double[] minY, double[] maxY)
+        private static bool TestPairsFoundAlongY(
+            List<WorkEdge> edges,
+            VertexStore store,
+            double snap,
+            List<int>[] splits,
+            int[] order,
+            double[] minX,
+            double[] maxX,
+            double[] minY,
+            double[] maxY
+        )
         {
             int count = order.Length;
             int[] place = new int[count];
@@ -323,7 +341,13 @@ namespace GeometryHelper.Internal.Planar
             for (int k = 0; k < count; k++)
             {
                 place[order[k]] = k;
-                size = Math.Max(size, Math.Max(Math.Max(Math.Abs(minX[k]), Math.Abs(maxX[k])), Math.Max(Math.Abs(minY[k]), Math.Abs(maxY[k]))));
+                size = Math.Max(
+                    size,
+                    Math.Max(
+                        Math.Max(Math.Abs(minX[k]), Math.Abs(maxX[k])),
+                        Math.Max(Math.Abs(minY[k]), Math.Abs(maxY[k]))
+                    )
+                );
             }
 
             int[] byY = new int[count];
@@ -423,7 +447,8 @@ namespace GeometryHelper.Internal.Planar
         /// </summary>
         private static int UpperBound(double[] sorted, double value)
         {
-            int low = 0, high = sorted.Length;
+            int low = 0,
+                high = sorted.Length;
 
             while (low < high)
             {
@@ -445,7 +470,14 @@ namespace GeometryHelper.Internal.Planar
         /// <summary>
         /// Records where two edges touch or cross. Returns whether a split was recorded.
         /// </summary>
-        private static bool TestPair(List<WorkEdge> edges, int i, int j, VertexStore store, double snap, List<int>[] splits)
+        private static bool TestPair(
+            List<WorkEdge> edges,
+            int i,
+            int j,
+            VertexStore store,
+            double snap,
+            List<int>[] splits
+        )
         {
             WorkEdge e1 = edges[i];
             WorkEdge e2 = edges[j];
@@ -457,10 +489,14 @@ namespace GeometryHelper.Internal.Planar
             bool any = false;
 
             // An endpoint of one lying on the other: a T junction, or the end of a shared stretch.
-            if (e2.U != e1.U && e2.U != e1.V) any |= TryAddIncidence(splits, i, a, b, c, e2.U, snap);
-            if (e2.V != e1.U && e2.V != e1.V) any |= TryAddIncidence(splits, i, a, b, d, e2.V, snap);
-            if (e1.U != e2.U && e1.U != e2.V) any |= TryAddIncidence(splits, j, c, d, a, e1.U, snap);
-            if (e1.V != e2.U && e1.V != e2.V) any |= TryAddIncidence(splits, j, c, d, b, e1.V, snap);
+            if (e2.U != e1.U && e2.U != e1.V)
+                any |= TryAddIncidence(splits, i, a, b, c, e2.U, snap);
+            if (e2.V != e1.U && e2.V != e1.V)
+                any |= TryAddIncidence(splits, i, a, b, d, e2.V, snap);
+            if (e1.U != e2.U && e1.U != e2.V)
+                any |= TryAddIncidence(splits, j, c, d, a, e1.U, snap);
+            if (e1.V != e2.U && e1.V != e2.V)
+                any |= TryAddIncidence(splits, j, c, d, b, e1.V, snap);
 
             if (e1.U == e2.U || e1.U == e2.V || e1.V == e2.U || e1.V == e2.V)
             {
@@ -514,7 +550,15 @@ namespace GeometryHelper.Internal.Planar
             return any;
         }
 
-        private static bool TryAddIncidence(List<int>[] splits, int edge, GeoPoint2 a, GeoPoint2 b, GeoPoint2 point, int pointId, double snap)
+        private static bool TryAddIncidence(
+            List<int>[] splits,
+            int edge,
+            GeoPoint2 a,
+            GeoPoint2 b,
+            GeoPoint2 point,
+            int pointId,
+            double snap
+        )
         {
             GeoVector2 direction = b - a;
             double lengthSquared = direction.LengthSquared;
@@ -787,8 +831,7 @@ namespace GeometryHelper.Internal.Planar
                     {
                         _face[walk] = face;
                         walk = Next(walk);
-                    }
-                    while (walk != h && ++guard <= _face.Length);
+                    } while (walk != h && ++guard <= _face.Length);
                 }
             }
 
@@ -975,7 +1018,11 @@ namespace GeometryHelper.Internal.Planar
 
                 if (conflicts > 0)
                 {
-                    GeometryHelperLog.Debug("Planar region: " + conflicts + " winding conflicts; the input folds too finely for the snap distance.");
+                    GeometryHelperLog.Debug(
+                        "Planar region: "
+                            + conflicts
+                            + " winding conflicts; the input folds too finely for the snap distance."
+                    );
                 }
 
                 return winding;
@@ -1095,9 +1142,12 @@ namespace GeometryHelper.Internal.Planar
             {
                 switch (rule)
                 {
-                    case FillRule.Positive: return winding > 0;
-                    case FillRule.NonZero: return winding != 0;
-                    default: return (winding & 1) != 0;
+                    case FillRule.Positive:
+                        return winding > 0;
+                    case FillRule.NonZero:
+                        return winding != 0;
+                    default:
+                        return (winding & 1) != 0;
                 }
             }
 

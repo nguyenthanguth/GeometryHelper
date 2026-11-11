@@ -60,12 +60,19 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 for (int row = 0; row < 3; row++)
                 {
-                    double u = 100 + column * (100 + rib), v = 100 + row * (100 + rib);
-                    holes.Add(new GeoPolygon3(new[] { P(u, v), P(u + 100, v), P(u + 100, v + 100), P(u, v + 100) }, Tolerance));
+                    double u = 100 + column * (100 + rib),
+                        v = 100 + row * (100 + rib);
+                    holes.Add(
+                        new GeoPolygon3(new[] { P(u, v), P(u + 100, v), P(u + 100, v + 100), P(u, v + 100) }, Tolerance)
+                    );
                 }
             }
 
-            return new GeoFace3(new GeoPolygon3(new[] { P(0, 0), P(1000, 0), P(1000, 600), P(0, 600) }, Tolerance), holes, Tolerance);
+            return new GeoFace3(
+                new GeoPolygon3(new[] { P(0, 0), P(1000, 0), P(1000, 600), P(0, 600) }, Tolerance),
+                holes,
+                Tolerance
+            );
         }
     }
 }

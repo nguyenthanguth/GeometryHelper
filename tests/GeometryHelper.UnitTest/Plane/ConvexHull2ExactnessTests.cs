@@ -21,7 +21,13 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // Sorted along X the second point is a hair right of the first and the third a hair right of it, so the way through them
             // is on one line to a trillionth, but the second is 15.8 down the line and the third only 6.25: the second is a corner.
-            var points = new[] { new GeoPoint2(0, 0), new GeoPoint2(1E-12, -15.8), new GeoPoint2(2E-12, -6.25), new GeoPoint2(20, 0) };
+            var points = new[]
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(1E-12, -15.8),
+                new GeoPoint2(2E-12, -6.25),
+                new GeoPoint2(20, 0),
+            };
 
             GeoPolygon2 hull = ConvexHull2.Of(points, Tolerance);
 
@@ -33,7 +39,13 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void TheRectangleFittedRoundThoseFourPoints_HoldsThemAll()
         {
-            var points = new[] { new GeoPoint2(0, 0), new GeoPoint2(1E-12, -15.8), new GeoPoint2(2E-12, -6.25), new GeoPoint2(20, 0) };
+            var points = new[]
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(1E-12, -15.8),
+                new GeoPoint2(2E-12, -6.25),
+                new GeoPoint2(20, 0),
+            };
 
             GeoRectangle2 box = GeoRectangle2.Fit(points, Tolerance);
 
@@ -55,17 +67,25 @@ namespace GeometryHelper.UnitTest.Plane
                         points.Add(new GeoPoint2(rng.NextDouble() * 100 - 50, rng.NextDouble() * 60 - 30));
                         break;
                     case 1: // X within a few trillionths: a vertical line, with a point or two off it
-                        points.Add(rng.NextDouble() < 0.25 ? new GeoPoint2(rng.NextDouble() * 20, rng.NextDouble() * 40 - 20) : new GeoPoint2(rng.NextDouble() * 3E-12, rng.NextDouble() * 40 - 20));
+                        points.Add(
+                            rng.NextDouble() < 0.25
+                                ? new GeoPoint2(rng.NextDouble() * 20, rng.NextDouble() * 40 - 20)
+                                : new GeoPoint2(rng.NextDouble() * 3E-12, rng.NextDouble() * 40 - 20)
+                        );
                         break;
                     case 2: // the same, along Y
-                        points.Add(rng.NextDouble() < 0.25 ? new GeoPoint2(rng.NextDouble() * 40 - 20, rng.NextDouble() * 20) : new GeoPoint2(rng.NextDouble() * 40 - 20, rng.NextDouble() * 3E-12));
+                        points.Add(
+                            rng.NextDouble() < 0.25
+                                ? new GeoPoint2(rng.NextDouble() * 40 - 20, rng.NextDouble() * 20)
+                                : new GeoPoint2(rng.NextDouble() * 40 - 20, rng.NextDouble() * 3E-12)
+                        );
                         break;
                     case 3: // a sliver of width a thousandth, leaning
-                        {
-                            double t = rng.NextDouble() * 80 - 40;
-                            points.Add(new GeoPoint2(0.3 * t + rng.NextDouble() * 1E-3, t));
-                            break;
-                        }
+                    {
+                        double t = rng.NextDouble() * 80 - 40;
+                        points.Add(new GeoPoint2(0.3 * t + rng.NextDouble() * 1E-3, t));
+                        break;
+                    }
                     case 4: // far from the origin
                         points.Add(new GeoPoint2(1E9 + rng.NextDouble() * 100, -1E9 + rng.NextDouble() * 60));
                         break;
@@ -73,17 +93,19 @@ namespace GeometryHelper.UnitTest.Plane
                         points.Add(new GeoPoint2(rng.Next(0, 4) * 10.0, rng.Next(0, 3) * 10.0));
                         break;
                     case 6: // on a line to a ten-thousandth
-                        {
-                            double t = rng.NextDouble() * 50;
-                            points.Add(new GeoPoint2(2 * t + (rng.NextDouble() - 0.5) * 1E-4, t + (rng.NextDouble() - 0.5) * 1E-4));
-                            break;
-                        }
+                    {
+                        double t = rng.NextDouble() * 50;
+                        points.Add(
+                            new GeoPoint2(2 * t + (rng.NextDouble() - 0.5) * 1E-4, t + (rng.NextDouble() - 0.5) * 1E-4)
+                        );
+                        break;
+                    }
                     default: // a ring of points, each within a thousandth of the circle
-                        {
-                            double a = rng.NextDouble() * Math.PI * 2;
-                            points.Add(new GeoPoint2(30 * Math.Cos(a) + rng.NextDouble() * 1E-3, 30 * Math.Sin(a)));
-                            break;
-                        }
+                    {
+                        double a = rng.NextDouble() * Math.PI * 2;
+                        points.Add(new GeoPoint2(30 * Math.Cos(a) + rng.NextDouble() * 1E-3, 30 * Math.Sin(a)));
+                        break;
+                    }
                 }
             }
 
@@ -94,7 +116,8 @@ namespace GeometryHelper.UnitTest.Plane
         public void TheHullOfEveryFamilyOfPointsHoldsThemAllToTheToleranceAndOnlyTurnsLeft()
         {
             var rng = new Random(2026);
-            int hulls = 0, flat = 0;
+            int hulls = 0,
+                flat = 0;
 
             for (int family = 0; family < 8; family++)
             {
@@ -105,7 +128,10 @@ namespace GeometryHelper.UnitTest.Plane
                     if (!ConvexHull2.TryOf(points, out GeoPolygon2 hull, Tolerance))
                     {
                         // Only a set within a tolerance of a segment has no hull.
-                        Assert.True(Width(points) <= Tolerance.EqualPoint * (1.0 + 1E-9) + 1E-9, $"family {family} set {k}: no hull, though it is {Width(points)} wide");
+                        Assert.True(
+                            Width(points) <= Tolerance.EqualPoint * (1.0 + 1E-9) + 1E-9,
+                            $"family {family} set {k}: no hull, though it is {Width(points)} wide"
+                        );
                         flat++;
                         continue;
                     }
@@ -113,13 +139,22 @@ namespace GeometryHelper.UnitTest.Plane
                     hulls++;
                     double outside = Outside(hull, points);
 
-                    Assert.True(outside <= Tolerance.EqualPoint * (1.0 + 1E-9) + 1E-9, $"family {family} set {k}: a point stands {outside} outside the hull");
+                    Assert.True(
+                        outside <= Tolerance.EqualPoint * (1.0 + 1E-9) + 1E-9,
+                        $"family {family} set {k}: a point stands {outside} outside the hull"
+                    );
                     Assert.All(hull.Vertices, v => Assert.Contains(v, points));
 
                     for (int i = 0; i < hull.VertexCount; i++)
                     {
-                        Assert.True((hull[(i + 1) % hull.VertexCount].X - hull[i].X) * (hull[(i + 2) % hull.VertexCount].Y - hull[i].Y)
-                            - (hull[(i + 1) % hull.VertexCount].Y - hull[i].Y) * (hull[(i + 2) % hull.VertexCount].X - hull[i].X) > 0.0, $"family {family} set {k}: corner {i} does not turn left");
+                        Assert.True(
+                            (hull[(i + 1) % hull.VertexCount].X - hull[i].X)
+                                * (hull[(i + 2) % hull.VertexCount].Y - hull[i].Y)
+                                - (hull[(i + 1) % hull.VertexCount].Y - hull[i].Y)
+                                    * (hull[(i + 2) % hull.VertexCount].X - hull[i].X)
+                                > 0.0,
+                            $"family {family} set {k}: corner {i} does not turn left"
+                        );
                     }
                 }
             }
@@ -140,7 +175,10 @@ namespace GeometryHelper.UnitTest.Plane
                     GeoRectangle2 box = GeoRectangle2.Fit(points, Tolerance);
                     double worst = points.Max(p => box.DistanceTo(p));
 
-                    Assert.True(worst <= Tolerance.EqualPoint * (1.0 + 1E-9) + 1E-6, $"family {family} set {k}: a point stands {worst} outside the rectangle");
+                    Assert.True(
+                        worst <= Tolerance.EqualPoint * (1.0 + 1E-9) + 1E-6,
+                        $"family {family} set {k}: a point stands {worst} outside the rectangle"
+                    );
                 }
             }
         }
@@ -171,9 +209,18 @@ namespace GeometryHelper.UnitTest.Plane
                     {
                         GeoVector3 d = box.Center.GetVectorTo(p);
 
-                        double excess = Math.Max(Math.Abs(d.DotProduct(box.AxisX)) - box.SizeX / 2, Math.Max(Math.Abs(d.DotProduct(box.AxisY)) - box.SizeY / 2, Math.Abs(d.DotProduct(box.AxisZ)) - box.SizeZ / 2));
+                        double excess = Math.Max(
+                            Math.Abs(d.DotProduct(box.AxisX)) - box.SizeX / 2,
+                            Math.Max(
+                                Math.Abs(d.DotProduct(box.AxisY)) - box.SizeY / 2,
+                                Math.Abs(d.DotProduct(box.AxisZ)) - box.SizeZ / 2
+                            )
+                        );
 
-                        Assert.True(excess <= slack, $"family {family} set {k}: a point lies {excess} outside the box (sizes {box.SizeX}, {box.SizeY}, {box.SizeZ})");
+                        Assert.True(
+                            excess <= slack,
+                            $"family {family} set {k}: a point lies {excess} outside the box (sizes {box.SizeX}, {box.SizeY}, {box.SizeZ})"
+                        );
                     }
                 }
             }
@@ -185,7 +232,14 @@ namespace GeometryHelper.UnitTest.Plane
             // The leftmost corner and the last corner of the chain are the same place to within the tolerance, each standing for points a
             // little off it: joining them forgot what the last stood for, and a point stood 1.11 tolerances outside. Copies a hair from
             // every corner of a gentle arc test the same at each corner.
-            foreach (Tolerance tolerance in new[] { Tolerance, new Tolerance(1E-6, 1E-5, 1E-6, 1E-6), new Tolerance(0.0, 1E-5, 0.0, 0.0) })
+            foreach (
+                Tolerance tolerance in new[]
+                {
+                    Tolerance,
+                    new Tolerance(1E-6, 1E-5, 1E-6, 1E-6),
+                    new Tolerance(0.0, 1E-5, 0.0, 0.0),
+                }
+            )
             {
                 var rng = new Random(77);
                 double scale = tolerance.EqualPoint > 0.0 ? tolerance.EqualPoint : 1E-3;
@@ -197,14 +251,20 @@ namespace GeometryHelper.UnitTest.Plane
 
                     if (!ConvexHull2.TryOf(points, out GeoPolygon2 hull, tolerance))
                     {
-                        Assert.True(Width(points) <= tolerance.EqualPoint * (1.0 + 1E-9) + 1E-9, $"{tolerance.EqualPoint} set {k}: no hull, though it is {Width(points)} wide");
+                        Assert.True(
+                            Width(points) <= tolerance.EqualPoint * (1.0 + 1E-9) + 1E-9,
+                            $"{tolerance.EqualPoint} set {k}: no hull, though it is {Width(points)} wide"
+                        );
                         continue;
                     }
 
                     hulls++;
                     double outside = Outside(hull, points);
 
-                    Assert.True(outside <= tolerance.EqualPoint * (1.0 + 1E-9) + 1E-9, $"{tolerance.EqualPoint} set {k}: a point stands {outside} outside, {outside / Math.Max(tolerance.EqualPoint, 1E-300)} tolerances");
+                    Assert.True(
+                        outside <= tolerance.EqualPoint * (1.0 + 1E-9) + 1E-9,
+                        $"{tolerance.EqualPoint} set {k}: a point stands {outside} outside, {outside / Math.Max(tolerance.EqualPoint, 1E-300)} tolerances"
+                    );
                     Assert.All(hull.Vertices, v => Assert.Contains(v, points));
                 }
 
@@ -217,13 +277,49 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // Three tight groups of points, from a fuzz: the hull of them left a point 1.11 tolerances outside while the last corner of the
             // chain, joined to the first, forgot what it stood for.
-            double[] xy = { 20.541936652393517, 38.741094556295359, 20.47837597499759, 38.784002170832366, 20.46878369245389, 38.707192060529344, 20.493759457147103, 38.743117734751721, 20.501890442183658, 38.813153401826582, 21.734926178939606, 9.3561327368631648, 21.717883322338054, 9.33551471252484, 21.6978902260181, 9.25640862215376, 21.610404532535657, 9.33467102570444, 32.390566211713278, 17.009766213053261, 32.358454509071748, 16.929598381977804, 32.39712866648199, 16.886908164393112, 32.405744776935663, 16.996534790341524, 32.362975681590832, 16.903850715388007 };
+            double[] xy =
+            {
+                20.541936652393517,
+                38.741094556295359,
+                20.47837597499759,
+                38.784002170832366,
+                20.46878369245389,
+                38.707192060529344,
+                20.493759457147103,
+                38.743117734751721,
+                20.501890442183658,
+                38.813153401826582,
+                21.734926178939606,
+                9.3561327368631648,
+                21.717883322338054,
+                9.33551471252484,
+                21.6978902260181,
+                9.25640862215376,
+                21.610404532535657,
+                9.33467102570444,
+                32.390566211713278,
+                17.009766213053261,
+                32.358454509071748,
+                16.929598381977804,
+                32.39712866648199,
+                16.886908164393112,
+                32.405744776935663,
+                16.996534790341524,
+                32.362975681590832,
+                16.903850715388007,
+            };
             var tolerance = new Tolerance(0.1, 1E-5, 0.1, 0.1);
-            var points = Enumerable.Range(0, xy.Length / 2).Select(i => new GeoPoint2(xy[2 * i], xy[2 * i + 1])).ToList();
+            var points = Enumerable
+                .Range(0, xy.Length / 2)
+                .Select(i => new GeoPoint2(xy[2 * i], xy[2 * i + 1]))
+                .ToList();
 
             GeoPolygon2 hull = ConvexHull2.Of(points, tolerance);
 
-            Assert.True(Outside(hull, points) <= tolerance.EqualPoint, $"a point stands {Outside(hull, points)} outside");
+            Assert.True(
+                Outside(hull, points) <= tolerance.EqualPoint,
+                $"a point stands {Outside(hull, points)} outside"
+            );
         }
 
         [Fact]
@@ -234,7 +330,14 @@ namespace GeometryHelper.UnitTest.Plane
             foreach (double fine in new[] { 1E-6, 0.0 })
             {
                 var tolerance = new Tolerance(fine, 1E-6, fine, fine);
-                var square = new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(9.9995, 10.0004), new GeoPoint2(0, 10) };
+                var square = new[]
+                {
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(10, 0),
+                    new GeoPoint2(10, 10),
+                    new GeoPoint2(9.9995, 10.0004),
+                    new GeoPoint2(0, 10),
+                };
 
                 GeoPolygon2 hull = ConvexHull2.Of(square, tolerance);
 
@@ -264,7 +367,8 @@ namespace GeometryHelper.UnitTest.Plane
 
                 for (int i = rng.Next(2, 8); i > 0; i--)
                 {
-                    double angle = rng.NextDouble() * Math.PI * 2, reach = tolerance * rng.NextDouble() * 1.3;
+                    double angle = rng.NextDouble() * Math.PI * 2,
+                        reach = tolerance * rng.NextDouble() * 1.3;
                     points.Add(new GeoPoint2(reach * Math.Cos(angle), reach * Math.Sin(angle)));
                 }
 
@@ -280,7 +384,12 @@ namespace GeometryHelper.UnitTest.Plane
 
                     for (int i = rng.Next(3, 7); i > 0; i--)
                     {
-                        points.Add(new GeoPoint2(centre.X + (rng.NextDouble() - 0.5) * 1.6 * tolerance, centre.Y + (rng.NextDouble() - 0.5) * 1.6 * tolerance));
+                        points.Add(
+                            new GeoPoint2(
+                                centre.X + (rng.NextDouble() - 0.5) * 1.6 * tolerance,
+                                centre.Y + (rng.NextDouble() - 0.5) * 1.6 * tolerance
+                            )
+                        );
                     }
                 }
 
@@ -299,7 +408,8 @@ namespace GeometryHelper.UnitTest.Plane
 
                 for (int copies = rng.Next(0, 4); copies > 0; copies--)
                 {
-                    double angle = rng.NextDouble() * 6.3, reach = tolerance * rng.NextDouble() * 1.2;
+                    double angle = rng.NextDouble() * 6.3,
+                        reach = tolerance * rng.NextDouble() * 1.2;
                     points.Add(new GeoPoint2(corner.X + reach * Math.Cos(angle), corner.Y + reach * Math.Sin(angle)));
                 }
             }
@@ -321,12 +431,18 @@ namespace GeometryHelper.UnitTest.Plane
 
                 for (int i = 0; i < hull.VertexCount; i++)
                 {
-                    GeoPoint2 a = hull[i], b = hull[(i + 1) % hull.VertexCount];
-                    double dx = b.X - a.X, dy = b.Y - a.Y, length2 = dx * dx + dy * dy;
+                    GeoPoint2 a = hull[i],
+                        b = hull[(i + 1) % hull.VertexCount];
+                    double dx = b.X - a.X,
+                        dy = b.Y - a.Y,
+                        length2 = dx * dx + dy * dy;
 
                     inside &= dx * (p.Y - a.Y) - dy * (p.X - a.X) >= 0.0;
 
-                    double t = length2 > 0.0 ? Math.Max(0.0, Math.Min(1.0, ((p.X - a.X) * dx + (p.Y - a.Y) * dy) / length2)) : 0.0;
+                    double t =
+                        length2 > 0.0
+                            ? Math.Max(0.0, Math.Min(1.0, ((p.X - a.X) * dx + (p.Y - a.Y) * dy) / length2))
+                            : 0.0;
                     nearest = Math.Min(nearest, p.DistanceTo(new GeoPoint2(a.X + t * dx, a.Y + t * dy)));
                 }
 
@@ -376,8 +492,10 @@ namespace GeometryHelper.UnitTest.Plane
 
             for (int i = 0; i < chain.Count; i++)
             {
-                GeoPoint2 a = chain[i], b = chain[(i + 1) % chain.Count];
-                double length = a.DistanceTo(b), across = 0.0;
+                GeoPoint2 a = chain[i],
+                    b = chain[(i + 1) % chain.Count];
+                double length = a.DistanceTo(b),
+                    across = 0.0;
 
                 foreach (GeoPoint2 p in chain)
                 {
@@ -390,6 +508,7 @@ namespace GeometryHelper.UnitTest.Plane
             return narrowest;
         }
 
-        private static double Cross(GeoPoint2 a, GeoPoint2 b, GeoPoint2 c) => (b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X);
+        private static double Cross(GeoPoint2 a, GeoPoint2 b, GeoPoint2 c) =>
+            (b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X);
     }
 }

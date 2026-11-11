@@ -20,7 +20,12 @@ namespace GeometryHelper.UnitTest.Solid
         /// Asserts that the image of the old rim lies on the new one, and that walking the old rim in steps of a
         /// twentieth of a turn walks the new one in steps of the same size, forward or back.
         /// </summary>
-        private static void AssertImageOfRim(Ellipse3Oracle.Specimen before, GeoTransform3 transform, GeoEllipse3 after, bool reversed)
+        private static void AssertImageOfRim(
+            Ellipse3Oracle.Specimen before,
+            GeoTransform3 transform,
+            GeoEllipse3 after,
+            bool reversed
+        )
         {
             const double step = 2 * Math.PI / 20;
             double previous = Ellipse3Oracle.AngleIn(after, transform.Transform(before.Rim(0.05)));
@@ -67,12 +72,16 @@ namespace GeometryHelper.UnitTest.Solid
             // plane's does, and the point at t goes to the point at t (A2: the new axis is where the old one went).
             Ellipse3Oracle.Specimen specimen = Ellipse3Oracle.Tilted();
             GeoEllipse3 ellipse = specimen.Build();
-            GeoTransform3 motion = GeoTransform3.Translation(new GeoVector3(3, -4, 5)) * GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 0.7);
+            GeoTransform3 motion =
+                GeoTransform3.Translation(new GeoVector3(3, -4, 5))
+                * GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 0.7);
             GeoEllipse3 moved = ellipse.TransformBy(motion);
 
             Assert.Equal(300.0, moved.MajorRadius, 1E-12 * 300);
             Assert.Equal(100.0, moved.MinorRadius, 1E-12 * 300);
-            Assert.True(moved.Normal.IsEqualTo(motion.Transform(new GeoPlane3(specimen.Center, specimen.N)).Normal, Tight));
+            Assert.True(
+                moved.Normal.IsEqualTo(motion.Transform(new GeoPlane3(specimen.Center, specimen.N)).Normal, Tight)
+            );
             Assert.True(moved.Center.IsEqualTo(motion.Transform(specimen.Center), Tight));
 
             for (int k = -3; k < 16; k++)
@@ -108,12 +117,22 @@ namespace GeometryHelper.UnitTest.Solid
             // The tilted 300 by 100 scaled 2, 0.5 and 1.5 along X, Y and Z, and sheared: whatever the radii come to, the
             // rim's image is the new rim, walked the same way round, the normal where the plane's goes.
             Ellipse3Oracle.Specimen specimen = Ellipse3Oracle.Tilted();
-            var shear = new GeoTransform3(new double[,] { { 1, 0.4, 0, 0 }, { 0, 1, 0.3, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } });
+            var shear = new GeoTransform3(
+                new double[,]
+                {
+                    { 1, 0.4, 0, 0 },
+                    { 0, 1, 0.3, 0 },
+                    { 0, 0, 1, 0 },
+                    { 0, 0, 0, 1 },
+                }
+            );
             GeoTransform3 transform = GeoTransform3.Scaling(2, 0.5, 1.5) * shear;
             GeoEllipse3 after = specimen.Build().TransformBy(transform);
 
             Assert.True(after.MajorRadius >= after.MinorRadius);
-            Assert.True(after.Normal.IsEqualTo(transform.Transform(new GeoPlane3(specimen.Center, specimen.N)).Normal, Tight));
+            Assert.True(
+                after.Normal.IsEqualTo(transform.Transform(new GeoPlane3(specimen.Center, specimen.N)).Normal, Tight)
+            );
             AssertImageOfRim(specimen, transform, after, false);
         }
 
@@ -124,14 +143,21 @@ namespace GeometryHelper.UnitTest.Solid
             // is the new rim, walking the old rim forward walks the new one back, and the normal is where the circle's
             // Transform(GeoPlane3) sends it, which is the opposite of the image of U crossed with the image of V.
             Ellipse3Oracle.Specimen specimen = Ellipse3Oracle.Tilted();
-            GeoTransform3 mirror = GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(5, 0, 0), new GeoVector3(1, 0.3, 0.2)));
+            GeoTransform3 mirror = GeoTransform3.Mirror(
+                new GeoPlane3(new GeoPoint3(5, 0, 0), new GeoVector3(1, 0.3, 0.2))
+            );
             GeoEllipse3 mirrored = specimen.Build().TransformBy(mirror);
             GeoVector3 planeWay = mirror.Transform(new GeoPlane3(specimen.Center, specimen.N)).Normal;
 
             Assert.Equal(300.0, mirrored.MajorRadius, 1E-9);
             Assert.Equal(100.0, mirrored.MinorRadius, 1E-9);
             Assert.True(mirrored.Normal.IsEqualTo(planeWay, Tight));
-            Assert.True(mirror.Transform(specimen.U).CrossProduct(mirror.Transform(specimen.V)).IsEqualTo(planeWay.Multiply(-1), Tight));
+            Assert.True(
+                mirror
+                    .Transform(specimen.U)
+                    .CrossProduct(mirror.Transform(specimen.V))
+                    .IsEqualTo(planeWay.Multiply(-1), Tight)
+            );
             AssertImageOfRim(specimen, mirror, mirrored, true);
         }
 
@@ -183,12 +209,22 @@ namespace GeometryHelper.UnitTest.Solid
             // A shear, an uneven scaling, a turn and a move, and the same with a mirror after: undone, each gives the tilted
             // 300 by 100 back, its axis up to sign.
             GeoEllipse3 ellipse = Ellipse3Oracle.Tilted().Build();
-            var shear = new GeoTransform3(new double[,] { { 1, 0.4, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } });
-            GeoTransform3 mixed = GeoTransform3.Translation(new GeoVector3(-70, 15, 8))
+            var shear = new GeoTransform3(
+                new double[,]
+                {
+                    { 1, 0.4, 0, 0 },
+                    { 0, 1, 0, 0 },
+                    { 0, 0, 1, 0 },
+                    { 0, 0, 0, 1 },
+                }
+            );
+            GeoTransform3 mixed =
+                GeoTransform3.Translation(new GeoVector3(-70, 15, 8))
                 * GeoTransform3.RotationAxis(new GeoVector3(1, -1, 2), 1.3)
                 * GeoTransform3.Scaling(2.5, 0.7, 1.2)
                 * shear;
-            GeoTransform3 mirrored = GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(3, 4, 5), new GeoVector3(-5, 9, 1))) * mixed;
+            GeoTransform3 mirrored =
+                GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(3, 4, 5), new GeoVector3(-5, 9, 1))) * mixed;
 
             foreach (GeoTransform3 transform in new[] { mixed, mirrored })
             {
@@ -205,7 +241,8 @@ namespace GeometryHelper.UnitTest.Solid
             // image of the old one made unit, so the point at t goes to the point at t.
             var circle = new GeoCircle3(new GeoPoint3(30, 40, 50), new GeoVector3(1, 1, 1), 50);
             GeoEllipse3 ellipse = GeoEllipse3.FromCircle(circle);
-            GeoTransform3 transform = GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 0.7) * GeoTransform3.Scaling(2);
+            GeoTransform3 transform =
+                GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 0.7) * GeoTransform3.Scaling(2);
             GeoEllipse3 after = ellipse.TransformBy(transform);
 
             Assert.Equal(100.0, after.MajorRadius, 1E-12 * 100);
@@ -215,7 +252,10 @@ namespace GeometryHelper.UnitTest.Solid
             for (int k = 0; k < 12; k++)
             {
                 double t = k * 0.55;
-                Assert.True(after.GetPointAtAngle(t).IsEqualTo(transform.Transform(circle.GetPointAtAngle(t)), Tight), $"t = {t}");
+                Assert.True(
+                    after.GetPointAtAngle(t).IsEqualTo(transform.Transform(circle.GetPointAtAngle(t)), Tight),
+                    $"t = {t}"
+                );
             }
         }
 
@@ -223,7 +263,9 @@ namespace GeometryHelper.UnitTest.Solid
         public void TheTransformationAndTheEllipseTransformAlike()
         {
             // The join to ApiSymmetryTests.TransformingThroughEitherFormGivesTheSameResult, which lists the types by hand.
-            GeoTransform3 motion = GeoTransform3.Translation(new GeoVector3(3, -4, 5)).Multiply(GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 0.7));
+            GeoTransform3 motion = GeoTransform3
+                .Translation(new GeoVector3(3, -4, 5))
+                .Multiply(GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 0.7));
             GeoEllipse3 ellipse = Ellipse3Oracle.Tilted().Build();
 
             Assert.Equal(motion.Transform(ellipse), ellipse.TransformBy(motion));

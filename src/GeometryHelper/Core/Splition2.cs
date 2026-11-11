@@ -60,7 +60,13 @@ namespace GeometryHelper.Core
         /// (5, -0.0005) is cut at (5, 0), where the place was measured at the global thousandth, at its start, and the
         /// segment came back whole.
         /// </remarks>
-        public static bool TrySplitBy(GeoLine2 line, GeoPoint2 point, out GeoLine2 first, out GeoLine2 second, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoLine2 line,
+            GeoPoint2 point,
+            out GeoLine2 first,
+            out GeoLine2 second,
+            Tolerance tolerance
+        )
         {
             first = default(GeoLine2);
             second = default(GeoLine2);
@@ -98,7 +104,13 @@ namespace GeometryHelper.Core
         /// true if the segment was split; false if the distance falls outside the segment or lands on one
         /// of its endpoints.
         /// </returns>
-        public static bool TrySplitAtDistance(GeoLine2 line, double distance, out GeoLine2 first, out GeoLine2 second, Tolerance tolerance)
+        public static bool TrySplitAtDistance(
+            GeoLine2 line,
+            double distance,
+            out GeoLine2 first,
+            out GeoLine2 second,
+            Tolerance tolerance
+        )
         {
             first = default(GeoLine2);
             second = default(GeoLine2);
@@ -127,7 +139,12 @@ namespace GeometryHelper.Core
         /// <param name="first">The piece holding the start point of the polyline.</param>
         /// <param name="second">The piece holding the end point of the polyline.</param>
         /// <returns>true if the polyline was split; otherwise, false.</returns>
-        public static bool TrySplitBy(GeoPolyline2 polyline, GeoPoint2 point, out GeoPolyline2 first, out GeoPolyline2 second)
+        public static bool TrySplitBy(
+            GeoPolyline2 polyline,
+            GeoPoint2 point,
+            out GeoPolyline2 first,
+            out GeoPolyline2 second
+        )
         {
             return TrySplitBy(polyline, point, out first, out second, Tolerance.Global);
         }
@@ -144,12 +161,19 @@ namespace GeometryHelper.Core
         /// true if the polyline was split; false if the point is off the polyline, or sits on one of its
         /// endpoints, where there is nothing to cut.
         /// </returns>
-        public static bool TrySplitBy(GeoPolyline2 polyline, GeoPoint2 point, out GeoPolyline2 first, out GeoPolyline2 second, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline2 polyline,
+            GeoPoint2 point,
+            out GeoPolyline2 first,
+            out GeoPolyline2 second,
+            Tolerance tolerance
+        )
         {
             first = null;
             second = null;
 
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             if (!TryGetCutDistance(polyline, point, tolerance, out double distance))
             {
@@ -167,7 +191,12 @@ namespace GeometryHelper.Core
         /// <param name="first">The piece holding the start point of the polyline.</param>
         /// <param name="second">The piece holding the end point of the polyline.</param>
         /// <returns>true if the polyline was split; otherwise, false.</returns>
-        public static bool TrySplitAtDistance(GeoPolyline2 polyline, double distance, out GeoPolyline2 first, out GeoPolyline2 second)
+        public static bool TrySplitAtDistance(
+            GeoPolyline2 polyline,
+            double distance,
+            out GeoPolyline2 first,
+            out GeoPolyline2 second
+        )
         {
             return TrySplitAtDistance(polyline, distance, out first, out second, Tolerance.Global);
         }
@@ -184,12 +213,19 @@ namespace GeometryHelper.Core
         /// true if the polyline was split; false if the distance falls outside the polyline or lands on one
         /// of its endpoints.
         /// </returns>
-        public static bool TrySplitAtDistance(GeoPolyline2 polyline, double distance, out GeoPolyline2 first, out GeoPolyline2 second, Tolerance tolerance)
+        public static bool TrySplitAtDistance(
+            GeoPolyline2 polyline,
+            double distance,
+            out GeoPolyline2 first,
+            out GeoPolyline2 second,
+            Tolerance tolerance
+        )
         {
             first = null;
             second = null;
 
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             double[] cuts = NormalizeCuts(polyline.Length, new[] { distance }, tolerance);
             if (cuts.Length != 1)
@@ -242,7 +278,13 @@ namespace GeometryHelper.Core
         /// endpoint of the subject, or are parallel — including the collinear overlap case, where there is
         /// no single position to cut at.
         /// </returns>
-        public static bool TrySplitBy(GeoLine2 subject, GeoLine2 cutter, out GeoLine2 first, out GeoLine2 second, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoLine2 subject,
+            GeoLine2 cutter,
+            out GeoLine2 first,
+            out GeoLine2 second,
+            Tolerance tolerance
+        )
         {
             first = default(GeoLine2);
             second = default(GeoLine2);
@@ -277,12 +319,22 @@ namespace GeometryHelper.Core
         /// <returns>true if the subject was split by at least one cutter; otherwise, false.</returns>
         public static bool TrySplitBy(GeoLine2 subject, GeoLine2[] cutters, out GeoLine2[] pieces, Tolerance tolerance)
         {
-            if (cutters == null) throw new ArgumentNullException(nameof(cutters));
+            if (cutters == null)
+                throw new ArgumentNullException(nameof(cutters));
 
             var crossings = new List<GeoPoint2>();
             foreach (GeoLine2 cutter in cutters)
             {
-                if (cutter != null && Intersection2.Crossing(subject, cutter, Enums.LineExtension.None, out GeoPoint2 crossing, tolerance))
+                if (
+                    cutter != null
+                    && Intersection2.Crossing(
+                        subject,
+                        cutter,
+                        Enums.LineExtension.None,
+                        out GeoPoint2 crossing,
+                        tolerance
+                    )
+                )
                 {
                     crossings.Add(crossing);
                 }
@@ -328,7 +380,8 @@ namespace GeometryHelper.Core
         /// <returns>true if the subject was split by the polyline; otherwise, false.</returns>
         public static bool TrySplitBy(GeoLine2 subject, GeoPolyline2 cutter, out GeoLine2[] pieces, Tolerance tolerance)
         {
-            if (cutter == null) throw new ArgumentNullException(nameof(cutter));
+            if (cutter == null)
+                throw new ArgumentNullException(nameof(cutter));
 
             int edgeCount = cutter.EdgeCount;
             GeoLine2[] cutters = new GeoLine2[edgeCount];
@@ -362,7 +415,8 @@ namespace GeometryHelper.Core
         /// <returns>true if the subject was split; otherwise, false.</returns>
         public static bool TrySplitBy(GeoLine2 subject, GeoPoint2[] points, out GeoLine2[] pieces, Tolerance tolerance)
         {
-            if (points == null) throw new ArgumentNullException(nameof(points));
+            if (points == null)
+                throw new ArgumentNullException(nameof(points));
 
             double[] cuts = ToCutDistancesFromPoints(subject, points, tolerance);
 
@@ -380,7 +434,12 @@ namespace GeometryHelper.Core
         /// Splits a line segment everywhere a list of polygon boundaries crosses it, separating the parts that fall
         /// inside the polygons from those that fall outside, using the default tolerance.
         /// </summary>
-        public static bool TrySplitBy(GeoLine2 subject, GeoPolygon2[] cutters, out GeoLine2[] inside, out GeoLine2[] outside)
+        public static bool TrySplitBy(
+            GeoLine2 subject,
+            GeoPolygon2[] cutters,
+            out GeoLine2[] inside,
+            out GeoLine2[] outside
+        )
         {
             return TrySplitBy(subject, cutters, out inside, out outside, Tolerance.Global);
         }
@@ -395,9 +454,16 @@ namespace GeometryHelper.Core
         /// <param name="outside">The portions of the line segment that fall outside the polygons.</param>
         /// <param name="tolerance">The tolerance value to use for calculations.</param>
         /// <returns>True if the line segment is successfully split; otherwise, false.</returns>
-        public static bool TrySplitBy(GeoLine2 subject, GeoPolygon2[] cutters, out GeoLine2[] inside, out GeoLine2[] outside, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoLine2 subject,
+            GeoPolygon2[] cutters,
+            out GeoLine2[] inside,
+            out GeoLine2[] outside,
+            Tolerance tolerance
+        )
         {
-            if (cutters == null) throw new ArgumentNullException(nameof(cutters));
+            if (cutters == null)
+                throw new ArgumentNullException(nameof(cutters));
 
             double[] cuts = ToCutDistances(subject, CollectCrossings(cutters, subject, tolerance), tolerance);
 
@@ -453,9 +519,15 @@ namespace GeometryHelper.Core
         /// <param name="pieces">The resulting pieces in order along the subject.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if at least one polyline crosses the subject; otherwise, false.</returns>
-        public static bool TrySplitBy(GeoLine2 subject, GeoPolyline2[] cutters, out GeoLine2[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoLine2 subject,
+            GeoPolyline2[] cutters,
+            out GeoLine2[] pieces,
+            Tolerance tolerance
+        )
         {
-            if (cutters == null) throw new ArgumentNullException(nameof(cutters));
+            if (cutters == null)
+                throw new ArgumentNullException(nameof(cutters));
 
             var edgeList = new List<GeoLine2>();
             foreach (GeoPolyline2 polyline in cutters)
@@ -496,9 +568,15 @@ namespace GeometryHelper.Core
         /// <param name="pieces">The pieces in order along the subject if split succeeds.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the polyline was split; otherwise, false.</returns>
-        public static bool TrySplitBy(GeoPolyline2 subject, GeoLine2 cutter, out GeoPolyline2[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline2 subject,
+            GeoLine2 cutter,
+            out GeoPolyline2[] pieces,
+            Tolerance tolerance
+        )
         {
-            if (subject == null) throw new ArgumentNullException(nameof(subject));
+            if (subject == null)
+                throw new ArgumentNullException(nameof(subject));
 
             GeoPoint2[] crossings = Intersection2.GetIntersections(subject, cutter, tolerance);
             double[] cuts = ToCutDistances(subject, crossings, tolerance);
@@ -529,10 +607,17 @@ namespace GeometryHelper.Core
         /// <param name="pieces">The resulting pieces in order along the subject.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the polyline was split; otherwise, false.</returns>
-        public static bool TrySplitBy(GeoPolyline2 subject, GeoPoint2[] points, out GeoPolyline2[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline2 subject,
+            GeoPoint2[] points,
+            out GeoPolyline2[] pieces,
+            Tolerance tolerance
+        )
         {
-            if (subject == null) throw new ArgumentNullException(nameof(subject));
-            if (points == null) throw new ArgumentNullException(nameof(points));
+            if (subject == null)
+                throw new ArgumentNullException(nameof(subject));
+            if (points == null)
+                throw new ArgumentNullException(nameof(points));
 
             double[] cuts = ToCutDistancesFromPoints(subject, points, tolerance);
 
@@ -566,10 +651,17 @@ namespace GeometryHelper.Core
         /// <param name="pieces">The resulting pieces in order along the subject.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the polyline was split; otherwise, false.</returns>
-        public static bool TrySplitBy(GeoPolyline2 subject, GeoLine2[] cutters, out GeoPolyline2[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline2 subject,
+            GeoLine2[] cutters,
+            out GeoPolyline2[] pieces,
+            Tolerance tolerance
+        )
         {
-            if (subject == null) throw new ArgumentNullException(nameof(subject));
-            if (cutters == null) throw new ArgumentNullException(nameof(cutters));
+            if (subject == null)
+                throw new ArgumentNullException(nameof(subject));
+            if (cutters == null)
+                throw new ArgumentNullException(nameof(cutters));
 
             var crossings = new List<GeoPoint2>();
             foreach (GeoLine2 cutter in cutters)
@@ -619,9 +711,15 @@ namespace GeometryHelper.Core
         /// <param name="pieces">The resulting pieces in order along the subject.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the polyline was split; otherwise, false.</returns>
-        public static bool TrySplitBy(GeoPolyline2 subject, GeoPolyline2[] cutters, out GeoPolyline2[] pieces, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline2 subject,
+            GeoPolyline2[] cutters,
+            out GeoPolyline2[] pieces,
+            Tolerance tolerance
+        )
         {
-            if (cutters == null) throw new ArgumentNullException(nameof(cutters));
+            if (cutters == null)
+                throw new ArgumentNullException(nameof(cutters));
 
             var edgeList = new List<GeoLine2>();
             foreach (GeoPolyline2 polyline in cutters)
@@ -647,7 +745,12 @@ namespace GeometryHelper.Core
         /// <param name="inside">The portions of the polyline that fall inside the polygons.</param>
         /// <param name="outside">The portions of the polyline that fall outside the polygons.</param>
         /// <returns>True if the polyline is successfully split; otherwise, false.</returns>
-        public static bool TrySplitBy(GeoPolyline2 subject, GeoPolygon2[] cutters, out GeoPolyline2[] inside, out GeoPolyline2[] outside)
+        public static bool TrySplitBy(
+            GeoPolyline2 subject,
+            GeoPolygon2[] cutters,
+            out GeoPolyline2[] inside,
+            out GeoPolyline2[] outside
+        )
         {
             return TrySplitBy(subject, cutters, out inside, out outside, Tolerance.Global);
         }
@@ -662,10 +765,18 @@ namespace GeometryHelper.Core
         /// <param name="outside">The portions of the polyline that fall outside the polygons.</param>
         /// <param name="tolerance">The tolerance value to use for calculations.</param>
         /// <returns>True if the polyline is successfully split; otherwise, false.</returns>
-        public static bool TrySplitBy(GeoPolyline2 subject, GeoPolygon2[] cutters, out GeoPolyline2[] inside, out GeoPolyline2[] outside, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline2 subject,
+            GeoPolygon2[] cutters,
+            out GeoPolyline2[] inside,
+            out GeoPolyline2[] outside,
+            Tolerance tolerance
+        )
         {
-            if (subject == null) throw new ArgumentNullException(nameof(subject));
-            if (cutters == null) throw new ArgumentNullException(nameof(cutters));
+            if (subject == null)
+                throw new ArgumentNullException(nameof(subject));
+            if (cutters == null)
+                throw new ArgumentNullException(nameof(cutters));
 
             double[] cuts = ToCutDistances(subject, CollectCrossings(cutters, subject, tolerance), tolerance);
 
@@ -716,7 +827,12 @@ namespace GeometryHelper.Core
         /// <param name="inside">The parts lying inside the polygon, in order along the subject.</param>
         /// <param name="outside">The parts lying outside the polygon, in order along the subject.</param>
         /// <returns>true if the polygon boundary crosses the subject; otherwise, false.</returns>
-        public static bool TrySplitBy(GeoLine2 subject, GeoPolygon2 cutter, out GeoLine2[] inside, out GeoLine2[] outside)
+        public static bool TrySplitBy(
+            GeoLine2 subject,
+            GeoPolygon2 cutter,
+            out GeoLine2[] inside,
+            out GeoLine2[] outside
+        )
         {
             return TrySplitBy(subject, cutter, out inside, out outside, Tolerance.Global);
         }
@@ -740,16 +856,26 @@ namespace GeometryHelper.Core
         /// <see cref="Containment2.Contains(GeoPolygon2, GeoPoint2, Tolerance)"/>, which treats the boundary
         /// as part of the polygon.
         /// </remarks>
-        public static bool TrySplitBy(GeoLine2 subject, GeoPolygon2 cutter, out GeoLine2[] inside, out GeoLine2[] outside, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoLine2 subject,
+            GeoPolygon2 cutter,
+            out GeoLine2[] inside,
+            out GeoLine2[] outside,
+            Tolerance tolerance
+        )
         {
-            if (cutter == null) throw new ArgumentNullException(nameof(cutter));
+            if (cutter == null)
+                throw new ArgumentNullException(nameof(cutter));
 
             GeoPoint2[] crossings = Intersection2.GetIntersections(cutter, subject, tolerance);
             double[] cuts = ToCutDistances(subject, crossings, tolerance);
             cuts = KeepCrossings(
-                subject.Length, cuts,
-                distance => Containment2.Contains(cutter, Parametrization2.GetPointAtDistance(subject, distance), tolerance),
-                out bool[] insideOfPiece);
+                subject.Length,
+                cuts,
+                distance =>
+                    Containment2.Contains(cutter, Parametrization2.GetPointAtDistance(subject, distance), tolerance),
+                out bool[] insideOfPiece
+            );
 
             GeoLine2[] pieces = SplitLineAt(subject, cuts);
 
@@ -780,7 +906,12 @@ namespace GeometryHelper.Core
         /// <param name="inside">The sub-polylines lying inside the polygon, in order along the subject.</param>
         /// <param name="outside">The sub-polylines lying outside the polygon, in order along the subject.</param>
         /// <returns>true if the polygon boundary crosses the subject; otherwise, false.</returns>
-        public static bool TrySplitBy(GeoPolyline2 subject, GeoPolygon2 cutter, out GeoPolyline2[] inside, out GeoPolyline2[] outside)
+        public static bool TrySplitBy(
+            GeoPolyline2 subject,
+            GeoPolygon2 cutter,
+            out GeoPolyline2[] inside,
+            out GeoPolyline2[] outside
+        )
         {
             return TrySplitBy(subject, cutter, out inside, out outside, Tolerance.Global);
         }
@@ -804,17 +935,28 @@ namespace GeometryHelper.Core
         /// <see cref="Containment2.Contains(GeoPolygon2, GeoPoint2, Tolerance)"/>.
         /// </para>
         /// </remarks>
-        public static bool TrySplitBy(GeoPolyline2 subject, GeoPolygon2 cutter, out GeoPolyline2[] inside, out GeoPolyline2[] outside, Tolerance tolerance)
+        public static bool TrySplitBy(
+            GeoPolyline2 subject,
+            GeoPolygon2 cutter,
+            out GeoPolyline2[] inside,
+            out GeoPolyline2[] outside,
+            Tolerance tolerance
+        )
         {
-            if (subject == null) throw new ArgumentNullException(nameof(subject));
-            if (cutter == null) throw new ArgumentNullException(nameof(cutter));
+            if (subject == null)
+                throw new ArgumentNullException(nameof(subject));
+            if (cutter == null)
+                throw new ArgumentNullException(nameof(cutter));
 
             GeoPoint2[] crossings = Intersection2.GetIntersections(subject, cutter, tolerance);
             double[] cuts = ToCutDistances(subject, crossings, tolerance);
             cuts = KeepCrossings(
-                subject.Length, cuts,
-                distance => Containment2.Contains(cutter, Parametrization2.GetPointAtDistance(subject, distance), tolerance),
-                out bool[] insideOfPiece);
+                subject.Length,
+                cuts,
+                distance =>
+                    Containment2.Contains(cutter, Parametrization2.GetPointAtDistance(subject, distance), tolerance),
+                out bool[] insideOfPiece
+            );
 
             GeoPolyline2[] pieces = SplitPolylineAt(subject, cuts, tolerance);
 
@@ -895,9 +1037,14 @@ namespace GeometryHelper.Core
         /// The pieces in order along the polyline; a single element holding the polyline itself when no
         /// distance is usable. N usable distances yield N + 1 pieces.
         /// </returns>
-        public static GeoPolyline2[] SplitAtDistances(GeoPolyline2 polyline, IEnumerable<double> distances, Tolerance tolerance)
+        public static GeoPolyline2[] SplitAtDistances(
+            GeoPolyline2 polyline,
+            IEnumerable<double> distances,
+            Tolerance tolerance
+        )
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             double[] cuts = NormalizeCuts(polyline.Length, distances, tolerance);
             return SplitPolylineAt(polyline, cuts, tolerance);

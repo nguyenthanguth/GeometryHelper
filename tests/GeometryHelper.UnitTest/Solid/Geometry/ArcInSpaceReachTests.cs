@@ -20,10 +20,12 @@ namespace GeometryHelper.UnitTest.Solid
         /// A quarter turn of a hundred radius sweeping the first quadrant of z = 0, built from three points it
         /// passes through so that nothing here depends on where the frame puts angle nought.
         /// </summary>
-        private static GeoArc3 Quarter() => GeoArc3.FromThreePoints(
-            new GeoPoint3(100, 0, 0),
-            new GeoPoint3(100 * Math.Sqrt(0.5), 100 * Math.Sqrt(0.5), 0),
-            new GeoPoint3(0, 100, 0));
+        private static GeoArc3 Quarter() =>
+            GeoArc3.FromThreePoints(
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100 * Math.Sqrt(0.5), 100 * Math.Sqrt(0.5), 0),
+                new GeoPoint3(0, 100, 0)
+            );
 
         private static GeoCircle3 Ring() => new GeoCircle3(GeoPoint3.Origin, GeoVector3.ZAxis, 100.0);
 
@@ -130,7 +132,15 @@ namespace GeometryHelper.UnitTest.Solid
             GeoCircle3 ring = Ring();
             var own = new GeoPlane3(GeoPoint3.Origin, GeoVector3.ZAxis);
 
-            foreach (bool touching in new[] { arc.CollidesWith(own), own.CollidesWith(arc), ring.CollidesWith(own), own.CollidesWith(ring) })
+            foreach (
+                bool touching in new[]
+                {
+                    arc.CollidesWith(own),
+                    own.CollidesWith(arc),
+                    ring.CollidesWith(own),
+                    own.CollidesWith(ring),
+                }
+            )
             {
                 Assert.True(touching);
             }
@@ -169,12 +179,14 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(
                 arc.TryIntersectWith(plane, out GeoPoint3[] a),
-                arc.TryIntersectWith(plane, out GeoPoint3[] b, global));
+                arc.TryIntersectWith(plane, out GeoPoint3[] b, global)
+            );
             Assert.Equal(a.Length, b.Length);
 
             Assert.Equal(
                 plane.TryIntersectWith(arc, out GeoPoint3[] c),
-                plane.TryIntersectWith(arc, out GeoPoint3[] d, global));
+                plane.TryIntersectWith(arc, out GeoPoint3[] d, global)
+            );
             Assert.Equal(c.Length, d.Length);
         }
     }

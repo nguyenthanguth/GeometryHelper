@@ -20,10 +20,16 @@ namespace GeometryHelper.UnitTest.Dxf
         [Theory]
         [InlineData("R2000")]
         [InlineData("R2018")]
-        public void ACopyForAnotherDrawing_KeepsTheValuesItsBlockCellGives_ThePointersTakenToTheCopiedAttributeDefinitions(string version)
+        public void ACopyForAnotherDrawing_KeepsTheValuesItsBlockCellGives_ThePointersTakenToTheCopiedAttributeDefinitions(
+            string version
+        )
         {
-            DxfDatabase source = DxfDatabase.Parse(version == "R2000" ? DxfDimensionDrawings.R2000 : DxfDimensionDrawings.R2018);
-            DxfDatabase other = DxfDatabase.Parse(version == "R2000" ? DxfObjectsEzdxfDrawings.R2000 : DxfObjectsEzdxfDrawings.R2018);
+            DxfDatabase source = DxfDatabase.Parse(
+                version == "R2000" ? DxfDimensionDrawings.R2000 : DxfDimensionDrawings.R2018
+            );
+            DxfDatabase other = DxfDatabase.Parse(
+                version == "R2000" ? DxfObjectsEzdxfDrawings.R2000 : DxfObjectsEzdxfDrawings.R2018
+            );
             Assert.False(other.BlockTable.Has("BOLT"));
             DxfEntity copy = Table(source).Clone();
 
@@ -36,7 +42,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Contains("179\n1\n331\n" + size.Handle + "\n300\nM12\n", record, StringComparison.Ordinal);
             DxfDatabase again = DxfDatabase.Parse(other.ToText());
             DxfTable read = again.ModelSpace.OfType<DxfTable>().Single();
-            Assert.Equal("M12", read.GetBlockAttributeValue(2, 1, again.BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single()));
+            Assert.Equal(
+                "M12",
+                read.GetBlockAttributeValue(2, 1, again.BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single())
+            );
         }
 
         [Fact]
@@ -128,8 +137,25 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfTable table = Table(db);
 
-            Refused<ArgumentException>(() => table.TransformBy(GeoTransform3.Scaling(2.0, 1.0, 1.0)), "scaled alike in every direction");
-            Refused<ArgumentException>(() => table.TransformBy(new GeoTransform3(new double[,] { { 1, 0.5, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } })), "scaled alike in every direction");
+            Refused<ArgumentException>(
+                () => table.TransformBy(GeoTransform3.Scaling(2.0, 1.0, 1.0)),
+                "scaled alike in every direction"
+            );
+            Refused<ArgumentException>(
+                () =>
+                    table.TransformBy(
+                        new GeoTransform3(
+                            new double[,]
+                            {
+                                { 1, 0.5, 0, 0 },
+                                { 0, 1, 0, 0 },
+                                { 0, 0, 1, 0 },
+                                { 0, 0, 0, 1 },
+                            }
+                        )
+                    ),
+                "scaled alike in every direction"
+            );
             Assert.Equal(text, db.ToText());
         }
 
@@ -140,7 +166,10 @@ namespace GeometryHelper.UnitTest.Dxf
             var block = new DxfBlockTableRecord { Name = "TB" };
             db.BlockTable.Add(block);
             block.AppendEntity(Table(db).Clone());
-            var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), block) { ScaleFactors = new GeoVector3(2.0, 2.0, 2.0) };
+            var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), block)
+            {
+                ScaleFactors = new GeoVector3(2.0, 2.0, 2.0),
+            };
             db.ModelSpace.AppendEntity(insert);
 
             DxfTable part = insert.Explode().OfType<DxfTable>().Single();
@@ -155,7 +184,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Empty(insert.Explode().OfType<DxfTable>());
         }
 
-        private static void Refused<T>(Action action, string part) where T : Exception
+        private static void Refused<T>(Action action, string part)
+            where T : Exception
         {
             T refused = Assert.Throws<T>(action);
             Assert.Contains(part, refused.Message, StringComparison.Ordinal);

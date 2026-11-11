@@ -17,9 +17,32 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static partial class CadCommands
     {
-        private static readonly string[] XrefOptions = { "?", "Bind", "Detach", "Path", "pathType", "Unload", "Reload", "Overlay", "Attach" };
+        private static readonly string[] XrefOptions =
+        {
+            "?",
+            "Bind",
+            "Detach",
+            "Path",
+            "pathType",
+            "Unload",
+            "Reload",
+            "Overlay",
+            "Attach",
+        };
         private static readonly string[] ImageOptions = { "?", "Detach", "Path", "Reload", "Unload", "Attach" };
-        private static readonly string[] XrefPointKeywords = { "Scale", "X", "Y", "Z", "Rotate", "PScale", "PX", "PY", "PZ", "PRotate" };
+        private static readonly string[] XrefPointKeywords =
+        {
+            "Scale",
+            "X",
+            "Y",
+            "Z",
+            "Rotate",
+            "PScale",
+            "PX",
+            "PY",
+            "PZ",
+            "PRotate",
+        };
 
         internal static void AddXrefsTo(CadCommandRegistry registry)
         {
@@ -64,9 +87,11 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                DxfBlockTableRecord block = c.Document.FindEntity(c.Input.Handles[0]) is DxfBlockReference reference && c.Database.BlockTable.Has(reference.Name)
-                    ? c.Database.BlockTable[reference.Name]
-                    : null;
+                DxfBlockTableRecord block =
+                    c.Document.FindEntity(c.Input.Handles[0]) is DxfBlockReference reference
+                    && c.Database.BlockTable.Has(reference.Name)
+                        ? c.Database.BlockTable[reference.Name]
+                        : null;
 
                 if (block == null || !block.IsFromExternalReference)
                 {
@@ -112,7 +137,9 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            foreach (CadPrompt prompt in kind == CadAttachKind.Xref ? PlaceXref(c, request) : PlaceImage(c, request, false))
+            foreach (
+                CadPrompt prompt in kind == CadAttachKind.Xref ? PlaceXref(c, request) : PlaceImage(c, request, false)
+            )
             {
                 yield return prompt;
             }
@@ -150,9 +177,16 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            string ask = option == "?" ? "Enter xref name(s) to list" : option == "Path" ? "Edit xref name(s) to edit path" : option == "pathType" ? "Enter xref name(s) to edit path type" : "Enter xref name(s) to " + option.ToLowerInvariant();
+            string ask =
+                option == "?" ? "Enter xref name(s) to list"
+                : option == "Path" ? "Edit xref name(s) to edit path"
+                : option == "pathType" ? "Enter xref name(s) to edit path type"
+                : "Enter xref name(s) to " + option.ToLowerInvariant();
             yield return CadPrompt.ForString(ask, option == "?" ? "*" : null);
-            string names = c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim() : option == "?" ? "*" : null;
+            string names =
+                c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim()
+                : option == "?" ? "*"
+                : null;
 
             if (names == null)
             {
@@ -180,7 +214,19 @@ namespace GeometryHelper.Dxf.Viewer
                         if (CadXrefLayers.Unresolve(c.Database, unloaded, false))
                         {
                             c.OpenUndoStep();
-                            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Unload xref", null, unloaded) }, s => CadXrefLayers.Unresolve(s.Database, unloaded, true));
+                            c.Apply(
+                                new[]
+                                {
+                                    new CadEditRecord(
+                                        CadEditRecordKind.TableChanged,
+                                        null,
+                                        "Unload xref",
+                                        null,
+                                        unloaded
+                                    ),
+                                },
+                                s => CadXrefLayers.Unresolve(s.Database, unloaded, true)
+                            );
                         }
 
                         c.Write("\"" + block.Name + "\" is unloaded.");
@@ -226,17 +272,23 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfBlockTableRecord block in database.BlockTable)
             {
-                if (block.IsFromExternalReference && !block.IsLayout && patterns.Any(p => CadWildcard.IsMatch(block.Name, p, true)))
+                if (
+                    block.IsFromExternalReference
+                    && !block.IsLayout
+                    && patterns.Any(p => CadWildcard.IsMatch(block.Name, p, true))
+                )
                 {
                     found.Add(block);
                 }
             }
 
-            found.Sort((a, b) =>
-            {
-                int byName = string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
-                return byName != 0 ? byName : string.CompareOrdinal(a.Name, b.Name);
-            });
+            found.Sort(
+                (a, b) =>
+                {
+                    int byName = string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+                    return byName != 0 ? byName : string.CompareOrdinal(a.Name, b.Name);
+                }
+            );
             return found;
         }
 
@@ -248,7 +300,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfBlockTableRecord block in blocks)
             {
-                c.Write(("\"" + block.Name + "\"").PadRight(34) + (block.IsFromOverlayReference ? "Overlay" : "Attach").PadRight(13) + block.PathName);
+                c.Write(
+                    ("\"" + block.Name + "\"").PadRight(34)
+                        + (block.IsFromOverlayReference ? "Overlay" : "Attach").PadRight(13)
+                        + block.PathName
+                );
             }
 
             c.Write("Total Xref(s): " + blocks.Count.ToString(CultureInfo.InvariantCulture));
@@ -279,7 +335,9 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            planned.Add(new CadEditRecord(CadEditRecordKind.TableChanged, null, "Detach xref", string.Join(",", names), null));
+            planned.Add(
+                new CadEditRecord(CadEditRecordKind.TableChanged, null, "Detach xref", string.Join(",", names), null)
+            );
             CadEditResult result = c.Apply(planned, s =>
             {
                 foreach (string name in names)
@@ -322,7 +380,10 @@ namespace GeometryHelper.Dxf.Viewer
             if (referenced != null && CadXrefLayers.Bring(c.Database, name, referenced, false))
             {
                 c.OpenUndoStep();
-                c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Reload xref", null, name) }, s => CadXrefLayers.Bring(s.Database, name, referenced, true));
+                c.Apply(
+                    new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Reload xref", null, name) },
+                    s => CadXrefLayers.Bring(s.Database, name, referenced, true)
+                );
             }
         }
 
@@ -359,7 +420,9 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 string old = block.PathName;
-                c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Xref path", old, typed) }, s => s.Database.BlockTable[name].PathName = typed);
+                c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Xref path", old, typed) }, s =>
+                    s.Database.BlockTable[name].PathName = typed
+                );
                 yield break;
             }
         }
@@ -386,13 +449,25 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (paths.Count > 0)
             {
-                CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Xref path type", null, type.ToString()) }, s =>
-                {
-                    foreach (KeyValuePair<string, string> pair in paths)
+                CadEditResult result = c.Apply(
+                    new[]
                     {
-                        s.Database.BlockTable[pair.Key].PathName = pair.Value;
+                        new CadEditRecord(
+                            CadEditRecordKind.TableChanged,
+                            null,
+                            "Xref path type",
+                            null,
+                            type.ToString()
+                        ),
+                    },
+                    s =>
+                    {
+                        foreach (KeyValuePair<string, string> pair in paths)
+                        {
+                            s.Database.BlockTable[pair.Key].PathName = pair.Value;
+                        }
                     }
-                });
+                );
 
                 if (result.Succeeded)
                 {
@@ -409,7 +484,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>-XREF Attach and Overlay, and XATTACH with no window: the file's name typed, then every placing asked.</summary>
         private static IEnumerable<CadPrompt> AttachTyped(CadCommandContext c, bool overlay)
         {
-            yield return CadPrompt.ForString(overlay ? "Enter name of file to overlay" : "Enter name of file to attach");
+            yield return CadPrompt.ForString(
+                overlay ? "Enter name of file to overlay" : "Enter name of file to attach"
+            );
             string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().Trim('"') : string.Empty;
 
             if (typed.Length == 0)
@@ -417,7 +494,13 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            var request = new CadAttachRequest(c.Document, CadAttachKind.Xref) { IsOverlay = overlay, SpecifyScaleOnScreen = true, SpecifyRotationOnScreen = true, UniformScale = false };
+            var request = new CadAttachRequest(c.Document, CadAttachKind.Xref)
+            {
+                IsOverlay = overlay,
+                SpecifyScaleOnScreen = true,
+                SpecifyRotationOnScreen = true,
+                UniformScale = false,
+            };
             string name = NameBefore(ref typed);
             request.FileName = FileOf(c, typed, ".dxf");
 
@@ -472,7 +555,11 @@ namespace GeometryHelper.Dxf.Viewer
                 string folder = c.Document.DrawingFolder;
                 return folder == null ? Path.GetFullPath(typed) : Path.Combine(folder, typed);
             }
-            catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException || exception is PathTooLongException)
+            catch (Exception exception)
+                when (exception is ArgumentException
+                    || exception is NotSupportedException
+                    || exception is PathTooLongException
+                )
             {
                 return typed;
             }
@@ -504,11 +591,21 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (!existing.IsFromExternalReference)
                 {
-                    c.Write("\"" + name + "\" is the name of a block of the drawing: the external reference is not attached.");
+                    c.Write(
+                        "\""
+                            + name
+                            + "\" is the name of a block of the drawing: the external reference is not attached."
+                    );
                     yield break;
                 }
 
-                if (!string.Equals(c.Document.Xrefs.Locate(existing.PathName), request.FileName, StringComparison.OrdinalIgnoreCase))
+                if (
+                    !string.Equals(
+                        c.Document.Xrefs.Locate(existing.PathName),
+                        request.FileName,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
                 {
                     c.Write("Xref \"" + name + "\" names another file: give this one a name of its own, as name=path.");
                     yield break;
@@ -523,9 +620,23 @@ namespace GeometryHelper.Dxf.Viewer
                 c.Write("\"" + name + "\" loaded.");
             }
 
-            var placing = new XrefPlacing { Point = request.Point, Scale = request.Scale, Rotation = request.Rotation };
+            var placing = new XrefPlacing
+            {
+                Point = request.Point,
+                Scale = request.Scale,
+                Rotation = request.Rotation,
+            };
 
-            foreach (CadPrompt prompt in AskPlacing(c, placing, request.SpecifyPointOnScreen, request.SpecifyScaleOnScreen, request.SpecifyRotationOnScreen, request.UniformScale))
+            foreach (
+                CadPrompt prompt in AskPlacing(
+                    c,
+                    placing,
+                    request.SpecifyPointOnScreen,
+                    request.SpecifyScaleOnScreen,
+                    request.SpecifyRotationOnScreen,
+                    request.UniformScale
+                )
+            )
             {
                 yield return prompt;
             }
@@ -543,21 +654,36 @@ namespace GeometryHelper.Dxf.Viewer
             bool overlay = request.IsOverlay;
             CadSpace space = c.Space;
             DxfDatabase referenced = request.FileName == null ? null : c.Document.Xrefs.Read(request.FileName).Database;
-            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, overlay ? "Overlay xref" : "Attach xref", null, name) }, s =>
-            {
-                DxfBlockTableRecord block = s.Database.BlockTable.Has(name) ? s.Database.BlockTable[name] : overlay ? s.Database.OverlayXref(saved, name) : s.Database.AttachXref(saved, name);
-
-                // The layers and linetypes of the drawing attached, written as AutoCAD 2021 writes them.
-                if (referenced != null)
+            c.Apply(
+                new[]
                 {
-                    CadXrefLayers.Bring(s.Database, name, referenced, true);
-                }
+                    new CadEditRecord(
+                        CadEditRecordKind.TableChanged,
+                        null,
+                        overlay ? "Overlay xref" : "Attach xref",
+                        null,
+                        name
+                    ),
+                },
+                s =>
+                {
+                    DxfBlockTableRecord block =
+                        s.Database.BlockTable.Has(name) ? s.Database.BlockTable[name]
+                        : overlay ? s.Database.OverlayXref(saved, name)
+                        : s.Database.AttachXref(saved, name);
 
-                var insert = new DxfBlockReference(point, block);
-                s.Append(space, Current(c, insert));
-                insert.ScaleFactors = new GeoVector3(scale.X * factor, scale.Y * factor, scale.Z * factor);
-                insert.Rotation = angle;
-            });
+                    // The layers and linetypes of the drawing attached, written as AutoCAD 2021 writes them.
+                    if (referenced != null)
+                    {
+                        CadXrefLayers.Bring(s.Database, name, referenced, true);
+                    }
+
+                    var insert = new DxfBlockReference(point, block);
+                    s.Append(space, Current(c, insert));
+                    insert.ScaleFactors = new GeoVector3(scale.X * factor, scale.Y * factor, scale.Z * factor);
+                    insert.Rotation = angle;
+                }
+            );
         }
 
         /// <summary>Where an external reference is placed, given or asked, and whether it was.</summary>
@@ -579,7 +705,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// "Specify scale factor for XYZ axes &lt;1&gt;:" where it is scaled alike along every axis, and "Specify rotation angle
         /// &lt;0&gt;:".
         /// </summary>
-        private static IEnumerable<CadPrompt> AskPlacing(CadCommandContext c, XrefPlacing placing, bool askPoint, bool askScale, bool askRotation, bool uniform)
+        private static IEnumerable<CadPrompt> AskPlacing(
+            CadCommandContext c,
+            XrefPlacing placing,
+            bool askPoint,
+            bool askScale,
+            bool askRotation,
+            bool uniform
+        )
         {
             bool scaleGiven = false;
             bool rotationGiven = false;
@@ -599,7 +732,10 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                string option = c.Input.Text.StartsWith("P", StringComparison.Ordinal) && c.Input.Text.Length > 1 ? c.Input.Text.Substring(1) : c.Input.Text;
+                string option =
+                    c.Input.Text.StartsWith("P", StringComparison.Ordinal) && c.Input.Text.Length > 1
+                        ? c.Input.Text.Substring(1)
+                        : c.Input.Text;
 
                 if (option == "Rotate")
                 {
@@ -615,13 +751,22 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 string axis = option == "Scale" ? null : option;
-                yield return CadPrompt.ForDistance(axis == null ? "Specify scale factor for XYZ axes" : "Specify " + axis + " scale factor", null, null, Length(1.0));
+                yield return CadPrompt.ForDistance(
+                    axis == null ? "Specify scale factor for XYZ axes" : "Specify " + axis + " scale factor",
+                    null,
+                    null,
+                    Length(1.0)
+                );
 
                 if (c.Input.Kind == CadInputKind.Number && c.Input.Number != 0.0)
                 {
                     double f = c.Input.Number;
                     GeoVector3 now = placing.Scale;
-                    placing.Scale = axis == null ? new GeoVector3(f, f, f) : axis == "X" ? new GeoVector3(f, now.Y, now.Z) : axis == "Y" ? new GeoVector3(now.X, f, now.Z) : new GeoVector3(now.X, now.Y, f);
+                    placing.Scale =
+                        axis == null ? new GeoVector3(f, f, f)
+                        : axis == "X" ? new GeoVector3(f, now.Y, now.Z)
+                        : axis == "Y" ? new GeoVector3(now.X, f, now.Z)
+                        : new GeoVector3(now.X, now.Y, f);
                     scaleGiven = true;
                 }
             }
@@ -637,7 +782,13 @@ namespace GeometryHelper.Dxf.Viewer
                 else
                 {
                     var at = new GeoPoint2(placing.Point.X, placing.Point.Y);
-                    yield return CadPrompt.ForPoint("Enter X scale factor, specify opposite corner,", null, new[] { "Corner", "XYZ" }, "1", true);
+                    yield return CadPrompt.ForPoint(
+                        "Enter X scale factor, specify opposite corner,",
+                        null,
+                        new[] { "Corner", "XYZ" },
+                        "1",
+                        true
+                    );
                     double? x = null;
                     double? y = null;
                     double? z = null;
@@ -664,7 +815,17 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else if (x == null && c.Input.Kind == CadInputKind.Text)
                     {
-                        if (!double.TryParse(c.Input.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double typed) || typed == 0.0 || double.IsInfinity(typed) || double.IsNaN(typed))
+                        if (
+                            !double.TryParse(
+                                c.Input.Text,
+                                NumberStyles.Float,
+                                CultureInfo.InvariantCulture,
+                                out double typed
+                            )
+                            || typed == 0.0
+                            || double.IsInfinity(typed)
+                            || double.IsNaN(typed)
+                        )
                         {
                             c.Write("Requires a nonzero number, a point or an option keyword.");
                             yield break;
@@ -693,7 +854,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (askRotation && !rotationGiven)
             {
-                yield return CadPrompt.ForAngle("Specify rotation angle", new GeoPoint2(placing.Point.X, placing.Point.Y), null, Number(0.0)).Turning();
+                yield return CadPrompt
+                    .ForAngle(
+                        "Specify rotation angle",
+                        new GeoPoint2(placing.Point.X, placing.Point.Y),
+                        null,
+                        Number(0.0)
+                    )
+                    .Turning();
 
                 if (c.Input.Kind == CadInputKind.Number)
                 {
@@ -729,9 +897,15 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            string ask = option == "?" ? "Images to list" : option == "Path" ? "Enter list of images for path modification" : "Enter list of images to " + option.ToLowerInvariant();
+            string ask =
+                option == "?" ? "Images to list"
+                : option == "Path" ? "Enter list of images for path modification"
+                : "Enter list of images to " + option.ToLowerInvariant();
             yield return CadPrompt.ForString(ask, option == "?" ? "*" : null);
-            string names = c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim() : option == "?" ? "*" : null;
+            string names =
+                c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim()
+                : option == "?" ? "*"
+                : null;
 
             if (names == null)
             {
@@ -763,7 +937,9 @@ namespace GeometryHelper.Dxf.Viewer
                         c.Document.Xrefs.SetImageLoaded(image.Key, true);
                         string found = c.Document.Xrefs.Locate(image.Value.SourceFileName);
                         c.Write("Reload image " + image.Key + ": " + (found ?? image.Value.SourceFileName));
-                        c.Write(found == null ? image.Key + ": Image file not found." : image.Key + " loaded and relinked.");
+                        c.Write(
+                            found == null ? image.Key + ": Image file not found." : image.Key + " loaded and relinked."
+                        );
                     }
 
                     Redisplay(c, images.Count);
@@ -776,11 +952,27 @@ namespace GeometryHelper.Dxf.Viewer
                         yield return CadPrompt.ForString("Enter New path");
                         string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().Trim('"') : string.Empty;
 
-                        if (typed.Length > 0 && !string.Equals(typed, image.Value.SourceFileName, StringComparison.Ordinal))
+                        if (
+                            typed.Length > 0
+                            && !string.Equals(typed, image.Value.SourceFileName, StringComparison.Ordinal)
+                        )
                         {
                             string key = image.Key;
-                            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Image path", image.Value.SourceFileName, typed) }, s =>
-                                ((DxfRasterImageDef)CadXrefManager.Images(s.Database).GetAt(key)).SourceFileName = typed);
+                            c.Apply(
+                                new[]
+                                {
+                                    new CadEditRecord(
+                                        CadEditRecordKind.TableChanged,
+                                        null,
+                                        "Image path",
+                                        image.Value.SourceFileName,
+                                        typed
+                                    ),
+                                },
+                                s =>
+                                    ((DxfRasterImageDef)CadXrefManager.Images(s.Database).GetAt(key)).SourceFileName =
+                                        typed
+                            );
                         }
                     }
 
@@ -799,18 +991,23 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 foreach (DxfDBDictionaryEntry entry in dictionary)
                 {
-                    if (entry.Value is DxfRasterImageDef definition && patterns.Any(p => CadWildcard.IsMatch(entry.Key, p, true)))
+                    if (
+                        entry.Value is DxfRasterImageDef definition
+                        && patterns.Any(p => CadWildcard.IsMatch(entry.Key, p, true))
+                    )
                     {
                         found.Add(new KeyValuePair<string, DxfRasterImageDef>(entry.Key, definition));
                     }
                 }
             }
 
-            found.Sort((a, b) =>
-            {
-                int byName = string.Compare(a.Key, b.Key, StringComparison.OrdinalIgnoreCase);
-                return byName != 0 ? byName : string.CompareOrdinal(a.Key, b.Key);
-            });
+            found.Sort(
+                (a, b) =>
+                {
+                    int byName = string.Compare(a.Key, b.Key, StringComparison.OrdinalIgnoreCase);
+                    return byName != 0 ? byName : string.CompareOrdinal(a.Key, b.Key);
+                }
+            );
             return found;
         }
 
@@ -825,7 +1022,12 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 int count = image.Value.GetEntityCount(out _);
                 instances += count;
-                c.Write(image.Key.PadRight(33) + count.ToString(CultureInfo.InvariantCulture).PadLeft(9) + "  " + image.Value.SourceFileName);
+                c.Write(
+                    image.Key.PadRight(33)
+                        + count.ToString(CultureInfo.InvariantCulture).PadLeft(9)
+                        + "  "
+                        + image.Value.SourceFileName
+                );
             }
 
             c.Write("Total image definitions: " + images.Count.ToString(CultureInfo.InvariantCulture));
@@ -847,7 +1049,12 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 foreach (DxfEntity entity in space.Block)
                 {
-                    if (entity is DxfRasterImage image && !(entity is DxfWipeout) && image.ImageDef != null && handles.Contains(image.ImageDef.Handle))
+                    if (
+                        entity is DxfRasterImage image
+                        && !(entity is DxfWipeout)
+                        && image.ImageDef != null
+                        && handles.Contains(image.ImageDef.Handle)
+                    )
                     {
                         planned.Add(new CadEditRecord(CadEditRecordKind.Erased, entity.Handle));
                     }
@@ -855,7 +1062,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             var names = images.Select(i => i.Key).ToList();
-            planned.Add(new CadEditRecord(CadEditRecordKind.TableChanged, null, "Detach image", string.Join(",", names), null));
+            planned.Add(
+                new CadEditRecord(CadEditRecordKind.TableChanged, null, "Detach image", string.Join(",", names), null)
+            );
             c.Apply(planned, s =>
             {
                 DxfDBDictionary dictionary = CadXrefManager.Images(s.Database);
@@ -878,7 +1087,11 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            var request = new CadAttachRequest(c.Document, CadAttachKind.Image) { SpecifyScaleOnScreen = true, SpecifyRotationOnScreen = true };
+            var request = new CadAttachRequest(c.Document, CadAttachKind.Image)
+            {
+                SpecifyScaleOnScreen = true,
+                SpecifyRotationOnScreen = true,
+            };
             string name = NameBefore(ref typed);
             request.FileName = FileOf(c, typed, ".png");
 
@@ -914,9 +1127,18 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 var existing = images.GetAt(name) as DxfRasterImageDef;
 
-                if (existing == null || !string.Equals(c.Document.Xrefs.Locate(existing.SourceFileName), request.FileName, StringComparison.OrdinalIgnoreCase))
+                if (
+                    existing == null
+                    || !string.Equals(
+                        c.Document.Xrefs.Locate(existing.SourceFileName),
+                        request.FileName,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
                 {
-                    c.Write("Warning: The image name " + name + " is already in use. Use the syntax <imagename>=<filename>.");
+                    c.Write(
+                        "Warning: The image name " + name + " is already in use. Use the syntax <imagename>=<filename>."
+                    );
                     yield break;
                 }
             }
@@ -941,7 +1163,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (request.SpecifyScaleOnScreen)
             {
-                c.Write("Base image size: Width: " + Plain(request.BaseWidth) + ", Height: " + Plain(request.BaseHeight) + ", " + UnitName(c.Database.Insunits));
+                c.Write(
+                    "Base image size: Width: "
+                        + Plain(request.BaseWidth)
+                        + ", Height: "
+                        + Plain(request.BaseHeight)
+                        + ", "
+                        + UnitName(c.Database.Insunits)
+                );
                 yield return CadPrompt.ForDistance("Specify scale factor", new GeoPoint2(point.X, point.Y), null, "1");
 
                 if (c.Input.Kind == CadInputKind.Number && c.Input.Number > 0.0)
@@ -952,7 +1181,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (request.SpecifyRotationOnScreen)
             {
-                yield return CadPrompt.ForAngle("Specify rotation angle", new GeoPoint2(point.X, point.Y), null, Number(0.0)).Turning();
+                yield return CadPrompt
+                    .ForAngle("Specify rotation angle", new GeoPoint2(point.X, point.Y), null, Number(0.0))
+                    .Turning();
 
                 if (c.Input.Kind == CadInputKind.Number)
                 {
@@ -970,7 +1201,8 @@ namespace GeometryHelper.Dxf.Viewer
             CadSpace space = c.Space;
             c.Apply(null, s =>
             {
-                DxfDBDictionary dictionary = CadXrefManager.Images(s.Database) ?? DxfRasterImageDef.CreateImageDictionary(s.Database);
+                DxfDBDictionary dictionary = CadXrefManager.Images(s.Database)
+                    ?? DxfRasterImageDef.CreateImageDictionary(s.Database);
                 DxfRasterImageDef definition;
 
                 if (dictionary.Contains(name))
@@ -1014,7 +1246,11 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForKeyword("Enter image clipping option", new[] { "ON", "OFF", "Delete", "New boundary" }, "New");
+            yield return CadPrompt.ForKeyword(
+                "Enter image clipping option",
+                new[] { "ON", "OFF", "Delete", "New boundary" },
+                "New"
+            );
 
             if (c.Input.Kind != CadInputKind.Keyword)
             {
@@ -1026,13 +1262,37 @@ namespace GeometryHelper.Dxf.Viewer
             if (option == "ON" || option == "OFF")
             {
                 bool on = option == "ON";
-                c.Apply(new[] { new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "Clipping", null, on ? "On" : "Off") }, s => ((DxfRasterImage)s.Document.FindEntity(handle)).IsClipped = on);
+                c.Apply(
+                    new[]
+                    {
+                        new CadEditRecord(
+                            CadEditRecordKind.PropertyChanged,
+                            handle,
+                            "Clipping",
+                            null,
+                            on ? "On" : "Off"
+                        ),
+                    },
+                    s => ((DxfRasterImage)s.Document.FindEntity(handle)).IsClipped = on
+                );
                 yield break;
             }
 
             if (option == "Delete")
             {
-                c.Apply(new[] { new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "Clip boundary", null, "Whole image") }, s => ((DxfRasterImage)s.Document.FindEntity(handle)).SetClipBoundaryToWholeImage());
+                c.Apply(
+                    new[]
+                    {
+                        new CadEditRecord(
+                            CadEditRecordKind.PropertyChanged,
+                            handle,
+                            "Clip boundary",
+                            null,
+                            "Whole image"
+                        ),
+                    },
+                    s => ((DxfRasterImage)s.Document.FindEntity(handle)).SetClipBoundaryToWholeImage()
+                );
                 yield break;
             }
 
@@ -1052,8 +1312,16 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (corners == null)
             {
-                c.Write(inverted ? "Inside mode - Objects inside boundary will be hidden." : "Outside mode - Objects outside boundary will be hidden.");
-                yield return CadPrompt.ForKeyword("Specify clipping boundary or select invert option", new[] { "Select polyline", "Polygonal", "Rectangular", "Invert clip" }, "Rectangular");
+                c.Write(
+                    inverted
+                        ? "Inside mode - Objects inside boundary will be hidden."
+                        : "Outside mode - Objects outside boundary will be hidden."
+                );
+                yield return CadPrompt.ForKeyword(
+                    "Specify clipping boundary or select invert option",
+                    new[] { "Select polyline", "Polygonal", "Rectangular", "Invert clip" },
+                    "Rectangular"
+                );
 
                 if (c.Input.Kind != CadInputKind.Keyword)
                 {
@@ -1084,7 +1352,14 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     GeoPoint2 second = c.Input.Point;
-                    corners = new List<GeoPoint2> { first, new GeoPoint2(first.X, second.Y), second, new GeoPoint2(second.X, first.Y), first };
+                    corners = new List<GeoPoint2>
+                    {
+                        first,
+                        new GeoPoint2(first.X, second.Y),
+                        second,
+                        new GeoPoint2(second.X, first.Y),
+                        first,
+                    };
                     continue;
                 }
 
@@ -1102,7 +1377,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                     while (true)
                     {
-                        yield return CadPrompt.ForPoint("Specify next point", points[points.Count - 1], points.Count >= 3 ? new[] { "Close", "Undo" } : new[] { "Undo" });
+                        yield return CadPrompt.ForPoint(
+                            "Specify next point",
+                            points[points.Count - 1],
+                            points.Count >= 3 ? new[] { "Close", "Undo" } : new[] { "Undo" }
+                        );
 
                         if (c.Input.IsPoint)
                         {
@@ -1136,7 +1415,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                 yield return CadPrompt.ForEntity("Select polyline");
 
-                if (c.Input.Kind != CadInputKind.Selection || !(c.Document.FindEntity(c.Input.Handles[0]) is DxfPolyline outline) || !outline.Closed || HasArcs(outline))
+                if (
+                    c.Input.Kind != CadInputKind.Selection
+                    || !(c.Document.FindEntity(c.Input.Handles[0]) is DxfPolyline outline)
+                    || !outline.Closed
+                    || HasArcs(outline)
+                )
                 {
                     c.Write("The boundary is a closed polyline of straight segments.");
                     yield break;
@@ -1164,27 +1448,39 @@ namespace GeometryHelper.Dxf.Viewer
             DxfClipBoundaryType kind = type;
             bool invert = inverted;
             Tolerance tolerance = c.Session.Tolerance;
-            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "Clip boundary", null, kind == DxfClipBoundaryType.Rectangle ? "Rectangular" : "Polygonal") }, s =>
-            {
-                var image = (DxfRasterImage)s.Document.FindEntity(handle);
-                GeoTransform3 toPixels = image.PixelToModelTransform.Inverse(tolerance);
-                var pixels = new List<GeoPoint2>();
-
-                foreach (GeoPoint2 corner in world)
+            c.Apply(
+                new[]
                 {
-                    GeoPoint3 pixel = toPixels.Transform(new GeoPoint3(corner.X, corner.Y, 0.0));
-                    pixels.Add(new GeoPoint2(pixel.X, pixel.Y));
-                }
-
-                pixels[pixels.Count - 1] = pixels[0];
-                image.SetClipBoundary(kind, pixels);
-                image.IsClipped = true;
-
-                if (invert || image.IsClipInverted)
+                    new CadEditRecord(
+                        CadEditRecordKind.PropertyChanged,
+                        handle,
+                        "Clip boundary",
+                        null,
+                        kind == DxfClipBoundaryType.Rectangle ? "Rectangular" : "Polygonal"
+                    ),
+                },
+                s =>
                 {
-                    image.IsClipInverted = invert;
+                    var image = (DxfRasterImage)s.Document.FindEntity(handle);
+                    GeoTransform3 toPixels = image.PixelToModelTransform.Inverse(tolerance);
+                    var pixels = new List<GeoPoint2>();
+
+                    foreach (GeoPoint2 corner in world)
+                    {
+                        GeoPoint3 pixel = toPixels.Transform(new GeoPoint3(corner.X, corner.Y, 0.0));
+                        pixels.Add(new GeoPoint2(pixel.X, pixel.Y));
+                    }
+
+                    pixels[pixels.Count - 1] = pixels[0];
+                    image.SetClipBoundary(kind, pixels);
+                    image.IsClipped = true;
+
+                    if (invert || image.IsClipInverted)
+                    {
+                        image.IsClipInverted = invert;
+                    }
                 }
-            });
+            );
         }
 
         /// <summary>Whether an image is clipped by a boundary of its own rather than its whole picture.</summary>
@@ -1193,8 +1489,15 @@ namespace GeometryHelper.Dxf.Viewer
             IReadOnlyList<GeoPoint2> boundary = image.GetClipBoundary();
             int across = (int)image.ImageWidth;
             int up = (int)image.ImageHeight;
-            return image.IsClipped && !(image.ClipBoundaryType == DxfClipBoundaryType.Rectangle && boundary.Count == 5
-                && boundary.Min(p => p.X) == -0.5 && boundary.Min(p => p.Y) == -0.5 && boundary.Max(p => p.X) == across - 0.5 && boundary.Max(p => p.Y) == up - 0.5);
+            return image.IsClipped
+                && !(
+                    image.ClipBoundaryType == DxfClipBoundaryType.Rectangle
+                    && boundary.Count == 5
+                    && boundary.Min(p => p.X) == -0.5
+                    && boundary.Min(p => p.Y) == -0.5
+                    && boundary.Max(p => p.X) == across - 0.5
+                    && boundary.Max(p => p.Y) == up - 0.5
+                );
         }
 
         private static bool HasArcs(DxfPolyline polyline)
@@ -1238,13 +1541,24 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             bool on = c.Input.Is("ON");
-            c.Apply(images.Select(h => new CadEditRecord(CadEditRecordKind.PropertyChanged, h, "Transparency", null, on ? "On" : "Off")).ToList(), s =>
-            {
-                foreach (string handle in images)
+            c.Apply(
+                images
+                    .Select(h => new CadEditRecord(
+                        CadEditRecordKind.PropertyChanged,
+                        h,
+                        "Transparency",
+                        null,
+                        on ? "On" : "Off"
+                    ))
+                    .ToList(),
+                s =>
                 {
-                    ((DxfRasterImage)s.Document.FindEntity(handle)).ImageTransparency = on;
+                    foreach (string handle in images)
+                    {
+                        ((DxfRasterImage)s.Document.FindEntity(handle)).ImageTransparency = on;
+                    }
                 }
-            });
+            );
         }
     }
 }

@@ -24,10 +24,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
         private static GeoPoint3 P(double x, double y, double z) => new GeoPoint3(x, y, z);
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(P(x0, y0, z0), P(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(P(x0, y0, z0), P(x1, y1, z1)).ToObb().ToSolid();
 
-        private static GeoSolid3 InsideOut(GeoSolid3 body) => new GeoSolid3(body.Faces.Select(f => f.Flip()), body.Openings.Select(InsideOut));
+        private static GeoSolid3 InsideOut(GeoSolid3 body) =>
+            new GeoSolid3(body.Faces.Select(f => f.Flip()), body.Openings.Select(InsideOut));
 
         private static GeoSolid3 Plate() => Box(0, 0, 0, 100, 100, 20);
 
@@ -43,25 +44,39 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// A tool through the plate, across its edge, inside it and through its top, with what the plate less it, the two
         /// together and their common part hold.
         /// </summary>
-        private static void Tool(string name, out GeoSolid3 tool, out double difference, out double union, out double common)
+        private static void Tool(
+            string name,
+            out GeoSolid3 tool,
+            out double difference,
+            out double union,
+            out double common
+        )
         {
             switch (name)
             {
                 case "through":
                     tool = Box(40, 40, -1, 60, 60, 21);
-                    difference = 192000.0; union = 200800.0; common = 8000.0;
+                    difference = 192000.0;
+                    union = 200800.0;
+                    common = 8000.0;
                     break;
                 case "edge":
                     tool = Box(90, 40, -1, 110, 60, 21);
-                    difference = 196000.0; union = 204800.0; common = 4000.0;
+                    difference = 196000.0;
+                    union = 204800.0;
+                    common = 4000.0;
                     break;
                 case "inside":
                     tool = Box(40, 40, 5, 60, 60, 15);
-                    difference = 196000.0; union = 200000.0; common = 4000.0;
+                    difference = 196000.0;
+                    union = 200000.0;
+                    common = 4000.0;
                     break;
                 default:
                     tool = Box(40, 40, 10, 60, 60, 30);
-                    difference = 196000.0; union = 204000.0; common = 4000.0;
+                    difference = 196000.0;
+                    union = 204000.0;
+                    common = 4000.0;
                     break;
             }
         }
@@ -85,7 +100,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void ABooleanOfABodyWoundInwardsIsThatOfItsOutwardSelf(string name, bool plateInwards, bool toolInwards)
         {
             Tool(name, out GeoSolid3 tool, out double difference, out double union, out double common);
-            GeoSolid3 a = Wound(Plate(), plateInwards), b = Wound(tool, toolInwards);
+            GeoSolid3 a = Wound(Plate(), plateInwards),
+                b = Wound(tool, toolInwards);
 
             Assert.True(Boolean3.TrySubtract(a, b, out GeoSolid3 rest, Tolerance));
             Assert.Equal(difference, rest.GetVolume(Tolerance), 6);
@@ -108,7 +124,14 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void BodiesApartWoundEitherWayJoinIntoBoth()
         {
             // Side by side, the two were joined face for face, and the one wound inwards took its volume off the other's.
-            Assert.True(Boolean3.TryUnion(Box(0, 0, 0, 10, 10, 10), InsideOut(Box(20, 0, 0, 30, 10, 10)), out GeoSolid3 both, Tolerance));
+            Assert.True(
+                Boolean3.TryUnion(
+                    Box(0, 0, 0, 10, 10, 10),
+                    InsideOut(Box(20, 0, 0, 30, 10, 10)),
+                    out GeoSolid3 both,
+                    Tolerance
+                )
+            );
 
             Assert.Equal(2000.0, both.GetVolume(Tolerance), 6);
             Assert.Equal(2, both.SplitShells(Tolerance).Length);
@@ -137,20 +160,33 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.True(upper.Openings[0].GetSignedVolume() > 0.0);
         }
 
-        public static TheoryData<bool, bool> EitherWound => new TheoryData<bool, bool> { { true, false }, { false, true }, { true, true } };
+        public static TheoryData<bool, bool> EitherWound =>
+            new TheoryData<bool, bool>
+            {
+                { true, false },
+                { false, true },
+                { true, true },
+            };
 
         [Theory]
         [MemberData(nameof(EitherWound))]
         public void BodiesWoundInwardsLieAgainstEachOtherAsTheirOutwardSelvesDo(bool plateInwards, bool blockInwards)
         {
             // A block standing on the plate: they lie against each other over its foot, 40 by 40, facing up out of the plate.
-            GeoSolid3 a = Wound(Plate(), plateInwards), b = Wound(Box(20, 20, 20, 60, 60, 40), blockInwards);
+            GeoSolid3 a = Wound(Plate(), plateInwards),
+                b = Wound(Box(20, 20, 20, 60, 60, 40), blockInwards);
 
             Assert.True(Boolean3.TryGetContact(a, b, out GeoFace3[] contact, Tolerance));
             Assert.Equal(1600.0, contact.Sum(f => f.Area), 6);
             Assert.All(contact, f => Assert.True(f.Normal.Z > 0.5, $"{f} faces {f.Normal}"));
 
-            Assert.True(new GeoPreparedSolid3(a, Tolerance).TryGetContact(new GeoPreparedSolid3(b, Tolerance), out GeoFace3[] prepared, Tolerance));
+            Assert.True(
+                new GeoPreparedSolid3(a, Tolerance).TryGetContact(
+                    new GeoPreparedSolid3(b, Tolerance),
+                    out GeoFace3[] prepared,
+                    Tolerance
+                )
+            );
             Assert.Equal(1600.0, prepared.Sum(f => f.Area), 6);
         }
 
@@ -159,7 +195,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void AClashOfBodiesWoundInwardsIsThatOfTheirOutwardSelves(bool plateInwards, bool ductInwards)
         {
             // The duct through the plate takes 20 by 20 by 20 of it; with one of them wound inwards the clash held a third.
-            GeoSolid3 a = Wound(Plate(), plateInwards), b = Wound(Box(40, 40, -1, 60, 60, 21), ductInwards);
+            GeoSolid3 a = Wound(Plate(), plateInwards),
+                b = Wound(Box(40, 40, -1, 60, 60, 21), ductInwards);
 
             ClashResult clash = Assert.Single(Clash3.Find(new[] { a, b }, ClashOptions.Default, Tolerance));
             Assert.Equal(ClashKind.Hard, clash.Kind);
@@ -167,7 +204,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.Equal(20.0, clash.Depth, 6);
 
             var prepared = new GeoPreparedSolid3(a, Tolerance);
-            Assert.True(ReferenceEquals(prepared.Material, prepared.Material.TurnOutwards()), "the prepared material is wound inwards");
+            Assert.True(
+                ReferenceEquals(prepared.Material, prepared.Material.TurnOutwards()),
+                "the prepared material is wound inwards"
+            );
             GeoSolid3 shared = Assert.Single(prepared.Intersect(new GeoPreparedSolid3(b, Tolerance), Tolerance));
             Assert.Equal(8000.0, shared.GetVolume(Tolerance), 6);
         }

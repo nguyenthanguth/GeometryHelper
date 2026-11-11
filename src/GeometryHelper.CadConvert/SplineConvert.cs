@@ -39,7 +39,8 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentOutOfRangeException">Thrown when its degree is above 10 or a weight is not above nought.</exception>
         public static GeoSpline3 ToGeoSpline3(this Spline spline)
         {
-            if (spline == null) throw new ArgumentNullException(nameof(spline));
+            if (spline == null)
+                throw new ArgumentNullException(nameof(spline));
 
             NurbsData data = spline.NurbsData;
 
@@ -47,7 +48,8 @@ namespace GeometryHelper.CadConvert
             {
                 throw new ArgumentException(
                     "This AutoCAD spline is periodic, closed smoothly with knots that run on past its ends, and GeometryHelper's splines are clamped; only a clamped spline is read.",
-                    nameof(spline));
+                    nameof(spline)
+                );
             }
 
             List<GeoPoint3> points = data.GetControlPoints().Cast<Point3d>().Select(p => p.ToGeoPoint3()).ToList();
@@ -62,7 +64,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="splines">The sequence of AutoCAD Splines to convert.</param>
         /// <returns>A list of converted <see cref="GeoSpline3"/>.</returns>
-        public static List<GeoSpline3> ToGeoSpline3(this IEnumerable<Spline> splines) => splines.Select(ToGeoSpline3).ToList();
+        public static List<GeoSpline3> ToGeoSpline3(this IEnumerable<Spline> splines) =>
+            splines.Select(ToGeoSpline3).ToList();
 
         /// <summary>
         /// Converts an AutoCAD Spline to a GeometryHelper spline in the plane, as it is seen in plan.
@@ -78,14 +81,16 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentException">Thrown when the spline is periodic, or its numbers do not make a clamped spline GeometryHelper takes.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when its degree is above 10 or a weight is not above nought.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the spline stands square to the XY plane, where in plan every control point lands on one point.</exception>
-        public static GeoSpline2 ToGeoSpline2(this Spline spline) => spline.ToGeoSpline3().ProjectToSpline2(GeoCoordinateSystem3.Global);
+        public static GeoSpline2 ToGeoSpline2(this Spline spline) =>
+            spline.ToGeoSpline3().ProjectToSpline2(GeoCoordinateSystem3.Global);
 
         /// <summary>
         /// Converts a sequence of AutoCAD Splines to a list of GeometryHelper splines in the plane, as they are seen in plan.
         /// </summary>
         /// <param name="splines">The sequence of AutoCAD Splines to convert.</param>
         /// <returns>A list of converted <see cref="GeoSpline2"/>.</returns>
-        public static List<GeoSpline2> ToGeoSpline2(this IEnumerable<Spline> splines) => splines.Select(ToGeoSpline2).ToList();
+        public static List<GeoSpline2> ToGeoSpline2(this IEnumerable<Spline> splines) =>
+            splines.Select(ToGeoSpline2).ToList();
 
         /// <summary>
         /// Tries to convert an AutoCAD Spline to a GeometryHelper spline in the plane, as it is seen in plan.
@@ -127,7 +132,8 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="geoSpline"/> is null.</exception>
         public static Spline ToAcadSpline(this GeoSpline3 geoSpline)
         {
-            if (geoSpline == null) throw new ArgumentNullException(nameof(geoSpline));
+            if (geoSpline == null)
+                throw new ArgumentNullException(nameof(geoSpline));
 
             var points = new Point3dCollection();
 
@@ -136,7 +142,14 @@ namespace GeometryHelper.CadConvert
                 points.Add(point.ToAcadPoint3());
             }
 
-            return Make(geoSpline.Degree, geoSpline.IsRational, geoSpline.StartPoint.Equals(geoSpline.EndPoint), points, geoSpline.Knots, geoSpline.Weights);
+            return Make(
+                geoSpline.Degree,
+                geoSpline.IsRational,
+                geoSpline.StartPoint.Equals(geoSpline.EndPoint),
+                points,
+                geoSpline.Knots,
+                geoSpline.Weights
+            );
         }
 
         /// <summary>
@@ -144,7 +157,8 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="splines">The sequence of GeometryHelper splines to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Spline"/>.</returns>
-        public static List<Spline> ToAcadSpline(this IEnumerable<GeoSpline3> splines) => splines.Select(ToAcadSpline).ToList();
+        public static List<Spline> ToAcadSpline(this IEnumerable<GeoSpline3> splines) =>
+            splines.Select(ToAcadSpline).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper spline in the plane to an AutoCAD Spline in the XY plane.
@@ -154,7 +168,8 @@ namespace GeometryHelper.CadConvert
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="geoSpline"/> is null.</exception>
         public static Spline ToAcadSpline(this GeoSpline2 geoSpline)
         {
-            if (geoSpline == null) throw new ArgumentNullException(nameof(geoSpline));
+            if (geoSpline == null)
+                throw new ArgumentNullException(nameof(geoSpline));
 
             var points = new Point3dCollection();
 
@@ -163,7 +178,14 @@ namespace GeometryHelper.CadConvert
                 points.Add(point.ToAcadPoint3());
             }
 
-            return Make(geoSpline.Degree, geoSpline.IsRational, geoSpline.StartPoint.Equals(geoSpline.EndPoint), points, geoSpline.Knots, geoSpline.Weights);
+            return Make(
+                geoSpline.Degree,
+                geoSpline.IsRational,
+                geoSpline.StartPoint.Equals(geoSpline.EndPoint),
+                points,
+                geoSpline.Knots,
+                geoSpline.Weights
+            );
         }
 
         /// <summary>
@@ -171,9 +193,17 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="splines">The sequence of GeometryHelper splines to convert.</param>
         /// <returns>A list of converted AutoCAD <see cref="Spline"/>.</returns>
-        public static List<Spline> ToAcadSpline(this IEnumerable<GeoSpline2> splines) => splines.Select(ToAcadSpline).ToList();
+        public static List<Spline> ToAcadSpline(this IEnumerable<GeoSpline2> splines) =>
+            splines.Select(ToAcadSpline).ToList();
 
-        private static Spline Make(int degree, bool rational, bool closed, Point3dCollection points, IReadOnlyList<double> knots, IReadOnlyList<double> weights)
+        private static Spline Make(
+            int degree,
+            bool rational,
+            bool closed,
+            Point3dCollection points,
+            IReadOnlyList<double> knots,
+            IReadOnlyList<double> weights
+        )
         {
             var knotValues = new DoubleCollection();
 

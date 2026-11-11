@@ -15,10 +15,16 @@ namespace GeometryHelper.UnitTest.Solid.Core
     {
         private static readonly Tolerance Tolerance = new Tolerance(0.001, 1E-5, 1E-5, 0.001);
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoObb3(new GeoPoint3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), x1 - x0, y1 - y0, z1 - z0).ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoObb3(
+                new GeoPoint3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2),
+                x1 - x0,
+                y1 - y0,
+                z1 - z0
+            ).ToSolid();
 
-        private static GeoSolid3 Cube(GeoSolid3 hole) => new GeoSolid3(Box(0, 0, 0, 100, 100, 100).Faces, new[] { hole });
+        private static GeoSolid3 Cube(GeoSolid3 hole) =>
+            new GeoSolid3(Box(0, 0, 0, 100, 100, 100).Faces, new[] { hole });
 
         private static GeoSolid3 Plain() => Box(0, 0, 0, 100, 100, 100);
 
@@ -30,8 +36,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
         // A bar 120 by 10 by 20 turned 45 degrees about z, its centre line running from (27.6, -12.4) to (112.4, 72.4)
         // through the cube's lower right, and a hole through the cube's upper left: the boxes of the two meet over 6 by 6,
         // but the hole stands 51.6 clear of the bar.
-        private static GeoSolid3 TurnedBar()
-            => Box(-60, -5, 30, 60, 5, 50).TransformBy(GeoTransform3.RotationAxis(GeoPoint3.Origin, GeoVector3.ZAxis, System.Math.PI / 4))
+        private static GeoSolid3 TurnedBar() =>
+            Box(-60, -5, 30, 60, 5, 50)
+                .TransformBy(GeoTransform3.RotationAxis(GeoPoint3.Origin, GeoVector3.ZAxis, System.Math.PI / 4))
                 .TransformBy(GeoTransform3.Translation(new GeoVector3(70, 30, 0)));
 
         private static GeoSolid3 HoleUpperLeft() => Box(10, 70, -10, 30, 90, 110);
@@ -39,7 +46,15 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [Fact]
         public void ACubeWithAHoleClearOfABox_JoinedToIt_HasTheHoleCutIn()
         {
-            Assert.True(Boolean3.TryUnion(Cube(HoleNearACorner()), Block(), out GeoSolid3 union, Tolerance, out BooleanOutcome outcome));
+            Assert.True(
+                Boolean3.TryUnion(
+                    Cube(HoleNearACorner()),
+                    Block(),
+                    out GeoSolid3 union,
+                    Tolerance,
+                    out BooleanOutcome outcome
+                )
+            );
 
             Assert.Equal(BooleanOutcome.Made, outcome);
             Assert.Empty(union.Openings);
@@ -50,7 +65,15 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [Fact]
         public void ACubeWithAHoleClearOfABox_LessIt_HasTheHoleCutIn()
         {
-            Assert.True(Boolean3.TrySubtract(Cube(HoleNearACorner()), Block(), out GeoSolid3 rest, Tolerance, out BooleanOutcome outcome));
+            Assert.True(
+                Boolean3.TrySubtract(
+                    Cube(HoleNearACorner()),
+                    Block(),
+                    out GeoSolid3 rest,
+                    Tolerance,
+                    out BooleanOutcome outcome
+                )
+            );
 
             Assert.Equal(BooleanOutcome.Made, outcome);
             Assert.Empty(rest.Openings);
@@ -61,7 +84,15 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [Fact]
         public void ABoxLessACubeWithAHoleClearOfIt_TakesNothingBackForTheHole()
         {
-            Assert.True(Boolean3.TrySubtract(Block(), Cube(HoleNearACorner()), out GeoSolid3 rest, Tolerance, out BooleanOutcome outcome));
+            Assert.True(
+                Boolean3.TrySubtract(
+                    Block(),
+                    Cube(HoleNearACorner()),
+                    out GeoSolid3 rest,
+                    Tolerance,
+                    out BooleanOutcome outcome
+                )
+            );
 
             Assert.Equal(BooleanOutcome.Made, outcome);
             Assert.Empty(rest.Openings);
@@ -92,14 +123,23 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void TheCommonPartOfACubeWithAHoleClearOfATurnedBarAndTheBar_IsCutAsWithoutTheHole(bool barFirst)
         {
             // The hole's planes cut the cells as well: 5 cells, where 3 hold the same.
-            GeoSolid3 cube = Cube(HoleUpperLeft()), bar = TurnedBar();
+            GeoSolid3 cube = Cube(HoleUpperLeft()),
+                bar = TurnedBar();
 
             long before = Boolean3.CellsMade;
-            Assert.True(barFirst ? Boolean3.TryIntersect(bar, cube, out GeoSolid3 common, Tolerance) : Boolean3.TryIntersect(cube, bar, out common, Tolerance));
+            Assert.True(
+                barFirst
+                    ? Boolean3.TryIntersect(bar, cube, out GeoSolid3 common, Tolerance)
+                    : Boolean3.TryIntersect(cube, bar, out common, Tolerance)
+            );
             long cells = Boolean3.CellsMade - before;
 
             before = Boolean3.CellsMade;
-            Assert.True(barFirst ? Boolean3.TryIntersect(bar, Plain(), out GeoSolid3 plain, Tolerance) : Boolean3.TryIntersect(Plain(), bar, out plain, Tolerance));
+            Assert.True(
+                barFirst
+                    ? Boolean3.TryIntersect(bar, Plain(), out GeoSolid3 plain, Tolerance)
+                    : Boolean3.TryIntersect(Plain(), bar, out plain, Tolerance)
+            );
             long plainCells = Boolean3.CellsMade - before;
 
             Assert.True(common.Validate(Tolerance).IsValid);

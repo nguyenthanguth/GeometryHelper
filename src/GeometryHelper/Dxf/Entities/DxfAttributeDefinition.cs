@@ -25,16 +25,43 @@ namespace GeometryHelper.Dxf
     public sealed class DxfAttributeDefinition : DxfDBText
     {
         // The groups of an ATTDEF in the order AutoCAD writes them: AcDbText, then AcDbAttributeDefinition.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 39, 10, 20, 30, 40, 1, 50, 41, 51, 7, 71, 72, 11, 21, 31, 210, 220, 230, 100, 3, 2, 70, 73, 74 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[]
+            {
+                100,
+                39,
+                10,
+                20,
+                30,
+                40,
+                1,
+                50,
+                41,
+                51,
+                7,
+                71,
+                72,
+                11,
+                21,
+                31,
+                210,
+                220,
+                230,
+                100,
+                3,
+                2,
+                70,
+                73,
+                74,
+            }
+        );
 
         /// <summary>
         /// Initializes an attribute definition with no tag, prompt or value at the origin, 2.5 high, as AutoCAD's
         /// <c>new AttributeDefinition()</c>, in no file; give it its tag before it is added to a block.
         /// </summary>
         public DxfAttributeDefinition()
-            : this(new GeoPoint3(0.0, 0.0, 0.0), string.Empty, string.Empty, string.Empty, null, false)
-        {
-        }
+            : this(new GeoPoint3(0.0, 0.0, 0.0), string.Empty, string.Empty, string.Empty, null, false) { }
 
         /// <summary>
         /// Initializes an attribute definition, as AutoCAD's <c>new AttributeDefinition(position, value, tag, prompt, style)</c>:
@@ -48,20 +75,27 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentNullException">Thrown when the value, tag or prompt is null.</exception>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number, the value or prompt has a line
         /// break in it, or the tag is empty or has a space in it.</exception>
-        public DxfAttributeDefinition(GeoPoint3 position, string value, string tag, string prompt, DxfTextStyleTableRecord style)
-            : this(position, value, tag, prompt, style?.Name, true)
-        {
-        }
+        public DxfAttributeDefinition(
+            GeoPoint3 position,
+            string value,
+            string tag,
+            string prompt,
+            DxfTextStyleTableRecord style
+        )
+            : this(position, value, tag, prompt, style?.Name, true) { }
 
-        private DxfAttributeDefinition(GeoPoint3 position, string value, string tag, string prompt, string style, bool check)
-            : base("ATTDEF", Groups(position, value, tag, prompt, style, check))
-        {
-        }
+        private DxfAttributeDefinition(
+            GeoPoint3 position,
+            string value,
+            string tag,
+            string prompt,
+            string style,
+            bool check
+        )
+            : base("ATTDEF", Groups(position, value, tag, prompt, style, check)) { }
 
         private DxfAttributeDefinition(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets the tag of the attribute (group 2), as AutoCAD's <c>Tag</c>: the name an INSERT's ATTRIB of it has, such as <c>TAG1</c>.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the tag set is null.</exception>
@@ -80,7 +114,6 @@ namespace GeometryHelper.Dxf
         public string Prompt
         {
             get => DxfReader.Decode(TextValue(3) ?? string.Empty);
-
             set
             {
                 if (value != null && string.Equals(value, Prompt, StringComparison.Ordinal))
@@ -225,14 +258,26 @@ namespace GeometryHelper.Dxf
         {
             string text = MTextOf()?.Text ?? string.Empty;
             int line = text.IndexOf('\n');
-            return text.Length == 0 ? new KeyValuePair<int, string>[0] : Pair(1, line < 0 ? text : text.Substring(0, line));
+            return text.Length == 0
+                ? new KeyValuePair<int, string>[0]
+                : Pair(1, line < 0 ? text : text.Substring(0, line));
         }
 
-        private static IEnumerable<DxfTypedValue> Groups(GeoPoint3 position, string value, string tag, string prompt, string style, bool check)
+        private static IEnumerable<DxfTypedValue> Groups(
+            GeoPoint3 position,
+            string value,
+            string tag,
+            string prompt,
+            string style,
+            bool check
+        )
         {
             if (!position.IsValid)
             {
-                throw new ArgumentException("A point has to be of finite numbers: " + position + " is not.", nameof(position));
+                throw new ArgumentException(
+                    "A point has to be of finite numbers: " + position + " is not.",
+                    nameof(position)
+                );
             }
 
             CheckLine(value, nameof(value));

@@ -21,15 +21,83 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
         private static readonly string[] Commands =
         {
-            "MOVE", "COPY", "ERASE", "ROTATE", "SCALE", "MIRROR", "EXPLODE", "MATCHPROP", "LAYER", "UNDO", "U", "REDO",
-            "LINE", "PLINE", "CIRCLE", "ARC", "RECTANG", "TEXT", "MTEXT", "MLEADER", "DIMLINEAR", "DIMALIGNED", "DIMRADIUS", "DIMDIAMETER", "DIMANGULAR", "ZOOM",
+            "MOVE",
+            "COPY",
+            "ERASE",
+            "ROTATE",
+            "SCALE",
+            "MIRROR",
+            "EXPLODE",
+            "MATCHPROP",
+            "LAYER",
+            "UNDO",
+            "U",
+            "REDO",
+            "LINE",
+            "PLINE",
+            "CIRCLE",
+            "ARC",
+            "RECTANG",
+            "TEXT",
+            "MTEXT",
+            "MLEADER",
+            "DIMLINEAR",
+            "DIMALIGNED",
+            "DIMRADIUS",
+            "DIMDIAMETER",
+            "DIMANGULAR",
+            "ZOOM",
         };
 
-        private static readonly string[] Texts = { "A", "B-12", "Walls", "0", "Steel", "<> mm", "Doors, Walls", "x", "2x", "0.5", "30" };
+        private static readonly string[] Texts =
+        {
+            "A",
+            "B-12",
+            "Walls",
+            "0",
+            "Steel",
+            "<> mm",
+            "Doors, Walls",
+            "x",
+            "2x",
+            "0.5",
+            "30",
+        };
 
-        private static readonly string[] Labels = { "Color", "Layer", "Linetype", "Linetype scale", "Lineweight", "Start X", "End Y", "Radius", "Diameter", "Start angle", "End angle", "Contents", "Height", "Position X" };
+        private static readonly string[] Labels =
+        {
+            "Color",
+            "Layer",
+            "Linetype",
+            "Linetype scale",
+            "Lineweight",
+            "Start X",
+            "End Y",
+            "Radius",
+            "Diameter",
+            "Start angle",
+            "End angle",
+            "Contents",
+            "Height",
+            "Position X",
+        };
 
-        private static readonly string[] Values = { "Red", "ByLayer", "8", "Steel", "0", "Continuous", "2", "0.35 mm", "-1", "45", "120.5", "NOTE 2", "Nope" };
+        private static readonly string[] Values =
+        {
+            "Red",
+            "ByLayer",
+            "8",
+            "Steel",
+            "0",
+            "Continuous",
+            "2",
+            "0.35 mm",
+            "-1",
+            "45",
+            "120.5",
+            "NOTE 2",
+            "Nope",
+        };
 
         /// <summary>A drawing of R2013, with its styles and layouts, holding a line, a circle, an arc, a polyline and a text.</summary>
         private static string RichText()
@@ -43,7 +111,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             polyline.AddVertexAt(1, new GeoPoint2(100, 100), 0, 0, 0);
             polyline.AddVertexAt(2, new GeoPoint2(100, 150), 0, 0, 0);
             database.ModelSpace.AppendEntity(polyline);
-            database.ModelSpace.AppendEntity(new DxfDBText { Position = new GeoPoint3(0, 200, 0), Height = 5, TextString = "NOTE" });
+            database.ModelSpace.AppendEntity(
+                new DxfDBText
+                {
+                    Position = new GeoPoint3(0, 200, 0),
+                    Height = 5,
+                    TextString = "NOTE",
+                }
+            );
             database.LayerTable.Add(new DxfLayerTableRecord { Name = "Steel", ColorIndex = 1 });
             return database.ToText();
         }
@@ -77,7 +152,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     }
                     else if (pick == 1)
                     {
-                        CadPropertyEditor.Set(document, SomeHandles(document, random, 2), Labels[random.Next(Labels.Length)], Values[random.Next(Values.Length)]);
+                        CadPropertyEditor.Set(
+                            document,
+                            SomeHandles(document, random, 2),
+                            Labels[random.Next(Labels.Length)],
+                            Values[random.Next(Values.Length)]
+                        );
                     }
                     else
                     {
@@ -87,7 +167,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
                         if (session.LastOutcome == CadCommandOutcome.Failed)
                         {
-                            failures.Add("seed " + seed + ": " + string.Join(" | ", session.History.Skip(Math.Max(0, session.History.Count - 6))));
+                            failures.Add(
+                                "seed "
+                                    + seed
+                                    + ": "
+                                    + string.Join(" | ", session.History.Skip(Math.Max(0, session.History.Count - 6)))
+                            );
                         }
                     }
                 }
@@ -114,7 +199,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 }
             }
 
-            _output.WriteLine(steps + " undo steps made and undone; commands " + string.Join(", ", outcomes.Select(p => p.Key + " " + p.Value)));
+            _output.WriteLine(
+                steps
+                    + " undo steps made and undone; commands "
+                    + string.Join(", ", outcomes.Select(p => p.Key + " " + p.Value))
+            );
             Assert.Empty(failures);
         }
 
@@ -174,7 +263,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     case CadPromptKind.Angle:
                         if (random.Next(2) == 0)
                         {
-                            session.Feed((random.NextDouble() * 120.0 - 10.0).ToString("0.###", CultureInfo.InvariantCulture));
+                            session.Feed(
+                                (random.NextDouble() * 120.0 - 10.0).ToString("0.###", CultureInfo.InvariantCulture)
+                            );
                         }
                         else
                         {
@@ -189,12 +280,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                         session.Feed(Texts[random.Next(Texts.Length)]);
                         break;
                     case CadPromptKind.Keyword:
-                        session.Feed(prompt.Keywords.Count > 0 ? CadPrompt.Shortcut(prompt.Keywords[random.Next(prompt.Keywords.Count)]) : "x");
+                        session.Feed(
+                            prompt.Keywords.Count > 0
+                                ? CadPrompt.Shortcut(prompt.Keywords[random.Next(prompt.Keywords.Count)])
+                                : "x"
+                        );
                         break;
                     default:
                         if (random.Next(6) == 0)
                         {
-                            session.Feed("@" + random.Next(-50, 50).ToString(CultureInfo.InvariantCulture) + "," + random.Next(-50, 50).ToString(CultureInfo.InvariantCulture));
+                            session.Feed(
+                                "@"
+                                    + random.Next(-50, 50).ToString(CultureInfo.InvariantCulture)
+                                    + ","
+                                    + random.Next(-50, 50).ToString(CultureInfo.InvariantCulture)
+                            );
                         }
                         else
                         {

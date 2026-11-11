@@ -39,7 +39,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (string.Equals(name, c.Database.Clayer, StringComparison.OrdinalIgnoreCase))
                 {
-                    yield return CadPrompt.ForKeyword("Layer \"" + name + "\" is the current layer, do you want to turn it off?", new[] { "Yes", "No" }, "No");
+                    yield return CadPrompt.ForKeyword(
+                        "Layer \"" + name + "\" is the current layer, do you want to turn it off?",
+                        new[] { "Yes", "No" },
+                        "No"
+                    );
 
                     if (!c.Input.Is("Yes"))
                     {
@@ -79,13 +83,21 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static IEnumerable<CadPrompt> LayerLock(CadCommandContext c, bool locked)
         {
-            yield return CadPrompt.ForEntity(locked ? "Select an object on the layer to be locked" : "Select an object on the layer to be unlocked");
+            yield return CadPrompt.ForEntity(
+                locked ? "Select an object on the layer to be locked" : "Select an object on the layer to be unlocked"
+            );
             string name = LayerOf(c);
 
             if (name != null)
             {
                 c.OpenUndoStep();
-                ChangeLayer(c, new List<string>(), name, CadLayerEditor.SetLocked(c.Document, name, locked), locked ? "locked" : "unlocked");
+                ChangeLayer(
+                    c,
+                    new List<string>(),
+                    name,
+                    CadLayerEditor.SetLocked(c.Document, name, locked),
+                    locked ? "locked" : "unlocked"
+                );
             }
         }
 
@@ -100,7 +112,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (thaw ? layer.IsFrozen : layer.IsOff)
                 {
-                    CadEditResult result = thaw ? CadLayerEditor.SetFrozen(c.Document, name, false) : CadLayerEditor.SetOn(c.Document, name, true);
+                    CadEditResult result = thaw
+                        ? CadLayerEditor.SetFrozen(c.Document, name, false)
+                        : CadLayerEditor.SetOn(c.Document, name, true);
 
                     if (!result.Succeeded)
                     {
@@ -143,14 +157,22 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (string name in LayerNames(c))
             {
-                if (!kept.Contains(name) && !c.Database.LayerTable[name].IsOff && CadLayerEditor.SetOn(c.Document, name, false).Succeeded)
+                if (
+                    !kept.Contains(name)
+                    && !c.Database.LayerTable[name].IsOff
+                    && CadLayerEditor.SetOn(c.Document, name, false).Succeeded
+                )
                 {
                     c.Remember(Isolated + name, 1.0);
                 }
             }
 
             c.ClearsSelection = true;
-            c.Write(kept.Count == 1 ? "Layer \"" + kept.Min + "\" has been isolated." : kept.Count.ToString(CultureInfo.InvariantCulture) + " layers have been isolated.");
+            c.Write(
+                kept.Count == 1
+                    ? "Layer \"" + kept.Min + "\" has been isolated."
+                    : kept.Count.ToString(CultureInfo.InvariantCulture) + " layers have been isolated."
+            );
         }
 
         /// <summary>LAYUNISO: the layers the last LAYISOs turned off turned on again.</summary>
@@ -192,11 +214,20 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The layer of the object the last prompt picked, by its name in the table; null where none was picked.</summary>
         private static string LayerOf(CadCommandContext c)
         {
-            DxfEntity entity = c.Input.Kind == CadInputKind.Selection ? c.Document.FindEntity(c.Input.Handles[0]) : null;
-            return entity == null || !c.Database.LayerTable.Has(entity.Layer) ? null : c.Database.LayerTable[entity.Layer].Name;
+            DxfEntity entity =
+                c.Input.Kind == CadInputKind.Selection ? c.Document.FindEntity(c.Input.Handles[0]) : null;
+            return entity == null || !c.Database.LayerTable.Has(entity.Layer)
+                ? null
+                : c.Database.LayerTable[entity.Layer].Name;
         }
 
-        private static void ChangeLayer(CadCommandContext c, List<string> done, string name, CadEditResult result, string what)
+        private static void ChangeLayer(
+            CadCommandContext c,
+            List<string> done,
+            string name,
+            CadEditResult result,
+            string what
+        )
         {
             if (result.Succeeded)
             {

@@ -90,7 +90,8 @@ namespace GeometryHelper.Core
         /// space refuses it as it refuses a loop of three corners in a row; but the region it covers, read under the
         /// even-odd rule as <see cref="GeoPolygon2.MakeValid()"/> reads it, is both lobes.
         /// </remarks>
-        private static bool CrossesItself(GeoPolygon2 loop, Tolerance tolerance) => loop.VertexCount > 3 && !loop.IsSimple(tolerance);
+        private static bool CrossesItself(GeoPolygon2 loop, Tolerance tolerance) =>
+            loop.VertexCount > 3 && !loop.IsSimple(tolerance);
 
         /// <summary>
         /// Lays out a face whose rings cross themselves by resolving its region first, as the booleans read it, into
@@ -107,7 +108,12 @@ namespace GeometryHelper.Core
             }
 
             int precision = ClipperRegion.GetPrecision(ClipperRegion.Extent(points, origin));
-            List<LoopGroup> groups = ClipperRegion.Resolve(ClipperRegion.RegionOf(face, origin, precision, tolerance), Clipper.FillRule.Positive, precision, tolerance);
+            List<LoopGroup> groups = ClipperRegion.Resolve(
+                ClipperRegion.RegionOf(face, origin, precision, tolerance),
+                Clipper.FillRule.Positive,
+                precision,
+                tolerance
+            );
             var faces = new List<GeoFace3>();
 
             foreach (GeoFace2 piece in ClipperRegion.ToFaces(groups, origin, false))

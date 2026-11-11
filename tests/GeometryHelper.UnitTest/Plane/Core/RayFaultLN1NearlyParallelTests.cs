@@ -41,14 +41,20 @@ namespace GeometryHelper.UnitTest.Plane
                 double from = 200 * random.NextDouble() - 100;
                 var rebuilt = new GeoRay2(
                     new GeoPoint2(origin.X + side.X + direction.X * from, origin.Y + side.Y + direction.Y * from),
-                    new GeoPoint2(origin.X + side.X + direction.X * (from + 100), origin.Y + side.Y + direction.Y * (from + 100)));
+                    new GeoPoint2(
+                        origin.X + side.X + direction.X * (from + 100),
+                        origin.Y + side.Y + direction.Y * (from + 100)
+                    )
+                );
 
-                if (Math.Abs(original.DistanceTo(rebuilt, Thousandth) - 10.0) > 1E-6
+                if (
+                    Math.Abs(original.DistanceTo(rebuilt, Thousandth) - 10.0) > 1E-6
                     || Math.Abs(rebuilt.DistanceTo(original, Thousandth) - 10.0) > 1E-6
                     || original.CollidesWith(rebuilt, Thousandth)
                     || rebuilt.CollidesWith(original, Thousandth)
                     || Math.Abs(original.GetShortestLineTo(rebuilt, Thousandth).Length - 10.0) > 1E-6
-                    || Math.Abs(rebuilt.GetShortestLineTo(original, Thousandth).Length - 10.0) > 1E-6)
+                    || Math.Abs(rebuilt.GetShortestLineTo(original, Thousandth).Length - 10.0) > 1E-6
+                )
                 {
                     wrong++;
                 }

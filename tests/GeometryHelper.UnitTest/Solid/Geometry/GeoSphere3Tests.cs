@@ -131,7 +131,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(Ball().Locate(P(50.0005, 0, 0), Tolerance.Default), Ball().Locate(P(50.0005, 0, 0)));
             Assert.Equal(Ball().Contains(P(50.0005, 0, 0), Tolerance.Default), Ball().Contains(P(50.0005, 0, 0)));
             Assert.Equal(Ball().IsPointOn(P(50.0005, 0, 0), Tolerance.Default), Ball().IsPointOn(P(50.0005, 0, 0)));
-            Assert.Equal(Ball().SignedDistanceTo(P(50.0005, 0, 0), Tolerance.Default), Ball().SignedDistanceTo(P(50.0005, 0, 0)));
+            Assert.Equal(
+                Ball().SignedDistanceTo(P(50.0005, 0, 0), Tolerance.Default),
+                Ball().SignedDistanceTo(P(50.0005, 0, 0))
+            );
         }
 
         [Fact]
@@ -211,7 +214,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ATurnAndAShift_LeaveTheRadiusExactlyAsItWas()
         {
-            GeoTransform3 motion = GeoTransform3.Translation(V(3, -4, 5)).Multiply(GeoTransform3.RotationAxis(V(1, 2, 3), 0.7));
+            GeoTransform3 motion = GeoTransform3
+                .Translation(V(3, -4, 5))
+                .Multiply(GeoTransform3.RotationAxis(V(1, 2, 3), 0.7));
             var ball = new GeoSphere3(P(1, 2, 3), 7.3);
             GeoSphere3 moved = ball.TransformBy(motion);
 
@@ -247,7 +252,13 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AShear_IsRefused()
         {
-            var matrix = new double[4, 4] { { 1, 0.5, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } };
+            var matrix = new double[4, 4]
+            {
+                { 1, 0.5, 0, 0 },
+                { 0, 1, 0, 0 },
+                { 0, 0, 1, 0 },
+                { 0, 0, 0, 1 },
+            };
 
             Assert.Throws<InvalidOperationException>(() => Ball().TransformBy(new GeoTransform3(matrix)));
         }

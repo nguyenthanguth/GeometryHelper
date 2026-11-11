@@ -38,7 +38,10 @@ namespace GeometryHelper.Core
         {
             if (!TryOf(points, out GeoPolygon2 hull, tolerance))
             {
-                throw new ArgumentException("The points span no area: there are fewer than three, or all lie in one line.", nameof(points));
+                throw new ArgumentException(
+                    "The points span no area: there are fewer than three, or all lie in one line.",
+                    nameof(points)
+                );
             }
 
             return hull;
@@ -47,7 +50,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to get the convex hull of some points, using the default tolerance.
         /// </summary>
-        public static bool TryOf(IEnumerable<GeoPoint2> points, out GeoPolygon2 hull) => TryOf(points, out hull, Tolerance.Global);
+        public static bool TryOf(IEnumerable<GeoPoint2> points, out GeoPolygon2 hull) =>
+            TryOf(points, out hull, Tolerance.Global);
 
         /// <summary>
         /// Tries to get the convex hull of some points, within a tolerance.
@@ -85,7 +89,9 @@ namespace GeometryHelper.Core
                 {
                     GeoPoint2 point = pass == 0 ? sorted[k] : sorted[sorted.Count - 1 - k];
 
-                    while (chain.Count >= floor + 2 && Cross(chain[chain.Count - 2], chain[chain.Count - 1], point) <= 0.0)
+                    while (
+                        chain.Count >= floor + 2 && Cross(chain[chain.Count - 2], chain[chain.Count - 1], point) <= 0.0
+                    )
                     {
                         chain.RemoveAt(chain.Count - 1);
                     }
@@ -106,7 +112,10 @@ namespace GeometryHelper.Core
             {
                 if (corners.Count > 0 && corners[corners.Count - 1].IsEqualTo(corner, tolerance))
                 {
-                    reach[reach.Count - 1] = Math.Max(reach[reach.Count - 1], corners[corners.Count - 1].DistanceTo(corner));
+                    reach[reach.Count - 1] = Math.Max(
+                        reach[reach.Count - 1],
+                        corners[corners.Count - 1].DistanceTo(corner)
+                    );
                 }
                 else
                 {
@@ -116,10 +125,16 @@ namespace GeometryHelper.Core
             }
 
             // The last corner joins the first only if the points it stands for, too, lie within the tolerance of the first.
-            while (corners.Count > 1 && corners[corners.Count - 1].IsEqualTo(corners[0], tolerance)
-                && corners[0].DistanceTo(corners[corners.Count - 1]) + reach[reach.Count - 1] <= tolerance.EqualPoint)
+            while (
+                corners.Count > 1
+                && corners[corners.Count - 1].IsEqualTo(corners[0], tolerance)
+                && corners[0].DistanceTo(corners[corners.Count - 1]) + reach[reach.Count - 1] <= tolerance.EqualPoint
+            )
             {
-                reach[0] = Math.Max(reach[0], corners[0].DistanceTo(corners[corners.Count - 1]) + reach[reach.Count - 1]);
+                reach[0] = Math.Max(
+                    reach[0],
+                    corners[0].DistanceTo(corners[corners.Count - 1]) + reach[reach.Count - 1]
+                );
                 corners.RemoveAt(corners.Count - 1);
                 reach.RemoveAt(reach.Count - 1);
             }
@@ -140,7 +155,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Twice the signed area of the triangle a, b, c: positive when the way from a through b to c turns left.
         /// </summary>
-        private static double Cross(GeoPoint2 a, GeoPoint2 b, GeoPoint2 c) => (b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X);
+        private static double Cross(GeoPoint2 a, GeoPoint2 b, GeoPoint2 c) =>
+            (b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X);
 
         /// <summary>
         /// Takes out of a convex polygon the corners that stand within a tolerance of the segment between their
@@ -186,8 +202,11 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    int b = before[i], a = after[i];
-                    double carried = Math.Max(reach[i], Math.Max(edge[b], edge[i])) + DistanceToSegment(corners[i], corners[b], corners[a]);
+                    int b = before[i],
+                        a = after[i];
+                    double carried =
+                        Math.Max(reach[i], Math.Max(edge[b], edge[i]))
+                        + DistanceToSegment(corners[i], corners[b], corners[a]);
 
                     if (carried <= tolerance)
                     {
@@ -217,9 +236,11 @@ namespace GeometryHelper.Core
 
         private static double DistanceToSegment(GeoPoint2 p, GeoPoint2 a, GeoPoint2 b)
         {
-            double dx = b.X - a.X, dy = b.Y - a.Y;
+            double dx = b.X - a.X,
+                dy = b.Y - a.Y;
             double length2 = dx * dx + dy * dy;
-            double t = length2 > 0.0 ? Math.Max(0.0, Math.Min(1.0, ((p.X - a.X) * dx + (p.Y - a.Y) * dy) / length2)) : 0.0;
+            double t =
+                length2 > 0.0 ? Math.Max(0.0, Math.Min(1.0, ((p.X - a.X) * dx + (p.Y - a.Y) * dy) / length2)) : 0.0;
 
             return p.DistanceTo(new GeoPoint2(a.X + t * dx, a.Y + t * dy));
         }

@@ -151,8 +151,12 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoTransform3 squash = GeoTransform3.Scaling(0, 1, 1);
 
-            Assert.Throws<InvalidOperationException>(() => new GeoXLine3(P(5, 5, 5), GeoVector3.XAxis).TransformBy(squash));
-            Assert.Throws<InvalidOperationException>(() => squash.Transform(new GeoXLine3(P(5, 5, 5), GeoVector3.XAxis)));
+            Assert.Throws<InvalidOperationException>(() =>
+                new GeoXLine3(P(5, 5, 5), GeoVector3.XAxis).TransformBy(squash)
+            );
+            Assert.Throws<InvalidOperationException>(() =>
+                squash.Transform(new GeoXLine3(P(5, 5, 5), GeoVector3.XAxis))
+            );
             Assert.Throws<ArgumentNullException>(() => new GeoXLine3(P(5, 5, 5), GeoVector3.XAxis).TransformBy(null));
 
             GeoXLine3 upright = new GeoXLine3(P(5, 5, 5), GeoVector3.YAxis).TransformBy(squash);
@@ -292,7 +296,8 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(lifted, PlanarMap3(floor, new GeoXLine2(new GeoPoint2(10, 20), GeoVector2.YAxis)));
         }
 
-        private static GeoXLine3 PlanarMap3(GeoCoordinateSystem3 frame, GeoXLine2 line) => GeometryHelper.Core.PlanarMap.ToXLine3(frame, line);
+        private static GeoXLine3 PlanarMap3(GeoCoordinateSystem3 frame, GeoXLine2 line) =>
+            GeometryHelper.Core.PlanarMap.ToXLine3(frame, line);
 
         [Fact]
         public void ALineAlongTheNormalOfTheFrame_HasNoDirectionInItsPlane()
@@ -324,7 +329,10 @@ namespace GeometryHelper.UnitTest.Solid
         private static void AssertEnds(GeoLine3? cut, GeoPoint3 start, GeoPoint3 end, double within = 1E-9)
         {
             Assert.True(cut.HasValue, "no segment");
-            Assert.True(cut.Value.StartPoint.DistanceTo(start) <= within, "starts at " + cut.Value.StartPoint + ", not " + start);
+            Assert.True(
+                cut.Value.StartPoint.DistanceTo(start) <= within,
+                "starts at " + cut.Value.StartPoint + ", not " + start
+            );
             Assert.True(cut.Value.EndPoint.DistanceTo(end) <= within, "ends at " + cut.Value.EndPoint + ", not " + end);
         }
 
@@ -337,7 +345,11 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TheClippedSegment_RunsTheWayTheLineRuns_WhateverItsOrigin()
         {
-            AssertEnds(new GeoXLine3(P(500, 50, 10), new GeoVector3(-1, 0, 0)).ClipTo(Box()), P(100, 50, 10), P(0, 50, 10));
+            AssertEnds(
+                new GeoXLine3(P(500, 50, 10), new GeoVector3(-1, 0, 0)).ClipTo(Box()),
+                P(100, 50, 10),
+                P(0, 50, 10)
+            );
             AssertEnds(new GeoXLine3(P(50, 50, 10), GeoVector3.XAxis).ClipTo(Box()), P(0, 50, 10), P(100, 50, 10));
         }
 
@@ -366,7 +378,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void ALineHalfAThousandthOverTheTop_IsClippedToTheBoxGrownByTheTolerance_AndTwoThousandthsOverGivesNothing()
         {
             // The grown box reaches 0.001 past each side, so the line runs from x = -0.001 to 100.001 at the height it has.
-            AssertEnds(new GeoXLine3(P(-50, 50, 20.0005), GeoVector3.XAxis).ClipTo(Box(), Strict), P(-0.001, 50, 20.0005), P(100.001, 50, 20.0005));
+            AssertEnds(
+                new GeoXLine3(P(-50, 50, 20.0005), GeoVector3.XAxis).ClipTo(Box(), Strict),
+                P(-0.001, 50, 20.0005),
+                P(100.001, 50, 20.0005)
+            );
             Assert.Null(new GeoXLine3(P(-50, 50, 20.002), GeoVector3.XAxis).ClipTo(Box(), Strict));
         }
 
@@ -387,7 +403,10 @@ namespace GeometryHelper.UnitTest.Solid
             var line = new GeoXLine3(P(-50, 50, 20.0005), GeoVector3.XAxis);
 
             Assert.Equal(line.ClipTo(Box(), Tolerance.Global), line.ClipTo(Box()));
-            Assert.Equal(new GeoXLine3(P(-50, 50, 10), GeoVector3.XAxis).ClipTo(Box(), Tolerance.Global), new GeoXLine3(P(-50, 50, 10), GeoVector3.XAxis).ClipTo(Box()));
+            Assert.Equal(
+                new GeoXLine3(P(-50, 50, 10), GeoVector3.XAxis).ClipTo(Box(), Tolerance.Global),
+                new GeoXLine3(P(-50, 50, 10), GeoVector3.XAxis).ClipTo(Box())
+            );
         }
 
         #endregion
@@ -482,7 +501,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(0.0, along.DistanceTo(new GeoXLine3(P(0, 0, 0), GeoVector3.YAxis)), 9);
 
             // The floor and the wall x = 100 meet in the line along Y through (100, 0, 0).
-            Assert.True(GeoPlane3.XY.TryGetIntersectionLine(new GeoPlane3(P(100, 0, 0), GeoVector3.XAxis), out GeoXLine3 shared));
+            Assert.True(
+                GeoPlane3.XY.TryGetIntersectionLine(new GeoPlane3(P(100, 0, 0), GeoVector3.XAxis), out GeoXLine3 shared)
+            );
             AssertNear(P(100, 0, 0), shared.Origin, 1E-9);
             Assert.Equal(1.0, shared.Direction.Y, 12);
         }

@@ -11,7 +11,11 @@ namespace GeometryHelper.Drawing.Wpf
     {
         /// <summary>Identifies the <see cref="Chosen"/> property.</summary>
         public static readonly DependencyProperty ChosenProperty = DependencyProperty.Register(
-            nameof(Chosen), typeof(object), typeof(ChoiceChip), new PropertyMetadata(null, (d, e) => ((ChoiceChip)d).Sync()));
+            nameof(Chosen),
+            typeof(object),
+            typeof(ChoiceChip),
+            new PropertyMetadata(null, (d, e) => ((ChoiceChip)d).Sync())
+        );
 
         /// <summary>Gets or sets the value chosen; the chip is checked while its content equals it.</summary>
         public object Chosen
@@ -28,9 +32,7 @@ namespace GeometryHelper.Drawing.Wpf
         }
 
         /// <summary>Does not check the chip: the command chooses, and <see cref="Chosen"/> says.</summary>
-        protected override void OnToggle()
-        {
-        }
+        protected override void OnToggle() { }
 
         private void Sync() => SetCurrentValue(IsCheckedProperty, Equals(Content, Chosen));
     }

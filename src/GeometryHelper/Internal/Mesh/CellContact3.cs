@@ -27,7 +27,15 @@ namespace GeometryHelper.Core
         /// <param name="joint">The gap between neighbouring cells; with one, no cell meets another.</param>
         /// <param name="tolerance">The tolerance the cells were cut within.</param>
         /// <param name="asked">The tolerance the cells were asked within: below a millionth, cells meet over more than a strip.</param>
-        public static int[][] Adjacency(GeoCell3[] cells, double[][] starts, double[][] ends, GeoCoordinateSystem3 frame, double joint, Tolerance tolerance, Tolerance asked)
+        public static int[][] Adjacency(
+            GeoCell3[] cells,
+            double[][] starts,
+            double[][] ends,
+            GeoCoordinateSystem3 frame,
+            double joint,
+            Tolerance tolerance,
+            Tolerance asked
+        )
         {
             var adjacent = new List<int>[cells.Length];
 
@@ -82,7 +90,14 @@ namespace GeometryHelper.Core
             private readonly List<Laid>[] _laid;
             private readonly double _strip;
 
-            public Search(GeoCell3[] cells, double[][] starts, double[][] ends, GeoCoordinateSystem3 frame, Tolerance tolerance, Tolerance asked)
+            public Search(
+                GeoCell3[] cells,
+                double[][] starts,
+                double[][] ends,
+                GeoCoordinateSystem3 frame,
+                Tolerance tolerance,
+                Tolerance asked
+            )
             {
                 _cells = cells;
                 _starts = starts;
@@ -103,7 +118,10 @@ namespace GeometryHelper.Core
                     for (int a = 0; a < 3; a++)
                     {
                         int index = IndexOf(cells[n], a);
-                        stray[a] = Math.Max(stray[a], Math.Max(starts[a][index] - _min[n][a], _max[n][a] - ends[a][index]));
+                        stray[a] = Math.Max(
+                            stray[a],
+                            Math.Max(starts[a][index] - _min[n][a], _max[n][a] - ends[a][index])
+                        );
                     }
                 }
 
@@ -126,12 +144,23 @@ namespace GeometryHelper.Core
 
                 for (int corner = 0; corner < 8 && cells.Length > 0; corner++)
                 {
-                    GeoPoint3 world = frame.ToGlobal(new GeoPoint3(
-                        (corner & 1) == 0 ? low[0] : high[0], (corner & 2) == 0 ? low[1] : high[1], (corner & 4) == 0 ? low[2] : high[2]));
-                    reach = Math.Max(reach, Math.Max(Math.Abs(world.X), Math.Max(Math.Abs(world.Y), Math.Abs(world.Z))));
+                    GeoPoint3 world = frame.ToGlobal(
+                        new GeoPoint3(
+                            (corner & 1) == 0 ? low[0] : high[0],
+                            (corner & 2) == 0 ? low[1] : high[1],
+                            (corner & 4) == 0 ? low[2] : high[2]
+                        )
+                    );
+                    reach = Math.Max(
+                        reach,
+                        Math.Max(Math.Abs(world.X), Math.Max(Math.Abs(world.Y), Math.Abs(world.Z)))
+                    );
                 }
 
-                _strip = asked.EqualPoint < Splition3.RaisedBelow ? Math.Max(tolerance.EqualPoint, 1E-12 * (1.0 + reach)) : 0.0;
+                _strip =
+                    asked.EqualPoint < Splition3.RaisedBelow
+                        ? Math.Max(tolerance.EqualPoint, 1E-12 * (1.0 + reach))
+                        : 0.0;
 
                 // The lines along each axis whose cells can reach those of a line: their spans grown by the stray overlap.
                 _from = new int[3][];
@@ -224,7 +253,11 @@ namespace GeometryHelper.Core
                                 }
 
                                 // Cut apart by one plane: the one bounding the first from above bounds the other from below.
-                                for (int s = LowerBound(list, high - near); s < list.Count && list[s].At <= high + near; s++)
+                                for (
+                                    int s = LowerBound(list, high - near);
+                                    s < list.Count && list[s].At <= high + near;
+                                    s++
+                                )
                                 {
                                     int m = list[s].Cell;
 
@@ -240,11 +273,15 @@ namespace GeometryHelper.Core
                 }
             }
 
-            private static int IndexOf(GeoCell3 cell, int axis) => axis == 0 ? cell.I : axis == 1 ? cell.J : cell.K;
+            private static int IndexOf(GeoCell3 cell, int axis) =>
+                axis == 0 ? cell.I
+                : axis == 1 ? cell.J
+                : cell.K;
 
             private static int LowerBound(List<(double At, int Cell)> list, double at)
             {
-                int low = 0, high = list.Count;
+                int low = 0,
+                    high = list.Count;
 
                 while (low < high)
                 {
@@ -310,8 +347,8 @@ namespace GeometryHelper.Core
             /// <summary>
             /// Whether the extents of two cells overlap across the plane between them, both ways.
             /// </summary>
-            private bool Across(int n, int m, int u, int v)
-                => Math.Min(_max[n][u], _max[m][u]) > Math.Max(_min[n][u], _min[m][u])
+            private bool Across(int n, int m, int u, int v) =>
+                Math.Min(_max[n][u], _max[m][u]) > Math.Max(_min[n][u], _min[m][u])
                 && Math.Min(_max[n][v], _max[m][v]) > Math.Max(_min[n][v], _min[m][v]);
 
             /// <summary>
@@ -331,12 +368,16 @@ namespace GeometryHelper.Core
             {
                 double alongU = Math.Min(_max[below][u], _max[above][u]) - Math.Max(_min[below][u], _min[above][u]);
                 double alongV = Math.Min(_max[below][v], _max[above][v]) - Math.Max(_min[below][v], _min[above][v]);
-                double least = Math.Max(_tolerance.EqualPoint * _tolerance.EqualPoint, _strip * Math.Max(alongU, alongV));
+                double least = Math.Max(
+                    _tolerance.EqualPoint * _tolerance.EqualPoint,
+                    _strip * Math.Max(alongU, alongV)
+                );
 
                 if (_cells[below].Material != null && _cells[above].Material != null)
                 {
                     // Two boxes: their spans across the plane overlap.
-                    double area = (Math.Min(_max[below][u], _max[above][u]) - Math.Max(_min[below][u], _min[above][u]))
+                    double area =
+                        (Math.Min(_max[below][u], _max[above][u]) - Math.Max(_min[below][u], _min[above][u]))
                         * (Math.Min(_max[below][v], _max[above][v]) - Math.Max(_min[below][v], _min[above][v]));
                     return area > least;
                 }
@@ -349,7 +390,12 @@ namespace GeometryHelper.Core
                 {
                     foreach (Laid b in upper)
                     {
-                        if (!(Math.Min(a.MaxU, b.MaxU) > Math.Max(a.MinU, b.MinU) && Math.Min(a.MaxV, b.MaxV) > Math.Max(a.MinV, b.MinV)))
+                        if (
+                            !(
+                                Math.Min(a.MaxU, b.MaxU) > Math.Max(a.MinU, b.MinU)
+                                && Math.Min(a.MaxV, b.MaxV) > Math.Max(a.MinV, b.MinV)
+                            )
+                        )
                         {
                             continue;
                         }
@@ -382,7 +428,10 @@ namespace GeometryHelper.Core
                 GeoCell3 cell = _cells[n];
                 double at = side == 1 ? cell.High[axis] : cell.Low[axis];
                 double facing = side == 1 ? 1.0 : -1.0;
-                GeoVector3 direction = axis == 0 ? _frame.XAxis : axis == 1 ? _frame.YAxis : _frame.ZAxis;
+                GeoVector3 direction =
+                    axis == 0 ? _frame.XAxis
+                    : axis == 1 ? _frame.YAxis
+                    : _frame.ZAxis;
                 int u = (axis + 1) % 3;
                 int v = (axis + 2) % 3;
                 var laid = new List<Laid>();
@@ -413,7 +462,13 @@ namespace GeometryHelper.Core
                         }
                     }
 
-                    laid.Add(new Laid(new GeoFace2(new GeoPolygon2(boundary, boundary.Length), holes), boundary, holes.Count == 0 && IsConvex(boundary)));
+                    laid.Add(
+                        new Laid(
+                            new GeoFace2(new GeoPolygon2(boundary, boundary.Length), holes),
+                            boundary,
+                            holes.Count == 0 && IsConvex(boundary)
+                        )
+                    );
                 }
 
                 _laid[slot] = laid;
@@ -425,7 +480,10 @@ namespace GeometryHelper.Core
                 foreach (GeoPoint3 corner in face.Boundary.Vertices)
                 {
                     GeoPoint3 local = _frame.ToLocal(corner);
-                    double d = axis == 0 ? local.X : axis == 1 ? local.Y : local.Z;
+                    double d =
+                        axis == 0 ? local.X
+                        : axis == 1 ? local.Y
+                        : local.Z;
 
                     if (Math.Abs(d - at) > _tolerance.EqualPoint)
                     {
@@ -447,7 +505,14 @@ namespace GeometryHelper.Core
                 for (int i = 0; i < flat.Length; i++)
                 {
                     GeoPoint3 local = _frame.ToLocal(ring[i]);
-                    flat[i] = new GeoPoint2(u == 0 ? local.X : u == 1 ? local.Y : local.Z, v == 0 ? local.X : v == 1 ? local.Y : local.Z);
+                    flat[i] = new GeoPoint2(
+                        u == 0 ? local.X
+                            : u == 1 ? local.Y
+                            : local.Z,
+                        v == 0 ? local.X
+                            : v == 1 ? local.Y
+                            : local.Z
+                    );
                 }
 
                 GeoPolygon2 polygon = MeshLift3.LayOutPolygon(flat);
@@ -594,7 +659,9 @@ namespace GeometryHelper.Core
 
             for (int i = 1; i + 1 < output.Count; i++)
             {
-                twice += (output[i].X - first.X) * (output[i + 1].Y - first.Y) - (output[i].Y - first.Y) * (output[i + 1].X - first.X);
+                twice +=
+                    (output[i].X - first.X) * (output[i + 1].Y - first.Y)
+                    - (output[i].Y - first.Y) * (output[i + 1].X - first.X);
             }
 
             return Math.Max(0.0, 0.5 * twice);
@@ -603,6 +670,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Twice the signed area of the triangle a side and a point make: positive with the point on the side's left.
         /// </summary>
-        private static double Side(GeoPoint2 p, GeoPoint2 q, GeoPoint2 s) => (q.X - p.X) * (s.Y - p.Y) - (q.Y - p.Y) * (s.X - p.X);
+        private static double Side(GeoPoint2 p, GeoPoint2 q, GeoPoint2 s) =>
+            (q.X - p.X) * (s.Y - p.Y) - (q.Y - p.Y) * (s.X - p.X);
     }
 }

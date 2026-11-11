@@ -16,7 +16,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return document.GetPickIndex(document.ModelSpace);
         }
 
-        private static string Point(double x, double y, string handle) => TestDrawings.Entity("POINT", "0", 256, handle, "10", x, "20", y, "30", 0.0);
+        private static string Point(double x, double y, string handle) =>
+            TestDrawings.Entity("POINT", "0", 256, handle, "10", x, "20", y, "30", 0.0);
 
         [Fact]
         public void APointIsANode_NotAnEndpoint_AsInAutoCAD()
@@ -24,7 +25,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             PickIndex index = Index(Point(30, 40, "B1"));
 
             CadSnapResult node = new ObjectSnap(Tight) { Modes = CadSnapModes.Node }.Snap(index, P(30.4, 39.7), 1.0);
-            CadSnapResult endpoint = new ObjectSnap(Tight) { Modes = CadSnapModes.Endpoint }.Snap(index, P(30.4, 39.7), 1.0);
+            CadSnapResult endpoint = new ObjectSnap(Tight) { Modes = CadSnapModes.Endpoint }.Snap(
+                index,
+                P(30.4, 39.7),
+                1.0
+            );
 
             Assert.Equal(CadSnapKind.Node, node.Kind);
             Near(P(30, 40), node.Point);
@@ -36,7 +41,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void AnLShapedPolylineGivesTheCentroidOfItsArea_FromItsOutlineOrNearTheCentroid()
         {
             // An L of 30 by 10 and 10 by 20: areas 300 at (15, 5) and 200 at (5, 20), the centroid (11, 11).
-            PickIndex index = Index(TestDrawings.Polyline("0", "C1", true, 0, 0, 0, 30, 0, 0, 30, 10, 0, 10, 10, 0, 10, 30, 0, 0, 30, 0));
+            PickIndex index = Index(
+                TestDrawings.Polyline("0", "C1", true, 0, 0, 0, 30, 0, 0, 30, 10, 0, 10, 10, 0, 10, 30, 0, 0, 30, 0)
+            );
             var snap = new ObjectSnap(Tight) { Modes = CadSnapModes.GeometricCenter };
 
             CadSnapResult fromOutline = snap.Snap(index, P(20, 10.3), 1.0);
@@ -52,7 +59,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void AnOpenPolylineAndASliverGiveNoGeometricCenter()
         {
             PickIndex open = Index(TestDrawings.Polyline("0", "C2", false, 0, 0, 0, 30, 0, 0, 30, 10, 0));
-            PickIndex sliver = Index(TestDrawings.Polyline("0", "C3", true, 0, 0, 0, 100, 0, 0, 100, 0.0001, 0, 0, 0.0001, 0));
+            PickIndex sliver = Index(
+                TestDrawings.Polyline("0", "C3", true, 0, 0, 0, 100, 0, 0, 100, 0.0001, 0, 0, 0.0001, 0)
+            );
             var snap = new ObjectSnap(new Tolerance(1E-3, 1E-5)) { Modes = CadSnapModes.GeometricCenter };
 
             Assert.Equal(CadSnapKind.None, snap.Snap(open, P(20, 0.3), 1.0).Kind);
@@ -63,7 +72,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void AnOverrideTakesItsSnapsAlone_WithOsnapOffToo_AndNoneTakesNoSnap()
         {
             PickIndex index = Index(TestDrawings.Line(0, 0, 100, 0, handle: "A1"));
-            var snap = new ObjectSnap(Tight) { Modes = CadSnapModes.Endpoint | CadSnapModes.Midpoint, IsOn = false, Override = CadSnapModes.Midpoint };
+            var snap = new ObjectSnap(Tight)
+            {
+                Modes = CadSnapModes.Endpoint | CadSnapModes.Midpoint,
+                IsOn = false,
+                Override = CadSnapModes.Midpoint,
+            };
 
             CadSnapResult overridden = snap.Snap(index, P(50.3, 0.2), 2.0);
             CadSnapResult endIgnored = snap.Snap(index, P(99.5, 0.4), 2.0);
@@ -113,7 +127,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(new[] { P(-h, -h), P(h, h) }, CadSnapMarker.Strokes(CadSnapKind.Intersection)[0].Points);
             Assert.Contains(CadSnapMarker.Strokes(CadSnapKind.Extension), s => s.IsDotted);
             Assert.Equal(2, CadSnapMarker.Strokes(CadSnapKind.Insertion).Count(s => s.IsClosed && s.Points.Count == 4));
-            Assert.Equal(new[] { P(-h, -h), P(-h, h), P(h, h) }, CadSnapMarker.Strokes(CadSnapKind.Perpendicular)[0].Points);
+            Assert.Equal(
+                new[] { P(-h, -h), P(-h, h), P(h, h) },
+                CadSnapMarker.Strokes(CadSnapKind.Perpendicular)[0].Points
+            );
 
             IReadOnlyList<CadMarkerStroke> tangent = CadSnapMarker.Strokes(CadSnapKind.Tangent);
             Assert.Equal(new[] { P(-h, -h), P(h, -h) }, tangent[1].Points);
@@ -137,14 +154,24 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             {
                 IReadOnlyList<CadMarkerStroke> strokes = CadSnapMarker.Strokes(kind);
 
-                if (kind == CadSnapKind.None || kind == CadSnapKind.Grid || kind == CadSnapKind.Ortho || kind == CadSnapKind.Polar)
+                if (
+                    kind == CadSnapKind.None
+                    || kind == CadSnapKind.Grid
+                    || kind == CadSnapKind.Ortho
+                    || kind == CadSnapKind.Polar
+                )
                 {
                     Assert.Empty(strokes);
                     continue;
                 }
 
                 Assert.NotEmpty(strokes);
-                Assert.All(strokes.SelectMany(s => s.Points), p => Assert.True(Math.Abs(p.X) <= CadSnapMarker.Size && Math.Abs(p.Y) <= CadSnapMarker.Size, kind + " " + p));
+                Assert.All(strokes.SelectMany(s => s.Points), p =>
+                    Assert.True(
+                        Math.Abs(p.X) <= CadSnapMarker.Size && Math.Abs(p.Y) <= CadSnapMarker.Size,
+                        kind + " " + p
+                    )
+                );
             }
         }
 

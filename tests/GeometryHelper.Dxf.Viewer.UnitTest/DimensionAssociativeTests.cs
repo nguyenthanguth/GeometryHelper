@@ -15,7 +15,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     /// </summary>
     public class DimensionAssociativeTests
     {
-        private static readonly ObjectSnap Snaps = new ObjectSnap(Tight) { Modes = CadSnapModes.Endpoint | CadSnapModes.Midpoint | CadSnapModes.Center | CadSnapModes.Quadrant };
+        private static readonly ObjectSnap Snaps = new ObjectSnap(Tight)
+        {
+            Modes = CadSnapModes.Endpoint | CadSnapModes.Midpoint | CadSnapModes.Center | CadSnapModes.Quadrant,
+        };
 
         /// <summary>Picks a point near the cursor with the object snaps on, as the window picks one.</summary>
         private static void Snap(CadCommandSession session, GeoPoint2 cursor)
@@ -26,7 +29,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         /// <summary>A blank drawing with a line from (0, 0) to (100, 0) and a DIMLINEAR snapped to both its ends, its line 20 above.</summary>
-        private static CadDocument LineWithDimension(out CadCommandSession session, out string line, out string dimension)
+        private static CadDocument LineWithDimension(
+            out CadCommandSession session,
+            out string line,
+            out string dimension
+        )
         {
             CadDocument document = Blank();
             session = Session(document);
@@ -40,7 +47,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return document;
         }
 
-        private static string Words(DxfDimension dimension) => dimension.DimBlock.OfType<DxfMText>().Single(m => !m.IsErased).Contents;
+        private static string Words(DxfDimension dimension) =>
+            dimension.DimBlock.OfType<DxfMText>().Single(m => !m.IsErased).Contents;
 
         [Fact]
         public void ADimLinearSnappedToTheEndsOfALine_IsTiedToItsStartAndItsEnd()
@@ -50,7 +58,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfDimAssoc assoc = Entity<DxfRotatedDimension>(document, handle).DimAssoc;
             Assert.NotNull(assoc);
             Assert.Equal(3, assoc.AssociativityFlags);
-            Assert.Equal(new[] { DxfOsnapType.StartPoint, DxfOsnapType.Endpoint }, assoc.PointReferences.Select(r => r.OsnapType));
+            Assert.Equal(
+                new[] { DxfOsnapType.StartPoint, DxfOsnapType.Endpoint },
+                assoc.PointReferences.Select(r => r.OsnapType)
+            );
             Assert.All(assoc.PointReferences, r => Assert.Equal(line, r.ObjectHandle));
             Assert.Equal(new[] { assoc.Handle }, Entity<DxfLine>(document, line).GetPersistentReactorIds());
             Assert.Equal("DIMLINEAR", document.NextUndo.Name);
@@ -138,8 +149,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         /// <summary>The boxes of the display items of an entity in model space, as the canvas has them now.</summary>
-        private static string Items(CadDocument document, string handle)
-            => string.Join(";", document.GetDisplay(document.ModelSpace).Items.Where(i => i.Handle == handle).Select(i => FormattableString.Invariant($"{i.Bounds.MinX:R},{i.Bounds.MinY:R},{i.Bounds.MaxX:R},{i.Bounds.MaxY:R}")));
+        private static string Items(CadDocument document, string handle) =>
+            string.Join(
+                ";",
+                document
+                    .GetDisplay(document.ModelSpace)
+                    .Items.Where(i => i.Handle == handle)
+                    .Select(i =>
+                        FormattableString.Invariant(
+                            $"{i.Bounds.MinX:R},{i.Bounds.MinY:R},{i.Bounds.MaxX:R},{i.Bounds.MaxY:R}"
+                        )
+                    )
+            );
 
         [Fact]
         public void TheEndOfTheLineDraggedByItsGrip_IsFollowed_AndOneUndoTakesBothBack()
@@ -181,7 +202,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [InlineData(120, 30, 50)]
         [InlineData(120, 10, 30)]
         [InlineData(120, -30, 20)]
-        public void AnEndOfTheLineMoved_LeavesTheDimensionLineAsFarBeyondTheNearerOrigin_AsAutoCadLeavesIt(double x, double y, double line)
+        public void AnEndOfTheLineMoved_LeavesTheDimensionLineAsFarBeyondTheNearerOrigin_AsAutoCadLeavesIt(
+            double x,
+            double y,
+            double line
+        )
         {
             // AutoCAD 2021: the line (0, 0)-(100, 0), its DIMLINEAR at y = 20, the end set to (120, 30), (120, 10) and (120, -30):
             // the dimension line at y = 50, 30 and 20, 20 beyond the origin nearer it.
@@ -213,7 +238,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             radius = Entity<DxfRadialDimension>(document, radius.Handle);
             Near(new GeoPoint3(200, 0, 0), radius.Center);
             Assert.Equal(50, (radius.ChordPoint - radius.Center).Length, 9);
-            Assert.Equal(0.0, Math.Abs(way.X * (radius.ChordPoint - radius.Center).Y - way.Y * (radius.ChordPoint - radius.Center).X), 6);
+            Assert.Equal(
+                0.0,
+                Math.Abs(way.X * (radius.ChordPoint - radius.Center).Y - way.Y * (radius.ChordPoint - radius.Center).X),
+                6
+            );
             Assert.Contains("50", Words(radius), StringComparison.Ordinal);
             Assert.Equal("SCALE", document.NextUndo.Name);
 
@@ -302,7 +331,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
-            Run(session, "LINE", P(0, 0), P(100, 0), Enter, "DIMLINEAR", P(0, 0), P(100, 0), P(50, 20), "LINE", P(0, -50), P(80, -50), Enter);
+            Run(
+                session,
+                "LINE",
+                P(0, 0),
+                P(100, 0),
+                Enter,
+                "DIMLINEAR",
+                P(0, 0),
+                P(100, 0),
+                P(50, 20),
+                "LINE",
+                P(0, -50),
+                P(80, -50),
+                Enter
+            );
             var dimension = Assert.Single(All<DxfRotatedDimension>(document.ModelSpace));
             string other = All<DxfLine>(document.ModelSpace).Single(l => l.StartPoint.Y < -1).Handle;
             Assert.Null(dimension.DimAssoc);
@@ -341,8 +384,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         /// <summary>The box of the entities of a dimension's picture.</summary>
-        private static GeoAabb3 PictureBox(DxfDimension dimension)
-            => dimension.DimBlock.Where(e => !e.IsErased).Aggregate(GeoAabb3.Empty, (box, e) => box.Union(e.GeometricExtents));
+        private static GeoAabb3 PictureBox(DxfDimension dimension) =>
+            dimension
+                .DimBlock.Where(e => !e.IsErased)
+                .Aggregate(GeoAabb3.Empty, (box, e) => box.Union(e.GeometricExtents));
 
         [Fact]
         public void ADimensionMadeHere_MovedOnItsOwn_TakesItsPictureWithIt_AsItsBlockIsItsOwn()
@@ -366,7 +411,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession again = Session(reopened);
             reopened.Selection.Set(new[] { dimension.Handle });
             Run(again, "MOVE", P(0, 0), P(10, 5));
-            Near(before.Min + new GeoVector3(20, 10, 0), PictureBox(Entity<DxfRotatedDimension>(reopened, dimension.Handle)).Min);
+            Near(
+                before.Min + new GeoVector3(20, 10, 0),
+                PictureBox(Entity<DxfRotatedDimension>(reopened, dimension.Handle)).Min
+            );
         }
 
         [Fact]
@@ -388,7 +436,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             document.Selection.Set(new[] { copy.Handle });
             Run(session, "MOVE", P(0, 0), P(30, 0));
-            Near(before.Min + new GeoVector3(30, 60, 0), PictureBox(Entity<DxfRotatedDimension>(document, copy.Handle)).Min);
+            Near(
+                before.Min + new GeoVector3(30, 60, 0),
+                PictureBox(Entity<DxfRotatedDimension>(document, copy.Handle)).Min
+            );
             Near(before.Min, PictureBox(Entity<DxfRotatedDimension>(document, original)).Min);
             AssertReopens(document);
         }
@@ -407,8 +458,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfRotatedDimension copy = All<DxfRotatedDimension>(document.ModelSpace).Single(d => d.Handle != handle);
             Assert.NotNull(copy.DimAssoc);
             Assert.All(copy.DimAssoc.PointReferences, r => Assert.Equal(copiedLine, r.ObjectHandle));
-            Assert.Equal(new[] { DxfOsnapType.StartPoint, DxfOsnapType.Endpoint }, copy.DimAssoc.PointReferences.Select(r => r.OsnapType));
-            Assert.All(Entity<DxfRotatedDimension>(document, handle).DimAssoc.PointReferences, r => Assert.Equal(line, r.ObjectHandle));
+            Assert.Equal(
+                new[] { DxfOsnapType.StartPoint, DxfOsnapType.Endpoint },
+                copy.DimAssoc.PointReferences.Select(r => r.OsnapType)
+            );
+            Assert.All(Entity<DxfRotatedDimension>(document, handle).DimAssoc.PointReferences, r =>
+                Assert.Equal(line, r.ObjectHandle)
+            );
             AssertReopens(document);
 
             document.Selection.Set(new[] { copiedLine });
@@ -423,7 +479,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [InlineData(0.0, -20.0, 20.0, 30.0, 124.851, 10.597)]
         [InlineData(0.0, 20.0, 0.0, 50.0, 91.0557, 67.889)]
         [InlineData(0.0, 30.0, 0.0, -100.0, 121.213, -78.787)]
-        public void AnAlignedDimensionWithOneEndStretched_KeepsItsLineAsFarFromTheLineMeasured_AsAutoCadKeepsIt(double x, double offset, double dx, double dy, double lineX, double lineY)
+        public void AnAlignedDimensionWithOneEndStretched_KeepsItsLineAsFarFromTheLineMeasured_AsAutoCadKeepsIt(
+            double x,
+            double offset,
+            double dx,
+            double dy,
+            double lineX,
+            double lineY
+        )
         {
             // The numbers are AutoCAD 2021's: an aligned dimension of a line from (0, 0) to (100, 0), its line 20 above, the
             // end stretched to (120, 30), has its dimension line point at (115.149, 49.4029): 20 from the line, square to it at

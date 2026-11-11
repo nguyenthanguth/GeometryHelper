@@ -33,8 +33,8 @@ namespace GeometryHelper.Viewer
         /// </summary>
         internal static GeoTriangle3[] Cut(GeoFace3 face) => CutFrom(face, FanFrom);
 
-        internal static GeoTriangle3[] CutFrom(GeoFace3 face, int fanFrom)
-            => TryFan(face, Tolerance.Global, fanFrom, out GeoTriangle3[] fan) ? fan : face.TriangulateSurface();
+        internal static GeoTriangle3[] CutFrom(GeoFace3 face, int fanFrom) =>
+            TryFan(face, Tolerance.Global, fanFrom, out GeoTriangle3[] fan) ? fan : face.TriangulateSurface();
 
         /// <summary>
         /// Cuts a face for the cap of a section, which can have no more corners than the library cuts in a second or so: a face with more that is not a convex fan is not cut.
@@ -103,14 +103,19 @@ namespace GeometryHelper.Viewer
             }
 
             GeoVector3 normal = face.GetPlane().Normal;
-            double nx = normal.X, ny = normal.Y, nz = normal.Z;
+            double nx = normal.X,
+                ny = normal.Y,
+                nz = normal.Z;
 
             // The size of the face, for the rounding the library's working has.
             double size = 0.0;
 
             for (int i = 1; i < n; i++)
             {
-                size = Math.Max(size, Math.Max(Math.Abs(x[i] - x[0]), Math.Max(Math.Abs(y[i] - y[0]), Math.Abs(z[i] - z[0]))));
+                size = Math.Max(
+                    size,
+                    Math.Max(Math.Abs(x[i] - x[0]), Math.Max(Math.Abs(y[i] - y[0]), Math.Abs(z[i] - z[0])))
+                );
             }
 
             if (!(size > 0.0))
@@ -127,8 +132,12 @@ namespace GeometryHelper.Viewer
             {
                 int p = (i + n - 1) % n;
                 int q = (i + 1) % n;
-                double ax = x[i] - x[p], ay = y[i] - y[p], az = z[i] - z[p];
-                double bx = x[q] - x[i], by = y[q] - y[i], bz = z[q] - z[i];
+                double ax = x[i] - x[p],
+                    ay = y[i] - y[p],
+                    az = z[i] - z[p];
+                double bx = x[q] - x[i],
+                    by = y[q] - y[i],
+                    bz = z[q] - z[i];
                 double la = Math.Sqrt(ax * ax + ay * ay + az * az);
                 double lb = Math.Sqrt(bx * bx + by * by + bz * bz);
 
@@ -150,8 +159,12 @@ namespace GeometryHelper.Viewer
                 perimeter += lb;
 
                 // Twice the area as the sum of the triangles from the first corner, along the normal.
-                double ux = x[i] - x[0], uy = y[i] - y[0], uz = z[i] - z[0];
-                double vx = x[q] - x[0], vy = y[q] - y[0], vz = z[q] - z[0];
+                double ux = x[i] - x[0],
+                    uy = y[i] - y[0],
+                    uz = z[i] - z[0];
+                double vx = x[q] - x[0],
+                    vy = y[q] - y[0],
+                    vz = z[q] - z[0];
                 twiceArea += (uy * vz - uz * vy) * nx + (uz * vx - ux * vz) * ny + (ux * vy - uy * vx) * nz;
             }
 
@@ -165,8 +178,12 @@ namespace GeometryHelper.Viewer
 
             for (int k = 0; k + 1 < last; k++)
             {
-                double ax = x[k] - x[last], ay = y[k] - y[last], az = z[k] - z[last];
-                double bx = x[k + 1] - x[last], by = y[k + 1] - y[last], bz = z[k + 1] - z[last];
+                double ax = x[k] - x[last],
+                    ay = y[k] - y[last],
+                    az = z[k] - z[last];
+                double bx = x[k + 1] - x[last],
+                    by = y[k + 1] - y[last],
+                    bz = z[k + 1] - z[last];
                 double la = Math.Sqrt(ax * ax + ay * ay + az * az);
                 double lb = Math.Sqrt(bx * bx + by * by + bz * bz);
                 double cross = (ay * bz - az * by) * nx + (az * bx - ax * bz) * ny + (ax * by - ay * bx) * nz;
@@ -202,7 +219,10 @@ namespace GeometryHelper.Viewer
 
             // The library's surface mesh drops a triangle only when it has no width, its narrowest width no more than a
             // millionth of the point tolerance, measured against its longest side (EarClipping.IsCollapsed).
-            double longest = Math.Max(a.GetDistanceSquaredTo(b), Math.Max(b.GetDistanceSquaredTo(c), c.GetDistanceSquaredTo(a)));
+            double longest = Math.Max(
+                a.GetDistanceSquaredTo(b),
+                Math.Max(b.GetDistanceSquaredTo(c), c.GetDistanceSquaredTo(a))
+            );
             double width = tolerance.EqualPoint * 1E-6;
 
             if (!(triangle.GetAreaVector().LengthSquared <= width * width * longest))

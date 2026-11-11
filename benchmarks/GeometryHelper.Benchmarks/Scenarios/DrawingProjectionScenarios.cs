@@ -31,11 +31,23 @@ namespace GeometryHelper.Benchmarks.Scenarios
 
         private static readonly Tolerance Within = Tolerance.Default;
 
-        private static readonly GeoCoordinateSystem3 Top = new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis);
+        private static readonly GeoCoordinateSystem3 Top = new GeoCoordinateSystem3(
+            GeoPoint3.Origin,
+            GeoVector3.XAxis,
+            GeoVector3.YAxis
+        );
 
-        private static readonly GeoCoordinateSystem3 Front = new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.ZAxis);
+        private static readonly GeoCoordinateSystem3 Front = new GeoCoordinateSystem3(
+            GeoPoint3.Origin,
+            GeoVector3.XAxis,
+            GeoVector3.ZAxis
+        );
 
-        private static readonly GeoCoordinateSystem3 Right = new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.YAxis, GeoVector3.ZAxis);
+        private static readonly GeoCoordinateSystem3 Right = new GeoCoordinateSystem3(
+            GeoPoint3.Origin,
+            GeoVector3.YAxis,
+            GeoVector3.ZAxis
+        );
 
         /// <summary>
         /// Every case of the projection.
@@ -56,13 +68,23 @@ namespace GeometryHelper.Benchmarks.Scenarios
 
             for (int column = 0; column < 5; column++)
             {
-                parts.AddRange(ColumnBase("TC10-000-" + column.ToString("000", CultureInfo.InvariantCulture), new GeoVector3(6000.0 * column, 0.0, 0.0)));
+                parts.AddRange(
+                    ColumnBase(
+                        "TC10-000-" + column.ToString("000", CultureInfo.InvariantCulture),
+                        new GeoVector3(6000.0 * column, 0.0, 0.0)
+                    )
+                );
             }
 
             ProjectionInput[] inputs = parts.ToArray();
             GeoCoordinateSystem3[] frames = { Top, Front, Right };
 
-            return Fixture.Of(() => frames.Select(f => ViewProjector.Project(inputs, f, Within)).ToArray(), Sign, Describe, null);
+            return Fixture.Of(
+                () => frames.Select(f => ViewProjector.Project(inputs, f, Within)).ToArray(),
+                Sign,
+                Describe,
+                null
+            );
         }
 
         /// <summary>
@@ -83,28 +105,71 @@ namespace GeometryHelper.Benchmarks.Scenarios
             GeoTransform3 move = GeoTransform3.Translation(at);
             var parts = new List<ProjectionInput>();
             GeoPoint2[] corners = { P(-150, -150), P(150, -150), P(-150, 150), P(150, 150) };
-            var plate = new GeoFace2(Rectangle(-200, -200, 200, 200), corners.Select(c => Circle(c.X, c.Y, 11, HoleSegments)).ToArray());
-            parts.Add(new ProjectionInput(prefix + "-base", GeoSolid3.Extrude(plate, GeoCoordinateSystem3.Global, 25, Within)));
+            var plate = new GeoFace2(
+                Rectangle(-200, -200, 200, 200),
+                corners.Select(c => Circle(c.X, c.Y, 11, HoleSegments)).ToArray()
+            );
+            parts.Add(
+                new ProjectionInput(prefix + "-base", GeoSolid3.Extrude(plate, GeoCoordinateSystem3.Global, 25, Within))
+            );
 
-            var columnPlacement = new GeoCoordinateSystem3(new GeoPoint3(0, 0, 25), GeoVector3.YAxis.Negate(), GeoVector3.XAxis);
-            parts.Add(new ProjectionInput(prefix + "-column", GeoSolid3.Extrude(ISection(250, 250, 14, 9), columnPlacement, 1000, Within)));
+            var columnPlacement = new GeoCoordinateSystem3(
+                new GeoPoint3(0, 0, 25),
+                GeoVector3.YAxis.Negate(),
+                GeoVector3.XAxis
+            );
+            parts.Add(
+                new ProjectionInput(
+                    prefix + "-column",
+                    GeoSolid3.Extrude(ISection(250, 250, 14, 9), columnPlacement, 1000, Within)
+                )
+            );
 
             // Two stiffeners on the outsides of the flanges, in the world's XZ, and two on the sides of the web, in YZ.
             var inXz = new GeoCoordinateSystem3(new GeoPoint3(0, 5, 0), GeoVector3.XAxis, GeoVector3.ZAxis);
             var inYz = new GeoCoordinateSystem3(new GeoPoint3(-5, 0, 0), GeoVector3.YAxis, GeoVector3.ZAxis);
-            GeoPolygon2[] flangeSides = { new GeoPolygon2(P(125, 25), P(200, 25), P(125, 175)), new GeoPolygon2(P(-200, 25), P(-125, 25), P(-125, 175)) };
-            GeoPolygon2[] webSides = { new GeoPolygon2(P(4.5, 25), P(200, 25), P(4.5, 175)), new GeoPolygon2(P(-200, 25), P(-4.5, 25), P(-4.5, 175)) };
+            GeoPolygon2[] flangeSides =
+            {
+                new GeoPolygon2(P(125, 25), P(200, 25), P(125, 175)),
+                new GeoPolygon2(P(-200, 25), P(-125, 25), P(-125, 175)),
+            };
+            GeoPolygon2[] webSides =
+            {
+                new GeoPolygon2(P(4.5, 25), P(200, 25), P(4.5, 175)),
+                new GeoPolygon2(P(-200, 25), P(-4.5, 25), P(-4.5, 175)),
+            };
 
             for (int i = 0; i < 2; i++)
             {
-                parts.Add(new ProjectionInput(prefix + "-stiffener-" + (i + 1), GeoSolid3.Extrude(flangeSides[i], inXz, 10, Within)));
-                parts.Add(new ProjectionInput(prefix + "-stiffener-" + (i + 3), GeoSolid3.Extrude(webSides[i], inYz, 10, Within)));
+                parts.Add(
+                    new ProjectionInput(
+                        prefix + "-stiffener-" + (i + 1),
+                        GeoSolid3.Extrude(flangeSides[i], inXz, 10, Within)
+                    )
+                );
+                parts.Add(
+                    new ProjectionInput(
+                        prefix + "-stiffener-" + (i + 3),
+                        GeoSolid3.Extrude(webSides[i], inYz, 10, Within)
+                    )
+                );
             }
 
             for (int i = 0; i < corners.Length; i++)
             {
                 var start = new GeoPoint3(corners[i].X, corners[i].Y, -30);
-                parts.Add(new ProjectionInput(prefix + "-bolt-" + (i + 1), GeoSolid3.Cylinder(start, new GeoPoint3(corners[i].X, corners[i].Y, 50), 10, HoleSegments, Within)));
+                parts.Add(
+                    new ProjectionInput(
+                        prefix + "-bolt-" + (i + 1),
+                        GeoSolid3.Cylinder(
+                            start,
+                            new GeoPoint3(corners[i].X, corners[i].Y, 50),
+                            10,
+                            HoleSegments,
+                            Within
+                        )
+                    )
+                );
             }
 
             return parts.Select(p => new ProjectionInput(p.Id, p.Solid.TransformBy(move)));
@@ -125,19 +190,40 @@ namespace GeometryHelper.Benchmarks.Scenarios
                 {
                     for (int j = 0; j < 10; j++)
                     {
-                        double x = i * 6000.0, y = j * 6000.0;
-                        string at = level.ToString(CultureInfo.InvariantCulture) + "-" + i.ToString("00", CultureInfo.InvariantCulture) + "-" + j.ToString("00", CultureInfo.InvariantCulture);
+                        double x = i * 6000.0,
+                            y = j * 6000.0;
+                        string at =
+                            level.ToString(CultureInfo.InvariantCulture)
+                            + "-"
+                            + i.ToString("00", CultureInfo.InvariantCulture)
+                            + "-"
+                            + j.ToString("00", CultureInfo.InvariantCulture);
                         var up = new GeoCoordinateSystem3(new GeoPoint3(x, y, z0), GeoVector3.XAxis, GeoVector3.YAxis);
-                        members.Add(new ProjectionInput("C-" + at, GeoSolid3.Extrude(ISection(300, 300, 19, 11), up, 3600, Within)));
+                        members.Add(
+                            new ProjectionInput(
+                                "C-" + at,
+                                GeoSolid3.Extrude(ISection(300, 300, 19, 11), up, 3600, Within)
+                            )
+                        );
 
                         if (i < 9)
                         {
-                            members.Add(new ProjectionInput("BX-" + at, Beam(new GeoPoint3(x + 150, y, z0 + 3800), GeoVector3.XAxis, 5700)));
+                            members.Add(
+                                new ProjectionInput(
+                                    "BX-" + at,
+                                    Beam(new GeoPoint3(x + 150, y, z0 + 3800), GeoVector3.XAxis, 5700)
+                                )
+                            );
                         }
 
                         if (j < 9)
                         {
-                            members.Add(new ProjectionInput("BY-" + at, Beam(new GeoPoint3(x, y + 150, z0 + 3800), GeoVector3.YAxis, 5700)));
+                            members.Add(
+                                new ProjectionInput(
+                                    "BY-" + at,
+                                    Beam(new GeoPoint3(x, y + 150, z0 + 3800), GeoVector3.YAxis, 5700)
+                                )
+                            );
                         }
                     }
                 }
@@ -147,10 +233,19 @@ namespace GeometryHelper.Benchmarks.Scenarios
 
             for (int k = 0; k < plates; k++)
             {
-                int i = k % 9, j = (k / 9) % 9, level = k / 81;
-                double x = i * 6000.0 + 300, y = j * 6000.0 + 300, z = (level % 3) * 4000.0 + 4000;
+                int i = k % 9,
+                    j = (k / 9) % 9,
+                    level = k / 81;
+                double x = i * 6000.0 + 300,
+                    y = j * 6000.0 + 300,
+                    z = (level % 3) * 4000.0 + 4000;
                 var corner = new GeoCoordinateSystem3(new GeoPoint3(x, y, z), GeoVector3.XAxis, GeoVector3.YAxis);
-                members.Add(new ProjectionInput("P-" + k.ToString("000", CultureInfo.InvariantCulture), GeoSolid3.Extrude(Rectangle(0, 0, 5400, 5400), corner, 20, Within)));
+                members.Add(
+                    new ProjectionInput(
+                        "P-" + k.ToString("000", CultureInfo.InvariantCulture),
+                        GeoSolid3.Extrude(Rectangle(0, 0, 5400, 5400), corner, 20, Within)
+                    )
+                );
             }
 
             return members.ToArray();
@@ -166,15 +261,41 @@ namespace GeometryHelper.Benchmarks.Scenarios
         /// <summary>An I-section centred on the origin: across along X, up along Y.</summary>
         private static GeoPolygon2 ISection(double depth, double width, double flange, double web)
         {
-            double w = width / 2, d = depth / 2, t = web / 2, f = d - flange;
-            return new GeoPolygon2(P(-w, -d), P(w, -d), P(w, -f), P(t, -f), P(t, f), P(w, f), P(w, d), P(-w, d), P(-w, f), P(-t, f), P(-t, -f), P(-w, -f));
+            double w = width / 2,
+                d = depth / 2,
+                t = web / 2,
+                f = d - flange;
+            return new GeoPolygon2(
+                P(-w, -d),
+                P(w, -d),
+                P(w, -f),
+                P(t, -f),
+                P(t, f),
+                P(w, f),
+                P(w, d),
+                P(-w, d),
+                P(-w, f),
+                P(-t, f),
+                P(-t, -f),
+                P(-w, -f)
+            );
         }
 
         /// <summary>A circle of n corners, the first on the line of X from its centre, anticlockwise.</summary>
-        private static GeoPolygon2 Circle(double x, double y, double radius, int corners)
-            => new GeoPolygon2(Enumerable.Range(0, corners).Select(i => P(x + radius * Math.Cos(2 * Math.PI * i / corners), y + radius * Math.Sin(2 * Math.PI * i / corners))));
+        private static GeoPolygon2 Circle(double x, double y, double radius, int corners) =>
+            new GeoPolygon2(
+                Enumerable
+                    .Range(0, corners)
+                    .Select(i =>
+                        P(
+                            x + radius * Math.Cos(2 * Math.PI * i / corners),
+                            y + radius * Math.Sin(2 * Math.PI * i / corners)
+                        )
+                    )
+            );
 
-        private static GeoPolygon2 Rectangle(double x0, double y0, double x1, double y1) => new GeoPolygon2(P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1));
+        private static GeoPolygon2 Rectangle(double x0, double y0, double x1, double y1) =>
+            new GeoPolygon2(P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1));
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
@@ -221,7 +342,10 @@ namespace GeometryHelper.Benchmarks.Scenarios
             }
         }
 
-        private static string Describe(ProjectedView2[] views)
-            => Report.Count(views.Sum(v => (long)v.VisibleEdges.Count)) + " seen, " + Report.Count(views.Sum(v => (long)v.HiddenEdges.Count)) + " hidden";
+        private static string Describe(ProjectedView2[] views) =>
+            Report.Count(views.Sum(v => (long)v.VisibleEdges.Count))
+            + " seen, "
+            + Report.Count(views.Sum(v => (long)v.HiddenEdges.Count))
+            + " hidden";
     }
 }

@@ -109,14 +109,25 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void EverySetterGivenItsOwnValue_ChangesNothing()
         {
-            foreach (string text in new[] { DxfDimensionDrawings.R12, DxfDimensionDrawings.R2000, DxfDimensionDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfDimensionDrawings.R12,
+                    DxfDimensionDrawings.R2000,
+                    DxfDimensionDrawings.R2018,
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
                 byte[] before = Saved(db);
 
                 foreach (DxfDimStyleTableRecord style in db.DimStyleTable)
                 {
-                    foreach (var property in typeof(DxfDimStyleTableRecord).GetProperties().Where(p => p.CanWrite && p.Name.StartsWith("Dim", StringComparison.Ordinal)))
+                    foreach (
+                        var property in typeof(DxfDimStyleTableRecord)
+                            .GetProperties()
+                            .Where(p => p.CanWrite && p.Name.StartsWith("Dim", StringComparison.Ordinal))
+                    )
                     {
                         property.SetValue(style, property.GetValue(style));
                     }
@@ -180,13 +191,31 @@ namespace GeometryHelper.UnitTest.Dxf
         public void AVariableAFileIsTooOldFor_IsRefused()
         {
             DxfDatabase r12 = DxfDatabase.Parse(DxfDimensionDrawings.R12);
-            Refused<InvalidOperationException>(() => r12.DimStyleTable["Standard"].Dimdec = 2, "DIMDEC, which came with R2000");
+            Refused<InvalidOperationException>(
+                () => r12.DimStyleTable["Standard"].Dimdec = 2,
+                "DIMDEC, which came with R2000"
+            );
 
             DxfDatabase r2000 = DxfDatabase.Parse(DxfDimensionDrawings.R2000);
-            Refused<InvalidOperationException>(() => r2000.DimStyleTable["Standard"].Dimtfill = 1, "DIMTFILL, which came with R2007");
-            Refused<ArgumentException>(() => r2000.DimStyleTable["Standard"].Dimclrd = DxfColor.FromRgb(255, 128, 0), "colour of AutoCAD's index");
-            Refused<ArgumentOutOfRangeException>(() => r2000.DimStyleTable["Standard"].Dimasz = double.NaN, "finite number");
-            Refused<ArgumentException>(() => r2000.DimStyleTable["Standard"].Dimblk = DxfDatabase.Parse(DxfDimensionDrawings.R2018).BlockTable["_OPEN"], "same drawing");
+            Refused<InvalidOperationException>(
+                () => r2000.DimStyleTable["Standard"].Dimtfill = 1,
+                "DIMTFILL, which came with R2007"
+            );
+            Refused<ArgumentException>(
+                () => r2000.DimStyleTable["Standard"].Dimclrd = DxfColor.FromRgb(255, 128, 0),
+                "colour of AutoCAD's index"
+            );
+            Refused<ArgumentOutOfRangeException>(
+                () => r2000.DimStyleTable["Standard"].Dimasz = double.NaN,
+                "finite number"
+            );
+            Refused<ArgumentException>(
+                () =>
+                    r2000.DimStyleTable["Standard"].Dimblk = DxfDatabase.Parse(DxfDimensionDrawings.R2018).BlockTable[
+                        "_OPEN"
+                    ],
+                "same drawing"
+            );
 
             // Nothing was written.
             Assert.Equal(DxfDimensionDrawings.R12, r12.ToText());
@@ -207,7 +236,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Refused<ArgumentOutOfRangeException>(() => style.Dimlwe = (DxfLineWeight)8, "lineweights");
         }
 
-        private static void Refused<T>(Action action, string part) where T : Exception
+        private static void Refused<T>(Action action, string part)
+            where T : Exception
         {
             T refused = Assert.Throws<T>(action);
             Assert.Contains(part, refused.Message, StringComparison.Ordinal);
@@ -233,11 +263,24 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AStyleAdded_IsWrittenWhole_ItsHandleAs105_AndReadBack()
         {
-            foreach (string text in new[] { DxfDimensionDrawings.R12, DxfDimensionDrawings.R2000, DxfDimensionDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfDimensionDrawings.R12,
+                    DxfDimensionDrawings.R2000,
+                    DxfDimensionDrawings.R2018,
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
                 bool r12 = text == DxfDimensionDrawings.R12;
-                var made = new DxfDimStyleTableRecord { Name = "GH_NEW", Dimasz = 2.5, Dimtxt = 3.5, Dimblk = db.BlockTable["_DOT"] };
+                var made = new DxfDimStyleTableRecord
+                {
+                    Name = "GH_NEW",
+                    Dimasz = 2.5,
+                    Dimtxt = 3.5,
+                    Dimblk = db.BlockTable["_DOT"],
+                };
 
                 if (!r12)
                 {
@@ -248,7 +291,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 db.DimStyleTable.Add(made);
 
                 Assert.Same(made, db.DimStyleTable["gh_new"]);
-                Refused<ArgumentException>(() => db.DimStyleTable.Add(new DxfDimStyleTableRecord { Name = "Gh_New" }), "has a record named Gh_New already");
+                Refused<ArgumentException>(
+                    () => db.DimStyleTable.Add(new DxfDimStyleTableRecord { Name = "Gh_New" }),
+                    "has a record named Gh_New already"
+                );
                 string saved = db.ToText();
                 string record = Records(saved).Single(r => r.Contains("\n  2\nGH_NEW\n"));
                 Assert.StartsWith("  0\nDIMSTYLE\n105\n", record, StringComparison.Ordinal);
@@ -276,7 +322,11 @@ namespace GeometryHelper.UnitTest.Dxf
             string saved = db.ToText();
             string handle = made.Handle;
 
-            Assert.Contains("100\nAcDbDimStyleTable\n 71\n2\n340\n27\n340\n" + handle + "\n", saved, StringComparison.Ordinal);
+            Assert.Contains(
+                "100\nAcDbDimStyleTable\n 71\n2\n340\n27\n340\n" + handle + "\n",
+                saved,
+                StringComparison.Ordinal
+            );
             Assert.Contains("\n 70\n2\n100\nAcDbDimStyleTable", saved, StringComparison.Ordinal);
 
             made.Erase();
@@ -297,9 +347,15 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.DoesNotContain("GH_DIM", saved, StringComparison.Ordinal);
             Assert.Contains("\n  2\nGH_25$0\n", saved, StringComparison.Ordinal);
             DxfDatabase read = DxfDatabase.Parse(saved);
-            Assert.Equal("GH_25", read.ModelSpace.OfType<DxfDimension>().Single(d => d.Handle == "4D").DimensionStyleName);
+            Assert.Equal(
+                "GH_25",
+                read.ModelSpace.OfType<DxfDimension>().Single(d => d.Handle == "4D").DimensionStyleName
+            );
             Assert.Equal(3.5, read.ModelSpace.OfType<DxfDimension>().Single(d => d.Handle == "80").Dimasz);
-            Refused<ArgumentException>(() => db.DimStyleTable["GH_25"].Name = "standard", "has a style named standard already");
+            Refused<ArgumentException>(
+                () => db.DimStyleTable["GH_25"].Name = "standard",
+                "has a style named standard already"
+            );
         }
 
         [Fact]
@@ -318,28 +374,41 @@ namespace GeometryHelper.UnitTest.Dxf
             Refused<InvalidOperationException>(() => empty.Dimasz = 3.0, "is erased");
             string saved = db.ToText();
             Assert.DoesNotContain("GH_EMPTY", saved, StringComparison.Ordinal);
-            Assert.Contains("  2\nDIMSTYLE\n  5\n4\n330\n0\n100\nAcDbSymbolTable\n 70\n2\n", saved, StringComparison.Ordinal);
+            Assert.Contains(
+                "  2\nDIMSTYLE\n  5\n4\n330\n0\n100\nAcDbSymbolTable\n 70\n2\n",
+                saved,
+                StringComparison.Ordinal
+            );
         }
 
         #endregion
 
         /// <summary>A drawing of R2000 whose DIMSTYLE table lists its one style in its head (71, 340), as AutoCAD writes one.</summary>
-        private static string AutoCADHead()
-            => "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1015\n  9\n$HANDSEED\n  5\n100\n  0\nENDSEC\n"
+        private static string AutoCADHead() =>
+            "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1015\n  9\n$HANDSEED\n  5\n100\n  0\nENDSEC\n"
             + "  0\nSECTION\n  2\nTABLES\n"
             + "  0\nTABLE\n  2\nDIMSTYLE\n  5\nA\n330\n0\n100\nAcDbSymbolTable\n 70\n1\n100\nAcDbDimStyleTable\n 71\n1\n340\n27\n"
             + "  0\nDIMSTYLE\n105\n27\n330\nA\n100\nAcDbSymbolTableRecord\n100\nAcDbDimStyleTableRecord\n  2\nStandard\n 70\n0\n"
             + "  0\nENDTAB\n  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n  0\nENDSEC\n  0\nEOF\n";
 
         /// <summary>The DIMSTYLE record of a handle (its 105) in a text.</summary>
-        private static string StyleRecord(string text, string handle)
-            => Records(text).Single(r => r.StartsWith("  0\nDIMSTYLE\n105\n" + handle + "\n", StringComparison.Ordinal));
+        private static string StyleRecord(string text, string handle) =>
+            Records(text).Single(r => r.StartsWith("  0\nDIMSTYLE\n105\n" + handle + "\n", StringComparison.Ordinal));
 
         /// <summary>The untouched rule for DIMSTYLE records, whose handles are 105: only those of the handles given differ.</summary>
         private static void OnlyStylesChanged(string before, string after, params string[] handles)
         {
             Differ(before, after, out List<string> gone, out List<string> come);
-            string[] changed = gone.Concat(come).Where(r => !r.Contains("\nHEADER\n")).Select(r => r.StartsWith("  0\nDIMSTYLE\n105\n", StringComparison.Ordinal) ? r.Split('\n')[3].Trim() : HandleOf(r)).Distinct().OrderBy(h => h, StringComparer.Ordinal).ToArray();
+            string[] changed = gone.Concat(come)
+                .Where(r => !r.Contains("\nHEADER\n"))
+                .Select(r =>
+                    r.StartsWith("  0\nDIMSTYLE\n105\n", StringComparison.Ordinal)
+                        ? r.Split('\n')[3].Trim()
+                        : HandleOf(r)
+                )
+                .Distinct()
+                .OrderBy(h => h, StringComparer.Ordinal)
+                .ToArray();
             Assert.Equal(handles.OrderBy(h => h, StringComparer.Ordinal).ToArray(), changed);
         }
     }

@@ -222,7 +222,14 @@ namespace GeometryHelper.Export
                 Vertex(triangle.A);
                 Vertex(triangle.B);
                 Vertex(triangle.C);
-                _text.Append("f ").Append(_vertices - 2).Append(' ').Append(_vertices - 1).Append(' ').Append(_vertices).Append('\n');
+                _text
+                    .Append("f ")
+                    .Append(_vertices - 2)
+                    .Append(' ')
+                    .Append(_vertices - 1)
+                    .Append(' ')
+                    .Append(_vertices)
+                    .Append('\n');
             }
 
             return this;
@@ -271,7 +278,14 @@ namespace GeometryHelper.Export
                     Vertex(triangle.A);
                     Vertex(triangle.B);
                     Vertex(triangle.C);
-                    _text.Append("f ").Append(_vertices - 2).Append(' ').Append(_vertices - 1).Append(' ').Append(_vertices).Append('\n');
+                    _text
+                        .Append("f ")
+                        .Append(_vertices - 2)
+                        .Append(' ')
+                        .Append(_vertices - 1)
+                        .Append(' ')
+                        .Append(_vertices)
+                        .Append('\n');
                 }
             }
 
@@ -356,7 +370,10 @@ namespace GeometryHelper.Export
             // As the member has always checked it: infinity is a tolerance, and gives one chord to a bend.
             if (double.IsNaN(chordTolerance) || chordTolerance <= 0.0)
             {
-                throw new ArgumentOutOfRangeException(nameof(chordTolerance), "A chord tolerance has to be a positive number.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(chordTolerance),
+                    "A chord tolerance has to be a positive number."
+                );
             }
 
             return Line(Chords.Of(chain, chordTolerance), name);
@@ -516,7 +533,8 @@ namespace GeometryHelper.Export
         /// </remarks>
         /// <exception cref="ArgumentException">Thrown when the line has no direction, as a <c>default</c> one has.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the length is negative, NaN or infinite.</exception>
-        public ObjWriter Add(GeoXLine3 xline, double length, string name = null) => Add(Chords.Segment(xline, length), name);
+        public ObjWriter Add(GeoXLine3 xline, double length, string name = null) =>
+            Add(Chords.Segment(xline, length), name);
 
         /// <summary>
         /// Adds a segment as a line.
@@ -549,7 +567,14 @@ namespace GeometryHelper.Export
 
         private static string CellLabel(string prefix, GeoCell3 cell)
         {
-            string label = string.Format(CultureInfo.InvariantCulture, "{0}_{1}_{2}_{3}", prefix, cell.I, cell.J, cell.K);
+            string label = string.Format(
+                CultureInfo.InvariantCulture,
+                "{0}_{1}_{2}_{3}",
+                prefix,
+                cell.I,
+                cell.J,
+                cell.K
+            );
 
             if (cell.Piece > 0)
             {
@@ -626,16 +651,23 @@ namespace GeometryHelper.Export
         private void Begin(string name)
         {
             _objects++;
-            _text.Append("o ").Append(string.IsNullOrWhiteSpace(name) ? "shape" + _objects : name.Replace(' ', '_')).Append('\n');
+            _text
+                .Append("o ")
+                .Append(string.IsNullOrWhiteSpace(name) ? "shape" + _objects : name.Replace(' ', '_'))
+                .Append('\n');
         }
 
         private void Vertex(GeoPoint3 point)
         {
             _vertices++;
-            _text.Append("v ")
-                .Append(Numbers.Exact(point.X)).Append(' ')
-                .Append(Numbers.Exact(point.Y)).Append(' ')
-                .Append(Numbers.Exact(point.Z)).Append('\n');
+            _text
+                .Append("v ")
+                .Append(Numbers.Exact(point.X))
+                .Append(' ')
+                .Append(Numbers.Exact(point.Y))
+                .Append(' ')
+                .Append(Numbers.Exact(point.Z))
+                .Append('\n');
         }
     }
 }

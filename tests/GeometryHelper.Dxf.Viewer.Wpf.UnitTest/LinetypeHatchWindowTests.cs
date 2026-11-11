@@ -48,7 +48,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 MainViewModel model = Room(folder);
                 model.ShowLinetypeManager = manager =>
                 {
-                    Assert.Equal(new[] { "ByLayer", "ByBlock", "Continuous" }, manager.Rows.Select(r => r.Name).ToArray());
+                    Assert.Equal(
+                        new[] { "ByLayer", "ByBlock", "Continuous" },
+                        manager.Rows.Select(r => r.Name).ToArray()
+                    );
                     Assert.Equal("Current Linetype: ByLayer", manager.CurrentText);
 
                     var load = new LoadLinetypesViewModel(manager.Document) { File = CadLinetypeFile.BuiltInName };
@@ -58,7 +61,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     manager.PickLinetypes = dialog => true;
                     manager.Add(load.Chosen, load.FilePath);
                     Assert.True(manager.Rows.Single(r => r.Name == "DASHED").IsPending);
-                    Assert.Equal("M0,5 L32,5 M40,5 L72,5 M80,5 L112,5", manager.Rows.Single(r => r.Name == "DASHED").Appearance);
+                    Assert.Equal(
+                        "M0,5 L32,5 M40,5 L72,5 M80,5 L112,5",
+                        manager.Rows.Single(r => r.Name == "DASHED").Appearance
+                    );
 
                     manager.SelectedRow = manager.Rows.Single(r => r.Name == "CENTER");
                     manager.MakeCurrent();
@@ -91,7 +97,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             using (var folder = new TestFolder())
             {
                 MainViewModel model = Room(folder);
-                CadLinetypes.Load(model.Document, CadLinetypeFile.BuiltIn.Where(l => l.Name == "HIDDEN" || l.Name == "DOT"), CadLinetypeFile.BuiltInName);
+                CadLinetypes.Load(
+                    model.Document,
+                    CadLinetypeFile.BuiltIn.Where(l => l.Name == "HIDDEN" || l.Name == "DOT"),
+                    CadLinetypeFile.BuiltInName
+                );
                 CadLayerEditor.SetLinetype(model.Document, "COLUMNS", "HIDDEN");
                 LinetypeManagerViewModel manager = model.CreateLinetypeManager();
 
@@ -124,8 +134,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             using (var folder = new TestFolder())
             {
                 MainViewModel model = Room(folder);
-                CadLinetypes.Load(model.Document, CadLinetypeFile.BuiltIn.Where(l => l.Name == "PHANTOM"), CadLinetypeFile.BuiltInName);
-                Assert.Equal(new[] { "ByLayer", "ByBlock", "Continuous", "PHANTOM", MainViewModel.OtherLinetypeOption }, model.CurrentLinetypeOptions.ToArray());
+                CadLinetypes.Load(
+                    model.Document,
+                    CadLinetypeFile.BuiltIn.Where(l => l.Name == "PHANTOM"),
+                    CadLinetypeFile.BuiltInName
+                );
+                Assert.Equal(
+                    new[] { "ByLayer", "ByBlock", "Continuous", "PHANTOM", MainViewModel.OtherLinetypeOption },
+                    model.CurrentLinetypeOptions.ToArray()
+                );
 
                 model.CurrentLinetype = "PHANTOM";
                 Assert.Equal("PHANTOM", model.Document.Database.Celtype);
@@ -230,7 +247,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     Assert.Equal("HATCHEDIT", model.Document.NextUndo.Name);
 
                     model.Document.Undo();
-                    Assert.Equal(DxfHatchPatternType.UserDefined, model.Document.Database.ModelSpace.OfType<DxfHatch>().Single().PatternType);
+                    Assert.Equal(
+                        DxfHatchPatternType.UserDefined,
+                        model.Document.Database.ModelSpace.OfType<DxfHatch>().Single().PatternType
+                    );
 
                     // Cancel changes nothing.
                     model.ShowHatchSettings = dialog => false;

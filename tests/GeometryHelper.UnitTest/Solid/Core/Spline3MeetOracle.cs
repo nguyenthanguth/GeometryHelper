@@ -20,10 +20,27 @@ namespace GeometryHelper.UnitTest.Solid
     /// <summary>A segment, a ray or a line without ends in space.</summary>
     internal sealed class Meet3Segment : Meet3Part
     {
-        private readonly double _ox, _oy, _oz, _dx, _dy, _dz, _length;
-        private readonly bool _ray, _endless;
+        private readonly double _ox,
+            _oy,
+            _oz,
+            _dx,
+            _dy,
+            _dz,
+            _length;
+        private readonly bool _ray,
+            _endless;
 
-        internal Meet3Segment(double ox, double oy, double oz, double dx, double dy, double dz, double length, bool ray, bool endless)
+        internal Meet3Segment(
+            double ox,
+            double oy,
+            double oz,
+            double dx,
+            double dy,
+            double dz,
+            double length,
+            bool ray,
+            bool endless
+        )
         {
             _ox = ox;
             _oy = oy;
@@ -43,7 +60,9 @@ namespace GeometryHelper.UnitTest.Solid
             double dz = b.Z - a.Z;
             double length = Math.Sqrt(dx * dx + dy * dy + dz * dz);
 
-            return length > 0.0 ? new Meet3Segment(a.X, a.Y, a.Z, dx / length, dy / length, dz / length, length, false, false) : new Meet3Segment(a.X, a.Y, a.Z, 1.0, 0.0, 0.0, 0.0, false, false);
+            return length > 0.0
+                ? new Meet3Segment(a.X, a.Y, a.Z, dx / length, dy / length, dz / length, length, false, false)
+                : new Meet3Segment(a.X, a.Y, a.Z, 1.0, 0.0, 0.0, 0.0, false, false);
         }
 
         internal override double Gap(double x, double y, double z)
@@ -67,13 +86,38 @@ namespace GeometryHelper.UnitTest.Solid
             return Math.Sqrt(ex * ex + ey * ey + ez * ez);
         }
 
-        public override string ToString() => (_endless ? "xline" : _ray ? "ray" : "segment") + "(" + _ox.ToString("R") + ", " + _oy.ToString("R") + ", " + _oz.ToString("R") + " along " + _dx.ToString("R") + ", " + _dy.ToString("R") + ", " + _dz.ToString("R") + ", length " + _length.ToString("R") + ")";
+        public override string ToString() =>
+            (
+                _endless ? "xline"
+                : _ray ? "ray"
+                : "segment"
+            )
+            + "("
+            + _ox.ToString("R")
+            + ", "
+            + _oy.ToString("R")
+            + ", "
+            + _oz.ToString("R")
+            + " along "
+            + _dx.ToString("R")
+            + ", "
+            + _dy.ToString("R")
+            + ", "
+            + _dz.ToString("R")
+            + ", length "
+            + _length.ToString("R")
+            + ")";
     }
 
     /// <summary>A plane: the distance to it is the height over it.</summary>
     internal sealed class Meet3Plane : Meet3Part
     {
-        private readonly double _ox, _oy, _oz, _nx, _ny, _nz;
+        private readonly double _ox,
+            _oy,
+            _oz,
+            _nx,
+            _ny,
+            _nz;
 
         internal Meet3Plane(double ox, double oy, double oz, double nx, double ny, double nz)
         {
@@ -85,9 +129,23 @@ namespace GeometryHelper.UnitTest.Solid
             _nz = nz;
         }
 
-        internal override double Gap(double x, double y, double z) => Math.Abs((x - _ox) * _nx + (y - _oy) * _ny + (z - _oz) * _nz);
+        internal override double Gap(double x, double y, double z) =>
+            Math.Abs((x - _ox) * _nx + (y - _oy) * _ny + (z - _oz) * _nz);
 
-        public override string ToString() => "plane(" + _ox.ToString("R") + ", " + _oy.ToString("R") + ", " + _oz.ToString("R") + " normal " + _nx.ToString("R") + ", " + _ny.ToString("R") + ", " + _nz.ToString("R") + ")";
+        public override string ToString() =>
+            "plane("
+            + _ox.ToString("R")
+            + ", "
+            + _oy.ToString("R")
+            + ", "
+            + _oz.ToString("R")
+            + " normal "
+            + _nx.ToString("R")
+            + ", "
+            + _ny.ToString("R")
+            + ", "
+            + _nz.ToString("R")
+            + ")";
     }
 
     /// <summary>
@@ -96,7 +154,10 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     internal sealed class Meet3Flat : Meet3Part
     {
-        private readonly double[] _o, _u, _v, _n;
+        private readonly double[] _o,
+            _u,
+            _v,
+            _n;
         private readonly List<GeoPoint2[]> _rings;
 
         internal Meet3Flat(double[] o, double[] u, double[] v, List<GeoPoint2[]> rings)
@@ -108,7 +169,12 @@ namespace GeometryHelper.UnitTest.Solid
             _rings = rings;
         }
 
-        internal GeoPoint3 Corner(GeoPoint2 p) => new GeoPoint3(_o[0] + p.X * _u[0] + p.Y * _v[0], _o[1] + p.X * _u[1] + p.Y * _v[1], _o[2] + p.X * _u[2] + p.Y * _v[2]);
+        internal GeoPoint3 Corner(GeoPoint2 p) =>
+            new GeoPoint3(
+                _o[0] + p.X * _u[0] + p.Y * _v[0],
+                _o[1] + p.X * _u[1] + p.Y * _v[1],
+                _o[2] + p.X * _u[2] + p.Y * _v[2]
+            );
 
         internal override double Gap(double x, double y, double z)
         {
@@ -139,7 +205,10 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 for (int i = 0; i < ring.Length; i++)
                 {
-                    best = Math.Min(best, Meet3Segment.Between(Corner(ring[i]), Corner(ring[(i + 1) % ring.Length])).Gap(x, y, z));
+                    best = Math.Min(
+                        best,
+                        Meet3Segment.Between(Corner(ring[i]), Corner(ring[(i + 1) % ring.Length])).Gap(x, y, z)
+                    );
                 }
             }
 
@@ -158,7 +227,10 @@ namespace GeometryHelper.UnitTest.Solid
             }
         }
 
-        public override string ToString() => "flat(" + string.Join(" | ", _rings.Select(r => string.Join(" ", r.Select(p => Corner(p).ToString())))) + ")";
+        public override string ToString() =>
+            "flat("
+            + string.Join(" | ", _rings.Select(r => string.Join(" ", r.Select(p => Corner(p).ToString()))))
+            + ")";
     }
 
     /// <summary>
@@ -167,8 +239,12 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     internal sealed class Meet3Ellipse : Meet3Part
     {
-        private readonly double[] _c, _u, _v, _n;
-        private readonly double _a, _b;
+        private readonly double[] _c,
+            _u,
+            _v,
+            _n;
+        private readonly double _a,
+            _b;
         private readonly bool _disc;
         private readonly MeetEllipse _flat;
 
@@ -203,14 +279,30 @@ namespace GeometryHelper.UnitTest.Solid
             return Math.Sqrt(height * height + d * d);
         }
 
-        public override string ToString() => (_disc ? "disc" : "rim") + "(" + string.Join(", ", _c.Select(v => v.ToString("R"))) + " u " + string.Join(", ", _u.Select(v => v.ToString("R"))) + " v " + string.Join(", ", _v.Select(v => v.ToString("R"))) + " radii " + _a.ToString("R") + ", " + _b.ToString("R") + ")";
+        public override string ToString() =>
+            (_disc ? "disc" : "rim")
+            + "("
+            + string.Join(", ", _c.Select(v => v.ToString("R")))
+            + " u "
+            + string.Join(", ", _u.Select(v => v.ToString("R")))
+            + " v "
+            + string.Join(", ", _v.Select(v => v.ToString("R")))
+            + " radii "
+            + _a.ToString("R")
+            + ", "
+            + _b.ToString("R")
+            + ")";
     }
 
     /// <summary>An arc of a circle in space: the points of the plane square to the normal within its angle, and its two ends.</summary>
     internal sealed class Meet3Arc : Meet3Part
     {
-        private readonly double[] _c, _s, _t, _n;
-        private readonly double _r, _sweep;
+        private readonly double[] _c,
+            _s,
+            _t,
+            _n;
+        private readonly double _r,
+            _sweep;
 
         /// <summary>Makes the arc from its centre, the unit direction to its start, the unit direction a quarter turn on, the radius and the signed sweep.</summary>
         internal Meet3Arc(double[] c, double[] s, double[] t, double r, double sweep)
@@ -223,12 +315,13 @@ namespace GeometryHelper.UnitTest.Solid
             _sweep = sweep;
         }
 
-        private double[] At(double angle) => new[]
-        {
-            _c[0] + _r * (Math.Cos(angle) * _s[0] + Math.Sin(angle) * _t[0]),
-            _c[1] + _r * (Math.Cos(angle) * _s[1] + Math.Sin(angle) * _t[1]),
-            _c[2] + _r * (Math.Cos(angle) * _s[2] + Math.Sin(angle) * _t[2])
-        };
+        private double[] At(double angle) =>
+            new[]
+            {
+                _c[0] + _r * (Math.Cos(angle) * _s[0] + Math.Sin(angle) * _t[0]),
+                _c[1] + _r * (Math.Cos(angle) * _s[1] + Math.Sin(angle) * _t[1]),
+                _c[2] + _r * (Math.Cos(angle) * _s[2] + Math.Sin(angle) * _t[2]),
+            };
 
         internal override double Gap(double x, double y, double z)
         {
@@ -261,17 +354,32 @@ namespace GeometryHelper.UnitTest.Solid
             double[] end = At(_sweep);
 
             return Math.Min(
-                Math.Sqrt((x - start[0]) * (x - start[0]) + (y - start[1]) * (y - start[1]) + (z - start[2]) * (z - start[2])),
-                Math.Sqrt((x - end[0]) * (x - end[0]) + (y - end[1]) * (y - end[1]) + (z - end[2]) * (z - end[2])));
+                Math.Sqrt(
+                    (x - start[0]) * (x - start[0]) + (y - start[1]) * (y - start[1]) + (z - start[2]) * (z - start[2])
+                ),
+                Math.Sqrt((x - end[0]) * (x - end[0]) + (y - end[1]) * (y - end[1]) + (z - end[2]) * (z - end[2]))
+            );
         }
 
-        public override string ToString() => "arc(" + string.Join(", ", _c.Select(v => v.ToString("R"))) + " r " + _r.ToString("R") + " from " + string.Join(", ", _s.Select(v => v.ToString("R"))) + " sweep " + _sweep.ToString("R") + ")";
+        public override string ToString() =>
+            "arc("
+            + string.Join(", ", _c.Select(v => v.ToString("R")))
+            + " r "
+            + _r.ToString("R")
+            + " from "
+            + string.Join(", ", _s.Select(v => v.ToString("R")))
+            + " sweep "
+            + _sweep.ToString("R")
+            + ")";
     }
 
     /// <summary>The surface of a ball: the distance to it is the difference of the distance from the centre and the radius.</summary>
     internal sealed class Meet3Sphere : Meet3Part
     {
-        private readonly double _cx, _cy, _cz, _r;
+        private readonly double _cx,
+            _cy,
+            _cz,
+            _r;
 
         internal Meet3Sphere(double cx, double cy, double cz, double r)
         {
@@ -281,9 +389,19 @@ namespace GeometryHelper.UnitTest.Solid
             _r = r;
         }
 
-        internal override double Gap(double x, double y, double z) => Math.Abs(Math.Sqrt((x - _cx) * (x - _cx) + (y - _cy) * (y - _cy) + (z - _cz) * (z - _cz)) - _r);
+        internal override double Gap(double x, double y, double z) =>
+            Math.Abs(Math.Sqrt((x - _cx) * (x - _cx) + (y - _cy) * (y - _cy) + (z - _cz) * (z - _cz)) - _r);
 
-        public override string ToString() => "sphere(" + _cx.ToString("R") + ", " + _cy.ToString("R") + ", " + _cz.ToString("R") + " r " + _r.ToString("R") + ")";
+        public override string ToString() =>
+            "sphere("
+            + _cx.ToString("R")
+            + ", "
+            + _cy.ToString("R")
+            + ", "
+            + _cz.ToString("R")
+            + " r "
+            + _r.ToString("R")
+            + ")";
     }
 
     /// <summary>The skin of a box with its own axes: the distance to it from outside and from inside.</summary>
@@ -331,7 +449,14 @@ namespace GeometryHelper.UnitTest.Solid
             return outside > 0.0 ? Math.Sqrt(outside) : inside;
         }
 
-        public override string ToString() => "box(" + string.Join(", ", _c.Select(v => v.ToString("R"))) + " axes " + string.Join(" ", _a.Select(v => "[" + string.Join(", ", v.Select(w => w.ToString("R"))) + "]")) + " half " + string.Join(", ", _h.Select(v => v.ToString("R"))) + ")";
+        public override string ToString() =>
+            "box("
+            + string.Join(", ", _c.Select(v => v.ToString("R")))
+            + " axes "
+            + string.Join(" ", _a.Select(v => "[" + string.Join(", ", v.Select(w => w.ToString("R"))) + "]"))
+            + " half "
+            + string.Join(", ", _h.Select(v => v.ToString("R")))
+            + ")";
     }
 
     /// <summary>
@@ -375,7 +500,8 @@ namespace GeometryHelper.UnitTest.Solid
             internal double LongestLevel;
         }
 
-        private static double Length(double[] a, double[] b) => Math.Sqrt((a[0] - b[0]) * (a[0] - b[0]) + (a[1] - b[1]) * (a[1] - b[1]) + (a[2] - b[2]) * (a[2] - b[2]));
+        private static double Length(double[] a, double[] b) =>
+            Math.Sqrt((a[0] - b[0]) * (a[0] - b[0]) + (a[1] - b[1]) * (a[1] - b[1]) + (a[2] - b[2]) * (a[2] - b[2]));
 
         /// <summary>
         /// Asks the oracle about a spline and a shape.
@@ -399,7 +525,15 @@ namespace GeometryHelper.UnitTest.Solid
             us.Add(breaks[breaks.Length - 1]);
 
             // How large the spline is, not how far from the origin: a spline a hundred long thirty million out is as fine to sample as at the origin.
-            double reach = Math.Max(1.0, Enumerable.Range(0, 3).Max(k => Enumerable.Range(0, spline.Count).Max(i => spline.Points[3 * i + k]) - Enumerable.Range(0, spline.Count).Min(i => spline.Points[3 * i + k])));
+            double reach = Math.Max(
+                1.0,
+                Enumerable
+                    .Range(0, 3)
+                    .Max(k =>
+                        Enumerable.Range(0, spline.Count).Max(i => spline.Points[3 * i + k])
+                        - Enumerable.Range(0, spline.Count).Min(i => spline.Points[3 * i + k])
+                    )
+            );
             double spacing = 5E-4;
             double[][] points = us.Select(u => spline.FastPoint(u)).ToArray();
             Func<double[], double> toShape = p => shape.Parts.Min(part => part.Gap(p[0], p[1], p[2]));
@@ -425,7 +559,10 @@ namespace GeometryHelper.UnitTest.Solid
                         double gap = Length(points[i], points[i + 1]);
                         double middle = 0.5 * (us[i] + us[i + 1]);
                         bool wide = gap > spacing * reach;
-                        bool close = us.Count < 60000 && Math.Min(shapeGaps[i], shapeGaps[i + 1]) <= 1.5 * gap && gap > 1E-5 * reach;
+                        bool close =
+                            us.Count < 60000
+                            && Math.Min(shapeGaps[i], shapeGaps[i + 1]) <= 1.5 * gap
+                            && gap > 1E-5 * reach;
 
                         if ((wide || close) && middle > us[i] && middle < us[i + 1])
                         {
@@ -501,7 +638,16 @@ namespace GeometryHelper.UnitTest.Solid
                         continue;
                     }
 
-                    double v = Spline2MeetOracle.Golden(u => { double[] p = spline.FastPoint(u); return part.Gap(p[0], p[1], p[2]); }, us[Math.Max(i - 1, 0)], us[Math.Min(i + 1, us.Count - 1)], out double leastAt);
+                    double v = Spline2MeetOracle.Golden(
+                        u =>
+                        {
+                            double[] p = spline.FastPoint(u);
+                            return part.Gap(p[0], p[1], p[2]);
+                        },
+                        us[Math.Max(i - 1, 0)],
+                        us[Math.Min(i + 1, us.Count - 1)],
+                        out double leastAt
+                    );
 
                     if (gaps[i] < v)
                     {
@@ -589,8 +735,14 @@ namespace GeometryHelper.UnitTest.Solid
         internal static SplineAnswer AskSplines(SplineOracle a, SplineOracle b, double tolerance, int samples = 240)
         {
             var answer = new SplineAnswer();
-            double[] ua = Enumerable.Range(0, samples + 1).Select(i => a.Start + (a.End - a.Start) * i / samples).ToArray();
-            double[] ub = Enumerable.Range(0, samples + 1).Select(i => b.Start + (b.End - b.Start) * i / samples).ToArray();
+            double[] ua = Enumerable
+                .Range(0, samples + 1)
+                .Select(i => a.Start + (a.End - a.Start) * i / samples)
+                .ToArray();
+            double[] ub = Enumerable
+                .Range(0, samples + 1)
+                .Select(i => b.Start + (b.End - b.Start) * i / samples)
+                .ToArray();
             double[][] pa = ua.Select(u => a.FastPoint(u)).ToArray();
             double[][] pb = ub.Select(u => b.FastPoint(u)).ToArray();
             var grid = new double[samples + 1, samples + 1];
@@ -639,7 +791,15 @@ namespace GeometryHelper.UnitTest.Solid
 
                     double s = ua[i];
                     double t = ub[j];
-                    double value = Compass(a, b, ref s, ref t, (a.End - a.Start) / samples, (b.End - b.Start) / samples, grid[i, j]);
+                    double value = Compass(
+                        a,
+                        b,
+                        ref s,
+                        ref t,
+                        (a.End - a.Start) / samples,
+                        (b.End - b.Start) / samples,
+                        grid[i, j]
+                    );
                     best = Math.Min(best, value);
 
                     if (value <= tolerance)
@@ -667,7 +827,15 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         /// <summary>A compass search for a least of the distance between two splines, kept inside their domains, from a start.</summary>
-        private static double Compass(SplineOracle a, SplineOracle b, ref double s, ref double t, double stepS, double stepT, double value)
+        private static double Compass(
+            SplineOracle a,
+            SplineOracle b,
+            ref double s,
+            ref double t,
+            double stepS,
+            double stepT,
+            double value
+        )
         {
             double Distance(double ss, double tt) => Length(a.FastPoint(ss), b.FastPoint(tt));
 
@@ -677,8 +845,14 @@ namespace GeometryHelper.UnitTest.Solid
 
                 for (int d = 0; d < 8 && !moved; d++)
                 {
-                    double ds = d == 0 || d == 4 || d == 5 ? stepS : d == 1 || d == 6 || d == 7 ? -stepS : 0.0;
-                    double dt = d == 2 || d == 4 || d == 6 ? stepT : d == 3 || d == 5 || d == 7 ? -stepT : 0.0;
+                    double ds =
+                        d == 0 || d == 4 || d == 5 ? stepS
+                        : d == 1 || d == 6 || d == 7 ? -stepS
+                        : 0.0;
+                    double dt =
+                        d == 2 || d == 4 || d == 6 ? stepT
+                        : d == 3 || d == 5 || d == 7 ? -stepT
+                        : 0.0;
                     double ns = Math.Min(Math.Max(s + ds, a.Start), a.End);
                     double nt = Math.Min(Math.Max(t + dt, b.Start), b.End);
                     double nv = Distance(ns, nt);

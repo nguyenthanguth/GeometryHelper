@@ -8,12 +8,11 @@ namespace GeometryHelper.Core
     /// </summary>
     internal static partial class ArcChain3
     {
-
         /// <summary>
         /// Gets every point where a curved chain crosses a chain.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolylineArc3 chain, GeoPolylineArc3 other)
-            => GetIntersections(chain, other, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolylineArc3 chain, GeoPolylineArc3 other) =>
+            GetIntersections(chain, other, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a curved chain crosses a chain, within a tolerance.
@@ -41,7 +40,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a curved chain touches a chain.
         /// </summary>
-        public static bool CollidesWith(GeoPolylineArc3 chain, GeoPolylineArc3 other) => CollidesWith(chain, other, Tolerance.Global);
+        public static bool CollidesWith(GeoPolylineArc3 chain, GeoPolylineArc3 other) =>
+            CollidesWith(chain, other, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a curved chain touches a chain, within a tolerance.
@@ -69,8 +69,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where a curved chain crosses a chain.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolylineArc3 chain, GeoPolylineArc3 other, out GeoPoint3[] intersections)
-            => TryIntersectWith(chain, other, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(
+            GeoPolylineArc3 chain,
+            GeoPolylineArc3 other,
+            out GeoPoint3[] intersections
+        ) => TryIntersectWith(chain, other, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a curved chain crosses a chain, within a tolerance.
@@ -81,7 +84,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross at a place; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either is null.</exception>
-        public static bool TryIntersectWith(GeoPolylineArc3 chain, GeoPolylineArc3 other, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolylineArc3 chain,
+            GeoPolylineArc3 other,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(chain, other, tolerance);
 
@@ -91,8 +99,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a curved chain crosses a loop.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolylineArc3 chain, GeoPolygonArc3 other)
-            => GetIntersections(chain, other, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolylineArc3 chain, GeoPolygonArc3 other) =>
+            GetIntersections(chain, other, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a curved chain crosses a loop, within a tolerance.
@@ -120,7 +128,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a curved chain touches a loop.
         /// </summary>
-        public static bool CollidesWith(GeoPolylineArc3 chain, GeoPolygonArc3 other) => CollidesWith(chain, other, Tolerance.Global);
+        public static bool CollidesWith(GeoPolylineArc3 chain, GeoPolygonArc3 other) =>
+            CollidesWith(chain, other, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a curved chain touches a loop, within a tolerance.
@@ -148,8 +157,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where a curved chain crosses a loop.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolylineArc3 chain, GeoPolygonArc3 other, out GeoPoint3[] intersections)
-            => TryIntersectWith(chain, other, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(
+            GeoPolylineArc3 chain,
+            GeoPolygonArc3 other,
+            out GeoPoint3[] intersections
+        ) => TryIntersectWith(chain, other, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a curved chain crosses a loop, within a tolerance.
@@ -160,7 +172,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross at a place; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either is null.</exception>
-        public static bool TryIntersectWith(GeoPolylineArc3 chain, GeoPolygonArc3 other, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolylineArc3 chain,
+            GeoPolygonArc3 other,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(chain, other, tolerance);
 
@@ -170,8 +187,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a curved chain crosses a straight chain.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolylineArc3 chain, GeoPolyline3 other)
-            => GetIntersections(chain, other, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolylineArc3 chain, GeoPolyline3 other) =>
+            GetIntersections(chain, other, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a curved chain crosses a straight chain, within a tolerance.
@@ -199,7 +216,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a curved chain touches a straight chain.
         /// </summary>
-        public static bool CollidesWith(GeoPolylineArc3 chain, GeoPolyline3 other) => CollidesWith(chain, other, Tolerance.Global);
+        public static bool CollidesWith(GeoPolylineArc3 chain, GeoPolyline3 other) =>
+            CollidesWith(chain, other, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a curved chain touches a straight chain, within a tolerance.
@@ -227,8 +245,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where a curved chain crosses a straight chain.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolylineArc3 chain, GeoPolyline3 other, out GeoPoint3[] intersections)
-            => TryIntersectWith(chain, other, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolylineArc3 chain, GeoPolyline3 other, out GeoPoint3[] intersections) =>
+            TryIntersectWith(chain, other, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a curved chain crosses a straight chain, within a tolerance.
@@ -239,7 +257,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross at a place; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either is null.</exception>
-        public static bool TryIntersectWith(GeoPolylineArc3 chain, GeoPolyline3 other, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolylineArc3 chain,
+            GeoPolyline3 other,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(chain, other, tolerance);
 
@@ -249,8 +272,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a curved loop crosses a chain.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolygonArc3 loop, GeoPolylineArc3 other)
-            => GetIntersections(loop, other, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolygonArc3 loop, GeoPolylineArc3 other) =>
+            GetIntersections(loop, other, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a curved loop crosses a chain, within a tolerance.
@@ -278,7 +301,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a curved loop touches a chain.
         /// </summary>
-        public static bool CollidesWith(GeoPolygonArc3 loop, GeoPolylineArc3 other) => CollidesWith(loop, other, Tolerance.Global);
+        public static bool CollidesWith(GeoPolygonArc3 loop, GeoPolylineArc3 other) =>
+            CollidesWith(loop, other, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a curved loop touches a chain, within a tolerance.
@@ -306,8 +330,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where a curved loop crosses a chain.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolygonArc3 loop, GeoPolylineArc3 other, out GeoPoint3[] intersections)
-            => TryIntersectWith(loop, other, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(
+            GeoPolygonArc3 loop,
+            GeoPolylineArc3 other,
+            out GeoPoint3[] intersections
+        ) => TryIntersectWith(loop, other, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a curved loop crosses a chain, within a tolerance.
@@ -318,7 +345,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross at a place; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either is null.</exception>
-        public static bool TryIntersectWith(GeoPolygonArc3 loop, GeoPolylineArc3 other, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolygonArc3 loop,
+            GeoPolylineArc3 other,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(loop, other, tolerance);
 
@@ -328,8 +360,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a curved loop crosses a loop.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolygonArc3 loop, GeoPolygonArc3 other)
-            => GetIntersections(loop, other, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolygonArc3 loop, GeoPolygonArc3 other) =>
+            GetIntersections(loop, other, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a curved loop crosses a loop, within a tolerance.
@@ -357,7 +389,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a curved loop touches a loop.
         /// </summary>
-        public static bool CollidesWith(GeoPolygonArc3 loop, GeoPolygonArc3 other) => CollidesWith(loop, other, Tolerance.Global);
+        public static bool CollidesWith(GeoPolygonArc3 loop, GeoPolygonArc3 other) =>
+            CollidesWith(loop, other, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a curved loop touches a loop, within a tolerance.
@@ -385,8 +418,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where a curved loop crosses a loop.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolygonArc3 loop, GeoPolygonArc3 other, out GeoPoint3[] intersections)
-            => TryIntersectWith(loop, other, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolygonArc3 loop, GeoPolygonArc3 other, out GeoPoint3[] intersections) =>
+            TryIntersectWith(loop, other, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a curved loop crosses a loop, within a tolerance.
@@ -397,7 +430,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross at a place; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either is null.</exception>
-        public static bool TryIntersectWith(GeoPolygonArc3 loop, GeoPolygonArc3 other, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolygonArc3 loop,
+            GeoPolygonArc3 other,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(loop, other, tolerance);
 
@@ -407,8 +445,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where a curved loop crosses a straight chain.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoPolygonArc3 loop, GeoPolyline3 other)
-            => GetIntersections(loop, other, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoPolygonArc3 loop, GeoPolyline3 other) =>
+            GetIntersections(loop, other, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where a curved loop crosses a straight chain, within a tolerance.
@@ -436,7 +474,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a curved loop touches a straight chain.
         /// </summary>
-        public static bool CollidesWith(GeoPolygonArc3 loop, GeoPolyline3 other) => CollidesWith(loop, other, Tolerance.Global);
+        public static bool CollidesWith(GeoPolygonArc3 loop, GeoPolyline3 other) =>
+            CollidesWith(loop, other, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a curved loop touches a straight chain, within a tolerance.
@@ -464,8 +503,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where a curved loop crosses a straight chain.
         /// </summary>
-        public static bool TryIntersectWith(GeoPolygonArc3 loop, GeoPolyline3 other, out GeoPoint3[] intersections)
-            => TryIntersectWith(loop, other, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoPolygonArc3 loop, GeoPolyline3 other, out GeoPoint3[] intersections) =>
+            TryIntersectWith(loop, other, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a curved loop crosses a straight chain, within a tolerance.
@@ -476,7 +515,12 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross at a place; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either is null.</exception>
-        public static bool TryIntersectWith(GeoPolygonArc3 loop, GeoPolyline3 other, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoPolygonArc3 loop,
+            GeoPolyline3 other,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(loop, other, tolerance);
 

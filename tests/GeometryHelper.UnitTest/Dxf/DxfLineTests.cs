@@ -17,7 +17,12 @@ namespace GeometryHelper.UnitTest.Dxf
     {
         private static readonly Tolerance Tol = Tolerance.Default;
 
-        private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
+        private static readonly string[] Drawings =
+        {
+            DxfFileEzdxfDrawings.R12,
+            DxfFileEzdxfDrawings.R2000,
+            DxfFileEzdxfDrawings.R2018,
+        };
 
         #region Read as ezdxf reads it
 
@@ -126,7 +131,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(Bits(end), Bits(again.EndPoint));
             Assert.Equal(Bits(normal), Bits(again.Normal));
             Assert.Equal(12.5, again.Thickness);
-            Assert.Contains("1001\nGHPROBE\n", Records(saved).Single(r => HandleOf(r) == "3E"), StringComparison.Ordinal);
+            Assert.Contains(
+                "1001\nGHPROBE\n",
+                Records(saved).Single(r => HandleOf(r) == "3E"),
+                StringComparison.Ordinal
+            );
 
             // AutoCAD's order of AcDbLine: the thickness first, then the points, then the extrusion.
             string record = Records(saved).Single(r => HandleOf(r) == "3E");
@@ -145,20 +154,25 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
             DxfLine line = ByHandle<DxfLine>(db, "3E");
             line.Thickness = 2.5;
-            var matrix = new GeoTransform3(new[,]
-            {
-                { 1.5, 0.0, 0.0, 10.0 },
-                { 0.0, 1.433004733688409, -0.4432803099920093, -5.0 },
-                { 0.0, 0.4432803099920093, 1.433004733688409, 2.0 },
-                { 0.0, 0.0, 0.0, 1.0 },
-            });
+            var matrix = new GeoTransform3(
+                new[,]
+                {
+                    { 1.5, 0.0, 0.0, 10.0 },
+                    { 0.0, 1.433004733688409, -0.4432803099920093, -5.0 },
+                    { 0.0, 0.4432803099920093, 1.433004733688409, 2.0 },
+                    { 0.0, 0.0, 0.0, 1.0 },
+                }
+            );
 
             line.TransformBy(matrix);
 
             DxfLine again = ByHandle<DxfLine>(DxfDatabase.Parse(db.ToText()), "3E");
             Near(new GeoPoint3(10, -5, 2), again.StartPoint);
             Near(new GeoPoint3(160.1875, 66.03689812128863, 28.684669855661696), again.EndPoint);
-            Near(new GeoPoint3(0, -0.2955202066613395, 0.955336489125606), new GeoPoint3(again.Normal.X, again.Normal.Y, again.Normal.Z));
+            Near(
+                new GeoPoint3(0, -0.2955202066613395, 0.955336489125606),
+                new GeoPoint3(again.Normal.X, again.Normal.Y, again.Normal.Z)
+            );
             Assert.Equal(3.75, again.Thickness, 12);
 
             DxfEntity copy = again.GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(1, 0, 0)));
@@ -191,7 +205,10 @@ namespace GeometryHelper.UnitTest.Dxf
             var offset = (DxfLine)Assert.Single(line.GetOffsetCurves(5.0));
             Near(new GeoPoint3(-4, 3, 0), offset.StartPoint);
             Near(new GeoPoint3(26, 43, 0), offset.EndPoint);
-            Near(new GeoPoint3(4, -3, 0), ((DxfLine)Assert.Single(line.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(0, 0, -1), 5.0))).StartPoint);
+            Near(
+                new GeoPoint3(4, -3, 0),
+                ((DxfLine)Assert.Single(line.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(0, 0, -1), 5.0))).StartPoint
+            );
             Assert.Equal(new[] { 20.0, 30.0 }, line.GetSplitCurves(new[] { 20.0 }).Select(c => ((DxfLine)c).Length));
             line.Extend(60.0);
             Assert.Equal(new GeoPoint3(36, 48, 0), line.EndPoint);
@@ -219,7 +236,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static void Near(GeoPoint3 expected, GeoPoint3 actual)
         {
-            double scale = Math.Max(1.0, Math.Max(Math.Abs(expected.X), Math.Max(Math.Abs(expected.Y), Math.Abs(expected.Z))));
+            double scale = Math.Max(
+                1.0,
+                Math.Max(Math.Abs(expected.X), Math.Max(Math.Abs(expected.Y), Math.Abs(expected.Z)))
+            );
             Assert.True(expected.DistanceTo(actual) <= 1E-9 * scale, expected + " against " + actual);
         }
 
@@ -232,7 +252,12 @@ namespace GeometryHelper.UnitTest.Dxf
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
                 int count = db.ModelSpace.Count;
-                var line = new DxfLine(new GeoPoint3(1, 2, 3), new GeoPoint3(4.5, 6.25, -7)) { Layer = "rebar", ColorIndex = 1, Thickness = 2.5 };
+                var line = new DxfLine(new GeoPoint3(1, 2, 3), new GeoPoint3(4.5, 6.25, -7))
+                {
+                    Layer = "rebar",
+                    ColorIndex = 1,
+                    Thickness = 2.5,
+                };
 
                 Assert.Null(line.Handle);
                 Assert.Null(line.Owner);
@@ -279,7 +304,7 @@ namespace GeometryHelper.UnitTest.Dxf
         #endregion
 
         /// <summary>The handle of the TABLE record of the layer table of a text, whose count a new layer raises.</summary>
-        private static string LayerTableHandle(string text)
-            => HandleOf(Records(text).First(r => r.StartsWith("  0\nTABLE\n  2\nLAYER\n", StringComparison.Ordinal)));
+        private static string LayerTableHandle(string text) =>
+            HandleOf(Records(text).First(r => r.StartsWith("  0\nTABLE\n  2\nLAYER\n", StringComparison.Ordinal)));
     }
 }

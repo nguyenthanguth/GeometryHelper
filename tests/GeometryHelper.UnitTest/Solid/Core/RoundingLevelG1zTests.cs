@@ -25,24 +25,37 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>A turn about space, rows of a matrix.</summary>
         private static readonly double[] Turned =
         {
-            -0.4666789604312006, 0.8516652585856114, -0.23848906727386426,
-            0.8627545427570836, 0.3790510820157432, -0.33462647261492956,
-            -0.19459020233010133, -0.361920660561121, -0.9116732356585512,
+            -0.4666789604312006,
+            0.8516652585856114,
+            -0.23848906727386426,
+            0.8627545427570836,
+            0.3790510820157432,
+            -0.33462647261492956,
+            -0.19459020233010133,
+            -0.361920660561121,
+            -0.9116732356585512,
         };
 
         /// <summary>Another turn about space, rows of a matrix.</summary>
         private static readonly double[] TurnedOtherwise =
         {
-            -0.04029114060306993, -0.9684804885766289, -0.24580920901235115,
-            0.24840464323125316, -0.24799421774904123, 0.9363727896432035,
-            -0.9678180393080393, -0.023332621143266508, 0.25056702013738225,
+            -0.04029114060306993,
+            -0.9684804885766289,
+            -0.24580920901235115,
+            0.24840464323125316,
+            -0.24799421774904123,
+            0.9363727896432035,
+            -0.9678180393080393,
+            -0.023332621143266508,
+            0.25056702013738225,
         };
 
-        private static GeoPoint3 P(double[] turn, double x, double y, double z)
-            => new GeoPoint3(
+        private static GeoPoint3 P(double[] turn, double x, double y, double z) =>
+            new GeoPoint3(
                 turn[0] * x + turn[1] * y + turn[2] * z,
                 turn[3] * x + turn[4] * y + turn[5] * z,
-                turn[6] * x + turn[7] * y + turn[8] * z);
+                turn[6] * x + turn[7] * y + turn[8] * z
+            );
 
         private static GeoFace3 F(params GeoPoint3[] corners) => new GeoFace3(new GeoPolygon3(corners));
 
@@ -55,9 +68,15 @@ namespace GeometryHelper.UnitTest.Solid
             const double gap = 0.0001;
             const double skew = 0.01;
             GeoPoint3 Q(double x, double y, double z) => P(turn, x, y, z);
-            GeoPoint3 a = Q(5 - skew, 0, 10), a2 = Q(5 - skew + gap, 0, 10), b = Q(5 + skew, 10, 10);
-            GeoPoint3 c = Q(0, 5 - skew, 0), c2 = Q(0, 5 - skew + gap, 0), d = Q(10, 5 + skew, 0);
-            GeoPoint3 e = Q(0, 0, 5 - skew), e2 = Q(0, 0, 5 - skew + gap), f = Q(0, 10, 5 + skew);
+            GeoPoint3 a = Q(5 - skew, 0, 10),
+                a2 = Q(5 - skew + gap, 0, 10),
+                b = Q(5 + skew, 10, 10);
+            GeoPoint3 c = Q(0, 5 - skew, 0),
+                c2 = Q(0, 5 - skew + gap, 0),
+                d = Q(10, 5 + skew, 0);
+            GeoPoint3 e = Q(0, 0, 5 - skew),
+                e2 = Q(0, 0, 5 - skew + gap),
+                f = Q(0, 10, 5 + skew);
 
             return new GeoSolid3(
                 F(Q(0, 0, 10), a, b, Q(0, 10, 10)),
@@ -68,7 +87,8 @@ namespace GeometryHelper.UnitTest.Solid
                 F(Q(0, 0, 10), Q(0, 10, 10), f, e2),
                 F(Q(10, 0, 0), d, Q(10, 10, 0), Q(10, 10, 10), Q(10, 0, 10)),
                 F(Q(0, 0, 0), Q(10, 0, 0), Q(10, 0, 10), a2, a, Q(0, 0, 10), e2, e),
-                F(f, Q(0, 10, 10), b, Q(10, 10, 10), Q(10, 10, 0), Q(0, 10, 0)));
+                F(f, Q(0, 10, 10), b, Q(10, 10, 10), Q(10, 10, 0), Q(0, 10, 0))
+            );
         }
 
         /// <summary>
@@ -89,17 +109,30 @@ namespace GeometryHelper.UnitTest.Solid
                 F(C(0, 0, 0), C(1, 0, 0), C(1, 0, 1), C(0, 0, 1)),
                 F(C(0, 1, 0), C(0, 1, 1), C(1, 1, 1), C(1, 1, 0)),
                 F(C(0, 0, 0), C(0, 1, 0), C(1, 1, 0), C(1, 0, 0)),
-                F(C(0, 0, 1), C(1, 0, 1), C(1, 1, 1), C(0, 1, 1)));
+                F(C(0, 0, 1), C(1, 0, 1), C(1, 1, 1), C(0, 1, 1))
+            );
         }
 
         /// <summary>A box from and to a point, turned by an angle about the x axis, then by a turn.</summary>
-        private static GeoSolid3 Box(double[] turn, double angle, double x0, double y0, double z0, double x1, double y1, double z1)
+        private static GeoSolid3 Box(
+            double[] turn,
+            double angle,
+            double x0,
+            double y0,
+            double z0,
+            double x1,
+            double y1,
+            double z1
+        )
         {
-            double cos = Math.Cos(angle), sin = Math.Sin(angle);
+            double cos = Math.Cos(angle),
+                sin = Math.Sin(angle);
 
             return Hexahedron(turn, (i, j, k) =>
             {
-                double x = i == 0 ? x0 : x1, y = j == 0 ? y0 : y1, z = k == 0 ? z0 : z1;
+                double x = i == 0 ? x0 : x1,
+                    y = j == 0 ? y0 : y1,
+                    z = k == 0 ? z0 : z1;
                 return new[] { x, y * cos - z * sin, y * sin + z * cos };
             });
         }
@@ -153,7 +186,9 @@ namespace GeometryHelper.UnitTest.Solid
             double[] c = { 0.5885214529754836, 3.339384974684993 };
             double[] n = { 0.7648415259367669, -0.6442171301921897, -0.0013150550016997737 };
             GeoSolid3 cube = CrackedCube(TurnedOtherwise);
-            GeoSolid3 slab = Hexahedron(TurnedOtherwise, (i, j, k) => new[] { x[i], y[j], (c[k] - n[0] * x[i] - n[1] * y[j]) / n[2] });
+            GeoSolid3 slab = Hexahedron(TurnedOtherwise, (i, j, k) =>
+                new[] { x[i], y[j], (c[k] - n[0] * x[i] - n[1] * y[j]) / n[2] }
+            );
 
             Assert.False(Boolean3.TryIntersect(cube, slab, out GeoSolid3 common, Nought, out BooleanOutcome outcome));
             Assert.Equal(BooleanOutcome.NotWorkedOut, outcome);

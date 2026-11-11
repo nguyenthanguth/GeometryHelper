@@ -20,7 +20,10 @@ namespace GeometryHelper.UnitTest.Dxf
             point.Position = new GeoPoint3(1, 1, 2);
 
             DxfPolyFaceMesh again = ByHandle<DxfPolyFaceMesh>(DxfDatabase.Parse(db.ToText()), "4E");
-            Assert.Equal(Bits(new GeoPoint3(1, 1, 2)), Bits(again.OfType<DxfPolyFaceMeshVertex>().ElementAt(6).Position));
+            Assert.Equal(
+                Bits(new GeoPoint3(1, 1, 2)),
+                Bits(again.OfType<DxfPolyFaceMeshVertex>().ElementAt(6).Position)
+            );
             Assert.Equal(Bits(new GeoPoint3(0, 0, 0)), Bits(new DxfPolyFaceMeshVertex().Position));
         }
     }

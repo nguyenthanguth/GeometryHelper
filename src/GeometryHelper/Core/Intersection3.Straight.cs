@@ -28,7 +28,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets where two segments cross, as a list.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoLine3 line1, GeoLine3 line2) => GetIntersections(line1, line2, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoLine3 line1, GeoLine3 line2) =>
+            GetIntersections(line1, line2, Tolerance.Global);
 
         /// <summary>
         /// Gets where two segments cross, as a list, within a tolerance.
@@ -54,7 +55,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets where a segment crosses a ray.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoRay3 ray) => GetIntersections(line, ray, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoRay3 ray) =>
+            GetIntersections(line, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets where a segment crosses a ray, within a tolerance.
@@ -80,8 +82,10 @@ namespace GeometryHelper.Core
         /// global thousandth, crosses the ray at (5, 0, 0), where it was given nothing.
         /// </para>
         /// </remarks>
-        public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoRay3 ray, Tolerance tolerance)
-            => Stub3.ReadsAsStart(line, tolerance) ? CrossingsOfStub(line, ray, tolerance) : Crossings(line, ray, tolerance);
+        public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoRay3 ray, Tolerance tolerance) =>
+            Stub3.ReadsAsStart(line, tolerance)
+                ? CrossingsOfStub(line, ray, tolerance)
+                : Crossings(line, ray, tolerance);
 
         /// <summary>
         /// Gets where a segment no longer than the tolerance, read as its start unless it truly crosses, meets a ray.
@@ -95,14 +99,16 @@ namespace GeometryHelper.Core
             return Stub3.Meeting(
                 line,
                 Crossings(line, ray, asItIs, asItIs),
-                Projection3.ProjectToRay(ray, line.StartPoint).DistanceTo(line.StartPoint) <= tolerance.EqualPoint);
+                Projection3.ProjectToRay(ray, line.StartPoint).DistanceTo(line.StartPoint) <= tolerance.EqualPoint
+            );
         }
 
         /// <summary>
         /// Gets where a segment crosses a ray as the sides of shapes cross one, a segment no longer than the point tolerance
         /// read as one longer is, and points carried onto it as it is, not within the global tolerance.
         /// </summary>
-        internal static GeoPoint3[] Crossings(GeoLine3 line, GeoRay3 ray, Tolerance tolerance) => Crossings(line, ray, tolerance, default(Tolerance));
+        internal static GeoPoint3[] Crossings(GeoLine3 line, GeoRay3 ray, Tolerance tolerance) =>
+            Crossings(line, ray, tolerance, default(Tolerance));
 
         /// <summary>
         /// Gets where a segment crosses a ray, points carried onto the segment within a tolerance of their own.
@@ -122,7 +128,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets where a ray crosses a segment.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoLine3 line) => GetIntersections(line, ray, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoLine3 line) =>
+            GetIntersections(line, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets where a ray crosses a segment, within a tolerance.
@@ -131,13 +138,14 @@ namespace GeometryHelper.Core
         /// <param name="line">The segment.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The one place they cross, or nothing.</returns>
-        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoLine3 line, Tolerance tolerance) => GetIntersections(line, ray, tolerance);
+        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoLine3 line, Tolerance tolerance) =>
+            GetIntersections(line, ray, tolerance);
 
         /// <summary>
         /// Tries to find where a segment crosses a ray.
         /// </summary>
-        public static bool TryIntersectWith(GeoLine3 line, GeoRay3 ray, out GeoPoint3[] intersections)
-            => TryIntersectWith(line, ray, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoLine3 line, GeoRay3 ray, out GeoPoint3[] intersections) =>
+            TryIntersectWith(line, ray, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a segment crosses a ray, within a tolerance.
@@ -147,7 +155,12 @@ namespace GeometryHelper.Core
         /// <param name="intersections">The one place they cross when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross at a place; otherwise, false.</returns>
-        public static bool TryIntersectWith(GeoLine3 line, GeoRay3 ray, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoLine3 line,
+            GeoRay3 ray,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(line, ray, tolerance);
 
@@ -157,8 +170,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where a ray crosses a segment.
         /// </summary>
-        public static bool TryIntersectWith(GeoRay3 ray, GeoLine3 line, out GeoPoint3[] intersections)
-            => TryIntersectWith(line, ray, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoRay3 ray, GeoLine3 line, out GeoPoint3[] intersections) =>
+            TryIntersectWith(line, ray, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where a ray crosses a segment, within a tolerance.
@@ -168,8 +181,12 @@ namespace GeometryHelper.Core
         /// <param name="intersections">The one place they cross when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they cross at a place; otherwise, false.</returns>
-        public static bool TryIntersectWith(GeoRay3 ray, GeoLine3 line, out GeoPoint3[] intersections, Tolerance tolerance)
-            => TryIntersectWith(line, ray, out intersections, tolerance);
+        public static bool TryIntersectWith(
+            GeoRay3 ray,
+            GeoLine3 line,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        ) => TryIntersectWith(line, ray, out intersections, tolerance);
 
         #endregion
     }

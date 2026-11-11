@@ -31,14 +31,33 @@ namespace GeometryHelper.UnitTest.Dxf
         private static DxfDatabase Words(string words)
         {
             var db = new DxfDatabase("AC1032");
-            db.ModelSpace.AppendEntity(new DxfMText { Contents = words, Location = P(0, 0), TextHeight = 2.5 });
-            db.ModelSpace.AppendEntity(new DxfDBText { TextString = words, Position = P(0, 10), Height = 2.5 });
+            db.ModelSpace.AppendEntity(
+                new DxfMText
+                {
+                    Contents = words,
+                    Location = P(0, 0),
+                    TextHeight = 2.5,
+                }
+            );
+            db.ModelSpace.AppendEntity(
+                new DxfDBText
+                {
+                    TextString = words,
+                    Position = P(0, 10),
+                    Height = 2.5,
+                }
+            );
             return db;
         }
 
-        private static string[] Values(DxfDatabase db, bool multiline)
-            => DxfReader.Read(new MemoryStream(Saved(db))).Shapes.Select(s => s.Shape).OfType<DxfText>()
-                .Where(t => t.IsMultiline == multiline).Select(t => t.Value).ToArray();
+        private static string[] Values(DxfDatabase db, bool multiline) =>
+            DxfReader
+                .Read(new MemoryStream(Saved(db)))
+                .Shapes.Select(s => s.Shape)
+                .OfType<DxfText>()
+                .Where(t => t.IsMultiline == multiline)
+                .Select(t => t.Value)
+                .ToArray();
 
         [Fact]
         public void TheDiameterCode_IsReadAsTheDiameterSignOfAutoCad_InAnMTextAndAText()
@@ -87,7 +106,9 @@ namespace GeometryHelper.UnitTest.Dxf
             var picture = new DxfBlockTableRecord { Name = "GH_DIMBLOCK" };
             db.BlockTable.Add(picture);
             picture.AppendEntity(new DxfLine(P(0, 5), P(30, 5)));
-            db.ModelSpace.AppendEntity(new DxfRotatedDimension(0.0, P(0, 0), P(30, 0), P(15, 5), string.Empty, null) { DimBlock = picture });
+            db.ModelSpace.AppendEntity(
+                new DxfRotatedDimension(0.0, P(0, 0), P(30, 0), P(15, 5), string.Empty, null) { DimBlock = picture }
+            );
             string[] lines = Encoding.ASCII.GetString(Saved(db)).Replace("\r", string.Empty).Split('\n');
 
             // AutoCAD's DxfOut of such a dimension on a named block leaves out its 70 and its 50.
@@ -115,7 +136,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.DoesNotContain("AcDbDimension\n 70", file);
 
             DxfDatabase opened = DxfDatabase.Open(new MemoryStream(Encoding.ASCII.GetBytes(file)));
-            DxfRotatedDimension dimension = Assert.IsType<DxfRotatedDimension>(opened.ModelSpace.OfType<DxfEntity>().Single(e => e is DxfDimension || e is DxfUnknownEntity));
+            DxfRotatedDimension dimension = Assert.IsType<DxfRotatedDimension>(
+                opened.ModelSpace.OfType<DxfEntity>().Single(e => e is DxfDimension || e is DxfUnknownEntity)
+            );
 
             Assert.Equal(0.0, dimension.Rotation);
             Assert.Equal(30.0, dimension.Measurement, 9);

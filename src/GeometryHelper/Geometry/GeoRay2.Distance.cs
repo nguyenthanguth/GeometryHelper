@@ -55,7 +55,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => Distance2.DistanceTo(loop, this, tolerance);
+        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Distance2.DistanceTo(loop, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this ray to a curved chain.
@@ -69,7 +70,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) => Distance2.DistanceTo(chain, this, tolerance);
+        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Distance2.DistanceTo(chain, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this ray to a line segment using the default tolerance.
@@ -115,7 +117,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this ray to a rectangle, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoRectangle2 rect, Tolerance tolerance) => Distance2.DistanceTo(rect, this, tolerance);
+        public double DistanceTo(GeoRectangle2 rect, Tolerance tolerance) =>
+            Distance2.DistanceTo(rect, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this ray to a polygon.
@@ -141,7 +144,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this ray to a circle, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoCircle2 circle, Tolerance tolerance) => Distance2.DistanceTo(circle, this, tolerance);
+        public double DistanceTo(GeoCircle2 circle, Tolerance tolerance) =>
+            Distance2.DistanceTo(circle, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this ray to a polyline.
@@ -155,7 +159,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public double DistanceTo(GeoPolyline2 polyline, Tolerance tolerance) => Distance2.DistanceTo(polyline, this, tolerance);
+        public double DistanceTo(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Distance2.DistanceTo(polyline, this, tolerance);
 
         /// <summary>
         /// Gets the distance from this ray to an edge.
@@ -187,7 +192,8 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from this ray to a triangle, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.DistanceTo(triangle, this, tolerance);
+        public double DistanceTo(GeoTriangle2 triangle, Tolerance tolerance) =>
+            Triangle2.DistanceTo(triangle, this, tolerance);
 
         #endregion
 

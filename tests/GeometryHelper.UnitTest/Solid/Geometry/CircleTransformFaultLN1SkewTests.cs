@@ -19,13 +19,15 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class CircleTransformFaultLN1SkewTests
     {
-        private static readonly GeoTransform3 Skew = new GeoTransform3(new double[,]
-        {
-            { 1, 0.6, 0, 0 },
-            { 0, 0.8, 0, 0 },
-            { 0, 0, 1, 0 },
-            { 0, 0, 0, 1 },
-        });
+        private static readonly GeoTransform3 Skew = new GeoTransform3(
+            new double[,]
+            {
+                { 1, 0.6, 0, 0 },
+                { 0, 0.8, 0, 0 },
+                { 0, 0, 1, 0 },
+                { 0, 0, 0, 1 },
+            }
+        );
 
         private static GeoCircle3 InThePlan() => new GeoCircle3(new GeoPoint3(10, 20, 30), GeoVector3.ZAxis, 100);
 
@@ -69,13 +71,15 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // Y sent to (sin 1E-4, cos 1E-4, 0): both axes a unit long, a ten-thousandth of a radian off square, ten times
             // the vector tolerance.
-            var skew = new GeoTransform3(new double[,]
-            {
-                { 1, Math.Sin(1E-4), 0, 0 },
-                { 0, Math.Cos(1E-4), 0, 0 },
-                { 0, 0, 1, 0 },
-                { 0, 0, 0, 1 },
-            });
+            var skew = new GeoTransform3(
+                new double[,]
+                {
+                    { 1, Math.Sin(1E-4), 0, 0 },
+                    { 0, Math.Cos(1E-4), 0, 0 },
+                    { 0, 0, 1, 0 },
+                    { 0, 0, 0, 1 },
+                }
+            );
 
             Assert.Throws<InvalidOperationException>(() => skew.Transform(InThePlan()));
         }
@@ -87,7 +91,8 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The turn of 0.7 radians about (0.3, 0.7, -0.2) and a move, every number of it rounded as a file or a float
             // holds it: the axes come out a few 1E-7 off a unit long and off square.
-            GeoTransform3 exact = GeoTransform3.Translation(new GeoVector3(1E5, 2E5, 3))
+            GeoTransform3 exact = GeoTransform3
+                .Translation(new GeoVector3(1E5, 2E5, 3))
                 .Multiply(GeoTransform3.RotationAxis(new GeoVector3(0.3, 0.7, -0.2), 0.7));
             var rounded = new double[4, 4];
 
@@ -109,7 +114,8 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ATurnAShiftAMirrorAndAnEvenScaling_StillMoveTheCircle()
         {
-            GeoTransform3 transform = GeoTransform3.Translation(new GeoVector3(5, -7, 9))
+            GeoTransform3 transform = GeoTransform3
+                .Translation(new GeoVector3(5, -7, 9))
                 .Multiply(GeoTransform3.RotationAxis(new GeoVector3(1, 2, 3), 0.7))
                 .Multiply(GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(1, 1, 1), new GeoVector3(0, 1, 1))))
                 .Multiply(GeoTransform3.Scaling(2.5));
@@ -124,7 +130,9 @@ namespace GeometryHelper.UnitTest.Solid
         public void AnEvenScalingByAThousand_StillMovesTheCircle()
         {
             // The lengths are compared as a share of the stretch, so the test reads the same at any size.
-            GeoTransform3 transform = GeoTransform3.RotationAxis(new GeoVector3(3, -1, 2), 1.1).Multiply(GeoTransform3.Scaling(1E3));
+            GeoTransform3 transform = GeoTransform3
+                .RotationAxis(new GeoVector3(3, -1, 2), 1.1)
+                .Multiply(GeoTransform3.Scaling(1E3));
 
             Assert.Equal(1E5, transform.Transform(InThePlan()).Radius, 6);
         }

@@ -28,7 +28,10 @@ namespace GeometryHelper.UnitTest.Plane
     {
         private const double Eps = 2.220446049250313E-16;
 
-        private static readonly int Multiplier = int.TryParse(Environment.GetEnvironmentVariable("SPLINE_FUZZ_DRAWS"), out int asked) && asked > 0 ? asked : 1;
+        private static readonly int Multiplier =
+            int.TryParse(Environment.GetEnvironmentVariable("SPLINE_FUZZ_DRAWS"), out int asked) && asked > 0
+                ? asked
+                : 1;
 
         private readonly ITestOutputHelper _output;
 
@@ -42,7 +45,17 @@ namespace GeometryHelper.UnitTest.Plane
             return new TheoryData<int> { 2, 3 };
         }
 
-        private static string Name(SplineOracle o, int draw) => "draw " + draw + ": degree " + o.Degree + ", " + o.Count + " points, knots " + string.Join(" ", o.Knots) + ", weights " + string.Join(" ", o.Weights);
+        private static string Name(SplineOracle o, int draw) =>
+            "draw "
+            + draw
+            + ": degree "
+            + o.Degree
+            + ", "
+            + o.Count
+            + " points, knots "
+            + string.Join(" ", o.Knots)
+            + ", weights "
+            + string.Join(" ", o.Weights);
 
         [Theory]
         [MemberData(nameof(Dims))]
@@ -67,7 +80,9 @@ namespace GeometryHelper.UnitTest.Plane
                 }
             }
 
-            _output.WriteLine("worst point error " + worst.ToString("0.00") + " units of 2.2E-16 times the size of the spline");
+            _output.WriteLine(
+                "worst point error " + worst.ToString("0.00") + " units of 2.2E-16 times the size of the spline"
+            );
         }
 
         [Theory]
@@ -93,10 +108,23 @@ namespace GeometryHelper.UnitTest.Plane
                         double[] want = exact[order].Select(x => x.ToDouble()).ToArray();
                         double[] got = s.Derivative(t, order);
                         double size = o.Scale * Math.Pow(o.Degree / thinnest, order);
-                        double error = SplineUnderTest.Distance(want, got) / (SplineUnderTest.Distance(want, new double[dim]) + size * 1E-6);
+                        double error =
+                            SplineUnderTest.Distance(want, got)
+                            / (SplineUnderTest.Distance(want, new double[dim]) + size * 1E-6);
                         worst = Math.Max(worst, error);
 
-                        Assert.True(error <= 1E-9, Name(o, draw) + " derivative " + order + " at " + t + ": " + string.Join(", ", got) + ", exact " + string.Join(", ", want));
+                        Assert.True(
+                            error <= 1E-9,
+                            Name(o, draw)
+                                + " derivative "
+                                + order
+                                + " at "
+                                + t
+                                + ": "
+                                + string.Join(", ", got)
+                                + ", exact "
+                                + string.Join(", ", want)
+                        );
                     }
                 }
             }
@@ -127,32 +155,65 @@ namespace GeometryHelper.UnitTest.Plane
                     string at = Name(o, draw) + ", query " + string.Join(", ", q);
 
                     Assert.InRange(t, o.Start, o.End);
-                    Assert.True(Math.Abs(SplineUnderTest.Distance(closest, q) - distance) <= 4 * Eps * o.Scale, at + ": the closest point is " + SplineUnderTest.Distance(closest, q) + " away, the distance " + distance);
+                    Assert.True(
+                        Math.Abs(SplineUnderTest.Distance(closest, q) - distance) <= 4 * Eps * o.Scale,
+                        at
+                            + ": the closest point is "
+                            + SplineUnderTest.Distance(closest, q)
+                            + " away, the distance "
+                            + distance
+                    );
 
                     // The distance may not be longer than the true one by more than rounding; a shorter one is a point the
                     // oracle's sampling can have stepped over, so it is checked to be a real point of the curve.
                     double error = (distance - expected) / (o.Scale * Eps);
                     worst = Math.Max(worst, error);
 
-                    Assert.True(error <= 24.0, at + ": distance " + distance + ", the oracle says " + expected + " (" + error + " units off)");
+                    Assert.True(
+                        error <= 24.0,
+                        at + ": distance " + distance + ", the oracle says " + expected + " (" + error + " units off)"
+                    );
 
                     if (error < -24.0)
                     {
                         double[] real = o.Point(t);
-                        Assert.True(Math.Abs(SplineUnderTest.Distance(real, q) - distance) <= 24 * Eps * o.Scale, at + ": a distance of " + distance + " under the oracle's " + expected + " that is not a point of the curve");
+                        Assert.True(
+                            Math.Abs(SplineUnderTest.Distance(real, q) - distance) <= 24 * Eps * o.Scale,
+                            at
+                                + ": a distance of "
+                                + distance
+                                + " under the oracle's "
+                                + expected
+                                + " that is not a point of the curve"
+                        );
                         oracleMissed++;
                     }
 
                     // From the other side, to the bit, and the shortest line leaving each way.
-                    Assert.True(s.DistanceFromPoint(q).Equals(distance), at + ": from the point it is " + s.DistanceFromPoint(q));
+                    Assert.True(
+                        s.DistanceFromPoint(q).Equals(distance),
+                        at + ": from the point it is " + s.DistanceFromPoint(q)
+                    );
                     double[][] line = s.ShortestLine(q);
                     double[][] back = s.ShortestLineFromPoint(q);
-                    Assert.True(line[0].SequenceEqual(closest) && line[1].SequenceEqual(q), at + ": the shortest line is not from the closest point to the query");
-                    Assert.True(back[0].SequenceEqual(line[1]) && back[1].SequenceEqual(line[0]), at + ": the shortest line from the point is not the reverse");
+                    Assert.True(
+                        line[0].SequenceEqual(closest) && line[1].SequenceEqual(q),
+                        at + ": the shortest line is not from the closest point to the query"
+                    );
+                    Assert.True(
+                        back[0].SequenceEqual(line[1]) && back[1].SequenceEqual(line[0]),
+                        at + ": the shortest line from the point is not the reverse"
+                    );
                 }
             }
 
-            _output.WriteLine("worst distance error " + worst.ToString("0.00") + " units of rounding; sampling stepped over a nearer point " + oracleMissed + " times");
+            _output.WriteLine(
+                "worst distance error "
+                    + worst.ToString("0.00")
+                    + " units of rounding; sampling stepped over a nearer point "
+                    + oracleMissed
+                    + " times"
+            );
         }
 
         [Theory]
@@ -171,7 +232,10 @@ namespace GeometryHelper.UnitTest.Plane
                 double relative = Math.Abs(length - expected) / expected;
                 worst = Math.Max(worst, relative);
 
-                Assert.True(relative <= 1E-12, Name(o, draw) + ": length " + length.ToString("R") + ", the oracle says " + expected.ToString("R"));
+                Assert.True(
+                    relative <= 1E-12,
+                    Name(o, draw) + ": length " + length.ToString("R") + ", the oracle says " + expected.ToString("R")
+                );
             }
 
             _output.WriteLine("worst length error " + worst.ToString("0.0E+0") + " of the length");
@@ -199,7 +263,17 @@ namespace GeometryHelper.UnitTest.Plane
                     worst = Math.Max(worst, relative);
 
                     Assert.InRange(t, o.Start, o.End);
-                    Assert.True(relative <= 1E-11, Name(o, draw) + ": " + wanted + " along is the parameter " + t + ", which has " + behind + " behind it");
+                    Assert.True(
+                        relative <= 1E-11,
+                        Name(o, draw)
+                            + ": "
+                            + wanted
+                            + " along is the parameter "
+                            + t
+                            + ", which has "
+                            + behind
+                            + " behind it"
+                    );
                 }
 
                 Assert.Equal(o.Start, s.ParameterAtLength(-1.0));
@@ -229,7 +303,20 @@ namespace GeometryHelper.UnitTest.Plane
                     double hi = Math.Abs(box[1][c] - max[c]) / (o.Scale * Eps);
                     worst = Math.Max(worst, Math.Max(lo, hi));
 
-                    Assert.True(lo <= 24.0 && hi <= 24.0, Name(o, draw) + ": axis " + c + " runs " + box[0][c] + " to " + box[1][c] + ", the oracle says " + min[c] + " to " + max[c]);
+                    Assert.True(
+                        lo <= 24.0 && hi <= 24.0,
+                        Name(o, draw)
+                            + ": axis "
+                            + c
+                            + " runs "
+                            + box[0][c]
+                            + " to "
+                            + box[1][c]
+                            + ", the oracle says "
+                            + min[c]
+                            + " to "
+                            + max[c]
+                    );
                 }
             }
 
@@ -250,8 +337,14 @@ namespace GeometryHelper.UnitTest.Plane
                 double tolerance = o.Scale * new[] { 0.2, 0.05, 0.01 }[random.Next(3)];
                 double[][] chain = s.Flatten(tolerance);
 
-                Assert.True(SplineUnderTest.Distance(chain[0], o.Point(o.Start)) <= 8 * Eps * o.Scale, Name(o, draw) + ": the chain does not start at the start");
-                Assert.True(SplineUnderTest.Distance(chain[chain.Length - 1], o.Point(o.End)) <= 8 * Eps * o.Scale, Name(o, draw) + ": the chain does not end at the end");
+                Assert.True(
+                    SplineUnderTest.Distance(chain[0], o.Point(o.Start)) <= 8 * Eps * o.Scale,
+                    Name(o, draw) + ": the chain does not start at the start"
+                );
+                Assert.True(
+                    SplineUnderTest.Distance(chain[chain.Length - 1], o.Point(o.End)) <= 8 * Eps * o.Scale,
+                    Name(o, draw) + ": the chain does not end at the end"
+                );
 
                 // Every corner is on the curve, and every point of the curve is within the tolerance of the chain.
                 foreach (double[] corner in chain)
@@ -265,7 +358,10 @@ namespace GeometryHelper.UnitTest.Plane
                         off = SplineUnderTest.Distance(o.Point(s.ParameterAtPoint(corner)), corner);
                     }
 
-                    Assert.True(off <= 1E-9 * o.Scale, Name(o, draw) + ": a corner " + string.Join(", ", corner) + " is off the curve by " + off);
+                    Assert.True(
+                        off <= 1E-9 * o.Scale,
+                        Name(o, draw) + ": a corner " + string.Join(", ", corner) + " is off the curve by " + off
+                    );
                 }
 
                 int samples = 600;
@@ -275,16 +371,27 @@ namespace GeometryHelper.UnitTest.Plane
                 {
                     for (int i = 0; i <= samples; i++)
                     {
-                        double[] p = o.FastPoint(Math.Min(breaks[span] + (breaks[span + 1] - breaks[span]) * i / samples, breaks[span + 1]));
+                        double[] p = o.FastPoint(
+                            Math.Min(breaks[span] + (breaks[span + 1] - breaks[span]) * i / samples, breaks[span + 1])
+                        );
                         double gap = DistanceToChain(chain, p);
                         worstGap = Math.Max(worstGap, gap / tolerance);
 
-                        Assert.True(gap <= tolerance * (1.0 + 1E-9), Name(o, draw) + ": a point of the curve is " + gap + " from the chain, the tolerance " + tolerance);
+                        Assert.True(
+                            gap <= tolerance * (1.0 + 1E-9),
+                            Name(o, draw)
+                                + ": a point of the curve is "
+                                + gap
+                                + " from the chain, the tolerance "
+                                + tolerance
+                        );
                     }
                 }
             }
 
-            _output.WriteLine("the farthest the curve strayed from a chain was " + worstGap.ToString("0.000") + " of the tolerance");
+            _output.WriteLine(
+                "the farthest the curve strayed from a chain was " + worstGap.ToString("0.000") + " of the tolerance"
+            );
         }
 
         private static double DistanceToChain(double[][] chain, double[] p)
@@ -350,8 +457,20 @@ namespace GeometryHelper.UnitTest.Plane
                 Assert.Equal(s.Degree, second.Degree);
 
                 int c = dim;
-                Assert.True(first.ControlPoints.Skip(first.ControlPoints.Length - c).SequenceEqual(second.ControlPoints.Take(c)), at + ": the pieces do not meet at one control point");
-                Assert.True(SplineUnderTest.Distance(first.ControlPoints.Skip(first.ControlPoints.Length - c).ToArray(), o.Point(u)) <= 16 * Eps * o.Scale, at + ": the pieces do not meet where the spline is");
+                Assert.True(
+                    first
+                        .ControlPoints.Skip(first.ControlPoints.Length - c)
+                        .SequenceEqual(second.ControlPoints.Take(c)),
+                    at + ": the pieces do not meet at one control point"
+                );
+                Assert.True(
+                    SplineUnderTest.Distance(
+                        first.ControlPoints.Skip(first.ControlPoints.Length - c).ToArray(),
+                        o.Point(u)
+                    )
+                        <= 16 * Eps * o.Scale,
+                    at + ": the pieces do not meet where the spline is"
+                );
 
                 for (int k = 0; k < 6; k++)
                 {
@@ -361,10 +480,16 @@ namespace GeometryHelper.UnitTest.Plane
                     double b = SplineUnderTest.Distance(o.Point(w), second.PointAt(w)) / (o.Scale * Eps);
                     worst = Math.Max(worst, Math.Max(a, b));
 
-                    Assert.True(a <= 40.0 && b <= 40.0, at + ": a piece is " + Math.Max(a, b) + " units of rounding off the spline");
+                    Assert.True(
+                        a <= 40.0 && b <= 40.0,
+                        at + ": a piece is " + Math.Max(a, b) + " units of rounding off the spline"
+                    );
                 }
 
-                Assert.True(Math.Abs(first.Length() + second.Length() - s.Length()) <= 1E-12 * s.Length(), at + ": the lengths of the pieces do not add up");
+                Assert.True(
+                    Math.Abs(first.Length() + second.Length() - s.Length()) <= 1E-12 * s.Length(),
+                    at + ": the lengths of the pieces do not add up"
+                );
             }
 
             _output.WriteLine("worst error of a piece " + worst.ToString("0.00") + " units of rounding");
@@ -398,10 +523,23 @@ namespace GeometryHelper.UnitTest.Plane
                     double speed = o.SpeedAt(mirror);
                     double allowance = 60.0 + 8.0 * (Math.Abs(o.Start) + Math.Abs(o.End)) * speed / o.Scale;
 
-                    Assert.True(error <= allowance, Name(o, draw) + ": the reverse at " + t + " is " + error + " units of rounding off, " + allowance + " allowed");
+                    Assert.True(
+                        error <= allowance,
+                        Name(o, draw)
+                            + ": the reverse at "
+                            + t
+                            + " is "
+                            + error
+                            + " units of rounding off, "
+                            + allowance
+                            + " allowed"
+                    );
                 }
 
-                Assert.True(s.Reverse().Reverse().ControlPoints.SequenceEqual(s.ControlPoints), Name(o, draw) + ": reversing twice moves a control point");
+                Assert.True(
+                    s.Reverse().Reverse().ControlPoints.SequenceEqual(s.ControlPoints),
+                    Name(o, draw) + ": reversing twice moves a control point"
+                );
             }
 
             _output.WriteLine("worst error of a reversed spline " + worst.ToString("0.00") + " units of rounding");
@@ -435,21 +573,44 @@ namespace GeometryHelper.UnitTest.Plane
                 double tangentError = SplineUnderTest.Distance(tangent, unit);
                 worstTangent = Math.Max(worstTangent, tangentError);
 
-                Assert.True(tangentError <= 1E-9, Name(o, draw) + ": tangent at " + t + " is " + string.Join(", ", tangent) + ", the exact one " + string.Join(", ", unit));
+                Assert.True(
+                    tangentError <= 1E-9,
+                    Name(o, draw)
+                        + ": tangent at "
+                        + t
+                        + " is "
+                        + string.Join(", ", tangent)
+                        + ", the exact one "
+                        + string.Join(", ", unit)
+                );
 
-                double cross = dim == 2
-                    ? d1[0] * d2[1] - d1[1] * d2[0]
-                    : Math.Sqrt(Math.Pow(d1[1] * d2[2] - d1[2] * d2[1], 2) + Math.Pow(d1[2] * d2[0] - d1[0] * d2[2], 2) + Math.Pow(d1[0] * d2[1] - d1[1] * d2[0], 2));
+                double cross =
+                    dim == 2
+                        ? d1[0] * d2[1] - d1[1] * d2[0]
+                        : Math.Sqrt(
+                            Math.Pow(d1[1] * d2[2] - d1[2] * d2[1], 2)
+                                + Math.Pow(d1[2] * d2[0] - d1[0] * d2[2], 2)
+                                + Math.Pow(d1[0] * d2[1] - d1[1] * d2[0], 2)
+                        );
                 double expected = cross / (speed * speed * speed);
                 double curvature = s.Curvature(t);
                 double scale = SplineUnderTest.Distance(d2, new double[dim]) / (speed * speed);
                 double error = Math.Abs(curvature - expected) / (scale + 1E-300);
                 worstCurvature = Math.Max(worstCurvature, error);
 
-                Assert.True(error <= 1E-8, Name(o, draw) + ": curvature at " + t + " is " + curvature + ", the exact one " + expected);
+                Assert.True(
+                    error <= 1E-8,
+                    Name(o, draw) + ": curvature at " + t + " is " + curvature + ", the exact one " + expected
+                );
             }
 
-            _output.WriteLine("worst tangent error " + worstTangent.ToString("0.0E+0") + ", worst curvature error " + worstCurvature.ToString("0.0E+0") + " of the acceleration over the speed squared");
+            _output.WriteLine(
+                "worst tangent error "
+                    + worstTangent.ToString("0.0E+0")
+                    + ", worst curvature error "
+                    + worstCurvature.ToString("0.0E+0")
+                    + " of the acceleration over the speed squared"
+            );
         }
     }
 }

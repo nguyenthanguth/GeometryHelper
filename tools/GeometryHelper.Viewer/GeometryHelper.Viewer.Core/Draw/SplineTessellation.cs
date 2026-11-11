@@ -36,32 +36,56 @@ namespace GeometryHelper.Viewer
         /// <param name="knots">The knots: points + degree + 1 of them, not decreasing, clamped at both ends.</param>
         /// <param name="weights">The weights, one to a control point and above nought, or null for all of them one.</param>
         /// <exception cref="FormatException">Thrown when the numbers do not make a clamped spline.</exception>
-        internal static Vec3[] Points(ChordRule rule, int degree, IReadOnlyList<Vec3> points, IReadOnlyList<double> knots, IReadOnlyList<double> weights)
-            => SplineCut.Of(degree, points, knots, weights).Points(rule);
+        internal static Vec3[] Points(
+            ChordRule rule,
+            int degree,
+            IReadOnlyList<Vec3> points,
+            IReadOnlyList<double> knots,
+            IReadOnlyList<double> weights
+        ) => SplineCut.Of(degree, points, knots, weights).Points(rule);
 
         /// <summary>
         /// Checks the numbers of a spline and cuts it into its Bézier pieces, each degree + 1 homogeneous points (x w, y w, z w, w), in one
         /// pass: each inner knot is raised to the degree as the pass reaches it, from the control points of the piece before (Piegl and
         /// Tiller, algorithm A5.6).
         /// </summary>
-        internal static List<double[]> Pieces(int degree, IReadOnlyList<Vec3> points, IReadOnlyList<double> knots, IReadOnlyList<double> weights)
+        internal static List<double[]> Pieces(
+            int degree,
+            IReadOnlyList<Vec3> points,
+            IReadOnlyList<double> knots,
+            IReadOnlyList<double> weights
+        )
         {
             int p = degree;
             int n = points.Count;
 
             if (p < 1 || n < p + 1)
             {
-                throw new FormatException("A spline of degree " + p + " has at least " + (p + 1) + " control points; it has " + n + ".");
+                throw new FormatException(
+                    "A spline of degree " + p + " has at least " + (p + 1) + " control points; it has " + n + "."
+                );
             }
 
             if (knots.Count != n + p + 1)
             {
-                throw new FormatException("A spline of " + n + " control points and degree " + p + " has " + (n + p + 1) + " knots; it has " + knots.Count + ".");
+                throw new FormatException(
+                    "A spline of "
+                        + n
+                        + " control points and degree "
+                        + p
+                        + " has "
+                        + (n + p + 1)
+                        + " knots; it has "
+                        + knots.Count
+                        + "."
+                );
             }
 
             if (weights != null && weights.Count != n)
             {
-                throw new FormatException("A spline has one weight to a control point: " + n + "; it has " + weights.Count + ".");
+                throw new FormatException(
+                    "A spline has one weight to a control point: " + n + "; it has " + weights.Count + "."
+                );
             }
 
             for (int i = 0; i < knots.Count; i++)
@@ -76,13 +100,17 @@ namespace GeometryHelper.Viewer
             {
                 if (knots[i] != knots[0] || knots[knots.Count - 1 - i] != knots[knots.Count - 1])
                 {
-                    throw new FormatException("The knots of a spline are clamped: its first degree + 1 are one value, and so are its last.");
+                    throw new FormatException(
+                        "The knots of a spline are clamped: its first degree + 1 are one value, and so are its last."
+                    );
                 }
             }
 
             if (knots[p + 1] == knots[0] || knots[knots.Count - 2 - p] == knots[knots.Count - 1])
             {
-                throw new FormatException("The knots of a spline are repeated degree + 1 times at each end and no more.");
+                throw new FormatException(
+                    "The knots of a spline are repeated degree + 1 times at each end and no more."
+                );
             }
 
             for (int i = p + 1, run = 1; i < knots.Count - p - 1; i++)
@@ -214,7 +242,8 @@ namespace GeometryHelper.Viewer
             }
         }
 
-        private static Vec3 Projected(double[] h, int j) => new Vec3(h[j * 4] / h[j * 4 + 3], h[j * 4 + 1] / h[j * 4 + 3], h[j * 4 + 2] / h[j * 4 + 3]);
+        private static Vec3 Projected(double[] h, int j) =>
+            new Vec3(h[j * 4] / h[j * 4 + 3], h[j * 4 + 1] / h[j * 4 + 3], h[j * 4 + 2] / h[j * 4 + 3]);
 
         /// <summary>
         /// Whether a piece keeps to the rule: its control points within the chord tolerance of its chord, and its control polygon turning
@@ -370,8 +399,18 @@ namespace GeometryHelper.Viewer
         /// Checks the numbers of a spline and cuts it into its Bézier pieces.
         /// </summary>
         /// <exception cref="FormatException">Thrown when the numbers do not make a clamped spline.</exception>
-        internal static SplineCut Of(int degree, IReadOnlyList<Vec3> points, IReadOnlyList<double> knots, IReadOnlyList<double> weights)
-            => new SplineCut(degree, SplineTessellation.Pieces(degree, points, knots, weights), points[0], points[points.Count - 1]);
+        internal static SplineCut Of(
+            int degree,
+            IReadOnlyList<Vec3> points,
+            IReadOnlyList<double> knots,
+            IReadOnlyList<double> weights
+        ) =>
+            new SplineCut(
+                degree,
+                SplineTessellation.Pieces(degree, points, knots, weights),
+                points[0],
+                points[points.Count - 1]
+            );
 
         /// <summary>
         /// Gets the points along the spline at a rule, the first its first control point and the last its last, exactly; where a piece had
@@ -392,7 +431,13 @@ namespace GeometryHelper.Viewer
                 }
 
                 points[points.Count - 1] = _last;
-                cut = new Cut { Tolerance = rule.ChordTolerance, AngleOnly = rule.AngleOnly, Points = points.ToArray(), Capped = own.Capped };
+                cut = new Cut
+                {
+                    Tolerance = rule.ChordTolerance,
+                    AngleOnly = rule.AngleOnly,
+                    Points = points.ToArray(),
+                    Capped = own.Capped,
+                };
                 _kept.Add(cut);
             }
 

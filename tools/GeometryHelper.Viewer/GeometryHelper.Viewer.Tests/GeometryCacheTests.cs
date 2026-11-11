@@ -12,7 +12,8 @@ namespace GeometryHelper.Viewer.Tests
     public class GeometryCacheTests
     {
         // A cut of a scene with one point in it: the key a view holds the geometry of a scene under.
-        private static ClipResult Cut() => ClipResult.Build(Primitives.Build(new SceneWriter().Add(new GeoPoint3(1, 2, 3)).Scene), ClipSet.Empty);
+        private static ClipResult Cut() =>
+            ClipResult.Build(Primitives.Build(new SceneWriter().Add(new GeoPoint3(1, 2, 3)).Scene), ClipSet.Empty);
 
         [Fact]
         public async Task FourViewsThatTakeTheSameThingNow_AreGivenOneBuild_AndShareIt()
@@ -20,7 +21,11 @@ namespace GeometryHelper.Viewer.Tests
             var cache = new GeometryCache<int[]>();
             ClipResult clip = Cut();
             int made = 0;
-            Func<int[]> make = () => { made++; return new[] { 7 }; };
+            Func<int[]> make = () =>
+            {
+                made++;
+                return new[] { 7 };
+            };
 
             GeometryCache<int[]>.Entry[] taken = new GeometryCache<int[]>.Entry[4];
 
@@ -82,7 +87,12 @@ namespace GeometryHelper.Viewer.Tests
             ClipResult clip = Cut();
             var gate = new ManualResetEventSlim(false);
             int made = 0;
-            Func<int[]> slow = () => { Interlocked.Increment(ref made); gate.Wait(); return new[] { 5 }; };
+            Func<int[]> slow = () =>
+            {
+                Interlocked.Increment(ref made);
+                gate.Wait();
+                return new[] { 5 };
+            };
 
             var first = cache.Take(1, clip, default(Vec3), slow, false);
             var second = cache.Take(1, clip, default(Vec3), slow, false);
@@ -102,7 +112,9 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ATakeWithNothingToMakeItWith_IsRefused()
         {
-            Assert.Throws<ArgumentNullException>(() => new GeometryCache<int[]>().Take(1, Cut(), default(Vec3), null, true));
+            Assert.Throws<ArgumentNullException>(() =>
+                new GeometryCache<int[]>().Take(1, Cut(), default(Vec3), null, true)
+            );
         }
     }
 }

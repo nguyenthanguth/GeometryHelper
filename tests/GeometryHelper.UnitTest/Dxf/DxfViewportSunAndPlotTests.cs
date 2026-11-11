@@ -56,14 +56,22 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(viewport.Handle, sun.OwnerHandle);
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "40", sun.Handle);
-            Assert.Contains("361\n" + sun.Handle + "\n", Records(saved).Single(r => HandleOf(r) == "40"), StringComparison.Ordinal);
+            Assert.Contains(
+                "361\n" + sun.Handle + "\n",
+                Records(saved).Single(r => HandleOf(r) == "40"),
+                StringComparison.Ordinal
+            );
 
             // 21 June 2026 is the Julian day 2461213, 15:00:00.75 the 54 000th second; the true colour 0xFFF0C8 with the index
             // nearest it.
             Assert.Equal(
-                "  0\nSUN\n  5\n" + sun.Handle + "\n102\n{ACAD_REACTORS\n330\n40\n102\n}\n330\n40\n100\nAcDbSun\n 90\n1\n290\n1\n 63\n" + sun.SunColor.ColorIndex
-                + "\n421\n16773320\n 40\n1.5\n291\n1\n 91\n2461213\n 92\n54000\n292\n1\n 70\n1\n 71\n1024\n280\n3\n",
-                Records(saved).Single(r => HandleOf(r) == sun.Handle));
+                "  0\nSUN\n  5\n"
+                    + sun.Handle
+                    + "\n102\n{ACAD_REACTORS\n330\n40\n102\n}\n330\n40\n100\nAcDbSun\n 90\n1\n290\n1\n 63\n"
+                    + sun.SunColor.ColorIndex
+                    + "\n421\n16773320\n 40\n1.5\n291\n1\n 91\n2461213\n 92\n54000\n292\n1\n 70\n1\n 71\n1024\n280\n3\n",
+                Records(saved).Single(r => HandleOf(r) == sun.Handle)
+            );
 
             DxfDatabase again = DxfDatabase.Parse(saved);
             DxfSun read = ByHandle<DxfViewport>(again, "40").Sun;
@@ -107,7 +115,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // The colour of the index written as the 63 alone, the true colour taken out; the others in their places.
             string record = Records(db.ToText()).Single(r => HandleOf(r) == sun.Handle);
-            Assert.Contains("100\nAcDbSun\n 90\n1\n290\n0\n 63\n30\n 40\n0.25\n291\n0\n 91\n2461396\n 92\n34200\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                "100\nAcDbSun\n 90\n1\n290\n0\n 63\n30\n 40\n0.25\n291\n0\n 91\n2461396\n 92\n34200\n",
+                record,
+                StringComparison.Ordinal
+            );
             DxfSun read = (DxfSun)DxfDatabase.Parse(db.ToText()).GetObject(sun.Handle);
             Assert.Equal(DxfColor.FromColorIndex(DxfColorMethod.ByAci, 30), read.SunColor);
             Assert.False(read.IsOn);
@@ -138,7 +150,9 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfSun shared = ByHandle<DxfViewport>(db, "40").SetSun(new DxfSun());
 
             // Viewport 41 names the sun viewport 40 owns.
-            DxfDatabase again = DxfDatabase.Parse(db.ToText().Replace(" 68\n0\n 69\n4\n", " 68\n0\n 69\n4\n361\n" + shared.Handle + "\n"));
+            DxfDatabase again = DxfDatabase.Parse(
+                db.ToText().Replace(" 68\n0\n 69\n4\n", " 68\n0\n 69\n4\n361\n" + shared.Handle + "\n")
+            );
             DxfViewport other = ByHandle<DxfViewport>(again, "41");
             Assert.Equal(shared.Handle, other.Sun.Handle);
 
@@ -153,7 +167,8 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ASunGivenToADrawingThatListsNoClassSun_ListsIt_AsAutoCADDoes()
         {
-            const string sunClass = "  0\nCLASS\n  1\nSUN\n  2\nAcDbSun\n  3\nSCENEOE\n 90\n1153\n 91\n0\n280\n0\n281\n0\n";
+            const string sunClass =
+                "  0\nCLASS\n  1\nSUN\n  2\nAcDbSun\n  3\nSCENEOE\n 90\n1153\n 91\n0\n280\n0\n281\n0\n";
             string text = DxfObjectsEzdxfDrawings.R2018.Replace(sunClass, string.Empty);
             Assert.DoesNotContain("\nAcDbSun\n", text, StringComparison.Ordinal);
             DxfDatabase db = DxfDatabase.Parse(text);
@@ -165,7 +180,10 @@ namespace GeometryHelper.UnitTest.Dxf
             string saved = db.ToText();
             Assert.Single(Records(saved), r => r == sunClass);
             int classes = saved.IndexOf("\nCLASSES\n", StringComparison.Ordinal);
-            Assert.Equal(saved.IndexOf("  0\nENDSEC\n", classes, StringComparison.Ordinal), saved.IndexOf(sunClass, StringComparison.Ordinal) + sunClass.Length);
+            Assert.Equal(
+                saved.IndexOf("  0\nENDSEC\n", classes, StringComparison.Ordinal),
+                saved.IndexOf(sunClass, StringComparison.Ordinal) + sunClass.Length
+            );
 
             // A drawing that lists it is given none again.
             DxfDatabase listed = DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2018);
@@ -178,13 +196,19 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2018);
             DxfSun sun = ByHandle<DxfViewport>(db, "40").SetSun(new DxfSun());
-            DxfDatabase again = DxfDatabase.Parse(db.ToText().Replace(" 91\n2456922\n 92\n43200\n", " 91\nnoon\n 92\n\n"));
+            DxfDatabase again = DxfDatabase.Parse(
+                db.ToText().Replace(" 91\n2456922\n 92\n43200\n", " 91\nnoon\n 92\n\n")
+            );
             DxfSun read = (DxfSun)again.GetObject(sun.Handle);
             Assert.Equal(new DateTime(2014, 9, 21, 12, 0, 0), read.DateTime);
 
             read.DateTime = new DateTime(2014, 9, 21, 12, 0, 0);
 
-            Assert.Contains(" 91\n2456922\n 92\n43200\n", Records(again.ToText()).Single(r => HandleOf(r) == sun.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                " 91\n2456922\n 92\n43200\n",
+                Records(again.ToText()).Single(r => HandleOf(r) == sun.Handle),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -197,7 +221,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Throws<ArgumentNullException>(() => viewport.SetSun(null));
             Assert.Throws<ArgumentException>(() => ByHandle<DxfViewport>(db, "41").SetSun(sun));
-            Assert.Throws<InvalidOperationException>(() => ByHandle<DxfViewport>(DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2000), "40").SetSun(new DxfSun()));
+            Assert.Throws<InvalidOperationException>(() =>
+                ByHandle<DxfViewport>(DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2000), "40").SetSun(new DxfSun())
+            );
             Assert.Throws<InvalidOperationException>(() => new DxfViewport().SetSun(new DxfSun()));
             Assert.Throws<ArgumentOutOfRangeException>(() => sun.ShadowType = DxfShadowType.Sampled);
             Assert.Throws<ArgumentOutOfRangeException>(() => sun.ShadowMapSize = 100);
@@ -215,9 +241,13 @@ namespace GeometryHelper.UnitTest.Dxf
         [Theory]
         [InlineData("R2000")]
         [InlineData("R2018")]
-        public void AViewportPlottedAsDisplayed_IsPlottedAsItsRenderModeShowsIt_AndItsShadingOfThePlotOtherwise(string version)
+        public void AViewportPlottedAsDisplayed_IsPlottedAsItsRenderModeShowsIt_AndItsShadingOfThePlotOtherwise(
+            string version
+        )
         {
-            DxfDatabase db = DxfDatabase.Parse(version == "R2000" ? DxfObjectsEzdxfDrawings.R2000 : DxfObjectsEzdxfDrawings.R2018);
+            DxfDatabase db = DxfDatabase.Parse(
+                version == "R2000" ? DxfObjectsEzdxfDrawings.R2000 : DxfObjectsEzdxfDrawings.R2018
+            );
             DxfViewport shown = ByHandle<DxfViewport>(db, "3F");
 
             // ezdxf: render mode 0, 2D optimized, and no shading of the plot: as wires.
@@ -253,7 +283,10 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TheRenderModeOfAViewport_SaysHowItIsPlottedAsDisplayed(string mode, bool wires, bool raster)
         {
             // The viewport 1 of Sheet A given a render mode ahead of its own 0: 2 hidden, 4 Gouraud, 6 Gouraud with wires.
-            string text = DxfObjectsEzdxfDrawings.R2018.Replace(" 68\n1\n 69\n1\n", " 68\n1\n 69\n1\n281\n" + mode + "\n");
+            string text = DxfObjectsEzdxfDrawings.R2018.Replace(
+                " 68\n1\n 69\n1\n",
+                " 68\n1\n 69\n1\n281\n" + mode + "\n"
+            );
             DxfViewport viewport = ByHandle<DxfViewport>(DxfDatabase.Parse(text), "3F");
 
             Assert.Equal(wires, viewport.PlotWireframe);
@@ -265,10 +298,45 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // Three visual styles: 2D wireframe (4), hidden (6) and realistic (8); viewport 41 shown in the realistic one.
             string styles = DxfLines.G(
-                0, "VISUALSTYLE", 5, "F01", 330, "A", 100, "AcDbVisualStyle", 2, "2dWireframe", 70, 4,
-                0, "VISUALSTYLE", 5, "F02", 330, "A", 100, "AcDbVisualStyle", 2, "Hidden", 70, 6,
-                0, "VISUALSTYLE", 5, "F03", 330, "A", 100, "AcDbVisualStyle", 2, "Realistic", 70, 8);
-            string text = DxfObjectsEzdxfDrawings.R2018.Replace("  0\nENDSEC\n  0\nEOF\n", styles + "  0\nENDSEC\n  0\nEOF\n")
+                0,
+                "VISUALSTYLE",
+                5,
+                "F01",
+                330,
+                "A",
+                100,
+                "AcDbVisualStyle",
+                2,
+                "2dWireframe",
+                70,
+                4,
+                0,
+                "VISUALSTYLE",
+                5,
+                "F02",
+                330,
+                "A",
+                100,
+                "AcDbVisualStyle",
+                2,
+                "Hidden",
+                70,
+                6,
+                0,
+                "VISUALSTYLE",
+                5,
+                "F03",
+                330,
+                "A",
+                100,
+                "AcDbVisualStyle",
+                2,
+                "Realistic",
+                70,
+                8
+            );
+            string text = DxfObjectsEzdxfDrawings
+                .R2018.Replace("  0\nENDSEC\n  0\nEOF\n", styles + "  0\nENDSEC\n  0\nEOF\n")
                 .Replace(" 68\n0\n 69\n4\n", " 68\n0\n 69\n4\n348\nF03\n");
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfViewport shown = ByHandle<DxfViewport>(db, "41");

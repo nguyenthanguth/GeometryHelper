@@ -31,7 +31,8 @@ namespace GeometryHelper.Geometry
         /// The segment leaves this ray and lands on the segment, so its length is the clearance
         /// between them and nought where they touch.
         /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoLine3 line, Tolerance tolerance) => Projection3.GetShortestLineTo(this, line, tolerance);
+        public GeoLine3 GetShortestLineTo(GeoLine3 line, Tolerance tolerance) =>
+            Projection3.GetShortestLineTo(this, line, tolerance);
 
         /// <summary>
         /// Gets the shortest segment joining this ray to a triangle, using the default tolerance.
@@ -57,7 +58,8 @@ namespace GeometryHelper.Geometry
         /// over the square 100 by 100 in the floor, is joined by a segment of no length at (5, 5, 0.0004), and is
         /// 0.0004 from it by its distance.
         /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoTriangle3 triangle, Tolerance tolerance) => Projection3.GetShortestLineTo(this, triangle, tolerance);
+        public GeoLine3 GetShortestLineTo(GeoTriangle3 triangle, Tolerance tolerance) =>
+            Projection3.GetShortestLineTo(this, triangle, tolerance);
 
         /// <summary>
         /// Gets the shortest segment joining this ray to a solid, using the default tolerance.
@@ -83,7 +85,8 @@ namespace GeometryHelper.Geometry
         /// over the square 100 by 100 in the floor, is joined by a segment of no length at (5, 5, 0.0004), and is
         /// 0.0004 from it by its distance.
         /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoSolid3 solid, Tolerance tolerance) => Projection3.GetShortestLineTo(solid, this, tolerance).Reverse();
+        public GeoLine3 GetShortestLineTo(GeoSolid3 solid, Tolerance tolerance) =>
+            Projection3.GetShortestLineTo(solid, this, tolerance).Reverse();
 
         /// <summary>
         /// Gets the shortest segment joining this ray to a point, using the default tolerance.
@@ -102,8 +105,8 @@ namespace GeometryHelper.Geometry
         /// from the ray leaving the origin along X, the point (-30, 0, 40) gets the one from the origin, 50 long. The
         /// tolerance is taken so that this reads like every other shape; it changes nothing here.
         /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance)
-            => Projection3.GetShortestLineTo(this, point, tolerance);
+        public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance) =>
+            Projection3.GetShortestLineTo(this, point, tolerance);
 
         /// <summary>
         /// Gets the shortest segment joining this ray to a face, using the default tolerance.
@@ -137,7 +140,8 @@ namespace GeometryHelper.Geometry
         /// 0.0004 from it by its distance.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public GeoLine3 GetShortestLineTo(GeoFace3 face, Tolerance tolerance) => Projection3.GetShortestLineTo(this, face, tolerance);
+        public GeoLine3 GetShortestLineTo(GeoFace3 face, Tolerance tolerance) =>
+            Projection3.GetShortestLineTo(this, face, tolerance);
 
         /// <summary>
         /// Gets the shortest segment joining this ray to a polygon, using the default tolerance.
@@ -169,7 +173,8 @@ namespace GeometryHelper.Geometry
         /// 0.0004 from it by its distance.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public GeoLine3 GetShortestLineTo(GeoPolygon3 polygon, Tolerance tolerance) => Projection3.GetShortestLineTo(this, polygon, tolerance);
+        public GeoLine3 GetShortestLineTo(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Projection3.GetShortestLineTo(this, polygon, tolerance);
 
         /// <summary>
         /// Gets the shortest segment joining this ray to a plane, using the default tolerance.
@@ -195,7 +200,8 @@ namespace GeometryHelper.Geometry
         /// snapped: a ray a hair off the plane and running along it is joined by a segment that short, though the distance,
         /// read within the tolerance, is nought.
         /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoPlane3 plane, Tolerance tolerance) => Projection3.GetShortestLineTo(this, plane, tolerance);
+        public GeoLine3 GetShortestLineTo(GeoPlane3 plane, Tolerance tolerance) =>
+            Projection3.GetShortestLineTo(this, plane, tolerance);
 
         /// <summary>
         /// Gets the shortest segment joining this ray to another one, using the default tolerance.
@@ -221,7 +227,8 @@ namespace GeometryHelper.Geometry
         /// never snapped: rays passing a hair apart are joined by a segment that short, and are that far apart by the
         /// distance too.
         /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoRay3 other, Tolerance tolerance) => Projection3.GetShortestLineTo(this, other, tolerance);
+        public GeoLine3 GetShortestLineTo(GeoRay3 other, Tolerance tolerance) =>
+            Projection3.GetShortestLineTo(this, other, tolerance);
 
         /// <summary>
         /// Gets the shortest segment joining this ray to a polyline: <see cref="GeoPolyline3.GetShortestLineTo(GeoRay3)"/>
@@ -233,7 +240,8 @@ namespace GeometryHelper.Geometry
         /// <see cref="DistanceTo(GeoPolyline3)"/> measures it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public GeoLine3 GetShortestLineTo(GeoPolyline3 polyline) => Projection3.GetShortestLineTo(polyline, this).Reverse();
+        public GeoLine3 GetShortestLineTo(GeoPolyline3 polyline) =>
+            Projection3.GetShortestLineTo(polyline, this).Reverse();
 
         /// <summary>
         /// Gets the shortest segment joining this ray to a polyline, within a tolerance:
@@ -246,7 +254,7 @@ namespace GeometryHelper.Geometry
         /// <see cref="DistanceTo(GeoPolyline3)"/> measures it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, Tolerance tolerance)
-            => Projection3.GetShortestLineTo(polyline, this, tolerance).Reverse();
+        public GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Projection3.GetShortestLineTo(polyline, this, tolerance).Reverse();
     }
 }

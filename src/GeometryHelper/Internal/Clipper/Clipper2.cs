@@ -4,7 +4,6 @@ using System.Runtime.CompilerServices;
 
 namespace GeometryHelper.Clipper
 {
-
     /// <summary>
     /// The front of the clipping engine in the plane: booleans of regions read by a fill rule, offsets, areas, bounds,
     /// scaling and conversion between integer and floating-point paths, simplification and where a point lies. Paths of
@@ -14,6 +13,7 @@ namespace GeometryHelper.Clipper
     internal static class Clipper2
     {
         private static Rect64 invalidRect64 = new Rect64(false);
+
         /// <summary>
         /// A rectangle around nothing, its left and top at long.MaxValue and its right and bottom at long.MinValue, so
         /// that the first point it grows by becomes its bounds.
@@ -21,6 +21,7 @@ namespace GeometryHelper.Clipper
         public static Rect64 InvalidRect64 => invalidRect64;
 
         private static RectD invalidRectD = new RectD(false);
+
         /// <summary>
         /// A rectangle around nothing, its left and top at double.MaxValue and its right and bottom at
         /// -double.MaxValue, so that the first point it grows by becomes its bounds.
@@ -39,11 +40,9 @@ namespace GeometryHelper.Clipper
         /// The region the subject and the clip both cover, each read by the fill rule, with the coordinates rounded to
         /// <c>precision</c> decimal places, from -8 to 8, the answer scaled back.
         /// </summary>
-        public static PathsD Intersect(PathsD subject, PathsD clip, 
-            FillRule fillRule, int precision = 2)
+        public static PathsD Intersect(PathsD subject, PathsD clip, FillRule fillRule, int precision = 2)
         {
-            return BooleanOp(ClipType.Intersection,
-                subject, clip, fillRule, precision);
+            return BooleanOp(ClipType.Intersection, subject, clip, fillRule, precision);
         }
 
         /// <summary>
@@ -75,11 +74,9 @@ namespace GeometryHelper.Clipper
         /// The region the subject or the clip covers, each read by the fill rule, with the coordinates rounded to
         /// <c>precision</c> decimal places, from -8 to 8, the answer scaled back.
         /// </summary>
-        public static PathsD Union(PathsD subject, PathsD clip, 
-            FillRule fillRule, int precision = 2)
+        public static PathsD Union(PathsD subject, PathsD clip, FillRule fillRule, int precision = 2)
         {
-            return BooleanOp(ClipType.Union,
-                subject, clip, fillRule, precision);
+            return BooleanOp(ClipType.Union, subject, clip, fillRule, precision);
         }
 
         /// <summary>
@@ -94,11 +91,9 @@ namespace GeometryHelper.Clipper
         /// The part of the subject's region outside the clip's, each read by the fill rule, with the coordinates
         /// rounded to <c>precision</c> decimal places, from -8 to 8, the answer scaled back.
         /// </summary>
-        public static PathsD Difference(PathsD subject, PathsD clip, 
-            FillRule fillRule, int precision = 2)
+        public static PathsD Difference(PathsD subject, PathsD clip, FillRule fillRule, int precision = 2)
         {
-            return BooleanOp(ClipType.Difference,
-                subject, clip, fillRule, precision);
+            return BooleanOp(ClipType.Difference, subject, clip, fillRule, precision);
         }
 
         /// <summary>
@@ -113,22 +108,20 @@ namespace GeometryHelper.Clipper
         /// The parts that only one of the subject and the clip covers, each read by the fill rule, with the coordinates
         /// rounded to <c>precision</c> decimal places, from -8 to 8, the answer scaled back.
         /// </summary>
-        public static PathsD Xor(PathsD subject, PathsD clip, 
-            FillRule fillRule, int precision = 2)
+        public static PathsD Xor(PathsD subject, PathsD clip, FillRule fillRule, int precision = 2)
         {
-            return BooleanOp(ClipType.Xor, 
-                subject, clip, fillRule, precision);
+            return BooleanOp(ClipType.Xor, subject, clip, fillRule, precision);
         }
 
         /// <summary>
         /// Runs the operation on integer paths and gives the closed paths of the answer, outers counter-clockwise with
         /// Y up and holes clockwise. Nothing comes back without a subject; the clip may be missing.
         /// </summary>
-        public static Paths64 BooleanOp(ClipType clipType,
-            Paths64 subject, Paths64 clip, FillRule fillRule)
+        public static Paths64 BooleanOp(ClipType clipType, Paths64 subject, Paths64 clip, FillRule fillRule)
         {
             Paths64 solution = new Paths64();
-            if (subject == null) return solution;
+            if (subject == null)
+                return solution;
             Clipper64 c = new Clipper64();
             c.AddPaths(subject, PathType.Subject);
             if (clip != null)
@@ -141,11 +134,16 @@ namespace GeometryHelper.Clipper
         /// Runs the operation on integer paths into a tree, each hole nested in the outer it lies in and each island in
         /// its hole. Nothing is added without a subject; the clip may be missing.
         /// </summary>
-        public static void BooleanOp(ClipType clipType,
-            Paths64 subject, Paths64 clip, 
-            PolyTree64 polytree, FillRule fillRule)
+        public static void BooleanOp(
+            ClipType clipType,
+            Paths64 subject,
+            Paths64 clip,
+            PolyTree64 polytree,
+            FillRule fillRule
+        )
         {
-            if (subject == null) return;
+            if (subject == null)
+                return;
             Clipper64 c = new Clipper64();
             c.AddPaths(subject, PathType.Subject);
             if (clip != null)
@@ -158,8 +156,13 @@ namespace GeometryHelper.Clipper
         /// clockwise, with the coordinates rounded to <c>precision</c> decimal places, from -8 to 8, the answer scaled
         /// back. The clip may be missing.
         /// </summary>
-        public static PathsD BooleanOp(ClipType clipType, PathsD subject, PathsD clip, 
-            FillRule fillRule, int precision = 2)
+        public static PathsD BooleanOp(
+            ClipType clipType,
+            PathsD subject,
+            PathsD clip,
+            FillRule fillRule,
+            int precision = 2
+        )
         {
             PathsD solution = new PathsD();
             ClipperD c = new ClipperD(precision);
@@ -175,11 +178,17 @@ namespace GeometryHelper.Clipper
         /// the coordinates rounded to <c>precision</c> decimal places, from -8 to 8, the answer scaled back. Nothing is
         /// added without a subject; the clip may be missing.
         /// </summary>
-        public static void BooleanOp(ClipType clipType,
-            PathsD subject, PathsD clip,
-            PolyTreeD polytree, FillRule fillRule, int precision = 2)
+        public static void BooleanOp(
+            ClipType clipType,
+            PathsD subject,
+            PathsD clip,
+            PolyTreeD polytree,
+            FillRule fillRule,
+            int precision = 2
+        )
         {
-            if (subject == null) return;
+            if (subject == null)
+                return;
             ClipperD c = new ClipperD(precision);
             c.AddPaths(subject, PathType.Subject);
             if (clip != null)
@@ -192,8 +201,14 @@ namespace GeometryHelper.Clipper
         /// by endType, with the miter limit and the arc tolerance. The pieces are united, so that overlaps and the
         /// parts shrunk past nothing go.
         /// </summary>
-        public static Paths64 InflatePaths(Paths64 paths, double delta, JoinType joinType,
-            EndType endType, double miterLimit = 2.0, double arcTolerance = 0.0)
+        public static Paths64 InflatePaths(
+            Paths64 paths,
+            double delta,
+            JoinType joinType,
+            EndType endType,
+            double miterLimit = 2.0,
+            double arcTolerance = 0.0
+        )
         {
             ClipperOffset co = new ClipperOffset(miterLimit, arcTolerance);
             co.AddPaths(paths, joinType, endType);
@@ -207,8 +222,15 @@ namespace GeometryHelper.Clipper
         /// rounded to <c>precision</c> decimal places, from -8 to 8, delta and the arc tolerance scaled with them, the
         /// answer scaled back.
         /// </summary>
-        public static PathsD InflatePaths(PathsD paths, double delta, JoinType joinType,
-            EndType endType, double miterLimit = 2.0, int precision = 2, double arcTolerance = 0.0)
+        public static PathsD InflatePaths(
+            PathsD paths,
+            double delta,
+            JoinType joinType,
+            EndType endType,
+            double miterLimit = 2.0,
+            int precision = 2,
+            double arcTolerance = 0.0
+        )
         {
             InternalClipper.CheckPrecision(precision);
             double scale = Math.Pow(10, precision);
@@ -228,11 +250,12 @@ namespace GeometryHelper.Clipper
             // https://en.wikipedia.org/wiki/Shoelace_formula
             double a = 0.0;
             int cnt = path.Count;
-            if (cnt < 3) return 0.0;
+            if (cnt < 3)
+                return 0.0;
             Point64 prevPt = path[cnt - 1];
             foreach (Point64 pt in path)
             {
-                a += (double) (prevPt.Y + pt.Y) * (prevPt.X - pt.X);
+                a += (double)(prevPt.Y + pt.Y) * (prevPt.X - pt.X);
                 prevPt = pt;
             }
             return a * 0.5;
@@ -257,7 +280,8 @@ namespace GeometryHelper.Clipper
         {
             double a = 0.0;
             int cnt = path.Count;
-            if (cnt < 3) return 0.0;
+            if (cnt < 3)
+                return 0.0;
             PointD prevPt = path[cnt - 1];
             foreach (PointD pt in path)
             {
@@ -308,6 +332,7 @@ namespace GeometryHelper.Clipper
                 result += pt.ToString();
             return result + '\n';
         }
+
         /// <summary>
         /// The paths as text, a line for each.
         /// </summary>
@@ -318,6 +343,7 @@ namespace GeometryHelper.Clipper
                 result += Path64ToString(path);
             return result;
         }
+
         /// <summary>
         /// The points of the path as text, each as x,y and a space, and a line break at the end.
         /// </summary>
@@ -328,6 +354,7 @@ namespace GeometryHelper.Clipper
                 result += pt.ToString();
             return result + '\n';
         }
+
         /// <summary>
         /// The paths as text, a line for each.
         /// </summary>
@@ -338,6 +365,7 @@ namespace GeometryHelper.Clipper
                 result += PathDToString(path);
             return result;
         }
+
         /// <summary>
         /// A copy of the path moved by dx along X and dy along Y, as TranslatePath moves it.
         /// </summary>
@@ -357,8 +385,8 @@ namespace GeometryHelper.Clipper
         {
             Point64 result = new Point64()
             {
-                X = (long) Math.Round(pt.X * scale, MidpointRounding.AwayFromZero),
-                Y = (long) Math.Round(pt.Y * scale, MidpointRounding.AwayFromZero),
+                X = (long)Math.Round(pt.X * scale, MidpointRounding.AwayFromZero),
+                Y = (long)Math.Round(pt.Y * scale, MidpointRounding.AwayFromZero),
             };
             return result;
         }
@@ -369,14 +397,9 @@ namespace GeometryHelper.Clipper
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointD ScalePointD(Point64 pt, double scale)
         {
-            PointD result = new PointD()
-            {
-                x = pt.X * scale,
-                y = pt.Y * scale,
-            };
+            PointD result = new PointD() { x = pt.X * scale, y = pt.Y * scale };
             return result;
         }
-
 
         /// <summary>
         /// The rectangle multiplied by the scale, its edges cut down to integers toward nought rather than rounded.
@@ -386,10 +409,10 @@ namespace GeometryHelper.Clipper
         {
             Rect64 result = new Rect64()
             {
-                left = (long) (rec.left * scale),
-                top = (long) (rec.top * scale),
-                right = (long) (rec.right * scale),
-                bottom = (long) (rec.bottom * scale)
+                left = (long)(rec.left * scale),
+                top = (long)(rec.top * scale),
+                right = (long)(rec.right * scale),
+                bottom = (long)(rec.bottom * scale),
             };
             return result;
         }
@@ -400,7 +423,8 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public static Path64 ScalePath(Path64 path, double scale)
         {
-            if (InternalClipper.IsAlmostZero(scale - 1)) return path;
+            if (InternalClipper.IsAlmostZero(scale - 1))
+                return path;
             Path64 result = new Path64(path.Count);
             foreach (Point64 pt in path)
                 result.Add(new Point64(pt.X * scale, pt.Y * scale));
@@ -413,7 +437,8 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public static Paths64 ScalePaths(Paths64 paths, double scale)
         {
-            if (InternalClipper.IsAlmostZero(scale - 1)) return paths;
+            if (InternalClipper.IsAlmostZero(scale - 1))
+                return paths;
             Paths64 result = new Paths64(paths.Count);
             foreach (Path64 path in paths)
                 result.Add(ScalePath(path, scale));
@@ -425,7 +450,8 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public static PathD ScalePath(PathD path, double scale)
         {
-            if (InternalClipper.IsAlmostZero(scale - 1)) return path;
+            if (InternalClipper.IsAlmostZero(scale - 1))
+                return path;
             PathD result = new PathD(path.Count);
             foreach (PointD pt in path)
                 result.Add(new PointD(pt, scale));
@@ -437,7 +463,8 @@ namespace GeometryHelper.Clipper
         /// </summary>
         public static PathsD ScalePaths(PathsD paths, double scale)
         {
-            if (InternalClipper.IsAlmostZero(scale - 1)) return paths;
+            if (InternalClipper.IsAlmostZero(scale - 1))
+                return paths;
             PathsD result = new PathsD(paths.Count);
             foreach (PathD path in paths)
                 result.Add(ScalePath(path, scale));
@@ -635,10 +662,14 @@ namespace GeometryHelper.Clipper
             Rect64 result = InvalidRect64;
             foreach (Point64 pt in path)
             {
-                if (pt.X < result.left) result.left = pt.X;
-                if (pt.X > result.right) result.right = pt.X;
-                if (pt.Y < result.top) result.top = pt.Y;
-                if (pt.Y > result.bottom) result.bottom = pt.Y;
+                if (pt.X < result.left)
+                    result.left = pt.X;
+                if (pt.X > result.right)
+                    result.right = pt.X;
+                if (pt.Y < result.top)
+                    result.top = pt.Y;
+                if (pt.Y > result.bottom)
+                    result.bottom = pt.Y;
             }
             return result.left == long.MaxValue ? new Rect64() : result;
         }
@@ -651,13 +682,17 @@ namespace GeometryHelper.Clipper
         {
             Rect64 result = InvalidRect64;
             foreach (Path64 path in paths)
-                foreach (Point64 pt in path)
-                {
-                    if (pt.X < result.left) result.left = pt.X;
-                    if (pt.X > result.right) result.right = pt.X;
-                    if (pt.Y < result.top) result.top = pt.Y;
-                    if (pt.Y > result.bottom) result.bottom = pt.Y;
-                }
+            foreach (Point64 pt in path)
+            {
+                if (pt.X < result.left)
+                    result.left = pt.X;
+                if (pt.X > result.right)
+                    result.right = pt.X;
+                if (pt.Y < result.top)
+                    result.top = pt.Y;
+                if (pt.Y > result.bottom)
+                    result.bottom = pt.Y;
+            }
             return result.left == long.MaxValue ? new Rect64() : result;
         }
 
@@ -670,13 +705,18 @@ namespace GeometryHelper.Clipper
             RectD result = InvalidRectD;
             foreach (PointD pt in path)
             {
-                if (pt.x < result.left) result.left = pt.x;
-                if (pt.x > result.right) result.right = pt.x;
-                if (pt.y < result.top) result.top = pt.y;
-                if (pt.y > result.bottom) result.bottom = pt.y;
+                if (pt.x < result.left)
+                    result.left = pt.x;
+                if (pt.x > result.right)
+                    result.right = pt.x;
+                if (pt.y < result.top)
+                    result.top = pt.y;
+                if (pt.y > result.bottom)
+                    result.bottom = pt.y;
             }
-            return Math.Abs(result.left - double.MaxValue) < InternalClipper.floatingPointTolerance ?
-                new RectD() : result;
+            return Math.Abs(result.left - double.MaxValue) < InternalClipper.floatingPointTolerance
+                ? new RectD()
+                : result;
         }
 
         /// <summary>
@@ -687,15 +727,20 @@ namespace GeometryHelper.Clipper
         {
             RectD result = InvalidRectD;
             foreach (PathD path in paths)
-                foreach (PointD pt in path)
-                {
-                    if (pt.x < result.left) result.left = pt.x;
-                    if (pt.x > result.right) result.right = pt.x;
-                    if (pt.y < result.top) result.top = pt.y;
-                    if (pt.y > result.bottom) result.bottom = pt.y;
-                }
-            return Math.Abs(result.left - double.MaxValue) < InternalClipper.floatingPointTolerance ?
-                new RectD() : result;
+            foreach (PointD pt in path)
+            {
+                if (pt.x < result.left)
+                    result.left = pt.x;
+                if (pt.x > result.right)
+                    result.right = pt.x;
+                if (pt.y < result.top)
+                    result.top = pt.y;
+                if (pt.y > result.bottom)
+                    result.bottom = pt.y;
+            }
+            return Math.Abs(result.left - double.MaxValue) < InternalClipper.floatingPointTolerance
+                ? new RectD()
+                : result;
         }
 
         /// <summary>
@@ -737,7 +782,6 @@ namespace GeometryHelper.Clipper
             return p;
         }
 
-
         /// <summary>
         /// The value times itself.
         /// </summary>
@@ -753,7 +797,7 @@ namespace GeometryHelper.Clipper
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Sqr(long val)
         {
-            return (double) val * (double) val;
+            return (double)val * (double)val;
         }
 
         /// <summary>
@@ -822,12 +866,12 @@ namespace GeometryHelper.Clipper
         /// A copy of the path without the points that lie nearer than the square root of minEdgeLenSqrd to the point
         /// kept before them. Of a closed path, the last point goes too when it lies that near the first.
         /// </summary>
-        public static PathD StripNearDuplicates(PathD path,
-                double minEdgeLenSqrd, bool isClosedPath)
+        public static PathD StripNearDuplicates(PathD path, double minEdgeLenSqrd, bool isClosedPath)
         {
             int cnt = path.Count;
             PathD result = new PathD(cnt);
-            if (cnt == 0) return result;
+            if (cnt == 0)
+                return result;
             PointD lastPt = path[0];
             result.Add(lastPt);
             for (int i = 1; i < cnt; i++)
@@ -853,7 +897,8 @@ namespace GeometryHelper.Clipper
         {
             int cnt = path.Count;
             Path64 result = new Path64(cnt);
-            if (cnt == 0) return result;
+            if (cnt == 0)
+                return result;
             Point64 lastPt = path[0];
             result.Add(lastPt);
             for (int i = 1; i < cnt; i++)
@@ -877,7 +922,7 @@ namespace GeometryHelper.Clipper
             if (polyPath.Polygon.Count > 0)
                 paths.Add(polyPath.Polygon);
             for (int i = 0; i < polyPath.Count; i++)
-                AddPolyNodeToPaths((PolyPath64) polyPath._childs[i], paths);
+                AddPolyNodeToPaths((PolyPath64)polyPath._childs[i], paths);
         }
 
         /// <summary>
@@ -889,7 +934,7 @@ namespace GeometryHelper.Clipper
         {
             Paths64 result = new Paths64();
             for (int i = 0; i < polyTree.Count; i++)
-                AddPolyNodeToPaths((PolyPath64) polyTree._childs[i], result);
+                AddPolyNodeToPaths((PolyPath64)polyTree._childs[i], result);
             return result;
         }
 
@@ -903,7 +948,7 @@ namespace GeometryHelper.Clipper
             if (polyPath.Polygon.Count > 0)
                 paths.Add(polyPath.Polygon);
             for (int i = 0; i < polyPath.Count; i++)
-                AddPolyNodeToPathsD((PolyPathD) polyPath._childs[i], paths);
+                AddPolyNodeToPathsD((PolyPathD)polyPath._childs[i], paths);
         }
 
         /// <summary>
@@ -923,7 +968,6 @@ namespace GeometryHelper.Clipper
             return result;
         }
 
-
         /// <summary>
         /// The square of the distance from a point to the whole line through two others; nought when the two are the
         /// same point.
@@ -935,7 +979,8 @@ namespace GeometryHelper.Clipper
             double b = pt.y - line1.y;
             double c = line2.x - line1.x;
             double d = line2.y - line1.y;
-            if (c == 0 && d == 0) return 0;
+            if (c == 0 && d == 0)
+                return 0;
             return Sqr(a * d - c * b) / (c * c + d * d);
         }
 
@@ -946,11 +991,12 @@ namespace GeometryHelper.Clipper
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double PerpendicDistFromLineSqrd(Point64 pt, Point64 line1, Point64 line2)
         {
-            double a = (double) pt.X - line1.X;
-            double b = (double) pt.Y - line1.Y;
-            double c = (double) line2.X - line1.X;
-            double d = (double) line2.Y - line1.Y;
-            if (c == 0 && d == 0) return 0;
+            double a = (double)pt.X - line1.X;
+            double b = (double)pt.Y - line1.Y;
+            double c = (double)line2.X - line1.X;
+            double d = (double)line2.Y - line1.Y;
+            if (c == 0 && d == 0)
+                return 0;
             return Sqr(a * d - c * b) / (c * c + d * d);
         }
 
@@ -965,19 +1011,23 @@ namespace GeometryHelper.Clipper
             {
                 int idx = 0;
                 double max_d = 0;
-                while (end > begin && path[begin] == path[end]) flags[end--] = false;
+                while (end > begin && path[begin] == path[end])
+                    flags[end--] = false;
                 for (int i = begin + 1; i < end; ++i)
                 {
                     // PerpendicDistFromLineSqrd - avoids expensive Sqrt()
                     double d = PerpendicDistFromLineSqrd(path[i], path[begin], path[end]);
-                    if (d <= max_d) continue;
+                    if (d <= max_d)
+                        continue;
                     max_d = d;
                     idx = i;
                 }
 
-                if (max_d <= epsSqrd) return;
+                if (max_d <= epsSqrd)
+                    return;
                 flags[idx] = true;
-                if (idx > begin + 1) RDP(path, begin, idx, epsSqrd, flags);
+                if (idx > begin + 1)
+                    RDP(path, begin, idx, epsSqrd, flags);
                 if (idx < end - 1)
                 {
                     begin = idx;
@@ -996,12 +1046,14 @@ namespace GeometryHelper.Clipper
         public static Path64 RamerDouglasPeucker(Path64 path, double epsilon)
         {
             int len = path.Count;
-            if (len < 5) return path;
+            if (len < 5)
+                return path;
             List<bool> flags = new List<bool>(new bool[len]) { [0] = true, [len - 1] = true };
             RDP(path, 0, len - 1, Sqr(epsilon), flags);
             Path64 result = new Path64(len);
             for (int i = 0; i < len; ++i)
-                if (flags[i]) result.Add(path[i]);
+                if (flags[i])
+                    result.Add(path[i]);
             return result;
         }
 
@@ -1027,19 +1079,23 @@ namespace GeometryHelper.Clipper
             {
                 int idx = 0;
                 double max_d = 0;
-                while (end > begin && path[begin] == path[end]) flags[end--] = false;
+                while (end > begin && path[begin] == path[end])
+                    flags[end--] = false;
                 for (int i = begin + 1; i < end; ++i)
                 {
                     // PerpendicDistFromLineSqrd - avoids expensive Sqrt()
                     double d = PerpendicDistFromLineSqrd(path[i], path[begin], path[end]);
-                    if (d <= max_d) continue;
+                    if (d <= max_d)
+                        continue;
                     max_d = d;
                     idx = i;
                 }
 
-                if (max_d <= epsSqrd) return;
+                if (max_d <= epsSqrd)
+                    return;
                 flags[idx] = true;
-                if (idx > begin + 1) RDP(path, begin, idx, epsSqrd, flags);
+                if (idx > begin + 1)
+                    RDP(path, begin, idx, epsSqrd, flags);
                 if (idx < end - 1)
                 {
                     begin = idx;
@@ -1058,12 +1114,14 @@ namespace GeometryHelper.Clipper
         public static PathD RamerDouglasPeucker(PathD path, double epsilon)
         {
             int len = path.Count;
-            if (len < 5) return path;
+            if (len < 5)
+                return path;
             List<bool> flags = new List<bool>(new bool[len]) { [0] = true, [len - 1] = true };
             RDP(path, 0, len - 1, Sqr(epsilon), flags);
             PathD result = new PathD(len);
             for (int i = 0; i < len; ++i)
-                if (flags[i]) result.Add(path[i]);
+                if (flags[i])
+                    result.Add(path[i]);
             return result;
         }
 
@@ -1078,7 +1136,6 @@ namespace GeometryHelper.Clipper
             return result;
         }
 
-
         /// <summary>
         /// The index of the first point after current that is not flagged removed, going round to the start after high.
         /// </summary>
@@ -1086,10 +1143,13 @@ namespace GeometryHelper.Clipper
         private static int GetNext(int current, int high, ref bool[] flags)
         {
             ++current;
-            while (current <= high && flags[current]) ++current;
-            if (current <= high) return current;
+            while (current <= high && flags[current])
+                ++current;
+            if (current <= high)
+                return current;
             current = 0;
-            while (flags[current]) ++current;
+            while (flags[current])
+                ++current;
             return current;
         }
 
@@ -1099,12 +1159,17 @@ namespace GeometryHelper.Clipper
         /// </summary>
         private static int GetPrior(int current, int high, ref bool[] flags)
         {
-            if (current == 0) current = high;
-            else --current;
-            while (current > 0 && flags[current]) --current;
-            if (!flags[current]) return current;
+            if (current == 0)
+                current = high;
+            else
+                --current;
+            while (current > 0 && flags[current])
+                --current;
+            if (!flags[current])
+                return current;
             current = high;
-            while (flags[current]) --current;
+            while (flags[current])
+                --current;
             return current;
         }
 
@@ -1113,12 +1178,13 @@ namespace GeometryHelper.Clipper
         /// time, of two such neighbours the one nearer its line first, and the neighbours measured again after each.
         /// The ends of an open path stay; a path of fewer than four points comes back as it is.
         /// </summary>
-        public static Path64 SimplifyPath(Path64 path,
-            double epsilon, bool isClosedPath = true)
+        public static Path64 SimplifyPath(Path64 path, double epsilon, bool isClosedPath = true)
         {
-            int len = path.Count, high = len - 1;
+            int len = path.Count,
+                high = len - 1;
             double epsSqr = Sqr(epsilon);
-            if (len < 4) return path;
+            if (len < 4)
+                return path;
 
             bool[] flags = new bool[len];
             double[] dsq = new double[len];
@@ -1147,12 +1213,14 @@ namespace GeometryHelper.Clipper
                     {
                         curr = GetNext(curr, high, ref flags);
                     } while (curr != start && dsq[curr] > epsSqr);
-                    if (curr == start) break;
+                    if (curr == start)
+                        break;
                 }
 
                 int prev = GetPrior(curr, high, ref flags);
                 int next = GetNext(curr, high, ref flags);
-                if (next == prev) break;
+                if (next == prev)
+                    break;
 
                 int prior2;
                 if (dsq[next] < dsq[curr])
@@ -1175,15 +1243,15 @@ namespace GeometryHelper.Clipper
             }
             Path64 result = new Path64(len);
             for (int i = 0; i < len; i++)
-                if (!flags[i]) result.Add(path[i]);
+                if (!flags[i])
+                    result.Add(path[i]);
             return result;
         }
 
         /// <summary>
         /// Each path simplified as SimplifyPath simplifies one.
         /// </summary>
-        public static Paths64 SimplifyPaths(Paths64 paths,
-            double epsilon, bool isClosedPaths = true)
+        public static Paths64 SimplifyPaths(Paths64 paths, double epsilon, bool isClosedPaths = true)
         {
             Paths64 result = new Paths64(paths.Count);
             foreach (Path64 path in paths)
@@ -1196,12 +1264,13 @@ namespace GeometryHelper.Clipper
         /// time, of two such neighbours the one nearer its line first, and the neighbours measured again after each.
         /// The ends of an open path stay; a path of fewer than four points comes back as it is.
         /// </summary>
-        public static PathD SimplifyPath(PathD path,
-            double epsilon, bool isClosedPath = true)
+        public static PathD SimplifyPath(PathD path, double epsilon, bool isClosedPath = true)
         {
-            int len = path.Count, high = len - 1;
+            int len = path.Count,
+                high = len - 1;
             double epsSqr = Sqr(epsilon);
-            if (len < 4) return path;
+            if (len < 4)
+                return path;
 
             bool[] flags = new bool[len];
             double[] dsq = new double[len];
@@ -1228,12 +1297,14 @@ namespace GeometryHelper.Clipper
                     {
                         curr = GetNext(curr, high, ref flags);
                     } while (curr != start && dsq[curr] > epsSqr);
-                    if (curr == start) break;
+                    if (curr == start)
+                        break;
                 }
 
                 int prev = GetPrior(curr, high, ref flags);
                 int next = GetNext(curr, high, ref flags);
-                if (next == prev) break;
+                if (next == prev)
+                    break;
 
                 int prior2;
                 if (dsq[next] < dsq[curr])
@@ -1243,7 +1314,7 @@ namespace GeometryHelper.Clipper
                     curr = next;
                     next = GetNext(next, high, ref flags);
                 }
-                else 
+                else
                     prior2 = GetPrior(prev, high, ref flags);
 
                 flags[curr] = true;
@@ -1256,15 +1327,15 @@ namespace GeometryHelper.Clipper
             }
             PathD result = new PathD(len);
             for (int i = 0; i < len; i++)
-                if (!flags[i]) result.Add(path[i]);
+                if (!flags[i])
+                    result.Add(path[i]);
             return result;
         }
 
         /// <summary>
         /// Each path simplified as SimplifyPath simplifies one.
         /// </summary>
-        public static PathsD SimplifyPaths(PathsD paths,
-            double epsilon, bool isClosedPath = true)
+        public static PathsD SimplifyPaths(PathsD paths, double epsilon, bool isClosedPath = true)
         {
             PathsD result = new PathsD(paths.Count);
             foreach (PathD path in paths)
@@ -1283,9 +1354,10 @@ namespace GeometryHelper.Clipper
             int i = 0;
             if (!isOpen)
             {
-                while (i < len - 1 && 
-                    InternalClipper.IsCollinear(path[len - 1], path[i], path[i + 1])) i++;
-                while (i < len - 1 && InternalClipper.IsCollinear(path[len - 2], path[len - 1], path[i])) len--;
+                while (i < len - 1 && InternalClipper.IsCollinear(path[len - 1], path[i], path[i + 1]))
+                    i++;
+                while (i < len - 1 && InternalClipper.IsCollinear(path[len - 2], path[len - 1], path[i]))
+                    len--;
             }
 
             if (len - i < 3)
@@ -1300,7 +1372,8 @@ namespace GeometryHelper.Clipper
             result.Add(last);
             for (i++; i < len - 1; i++)
             {
-                if (InternalClipper.IsCollinear(last, path[i], path[i + 1])) continue;
+                if (InternalClipper.IsCollinear(last, path[i], path[i + 1]))
+                    continue;
                 last = path[i];
                 result.Add(last);
             }
@@ -1311,8 +1384,10 @@ namespace GeometryHelper.Clipper
                 result.Add(path[len - 1]);
             else
             {
-                while (result.Count > 2 && InternalClipper.IsCollinear(
-                    result[result.Count - 1], result[result.Count - 2], result[0]))
+                while (
+                    result.Count > 2
+                    && InternalClipper.IsCollinear(result[result.Count - 1], result[result.Count - 2], result[0])
+                )
                 {
                     result.RemoveAt(result.Count - 1);
                 }
@@ -1349,8 +1424,7 @@ namespace GeometryHelper.Clipper
         /// Where a point lies against a polygon read by the even-odd rule, inside, outside or on its boundary, with the
         /// point and the polygon rounded to <c>precision</c> decimal places, from -8 to 8.
         /// </summary>
-        public static PointInPolygonResult PointInPolygon(PointD pt, 
-            PathD polygon, int precision = 2)
+        public static PointInPolygonResult PointInPolygon(PointD pt, PathD polygon, int precision = 2)
         {
             InternalClipper.CheckPrecision(precision);
             double scale = Math.Pow(10, precision);
@@ -1365,17 +1439,19 @@ namespace GeometryHelper.Clipper
         /// circle; steps of two or fewer take pi times the square root of the mean radius, rounded up. Nothing for a
         /// radiusX of nought or less.
         /// </summary>
-        public static Path64 Ellipse(Point64 center,
-            double radiusX, double radiusY = 0, int steps = 0)
+        public static Path64 Ellipse(Point64 center, double radiusX, double radiusY = 0, int steps = 0)
         {
-            if (radiusX <= 0) return new Path64();
-            if (radiusY <= 0) radiusY = radiusX;
+            if (radiusX <= 0)
+                return new Path64();
+            if (radiusY <= 0)
+                radiusY = radiusX;
             if (steps <= 2)
-                steps = (int) Math.Ceiling(Math.PI * Math.Sqrt((radiusX + radiusY) / 2));
+                steps = (int)Math.Ceiling(Math.PI * Math.Sqrt((radiusX + radiusY) / 2));
 
             double si = Math.Sin(2 * Math.PI / steps);
             double co = Math.Cos(2 * Math.PI / steps);
-            double dx = co, dy = si;
+            double dx = co,
+                dy = si;
             Path64 result = new Path64(steps) { new Point64(center.X + radiusX, center.Y) };
             for (int i = 1; i < steps; ++i)
             {
@@ -1392,17 +1468,19 @@ namespace GeometryHelper.Clipper
         /// from the point at radiusX along X. A radiusY of nought or less takes radiusX, for a circle; steps of two or
         /// fewer take pi times the square root of the mean radius, rounded up. Nothing for a radiusX of nought or less.
         /// </summary>
-        public static PathD Ellipse(PointD center,
-            double radiusX, double radiusY = 0, int steps = 0)
+        public static PathD Ellipse(PointD center, double radiusX, double radiusY = 0, int steps = 0)
         {
-            if (radiusX <= 0) return new PathD();
-            if (radiusY <= 0) radiusY = radiusX;
+            if (radiusX <= 0)
+                return new PathD();
+            if (radiusY <= 0)
+                radiusY = radiusX;
             if (steps <= 2)
-                steps = (int) Math.Ceiling(Math.PI * Math.Sqrt((radiusX + radiusY) / 2));
+                steps = (int)Math.Ceiling(Math.PI * Math.Sqrt((radiusX + radiusY) / 2));
 
             double si = Math.Sin(2 * Math.PI / steps);
             double co = Math.Cos(2 * Math.PI / steps);
-            double dx = co, dy = si;
+            double dx = co,
+                dy = si;
             PathD result = new PathD(steps) { new PointD(center.x + radiusX, center.y) };
             for (int i = 1; i < steps; ++i)
             {
@@ -1429,7 +1507,10 @@ namespace GeometryHelper.Clipper
             else
             {
                 Console.WriteLine(spaces + caption + $"({pp.Count})");
-                foreach (PolyPath64 child in pp) { ShowPolyPathStructure(child, level + 1); }
+                foreach (PolyPath64 child in pp)
+                {
+                    ShowPolyPathStructure(child, level + 1);
+                }
             }
         }
 
@@ -1439,7 +1520,10 @@ namespace GeometryHelper.Clipper
         public static void ShowPolyTreeStructure(PolyTree64 polytree)
         {
             Console.WriteLine("Polytree Root");
-            foreach (PolyPath64 child in polytree) { ShowPolyPathStructure(child, 1); }
+            foreach (PolyPath64 child in polytree)
+            {
+                ShowPolyPathStructure(child, 1);
+            }
         }
 
         /// <summary>
@@ -1457,7 +1541,10 @@ namespace GeometryHelper.Clipper
             else
             {
                 Console.WriteLine(spaces + caption + $"({pp.Count})");
-                foreach (PolyPathD child in pp) { ShowPolyPathStructure(child, level + 1); }
+                foreach (PolyPathD child in pp)
+                {
+                    ShowPolyPathStructure(child, level + 1);
+                }
             }
         }
 
@@ -1467,9 +1554,10 @@ namespace GeometryHelper.Clipper
         public static void ShowPolyTreeStructure(PolyTreeD polytree)
         {
             Console.WriteLine("Polytree Root");
-            foreach (PolyPathD child in polytree) { ShowPolyPathStructure(child, 1); }
+            foreach (PolyPathD child in polytree)
+            {
+                ShowPolyPathStructure(child, 1);
+            }
         }
-
-
     } // Clipper2
 } // namespace

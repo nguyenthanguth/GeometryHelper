@@ -105,7 +105,10 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Gets whether the drawing differs from the one opened or last saved, as the title's * shows; a user coordinate system changed counts, as in AutoCAD.</summary>
-        public bool IsModified => _position != _savedPosition || (_groupRecords != null && _groupRecords.Count > 0) || (_ucs != null && _ucs.IsModified);
+        public bool IsModified =>
+            _position != _savedPosition
+            || (_groupRecords != null && _groupRecords.Count > 0)
+            || (_ucs != null && _ucs.IsModified);
 
         /// <summary>Gets whether there is a step to undo; false while a command's group of edits is open.</summary>
         public bool CanUndo => _position > UndoFloor && _groupDepth == 0;
@@ -199,7 +202,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (!EditGate.Allows(this, entity, record, out string reason))
                 {
-                    return CadEditResult.Refuse(reason ?? "The " + KindName(entity) + " " + record.Handle + " may not be changed.");
+                    return CadEditResult.Refuse(
+                        reason ?? "The " + KindName(entity) + " " + record.Handle + " may not be changed."
+                    );
                 }
             }
 
@@ -234,7 +239,12 @@ namespace GeometryHelper.Dxf.Viewer
         internal void LeaveOwner() => _ownerDepth--;
 
         /// <summary>Writes an edit: the action run, the records kept as a step or in the open group, the change announced.</summary>
-        private CadEditResult Write(string name, IReadOnlyList<CadEditRecord> planned, Action<CadEditScope> apply, HashSet<string> handled)
+        private CadEditResult Write(
+            string name,
+            IReadOnlyList<CadEditRecord> planned,
+            Action<CadEditScope> apply,
+            HashSet<string> handled
+        )
         {
             var scope = new CadEditScope(this, handled);
             List<CadEditRecord> followed;
@@ -307,7 +317,12 @@ namespace GeometryHelper.Dxf.Viewer
                         DxfEntity entity = scope.AddedEntityOf(record);
                         CadSpace space = SpaceNamed(record.Space);
 
-                        if (entity != null && space != null && !string.IsNullOrEmpty(record.Handle) && string.Equals(entity.Handle, record.Handle, StringComparison.OrdinalIgnoreCase))
+                        if (
+                            entity != null
+                            && space != null
+                            && !string.IsNullOrEmpty(record.Handle)
+                            && string.Equals(entity.Handle, record.Handle, StringComparison.OrdinalIgnoreCase)
+                        )
                         {
                             if (!_byHandle.ContainsKey(record.Handle))
                             {
@@ -333,7 +348,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (CadEditRecord record in planned)
             {
-                if (record.Handle == null || record.Kind == CadEditRecordKind.Added || record.Kind == CadEditRecordKind.TableChanged || record.Kind == CadEditRecordKind.SettingChanged)
+                if (
+                    record.Handle == null
+                    || record.Kind == CadEditRecordKind.Added
+                    || record.Kind == CadEditRecordKind.TableChanged
+                    || record.Kind == CadEditRecordKind.SettingChanged
+                )
                 {
                     continue;
                 }
@@ -355,7 +375,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// planned with no displacement is measured first: the action is run, the entity's box seen to move, and the drawing
         /// read back as it was. An owner that does not take its edit refuses the whole edit, the drawing as it was.
         /// </summary>
-        private CadEditResult HandOver(string name, IReadOnlyList<CadEditRecord> planned, Action<CadEditScope> apply, List<CadEditRecord> owned)
+        private CadEditResult HandOver(
+            string name,
+            IReadOnlyList<CadEditRecord> planned,
+            Action<CadEditScope> apply,
+            List<CadEditRecord> owned
+        )
         {
             PackedDrawing savepoint = Snapshot();
             int kept = _groupRecords.Count;
@@ -371,7 +396,13 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         if (!TryCorner(FindEntity(record.Handle), out GeoPoint3 corner))
                         {
-                            return CadEditResult.Refuse("The move of the " + KindName(FindEntity(record.Handle)) + " " + record.Handle + " cannot be measured for its owner.");
+                            return CadEditResult.Refuse(
+                                "The move of the "
+                                    + KindName(FindEntity(record.Handle))
+                                    + " "
+                                    + record.Handle
+                                    + " cannot be measured for its owner."
+                            );
                         }
 
                         before[record.Handle] = corner;
@@ -384,7 +415,10 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 catch (Exception exception)
                 {
-                    GeometryHelperLog.Warn("CadDocument: the edit " + name + " failed while its move was measured.", exception);
+                    GeometryHelperLog.Warn(
+                        "CadDocument: the edit " + name + " failed while its move was measured.",
+                        exception
+                    );
                     Restore(savepoint, kept);
                     return CadEditResult.Fail(exception.Message);
                 }
@@ -446,7 +480,16 @@ namespace GeometryHelper.Dxf.Viewer
                 _groupRecords.RemoveRange(kept, _groupRecords.Count - kept);
             }
 
-            Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Rollback, _groupName, Array.Empty<string>(), AllSpaces.ToArray(), true));
+            Changed?.Invoke(
+                this,
+                new CadDocumentChangedEventArgs(
+                    CadChangeKind.Rollback,
+                    _groupName,
+                    Array.Empty<string>(),
+                    AllSpaces.ToArray(),
+                    true
+                )
+            );
         }
 
         /// <summary>
@@ -461,9 +504,18 @@ namespace GeometryHelper.Dxf.Viewer
                 case CadEditRecordKind.Erased:
                     return new CadEdit(record.Handle, CadEditKind.Erase);
                 case CadEditRecordKind.PropertyChanged:
-                    return new CadEdit(record.Handle, CadEditKind.Property, record.Property, record.OldValue, record.NewValue);
+                    return new CadEdit(
+                        record.Handle,
+                        CadEditKind.Property,
+                        record.Property,
+                        record.OldValue,
+                        record.NewValue
+                    );
                 case CadEditRecordKind.Reshaped:
-                    string grip = record.Property != null && record.Property.StartsWith("Grip ", StringComparison.Ordinal) ? record.Property.Substring(5) : record.Property;
+                    string grip =
+                        record.Property != null && record.Property.StartsWith("Grip ", StringComparison.Ordinal)
+                            ? record.Property.Substring(5)
+                            : record.Property;
                     return new CadEdit(record.Handle, CadEditKind.Grip, grip, record.OldValue, record.NewValue);
                 case CadEditRecordKind.Transformed:
                     string value = record.NewValue;
@@ -508,7 +560,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A measured coordinate of a move, to 15 figures, so that the last bit a subtraction leaves is not written: 40, not 40.000000000000007.</summary>
-        private static string Value(double value) => value.ToString("G15", System.Globalization.CultureInfo.InvariantCulture);
+        private static string Value(double value) =>
+            value.ToString("G15", System.Globalization.CultureInfo.InvariantCulture);
 
         /// <summary>
         /// Opens a group of edits that becomes one undo step when it is closed, as a command that draws line after line is one
@@ -581,7 +634,16 @@ namespace GeometryHelper.Dxf.Viewer
             if (made)
             {
                 Reload(_states[_position].Bytes, null);
-                Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Rollback, name, Array.Empty<string>(), AllSpaces.ToArray(), true));
+                Changed?.Invoke(
+                    this,
+                    new CadDocumentChangedEventArgs(
+                        CadChangeKind.Rollback,
+                        name,
+                        Array.Empty<string>(),
+                        AllSpaces.ToArray(),
+                        true
+                    )
+                );
             }
         }
 
@@ -620,7 +682,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="gripIndex">The index of the grip, as <see cref="CadGrips.Of"/> gives it.</param>
         /// <param name="newPoint">The point it is dragged to, in drawing units.</param>
         /// <returns>What came of it.</returns>
-        public CadEditResult GripDrag(string handle, int gripIndex, GeoPoint2 newPoint) => CadGrips.Drag(this, handle, gripIndex, newPoint);
+        public CadEditResult GripDrag(string handle, int gripIndex, GeoPoint2 newPoint) =>
+            CadGrips.Drag(this, handle, gripIndex, newPoint);
 
         /// <summary>Undoes the last step: the drawing is read back as it stood before it (see the remarks of the class).</summary>
         /// <returns>False when there was nothing to undo or a group is open.</returns>
@@ -693,7 +756,16 @@ namespace GeometryHelper.Dxf.Viewer
             _hasPath = true;
             _savedPosition = _position;
             GeometryHelperLog.Info("CadDocument: saved " + full + ".");
-            Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Saved, null, Array.Empty<string>(), Array.Empty<CadSpace>(), false));
+            Changed?.Invoke(
+                this,
+                new CadDocumentChangedEventArgs(
+                    CadChangeKind.Saved,
+                    null,
+                    Array.Empty<string>(),
+                    Array.Empty<CadSpace>(),
+                    false
+                )
+            );
         }
 
         /// <summary>Drops every display list and pick index, so that each space is drawn again from the drawing, as REGEN does.</summary>
@@ -705,7 +777,16 @@ namespace GeometryHelper.Dxf.Viewer
             _stale.Clear();
             _byHandle = null;
             _entityCount = null;
-            Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Regen, null, Array.Empty<string>(), AllSpaces.ToArray(), true));
+            Changed?.Invoke(
+                this,
+                new CadDocumentChangedEventArgs(
+                    CadChangeKind.Regen,
+                    null,
+                    Array.Empty<string>(),
+                    AllSpaces.ToArray(),
+                    true
+                )
+            );
         }
 
         /// <summary>The name of an entity's kind for a message: LINE, CIRCLE.</summary>
@@ -729,7 +810,13 @@ namespace GeometryHelper.Dxf.Viewer
         private void Commit(string name, List<CadEditRecord> records)
         {
             // A real-time zoom or pan straight after another joins its step: the drawing after both kept in its place.
-            if (_realTime && _position > UndoFloor && _position == _steps.Count && _savedPosition != _position && ReferenceEquals(_steps[_position - 1], _realTimeStep))
+            if (
+                _realTime
+                && _position > UndoFloor
+                && _position == _steps.Count
+                && _savedPosition != _position
+                && ReferenceEquals(_steps[_position - 1], _realTimeStep)
+            )
             {
                 CadUndoStep before = _steps[_position - 1];
                 var joined = new List<CadEditRecord>(before.Records);
@@ -770,7 +857,16 @@ namespace GeometryHelper.Dxf.Viewer
                 _groupRecords.Clear();
             }
 
-            Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Rollback, _groupName, Array.Empty<string>(), AllSpaces.ToArray(), true));
+            Changed?.Invoke(
+                this,
+                new CadDocumentChangedEventArgs(
+                    CadChangeKind.Rollback,
+                    _groupName,
+                    Array.Empty<string>(),
+                    AllSpaces.ToArray(),
+                    true
+                )
+            );
         }
 
         private PackedDrawing Snapshot()
@@ -877,7 +973,12 @@ namespace GeometryHelper.Dxf.Viewer
         private ReadAhead StartReading(KeptState state)
         {
             var read = new ReadAhead(state);
-            _reading = _reading.ContinueWith(_ => read.Run(), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+            _reading = _reading.ContinueWith(
+                _ => read.Run(),
+                CancellationToken.None,
+                TaskContinuationOptions.None,
+                TaskScheduler.Default
+            );
             return read;
         }
 
@@ -932,7 +1033,14 @@ namespace GeometryHelper.Dxf.Viewer
                         blocks.Add(layout.BlockTableRecord);
                     }
 
-                    if (!IndexHandles(blocks, out Dictionary<string, DxfEntity> byHandle, out Dictionary<string, DxfBlockTableRecord> blockByHandle, () => _dropped))
+                    if (
+                        !IndexHandles(
+                            blocks,
+                            out Dictionary<string, DxfEntity> byHandle,
+                            out Dictionary<string, DxfBlockTableRecord> blockByHandle,
+                            () => _dropped
+                        )
+                    )
                     {
                         return;
                     }
@@ -946,7 +1054,9 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 catch (Exception exception)
                 {
-                    GeometryHelperLog.Debug("CadDocument: a drawing of the undo list was not read ahead: " + exception.Message);
+                    GeometryHelperLog.Debug(
+                        "CadDocument: a drawing of the undo list was not read ahead: " + exception.Message
+                    );
                 }
                 finally
                 {
@@ -983,7 +1093,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal void EnsureNamedObjectsDictionary()
         {
-            if (Database.NamedObjectsDictionary != null || Database.Version == null || string.CompareOrdinal(Database.Version, "AC1012") < 0)
+            if (
+                Database.NamedObjectsDictionary != null
+                || Database.Version == null
+                || string.CompareOrdinal(Database.Version, "AC1012") < 0
+            )
             {
                 return;
             }
@@ -1003,7 +1117,11 @@ namespace GeometryHelper.Dxf.Viewer
                 string code = lines[i].Trim();
                 string value = lines[i + 1].Trim();
 
-                if ((code == "5" || code == "105") && ulong.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong handle) && handle > top)
+                if (
+                    (code == "5" || code == "105")
+                    && ulong.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong handle)
+                    && handle > top
+                )
                 {
                     top = handle;
                 }
@@ -1019,7 +1137,26 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string root = (top + 1).ToString("X", CultureInfo.InvariantCulture);
-            string section = string.Join(newline, "  0", "SECTION", "  2", "OBJECTS", "  0", "DICTIONARY", "  5", root, "330", "0", "100", "AcDbDictionary", "281", "     1", "  0", "ENDSEC") + newline;
+            string section =
+                string.Join(
+                    newline,
+                    "  0",
+                    "SECTION",
+                    "  2",
+                    "OBJECTS",
+                    "  0",
+                    "DICTIONARY",
+                    "  5",
+                    root,
+                    "330",
+                    "0",
+                    "100",
+                    "AcDbDictionary",
+                    "281",
+                    "     1",
+                    "  0",
+                    "ENDSEC"
+                ) + newline;
             int at = 0;
 
             for (int i = 0; i < end; i++)
@@ -1050,7 +1187,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfLayout layout in LayoutsOf(database))
             {
-                CadSpace kept = _spaces.Find(s => !s.IsModel && string.Equals(s.Name, layout.LayoutName, StringComparison.OrdinalIgnoreCase));
+                CadSpace kept = _spaces.Find(s =>
+                    !s.IsModel && string.Equals(s.Name, layout.LayoutName, StringComparison.OrdinalIgnoreCase)
+                );
 
                 if (kept == null)
                 {
@@ -1117,7 +1256,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 CadSpace space = _spaces[i];
 
-                if (!space.IsModel && space.Layout != null && !string.Equals(space.Name, space.Layout.LayoutName, StringComparison.Ordinal))
+                if (
+                    !space.IsModel
+                    && space.Layout != null
+                    && !string.Equals(space.Name, space.Layout.LayoutName, StringComparison.Ordinal)
+                )
                 {
                     _spaces[i] = new CadSpace(this, space.Layout.LayoutName, false, space.Block, space.Layout);
                     _displays.Remove(space);
@@ -1133,7 +1276,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfLayout layout in LayoutsOf(Database))
             {
-                if (!_spaces.Exists(s => !s.IsModel && string.Equals(s.Name, layout.LayoutName, StringComparison.OrdinalIgnoreCase)))
+                if (
+                    !_spaces.Exists(s =>
+                        !s.IsModel && string.Equals(s.Name, layout.LayoutName, StringComparison.OrdinalIgnoreCase)
+                    )
+                )
                 {
                     _spaces.Add(new CadSpace(this, layout.LayoutName, false, layout.BlockTableRecord, layout));
                 }
@@ -1151,7 +1298,10 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 // The drawing's linetype scale changes every dash drawn, as AutoCAD regenerates after LTSCALE, and its point
                 // style every point: a new builder reads them.
-                if (record.Kind == CadEditRecordKind.TableChanged || (record.Kind == CadEditRecordKind.SettingChanged && Redraws(record.Property)))
+                if (
+                    record.Kind == CadEditRecordKind.TableChanged
+                    || (record.Kind == CadEditRecordKind.SettingChanged && Redraws(record.Property))
+                )
                 {
                     tables = true;
                     all = true;
@@ -1250,7 +1400,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (_stale.TryGetValue(space, out StaleDisplay stale))
                 {
-                    stale.Handles.UnionWith(handles.TryGetValue(space, out List<string> named) ? named : new List<string>());
+                    stale.Handles.UnionWith(
+                        handles.TryGetValue(space, out List<string> named) ? named : new List<string>()
+                    );
                     stale.Layers.UnionWith(changedLayers);
                 }
             }
@@ -1272,8 +1424,10 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Whether a setting of the header changes how every space is drawn: $LTSCALE, $PDMODE and $PDSIZE.</summary>
-        private static bool Redraws(string property)
-            => string.Equals(property, "$LTSCALE", StringComparison.Ordinal) || string.Equals(property, "$PDMODE", StringComparison.Ordinal) || string.Equals(property, "$PDSIZE", StringComparison.Ordinal);
+        private static bool Redraws(string property) =>
+            string.Equals(property, "$LTSCALE", StringComparison.Ordinal)
+            || string.Equals(property, "$PDMODE", StringComparison.Ordinal)
+            || string.Equals(property, "$PDSIZE", StringComparison.Ordinal);
 
         /// <summary>Drops or marks stale the display lists of the spaces edits touched and raises <see cref="Changed"/>.</summary>
         private void Announce(CadChangeKind kind, string name, IReadOnlyList<CadEditRecord> records)
@@ -1300,7 +1454,10 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             var spaces = AllSpaces.FindAll(touched.Contains);
-            Changed?.Invoke(this, new CadDocumentChangedEventArgs(kind, name, new List<string>(handles), spaces, tables));
+            Changed?.Invoke(
+                this,
+                new CadDocumentChangedEventArgs(kind, name, new List<string>(handles), spaces, tables)
+            );
         }
     }
 
@@ -1468,11 +1625,13 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The entity <see cref="Added"/> recorded with a record of this scope; null for a record made otherwise.</summary>
-        internal DxfEntity AddedEntityOf(CadEditRecord record) => _added.TryGetValue(record, out DxfEntity entity) ? entity : null;
+        internal DxfEntity AddedEntityOf(CadEditRecord record) =>
+            _added.TryGetValue(record, out DxfEntity entity) ? entity : null;
 
         /// <summary>Records a change the planned records did not name, found while writing.</summary>
         /// <param name="record">The record.</param>
         /// <exception cref="ArgumentNullException">Thrown when the record is null.</exception>
-        public void Record(CadEditRecord record) => _records.Add(record ?? throw new ArgumentNullException(nameof(record)));
+        public void Record(CadEditRecord record) =>
+            _records.Add(record ?? throw new ArgumentNullException(nameof(record)));
     }
 }

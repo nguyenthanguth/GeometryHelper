@@ -17,14 +17,32 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Tol = Tolerance.Default;
 
-        private static readonly GeoTriangle3 Triangle = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
+        private static readonly GeoTriangle3 Triangle = new GeoTriangle3(
+            new GeoPoint3(0, 0, 0),
+            new GeoPoint3(100, 0, 0),
+            new GeoPoint3(0, 100, 0)
+        );
 
-        private static readonly GeoPolygon3 Square = new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0));
+        private static readonly GeoPolygon3 Square = new GeoPolygon3(
+            new GeoPoint3(0, 0, 0),
+            new GeoPoint3(100, 0, 0),
+            new GeoPoint3(100, 100, 0),
+            new GeoPoint3(0, 100, 0)
+        );
 
         private static readonly GeoFace3 Plate = new GeoFace3(
             Square,
-            new[] { new GeoPolygon3(new GeoPoint3(30, 30, 0), new GeoPoint3(30, 70, 0), new GeoPoint3(70, 70, 0), new GeoPoint3(70, 30, 0)) },
-            Tol);
+            new[]
+            {
+                new GeoPolygon3(
+                    new GeoPoint3(30, 30, 0),
+                    new GeoPoint3(30, 70, 0),
+                    new GeoPoint3(70, 70, 0),
+                    new GeoPoint3(70, 30, 0)
+                ),
+            },
+            Tol
+        );
 
         private static void AssertPoint(GeoPoint3 expected, GeoPoint3[] points)
         {
@@ -128,7 +146,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AChainWhoseCornerTouchesTheRegion_IsGivenTheCorner()
         {
-            var chain = new GeoPolyline3(new[] { new GeoPoint3(20, 20, 5), new GeoPoint3(20, 20, 0.0005), new GeoPoint3(30, 20, 5) });
+            var chain = new GeoPolyline3(
+                new[] { new GeoPoint3(20, 20, 5), new GeoPoint3(20, 20, 0.0005), new GeoPoint3(30, 20, 5) }
+            );
             var expected = new GeoPoint3(20, 20, 0.0005);
 
             Assert.True(chain.CollidesWith(Triangle, Tol));
@@ -156,10 +176,17 @@ namespace GeometryHelper.UnitTest.Solid
             var c1 = new GeoPoint3(-5.720930313618348, 8.610986935170672, 6.4594544951073924);
             var c2 = new GeoPoint3(-7.259398693509985, 10.147942472332325, 7.906011288585519);
             var c3 = new GeoPoint3(-5.199370627497903, 10.851771916762239, 9.349116383958679);
-            GeoPoint3 At(double x, double y) => c0.Add(c0.GetVectorTo(c1).Multiply(x)).Add(c0.GetVectorTo(c3).Multiply(y));
-            var plate = new GeoFace3(new GeoPolygon3(c0, c1, c2, c3), new[] { new GeoPolygon3(At(0.3, 0.3), At(0.3, 0.7), At(0.7, 0.7), At(0.7, 0.3)) }, Tol);
+            GeoPoint3 At(double x, double y) =>
+                c0.Add(c0.GetVectorTo(c1).Multiply(x)).Add(c0.GetVectorTo(c3).Multiply(y));
+            var plate = new GeoFace3(
+                new GeoPolygon3(c0, c1, c2, c3),
+                new[] { new GeoPolygon3(At(0.3, 0.3), At(0.3, 0.7), At(0.7, 0.7), At(0.7, 0.3)) },
+                Tol
+            );
             var origin = new GeoPoint3(-5.011145480321105, 9.833586785030219, 8.157391985502072);
-            GeoVector3 toward = origin.GetVectorTo(new GeoPoint3(-5.205488115702256, 8.99131717359962, 8.845606197457652));
+            GeoVector3 toward = origin.GetVectorTo(
+                new GeoPoint3(-5.205488115702256, 8.99131717359962, 8.845606197457652)
+            );
             var ray = new GeoRay3(origin, toward.Multiply(1.0 / toward.Length));
 
             Assert.False(ray.CollidesWith(plate, Tol));
@@ -173,7 +200,9 @@ namespace GeometryHelper.UnitTest.Solid
             var segment = new GeoLine3(new GeoPoint3(20, 20, -5), new GeoPoint3(20, 20, 5));
 
             AssertPoint(new GeoPoint3(20, 20, 0), segment.GetIntersections(Triangle, Tol));
-            Assert.Empty(new GeoLine3(new GeoPoint3(50, 50, -5), new GeoPoint3(50, 50, 5)).GetIntersections(Plate, Tol));
+            Assert.Empty(
+                new GeoLine3(new GeoPoint3(50, 50, -5), new GeoPoint3(50, 50, 5)).GetIntersections(Plate, Tol)
+            );
         }
     }
 }

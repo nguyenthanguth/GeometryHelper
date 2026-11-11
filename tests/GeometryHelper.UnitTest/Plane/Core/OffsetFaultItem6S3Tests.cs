@@ -45,7 +45,12 @@ namespace GeometryHelper.UnitTest.Plane
         private static readonly OffsetOptions Chamfer = new OffsetOptions(OffsetJoin.Chamfer);
 
         /// <summary>The same loop through the straight path: its vertices as a polygon, every edge of it straight.</summary>
-        private static double StraightArea(GeoPolygonArc2 loop, double distance, OffsetOptions options, Tolerance tolerance)
+        private static double StraightArea(
+            GeoPolygonArc2 loop,
+            double distance,
+            OffsetOptions options,
+            Tolerance tolerance
+        )
         {
             GeoPolygon2[] loops = Offset2.Offset(new GeoPolygon2(loop.Vertices.ToList()), distance, options, tolerance);
             bool clockwise = loop.IsClockwise;
@@ -55,7 +60,10 @@ namespace GeometryHelper.UnitTest.Plane
         [Theory]
         [InlineData(0.12, 1E-3)]
         [InlineData(0.038, 1E-4)]
-        public void ASlotJustWiderThanTheDistanceGrownWithMiters_FillsAndTheRectangleGrowsSquare(double past, double point)
+        public void ASlotJustWiderThanTheDistanceGrownWithMiters_FillsAndTheRectangleGrowsSquare(
+            double past,
+            double point
+        )
         {
             // Grown by 5 the slot fills, and the rectangle 40 by 30 comes back 50 by 40 with mitered corners: 2 000. The left
             // mouth's miter corner (5, 5) stands sqrt(past^2 + 25) from the right mouth (5 + past, 0), so the moved left wall
@@ -76,7 +84,9 @@ namespace GeometryHelper.UnitTest.Plane
         public void ASlotFurtherFromTheBandGrownWithMiters_FillsAndTheRectangleGrowsSquare(double past)
         {
             // The stub is under the tolerance at 0.05 (2.5E-4) and well inside the miter at 0.3 (0.009): both come back right.
-            GeoPolygonArc2 grown = Assert.Single(Offset2.Offset(RectangleWithASlot(5.0 + past), 5.0, Miter, Thousandth));
+            GeoPolygonArc2 grown = Assert.Single(
+                Offset2.Offset(RectangleWithASlot(5.0 + past), 5.0, Miter, Thousandth)
+            );
 
             Assert.Equal(2000.0, grown.Area, 1E-6);
         }
@@ -103,7 +113,9 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolygonArc2 notch = AuditNotch1094();
             double round = Assert.Single(Offset2.Offset(notch, 80.0, Round, Thousandth)).Area;
 
-            GeoPolygonArc2 grown = Assert.Single(Offset2.Offset(notch, 80.0, new OffsetOptions(OffsetJoin.Miter, 2.0), Thousandth));
+            GeoPolygonArc2 grown = Assert.Single(
+                Offset2.Offset(notch, 80.0, new OffsetOptions(OffsetJoin.Miter, 2.0), Thousandth)
+            );
 
             Assert.True(grown.Area >= round);
         }
@@ -172,7 +184,9 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // At 1E-4 the crossing past the end of the piece is further than the tolerance, the piece keeps its arc, and the
             // tip is mitered 1.546 out: 54.769871.
-            GeoPolygonArc2 grown = Assert.Single(Offset2.Offset(LoopWithASliverBeforeATip(), 0.3, Miter, TenThousandth));
+            GeoPolygonArc2 grown = Assert.Single(
+                Offset2.Offset(LoopWithASliverBeforeATip(), 0.3, Miter, TenThousandth)
+            );
 
             Assert.Equal(54.769871, grown.Area, 1E-5);
         }

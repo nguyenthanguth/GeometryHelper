@@ -27,7 +27,9 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             ProjectedView2 view = Project(objects, Top);
             double top = view.Bounds.Center.Y + 0.5 * view.Bounds.Height;
 
-            DrawingDimension[] chain = dimensions.Where(d => d.Kind == DimensionKind.Chain && d.Direction.X > 0.5).ToArray();
+            DrawingDimension[] chain = dimensions
+                .Where(d => d.Kind == DimensionKind.Chain && d.Direction.X > 0.5)
+                .ToArray();
             DrawingDimension overall = dimensions.Single(d => d.Kind == DimensionKind.Overall && d.Direction.X > 0.5);
 
             Assert.Equal(new[] { "50", "200", "50" }, chain.Select(d => d.Text));
@@ -60,10 +62,18 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         {
             // Holes 30 apart at 1:10: the text "30", 40 wide in the view, does not fit between its extension lines.
             DrawingObject[] objects = { Bar(1000, 100, P(400, 50), P(430, 50)) };
-            IReadOnlyList<DrawingDimension> dimensions = Dimension(objects, Top, new DimensionSettings { Scale = 10, MergeEqual = false });
+            IReadOnlyList<DrawingDimension> dimensions = Dimension(
+                objects,
+                Top,
+                new DimensionSettings { Scale = 10, MergeEqual = false }
+            );
             DrawingDimension step = dimensions.Single(d => d.Kind == DimensionKind.Chain && d.Text == "30");
 
-            Assert.True(step.TextBox.Center.X - 0.5 * step.TextBox.Width >= 430.0 || step.TextBox.Center.X + 0.5 * step.TextBox.Width <= 400.0, step.TextBox.ToString());
+            Assert.True(
+                step.TextBox.Center.X - 0.5 * step.TextBox.Width >= 430.0
+                    || step.TextBox.Center.X + 0.5 * step.TextBox.Width <= 400.0,
+                step.TextBox.ToString()
+            );
             Assert.Empty(Annotator.FindOverlaps(dimensions, Tol));
         }
 
@@ -89,24 +99,55 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             var bodies = new List<(string Name, DrawingObject[] Objects, (string, GeoCoordinateSystem3)[] Views)>();
             (string, GeoCoordinateSystem3)[] kitViews = { ("top", Top), ("front", Front), ("right", Right) };
 
-            foreach (TestBody body in new[] { TestBodies.TC1(), TestBodies.TC2(), TestBodies.TC3(), TestBodies.TC4(), TestBodies.TC5(), TestBodies.TC6(), TestBodies.TC7(), TestBodies.TC8(), TestBodies.TC9(), TestBodies.TC10(2, 2) })
+            foreach (
+                TestBody body in new[]
+                {
+                    TestBodies.TC1(),
+                    TestBodies.TC2(),
+                    TestBodies.TC3(),
+                    TestBodies.TC4(),
+                    TestBodies.TC5(),
+                    TestBodies.TC6(),
+                    TestBodies.TC7(),
+                    TestBodies.TC8(),
+                    TestBodies.TC9(),
+                    TestBodies.TC10(2, 2),
+                }
+            )
             {
                 bodies.Add((body.Name, Objects(body), MainViews(body.ToSource().Frame)));
             }
 
             // The projection kit's bodies, seen in its own three views.
             bodies.Add(("box", new[] { Part("box", Box(0, 0, 0, 300, 200, 100), true) }, kitViews));
-            bodies.Add(("plate", new[] { Part("plate", PlateWithHoles(300, 200, 20, 22, 24, P(60, 100), P(240, 100)), true) }, kitViews));
+            bodies.Add(
+                (
+                    "plate",
+                    new[] { Part("plate", PlateWithHoles(300, 200, 20, 22, 24, P(60, 100), P(240, 100)), true) },
+                    kitViews
+                )
+            );
             bodies.Add(("angle", new[] { Part("angle", Angle(100, 10, 1000), true) }, kitViews));
             bodies.Add(("tube", new[] { Part("tube", Tube(168.3, 6, 1000, 32), true) }, kitViews));
-            bodies.Add(("beam", BeamWithEndPlates().Select(i => Part(i.Id, i.Solid, i.Id == "beam")).ToArray(), kitViews));
+            bodies.Add(
+                ("beam", BeamWithEndPlates().Select(i => Part(i.Id, i.Solid, i.Id == "beam")).ToArray(), kitViews)
+            );
 
             var settingsList = new[]
             {
                 ("default 1:1", new DimensionSettings()),
                 ("default 1:10", new DimensionSettings { Scale = 10 }),
                 ("default 1:20", new DimensionSettings { Scale = 20 }),
-                ("all rules 1:5", new DimensionSettings { Scale = 5, Cumulative = true, Ordinate = true, MergeEqual = false }),
+                (
+                    "all rules 1:5",
+                    new DimensionSettings
+                    {
+                        Scale = 5,
+                        Cumulative = true,
+                        Ordinate = true,
+                        MergeEqual = false,
+                    }
+                ),
             };
 
             var failures = new List<string>();
@@ -120,11 +161,19 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
 
                     foreach ((string settingsName, DimensionSettings settings) in settingsList)
                     {
-                        IReadOnlyList<DrawingDimension> dimensions = Annotator.Dimension(view, objects, frame, settings, Tol);
+                        IReadOnlyList<DrawingDimension> dimensions = Annotator.Dimension(
+                            view,
+                            objects,
+                            frame,
+                            settings,
+                            Tol
+                        );
                         count += dimensions.Count;
                         IReadOnlyList<string> overlaps = Annotator.FindOverlaps(dimensions, Tol);
                         failures.AddRange(overlaps.Select(o => $"{name} {viewName} {settingsName}: {o}"));
-                        _output.WriteLine($"{name} {viewName} {settingsName}: {dimensions.Count} dimensions, {overlaps.Count} overlaps");
+                        _output.WriteLine(
+                            $"{name} {viewName} {settingsName}: {dimensions.Count} dimensions, {overlaps.Count} overlaps"
+                        );
                     }
                 }
             }

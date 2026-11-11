@@ -22,9 +22,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Equal("room.dxf (recovered)", model.Document.Title);
                 Assert.False(model.Document.HasFile);
                 Assert.Equal(3, model.Document.EntityCount);
-                Assert.Contains(model.History, l => l.StartsWith("Cannot open room.dxf as it is: This is not a DXF that can be read: line ", StringComparison.Ordinal));
-                Assert.Contains("The file could not be read as it is; opening what could be recovered: 1 repair.", model.History);
-                Assert.Contains(model.History, l => l.EndsWith(" is not a group code ('not a code'); it was left out.", StringComparison.Ordinal));
+                Assert.Contains(model.History, l =>
+                    l.StartsWith(
+                        "Cannot open room.dxf as it is: This is not a DXF that can be read: line ",
+                        StringComparison.Ordinal
+                    )
+                );
+                Assert.Contains(
+                    "The file could not be read as it is; opening what could be recovered: 1 repair.",
+                    model.History
+                );
+                Assert.Contains(model.History, l =>
+                    l.EndsWith(" is not a group code ('not a code'); it was left out.", StringComparison.Ordinal)
+                );
                 Assert.Equal(text.Insert(line, "not a code\n"), System.IO.File.ReadAllText(path));
             }
         }

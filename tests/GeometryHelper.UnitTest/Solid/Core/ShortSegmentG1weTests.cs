@@ -26,12 +26,27 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class ShortSegmentG1weTests
     {
-        private static readonly Tolerance Thousandth = new Tolerance(1E-3, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-3);
+        private static readonly Tolerance Thousandth = new Tolerance(
+            1E-3,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-3
+        );
 
-        private static readonly Tolerance Hundredth = new Tolerance(1E-2, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-2);
+        private static readonly Tolerance Hundredth = new Tolerance(
+            1E-2,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-2
+        );
 
-        private static GeoPolygon3 Square()
-            => new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+        private static GeoPolygon3 Square() =>
+            new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
         private static GeoPlane3 Floor() => new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1));
 
@@ -40,16 +55,25 @@ namespace GeometryHelper.UnitTest.Solid
         private static GeoLine3 AlongX() => new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0));
 
         /// <summary>The stub pointing down at (x, y, 0), stopping 0.0006 short of it.</summary>
-        private static GeoLine3 Down(double x, double y) => new GeoLine3(new GeoPoint3(x, y, 0.0015), new GeoPoint3(x, y, 0.0006));
+        private static GeoLine3 Down(double x, double y) =>
+            new GeoLine3(new GeoPoint3(x, y, 0.0015), new GeoPoint3(x, y, 0.0006));
 
         /// <summary>The stub passing down through (x, y, 0).</summary>
-        private static GeoLine3 Through(double x, double y) => new GeoLine3(new GeoPoint3(x, y, 0.0004), new GeoPoint3(x, y, -0.0005));
+        private static GeoLine3 Through(double x, double y) =>
+            new GeoLine3(new GeoPoint3(x, y, 0.0004), new GeoPoint3(x, y, -0.0005));
 
         /// <summary>The stub standing over (x, y, 0), from 0.0008 above to 0.0002 above.</summary>
-        private static GeoLine3 Over(double x, double y) => new GeoLine3(new GeoPoint3(x, y, 0.0008), new GeoPoint3(x, y, 0.0002));
+        private static GeoLine3 Over(double x, double y) =>
+            new GeoLine3(new GeoPoint3(x, y, 0.0008), new GeoPoint3(x, y, 0.0002));
 
-        private static GeoPoint3[] ChainCorners()
-            => new[] { new GeoPoint3(-7, -7, 0), new GeoPoint3(0, 0, 0), new GeoPoint3(0.008, 0, 0), new GeoPoint3(7, -7, 0) };
+        private static GeoPoint3[] ChainCorners() =>
+            new[]
+            {
+                new GeoPoint3(-7, -7, 0),
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(0.008, 0, 0),
+                new GeoPoint3(7, -7, 0),
+            };
 
         private static void AssertAt(double x, double y, double z, GeoPoint3 actual)
         {
@@ -92,7 +116,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Empty(stub.GetIntersections(Floor(), Thousandth));
             Assert.Empty(Square().GetIntersections(stub, Thousandth));
             Assert.Empty(Box().GetIntersections(stub, Thousandth));
-            Assert.Empty(new GeoRay3(new GeoPoint3(0, 5, 0), new GeoVector3(1, 0, 0)).GetIntersections(stub, Thousandth));
+            Assert.Empty(
+                new GeoRay3(new GeoPoint3(0, 5, 0), new GeoVector3(1, 0, 0)).GetIntersections(stub, Thousandth)
+            );
         }
 
         [Fact]
@@ -125,7 +151,12 @@ namespace GeometryHelper.UnitTest.Solid
         public void AStubPointingAtAnArc_StoppingShortOfIt_MeetsItNowhere_AndOneStandingOverIt_AtItsStart()
         {
             // The arc through (-3, 0, -1), the origin and (3, 0, -1), in the plane y = 0, the origin at its top.
-            GeoArc3 arc = GeoArc3.FromThreePoints(new GeoPoint3(-3, 0, -1), new GeoPoint3(0, 0, 0), new GeoPoint3(3, 0, -1), Thousandth);
+            GeoArc3 arc = GeoArc3.FromThreePoints(
+                new GeoPoint3(-3, 0, -1),
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(3, 0, -1),
+                Thousandth
+            );
 
             Assert.Empty(arc.GetIntersections(Down(0, 0), Thousandth));
             AssertAt(0, 0, 0.0008, Assert.Single(arc.GetIntersections(Over(0, 0), Thousandth)));
@@ -148,7 +179,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void ARegionWithASideShorterThanTheTolerance_IsJoinedToTheSideAsItIs()
         {
             var polygon = new GeoPolygon3(ChainCorners());
-            var sliver = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(0.008, 0, 0), new GeoPoint3(0.004, -10, 0));
+            var sliver = new GeoTriangle3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(0.008, 0, 0),
+                new GeoPoint3(0.004, -10, 0)
+            );
             var point = new GeoPoint3(0.006, 0.02, 0);
             var segment = new GeoLine3(new GeoPoint3(0.006, 0.02, -5), new GeoPoint3(0.006, 0.02, 5));
 

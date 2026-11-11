@@ -13,7 +13,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Rejoins the segments of a classified run that end where the next one begins, using the default tolerance.
         /// </summary>
-        public static GeoLine2[] ConsecutiveLines(IEnumerable<GeoLine2> segments) => ConsecutiveLines(segments, Tolerance.Global);
+        public static GeoLine2[] ConsecutiveLines(IEnumerable<GeoLine2> segments) =>
+            ConsecutiveLines(segments, Tolerance.Global);
 
         /// <summary>
         /// Rejoins the segments of a classified run that end where the next one begins.
@@ -35,13 +36,15 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoLine2[] ConsecutiveLines(IEnumerable<GeoLine2> segments, Tolerance tolerance)
         {
-            if (segments == null) throw new ArgumentNullException(nameof(segments));
+            if (segments == null)
+                throw new ArgumentNullException(nameof(segments));
 
             var result = new List<GeoLine2>();
             using (var enumerator = segments.GetEnumerator())
             {
                 // Return an empty array if there are no segments to process.
-                if (!enumerator.MoveNext()) return result.ToArray();
+                if (!enumerator.MoveNext())
+                    return result.ToArray();
                 GeoLine2 current = enumerator.Current;
 
                 while (enumerator.MoveNext())
@@ -69,7 +72,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Joins two pieces into one if the first ends where the second begins, using the default tolerance.
         /// </summary>
-        public static GeoPolyline2 Polylines(GeoPolyline2 first, GeoPolyline2 second) => Polylines(first, second, Tolerance.Global);
+        public static GeoPolyline2 Polylines(GeoPolyline2 first, GeoPolyline2 second) =>
+            Polylines(first, second, Tolerance.Global);
 
         /// <summary>
         /// Joins two pieces into one if the first ends where the second begins.
@@ -86,8 +90,10 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoPolyline2 Polylines(GeoPolyline2 first, GeoPolyline2 second, Tolerance tolerance)
         {
-            if (first == null) throw new ArgumentNullException(nameof(first));
-            if (second == null) throw new ArgumentNullException(nameof(second));
+            if (first == null)
+                throw new ArgumentNullException(nameof(first));
+            if (second == null)
+                throw new ArgumentNullException(nameof(second));
 
             // The two polylines can only merge if the end of the first matches the start of the second.
             if (!first[first.VertexCount - 1].IsEqualTo(second[0], tolerance))
@@ -103,11 +109,14 @@ namespace GeometryHelper.Core
             // and goes; where it carries a real corner of the subject it stays. Without this the line and
             // polyline forms of the same split disagree, because merging two GeoLine2 pieces can only
             // produce one straight segment and drops the junction whether anyone decided to or not.
-            
+
             // Check if the junction point is collinear with the previous vertex in first
             // and the second vertex in second. If it is, there is no corner/bend at the junction.
             bool carriesNoBend = Containment2.IsPointOn(
-                new GeoLine2(vertices[junction - 1], second[1]), vertices[junction], tolerance);
+                new GeoLine2(vertices[junction - 1], second[1]),
+                vertices[junction],
+                tolerance
+            );
 
             if (carriesNoBend)
             {
@@ -129,7 +138,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Rejoins the pieces of a classified run that end where the next one begins, using the default tolerance.
         /// </summary>
-        public static GeoPolyline2[] ConsecutivePolylines(IEnumerable<GeoPolyline2> polylines) => ConsecutivePolylines(polylines, Tolerance.Global);
+        public static GeoPolyline2[] ConsecutivePolylines(IEnumerable<GeoPolyline2> polylines) =>
+            ConsecutivePolylines(polylines, Tolerance.Global);
 
         /// <summary>
         /// Rejoins the pieces of a classified run that end where the next one begins.
@@ -145,13 +155,15 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoPolyline2[] ConsecutivePolylines(IEnumerable<GeoPolyline2> polylines, Tolerance tolerance)
         {
-            if (polylines == null) throw new ArgumentNullException(nameof(polylines));
+            if (polylines == null)
+                throw new ArgumentNullException(nameof(polylines));
 
             var result = new List<GeoPolyline2>();
             using (var enumerator = polylines.GetEnumerator())
             {
                 // Return an empty array if there are no polylines to process.
-                if (!enumerator.MoveNext()) return result.ToArray();
+                if (!enumerator.MoveNext())
+                    return result.ToArray();
                 GeoPolyline2 current = enumerator.Current;
 
                 while (enumerator.MoveNext())
@@ -210,7 +222,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoPolyline2[] Join(IEnumerable<GeoLine2> lines, Tolerance tolerance)
         {
-            if (lines == null) throw new ArgumentNullException(nameof(lines));
+            if (lines == null)
+                throw new ArgumentNullException(nameof(lines));
 
             var segments = new List<GeoLine2>();
             foreach (var line in lines)
@@ -236,7 +249,8 @@ namespace GeometryHelper.Core
 
             for (int seed = 0; seed < segments.Count; seed++)
             {
-                if (consumed[seed]) continue;
+                if (consumed[seed])
+                    continue;
                 consumed[seed] = true;
 
                 // Grow past the seed's end, then past its start. The second walk records the stretch
@@ -292,7 +306,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         internal static GeoPolyline2[] JoinBackup(IEnumerable<GeoLine2> lines, Tolerance tolerance)
         {
-            if (lines == null) throw new ArgumentNullException(nameof(lines));
+            if (lines == null)
+                throw new ArgumentNullException(nameof(lines));
 
             var resultPolylines = new List<List<GeoPoint2>>();
             foreach (var line in lines)
@@ -359,7 +374,8 @@ namespace GeometryHelper.Core
                             break;
                         }
                     }
-                    if (mergedAny) break;
+                    if (mergedAny)
+                        break;
                 }
             } while (mergedAny);
 
@@ -375,7 +391,13 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Grows a run past its last vertex for as long as an unused segment meets it there.
         /// </summary>
-        private static void Extend(List<GeoLine2> segments, EndpointGrid grid, bool[] consumed, List<GeoPoint2> run, Tolerance tolerance)
+        private static void Extend(
+            List<GeoLine2> segments,
+            EndpointGrid grid,
+            bool[] consumed,
+            List<GeoPoint2> run,
+            Tolerance tolerance
+        )
         {
             while (true)
             {
@@ -520,8 +542,10 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    if (_segments[candidate].StartPoint.IsEqualTo(point, _tolerance) ||
-                        _segments[candidate].EndPoint.IsEqualTo(point, _tolerance))
+                    if (
+                        _segments[candidate].StartPoint.IsEqualTo(point, _tolerance)
+                        || _segments[candidate].EndPoint.IsEqualTo(point, _tolerance)
+                    )
                     {
                         return candidate;
                     }

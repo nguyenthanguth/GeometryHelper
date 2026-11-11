@@ -24,17 +24,23 @@ namespace GeometryHelper.UnitTest.Plane
         /// What a chord tolerance of half a thousandth costs, two orders finer.
         /// </summary>
         private const double FineFlattening = 1E-5;
+
         private static GeoPolygonArc2 Slot()
         {
             return new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 50), new GeoPoint2(0, 50) },
-                new[] { 0.0, 1.0, 0.0, 1.0 });
+                new[] { 0.0, 1.0, 0.0, 1.0 }
+            );
         }
 
         private static GeoPolygon2 Opening()
         {
             return new GeoPolygon2(
-                new GeoPoint2(80, 15), new GeoPoint2(120, 15), new GeoPoint2(120, 35), new GeoPoint2(80, 35));
+                new GeoPoint2(80, 15),
+                new GeoPoint2(120, 15),
+                new GeoPoint2(120, 35),
+                new GeoPoint2(80, 35)
+            );
         }
 
         [Fact]
@@ -102,8 +108,7 @@ namespace GeometryHelper.UnitTest.Plane
         {
             GeoPolygonArc2 slot = Slot();
 
-            var frame = new GeoCoordinateSystem3(
-                new GeoPoint3(1000, 500, 250), GeoVector3.XAxis, GeoVector3.ZAxis);
+            var frame = new GeoCoordinateSystem3(new GeoPoint3(1000, 500, 250), GeoVector3.XAxis, GeoVector3.ZAxis);
 
             GeoPolygon3 placed = slot.ToPolygon3(frame);
             GeoPolygon3 finer = slot.ToPolygon3(frame, 0.0005);
@@ -116,13 +121,15 @@ namespace GeometryHelper.UnitTest.Plane
 
             var chain = new GeoPolylineArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100) },
-                new[] { 0.5, 0.0 });
+                new[] { 0.5, 0.0 }
+            );
 
             GeoPolyline3 run = chain.ToPolyline3(frame);
 
             Assert.True(run.VertexCount > chain.VertexCount);
             Assert.True(Math.Abs(run.Length - chain.Length) / chain.Length < Flattening);
         }
+
         [Fact]
         public void EveryFormOfEveryBooleanIsReachableAndAgrees()
         {

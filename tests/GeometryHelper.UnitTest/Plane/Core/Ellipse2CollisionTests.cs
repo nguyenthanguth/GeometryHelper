@@ -177,7 +177,15 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(ellipse.CollidesWith(Ellipse2Oracle.FrameLine(ellipse, -100, 0, 100, 20), Strict));
             Assert.True(ellipse.CollidesWith(Ellipse2Oracle.FramePolyline(ellipse, -100, 0, 0, 50, 100, 0), Strict));
             Assert.True(ellipse.CollidesWith(Ellipse2Oracle.FrameArc(ellipse, 0, 0, 60, 0.3, 2.0), Strict));
-            Assert.True(ellipse.CollidesWith(new GeoPolylineArc2(Ellipse2Oracle.FramePoints(ellipse, -100, 0, 0, 30, 100, 0), new[] { 0.3, -0.3, 0.0 }), Strict));
+            Assert.True(
+                ellipse.CollidesWith(
+                    new GeoPolylineArc2(
+                        Ellipse2Oracle.FramePoints(ellipse, -100, 0, 0, 30, 100, 0),
+                        new[] { 0.3, -0.3, 0.0 }
+                    ),
+                    Strict
+                )
+            );
         }
 
         [Fact]
@@ -187,13 +195,26 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPoint2[] round = Ellipse2Oracle.FramePoints(ellipse, -1000, -400, 1000, -400, 0, 900);
 
             Assert.True(ellipse.CollidesWith(Ellipse2Oracle.FramePolygon(ellipse, -50, -20, 50, -20, 0, 40), Strict));
-            Assert.True(ellipse.CollidesWith(Ellipse2Oracle.FramePolygon(ellipse, -400, -200, 400, -200, 400, 200, -400, 200), Strict));
+            Assert.True(
+                ellipse.CollidesWith(
+                    Ellipse2Oracle.FramePolygon(ellipse, -400, -200, 400, -200, 400, 200, -400, 200),
+                    Strict
+                )
+            );
             Assert.True(ellipse.CollidesWith(new GeoRectangle2(ellipse.Center, 20, 10, 0.0), Strict));
             Assert.True(ellipse.CollidesWith(new GeoRectangle2(ellipse.Center, 800, 800, 0.0), Strict));
             Assert.True(ellipse.CollidesWith(new GeoTriangle2(round[0], round[1], round[2]), Strict));
             Assert.True(ellipse.CollidesWith(Ellipse2Oracle.FrameCircle(ellipse, 50, 0, 30), Strict));
             Assert.True(ellipse.CollidesWith(Ellipse2Oracle.FrameCircle(ellipse, 0, 0, 500), Strict));
-            Assert.True(ellipse.CollidesWith(new GeoPolygonArc2(Ellipse2Oracle.FramePoints(ellipse, -400, -200, 400, -200, 400, 200, -400, 200), new[] { 0.2, 0.0, 0.2, 0.0 }), Strict));
+            Assert.True(
+                ellipse.CollidesWith(
+                    new GeoPolygonArc2(
+                        Ellipse2Oracle.FramePoints(ellipse, -400, -200, 400, -200, 400, 200, -400, 200),
+                        new[] { 0.2, 0.0, 0.2, 0.0 }
+                    ),
+                    Strict
+                )
+            );
             Assert.True(ellipse.CollidesWith(Ellipse2Oracle.FrameEllipse(ellipse, 0, 0, 0.2, 200, 50), Strict));
             Assert.True(ellipse.CollidesWith(Ellipse2Oracle.FrameEllipse(ellipse, 0, 0, 0.0, 400, 300), Strict));
         }
@@ -205,7 +226,9 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.True(ellipse.CollidesWith(Ellipse2Oracle.FrameLine(ellipse, 400, 50, -400, 50), Strict));
             Assert.True(ellipse.CollidesWith(Ellipse2Oracle.FrameCircle(ellipse, 300, 0, 50), Strict));
-            Assert.True(ellipse.CollidesWith(Ellipse2Oracle.FrameEllipse(ellipse, 0, 0, Math.PI / 2, 300, 100), Strict));
+            Assert.True(
+                ellipse.CollidesWith(Ellipse2Oracle.FrameEllipse(ellipse, 0, 0, Math.PI / 2, 300, 100), Strict)
+            );
             Assert.True(ellipse.CollidesWith(Ellipse2Oracle.FrameArc(ellipse, 0, 0, 200, 0.0, Math.PI), Strict));
         }
 
@@ -215,7 +238,17 @@ namespace GeometryHelper.UnitTest.Plane
             // The hole of the first face is 400 by 160 about the centre, 60 clear of the rim all round: no material is
             // reached. The second face's hole, 100 by 40, lies inside the ellipse, whose rim crosses the material round it.
             GeoEllipse2 ellipse = Upright();
-            GeoPolygon2 outline = Ellipse2Oracle.FramePolygon(ellipse, -2000, -2000, 2000, -2000, 2000, 2000, -2000, 2000);
+            GeoPolygon2 outline = Ellipse2Oracle.FramePolygon(
+                ellipse,
+                -2000,
+                -2000,
+                2000,
+                -2000,
+                2000,
+                2000,
+                -2000,
+                2000
+            );
             GeoPolygon2 bigHole = Ellipse2Oracle.FramePolygon(ellipse, -400, -200, 400, -200, 400, 160, -400, 160);
             GeoPolygon2 smallHole = Ellipse2Oracle.FramePolygon(ellipse, -50, -20, 50, -20, 50, 20, -50, 20);
 
@@ -227,7 +260,17 @@ namespace GeometryHelper.UnitTest.Plane
         public void AnEllipseAcrossTheRimOfAHole_TouchesTheFace()
         {
             GeoEllipse2 ellipse = Upright();
-            GeoPolygon2 outline = Ellipse2Oracle.FramePolygon(ellipse, -2000, -2000, 2000, -2000, 2000, 2000, -2000, 2000);
+            GeoPolygon2 outline = Ellipse2Oracle.FramePolygon(
+                ellipse,
+                -2000,
+                -2000,
+                2000,
+                -2000,
+                2000,
+                2000,
+                -2000,
+                2000
+            );
             GeoPolygon2 hole = Ellipse2Oracle.FramePolygon(ellipse, 250, -20, 350, -20, 350, 20, 250, 20);
 
             Assert.True(ellipse.CollidesWith(new GeoFace2(outline, new[] { hole }), Strict));
@@ -239,7 +282,9 @@ namespace GeometryHelper.UnitTest.Plane
             GeoEllipse2 ellipse = Tilted();
 
             Assert.False(ellipse.CollidesWith(Ellipse2Oracle.FrameLine(ellipse, 100, 250, 450, -50), Strict));
-            Assert.False(ellipse.CollidesWith(Ellipse2Oracle.FramePolygon(ellipse, 330, -40, 420, 40, 330, 120), Strict));
+            Assert.False(
+                ellipse.CollidesWith(Ellipse2Oracle.FramePolygon(ellipse, 330, -40, 420, 40, 330, 120), Strict)
+            );
             Assert.False(ellipse.CollidesWith(Ellipse2Oracle.FrameCircle(ellipse, 0, 250, 50), Strict));
             Assert.False(ellipse.CollidesWith(Ellipse2Oracle.FrameEllipse(ellipse, 1000, 0, 0.3, 200, 50), Strict));
         }

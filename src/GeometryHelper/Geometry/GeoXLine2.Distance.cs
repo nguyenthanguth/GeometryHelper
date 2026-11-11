@@ -96,7 +96,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this infinite line to a circle, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoCircle2 circle, Tolerance tolerance) => Distance2.DistanceTo(circle, this, tolerance);
+        public double DistanceTo(GeoCircle2 circle, Tolerance tolerance) =>
+            Distance2.DistanceTo(circle, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this infinite line to an ellipse, using the default tolerance.
@@ -108,7 +109,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this infinite line to an ellipse, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoEllipse2 ellipse, Tolerance tolerance) => Ellipse2.DistanceTo(ellipse, this, tolerance);
+        public double DistanceTo(GeoEllipse2 ellipse, Tolerance tolerance) =>
+            Ellipse2.DistanceTo(ellipse, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this infinite line to an edge, using the default tolerance.
@@ -134,7 +136,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public double DistanceTo(GeoPolyline2 polyline, Tolerance tolerance) => Distance2.DistanceTo(polyline, this, tolerance);
+        public double DistanceTo(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Distance2.DistanceTo(polyline, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this infinite line to a polygon, using the default tolerance.
@@ -167,7 +170,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the curved chain is null.</exception>
-        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) => Distance2.DistanceTo(chain, this, tolerance);
+        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Distance2.DistanceTo(chain, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this infinite line to a curved loop, using the default tolerance.
@@ -181,7 +185,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the curved loop is null.</exception>
-        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) => Distance2.DistanceTo(loop, this, tolerance);
+        public double DistanceTo(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Distance2.DistanceTo(loop, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this infinite line to a rectangle, using the default tolerance.
@@ -193,7 +198,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this infinite line to a rectangle, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoRectangle2 rect, Tolerance tolerance) => Distance2.DistanceTo(rect, this, tolerance);
+        public double DistanceTo(GeoRectangle2 rect, Tolerance tolerance) =>
+            Distance2.DistanceTo(rect, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this infinite line to a triangle, using the default tolerance.
@@ -205,7 +211,8 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this infinite line to a triangle, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.DistanceTo(triangle, this, tolerance);
+        public double DistanceTo(GeoTriangle2 triangle, Tolerance tolerance) =>
+            Triangle2.DistanceTo(triangle, this, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from this infinite line to a face, using the default tolerance.

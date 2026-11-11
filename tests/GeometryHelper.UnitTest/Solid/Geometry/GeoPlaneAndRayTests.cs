@@ -34,7 +34,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPlane3 plane = GeoPlane3.FromThreePoints(
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(1.0, 0.0, 0.0),
-                new GeoPoint3(0.0, 1.0, 0.0));
+                new GeoPoint3(0.0, 1.0, 0.0)
+            );
 
             Assert.True(plane.Normal.IsEqualTo(GeoVector3.ZAxis));
         }
@@ -42,10 +43,13 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void PlaneThroughCollinearPointsIsRefused()
         {
-            Assert.Throws<ArgumentException>(() => GeoPlane3.FromThreePoints(
-                new GeoPoint3(0.0, 0.0, 0.0),
-                new GeoPoint3(1.0, 1.0, 1.0),
-                new GeoPoint3(2.0, 2.0, 2.0)));
+            Assert.Throws<ArgumentException>(() =>
+                GeoPlane3.FromThreePoints(
+                    new GeoPoint3(0.0, 0.0, 0.0),
+                    new GeoPoint3(1.0, 1.0, 1.0),
+                    new GeoPoint3(2.0, 2.0, 2.0)
+                )
+            );
         }
 
         [Fact]
@@ -63,7 +67,11 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPlane3 plane = GeoPlane3.XY;
             GeoPlane3 flipped = plane.Flip();
 
-            Assert.Equal(-plane.SignedDistanceTo(new GeoPoint3(0.0, 0.0, 3.0)), flipped.SignedDistanceTo(new GeoPoint3(0.0, 0.0, 3.0)), 9);
+            Assert.Equal(
+                -plane.SignedDistanceTo(new GeoPoint3(0.0, 0.0, 3.0)),
+                flipped.SignedDistanceTo(new GeoPoint3(0.0, 0.0, 3.0)),
+                9
+            );
             Assert.True(flipped.IsParallelTo(plane));
             Assert.False(flipped.IsEqualTo(plane));
         }
@@ -94,7 +102,7 @@ namespace GeometryHelper.UnitTest.Solid
                 GeoPlane3.XY,
                 GeoPlane3.XZ,
                 GeoPlane3.YZ,
-                new GeoPlane3(new GeoPoint3(1.0, 2.0, 3.0), new GeoVector3(1.0, 1.0, 1.0))
+                new GeoPlane3(new GeoPoint3(1.0, 2.0, 3.0), new GeoVector3(1.0, 1.0, 1.0)),
             };
 
             foreach (GeoPlane3 plane in planes)
@@ -118,7 +126,7 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(1.0, 0.0, 0.2),
-                new GeoPoint3(1.0, 1.0, -0.2)
+                new GeoPoint3(1.0, 1.0, -0.2),
             };
 
             Assert.True(plane.ContainsAll(slightlyOff, loose));

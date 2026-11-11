@@ -29,7 +29,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     {
                         var model = new MainViewModel();
                         model.Open(folder.Write("room.dxf", TestFiles.Room(out _, out _)));
-                        var canvas = new CadCanvas { Document = model.Document, Space = model.Space, View = model.View, Session = model.Session, Snap = model.Snap };
+                        var canvas = new CadCanvas
+                        {
+                            Document = model.Document,
+                            Space = model.Space,
+                            View = model.View,
+                            Session = model.Session,
+                            Snap = model.Snap,
+                        };
                         canvas.PixelSizeChanged += (s, e) => model.SetCanvasSize(canvas.PixelWidth, canvas.PixelHeight);
                         canvas.Measure(new Size(Width, Height));
                         canvas.Arrange(new Rect(0, 0, Width, Height));
@@ -71,7 +78,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     int y = (int)Math.Round(at.Y) + dy;
                     int pixel = pixels[y * Width + x] & 0xFFFFFF;
 
-                    if (rgb.HasValue ? pixel == rgb.Value : ((pixel >> 16) & 0xFF) > 0xA0 && ((pixel >> 8) & 0xFF) > 0xA0 && (pixel & 0xFF) > 0xA0)
+                    if (
+                        rgb.HasValue
+                            ? pixel == rgb.Value
+                            : ((pixel >> 16) & 0xFF) > 0xA0 && ((pixel >> 8) & 0xFF) > 0xA0 && (pixel & 0xFF) > 0xA0
+                    )
                     {
                         return true;
                     }
@@ -90,84 +101,94 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         [Fact]
         public void TheGridOfAUcsTurned30Degrees_RunsAlongItsAxes_NotTheWorlds()
         {
-            OnCanvas((model, canvas) =>
-            {
-                model.Execute("UCS Z 30");
-                canvas.ShowGrid = true;
-                int[] pixels = Pixels(canvas);
-                CadUcs ucs = model.Document.Ucs.Current;
-                Assert.Equal(50.0, CadCanvas.GridStep(canvas.View.PixelsPerUnit, 10, 6));
+            OnCanvas(
+                (model, canvas) =>
+                {
+                    model.Execute("UCS Z 30");
+                    canvas.ShowGrid = true;
+                    int[] pixels = Pixels(canvas);
+                    CadUcs ucs = model.Document.Ucs.Current;
+                    Assert.Equal(50.0, CadCanvas.GridStep(canvas.View.PixelsPerUnit, 10, 6));
 
-                // Along the UCS: the twentieth line from its origin is major, the twenty-first minor, between them nothing.
-                Assert.True(Near(pixels, Screen(canvas, ucs.ToWorld(new GeoPoint2(1000, 1025))), 0x2D2D2D));
-                Assert.True(Near(pixels, Screen(canvas, ucs.ToWorld(new GeoPoint2(1050, 1025))), 0x141414));
-                Assert.False(Near(pixels, Screen(canvas, ucs.ToWorld(new GeoPoint2(1025, 1025))), 0x141414));
+                    // Along the UCS: the twentieth line from its origin is major, the twenty-first minor, between them nothing.
+                    Assert.True(Near(pixels, Screen(canvas, ucs.ToWorld(new GeoPoint2(1000, 1025))), 0x2D2D2D));
+                    Assert.True(Near(pixels, Screen(canvas, ucs.ToWorld(new GeoPoint2(1050, 1025))), 0x141414));
+                    Assert.False(Near(pixels, Screen(canvas, ucs.ToWorld(new GeoPoint2(1025, 1025))), 0x141414));
 
-                // Where the world's grid would have its major line, at x 1 000, the UCS has none.
-                Assert.False(Near(pixels, Screen(canvas, new GeoPoint2(1000, 1025)), 0x2D2D2D));
-                Assert.False(Near(pixels, Screen(canvas, new GeoPoint2(1000, 1025)), 0x141414));
-            });
+                    // Where the world's grid would have its major line, at x 1 000, the UCS has none.
+                    Assert.False(Near(pixels, Screen(canvas, new GeoPoint2(1000, 1025)), 0x2D2D2D));
+                    Assert.False(Near(pixels, Screen(canvas, new GeoPoint2(1000, 1025)), 0x141414));
+                }
+            );
         }
 
         [Fact]
         public void TheUcsIcon_SitsAtTheLowerLeftOrAtTheOrigin_AndTurnsWithTheUcs()
         {
-            OnCanvas((model, canvas) =>
-            {
-                model.Execute("UCSICON N");
-                Assert.True(canvas.TryPlaceUcsIcon(out Point corner, out Vector xArm, out bool atOrigin));
-                Assert.False(atOrigin);
-                Assert.Equal(new Point(18, 582), corner);
-                Assert.Equal(new Vector(1, 0), xArm);
-                Assert.True(Near(Pixels(canvas), corner + xArm * 20, null));
+            OnCanvas(
+                (model, canvas) =>
+                {
+                    model.Execute("UCSICON N");
+                    Assert.True(canvas.TryPlaceUcsIcon(out Point corner, out Vector xArm, out bool atOrigin));
+                    Assert.False(atOrigin);
+                    Assert.Equal(new Point(18, 582), corner);
+                    Assert.Equal(new Vector(1, 0), xArm);
+                    Assert.True(Near(Pixels(canvas), corner + xArm * 20, null));
 
-                // Turned a quarter, the X arm points up the canvas, and the icon moves right to keep its Y arm in view.
-                model.Execute("UCS Z 90");
-                Assert.True(canvas.TryPlaceUcsIcon(out corner, out xArm, out atOrigin));
-                Assert.Equal(0.0, xArm.X, 9);
-                Assert.Equal(-1.0, xArm.Y, 9);
-                Assert.Equal(74.0, corner.X, 9);
-                Assert.True(Near(Pixels(canvas), corner + xArm * 20, null));
+                    // Turned a quarter, the X arm points up the canvas, and the icon moves right to keep its Y arm in view.
+                    model.Execute("UCS Z 90");
+                    Assert.True(canvas.TryPlaceUcsIcon(out corner, out xArm, out atOrigin));
+                    Assert.Equal(0.0, xArm.X, 9);
+                    Assert.Equal(-1.0, xArm.Y, 9);
+                    Assert.Equal(74.0, corner.X, 9);
+                    Assert.True(Near(Pixels(canvas), corner + xArm * 20, null));
 
-                // At the origin, where it is in view.
-                model.Execute("UCSICON OR");
-                model.Execute("UCS *2500,1500");
-                model.Execute(string.Empty);
-                Assert.True(canvas.TryPlaceUcsIcon(out corner, out xArm, out atOrigin));
-                Assert.True(atOrigin);
-                Point origin = Screen(canvas, new GeoPoint2(2500, 1500));
-                Assert.Equal(origin.X, corner.X, 6);
-                Assert.Equal(origin.Y, corner.Y, 6);
+                    // At the origin, where it is in view.
+                    model.Execute("UCSICON OR");
+                    model.Execute("UCS *2500,1500");
+                    model.Execute(string.Empty);
+                    Assert.True(canvas.TryPlaceUcsIcon(out corner, out xArm, out atOrigin));
+                    Assert.True(atOrigin);
+                    Point origin = Screen(canvas, new GeoPoint2(2500, 1500));
+                    Assert.Equal(origin.X, corner.X, 6);
+                    Assert.Equal(origin.Y, corner.Y, 6);
 
-                model.Execute("UCSICON OFF");
-                Assert.False(canvas.TryPlaceUcsIcon(out _, out _, out _));
-            });
+                    model.Execute("UCSICON OFF");
+                    Assert.False(canvas.TryPlaceUcsIcon(out _, out _, out _));
+                }
+            );
         }
 
         [Fact]
         public void TheCrosshairRunsAlongTheUcs_AndTheReadoutIsInItsCoordinates()
         {
-            OnCanvas((model, canvas) =>
-            {
-                model.SetCursor(10, 0);
-                string inWorld = model.CursorText;
-                model.Execute("UCS *100,50");
-                model.Execute(string.Empty);
-                model.SetCursor(110, 50);
-                Assert.Equal(inWorld, model.CursorText);
+            OnCanvas(
+                (model, canvas) =>
+                {
+                    model.SetCursor(10, 0);
+                    string inWorld = model.CursorText;
+                    model.Execute("UCS *100,50");
+                    model.Execute(string.Empty);
+                    model.SetCursor(110, 50);
+                    Assert.Equal(inWorld, model.CursorText);
 
-                model.Execute("UCS Z 30");
-                canvas.CrosshairPercent = 100;
-                var middle = new GeoPoint2(2500, 1500);
-                canvas.MoveCursorTo(middle.X, middle.Y);
-                int[] pixels = Pixels(canvas);
-                Point at = Screen(canvas, middle);
+                    model.Execute("UCS Z 30");
+                    canvas.CrosshairPercent = 100;
+                    var middle = new GeoPoint2(2500, 1500);
+                    canvas.MoveCursorTo(middle.X, middle.Y);
+                    int[] pixels = Pixels(canvas);
+                    Point at = Screen(canvas, middle);
 
-                // 100 pixels along the X axis of the UCS the crosshair is drawn; 100 pixels across the canvas it is not.
-                Assert.True(Near(pixels, at + new Vector(100 * Math.Cos(Math.PI / 6), -100 * Math.Sin(Math.PI / 6)), null));
-                Assert.True(Near(pixels, at + new Vector(-100 * Math.Sin(Math.PI / 6), -100 * Math.Cos(Math.PI / 6)), null));
-                Assert.False(Near(pixels, at + new Vector(100, 0), null));
-            });
+                    // 100 pixels along the X axis of the UCS the crosshair is drawn; 100 pixels across the canvas it is not.
+                    Assert.True(
+                        Near(pixels, at + new Vector(100 * Math.Cos(Math.PI / 6), -100 * Math.Sin(Math.PI / 6)), null)
+                    );
+                    Assert.True(
+                        Near(pixels, at + new Vector(-100 * Math.Sin(Math.PI / 6), -100 * Math.Cos(Math.PI / 6)), null)
+                    );
+                    Assert.False(Near(pixels, at + new Vector(100, 0), null));
+                }
+            );
         }
     }
 }

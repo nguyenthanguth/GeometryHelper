@@ -44,7 +44,10 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.True(edge.GetPointAtParameter(0.5).IsEqualTo(arc.MidPoint, Tight));
             Assert.Equal(0.0, edge.DistanceTo(arc.MidPoint), 8);
-            Assert.True(edge.GetClosestPointOnBoundary(new GeoPoint2(10, -100)).IsEqualTo(arc.MidPoint, new Tolerance(1E-6, 1E-6)));
+            Assert.True(
+                edge.GetClosestPointOnBoundary(new GeoPoint2(10, -100))
+                    .IsEqualTo(arc.MidPoint, new Tolerance(1E-6, 1E-6))
+            );
 
             GeoEdge2 back = edge.Reverse();
             Assert.Equal(-0.5, back.Bulge, 12);
@@ -53,7 +56,9 @@ namespace GeometryHelper.UnitTest.Plane
 
             // Round trip through the arc keeps the number AutoCAD stores.
             Assert.Equal(edge.Bulge, new GeoEdge2(edge.ToArc()).Bulge, 12);
-            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(1, 0), double.NaN));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(1, 0), double.NaN)
+            );
         }
 
         [Fact]
@@ -61,7 +66,8 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var chain = new GeoPolylineArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(20, 0), new GeoPoint2(40, 20) },
-                new[] { 1.0, 0.0 });
+                new[] { 1.0, 0.0 }
+            );
 
             Assert.Equal(3, chain.VertexCount);
             Assert.Equal(2, chain.EdgeCount);
@@ -78,7 +84,9 @@ namespace GeometryHelper.UnitTest.Plane
             // A chain with no bulges says so.
             Assert.False(new GeoPolylineArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(1, 1) }).HasArcs);
             Assert.Throws<ArgumentException>(() => new GeoPolylineArc2(new[] { new GeoPoint2(0, 0) }));
-            Assert.Throws<ArgumentNullException>(() => new GeoPolylineArc2((System.Collections.Generic.IEnumerable<GeoPoint2>)null));
+            Assert.Throws<ArgumentNullException>(() =>
+                new GeoPolylineArc2((System.Collections.Generic.IEnumerable<GeoPoint2>)null)
+            );
         }
 
         [Fact]
@@ -87,7 +95,7 @@ namespace GeometryHelper.UnitTest.Plane
             var edges = new[]
             {
                 new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(20, 0), 1.0),
-                new GeoEdge2(new GeoPoint2(20, 0), new GeoPoint2(40, 20))
+                new GeoEdge2(new GeoPoint2(20, 0), new GeoPoint2(40, 20)),
             };
 
             var chain = new GeoPolylineArc2(edges);
@@ -96,11 +104,15 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(1.0, chain.GetBulgeAt(0), 12);
 
             // Edges that do not meet are refused rather than joined with a jump.
-            Assert.Throws<ArgumentException>(() => new GeoPolylineArc2(new[]
-            {
-                new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(20, 0)),
-                new GeoEdge2(new GeoPoint2(25, 0), new GeoPoint2(40, 0))
-            }));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoPolylineArc2(
+                    new[]
+                    {
+                        new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(20, 0)),
+                        new GeoEdge2(new GeoPoint2(25, 0), new GeoPoint2(40, 0)),
+                    }
+                )
+            );
         }
 
         [Fact]
@@ -125,8 +137,15 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // A quarter turn of radius 1000 between two straight runs.
             var chain = new GeoPolylineArc2(
-                new[] { new GeoPoint2(-500, 0), new GeoPoint2(0, 0), new GeoPoint2(1000, 1000), new GeoPoint2(1500, 1000) },
-                new[] { 0.0, Math.Tan(Math.PI / 8.0), 0.0 });
+                new[]
+                {
+                    new GeoPoint2(-500, 0),
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(1000, 1000),
+                    new GeoPoint2(1500, 1000),
+                },
+                new[] { 0.0, Math.Tan(Math.PI / 8.0), 0.0 }
+            );
 
             GeoPolyline2 flat = chain.Flatten(chordTolerance);
             GeoArc2 arc = chain.GetEdgeAt(1).ToArc();
@@ -156,7 +175,8 @@ namespace GeometryHelper.UnitTest.Plane
             // from (100,100) to (0,100), so a negative bulge sweeps clockwise and leans into the square.
             var scooped = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
-                new[] { 0.0, 0.0, -1.0, 0.0 });
+                new[] { 0.0, 0.0, -1.0, 0.0 }
+            );
 
             Assert.Equal(4, scooped.VertexCount);
             Assert.Equal(4, scooped.EdgeCount);
@@ -177,18 +197,20 @@ namespace GeometryHelper.UnitTest.Plane
             // The same side with the other sign leans out instead, and adds the half circle on.
             var domed = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
-                new[] { 0.0, 0.0, 1.0, 0.0 });
+                new[] { 0.0, 0.0, 1.0, 0.0 }
+            );
 
             Assert.Equal(scooped.Length, domed.Length, 8);
             Assert.InRange(domed.Flatten().Area, 100.0 * 100.0 + halfCircle * 0.99, 100.0 * 100.0 + halfCircle);
 
             // A repeated first vertex says nothing a loop does not already say.
-            var repeated = new GeoPolygonArc2(new[]
-            {
-                new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 0)
-            });
+            var repeated = new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 0) }
+            );
             Assert.Equal(3, repeated.VertexCount);
-            Assert.Throws<ArgumentException>(() => new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(1, 1) }));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoPolygonArc2(new[] { new GeoPoint2(0, 0), new GeoPoint2(1, 1) })
+            );
         }
 
         [Fact]
@@ -196,7 +218,8 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var chain = new GeoPolylineArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(20, 0), new GeoPoint2(40, 0) },
-                new[] { 0.7, -0.3 });
+                new[] { 0.7, -0.3 }
+            );
 
             GeoPolylineArc2 back = chain.Reverse();
 
@@ -208,7 +231,8 @@ namespace GeometryHelper.UnitTest.Plane
 
             var loop = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(50, 80) },
-                new[] { 0.4, 0.0, -0.2 });
+                new[] { 0.4, 0.0, -0.2 }
+            );
 
             GeoPolygonArc2 other = loop.Reverse();
             Assert.Equal(loop.Length, other.Length, 8);
@@ -221,24 +245,30 @@ namespace GeometryHelper.UnitTest.Plane
         {
             var loop = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
-                new[] { 0.5, 0.0, 0.0, 0.0 });
+                new[] { 0.5, 0.0, 0.0, 0.0 }
+            );
 
             var started = new GeoPolygonArc2(
                 new[] { new GeoPoint2(100, 100), new GeoPoint2(0, 100), new GeoPoint2(0, 0), new GeoPoint2(100, 0) },
-                new[] { 0.0, 0.0, 0.5, 0.0 });
+                new[] { 0.0, 0.0, 0.5, 0.0 }
+            );
 
             Assert.True(loop.IsEqualTo(started));
             Assert.Equal(loop, loop.Clone());
             Assert.Equal(loop.GetHashCode(), loop.Clone().GetHashCode());
-            Assert.False(loop.Equals(started));   // exactly equal means the same starting vertex too
+            Assert.False(loop.Equals(started)); // exactly equal means the same starting vertex too
             Assert.Contains("GeoPolygonArc2", loop.ToString());
         }
+
         [Fact]
         public void ALoopGivesTheAreaItEnclosesWithoutFlatteningFirst()
         {
             GeoPoint2[] square =
             {
-                new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100)
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(0, 100),
             };
 
             double halfCircle = Math.PI * 50.0 * 50.0 * 0.5;
@@ -279,12 +309,25 @@ namespace GeometryHelper.UnitTest.Plane
                     new GeoPoint2(-2.4543497107442818, 9.207170817462611),
                     new GeoPoint2(-2.4552440526219348, 9.2051053898590052),
                 },
-                new[] { 0.0, 6.611956648860367E-09, 0.0, 0.0 });
+                new[] { 0.0, 6.611956648860367E-09, 0.0, 0.0 }
+            );
 
-            Assert.Equal(GeometryHelper.Enums.PointLocation.Inside, loop.Locate(new GeoPoint2(-2.45385158, 9.20565669), Tolerance.Default));
-            Assert.Equal(GeometryHelper.Enums.PointLocation.OutSide, loop.Locate(new GeoPoint2(0.0, 0.0), Tolerance.Default));
-            Assert.Equal(GeometryHelper.Enums.PointLocation.OutSide, loop.Locate(new GeoPoint2(-5.2374178400672369, 0.68077323354669728), Tolerance.Default));
-            Assert.Equal(GeometryHelper.Enums.PointLocation.OutSide, loop.Locate(new GeoPoint2(-2.4538, 9.2100), Tolerance.Default));
+            Assert.Equal(
+                GeometryHelper.Enums.PointLocation.Inside,
+                loop.Locate(new GeoPoint2(-2.45385158, 9.20565669), Tolerance.Default)
+            );
+            Assert.Equal(
+                GeometryHelper.Enums.PointLocation.OutSide,
+                loop.Locate(new GeoPoint2(0.0, 0.0), Tolerance.Default)
+            );
+            Assert.Equal(
+                GeometryHelper.Enums.PointLocation.OutSide,
+                loop.Locate(new GeoPoint2(-5.2374178400672369, 0.68077323354669728), Tolerance.Default)
+            );
+            Assert.Equal(
+                GeometryHelper.Enums.PointLocation.OutSide,
+                loop.Locate(new GeoPoint2(-2.4538, 9.2100), Tolerance.Default)
+            );
         }
     }
 }

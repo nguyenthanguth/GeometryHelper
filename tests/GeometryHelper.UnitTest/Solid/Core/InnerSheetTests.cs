@@ -20,13 +20,15 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class InnerSheetTests
     {
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
         /// <summary>A block standing half out of the cube's front face, turned a little about a slanted axis.</summary>
-        private static GeoSolid3 Tilted()
-            => Box(10, -5, 45, 50, 5, 95).TransformBy(
-                GeoTransform3.RotationAxis(new GeoPoint3(30, 0, 70), new GeoVector3(0.1, -0.7, 0.55), 0.12));
+        private static GeoSolid3 Tilted() =>
+            Box(10, -5, 45, 50, 5, 95)
+                .TransformBy(
+                    GeoTransform3.RotationAxis(new GeoPoint3(30, 0, 70), new GeoVector3(0.1, -0.7, 0.55), 0.12)
+                );
 
         /// <summary>Counts the pairs of faces lying back to back in one plane and sharing some area.</summary>
         private static int Sheets(GeoSolid3 solid)
@@ -38,8 +40,10 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 for (int j = i + 1; j < faces.Count; j++)
                 {
-                    if (faces[i].Boundary.Normal.DotProduct(faces[j].Boundary.Normal) > -0.999999
-                        || Math.Abs(faces[i].GetPlane().SignedDistanceTo(faces[j].Boundary[0])) > 1E-6)
+                    if (
+                        faces[i].Boundary.Normal.DotProduct(faces[j].Boundary.Normal) > -0.999999
+                        || Math.Abs(faces[i].GetPlane().SignedDistanceTo(faces[j].Boundary[0])) > 1E-6
+                    )
                     {
                         continue;
                     }
@@ -107,8 +111,12 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoSolid3 Next()
             {
-                int x0 = Whole(0, 6) * 10, y0 = Whole(0, 6) * 10, z0 = Whole(0, 6) * 10;
-                int sx = Whole(1, 5) * 10, sy = Whole(1, 5) * 10, sz = Whole(1, 5) * 10;
+                int x0 = Whole(0, 6) * 10,
+                    y0 = Whole(0, 6) * 10,
+                    z0 = Whole(0, 6) * 10;
+                int sx = Whole(1, 5) * 10,
+                    sy = Whole(1, 5) * 10,
+                    sz = Whole(1, 5) * 10;
                 GeoSolid3 box = Box(x0, y0, z0, x0 + sx, y0 + sy, z0 + sz);
 
                 if (rng.NextDouble() < 0.5)
@@ -130,7 +138,15 @@ namespace GeometryHelper.UnitTest.Solid
 
                 Assert.True(a.TryUnion(b, out GeoSolid3 union), $"pair {k}");
 
-                foreach (GeoSolid3 result in new[] { shared, union, a.TrySubtract(b, out GeoSolid3 ab) ? ab : null, b.TrySubtract(a, out GeoSolid3 ba) ? ba : null })
+                foreach (
+                    GeoSolid3 result in new[]
+                    {
+                        shared,
+                        union,
+                        a.TrySubtract(b, out GeoSolid3 ab) ? ab : null,
+                        b.TrySubtract(a, out GeoSolid3 ba) ? ba : null,
+                    }
+                )
                 {
                     if (result == null)
                     {
@@ -142,11 +158,19 @@ namespace GeometryHelper.UnitTest.Solid
                 }
             }
         }
+
         [Fact]
         public void ASheetInsideABodyStaysWithItAndIsNoPieceOfItsOwn()
         {
-            var square = new GeoPolygon3(new GeoPoint3(20, 20, 50), new GeoPoint3(80, 20, 50), new GeoPoint3(80, 80, 50), new GeoPoint3(20, 80, 50));
-            var sheeted = new GeoSolid3(Box(0, 0, 0, 100, 100, 100).Faces.Concat(new[] { new GeoFace3(square), new GeoFace3(square.Flip()) }));
+            var square = new GeoPolygon3(
+                new GeoPoint3(20, 20, 50),
+                new GeoPoint3(80, 20, 50),
+                new GeoPoint3(80, 80, 50),
+                new GeoPoint3(20, 80, 50)
+            );
+            var sheeted = new GeoSolid3(
+                Box(0, 0, 0, 100, 100, 100).Faces.Concat(new[] { new GeoFace3(square), new GeoFace3(square.Flip()) })
+            );
 
             GeoSolid3 piece = Assert.Single(sheeted.SplitShells());
             Assert.Equal(8, piece.Faces.Count);
@@ -162,10 +186,23 @@ namespace GeometryHelper.UnitTest.Solid
             // way round, taking the long face from the small one refused the pair as lying in different planes, and the
             // boolean threw; met the other, the pair was never found, and the two stayed in the body as a sheet.
             Tolerance tolerance = Tolerance.Default;
-            var along = new GeoFace3(new GeoPolygon3(new[] { P(0, 0, 0), P(30000, 0, 0), P(30000, 400, 0), P(0, 400, 0) }, tolerance));
-            var against = new GeoFace3(new GeoPolygon3(new[] { P(100, 100, 0), P(100, 300, 0), P(300, 300, 0.0008), P(300, 100, 0) }, tolerance));
+            var along = new GeoFace3(
+                new GeoPolygon3(new[] { P(0, 0, 0), P(30000, 0, 0), P(30000, 400, 0), P(0, 400, 0) }, tolerance)
+            );
+            var against = new GeoFace3(
+                new GeoPolygon3(
+                    new[] { P(100, 100, 0), P(100, 300, 0), P(300, 300, 0.0008), P(300, 100, 0) },
+                    tolerance
+                )
+            );
 
-            foreach (List<GeoFace3> faces in new[] { new List<GeoFace3> { along, against }, new List<GeoFace3> { against, along } })
+            foreach (
+                List<GeoFace3> faces in new[]
+                {
+                    new List<GeoFace3> { along, against },
+                    new List<GeoFace3> { against, along },
+                }
+            )
             {
                 // What the two share goes from both: the long face keeps a hole where the small one lay, and nothing of the
                 // small one is left.
@@ -185,19 +222,25 @@ namespace GeometryHelper.UnitTest.Solid
             // wedge's own far side, the slab's wall, a few hundredths off. Taken from each, it took the wall with it as
             // well as the face it lay against in its own plane, and the slab was left open by the wall.
             var tolerance = new Tolerance(0.05, 0.01, Tolerance.DefaultEqualAngleRad, 0.05);
-            GeoFace3 wall = new GeoFace3(new GeoPolygon3(new[] { P(0, 0, 0), P(750, 0, 0), P(750, 0, 400), P(0, 0, 400) }, tolerance));
-            GeoFace3 wedge = new GeoFace3(new GeoPolygon3(new[] { P(0, 0.03, 0), P(0, 0.03, 400), P(750, 0, 400), P(750, 0, 0) }, tolerance));
+            GeoFace3 wall = new GeoFace3(
+                new GeoPolygon3(new[] { P(0, 0, 0), P(750, 0, 0), P(750, 0, 400), P(0, 0, 400) }, tolerance)
+            );
+            GeoFace3 wedge = new GeoFace3(
+                new GeoPolygon3(new[] { P(0, 0.03, 0), P(0, 0.03, 400), P(750, 0, 400), P(750, 0, 0) }, tolerance)
+            );
             GeoFace3 beyond = wedge.Flip();
 
             Assert.True(wall.Normal.IsCodirectionalTo(GeoVector3.YAxis.Negate(), tolerance));
             Assert.True(wedge.Normal.Y > 0.999);
 
-            foreach (List<GeoFace3> faces in new[]
-            {
-                new List<GeoFace3> { wall, wedge, beyond },
-                new List<GeoFace3> { beyond, wedge, wall },
-                new List<GeoFace3> { wedge, wall, beyond },
-            })
+            foreach (
+                List<GeoFace3> faces in new[]
+                {
+                    new List<GeoFace3> { wall, wedge, beyond },
+                    new List<GeoFace3> { beyond, wedge, wall },
+                    new List<GeoFace3> { wedge, wall, beyond },
+                }
+            )
             {
                 // The wedge and the slab beyond it, in one plane, take each other; the wall is the boundary, and stays.
                 GeoFace3 left = Assert.Single(Boolean3.CancelBackToBack(faces, tolerance));
@@ -211,9 +254,15 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // One copy of a face between two kept cells in one piece, the other in two: all three go.
             Tolerance tolerance = Tolerance.Default;
-            GeoFace3 whole = new GeoFace3(new GeoPolygon3(new[] { P(0, 0, 0), P(100, 0, 0), P(100, 100, 0), P(0, 100, 0) }, tolerance));
-            GeoFace3 first = new GeoFace3(new GeoPolygon3(new[] { P(0, 0, 0), P(0, 100, 0), P(40, 100, 0), P(40, 0, 0) }, tolerance));
-            GeoFace3 second = new GeoFace3(new GeoPolygon3(new[] { P(40, 0, 0), P(40, 100, 0), P(100, 100, 0), P(100, 0, 0) }, tolerance));
+            GeoFace3 whole = new GeoFace3(
+                new GeoPolygon3(new[] { P(0, 0, 0), P(100, 0, 0), P(100, 100, 0), P(0, 100, 0) }, tolerance)
+            );
+            GeoFace3 first = new GeoFace3(
+                new GeoPolygon3(new[] { P(0, 0, 0), P(0, 100, 0), P(40, 100, 0), P(40, 0, 0) }, tolerance)
+            );
+            GeoFace3 second = new GeoFace3(
+                new GeoPolygon3(new[] { P(40, 0, 0), P(40, 100, 0), P(100, 100, 0), P(100, 0, 0) }, tolerance)
+            );
 
             Assert.Empty(Boolean3.CancelBackToBack(new List<GeoFace3> { whole, first, second }, tolerance));
         }
@@ -223,8 +272,15 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ASheetNoPieceHoldsIsDropped()
         {
-            var square = new GeoPolygon3(new GeoPoint3(200, 20, 50), new GeoPoint3(260, 20, 50), new GeoPoint3(260, 80, 50), new GeoPoint3(200, 80, 50));
-            var stray = new GeoSolid3(Box(0, 0, 0, 100, 100, 100).Faces.Concat(new[] { new GeoFace3(square), new GeoFace3(square.Flip()) }));
+            var square = new GeoPolygon3(
+                new GeoPoint3(200, 20, 50),
+                new GeoPoint3(260, 20, 50),
+                new GeoPoint3(260, 80, 50),
+                new GeoPoint3(200, 80, 50)
+            );
+            var stray = new GeoSolid3(
+                Box(0, 0, 0, 100, 100, 100).Faces.Concat(new[] { new GeoFace3(square), new GeoFace3(square.Flip()) })
+            );
 
             GeoSolid3 piece = Assert.Single(stray.SplitShells());
             Assert.Equal(6, piece.Faces.Count);

@@ -21,7 +21,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The points of a PDF in a millimetre: 72 to the inch of 25.4 mm.</summary>
         public const double PointsPerMillimetre = 72.0 / 25.4;
 
-        private CadPlotPage(double width, double height, DisplayBox printable, DisplayBox area, double scale, double offsetX, double offsetY, Affine2 drawingToSheet)
+        private CadPlotPage(
+            double width,
+            double height,
+            DisplayBox printable,
+            DisplayBox area,
+            double scale,
+            double offsetX,
+            double offsetY,
+            Affine2 drawingToSheet
+        )
         {
             SheetWidth = width;
             SheetHeight = height;
@@ -70,7 +79,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// Gets the transform from the drawing to the points of a PDF page, its Y downward from the top as a canvas draws: the
         /// sheet's transform then millimetres to points, turned over.
         /// </summary>
-        public Affine2 DrawingToPoints => DrawingToSheet.Then(new Affine2(PointsPerMillimetre, 0.0, 0.0, -PointsPerMillimetre, 0.0, SheetHeight * PointsPerMillimetre));
+        public Affine2 DrawingToPoints =>
+            DrawingToSheet.Then(
+                new Affine2(PointsPerMillimetre, 0.0, 0.0, -PointsPerMillimetre, 0.0, SheetHeight * PointsPerMillimetre)
+            );
 
         /// <summary>
         /// Lays a plot of a space on its sheet, as AutoCAD's plot places it. The sheet lies on its side where the settings are
@@ -87,7 +99,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="display">What the view shows, in drawing units, for <see cref="CadPlotArea.Display"/>; the extents are taken where it is empty.</param>
         /// <returns>The plot laid on its sheet.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document, the space or the settings are null.</exception>
-        public static CadPlotPage Compute(CadDocument document, CadSpace space, CadPlotSettings settings, DisplayBox display)
+        public static CadPlotPage Compute(
+            CadDocument document,
+            CadSpace space,
+            CadPlotSettings settings,
+            DisplayBox display
+        )
         {
             if (document == null)
             {
@@ -159,7 +176,12 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The part of a space a plot takes, in drawing units, its corners in order.</summary>
-        private static DisplayBox AreaOf(CadDocument document, CadSpace space, CadPlotSettings settings, DisplayBox display)
+        private static DisplayBox AreaOf(
+            CadDocument document,
+            CadSpace space,
+            CadPlotSettings settings,
+            DisplayBox display
+        )
         {
             DisplayBox extents = document.GetDisplay(space).Bounds;
 
@@ -176,7 +198,12 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         GeoPoint2 min = document.Database.Limmin;
                         GeoPoint2 max = document.Database.Limmax;
-                        return new DisplayBox(Math.Min(min.X, max.X), Math.Min(min.Y, max.Y), Math.Max(min.X, max.X), Math.Max(min.Y, max.Y));
+                        return new DisplayBox(
+                            Math.Min(min.X, max.X),
+                            Math.Min(min.Y, max.Y),
+                            Math.Max(min.X, max.X),
+                            Math.Max(min.Y, max.Y)
+                        );
                     }
 
                     DxfExtents2d limits = space.Layout.Limits;
@@ -184,7 +211,8 @@ namespace GeometryHelper.Dxf.Viewer
                         Math.Min(limits.MinPoint.X, limits.MaxPoint.X),
                         Math.Min(limits.MinPoint.Y, limits.MaxPoint.Y),
                         Math.Max(limits.MinPoint.X, limits.MaxPoint.X),
-                        Math.Max(limits.MinPoint.Y, limits.MaxPoint.Y));
+                        Math.Max(limits.MinPoint.Y, limits.MaxPoint.Y)
+                    );
                 default:
                     return extents;
             }

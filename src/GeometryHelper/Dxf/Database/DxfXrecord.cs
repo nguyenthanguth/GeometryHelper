@@ -29,14 +29,10 @@ namespace GeometryHelper.Dxf
         /// Initializes an XRECORD made in code, with no data, to be added to a dictionary by <see cref="DxfDBDictionary.SetAt"/>,
         /// as AutoCAD's <c>Xrecord()</c> is.
         /// </summary>
-        public DxfXrecord()
-        {
-        }
+        public DxfXrecord() { }
 
         internal DxfXrecord(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets or sets the data of the XRECORD, as AutoCAD's <c>Data</c>: its groups after the subclass marker AcDbXrecord and,
@@ -62,7 +58,6 @@ namespace GeometryHelper.Dxf
 
                 return Item.File.TailOf(Item, DataStart()).AsReadOnly();
             }
-
             set
             {
                 if (value == null)
@@ -145,7 +140,12 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gives the XRECORD as a line for debugging: its type, its handle and how many groups its data has.</summary>
         /// <returns>The line, such as <c>XRECORD 2F, 3 groups</c>.</returns>
-        public override string ToString() => "XRECORD " + (Handle ?? string.Empty) + ", " + Data.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " groups";
+        public override string ToString() =>
+            "XRECORD "
+            + (Handle ?? string.Empty)
+            + ", "
+            + Data.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + " groups";
 
         /// <summary>The groups an XRECORD made in code is written with, after its subclass marker and cloning flag.</summary>
         internal IReadOnlyList<DxfTypedValue> MadeData => _made;
@@ -169,7 +169,9 @@ namespace GeometryHelper.Dxf
                 }
                 else if (!braced && group.TypeCode == 100 && group.Value.Trim() == "AcDbXrecord")
                 {
-                    return i + 1 < groups.Count && groups[i + 1].TypeCode == 280 && Item.File.Supports(1015) ? i + 2 : i + 1;
+                    return i + 1 < groups.Count && groups[i + 1].TypeCode == 280 && Item.File.Supports(1015)
+                        ? i + 2
+                        : i + 1;
                 }
                 else if (group.TypeCode == 1001)
                 {
@@ -197,7 +199,10 @@ namespace GeometryHelper.Dxf
 
                 if (group.Value == null || code <= 0 || code == 5 || code == 100 || code == 105 || code >= 999)
                 {
-                    throw new ArgumentException("An XRECORD holds groups of codes 1 to 998 but 5, 100 and 105: " + group + " is not one.", parameter);
+                    throw new ArgumentException(
+                        "An XRECORD holds groups of codes 1 to 998 but 5, 100 and 105: " + group + " is not one.",
+                        parameter
+                    );
                 }
 
                 if (code == 102)
@@ -207,7 +212,10 @@ namespace GeometryHelper.Dxf
 
                     if (open < 0 || open > 1 || (!opens && group.Value.Trim() != "}"))
                     {
-                        throw new ArgumentException("The groups 102 of an XRECORD's data open a list ('{NAME') and close it ('}') in pairs, one at a time.", parameter);
+                        throw new ArgumentException(
+                            "The groups 102 of an XRECORD's data open a list ('{NAME') and close it ('}') in pairs, one at a time.",
+                            parameter
+                        );
                     }
                 }
 
@@ -216,7 +224,10 @@ namespace GeometryHelper.Dxf
 
             if (open != 0)
             {
-                throw new ArgumentException("A group 102 of the XRECORD's data opens a list it does not close.", parameter);
+                throw new ArgumentException(
+                    "A group 102 of the XRECORD's data opens a list it does not close.",
+                    parameter
+                );
             }
 
             return groups;

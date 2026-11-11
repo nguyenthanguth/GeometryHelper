@@ -35,24 +35,38 @@ namespace GeometryHelper.Dxf
         /// has none.
         /// </summary>
         public DxfWipeout()
-            : base("WIPEOUT", new[]
-            {
-                new DxfTypedValue(100, "AcDbWipeout"), new DxfTypedValue(90, "0"),
-                new DxfTypedValue(10, "0"), new DxfTypedValue(20, "0"), new DxfTypedValue(30, "0"),
-                new DxfTypedValue(11, "1"), new DxfTypedValue(21, "0"), new DxfTypedValue(31, "0"),
-                new DxfTypedValue(12, "0"), new DxfTypedValue(22, "1"), new DxfTypedValue(32, "0"),
-                new DxfTypedValue(13, "1"), new DxfTypedValue(23, "1"), new DxfTypedValue(340, "0"),
-                new DxfTypedValue(70, "7"), new DxfTypedValue(280, "1"), new DxfTypedValue(281, "50"), new DxfTypedValue(282, "50"),
-                new DxfTypedValue(283, "0"), new DxfTypedValue(290, "0"), new DxfTypedValue(360, "0"), new DxfTypedValue(71, "2"),
-                new DxfTypedValue(91, "0"),
-            })
-        {
-        }
+            : base(
+                "WIPEOUT",
+                new[]
+                {
+                    new DxfTypedValue(100, "AcDbWipeout"),
+                    new DxfTypedValue(90, "0"),
+                    new DxfTypedValue(10, "0"),
+                    new DxfTypedValue(20, "0"),
+                    new DxfTypedValue(30, "0"),
+                    new DxfTypedValue(11, "1"),
+                    new DxfTypedValue(21, "0"),
+                    new DxfTypedValue(31, "0"),
+                    new DxfTypedValue(12, "0"),
+                    new DxfTypedValue(22, "1"),
+                    new DxfTypedValue(32, "0"),
+                    new DxfTypedValue(13, "1"),
+                    new DxfTypedValue(23, "1"),
+                    new DxfTypedValue(340, "0"),
+                    new DxfTypedValue(70, "7"),
+                    new DxfTypedValue(280, "1"),
+                    new DxfTypedValue(281, "50"),
+                    new DxfTypedValue(282, "50"),
+                    new DxfTypedValue(283, "0"),
+                    new DxfTypedValue(290, "0"),
+                    new DxfTypedValue(360, "0"),
+                    new DxfTypedValue(71, "2"),
+                    new DxfTypedValue(91, "0"),
+                }
+            ) { }
 
         private DxfWipeout(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Refuses a wipeout made in code of no polygon, a corner count that is not its corners', or a polygon not closed; and a
@@ -70,18 +84,25 @@ namespace GeometryHelper.Dxf
 
             if (Item.File.IsMadeInCode)
             {
-                bool polygon = kind == DxfClipBoundaryType.Poly && boundary.Count >= 4 && boundary[0].IsEqualTo(boundary[boundary.Count - 1], Tolerance.Default);
+                bool polygon =
+                    kind == DxfClipBoundaryType.Poly
+                    && boundary.Count >= 4
+                    && boundary[0].IsEqualTo(boundary[boundary.Count - 1], Tolerance.Default);
                 bool rectangle = kind == DxfClipBoundaryType.Rectangle && boundary.Count == 5;
                 taken = (polygon || rectangle) && GetInt(91, -1) == held;
             }
             else
             {
-                taken = (kind == DxfClipBoundaryType.Poly && held >= 3) || (kind == DxfClipBoundaryType.Rectangle && held >= 2);
+                taken =
+                    (kind == DxfClipBoundaryType.Poly && held >= 3)
+                    || (kind == DxfClipBoundaryType.Rectangle && held >= 2);
             }
 
             if (!taken)
             {
-                throw new InvalidOperationException("The wipeout has no polygon AutoCAD takes: give it one by SetFrom first, as AutoCAD 2021 cannot open a drawing that holds a wipeout of no boundary.");
+                throw new InvalidOperationException(
+                    "The wipeout has no polygon AutoCAD takes: give it one by SetFrom first, as AutoCAD 2021 cannot open a drawing that holds a wipeout of no boundary."
+                );
             }
 
             base.Appending(owner);
@@ -112,16 +133,40 @@ namespace GeometryHelper.Dxf
             }
 
             double length = normal.Length;
-            Guard.Argument(normal.IsValid && length > 0.0 && !double.IsInfinity(length), nameof(normal), "The normal of a wipeout has to be a direction of finite numbers and some length: " + normal + " is not.");
+            Guard.Argument(
+                normal.IsValid && length > 0.0 && !double.IsInfinity(length),
+                nameof(normal),
+                "The normal of a wipeout has to be a direction of finite numbers and some length: "
+                    + normal
+                    + " is not."
+            );
             int count = points.Count;
 
             foreach (GeoPoint2 point in points)
             {
-                Guard.Argument(Guard.IsFinite(point.X) && Guard.IsFinite(point.Y), nameof(points), "A corner of a wipeout has to be of finite numbers: " + point + " is not.");
+                Guard.Argument(
+                    Guard.IsFinite(point.X) && Guard.IsFinite(point.Y),
+                    nameof(points),
+                    "A corner of a wipeout has to be of finite numbers: " + point + " is not."
+                );
             }
 
-            Guard.Argument(count >= 4, nameof(points), "A wipeout hides a polygon of three corners or more, the first again at the end; " + count.ToString(CultureInfo.InvariantCulture) + " were given.");
-            Guard.Argument(points[count - 1].IsEqualTo(points[0], Tolerance.Default), nameof(points), "The corners of a wipeout end on the first, as AutoCAD 2021 takes them: " + points[count - 1] + " is not " + points[0] + ".");
+            Guard.Argument(
+                count >= 4,
+                nameof(points),
+                "A wipeout hides a polygon of three corners or more, the first again at the end; "
+                    + count.ToString(CultureInfo.InvariantCulture)
+                    + " were given."
+            );
+            Guard.Argument(
+                points[count - 1].IsEqualTo(points[0], Tolerance.Default),
+                nameof(points),
+                "The corners of a wipeout end on the first, as AutoCAD 2021 takes them: "
+                    + points[count - 1]
+                    + " is not "
+                    + points[0]
+                    + "."
+            );
 
             // Twice the area the corners close, measured from the first so that a polygon far from the origin keeps its digits,
             // against the corners' own box: a square 10 by 10 at (100 000, 100 000) closes some, as one at the origin does.
@@ -146,7 +191,11 @@ namespace GeometryHelper.Dxf
 
             double ownSide = Math.Max(ownMaxX - ownMinX, ownMaxY - ownMinY);
             double tolerance = Tolerance.Default.EqualPoint;
-            Guard.Argument(Math.Abs(area) / 2.0 > tolerance * ownSide, nameof(points), "The corners of a wipeout close no area: they lie on one line.");
+            Guard.Argument(
+                Math.Abs(area) / 2.0 > tolerance * ownSide,
+                nameof(points),
+                "The corners of a wipeout close no area: they lie on one line."
+            );
 
             // The frame as AutoCAD 2021 lays it: the square on the box of the corners and the origin of their plane.
             double minX = 0.0;
@@ -174,7 +223,12 @@ namespace GeometryHelper.Dxf
 
             for (int i = 0; i < count - 1; i++)
             {
-                frame.Add(new GeoPoint2((points[i].X - minX) / side * across - 0.5, up - 0.5 - (points[i].Y - minY) / side * up));
+                frame.Add(
+                    new GeoPoint2(
+                        (points[i].X - minX) / side * across - 0.5,
+                        up - 0.5 - (points[i].Y - minY) / side * up
+                    )
+                );
             }
 
             frame.Add(frame[0]);
@@ -194,9 +248,16 @@ namespace GeometryHelper.Dxf
             GeoVector3 y = transform.Transform(new GeoVector3(0.0, 1.0, 0.0));
             GeoVector3 z = transform.Transform(new GeoVector3(0.0, 0.0, 1.0));
 
-            if (!DxfOcsTransform.IsUniform(x, y) || !DxfOcsTransform.IsUniform(y, z) || !DxfOcsTransform.IsUniform(x, z))
+            if (
+                !DxfOcsTransform.IsUniform(x, y)
+                || !DxfOcsTransform.IsUniform(y, z)
+                || !DxfOcsTransform.IsUniform(x, z)
+            )
             {
-                throw new ArgumentException("The transformation scales more one way than another or shears, and a copy of a wipeout is not made so, as AutoCAD 2021 answers eCannotScaleNonUniformly: move the wipeout itself by TransformBy.", nameof(transform));
+                throw new ArgumentException(
+                    "The transformation scales more one way than another or shears, and a copy of a wipeout is not made so, as AutoCAD 2021 answers eCannotScaleNonUniformly: move the wipeout itself by TransformBy.",
+                    nameof(transform)
+                );
             }
 
             base.MoveCopy(transform);

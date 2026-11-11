@@ -12,17 +12,46 @@ namespace GeometryHelper.Dxf
         // The types whose entity the reader reads as a shape of the library, which can be given another.
         private static readonly HashSet<string> Shaped = new HashSet<string>(StringComparer.Ordinal)
         {
-            "POINT", "LINE", "RAY", "XLINE", "CIRCLE", "ARC", "ELLIPSE", "SPLINE", "LWPOLYLINE", "POLYLINE", "3DFACE", "SOLID", "TRACE", "TEXT", "MTEXT",
+            "POINT",
+            "LINE",
+            "RAY",
+            "XLINE",
+            "CIRCLE",
+            "ARC",
+            "ELLIPSE",
+            "SPLINE",
+            "LWPOLYLINE",
+            "POLYLINE",
+            "3DFACE",
+            "SOLID",
+            "TRACE",
+            "TEXT",
+            "MTEXT",
         };
 
         // The types that have a thickness.
         private static readonly HashSet<string> Thick = new HashSet<string>(StringComparer.Ordinal)
         {
-            "LINE", "POINT", "CIRCLE", "ARC", "LWPOLYLINE", "POLYLINE", "TEXT", "SOLID", "TRACE",
+            "LINE",
+            "POINT",
+            "CIRCLE",
+            "ARC",
+            "LWPOLYLINE",
+            "POLYLINE",
+            "TEXT",
+            "SOLID",
+            "TRACE",
         };
 
         // The types AutoCAD has from R13 on, which a file of R12 cannot hold.
-        private static readonly HashSet<string> SinceR13 = new HashSet<string>(StringComparer.Ordinal) { "SPLINE", "ELLIPSE", "MTEXT", "RAY", "XLINE" };
+        private static readonly HashSet<string> SinceR13 = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "SPLINE",
+            "ELLIPSE",
+            "MTEXT",
+            "RAY",
+            "XLINE",
+        };
 
         // The groups of an entity's look, in the order AutoCAD writes them in the part all entities have.
         private static readonly int[] LookOrder = { 67, 410, 8, 6, 62, 370, 48, 60, 420 };
@@ -171,7 +200,11 @@ namespace GeometryHelper.Dxf
             int version = 1009;
             string named = Version;
 
-            if (named != null && named.StartsWith("AC", StringComparison.Ordinal) && int.TryParse(named.Substring(2), NumberStyles.None, CultureInfo.InvariantCulture, out int number))
+            if (
+                named != null
+                && named.StartsWith("AC", StringComparison.Ordinal)
+                && int.TryParse(named.Substring(2), NumberStyles.None, CultureInfo.InvariantCulture, out int number)
+            )
             {
                 version = number;
             }
@@ -211,8 +244,12 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The whole number of the first group of a variable of the header; null where there is none.</summary>
-        private int? HeaderWhole(string variable)
-            => _header.TryGetValue(variable, out IReadOnlyList<DxfTypedValue> groups) && groups.Count > 0 && int.TryParse(groups[0].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : (int?)null;
+        private int? HeaderWhole(string variable) =>
+            _header.TryGetValue(variable, out IReadOnlyList<DxfTypedValue> groups)
+            && groups.Count > 0
+            && int.TryParse(groups[0].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : (int?)null;
 
         /// <summary>
         /// The bytes of a text in the file: in its code page, a letter it cannot hold as its escape, as the reading of its text
@@ -553,7 +590,9 @@ namespace GeometryHelper.Dxf
         {
             if (item.IsRemoved)
             {
-                throw new InvalidOperationException("The " + item.Type + " was removed from its space, and is not changed.");
+                throw new InvalidOperationException(
+                    "The " + item.Type + " was removed from its space, and is not changed."
+                );
             }
         }
 
@@ -574,7 +613,10 @@ namespace GeometryHelper.Dxf
             // DXF has every entity name its layer: none is refused where the record names one.
             if (value == null)
             {
-                throw new ArgumentNullException(nameof(value), "An entity is on a layer: give one, 0 where it is to be on none of its own.");
+                throw new ArgumentNullException(
+                    nameof(value),
+                    "An entity is on a layer: give one, 0 where it is to be on none of its own."
+                );
             }
 
             Editable(item);
@@ -599,7 +641,11 @@ namespace GeometryHelper.Dxf
 
             if (value.HasValue && (value.Value < 0 || value.Value > 256))
             {
-                throw new ArgumentOutOfRangeException(nameof(value), value, "The colour of an entity is an AutoCAD colour index from 1 to 255, 0 for BYBLOCK or 256 for BYLAYER.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    "The colour of an entity is an AutoCAD colour index from 1 to 255, 0 for BYBLOCK or 256 for BYLAYER."
+                );
             }
 
             SetGroup(item, 62, value?.ToString(CultureInfo.InvariantCulture), false);
@@ -616,12 +662,18 @@ namespace GeometryHelper.Dxf
 
             if (value.HasValue && (value.Value < 0 || value.Value > 0xFFFFFF))
             {
-                throw new ArgumentOutOfRangeException(nameof(value), value, "A true colour is red, green and blue, 0 to 0xFFFFFF.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    "A true colour is red, green and blue, 0 to 0xFFFFFF."
+                );
             }
 
             if (value.HasValue && !Style.TrueColours)
             {
-                throw new InvalidOperationException("A DXF " + VersionSaid() + " has no true colours, which came with R2004 (AC1018).");
+                throw new InvalidOperationException(
+                    "A DXF " + VersionSaid() + " has no true colours, which came with R2004 (AC1018)."
+                );
             }
 
             SetGroup(item, 420, value?.ToString(CultureInfo.InvariantCulture), false);
@@ -638,7 +690,12 @@ namespace GeometryHelper.Dxf
 
             if (value != null && !HasLinetype(value))
             {
-                throw new ArgumentException("The linetype " + value + " is not in the file's linetype table: give one of it, BYLAYER or BYBLOCK.", nameof(value));
+                throw new ArgumentException(
+                    "The linetype "
+                        + value
+                        + " is not in the file's linetype table: give one of it, BYLAYER or BYBLOCK.",
+                    nameof(value)
+                );
             }
 
             SetGroup(item, 6, value, false);
@@ -655,12 +712,18 @@ namespace GeometryHelper.Dxf
 
             if (value.HasValue && !(value.Value >= -3 && value.Value <= -1) && !DxfShape.IsLineweight(value.Value))
             {
-                throw new ArgumentOutOfRangeException(nameof(value), value, "A lineweight is -3 for the default, -2 by block, -1 by layer, or one of AutoCAD's in hundredths of a millimetre, such as 25 or 35.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    "A lineweight is -3 for the default, -2 by block, -1 by layer, or one of AutoCAD's in hundredths of a millimetre, such as 25 or 35."
+                );
             }
 
             if (value.HasValue && !Style.Lineweights)
             {
-                throw new InvalidOperationException("A DXF " + VersionSaid() + " has no lineweights, which came with R2000 (AC1015).");
+                throw new InvalidOperationException(
+                    "A DXF " + VersionSaid() + " has no lineweights, which came with R2000 (AC1015)."
+                );
             }
 
             SetGroup(item, 370, value?.ToString(CultureInfo.InvariantCulture), false);
@@ -678,7 +741,11 @@ namespace GeometryHelper.Dxf
 
             if (value != 0.0 && !Thick.Contains(item.Type))
             {
-                throw new InvalidOperationException("A " + item.Type + " has no thickness: the LINE, POINT, CIRCLE, ARC, LWPOLYLINE, POLYLINE, TEXT, SOLID and TRACE have one.");
+                throw new InvalidOperationException(
+                    "A "
+                        + item.Type
+                        + " has no thickness: the LINE, POINT, CIRCLE, ARC, LWPOLYLINE, POLYLINE, TEXT, SOLID and TRACE have one."
+                );
             }
 
             SetGroup(item, 39, value == 0.0 ? null : Numbers.Exact(value + 0.0), false);
@@ -862,14 +929,20 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                int order = code == 440 && pair.Code == 430 ? LookOrder.Length - 1 : Array.IndexOf(LookOrder, pair.Code);
+                int order =
+                    code == 440 && pair.Code == 430 ? LookOrder.Length - 1 : Array.IndexOf(LookOrder, pair.Code);
 
                 if (order >= 0 && order < rank)
                 {
                     after = i;
                 }
 
-                if (pair.Code == 5 || pair.Code == 105 || pair.Code == 330 || (pair.Code == 100 && Text(record, pair).Trim() == "AcDbEntity"))
+                if (
+                    pair.Code == 5
+                    || pair.Code == 105
+                    || pair.Code == 330
+                    || (pair.Code == 100 && Text(record, pair).Trim() == "AcDbEntity")
+                )
                 {
                     lead = i + 1;
                 }
@@ -915,8 +988,12 @@ namespace GeometryHelper.Dxf
             return -1;
         }
 
-        private static bool IsWhole(int code)
-            => (code >= 60 && code <= 99) || (code >= 170 && code <= 179) || (code >= 270 && code <= 289) || (code >= 370 && code <= 379) || (code >= 420 && code <= 429);
+        private static bool IsWhole(int code) =>
+            (code >= 60 && code <= 99)
+            || (code >= 170 && code <= 179)
+            || (code >= 270 && code <= 289)
+            || (code >= 370 && code <= 379)
+            || (code >= 420 && code <= 429);
 
         /// <summary>Whether a name of a layer is one <see cref="CheckName"/> takes.</summary>
         internal static bool IsLayerName(string name)
@@ -945,19 +1022,28 @@ namespace GeometryHelper.Dxf
         {
             if (name.Length == 0 || name.Trim().Length != name.Length)
             {
-                throw new ArgumentException("The name of a layer has to be given, with no space at either end: '" + name + "' is not one.", parameter);
+                throw new ArgumentException(
+                    "The name of a layer has to be given, with no space at either end: '" + name + "' is not one.",
+                    parameter
+                );
             }
 
             foreach (char c in name)
             {
                 if (c < ' ' || NotInNames.IndexOf(c) >= 0)
                 {
-                    throw new ArgumentException("The name of a layer cannot have a control character or any of < > / \" : ; ? * | = ` in it, as AutoCAD does not take them: '" + name + "' has one.", parameter);
+                    throw new ArgumentException(
+                        "The name of a layer cannot have a control character or any of < > / \" : ; ? * | = ` in it, as AutoCAD does not take them: '"
+                            + name
+                            + "' has one.",
+                        parameter
+                    );
                 }
             }
         }
 
-        private string VersionSaid() => Version != null ? "of version " + Version : "with no version, which is one of R12";
+        private string VersionSaid() =>
+            Version != null ? "of version " + Version : "with no version, which is one of R12";
 
         #endregion
 
@@ -974,7 +1060,13 @@ namespace GeometryHelper.Dxf
         /// Where <paramref name="sameAs"/> is given, it stands for the shape the entity has now in the test of whether the shape
         /// is written as that one is, written by the same route as the new shape.
         /// </summary>
-        internal void SetShape(DxfItem item, object shape, List<KeyValuePair<string, List<DxfTypedValue>>> given = null, bool heavy = false, object sameAs = null)
+        internal void SetShape(
+            DxfItem item,
+            object shape,
+            List<KeyValuePair<string, List<DxfTypedValue>>> given = null,
+            bool heavy = false,
+            object sameAs = null
+        )
         {
             if (shape == null && given == null)
             {
@@ -999,7 +1091,13 @@ namespace GeometryHelper.Dxf
 
             if (given == null && !Shaped.Contains(item.Type))
             {
-                throw new InvalidOperationException("A " + item.Type + " has no shape of the library's to set: those of the types a shape is written as do, " + string.Join(", ", new SortedSet<string>(Shaped, StringComparer.Ordinal)) + "; an INSERT is placed as it stands, and a LEADER and a MULTILEADER are read as their lines but not written from a shape.");
+                throw new InvalidOperationException(
+                    "A "
+                        + item.Type
+                        + " has no shape of the library's to set: those of the types a shape is written as do, "
+                        + string.Join(", ", new SortedSet<string>(Shaped, StringComparer.Ordinal))
+                        + "; an INSERT is placed as it stands, and a LEADER and a MULTILEADER are read as their lines but not written from a shape."
+                );
             }
 
             List<Rec> records = RecordsOf(item);
@@ -1008,7 +1106,8 @@ namespace GeometryHelper.Dxf
             int hidden = item.Type == "3DFACE" ? FirstWhole(head, pairs, 70) : 0;
             double thickness = item.Thickness;
             double[] extents = null;
-            List<KeyValuePair<string, List<DxfTypedValue>>> written = given ?? Written(shape, hidden, thickness, "value", out extents, heavy);
+            List<KeyValuePair<string, List<DxfTypedValue>>> written = given
+                ?? Written(shape, hidden, thickness, "value", out extents, heavy);
 
             // A shape written as the entity is written now, group for group, is the shape it has: nothing to change.
             if (given == null && now.Count == 1 && SameWriting(written, sameAs ?? now[0], hidden, thickness, heavy))
@@ -1105,7 +1204,8 @@ namespace GeometryHelper.Dxf
 
             // A record of R13 or later with no marker AcDbEntity is given it where AutoCAD writes it, after its handle, the
             // groups of the applications and its owner, as a record with markers has to have it.
-            int marked = Style.Markers && !HasEntityMarker(head, pairs, data) ? EntityMarkerAt(head, pairs, before) : -1;
+            int marked =
+                Style.Markers && !HasEntityMarker(head, pairs, data) ? EntityMarkerAt(head, pairs, before) : -1;
 
             for (int n = 0; n < before.Count; n++)
             {
@@ -1151,7 +1251,12 @@ namespace GeometryHelper.Dxf
 
             for (; k < groups.Count; k++)
             {
-                if (same && type == "MTEXT" && (groups[k].TypeCode == 71 || groups[k].TypeCode == 72) && keptCodes.Contains(groups[k].TypeCode))
+                if (
+                    same
+                    && type == "MTEXT"
+                    && (groups[k].TypeCode == 71 || groups[k].TypeCode == 72)
+                    && keptCodes.Contains(groups[k].TypeCode)
+                )
                 {
                     continue;
                 }
@@ -1186,7 +1291,10 @@ namespace GeometryHelper.Dxf
 
                 foreach (DxfTypedValue group in groups)
                 {
-                    if ((group.TypeCode == 10 || group.TypeCode == 20 || group.TypeCode == 30) && !at.ContainsKey(group.TypeCode))
+                    if (
+                        (group.TypeCode == 10 || group.TypeCode == 20 || group.TypeCode == 30)
+                        && !at.ContainsKey(group.TypeCode)
+                    )
                     {
                         at.Add(group.TypeCode, group.Value);
                     }
@@ -1194,7 +1302,10 @@ namespace GeometryHelper.Dxf
 
                 foreach (int code in new[] { 10, 20, 30 })
                 {
-                    if (at.TryGetValue(code, out string value) && WithOwnGroup(rewritten, code + 1, value, TextOrder, out Rec placed))
+                    if (
+                        at.TryGetValue(code, out string value)
+                        && WithOwnGroup(rewritten, code + 1, value, TextOrder, out Rec placed)
+                    )
                     {
                         rewritten = placed;
                     }
@@ -1219,7 +1330,18 @@ namespace GeometryHelper.Dxf
                 }
 
                 KeyValuePair<string, List<DxfTypedValue>> follower = written[r];
-                result.Add(Follower(follower, owner, f => KeepSpaceAndLayer(f, head, pairs, data, follower.Key, IsFaceRecord(follower.Key, follower.Value))));
+                result.Add(
+                    Follower(follower, owner, f =>
+                        KeepSpaceAndLayer(
+                            f,
+                            head,
+                            pairs,
+                            data,
+                            follower.Key,
+                            IsFaceRecord(follower.Key, follower.Value)
+                        )
+                    )
+                );
             }
 
             for (int r = 1; r < records.Count; r++)
@@ -1250,10 +1372,24 @@ namespace GeometryHelper.Dxf
         /// The records a shape is written as in this file, checked to be one entity the file's version can hold: a POLYLINE
         /// with its vertices and end is one. Heavy, a chain or loop of a plane is written as a POLYLINE whatever the version.
         /// </summary>
-        private List<KeyValuePair<string, List<DxfTypedValue>>> Written(object shape, int hidden, double thickness, string parameter, out double[] extents, bool heavy = false)
+        private List<KeyValuePair<string, List<DxfTypedValue>>> Written(
+            object shape,
+            int hidden,
+            double thickness,
+            string parameter,
+            out double[] extents,
+            bool heavy = false
+        )
         {
             Writing style = Style;
-            List<KeyValuePair<string, List<DxfTypedValue>>> written = DxfWriter.RecordsOf(shape, hidden, thickness, style.Markers, style.Lightweight && !heavy, out extents);
+            List<KeyValuePair<string, List<DxfTypedValue>>> written = DxfWriter.RecordsOf(
+                shape,
+                hidden,
+                thickness,
+                style.Markers,
+                style.Lightweight && !heavy,
+                out extents
+            );
             int entities = 0;
 
             foreach (KeyValuePair<string, List<DxfTypedValue>> record in written)
@@ -1265,19 +1401,41 @@ namespace GeometryHelper.Dxf
 
             if (entities != 1)
             {
-                throw new ArgumentException("A " + name + " is written as " + Number(entities) + " entities, where an entity is one: give each part as an entity of its own.", parameter);
+                throw new ArgumentException(
+                    "A "
+                        + name
+                        + " is written as "
+                        + Number(entities)
+                        + " entities, where an entity is one: give each part as an entity of its own.",
+                    parameter
+                );
             }
 
             if (!style.Markers && SinceR13.Contains(written[0].Key))
             {
-                throw new ArgumentException("A " + name + " is written as a " + written[0].Key + ", which a DXF " + VersionSaid() + " cannot hold, and which has no form of R12 that is the same.", parameter);
+                throw new ArgumentException(
+                    "A "
+                        + name
+                        + " is written as a "
+                        + written[0].Key
+                        + ", which a DXF "
+                        + VersionSaid()
+                        + " cannot hold, and which has no form of R12 that is the same.",
+                    parameter
+                );
             }
 
             return written;
         }
 
         /// <summary>Whether a shape the entity has now is written as the records given, group for group.</summary>
-        private bool SameWriting(List<KeyValuePair<string, List<DxfTypedValue>>> written, object was, int hidden, double thickness, bool heavy)
+        private bool SameWriting(
+            List<KeyValuePair<string, List<DxfTypedValue>>> written,
+            object was,
+            int hidden,
+            double thickness,
+            bool heavy
+        )
         {
             List<KeyValuePair<string, List<DxfTypedValue>>> before;
 
@@ -1308,7 +1466,10 @@ namespace GeometryHelper.Dxf
 
                 for (int g = 0; g < before[r].Value.Count; g++)
                 {
-                    if (before[r].Value[g].TypeCode != written[r].Value[g].TypeCode || !string.Equals(before[r].Value[g].Value, written[r].Value[g].Value, StringComparison.Ordinal))
+                    if (
+                        before[r].Value[g].TypeCode != written[r].Value[g].TypeCode
+                        || !string.Equals(before[r].Value[g].Value, written[r].Value[g].Value, StringComparison.Ordinal)
+                    )
                     {
                         return false;
                     }
@@ -1398,8 +1559,8 @@ namespace GeometryHelper.Dxf
         private static readonly int[] SpaceAndVertexLook = { 67, 8, 6, 62, 370, 48, 60, 420, 430, 440 };
 
         /// <summary>Whether a VERTEX takes a group of its POLYLINE's look: every one of <see cref="VertexLook"/>, but the colour for a face record.</summary>
-        private static bool TakesLook(int code, bool face)
-            => Array.IndexOf(VertexLook, code) >= 0 && !(face && (code == 62 || code == 420 || code == 430));
+        private static bool TakesLook(int code, bool face) =>
+            Array.IndexOf(VertexLook, code) >= 0 && !(face && (code == 62 || code == 420 || code == 430));
 
         /// <summary>Whether a VERTEX is the record of a face of a polyface mesh: flag 128 of its group 70 without 64.</summary>
         private static bool IsFace(int flags) => (flags & 128) != 0 && (flags & 64) == 0;
@@ -1419,7 +1580,12 @@ namespace GeometryHelper.Dxf
             {
                 if (pairs[i].Code == 70)
                 {
-                    return int.TryParse(Text(record, pairs[i]).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags) && IsFace(flags);
+                    return int.TryParse(
+                            Text(record, pairs[i]).Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out int flags
+                        ) && IsFace(flags);
                 }
             }
 
@@ -1438,7 +1604,12 @@ namespace GeometryHelper.Dxf
             {
                 if (group.TypeCode == 70)
                 {
-                    return int.TryParse(group.Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags) && IsFace(flags);
+                    return int.TryParse(
+                            group.Value.Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out int flags
+                        ) && IsFace(flags);
                 }
             }
 
@@ -1458,28 +1629,64 @@ namespace GeometryHelper.Dxf
 
             switch (type)
             {
-                case "POINT": return point || extrusion || code == 50;
-                case "LINE": return point || second || extrusion;
+                case "POINT":
+                    return point || extrusion || code == 50;
+                case "LINE":
+                    return point || second || extrusion;
                 case "RAY":
-                case "XLINE": return point || second;
-                case "CIRCLE": return point || extrusion || code == 40;
-                case "ARC": return point || extrusion || code == 40 || code == 50 || code == 51;
-                case "ELLIPSE": return point || second || extrusion || code == 40 || code == 41 || code == 42;
-                case "LWPOLYLINE": return code == 90 || code == 70 || code == 38 || code == 10 || code == 20 || (code >= 40 && code <= 43) || code == 91 || extrusion;
-                case "SPLINE": return corners || extrusion || (code >= 40 && code <= 44) || (code >= 70 && code <= 74);
-                case "3DFACE": return corners || code == 70;
+                case "XLINE":
+                    return point || second;
+                case "CIRCLE":
+                    return point || extrusion || code == 40;
+                case "ARC":
+                    return point || extrusion || code == 40 || code == 50 || code == 51;
+                case "ELLIPSE":
+                    return point || second || extrusion || code == 40 || code == 41 || code == 42;
+                case "LWPOLYLINE":
+                    return code == 90
+                        || code == 70
+                        || code == 38
+                        || code == 10
+                        || code == 20
+                        || (code >= 40 && code <= 43)
+                        || code == 91
+                        || extrusion;
+                case "SPLINE":
+                    return corners || extrusion || (code >= 40 && code <= 44) || (code >= 70 && code <= 74);
+                case "3DFACE":
+                    return corners || code == 70;
                 case "SOLID":
-                case "TRACE": return corners || extrusion;
-                case "TEXT": return point || extrusion || code == 1 || code == 40 || code == 41 || code == 50;
-                case "MTEXT": return point || second || extrusion || code == 1 || code == 3 || (code >= 40 && code <= 43) || code == 46 || code == 50;
-                case "POLYLINE": return point || extrusion || code == 66 || code == 70 || code == 40 || code == 41 || (code >= 71 && code <= 75);
-                default: return false;
+                case "TRACE":
+                    return corners || extrusion;
+                case "TEXT":
+                    return point || extrusion || code == 1 || code == 40 || code == 41 || code == 50;
+                case "MTEXT":
+                    return point
+                        || second
+                        || extrusion
+                        || code == 1
+                        || code == 3
+                        || (code >= 40 && code <= 43)
+                        || code == 46
+                        || code == 50;
+                case "POLYLINE":
+                    return point
+                        || extrusion
+                        || code == 66
+                        || code == 70
+                        || code == 40
+                        || code == 41
+                        || (code >= 71 && code <= 75);
+                default:
+                    return false;
             }
         }
 
         /// <summary>Whether a group is of the part all entities have, which an entity keeps when its type changes.</summary>
         // The groups of AcDbText in the order AutoCAD writes them, its second marker before the vertical justification.
-        private static readonly IReadOnlyList<int> TextOrder = Array.AsReadOnly(new[] { 100, 39, 10, 20, 30, 40, 1, 50, 41, 51, 7, 71, 72, 11, 21, 31, 210, 220, 230, 100, 73 });
+        private static readonly IReadOnlyList<int> TextOrder = Array.AsReadOnly(
+            new[] { 100, 39, 10, 20, 30, 40, 1, 50, 41, 51, 7, 71, 72, 11, 21, 31, 210, 220, 230, 100, 73 }
+        );
 
         /// <summary>Whether a record has the marker AcDbEntity, outside the groups of the applications and before its extended data.</summary>
         private bool HasEntityMarker(Rec record, List<Pair> pairs, int data)
@@ -1533,12 +1740,32 @@ namespace GeometryHelper.Dxf
             return (horizontal != 0 || vertical != 0) && horizontal != 3 && horizontal != 5;
         }
 
-        private static bool IsCommon(int code)
-            => code == 5 || code == 330 || code == 360 || code == 67 || code == 410 || code == 8 || code == 6 || code == 62 || code == 370 || code == 48
-            || code == 60 || code == 92 || code == 310 || code == 420 || code == 430 || code == 440 || code == 390 || code == 284 || code == 347 || code == 348;
+        private static bool IsCommon(int code) =>
+            code == 5
+            || code == 330
+            || code == 360
+            || code == 67
+            || code == 410
+            || code == 8
+            || code == 6
+            || code == 62
+            || code == 370
+            || code == 48
+            || code == 60
+            || code == 92
+            || code == 310
+            || code == 420
+            || code == 430
+            || code == 440
+            || code == 390
+            || code == 284
+            || code == 347
+            || code == 348;
 
-        private static bool SameNumber(string written, string value)
-            => Numbers.TryRead(written, out double a) && Numbers.TryRead(value, out double b) && BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
+        private static bool SameNumber(string written, string value) =>
+            Numbers.TryRead(written, out double a)
+            && Numbers.TryRead(value, out double b)
+            && BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
 
         private int FirstWhole(Rec record, List<Pair> pairs, int code)
         {
@@ -1546,7 +1773,14 @@ namespace GeometryHelper.Dxf
             {
                 if (pairs[i].Code == code)
                 {
-                    return int.TryParse(Text(record, pairs[i]).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : 0;
+                    return int.TryParse(
+                        Text(record, pairs[i]).Trim(),
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int value
+                    )
+                        ? value
+                        : 0;
                 }
             }
 
@@ -1593,7 +1827,17 @@ namespace GeometryHelper.Dxf
         #region Adding and removing
 
         /// <summary>A shape written as a new entity of model space, at the end of the ENTITIES section, with the look given.</summary>
-        internal DxfItem Add(DxfSpace space, object shape, string layer, int? colour, int? trueColour, string linetype, int? lineweight, double thickness, int hidden)
+        internal DxfItem Add(
+            DxfSpace space,
+            object shape,
+            string layer,
+            int? colour,
+            int? trueColour,
+            string linetype,
+            int? lineweight,
+            double thickness,
+            int hidden
+        )
         {
             if (shape == null)
             {
@@ -1606,20 +1850,37 @@ namespace GeometryHelper.Dxf
 
             if (lineweight.HasValue && !style.Lineweights)
             {
-                throw new ArgumentException("A DXF " + VersionSaid() + " has no lineweights, which came with R2000 (AC1015).", nameof(lineweight));
+                throw new ArgumentException(
+                    "A DXF " + VersionSaid() + " has no lineweights, which came with R2000 (AC1015).",
+                    nameof(lineweight)
+                );
             }
 
             if (trueColour.HasValue && !style.TrueColours)
             {
-                throw new ArgumentException("A DXF " + VersionSaid() + " has no true colours, which came with R2004 (AC1018).", nameof(trueColour));
+                throw new ArgumentException(
+                    "A DXF " + VersionSaid() + " has no true colours, which came with R2004 (AC1018).",
+                    nameof(trueColour)
+                );
             }
 
             if (linetype != null && !HasLinetype(linetype))
             {
-                throw new ArgumentException("The linetype " + linetype + " is not in the file's linetype table: give one of it, BYLAYER or BYBLOCK.", nameof(linetype));
+                throw new ArgumentException(
+                    "The linetype "
+                        + linetype
+                        + " is not in the file's linetype table: give one of it, BYLAYER or BYBLOCK.",
+                    nameof(linetype)
+                );
             }
 
-            List<KeyValuePair<string, List<DxfTypedValue>>> written = Written(shape, hidden, thickness, nameof(shape), out double[] extents);
+            List<KeyValuePair<string, List<DxfTypedValue>>> written = Written(
+                shape,
+                hidden,
+                thickness,
+                nameof(shape),
+                out double[] extents
+            );
             EnsureLayer(onLayer);
 
             string type = written[0].Key;
@@ -1678,7 +1939,18 @@ namespace GeometryHelper.Dxf
             for (int r = 1; r < written.Count; r++)
             {
                 KeyValuePair<string, List<DxfTypedValue>> follower = written[r];
-                records.Add(Follower(follower, handle, f => KeepSpaceAndLayer(f, made, madePairs, madeData, follower.Key, IsFaceRecord(follower.Key, follower.Value))));
+                records.Add(
+                    Follower(follower, handle, f =>
+                        KeepSpaceAndLayer(
+                            f,
+                            made,
+                            madePairs,
+                            madeData,
+                            follower.Key,
+                            IsFaceRecord(follower.Key, follower.Value)
+                        )
+                    )
+                );
             }
 
             var piece = new Piece(records);
@@ -1803,7 +2075,11 @@ namespace GeometryHelper.Dxf
             for (int i = start; i < end; i++)
             {
                 int c = bytes[i];
-                int digit = c >= '0' && c <= '9' ? c - '0' : c >= 'A' && c <= 'F' ? c - 'A' + 10 : c >= 'a' && c <= 'f' ? c - 'a' + 10 : -1;
+                int digit =
+                    c >= '0' && c <= '9' ? c - '0'
+                    : c >= 'A' && c <= 'F' ? c - 'A' + 10
+                    : c >= 'a' && c <= 'f' ? c - 'a' + 10
+                    : -1;
 
                 if (digit < 0)
                 {
@@ -1882,9 +2158,18 @@ namespace GeometryHelper.Dxf
                     // new entity by chance.
                     foreach (Pair pair in PairsOf(record))
                     {
-                        bool pointer = (pair.Code >= 320 && pair.Code <= 369) || (pair.Code >= 390 && pair.Code <= 399) || pair.Code == 480 || pair.Code == 481 || pair.Code == 1005;
+                        bool pointer =
+                            (pair.Code >= 320 && pair.Code <= 369)
+                            || (pair.Code >= 390 && pair.Code <= 399)
+                            || pair.Code == 480
+                            || pair.Code == 481
+                            || pair.Code == 1005;
 
-                        if (pointer && TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong pointed) && pointed > mostPointed)
+                        if (
+                            pointer
+                            && TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong pointed)
+                            && pointed > mostPointed
+                        )
                         {
                             mostPointed = pointed;
                         }
@@ -1892,7 +2177,12 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            _seed = _header.TryGetValue("$HANDSEED", out IReadOnlyList<DxfTypedValue> seed) && seed.Count > 0 && TryHex(seed[0].Value, out ulong read) ? read : 0;
+            _seed =
+                _header.TryGetValue("$HANDSEED", out IReadOnlyList<DxfTypedValue> seed)
+                && seed.Count > 0
+                && TryHex(seed[0].Value, out ulong read)
+                    ? read
+                    : 0;
             _nextHandle = Math.Max(Math.Max(_seed > 0 ? _seed - 1 : 0, _mostHandle), mostPointed) + 1;
             _handlesKnown = true;
         }
@@ -1908,7 +2198,13 @@ namespace GeometryHelper.Dxf
                 {
                     DxfReader.Record read = Record(record);
 
-                    if (string.Equals(DxfReader.NameOf(read.Text(2) ?? string.Empty), "*Model_Space", StringComparison.OrdinalIgnoreCase))
+                    if (
+                        string.Equals(
+                            DxfReader.NameOf(read.Text(2) ?? string.Empty),
+                            "*Model_Space",
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
                     {
                         _modelOwner = read.Text(5)?.Trim();
                         break;
@@ -1965,10 +2261,12 @@ namespace GeometryHelper.Dxf
         private sealed class TableNames
         {
             /// <summary>By the name as written, its escapes read.</summary>
-            internal Dictionary<string, Rec> Named { get; } = new Dictionary<string, Rec>(StringComparer.OrdinalIgnoreCase);
+            internal Dictionary<string, Rec> Named { get; } =
+                new Dictionary<string, Rec>(StringComparer.OrdinalIgnoreCase);
 
             /// <summary>By that name with the spaces around it taken off.</summary>
-            internal Dictionary<string, Rec> Trimmed { get; } = new Dictionary<string, Rec>(StringComparer.OrdinalIgnoreCase);
+            internal Dictionary<string, Rec> Trimmed { get; } =
+                new Dictionary<string, Rec>(StringComparer.OrdinalIgnoreCase);
 
             /// <summary>The last record of the file, as read, in whose place a record of the type stands; -1 where none does.</summary>
             internal int Last { get; set; } = -1;
@@ -2052,7 +2350,9 @@ namespace GeometryHelper.Dxf
                 _tableNames.Add(type, names);
             }
 
-            return name != null && (trimmed ? names.Trimmed : names.Named).TryGetValue(name, out Rec found) ? found : (Rec?)null;
+            return name != null && (trimmed ? names.Trimmed : names.Named).TryGetValue(name, out Rec found)
+                ? found
+                : (Rec?)null;
         }
 
         /// <summary>The records of a type of the TABLES sections by name, as <see cref="TableRecords"/> gives them: read, nothing of the file written.</summary>
@@ -2118,7 +2418,11 @@ namespace GeometryHelper.Dxf
         {
             foreach (Section section in _sections)
             {
-                if ((section.Name == "TABLES" || section.Name == "OBJECTS") && record >= section.First && record <= section.Last)
+                if (
+                    (section.Name == "TABLES" || section.Name == "OBJECTS")
+                    && record >= section.First
+                    && record <= section.Last
+                )
                 {
                     return true;
                 }
@@ -2142,7 +2446,10 @@ namespace GeometryHelper.Dxf
 
                 // In the place of a later record of the file than any of its type, or of the same one, before the last piece
                 // there, which holds none of its type.
-                if (record > names.Last || (record == names.Last && !slot[slot.Count - 1].Records.Exists(r => r.Type == added.Type)))
+                if (
+                    record > names.Last
+                    || (record == names.Last && !slot[slot.Count - 1].Records.Exists(r => r.Type == added.Type))
+                )
                 {
                     names.Take(added, DxfReader.NameOf(Record(added).Text(2) ?? string.Empty), record);
                 }
@@ -2244,7 +2551,11 @@ namespace GeometryHelper.Dxf
 
             foreach (string name in _insertNames)
             {
-                if (!Blocks.TryGetValue(name, out DxfFileBlock block) || (block.Head != null && block.Head.IsRemoved) || (Database != null && !Database.BlockTable.Has(name)))
+                if (
+                    !Blocks.TryGetValue(name, out DxfFileBlock block)
+                    || (block.Head != null && block.Head.IsRemoved)
+                    || (Database != null && !Database.BlockTable.Has(name))
+                )
                 {
                     return true;
                 }
@@ -2267,8 +2578,12 @@ namespace GeometryHelper.Dxf
         /// Whether records of a type name the block they place or are drawn by in their group 2: an INSERT, and a dimension or an
         /// ACAD_TABLE, drawn by a block AutoCAD names itself, as <c>BlockDrawnBy</c> reads them.
         /// </summary>
-        private static bool NamesABlock(string type)
-            => type == "INSERT" || type == "DIMENSION" || type == "ARC_DIMENSION" || type == "LARGE_RADIAL_DIMENSION" || type == "ACAD_TABLE";
+        private static bool NamesABlock(string type) =>
+            type == "INSERT"
+            || type == "DIMENSION"
+            || type == "ARC_DIMENSION"
+            || type == "LARGE_RADIAL_DIMENSION"
+            || type == "ACAD_TABLE";
 
         /// <summary>Adds the names of the INSERTs, dimensions and tables among records written into the file to the names the INSERTs give: each group 2 of each, read as an INSERT's name is read, or none.</summary>
         private void InsertsWritten(List<Rec> records)
@@ -2326,7 +2641,10 @@ namespace GeometryHelper.Dxf
 
             string plain = DxfReader.NameOf(name);
 
-            if (string.Equals(plain, "BYLAYER", StringComparison.OrdinalIgnoreCase) || string.Equals(plain, "BYBLOCK", StringComparison.OrdinalIgnoreCase))
+            if (
+                string.Equals(plain, "BYLAYER", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(plain, "BYBLOCK", StringComparison.OrdinalIgnoreCase)
+            )
             {
                 return true;
             }
@@ -2370,7 +2688,15 @@ namespace GeometryHelper.Dxf
             {
                 for (int i = section.First + 1; section.Name == "TABLES" && i < section.Last && end < 0; i++)
                 {
-                    if (table < 0 && _types[i] == "TABLE" && string.Equals(DxfReader.NameOf(Record(Original(i)).Text(2) ?? string.Empty), "LAYER", StringComparison.OrdinalIgnoreCase))
+                    if (
+                        table < 0
+                        && _types[i] == "TABLE"
+                        && string.Equals(
+                            DxfReader.NameOf(Record(Original(i)).Text(2) ?? string.Empty),
+                            "LAYER",
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
                     {
                         table = i;
                     }
@@ -2383,14 +2709,18 @@ namespace GeometryHelper.Dxf
 
             if (end < 0)
             {
-                GeometryHelperLog.Debug("DxfFile: the layer " + plain + " is not in a layer table, and the file has none to add it to.");
+                GeometryHelperLog.Debug(
+                    "DxfFile: the layer " + plain + " is not in a layer table, and the file has none to add it to."
+                );
                 return;
             }
 
             Writing style = Style;
             Rec header = Current(table, table + 1)[0];
             string tableHandle = Record(header).Text(5)?.Trim();
-            string continuous = Linetypes().Find(l => string.Equals(DxfReader.NameOf(l), "CONTINUOUS", StringComparison.OrdinalIgnoreCase)) ?? "CONTINUOUS";
+            string continuous = Linetypes()
+                .Find(l => string.Equals(DxfReader.NameOf(l), "CONTINUOUS", StringComparison.OrdinalIgnoreCase))
+                ?? "CONTINUOUS";
             var b = new Builder(this);
             b.Group(0, "LAYER");
 
@@ -2438,7 +2768,13 @@ namespace GeometryHelper.Dxf
                 Put(table, new List<Piece> { new Piece(new List<Rec> { counted }) });
             }
 
-            GeometryHelperLog.Info("DxfFile: the layer " + plain + " was not in the layer table, so a LAYER record was added for it, in the colour 7 with the linetype " + continuous + ".");
+            GeometryHelperLog.Info(
+                "DxfFile: the layer "
+                    + plain
+                    + " was not in the layer table, so a LAYER record was added for it, in the colour 7 with the linetype "
+                    + continuous
+                    + "."
+            );
         }
 
         #endregion
@@ -2459,7 +2795,12 @@ namespace GeometryHelper.Dxf
                 {
                     if (rewrite(Original(i), out Rec? now))
                     {
-                        Put(i, now.HasValue ? new List<Piece> { new Piece(new List<Rec> { now.Value }) } : new List<Piece>());
+                        Put(
+                            i,
+                            now.HasValue
+                                ? new List<Piece> { new Piece(new List<Rec> { now.Value }) }
+                                : new List<Piece>()
+                        );
                     }
 
                     continue;
@@ -2569,16 +2910,23 @@ namespace GeometryHelper.Dxf
 
                 foreach (Section section in _sections)
                 {
-                    Visit(section.First, section.Last + 1, (Rec record, out Rec? now) => Unlisted(record, gone, left, ref unlisted, out now));
+                    Visit(section.First, section.Last + 1, (Rec record, out Rec? now) =>
+                        Unlisted(record, gone, left, ref unlisted, out now)
+                    );
                 }
-            }
-            while (gone.Count > listed);
+            } while (gone.Count > listed);
 
             _cleaned = gone.Count;
 
             if (owned > 0 || unlisted > 0)
             {
-                GeometryHelperLog.Info("DxfFile: what was removed was taken out of " + Number(unlisted) + " lists that held it (GROUPs, reactors, SORTENTSTABLEs and dictionaries), and " + Number(owned) + " objects it owned were removed with it.");
+                GeometryHelperLog.Info(
+                    "DxfFile: what was removed was taken out of "
+                        + Number(unlisted)
+                        + " lists that held it (GROUPs, reactors, SORTENTSTABLEs and dictionaries), and "
+                        + Number(owned)
+                        + " objects it owned were removed with it."
+                );
             }
 
             // Each pointer left is named once, at the first saving that finds it, not again at every saving after.
@@ -2587,7 +2935,13 @@ namespace GeometryHelper.Dxf
 
             if (left.Count > 0)
             {
-                GeometryHelperLog.Warn("DxfFile: " + Number(left.Count) + " pointers at what was removed are left where they stand, no list holding them: " + string.Join(", ", left.GetRange(0, Math.Min(left.Count, 10))) + (left.Count > 10 ? ", ..." : ".") );
+                GeometryHelperLog.Warn(
+                    "DxfFile: "
+                        + Number(left.Count)
+                        + " pointers at what was removed are left where they stand, no list holding them: "
+                        + string.Join(", ", left.GetRange(0, Math.Min(left.Count, 10)))
+                        + (left.Count > 10 ? ", ..." : ".")
+                );
             }
         }
 
@@ -2628,7 +2982,9 @@ namespace GeometryHelper.Dxf
                 }
                 else if (pair.Code == 330)
                 {
-                    return own && TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong owner) && gone.Contains(owner);
+                    return own
+                        && TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong owner)
+                        && gone.Contains(owner);
                 }
             }
 
@@ -2680,9 +3036,18 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                bool pointer = (pair.Code >= 320 && pair.Code <= 369) || (pair.Code >= 390 && pair.Code <= 399) || pair.Code == 480 || pair.Code == 481 || pair.Code == 1005;
+                bool pointer =
+                    (pair.Code >= 320 && pair.Code <= 369)
+                    || (pair.Code >= 390 && pair.Code <= 399)
+                    || pair.Code == 480
+                    || pair.Code == 481
+                    || pair.Code == 1005;
 
-                if (!pointer || !TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong handle) || !gone.Contains(handle))
+                if (
+                    !pointer
+                    || !TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong handle)
+                    || !gone.Contains(handle)
+                )
                 {
                     kept += braced ? 1 : 0;
                     continue;
@@ -2707,7 +3072,11 @@ namespace GeometryHelper.Dxf
                         i++;
                     }
                 }
-                else if (!braced && (record.Type == "DICTIONARY" || record.Type == "ACDBDICTIONARYWDFLT") && (pair.Code == 350 || pair.Code == 360))
+                else if (
+                    !braced
+                    && (record.Type == "DICTIONARY" || record.Type == "ACDBDICTIONARYWDFLT")
+                    && (pair.Code == 350 || pair.Code == 360)
+                )
                 {
                     drop[i] = true;
 
@@ -2720,7 +3089,15 @@ namespace GeometryHelper.Dxf
                 {
                     kept += braced ? 1 : 0;
                     HandleOf(record, out ulong self);
-                    left.Add(record.Type + " " + self.ToString("X", CultureInfo.InvariantCulture) + " (" + Number(pair.Code) + ") at " + handle.ToString("X", CultureInfo.InvariantCulture));
+                    left.Add(
+                        record.Type
+                            + " "
+                            + self.ToString("X", CultureInfo.InvariantCulture)
+                            + " ("
+                            + Number(pair.Code)
+                            + ") at "
+                            + handle.ToString("X", CultureInfo.InvariantCulture)
+                    );
                     continue;
                 }
 
@@ -2759,7 +3136,10 @@ namespace GeometryHelper.Dxf
 
             if (_handlesKnown && _nextHandle > _seed)
             {
-                wanted["$HANDSEED"] = (code, text) => code == 5 && TryHex(text, out ulong seed) && seed < _nextHandle ? _nextHandle.ToString("X", CultureInfo.InvariantCulture) : null;
+                wanted["$HANDSEED"] = (code, text) =>
+                    code == 5 && TryHex(text, out ulong seed) && seed < _nextHandle
+                        ? _nextHandle.ToString("X", CultureInfo.InvariantCulture)
+                        : null;
             }
 
             // What was grown since the header was last brought up to date: taken here once, so that what is written after it
@@ -2885,7 +3265,10 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private bool HoldsExtents(string least, string most)
         {
-            if (!_header.TryGetValue(least, out IReadOnlyList<DxfTypedValue> low) || !_header.TryGetValue(most, out IReadOnlyList<DxfTypedValue> high))
+            if (
+                !_header.TryGetValue(least, out IReadOnlyList<DxfTypedValue> low)
+                || !_header.TryGetValue(most, out IReadOnlyList<DxfTypedValue> high)
+            )
             {
                 return false;
             }
@@ -2915,10 +3298,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The value of a group 10, 20 or 30 of an extent grown to hold a box: lower where it is the least, higher where the most; null where it holds it already.</summary>
-        private static Func<int, string, string> Bound(double[] grown, int offset, bool least)
-            => (code, text) =>
+        private static Func<int, string, string> Bound(double[] grown, int offset, bool least) =>
+            (code, text) =>
             {
-                int axis = code == 10 ? 0 : code == 20 ? 1 : code == 30 ? 2 : -1;
+                int axis =
+                    code == 10 ? 0
+                    : code == 20 ? 1
+                    : code == 30 ? 2
+                    : -1;
 
                 if (axis < 0 || !Numbers.TryRead(text, out double now))
                 {

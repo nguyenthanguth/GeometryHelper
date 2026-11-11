@@ -16,8 +16,8 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     public class Clash3Tests
     {
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
         /// <summary>
         /// A beam through two plates, a column on a footing, a pin through a bolt hole and two blocks three
@@ -29,14 +29,14 @@ namespace GeometryHelper.UnitTest.Solid
 
             return new List<GeoSolid3>
             {
-                plates,                                                                         // 0
-                Box(-10, 40, 10, 110, 60, 20),                                                  // 1: the beam
-                Box(1000, 0, 0, 1200, 200, 50),                                                 // 2: the footing
-                Box(1050, 50, 50, 1150, 150, 500),                                              // 3: the column
+                plates, // 0
+                Box(-10, 40, 10, 110, 60, 20), // 1: the beam
+                Box(1000, 0, 0, 1200, 200, 50), // 2: the footing
+                Box(1050, 50, 50, 1150, 150, 500), // 3: the column
                 Box(2000, 0, 0, 2100, 100, 20).WithOpenings(new[] { Box(2040, 40, -1, 2060, 60, 21) }), // 4
-                Box(2045, 45, -50, 2055, 55, 50),                                               // 5: the pin
-                Box(3000, 0, 0, 3010, 10, 10),                                                  // 6
-                Box(3013, 0, 0, 3023, 10, 10),                                                  // 7
+                Box(2045, 45, -50, 2055, 55, 50), // 5: the pin
+                Box(3000, 0, 0, 3010, 10, 10), // 6
+                Box(3013, 0, 0, 3023, 10, 10), // 7
             };
         }
 
@@ -124,13 +124,21 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int k = 0; k < 120; k++)
             {
-                double x = rng.Next(0, 40) * 10, y = rng.Next(0, 40) * 10, z = rng.Next(0, 10) * 10;
+                double x = rng.Next(0, 40) * 10,
+                    y = rng.Next(0, 40) * 10,
+                    z = rng.Next(0, 10) * 10;
                 GeoSolid3 box = Box(x, y, z, x + rng.Next(1, 6) * 10, y + rng.Next(1, 6) * 10, z + rng.Next(1, 6) * 10);
 
                 if (rng.NextDouble() < 0.3)
                 {
                     GeoPoint3 centre = box.GetAabb().Center;
-                    box = box.TransformBy(GeoTransform3.RotationAxis(centre, new GeoVector3(rng.NextDouble(), rng.NextDouble(), 1), rng.NextDouble()));
+                    box = box.TransformBy(
+                        GeoTransform3.RotationAxis(
+                            centre,
+                            new GeoVector3(rng.NextDouble(), rng.NextDouble(), 1),
+                            rng.NextDouble()
+                        )
+                    );
                 }
 
                 parts.Add(box);
@@ -154,7 +162,10 @@ namespace GeometryHelper.UnitTest.Solid
             }
 
             Assert.True(byHand.Count > 20, $"only {byHand.Count} pairs clash; the test needs more");
-            Assert.Equal(byHand.Select(p => (p.Item1, p.Item2, p.Item3)), found.Select(r => (r.First, r.Second, r.Kind)));
+            Assert.Equal(
+                byHand.Select(p => (p.Item1, p.Item2, p.Item3)),
+                found.Select(r => (r.First, r.Second, r.Kind))
+            );
 
             for (int k = 0; k < found.Length; k++)
             {
@@ -173,22 +184,53 @@ namespace GeometryHelper.UnitTest.Solid
         public void BarsAgainstABeamMeshToWhatTheyReport()
         {
             var section = new GeoPolygon2(
-                new GeoPoint2(-100, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 15), new GeoPoint2(5, 15),
-                new GeoPoint2(5, 285), new GeoPoint2(100, 285), new GeoPoint2(100, 300), new GeoPoint2(-100, 300),
-                new GeoPoint2(-100, 285), new GeoPoint2(-5, 285), new GeoPoint2(-5, 15), new GeoPoint2(-100, 15));
-            GeoSolid3 beam = GeoSolid3.Extrude(section, new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.YAxis, GeoVector3.ZAxis), 2000);
+                new GeoPoint2(-100, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 15),
+                new GeoPoint2(5, 15),
+                new GeoPoint2(5, 285),
+                new GeoPoint2(100, 285),
+                new GeoPoint2(100, 300),
+                new GeoPoint2(-100, 300),
+                new GeoPoint2(-100, 285),
+                new GeoPoint2(-5, 285),
+                new GeoPoint2(-5, 15),
+                new GeoPoint2(-100, 15)
+            );
+            GeoSolid3 beam = GeoSolid3.Extrude(
+                section,
+                new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.YAxis, GeoVector3.ZAxis),
+                2000
+            );
 
-            GeoSolid3 through = GeoSolid3.Pipe(new GeoPolyline3(new GeoPoint3(500, -300, 150), new GeoPoint3(500, 300, 150)), 8, 0.1);
-            GeoPolylineArc3 hooked = new GeoPolyline3(new GeoPoint3(800, 60, 450), new GeoPoint3(800, 60, 200), new GeoPoint3(800, 400, 200)).Fillet(40);
+            GeoSolid3 through = GeoSolid3.Pipe(
+                new GeoPolyline3(new GeoPoint3(500, -300, 150), new GeoPoint3(500, 300, 150)),
+                8,
+                0.1
+            );
+            GeoPolylineArc3 hooked = new GeoPolyline3(
+                new GeoPoint3(800, 60, 450),
+                new GeoPoint3(800, 60, 200),
+                new GeoPoint3(800, 400, 200)
+            ).Fillet(40);
             GeoSolid3 bent = GeoSolid3.Pipe(hooked, 8, 0.1);
             GeoSolid3 lying = Box(1200, -20, 300, 1400, 20, 330);
-            GeoSolid3 above = GeoSolid3.Pipe(new GeoPolyline3(new GeoPoint3(1500, -50, 318), new GeoPoint3(1900, -50, 318)), 8, 0.1);
+            GeoSolid3 above = GeoSolid3.Pipe(
+                new GeoPolyline3(new GeoPoint3(1500, -50, 318), new GeoPoint3(1900, -50, 318)),
+                8,
+                0.1
+            );
 
-            ClashResult[] found = Clash3.Find(new[] { through, bent, lying, above }, new[] { beam }, new ClashOptions(clearance: 25.0));
+            ClashResult[] found = Clash3.Find(
+                new[] { through, bent, lying, above },
+                new[] { beam },
+                new ClashOptions(clearance: 25.0)
+            );
 
             Assert.Equal(
                 new[] { (0, ClashKind.Hard), (1, ClashKind.Hard), (2, ClashKind.Touch), (3, ClashKind.Clearance) },
-                found.Select(r => (r.First, r.Kind)));
+                found.Select(r => (r.First, r.Kind))
+            );
 
             // The straight runs cross the web and the flange square, so each shares its section times the thickness
             // crossed; the bend lies clear of the steel.
@@ -203,7 +245,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             ClashResult touching = found[2];
             Assert.Equal(200.0 * 40, touching.ContactArea, 6);
-            Assert.Equal(touching.ContactArea, touching.Contact.Sum(patch => patch.TriangulateSurface().Sum(t => t.Area)), 6);
+            Assert.Equal(
+                touching.ContactArea,
+                touching.Contact.Sum(patch => patch.TriangulateSurface().Sum(t => t.Area)),
+                6
+            );
 
             // The section's flat sides lie inside its circle, so the bar is a little further off than its axis says.
             ClashResult near = found[3];

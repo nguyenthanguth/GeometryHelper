@@ -16,21 +16,35 @@ namespace GeometryHelper.UnitTest.Dxf
     {
         private static readonly Tolerance Tol = Tolerance.Default;
 
-        private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
-
-        private static readonly GeoTransform3 Turn = new GeoTransform3(new[,]
+        private static readonly string[] Drawings =
         {
-            { 0.7816391739070251, -0.4829292842142122, 0.3947397981737998, 10.0 },
-            { 0.5501172307043584, 0.8320301337746346, -0.07139249941787586, -5.0 },
-            { -0.29395787843858057, 0.27295633888831433, 0.9160150668873173, 2.5 },
-            { 0.0, 0.0, 0.0, 1.0 },
-        });
+            DxfFileEzdxfDrawings.R12,
+            DxfFileEzdxfDrawings.R2000,
+            DxfFileEzdxfDrawings.R2018,
+        };
+
+        private static readonly GeoTransform3 Turn = new GeoTransform3(
+            new[,]
+            {
+                { 0.7816391739070251, -0.4829292842142122, 0.3947397981737998, 10.0 },
+                { 0.5501172307043584, 0.8320301337746346, -0.07139249941787586, -5.0 },
+                { -0.29395787843858057, 0.27295633888831433, 0.9160150668873173, 2.5 },
+                { 0.0, 0.0, 0.0, 1.0 },
+            }
+        );
 
         [Fact]
         public void ThePointsOfEzdxf_AreReadAsEzdxfReadsThem_ToTheBit()
         {
             // ezdxf 1.4.5: POINT 41 of R2000 (44 of R12) at (3, 4, 5); POINT 86 of the dimension's block *D1 at (0, -10, 0).
-            foreach (var (text, handle) in new[] { (DxfFileEzdxfDrawings.R12, "44"), (DxfFileEzdxfDrawings.R2000, "41"), (DxfFileEzdxfDrawings.R2018, "41") })
+            foreach (
+                var (text, handle) in new[]
+                {
+                    (DxfFileEzdxfDrawings.R12, "44"),
+                    (DxfFileEzdxfDrawings.R2000, "41"),
+                    (DxfFileEzdxfDrawings.R2018, "41"),
+                }
+            )
             {
                 DxfDBPoint point = ByHandle<DxfDBPoint>(DxfDatabase.Parse(text), handle);
                 Assert.Equal(Bits(new GeoPoint3(3, 4, 5)), Bits(point.Position));
@@ -138,8 +152,15 @@ namespace GeometryHelper.UnitTest.Dxf
 
             point.TransformBy(Turn);
 
-            Assert.True(point.Position.DistanceTo(new GeoPoint3(12.386899375733226, -0.37849026987776657, 7.290027054674102)) <= 1E-12);
-            Assert.True(point.Normal.Subtract(new GeoVector3(0.3947397981737999, -0.07139249941787587, 0.9160150668873175)).Length <= 1E-12);
+            Assert.True(
+                point.Position.DistanceTo(new GeoPoint3(12.386899375733226, -0.37849026987776657, 7.290027054674102))
+                    <= 1E-12
+            );
+            Assert.True(
+                point
+                    .Normal.Subtract(new GeoVector3(0.3947397981737999, -0.07139249941787587, 0.9160150668873175))
+                    .Length <= 1E-12
+            );
         }
     }
 }

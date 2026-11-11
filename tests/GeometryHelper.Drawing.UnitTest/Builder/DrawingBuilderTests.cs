@@ -41,16 +41,27 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
 
             foreach ((string id, GeoRectangle2 box) in boxes)
             {
-                Assert.True(Left(box) >= Left(frame) - tol && Right(box) <= Right(frame) + tol && Top(box) <= Top(frame) + tol, id + " runs off the frame.");
-                Assert.True(Bottom(box) >= Top(drawing.Sheet.TitleBlockBox) - tol, id + " runs into the strip of the title block.");
+                Assert.True(
+                    Left(box) >= Left(frame) - tol && Right(box) <= Right(frame) + tol && Top(box) <= Top(frame) + tol,
+                    id + " runs off the frame."
+                );
+                Assert.True(
+                    Bottom(box) >= Top(drawing.Sheet.TitleBlockBox) - tol,
+                    id + " runs into the strip of the title block."
+                );
             }
 
             for (int i = 0; i < boxes.Count; i++)
             {
                 for (int j = i + 1; j < boxes.Count; j++)
                 {
-                    GeoRectangle2 a = boxes[i].Box, b = boxes[j].Box;
-                    bool apart = Right(a) <= Left(b) + tol || Right(b) <= Left(a) + tol || Top(a) <= Bottom(b) + tol || Top(b) <= Bottom(a) + tol;
+                    GeoRectangle2 a = boxes[i].Box,
+                        b = boxes[j].Box;
+                    bool apart =
+                        Right(a) <= Left(b) + tol
+                        || Right(b) <= Left(a) + tol
+                        || Top(a) <= Bottom(b) + tol
+                        || Top(b) <= Bottom(a) + tol;
                     Assert.True(apart, boxes[i].Id + " overlaps " + boxes[j].Id + ".");
                 }
             }
@@ -63,7 +74,9 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
 
             foreach (DrawingView view in drawing.Views)
             {
-                _output.WriteLine($"{view.Id} {view.Title} box {view.SheetBox.Center.X:0.#},{view.SheetBox.Center.Y:0.#} {view.SheetBox.Width:0.#}x{view.SheetBox.Height:0.#} dims {view.Dimensions.Count} marks {view.Marks.Count}");
+                _output.WriteLine(
+                    $"{view.Id} {view.Title} box {view.SheetBox.Center.X:0.#},{view.SheetBox.Center.Y:0.#} {view.SheetBox.Width:0.#}x{view.SheetBox.Height:0.#} dims {view.Dimensions.Count} marks {view.Marks.Count}"
+                );
             }
 
             Assert.Equal(new[] { "V-FRONT", "V-TOP", "V-RIGHT" }, drawing.Views.Select(v => v.Id));
@@ -91,7 +104,9 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
             settings.ProjectionMethod = ProjectionMethod.FirstAngle;
             Drawing first = DrawingBuilder.Build(TC2(), settings, Tol);
 
-            GeoRectangle2 front = third.Views[0].SheetBox, top = third.Views[1].SheetBox, right = third.Views[2].SheetBox;
+            GeoRectangle2 front = third.Views[0].SheetBox,
+                top = third.Views[1].SheetBox,
+                right = third.Views[2].SheetBox;
             Assert.True(Bottom(top) >= Top(front));
             Assert.True(Left(right) >= Right(front));
 
@@ -128,15 +143,32 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
         public void NoViewOverlapsAnotherOrRunsOffTheSheetForEveryPresetAndTestBody()
         {
             DrawingSettings withSections = DrawingSettings.Part;
-            withSections.Views.Details.Add(new DetailViewRequest("B", ViewKind.Front, new GeoRectangle2(2800, -200, 300, 400), 4));
-            var sources = new[] { ("TC2", TC2(extra: true)), ("TC1", TestBodies.TC1().ToSource()), ("TC5", TestBodies.TC5().ToSource()), ("TC6", TestBodies.TC6().ToSource()) };
+            withSections.Views.Details.Add(
+                new DetailViewRequest("B", ViewKind.Front, new GeoRectangle2(2800, -200, 300, 400), 4)
+            );
+            var sources = new[]
+            {
+                ("TC2", TC2(extra: true)),
+                ("TC1", TestBodies.TC1().ToSource()),
+                ("TC5", TestBodies.TC5().ToSource()),
+                ("TC6", TestBodies.TC6().ToSource()),
+            };
 
             foreach ((string name, DrawingSource source) in sources)
             {
-                foreach ((string preset, DrawingSettings settings) in new[] { ("Part", withSections), ("Assembly", DrawingSettings.Assembly), ("General", DrawingSettings.General) })
+                foreach (
+                    (string preset, DrawingSettings settings) in new[]
+                    {
+                        ("Part", withSections),
+                        ("Assembly", DrawingSettings.Assembly),
+                        ("General", DrawingSettings.General),
+                    }
+                )
                 {
                     Drawing drawing = DrawingBuilder.Build(source, settings, Tol);
-                    _output.WriteLine($"{name} {preset}: {drawing.Views.Count} views at 1:{drawing.Scale} on {drawing.Sheet.SizeName}, {drawing.Warnings.Count} warnings");
+                    _output.WriteLine(
+                        $"{name} {preset}: {drawing.Views.Count} views at 1:{drawing.Scale} on {drawing.Sheet.SizeName}, {drawing.Warnings.Count} warnings"
+                    );
                     Assert.Empty(drawing.Warnings);
                     AssertLaidOut(drawing);
                 }
@@ -154,10 +186,18 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
 
             Assert.Equal(one.Elements.Select(e => e.Id), two.Elements.Select(e => e.Id));
             Assert.Equal(one.Elements, two.Elements);
-            Assert.Equal(new[] { "V-FRONT", "V-TOP", "V-RIGHT", "V-SECTION-A" }, one.Elements.Where(e => e.Kind == "View").Select(e => e.Id));
-            Assert.Contains(one.Elements, e => e.Id == "V-FRONT/M-TC2-endplate" && e.Kind == "Mark" && e.ViewId == "V-FRONT");
+            Assert.Equal(
+                new[] { "V-FRONT", "V-TOP", "V-RIGHT", "V-SECTION-A" },
+                one.Elements.Where(e => e.Kind == "View").Select(e => e.Id)
+            );
+            Assert.Contains(one.Elements, e =>
+                e.Id == "V-FRONT/M-TC2-endplate" && e.Kind == "Mark" && e.ViewId == "V-FRONT"
+            );
             Assert.Contains(one.Elements, e => e.Id == "V-FRONT/D-Overall-X-1" && e.Kind == "Dimension");
-            Assert.Equal(new[] { "GH-SETTINGS", "GH-SHEET", "GH-TITLE", "GH-PARTLIST" }, one.Elements.Where(e => e.ViewId == null && e.Kind != "View").Select(e => e.Id));
+            Assert.Equal(
+                new[] { "GH-SETTINGS", "GH-SHEET", "GH-TITLE", "GH-PARTLIST" },
+                one.Elements.Where(e => e.ViewId == null && e.Kind != "View").Select(e => e.Id)
+            );
             Assert.Equal(one.Elements.Count, one.Elements.Select(e => e.Id).Distinct(StringComparer.Ordinal).Count());
         }
 
@@ -248,7 +288,10 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
                 _output.WriteLine(row.ToString());
             }
 
-            Assert.Equal(source.Objects.Count(o => o.Kind == DrawingObjectKind.Part), drawing.Sheet.PartList.Sum(r => r.Quantity));
+            Assert.Equal(
+                source.Objects.Count(o => o.Kind == DrawingObjectKind.Part),
+                drawing.Sheet.PartList.Sum(r => r.Quantity)
+            );
             Assert.Equal(new[] { "C1", "P2", "S1", "S1" }, drawing.Sheet.PartList.Select(r => r.Mark));
             Assert.Equal(new[] { 1, 1, 2, 2 }, drawing.Sheet.PartList.Select(r => r.Quantity));
             Assert.Equal(1000.0, drawing.Sheet.PartList[0].Length);

@@ -18,7 +18,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether an ellipse touches a segment, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse2 ellipse, GeoLine2 line) => CollidesWith(ellipse, line, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse2 ellipse, GeoLine2 line) =>
+            CollidesWith(ellipse, line, Tolerance.Global);
 
         /// <summary>
         /// Determines whether an ellipse touches a segment, within a tolerance.
@@ -36,7 +37,8 @@ namespace GeometryHelper.Core
         /// Determines whether an ellipse touches a polyline, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public static bool CollidesWith(GeoEllipse2 ellipse, GeoPolyline2 polyline) => CollidesWith(ellipse, polyline, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse2 ellipse, GeoPolyline2 polyline) =>
+            CollidesWith(ellipse, polyline, Tolerance.Global);
 
         /// <summary>
         /// Determines whether an ellipse touches a polyline, within a tolerance.
@@ -48,7 +50,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static bool CollidesWith(GeoEllipse2 ellipse, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return DistanceTo(ellipse, polyline, tolerance) <= tolerance.EqualPoint;
         }
@@ -57,7 +60,8 @@ namespace GeometryHelper.Core
         /// Determines whether an ellipse touches or overlaps a polygon, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static bool CollidesWith(GeoEllipse2 ellipse, GeoPolygon2 polygon) => CollidesWith(ellipse, polygon, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse2 ellipse, GeoPolygon2 polygon) =>
+            CollidesWith(ellipse, polygon, Tolerance.Global);
 
         /// <summary>
         /// Determines whether an ellipse touches or overlaps a polygon, within a tolerance.
@@ -69,7 +73,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static bool CollidesWith(GeoEllipse2 ellipse, GeoPolygon2 polygon, Tolerance tolerance)
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             return DistanceTo(ellipse, polygon, tolerance) <= tolerance.EqualPoint;
         }
@@ -77,7 +82,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether an ellipse touches or overlaps a rectangle, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse2 ellipse, GeoRectangle2 rect) => CollidesWith(ellipse, rect, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse2 ellipse, GeoRectangle2 rect) =>
+            CollidesWith(ellipse, rect, Tolerance.Global);
 
         /// <summary>
         /// Determines whether an ellipse touches or overlaps a rectangle, within a tolerance.
@@ -94,7 +100,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether an ellipse touches or overlaps a triangle, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse2 ellipse, GeoTriangle2 triangle) => CollidesWith(ellipse, triangle, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse2 ellipse, GeoTriangle2 triangle) =>
+            CollidesWith(ellipse, triangle, Tolerance.Global);
 
         /// <summary>
         /// Determines whether an ellipse touches or overlaps a triangle, within a tolerance.
@@ -114,7 +121,8 @@ namespace GeometryHelper.Core
         /// Determines whether an ellipse reaches the material of a face, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static bool CollidesWith(GeoEllipse2 ellipse, GeoFace2 face) => CollidesWith(ellipse, face, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse2 ellipse, GeoFace2 face) =>
+            CollidesWith(ellipse, face, Tolerance.Global);
 
         /// <summary>
         /// Determines whether an ellipse reaches the material of a face, within a tolerance.
@@ -132,7 +140,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static bool CollidesWith(GeoEllipse2 ellipse, GeoFace2 face, Tolerance tolerance)
         {
-            if (face == null) throw new ArgumentNullException(nameof(face));
+            if (face == null)
+                throw new ArgumentNullException(nameof(face));
 
             double reach = tolerance.EqualPoint;
             GeoVector2 u = ellipse.MajorAxis;
@@ -145,19 +154,24 @@ namespace GeometryHelper.Core
             double hy = Math.Sqrt(a * u.Y * a * u.Y + b * u.X * b * u.X) + slack;
 
             return Face2.Apart(
-                face,
-                rim => Math.Min(rim.StartPoint.X, rim.EndPoint.X) > cx + hx || Math.Max(rim.StartPoint.X, rim.EndPoint.X) < cx - hx
-                    || Math.Min(rim.StartPoint.Y, rim.EndPoint.Y) > cy + hy || Math.Max(rim.StartPoint.Y, rim.EndPoint.Y) < cy - hy
-                    ? double.PositiveInfinity
-                    : DistanceTo(ellipse, rim, tolerance),
-                GetPointAtAngle(ellipse, 0.0),
-                reach) <= reach;
+                    face,
+                    rim =>
+                        Math.Min(rim.StartPoint.X, rim.EndPoint.X) > cx + hx
+                        || Math.Max(rim.StartPoint.X, rim.EndPoint.X) < cx - hx
+                        || Math.Min(rim.StartPoint.Y, rim.EndPoint.Y) > cy + hy
+                        || Math.Max(rim.StartPoint.Y, rim.EndPoint.Y) < cy - hy
+                            ? double.PositiveInfinity
+                            : DistanceTo(ellipse, rim, tolerance),
+                    GetPointAtAngle(ellipse, 0.0),
+                    reach
+                ) <= reach;
         }
 
         /// <summary>
         /// Determines whether an ellipse touches an edge, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse2 ellipse, GeoEdge2 edge) => CollidesWith(ellipse, edge, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse2 ellipse, GeoEdge2 edge) =>
+            CollidesWith(ellipse, edge, Tolerance.Global);
 
         /// <summary>
         /// Determines whether an ellipse touches an edge, within a tolerance: as a segment or as an arc, whichever the edge is.
@@ -170,7 +184,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether an ellipse touches or overlaps a circle, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse2 ellipse, GeoCircle2 circle) => CollidesWith(ellipse, circle, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse2 ellipse, GeoCircle2 circle) =>
+            CollidesWith(ellipse, circle, Tolerance.Global);
 
         /// <summary>
         /// Determines whether an ellipse touches or overlaps a circle, within a tolerance.
@@ -187,7 +202,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether an ellipse touches an arc, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse2 ellipse, GeoArc2 arc) => CollidesWith(ellipse, arc, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse2 ellipse, GeoArc2 arc) =>
+            CollidesWith(ellipse, arc, Tolerance.Global);
 
         /// <summary>
         /// Determines whether an ellipse touches an arc, within a tolerance.
@@ -204,7 +220,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether two ellipses touch or overlap, using the default tolerance.
         /// </summary>
-        public static bool CollidesWith(GeoEllipse2 ellipse, GeoEllipse2 other) => CollidesWith(ellipse, other, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse2 ellipse, GeoEllipse2 other) =>
+            CollidesWith(ellipse, other, Tolerance.Global);
 
         /// <summary>
         /// Determines whether two ellipses touch or overlap, within a tolerance.
@@ -216,7 +233,10 @@ namespace GeometryHelper.Core
         public static bool CollidesWith(GeoEllipse2 ellipse, GeoEllipse2 other, Tolerance tolerance)
         {
             // Two whose circles round the major axes lie apart cannot touch, and need no search.
-            if (ellipse.Center.DistanceTo(other.Center) > ellipse.MajorRadius + other.MajorRadius + tolerance.EqualPoint)
+            if (
+                ellipse.Center.DistanceTo(other.Center)
+                > ellipse.MajorRadius + other.MajorRadius + tolerance.EqualPoint
+            )
             {
                 return false;
             }
@@ -228,7 +248,8 @@ namespace GeometryHelper.Core
         /// Determines whether an ellipse touches a curved chain, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoEllipse2 ellipse, GeoPolylineArc2 chain) => CollidesWith(ellipse, chain, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse2 ellipse, GeoPolylineArc2 chain) =>
+            CollidesWith(ellipse, chain, Tolerance.Global);
 
         /// <summary>
         /// Determines whether an ellipse touches a curved chain, within a tolerance.
@@ -240,7 +261,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoEllipse2 ellipse, GeoPolylineArc2 chain, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return DistanceTo(ellipse, chain, tolerance) <= tolerance.EqualPoint;
         }
@@ -249,7 +271,8 @@ namespace GeometryHelper.Core
         /// Determines whether an ellipse touches or overlaps a curved loop, using the default tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool CollidesWith(GeoEllipse2 ellipse, GeoPolygonArc2 loop) => CollidesWith(ellipse, loop, Tolerance.Global);
+        public static bool CollidesWith(GeoEllipse2 ellipse, GeoPolygonArc2 loop) =>
+            CollidesWith(ellipse, loop, Tolerance.Global);
 
         /// <summary>
         /// Determines whether an ellipse touches or overlaps a curved loop, within a tolerance.
@@ -261,7 +284,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool CollidesWith(GeoEllipse2 ellipse, GeoPolygonArc2 loop, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return DistanceTo(ellipse, loop, tolerance) <= tolerance.EqualPoint;
         }
@@ -290,7 +314,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether an ellipse holds a circle whole, using the default tolerance.
         /// </summary>
-        public static bool Contains(GeoEllipse2 ellipse, GeoCircle2 circle) => Contains(ellipse, circle, Tolerance.Global);
+        public static bool Contains(GeoEllipse2 ellipse, GeoCircle2 circle) =>
+            Contains(ellipse, circle, Tolerance.Global);
 
         /// <summary>
         /// Checks whether an ellipse holds a circle whole, within a tolerance.
@@ -311,7 +336,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether an ellipse holds another whole, using the default tolerance.
         /// </summary>
-        public static bool Contains(GeoEllipse2 ellipse, GeoEllipse2 other) => Contains(ellipse, other, Tolerance.Global);
+        public static bool Contains(GeoEllipse2 ellipse, GeoEllipse2 other) =>
+            Contains(ellipse, other, Tolerance.Global);
 
         /// <summary>
         /// Checks whether an ellipse holds another whole, within a tolerance.
@@ -406,7 +432,13 @@ namespace GeometryHelper.Core
                 {
                     double from = side == 0 ? low : starts[k];
                     double to = side == 0 ? starts[k] : high;
-                    Least(t => -Signed(ellipse, GetPointAtAngle(other, t)), from, 0.5 * (from + to), to, out double value);
+                    Least(
+                        t => -Signed(ellipse, GetPointAtAngle(other, t)),
+                        from,
+                        0.5 * (from + to),
+                        to,
+                        out double value
+                    );
 
                     furthest = Math.Max(furthest, Math.Max(reach[k], -value));
                 }

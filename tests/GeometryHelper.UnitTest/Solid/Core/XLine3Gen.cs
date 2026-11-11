@@ -15,13 +15,30 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>The kinds of shape the line meets in space, as the fuzz names them.</summary>
         internal static readonly string[] Kinds =
         {
-            "Point3", "Line3", "Ray3", "XLine3", "Arc3", "Circle3", "Ellipse3", "Edge3", "Polyline3", "Polygon3", "PolylineArc3",
-            "PolygonArc3", "Triangle3", "Face3", "Plane3", "Aabb3", "Obb3", "Solid3"
+            "Point3",
+            "Line3",
+            "Ray3",
+            "XLine3",
+            "Arc3",
+            "Circle3",
+            "Ellipse3",
+            "Edge3",
+            "Polyline3",
+            "Polygon3",
+            "PolylineArc3",
+            "PolygonArc3",
+            "Triangle3",
+            "Face3",
+            "Plane3",
+            "Aabb3",
+            "Obb3",
+            "Solid3",
         };
 
         private static double Between(Random r, double lo, double hi) => lo + (hi - lo) * r.NextDouble();
 
-        internal static Vec RandomPoint(Random r, double reach = 120.0) => new Vec(Between(r, -reach, reach), Between(r, -reach, reach), Between(r, -reach, reach));
+        internal static Vec RandomPoint(Random r, double reach = 120.0) =>
+            new Vec(Between(r, -reach, reach), Between(r, -reach, reach), Between(r, -reach, reach));
 
         internal static Vec RandomUnit(Random r)
         {
@@ -46,18 +63,30 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         /// <summary>A polygon about a centre in the plane of a normal, star-shaped, its corners turning counter-clockwise about the normal.</summary>
-        private static GeoPoint3[] StarPolygon(Random r, Vec center, Vec normal, int corners, double minRadius, double maxRadius)
+        private static GeoPoint3[] StarPolygon(
+            Random r,
+            Vec center,
+            Vec normal,
+            int corners,
+            double minRadius,
+            double maxRadius
+        )
         {
             Frame(normal, out Vec u, out Vec v);
 
-            double[] angles = Enumerable.Range(0, corners).Select(i => (i + Between(r, 0.1, 0.9)) * 2 * Math.PI / corners).ToArray();
+            double[] angles = Enumerable
+                .Range(0, corners)
+                .Select(i => (i + Between(r, 0.1, 0.9)) * 2 * Math.PI / corners)
+                .ToArray();
 
-            return angles.Select(a =>
-            {
-                double radius = Between(r, minRadius, maxRadius);
+            return angles
+                .Select(a =>
+                {
+                    double radius = Between(r, minRadius, maxRadius);
 
-                return (center + u * (radius * Math.Cos(a)) + v * (radius * Math.Sin(a))).ToPoint();
-            }).ToArray();
+                    return (center + u * (radius * Math.Cos(a)) + v * (radius * Math.Sin(a))).ToPoint();
+                })
+                .ToArray();
         }
 
         private static IReadOnlyList<GeoPoint3> Ring(GeoPolygon3 polygon) => polygon.Vertices;
@@ -72,7 +101,11 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     int i = r.Next(faces.Count);
                     Vec[] box = boxes[i];
-                    var p = new Vec(Between(r, box[0].X, box[1].X), Between(r, box[0].Y, box[1].Y), Between(r, box[0].Z, box[1].Z));
+                    var p = new Vec(
+                        Between(r, box[0].X, box[1].X),
+                        Between(r, box[0].Y, box[1].Y),
+                        Between(r, box[0].Z, box[1].Z)
+                    );
                     Vec foot = p - faces[i].Normal * faces[i].Normal.Dot(p - box[2]);
 
                     if (faces[i].Holds(foot))
@@ -93,15 +126,26 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 new Vec(list.Min(p => p.X), list.Min(p => p.Y), list.Min(p => p.Z)),
                 new Vec(list.Max(p => p.X), list.Max(p => p.Y), list.Max(p => p.Z)),
-                Vec.Of(reference)
+                Vec.Of(reference),
             };
         }
 
-        private static XLineSpecimen OfFlat(string kind, object shape, IReadOnlyList<GeoPoint3> outline, IEnumerable<IReadOnlyList<GeoPoint3>> holes)
+        private static XLineSpecimen OfFlat(
+            string kind,
+            object shape,
+            IReadOnlyList<GeoPoint3> outline,
+            IEnumerable<IReadOnlyList<GeoPoint3>> holes
+        )
         {
             var piece = new FlatPiece(outline, holes);
 
-            return new XLineSpecimen(kind, shape, new Piece[] { piece }, PointInFlat(new[] { piece }, new[] { BoxOf(outline, outline[0]) }), true);
+            return new XLineSpecimen(
+                kind,
+                shape,
+                new Piece[] { piece },
+                PointInFlat(new[] { piece }, new[] { BoxOf(outline, outline[0]) }),
+                true
+            );
         }
 
         /// <summary>The faces of a solid as flat pieces.</summary>
@@ -121,7 +165,10 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static List<Piece> EdgePieces(GeoEdge3 edge)
         {
-            return new List<Piece> { edge.IsArc ? (Piece)new ArcPiece(edge.ToArc()) : new SegPiece(edge.StartPoint, edge.EndPoint) };
+            return new List<Piece>
+            {
+                edge.IsArc ? (Piece)new ArcPiece(edge.ToArc()) : new SegPiece(edge.StartPoint, edge.EndPoint),
+            };
         }
 
         private static GeoEdge3 RandomEdge(Random r, Vec a, Vec b, double curvedShare)
@@ -158,7 +205,13 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     Vec p = RandomPoint(r);
 
-                    return new XLineSpecimen(kind, p.ToPoint(), new Piece[] { new PointPiece(p.ToPoint()) }, rr => p, true);
+                    return new XLineSpecimen(
+                        kind,
+                        p.ToPoint(),
+                        new Piece[] { new PointPiece(p.ToPoint()) },
+                        rr => p,
+                        true
+                    );
                 }
 
                 case "Line3":
@@ -167,7 +220,13 @@ namespace GeometryHelper.UnitTest.Solid
                     Vec b = a + RandomUnit(r) * Between(r, 20, 200);
                     var line = new GeoLine3(a.ToPoint(), b.ToPoint());
 
-                    return new XLineSpecimen(kind, line, new Piece[] { new SegPiece(line.StartPoint, line.EndPoint) }, rr => a + (b - a) * rr.NextDouble(), true);
+                    return new XLineSpecimen(
+                        kind,
+                        line,
+                        new Piece[] { new SegPiece(line.StartPoint, line.EndPoint) },
+                        rr => a + (b - a) * rr.NextDouble(),
+                        true
+                    );
                 }
 
                 case "Ray3":
@@ -176,7 +235,13 @@ namespace GeometryHelper.UnitTest.Solid
                     Vec d = RandomUnit(r);
                     var ray = new GeoRay3(o.ToPoint(), new GeoVector3(d.X, d.Y, d.Z));
 
-                    return new XLineSpecimen(kind, ray, new Piece[] { new RayPiece(ray) }, rr => o + d * Between(rr, 0, 200), true);
+                    return new XLineSpecimen(
+                        kind,
+                        ray,
+                        new Piece[] { new RayPiece(ray) },
+                        rr => o + d * Between(rr, 0, 200),
+                        true
+                    );
                 }
 
                 case "XLine3":
@@ -185,7 +250,13 @@ namespace GeometryHelper.UnitTest.Solid
                     Vec d = RandomUnit(r);
                     var xline = new GeoXLine3(o.ToPoint(), new GeoVector3(d.X, d.Y, d.Z));
 
-                    return new XLineSpecimen(kind, xline, new Piece[] { new LinePiece(xline) }, rr => o + d * Between(rr, -150, 150), true);
+                    return new XLineSpecimen(
+                        kind,
+                        xline,
+                        new Piece[] { new LinePiece(xline) },
+                        rr => o + d * Between(rr, -150, 150),
+                        true
+                    );
                 }
 
                 case "Arc3":
@@ -198,7 +269,13 @@ namespace GeometryHelper.UnitTest.Solid
                     var arc = new GeoArc3(c.ToPoint(), new GeoVector3(n.X, n.Y, n.Z), radius, start, start + sweep);
                     var piece = new ArcPiece(arc);
 
-                    return new XLineSpecimen(kind, arc, new Piece[] { piece }, rr => Vec.Of(arc.GetPointAtParameter(rr.NextDouble())), false);
+                    return new XLineSpecimen(
+                        kind,
+                        arc,
+                        new Piece[] { piece },
+                        rr => Vec.Of(arc.GetPointAtParameter(rr.NextDouble())),
+                        false
+                    );
                 }
 
                 case "Circle3":
@@ -212,7 +289,17 @@ namespace GeometryHelper.UnitTest.Solid
 
                     var piece = new ArcPiece(c, n, c + u * radius, 2 * Math.PI);
 
-                    return new XLineSpecimen(kind, circle, new Piece[] { piece }, rr => { double a = Between(rr, 0, 2 * Math.PI); return c + u * (radius * Math.Cos(a)) + v * (radius * Math.Sin(a)); }, false);
+                    return new XLineSpecimen(
+                        kind,
+                        circle,
+                        new Piece[] { piece },
+                        rr =>
+                        {
+                            double a = Between(rr, 0, 2 * Math.PI);
+                            return c + u * (radius * Math.Cos(a)) + v * (radius * Math.Sin(a));
+                        },
+                        false
+                    );
                 }
 
                 case "Ellipse3":
@@ -226,9 +313,25 @@ namespace GeometryHelper.UnitTest.Solid
                     Vec minor = n.Cross(major);
                     double a = Between(r, 30, 100);
                     double b = Between(r, 10, a);
-                    var ellipse = new GeoEllipse3(c.ToPoint(), new GeoVector3(n.X, n.Y, n.Z), new GeoVector3(major.X, major.Y, major.Z), a, b);
+                    var ellipse = new GeoEllipse3(
+                        c.ToPoint(),
+                        new GeoVector3(n.X, n.Y, n.Z),
+                        new GeoVector3(major.X, major.Y, major.Z),
+                        a,
+                        b
+                    );
 
-                    return new XLineSpecimen(kind, ellipse, new Piece[] { new EllipsePiece(ellipse) }, rr => { double t = Between(rr, 0, 2 * Math.PI); return c + major * (a * Math.Cos(t)) + minor * (b * Math.Sin(t)); }, false);
+                    return new XLineSpecimen(
+                        kind,
+                        ellipse,
+                        new Piece[] { new EllipsePiece(ellipse) },
+                        rr =>
+                        {
+                            double t = Between(rr, 0, 2 * Math.PI);
+                            return c + major * (a * Math.Cos(t)) + minor * (b * Math.Sin(t));
+                        },
+                        false
+                    );
                 }
 
                 case "Edge3":
@@ -253,7 +356,17 @@ namespace GeometryHelper.UnitTest.Solid
                     var polyline = new GeoPolyline3(points);
                     List<GeoLine3> edges = Enumerable.Range(0, polyline.EdgeCount).Select(polyline.GetEdgeAt).ToList();
 
-                    return new XLineSpecimen(kind, polyline, edges.Select(e => (Piece)new SegPiece(e.StartPoint, e.EndPoint)).ToList(), rr => { GeoLine3 e = edges[rr.Next(edges.Count)]; return Vec.Of(e.StartPoint) + (Vec.Of(e.EndPoint) - Vec.Of(e.StartPoint)) * rr.NextDouble(); }, true);
+                    return new XLineSpecimen(
+                        kind,
+                        polyline,
+                        edges.Select(e => (Piece)new SegPiece(e.StartPoint, e.EndPoint)).ToList(),
+                        rr =>
+                        {
+                            GeoLine3 e = edges[rr.Next(edges.Count)];
+                            return Vec.Of(e.StartPoint) + (Vec.Of(e.EndPoint) - Vec.Of(e.StartPoint)) * rr.NextDouble();
+                        },
+                        true
+                    );
                 }
 
                 case "PolylineArc3":
@@ -281,7 +394,13 @@ namespace GeometryHelper.UnitTest.Solid
                         pieces.AddRange(EdgePieces(chain.GetEdgeAt(i)));
                     }
 
-                    return new XLineSpecimen(kind, chain, pieces, PointOnEdges(Enumerable.Range(0, chain.EdgeCount).Select(chain.GetEdgeAt).ToList()), false);
+                    return new XLineSpecimen(
+                        kind,
+                        chain,
+                        pieces,
+                        PointOnEdges(Enumerable.Range(0, chain.EdgeCount).Select(chain.GetEdgeAt).ToList()),
+                        false
+                    );
                 }
 
                 case "PolygonArc3":
@@ -307,7 +426,13 @@ namespace GeometryHelper.UnitTest.Solid
                         pieces.AddRange(EdgePieces(loop.GetEdgeAt(i)));
                     }
 
-                    return new XLineSpecimen(kind, loop, pieces, PointOnEdges(Enumerable.Range(0, loop.EdgeCount).Select(loop.GetEdgeAt).ToList()), false);
+                    return new XLineSpecimen(
+                        kind,
+                        loop,
+                        pieces,
+                        PointOnEdges(Enumerable.Range(0, loop.EdgeCount).Select(loop.GetEdgeAt).ToList()),
+                        false
+                    );
                 }
 
                 case "Polygon3":
@@ -348,7 +473,13 @@ namespace GeometryHelper.UnitTest.Solid
 
                     Frame(n, out Vec u, out Vec v);
 
-                    return new XLineSpecimen(kind, plane, new Piece[] { new PlanePiece(plane) }, rr => c + u * Between(rr, -150, 150) + v * Between(rr, -150, 150), true);
+                    return new XLineSpecimen(
+                        kind,
+                        plane,
+                        new Piece[] { new PlanePiece(plane) },
+                        rr => c + u * Between(rr, -150, 150) + v * Between(rr, -150, 150),
+                        true
+                    );
                 }
 
                 case "Aabb3":
@@ -356,7 +487,9 @@ namespace GeometryHelper.UnitTest.Solid
                     Vec a = RandomPoint(r, 60);
                     Vec b = a + new Vec(Between(r, 20, 120), Between(r, 20, 120), Between(r, 20, 120));
                     var box = new GeoAabb3(a.ToPoint(), b.ToPoint());
-                    GeoFace3[] faces = new GeoObb3(((a + b) * 0.5).ToPoint(), b.X - a.X, b.Y - a.Y, b.Z - a.Z).ToSolid().Faces.ToArray();
+                    GeoFace3[] faces = new GeoObb3(((a + b) * 0.5).ToPoint(), b.X - a.X, b.Y - a.Y, b.Z - a.Z)
+                        .ToSolid()
+                        .Faces.ToArray();
 
                     return OfSolid(kind, box, faces);
                 }
@@ -367,7 +500,14 @@ namespace GeometryHelper.UnitTest.Solid
                     Vec n = RandomUnit(r);
                     Frame(n, out Vec u, out Vec v);
 
-                    var box = new GeoObb3(c.ToPoint(), Between(r, 20, 120), Between(r, 20, 120), Between(r, 20, 120), new GeoVector3(u.X, u.Y, u.Z), new GeoVector3(v.X, v.Y, v.Z));
+                    var box = new GeoObb3(
+                        c.ToPoint(),
+                        Between(r, 20, 120),
+                        Between(r, 20, 120),
+                        Between(r, 20, 120),
+                        new GeoVector3(u.X, u.Y, u.Z),
+                        new GeoVector3(v.X, v.Y, v.Z)
+                    );
 
                     return OfSolid(kind, box, box.ToSolid().Faces.ToArray());
                 }
@@ -401,7 +541,7 @@ namespace GeometryHelper.UnitTest.Solid
             Axis,
 
             /// <summary>Through a point of the shape and then moved square to itself by a few thousandths.</summary>
-            NearlyThrough
+            NearlyThrough,
         }
 
         /// <summary>Makes one random line for a shape.</summary>
@@ -419,7 +559,9 @@ namespace GeometryHelper.UnitTest.Solid
 
                 case Layout.Axis:
                     o = RandomPoint(r, 150);
-                    d = new[] { new Vec(1, 0, 0), new Vec(0, 1, 0), new Vec(0, 0, 1) }[r.Next(3)] * (r.Next(2) == 0 ? 1 : -1);
+                    d =
+                        new[] { new Vec(1, 0, 0), new Vec(0, 1, 0), new Vec(0, 0, 1) }[r.Next(3)]
+                        * (r.Next(2) == 0 ? 1 : -1);
                     break;
 
                 default:

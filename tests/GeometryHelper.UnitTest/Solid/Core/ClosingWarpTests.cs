@@ -39,14 +39,22 @@ namespace GeometryHelper.UnitTest.Solid.Core
             GeoFace3[] added = closed.Faces.Where(face => !body.Faces.Contains(face)).ToArray();
             Assert.Equal(2, added.Length);
             Assert.All(added, face => Assert.Equal(3, face.Boundary.VertexCount));
-            Assert.InRange(closed.GetVolume(Fine), 500000.0 + 10000.0 * 0.005 / 6.0 - 1E-6, 500000.0 + 10000.0 * 0.005 / 3.0 + 1E-6);
+            Assert.InRange(
+                closed.GetVolume(Fine),
+                500000.0 + 10000.0 * 0.005 / 6.0 - 1E-6,
+                500000.0 + 10000.0 * 0.005 / 3.0 + 1E-6
+            );
         }
 
         [Fact]
         public void ATopLiftedAtACornerByFiveHundredths_IsAHoleAmbiguous_WhereOnlyAnUnambiguousFillIsTaken()
         {
             // Lifted 0.05, the two ways across differ by 83.3, more than the bound of 10: which the body holds cannot be told.
-            GeoPoint3 at = AssertRefused(ClosingTestBodies.BoxWithoutItsTopLiftedAtACorner(100, 50, 0.05), OffFlat(0.1), ClosingFailure.HoleAmbiguous);
+            GeoPoint3 at = AssertRefused(
+                ClosingTestBodies.BoxWithoutItsTopLiftedAtACorner(100, 50, 0.05),
+                OffFlat(0.1),
+                ClosingFailure.HoleAmbiguous
+            );
             AssertOnTheTop(at, 100.0, 50.0, 0.05);
         }
 
@@ -62,14 +70,22 @@ namespace GeometryHelper.UnitTest.Solid.Core
             GeoFace3[] added = closed.Faces.Where(face => !body.Faces.Contains(face)).ToArray();
             Assert.Equal(2, added.Length);
             Assert.All(added, face => Assert.Equal(3, face.Boundary.VertexCount));
-            Assert.InRange(closed.GetVolume(Fine), 500000.0 + 10000.0 * 0.05 / 6.0 - 1E-6, 500000.0 + 10000.0 * 0.05 / 3.0 + 1E-6);
+            Assert.InRange(
+                closed.GetVolume(Fine),
+                500000.0 + 10000.0 * 0.05 / 6.0 - 1E-6,
+                500000.0 + 10000.0 * 0.05 / 3.0 + 1E-6
+            );
         }
 
         [Fact]
         public void AHoleFurtherOutOfFlatThanAllowed_IsAHoleOffFlat()
         {
             // Lifted 0.05, the rim stands 0.0125 off the plane through its middle, more than the hundredth allowed.
-            GeoPoint3 at = AssertRefused(ClosingTestBodies.BoxWithoutItsTopLiftedAtACorner(100, 50, 0.05), OffFlat(0.01), ClosingFailure.HoleOffFlat);
+            GeoPoint3 at = AssertRefused(
+                ClosingTestBodies.BoxWithoutItsTopLiftedAtACorner(100, 50, 0.05),
+                OffFlat(0.01),
+                ClosingFailure.HoleOffFlat
+            );
             AssertOnTheTop(at, 100.0, 50.0, 0.05);
         }
 
@@ -91,7 +107,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // Across the loop the least area, 15.14, is the diagonal plane with a triangle at each end; but each end triangle
             // lies on the end face it stands in, back to back with it, and is no way to take. Of the ways lying on no face of
             // the body the least is the two faces again, 20, the others 20.05: the box whole, 10.
-            SolidClosing3 report = AssertFilled(LongBoxMissingTopAndFront(10.0), OffFlat(1.0, FillStrategy.MinArea), out GeoSolid3 closed);
+            SolidClosing3 report = AssertFilled(
+                LongBoxMissingTopAndFront(10.0),
+                OffFlat(1.0, FillStrategy.MinArea),
+                out GeoSolid3 closed
+            );
             SolidRepair3 fill = Assert.Single(report.Repairs);
             Assert.Equal(SolidRepairKind.Fill, fill.Kind);
             Assert.Equal(20.0, fill.Size, 9);
@@ -103,7 +123,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void AShortBoxMissingTwoFacesBesideEachOther_IsFilledByTheTwoFacesAgain()
         {
             // A box 1 by 1 by 1: across the diagonal plane takes 2.41, the two faces again 2, and they are the least.
-            SolidClosing3 report = AssertFilled(LongBoxMissingTopAndFront(1.0), OffFlat(1.0, FillStrategy.MinArea), out GeoSolid3 closed);
+            SolidClosing3 report = AssertFilled(
+                LongBoxMissingTopAndFront(1.0),
+                OffFlat(1.0, FillStrategy.MinArea),
+                out GeoSolid3 closed
+            );
             SolidRepair3 fill = Assert.Single(report.Repairs);
             Assert.Equal(SolidRepairKind.Fill, fill.Kind);
             Assert.Equal(2.0, fill.Size, 9);
@@ -133,7 +157,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // The same with 300 sides: the least area is found across loops of no more than 256 corners, and a loop out of
             // flat with more is too large to fill. The trouble is on its rim.
-            GeoPoint3 at = AssertRefused(ClosingTestBodies.PrismWithoutItsTopLiftedAtACorner(300, 10, 10, 0.0015), OffFlat(0.01), ClosingFailure.HoleTooLarge);
+            GeoPoint3 at = AssertRefused(
+                ClosingTestBodies.PrismWithoutItsTopLiftedAtACorner(300, 10, 10, 0.0015),
+                OffFlat(0.01),
+                ClosingFailure.HoleTooLarge
+            );
             Assert.InRange(at.Z, 10.0 - 1E-6, 10.0015 + 1E-6);
             Assert.InRange(Math.Sqrt(at.X * at.X + at.Y * at.Y), 10.0 - 0.01, 10.0 + 1E-6);
         }
@@ -146,17 +174,27 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // The plate's top left out, its corner over (30, 30) lifted 0.005 and the hole's corner over (20, 20) as much: two
             // loops out of flat, the one inside the other. Triangles are found across a loop with nothing inside it, and the
             // least area is taken of those only.
-            GeoPoint3 at = AssertRefused(ClosingTestBodies.PlateWithAHoleWithoutItsTopLifted(0.005), OffFlat(0.01, fill), ClosingFailure.HoleAmbiguous);
+            GeoPoint3 at = AssertRefused(
+                ClosingTestBodies.PlateWithAHoleWithoutItsTopLifted(0.005),
+                OffFlat(0.01, fill),
+                ClosingFailure.HoleAmbiguous
+            );
             AssertOnTheTop(at, 30.0, 10.0, 0.005);
         }
 
         // A box as long as given by 1 by 1, its top and its front left out.
-        private static GeoSolid3 LongBoxMissingTopAndFront(double length)
-            => ClosingTestBodies.WithoutFaces(new GeoSolid3(ClosingTestBodies.BoxFaces(ClosingTestBodies.Corners(0, 0, 0, length, 1, 1))), ClosingTestBodies.Top, ClosingTestBodies.Front);
+        private static GeoSolid3 LongBoxMissingTopAndFront(double length) =>
+            ClosingTestBodies.WithoutFaces(
+                new GeoSolid3(ClosingTestBodies.BoxFaces(ClosingTestBodies.Corners(0, 0, 0, length, 1, 1))),
+                ClosingTestBodies.Top,
+                ClosingTestBodies.Front
+            );
 
         // Welds within five thousandths, fills a hole of any size out of flat by no more than given, as the strategy says.
-        private static SolidClosingOptions OffFlat(double maxOffFlat, FillStrategy fill = FillStrategy.WhenUnambiguous)
-            => new SolidClosingOptions(Fine, 0.005, double.PositiveInfinity, maxOffFlat, fill);
+        private static SolidClosingOptions OffFlat(
+            double maxOffFlat,
+            FillStrategy fill = FillStrategy.WhenUnambiguous
+        ) => new SolidClosingOptions(Fine, 0.005, double.PositiveInfinity, maxOffFlat, fill);
 
         // Filled: another body, valid, with no needle and no skin of no thickness, nothing gone wrong.
         private static SolidClosing3 AssertFilled(GeoSolid3 body, SolidClosingOptions options, out GeoSolid3 closed)
@@ -195,7 +233,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         // Within a millionth of what it should hold.
-        private static void AssertVolume(double expected, GeoSolid3 closed)
-            => Assert.InRange(closed.GetVolume(Fine), expected * (1.0 - 1E-6), expected * (1.0 + 1E-6));
+        private static void AssertVolume(double expected, GeoSolid3 closed) =>
+            Assert.InRange(closed.GetVolume(Fine), expected * (1.0 - 1E-6), expected * (1.0 + 1E-6));
     }
 }

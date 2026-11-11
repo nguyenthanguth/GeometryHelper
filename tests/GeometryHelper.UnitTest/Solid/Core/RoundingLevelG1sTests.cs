@@ -23,7 +23,9 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly GeoVector3 Up = Unit(new GeoVector3(0.3, -0.4, 0.866));
 
         /// <summary>The plate's length, square to its up.</summary>
-        private static readonly GeoVector3 Along = Unit(new GeoVector3(1, 0.2, 0).Subtract(Up.Multiply(new GeoVector3(1, 0.2, 0).DotProduct(Up))));
+        private static readonly GeoVector3 Along = Unit(
+            new GeoVector3(1, 0.2, 0).Subtract(Up.Multiply(new GeoVector3(1, 0.2, 0).DotProduct(Up)))
+        );
 
         /// <summary>The plate's width.</summary>
         private static readonly GeoVector3 Across = Up.CrossProduct(Along);
@@ -31,8 +33,8 @@ namespace GeometryHelper.UnitTest.Solid
         private static GeoVector3 Unit(GeoVector3 vector) => vector.Multiply(1 / vector.Length);
 
         /// <summary>The point at a length, a width and a height in the turned frame standing at (out, out, out).</summary>
-        private static GeoPoint3 At(double far, double x, double y, double z)
-            => new GeoPoint3(far, far, far).Add(Along.Multiply(x)).Add(Across.Multiply(y)).Add(Up.Multiply(z));
+        private static GeoPoint3 At(double far, double x, double y, double z) =>
+            new GeoPoint3(far, far, far).Add(Along.Multiply(x)).Add(Across.Multiply(y)).Add(Up.Multiply(z));
 
         /// <summary>
         /// The plate 200 by 100 by 3 standing in the turned frame, with openings each given as its length from and to, its width
@@ -49,9 +51,18 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoSolid3 body = GeoSolid3.Extrude(new GeoPolygon3(corners.ToArray()), Up.Multiply(3), Tolerance.Default);
             GeoSolid3[] openings = holes
-                .Select(h => GeoSolid3.Extrude(
-                    new GeoPolygon3(At(far, h[0], h[1], h[4]), At(far, h[2], h[1], h[4]), At(far, h[2], h[3], h[4]), At(far, h[0], h[3], h[4])),
-                    Up.Multiply(h[5] - h[4]), Tolerance.Default))
+                .Select(h =>
+                    GeoSolid3.Extrude(
+                        new GeoPolygon3(
+                            At(far, h[0], h[1], h[4]),
+                            At(far, h[2], h[1], h[4]),
+                            At(far, h[2], h[3], h[4]),
+                            At(far, h[0], h[3], h[4])
+                        ),
+                        Up.Multiply(h[5] - h[4]),
+                        Tolerance.Default
+                    )
+                )
                 .ToArray();
 
             return body.WithOpenings(openings);
@@ -83,7 +94,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void AtToleranceNought_ATurnedPlateWithTwoBlindHoles_MeasuresWhatTheHolesLeave()
         {
             // A million out, two holes from under it 1 and 1.5 deep: measured at nought the plate held 60 000.
-            GeoSolid3 plate = TurnedPlate(1E6, new double[] { 20, 25, 50, 75, -7, 1 }, new double[] { 80, 30, 120, 70, -7, 1.5 });
+            GeoSolid3 plate = TurnedPlate(
+                1E6,
+                new double[] { 20, 25, 50, 75, -7, 1 },
+                new double[] { 80, 30, 120, 70, -7, 1.5 }
+            );
 
             Assert.Equal(56_100, plate.GetVolume(Nought), 1E-6 * 56_100);
         }
@@ -95,7 +110,11 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // A notch 20 by 20 at one end and one 20 wide and 1 deep across the other, flush with three faces: measured at nought
             // the plate held nothing, and TryGetVolume trusted that.
-            GeoSolid3 plate = TurnedPlate(far, new double[] { 0, 40, 20, 60, -7, 10 }, new double[] { 180, 0, 200, 100, -7, 1 });
+            GeoSolid3 plate = TurnedPlate(
+                far,
+                new double[] { 0, 40, 20, 60, -7, 10 },
+                new double[] { 180, 0, 200, 100, -7, 1 }
+            );
 
             Assert.Equal(56_800, plate.GetVolume(Nought), 1E-6 * 56_800);
 
@@ -113,18 +132,27 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 plate = TurnedPlate(0, new double[] { 20, 40, 40, 60, -7, 10 });
 
             Assert.Equal(41_800 - 800 + 240, plate.GetSurfaceArea(Nought), 1E-6 * 41_800);
-            Assert.True(plate.GetCentroid(Nought).DistanceTo(At(0, (60_000 * 100 - 1_200 * 30) / 58_800.0, 50, 1.5)) < 1E-6);
+            Assert.True(
+                plate.GetCentroid(Nought).DistanceTo(At(0, (60_000 * 100 - 1_200 * 30) / 58_800.0, 50, 1.5)) < 1E-6
+            );
         }
 
         [Theory]
         [InlineData(1E6, 1.0)]
         [InlineData(1E6, 2.0)]
         [InlineData(1E7, 1.0)]
-        public void AtOrJustAboveTheRounding_ATurnedPlateWithTwoNotches_MeasuresWhatTheyLeave(double far, double roundings)
+        public void AtOrJustAboveTheRounding_ATurnedPlateWithTwoNotches_MeasuresWhatTheyLeave(
+            double far,
+            double roundings
+        )
         {
             // At the rounding and twice it, the notch flush with three faces would not come out of the plate by a difference
             // at the tolerance alone, and was measured as material: 58 800 where TryCutOpenings gave 56 800.
-            GeoSolid3 plate = TurnedPlate(far, new double[] { 0, 40, 20, 60, -7, 10 }, new double[] { 180, 0, 200, 100, -7, 1 });
+            GeoSolid3 plate = TurnedPlate(
+                far,
+                new double[] { 0, 40, 20, 60, -7, 10 },
+                new double[] { 180, 0, 200, 100, -7, 1 }
+            );
             double tolerance = roundings * RoundingOf(plate);
             var within = new Tolerance(tolerance, tolerance, tolerance, tolerance);
 

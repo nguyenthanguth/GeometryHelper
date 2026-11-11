@@ -35,7 +35,8 @@ namespace GeometryHelper.Export
         private readonly List<(GeoPoint2 Point, string Colour)> _points = new List<(GeoPoint2, string)>();
         private readonly List<(GeoRay2 Ray, string Colour)> _rays = new List<(GeoRay2, string)>();
         private readonly List<(GeoXLine2 XLine, string Colour)> _xlines = new List<(GeoXLine2, string)>();
-        private readonly List<(GeoPoint2 At, string Text, string Colour)> _labels = new List<(GeoPoint2, string, string)>();
+        private readonly List<(GeoPoint2 At, string Text, string Colour)> _labels =
+            new List<(GeoPoint2, string, string)>();
         private double _minX = double.PositiveInfinity;
         private double _minY = double.PositiveInfinity;
         private double _maxX = double.NegativeInfinity;
@@ -65,7 +66,10 @@ namespace GeometryHelper.Export
         /// </remarks>
         public SvgWriter Add(GeoArc2 arc, string colour = "black")
         {
-            if (Math.Abs(Math.Abs(arc.SweptAngle) - Math.PI * 2.0) <= 1E-12 || (Math.Abs(arc.SweptAngle) > Math.PI && Xy(arc.StartPoint) == Xy(arc.EndPoint)))
+            if (
+                Math.Abs(Math.Abs(arc.SweptAngle) - Math.PI * 2.0) <= 1E-12
+                || (Math.Abs(arc.SweptAngle) > Math.PI && Xy(arc.StartPoint) == Xy(arc.EndPoint))
+            )
             {
                 return Add(new GeoCircle2(arc.Center, arc.Radius), colour);
             }
@@ -75,15 +79,23 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>Adds an edge, straight or curved.</summary>
-        public SvgWriter Add(GeoEdge2 edge, string colour = "black")
-            => edge.IsArc ? Add(edge.ToArc(), colour) : Add(edge.ToLine(), colour);
+        public SvgWriter Add(GeoEdge2 edge, string colour = "black") =>
+            edge.IsArc ? Add(edge.ToArc(), colour) : Add(edge.ToLine(), colour);
 
         /// <summary>Adds a circle.</summary>
         public SvgWriter Add(GeoCircle2 circle, string colour = "black", string fill = "none")
         {
             GrowRound(circle.Center, circle.Radius);
-            _elements.Add(string.Format(CultureInfo.InvariantCulture,
-                "<circle cx=\"{0}\" cy=\"{1}\" r=\"{2}\" {3}/>", N(circle.Center.X), N(circle.Center.Y), N(circle.Radius), Style(colour, fill)));
+            _elements.Add(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "<circle cx=\"{0}\" cy=\"{1}\" r=\"{2}\" {3}/>",
+                    N(circle.Center.X),
+                    N(circle.Center.Y),
+                    N(circle.Radius),
+                    Style(colour, fill)
+                )
+            );
             return this;
         }
 
@@ -98,8 +110,12 @@ namespace GeometryHelper.Export
         {
             double a = ellipse.MajorRadius;
             double b = ellipse.MinorRadius;
-            double halfWidth = Math.Sqrt(a * a * ellipse.MajorAxis.X * ellipse.MajorAxis.X + b * b * ellipse.MajorAxis.Y * ellipse.MajorAxis.Y);
-            double halfHeight = Math.Sqrt(a * a * ellipse.MajorAxis.Y * ellipse.MajorAxis.Y + b * b * ellipse.MajorAxis.X * ellipse.MajorAxis.X);
+            double halfWidth = Math.Sqrt(
+                a * a * ellipse.MajorAxis.X * ellipse.MajorAxis.X + b * b * ellipse.MajorAxis.Y * ellipse.MajorAxis.Y
+            );
+            double halfHeight = Math.Sqrt(
+                a * a * ellipse.MajorAxis.Y * ellipse.MajorAxis.Y + b * b * ellipse.MajorAxis.X * ellipse.MajorAxis.X
+            );
 
             Grow(ellipse.Center.X - halfWidth, ellipse.Center.Y - halfHeight);
             Grow(ellipse.Center.X + halfWidth, ellipse.Center.Y + halfHeight);
@@ -107,9 +123,18 @@ namespace GeometryHelper.Export
             // Under the group's scale(1,-1) a positive turn is the drawing's, counter-clockwise; adding nought drops the sign of -0.
             double degrees = Math.Atan2(ellipse.MajorAxis.Y, ellipse.MajorAxis.X) * 180.0 / Math.PI + 0.0;
 
-            _elements.Add(string.Format(CultureInfo.InvariantCulture,
-                "<ellipse cx=\"{0}\" cy=\"{1}\" rx=\"{2}\" ry=\"{3}\" transform=\"rotate({4} {0} {1})\" {5}/>",
-                N(ellipse.Center.X), N(ellipse.Center.Y), N(a), N(b), N(degrees), Style(colour, fill)));
+            _elements.Add(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "<ellipse cx=\"{0}\" cy=\"{1}\" rx=\"{2}\" ry=\"{3}\" transform=\"rotate({4} {0} {1})\" {5}/>",
+                    N(ellipse.Center.X),
+                    N(ellipse.Center.Y),
+                    N(a),
+                    N(b),
+                    N(degrees),
+                    Style(colour, fill)
+                )
+            );
             return this;
         }
 
@@ -144,7 +169,8 @@ namespace GeometryHelper.Export
             Chords.Require(chordTolerance);
 
             // The path is made before the picture grows by the spline, so that a tolerance that needs too many chords leaves the picture as it was.
-            string data = spline.IsRational || spline.Degree > 3 ? ThroughChords(spline, chordTolerance) : AlongPieces(spline);
+            string data =
+                spline.IsRational || spline.Degree > 3 ? ThroughChords(spline, chordTolerance) : AlongPieces(spline);
 
             var min = new double[2];
             var max = new double[2];
@@ -175,7 +201,10 @@ namespace GeometryHelper.Export
         {
             BezierPieces pieces = spline.Curve.Pieces;
             int degree = pieces.Degree;
-            string command = degree == 3 ? " C" : degree == 2 ? " Q" : " L";
+            string command =
+                degree == 3 ? " C"
+                : degree == 2 ? " Q"
+                : " L";
             var data = new StringBuilder("M ").Append(Xy(spline.StartPoint));
 
             for (int piece = 0; piece < pieces.Count; piece++)
@@ -185,7 +214,8 @@ namespace GeometryHelper.Export
 
                 for (int j = 1; j <= degree; j++)
                 {
-                    data.Append(' ').Append(Xy(new GeoPoint2(pieces.Points[at + 2 * j], pieces.Points[at + 2 * j + 1])));
+                    data.Append(' ')
+                        .Append(Xy(new GeoPoint2(pieces.Points[at + 2 * j], pieces.Points[at + 2 * j + 1])));
                 }
             }
 
@@ -193,8 +223,8 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>Adds a triangle.</summary>
-        public SvgWriter Add(GeoTriangle2 triangle, string colour = "black", string fill = "none")
-            => Path(Through(new[] { triangle.A, triangle.B, triangle.C }, true), colour, fill);
+        public SvgWriter Add(GeoTriangle2 triangle, string colour = "black", string fill = "none") =>
+            Path(Through(new[] { triangle.A, triangle.B, triangle.C }, true), colour, fill);
 
         /// <summary>Adds triangles, each a closed path of its own, such as what a triangulation gives.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the triangles are null.</exception>
@@ -350,8 +380,8 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>Adds a rectangle.</summary>
-        public SvgWriter Add(GeoRectangle2 rectangle, string colour = "black", string fill = "none")
-            => Path(Through(rectangle.GetVertices(), true), colour, fill);
+        public SvgWriter Add(GeoRectangle2 rectangle, string colour = "black", string fill = "none") =>
+            Path(Through(rectangle.GetVertices(), true), colour, fill);
 
         /// <summary>Adds a face, its holes left empty.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
@@ -420,9 +450,17 @@ namespace GeometryHelper.Export
             int pixelsHigh = Math.Max(1, (int)Math.Round(800.0 * viewHeight / viewWidth));
 
             var text = new StringBuilder();
-            text.Append(string.Format(CultureInfo.InvariantCulture,
-                "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"800\" height=\"{0}\" viewBox=\"{1} {2} {3} {4}\">\n",
-                pixelsHigh, N(left), N(-top), N(viewWidth), N(viewHeight)));
+            text.Append(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"800\" height=\"{0}\" viewBox=\"{1} {2} {3} {4}\">\n",
+                    pixelsHigh,
+                    N(left),
+                    N(-top),
+                    N(viewWidth),
+                    N(viewHeight)
+                )
+            );
             text.Append("<g transform=\"scale(1,-1)\" stroke-linejoin=\"round\" stroke-linecap=\"round\">\n");
 
             foreach (string element in _elements)
@@ -439,34 +477,71 @@ namespace GeometryHelper.Export
                 double reach = Reach(ray.Origin, ray.Direction, left, right, top, bottom);
 
                 GeoPoint2 end = ray.Origin.Add(new GeoVector2(ray.Direction.X * reach, ray.Direction.Y * reach));
-                text.Append("<path d=\"M ").Append(Xy(ray.Origin)).Append(" L ").Append(Xy(end)).Append("\" ").Append(Style(colour, "none")).Append("/>\n");
+                text.Append("<path d=\"M ")
+                    .Append(Xy(ray.Origin))
+                    .Append(" L ")
+                    .Append(Xy(end))
+                    .Append("\" ")
+                    .Append(Style(colour, "none"))
+                    .Append("/>\n");
             }
 
             // A line without ends runs on both ways, to the edge it meets first each way.
             foreach ((GeoXLine2 xline, string colour) in _xlines)
             {
                 double ahead = Reach(xline.Origin, xline.Direction, left, right, top, bottom);
-                double behind = Reach(xline.Origin, new GeoVector2(-xline.Direction.X, -xline.Direction.Y), left, right, top, bottom);
+                double behind = Reach(
+                    xline.Origin,
+                    new GeoVector2(-xline.Direction.X, -xline.Direction.Y),
+                    left,
+                    right,
+                    top,
+                    bottom
+                );
 
-                GeoPoint2 from = xline.Origin.Add(new GeoVector2(-xline.Direction.X * behind, -xline.Direction.Y * behind));
+                GeoPoint2 from = xline.Origin.Add(
+                    new GeoVector2(-xline.Direction.X * behind, -xline.Direction.Y * behind)
+                );
                 GeoPoint2 to = xline.Origin.Add(new GeoVector2(xline.Direction.X * ahead, xline.Direction.Y * ahead));
-                text.Append("<path d=\"M ").Append(Xy(from)).Append(" L ").Append(Xy(to)).Append("\" ").Append(Style(colour, "none")).Append("/>\n");
+                text.Append("<path d=\"M ")
+                    .Append(Xy(from))
+                    .Append(" L ")
+                    .Append(Xy(to))
+                    .Append("\" ")
+                    .Append(Style(colour, "none"))
+                    .Append("/>\n");
             }
 
             double dot = size * 0.006;
 
             foreach ((GeoPoint2 point, string colour) in _points)
             {
-                text.Append(string.Format(CultureInfo.InvariantCulture,
-                    "<circle cx=\"{0}\" cy=\"{1}\" r=\"{2}\" fill=\"{3}\"/>\n", N(point.X), N(point.Y), N(dot), Escape(colour)));
+                text.Append(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "<circle cx=\"{0}\" cy=\"{1}\" r=\"{2}\" fill=\"{3}\"/>\n",
+                        N(point.X),
+                        N(point.Y),
+                        N(dot),
+                        Escape(colour)
+                    )
+                );
             }
 
             // The letters are turned back over, the group having flipped Y for the drawing's sake.
             foreach ((GeoPoint2 at, string label, string colour) in _labels)
             {
-                text.Append(string.Format(CultureInfo.InvariantCulture,
-                    "<text transform=\"translate({0} {1}) scale(1,-1)\" font-size=\"{2}\" font-family=\"sans-serif\" fill=\"{3}\">{4}</text>\n",
-                    N(at.X), N(at.Y), N(size * 0.03), Escape(colour), Escape(label)));
+                text.Append(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "<text transform=\"translate({0} {1}) scale(1,-1)\" font-size=\"{2}\" font-family=\"sans-serif\" fill=\"{3}\">{4}</text>\n",
+                        N(at.X),
+                        N(at.Y),
+                        N(size * 0.03),
+                        Escape(colour),
+                        Escape(label)
+                    )
+                );
             }
 
             text.Append("</g>\n</svg>\n");
@@ -495,7 +570,14 @@ namespace GeometryHelper.Export
         /// <summary>
         /// Gets how far along a direction of unit length, from a point inside the picture, the first of its four edges is.
         /// </summary>
-        private static double Reach(GeoPoint2 origin, GeoVector2 direction, double left, double right, double top, double bottom)
+        private static double Reach(
+            GeoPoint2 origin,
+            GeoVector2 direction,
+            double left,
+            double right,
+            double top,
+            double bottom
+        )
         {
             double reach = double.PositiveInfinity;
 
@@ -522,7 +604,14 @@ namespace GeometryHelper.Export
 
         private SvgWriter Path(string data, string colour, string fill)
         {
-            _elements.Add("<path d=\"" + data + "\" " + Style(colour, fill) + (fill != "none" ? " fill-rule=\"evenodd\"" : string.Empty) + "/>");
+            _elements.Add(
+                "<path d=\""
+                    + data
+                    + "\" "
+                    + Style(colour, fill)
+                    + (fill != "none" ? " fill-rule=\"evenodd\"" : string.Empty)
+                    + "/>"
+            );
             return this;
         }
 
@@ -591,13 +680,24 @@ namespace GeometryHelper.Export
             // of it and so under half a turn, through its middle, are not.
             if (Math.Abs(swept) > Math.PI && Xy(arc.StartPoint) == Xy(arc.EndPoint))
             {
-                string half = string.Format(CultureInfo.InvariantCulture, "A {0} {0} 0 0 {1} ", N(arc.Radius), swept > 0 ? 1 : 0);
+                string half = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "A {0} {0} 0 0 {1} ",
+                    N(arc.Radius),
+                    swept > 0 ? 1 : 0
+                );
 
                 return half + Xy(arc.MidPoint) + " " + half + Xy(arc.EndPoint);
             }
 
-            return string.Format(CultureInfo.InvariantCulture, "A {0} {0} 0 {1} {2} {3}",
-                N(arc.Radius), Math.Abs(swept) > Math.PI ? 1 : 0, swept > 0 ? 1 : 0, Xy(arc.EndPoint));
+            return string.Format(
+                CultureInfo.InvariantCulture,
+                "A {0} {0} 0 {1} {2} {3}",
+                N(arc.Radius),
+                Math.Abs(swept) > Math.PI ? 1 : 0,
+                swept > 0 ? 1 : 0,
+                Xy(arc.EndPoint)
+            );
         }
 
         private void GrowRound(GeoPoint2 centre, double radius)
@@ -614,8 +714,12 @@ namespace GeometryHelper.Export
             _maxY = Math.Max(_maxY, y);
         }
 
-        private static string Style(string colour, string fill)
-            => "stroke=\"" + Escape(colour) + "\" fill=\"" + Escape(fill) + "\" stroke-width=\"1.5\" vector-effect=\"non-scaling-stroke\"";
+        private static string Style(string colour, string fill) =>
+            "stroke=\""
+            + Escape(colour)
+            + "\" fill=\""
+            + Escape(fill)
+            + "\" stroke-width=\"1.5\" vector-effect=\"non-scaling-stroke\"";
 
         private static string Xy(GeoPoint2 p) => N(p.X) + " " + N(p.Y);
 
@@ -646,7 +750,13 @@ namespace GeometryHelper.Export
                     clean.Append(c).Append(text[i + 1]);
                     i++;
                 }
-                else if (c == '\t' || c == '\n' || c == '\r' || (c >= 0x20 && c <= 0xD7FF) || (c >= 0xE000 && c <= 0xFFFD))
+                else if (
+                    c == '\t'
+                    || c == '\n'
+                    || c == '\r'
+                    || (c >= 0x20 && c <= 0xD7FF)
+                    || (c >= 0xE000 && c <= 0xFFFD)
+                )
                 {
                     clean.Append(c);
                 }
@@ -659,7 +769,7 @@ namespace GeometryHelper.Export
             return clean.ToString();
         }
 
-        private static string Escape(string value)
-            => (value ?? "none").Replace("&", "&amp;").Replace("\"", "&quot;").Replace("<", "&lt;").Replace(">", "&gt;");
+        private static string Escape(string value) =>
+            (value ?? "none").Replace("&", "&amp;").Replace("\"", "&quot;").Replace("<", "&lt;").Replace(">", "&gt;");
     }
 }

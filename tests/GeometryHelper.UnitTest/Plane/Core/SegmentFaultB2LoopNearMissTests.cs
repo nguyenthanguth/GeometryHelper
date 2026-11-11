@@ -23,21 +23,24 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>
         /// The loop of Line-PolygonArc#157, a quadrilateral with two edges bowed inwards, by bulges -0.24 and -0.03.
         /// </summary>
-        private static GeoPolygonArc2 Scene()
-            => new GeoPolygonArc2(
+        private static GeoPolygonArc2 Scene() =>
+            new GeoPolygonArc2(
                 new[]
                 {
-                    P(24.806883156629215, 75.780150742220826), P(12.584658796972409, 50.129705882999886),
-                    P(41.008163161248945, 46.181215165554775), P(48.8987865966493, 68.561530347969949),
+                    P(24.806883156629215, 75.780150742220826),
+                    P(12.584658796972409, 50.129705882999886),
+                    P(41.008163161248945, 46.181215165554775),
+                    P(48.8987865966493, 68.561530347969949),
                 },
-                new[] { -0.24, 0.0, 0.0, -0.03 });
+                new[] { -0.24, 0.0, 0.0, -0.03 }
+            );
 
         /// <summary>
         /// The segment of Line-PolygonArc#157, 0.3 long outside the loop, its end 0.0817 from the edge bowed by -0.03 and
         /// running nearly along it between the arc and its chord, outside the loop.
         /// </summary>
-        private static GeoLine2 SceneSegment()
-            => new GeoLine2(P(45.881361764584945, 69.4648016230239), P(45.581520021103209, 69.455058478468118));
+        private static GeoLine2 SceneSegment() =>
+            new GeoLine2(P(45.881361764584945, 69.4648016230239), P(45.581520021103209, 69.455058478468118));
 
         /// <summary>
         /// The segment from (101, 40) to (100 + gap, 60), coming at a grazing angle to within gap of the right side of
@@ -96,7 +99,10 @@ namespace GeometryHelper.UnitTest.Plane
         [Theory]
         [InlineData(0.1, true)]
         [InlineData(1E-3, false)]
-        public void ARayRunningFiveHundredthsBesideAStraightSide_CollidesOnlyWithinTheTolerance(double equalPoint, bool collides)
+        public void ARayRunningFiveHundredthsBesideAStraightSide_CollidesOnlyWithinTheTolerance(
+            double equalPoint,
+            bool collides
+        )
         {
             GeoPolygonArc2 loop = SquareWithBowedTop(-0.4);
             var ray = new GeoRay2(P(100.05, -200), new GeoVector2(0, 1));

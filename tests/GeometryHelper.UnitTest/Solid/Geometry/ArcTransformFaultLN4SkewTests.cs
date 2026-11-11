@@ -35,19 +35,26 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>The map of the plane ArcTransform2FaultLN4SkewTests names, carried into space with Z scaled alike.</summary>
         private static GeoTransform3 EqualLengthSkew()
         {
-            double turn = 0.7529, stretch = 1 + 4.29E-9, shear = 9.28E-5, scale = 55.57;
-            double cos = Math.Cos(turn), sin = Math.Sin(turn);
+            double turn = 0.7529,
+                stretch = 1 + 4.29E-9,
+                shear = 9.28E-5,
+                scale = 55.57;
+            double cos = Math.Cos(turn),
+                sin = Math.Sin(turn);
 
-            return new GeoTransform3(new double[,]
-            {
-                { scale * cos * stretch, scale * (cos * shear - sin), 0, 0 },
-                { scale * sin * stretch, scale * (sin * shear + cos), 0, 0 },
-                { 0, 0, scale, 0 },
-                { 0, 0, 0, 1 },
-            });
+            return new GeoTransform3(
+                new double[,]
+                {
+                    { scale * cos * stretch, scale * (cos * shear - sin), 0, 0 },
+                    { scale * sin * stretch, scale * (sin * shear + cos), 0, 0 },
+                    { 0, 0, scale, 0 },
+                    { 0, 0, 0, 1 },
+                }
+            );
         }
 
-        private static GeoArc3 Wide() => new GeoArc3(new GeoPoint3(410.78, 802.70, 0), GeoVector3.ZAxis, 9069.6, 0.8545, 0.8545 - 2.1125, true);
+        private static GeoArc3 Wide() =>
+            new GeoArc3(new GeoPoint3(410.78, 802.70, 0), GeoVector3.ZAxis, 9069.6, 0.8545, 0.8545 - 2.1125, true);
 
         [Fact]
         public void AnArcThatWouldLandFarOffUnderAnEqualLengthSkew_IsRefused()
@@ -62,20 +69,24 @@ namespace GeometryHelper.UnitTest.Solid
             var edge = new GeoEdge3(arc.StartPoint, arc.EndPoint, Math.Tan(arc.SweptAngle / 4), arc.Normal);
 
             Assert.Throws<InvalidOperationException>(() => edge.TransformBy(EqualLengthSkew()));
-            Assert.Throws<InvalidOperationException>(() => new GeoPolylineArc3(new[] { edge }).TransformBy(EqualLengthSkew()));
+            Assert.Throws<InvalidOperationException>(() =>
+                new GeoPolylineArc3(new[] { edge }).TransformBy(EqualLengthSkew())
+            );
         }
 
         [Fact]
         public void AnEdgeUnderASlightShear_RunsThroughWhereItsEndsAndItsMiddleLand()
         {
             // The shear of 1E-6 of Y along X: the edge of radius 10 lands some 8E-7 off, inside the tolerance.
-            var shear = new GeoTransform3(new double[,]
-            {
-                { 1, 0.000001, 0, 0 },
-                { 0, 1, 0, 0 },
-                { 0, 0, 1, 0 },
-                { 0, 0, 0, 1 },
-            });
+            var shear = new GeoTransform3(
+                new double[,]
+                {
+                    { 1, 0.000001, 0, 0 },
+                    { 0, 1, 0, 0 },
+                    { 0, 0, 1, 0 },
+                    { 0, 0, 0, 1 },
+                }
+            );
             var edge = new GeoEdge3(GeoPoint3.Origin, new GeoPoint3(10, 0, 0), 0.5, GeoVector3.ZAxis);
 
             GeoEdge3 moved = edge.TransformBy(shear);

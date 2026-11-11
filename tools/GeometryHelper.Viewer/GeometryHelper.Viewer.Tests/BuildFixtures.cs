@@ -12,7 +12,10 @@ namespace GeometryHelper.Viewer.Tests
     {
         internal TempFolder(string prefix = "ghviewer-test")
         {
-            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), prefix + "-" + Guid.NewGuid().ToString("N").Substring(0, 10));
+            Path = System.IO.Path.Combine(
+                System.IO.Path.GetTempPath(),
+                prefix + "-" + Guid.NewGuid().ToString("N").Substring(0, 10)
+            );
             Directory.CreateDirectory(Path);
         }
 

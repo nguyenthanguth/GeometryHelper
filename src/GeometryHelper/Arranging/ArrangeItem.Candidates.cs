@@ -234,7 +234,10 @@ namespace GeometryHelper.Arranging
             // Verify size after projection to ensure it does not degenerate to zero. Within the point tolerance: a box
             // as small as the minimum measures a hair under it once its corners are rounded where the scene lies, and
             // a label 20 by 10, the default minimum 10, was arranged at one place and not at another.
-            if (width + options.Tolerance.EqualPoint < options.MinimumBoxSize || height + options.Tolerance.EqualPoint < options.MinimumBoxSize)
+            if (
+                width + options.Tolerance.EqualPoint < options.MinimumBoxSize
+                || height + options.Tolerance.EqualPoint < options.MinimumBoxSize
+            )
             {
                 return false;
             }
@@ -252,22 +255,21 @@ namespace GeometryHelper.Arranging
 
             // STEP 5: Set up the complete Layout structure
             layout = new Layout(
-                anchor,           // Anchor point (midpoint of the leader)
-                direction,        // Local longitudinal axis
-                perpendicular,    // Local perpendicular axis
-                height,           // Actual label height along perpendicular axis
-
+                anchor, // Anchor point (midpoint of the leader)
+                direction, // Local longitudinal axis
+                perpendicular, // Local perpendicular axis
+                height, // Actual label height along perpendicular axis
                 // The first row on the side the perpendicular points to, and on the other side.
                 perpendicularIsTop ? top : bottom,
                 perpendicularIsTop ? bottom : top,
-
                 // MaximumShift: Maximum allowable longitudinal shift distance along the path,
                 // which equals half the path length plus a portion of the label width overshooting the ends (LongitudinalOvershootRatio)
-                pathLength * 0.5 + width * options.LongitudinalOvershootRatio,
-
+                pathLength * 0.5
+                    + width * options.LongitudinalOvershootRatio,
                 // Whether the label may stand on the side the perpendicular points to, and on the other side.
                 perpendicularIsTop ? Side != ArrangeSide.Bottom : Side != ArrangeSide.Top,
-                perpendicularIsTop ? Side != ArrangeSide.Top : Side != ArrangeSide.Bottom);
+                perpendicularIsTop ? Side != ArrangeSide.Top : Side != ArrangeSide.Bottom
+            );
 
             return true;
         }
@@ -279,14 +281,20 @@ namespace GeometryHelper.Arranging
         internal double GetBoxSpan()
         {
             var vertices = Box.GetVertices();
-            double minX = double.MaxValue, minY = double.MaxValue;
-            double maxX = double.MinValue, maxY = double.MinValue;
+            double minX = double.MaxValue,
+                minY = double.MaxValue;
+            double maxX = double.MinValue,
+                maxY = double.MinValue;
             foreach (var v in vertices)
             {
-                if (v.X < minX) minX = v.X;
-                if (v.Y < minY) minY = v.Y;
-                if (v.X > maxX) maxX = v.X;
-                if (v.Y > maxY) maxY = v.Y;
+                if (v.X < minX)
+                    minX = v.X;
+                if (v.Y < minY)
+                    minY = v.Y;
+                if (v.X > maxX)
+                    maxX = v.X;
+                if (v.Y > maxY)
+                    maxY = v.Y;
             }
 
             return Math.Max(maxX - minX, maxY - minY);

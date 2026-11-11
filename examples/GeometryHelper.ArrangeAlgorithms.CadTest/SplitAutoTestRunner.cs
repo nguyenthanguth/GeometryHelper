@@ -4,9 +4,9 @@ using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
+using GeometryHelper.CadConvert;
 using GeometryHelper.Core;
 using GeometryHelper.Geometry;
-using GeometryHelper.CadConvert;
 
 namespace GeometryHelper.ArrangeAlgorithms.CadTest
 {
@@ -15,7 +15,8 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
         public static void RunSplitAutoTest()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
-            if (doc == null) return;
+            if (doc == null)
+                return;
             Editor ed = doc.Editor;
             Database db = doc.Database;
 
@@ -25,8 +26,8 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
             {
                 try
                 {
-                    BlockTableRecord modelSpace = (BlockTableRecord)tr.GetObject(
-                        SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForWrite);
+                    BlockTableRecord modelSpace = (BlockTableRecord)
+                        tr.GetObject(SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForWrite);
 
                     // 1. Dọn dẹp các đối tượng AutoTest cũ trên bản vẽ
                     int erasedCount = 0;
@@ -55,12 +56,15 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     void SetLayerColor(ObjectId lId, short colorIndex)
                     {
                         var lRec = (LayerTableRecord)tr.GetObject(lId, OpenMode.ForWrite);
-                        lRec.Color = Autodesk.AutoCAD.Colors.Color.FromColorIndex(Autodesk.AutoCAD.Colors.ColorMethod.ByColor, colorIndex);
+                        lRec.Color = Autodesk.AutoCAD.Colors.Color.FromColorIndex(
+                            Autodesk.AutoCAD.Colors.ColorMethod.ByColor,
+                            colorIndex
+                        );
                     }
                     SetLayerColor(layerCutter, 9); // Light Gray
-                    SetLayerColor(layerPart1, 1);  // Red
-                    SetLayerColor(layerPart2, 3);  // Green
-                    SetLayerColor(layerText, 2);   // Yellow
+                    SetLayerColor(layerPart1, 1); // Red
+                    SetLayerColor(layerPart2, 3); // Green
+                    SetLayerColor(layerText, 2); // Yellow
 
                     // Helper vẽ chú thích text
                     void AddComment(string msg, double x, double y)
@@ -86,7 +90,11 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         }
                     }
 
-                    void AddResultPolylines(GeoPolyline2[] pieces, Transaction transaction, BlockTableRecord blockTableRecord)
+                    void AddResultPolylines(
+                        GeoPolyline2[] pieces,
+                        Transaction transaction,
+                        BlockTableRecord blockTableRecord
+                    )
                     {
                         for (int i = 0; i < pieces.Length; i++)
                         {
@@ -97,7 +105,12 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         }
                     }
 
-                    void AddResultLinePair(GeoLine2 first, GeoLine2 second, Transaction transaction, BlockTableRecord blockTableRecord)
+                    void AddResultLinePair(
+                        GeoLine2 first,
+                        GeoLine2 second,
+                        Transaction transaction,
+                        BlockTableRecord blockTableRecord
+                    )
                     {
                         Line acadFirst = first.ToAcadLine();
                         acadFirst.LayerId = layerPart1;
@@ -110,7 +123,12 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         transaction.AddNewlyCreatedDBObject(acadSecond, true);
                     }
 
-                    void AddResultPolylinePair(GeoPolyline2 first, GeoPolyline2 second, Transaction transaction, BlockTableRecord blockTableRecord)
+                    void AddResultPolylinePair(
+                        GeoPolyline2 first,
+                        GeoPolyline2 second,
+                        Transaction transaction,
+                        BlockTableRecord blockTableRecord
+                    )
                     {
                         Polyline acadFirst = first.ToAcadPolyline();
                         acadFirst.LayerId = layerPart1;
@@ -123,7 +141,12 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         transaction.AddNewlyCreatedDBObject(acadSecond, true);
                     }
 
-                    void AddResultInsideOutsideLines(GeoLine2[] inside, GeoLine2[] outside, Transaction transaction, BlockTableRecord blockTableRecord)
+                    void AddResultInsideOutsideLines(
+                        GeoLine2[] inside,
+                        GeoLine2[] outside,
+                        Transaction transaction,
+                        BlockTableRecord blockTableRecord
+                    )
                     {
                         foreach (var piece in inside)
                         {
@@ -143,7 +166,12 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         }
                     }
 
-                    void AddResultInsideOutsidePolylines(GeoPolyline2[] inside, GeoPolyline2[] outside, Transaction transaction, BlockTableRecord blockTableRecord)
+                    void AddResultInsideOutsidePolylines(
+                        GeoPolyline2[] inside,
+                        GeoPolyline2[] outside,
+                        Transaction transaction,
+                        BlockTableRecord blockTableRecord
+                    )
                     {
                         foreach (var piece in inside)
                         {
@@ -171,7 +199,11 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         transaction.AddNewlyCreatedDBObject(acadLine, true);
                     }
 
-                    void AddCutterPolyline(GeoPolyline2 cutter, Transaction transaction, BlockTableRecord blockTableRecord)
+                    void AddCutterPolyline(
+                        GeoPolyline2 cutter,
+                        Transaction transaction,
+                        BlockTableRecord blockTableRecord
+                    )
                     {
                         Polyline acadPoly = cutter.ToAcadPolyline();
                         acadPoly.LayerId = layerCutter;
@@ -179,7 +211,11 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         transaction.AddNewlyCreatedDBObject(acadPoly, true);
                     }
 
-                    void AddCutterPolygon(GeoPolygon2 cutter, Transaction transaction, BlockTableRecord blockTableRecord)
+                    void AddCutterPolygon(
+                        GeoPolygon2 cutter,
+                        Transaction transaction,
+                        BlockTableRecord blockTableRecord
+                    )
                     {
                         // Convert GeoPolygon2 to Closed Polyline
                         Polyline acadPoly = new Polyline();
@@ -211,9 +247,10 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         var cutters = new[]
                         {
                             new GeoLine2(new GeoPoint2(3, y - 2), new GeoPoint2(3, y + 2)),
-                            new GeoLine2(new GeoPoint2(7, y - 2), new GeoPoint2(7, y + 2))
+                            new GeoLine2(new GeoPoint2(7, y - 2), new GeoPoint2(7, y + 2)),
                         };
-                        foreach (var c in cutters) AddCutterLine(c, tr, modelSpace);
+                        foreach (var c in cutters)
+                            AddCutterLine(c, tr, modelSpace);
                         if (subject.TrySplitBy(cutters, out GeoLine2[] pieces))
                         {
                             AddResultLines(pieces, tr, modelSpace);
@@ -225,7 +262,11 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         double y = 10.0;
                         AddComment("TC2: Line split by Polyline (GeoPolyline2)", 0, y + 2.5);
                         var subject = new GeoLine2(new GeoPoint2(0, y), new GeoPoint2(10, y));
-                        var cutter = new GeoPolyline2(new GeoPoint2(2, y - 2), new GeoPoint2(5, y + 2), new GeoPoint2(8, y - 2));
+                        var cutter = new GeoPolyline2(
+                            new GeoPoint2(2, y - 2),
+                            new GeoPoint2(5, y + 2),
+                            new GeoPoint2(8, y - 2)
+                        );
                         AddCutterPolyline(cutter, tr, modelSpace);
                         if (subject.TrySplitBy(cutter, out GeoLine2[] pieces))
                         {
@@ -239,7 +280,8 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         AddComment("TC3: Line split by MPoints (GeoPoint2[])", 0, y + 1.5);
                         var subject = new GeoLine2(new GeoPoint2(0, y), new GeoPoint2(10, y));
                         var points = new[] { new GeoPoint2(3, y), new GeoPoint2(6, y), new GeoPoint2(12, y) };
-                        foreach (var pt in points) AddCutterPoint(pt, tr, modelSpace);
+                        foreach (var pt in points)
+                            AddCutterPoint(pt, tr, modelSpace);
                         if (subject.TrySplitBy(points, out GeoLine2[] pieces))
                         {
                             AddResultLines(pieces, tr, modelSpace);
@@ -251,8 +293,18 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         double y = 30.0;
                         AddComment("TC4: Line split by MPolygons (GeoPolygon2[])", 0, y + 2.5);
                         var subject = new GeoLine2(new GeoPoint2(-5, y), new GeoPoint2(15, y));
-                        var poly1 = new GeoPolygon2(new GeoPoint2(0, y - 1), new GeoPoint2(2, y - 1), new GeoPoint2(2, y + 1), new GeoPoint2(0, y + 1));
-                        var poly2 = new GeoPolygon2(new GeoPoint2(8, y - 1), new GeoPoint2(10, y - 1), new GeoPoint2(10, y + 1), new GeoPoint2(8, y + 1));
+                        var poly1 = new GeoPolygon2(
+                            new GeoPoint2(0, y - 1),
+                            new GeoPoint2(2, y - 1),
+                            new GeoPoint2(2, y + 1),
+                            new GeoPoint2(0, y + 1)
+                        );
+                        var poly2 = new GeoPolygon2(
+                            new GeoPoint2(8, y - 1),
+                            new GeoPoint2(10, y - 1),
+                            new GeoPoint2(10, y + 1),
+                            new GeoPoint2(8, y + 1)
+                        );
                         AddCutterPolygon(poly1, tr, modelSpace);
                         AddCutterPolygon(poly2, tr, modelSpace);
                         if (subject.TrySplitBy(new[] { poly1, poly2 }, out GeoLine2[] inside, out GeoLine2[] outside))
@@ -280,9 +332,14 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     {
                         double y = 50.0;
                         AddComment("TC6: Polyline split by MPoints (GeoPoint2[])", 0, y + 2.5);
-                        var subject = new GeoPolyline2(new GeoPoint2(0, y), new GeoPoint2(5, y), new GeoPoint2(5, y + 5));
+                        var subject = new GeoPolyline2(
+                            new GeoPoint2(0, y),
+                            new GeoPoint2(5, y),
+                            new GeoPoint2(5, y + 5)
+                        );
                         var points = new[] { new GeoPoint2(2, y), new GeoPoint2(5, y + 3) };
-                        foreach (var pt in points) AddCutterPoint(pt, tr, modelSpace);
+                        foreach (var pt in points)
+                            AddCutterPoint(pt, tr, modelSpace);
                         if (subject.TrySplitBy(points, out GeoPolyline2[] pieces))
                         {
                             AddResultPolylines(pieces, tr, modelSpace);
@@ -293,13 +350,18 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     {
                         double y = 60.0;
                         AddComment("TC7: Polyline split by MLines (GeoLine2[])", 0, y + 2.5);
-                        var subject = new GeoPolyline2(new GeoPoint2(0, y), new GeoPoint2(5, y), new GeoPoint2(5, y + 5));
+                        var subject = new GeoPolyline2(
+                            new GeoPoint2(0, y),
+                            new GeoPoint2(5, y),
+                            new GeoPoint2(5, y + 5)
+                        );
                         var cutters = new[]
                         {
                             new GeoLine2(new GeoPoint2(2, y - 1), new GeoPoint2(2, y + 1)),
-                            new GeoLine2(new GeoPoint2(4, y + 3), new GeoPoint2(6, y + 3))
+                            new GeoLine2(new GeoPoint2(4, y + 3), new GeoPoint2(6, y + 3)),
                         };
-                        foreach (var c in cutters) AddCutterLine(c, tr, modelSpace);
+                        foreach (var c in cutters)
+                            AddCutterLine(c, tr, modelSpace);
                         if (subject.TrySplitBy(cutters, out GeoPolyline2[] pieces))
                         {
                             AddResultPolylines(pieces, tr, modelSpace);
@@ -314,9 +376,10 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         var cutters = new[]
                         {
                             new GeoPolyline2(new GeoPoint2(3, y - 2), new GeoPoint2(3, y + 2)),
-                            new GeoPolyline2(new GeoPoint2(7, y - 2), new GeoPoint2(7, y + 2))
+                            new GeoPolyline2(new GeoPoint2(7, y - 2), new GeoPoint2(7, y + 2)),
                         };
-                        foreach (var c in cutters) AddCutterPolyline(c, tr, modelSpace);
+                        foreach (var c in cutters)
+                            AddCutterPolyline(c, tr, modelSpace);
                         if (subject.TrySplitBy(cutters, out GeoPolyline2[] pieces))
                         {
                             AddResultPolylines(pieces, tr, modelSpace);
@@ -328,11 +391,27 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         double y = 80.0;
                         AddComment("TC9: Polyline split by MPolygons (GeoPolygon2[])", 0, y + 2.5);
                         var subject = new GeoPolyline2(new GeoPoint2(-5, y), new GeoPoint2(15, y));
-                        var poly1 = new GeoPolygon2(new GeoPoint2(0, y - 1), new GeoPoint2(2, y - 1), new GeoPoint2(2, y + 1), new GeoPoint2(0, y + 1));
-                        var poly2 = new GeoPolygon2(new GeoPoint2(8, y - 1), new GeoPoint2(10, y - 1), new GeoPoint2(10, y + 1), new GeoPoint2(8, y + 1));
+                        var poly1 = new GeoPolygon2(
+                            new GeoPoint2(0, y - 1),
+                            new GeoPoint2(2, y - 1),
+                            new GeoPoint2(2, y + 1),
+                            new GeoPoint2(0, y + 1)
+                        );
+                        var poly2 = new GeoPolygon2(
+                            new GeoPoint2(8, y - 1),
+                            new GeoPoint2(10, y - 1),
+                            new GeoPoint2(10, y + 1),
+                            new GeoPoint2(8, y + 1)
+                        );
                         AddCutterPolygon(poly1, tr, modelSpace);
                         AddCutterPolygon(poly2, tr, modelSpace);
-                        if (subject.TrySplitBy(new[] { poly1, poly2 }, out GeoPolyline2[] inside, out GeoPolyline2[] outside))
+                        if (
+                            subject.TrySplitBy(
+                                new[] { poly1, poly2 },
+                                out GeoPolyline2[] inside,
+                                out GeoPolyline2[] outside
+                            )
+                        )
                         {
                             AddResultInsideOutsidePolylines(inside, outside, tr, modelSpace);
                         }
@@ -355,7 +434,11 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     {
                         double y = 100.0;
                         AddComment("TC11: Polyline split by Point (GeoPoint2)", 0, y + 2.5);
-                        var subject = new GeoPolyline2(new GeoPoint2(0, y), new GeoPoint2(5, y), new GeoPoint2(5, y + 5));
+                        var subject = new GeoPolyline2(
+                            new GeoPoint2(0, y),
+                            new GeoPoint2(5, y),
+                            new GeoPoint2(5, y + 5)
+                        );
                         var pt = new GeoPoint2(3, y);
                         AddCutterPoint(pt, tr, modelSpace);
                         if (Splition2.TrySplitBy(subject, pt, out GeoPolyline2 first, out GeoPolyline2 second))
@@ -381,7 +464,11 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     {
                         double y = 120.0;
                         AddComment("TC13: Polyline split by Line (GeoLine2)", 0, y + 2.5);
-                        var subject = new GeoPolyline2(new GeoPoint2(0, y), new GeoPoint2(5, y), new GeoPoint2(5, y + 5));
+                        var subject = new GeoPolyline2(
+                            new GeoPoint2(0, y),
+                            new GeoPoint2(5, y),
+                            new GeoPoint2(5, y + 5)
+                        );
                         var cutter = new GeoLine2(new GeoPoint2(3, y - 2), new GeoPoint2(3, y + 2));
                         AddCutterLine(cutter, tr, modelSpace);
                         if (subject.TrySplitBy(cutter, out GeoPolyline2[] pieces))
@@ -395,7 +482,12 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         double y = 130.0;
                         AddComment("TC14: Line split by Polygon (GeoPolygon2)", 0, y + 2.5);
                         var subject = new GeoLine2(new GeoPoint2(-5, y), new GeoPoint2(15, y));
-                        var poly = new GeoPolygon2(new GeoPoint2(0, y - 1), new GeoPoint2(4, y - 1), new GeoPoint2(4, y + 1), new GeoPoint2(0, y + 1));
+                        var poly = new GeoPolygon2(
+                            new GeoPoint2(0, y - 1),
+                            new GeoPoint2(4, y - 1),
+                            new GeoPoint2(4, y + 1),
+                            new GeoPoint2(0, y + 1)
+                        );
                         AddCutterPolygon(poly, tr, modelSpace);
                         if (Splition2.TrySplitBy(subject, poly, out GeoLine2[] inside, out GeoLine2[] outside))
                         {
@@ -408,7 +500,12 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         double y = 140.0;
                         AddComment("TC15: Polyline split by Polygon (GeoPolygon2)", 0, y + 2.5);
                         var subject = new GeoPolyline2(new GeoPoint2(-5, y), new GeoPoint2(15, y));
-                        var poly = new GeoPolygon2(new GeoPoint2(0, y - 1), new GeoPoint2(4, y - 1), new GeoPoint2(4, y + 1), new GeoPoint2(0, y + 1));
+                        var poly = new GeoPolygon2(
+                            new GeoPoint2(0, y - 1),
+                            new GeoPoint2(4, y - 1),
+                            new GeoPoint2(4, y + 1),
+                            new GeoPoint2(0, y + 1)
+                        );
                         AddCutterPolygon(poly, tr, modelSpace);
                         if (Splition2.TrySplitBy(subject, poly, out GeoPolyline2[] inside, out GeoPolyline2[] outside))
                         {

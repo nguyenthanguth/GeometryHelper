@@ -47,10 +47,17 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(style.IsBackgroundColorNone(DxfRowType.HeaderRow));
             Assert.True(style.GridVisibility(DxfGridLineType.HorizontalInside, DxfRowType.DataRow));
             Assert.True(style.GridColor(DxfGridLineType.VerticalLeft, DxfRowType.TitleRow).IsByBlock);
-            Assert.Equal(DxfLineWeight.ByBlock, style.GridLineWeight(DxfGridLineType.HorizontalTop, DxfRowType.DataRow));
+            Assert.Equal(
+                DxfLineWeight.ByBlock,
+                style.GridLineWeight(DxfGridLineType.HorizontalTop, DxfRowType.DataRow)
+            );
 
             string text = db.ToText();
-            Assert.Contains("100\nAcDbTableStyle\n280\n0\n  3\n\n 70\n0\n 71\n0\n 40\n1.5\n 41\n1.5\n280\n0\n281\n0\n  7\nStandard\n140\n4.5\n170\n2\n 62\n0\n 63\n7\n283\n0\n 90\n512\n 91\n0\n  1\n\n274\n-2\n284\n1\n 64\n0\n", text.Replace("\r\n", "\n"), StringComparison.Ordinal);
+            Assert.Contains(
+                "100\nAcDbTableStyle\n280\n0\n  3\n\n 70\n0\n 71\n0\n 40\n1.5\n 41\n1.5\n280\n0\n281\n0\n  7\nStandard\n140\n4.5\n170\n2\n 62\n0\n 63\n7\n283\n0\n 90\n512\n 91\n0\n  1\n\n274\n-2\n284\n1\n 64\n0\n",
+                text.Replace("\r\n", "\n"),
+                StringComparison.Ordinal
+            );
 
             var read = (DxfTableStyle)DxfDatabase.Parse(text).TableStyleDictionary["Standard"];
             Assert.Equal(6.0, read.TextHeight(DxfRowType.TitleRow));
@@ -68,7 +75,11 @@ namespace GeometryHelper.UnitTest.Dxf
             schedule.SetBackgroundColor(DxfColor.OfIndex(8), DxfRowType.HeaderRow);
             schedule.SetGridColor(DxfColor.OfIndex(1), DxfGridLineType.OuterGridLines, DxfRowType.TitleRow);
             schedule.SetGridVisibility(false, DxfGridLineType.HorizontalInside, DxfRowType.DataRow);
-            schedule.SetGridLineWeight(DxfLineWeight.LineWeight050, DxfGridLineType.HorizontalBottom, DxfRowType.DataRow);
+            schedule.SetGridLineWeight(
+                DxfLineWeight.LineWeight050,
+                DxfGridLineType.HorizontalBottom,
+                DxfRowType.DataRow
+            );
             schedule.HorizontalCellMargin = 1.0;
             schedule.FlowDirection = DxfFlowDirection.BottomToTop;
             schedule.IsHeaderSuppressed = true;
@@ -88,7 +99,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(read.GridColor(DxfGridLineType.HorizontalInside, DxfRowType.TitleRow).IsByBlock);
             Assert.False(read.GridVisibility(DxfGridLineType.HorizontalInside, DxfRowType.DataRow));
             Assert.True(read.GridVisibility(DxfGridLineType.HorizontalInside, DxfRowType.HeaderRow));
-            Assert.Equal(DxfLineWeight.LineWeight050, read.GridLineWeight(DxfGridLineType.HorizontalBottom, DxfRowType.DataRow));
+            Assert.Equal(
+                DxfLineWeight.LineWeight050,
+                read.GridLineWeight(DxfGridLineType.HorizontalBottom, DxfRowType.DataRow)
+            );
             Assert.Equal(1.0, read.HorizontalCellMargin);
             Assert.Equal(1.5, read.VerticalCellMargin);
             Assert.Equal(DxfFlowDirection.BottomToTop, read.FlowDirection);
@@ -102,11 +116,15 @@ namespace GeometryHelper.UnitTest.Dxf
             // The style Parts of the checks D12: the data 2.5, the title 5 and the header 3.5, no lines of its own.
             string text = DxfDimensionDrawings.R2018.Replace("\r\n", "\n");
             const string Dictionary = "  0\nDICTIONARY\n  5\n15\n330\nA\n100\nAcDbDictionary\n281\n1\n";
-            string style = "  0\nTABLESTYLE\n  5\n200\n330\n15\n100\nAcDbTableStyle\n280\n0\n  3\nParts\n 70\n0\n 71\n0\n 40\n1.5\n 41\n1.5\n280\n0\n281\n0\n"
+            string style =
+                "  0\nTABLESTYLE\n  5\n200\n330\n15\n100\nAcDbTableStyle\n280\n0\n  3\nParts\n 70\n0\n 71\n0\n 40\n1.5\n 41\n1.5\n280\n0\n281\n0\n"
                 + "  7\nStandard\n140\n2.5\n170\n2\n 62\n0\n 63\n7\n283\n0\n 90\n512\n 91\n0\n"
                 + "  7\nStandard\n140\n5.0\n170\n5\n 62\n0\n 63\n7\n283\n0\n 90\n512\n 91\n0\n"
                 + "  7\nStandard\n140\n3.5\n170\n5\n 62\n0\n 63\n7\n283\n0\n 90\n512\n 91\n0\n";
-            DxfDatabase db = DxfDatabase.Parse(text.Replace(Dictionary, Dictionary + "  3\nParts\n350\n200\n" + style).Replace("$HANDSEED\n  5\n10A\n", "$HANDSEED\n  5\n201\n"));
+            DxfDatabase db = DxfDatabase.Parse(
+                text.Replace(Dictionary, Dictionary + "  3\nParts\n350\n200\n" + style)
+                    .Replace("$HANDSEED\n  5\n10A\n", "$HANDSEED\n  5\n201\n")
+            );
             var parts = (DxfTableStyle)db.TableStyleDictionary["Parts"];
 
             Assert.Equal("Parts", parts.Description);
@@ -222,7 +240,12 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.All(fills, f => Assert.Equal(3, f.ColorIndex));
 
             // The data's lines inside are not drawn: across, the table's top, under the title, under the header and its bottom.
-            var across = block.OfType<DxfLine>().Where(l => l.StartPoint.Y == l.EndPoint.Y).Select(l => l.StartPoint.Y).OrderBy(y => y).ToArray();
+            var across = block
+                .OfType<DxfLine>()
+                .Where(l => l.StartPoint.Y == l.EndPoint.Y)
+                .Select(l => l.StartPoint.Y)
+                .OrderBy(y => y)
+                .ToArray();
             Assert.Equal(new[] { -50.0, -20.0, -10.0, 0.0 }, across);
 
             DxfLine red = block.OfType<DxfLine>().Single(l => l.ColorIndex == 1);
@@ -249,7 +272,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(500.0, table.Position.X, 9);
 
             // Along the table is up the drawing: the line under the first row runs from (10, 0) to (10, 40) in the block.
-            DxfLine under = table.BlockTableRecord.OfType<DxfLine>().Single(l => Math.Abs(l.StartPoint.X - 10.0) < 1E-9);
+            DxfLine under = table
+                .BlockTableRecord.OfType<DxfLine>()
+                .Single(l => Math.Abs(l.StartPoint.X - 10.0) < 1E-9);
             Assert.Equal(0.0, under.StartPoint.Y, 9);
             Assert.Equal(40.0, under.EndPoint.Y, 9);
         }
@@ -311,7 +336,12 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData(false, true, DxfRowType.TitleRow, DxfRowType.DataRow)]
         [InlineData(true, true, DxfRowType.DataRow, DxfRowType.DataRow)]
         [InlineData(false, false, DxfRowType.TitleRow, DxfRowType.HeaderRow)]
-        public void ATableOfNoFlagsOfItsOwn_LeavesOutTheTitleOrHeaderItsStyleLeavesOut_AsAutoCadReadsIt(bool titleOut, bool headerOut, DxfRowType first, DxfRowType second)
+        public void ATableOfNoFlagsOfItsOwn_LeavesOutTheTitleOrHeaderItsStyleLeavesOut_AsAutoCadReadsIt(
+            bool titleOut,
+            bool headerOut,
+            DxfRowType first,
+            DxfRowType second
+        )
         {
             DxfDatabase db = Metric();
             DxfTable table = OfKinds(db, titleOut, headerOut);

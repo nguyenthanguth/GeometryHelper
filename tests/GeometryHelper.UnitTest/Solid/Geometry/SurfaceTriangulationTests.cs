@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using GeometryHelper.Spatial;
 using Xunit;
@@ -19,11 +19,18 @@ namespace GeometryHelper.UnitTest.Solid
         /// A U-shaped outline. The notch spans x in (2, 8) and y in (0, 8) and holds no material, which is
         /// what a fan triangulation from the first vertex spans over.
         /// </summary>
-        private static GeoPoint3[] UShape() => new[]
-        {
-            new GeoPoint3(0, 0, 0), new GeoPoint3(2, 0, 0), new GeoPoint3(2, 8, 0), new GeoPoint3(8, 8, 0),
-            new GeoPoint3(8, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0)
-        };
+        private static GeoPoint3[] UShape() =>
+            new[]
+            {
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(2, 0, 0),
+                new GeoPoint3(2, 8, 0),
+                new GeoPoint3(8, 8, 0),
+                new GeoPoint3(8, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0),
+            };
 
         private static GeoSolid3 Extrude(GeoPoint3[] baseCcw, double height)
         {
@@ -94,11 +101,19 @@ namespace GeometryHelper.UnitTest.Solid
         public void TriangulateSurface_OnFaceWithHole_LeavesTheHoleOpen()
         {
             GeoPolygon3 boundary = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(0, 10, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
             // Wound against the boundary, as a hole is.
             GeoPolygon3 hole = new GeoPolygon3(
-                new GeoPoint3(4, 4, 0), new GeoPoint3(4, 6, 0), new GeoPoint3(6, 6, 0), new GeoPoint3(6, 4, 0));
+                new GeoPoint3(4, 4, 0),
+                new GeoPoint3(4, 6, 0),
+                new GeoPoint3(6, 6, 0),
+                new GeoPoint3(6, 4, 0)
+            );
 
             GeoFace3 face = new GeoFace3(boundary, new[] { hole });
 
@@ -130,7 +145,10 @@ namespace GeometryHelper.UnitTest.Solid
             // bridge ran from the copy opening away from its hole, across the first bridge, and with the loop crossing
             // itself no ear could be clipped. The face fell back to the fan, laid over all three openings.
             GeoPoint3[][] loops = Common.DefaultToleranceTests.Loops()[19];
-            var face = new GeoFace3(new GeoPolygon3(loops[0]), System.Linq.Enumerable.Select(System.Linq.Enumerable.Skip(loops, 1), hole => new GeoPolygon3(hole)));
+            var face = new GeoFace3(
+                new GeoPolygon3(loops[0]),
+                System.Linq.Enumerable.Select(System.Linq.Enumerable.Skip(loops, 1), hole => new GeoPolygon3(hole))
+            );
 
             GeoTriangle3[] triangles = face.TriangulateSurface(Tolerance.Default);
 
@@ -142,7 +160,10 @@ namespace GeometryHelper.UnitTest.Solid
 
                 foreach (GeoPolygon3 hole in face.Holes)
                 {
-                    Assert.False(triangle.Contains(hole.Centroid, Tolerance.Default), "a triangle is laid over an opening");
+                    Assert.False(
+                        triangle.Contains(hole.Centroid, Tolerance.Default),
+                        "a triangle is laid over an opening"
+                    );
                 }
             }
 
@@ -152,8 +173,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TriangulateSurface_OnConvexFace_StillCoversIt()
         {
-            GeoFace3 face = new GeoFace3(new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(4, 0, 0), new GeoPoint3(4, 3, 0), new GeoPoint3(0, 3, 0)));
+            GeoFace3 face = new GeoFace3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(4, 0, 0),
+                    new GeoPoint3(4, 3, 0),
+                    new GeoPoint3(0, 3, 0)
+                )
+            );
 
             GeoTriangle3[] triangles = face.TriangulateSurface();
 
@@ -235,11 +262,16 @@ namespace GeometryHelper.UnitTest.Solid
 
             // Sits wholly in the empty notch and crosses the z = 0 plane, which is where a fan triangle
             // spans the opening.
-            GeoSolid3 probe = Extrude(new[]
-            {
-                new GeoPoint3(4, 1, -0.5), new GeoPoint3(6, 1, -0.5),
-                new GeoPoint3(6, 3, -0.5), new GeoPoint3(4, 3, -0.5)
-            }, 1.0);
+            GeoSolid3 probe = Extrude(
+                new[]
+                {
+                    new GeoPoint3(4, 1, -0.5),
+                    new GeoPoint3(6, 1, -0.5),
+                    new GeoPoint3(6, 3, -0.5),
+                    new GeoPoint3(4, 3, -0.5),
+                },
+                1.0
+            );
 
             Assert.False(Collision3.CollidesWith(body, probe));
         }
@@ -249,11 +281,16 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoSolid3 body = Extrude(UShape(), 1.0);
 
-            GeoSolid3 probe = Extrude(new[]
-            {
-                new GeoPoint3(0.5, 1, -0.5), new GeoPoint3(1.5, 1, -0.5),
-                new GeoPoint3(1.5, 3, -0.5), new GeoPoint3(0.5, 3, -0.5)
-            }, 1.0);
+            GeoSolid3 probe = Extrude(
+                new[]
+                {
+                    new GeoPoint3(0.5, 1, -0.5),
+                    new GeoPoint3(1.5, 1, -0.5),
+                    new GeoPoint3(1.5, 3, -0.5),
+                    new GeoPoint3(0.5, 3, -0.5),
+                },
+                1.0
+            );
 
             Assert.True(Collision3.CollidesWith(body, probe));
         }

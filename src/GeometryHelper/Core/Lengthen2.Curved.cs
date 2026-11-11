@@ -34,7 +34,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Lengthens an arc along itself at one end.
         /// </summary>
-        public static GeoArc2 Extend(GeoArc2 arc, double distance, LineEnd end) => Extend(arc, distance, end, Tolerance.Global);
+        public static GeoArc2 Extend(GeoArc2 arc, double distance, LineEnd end) =>
+            Extend(arc, distance, end, Tolerance.Global);
 
         /// <summary>
         /// Lengthens an arc along itself at one end, within a tolerance.
@@ -58,7 +59,9 @@ namespace GeometryHelper.Core
             if (!TryReswept(arc, end, sweep, tolerance, out GeoArc2 result))
             {
                 throw new ArgumentOutOfRangeException(
-                    nameof(distance), "That distance leaves no arc, or carries it past a whole turn.");
+                    nameof(distance),
+                    "That distance leaves no arc, or carries it past a whole turn."
+                );
             }
 
             return result;
@@ -67,8 +70,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Lengthens an arc along itself at both ends at once.
         /// </summary>
-        public static GeoArc2 Extend(GeoArc2 arc, double startDistance, double endDistance)
-            => Extend(arc, startDistance, endDistance, Tolerance.Global);
+        public static GeoArc2 Extend(GeoArc2 arc, double startDistance, double endDistance) =>
+            Extend(arc, startDistance, endDistance, Tolerance.Global);
 
         /// <summary>
         /// Lengthens an arc along itself at both ends at once, within a tolerance.
@@ -94,7 +97,9 @@ namespace GeometryHelper.Core
             if (!Holds(arc, sweep, tolerance))
             {
                 throw new ArgumentOutOfRangeException(
-                    nameof(endDistance), "Those distances leave no arc, or carry it past a whole turn.");
+                    nameof(endDistance),
+                    "Those distances leave no arc, or carry it past a whole turn."
+                );
             }
 
             return Swept(arc, arc.StartAngle - back, sweep);
@@ -103,7 +108,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Lengthens or shortens an arc at one end until it is a given arc length.
         /// </summary>
-        public static GeoArc2 ExtendToLength(GeoArc2 arc, double length, LineEnd end) => ExtendToLength(arc, length, end, Tolerance.Global);
+        public static GeoArc2 ExtendToLength(GeoArc2 arc, double length, LineEnd end) =>
+            ExtendToLength(arc, length, end, Tolerance.Global);
 
         /// <summary>
         /// Lengthens or shortens an arc at one end until it is a given arc length, within a tolerance.
@@ -123,7 +129,10 @@ namespace GeometryHelper.Core
 
             if (length <= tolerance.EqualPoint)
             {
-                throw new ArgumentOutOfRangeException(nameof(length), "An arc must be longer than the point tolerance.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(length),
+                    "An arc must be longer than the point tolerance."
+                );
             }
 
             double sweep = Direction(arc) * length / arc.Radius;
@@ -139,8 +148,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Lengthens an arc at one end until it reaches a point on its circle.
         /// </summary>
-        public static bool TryExtendTo(GeoArc2 arc, GeoPoint2 point, LineEnd end, out GeoArc2 result)
-            => TryExtendTo(arc, point, end, out result, Tolerance.Global);
+        public static bool TryExtendTo(GeoArc2 arc, GeoPoint2 point, LineEnd end, out GeoArc2 result) =>
+            TryExtendTo(arc, point, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Lengthens an arc at one end until it reaches a point on its circle, within a tolerance.
@@ -156,7 +165,13 @@ namespace GeometryHelper.Core
         /// <see cref="TryTrimTo(GeoArc2, GeoPoint2, LineEnd, out GeoArc2)"/> is the other direction. A point off the
         /// circle is refused rather than being drawn in to the nearest place on it.
         /// </remarks>
-        public static bool TryExtendTo(GeoArc2 arc, GeoPoint2 point, LineEnd end, out GeoArc2 result, Tolerance tolerance)
+        public static bool TryExtendTo(
+            GeoArc2 arc,
+            GeoPoint2 point,
+            LineEnd end,
+            out GeoArc2 result,
+            Tolerance tolerance
+        )
         {
             ValidateEnd(end);
             result = arc;
@@ -175,8 +190,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Shortens an arc at one end back to a point on it.
         /// </summary>
-        public static bool TryTrimTo(GeoArc2 arc, GeoPoint2 point, LineEnd end, out GeoArc2 result)
-            => TryTrimTo(arc, point, end, out result, Tolerance.Global);
+        public static bool TryTrimTo(GeoArc2 arc, GeoPoint2 point, LineEnd end, out GeoArc2 result) =>
+            TryTrimTo(arc, point, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Shortens an arc at one end back to a point on it, within a tolerance.
@@ -210,7 +225,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Lengthens a chain along its end leg.
         /// </summary>
-        public static GeoPolyline2 Extend(GeoPolyline2 chain, double distance, LineEnd end) => Extend(chain, distance, end, Tolerance.Global);
+        public static GeoPolyline2 Extend(GeoPolyline2 chain, double distance, LineEnd end) =>
+            Extend(chain, distance, end, Tolerance.Global);
 
         /// <summary>
         /// Lengthens a chain along its end leg, within a tolerance.
@@ -245,7 +261,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Lengthens a chain along its end leg until the whole chain is a given length.
         /// </summary>
-        public static GeoPolyline2 ExtendToLength(GeoPolyline2 chain, double length, LineEnd end) => ExtendToLength(chain, length, end, Tolerance.Global);
+        public static GeoPolyline2 ExtendToLength(GeoPolyline2 chain, double length, LineEnd end) =>
+            ExtendToLength(chain, length, end, Tolerance.Global);
 
         /// <summary>
         /// Lengthens a chain along its end leg until the whole chain is a given length, within a tolerance.
@@ -272,8 +289,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Shortens a chain at one end back to a point on it.
         /// </summary>
-        public static bool TryTrimTo(GeoPolyline2 chain, GeoPoint2 point, LineEnd end, out GeoPolyline2 result)
-            => TryTrimTo(chain, point, end, out result, Tolerance.Global);
+        public static bool TryTrimTo(GeoPolyline2 chain, GeoPoint2 point, LineEnd end, out GeoPolyline2 result) =>
+            TryTrimTo(chain, point, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Shortens a chain at one end back to a point on it, within a tolerance.
@@ -289,7 +306,13 @@ namespace GeometryHelper.Core
         /// is the one holding the other end, so every leg and bend between them survives.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryTrimTo(GeoPolyline2 chain, GeoPoint2 point, LineEnd end, out GeoPolyline2 result, Tolerance tolerance)
+        public static bool TryTrimTo(
+            GeoPolyline2 chain,
+            GeoPoint2 point,
+            LineEnd end,
+            out GeoPolyline2 result,
+            Tolerance tolerance
+        )
         {
             if (chain == null)
             {
@@ -316,7 +339,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Lengthens a curved chain along its end leg, round if that leg curves.
         /// </summary>
-        public static GeoPolylineArc2 Extend(GeoPolylineArc2 chain, double distance, LineEnd end) => Extend(chain, distance, end, Tolerance.Global);
+        public static GeoPolylineArc2 Extend(GeoPolylineArc2 chain, double distance, LineEnd end) =>
+            Extend(chain, distance, end, Tolerance.Global);
 
         /// <summary>
         /// Lengthens a curved chain along its end leg, round if that leg curves, within a tolerance.
@@ -361,7 +385,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Lengthens a curved chain along its end leg until the whole chain is a given length.
         /// </summary>
-        public static GeoPolylineArc2 ExtendToLength(GeoPolylineArc2 chain, double length, LineEnd end) => ExtendToLength(chain, length, end, Tolerance.Global);
+        public static GeoPolylineArc2 ExtendToLength(GeoPolylineArc2 chain, double length, LineEnd end) =>
+            ExtendToLength(chain, length, end, Tolerance.Global);
 
         /// <summary>
         /// Lengthens a curved chain along its end leg until the whole chain is a given length, within a tolerance.
@@ -373,7 +398,12 @@ namespace GeometryHelper.Core
         /// <returns>The chain of that length.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the length is not longer than the chain already is.</exception>
-        public static GeoPolylineArc2 ExtendToLength(GeoPolylineArc2 chain, double length, LineEnd end, Tolerance tolerance)
+        public static GeoPolylineArc2 ExtendToLength(
+            GeoPolylineArc2 chain,
+            double length,
+            LineEnd end,
+            Tolerance tolerance
+        )
         {
             if (chain == null)
             {
@@ -388,8 +418,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Shortens a curved chain at one end back to a point on it.
         /// </summary>
-        public static bool TryTrimTo(GeoPolylineArc2 chain, GeoPoint2 point, LineEnd end, out GeoPolylineArc2 result)
-            => TryTrimTo(chain, point, end, out result, Tolerance.Global);
+        public static bool TryTrimTo(GeoPolylineArc2 chain, GeoPoint2 point, LineEnd end, out GeoPolylineArc2 result) =>
+            TryTrimTo(chain, point, end, out result, Tolerance.Global);
 
         /// <summary>
         /// Shortens a curved chain at one end back to a point on it, within a tolerance.
@@ -405,7 +435,13 @@ namespace GeometryHelper.Core
         /// only the piece holding the other end is kept.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool TryTrimTo(GeoPolylineArc2 chain, GeoPoint2 point, LineEnd end, out GeoPolylineArc2 result, Tolerance tolerance)
+        public static bool TryTrimTo(
+            GeoPolylineArc2 chain,
+            GeoPoint2 point,
+            LineEnd end,
+            out GeoPolylineArc2 result,
+            Tolerance tolerance
+        )
         {
             if (chain == null)
             {
@@ -437,8 +473,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// The same arc with a new start angle and a new signed sweep.
         /// </summary>
-        private static GeoArc2 Swept(GeoArc2 arc, double startAngle, double sweep)
-            => new GeoArc2(arc.Center, arc.Radius, startAngle, startAngle + sweep, sweep < 0.0);
+        private static GeoArc2 Swept(GeoArc2 arc, double startAngle, double sweep) =>
+            new GeoArc2(arc.Center, arc.Radius, startAngle, startAngle + sweep, sweep < 0.0);
 
         /// <summary>
         /// Determines whether a sweep still draws an arc: something is left of it, it has not passed a whole
@@ -463,9 +499,10 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            result = end == LineEnd.End
-                ? Swept(arc, arc.StartAngle, sweep)
-                : Swept(arc, arc.StartAngle + arc.SweptAngle - sweep, sweep);
+            result =
+                end == LineEnd.End
+                    ? Swept(arc, arc.StartAngle, sweep)
+                    : Swept(arc, arc.StartAngle + arc.SweptAngle - sweep, sweep);
 
             return true;
         }
@@ -486,8 +523,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// How far there is to travel from one angle to another the way the arc goes, from nought to a whole turn.
         /// </summary>
-        private static double ForwardSweep(double from, double to, double direction)
-            => WrapTurn(direction > 0.0 ? to - from : from - to);
+        private static double ForwardSweep(double from, double to, double direction) =>
+            WrapTurn(direction > 0.0 ? to - from : from - to);
 
         /// <summary>
         /// An angle brought into nought to a whole turn.
@@ -544,7 +581,8 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentOutOfRangeException(
                     "distance",
-                    "A chain is carried outwards only. Use the splitting family to shorten one, which keeps its bends.");
+                    "A chain is carried outwards only. Use the splitting family to shorten one, which keeps its bends."
+                );
             }
         }
 

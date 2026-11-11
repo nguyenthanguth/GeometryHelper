@@ -35,11 +35,15 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly GeoVector3 Up = new GeoVector3(0, 0, 1);
 
-        private static GeoPolylineArc3 HalfCircle()
-            => new GeoPolylineArc3(new[] { P(0, 0, 2), P(10, 0, 2) }, new[] { 1.0, 0.0 }, Enumerable.Repeat(Up, 2));
+        private static GeoPolylineArc3 HalfCircle() =>
+            new GeoPolylineArc3(new[] { P(0, 0, 2), P(10, 0, 2) }, new[] { 1.0, 0.0 }, Enumerable.Repeat(Up, 2));
 
-        private static GeoPolylineArc3 S(GeoVector3 secondNormal)
-            => new GeoPolylineArc3(new[] { P(0, 0, 2), P(10, 0, 2), P(20, 0, 2) }, new[] { 0.5, -0.5, 0.0 }, new[] { Up, secondNormal, Up });
+        private static GeoPolylineArc3 S(GeoVector3 secondNormal) =>
+            new GeoPolylineArc3(
+                new[] { P(0, 0, 2), P(10, 0, 2), P(20, 0, 2) },
+                new[] { 0.5, -0.5, 0.0 },
+                new[] { Up, secondNormal, Up }
+            );
 
         [Fact]
         public void AHalfCircleWhoseEndsAloneGiveNoPlane_HasThePlaneItTurnsIn()
@@ -52,7 +56,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AHalfCircleOffsetByOneInItsPlane_IsTheHalfCircleOfFourInside()
         {
-            GeoPolylineArc3 one = Assert.Single(Offset3.OffsetInPlane(HalfCircle(), 1.0, Up, OffsetOptions.Default, Thousandth));
+            GeoPolylineArc3 one = Assert.Single(
+                Offset3.OffsetInPlane(HalfCircle(), 1.0, Up, OffsetOptions.Default, Thousandth)
+            );
 
             Assert.Equal(2, one.VertexCount);
             Assert.Equal(0.0, one.StartPoint.DistanceTo(P(1, 0, 2)), 1E-9);
@@ -63,7 +69,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AnSOfTwoArcsOnOneLine_IsOffsetByOneAsOneChain()
         {
-            GeoPolylineArc3 one = Assert.Single(Offset3.OffsetInPlane(S(Up), 1.0, Up, OffsetOptions.Default, Thousandth));
+            GeoPolylineArc3 one = Assert.Single(
+                Offset3.OffsetInPlane(S(Up), 1.0, Up, OffsetOptions.Default, Thousandth)
+            );
 
             Assert.Equal(3, one.VertexCount);
             Assert.Equal(0.0, one.Vertices[0].DistanceTo(P(0.8, 0.6, 2)), 1E-9);
@@ -78,7 +86,9 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPolylineArc3 chain = S(new GeoVector3(0, 1, 0));
 
             Assert.False(chain.TryGetPlane(out _, Thousandth));
-            Assert.Throws<ArgumentException>(() => Offset3.OffsetInPlane(chain, 1.0, Up, OffsetOptions.Default, Thousandth));
+            Assert.Throws<ArgumentException>(() =>
+                Offset3.OffsetInPlane(chain, 1.0, Up, OffsetOptions.Default, Thousandth)
+            );
         }
     }
 }

@@ -27,8 +27,12 @@ namespace GeometryHelper.UnitTest.Dxf
             source.BlockTable.Add(bolt);
             bolt.AppendEntity(new DxfCircle(new GeoPoint3(1, 2, 0), new GeoVector3(0, 0, 1), 3) { Layer = "steel" });
             source.BlockTable.Add(new DxfBlockTableRecord { Name = "UNUSED" });
-            source.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)) { Layer = "steel" });
-            source.ModelSpace.AppendEntity(new DxfCircle(new GeoPoint3(20, 0, 0), new GeoVector3(0, 0, 1), 5) { Layer = "rebar" });
+            source.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)) { Layer = "steel" }
+            );
+            source.ModelSpace.AppendEntity(
+                new DxfCircle(new GeoPoint3(20, 0, 0), new GeoVector3(0, 0, 1), 5) { Layer = "rebar" }
+            );
             source.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(40, 0, 0), bolt));
             source.Insbase = new GeoPoint3(20, 0, 0);
             return source;
@@ -110,8 +114,25 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ADrawingThisOneCannotHold_IsRefusedWhole_AndNothingIsWritten()
         {
             DxfDatabase source = Source();
-            source.ModelSpace.AppendEntity(new DxfSpline(3, false, false, false, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(1, 1, 0), new GeoPoint3(2, 0, 0), new GeoPoint3(3, 1, 0) },
-                new[] { 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0 }, new double[0], 0.0, 0.0));
+            source.ModelSpace.AppendEntity(
+                new DxfSpline(
+                    3,
+                    false,
+                    false,
+                    false,
+                    new[]
+                    {
+                        new GeoPoint3(0, 0, 0),
+                        new GeoPoint3(1, 1, 0),
+                        new GeoPoint3(2, 0, 0),
+                        new GeoPoint3(3, 1, 0),
+                    },
+                    new[] { 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0 },
+                    new double[0],
+                    0.0,
+                    0.0
+                )
+            );
             DxfDatabase r12 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R12);
             string text = r12.ToText();
 
@@ -122,7 +143,15 @@ namespace GeometryHelper.UnitTest.Dxf
             // A transformation an INSERT would be sheared by is refused before anything is written too.
             DxfDatabase db = NewDrawing();
             string empty = db.ToText();
-            var shear = new GeoTransform3(new double[,] { { 1, 1, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } });
+            var shear = new GeoTransform3(
+                new double[,]
+                {
+                    { 1, 1, 0, 0 },
+                    { 0, 1, 0, 0 },
+                    { 0, 0, 1, 0 },
+                    { 0, 0, 0, 1 },
+                }
+            );
             Assert.Throws<ArgumentException>(() => db.Insert(shear, Source(), true));
             Assert.Equal(empty, db.ToText());
         }
@@ -155,20 +184,38 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ADrawingWithABlockThatInsertsItself_IsRefusedWhole_AndNothingIsWritten()
         {
             // X holds an INSERT of X; Y and Z insert each other.
-            const string Head = "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1009\n  0\nENDSEC\n  0\nSECTION\n  2\nBLOCKS\n";
+            const string Head =
+                "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1009\n  0\nENDSEC\n  0\nSECTION\n  2\nBLOCKS\n";
             const string Line = "  0\nLINE\n  8\n0\n 10\n0\n 20\n0\n 30\n0\n 11\n1\n 21\n0\n 31\n0\n";
-            const string Tail = "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n  0\nINSERT\n  8\n0\n  2\n{0}\n 10\n0\n 20\n0\n 30\n0\n  0\nENDSEC\n  0\nEOF\n";
-            string Block(string name, string inserted) => "  0\nBLOCK\n  8\n0\n  2\n" + name + "\n 70\n0\n 10\n0\n 20\n0\n 30\n0\n" + Line
-                + "  0\nINSERT\n  8\n0\n  2\n" + inserted + "\n 10\n1\n 20\n0\n 30\n0\n 50\n30\n  0\nENDBLK\n  8\n0\n";
+            const string Tail =
+                "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n  0\nINSERT\n  8\n0\n  2\n{0}\n 10\n0\n 20\n0\n 30\n0\n  0\nENDSEC\n  0\nEOF\n";
+            string Block(string name, string inserted) =>
+                "  0\nBLOCK\n  8\n0\n  2\n"
+                + name
+                + "\n 70\n0\n 10\n0\n 20\n0\n 30\n0\n"
+                + Line
+                + "  0\nINSERT\n  8\n0\n  2\n"
+                + inserted
+                + "\n 10\n1\n 20\n0\n 30\n0\n 50\n30\n  0\nENDBLK\n  8\n0\n";
 
-            foreach (string source in new[] { Head + Block("X", "X") + string.Format(Tail, "X"), Head + Block("Y", "Z") + Block("Z", "Y") + string.Format(Tail, "Y") })
+            foreach (
+                string source in new[]
+                {
+                    Head + Block("X", "X") + string.Format(Tail, "X"),
+                    Head + Block("Y", "Z") + Block("Z", "Y") + string.Format(Tail, "Y"),
+                }
+            )
             {
                 foreach (DxfDatabase db in new[] { NewDrawing(), DxfDatabase.Parse(DxfFileEzdxfDrawings.R12) })
                 {
                     string text = db.ToText();
 
-                    Assert.Throws<ArgumentException>(() => db.Insert(GeoTransform3.Identity, DxfDatabase.Parse(source), true));
-                    Assert.Throws<ArgumentException>(() => db.Insert(GeoTransform3.Translation(new GeoVector3(5, 0, 0)), DxfDatabase.Parse(source), true));
+                    Assert.Throws<ArgumentException>(() =>
+                        db.Insert(GeoTransform3.Identity, DxfDatabase.Parse(source), true)
+                    );
+                    Assert.Throws<ArgumentException>(() =>
+                        db.Insert(GeoTransform3.Translation(new GeoVector3(5, 0, 0)), DxfDatabase.Parse(source), true)
+                    );
                     Assert.Throws<ArgumentException>(() => db.Insert("PLATE", DxfDatabase.Parse(source), true));
                     Assert.Equal(text, db.ToText());
                 }

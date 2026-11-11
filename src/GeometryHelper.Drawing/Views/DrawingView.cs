@@ -41,7 +41,8 @@ namespace GeometryHelper.Drawing
             double scale,
             bool hiddenLines,
             ProjectedView2 lines,
-            string[] objectIds)
+            string[] objectIds
+        )
         {
             Id = id;
             Kind = kind;
@@ -153,15 +154,38 @@ namespace GeometryHelper.Drawing
         public GeoPoint2 ModelOrigin { get; internal set; }
 
         /// <summary>Gets the box of the view on the sheet, in paper millimetres: <see cref="Box"/> divided by the scale, at <see cref="SheetOrigin"/>.</summary>
-        public GeoRectangle2 SheetBox
-            => new GeoRectangle2(new GeoPoint2(SheetOrigin.X + Box.Center.X / Scale, SheetOrigin.Y + Box.Center.Y / Scale), Box.Width / Scale, Box.Height / Scale);
+        public GeoRectangle2 SheetBox =>
+            new GeoRectangle2(
+                new GeoPoint2(SheetOrigin.X + Box.Center.X / Scale, SheetOrigin.Y + Box.Center.Y / Scale),
+                Box.Width / Scale,
+                Box.Height / Scale
+            );
 
         /// <inheritdoc/>
         public override string ToString() => $"View {Id} {Title}";
 
         /// <summary>A copy of the view, its lines and kind kept, the rest as given.</summary>
-        internal DrawingView With(ViewKind kind, ViewFrame3 frame, GeoRectangle2 crop, double scale, ProjectedView2 lines, string[] objectIds)
-            => new DrawingView(Id, kind, Name, frame, SectionPlane, ParentViewId, crop, scale, HiddenLines, lines, objectIds)
+        internal DrawingView With(
+            ViewKind kind,
+            ViewFrame3 frame,
+            GeoRectangle2 crop,
+            double scale,
+            ProjectedView2 lines,
+            string[] objectIds
+        ) =>
+            new DrawingView(
+                Id,
+                kind,
+                Name,
+                frame,
+                SectionPlane,
+                ParentViewId,
+                crop,
+                scale,
+                HiddenLines,
+                lines,
+                objectIds
+            )
             {
                 Box = crop,
             };
@@ -191,9 +215,11 @@ namespace GeometryHelper.Drawing
             return new DrawingElement(Id, "View", null, new DrawingLinks(ObjectIds), values);
         }
 
-        private static KeyValuePair<string, string> Value(string name, string value) => new KeyValuePair<string, string>(name, value);
+        private static KeyValuePair<string, string> Value(string name, string value) =>
+            new KeyValuePair<string, string>(name, value);
 
-        private static string Point(params double[] coordinates) => string.Join(",", Array.ConvertAll(coordinates, DrawingSettings.Write));
+        private static string Point(params double[] coordinates) =>
+            string.Join(",", Array.ConvertAll(coordinates, DrawingSettings.Write));
 
         private static string Rectangle(GeoRectangle2 box) => Point(box.Center.X, box.Center.Y, box.Width, box.Height);
     }

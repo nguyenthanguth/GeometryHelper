@@ -26,7 +26,8 @@ namespace GeometryHelper.TeklaConvert
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="polygon"/> is null.</exception>
         public static List<TSG.Point> ToTeklaPoints(this TSM.Polygon polygon)
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             return PointConvert.ReadTeklaPoints(polygon.Points, nameof(polygon));
         }
@@ -66,8 +67,8 @@ namespace GeometryHelper.TeklaConvert
         /// <summary>
         /// Converts a Tekla polygon to a chain that may curve, bending it at each turn.
         /// </summary>
-        public static GeoPolylineArc3 ToGeoPolylineArc3(this TSM.Polygon polygon, IList<double> bendingRadii)
-            => polygon.ToGeoPolylineArc3(bendingRadii, Tolerance.Global);
+        public static GeoPolylineArc3 ToGeoPolylineArc3(this TSM.Polygon polygon, IList<double> bendingRadii) =>
+            polygon.ToGeoPolylineArc3(bendingRadii, Tolerance.Global);
 
         /// <summary>
         /// Converts a Tekla polygon to a chain that may curve, bending it at each turn, within a tolerance.
@@ -77,7 +78,11 @@ namespace GeometryHelper.TeklaConvert
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The chain: straight runs with a tangent arc at every bend that had room for one.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="polygon"/> is null.</exception>
-        public static GeoPolylineArc3 ToGeoPolylineArc3(this TSM.Polygon polygon, IList<double> bendingRadii, Tolerance tolerance)
+        public static GeoPolylineArc3 ToGeoPolylineArc3(
+            this TSM.Polygon polygon,
+            IList<double> bendingRadii,
+            Tolerance tolerance
+        )
         {
             return polygon.ToTeklaPoints().ToGeoPolylineArc3(bendingRadii, tolerance);
         }
@@ -85,8 +90,8 @@ namespace GeometryHelper.TeklaConvert
         /// <summary>
         /// Converts a Tekla polygon to a closed loop that may curve, bending it at each corner.
         /// </summary>
-        public static GeoPolygonArc3 ToGeoPolygonArc3(this TSM.Polygon polygon, double bendingRadius)
-            => polygon.ToGeoPolygonArc3(bendingRadius, Tolerance.Global);
+        public static GeoPolygonArc3 ToGeoPolygonArc3(this TSM.Polygon polygon, double bendingRadius) =>
+            polygon.ToGeoPolygonArc3(bendingRadius, Tolerance.Global);
 
         /// <summary>
         /// Converts a Tekla polygon to a closed loop that may curve, bending it at each corner, within a tolerance.
@@ -101,7 +106,11 @@ namespace GeometryHelper.TeklaConvert
         /// This is the shape a closed tie is: set out by its corners, bent to a radius. The corner closing the
         /// loop is rounded like every other, which is what tells a loop from a chain whose ends happen to meet.
         /// </remarks>
-        public static GeoPolygonArc3 ToGeoPolygonArc3(this TSM.Polygon polygon, double bendingRadius, Tolerance tolerance)
+        public static GeoPolygonArc3 ToGeoPolygonArc3(
+            this TSM.Polygon polygon,
+            double bendingRadius,
+            Tolerance tolerance
+        )
         {
             var loop = new GeoPolygonArc3(polygon.ToGeoPolygon3(tolerance));
 
@@ -114,7 +123,8 @@ namespace GeometryHelper.TeklaConvert
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="polyline"/> is null.</exception>
         public static TSM.Polygon ToTeklaPolygon(this GeoPolyline3 polyline)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return Built(polyline.Vertices);
         }
@@ -125,7 +135,8 @@ namespace GeometryHelper.TeklaConvert
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="polygon"/> is null.</exception>
         public static TSM.Polygon ToTeklaPolygon(this GeoPolygon3 polygon)
         {
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             return Built(polygon.Vertices);
         }

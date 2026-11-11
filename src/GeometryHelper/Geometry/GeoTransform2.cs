@@ -105,8 +105,10 @@ namespace GeometryHelper.Geometry
             GeoTransform2 t = new GeoTransform2();
             double cos = Math.Cos(angleRad);
             double sin = Math.Sin(angleRad);
-            t._m[0, 0] = cos; t._m[0, 1] = -sin;
-            t._m[1, 0] = sin; t._m[1, 1] = cos;
+            t._m[0, 0] = cos;
+            t._m[0, 1] = -sin;
+            t._m[1, 0] = sin;
+            t._m[1, 1] = cos;
             return t;
         }
 
@@ -119,9 +121,7 @@ namespace GeometryHelper.Geometry
         {
             GeoVector2 toCenter = new GeoVector2(center.X, center.Y);
 
-            return Translation(toCenter)
-                .Multiply(Rotation(angleRad))
-                .Multiply(Translation(toCenter.Multiply(-1.0)));
+            return Translation(toCenter).Multiply(Rotation(angleRad)).Multiply(Translation(toCenter.Multiply(-1.0)));
         }
 
         /// <summary>
@@ -152,9 +152,7 @@ namespace GeometryHelper.Geometry
         {
             GeoVector2 toCenter = new GeoVector2(center.X, center.Y);
 
-            return Translation(toCenter)
-                .Multiply(Scaling(factor))
-                .Multiply(Translation(toCenter.Multiply(-1.0)));
+            return Translation(toCenter).Multiply(Scaling(factor)).Multiply(Translation(toCenter.Multiply(-1.0)));
         }
 
         /// <summary>
@@ -185,14 +183,14 @@ namespace GeometryHelper.Geometry
             double xx = unit.X * unit.X;
             double yy = unit.Y * unit.Y;
             double xy = 2.0 * unit.X * unit.Y;
-            t._m[0, 0] = xx - yy; t._m[0, 1] = xy;
-            t._m[1, 0] = xy; t._m[1, 1] = yy - xx;
+            t._m[0, 0] = xx - yy;
+            t._m[0, 1] = xy;
+            t._m[1, 0] = xy;
+            t._m[1, 1] = yy - xx;
 
             GeoVector2 toStart = new GeoVector2(line.StartPoint.X, line.StartPoint.Y);
 
-            return Translation(toStart)
-                .Multiply(t)
-                .Multiply(Translation(toStart.Multiply(-1.0)));
+            return Translation(toStart).Multiply(t).Multiply(Translation(toStart.Multiply(-1.0)));
         }
 
         /// <summary>
@@ -215,8 +213,12 @@ namespace GeometryHelper.Geometry
             }
 
             GeoTransform2 t = new GeoTransform2();
-            t._m[0, 0] = unit.X; t._m[0, 1] = -unit.Y; t._m[0, 2] = origin.X;
-            t._m[1, 0] = unit.Y; t._m[1, 1] = unit.X; t._m[1, 2] = origin.Y;
+            t._m[0, 0] = unit.X;
+            t._m[0, 1] = -unit.Y;
+            t._m[0, 2] = origin.X;
+            t._m[1, 0] = unit.Y;
+            t._m[1, 1] = unit.X;
+            t._m[1, 2] = origin.Y;
             return t;
         }
 
@@ -231,7 +233,8 @@ namespace GeometryHelper.Geometry
         /// no inverse: <see cref="ToCoordinateSystem"/> gives it for whole shapes, and
         /// <see cref="GeoCoordinateSystem2.ToLocal(GeoPoint2)"/> for a single point.
         /// </remarks>
-        public static GeoTransform2 FromCoordinateSystem(GeoCoordinateSystem2 system) => FromFrame(system.Origin, system.XAxis);
+        public static GeoTransform2 FromCoordinateSystem(GeoCoordinateSystem2 system) =>
+            FromFrame(system.Origin, system.XAxis);
 
         /// <summary>
         /// Gets the transformation that reads geometry of the drawing in a local coordinate system, the
@@ -249,8 +252,12 @@ namespace GeometryHelper.Geometry
             GeoTransform2 t = new GeoTransform2();
             GeoVector2 origin = new GeoVector2(system.Origin.X, system.Origin.Y);
 
-            t._m[0, 0] = system.XAxis.X; t._m[0, 1] = system.XAxis.Y; t._m[0, 2] = -system.XAxis.DotProduct(origin);
-            t._m[1, 0] = system.YAxis.X; t._m[1, 1] = system.YAxis.Y; t._m[1, 2] = -system.YAxis.DotProduct(origin);
+            t._m[0, 0] = system.XAxis.X;
+            t._m[0, 1] = system.XAxis.Y;
+            t._m[0, 2] = -system.XAxis.DotProduct(origin);
+            t._m[1, 0] = system.YAxis.X;
+            t._m[1, 1] = system.YAxis.Y;
+            t._m[1, 2] = -system.YAxis.DotProduct(origin);
             return t;
         }
 
@@ -295,7 +302,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public static GeoTransform2 operator *(GeoTransform2 left, GeoTransform2 right)
         {
-            if (left == null) throw new ArgumentNullException(nameof(left));
+            if (left == null)
+                throw new ArgumentNullException(nameof(left));
 
             return left.Multiply(right);
         }
@@ -318,7 +326,7 @@ namespace GeometryHelper.Geometry
         private double GetAxisScale()
         {
             return Math.Sqrt(_m[0, 0] * _m[0, 0] + _m[1, 0] * _m[1, 0])
-                 * Math.Sqrt(_m[0, 1] * _m[0, 1] + _m[1, 1] * _m[1, 1]);
+                * Math.Sqrt(_m[0, 1] * _m[0, 1] + _m[1, 1] * _m[1, 1]);
         }
 
         /// <summary>
@@ -399,7 +407,8 @@ namespace GeometryHelper.Geometry
         {
             return new GeoPoint2(
                 _m[0, 0] * point.X + _m[0, 1] * point.Y + _m[0, 2],
-                _m[1, 0] * point.X + _m[1, 1] * point.Y + _m[1, 2]);
+                _m[1, 0] * point.X + _m[1, 1] * point.Y + _m[1, 2]
+            );
         }
 
         /// <summary>
@@ -407,9 +416,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public GeoVector2 Transform(GeoVector2 vector)
         {
-            return new GeoVector2(
-                _m[0, 0] * vector.X + _m[0, 1] * vector.Y,
-                _m[1, 0] * vector.X + _m[1, 1] * vector.Y);
+            return new GeoVector2(_m[0, 0] * vector.X + _m[0, 1] * vector.Y, _m[1, 0] * vector.X + _m[1, 1] * vector.Y);
         }
 
         /// <summary>
@@ -587,16 +594,19 @@ namespace GeometryHelper.Geometry
         /// Determines whether the X and Y axes come out of the transformation of one length to the rounding of its numbers,
         /// as a turn, a skew or an even scaling leaves them, so that an arc under it is not stretched into part of an ellipse.
         /// </summary>
-        internal static bool EquallyLong(GeoVector2 movedX, GeoVector2 movedY)
-            => !(Math.Abs(movedX.LengthSquared - movedY.LengthSquared) > RoundSlack * (movedX.LengthSquared + movedY.LengthSquared) * 0.5);
+        internal static bool EquallyLong(GeoVector2 movedX, GeoVector2 movedY) =>
+            !(
+                Math.Abs(movedX.LengthSquared - movedY.LengthSquared)
+                > RoundSlack * (movedX.LengthSquared + movedY.LengthSquared) * 0.5
+            );
 
         /// <summary>
         /// Gets how far, at the most, a circle of a radius moved by two axes whose images are so long and lean on each other
         /// so much strays from where the transformation puts its points: the radius times the difference of the two lengths
         /// and the lean, the dot product over the longer of them.
         /// </summary>
-        internal static double RoundGap(double alongX, double alongY, double dot, double radius)
-            => radius * (Math.Abs(alongX - alongY) + Math.Abs(dot) / Math.Max(alongX, alongY));
+        internal static double RoundGap(double alongX, double alongY, double dot, double radius) =>
+            radius * (Math.Abs(alongX - alongY) + Math.Abs(dot) / Math.Max(alongX, alongY));
 
         /// <summary>
         /// Determines whether the X and Y axes come out of the transformation square to each other and of one length to the
@@ -646,11 +656,15 @@ namespace GeometryHelper.Geometry
         {
             GeoVector2 alongX = Transform(GeoVector2.XAxis);
             GeoVector2 alongY = Transform(GeoVector2.YAxis);
-            double halfDiagonal = 0.5 * Math.Sqrt(rectangle.Width * rectangle.Width + rectangle.Height * rectangle.Height);
+            double halfDiagonal =
+                0.5 * Math.Sqrt(rectangle.Width * rectangle.Width + rectangle.Height * rectangle.Height);
 
             // Written as what a rectangle needs, so that a scaling to nought, which leaves no lengths to weigh, still gives a
             // rectangle of no size, as it did.
-            if (RoundGap(alongX.Length, alongY.Length, alongX.DotProduct(alongY), halfDiagonal) > Tolerance.Global.EqualPoint)
+            if (
+                RoundGap(alongX.Length, alongY.Length, alongX.DotProduct(alongY), halfDiagonal)
+                > Tolerance.Global.EqualPoint
+            )
             {
                 throw new InvalidOperationException("This transformation turns the rectangle into a parallelogram.");
             }
@@ -663,7 +677,8 @@ namespace GeometryHelper.Geometry
                 Transform(rectangle.Center),
                 rectangle.Width * alongX.Length,
                 rectangle.Height * alongY.Length,
-                Math.Atan2(edge.Y, edge.X));
+                Math.Atan2(edge.Y, edge.X)
+            );
         }
 
         /// <summary>
@@ -674,8 +689,8 @@ namespace GeometryHelper.Geometry
         /// The triangle the transformation makes of it. Any affine map takes a triangle to a triangle, so nothing is
         /// refused; a mirror or a negative scaling reverses the winding.
         /// </returns>
-        public GeoTriangle2 Transform(GeoTriangle2 triangle)
-            => new GeoTriangle2(Transform(triangle.A), Transform(triangle.B), Transform(triangle.C));
+        public GeoTriangle2 Transform(GeoTriangle2 triangle) =>
+            new GeoTriangle2(Transform(triangle.A), Transform(triangle.B), Transform(triangle.C));
 
         /// <summary>
         /// Transforms a sequence of points.
@@ -792,8 +807,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public override string ToString()
         {
-            return $"GeoTransform2[[{_m[0, 0]:0.###}, {_m[0, 1]:0.###}, {_m[0, 2]:0.###}], " +
-                   $"[{_m[1, 0]:0.###}, {_m[1, 1]:0.###}, {_m[1, 2]:0.###}]]";
+            return $"GeoTransform2[[{_m[0, 0]:0.###}, {_m[0, 1]:0.###}, {_m[0, 2]:0.###}], "
+                + $"[{_m[1, 0]:0.###}, {_m[1, 1]:0.###}, {_m[1, 2]:0.###}]]";
         }
 
         #endregion

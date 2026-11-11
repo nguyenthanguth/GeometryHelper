@@ -22,11 +22,18 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoPoint3 At(double x, double y, double z) => new GeoPoint3(far + x, far + y, far + z);
 
-            GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-                => GeoSolid3.Extrude(new GeoPolygon3(At(x0, y0, z0), At(x1, y0, z0), At(x1, y1, z0), At(x0, y1, z0)), new GeoVector3(0, 0, z1 - z0), Thousandth);
+            GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+                GeoSolid3.Extrude(
+                    new GeoPolygon3(At(x0, y0, z0), At(x1, y0, z0), At(x1, y1, z0), At(x0, y1, z0)),
+                    new GeoVector3(0, 0, z1 - z0),
+                    Thousandth
+                );
 
             GeoSolid3 body = GeoSolid3.Extrude(
-                new GeoPolygon3(At(0, 0, 0), At(100, 0, 0), At(100, 20, 0), At(20, 20, 0), At(20, 80, 0), At(0, 80, 0)), new GeoVector3(0, 0, 50), Thousandth);
+                new GeoPolygon3(At(0, 0, 0), At(100, 0, 0), At(100, 20, 0), At(20, 20, 0), At(20, 80, 0), At(0, 80, 0)),
+                new GeoVector3(0, 0, 50),
+                Thousandth
+            );
             GeoSolid3 up = Box(35, 4.6, -7, 48, 13.4271, 22);
             GeoSolid3 down = Box(75, 6.9, 13, 90.5, 13.428, 57);
 
@@ -58,7 +65,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void TwoOpeningsWithWallsANineTenThousandthApart_CutTheirOwnSection(double far)
         {
             // Halfway up, across both openings: the L less the floor of each.
-            GeoFace3[] section = L(far, false).Section(new GeoPlane3(new GeoPoint3(far + 50, far + 10, far + 17.5), new GeoVector3(0, 0, 1)), Thousandth);
+            GeoFace3[] section = L(far, false)
+                .Section(
+                    new GeoPlane3(new GeoPoint3(far + 50, far + 10, far + 17.5), new GeoVector3(0, 0, 1)),
+                    Thousandth
+                );
 
             Assert.Equal(3_200 - 13 * (13.4271 - 4.6) - 15.5 * (13.428 - 6.9), section.Sum(f => f.Area), 1E-6);
         }

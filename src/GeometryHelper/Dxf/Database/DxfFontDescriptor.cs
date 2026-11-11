@@ -29,12 +29,20 @@ namespace GeometryHelper.Dxf
         {
             if (characters < 0 || characters > 255)
             {
-                throw new ArgumentOutOfRangeException(nameof(characters), characters, "A character set is from 0 to 255.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(characters),
+                    characters,
+                    "A character set is from 0 to 255."
+                );
             }
 
             if (pitchAndFamily < 0 || pitchAndFamily > 255)
             {
-                throw new ArgumentOutOfRangeException(nameof(pitchAndFamily), pitchAndFamily, "A pitch and family is from 0 to 255.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(pitchAndFamily),
+                    pitchAndFamily,
+                    "A pitch and family is from 0 to 255."
+                );
             }
 
             _typeFace = typeFace ?? string.Empty;
@@ -74,9 +82,12 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets whether the font equals another.</summary>
         /// <param name="other">The other.</param>
         /// <returns>Whether their typefaces, letter for letter, and the rest are equal.</returns>
-        public bool Equals(DxfFontDescriptor other)
-            => string.Equals(TypeFace, other.TypeFace, StringComparison.Ordinal) && Bold == other.Bold && Italic == other.Italic && CharacterSet == other.CharacterSet
-                && PitchAndFamily == other.PitchAndFamily;
+        public bool Equals(DxfFontDescriptor other) =>
+            string.Equals(TypeFace, other.TypeFace, StringComparison.Ordinal)
+            && Bold == other.Bold
+            && Italic == other.Italic
+            && CharacterSet == other.CharacterSet
+            && PitchAndFamily == other.PitchAndFamily;
 
         /// <summary>Gets whether the font equals an object.</summary>
         /// <param name="obj">The object.</param>
@@ -89,13 +100,20 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gives the font as a line: its typeface, bold and italic where it is.</summary>
         /// <returns>The line, such as <c>Arial bold</c>.</returns>
-        public override string ToString() => TypeFace + (Bold ? " bold" : string.Empty) + (Italic ? " italic" : string.Empty);
+        public override string ToString() =>
+            TypeFace + (Bold ? " bold" : string.Empty) + (Italic ? " italic" : string.Empty);
 
         /// <summary>The 1071 AutoCAD writes for the font: pitch and family, character set shifted by 8, italic 0x1000000, bold 0x2000000.</summary>
         internal int Flags => PitchAndFamily | (CharacterSet << 8) | (Italic ? 0x1000000 : 0) | (Bold ? 0x2000000 : 0);
 
         /// <summary>The font of a typeface and the 1071 written with it.</summary>
-        internal static DxfFontDescriptor Of(string typeFace, int flags)
-            => new DxfFontDescriptor(typeFace, (flags & 0x2000000) != 0, (flags & 0x1000000) != 0, (flags >> 8) & 0xFF, flags & 0xFF);
+        internal static DxfFontDescriptor Of(string typeFace, int flags) =>
+            new DxfFontDescriptor(
+                typeFace,
+                (flags & 0x2000000) != 0,
+                (flags & 0x1000000) != 0,
+                (flags >> 8) & 0xFF,
+                flags & 0xFF
+            );
     }
 }

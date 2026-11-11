@@ -42,7 +42,12 @@ namespace GeometryHelper.Dxf
             var table = new DxfPropertiesTable();
             int at = 0;
 
-            if (!Next(own, ref at, 90, out _) || !Next(own, ref at, 300, out string name) || !Next(own, ref at, 301, out string description) || !Count(own, ref at, 91, out int columns))
+            if (
+                !Next(own, ref at, 90, out _)
+                || !Next(own, ref at, 300, out string name)
+                || !Next(own, ref at, 301, out string description)
+                || !Count(own, ref at, 91, out int columns)
+            )
             {
                 return null;
             }
@@ -54,10 +59,23 @@ namespace GeometryHelper.Dxf
             {
                 var column = new Column();
 
-                if (!Next(own, ref at, 340, out string handle) || !Next(own, ref at, 170, out _) || !Next(own, ref at, 171, out _) || !Next(own, ref at, 300, out _)
-                    || !Next(own, ref at, 301, out string connection) || !Next(own, ref at, 90, out string node) || !Variant(own, ref at, out _) || !Variant(own, ref at, out object unmatched)
-                    || !Flag(own, ref at, 290, out bool constant) || !Next(own, ref at, 291, out _) || !Next(own, ref at, 292, out _) || !Next(own, ref at, 293, out _)
-                    || !Flag(own, ref at, 294, out bool attribute) || !Next(own, ref at, 302, out _) || !Next(own, ref at, 340, out _))
+                if (
+                    !Next(own, ref at, 340, out string handle)
+                    || !Next(own, ref at, 170, out _)
+                    || !Next(own, ref at, 171, out _)
+                    || !Next(own, ref at, 300, out _)
+                    || !Next(own, ref at, 301, out string connection)
+                    || !Next(own, ref at, 90, out string node)
+                    || !Variant(own, ref at, out _)
+                    || !Variant(own, ref at, out object unmatched)
+                    || !Flag(own, ref at, 290, out bool constant)
+                    || !Next(own, ref at, 291, out _)
+                    || !Next(own, ref at, 292, out _)
+                    || !Next(own, ref at, 293, out _)
+                    || !Flag(own, ref at, 294, out bool attribute)
+                    || !Next(own, ref at, 302, out _)
+                    || !Next(own, ref at, 340, out _)
+                )
                 {
                     return null;
                 }
@@ -158,7 +176,9 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            return angle ? Math.Abs(Normal(number) - Normal(now)) <= Held.EqualVector : Math.Abs(number - now) <= Held.EqualPoint;
+            return angle
+                ? Math.Abs(Normal(number) - Normal(now)) <= Held.EqualVector
+                : Math.Abs(number - now) <= Held.EqualPoint;
         }
 
         private static double Normal(double angle)
@@ -190,7 +210,9 @@ namespace GeometryHelper.Dxf
         private static bool Count(List<DxfTypedValue> own, ref int at, int code, out int count)
         {
             count = 0;
-            return Next(own, ref at, code, out string text) && int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out count) && count >= 0;
+            return Next(own, ref at, code, out string text)
+                && int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out count)
+                && count >= 0;
         }
 
         private static bool Flag(List<DxfTypedValue> own, ref int at, int code, out bool flag)

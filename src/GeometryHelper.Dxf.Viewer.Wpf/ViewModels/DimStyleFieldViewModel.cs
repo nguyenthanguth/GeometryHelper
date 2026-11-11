@@ -60,7 +60,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private readonly Func<bool> _enabled;
         private string _text;
 
-        internal DimFieldViewModel(DimFieldKind kind, string label, string variable, Func<object> get, Action<object> set, IReadOnlyList<DimChoice> choices, Action changed, Func<bool> enabled = null, string shown = null)
+        internal DimFieldViewModel(
+            DimFieldKind kind,
+            string label,
+            string variable,
+            Func<object> get,
+            Action<object> set,
+            IReadOnlyList<DimChoice> choices,
+            Action changed,
+            Func<bool> enabled = null,
+            string shown = null
+        )
         {
             Kind = kind;
             Label = label;
@@ -96,7 +106,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the swatch of a colour field as 0xRRGGBB: the colour chosen, white for ByBlock and ByLayer as the design draws
         /// them; null for a field of no colour, or a fill of none.
         /// </summary>
-        public int? SwatchRgb => _get?.Invoke() is DxfColor colour ? (colour.IsByBlock || colour.IsByLayer ? 0xFFFFFF : colour.ColorValue & 0xFFFFFF) : (int?)null;
+        public int? SwatchRgb =>
+            _get?.Invoke() is DxfColor colour
+                ? (colour.IsByBlock || colour.IsByLayer ? 0xFFFFFF : colour.ColorValue & 0xFFFFFF)
+                : (int?)null;
 
         /// <summary>Gets the items of a list field.</summary>
         public IReadOnlyList<DimChoice> Choices { get; private set; }
@@ -118,7 +131,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     _set(_text);
                 }
-                else if (double.TryParse(_text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double number) && !double.IsNaN(number) && !double.IsInfinity(number))
+                else if (
+                    double.TryParse(_text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+                    && !double.IsNaN(number)
+                    && !double.IsInfinity(number)
+                )
                 {
                     _set(Kind == DimFieldKind.Angle ? number * Math.PI / 180.0 : number);
                 }
@@ -132,7 +149,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets whether the text typed reads as a number, for a number or an angle field; true for the others.</summary>
-        public bool IsValid => (Kind != DimFieldKind.Number && Kind != DimFieldKind.Angle) || double.TryParse((_text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out _);
+        public bool IsValid =>
+            (Kind != DimFieldKind.Number && Kind != DimFieldKind.Angle)
+            || double.TryParse((_text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out _);
 
         /// <summary>Gets or sets whether a box field is ticked.</summary>
         public bool IsChecked
@@ -152,9 +171,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get
             {
                 string now = CadDimStyleEditor.Text(_get?.Invoke());
-                return Choices.FirstOrDefault(c => string.Equals(CadDimStyleEditor.Text(c.Value), now, StringComparison.OrdinalIgnoreCase));
+                return Choices.FirstOrDefault(c =>
+                    string.Equals(CadDimStyleEditor.Text(c.Value), now, StringComparison.OrdinalIgnoreCase)
+                );
             }
-
             set
             {
                 if (value == null)
@@ -174,9 +194,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             string now = TextOf(_get?.Invoke());
 
             // A number being typed ("2." on its way to 2.5) is kept while it reads as the value it set.
-            bool same = Kind == DimFieldKind.Text ? _text == now
-                : double.TryParse((_text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double typed)
-                    && TextOf(Kind == DimFieldKind.Angle ? typed * Math.PI / 180.0 : typed) == now;
+            bool same =
+                Kind == DimFieldKind.Text
+                    ? _text == now
+                    : double.TryParse(
+                        (_text ?? string.Empty).Trim(),
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out double typed
+                    )
+                        && TextOf(Kind == DimFieldKind.Angle ? typed * Math.PI / 180.0 : typed) == now;
 
             if (!same)
             {
@@ -213,6 +240,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <inheritdoc/>
-        public override string ToString() => Label + " " + (Kind == DimFieldKind.Flag ? IsChecked.ToString() : Kind == DimFieldKind.Choice ? SelectedChoice?.Label : _text);
+        public override string ToString() =>
+            Label
+            + " "
+            + (
+                Kind == DimFieldKind.Flag ? IsChecked.ToString()
+                : Kind == DimFieldKind.Choice ? SelectedChoice?.Label
+                : _text
+            );
     }
 }

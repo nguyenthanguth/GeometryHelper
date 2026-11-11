@@ -70,7 +70,8 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ACoordinateThatIsNotANumber_IsLeftOutOfTheDrawingWithAWarning()
         {
-            const string json = "{\"items\":[{\"name\":\"p\",\"layer\":\"a\",\"kind\":\"GeoPolyline2\",\"data\":{\"points\":[[0,0],[\"NaN\",1],[2,0],[3,1]]}}]}";
+            const string json =
+                "{\"items\":[{\"name\":\"p\",\"layer\":\"a\",\"kind\":\"GeoPolyline2\",\"data\":{\"points\":[[0,0],[\"NaN\",1],[2,0],[3,1]]}}]}";
             Scene scene = SceneReader.ReadJson(json);
 
             Primitives primitives = Primitives.Build(scene);
@@ -88,7 +89,13 @@ namespace GeometryHelper.Viewer.Tests
         {
             Scene scene = new SceneWriter()
                 .Add(new GeoPoint2(double.NaN, 1))
-                .Add(new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0), new GeoPoint3(0, double.PositiveInfinity, 0)))
+                .Add(
+                    new GeoTriangle3(
+                        new GeoPoint3(0, 0, 0),
+                        new GeoPoint3(1, 0, 0),
+                        new GeoPoint3(0, double.PositiveInfinity, 0)
+                    )
+                )
                 .Text(new GeoPoint3(double.NaN, 0, 0), "lost")
                 .Add(new GeoPoint2(5, 6))
                 .Scene;
@@ -106,8 +113,19 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ABodyWhoseOpeningsTakeAllOfIt_HasNothingToDrawAndNoWarning()
         {
-            GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-                => GeoSolid3.Extrude(new GeoPolygon3(new[] { new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y0, z0), new GeoPoint3(x1, y1, z0), new GeoPoint3(x0, y1, z0) }), new GeoVector3(0, 0, z1 - z0));
+            GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+                GeoSolid3.Extrude(
+                    new GeoPolygon3(
+                        new[]
+                        {
+                            new GeoPoint3(x0, y0, z0),
+                            new GeoPoint3(x1, y0, z0),
+                            new GeoPoint3(x1, y1, z0),
+                            new GeoPoint3(x0, y1, z0),
+                        }
+                    ),
+                    new GeoVector3(0, 0, z1 - z0)
+                );
 
             var body = new GeoSolid3(Box(0, 0, 0, 10, 10, 10).Faces, new[] { Box(-1, -1, -1, 11, 11, 11) });
 
@@ -118,14 +136,19 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Empty(primitives.Items[0].Triangles);
             Assert.NotEmpty(primitives.Items[0].Polylines);
             string warning = Assert.Single(primitives.Warnings);
-            Assert.Contains("nothing left: the openings take all of it, or the library could not cut them", warning, StringComparison.Ordinal);
+            Assert.Contains(
+                "nothing left: the openings take all of it, or the library could not cut them",
+                warning,
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
         public void ABodyWithoutOpenings_ThatGivesNoTriangle_IsNotCalledOneWhoseOpeningsTakeAll()
         {
             // Faces with no area the library can cut: the fallback face by face runs, and the warning is the fallback's.
-            const string json = "{\"items\":[{\"name\":\"flat\",\"layer\":\"l\",\"kind\":\"GeoSolid3\",\"data\":{\"faces\":[]}}]}";
+            const string json =
+                "{\"items\":[{\"name\":\"flat\",\"layer\":\"l\",\"kind\":\"GeoSolid3\",\"data\":{\"faces\":[]}}]}";
 
             Primitives primitives = Primitives.Build(SceneReader.ReadJson(json));
 
@@ -137,7 +160,13 @@ namespace GeometryHelper.Viewer.Tests
         {
             var passedOn = new List<string>();
             Action<GeometryHelper.Enums.GeometryHelperLogLevel, string, Exception> before = GeometryHelperLog.Writer;
-            GeometryHelperLog.Writer = (level, message, exception) => { lock (passedOn) { passedOn.Add(message); } };
+            GeometryHelperLog.Writer = (level, message, exception) =>
+            {
+                lock (passedOn)
+                {
+                    passedOn.Add(message);
+                }
+            };
 
             try
             {
@@ -152,7 +181,10 @@ namespace GeometryHelper.Viewer.Tests
                     other.Start();
                     other.Join();
 
-                    Assert.Equal(new[] { "WARN unworkable cut", "ERR failed [InvalidOperationException: why]" }, log.Lines);
+                    Assert.Equal(
+                        new[] { "WARN unworkable cut", "ERR failed [InvalidOperationException: why]" },
+                        log.Lines
+                    );
                     Assert.Equal(new[] { "elsewhere" }, passedOn);
                 }
 
@@ -191,7 +223,8 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ALoopWithAPointNotANumber_KeepsItsClosingSegmentWhereBothEndsAreFinite()
         {
-            const string json = "{\"items\":[{\"name\":\"sq\",\"layer\":\"l\",\"kind\":\"GeoPolygon2\",\"data\":{\"points\":[[0,0],[10,0],[\"NaN\",10],[0,10]]}}]}";
+            const string json =
+                "{\"items\":[{\"name\":\"sq\",\"layer\":\"l\",\"kind\":\"GeoPolygon2\",\"data\":{\"points\":[[0,0],[10,0],[\"NaN\",10],[0,10]]}}]}";
 
             Primitives primitives = Primitives.Build(SceneReader.ReadJson(json));
 
@@ -204,7 +237,8 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ALoopWhoseFirstPointIsNotANumber_HasNoClosingSegmentToKeep()
         {
-            const string json = "{\"items\":[{\"name\":\"sq\",\"layer\":\"l\",\"kind\":\"GeoPolygon2\",\"data\":{\"points\":[[\"NaN\",0],[10,0],[10,10],[0,10]]}}]}";
+            const string json =
+                "{\"items\":[{\"name\":\"sq\",\"layer\":\"l\",\"kind\":\"GeoPolygon2\",\"data\":{\"points\":[[\"NaN\",0],[10,0],[10,10],[0,10]]}}]}";
 
             Primitives primitives = Primitives.Build(SceneReader.ReadJson(json));
 
@@ -216,7 +250,8 @@ namespace GeometryHelper.Viewer.Tests
         public void ABodyTheLibraryCannotCutAsAWhole_IsDrawnFaceByFaceAndWarnedOf()
         {
             // A box of which the top is not flat: five faces are fine and the sixth the library refuses at any tolerance.
-            const string json = "{\"items\":[{\"name\":\"bent box\",\"layer\":\"l\",\"kind\":\"GeoSolid3\",\"data\":{\"faces\":["
+            const string json =
+                "{\"items\":[{\"name\":\"bent box\",\"layer\":\"l\",\"kind\":\"GeoSolid3\",\"data\":{\"faces\":["
                 + "{\"outer\":[[0,0,0],[10,0,0],[10,10,0],[0,10,0]],\"holes\":[]},"
                 + "{\"outer\":[[0,0,0],[0,10,0],[0,10,10],[0,0,10]],\"holes\":[]},"
                 + "{\"outer\":[[10,0,0],[10,0,10],[10,10,10],[10,10,0]],\"holes\":[]},"
@@ -280,16 +315,29 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheProperties_ShowTheCoordinatesAndAreasToTenDigits_AndTheLibrarysOwnBounds()
         {
-            var polygon = new GeoPolygon3(new[] { new GeoPoint3(59999.0003, 12345.6789, 5), new GeoPoint3(60000.0008, 12345.6789, 5), new GeoPoint3(60000.0008, 12345.6839, 5), new GeoPoint3(59999.0003, 12345.6839, 5) });
+            var polygon = new GeoPolygon3(
+                new[]
+                {
+                    new GeoPoint3(59999.0003, 12345.6789, 5),
+                    new GeoPoint3(60000.0008, 12345.6789, 5),
+                    new GeoPoint3(60000.0008, 12345.6839, 5),
+                    new GeoPoint3(59999.0003, 12345.6839, 5),
+                }
+            );
             Scene scene = new SceneWriter().Add(polygon).Scene;
             Primitives primitives = Primitives.Build(scene);
 
-            Dictionary<string, string> numbers = ItemMeasures.Describe(scene.Items[0], scene, primitives.Items[0]).ToDictionary(p => p.Key, p => p.Value);
+            Dictionary<string, string> numbers = ItemMeasures
+                .Describe(scene.Items[0], scene, primitives.Items[0])
+                .ToDictionary(p => p.Key, p => p.Value);
 
             Assert.Equal("(59999.0003, 12345.6789, 5)", numbers["Bounds min (library)"]);
             Assert.Equal("(60000.0008, 12345.6839, 5)", numbers["Bounds max (library)"]);
             Assert.StartsWith("(1.0005, 0.00499", numbers["Bounds size"], StringComparison.Ordinal);
-            Assert.Equal((polygon.Area).ToString("G10", System.Globalization.CultureInfo.InvariantCulture), numbers["Area"]);
+            Assert.Equal(
+                (polygon.Area).ToString("G10", System.Globalization.CultureInfo.InvariantCulture),
+                numbers["Area"]
+            );
         }
 
         [Fact]

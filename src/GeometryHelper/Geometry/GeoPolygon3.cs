@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -79,9 +79,7 @@ namespace GeometryHelper.Geometry
         /// </para>
         /// </remarks>
         public GeoPolygon3(IEnumerable<GeoPoint3> vertices)
-            : this(vertices, Tolerance.Global)
-        {
-        }
+            : this(vertices, Tolerance.Global) { }
 
         /// <summary>
         /// Initializes a new polygon from a sequence of coplanar vertices, within a tolerance.
@@ -89,9 +87,7 @@ namespace GeometryHelper.Geometry
         /// <param name="vertices">The vertices, in order around the loop.</param>
         /// <param name="tolerance">The tolerance deciding duplicate vertices and flatness.</param>
         public GeoPolygon3(IEnumerable<GeoPoint3> vertices, Tolerance tolerance)
-            : this(vertices, tolerance, tolerance)
-        {
-        }
+            : this(vertices, tolerance, tolerance) { }
 
         /// <summary>
         /// Initializes a polygon whose vertices go only where they land within one tolerance of the one kept before them,
@@ -135,9 +131,15 @@ namespace GeometryHelper.Geometry
             // The length of this vector is the area of the loop, so the threshold it clears is EqualVector read as an area
             // rather than as a length. A loop enclosing less than that is kept all the same where it has width, as a
             // triangle has (GeoTriangle3.IsDegenerate): a polygon 0.002 by 0.002, of 4E-6 square units, is a polygon.
-            if (!areaVector.TryGetNormal(out GeoVector3 normal, tolerance) && !TryGetNormalOfWidth(loop, areaVector, tolerance, out normal))
+            if (
+                !areaVector.TryGetNormal(out GeoVector3 normal, tolerance)
+                && !TryGetNormalOfWidth(loop, areaVector, tolerance, out normal)
+            )
             {
-                throw new ArgumentException("A polygon must enclose an area; these vertices are collinear.", nameof(vertices));
+                throw new ArgumentException(
+                    "A polygon must enclose an area; these vertices are collinear.",
+                    nameof(vertices)
+                );
             }
 
             GeoPlane3 carrier = new GeoPlane3(loop[0], normal);
@@ -146,7 +148,10 @@ namespace GeometryHelper.Geometry
             // stand off the plane through them by rounding, which a planar tolerance of nought refuses.
             if (loop.Length > 3 && !carrier.ContainsAll(loop, tolerance))
             {
-                throw new ArgumentException("A polygon must be flat; these vertices do not share a plane.", nameof(vertices));
+                throw new ArgumentException(
+                    "A polygon must be flat; these vertices do not share a plane.",
+                    nameof(vertices)
+                );
             }
 
             _vertices = loop;
@@ -160,9 +165,7 @@ namespace GeometryHelper.Geometry
         /// Initializes a new polygon directly from vertex arguments.
         /// </summary>
         public GeoPolygon3(params GeoPoint3[] vertices)
-            : this((IEnumerable<GeoPoint3>)vertices)
-        {
-        }
+            : this((IEnumerable<GeoPoint3>)vertices) { }
 
         /// <summary>
         /// Initializes a polygon from vertices that have already been filtered and validated.
@@ -189,15 +192,20 @@ namespace GeometryHelper.Geometry
         /// constructor would measure is measured already. And for the cap of a cut, which lies in the cutting plane and
         /// faces along its normal, where the normal of its own corners can stand off it.
         /// </remarks>
-        internal static GeoPolygon3 FromValidated(GeoPoint3[] validatedVertices, GeoVector3 normal, double area)
-            => new GeoPolygon3(validatedVertices, normal, area);
+        internal static GeoPolygon3 FromValidated(GeoPoint3[] validatedVertices, GeoVector3 normal, double area) =>
+            new GeoPolygon3(validatedVertices, normal, area);
 
         /// <summary>
         /// Gets the normal of a loop whose area is within the vector tolerance but which has width: twice its area over its
         /// span, the longest side of three corners or the diagonal of the box of more, beyond the point tolerance, and its
         /// area vector clear of the rounding of the sums it comes from.
         /// </summary>
-        private static bool TryGetNormalOfWidth(GeoPoint3[] loop, GeoVector3 areaVector, Tolerance tolerance, out GeoVector3 normal)
+        private static bool TryGetNormalOfWidth(
+            GeoPoint3[] loop,
+            GeoVector3 areaVector,
+            Tolerance tolerance,
+            out GeoVector3 normal
+        )
         {
             normal = GeoVector3.Zero;
 
@@ -205,7 +213,10 @@ namespace GeometryHelper.Geometry
 
             if (loop.Length == 3)
             {
-                spanSquared = Math.Max(loop[0].GetDistanceSquaredTo(loop[1]), Math.Max(loop[1].GetDistanceSquaredTo(loop[2]), loop[2].GetDistanceSquaredTo(loop[0])));
+                spanSquared = Math.Max(
+                    loop[0].GetDistanceSquaredTo(loop[1]),
+                    Math.Max(loop[1].GetDistanceSquaredTo(loop[2]), loop[2].GetDistanceSquaredTo(loop[0]))
+                );
             }
             else
             {
@@ -216,7 +227,11 @@ namespace GeometryHelper.Geometry
             double area = areaVector.Length;
 
             // Written as what the loop has to have, so that one of NaNs has no width.
-            if (!(2.0 * area > tolerance.EqualPoint * Math.Sqrt(spanSquared)) || !(area > WidthRounding * spanSquared) || double.IsInfinity(area))
+            if (
+                !(2.0 * area > tolerance.EqualPoint * Math.Sqrt(spanSquared))
+                || !(area > WidthRounding * spanSquared)
+                || double.IsInfinity(area)
+            )
             {
                 return false;
             }
@@ -332,12 +347,14 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the arc length from the first vertex to a normalized parameter around the boundary.
         /// </summary>
-        public double GetDistanceAtParameter(double parameter) => Parametrization3.GetDistanceAtParameter(this, parameter);
+        public double GetDistanceAtParameter(double parameter) =>
+            Parametrization3.GetDistanceAtParameter(this, parameter);
 
         /// <summary>
         /// Gets the normalized parameter at an arc length measured around the boundary.
         /// </summary>
-        public double GetParameterAtDistance(double distance) => Parametrization3.GetParameterAtDistance(this, distance);
+        public double GetParameterAtDistance(double distance) =>
+            Parametrization3.GetParameterAtDistance(this, distance);
 
         /// <summary>
         /// Gets the normalized parameter of the point on the boundary closest to the supplied point.
@@ -348,7 +365,8 @@ namespace GeometryHelper.Geometry
         /// Gets the normalized parameter of the point on the boundary closest to the supplied point, within
         /// a tolerance.
         /// </summary>
-        public double GetParameterAtPoint(GeoPoint3 point, Tolerance tolerance) => Parametrization3.GetParameterAtPoint(this, point, tolerance);
+        public double GetParameterAtPoint(GeoPoint3 point, Tolerance tolerance) =>
+            Parametrization3.GetParameterAtPoint(this, point, tolerance);
 
         /// <summary>
         /// Gets the arc length from the first vertex to the point on the boundary closest to the supplied
@@ -360,7 +378,8 @@ namespace GeometryHelper.Geometry
         /// Gets the arc length from the first vertex to the point on the boundary closest to the supplied
         /// point, within a tolerance.
         /// </summary>
-        public double GetDistanceAtPoint(GeoPoint3 point, Tolerance tolerance) => Parametrization3.GetDistanceAtPoint(this, point, tolerance);
+        public double GetDistanceAtPoint(GeoPoint3 point, Tolerance tolerance) =>
+            Parametrization3.GetDistanceAtPoint(this, point, tolerance);
 
         #endregion
 
@@ -432,8 +451,13 @@ namespace GeometryHelper.Geometry
                 double x2 = to.X - reference.X;
                 double y2 = to.Y - reference.Y;
                 double z2 = to.Z - reference.Z;
-                products += Math.Abs(y1 * z2) + Math.Abs(z1 * y2) + Math.Abs(z1 * x2) + Math.Abs(x1 * z2)
-                    + Math.Abs(x1 * y2) + Math.Abs(y1 * x2);
+                products +=
+                    Math.Abs(y1 * z2)
+                    + Math.Abs(z1 * y2)
+                    + Math.Abs(z1 * x2)
+                    + Math.Abs(x1 * z2)
+                    + Math.Abs(x1 * y2)
+                    + Math.Abs(y1 * x2);
                 run += Math.Abs(x2 - x1) + Math.Abs(y2 - y1) + Math.Abs(z2 - z1);
             }
 
@@ -453,7 +477,11 @@ namespace GeometryHelper.Geometry
             double span = Math.Max(_box.Max.X - _box.Min.X, Math.Max(_box.Max.Y - _box.Min.Y, _box.Max.Z - _box.Min.Z));
             double far = Math.Max(
                 Math.Max(Math.Abs(_box.Min.X), Math.Abs(_box.Max.X)),
-                Math.Max(Math.Max(Math.Abs(_box.Min.Y), Math.Abs(_box.Max.Y)), Math.Max(Math.Abs(_box.Min.Z), Math.Abs(_box.Max.Z))));
+                Math.Max(
+                    Math.Max(Math.Abs(_box.Min.Y), Math.Abs(_box.Max.Y)),
+                    Math.Max(Math.Abs(_box.Min.Z), Math.Abs(_box.Max.Z))
+                )
+            );
             int n = _vertices.Length;
 
             // No coordinate measured from the first corner is longer than the span, so no product is larger than its
@@ -495,7 +523,8 @@ namespace GeometryHelper.Geometry
         /// <param name="kind">The kind of faces.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
         /// <exception cref="ArgumentException">Thrown for <see cref="Meshing.MeshKind.Grid"/>, which needs the size of its cells.</exception>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshKind kind) => Meshing.Mesh3.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Meshing.MeshPlacement3.World, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshKind kind) =>
+            Meshing.Mesh3.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Meshing.MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks the polygon into faces as the options say, its grid level, with the second axis up the slope, using the
@@ -503,7 +532,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="options">How to break it up.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options) => Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options) =>
+            Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, Tolerance.Global);
 
         /// <summary>
         /// Breaks the polygon into faces as the options say, its grid level, with the second axis up the slope, within a
@@ -512,7 +542,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How to break it up.</param>
         /// <param name="tolerance">The tolerance the shape is read within: which of its rings touch, what has no area, and for a grid which cells are whole.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) => Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, tolerance);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) =>
+            Meshing.Mesh3.ToMesh(this, options, Meshing.MeshPlacement3.World, tolerance);
 
         /// <summary>
         /// Breaks the polygon into faces as the options say, its grid standing as the placement says, using the default
@@ -521,7 +552,8 @@ namespace GeometryHelper.Geometry
         /// <param name="options">How to break it up.</param>
         /// <param name="placement">Which way the grid or the strips run in the plane, and where a cell starts.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement) => Meshing.Mesh3.ToMesh(this, options, placement, Tolerance.Global);
+        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement) =>
+            Meshing.Mesh3.ToMesh(this, options, placement, Tolerance.Global);
 
         /// <summary>
         /// Breaks the polygon into faces as the options say, its grid standing as the placement says, within a tolerance:
@@ -540,7 +572,11 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A polygon crossing itself is read as <see cref="GeoPolygon2.MakeValid()"/> reads it, laid out in its plane.
         /// </remarks>
-        public Meshing.GeoMesh3 ToMesh(Meshing.MeshOptions options, Meshing.MeshPlacement3 placement, Tolerance tolerance) => Meshing.Mesh3.ToMesh(this, options, placement, tolerance);
+        public Meshing.GeoMesh3 ToMesh(
+            Meshing.MeshOptions options,
+            Meshing.MeshPlacement3 placement,
+            Tolerance tolerance
+        ) => Meshing.Mesh3.ToMesh(this, options, placement, tolerance);
 
         /// <summary>
         /// Gets the axis-aligned bounding box enclosing this polygon.
@@ -692,7 +728,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Locates a point relative to this polygon, within a tolerance.
         /// </summary>
-        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) => Containment3.Locate(this, point, tolerance);
+        public PointLocation Locate(GeoPoint3 point, Tolerance tolerance) =>
+            Containment3.Locate(this, point, tolerance);
 
         /// <summary>
         /// Checks whether this polygon holds a point, using the default tolerance.
@@ -717,33 +754,47 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Splits this polygon by a plane, using the default tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoPlane3 cutter, out GeoPolygon3[] above, out GeoPolygon3[] below) => Splition3.TrySplitBy(this, cutter, out above, out below);
+        public bool TrySplitBy(GeoPlane3 cutter, out GeoPolygon3[] above, out GeoPolygon3[] below) =>
+            Splition3.TrySplitBy(this, cutter, out above, out below);
 
         /// <summary>
         /// Splits this polygon by a plane, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoPlane3 cutter, out GeoPolygon3[] above, out GeoPolygon3[] below, Tolerance tolerance) => Splition3.TrySplitBy(this, cutter, out above, out below, tolerance);
+        public bool TrySplitBy(
+            GeoPlane3 cutter,
+            out GeoPolygon3[] above,
+            out GeoPolygon3[] below,
+            Tolerance tolerance
+        ) => Splition3.TrySplitBy(this, cutter, out above, out below, tolerance);
 
         /// <summary>
         /// Splits this polygon along a chain drawn across it, using the default tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoPolyline3 cutLine, out GeoPolygon3[] pieces) => Splition3.TrySplitBy(this, cutLine, out pieces);
+        public bool TrySplitBy(GeoPolyline3 cutLine, out GeoPolygon3[] pieces) =>
+            Splition3.TrySplitBy(this, cutLine, out pieces);
 
         /// <summary>
         /// Splits this polygon along a chain drawn across it, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoPolyline3 cutLine, out GeoPolygon3[] pieces, Tolerance tolerance) => Splition3.TrySplitBy(this, cutLine, out pieces, tolerance);
+        public bool TrySplitBy(GeoPolyline3 cutLine, out GeoPolygon3[] pieces, Tolerance tolerance) =>
+            Splition3.TrySplitBy(this, cutLine, out pieces, tolerance);
 
         /// <summary>
         /// Splits this polygon by a solid, sorting the pieces into those inside it and those outside,
         /// using the default tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoSolid3 cutter, out GeoPolygon3[] inside, out GeoPolygon3[] outside) => Splition3.TrySplitBy(this, cutter, out inside, out outside);
+        public bool TrySplitBy(GeoSolid3 cutter, out GeoPolygon3[] inside, out GeoPolygon3[] outside) =>
+            Splition3.TrySplitBy(this, cutter, out inside, out outside);
 
         /// <summary>
         /// Splits this polygon by a solid, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoSolid3 cutter, out GeoPolygon3[] inside, out GeoPolygon3[] outside, Tolerance tolerance) => Splition3.TrySplitBy(this, cutter, out inside, out outside, tolerance);
+        public bool TrySplitBy(
+            GeoSolid3 cutter,
+            out GeoPolygon3[] inside,
+            out GeoPolygon3[] outside,
+            Tolerance tolerance
+        ) => Splition3.TrySplitBy(this, cutter, out inside, out outside, tolerance);
 
         /// <summary>
         /// Checks whether this polygon is simple, using the default tolerance: no edge crosses or touches another
@@ -776,23 +827,26 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Rounds the corners of the loop, one radius each.
         /// </summary>
-        public GeoPolygonArc3 Fillet(System.Collections.Generic.IReadOnlyList<double> radii) => Corner3.Fillet(this, radii);
+        public GeoPolygonArc3 Fillet(System.Collections.Generic.IReadOnlyList<double> radii) =>
+            Corner3.Fillet(this, radii);
 
         /// <summary>
         /// Rounds the corners of the loop, one radius each, within a tolerance.
         /// </summary>
-        public GeoPolygonArc3 Fillet(System.Collections.Generic.IReadOnlyList<double> radii, Tolerance tolerance) => Corner3.Fillet(this, radii, tolerance);
+        public GeoPolygonArc3 Fillet(System.Collections.Generic.IReadOnlyList<double> radii, Tolerance tolerance) =>
+            Corner3.Fillet(this, radii, tolerance);
 
         /// <summary>
         /// Rounds one corner of the loop; every vertex of a loop is a corner.
         /// </summary>
-        public bool TryFilletAt(int index, double radius, out GeoPolygonArc3 result) => Corner3.TryFilletAt(this, index, radius, out result);
+        public bool TryFilletAt(int index, double radius, out GeoPolygonArc3 result) =>
+            Corner3.TryFilletAt(this, index, radius, out result);
 
         /// <summary>
         /// Rounds one corner of the loop within a tolerance; every vertex of a loop is a corner.
         /// </summary>
-        public bool TryFilletAt(int index, double radius, out GeoPolygonArc3 result, Tolerance tolerance)
-            => Corner3.TryFilletAt(this, index, radius, out result, tolerance);
+        public bool TryFilletAt(int index, double radius, out GeoPolygonArc3 result, Tolerance tolerance) =>
+            Corner3.TryFilletAt(this, index, radius, out result, tolerance);
 
         /// <summary>
         /// Cuts every corner of the loop back by the same distance.
@@ -814,21 +868,25 @@ namespace GeometryHelper.Geometry
         /// Cuts every corner of the loop back, by one distance along the way in and another along the way out,
         /// within a tolerance.
         /// </summary>
-        public GeoPolygon3 Chamfer(double distance1, double distance2, Tolerance tolerance)
-            => Corner3.Chamfer(this, distance1, distance2, tolerance);
+        public GeoPolygon3 Chamfer(double distance1, double distance2, Tolerance tolerance) =>
+            Corner3.Chamfer(this, distance1, distance2, tolerance);
 
         /// <summary>
         /// Cuts one corner of the loop back; every vertex of a loop is a corner.
         /// </summary>
-        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolygon3 result)
-            => Corner3.TryChamferAt(this, index, distance1, distance2, out result);
+        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolygon3 result) =>
+            Corner3.TryChamferAt(this, index, distance1, distance2, out result);
 
         /// <summary>
         /// Cuts one corner of the loop back within a tolerance; every vertex of a loop is a corner.
         /// </summary>
-        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolygon3 result, Tolerance tolerance)
-            => Corner3.TryChamferAt(this, index, distance1, distance2, out result, tolerance);
-
+        public bool TryChamferAt(
+            int index,
+            double distance1,
+            double distance2,
+            out GeoPolygon3 result,
+            Tolerance tolerance
+        ) => Corner3.TryChamferAt(this, index, distance1, distance2, out result, tolerance);
 
         #endregion
 
@@ -858,7 +916,8 @@ namespace GeometryHelper.Geometry
         /// Grows this polygon within its own plane by a distance, or shrinks it when the distance is negative,
         /// with the given corners, within a tolerance.
         /// </summary>
-        public GeoPolygon3[] Offset(double distance, OffsetJoin join, Tolerance tolerance) => Offset3.Offset(this, distance, join, tolerance);
+        public GeoPolygon3[] Offset(double distance, OffsetJoin join, Tolerance tolerance) =>
+            Offset3.Offset(this, distance, join, tolerance);
 
         /// <summary>
         /// Grows this polygon within its own plane by a distance, or shrinks it when the distance is negative, as
@@ -870,7 +929,8 @@ namespace GeometryHelper.Geometry
         /// Grows this polygon within its own plane by a distance, or shrinks it when the distance is negative, as
         /// the options say, within a tolerance.
         /// </summary>
-        public GeoPolygon3[] Offset(double distance, OffsetOptions options, Tolerance tolerance) => Offset3.Offset(this, distance, options, tolerance);
+        public GeoPolygon3[] Offset(double distance, OffsetOptions options, Tolerance tolerance) =>
+            Offset3.Offset(this, distance, options, tolerance);
 
         #endregion
 
@@ -994,6 +1054,7 @@ namespace GeometryHelper.Geometry
         /// <param name="frame">The frame to lay it out in.</param>
         /// <returns>The polygon in the plane of the frame.</returns>
         public GeoPolygon2 ProjectToPolygon2(GeoCoordinateSystem3 frame) => PlanarMap.ProjectToPolygon2(frame, this);
+
         /// <summary>
         /// Gets the polygon running the other way round.
         /// </summary>
@@ -1028,6 +1089,5 @@ namespace GeometryHelper.Geometry
                 ? new GeoPolygon3(turned, areaVector.Divide(area), area)
                 : new GeoPolygon3(turned, Normal.Negate(), Area);
         }
-
     }
 }

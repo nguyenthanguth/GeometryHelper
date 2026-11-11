@@ -52,7 +52,11 @@ namespace GeometryHelper.UnitTest.Dxf
             string record = Records(saved).Single(r => HandleOf(r) == bolt.Handle);
             Assert.Contains(" 70\n4\n280\n0\n281\n1\n310\n", record, StringComparison.Ordinal);
             Assert.Equal(3, record.Split('\n').Count(l => l == "310"));
-            Assert.Contains("  1\n\n  4\nM20 bolt\n", Records(saved).Single(r => HandleOf(r) == "33"), StringComparison.Ordinal);
+            Assert.Contains(
+                "  1\n\n  4\nM20 bolt\n",
+                Records(saved).Single(r => HandleOf(r) == "33"),
+                StringComparison.Ordinal
+            );
             DxfBlockTableRecord read = DxfDatabase.Parse(saved).BlockTable["BOLT"];
             Assert.Equal("M20 bolt", read.Comments);
             Assert.Equal(DxfUnits.Millimeters, read.Units);
@@ -63,19 +67,34 @@ namespace GeometryHelper.UnitTest.Dxf
             bolt.PreviewIcon = null;
             bolt.Comments = string.Empty;
             Assert.False(bolt.HasPreviewIcon);
-            Assert.DoesNotContain("  4\n", Records(db.ToText()).Single(r => HandleOf(r) == "33"), StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "  4\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "33"),
+                StringComparison.Ordinal
+            );
 
             DxfDatabase r2000 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
             Assert.Throws<InvalidOperationException>(() => r2000.BlockTable["BOLT"].Units = DxfUnits.Meters);
-            Assert.Throws<InvalidOperationException>(() => DxfDatabase.Parse(DxfFileEzdxfDrawings.R12).BlockTable["BOLT"].Comments = "x");
-            Assert.Throws<ArgumentException>(() => r2000.BlockTable.Add(new DxfBlockTableRecord { Name = "GH_MM", Units = DxfUnits.Millimeters }));
+            Assert.Throws<InvalidOperationException>(() =>
+                DxfDatabase.Parse(DxfFileEzdxfDrawings.R12).BlockTable["BOLT"].Comments = "x"
+            );
+            Assert.Throws<ArgumentException>(() =>
+                r2000.BlockTable.Add(new DxfBlockTableRecord { Name = "GH_MM", Units = DxfUnits.Millimeters })
+            );
         }
 
         [Fact]
         public void ABlockMadeInCode_TakesItsDescriptionUnitsAndScaling_IntoTheFile()
         {
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
-            var made = new DxfBlockTableRecord { Name = "GH_PLATE", Comments = "a plate", Units = DxfUnits.Meters, Explodable = false, BlockScaling = DxfBlockScaling.Uniform };
+            var made = new DxfBlockTableRecord
+            {
+                Name = "GH_PLATE",
+                Comments = "a plate",
+                Units = DxfUnits.Meters,
+                Explodable = false,
+                BlockScaling = DxfBlockScaling.Uniform,
+            };
 
             db.BlockTable.Add(made);
 
@@ -106,11 +125,20 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             DxfBlockTableRecord bolt = db.BlockTable["BOLT"];
-            bolt.XData = new[] { new DxfTypedValue(1001, "AcDbDynamicBlockGUID"), new DxfTypedValue(1000, "{3C8E1F3B-7D44-4C93-9F53-5E1C3C2B1A10}") };
+            bolt.XData = new[]
+            {
+                new DxfTypedValue(1001, "AcDbDynamicBlockGUID"),
+                new DxfTypedValue(1000, "{3C8E1F3B-7D44-4C93-9F53-5E1C3C2B1A10}"),
+            };
             bolt.CreateExtensionDictionary();
             bolt.ExtensionDictionary.SetAt("ACAD_ENHANCEDBLOCK", new DxfDBDictionary());
             DxfBlockTableRecord dimension = db.BlockTable["*D1"];
-            dimension.XData = new[] { new DxfTypedValue(1001, "AcDbBlockRepBTag"), new DxfTypedValue(1070, "1"), new DxfTypedValue(1005, bolt.Handle) };
+            dimension.XData = new[]
+            {
+                new DxfTypedValue(1001, "AcDbBlockRepBTag"),
+                new DxfTypedValue(1070, "1"),
+                new DxfTypedValue(1005, bolt.Handle),
+            };
 
             Assert.True(bolt.IsDynamicBlock);
             Assert.Equal(new[] { dimension }, bolt.GetAnonymousBlocks());
@@ -137,20 +165,33 @@ namespace GeometryHelper.UnitTest.Dxf
             OnlyTheseChanged(text, saved, bolt.Handle, "33", "65", "6A", "3C", "9A");
             DxfDocument read = DxfReader.Parse(saved, new DxfReadOptions { Tolerance = Tolerance.Default });
             Assert.Contains(read.Blocks, b => b.Name == "BOLT_M20");
-            Assert.Equal(read.Shapes.Count, DxfReader.Parse(text, new DxfReadOptions { Tolerance = Tolerance.Default }).Shapes.Count);
+            Assert.Equal(
+                read.Shapes.Count,
+                DxfReader.Parse(text, new DxfReadOptions { Tolerance = Tolerance.Default }).Shapes.Count
+            );
 
             Assert.Throws<ArgumentException>(() => bolt.Name = "frame");
             Assert.Throws<InvalidOperationException>(() => db.BlockTable["*D1"].Name = "D1");
             Assert.Throws<InvalidOperationException>(() => db.ModelSpace.Name = "Model");
             DxfDatabase r12 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R12);
             r12.BlockTable["BOLT"].Name = "BOLT_M20";
-            Assert.Contains(DxfReader.Parse(r12.ToText(), new DxfReadOptions { Tolerance = Tolerance.Default }).Blocks, b => b.Name == "BOLT_M20");
+            Assert.Contains(
+                DxfReader.Parse(r12.ToText(), new DxfReadOptions { Tolerance = Tolerance.Default }).Blocks,
+                b => b.Name == "BOLT_M20"
+            );
         }
 
         [Fact]
         public void ABlockErased_IsItsRecordsTakenOut_WhereNothingInsertsIt()
         {
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R12,
+                    DxfFileEzdxfDrawings.R2000,
+                    DxfFileEzdxfDrawings.R2018,
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
                 var spare = new DxfBlockTableRecord { Name = "GH_SPARE", Origin = new GeoPoint3(1, 2, 0) };
@@ -174,7 +215,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfBlockTableRecord frame = read.BlockTable["FRAME"];
             ByHandle<DxfBlockReference>(read, "68").Erase();
             frame.Erase();
-            Assert.DoesNotContain(DxfReader.Parse(read.ToText(), new DxfReadOptions { Tolerance = Tolerance.Default }).Blocks, b => b.Name == "FRAME");
+            Assert.DoesNotContain(
+                DxfReader.Parse(read.ToText(), new DxfReadOptions { Tolerance = Tolerance.Default }).Blocks,
+                b => b.Name == "FRAME"
+            );
             Assert.Throws<InvalidOperationException>(() => read.BlockTable["BOLT"].Erase());
         }
 
@@ -193,13 +237,21 @@ namespace GeometryHelper.UnitTest.Dxf
             // As ezdxf writes the columns of an MTEXT before R2018: the main one lists the others in ACAD_MTEXT_COLUMNS.
             main.XData = new[]
             {
-                new DxfTypedValue(1001, "ACAD"), new DxfTypedValue(1000, "ACAD_MTEXT_COLUMNS_BEGIN"), new DxfTypedValue(1070, "47"),
-                new DxfTypedValue(1070, "3"), new DxfTypedValue(1005, second.Handle), new DxfTypedValue(1005, third.Handle),
+                new DxfTypedValue(1001, "ACAD"),
+                new DxfTypedValue(1000, "ACAD_MTEXT_COLUMNS_BEGIN"),
+                new DxfTypedValue(1070, "47"),
+                new DxfTypedValue(1070, "3"),
+                new DxfTypedValue(1005, second.Handle),
+                new DxfTypedValue(1005, third.Handle),
                 new DxfTypedValue(1000, "ACAD_MTEXT_COLUMNS_END"),
             };
 
             Assert.Equal(before + 1, db.ModelSpace.Count);
-            Assert.Equal(new[] { main }, db.ModelSpace.OfType<DxfMText>().Where(m => m.Handle == main.Handle || m.Handle == second.Handle || m.Handle == third.Handle));
+            Assert.Equal(
+                new[] { main },
+                db.ModelSpace.OfType<DxfMText>()
+                    .Where(m => m.Handle == main.Handle || m.Handle == second.Handle || m.Handle == third.Handle)
+            );
 
             DxfDatabase again = DxfDatabase.Parse(db.ToText());
             Assert.Equal(before + 1, again.ModelSpace.Count);
@@ -236,7 +288,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // Back into paper space: its group 67 written, as AutoCAD writes an entity of paper space.
             db.PaperSpace.AssumeOwnershipOf(new[] { line });
-            Assert.Contains("100\nAcDbEntity\n 67\n1\n", Records(db.ToText()).Single(r => HandleOf(r) == "3E"), StringComparison.Ordinal);
+            Assert.Contains(
+                "100\nAcDbEntity\n 67\n1\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "3E"),
+                StringComparison.Ordinal
+            );
 
             DxfBlockReference bolt = ByHandle<DxfBlockReference>(db, "65");
             Assert.Throws<ArgumentException>(() => db.BlockTable["BOLT"].AssumeOwnershipOf(new[] { bolt }));
@@ -247,7 +303,14 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ABlockMadeInCodeAndInsertedInCode_IsRenamedWithItsInsert_AndNotErased()
         {
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R12,
+                    DxfFileEzdxfDrawings.R2000,
+                    DxfFileEzdxfDrawings.R2018,
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
                 var block = new DxfBlockTableRecord { Name = "GH_NEW" };
@@ -260,7 +323,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 block.Name = "GH_NEW2";
                 Assert.Equal("GH_NEW2", insert.Name);
                 Assert.Throws<InvalidOperationException>(() => block.Erase());
-                Assert.Equal("GH_NEW2", ByHandle<DxfBlockReference>(DxfDatabase.Parse(db.ToText()), insert.Handle).Name);
+                Assert.Equal(
+                    "GH_NEW2",
+                    ByHandle<DxfBlockReference>(DxfDatabase.Parse(db.ToText()), insert.Handle).Name
+                );
             }
         }
 
@@ -276,8 +342,12 @@ namespace GeometryHelper.UnitTest.Dxf
 
             main.XData = new[]
             {
-                new DxfTypedValue(1001, "ACAD"), new DxfTypedValue(1000, "ACAD_MTEXT_COLUMNS_BEGIN"), new DxfTypedValue(1070, "47"),
-                new DxfTypedValue(1070, "2"), new DxfTypedValue(1005, main.Handle), new DxfTypedValue(1005, second.Handle),
+                new DxfTypedValue(1001, "ACAD"),
+                new DxfTypedValue(1000, "ACAD_MTEXT_COLUMNS_BEGIN"),
+                new DxfTypedValue(1070, "47"),
+                new DxfTypedValue(1070, "2"),
+                new DxfTypedValue(1005, main.Handle),
+                new DxfTypedValue(1005, second.Handle),
                 new DxfTypedValue(1000, "ACAD_MTEXT_COLUMNS_END"),
             };
 
@@ -298,7 +368,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.DoesNotContain("\n  5\n9B\n", text, StringComparison.Ordinal);
 
             // A draw order of model space as AutoCAD writes one: the LINE 3E then the CIRCLE 3F, each by its sort handle.
-            string sorts = "  0\nSORTENTSTABLE\n  5\n9B\n330\n" + space + "\n100\nAcDbSortentsTable\n330\n" + space
+            string sorts =
+                "  0\nSORTENTSTABLE\n  5\n9B\n330\n"
+                + space
+                + "\n100\nAcDbSortentsTable\n330\n"
+                + space
                 + "\n331\n3E\n  5\n3E\n331\n3F\n  5\n3F\n";
             int end = text.LastIndexOf("  0\nENDSEC\n", StringComparison.Ordinal);
             DxfDatabase db = DxfDatabase.Parse(text.Substring(0, end) + sorts + text.Substring(end));
@@ -306,12 +380,24 @@ namespace GeometryHelper.UnitTest.Dxf
             db.BlockTable.Add(block);
 
             block.AssumeOwnershipOf(new DxfEntity[] { ByHandle<DxfLine>(db, "3E") });
-            Assert.Equal("  0\nSORTENTSTABLE\n  5\n9B\n330\n" + space + "\n100\nAcDbSortentsTable\n330\n" + space + "\n331\n3F\n  5\n3F\n",
-                Records(db.ToText()).Single(r => HandleOf(r) == "9B"));
+            Assert.Equal(
+                "  0\nSORTENTSTABLE\n  5\n9B\n330\n"
+                    + space
+                    + "\n100\nAcDbSortentsTable\n330\n"
+                    + space
+                    + "\n331\n3F\n  5\n3F\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "9B")
+            );
 
             db.ModelSpace.AssumeOwnershipOf(new DxfEntity[] { ByHandle<DxfLine>(db, "3E") });
-            Assert.Equal("  0\nSORTENTSTABLE\n  5\n9B\n330\n" + space + "\n100\nAcDbSortentsTable\n330\n" + space
-                + "\n331\n3F\n  5\n3F\n331\n3E\n  5\n3E\n", Records(db.ToText()).Single(r => HandleOf(r) == "9B"));
+            Assert.Equal(
+                "  0\nSORTENTSTABLE\n  5\n9B\n330\n"
+                    + space
+                    + "\n100\nAcDbSortentsTable\n330\n"
+                    + space
+                    + "\n331\n3F\n  5\n3F\n331\n3E\n  5\n3E\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "9B")
+            );
         }
     }
 }

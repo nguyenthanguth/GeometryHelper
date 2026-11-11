@@ -65,7 +65,11 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Equal(RunnerCache.KeyOf(a), RunnerCache.KeyOf(b));
             Assert.NotEqual(RunnerCache.KeyOf(a), RunnerCache.KeyOf(c));
             Assert.Equal(RunnerCache.FolderOf(_environment, a), RunnerCache.FolderOf(_environment, b));
-            Assert.StartsWith(Path.Combine(_environment.RunnersFolder, RunnerCache.KeyOf(a) + "-"), RunnerCache.FolderOf(_environment, a), StringComparison.Ordinal);
+            Assert.StartsWith(
+                Path.Combine(_environment.RunnersFolder, RunnerCache.KeyOf(a) + "-"),
+                RunnerCache.FolderOf(_environment, a),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -100,7 +104,10 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Contains(log, line => line.StartsWith("runner copied to ", StringComparison.Ordinal));
 
             // The runner the copy was made from is as it was.
-            Assert.Equal("the library the viewer was built with", File.ReadAllText(Path.Combine(_environment.RunnerFolder, "GeometryHelper.dll")));
+            Assert.Equal(
+                "the library the viewer was built with",
+                File.ReadAllText(Path.Combine(_environment.RunnerFolder, "GeometryHelper.dll"))
+            );
             Assert.True(File.Exists(Path.Combine(_environment.RunnerFolder, "GeometryHelper.pdb")));
         }
 
@@ -112,7 +119,11 @@ namespace GeometryHelper.Viewer.Tests
             File.WriteAllText(Path.Combine(folder, "marker.txt"), "made by the first");
             var log = new List<string>();
 
-            string again = RunnerCache.Prepare(_environment, Library("copy" + Path.DirectorySeparatorChar + "x.dll", "the other build"), log.Add);
+            string again = RunnerCache.Prepare(
+                _environment,
+                Library("copy" + Path.DirectorySeparatorChar + "x.dll", "the other build"),
+                log.Add
+            );
 
             Assert.Equal(folder, again);
             Assert.Equal("made by the first", File.ReadAllText(Path.Combine(folder, "marker.txt")));
@@ -139,15 +150,28 @@ namespace GeometryHelper.Viewer.Tests
             string folder = RunnerCache.Prepare(_environment, dll, null);
 
             // A process that has the old copy open must not find it moved or replaced.
-            using (var open = new FileStream(Path.Combine(folder, "GeometryHelper.Viewer.Runner.dll"), FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (
+                var open = new FileStream(
+                    Path.Combine(folder, "GeometryHelper.Viewer.Runner.dll"),
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read
+                )
+            )
             {
-                File.WriteAllText(Path.Combine(_environment.RunnerFolder, "GeometryHelper.Viewer.Runner.dll"), "a newer runner");
+                File.WriteAllText(
+                    Path.Combine(_environment.RunnerFolder, "GeometryHelper.Viewer.Runner.dll"),
+                    "a newer runner"
+                );
                 var log = new List<string>();
 
                 string again = RunnerCache.Prepare(_environment, dll, log.Add);
 
                 Assert.NotEqual(folder, again);
-                Assert.Equal("a newer runner", File.ReadAllText(Path.Combine(again, "GeometryHelper.Viewer.Runner.dll")));
+                Assert.Equal(
+                    "a newer runner",
+                    File.ReadAllText(Path.Combine(again, "GeometryHelper.Viewer.Runner.dll"))
+                );
                 Assert.Equal("the runner", new StreamReader(open).ReadToEnd());
                 Assert.Contains(log, line => line.StartsWith("runner copied to ", StringComparison.Ordinal));
             }
@@ -161,7 +185,10 @@ namespace GeometryHelper.Viewer.Tests
         {
             string dll = Library("lib.dll", "the other build");
             RunnerCache.Prepare(_environment, dll, null);
-            File.WriteAllText(Path.Combine(_environment.RunnerFolder, "GeometryHelper.dll"), "the viewer was rebuilt with a newer library");
+            File.WriteAllText(
+                Path.Combine(_environment.RunnerFolder, "GeometryHelper.dll"),
+                "the viewer was rebuilt with a newer library"
+            );
             var log = new List<string>();
 
             RunnerCache.Prepare(_environment, dll, log.Add);
@@ -182,10 +209,14 @@ namespace GeometryHelper.Viewer.Tests
             Assert.Equal(folder, made);
             Assert.Equal("the other build", File.ReadAllText(Path.Combine(folder, "GeometryHelper.dll")));
             Assert.True(File.Exists(Path.Combine(folder, ".ready")));
-            Assert.DoesNotContain(Directory.GetDirectories(_environment.RunnersFolder), d => d.Contains(".tmp-", StringComparison.Ordinal));
+            Assert.DoesNotContain(Directory.GetDirectories(_environment.RunnersFolder), d =>
+                d.Contains(".tmp-", StringComparison.Ordinal)
+            );
 
             // The half copy is put aside under a name the trimming takes when it is a day old, not deleted.
-            string aside = Assert.Single(Directory.GetDirectories(_environment.RunnersFolder), d => d.Contains(".old-", StringComparison.Ordinal));
+            string aside = Assert.Single(Directory.GetDirectories(_environment.RunnersFolder), d =>
+                d.Contains(".old-", StringComparison.Ordinal)
+            );
             Assert.Equal("half of it", File.ReadAllText(Path.Combine(aside, "GeometryHelper.dll")));
         }
 
@@ -194,7 +225,9 @@ namespace GeometryHelper.Viewer.Tests
         {
             _environment.RunnerFolder = _root.Combine("nothing");
 
-            Assert.Throws<DirectoryNotFoundException>(() => RunnerCache.Prepare(_environment, Library("lib.dll", "x"), null));
+            Assert.Throws<DirectoryNotFoundException>(() =>
+                RunnerCache.Prepare(_environment, Library("lib.dll", "x"), null)
+            );
         }
 
         [Fact]
@@ -248,7 +281,11 @@ namespace GeometryHelper.Viewer.Tests
             string dll = Library("lib.dll", "bytes of the build");
             var folders = new string[6];
 
-            await Task.WhenAll(Enumerable.Range(0, 6).Select(i => Task.Run(() => folders[i] = RunnerCache.Prepare(_environment, dll, null))));
+            await Task.WhenAll(
+                Enumerable
+                    .Range(0, 6)
+                    .Select(i => Task.Run(() => folders[i] = RunnerCache.Prepare(_environment, dll, null)))
+            );
 
             Assert.Single(folders.Distinct());
             Assert.True(File.Exists(Path.Combine(folders[0], ".ready")));
@@ -326,7 +363,14 @@ namespace GeometryHelper.Viewer.Tests
                 File.SetLastWriteTimeUtc(Path.Combine(folders[i], ".ready"), DateTime.UtcNow.AddHours(-(10 - i)));
             }
 
-            using (var open = new FileStream(Path.Combine(folders[0], "runner.dll"), FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (
+                var open = new FileStream(
+                    Path.Combine(folders[0], "runner.dll"),
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read
+                )
+            )
             {
                 CacheTrimmer.Trim(_environment.CacheRoot, runners, ".ready", 2, null, TimeSpan.FromMinutes(1));
 
@@ -334,7 +378,9 @@ namespace GeometryHelper.Viewer.Tests
                 Assert.Equal((int)(char)120, open.ReadByte());
             }
 
-            Assert.DoesNotContain(Directory.GetDirectories(runners), d => d.Contains(".old-", StringComparison.Ordinal) && !File.Exists(Path.Combine(d, "runner.dll")));
+            Assert.DoesNotContain(Directory.GetDirectories(runners), d =>
+                d.Contains(".old-", StringComparison.Ordinal) && !File.Exists(Path.Combine(d, "runner.dll"))
+            );
         }
 
         [Fact]
@@ -363,7 +409,14 @@ namespace GeometryHelper.Viewer.Tests
             Directory.SetLastWriteTimeUtc(outside, DateTime.UtcNow.AddDays(-9));
 
             CacheTrimmer.Trim(_environment.CacheRoot, runners, ".ready", 2, null, TimeSpan.FromMinutes(1));
-            CacheTrimmer.Trim(_environment.CacheRoot, Path.GetDirectoryName(outside), ".ready", 2, null, TimeSpan.FromMinutes(1));
+            CacheTrimmer.Trim(
+                _environment.CacheRoot,
+                Path.GetDirectoryName(outside),
+                ".ready",
+                2,
+                null,
+                TimeSpan.FromMinutes(1)
+            );
 
             Assert.False(Directory.Exists(oldTmp));
             Assert.False(Directory.Exists(oldStage));
@@ -377,8 +430,13 @@ namespace GeometryHelper.Viewer.Tests
         {
             _environment.RunnerFolder = _root.Combine("nothing");
 
-            Assert.Throws<DirectoryNotFoundException>(() => RunnerCache.Prepare(_environment, Library("lib.dll", "x"), null));
-            Assert.False(Directory.Exists(_environment.RunnersFolder) && Directory.GetFileSystemEntries(_environment.RunnersFolder).Any());
+            Assert.Throws<DirectoryNotFoundException>(() =>
+                RunnerCache.Prepare(_environment, Library("lib.dll", "x"), null)
+            );
+            Assert.False(
+                Directory.Exists(_environment.RunnersFolder)
+                    && Directory.GetFileSystemEntries(_environment.RunnersFolder).Any()
+            );
         }
     }
 

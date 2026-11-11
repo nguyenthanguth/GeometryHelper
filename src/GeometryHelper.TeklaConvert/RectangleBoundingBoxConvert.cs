@@ -26,7 +26,8 @@ namespace GeometryHelper.TeklaConvert
                 boundingBox.GetCenterPoint().ToGeoPoint2(),
                 boundingBox.Width,
                 boundingBox.Height,
-                Angle.ToRadians(boundingBox.AngleToAxis)); // Angle.FromDegrees(boundingBox.AngleToAxis).Radians
+                Angle.ToRadians(boundingBox.AngleToAxis)
+            ); // Angle.FromDegrees(boundingBox.AngleToAxis).Radians
         }
 
         /// <summary>
@@ -40,7 +41,8 @@ namespace GeometryHelper.TeklaConvert
                 boundingBox.Center.ToTeklaPoint(),
                 boundingBox.Width,
                 boundingBox.Height,
-                boundingBox.AngleDeg);
+                boundingBox.AngleDeg
+            );
         }
     }
 }

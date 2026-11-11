@@ -33,7 +33,10 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static void AssertPoints(GeoPoint3[] expected, GeoPoint3[] actual, double within = 1E-9)
         {
-            Assert.True(expected.Length == actual.Length, actual.Length + " points against " + expected.Length + ": " + string.Join(" ", actual));
+            Assert.True(
+                expected.Length == actual.Length,
+                actual.Length + " points against " + expected.Length + ": " + string.Join(" ", actual)
+            );
 
             for (int i = 0; i < expected.Length; i++)
             {
@@ -53,8 +56,8 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(forward.EndPoint, back.StartPoint);
         }
 
-        private static GeoPolygon3 Floor(double x0, double y0, double x1, double y1, double z = 0)
-            => new GeoPolygon3(P(x0, y0, z), P(x1, y0, z), P(x1, y1, z), P(x0, y1, z));
+        private static GeoPolygon3 Floor(double x0, double y0, double x1, double y1, double z = 0) =>
+            new GeoPolygon3(P(x0, y0, z), P(x1, y0, z), P(x1, y1, z), P(x0, y1, z));
 
         #region A point
 
@@ -93,7 +96,10 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TheShortestLineFromAPoint_IsTheOneToItTurnedRound()
         {
-            AssertTurnedRound(Ball().GetShortestLineTo(P(200, 40, 0), Strict), P(200, 40, 0).GetShortestLineTo(Ball(), Strict));
+            AssertTurnedRound(
+                Ball().GetShortestLineTo(P(200, 40, 0), Strict),
+                P(200, 40, 0).GetShortestLineTo(Ball(), Strict)
+            );
             AssertTurnedRound(Ball().GetShortestLineTo(P(200, 40, 0)), P(200, 40, 0).GetShortestLineTo(Ball()));
         }
 
@@ -136,7 +142,10 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ASegmentThatStartsInside_CrossesTheSurfaceOnce()
         {
-            AssertPoints(new[] { P(50, 0, 0) }, Ball().GetIntersections(new GeoLine3(P(10, 0, 0), P(100, 0, 0)), Strict));
+            AssertPoints(
+                new[] { P(50, 0, 0) },
+                Ball().GetIntersections(new GeoLine3(P(10, 0, 0), P(100, 0, 0)), Strict)
+            );
         }
 
         [Fact]
@@ -171,7 +180,8 @@ namespace GeometryHelper.UnitTest.Solid
             AssertSegment(
                 P(50 / Math.Sqrt(2.0), 50 / Math.Sqrt(2.0), 0),
                 P(100, 100, 0),
-                Ball().GetShortestLineTo(new GeoLine3(P(100, 100, 0), P(100, 200, 0)), Strict));
+                Ball().GetShortestLineTo(new GeoLine3(P(100, 100, 0), P(100, 200, 0)), Strict)
+            );
         }
 
         [Fact]
@@ -224,7 +234,10 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ARayThroughTheBall_CrossesTheSurfaceTwice_AndOneThatStartsInsideOnce()
         {
-            AssertPoints(new[] { P(50, 0, 0), P(-50, 0, 0) }, Ball().GetIntersections(new GeoRay3(P(100, 0, 0), V(-1, 0, 0)), Strict));
+            AssertPoints(
+                new[] { P(50, 0, 0), P(-50, 0, 0) },
+                Ball().GetIntersections(new GeoRay3(P(100, 0, 0), V(-1, 0, 0)), Strict)
+            );
             AssertPoints(new[] { P(50, 0, 0) }, Ball().GetIntersections(new GeoRay3(P(10, 0, 0), V(1, 0, 0)), Strict));
             Assert.Empty(Ball().GetIntersections(new GeoRay3(P(100, 0, 0), V(1, 0, 0)), Strict));
         }
@@ -232,8 +245,16 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TheShortestLineToARay_LandsOnTheRayNearestTheCentre()
         {
-            AssertSegment(P(50, 0, 0), P(100, 0, 0), Ball().GetShortestLineTo(new GeoRay3(P(100, 0, 0), V(1, 0, 0)), Strict));
-            AssertSegment(P(0, 50, 0), P(0, 80, 0), Ball().GetShortestLineTo(new GeoRay3(P(-200, 80, 0), V(1, 0, 0)), Strict));
+            AssertSegment(
+                P(50, 0, 0),
+                P(100, 0, 0),
+                Ball().GetShortestLineTo(new GeoRay3(P(100, 0, 0), V(1, 0, 0)), Strict)
+            );
+            AssertSegment(
+                P(0, 50, 0),
+                P(0, 80, 0),
+                Ball().GetShortestLineTo(new GeoRay3(P(-200, 80, 0), V(1, 0, 0)), Strict)
+            );
         }
 
         [Fact]
@@ -265,16 +286,34 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ALineThroughTheBall_CrossesTheSurfaceTwice_InOrderAlongTheLine()
         {
-            AssertPoints(new[] { P(-40, 30, 0), P(40, 30, 0) }, Ball().GetIntersections(new GeoXLine3(P(0, 30, 0), V(1, 0, 0)), Strict));
-            AssertPoints(new[] { P(40, 30, 0), P(-40, 30, 0) }, Ball().GetIntersections(new GeoXLine3(P(0, 30, 0), V(-1, 0, 0)), Strict));
-            AssertPoints(new[] { P(-40, 30, 0), P(40, 30, 0) }, Ball().GetIntersections(new GeoXLine3(P(1000, 30, 0), V(1, 0, 0)), Strict), 1E-9);
+            AssertPoints(
+                new[] { P(-40, 30, 0), P(40, 30, 0) },
+                Ball().GetIntersections(new GeoXLine3(P(0, 30, 0), V(1, 0, 0)), Strict)
+            );
+            AssertPoints(
+                new[] { P(40, 30, 0), P(-40, 30, 0) },
+                Ball().GetIntersections(new GeoXLine3(P(0, 30, 0), V(-1, 0, 0)), Strict)
+            );
+            AssertPoints(
+                new[] { P(-40, 30, 0), P(40, 30, 0) },
+                Ball().GetIntersections(new GeoXLine3(P(1000, 30, 0), V(1, 0, 0)), Strict),
+                1E-9
+            );
         }
 
         [Fact]
         public void ALineGrazingTheBall_GivesTheOnePointItTouchesAt()
         {
-            AssertPoints(new[] { P(0, 50, 0) }, Ball().GetIntersections(new GeoXLine3(P(0, 50, 0), V(1, 0, 0)), Strict), 1E-9);
-            AssertPoints(new[] { P(0, 50.0005, 0) }, Ball().GetIntersections(new GeoXLine3(P(0, 50.0005, 0), V(1, 0, 0)), Strict), 1E-9);
+            AssertPoints(
+                new[] { P(0, 50, 0) },
+                Ball().GetIntersections(new GeoXLine3(P(0, 50, 0), V(1, 0, 0)), Strict),
+                1E-9
+            );
+            AssertPoints(
+                new[] { P(0, 50.0005, 0) },
+                Ball().GetIntersections(new GeoXLine3(P(0, 50.0005, 0), V(1, 0, 0)), Strict),
+                1E-9
+            );
             Assert.Empty(Ball().GetIntersections(new GeoXLine3(P(0, 50.002, 0), V(1, 0, 0)), Strict));
         }
 
@@ -291,8 +330,16 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TheShortestLineToALine_LandsOnTheFootOfTheCentre()
         {
-            AssertSegment(P(0, 50, 0), P(0, 80, 0), Ball().GetShortestLineTo(new GeoXLine3(P(0, 80, 0), V(1, 0, 0)), Strict));
-            AssertSegment(P(0, 50, 0), P(0, 80, 0), Ball().GetShortestLineTo(new GeoXLine3(P(300, 80, 0), V(-1, 0, 0)), Strict));
+            AssertSegment(
+                P(0, 50, 0),
+                P(0, 80, 0),
+                Ball().GetShortestLineTo(new GeoXLine3(P(0, 80, 0), V(1, 0, 0)), Strict)
+            );
+            AssertSegment(
+                P(0, 50, 0),
+                P(0, 80, 0),
+                Ball().GetShortestLineTo(new GeoXLine3(P(300, 80, 0), V(-1, 0, 0)), Strict)
+            );
         }
 
         [Fact]
@@ -312,7 +359,8 @@ namespace GeometryHelper.UnitTest.Solid
 
         #region An arc, a circle, an ellipse, an edge
 
-        private static GeoArc3 UpperHalfAboutFiftyZero() => XLine3Shapes.ArcFrom(P(50, 0, 0), GeoVector3.ZAxis, 30, P(80, 0, 0), Math.PI);
+        private static GeoArc3 UpperHalfAboutFiftyZero() =>
+            XLine3Shapes.ArcFrom(P(50, 0, 0), GeoVector3.ZAxis, 30, P(80, 0, 0), Math.PI);
 
         [Fact]
         public void TheQuarterOfTheCircleOfRadiusAHundred_IsFiftyFromTheBall()
@@ -327,7 +375,11 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AnArcThatBeginsAndEndsOnEitherSideOfTheSurface_IsCrossedOnce()
         {
-            AssertPoints(new[] { P(41, Math.Sqrt(819), 0) }, Ball().GetIntersections(UpperHalfAboutFiftyZero(), Strict), 1E-9);
+            AssertPoints(
+                new[] { P(41, Math.Sqrt(819), 0) },
+                Ball().GetIntersections(UpperHalfAboutFiftyZero(), Strict),
+                1E-9
+            );
             Assert.True(Ball().CollidesWith(UpperHalfAboutFiftyZero(), Strict));
         }
 
@@ -424,7 +476,11 @@ namespace GeometryHelper.UnitTest.Solid
             double x = Math.Sqrt(900.0 / 0.84);
             double y = Math.Sqrt(2500.0 - x * x);
 
-            AssertPoints(new[] { P(x, y, 0), P(-x, y, 0), P(-x, -y, 0), P(x, -y, 0) }, Ball().GetIntersections(ellipse, Strict), 1E-7);
+            AssertPoints(
+                new[] { P(x, y, 0), P(-x, y, 0), P(-x, -y, 0), P(x, -y, 0) },
+                Ball().GetIntersections(ellipse, Strict),
+                1E-7
+            );
             Assert.Equal(0.0, Ball().DistanceTo(ellipse, Strict));
         }
 
@@ -552,7 +608,8 @@ namespace GeometryHelper.UnitTest.Solid
             AssertPoints(
                 new[] { P(100 - half, 0, 0), P(100 + half, 0, 0), P(100 + half, 50, 0), P(100 - half, 50, 0) },
                 ball.GetIntersections(XLine3Shapes.Slot(), Strict),
-                1E-9);
+                1E-9
+            );
             Assert.True(ball.CollidesWith(XLine3Shapes.Slot(), Strict));
         }
 
@@ -603,7 +660,11 @@ namespace GeometryHelper.UnitTest.Solid
             double t = (24200.0 - Math.Sqrt(85E6)) / 29800.0;
             GeoPoint3 right = P(100 - 100 * t, -30 + 70 * t, 0);
 
-            AssertPoints(new[] { P(-40, -30, 0), P(40, -30, 0), right, P(-right.X, right.Y, 0) }, Ball().GetIntersections(triangle, Strict), 1E-9);
+            AssertPoints(
+                new[] { P(-40, -30, 0), P(40, -30, 0), right, P(-right.X, right.Y, 0) },
+                Ball().GetIntersections(triangle, Strict),
+                1E-9
+            );
             Assert.Equal(50.0, right.DistanceTo(P(0, 0, 0)), 9);
         }
 
@@ -627,7 +688,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(Ball().CollidesWith(triangle, Strict), triangle.CollidesWith(Ball(), Strict));
             Assert.Equal(Ball().GetIntersections(triangle, Strict), triangle.GetIntersections(Ball(), Strict));
             AssertTurnedRound(Ball().GetShortestLineTo(triangle, Strict), triangle.GetShortestLineTo(Ball(), Strict));
-            Assert.Equal(Ball().TryIntersectWith(triangle, out GeoPoint3[] ours, Strict), triangle.TryIntersectWith(Ball(), out GeoPoint3[] theirs, Strict));
+            Assert.Equal(
+                Ball().TryIntersectWith(triangle, out GeoPoint3[] ours, Strict),
+                triangle.TryIntersectWith(Ball(), out GeoPoint3[] theirs, Strict)
+            );
             Assert.Equal(ours, theirs);
         }
 
@@ -774,10 +838,20 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void APlaneAHalfThousandthShortOfTheBall_AndOneAHalfThousandthInsideIt_BothTouchIt()
         {
-            Assert.True(new GeoSphere3(P(0, 0, 50.0005), 50).TryGetTangentPoint(GeoPlane3.XY, out GeoPoint3 outside, Strict));
-            Assert.True(new GeoSphere3(P(0, 0, 49.9995), 50).TryGetTangentPoint(GeoPlane3.XY, out GeoPoint3 inside, Strict));
+            Assert.True(
+                new GeoSphere3(P(0, 0, 50.0005), 50).TryGetTangentPoint(GeoPlane3.XY, out GeoPoint3 outside, Strict)
+            );
+            Assert.True(
+                new GeoSphere3(P(0, 0, 49.9995), 50).TryGetTangentPoint(GeoPlane3.XY, out GeoPoint3 inside, Strict)
+            );
             Assert.False(new GeoSphere3(P(0, 0, 50.002), 50).TryGetTangentPoint(GeoPlane3.XY, out _, Strict));
-            Assert.True(new GeoSphere3(P(0, 0, 49.998), 50).TryGetIntersectionCircle(GeoPlane3.XY, out GeoCircle3 sliver, Strict));
+            Assert.True(
+                new GeoSphere3(P(0, 0, 49.998), 50).TryGetIntersectionCircle(
+                    GeoPlane3.XY,
+                    out GeoCircle3 sliver,
+                    Strict
+                )
+            );
             AssertNear(P(0, 0, 0), outside);
             AssertNear(P(0, 0, 0), inside);
             Assert.Equal(Math.Sqrt(2.0 * 50.0 * 0.002 - 0.002 * 0.002), sliver.Radius, 6);
@@ -792,11 +866,20 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(ball.DistanceTo(plane), plane.DistanceTo(ball));
             Assert.Equal(ball.CollidesWith(plane, Strict), plane.CollidesWith(ball, Strict));
             AssertTurnedRound(ball.GetShortestLineTo(plane, Strict), plane.GetShortestLineTo(ball, Strict));
-            Assert.Equal(ball.TryGetIntersectionCircle(plane, out GeoCircle3 ours, Strict), plane.TryGetIntersectionCircle(ball, out GeoCircle3 theirs, Strict));
+            Assert.Equal(
+                ball.TryGetIntersectionCircle(plane, out GeoCircle3 ours, Strict),
+                plane.TryGetIntersectionCircle(ball, out GeoCircle3 theirs, Strict)
+            );
             Assert.Equal(ours, theirs);
-            Assert.Equal(ball.TryGetTangentPoint(plane, out GeoPoint3 pointOurs, Strict), plane.TryGetTangentPoint(ball, out GeoPoint3 pointTheirs, Strict));
+            Assert.Equal(
+                ball.TryGetTangentPoint(plane, out GeoPoint3 pointOurs, Strict),
+                plane.TryGetTangentPoint(ball, out GeoPoint3 pointTheirs, Strict)
+            );
             Assert.Equal(pointOurs, pointTheirs);
-            Assert.Equal(ball.TryGetIntersectionCircle(plane, out ours), plane.TryGetIntersectionCircle(ball, out theirs));
+            Assert.Equal(
+                ball.TryGetIntersectionCircle(plane, out ours),
+                plane.TryGetIntersectionCircle(ball, out theirs)
+            );
             Assert.Equal(ours, theirs);
         }
 
@@ -844,9 +927,21 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void TheShortestLineToABox_LandsOnTheNearestPointOfTheBox()
         {
-            AssertSegment(P(50, 0, 0), P(100, 0, 0), Ball().GetShortestLineTo(new GeoAabb3(P(100, -10, -10), P(200, 10, 10)), Strict));
-            AssertSegment(P(50, 0, 0), P(100, 0, 0), Ball().GetShortestLineTo(new GeoObb3(P(150, 0, 0), 100, 20, 20), Strict));
-            AssertSegment(P(50, 0, 0), P(100, 0, 0), Ball().GetShortestLineTo(new GeoObb3(P(150, 0, 0), 100, 20, 20).ToSolid(), Strict));
+            AssertSegment(
+                P(50, 0, 0),
+                P(100, 0, 0),
+                Ball().GetShortestLineTo(new GeoAabb3(P(100, -10, -10), P(200, 10, 10)), Strict)
+            );
+            AssertSegment(
+                P(50, 0, 0),
+                P(100, 0, 0),
+                Ball().GetShortestLineTo(new GeoObb3(P(150, 0, 0), 100, 20, 20), Strict)
+            );
+            AssertSegment(
+                P(50, 0, 0),
+                P(100, 0, 0),
+                Ball().GetShortestLineTo(new GeoObb3(P(150, 0, 0), 100, 20, 20).ToSolid(), Strict)
+            );
         }
 
         [Fact]
@@ -963,7 +1058,15 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(0.0, 0.0, 0.0, 99.99, 0.0105, 0.0, 0.0, 100.0)]
         [InlineData(0.0, 0.0, 0.0, 50.0, 60.0, 80.0, 0.0, 50.0)]
         public void TwoBallsTouchingFromInsideOrOutside_GiveAPointWithinTheToleranceOfBothSurfaces_ToTheBitFromEitherBall(
-            double ax, double ay, double az, double ar, double bx, double by, double bz, double br)
+            double ax,
+            double ay,
+            double az,
+            double ar,
+            double bx,
+            double by,
+            double bz,
+            double br
+        )
         {
             var first = new GeoSphere3(P(ax, ay, az), ar);
             var second = new GeoSphere3(P(bx, by, bz), br);
@@ -972,8 +1075,14 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(second.TryGetTangentPoint(first, out GeoPoint3 back, Strict));
             Assert.Equal(touch, back);
             Assert.False(first.TryGetIntersectionCircle(second, out _, Strict));
-            Assert.True(Math.Abs(touch.DistanceTo(first.Center) - first.Radius) <= 1E-3, "off the first surface by " + (touch.DistanceTo(first.Center) - first.Radius));
-            Assert.True(Math.Abs(touch.DistanceTo(second.Center) - second.Radius) <= 1E-3, "off the second surface by " + (touch.DistanceTo(second.Center) - second.Radius));
+            Assert.True(
+                Math.Abs(touch.DistanceTo(first.Center) - first.Radius) <= 1E-3,
+                "off the first surface by " + (touch.DistanceTo(first.Center) - first.Radius)
+            );
+            Assert.True(
+                Math.Abs(touch.DistanceTo(second.Center) - second.Radius) <= 1E-3,
+                "off the second surface by " + (touch.DistanceTo(second.Center) - second.Radius)
+            );
         }
 
         [Fact]
@@ -1013,11 +1122,20 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(Ball().GetShortestLineTo(chain, Tolerance.Default), Ball().GetShortestLineTo(chain));
             Assert.Equal(Ball().CollidesWith(small, Tolerance.Default), Ball().CollidesWith(small));
             Assert.Equal(Ball().CollidesWith(plane, Tolerance.Default), Ball().CollidesWith(plane));
-            Assert.Equal(Ball().TryGetIntersectionCircle(plane, out GeoCircle3 byDefault, Tolerance.Default), Ball().TryGetIntersectionCircle(plane, out GeoCircle3 plain));
+            Assert.Equal(
+                Ball().TryGetIntersectionCircle(plane, out GeoCircle3 byDefault, Tolerance.Default),
+                Ball().TryGetIntersectionCircle(plane, out GeoCircle3 plain)
+            );
             Assert.Equal(byDefault, plain);
-            Assert.Equal(Ball().TryGetIntersectionCircle(small, out byDefault, Tolerance.Default), Ball().TryGetIntersectionCircle(small, out plain));
+            Assert.Equal(
+                Ball().TryGetIntersectionCircle(small, out byDefault, Tolerance.Default),
+                Ball().TryGetIntersectionCircle(small, out plain)
+            );
             Assert.Equal(byDefault, plain);
-            Assert.Equal(Ball().TryGetTangentPoint(small, out GeoPoint3 touchByDefault, Tolerance.Default), Ball().TryGetTangentPoint(small, out GeoPoint3 touchPlain));
+            Assert.Equal(
+                Ball().TryGetTangentPoint(small, out GeoPoint3 touchByDefault, Tolerance.Default),
+                Ball().TryGetTangentPoint(small, out GeoPoint3 touchPlain)
+            );
             Assert.Equal(touchByDefault, touchPlain);
         }
 

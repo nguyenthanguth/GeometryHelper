@@ -208,7 +208,10 @@ namespace GeometryHelper
 
             if (!(slack >= 0.0 && slack < 90.0))
             {
-                throw new ArgumentOutOfRangeException(nameof(tolerance), "The tolerance has to be at least nought and less than a right angle.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(tolerance),
+                    "The tolerance has to be at least nought and less than a right angle."
+                );
             }
 
             double wrapped = degrees % FullTurnDegrees;
@@ -271,7 +274,10 @@ namespace GeometryHelper
 
             if (!(slack >= 0.0 && slack < Math.PI * 0.5))
             {
-                throw new ArgumentOutOfRangeException(nameof(tolerance), "The tolerance has to be at least nought and less than a right angle.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(tolerance),
+                    "The tolerance has to be at least nought and less than a right angle."
+                );
             }
 
             double wrapped = radians % FullTurnRadians;
@@ -450,11 +456,7 @@ namespace GeometryHelper
         /// </summary>
         public override string ToString()
         {
-            return string.Format(
-                CultureInfo.InvariantCulture,
-                "{0:0.000} deg ({1:0.0000} rad)",
-                Degrees,
-                Radians);
+            return string.Format(CultureInfo.InvariantCulture, "{0:0.000} deg ({1:0.0000} rad)", Degrees, Radians);
         }
     }
 }

@@ -81,30 +81,33 @@ namespace GeometryHelper.UnitTest.Solid.Core
         internal static GeoPoint3[] Corners() => Corners(0.0, 0.0, 0.0, SizeX, SizeY, SizeZ);
 
         /// <summary>The eight corners of a box from its least corner to its greatest, as a box numbers them.</summary>
-        internal static GeoPoint3[] Corners(double x0, double y0, double z0, double x1, double y1, double z1) => new[]
-        {
-            new GeoPoint3(x0, y0, z0),
-            new GeoPoint3(x1, y0, z0),
-            new GeoPoint3(x1, y1, z0),
-            new GeoPoint3(x0, y1, z0),
-            new GeoPoint3(x0, y0, z1),
-            new GeoPoint3(x1, y0, z1),
-            new GeoPoint3(x1, y1, z1),
-            new GeoPoint3(x0, y1, z1),
-        };
+        internal static GeoPoint3[] Corners(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new[]
+            {
+                new GeoPoint3(x0, y0, z0),
+                new GeoPoint3(x1, y0, z0),
+                new GeoPoint3(x1, y1, z0),
+                new GeoPoint3(x0, y1, z0),
+                new GeoPoint3(x0, y0, z1),
+                new GeoPoint3(x1, y0, z1),
+                new GeoPoint3(x1, y1, z1),
+                new GeoPoint3(x0, y1, z1),
+            };
 
         /// <summary>The loop of some of the corners, in the order of their indices.</summary>
-        internal static GeoPolygon3 Loop(IReadOnlyList<GeoPoint3> corners, int[] loop)
-            => new GeoPolygon3(loop.Select(i => corners[i]), Fine);
+        internal static GeoPolygon3 Loop(IReadOnlyList<GeoPoint3> corners, int[] loop) =>
+            new GeoPolygon3(loop.Select(i => corners[i]), Fine);
 
         /// <summary>The face of a loop of some of the corners, in the order of their indices.</summary>
-        internal static GeoFace3 Face(IReadOnlyList<GeoPoint3> corners, int[] loop) => new GeoFace3(Loop(corners, loop), null, Fine);
+        internal static GeoFace3 Face(IReadOnlyList<GeoPoint3> corners, int[] loop) =>
+            new GeoFace3(Loop(corners, loop), null, Fine);
 
         /// <summary>The face of a loop of corners, in their order.</summary>
         internal static GeoFace3 Face(params GeoPoint3[] loop) => new GeoFace3(new GeoPolygon3(loop, Fine), null, Fine);
 
         /// <summary>The six faces of a box on its corners, <see cref="Bottom"/> to <see cref="Left"/>.</summary>
-        internal static List<GeoFace3> BoxFaces(IReadOnlyList<GeoPoint3> corners) => BoxLoops.Select(loop => Face(corners, loop)).ToList();
+        internal static List<GeoFace3> BoxFaces(IReadOnlyList<GeoPoint3> corners) =>
+            BoxLoops.Select(loop => Face(corners, loop)).ToList();
 
         /// <summary>The box of the damaged bodies, whole and wound outwards.</summary>
         internal static GeoSolid3 Box() => new GeoSolid3(BoxFaces(Corners()));
@@ -166,7 +169,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// <summary>
         /// A fin: the face standing off an edge from one corner to another, as far off it as a reach, the edge first.
         /// </summary>
-        internal static GeoFace3 Fin(GeoPoint3 from, GeoPoint3 to, GeoVector3 reach) => Face(from, to, to.Add(reach), from.Add(reach));
+        internal static GeoFace3 Fin(GeoPoint3 from, GeoPoint3 to, GeoVector3 reach) =>
+            Face(from, to, to.Add(reach), from.Add(reach));
 
         /// <summary>
         /// The box with a fin standing off the edge between two of its corners: three faces meet on that edge.
@@ -204,7 +208,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// The faces of a cavity 2 by 2 by 2 in the middle of the box of the damaged bodies, wound inwards as a cavity is:
         /// with the box, a body of 5 992.
         /// </summary>
-        internal static List<GeoFace3> CavityFaces() => BoxFaces(Corners(14, 9, 4, 16, 11, 6)).Select(face => face.Flip()).ToList();
+        internal static List<GeoFace3> CavityFaces() =>
+            BoxFaces(Corners(14, 9, 4, 16, 11, 6)).Select(face => face.Flip()).ToList();
 
         /// <summary>
         /// The box with a sheet inside it, two faces 20 by 10 lying back to back halfway up, touching none of its faces.
@@ -212,7 +217,12 @@ namespace GeometryHelper.UnitTest.Solid.Core
         internal static GeoSolid3 BoxWithASheetInside()
         {
             List<GeoFace3> faces = BoxFaces(Corners());
-            GeoFace3 sheet = Face(new GeoPoint3(5, 5, 5), new GeoPoint3(25, 5, 5), new GeoPoint3(25, 15, 5), new GeoPoint3(5, 15, 5));
+            GeoFace3 sheet = Face(
+                new GeoPoint3(5, 5, 5),
+                new GeoPoint3(25, 5, 5),
+                new GeoPoint3(25, 15, 5),
+                new GeoPoint3(5, 15, 5)
+            );
             faces.Add(sheet);
             faces.Add(sheet.Flip());
             return new GeoSolid3(faces);
@@ -239,25 +249,31 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// <summary>
         /// A prism 10 high over an L, 20 along each leg and 10 wide: its top and bottom are concave, 3 000 in all.
         /// </summary>
-        internal static GeoSolid3 LShapedPrism() => Prism(
-            new[]
-            {
-                new GeoPoint3(0, 0, 0), new GeoPoint3(20, 0, 0), new GeoPoint3(20, 10, 0),
-                new GeoPoint3(10, 10, 0), new GeoPoint3(10, 20, 0), new GeoPoint3(0, 20, 0),
-            },
-            0.0,
-            10.0);
+        internal static GeoSolid3 LShapedPrism() =>
+            Prism(
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(20, 0, 0),
+                    new GeoPoint3(20, 10, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(10, 20, 0),
+                    new GeoPoint3(0, 20, 0),
+                },
+                0.0,
+                10.0
+            );
 
         /// <summary>The box of the damaged bodies and the same box 100 along x: two shells, 12 000.</summary>
-        internal static GeoSolid3 TwoBoxesApart()
-            => new GeoSolid3(BoxFaces(Corners()).Concat(BoxFaces(Corners(100, 0, 0, 130, 20, 10))));
+        internal static GeoSolid3 TwoBoxesApart() =>
+            new GeoSolid3(BoxFaces(Corners()).Concat(BoxFaces(Corners(100, 0, 0, 130, 20, 10))));
 
         /// <summary>
         /// The box of the damaged bodies and the same box set off its corner at (30, 20): the two meet along the upright edge
         /// there, four faces on it, and nowhere else.
         /// </summary>
-        internal static GeoSolid3 TwoBoxesAlongAnEdge()
-            => new GeoSolid3(BoxFaces(Corners()).Concat(BoxFaces(Corners(30, 20, 0, 60, 40, 10))));
+        internal static GeoSolid3 TwoBoxesAlongAnEdge() =>
+            new GeoSolid3(BoxFaces(Corners()).Concat(BoxFaces(Corners(30, 20, 0, 60, 40, 10))));
 
         /// <summary>
         /// A plate 30 by 30 by 10 with a hole 10 by 10 through its middle: its top and bottom carry the hole, and the four
@@ -385,7 +401,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
                 {
                     double angle = 2.0 * Math.PI * random.NextDouble();
                     double length = most * random.NextDouble();
-                    loop.Add(corners[i].Add(u.Multiply(length * Math.Cos(angle))).Add(v.Multiply(length * Math.Sin(angle))));
+                    loop.Add(
+                        corners[i].Add(u.Multiply(length * Math.Cos(angle))).Add(v.Multiply(length * Math.Sin(angle)))
+                    );
                 }
 
                 faces.Add(Face(loop.ToArray()));
@@ -398,10 +416,18 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// A prism over a plan, as <see cref="Prism"/> makes one, with one corner of its top moved, the sides keeping it where
         /// it was.
         /// </summary>
-        internal static GeoSolid3 PrismWithTopCornerMoved(IReadOnlyList<GeoPoint3> plan, double z0, double z1, int corner, GeoVector3 by)
+        internal static GeoSolid3 PrismWithTopCornerMoved(
+            IReadOnlyList<GeoPoint3> plan,
+            double z0,
+            double z1,
+            int corner,
+            GeoVector3 by
+        )
         {
             List<GeoFace3> faces = Prism(plan, z0, z1).Faces.ToList();
-            faces[1] = Face(plan.Select((p, i) => new GeoPoint3(p.X, p.Y, z1).Add(i == corner ? by : GeoVector3.Zero)).ToArray());
+            faces[1] = Face(
+                plan.Select((p, i) => new GeoPoint3(p.X, p.Y, z1).Add(i == corner ? by : GeoVector3.Zero)).ToArray()
+            );
             return new GeoSolid3(faces);
         }
 
@@ -409,20 +435,32 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// The plan of the box of the damaged bodies with its corner at (30, 20) cut off by a chamfer 0.05 along each side:
         /// the chamfer's ends, its corners 2 and 3, are 0.07 apart.
         /// </summary>
-        internal static GeoPoint3[] ChamferedPlan() => new[]
-        {
-            new GeoPoint3(0, 0, 0), new GeoPoint3(30, 0, 0), new GeoPoint3(30, 19.95, 0), new GeoPoint3(29.95, 20, 0), new GeoPoint3(0, 20, 0),
-        };
+        internal static GeoPoint3[] ChamferedPlan() =>
+            new[]
+            {
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(30, 0, 0),
+                new GeoPoint3(30, 19.95, 0),
+                new GeoPoint3(29.95, 20, 0),
+                new GeoPoint3(0, 20, 0),
+            };
 
         /// <summary>
         /// The plan of the box of the damaged bodies with a slot as wide as given cut 10 into it from the middle of its back:
         /// its walls at x = 15 and 15 and the width, from y = 10 to the back.
         /// </summary>
-        internal static GeoPoint3[] SlottedPlan(double width) => new[]
-        {
-            new GeoPoint3(0, 0, 0), new GeoPoint3(30, 0, 0), new GeoPoint3(30, 20, 0), new GeoPoint3(15 + width, 20, 0),
-            new GeoPoint3(15 + width, 10, 0), new GeoPoint3(15, 10, 0), new GeoPoint3(15, 20, 0), new GeoPoint3(0, 20, 0),
-        };
+        internal static GeoPoint3[] SlottedPlan(double width) =>
+            new[]
+            {
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(30, 0, 0),
+                new GeoPoint3(30, 20, 0),
+                new GeoPoint3(15 + width, 20, 0),
+                new GeoPoint3(15 + width, 10, 0),
+                new GeoPoint3(15, 10, 0),
+                new GeoPoint3(15, 20, 0),
+                new GeoPoint3(0, 20, 0),
+            };
 
         #endregion
 
@@ -443,7 +481,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
                 for (int g = 0; g < faces.Count; g++)
                 {
-                    if (g != f && faces[g].Normal.DotProduct(faces[f].Normal) < -0.999 && faces[g].Locate(middle, Fine) != Enums.PointLocation.OutSide)
+                    if (
+                        g != f
+                        && faces[g].Normal.DotProduct(faces[f].Normal) < -0.999
+                        && faces[g].Locate(middle, Fine) != Enums.PointLocation.OutSide
+                    )
                     {
                         count++;
                         break;
@@ -479,7 +521,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
             for (int i = 1; i <= count; i++)
             {
                 double t = (double)i / (count + 1);
-                points.Add(new GeoPoint3(fromTheRight ? SizeX * (1.0 - t) : SizeX * t, 0, SizeZ).Add(toward.Multiply(4.0 * sag * t * (1.0 - t))));
+                points.Add(
+                    new GeoPoint3(fromTheRight ? SizeX * (1.0 - t) : SizeX * t, 0, SizeZ).Add(
+                        toward.Multiply(4.0 * sag * t * (1.0 - t))
+                    )
+                );
             }
 
             return points;
@@ -491,10 +537,14 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// </summary>
         internal static GeoSolid3 FacetedPrism(double radius, int sides, int topCorners)
         {
-            GeoPoint3 At(double angle, double z) => new GeoPoint3(radius * Math.Cos(angle), radius * Math.Sin(angle), z);
+            GeoPoint3 At(double angle, double z) =>
+                new GeoPoint3(radius * Math.Cos(angle), radius * Math.Sin(angle), z);
             GeoPoint3[] down = Enumerable.Range(0, sides).Select(k => At(2.0 * Math.PI * k / sides, 0.0)).ToArray();
             GeoPoint3[] up = Enumerable.Range(0, sides).Select(k => At(2.0 * Math.PI * k / sides, 1.0)).ToArray();
-            GeoPoint3[] top = Enumerable.Range(0, topCorners).Select(k => At(2.0 * Math.PI * k / topCorners, 1.0)).ToArray();
+            GeoPoint3[] top = Enumerable
+                .Range(0, topCorners)
+                .Select(k => At(2.0 * Math.PI * k / topCorners, 1.0))
+                .ToArray();
             var faces = new List<GeoFace3> { Face(down.Reverse().ToArray()), Face(top) };
 
             for (int i = 0; i < sides; i++)
@@ -511,8 +561,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         #region Bodies with faces left out, for filling
 
         /// <summary>A body with some of its faces left out, by their index, its openings kept.</summary>
-        internal static GeoSolid3 WithoutFaces(GeoSolid3 body, params int[] faces)
-            => new GeoSolid3(body.Faces.Where((face, i) => Array.IndexOf(faces, i) < 0), body.Openings);
+        internal static GeoSolid3 WithoutFaces(GeoSolid3 body, params int[] faces) =>
+            new GeoSolid3(body.Faces.Where((face, i) => Array.IndexOf(faces, i) < 0), body.Openings);
 
         /// <summary>
         /// The corners of the box of the damaged bodies turned about the vertical through the origin by an angle, in radians,
@@ -522,7 +572,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             double cos = Math.Cos(angle);
             double sin = Math.Sin(angle);
-            return Corners().Select(p => new GeoPoint3(p.X * cos - p.Y * sin, p.X * sin + p.Y * cos, p.Z).Add(by)).ToArray();
+            return Corners()
+                .Select(p => new GeoPoint3(p.X * cos - p.Y * sin, p.X * sin + p.Y * cos, p.Z).Add(by))
+                .ToArray();
         }
 
         #endregion
@@ -537,7 +589,12 @@ namespace GeometryHelper.UnitTest.Solid.Core
         internal static GeoSolid3 SharpPrism(double degrees, double move, bool inward)
         {
             double half = degrees * Math.PI / 360.0;
-            var plan = new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(30, 0, 0), new GeoPoint3(30, 30 * Math.Tan(2.0 * half), 0) };
+            var plan = new[]
+            {
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(30, 0, 0),
+                new GeoPoint3(30, 30 * Math.Tan(2.0 * half), 0),
+            };
             var bisector = new GeoVector3(Math.Cos(half), Math.Sin(half), 0);
             return PrismWithTopCornerMoved(plan, 0, 10, 0, bisector.Multiply(inward ? move : -move));
         }
@@ -551,7 +608,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
             List<GeoFace3> faces = PlateWithAHole().Faces.ToList();
             GeoPoint3[] hole = Corners(10, 10, 0, 20, 20, 10);
             hole[4] = hole[4].Add(new GeoVector3(-1, -1, 0).Multiply(by / Math.Sqrt(2.0)));
-            faces[1] = new GeoFace3(Loop(Corners(0, 0, 0, 30, 30, 10), BoxLoops[Top]), new[] { Loop(hole, BoxLoops[Top]) }, Fine);
+            faces[1] = new GeoFace3(
+                Loop(Corners(0, 0, 0, 30, 30, 10), BoxLoops[Top]),
+                new[] { Loop(hole, BoxLoops[Top]) },
+                Fine
+            );
             return new GeoSolid3(faces);
         }
 
@@ -561,9 +622,22 @@ namespace GeometryHelper.UnitTest.Solid.Core
         internal static GeoSolid3 BoxWithAStripOfTheTopMissing(double width)
         {
             List<GeoFace3> faces = BoxFaces(Corners());
-            double a = 15 - width / 2, b = 15 + width / 2;
-            faces[Top] = Face(new GeoPoint3(0, 0, 10), new GeoPoint3(a, 0, 10), new GeoPoint3(a, 20, 10), new GeoPoint3(0, 20, 10));
-            faces.Add(Face(new GeoPoint3(b, 0, 10), new GeoPoint3(30, 0, 10), new GeoPoint3(30, 20, 10), new GeoPoint3(b, 20, 10)));
+            double a = 15 - width / 2,
+                b = 15 + width / 2;
+            faces[Top] = Face(
+                new GeoPoint3(0, 0, 10),
+                new GeoPoint3(a, 0, 10),
+                new GeoPoint3(a, 20, 10),
+                new GeoPoint3(0, 20, 10)
+            );
+            faces.Add(
+                Face(
+                    new GeoPoint3(b, 0, 10),
+                    new GeoPoint3(30, 0, 10),
+                    new GeoPoint3(30, 20, 10),
+                    new GeoPoint3(b, 20, 10)
+                )
+            );
             return new GeoSolid3(faces);
         }
 
@@ -580,12 +654,26 @@ namespace GeometryHelper.UnitTest.Solid.Core
             if (by > 0.0)
             {
                 GeoVector3 move = new GeoVector3(-1, 1, 0).Multiply(by / Math.Sqrt(2.0));
-                faces[1] = Face(plan.Select((p, i) => new GeoPoint3(p.X, p.Y, 10).Add(i == 6 ? move : GeoVector3.Zero)).ToArray());
+                faces[1] = Face(
+                    plan.Select((p, i) => new GeoPoint3(p.X, p.Y, 10).Add(i == 6 ? move : GeoVector3.Zero)).ToArray()
+                );
             }
 
             double x = 15 + width;
-            faces[5] = Face(new GeoPoint3(x, 20, 0), new GeoPoint3(x, 15, 0), new GeoPoint3(x, 15, 10), new GeoPoint3(x, 20, 10));
-            faces.Add(Face(new GeoPoint3(x, 15, 0), new GeoPoint3(x, 10, 0), new GeoPoint3(x, 10, 10), new GeoPoint3(x, 15, 10)));
+            faces[5] = Face(
+                new GeoPoint3(x, 20, 0),
+                new GeoPoint3(x, 15, 0),
+                new GeoPoint3(x, 15, 10),
+                new GeoPoint3(x, 20, 10)
+            );
+            faces.Add(
+                Face(
+                    new GeoPoint3(x, 15, 0),
+                    new GeoPoint3(x, 10, 0),
+                    new GeoPoint3(x, 10, 10),
+                    new GeoPoint3(x, 15, 10)
+                )
+            );
             return new GeoSolid3(faces);
         }
 
@@ -606,21 +694,42 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             GeoPoint3 Moved(GeoPoint3 p, GeoVector3 u, GeoVector3 v)
             {
-                double angle = 2.0 * Math.PI * random.NextDouble(), length = most * random.NextDouble();
-                return p.Add(u.Multiply(length * Math.Cos(angle) / u.Length)).Add(v.Multiply(length * Math.Sin(angle) / v.Length));
+                double angle = 2.0 * Math.PI * random.NextDouble(),
+                    length = most * random.NextDouble();
+                return p.Add(u.Multiply(length * Math.Cos(angle) / u.Length))
+                    .Add(v.Multiply(length * Math.Sin(angle) / v.Length));
             }
 
             var faces = new List<GeoFace3>();
 
             for (int i = 0; i < sides; i++)
             {
-                GeoPoint3 a = At(i, 0), b = At(i + 1, 0), c = At(i + 1, height), d = At(i, height);
-                GeoVector3 u = a.GetVectorTo(b), v = a.GetVectorTo(d);
+                GeoPoint3 a = At(i, 0),
+                    b = At(i + 1, 0),
+                    c = At(i + 1, height),
+                    d = At(i, height);
+                GeoVector3 u = a.GetVectorTo(b),
+                    v = a.GetVectorTo(d);
                 faces.Add(Face(Moved(a, u, v), Moved(b, u, v), Moved(c, u, v), Moved(d, u, v)));
             }
 
-            faces.Add(Face(Enumerable.Range(0, sides).Reverse().Select(i => Moved(At(i, 0), GeoVector3.XAxis, GeoVector3.YAxis)).ToArray()));
-            faces.Add(Face(Enumerable.Range(0, sides).Select(i => Moved(At(i, height), GeoVector3.XAxis, GeoVector3.YAxis)).ToArray()));
+            faces.Add(
+                Face(
+                    Enumerable
+                        .Range(0, sides)
+                        .Reverse()
+                        .Select(i => Moved(At(i, 0), GeoVector3.XAxis, GeoVector3.YAxis))
+                        .ToArray()
+                )
+            );
+            faces.Add(
+                Face(
+                    Enumerable
+                        .Range(0, sides)
+                        .Select(i => Moved(At(i, height), GeoVector3.XAxis, GeoVector3.YAxis))
+                        .ToArray()
+                )
+            );
             return new GeoSolid3(faces);
         }
 
@@ -655,14 +764,19 @@ namespace GeometryHelper.UnitTest.Solid.Core
         internal static GeoPoint3[] RotatedCorners(GeoVector3 axis, double angle, GeoVector3 by)
         {
             GeoVector3 k = axis.Multiply(1.0 / axis.Length);
-            double cos = Math.Cos(angle), sin = Math.Sin(angle);
+            double cos = Math.Cos(angle),
+                sin = Math.Sin(angle);
 
-            return Corners().Select(p =>
-            {
-                var v = new GeoVector3(p.X, p.Y, p.Z);
-                GeoVector3 r = v.Multiply(cos).Add(k.CrossProduct(v).Multiply(sin)).Add(k.Multiply(k.DotProduct(v) * (1.0 - cos)));
-                return new GeoPoint3(r.X, r.Y, r.Z).Add(by);
-            }).ToArray();
+            return Corners()
+                .Select(p =>
+                {
+                    var v = new GeoVector3(p.X, p.Y, p.Z);
+                    GeoVector3 r = v.Multiply(cos)
+                        .Add(k.CrossProduct(v).Multiply(sin))
+                        .Add(k.Multiply(k.DotProduct(v) * (1.0 - cos)));
+                    return new GeoPoint3(r.X, r.Y, r.Z).Add(by);
+                })
+                .ToArray();
         }
 
         /// <summary>
@@ -699,7 +813,12 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// axis lifted by as much as given in the two sides beside it, which stay flat: the rim stands off flat by about the
         /// lift.
         /// </summary>
-        internal static GeoSolid3 PrismWithoutItsTopLiftedAtACorner(int sides, double radius, double height, double lift)
+        internal static GeoSolid3 PrismWithoutItsTopLiftedAtACorner(
+            int sides,
+            double radius,
+            double height,
+            double lift
+        )
         {
             GeoPoint3 At(int i, double z)
             {
@@ -709,7 +828,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             GeoPoint3 Up(int i) => At(i, height).Add(i % sides == 0 ? new GeoVector3(0, 0, lift) : GeoVector3.Zero);
 
-            var faces = new List<GeoFace3> { Face(Enumerable.Range(0, sides).Reverse().Select(i => At(i, 0)).ToArray()) };
+            var faces = new List<GeoFace3>
+            {
+                Face(Enumerable.Range(0, sides).Reverse().Select(i => At(i, 0)).ToArray()),
+            };
 
             for (int i = 0; i < sides; i++)
             {
@@ -730,7 +852,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
             GeoPoint3[] hole = Corners(10, 10, 0, 20, 20, 10);
             outer[6] = outer[6].Add(new GeoVector3(0, 0, lift));
             hole[6] = hole[6].Add(new GeoVector3(0, 0, lift));
-            var faces = new List<GeoFace3> { new GeoFace3(Loop(outer, BoxLoops[Bottom]), new[] { Loop(hole, BoxLoops[Bottom]) }, Fine) };
+            var faces = new List<GeoFace3>
+            {
+                new GeoFace3(Loop(outer, BoxLoops[Bottom]), new[] { Loop(hole, BoxLoops[Bottom]) }, Fine),
+            };
 
             foreach (int side in new[] { Front, Back, Right, Left })
             {
@@ -872,12 +997,15 @@ namespace GeometryHelper.UnitTest.Solid.Core
             double side = n * cell;
             GeoPoint3[] hole = Corners(15, 10, 0, 15 + side, 10 + side, 10);
             faces[Top] = new GeoFace3(Loop(c, BoxLoops[Top]), new[] { Loop(hole, BoxLoops[Top]) }, Fine);
-            int middle = (n / 2) * n + n / 2, k = 0;
+            int middle = (n / 2) * n + n / 2,
+                k = 0;
 
             foreach (GeoPoint3[] q in Grid(new GeoPoint3(15, 10, 10), GeoVector3.XAxis, GeoVector3.YAxis, n, cell))
             {
                 bool turned = k++ == middle;
-                GeoPoint3[][] pieces = triangles ? new[] { new[] { q[0], q[1], q[2] }, new[] { q[0], q[2], q[3] } } : new[] { q };
+                GeoPoint3[][] pieces = triangles
+                    ? new[] { new[] { q[0], q[1], q[2] }, new[] { q[0], q[2], q[3] } }
+                    : new[] { q };
 
                 for (int p = 0; p < pieces.Length; p++)
                 {
@@ -903,7 +1031,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
                 (new GeoPoint3(0, 0, 0), GeoVector3.XAxis, GeoVector3.ZAxis),
             };
 
-            return new GeoSolid3(sides.SelectMany(s => Grid(s.Origin, s.U, s.V, n, size / n)).Select(q => Face(q.Reverse().ToArray())));
+            return new GeoSolid3(
+                sides.SelectMany(s => Grid(s.Origin, s.U, s.V, n, size / n)).Select(q => Face(q.Reverse().ToArray()))
+            );
         }
 
         /// <summary>
@@ -923,11 +1053,16 @@ namespace GeometryHelper.UnitTest.Solid.Core
                 GeoVector3 v = u.CrossProduct(ring[0].GetVectorTo(ring[2])).CrossProduct(u);
                 u = u.Multiply(1.0 / u.Length);
                 v = v.Multiply(1.0 / v.Length);
-                return Face(ring.Select(p =>
-                {
-                    double angle = 2.0 * Math.PI * random.NextDouble(), length = most * random.NextDouble();
-                    return p.Add(u.Multiply(length * Math.Cos(angle))).Add(v.Multiply(length * Math.Sin(angle)));
-                }).ToArray());
+                return Face(
+                    ring.Select(p =>
+                        {
+                            double angle = 2.0 * Math.PI * random.NextDouble(),
+                                length = most * random.NextDouble();
+                            return p.Add(u.Multiply(length * Math.Cos(angle)))
+                                .Add(v.Multiply(length * Math.Sin(angle)));
+                        })
+                        .ToArray()
+                );
             }
 
             foreach (int[] loop in BoxLoops)
@@ -945,7 +1080,14 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// its plane by up to the distance. Every copy of a corner of a cap stands within the lift of the cap's plane, so that
         /// whichever copy a corner is welded to, the cap's corners stay within the lift of it.
         /// </summary>
-        internal static GeoSolid3 PrismOfCopiesMovedAlongTheRim(int sides, double radius, double height, double most, double lift, int seed)
+        internal static GeoSolid3 PrismOfCopiesMovedAlongTheRim(
+            int sides,
+            double radius,
+            double height,
+            double most,
+            double lift,
+            int seed
+        )
         {
             var random = new Random(seed);
 
@@ -957,13 +1099,15 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             GeoPoint3 Along(GeoPoint3 p, GeoVector3 rim)
             {
-                double u = most * (2.0 * random.NextDouble() - 1.0), v = lift * (2.0 * random.NextDouble() - 1.0);
+                double u = most * (2.0 * random.NextDouble() - 1.0),
+                    v = lift * (2.0 * random.NextDouble() - 1.0);
                 return p.Add(rim.Multiply(u / rim.Length)).Add(new GeoVector3(0, 0, v));
             }
 
             GeoPoint3 InThePlane(GeoPoint3 p)
             {
-                double angle = 2.0 * Math.PI * random.NextDouble(), r = most * random.NextDouble();
+                double angle = 2.0 * Math.PI * random.NextDouble(),
+                    r = most * random.NextDouble();
                 return p.Add(new GeoVector3(r * Math.Cos(angle), r * Math.Sin(angle), 0));
             }
 
@@ -971,7 +1115,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             for (int i = 0; i < sides; i++)
             {
-                GeoPoint3 a = At(i, 0), b = At(i + 1, 0), c = At(i + 1, height), d = At(i, height);
+                GeoPoint3 a = At(i, 0),
+                    b = At(i + 1, 0),
+                    c = At(i + 1, height),
+                    d = At(i, height);
                 GeoVector3 rim = a.GetVectorTo(b);
                 faces.Add(Face(Along(a, rim), Along(b, rim), Along(c, rim), Along(d, rim)));
             }
@@ -993,8 +1140,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             GeoPoint3 P(int k, int j)
             {
-                double phi = Math.PI * k / bands, lambda = 2.0 * Math.PI * (j % sides) / sides;
-                return new GeoPoint3(radius * Math.Sin(phi) * Math.Cos(lambda), radius * Math.Sin(phi) * Math.Sin(lambda), radius * Math.Cos(phi));
+                double phi = Math.PI * k / bands,
+                    lambda = 2.0 * Math.PI * (j % sides) / sides;
+                return new GeoPoint3(
+                    radius * Math.Sin(phi) * Math.Cos(lambda),
+                    radius * Math.Sin(phi) * Math.Sin(lambda),
+                    radius * Math.Cos(phi)
+                );
             }
 
             GeoFace3 Moved(params GeoPoint3[] ring)
@@ -1003,11 +1155,16 @@ namespace GeometryHelper.UnitTest.Solid.Core
                 GeoVector3 v = u.CrossProduct(ring[0].GetVectorTo(ring[2])).CrossProduct(u);
                 u = u.Multiply(1.0 / u.Length);
                 v = v.Multiply(1.0 / v.Length);
-                return Face(ring.Select(p =>
-                {
-                    double angle = 2.0 * Math.PI * random.NextDouble(), length = most * random.NextDouble();
-                    return p.Add(u.Multiply(length * Math.Cos(angle))).Add(v.Multiply(length * Math.Sin(angle)));
-                }).ToArray());
+                return Face(
+                    ring.Select(p =>
+                        {
+                            double angle = 2.0 * Math.PI * random.NextDouble(),
+                                length = most * random.NextDouble();
+                            return p.Add(u.Multiply(length * Math.Cos(angle)))
+                                .Add(v.Multiply(length * Math.Sin(angle)));
+                        })
+                        .ToArray()
+                );
             }
 
             var faces = new List<GeoFace3>();
@@ -1038,9 +1195,15 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// The corners of a polygon of as many sides as given round a circle about the vertical through the origin, at z = 0,
         /// counter-clockwise seen from above, the first on the x axis.
         /// </summary>
-        internal static GeoPoint3[] RoundPlan(int sides, double radius) => Enumerable.Range(0, sides)
-            .Select(i => new GeoPoint3(radius * Math.Cos(2.0 * Math.PI * i / sides), radius * Math.Sin(2.0 * Math.PI * i / sides), 0))
-            .ToArray();
+        internal static GeoPoint3[] RoundPlan(int sides, double radius) =>
+            Enumerable
+                .Range(0, sides)
+                .Select(i => new GeoPoint3(
+                    radius * Math.Cos(2.0 * Math.PI * i / sides),
+                    radius * Math.Sin(2.0 * Math.PI * i / sides),
+                    0
+                ))
+                .ToArray();
 
         #endregion
 
@@ -1049,8 +1212,14 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// <summary>
         /// The corners of the rectangle from (x0, y0) to (x1, y1) at z = 0, counter-clockwise seen from above from the first.
         /// </summary>
-        internal static GeoPoint3[] Rectangle(double x0, double y0, double x1, double y1)
-            => new[] { new GeoPoint3(x0, y0, 0), new GeoPoint3(x1, y0, 0), new GeoPoint3(x1, y1, 0), new GeoPoint3(x0, y1, 0) };
+        internal static GeoPoint3[] Rectangle(double x0, double y0, double x1, double y1) =>
+            new[]
+            {
+                new GeoPoint3(x0, y0, 0),
+                new GeoPoint3(x1, y0, 0),
+                new GeoPoint3(x1, y1, 0),
+                new GeoPoint3(x0, y1, 0),
+            };
 
         /// <summary>
         /// A plate 30 by 30 as thick as given with a hole through it whose walls are left out: its top carries the top rim at
@@ -1058,7 +1227,12 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// heights ignored. The bottom's ring of the hole runs clockwise, as the bottom's boundary does, from the corner of
         /// it given. Two flat loops are left open, one at each end of the hole.
         /// </summary>
-        internal static GeoSolid3 PlateWithAHoleWithoutItsWalls(double thickness, IReadOnlyList<GeoPoint3> top, IReadOnlyList<GeoPoint3> bottom, int bottomStart = 0)
+        internal static GeoSolid3 PlateWithAHoleWithoutItsWalls(
+            double thickness,
+            IReadOnlyList<GeoPoint3> top,
+            IReadOnlyList<GeoPoint3> bottom,
+            int bottomStart = 0
+        )
         {
             GeoPoint3[] outer = Corners(0, 0, 0, 30, 30, thickness);
             var up = new GeoPolygon3(top.Select(p => new GeoPoint3(p.X, p.Y, thickness)), Fine);
@@ -1085,7 +1259,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// i + 1, and one face at each end. The faces across the edges named are pierced by the holes given, each wound as
         /// the face's boundary is.
         /// </summary>
-        internal static GeoSolid3 ExtrudedAlongY(IReadOnlyList<(double X, double Z)> section, double length, IReadOnlyDictionary<int, GeoPoint3[]> holes)
+        internal static GeoSolid3 ExtrudedAlongY(
+            IReadOnlyList<(double X, double Z)> section,
+            double length,
+            IReadOnlyDictionary<int, GeoPoint3[]> holes
+        )
         {
             int n = section.Count;
             GeoPoint3 At(int i, double y) => new GeoPoint3(section[i % n].X, y, section[i % n].Z);
@@ -1097,8 +1275,14 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             for (int i = 0; i < n; i++)
             {
-                var boundary = new GeoPolygon3(new[] { At(i, 0), At(i + 1, 0), At(i + 1, length), At(i, length) }, Fine);
-                GeoPolygon3[] pierced = holes != null && holes.TryGetValue(i, out GeoPoint3[] hole) ? new[] { new GeoPolygon3(hole, Fine) } : null;
+                var boundary = new GeoPolygon3(
+                    new[] { At(i, 0), At(i + 1, 0), At(i + 1, length), At(i, length) },
+                    Fine
+                );
+                GeoPolygon3[] pierced =
+                    holes != null && holes.TryGetValue(i, out GeoPoint3[] hole)
+                        ? new[] { new GeoPolygon3(hole, Fine) }
+                        : null;
                 faces.Add(new GeoFace3(boundary, pierced, Fine));
             }
 
@@ -1113,11 +1297,33 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// </summary>
         internal static GeoSolid3 ChannelPiercedTopAndBottom()
         {
-            var section = new[] { (0.0, 0.0), (0.0, 10.0), (30.0, 10.0), (30.0, 8.0), (2.0, 8.0), (2.0, 2.0), (30.0, 2.0), (30.0, 0.0) };
+            var section = new[]
+            {
+                (0.0, 0.0),
+                (0.0, 10.0),
+                (30.0, 10.0),
+                (30.0, 8.0),
+                (2.0, 8.0),
+                (2.0, 2.0),
+                (30.0, 2.0),
+                (30.0, 0.0),
+            };
             var holes = new Dictionary<int, GeoPoint3[]>
             {
-                [1] = new[] { new GeoPoint3(12, 10, 10), new GeoPoint3(22, 10, 10), new GeoPoint3(22, 20, 10), new GeoPoint3(12, 20, 10) },
-                [7] = new[] { new GeoPoint3(22, 10, 0), new GeoPoint3(12, 10, 0), new GeoPoint3(12, 20, 0), new GeoPoint3(22, 20, 0) },
+                [1] = new[]
+                {
+                    new GeoPoint3(12, 10, 10),
+                    new GeoPoint3(22, 10, 10),
+                    new GeoPoint3(22, 20, 10),
+                    new GeoPoint3(12, 20, 10),
+                },
+                [7] = new[]
+                {
+                    new GeoPoint3(22, 10, 0),
+                    new GeoPoint3(12, 10, 0),
+                    new GeoPoint3(12, 20, 0),
+                    new GeoPoint3(22, 20, 0),
+                },
             };
             return ExtrudedAlongY(section, 30, holes);
         }
@@ -1130,11 +1336,33 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// </summary>
         internal static GeoSolid3 ChannelPiercedFacingAcrossItsGap()
         {
-            var section = new[] { (0.0, 0.0), (0.0, 20.0), (10.0, 20.0), (10.0, 2.0), (12.0, 2.0), (12.0, 20.0), (30.0, 20.0), (30.0, 0.0) };
+            var section = new[]
+            {
+                (0.0, 0.0),
+                (0.0, 20.0),
+                (10.0, 20.0),
+                (10.0, 2.0),
+                (12.0, 2.0),
+                (12.0, 20.0),
+                (30.0, 20.0),
+                (30.0, 0.0),
+            };
             var holes = new Dictionary<int, GeoPoint3[]>
             {
-                [2] = new[] { new GeoPoint3(10, 10, 18), new GeoPoint3(10, 10, 8), new GeoPoint3(10, 20, 8), new GeoPoint3(10, 20, 18) },
-                [4] = new[] { new GeoPoint3(12, 10, 8), new GeoPoint3(12, 10, 18), new GeoPoint3(12, 20, 18), new GeoPoint3(12, 20, 8) },
+                [2] = new[]
+                {
+                    new GeoPoint3(10, 10, 18),
+                    new GeoPoint3(10, 10, 8),
+                    new GeoPoint3(10, 20, 8),
+                    new GeoPoint3(10, 20, 18),
+                },
+                [4] = new[]
+                {
+                    new GeoPoint3(12, 10, 8),
+                    new GeoPoint3(12, 10, 18),
+                    new GeoPoint3(12, 20, 18),
+                    new GeoPoint3(12, 20, 8),
+                },
             };
             return ExtrudedAlongY(section, 30, holes);
         }
@@ -1163,30 +1391,48 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// The plan of the L of <see cref="LShapedPrism"/>, 20 along each leg and 10 wide, 300 in all, counter-clockwise
         /// seen from above from the origin: corner 3, at (10, 10), is where it turns in.
         /// </summary>
-        internal static GeoPoint3[] LShapedPlan() => new[]
-        {
-            new GeoPoint3(0, 0, 0), new GeoPoint3(20, 0, 0), new GeoPoint3(20, 10, 0),
-            new GeoPoint3(10, 10, 0), new GeoPoint3(10, 20, 0), new GeoPoint3(0, 20, 0),
-        };
+        internal static GeoPoint3[] LShapedPlan() =>
+            new[]
+            {
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(20, 0, 0),
+                new GeoPoint3(20, 10, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(10, 20, 0),
+                new GeoPoint3(0, 20, 0),
+            };
 
         /// <summary>
         /// The plan of a U 30 by 20 with a notch 10 by 10 cut into the middle of its back, 500 in all, counter-clockwise seen
         /// from above from the origin: corners 4 and 5, at (20, 10) and (10, 10), are where it turns in.
         /// </summary>
-        internal static GeoPoint3[] UShapedPlan() => new[]
-        {
-            new GeoPoint3(0, 0, 0), new GeoPoint3(30, 0, 0), new GeoPoint3(30, 20, 0), new GeoPoint3(20, 20, 0),
-            new GeoPoint3(20, 10, 0), new GeoPoint3(10, 10, 0), new GeoPoint3(10, 20, 0), new GeoPoint3(0, 20, 0),
-        };
+        internal static GeoPoint3[] UShapedPlan() =>
+            new[]
+            {
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(30, 0, 0),
+                new GeoPoint3(30, 20, 0),
+                new GeoPoint3(20, 20, 0),
+                new GeoPoint3(20, 10, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(10, 20, 0),
+                new GeoPoint3(0, 20, 0),
+            };
 
         /// <summary>
         /// A prism over a plan from z = 0 to a height, its top left out and the top's corner over the plan's corner given
         /// lifted by as much as given in the two sides beside it, which stand upright and stay flat.
         /// </summary>
-        internal static GeoSolid3 PrismWithoutItsTopLifted(IReadOnlyList<GeoPoint3> plan, double height, int corner, double lift)
+        internal static GeoSolid3 PrismWithoutItsTopLifted(
+            IReadOnlyList<GeoPoint3> plan,
+            double height,
+            int corner,
+            double lift
+        )
         {
             GeoPoint3[] down = plan.Select(p => new GeoPoint3(p.X, p.Y, 0)).ToArray();
-            GeoPoint3[] up = plan.Select((p, i) => new GeoPoint3(p.X, p.Y, height + (i == corner ? lift : 0.0))).ToArray();
+            GeoPoint3[] up = plan.Select((p, i) => new GeoPoint3(p.X, p.Y, height + (i == corner ? lift : 0.0)))
+                .ToArray();
             var faces = new List<GeoFace3> { Face(down.Reverse().ToArray()) };
 
             for (int i = 0; i < plan.Count; i++)
@@ -1223,7 +1469,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         internal static List<GeoFace3> NotchBlockFaces() => BoxFaces(Corners(12, 12, 2, 18, 17, 8));
 
         /// <summary>The faces each turned over, wound the other way round, in their order.</summary>
-        internal static List<GeoFace3> Turned(IEnumerable<GeoFace3> faces) => faces.Select(face => face.Flip()).ToList();
+        internal static List<GeoFace3> Turned(IEnumerable<GeoFace3> faces) =>
+            faces.Select(face => face.Flip()).ToList();
 
         #endregion
 
@@ -1269,7 +1516,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
             var tip = new GeoPoint3(x, y, 10);
             GeoPoint3[] square =
             {
-                new GeoPoint3(x - 2, y - 2, 13), new GeoPoint3(x + 2, y - 2, 13), new GeoPoint3(x + 2, y + 2, 13), new GeoPoint3(x - 2, y + 2, 13),
+                new GeoPoint3(x - 2, y - 2, 13),
+                new GeoPoint3(x + 2, y - 2, 13),
+                new GeoPoint3(x + 2, y + 2, 13),
+                new GeoPoint3(x - 2, y + 2, 13),
             };
             var faces = new List<GeoFace3> { Face(square) };
 
@@ -1309,7 +1559,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// 14 high over the square's corners counter-clockwise from the origin: about 1.8 off flat. The triangles of least
         /// area across it, 51.08, join its corners 0 and 2, 16 high across the middle, and it holds 528 with them.
         /// </summary>
-        internal static List<GeoFace3> BoxOpenUpwardsFaces() => BoxOpenAtARimFaces(new[] { 16.0, 10.0, 16.0, 14.0 }, 0.0);
+        internal static List<GeoFace3> BoxOpenUpwardsFaces() =>
+            BoxOpenAtARimFaces(new[] { 16.0, 10.0, 16.0, 14.0 }, 0.0);
 
         /// <summary>
         /// The faces of a box over the same square hanging from z = 25, open at the bottom, its rim 16.5, 14.5, 20 and 14.5
@@ -1317,7 +1568,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// triangles of least area across it, 49.37, join its corners 1 and 3, 14.5 high across the middle, below the other's
         /// there, and it holds 333 with them.
         /// </summary>
-        internal static List<GeoFace3> BoxOpenDownwardsFaces() => BoxOpenAtARimFaces(new[] { 16.5, 14.5, 20.0, 14.5 }, 25.0);
+        internal static List<GeoFace3> BoxOpenDownwardsFaces() =>
+            BoxOpenAtARimFaces(new[] { 16.5, 14.5, 20.0, 14.5 }, 25.0);
 
         /// <summary>
         /// The faces of a box over the square from (0, 0) to (6, 6), its rim at the heights given over the square's corners
@@ -1349,15 +1601,16 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// <see cref="BoxWithAStripOfTheTopMissing"/> where that is wider than the blade, and touching none of its faces. 40
         /// times its thickness.
         /// </summary>
-        internal static List<GeoFace3> BladeFaces(double thickness) => BoxFaces(Corners(15 - (thickness / 2), 8, 5, 15 + (thickness / 2), 12, 15));
+        internal static List<GeoFace3> BladeFaces(double thickness) =>
+            BoxFaces(Corners(15 - (thickness / 2), 8, 5, 15 + (thickness / 2), 12, 15));
 
         /// <summary>
         /// The faces of the blade of <see cref="BladeFaces"/> moved out beyond the front of the box of the damaged bodies, in
         /// line with the strip of <see cref="BoxWithAStripOfTheTopMissing"/> and as far clear of the front as given: from
         /// y = -4 less that to y = less that.
         /// </summary>
-        internal static List<GeoFace3> BladeBeyondTheFrontFaces(double thickness, double clear)
-            => BoxFaces(Corners(15 - (thickness / 2), -4 - clear, 5, 15 + (thickness / 2), -clear, 15));
+        internal static List<GeoFace3> BladeBeyondTheFrontFaces(double thickness, double clear) =>
+            BoxFaces(Corners(15 - (thickness / 2), -4 - clear, 5, 15 + (thickness / 2), -clear, 15));
 
         #endregion
 

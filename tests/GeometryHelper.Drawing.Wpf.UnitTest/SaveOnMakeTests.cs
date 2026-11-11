@@ -20,7 +20,14 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             try
             {
                 var bench = new Bench();
-                bench.Model.ApplySettings(new GlobalSettings { SaveFolder = folder, AutosaveMinutes = 5, BackupsKept = 2 });
+                bench.Model.ApplySettings(
+                    new GlobalSettings
+                    {
+                        SaveFolder = folder,
+                        AutosaveMinutes = 5,
+                        BackupsKept = 2,
+                    }
+                );
 
                 // The folder is made, and the drawing saved there under its number.
                 ModelDrawing first = await bench.MakeAsync();
@@ -39,7 +46,9 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
                 Assert.Equal(saved, File.ReadAllBytes(path));
 
                 // Changed by hand, the first is autosaved beside its file, which is left as it was saved.
-                first.Document.ApplyEdit("LINE", null, s => s.Append(first.Document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0))));
+                first.Document.ApplyEdit("LINE", null, s =>
+                    s.Append(first.Document.ModelSpace, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)))
+                );
                 IReadOnlyList<string> written = bench.Model.Autosave();
                 Assert.Equal(new[] { Path.Combine(folder, first.Number + ".autosave1.dxf") }, written);
                 Assert.Equal(saved, File.ReadAllBytes(path));

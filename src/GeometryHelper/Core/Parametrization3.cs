@@ -208,7 +208,8 @@ namespace GeometryHelper.Core
         /// Gets the arc length from the start of a polyline to the point on it closest to the supplied
         /// point.
         /// </summary>
-        public static double GetDistanceAtPoint(GeoPolyline3 polyline, GeoPoint3 point) => GetDistanceAtPoint(polyline, point, Tolerance.Global);
+        public static double GetDistanceAtPoint(GeoPolyline3 polyline, GeoPoint3 point) =>
+            GetDistanceAtPoint(polyline, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the arc length from the start of a polyline to the point on it closest to the supplied
@@ -263,7 +264,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the normalized parameter of the point on a polyline closest to the supplied point.
         /// </summary>
-        public static double GetParameterAtPoint(GeoPolyline3 polyline, GeoPoint3 point) => GetParameterAtPoint(polyline, point, Tolerance.Global);
+        public static double GetParameterAtPoint(GeoPolyline3 polyline, GeoPoint3 point) =>
+            GetParameterAtPoint(polyline, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the normalized parameter of the point on a polyline closest to the supplied point, within
@@ -383,7 +385,8 @@ namespace GeometryHelper.Core
         /// Gets the arc length from the first vertex of a polygon to the point on its boundary closest to
         /// the supplied point.
         /// </summary>
-        public static double GetDistanceAtPoint(GeoPolygon3 polygon, GeoPoint3 point) => GetDistanceAtPoint(polygon, point, Tolerance.Global);
+        public static double GetDistanceAtPoint(GeoPolygon3 polygon, GeoPoint3 point) =>
+            GetDistanceAtPoint(polygon, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the arc length from the first vertex of a polygon to the point on its boundary closest to
@@ -438,7 +441,8 @@ namespace GeometryHelper.Core
         /// Gets the normalized parameter of the point on the boundary of a polygon closest to the supplied
         /// point.
         /// </summary>
-        public static double GetParameterAtPoint(GeoPolygon3 polygon, GeoPoint3 point) => GetParameterAtPoint(polygon, point, Tolerance.Global);
+        public static double GetParameterAtPoint(GeoPolygon3 polygon, GeoPoint3 point) =>
+            GetParameterAtPoint(polygon, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the normalized parameter of the point on the boundary of a polygon closest to the supplied
@@ -477,7 +481,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the arc length from the zero parameter of a circle to a normalized parameter around it.
         /// </summary>
-        public static double GetDistanceAtParameter(GeoCircle3 circle, double parameter) => Wrap(parameter) * circle.Length;
+        public static double GetDistanceAtParameter(GeoCircle3 circle, double parameter) =>
+            Wrap(parameter) * circle.Length;
 
         /// <summary>
         /// Gets the normalized parameter at an arc length measured around the circumference of a circle.
@@ -506,7 +511,8 @@ namespace GeometryHelper.Core
         /// point on the axis of the circle is the same distance from every point of the circumference, and
         /// there being no nearest one, the zero parameter comes back.
         /// </remarks>
-        public static double GetParameterAtPoint(GeoCircle3 circle, GeoPoint3 point) => GetParameterAtPoint(circle, point, Tolerance.Global);
+        public static double GetParameterAtPoint(GeoCircle3 circle, GeoPoint3 point) =>
+            GetParameterAtPoint(circle, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the normalized parameter of the point on the circumference of a circle closest to the
@@ -533,7 +539,8 @@ namespace GeometryHelper.Core
         /// Gets the arc length from the zero parameter of a circle to the point on its circumference
         /// closest to the supplied point.
         /// </summary>
-        public static double GetDistanceAtPoint(GeoCircle3 circle, GeoPoint3 point) => GetDistanceAtPoint(circle, point, Tolerance.Global);
+        public static double GetDistanceAtPoint(GeoCircle3 circle, GeoPoint3 point) =>
+            GetDistanceAtPoint(circle, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the arc length from the zero parameter of a circle to the point on its circumference

@@ -109,7 +109,8 @@ namespace GeometryHelper.Core
         /// </summary>
         public static bool CollidesWith(GeoCircle2 circle, GeoPolygon2 poly, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             if (Containment2.Contains(poly, circle.Center, tolerance))
             {
@@ -131,12 +132,16 @@ namespace GeometryHelper.Core
         /// </summary>
         public static bool CollidesWith(GeoCircle2 circle, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
                 // An edge of the polyline is the edge it is however short, not a segment read as its start point.
-                if (Distance2.DistanceTo(polyline.GetEdgeAt(i), circle.Center, Exactly) <= circle.Radius + tolerance.EqualPoint)
+                if (
+                    Distance2.DistanceTo(polyline.GetEdgeAt(i), circle.Center, Exactly)
+                    <= circle.Radius + tolerance.EqualPoint
+                )
                 {
                     return true;
                 }
@@ -176,24 +181,36 @@ namespace GeometryHelper.Core
             // sides read, which is wider at a corner than the tolerance is: it is measured below.
             bool inTheBand = false;
 
-            double cos1 = Math.Cos(rect1.AngleRad), sin1 = Math.Sin(rect1.AngleRad);
-            double cos2 = Math.Cos(rect2.AngleRad), sin2 = Math.Sin(rect2.AngleRad);
+            double cos1 = Math.Cos(rect1.AngleRad),
+                sin1 = Math.Sin(rect1.AngleRad);
+            double cos2 = Math.Cos(rect2.AngleRad),
+                sin2 = Math.Sin(rect2.AngleRad);
 
             // The two axes of each rectangle come from its angle, (cos, sin) and (-sin, cos), not from its sides: a side of
             // a rectangle of no width or height has no direction, and an axis dropped for it is the one that parts a flat
             // rectangle from one beside it.
             for (int side = 0; side < 4; side++)
             {
-                double axisX = side == 0 ? cos1 : side == 1 ? -sin1 : side == 2 ? cos2 : -sin2;
-                double axisY = side == 0 ? sin1 : side == 1 ? cos1 : side == 2 ? sin2 : cos2;
+                double axisX =
+                    side == 0 ? cos1
+                    : side == 1 ? -sin1
+                    : side == 2 ? cos2
+                    : -sin2;
+                double axisY =
+                    side == 0 ? sin1
+                    : side == 1 ? cos1
+                    : side == 2 ? sin2
+                    : cos2;
 
                 double min1 = double.MaxValue;
                 double max1 = double.MinValue;
                 foreach (var p in r1)
                 {
                     double proj = p.X * axisX + p.Y * axisY;
-                    if (proj < min1) min1 = proj;
-                    if (proj > max1) max1 = proj;
+                    if (proj < min1)
+                        min1 = proj;
+                    if (proj > max1)
+                        max1 = proj;
                 }
 
                 double min2 = double.MaxValue;
@@ -201,8 +218,10 @@ namespace GeometryHelper.Core
                 foreach (var p in r2)
                 {
                     double proj = p.X * axisX + p.Y * axisY;
-                    if (proj < min2) min2 = proj;
-                    if (proj > max2) max2 = proj;
+                    if (proj < min2)
+                        min2 = proj;
+                    if (proj > max2)
+                        max2 = proj;
                 }
 
                 if (min2 - max1 > tolerance.EqualPoint || min1 - max2 > tolerance.EqualPoint)
@@ -224,15 +243,14 @@ namespace GeometryHelper.Core
         /// other, measured side against side.
         /// </summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool ComeWithinBand(GeoRectangle2 rect1, GeoRectangle2 rect2, Tolerance tolerance)
-            => ComeWithin(rect1.GetEdges(), rect2.GetEdges(), tolerance);
+        private static bool ComeWithinBand(GeoRectangle2 rect1, GeoRectangle2 rect2, Tolerance tolerance) =>
+            ComeWithin(rect1.GetEdges(), rect2.GetEdges(), tolerance);
 
         /// <summary>
         /// Whether two rectangles truly meet: overlap, or touch along a side or at a corner, with no slack. The distance
         /// between them is nought exactly there.
         /// </summary>
-        internal static bool Meets(GeoRectangle2 rect1, GeoRectangle2 rect2)
-            => CollidesWith(rect1, rect2, Exactly);
+        internal static bool Meets(GeoRectangle2 rect1, GeoRectangle2 rect2) => CollidesWith(rect1, rect2, Exactly);
 
         /// <summary>
         /// Checks whether a rectangle collides with a line segment using default tolerance.
@@ -264,8 +282,7 @@ namespace GeometryHelper.Core
         /// in: the segment from (100.00085, 100.00085) to (150, 150) is 0.0012 from the square from the origin to
         /// (100, 100), whatever the tolerance.
         /// </summary>
-        internal static bool Meets(GeoRectangle2 rect, GeoLine2 line)
-            => Meets(rect, rect.GetEdges(), line);
+        internal static bool Meets(GeoRectangle2 rect, GeoLine2 line) => Meets(rect, rect.GetEdges(), line);
 
         /// <summary>
         /// Whether a segment truly meets a rectangle, given as it is and as its edges.
@@ -302,7 +319,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool CollidesWith(GeoRectangle2 rect, GeoPolygon2 poly, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             GeoLine2[] rectEdges = rect.GetEdges();
             GeoLine2[] polyEdges = EdgesOf(poly);
@@ -314,8 +332,8 @@ namespace GeometryHelper.Core
         /// Whether a rectangle and a polygon truly meet: a side crosses an edge, or one holds a corner of the other, a
         /// corner on the rim counting as held. The distance between them is nought exactly there.
         /// </summary>
-        internal static bool Meets(GeoRectangle2 rect, GeoPolygon2 poly)
-            => Meets(rect, rect.GetEdges(), poly, EdgesOf(poly));
+        internal static bool Meets(GeoRectangle2 rect, GeoPolygon2 poly) =>
+            Meets(rect, rect.GetEdges(), poly, EdgesOf(poly));
 
         /// <summary>
         /// Whether a rectangle and a polygon, each given with its edges, truly meet.
@@ -360,7 +378,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool CollidesWith(GeoPolygon2 poly, GeoLine2 line, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             GeoLine2[] edges = EdgesOf(poly);
 
@@ -405,8 +424,8 @@ namespace GeometryHelper.Core
         /// Whether two segments truly cross, at a point on both, with no slack past their ends: where the distance between
         /// them is nought. A touch at an end counts, and two segments on one line are left to the distances from the ends.
         /// </summary>
-        internal static bool Crosses(GeoLine2 first, GeoLine2 second, Tolerance tolerance)
-            => Projection2.TryGetCrossingPoint(first, second, tolerance, false, out _);
+        internal static bool Crosses(GeoLine2 first, GeoLine2 second, Tolerance tolerance) =>
+            Projection2.TryGetCrossingPoint(first, second, tolerance, false, out _);
 
         /// <summary>
         /// Whether a segment truly crosses any of a run of segments, at a point on both.
@@ -460,8 +479,10 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool CollidesWith(GeoPolygon2 poly1, GeoPolygon2 poly2, Tolerance tolerance)
         {
-            if (poly1 == null) throw new ArgumentNullException(nameof(poly1));
-            if (poly2 == null) throw new ArgumentNullException(nameof(poly2));
+            if (poly1 == null)
+                throw new ArgumentNullException(nameof(poly1));
+            if (poly2 == null)
+                throw new ArgumentNullException(nameof(poly2));
 
             GeoLine2[] edges1 = EdgesOf(poly1);
             GeoLine2[] edges2 = EdgesOf(poly2);
@@ -488,14 +509,20 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return Containment2.Contains(poly1, poly2.Vertices[0], Exactly) ||
-                   Containment2.Contains(poly2, poly1.Vertices[0], Exactly);
+            return Containment2.Contains(poly1, poly2.Vertices[0], Exactly)
+                || Containment2.Contains(poly2, poly1.Vertices[0], Exactly);
         }
 
         /// <summary>
         /// Whether two polygons, each given with its edges, cross or one starts inside the other.
         /// </summary>
-        private static bool CrossesOrStartsIn(GeoPolygon2 poly1, GeoLine2[] edges1, GeoPolygon2 poly2, GeoLine2[] edges2, Tolerance tolerance)
+        private static bool CrossesOrStartsIn(
+            GeoPolygon2 poly1,
+            GeoLine2[] edges1,
+            GeoPolygon2 poly2,
+            GeoLine2[] edges2,
+            Tolerance tolerance
+        )
         {
             foreach (var edge1 in edges1)
             {
@@ -508,8 +535,8 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return Containment2.Contains(poly1, poly2.Vertices[0], tolerance) ||
-                   Containment2.Contains(poly2, poly1.Vertices[0], tolerance);
+            return Containment2.Contains(poly1, poly2.Vertices[0], tolerance)
+                || Containment2.Contains(poly2, poly1.Vertices[0], tolerance);
         }
 
         #endregion
@@ -534,7 +561,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool CollidesWith(GeoPolyline2 polyline, GeoLine2 line, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
@@ -554,7 +582,14 @@ namespace GeometryHelper.Core
         /// crosses nor comes within the tolerance of anything in the box: a crossing accepted within the tolerance lies
         /// within it of both shapes.
         /// </summary>
-        private static bool Clear(GeoLine2 line, double minX, double minY, double maxX, double maxY, Tolerance tolerance)
+        private static bool Clear(
+            GeoLine2 line,
+            double minX,
+            double minY,
+            double maxX,
+            double maxY,
+            Tolerance tolerance
+        )
         {
             double reach = 2.0 * tolerance.EqualPoint;
 
@@ -567,11 +602,15 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Whether a segment lies more than twice the point tolerance clear of another segment's box.
         /// </summary>
-        private static bool Clear(GeoLine2 line, GeoLine2 other, Tolerance tolerance)
-            => Clear(line,
-                Math.Min(other.StartPoint.X, other.EndPoint.X), Math.Min(other.StartPoint.Y, other.EndPoint.Y),
-                Math.Max(other.StartPoint.X, other.EndPoint.X), Math.Max(other.StartPoint.Y, other.EndPoint.Y),
-                tolerance);
+        private static bool Clear(GeoLine2 line, GeoLine2 other, Tolerance tolerance) =>
+            Clear(
+                line,
+                Math.Min(other.StartPoint.X, other.EndPoint.X),
+                Math.Min(other.StartPoint.Y, other.EndPoint.Y),
+                Math.Max(other.StartPoint.X, other.EndPoint.X),
+                Math.Max(other.StartPoint.Y, other.EndPoint.Y),
+                tolerance
+            );
 
         /// <summary>
         /// Whether one side of a shape comes within the point tolerance of a segment a caller gave, measured exactly: the
@@ -647,8 +686,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Which way a path from one point through a second turns to reach a third: positive anticlockwise.
         /// </summary>
-        private static double Turn(GeoPoint2 from, GeoPoint2 through, GeoPoint2 to)
-            => (through.X - from.X) * (to.Y - from.Y) - (through.Y - from.Y) * (to.X - from.X);
+        private static double Turn(GeoPoint2 from, GeoPoint2 through, GeoPoint2 to) =>
+            (through.X - from.X) * (to.Y - from.Y) - (through.Y - from.Y) * (to.X - from.X);
 
         /// <summary>
         /// Whether a segment a caller gave comes within the point tolerance of any of the sides of a shape, measured exactly,
@@ -688,8 +727,8 @@ namespace GeometryHelper.Core
         /// Whether a side of a shape comes within the point tolerance of a segment a caller gave: exactly where the
         /// distance between them is at most the tolerance.
         /// </summary>
-        private static bool CollidesWithSide(GeoLine2 side, GeoLine2 line, Tolerance tolerance)
-            => Distance2.DistanceToSide(side, line, tolerance) <= tolerance.EqualPoint;
+        private static bool CollidesWithSide(GeoLine2 side, GeoLine2 line, Tolerance tolerance) =>
+            Distance2.DistanceToSide(side, line, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Whether the sides of two shapes come within the point tolerance of each other anywhere, measured exactly, each
@@ -747,9 +786,16 @@ namespace GeometryHelper.Core
         /// </summary>
         private static bool Clear(GeoLine2 line, GeoArc2 arc, Tolerance tolerance)
         {
-            if (Clear(line,
-                arc.Center.X - arc.Radius, arc.Center.Y - arc.Radius, arc.Center.X + arc.Radius, arc.Center.Y + arc.Radius,
-                tolerance))
+            if (
+                Clear(
+                    line,
+                    arc.Center.X - arc.Radius,
+                    arc.Center.Y - arc.Radius,
+                    arc.Center.X + arc.Radius,
+                    arc.Center.Y + arc.Radius,
+                    tolerance
+                )
+            )
             {
                 return true;
             }
@@ -774,7 +820,8 @@ namespace GeometryHelper.Core
         /// </summary>
         public static bool CollidesWith(GeoPolyline2 polyline, GeoRectangle2 rect, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             GeoLine2[] sides = rect.GetEdges();
 
@@ -824,8 +871,10 @@ namespace GeometryHelper.Core
         /// </summary>
         public static bool CollidesWith(GeoPolyline2 polyline, GeoPolygon2 poly, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             GeoLine2[] sides = EdgesOf(poly);
 
@@ -881,8 +930,10 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool CollidesWith(GeoPolyline2 pl1, GeoPolyline2 pl2, Tolerance tolerance)
         {
-            if (pl1 == null) throw new ArgumentNullException(nameof(pl1));
-            if (pl2 == null) throw new ArgumentNullException(nameof(pl2));
+            if (pl1 == null)
+                throw new ArgumentNullException(nameof(pl1));
+            if (pl2 == null)
+                throw new ArgumentNullException(nameof(pl2));
 
             return CrossesOrStartsOn(pl1, pl2, tolerance) || ComeWithin(EdgesOf(pl1), EdgesOf(pl2), tolerance);
         }
@@ -905,8 +956,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return Containment2.IsPointOn(pl1, pl2[0], Exactly) ||
-                   Containment2.IsPointOn(pl2, pl1[0], Exactly);
+            return Containment2.IsPointOn(pl1, pl2[0], Exactly) || Containment2.IsPointOn(pl2, pl1[0], Exactly);
         }
 
         /// <summary>
@@ -930,8 +980,7 @@ namespace GeometryHelper.Core
 
             // Neither chain encloses anything, but one may run exactly along an edge of the other,
             // which the intersection test above reports as parallel rather than as a crossing.
-            return Containment2.IsPointOn(pl1, pl2[0], tolerance) ||
-                   Containment2.IsPointOn(pl2, pl1[0], tolerance);
+            return Containment2.IsPointOn(pl1, pl2[0], tolerance) || Containment2.IsPointOn(pl2, pl1[0], tolerance);
         }
 
         #endregion
@@ -941,7 +990,8 @@ namespace GeometryHelper.Core
         /// Determines whether a chain that may curve touches or overlaps a straight segment.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolylineArc2 chain, GeoLine2 line) => CollidesWith(chain, line, Tolerance.Global);
+        public static bool CollidesWith(GeoPolylineArc2 chain, GeoLine2 line) =>
+            CollidesWith(chain, line, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a chain that may curve touches or overlaps a straight segment, within a tolerance.
@@ -954,7 +1004,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolylineArc2 chain, GeoLine2 line, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             for (int i = 0; i < chain.EdgeCount; i++)
             {
@@ -976,7 +1027,8 @@ namespace GeometryHelper.Core
         /// Determines whether a chain that may curve touches or overlaps an arc.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolylineArc2 chain, GeoArc2 arc) => CollidesWith(chain, arc, Tolerance.Global);
+        public static bool CollidesWith(GeoPolylineArc2 chain, GeoArc2 arc) =>
+            CollidesWith(chain, arc, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a chain that may curve touches or overlaps an arc, within a tolerance.
@@ -990,7 +1042,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolylineArc2 chain, GeoArc2 arc, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             // A crossing is nought apart, which comes within the tolerance. The crossings of two arcs are read with a band
             // at their ends, which let in two arcs 1.2 tolerances apart whose circles cross at a point near both ends.
@@ -1001,7 +1054,8 @@ namespace GeometryHelper.Core
         /// Determines whether a chain that may curve touches or overlaps a circle.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolylineArc2 chain, GeoCircle2 circle) => CollidesWith(chain, circle, Tolerance.Global);
+        public static bool CollidesWith(GeoPolylineArc2 chain, GeoCircle2 circle) =>
+            CollidesWith(chain, circle, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a chain that may curve touches or overlaps a circle, within a tolerance.
@@ -1014,7 +1068,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolylineArc2 chain, GeoCircle2 circle, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             // A chain is a curve, so it collides with the disc where it comes within the point tolerance of it. The crossings
             // of its arcs with the circle are read with a band of their own, which lets in a touch past the tolerance.
@@ -1025,7 +1080,8 @@ namespace GeometryHelper.Core
         /// Determines whether a chain that may curve touches or overlaps a straight chain.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolylineArc2 chain, GeoPolyline2 polyline) => CollidesWith(chain, polyline, Tolerance.Global);
+        public static bool CollidesWith(GeoPolylineArc2 chain, GeoPolyline2 polyline) =>
+            CollidesWith(chain, polyline, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a chain that may curve touches or overlaps a straight chain, within a tolerance.
@@ -1038,8 +1094,10 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolylineArc2 chain, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             List<GeoEdge2> edges = ArcChain2.EdgesOf(chain);
             List<GeoEdge2> others = ArcChain2.EdgesOf(polyline);
@@ -1051,7 +1109,8 @@ namespace GeometryHelper.Core
         /// Determines whether a chain that may curve touches or overlaps a straight loop.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolylineArc2 chain, GeoPolygon2 polygon) => CollidesWith(chain, polygon, Tolerance.Global);
+        public static bool CollidesWith(GeoPolylineArc2 chain, GeoPolygon2 polygon) =>
+            CollidesWith(chain, polygon, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a chain that may curve touches or overlaps a straight loop, within a tolerance.
@@ -1064,8 +1123,10 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolylineArc2 chain, GeoPolygon2 polygon, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             return CrossesOrStartsIn(chain, polygon, tolerance)
                 || ArcChain2.ComeWithin(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(polygon), tolerance);
@@ -1095,7 +1156,8 @@ namespace GeometryHelper.Core
         /// Determines whether a chain that may curve touches or overlaps a chain that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolylineArc2 chain, GeoPolylineArc2 other) => CollidesWith(chain, other, Tolerance.Global);
+        public static bool CollidesWith(GeoPolylineArc2 chain, GeoPolylineArc2 other) =>
+            CollidesWith(chain, other, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a chain that may curve touches or overlaps a chain that may curve, within a tolerance.
@@ -1108,8 +1170,10 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolylineArc2 chain, GeoPolylineArc2 other, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
 
             List<GeoEdge2> edges = ArcChain2.EdgesOf(chain);
             List<GeoEdge2> others = ArcChain2.EdgesOf(other);
@@ -1121,7 +1185,8 @@ namespace GeometryHelper.Core
         /// Determines whether a chain that may curve touches or overlaps a loop that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static bool CollidesWith(GeoPolylineArc2 chain, GeoPolygonArc2 loop) => CollidesWith(chain, loop, Tolerance.Global);
+        public static bool CollidesWith(GeoPolylineArc2 chain, GeoPolygonArc2 loop) =>
+            CollidesWith(chain, loop, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a chain that may curve touches or overlaps a loop that may curve, within a tolerance.
@@ -1134,8 +1199,10 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool CollidesWith(GeoPolylineArc2 chain, GeoPolygonArc2 loop, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return CrossesOrStartsIn(chain, loop, tolerance)
                 || ArcChain2.ComeWithin(ArcChain2.EdgesOf(chain), ArcChain2.EdgesOf(loop), tolerance);
@@ -1165,7 +1232,8 @@ namespace GeometryHelper.Core
         /// Determines whether a loop that may curve touches or overlaps a straight segment.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool CollidesWith(GeoPolygonArc2 loop, GeoLine2 line) => CollidesWith(loop, line, Tolerance.Global);
+        public static bool CollidesWith(GeoPolygonArc2 loop, GeoLine2 line) =>
+            CollidesWith(loop, line, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a loop that may curve touches or overlaps a straight segment, within a tolerance.
@@ -1180,7 +1248,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool CollidesWith(GeoPolygonArc2 loop, GeoLine2 line, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             if (CrossesOrStartsIn(loop, line, tolerance))
             {
@@ -1259,7 +1328,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool CollidesWith(GeoPolygonArc2 loop, GeoArc2 arc, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return CrossesOrStartsIn(loop, arc, tolerance)
                 || ArcChain2.ComeWithin(ArcChain2.EdgesOf(loop), arc, tolerance);
@@ -1279,7 +1349,8 @@ namespace GeometryHelper.Core
         /// Determines whether a loop that may curve touches or overlaps a circle.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool CollidesWith(GeoPolygonArc2 loop, GeoCircle2 circle) => CollidesWith(loop, circle, Tolerance.Global);
+        public static bool CollidesWith(GeoPolygonArc2 loop, GeoCircle2 circle) =>
+            CollidesWith(loop, circle, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a loop that may curve touches or overlaps a circle, within a tolerance.
@@ -1292,7 +1363,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool CollidesWith(GeoPolygonArc2 loop, GeoCircle2 circle, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             // A circle holding nothing of the loop's boundary still collides where it sits in the loop, centre and all.
             return Containment2.Contains(loop, circle.Center, tolerance)
@@ -1303,7 +1375,8 @@ namespace GeometryHelper.Core
         /// Determines whether a loop that may curve touches or overlaps a straight chain.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool CollidesWith(GeoPolygonArc2 loop, GeoPolyline2 polyline) => CollidesWith(loop, polyline, Tolerance.Global);
+        public static bool CollidesWith(GeoPolygonArc2 loop, GeoPolyline2 polyline) =>
+            CollidesWith(loop, polyline, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a loop that may curve touches or overlaps a straight chain, within a tolerance.
@@ -1316,8 +1389,10 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool CollidesWith(GeoPolygonArc2 loop, GeoPolyline2 polyline, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return CrossesOrStartsIn(loop, polyline, tolerance)
                 || ArcChain2.ComeWithin(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polyline), tolerance);
@@ -1347,7 +1422,8 @@ namespace GeometryHelper.Core
         /// Determines whether a loop that may curve touches or overlaps a straight loop.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool CollidesWith(GeoPolygonArc2 loop, GeoPolygon2 polygon) => CollidesWith(loop, polygon, Tolerance.Global);
+        public static bool CollidesWith(GeoPolygonArc2 loop, GeoPolygon2 polygon) =>
+            CollidesWith(loop, polygon, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a loop that may curve touches or overlaps a straight loop, within a tolerance.
@@ -1360,8 +1436,10 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool CollidesWith(GeoPolygonArc2 loop, GeoPolygon2 polygon, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (polygon == null) throw new ArgumentNullException(nameof(polygon));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
 
             return CrossesOrStartsIn(loop, polygon, tolerance)
                 || ArcChain2.ComeWithin(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(polygon), tolerance);
@@ -1393,7 +1471,8 @@ namespace GeometryHelper.Core
         /// Determines whether a loop that may curve touches or overlaps a chain that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool CollidesWith(GeoPolygonArc2 loop, GeoPolylineArc2 chain) => CollidesWith(loop, chain, Tolerance.Global);
+        public static bool CollidesWith(GeoPolygonArc2 loop, GeoPolylineArc2 chain) =>
+            CollidesWith(loop, chain, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a loop that may curve touches or overlaps a chain that may curve, within a tolerance.
@@ -1406,8 +1485,10 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool CollidesWith(GeoPolygonArc2 loop, GeoPolylineArc2 chain, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return CrossesOrStartsIn(loop, chain, tolerance)
                 || ArcChain2.ComeWithin(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(chain), tolerance);
@@ -1437,7 +1518,8 @@ namespace GeometryHelper.Core
         /// Determines whether a loop that may curve touches or overlaps a loop that may curve.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static bool CollidesWith(GeoPolygonArc2 loop, GeoPolygonArc2 other) => CollidesWith(loop, other, Tolerance.Global);
+        public static bool CollidesWith(GeoPolygonArc2 loop, GeoPolygonArc2 other) =>
+            CollidesWith(loop, other, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a loop that may curve touches or overlaps a loop that may curve, within a tolerance.
@@ -1450,8 +1532,10 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool CollidesWith(GeoPolygonArc2 loop, GeoPolygonArc2 other, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
 
             return CrossesOrStartsIn(loop, other, tolerance)
                 || ArcChain2.ComeWithin(ArcChain2.EdgesOf(loop), ArcChain2.EdgesOf(other), tolerance);
@@ -1480,6 +1564,5 @@ namespace GeometryHelper.Core
         }
 
         #endregion
-
     }
 }

@@ -168,7 +168,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             CadCommandSession session = Start(document, "SELECTALL");
 
-            Assert.Equal(new[] { "A2", "A3", "A4", "A5", "A6", "A7", "A8" }, document.Selection.Handles.OrderBy(h => h, StringComparer.Ordinal));
+            Assert.Equal(
+                new[] { "A2", "A3", "A4", "A5", "A6", "A7", "A8" },
+                document.Selection.Handles.OrderBy(h => h, StringComparer.Ordinal)
+            );
             Assert.Equal("7 found", session.History.Last());
             Assert.Equal("SELECTALL", CadShortcuts.Default.Keys["Ctrl+A"]);
             Assert.False(document.CanUndo);
@@ -191,7 +194,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             // Layer 0 is current: AutoCAD asks first.
             Run(session, (object)new[] { "A2" });
-            Assert.Equal("Layer \"0\" is the current layer, do you want to turn it off? [Yes/No] <No>:", session.PromptText);
+            Assert.Equal(
+                "Layer \"0\" is the current layer, do you want to turn it off? [Yes/No] <No>:",
+                session.PromptText
+            );
             Run(session, "Y", Enter);
             Assert.True(document.Database.LayerTable["0"].IsOff);
 
@@ -274,7 +280,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "8");
             Assert.Equal("Enter choice, 1 to 5 <1>:", session.PromptText);
             Run(session, "4");
-            Assert.Equal("Enter number of fractional places for display of angles (0 to 8) <" + auprec + ">:", session.PromptText);
+            Assert.Equal(
+                "Enter number of fractional places for display of angles (0 to 8) <" + auprec + ">:",
+                session.PromptText
+            );
             Run(session, "3", Enter);
             Assert.Equal("Measure angles clockwise? [Yes/No] <No>:", session.PromptText);
             Run(session, "Y");
@@ -298,7 +307,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Blank();
             string file = Path.Combine(Path.GetTempPath(), "gh-script-" + Guid.NewGuid().ToString("N") + ".scr");
-            File.WriteAllText(file, "; a line and a circle\nLINE\n0,0\n100,0\n\nCIRCLE\n50,50\n10\nFOO\nLINE\n0,0\n0,100\n\n");
+            File.WriteAllText(
+                file,
+                "; a line and a circle\nLINE\n0,0\n100,0\n\nCIRCLE\n50,50\n10\nFOO\nLINE\n0,0\n0,100\n\n"
+            );
 
             try
             {
@@ -445,7 +457,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("SCRIPT", registry.Find("SCR").Name);
             Assert.Equal("RAY", registry.Find("RAY").Name);
 
-            foreach (string name in new[] { "SELECTALL", "LAYOFF", "LAYON", "LAYFRZ", "LAYTHW", "LAYLCK", "LAYULK", "LAYISO", "LAYUNISO" })
+            foreach (
+                string name in new[]
+                {
+                    "SELECTALL",
+                    "LAYOFF",
+                    "LAYON",
+                    "LAYFRZ",
+                    "LAYTHW",
+                    "LAYLCK",
+                    "LAYULK",
+                    "LAYISO",
+                    "LAYUNISO",
+                }
+            )
             {
                 Assert.Equal(name, registry.Find(name).Name);
             }

@@ -39,7 +39,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 block.AppendEntity(line);
             }
 
-            DxfBlockLinearParameter width = block.AddLinearParameter("Width", "Overall width", new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, DxfBlockParameterValueSet.List(new[] { 100.0, 150, 200 }));
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                "Overall width",
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                DxfBlockParameterValueSet.List(new[] { 100.0, 150, 200 })
+            );
             block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), lines.Take(3));
             var insert = new DxfBlockReference(new GeoPoint3(1000, 500, 0), block) { Layer = "Doors" };
             db.ModelSpace.AppendEntity(insert);
@@ -55,7 +62,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             db.BlockTable.Add(block);
             var leaf = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(90, 0, 0));
             block.AppendEntity(leaf);
-            DxfBlockFlipParameter hand = block.AddFlipParameter("Hand", "Which way the door opens", new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0));
+            DxfBlockFlipParameter hand = block.AddFlipParameter(
+                "Hand",
+                "Which way the door opens",
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(0, 50, 0)
+            );
             block.AddFlipAction(hand, new[] { leaf });
             var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), block);
             db.ModelSpace.AppendEntity(insert);
@@ -81,12 +93,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 block.AppendEntity(line);
             }
 
-            block.AddVisibilityParameter("Mark", "What the sign shows", new GeoPoint3(20, -10, 0), new[]
-            {
-                new DxfBlockVisibilityState("Cross", new DxfEntity[] { lines[1] }),
-                new DxfBlockVisibilityState("Tick", new DxfEntity[] { lines[2] }),
-                new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
-            });
+            block.AddVisibilityParameter(
+                "Mark",
+                "What the sign shows",
+                new GeoPoint3(20, -10, 0),
+                new[]
+                {
+                    new DxfBlockVisibilityState("Cross", new DxfEntity[] { lines[1] }),
+                    new DxfBlockVisibilityState("Tick", new DxfEntity[] { lines[2] }),
+                    new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
+                }
+            );
             var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), block);
             db.ModelSpace.AppendEntity(insert);
             handle = insert.Handle;
@@ -101,7 +118,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             db.BlockTable.Add(block);
             var arrow = new DxfLine(new GeoPoint3(50, 25, 0), new GeoPoint3(80, 25, 0));
             block.AppendEntity(arrow);
-            DxfBlockRotationParameter angle = block.AddRotationParameter("Angle", "Turn of the arrow", new GeoPoint3(50, 25, 0), 30, 0);
+            DxfBlockRotationParameter angle = block.AddRotationParameter(
+                "Angle",
+                "Turn of the arrow",
+                new GeoPoint3(50, 25, 0),
+                30,
+                0
+            );
             block.AddRotateAction(angle, new[] { arrow });
             var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), block);
             db.ModelSpace.AppendEntity(insert);
@@ -109,14 +132,19 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return CadDocument.From(db, "arrow.dxf");
         }
 
-        private static DxfBlockReference Insert(CadDocument document, string handle) => Entity<DxfBlockReference>(document, handle);
+        private static DxfBlockReference Insert(CadDocument document, string handle) =>
+            Entity<DxfBlockReference>(document, handle);
 
-        private static object ValueOf(CadDocument document, string handle, string name) => Insert(document, handle).DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name).Value;
+        private static object ValueOf(CadDocument document, string handle, string name) =>
+            Insert(document, handle).DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name).Value;
 
-        private static CadPropertyGroup Group(CadDocument document, string handle, string title)
-            => CadProperties.Describe(document, document.ModelSpace, new[] { handle }).Groups.SingleOrDefault(g => g.Title == title);
+        private static CadPropertyGroup Group(CadDocument document, string handle, string title) =>
+            CadProperties
+                .Describe(document, document.ModelSpace, new[] { handle })
+                .Groups.SingleOrDefault(g => g.Title == title);
 
-        private static CadPropertyRow Row(CadPropertyGroup group, string label) => group.Rows.Single(r => r.Label == label);
+        private static CadPropertyRow Row(CadPropertyGroup group, string label) =>
+            group.Rows.Single(r => r.Label == label);
 
         [Fact]
         public void ADynamicInsert_HasItsCustomGripsAfterItsInsertionPoint_AsAutoCadShowsThem()
@@ -145,7 +173,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfBlockReference insert = Insert(document, handle);
             Assert.True(insert.BlockTableRecord.IsAnonymous);
             Assert.Equal("GH_PANEL", insert.DynamicBlockTableRecord.Name);
-            Assert.Contains(insert.BlockTableRecord.OfType<DxfLine>(), l => l.StartPoint.IsEqualTo(new GeoPoint3(200, 0, 0), Tight) && l.EndPoint.IsEqualTo(new GeoPoint3(200, 50, 0), Tight));
+            Assert.Contains(insert.BlockTableRecord.OfType<DxfLine>(), l =>
+                l.StartPoint.IsEqualTo(new GeoPoint3(200, 0, 0), Tight)
+                && l.EndPoint.IsEqualTo(new GeoPoint3(200, 50, 0), Tight)
+            );
             Near(P(1200, 500), CadGrips.Of(insert)[1].Point);
             Assert.Equal("GRIP", document.NextUndo.Name);
 
@@ -226,7 +257,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(CadDynamicBlocks.Click(document, handle, 1).Succeeded);
 
             Assert.Equal((short)1, ValueOf(document, handle, "Hand"));
-            Assert.Contains(Insert(document, handle).BlockTableRecord.OfType<DxfLine>(), l => l.EndPoint.IsEqualTo(new GeoPoint3(-90, 0, 0), Tight));
+            Assert.Contains(Insert(document, handle).BlockTableRecord.OfType<DxfLine>(), l =>
+                l.EndPoint.IsEqualTo(new GeoPoint3(-90, 0, 0), Tight)
+            );
             Assert.Equal("Flipped", Row(Group(document, handle, CadProperties.CustomGroup), "Hand").Value);
 
             Assert.True(CadDynamicBlocks.SetProperty(document, new[] { handle }, "Hand", "Not flipped").Succeeded);
@@ -245,7 +278,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             IReadOnlyList<string> states = CadDynamicBlocks.ValuesOf(document, handle, 1, out string current);
             Assert.Equal(new[] { "Cross", "Tick", "Blank" }, states);
             Assert.Equal("Cross", current);
-            Assert.Equal(new[] { "Cross", "Tick", "Blank" }, Row(Group(document, handle, CadProperties.CustomGroup), "Mark").Choices);
+            Assert.Equal(
+                new[] { "Cross", "Tick", "Blank" },
+                Row(Group(document, handle, CadProperties.CustomGroup), "Mark").Choices
+            );
 
             Assert.True(CadDynamicBlocks.Choose(document, handle, 1, "Tick").Succeeded);
 
@@ -297,7 +333,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Plan();
 
-            Assert.Equal(new[] { CadGripKind.Insertion }, CadGrips.Of(Entity<DxfBlockReference>(document, "A7")).Select(g => g.Kind));
+            Assert.Equal(
+                new[] { CadGripKind.Insertion },
+                CadGrips.Of(Entity<DxfBlockReference>(document, "A7")).Select(g => g.Kind)
+            );
             Assert.Null(Group(document, "A7", CadProperties.CustomGroup));
             Assert.Equal("BOX", Row(Group(document, "A7", "Misc"), "Name").Value);
 
@@ -352,6 +391,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         /// <summary>The handles the space shown draws, each once, in their order.</summary>
-        private static string[] Drawn(CadDocument document) => document.GetDisplay(document.CurrentSpace).Items.Select(i => i.Handle).Distinct().ToArray();
+        private static string[] Drawn(CadDocument document) =>
+            document.GetDisplay(document.CurrentSpace).Items.Select(i => i.Handle).Distinct().ToArray();
     }
 }

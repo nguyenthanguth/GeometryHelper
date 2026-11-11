@@ -16,7 +16,14 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     public sealed class DxfBlockPointParameter
     {
-        internal DxfBlockPointParameter(DxfBlockTableRecord block, int node, string handle, string name, string description, GeoPoint3 location)
+        internal DxfBlockPointParameter(
+            DxfBlockTableRecord block,
+            int node,
+            string handle,
+            string name,
+            string description,
+            GeoPoint3 location
+        )
         {
             Block = block;
             Node = node;

@@ -15,27 +15,46 @@ namespace GeometryHelper.UnitTest.Packing
     {
         private static readonly Tolerance Tol = Tolerance.Default;
 
-        private static readonly SheetCorner[] Corners = { SheetCorner.UpperLeft, SheetCorner.UpperRight, SheetCorner.LowerLeft, SheetCorner.LowerRight };
+        private static readonly SheetCorner[] Corners =
+        {
+            SheetCorner.UpperLeft,
+            SheetCorner.UpperRight,
+            SheetCorner.LowerLeft,
+            SheetCorner.LowerRight,
+        };
 
         // A box of a size, somewhere off the sheets, as a view is before it is packed.
-        private static GeoRectangle2 Box(double width, double height)
-            => new GeoRectangle2(new GeoPoint2(-5000.0 + width, 3000.0 - height), width, height, 0.0);
+        private static GeoRectangle2 Box(double width, double height) =>
+            new GeoRectangle2(new GeoPoint2(-5000.0 + width, 3000.0 - height), width, height, 0.0);
 
-        private static List<GeoRectangle2[]> OneEach(params GeoRectangle2[] boxes) => boxes.Select(b => new[] { b }).ToList();
+        private static List<GeoRectangle2[]> OneEach(params GeoRectangle2[] boxes) =>
+            boxes.Select(b => new[] { b }).ToList();
 
         // An A4 sheet, landscape, its usable area 267 by 190 from (20, 10).
-        private static Sheet A4() => new Sheet(PaperSize.A4) { OffsetLeft = 20, OffsetRight = 10, OffsetTop = 10, OffsetBottom = 10 };
+        private static Sheet A4() =>
+            new Sheet(PaperSize.A4)
+            {
+                OffsetLeft = 20,
+                OffsetRight = 10,
+                OffsetTop = 10,
+                OffsetBottom = 10,
+            };
 
-        private static PackOptions From(SheetCorner corner) => new PackOptions { StartCorner = corner, Tolerance = Tol };
+        private static PackOptions From(SheetCorner corner) =>
+            new PackOptions { StartCorner = corner, Tolerance = Tol };
 
         private static GeoPoint2 CornerOf(GeoRectangle2 box, SheetCorner corner)
         {
             switch (corner)
             {
-                case SheetCorner.UpperLeft: return box.UpperLeft;
-                case SheetCorner.UpperRight: return box.UpperRight;
-                case SheetCorner.LowerLeft: return box.LowerLeft;
-                default: return box.LowerRight;
+                case SheetCorner.UpperLeft:
+                    return box.UpperLeft;
+                case SheetCorner.UpperRight:
+                    return box.UpperRight;
+                case SheetCorner.LowerLeft:
+                    return box.LowerLeft;
+                default:
+                    return box.LowerRight;
             }
         }
 
@@ -66,7 +85,15 @@ namespace GeometryHelper.UnitTest.Packing
         [InlineData(SheetCorner.UpperRight, 187, 150, 87, 150, 187, 100)]
         [InlineData(SheetCorner.LowerLeft, 20, 10, 120, 10, 20, 60)]
         [InlineData(SheetCorner.LowerRight, 187, 10, 87, 10, 187, 60)]
-        public void ThreeBoxes_FillTheirRowsFromTheStartCorner(SheetCorner corner, double x0, double y0, double x1, double y1, double x2, double y2)
+        public void ThreeBoxes_FillTheirRowsFromTheStartCorner(
+            SheetCorner corner,
+            double x0,
+            double y0,
+            double x1,
+            double y1,
+            double x2,
+            double y2
+        )
         {
             PackResult result = SheetPacker.Pack(OneEach(Box(100, 50), Box(100, 50), Box(100, 50)), A4(), From(corner));
 
@@ -84,7 +111,15 @@ namespace GeometryHelper.UnitTest.Packing
         [InlineData(SheetCorner.LowerRight)]
         public void TheFirstBox_GoesToTheStartCornerOfTheUsableArea(SheetCorner corner)
         {
-            var sheet = new Sheet(PaperSize.A3) { Scale = 10.0, OffsetLeft = 20, OffsetRight = 10, OffsetTop = 10, OffsetBottom = 10, Origin = new GeoPoint2(500, 500) };
+            var sheet = new Sheet(PaperSize.A3)
+            {
+                Scale = 10.0,
+                OffsetLeft = 20,
+                OffsetRight = 10,
+                OffsetTop = 10,
+                OffsetBottom = 10,
+                Origin = new GeoPoint2(500, 500),
+            };
 
             PackResult result = SheetPacker.Pack(OneEach(Box(1000, 500)), sheet, From(corner));
 
@@ -135,11 +170,16 @@ namespace GeometryHelper.UnitTest.Packing
             PackResult result = SheetPacker.Pack(new List<GeoRectangle2[]> { drawn }, A4(), options);
 
             GeoVector2 move = result.Placements[0][0].Translation;
-            Assert.All(result.Placements[0], p => Assert.True(p.Placed && p.Translation.IsEqualTo(move, Tol), p.ToString()));
+            Assert.All(result.Placements[0], p =>
+                Assert.True(p.Placed && p.Translation.IsEqualTo(move, Tol), p.ToString())
+            );
 
             // The block runs from (940, 875) to (1170, 1040), its middle (1055, 957.5).
             var block = new GeoRectangle2(new GeoPoint2(1055, 957.5) + move, 230, 165, 0.0);
-            Assert.True(CornerOf(block, corner).IsEqualTo(CornerOf(result.Sheets[0].UsableArea, corner), Tol), block.ToString());
+            Assert.True(
+                CornerOf(block, corner).IsEqualTo(CornerOf(result.Sheets[0].UsableArea, corner), Tol),
+                block.ToString()
+            );
         }
 
         public static IEnumerable<object[]> Seeds() => Enumerable.Range(1, 60).Select(seed => new object[] { seed });
@@ -148,7 +188,10 @@ namespace GeometryHelper.UnitTest.Packing
         {
             var random = new Random(seed);
             PaperSize[] sizes = { PaperSize.A0, PaperSize.A1, PaperSize.A2, PaperSize.A3, PaperSize.A4 };
-            var sheet = new Sheet(sizes[random.Next(sizes.Length)], random.Next(3) == 0 ? SheetOrientation.Portrait : SheetOrientation.Landscape)
+            var sheet = new Sheet(
+                sizes[random.Next(sizes.Length)],
+                random.Next(3) == 0 ? SheetOrientation.Portrait : SheetOrientation.Landscape
+            )
             {
                 Scale = random.Next(3) == 0 ? 1.0 : new[] { 10.0, 20.0, 25.0, 50.0 }[random.Next(4)],
                 OffsetLeft = random.Next(25),
@@ -167,13 +210,24 @@ namespace GeometryHelper.UnitTest.Packing
             for (int g = 0; g < count; g++)
             {
                 int members = random.Next(8) == 0 ? 0 : 1 + random.Next(random.Next(4) == 0 ? 12 : 4);
-                groups.Add(Enumerable.Range(0, members).Select(i =>
-                {
-                    double big = random.Next(15) == 0 ? 1.1 : 0.45;
-                    double w = usableWidth * (0.02 + random.NextDouble() * big), h = usableHeight * (0.02 + random.NextDouble() * big);
-                    double angle = random.Next(6) == 0 ? random.NextDouble() * Math.PI : 0.0;
-                    return new GeoRectangle2(new GeoPoint2(random.Next(-100000, 100000), random.Next(-100000, 100000)), w, h, angle);
-                }).ToArray());
+                groups.Add(
+                    Enumerable
+                        .Range(0, members)
+                        .Select(i =>
+                        {
+                            double big = random.Next(15) == 0 ? 1.1 : 0.45;
+                            double w = usableWidth * (0.02 + random.NextDouble() * big),
+                                h = usableHeight * (0.02 + random.NextDouble() * big);
+                            double angle = random.Next(6) == 0 ? random.NextDouble() * Math.PI : 0.0;
+                            return new GeoRectangle2(
+                                new GeoPoint2(random.Next(-100000, 100000), random.Next(-100000, 100000)),
+                                w,
+                                h,
+                                angle
+                            );
+                        })
+                        .ToArray()
+                );
             }
 
             var options = new PackOptions
@@ -226,7 +280,10 @@ namespace GeometryHelper.UnitTest.Packing
                 Assert.Equal(upperLeft.Utilization, result.Utilization, 12);
                 for (int g = 0; g < groups.Count; g++)
                 {
-                    int[] placed = Enumerable.Range(0, groups[g].Length).Where(i => upperLeft.Placements[g][i].Placed).ToArray();
+                    int[] placed = Enumerable
+                        .Range(0, groups[g].Length)
+                        .Where(i => upperLeft.Placements[g][i].Placed)
+                        .ToArray();
                     for (int i = 0; i < groups[g].Length; i++)
                     {
                         Assert.Equal(upperLeft.Placements[g][i].Placed, result.Placements[g][i].Placed);
@@ -234,15 +291,26 @@ namespace GeometryHelper.UnitTest.Packing
                     }
 
                     // A group kept as drawn is one block, its boxes as they stood: the block is mirrored, not its boxes.
-                    bool kept = options.GroupLayout == GroupLayout.Keep && placed.Length > 1
-                        && placed.All(i => upperLeft.Placements[g][i].Translation.IsEqualTo(upperLeft.Placements[g][placed[0]].Translation, Tol));
+                    bool kept =
+                        options.GroupLayout == GroupLayout.Keep
+                        && placed.Length > 1
+                        && placed.All(i =>
+                            upperLeft
+                                .Placements[g][i]
+                                .Translation.IsEqualTo(upperLeft.Placements[g][placed[0]].Translation, Tol)
+                        );
                     IEnumerable<int[]> pieces = kept ? new[] { placed } : placed.Select(i => new[] { i });
                     foreach (int[] piece in pieces)
                     {
                         if (kept)
                         {
                             GeoVector2 move = result.Placements[g][piece[0]].Translation;
-                            Assert.All(piece, i => Assert.True(result.Placements[g][i].Translation.IsEqualTo(move, Tol), $"seed {seed} {corner}: group {g} kept"));
+                            Assert.All(piece, i =>
+                                Assert.True(
+                                    result.Placements[g][i].Translation.IsEqualTo(move, Tol),
+                                    $"seed {seed} {corner}: group {g} kept"
+                                )
+                            );
                         }
 
                         GeoRectangle2 area = result.Sheets[result.Placements[g][piece[0]].SheetIndex].UsableArea;
@@ -250,8 +318,11 @@ namespace GeometryHelper.UnitTest.Packing
                         var now = Union(piece.Select(i => result.Placements[g][i].ViewBox));
                         double expectedMinX = right ? area.LowerLeft.X + area.UpperRight.X - was.MaxX : was.MinX;
                         double expectedMinY = lower ? area.LowerLeft.Y + area.UpperRight.Y - was.MaxY : was.MinY;
-                        Assert.True(Math.Abs(now.MinX - expectedMinX) <= tolerance && Math.Abs(now.MinY - expectedMinY) <= tolerance,
-                            $"seed {seed} {corner}: group {g} box {piece[0]} at ({now.MinX}, {now.MinY}), mirror ({expectedMinX}, {expectedMinY})");
+                        Assert.True(
+                            Math.Abs(now.MinX - expectedMinX) <= tolerance
+                                && Math.Abs(now.MinY - expectedMinY) <= tolerance,
+                            $"seed {seed} {corner}: group {g} box {piece[0]} at ({now.MinX}, {now.MinY}), mirror ({expectedMinX}, {expectedMinY})"
+                        );
                     }
                 }
             }

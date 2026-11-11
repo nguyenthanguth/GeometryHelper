@@ -9,7 +9,16 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>REVCLOUD, as AutoCAD 2021 asks it and stores the cloud (checked against clouds AutoCAD made in its own console).</summary>
     internal static partial class CadCommands
     {
-        private static readonly string[] RevCloudOptions = { "Arc length", "Object", "Rectangular", "Polygonal", "Freehand", "Style", "Modify" };
+        private static readonly string[] RevCloudOptions =
+        {
+            "Arc length",
+            "Object",
+            "Rectangular",
+            "Polygonal",
+            "Freehand",
+            "Style",
+            "Modify",
+        };
 
         /// <summary>The bulge of every arc of a cloud, as AutoCAD writes it: an arc of 110 degrees, tan(27.5 degrees).</summary>
         private static readonly double RevCloudBulge = Math.Tan(110.0 / 4.0 * Math.PI / 180.0);
@@ -35,9 +44,20 @@ namespace GeometryHelper.Dxf.Viewer
                 double most = varies ? approximate * 4.0 / 3.0 : approximate;
                 bool calligraphy = c.Remembered("revcloud.style", 0.0) != 0.0;
                 int type = (int)c.Remembered("revcloud.type", 1.0);
-                c.Write("Minimum arc length: " + Length(least) + "   Maximum arc length: " + Length(most) + "   Style: "
-                    + (calligraphy ? "Calligraphy" : "Normal") + "   Type: " + types[type]);
-                string ask = type == 1 ? "Specify first corner point" : type == 2 ? "Specify first point" : "Specify start point";
+                c.Write(
+                    "Minimum arc length: "
+                        + Length(least)
+                        + "   Maximum arc length: "
+                        + Length(most)
+                        + "   Style: "
+                        + (calligraphy ? "Calligraphy" : "Normal")
+                        + "   Type: "
+                        + types[type]
+                );
+                string ask =
+                    type == 1 ? "Specify first corner point"
+                    : type == 2 ? "Specify first point"
+                    : "Specify start point";
                 yield return CadPrompt.ForPoint(ask, null, RevCloudOptions, "Object");
 
                 if (c.Input.Is("Arc length"))
@@ -52,7 +72,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("Style"))
                 {
-                    yield return CadPrompt.ForKeyword("Select arc style", new[] { "Normal", "Calligraphy" }, calligraphy ? "Calligraphy" : "Normal");
+                    yield return CadPrompt.ForKeyword(
+                        "Select arc style",
+                        new[] { "Normal", "Calligraphy" },
+                        calligraphy ? "Calligraphy" : "Normal"
+                    );
 
                     if (c.Input.Is("Normal") || c.Input.Is("Calligraphy"))
                     {
@@ -65,7 +89,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("Rectangular") || c.Input.Is("Polygonal") || c.Input.Is("Freehand"))
                 {
-                    c.Remember("revcloud.type", c.Input.Is("Rectangular") ? 1.0 : c.Input.Is("Polygonal") ? 2.0 : 0.0);
+                    c.Remember(
+                        "revcloud.type",
+                        c.Input.Is("Rectangular") ? 1.0
+                            : c.Input.Is("Polygonal") ? 2.0
+                            : 0.0
+                    );
                     continue;
                 }
 
@@ -97,7 +126,10 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 GeoPoint2 first = c.Input.Point;
-                IEnumerable<CadPrompt> drawing = type == 1 ? RevCloudRectangle(c, cloud, first) : type == 2 ? RevCloudPolygon(c, cloud, first) : RevCloudFreehand(c, cloud, first);
+                IEnumerable<CadPrompt> drawing =
+                    type == 1 ? RevCloudRectangle(c, cloud, first)
+                    : type == 2 ? RevCloudPolygon(c, cloud, first)
+                    : RevCloudFreehand(c, cloud, first);
 
                 foreach (CadPrompt prompt in drawing)
                 {
@@ -115,7 +147,9 @@ namespace GeometryHelper.Dxf.Viewer
         private static double RevCloudLength(CadCommandContext c)
         {
             double kept = c.Remembered("revcloud.approx", 0.0);
-            return kept > 0.0 ? kept : c.Database.Measurement == DxfMeasurementValue.Metric ? 15.0 : 0.5;
+            return kept > 0.0 ? kept
+                : c.Database.Measurement == DxfMeasurementValue.Metric ? 15.0
+                : 0.5;
         }
 
         /// <summary>Arc length: "Specify approximate length of arc", above nought, kept as REVCLOUDAPPROXARCLEN, as AutoCAD 2021 asks it.</summary>
@@ -123,7 +157,12 @@ namespace GeometryHelper.Dxf.Viewer
         {
             while (true)
             {
-                yield return CadPrompt.ForDistance("Specify approximate length of arc", null, null, Length(approximate));
+                yield return CadPrompt.ForDistance(
+                    "Specify approximate length of arc",
+                    null,
+                    null,
+                    Length(approximate)
+                );
                 double length = c.Input.Kind == CadInputKind.Number ? c.Input.Number : approximate;
 
                 if (length > 0.0)
@@ -197,10 +236,22 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Rectangular: a cloud round the rectangle of two corners, from the first round by the second.</summary>
-        private static IEnumerable<CadPrompt> RevCloudRectangle(CadCommandContext c, RevCloudLook cloud, GeoPoint2 first)
+        private static IEnumerable<CadPrompt> RevCloudRectangle(
+            CadCommandContext c,
+            RevCloudLook cloud,
+            GeoPoint2 first
+        )
         {
-            List<GeoPoint2> Corners(GeoPoint2 second) => new List<GeoPoint2> { first, new GeoPoint2(second.X, first.Y), second, new GeoPoint2(first.X, second.Y) };
-            yield return CadPrompt.ForPoint("Specify opposite corner", first)
+            List<GeoPoint2> Corners(GeoPoint2 second) =>
+                new List<GeoPoint2>
+                {
+                    first,
+                    new GeoPoint2(second.X, first.Y),
+                    second,
+                    new GeoPoint2(first.X, second.Y),
+                };
+            yield return CadPrompt
+                .ForPoint("Specify opposite corner", first)
                 .Previewing(RevCloudPreview(c, input => RevCloudOf(cloud, Corners(input.Point), true, false)));
 
             if (!c.Input.IsPoint)
@@ -217,7 +268,9 @@ namespace GeometryHelper.Dxf.Viewer
             var corners = new List<GeoPoint2> { first };
 
             // The cloud round the corners given and the point at the cursor, once they make a polygon.
-            CadPreview shown = RevCloudPreview(c, input => corners.Count < 2 ? null : RevCloudOf(cloud, new List<GeoPoint2>(corners) { input.Point }, true, false));
+            CadPreview shown = RevCloudPreview(c, input =>
+                corners.Count < 2 ? null : RevCloudOf(cloud, new List<GeoPoint2>(corners) { input.Point }, true, false)
+            );
 
             while (true)
             {
@@ -227,7 +280,9 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else
                 {
-                    yield return CadPrompt.ForPoint("Specify next point", corners[corners.Count - 1], new[] { "Undo" }).Previewing(shown);
+                    yield return CadPrompt
+                        .ForPoint("Specify next point", corners[corners.Count - 1], new[] { "Undo" })
+                        .Previewing(shown);
                 }
 
                 if (c.Input.Is("Undo"))
@@ -267,8 +322,15 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Guide crosshairs along cloud path...", vertices[vertices.Count - 1]).WithoutColon().Tracking()
-                    .Previewing(RevCloudPreview(c, input => vertices.Count < 2 ? null : RevCloudPolyline(vertices, false, cloud, false)));
+                yield return CadPrompt
+                    .ForPoint("Guide crosshairs along cloud path...", vertices[vertices.Count - 1])
+                    .WithoutColon()
+                    .Tracking()
+                    .Previewing(
+                        RevCloudPreview(c, input =>
+                            vertices.Count < 2 ? null : RevCloudPolyline(vertices, false, cloud, false)
+                        )
+                    );
 
                 if (!c.Input.IsPoint)
                 {
@@ -322,7 +384,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             string handle = c.Input.Handles[0];
 
-            if (!(c.Document.FindEntity(handle) is DxfPolyline old) || !old.Closed || Math.Abs(old.Normal.Z - 1.0) > Tolerance.Default.EqualVector)
+            if (
+                !(c.Document.FindEntity(handle) is DxfPolyline old)
+                || !old.Closed
+                || Math.Abs(old.Normal.Z - 1.0) > Tolerance.Default.EqualVector
+            )
             {
                 c.Write("Invalid object selected.");
                 yield break;
@@ -424,21 +490,32 @@ namespace GeometryHelper.Dxf.Viewer
             List<GeoPoint2> arcs = RevCloudAlong(line, false, cloud);
             var outline = kept.Select(p => p.At).Concat(arcs.Skip(1).Take(arcs.Count - 2)).ToList();
             bool outward = RevCloudArea(outline) > 0.0;
-            CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Modify") }, s =>
-            {
-                var own = (DxfPolyline)s.Document.FindEntity(handle);
-                var points = new List<PeditPoint>(kept);
-                points[points.Count - 1].Bulge = (outward ? 1.0 : -1.0) * RevCloudBulge;
-
-                for (int i = 1; i < arcs.Count - 1; i++)
+            CadEditResult result = c.Apply(
+                new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Modify") },
+                s =>
                 {
-                    points.Add(new PeditPoint { At = arcs[i], Bulge = (outward ? 1.0 : -1.0) * RevCloudBulge, Start = 0.0, End = cloud.Width });
-                }
+                    var own = (DxfPolyline)s.Document.FindEntity(handle);
+                    var points = new List<PeditPoint>(kept);
+                    points[points.Count - 1].Bulge = (outward ? 1.0 : -1.0) * RevCloudBulge;
 
-                points[points.Count - 1].Start = 0.0;
-                points[points.Count - 1].End = cloud.Width;
-                PeditWrite(own, points, true, DxfPoly2dType.SimplePoly);
-            });
+                    for (int i = 1; i < arcs.Count - 1; i++)
+                    {
+                        points.Add(
+                            new PeditPoint
+                            {
+                                At = arcs[i],
+                                Bulge = (outward ? 1.0 : -1.0) * RevCloudBulge,
+                                Start = 0.0,
+                                End = cloud.Width,
+                            }
+                        );
+                    }
+
+                    points[points.Count - 1].Start = 0.0;
+                    points[points.Count - 1].End = cloud.Width;
+                    PeditWrite(own, points, true, DxfPoly2dType.SimplePoly);
+                }
+            );
 
             if (result.Succeeded)
             {
@@ -473,13 +550,15 @@ namespace GeometryHelper.Dxf.Viewer
                 double reach = Math.Min(1.0 - into, left);
                 double bulge = polyline.GetBulgeAt(segment);
                 double sweep = 4.0 * Math.Atan(bulge) * reach;
-                part.Add(new PeditPoint
-                {
-                    At = RevCloudFlat(polyline.GetPointAtParameter(segment + into)),
-                    Bulge = Math.Tan(sweep / 4.0),
-                    Start = polyline.GetStartWidthAt(segment),
-                    End = polyline.GetEndWidthAt(segment),
-                });
+                part.Add(
+                    new PeditPoint
+                    {
+                        At = RevCloudFlat(polyline.GetPointAtParameter(segment + into)),
+                        Bulge = Math.Tan(sweep / 4.0),
+                        Start = polyline.GetStartWidthAt(segment),
+                        End = polyline.GetEndWidthAt(segment),
+                    }
+                );
                 at = (at + reach) % n;
                 left -= reach;
             }
@@ -491,10 +570,17 @@ namespace GeometryHelper.Dxf.Viewer
         private static GeoPoint2 RevCloudFlat(GeoPoint3 point) => new GeoPoint2(point.X, point.Y);
 
         /// <summary>The point of a polyline nearest a point.</summary>
-        private static GeoPoint2 RevCloudOn(DxfCurve curve, GeoPoint2 point) => RevCloudFlat(curve.GetClosestPointTo(P3(point), false));
+        private static GeoPoint2 RevCloudOn(DxfCurve curve, GeoPoint2 point) =>
+            RevCloudFlat(curve.GetClosestPointTo(P3(point), false));
 
         /// <summary>A cloud along a path of corners (closed or open), added in the current layer as a new polyline.</summary>
-        private static void RevCloudPath(CadCommandContext c, RevCloudLook cloud, List<GeoPoint2> corners, bool closed, bool reverse)
+        private static void RevCloudPath(
+            CadCommandContext c,
+            RevCloudLook cloud,
+            List<GeoPoint2> corners,
+            bool closed,
+            bool reverse
+        )
         {
             DxfPolyline made = RevCloudOf(cloud, corners, closed, reverse);
 
@@ -508,8 +594,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The preview of the cloud the point at the cursor would give, in the current layer as it is added.</summary>
-        private static CadPreview RevCloudPreview(CadCommandContext c, Func<CadInput, DxfPolyline> make)
-            => CadPreview.MakingOne(c, input => make(input) is DxfPolyline made ? Current(c, made) : null);
+        private static CadPreview RevCloudPreview(CadCommandContext c, Func<CadInput, DxfPolyline> make) =>
+            CadPreview.MakingOne(c, input => make(input) is DxfPolyline made ? Current(c, made) : null);
 
         /// <summary>The cloud along a path of corners, as it is previewed and made; null where the path is too short for one.</summary>
         private static DxfPolyline RevCloudOf(RevCloudLook cloud, List<GeoPoint2> corners, bool closed, bool reverse)
@@ -563,7 +649,12 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The cloud of vertices: each segment an arc bulging out of the shape, or into it where reversed.</summary>
-        private static DxfPolyline RevCloudPolyline(List<GeoPoint2> points, bool closed, RevCloudLook cloud, bool reverse)
+        private static DxfPolyline RevCloudPolyline(
+            List<GeoPoint2> points,
+            bool closed,
+            RevCloudLook cloud,
+            bool reverse
+        )
         {
             double bulge = (RevCloudArea(points) > 0.0) != reverse ? RevCloudBulge : -RevCloudBulge;
             var made = new DxfPolyline();

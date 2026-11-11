@@ -43,12 +43,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 int percent = opening.Percent;
-                return "Opening " + System.IO.Path.GetFileName(opening.Path) + ": " + (percent < 0 ? "reading the file" : "drawing " + percent + " %");
+                return "Opening "
+                    + System.IO.Path.GetFileName(opening.Path)
+                    + ": "
+                    + (percent < 0 ? "reading the file" : "drawing " + percent + " %");
             }
         }
 
         /// <summary>Gets the command that stops the drawing opening in the background, as Esc does.</summary>
-        public ICommand CancelOpeningCommand => _cancelOpeningCommand ?? (_cancelOpeningCommand = new DelegateCommand(_ => CancelOpening(), _ => IsOpening));
+        public ICommand CancelOpeningCommand =>
+            _cancelOpeningCommand
+            ?? (_cancelOpeningCommand = new DelegateCommand(_ => CancelOpening(), _ => IsOpening));
 
         /// <summary>
         /// Opens a DXF file in the background, or shows it again where it is open already, as <see cref="Open(string)"/> does, without
@@ -97,8 +102,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             string typed = (input ?? string.Empty).Trim();
-            Say((typed.Length > 0 ? typed.ToUpperInvariant() + " not run: " : "Not run: ") + System.IO.Path.GetFileName(opening.Path)
-                + " is still opening. Run it again once it is shown, or press Esc to stop opening it.");
+            Say(
+                (typed.Length > 0 ? typed.ToUpperInvariant() + " not run: " : "Not run: ")
+                    + System.IO.Path.GetFileName(opening.Path)
+                    + " is still opening. Run it again once it is shown, or press Esc to stop opening it."
+            );
             return true;
         }
 
@@ -120,7 +128,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 opening = null;
-                Say("Cannot open " + System.IO.Path.GetFileName(full) + " yet: " + System.IO.Path.GetFileName(running.Path) + " is still opening.");
+                Say(
+                    "Cannot open "
+                        + System.IO.Path.GetFileName(full)
+                        + " yet: "
+                        + System.IO.Path.GetFileName(running.Path)
+                        + " is still opening."
+                );
                 return false;
             }
 
@@ -131,7 +145,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CancellationToken stop = started.Cancel.Token;
 
             Task.Run(() => CadDocument.Open(full), stop)
-                .ContinueWith(read => started.Post(() => Read(started, read)), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+                .ContinueWith(
+                    read => started.Post(() => Read(started, read)),
+                    CancellationToken.None,
+                    TaskContinuationOptions.None,
+                    TaskScheduler.Default
+                );
             return true;
         }
 
@@ -186,11 +205,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             RaiseOpening();
 
             Task.Run(() => document.PrepareDisplay(space, opening, stop), stop)
-                .ContinueWith(drawn => opening.Post(() =>
-                {
-                    document.FontMissing -= keep;
-                    Drawn(opening, document, drawn, said);
-                }), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+                .ContinueWith(
+                    drawn =>
+                        opening.Post(() =>
+                        {
+                            document.FontMissing -= keep;
+                            Drawn(opening, document, drawn, said);
+                        }),
+                    CancellationToken.None,
+                    TaskContinuationOptions.None,
+                    TaskScheduler.Default
+                );
         }
 
         /// <summary>The display drawn: stopped, or the drawing shown.</summary>
@@ -205,7 +230,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (drawn.IsFaulted)
             {
                 // What could not be drawn here is drawn as the canvas first asks for it, as before the drawing was opened so.
-                GeometryHelperLog.Warn("MainViewModel: the display of " + opening.Path + " could not be drawn in the background.", drawn.Exception.GetBaseException());
+                GeometryHelperLog.Warn(
+                    "MainViewModel: the display of " + opening.Path + " could not be drawn in the background.",
+                    drawn.Exception.GetBaseException()
+                );
             }
 
             End(opening);

@@ -17,11 +17,12 @@ namespace GeometryHelper.Arranging
         /// Calculates processing (sorting) order of labels to optimize placement success.
         /// </summary>
         internal static IEnumerable<int> GetProcessingOrder(
-            IReadOnlyList<ArrangeItem> items, ObstacleSpatialIndex staticObstacles, ArrangeOptions options)
+            IReadOnlyList<ArrangeItem> items,
+            ObstacleSpatialIndex staticObstacles,
+            ArrangeOptions options
+        )
         {
-            int[] indices = Enumerable.Range(0, items.Count)
-                .Where(index => items[index] != null)
-                .ToArray();
+            int[] indices = Enumerable.Range(0, items.Count).Where(index => items[index] != null).ToArray();
 
             if (indices.Length == 0)
             {
@@ -99,17 +100,20 @@ namespace GeometryHelper.Arranging
             // far-sliding candidates, outside the sampling range.
             //
             // LINQ's OrderBy is stable, so labels tying both criteria retain their input order and the result remains reproducible.
-            return indices
-                .OrderBy(index => freedom[index])
-                .ThenBy(index => room[index])
-                .ToArray();
+            return indices.OrderBy(index => freedom[index]).ThenBy(index => room[index]).ToArray();
         }
 
         /// <summary>
         /// Calculates the distance from the label center to the area centroid, both read from the reference, in steps of
         /// the grain.
         /// </summary>
-        private static double GetDistanceToCentroid(ArrangeItem item, GeoPoint2 reference, double centroidX, double centroidY, double grain)
+        private static double GetDistanceToCentroid(
+            ArrangeItem item,
+            GeoPoint2 reference,
+            double centroidX,
+            double centroidY,
+            double grain
+        )
         {
             double dx = item.Box.Center.X - reference.X - centroidX;
             double dy = item.Box.Center.Y - reference.Y - centroidY;
@@ -128,7 +132,11 @@ namespace GeometryHelper.Arranging
         /// <returns>
         /// The free positions; -1 for a label with no candidate, and nought for one with candidates but a sample of none.
         /// </returns>
-        private static int CountFreePlaces(ArrangeItem item, ObstacleSpatialIndex staticObstacles, ArrangeOptions options)
+        private static int CountFreePlaces(
+            ArrangeItem item,
+            ObstacleSpatialIndex staticObstacles,
+            ArrangeOptions options
+        )
         {
             GeoPoint2 centre = item.Box.Center;
             var sampled = new List<GeoRectangle2>();
@@ -191,7 +199,10 @@ namespace GeometryHelper.Arranging
 
             // Each level has a row on each open side, each row a middle position plus 2 for each longitudinal shift
             // step, and no more than the cap in all.
-            long shiftsPerLevel = Math.Min(layout.GetSlideCount(options.Tolerance), Math.Max(0, options.MaximumCandidates));
+            long shiftsPerLevel = Math.Min(
+                layout.GetSlideCount(options.Tolerance),
+                Math.Max(0, options.MaximumCandidates)
+            );
             long sides = (layout.PositiveOpen ? 1L : 0L) + (layout.NegativeOpen ? 1L : 0L);
             long total = sides * (1L + 2L * shiftsPerLevel) * Math.Max(0, options.PerpendicularLevels);
 

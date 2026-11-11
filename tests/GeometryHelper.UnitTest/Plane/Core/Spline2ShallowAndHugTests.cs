@@ -43,7 +43,11 @@ namespace GeometryHelper.UnitTest.Plane
 
         [Theory]
         [MemberData(nameof(Shallow))]
-        public void ALineThatCutsACircleASlitDeep_MeetsItTwice_AsTheExactCurvesDo_AndTheDistanceIsNought(double o, double length, double chord)
+        public void ALineThatCutsACircleASlitDeep_MeetsItTwice_AsTheExactCurvesDo_AndTheDistanceIsNought(
+            double o,
+            double length,
+            double chord
+        )
         {
             // The line at the depth where it cuts a circle of radius 1000 in a chord of this length, which it meets at x = +-chord / 2.
             double r = 1000.0;
@@ -54,7 +58,10 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPoint2 start = P(o - length / 2.0, o + r - depth);
             GeoPoint2 end = P(o + length / 2.0, o + r - depth);
             GeoSpline2 line = GeoSpline2.FromControlPoints(1, new[] { start, end });
-            GeoSpline2 cubic = GeoSpline2.FromControlPoints(3, new[] { start, P(o - length / 6.0, o + r - depth), P(o + length / 6.0, o + r - depth), end });
+            GeoSpline2 cubic = GeoSpline2.FromControlPoints(
+                3,
+                new[] { start, P(o - length / 6.0, o + r - depth), P(o + length / 6.0, o + r - depth), end }
+            );
 
             // The exact curves cross twice, at x = -half and +half.
             Assert.Equal(2, new GeoLine2(start, end).GetIntersections(circle, Strict).Length);
@@ -64,8 +71,17 @@ namespace GeometryHelper.UnitTest.Plane
                 GeoPoint2[] places = spline.GetIntersections(ring, Strict);
                 GeoPoint2[] back = ring.GetIntersections(spline, Strict).OrderBy(p => p.X).ToArray();
 
-                Assert.True(places.Length == 2, places.Length + " places " + string.Join(" ", places.Select(p => (p.X - o).ToString("R"))) + ", two expected");
-                Assert.True(Math.Abs(places[0].X - o + half) <= 1E-4 && Math.Abs(places[1].X - o - half) <= 1E-4, string.Join(" ", places.Select(p => (p.X - o).ToString("R"))));
+                Assert.True(
+                    places.Length == 2,
+                    places.Length
+                        + " places "
+                        + string.Join(" ", places.Select(p => (p.X - o).ToString("R")))
+                        + ", two expected"
+                );
+                Assert.True(
+                    Math.Abs(places[0].X - o + half) <= 1E-4 && Math.Abs(places[1].X - o - half) <= 1E-4,
+                    string.Join(" ", places.Select(p => (p.X - o).ToString("R")))
+                );
                 Assert.Equal(places, spline.GetIntersections(ring, Strict));
                 Assert.Equal(2, back.Length);
                 Assert.Equal(0.0, spline.DistanceTo(ring, Strict));
@@ -122,18 +138,31 @@ namespace GeometryHelper.UnitTest.Plane
         [Theory]
         [InlineData(0.0)]
         [InlineData(1E5)]
-        public void AnotherSplineThatDartsOutOfAStretchAlongTheFirst_CrossesItAtBothEdgesOfTheDart_FromEitherSide(double o)
+        public void AnotherSplineThatDartsOutOfAStretchAlongTheFirst_CrossesItAtBothEdgesOfTheDart_FromEitherSide(
+            double o
+        )
         {
             // A line along y = o, and a polyline 2E-4 above it that goes down to y = o - 1 for a millimetre at x = 507 and comes back: the
             // exact curves give the crossings at 506.0002 and 507.9998.
             GeoSpline2 a = GeoSpline2.FromControlPoints(1, new[] { P(o, o), P(o + 1000, o) });
-            GeoSpline2 b = GeoSpline2.FromPolyline(new GeoPolyline2(P(o, o + 2E-4), P(o + 506, o + 2E-4), P(o + 507, o - 1), P(o + 508, o + 2E-4), P(o + 1000, o + 2E-4)));
+            GeoSpline2 b = GeoSpline2.FromPolyline(
+                new GeoPolyline2(
+                    P(o, o + 2E-4),
+                    P(o + 506, o + 2E-4),
+                    P(o + 507, o - 1),
+                    P(o + 508, o + 2E-4),
+                    P(o + 1000, o + 2E-4)
+                )
+            );
 
             GeoPoint2[] first = a.GetIntersections(b, Strict);
             GeoPoint2[] second = b.GetIntersections(a, Strict);
 
             Assert.Equal(2, first.Length);
-            Assert.True(first[0].DistanceTo(P(o + 506.0002, o)) <= 1E-3 && first[1].DistanceTo(P(o + 507.9998, o)) <= 1E-3, string.Join(" ", first));
+            Assert.True(
+                first[0].DistanceTo(P(o + 506.0002, o)) <= 1E-3 && first[1].DistanceTo(P(o + 507.9998, o)) <= 1E-3,
+                string.Join(" ", first)
+            );
             Assert.Equal(first, second);
             Assert.Equal(0.0, a.DistanceTo(b, Strict));
         }
@@ -144,8 +173,18 @@ namespace GeometryHelper.UnitTest.Plane
         public void ASplineThatDartsOutOfAStretchAlongAnother_CrossesItAtBothEdgesOfTheDart_FromEitherSide(double o)
         {
             // The same, with the dart in the first curve, which is looked at over its length.
-            GeoSpline2 a = GeoSpline2.FromPolyline(new GeoPolyline2(P(o, o), P(o + 506, o), P(o + 507, o + 1), P(o + 508, o), P(o + 1000, o)));
-            GeoSpline2 b = GeoSpline2.FromPolyline(new GeoPolyline2(P(o, o + 2E-4), P(o + 300, o + 2E-4), P(o + 600, o + 2E-4), P(o + 900, o + 2E-4), P(o + 1000, o + 2E-4)));
+            GeoSpline2 a = GeoSpline2.FromPolyline(
+                new GeoPolyline2(P(o, o), P(o + 506, o), P(o + 507, o + 1), P(o + 508, o), P(o + 1000, o))
+            );
+            GeoSpline2 b = GeoSpline2.FromPolyline(
+                new GeoPolyline2(
+                    P(o, o + 2E-4),
+                    P(o + 300, o + 2E-4),
+                    P(o + 600, o + 2E-4),
+                    P(o + 900, o + 2E-4),
+                    P(o + 1000, o + 2E-4)
+                )
+            );
 
             GeoPoint2[] first = a.GetIntersections(b, Strict);
 
@@ -176,18 +215,26 @@ namespace GeometryHelper.UnitTest.Plane
         [Theory]
         [InlineData(20000)]
         [InlineData(80000)]
-        public void APolylineOfManyEdgesAcrossASpline_GivesTheSamePlacesAsTheSplineDoesAcrossIt_InTimeInProportionToItsLength(int edges)
+        public void APolylineOfManyEdgesAcrossASpline_GivesTheSamePlacesAsTheSplineDoesAcrossIt_InTimeInProportionToItsLength(
+            int edges
+        )
         {
             // Edges that zigzag across the first 40 mm of the cubic, a crossing every couple of edges. The two paths share nothing: the
             // polyline against the spline asks the spline about each edge, and the spline of the polyline against the spline cuts the two.
-            GeoSpline2 cubic = GeoSpline2.FromControlPoints(3, Enumerable.Range(0, 9).Select(i => P(100 * i, 100 * Math.Sin(i))).ToArray());
-            var vertices = Enumerable.Range(0, edges + 1).Select(i =>
-            {
-                double x = 40.0 * i / edges;
-                GeoPoint2 on = cubic.GetClosestPointOnBoundary(P(x, 100 * Math.Sin(x / 100)));
+            GeoSpline2 cubic = GeoSpline2.FromControlPoints(
+                3,
+                Enumerable.Range(0, 9).Select(i => P(100 * i, 100 * Math.Sin(i))).ToArray()
+            );
+            var vertices = Enumerable
+                .Range(0, edges + 1)
+                .Select(i =>
+                {
+                    double x = 40.0 * i / edges;
+                    GeoPoint2 on = cubic.GetClosestPointOnBoundary(P(x, 100 * Math.Sin(x / 100)));
 
-                return P(x, on.Y + 0.5 * Math.Sin(i * 1.3));
-            }).ToList();
+                    return P(x, on.Y + 0.5 * Math.Sin(i * 1.3));
+                })
+                .ToList();
             var polyline = new GeoPolyline2(vertices);
             GeoSpline2 asSpline = GeoSpline2.FromPolyline(polyline);
 
@@ -200,7 +247,10 @@ namespace GeometryHelper.UnitTest.Plane
 
             // Crossings a few ten-thousandths of a millimetre apart chain into one place or stay two as the rounding of each path has them
             // fall either side of the tolerance, so the counts agree to a hundredth and not to the place.
-            Assert.True(Math.Abs(exact.Length - fromSplines.Length) <= exact.Length / 100 + 2, exact.Length + " places from the polyline, " + fromSplines.Length + " from the splines");
+            Assert.True(
+                Math.Abs(exact.Length - fromSplines.Length) <= exact.Length / 100 + 2,
+                exact.Length + " places from the polyline, " + fromSplines.Length + " from the splines"
+            );
             Assert.True(watch.Elapsed.TotalSeconds < 20.0, "took " + watch.Elapsed.TotalSeconds + " s");
         }
 
@@ -209,17 +259,23 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // Four times the edges is four times the work, and a few more for the caches; where each place asks every other, it is sixteen times.
             // The least of three runs of each, after a smaller one to warm the code, so that the ratio is not that of a pause.
-            GeoSpline2 cubic = GeoSpline2.FromControlPoints(3, Enumerable.Range(0, 9).Select(i => P(100 * i, 100 * Math.Sin(i))).ToArray());
+            GeoSpline2 cubic = GeoSpline2.FromControlPoints(
+                3,
+                Enumerable.Range(0, 9).Select(i => P(100 * i, 100 * Math.Sin(i))).ToArray()
+            );
 
             double Time(int edges)
             {
-                var vertices = Enumerable.Range(0, edges + 1).Select(i =>
-                {
-                    double x = 40.0 * i / edges;
-                    GeoPoint2 on = cubic.GetClosestPointOnBoundary(P(x, 100 * Math.Sin(x / 100)));
+                var vertices = Enumerable
+                    .Range(0, edges + 1)
+                    .Select(i =>
+                    {
+                        double x = 40.0 * i / edges;
+                        GeoPoint2 on = cubic.GetClosestPointOnBoundary(P(x, 100 * Math.Sin(x / 100)));
 
-                    return P(x, on.Y + 0.5 * Math.Sin(i * 1.3));
-                }).ToList();
+                        return P(x, on.Y + 0.5 * Math.Sin(i * 1.3));
+                    })
+                    .ToList();
                 var polyline = new GeoPolyline2(vertices);
                 GeoSpline2 asSpline = GeoSpline2.FromPolyline(polyline);
                 double least = double.MaxValue;
@@ -239,7 +295,10 @@ namespace GeometryHelper.UnitTest.Plane
             double few = Time(20000);
             double many = Time(80000);
 
-            Assert.True(many < 8.0 * few, "20 000 edges took " + few.ToString("F0") + " ms and 80 000 took " + many.ToString("F0") + " ms");
+            Assert.True(
+                many < 8.0 * few,
+                "20 000 edges took " + few.ToString("F0") + " ms and 80 000 took " + many.ToString("F0") + " ms"
+            );
         }
 
         #endregion
@@ -250,21 +309,28 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(1E3)]
         [InlineData(1E4)]
         [InlineData(1E5)]
-        public void TwoCirclesAHalfThousandthApartWithTheirCentresMovedTwoTenThousandthsTowardFortyFiveDegrees_AreNearestWhereTheyAre(double r)
+        public void TwoCirclesAHalfThousandthApartWithTheirCentresMovedTwoTenThousandthsTowardFortyFiveDegrees_AreNearestWhereTheyAre(
+            double r
+        )
         {
             // The second circle is 0.0005 larger and its centre is moved 2E-4 toward 45 degrees: the gap is 0.0005 - 2E-4 cos(angle) and its least,
             // 0.0003, is at 45 degrees. The cutting runs out of its budget along a gap that is that level, and what it has then is the least
             // it found; it has to have found the one at 45 degrees, whichever piece was first.
             double shift = 2E-4;
             GeoSpline2 first = GeoSpline2.FromCircle(new GeoCircle2(P(0, 0), r));
-            GeoSpline2 second = GeoSpline2.FromCircle(new GeoCircle2(P(shift * Math.Cos(Math.PI / 4), shift * Math.Sin(Math.PI / 4)), r + 0.0005));
+            GeoSpline2 second = GeoSpline2.FromCircle(
+                new GeoCircle2(P(shift * Math.Cos(Math.PI / 4), shift * Math.Sin(Math.PI / 4)), r + 0.0005)
+            );
 
             var watch = Stopwatch.StartNew();
             double distance = first.DistanceTo(second, Strict);
             double back = second.DistanceTo(first, Strict);
             watch.Stop();
 
-            Assert.True(Math.Abs(distance - 0.0003) <= 1E-7, "the distance is " + distance.ToString("R") + ", 0.0003 exact");
+            Assert.True(
+                Math.Abs(distance - 0.0003) <= 1E-7,
+                "the distance is " + distance.ToString("R") + ", 0.0003 exact"
+            );
             Assert.Equal(distance, back);
             Assert.True(first.CollidesWith(second, new Tolerance(4E-4, 1E-5)));
             Assert.False(first.CollidesWith(second, new Tolerance(2E-4, 1E-5)));
@@ -300,7 +366,11 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(1E6, 30.0, 0.009)]
         [InlineData(0.0, 1000.0, 0.003)]
         [InlineData(0.0, 1000.0, 0.002)]
-        public void TwoCrossingsMoreThanTheToleranceApart_AreTwoPlaces_ForTheSplineAsForTheExactCircle(double o, double r, double chord)
+        public void TwoCrossingsMoreThanTheToleranceApart_AreTwoPlaces_ForTheSplineAsForTheExactCircle(
+            double o,
+            double r,
+            double chord
+        )
         {
             double half = chord / 2.0;
             double depth = r - Math.Sqrt(r * r - half * half);

@@ -19,14 +19,25 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>The area of a hole 22 across, a cylinder of 16 facets.</summary>
         private static readonly double HoleArea = 8 * 121 * Math.Sin(Math.PI / 8);
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoObb3(new GeoPoint3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), x1 - x0, y1 - y0, z1 - z0).ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoObb3(
+                new GeoPoint3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2),
+                x1 - x0,
+                y1 - y0,
+                z1 - z0
+            ).ToSolid();
 
         /// <summary>
         /// A plate 300 by 200 by 12 with twelve openings in four rows of three, turned about an axis and carried far from the
         /// origin, or left near it; each opening is made of its row, its place in the row, and its own depth under the faces.
         /// </summary>
-        private static GeoSolid3 Plate(GeoVector3 axis, double angle, IReadOnlyList<double> under, Func<int, int, double, GeoSolid3> opening, bool far = true)
+        private static GeoSolid3 Plate(
+            GeoVector3 axis,
+            double angle,
+            IReadOnlyList<double> under,
+            Func<int, int, double, GeoSolid3> opening,
+            bool far = true
+        )
         {
             GeoTransform3 place = GeoTransform3.RotationAxis(GeoPoint3.Origin, axis, angle);
 
@@ -49,22 +60,33 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         /// <summary>A round hole 22 across from under the plate to the depth given under its top.</summary>
-        private static GeoSolid3 Hole(int i, int j, double under)
-            => GeoSolid3.Cylinder(new GeoPoint3(40 + i * 70, 40 + j * 60, -5), new GeoPoint3(40 + i * 70, 40 + j * 60, 12 - under), 11, 16, Tolerance.Default);
+        private static GeoSolid3 Hole(int i, int j, double under) =>
+            GeoSolid3.Cylinder(
+                new GeoPoint3(40 + i * 70, 40 + j * 60, -5),
+                new GeoPoint3(40 + i * 70, 40 + j * 60, 12 - under),
+                11,
+                16,
+                Tolerance.Default
+            );
 
         /// <summary>
         /// A box 22 by 22 hidden in the plate the depth given under its top and over its bottom; those of the first row run
         /// out to the same depth inside the side of the plate.
         /// </summary>
-        private static GeoSolid3 Hidden(int i, int j, double under)
-            => Box(i == 0 ? under : 29 + i * 70, 29 + j * 60, under, 51 + i * 70, 51 + j * 60, 12 - under);
+        private static GeoSolid3 Hidden(int i, int j, double under) =>
+            Box(i == 0 ? under : 29 + i * 70, 29 + j * 60, under, 51 + i * 70, 51 + j * 60, 12 - under);
 
         /// <summary>
         /// Asserts the material valid, without openings, and holding a volume its skins can leave: each opening whose depth
         /// under a face is further than a millionth from the tolerance leaves its skin or not as it is thicker or thinner,
         /// and each nearer may do either.
         /// </summary>
-        private static void AssertValidAndHolds(GeoSolid3 material, Tolerance tolerance, IReadOnlyList<double> under, Func<int, double, (double Taken, double Skins)> each)
+        private static void AssertValidAndHolds(
+            GeoSolid3 material,
+            Tolerance tolerance,
+            IReadOnlyList<double> under,
+            Func<int, double, (double Taken, double Skins)> each
+        )
         {
             double least = 300.0 * 200 * 12;
             double most = least;
@@ -85,7 +107,8 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         /// <summary>What a round hole takes, its floor under the skin it leaves, and that skin.</summary>
-        private static (double Taken, double Skins) HoleTakes(int k, double under) => (HoleArea * (12 - under), HoleArea * under);
+        private static (double Taken, double Skins) HoleTakes(int k, double under) =>
+            (HoleArea * (12 - under), HoleArea * under);
 
         /// <summary>What a hidden box takes, and the skins it leaves over, under and, in the first row, beside it.</summary>
         private static (double Taken, double Skins) HiddenTakes(int k, double under)
@@ -102,11 +125,25 @@ namespace GeometryHelper.UnitTest.Solid
             // holds 666 657.36; the cut was refused.
             double[] under =
             {
-                0.000999999999997085, 0.0009999999999978242, 0.0009999999999984524, 0.001000182829348675,
-                0.001000000000338416, 0.0010000000037927847, 0.000999992828409303, 0.0009999999991872966,
-                0.0010000000000238078, 0.001000000000060705, 0.0009999999993513405, 0.0009998373030014206,
+                0.000999999999997085,
+                0.0009999999999978242,
+                0.0009999999999984524,
+                0.001000182829348675,
+                0.001000000000338416,
+                0.0010000000037927847,
+                0.000999992828409303,
+                0.0009999999991872966,
+                0.0010000000000238078,
+                0.001000000000060705,
+                0.0009999999993513405,
+                0.0009998373030014206,
             };
-            GeoSolid3 plate = Plate(new GeoVector3(0.6235469298546887, -0.07871804343476796, -0.5839141474961835), 3.5611189154727008, under, Hole);
+            GeoSolid3 plate = Plate(
+                new GeoVector3(0.6235469298546887, -0.07871804343476796, -0.5839141474961835),
+                3.5611189154727008,
+                under,
+                Hole
+            );
             int takenOut = Boolean3.TakenOutOneAtATime;
 
             Assert.True(plate.TryCutOpenings(out GeoSolid3 material, Thousandth));
@@ -122,11 +159,25 @@ namespace GeometryHelper.UnitTest.Solid
             // and holding 666 526.29, 130.70 short of the plate less every hole through.
             double[] under =
             {
-                0.010000000039626927, 0.010000706922175806, 0.010000258156049005, 0.010000000003067545,
-                0.00999999999810011, 0.009999999559677062, 0.010000012101920657, 0.010000125533663319,
-                0.009999999962249328, 0.00999999997870332, 0.010000008728859318, 0.010000000000020142,
+                0.010000000039626927,
+                0.010000706922175806,
+                0.010000258156049005,
+                0.010000000003067545,
+                0.00999999999810011,
+                0.009999999559677062,
+                0.010000012101920657,
+                0.010000125533663319,
+                0.009999999962249328,
+                0.00999999997870332,
+                0.010000008728859318,
+                0.010000000000020142,
             };
-            GeoSolid3 plate = Plate(new GeoVector3(0.31632946679197693, -0.2783142678804297, 0.06093210776379898), 4.172316909847929, under, Hole);
+            GeoSolid3 plate = Plate(
+                new GeoVector3(0.31632946679197693, -0.2783142678804297, 0.06093210776379898),
+                4.172316909847929,
+                under,
+                Hole
+            );
             int takenOut = Boolean3.TakenOutOneAtATime;
 
             Assert.True(plate.TryCutOpenings(out GeoSolid3 material, Hundredth));
@@ -142,11 +193,25 @@ namespace GeometryHelper.UnitTest.Solid
             // differences, the plate came out valid and holding 666 655.64, 1.35 short of the least its skins can leave.
             double[] under =
             {
-                0.009999999965552526, 0.010000495005469512, 0.009996612998560883, 0.010000003206910467,
-                0.01000000000042038, 0.01000000002642145, 0.010000000000136495, 0.009999988494707205,
-                0.010000204212565504, 0.00999999999928264, 0.009999999984163257, 0.009999999679441237,
+                0.009999999965552526,
+                0.010000495005469512,
+                0.009996612998560883,
+                0.010000003206910467,
+                0.01000000000042038,
+                0.01000000002642145,
+                0.010000000000136495,
+                0.009999988494707205,
+                0.010000204212565504,
+                0.00999999999928264,
+                0.009999999984163257,
+                0.009999999679441237,
             };
-            GeoSolid3 plate = Plate(new GeoVector3(0.3145759046611263, 0.8739737476566685, -0.242138828729344), 2.2312098444584803, under, Hole);
+            GeoSolid3 plate = Plate(
+                new GeoVector3(0.3145759046611263, 0.8739737476566685, -0.242138828729344),
+                2.2312098444584803,
+                under,
+                Hole
+            );
             int takenOut = Boolean3.TakenOutOneAtATime;
 
             Assert.True(plate.TryCutOpenings(out GeoSolid3 material, Hundredth));
@@ -163,11 +228,25 @@ namespace GeometryHelper.UnitTest.Solid
             // within the volume it can leave, and the cut was refused.
             double[] under =
             {
-                0.009999999578386749, 0.01000000000011218, 0.009999571297254073, 0.009999999999985321,
-                0.009999989123255063, 0.010000000000116662, 0.009999997873703254, 0.010002115347096075,
-                0.01000002044296976, 0.009999999991221253, 0.009999999999989663, 0.009999999991608699,
+                0.009999999578386749,
+                0.01000000000011218,
+                0.009999571297254073,
+                0.009999999999985321,
+                0.009999989123255063,
+                0.010000000000116662,
+                0.009999997873703254,
+                0.010002115347096075,
+                0.01000002044296976,
+                0.009999999991221253,
+                0.009999999999989663,
+                0.009999999991608699,
             };
-            GeoSolid3 plate = Plate(new GeoVector3(-0.31998947324230775, -0.8356493859717853, 0.8844909527732483), 0.28257377924517435, under, Hidden);
+            GeoSolid3 plate = Plate(
+                new GeoVector3(-0.31998947324230775, -0.8356493859717853, 0.8844909527732483),
+                0.28257377924517435,
+                under,
+                Hidden
+            );
             int takenOut = Boolean3.TakenOutOneAtATime;
 
             Assert.True(plate.TryCutOpenings(out GeoSolid3 material, Hundredth));
@@ -184,11 +263,26 @@ namespace GeometryHelper.UnitTest.Solid
             // with every difference read within the rounding too, it was refused as well.
             double[] under =
             {
-                0.0010000000000286095, 0.0010000853795860585, 0.00100010855901111, 0.0009999998581121641,
-                0.0009999999999066938, 0.00099999998624157, 0.0010000000001273792, 0.0010000062696645172,
-                0.0009999999998709457, 0.0010000003967607165, 0.0009999999911612957, 0.0009999999999978017,
+                0.0010000000000286095,
+                0.0010000853795860585,
+                0.00100010855901111,
+                0.0009999998581121641,
+                0.0009999999999066938,
+                0.00099999998624157,
+                0.0010000000001273792,
+                0.0010000062696645172,
+                0.0009999999998709457,
+                0.0010000003967607165,
+                0.0009999999911612957,
+                0.0009999999999978017,
             };
-            GeoSolid3 plate = Plate(new GeoVector3(0.9194017517936424, -0.950992581411727, 0.12353155069217614), 3.484424194080953, under, Hidden, far: false);
+            GeoSolid3 plate = Plate(
+                new GeoVector3(0.9194017517936424, -0.950992581411727, 0.12353155069217614),
+                3.484424194080953,
+                under,
+                Hidden,
+                far: false
+            );
             int takenOut = Boolean3.TakenOutOneAtATime;
 
             Assert.True(plate.TryCutOpenings(out GeoSolid3 material, Thousandth));

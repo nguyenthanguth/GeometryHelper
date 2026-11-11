@@ -74,8 +74,13 @@ namespace GeometryHelper.Arranging
         /// <inheritdoc/>
         public override string ToString()
         {
-            return string.Format(CultureInfo.InvariantCulture, "ArrangeResult[{0}, moved ({1:0.###}, {2:0.###})]",
-                Placed ? "placed" : "not placed", Translation.X, Translation.Y);
+            return string.Format(
+                CultureInfo.InvariantCulture,
+                "ArrangeResult[{0}, moved ({1:0.###}, {2:0.###})]",
+                Placed ? "placed" : "not placed",
+                Translation.X,
+                Translation.Y
+            );
         }
     }
 }

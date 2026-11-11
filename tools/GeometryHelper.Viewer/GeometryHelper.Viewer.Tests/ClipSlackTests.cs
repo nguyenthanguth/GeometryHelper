@@ -32,7 +32,12 @@ namespace GeometryHelper.Viewer.Tests
 
         private static Primitives SkewedBox(double offset)
         {
-            var floor = new GeoPolygon3(Skew(0, 0, 0, offset), Skew(300, 0, 0, offset), Skew(300, 200, 0, offset), Skew(0, 200, 0, offset));
+            var floor = new GeoPolygon3(
+                Skew(0, 0, 0, offset),
+                Skew(300, 0, 0, offset),
+                Skew(300, 200, 0, offset),
+                Skew(0, 200, 0, offset)
+            );
             GeoPoint3 o = Skew(0, 0, 0, offset);
             GeoPoint3 up = Skew(0, 0, 100, offset);
             GeoSolid3 solid = GeoSolid3.Extrude(floor, new GeoVector3(up.X - o.X, up.Y - o.Y, up.Z - o.Z));
@@ -71,7 +76,14 @@ namespace GeometryHelper.Viewer.Tests
                     Vec3 point = t.A + (t.B - t.A) * u + (t.C - t.A) * v;
 
                     // Looking at the face square on, as Ctrl+K is done, and clicking where the point shows.
-                    ViewCamera camera = new SavedView("face", point + t.Normal * 500.0, point, new Vec3(0, 0, 1), true, 400.0).ToCamera(800.0 / 600.0);
+                    ViewCamera camera = new SavedView(
+                        "face",
+                        point + t.Normal * 500.0,
+                        point,
+                        new Vec3(0, 0, 1),
+                        true,
+                        400.0
+                    ).ToCamera(800.0 / 600.0);
                     var map = new ScreenMap(camera, scene.Bounds, 800.0, 600.0);
                     Assert.True(map.TryProject(point, out double x, out double y, out _));
                     PickHit hit = PickEngine.Pick(scene, null, map, x, y, null, true);
@@ -82,8 +94,14 @@ namespace GeometryHelper.Viewer.Tests
                     var clips = new ClipSet(new[] { new ClipPlane(hit.Point, away) });
                     ClipResult result = ClipResult.Build(scene, clips);
 
-                    double kept = result.Clipped.Items[0].Triangles.Where(q => (q.Normal - t.Normal).Length < 1E-9).Sum(Area);
-                    Assert.True(Math.Abs(kept - faceArea) <= 1E-9 * faceArea, "the face lost " + (faceArea - kept) + " of " + faceArea + " at offset " + offset);
+                    double kept = result
+                        .Clipped.Items[0]
+                        .Triangles.Where(q => (q.Normal - t.Normal).Length < 1E-9)
+                        .Sum(Area);
+                    Assert.True(
+                        Math.Abs(kept - faceArea) <= 1E-9 * faceArea,
+                        "the face lost " + (faceArea - kept) + " of " + faceArea + " at offset " + offset
+                    );
 
                     // What is drawn is what is picked: the click, through the cut scene, is on the same face again.
                     var cutMap = new ScreenMap(camera, scene.Bounds, 800.0, 600.0, clips);
@@ -126,11 +144,19 @@ namespace GeometryHelper.Viewer.Tests
             double slack = ClipSet.SlackFor(box.Bounds);
 
             // Keep what is below z = 10 - 0.001: the top face is 0.001 above it, a million times the slack, and is cut away.
-            ClipResult above = ClipResult.Build(box, new ClipSet(new[] { new ClipPlane(new Vec3(0, 0, 10.0 - 1E-3), new Vec3(0, 0, -1)) }));
-            Assert.DoesNotContain(above.Clipped.Items[0].Triangles, t => t.A.Z > 10.0 - 1E-3 + 1E-9 && t.B.Z > 10.0 - 1E-3 + 1E-9 && t.C.Z > 10.0 - 1E-3 + 1E-9);
+            ClipResult above = ClipResult.Build(
+                box,
+                new ClipSet(new[] { new ClipPlane(new Vec3(0, 0, 10.0 - 1E-3), new Vec3(0, 0, -1)) })
+            );
+            Assert.DoesNotContain(above.Clipped.Items[0].Triangles, t =>
+                t.A.Z > 10.0 - 1E-3 + 1E-9 && t.B.Z > 10.0 - 1E-3 + 1E-9 && t.C.Z > 10.0 - 1E-3 + 1E-9
+            );
 
             // Keep what is below z = 10 - slack/2: the top face is on the plane to the slack, and is kept whole.
-            ClipResult on = ClipResult.Build(box, new ClipSet(new[] { new ClipPlane(new Vec3(0, 0, 10.0 - slack / 2.0), new Vec3(0, 0, -1)) }));
+            ClipResult on = ClipResult.Build(
+                box,
+                new ClipSet(new[] { new ClipPlane(new Vec3(0, 0, 10.0 - slack / 2.0), new Vec3(0, 0, -1)) })
+            );
             Assert.Equal(box.Items[0].Triangles.Count, on.Clipped.Items[0].Triangles.Count);
             Assert.Equal(box.Items[0].Triangles.Sum(Area), on.Clipped.Items[0].Triangles.Sum(Area), 9);
         }
@@ -140,7 +166,13 @@ namespace GeometryHelper.Viewer.Tests
         {
             // The section of a box cut by z = 5, cut again by x >= 10.0000004 (a slack and a bit beyond the box's own corner): its length is exact.
             Primitives box = Primitives.Build(new SceneWriter().Add(SampleShapes.Box(30, 20, 10, false)).Scene);
-            ClipSet clips = new ClipSet(new[] { new ClipPlane(new Vec3(0, 0, 5), new Vec3(0, 0, 1)), new ClipPlane(new Vec3(10.0000004, 0, 0), new Vec3(1, 0, 0)) });
+            ClipSet clips = new ClipSet(
+                new[]
+                {
+                    new ClipPlane(new Vec3(0, 0, 5), new Vec3(0, 0, 1)),
+                    new ClipPlane(new Vec3(10.0000004, 0, 0), new Vec3(1, 0, 0)),
+                }
+            );
 
             ClipResult result = ClipResult.Build(box, clips);
 
@@ -163,7 +195,9 @@ namespace GeometryHelper.Viewer.Tests
                 cancelled.Cancel();
 
                 Assert.Throws<OperationCanceledException>(() => forScene.Apply(scene.Items[0], cancelled.Token));
-                Assert.Throws<OperationCanceledException>(() => SectionBuilder.Chains(scene.Items[0], clips.Planes[0], 1E-9, cancelled.Token));
+                Assert.Throws<OperationCanceledException>(() =>
+                    SectionBuilder.Chains(scene.Items[0], clips.Planes[0], 1E-9, cancelled.Token)
+                );
                 Assert.Throws<OperationCanceledException>(() => ClipResult.Build(scene, clips, cancelled.Token));
             }
 

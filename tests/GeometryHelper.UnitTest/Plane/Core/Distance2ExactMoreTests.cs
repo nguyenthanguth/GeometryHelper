@@ -18,10 +18,16 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>The gap is exact to rounding: 4E-14 of the largest coordinate here, 200, with room.</summary>
         private const double Allowance = 1E-11;
 
-        private static GeoPolygon2 Box(double left, double bottom, double right, double top) => new GeoPolygon2(
-            new GeoPoint2(left, bottom), new GeoPoint2(right, bottom), new GeoPoint2(right, top), new GeoPoint2(left, top));
+        private static GeoPolygon2 Box(double left, double bottom, double right, double top) =>
+            new GeoPolygon2(
+                new GeoPoint2(left, bottom),
+                new GeoPoint2(right, bottom),
+                new GeoPoint2(right, top),
+                new GeoPoint2(left, top)
+            );
 
-        private static GeoPolygonArc2 StraightLoop(GeoPolygon2 polygon) => new GeoPolygonArc2(polygon.Vertices, new double[polygon.VertexCount]);
+        private static GeoPolygonArc2 StraightLoop(GeoPolygon2 polygon) =>
+            new GeoPolygonArc2(polygon.Vertices, new double[polygon.VertexCount]);
 
         private static double Within(Func<double> distance)
         {
@@ -81,7 +87,9 @@ namespace GeometryHelper.UnitTest.Plane
         {
             double x = 100 + Tol.EqualPoint / 2;
             var chain = new GeoPolylineArc2(
-                new[] { new GeoPoint2(x, 50), new GeoPoint2(150, 50), new GeoPoint2(150, 80) }, new[] { 0.0, 0.0, 0.0 });
+                new[] { new GeoPoint2(x, 50), new GeoPoint2(150, 50), new GeoPoint2(150, 80) },
+                new[] { 0.0, 0.0, 0.0 }
+            );
             GeoPolygon2 square = Box(0, 0, 100, 100);
 
             AssertGap(Off(), Distance2.DistanceTo(chain, square, Tol));
@@ -132,7 +140,11 @@ namespace GeometryHelper.UnitTest.Plane
             // The side from (100, 0) to (0, 100) of the first; the second's tip stands off its middle (50, 50) along its normal.
             var first = new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(0, 100));
             double step = Tol.EqualPoint / 2 / Math.Sqrt(2);
-            var second = new GeoTriangle2(new GeoPoint2(50 + step, 50 + step), new GeoPoint2(90, 60), new GeoPoint2(60, 90));
+            var second = new GeoTriangle2(
+                new GeoPoint2(50 + step, 50 + step),
+                new GeoPoint2(90, 60),
+                new GeoPoint2(60, 90)
+            );
 
             AssertGap(Tol.EqualPoint / 2, Within(() => first.DistanceTo(second)));
             AssertGap(Tol.EqualPoint / 2, Within(() => second.DistanceTo(first)));
@@ -152,7 +164,8 @@ namespace GeometryHelper.UnitTest.Plane
         #region A rectangle of no width, or of next to none
 
         /// <summary>The square 6 by 6 turned 45 degrees, its bottom corner at (5, 1).</summary>
-        private static GeoRectangle2 DiamondOverTheFlat() => new GeoRectangle2(new GeoPoint2(5, 1 + 6 / Math.Sqrt(2)), 6, 6, Math.PI / 4);
+        private static GeoRectangle2 DiamondOverTheFlat() =>
+            new GeoRectangle2(new GeoPoint2(5, 1 + 6 / Math.Sqrt(2)), 6, 6, Math.PI / 4);
 
         private static void AssertApart(double gap, GeoRectangle2 first, GeoRectangle2 second)
         {
@@ -172,7 +185,11 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void TwoRectanglesOfNoHeightFiveApart_AreFiveApart()
         {
-            AssertApart(5.0, new GeoRectangle2(new GeoPoint2(5, 0), 10, 0), new GeoRectangle2(new GeoPoint2(5, 5), 10, 0));
+            AssertApart(
+                5.0,
+                new GeoRectangle2(new GeoPoint2(5, 0), 10, 0),
+                new GeoRectangle2(new GeoPoint2(5, 5), 10, 0)
+            );
         }
 
         [Fact]
@@ -202,14 +219,21 @@ namespace GeometryHelper.UnitTest.Plane
         /// The square 100 by 100 about the origin with an L-shaped hole, its reflex corner at (10.00085, 10.00085) and
         /// listed first, so that a probe asked whether it holds the first corner of the hole is asked about that one.
         /// </summary>
-        private static GeoFace2 PlateWithAnLShapedHole() => new GeoFace2(
-            Box(-50, -50, 50, 50),
-            new[]
-            {
-                new GeoPolygon2(
-                    new GeoPoint2(10.00085, 10.00085), new GeoPoint2(10.00085, 20), new GeoPoint2(-5, 20),
-                    new GeoPoint2(-5, -5), new GeoPoint2(20, -5), new GeoPoint2(20, 10.00085))
-            });
+        private static GeoFace2 PlateWithAnLShapedHole() =>
+            new GeoFace2(
+                Box(-50, -50, 50, 50),
+                new[]
+                {
+                    new GeoPolygon2(
+                        new GeoPoint2(10.00085, 10.00085),
+                        new GeoPoint2(10.00085, 20),
+                        new GeoPoint2(-5, 20),
+                        new GeoPoint2(-5, -5),
+                        new GeoPoint2(20, -5),
+                        new GeoPoint2(20, 10.00085)
+                    ),
+                }
+            );
 
         [Fact]
         public void ARectangleInAnLShapedHoleOneAndAFifthTolerancesFromItsReflexCorner_IsThatFarAndDoesNotCollide()

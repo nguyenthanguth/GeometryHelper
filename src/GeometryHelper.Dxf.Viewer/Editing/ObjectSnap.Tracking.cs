@@ -78,9 +78,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (point != null || end != null)
             {
-                CadAcquiredPoint acquired = point != null && (end == null || point.Reach <= end.Reach)
-                    ? new CadAcquiredPoint(point.Kind, point.Point, point.Handle)
-                    : new CadAcquiredPoint(CadSnapKind.Extension, end.Point, end.Handle);
+                CadAcquiredPoint acquired =
+                    point != null && (end == null || point.Reach <= end.Reach)
+                        ? new CadAcquiredPoint(point.Kind, point.Point, point.Handle)
+                        : new CadAcquiredPoint(CadSnapKind.Extension, end.Point, end.Handle);
 
                 // The end at the point acquired gives its run to Extension.
                 if (end != null && (end.Point - acquired.Point).Length <= Tolerance.EqualPoint)
@@ -104,7 +105,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (Curve curve in found.Curves)
             {
-                if (curve.Radius < 0.0 && !curve.Sampled && curve.Run.Length > Tolerance.EqualPoint && (line == null || CompareLines(curve, line) < 0))
+                if (
+                    curve.Radius < 0.0
+                    && !curve.Sampled
+                    && curve.Run.Length > Tolerance.EqualPoint
+                    && (line == null || CompareLines(curve, line) < 0)
+                )
                 {
                     line = curve;
                 }
@@ -116,7 +122,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoVector2 along = line.Run;
-            Add(new CadAcquiredPoint(CadSnapKind.Parallel, line.Foot, line.Handle) { Direction = along / along.Length });
+            Add(
+                new CadAcquiredPoint(CadSnapKind.Parallel, line.Foot, line.Handle) { Direction = along / along.Length }
+            );
             return true;
         }
 
@@ -144,7 +152,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>Whether the object was picked: false for any other snap.</returns>
         public bool TakeFirstObject(CadSnapResult result)
         {
-            if (result == null || result.Kind != CadSnapKind.ExtendedApparentIntersection || !(result.Source is Curve curve))
+            if (
+                result == null
+                || result.Kind != CadSnapKind.ExtendedApparentIntersection
+                || !(result.Source is Curve curve)
+            )
             {
                 return false;
             }
@@ -191,7 +203,15 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The end of a segment at <paramref name="at"/>, its run going on away from <paramref name="from"/>, where it lies within the aperture.</summary>
-        private void AddEnd(List<End> ends, GeoPoint2 at, GeoPoint2 from, string handle, GeoPoint2 cursor, double aperture, double onIt)
+        private void AddEnd(
+            List<End> ends,
+            GeoPoint2 at,
+            GeoPoint2 from,
+            string handle,
+            GeoPoint2 cursor,
+            double aperture,
+            double onIt
+        )
         {
             GeoVector2 along = at - from;
             double length = along.Length;
@@ -199,18 +219,45 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (reach <= aperture && length > Tolerance.EqualPoint)
             {
-                ends.Add(new End { Point = at, Handle = handle, Reach = reach, OnIt = onIt, Along = along / length });
+                ends.Add(
+                    new End
+                    {
+                        Point = at,
+                        Handle = handle,
+                        Reach = reach,
+                        OnIt = onIt,
+                        Along = along / length,
+                    }
+                );
             }
         }
 
         /// <summary>An end of an arc, its run going on round the circle away from the sweep, where it lies within the aperture.</summary>
-        private static void AddEnd(List<End> ends, DisplayArc2 arc, bool atStart, GeoPoint2 at, GeoPoint2 cursor, double aperture, double onIt)
+        private static void AddEnd(
+            List<End> ends,
+            DisplayArc2 arc,
+            bool atStart,
+            GeoPoint2 at,
+            GeoPoint2 cursor,
+            double aperture,
+            double onIt
+        )
         {
             double reach = (at - cursor).Length;
 
             if (reach <= aperture)
             {
-                ends.Add(new End { Point = at, Handle = arc.Handle, Reach = reach, OnIt = onIt, Arc = arc, AtArcStart = atStart });
+                ends.Add(
+                    new End
+                    {
+                        Point = at,
+                        Handle = arc.Handle,
+                        Reach = reach,
+                        OnIt = onIt,
+                        Arc = arc,
+                        AtArcStart = atStart,
+                    }
+                );
             }
         }
 
@@ -240,7 +287,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// clicked first and one under the cursor would; and, for a click, the object under the cursor offered as the first.
         /// Curves drawn as chains (splines, ellipses) have no run and are left out.
         /// </summary>
-        private void AddApparent(List<Curve> curves, GeoPoint2 cursor, double aperture, List<Candidate> near, List<Candidate> onObject, List<Candidate> offered)
+        private void AddApparent(
+            List<Curve> curves,
+            GeoPoint2 cursor,
+            double aperture,
+            List<Candidate> near,
+            List<Candidate> onObject,
+            List<Candidate> offered
+        )
         {
             Curve offer = null;
 
@@ -274,7 +328,14 @@ namespace GeometryHelper.Dxf.Viewer
                     // The crossing nearer the cursor of the two a circle may give is taken first.
                     foreach (GeoPoint2 point in Cross(_firstObject, a, true))
                     {
-                        onObject.Add(new Candidate(CadSnapKind.ApparentIntersection, point, a.Handle, a.Reach + (point - cursor).Length * 1E-9));
+                        onObject.Add(
+                            new Candidate(
+                                CadSnapKind.ApparentIntersection,
+                                point,
+                                a.Handle,
+                                a.Reach + (point - cursor).Length * 1E-9
+                            )
+                        );
                     }
                 }
 
@@ -286,7 +347,15 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (offer != null)
             {
-                offered.Add(new Candidate(CadSnapKind.ExtendedApparentIntersection, offer.NearestTo(cursor), offer.Handle, offer.Reach, source: offer));
+                offered.Add(
+                    new Candidate(
+                        CadSnapKind.ExtendedApparentIntersection,
+                        offer.NearestTo(cursor),
+                        offer.Handle,
+                        offer.Reach,
+                        source: offer
+                    )
+                );
             }
         }
 
@@ -317,7 +386,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// cursor (<paramref name="tracked"/>), and where two of these lines cross within it (<paramref name="near"/>), the
         /// polar lines from the base point among them while POLAR is on.
         /// </summary>
-        private void AddTracking(GeoPoint2 cursor, double aperture, GeoPoint2? basePoint, List<Candidate> near, List<Candidate> tracked)
+        private void AddTracking(
+            GeoPoint2 cursor,
+            double aperture,
+            GeoPoint2? basePoint,
+            List<Candidate> near,
+            List<Candidate> tracked
+        )
         {
             if (_acquired.Count == 0)
             {
@@ -340,8 +415,24 @@ namespace GeometryHelper.Dxf.Viewer
                     // A line acquired for Parallel: the endless line through the base point along it, as two rays.
                     if (basePoint.HasValue && Has(CadSnapModes.Parallel))
                     {
-                        paths.Add(new TrackPath(basePoint.Value, acquired.Direction.Value, CadSnapKind.Parallel, acquired.Handle, acquired));
-                        paths.Add(new TrackPath(basePoint.Value, -acquired.Direction.Value, CadSnapKind.Parallel, acquired.Handle, acquired));
+                        paths.Add(
+                            new TrackPath(
+                                basePoint.Value,
+                                acquired.Direction.Value,
+                                CadSnapKind.Parallel,
+                                acquired.Handle,
+                                acquired
+                            )
+                        );
+                        paths.Add(
+                            new TrackPath(
+                                basePoint.Value,
+                                -acquired.Direction.Value,
+                                CadSnapKind.Parallel,
+                                acquired.Handle,
+                                acquired
+                            )
+                        );
                     }
 
                     continue;
@@ -349,7 +440,15 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (Has(CadSnapModes.Extension) && acquired.Along.HasValue)
                 {
-                    paths.Add(new TrackPath(acquired.Point, acquired.Along.Value, CadSnapKind.Extension, acquired.Handle, acquired));
+                    paths.Add(
+                        new TrackPath(
+                            acquired.Point,
+                            acquired.Along.Value,
+                            CadSnapKind.Extension,
+                            acquired.Handle,
+                            acquired
+                        )
+                    );
                 }
 
                 if (Has(CadSnapModes.Extension) && acquired.Arc != null)
@@ -363,7 +462,9 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         double angle = k * trackIncrement;
                         GeoVector2 direction = _ucs.ToWorld(new GeoVector2(Math.Cos(angle), Math.Sin(angle)));
-                        paths.Add(new TrackPath(acquired.Point, direction, CadSnapKind.Tracking, acquired.Handle, acquired));
+                        paths.Add(
+                            new TrackPath(acquired.Point, direction, CadSnapKind.Tracking, acquired.Handle, acquired)
+                        );
                     }
                 }
             }
@@ -384,7 +485,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (TrackPath path in paths)
             {
-                double along = (cursor.X - path.From.X) * path.Direction.X + (cursor.Y - path.From.Y) * path.Direction.Y;
+                double along =
+                    (cursor.X - path.From.X) * path.Direction.X + (cursor.Y - path.From.Y) * path.Direction.Y;
 
                 if (along < -aperture)
                 {
@@ -403,7 +505,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (path.Kind != CadSnapKind.Polar)
                 {
-                    tracked.Add(new Candidate(path.Kind, foot, path.Handle, reach, new[] { new[] { path.From, foot } }));
+                    tracked.Add(
+                        new Candidate(path.Kind, foot, path.Handle, reach, new[] { new[] { path.From, foot } })
+                    );
                 }
             }
 
@@ -415,7 +519,11 @@ namespace GeometryHelper.Dxf.Viewer
                     TrackPath b = close[j];
 
                     // Two lines from one acquired point, or from the base point, meet only there.
-                    if ((a.Owner != null && a.Owner == b.Owner) || (a.Kind == CadSnapKind.Polar && b.Kind == CadSnapKind.Polar) || (a.From - b.From).Length <= Tolerance.EqualPoint)
+                    if (
+                        (a.Owner != null && a.Owner == b.Owner)
+                        || (a.Kind == CadSnapKind.Polar && b.Kind == CadSnapKind.Polar)
+                        || (a.From - b.From).Length <= Tolerance.EqualPoint
+                    )
                     {
                         continue;
                     }
@@ -444,18 +552,40 @@ namespace GeometryHelper.Dxf.Viewer
                         continue;
                     }
 
-                    bool tracking = a.Kind == CadSnapKind.Tracking || b.Kind == CadSnapKind.Tracking || a.Kind == CadSnapKind.Polar || b.Kind == CadSnapKind.Polar;
-                    string handle = b.Handle == null || (a.Handle != null && string.CompareOrdinal(a.Handle, b.Handle) <= 0) ? a.Handle : b.Handle;
-                    near.Add(new Candidate(tracking ? CadSnapKind.Tracking : CadSnapKind.Intersection, point, handle, reach, new[] { new[] { a.From, point }, new[] { b.From, point } }));
+                    bool tracking =
+                        a.Kind == CadSnapKind.Tracking
+                        || b.Kind == CadSnapKind.Tracking
+                        || a.Kind == CadSnapKind.Polar
+                        || b.Kind == CadSnapKind.Polar;
+                    string handle =
+                        b.Handle == null || (a.Handle != null && string.CompareOrdinal(a.Handle, b.Handle) <= 0)
+                            ? a.Handle
+                            : b.Handle;
+                    near.Add(
+                        new Candidate(
+                            tracking ? CadSnapKind.Tracking : CadSnapKind.Intersection,
+                            point,
+                            handle,
+                            reach,
+                            new[] { new[] { a.From, point }, new[] { b.From, point } }
+                        )
+                    );
                 }
             }
         }
 
         /// <summary>The run of an acquired end of an arc: the point of its circle at the cursor's angle, where that lies off the arc and the cursor near the circle.</summary>
-        private void AddArcExtension(CadAcquiredPoint acquired, GeoPoint2 cursor, double aperture, List<Candidate> tracked)
+        private void AddArcExtension(
+            CadAcquiredPoint acquired,
+            GeoPoint2 cursor,
+            double aperture,
+            List<Candidate> tracked
+        )
         {
             DisplayArc2 arc = acquired.Arc;
-            double fromCenter = Math.Sqrt((cursor.X - arc.Cx) * (cursor.X - arc.Cx) + (cursor.Y - arc.Cy) * (cursor.Y - arc.Cy));
+            double fromCenter = Math.Sqrt(
+                (cursor.X - arc.Cx) * (cursor.X - arc.Cx) + (cursor.Y - arc.Cy) * (cursor.Y - arc.Cy)
+            );
             double reach = Math.Abs(fromCenter - arc.Radius);
 
             if (reach > aperture || fromCenter <= Tolerance.EqualPoint)
@@ -548,7 +678,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>A ray a tracked point may lie on: from an acquired point, an end, or the base point, along a unit direction.</summary>
         private sealed class TrackPath
         {
-            public TrackPath(GeoPoint2 from, GeoVector2 direction, CadSnapKind kind, string handle, CadAcquiredPoint owner)
+            public TrackPath(
+                GeoPoint2 from,
+                GeoVector2 direction,
+                CadSnapKind kind,
+                string handle,
+                CadAcquiredPoint owner
+            )
             {
                 From = from;
                 Direction = direction;

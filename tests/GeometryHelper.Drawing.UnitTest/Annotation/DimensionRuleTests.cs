@@ -37,7 +37,9 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
 
             // The row of holes gives the same three along X, so it gives none of its own; across, each hole is 100 from
             // either edge, which the overall 200 does not say.
-            Assert.DoesNotContain(dimensions, d => d.Direction.X > 0.5 && (d.Kind == DimensionKind.HoleEdge || d.Kind == DimensionKind.HoleGroup));
+            Assert.DoesNotContain(dimensions, d =>
+                d.Direction.X > 0.5 && (d.Kind == DimensionKind.HoleEdge || d.Kind == DimensionKind.HoleGroup)
+            );
             Assert.Equal(new[] { "200" }, Texts(dimensions, DimensionKind.Overall, false));
             Assert.Equal(new[] { "100", "100" }, Texts(dimensions, DimensionKind.HoleEdge, false));
 
@@ -63,7 +65,11 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             // The row of holes gives its pitches as one, and its distance to the near end; the far one is the chain's 600.
             Assert.Equal(new[] { "3 x 100 = 300" }, Texts(merged, DimensionKind.HoleGroup, true));
 
-            IReadOnlyList<DrawingDimension> apart = Dimension(objects, Top, new DimensionSettings { MergeEqual = false });
+            IReadOnlyList<DrawingDimension> apart = Dimension(
+                objects,
+                Top,
+                new DimensionSettings { MergeEqual = false }
+            );
             Assert.Equal(new[] { "100", "100", "100", "100", "600" }, Texts(apart, DimensionKind.Chain, true));
         }
 
@@ -71,10 +77,18 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         public void ACumulativeLineMeasuresEveryPointFromTheFirstEnd()
         {
             DrawingObject[] objects = { Bar(3000, 200, P(100, 100), P(2900, 100)) };
-            var settings = new DimensionSettings { Chain = false, HolesByGroup = false, Cumulative = true };
+            var settings = new DimensionSettings
+            {
+                Chain = false,
+                HolesByGroup = false,
+                Cumulative = true,
+            };
             IReadOnlyList<DrawingDimension> dimensions = Dimension(objects, Top, settings);
 
-            DrawingDimension[] along = dimensions.Where(d => d.Kind == DimensionKind.Cumulative && d.Direction.X > 0.5).OrderBy(d => d.Value).ToArray();
+            DrawingDimension[] along = dimensions
+                .Where(d => d.Kind == DimensionKind.Cumulative && d.Direction.X > 0.5)
+                .OrderBy(d => d.Value)
+                .ToArray();
             Assert.Equal(new[] { "0", "100", "2900", "3000" }, along.Select(d => d.Text));
             Assert.All(along, d => Near(0.0, d.Points[0].ViewPoint.X));
             Assert.All(along, d => Assert.Null(d.DimensionLine));
@@ -89,10 +103,19 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             GeoSolid3 body = PlateWithHoles(3000, 200, 20, 22, 24, P(100, 100), P(2900, 100));
             var frame = new GeoCoordinateSystem3(new GeoPoint3(1500, 0, 0), GeoVector3.XAxis, GeoVector3.YAxis);
             DrawingObject[] objects = { Part("bar", body, true, frame) };
-            var settings = new DimensionSettings { Chain = false, HolesByGroup = false, Overall = false, Ordinate = true };
+            var settings = new DimensionSettings
+            {
+                Chain = false,
+                HolesByGroup = false,
+                Overall = false,
+                Ordinate = true,
+            };
             IReadOnlyList<DrawingDimension> dimensions = Dimension(objects, Top, settings);
 
-            DrawingDimension[] along = dimensions.Where(d => d.Kind == DimensionKind.Ordinate && d.Direction.X > 0.5).OrderBy(d => d.Points[1].ViewPoint.X).ToArray();
+            DrawingDimension[] along = dimensions
+                .Where(d => d.Kind == DimensionKind.Ordinate && d.Direction.X > 0.5)
+                .OrderBy(d => d.Points[1].ViewPoint.X)
+                .ToArray();
             Assert.Equal(new[] { "1500", "1400", "0", "1400", "1500" }, along.Select(d => d.Text));
             Assert.All(along, d => Near(1500.0, d.Points[0].ViewPoint.X));
             Assert.All(along, d => Assert.Equal(DimensionPointKind.WorkPoint, d.Points[0].Kind));

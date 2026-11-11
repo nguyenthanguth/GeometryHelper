@@ -52,7 +52,8 @@ namespace GeometryHelper.Core
         {
             GeoVector2 dir = line.Direction;
             double lenSq = dir.LengthSquared;
-            if (lenSq <= tolerance.EqualPoint * tolerance.EqualPoint) return 0.0;
+            if (lenSq <= tolerance.EqualPoint * tolerance.EqualPoint)
+                return 0.0;
             return line.StartPoint.GetVectorTo(point).DotProduct(dir) / lenSq;
         }
 
@@ -109,7 +110,8 @@ namespace GeometryHelper.Core
             double angle = Wrap(parameter) * 2.0 * Math.PI;
             return new GeoPoint2(
                 circle.Center.X + circle.Radius * Math.Cos(angle),
-                circle.Center.Y + circle.Radius * Math.Sin(angle));
+                circle.Center.Y + circle.Radius * Math.Sin(angle)
+            );
         }
 
         /// <summary>
@@ -119,7 +121,8 @@ namespace GeometryHelper.Core
         public static double GetParameterAtPoint(GeoCircle2 circle, GeoPoint2 point)
         {
             double angle = Math.Atan2(point.Y - circle.Center.Y, point.X - circle.Center.X);
-            if (angle < 0.0) angle += 2.0 * Math.PI;
+            if (angle < 0.0)
+                angle += 2.0 * Math.PI;
             return angle / (2.0 * Math.PI);
         }
 
@@ -279,7 +282,8 @@ namespace GeometryHelper.Core
         /// </summary>
         public static GeoPoint2 GetPointAtParameter(GeoPolyline2 polyline, double parameter)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             double length = polyline.Length;
             double bounded = Clamp(parameter);
@@ -291,7 +295,8 @@ namespace GeometryHelper.Core
         /// </summary>
         public static double GetParameterAtPoint(GeoPolyline2 polyline, GeoPoint2 point)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             double length = polyline.Length;
             return length <= 0.0 ? 0.0 : DistanceAtPoint(Edges(polyline), point) / length;
@@ -302,7 +307,8 @@ namespace GeometryHelper.Core
         /// </summary>
         public static double GetDistanceAtParameter(GeoPolyline2 polyline, double parameter)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
             return parameter * polyline.Length;
         }
 
@@ -311,7 +317,8 @@ namespace GeometryHelper.Core
         /// </summary>
         public static double GetParameterAtDistance(GeoPolyline2 polyline, double distance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             double length = polyline.Length;
             return length <= 0.0 ? 0.0 : distance / length;
@@ -322,7 +329,8 @@ namespace GeometryHelper.Core
         /// </summary>
         public static GeoPoint2 GetPointAtDistance(GeoPolyline2 polyline, double distance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             double length = polyline.Length;
             double bounded = Math.Max(0.0, Math.Min(length, distance));
@@ -339,7 +347,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static double GetDistanceAtPoint(GeoPolyline2 polyline, GeoPoint2 point)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
             return DistanceAtPoint(Edges(polyline), point);
         }
 
@@ -350,8 +359,10 @@ namespace GeometryHelper.Core
         private static double Wrap(double parameter)
         {
             double wrapped = parameter % 1.0;
-            if (wrapped < 0.0) wrapped += 1.0;
-            if (wrapped >= 1.0) wrapped = 0.0;
+            if (wrapped < 0.0)
+                wrapped += 1.0;
+            if (wrapped >= 1.0)
+                wrapped = 0.0;
             return wrapped;
         }
 
@@ -360,11 +371,14 @@ namespace GeometryHelper.Core
         /// </summary>
         private static double WrapDistance(double distance, double length)
         {
-            if (length <= 0.0) return 0.0;
+            if (length <= 0.0)
+                return 0.0;
 
             double wrapped = distance % length;
-            if (wrapped < 0.0) wrapped += length;
-            if (wrapped >= length) wrapped = 0.0;
+            if (wrapped < 0.0)
+                wrapped += length;
+            if (wrapped >= length)
+                wrapped = 0.0;
             return wrapped;
         }
 
@@ -382,7 +396,8 @@ namespace GeometryHelper.Core
         /// </summary>
         private static GeoLine2[] Edges(GeoPolygon2 poly)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             GeoLine2[] edges = new GeoLine2[poly.EdgeCount];
             for (int i = 0; i < edges.Length; i++)
@@ -413,10 +428,14 @@ namespace GeometryHelper.Core
         /// <param name="distance">Arc length from the start of the first edge, already bounded by the caller.</param>
         private static GeoPoint2 PointAtDistance(GeoLine2[] edges, double totalLength, double distance)
         {
-            if (edges.Length == 0) return new GeoPoint2();
-            if (totalLength <= 0.0) return edges[0].StartPoint;
-            if (distance <= 0.0) return edges[0].StartPoint;
-            if (distance >= totalLength) return edges[edges.Length - 1].EndPoint;
+            if (edges.Length == 0)
+                return new GeoPoint2();
+            if (totalLength <= 0.0)
+                return edges[0].StartPoint;
+            if (distance <= 0.0)
+                return edges[0].StartPoint;
+            if (distance >= totalLength)
+                return edges[edges.Length - 1].EndPoint;
 
             double remaining = distance;
             for (int i = 0; i < edges.Length; i++)
@@ -425,7 +444,8 @@ namespace GeometryHelper.Core
                 if (remaining <= edgeLength)
                 {
                     // A zero-length edge cannot be subdivided, so its start point is the whole of it.
-                    if (edgeLength <= 0.0) return edges[i].StartPoint;
+                    if (edgeLength <= 0.0)
+                        return edges[i].StartPoint;
                     return edges[i].GetPointAtParameter(remaining / edgeLength);
                 }
                 remaining -= edgeLength;
@@ -444,7 +464,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         private static double DistanceAtPoint(GeoLine2[] edges, GeoPoint2 point)
         {
-            if (edges.Length == 0) return 0.0;
+            if (edges.Length == 0)
+                return 0.0;
 
             double bestDistanceSquared = double.MaxValue;
             double result = 0.0;
@@ -466,6 +487,7 @@ namespace GeometryHelper.Core
 
             return result;
         }
+
         #region Chains that may curve
 
         /// <summary>
@@ -477,7 +499,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint2 GetPointAtParameter(GeoPolylineArc2 chain, double parameter)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             List<GeoEdge2> edges = ArcChain2.EdgesOf(chain);
 
@@ -493,7 +516,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint2 GetPointAtDistance(GeoPolylineArc2 chain, double distance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return ArcChain2.PointAtDistance(ArcChain2.EdgesOf(chain), distance);
         }
@@ -504,7 +528,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static double GetDistanceAtParameter(GeoPolylineArc2 chain, double parameter)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return parameter * chain.Length;
         }
@@ -515,7 +540,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static double GetParameterAtDistance(GeoPolylineArc2 chain, double distance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             double length = chain.Length;
 
@@ -526,7 +552,8 @@ namespace GeometryHelper.Core
         /// Gets the normalized parameter of the point of a chain that may curve nearest a point.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static double GetParameterAtPoint(GeoPolylineArc2 chain, GeoPoint2 point) => GetParameterAtPoint(chain, point, Tolerance.Global);
+        public static double GetParameterAtPoint(GeoPolylineArc2 chain, GeoPoint2 point) =>
+            GetParameterAtPoint(chain, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the normalized parameter of the point of a chain that may curve nearest a point, within a tolerance.
@@ -534,7 +561,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static double GetParameterAtPoint(GeoPolylineArc2 chain, GeoPoint2 point, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             List<GeoEdge2> edges = ArcChain2.EdgesOf(chain);
             double length = ArcChain2.LengthOf(edges);
@@ -546,7 +574,8 @@ namespace GeometryHelper.Core
         /// Gets how far along a chain that may curve the point nearest a point lies.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static double GetDistanceAtPoint(GeoPolylineArc2 chain, GeoPoint2 point) => GetDistanceAtPoint(chain, point, Tolerance.Global);
+        public static double GetDistanceAtPoint(GeoPolylineArc2 chain, GeoPoint2 point) =>
+            GetDistanceAtPoint(chain, point, Tolerance.Global);
 
         /// <summary>
         /// Gets how far along a chain that may curve the point nearest a point lies, within a tolerance.
@@ -554,7 +583,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static double GetDistanceAtPoint(GeoPolylineArc2 chain, GeoPoint2 point, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return ArcChain2.DistanceAtPoint(ArcChain2.EdgesOf(chain), point, tolerance);
         }
@@ -568,7 +598,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static GeoPoint2 GetPointAtParameter(GeoPolygonArc2 loop, double parameter)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             List<GeoEdge2> edges = ArcChain2.EdgesOf(loop);
 
@@ -584,7 +615,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static GeoPoint2 GetPointAtDistance(GeoPolygonArc2 loop, double distance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return ArcChain2.PointAtDistance(ArcChain2.EdgesOf(loop), distance);
         }
@@ -595,7 +627,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static double GetDistanceAtParameter(GeoPolygonArc2 loop, double parameter)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return parameter * loop.Length;
         }
@@ -606,7 +639,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static double GetParameterAtDistance(GeoPolygonArc2 loop, double distance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             double length = loop.Length;
 
@@ -617,7 +651,8 @@ namespace GeometryHelper.Core
         /// Gets the normalized parameter of the point of a loop that may curve nearest a point.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static double GetParameterAtPoint(GeoPolygonArc2 loop, GeoPoint2 point) => GetParameterAtPoint(loop, point, Tolerance.Global);
+        public static double GetParameterAtPoint(GeoPolygonArc2 loop, GeoPoint2 point) =>
+            GetParameterAtPoint(loop, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the normalized parameter of the point of a loop that may curve nearest a point, within a tolerance.
@@ -625,7 +660,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static double GetParameterAtPoint(GeoPolygonArc2 loop, GeoPoint2 point, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             List<GeoEdge2> edges = ArcChain2.EdgesOf(loop);
             double length = ArcChain2.LengthOf(edges);
@@ -637,7 +673,8 @@ namespace GeometryHelper.Core
         /// Gets how far round a loop that may curve the point nearest a point lies.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
-        public static double GetDistanceAtPoint(GeoPolygonArc2 loop, GeoPoint2 point) => GetDistanceAtPoint(loop, point, Tolerance.Global);
+        public static double GetDistanceAtPoint(GeoPolygonArc2 loop, GeoPoint2 point) =>
+            GetDistanceAtPoint(loop, point, Tolerance.Global);
 
         /// <summary>
         /// Gets how far round a loop that may curve the point nearest a point lies, within a tolerance.
@@ -645,12 +682,12 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static double GetDistanceAtPoint(GeoPolygonArc2 loop, GeoPoint2 point, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return ArcChain2.DistanceAtPoint(ArcChain2.EdgesOf(loop), point, tolerance);
         }
 
         #endregion
-
     }
 }

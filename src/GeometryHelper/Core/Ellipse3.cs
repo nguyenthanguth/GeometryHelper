@@ -38,7 +38,8 @@ namespace GeometryHelper.Core
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="tolerance">The tolerance: the radii may differ by up to its point tolerance.</param>
         /// <returns>true if the radii differ by no more than the point tolerance; otherwise, false.</returns>
-        public static bool IsCircle(GeoEllipse3 ellipse, Tolerance tolerance) => Ellipse2.IsCircle(Flat(ellipse), tolerance);
+        public static bool IsCircle(GeoEllipse3 ellipse, Tolerance tolerance) =>
+            Ellipse2.IsCircle(Flat(ellipse), tolerance);
 
         /// <summary>
         /// Gets the axis-aligned bounding box enclosing an ellipse in space, exactly.
@@ -58,7 +59,8 @@ namespace GeometryHelper.Core
             var extent = new GeoVector3(
                 Math.Sqrt(major.X * major.X + minor.X * minor.X),
                 Math.Sqrt(major.Y * major.Y + minor.Y * minor.Y),
-                Math.Sqrt(major.Z * major.Z + minor.Z * minor.Z));
+                Math.Sqrt(major.Z * major.Z + minor.Z * minor.Z)
+            );
 
             return new GeoAabb3(ellipse.Center.Subtract(extent), ellipse.Center.Add(extent));
         }
@@ -112,7 +114,8 @@ namespace GeometryHelper.Core
         /// Gets the normalized parameter of the point of the rim of an ellipse in space nearest a point, using the default
         /// tolerance.
         /// </summary>
-        public static double GetParameterAtPoint(GeoEllipse3 ellipse, GeoPoint3 point) => GetParameterAtPoint(ellipse, point, Tolerance.Global);
+        public static double GetParameterAtPoint(GeoEllipse3 ellipse, GeoPoint3 point) =>
+            GetParameterAtPoint(ellipse, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the normalized parameter of the point of the rim of an ellipse in space nearest a point, within a tolerance:
@@ -168,7 +171,8 @@ namespace GeometryHelper.Core
         /// Gets the length along the rim of an ellipse in space from the end of its major axis to the point of the rim
         /// nearest a point, using the default tolerance.
         /// </summary>
-        public static double GetDistanceAtPoint(GeoEllipse3 ellipse, GeoPoint3 point) => GetDistanceAtPoint(ellipse, point, Tolerance.Global);
+        public static double GetDistanceAtPoint(GeoEllipse3 ellipse, GeoPoint3 point) =>
+            GetDistanceAtPoint(ellipse, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the length along the rim of an ellipse in space from the end of its major axis to the point of the rim
@@ -214,7 +218,8 @@ namespace GeometryHelper.Core
         /// The foot of the point on the plane when it lies within the rim, as a point above the interior lands straight down
         /// on the surface; otherwise the nearest point of the rim.
         /// </returns>
-        public static GeoPoint3 GetClosestPointOnSurface(GeoEllipse3 ellipse, GeoPoint3 point) => GetClosestPointOnSurface(ellipse, point, Tolerance.Global);
+        public static GeoPoint3 GetClosestPointOnSurface(GeoEllipse3 ellipse, GeoPoint3 point) =>
+            GetClosestPointOnSurface(ellipse, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the point of the disc of an ellipse in space nearest a point, the disc read as a filled surface, within a
@@ -249,7 +254,8 @@ namespace GeometryHelper.Core
         /// squared and the gap from the foot to the rim squared. A point 50 above the centre of an ellipse 300 by 100 is 50
         /// from it; one 40 above the plane and 30 beyond the end of the major axis is 50 from it.
         /// </returns>
-        public static double DistanceTo(GeoEllipse3 ellipse, GeoPoint3 point) => DistanceTo(ellipse, point, Tolerance.Global);
+        public static double DistanceTo(GeoEllipse3 ellipse, GeoPoint3 point) =>
+            DistanceTo(ellipse, point, Tolerance.Global);
 
         /// <summary>
         /// Calculates the shortest distance from the disc of an ellipse in space to a point, within a tolerance.
@@ -277,7 +283,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining the disc of an ellipse in space to a point, using the default tolerance.
         /// </summary>
-        public static GeoLine3 GetShortestLineTo(GeoEllipse3 ellipse, GeoPoint3 point) => GetShortestLineTo(ellipse, point, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoEllipse3 ellipse, GeoPoint3 point) =>
+            GetShortestLineTo(ellipse, point, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining the disc of an ellipse in space to a point.
@@ -292,7 +299,8 @@ namespace GeometryHelper.Core
         /// origin on the XY plane, the point (0, 0, 50) gets the segment from the centre, 50 long, and the point (330, 0, 40)
         /// the one from the end of the major axis at (300, 0, 0), also 50 long.
         /// </returns>
-        public static GeoLine3 GetShortestLineTo(GeoEllipse3 ellipse, GeoPoint3 point, Tolerance tolerance) => new GeoLine3(GetClosestPointOnSurface(ellipse, point, tolerance), point);
+        public static GeoLine3 GetShortestLineTo(GeoEllipse3 ellipse, GeoPoint3 point, Tolerance tolerance) =>
+            new GeoLine3(GetClosestPointOnSurface(ellipse, point, tolerance), point);
 
         #endregion
 
@@ -301,7 +309,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Says where a point sits relative to the disc of an ellipse in space, using the default tolerance.
         /// </summary>
-        public static PointLocation Locate(GeoEllipse3 ellipse, GeoPoint3 point) => Locate(ellipse, point, Tolerance.Global);
+        public static PointLocation Locate(GeoEllipse3 ellipse, GeoPoint3 point) =>
+            Locate(ellipse, point, Tolerance.Global);
 
         /// <summary>
         /// Says where a point sits relative to the disc of an ellipse in space, within a tolerance.
@@ -346,7 +355,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a point lies on the rim of an ellipse in space, using the default tolerance.
         /// </summary>
-        public static bool IsPointOn(GeoEllipse3 ellipse, GeoPoint3 point) => IsPointOn(ellipse, point, Tolerance.Global);
+        public static bool IsPointOn(GeoEllipse3 ellipse, GeoPoint3 point) =>
+            IsPointOn(ellipse, point, Tolerance.Global);
 
         /// <summary>
         /// Checks whether a point lies on the rim of an ellipse in space, within a tolerance.
@@ -369,7 +379,14 @@ namespace GeometryHelper.Core
         /// </summary>
         public static GeoEllipse3 Translate(GeoEllipse3 ellipse, GeoVector3 vector)
         {
-            return new GeoEllipse3(ellipse.Center.Add(vector), ellipse.Normal, ellipse.MajorAxis, ellipse.MajorRadius, ellipse.MinorRadius, true);
+            return new GeoEllipse3(
+                ellipse.Center.Add(vector),
+                ellipse.Normal,
+                ellipse.MajorAxis,
+                ellipse.MajorRadius,
+                ellipse.MinorRadius,
+                true
+            );
         }
 
         /// <summary>
@@ -459,7 +476,9 @@ namespace GeometryHelper.Core
 
             if (!(area > 1E-12 * ellipse.MajorRadius * ellipse.MinorRadius))
             {
-                throw new InvalidOperationException("The ellipse stands square to the plane, so it projects onto a segment.");
+                throw new InvalidOperationException(
+                    "The ellipse stands square to the plane, so it projects onto a segment."
+                );
             }
 
             return FromSemiAxes(Projection3.ProjectToPlane(plane, ellipse.Center), normal, along, across, area);
@@ -477,7 +496,8 @@ namespace GeometryHelper.Core
         /// The circle is read as <see cref="GeoEllipse3.FromCircle(GeoCircle3)"/> makes it an ellipse: a circle of radius 300
         /// tilted 60° from the plan is, in the plan, an ellipse 300 by 150.
         /// </remarks>
-        public static GeoEllipse3 ProjectToPlane(GeoCircle3 circle, GeoPlane3 plane) => ProjectToPlane(GeoEllipse3.FromCircle(circle), plane);
+        public static GeoEllipse3 ProjectToPlane(GeoCircle3 circle, GeoPlane3 plane) =>
+            ProjectToPlane(GeoEllipse3.FromCircle(circle), plane);
 
         #endregion
 
@@ -495,7 +515,9 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 corners.</exception>
         public static GeoPolygon3 ToPolygonByChordTolerance(GeoEllipse3 ellipse, double chordTolerance)
         {
-            return new GeoPolygon3(Lift(ellipse, Ellipse2.ToPolygonByChordTolerance(Flat(ellipse), chordTolerance).Vertices));
+            return new GeoPolygon3(
+                Lift(ellipse, Ellipse2.ToPolygonByChordTolerance(Flat(ellipse), chordTolerance).Vertices)
+            );
         }
 
         /// <summary>
@@ -534,7 +556,9 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 corners.</exception>
         public static GeoPolyline3 ToPolylineByChordTolerance(GeoEllipse3 ellipse, double chordTolerance)
         {
-            return new GeoPolyline3(Lift(ellipse, Ellipse2.ToPolylineByChordTolerance(Flat(ellipse), chordTolerance).Vertices));
+            return new GeoPolyline3(
+                Lift(ellipse, Ellipse2.ToPolylineByChordTolerance(Flat(ellipse), chordTolerance).Vertices)
+            );
         }
 
         /// <summary>
@@ -570,7 +594,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether two ellipses in space are the same shape in the same place, within the default tolerance.
         /// </summary>
-        public static bool IsEqualTo(GeoEllipse3 ellipse, GeoEllipse3 other) => IsEqualTo(ellipse, other, Tolerance.Global);
+        public static bool IsEqualTo(GeoEllipse3 ellipse, GeoEllipse3 other) =>
+            IsEqualTo(ellipse, other, Tolerance.Global);
 
         /// <summary>
         /// Determines whether two ellipses in space are the same shape in the same place, within a tolerance.
@@ -589,10 +614,12 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool IsEqualTo(GeoEllipse3 ellipse, GeoEllipse3 other, Tolerance tolerance)
         {
-            if (!ellipse.Center.IsEqualTo(other.Center, tolerance)
+            if (
+                !ellipse.Center.IsEqualTo(other.Center, tolerance)
                 || !ellipse.Normal.IsEqualTo(other.Normal, tolerance)
                 || !(Math.Abs(ellipse.MajorRadius - other.MajorRadius) <= tolerance.EqualPoint)
-                || !(Math.Abs(ellipse.MinorRadius - other.MinorRadius) <= tolerance.EqualPoint))
+                || !(Math.Abs(ellipse.MinorRadius - other.MinorRadius) <= tolerance.EqualPoint)
+            )
             {
                 return false;
             }
@@ -602,7 +629,8 @@ namespace GeometryHelper.Core
                 return true;
             }
 
-            return ellipse.MajorAxis.IsEqualTo(other.MajorAxis, tolerance) || ellipse.MajorAxis.IsEqualTo(other.MajorAxis.Multiply(-1.0), tolerance);
+            return ellipse.MajorAxis.IsEqualTo(other.MajorAxis, tolerance)
+                || ellipse.MajorAxis.IsEqualTo(other.MajorAxis.Multiply(-1.0), tolerance);
         }
 
         #endregion
@@ -614,13 +642,25 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static GeoEllipse2 Flat(GeoEllipse3 ellipse)
         {
-            return new GeoEllipse2(new GeoPoint2(0.0, 0.0), GeoVector2.XAxis, ellipse.MajorRadius, ellipse.MinorRadius, true);
+            return new GeoEllipse2(
+                new GeoPoint2(0.0, 0.0),
+                GeoVector2.XAxis,
+                ellipse.MajorRadius,
+                ellipse.MinorRadius,
+                true
+            );
         }
 
         /// <summary>
         /// Gets how far a point lies from the centre along the major axis, along the minor, and above the plane.
         /// </summary>
-        private static void Frame(GeoEllipse3 ellipse, GeoPoint3 point, out double along, out double across, out double height)
+        private static void Frame(
+            GeoEllipse3 ellipse,
+            GeoPoint3 point,
+            out double along,
+            out double across,
+            out double height
+        )
         {
             GeoVector3 offset = ellipse.Center.GetVectorTo(point);
 
@@ -660,14 +700,26 @@ namespace GeometryHelper.Core
             GeoVector3 offset = center.GetVectorTo(point);
             double along = offset.DotProduct(ellipse.MajorAxis);
             double across = offset.DotProduct(ellipse.MinorAxis);
-            double rounding = 1E-14 * (Math.Abs(center.X) + Math.Abs(center.Y) + Math.Abs(center.Z) + Math.Abs(offset.X) + Math.Abs(offset.Y) + Math.Abs(offset.Z));
+            double rounding =
+                1E-14
+                * (
+                    Math.Abs(center.X)
+                    + Math.Abs(center.Y)
+                    + Math.Abs(center.Z)
+                    + Math.Abs(offset.X)
+                    + Math.Abs(offset.Y)
+                    + Math.Abs(offset.Z)
+                );
 
             if (along * along + across * across <= centre * centre)
             {
                 return new GeoPoint2(0.0, 0.0);
             }
 
-            return new GeoPoint2(Math.Abs(along) <= rounding ? 0.0 : along, Math.Abs(across) <= rounding ? 0.0 : across);
+            return new GeoPoint2(
+                Math.Abs(along) <= rounding ? 0.0 : along,
+                Math.Abs(across) <= rounding ? 0.0 : across
+            );
         }
 
         /// <summary>
@@ -693,7 +745,8 @@ namespace GeometryHelper.Core
             return new GeoPoint3(
                 center.X + (point.X * major.X + point.Y * minor.X),
                 center.Y + (point.X * major.Y + point.Y * minor.Y),
-                center.Z + (point.X * major.Z + point.Y * minor.Z));
+                center.Z + (point.X * major.Z + point.Y * minor.Z)
+            );
         }
 
         private static List<GeoPoint3> Lift(GeoEllipse3 ellipse, IReadOnlyList<GeoPoint2> points)
@@ -712,7 +765,13 @@ namespace GeometryHelper.Core
         /// Gets the ellipse drawn by two conjugate semi-axes lying in the plane of a normal: the images of the major and the
         /// minor semi-axis under a map of the plane, read in a square frame of the new plane by <see cref="Ellipse2"/>.
         /// </summary>
-        internal static GeoEllipse3 FromSemiAxes(GeoPoint3 center, GeoVector3 normal, GeoVector3 along, GeoVector3 across, double area)
+        internal static GeoEllipse3 FromSemiAxes(
+            GeoPoint3 center,
+            GeoVector3 normal,
+            GeoVector3 along,
+            GeoVector3 across,
+            double area
+        )
         {
             GeoVector3 first = normal.GetPerpendicularVector();
             GeoVector3 second = normal.CrossProduct(first);
@@ -722,7 +781,8 @@ namespace GeometryHelper.Core
                 new GeoVector2(along.DotProduct(first), along.DotProduct(second)),
                 new GeoVector2(across.DotProduct(first), across.DotProduct(second)),
                 area,
-                out bool circle);
+                out bool circle
+            );
 
             // A circle keeps its angle starting where the old one went, as in the plane.
             GeoVector3 axis = circle

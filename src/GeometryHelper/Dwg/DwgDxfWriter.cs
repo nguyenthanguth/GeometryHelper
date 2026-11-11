@@ -85,8 +85,12 @@ namespace GeometryHelper.Dwg
                 while (true)
                 {
                     byte b = escaped[to];
-                    int step = b == (byte)'^' || (doubleByte && b > 0x80) ? 2
-                        : !utf8 || b < 0xC0 ? 1 : b < 0xE0 ? 2 : b < 0xF0 ? 3 : 4;
+                    int step =
+                        b == (byte)'^' || (doubleByte && b > 0x80) ? 2
+                        : !utf8 || b < 0xC0 ? 1
+                        : b < 0xE0 ? 2
+                        : b < 0xF0 ? 3
+                        : 4;
 
                     if (to + step - from > size)
                     {
@@ -112,16 +116,39 @@ namespace GeometryHelper.Dwg
         {
             switch (value)
             {
-                case byte number: Write(code, (long)number); break;
-                case short number: Write(code, (long)number); break;
-                case int number: Write(code, (long)number); break;
-                case long number: Write(code, number); break;
-                case double number: Write(code, number); break;
-                case string text: Write(code, text); break;
-                case byte[] text: Write(code, text); break;
-                case ulong handle: WriteHandle(code, handle); break;
-                case double[] point: WritePoint(code, point); break;
-                default: throw new InvalidOperationException("A DXF group cannot carry a value of the kind " + (value == null ? "null" : value.GetType().Name) + ".");
+                case byte number:
+                    Write(code, (long)number);
+                    break;
+                case short number:
+                    Write(code, (long)number);
+                    break;
+                case int number:
+                    Write(code, (long)number);
+                    break;
+                case long number:
+                    Write(code, number);
+                    break;
+                case double number:
+                    Write(code, number);
+                    break;
+                case string text:
+                    Write(code, text);
+                    break;
+                case byte[] text:
+                    Write(code, text);
+                    break;
+                case ulong handle:
+                    WriteHandle(code, handle);
+                    break;
+                case double[] point:
+                    WritePoint(code, point);
+                    break;
+                default:
+                    throw new InvalidOperationException(
+                        "A DXF group cannot carry a value of the kind "
+                            + (value == null ? "null" : value.GetType().Name)
+                            + "."
+                    );
             }
         }
 

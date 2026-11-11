@@ -31,7 +31,13 @@ namespace GeometryHelper.Drawing
         /// <summary>The fields a mark's format names but attributes, as the document reads them back.</summary>
         private static readonly MarkField[] Fields =
         {
-            MarkField.Mark, MarkField.Name, MarkField.Profile, MarkField.Material, MarkField.Length, MarkField.Count, MarkField.Diameter,
+            MarkField.Mark,
+            MarkField.Name,
+            MarkField.Profile,
+            MarkField.Material,
+            MarkField.Length,
+            MarkField.Count,
+            MarkField.Diameter,
         };
 
         private DimensionSettings _dimensions = new DimensionSettings();
@@ -50,7 +56,10 @@ namespace GeometryHelper.Drawing
             {
                 var settings = new DrawingSettings();
                 settings.Views.Sections.Add(new SectionViewRequest("A", ViewKind.Right, 0.5));
-                ViewSettings.Refill(settings.Views.Dimensioned, new[] { ViewKind.Front, ViewKind.Top, ViewKind.Right, ViewKind.Section });
+                ViewSettings.Refill(
+                    settings.Views.Dimensioned,
+                    new[] { ViewKind.Front, ViewKind.Top, ViewKind.Right, ViewKind.Section }
+                );
                 settings.Marks.MainParts = true;
                 settings.Marks.Fittings = false;
                 settings.Sheet.Size = PaperSize.A3;
@@ -178,7 +187,10 @@ namespace GeometryHelper.Drawing
             {
                 if (!(scale > 0.0) || double.IsInfinity(scale))
                 {
-                    throw new ArgumentException("A scale allowed has to be a finite number above nought.", nameof(Scales));
+                    throw new ArgumentException(
+                        "A scale allowed has to be a finite number above nought.",
+                        nameof(Scales)
+                    );
                 }
 
                 if (!scales.Contains(scale))
@@ -197,8 +209,8 @@ namespace GeometryHelper.Drawing
         }
 
         /// <summary>The dimension settings copied, the scale set to a view's.</summary>
-        internal static DimensionSettings CloneDimensions(DimensionSettings source, double scale = 1.0)
-            => new DimensionSettings
+        internal static DimensionSettings CloneDimensions(DimensionSettings source, double scale = 1.0) =>
+            new DimensionSettings
             {
                 Overall = source.Overall,
                 Chain = source.Chain,
@@ -242,7 +254,16 @@ namespace GeometryHelper.Drawing
                 if (section.CutLine.HasValue)
                 {
                     GeoLine2 cut = section.CutLine.Value;
-                    Add(key + ".CutLine", string.Join(",", Write(cut.StartPoint.X), Write(cut.StartPoint.Y), Write(cut.EndPoint.X), Write(cut.EndPoint.Y)));
+                    Add(
+                        key + ".CutLine",
+                        string.Join(
+                            ",",
+                            Write(cut.StartPoint.X),
+                            Write(cut.StartPoint.Y),
+                            Write(cut.EndPoint.X),
+                            Write(cut.EndPoint.Y)
+                        )
+                    );
                     Number(key + ".Depth", section.Depth);
                 }
             }
@@ -284,7 +305,14 @@ namespace GeometryHelper.Drawing
             Number("Marks.TextHeight", _marks.TextHeight);
             Number("Marks.Offset", _marks.Offset);
 
-            foreach ((string kind, MarkFormat format) in new[] { ("Part", _marks.Content.Part), ("Assembly", _marks.Content.Assembly), ("Bolt", _marks.Content.Bolt) })
+            foreach (
+                (string kind, MarkFormat format) in new[]
+                {
+                    ("Part", _marks.Content.Part),
+                    ("Assembly", _marks.Content.Assembly),
+                    ("Bolt", _marks.Content.Bolt),
+                }
+            )
             {
                 string key = "Marks.Content." + kind;
                 Add(key + ".Separator", format.Separator);
@@ -293,7 +321,12 @@ namespace GeometryHelper.Drawing
                 for (int i = 0; i < format.Fields.Count; i++)
                 {
                     MarkField field = format.Fields[i];
-                    Add(key + ".Field." + i.ToString(CultureInfo.InvariantCulture), field.Kind == MarkFieldKind.Attribute ? "Attribute:" + field.AttributeName : field.Kind.ToString());
+                    Add(
+                        key + ".Field." + i.ToString(CultureInfo.InvariantCulture),
+                        field.Kind == MarkFieldKind.Attribute
+                            ? "Attribute:" + field.AttributeName
+                            : field.Kind.ToString()
+                    );
                 }
             }
 
@@ -361,7 +394,11 @@ namespace GeometryHelper.Drawing
             {
                 string key = "Views.Section." + i.ToString(CultureInfo.InvariantCulture);
 
-                if (!read.TryGetValue(key + ".Name", out string name) || name.Length == 0 || !TryKind(read, key + ".LookingAs", out ViewKind kind))
+                if (
+                    !read.TryGetValue(key + ".Name", out string name)
+                    || name.Length == 0
+                    || !TryKind(read, key + ".LookingAs", out ViewKind kind)
+                )
                 {
                     continue;
                 }
@@ -374,14 +411,26 @@ namespace GeometryHelper.Drawing
 
                     for (int k = 0; k < parts.Length && read4; k++)
                     {
-                        read4 = double.TryParse(parts[k], NumberStyles.Float, CultureInfo.InvariantCulture, out numbers[k]);
+                        read4 = double.TryParse(
+                            parts[k],
+                            NumberStyles.Float,
+                            CultureInfo.InvariantCulture,
+                            out numbers[k]
+                        );
                     }
 
                     if (read4 && TryNumber(read, key + ".Depth", out double depth))
                     {
                         try
                         {
-                            views.Sections.Add(new SectionViewRequest(name, kind, new GeoLine2(numbers[0], numbers[1], numbers[2], numbers[3]), depth));
+                            views.Sections.Add(
+                                new SectionViewRequest(
+                                    name,
+                                    kind,
+                                    new GeoLine2(numbers[0], numbers[1], numbers[2], numbers[3]),
+                                    depth
+                                )
+                            );
                         }
                         catch (ArgumentException)
                         {
@@ -399,12 +448,24 @@ namespace GeometryHelper.Drawing
             {
                 string key = "Views.Detail." + i.ToString(CultureInfo.InvariantCulture);
 
-                if (read.TryGetValue(key + ".Name", out string name) && TryKind(read, key + ".Of", out ViewKind of)
-                    && TryNumber(read, key + ".CentreX", out double x) && TryNumber(read, key + ".CentreY", out double y)
-                    && TryNumber(read, key + ".Width", out double width) && TryNumber(read, key + ".Height", out double height)
-                    && TryNumber(read, key + ".Enlargement", out double enlargement))
+                if (
+                    read.TryGetValue(key + ".Name", out string name)
+                    && TryKind(read, key + ".Of", out ViewKind of)
+                    && TryNumber(read, key + ".CentreX", out double x)
+                    && TryNumber(read, key + ".CentreY", out double y)
+                    && TryNumber(read, key + ".Width", out double width)
+                    && TryNumber(read, key + ".Height", out double height)
+                    && TryNumber(read, key + ".Enlargement", out double enlargement)
+                )
                 {
-                    views.Details.Add(new DetailViewRequest(name, of, new Geometry.GeoRectangle2(new Geometry.GeoPoint2(x, y), width, height), enlargement));
+                    views.Details.Add(
+                        new DetailViewRequest(
+                            name,
+                            of,
+                            new Geometry.GeoRectangle2(new Geometry.GeoPoint2(x, y), width, height),
+                            enlargement
+                        )
+                    );
                 }
             }
 
@@ -414,7 +475,11 @@ namespace GeometryHelper.Drawing
 
                 foreach (string part in scales.Split(','))
                 {
-                    if (double.TryParse(part, NumberStyles.Float, CultureInfo.InvariantCulture, out double scale) && scale > 0.0 && !double.IsInfinity(scale))
+                    if (
+                        double.TryParse(part, NumberStyles.Float, CultureInfo.InvariantCulture, out double scale)
+                        && scale > 0.0
+                        && !double.IsInfinity(scale)
+                    )
                     {
                         list.Add(scale);
                     }
@@ -462,7 +527,11 @@ namespace GeometryHelper.Drawing
             Try(read, "Symbols.TextHeight", v => symbols.TextHeight = v);
             Try(read, "Symbols.CentreLineExtension", v => symbols.CentreLineExtension = v);
 
-            if (read.TryGetValue("Symbols.WeldStandard", out string standard) && Enum.TryParse(standard, out WeldStandard weld) && Enum.IsDefined(typeof(WeldStandard), weld))
+            if (
+                read.TryGetValue("Symbols.WeldStandard", out string standard)
+                && Enum.TryParse(standard, out WeldStandard weld)
+                && Enum.IsDefined(typeof(WeldStandard), weld)
+            )
             {
                 symbols.WeldStandard = weld;
             }
@@ -470,12 +539,20 @@ namespace GeometryHelper.Drawing
             TryFlag(read, "Symbols.LevelMarks", v => symbols.LevelMarks = v);
             SheetSettings sheet = settings.Sheet;
 
-            if (read.TryGetValue("Sheet.Size", out string size) && Enum.TryParse(size, out PaperSize paper) && Enum.IsDefined(typeof(PaperSize), paper))
+            if (
+                read.TryGetValue("Sheet.Size", out string size)
+                && Enum.TryParse(size, out PaperSize paper)
+                && Enum.IsDefined(typeof(PaperSize), paper)
+            )
             {
                 sheet.Size = paper;
             }
 
-            if (read.TryGetValue("Sheet.Orientation", out string orientation) && Enum.TryParse(orientation, out SheetOrientation turned) && Enum.IsDefined(typeof(SheetOrientation), turned))
+            if (
+                read.TryGetValue("Sheet.Orientation", out string orientation)
+                && Enum.TryParse(orientation, out SheetOrientation turned)
+                && Enum.IsDefined(typeof(SheetOrientation), turned)
+            )
             {
                 sheet.Orientation = turned;
             }
@@ -495,12 +572,20 @@ namespace GeometryHelper.Drawing
             title.DrawnBy = Text(read, "Title.DrawnBy");
             title.Date = Text(read, "Title.Date");
 
-            if (read.TryGetValue("ProjectionMethod", out string method) && Enum.TryParse(method, out ProjectionMethod projection) && Enum.IsDefined(typeof(ProjectionMethod), projection))
+            if (
+                read.TryGetValue("ProjectionMethod", out string method)
+                && Enum.TryParse(method, out ProjectionMethod projection)
+                && Enum.IsDefined(typeof(ProjectionMethod), projection)
+            )
             {
                 settings.ProjectionMethod = projection;
             }
 
-            if (read.TryGetValue("ExportMode", out string mode) && Enum.TryParse(mode, out DrawingExportMode export) && Enum.IsDefined(typeof(DrawingExportMode), export))
+            if (
+                read.TryGetValue("ExportMode", out string mode)
+                && Enum.TryParse(mode, out DrawingExportMode export)
+                && Enum.IsDefined(typeof(DrawingExportMode), export)
+            )
             {
                 settings.ExportMode = export;
             }
@@ -512,7 +597,9 @@ namespace GeometryHelper.Drawing
         internal static string Write(double value)
         {
             string written = value.ToString("R", CultureInfo.InvariantCulture);
-            return double.Parse(written, CultureInfo.InvariantCulture).Equals(value) ? written : value.ToString("G17", CultureInfo.InvariantCulture);
+            return double.Parse(written, CultureInfo.InvariantCulture).Equals(value)
+                ? written
+                : value.ToString("G17", CultureInfo.InvariantCulture);
         }
 
         private static List<string> Names(IEnumerable<ViewKind> kinds)
@@ -543,22 +630,31 @@ namespace GeometryHelper.Drawing
         }
 
         /// <summary>The ids of a list written with commas between them, the empty ones left out.</summary>
-        private static List<string> Ids(SortedDictionary<string, string> read, string key)
-            => read.TryGetValue(key, out string written) ? new List<string>(written.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)) : new List<string>();
+        private static List<string> Ids(SortedDictionary<string, string> read, string key) =>
+            read.TryGetValue(key, out string written)
+                ? new List<string>(written.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                : new List<string>();
 
-        private static int Count(SortedDictionary<string, string> read, string key)
-            => read.TryGetValue(key, out string written) && int.TryParse(written, NumberStyles.Integer, CultureInfo.InvariantCulture, out int count) && count > 0 ? count : 0;
+        private static int Count(SortedDictionary<string, string> read, string key) =>
+            read.TryGetValue(key, out string written)
+            && int.TryParse(written, NumberStyles.Integer, CultureInfo.InvariantCulture, out int count)
+            && count > 0
+                ? count
+                : 0;
 
         private static bool TryNumber(SortedDictionary<string, string> read, string key, out double value)
         {
             value = 0.0;
-            return read.TryGetValue(key, out string written) && double.TryParse(written, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+            return read.TryGetValue(key, out string written)
+                && double.TryParse(written, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
         }
 
         private static bool TryKind(SortedDictionary<string, string> read, string key, out ViewKind kind)
         {
             kind = ViewKind.Front;
-            return read.TryGetValue(key, out string written) && Enum.TryParse(written, out kind) && Enum.IsDefined(typeof(ViewKind), kind);
+            return read.TryGetValue(key, out string written)
+                && Enum.TryParse(written, out kind)
+                && Enum.IsDefined(typeof(ViewKind), kind);
         }
 
         /// <summary>A mark's format read back: its separator and every field, or nothing where one of them does not read.</summary>
@@ -566,8 +662,12 @@ namespace GeometryHelper.Drawing
         {
             format = null;
 
-            if (!read.TryGetValue(key + ".Separator", out string separator) || !read.TryGetValue(key + ".Fields", out string written)
-                || !int.TryParse(written, NumberStyles.Integer, CultureInfo.InvariantCulture, out int count) || count < 0)
+            if (
+                !read.TryGetValue(key + ".Separator", out string separator)
+                || !read.TryGetValue(key + ".Fields", out string written)
+                || !int.TryParse(written, NumberStyles.Integer, CultureInfo.InvariantCulture, out int count)
+                || count < 0
+            )
             {
                 return false;
             }
@@ -587,7 +687,9 @@ namespace GeometryHelper.Drawing
                     continue;
                 }
 
-                MarkField field = Array.Find(Fields, f => string.Equals(f.Kind.ToString(), name, StringComparison.Ordinal));
+                MarkField field = Array.Find(Fields, f =>
+                    string.Equals(f.Kind.ToString(), name, StringComparison.Ordinal)
+                );
 
                 if (field == null)
                 {
@@ -624,6 +726,7 @@ namespace GeometryHelper.Drawing
             }
         }
 
-        private static string Text(SortedDictionary<string, string> read, string key) => read.TryGetValue(key, out string written) ? written : string.Empty;
+        private static string Text(SortedDictionary<string, string> read, string key) =>
+            read.TryGetValue(key, out string written) ? written : string.Empty;
     }
 }

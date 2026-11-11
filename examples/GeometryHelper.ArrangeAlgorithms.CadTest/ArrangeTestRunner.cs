@@ -7,8 +7,8 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
-using GeometryHelper.Geometry;
 using GeometryHelper.Arranging;
+using GeometryHelper.Geometry;
 
 [assembly: CommandClass(typeof(GeometryHelper.ArrangeAlgorithms.CadTest.ArrangeCommands))]
 
@@ -82,15 +82,17 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
 
                 foreach (GeoLine2 leader in entities)
                 {
-                    items.Add(new ArrangeItem
-                    {
-                        Leader = leader,
-                        // Create rotated label box along the direction of the guide object
-                        Box = MakeBox(leader, BoxWidth, BoxHeight),
-                        BlockPolygons = new List<GeoPolygon2>(),
-                        // Avoid all other selected guide segments
-                        BlockLines = selectedLines.FindAll(l => !l.Equals(leader))
-                    });
+                    items.Add(
+                        new ArrangeItem
+                        {
+                            Leader = leader,
+                            // Create rotated label box along the direction of the guide object
+                            Box = MakeBox(leader, BoxWidth, BoxHeight),
+                            BlockPolygons = new List<GeoPolygon2>(),
+                            // Avoid all other selected guide segments
+                            BlockLines = selectedLines.FindAll(l => !l.Equals(leader)),
+                        }
+                    );
                 }
 
                 if (items.Count == 0)
@@ -113,10 +115,15 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
             }
             catch (System.Exception ex)
             {
-                editor.WriteMessage(string.Format(
-                    CultureInfo.CurrentCulture,
-                    "\nError executing label arrangement [{0}]: {1}\nStack Trace: {2}",
-                    algorithmName, ex.Message, ex.StackTrace));
+                editor.WriteMessage(
+                    string.Format(
+                        CultureInfo.CurrentCulture,
+                        "\nError executing label arrangement [{0}]: {1}\nStack Trace: {2}",
+                        algorithmName,
+                        ex.Message,
+                        ex.StackTrace
+                    )
+                );
             }
         }
 
@@ -131,8 +138,11 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
             if (entity is Line lineEntity)
             {
                 leader = new GeoLine2(
-                    lineEntity.StartPoint.X, lineEntity.StartPoint.Y,
-                    lineEntity.EndPoint.X, lineEntity.EndPoint.Y);
+                    lineEntity.StartPoint.X,
+                    lineEntity.StartPoint.Y,
+                    lineEntity.EndPoint.X,
+                    lineEntity.EndPoint.Y
+                );
 
                 return leader.Length > 0.0;
             }
@@ -179,8 +189,13 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
         }
 
         private static void DrawResult(
-            Database database, Transaction transaction, List<ArrangeItem> items, ArrangeResult[] results, string algorithmName,
-            long elapsedMilliseconds)
+            Database database,
+            Transaction transaction,
+            List<ArrangeItem> items,
+            ArrangeResult[] results,
+            string algorithmName,
+            long elapsedMilliseconds
+        )
         {
             ObjectId boxFromLayerId = EnsureLayer(database, transaction, BoxFromLayer);
             ObjectId boxToLayerId = EnsureLayer(database, transaction, BoxToLayer);
@@ -188,8 +203,8 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
             ObjectId connectionLayerId = EnsureLayer(database, transaction, "connection");
 
             var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
-            var space = (BlockTableRecord)transaction.GetObject(
-                blockTable[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+            var space = (BlockTableRecord)
+                transaction.GetObject(blockTable[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
 
             var createdEntities = new List<Entity>();
             double maxConnectionLength = 0.0;
@@ -214,7 +229,8 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     item.Box.Center + result.Translation,
                     item.Box.Width,
                     item.Box.Height,
-                    item.Box.AngleRad);
+                    item.Box.AngleRad
+                );
 
                 // Draw box after arrangement (green if successful, red if overlapped/failed)
                 Polyline moved = ToAcadPolyline(movedRect);
@@ -228,10 +244,11 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                 // Draw leader connecting from guide segment midpoint to new label center
                 var leader = new Line(
                     new Point3d(item.Leader.MidPoint.X, item.Leader.MidPoint.Y, 0.0),
-                    new Point3d(movedRect.Center.X, movedRect.Center.Y, 0.0))
+                    new Point3d(movedRect.Center.X, movedRect.Center.Y, 0.0)
+                )
                 {
                     LayerId = lineMoveLayerId,
-                    ColorIndex = LeaderColour
+                    ColorIndex = LeaderColour,
                 };
 
                 space.AppendEntity(leader);
@@ -242,10 +259,11 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                 GeoPoint2 closestOnLine = item.Leader.GetClosestPointOnBoundary(movedRect.Center);
                 var connection = new Line(
                     new Point3d(movedRect.Center.X, movedRect.Center.Y, 0.0),
-                    new Point3d(closestOnLine.X, closestOnLine.Y, 0.0))
+                    new Point3d(closestOnLine.X, closestOnLine.Y, 0.0)
+                )
                 {
                     LayerId = connectionLayerId,
-                    ColorIndex = 4 // Cyan
+                    ColorIndex = 4, // Cyan
                 };
 
                 space.AppendEntity(connection);
@@ -298,17 +316,19 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     int placedCount = 0;
                     for (int i = 0; i < items.Count; i++)
                     {
-                        if (results[i].Placed) placedCount++;
+                        if (results[i].Placed)
+                            placedCount++;
                     }
 
                     double avgConnectionLength = items.Count > 0 ? sumConnectionLength / items.Count : 0.0;
 
                     var dbText = new DBText
                     {
-                        TextString = $"{algorithmName} ({placedCount}/{items.Count} placed, {elapsedMilliseconds} ms) - Max Conn: {maxConnectionLength:F1}, Avg Conn: {avgConnectionLength:F1}",
+                        TextString =
+                            $"{algorithmName} ({placedCount}/{items.Count} placed, {elapsedMilliseconds} ms) - Max Conn: {maxConnectionLength:F1}, Avg Conn: {avgConnectionLength:F1}",
                         Height = 800.0,
                         LayerId = boxToLayerId,
-                        ColorIndex = PlacedColour
+                        ColorIndex = PlacedColour,
                     };
                     dbText.Justify = AttachmentPoint.BaseCenter;
                     dbText.AlignmentPoint = new Point3d(centerX, textY, 0.0);
@@ -358,7 +378,13 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
         /// <summary>
         /// Prints statistics report of arrangement results to AutoCAD command line.
         /// </summary>
-        private static void Report(Editor editor, ArrangeResult[] results, int skipped, long milliseconds, string algorithmName)
+        private static void Report(
+            Editor editor,
+            ArrangeResult[] results,
+            int skipped,
+            long milliseconds,
+            string algorithmName
+        )
         {
             int placed = 0;
             foreach (ArrangeResult result in results)
@@ -369,17 +395,29 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                 }
             }
 
-            editor.WriteMessage(string.Format(
-                CultureInfo.CurrentCulture,
-                "\nArranged {0} labels using [{1}] algorithm in {2} ms." +
-                "\n  Placed         : {3}" +
-                "\n  Fallback (red) : {4}" +
-                "\n  Skipped        : {5}" +
-                "\nLayer {6}: box {7}x{8} at initial assumed position (grey)." +
-                "\nLayer {9}: box after arrangement (green/red)." +
-                "\nLayer {10}: connection line showing movement.",
-                results.Length, algorithmName, milliseconds, placed, results.Length - placed, skipped,
-                BoxFromLayer, BoxWidth, BoxHeight, BoxToLayer, LineMoveLayer));
+            editor.WriteMessage(
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    "\nArranged {0} labels using [{1}] algorithm in {2} ms."
+                        + "\n  Placed         : {3}"
+                        + "\n  Fallback (red) : {4}"
+                        + "\n  Skipped        : {5}"
+                        + "\nLayer {6}: box {7}x{8} at initial assumed position (grey)."
+                        + "\nLayer {9}: box after arrangement (green/red)."
+                        + "\nLayer {10}: connection line showing movement.",
+                    results.Length,
+                    algorithmName,
+                    milliseconds,
+                    placed,
+                    results.Length - placed,
+                    skipped,
+                    BoxFromLayer,
+                    BoxWidth,
+                    BoxHeight,
+                    BoxToLayer,
+                    LineMoveLayer
+                )
+            );
         }
     }
 }

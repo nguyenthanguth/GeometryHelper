@@ -288,7 +288,8 @@ namespace GeometryHelper.UnitTest.Solid
             return gap > 1E-9 && gap <= Band;
         }
 
-        internal override double GapFromPoint(Vec point) => (point - (_o + _d * Math.Max(0, (point - _o).Dot(_d)))).Length;
+        internal override double GapFromPoint(Vec point) =>
+            (point - (_o + _d * Math.Max(0, (point - _o).Dot(_d)))).Length;
     }
 
     /// <summary>An infinite line.</summary>
@@ -374,9 +375,7 @@ namespace GeometryHelper.UnitTest.Solid
         private readonly double _sweep;
 
         internal ArcPiece(GeoArc3 arc)
-            : this(Vec.Of(arc.Center), Vec.Of(arc.Normal).Unit(), Vec.Of(arc.StartPoint), arc.SweptAngle)
-        {
-        }
+            : this(Vec.Of(arc.Center), Vec.Of(arc.Normal).Unit(), Vec.Of(arc.StartPoint), arc.SweptAngle) { }
 
         internal ArcPiece(Vec center, Vec normal, Vec start, double sweep)
         {
@@ -397,7 +396,18 @@ namespace GeometryHelper.UnitTest.Solid
             double lo = Math.Min(0, _sweep);
             double hi = Math.Max(0, _sweep);
 
-            return Math.Sqrt(MinOver(phi => { Vec p = line.Perp(At(phi)); return p.Dot(p); }, lo, hi, Full));
+            return Math.Sqrt(
+                MinOver(
+                    phi =>
+                    {
+                        Vec p = line.Perp(At(phi));
+                        return p.Dot(p);
+                    },
+                    lo,
+                    hi,
+                    Full
+                )
+            );
         }
 
         internal override IEnumerable<Vec> Meetings(Ln line)
@@ -461,7 +471,9 @@ namespace GeometryHelper.UnitTest.Solid
             // rounding and may come out as two crossings a thousandth apart, or one a millionth off.
             bool grazesTheSphere = Math.Abs((p - _c).Dot(line.D)) < 0.02 * _r;
 
-            return (Math.Min((p - At(0)).Length, (p - At(_sweep)).Length) <= Band && !Full) || tangent.Cross(line.D).Length < 0.03 || grazesTheSphere;
+            return (Math.Min((p - At(0)).Length, (p - At(_sweep)).Length) <= Band && !Full)
+                || tangent.Cross(line.D).Length < 0.03
+                || grazesTheSphere;
         }
 
         internal override double GapFromPoint(Vec point)
@@ -469,7 +481,18 @@ namespace GeometryHelper.UnitTest.Solid
             double lo = Math.Min(0, _sweep);
             double hi = Math.Max(0, _sweep);
 
-            return Math.Sqrt(MinOver(phi => { Vec d = point - At(phi); return d.Dot(d); }, lo, hi, Full));
+            return Math.Sqrt(
+                MinOver(
+                    phi =>
+                    {
+                        Vec d = point - At(phi);
+                        return d.Dot(d);
+                    },
+                    lo,
+                    hi,
+                    Full
+                )
+            );
         }
     }
 
@@ -495,8 +518,19 @@ namespace GeometryHelper.UnitTest.Solid
 
         private Vec At(double theta) => _c + _m * (_a * Math.Cos(theta)) + _w * (_b * Math.Sin(theta));
 
-        internal override double Gap(Ln line)
-            => Math.Sqrt(MinOver(theta => { Vec p = line.Perp(At(theta)); return p.Dot(p); }, 0, 2 * Math.PI, true));
+        internal override double Gap(Ln line) =>
+            Math.Sqrt(
+                MinOver(
+                    theta =>
+                    {
+                        Vec p = line.Perp(At(theta));
+                        return p.Dot(p);
+                    },
+                    0,
+                    2 * Math.PI,
+                    true
+                )
+            );
 
         private double Deviation(Vec p)
         {
@@ -546,8 +580,19 @@ namespace GeometryHelper.UnitTest.Solid
             return deviation <= 2 * Band * Math.Max(1.0 / _a, 1.0 / _b) * 4;
         }
 
-        internal override double GapFromPoint(Vec point)
-            => Math.Sqrt(MinOver(theta => { Vec d = point - At(theta); return d.Dot(d); }, 0, 2 * Math.PI, true));
+        internal override double GapFromPoint(Vec point) =>
+            Math.Sqrt(
+                MinOver(
+                    theta =>
+                    {
+                        Vec d = point - At(theta);
+                        return d.Dot(d);
+                    },
+                    0,
+                    2 * Math.PI,
+                    true
+                )
+            );
     }
 
     /// <summary>A flat region: an outline and holes in one plane, read filled.</summary>
@@ -562,7 +607,9 @@ namespace GeometryHelper.UnitTest.Solid
         internal FlatPiece(IReadOnlyList<GeoPoint3> outline, IEnumerable<IReadOnlyList<GeoPoint3>> holes)
         {
             _outline = outline.Select(Vec.Of).ToArray();
-            _holes = (holes ?? Enumerable.Empty<IReadOnlyList<GeoPoint3>>()).Select(h => h.Select(Vec.Of).ToArray()).ToArray();
+            _holes = (holes ?? Enumerable.Empty<IReadOnlyList<GeoPoint3>>())
+                .Select(h => h.Select(Vec.Of).ToArray())
+                .ToArray();
             _v0 = _outline[0];
 
             // The normal by Newell's sum, which does not care which corners are collinear.
@@ -577,12 +624,21 @@ namespace GeometryHelper.UnitTest.Solid
             }
 
             _n = sum.Unit();
-            _drop = Math.Abs(_n.X) >= Math.Abs(_n.Y) && Math.Abs(_n.X) >= Math.Abs(_n.Z) ? 0 : Math.Abs(_n.Y) >= Math.Abs(_n.Z) ? 1 : 2;
+            _drop =
+                Math.Abs(_n.X) >= Math.Abs(_n.Y) && Math.Abs(_n.X) >= Math.Abs(_n.Z) ? 0
+                : Math.Abs(_n.Y) >= Math.Abs(_n.Z) ? 1
+                : 2;
         }
 
-        private double U(Vec p) => _drop == 0 ? p.Y : _drop == 1 ? p.Z : p.X;
+        private double U(Vec p) =>
+            _drop == 0 ? p.Y
+            : _drop == 1 ? p.Z
+            : p.X;
 
-        private double W(Vec p) => _drop == 0 ? p.Z : _drop == 1 ? p.X : p.Y;
+        private double W(Vec p) =>
+            _drop == 0 ? p.Z
+            : _drop == 1 ? p.X
+            : p.Y;
 
         private bool InRing(Vec[] ring, Vec p)
         {
@@ -590,7 +646,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int i = 0, j = ring.Length - 1; i < ring.Length; j = i++)
             {
-                double ui = U(ring[i]), wi = W(ring[i]), uj = U(ring[j]), wj = W(ring[j]);
+                double ui = U(ring[i]),
+                    wi = W(ring[i]),
+                    uj = U(ring[j]),
+                    wj = W(ring[j]);
 
                 if ((wi > W(p)) != (wj > W(p)) && U(p) < (uj - ui) * (W(p) - wi) / (wj - wi) + ui)
                 {
@@ -678,7 +737,13 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     internal sealed class XLineSpecimen
     {
-        internal XLineSpecimen(string kind, object shape, IReadOnlyList<Piece> pieces, Func<Random, Vec> pointOn, bool measured)
+        internal XLineSpecimen(
+            string kind,
+            object shape,
+            IReadOnlyList<Piece> pieces,
+            Func<Random, Vec> pointOn,
+            bool measured
+        )
         {
             Kind = kind;
             Shape = shape;

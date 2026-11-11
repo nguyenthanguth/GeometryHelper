@@ -17,19 +17,32 @@ namespace GeometryHelper.UnitTest.Dxf
     {
         private static readonly Tolerance Exact = new Tolerance(1E-9, 1E-9);
 
-        private static readonly Dictionary<string, double> Values = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase) { ["Width"] = 10, ["Half"] = 2.5 };
+        private static readonly Dictionary<string, double> Values = new Dictionary<string, double>(
+            StringComparer.OrdinalIgnoreCase
+        )
+        {
+            ["Width"] = 10,
+            ["Half"] = 2.5,
+        };
 
-        private static double Read(string name) => Values.TryGetValue(name, out double value) ? value : throw new NotSupportedException("No variable " + name + ".");
+        private static double Read(string name) =>
+            Values.TryGetValue(name, out double value)
+                ? value
+                : throw new NotSupportedException("No variable " + name + ".");
 
         private static bool IsWhole(string name) => name.Equals("Width", StringComparison.OrdinalIgnoreCase);
 
-        private static double Evaluate(string expression, out bool whole) => DxfConstraintExpression.Evaluate(expression, Read, IsWhole, out whole);
+        private static double Evaluate(string expression, out bool whole) =>
+            DxfConstraintExpression.Evaluate(expression, Read, IsWhole, out whole);
 
         /// <summary>Asserts a value of AutoCAD 2021's within 1E-12 of its size, and its kind.</summary>
         private static void Same(string expression, double autocad, bool whole)
         {
             double value = Evaluate(expression, out bool isWhole);
-            Assert.True(Math.Abs(value - autocad) <= 1E-12 * Math.Max(1.0, Math.Abs(autocad)), expression + " gave " + value.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+            Assert.True(
+                Math.Abs(value - autocad) <= 1E-12 * Math.Max(1.0, Math.Abs(autocad)),
+                expression + " gave " + value.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+            );
             Assert.Equal(whole, isWhole);
         }
 
@@ -161,11 +174,27 @@ namespace GeometryHelper.UnitTest.Dxf
         public void WhatAutoCadWouldNotWorkOut_IsRefused()
         {
             // AutoCAD 2021 refused each of these (plugin D34 r1, r2): out of range, no such function, random drawn anew.
-            foreach (string expression in new[]
-            {
-                "ln(-1)", "log(0)", "sqrt(-1)", "acos(2)", "asin(2)", "atanh(1)", "acosh(0.5)", "1/0", "max(2;1/0)", "round(3000000000.5)",
-                "trunc(-3000000000.7)", "floor(1e10)", "log10(100)", "random", "random()", "e2",
-            })
+            foreach (
+                string expression in new[]
+                {
+                    "ln(-1)",
+                    "log(0)",
+                    "sqrt(-1)",
+                    "acos(2)",
+                    "asin(2)",
+                    "atanh(1)",
+                    "acosh(0.5)",
+                    "1/0",
+                    "max(2;1/0)",
+                    "round(3000000000.5)",
+                    "trunc(-3000000000.7)",
+                    "floor(1e10)",
+                    "log10(100)",
+                    "random",
+                    "random()",
+                    "e2",
+                }
+            )
             {
                 Assert.Throws<NotSupportedException>(() => Evaluate(expression, out _));
             }
@@ -205,15 +234,43 @@ namespace GeometryHelper.UnitTest.Dxf
             db.BlockTable.Add(block);
             var line = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0));
             block.AppendEntity(line);
-            var left = new DxfAttributeDefinition(new GeoPoint3(100, 10, 0), "L1", "LEFT", "Left", null) { Height = 5, LockPositionInBlock = locked };
+            var left = new DxfAttributeDefinition(new GeoPoint3(100, 10, 0), "L1", "LEFT", "Left", null)
+            {
+                Height = 5,
+                LockPositionInBlock = locked,
+            };
             block.AppendEntity(left);
-            var mid = new DxfAttributeDefinition(new GeoPoint3(100, -10, 0), "M1", "MID", "Mid", null) { Height = 5, LockPositionInBlock = locked };
+            var mid = new DxfAttributeDefinition(new GeoPoint3(100, -10, 0), "M1", "MID", "Mid", null)
+            {
+                Height = 5,
+                LockPositionInBlock = locked,
+            };
             block.AppendEntity(mid);
             mid.Justify = DxfAttachmentPoint.MiddleCenter;
             mid.AlignmentPoint = new GeoPoint3(100, -10, 0);
-            DxfBlockPolarParameter polar = block.AddPolarParameter("Distance", null, "Angle", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null, null);
-            block.AddPolarStretchAction(polar, new GeoPoint2(90, 0), new GeoPoint2(110, 20), new DxfEntity[] { line, left }, new DxfEntity[] { mid });
-            var insert = new DxfBlockReference(new GeoPoint3(500, 0, 0), block) { Rotation = Math.PI / 2, ScaleFactors = new GeoVector3(2, 2, 2) };
+            DxfBlockPolarParameter polar = block.AddPolarParameter(
+                "Distance",
+                null,
+                "Angle",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                null,
+                null
+            );
+            block.AddPolarStretchAction(
+                polar,
+                new GeoPoint2(90, 0),
+                new GeoPoint2(110, 20),
+                new DxfEntity[] { line, left },
+                new DxfEntity[] { mid }
+            );
+            var insert = new DxfBlockReference(new GeoPoint3(500, 0, 0), block)
+            {
+                Rotation = Math.PI / 2,
+                ScaleFactors = new GeoVector3(2, 2, 2),
+            };
             db.ModelSpace.AppendEntity(insert);
 
             foreach (DxfAttributeDefinition definition in block.OfType<DxfAttributeDefinition>().ToList())
@@ -228,11 +285,12 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static DxfBlockReference Pointed(DxfDatabase db) => db.ModelSpace.OfType<DxfBlockReference>().Single();
 
-        private static void SetPolar(DxfBlockReference insert, string name, double value)
-            => insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name).Value = value;
+        private static void SetPolar(DxfBlockReference insert, string name, double value) =>
+            insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name).Value = value;
 
         /// <summary>Asserts a point at x and y, within 1E-9.</summary>
-        private static void At(GeoPoint3 point, double x, double y) => Assert.True(point.IsEqualTo(new GeoPoint3(x, y, 0), Exact), point.ToString());
+        private static void At(GeoPoint3 point, double x, double y) =>
+            Assert.True(point.IsEqualTo(new GeoPoint3(x, y, 0), Exact), point.ToString());
 
         [Fact]
         public void APolarStretch_TakesLockedAttributeDefinitions_ToStretchAndToTurnOnly()
@@ -291,7 +349,11 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfBlockReference back = Pointed(DxfDatabase.Parse(db.ToText()));
             At(back.AttributeCollection.Single(a => a.Tag == "LEFT").Position, 480, 200);
             At(back.BlockTableRecord.OfType<DxfAttributeDefinition>().Single(d => d.Tag == "LEFT").Position, 100, 10);
-            At(back.BlockTableRecord.OfType<DxfAttributeDefinition>().Single(d => d.Tag == "MID").AlignmentPoint, 100, -10);
+            At(
+                back.BlockTableRecord.OfType<DxfAttributeDefinition>().Single(d => d.Tag == "MID").AlignmentPoint,
+                100,
+                -10
+            );
             At(back.BlockTableRecord.OfType<DxfLine>().Single().EndPoint, 64.951905283832886, 37.499999999999986);
         }
 
@@ -304,9 +366,21 @@ namespace GeometryHelper.UnitTest.Dxf
             // that point (plugin D34, e6): a centred, a bottom-right and a top-left one here, written at (300, 0).
             var db = new DxfDatabase("AC1032");
 
-            foreach (DxfAttachmentPoint justify in new[] { DxfAttachmentPoint.MiddleCenter, DxfAttachmentPoint.BottomRight, DxfAttachmentPoint.TopLeft })
+            foreach (
+                DxfAttachmentPoint justify in new[]
+                {
+                    DxfAttachmentPoint.MiddleCenter,
+                    DxfAttachmentPoint.BottomRight,
+                    DxfAttachmentPoint.TopLeft,
+                }
+            )
             {
-                var text = new DxfDBText { Position = new GeoPoint3(300, 0, 0), TextString = "T", Height = 10 };
+                var text = new DxfDBText
+                {
+                    Position = new GeoPoint3(300, 0, 0),
+                    TextString = "T",
+                    Height = 10,
+                };
                 db.ModelSpace.AppendEntity(text);
                 text.Justify = justify;
                 text.AlignmentPoint = new GeoPoint3(300, 50, 0);

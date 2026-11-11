@@ -30,8 +30,16 @@ namespace GeometryHelper.Packing.Algorithms
         /// One block, or, for a group too large for one sheet, as many as it takes, each holding the boxes that follow
         /// on from the one before.
         /// </returns>
-        internal static List<Cluster> Build(int group, IReadOnlyList<Footprint> footprints, IReadOnlyList<int> members, GroupLayout layout,
-            double spacing, double usableWidth, double usableHeight, double slack)
+        internal static List<Cluster> Build(
+            int group,
+            IReadOnlyList<Footprint> footprints,
+            IReadOnlyList<int> members,
+            GroupLayout layout,
+            double spacing,
+            double usableWidth,
+            double usableHeight,
+            double slack
+        )
         {
             var clusters = new List<Cluster>();
             if (members.Count == 0)
@@ -65,11 +73,19 @@ namespace GeometryHelper.Packing.Algorithms
         /// <summary>
         /// The boxes as they stand, as one block; null when the block is too large for one sheet.
         /// </summary>
-        private static Cluster Keep(int group, IReadOnlyList<Footprint> footprints, IReadOnlyList<int> members,
-            double usableWidth, double usableHeight, double slack)
+        private static Cluster Keep(
+            int group,
+            IReadOnlyList<Footprint> footprints,
+            IReadOnlyList<int> members,
+            double usableWidth,
+            double usableHeight,
+            double slack
+        )
         {
-            double minX = double.PositiveInfinity, minY = double.PositiveInfinity;
-            double maxX = double.NegativeInfinity, maxY = double.NegativeInfinity;
+            double minX = double.PositiveInfinity,
+                minY = double.PositiveInfinity;
+            double maxX = double.NegativeInfinity,
+                maxY = double.NegativeInfinity;
             foreach (int m in members)
             {
                 minX = Math.Min(minX, footprints[m].MinX);
@@ -78,7 +94,8 @@ namespace GeometryHelper.Packing.Algorithms
                 maxY = Math.Max(maxY, footprints[m].MaxY);
             }
 
-            double width = maxX - minX, height = maxY - minY;
+            double width = maxX - minX,
+                height = maxY - minY;
             if (!(width <= usableWidth + slack && height <= usableHeight + slack))
             {
                 return null;
@@ -92,15 +109,22 @@ namespace GeometryHelper.Packing.Algorithms
         /// Splits the boxes, in their order, into runs that each go onto one sheet: a run ends at the first box that no
         /// longer fits beside those before it.
         /// </summary>
-        private static List<List<int>> Runs(IReadOnlyList<Footprint> footprints, IReadOnlyList<int> members, double spacing,
-            double usableWidth, double usableHeight, double slack)
+        private static List<List<int>> Runs(
+            IReadOnlyList<Footprint> footprints,
+            IReadOnlyList<int> members,
+            double spacing,
+            double usableWidth,
+            double usableHeight,
+            double slack
+        )
         {
             var runs = new List<List<int>>();
             var run = new List<int>();
             var bin = new MaxRectsBin(usableWidth + spacing, usableHeight + spacing, slack);
             foreach (int m in members)
             {
-                double width = footprints[m].Width + spacing, height = footprints[m].Height + spacing;
+                double width = footprints[m].Width + spacing,
+                    height = footprints[m].Height + spacing;
                 if (!bin.TryPlace(width, height, out _, out _))
                 {
                     if (run.Count > 0)
@@ -137,8 +161,15 @@ namespace GeometryHelper.Packing.Algorithms
         /// The perimeter first, because it keeps the boxes near one another: by area alone, a column of boxes the
         /// spacing apart came out smaller than the square block they make, which has more gaps in it.
         /// </remarks>
-        private static Cluster Compact(int group, IReadOnlyList<Footprint> footprints, List<int> run, double spacing,
-            double usableWidth, double usableHeight, double slack)
+        private static Cluster Compact(
+            int group,
+            IReadOnlyList<Footprint> footprints,
+            List<int> run,
+            double spacing,
+            double usableWidth,
+            double usableHeight,
+            double slack
+        )
         {
             if (run.Count == 1)
             {
@@ -147,7 +178,8 @@ namespace GeometryHelper.Packing.Algorithms
             }
 
             Cluster best = null;
-            double bestArea = double.PositiveInfinity, bestPerimeter = double.PositiveInfinity;
+            double bestArea = double.PositiveInfinity,
+                bestPerimeter = double.PositiveInfinity;
             foreach (double width in Widths(footprints, run, spacing, usableWidth))
             {
                 Cluster tried = Pack(group, footprints, run, spacing, width, usableHeight, slack);
@@ -173,7 +205,12 @@ namespace GeometryHelper.Packing.Algorithms
         /// The widths a run is tried at, narrowest first: the widest box alone, each row the boxes make from the first
         /// on, and the usable width, no more than <see cref="MostWidths"/> of them.
         /// </summary>
-        private static List<double> Widths(IReadOnlyList<Footprint> footprints, List<int> run, double spacing, double usableWidth)
+        private static List<double> Widths(
+            IReadOnlyList<Footprint> footprints,
+            List<int> run,
+            double spacing,
+            double usableWidth
+        )
         {
             double widest = run.Max(m => footprints[m].Width);
             var rows = new List<double>();
@@ -208,15 +245,24 @@ namespace GeometryHelper.Packing.Algorithms
         /// Packs a run, in its order, into a strip of the given width and the height of the usable area; null when it
         /// does not go in.
         /// </summary>
-        private static Cluster Pack(int group, IReadOnlyList<Footprint> footprints, List<int> run, double spacing, double width,
-            double usableHeight, double slack)
+        private static Cluster Pack(
+            int group,
+            IReadOnlyList<Footprint> footprints,
+            List<int> run,
+            double spacing,
+            double width,
+            double usableHeight,
+            double slack
+        )
         {
             // Each box with the gap added on its right and above, into a strip the gap wider and higher: the boxes then
             // stand the gap apart, and flush with the strip's edges.
             var bin = new MaxRectsBin(width + spacing, usableHeight + spacing, slack);
             var corners = new (double X, double Y)[run.Count];
-            double minX = double.PositiveInfinity, minY = double.PositiveInfinity;
-            double maxX = double.NegativeInfinity, maxY = double.NegativeInfinity;
+            double minX = double.PositiveInfinity,
+                minY = double.PositiveInfinity;
+            double maxX = double.NegativeInfinity,
+                maxY = double.NegativeInfinity;
             for (int i = 0; i < run.Count; i++)
             {
                 Footprint box = footprints[run[i]];

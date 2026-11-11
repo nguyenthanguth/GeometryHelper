@@ -17,10 +17,19 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Tol = Tolerance.Default;
 
-        private static readonly GeoTransform3 Turn = GeoTransform3.RotationAxis(new GeoPoint3(10, 30, 20), new GeoVector3(0.3, -0.2, 1), 0.7);
+        private static readonly GeoTransform3 Turn = GeoTransform3.RotationAxis(
+            new GeoPoint3(10, 30, 20),
+            new GeoVector3(0.3, -0.2, 1),
+            0.7
+        );
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoObb3(new GeoPoint3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), x1 - x0, y1 - y0, z1 - z0).ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoObb3(
+                new GeoPoint3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2),
+                x1 - x0,
+                y1 - y0,
+                z1 - z0
+            ).ToSolid();
 
         [Fact]
         public void ACubeJoinedToASlabTheToleranceThickInsideItsTop_IsTheCubeWoundAlike()
@@ -46,7 +55,9 @@ namespace GeometryHelper.UnitTest.Solid
             // hundredth. Kept on their planes, the two rims of the gap made no step, and the weld put the beam's end on the
             // column's face, tilting the parts of the end beyond the column into wedges: 41.06 more than the two and the gap.
             var tolerance = new Tolerance(0.01, 1E-5, 1E-5, 0.01);
-            const double w = 387, h = 118, gap = 0.008;
+            const double w = 387,
+                h = 118,
+                gap = 0.008;
             GeoSolid3 column = Box(0, 0, 0, 300, 300, 1000);
             GeoSolid3 beam = Box(300 + gap, 150 - w / 2, 500 - h / 2, 2000, 150 + w / 2, 500 + h / 2);
             double two = 300.0 * 300 * 1000 + (1700 - gap) * w * h;
@@ -75,11 +86,19 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Same(atTop, rest);
         }
 
-        private static (GeoSolid3 Column, GeoSolid3 Beam, double Exact, double Two, double End) ColumnAndBeam(double w, double h, double d, GeoVector3 axis, double angle)
+        private static (GeoSolid3 Column, GeoSolid3 Beam, double Exact, double Two, double End) ColumnAndBeam(
+            double w,
+            double h,
+            double d,
+            GeoVector3 axis,
+            double angle
+        )
         {
             // Placed as the sweep that found them placed them, a translation by nought and the turn, which rounds the corners
             // so: turned alone, the two join into a reading of the slab of their own.
-            GeoTransform3 turn = GeoTransform3.Translation(new GeoVector3(0, 0, 0)) * GeoTransform3.RotationAxis(GeoPoint3.Origin, axis, angle);
+            GeoTransform3 turn =
+                GeoTransform3.Translation(new GeoVector3(0, 0, 0))
+                * GeoTransform3.RotationAxis(GeoPoint3.Origin, axis, angle);
             GeoSolid3 column = Box(0, 0, 0, 300, 300, 1000).TransformBy(turn);
             GeoSolid3 beam = Box(300 - d, 150 - w / 2, 500 - h / 2, 2000, 150 + w / 2, 500 + h / 2).TransformBy(turn);
             double two = 300.0 * 300 * 1000 + (1700 + d) * w * h;
@@ -94,9 +113,15 @@ namespace GeometryHelper.UnitTest.Solid
         {
             double q = a * a + b * b + c * c + d * d;
             var m = new double[4, 4];
-            m[0, 0] = (a * a + b * b - c * c - d * d) / q; m[0, 1] = 2.0 * (b * c - a * d) / q; m[0, 2] = 2.0 * (b * d + a * c) / q;
-            m[1, 0] = 2.0 * (b * c + a * d) / q; m[1, 1] = (a * a - b * b + c * c - d * d) / q; m[1, 2] = 2.0 * (c * d - a * b) / q;
-            m[2, 0] = 2.0 * (b * d - a * c) / q; m[2, 1] = 2.0 * (c * d + a * b) / q; m[2, 2] = (a * a - b * b - c * c + d * d) / q;
+            m[0, 0] = (a * a + b * b - c * c - d * d) / q;
+            m[0, 1] = 2.0 * (b * c - a * d) / q;
+            m[0, 2] = 2.0 * (b * d + a * c) / q;
+            m[1, 0] = 2.0 * (b * c + a * d) / q;
+            m[1, 1] = (a * a - b * b + c * c - d * d) / q;
+            m[1, 2] = 2.0 * (c * d - a * b) / q;
+            m[2, 0] = 2.0 * (b * d - a * c) / q;
+            m[2, 1] = 2.0 * (c * d + a * b) / q;
+            m[2, 2] = (a * a - b * b - c * c + d * d) / q;
             m[3, 3] = 1;
             return new GeoTransform3(m);
         }
@@ -107,7 +132,9 @@ namespace GeometryHelper.UnitTest.Solid
             // The rims a weld keeping the faces on their planes left, the column's face and the beam's end within it, stand a
             // thousandth apart and bound the slab both hold. Taken for a gap and closed by strips round it, the union held the
             // slab twice, 51.86 cubic millimetres over the exact union it held before.
-            const double w = 201, h = 258, d = 0.001;
+            const double w = 201,
+                h = 258,
+                d = 0.001;
             GeoTransform3 turn = Quaternion(6, -1, -2, -6);
             GeoSolid3 column = Box(0, 0, 0, 300, 300, 1000).TransformBy(turn);
             GeoSolid3 beam = Box(300 - d, 150 - w / 2, 500 - h / 2, 2000, 150 + w / 2, 500 + h / 2).TransformBy(turn);
@@ -115,7 +142,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             foreach (bool columnFirst in new[] { true, false })
             {
-                Assert.True((columnFirst ? column : beam).TryUnion(columnFirst ? beam : column, out GeoSolid3 union, Tol));
+                Assert.True(
+                    (columnFirst ? column : beam).TryUnion(columnFirst ? beam : column, out GeoSolid3 union, Tol)
+                );
                 Assert.True(union.Validate(Tol).IsValid, union.Validate(Tol).ToString());
                 Assert.Equal(exact, union.GetVolume(Tol), 4);
             }
@@ -127,10 +156,15 @@ namespace GeometryHelper.UnitTest.Solid
             // Worked out again, a cell standing beside the block's slab along the cube's edge was left out with it, and the
             // union, valid, held 1 080 002.0, more than the two; as it came it was wound against itself, 1 080 003.21. A guard:
             // made, it is valid and in range; otherwise it says it was not worked out.
-            GeoTransform3 turn = GeoTransform3.RotationAxis(new GeoPoint3(23.60293803438681, 0, 0), new GeoVector3(-0.470397974350675, 0.1516818411888936, -0.1895637070027011), 1.222499318058835);
+            GeoTransform3 turn = GeoTransform3.RotationAxis(
+                new GeoPoint3(23.60293803438681, 0, 0),
+                new GeoVector3(-0.470397974350675, 0.1516818411888936, -0.1895637070027011),
+                1.222499318058835
+            );
             GeoSolid3 cube = Box(0, 0, 0, 100, 100, 100).TransformBy(turn);
             GeoSolid3 block = Box(-20, -20, 100 - 0.001, 20, 20, 150).TransformBy(turn);
-            double vc = cube.GetVolume(Tol), vb = block.GetVolume(Tol);
+            double vc = cube.GetVolume(Tol),
+                vb = block.GetVolume(Tol);
 
             if (cube.TryUnion(block, out GeoSolid3 union, Tol, out BooleanOutcome outcome))
             {
@@ -151,8 +185,13 @@ namespace GeometryHelper.UnitTest.Solid
             // the beam beyond the column's face. A guard: made, it is valid and holds a reading of the slab; otherwise it says it
             // was not worked out.
             var tolerance = new Tolerance(0.01, 1E-5, 1E-5, 0.01);
-            var (column, beam, _, two, end) = ColumnAndBeam(377.4328325304356, 107.46428328913836, 0.01,
-                new GeoVector3(0.24333679105310546, -0.48896821401499596, 0.3927866865600397), 0.6714398612600937);
+            var (column, beam, _, two, end) = ColumnAndBeam(
+                377.4328325304356,
+                107.46428328913836,
+                0.01,
+                new GeoVector3(0.24333679105310546, -0.48896821401499596, 0.3927866865600397),
+                0.6714398612600937
+            );
 
             if (column.TryUnion(beam, out GeoSolid3 union, tolerance, out BooleanOutcome outcome))
             {
@@ -187,7 +226,14 @@ namespace GeometryHelper.UnitTest.Solid
             GeoTransform3 turn = GeoTransform3.RotationAxis(GeoPoint3.Origin, new GeoVector3(0, 0, 1), Math.PI / 4);
             GeoSolid3 plate = Box(0, 0, 0, 100, 100, 0.0005).TransformBy(turn);
 
-            Assert.True(plate.TrySubtract(Box(101, 101, -1, 120, 120, 1).TransformBy(turn), out GeoSolid3 rest, Tol, out BooleanOutcome outcome));
+            Assert.True(
+                plate.TrySubtract(
+                    Box(101, 101, -1, 120, 120, 1).TransformBy(turn),
+                    out GeoSolid3 rest,
+                    Tol,
+                    out BooleanOutcome outcome
+                )
+            );
             Assert.Equal(BooleanOutcome.Made, outcome);
             Assert.Same(plate, rest);
         }
@@ -203,15 +249,30 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 for (int j = 0; j < 2; j++)
                 {
-                    faces.Add(new GeoFace3(new GeoPolygon3(new[]
-                    {
-                        new GeoPoint3(i * 100, j * 100, 0), new GeoPoint3(i * 100 + 100, j * 100, 0),
-                        new GeoPoint3(i * 100 + 100, j * 100 + 100, 0), new GeoPoint3(i * 100, j * 100 + 100, 0),
-                    })));
+                    faces.Add(
+                        new GeoFace3(
+                            new GeoPolygon3(
+                                new[]
+                                {
+                                    new GeoPoint3(i * 100, j * 100, 0),
+                                    new GeoPoint3(i * 100 + 100, j * 100, 0),
+                                    new GeoPoint3(i * 100 + 100, j * 100 + 100, 0),
+                                    new GeoPoint3(i * 100, j * 100 + 100, 0),
+                                }
+                            )
+                        )
+                    );
                 }
             }
 
-            Assert.True(new GeoSolid3(faces).TrySubtract(Box(50, 50, -1, 150, 150, 1), out GeoSolid3 rest, Tol, out BooleanOutcome outcome));
+            Assert.True(
+                new GeoSolid3(faces).TrySubtract(
+                    Box(50, 50, -1, 150, 150, 1),
+                    out GeoSolid3 rest,
+                    Tol,
+                    out BooleanOutcome outcome
+                )
+            );
             Assert.Equal(BooleanOutcome.Made, outcome);
             Assert.NotNull(rest);
         }

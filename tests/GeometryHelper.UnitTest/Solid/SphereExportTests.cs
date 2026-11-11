@@ -41,7 +41,8 @@ namespace GeometryHelper.UnitTest.Solid
             return volume;
         }
 
-        private static GeoPoint3 Point(string[] fields, int first) => new GeoPoint3(Parse(fields[first]), Parse(fields[first + 1]), Parse(fields[first + 2]));
+        private static GeoPoint3 Point(string[] fields, int first) =>
+            new GeoPoint3(Parse(fields[first]), Parse(fields[first + 1]), Parse(fields[first + 2]));
 
         // ----- OBJ ---------------------------------------------------------------------------------------------------
 
@@ -61,10 +62,13 @@ namespace GeometryHelper.UnitTest.Solid
                 else if (fields[0] == "f")
                 {
                     Assert.Equal(4, fields.Length);
-                    triangles.Add(new GeoTriangle3(
-                        vertices[int.Parse(fields[1], CultureInfo.InvariantCulture) - 1],
-                        vertices[int.Parse(fields[2], CultureInfo.InvariantCulture) - 1],
-                        vertices[int.Parse(fields[3], CultureInfo.InvariantCulture) - 1]));
+                    triangles.Add(
+                        new GeoTriangle3(
+                            vertices[int.Parse(fields[1], CultureInfo.InvariantCulture) - 1],
+                            vertices[int.Parse(fields[2], CultureInfo.InvariantCulture) - 1],
+                            vertices[int.Parse(fields[3], CultureInfo.InvariantCulture) - 1]
+                        )
+                    );
                 }
             }
 
@@ -97,11 +101,13 @@ namespace GeometryHelper.UnitTest.Solid
         {
             Assert.Equal(
                 new ObjWriter().Add(Ball.TriangulateSurface(0.1), "ball").ToString(),
-                new ObjWriter().Add(Ball, 0.1, "ball").ToString());
+                new ObjWriter().Add(Ball, 0.1, "ball").ToString()
+            );
 
             Assert.Equal(
                 new ObjWriter().Add(Ball.TriangulateSurface(0.1)).ToString(),
-                new ObjWriter().Add(Ball, 0.1).ToString());
+                new ObjWriter().Add(Ball, 0.1).ToString()
+            );
         }
 
         [Fact]
@@ -112,7 +118,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(1, text.Split('\n').Count(l => l == "o first"));
             Assert.Equal(1, text.Split('\n').Count(l => l == "o second"));
-            Assert.Equal(Ball.TriangulateSurface(1.0).Length + second.TriangulateSurface(1.0).Length, ObjTriangles(text).Count);
+            Assert.Equal(
+                Ball.TriangulateSurface(1.0).Length + second.TriangulateSurface(1.0).Length,
+                ObjTriangles(text).Count
+            );
         }
 
         // ----- DXF ---------------------------------------------------------------------------------------------------
@@ -123,7 +132,8 @@ namespace GeometryHelper.UnitTest.Solid
 
             public Dictionary<int, string> Pairs { get; } = new Dictionary<int, string>();
 
-            public GeoPoint3 Point(int n) => new GeoPoint3(Parse(Pairs[10 + n]), Parse(Pairs[20 + n]), Parse(Pairs[30 + n]));
+            public GeoPoint3 Point(int n) =>
+                new GeoPoint3(Parse(Pairs[10 + n]), Parse(Pairs[20 + n]), Parse(Pairs[30 + n]));
         }
 
         private static List<Face> Faces(DxfWriter writer)
@@ -194,7 +204,8 @@ namespace GeometryHelper.UnitTest.Solid
         {
             Assert.Equal(
                 new DxfWriter().Add(Ball.TriangulateSurface(0.5), "balls").ToString(),
-                new DxfWriter().Add(Ball, 0.5, "balls").ToString());
+                new DxfWriter().Add(Ball, 0.5, "balls").ToString()
+            );
         }
 
         // ----- WKT ---------------------------------------------------------------------------------------------------
@@ -208,7 +219,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.StartsWith("POLYHEDRALSURFACE Z (((", text, StringComparison.Ordinal);
             Assert.EndsWith("))", text, StringComparison.Ordinal);
 
-            string[] parts = text.Substring("POLYHEDRALSURFACE Z (".Length, text.Length - "POLYHEDRALSURFACE Z (".Length - 1)
+            string[] parts = text.Substring(
+                    "POLYHEDRALSURFACE Z (".Length,
+                    text.Length - "POLYHEDRALSURFACE Z (".Length - 1
+                )
                 .Split(new[] { "), (" }, StringSplitOptions.None);
             Assert.Equal(mesh.Length, parts.Length);
 
@@ -227,17 +241,20 @@ namespace GeometryHelper.UnitTest.Solid
 
         // ----- What each refuses ---------------------------------------------------------------------------------------
 
-        public static IEnumerable<object[]> BadTolerances => new[]
-        {
-            new object[] { 0.0 },
-            new object[] { -0.1 },
-            new object[] { double.NaN },
-            new object[] { double.PositiveInfinity },
-        };
+        public static IEnumerable<object[]> BadTolerances =>
+            new[]
+            {
+                new object[] { 0.0 },
+                new object[] { -0.1 },
+                new object[] { double.NaN },
+                new object[] { double.PositiveInfinity },
+            };
 
         [Theory]
         [MemberData(nameof(BadTolerances))]
-        public void ATolerance_ThatIsNotAFiniteNumberAboveNought_IsRefusedByEveryWriter_AndNothingIsWritten(double tolerance)
+        public void ATolerance_ThatIsNotAFiniteNumberAboveNought_IsRefusedByEveryWriter_AndNothingIsWritten(
+            double tolerance
+        )
         {
             var obj = new ObjWriter().Add(new GeoPoint3(1, 2, 3));
             var dxf = new DxfWriter().Add(new GeoPoint3(1, 2, 3));

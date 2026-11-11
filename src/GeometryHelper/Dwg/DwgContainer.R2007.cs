@@ -41,7 +41,18 @@ namespace GeometryHelper.Dwg
             long budget = Math.Min(int.MaxValue, (file.LongLength * Expansion) + Allowance);
 
             long pagesMapAt = U64(meta, 0x38);
-            byte[] pageMapData = SystemPage21(file, pagesMapAt, U64(meta, 0x50), U64(meta, 0x58), U64(meta, 0x18), (ulong)U64(meta, 0x10), (ulong)U64(meta, 0x80), seed, "page map", ref budget);
+            byte[] pageMapData = SystemPage21(
+                file,
+                pagesMapAt,
+                U64(meta, 0x50),
+                U64(meta, 0x58),
+                U64(meta, 0x18),
+                (ulong)U64(meta, 0x10),
+                (ulong)U64(meta, 0x80),
+                seed,
+                "page map",
+                ref budget
+            );
             Dictionary<long, long[]> pages = ReadPageMap21(pageMapData, file.LongLength);
 
             if (!pages.TryGetValue(U64(meta, 0xC0), out long[] sectionMapPage))
@@ -49,7 +60,18 @@ namespace GeometryHelper.Dwg
                 throw new FormatException("The DWG page map does not place the section map.");
             }
 
-            byte[] sectionMapData = SystemPage21(file, sectionMapPage[0], U64(meta, 0xB0), U64(meta, 0xC8), U64(meta, 0xD8), (ulong)U64(meta, 0xD0), (ulong)U64(meta, 0xA8), seed, "section map", ref budget);
+            byte[] sectionMapData = SystemPage21(
+                file,
+                sectionMapPage[0],
+                U64(meta, 0xB0),
+                U64(meta, 0xC8),
+                U64(meta, 0xD8),
+                (ulong)U64(meta, 0xD0),
+                (ulong)U64(meta, 0xA8),
+                seed,
+                "section map",
+                ref budget
+            );
             Dictionary<string, Descriptor21> sections = ReadSectionMap21(sectionMapData);
 
             var container = new DwgContainer
@@ -60,8 +82,20 @@ namespace GeometryHelper.Dwg
                 Measurement = -1,
             };
 
-            container.Header = Section(Join21(file, pages, Need21(sections, "AcDb:Header"), seed, ref budget), HeaderStart, HeaderEnd, "header variables", false);
-            container.Classes = Section(Join21(file, pages, Need21(sections, "AcDb:Classes"), seed, ref budget), ClassesStart, ClassesEnd, "classes", false);
+            container.Header = Section(
+                Join21(file, pages, Need21(sections, "AcDb:Header"), seed, ref budget),
+                HeaderStart,
+                HeaderEnd,
+                "header variables",
+                false
+            );
+            container.Classes = Section(
+                Join21(file, pages, Need21(sections, "AcDb:Classes"), seed, ref budget),
+                ClassesStart,
+                ClassesEnd,
+                "classes",
+                false
+            );
             byte[] handles = Join21(file, pages, Need21(sections, "AcDb:Handles"), seed, ref budget);
             container.Objects = Join21(file, pages, Need21(sections, "AcDb:AcDbObjects"), seed, ref budget);
             container.ObjectMap = ReadObjectMap(handles, 0, handles.LongLength, container.Objects.LongLength);
@@ -186,10 +220,30 @@ namespace GeometryHelper.Dwg
         /// <paramref name="repeat"/> times, coded by Reed-Solomon (255, 239) in interleaved blocks. Only the first copy is
         /// read. Its two mirrored CRCs of 64 bits, of the compressed data and of the data, are checked from the file's seed.
         /// </summary>
-        private static byte[] SystemPage21(byte[] file, long offset, long compressed, long size, long repeat, ulong crcCompressed, ulong crc, ulong seed, string name, ref long budget)
+        private static byte[] SystemPage21(
+            byte[] file,
+            long offset,
+            long compressed,
+            long size,
+            long repeat,
+            ulong crcCompressed,
+            ulong crc,
+            ulong seed,
+            string name,
+            ref long budget
+        )
         {
-            if (offset < 0 || offset > file.LongLength || compressed <= 0 || compressed > file.LongLength || size <= 0 || size > budget
-                || compressed > size || repeat <= 0 || repeat > MaxRepeat)
+            if (
+                offset < 0
+                || offset > file.LongLength
+                || compressed <= 0
+                || compressed > file.LongLength
+                || size <= 0
+                || size > budget
+                || compressed > size
+                || repeat <= 0
+                || repeat > MaxRepeat
+            )
             {
                 throw new FormatException("The DWG " + name + " is broken.");
             }
@@ -303,22 +357,29 @@ namespace GeometryHelper.Dwg
                 one.Name = Encoding.Unicode.GetString(data, at, (int)nameLength & ~1).TrimEnd('\0');
                 at += (int)nameLength;
 
-                if (pageCount > (data.Length - at) / 56 || one.Size < 0 || one.PageSize <= 0 || one.PageSize > MaxPageSize)
+                if (
+                    pageCount > (data.Length - at) / 56
+                    || one.Size < 0
+                    || one.PageSize <= 0
+                    || one.PageSize > MaxPageSize
+                )
                 {
                     throw new FormatException("The DWG section map is broken at the section " + one.Name + ".");
                 }
 
                 for (long j = 0; j < pageCount; j++)
                 {
-                    one.Pages.Add(new Page21
-                    {
-                        Offset = U64(data, at),
-                        Number = U64(data, at + 16),
-                        Size = U64(data, at + 24),
-                        Compressed = U64(data, at + 32),
-                        Checksum = (ulong)U64(data, at + 40),
-                        Crc = (ulong)U64(data, at + 48),
-                    });
+                    one.Pages.Add(
+                        new Page21
+                        {
+                            Offset = U64(data, at),
+                            Number = U64(data, at + 16),
+                            Size = U64(data, at + 24),
+                            Compressed = U64(data, at + 32),
+                            Checksum = (ulong)U64(data, at + 40),
+                            Crc = (ulong)U64(data, at + 48),
+                        }
+                    );
                     at += 56;
                 }
 
@@ -347,11 +408,19 @@ namespace GeometryHelper.Dwg
         /// their size, and laid at their offsets; the gaps between them, pages of zeros AutoCAD does not write, stay zero.
         /// Of each page the mirrored CRC of 64 bits of its compressed bytes and the sum of its data are checked.
         /// </summary>
-        private static byte[] Join21(byte[] file, Dictionary<long, long[]> pages, Descriptor21 section, ulong seed, ref long budget)
+        private static byte[] Join21(
+            byte[] file,
+            Dictionary<long, long[]> pages,
+            Descriptor21 section,
+            ulong seed,
+            ref long budget
+        )
         {
             if (section.Encrypted == 1)
             {
-                throw new NotSupportedException("The DWG section " + section.Name + " is encrypted; such files are not read.");
+                throw new NotSupportedException(
+                    "The DWG section " + section.Name + " is encrypted; such files are not read."
+                );
             }
 
             if (section.Encoding != 1 && section.Encoding != 4)
@@ -365,8 +434,14 @@ namespace GeometryHelper.Dwg
             {
                 // AutoCAD's pages of R2007 may be larger than the page size of their section (0xF800), by a few KB in the
                 // test drawings; a page is held to the size any page may have.
-                if (page.Offset < 0 || page.Size <= 0 || page.Size > MaxPageSize || page.Compressed <= 0 || page.Compressed > page.Size
-                    || page.Offset > budget)
+                if (
+                    page.Offset < 0
+                    || page.Size <= 0
+                    || page.Size > MaxPageSize
+                    || page.Compressed <= 0
+                    || page.Compressed > page.Size
+                    || page.Offset > budget
+                )
                 {
                     throw new FormatException("The DWG section " + section.Name + " has a broken page.");
                 }
@@ -376,7 +451,9 @@ namespace GeometryHelper.Dwg
 
             if (total > budget)
             {
-                throw new FormatException("The DWG section " + section.Name + " names a size beyond what the file can hold.");
+                throw new FormatException(
+                    "The DWG section " + section.Name + " names a size beyond what the file can hold."
+                );
             }
 
             budget -= total;
@@ -386,7 +463,9 @@ namespace GeometryHelper.Dwg
             {
                 if (!pages.TryGetValue(page.Number, out long[] place))
                 {
-                    throw new FormatException("The DWG section " + section.Name + " has a page the page map does not place.");
+                    throw new FormatException(
+                        "The DWG section " + section.Name + " has a page the page map does not place."
+                    );
                 }
 
                 long aligned = (page.Compressed + 7) & ~7L;
@@ -408,7 +487,9 @@ namespace GeometryHelper.Dwg
                     // Not interleaved: the data blocks one after another, the parity after them all.
                     if (PagesStart + place[0] + (blocks * 255) > file.LongLength)
                     {
-                        throw new FormatException("The DWG file is cut short: a page of it ends past the end of the file.");
+                        throw new FormatException(
+                            "The DWG file is cut short: a page of it ends past the end of the file."
+                        );
                     }
 
                     coded = new byte[page.Compressed];
@@ -417,7 +498,9 @@ namespace GeometryHelper.Dwg
 
                 if (DwgCrc.Of64(coded, 0, coded.LongLength, DwgCrc.Seed1(seed, coded.LongLength), true) != page.Crc)
                 {
-                    throw new FormatException("The DWG section " + section.Name + " has a page with a wrong check sum.");
+                    throw new FormatException(
+                        "The DWG section " + section.Name + " has a page with a wrong check sum."
+                    );
                 }
 
                 if (page.Compressed < page.Size)
@@ -426,7 +509,11 @@ namespace GeometryHelper.Dwg
 
                     if (DwgLz21.Decompress(coded, 0, coded.LongLength, plain) != plain.Length)
                     {
-                        throw new FormatException("The DWG section " + section.Name + " has a page that decompresses to another size than it names.");
+                        throw new FormatException(
+                            "The DWG section "
+                                + section.Name
+                                + " has a page that decompresses to another size than it names."
+                        );
                     }
 
                     coded = plain;
@@ -434,7 +521,9 @@ namespace GeometryHelper.Dwg
 
                 if (DwgCrc.OfPage21(coded, 0, coded.LongLength, 0) != page.Checksum)
                 {
-                    throw new FormatException("The DWG section " + section.Name + " has a page with a wrong check sum.");
+                    throw new FormatException(
+                        "The DWG section " + section.Name + " has a page with a wrong check sum."
+                    );
                 }
 
                 Array.Copy(coded, 0, data, page.Offset, coded.LongLength);

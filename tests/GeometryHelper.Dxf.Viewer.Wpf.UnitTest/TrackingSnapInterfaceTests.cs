@@ -22,7 +22,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             OpenRoom(model);
 
             StatusToggleViewModel otrack = model.Toggles.Single(t => t.Name == "OTRACK");
-            Assert.Equal(model.Toggles.IndexOf(model.Toggles.Single(t => t.Name == "OSNAP")) - 1, model.Toggles.IndexOf(otrack));
+            Assert.Equal(
+                model.Toggles.IndexOf(model.Toggles.Single(t => t.Name == "OSNAP")) - 1,
+                model.Toggles.IndexOf(otrack)
+            );
             Assert.True(otrack.IsOn);
             Assert.True(model.Snap.Tracking);
 
@@ -56,8 +59,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.False(model.Toggles.Single(t => t.Name == "OTRACK").IsOn);
 
             model.StartCommand("LINE");
-            Assert.Equal(new[] { "Endpoint", "Midpoint", "Intersection", "Apparent Intersection", "Extension", "Center", "Geometric Center", "Quadrant", "Tangent", "Perpendicular", "Parallel", "Node", "Insertion", "Nearest" },
-                model.SnapOverrideMenu().SkipWhile(i => i.Header != "Endpoint").TakeWhile(i => i.Header != "None").Select(i => i.Header));
+            Assert.Equal(
+                new[]
+                {
+                    "Endpoint",
+                    "Midpoint",
+                    "Intersection",
+                    "Apparent Intersection",
+                    "Extension",
+                    "Center",
+                    "Geometric Center",
+                    "Quadrant",
+                    "Tangent",
+                    "Perpendicular",
+                    "Parallel",
+                    "Node",
+                    "Insertion",
+                    "Nearest",
+                },
+                model
+                    .SnapOverrideMenu()
+                    .SkipWhile(i => i.Header != "Endpoint")
+                    .TakeWhile(i => i.Header != "None")
+                    .Select(i => i.Header)
+            );
         }
 
         [Fact]
@@ -67,7 +92,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             OpenRoom(model);
             model.StartCommand("LINE");
 
-            var typed = new[] { ("EXT", CadSnapModes.Extension), ("PAR", CadSnapModes.Parallel), ("APP", CadSnapModes.ApparentIntersection), ("APPINT", CadSnapModes.ApparentIntersection), ("INS", CadSnapModes.Insertion) };
+            var typed = new[]
+            {
+                ("EXT", CadSnapModes.Extension),
+                ("PAR", CadSnapModes.Parallel),
+                ("APP", CadSnapModes.ApparentIntersection),
+                ("APPINT", CadSnapModes.ApparentIntersection),
+                ("INS", CadSnapModes.Insertion),
+            };
 
             foreach ((string word, CadSnapModes mode) in typed)
             {
@@ -85,7 +117,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             var model = new MainViewModel();
             DxfDatabase db = TestFiles.Room(out _, out _);
-            db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(5000, 500, 0), new GeoPoint3(5000, 2000, 0)) { Layer = "WALLS" });
+            db.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(5000, 500, 0), new GeoPoint3(5000, 2000, 0)) { Layer = "WALLS" }
+            );
             model.OpenDocument(CadDocument.From(db, "room.dxf"));
             model.Toggles.Single(t => t.Name == "SNAP").IsOn = false;
             model.StartCommand("LINE");
@@ -115,7 +149,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 {
                     var model = new MainViewModel();
                     OpenRoom(model);
-                    var canvas = new CadCanvas { Document = model.Document, Space = model.Space, View = model.View, Session = model.Session, Snap = model.Snap };
+                    var canvas = new CadCanvas
+                    {
+                        Document = model.Document,
+                        Space = model.Space,
+                        View = model.View,
+                        Session = model.Session,
+                        Snap = model.Snap,
+                    };
                     canvas.PixelSizeChanged += (s, e) => model.SetCanvasSize(canvas.PixelWidth, canvas.PixelHeight);
                     canvas.Measure(new Size(800, 600));
                     canvas.Arrange(new Rect(0, 0, 800, 600));

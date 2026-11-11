@@ -31,7 +31,12 @@ namespace GeometryHelper.Viewer.Builds
         /// <param name="cancel">Kills the process.</param>
         /// <returns>The 40 hexadecimal digits of the commit.</returns>
         /// <exception cref="InvalidOperationException">Thrown when Git cannot be started, or the repository has no such commit.</exception>
-        public static async Task<string> ResolveAsync(CompareEnvironment environment, string repository, string commit, CancellationToken cancel)
+        public static async Task<string> ResolveAsync(
+            CompareEnvironment environment,
+            string repository,
+            string commit,
+            CancellationToken cancel
+        )
         {
             if (!Directory.Exists(repository))
             {
@@ -40,21 +45,31 @@ namespace GeometryHelper.Viewer.Builds
 
             var output = new List<string>();
             var errors = new List<string>();
-            ChildResult result = await ChildProcess.RunAsync(
-                environment.GitPath,
-                new[] { "-C", repository, "rev-parse", "--verify", "--quiet", commit + "^{commit}" },
-                repository,
-                TimeSpan.FromSeconds(60),
-                line => output.Add(line),
-                line => errors.Add(line),
-                cancel).ConfigureAwait(false);
+            ChildResult result = await ChildProcess
+                .RunAsync(
+                    environment.GitPath,
+                    new[] { "-C", repository, "rev-parse", "--verify", "--quiet", commit + "^{commit}" },
+                    repository,
+                    TimeSpan.FromSeconds(60),
+                    line => output.Add(line),
+                    line => errors.Add(line),
+                    cancel
+                )
+                .ConfigureAwait(false);
 
             cancel.ThrowIfCancellationRequested();
             string hash = output.Select(l => l.Trim()).FirstOrDefault(l => l.Length == 40 && l.All(Uri.IsHexDigit));
 
             if (result.ExitCode != 0 || hash == null)
             {
-                throw new InvalidOperationException("The repository " + repository + " has no commit '" + commit + "'." + (errors.Count > 0 ? " " + string.Join(" ", errors) : string.Empty));
+                throw new InvalidOperationException(
+                    "The repository "
+                        + repository
+                        + " has no commit '"
+                        + commit
+                        + "'."
+                        + (errors.Count > 0 ? " " + string.Join(" ", errors) : string.Empty)
+                );
             }
 
             return hash.ToLowerInvariant();
@@ -71,7 +86,13 @@ namespace GeometryHelper.Viewer.Builds
         /// <returns>The path of GeometryHelper.dll in the cache.</returns>
         /// <exception cref="InvalidOperationException">Thrown when Git or dotnet cannot be started, the commit does not exist or does not hold the project, or the build fails; the message holds the last lines of the build.</exception>
         /// <exception cref="OperationCanceledException">Thrown when the build was cancelled.</exception>
-        public static async Task<string> EnsureBuiltAsync(CompareEnvironment environment, string repository, string commit, Action<string> log, CancellationToken cancel)
+        public static async Task<string> EnsureBuiltAsync(
+            CompareEnvironment environment,
+            string repository,
+            string commit,
+            Action<string> log,
+            CancellationToken cancel
+        )
         {
             if (environment == null)
             {
@@ -103,12 +124,24 @@ namespace GeometryHelper.Viewer.Builds
                 var errors = new List<string>();
                 var arguments = new List<string> { "-C", repository, "archive", "--format=zip", "-o", zip, hash, "--" };
                 arguments.AddRange(paths);
-                ChildResult archived = await ChildProcess.RunAsync(environment.GitPath, arguments, repository, TimeSpan.FromMinutes(5), null, line => errors.Add(line), cancel).ConfigureAwait(false);
+                ChildResult archived = await ChildProcess
+                    .RunAsync(
+                        environment.GitPath,
+                        arguments,
+                        repository,
+                        TimeSpan.FromMinutes(5),
+                        null,
+                        line => errors.Add(line),
+                        cancel
+                    )
+                    .ConfigureAwait(false);
                 cancel.ThrowIfCancellationRequested();
 
                 if (archived.ExitCode != 0 || !File.Exists(zip))
                 {
-                    throw new InvalidOperationException("git archive failed for " + hash.Substring(0, 12) + ": " + string.Join(" ", errors));
+                    throw new InvalidOperationException(
+                        "git archive failed for " + hash.Substring(0, 12) + ": " + string.Join(" ", errors)
+                    );
                 }
 
                 ZipFile.ExtractToDirectory(zip, tree);
@@ -117,7 +150,9 @@ namespace GeometryHelper.Viewer.Builds
 
                 if (!File.Exists(project))
                 {
-                    throw new InvalidOperationException("The commit " + hash.Substring(0, 12) + " has no " + Project + " to build.");
+                    throw new InvalidOperationException(
+                        "The commit " + hash.Substring(0, 12) + " has no " + Project + " to build."
+                    );
                 }
 
                 log?.Invoke("building " + Project + " (Release)");
@@ -144,31 +179,71 @@ namespace GeometryHelper.Viewer.Builds
                 };
 
                 // The compiler servers and build nodes a plain build leaves running would hold the folder open and outlive the process killed on a timeout.
-                ChildResult built = await ChildProcess.RunAsync(
-                    environment.DotnetPath,
-                    new[] { "build", project, "-c", "Release", "-nologo", "-v:q", "-nodeReuse:false", "-p:UseSharedCompilation=false", "-p:GeneratePackageOnBuild=false" },
-                    tree,
-                    environment.BuildTimeout,
-                    Remember,
-                    Remember,
-                    cancel,
-                    variables).ConfigureAwait(false);
+                ChildResult built = await ChildProcess
+                    .RunAsync(
+                        environment.DotnetPath,
+                        new[]
+                        {
+                            "build",
+                            project,
+                            "-c",
+                            "Release",
+                            "-nologo",
+                            "-v:q",
+                            "-nodeReuse:false",
+                            "-p:UseSharedCompilation=false",
+                            "-p:GeneratePackageOnBuild=false",
+                        },
+                        tree,
+                        environment.BuildTimeout,
+                        Remember,
+                        Remember,
+                        cancel,
+                        variables
+                    )
+                    .ConfigureAwait(false);
                 cancel.ThrowIfCancellationRequested();
 
                 if (built.TimedOut)
                 {
-                    throw new InvalidOperationException("The build of " + hash.Substring(0, 12) + " took more than " + environment.BuildTimeout.TotalMinutes.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " minutes and was killed.");
+                    throw new InvalidOperationException(
+                        "The build of "
+                            + hash.Substring(0, 12)
+                            + " took more than "
+                            + environment.BuildTimeout.TotalMinutes.ToString(
+                                "0",
+                                System.Globalization.CultureInfo.InvariantCulture
+                            )
+                            + " minutes and was killed."
+                    );
                 }
 
                 // Where the build puts the DLL is the project's business; its own bin folder first, then anywhere in the tree but obj.
                 string output = new[] { Path.Combine(Path.GetDirectoryName(project), "bin"), tree }
                     .Where(Directory.Exists)
-                    .SelectMany(folder => Directory.GetFiles(folder, "GeometryHelper.dll", SearchOption.AllDirectories).Where(f => f.IndexOf(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) < 0).OrderBy(f => f, StringComparer.Ordinal))
+                    .SelectMany(folder =>
+                        Directory
+                            .GetFiles(folder, "GeometryHelper.dll", SearchOption.AllDirectories)
+                            .Where(f =>
+                                f.IndexOf(
+                                    Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar,
+                                    StringComparison.OrdinalIgnoreCase
+                                ) < 0
+                            )
+                            .OrderBy(f => f, StringComparer.Ordinal)
+                    )
                     .FirstOrDefault();
 
                 if (built.ExitCode != 0 || output == null)
                 {
-                    throw new InvalidOperationException("The build of " + hash.Substring(0, 12) + " failed (exit code " + built.ExitCode.ToString(System.Globalization.CultureInfo.InvariantCulture) + "):\n" + string.Join("\n", tail));
+                    throw new InvalidOperationException(
+                        "The build of "
+                            + hash.Substring(0, 12)
+                            + " failed (exit code "
+                            + built.ExitCode.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                            + "):\n"
+                            + string.Join("\n", tail)
+                    );
                 }
 
                 string done = Path.Combine(temp, "done");
@@ -187,7 +262,14 @@ namespace GeometryHelper.Viewer.Builds
 
                 log?.Invoke("built " + hash.Substring(0, 12));
                 CacheTrimmer.Touch(Path.Combine(target, ReadyFile));
-                CacheTrimmer.Trim(environment.CacheRoot, environment.BuildsFolder, ReadyFile, environment.CacheKeep, target, environment.CacheProtection);
+                CacheTrimmer.Trim(
+                    environment.CacheRoot,
+                    environment.BuildsFolder,
+                    ReadyFile,
+                    environment.CacheKeep,
+                    target,
+                    environment.CacheProtection
+                );
                 return dll;
             }
             finally
@@ -200,22 +282,32 @@ namespace GeometryHelper.Viewer.Builds
         /// <summary>
         /// Lists what a build needs of a commit: the files at the root of the repository, which hold the shared build settings, and the library's own folder.
         /// </summary>
-        private static async Task<string[]> PathsToArchiveAsync(CompareEnvironment environment, string repository, string hash, CancellationToken cancel)
+        private static async Task<string[]> PathsToArchiveAsync(
+            CompareEnvironment environment,
+            string repository,
+            string hash,
+            CancellationToken cancel
+        )
         {
             var lines = new List<string>();
             var errors = new List<string>();
-            ChildResult result = await ChildProcess.RunAsync(
-                environment.GitPath,
-                new[] { "-C", repository, "ls-tree", hash },
-                repository,
-                TimeSpan.FromSeconds(60),
-                line => lines.Add(line),
-                line => errors.Add(line),
-                cancel).ConfigureAwait(false);
+            ChildResult result = await ChildProcess
+                .RunAsync(
+                    environment.GitPath,
+                    new[] { "-C", repository, "ls-tree", hash },
+                    repository,
+                    TimeSpan.FromSeconds(60),
+                    line => lines.Add(line),
+                    line => errors.Add(line),
+                    cancel
+                )
+                .ConfigureAwait(false);
 
             if (result.ExitCode != 0)
             {
-                throw new InvalidOperationException("git ls-tree failed for " + hash.Substring(0, 12) + ": " + string.Join(" ", errors));
+                throw new InvalidOperationException(
+                    "git ls-tree failed for " + hash.Substring(0, 12) + ": " + string.Join(" ", errors)
+                );
             }
 
             var paths = new List<string>();
@@ -233,18 +325,23 @@ namespace GeometryHelper.Viewer.Builds
 
             // git archive refuses a path the commit does not have, so the project is looked for first and the commit that lacks it is told so.
             var project = new List<string>();
-            await ChildProcess.RunAsync(
-                environment.GitPath,
-                new[] { "-C", repository, "ls-tree", hash, "--", Project },
-                repository,
-                TimeSpan.FromSeconds(60),
-                line => project.Add(line),
-                null,
-                cancel).ConfigureAwait(false);
+            await ChildProcess
+                .RunAsync(
+                    environment.GitPath,
+                    new[] { "-C", repository, "ls-tree", hash, "--", Project },
+                    repository,
+                    TimeSpan.FromSeconds(60),
+                    line => project.Add(line),
+                    null,
+                    cancel
+                )
+                .ConfigureAwait(false);
 
             if (project.Count == 0)
             {
-                throw new InvalidOperationException("The commit " + hash.Substring(0, 12) + " has no " + Project + " to build.");
+                throw new InvalidOperationException(
+                    "The commit " + hash.Substring(0, 12) + " has no " + Project + " to build."
+                );
             }
 
             paths.Add("src/GeometryHelper");

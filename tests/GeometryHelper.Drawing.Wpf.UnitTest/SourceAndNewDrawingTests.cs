@@ -31,14 +31,24 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             Assert.Equal(3000.0, SourceComparer.LengthAlongX(before.Single(o => o.Id == "B1-beam")), 6);
             Assert.Equal(3500.0, SourceComparer.LengthAlongX(after.Single(o => o.Id == "B1-beam")), 6);
             Assert.Equal(new[] { "B1-stiffener-1" }, after.Select(o => o.Id).Except(before.Select(o => o.Id)));
-            Assert.True(SourceComparer.Same(before.Single(o => o.Id == "C1-column"), after.Single(o => o.Id == "C1-column")));
-            Assert.False(SourceComparer.Same(before.Single(o => o.Id == "B1-plate-2"), after.Single(o => o.Id == "B1-plate-2")));
+            Assert.True(
+                SourceComparer.Same(before.Single(o => o.Id == "C1-column"), after.Single(o => o.Id == "C1-column"))
+            );
+            Assert.False(
+                SourceComparer.Same(before.Single(o => o.Id == "B1-plate-2"), after.Single(o => o.Id == "B1-plate-2"))
+            );
         }
 
         [Fact]
         public void TeklaAndIfcAreListedButNotConnected()
         {
-            foreach (UnconnectedSourceProvider source in new[] { UnconnectedSourceProvider.TeklaStructures, UnconnectedSourceProvider.IfcFile })
+            foreach (
+                UnconnectedSourceProvider source in new[]
+                {
+                    UnconnectedSourceProvider.TeklaStructures,
+                    UnconnectedSourceProvider.IfcFile,
+                }
+            )
             {
                 Assert.False(source.IsAvailable);
                 Assert.StartsWith("Not connected", source.AvailabilityText);
@@ -54,7 +64,10 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
 
             Assert.Same(dialog, Assert.Single(bench.Requests).Model);
             Assert.Equal(DrawingDialogKind.NewDrawing, bench.Requests[0].Kind);
-            Assert.Equal(new[] { "Test bodies", "Test bodies, changed", "Tekla Structures", "IFC file…" }, dialog.Sources.Select(s => s.Name));
+            Assert.Equal(
+                new[] { "Test bodies", "Test bodies, changed", "Tekla Structures", "IFC file…" },
+                dialog.Sources.Select(s => s.Name)
+            );
             Assert.Same(bench.Original, dialog.SelectedSource.Provider);
 
             dialog.Sources[2].IsSelected = true;
@@ -76,7 +89,10 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
 
             Assert.True(dialog.IsObjectsStep);
             Assert.Equal(16, dialog.Objects.Count);
-            Assert.Equal(new[] { "B1-beam", "B1-plate-1", "B1-plate-2" }, dialog.Objects.Where(o => o.IsChecked).Select(o => o.Object.Id));
+            Assert.Equal(
+                new[] { "B1-beam", "B1-plate-1", "B1-plate-2" },
+                dialog.Objects.Where(o => o.IsChecked).Select(o => o.Object.Id)
+            );
             Assert.Equal("B1", dialog.Number);
             Assert.Equal("Beam B1", dialog.Name);
             Assert.Equal("Picked: 1 assembly · 3 parts", dialog.PickedText);
@@ -117,7 +133,10 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             dialog.Objects.Single(o => o.Object.Id == "B1-plate-2").IsChecked = false;
             dialog.Preset = "General";
 
-            Assert.Equal(new[] { "B1-beam", "B1-plate-1" }, dialog.Objects.Where(o => o.IsChecked).Select(o => o.Object.Id));
+            Assert.Equal(
+                new[] { "B1-beam", "B1-plate-1" },
+                dialog.Objects.Where(o => o.IsChecked).Select(o => o.Object.Id)
+            );
             Assert.Equal("General", dialog.Preset);
         }
 
@@ -151,7 +170,9 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             Assert.True(bench.Workspace.IsTabVisible);
             Assert.Equal("B-101 · Beam B1 · Sheet", bench.Model.Title);
             Assert.Equal("Source: Test bodies · connected", bench.Model.StatusText);
-            Assert.Contains(bench.Model.History, l => l.StartsWith("Made B-101 (Beam B1) from Test bodies", StringComparison.Ordinal));
+            Assert.Contains(bench.Model.History, l =>
+                l.StartsWith("Made B-101 (Beam B1) from Test bodies", StringComparison.Ordinal)
+            );
         }
 
         [Fact]

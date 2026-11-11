@@ -14,8 +14,8 @@ namespace GeometryHelper.UnitTest.Plane
     {
         private static readonly Tolerance Tight = new Tolerance(1E-9, 1E-9);
 
-        private static GeoPolygon2 Square() => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(4, 0), new GeoPoint2(4, 2), new GeoPoint2(0, 2));
+        private static GeoPolygon2 Square() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(4, 0), new GeoPoint2(4, 2), new GeoPoint2(0, 2));
 
         [Fact]
         public void Identity_LeavesEverythingWhereItIs()
@@ -53,8 +53,12 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Scaling_StretchesUniformlyOrPerAxis()
         {
-            Assert.True(GeoTransform2.Scaling(3.0).Transform(new GeoPoint2(2, 1)).IsEqualTo(new GeoPoint2(6, 3), Tight));
-            Assert.True(GeoTransform2.Scaling(3.0, 0.5).Transform(new GeoPoint2(2, 4)).IsEqualTo(new GeoPoint2(6, 2), Tight));
+            Assert.True(
+                GeoTransform2.Scaling(3.0).Transform(new GeoPoint2(2, 1)).IsEqualTo(new GeoPoint2(6, 3), Tight)
+            );
+            Assert.True(
+                GeoTransform2.Scaling(3.0, 0.5).Transform(new GeoPoint2(2, 4)).IsEqualTo(new GeoPoint2(6, 2), Tight)
+            );
 
             var center = new GeoPoint2(10, 10);
             Assert.True(GeoTransform2.Scaling(center, 2.0).Transform(center).IsEqualTo(center, Tight));
@@ -108,7 +112,8 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         // Far from the drawing's origin and turned, as a view on a large sheet is.
-        private static GeoCoordinateSystem2 FarAndTurned() => new GeoCoordinateSystem2(new GeoPoint2(84000, -29500), new GeoVector2(3, 4));
+        private static GeoCoordinateSystem2 FarAndTurned() =>
+            new GeoCoordinateSystem2(new GeoPoint2(84000, -29500), new GeoVector2(3, 4));
 
         [Fact]
         public void ToCoordinateSystem_ReadsPointsAndVectorsAsToLocalDoes()
@@ -139,7 +144,9 @@ namespace GeometryHelper.UnitTest.Plane
 
             // A frame is rigid and never mirrored, so reading into it keeps the winding.
             Assert.Equal(1.0, toLocal.GetDeterminant(), 12);
-            Assert.True(GeoTransform2.ToCoordinateSystem(GeoCoordinateSystem2.Global).IsEqualTo(GeoTransform2.Identity, Tight));
+            Assert.True(
+                GeoTransform2.ToCoordinateSystem(GeoCoordinateSystem2.Global).IsEqualTo(GeoTransform2.Identity, Tight)
+            );
         }
 
         [Fact]
@@ -149,8 +156,12 @@ namespace GeometryHelper.UnitTest.Plane
             GeoPolygon2 drawn = Square();
             var plate = new GeoRectangle2(new GeoPoint2(2, 1), 4, 2, 0.3);
 
-            GeoPolygon2 read = drawn.TransformBy(frame.ToTransform()).TransformBy(GeoTransform2.ToCoordinateSystem(frame));
-            GeoRectangle2 readPlate = plate.TransformBy(frame.ToTransform()).TransformBy(GeoTransform2.ToCoordinateSystem(frame));
+            GeoPolygon2 read = drawn
+                .TransformBy(frame.ToTransform())
+                .TransformBy(GeoTransform2.ToCoordinateSystem(frame));
+            GeoRectangle2 readPlate = plate
+                .TransformBy(frame.ToTransform())
+                .TransformBy(GeoTransform2.ToCoordinateSystem(frame));
 
             Assert.Equal(drawn.VertexCount, read.VertexCount);
             for (int i = 0; i < drawn.VertexCount; i++)
@@ -182,7 +193,8 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void Inverse_UndoesWhateverWasDone()
         {
-            GeoTransform2 motion = GeoTransform2.Translation(new GeoVector2(12, -4))
+            GeoTransform2 motion = GeoTransform2
+                .Translation(new GeoVector2(12, -4))
                 .Multiply(GeoTransform2.Rotation(0.7))
                 .Multiply(GeoTransform2.Scaling(2.5));
 
@@ -215,12 +227,25 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void EveryShapeOfThePlaneCanBeMoved()
         {
-            GeoTransform2 motion = GeoTransform2.Translation(new GeoVector2(5, 5)).Multiply(GeoTransform2.Rotation(0.4));
+            GeoTransform2 motion = GeoTransform2
+                .Translation(new GeoVector2(5, 5))
+                .Multiply(GeoTransform2.Rotation(0.4));
 
             var line = new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(3, 4));
             var chain = new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(3, 0), new GeoPoint2(3, 4));
             GeoPolygon2 square = Square();
-            var face = new GeoFace2(square, new[] { new GeoPolygon2(new GeoPoint2(1, 0.5), new GeoPoint2(2, 0.5), new GeoPoint2(2, 1.5), new GeoPoint2(1, 1.5)) });
+            var face = new GeoFace2(
+                square,
+                new[]
+                {
+                    new GeoPolygon2(
+                        new GeoPoint2(1, 0.5),
+                        new GeoPoint2(2, 0.5),
+                        new GeoPoint2(2, 1.5),
+                        new GeoPoint2(1, 1.5)
+                    ),
+                }
+            );
             var circle = new GeoCircle2(new GeoPoint2(2, 2), 3);
             var rectangle = new GeoRectangle2(new GeoPoint2(1, 1), 6, 4, 0.2);
 
@@ -232,8 +257,12 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Single(face.TransformBy(motion).Holes);
             Assert.Equal(circle.Radius, circle.TransformBy(motion).Radius, 9);
             Assert.Equal(rectangle.Area, rectangle.TransformBy(motion).Area, 9);
-            Assert.True(new GeoPoint2(1, 2).TransformBy(motion).IsEqualTo(motion.Transform(new GeoPoint2(1, 2)), Tight));
-            Assert.True(new GeoVector2(1, 2).TransformBy(motion).IsEqualTo(motion.Transform(new GeoVector2(1, 2)), Tight));
+            Assert.True(
+                new GeoPoint2(1, 2).TransformBy(motion).IsEqualTo(motion.Transform(new GeoPoint2(1, 2)), Tight)
+            );
+            Assert.True(
+                new GeoVector2(1, 2).TransformBy(motion).IsEqualTo(motion.Transform(new GeoVector2(1, 2)), Tight)
+            );
 
             // A sequence of points comes back in order.
             GeoPoint2[] moved = motion.Transform(square.Vertices).ToArray();
@@ -274,7 +303,9 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(rectangle.Height, turned.Height, 9);
             Assert.Equal(0.8, turned.AngleRad, 9);
 
-            GeoRectangle2 mirrored = rectangle.TransformBy(GeoTransform2.Mirror(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(1, 0))));
+            GeoRectangle2 mirrored = rectangle.TransformBy(
+                GeoTransform2.Mirror(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(1, 0)))
+            );
             Assert.Equal(rectangle.Width, mirrored.Width, 9);
             Assert.Equal(-0.3, mirrored.AngleRad, 9);
 
@@ -286,7 +317,12 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void TheMatrixIsReadableAndCopiedOnTheWayIn()
         {
-            double[,] matrix = { { 2.0, 0.0, 5.0 }, { 0.0, 2.0, -1.0 }, { 0.0, 0.0, 1.0 } };
+            double[,] matrix =
+            {
+                { 2.0, 0.0, 5.0 },
+                { 0.0, 2.0, -1.0 },
+                { 0.0, 0.0, 1.0 },
+            };
             var transform = new GeoTransform2(matrix);
 
             Assert.Equal(2.0, transform[0, 0], 12);

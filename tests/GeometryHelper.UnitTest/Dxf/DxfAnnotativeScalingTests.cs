@@ -16,12 +16,17 @@ namespace GeometryHelper.UnitTest.Dxf
     public class DxfAnnotativeScalingTests
     {
         private const string ScaleList = "  0\nDICTIONARY\n  5\n14\n330\nA\n100\nAcDbDictionary\n281\n1\n";
-        private const string AnnotativeData = "1001\nAcadAnnotative\n1000\nAnnotativeData\n1002\n{\n1070\n1\n1070\n1\n1002\n}\n";
+        private const string AnnotativeData =
+            "1001\nAcadAnnotative\n1000\nAnnotativeData\n1002\n{\n1070\n1\n1070\n1\n1002\n}\n";
 
         private static readonly DxfTypedValue[] AnnotativeXData =
         {
-            new DxfTypedValue(1001, "AcadAnnotative"), new DxfTypedValue(1000, "AnnotativeData"), new DxfTypedValue(1002, "{"),
-            new DxfTypedValue(1070, "1"), new DxfTypedValue(1070, "1"), new DxfTypedValue(1002, "}"),
+            new DxfTypedValue(1001, "AcadAnnotative"),
+            new DxfTypedValue(1000, "AnnotativeData"),
+            new DxfTypedValue(1002, "{"),
+            new DxfTypedValue(1070, "1"),
+            new DxfTypedValue(1070, "1"),
+            new DxfTypedValue(1002, "}"),
         };
 
         /// <summary>
@@ -32,15 +37,32 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             string text = DxfFileEzdxfDrawings.R2018.Replace("AC1032", version);
             Assert.Contains(ScaleList, text, StringComparison.Ordinal);
-            string scales = Scale("F0", "1:1", "1", "1", "1") + Scale("F1", "1:50", "1", "50", "0") + Scale("F2", "1:100", "1", "100", "0");
+            string scales =
+                Scale("F0", "1:1", "1", "1", "1")
+                + Scale("F1", "1:50", "1", "50", "0")
+                + Scale("F2", "1:100", "1", "100", "0");
             int end = text.LastIndexOf("  0\nENDSEC\n", StringComparison.Ordinal);
-            return (text.Substring(0, end) + scales + text.Substring(end)).Replace(ScaleList, ScaleList + "  3\nA0\n350\nF0\n  3\nA1\n350\nF1\n  3\nA2\n350\nF2\n");
+            return (text.Substring(0, end) + scales + text.Substring(end)).Replace(
+                ScaleList,
+                ScaleList + "  3\nA0\n350\nF0\n  3\nA1\n350\nF1\n  3\nA2\n350\nF2\n"
+            );
         }
 
-        private static string Scale(string handle, string name, string paper, string drawing, string unit)
-            => "  0\nSCALE\n  5\n" + handle + "\n102\n{ACAD_REACTORS\n330\n14\n102\n}\n330\n14\n100\nAcDbScale\n 70\n0\n300\n" + name + "\n140\n" + paper + "\n141\n" + drawing + "\n290\n" + unit + "\n";
+        private static string Scale(string handle, string name, string paper, string drawing, string unit) =>
+            "  0\nSCALE\n  5\n"
+            + handle
+            + "\n102\n{ACAD_REACTORS\n330\n14\n102\n}\n330\n14\n100\nAcDbScale\n 70\n0\n300\n"
+            + name
+            + "\n140\n"
+            + paper
+            + "\n141\n"
+            + drawing
+            + "\n290\n"
+            + unit
+            + "\n";
 
-        private static DxfObjectContextCollection Scales(DxfDatabase db) => db.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES");
+        private static DxfObjectContextCollection Scales(DxfDatabase db) =>
+            db.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES");
 
         private static string Record(string text, string handle) => Records(text).Single(r => HandleOf(r) == handle);
 
@@ -63,8 +85,18 @@ namespace GeometryHelper.UnitTest.Dxf
             manager.SetAt("ACDB_ANNOTATIONSCALES", contexts);
             string text = db.ToText();
             string owner = contexts.Handle;
-            string Context(string handle, string scale, string isDefault) => "  0\nACDB_MTEXTOBJECTCONTEXTDATA_CLASS\n  5\n" + handle + "\n102\n{ACAD_REACTORS\n330\n" + owner + "\n102\n}\n330\n" + owner
-                + "\n100\nAcDbObjectContextData\n290\n" + isDefault + "\n100\nAcDbAnnotScaleObjectContextData\n340\n" + scale + "\n";
+            string Context(string handle, string scale, string isDefault) =>
+                "  0\nACDB_MTEXTOBJECTCONTEXTDATA_CLASS\n  5\n"
+                + handle
+                + "\n102\n{ACAD_REACTORS\n330\n"
+                + owner
+                + "\n102\n}\n330\n"
+                + owner
+                + "\n100\nAcDbObjectContextData\n290\n"
+                + isDefault
+                + "\n100\nAcDbAnnotScaleObjectContextData\n340\n"
+                + scale
+                + "\n";
             int end = text.LastIndexOf("  0\nENDSEC\n", StringComparison.Ordinal);
             text = text.Substring(0, end) + Context("E01", "F1", "1") + Context("E02", "F2", "0") + text.Substring(end);
             string record = Record(text, owner);
@@ -110,7 +142,12 @@ namespace GeometryHelper.UnitTest.Dxf
             string text = Listed();
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfObjectContextCollection scales = Scales(db);
-            var twenty = new DxfAnnotationScale { Name = "1:20", PaperUnits = 1, DrawingUnits = 20 };
+            var twenty = new DxfAnnotationScale
+            {
+                Name = "1:20",
+                PaperUnits = 1,
+                DrawingUnits = 20,
+            };
 
             Assert.Null(twenty.Handle);
             Assert.Equal(Bits(0.05), Bits(twenty.Scale));
@@ -118,9 +155,21 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "14", twenty.Handle);
-            Assert.Equal("  0\nSCALE\n  5\n" + twenty.Handle + "\n102\n{ACAD_REACTORS\n330\n14\n102\n}\n330\n14\n100\nAcDbScale\n 70\n0\n300\n1:20\n140\n1\n141\n20\n290\n0\n", Record(saved, twenty.Handle));
-            Assert.EndsWith("  3\nA2\n350\nF2\n  3\n*A1\n350\n" + twenty.Handle + "\n", Record(saved, "14"), StringComparison.Ordinal);
-            Assert.Equal(new[] { "1:1", "1:50", "1:100", "1:20" }, Scales(DxfDatabase.Parse(saved)).Select(s => s.Name));
+            Assert.Equal(
+                "  0\nSCALE\n  5\n"
+                    + twenty.Handle
+                    + "\n102\n{ACAD_REACTORS\n330\n14\n102\n}\n330\n14\n100\nAcDbScale\n 70\n0\n300\n1:20\n140\n1\n141\n20\n290\n0\n",
+                Record(saved, twenty.Handle)
+            );
+            Assert.EndsWith(
+                "  3\nA2\n350\nF2\n  3\n*A1\n350\n" + twenty.Handle + "\n",
+                Record(saved, "14"),
+                StringComparison.Ordinal
+            );
+            Assert.Equal(
+                new[] { "1:1", "1:50", "1:100", "1:20" },
+                Scales(DxfDatabase.Parse(saved)).Select(s => s.Name)
+            );
 
             // A name the list has, letters of either case the same, is refused, as AutoCAD answers eDuplicateKey; and a scale
             // in a file already, or with no name.
@@ -149,9 +198,21 @@ namespace GeometryHelper.UnitTest.Dxf
             scales.CurrentContext = scales.GetContext("1:50");
             string text = db.ToText();
 
-            Assert.Contains("unit scale", Assert.Throws<InvalidOperationException>(() => scales.RemoveContext("1:1")).Message, StringComparison.Ordinal);
-            Assert.Contains("current annotation scale", Assert.Throws<InvalidOperationException>(() => scales.RemoveContext("1:50")).Message, StringComparison.Ordinal);
-            Assert.Contains("in use, 1 objects pointing at it", Assert.Throws<InvalidOperationException>(() => scales.RemoveContext("1:100")).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "unit scale",
+                Assert.Throws<InvalidOperationException>(() => scales.RemoveContext("1:1")).Message,
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "current annotation scale",
+                Assert.Throws<InvalidOperationException>(() => scales.RemoveContext("1:50")).Message,
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "in use, 1 objects pointing at it",
+                Assert.Throws<InvalidOperationException>(() => scales.RemoveContext("1:100")).Message,
+                StringComparison.Ordinal
+            );
             Assert.Equal(text, db.ToText());
         }
 
@@ -160,9 +221,24 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             DxfObjectContextCollection scales = Scales(db);
-            var one = new DxfAnnotationScale { Name = "1:1", PaperUnits = 1, DrawingUnits = 1 };
-            var ten = new DxfAnnotationScale { Name = "10:10", PaperUnits = 10, DrawingUnits = 10 };
-            var fifty = new DxfAnnotationScale { Name = "1:50", PaperUnits = 1, DrawingUnits = 50 };
+            var one = new DxfAnnotationScale
+            {
+                Name = "1:1",
+                PaperUnits = 1,
+                DrawingUnits = 1,
+            };
+            var ten = new DxfAnnotationScale
+            {
+                Name = "10:10",
+                PaperUnits = 10,
+                DrawingUnits = 10,
+            };
+            var fifty = new DxfAnnotationScale
+            {
+                Name = "1:50",
+                PaperUnits = 1,
+                DrawingUnits = 50,
+            };
 
             scales.AddContext(fifty);
             scales.AddContext(one);
@@ -172,12 +248,21 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.EndsWith("141\n50\n290\n0\n", Record(saved, fifty.Handle), StringComparison.Ordinal);
             Assert.EndsWith("300\n1:1\n140\n1\n141\n1\n290\n1\n", Record(saved, one.Handle), StringComparison.Ordinal);
             Assert.EndsWith("141\n10\n290\n0\n", Record(saved, ten.Handle), StringComparison.Ordinal);
-            Assert.Contains("unit scale", Assert.Throws<InvalidOperationException>(() => scales.RemoveContext("1:1")).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "unit scale",
+                Assert.Throws<InvalidOperationException>(() => scales.RemoveContext("1:1")).Message,
+                StringComparison.Ordinal
+            );
             scales.RemoveContext("10:10");
 
             // A list with a unit scale has its 1:1 named otherwise added as a scale like any other.
             DxfDatabase listed = DxfDatabase.Parse(Listed());
-            var same = new DxfAnnotationScale { Name = "Full size", PaperUnits = 1, DrawingUnits = 1 };
+            var same = new DxfAnnotationScale
+            {
+                Name = "Full size",
+                PaperUnits = 1,
+                DrawingUnits = 1,
+            };
             Scales(listed).AddContext(same);
             Assert.EndsWith("290\n0\n", Record(listed.ToText(), same.Handle), StringComparison.Ordinal);
         }
@@ -197,8 +282,15 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("Plan 1:50", db.Cannoscale);
             Assert.Equal("Plan 1:50", scales.CurrentContext.Name);
             string saved = db.ToText();
-            Assert.Contains("300\nPlan 1:50\n140\n1\n141\n50.5\n290\n0\n", Record(saved, "F1"), StringComparison.Ordinal);
-            Assert.Equal(Bits(1.0 / 50.5), Bits(((DxfAnnotationScale)Scales(DxfDatabase.Parse(saved)).GetContext("plan 1:50")).Scale));
+            Assert.Contains(
+                "300\nPlan 1:50\n140\n1\n141\n50.5\n290\n0\n",
+                Record(saved, "F1"),
+                StringComparison.Ordinal
+            );
+            Assert.Equal(
+                Bits(1.0 / 50.5),
+                Bits(((DxfAnnotationScale)Scales(DxfDatabase.Parse(saved)).GetContext("plan 1:50")).Scale)
+            );
 
             // A name another scale has is refused, one of other letters of its own is not; values it has change nothing.
             Assert.Throws<ArgumentException>(() => fifty.Name = "1:100");
@@ -210,7 +302,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(saved, db.ToText());
             Assert.NotEqual(text, saved);
             Assert.Throws<ArgumentException>(() => scales.CurrentContext = new DxfAnnotationScale { Name = "1:5" });
-            Assert.Throws<ArgumentException>(() => scales.CurrentContext = Scales(DxfDatabase.Parse(Listed())).GetContext("1:100"));
+            Assert.Throws<ArgumentException>(() =>
+                scales.CurrentContext = Scales(DxfDatabase.Parse(Listed())).GetContext("1:100")
+            );
             Assert.Throws<ArgumentNullException>(() => scales.CurrentContext = null);
         }
 
@@ -244,22 +338,52 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(unlisted);
             Assert.Empty(Scales(db));
 
-            Scales(db).AddContext(new DxfAnnotationScale { Name = "1:50", PaperUnits = 1, DrawingUnits = 50 });
+            Scales(db)
+                .AddContext(
+                    new DxfAnnotationScale
+                    {
+                        Name = "1:50",
+                        PaperUnits = 1,
+                        DrawingUnits = 50,
+                    }
+                );
 
             DxfDBDictionary list = (DxfDBDictionary)db.NamedObjectsDictionary.GetAt("ACAD_SCALELIST");
             Assert.NotEqual("14", list.Handle);
             Assert.Equal("*A1", list.Single().Key);
             Assert.Equal(new[] { "1:50" }, Scales(DxfDatabase.Parse(db.ToText())).Select(s => s.Name));
 
-            DxfDatabase r2004 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1018").Replace(Entry, string.Empty));
+            DxfDatabase r2004 = DxfDatabase.Parse(
+                DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1018").Replace(Entry, string.Empty)
+            );
             string before = r2004.ToText();
-            Assert.Throws<InvalidOperationException>(() => Scales(r2004).AddContext(new DxfAnnotationScale { Name = "1:50", PaperUnits = 1, DrawingUnits = 50 }));
+            Assert.Throws<InvalidOperationException>(() =>
+                Scales(r2004)
+                    .AddContext(
+                        new DxfAnnotationScale
+                        {
+                            Name = "1:50",
+                            PaperUnits = 1,
+                            DrawingUnits = 50,
+                        }
+                    )
+            );
             Assert.Equal(before, r2004.ToText());
-            Assert.Throws<InvalidOperationException>(() => Scales(DxfDatabase.Parse(DxfFileEzdxfDrawings.R12)).AddContext(new DxfAnnotationScale { Name = "1:50" }));
+            Assert.Throws<InvalidOperationException>(() =>
+                Scales(DxfDatabase.Parse(DxfFileEzdxfDrawings.R12)).AddContext(new DxfAnnotationScale { Name = "1:50" })
+            );
 
             // A drawing of R2000 that has the list, as one of ezdxf, takes a scale in it.
             DxfDatabase r2000 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
-            Scales(r2000).AddContext(new DxfAnnotationScale { Name = "1:50", PaperUnits = 1, DrawingUnits = 50 });
+            Scales(r2000)
+                .AddContext(
+                    new DxfAnnotationScale
+                    {
+                        Name = "1:50",
+                        PaperUnits = 1,
+                        DrawingUnits = 50,
+                    }
+                );
             Assert.Equal("1:50", Scales(DxfDatabase.Parse(r2000.ToText())).Single().Name);
         }
 
@@ -286,8 +410,14 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.False(grid.HasContext(Scales(db).GetContext("1:1")));
 
             // An entity is not made annotative: AutoCAD shows it at a scale by a context the library does not write yet.
-            Assert.Contains("checked on a drawing AutoCAD saved", Assert.Throws<NotSupportedException>(() => grid.Annotative = DxfAnnotativeStates.True).Message, StringComparison.Ordinal);
-            Assert.Throws<NotSupportedException>(() => ByHandle<DxfMText>(db, "73").Annotative = DxfAnnotativeStates.True);
+            Assert.Contains(
+                "checked on a drawing AutoCAD saved",
+                Assert.Throws<NotSupportedException>(() => grid.Annotative = DxfAnnotativeStates.True).Message,
+                StringComparison.Ordinal
+            );
+            Assert.Throws<NotSupportedException>(() =>
+                ByHandle<DxfMText>(db, "73").Annotative = DxfAnnotativeStates.True
+            );
             Assert.Throws<ArgumentException>(() => grid.Annotative = DxfAnnotativeStates.NotApplicable);
             Assert.Throws<ArgumentException>(() => grid.Annotative = (DxfAnnotativeStates)7);
             grid.Annotative = DxfAnnotativeStates.False;
@@ -313,7 +443,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(text, db.ToText());
 
             // The default context is kept: the library makes no other the default in its place.
-            Assert.Contains("is the default", Assert.Throws<InvalidOperationException>(() => note.RemoveContext(scales.GetContext("1:50"))).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "is the default",
+                Assert.Throws<InvalidOperationException>(() => note.RemoveContext(scales.GetContext("1:50"))).Message,
+                StringComparison.Ordinal
+            );
             note.RemoveContext(scales.GetContext("1:1"));
             Assert.Equal(text, db.ToText());
 
@@ -323,7 +457,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.DoesNotContain(Records(saved), r => HandleOf(r) == "E02");
             Assert.Equal(Record(text, "E01"), Record(saved, "E01"));
             Assert.False(note.HasContext(scales.GetContext("1:100")));
-            Assert.Contains("is the last", Assert.Throws<InvalidOperationException>(() => note.RemoveContext(scales.GetContext("1:50"))).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "is the last",
+                Assert.Throws<InvalidOperationException>(() => note.RemoveContext(scales.GetContext("1:50"))).Message,
+                StringComparison.Ordinal
+            );
 
             // Made not annotative, it loses its contexts and its data, its own groups kept.
             note.Annotative = DxfAnnotativeStates.False;
@@ -331,7 +469,14 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Empty(note.XData);
             Assert.DoesNotContain(Records(db.ToText()), r => HandleOf(r) == "E01");
             Assert.False(note.ExtensionDictionary.Contains("AcDbContextDataManager"));
-            Assert.Equal(Record(Listed(), "73"), Record(db.ToText(), "73").Replace("102\n{ACAD_XDICTIONARY\n360\n" + note.ExtensionDictionary.Handle + "\n102\n}\n", string.Empty));
+            Assert.Equal(
+                Record(Listed(), "73"),
+                Record(db.ToText(), "73")
+                    .Replace(
+                        "102\n{ACAD_XDICTIONARY\n360\n" + note.ExtensionDictionary.Handle + "\n102\n}\n",
+                        string.Empty
+                    )
+            );
             note.Annotative = DxfAnnotativeStates.False;
         }
 
@@ -386,18 +531,32 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string saved = db.ToText();
             Assert.EndsWith(AnnotativeData, Record(saved, standard.Handle), StringComparison.Ordinal);
-            Assert.EndsWith(AnnotativeData, Records(saved).Single(r => r.Contains("\n105\n" + dimensions.Handle + "\n")), StringComparison.Ordinal);
+            Assert.EndsWith(
+                AnnotativeData,
+                Records(saved).Single(r => r.Contains("\n105\n" + dimensions.Handle + "\n")),
+                StringComparison.Ordinal
+            );
             Assert.Equal(DxfAnnotativeStates.True, standard.Annotative);
             Assert.Null(standard.ExtensionDictionary);
             Assert.Equal(DxfPaperOrientationStates.False, standard.PaperOrientation);
             standard.Annotative = DxfAnnotativeStates.False;
             dimensions.Annotative = DxfAnnotativeStates.False;
-            OnlyTheseChanged(text, db.ToText(), "3", Records(db.ToText()).Where(r => r.StartsWith("  0\nAPPID\n", StringComparison.Ordinal)).Select(HandleOf).Last());
+            OnlyTheseChanged(
+                text,
+                db.ToText(),
+                "3",
+                Records(db.ToText())
+                    .Where(r => r.StartsWith("  0\nAPPID\n", StringComparison.Ordinal))
+                    .Select(HandleOf)
+                    .Last()
+            );
 
             // A block marked annotative by AutoCAD's data makes its INSERTs so; neither is set here.
             DxfBlockReference insert = ByHandle<DxfBlockReference>(db, "65");
             Assert.Equal(DxfAnnotativeStates.False, insert.Annotative);
-            insert.BlockTableRecord.XData = AnnotativeXData.Concat(new[] { new DxfTypedValue(1001, "AcadAnnoPO"), new DxfTypedValue(1070, "1") }).ToArray();
+            insert.BlockTableRecord.XData = AnnotativeXData
+                .Concat(new[] { new DxfTypedValue(1001, "AcadAnnoPO"), new DxfTypedValue(1070, "1") })
+                .ToArray();
             Assert.Equal(DxfAnnotativeStates.True, insert.BlockTableRecord.Annotative);
             Assert.Equal(DxfAnnotativeStates.True, insert.Annotative);
             Assert.Equal(DxfPaperOrientationStates.True, insert.PaperOrientation);
@@ -410,27 +569,56 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase r2007 = DxfDatabase.Parse(Listed("AC1021"));
             r2007.TextStyleTable["Standard"].Annotative = DxfAnnotativeStates.True;
-            Assert.Equal(DxfAnnotativeStates.True, DxfDatabase.Parse(r2007.ToText()).TextStyleTable["Standard"].Annotative);
+            Assert.Equal(
+                DxfAnnotativeStates.True,
+                DxfDatabase.Parse(r2007.ToText()).TextStyleTable["Standard"].Annotative
+            );
 
             DxfDatabase r2000 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
             string before = r2000.ToText();
-            Assert.Throws<InvalidOperationException>(() => r2000.TextStyleTable["Standard"].Annotative = DxfAnnotativeStates.True);
+            Assert.Throws<InvalidOperationException>(() =>
+                r2000.TextStyleTable["Standard"].Annotative = DxfAnnotativeStates.True
+            );
             Assert.Equal(before, r2000.ToText());
-            Assert.Throws<InvalidOperationException>(() => new DxfTextStyleTableRecord().Annotative = DxfAnnotativeStates.True);
+            Assert.Throws<InvalidOperationException>(() =>
+                new DxfTextStyleTableRecord().Annotative = DxfAnnotativeStates.True
+            );
         }
 
         [Fact]
         public void ADrawingWhoseAnnotativeMembersAreRead_ResavesByteForByte()
         {
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018, Listed(), AnnotativeMText() })
+            foreach (
+                string text in new[]
+                {
+                    DxfFileEzdxfDrawings.R12,
+                    DxfFileEzdxfDrawings.R2000,
+                    DxfFileEzdxfDrawings.R2018,
+                    Listed(),
+                    AnnotativeMText(),
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
                 List<DxfObjectContext> scales = Scales(db).ToList();
                 var read = new List<string>();
 
-                foreach (DxfDBObject item in Everything(db).Cast<DxfDBObject>().Concat(db.TextStyleTable.Cast<DxfDBObject>()).Concat(db.DimStyleTable.Cast<DxfDBObject>()).Concat(db.BlockTable.Cast<DxfDBObject>()).Concat(db.LayerTable.Cast<DxfDBObject>()))
+                foreach (
+                    DxfDBObject item in Everything(db)
+                        .Cast<DxfDBObject>()
+                        .Concat(db.TextStyleTable.Cast<DxfDBObject>())
+                        .Concat(db.DimStyleTable.Cast<DxfDBObject>())
+                        .Concat(db.BlockTable.Cast<DxfDBObject>())
+                        .Concat(db.LayerTable.Cast<DxfDBObject>())
+                )
                 {
-                    read.Add(item.Annotative + " " + item.PaperOrientation + " " + string.Concat(scales.Select(s => item.HasContext(s) ? "1" : "0")));
+                    read.Add(
+                        item.Annotative
+                            + " "
+                            + item.PaperOrientation
+                            + " "
+                            + string.Concat(scales.Select(s => item.HasContext(s) ? "1" : "0"))
+                    );
                 }
 
                 Assert.NotEmpty(read);

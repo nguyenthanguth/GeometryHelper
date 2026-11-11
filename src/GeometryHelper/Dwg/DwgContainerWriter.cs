@@ -45,7 +45,16 @@ namespace GeometryHelper.Dwg
         /// </summary>
         public void Add(string name, byte[] data, int id, int pageSize, bool compressed)
         {
-            _sections.Add(new Section { Name = name, Data = data, Id = id, PageSize = pageSize, Compressed = compressed });
+            _sections.Add(
+                new Section
+                {
+                    Name = name,
+                    Data = data,
+                    Id = id,
+                    PageSize = pageSize,
+                    Compressed = compressed,
+                }
+            );
         }
 
         /// <summary>The bytes of the file.</summary>
@@ -103,7 +112,17 @@ namespace GeometryHelper.Dwg
             Long(map, 0x7400);
             Long(map, 0);
             Long(map, ordered.Count + 1);
-            Descriptor(map, new Section { Name = string.Empty, Data = new byte[0], Id = 0, PageSize = 0x7400, Compressed = true });
+            Descriptor(
+                map,
+                new Section
+                {
+                    Name = string.Empty,
+                    Data = new byte[0],
+                    Id = 0,
+                    PageSize = 0x7400,
+                    Compressed = true,
+                }
+            );
 
             foreach (Section section in ordered)
             {
@@ -134,7 +153,9 @@ namespace GeometryHelper.Dwg
 
             if (written != pageMapSize)
             {
-                throw new InvalidOperationException("The page map took " + written + " bytes, not the " + pageMapSize + " it names.");
+                throw new InvalidOperationException(
+                    "The page map took " + written + " bytes, not the " + pageMapSize + " it names."
+                );
             }
 
             // The file header: its masked part at 0x80 and again at the end of the file.
@@ -186,12 +207,18 @@ namespace GeometryHelper.Dwg
         {
             switch (version)
             {
-                case "AC1015": return 23;
-                case "AC1018": return 25;
-                case "AC1021": return 27;
-                case "AC1024": return 29;
-                case "AC1027": return 31;
-                default: return 33;
+                case "AC1015":
+                    return 23;
+                case "AC1018":
+                    return 25;
+                case "AC1021":
+                    return 27;
+                case "AC1024":
+                    return 29;
+                case "AC1027":
+                    return 31;
+                default:
+                    return 33;
             }
         }
 
@@ -348,7 +375,8 @@ namespace GeometryHelper.Dwg
             Long(stream, (int)(value >> 32));
         }
 
-        private static uint Get32(byte[] data, int at) => (uint)(data[at] | (data[at + 1] << 8) | (data[at + 2] << 16) | (data[at + 3] << 24));
+        private static uint Get32(byte[] data, int at) =>
+            (uint)(data[at] | (data[at + 1] << 8) | (data[at + 2] << 16) | (data[at + 3] << 24));
 
         private static void Put32(byte[] data, int at, uint value)
         {

@@ -45,7 +45,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the shortest segment joining a line segment to a plane.
         /// </summary>
-        public static GeoLine3 GetShortestLineTo(GeoLine3 line, GeoPlane3 plane) => GetShortestLineTo(line, plane, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoLine3 line, GeoPlane3 plane) =>
+            GetShortestLineTo(line, plane, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a line segment to a plane.
@@ -84,7 +85,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a line segment to a polygon.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoLine3 line, GeoPolygon3 polygon) => GetShortestLineTo(line, polygon, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoLine3 line, GeoPolygon3 polygon) =>
+            GetShortestLineTo(line, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a line segment to a polygon, within a tolerance.
@@ -120,7 +122,8 @@ namespace GeometryHelper.Core
                 return Stub3.Nearest(
                     line,
                     Closest(line, polygon, Stub3.AsItIs(line, tolerance), Stub3.AsItIs(line, tolerance)),
-                    new GeoLine3(line.StartPoint, ProjectToPolygon(polygon, line.StartPoint, tolerance, Exactly)));
+                    new GeoLine3(line.StartPoint, ProjectToPolygon(polygon, line.StartPoint, tolerance, Exactly))
+                );
             }
 
             return Closest(line, polygon, tolerance, Exactly);
@@ -150,8 +153,16 @@ namespace GeometryHelper.Core
                 Consider(ref best, ref shortest, Closest(line, polygon.GetEdgeAt(i), sides));
             }
 
-            Consider(ref best, ref shortest, new GeoLine3(line.StartPoint, ProjectToPolygon(polygon, line.StartPoint, tolerance, sides)));
-            Consider(ref best, ref shortest, new GeoLine3(line.EndPoint, ProjectToPolygon(polygon, line.EndPoint, tolerance, sides)));
+            Consider(
+                ref best,
+                ref shortest,
+                new GeoLine3(line.StartPoint, ProjectToPolygon(polygon, line.StartPoint, tolerance, sides))
+            );
+            Consider(
+                ref best,
+                ref shortest,
+                new GeoLine3(line.EndPoint, ProjectToPolygon(polygon, line.EndPoint, tolerance, sides))
+            );
 
             return best;
         }
@@ -164,7 +175,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a polyline to a line segment.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoLine3 line) => GetShortestLineTo(polyline, line, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoLine3 line) =>
+            GetShortestLineTo(polyline, line, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a polyline to a line segment, within a tolerance.
@@ -222,7 +234,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining two polylines.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when either polyline is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoPolyline3 other) => GetShortestLineTo(polyline, other, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoPolyline3 other) =>
+            GetShortestLineTo(polyline, other, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining two polylines, within a tolerance.
@@ -275,7 +288,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a polyline to a triangle.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoTriangle3 triangle) => GetShortestLineTo(polyline, triangle, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoTriangle3 triangle) =>
+            GetShortestLineTo(polyline, triangle, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a polyline to a triangle, within a tolerance.
@@ -313,7 +327,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a polyline to a polygon.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline or the polygon is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoPolygon3 polygon) => GetShortestLineTo(polyline, polygon, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoPolygon3 polygon) =>
+            GetShortestLineTo(polyline, polygon, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a polyline to a polygon, within a tolerance.
@@ -419,7 +434,8 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a polyline to a plane.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoPlane3 plane) => GetShortestLineTo(polyline, plane, Tolerance.Global);
+        public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoPlane3 plane) =>
+            GetShortestLineTo(polyline, plane, Tolerance.Global);
 
         /// <summary>
         /// Gets the shortest segment joining a polyline to a plane, within a tolerance.
@@ -476,7 +492,12 @@ namespace GeometryHelper.Core
         /// No tolerance widens the plane: an edge reaches it only where its ends do not both stand strictly on one side,
         /// so a segment of no length is never made for a gap the distance merely reads as nought.
         /// </remarks>
-        private static bool TryReachPlane(IReadOnlyList<GeoPoint3> corners, bool closed, GeoPlane3 plane, out GeoPoint3 at)
+        private static bool TryReachPlane(
+            IReadOnlyList<GeoPoint3> corners,
+            bool closed,
+            GeoPlane3 plane,
+            out GeoPoint3 at
+        )
         {
             int edges = closed ? corners.Count : corners.Count - 1;
 
@@ -524,7 +545,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Keeps the corner nearest a plane, the first of those equally near.
         /// </summary>
-        private static void Nearer(IReadOnlyList<GeoPoint3> corners, GeoPlane3 plane, ref GeoPoint3 nearest, ref double reach)
+        private static void Nearer(
+            IReadOnlyList<GeoPoint3> corners,
+            GeoPlane3 plane,
+            ref GeoPoint3 nearest,
+            ref double reach
+        )
         {
             foreach (GeoPoint3 corner in corners)
             {

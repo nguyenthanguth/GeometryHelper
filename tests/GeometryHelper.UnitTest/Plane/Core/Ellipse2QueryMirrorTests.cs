@@ -44,11 +44,20 @@ namespace GeometryHelper.UnitTest.Plane
                 Assert.Equal(Ellipse2.GetIntersections(e, x, Global), e.GetIntersections(x, Global));
                 Assert.Equal(e.GetIntersections(x, Global), e.GetIntersections(x));
                 Assert.Equal(Ellipse2.GetIntersections(e, x), e.GetIntersections(x));
-                Assert.Equal(Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s1, Global), e.TryIntersectWith(x, out GeoPoint2[] m1, Global));
+                Assert.Equal(
+                    Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s1, Global),
+                    e.TryIntersectWith(x, out GeoPoint2[] m1, Global)
+                );
                 Assert.Equal(s1, m1);
-                Assert.Equal(e.TryIntersectWith(x, out GeoPoint2[] m2), e.TryIntersectWith(x, out GeoPoint2[] m3, Global));
+                Assert.Equal(
+                    e.TryIntersectWith(x, out GeoPoint2[] m2),
+                    e.TryIntersectWith(x, out GeoPoint2[] m3, Global)
+                );
                 Assert.Equal(m3, m2);
-                Assert.Equal(Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s2), e.TryIntersectWith(x, out GeoPoint2[] m4));
+                Assert.Equal(
+                    Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s2),
+                    e.TryIntersectWith(x, out GeoPoint2[] m4)
+                );
                 Assert.Equal(s2, m4);
                 Assert.Equal(Ellipse2.GetShortestLineTo(e, x, Global), e.GetShortestLineTo(x, Global));
                 Assert.Equal(e.GetShortestLineTo(x, Global), e.GetShortestLineTo(x));
@@ -203,11 +212,20 @@ namespace GeometryHelper.UnitTest.Plane
                 Assert.Equal(Ellipse2.GetIntersections(e, x, Global), e.GetIntersections(x, Global));
                 Assert.Equal(e.GetIntersections(x, Global), e.GetIntersections(x));
                 Assert.Equal(Ellipse2.GetIntersections(e, x), e.GetIntersections(x));
-                Assert.Equal(Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s1, Global), e.TryIntersectWith(x, out GeoPoint2[] m1, Global));
+                Assert.Equal(
+                    Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s1, Global),
+                    e.TryIntersectWith(x, out GeoPoint2[] m1, Global)
+                );
                 Assert.Equal(s1, m1);
-                Assert.Equal(e.TryIntersectWith(x, out GeoPoint2[] m2), e.TryIntersectWith(x, out GeoPoint2[] m3, Global));
+                Assert.Equal(
+                    e.TryIntersectWith(x, out GeoPoint2[] m2),
+                    e.TryIntersectWith(x, out GeoPoint2[] m3, Global)
+                );
                 Assert.Equal(m3, m2);
-                Assert.Equal(Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s2), e.TryIntersectWith(x, out GeoPoint2[] m4));
+                Assert.Equal(
+                    Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s2),
+                    e.TryIntersectWith(x, out GeoPoint2[] m4)
+                );
                 Assert.Equal(s2, m4);
                 Assert.Equal(Ellipse2.GetShortestLineTo(e, x, Global), e.GetShortestLineTo(x, Global));
                 Assert.Equal(e.GetShortestLineTo(x, Global), e.GetShortestLineTo(x));
@@ -233,11 +251,20 @@ namespace GeometryHelper.UnitTest.Plane
                 Assert.Equal(Ellipse2.GetIntersections(e, x, Global), e.GetIntersections(x, Global));
                 Assert.Equal(e.GetIntersections(x, Global), e.GetIntersections(x));
                 Assert.Equal(Ellipse2.GetIntersections(e, x), e.GetIntersections(x));
-                Assert.Equal(Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s1, Global), e.TryIntersectWith(x, out GeoPoint2[] m1, Global));
+                Assert.Equal(
+                    Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s1, Global),
+                    e.TryIntersectWith(x, out GeoPoint2[] m1, Global)
+                );
                 Assert.Equal(s1, m1);
-                Assert.Equal(e.TryIntersectWith(x, out GeoPoint2[] m2), e.TryIntersectWith(x, out GeoPoint2[] m3, Global));
+                Assert.Equal(
+                    e.TryIntersectWith(x, out GeoPoint2[] m2),
+                    e.TryIntersectWith(x, out GeoPoint2[] m3, Global)
+                );
                 Assert.Equal(m3, m2);
-                Assert.Equal(Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s2), e.TryIntersectWith(x, out GeoPoint2[] m4));
+                Assert.Equal(
+                    Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s2),
+                    e.TryIntersectWith(x, out GeoPoint2[] m4)
+                );
                 Assert.Equal(s2, m4);
                 Assert.Equal(Ellipse2.GetShortestLineTo(e, x, Global), e.GetShortestLineTo(x, Global));
                 Assert.Equal(e.GetShortestLineTo(x, Global), e.GetShortestLineTo(x));
@@ -263,11 +290,20 @@ namespace GeometryHelper.UnitTest.Plane
                 Assert.Equal(Ellipse2.GetIntersections(e, x, Global), e.GetIntersections(x, Global));
                 Assert.Equal(e.GetIntersections(x, Global), e.GetIntersections(x));
                 Assert.Equal(Ellipse2.GetIntersections(e, x), e.GetIntersections(x));
-                Assert.Equal(Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s1, Global), e.TryIntersectWith(x, out GeoPoint2[] m1, Global));
+                Assert.Equal(
+                    Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s1, Global),
+                    e.TryIntersectWith(x, out GeoPoint2[] m1, Global)
+                );
                 Assert.Equal(s1, m1);
-                Assert.Equal(e.TryIntersectWith(x, out GeoPoint2[] m2), e.TryIntersectWith(x, out GeoPoint2[] m3, Global));
+                Assert.Equal(
+                    e.TryIntersectWith(x, out GeoPoint2[] m2),
+                    e.TryIntersectWith(x, out GeoPoint2[] m3, Global)
+                );
                 Assert.Equal(m3, m2);
-                Assert.Equal(Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s2), e.TryIntersectWith(x, out GeoPoint2[] m4));
+                Assert.Equal(
+                    Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s2),
+                    e.TryIntersectWith(x, out GeoPoint2[] m4)
+                );
                 Assert.Equal(s2, m4);
                 Assert.Equal(Ellipse2.GetShortestLineTo(e, x, Global), e.GetShortestLineTo(x, Global));
                 Assert.Equal(e.GetShortestLineTo(x, Global), e.GetShortestLineTo(x));
@@ -293,11 +329,20 @@ namespace GeometryHelper.UnitTest.Plane
                 Assert.Equal(Ellipse2.GetIntersections(e, x, Global), e.GetIntersections(x, Global));
                 Assert.Equal(e.GetIntersections(x, Global), e.GetIntersections(x));
                 Assert.Equal(Ellipse2.GetIntersections(e, x), e.GetIntersections(x));
-                Assert.Equal(Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s1, Global), e.TryIntersectWith(x, out GeoPoint2[] m1, Global));
+                Assert.Equal(
+                    Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s1, Global),
+                    e.TryIntersectWith(x, out GeoPoint2[] m1, Global)
+                );
                 Assert.Equal(s1, m1);
-                Assert.Equal(e.TryIntersectWith(x, out GeoPoint2[] m2), e.TryIntersectWith(x, out GeoPoint2[] m3, Global));
+                Assert.Equal(
+                    e.TryIntersectWith(x, out GeoPoint2[] m2),
+                    e.TryIntersectWith(x, out GeoPoint2[] m3, Global)
+                );
                 Assert.Equal(m3, m2);
-                Assert.Equal(Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s2), e.TryIntersectWith(x, out GeoPoint2[] m4));
+                Assert.Equal(
+                    Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s2),
+                    e.TryIntersectWith(x, out GeoPoint2[] m4)
+                );
                 Assert.Equal(s2, m4);
                 Assert.Equal(Ellipse2.GetShortestLineTo(e, x, Global), e.GetShortestLineTo(x, Global));
                 Assert.Equal(e.GetShortestLineTo(x, Global), e.GetShortestLineTo(x));
@@ -326,11 +371,20 @@ namespace GeometryHelper.UnitTest.Plane
                 Assert.Equal(Ellipse2.GetIntersections(e, x, Global), e.GetIntersections(x, Global));
                 Assert.Equal(e.GetIntersections(x, Global), e.GetIntersections(x));
                 Assert.Equal(Ellipse2.GetIntersections(e, x), e.GetIntersections(x));
-                Assert.Equal(Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s1, Global), e.TryIntersectWith(x, out GeoPoint2[] m1, Global));
+                Assert.Equal(
+                    Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s1, Global),
+                    e.TryIntersectWith(x, out GeoPoint2[] m1, Global)
+                );
                 Assert.Equal(s1, m1);
-                Assert.Equal(e.TryIntersectWith(x, out GeoPoint2[] m2), e.TryIntersectWith(x, out GeoPoint2[] m3, Global));
+                Assert.Equal(
+                    e.TryIntersectWith(x, out GeoPoint2[] m2),
+                    e.TryIntersectWith(x, out GeoPoint2[] m3, Global)
+                );
                 Assert.Equal(m3, m2);
-                Assert.Equal(Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s2), e.TryIntersectWith(x, out GeoPoint2[] m4));
+                Assert.Equal(
+                    Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s2),
+                    e.TryIntersectWith(x, out GeoPoint2[] m4)
+                );
                 Assert.Equal(s2, m4);
                 Assert.Equal(Ellipse2.GetShortestLineTo(e, x, Global), e.GetShortestLineTo(x, Global));
                 Assert.Equal(e.GetShortestLineTo(x, Global), e.GetShortestLineTo(x));
@@ -359,11 +413,20 @@ namespace GeometryHelper.UnitTest.Plane
                 Assert.Equal(Ellipse2.GetIntersections(e, x, Global), e.GetIntersections(x, Global));
                 Assert.Equal(e.GetIntersections(x, Global), e.GetIntersections(x));
                 Assert.Equal(Ellipse2.GetIntersections(e, x), e.GetIntersections(x));
-                Assert.Equal(Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s1, Global), e.TryIntersectWith(x, out GeoPoint2[] m1, Global));
+                Assert.Equal(
+                    Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s1, Global),
+                    e.TryIntersectWith(x, out GeoPoint2[] m1, Global)
+                );
                 Assert.Equal(s1, m1);
-                Assert.Equal(e.TryIntersectWith(x, out GeoPoint2[] m2), e.TryIntersectWith(x, out GeoPoint2[] m3, Global));
+                Assert.Equal(
+                    e.TryIntersectWith(x, out GeoPoint2[] m2),
+                    e.TryIntersectWith(x, out GeoPoint2[] m3, Global)
+                );
                 Assert.Equal(m3, m2);
-                Assert.Equal(Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s2), e.TryIntersectWith(x, out GeoPoint2[] m4));
+                Assert.Equal(
+                    Ellipse2.TryIntersectWith(e, x, out GeoPoint2[] s2),
+                    e.TryIntersectWith(x, out GeoPoint2[] m4)
+                );
                 Assert.Equal(s2, m4);
                 Assert.Equal(Ellipse2.GetShortestLineTo(e, x, Global), e.GetShortestLineTo(x, Global));
                 Assert.Equal(e.GetShortestLineTo(x, Global), e.GetShortestLineTo(x));
@@ -481,7 +544,6 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(Ellipse2.CollidesWith(e, ellipse, Loose));
             Assert.False(e.CollidesWith(ellipse, Strict));
             Assert.False(Ellipse2.CollidesWith(e, ellipse, Strict));
-
         }
 
         [Fact]
@@ -598,7 +660,6 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(Ellipse2.TryIntersectWith(e, ellipse, out _, Loose));
             Assert.False(e.TryIntersectWith(ellipse, out _, Strict));
             Assert.False(Ellipse2.TryIntersectWith(e, ellipse, out _, Strict));
-
         }
 
         [Fact]
@@ -679,7 +740,6 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(0.0, Ellipse2.GetShortestLineTo(e, ellipse, Loose).Length);
             Assert.Equal(0.5, e.GetShortestLineTo(ellipse, Strict).Length, 9);
             Assert.Equal(0.5, Ellipse2.GetShortestLineTo(e, ellipse, Strict).Length, 9);
-
         }
 
         [Fact]

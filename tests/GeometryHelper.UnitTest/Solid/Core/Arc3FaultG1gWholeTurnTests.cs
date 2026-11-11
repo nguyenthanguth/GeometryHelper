@@ -20,7 +20,8 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly GeoPoint3 Centre = new GeoPoint3(1000, -2000, 500);
 
-        private static Tolerance At(double equalPoint) => new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
+        private static Tolerance At(double equalPoint) =>
+            new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
 
         private static GeoArc3 WholeTurn(double start, double degrees)
         {
@@ -36,7 +37,11 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(1.8, 30.0, 0.0)]
         [InlineData(1.8, 0.0, 1E-3)]
         [InlineData(2.05, 30.0, 1E-2)]
-        public void APointOnTheCircleOfAWholeTurn_IsOnItAndItsOwnClosestPoint(double start, double degrees, double equalPoint)
+        public void APointOnTheCircleOfAWholeTurn_IsOnItAndItsOwnClosestPoint(
+            double start,
+            double degrees,
+            double equalPoint
+        )
         {
             // Each eighth of the way round. Carried to the start, the point half a turn round read 200 away. A point worked out
             // to the last digit is on the arc within a thousandth at the least, as no tolerance at all asks more than a rounding

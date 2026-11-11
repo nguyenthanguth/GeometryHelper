@@ -34,8 +34,18 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             const string Head = " 93\n0\n 94\n0\n 95\n0\n 96\n0\n141\n10.0\n";
             Assert.Contains(Head, DxfDimensionDrawings.R2018, StringComparison.Ordinal);
-            string text = DxfDimensionDrawings.R2018.Replace(Head, " 93\n6886016\n 94\n0\n 95\n0\n 96\n0\n  7\nGH_TXT\n140\n9.0\n170\n1\n 63\n3\n 64\n1\n140\n9.0\n283\n0\n141\n10.0\n");
-            DxfDatabase db = DxfDatabase.Parse(content ? DxfAutoCadChecksD16Tests.LinkedByAutoCad(text.Replace("\n 91\n0\n178\n", "\n 91\n262144\n178\n").Replace("\n 91\n49\n178\n", "\n 91\n262193\n178\n")) : text);
+            string text = DxfDimensionDrawings.R2018.Replace(
+                Head,
+                " 93\n6886016\n 94\n0\n 95\n0\n 96\n0\n  7\nGH_TXT\n140\n9.0\n170\n1\n 63\n3\n 64\n1\n140\n9.0\n283\n0\n141\n10.0\n"
+            );
+            DxfDatabase db = DxfDatabase.Parse(
+                content
+                    ? DxfAutoCadChecksD16Tests.LinkedByAutoCad(
+                        text.Replace("\n 91\n0\n178\n", "\n 91\n262144\n178\n")
+                            .Replace("\n 91\n49\n178\n", "\n 91\n262193\n178\n")
+                    )
+                    : text
+            );
             DxfTable table = Table(db);
 
             for (int column = 0; column < 2; column++)
@@ -55,7 +65,10 @@ namespace GeometryHelper.UnitTest.Dxf
             string record = DxfAutoCadChecksD16Tests.Record(db.ToText(), "F6");
             string groups = record.Split(new[] { "\n171\n" }, StringSplitOptions.None)[cell + 1];
             int value = groups.IndexOf("301\nCELL_VALUE\n", StringComparison.Ordinal);
-            Match m = Regex.Match(value >= 0 ? groups.Substring(0, value) : groups, "(?:^|\n) *" + code + "\n(-?\\d+)\n");
+            Match m = Regex.Match(
+                value >= 0 ? groups.Substring(0, value) : groups,
+                "(?:^|\n) *" + code + "\n(-?\\d+)\n"
+            );
             return m.Success ? int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) : -1;
         }
 
@@ -65,12 +78,36 @@ namespace GeometryHelper.UnitTest.Dxf
             // D33f a04, D33g e01, h03: AutoCAD 2021 gave a row put in by InsertRows or SetSize after the row of data no looks of
             // its own (its ROWTABLEFORMAT empty), so that ClearTableStyleOverrides(2) left its cells none (91 0), and a row put in
             // taking its look none either; B-12 above kept GH_TXT, red, 9 and top left. The library gave them the table's.
-            foreach ((Action<DxfTable> Edit, int Row) edit in new (Action<DxfTable>, int)[]
-            {
-                (t => { t.InsertRows(3, 9.0, 1); t.ClearTableStyleOverrides(2); }, 3),
-                (t => { t.SetSize(4, 2); t.ClearTableStyleOverrides(2); }, 3),
-                (t => { t.InsertRows(3, 9.0, 1); t.InsertRowsAndInherit(4, 3, 1); t.ClearTableStyleOverrides(2); }, 4),
-            })
+            foreach (
+                (Action<DxfTable> Edit, int Row) edit in new (Action<DxfTable>, int)[]
+                {
+                    (
+                        t =>
+                        {
+                            t.InsertRows(3, 9.0, 1);
+                            t.ClearTableStyleOverrides(2);
+                        },
+                        3
+                    ),
+                    (
+                        t =>
+                        {
+                            t.SetSize(4, 2);
+                            t.ClearTableStyleOverrides(2);
+                        },
+                        3
+                    ),
+                    (
+                        t =>
+                        {
+                            t.InsertRows(3, 9.0, 1);
+                            t.InsertRowsAndInherit(4, 3, 1);
+                            t.ClearTableStyleOverrides(2);
+                        },
+                        4
+                    ),
+                }
+            )
             {
                 DxfDatabase db = RowLooks();
                 edit.Edit(Table(db));
@@ -139,11 +176,22 @@ namespace GeometryHelper.UnitTest.Dxf
             // D33f a07, D33g k02, k06: the row put in at 0 taken out again, AutoCAD 2021 read the table's own looks of the data
             // from B-12's row again and wrote them in its head as before (93 6886016), the two rows put in taken out together
             // alike. The library left them gone.
-            foreach (Action<DxfTable> edit in new Action<DxfTable>[]
-            {
-                t => { t.InsertRows(0, 9.0, 1); t.DeleteRows(0, 1); },
-                t => { t.InsertRows(0, 9.0, 1); t.InsertRows(0, 9.0, 1); t.DeleteRows(0, 2); },
-            })
+            foreach (
+                Action<DxfTable> edit in new Action<DxfTable>[]
+                {
+                    t =>
+                    {
+                        t.InsertRows(0, 9.0, 1);
+                        t.DeleteRows(0, 1);
+                    },
+                    t =>
+                    {
+                        t.InsertRows(0, 9.0, 1);
+                        t.InsertRows(0, 9.0, 1);
+                        t.DeleteRows(0, 2);
+                    },
+                }
+            )
             {
                 DxfDatabase db = RowLooks(true);
                 edit(Table(db));
@@ -164,11 +212,23 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // D33g k01, k04: a row put in at 0 again, after the looks came back, takes them from the table again, the rows
             // keeping them as before; one of two rows put in at 0 taken out leaves them gone.
-            foreach (Action<DxfTable> edit in new Action<DxfTable>[]
-            {
-                t => { t.InsertRows(0, 9.0, 1); t.DeleteRows(0, 1); t.InsertRows(0, 9.0, 1); },
-                t => { t.InsertRows(0, 9.0, 1); t.InsertRows(0, 9.0, 1); t.DeleteRows(0, 1); },
-            })
+            foreach (
+                Action<DxfTable> edit in new Action<DxfTable>[]
+                {
+                    t =>
+                    {
+                        t.InsertRows(0, 9.0, 1);
+                        t.DeleteRows(0, 1);
+                        t.InsertRows(0, 9.0, 1);
+                    },
+                    t =>
+                    {
+                        t.InsertRows(0, 9.0, 1);
+                        t.InsertRows(0, 9.0, 1);
+                        t.DeleteRows(0, 1);
+                    },
+                }
+            )
             {
                 DxfDatabase db = RowLooks(true);
                 edit(Table(db));

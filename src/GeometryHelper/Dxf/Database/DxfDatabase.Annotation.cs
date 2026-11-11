@@ -30,12 +30,18 @@ namespace GeometryHelper.Dxf
 
             if (NamedObjectsDictionary == null)
             {
-                throw new InvalidOperationException("A DXF " + (Version ?? "with no version") + " has no named object dictionary to hold a variable kept out of the header: R13 (AC1012) brought it.");
+                throw new InvalidOperationException(
+                    "A DXF "
+                        + (Version ?? "with no version")
+                        + " has no named object dictionary to hold a variable kept out of the header: R13 (AC1012) brought it."
+                );
             }
 
             if (!File.HasClass("DICTIONARYVAR") && !File.ListsClasses())
             {
-                throw new InvalidOperationException("The file has no CLASSES section to list DICTIONARYVAR, which a variable kept out of the header is.");
+                throw new InvalidOperationException(
+                    "The file has no CLASSES section to list DICTIONARYVAR, which a variable kept out of the header is."
+                );
             }
         }
     }

@@ -33,12 +33,77 @@ namespace GeometryHelper.Dxf
     public sealed class DxfViewport : DxfEntity
     {
         // The groups of AcDbViewport in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[]
-        {
-            100, 10, 20, 30, 40, 41, 68, 69, 12, 22, 13, 23, 14, 24, 15, 25, 16, 26, 36, 17, 27, 37, 42, 43, 44, 45, 50, 51, 72, 331, 90,
-            340, 1, 281, 71, 74, 110, 120, 130, 111, 121, 131, 112, 122, 132, 345, 346, 79, 146, 170, 61, 332, 333, 348, 292, 282, 141, 142,
-            63, 421, 431, 361, 335, 343, 344, 91,
-        });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[]
+            {
+                100,
+                10,
+                20,
+                30,
+                40,
+                41,
+                68,
+                69,
+                12,
+                22,
+                13,
+                23,
+                14,
+                24,
+                15,
+                25,
+                16,
+                26,
+                36,
+                17,
+                27,
+                37,
+                42,
+                43,
+                44,
+                45,
+                50,
+                51,
+                72,
+                331,
+                90,
+                340,
+                1,
+                281,
+                71,
+                74,
+                110,
+                120,
+                130,
+                111,
+                121,
+                131,
+                112,
+                122,
+                132,
+                345,
+                346,
+                79,
+                146,
+                170,
+                61,
+                332,
+                333,
+                348,
+                292,
+                282,
+                141,
+                142,
+                63,
+                421,
+                431,
+                361,
+                335,
+                343,
+                344,
+                91,
+            }
+        );
 
         private static readonly int[] FrozenCodes = { 331 };
 
@@ -77,30 +142,60 @@ namespace GeometryHelper.Dxf
         /// turn it <see cref="On"/>.
         /// </summary>
         public DxfViewport()
-            : base("VIEWPORT", new[]
-            {
-                new DxfTypedValue(100, "AcDbViewport"),
-                new DxfTypedValue(10, "0.0"), new DxfTypedValue(20, "0.0"), new DxfTypedValue(30, "0.0"),
-                new DxfTypedValue(40, "1.0"), new DxfTypedValue(41, "1.0"), new DxfTypedValue(68, "0"), new DxfTypedValue(69, "2"),
-                new DxfTypedValue(12, "0.0"), new DxfTypedValue(22, "0.0"), new DxfTypedValue(13, "0.0"), new DxfTypedValue(23, "0.0"),
-                new DxfTypedValue(14, "10.0"), new DxfTypedValue(24, "10.0"), new DxfTypedValue(15, "10.0"), new DxfTypedValue(25, "10.0"),
-                new DxfTypedValue(16, "0.0"), new DxfTypedValue(26, "0.0"), new DxfTypedValue(36, "1.0"),
-                new DxfTypedValue(17, "0.0"), new DxfTypedValue(27, "0.0"), new DxfTypedValue(37, "0.0"),
-                new DxfTypedValue(42, "50.0"), new DxfTypedValue(43, "0.0"), new DxfTypedValue(44, "0.0"), new DxfTypedValue(45, "1.0"),
-                new DxfTypedValue(50, "0.0"), new DxfTypedValue(51, "0.0"), new DxfTypedValue(72, "100"), new DxfTypedValue(90, "131072"),
-                new DxfTypedValue(1, string.Empty), new DxfTypedValue(281, "0"), new DxfTypedValue(71, "1"), new DxfTypedValue(74, "0"),
-                new DxfTypedValue(110, "0.0"), new DxfTypedValue(120, "0.0"), new DxfTypedValue(130, "0.0"),
-                new DxfTypedValue(111, "1.0"), new DxfTypedValue(121, "0.0"), new DxfTypedValue(131, "0.0"),
-                new DxfTypedValue(112, "0.0"), new DxfTypedValue(122, "1.0"), new DxfTypedValue(132, "0.0"),
-                new DxfTypedValue(79, "0"), new DxfTypedValue(146, "0.0"),
-            })
-        {
-        }
+            : base(
+                "VIEWPORT",
+                new[]
+                {
+                    new DxfTypedValue(100, "AcDbViewport"),
+                    new DxfTypedValue(10, "0.0"),
+                    new DxfTypedValue(20, "0.0"),
+                    new DxfTypedValue(30, "0.0"),
+                    new DxfTypedValue(40, "1.0"),
+                    new DxfTypedValue(41, "1.0"),
+                    new DxfTypedValue(68, "0"),
+                    new DxfTypedValue(69, "2"),
+                    new DxfTypedValue(12, "0.0"),
+                    new DxfTypedValue(22, "0.0"),
+                    new DxfTypedValue(13, "0.0"),
+                    new DxfTypedValue(23, "0.0"),
+                    new DxfTypedValue(14, "10.0"),
+                    new DxfTypedValue(24, "10.0"),
+                    new DxfTypedValue(15, "10.0"),
+                    new DxfTypedValue(25, "10.0"),
+                    new DxfTypedValue(16, "0.0"),
+                    new DxfTypedValue(26, "0.0"),
+                    new DxfTypedValue(36, "1.0"),
+                    new DxfTypedValue(17, "0.0"),
+                    new DxfTypedValue(27, "0.0"),
+                    new DxfTypedValue(37, "0.0"),
+                    new DxfTypedValue(42, "50.0"),
+                    new DxfTypedValue(43, "0.0"),
+                    new DxfTypedValue(44, "0.0"),
+                    new DxfTypedValue(45, "1.0"),
+                    new DxfTypedValue(50, "0.0"),
+                    new DxfTypedValue(51, "0.0"),
+                    new DxfTypedValue(72, "100"),
+                    new DxfTypedValue(90, "131072"),
+                    new DxfTypedValue(1, string.Empty),
+                    new DxfTypedValue(281, "0"),
+                    new DxfTypedValue(71, "1"),
+                    new DxfTypedValue(74, "0"),
+                    new DxfTypedValue(110, "0.0"),
+                    new DxfTypedValue(120, "0.0"),
+                    new DxfTypedValue(130, "0.0"),
+                    new DxfTypedValue(111, "1.0"),
+                    new DxfTypedValue(121, "0.0"),
+                    new DxfTypedValue(131, "0.0"),
+                    new DxfTypedValue(112, "0.0"),
+                    new DxfTypedValue(122, "1.0"),
+                    new DxfTypedValue(132, "0.0"),
+                    new DxfTypedValue(79, "0"),
+                    new DxfTypedValue(146, "0.0"),
+                }
+            ) { }
 
         private DxfViewport(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         [DxfType("VIEWPORT")]
         internal static DxfEntity Create(DxfItem item) => new DxfViewport(item);
@@ -155,7 +250,6 @@ namespace GeometryHelper.Dxf
         public bool On
         {
             get => GetInt(68, 1) != 0 && (InMview || (Flags() & 0x20000) == 0);
-
             set
             {
                 if (value == On)
@@ -201,13 +295,18 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the viewport is erased.</exception>
         public GeoPoint2 ViewCenter
         {
-            get => !InMview ? new GeoPoint2(GetDouble(12, 0.0), GetDouble(22, 0.0)) : new GeoPoint2(R12Real(R12CenterX, 0.0), R12Real(R12CenterY, 0.0));
-
+            get =>
+                !InMview
+                    ? new GeoPoint2(GetDouble(12, 0.0), GetDouble(22, 0.0))
+                    : new GeoPoint2(R12Real(R12CenterX, 0.0), R12Real(R12CenterY, 0.0));
             set
             {
                 if (!value.IsValid)
                 {
-                    throw new ArgumentException("A point has to be of finite numbers: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "A point has to be of finite numbers: " + value + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 GeoPoint2 now = ViewCenter;
@@ -223,7 +322,10 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                SetGroups(new KeyValuePair<int, string>(12, Real(value.X)), new KeyValuePair<int, string>(22, Real(value.Y)));
+                SetGroups(
+                    new KeyValuePair<int, string>(12, Real(value.X)),
+                    new KeyValuePair<int, string>(22, Real(value.Y))
+                );
             }
         }
 
@@ -233,7 +335,6 @@ namespace GeometryHelper.Dxf
         public double ViewHeight
         {
             get => Value(45, R12Height, 1.0);
-
             set
             {
                 if (Same(value, ViewHeight))
@@ -261,12 +362,20 @@ namespace GeometryHelper.Dxf
                 double[] p = R12Point(R12Target);
                 return p == null ? Origin : new GeoPoint3(p[0], p[1], p[2]);
             }
-
             set
             {
                 if (InMview)
                 {
-                    SetR12Point(R12Target, value.X, value.Y, value.Z, ViewTarget.X, ViewTarget.Y, ViewTarget.Z, value.IsValid);
+                    SetR12Point(
+                        R12Target,
+                        value.X,
+                        value.Y,
+                        value.Z,
+                        ViewTarget.X,
+                        ViewTarget.Y,
+                        ViewTarget.Z,
+                        value.IsValid
+                    );
                     return;
                 }
 
@@ -294,7 +403,6 @@ namespace GeometryHelper.Dxf
                 double[] d = R12Point(R12Direction);
                 return d == null ? new GeoVector3(0.0, 0.0, 1.0) : new GeoVector3(d[0], d[1], d[2]);
             }
-
             set
             {
                 GeoVector3 now = ViewDirection;
@@ -306,7 +414,10 @@ namespace GeometryHelper.Dxf
 
                 if (!value.IsValid || !(value.Length > 0.0))
                 {
-                    throw new ArgumentException("A direction has to be of finite numbers and some length: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "A direction has to be of finite numbers and some length: " + value + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 if (InMview)
@@ -329,7 +440,6 @@ namespace GeometryHelper.Dxf
         public double TwistAngle
         {
             get => InMview ? R12Real(R12Twist, 0.0) : GetDouble(51, 0.0) * Math.PI / 180.0;
-
             set
             {
                 if (!InMview)
@@ -350,7 +460,6 @@ namespace GeometryHelper.Dxf
         public double LensLength
         {
             get => Value(42, R12Lens, 50.0);
-
             set
             {
                 if (Same(value, LensLength))
@@ -443,7 +552,6 @@ namespace GeometryHelper.Dxf
         public int CircleSides
         {
             get => !InMview ? GetInt(72, 100) : (int)R12Real(R12Circle, 100.0);
-
             set
             {
                 if (value == CircleSides)
@@ -453,7 +561,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < 1 || value > 20000)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A circle is drawn with 1 to 20 000 sides.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A circle is drawn with 1 to 20 000 sides."
+                    );
                 }
 
                 if (InMview)
@@ -510,7 +622,11 @@ namespace GeometryHelper.Dxf
         {
             if (view < DxfOrthographicView.TopView || view > DxfOrthographicView.RightView)
             {
-                throw new ArgumentOutOfRangeException(nameof(view), view, "A view along an axis is one of the six from TopView to RightView.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(view),
+                    view,
+                    "A view along an axis is one of the six from TopView to RightView."
+                );
             }
 
             ViewDirection = ViewOf(view);
@@ -530,7 +646,6 @@ namespace GeometryHelper.Dxf
                 double view = ViewHeight;
                 return view > 0.0 ? Height / view : 0.0;
             }
-
             set
             {
                 if (Same(value, CustomScale))
@@ -577,7 +692,6 @@ namespace GeometryHelper.Dxf
 
                 return DxfStandardScaleType.CustomScale;
             }
-
             set
             {
                 if (value == StandardScale)
@@ -589,7 +703,11 @@ namespace GeometryHelper.Dxf
 
                 if (!(ratio > 0.0))
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A standard scale of a ratio is set; ScaleToFit and CustomScale are not one.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A standard scale of a ratio is set; ScaleToFit and CustomScale are not one."
+                    );
                 }
 
                 CustomScale = ratio;
@@ -632,9 +750,10 @@ namespace GeometryHelper.Dxf
                 }
 
                 int flags = Flags() & 0x3000;
-                return flags == 0x1000 ? 1 : flags == 0x2000 ? 2 : 0;
+                return flags == 0x1000 ? 1
+                    : flags == 0x2000 ? 2
+                    : 0;
             }
-
             set
             {
                 if (value == SnapIsoPair)
@@ -644,7 +763,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < 0 || value > 2)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The plane of an isometric snap is 0 left, 1 top or 2 right.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "The plane of an isometric snap is 0 left, 1 top or 2 right."
+                    );
                 }
 
                 if (InMview)
@@ -653,7 +776,16 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                SetGroups(FlagGroups((Flags() & ~0x3000) | (value == 1 ? 0x1000 : value == 2 ? 0x2000 : 0)));
+                SetGroups(
+                    FlagGroups(
+                        (Flags() & ~0x3000)
+                            | (
+                                value == 1 ? 0x1000
+                                : value == 2 ? 0x2000
+                                : 0
+                            )
+                    )
+                );
             }
         }
 
@@ -667,7 +799,6 @@ namespace GeometryHelper.Dxf
         public double SnapAngle
         {
             get => InMview ? R12Real(R12SnapAngle, 0.0) : GetDouble(50, 0.0) * Math.PI / 180.0;
-
             set
             {
                 if (!InMview)
@@ -692,12 +823,14 @@ namespace GeometryHelper.Dxf
                 double[] p = Pair(13, R12SnapBaseX, 0.0);
                 return new GeoPoint2(p[0], p[1]);
             }
-
             set
             {
                 if (!value.IsValid)
                 {
-                    throw new ArgumentException("A point has to be of finite numbers: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "A point has to be of finite numbers: " + value + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 SetPair(13, R12SnapBaseX, value.X, value.Y, 0.0);
@@ -714,12 +847,14 @@ namespace GeometryHelper.Dxf
                 double[] p = Pair(14, R12SnapX, 10.0);
                 return new GeoVector2(p[0], p[1]);
             }
-
             set
             {
                 if (!value.IsValid)
                 {
-                    throw new ArgumentException("A spacing has to be of finite numbers: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "A spacing has to be of finite numbers: " + value + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 SetPair(14, R12SnapX, value.X, value.Y, 10.0);
@@ -744,12 +879,14 @@ namespace GeometryHelper.Dxf
                 double[] p = Pair(15, R12GridX, 10.0);
                 return new GeoVector2(p[0], p[1]);
             }
-
             set
             {
                 if (!value.IsValid)
                 {
-                    throw new ArgumentException("A spacing has to be of finite numbers: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "A spacing has to be of finite numbers: " + value + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 SetPair(15, R12GridX, value.X, value.Y, 10.0);
@@ -762,7 +899,6 @@ namespace GeometryHelper.Dxf
         public short GridMajor
         {
             get => (short)GetInt(61, 5);
-
             set
             {
                 if (value == GridMajor)
@@ -772,7 +908,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < 1 || value > 100)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A major line of the grid is drawn every 1 to 100 lines.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A major line of the grid is drawn every 1 to 100 lines."
+                    );
                 }
 
                 Item.File.Requires(1021, "the major lines of a viewport's grid", "R2007 (AC1021)");
@@ -837,7 +977,6 @@ namespace GeometryHelper.Dxf
         public bool UcsPerViewport
         {
             get => GetInt(71, 0) != 0;
-
             set
             {
                 if (value != UcsPerViewport)
@@ -862,7 +1001,6 @@ namespace GeometryHelper.Dxf
                 GetUcs(out GeoPoint3 origin, out GeoVector3 x, out GeoVector3 y);
                 return new GeoCoordinateSystem3(origin, x, y);
             }
-
             set
             {
                 if (value == null)
@@ -906,7 +1044,8 @@ namespace GeometryHelper.Dxf
         /// <param name="y">The axis y, not along the axis x.</param>
         /// <exception cref="ArgumentException">Thrown when a point or axis is not of finite numbers, or the axes are of no length or along one line.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the viewport is erased, or is of a file older than R2000.</exception>
-        public void SetUcs(GeoPoint3 origin, GeoVector3 x, GeoVector3 y) => WriteUcs(origin, x, y, DxfOrthographicView.NonOrthoView);
+        public void SetUcs(GeoPoint3 origin, GeoVector3 x, GeoVector3 y) =>
+            WriteUcs(origin, x, y, DxfOrthographicView.NonOrthoView);
 
         /// <summary>
         /// Gives the viewport the user coordinate system of a view along an axis, as AutoCAD's <c>SetUcs</c> of an
@@ -920,7 +1059,11 @@ namespace GeometryHelper.Dxf
         {
             if (view < DxfOrthographicView.TopView || view > DxfOrthographicView.RightView)
             {
-                throw new ArgumentOutOfRangeException(nameof(view), view, "A view along an axis is one of the six from TopView to RightView.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(view),
+                    view,
+                    "A view along an axis is one of the six from TopView to RightView."
+                );
             }
 
             GeoVector3 x;
@@ -928,12 +1071,30 @@ namespace GeometryHelper.Dxf
 
             switch (view)
             {
-                case DxfOrthographicView.TopView: x = new GeoVector3(1.0, 0.0, 0.0); y = new GeoVector3(0.0, 1.0, 0.0); break;
-                case DxfOrthographicView.BottomView: x = new GeoVector3(1.0, 0.0, 0.0); y = new GeoVector3(0.0, -1.0, 0.0); break;
-                case DxfOrthographicView.FrontView: x = new GeoVector3(1.0, 0.0, 0.0); y = new GeoVector3(0.0, 0.0, 1.0); break;
-                case DxfOrthographicView.BackView: x = new GeoVector3(-1.0, 0.0, 0.0); y = new GeoVector3(0.0, 0.0, 1.0); break;
-                case DxfOrthographicView.LeftView: x = new GeoVector3(0.0, -1.0, 0.0); y = new GeoVector3(0.0, 0.0, 1.0); break;
-                default: x = new GeoVector3(0.0, 1.0, 0.0); y = new GeoVector3(0.0, 0.0, 1.0); break;
+                case DxfOrthographicView.TopView:
+                    x = new GeoVector3(1.0, 0.0, 0.0);
+                    y = new GeoVector3(0.0, 1.0, 0.0);
+                    break;
+                case DxfOrthographicView.BottomView:
+                    x = new GeoVector3(1.0, 0.0, 0.0);
+                    y = new GeoVector3(0.0, -1.0, 0.0);
+                    break;
+                case DxfOrthographicView.FrontView:
+                    x = new GeoVector3(1.0, 0.0, 0.0);
+                    y = new GeoVector3(0.0, 0.0, 1.0);
+                    break;
+                case DxfOrthographicView.BackView:
+                    x = new GeoVector3(-1.0, 0.0, 0.0);
+                    y = new GeoVector3(0.0, 0.0, 1.0);
+                    break;
+                case DxfOrthographicView.LeftView:
+                    x = new GeoVector3(0.0, -1.0, 0.0);
+                    y = new GeoVector3(0.0, 0.0, 1.0);
+                    break;
+                default:
+                    x = new GeoVector3(0.0, 1.0, 0.0);
+                    y = new GeoVector3(0.0, 0.0, 1.0);
+                    break;
             }
 
             WriteUcs(Origin, x, y, view);
@@ -941,7 +1102,13 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gives the viewport the world's coordinate system, as AutoCAD's <c>SetUcsToWorld</c>: as <see cref="SetUcs(GeoPoint3, GeoVector3, GeoVector3)"/> of the origin and the axes x and y.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the viewport is erased, or is of a file older than R2000.</exception>
-        public void SetUcsToWorld() => WriteUcs(Origin, new GeoVector3(1.0, 0.0, 0.0), new GeoVector3(0.0, 1.0, 0.0), DxfOrthographicView.NonOrthoView);
+        public void SetUcsToWorld() =>
+            WriteUcs(
+                Origin,
+                new GeoVector3(1.0, 0.0, 0.0),
+                new GeoVector3(0.0, 1.0, 0.0),
+                DxfOrthographicView.NonOrthoView
+            );
 
         /// <summary>Gets the view along an axis the user coordinate system is of (group 79), as AutoCAD's <c>UcsOrthographic</c>.</summary>
         public DxfOrthographicView UcsOrthographic
@@ -983,7 +1150,6 @@ namespace GeometryHelper.Dxf
         public double Elevation
         {
             get => GetDouble(146, 0.0);
-
             set
             {
                 if (!Same(value, Elevation))
@@ -1053,7 +1219,10 @@ namespace GeometryHelper.Dxf
             }
 
             string key = InMview ? layer.Name : layer.Handle;
-            return key != null && layer.IsResident && layer.Item.File == Item.File && FrozenKeys().Exists(k => string.Equals(k, key, StringComparison.OrdinalIgnoreCase));
+            return key != null
+                && layer.IsResident
+                && layer.Item.File == Item.File
+                && FrozenKeys().Exists(k => string.Equals(k, key, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>
@@ -1125,7 +1294,6 @@ namespace GeometryHelper.Dxf
         public string PlotStyleSheet
         {
             get => DxfReader.Decode(GetString(1) ?? string.Empty);
-
             set
             {
                 if (value == null)
@@ -1182,7 +1350,6 @@ namespace GeometryHelper.Dxf
         public DxfShadePlotType ShadePlot
         {
             get => (DxfShadePlotType)GetInt(170, 0);
-
             set
             {
                 if (value == ShadePlot)
@@ -1192,7 +1359,11 @@ namespace GeometryHelper.Dxf
 
                 if (value < DxfShadePlotType.AsDisplayed || value > DxfShadePlotType.Rendered)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A visual style or a preset of rendering is set by SetShadePlot with its object.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A visual style or a preset of rendering is set by SetShadePlot with its object."
+                    );
                 }
 
                 SetShadePlot(value, null);
@@ -1217,9 +1388,18 @@ namespace GeometryHelper.Dxf
 
             bool named = type == DxfShadePlotType.VisualStyle || type == DxfShadePlotType.RenderPreset;
 
-            if (named != (shadePlot != null) || (shadePlot != null && (!shadePlot.IsResident || shadePlot.Item.File != Item.File || shadePlot.Handle == null)))
+            if (
+                named != (shadePlot != null)
+                || (
+                    shadePlot != null
+                    && (!shadePlot.IsResident || shadePlot.Item.File != Item.File || shadePlot.Handle == null)
+                )
+            )
             {
-                throw new ArgumentException("A visual style or a preset of rendering names an object of the viewport's drawing, and the other types none.", nameof(shadePlot));
+                throw new ArgumentException(
+                    "A visual style or a preset of rendering names an object of the viewport's drawing, and the other types none.",
+                    nameof(shadePlot)
+                );
             }
 
             string handle = shadePlot?.Handle;
@@ -1230,7 +1410,10 @@ namespace GeometryHelper.Dxf
             }
 
             Item.File.Requires(1018, "the shading of a viewport's plot", "R2004 (AC1018)");
-            SetGroups(new KeyValuePair<int, string>(170, ((int)type).ToString(CultureInfo.InvariantCulture)), new KeyValuePair<int, string>(333, handle));
+            SetGroups(
+                new KeyValuePair<int, string>(170, ((int)type).ToString(CultureInfo.InvariantCulture)),
+                new KeyValuePair<int, string>(333, handle)
+            );
         }
 
         /// <summary>
@@ -1261,7 +1444,6 @@ namespace GeometryHelper.Dxf
         public bool DefaultLightingOn
         {
             get => GetInt(292, 1) != 0;
-
             set
             {
                 if (value != DefaultLightingOn)
@@ -1278,7 +1460,6 @@ namespace GeometryHelper.Dxf
         public DxfDefaultLightingType DefaultLightingType
         {
             get => (DxfDefaultLightingType)GetInt(282, 0);
-
             set
             {
                 if (value == DefaultLightingType)
@@ -1288,7 +1469,11 @@ namespace GeometryHelper.Dxf
 
                 if (value != DxfDefaultLightingType.OneDistantLight && value != DxfDefaultLightingType.TwoDistantLights)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The default light is one distant light or two.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "The default light is one distant light or two."
+                    );
                 }
 
                 Item.File.Requires(1021, "a viewport's lighting", "R2007 (AC1021)");
@@ -1326,14 +1511,20 @@ namespace GeometryHelper.Dxf
         {
             get
             {
-                if (int.TryParse(GetString(421)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int rgb))
+                if (
+                    int.TryParse(
+                        GetString(421)?.Trim(),
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int rgb
+                    )
+                )
                 {
                     return DxfColor.OfRgb(rgb & 0xFFFFFF, GetString(431));
                 }
 
                 return DxfColor.OfIndex(GetInt(63, 250));
             }
-
             set
             {
                 if (value == null)
@@ -1348,15 +1539,22 @@ namespace GeometryHelper.Dxf
 
                 if (value.ColorMethod != DxfColorMethod.ByAci && value.ColorMethod != DxfColorMethod.ByColor)
                 {
-                    throw new ArgumentException("An ambient light is of a colour of the index or a true colour.", nameof(value));
+                    throw new ArgumentException(
+                        "An ambient light is of a colour of the index or a true colour.",
+                        nameof(value)
+                    );
                 }
 
                 Item.File.Requires(1021, "a viewport's lighting", "R2007 (AC1021)");
                 bool rgb = value.ColorMethod == DxfColorMethod.ByColor;
                 SetGroups(
                     new KeyValuePair<int, string>(63, value.ColorIndex.ToString(CultureInfo.InvariantCulture)),
-                    new KeyValuePair<int, string>(421, rgb ? value.ColorValue.ToString(CultureInfo.InvariantCulture) : null),
-                    new KeyValuePair<int, string>(431, null));
+                    new KeyValuePair<int, string>(
+                        421,
+                        rgb ? value.ColorValue.ToString(CultureInfo.InvariantCulture) : null
+                    ),
+                    new KeyValuePair<int, string>(431, null)
+                );
             }
         }
 
@@ -1405,7 +1603,10 @@ namespace GeometryHelper.Dxf
 
             if (sun.Item != null)
             {
-                throw new ArgumentException("A viewport is given a sun made in code and in no file yet: the " + sun + " is in one.", nameof(sun));
+                throw new ArgumentException(
+                    "A viewport is given a sun made in code and in no file yet: the " + sun + " is in one.",
+                    nameof(sun)
+                );
             }
 
             DxfFile file = InFile("be given a sun");
@@ -1426,7 +1627,11 @@ namespace GeometryHelper.Dxf
             sun.Bind(made);
             SetString(361, made.Handle);
 
-            if (old != null && old.Type == "SUN" && string.Equals(file.OwnerOf(old), Handle, StringComparison.OrdinalIgnoreCase))
+            if (
+                old != null
+                && old.Type == "SUN"
+                && string.Equals(file.OwnerOf(old), Handle, StringComparison.OrdinalIgnoreCase)
+            )
             {
                 file.RemoveRecord(old);
             }
@@ -1450,9 +1655,21 @@ namespace GeometryHelper.Dxf
             string handle = Handle;
             bool resident = IsResident && !IsErased;
 
-            if (resident && Id == 1 && Owner is DxfBlockTableRecord block && block.IsLayout && !DxfBlockTableRecord.IsModelName(block.Name ?? string.Empty))
+            if (
+                resident
+                && Id == 1
+                && Owner is DxfBlockTableRecord block
+                && block.IsLayout
+                && !DxfBlockTableRecord.IsModelName(block.Name ?? string.Empty)
+            )
             {
-                throw new InvalidOperationException("The viewport " + (handle ?? string.Empty) + " is the viewport 1 of the layout " + block.Name + ", which shows the sheet itself, and AutoCAD does not erase it.");
+                throw new InvalidOperationException(
+                    "The viewport "
+                        + (handle ?? string.Empty)
+                        + " is the viewport 1 of the layout "
+                        + block.Name
+                        + ", which shows the sheet itself, and AutoCAD does not erase it."
+                );
             }
 
             DxfDatabase database = resident && handle != null ? Item.File.Database : null;
@@ -1476,8 +1693,15 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gives the viewport as a line for debugging: its type, handle, id and size.</summary>
         /// <returns>The line, such as <c>VIEWPORT 9D 3, 200 by 150</c>.</returns>
-        public override string ToString()
-            => "VIEWPORT " + (Handle ?? string.Empty) + " " + Id.ToString(CultureInfo.InvariantCulture) + ", " + Width.ToString("R", CultureInfo.InvariantCulture) + " by " + Height.ToString("R", CultureInfo.InvariantCulture);
+        public override string ToString() =>
+            "VIEWPORT "
+            + (Handle ?? string.Empty)
+            + " "
+            + Id.ToString(CultureInfo.InvariantCulture)
+            + ", "
+            + Width.ToString("R", CultureInfo.InvariantCulture)
+            + " by "
+            + Height.ToString("R", CultureInfo.InvariantCulture);
 
         /// <summary>The id of the viewport in its layout (group 69), on or off: 1 for the viewport that shows the sheet itself.</summary>
         internal int Id => GetInt(69, 0);
@@ -1489,7 +1713,11 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private protected override void TransformEntity(GeoTransform3 transform)
         {
-            double scale = Math.Sqrt(transform[0, 0] * transform[0, 0] + transform[1, 0] * transform[1, 0] + transform[2, 0] * transform[2, 0]);
+            double scale = Math.Sqrt(
+                transform[0, 0] * transform[0, 0]
+                    + transform[1, 0] * transform[1, 0]
+                    + transform[2, 0] * transform[2, 0]
+            );
             double slack = Tolerance.Default.EqualVector * Math.Max(1.0, scale);
 
             for (int c = 0; c < 3; c++)
@@ -1498,16 +1726,26 @@ namespace GeometryHelper.Dxf
                 {
                     if (!(Math.Abs(transform[r, c] - (r == c ? scale : 0.0)) <= slack))
                     {
-                        throw new ArgumentException("A viewport is moved and scaled alike in every direction, as AutoCAD moves and scales one: the transformation turns, mirrors or stretches it.", nameof(transform));
+                        throw new ArgumentException(
+                            "A viewport is moved and scaled alike in every direction, as AutoCAD moves and scales one: the transformation turns, mirrors or stretches it.",
+                            nameof(transform)
+                        );
                     }
                 }
             }
 
             GeoPoint3 center = transform.Transform(CenterPoint);
-            SetGroups(Join(
-                PointGroups(10, center, Origin),
-                Same(Width * scale, Width) ? new KeyValuePair<int, string>[0] : new[] { new KeyValuePair<int, string>(40, Real(Width * scale)) },
-                Same(Height * scale, Height) ? new KeyValuePair<int, string>[0] : new[] { new KeyValuePair<int, string>(41, Real(Height * scale)) }));
+            SetGroups(
+                Join(
+                    PointGroups(10, center, Origin),
+                    Same(Width * scale, Width)
+                        ? new KeyValuePair<int, string>[0]
+                        : new[] { new KeyValuePair<int, string>(40, Real(Width * scale)) },
+                    Same(Height * scale, Height)
+                        ? new KeyValuePair<int, string>[0]
+                        : new[] { new KeyValuePair<int, string>(41, Real(Height * scale)) }
+                )
+            );
         }
 
         /// <summary>
@@ -1518,9 +1756,19 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when the block is not a layout of paper space, or its file is older than R2000, whose viewports keep their view in extended data the library does not make.</exception>
         internal override void Appending(DxfBlockTableRecord owner)
         {
-            if (!owner.IsLayout || DxfBlockTableRecord.IsModelName(owner.Name ?? string.Empty) || owner.File == null || !owner.File.Supports(1015))
+            if (
+                !owner.IsLayout
+                || DxfBlockTableRecord.IsModelName(owner.Name ?? string.Empty)
+                || owner.File == null
+                || !owner.File.Supports(1015)
+            )
             {
-                throw new ArgumentException("A viewport is appended to a layout of paper space of a file of R2000 or later: " + owner.Name + " is not one.", nameof(owner));
+                throw new ArgumentException(
+                    "A viewport is appended to a layout of paper space of a file of R2000 or later: "
+                        + owner.Name
+                        + " is not one.",
+                    nameof(owner)
+                );
             }
 
             var numbers = new HashSet<int>();
@@ -1584,8 +1832,12 @@ namespace GeometryHelper.Dxf
         /// layout makes it: its id 1, its status 1 and AutoCAD's flags of it, 557 088 (0x80000 adaptive grid, 0x8000 always
         /// enabled, 0x20 the icon of the user coordinate system shown), as ezdxf writes them.
         /// </summary>
-        internal void MakeSheetViewport()
-            => SetGroups(new KeyValuePair<int, string>(68, "1"), new KeyValuePair<int, string>(69, "1"), new KeyValuePair<int, string>(90, "557088"));
+        internal void MakeSheetViewport() =>
+            SetGroups(
+                new KeyValuePair<int, string>(68, "1"),
+                new KeyValuePair<int, string>(69, "1"),
+                new KeyValuePair<int, string>(90, "557088")
+            );
 
         /// <summary>Moves a viewport stacked on (status 1 or more, group 68) up one, for a viewport 1 put first; one off or off screen stays.</summary>
         internal void MoveUpInStack()
@@ -1644,7 +1896,9 @@ namespace GeometryHelper.Dxf
 
             // The render mode: 0 2D optimized and 1 wireframe, 2 hidden, 3 to 6 flat or Gouraud shaded, with wires or not.
             int mode = GetInt(281, 0);
-            return mode <= 1 ? PlottedAsWires : mode == 2 ? PlottedHidden : PlottedAsRaster;
+            return mode <= 1 ? PlottedAsWires
+                : mode == 2 ? PlottedHidden
+                : PlottedAsRaster;
         }
 
         /// <summary>
@@ -1656,55 +1910,100 @@ namespace GeometryHelper.Dxf
         {
             DxfItem style = Item.File.ObjectItem(handle);
 
-            if (style == null || style.Type != "VISUALSTYLE" || !int.TryParse(Item.File.ValueOf(style, 70)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int type))
+            if (
+                style == null
+                || style.Type != "VISUALSTYLE"
+                || !int.TryParse(
+                    Item.File.ValueOf(style, 70)?.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int type
+                )
+            )
             {
                 return -1;
             }
 
-            return type == 4 || type == 5 ? PlottedAsWires : type == 6 ? PlottedHidden : PlottedAsRaster;
+            return type == 4 || type == 5 ? PlottedAsWires
+                : type == 6 ? PlottedHidden
+                : PlottedAsRaster;
         }
 
         /// <summary>The standard scales of a ratio, in the order of the type.</summary>
-        private static readonly DxfStandardScaleType[] StandardTypes = (DxfStandardScaleType[])Enum.GetValues(typeof(DxfStandardScaleType));
+        private static readonly DxfStandardScaleType[] StandardTypes = (DxfStandardScaleType[])
+            Enum.GetValues(typeof(DxfStandardScaleType));
 
         /// <summary>The ratio of a standard scale, the sheet's units to the drawing's; nought for one scaled to fit or of a scale of its own.</summary>
         private static double Ratio(DxfStandardScaleType type)
         {
             switch (type)
             {
-                case DxfStandardScaleType.Scale1To1: return 1.0;
-                case DxfStandardScaleType.Scale1To2: return 1.0 / 2.0;
-                case DxfStandardScaleType.Scale1To4: return 1.0 / 4.0;
-                case DxfStandardScaleType.Scale1To5: return 1.0 / 5.0;
-                case DxfStandardScaleType.Scale1To8: return 1.0 / 8.0;
-                case DxfStandardScaleType.Scale1To10: return 1.0 / 10.0;
-                case DxfStandardScaleType.Scale1To16: return 1.0 / 16.0;
-                case DxfStandardScaleType.Scale1To20: return 1.0 / 20.0;
-                case DxfStandardScaleType.Scale1To30: return 1.0 / 30.0;
-                case DxfStandardScaleType.Scale1To40: return 1.0 / 40.0;
-                case DxfStandardScaleType.Scale1To50: return 1.0 / 50.0;
-                case DxfStandardScaleType.Scale1To100: return 1.0 / 100.0;
-                case DxfStandardScaleType.Scale2To1: return 2.0;
-                case DxfStandardScaleType.Scale4To1: return 4.0;
-                case DxfStandardScaleType.Scale8To1: return 8.0;
-                case DxfStandardScaleType.Scale10To1: return 10.0;
-                case DxfStandardScaleType.Scale100To1: return 100.0;
-                case DxfStandardScaleType.Scale1To128inAnd1ft: return 1.0 / 1536.0;
-                case DxfStandardScaleType.Scale1To64inchAnd1ft: return 1.0 / 768.0;
-                case DxfStandardScaleType.Scale1To32inchAnd1ft: return 1.0 / 384.0;
-                case DxfStandardScaleType.Scale1To16inchAnd1ft: return 1.0 / 192.0;
-                case DxfStandardScaleType.Scale3To32inchAnd1ft: return 1.0 / 128.0;
-                case DxfStandardScaleType.Scale1To8inchAnd1ft: return 1.0 / 96.0;
-                case DxfStandardScaleType.Scale3To16inchAnd1ft: return 1.0 / 64.0;
-                case DxfStandardScaleType.Scale1To4inchAnd1ft: return 1.0 / 48.0;
-                case DxfStandardScaleType.Scale3To8inchAnd1ft: return 1.0 / 32.0;
-                case DxfStandardScaleType.Scale1To2inchAnd1ft: return 1.0 / 24.0;
-                case DxfStandardScaleType.Scale3To4inchAnd1ft: return 1.0 / 16.0;
-                case DxfStandardScaleType.Scale1inAnd1ft: return 1.0 / 12.0;
-                case DxfStandardScaleType.Scale3inAnd1ft: return 1.0 / 4.0;
-                case DxfStandardScaleType.Scale6inAnd1ft: return 1.0 / 2.0;
-                case DxfStandardScaleType.Scale1ftAnd1ft: return 1.0;
-                default: return 0.0;
+                case DxfStandardScaleType.Scale1To1:
+                    return 1.0;
+                case DxfStandardScaleType.Scale1To2:
+                    return 1.0 / 2.0;
+                case DxfStandardScaleType.Scale1To4:
+                    return 1.0 / 4.0;
+                case DxfStandardScaleType.Scale1To5:
+                    return 1.0 / 5.0;
+                case DxfStandardScaleType.Scale1To8:
+                    return 1.0 / 8.0;
+                case DxfStandardScaleType.Scale1To10:
+                    return 1.0 / 10.0;
+                case DxfStandardScaleType.Scale1To16:
+                    return 1.0 / 16.0;
+                case DxfStandardScaleType.Scale1To20:
+                    return 1.0 / 20.0;
+                case DxfStandardScaleType.Scale1To30:
+                    return 1.0 / 30.0;
+                case DxfStandardScaleType.Scale1To40:
+                    return 1.0 / 40.0;
+                case DxfStandardScaleType.Scale1To50:
+                    return 1.0 / 50.0;
+                case DxfStandardScaleType.Scale1To100:
+                    return 1.0 / 100.0;
+                case DxfStandardScaleType.Scale2To1:
+                    return 2.0;
+                case DxfStandardScaleType.Scale4To1:
+                    return 4.0;
+                case DxfStandardScaleType.Scale8To1:
+                    return 8.0;
+                case DxfStandardScaleType.Scale10To1:
+                    return 10.0;
+                case DxfStandardScaleType.Scale100To1:
+                    return 100.0;
+                case DxfStandardScaleType.Scale1To128inAnd1ft:
+                    return 1.0 / 1536.0;
+                case DxfStandardScaleType.Scale1To64inchAnd1ft:
+                    return 1.0 / 768.0;
+                case DxfStandardScaleType.Scale1To32inchAnd1ft:
+                    return 1.0 / 384.0;
+                case DxfStandardScaleType.Scale1To16inchAnd1ft:
+                    return 1.0 / 192.0;
+                case DxfStandardScaleType.Scale3To32inchAnd1ft:
+                    return 1.0 / 128.0;
+                case DxfStandardScaleType.Scale1To8inchAnd1ft:
+                    return 1.0 / 96.0;
+                case DxfStandardScaleType.Scale3To16inchAnd1ft:
+                    return 1.0 / 64.0;
+                case DxfStandardScaleType.Scale1To4inchAnd1ft:
+                    return 1.0 / 48.0;
+                case DxfStandardScaleType.Scale3To8inchAnd1ft:
+                    return 1.0 / 32.0;
+                case DxfStandardScaleType.Scale1To2inchAnd1ft:
+                    return 1.0 / 24.0;
+                case DxfStandardScaleType.Scale3To4inchAnd1ft:
+                    return 1.0 / 16.0;
+                case DxfStandardScaleType.Scale1inAnd1ft:
+                    return 1.0 / 12.0;
+                case DxfStandardScaleType.Scale3inAnd1ft:
+                    return 1.0 / 4.0;
+                case DxfStandardScaleType.Scale6inAnd1ft:
+                    return 1.0 / 2.0;
+                case DxfStandardScaleType.Scale1ftAnd1ft:
+                    return 1.0;
+                default:
+                    return 0.0;
             }
         }
 
@@ -1713,12 +2012,18 @@ namespace GeometryHelper.Dxf
         {
             switch (view)
             {
-                case DxfOrthographicView.TopView: return new GeoVector3(0.0, 0.0, 1.0);
-                case DxfOrthographicView.BottomView: return new GeoVector3(0.0, 0.0, -1.0);
-                case DxfOrthographicView.FrontView: return new GeoVector3(0.0, -1.0, 0.0);
-                case DxfOrthographicView.BackView: return new GeoVector3(0.0, 1.0, 0.0);
-                case DxfOrthographicView.LeftView: return new GeoVector3(-1.0, 0.0, 0.0);
-                default: return new GeoVector3(1.0, 0.0, 0.0);
+                case DxfOrthographicView.TopView:
+                    return new GeoVector3(0.0, 0.0, 1.0);
+                case DxfOrthographicView.BottomView:
+                    return new GeoVector3(0.0, 0.0, -1.0);
+                case DxfOrthographicView.FrontView:
+                    return new GeoVector3(0.0, -1.0, 0.0);
+                case DxfOrthographicView.BackView:
+                    return new GeoVector3(0.0, 1.0, 0.0);
+                case DxfOrthographicView.LeftView:
+                    return new GeoVector3(-1.0, 0.0, 0.0);
+                default:
+                    return new GeoVector3(1.0, 0.0, 0.0);
             }
         }
 
@@ -1751,7 +2056,8 @@ namespace GeometryHelper.Dxf
         private bool Bit(int bit) => (Flags() & bit) != 0;
 
         /// <summary>The group 90 of flags, its padding kept as the file pads it.</summary>
-        private static KeyValuePair<int, string>[] FlagGroups(int flags) => new[] { new KeyValuePair<int, string>(90, flags.ToString(CultureInfo.InvariantCulture)) };
+        private static KeyValuePair<int, string>[] FlagGroups(int flags) =>
+            new[] { new KeyValuePair<int, string>(90, flags.ToString(CultureInfo.InvariantCulture)) };
 
         /// <summary>
         /// Sets a flag of group 90; before R2000, the bit of the value at a place of its extended data (none where the place is -1,
@@ -1772,7 +2078,9 @@ namespace GeometryHelper.Dxf
 
             if (r12Place < 0)
             {
-                throw new InvalidOperationException("A viewport of a file before R2000 has no such flag: R2000 (AC1015) brought it.");
+                throw new InvalidOperationException(
+                    "A viewport of a file before R2000 has no such flag: R2000 (AC1015) brought it."
+                );
             }
 
             int now = (int)R12Real(r12Place, 0.0);
@@ -1803,7 +2111,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A real of the view: its group from R2000 on, the value at its place of the extended data before R2000.</summary>
-        private double Value(int code, int r12Place, double fallback) => !InMview ? GetDouble(code, fallback) : R12Real(r12Place, fallback);
+        private double Value(int code, int r12Place, double fallback) =>
+            !InMview ? GetDouble(code, fallback) : R12Real(r12Place, fallback);
 
         /// <summary>Sets a real of the view where it is kept, as <see cref="Value"/> reads it.</summary>
         private void SetValue(int code, int r12Place, double value)
@@ -1861,8 +2170,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Two reals of a pair of groups (code and code + 10), before R2000 the values at two places; the fallback for each the record gives not.</summary>
-        private double[] Pair(int code, int r12Place, double fallback)
-            => !InMview
+        private double[] Pair(int code, int r12Place, double fallback) =>
+            !InMview
                 ? new[] { GetDouble(code, fallback), GetDouble(code + 10, fallback) }
                 : new[] { R12Real(r12Place, fallback), R12Real(r12Place + 1, fallback) };
 
@@ -1889,13 +2198,19 @@ namespace GeometryHelper.Dxf
         {
             if (!origin.IsValid || !x.IsValid || !y.IsValid || !(x.CrossProduct(y).Length > 0.0))
             {
-                throw new ArgumentException("A coordinate system has an origin and two axes of finite numbers, of some length and not along one line.", nameof(x));
+                throw new ArgumentException(
+                    "A coordinate system has an origin and two axes of finite numbers, of some length and not along one line.",
+                    nameof(x)
+                );
             }
 
-            var groups = new List<KeyValuePair<int, string>>(Join(
-                PointGroups(110, origin, Origin),
-                PointGroups(111, new GeoPoint3(x.X, x.Y, x.Z), new GeoPoint3(1.0, 0.0, 0.0)),
-                PointGroups(112, new GeoPoint3(y.X, y.Y, y.Z), new GeoPoint3(0.0, 1.0, 0.0))));
+            var groups = new List<KeyValuePair<int, string>>(
+                Join(
+                    PointGroups(110, origin, Origin),
+                    PointGroups(111, new GeoPoint3(x.X, x.Y, x.Z), new GeoPoint3(1.0, 0.0, 0.0)),
+                    PointGroups(112, new GeoPoint3(y.X, y.Y, y.Z), new GeoPoint3(0.0, 1.0, 0.0))
+                )
+            );
 
             foreach (int code in new[] { 345, 346 })
             {
@@ -1962,7 +2277,9 @@ namespace GeometryHelper.Dxf
 
             if (!IsResident)
             {
-                throw new InvalidOperationException("The viewport is in no drawing whose layers it could freeze: append it to a layout first.");
+                throw new InvalidOperationException(
+                    "The viewport is in no drawing whose layers it could freeze: append it to a layout first."
+                );
             }
 
             var given = new List<DxfLayerTableRecord>();
@@ -1974,9 +2291,17 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentNullException(parameter);
                 }
 
-                if (!layer.IsResident || layer.IsErased || layer.Item.File != Item.File || (!InMview && layer.Handle == null))
+                if (
+                    !layer.IsResident
+                    || layer.IsErased
+                    || layer.Item.File != Item.File
+                    || (!InMview && layer.Handle == null)
+                )
                 {
-                    throw new ArgumentException("The layer " + layer.Name + " is not one of the viewport's drawing.", parameter);
+                    throw new ArgumentException(
+                        "The layer " + layer.Name + " is not one of the viewport's drawing.",
+                        parameter
+                    );
                 }
 
                 given.Add(layer);
@@ -2005,7 +2330,9 @@ namespace GeometryHelper.Dxf
 
             if (start < 0)
             {
-                throw new InvalidOperationException("The viewport of a file before R2000 has no list of frozen layers in its extended data to write them in.");
+                throw new InvalidOperationException(
+                    "The viewport of a file before R2000 has no list of frozen layers in its extended data to write them in."
+                );
             }
 
             data.RemoveRange(start, end - start);
@@ -2055,8 +2382,12 @@ namespace GeometryHelper.Dxf
         {
             for (int i = 0; i + 1 < data.Count; i++)
             {
-                if (data[i].TypeCode == 1001 && string.Equals(data[i].Value.Trim(), "ACAD", StringComparison.OrdinalIgnoreCase)
-                    && data[i + 1].TypeCode == 1000 && data[i + 1].Value.Trim() == "MVIEW")
+                if (
+                    data[i].TypeCode == 1001
+                    && string.Equals(data[i].Value.Trim(), "ACAD", StringComparison.OrdinalIgnoreCase)
+                    && data[i + 1].TypeCode == 1000
+                    && data[i + 1].Value.Trim() == "MVIEW"
+                )
                 {
                     return i + 1;
                 }
@@ -2099,7 +2430,9 @@ namespace GeometryHelper.Dxf
         {
             List<DxfTypedValue> data = new List<DxfTypedValue>(XData);
             int at = R12Index(data, place);
-            return at >= 0 && Numbers.TryRead(data[at].Value, out double value) && Guard.IsFinite(value) ? value : fallback;
+            return at >= 0 && Numbers.TryRead(data[at].Value, out double value) && Guard.IsFinite(value)
+                ? value
+                : fallback;
         }
 
         /// <summary>The point at a place of MVIEW's values (1010, 1020, 1030); null where there is none.</summary>
@@ -2140,7 +2473,9 @@ namespace GeometryHelper.Dxf
 
                 if (at < 0)
                 {
-                    throw new InvalidOperationException("The viewport of a file before R2000 has no extended data MVIEW holding its view to write it in.");
+                    throw new InvalidOperationException(
+                        "The viewport of a file before R2000 has no extended data MVIEW holding its view to write it in."
+                    );
                 }
 
                 data[at] = new DxfTypedValue(data[at].TypeCode, values[k]);
@@ -2150,7 +2485,16 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Writes a point at a place of MVIEW's values; nothing where it is as it was.</summary>
-        private void SetR12Point(int place, double x, double y, double z, double nowX, double nowY, double nowZ, bool valid)
+        private void SetR12Point(
+            int place,
+            double x,
+            double y,
+            double z,
+            double nowX,
+            double nowY,
+            double nowZ,
+            bool valid
+        )
         {
             if (Same(x, nowX) && Same(y, nowY) && Same(z, nowZ))
             {
@@ -2165,9 +2509,16 @@ namespace GeometryHelper.Dxf
             var data = new List<DxfTypedValue>(XData);
             int at = R12Index(data, place);
 
-            if (at < 0 || at + 2 >= data.Count || data[at + 1].TypeCode != data[at].TypeCode + 10 || data[at + 2].TypeCode != data[at].TypeCode + 20)
+            if (
+                at < 0
+                || at + 2 >= data.Count
+                || data[at + 1].TypeCode != data[at].TypeCode + 10
+                || data[at + 2].TypeCode != data[at].TypeCode + 20
+            )
             {
-                throw new InvalidOperationException("The viewport of a file before R2000 has no extended data MVIEW holding its view to write it in.");
+                throw new InvalidOperationException(
+                    "The viewport of a file before R2000 has no extended data MVIEW holding its view to write it in."
+                );
             }
 
             data[at] = new DxfTypedValue(data[at].TypeCode, Real(x));

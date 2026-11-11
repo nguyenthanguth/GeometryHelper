@@ -46,7 +46,12 @@ namespace GeometryHelper.Viewer
         {
             if (!IsLibraryType(geometry))
             {
-                throw new ArgumentException("The viewer cannot write a " + geometry.GetType().FullName + ", which is not a shape of the library.", nameof(geometry));
+                throw new ArgumentException(
+                    "The viewer cannot write a "
+                        + geometry.GetType().FullName
+                        + ", which is not a shape of the library.",
+                    nameof(geometry)
+                );
             }
 
             // The kind is read from the name of the type and each kind is written by a method of its own, so that a type is looked for only when a shape of it is
@@ -198,7 +203,10 @@ namespace GeometryHelper.Viewer
                     break;
 
                 default:
-                    throw new ArgumentException("The viewer cannot write a " + geometry.GetType().FullName + ".", nameof(geometry));
+                    throw new ArgumentException(
+                        "The viewer cannot write a " + geometry.GetType().FullName + ".",
+                        nameof(geometry)
+                    );
             }
         }
 
@@ -639,7 +647,11 @@ namespace GeometryHelper.Viewer
             }
         }
 
-        private static void WritePoints(DataWriter w, IReadOnlyList<GeoPoint2> points, IReadOnlyList<double> bulges = null)
+        private static void WritePoints(
+            DataWriter w,
+            IReadOnlyList<GeoPoint2> points,
+            IReadOnlyList<double> bulges = null
+        )
         {
             w.BeginObject();
             w.Name("points");
@@ -660,7 +672,12 @@ namespace GeometryHelper.Viewer
             w.EndObject();
         }
 
-        private static void WritePoints(DataWriter w, IReadOnlyList<GeoPoint3> points, IReadOnlyList<double> bulges = null, IReadOnlyList<GeoVector3> normals = null)
+        private static void WritePoints(
+            DataWriter w,
+            IReadOnlyList<GeoPoint3> points,
+            IReadOnlyList<double> bulges = null,
+            IReadOnlyList<GeoVector3> normals = null
+        )
         {
             w.BeginObject();
             w.Name("points");

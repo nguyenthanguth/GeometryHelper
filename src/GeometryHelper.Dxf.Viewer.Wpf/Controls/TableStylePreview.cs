@@ -14,15 +14,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     {
         /// <summary>The settings drawn.</summary>
         public static readonly DependencyProperty SettingsProperty = DependencyProperty.Register(
-            nameof(Settings), typeof(CadTableStyleSettings), typeof(TableStylePreview), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+            nameof(Settings),
+            typeof(CadTableStyleSettings),
+            typeof(TableStylePreview),
+            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender)
+        );
 
         /// <summary>A number changed whenever the settings drawn change in place, so that the preview is drawn anew.</summary>
         public static readonly DependencyProperty VersionProperty = DependencyProperty.Register(
-            nameof(Version), typeof(int), typeof(TableStylePreview), new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.AffectsRender));
+            nameof(Version),
+            typeof(int),
+            typeof(TableStylePreview),
+            new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.AffectsRender)
+        );
 
         /// <summary>The cell style drawn alone: Data, Header or Title; null for the whole table.</summary>
         public static readonly DependencyProperty CellStyleProperty = DependencyProperty.Register(
-            nameof(CellStyle), typeof(string), typeof(TableStylePreview), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+            nameof(CellStyle),
+            typeof(string),
+            typeof(TableStylePreview),
+            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender)
+        );
 
         private static readonly Typeface Face = new Typeface("Segoe UI");
 
@@ -62,14 +74,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (CellStyle != null)
             {
-                CadTableCellStyleSettings cell = settings.Cell(CellStyle == "Title" ? DxfRowType.TitleRow : CellStyle == "Header" ? DxfRowType.HeaderRow : DxfRowType.DataRow);
+                CadTableCellStyleSettings cell = settings.Cell(
+                    CellStyle == "Title" ? DxfRowType.TitleRow
+                    : CellStyle == "Header" ? DxfRowType.HeaderRow
+                    : DxfRowType.DataRow
+                );
                 var box = new Rect(10, 10, width - 20, height - 20);
                 DrawRow(dc, cell, box, 2, CellStyle, true, true);
                 return;
             }
 
             // Five columns: the title, the header and three rows of data, each as tall as its text with the margins.
-            DxfRowType[] kinds = { DxfRowType.TitleRow, DxfRowType.HeaderRow, DxfRowType.DataRow, DxfRowType.DataRow, DxfRowType.DataRow };
+            DxfRowType[] kinds =
+            {
+                DxfRowType.TitleRow,
+                DxfRowType.HeaderRow,
+                DxfRowType.DataRow,
+                DxfRowType.DataRow,
+                DxfRowType.DataRow,
+            };
             double[] tall = new double[kinds.Length];
             double total = 0.0;
 
@@ -89,17 +112,40 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 var box = new Rect(10, up ? y - h : y, width - 20, h);
                 y += up ? -h : h;
                 DxfRowType kind = kinds[r];
-                string word = kind == DxfRowType.TitleRow ? "Title" : kind == DxfRowType.HeaderRow ? "Header" : "Data";
-                DrawRow(dc, settings.Cell(kind), box, kind == DxfRowType.TitleRow ? 1 : 5, word, r == 0 || kinds[r - 1] != kind, r == kinds.Length - 1 || kinds[r + 1] != kind);
+                string word =
+                    kind == DxfRowType.TitleRow ? "Title"
+                    : kind == DxfRowType.HeaderRow ? "Header"
+                    : "Data";
+                DrawRow(
+                    dc,
+                    settings.Cell(kind),
+                    box,
+                    kind == DxfRowType.TitleRow ? 1 : 5,
+                    word,
+                    r == 0 || kinds[r - 1] != kind,
+                    r == kinds.Length - 1 || kinds[r + 1] != kind
+                );
             }
         }
 
         /// <summary>A row of cells of a cell style: its fill, its lines, and its word in each cell where its alignment says.</summary>
-        private static void DrawRow(DrawingContext dc, CadTableCellStyleSettings cell, Rect box, int columns, string word, bool first, bool last)
+        private static void DrawRow(
+            DrawingContext dc,
+            CadTableCellStyleSettings cell,
+            Rect box,
+            int columns,
+            string word,
+            bool first,
+            bool last
+        )
         {
             if (cell.FillColor != null)
             {
-                dc.DrawRectangle(new SolidColorBrush(Shown(cell.FillColor, Color.FromRgb(0xD9, 0xDD, 0xE3))), null, box);
+                dc.DrawRectangle(
+                    new SolidColorBrush(Shown(cell.FillColor, Color.FromRgb(0xD9, 0xDD, 0xE3))),
+                    null,
+                    box
+                );
             }
 
             double each = box.Width / columns;
@@ -122,10 +168,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             for (int c = 0; c < columns; c++)
             {
-                var text = new FormattedText(word, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, Face, size, brush, 1.0);
+                var text = new FormattedText(
+                    word,
+                    CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight,
+                    Face,
+                    size,
+                    brush,
+                    1.0
+                );
                 double left = box.Left + c * each;
-                double x = across == 0 ? left + 3 : across == 1 ? left + (each - text.Width) / 2.0 : left + each - text.Width - 3;
-                double y = upDown == 0 ? box.Top + 2 : upDown == 1 ? box.Top + (box.Height - text.Height) / 2.0 : box.Bottom - text.Height - 2;
+                double x =
+                    across == 0 ? left + 3
+                    : across == 1 ? left + (each - text.Width) / 2.0
+                    : left + each - text.Width - 3;
+                double y =
+                    upDown == 0 ? box.Top + 2
+                    : upDown == 1 ? box.Top + (box.Height - text.Height) / 2.0
+                    : box.Bottom - text.Height - 2;
                 dc.PushClip(new RectangleGeometry(new Rect(left, box.Top, each, box.Height)));
                 dc.DrawText(text, new Point(x, y));
                 dc.Pop();
@@ -141,7 +201,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             DxfLineWeight weight = cell.LineWeights[line];
             double thickness = (int)weight > 0 ? Math.Max(1.0, (int)weight / 25.0) : 1.0;
-            dc.DrawLine(new Pen(new SolidColorBrush(Shown(cell.LineColors[line], Color.FromRgb(0x1A, 0x1A, 0x1A))), thickness), from, to);
+            dc.DrawLine(
+                new Pen(new SolidColorBrush(Shown(cell.LineColors[line], Color.FromRgb(0x1A, 0x1A, 0x1A))), thickness),
+                from,
+                to
+            );
         }
 
         /// <summary>A colour as the preview shows it on white: by block, by layer and white drawn dark, as AutoCAD's preview does.</summary>

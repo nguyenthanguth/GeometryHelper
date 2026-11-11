@@ -83,13 +83,22 @@ namespace GeometryHelper.Drawing
             }
 
             DxfDBDictionary root = database.NamedObjectsDictionary
-                ?? throw new InvalidOperationException("A drawing of " + (database.Version ?? "no version") + " has no named object dictionary to hold a drawing document: R13 brought it.");
+                ?? throw new InvalidOperationException(
+                    "A drawing of "
+                        + (database.Version ?? "no version")
+                        + " has no named object dictionary to hold a drawing document: R13 brought it."
+                );
             DxfDBDictionary document;
 
             if (root.Contains(DictionaryName))
             {
-                document = root.GetAt(DictionaryName) as DxfDBDictionary
-                    ?? throw new InvalidOperationException("The drawing's entry " + DictionaryName + " is not a dictionary, so it holds no drawing document.");
+                document =
+                    root.GetAt(DictionaryName) as DxfDBDictionary
+                    ?? throw new InvalidOperationException(
+                        "The drawing's entry "
+                            + DictionaryName
+                            + " is not a dictionary, so it holds no drawing document."
+                    );
             }
             else
             {
@@ -176,7 +185,11 @@ namespace GeometryHelper.Drawing
 
             if (!(root.GetAt(DictionaryName) is DxfDBDictionary document))
             {
-                GeometryHelperLog.Warn("DrawingDocumentStore.Read: the drawing's entry " + DictionaryName + " is not a dictionary; no drawing document is read.");
+                GeometryHelperLog.Warn(
+                    "DrawingDocumentStore.Read: the drawing's entry "
+                        + DictionaryName
+                        + " is not a dictionary; no drawing document is read."
+                );
                 return null;
             }
 
@@ -193,13 +206,24 @@ namespace GeometryHelper.Drawing
 
                     if (version > FormatVersion)
                     {
-                        GeometryHelperLog.Warn("DrawingDocumentStore.Read: the document is of format " + version.ToString(CultureInfo.InvariantCulture) + ", newer than " + FormatVersion.ToString(CultureInfo.InvariantCulture) + "; the records of the kinds this version knows are read and the others kept.");
+                        GeometryHelperLog.Warn(
+                            "DrawingDocumentStore.Read: the document is of format "
+                                + version.ToString(CultureInfo.InvariantCulture)
+                                + ", newer than "
+                                + FormatVersion.ToString(CultureInfo.InvariantCulture)
+                                + "; the records of the kinds this version knows are read and the others kept."
+                        );
                     }
                 }
                 catch (Exception exception) when (exception is FormatException || exception is OverflowException)
                 {
                     drawingId = null;
-                    GeometryHelperLog.Warn("DrawingDocumentStore.Read: the HEADER of " + DictionaryName + " cannot be read; the document is read with no id.", exception);
+                    GeometryHelperLog.Warn(
+                        "DrawingDocumentStore.Read: the HEADER of "
+                            + DictionaryName
+                            + " cannot be read; the document is read with no id.",
+                        exception
+                    );
                 }
             }
 
@@ -282,7 +306,11 @@ namespace GeometryHelper.Drawing
                             break;
                     }
                 }
-                catch (Exception exception) when (exception is FormatException || exception is OverflowException || exception is ArgumentException)
+                catch (Exception exception)
+                    when (exception is FormatException
+                        || exception is OverflowException
+                        || exception is ArgumentException
+                    )
                 {
                     Keep(unknown, groups, start, at);
                     Fail(failures, ref failed, number, kind, exception.Message + " Kept as it is");
@@ -291,7 +319,16 @@ namespace GeometryHelper.Drawing
 
             if (failed > 0)
             {
-                GeometryHelperLog.Warn("DrawingDocumentStore.Read: " + failed.ToString(CultureInfo.InvariantCulture) + " records of " + DictionaryName + " failed to read; " + string.Join("; ", failures) + (failed > failures.Count ? "; ..." : string.Empty) + ".");
+                GeometryHelperLog.Warn(
+                    "DrawingDocumentStore.Read: "
+                        + failed.ToString(CultureInfo.InvariantCulture)
+                        + " records of "
+                        + DictionaryName
+                        + " failed to read; "
+                        + string.Join("; ", failures)
+                        + (failed > failures.Count ? "; ..." : string.Empty)
+                        + "."
+                );
             }
 
             if (others.Count > 0)
@@ -300,10 +337,18 @@ namespace GeometryHelper.Drawing
 
                 foreach (KeyValuePair<string, int> other in others)
                 {
-                    said.Append(said.Length == 0 ? string.Empty : ", ").Append(other.Key).Append(" (").Append(other.Value.ToString(CultureInfo.InvariantCulture)).Append(')');
+                    said.Append(said.Length == 0 ? string.Empty : ", ")
+                        .Append(other.Key)
+                        .Append(" (")
+                        .Append(other.Value.ToString(CultureInfo.InvariantCulture))
+                        .Append(')');
                 }
 
-                GeometryHelperLog.Debug("DrawingDocumentStore.Read: records of kinds this version does not read, kept as they are: " + said + ".");
+                GeometryHelperLog.Debug(
+                    "DrawingDocumentStore.Read: records of kinds this version does not read, kept as they are: "
+                        + said
+                        + "."
+                );
             }
 
             var records = new DrawingDocumentRecords(drawingId, views, annotations, edits, runs, unknown);
@@ -339,9 +384,11 @@ namespace GeometryHelper.Drawing
             }
 
             KeyValuePair<string, string>[] list = DrawingRecordGroups.Values(values, nameof(values));
-            DxfDBDictionary document = (database.NamedObjectsDictionary != null && database.NamedObjectsDictionary.Contains(DictionaryName)
-                ? database.NamedObjectsDictionary.GetAt(DictionaryName) as DxfDBDictionary
-                : null) ?? throw new InvalidOperationException("The drawing carries no drawing document to keep values with.");
+            DxfDBDictionary document = (
+                database.NamedObjectsDictionary != null && database.NamedObjectsDictionary.Contains(DictionaryName)
+                    ? database.NamedObjectsDictionary.GetAt(DictionaryName) as DxfDBDictionary
+                    : null
+            ) ?? throw new InvalidOperationException("The drawing carries no drawing document to keep values with.");
 
             if (list.Length == 0)
             {
@@ -371,9 +418,10 @@ namespace GeometryHelper.Drawing
             }
 
             DxfDBDictionary root = database.NamedObjectsDictionary;
-            IReadOnlyList<DxfTypedValue> groups = root != null && root.Contains(DictionaryName) && root.GetAt(DictionaryName) is DxfDBDictionary document
-                ? DataOf(document, ValuesName)
-                : null;
+            IReadOnlyList<DxfTypedValue> groups =
+                root != null && root.Contains(DictionaryName) && root.GetAt(DictionaryName) is DxfDBDictionary document
+                    ? DataOf(document, ValuesName)
+                    : null;
 
             if (groups == null)
             {
@@ -389,7 +437,12 @@ namespace GeometryHelper.Drawing
             }
             catch (Exception exception) when (exception is FormatException || exception is OverflowException)
             {
-                GeometryHelperLog.Warn("DrawingDocumentStore.ReadValues: the VALUES of " + DictionaryName + " cannot be read; none are given.", exception);
+                GeometryHelperLog.Warn(
+                    "DrawingDocumentStore.ReadValues: the VALUES of "
+                        + DictionaryName
+                        + " cannot be read; none are given.",
+                    exception
+                );
                 return new KeyValuePair<string, string>[0];
             }
         }
@@ -429,7 +482,13 @@ namespace GeometryHelper.Drawing
                 throw new FormatException("The kind of edit " + (kind ?? "(none)") + " is not one of CadEditKind.");
             }
 
-            return new DrawingEdit(objectId, (CadEditKind)Enum.Parse(typeof(CadEditKind), kind), property, oldValue, newValue);
+            return new DrawingEdit(
+                objectId,
+                (CadEditKind)Enum.Parse(typeof(CadEditKind), kind),
+                property,
+                oldValue,
+                newValue
+            );
         }
 
         private static DrawingPluginRun ReadPluginRun(DrawingRecordGroups.Reader reader)
@@ -457,8 +516,8 @@ namespace GeometryHelper.Drawing
         }
 
         /// <summary>The data of an XRECORD of the document; null where it has none of the name, or the entry is not one.</summary>
-        private static IReadOnlyList<DxfTypedValue> DataOf(DxfDBDictionary document, string name)
-            => document.Contains(name) && document.GetAt(name) is DxfXrecord record ? record.Data : null;
+        private static IReadOnlyList<DxfTypedValue> DataOf(DxfDBDictionary document, string name) =>
+            document.Contains(name) && document.GetAt(name) is DxfXrecord record ? record.Data : null;
 
         /// <summary>The name a group 102 opens a list with, its brace kept, such as <c>{GH_VIEW</c>; null for any other group.</summary>
         private static string ListName(DxfTypedValue group)
@@ -478,7 +537,12 @@ namespace GeometryHelper.Drawing
         /// Keeps groups as an unknown record where they can be written back: their groups 102 open a list and close it in
         /// pairs, one at a time, as an XRECORD holds them. Whether they were kept.
         /// </summary>
-        private static bool Keep(List<IReadOnlyList<DxfTypedValue>> unknown, IReadOnlyList<DxfTypedValue> groups, int start, int end)
+        private static bool Keep(
+            List<IReadOnlyList<DxfTypedValue>> unknown,
+            IReadOnlyList<DxfTypedValue> groups,
+            int start,
+            int end
+        )
         {
             var slice = new DxfTypedValue[end - start];
             bool open = false;
@@ -518,11 +582,18 @@ namespace GeometryHelper.Drawing
 
             if (failures.Count < 3)
             {
-                failures.Add("record " + number.ToString(CultureInfo.InvariantCulture) + " (" + kind.TrimStart('{') + "): " + reason.TrimEnd('.'));
+                failures.Add(
+                    "record "
+                        + number.ToString(CultureInfo.InvariantCulture)
+                        + " ("
+                        + kind.TrimStart('{')
+                        + "): "
+                        + reason.TrimEnd('.')
+                );
             }
         }
 
-        private static void Count(SortedDictionary<string, int> counts, string kind)
-            => counts[kind] = counts.TryGetValue(kind, out int count) ? count + 1 : 1;
+        private static void Count(SortedDictionary<string, int> counts, string kind) =>
+            counts[kind] = counts.TryGetValue(kind, out int count) ? count + 1 : 1;
     }
 }

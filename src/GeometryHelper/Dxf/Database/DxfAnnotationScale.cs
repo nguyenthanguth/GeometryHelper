@@ -33,9 +33,7 @@ namespace GeometryHelper.Dxf
         /// Initializes a scale made in code, as AutoCAD's <c>new AnnotationScale()</c>: of no name, 1 unit of the paper to 1 of
         /// the drawing; give it its name and units before it is added to a drawing's list.
         /// </summary>
-        public DxfAnnotationScale()
-        {
-        }
+        public DxfAnnotationScale() { }
 
         /// <summary>A scale that stands for a SCALE of a file.</summary>
         internal DxfAnnotationScale(DxfItem item)
@@ -67,7 +65,6 @@ namespace GeometryHelper.Dxf
         public override string Name
         {
             get => _item == null ? _name : (Value(300) ?? string.Empty).Trim();
-
             set
             {
                 CheckName(value, nameof(value));
@@ -90,7 +87,12 @@ namespace GeometryHelper.Dxf
 
                 if (other != null && !string.Equals(other.Handle, Handle, StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new ArgumentException("The drawing's list of scales has a scale named " + value.Trim() + " already, letters of either case the same.", nameof(value));
+                    throw new ArgumentException(
+                        "The drawing's list of scales has a scale named "
+                            + value.Trim()
+                            + " already, letters of either case the same.",
+                        nameof(value)
+                    );
                 }
 
                 // The annotation scale that names it is to name it anew: refused before the name is written where it cannot be.
@@ -136,8 +138,13 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gives the scale as a line for debugging: its name and its units.</summary>
         /// <returns>The line, such as <c>1:50 (1 to 50)</c>.</returns>
-        public override string ToString()
-            => Name + " (" + PaperUnits.ToString("R", CultureInfo.InvariantCulture) + " to " + DrawingUnits.ToString("R", CultureInfo.InvariantCulture) + ")";
+        public override string ToString() =>
+            Name
+            + " ("
+            + PaperUnits.ToString("R", CultureInfo.InvariantCulture)
+            + " to "
+            + DrawingUnits.ToString("R", CultureInfo.InvariantCulture)
+            + ")";
 
         /// <summary>Makes the scale stand for the SCALE written for it when it was added to a drawing's list.</summary>
         internal void Bind(DxfItem item) => _item = item;
@@ -159,7 +166,10 @@ namespace GeometryHelper.Dxf
             {
                 if (c < ' ')
                 {
-                    throw new ArgumentException("The name of a scale has no control character in it: '" + name + "' has one.", parameter);
+                    throw new ArgumentException(
+                        "The name of a scale has no control character in it: '" + name + "' has one.",
+                        parameter
+                    );
                 }
             }
         }
@@ -179,7 +189,8 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            Resident().SetValues(_item, new[] { new KeyValuePair<int, string>(code, Numbers.Exact(value)) }, Order, false);
+            Resident()
+                .SetValues(_item, new[] { new KeyValuePair<int, string>(code, Numbers.Exact(value)) }, Order, false);
         }
 
         /// <summary>The file of the scale's SCALE, which is not erased.</summary>
@@ -187,7 +198,9 @@ namespace GeometryHelper.Dxf
         {
             if (_item.IsRemoved)
             {
-                throw new InvalidOperationException("The SCALE " + (Handle ?? string.Empty) + " of the scale is erased, and is not changed.");
+                throw new InvalidOperationException(
+                    "The SCALE " + (Handle ?? string.Empty) + " of the scale is erased, and is not changed."
+                );
             }
 
             return _item.File;
@@ -208,6 +221,7 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A number of the SCALE above nought; 1 where it has none such.</summary>
-        private double Real(int code) => Numbers.TryRead(Value(code), out double value) && Guard.IsFinite(value) && value > 0.0 ? value : 1.0;
+        private double Real(int code) =>
+            Numbers.TryRead(Value(code), out double value) && Guard.IsFinite(value) && value > 0.0 ? value : 1.0;
     }
 }

@@ -42,7 +42,13 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     public sealed class CadPrompt
     {
-        private CadPrompt(CadPromptKind kind, string message, IReadOnlyList<string> keywords, string defaultValue, GeoPoint2? basePoint)
+        private CadPrompt(
+            CadPromptKind kind,
+            string message,
+            IReadOnlyList<string> keywords,
+            string defaultValue,
+            GeoPoint2? basePoint
+        )
         {
             Kind = kind;
             Message = message ?? throw new ArgumentNullException(nameof(message));
@@ -202,7 +208,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (Keywords.Count > 0)
                 {
-                    text.Append(Kind == CadPromptKind.Keyword ? " [" : " or [").Append(string.Join("/", Keywords)).Append(']');
+                    text.Append(Kind == CadPromptKind.Keyword ? " [" : " or [")
+                        .Append(string.Join("/", Keywords))
+                        .Append(']');
                 }
 
                 if (!string.IsNullOrEmpty(Default))
@@ -231,8 +239,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="defaultValue">The default Enter takes; null for none.</param>
         /// <param name="acceptsText">Whether text that is neither a point nor a keyword is taken as an answer of text, as ZOOM takes 2X.</param>
         /// <returns>The prompt.</returns>
-        public static CadPrompt ForPoint(string message, GeoPoint2? basePoint = null, IReadOnlyList<string> keywords = null, string defaultValue = null, bool acceptsText = false)
-            => new CadPrompt(CadPromptKind.Point, message, keywords, defaultValue, basePoint) { AcceptsText = acceptsText };
+        public static CadPrompt ForPoint(
+            string message,
+            GeoPoint2? basePoint = null,
+            IReadOnlyList<string> keywords = null,
+            string defaultValue = null,
+            bool acceptsText = false
+        ) =>
+            new CadPrompt(CadPromptKind.Point, message, keywords, defaultValue, basePoint)
+            {
+                AcceptsText = acceptsText,
+            };
 
         /// <summary>Asks for a distance.</summary>
         /// <param name="message">The message: "Specify radius of circle".</param>
@@ -240,8 +257,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="keywords">The keywords offered; null for none.</param>
         /// <param name="defaultValue">The default Enter takes; null for none.</param>
         /// <returns>The prompt.</returns>
-        public static CadPrompt ForDistance(string message, GeoPoint2? basePoint = null, IReadOnlyList<string> keywords = null, string defaultValue = null)
-            => new CadPrompt(CadPromptKind.Distance, message, keywords, defaultValue, basePoint);
+        public static CadPrompt ForDistance(
+            string message,
+            GeoPoint2? basePoint = null,
+            IReadOnlyList<string> keywords = null,
+            string defaultValue = null
+        ) => new CadPrompt(CadPromptKind.Distance, message, keywords, defaultValue, basePoint);
 
         /// <summary>Asks for an angle.</summary>
         /// <param name="message">The message: "Specify rotation angle".</param>
@@ -249,58 +270,87 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="keywords">The keywords offered; null for none.</param>
         /// <param name="defaultValue">The default Enter takes; null for none.</param>
         /// <returns>The prompt.</returns>
-        public static CadPrompt ForAngle(string message, GeoPoint2? basePoint = null, IReadOnlyList<string> keywords = null, string defaultValue = null)
-            => new CadPrompt(CadPromptKind.Angle, message, keywords, defaultValue, basePoint);
+        public static CadPrompt ForAngle(
+            string message,
+            GeoPoint2? basePoint = null,
+            IReadOnlyList<string> keywords = null,
+            string defaultValue = null
+        ) => new CadPrompt(CadPromptKind.Angle, message, keywords, defaultValue, basePoint);
 
         /// <summary>Asks for objects until Enter: "Select objects:".</summary>
         /// <param name="message">The message; "Select objects" where null.</param>
         /// <returns>The prompt.</returns>
-        public static CadPrompt ForSelection(string message = null) => new CadPrompt(CadPromptKind.Selection, message ?? "Select objects", null, null, null);
+        public static CadPrompt ForSelection(string message = null) =>
+            new CadPrompt(CadPromptKind.Selection, message ?? "Select objects", null, null, null);
 
         /// <summary>Asks "Select objects or [Name/Description]:", as GROUP asks: objects until Enter, or a keyword.</summary>
-        internal static CadPrompt ForSelection(string message, IReadOnlyList<string> keywords) => new CadPrompt(CadPromptKind.Selection, message, keywords, null, null);
+        internal static CadPrompt ForSelection(string message, IReadOnlyList<string> keywords) =>
+            new CadPrompt(CadPromptKind.Selection, message, keywords, null, null);
 
         /// <summary>Asks for one object: "Select arc or circle:".</summary>
         /// <param name="message">The message.</param>
         /// <param name="keywords">The keywords offered; null for none.</param>
         /// <param name="defaultValue">The default Enter takes; null for none.</param>
         /// <returns>The prompt.</returns>
-        public static CadPrompt ForEntity(string message, IReadOnlyList<string> keywords = null, string defaultValue = null)
-            => new CadPrompt(CadPromptKind.Entity, message, keywords, defaultValue, null);
+        public static CadPrompt ForEntity(
+            string message,
+            IReadOnlyList<string> keywords = null,
+            string defaultValue = null
+        ) => new CadPrompt(CadPromptKind.Entity, message, keywords, defaultValue, null);
 
         /// <summary>Asks for one of a list of keywords: "Erase source objects? [Yes/No] &lt;No&gt;:".</summary>
         /// <param name="message">The message.</param>
         /// <param name="keywords">The keywords.</param>
         /// <param name="defaultValue">The default Enter takes; null for none.</param>
         /// <returns>The prompt.</returns>
-        public static CadPrompt ForKeyword(string message, IReadOnlyList<string> keywords, string defaultValue = null)
-            => new CadPrompt(CadPromptKind.Keyword, message, keywords ?? throw new ArgumentNullException(nameof(keywords)), defaultValue, null);
+        public static CadPrompt ForKeyword(
+            string message,
+            IReadOnlyList<string> keywords,
+            string defaultValue = null
+        ) =>
+            new CadPrompt(
+                CadPromptKind.Keyword,
+                message,
+                keywords ?? throw new ArgumentNullException(nameof(keywords)),
+                defaultValue,
+                null
+            );
 
         /// <summary>Asks for one of a list of keywords or a text, as CECOLOR takes Truecolor or a colour: "Enter new object color [Truecolor/COlorbook] &lt;BYLAYER&gt;:".</summary>
-        internal static CadPrompt ForKeywordOrText(string message, IReadOnlyList<string> keywords, string defaultValue)
-            => new CadPrompt(CadPromptKind.Keyword, message, keywords, defaultValue, null) { AcceptsText = true };
+        internal static CadPrompt ForKeywordOrText(
+            string message,
+            IReadOnlyList<string> keywords,
+            string defaultValue
+        ) => new CadPrompt(CadPromptKind.Keyword, message, keywords, defaultValue, null) { AcceptsText = true };
 
         /// <summary>Asks for a text.</summary>
         /// <param name="message">The message: "Enter text".</param>
         /// <param name="defaultValue">The default Enter takes; null for none.</param>
         /// <returns>The prompt.</returns>
-        public static CadPrompt ForString(string message, string defaultValue = null) => new CadPrompt(CadPromptKind.String, message, null, defaultValue, null);
+        public static CadPrompt ForString(string message, string defaultValue = null) =>
+            new CadPrompt(CadPromptKind.String, message, null, defaultValue, null);
 
         /// <summary>Asks for the words of a text edited in place (<see cref="InPlace"/>): a prompt for text the window answers from its editor.</summary>
         /// <param name="message">The message: "Edit text".</param>
         /// <param name="edit">The text edited.</param>
         /// <returns>The prompt.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the edit is null.</exception>
-        public static CadPrompt ForInPlaceEdit(string message, CadInPlaceEdit edit)
-            => new CadPrompt(CadPromptKind.String, message, null, null, null) { InPlace = edit ?? throw new ArgumentNullException(nameof(edit)) };
+        public static CadPrompt ForInPlaceEdit(string message, CadInPlaceEdit edit) =>
+            new CadPrompt(CadPromptKind.String, message, null, null, null)
+            {
+                InPlace = edit ?? throw new ArgumentNullException(nameof(edit)),
+            };
 
         /// <summary>Asks for a whole number.</summary>
         /// <param name="message">The message.</param>
         /// <param name="keywords">The keywords offered; null for none.</param>
         /// <param name="defaultValue">The default Enter takes; null for none.</param>
         /// <returns>The prompt.</returns>
-        public static CadPrompt ForInteger(string message, IReadOnlyList<string> keywords = null, string defaultValue = null)
-            => new CadPrompt(CadPromptKind.Integer, message, keywords, defaultValue, null);
+        public static CadPrompt ForInteger(
+            string message,
+            IReadOnlyList<string> keywords = null,
+            string defaultValue = null
+        ) => new CadPrompt(CadPromptKind.Integer, message, keywords, defaultValue, null);
 
         /// <summary>
         /// Finds the keyword a typed answer names: the whole keyword or its capital letters, either case, or a longer start of
@@ -349,8 +399,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 string shortcut = Shortcut(keyword);
 
-                if (answer.Length >= shortcut.Length && keyword.StartsWith(answer, StringComparison.OrdinalIgnoreCase)
-                    && keyword.StartsWith(shortcut, StringComparison.OrdinalIgnoreCase))
+                if (
+                    answer.Length >= shortcut.Length
+                    && keyword.StartsWith(answer, StringComparison.OrdinalIgnoreCase)
+                    && keyword.StartsWith(shortcut, StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     return keyword;
                 }
@@ -411,7 +464,13 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>The answer a command got to its last prompt.</summary>
     public sealed class CadInput
     {
-        internal static readonly CadInput Nothing = new CadInput(CadInputKind.None, default, 0.0, null, Array.Empty<string>());
+        internal static readonly CadInput Nothing = new CadInput(
+            CadInputKind.None,
+            default,
+            0.0,
+            null,
+            Array.Empty<string>()
+        );
 
         internal CadInput(CadInputKind kind, GeoPoint2 point, double number, string text, IReadOnlyList<string> handles)
         {
@@ -454,13 +513,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// The objects of a selection that clicks alone picked, each with the point it was clicked at, in the order clicked; an
         /// object a window, a crossing box or ALL took as well is not among them. Empty for every other answer.
         /// </summary>
-        internal IReadOnlyList<KeyValuePair<string, GeoPoint2>> Clicks { get; set; } = Array.Empty<KeyValuePair<string, GeoPoint2>>();
+        internal IReadOnlyList<KeyValuePair<string, GeoPoint2>> Clicks { get; set; } =
+            Array.Empty<KeyValuePair<string, GeoPoint2>>();
 
         /// <summary>
         /// The objects of a selection that windows or crossing boxes alone took, each with the box and whether it crossed, in
         /// the order taken; an object another option took whole as well is not among them. Empty for every other answer.
         /// </summary>
-        internal IReadOnlyList<Tuple<string, DisplayBox, bool>> Windows { get; set; } = Array.Empty<Tuple<string, DisplayBox, bool>>();
+        internal IReadOnlyList<Tuple<string, DisplayBox, bool>> Windows { get; set; } =
+            Array.Empty<Tuple<string, DisplayBox, bool>>();
 
         /// <summary>Whether the one object of a selection was picked on the canvas, its <see cref="Point"/> the point it was picked at; false where it was given by its handle.</summary>
         internal bool IsPickedAt { get; set; }
@@ -477,20 +538,27 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets whether the answer is a keyword, either case.</summary>
         /// <param name="keyword">The keyword as the prompt writes it.</param>
         /// <returns>True when it is that keyword.</returns>
-        public bool Is(string keyword) => Kind == CadInputKind.Keyword && string.Equals(Text, keyword, StringComparison.OrdinalIgnoreCase);
+        public bool Is(string keyword) =>
+            Kind == CadInputKind.Keyword && string.Equals(Text, keyword, StringComparison.OrdinalIgnoreCase);
 
         /// <inheritdoc/>
         public override string ToString()
         {
             switch (Kind)
             {
-                case CadInputKind.Point: return Point.X.ToString("R", CultureInfo.InvariantCulture) + "," + Point.Y.ToString("R", CultureInfo.InvariantCulture);
-                case CadInputKind.Number: return Number.ToString("R", CultureInfo.InvariantCulture);
+                case CadInputKind.Point:
+                    return Point.X.ToString("R", CultureInfo.InvariantCulture)
+                        + ","
+                        + Point.Y.ToString("R", CultureInfo.InvariantCulture);
+                case CadInputKind.Number:
+                    return Number.ToString("R", CultureInfo.InvariantCulture);
                 case CadInputKind.Keyword:
                 case CadInputKind.Text:
                     return Text;
-                case CadInputKind.Selection: return Handles.Count.ToString(CultureInfo.InvariantCulture) + " object(s)";
-                default: return "<Enter>";
+                case CadInputKind.Selection:
+                    return Handles.Count.ToString(CultureInfo.InvariantCulture) + " object(s)";
+                default:
+                    return "<Enter>";
             }
         }
     }

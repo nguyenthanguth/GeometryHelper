@@ -36,7 +36,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal(y, corner.Y, 3);
         }
 
-        private static DxfLine LastLine(MainViewModel model) => model.Document.Database.ModelSpace.Cast<DxfEntity>().OfType<DxfLine>().Last();
+        private static DxfLine LastLine(MainViewModel model) =>
+            model.Document.Database.ModelSpace.Cast<DxfEntity>().OfType<DxfLine>().Last();
 
         [Fact]
         public void RecTypedAtTheCommandPrompt_ShowsTheBoxWithTheListUnderIt_AndTheCommandLineListStaysClosed()
@@ -250,7 +251,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     Assert.Equal("53.1", model.DynamicInputSecond);
 
                     // The two fields alone: no dimension line, extension lines, arc or dashed axis.
-                    Assert.Equal(new UIElement[] { workspace.LengthField, workspace.AngleField }, workspace.DimensionalInput.Children.Cast<UIElement>());
+                    Assert.Equal(
+                        new UIElement[] { workspace.LengthField, workspace.AngleField },
+                        workspace.DimensionalInput.Children.Cast<UIElement>()
+                    );
                     Assert.Equal(Visibility.Visible, workspace.LengthField.Visibility);
                     Assert.Equal(Visibility.Visible, workspace.AngleField.Visibility);
 
@@ -308,7 +312,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     var baseAt = new Point(cursorAt.X - 300.0, cursorAt.Y + 60.0);
                     canvas.View.ScreenToDrawing(baseAt.X * scale, baseAt.Y * scale, out double bx, out double by);
                     canvas.View.ScreenToDrawing(cursorAt.X * scale, cursorAt.Y * scale, out double cx, out double cy);
-                    model.Execute(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:0.###},{1:0.###}", bx, by));
+                    model.Execute(
+                        string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:0.###},{1:0.###}", bx, by)
+                    );
                     Lay(workspace);
                     canvas.MoveCursorTo(cx, cy);
                     Lay(workspace);
@@ -351,8 +357,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             Vector along = to - from;
             along.Normalize();
-            double[] signed = new[] { box.TopLeft, box.TopRight, box.BottomLeft, box.BottomRight }.Select(p => Vector.CrossProduct(along, p - from)).ToArray();
-            return signed.Min() > 0.0 ? signed.Min() : signed.Max() < 0.0 ? signed.Max() : 0.0;
+            double[] signed = new[] { box.TopLeft, box.TopRight, box.BottomLeft, box.BottomRight }
+                .Select(p => Vector.CrossProduct(along, p - from))
+                .ToArray();
+            return signed.Min() > 0.0 ? signed.Min()
+                : signed.Max() < 0.0 ? signed.Max()
+                : 0.0;
         }
 
         private static void OnSta(Action action)

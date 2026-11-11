@@ -27,30 +27,32 @@ namespace GeometryHelper.Export
         public static string Write(GeoPoint3 point) => "POINT Z (" + Xyz(point) + ")";
 
         /// <summary>Writes a segment: <c>LINESTRING (...)</c>.</summary>
-        public static string Write(GeoLine2 line) => "LINESTRING (" + Xy(line.StartPoint) + ", " + Xy(line.EndPoint) + ")";
+        public static string Write(GeoLine2 line) =>
+            "LINESTRING (" + Xy(line.StartPoint) + ", " + Xy(line.EndPoint) + ")";
 
         /// <summary>Writes a segment in space: <c>LINESTRING Z (...)</c>.</summary>
-        public static string Write(GeoLine3 line) => "LINESTRING Z (" + Xyz(line.StartPoint) + ", " + Xyz(line.EndPoint) + ")";
+        public static string Write(GeoLine3 line) =>
+            "LINESTRING Z (" + Xyz(line.StartPoint) + ", " + Xyz(line.EndPoint) + ")";
 
         /// <summary>Writes a chain: <c>LINESTRING (...)</c>.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static string Write(GeoPolyline2 polyline)
-            => "LINESTRING (" + Points(NotNull(polyline, nameof(polyline)).Vertices, false) + ")";
+        public static string Write(GeoPolyline2 polyline) =>
+            "LINESTRING (" + Points(NotNull(polyline, nameof(polyline)).Vertices, false) + ")";
 
         /// <summary>Writes a chain in space: <c>LINESTRING Z (...)</c>.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public static string Write(GeoPolyline3 polyline)
-            => "LINESTRING Z (" + Points(NotNull(polyline, nameof(polyline)).Vertices, false) + ")";
+        public static string Write(GeoPolyline3 polyline) =>
+            "LINESTRING Z (" + Points(NotNull(polyline, nameof(polyline)).Vertices, false) + ")";
 
         /// <summary>Writes a polygon: <c>POLYGON ((...))</c>.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static string Write(GeoPolygon2 polygon)
-            => "POLYGON (" + Ring(NotNull(polygon, nameof(polygon)), true) + ")";
+        public static string Write(GeoPolygon2 polygon) =>
+            "POLYGON (" + Ring(NotNull(polygon, nameof(polygon)), true) + ")";
 
         /// <summary>Writes a polygon in space: <c>POLYGON Z ((...))</c>.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static string Write(GeoPolygon3 polygon)
-            => "POLYGON Z ((" + Points(NotNull(polygon, nameof(polygon)).Vertices, true) + "))";
+        public static string Write(GeoPolygon3 polygon) =>
+            "POLYGON Z ((" + Points(NotNull(polygon, nameof(polygon)).Vertices, true) + "))";
 
         /// <summary>Writes a face with its holes: <c>POLYGON ((...), (...))</c>.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
@@ -80,13 +82,16 @@ namespace GeometryHelper.Export
         }
 
         /// <summary>Writes a rectangle: <c>POLYGON ((...))</c>, counter-clockwise.</summary>
-        public static string Write(GeoRectangle2 rectangle) => "POLYGON (" + RingOf(rectangle.GetVertices(), true) + ")";
+        public static string Write(GeoRectangle2 rectangle) =>
+            "POLYGON (" + RingOf(rectangle.GetVertices(), true) + ")";
 
         /// <summary>Writes a triangle: <c>POLYGON ((...))</c>, counter-clockwise whichever way it was given.</summary>
-        public static string Write(GeoTriangle2 triangle) => "POLYGON (" + RingOf(new[] { triangle.A, triangle.B, triangle.C }, true) + ")";
+        public static string Write(GeoTriangle2 triangle) =>
+            "POLYGON (" + RingOf(new[] { triangle.A, triangle.B, triangle.C }, true) + ")";
 
         /// <summary>Writes a triangle in space: <c>POLYGON Z ((...))</c>, its corners in the order they were given.</summary>
-        public static string Write(GeoTriangle3 triangle) => "POLYGON Z ((" + Points(new[] { triangle.A, triangle.B, triangle.C }, true) + "))";
+        public static string Write(GeoTriangle3 triangle) =>
+            "POLYGON Z ((" + Points(new[] { triangle.A, triangle.B, triangle.C }, true) + "))";
 
         /// <summary>
         /// Writes a face in space with its holes: <c>POLYGON Z ((...), (...))</c>.
@@ -284,7 +289,9 @@ namespace GeometryHelper.Export
                 parts.Add("(" + Xyz(line.StartPoint) + ", " + Xyz(line.EndPoint) + ")");
             }
 
-            return parts.Count == 0 ? "MULTILINESTRING Z EMPTY" : "MULTILINESTRING Z (" + string.Join(", ", parts) + ")";
+            return parts.Count == 0
+                ? "MULTILINESTRING Z EMPTY"
+                : "MULTILINESTRING Z (" + string.Join(", ", parts) + ")";
         }
 
         /// <summary>Writes chains: <c>MULTILINESTRING ((...), (...))</c>.</summary>
@@ -312,7 +319,9 @@ namespace GeometryHelper.Export
                 parts.Add("(" + Points(NotNull(polyline, nameof(polylines)).Vertices, false) + ")");
             }
 
-            return parts.Count == 0 ? "MULTILINESTRING Z EMPTY" : "MULTILINESTRING Z (" + string.Join(", ", parts) + ")";
+            return parts.Count == 0
+                ? "MULTILINESTRING Z EMPTY"
+                : "MULTILINESTRING Z (" + string.Join(", ", parts) + ")";
         }
 
         /// <summary>
@@ -656,7 +665,7 @@ namespace GeometryHelper.Export
 
         private static string Number(double value) => Numbers.Exact(value);
 
-        private static T NotNull<T>(T value, string name) where T : class
-            => value ?? throw new ArgumentNullException(name);
+        private static T NotNull<T>(T value, string name)
+            where T : class => value ?? throw new ArgumentNullException(name);
     }
 }

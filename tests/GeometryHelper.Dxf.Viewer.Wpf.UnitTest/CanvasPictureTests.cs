@@ -33,7 +33,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     {
                         var model = new MainViewModel();
                         model.Open(folder.Write("room.dxf", TestFiles.Room(out string bottom, out string column)));
-                        var canvas = new CadCanvas { Document = model.Document, Space = model.Space, View = model.View, Session = model.Session, Snap = model.Snap };
+                        var canvas = new CadCanvas
+                        {
+                            Document = model.Document,
+                            Space = model.Space,
+                            View = model.View,
+                            Session = model.Session,
+                            Snap = model.Snap,
+                        };
                         canvas.PixelSizeChanged += (s, e) => model.SetCanvasSize(canvas.PixelWidth, canvas.PixelHeight);
                         canvas.Measure(new Size(Width, Height));
                         canvas.Arrange(new Rect(0, 0, Width, Height));
@@ -75,120 +82,130 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         [Fact]
         public void AnEntityUnderTheCursorIsDrawnOverTheKeptPictureWithoutDrawingTheDrawingAgain()
         {
-            OnCanvas((model, canvas, bottom, column) =>
-            {
-                int scenes = canvas.SceneRenders;
+            OnCanvas(
+                (model, canvas, bottom, column) =>
+                {
+                    int scenes = canvas.SceneRenders;
 
-                // The bottom wall, white, along the border of the rows 569 and 570: hovered, both rows turn a light blue.
-                canvas.MoveCursorTo(1000, 0);
-                canvas.RenderNow();
-                int[] pixels = Pixels(canvas);
+                    // The bottom wall, white, along the border of the rows 569 and 570: hovered, both rows turn a light blue.
+                    canvas.MoveCursorTo(1000, 0);
+                    canvas.RenderNow();
+                    int[] pixels = Pixels(canvas);
 
-                Assert.Equal(scenes, canvas.SceneRenders);
-                Assert.Equal(0x9ECDFF, pixels[569 * Width + 220]);
-                Assert.Equal(0x9ECDFF, pixels[570 * Width + 220]);
+                    Assert.Equal(scenes, canvas.SceneRenders);
+                    Assert.Equal(0x9ECDFF, pixels[569 * Width + 220]);
+                    Assert.Equal(0x9ECDFF, pixels[570 * Width + 220]);
 
-                // The cursor moved off it: the wall is white again, still from the same picture.
-                canvas.MoveCursorTo(1000, 1000);
-                canvas.RenderNow();
-                pixels = Pixels(canvas);
+                    // The cursor moved off it: the wall is white again, still from the same picture.
+                    canvas.MoveCursorTo(1000, 1000);
+                    canvas.RenderNow();
+                    pixels = Pixels(canvas);
 
-                Assert.Equal(scenes, canvas.SceneRenders);
-                Assert.NotEqual(0x9ECDFF, pixels[570 * Width + 220]);
-            });
+                    Assert.Equal(scenes, canvas.SceneRenders);
+                    Assert.NotEqual(0x9ECDFF, pixels[570 * Width + 220]);
+                }
+            );
         }
 
         [Fact]
         public void TheWheelMovesAndScalesThePictureAndTheDrawingIsDrawnAgainOnlyOnceTheViewIsStill()
         {
-            OnCanvas((model, canvas, bottom, column) =>
-            {
-                int scenes = canvas.SceneRenders;
+            OnCanvas(
+                (model, canvas, bottom, column) =>
+                {
+                    int scenes = canvas.SceneRenders;
 
-                // A notch in about (400, 500): the wall at row 570 is shown at 500 + 70 x 1.2 = 584 before it is drawn again.
-                CanvasMouseTests.Mouse(canvas, UIElement.MouseWheelEvent, new Point(400, 500), delta: 120);
-                int[] pixels = Pixels(canvas);
+                    // A notch in about (400, 500): the wall at row 570 is shown at 500 + 70 x 1.2 = 584 before it is drawn again.
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseWheelEvent, new Point(400, 500), delta: 120);
+                    int[] pixels = Pixels(canvas);
 
-                Assert.Equal(scenes, canvas.SceneRenders);
-                Assert.True(canvas.IsSettling);
-                Assert.NotEqual(0, pixels[584 * Width + 184]);
-                Assert.Equal(0, pixels[570 * Width + 220]);
+                    Assert.Equal(scenes, canvas.SceneRenders);
+                    Assert.True(canvas.IsSettling);
+                    Assert.NotEqual(0, pixels[584 * Width + 184]);
+                    Assert.Equal(0, pixels[570 * Width + 220]);
 
-                canvas.RenderNow();
+                    canvas.RenderNow();
 
-                Assert.Equal(scenes + 1, canvas.SceneRenders);
-                Assert.False(canvas.IsSettling);
-            });
+                    Assert.Equal(scenes + 1, canvas.SceneRenders);
+                    Assert.False(canvas.IsSettling);
+                }
+            );
         }
 
         [Fact]
         public void AClickOnNothingStartsABoxThatTheNextClickEndsLeftToRightAWindowRightToLeftACrossing()
         {
-            OnCanvas((model, canvas, bottom, column) =>
-            {
-                // Left to right about the column of radius 100 at (2000, 1500): a window that holds it whole.
-                CanvasMouseTests.Click(canvas, At(canvas, 1850, 1350));
+            OnCanvas(
+                (model, canvas, bottom, column) =>
+                {
+                    // Left to right about the column of radius 100 at (2000, 1500): a window that holds it whole.
+                    CanvasMouseTests.Click(canvas, At(canvas, 1850, 1350));
 
-                Assert.Empty(model.Document.Selection.Handles);
+                    Assert.Empty(model.Document.Selection.Handles);
 
-                CanvasMouseTests.Click(canvas, At(canvas, 2150, 1650));
+                    CanvasMouseTests.Click(canvas, At(canvas, 2150, 1650));
 
-                Assert.Equal(new[] { column }, model.Document.Selection.Handles);
+                    Assert.Equal(new[] { column }, model.Document.Selection.Handles);
 
-                // Left to right over its right half only: a window, which takes nothing.
-                model.ClearSelection();
-                CanvasMouseTests.Click(canvas, At(canvas, 2000, 1440));
-                CanvasMouseTests.Click(canvas, At(canvas, 2160, 1500));
+                    // Left to right over its right half only: a window, which takes nothing.
+                    model.ClearSelection();
+                    CanvasMouseTests.Click(canvas, At(canvas, 2000, 1440));
+                    CanvasMouseTests.Click(canvas, At(canvas, 2160, 1500));
 
-                Assert.Empty(model.Document.Selection.Handles);
+                    Assert.Empty(model.Document.Selection.Handles);
 
-                // The same box right to left: a crossing, which takes the column its rim runs through.
-                CanvasMouseTests.Click(canvas, At(canvas, 2160, 1440));
-                CanvasMouseTests.Click(canvas, At(canvas, 2000, 1500));
+                    // The same box right to left: a crossing, which takes the column its rim runs through.
+                    CanvasMouseTests.Click(canvas, At(canvas, 2160, 1440));
+                    CanvasMouseTests.Click(canvas, At(canvas, 2000, 1500));
 
-                Assert.Equal(new[] { column }, model.Document.Selection.Handles);
-            });
+                    Assert.Equal(new[] { column }, model.Document.Selection.Handles);
+                }
+            );
         }
 
         [Fact]
         public void EscDropsABoxWaitingForItsSecondCornerAndTheNextClickStartsAnother()
         {
-            OnCanvas((model, canvas, bottom, column) =>
-            {
-                CanvasMouseTests.Click(canvas, At(canvas, 1850, 1350));
-                canvas.Cancel();
-                CanvasMouseTests.Click(canvas, At(canvas, 2150, 1650));
+            OnCanvas(
+                (model, canvas, bottom, column) =>
+                {
+                    CanvasMouseTests.Click(canvas, At(canvas, 1850, 1350));
+                    canvas.Cancel();
+                    CanvasMouseTests.Click(canvas, At(canvas, 2150, 1650));
 
-                Assert.Empty(model.Document.Selection.Handles);
+                    Assert.Empty(model.Document.Selection.Handles);
 
-                // That click was a first corner: the box it started ends at the next.
-                CanvasMouseTests.Click(canvas, At(canvas, 1850, 1350));
+                    // That click was a first corner: the box it started ends at the next.
+                    CanvasMouseTests.Click(canvas, At(canvas, 1850, 1350));
 
-                Assert.Equal(new[] { column }, model.Document.Selection.Handles);
-            });
+                    Assert.Equal(new[] { column }, model.Document.Selection.Handles);
+                }
+            );
         }
 
         [Fact]
         public void ABoxDraggedEndsOnReleaseOnlyWithSelectByDraggingElseItWaitsForAClick()
         {
-            OnCanvas((model, canvas, bottom, column) =>
-            {
-                // PICKDRAG 0, the default: the release leaves the box open; the click at the far corner ends it.
-                CanvasMouseTests.Drag(canvas, At(canvas, 1850, 1350), At(canvas, 2150, 1650));
+            OnCanvas(
+                (model, canvas, bottom, column) =>
+                {
+                    // PICKDRAG 0, the default: the release leaves the box open; the click at the far corner ends it.
+                    CanvasMouseTests.Drag(canvas, At(canvas, 1850, 1350), At(canvas, 2150, 1650));
 
-                Assert.Empty(model.Document.Selection.Handles);
+                    Assert.Empty(model.Document.Selection.Handles);
 
-                CanvasMouseTests.Click(canvas, At(canvas, 2150, 1650));
+                    CanvasMouseTests.Click(canvas, At(canvas, 2150, 1650));
 
-                Assert.Equal(new[] { column }, model.Document.Selection.Handles);
+                    Assert.Equal(new[] { column }, model.Document.Selection.Handles);
 
-                // PICKDRAG 1: the release ends it.
-                model.ClearSelection();
-                canvas.SelectByDragging = true;
-                CanvasMouseTests.Drag(canvas, At(canvas, 1850, 1350), At(canvas, 2150, 1650));
+                    // PICKDRAG 1: the release ends it.
+                    model.ClearSelection();
+                    canvas.SelectByDragging = true;
+                    CanvasMouseTests.Drag(canvas, At(canvas, 1850, 1350), At(canvas, 2150, 1650));
 
-                Assert.Equal(new[] { column }, model.Document.Selection.Handles);
-            });
+                    Assert.Equal(new[] { column }, model.Document.Selection.Handles);
+                }
+            );
         }
 
         /// <summary>
@@ -211,12 +228,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                     for (int i = 0; i < 100; i++)
                     {
-                        block.AppendEntity(new DxfLine(new GeoPoint3(0, i * 0.1, 0), new GeoPoint3(10, i * 0.1 + 2, 0)));
+                        block.AppendEntity(
+                            new DxfLine(new GeoPoint3(0, i * 0.1, 0), new GeoPoint3(10, i * 0.1 + 2, 0))
+                        );
                     }
 
                     for (int i = 0; i < 5000; i++)
                     {
-                        database.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3((i % 100) * 20.0, (i / 100) * 20.0, 0), block));
+                        database.ModelSpace.AppendEntity(
+                            new DxfBlockReference(new GeoPoint3((i % 100) * 20.0, (i / 100) * 20.0, 0), block)
+                        );
                     }
 
                     CadDocument document = CadDocument.From(database);
@@ -225,7 +246,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     Assert.Equal(500000, list.Count);
 
                     var view = new CadView(Width, Height);
-                    var canvas = new CadCanvas { Document = document, Space = document.ModelSpace, View = view };
+                    var canvas = new CadCanvas
+                    {
+                        Document = document,
+                        Space = document.ModelSpace,
+                        View = view,
+                    };
                     canvas.Measure(new Size(Width, Height));
                     canvas.Arrange(new Rect(0, 0, Width, Height));
                     view.ZoomTo(list.Bounds);
@@ -244,7 +270,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     double each = watch.Elapsed.TotalMilliseconds / 20.0;
 
                     Assert.Equal(scenes, canvas.SceneRenders);
-                    Assert.True(each < 48.0, each.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms a hover change");
+                    Assert.True(
+                        each < 48.0,
+                        each.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms a hover change"
+                    );
                     canvas.Dispose();
                 }
                 catch (Exception ex)

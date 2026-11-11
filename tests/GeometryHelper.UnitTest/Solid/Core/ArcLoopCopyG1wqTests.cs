@@ -14,17 +14,34 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class ArcLoopCopyG1wqTests
     {
-        private static readonly Tolerance Millionth = new Tolerance(1E-6, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-6);
-        private static readonly Tolerance Tight = new Tolerance(1E-12, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-12);
+        private static readonly Tolerance Millionth = new Tolerance(
+            1E-6,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-6
+        );
+        private static readonly Tolerance Tight = new Tolerance(
+            1E-12,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-12
+        );
 
         // The rectangle 100 by 50 standing in the plane x = 20, every corner rounded by 0.0005 at a millionth: eight edges,
         // four of them arcs 0.0007 across.
-        private static GeoPolygonArc3 Rounded()
-            => new GeoPolygonArc3(
-                new[] { new GeoPoint3(20, 0, 0), new GeoPoint3(20, 100, 0), new GeoPoint3(20, 100, 50), new GeoPoint3(20, 0, 50) },
+        private static GeoPolygonArc3 Rounded() =>
+            new GeoPolygonArc3(
+                new[]
+                {
+                    new GeoPoint3(20, 0, 0),
+                    new GeoPoint3(20, 100, 0),
+                    new GeoPoint3(20, 100, 50),
+                    new GeoPoint3(20, 0, 50),
+                },
                 null,
                 null,
-                Tight).Fillet(0.0005, Millionth);
+                Tight
+            ).Fillet(0.0005, Millionth);
 
         private static readonly double RoundedArea = 5000.0 - 0.0005 * 0.0005 * (4.0 - Math.PI);
 
@@ -60,7 +77,8 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ARectangleInSpaceFilletedAtFiveTenThousandthsAtAMillionthTurned_KeepsItsFourArcs()
         {
-            GeoPolygonArc3 turned = Rounded().TransformBy(GeoTransform3.RotationAxis(new GeoPoint3(1, 2, 3), new GeoVector3(1, 1, 1), 0.7));
+            GeoPolygonArc3 turned = Rounded()
+                .TransformBy(GeoTransform3.RotationAxis(new GeoPoint3(1, 2, 3), new GeoVector3(1, 1, 1), 0.7));
 
             Assert.Equal(8, turned.VertexCount);
             Assert.Equal(4, ArcsOf(turned));
@@ -70,7 +88,8 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ARectangleInSpaceFilletedAtFiveTenThousandthsAtAMillionthMirrored_KeepsItsFourArcs()
         {
-            GeoPolygonArc3 mirrored = Rounded().TransformBy(GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0))));
+            GeoPolygonArc3 mirrored = Rounded()
+                .TransformBy(GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0))));
 
             Assert.Equal(8, mirrored.VertexCount);
             Assert.Equal(4, ArcsOf(mirrored));

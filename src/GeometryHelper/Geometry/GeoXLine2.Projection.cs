@@ -40,7 +40,8 @@ namespace GeometryHelper.Geometry
         /// <see cref="DistanceTo(GeoPoint2)"/>: from the line through the origin along X to the point (-30, 40), it
         /// runs from (-30, 0) and is 40 long.
         /// </remarks>
-        public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance) => Projection2.GetShortestLineTo(this, point, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, point, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on a line segment, using the default tolerance.
@@ -50,7 +51,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on a line segment, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoLine2 line, Tolerance tolerance) => Projection2.GetShortestLineTo(this, line, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoLine2 line, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, line, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on a ray, using the default tolerance.
@@ -65,7 +67,8 @@ namespace GeometryHelper.Geometry
         /// The line through the origin along X gets the segment from (50, 0) to (50, 30) to the ray from (50, 30) along
         /// Y.
         /// </remarks>
-        public GeoLine2 GetShortestLineTo(GeoRay2 ray, Tolerance tolerance) => Projection2.GetShortestLineTo(this, ray, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoRay2 ray, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, ray, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on another infinite line, using the default tolerance.
@@ -75,7 +78,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on another infinite line, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoXLine2 other, Tolerance tolerance) => Projection2.GetShortestLineTo(this, other, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoXLine2 other, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, other, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on an arc, using the default tolerance.
@@ -85,7 +89,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on an arc, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoArc2 arc, Tolerance tolerance) => Projection2.GetShortestLineTo(this, arc, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoArc2 arc, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, arc, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on a circle, using the default tolerance.
@@ -95,7 +100,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on a circle, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoCircle2 circle, Tolerance tolerance) => Projection2.GetShortestLineTo(this, circle, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoCircle2 circle, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, circle, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on an ellipse, using the default tolerance.
@@ -105,7 +111,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on an ellipse, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, Tolerance tolerance) => Ellipse2.GetShortestLineTo(ellipse, this, tolerance).Reverse();
+        public GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, Tolerance tolerance) =>
+            Ellipse2.GetShortestLineTo(ellipse, this, tolerance).Reverse();
 
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on an edge, using the default tolerance.
@@ -115,7 +122,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on an edge, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoEdge2 edge, Tolerance tolerance) => edge.GetShortestLineTo(this, tolerance).Reverse();
+        public GeoLine2 GetShortestLineTo(GeoEdge2 edge, Tolerance tolerance) =>
+            edge.GetShortestLineTo(this, tolerance).Reverse();
 
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on a polyline, using the default tolerance.
@@ -127,7 +135,8 @@ namespace GeometryHelper.Geometry
         /// Gets the shortest segment leaving this infinite line and landing on a polyline, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, Tolerance tolerance) => Projection2.GetShortestLineTo(this, polyline, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, polyline, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on a polygon, using the default tolerance.
@@ -143,7 +152,8 @@ namespace GeometryHelper.Geometry
         /// crossings; a line beside it gets the segment from the line to the nearest corner.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public GeoLine2 GetShortestLineTo(GeoPolygon2 poly, Tolerance tolerance) => Projection2.GetShortestLineTo(this, poly, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoPolygon2 poly, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, poly, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on a curved chain, using the default tolerance.
@@ -155,7 +165,8 @@ namespace GeometryHelper.Geometry
         /// Gets the shortest segment leaving this infinite line and landing on a curved chain, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the curved chain is null.</exception>
-        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, Tolerance tolerance) => Projection2.GetShortestLineTo(this, chain, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, chain, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on a curved loop, using the default tolerance.
@@ -167,7 +178,8 @@ namespace GeometryHelper.Geometry
         /// Gets the shortest segment leaving this infinite line and landing on a curved loop, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the curved loop is null.</exception>
-        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, Tolerance tolerance) => Projection2.GetShortestLineTo(this, loop, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoPolygonArc2 loop, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, loop, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on a rectangle, using the default tolerance.
@@ -177,7 +189,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on a rectangle, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect, Tolerance tolerance) => Projection2.GetShortestLineTo(this, rect, tolerance);
+        public GeoLine2 GetShortestLineTo(GeoRectangle2 rect, Tolerance tolerance) =>
+            Projection2.GetShortestLineTo(this, rect, tolerance);
 
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on a triangle, using the default tolerance.
@@ -187,7 +200,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on a triangle, within a tolerance.
         /// </summary>
-        public GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, Tolerance tolerance) => Triangle2.GetShortestLineTo(triangle, this, tolerance).Reverse();
+        public GeoLine2 GetShortestLineTo(GeoTriangle2 triangle, Tolerance tolerance) =>
+            Triangle2.GetShortestLineTo(triangle, this, tolerance).Reverse();
 
         /// <summary>
         /// Gets the shortest segment leaving this infinite line and landing on a face, using the default tolerance.
@@ -199,6 +213,7 @@ namespace GeometryHelper.Geometry
         /// Gets the shortest segment leaving this infinite line and landing on a face, within a tolerance.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public GeoLine2 GetShortestLineTo(GeoFace2 face, Tolerance tolerance) => Face2.GetShortestLineTo(face, this, tolerance).Reverse();
+        public GeoLine2 GetShortestLineTo(GeoFace2 face, Tolerance tolerance) =>
+            Face2.GetShortestLineTo(face, this, tolerance).Reverse();
     }
 }

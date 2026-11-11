@@ -36,9 +36,7 @@ namespace GeometryHelper.Dxf
         private DxfBlockTableRecord _block;
 
         internal DxfDrawOrderTable(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets the block whose entities the table orders; null for a table read on its own, outside its block.</summary>
         public DxfBlockTableRecord Block => _block;
@@ -103,7 +101,8 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when an entity is null or not of the block, or the target is not of the
         /// block or is among the entities.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the table has no block, or is erased.</exception>
-        public void MoveAbove(IEnumerable<DxfEntity> entities, DxfEntity target) => Reorder(entities, target ?? throw new ArgumentNullException(nameof(target)), true);
+        public void MoveAbove(IEnumerable<DxfEntity> entities, DxfEntity target) =>
+            Reorder(entities, target ?? throw new ArgumentNullException(nameof(target)), true);
 
         /// <summary>Puts entities of the block just under another, as AutoCAD's <c>MoveBelow</c>, keeping their order among themselves.</summary>
         /// <param name="entities">The entities, of the block.</param>
@@ -112,7 +111,8 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when an entity is null or not of the block, or the target is not of the
         /// block or is among the entities.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the table has no block, or is erased.</exception>
-        public void MoveBelow(IEnumerable<DxfEntity> entities, DxfEntity target) => Reorder(entities, target ?? throw new ArgumentNullException(nameof(target)), false);
+        public void MoveBelow(IEnumerable<DxfEntity> entities, DxfEntity target) =>
+            Reorder(entities, target ?? throw new ArgumentNullException(nameof(target)), false);
 
         /// <inheritdoc/>
         public override string ToString() => "SORTENTSTABLE " + (Handle ?? string.Empty);
@@ -122,7 +122,11 @@ namespace GeometryHelper.Dxf
         {
             if (_block == null)
             {
-                throw new InvalidOperationException("The draw order table " + (Handle ?? string.Empty) + " has no block: read it through DxfBlockTableRecord.DrawOrderTable.");
+                throw new InvalidOperationException(
+                    "The draw order table "
+                        + (Handle ?? string.Empty)
+                        + " has no block: read it through DxfBlockTableRecord.DrawOrderTable."
+                );
             }
 
             var sorts = new Dictionary<string, ulong>(StringComparer.OrdinalIgnoreCase);
@@ -189,15 +193,26 @@ namespace GeometryHelper.Dxf
             {
                 if (entity == null || entity.Handle == null || !mine.Contains(entity.Handle))
                 {
-                    throw new ArgumentException("An entity to reorder is null or not of the block " + (_block.Name ?? string.Empty) + ".", nameof(entities));
+                    throw new ArgumentException(
+                        "An entity to reorder is null or not of the block " + (_block.Name ?? string.Empty) + ".",
+                        nameof(entities)
+                    );
                 }
 
                 moving.Add(entity.Handle);
             }
 
-            if (target != null && (target.Handle == null || !mine.Contains(target.Handle) || moving.Contains(target.Handle)))
+            if (
+                target != null
+                && (target.Handle == null || !mine.Contains(target.Handle) || moving.Contains(target.Handle))
+            )
             {
-                throw new ArgumentException("The entity to reorder against is not of the block " + (_block.Name ?? string.Empty) + ", or is among those moved.", nameof(target));
+                throw new ArgumentException(
+                    "The entity to reorder against is not of the block "
+                        + (_block.Name ?? string.Empty)
+                        + ", or is among those moved.",
+                    nameof(target)
+                );
             }
 
             if (moving.Count == 0)
@@ -221,7 +236,9 @@ namespace GeometryHelper.Dxf
             }
             else
             {
-                at = rest.FindIndex(e => string.Equals(e.Handle, target.Handle, StringComparison.OrdinalIgnoreCase)) + (over ? 1 : 0);
+                at =
+                    rest.FindIndex(e => string.Equals(e.Handle, target.Handle, StringComparison.OrdinalIgnoreCase))
+                    + (over ? 1 : 0);
             }
 
             rest.InsertRange(at, moved);
@@ -243,7 +260,8 @@ namespace GeometryHelper.Dxf
         private static bool TryHex(string text, out ulong value)
         {
             value = 0UL;
-            return text != null && ulong.TryParse(text.Trim(), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out value);
+            return text != null
+                && ulong.TryParse(text.Trim(), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out value);
         }
     }
 }

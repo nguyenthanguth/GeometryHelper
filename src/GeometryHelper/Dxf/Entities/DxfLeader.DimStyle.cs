@@ -62,9 +62,14 @@ namespace GeometryHelper.Dxf
             {
                 object value = style.Get(variable);
 
-                if ((value == null && variable.Kind == DxfDimKind.TextStyle)
+                if (
+                    (value == null && variable.Kind == DxfDimKind.TextStyle)
                     || variable.SameValue(value, reading.Value(variable))
-                    || (!file.Supports(variable.Since) && (variable.IsReference ? value == null : variable.SameValue(value, variable.Read(null)))))
+                    || (
+                        !file.Supports(variable.Since)
+                        && (variable.IsReference ? value == null : variable.SameValue(value, variable.Read(null)))
+                    )
+                )
                 {
                     continue;
                 }
@@ -74,7 +79,9 @@ namespace GeometryHelper.Dxf
 
                 if (IsErased)
                 {
-                    throw new InvalidOperationException("The LEADER " + (Handle ?? string.Empty) + " is erased, and is not changed.");
+                    throw new InvalidOperationException(
+                        "The LEADER " + (Handle ?? string.Empty) + " is erased, and is not changed."
+                    );
                 }
 
                 file.Requires(variable.Since, variable.Name.ToUpperInvariant(), variable.SinceSaid);
@@ -90,14 +97,24 @@ namespace GeometryHelper.Dxf
                 }
                 else if (!IsResident)
                 {
-                    throw new ArgumentException("The " + variable.Name + " of a leader is a record of its own drawing, and the leader is in none.", nameof(style));
+                    throw new ArgumentException(
+                        "The "
+                            + variable.Name
+                            + " of a leader is a record of its own drawing, and the leader is in none.",
+                        nameof(style)
+                    );
                 }
                 else
                 {
                     text = DxfDimStyleTableRecord.Reference(file, variable, (DxfDBObject)value, false, nameof(style));
                 }
 
-                changes.Add(new KeyValuePair<int, DxfTypedValue>(variable.Code, new DxfTypedValue(variable.DataCode(false), text)));
+                changes.Add(
+                    new KeyValuePair<int, DxfTypedValue>(
+                        variable.Code,
+                        new DxfTypedValue(variable.DataCode(false), text)
+                    )
+                );
             }
 
             foreach (KeyValuePair<int, DxfTypedValue> change in changes)
@@ -142,7 +159,13 @@ namespace GeometryHelper.Dxf
         {
             List<DxfTypedValue> data = Acad(out int open, out int close);
             DxfItem item = Style(DimensionStyleName);
-            return new StyleReading(data, open, close, item == null ? null : DxfDimStyleTableRecord.Of(item), NamingDrawing());
+            return new StyleReading(
+                data,
+                open,
+                close,
+                item == null ? null : DxfDimStyleTableRecord.Of(item),
+                NamingDrawing()
+            );
         }
 
         /// <summary>The overrides of a leader and its dimension style, as read.</summary>
@@ -154,7 +177,13 @@ namespace GeometryHelper.Dxf
             private readonly DxfDimStyleTableRecord _style;
             private readonly DxfFile _naming;
 
-            internal StyleReading(List<DxfTypedValue> data, int open, int close, DxfDimStyleTableRecord style, DxfFile naming)
+            internal StyleReading(
+                List<DxfTypedValue> data,
+                int open,
+                int close,
+                DxfDimStyleTableRecord style,
+                DxfFile naming
+            )
             {
                 _data = data;
                 _open = open;
@@ -173,7 +202,9 @@ namespace GeometryHelper.Dxf
 
                 if (pair != null)
                 {
-                    return !variable.IsReference ? variable.Read(pair[1].Value) : _naming == null ? null : DxfDimStyleTableRecord.Resolve(_naming, variable, pair[1].Value);
+                    return !variable.IsReference ? variable.Read(pair[1].Value)
+                        : _naming == null ? null
+                        : DxfDimStyleTableRecord.Resolve(_naming, variable, pair[1].Value);
                 }
 
                 if (_style != null)

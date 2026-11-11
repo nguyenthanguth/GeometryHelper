@@ -17,18 +17,37 @@ namespace GeometryHelper.UnitTest.Plane
     {
         private static readonly Tolerance Tol = Tolerance.Default;
 
-        private static GeoPolygon2 Box(double left, double bottom, double right, double top) => new GeoPolygon2(
-            new GeoPoint2(left, bottom), new GeoPoint2(right, bottom), new GeoPoint2(right, top), new GeoPoint2(left, top));
+        private static GeoPolygon2 Box(double left, double bottom, double right, double top) =>
+            new GeoPolygon2(
+                new GeoPoint2(left, bottom),
+                new GeoPoint2(right, bottom),
+                new GeoPoint2(right, top),
+                new GeoPoint2(left, top)
+            );
 
         /// <summary>The square 100 by 100 with a corner at the origin and a hole 20 by 20 in its middle.</summary>
         private static GeoFace2 Plate() => new GeoFace2(Box(0, 0, 100, 100), new[] { Box(40, 40, 60, 60) });
 
         /// <summary>The point a gap off the corner (100, 100), out along the diagonal.</summary>
-        private static GeoPoint2 OffTheCorner(double gap) => new GeoPoint2(100 + gap / Math.Sqrt(2), 100 + gap / Math.Sqrt(2));
+        private static GeoPoint2 OffTheCorner(double gap) =>
+            new GeoPoint2(100 + gap / Math.Sqrt(2), 100 + gap / Math.Sqrt(2));
 
         public static IEnumerable<object[]> CornerCases()
         {
-            foreach (string kind in new[] { "segment", "chain", "polygon", "triangle", "face", "rectangle", "ray", "straight curved chain", "curved loop" })
+            foreach (
+                string kind in new[]
+                {
+                    "segment",
+                    "chain",
+                    "polygon",
+                    "triangle",
+                    "face",
+                    "rectangle",
+                    "ray",
+                    "straight curved chain",
+                    "curved loop",
+                }
+            )
             {
                 foreach (double gap in new[] { 0.0005, 0.0012, 0.0014, 0.0019, 0.01 })
                 {
@@ -47,15 +66,33 @@ namespace GeometryHelper.UnitTest.Plane
 
             switch (kind)
             {
-                case "segment": var line = new GeoLine2(tip, left); return (plate.DistanceTo(line, Tol), plate.CollidesWith(line, Tol));
-                case "chain": var chain = new GeoPolyline2(left, tip, right); return (plate.DistanceTo(chain, Tol), plate.CollidesWith(chain, Tol));
-                case "polygon": var polygon = new GeoPolygon2(left, tip, right); return (plate.DistanceTo(polygon, Tol), plate.CollidesWith(polygon, Tol));
-                case "triangle": var triangle = new GeoTriangle2(left, tip, right); return (plate.DistanceTo(triangle, Tol), plate.CollidesWith(triangle, Tol));
-                case "face": var face = new GeoFace2(new GeoPolygon2(left, tip, right)); return (plate.DistanceTo(face, Tol), plate.CollidesWith(face, Tol));
-                case "rectangle": var rect = new GeoRectangle2(tip.X, tip.Y, 5, 5); return (plate.DistanceTo(rect, Tol), plate.CollidesWith(rect, Tol));
-                case "ray": var ray = new GeoRay2(tip, new GeoVector2(1, 2)); return (plate.DistanceTo(ray, Tol), plate.CollidesWith(ray, Tol));
-                case "straight curved chain": var bent = new GeoPolylineArc2(new[] { left, tip, right }, new[] { 0, 0.0 }); return (plate.DistanceTo(bent, Tol), plate.CollidesWith(bent, Tol));
-                default: var loop = new GeoPolygonArc2(new[] { left, tip, right }, new[] { 0, 0, 0.4 }); return (plate.DistanceTo(loop, Tol), plate.CollidesWith(loop, Tol));
+                case "segment":
+                    var line = new GeoLine2(tip, left);
+                    return (plate.DistanceTo(line, Tol), plate.CollidesWith(line, Tol));
+                case "chain":
+                    var chain = new GeoPolyline2(left, tip, right);
+                    return (plate.DistanceTo(chain, Tol), plate.CollidesWith(chain, Tol));
+                case "polygon":
+                    var polygon = new GeoPolygon2(left, tip, right);
+                    return (plate.DistanceTo(polygon, Tol), plate.CollidesWith(polygon, Tol));
+                case "triangle":
+                    var triangle = new GeoTriangle2(left, tip, right);
+                    return (plate.DistanceTo(triangle, Tol), plate.CollidesWith(triangle, Tol));
+                case "face":
+                    var face = new GeoFace2(new GeoPolygon2(left, tip, right));
+                    return (plate.DistanceTo(face, Tol), plate.CollidesWith(face, Tol));
+                case "rectangle":
+                    var rect = new GeoRectangle2(tip.X, tip.Y, 5, 5);
+                    return (plate.DistanceTo(rect, Tol), plate.CollidesWith(rect, Tol));
+                case "ray":
+                    var ray = new GeoRay2(tip, new GeoVector2(1, 2));
+                    return (plate.DistanceTo(ray, Tol), plate.CollidesWith(ray, Tol));
+                case "straight curved chain":
+                    var bent = new GeoPolylineArc2(new[] { left, tip, right }, new[] { 0, 0.0 });
+                    return (plate.DistanceTo(bent, Tol), plate.CollidesWith(bent, Tol));
+                default:
+                    var loop = new GeoPolygonArc2(new[] { left, tip, right }, new[] { 0, 0, 0.4 });
+                    return (plate.DistanceTo(loop, Tol), plate.CollidesWith(loop, Tol));
             }
         }
 
@@ -85,8 +122,22 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Equal(gap, plate.DistanceTo(new GeoCircle2(centre, 5), Tol), 12);
             Assert.Equal(gap, plate.DistanceTo(arc, Tol), 12);
-            Assert.Equal(gap, plate.DistanceTo(new GeoPolygonArc2(new[] { arc.StartPoint, arc.EndPoint, centre }, new[] { Math.Tan(0.3), 0, 0 }), Tol), 12);
-            Assert.Equal(gap, plate.DistanceTo(new GeoPolylineArc2(new[] { arc.StartPoint, arc.EndPoint }, new[] { Math.Tan(0.3) }), Tol), 12);
+            Assert.Equal(
+                gap,
+                plate.DistanceTo(
+                    new GeoPolygonArc2(new[] { arc.StartPoint, arc.EndPoint, centre }, new[] { Math.Tan(0.3), 0, 0 }),
+                    Tol
+                ),
+                12
+            );
+            Assert.Equal(
+                gap,
+                plate.DistanceTo(
+                    new GeoPolylineArc2(new[] { arc.StartPoint, arc.EndPoint }, new[] { Math.Tan(0.3) }),
+                    Tol
+                ),
+                12
+            );
         }
 
         [Fact]
@@ -146,8 +197,15 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The corner (100, 100) cut off by 0.004 each way, at a tolerance of 0.01: the chamfer is 0.0057 long.
             var coarse = new Tolerance(0.01, 1E-3);
-            var plate = new GeoFace2(new GeoPolygon2(
-                new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 99.996), new GeoPoint2(99.996, 100), new GeoPoint2(0, 100)));
+            var plate = new GeoFace2(
+                new GeoPolygon2(
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(100, 0),
+                    new GeoPoint2(100, 99.996),
+                    new GeoPoint2(99.996, 100),
+                    new GeoPoint2(0, 100)
+                )
+            );
             var inward = new GeoLine2(new GeoPoint2(101, 101), new GeoPoint2(90, 90));
 
             Assert.Equal(0.0, plate.DistanceTo(inward, coarse));
@@ -155,7 +213,11 @@ namespace GeometryHelper.UnitTest.Plane
 
             // A chain and a triangle that start outside and poke into the material through the chamfer alone.
             var poke = new GeoPolyline2(new GeoPoint2(101, 101), new GeoPoint2(99.997, 99.997));
-            var wedge = new GeoPolygon2(new GeoPoint2(101, 101), new GeoPoint2(99.997, 99.997), new GeoPoint2(101, 100.5));
+            var wedge = new GeoPolygon2(
+                new GeoPoint2(101, 101),
+                new GeoPoint2(99.997, 99.997),
+                new GeoPoint2(101, 100.5)
+            );
 
             Assert.Equal(0.0, plate.DistanceTo(poke, coarse));
             Assert.Equal(0.0, plate.DistanceTo(wedge, coarse));
@@ -171,8 +233,26 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Equal(0.0, plate.DistanceTo(arc, Tol));
             Assert.Equal(0.0, plate.DistanceTo(new GeoEdge2(arc.StartPoint, arc.EndPoint, 0.05), Tol));
-            Assert.Equal(0.0, plate.DistanceTo(new GeoPolylineArc2(new[] { arc.StartPoint, arc.EndPoint, new GeoPoint2(110, -20) }, new[] { 0.05, 0 }), Tol));
-            Assert.Equal(0.0, plate.DistanceTo(new GeoPolygonArc2(new[] { arc.StartPoint, arc.EndPoint, new GeoPoint2(110, -20), new GeoPoint2(-10, -20) }, new[] { 0.05, 0, 0, 0 }), Tol));
+            Assert.Equal(
+                0.0,
+                plate.DistanceTo(
+                    new GeoPolylineArc2(
+                        new[] { arc.StartPoint, arc.EndPoint, new GeoPoint2(110, -20) },
+                        new[] { 0.05, 0 }
+                    ),
+                    Tol
+                )
+            );
+            Assert.Equal(
+                0.0,
+                plate.DistanceTo(
+                    new GeoPolygonArc2(
+                        new[] { arc.StartPoint, arc.EndPoint, new GeoPoint2(110, -20), new GeoPoint2(-10, -20) },
+                        new[] { 0.05, 0, 0, 0 }
+                    ),
+                    Tol
+                )
+            );
         }
 
         [Theory]
@@ -189,16 +269,32 @@ namespace GeometryHelper.UnitTest.Plane
                 var edge = new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(1000, 0), bulge);
 
                 Assert.Equal(gap, plate.DistanceTo(edge, Tol), 9);
-                Assert.Equal(gap, plate.DistanceTo(new GeoPolylineArc2(new[] { edge.StartPoint, edge.EndPoint }, new[] { bulge }), Tol), 9);
+                Assert.Equal(
+                    gap,
+                    plate.DistanceTo(
+                        new GeoPolylineArc2(new[] { edge.StartPoint, edge.EndPoint }, new[] { bulge }),
+                        Tol
+                    ),
+                    9
+                );
                 Assert.False(plate.CollidesWith(edge, Tol));
             }
 
             // Turned 45 degrees, where a centre 2.5E14 away puts the arc's own ends back only to about 0.03, the edge is
             // read between its own ends.
-            var tilted = new GeoEdge2(new GeoPoint2(0, 0), new GeoPoint2(707.10678118654755, 707.10678118654755), bulge);
-            var beside = new GeoFace2(new GeoPolygon2(
-                new GeoPoint2(400.0014142135624, 399.9985857864376), new GeoPoint2(600.0014142135624, 599.9985857864376),
-                new GeoPoint2(700, 500), new GeoPoint2(500, 300)));
+            var tilted = new GeoEdge2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(707.10678118654755, 707.10678118654755),
+                bulge
+            );
+            var beside = new GeoFace2(
+                new GeoPolygon2(
+                    new GeoPoint2(400.0014142135624, 399.9985857864376),
+                    new GeoPoint2(600.0014142135624, 599.9985857864376),
+                    new GeoPoint2(700, 500),
+                    new GeoPoint2(500, 300)
+                )
+            );
 
             Assert.Equal(0.002, beside.DistanceTo(tilted, Tol), 9);
 
@@ -216,12 +312,12 @@ namespace GeometryHelper.UnitTest.Plane
         {
             GeoFace2 plate = Plate();
 
-            Assert.Equal(0.0, plate.DistanceTo(new GeoLine2(new GeoPoint2(90, 50), new GeoPoint2(120, 50)), Tol));        // crosses the outline
-            Assert.Equal(0.0, plate.DistanceTo(new GeoLine2(new GeoPoint2(10, 10), new GeoPoint2(20, 20)), Tol));          // in the material
-            Assert.Equal(0.0, plate.DistanceTo(new GeoLine2(new GeoPoint2(100, 50), new GeoPoint2(120, 50)), Tol));        // starts on the outline
-            Assert.Equal(0.0, plate.DistanceTo(Box(-10, -10, 110, 110), Tol));                                             // holds the whole plate
-            Assert.Equal(0.0, plate.DistanceTo(new GeoCircle2(new GeoPoint2(50, 50), 15), Tol));                           // the hole and more
-            Assert.Equal(0.0, plate.DistanceTo(new GeoFace2(Box(30, 30, 70, 70), new[] { Box(45, 45, 55, 55) }), Tol));    // rings the hole
+            Assert.Equal(0.0, plate.DistanceTo(new GeoLine2(new GeoPoint2(90, 50), new GeoPoint2(120, 50)), Tol)); // crosses the outline
+            Assert.Equal(0.0, plate.DistanceTo(new GeoLine2(new GeoPoint2(10, 10), new GeoPoint2(20, 20)), Tol)); // in the material
+            Assert.Equal(0.0, plate.DistanceTo(new GeoLine2(new GeoPoint2(100, 50), new GeoPoint2(120, 50)), Tol)); // starts on the outline
+            Assert.Equal(0.0, plate.DistanceTo(Box(-10, -10, 110, 110), Tol)); // holds the whole plate
+            Assert.Equal(0.0, plate.DistanceTo(new GeoCircle2(new GeoPoint2(50, 50), 15), Tol)); // the hole and more
+            Assert.Equal(0.0, plate.DistanceTo(new GeoFace2(Box(30, 30, 70, 70), new[] { Box(45, 45, 55, 55) }), Tol)); // rings the hole
         }
 
         [Fact]

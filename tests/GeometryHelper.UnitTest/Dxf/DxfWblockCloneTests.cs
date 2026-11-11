@@ -31,8 +31,16 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(copied.Associative);
             Assert.Same(copies[1], Assert.Single(copied.GetAssociatedObjects()));
             string saved = target.ToText();
-            Assert.Contains("102\n{ACAD_REACTORS\n330\n" + copied.Handle + "\n102\n}\n", Records(saved).Single(r => HandleOf(r) == copies[1].Handle), StringComparison.Ordinal);
-            Assert.Contains(" 97\n1\n330\n" + copies[1].Handle + "\n", Records(saved).Single(r => HandleOf(r) == copied.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "102\n{ACAD_REACTORS\n330\n" + copied.Handle + "\n102\n}\n",
+                Records(saved).Single(r => HandleOf(r) == copies[1].Handle),
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                " 97\n1\n330\n" + copies[1].Handle + "\n",
+                Records(saved).Single(r => HandleOf(r) == copied.Handle),
+                StringComparison.Ordinal
+            );
             var read = ByHandle<DxfHatch>(DxfDatabase.Parse(saved), copied.Handle);
             Assert.True(read.Associative);
             Assert.Equal(copies[1].Handle, Assert.Single(read.GetAssociatedObjects()).Handle);
@@ -47,7 +55,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase source = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             DxfDatabase target = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
 
-            var copied = (DxfHatch)source.WblockCloneObjects(new DxfEntity[] { ByHandle<DxfHatch>(source, "AC") }, target.ModelSpace).Single();
+            var copied = (DxfHatch)
+                source
+                    .WblockCloneObjects(new DxfEntity[] { ByHandle<DxfHatch>(source, "AC") }, target.ModelSpace)
+                    .Single();
 
             Assert.False(copied.Associative);
             Assert.Empty(copied.GetAssociatedObjects());
@@ -74,12 +85,19 @@ namespace GeometryHelper.UnitTest.Dxf
             var leader = ByHandle<DxfLeader>(source, "B2");
             var note = ByHandle<DxfMText>(source, "B1");
 
-            IReadOnlyList<DxfEntity> copies = source.WblockCloneObjects(new DxfEntity[] { leader, note }, target.ModelSpace);
+            IReadOnlyList<DxfEntity> copies = source.WblockCloneObjects(
+                new DxfEntity[] { leader, note },
+                target.ModelSpace
+            );
 
             var copied = (DxfLeader)copies[0];
             Assert.Same(copies[1], copied.Annotation);
             Assert.Equal(DxfAnnotationType.MText, copied.AnnoType);
-            Assert.Contains("102\n{ACAD_REACTORS\n330\n" + copied.Handle + "\n102\n}\n", Records(target.ToText()).Single(r => HandleOf(r) == copies[1].Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "102\n{ACAD_REACTORS\n330\n" + copied.Handle + "\n102\n}\n",
+                Records(target.ToText()).Single(r => HandleOf(r) == copies[1].Handle),
+                StringComparison.Ordinal
+            );
 
             // Alone into another drawing by WblockCloneObjects, it brings its MTEXT, as AutoCAD 2021 follows the hard pointer
             // 340 (check 5); within its own drawing, or by Clone, it points to nothing.
@@ -95,7 +113,11 @@ namespace GeometryHelper.UnitTest.Dxf
             var cloned = (DxfLeader)leader.Clone();
             target.ModelSpace.AppendEntity(cloned);
             Assert.Equal(DxfAnnotationType.NoAnnotation, cloned.AnnoType);
-            Assert.DoesNotContain("\n340\n", Records(target.ToText()).Single(r => HandleOf(r) == cloned.Handle), StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "\n340\n",
+                Records(target.ToText()).Single(r => HandleOf(r) == cloned.Handle),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -175,11 +197,15 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase target = DxfDatabase.Parse(text);
             DxfEntity line = source.ModelSpace.OfType<DxfLine>().First();
 
-            ArgumentException refused = Assert.Throws<ArgumentException>(() => source.WblockCloneObjects(new[] { line, ByHandle<DxfHatch>(source, "AC") }, target.ModelSpace));
+            ArgumentException refused = Assert.Throws<ArgumentException>(() =>
+                source.WblockCloneObjects(new[] { line, ByHandle<DxfHatch>(source, "AC") }, target.ModelSpace)
+            );
             Assert.Contains("HATCH", refused.Message, StringComparison.Ordinal);
             Assert.Equal(text, target.ToText());
             Assert.Throws<ArgumentException>(() => source.WblockCloneObjects(new[] { line, line }, target.ModelSpace));
-            Assert.Throws<ArgumentException>(() => source.WblockCloneObjects(new[] { target.ModelSpace.First() }, target.ModelSpace));
+            Assert.Throws<ArgumentException>(() =>
+                source.WblockCloneObjects(new[] { target.ModelSpace.First() }, target.ModelSpace)
+            );
             Assert.Throws<ArgumentNullException>(() => source.WblockCloneObjects(null, target.ModelSpace));
             Assert.Equal(text, target.ToText());
         }

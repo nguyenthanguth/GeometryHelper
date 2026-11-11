@@ -88,7 +88,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(r2018 ? DxfShadePlotType.Hidden : DxfShadePlotType.AsDisplayed, viewport.ShadePlot);
             Assert.Equal(r2018 ? 4 : 5, viewport.GridMajor);
             Assert.Equal(!r2018, viewport.DefaultLightingOn);
-            Assert.Equal(r2018 ? DxfDefaultLightingType.TwoDistantLights : DxfDefaultLightingType.OneDistantLight, viewport.DefaultLightingType);
+            Assert.Equal(
+                r2018 ? DxfDefaultLightingType.TwoDistantLights : DxfDefaultLightingType.OneDistantLight,
+                viewport.DefaultLightingType
+            );
             Assert.Equal(Bits(r2018 ? 10.0 : 0.0), Bits(viewport.Brightness));
             Assert.Equal(Bits(r2018 ? -5.0 : 0.0), Bits(viewport.Contrast));
             Assert.Equal(250, viewport.AmbientLightColor.ColorIndex);
@@ -242,7 +245,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<ArgumentOutOfRangeException>(() => viewport.StandardScale = DxfStandardScaleType.ScaleToFit);
             Assert.Throws<ArgumentOutOfRangeException>(() => viewport.ShadePlot = DxfShadePlotType.VisualStyle);
             Assert.Throws<ArgumentException>(() => viewport.ViewDirection = new GeoVector3(0, 0, 0));
-            Assert.Throws<ArgumentException>(() => viewport.SetUcs(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0), new GeoVector3(2, 0, 0)));
+            Assert.Throws<ArgumentException>(() =>
+                viewport.SetUcs(new GeoPoint3(0, 0, 0), new GeoVector3(1, 0, 0), new GeoVector3(2, 0, 0))
+            );
             Assert.Throws<ArgumentOutOfRangeException>(() => viewport.SnapIsoPair = 3);
         }
 
@@ -282,7 +287,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(read.UcsIconVisible);
             Assert.Equal(new[] { "steel", "notes" }, read.GetFrozenLayers().Select(l => l.Name));
             Assert.Equal(Bits(210.0), Bits(read.Width));
-            Assert.Contains("1002\n{\n1003\nsteel\n1003\nnotes\n1002\n}\n1002\n}\n", Records(saved).Single(r => HandleOf(r) == "35"), StringComparison.Ordinal);
+            Assert.Contains(
+                "1002\n{\n1003\nsteel\n1003\nnotes\n1002\n}\n1002\n}\n",
+                Records(saved).Single(r => HandleOf(r) == "35"),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -295,16 +304,28 @@ namespace GeometryHelper.UnitTest.Dxf
 
             viewport.FreezeLayersInViewport(new[] { steel, db.LayerTable["hidden"] });
             Assert.Equal(new[] { "hidden", "steel" }, viewport.GetFrozenLayers().Select(l => l.Name));
-            Assert.Contains("331\n30\n331\n" + steel.Handle + "\n 90\n", Records(db.ToText()).Single(r => HandleOf(r) == "40"), StringComparison.Ordinal);
+            Assert.Contains(
+                "331\n30\n331\n" + steel.Handle + "\n 90\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "40"),
+                StringComparison.Ordinal
+            );
 
             viewport.ThawLayersInViewport(new[] { steel });
             Assert.Equal(text, db.ToText());
 
             viewport.ThawAllLayersInViewport();
             Assert.Empty(viewport.GetFrozenLayers());
-            Assert.DoesNotContain("331\n", Records(db.ToText()).Single(r => HandleOf(r) == "40"), StringComparison.Ordinal);
-            Assert.Throws<ArgumentException>(() => viewport.FreezeLayersInViewport(new[] { new DxfLayerTableRecord { Name = "new" } }));
-            Assert.Throws<ArgumentException>(() => viewport.FreezeLayersInViewport(new[] { DxfDatabase.Parse(text).LayerTable["steel"] }));
+            Assert.DoesNotContain(
+                "331\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == "40"),
+                StringComparison.Ordinal
+            );
+            Assert.Throws<ArgumentException>(() =>
+                viewport.FreezeLayersInViewport(new[] { new DxfLayerTableRecord { Name = "new" } })
+            );
+            Assert.Throws<ArgumentException>(() =>
+                viewport.FreezeLayersInViewport(new[] { DxfDatabase.Parse(text).LayerTable["steel"] })
+            );
             Assert.Throws<ArgumentNullException>(() => viewport.FreezeLayersInViewport(null));
         }
 
@@ -336,7 +357,9 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfViewport viewport = ByHandle<DxfViewport>(db, "40");
 
-            viewport.TransformBy(GeoTransform3.Translation(new GeoVector3(10, 20, 0)).Multiply(GeoTransform3.Scaling(2.0)));
+            viewport.TransformBy(
+                GeoTransform3.Translation(new GeoVector3(10, 20, 0)).Multiply(GeoTransform3.Scaling(2.0))
+            );
 
             Assert.Equal(Bits(new GeoPoint3(310, 220, 0)), Bits(viewport.CenterPoint));
             Assert.Equal(Bits(400.0), Bits(viewport.Width));
@@ -357,11 +380,19 @@ namespace GeometryHelper.UnitTest.Dxf
             string text = DxfObjectsEzdxfDrawings.R2018;
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfBlockTableRecord sheet = db.Layouts[2].BlockTableRecord;
-            var viewport = new DxfViewport { CenterPoint = new GeoPoint3(100, 80, 0), Width = 120, Height = 90, ViewHeight = 4500 };
+            var viewport = new DxfViewport
+            {
+                CenterPoint = new GeoPoint3(100, 80, 0),
+                Width = 120,
+                Height = 90,
+                ViewHeight = 4500,
+            };
             viewport.ViewCenter = new GeoPoint2(2000, 1000);
 
             Assert.Throws<ArgumentException>(() => db.ModelSpace.AppendEntity(new DxfViewport()));
-            Assert.Throws<ArgumentException>(() => DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R12).PaperSpace.AppendEntity(new DxfViewport()));
+            Assert.Throws<ArgumentException>(() =>
+                DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R12).PaperSpace.AppendEntity(new DxfViewport())
+            );
             sheet.AppendEntity(viewport);
             viewport.On = true;
 
@@ -385,14 +416,28 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfLayout layout = db.Layouts.Single(l => l.LayoutName == "Layout1");
 
             DxfViewport sheet = layout.Initialize();
-            var viewport = new DxfViewport { CenterPoint = new GeoPoint3(100, 100, 0), Width = 100, Height = 80, ViewHeight = 80 };
+            var viewport = new DxfViewport
+            {
+                CenterPoint = new GeoPoint3(100, 100, 0),
+                Width = 100,
+                Height = 80,
+                ViewHeight = 80,
+            };
             layout.BlockTableRecord.AppendEntity(viewport);
             viewport.On = true;
 
             Assert.Empty(sheet.GetFrozenLayers());
             Assert.Equal(new[] { "GHB" }, viewport.GetFrozenLayers().Select(l => l.Name));
             DxfDatabase again = DxfDatabase.Parse(db.ToText());
-            Assert.Equal(new[] { "GHB" }, again.Layouts.Single(l => l.LayoutName == "Layout1").GetViewports().Single(v => v.Number == 2).GetFrozenLayers().Select(l => l.Name));
+            Assert.Equal(
+                new[] { "GHB" },
+                again
+                    .Layouts.Single(l => l.LayoutName == "Layout1")
+                    .GetViewports()
+                    .Single(v => v.Number == 2)
+                    .GetFrozenLayers()
+                    .Select(l => l.Name)
+            );
         }
 
         [Fact]
@@ -409,7 +454,11 @@ namespace GeometryHelper.UnitTest.Dxf
             // The layout has 1 and 3: the first free is 2; the statuses are 1 and 2: it is stacked third.
             Assert.Equal(2, viewport.Number);
             Assert.True(viewport.On);
-            Assert.Contains(" 68\n3\n 69\n2\n", Records(db.ToText()).Single(r => HandleOf(r) == viewport.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                " 68\n3\n 69\n2\n",
+                Records(db.ToText()).Single(r => HandleOf(r) == viewport.Handle),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -453,7 +502,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             for (int i = 0; i < 1000; i++)
             {
-                var layer = new DxfLayerTableRecord { Name = "L" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) };
+                var layer = new DxfLayerTableRecord
+                {
+                    Name = "L" + i.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                };
                 db.LayerTable.Add(layer);
                 layers.Add(layer);
             }
@@ -468,7 +520,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(watch.ElapsedMilliseconds < 10000, "1 000 layers took " + watch.ElapsedMilliseconds + " ms.");
         }
 
-        private static string Drawing(string version)
-            => version == "R12" ? DxfObjectsEzdxfDrawings.R12 : version == "R2000" ? DxfObjectsEzdxfDrawings.R2000 : DxfObjectsEzdxfDrawings.R2018;
+        private static string Drawing(string version) =>
+            version == "R12" ? DxfObjectsEzdxfDrawings.R12
+            : version == "R2000" ? DxfObjectsEzdxfDrawings.R2000
+            : DxfObjectsEzdxfDrawings.R2018;
     }
 }

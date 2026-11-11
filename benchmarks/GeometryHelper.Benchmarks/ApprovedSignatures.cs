@@ -71,8 +71,12 @@ namespace GeometryHelper.Benchmarks
         internal static void Write(string path, SortedDictionary<string, string> approved, string provenance)
         {
             var text = new StringBuilder();
-            text.Append("# The result signatures approved for the benchmark cases: a name, a space, the SHA-256 of its result.\n");
-            text.Append("# Written by --approve. What each case signs: benchmarks/GeometryHelper.Benchmarks/Scenarios.\n");
+            text.Append(
+                "# The result signatures approved for the benchmark cases: a name, a space, the SHA-256 of its result.\n"
+            );
+            text.Append(
+                "# Written by --approve. What each case signs: benchmarks/GeometryHelper.Benchmarks/Scenarios.\n"
+            );
             text.Append("# Last approved on ").Append(provenance).Append(".\n");
 
             foreach (KeyValuePair<string, string> entry in approved.OrderBy(e => e.Key, StringComparer.Ordinal))

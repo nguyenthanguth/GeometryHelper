@@ -20,8 +20,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
         private static GeoPoint2 Q(double x, double y) => new GeoPoint2(x, y);
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(P(x0, y0, z0), P(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(P(x0, y0, z0), P(x1, y1, z1)).ToObb().ToSolid();
 
         private static GeoSolid3 Plate() => Box(0, 0, 0, 100, 100, 20);
 
@@ -36,7 +36,13 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             List<GeoFace3> faces = Box(x0, y0, z0, x1, y1, z1).Faces.ToList();
             int top = faces.FindIndex(f => f.Boundary.Normal.Z > 0.5);
-            faces[top] = new GeoFace3(GeoPolygon3.FromValidated(faces[top].Boundary.Vertices.ToArray(), new GeoVector3(0, 0, 0), faces[top].Area));
+            faces[top] = new GeoFace3(
+                GeoPolygon3.FromValidated(
+                    faces[top].Boundary.Vertices.ToArray(),
+                    new GeoVector3(0, 0, 0),
+                    faces[top].Area
+                )
+            );
             return new GeoSolid3(faces);
         }
 
@@ -73,7 +79,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // A hole 20 square through a plate 100 square and 20 thick, drawn past both faces: only its 20 deep in the
             // plate is taken out, and its four walls are surface where the material ends.
             GeoSolid3 plate = Plate().WithOpenings(new[] { Box(60, 40, -1, 80, 60, 21) });
-            double gross = 100.0 * 100 * 20, hole = 20.0 * 20 * 20, net = gross - hole;
+            double gross = 100.0 * 100 * 20,
+                hole = 20.0 * 20 * 20,
+                net = gross - hole;
 
             Assert.Equal(net, plate.GetVolume(Tolerance), 6);
             Assert.Equal(2 * (10000.0 - 400) + 4 * 100 * 20 + 4 * 20 * 20, plate.GetSurfaceArea(Tolerance), 6);
@@ -92,11 +100,21 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // Two holes 30 by 20 sharing 10 by 20 of it: 50 by 20 of the plate is gone, not 60 by 20, and the walls are the
             // rim of the 50 by 20 the two leave, not of each.
             GeoSolid3 plate = Plate().WithOpenings(new[] { Box(10, 10, -1, 40, 30, 21), Box(30, 10, -1, 60, 30, 21) });
-            double gross = 100.0 * 100 * 20, holes = 50.0 * 20 * 20, net = gross - holes;
+            double gross = 100.0 * 100 * 20,
+                holes = 50.0 * 20 * 20,
+                net = gross - holes;
 
             Assert.Equal(net, plate.GetVolume(Tolerance), 6);
-            Assert.Equal(2 * (10000.0 - 1000) + 4 * 100 * 20 + (2 * 50 + 2 * 20) * 20, plate.GetSurfaceArea(Tolerance), 6);
-            Assert.True(plate.GetCentroid(Tolerance).DistanceTo(P((gross * 50 - holes * 35) / net, (gross * 50 - holes * 20) / net, 10)) < 1E-9);
+            Assert.Equal(
+                2 * (10000.0 - 1000) + 4 * 100 * 20 + (2 * 50 + 2 * 20) * 20,
+                plate.GetSurfaceArea(Tolerance),
+                6
+            );
+            Assert.True(
+                plate
+                    .GetCentroid(Tolerance)
+                    .DistanceTo(P((gross * 50 - holes * 35) / net, (gross * 50 - holes * 20) / net, 10)) < 1E-9
+            );
             Assert.True(plate.TryGetVolume(out _, Tolerance));
         }
 
@@ -116,8 +134,17 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // An L far out on a site plan, its notch making one face concave: no openings, so nothing is cut, and the
             // measures are the faces' to the last bit.
-            var outline = new GeoPolygon3(P(0, 0, 0), P(100, 0, 0), P(100, 40, 0), P(40, 40, 0), P(40, 60, 0), P(0, 60, 0));
-            GeoSolid3 l = GeoSolid3.Extrude(outline, new GeoVector3(0, 0, 20), Tolerance).Translate(new GeoVector3(3E6, -3E6, 1.5E6));
+            var outline = new GeoPolygon3(
+                P(0, 0, 0),
+                P(100, 0, 0),
+                P(100, 40, 0),
+                P(40, 40, 0),
+                P(40, 60, 0),
+                P(0, 60, 0)
+            );
+            GeoSolid3 l = GeoSolid3
+                .Extrude(outline, new GeoVector3(0, 0, 20), Tolerance)
+                .Translate(new GeoVector3(3E6, -3E6, 1.5E6));
 
             Assert.Same(l, l.GetMaterial(Tolerance, out bool whole));
             Assert.True(whole);
@@ -176,7 +203,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
             // open along the step, and it was taken out by a difference instead, which tries more ways; the gluing closes
             // the sliver the cut is open by now, and the two agree but for the rounding.
             GeoSolid3 sliver = GeometryHelper.UnitTest.Meshing.CellTests.OpeningSliver();
-            var plan = new GeoPolygon3(new[] { Q(0, 0), Q(65, 0), Q(65, 62), Q(40, 62), Q(40, 142), Q(0, 142) }.Select(q => P(q.X, q.Y, 0)), Tolerance);
+            var plan = new GeoPolygon3(
+                new[] { Q(0, 0), Q(65, 0), Q(65, 62), Q(40, 62), Q(40, 142), Q(0, 142) }.Select(q => P(q.X, q.Y, 0)),
+                Tolerance
+            );
             GeoSolid3 ell = GeoSolid3.Extrude(plan, new GeoVector3(0, 0, 1777), Tolerance);
             GeoSolid3 pierced = ell.WithOpenings(new[] { sliver });
 
@@ -187,7 +217,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.True(whole);
             Assert.True(material.IsClosed(Tolerance));
             Assert.True(pierced.TryGetVolume(out double volume, Tolerance));
-            Assert.True(Math.Abs(volume - difference.GetVolume()) <= 1E-9 * volume, $"{volume:R} against {difference.GetVolume():R}");
+            Assert.True(
+                Math.Abs(volume - difference.GetVolume()) <= 1E-9 * volume,
+                $"{volume:R} against {difference.GetVolume():R}"
+            );
             Assert.InRange(volume, ell.GetVolume() - sliver.GetVolume(), ell.GetVolume());
         }
 
@@ -196,7 +229,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // The broken opening stops the openings being cut in at once; taken out one at a time, the hole comes out and
             // the broken one stays in, warned of, and the volume is said not to be the material's.
-            GeoSolid3 plate = Plate().WithOpenings(new[] { Broken(10, 10, -1, 30, 30, 21), Box(60, 40, -1, 80, 60, 21) });
+            GeoSolid3 plate = Plate()
+                .WithOpenings(new[] { Broken(10, 10, -1, 30, 30, 21), Box(60, 40, -1, 80, 60, 21) });
             double volume = 0.0;
             bool sound = true;
 
@@ -218,7 +252,8 @@ namespace GeometryHelper.UnitTest.Solid.Core
         {
             // Taken out one at a time, as the broken opening makes it, a hole wound inwards is turned outwards first: a
             // difference reads its faces' winding, and took the inside-out hole for material, adding to the plate.
-            GeoSolid3 plate = Plate().WithOpenings(new[] { Broken(10, 10, -1, 30, 30, 21), InsideOut(Box(60, 40, -1, 80, 60, 21)) });
+            GeoSolid3 plate = Plate()
+                .WithOpenings(new[] { Broken(10, 10, -1, 30, 30, 21), InsideOut(Box(60, 40, -1, 80, 60, 21)) });
             double volume = 0.0;
 
             Warnings(() => volume = plate.GetVolume(Tolerance));
@@ -233,7 +268,9 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
             Assert.Equal(192000.0, plate.GetVolume(Tolerance), 6);
             Assert.Equal(28800.0, plate.GetSurfaceArea(Tolerance), 6);
-            Assert.True(plate.GetCentroid(Tolerance).DistanceTo(P((200000.0 * 50 - 8000.0 * 70) / 192000.0, 50, 10)) < 1E-9);
+            Assert.True(
+                plate.GetCentroid(Tolerance).DistanceTo(P((200000.0 * 50 - 8000.0 * 70) / 192000.0, 50, 10)) < 1E-9
+            );
         }
 
         [Fact]

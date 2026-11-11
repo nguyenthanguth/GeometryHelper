@@ -50,7 +50,8 @@ namespace GeometryHelper.Geometry
                 return Stub3.Meeting(
                     line,
                     found.ToArray(),
-                    found.Count == 0 && Math.Abs(Center.DistanceTo(line.StartPoint) - Radius) <= tolerance.EqualPoint);
+                    found.Count == 0 && Math.Abs(Center.DistanceTo(line.StartPoint) - Radius) <= tolerance.EqualPoint
+                );
             }
 
             Sphere3.Cross(found, this, line, tolerance);
@@ -63,7 +64,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="line">The segment.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoLine3 line, out GeoPoint3[] intersections) => TryIntersectWith(line, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoLine3 line, out GeoPoint3[] intersections) =>
+            TryIntersectWith(line, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the surface of this ball crosses a segment, within a tolerance.
@@ -104,7 +106,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="ray">The ray.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3[] intersections) => TryIntersectWith(ray, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoRay3 ray, out GeoPoint3[] intersections) =>
+            TryIntersectWith(ray, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the surface of this ball crosses a ray, within a tolerance.
@@ -135,7 +138,15 @@ namespace GeometryHelper.Geometry
         {
             var found = new List<GeoPoint3>();
 
-            Sphere3.Cross(found, this, xline.Origin, xline.Direction, double.NegativeInfinity, double.PositiveInfinity, tolerance);
+            Sphere3.Cross(
+                found,
+                this,
+                xline.Origin,
+                xline.Direction,
+                double.NegativeInfinity,
+                double.PositiveInfinity,
+                tolerance
+            );
 
             return found.ToArray();
         }
@@ -145,7 +156,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="xline">The infinite line.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoXLine3 xline, out GeoPoint3[] intersections) => TryIntersectWith(xline, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoXLine3 xline, out GeoPoint3[] intersections) =>
+            TryIntersectWith(xline, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the surface of this ball crosses an infinite line, within a tolerance.
@@ -182,7 +194,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="arc">The arc.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoArc3 arc, out GeoPoint3[] intersections) => TryIntersectWith(arc, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoArc3 arc, out GeoPoint3[] intersections) =>
+            TryIntersectWith(arc, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the surface of this ball crosses an arc, within a tolerance.
@@ -219,7 +232,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="circle">The circle.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoCircle3 circle, out GeoPoint3[] intersections) => TryIntersectWith(circle, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoCircle3 circle, out GeoPoint3[] intersections) =>
+            TryIntersectWith(circle, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the surface of this ball crosses a circle, within a tolerance.
@@ -256,7 +270,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoEllipse3 ellipse, out GeoPoint3[] intersections) => TryIntersectWith(ellipse, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoEllipse3 ellipse, out GeoPoint3[] intersections) =>
+            TryIntersectWith(ellipse, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the surface of this ball crosses an ellipse, within a tolerance.
@@ -296,7 +311,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="edge">The edge.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoEdge3 edge, out GeoPoint3[] intersections) => TryIntersectWith(edge, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoEdge3 edge, out GeoPoint3[] intersections) =>
+            TryIntersectWith(edge, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the surface of this ball crosses an edge, within a tolerance.
@@ -338,7 +354,8 @@ namespace GeometryHelper.Geometry
         /// <param name="polyline">The polyline.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public bool TryIntersectWith(GeoPolyline3 polyline, out GeoPoint3[] intersections) => TryIntersectWith(polyline, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoPolyline3 polyline, out GeoPoint3[] intersections) =>
+            TryIntersectWith(polyline, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the surface of this ball crosses a polyline, within a tolerance.
@@ -384,7 +401,8 @@ namespace GeometryHelper.Geometry
         /// <param name="polygon">The polygon.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public bool TryIntersectWith(GeoPolygon3 polygon, out GeoPoint3[] intersections) => TryIntersectWith(polygon, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoPolygon3 polygon, out GeoPoint3[] intersections) =>
+            TryIntersectWith(polygon, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the surface of this ball crosses a polygon, within a tolerance.
@@ -427,7 +445,8 @@ namespace GeometryHelper.Geometry
         /// <param name="chain">The curved chain.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <exception cref="ArgumentNullException">Thrown when the curved chain is null.</exception>
-        public bool TryIntersectWith(GeoPolylineArc3 chain, out GeoPoint3[] intersections) => TryIntersectWith(chain, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoPolylineArc3 chain, out GeoPoint3[] intersections) =>
+            TryIntersectWith(chain, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the surface of this ball crosses a curved chain, within a tolerance.
@@ -470,7 +489,8 @@ namespace GeometryHelper.Geometry
         /// <param name="loop">The curved loop.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <exception cref="ArgumentNullException">Thrown when the curved loop is null.</exception>
-        public bool TryIntersectWith(GeoPolygonArc3 loop, out GeoPoint3[] intersections) => TryIntersectWith(loop, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoPolygonArc3 loop, out GeoPoint3[] intersections) =>
+            TryIntersectWith(loop, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the surface of this ball crosses a curved loop, within a tolerance.
@@ -505,7 +525,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="triangle">The triangle.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
-        public bool TryIntersectWith(GeoTriangle3 triangle, out GeoPoint3[] intersections) => TryIntersectWith(triangle, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoTriangle3 triangle, out GeoPoint3[] intersections) =>
+            TryIntersectWith(triangle, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the surface of this ball crosses a triangle, within a tolerance.
@@ -554,7 +575,8 @@ namespace GeometryHelper.Geometry
         /// <param name="face">The face.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public bool TryIntersectWith(GeoFace3 face, out GeoPoint3[] intersections) => TryIntersectWith(face, out intersections, Tolerance.Global);
+        public bool TryIntersectWith(GeoFace3 face, out GeoPoint3[] intersections) =>
+            TryIntersectWith(face, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where the surface of this ball crosses a face, within a tolerance.
@@ -575,7 +597,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="plane">The plane.</param>
         /// <param name="circle">The circle when the method returns true, in the plane, about the foot of the centre on it; default otherwise.</param>
-        public bool TryGetIntersectionCircle(GeoPlane3 plane, out GeoCircle3 circle) => TryGetIntersectionCircle(plane, out circle, Tolerance.Global);
+        public bool TryGetIntersectionCircle(GeoPlane3 plane, out GeoCircle3 circle) =>
+            TryGetIntersectionCircle(plane, out circle, Tolerance.Global);
 
         /// <summary>
         /// Tries to find the circle a plane cuts from the surface of this ball, within a tolerance.
@@ -597,7 +620,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="plane">The plane.</param>
         /// <param name="point">The foot of the centre on the plane when the method returns true; default otherwise.</param>
-        public bool TryGetTangentPoint(GeoPlane3 plane, out GeoPoint3 point) => TryGetTangentPoint(plane, out point, Tolerance.Global);
+        public bool TryGetTangentPoint(GeoPlane3 plane, out GeoPoint3 point) =>
+            TryGetTangentPoint(plane, out point, Tolerance.Global);
 
         /// <summary>
         /// Tries to find the point where a plane only touches the surface of this ball, within a tolerance.
@@ -619,7 +643,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="other">The other ball.</param>
         /// <param name="circle">The circle when the method returns true; default otherwise.</param>
-        public bool TryGetIntersectionCircle(GeoSphere3 other, out GeoCircle3 circle) => TryGetIntersectionCircle(other, out circle, Tolerance.Global);
+        public bool TryGetIntersectionCircle(GeoSphere3 other, out GeoCircle3 circle) =>
+            TryGetIntersectionCircle(other, out circle, Tolerance.Global);
 
         /// <summary>
         /// Tries to find the circle the surfaces of this ball and another share, within a tolerance.
@@ -641,7 +666,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="other">The other ball.</param>
         /// <param name="point">The point of contact when the method returns true; default otherwise.</param>
-        public bool TryGetTangentPoint(GeoSphere3 other, out GeoPoint3 point) => TryGetTangentPoint(other, out point, Tolerance.Global);
+        public bool TryGetTangentPoint(GeoSphere3 other, out GeoPoint3 point) =>
+            TryGetTangentPoint(other, out point, Tolerance.Global);
 
         /// <summary>
         /// Tries to find the point where the surfaces of this ball and another only touch, within a tolerance.

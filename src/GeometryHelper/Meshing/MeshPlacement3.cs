@@ -25,7 +25,12 @@ namespace GeometryHelper.Meshing
     /// </remarks>
     public sealed class MeshPlacement3 : IEquatable<MeshPlacement3>
     {
-        private MeshPlacement3(MeshAxes axes, GeoVector3? direction, GeoCoordinateSystem3? coordinateSystem, GeoPoint3? origin)
+        private MeshPlacement3(
+            MeshAxes axes,
+            GeoVector3? direction,
+            GeoCoordinateSystem3? coordinateSystem,
+            GeoPoint3? origin
+        )
         {
             Axes = axes;
             Direction = direction;
@@ -59,7 +64,11 @@ namespace GeometryHelper.Meshing
         {
             if (!direction.IsValid || !(direction.LengthSquared > 0.0))
             {
-                throw new ArgumentOutOfRangeException(nameof(direction), direction, "A direction has to be finite and of some length.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(direction),
+                    direction,
+                    "A direction has to be finite and of some length."
+                );
             }
 
             return new MeshPlacement3(MeshAxes.Along, direction.Divide(direction.Length), null, null);
@@ -74,7 +83,11 @@ namespace GeometryHelper.Meshing
         {
             if (!frame.IsValid)
             {
-                throw new ArgumentOutOfRangeException(nameof(frame), frame, "A coordinate system has to have a finite origin and square axes of unit length.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(frame),
+                    frame,
+                    "A coordinate system has to have a finite origin and square axes of unit length."
+                );
             }
 
             return new MeshPlacement3(MeshAxes.Frame, null, frame, null);
@@ -132,7 +145,13 @@ namespace GeometryHelper.Meshing
         /// Thrown when the direction of <see cref="MeshAxes.Along"/> stands square to the shape, so that it gives no way along
         /// it.
         /// </exception>
-        internal GeoCoordinateSystem3 FrameOnPlane(GeoPoint3 at, GeoVector3 normal, IReadOnlyList<GeoPoint3> corners, double angleRad, Tolerance tolerance)
+        internal GeoCoordinateSystem3 FrameOnPlane(
+            GeoPoint3 at,
+            GeoVector3 normal,
+            IReadOnlyList<GeoPoint3> corners,
+            double angleRad,
+            Tolerance tolerance
+        )
         {
             GeoVector3 u = FirstAxisOnPlane(normal, corners, tolerance);
 
@@ -162,15 +181,18 @@ namespace GeometryHelper.Meshing
                         return along;
                     }
 
-                    throw new ArgumentException("The direction stands square to the shape, so it gives no way along it.", "placement");
+                    throw new ArgumentException(
+                        "The direction stands square to the shape, so it gives no way along it.",
+                        "placement"
+                    );
 
                 case MeshAxes.Frame:
                     GeoCoordinateSystem3 frame = CoordinateSystem.Value;
 
                     // A face square to the frame's X axis takes its Y axis, which then lies along the face.
-                    return TryLayOnto(frame.XAxis, normal, tolerance, out GeoVector3 x)
-                        ? x
-                        : TryLayOnto(frame.YAxis, normal, tolerance, out GeoVector3 y) ? y : LaidOnto(frame.ZAxis, normal);
+                    return TryLayOnto(frame.XAxis, normal, tolerance, out GeoVector3 x) ? x
+                        : TryLayOnto(frame.YAxis, normal, tolerance, out GeoVector3 y) ? y
+                        : LaidOnto(frame.ZAxis, normal);
 
                 default:
                     return LevelAxis(normal, tolerance);
@@ -198,7 +220,11 @@ namespace GeometryHelper.Meshing
         /// The long side of the smallest rectangle round a shape's corners, laid out in its plane, pointing along the world's
         /// X axis rather than against it, or along Y, or Z, where it stands square to the ones before.
         /// </summary>
-        private static GeoVector3 OwnAxisOnPlane(GeoVector3 normal, IReadOnlyList<GeoPoint3> corners, Tolerance tolerance)
+        private static GeoVector3 OwnAxisOnPlane(
+            GeoVector3 normal,
+            IReadOnlyList<GeoPoint3> corners,
+            Tolerance tolerance
+        )
         {
             GeoVector3 b1 = LevelAxis(normal, tolerance);
             GeoVector3 b2 = normal.CrossProduct(b1);
@@ -214,9 +240,10 @@ namespace GeometryHelper.Meshing
             GeoRectangle2 rectangle = BoxFit.Rectangle(flat, tolerance);
             double cos = Math.Cos(rectangle.AngleRad);
             double sin = Math.Sin(rectangle.AngleRad);
-            GeoVector3 along = rectangle.Width >= rectangle.Height
-                ? b1.Multiply(cos).Add(b2.Multiply(sin))
-                : b1.Multiply(-sin).Add(b2.Multiply(cos));
+            GeoVector3 along =
+                rectangle.Width >= rectangle.Height
+                    ? b1.Multiply(cos).Add(b2.Multiply(sin))
+                    : b1.Multiply(-sin).Add(b2.Multiply(cos));
 
             return Canonical(along);
         }
@@ -230,7 +257,13 @@ namespace GeometryHelper.Meshing
         {
             const double Square = 1E-9;
 
-            if (direction.X < -Square || (Math.Abs(direction.X) <= Square && (direction.Y < -Square || (Math.Abs(direction.Y) <= Square && direction.Z < 0.0))))
+            if (
+                direction.X < -Square
+                || (
+                    Math.Abs(direction.X) <= Square
+                    && (direction.Y < -Square || (Math.Abs(direction.Y) <= Square && direction.Z < 0.0))
+                )
+            )
             {
                 return direction.Negate();
             }
@@ -276,7 +309,11 @@ namespace GeometryHelper.Meshing
         /// The axes of the smallest box round a body's corners, the one nearest upright as Z, pointing up, and the longer of
         /// the other two as X, pointing along the world's X axis rather than against it.
         /// </summary>
-        private static GeoCoordinateSystem3 FittedAxes(IReadOnlyList<GeoPoint3> points, GeoPoint3 at, Tolerance tolerance)
+        private static GeoCoordinateSystem3 FittedAxes(
+            IReadOnlyList<GeoPoint3> points,
+            GeoPoint3 at,
+            Tolerance tolerance
+        )
         {
             GeoObb3 fitted = BoxFit.Box(points, tolerance);
             int up = 0;
@@ -291,7 +328,10 @@ namespace GeometryHelper.Meshing
 
             int first = (up + 1) % 3;
             int second = (up + 2) % 3;
-            int along = fitted.GetExtentAt(second) > fitted.GetExtentAt(first) + 1E-9 * Math.Max(1.0, fitted.GetExtentAt(first)) ? second : first;
+            int along =
+                fitted.GetExtentAt(second) > fitted.GetExtentAt(first) + 1E-9 * Math.Max(1.0, fitted.GetExtentAt(first))
+                    ? second
+                    : first;
 
             GeoVector3 z = fitted.GetAxisAt(up);
 
@@ -308,7 +348,11 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Axes standing up: Z along the world's, and X along the long side of the smallest rectangle round the body's plan.
         /// </summary>
-        private static GeoCoordinateSystem3 UprightAxes(IReadOnlyList<GeoPoint3> points, GeoPoint3 at, Tolerance tolerance)
+        private static GeoCoordinateSystem3 UprightAxes(
+            IReadOnlyList<GeoPoint3> points,
+            GeoPoint3 at,
+            Tolerance tolerance
+        )
         {
             var plan = new List<GeoPoint2>(points.Count);
 
@@ -320,7 +364,8 @@ namespace GeometryHelper.Meshing
             GeoRectangle2 rectangle = BoxFit.Rectangle(plan, tolerance);
             double cos = Math.Cos(rectangle.AngleRad);
             double sin = Math.Sin(rectangle.AngleRad);
-            GeoVector3 x = rectangle.Width >= rectangle.Height ? new GeoVector3(cos, sin, 0.0) : new GeoVector3(-sin, cos, 0.0);
+            GeoVector3 x =
+                rectangle.Width >= rectangle.Height ? new GeoVector3(cos, sin, 0.0) : new GeoVector3(-sin, cos, 0.0);
             x = Canonical(x);
 
             return new GeoCoordinateSystem3(at, x, GeoVector3.ZAxis.CrossProduct(x));
@@ -329,7 +374,12 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Lays a direction onto a plane, refusing one that stands within the angle tolerance of square to it.
         /// </summary>
-        private static bool TryLayOnto(GeoVector3 direction, GeoVector3 normal, Tolerance tolerance, out GeoVector3 laid)
+        private static bool TryLayOnto(
+            GeoVector3 direction,
+            GeoVector3 normal,
+            Tolerance tolerance,
+            out GeoVector3 laid
+        )
         {
             GeoVector3 unit = direction.Divide(direction.Length);
             GeoVector3 onto = unit.Subtract(normal.Multiply(unit.DotProduct(normal)));

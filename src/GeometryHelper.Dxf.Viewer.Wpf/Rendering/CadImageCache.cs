@@ -16,7 +16,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private const double MostPixels = 16E6;
 
         // The pictures by file and time: looked up only, never listed.
-        private static readonly Dictionary<string, Entry> Entries = new Dictionary<string, Entry>(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, Entry> Entries = new Dictionary<string, Entry>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private static readonly object Lock = new object();
         private static int _version;
 
@@ -97,9 +99,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         if (pixels > MostPixels)
                         {
                             double shrink = Math.Sqrt(MostPixels / pixels);
-                            var info = new SKImageInfo(Math.Max(1, (int)(bitmap.Width * shrink)), Math.Max(1, (int)(bitmap.Height * shrink)), SKColorType.Rgba8888, SKAlphaType.Premul);
+                            var info = new SKImageInfo(
+                                Math.Max(1, (int)(bitmap.Width * shrink)),
+                                Math.Max(1, (int)(bitmap.Height * shrink)),
+                                SKColorType.Rgba8888,
+                                SKAlphaType.Premul
+                            );
 
-                            using (SKBitmap smaller = bitmap.Resize(info, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.None)))
+                            using (
+                                SKBitmap smaller = bitmap.Resize(
+                                    info,
+                                    new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.None)
+                                )
+                            )
                             {
                                 entry.Image = smaller == null ? null : SKImage.FromBitmap(smaller);
                             }

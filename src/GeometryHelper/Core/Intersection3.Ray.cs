@@ -12,7 +12,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the points where a ray passes through the surface of a solid.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoSolid3 solid) => GetIntersections(ray, solid, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoSolid3 solid) =>
+            GetIntersections(ray, solid, Tolerance.Global);
 
         /// <summary>
         /// Gets the points where a ray passes through the surface of a solid, within a tolerance.
@@ -110,10 +111,16 @@ namespace GeometryHelper.Core
                 // body holds the origin as Locate reads it at the tolerance given.
                 GeoPoint3 nearest = NearestOnRay(solid, ray, out double gap);
                 GeoAabb3 box = solid.GetAabb();
-                double size = Math.Max(Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Max.X)), Math.Max(
-                    Math.Max(Math.Abs(box.Min.Y), Math.Abs(box.Max.Y)), Math.Max(Math.Abs(box.Min.Z), Math.Abs(box.Max.Z))));
+                double size = Math.Max(
+                    Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Max.X)),
+                    Math.Max(
+                        Math.Max(Math.Abs(box.Min.Y), Math.Abs(box.Max.Y)),
+                        Math.Max(Math.Abs(box.Min.Z), Math.Abs(box.Max.Z))
+                    )
+                );
 
-                return !(gap > Math.Max(tolerance.EqualPoint, 2E-9) + 1E-14 * (1.0 + size))
+                return
+                    !(gap > Math.Max(tolerance.EqualPoint, 2E-9) + 1E-14 * (1.0 + size))
                     || Containment3.Locate(solid, ray.Origin, tolerance) != Enums.PointLocation.OutSide
                     ? new[] { nearest }
                     : new GeoPoint3[0];
@@ -152,7 +159,10 @@ namespace GeometryHelper.Core
             GeoAabb3 box = material.GetAabb();
             double reach = ray.Origin.DistanceTo(box.Center) + 0.5 * box.Min.DistanceTo(box.Max);
 
-            return !(Gap3.BoxGap(ray.Origin, ray.GetPointAtDistance(reach), box) > Collision3.Reach(tolerance) + Gap3.Fine(material, ray.Origin));
+            return !(
+                Gap3.BoxGap(ray.Origin, ray.GetPointAtDistance(reach), box)
+                > Collision3.Reach(tolerance) + Gap3.Fine(material, ray.Origin)
+            );
         }
 
         /// <summary>
@@ -162,7 +172,9 @@ namespace GeometryHelper.Core
         private static GeoPoint3 NearestOnRay(GeoSolid3 material, GeoRay3 ray, out double nearestGap)
         {
             GeoAabb3 box = material.GetAabb();
-            GeoPoint3 end = ray.GetPointAtDistance(ray.Origin.DistanceTo(box.Center) + 0.5 * box.Min.DistanceTo(box.Max));
+            GeoPoint3 end = ray.GetPointAtDistance(
+                ray.Origin.DistanceTo(box.Center) + 0.5 * box.Min.DistanceTo(box.Max)
+            );
             GeoPoint3 nearest = ray.Origin;
             double best = double.MaxValue;
             double bestAlong = double.MaxValue;

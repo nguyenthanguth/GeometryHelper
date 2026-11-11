@@ -19,7 +19,13 @@ namespace GeometryHelper.Dxf
         };
 
         // The lines of a cell's edges, top, right, bottom and left, alone and inside a block of cells.
-        private static readonly DxfGridLineType[] EdgeOuter = { DxfGridLineType.HorizontalTop, DxfGridLineType.VerticalRight, DxfGridLineType.HorizontalBottom, DxfGridLineType.VerticalLeft };
+        private static readonly DxfGridLineType[] EdgeOuter =
+        {
+            DxfGridLineType.HorizontalTop,
+            DxfGridLineType.VerticalRight,
+            DxfGridLineType.HorizontalBottom,
+            DxfGridLineType.VerticalLeft,
+        };
 
         // The groups of the table's lines of the rows of a kind, after its last cell, in the order of AutoCAD's GridLineType
         // (top, inside and bottom across, left, inside and right down): colours with the flags of 94, lineweights of 95,
@@ -33,7 +39,15 @@ namespace GeometryHelper.Dxf
 
         // The table's row colours (64), fills (283, 63), alignments (170), text styles (7) and heights (140) by row kind, after
         // its last cell before the lines, each with its flag in 93 from the bit given on, as the DXF reference lists them.
-        private static readonly Dictionary<int, int> RowLooks = new Dictionary<int, int> { [64] = 5, [283] = 8, [63] = 11, [170] = 14, [7] = 17, [140] = 20 };
+        private static readonly Dictionary<int, int> RowLooks = new Dictionary<int, int>
+        {
+            [64] = 5,
+            [283] = 8,
+            [63] = 11,
+            [170] = 14,
+            [7] = 17,
+            [140] = 20,
+        };
 
         #region The edges of a cell
 
@@ -52,7 +66,8 @@ namespace GeometryHelper.Dxf
         /// <param name="gridLineType">The line: one of <see cref="DxfGridLineType.HorizontalTop"/>, <see cref="DxfGridLineType.HorizontalBottom"/>, <see cref="DxfGridLineType.VerticalLeft"/> and <see cref="DxfGridLineType.VerticalRight"/>.</param>
         /// <returns>The colour, or null.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's, or the line is not one of a cell's four.</exception>
-        public DxfColor GetGridColor(int row, int column, DxfGridLineType gridLineType) => Colour(EdgeOverride(row, column, EdgeOf(gridLineType, nameof(gridLineType)), 0));
+        public DxfColor GetGridColor(int row, int column, DxfGridLineType gridLineType) =>
+            Colour(EdgeOverride(row, column, EdgeOf(gridLineType, nameof(gridLineType)), 0));
 
         /// <summary>
         /// Gets the lineweight of a line of a cell, as AutoCAD's <c>GetGridLineWeight(row, column, gridLineType)</c>: the cell's
@@ -64,7 +79,8 @@ namespace GeometryHelper.Dxf
         /// <param name="gridLineType">The line: one of a cell's four.</param>
         /// <returns>The lineweight, or null.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's, or the line is not one of a cell's four.</exception>
-        public DxfLineWeight? GetGridLineWeight(int row, int column, DxfGridLineType gridLineType) => Weight(EdgeOverride(row, column, EdgeOf(gridLineType, nameof(gridLineType)), 1));
+        public DxfLineWeight? GetGridLineWeight(int row, int column, DxfGridLineType gridLineType) =>
+            Weight(EdgeOverride(row, column, EdgeOf(gridLineType, nameof(gridLineType)), 1));
 
         /// <summary>
         /// Gets whether a line of a cell is drawn, as AutoCAD's <c>GetGridVisibility(row, column, gridLineType)</c>: the cell's
@@ -77,7 +93,8 @@ namespace GeometryHelper.Dxf
         /// <param name="gridLineType">The line: one of a cell's four.</param>
         /// <returns>Whether it is drawn, or null.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's, or the line is not one of a cell's four.</exception>
-        public bool? GetGridVisibility(int row, int column, DxfGridLineType gridLineType) => Shown(EdgeOverride(row, column, EdgeOf(gridLineType, nameof(gridLineType)), 2));
+        public bool? GetGridVisibility(int row, int column, DxfGridLineType gridLineType) =>
+            Shown(EdgeOverride(row, column, EdgeOf(gridLineType, nameof(gridLineType)), 2));
 
         /// <summary>
         /// Gets what a line of a cell holds of its own, as AutoCAD's <c>GetGridProperty(row, column, gridLineType)</c>: its
@@ -125,7 +142,8 @@ namespace GeometryHelper.Dxf
         /// <param name="edge">The edge, one of the four.</param>
         /// <returns>The colour, or null where the cell has none of its own.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's, or the edge is not one of the four.</exception>
-        public DxfColor GridColor(int row, int col, DxfCellEdgeMasks edge) => Colour(EdgeOverride(row, col, EdgeOf(edge, nameof(edge)), 0));
+        public DxfColor GridColor(int row, int col, DxfCellEdgeMasks edge) =>
+            Colour(EdgeOverride(row, col, EdgeOf(edge, nameof(edge)), 0));
 
         /// <summary>Gets the lineweight of an edge of a cell, as AutoCAD's <c>GridLineWeight(row, col, edge)</c>: as <see cref="GetGridLineWeight(int, int, DxfGridLineType)"/>.</summary>
         /// <param name="row">The row, from nought.</param>
@@ -133,7 +151,8 @@ namespace GeometryHelper.Dxf
         /// <param name="edge">The edge, one of the four.</param>
         /// <returns>The lineweight, or null where the cell has none of its own.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's, or the edge is not one of the four.</exception>
-        public DxfLineWeight? GridLineWeight(int row, int col, DxfCellEdgeMasks edge) => Weight(EdgeOverride(row, col, EdgeOf(edge, nameof(edge)), 1));
+        public DxfLineWeight? GridLineWeight(int row, int col, DxfCellEdgeMasks edge) =>
+            Weight(EdgeOverride(row, col, EdgeOf(edge, nameof(edge)), 1));
 
         /// <summary>Gets whether an edge of a cell is drawn, as AutoCAD's <c>GridVisibility(row, col, edge)</c>: as <see cref="GetGridVisibility(int, int, DxfGridLineType)"/>.</summary>
         /// <param name="row">The row, from nought.</param>
@@ -141,7 +160,8 @@ namespace GeometryHelper.Dxf
         /// <param name="edge">The edge, one of the four.</param>
         /// <returns>Whether it is drawn, or null where the cell has none of its own.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's, or the edge is not one of the four.</exception>
-        public bool? GridVisibility(int row, int col, DxfCellEdgeMasks edge) => Shown(EdgeOverride(row, col, EdgeOf(edge, nameof(edge)), 2));
+        public bool? GridVisibility(int row, int col, DxfCellEdgeMasks edge) =>
+            Shown(EdgeOverride(row, col, EdgeOf(edge, nameof(edge)), 2));
 
         /// <summary>
         /// Sets the colour of lines of a cell, as AutoCAD's <c>SetGridColor(row, column, gridLineType, color)</c>: the cell's own
@@ -163,8 +183,14 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's, or the lines hold a flag none of <see cref="DxfGridLineType"/> has.</exception>
         /// <exception cref="ArgumentException">Thrown when the lines name none of the cell's four, or the colour is a true colour or none.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the table is erased.</exception>
-        public void SetGridColor(int row, int column, DxfGridLineType gridLineType, DxfColor color)
-            => SetLines(OneCell(row, column), gridLineType, new[] { IndexText(color, nameof(color)), null, null }, nameof(gridLineType), nameof(row));
+        public void SetGridColor(int row, int column, DxfGridLineType gridLineType, DxfColor color) =>
+            SetLines(
+                OneCell(row, column),
+                gridLineType,
+                new[] { IndexText(color, nameof(color)), null, null },
+                nameof(gridLineType),
+                nameof(row)
+            );
 
         /// <summary>
         /// Sets the lineweight of lines of a cell, as AutoCAD's <c>SetGridLineWeight(row, column, gridLineType, lineWeight)</c>:
@@ -178,8 +204,14 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's, the lines hold a flag none of <see cref="DxfGridLineType"/> has, or the lineweight is none DXF writes.</exception>
         /// <exception cref="ArgumentException">Thrown when the lines name none of the cell's four.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the table is erased.</exception>
-        public void SetGridLineWeight(int row, int column, DxfGridLineType gridLineType, DxfLineWeight lineWeight)
-            => SetLines(OneCell(row, column), gridLineType, new[] { null, WeightText(lineWeight, nameof(lineWeight)), null }, nameof(gridLineType), nameof(row));
+        public void SetGridLineWeight(int row, int column, DxfGridLineType gridLineType, DxfLineWeight lineWeight) =>
+            SetLines(
+                OneCell(row, column),
+                gridLineType,
+                new[] { null, WeightText(lineWeight, nameof(lineWeight)), null },
+                nameof(gridLineType),
+                nameof(row)
+            );
 
         /// <summary>
         /// Sets whether lines of a cell are drawn, as AutoCAD's <c>SetGridVisibility(row, column, gridLineType, visibility)</c>:
@@ -193,8 +225,14 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's, or the lines hold a flag none of <see cref="DxfGridLineType"/> has.</exception>
         /// <exception cref="ArgumentException">Thrown when the lines name none of the cell's four.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the table is erased.</exception>
-        public void SetGridVisibility(int row, int column, DxfGridLineType gridLineType, bool visible)
-            => SetLines(OneCell(row, column), gridLineType, new[] { null, null, visible ? "1" : "0" }, nameof(gridLineType), nameof(row));
+        public void SetGridVisibility(int row, int column, DxfGridLineType gridLineType, bool visible) =>
+            SetLines(
+                OneCell(row, column),
+                gridLineType,
+                new[] { null, null, visible ? "1" : "0" },
+                nameof(gridLineType),
+                nameof(row)
+            );
 
         /// <summary>
         /// Sets properties of lines of a cell, as AutoCAD's <c>SetGridProperty(row, column, gridLineType, gridProperty)</c>: those
@@ -209,8 +247,19 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's, the lines or the mask hold a flag none of their kind has, or a lineweight is none DXF writes.</exception>
         /// <exception cref="ArgumentException">Thrown when the lines name none of the cell's four, the mask names a property of no group, or a colour is a true colour or none.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the table is erased.</exception>
-        public void SetGridProperty(int row, int column, DxfGridLineType gridLineType, DxfGridPropertyParameter gridProperty)
-            => SetLines(OneCell(row, column), gridLineType, PropertyTexts(gridProperty, nameof(gridProperty)), nameof(gridLineType), nameof(row));
+        public void SetGridProperty(
+            int row,
+            int column,
+            DxfGridLineType gridLineType,
+            DxfGridPropertyParameter gridProperty
+        ) =>
+            SetLines(
+                OneCell(row, column),
+                gridLineType,
+                PropertyTexts(gridProperty, nameof(gridProperty)),
+                nameof(gridLineType),
+                nameof(row)
+            );
 
         /// <summary>
         /// Sets properties of the lines of a block of cells, as AutoCAD's <c>SetGridProperty(rangeIn, gridLineTypes,
@@ -226,14 +275,24 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the range reaches past the table, the lines or the mask hold a flag none of their kind has, or a lineweight is none DXF writes.</exception>
         /// <exception cref="ArgumentException">Thrown when the lines name none of the block's, the mask names a property of no group, or a colour is a true colour or none.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the table is erased.</exception>
-        public void SetGridProperty(DxfCellRange rangeIn, DxfGridLineType gridLineTypes, DxfGridPropertyParameter gridProp)
+        public void SetGridProperty(
+            DxfCellRange rangeIn,
+            DxfGridLineType gridLineTypes,
+            DxfGridPropertyParameter gridProp
+        )
         {
             if (rangeIn == null)
             {
                 throw new ArgumentNullException(nameof(rangeIn));
             }
 
-            SetLines(rangeIn, gridLineTypes, PropertyTexts(gridProp, nameof(gridProp)), nameof(gridLineTypes), nameof(rangeIn));
+            SetLines(
+                rangeIn,
+                gridLineTypes,
+                PropertyTexts(gridProp, nameof(gridProp)),
+                nameof(gridLineTypes),
+                nameof(rangeIn)
+            );
         }
 
         #endregion
@@ -252,7 +311,8 @@ namespace GeometryHelper.Dxf
         /// <param name="type">The rows: one of <see cref="DxfRowType.TitleRow"/>, <see cref="DxfRowType.HeaderRow"/> and <see cref="DxfRowType.DataRow"/>.</param>
         /// <returns>The colour, or null.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the line is not one of the six, or the rows not of one kind.</exception>
-        public DxfColor GridColor(DxfGridLineType gridlineType, DxfRowType type) => Colour(TableLine(0, LineOf(gridlineType, nameof(gridlineType)), RowOf(type, nameof(type))));
+        public DxfColor GridColor(DxfGridLineType gridlineType, DxfRowType type) =>
+            Colour(TableLine(0, LineOf(gridlineType, nameof(gridlineType)), RowOf(type, nameof(type))));
 
         /// <summary>
         /// Gets the lineweight of a line of the rows of a kind, as AutoCAD's <c>GridLineWeight(gridlineType, type)</c>: the
@@ -263,7 +323,8 @@ namespace GeometryHelper.Dxf
         /// <param name="type">The rows: one kind.</param>
         /// <returns>The lineweight, or null.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the line is not one of the six, or the rows not of one kind.</exception>
-        public DxfLineWeight? GridLineWeight(DxfGridLineType gridlineType, DxfRowType type) => Weight(TableLine(1, LineOf(gridlineType, nameof(gridlineType)), RowOf(type, nameof(type))));
+        public DxfLineWeight? GridLineWeight(DxfGridLineType gridlineType, DxfRowType type) =>
+            Weight(TableLine(1, LineOf(gridlineType, nameof(gridlineType)), RowOf(type, nameof(type))));
 
         /// <summary>
         /// Gets whether a line of the rows of a kind is drawn, as AutoCAD's <c>GridVisibility(gridlineType, type)</c>: the
@@ -273,7 +334,8 @@ namespace GeometryHelper.Dxf
         /// <param name="type">The rows: one kind.</param>
         /// <returns>Whether it is drawn, or null.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the line is not one of the six, or the rows not of one kind.</exception>
-        public bool? GridVisibility(DxfGridLineType gridlineType, DxfRowType type) => Shown(TableLine(2, LineOf(gridlineType, nameof(gridlineType)), RowOf(type, nameof(type))));
+        public bool? GridVisibility(DxfGridLineType gridlineType, DxfRowType type) =>
+            Shown(TableLine(2, LineOf(gridlineType, nameof(gridlineType)), RowOf(type, nameof(type))));
 
         /// <summary>
         /// Sets the colour of lines of the rows of kinds, as AutoCAD's <c>SetGridColor(color, borders, rows)</c>: the table's
@@ -291,7 +353,8 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the lines or the rows are none, or hold a flag none of their kind has.</exception>
         /// <exception cref="ArgumentException">Thrown when the colour is a true colour or none.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the table is erased.</exception>
-        public void SetGridColor(DxfColor color, DxfGridLineType borders, DxfRowType rows) => SetTableLines(0, IndexText(color, nameof(color)), borders, rows);
+        public void SetGridColor(DxfColor color, DxfGridLineType borders, DxfRowType rows) =>
+            SetTableLines(0, IndexText(color, nameof(color)), borders, rows);
 
         /// <summary>
         /// Sets the lineweight of lines of the rows of kinds, as AutoCAD's <c>SetGridLineWeight(lineWeight, borders, rows)</c>:
@@ -303,7 +366,8 @@ namespace GeometryHelper.Dxf
         /// <param name="rows">The rows, one or more of the three kinds.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the lines or the rows are none or hold a flag none of their kind has, or the lineweight is none DXF writes.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the table is erased.</exception>
-        public void SetGridLineWeight(DxfLineWeight lineWeight, DxfGridLineType borders, DxfRowType rows) => SetTableLines(1, WeightText(lineWeight, nameof(lineWeight)), borders, rows);
+        public void SetGridLineWeight(DxfLineWeight lineWeight, DxfGridLineType borders, DxfRowType rows) =>
+            SetTableLines(1, WeightText(lineWeight, nameof(lineWeight)), borders, rows);
 
         /// <summary>
         /// Sets whether lines of the rows of kinds are drawn, as AutoCAD's <c>SetGridVisibility(visible, borders, rows)</c>: the
@@ -314,7 +378,8 @@ namespace GeometryHelper.Dxf
         /// <param name="rows">The rows, one or more of the three kinds.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the lines or the rows are none, or hold a flag none of their kind has.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the table is erased.</exception>
-        public void SetGridVisibility(bool visible, DxfGridLineType borders, DxfRowType rows) => SetTableLines(2, visible ? "1" : "0", borders, rows);
+        public void SetGridVisibility(bool visible, DxfGridLineType borders, DxfRowType rows) =>
+            SetTableLines(2, visible ? "1" : "0", borders, rows);
 
         #endregion
 
@@ -357,9 +422,28 @@ namespace GeometryHelper.Dxf
         /// <summary>The cell across an edge of a cell, top (0), right, bottom or left, from the layout given; null at the table's rim.</summary>
         private static CellView Beside(Layout layout, int row, int column, int edge)
         {
-            int r = row + (edge == 0 ? -1 : edge == 2 ? 1 : 0);
-            int c = column + (edge == 3 ? -1 : edge == 1 ? 1 : 0);
-            return r >= 0 && r < layout.Rows && c >= 0 && c < layout.Columns && (long)r * layout.Columns + c < layout.CellStart.Count ? layout.CellAt(r, c) : null;
+            int r =
+                row
+                + (
+                    edge == 0 ? -1
+                    : edge == 2 ? 1
+                    : 0
+                );
+            int c =
+                column
+                + (
+                    edge == 3 ? -1
+                    : edge == 1 ? 1
+                    : 0
+                );
+            return
+                r >= 0
+                && r < layout.Rows
+                && c >= 0
+                && c < layout.Columns
+                && (long)r * layout.Columns + c < layout.CellStart.Count
+                ? layout.CellAt(r, c)
+                : null;
         }
 
         /// <summary>The edge of a cell a line is, top, right, bottom or left: one of the cell's four alone.</summary>
@@ -369,7 +453,11 @@ namespace GeometryHelper.Dxf
 
             if (edge < 0)
             {
-                throw new ArgumentOutOfRangeException(parameter, line, "A line of a cell is one of its four, HorizontalTop, VerticalRight, HorizontalBottom or VerticalLeft; the lines inside are a block's.");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    line,
+                    "A line of a cell is one of its four, HorizontalTop, VerticalRight, HorizontalBottom or VerticalLeft; the lines inside are a block's."
+                );
             }
 
             return edge;
@@ -388,7 +476,11 @@ namespace GeometryHelper.Dxf
                 case DxfCellEdgeMasks.LeftMask:
                     return 3;
                 default:
-                    throw new ArgumentOutOfRangeException(parameter, edge, "An edge of a cell is one of TopMask, RightMask, BottomMask and LeftMask.");
+                    throw new ArgumentOutOfRangeException(
+                        parameter,
+                        edge,
+                        "An edge of a cell is one of TopMask, RightMask, BottomMask and LeftMask."
+                    );
             }
         }
 
@@ -403,7 +495,11 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            throw new ArgumentOutOfRangeException(parameter, line, "A line of the rows of a kind is one of the six of DxfGridLineType alone.");
+            throw new ArgumentOutOfRangeException(
+                parameter,
+                line,
+                "A line of the rows of a kind is one of the six of DxfGridLineType alone."
+            );
         }
 
         /// <summary>The place of a kind of rows among the flags of the table: the title's 0, the header's 1, the data's 2.</summary>
@@ -418,15 +514,23 @@ namespace GeometryHelper.Dxf
                 case DxfRowType.DataRow:
                     return 2;
                 default:
-                    throw new ArgumentOutOfRangeException(parameter, type, "The rows are of one kind: TitleRow, HeaderRow or DataRow.");
+                    throw new ArgumentOutOfRangeException(
+                        parameter,
+                        type,
+                        "The rows are of one kind: TitleRow, HeaderRow or DataRow."
+                    );
             }
         }
 
-        private static DxfLineWeight? Weight(string text)
-            => int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int weight) ? (DxfLineWeight)weight : (DxfLineWeight?)null;
+        private static DxfLineWeight? Weight(string text) =>
+            int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int weight)
+                ? (DxfLineWeight)weight
+                : (DxfLineWeight?)null;
 
-        private static bool? Shown(string text)
-            => int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int shown) ? shown != 0 : (bool?)null;
+        private static bool? Shown(string text) =>
+            int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int shown)
+                ? shown != 0
+                : (bool?)null;
 
         /// <summary>A colour as a group of the index holds it; a true colour and none refused.</summary>
         private static string IndexText(DxfColor color, string parameter)
@@ -444,7 +548,10 @@ namespace GeometryHelper.Dxf
                 case DxfColorMethod.Foreground:
                     return color.ColorIndex.ToString(CultureInfo.InvariantCulture);
                 default:
-                    throw new ArgumentException("A line's colour is written as a colour of AutoCAD's index: " + color + " is not one.", parameter);
+                    throw new ArgumentException(
+                        "A line's colour is written as a colour of AutoCAD's index: " + color + " is not one.",
+                        parameter
+                    );
             }
         }
 
@@ -454,7 +561,11 @@ namespace GeometryHelper.Dxf
 
             if (!(value >= -3 && value <= -1) && !DxfShape.IsLineweight(value))
             {
-                throw new ArgumentOutOfRangeException(parameter, weight, "A line's lineweight is one of AutoCAD's widths, ByLayer, ByBlock or ByLineWeightDefault.");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    weight,
+                    "A line's lineweight is one of AutoCAD's widths, ByLayer, ByBlock or ByLineWeightDefault."
+                );
             }
 
             return value.ToString(CultureInfo.InvariantCulture);
@@ -472,12 +583,26 @@ namespace GeometryHelper.Dxf
 
             if (((int)mask & ~0x3F) != 0)
             {
-                throw new ArgumentOutOfRangeException(parameter, mask, "The mask is made of the flags of DxfGridProperties.");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    mask,
+                    "The mask is made of the flags of DxfGridProperties."
+                );
             }
 
-            if ((mask & (DxfGridProperties.LineStyle | DxfGridProperties.Linetype | DxfGridProperties.DoubleLineSpacing)) != 0)
+            if (
+                (
+                    mask
+                    & (DxfGridProperties.LineStyle | DxfGridProperties.Linetype | DxfGridProperties.DoubleLineSpacing)
+                ) != 0
+            )
             {
-                throw new ArgumentException("A line's style, linetype and the spacing of a double line have no groups in a file of these versions that the DXF reference or ezdxf gives: the mask names " + mask + ".", parameter);
+                throw new ArgumentException(
+                    "A line's style, linetype and the spacing of a double line have no groups in a file of these versions that the DXF reference or ezdxf gives: the mask names "
+                        + mask
+                        + ".",
+                    parameter
+                );
             }
 
             return new[]
@@ -493,11 +618,21 @@ namespace GeometryHelper.Dxf
         /// (its colour, lineweight, showing; null for one not given) with its flag, where it differs, and the edge in the cell's
         /// edge flags (172), where they do not name it; every cell changed copied apart and the record written once.
         /// </summary>
-        private void SetLines(DxfCellRange range, DxfGridLineType lines, string[] texts, string parameter, string rangeParameter)
+        private void SetLines(
+            DxfCellRange range,
+            DxfGridLineType lines,
+            string[] texts,
+            string parameter,
+            string rangeParameter
+        )
         {
             if (lines == DxfGridLineType.InvalidGridLine || ((int)lines & ~(int)DxfGridLineType.AllGridLines) != 0)
             {
-                throw new ArgumentOutOfRangeException(parameter, lines, "The lines are one or more of the six of DxfGridLineType.");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    lines,
+                    "The lines are one or more of the six of DxfGridLineType."
+                );
             }
 
             Layout layout = ReadToWrite();
@@ -505,7 +640,13 @@ namespace GeometryHelper.Dxf
 
             if ((long)range.BottomRow * layout.Columns + range.RightColumn >= layout.CellStart.Count)
             {
-                throw new ArgumentOutOfRangeException(rangeParameter, range, "The table's record holds " + layout.CellStart.Count.ToString(CultureInfo.InvariantCulture) + " cells, fewer than its rows by its columns.");
+                throw new ArgumentOutOfRangeException(
+                    rangeParameter,
+                    range,
+                    "The table's record holds "
+                        + layout.CellStart.Count.ToString(CultureInfo.InvariantCulture)
+                        + " cells, fewer than its rows by its columns."
+                );
             }
 
             int flagsCode = Item.File.Supports(1021) ? 91 : 177;
@@ -533,8 +674,20 @@ namespace GeometryHelper.Dxf
                         }
 
                         applies = true;
-                        int nr = r + (edge == 0 ? -1 : edge == 2 ? 1 : 0);
-                        int nc = c + (edge == 3 ? -1 : edge == 1 ? 1 : 0);
+                        int nr =
+                            r
+                            + (
+                                edge == 0 ? -1
+                                : edge == 2 ? 1
+                                : 0
+                            );
+                        int nc =
+                            c
+                            + (
+                                edge == 3 ? -1
+                                : edge == 1 ? 1
+                                : 0
+                            );
                         int across = (edge + 2) % 4;
                         bool beside = Beside(layout, r, c, edge) != null;
 
@@ -547,10 +700,23 @@ namespace GeometryHelper.Dxf
 
                         // A top or left the cell does not hold, read from the cell above or left of it, takes that line's
                         // properties first, so that it keeps those not set.
-                        if (beside && (edge == 0 || edge == 3) && !Now(layout, made, r, c).HoldsEdge(edge) && Now(layout, made, nr, nc).HoldsEdge(across))
+                        if (
+                            beside
+                            && (edge == 0 || edge == 3)
+                            && !Now(layout, made, r, c).HoldsEdge(edge)
+                            && Now(layout, made, nr, nc).HoldsEdge(across)
+                        )
                         {
                             CellView held = Now(layout, made, nr, nc);
-                            any |= PutEdge(layout, made, r, c, edge, new[] { held.EdgeText(across, 0), held.EdgeText(across, 1), held.EdgeText(across, 2) }, flagsCode);
+                            any |= PutEdge(
+                                layout,
+                                made,
+                                r,
+                                c,
+                                edge,
+                                new[] { held.EdgeText(across, 0), held.EdgeText(across, 1), held.EdgeText(across, 2) },
+                                flagsCode
+                            );
                         }
 
                         any |= PutEdge(layout, made, r, c, edge, texts, flagsCode);
@@ -560,7 +726,14 @@ namespace GeometryHelper.Dxf
 
             if (!applies)
             {
-                throw new ArgumentException("The lines " + lines + " name no line of the cells " + range + ": the lines inside are those between a block's rows and columns.", parameter);
+                throw new ArgumentException(
+                    "The lines "
+                        + lines
+                        + " name no line of the cells "
+                        + range
+                        + ": the lines inside are those between a block's rows and columns.",
+                    parameter
+                );
             }
 
             if (any)
@@ -582,7 +755,15 @@ namespace GeometryHelper.Dxf
         /// override with its flag where it differs, and the edge in the cell's edge flags (172), where they do not name it;
         /// the cell copied apart into the edit where it changes. Whether it changed.
         /// </summary>
-        private static bool PutEdge(Layout layout, List<KeyValuePair<int, string>>[] made, int row, int column, int edge, string[] texts, int flagsCode)
+        private static bool PutEdge(
+            Layout layout,
+            List<KeyValuePair<int, string>>[] made,
+            int row,
+            int column,
+            int edge,
+            string[] texts,
+            int flagsCode
+        )
         {
             int index = row * layout.Columns + column;
             CellView cell = Now(layout, made, row, column);
@@ -630,8 +811,10 @@ namespace GeometryHelper.Dxf
             return true;
         }
 
-        private static bool SameWhole(string now, string text)
-            => int.TryParse(now?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int a) && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int b) && a == b;
+        private static bool SameWhole(string now, string text) =>
+            int.TryParse(now?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int a)
+            && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int b)
+            && a == b;
 
         /// <summary>Writes the record with the cells given in the place of theirs, the others as they stand, in one writing.</summary>
         private void Splice(Layout layout, IList<List<KeyValuePair<int, string>>> cells)
@@ -709,12 +892,20 @@ namespace GeometryHelper.Dxf
         {
             if (borders == DxfGridLineType.InvalidGridLine || ((int)borders & ~(int)DxfGridLineType.AllGridLines) != 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(borders), borders, "The lines are one or more of the six of DxfGridLineType.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(borders),
+                    borders,
+                    "The lines are one or more of the six of DxfGridLineType."
+                );
             }
 
             if (rows == DxfRowType.UnknownRow || ((int)rows & ~7) != 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(rows), rows, "The rows are one or more of TitleRow, HeaderRow and DataRow.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(rows),
+                    rows,
+                    "The rows are one or more of TitleRow, HeaderRow and DataRow."
+                );
             }
 
             Layout layout = ReadToWrite();
@@ -739,7 +930,10 @@ namespace GeometryHelper.Dxf
                     int[] headRanks = HeadRanks(g, headTo, out int ownFrom, out int ownTo);
                     int at = Array.IndexOf(ranks, wanted);
                     int inHead = Array.IndexOf(headRanks, wanted);
-                    at = at >= 0 ? cellsEnd + at : inHead >= 0 ? ownFrom + inHead : -1;
+                    at =
+                        at >= 0 ? cellsEnd + at
+                        : inHead >= 0 ? ownFrom + inHead
+                        : -1;
 
                     if (at >= 0)
                     {
@@ -757,14 +951,34 @@ namespace GeometryHelper.Dxf
                     // the order of their flags.
                     bool tailHeld = Array.Exists(ranks, rank => rank >= 0);
                     var flagged = new DxfDimGroups.Range(g.Sub.From, headTo);
-                    bool headPlaced = ownTo > ownFrom || (!tailHeld && (g.Find(93, flagged) >= 0 || g.Find(94, flagged) >= 0 || g.Find(95, flagged) >= 0 || g.Find(96, flagged) >= 0));
-                    g.Insert(headPlaced ? PlaceOf(g, headRanks, ownFrom, ownTo, code, wanted) : PlaceOf(g, ranks, cellsEnd, to, code, wanted), new KeyValuePair<int, string>(code, text));
+                    bool headPlaced =
+                        ownTo > ownFrom
+                        || (
+                            !tailHeld
+                            && (
+                                g.Find(93, flagged) >= 0
+                                || g.Find(94, flagged) >= 0
+                                || g.Find(95, flagged) >= 0
+                                || g.Find(96, flagged) >= 0
+                            )
+                        );
+                    g.Insert(
+                        headPlaced
+                            ? PlaceOf(g, headRanks, ownFrom, ownTo, code, wanted)
+                            : PlaceOf(g, ranks, cellsEnd, to, code, wanted),
+                        new KeyValuePair<int, string>(code, text)
+                    );
                     headTo += headPlaced ? 1 : 0;
                     cellsEnd += headPlaced ? 1 : 0;
                     var head = new DxfDimGroups.Range(g.Sub.From, headTo);
                     int flagsCode = 94 + kind;
                     bool had = g.Find(flagsCode, head) >= 0;
-                    g.Set(flagsCode, (g.Whole(flagsCode, head, 0) | (1 << bit)).ToString(CultureInfo.InvariantCulture), head, Order);
+                    g.Set(
+                        flagsCode,
+                        (g.Whole(flagsCode, head, 0) | (1 << bit)).ToString(CultureInfo.InvariantCulture),
+                        head,
+                        Order
+                    );
 
                     if (!had)
                     {
@@ -808,7 +1022,10 @@ namespace GeometryHelper.Dxf
                 sameHigher = rank > wanted && g.List[i].Key == code && sameHigher < 0 ? i : sameHigher;
             }
 
-            int at = lower >= 0 ? lower + 1 : higher >= 0 ? higher : to;
+            int at =
+                lower >= 0 ? lower + 1
+                : higher >= 0 ? higher
+                : to;
             at = sameHigher >= 0 ? Math.Min(at, sameHigher) : at;
             return sameLower >= 0 ? Math.Max(at, sameLower + 1) : at;
         }

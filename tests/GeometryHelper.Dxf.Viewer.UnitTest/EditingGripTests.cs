@@ -15,7 +15,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Plan();
             DxfLine line = Entity<DxfLine>(document, "A1");
 
-            Assert.Equal(new[] { CadGripKind.End, CadGripKind.End, CadGripKind.Middle }, CadGrips.Of(line).Select(g => g.Kind));
+            Assert.Equal(
+                new[] { CadGripKind.End, CadGripKind.End, CadGripKind.Middle },
+                CadGrips.Of(line).Select(g => g.Kind)
+            );
             Near(P(50, 0), CadGrips.Of(line)[2].Point);
 
             Assert.True(document.GripDrag("A1", 1, P(100, 30)).Succeeded);
@@ -95,7 +98,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             arc = Entity<DxfArc>(document, "A4");
             Near(new GeoPoint3(500, 0, 0), arc.Center, 1E-9);
             Near(P(480, 0), CadGrips.Of(arc)[2].Point, 1E-9);
-            Assert.Contains(new[] { arc.StartPoint, arc.EndPoint }, p => p.DistanceTo(new GeoPoint3(500, -20, 0)) < 1E-9);
+            Assert.Contains(new[] { arc.StartPoint, arc.EndPoint }, p =>
+                p.DistanceTo(new GeoPoint3(500, -20, 0)) < 1E-9
+            );
         }
 
         [Fact]
@@ -104,7 +109,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Plan();
             DxfPolyline polyline = Entity<DxfPolyline>(document, "A5");
 
-            Assert.Equal(new[] { CadGripKind.Vertex, CadGripKind.Vertex, CadGripKind.Vertex, CadGripKind.SegmentMiddle, CadGripKind.SegmentMiddle }, CadGrips.Of(polyline).Select(g => g.Kind));
+            Assert.Equal(
+                new[]
+                {
+                    CadGripKind.Vertex,
+                    CadGripKind.Vertex,
+                    CadGripKind.Vertex,
+                    CadGripKind.SegmentMiddle,
+                    CadGripKind.SegmentMiddle,
+                },
+                CadGrips.Of(polyline).Select(g => g.Kind)
+            );
 
             document.GripDrag("A5", 1, P(110, 90));
             Near(P(110, 90), Entity<DxfPolyline>(document, "A5").GetPoint2dAt(1));
@@ -118,7 +133,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void TheMiddleOfAnArcSegmentDragged_SetsItsBulgeThroughThePoint()
         {
-            CadDocument document = CadDocument.From(TestDrawings.Drawing(null, null, TestDrawings.Polyline("0", "B1", false, 0, 0, 1, 20, 0, 0)), "bulge.dxf");
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(null, null, TestDrawings.Polyline("0", "B1", false, 0, 0, 1, 20, 0, 0)),
+                "bulge.dxf"
+            );
 
             // A half circle below the chord from (0, 0) to (20, 0); its middle is (10, -10). Dragged to (10, 5): above, a quarter as high.
             Near(P(10, -10), CadGrips.Of(document.FindEntity("B1"))[2].Point, 1E-9);
@@ -181,7 +199,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = WithViewport(out string handle);
             var grips = CadGrips.Of(document.FindEntity(handle));
 
-            Assert.Equal(new[] { CadGripKind.Corner, CadGripKind.Corner, CadGripKind.Corner, CadGripKind.Corner, CadGripKind.Center }, grips.Select(g => g.Kind));
+            Assert.Equal(
+                new[]
+                {
+                    CadGripKind.Corner,
+                    CadGripKind.Corner,
+                    CadGripKind.Corner,
+                    CadGripKind.Corner,
+                    CadGripKind.Center,
+                },
+                grips.Select(g => g.Kind)
+            );
             Near(P(210, 110), grips[2].Point);
             Assert.Empty(CadGrips.Of(All<DxfViewport>(document.CurrentSpace).First(v => v.Number == 1)));
 
@@ -194,7 +222,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(150, viewport.Height, 9);
             Assert.Equal(0.1, viewport.Height / viewport.ViewHeight, 12);
             Assert.Equal(1000, viewport.ViewCenter.X, 9);
-            Assert.Equal(1.5, Assert.Single(document.GetDisplay(document.CurrentSpace).Items.OfType<DisplayViewport2>()).Width / 200.0, 9);
+            Assert.Equal(
+                1.5,
+                Assert.Single(document.GetDisplay(document.CurrentSpace).Items.OfType<DisplayViewport2>()).Width
+                    / 200.0,
+                9
+            );
         }
 
         [Fact]

@@ -18,13 +18,20 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>
         /// A rectangle 300 by 200, counter-clockwise from the origin.
         /// </summary>
-        private static GeoPolygonArc2 Plate() => new GeoPolygonArc2(new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(300, 0), new GeoPoint2(300, 200), new GeoPoint2(0, 200)));
+        private static GeoPolygonArc2 Plate() =>
+            new GeoPolygonArc2(
+                new GeoPolygon2(
+                    new GeoPoint2(0, 0),
+                    new GeoPoint2(300, 0),
+                    new GeoPoint2(300, 200),
+                    new GeoPoint2(0, 200)
+                )
+            );
 
-        private static GeoPolylineArc2 Chain() => new GeoPolylineArc2(new[]
-        {
-            new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 150), new GeoPoint2(400, 150)
-        });
+        private static GeoPolylineArc2 Chain() =>
+            new GeoPolylineArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(200, 0), new GeoPoint2(200, 150), new GeoPoint2(400, 150) }
+            );
 
         /// <summary>
         /// Gets the radius of the arc nearest a point, so that a corner can be named by where it was.
@@ -162,14 +169,17 @@ namespace GeometryHelper.UnitTest.Plane
             // The right-hand side bulges, so the corner at vertex 2 is against an arc.
             var slot = new GeoPolygonArc2(
                 new[] { new GeoPoint2(0, 0), new GeoPoint2(300, 0), new GeoPoint2(300, 200), new GeoPoint2(0, 200) },
-                new[] { 0.0, 0.4, 0.0, 0.0 });
+                new[] { 0.0, 0.4, 0.0, 0.0 }
+            );
 
             Assert.True(slot.TryFilletAt(2, 20.0, out GeoPolygonArc2 rounded));
 
             // The bulge that was there, plus the new fillet.
             Assert.Equal(2, rounded.GetEdges().Count(edge => edge.IsArc));
 
-            GeoEdge2 fillet = rounded.GetEdges().Single(edge => edge.IsArc && Math.Abs(edge.ToArc().Radius - 20.0) < 1E-6);
+            GeoEdge2 fillet = rounded
+                .GetEdges()
+                .Single(edge => edge.IsArc && Math.Abs(edge.ToArc().Radius - 20.0) < 1E-6);
             GeoArc2 arc = fillet.ToArc();
 
             // Its centre stands a radius away from the straight edge it touches.
@@ -191,21 +201,29 @@ namespace GeometryHelper.UnitTest.Plane
             var radii = new[] { 10.0, 20.0, 0.0, 30.0 };
 
             Assert.True(Corner2.Fillet(plate, radii).IsEqualTo(plate.Fillet(radii)));
-            Assert.True(Corner2.Fillet(plate, radii, Tolerance.Global).IsEqualTo(plate.Fillet(radii, Tolerance.Global)));
+            Assert.True(
+                Corner2.Fillet(plate, radii, Tolerance.Global).IsEqualTo(plate.Fillet(radii, Tolerance.Global))
+            );
             Assert.True(Corner2.Fillet(chain, radii).IsEqualTo(chain.Fillet(radii)));
-            Assert.True(Corner2.Fillet(chain, radii, Tolerance.Global).IsEqualTo(chain.Fillet(radii, Tolerance.Global)));
+            Assert.True(
+                Corner2.Fillet(chain, radii, Tolerance.Global).IsEqualTo(chain.Fillet(radii, Tolerance.Global))
+            );
 
             Assert.Equal(
                 Corner2.TryFilletAt(plate, 1, 30.0, out GeoPolygonArc2 fromStatic),
-                plate.TryFilletAt(1, 30.0, out GeoPolygonArc2 fromInstance));
+                plate.TryFilletAt(1, 30.0, out GeoPolygonArc2 fromInstance)
+            );
             Assert.True(fromStatic.IsEqualTo(fromInstance));
 
             Assert.Equal(
                 Corner2.TryFilletAt(chain, 1, 30.0, out GeoPolylineArc2 staticChain),
-                chain.TryFilletAt(1, 30.0, out GeoPolylineArc2 instanceChain, Tolerance.Global));
+                chain.TryFilletAt(1, 30.0, out GeoPolylineArc2 instanceChain, Tolerance.Global)
+            );
             Assert.True(staticChain.IsEqualTo(instanceChain));
 
-            Assert.Throws<ArgumentNullException>(() => Corner2.Fillet(plate, (System.Collections.Generic.IReadOnlyList<double>)null));
+            Assert.Throws<ArgumentNullException>(() =>
+                Corner2.Fillet(plate, (System.Collections.Generic.IReadOnlyList<double>)null)
+            );
             Assert.Throws<ArgumentNullException>(() => Corner2.Fillet((GeoPolygonArc2)null, radii));
             Assert.Throws<ArgumentOutOfRangeException>(() => plate.Fillet(new[] { 10.0, -5.0 }));
             Assert.Throws<ArgumentOutOfRangeException>(() => plate.Fillet(new[] { double.NaN }));

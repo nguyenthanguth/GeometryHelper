@@ -21,13 +21,19 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly Tolerance Loose = new Tolerance(1E-7, 1E-7);
 
         /// <summary>A bar in z = 0: along x to (400, 0), then up to (400, 200), with a fifty radius at the bend.</summary>
-        private static GeoPolylineArc3 Bar() => new GeoPolyline3(
-            new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0)).Fillet(50.0);
+        private static GeoPolylineArc3 Bar() =>
+            new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0)).Fillet(50.0);
 
         /// <summary>A stirrup: a two hundred square loop in z = 0 with its corners rounded.</summary>
-        private static GeoPolygonArc3 Stirrup() => new GeoPolygonArc3(new GeoPolygon3(
-            new GeoPoint3(0, 0, 0), new GeoPoint3(200, 0, 0),
-            new GeoPoint3(200, 200, 0), new GeoPoint3(0, 200, 0))).Fillet(30.0);
+        private static GeoPolygonArc3 Stirrup() =>
+            new GeoPolygonArc3(
+                new GeoPolygon3(
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(200, 0, 0),
+                    new GeoPoint3(200, 200, 0),
+                    new GeoPoint3(0, 200, 0)
+                )
+            ).Fillet(30.0);
 
         #region Cutting by a box and by several cutters
 
@@ -93,7 +99,9 @@ namespace GeometryHelper.UnitTest.Solid
             var first = new GeoAabb3(new GeoPoint3(100, -50, -50), new GeoPoint3(200, 50, 50));
             var second = new GeoAabb3(new GeoPoint3(150, -50, -50), new GeoPoint3(250, 50, 50));
 
-            Assert.True(bar.TrySplitBy(new[] { first, second }, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside));
+            Assert.True(
+                bar.TrySplitBy(new[] { first, second }, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside)
+            );
 
             // A hundred to two fifty is a hundred and fifty of bar. The cut is made at every cutter's surface,
             // the ones inside the union included, so it arrives as three pieces rather than one -- the boundary
@@ -233,7 +241,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Empty(bar.GetIntersections(new GeoRay3(new GeoPoint3(200, -50, 0), new GeoVector3(0, -1, 0))));
 
             // And a stirrup answers the same questions: a line across it crosses it twice.
-            Assert.Equal(2, Stirrup().GetIntersections(new GeoLine3(new GeoPoint3(100, -50, 0), new GeoPoint3(100, 250, 0))).Length);
+            Assert.Equal(
+                2,
+                Stirrup().GetIntersections(new GeoLine3(new GeoPoint3(100, -50, 0), new GeoPoint3(100, 250, 0))).Length
+            );
         }
 
         #endregion
@@ -246,7 +257,9 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPolylineArc3 bar = Bar();
 
             // The same bar turned a quarter turn about the origin, so the two cross.
-            GeoPolylineArc3 other = bar.TransformBy(GeoTransform3.RotationAxis(new GeoPoint3(200, 0, 0), GeoVector3.ZAxis, Math.PI / 2.0));
+            GeoPolylineArc3 other = bar.TransformBy(
+                GeoTransform3.RotationAxis(new GeoPoint3(200, 0, 0), GeoVector3.ZAxis, Math.PI / 2.0)
+            );
 
             GeoPoint3[] crossings = bar.GetIntersections(other);
 
@@ -278,7 +291,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Empty(none);
 
             // Skew and passing close by is still not touching.
-            GeoPolylineArc3 justClear = bar.TransformBy(GeoTransform3.RotationAxis(new GeoPoint3(200, 0, 0), GeoVector3.ZAxis, Math.PI / 2.0))
+            GeoPolylineArc3 justClear = bar.TransformBy(
+                    GeoTransform3.RotationAxis(new GeoPoint3(200, 0, 0), GeoVector3.ZAxis, Math.PI / 2.0)
+                )
                 .Translate(new GeoVector3(0, 0, 10));
 
             Assert.Empty(bar.GetIntersections(justClear));
@@ -291,8 +306,7 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPolygonArc3 stirrup = Stirrup();
 
             // A bar lying in the stirrup's plane and crossing two of its sides.
-            var bar = new GeoPolylineArc3(new GeoPolyline3(
-                new GeoPoint3(-100, 100, 0), new GeoPoint3(300, 100, 0)));
+            var bar = new GeoPolylineArc3(new GeoPolyline3(new GeoPoint3(-100, 100, 0), new GeoPoint3(300, 100, 0)));
 
             GeoPoint3[] fromTheLoop = stirrup.GetIntersections(bar);
 
@@ -382,21 +396,33 @@ namespace GeometryHelper.UnitTest.Solid
 
             // A polygon, a loop, a chain and a face in the same plane all answer.
             var plate = new GeoPolygon3(
-                new GeoPoint3(-200, 0, 0), new GeoPoint3(-100, 0, 0),
-                new GeoPoint3(-100, 200, 0), new GeoPoint3(-200, 200, 0));
+                new GeoPoint3(-200, 0, 0),
+                new GeoPoint3(-100, 0, 0),
+                new GeoPoint3(-100, 200, 0),
+                new GeoPoint3(-200, 200, 0)
+            );
 
             Assert.Equal(100.0, stirrup.GetShortestLineTo(plate).Length, 6);
             Assert.Equal(100.0, stirrup.GetShortestLineTo(new GeoFace3(plate)).Length, 6);
             Assert.Equal(100.0, stirrup.GetShortestLineTo(new GeoPolygonArc3(plate)).Length, 6);
-            Assert.Equal(100.0, stirrup.GetShortestLineTo(new GeoPolyline3(
-                new GeoPoint3(-100, 0, 0), new GeoPoint3(-100, 200, 0))).Length, 6);
+            Assert.Equal(
+                100.0,
+                stirrup
+                    .GetShortestLineTo(new GeoPolyline3(new GeoPoint3(-100, 0, 0), new GeoPoint3(-100, 200, 0)))
+                    .Length,
+                6
+            );
 
             // Anything out of the plane is refused rather than quietly projected in.
             GeoPolygonArc3 above = stirrup.Translate(new GeoVector3(0, 0, 100));
 
             Assert.Throws<ArgumentException>(() => stirrup.GetShortestLineTo(above));
-            Assert.Throws<ArgumentException>(() => stirrup.GetShortestLineTo(plate.Translate(new GeoVector3(0, 0, 100))));
-            Assert.Throws<ArgumentException>(() => stirrup.GetShortestLineTo(line.Translate(new GeoVector3(0, 0, 100))));
+            Assert.Throws<ArgumentException>(() =>
+                stirrup.GetShortestLineTo(plate.Translate(new GeoVector3(0, 0, 100)))
+            );
+            Assert.Throws<ArgumentException>(() =>
+                stirrup.GetShortestLineTo(line.Translate(new GeoVector3(0, 0, 100)))
+            );
             Assert.Throws<ArgumentException>(() => stirrup.GetClosestEdge(line.Translate(new GeoVector3(0, 0, 100))));
 
             Assert.Throws<ArgumentNullException>(() => stirrup.GetShortestLineTo((GeoPolygon3)null));
@@ -415,7 +441,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(stirrup.GetClosestEdge(circle).IsPointOn(stirrup.GetShortestLineTo(circle).StartPoint, Loose));
 
             GeoArc3 arc = GeoArc3.FromThreePoints(
-                new GeoPoint3(-250, 100, 0), new GeoPoint3(-200, 150, 0), new GeoPoint3(-150, 100, 0));
+                new GeoPoint3(-250, 100, 0),
+                new GeoPoint3(-200, 150, 0),
+                new GeoPoint3(-150, 100, 0)
+            );
 
             Assert.Equal(150.0, stirrup.GetShortestLineTo(arc).Length, 6);
 
@@ -425,8 +454,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.NotNull(stirrup.GetClosestEdge(edge).ToString());
 
             // Standing the circle up takes it out of the plane, and it is refused.
-            Assert.Throws<ArgumentException>(() => stirrup.GetShortestLineTo(
-                new GeoCircle3(new GeoPoint3(-200, 100, 0), GeoVector3.XAxis, 50.0)));
+            Assert.Throws<ArgumentException>(() =>
+                stirrup.GetShortestLineTo(new GeoCircle3(new GeoPoint3(-200, 100, 0), GeoVector3.XAxis, 50.0))
+            );
         }
 
         #endregion
@@ -444,12 +474,14 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(
                 bar.TrySplitBy(box, out GeoPolylineArc3[] a, out _),
-                bar.TrySplitBy(box, out GeoPolylineArc3[] b, out _, global));
+                bar.TrySplitBy(box, out GeoPolylineArc3[] b, out _, global)
+            );
             Assert.Equal(a.Length, b.Length);
 
             Assert.Equal(
                 bar.TrySplitBy(new[] { box }, out GeoPolylineArc3[] c, out _),
-                bar.TrySplitBy(new[] { box }, out GeoPolylineArc3[] d, out _, global));
+                bar.TrySplitBy(new[] { box }, out GeoPolylineArc3[] d, out _, global)
+            );
             Assert.Equal(c.Length, d.Length);
 
             Assert.Equal(bar.GetIntersections(line).Length, bar.GetIntersections(line, global).Length);
@@ -463,7 +495,9 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Throws<ArgumentNullException>(() => ArcChain3.GetIntersections((GeoPolylineArc3)null, line));
             Assert.Throws<ArgumentNullException>(() => ArcChain3.GetIntersections(bar, (GeoPolylineArc3)null));
-            Assert.Throws<ArgumentNullException>(() => ArcChain3.SplitAtDistances((GeoPolylineArc3)null, new[] { 1.0 }, out _));
+            Assert.Throws<ArgumentNullException>(() =>
+                ArcChain3.SplitAtDistances((GeoPolylineArc3)null, new[] { 1.0 }, out _)
+            );
         }
     }
 }

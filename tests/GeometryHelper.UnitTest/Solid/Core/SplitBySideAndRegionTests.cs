@@ -45,7 +45,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0, 0, -2),
                 new GeoPoint3(1, 0, 2),
                 new GeoPoint3(2, 0, -2),
-                new GeoPoint3(3, 0, 2));
+                new GeoPoint3(3, 0, 2)
+            );
 
             Assert.True(zigzag.TrySplitBy(GeoPlane3.XY, out GeoPolyline3[] above, out GeoPolyline3[] below));
 
@@ -61,7 +62,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0, 0, -2),
                 new GeoPoint3(1, 0, 2),
                 new GeoPoint3(2, 0, -2),
-                new GeoPoint3(3, 0, 2));
+                new GeoPoint3(3, 0, 2)
+            );
 
             Assert.True(zigzag.TrySplitBy(GeoPlane3.XY, out GeoPolyline3[] ordered));
             Assert.True(zigzag.TrySplitBy(GeoPlane3.XY, out GeoPolyline3[] above, out GeoPolyline3[] below));
@@ -95,7 +97,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0, 0, -5),
                 new GeoPoint3(0, 0, 0),
                 new GeoPoint3(10, 0, 0),
-                new GeoPoint3(10, 0, -5));
+                new GeoPoint3(10, 0, -5)
+            );
 
             Assert.True(chain.TrySplitBy(GeoPlane3.XY, out GeoPolyline3[] above, out GeoPolyline3[] below));
 
@@ -125,11 +128,13 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A 10 by 10 plate in the XY plane, from the origin outwards.
         /// </summary>
-        private static GeoPolygon3 MakePlate() => new GeoPolygon3(
-            new GeoPoint3(0, 0, 0),
-            new GeoPoint3(10, 0, 0),
-            new GeoPoint3(10, 10, 0),
-            new GeoPoint3(0, 10, 0));
+        private static GeoPolygon3 MakePlate() =>
+            new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(10, 0, 0),
+                new GeoPoint3(10, 10, 0),
+                new GeoPoint3(0, 10, 0)
+            );
 
         [Fact]
         public void AChainThroughThePlateIsCutThere()
@@ -165,7 +170,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(4, 4, 0),
                 new GeoPoint3(6, 4, 0),
                 new GeoPoint3(6, 6, 0),
-                new GeoPoint3(4, 6, 0));
+                new GeoPoint3(4, 6, 0)
+            );
 
             GeoFace3 plate = new GeoFace3(MakePlate(), new[] { hole });
 
@@ -186,7 +192,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(2, 5, -2),
                 new GeoPoint3(4, 5, 2),
                 new GeoPoint3(6, 5, -2),
-                new GeoPoint3(8, 5, 2));
+                new GeoPoint3(8, 5, 2)
+            );
 
             Assert.True(zigzag.TrySplitBy(MakePlate(), out GeoPolyline3[] pieces));
 

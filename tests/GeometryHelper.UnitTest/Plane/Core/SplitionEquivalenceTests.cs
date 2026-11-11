@@ -27,8 +27,7 @@ namespace GeometryHelper.UnitTest.Plane
         private static GeoPoint2 Somewhere(Random random) =>
             new GeoPoint2(random.NextDouble() * 30.0 - 10.0, random.NextDouble() * 30.0 - 10.0);
 
-        private static GeoLine2 RandomLine(Random random) =>
-            new GeoLine2(Somewhere(random), Somewhere(random));
+        private static GeoLine2 RandomLine(Random random) => new GeoLine2(Somewhere(random), Somewhere(random));
 
         private static GeoPolyline2 RandomPath(Random random)
         {
@@ -48,8 +47,11 @@ namespace GeometryHelper.UnitTest.Plane
             double y = random.NextDouble() * 10.0 - 5.0;
             double size = 2.0 + random.NextDouble() * 8.0;
             return new GeoPolygon2(
-                new GeoPoint2(x, y), new GeoPoint2(x + size, y),
-                new GeoPoint2(x + size, y + size), new GeoPoint2(x, y + size));
+                new GeoPoint2(x, y),
+                new GeoPoint2(x + size, y),
+                new GeoPoint2(x + size, y + size),
+                new GeoPoint2(x, y + size)
+            );
         }
 
         private static void SameLines(GeoLine2[] a, GeoLine2[] b, string what, int c)
@@ -67,8 +69,10 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(a.Length == b.Length, $"case {c}: {what} count {a.Length} vs {b.Length}");
             for (int i = 0; i < a.Length; i++)
             {
-                Assert.True(a[i].VertexCount == b[i].VertexCount,
-                    $"case {c}: {what} piece {i} has {a[i].VertexCount} vs {b[i].VertexCount} vertices");
+                Assert.True(
+                    a[i].VertexCount == b[i].VertexCount,
+                    $"case {c}: {what} piece {i} has {a[i].VertexCount} vs {b[i].VertexCount} vertices"
+                );
                 for (int v = 0; v < a[i].VertexCount; v++)
                 {
                     Assert.True(a[i][v].IsEqualTo(b[i][v], Tol), $"case {c}: {what} piece {i} vertex {v}");
@@ -238,26 +242,30 @@ namespace GeometryHelper.UnitTest.Plane
                 bool pathOk = asPath.TrySplitBy(cutters, out GeoPolyline2[] pathIn, out GeoPolyline2[] pathOut, Tol);
 
                 Assert.True(lineOk == pathOk, $"case {c}: line {lineOk} vs path {pathOk}");
-                Assert.True(lineIn.Length == pathIn.Length,
-                    $"case {c}: inside {lineIn.Length} vs {pathIn.Length}");
-                Assert.True(lineOut.Length == pathOut.Length,
-                    $"case {c}: outside {lineOut.Length} vs {pathOut.Length}");
+                Assert.True(lineIn.Length == pathIn.Length, $"case {c}: inside {lineIn.Length} vs {pathIn.Length}");
+                Assert.True(
+                    lineOut.Length == pathOut.Length,
+                    $"case {c}: outside {lineOut.Length} vs {pathOut.Length}"
+                );
 
                 // A straight subject can only produce straight runs, so every merged run is two vertices.
                 foreach (GeoPolyline2 run in pathIn.Concat(pathOut))
                 {
-                    Assert.True(run.VertexCount == 2,
-                        $"case {c}: a straight run came back with {run.VertexCount} vertices");
+                    Assert.True(
+                        run.VertexCount == 2,
+                        $"case {c}: a straight run came back with {run.VertexCount} vertices"
+                    );
                 }
 
                 for (int i = 0; i < lineIn.Length; i++)
                 {
                     Assert.True(lineIn[i].StartPoint.IsEqualTo(pathIn[i][0], Tol), $"case {c}: inside start {i}");
-                    Assert.True(lineIn[i].EndPoint.IsEqualTo(pathIn[i][pathIn[i].VertexCount - 1], Tol),
-                        $"case {c}: inside end {i}");
+                    Assert.True(
+                        lineIn[i].EndPoint.IsEqualTo(pathIn[i][pathIn[i].VertexCount - 1], Tol),
+                        $"case {c}: inside end {i}"
+                    );
                 }
             }
         }
-
     }
 }

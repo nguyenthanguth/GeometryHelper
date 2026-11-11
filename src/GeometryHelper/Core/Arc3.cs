@@ -48,8 +48,7 @@ namespace GeometryHelper.Core
             // tolerance was not enough: a whole degree off, a circle of a metre stands seventeen off the plane.
             double sine = arc.GetPlane().Normal.CrossProduct(plane.Normal).Length;
 
-            return sine * arc.Radius <= tolerance.EqualPlanar
-                && Containment3.IsPointOn(plane, arc.Center, tolerance);
+            return sine * arc.Radius <= tolerance.EqualPlanar && Containment3.IsPointOn(plane, arc.Center, tolerance);
         }
 
         /// <summary>
@@ -65,7 +64,12 @@ namespace GeometryHelper.Core
         /// trillionth, of radius 2.5E13, comes out as exactly as a half circle. The point need not be the arc's middle:
         /// an arc stretched unevenly is answered with the arc through where its ends and its middle land.
         /// </remarks>
-        internal static bool TryBulgeThrough(GeoVector3 toEnd, GeoVector3 toMiddle, out double bulge, out GeoVector3 unitNormal)
+        internal static bool TryBulgeThrough(
+            GeoVector3 toEnd,
+            GeoVector3 toMiddle,
+            out double bulge,
+            out GeoVector3 unitNormal
+        )
         {
             bulge = 0.0;
             unitNormal = default(GeoVector3);
@@ -117,8 +121,14 @@ namespace GeometryHelper.Core
         /// the plane stands 8.64 off it, and an arc 100 long bowing a ten-millionth turned 30 degrees stands 0.0000025
         /// off. See <see cref="StandOff(GeoPlane3, GeoPoint3, GeoPoint3, double, GeoVector3)"/>.
         /// </remarks>
-        internal static bool LiesIn(GeoPlane3 plane, GeoPoint3 start, GeoPoint3 end, double bulge, GeoVector3 unitNormal, Tolerance tolerance)
-            => !(StandOff(plane, start, end, bulge, unitNormal) > tolerance.EqualPlanar);
+        internal static bool LiesIn(
+            GeoPlane3 plane,
+            GeoPoint3 start,
+            GeoPoint3 end,
+            double bulge,
+            GeoVector3 unitNormal,
+            Tolerance tolerance
+        ) => !(StandOff(plane, start, end, bulge, unitNormal) > tolerance.EqualPlanar);
 
         /// <summary>
         /// Gets how far an arc between two points may stand off a plane: no less than any point of it does.
@@ -138,7 +148,13 @@ namespace GeometryHelper.Core
         /// greatest is at a corner: an arc whose ends stand 0.0004 above the plane and which bows down across it to
         /// 0.0004 below stands 0.0004 off, not the 0.0008 of its ends and its dip added up.
         /// </remarks>
-        internal static double StandOff(GeoPlane3 plane, GeoPoint3 start, GeoPoint3 end, double bulge, GeoVector3 unitNormal)
+        internal static double StandOff(
+            GeoPlane3 plane,
+            GeoPoint3 start,
+            GeoPoint3 end,
+            double bulge,
+            GeoVector3 unitNormal
+        )
         {
             double fromStart = plane.SignedDistanceTo(start);
             double fromEnd = plane.SignedDistanceTo(end);
@@ -164,7 +180,8 @@ namespace GeometryHelper.Core
             {
                 return Math.Max(
                     Math.Max(Math.Abs(fromStart), Math.Abs(fromEnd)),
-                    Math.Max(Math.Abs(fromStart + rise), Math.Abs(fromEnd + rise)));
+                    Math.Max(Math.Abs(fromStart + rise), Math.Abs(fromEnd + rise))
+                );
             }
 
             double radius = length * (1.0 + magnitude * magnitude) / (4.0 * magnitude);
@@ -173,7 +190,8 @@ namespace GeometryHelper.Core
 
             return Math.Max(
                 Math.Max(Math.Abs(middle - reach), Math.Abs(middle + reach)),
-                Math.Max(Math.Abs(middle - reach + rise), Math.Abs(middle + reach + rise)));
+                Math.Max(Math.Abs(middle - reach + rise), Math.Abs(middle + reach + rise))
+            );
         }
 
         /// <summary>
@@ -239,7 +257,12 @@ namespace GeometryHelper.Core
         /// then keeps the ones the arc actually sweeps, which is also what rules out a line that lies in a
         /// parallel plane rather than the arc's own.
         /// </remarks>
-        internal static List<GeoPoint3> PointsOnLine(GeoArc3 arc, GeoPoint3 origin, GeoVector3 direction, Tolerance tolerance)
+        internal static List<GeoPoint3> PointsOnLine(
+            GeoArc3 arc,
+            GeoPoint3 origin,
+            GeoVector3 direction,
+            Tolerance tolerance
+        )
         {
             var found = new List<GeoPoint3>();
 
@@ -319,7 +342,18 @@ namespace GeometryHelper.Core
         /// </remarks>
         internal static List<GeoPoint3> PointsOnPlane(GeoArc3 arc, GeoPlane3 plane, Tolerance tolerance)
         {
-            if (!Intersection3.TryGetMeetingLineFrom(arc.Center, arc.Normal, 2.0 * arc.Radius, plane, tolerance, out GeoVector3 offset, out GeoVector3 direction, out _))
+            if (
+                !Intersection3.TryGetMeetingLineFrom(
+                    arc.Center,
+                    arc.Normal,
+                    2.0 * arc.Radius,
+                    plane,
+                    tolerance,
+                    out GeoVector3 offset,
+                    out GeoVector3 direction,
+                    out _
+                )
+            )
             {
                 return new List<GeoPoint3>();
             }
@@ -360,7 +394,13 @@ namespace GeometryHelper.Core
         /// A chain whose segment ends 0.0005 over a plane, its next segment crossing the plane a little further along, was given
         /// the touch at the corner in place of the crossing a hair away from it.
         /// </remarks>
-        internal static void AddOnce(List<GeoPoint3> found, List<bool> touches, GeoPoint3 point, bool touch, Tolerance tolerance)
+        internal static void AddOnce(
+            List<GeoPoint3> found,
+            List<bool> touches,
+            GeoPoint3 point,
+            bool touch,
+            Tolerance tolerance
+        )
         {
             for (int i = 0; i < found.Count; i++)
             {
@@ -387,8 +427,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where an arc crosses a plane.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoPlane3 plane)
-            => GetIntersections(arc, plane, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoPlane3 plane) =>
+            GetIntersections(arc, plane, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where an arc crosses a plane, within a tolerance.
@@ -429,8 +469,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where an arc crosses a plane.
         /// </summary>
-        public static bool TryIntersectWith(GeoArc3 arc, GeoPlane3 plane, out GeoPoint3[] intersections)
-            => TryIntersectWith(arc, plane, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoArc3 arc, GeoPlane3 plane, out GeoPoint3[] intersections) =>
+            TryIntersectWith(arc, plane, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where an arc crosses a plane, within a tolerance.
@@ -439,7 +479,12 @@ namespace GeometryHelper.Core
         /// <param name="plane">The plane.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool TryIntersectWith(GeoArc3 arc, GeoPlane3 plane, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoArc3 arc,
+            GeoPlane3 plane,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(arc, plane, tolerance);
 
@@ -453,8 +498,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where an arc crosses a segment.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoLine3 line)
-            => GetIntersections(arc, line, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoLine3 line) =>
+            GetIntersections(arc, line, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where an arc crosses a segment, within a tolerance.
@@ -475,8 +520,10 @@ namespace GeometryHelper.Core
         /// from (0, 9.9999995, 0) to (0, 10.0000015, 0) meets the arc of radius 10 about the origin at (0, 10, 0), as it does
         /// a hundred times larger, where, shorter than the vector tolerance of 1E-5 read as a length, it was given its start.
         /// </returns>
-        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoLine3 line, Tolerance tolerance)
-            => Stub3.ReadsAsStart(line, tolerance) ? GetIntersectionsOfStub(arc, line, tolerance) : GetIntersections(arc, line, tolerance, out _);
+        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoLine3 line, Tolerance tolerance) =>
+            Stub3.ReadsAsStart(line, tolerance)
+                ? GetIntersectionsOfStub(arc, line, tolerance)
+                : GetIntersections(arc, line, tolerance, out _);
 
         /// <summary>
         /// Gets where a segment no longer than the tolerance, read as its start unless it truly crosses, meets an arc.
@@ -486,7 +533,11 @@ namespace GeometryHelper.Core
         {
             GeoPoint3[] asItIs = GetIntersections(arc, line, Stub3.AsItIs(line, tolerance), out _);
 
-            return Stub3.Meeting(line, asItIs, asItIs.Length == 0 && arc.DistanceTo(line.StartPoint) <= tolerance.EqualPoint);
+            return Stub3.Meeting(
+                line,
+                asItIs,
+                asItIs.Length == 0 && arc.DistanceTo(line.StartPoint) <= tolerance.EqualPoint
+            );
         }
 
         /// <summary>
@@ -520,7 +571,15 @@ namespace GeometryHelper.Core
                     found.Clear();
                 }
 
-                KeepWithin(curve, arc.Radius, found, line.StartPoint, line.EndPoint, () => Touches(curve, line, tolerance), tolerance);
+                KeepWithin(
+                    curve,
+                    arc.Radius,
+                    found,
+                    line.StartPoint,
+                    line.EndPoint,
+                    () => Touches(curve, line, tolerance),
+                    tolerance
+                );
             }
 
             if (found.Count == 0 && MayTouch(arc, line.StartPoint, line.EndPoint, tolerance))
@@ -548,8 +607,17 @@ namespace GeometryHelper.Core
             // and distances read here besides: a few parts in 1E16 of how far the centre, the radius and the segment reach.
             // An arc of radius 1E11 a few million from the origin was read clear of a segment it touched.
             GeoPoint3 centre = arc.Center;
-            double reach = Math.Abs(centre.X) + Math.Abs(centre.Y) + Math.Abs(centre.Z) + arc.Radius
-                + Math.Abs(from.X) + Math.Abs(from.Y) + Math.Abs(from.Z) + Math.Abs(to.X) + Math.Abs(to.Y) + Math.Abs(to.Z);
+            double reach =
+                Math.Abs(centre.X)
+                + Math.Abs(centre.Y)
+                + Math.Abs(centre.Z)
+                + arc.Radius
+                + Math.Abs(from.X)
+                + Math.Abs(from.Y)
+                + Math.Abs(from.Z)
+                + Math.Abs(to.X)
+                + Math.Abs(to.Y)
+                + Math.Abs(to.Z);
             double near = tolerance.EqualPoint * (1.0 + 1E-6) + 1E-9 + 1E-15 * reach;
             GeoVector3 normal = arc.Normal;
             double fromHeight = normal.DotProduct(arc.Center.GetVectorTo(from));
@@ -581,7 +649,8 @@ namespace GeometryHelper.Core
             GeoPoint3 end = from.Add(along.Multiply(high));
             double farthest = Math.Max(arc.Center.DistanceTo(start), arc.Center.DistanceTo(end));
 
-            return !(Gap3.PointToSegment(arc.Center, start, end) - arc.Radius > near) && !(arc.Radius - farthest > near);
+            return !(Gap3.PointToSegment(arc.Center, start, end) - arc.Radius > near)
+                && !(arc.Radius - farthest > near);
         }
 
         /// <summary>
@@ -600,8 +669,8 @@ namespace GeometryHelper.Core
         /// it crosses (30, 40), touches it. A segment no longer than the tolerance is read as its start unless it truly
         /// meets the arc.
         /// </remarks>
-        public static bool CollidesWith(GeoArc3 arc, GeoLine3 line, Tolerance tolerance)
-            => Touches(Gap3.Curve.Of(arc), line, tolerance);
+        public static bool CollidesWith(GeoArc3 arc, GeoLine3 line, Tolerance tolerance) =>
+            Touches(Gap3.Curve.Of(arc), line, tolerance);
 
         /// <summary>
         /// Determines whether an arc, read for the gap, touches a segment a caller gave, within a tolerance.
@@ -615,8 +684,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to find where an arc crosses a segment.
         /// </summary>
-        public static bool TryIntersectWith(GeoArc3 arc, GeoLine3 line, out GeoPoint3[] intersections)
-            => TryIntersectWith(arc, line, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoArc3 arc, GeoLine3 line, out GeoPoint3[] intersections) =>
+            TryIntersectWith(arc, line, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where an arc crosses a segment, within a tolerance.
@@ -625,7 +694,12 @@ namespace GeometryHelper.Core
         /// <param name="line">The segment.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool TryIntersectWith(GeoArc3 arc, GeoLine3 line, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoArc3 arc,
+            GeoLine3 line,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(arc, line, tolerance);
 
@@ -635,7 +709,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets every point where an arc crosses a ray.
         /// </summary>
-        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoRay3 ray) => GetIntersections(arc, ray, Tolerance.Global);
+        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoRay3 ray) =>
+            GetIntersections(arc, ray, Tolerance.Global);
 
         /// <summary>
         /// Gets every point where an arc crosses a ray, within a tolerance.
@@ -645,7 +720,8 @@ namespace GeometryHelper.Core
         /// point of the arc nearest the ray, as for a segment. A point of the circle on the ray's line is given only where the ray,
         /// at its point nearest it, comes within the point tolerance of the arc, as for a segment.
         /// </returns>
-        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoRay3 ray, Tolerance tolerance) => GetIntersections(arc, ray, tolerance, out _);
+        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoRay3 ray, Tolerance tolerance) =>
+            GetIntersections(arc, ray, tolerance, out _);
 
         /// <summary>
         /// Gets every point where an arc crosses a ray, within a tolerance, and whether the one given is the point of a touch
@@ -673,7 +749,14 @@ namespace GeometryHelper.Core
                 Gap3.Curve curve = Gap3.Curve.Of(arc);
 
                 KeepWithin(
-                    curve, arc.Radius, found, ray.Origin, far, () => curve.GapToRay(ray, tolerance.EqualPoint) <= tolerance.EqualPoint, tolerance);
+                    curve,
+                    arc.Radius,
+                    found,
+                    ray.Origin,
+                    far,
+                    () => curve.GapToRay(ray, tolerance.EqualPoint) <= tolerance.EqualPoint,
+                    tolerance
+                );
             }
 
             if (found.Count == 0 && MayTouch(arc, ray.Origin, far, tolerance))
@@ -697,7 +780,14 @@ namespace GeometryHelper.Core
         /// either way is kept only where the two touch, as CollidesWith reads them (asked once).
         /// </summary>
         private static void KeepWithin(
-            Gap3.Curve curve, double radius, List<GeoPoint3> points, GeoPoint3 from, GeoPoint3 to, Func<bool> touch, Tolerance tolerance)
+            Gap3.Curve curve,
+            double radius,
+            List<GeoPoint3> points,
+            GeoPoint3 from,
+            GeoPoint3 to,
+            Func<bool> touch,
+            Tolerance tolerance
+        )
         {
             bool? touching = null;
             GeoVector3 along = from.GetVectorTo(to);
@@ -705,8 +795,13 @@ namespace GeometryHelper.Core
 
             points.RemoveAll(point =>
             {
-                double rounding = 1E-14 * (1.0 + radius + Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z))));
-                double at = squared > 0.0 ? Math.Max(0.0, Math.Min(1.0, from.GetVectorTo(point).DotProduct(along) / squared)) : 0.0;
+                double rounding =
+                    1E-14
+                    * (1.0 + radius + Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z))));
+                double at =
+                    squared > 0.0
+                        ? Math.Max(0.0, Math.Min(1.0, from.GetVectorTo(point).DotProduct(along) / squared))
+                        : 0.0;
                 double off = curve.PointGap(from.Add(along.Multiply(at)));
 
                 if (double.IsNaN(off) || off + rounding <= tolerance.EqualPoint)
@@ -735,14 +830,14 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// They touch where the exact gap between them is no more than the point tolerance, as for a segment.
         /// </remarks>
-        public static bool CollidesWith(GeoArc3 arc, GeoRay3 ray, Tolerance tolerance)
-            => Gap3.Curve.Of(arc).GapToRay(ray, tolerance.EqualPoint) <= tolerance.EqualPoint;
+        public static bool CollidesWith(GeoArc3 arc, GeoRay3 ray, Tolerance tolerance) =>
+            Gap3.Curve.Of(arc).GapToRay(ray, tolerance.EqualPoint) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Tries to find where an arc crosses a ray.
         /// </summary>
-        public static bool TryIntersectWith(GeoArc3 arc, GeoRay3 ray, out GeoPoint3[] intersections)
-            => TryIntersectWith(arc, ray, out intersections, Tolerance.Global);
+        public static bool TryIntersectWith(GeoArc3 arc, GeoRay3 ray, out GeoPoint3[] intersections) =>
+            TryIntersectWith(arc, ray, out intersections, Tolerance.Global);
 
         /// <summary>
         /// Tries to find where an arc crosses a ray, within a tolerance.
@@ -751,7 +846,12 @@ namespace GeometryHelper.Core
         /// <param name="ray">The ray.</param>
         /// <param name="intersections">The crossing points when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public static bool TryIntersectWith(GeoArc3 arc, GeoRay3 ray, out GeoPoint3[] intersections, Tolerance tolerance)
+        public static bool TryIntersectWith(
+            GeoArc3 arc,
+            GeoRay3 ray,
+            out GeoPoint3[] intersections,
+            Tolerance tolerance
+        )
         {
             intersections = GetIntersections(arc, ray, tolerance);
 

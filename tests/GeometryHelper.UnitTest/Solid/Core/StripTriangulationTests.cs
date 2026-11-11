@@ -14,14 +14,17 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Tolerance = Tolerance.Default;
 
-        private static readonly GeoCoordinateSystem3 Frame =
-            new GeoCoordinateSystem3(new GeoPlane3(new GeoPoint3(-25300.75, 61200.5, 3100.0), new GeoVector3(-0.4, 0.1, 0.9).Normalize()));
+        private static readonly GeoCoordinateSystem3 Frame = new GeoCoordinateSystem3(
+            new GeoPlane3(new GeoPoint3(-25300.75, 61200.5, 3100.0), new GeoVector3(-0.4, 0.1, 0.9).Normalize())
+        );
 
         private static GeoPoint3 P(double u, double v) => Frame.ToGlobal(new GeoPoint3(u, v, 0));
 
-        private static GeoPolygon3 Ring(params (double U, double V)[] corners) => new GeoPolygon3(corners.Select(c => P(c.U, c.V)), Tolerance);
+        private static GeoPolygon3 Ring(params (double U, double V)[] corners) =>
+            new GeoPolygon3(corners.Select(c => P(c.U, c.V)), Tolerance);
 
-        private static GeoPolygon3 Square(double u, double v, double side) => Ring((u, v), (u + side, v), (u + side, v + side), (u, v + side));
+        private static GeoPolygon3 Square(double u, double v, double side) =>
+            Ring((u, v), (u + side, v), (u + side, v + side), (u, v + side));
 
         [Fact]
         public void APlateWithAHoleIsCoveredRoundTheHole()
@@ -52,7 +55,8 @@ namespace GeometryHelper.UnitTest.Solid
             var face = new GeoFace3(
                 Ring((0, 0), (300, 0), (300, 100), (120, 100), (120, 250), (0, 250)),
                 new[] { Square(30, 40, 20), Ring((200, 20), (260, 30), (230, 80)) },
-                Tolerance);
+                Tolerance
+            );
 
             GeoTriangle3[] triangles = StripTriangulation.Triangulate(face, Tolerance);
             var used = new HashSet<GeoPoint3>(triangles.SelectMany(t => new[] { t.A, t.B, t.C }));
@@ -72,21 +76,42 @@ namespace GeometryHelper.UnitTest.Solid
             // has them. A point a strip line makes on an edge taken on the plane stood off the edge by as much, and a sliver
             // between it and the corner beside it stood up across the strip.
             GeoPoint3 Q(double u, double v, double w) => Frame.ToGlobal(new GeoPoint3(u, v, w));
-            var boundary = new GeoPolygon3(new[] { Q(0, 0, 1E-4), Q(300, 0, -1E-4), Q(300, 100, 1E-4), Q(120, 100, -1E-4), Q(120, 250, 1E-4), Q(0, 250, -1E-4) }, Tolerance);
-            var hole = new GeoPolygon3(new[] { Q(30, 40, -1E-4), Q(50, 40, 1E-4), Q(50, 60, -1E-4), Q(30, 60, 1E-4) }, Tolerance);
+            var boundary = new GeoPolygon3(
+                new[]
+                {
+                    Q(0, 0, 1E-4),
+                    Q(300, 0, -1E-4),
+                    Q(300, 100, 1E-4),
+                    Q(120, 100, -1E-4),
+                    Q(120, 250, 1E-4),
+                    Q(0, 250, -1E-4),
+                },
+                Tolerance
+            );
+            var hole = new GeoPolygon3(
+                new[] { Q(30, 40, -1E-4), Q(50, 40, 1E-4), Q(50, 60, -1E-4), Q(30, 60, 1E-4) },
+                Tolerance
+            );
             var face = new GeoFace3(boundary, new[] { hole }, Tolerance);
 
             GeoTriangle3[] triangles = StripTriangulation.Triangulate(face, Tolerance);
             var corners = new HashSet<GeoPoint3>(boundary.Vertices.Concat(hole.Vertices));
             var edges = new[] { boundary, hole }
-                .SelectMany(ring => ring.Vertices.Select((corner, i) => new GeoLine3(corner, ring.Vertices[(i + 1) % ring.VertexCount])))
+                .SelectMany(ring =>
+                    ring.Vertices.Select((corner, i) => new GeoLine3(corner, ring.Vertices[(i + 1) % ring.VertexCount]))
+                )
                 .ToArray();
 
             AssertCovers(face, triangles, face.Area, 1E-9);
 
-            foreach (GeoPoint3 point in triangles.SelectMany(t => new[] { t.A, t.B, t.C }).Where(p => !corners.Contains(p)))
+            foreach (
+                GeoPoint3 point in triangles.SelectMany(t => new[] { t.A, t.B, t.C }).Where(p => !corners.Contains(p))
+            )
             {
-                Assert.True(edges.Min(edge => edge.DistanceTo(point)) < 1E-9, $"{point} lies off every edge of the face");
+                Assert.True(
+                    edges.Min(edge => edge.DistanceTo(point)) < 1E-9,
+                    $"{point} lies off every edge of the face"
+                );
             }
         }
 
@@ -120,7 +145,8 @@ namespace GeometryHelper.UnitTest.Solid
             var face = new GeoFace3(
                 Ring((0, 0), (200, 0), (200, 100), (0, 100)),
                 new[] { Square(20, 0, 30), Square(50, 0, 30), Square(80, 30, 20) },
-                Tolerance);
+                Tolerance
+            );
 
             GeoTriangle3[] triangles = StripTriangulation.Triangulate(face, Tolerance);
 
@@ -142,7 +168,10 @@ namespace GeometryHelper.UnitTest.Solid
             foreach (GeoTriangle3 triangle in triangles)
             {
                 Assert.True(triangle.GetAreaVector().DotProduct(face.Normal) > 0.0);
-                Assert.NotEqual(PointLocation.OutSide, Containment3.Locate(face.Boundary, triangle.Centroid, Tolerance));
+                Assert.NotEqual(
+                    PointLocation.OutSide,
+                    Containment3.Locate(face.Boundary, triangle.Centroid, Tolerance)
+                );
 
                 foreach (GeoPolygon3 hole in face.Holes)
                 {

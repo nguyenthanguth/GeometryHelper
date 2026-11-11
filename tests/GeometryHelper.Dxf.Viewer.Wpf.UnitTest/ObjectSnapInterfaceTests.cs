@@ -15,8 +15,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
     {
         private static readonly string[] AutoCadSnaps =
         {
-            "Endpoint", "Midpoint", "Center", "Geometric Center", "Node", "Quadrant", "Intersection", "Extension", "Insertion",
-            "Perpendicular", "Tangent", "Nearest", "Apparent Intersection", "Parallel",
+            "Endpoint",
+            "Midpoint",
+            "Center",
+            "Geometric Center",
+            "Node",
+            "Quadrant",
+            "Intersection",
+            "Extension",
+            "Insertion",
+            "Perpendicular",
+            "Tangent",
+            "Nearest",
+            "Apparent Intersection",
+            "Parallel",
         };
 
         private readonly TestFolder _folder = new TestFolder();
@@ -30,7 +42,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             IReadOnlyList<CadMenuItemViewModel> items = model.OsnapMenu();
 
-            Assert.Equal(AutoCadSnaps.Concat(new[] { string.Empty, "Object Snap Settings..." }), items.Select(i => i.Header));
+            Assert.Equal(
+                AutoCadSnaps.Concat(new[] { string.Empty, "Object Snap Settings..." }),
+                items.Select(i => i.Header)
+            );
             Assert.True(items.Single(i => i.Header == "Endpoint").IsChecked);
             Assert.False(items.Single(i => i.Header == "Nearest").IsChecked);
             Assert.False(items.Single(i => i.Header == "Node").IsChecked);
@@ -43,7 +58,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.True(item.Command.CanExecute(null));
             }
 
-            Assert.All(items.Where(i => !i.IsSeparator && i.Header != "Object Snap Settings..."), i => Assert.True(i.IsCheckable));
+            Assert.All(items.Where(i => !i.IsSeparator && i.Header != "Object Snap Settings..."), i =>
+                Assert.True(i.IsCheckable)
+            );
         }
 
         [Fact]
@@ -180,8 +197,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             IReadOnlyList<CadMenuItemViewModel> items = model.SnapOverrideMenu();
 
-            Assert.Equal(new[] { "Temporary track point", "From", "Mid Between 2 Points", "Point Filters", string.Empty, "Endpoint", "Midpoint", "Intersection", "Apparent Intersection", "Extension", "Center", "Geometric Center", "Quadrant", "Tangent", "Perpendicular", "Parallel", "Node", "Insertion", "Nearest", "None", string.Empty, "Osnap Settings..." },
-                items.Select(i => i.Header));
+            Assert.Equal(
+                new[]
+                {
+                    "Temporary track point",
+                    "From",
+                    "Mid Between 2 Points",
+                    "Point Filters",
+                    string.Empty,
+                    "Endpoint",
+                    "Midpoint",
+                    "Intersection",
+                    "Apparent Intersection",
+                    "Extension",
+                    "Center",
+                    "Geometric Center",
+                    "Quadrant",
+                    "Tangent",
+                    "Perpendicular",
+                    "Parallel",
+                    "Node",
+                    "Insertion",
+                    "Nearest",
+                    "None",
+                    string.Empty,
+                    "Osnap Settings...",
+                },
+                items.Select(i => i.Header)
+            );
             items.Single(i => i.Header == "Midpoint").Command.Execute(null);
             Assert.Equal(CadSnapModes.Midpoint, model.Snap.Override);
             Assert.Equal(CadSnapKind.Midpoint, model.SnapAt(new GeoPoint2(2001, 1), 2.0).Kind);

@@ -1,10 +1,16 @@
-<UserControl x:Class="GeometryHelper.Dxf.Viewer.Wpf.AppMenuView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
-             Width="620" FontFamily="{DynamicResource GhFont}" FontSize="12" Foreground="{DynamicResource GhText}"
-             UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
-
+<UserControl
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.AppMenuView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Width="620"
+    FontFamily="{DynamicResource GhFont}"
+    FontSize="12"
+    Foreground="{DynamicResource GhText}"
+    UseLayoutRounding="True"
+    SnapsToDevicePixels="True"
+    TextOptions.TextFormattingMode="Display"
+>
     <!--
     The application menu of the G button (design AppMenu): the search box, the column of New, Open, Save, Save As, Export, Print
     and Close, and at the right Recent Documents or the list of the item the pointer rests on; Options and Exit at the foot.
@@ -28,12 +34,23 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <Border x:Name="Chrome" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
-                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                            <Border
+                                x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}"
+                            >
+                                <ContentPresenter
+                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                    VerticalAlignment="Center"
+                                />
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhSelected}" />
+                                    <Setter
+                                        TargetName="Chrome"
+                                        Property="Background"
+                                        Value="{StaticResource GhSelected}"
+                                    />
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
@@ -47,25 +64,69 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Border Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4">
+    <Border
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        CornerRadius="4"
+    >
         <DockPanel>
             <!-- Search: the commands whose name holds the words typed. -->
-            <Border DockPanel.Dock="Top" Padding="12,10" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,0,0,1">
-                <Border Background="{StaticResource GhInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="2" Padding="8,5">
+            <Border
+                DockPanel.Dock="Top"
+                Padding="12,10"
+                BorderBrush="{StaticResource GhBorder}"
+                BorderThickness="0,0,0,1"
+            >
+                <Border
+                    Background="{StaticResource GhInput}"
+                    BorderBrush="{StaticResource GhBorder}"
+                    BorderThickness="1"
+                    CornerRadius="2"
+                    Padding="8,5"
+                >
                     <DockPanel>
-                        <local:IconView Size="14" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconSearch}" Margin="0,0,6,0" VerticalAlignment="Center" />
-                        <TextBox x:Name="SearchBox" Style="{StaticResource GhTextBox}" Tag="Search commands" AutomationProperties.Name="Search commands"
-                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" KeyDown="OnSearchKey" />
+                        <local:IconView
+                            Size="14"
+                            StrokeThickness="2"
+                            Stroke="{StaticResource GhTextMuted}"
+                            Data="{StaticResource GhIconSearch}"
+                            Margin="0,0,6,0"
+                            VerticalAlignment="Center"
+                        />
+                        <TextBox
+                            x:Name="SearchBox"
+                            Style="{StaticResource GhTextBox}"
+                            Tag="Search commands"
+                            AutomationProperties.Name="Search commands"
+                            Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                            KeyDown="OnSearchKey"
+                        />
                     </DockPanel>
                 </Border>
             </Border>
 
             <!-- Options and Exit. -->
-            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,1,0,0" Padding="12,8">
+            <Border
+                DockPanel.Dock="Bottom"
+                Background="{StaticResource GhHeader}"
+                BorderBrush="{StaticResource GhBorder}"
+                BorderThickness="0,1,0,0"
+                Padding="12,8"
+            >
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Style="{StaticResource GhDialogButton}" Content="Options" Command="{Binding OptionsCommand}" Margin="0,0,8,0"
-                            ToolTip="Global settings (OPTIONS)" />
-                    <Button Style="{StaticResource GhDialogButton}" Content="{Binding ExitText}" Command="{Binding ExitCommand}" />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Options"
+                        Command="{Binding OptionsCommand}"
+                        Margin="0,0,8,0"
+                        ToolTip="Global settings (OPTIONS)"
+                    />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="{Binding ExitText}"
+                        Command="{Binding ExitCommand}"
+                    />
                 </StackPanel>
             </Border>
 
@@ -76,20 +137,54 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- The left column: an item with ▸ shows its list at the right while the pointer rests on it; a click runs its first entry. -->
-                <Border Background="{StaticResource GhHeader}" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,0,1,0" Padding="0,6">
+                <Border
+                    Background="{StaticResource GhHeader}"
+                    BorderBrush="{StaticResource GhBorder}"
+                    BorderThickness="0,0,1,0"
+                    Padding="0,6"
+                >
                     <ItemsControl ItemsSource="{Binding Items}" Focusable="False">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type local:AppMenuItemViewModel}">
                                 <Grid>
-                                    <Border x:Name="Rule" Margin="10,4" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,1,0,0" Visibility="Collapsed" />
-                                    <Button x:Name="Item" Style="{StaticResource MenuRow}" Padding="12,6" Click="OnItemClick" MouseEnter="OnItemEnter"
-                                            IsEnabled="{Binding IsEnabled}" AutomationProperties.Name="{Binding Name}">
+                                    <Border
+                                        x:Name="Rule"
+                                        Margin="10,4"
+                                        BorderBrush="{StaticResource GhBorder}"
+                                        BorderThickness="0,1,0,0"
+                                        Visibility="Collapsed"
+                                    />
+                                    <Button
+                                        x:Name="Item"
+                                        Style="{StaticResource MenuRow}"
+                                        Padding="12,6"
+                                        Click="OnItemClick"
+                                        MouseEnter="OnItemEnter"
+                                        IsEnabled="{Binding IsEnabled}"
+                                        AutomationProperties.Name="{Binding Name}"
+                                    >
                                         <DockPanel>
-                                            <TextBlock DockPanel.Dock="Right" Text="▸" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center"
-                                                       Visibility="{Binding HasItems, Converter={StaticResource Shown}}" />
-                                            <local:IconView Size="26" StrokeThickness="1.6" Stroke="{StaticResource GhIcon}" Data="{Binding IconKey, Converter={StaticResource Icon}}"
-                                                            VerticalAlignment="Center" Margin="0,0,10,0" />
-                                            <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="Medium" VerticalAlignment="Center" />
+                                            <TextBlock
+                                                DockPanel.Dock="Right"
+                                                Text="▸"
+                                                Foreground="{StaticResource GhTextMuted}"
+                                                VerticalAlignment="Center"
+                                                Visibility="{Binding HasItems, Converter={StaticResource Shown}}"
+                                            />
+                                            <local:IconView
+                                                Size="26"
+                                                StrokeThickness="1.6"
+                                                Stroke="{StaticResource GhIcon}"
+                                                Data="{Binding IconKey, Converter={StaticResource Icon}}"
+                                                VerticalAlignment="Center"
+                                                Margin="0,0,10,0"
+                                            />
+                                            <TextBlock
+                                                Text="{Binding Name}"
+                                                FontSize="13"
+                                                FontWeight="Medium"
+                                                VerticalAlignment="Center"
+                                            />
                                         </DockPanel>
                                     </Button>
                                 </Grid>
@@ -99,7 +194,11 @@
                                         <Setter TargetName="Item" Property="Visibility" Value="Collapsed" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding IsShown}" Value="True">
-                                        <Setter TargetName="Item" Property="Background" Value="{StaticResource GhSelected}" />
+                                        <Setter
+                                            TargetName="Item"
+                                            Property="Background"
+                                            Value="{StaticResource GhSelected}"
+                                        />
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>
@@ -111,11 +210,22 @@
                     <!-- Recent Documents: the pinned files first, a rule, then the others newest first. -->
                     <DockPanel Visibility="{Binding IsRecentShown, Converter={StaticResource Shown}}">
                         <DockPanel DockPanel.Dock="Top" Margin="14,10,14,6">
-                            <TextBlock DockPanel.Dock="Right" Text="By Ordered List" Foreground="{StaticResource GhIcon}" VerticalAlignment="Center"
-                                       ToolTip="Pinned files first in the order pinned, then the others by the date opened, newest first" />
+                            <TextBlock
+                                DockPanel.Dock="Right"
+                                Text="By Ordered List"
+                                Foreground="{StaticResource GhIcon}"
+                                VerticalAlignment="Center"
+                                ToolTip="Pinned files first in the order pinned, then the others by the date opened, newest first"
+                            />
                             <TextBlock Text="Recent Documents" FontSize="13" FontWeight="SemiBold" />
                         </DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Margin="14,6" Foreground="{StaticResource GhTextMuted}" Text="No drawing opened yet." TextWrapping="Wrap">
+                        <TextBlock
+                            DockPanel.Dock="Top"
+                            Margin="14,6"
+                            Foreground="{StaticResource GhTextMuted}"
+                            Text="No drawing opened yet."
+                            TextWrapping="Wrap"
+                        >
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="Visibility" Value="Collapsed" />
@@ -131,15 +241,43 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type local:RecentDocumentViewModel}">
                                     <StackPanel>
-                                        <Border x:Name="Rule" Margin="14,3" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,1,0,0" Visibility="Collapsed" />
+                                        <Border
+                                            x:Name="Rule"
+                                            Margin="14,3"
+                                            BorderBrush="{StaticResource GhBorder}"
+                                            BorderThickness="0,1,0,0"
+                                            Visibility="Collapsed"
+                                        />
                                         <DockPanel>
-                                            <Button DockPanel.Dock="Right" Style="{StaticResource RecentPinButton}" Content="{Binding}" Command="{Binding PinCommand}"
-                                                    Margin="0,0,10,0" ToolTip="{Binding PinText}" AutomationProperties.Name="{Binding PinText}" />
-                                            <Button Style="{StaticResource MenuRow}" Padding="14,4,6,4" Click="OnRecentClick" ToolTip="{StaticResource RecentDocumentToolTip}"
-                                                    AutomationProperties.Name="{Binding Name}">
+                                            <Button
+                                                DockPanel.Dock="Right"
+                                                Style="{StaticResource RecentPinButton}"
+                                                Content="{Binding}"
+                                                Command="{Binding PinCommand}"
+                                                Margin="0,0,10,0"
+                                                ToolTip="{Binding PinText}"
+                                                AutomationProperties.Name="{Binding PinText}"
+                                            />
+                                            <Button
+                                                Style="{StaticResource MenuRow}"
+                                                Padding="14,4,6,4"
+                                                Click="OnRecentClick"
+                                                ToolTip="{StaticResource RecentDocumentToolTip}"
+                                                AutomationProperties.Name="{Binding Name}"
+                                            >
                                                 <DockPanel>
-                                                    <local:IconView Size="16" StrokeThickness="1.6" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconNew}" Margin="0,0,8,0" />
-                                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                    <local:IconView
+                                                        Size="16"
+                                                        StrokeThickness="1.6"
+                                                        Stroke="{StaticResource GhTextMuted}"
+                                                        Data="{StaticResource GhIconNew}"
+                                                        Margin="0,0,8,0"
+                                                    />
+                                                    <TextBlock
+                                                        Text="{Binding Name}"
+                                                        TextTrimming="CharacterEllipsis"
+                                                        VerticalAlignment="Center"
+                                                    />
                                                 </DockPanel>
                                             </Button>
                                         </DockPanel>
@@ -169,18 +307,40 @@
                                 </Style.Triggers>
                             </Style>
                         </DockPanel.Style>
-                        <TextBlock DockPanel.Dock="Top" Margin="14,10,14,6" Text="{Binding ShownTitle}" FontSize="13" FontWeight="SemiBold" />
+                        <TextBlock
+                            DockPanel.Dock="Top"
+                            Margin="14,10,14,6"
+                            Text="{Binding ShownTitle}"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                        />
                         <ItemsControl ItemsSource="{Binding ShownItem.Items}" Focusable="False">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type local:AppMenuItemViewModel}">
-                                    <Button Style="{StaticResource MenuRow}" Padding="14,6" Click="OnEntryClick" IsEnabled="{Binding IsEnabled}"
-                                            AutomationProperties.Name="{Binding Name}">
+                                    <Button
+                                        Style="{StaticResource MenuRow}"
+                                        Padding="14,6"
+                                        Click="OnEntryClick"
+                                        IsEnabled="{Binding IsEnabled}"
+                                        AutomationProperties.Name="{Binding Name}"
+                                    >
                                         <DockPanel>
-                                            <local:IconView x:Name="Icon" Size="26" StrokeThickness="1.6" Stroke="{StaticResource GhIcon}"
-                                                            Data="{Binding IconKey, Converter={StaticResource Icon}}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                            <local:IconView
+                                                x:Name="Icon"
+                                                Size="26"
+                                                StrokeThickness="1.6"
+                                                Stroke="{StaticResource GhIcon}"
+                                                Data="{Binding IconKey, Converter={StaticResource Icon}}"
+                                                VerticalAlignment="Center"
+                                                Margin="0,0,10,0"
+                                            />
                                             <StackPanel VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                                                <TextBlock Text="{Binding Description}" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" />
+                                                <TextBlock
+                                                    Text="{Binding Description}"
+                                                    Foreground="{StaticResource GhTextMuted}"
+                                                    TextWrapping="Wrap"
+                                                />
                                             </StackPanel>
                                         </DockPanel>
                                     </Button>
@@ -196,8 +356,19 @@
 
                     <!-- The commands the search found. -->
                     <DockPanel Visibility="{Binding IsSearching, Converter={StaticResource Shown}}">
-                        <TextBlock DockPanel.Dock="Top" Margin="14,10,14,6" Text="Commands" FontSize="13" FontWeight="SemiBold" />
-                        <TextBlock DockPanel.Dock="Top" Margin="14,6" Foreground="{StaticResource GhTextMuted}" Text="No command holds these letters, or no drawing is open.">
+                        <TextBlock
+                            DockPanel.Dock="Top"
+                            Margin="14,10,14,6"
+                            Text="Commands"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                        />
+                        <TextBlock
+                            DockPanel.Dock="Top"
+                            Margin="14,6"
+                            Foreground="{StaticResource GhTextMuted}"
+                            Text="No command holds these letters, or no drawing is open."
+                        >
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="Visibility" Value="Collapsed" />
@@ -213,10 +384,30 @@
                             <ItemsControl ItemsSource="{Binding SearchResults}" Focusable="False">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type local:CommandSuggestionViewModel}">
-                                        <Button Style="{StaticResource MenuRow}" Padding="14,4" Click="OnResultClick" AutomationProperties.Name="{Binding Name}">
+                                        <Button
+                                            Style="{StaticResource MenuRow}"
+                                            Padding="14,4"
+                                            Click="OnResultClick"
+                                            AutomationProperties.Name="{Binding Name}"
+                                        >
                                             <DockPanel>
-                                                <TextBlock DockPanel.Dock="Right" Text="{Binding Note}" Foreground="{StaticResource GhTextMuted}" FontSize="11" FontWeight="Medium" />
-                                                <TextBlock FontFamily="{StaticResource GhMonoFont}"><Run Text="{Binding Before, Mode=OneWay}" /><Run Text="{Binding Hit, Mode=OneWay}" Foreground="#6CB6FF" FontWeight="Bold" /><Run Text="{Binding After, Mode=OneWay}" /><Run Text="{Binding Synonym, Mode=OneWay}" Foreground="{StaticResource GhTextMuted}" /></TextBlock>
+                                                <TextBlock
+                                                    DockPanel.Dock="Right"
+                                                    Text="{Binding Note}"
+                                                    Foreground="{StaticResource GhTextMuted}"
+                                                    FontSize="11"
+                                                    FontWeight="Medium"
+                                                />
+                                                <TextBlock FontFamily="{StaticResource GhMonoFont}">
+                                                    <Run Text="{Binding Before, Mode=OneWay}" /><Run
+                                                        Text="{Binding Hit, Mode=OneWay}"
+                                                        Foreground="#6CB6FF"
+                                                        FontWeight="Bold"
+                                                    /><Run Text="{Binding After, Mode=OneWay}" /><Run
+                                                        Text="{Binding Synonym, Mode=OneWay}"
+                                                        Foreground="{StaticResource GhTextMuted}"
+                                                    />
+                                                </TextBlock>
                                             </DockPanel>
                                         </Button>
                                     </DataTemplate>

@@ -22,8 +22,8 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private const double HalfDegree = Math.PI / 360.0;
 
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
         private static GeoLine3 Member(double length, double angle, double z)
         {
@@ -38,7 +38,11 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(0.05)]
         public void TenMetreMembersCrossWhereverTheyCross(double angleDegrees)
         {
-            GeoTransform3 anywhere = GeoTransform3.RotationAxis(new GeoPoint3(100, 200, 300), new GeoVector3(1, 2, 3), 0.7);
+            GeoTransform3 anywhere = GeoTransform3.RotationAxis(
+                new GeoPoint3(100, 200, 300),
+                new GeoVector3(1, 2, 3),
+                0.7
+            );
             GeoLine3 first = Member(10000, 0, 0).TransformBy(anywhere);
             GeoLine3 second = Member(10000, angleDegrees * Math.PI / 180.0, 0).TransformBy(anywhere);
 
@@ -64,7 +68,8 @@ namespace GeometryHelper.UnitTest.Solid
             var ground = new GeoPlane3(GeoPoint3.Origin, GeoVector3.ZAxis);
             var sloping = new GeoLine3(
                 new GeoPoint3(-5000 * Math.Cos(HalfDegree), 0, -5000 * Math.Sin(HalfDegree)),
-                new GeoPoint3(5000 * Math.Cos(HalfDegree), 0, 5000 * Math.Sin(HalfDegree)));
+                new GeoPoint3(5000 * Math.Cos(HalfDegree), 0, 5000 * Math.Sin(HalfDegree))
+            );
 
             Assert.True(sloping.TryIntersectWith(ground, out GeoPoint3 crossing));
             Assert.True(crossing.DistanceTo(GeoPoint3.Origin) < 1E-6);
@@ -78,7 +83,10 @@ namespace GeometryHelper.UnitTest.Solid
         public void ARayComingDownAtHalfADegreeReachesThePlane()
         {
             var ground = new GeoPlane3(GeoPoint3.Origin, GeoVector3.ZAxis);
-            var ray = new GeoRay3(new GeoPoint3(0, 0, 10), new GeoVector3(Math.Cos(HalfDegree), 0, -Math.Sin(HalfDegree)));
+            var ray = new GeoRay3(
+                new GeoPoint3(0, 0, 10),
+                new GeoVector3(Math.Cos(HalfDegree), 0, -Math.Sin(HalfDegree))
+            );
 
             Assert.True(ray.TryIntersectWith(ground, out GeoPoint3 crossing));
             Assert.Equal(10.0 / Math.Tan(HalfDegree), crossing.X, 6);
@@ -101,7 +109,11 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPoint3 At(double degrees)
             {
                 double t = degrees * Math.PI / 180.0;
-                return new GeoPoint3(1000 * Math.Cos(t), 1000 * Math.Sin(t) * Math.Cos(HalfDegree), 1000 * Math.Sin(t) * Math.Sin(HalfDegree));
+                return new GeoPoint3(
+                    1000 * Math.Cos(t),
+                    1000 * Math.Sin(t) * Math.Cos(HalfDegree),
+                    1000 * Math.Sin(t) * Math.Sin(HalfDegree)
+                );
             }
 
             GeoArc3 arc = GeoArc3.FromThreePoints(At(-60), At(90), At(240));
@@ -136,10 +148,14 @@ namespace GeometryHelper.UnitTest.Solid
             // of B meet A's plane at under a degree. The corner was never cut off, and the union counted it
             // twice.
             GeoSolid3 a = Box(30, 30, 10, 50, 60, 40);
-            GeoSolid3 b = Box(50, 30, 30, 80, 40, 50).TransformBy(GeoTransform3.RotationAxis(
-                new GeoPoint3(65, 35, 40),
-                new GeoVector3(-0.16476136965898858, -0.79640185544099751, 0.12238379455748193),
-                1.2022325912500884));
+            GeoSolid3 b = Box(50, 30, 30, 80, 40, 50)
+                .TransformBy(
+                    GeoTransform3.RotationAxis(
+                        new GeoPoint3(65, 35, 40),
+                        new GeoVector3(-0.16476136965898858, -0.79640185544099751, 0.12238379455748193),
+                        1.2022325912500884
+                    )
+                );
 
             Assert.True(a.TryIntersect(b, out GeoSolid3 shared));
             Assert.True(a.TryUnion(b, out GeoSolid3 union));
@@ -160,8 +176,12 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoSolid3 Next()
             {
-                int x0 = Whole(0, 6) * 10, y0 = Whole(0, 6) * 10, z0 = Whole(0, 6) * 10;
-                int sx = Whole(1, 5) * 10, sy = Whole(1, 5) * 10, sz = Whole(1, 5) * 10;
+                int x0 = Whole(0, 6) * 10,
+                    y0 = Whole(0, 6) * 10,
+                    z0 = Whole(0, 6) * 10;
+                int sx = Whole(1, 5) * 10,
+                    sy = Whole(1, 5) * 10,
+                    sz = Whole(1, 5) * 10;
                 GeoSolid3 box = Box(x0, y0, z0, x0 + sx, y0 + sy, z0 + sz);
 
                 if (rng.NextDouble() < 0.5)
@@ -183,10 +203,24 @@ namespace GeometryHelper.UnitTest.Solid
                 double slack = 1E-7 * (a.GetVolume() + b.GetVolume());
 
                 Assert.True(a.TryUnion(b, out GeoSolid3 union), $"pair {k}");
-                Assert.True(Math.Abs(union.GetVolume() + both - a.GetVolume() - b.GetVolume()) < slack, $"pair {k}: union");
-                Assert.True(Math.Abs((a.TrySubtract(b, out GeoSolid3 ab) ? ab.GetVolume() : 0.0) - (a.GetVolume() - both)) < slack, $"pair {k}: a - b");
-                Assert.True(Math.Abs((b.TrySubtract(a, out GeoSolid3 ba) ? ba.GetVolume() : 0.0) - (b.GetVolume() - both)) < slack, $"pair {k}: b - a");
-                Assert.True(Math.Abs(a.Intersect(b).Sum(piece => piece.GetVolume()) - both) < slack, $"pair {k}: pieces");
+                Assert.True(
+                    Math.Abs(union.GetVolume() + both - a.GetVolume() - b.GetVolume()) < slack,
+                    $"pair {k}: union"
+                );
+                Assert.True(
+                    Math.Abs((a.TrySubtract(b, out GeoSolid3 ab) ? ab.GetVolume() : 0.0) - (a.GetVolume() - both))
+                        < slack,
+                    $"pair {k}: a - b"
+                );
+                Assert.True(
+                    Math.Abs((b.TrySubtract(a, out GeoSolid3 ba) ? ba.GetVolume() : 0.0) - (b.GetVolume() - both))
+                        < slack,
+                    $"pair {k}: b - a"
+                );
+                Assert.True(
+                    Math.Abs(a.Intersect(b).Sum(piece => piece.GetVolume()) - both) < slack,
+                    $"pair {k}: pieces"
+                );
             }
         }
     }

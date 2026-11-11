@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -25,18 +25,23 @@ namespace GeometryHelper.UnitTest.Solid
             yield return GeoTransform3.Translation(new GeoVector3(1000.0, -2000.0, 3000.0));
             yield return GeoTransform3.RotationZ(0.7);
             yield return GeoTransform3.RotationAxis(new GeoVector3(1.0, 2.0, 3.0), 1.3);
-            yield return GeoTransform3.Translation(new GeoVector3(5.0, 5.0, 5.0))
+            yield return GeoTransform3
+                .Translation(new GeoVector3(5.0, 5.0, 5.0))
                 .Multiply(GeoTransform3.RotationAxis(new GeoVector3(-3.0, 1.0, 2.0), 2.1));
-            yield return GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(1.0, 0.0, 0.0), new GeoVector3(1.0, 1.0, 1.0)));
+            yield return GeoTransform3.Mirror(
+                new GeoPlane3(new GeoPoint3(1.0, 0.0, 0.0), new GeoVector3(1.0, 1.0, 1.0))
+            );
         }
 
-        private static GeoPolygon3 MakeLShape() => new GeoPolygon3(
-            new GeoPoint3(0.0, 0.0, 0.0),
-            new GeoPoint3(10.0, 0.0, 0.0),
-            new GeoPoint3(10.0, 4.0, 0.0),
-            new GeoPoint3(4.0, 4.0, 0.0),
-            new GeoPoint3(4.0, 10.0, 0.0),
-            new GeoPoint3(0.0, 10.0, 0.0));
+        private static GeoPolygon3 MakeLShape() =>
+            new GeoPolygon3(
+                new GeoPoint3(0.0, 0.0, 0.0),
+                new GeoPoint3(10.0, 0.0, 0.0),
+                new GeoPoint3(10.0, 4.0, 0.0),
+                new GeoPoint3(4.0, 4.0, 0.0),
+                new GeoPoint3(4.0, 10.0, 0.0),
+                new GeoPoint3(0.0, 10.0, 0.0)
+            );
 
         private static GeoSolid3 MakeCube() =>
             new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(10.0, 10.0, 10.0)).ToObb().ToSolid();
@@ -75,7 +80,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(3.0, 0.0, 0.0),
                 new GeoPoint3(3.0, 4.0, 0.0),
-                new GeoPoint3(3.0, 4.0, 12.0));
+                new GeoPoint3(3.0, 4.0, 12.0)
+            );
 
             foreach (GeoTransform3 motion in RigidMotions())
             {
@@ -120,7 +126,11 @@ namespace GeometryHelper.UnitTest.Solid
             GeoLine3 line = new GeoLine3(new GeoPoint3(-5.0, 0.0, 0.0), new GeoPoint3(5.0, 2.0, 1.0));
             GeoLine3 other = new GeoLine3(new GeoPoint3(0.0, -8.0, 4.0), new GeoPoint3(3.0, 8.0, -2.0));
             GeoPlane3 plane = new GeoPlane3(new GeoPoint3(1.0, 1.0, 1.0), new GeoVector3(2.0, -1.0, 3.0));
-            GeoTriangle3 triangle = new GeoTriangle3(GeoPoint3.Origin, new GeoPoint3(6.0, 0.0, 0.0), new GeoPoint3(0.0, 8.0, 0.0));
+            GeoTriangle3 triangle = new GeoTriangle3(
+                GeoPoint3.Origin,
+                new GeoPoint3(6.0, 0.0, 0.0),
+                new GeoPoint3(0.0, 8.0, 0.0)
+            );
 
             Assert.Equal(Distance3.DistanceTo(line, point), point.DistanceTo(line), 12);
             Assert.Equal(Distance3.DistanceTo(plane, point), point.DistanceTo(plane), 12);
@@ -133,21 +143,29 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoPolygon3 polygon = MakeLShape();
             GeoObb3 box = new GeoObb3(new GeoPoint3(1.0, 2.0, 3.0), 4.0, 5.0, 6.0);
-            GeoTriangle3 triangle = new GeoTriangle3(GeoPoint3.Origin, new GeoPoint3(6.0, 0.0, 0.0), new GeoPoint3(0.0, 8.0, 0.0));
+            GeoTriangle3 triangle = new GeoTriangle3(
+                GeoPoint3.Origin,
+                new GeoPoint3(6.0, 0.0, 0.0),
+                new GeoPoint3(0.0, 8.0, 0.0)
+            );
 
             GeoPoint3[] probes =
             {
                 new GeoPoint3(5.0, 5.0, 5.0),
                 new GeoPoint3(-10.0, -10.0, 0.0),
                 new GeoPoint3(100.0, 3.0, -7.0),
-                new GeoPoint3(2.0, 2.0, 0.0)
+                new GeoPoint3(2.0, 2.0, 0.0),
             };
 
             foreach (GeoPoint3 probe in probes)
             {
                 Assert.Equal(polygon.DistanceTo(probe), polygon.GetClosestPointOnBoundary(probe).DistanceTo(probe), 9);
                 Assert.Equal(box.DistanceTo(probe), box.GetClosestPointOnBoundary(probe).DistanceTo(probe), 9);
-                Assert.Equal(triangle.DistanceTo(probe), triangle.GetClosestPointOnBoundary(probe).DistanceTo(probe), 9);
+                Assert.Equal(
+                    triangle.DistanceTo(probe),
+                    triangle.GetClosestPointOnBoundary(probe).DistanceTo(probe),
+                    9
+                );
             }
         }
 
@@ -188,8 +206,14 @@ namespace GeometryHelper.UnitTest.Solid
         public void CollisionIsSymmetricForEveryPairItIsDefinedOn()
         {
             GeoObb3 box1 = new GeoObb3(GeoPoint3.Origin, 10.0, 10.0, 10.0);
-            GeoObb3 box2 = new GeoObb3(new GeoPoint3(6.0, 2.0, 1.0), 8.0, 4.0, 4.0,
-                new GeoVector3(1.0, 1.0, 0.0), new GeoVector3(-1.0, 1.0, 0.0));
+            GeoObb3 box2 = new GeoObb3(
+                new GeoPoint3(6.0, 2.0, 1.0),
+                8.0,
+                4.0,
+                4.0,
+                new GeoVector3(1.0, 1.0, 0.0),
+                new GeoVector3(-1.0, 1.0, 0.0)
+            );
 
             GeoSolid3 solid1 = box1.ToSolid();
             GeoSolid3 solid2 = box2.ToSolid();
@@ -197,8 +221,16 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(Collision3.CollidesWith(box1, box2), Collision3.CollidesWith(box2, box1));
             Assert.Equal(Collision3.CollidesWith(solid1, solid2), Collision3.CollidesWith(solid2, solid1));
 
-            GeoTriangle3 t1 = new GeoTriangle3(GeoPoint3.Origin, new GeoPoint3(10.0, 0.0, 0.0), new GeoPoint3(0.0, 10.0, 0.0));
-            GeoTriangle3 t2 = new GeoTriangle3(new GeoPoint3(2.0, 2.0, -5.0), new GeoPoint3(2.0, 2.0, 5.0), new GeoPoint3(8.0, 2.0, 5.0));
+            GeoTriangle3 t1 = new GeoTriangle3(
+                GeoPoint3.Origin,
+                new GeoPoint3(10.0, 0.0, 0.0),
+                new GeoPoint3(0.0, 10.0, 0.0)
+            );
+            GeoTriangle3 t2 = new GeoTriangle3(
+                new GeoPoint3(2.0, 2.0, -5.0),
+                new GeoPoint3(2.0, 2.0, 5.0),
+                new GeoPoint3(8.0, 2.0, 5.0)
+            );
 
             Assert.Equal(Collision3.CollidesWith(t1, t2), Collision3.CollidesWith(t2, t1));
         }
@@ -207,7 +239,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void DegenerateInputsAnswerRatherThanCrash()
         {
             GeoLine3 dot = new GeoLine3(new GeoPoint3(1.0, 1.0, 1.0), new GeoPoint3(1.0, 1.0, 1.0));
-            GeoTriangle3 sliver = new GeoTriangle3(GeoPoint3.Origin, new GeoPoint3(1.0, 0.0, 0.0), new GeoPoint3(2.0, 0.0, 0.0));
+            GeoTriangle3 sliver = new GeoTriangle3(
+                GeoPoint3.Origin,
+                new GeoPoint3(1.0, 0.0, 0.0),
+                new GeoPoint3(2.0, 0.0, 0.0)
+            );
             GeoObb3 flatBox = new GeoObb3(GeoPoint3.Origin, 10.0, 10.0, 0.0);
             GeoPoint3 probe = new GeoPoint3(5.0, 5.0, 5.0);
 
@@ -234,8 +270,14 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.True(polygonBounds.Contains(vertex, loose));
             }
 
-            GeoObb3 box = new GeoObb3(new GeoPoint3(1.0, 2.0, 3.0), 4.0, 5.0, 6.0,
-                new GeoVector3(1.0, 2.0, 3.0), new GeoVector3(0.0, 1.0, 0.0));
+            GeoObb3 box = new GeoObb3(
+                new GeoPoint3(1.0, 2.0, 3.0),
+                4.0,
+                5.0,
+                6.0,
+                new GeoVector3(1.0, 2.0, 3.0),
+                new GeoVector3(0.0, 1.0, 0.0)
+            );
             GeoAabb3 boxBounds = box.GetAabb();
 
             foreach (GeoPoint3 corner in box.GetCorners())
@@ -260,7 +302,8 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPolyline3 polyline = new GeoPolyline3(
                 new GeoPoint3(0.0, 0.0, 0.0),
                 new GeoPoint3(3.0, 0.0, 0.0),
-                new GeoPoint3(3.0, 4.0, 0.0));
+                new GeoPoint3(3.0, 4.0, 0.0)
+            );
 
             for (double t = 0.0; t <= 1.0; t += 0.1)
             {

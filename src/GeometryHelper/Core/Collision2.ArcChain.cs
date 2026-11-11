@@ -57,8 +57,10 @@ namespace GeometryHelper.Core
             // beside the other or one inside the other, settle it without measuring.
             double apart = Distance2.DistanceTo(first.Center, second.Center);
 
-            if (apart > first.Radius + second.Radius + tolerance.EqualPoint
-                || apart < Math.Abs(first.Radius - second.Radius) - tolerance.EqualPoint)
+            if (
+                apart > first.Radius + second.Radius + tolerance.EqualPoint
+                || apart < Math.Abs(first.Radius - second.Radius) - tolerance.EqualPoint
+            )
             {
                 return false;
             }
@@ -100,7 +102,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool CollidesWith(GeoPolygon2 poly, GeoArc2 arc, Tolerance tolerance)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             return CrossesOrStartsIn(poly, arc, tolerance)
                 || ArcChain2.ComeWithin(ArcChain2.EdgesOf(poly), arc, tolerance);
@@ -119,7 +122,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a polyline touches an arc.
         /// </summary>
-        public static bool CollidesWith(GeoPolyline2 polyline, GeoArc2 arc) => CollidesWith(polyline, arc, Tolerance.Global);
+        public static bool CollidesWith(GeoPolyline2 polyline, GeoArc2 arc) =>
+            CollidesWith(polyline, arc, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a polyline touches an arc, within a tolerance.
@@ -129,7 +133,8 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static bool CollidesWith(GeoPolyline2 polyline, GeoArc2 arc, Tolerance tolerance)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return Intersection2.GetIntersections(polyline, arc, tolerance).Length > 0
                 || ArcChain2.ComeWithin(ArcChain2.EdgesOf(polyline), arc, tolerance);
@@ -151,14 +156,16 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a rectangle touches or overlaps a loop that may curve.
         /// </summary>
-        public static bool CollidesWith(GeoRectangle2 rect, GeoPolygonArc2 loop) => CollidesWith(rect, loop, Tolerance.Global);
+        public static bool CollidesWith(GeoRectangle2 rect, GeoPolygonArc2 loop) =>
+            CollidesWith(rect, loop, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a rectangle touches or overlaps a loop that may curve, within a tolerance.
         /// </summary>
         public static bool CollidesWith(GeoRectangle2 rect, GeoPolygonArc2 loop, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return CollidesWith(loop, rect.ToPolygonBySides(), tolerance);
         }
@@ -166,14 +173,16 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Determines whether a rectangle touches or overlaps a chain that may curve.
         /// </summary>
-        public static bool CollidesWith(GeoRectangle2 rect, GeoPolylineArc2 chain) => CollidesWith(rect, chain, Tolerance.Global);
+        public static bool CollidesWith(GeoRectangle2 rect, GeoPolylineArc2 chain) =>
+            CollidesWith(rect, chain, Tolerance.Global);
 
         /// <summary>
         /// Determines whether a rectangle touches or overlaps a chain that may curve, within a tolerance.
         /// </summary>
         public static bool CollidesWith(GeoRectangle2 rect, GeoPolylineArc2 chain, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return CollidesWith(chain, rect.ToPolygonBySides(), tolerance);
         }

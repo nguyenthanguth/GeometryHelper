@@ -122,7 +122,13 @@ namespace GeometryHelper.Viewer.Scripting
     /// </summary>
     public sealed class ScriptRunResult
     {
-        internal ScriptRunResult(bool succeeded, Scene scene, IReadOnlyList<string> notes, IReadOnlyList<string> errors, TimeSpan elapsed)
+        internal ScriptRunResult(
+            bool succeeded,
+            Scene scene,
+            IReadOnlyList<string> notes,
+            IReadOnlyList<string> errors,
+            TimeSpan elapsed
+        )
         {
             Succeeded = succeeded;
             Scene = scene;
@@ -163,7 +169,10 @@ namespace GeometryHelper.Viewer.Scripting
     /// </summary>
     public static class ScriptHost
     {
-        private static readonly Regex _scriptLine = new Regex(@" in (.+\.csx):line (\d+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex _scriptLine = new Regex(
+            @" in (.+\.csx):line (\d+)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase
+        );
 
         /// <summary>
         /// Runs a script on a worker thread of its own, at the tolerance it asks for, and gives back its scene.
@@ -173,22 +182,30 @@ namespace GeometryHelper.Viewer.Scripting
         /// <param name="note">Told each line the script says, as it says it; may be null.</param>
         /// <param name="cancel">Stops the script. The script is cancelled while it is compiled and as it starts; a statement already running ends first.</param>
         /// <returns>The result: never an exception from the script, which comes back in <see cref="ScriptRunResult.Errors"/>.</returns>
-        public static Task<ScriptRunResult> RunAsync(string code, string path, Action<string> note, CancellationToken cancel)
+        public static Task<ScriptRunResult> RunAsync(
+            string code,
+            string path,
+            Action<string> note,
+            CancellationToken cancel
+        )
         {
             var completion = new TaskCompletionSource<ScriptRunResult>();
 
             // A deep recursion in a geometry routine needs more than the default megabyte, so the thread gets 64.
-            var thread = new Thread(() =>
-            {
-                try
+            var thread = new Thread(
+                () =>
                 {
-                    completion.SetResult(Run(code, path, note, cancel));
-                }
-                catch (Exception e)
-                {
-                    completion.SetException(e);
-                }
-            }, 64 * 1024 * 1024)
+                    try
+                    {
+                        completion.SetResult(Run(code, path, note, cancel));
+                    }
+                    catch (Exception e)
+                    {
+                        completion.SetException(e);
+                    }
+                },
+                64 * 1024 * 1024
+            )
             {
                 IsBackground = true,
                 Name = "GeometryHelper.Viewer script",
@@ -217,7 +234,8 @@ namespace GeometryHelper.Viewer.Scripting
 
                     note?.Invoke(line);
                 },
-                cancel);
+                cancel
+            );
 
             bool succeeded = false;
 
@@ -225,7 +243,11 @@ namespace GeometryHelper.Viewer.Scripting
             {
                 ScriptOptions options = Options(path);
                 // Debug information needs the source text to have an encoding, which a stream of UTF-8 gives it and a string does not.
-                Script<object> script = CSharpScript.Create(new MemoryStream(new UTF8Encoding(false).GetBytes(code ?? string.Empty)), options, typeof(ScriptGlobals));
+                Script<object> script = CSharpScript.Create(
+                    new MemoryStream(new UTF8Encoding(false).GetBytes(code ?? string.Empty)),
+                    options,
+                    typeof(ScriptGlobals)
+                );
                 var diagnostics = script.Compile(cancel);
                 bool compiled = true;
 
@@ -290,7 +312,8 @@ namespace GeometryHelper.Viewer.Scripting
 
         private sealed class Pump : SynchronizationContext
         {
-            private readonly BlockingCollection<KeyValuePair<SendOrPostCallback, object>> _queue = new BlockingCollection<KeyValuePair<SendOrPostCallback, object>>();
+            private readonly BlockingCollection<KeyValuePair<SendOrPostCallback, object>> _queue =
+                new BlockingCollection<KeyValuePair<SendOrPostCallback, object>>();
             private readonly Thread _thread;
 
             internal Pump(Thread thread)
@@ -320,11 +343,14 @@ namespace GeometryHelper.Viewer.Scripting
 
                 using (var done = new ManualResetEventSlim())
                 {
-                    Post(s =>
-                    {
-                        d(s);
-                        done.Set();
-                    }, state);
+                    Post(
+                        s =>
+                        {
+                            d(s);
+                            done.Set();
+                        },
+                        state
+                    );
                     done.Wait();
                 }
             }
@@ -354,7 +380,8 @@ namespace GeometryHelper.Viewer.Scripting
                 span.StartLinePosition.Line + 1,
                 span.StartLinePosition.Character + 1,
                 diagnostic.Id,
-                diagnostic.GetMessage(CultureInfo.InvariantCulture));
+                diagnostic.GetMessage(CultureInfo.InvariantCulture)
+            );
         }
 
         private static string DescribeException(Exception e, string path)
@@ -394,15 +421,17 @@ namespace GeometryHelper.Viewer.Scripting
                 text.Append('(').Append(line).Append(')');
             }
 
-            text.Append(": ").Append(inner.GetType().Name).Append(": ").Append(inner.Message);            return text.ToString();
+            text.Append(": ").Append(inner.GetType().Name).Append(": ").Append(inner.Message);
+            return text.ToString();
         }
 
         private static ScriptOptions Options(string path)
         {
-            string directory = path == null ? Environment.CurrentDirectory : Path.GetDirectoryName(Path.GetFullPath(path));
+            string directory =
+                path == null ? Environment.CurrentDirectory : Path.GetDirectoryName(Path.GetFullPath(path));
 
-            ScriptOptions options = ScriptOptions.Default
-                .WithReferences(References())
+            ScriptOptions options = ScriptOptions
+                .Default.WithReferences(References())
                 .WithImports(Imports())
                 .WithEmitDebugInformation(true)
                 .WithSourceResolver(new SourceFileResolver(new[] { directory }, directory))
@@ -423,7 +452,13 @@ namespace GeometryHelper.Viewer.Scripting
             {
                 string name = Path.GetFileNameWithoutExtension(file);
 
-                if (name.StartsWith("System.", StringComparison.Ordinal) || name == "System" || name == "netstandard" || name == "mscorlib" || name == "Microsoft.CSharp")
+                if (
+                    name.StartsWith("System.", StringComparison.Ordinal)
+                    || name == "System"
+                    || name == "netstandard"
+                    || name == "mscorlib"
+                    || name == "Microsoft.CSharp"
+                )
                 {
                     paths.Add(file);
                 }
@@ -433,7 +468,11 @@ namespace GeometryHelper.Viewer.Scripting
             paths.Add(typeof(SceneWriter).Assembly.Location);
             paths.Add(typeof(ScriptGlobals).Assembly.Location);
 
-            foreach (string file in paths.Where(f => !string.IsNullOrEmpty(f) && File.Exists(f) && seen.Add(Path.GetFileName(f))))
+            foreach (
+                string file in paths.Where(f =>
+                    !string.IsNullOrEmpty(f) && File.Exists(f) && seen.Add(Path.GetFileName(f))
+                )
+            )
             {
                 yield return MetadataReference.CreateFromFile(file);
             }
@@ -441,13 +480,22 @@ namespace GeometryHelper.Viewer.Scripting
 
         private static IEnumerable<string> Imports()
         {
-            var imports = new List<string> { "System", "System.Linq", "System.Collections.Generic", "GeometryHelper.Viewer" };
+            var imports = new List<string>
+            {
+                "System",
+                "System.Linq",
+                "System.Collections.Generic",
+                "GeometryHelper.Viewer",
+            };
 
-            imports.AddRange(typeof(Tolerance).Assembly.GetExportedTypes()
-                .Select(type => type.Namespace)
-                .Where(ns => !string.IsNullOrEmpty(ns))
-                .Distinct(StringComparer.Ordinal)
-                .OrderBy(ns => ns, StringComparer.Ordinal));
+            imports.AddRange(
+                typeof(Tolerance)
+                    .Assembly.GetExportedTypes()
+                    .Select(type => type.Namespace)
+                    .Where(ns => !string.IsNullOrEmpty(ns))
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(ns => ns, StringComparer.Ordinal)
+            );
 
             return imports.Distinct(StringComparer.Ordinal);
         }

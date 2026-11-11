@@ -19,24 +19,41 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class EarClippingRowTests
     {
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
-        private static GeoSolid3 Plate()
-            => Box(0, 0, 0, 200, 100, 20).WithOpenings(new[]
-            {
-                Box(40, 40, -1, 60, 60, 21),
-                Box(120, 30, -1, 150, 70, 21).TransformBy(GeoTransform3.RotationAxis(new GeoPoint3(135, 50, 10), GeoVector3.ZAxis, 0.4)),
-                Box(180, -5, -1, 205, 30, 21),
-            });
+        private static GeoSolid3 Plate() =>
+            Box(0, 0, 0, 200, 100, 20)
+                .WithOpenings(
+                    new[]
+                    {
+                        Box(40, 40, -1, 60, 60, 21),
+                        Box(120, 30, -1, 150, 70, 21)
+                            .TransformBy(GeoTransform3.RotationAxis(new GeoPoint3(135, 50, 10), GeoVector3.ZAxis, 0.4)),
+                        Box(180, -5, -1, 205, 30, 21),
+                    }
+                );
 
         [Fact]
         public void AFaceWithARowOfPointsAlongOneEdgeIsMeshed()
         {
             GeoPoint3 P(double y, double z) => new GeoPoint3(200, y, z);
-            var face = new GeoFace3(new GeoPolygon3(
-                P(30, 0), P(40, 0), P(55.767, 0), P(60, 0), P(99.196, 0), P(100, 0),
-                P(100, 20), P(99.196, 20), P(60, 20), P(55.767, 20), P(40, 20), P(30, 20)));
+            var face = new GeoFace3(
+                new GeoPolygon3(
+                    P(30, 0),
+                    P(40, 0),
+                    P(55.767, 0),
+                    P(60, 0),
+                    P(99.196, 0),
+                    P(100, 0),
+                    P(100, 20),
+                    P(99.196, 20),
+                    P(60, 20),
+                    P(55.767, 20),
+                    P(40, 20),
+                    P(30, 20)
+                )
+            );
 
             Assert.True(EarClipping.TryTriangulate(face, Tolerance.Global, out GeoTriangle3[] triangles));
             Assert.Equal(face.Area, triangles.Sum(t => t.Area), 9);
@@ -59,13 +76,21 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPoint3 P(double x, double y) => frame.ToGlobal(new GeoPoint3(x, y, 0));
             Tolerance tolerance = Tolerance.Default;
             var face = new GeoFace3(
-                new GeoPolygon3(new[] { P(30000, -30000), P(30000, 30000), P(-30000, 30000), P(-30000, -30000) }, tolerance),
+                new GeoPolygon3(
+                    new[] { P(30000, -30000), P(30000, 30000), P(-30000, 30000), P(-30000, -30000) },
+                    tolerance
+                ),
                 new[] { new GeoPolygon3(new[] { P(3, 70), P(0, 0), P(hair, 400), P(0, 0), P(3, -70) }, tolerance) },
-                tolerance);
+                tolerance
+            );
 
             Assert.True(EarClipping.TryTriangulate(face, tolerance, out GeoTriangle3[] triangles));
             Assert.InRange(triangles.Sum(t => t.Area), face.Area * (1 - 1E-12), face.Area * (1 + 1E-12));
-            Assert.InRange(face.TriangulateSurface(tolerance).Sum(t => t.Area), face.Area * (1 - 1E-12), face.Area * (1 + 1E-12));
+            Assert.InRange(
+                face.TriangulateSurface(tolerance).Sum(t => t.Area),
+                face.Area * (1 - 1E-12),
+                face.Area * (1 + 1E-12)
+            );
         }
 
         [Fact]

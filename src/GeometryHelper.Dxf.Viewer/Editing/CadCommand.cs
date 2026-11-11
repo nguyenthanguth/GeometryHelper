@@ -58,7 +58,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="aliases">The aliases, each to the name of a command.</param>
         /// <param name="keys">The keys, each to a command's name or a toggle (OSNAP, GRID, ORTHO, SNAP, POLAR, DYN).</param>
         /// <exception cref="ArgumentNullException">Thrown when either is null.</exception>
-        public CadShortcuts(IEnumerable<KeyValuePair<string, string>> aliases, IEnumerable<KeyValuePair<string, string>> keys)
+        public CadShortcuts(
+            IEnumerable<KeyValuePair<string, string>> aliases,
+            IEnumerable<KeyValuePair<string, string>> keys
+        )
         {
             Aliases = Copy(aliases ?? throw new ArgumentNullException(nameof(aliases)));
             Keys = Copy(keys ?? throw new ArgumentNullException(nameof(keys)));
@@ -71,160 +74,162 @@ namespace GeometryHelper.Dxf.Viewer
         public IReadOnlyDictionary<string, string> Keys { get; }
 
         /// <summary>Gets AutoCAD's own: the aliases and keys of the table A12 of the plan.</summary>
-        public static CadShortcuts Default { get; } = new CadShortcuts(
-            new Dictionary<string, string>
-            {
-                ["Z"] = "ZOOM",
-                ["P"] = "PAN",
-                ["RE"] = "REGEN",
-                ["L"] = "LINE",
-                ["PL"] = "PLINE",
-                ["C"] = "CIRCLE",
-                ["A"] = "ARC",
-                ["REC"] = "RECTANG",
-                ["DT"] = "TEXT",
-                ["T"] = "MTEXT",
-                ["MT"] = "MTEXT",
-                ["M"] = "MOVE",
-                ["CO"] = "COPY",
-                ["CP"] = "COPY",
-                ["RO"] = "ROTATE",
-                ["SC"] = "SCALE",
-                ["MI"] = "MIRROR",
-                ["E"] = "ERASE",
-                ["X"] = "EXPLODE",
-                ["PR"] = "PROPERTIES",
-                ["CH"] = "PROPERTIES",
-                ["MA"] = "MATCHPROP",
-                ["LA"] = "LAYER",
-                ["OP"] = "OPTIONS",
-                ["DLI"] = "DIMLINEAR",
-                ["DAL"] = "DIMALIGNED",
-                ["DRA"] = "DIMRADIUS",
-                ["DDI"] = "DIMDIAMETER",
-                ["DAN"] = "DIMANGULAR",
-                ["DAR"] = "DIMARC",
-                ["DCO"] = "DIMCONTINUE",
-                ["DIMCONT"] = "DIMCONTINUE",
-                ["DBA"] = "DIMBASELINE",
-                ["DIMBASE"] = "DIMBASELINE",
-                ["DED"] = "DIMEDIT",
-                ["DIMED"] = "DIMEDIT",
-                ["DOR"] = "DIMORDINATE",
-                ["DIMORD"] = "DIMORDINATE",
-                ["DJL"] = "DIMJOGLINE",
-                ["DJO"] = "DIMJOGGED",
-                ["JOG"] = "DIMJOGGED",
-                ["MLD"] = "MLEADER",
-                ["MLS"] = "MLEADERSTYLE",
-                ["MV"] = "MVIEW",
-                ["MS"] = "MSPACE",
-                ["PS"] = "PSPACE",
-                ["EL"] = "ELLIPSE",
-                ["PO"] = "POINT",
-                ["LO"] = "LAYOUT",
-                ["DI"] = "DIST",
-                ["AA"] = "AREA",
-                ["LI"] = "LIST",
-                ["LS"] = "LIST",
-                ["XL"] = "XLINE",
-                ["POL"] = "POLYGON",
-                ["DO"] = "DONUT",
-                ["MEA"] = "MEASUREGEOM",
-                ["-LA"] = "-LAYER",
-                ["LAS"] = "LAYERSTATE",
-                ["V"] = "VIEW",
-                ["-V"] = "-VIEW",
-                ["UN"] = "UNITS",
-                ["-UN"] = "-UNITS",
-                ["SCR"] = "SCRIPT",
-                ["UC"] = "UCSMAN",
-                ["LT"] = "LINETYPE",
-                ["LTYPE"] = "LINETYPE",
-                ["-LT"] = "-LINETYPE",
-                ["LTS"] = "LTSCALE",
-                ["H"] = "HATCH",
-                ["BH"] = "HATCH",
-                ["BHATCH"] = "HATCH",
-                ["HE"] = "HATCHEDIT",
-                ["BO"] = "BOUNDARY",
-                ["BPOLY"] = "BOUNDARY",
-                ["ST"] = "STYLE",
-                ["D"] = "DIMSTYLE",
-                ["DST"] = "DIMSTYLE",
-                ["TB"] = "TABLE",
-                ["TS"] = "TABLESTYLE",
-                ["DDIM"] = "DIMSTYLE",
-                ["DDPTYPE"] = "PTYPE",
-                ["O"] = "OFFSET",
-                ["F"] = "FILLET",
-                ["CHA"] = "CHAMFER",
-                ["S"] = "STRETCH",
-                ["AR"] = "ARRAY",
-                ["-AR"] = "-ARRAY",
-                ["AL"] = "ALIGN",
-                ["TR"] = "TRIM",
-                ["EX"] = "EXTEND",
-                ["BR"] = "BREAK",
-                ["J"] = "JOIN",
-                ["LEN"] = "LENGTHEN",
-                ["PE"] = "PEDIT",
-                ["B"] = "BLOCK",
-                ["-B"] = "-BLOCK",
-                ["BMAKE"] = "BLOCK",
-                ["I"] = "INSERT",
-                ["-I"] = "-INSERT",
-                ["W"] = "WBLOCK",
-                ["-W"] = "-WBLOCK",
-                ["BE"] = "BEDIT",
-                ["BS"] = "BSAVE",
-                ["BC"] = "BCLOSE",
-                ["ATT"] = "ATTDEF",
-                ["DDATTDEF"] = "ATTDEF",
-                ["-ATT"] = "-ATTDEF",
-                ["ATE"] = "ATTEDIT",
-                ["DDATTE"] = "ATTEDIT",
-                ["-ATE"] = "-ATTEDIT",
-                ["ED"] = "TEXTEDIT",
-                ["DDEDIT"] = "TEXTEDIT",
-                ["DR"] = "DRAWORDER",
-                ["G"] = "GROUP",
-                ["-G"] = "-GROUP",
-                ["PU"] = "PURGE",
-                ["-PU"] = "-PURGE",
-                ["XA"] = "XATTACH",
-                ["XR"] = "XREF",
-                ["-XR"] = "-XREF",
-                ["ER"] = "EXTERNALREFERENCES",
-                ["IAT"] = "IMAGEATTACH",
-                ["IM"] = "IMAGE",
-                ["-IM"] = "-IMAGE",
-                ["ICL"] = "IMAGECLIP",
-            },
-            new Dictionary<string, string>
-            {
-                ["F3"] = "OSNAP",
-                ["F7"] = "GRID",
-                ["F8"] = "ORTHO",
-                ["F9"] = "SNAP",
-                ["F10"] = "POLAR",
-                ["F11"] = "OTRACK",
-                ["F12"] = "DYN",
-                ["Delete"] = "ERASE",
-                ["Ctrl+Z"] = "U",
-                ["Ctrl+Y"] = "REDO",
-                ["Ctrl+S"] = "QSAVE",
-                ["Ctrl+1"] = "PROPERTIES",
-                ["Ctrl+A"] = "SELECTALL",
-                ["Ctrl+C"] = "COPYCLIP",
-                ["Ctrl+X"] = "CUTCLIP",
-                ["Ctrl+V"] = "PASTECLIP",
-                ["Ctrl+Shift+C"] = "COPYBASE",
-                ["Ctrl+Shift+V"] = "PASTEBLOCK",
-                ["Ctrl+P"] = "PLOT",
-                ["Ctrl+Shift+A"] = "PICKSTYLE",
-                ["Ctrl+W"] = "SELECTIONCYCLING",
-            });
+        public static CadShortcuts Default { get; } =
+            new CadShortcuts(
+                new Dictionary<string, string>
+                {
+                    ["Z"] = "ZOOM",
+                    ["P"] = "PAN",
+                    ["RE"] = "REGEN",
+                    ["L"] = "LINE",
+                    ["PL"] = "PLINE",
+                    ["C"] = "CIRCLE",
+                    ["A"] = "ARC",
+                    ["REC"] = "RECTANG",
+                    ["DT"] = "TEXT",
+                    ["T"] = "MTEXT",
+                    ["MT"] = "MTEXT",
+                    ["M"] = "MOVE",
+                    ["CO"] = "COPY",
+                    ["CP"] = "COPY",
+                    ["RO"] = "ROTATE",
+                    ["SC"] = "SCALE",
+                    ["MI"] = "MIRROR",
+                    ["E"] = "ERASE",
+                    ["X"] = "EXPLODE",
+                    ["PR"] = "PROPERTIES",
+                    ["CH"] = "PROPERTIES",
+                    ["MA"] = "MATCHPROP",
+                    ["LA"] = "LAYER",
+                    ["OP"] = "OPTIONS",
+                    ["DLI"] = "DIMLINEAR",
+                    ["DAL"] = "DIMALIGNED",
+                    ["DRA"] = "DIMRADIUS",
+                    ["DDI"] = "DIMDIAMETER",
+                    ["DAN"] = "DIMANGULAR",
+                    ["DAR"] = "DIMARC",
+                    ["DCO"] = "DIMCONTINUE",
+                    ["DIMCONT"] = "DIMCONTINUE",
+                    ["DBA"] = "DIMBASELINE",
+                    ["DIMBASE"] = "DIMBASELINE",
+                    ["DED"] = "DIMEDIT",
+                    ["DIMED"] = "DIMEDIT",
+                    ["DOR"] = "DIMORDINATE",
+                    ["DIMORD"] = "DIMORDINATE",
+                    ["DJL"] = "DIMJOGLINE",
+                    ["DJO"] = "DIMJOGGED",
+                    ["JOG"] = "DIMJOGGED",
+                    ["MLD"] = "MLEADER",
+                    ["MLS"] = "MLEADERSTYLE",
+                    ["MV"] = "MVIEW",
+                    ["MS"] = "MSPACE",
+                    ["PS"] = "PSPACE",
+                    ["EL"] = "ELLIPSE",
+                    ["PO"] = "POINT",
+                    ["LO"] = "LAYOUT",
+                    ["DI"] = "DIST",
+                    ["AA"] = "AREA",
+                    ["LI"] = "LIST",
+                    ["LS"] = "LIST",
+                    ["XL"] = "XLINE",
+                    ["POL"] = "POLYGON",
+                    ["DO"] = "DONUT",
+                    ["MEA"] = "MEASUREGEOM",
+                    ["-LA"] = "-LAYER",
+                    ["LAS"] = "LAYERSTATE",
+                    ["V"] = "VIEW",
+                    ["-V"] = "-VIEW",
+                    ["UN"] = "UNITS",
+                    ["-UN"] = "-UNITS",
+                    ["SCR"] = "SCRIPT",
+                    ["UC"] = "UCSMAN",
+                    ["LT"] = "LINETYPE",
+                    ["LTYPE"] = "LINETYPE",
+                    ["-LT"] = "-LINETYPE",
+                    ["LTS"] = "LTSCALE",
+                    ["H"] = "HATCH",
+                    ["BH"] = "HATCH",
+                    ["BHATCH"] = "HATCH",
+                    ["HE"] = "HATCHEDIT",
+                    ["BO"] = "BOUNDARY",
+                    ["BPOLY"] = "BOUNDARY",
+                    ["ST"] = "STYLE",
+                    ["D"] = "DIMSTYLE",
+                    ["DST"] = "DIMSTYLE",
+                    ["TB"] = "TABLE",
+                    ["TS"] = "TABLESTYLE",
+                    ["DDIM"] = "DIMSTYLE",
+                    ["DDPTYPE"] = "PTYPE",
+                    ["O"] = "OFFSET",
+                    ["F"] = "FILLET",
+                    ["CHA"] = "CHAMFER",
+                    ["S"] = "STRETCH",
+                    ["AR"] = "ARRAY",
+                    ["-AR"] = "-ARRAY",
+                    ["AL"] = "ALIGN",
+                    ["TR"] = "TRIM",
+                    ["EX"] = "EXTEND",
+                    ["BR"] = "BREAK",
+                    ["J"] = "JOIN",
+                    ["LEN"] = "LENGTHEN",
+                    ["PE"] = "PEDIT",
+                    ["B"] = "BLOCK",
+                    ["-B"] = "-BLOCK",
+                    ["BMAKE"] = "BLOCK",
+                    ["I"] = "INSERT",
+                    ["-I"] = "-INSERT",
+                    ["W"] = "WBLOCK",
+                    ["-W"] = "-WBLOCK",
+                    ["BE"] = "BEDIT",
+                    ["BS"] = "BSAVE",
+                    ["BC"] = "BCLOSE",
+                    ["ATT"] = "ATTDEF",
+                    ["DDATTDEF"] = "ATTDEF",
+                    ["-ATT"] = "-ATTDEF",
+                    ["ATE"] = "ATTEDIT",
+                    ["DDATTE"] = "ATTEDIT",
+                    ["-ATE"] = "-ATTEDIT",
+                    ["ED"] = "TEXTEDIT",
+                    ["DDEDIT"] = "TEXTEDIT",
+                    ["DR"] = "DRAWORDER",
+                    ["G"] = "GROUP",
+                    ["-G"] = "-GROUP",
+                    ["PU"] = "PURGE",
+                    ["-PU"] = "-PURGE",
+                    ["XA"] = "XATTACH",
+                    ["XR"] = "XREF",
+                    ["-XR"] = "-XREF",
+                    ["ER"] = "EXTERNALREFERENCES",
+                    ["IAT"] = "IMAGEATTACH",
+                    ["IM"] = "IMAGE",
+                    ["-IM"] = "-IMAGE",
+                    ["ICL"] = "IMAGECLIP",
+                },
+                new Dictionary<string, string>
+                {
+                    ["F3"] = "OSNAP",
+                    ["F7"] = "GRID",
+                    ["F8"] = "ORTHO",
+                    ["F9"] = "SNAP",
+                    ["F10"] = "POLAR",
+                    ["F11"] = "OTRACK",
+                    ["F12"] = "DYN",
+                    ["Delete"] = "ERASE",
+                    ["Ctrl+Z"] = "U",
+                    ["Ctrl+Y"] = "REDO",
+                    ["Ctrl+S"] = "QSAVE",
+                    ["Ctrl+1"] = "PROPERTIES",
+                    ["Ctrl+A"] = "SELECTALL",
+                    ["Ctrl+C"] = "COPYCLIP",
+                    ["Ctrl+X"] = "CUTCLIP",
+                    ["Ctrl+V"] = "PASTECLIP",
+                    ["Ctrl+Shift+C"] = "COPYBASE",
+                    ["Ctrl+Shift+V"] = "PASTEBLOCK",
+                    ["Ctrl+P"] = "PLOT",
+                    ["Ctrl+Shift+A"] = "PICKSTYLE",
+                    ["Ctrl+W"] = "SELECTIONCYCLING",
+                }
+            );
 
         private static IReadOnlyDictionary<string, string> Copy(IEnumerable<KeyValuePair<string, string>> pairs)
         {
@@ -234,7 +239,10 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 if (string.IsNullOrWhiteSpace(pair.Key) || string.IsNullOrWhiteSpace(pair.Value))
                 {
-                    throw new ArgumentException("A shortcut and what it does are both given: " + pair.Key + " = " + pair.Value + ".", nameof(pairs));
+                    throw new ArgumentException(
+                        "A shortcut and what it does are both given: " + pair.Key + " = " + pair.Value + ".",
+                        nameof(pairs)
+                    );
                 }
 
                 sorted[pair.Key.Trim()] = pair.Value.Trim().ToUpperInvariant();
@@ -250,8 +258,13 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     public sealed class CadCommandRegistry
     {
-        private readonly SortedDictionary<string, CadCommand> _commands = new SortedDictionary<string, CadCommand>(StringComparer.OrdinalIgnoreCase);
-        private readonly SortedDictionary<string, CadSystemVariable> _variables = new SortedDictionary<string, CadSystemVariable>(StringComparer.OrdinalIgnoreCase);
+        private readonly SortedDictionary<string, CadCommand> _commands = new SortedDictionary<string, CadCommand>(
+            StringComparer.OrdinalIgnoreCase
+        );
+        private readonly SortedDictionary<string, CadSystemVariable> _variables = new SortedDictionary<
+            string,
+            CadSystemVariable
+        >(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Makes a registry with no command and AutoCAD's aliases.</summary>
         public CadCommandRegistry()
@@ -306,7 +319,9 @@ namespace GeometryHelper.Dxf.Viewer
                 return command;
             }
 
-            return Shortcuts.Aliases.TryGetValue(key, out string name) && _commands.TryGetValue(name, out command) ? command : null;
+            return Shortcuts.Aliases.TryGetValue(key, out string name) && _commands.TryGetValue(name, out command)
+                ? command
+                : null;
         }
 
         /// <summary>
@@ -345,7 +360,9 @@ namespace GeometryHelper.Dxf.Viewer
                 return variable;
             }
 
-            return Shortcuts.Aliases.TryGetValue(key, out string name) && _variables.TryGetValue(name, out variable) ? variable : null;
+            return Shortcuts.Aliases.TryGetValue(key, out string name) && _variables.TryGetValue(name, out variable)
+                ? variable
+                : null;
         }
 
         /// <summary>

@@ -18,14 +18,21 @@ namespace GeometryHelper.UnitTest.Solid
     /// </remarks>
     public class MakingBodiesTests
     {
-        private static double RegularArea(int sides, double radius) => 0.5 * sides * radius * radius * Math.Sin(2.0 * Math.PI / sides);
+        private static double RegularArea(int sides, double radius) =>
+            0.5 * sides * radius * radius * Math.Sin(2.0 * Math.PI / sides);
 
-        private static GeoPolygon2 Rectangle(double x0, double y0, double x1, double y1)
-            => new GeoPolygon2(new GeoPoint2(x0, y0), new GeoPoint2(x1, y0), new GeoPoint2(x1, y1), new GeoPoint2(x0, y1));
+        private static GeoPolygon2 Rectangle(double x0, double y0, double x1, double y1) =>
+            new GeoPolygon2(new GeoPoint2(x0, y0), new GeoPoint2(x1, y0), new GeoPoint2(x1, y1), new GeoPoint2(x0, y1));
 
         private static GeoPolygon3 Square(double size, bool clockwise = false)
         {
-            var corners = new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(size, 0, 0), new GeoPoint3(size, size, 0), new GeoPoint3(0, size, 0) };
+            var corners = new[]
+            {
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(size, 0, 0),
+                new GeoPoint3(size, size, 0),
+                new GeoPoint3(0, size, 0),
+            };
             return new GeoPolygon3(clockwise ? corners.Reverse() : corners);
         }
 
@@ -64,7 +71,12 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void AHoleInTheFaceRunsThroughTheBody()
         {
-            var hole = new GeoPolygon3(new GeoPoint3(40, 40, 0), new GeoPoint3(60, 40, 0), new GeoPoint3(60, 60, 0), new GeoPoint3(40, 60, 0));
+            var hole = new GeoPolygon3(
+                new GeoPoint3(40, 40, 0),
+                new GeoPoint3(60, 40, 0),
+                new GeoPoint3(60, 60, 0),
+                new GeoPoint3(40, 60, 0)
+            );
             GeoSolid3 plate = GeoSolid3.Extrude(new GeoFace3(Square(100), new[] { hole }), new GeoVector3(0, 0, 10));
 
             Assert.Equal((10000.0 - 400.0) * 10, plate.GetVolume(), 6);
@@ -116,7 +128,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(RegularArea(48, 8) * length, bolt.GetVolume(), 6);
             Assert.True(bolt.IsClosed());
             Assert.Equal(PointLocation.Inside, bolt.Locate(new GeoPoint3(40, 5, 60)));
-            Assert.Throws<ArgumentOutOfRangeException>(() => GeoSolid3.Cylinder(GeoPoint3.Origin, new GeoPoint3(0, 0, 1), 1, 2));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                GeoSolid3.Cylinder(GeoPoint3.Origin, new GeoPoint3(0, 0, 1), 1, 2)
+            );
             Assert.Throws<ArgumentException>(() => GeoSolid3.Cylinder(GeoPoint3.Origin, GeoPoint3.Origin, 1, 8));
         }
 
@@ -139,7 +153,10 @@ namespace GeometryHelper.UnitTest.Solid
             // as having no axis to turn about.
             double turn = 0.3 * Math.PI / 180.0;
             var path = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(1000, 0, 0), new GeoPoint3(1000 + 1000 * Math.Cos(turn), 1000 * Math.Sin(turn), 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(1000, 0, 0),
+                new GeoPoint3(1000 + 1000 * Math.Cos(turn), 1000 * Math.Sin(turn), 0)
+            );
             GeoSolid3 bar = GeoSolid3.Pipe(path, 8, 0.1);
             int sides = Tessellation.SegmentsForChordTolerance(8, 2 * Math.PI, 0.1);
 
@@ -154,7 +171,12 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // With the section centred on the path, the wedge a mitre adds outside a bend is the wedge it takes
             // from inside.
-            var path = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(500, 0, 0), new GeoPoint3(500, 400, 0), new GeoPoint3(500, 400, 300));
+            var path = new GeoPolyline3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(500, 0, 0),
+                new GeoPoint3(500, 400, 0),
+                new GeoPoint3(500, 400, 300)
+            );
             GeoSolid3 bar = GeoSolid3.Sweep(Rectangle(-10, -5, 10, 5), path);
 
             Assert.Equal(20.0 * 10 * 1200, bar.GetVolume(), 5);
@@ -164,7 +186,12 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ABentBarFollowsItsBends()
         {
-            GeoPolylineArc3 centreLine = new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 300, 0), new GeoPoint3(400, 300, 250)).Fillet(50);
+            GeoPolylineArc3 centreLine = new GeoPolyline3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(400, 300, 0),
+                new GeoPoint3(400, 300, 250)
+            ).Fillet(50);
             GeoSolid3 bar = GeoSolid3.Pipe(centreLine, 8, 0.01);
             int sides = Tessellation.SegmentsForChordTolerance(8, 2 * Math.PI, 0.01);
             double length = centreLine.ToPolyline3(0.01).Length;
@@ -199,8 +226,15 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoPolygon2 section = Rectangle(-1, -1, 1, 1);
 
-            Assert.Throws<ArgumentException>(() => GeoSolid3.Sweep(section, new GeoPolyline3(GeoPoint3.Origin, new GeoPoint3(100, 0, 0), new GeoPoint3(0, 1, 0))));
-            Assert.Throws<ArgumentException>(() => GeoSolid3.Sweep(section, new GeoPolyline3(GeoPoint3.Origin, new GeoPoint3(0, 0, 1E-6))));
+            Assert.Throws<ArgumentException>(() =>
+                GeoSolid3.Sweep(
+                    section,
+                    new GeoPolyline3(GeoPoint3.Origin, new GeoPoint3(100, 0, 0), new GeoPoint3(0, 1, 0))
+                )
+            );
+            Assert.Throws<ArgumentException>(() =>
+                GeoSolid3.Sweep(section, new GeoPolyline3(GeoPoint3.Origin, new GeoPoint3(0, 0, 1E-6)))
+            );
         }
 
         [Fact]
@@ -245,9 +279,15 @@ namespace GeometryHelper.UnitTest.Solid
         {
             var placement = new GeoCoordinateSystem3(GeoPoint3.Origin, GeoVector3.XAxis, GeoVector3.YAxis);
 
-            Assert.Throws<ArgumentException>(() => GeoSolid3.Revolve(Rectangle(-5, 0, 10, 30), placement, Math.PI, 0.01));
-            Assert.Throws<ArgumentOutOfRangeException>(() => GeoSolid3.Revolve(Rectangle(5, 0, 10, 30), placement, 7.0, 0.01));
-            Assert.Throws<ArgumentOutOfRangeException>(() => GeoSolid3.Revolve(Rectangle(5, 0, 10, 30), placement, 0.0, 0.01));
+            Assert.Throws<ArgumentException>(() =>
+                GeoSolid3.Revolve(Rectangle(-5, 0, 10, 30), placement, Math.PI, 0.01)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                GeoSolid3.Revolve(Rectangle(5, 0, 10, 30), placement, 7.0, 0.01)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                GeoSolid3.Revolve(Rectangle(5, 0, 10, 30), placement, 0.0, 0.01)
+            );
         }
     }
 }

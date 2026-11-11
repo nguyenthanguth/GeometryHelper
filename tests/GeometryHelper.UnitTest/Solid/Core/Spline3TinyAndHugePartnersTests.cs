@@ -33,11 +33,17 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static void AssertPlaces(GeoPoint3[] actual, double within, params GeoPoint3[] expected)
         {
-            Assert.True(actual.Length == expected.Length, actual.Length + " points " + string.Join(" ", actual) + ", " + expected.Length + " expected");
+            Assert.True(
+                actual.Length == expected.Length,
+                actual.Length + " points " + string.Join(" ", actual) + ", " + expected.Length + " expected"
+            );
 
             foreach (GeoPoint3 place in expected)
             {
-                Assert.True(actual.Any(p => p.DistanceTo(place) <= within), "no point near " + place + " in " + string.Join(" ", actual));
+                Assert.True(
+                    actual.Any(p => p.DistanceTo(place) <= within),
+                    "no point near " + place + " in " + string.Join(" ", actual)
+                );
             }
         }
 
@@ -100,7 +106,12 @@ namespace GeometryHelper.UnitTest.Solid
             // The curve lies in the floor; the circle of radius 1E-12 about (100, 0, 0) stands in the plane y = 0, in the floor within the
             // planar tolerance, being no wider, with its major axis square to it: laid out in the floor, it threw "The major axis needs a
             // direction".
-            GeoSpline3 curve = GeoSpline3.Interpolate(new[] { P(0, 0, 0), P(100, 0, 0), P(100, 0, 0), P(100, 100, 0), P(0, 100, 0), P(0, 0, 0) }, new GeoVector3(0, 1, 0), new GeoVector3(0, 1, 0), 3);
+            GeoSpline3 curve = GeoSpline3.Interpolate(
+                new[] { P(0, 0, 0), P(100, 0, 0), P(100, 0, 0), P(100, 100, 0), P(0, 100, 0), P(0, 0, 0) },
+                new GeoVector3(0, 1, 0),
+                new GeoVector3(0, 1, 0),
+                3
+            );
             GeoEllipse3 ellipse = GeoEllipse3.FromCircle(new GeoCircle3(P(100, 0, 0), new GeoVector3(0, 1, 0), 1E-12));
 
             Assert.True(curve.TryIntersectWith(ellipse, out GeoPoint3[] places, Default));
@@ -115,7 +126,12 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The curve through (0, 0, 0), (100, 0, 0) and (50, 0, 0), leaving straight down and ending straight up, passes through the
             // circle at (100, 0, 0), where the snap is more than the circle is across.
-            GeoSpline3 curve = GeoSpline3.Interpolate(new[] { P(0, 0, 0), P(100, 0, 0), P(50, 0, 0) }, new GeoVector3(0, 0, -1), new GeoVector3(0, 0, 1), 2);
+            GeoSpline3 curve = GeoSpline3.Interpolate(
+                new[] { P(0, 0, 0), P(100, 0, 0), P(50, 0, 0) },
+                new GeoVector3(0, 0, -1),
+                new GeoVector3(0, 0, 1),
+                2
+            );
             GeoSpline3 circle = GeoSpline3.FromCircle(new GeoCircle3(P(100, 0, 0), new GeoVector3(0, 1, 0), 1E-12));
 
             GeoPoint3[] places = Answered(() => curve.GetIntersections(circle, Tight), 1.0);

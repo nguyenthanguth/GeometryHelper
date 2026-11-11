@@ -27,7 +27,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return CadDocument.From(database, "points.dxf");
         }
 
-        private static List<DisplayItem2> Drawn(CadDocument document) => document.GetDisplay(document.ModelSpace).Items.ToList();
+        private static List<DisplayItem2> Drawn(CadDocument document) =>
+            document.GetDisplay(document.ModelSpace).Items.ToList();
 
         private static void Segment(DisplayItem2 item, double x0, double y0, double x1, double y1)
         {

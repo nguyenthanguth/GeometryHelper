@@ -51,10 +51,19 @@ namespace GeometryHelper.Drawing.Annotation
             {
                 double gap = 0.3 * TextHeight;
                 double half = 0.5 * Bounds.Width;
-                GeoPoint2 corner = Shape == DetailMarkShape.Circle
-                    ? new GeoPoint2(Bounds.Center.X + half * Math.Sqrt(0.5), Bounds.Center.Y + half * Math.Sqrt(0.5))
-                    : new GeoPoint2(Bounds.Center.X + half, Bounds.Center.Y + 0.5 * Bounds.Height);
-                return Box2.FromCorner(corner.X + gap, corner.Y + gap, SymbolDxf.TextWidth(Letter, TextHeight), TextHeight);
+                GeoPoint2 corner =
+                    Shape == DetailMarkShape.Circle
+                        ? new GeoPoint2(
+                            Bounds.Center.X + half * Math.Sqrt(0.5),
+                            Bounds.Center.Y + half * Math.Sqrt(0.5)
+                        )
+                        : new GeoPoint2(Bounds.Center.X + half, Bounds.Center.Y + 0.5 * Bounds.Height);
+                return Box2.FromCorner(
+                    corner.X + gap,
+                    corner.Y + gap,
+                    SymbolDxf.TextWidth(Letter, TextHeight),
+                    TextHeight
+                );
             }
         }
 
@@ -74,7 +83,13 @@ namespace GeometryHelper.Drawing.Annotation
         {
             SymbolChecks.Finite(centre, nameof(centre));
             SymbolChecks.Positive(radius, nameof(radius));
-            return new DetailMark(id, letter, DetailMarkShape.Circle, new GeoRectangle2(centre, 2.0 * radius, 2.0 * radius), textHeight);
+            return new DetailMark(
+                id,
+                letter,
+                DetailMarkShape.Circle,
+                new GeoRectangle2(centre, 2.0 * radius, 2.0 * radius),
+                textHeight
+            );
         }
 
         /// <summary>
@@ -98,7 +113,13 @@ namespace GeometryHelper.Drawing.Annotation
                 throw new ArgumentException("The area has to have a size of finite numbers.", nameof(area));
             }
 
-            return new DetailMark(id, letter, DetailMarkShape.Rectangle, Box2.FromCorner(x0, y0, x1 - x0, y1 - y0), textHeight);
+            return new DetailMark(
+                id,
+                letter,
+                DetailMarkShape.Rectangle,
+                Box2.FromCorner(x0, y0, x1 - x0, y1 - y0),
+                textHeight
+            );
         }
 
         /// <summary>
@@ -129,13 +150,26 @@ namespace GeometryHelper.Drawing.Annotation
 
             if (Shape == DetailMarkShape.Circle)
             {
-                var circle = new DxfCircle(placement.ToSheet(Bounds.Center), GeoVector3.ZAxis, 0.5 * Bounds.Width / placement.Scale) { Layer = SymbolSettings.Layer };
+                var circle = new DxfCircle(
+                    placement.ToSheet(Bounds.Center),
+                    GeoVector3.ZAxis,
+                    0.5 * Bounds.Width / placement.Scale
+                )
+                {
+                    Layer = SymbolSettings.Layer,
+                };
                 database.ModelSpace.AppendEntity(circle);
                 DrawingEntityTags.Tag(circle, id, placement.ViewId);
             }
             else
             {
-                SymbolDxf.Outline(database, placement, new[] { Bounds.LowerLeft, Bounds.LowerRight, Bounds.UpperRight, Bounds.UpperLeft }, SymbolSettings.Layer, id);
+                SymbolDxf.Outline(
+                    database,
+                    placement,
+                    new[] { Bounds.LowerLeft, Bounds.LowerRight, Bounds.UpperRight, Bounds.UpperLeft },
+                    SymbolSettings.Layer,
+                    id
+                );
             }
 
             SymbolDxf.Text(database, placement, LetterBox.Center, TextHeight, Letter, SymbolSettings.Layer, id);

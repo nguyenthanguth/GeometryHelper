@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -50,7 +50,8 @@ namespace GeometryHelper.Geometry
         /// The distance out to the nearest edge, its outline or the rim of a hole, measured exactly, negative when the
         /// point lies on the material and nought when the tolerance given calls it on an edge.
         /// </returns>
-        public double SignedDistanceTo(GeoPoint2 point, Tolerance tolerance) => Distance2.SignedDistanceTo(this, point, tolerance);
+        public double SignedDistanceTo(GeoPoint2 point, Tolerance tolerance) =>
+            Distance2.SignedDistanceTo(this, point, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from the material of this face to an arc.
@@ -176,8 +177,8 @@ namespace GeometryHelper.Geometry
         /// hole 40 by 40 in its middle and is 10 from its rim; about (130, 50) it is 20 from the outline.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public double DistanceTo(GeoPolygon2 polygon, Tolerance tolerance)
-            => Face2.DistanceTo(this, polygon, tolerance);
+        public double DistanceTo(GeoPolygon2 polygon, Tolerance tolerance) =>
+            Face2.DistanceTo(this, polygon, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a curved loop.
@@ -229,8 +230,8 @@ namespace GeometryHelper.Geometry
         /// a hole 40 by 40 in its middle and is 10 from its rim.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public double DistanceTo(GeoPolyline2 polyline, Tolerance tolerance)
-            => Face2.DistanceTo(this, polyline, tolerance);
+        public double DistanceTo(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Face2.DistanceTo(this, polyline, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a curved chain.
@@ -256,8 +257,8 @@ namespace GeometryHelper.Geometry
         /// origin and a hole 40 by 40 in its middle and is 10 from its rim.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance)
-            => Face2.DistanceTo(this, chain, tolerance);
+        public double DistanceTo(GeoPolylineArc2 chain, Tolerance tolerance) =>
+            Face2.DistanceTo(this, chain, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance from the material of this face to a rectangle.
@@ -305,8 +306,8 @@ namespace GeometryHelper.Geometry
         /// triangle (40, 40), (60, 40), (50, 60) lies in the hole of the square 100 by 100 with a corner at the origin
         /// and a hole 40 by 40 in its middle and is 10 from its rim.
         /// </remarks>
-        public double DistanceTo(GeoTriangle2 triangle, Tolerance tolerance)
-            => Face2.DistanceTo(this, triangle, tolerance);
+        public double DistanceTo(GeoTriangle2 triangle, Tolerance tolerance) =>
+            Face2.DistanceTo(this, triangle, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between the materials of this face and another.

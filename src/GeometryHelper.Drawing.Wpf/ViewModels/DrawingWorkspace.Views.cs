@@ -32,9 +32,14 @@ namespace GeometryHelper.Drawing.Wpf
                 return null;
             }
 
-            var views = new HashSet<string>(_current.Drawing.Elements.Where(e => e.Kind == "View").Select(e => e.Id), StringComparer.Ordinal);
+            var views = new HashSet<string>(
+                _current.Drawing.Elements.Where(e => e.Kind == "View").Select(e => e.Id),
+                StringComparer.Ordinal
+            );
 
-            foreach (string handle in _current.Document.Selection.Handles.OrderBy(h => h, StringComparer.OrdinalIgnoreCase))
+            foreach (
+                string handle in _current.Document.Selection.Handles.OrderBy(h => h, StringComparer.OrdinalIgnoreCase)
+            )
             {
                 DxfEntity entity = _current.Document.FindEntity(handle);
 
@@ -57,7 +62,8 @@ namespace GeometryHelper.Drawing.Wpf
 
         /// <summary>Dimensions the selected view again by the rules of the settings, and keeps it dimensioned (AUTODIM).</summary>
         /// <returns>What changed; null, said on the command line, with no view selected or where it failed.</returns>
-        public UpdateReport ReDimensionSelectedView() => OnSelectedView("Dimensions", (s, v) => AddOnce(s.Views.DimensionedViews, v));
+        public UpdateReport ReDimensionSelectedView() =>
+            OnSelectedView("Dimensions", (s, v) => AddOnce(s.Views.DimensionedViews, v));
 
         /// <summary>Marks the selected view again, and keeps it marked (AUTOMARK).</summary>
         /// <returns>What changed; null, said on the command line, with no view selected or where it failed.</returns>
@@ -84,7 +90,9 @@ namespace GeometryHelper.Drawing.Wpf
             }
 
             string name = NextLetter();
-            return Run("Section " + name + "-" + name, (e, provider) => e.Drawing.AddSection(name, view.Id, new GeoLine2(a, b), depth));
+            return Run("Section " + name + "-" + name, (e, provider) =>
+                e.Drawing.AddSection(name, view.Id, new GeoLine2(a, b), depth)
+            );
         }
 
         /// <summary>Adds a detail of the rectangle of two corners picked in a view, in the space shown, drawn at a scale of its own.</summary>
@@ -101,7 +109,11 @@ namespace GeometryHelper.Drawing.Wpf
             }
 
             string name = NextLetter();
-            var area = new GeoRectangle2(new GeoPoint2((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0), Math.Abs(b.X - a.X), Math.Abs(b.Y - a.Y));
+            var area = new GeoRectangle2(
+                new GeoPoint2((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0),
+                Math.Abs(b.X - a.X),
+                Math.Abs(b.Y - a.Y)
+            );
             return Run("Detail " + name, (e, provider) => e.Drawing.AddDetail(name, view.Id, area, scale));
         }
 
@@ -186,7 +198,12 @@ namespace GeometryHelper.Drawing.Wpf
 
             GeoPoint2 second = c.Input.Point;
             double depth = _current.Drawing.Settings.Views.SectionDepth;
-            yield return CadPrompt.ForDistance("Specify depth behind the cut", null, null, Number(double.IsInfinity(depth) ? 100.0 : depth));
+            yield return CadPrompt.ForDistance(
+                "Specify depth behind the cut",
+                null,
+                null,
+                Number(double.IsInfinity(depth) ? 100.0 : depth)
+            );
 
             if (c.Input.Kind == CadInputKind.Number)
             {
@@ -278,10 +295,22 @@ namespace GeometryHelper.Drawing.Wpf
             }
 
             string command = c.Command.Name;
-            c.Write(entry.Number + " was opened from its file: it is made again from " + source.Name + " first, then the points are picked.");
+            c.Write(
+                entry.Number
+                    + " was opened from its file: it is made again from "
+                    + source.Name
+                    + " first, then the points are picked."
+            );
             Later(() =>
             {
-                if (_current == entry && Run("Views of " + entry.Number, (e, provider) => e.Drawing.Apply(e.Drawing.Prepare(ObjectsToMakeFrom(e, provider), null)), entry.PresetName) != null)
+                if (
+                    _current == entry
+                    && Run(
+                        "Views of " + entry.Number,
+                        (e, provider) => e.Drawing.Apply(e.Drawing.Prepare(ObjectsToMakeFrom(e, provider), null)),
+                        entry.PresetName
+                    ) != null
+                )
                 {
                     Model.StartCommand(command);
                 }
@@ -318,7 +347,11 @@ namespace GeometryHelper.Drawing.Wpf
 
             if (viewId == null)
             {
-                Say(_current == null ? "No model drawing is shown." : "Select a view first: its frame, or anything in it.");
+                Say(
+                    _current == null
+                        ? "No model drawing is shown."
+                        : "Select a view first: its frame, or anything in it."
+                );
                 return null;
             }
 
@@ -331,7 +364,11 @@ namespace GeometryHelper.Drawing.Wpf
         }
 
         /// <summary>Runs a change of the drawing shown, one undo step, and says what came of it; its preset is known as "Changed" then, or by the name given.</summary>
-        private UpdateReport Run(string what, Func<ModelDrawing, IDrawingSourceProvider, UpdateReport> change, string presetName = "Changed")
+        private UpdateReport Run(
+            string what,
+            Func<ModelDrawing, IDrawingSourceProvider, UpdateReport> change,
+            string presetName = "Changed"
+        )
         {
             ModelDrawing entry = _current;
 
@@ -366,8 +403,18 @@ namespace GeometryHelper.Drawing.Wpf
             }
 
             Changed(entry);
-            Say(what + ": " + Count(report.AddedElements.Count, "element") + " added, " + report.ChangedElements.Count.ToString(CultureInfo.InvariantCulture) + " changed, "
-                + report.RemovedElements.Count.ToString(CultureInfo.InvariantCulture) + " taken away; " + Count(report.EditsKept.Count, "hand edit") + " kept.");
+            Say(
+                what
+                    + ": "
+                    + Count(report.AddedElements.Count, "element")
+                    + " added, "
+                    + report.ChangedElements.Count.ToString(CultureInfo.InvariantCulture)
+                    + " changed, "
+                    + report.RemovedElements.Count.ToString(CultureInfo.InvariantCulture)
+                    + " taken away; "
+                    + Count(report.EditsKept.Count, "hand edit")
+                    + " kept."
+            );
             SayDropped(report);
             return report;
         }
@@ -376,7 +423,10 @@ namespace GeometryHelper.Drawing.Wpf
         private string NextLetter()
         {
             DrawingSettings settings = _current.Drawing.Settings;
-            var used = new HashSet<string>(settings.Views.Sections.Select(s => s.Name).Concat(settings.Views.Details.Select(d => d.Name)), StringComparer.OrdinalIgnoreCase);
+            var used = new HashSet<string>(
+                settings.Views.Sections.Select(s => s.Name).Concat(settings.Views.Details.Select(d => d.Name)),
+                StringComparer.OrdinalIgnoreCase
+            );
 
             for (char letter = 'A'; letter <= 'Z'; letter++)
             {
@@ -401,11 +451,15 @@ namespace GeometryHelper.Drawing.Wpf
             }
             else
             {
-                inView = new GeoPoint2((point.X - view.SheetOrigin.X) * view.Scale, (point.Y - view.SheetOrigin.Y) * view.Scale);
+                inView = new GeoPoint2(
+                    (point.X - view.SheetOrigin.X) * view.Scale,
+                    (point.Y - view.SheetOrigin.Y) * view.Scale
+                );
             }
 
             GeoRectangle2 box = view.Box;
-            return Math.Abs(inView.X - box.Center.X) <= box.Width / 2.0 + tol.EqualPoint && Math.Abs(inView.Y - box.Center.Y) <= box.Height / 2.0 + tol.EqualPoint;
+            return Math.Abs(inView.X - box.Center.X) <= box.Width / 2.0 + tol.EqualPoint
+                && Math.Abs(inView.Y - box.Center.Y) <= box.Height / 2.0 + tol.EqualPoint;
         }
 
         private static string Number(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);

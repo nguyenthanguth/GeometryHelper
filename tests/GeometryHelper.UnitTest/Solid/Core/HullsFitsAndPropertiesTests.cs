@@ -14,18 +14,27 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     public class HullsFitsAndPropertiesTests
     {
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
-        private static double Cross(GeoPoint2 a, GeoPoint2 b, GeoPoint2 c) => (b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X);
+        private static double Cross(GeoPoint2 a, GeoPoint2 b, GeoPoint2 c) =>
+            (b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X);
 
         #region Hulls
 
         [Fact]
         public void TheHullOfASquareAndWhatIsInsideItIsTheSquare()
         {
-            var points = new List<GeoPoint2> { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) };
-            points.AddRange(new[] { new GeoPoint2(50, 50), new GeoPoint2(50, 0), new GeoPoint2(100, 30), new GeoPoint2(20, 70) });
+            var points = new List<GeoPoint2>
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(100, 0),
+                new GeoPoint2(100, 100),
+                new GeoPoint2(0, 100),
+            };
+            points.AddRange(
+                new[] { new GeoPoint2(50, 50), new GeoPoint2(50, 0), new GeoPoint2(100, 30), new GeoPoint2(20, 70) }
+            );
 
             GeoPolygon2 hull = ConvexHull2.Of(points);
 
@@ -37,7 +46,10 @@ namespace GeometryHelper.UnitTest.Solid
         public void TheHullOfRandomPointsHoldsThemAllAndOnlyTurnsLeft()
         {
             var rng = new Random(5);
-            var points = Enumerable.Range(0, 300).Select(_ => new GeoPoint2(rng.NextDouble() * 1000 - 500, rng.NextDouble() * 600 - 300)).ToList();
+            var points = Enumerable
+                .Range(0, 300)
+                .Select(_ => new GeoPoint2(rng.NextDouble() * 1000 - 500, rng.NextDouble() * 600 - 300))
+                .ToList();
 
             GeoPolygon2 hull = ConvexHull2.Of(points);
 
@@ -77,7 +89,11 @@ namespace GeometryHelper.UnitTest.Solid
                 }
             }
 
-            points.AddRange(Enumerable.Range(0, 200).Select(_ => new GeoPoint3(rng.NextDouble() * 100, rng.NextDouble() * 100, rng.NextDouble() * 100)));
+            points.AddRange(
+                Enumerable
+                    .Range(0, 200)
+                    .Select(_ => new GeoPoint3(rng.NextDouble() * 100, rng.NextDouble() * 100, rng.NextDouble() * 100))
+            );
 
             GeoSolid3 hull = ConvexHull3.Of(points);
 
@@ -90,11 +106,16 @@ namespace GeometryHelper.UnitTest.Solid
         public void TheHullOfRandomPointsHoldsThemAllAndIsConvex()
         {
             var rng = new Random(13);
-            var points = Enumerable.Range(0, 400).Select(_ =>
-            {
-                var d = new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() - 0.5);
-                return GeoPoint3.Origin.Add(d.Normalize().Multiply(50 + rng.NextDouble() * 30)).Add(new GeoVector3(1000, -2000, 300));
-            }).ToList();
+            var points = Enumerable
+                .Range(0, 400)
+                .Select(_ =>
+                {
+                    var d = new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() - 0.5);
+                    return GeoPoint3
+                        .Origin.Add(d.Normalize().Multiply(50 + rng.NextDouble() * 30))
+                        .Add(new GeoVector3(1000, -2000, 300));
+                })
+                .ToList();
 
             GeoSolid3 hull = ConvexHull3.Of(points);
 
@@ -118,12 +139,23 @@ namespace GeometryHelper.UnitTest.Solid
             var rng = new Random(17);
             var rectangle = new GeoRectangle2(new GeoPoint2(100, 50), 40, 10, 0.5);
             var points = rectangle.GetVertices().ToList();
-            points.AddRange(Enumerable.Range(0, 50).Select(_ => rectangle.CoordinateSystem.ToGlobal(new GeoPoint2((rng.NextDouble() - 0.5) * 40, (rng.NextDouble() - 0.5) * 10))));
+            points.AddRange(
+                Enumerable
+                    .Range(0, 50)
+                    .Select(_ =>
+                        rectangle.CoordinateSystem.ToGlobal(
+                            new GeoPoint2((rng.NextDouble() - 0.5) * 40, (rng.NextDouble() - 0.5) * 10)
+                        )
+                    )
+            );
 
             GeoRectangle2 fitted = GeoRectangle2.Fit(points);
 
             Assert.Equal(400.0, fitted.Area, 9);
-            Assert.Equal(new[] { 10.0, 40.0 }, new[] { fitted.Width, fitted.Height }.OrderBy(v => v).Select(v => Math.Round(v, 9)));
+            Assert.Equal(
+                new[] { 10.0, 40.0 },
+                new[] { fitted.Width, fitted.Height }.OrderBy(v => v).Select(v => Math.Round(v, 9))
+            );
             Assert.All(points, p => Assert.NotEqual(PointLocation.OutSide, fitted.Locate(p)));
         }
 
@@ -131,10 +163,14 @@ namespace GeometryHelper.UnitTest.Solid
         public void AFittedRectangleHoldsRandomPointsInNoMoreThanTheirSquareBox()
         {
             var rng = new Random(19);
-            var points = Enumerable.Range(0, 100).Select(_ => new GeoPoint2(rng.NextDouble() * 300, rng.NextDouble() * 80 + rng.NextDouble() * 50)).ToList();
+            var points = Enumerable
+                .Range(0, 100)
+                .Select(_ => new GeoPoint2(rng.NextDouble() * 300, rng.NextDouble() * 80 + rng.NextDouble() * 50))
+                .ToList();
 
             GeoRectangle2 fitted = GeoRectangle2.Fit(points);
-            double square = (points.Max(p => p.X) - points.Min(p => p.X)) * (points.Max(p => p.Y) - points.Min(p => p.Y));
+            double square =
+                (points.Max(p => p.X) - points.Min(p => p.X)) * (points.Max(p => p.Y) - points.Min(p => p.Y));
 
             Assert.True(fitted.Area <= square + 1E-9);
             Assert.All(points, p => Assert.NotEqual(PointLocation.OutSide, fitted.Locate(p)));
@@ -153,9 +189,28 @@ namespace GeometryHelper.UnitTest.Solid
         public void ATurnedBoxIsFoundAgainFromItsCornersAndInside()
         {
             var rng = new Random(23);
-            var box = new GeoObb3(new GeoPoint3(10, 20, 30), 40, 20, 10, new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 1));
+            var box = new GeoObb3(
+                new GeoPoint3(10, 20, 30),
+                40,
+                20,
+                10,
+                new GeoVector3(1, 1, 0),
+                new GeoVector3(-1, 1, 1)
+            );
             var points = box.ToSolid().Faces.SelectMany(f => f.Boundary.Vertices).ToList();
-            points.AddRange(Enumerable.Range(0, 60).Select(_ => box.CoordinateSystem.ToGlobal(new GeoPoint3((rng.NextDouble() - 0.5) * 40, (rng.NextDouble() - 0.5) * 20, (rng.NextDouble() - 0.5) * 10))));
+            points.AddRange(
+                Enumerable
+                    .Range(0, 60)
+                    .Select(_ =>
+                        box.CoordinateSystem.ToGlobal(
+                            new GeoPoint3(
+                                (rng.NextDouble() - 0.5) * 40,
+                                (rng.NextDouble() - 0.5) * 20,
+                                (rng.NextDouble() - 0.5) * 10
+                            )
+                        )
+                    )
+            );
 
             GeoObb3 fitted = GeoObb3.Fit(points);
 
@@ -168,7 +223,12 @@ namespace GeometryHelper.UnitTest.Solid
         {
             var rng = new Random(29);
             GeoTransform3 turn = GeoTransform3.RotationAxis(GeoPoint3.Origin, new GeoVector3(1, 2, 3), 0.8);
-            var points = Enumerable.Range(0, 200).Select(_ => turn.Transform(new GeoPoint3(rng.NextDouble() * 200, rng.NextDouble() * 50, rng.NextDouble() * 20))).ToList();
+            var points = Enumerable
+                .Range(0, 200)
+                .Select(_ =>
+                    turn.Transform(new GeoPoint3(rng.NextDouble() * 200, rng.NextDouble() * 50, rng.NextDouble() * 20))
+                )
+                .ToList();
 
             GeoObb3 fitted = GeoObb3.Fit(points);
             GeoAabb3 square = GeoAabb3.FromPoints(points);
@@ -181,7 +241,14 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void FlatPointsFitABoxOfNoDepth()
         {
-            var flat = new[] { new GeoPoint3(0, 0, 5), new GeoPoint3(30, 0, 5), new GeoPoint3(30, 10, 5), new GeoPoint3(0, 10, 5), new GeoPoint3(12, 3, 5) };
+            var flat = new[]
+            {
+                new GeoPoint3(0, 0, 5),
+                new GeoPoint3(30, 0, 5),
+                new GeoPoint3(30, 10, 5),
+                new GeoPoint3(0, 10, 5),
+                new GeoPoint3(12, 3, 5),
+            };
 
             GeoObb3 fitted = GeoObb3.Fit(flat);
 
@@ -209,7 +276,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(0.0, mass.Ixy, 3);
             Assert.Equal(0.0, mass.Iyz, 3);
             Assert.Equal(0.0, mass.Izx, 3);
-            Assert.Equal(new[] { mass.Izz, mass.Iyy, mass.Ixx }.OrderBy(m => m).Select(m => Math.Round(m, 3)), mass.PrincipalMoments.Select(m => Math.Round(m, 3)));
+            Assert.Equal(
+                new[] { mass.Izz, mass.Iyy, mass.Ixx }.OrderBy(m => m).Select(m => Math.Round(m, 3)),
+                mass.PrincipalMoments.Select(m => Math.Round(m, 3))
+            );
             Assert.Equal(2 * (100.0 * 60 + 60 * 20 + 20 * 100), mass.SurfaceArea, 6);
         }
 
@@ -230,7 +300,11 @@ namespace GeometryHelper.UnitTest.Solid
             }
 
             Assert.True(turned.Centroid.DistanceTo(turn.Transform(straight.Centroid)) < 1E-9);
-            Assert.Equal(1.0, turned.PrincipalAxes[0].CrossProduct(turned.PrincipalAxes[1]).DotProduct(turned.PrincipalAxes[2]), 9);
+            Assert.Equal(
+                1.0,
+                turned.PrincipalAxes[0].CrossProduct(turned.PrincipalAxes[1]).DotProduct(turned.PrincipalAxes[2]),
+                9
+            );
         }
 
         [Fact]
@@ -239,9 +313,13 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 plate = Box(0, 0, 0, 100, 100, 20).WithOpenings(new[] { Box(60, 40, -1, 80, 60, 21) });
             MassProperties3 mass = plate.GetMassProperties();
 
-            double vp = 100.0 * 100 * 20, vh = 20.0 * 20 * 20, v = vp - vh;
+            double vp = 100.0 * 100 * 20,
+                vh = 20.0 * 20 * 20,
+                v = vp - vh;
             double cx = (vp * 50 - vh * 70) / v;
-            double izz = vp * (100.0 * 100 + 100 * 100) / 12 + vp * (50 - cx) * (50 - cx)
+            double izz =
+                vp * (100.0 * 100 + 100 * 100) / 12
+                + vp * (50 - cx) * (50 - cx)
                 - (vh * (20.0 * 20 + 20 * 20) / 12 + vh * (70 - cx) * (70 - cx));
 
             Assert.Equal(v, mass.Volume, 6);
@@ -282,7 +360,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ABoxCutAcrossGivesItsSection()
         {
-            GeoFace3 cut = Assert.Single(Box(0, 0, 0, 100, 50, 20).Section(new GeoPlane3(new GeoPoint3(0, 0, 10), GeoVector3.ZAxis)));
+            GeoFace3 cut = Assert.Single(
+                Box(0, 0, 0, 100, 50, 20).Section(new GeoPlane3(new GeoPoint3(0, 0, 10), GeoVector3.ZAxis))
+            );
 
             Assert.Equal(5000.0, cut.Area, 6);
             Assert.Equal(1.0, cut.Boundary.Normal.Z, 9);
@@ -313,7 +393,9 @@ namespace GeometryHelper.UnitTest.Solid
         public void APlaneTouchingABodyInTwoPartsAlongAFaceGivesNoSection()
         {
             // The plane parts the two blocks, lying along the top of the lower: it cuts no material, whichever way it faces.
-            var both = new GeoSolid3(Box(0, 0, 0, 1000, 1000, 1000).Faces.Concat(Box(0, 0, 2000, 1000, 1000, 3000).Faces));
+            var both = new GeoSolid3(
+                Box(0, 0, 0, 1000, 1000, 1000).Faces.Concat(Box(0, 0, 2000, 1000, 1000, 3000).Faces)
+            );
 
             Assert.Empty(both.Section(new GeoPlane3(new GeoPoint3(0, 0, 1000), GeoVector3.ZAxis)));
             Assert.Empty(both.Section(new GeoPlane3(new GeoPoint3(0, 0, 1000), GeoVector3.ZAxis.Negate())));
@@ -323,7 +405,15 @@ namespace GeometryHelper.UnitTest.Solid
         public void APlaneAlongTheFloorOfANotchGivesOnlyWhatItCuts()
         {
             // An L in plan: the plane y = 1000 cuts the arm at x 0..1000 and lies along the floor of the notch beyond it.
-            var plan = new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(2000, 0, 0), new GeoPoint3(2000, 1000, 0), new GeoPoint3(1000, 1000, 0), new GeoPoint3(1000, 2000, 0), new GeoPoint3(0, 2000, 0) };
+            var plan = new[]
+            {
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(2000, 0, 0),
+                new GeoPoint3(2000, 1000, 0),
+                new GeoPoint3(1000, 1000, 0),
+                new GeoPoint3(1000, 2000, 0),
+                new GeoPoint3(0, 2000, 0),
+            };
             GeoSolid3 ell = GeoSolid3.Extrude(new GeoPolygon3(plan), new GeoVector3(0, 0, 500));
 
             foreach (GeoVector3 facing in new[] { GeoVector3.YAxis, GeoVector3.YAxis.Negate() })
@@ -339,7 +429,9 @@ namespace GeometryHelper.UnitTest.Solid
         public void APlaneBetweenTwoBlocksStandingOnEachOtherGivesWhereTheyMeet()
         {
             // The upper block stands half over the lower: the plane between them has material on both sides only there.
-            var stacked = new GeoSolid3(Box(0, 0, 0, 1000, 1000, 1000).Faces.Concat(Box(500, 0, 1000, 1500, 1000, 2000).Faces));
+            var stacked = new GeoSolid3(
+                Box(0, 0, 0, 1000, 1000, 1000).Faces.Concat(Box(500, 0, 1000, 1500, 1000, 2000).Faces)
+            );
             GeoFace3 cut = Assert.Single(stacked.Section(new GeoPlane3(new GeoPoint3(0, 0, 1000), GeoVector3.ZAxis)));
 
             Assert.Equal(500.0 * 1000, cut.Area, 6);

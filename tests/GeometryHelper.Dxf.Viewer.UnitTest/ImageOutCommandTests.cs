@@ -18,7 +18,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     {
         private const string Selecting = "Select objects or <all objects and viewports>:";
 
-        private readonly string _folder = Path.Combine(Path.GetTempPath(), "gk", "imageout-" + Guid.NewGuid().ToString("N"));
+        private readonly string _folder = Path.Combine(
+            Path.GetTempPath(),
+            "gk",
+            "imageout-" + Guid.NewGuid().ToString("N")
+        );
 
         public ImageOutCommandTests()
         {
@@ -43,11 +47,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         /// </summary>
         private CadDocument TwoLines()
         {
-            CadDocument document = CadDocument.From(TestDrawings.Drawing(
-                null,
-                null,
-                TestDrawings.Line(10, 20.5, 190, 20.5, color: 1, handle: "A1"),
-                TestDrawings.Line(10, 80.5, 190, 80.5, color: 3, handle: "A2")));
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(
+                    null,
+                    null,
+                    TestDrawings.Line(10, 20.5, 190, 20.5, color: 1, handle: "A1"),
+                    TestDrawings.Line(10, 80.5, 190, 80.5, color: 3, handle: "A2")
+                )
+            );
             document.SaveAs(Path.Combine(_folder, "two-lines.dxf"));
             return document;
         }
@@ -76,11 +83,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return session;
         }
 
-        private static int Lit(SKBitmap picture, int row) => Enumerable.Range(0, picture.Width).Count(x => picture.GetPixel(x, row).Red > 100 || picture.GetPixel(x, row).Green > 100);
+        private static int Lit(SKBitmap picture, int row) =>
+            Enumerable
+                .Range(0, picture.Width)
+                .Count(x => picture.GetPixel(x, row).Red > 100 || picture.GetPixel(x, row).Green > 100);
 
-        private static int Int32(byte[] bytes, int at) => bytes[at] | (bytes[at + 1] << 8) | (bytes[at + 2] << 16) | (bytes[at + 3] << 24);
+        private static int Int32(byte[] bytes, int at) =>
+            bytes[at] | (bytes[at + 1] << 8) | (bytes[at + 2] << 16) | (bytes[at + 3] << 24);
 
-        private static int BigInt32(byte[] bytes, int at) => (bytes[at] << 24) | (bytes[at + 1] << 16) | (bytes[at + 2] << 8) | bytes[at + 3];
+        private static int BigInt32(byte[] bytes, int at) =>
+            (bytes[at] << 24) | (bytes[at + 1] << 16) | (bytes[at + 2] << 8) | bytes[at + 3];
 
         [Fact]
         public void PngOut_AsksAutoCadsPrompts_AndWithNoViewWritesTheExtentsAt1920By1080_PrintingNothing()
@@ -109,7 +121,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(1080, job.PixelHeight);
 
             byte[] bytes = File.ReadAllBytes(file + ".png");
-            Assert.Equal(new byte[] { 0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A }, bytes.Take(8).ToArray());
+            Assert.Equal(
+                new byte[] { 0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A },
+                bytes.Take(8).ToArray()
+            );
             Assert.Equal("IHDR", System.Text.Encoding.ASCII.GetString(bytes, 12, 4));
             Assert.Equal(1920, BigInt32(bytes, 16));
             Assert.Equal(1080, BigInt32(bytes, 20));
@@ -276,11 +291,32 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Windowless(document, jobs);
             session.View = PixelView();
 
-            Run(session, "JPGOUT", Path.Combine(_folder, "plan.jpeg"), Enter, "PNGOUT", "beside", Enter, "PNGOUT", Enter, Enter, "BMPOUT", "UPPER.BMP", Enter);
+            Run(
+                session,
+                "JPGOUT",
+                Path.Combine(_folder, "plan.jpeg"),
+                Enter,
+                "PNGOUT",
+                "beside",
+                Enter,
+                "PNGOUT",
+                Enter,
+                Enter,
+                "BMPOUT",
+                "UPPER.BMP",
+                Enter
+            );
 
             Assert.Equal(
-                new[] { Path.Combine(_folder, "plan.jpeg.jpg"), Path.Combine(_folder, "beside.png"), Path.Combine(_folder, "two-lines.png"), Path.Combine(_folder, "UPPER.BMP") },
-                jobs.Select(j => j.FileName).ToArray());
+                new[]
+                {
+                    Path.Combine(_folder, "plan.jpeg.jpg"),
+                    Path.Combine(_folder, "beside.png"),
+                    Path.Combine(_folder, "two-lines.png"),
+                    Path.Combine(_folder, "UPPER.BMP"),
+                },
+                jobs.Select(j => j.FileName).ToArray()
+            );
             Assert.All(jobs, j => Assert.True(File.Exists(j.FileName)));
         }
 

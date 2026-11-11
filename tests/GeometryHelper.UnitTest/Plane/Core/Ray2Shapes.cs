@@ -27,7 +27,8 @@ namespace GeometryHelper.UnitTest.Plane
         internal static GeoRectangle2 Rectangle() => new GeoRectangle2(P(50, 50), 100, 100);
 
         /// <summary>The square with the square from (30, 30) to (70, 70) cut out of it.</summary>
-        internal static GeoFace2 Plate() => new GeoFace2(Square(), new[] { new GeoPolygon2(P(30, 30), P(70, 30), P(70, 70), P(30, 70)) });
+        internal static GeoFace2 Plate() =>
+            new GeoFace2(Square(), new[] { new GeoPolygon2(P(30, 30), P(70, 30), P(70, 70), P(30, 70)) });
 
         /// <summary>The half of the square below its diagonal x + y = 100.</summary>
         internal static GeoTriangle2 Triangle() => new GeoTriangle2(P(0, 0), P(100, 0), P(0, 100));
@@ -45,10 +46,12 @@ namespace GeometryHelper.UnitTest.Plane
         internal static GeoPolyline2 Ell() => new GeoPolyline2(P(0, 0), P(100, 0), P(100, 100));
 
         /// <summary>The L whose upright is a half circle about (100, 50), bulging out to (150, 50).</summary>
-        internal static GeoPolylineArc2 Hook() => new GeoPolylineArc2(new[] { P(0, 0), P(100, 0), P(100, 100) }, new[] { 0.0, 1.0 });
+        internal static GeoPolylineArc2 Hook() =>
+            new GeoPolylineArc2(new[] { P(0, 0), P(100, 0), P(100, 100) }, new[] { 0.0, 1.0 });
 
         /// <summary>The slot 200 by 50 with round ends of radius 25 about (0, 25) and (200, 25): from x = -25 to 225.</summary>
-        internal static GeoPolygonArc2 Slot() => new GeoPolygonArc2(new[] { P(0, 0), P(200, 0), P(200, 50), P(0, 50) }, new[] { 0.0, 1.0, 0.0, 1.0 });
+        internal static GeoPolygonArc2 Slot() =>
+            new GeoPolygonArc2(new[] { P(0, 0), P(200, 0), P(200, 50), P(0, 50) }, new[] { 0.0, 1.0, 0.0, 1.0 });
 
         /// <summary>The ellipse 200 by 100 about the origin, its long axis along X.</summary>
         internal static GeoEllipse2 Oval() => new GeoEllipse2(P(0, 0), GeoVector2.XAxis, 100, 50);
@@ -89,7 +92,8 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         /// <summary>The segment from the ray's origin 10 000 along the unit direction it was made with.</summary>
-        internal static GeoLine2 FarAlong(GeoRay2 ray, GeoVector2 unit) => new GeoLine2(ray.Origin, P(ray.Origin.X + 10000 * unit.X, ray.Origin.Y + 10000 * unit.Y));
+        internal static GeoLine2 FarAlong(GeoRay2 ray, GeoVector2 unit) =>
+            new GeoLine2(ray.Origin, P(ray.Origin.X + 10000 * unit.X, ray.Origin.Y + 10000 * unit.Y));
 
         #endregion
     }

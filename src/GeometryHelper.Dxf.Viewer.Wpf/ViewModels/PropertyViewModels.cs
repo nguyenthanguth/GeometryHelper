@@ -13,7 +13,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private readonly Func<PropertyRowViewModel, string, bool> _commit;
         private string _value;
 
-        internal PropertyRowViewModel(CadPropertyRow row, IReadOnlyList<string> options, Func<PropertyRowViewModel, string, bool> commit)
+        internal PropertyRowViewModel(
+            CadPropertyRow row,
+            IReadOnlyList<string> options,
+            Func<PropertyRowViewModel, string, bool> commit
+        )
         {
             Label = row.Label;
             _value = row.Value;

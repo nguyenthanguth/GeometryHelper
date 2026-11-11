@@ -27,7 +27,12 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 if (code == 0)
                 {
-                    records.Add(new KeyValuePair<string, List<KeyValuePair<int, string>>>(value, new List<KeyValuePair<int, string>>()));
+                    records.Add(
+                        new KeyValuePair<string, List<KeyValuePair<int, string>>>(
+                            value,
+                            new List<KeyValuePair<int, string>>()
+                        )
+                    );
                 }
                 else if (records.Count > 0)
                 {
@@ -38,16 +43,21 @@ namespace GeometryHelper.UnitTest.Dxf
             return records;
         }
 
-        private static List<List<KeyValuePair<int, string>>> OfType(string text, string type)
-            => Records(text).Where(r => r.Key == type).Select(r => r.Value).ToList();
+        private static List<List<KeyValuePair<int, string>>> OfType(string text, string type) =>
+            Records(text).Where(r => r.Key == type).Select(r => r.Value).ToList();
 
-        private static string Codes(IEnumerable<KeyValuePair<int, string>> groups) => string.Join(" ", groups.Select(g => g.Key.ToString(CultureInfo.InvariantCulture)));
+        private static string Codes(IEnumerable<KeyValuePair<int, string>> groups) =>
+            string.Join(" ", groups.Select(g => g.Key.ToString(CultureInfo.InvariantCulture)));
 
-        private static string Value(List<KeyValuePair<int, string>> groups, int code) => groups.First(g => g.Key == code).Value;
+        private static string Value(List<KeyValuePair<int, string>> groups, int code) =>
+            groups.First(g => g.Key == code).Value;
 
         /// <summary>The groups of a record from the first of a code on, up to (not with) the next of another code given.</summary>
-        private static List<KeyValuePair<int, string>> From(List<KeyValuePair<int, string>> groups, int first, int count)
-            => groups.Skip(groups.FindIndex(g => g.Key == first)).Take(count).ToList();
+        private static List<KeyValuePair<int, string>> From(
+            List<KeyValuePair<int, string>> groups,
+            int first,
+            int count
+        ) => groups.Skip(groups.FindIndex(g => g.Key == first)).Take(count).ToList();
 
         [Theory]
         [InlineData("AC1018")]
@@ -87,7 +97,13 @@ namespace GeometryHelper.UnitTest.Dxf
 
             foreach (List<KeyValuePair<int, string>> layout in layouts)
             {
-                Assert.Equal("147 1 76 0 77 2 78 300 148 0", string.Join(" ", From(layout, 147, 5).Select(g => g.Key.ToString(CultureInfo.InvariantCulture) + " " + g.Value)));
+                Assert.Equal(
+                    "147 1 76 0 77 2 78 300 148 0",
+                    string.Join(
+                        " ",
+                        From(layout, 147, 5).Select(g => g.Key.ToString(CultureInfo.InvariantCulture) + " " + g.Value)
+                    )
+                );
             }
         }
 
@@ -96,7 +112,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("AC1024")]
         [InlineData("AC1027")]
         [InlineData("AC1032")]
-        public void ModelAndPaperSpaceOfANewDrawingOfR2007On_GiveTheirUnitsExplodabilityAndScaling_AndReadAsBefore(string version)
+        public void ModelAndPaperSpaceOfANewDrawingOfR2007On_GiveTheirUnitsExplodabilityAndScaling_AndReadAsBefore(
+            string version
+        )
         {
             var db = new DxfDatabase(version);
             var records = OfType(db.ToText(), "BLOCK_RECORD");
@@ -132,7 +150,14 @@ namespace GeometryHelper.UnitTest.Dxf
             var right = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
             block.AppendEntity(right);
             block.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)));
-            DxfBlockLinearParameter width = block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, DxfBlockParameterValueSet.Increments(50, 300, 10));
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                DxfBlockParameterValueSet.Increments(50, 300, 10)
+            );
             block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { right });
             db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), block));
 

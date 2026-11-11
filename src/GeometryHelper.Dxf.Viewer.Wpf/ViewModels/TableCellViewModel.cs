@@ -25,7 +25,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public int? Index { get; }
 
         /// <summary>Gets the colour of the swatch, 0xRRGGBB; null for none.</summary>
-        public int? Rgb => Index.HasValue && Index.Value >= 1 && Index.Value <= 255 ? DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)Index.Value).ColorValue & 0xFFFFFF : (int?)null;
+        public int? Rgb =>
+            Index.HasValue && Index.Value >= 1 && Index.Value <= 255
+                ? DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)Index.Value).ColorValue & 0xFFFFFF
+                : (int?)null;
 
         /// <inheritdoc/>
         public override string ToString() => Name;
@@ -40,7 +43,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     public sealed class TableCellViewModel : ObservableObject
     {
         /// <summary>The alignments, as the tab's menu lists them.</summary>
-        public static readonly IReadOnlyList<string> Alignments = new[] { "Top Left", "Top Center", "Top Right", "Middle Left", "Middle Center", "Middle Right", "Bottom Left", "Bottom Center", "Bottom Right" };
+        public static readonly IReadOnlyList<string> Alignments = new[]
+        {
+            "Top Left",
+            "Top Center",
+            "Top Right",
+            "Middle Left",
+            "Middle Center",
+            "Middle Right",
+            "Bottom Left",
+            "Bottom Center",
+            "Bottom Right",
+        };
 
         private readonly MainViewModel _model;
         private int _anchorRow;
@@ -62,16 +76,39 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _anchorColumn = _column = column;
             FillChoices = new[]
             {
-                new TableFillChoice("None", null), new TableFillChoice("ByBlock", 0), new TableFillChoice("ByLayer", 256), new TableFillChoice("Red", 1),
-                new TableFillChoice("Yellow", 2), new TableFillChoice("Green", 3), new TableFillChoice("Cyan", 4), new TableFillChoice("Blue", 5),
-                new TableFillChoice("Magenta", 6), new TableFillChoice("White", 7), new TableFillChoice("Color 8", 8), new TableFillChoice("Color 9", 9),
+                new TableFillChoice("None", null),
+                new TableFillChoice("ByBlock", 0),
+                new TableFillChoice("ByLayer", 256),
+                new TableFillChoice("Red", 1),
+                new TableFillChoice("Yellow", 2),
+                new TableFillChoice("Green", 3),
+                new TableFillChoice("Cyan", 4),
+                new TableFillChoice("Blue", 5),
+                new TableFillChoice("Magenta", 6),
+                new TableFillChoice("White", 7),
+                new TableFillChoice("Color 8", 8),
+                new TableFillChoice("Color 9", 9),
             };
-            InsertAboveCommand = new DelegateCommand(_ => Do(d => CadTableEditor.InsertRow(d, Handle, Range.TopRow, false)));
-            InsertBelowCommand = new DelegateCommand(_ => Do(d => CadTableEditor.InsertRow(d, Handle, Range.BottomRow, true)));
-            DeleteRowsCommand = new DelegateCommand(_ => Do(d => CadTableEditor.DeleteRows(d, Handle, Range.TopRow, Range.BottomRow - Range.TopRow + 1)));
-            InsertLeftCommand = new DelegateCommand(_ => Do(d => CadTableEditor.InsertColumn(d, Handle, Range.LeftColumn, false)));
-            InsertRightCommand = new DelegateCommand(_ => Do(d => CadTableEditor.InsertColumn(d, Handle, Range.RightColumn, true)));
-            DeleteColumnsCommand = new DelegateCommand(_ => Do(d => CadTableEditor.DeleteColumns(d, Handle, Range.LeftColumn, Range.RightColumn - Range.LeftColumn + 1)));
+            InsertAboveCommand = new DelegateCommand(_ =>
+                Do(d => CadTableEditor.InsertRow(d, Handle, Range.TopRow, false))
+            );
+            InsertBelowCommand = new DelegateCommand(_ =>
+                Do(d => CadTableEditor.InsertRow(d, Handle, Range.BottomRow, true))
+            );
+            DeleteRowsCommand = new DelegateCommand(_ =>
+                Do(d => CadTableEditor.DeleteRows(d, Handle, Range.TopRow, Range.BottomRow - Range.TopRow + 1))
+            );
+            InsertLeftCommand = new DelegateCommand(_ =>
+                Do(d => CadTableEditor.InsertColumn(d, Handle, Range.LeftColumn, false))
+            );
+            InsertRightCommand = new DelegateCommand(_ =>
+                Do(d => CadTableEditor.InsertColumn(d, Handle, Range.RightColumn, true))
+            );
+            DeleteColumnsCommand = new DelegateCommand(_ =>
+                Do(d =>
+                    CadTableEditor.DeleteColumns(d, Handle, Range.LeftColumn, Range.RightColumn - Range.LeftColumn + 1)
+                )
+            );
             MergeAllCommand = new DelegateCommand(_ => Do(d => CadTableEditor.Merge(d, Handle, Range)));
             MergeByRowCommand = new DelegateCommand(_ => MergeEach(true));
             MergeByColumnCommand = new DelegateCommand(_ => MergeEach(false));
@@ -89,9 +126,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public DxfCellRange Range => _range;
 
         /// <summary>Gets the name of the cells, C3, or B3:C4 for a range.</summary>
-        public string CellName => _range.TopRow == _range.BottomRow && _range.LeftColumn == _range.RightColumn
-            ? CadTableEditor.CellName(_range.TopRow, _range.LeftColumn)
-            : CadTableEditor.CellName(_range.TopRow, _range.LeftColumn) + ":" + CadTableEditor.CellName(_range.BottomRow, _range.RightColumn);
+        public string CellName =>
+            _range.TopRow == _range.BottomRow && _range.LeftColumn == _range.RightColumn
+                ? CadTableEditor.CellName(_range.TopRow, _range.LeftColumn)
+                : CadTableEditor.CellName(_range.TopRow, _range.LeftColumn)
+                    + ":"
+                    + CadTableEditor.CellName(_range.BottomRow, _range.RightColumn);
 
         /// <summary>Gets the cell style of the cells' row, as the Cell Styles box shows it: Title, Header or Data.</summary>
         public string CellStyleName
@@ -100,7 +140,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 DxfTable table = Table;
                 DxfRowType kind = table == null ? DxfRowType.DataRow : table.RowType(_range.TopRow);
-                return kind == DxfRowType.TitleRow ? "Title" : kind == DxfRowType.HeaderRow ? "Header" : "Data";
+                return kind == DxfRowType.TitleRow ? "Title"
+                    : kind == DxfRowType.HeaderRow ? "Header"
+                    : "Data";
             }
         }
 
@@ -118,7 +160,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 DxfRowType kind = table.RowType(_range.TopRow);
                 DxfCellAlignment alignment = table.Alignment(_range.TopRow, _range.LeftColumn)
-                    ?? (table.TableStyle as DxfTableStyle)?.Alignment(kind) ?? (kind == DxfRowType.DataRow ? DxfCellAlignment.TopCenter : DxfCellAlignment.MiddleCenter);
+                    ?? (table.TableStyle as DxfTableStyle)?.Alignment(kind)
+                    ?? (kind == DxfRowType.DataRow ? DxfCellAlignment.TopCenter : DxfCellAlignment.MiddleCenter);
                 return Alignments[(int)alignment - 1];
             }
         }
@@ -148,9 +191,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     }
                 }
 
-                return new TableFillChoice("Color " + color.ColorIndex.ToString(CultureInfo.InvariantCulture), color.ColorIndex);
+                return new TableFillChoice(
+                    "Color " + color.ColorIndex.ToString(CultureInfo.InvariantCulture),
+                    color.ColorIndex
+                );
             }
-
             set
             {
                 if (value == null || value.Name == Fill.Name)
@@ -158,7 +203,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return;
                 }
 
-                DxfColor color = value.Index.HasValue ? (value.Index.Value == 0 ? DxfColor.ByBlock : value.Index.Value == 256 ? DxfColor.ByLayer : DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)value.Index.Value)) : null;
+                DxfColor color = value.Index.HasValue
+                    ? (
+                        value.Index.Value == 0 ? DxfColor.ByBlock
+                        : value.Index.Value == 256 ? DxfColor.ByLayer
+                        : DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)value.Index.Value)
+                    )
+                    : null;
                 Do(d => CadTableEditor.SetBackground(d, Handle, Range, color));
             }
         }
@@ -212,8 +263,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private DxfTable Table => _model.Document?.FindEntity(Handle) as DxfTable;
 
         /// <summary>Whether the cells are still those of a table of the document.</summary>
-        internal bool IsValid(CadDocument document)
-            => document.FindEntity(Handle) is DxfTable table && _row < table.NumRows && _column < table.NumColumns && _anchorRow < table.NumRows && _anchorColumn < table.NumColumns;
+        internal bool IsValid(CadDocument document) =>
+            document.FindEntity(Handle) is DxfTable table
+            && _row < table.NumRows
+            && _column < table.NumColumns
+            && _anchorRow < table.NumRows
+            && _anchorColumn < table.NumColumns;
 
         /// <summary>Reads the range again from the table, and raises every property the tab shows.</summary>
         internal void Refresh()
@@ -226,7 +281,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _column = Math.Min(_column, table.NumColumns - 1);
                 _anchorRow = Math.Min(_anchorRow, table.NumRows - 1);
                 _anchorColumn = Math.Min(_anchorColumn, table.NumColumns - 1);
-                _range = CadTableEditor.Grown(table, new DxfCellRange(Math.Min(_row, _anchorRow), Math.Min(_column, _anchorColumn), Math.Max(_row, _anchorRow), Math.Max(_column, _anchorColumn)));
+                _range = CadTableEditor.Grown(
+                    table,
+                    new DxfCellRange(
+                        Math.Min(_row, _anchorRow),
+                        Math.Min(_column, _anchorColumn),
+                        Math.Max(_row, _anchorRow),
+                        Math.Max(_column, _anchorColumn)
+                    )
+                );
             }
             else
             {
@@ -262,8 +325,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // From a block of merged cells, past its far side.
             DxfCellRange block = table.GetMergeRange(_row, _column);
-            int row = rows > 0 ? block.BottomRow + 1 : rows < 0 ? block.TopRow - 1 : _row;
-            int column = columns > 0 ? block.RightColumn + 1 : columns < 0 ? block.LeftColumn - 1 : _column;
+            int row =
+                rows > 0 ? block.BottomRow + 1
+                : rows < 0 ? block.TopRow - 1
+                : _row;
+            int column =
+                columns > 0 ? block.RightColumn + 1
+                : columns < 0 ? block.LeftColumn - 1
+                : _column;
 
             if (row < 0 || column < 0 || row >= table.NumRows || column >= table.NumColumns)
             {
@@ -370,7 +439,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             for (int k = 0; k < count; k++)
             {
-                DxfCellRange part = byRow ? new DxfCellRange(range.TopRow + k, range.LeftColumn, range.TopRow + k, range.RightColumn)
+                DxfCellRange part = byRow
+                    ? new DxfCellRange(range.TopRow + k, range.LeftColumn, range.TopRow + k, range.RightColumn)
                     : new DxfCellRange(range.TopRow, range.LeftColumn + k, range.BottomRow, range.LeftColumn + k);
 
                 if (part.TopRow != part.BottomRow || part.LeftColumn != part.RightColumn)

@@ -30,7 +30,11 @@ namespace GeometryHelper.UnitTest.Solid
         public void HolesInARowAHairOutOfLineAreMeshedRoundEveryOne(double hair)
         {
             GeoPoint3[][] rings = Rings(hair, 0.0);
-            var face = new GeoFace3(new GeoPolygon3(rings[0], Tolerance), rings.Skip(1).Select(ring => new GeoPolygon3(ring, Tolerance)), Tolerance);
+            var face = new GeoFace3(
+                new GeoPolygon3(rings[0], Tolerance),
+                rings.Skip(1).Select(ring => new GeoPolygon3(ring, Tolerance)),
+                Tolerance
+            );
 
             Assert.True(EarClipping.TryTriangulate(face, Tolerance, out GeoTriangle3[] triangles));
             Assert.InRange(triangles.Sum(t => t.Area), face.Area * (1 - 1E-12), face.Area * (1 + 1E-12));
@@ -53,7 +57,11 @@ namespace GeometryHelper.UnitTest.Solid
             GeoSolid3 slab = Slab(4.66E-8, 300.0);
 
             Assert.True(slab.IsClosed(Tolerance));
-            Assert.InRange(slab.Triangulate(Tolerance).Sum(t => t.Area), slab.GetSurfaceArea() * (1 - 1E-12), slab.GetSurfaceArea() * (1 + 1E-12));
+            Assert.InRange(
+                slab.Triangulate(Tolerance).Sum(t => t.Area),
+                slab.GetSurfaceArea() * (1 - 1E-12),
+                slab.GetSurfaceArea() * (1 + 1E-12)
+            );
 
             // The mass properties are summed over that mesh. The volume came out right all the same, being summed along x
             // and the face lying level, but the centroid stood 2.6 mm off the middle of the slab's thickness.
@@ -76,7 +84,8 @@ namespace GeometryHelper.UnitTest.Solid
             // bridge leaves from, as rounding left them.
             const double lean = 1E-7;
 
-            GeoPoint3[] Pit(double left, double low) => new[] { P(left, low), P(left + 4200, low), P(left + 4200 - lean, 8400), P(left, 8400) };
+            GeoPoint3[] Pit(double left, double low) =>
+                new[] { P(left, low), P(left + 4200, low), P(left + 4200 - lean, 8400), P(left, 8400) };
 
             return new[]
             {
@@ -97,8 +106,16 @@ namespace GeometryHelper.UnitTest.Solid
 
             var faces = new List<GeoFace3>
             {
-                new GeoFace3(new GeoPolygon3(low[0].Reverse(), Tolerance), low.Skip(1).Select(ring => new GeoPolygon3(ring.Reverse(), Tolerance)), Tolerance),
-                new GeoFace3(new GeoPolygon3(high[0], Tolerance), high.Skip(1).Select(ring => new GeoPolygon3(ring, Tolerance)), Tolerance),
+                new GeoFace3(
+                    new GeoPolygon3(low[0].Reverse(), Tolerance),
+                    low.Skip(1).Select(ring => new GeoPolygon3(ring.Reverse(), Tolerance)),
+                    Tolerance
+                ),
+                new GeoFace3(
+                    new GeoPolygon3(high[0], Tolerance),
+                    high.Skip(1).Select(ring => new GeoPolygon3(ring, Tolerance)),
+                    Tolerance
+                ),
             };
 
             for (int r = 0; r < low.Length; r++)
@@ -106,9 +123,10 @@ namespace GeometryHelper.UnitTest.Solid
                 for (int i = 0; i < low[r].Length; i++)
                 {
                     int j = (i + 1) % low[r].Length;
-                    GeoPoint3[] corners = r == 0
-                        ? new[] { low[r][i], low[r][j], high[r][j], high[r][i] }
-                        : new[] { low[r][j], low[r][i], high[r][i], high[r][j] };
+                    GeoPoint3[] corners =
+                        r == 0
+                            ? new[] { low[r][i], low[r][j], high[r][j], high[r][i] }
+                            : new[] { low[r][j], low[r][i], high[r][i], high[r][j] };
                     faces.Add(new GeoFace3(new GeoPolygon3(corners, Tolerance), null, Tolerance));
                 }
             }

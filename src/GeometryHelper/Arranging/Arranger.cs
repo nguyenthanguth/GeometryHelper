@@ -98,8 +98,13 @@ namespace GeometryHelper.Arranging
         /// its own item's regions alone.
         /// </para>
         /// </remarks>
-        private static bool Relax(IReadOnlyList<ArrangeItem> items, GeoVector2[] translations, bool[] placed,
-            GreedyAlgorithm algorithm, ArrangeOptions options)
+        private static bool Relax(
+            IReadOnlyList<ArrangeItem> items,
+            GeoVector2[] translations,
+            bool[] placed,
+            GreedyAlgorithm algorithm,
+            ArrangeOptions options
+        )
         {
             var failed = new List<int>();
             for (int i = 0; i < items.Count; i++)
@@ -118,7 +123,11 @@ namespace GeometryHelper.Arranging
             var settled = new List<GeoPolygon2>();
             for (int i = 0; i < items.Count; i++)
             {
-                if (items[i] != null && placed[i] && TryGetRegion(items[i].Box.Translate(translations[i]), options.Tolerance, out GeoPolygon2 region))
+                if (
+                    items[i] != null
+                    && placed[i]
+                    && TryGetRegion(items[i].Box.Translate(translations[i]), options.Tolerance, out GeoPolygon2 region)
+                )
                 {
                     settled.Add(region);
                 }

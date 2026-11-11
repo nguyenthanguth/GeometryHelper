@@ -31,19 +31,39 @@ namespace GeometryHelper.Dxf
     public sealed class DxfAttributeReference : DxfDBText
     {
         // The groups of an ATTRIB in the order AutoCAD writes them: AcDbText, then AcDbAttribute.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 39, 10, 20, 30, 40, 1, 50, 41, 51, 7, 71, 72, 11, 21, 31, 210, 220, 230, 100, 2, 70, 73, 74 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[] { 100, 39, 10, 20, 30, 40, 1, 50, 41, 51, 7, 71, 72, 11, 21, 31, 210, 220, 230, 100, 2, 70, 73, 74 }
+        );
 
         // The codes of the text's part of an attribute or its definition.
-        private static readonly HashSet<int> TextCodes = new HashSet<int> { 39, 10, 20, 30, 40, 1, 50, 41, 51, 7, 71, 72, 11, 21, 31, 210, 220, 230 };
+        private static readonly HashSet<int> TextCodes = new HashSet<int>
+        {
+            39,
+            10,
+            20,
+            30,
+            40,
+            1,
+            50,
+            41,
+            51,
+            7,
+            71,
+            72,
+            11,
+            21,
+            31,
+            210,
+            220,
+            230,
+        };
 
         /// <summary>
         /// Initializes an attribute with no tag or value at the origin, 2.5 high, as AutoCAD's <c>new AttributeReference()</c>,
         /// in no file; give it its tag, or fill it from its definition, before it is added to an INSERT.
         /// </summary>
         public DxfAttributeReference()
-            : base("ATTRIB", Groups(new GeoPoint3(0.0, 0.0, 0.0), string.Empty, string.Empty, null, false))
-        {
-        }
+            : base("ATTRIB", Groups(new GeoPoint3(0.0, 0.0, 0.0), string.Empty, string.Empty, null, false)) { }
 
         /// <summary>
         /// Initializes an attribute, as AutoCAD's <c>new AttributeReference(position, value, tag, style)</c>: at a point, with
@@ -57,14 +77,10 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number, the value has a line break in
         /// it, or the tag is empty or has a space in it.</exception>
         public DxfAttributeReference(GeoPoint3 position, string value, string tag, DxfTextStyleTableRecord style)
-            : base("ATTRIB", Groups(position, value, tag, style?.Name, true))
-        {
-        }
+            : base("ATTRIB", Groups(position, value, tag, style?.Name, true)) { }
 
         internal DxfAttributeReference(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets the tag of the attribute (group 2), as AutoCAD's <c>Tag</c>: the name its block's definition gives it, such as <c>TAG1</c>.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the tag set is null.</exception>
@@ -251,8 +267,21 @@ namespace GeometryHelper.Dxf
                 else if (segment > 0 && (group.TypeCode == 71 || group.TypeCode == 72))
                 {
                     // The type from R2018 and the 72 after it: a definition of several lines (4) makes an attribute of several (2).
-                    bool several = group.TypeCode == 71 && int.TryParse(group.Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int type) && (type == 4 || type == 2);
-                    attribute.Add(new KeyValuePair<int, string>(group.TypeCode, several ? SeveralLines.ToString(CultureInfo.InvariantCulture) : group.Value));
+                    bool several =
+                        group.TypeCode == 71
+                        && int.TryParse(
+                            group.Value.Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out int type
+                        )
+                        && (type == 4 || type == 2);
+                    attribute.Add(
+                        new KeyValuePair<int, string>(
+                            group.TypeCode,
+                            several ? SeveralLines.ToString(CultureInfo.InvariantCulture) : group.Value
+                        )
+                    );
                 }
                 else if (group.TypeCode == 280 && tagged && locked == null)
                 {
@@ -345,8 +374,8 @@ namespace GeometryHelper.Dxf
             }
 
             string tag = Tag;
-            DxfAttributeDefinition definition = (FollowedEntity as DxfBlockReference)?.BlockTableRecord?
-                .OfType<DxfAttributeDefinition>()
+            DxfAttributeDefinition definition = (FollowedEntity as DxfBlockReference)
+                ?.BlockTableRecord?.OfType<DxfAttributeDefinition>()
                 .FirstOrDefault(d => string.Equals(d.Tag, tag, StringComparison.OrdinalIgnoreCase));
 
             if (definition == null)
@@ -367,8 +396,11 @@ namespace GeometryHelper.Dxf
         internal int Record => FollowerIndex;
 
         /// <summary>Refuses: an attribute is added to an INSERT by <see cref="DxfAttributeCollection.AppendAttribute"/>, not to a block.</summary>
-        internal override void Appending(DxfBlockTableRecord owner)
-            => throw new ArgumentException("An ATTRIB belongs to an INSERT: add it by the INSERT's AttributeCollection.AppendAttribute.", "entity");
+        internal override void Appending(DxfBlockTableRecord owner) =>
+            throw new ArgumentException(
+                "An ATTRIB belongs to an INSERT: add it by the INSERT's AttributeCollection.AppendAttribute.",
+                "entity"
+            );
 
         /// <inheritdoc/>
         private protected override IReadOnlyList<int> GroupOrder => Order;
@@ -396,11 +428,20 @@ namespace GeometryHelper.Dxf
             return before;
         }
 
-        private static IEnumerable<DxfTypedValue> Groups(GeoPoint3 position, string value, string tag, string style, bool check)
+        private static IEnumerable<DxfTypedValue> Groups(
+            GeoPoint3 position,
+            string value,
+            string tag,
+            string style,
+            bool check
+        )
         {
             if (!position.IsValid)
             {
-                throw new ArgumentException("A point has to be of finite numbers: " + position + " is not.", nameof(position));
+                throw new ArgumentException(
+                    "A point has to be of finite numbers: " + position + " is not.",
+                    nameof(position)
+                );
             }
 
             if (value == null)
@@ -410,7 +451,10 @@ namespace GeometryHelper.Dxf
 
             if (value.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0)
             {
-                throw new ArgumentException("The value of an attribute is one line, with no line break in it.", nameof(value));
+                throw new ArgumentException(
+                    "The value of an attribute is one line, with no line break in it.",
+                    nameof(value)
+                );
             }
 
             if (check)

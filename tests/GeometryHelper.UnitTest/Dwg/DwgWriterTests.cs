@@ -19,7 +19,13 @@ namespace GeometryHelper.UnitTest.Dwg
         /// <summary>The types of AutoCAD's new drawing of R2018 that the writer does not write yet.</summary>
         private static readonly string[] NotWritten =
         {
-            "ACDBDETAILVIEWSTYLE", "ACDBSECTIONVIEWSTYLE", "MATERIAL", "MLEADERSTYLE", "TABLESTYLE", "VISUALSTYLE", "MULTILEADER",
+            "ACDBDETAILVIEWSTYLE",
+            "ACDBSECTIONVIEWSTYLE",
+            "MATERIAL",
+            "MLEADERSTYLE",
+            "TABLESTYLE",
+            "VISUALSTYLE",
+            "MULTILEADER",
         };
 
         private static byte[] Written(DxfDatabase database)
@@ -31,7 +37,8 @@ namespace GeometryHelper.UnitTest.Dwg
             }
         }
 
-        private static DxfDatabase Source(string name) => DxfDatabase.Open(new MemoryStream(DwgAnswerKey.Key(name), false));
+        private static DxfDatabase Source(string name) =>
+            DxfDatabase.Open(new MemoryStream(DwgAnswerKey.Key(name), false));
 
         [Theory]
         [InlineData("curves_AC1032")]
@@ -51,8 +58,9 @@ namespace GeometryHelper.UnitTest.Dwg
 
             // What differs is what the types left out lead to: the dictionaries that listed them, and the material the header
             // names, which is a MATERIAL.
-            Assert.All(result.Differences, difference => Assert.True(
-                difference.Contains("$CMATERIAL") || difference.Contains("OBJECTS DICTIONARY"), difference));
+            Assert.All(result.Differences, difference =>
+                Assert.True(difference.Contains("$CMATERIAL") || difference.Contains("OBJECTS DICTIONARY"), difference)
+            );
             Assert.All(result.Missing.Keys, type => Assert.Contains(type, NotWritten));
             Assert.True(result.Paired > 300, result.Paired + " records paired");
         }
@@ -130,7 +138,10 @@ namespace GeometryHelper.UnitTest.Dwg
                 GeometryHelperLog.Enable = true;
                 GeometryHelperLog.Writer = (level, message, fault) =>
                 {
-                    if (level == GeometryHelperLogLevel.Warn && message.StartsWith("DwgWriter", StringComparison.Ordinal))
+                    if (
+                        level == GeometryHelperLogLevel.Warn
+                        && message.StartsWith("DwgWriter", StringComparison.Ordinal)
+                    )
                     {
                         lines.Add(message);
                     }

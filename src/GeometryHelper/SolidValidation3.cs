@@ -87,16 +87,27 @@ namespace GeometryHelper
             IReadOnlyList<GeoFace3> faces = solid.Faces;
             var issues = new List<SolidIssue3>();
 
-            List<Shells3.Stretch> stretches = asRead ? Shells3.StretchesAsRead(solid, tolerance) : Shells3.UnevenStretches(faces, tolerance);
+            List<Shells3.Stretch> stretches = asRead
+                ? Shells3.StretchesAsRead(solid, tolerance)
+                : Shells3.UnevenStretches(faces, tolerance);
 
             foreach (Shells3.Stretch stretch in stretches)
             {
                 int count = stretch.Forward + stretch.Backward;
-                SolidIssueKind kind = count % 2 != 0 ? SolidIssueKind.OpenEdge
+                SolidIssueKind kind =
+                    count % 2 != 0 ? SolidIssueKind.OpenEdge
                     : stretch.Forward != stretch.Backward ? SolidIssueKind.SameWayEdge
                     : SolidIssueKind.NonManifoldEdge;
 
-                issues.Add(SolidIssue3.OnEdge(kind, new GeoLine3(stretch.Start, stretch.End), stretch.Faces, stretch.Forward, stretch.Backward));
+                issues.Add(
+                    SolidIssue3.OnEdge(
+                        kind,
+                        new GeoLine3(stretch.Start, stretch.End),
+                        stretch.Faces,
+                        stretch.Forward,
+                        stretch.Backward
+                    )
+                );
             }
 
             double area = 0.0;
@@ -116,7 +127,14 @@ namespace GeometryHelper
 
                 if (face.Area <= 0.5 * tolerance.EqualPoint * perimeter)
                 {
-                    issues.Add(SolidIssue3.OfFace(SolidIssueKind.SliverFace, f, face.Centroid, perimeter > 0.0 ? 2.0 * face.Area / perimeter : 0.0));
+                    issues.Add(
+                        SolidIssue3.OfFace(
+                            SolidIssueKind.SliverFace,
+                            f,
+                            face.Centroid,
+                            perimeter > 0.0 ? 2.0 * face.Area / perimeter : 0.0
+                        )
+                    );
                 }
 
                 double off = OffFlat(face);
@@ -143,8 +161,12 @@ namespace GeometryHelper
             }
 
             // Stable, so each kind keeps the order the faces gave it.
-            SolidIssue3[] sorted = issues.Select((issue, index) => (issue, index))
-                .OrderBy(x => x.issue.Kind).ThenBy(x => x.index).Select(x => x.issue).ToArray();
+            SolidIssue3[] sorted = issues
+                .Select((issue, index) => (issue, index))
+                .OrderBy(x => x.issue.Kind)
+                .ThenBy(x => x.index)
+                .Select(x => x.issue)
+                .ToArray();
 
             return new SolidValidation3(sorted, volume);
         }
@@ -165,7 +187,13 @@ namespace GeometryHelper
             return Math.Abs(solid.GetSignedVolume()) <= 0.5 * tolerance.EqualPoint * area;
         }
 
-        private static void AddShortEdges(GeoPolygon3 ring, int face, Tolerance tolerance, List<SolidIssue3> issues, ref double perimeter)
+        private static void AddShortEdges(
+            GeoPolygon3 ring,
+            int face,
+            Tolerance tolerance,
+            List<SolidIssue3> issues,
+            ref double perimeter
+        )
         {
             for (int i = 0; i < ring.VertexCount; i++)
             {
@@ -210,14 +238,20 @@ namespace GeometryHelper
         /// </summary>
         public override string ToString()
         {
-            string counts = string.Join(", ", _issues.GroupBy(i => i.Kind).Select(g => string.Format(CultureInfo.InvariantCulture, "{0} {1}", g.Key, g.Count())));
+            string counts = string.Join(
+                ", ",
+                _issues
+                    .GroupBy(i => i.Kind)
+                    .Select(g => string.Format(CultureInfo.InvariantCulture, "{0} {1}", g.Key, g.Count()))
+            );
 
             return string.Format(
                 CultureInfo.InvariantCulture,
                 "SolidValidation3[{0}, volume {1:G6}{2}]",
                 IsValid ? "valid" : "not valid",
                 SignedVolume,
-                counts.Length > 0 ? "; " + counts : string.Empty);
+                counts.Length > 0 ? "; " + counts : string.Empty
+            );
         }
     }
 }

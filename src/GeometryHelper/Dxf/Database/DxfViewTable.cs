@@ -60,7 +60,10 @@ namespace GeometryHelper.Dxf
         {
             if (!(record is DxfViewTableRecord view))
             {
-                throw new ArgumentException("The VIEW table takes a DxfViewTableRecord, and was given a " + record.GetType().Name + ".", "value");
+                throw new ArgumentException(
+                    "The VIEW table takes a DxfViewTableRecord, and was given a " + record.GetType().Name + ".",
+                    "value"
+                );
             }
 
             view.AddTo(_file);
@@ -81,10 +84,50 @@ namespace GeometryHelper.Dxf
     public sealed class DxfViewTableRecord : DxfSymbolTableRecord
     {
         // The groups of AcDbViewTableRecord in the order AutoCAD writes them, after AcDbSymbolTableRecord.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[]
-        {
-            100, 100, 2, 70, 40, 10, 20, 41, 11, 21, 31, 12, 22, 32, 42, 43, 44, 50, 71, 281, 72, 110, 120, 130, 111, 121, 131, 112, 122, 132, 79, 146, 345, 346, 73, 332, 334, 348, 361,
-        });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[]
+            {
+                100,
+                100,
+                2,
+                70,
+                40,
+                10,
+                20,
+                41,
+                11,
+                21,
+                31,
+                12,
+                22,
+                32,
+                42,
+                43,
+                44,
+                50,
+                71,
+                281,
+                72,
+                110,
+                120,
+                130,
+                111,
+                121,
+                131,
+                112,
+                122,
+                132,
+                79,
+                146,
+                345,
+                346,
+                73,
+                332,
+                334,
+                348,
+                361,
+            }
+        );
 
         // The extension dictionary's entry AutoCAD 2021 keeps a view's layer snapshot in, its state named by group 302.
         private const string ViewInfo = "ADSK_XREC_VTRVIEWINFO";
@@ -95,14 +138,10 @@ namespace GeometryHelper.Dxf
         private bool _paper;
 
         /// <summary>Initializes a view made in code, of model space about the origin, to be added to a <see cref="DxfViewTable"/> with its <see cref="DxfSymbolTableRecord.Name"/> given.</summary>
-        public DxfViewTableRecord()
-        {
-        }
+        public DxfViewTableRecord() { }
 
         private DxfViewTableRecord(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Gets or sets the point at the centre of the view (groups 10, 20), as AutoCAD's <c>CenterPoint</c>, in the display coordinates of its space.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
@@ -110,12 +149,14 @@ namespace GeometryHelper.Dxf
         public GeoPoint2 CenterPoint
         {
             get => Item == null ? _center : new GeoPoint2(Real(10, 0.0), Real(20, 0.0));
-
             set
             {
                 if (!(Guard.IsFinite(value.X) && Guard.IsFinite(value.Y)))
                 {
-                    throw new ArgumentException("A point has to be of finite numbers: " + value + " is not.", nameof(value));
+                    throw new ArgumentException(
+                        "A point has to be of finite numbers: " + value + " is not.",
+                        nameof(value)
+                    );
                 }
 
                 if (Item == null)
@@ -124,7 +165,10 @@ namespace GeometryHelper.Dxf
                 }
                 else if (!(Same(value.X, CenterPoint.X) && Same(value.Y, CenterPoint.Y)))
                 {
-                    SetValues(new KeyValuePair<int, string>(10, Numbers.Exact(value.X + 0.0)), new KeyValuePair<int, string>(20, Numbers.Exact(value.Y + 0.0)));
+                    SetValues(
+                        new KeyValuePair<int, string>(10, Numbers.Exact(value.X + 0.0)),
+                        new KeyValuePair<int, string>(20, Numbers.Exact(value.Y + 0.0))
+                    );
                 }
             }
         }
@@ -155,7 +199,6 @@ namespace GeometryHelper.Dxf
         public bool IsPaperspaceView
         {
             get => Item == null ? _paper : (Flags & 1) != 0;
-
             set
             {
                 if (Item == null)
@@ -171,10 +214,12 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Gets the target of the view (groups 12, 22, 32), as AutoCAD's <c>Target</c>, in world coordinates; the origin where the record gives none.</summary>
-        public GeoPoint3 Target => Item == null ? GeoPoint3.Origin : new GeoPoint3(Real(12, 0.0), Real(22, 0.0), Real(32, 0.0));
+        public GeoPoint3 Target =>
+            Item == null ? GeoPoint3.Origin : new GeoPoint3(Real(12, 0.0), Real(22, 0.0), Real(32, 0.0));
 
         /// <summary>Gets the direction the view looks from towards its target (groups 11, 21, 31), as AutoCAD's <c>ViewDirection</c>; Z where the record gives none.</summary>
-        public GeoVector3 ViewDirection => Item == null ? GeoVector3.ZAxis : new GeoVector3(Real(11, 0.0), Real(21, 0.0), Real(31, 1.0));
+        public GeoVector3 ViewDirection =>
+            Item == null ? GeoVector3.ZAxis : new GeoVector3(Real(11, 0.0), Real(21, 0.0), Real(31, 1.0));
 
         /// <summary>Gets the twist of the view about its direction (group 50), as AutoCAD's <c>ViewTwist</c>, in radians.</summary>
         public double ViewTwist => Item == null ? 0.0 : Real(50, 0.0) * Math.PI / 180.0;
@@ -198,7 +243,6 @@ namespace GeometryHelper.Dxf
                 DxfXrecord info = Info();
                 return info?.Data.Where(g => g.TypeCode == 302).Select(g => g.Value).FirstOrDefault() ?? string.Empty;
             }
-
             set
             {
                 if (value == null)
@@ -208,7 +252,9 @@ namespace GeometryHelper.Dxf
 
                 if (Item == null || IsErased)
                 {
-                    throw new InvalidOperationException("The view " + Name + " is in no file, and is given no layer snapshot.");
+                    throw new InvalidOperationException(
+                        "The view " + Name + " is in no file, and is given no layer snapshot."
+                    );
                 }
 
                 if (string.Equals(value, LayerState, StringComparison.Ordinal))
@@ -271,7 +317,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The object of a VIEW record, made once.</summary>
-        internal static DxfViewTableRecord Of(DxfItem item) => item.Wrapper as DxfViewTableRecord ?? (DxfViewTableRecord)item.KeepWrapper(new DxfViewTableRecord(item));
+        internal static DxfViewTableRecord Of(DxfItem item) =>
+            item.Wrapper as DxfViewTableRecord ?? (DxfViewTableRecord)item.KeepWrapper(new DxfViewTableRecord(item));
 
         /// <summary>Writes the view made in code into a file's VIEW table, as AutoCAD 2021 writes one, and stands for its record from then on.</summary>
         internal void AddTo(DxfFile file)
@@ -338,9 +385,20 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfItem other in file.TableItems("VIEW"))
             {
-                if (other != Item && !other.IsRemoved && string.Equals(DxfReader.NameOf(file.ValueOf(other, 2) ?? string.Empty), name, StringComparison.OrdinalIgnoreCase))
+                if (
+                    other != Item
+                    && !other.IsRemoved
+                    && string.Equals(
+                        DxfReader.NameOf(file.ValueOf(other, 2) ?? string.Empty),
+                        name,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
                 {
-                    throw new ArgumentException("The VIEW table has a view named " + name + " already, letters of either case the same.", "value");
+                    throw new ArgumentException(
+                        "The VIEW table has a view named " + name + " already, letters of either case the same.",
+                        "value"
+                    );
                 }
             }
 
@@ -352,7 +410,10 @@ namespace GeometryHelper.Dxf
         {
             string handle = file.HoldsObjects ? file.RootDictionaryHandle() : null;
             DxfItem item = handle == null ? null : file.ObjectItem(handle);
-            DxfDBDictionary styles = item != null && DxfDBObject.OfObject(item) is DxfDBDictionary root && root.Contains("ACAD_VISUALSTYLE") ? root.GetAt("ACAD_VISUALSTYLE") as DxfDBDictionary : null;
+            DxfDBDictionary styles =
+                item != null && DxfDBObject.OfObject(item) is DxfDBDictionary root && root.Contains("ACAD_VISUALSTYLE")
+                    ? root.GetAt("ACAD_VISUALSTYLE") as DxfDBDictionary
+                    : null;
             return styles != null && styles.Contains("2dWireframe") ? styles.GetAt("2dWireframe")?.Handle : null;
         }
 
@@ -366,7 +427,12 @@ namespace GeometryHelper.Dxf
         {
             if (!(Guard.IsFinite(value) && value > 0.0))
             {
-                throw new ArgumentException("A view's height and width are finite numbers above nought: " + value.ToString("R", CultureInfo.InvariantCulture) + " is not.", nameof(value));
+                throw new ArgumentException(
+                    "A view's height and width are finite numbers above nought: "
+                        + value.ToString("R", CultureInfo.InvariantCulture)
+                        + " is not.",
+                    nameof(value)
+                );
             }
 
             if (Item == null)
@@ -389,8 +455,12 @@ namespace GeometryHelper.Dxf
             Item.File.SetValues(Item, values, Order, false);
         }
 
-        private double Real(int code, double fallback) => Numbers.TryRead(Item.File.ValueOf(Item, code), out double value) && Guard.IsFinite(value) ? value : fallback;
+        private double Real(int code, double fallback) =>
+            Numbers.TryRead(Item.File.ValueOf(Item, code), out double value) && Guard.IsFinite(value)
+                ? value
+                : fallback;
 
-        private static bool Same(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
+        private static bool Same(double a, double b) =>
+            BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
     }
 }

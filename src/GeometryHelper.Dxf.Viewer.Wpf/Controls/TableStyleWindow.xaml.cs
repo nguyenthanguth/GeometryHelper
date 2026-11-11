@@ -28,7 +28,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             model.AskNewStyle = (offered, names) =>
             {
                 string start = model.SelectedStyle?.Name ?? "Standard";
-                string name = StyleNameWindow.Ask(this, new StyleNameViewModel("New Table Style", offered, n => Contains(names, n)));
+                string name = StyleNameWindow.Ask(
+                    this,
+                    new StyleNameViewModel("New Table Style", offered, n => Contains(names, n))
+                );
                 return name == null ? null : Tuple.Create(name, start);
             };
             model.ShowModify = modify => new TableStyleModifyWindow(modify) { Owner = this }.ShowDialog() == true;

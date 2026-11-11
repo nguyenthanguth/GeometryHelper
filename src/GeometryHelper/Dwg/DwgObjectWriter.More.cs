@@ -158,10 +158,17 @@ namespace GeometryHelper.Dwg
         /// <summary>The MLINESTYLE named <paramref name="name"/>: the entry of the dictionary ACAD_MLINESTYLE.</summary>
         private ulong EntryOfStyle(string name)
         {
-            DwgRecord style = _drawing.Objects.Find(record => record.Type == "MLINESTYLE"
-                && string.Equals(record.Of("AcDbMlineStyle").Text(2).Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
+            DwgRecord style = _drawing.Objects.Find(record =>
+                record.Type == "MLINESTYLE"
+                && string.Equals(
+                    record.Of("AcDbMlineStyle").Text(2).Trim(),
+                    name.Trim(),
+                    StringComparison.OrdinalIgnoreCase
+                )
+            );
             return style?.Handle ?? 0;
         }
+
         private void WriteViewport()
         {
             DwgGroups viewport = _record.Of("AcDbViewport");
@@ -265,7 +272,8 @@ namespace GeometryHelper.Dwg
 
             public int Int(int code, int otherwise = 0) => At(code) ? DwgRecord.Int(_groups[_at++].Value) : otherwise;
 
-            public double Double(int code, double otherwise = 0.0) => At(code) ? DwgRecord.Double(_groups[_at++].Value) : otherwise;
+            public double Double(int code, double otherwise = 0.0) =>
+                At(code) ? DwgRecord.Double(_groups[_at++].Value) : otherwise;
 
             /// <summary>A point of the code, the code plus 10 and, where it follows, plus 20.</summary>
             public double[] Point(int code)

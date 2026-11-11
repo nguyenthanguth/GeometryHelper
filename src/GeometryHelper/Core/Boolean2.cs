@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using GeometryHelper.Clipper;
 using GeometryHelper;
+using GeometryHelper.Clipper;
 using GeometryHelper.Geometry;
 using GeometryHelper.Internal.Planar;
 
@@ -31,7 +31,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the region covered by either of two polygons, using default tolerance.
         /// </summary>
-        public static GeoFace2[] Union(GeoPolygon2 polygon1, GeoPolygon2 polygon2) => Union(polygon1, polygon2, Tolerance.Global);
+        public static GeoFace2[] Union(GeoPolygon2 polygon1, GeoPolygon2 polygon2) =>
+            Union(polygon1, polygon2, Tolerance.Global);
 
         /// <summary>
         /// Gets the region covered by either of two polygons, within tolerance.
@@ -43,13 +44,19 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when a polygon is null.</exception>
         public static GeoFace2[] Union(GeoPolygon2 polygon1, GeoPolygon2 polygon2, Tolerance tolerance)
         {
-            return Combine(ClipType.Union, new[] { Of(polygon1, nameof(polygon1)), Of(polygon2, nameof(polygon2)) }, null, tolerance);
+            return Combine(
+                ClipType.Union,
+                new[] { Of(polygon1, nameof(polygon1)), Of(polygon2, nameof(polygon2)) },
+                null,
+                tolerance
+            );
         }
 
         /// <summary>
         /// Gets the region covered by both of two polygons, using default tolerance.
         /// </summary>
-        public static GeoFace2[] Intersect(GeoPolygon2 polygon1, GeoPolygon2 polygon2) => Intersect(polygon1, polygon2, Tolerance.Global);
+        public static GeoFace2[] Intersect(GeoPolygon2 polygon1, GeoPolygon2 polygon2) =>
+            Intersect(polygon1, polygon2, Tolerance.Global);
 
         /// <summary>
         /// Gets the region covered by both of two polygons, within tolerance.
@@ -61,13 +68,19 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when a polygon is null.</exception>
         public static GeoFace2[] Intersect(GeoPolygon2 polygon1, GeoPolygon2 polygon2, Tolerance tolerance)
         {
-            return Combine(ClipType.Intersection, new[] { Of(polygon1, nameof(polygon1)) }, new[] { Of(polygon2, nameof(polygon2)) }, tolerance);
+            return Combine(
+                ClipType.Intersection,
+                new[] { Of(polygon1, nameof(polygon1)) },
+                new[] { Of(polygon2, nameof(polygon2)) },
+                tolerance
+            );
         }
 
         /// <summary>
         /// Gets the region of one polygon with another taken out of it, using default tolerance.
         /// </summary>
-        public static GeoFace2[] Subtract(GeoPolygon2 subject, GeoPolygon2 tool) => Subtract(subject, tool, Tolerance.Global);
+        public static GeoFace2[] Subtract(GeoPolygon2 subject, GeoPolygon2 tool) =>
+            Subtract(subject, tool, Tolerance.Global);
 
         /// <summary>
         /// Gets the region of one polygon with another taken out of it, within tolerance.
@@ -79,13 +92,19 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when a polygon is null.</exception>
         public static GeoFace2[] Subtract(GeoPolygon2 subject, GeoPolygon2 tool, Tolerance tolerance)
         {
-            return Combine(ClipType.Difference, new[] { Of(subject, nameof(subject)) }, new[] { Of(tool, nameof(tool)) }, tolerance);
+            return Combine(
+                ClipType.Difference,
+                new[] { Of(subject, nameof(subject)) },
+                new[] { Of(tool, nameof(tool)) },
+                tolerance
+            );
         }
 
         /// <summary>
         /// Gets the region covered by exactly one of two polygons, using default tolerance.
         /// </summary>
-        public static GeoFace2[] Xor(GeoPolygon2 polygon1, GeoPolygon2 polygon2) => Xor(polygon1, polygon2, Tolerance.Global);
+        public static GeoFace2[] Xor(GeoPolygon2 polygon1, GeoPolygon2 polygon2) =>
+            Xor(polygon1, polygon2, Tolerance.Global);
 
         /// <summary>
         /// Gets the region covered by exactly one of two polygons, within tolerance: their union less their
@@ -98,7 +117,12 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when a polygon is null.</exception>
         public static GeoFace2[] Xor(GeoPolygon2 polygon1, GeoPolygon2 polygon2, Tolerance tolerance)
         {
-            return Combine(ClipType.Xor, new[] { Of(polygon1, nameof(polygon1)) }, new[] { Of(polygon2, nameof(polygon2)) }, tolerance);
+            return Combine(
+                ClipType.Xor,
+                new[] { Of(polygon1, nameof(polygon1)) },
+                new[] { Of(polygon2, nameof(polygon2)) },
+                tolerance
+            );
         }
 
         #endregion
@@ -117,7 +141,12 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when a face is null.</exception>
         public static GeoFace2[] Union(GeoFace2 face1, GeoFace2 face2, Tolerance tolerance)
         {
-            return Combine(ClipType.Union, new[] { Of(face1, nameof(face1)), Of(face2, nameof(face2)) }, null, tolerance);
+            return Combine(
+                ClipType.Union,
+                new[] { Of(face1, nameof(face1)), Of(face2, nameof(face2)) },
+                null,
+                tolerance
+            );
         }
 
         /// <summary>
@@ -131,7 +160,12 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when a face is null.</exception>
         public static GeoFace2[] Intersect(GeoFace2 face1, GeoFace2 face2, Tolerance tolerance)
         {
-            return Combine(ClipType.Intersection, new[] { Of(face1, nameof(face1)) }, new[] { Of(face2, nameof(face2)) }, tolerance);
+            return Combine(
+                ClipType.Intersection,
+                new[] { Of(face1, nameof(face1)) },
+                new[] { Of(face2, nameof(face2)) },
+                tolerance
+            );
         }
 
         /// <summary>
@@ -146,7 +180,12 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when a face is null.</exception>
         public static GeoFace2[] Subtract(GeoFace2 subject, GeoFace2 tool, Tolerance tolerance)
         {
-            return Combine(ClipType.Difference, new[] { Of(subject, nameof(subject)) }, new[] { Of(tool, nameof(tool)) }, tolerance);
+            return Combine(
+                ClipType.Difference,
+                new[] { Of(subject, nameof(subject)) },
+                new[] { Of(tool, nameof(tool)) },
+                tolerance
+            );
         }
 
         /// <summary>
@@ -160,7 +199,12 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when a face is null.</exception>
         public static GeoFace2[] Xor(GeoFace2 face1, GeoFace2 face2, Tolerance tolerance)
         {
-            return Combine(ClipType.Xor, new[] { Of(face1, nameof(face1)) }, new[] { Of(face2, nameof(face2)) }, tolerance);
+            return Combine(
+                ClipType.Xor,
+                new[] { Of(face1, nameof(face1)) },
+                new[] { Of(face2, nameof(face2)) },
+                tolerance
+            );
         }
 
         #endregion
@@ -182,7 +226,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the sequence or one of its polygons is null.</exception>
         public static GeoFace2[] Union(IEnumerable<GeoPolygon2> polygons, Tolerance tolerance)
         {
-            if (polygons == null) throw new ArgumentNullException(nameof(polygons));
+            if (polygons == null)
+                throw new ArgumentNullException(nameof(polygons));
 
             List<Operand> operands = new List<Operand>();
 
@@ -208,7 +253,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the sequence or one of its faces is null.</exception>
         public static GeoFace2[] Union(IEnumerable<GeoFace2> faces, Tolerance tolerance)
         {
-            if (faces == null) throw new ArgumentNullException(nameof(faces));
+            if (faces == null)
+                throw new ArgumentNullException(nameof(faces));
 
             List<Operand> operands = new List<Operand>();
 
@@ -224,7 +270,8 @@ namespace GeometryHelper.Core
         /// Gets the region of a polygon with every one of a set of polygons taken out of it, using default
         /// tolerance.
         /// </summary>
-        public static GeoFace2[] Subtract(GeoPolygon2 subject, IEnumerable<GeoPolygon2> tools) => Subtract(subject, tools, Tolerance.Global);
+        public static GeoFace2[] Subtract(GeoPolygon2 subject, IEnumerable<GeoPolygon2> tools) =>
+            Subtract(subject, tools, Tolerance.Global);
 
         /// <summary>
         /// Gets the region of a polygon with every one of a set of polygons taken out of it, within tolerance: a
@@ -237,7 +284,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the subject, the sequence or one of its polygons is null.</exception>
         public static GeoFace2[] Subtract(GeoPolygon2 subject, IEnumerable<GeoPolygon2> tools, Tolerance tolerance)
         {
-            if (tools == null) throw new ArgumentNullException(nameof(tools));
+            if (tools == null)
+                throw new ArgumentNullException(nameof(tools));
 
             Operand subjectOperand = Of(subject, nameof(subject));
             List<Operand> operands = new List<Operand>();
@@ -253,7 +301,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the region of a face with every one of a set of faces taken out of it, using default tolerance.
         /// </summary>
-        public static GeoFace2[] Subtract(GeoFace2 subject, IEnumerable<GeoFace2> tools) => Subtract(subject, tools, Tolerance.Global);
+        public static GeoFace2[] Subtract(GeoFace2 subject, IEnumerable<GeoFace2> tools) =>
+            Subtract(subject, tools, Tolerance.Global);
 
         /// <summary>
         /// Gets the region of a face with every one of a set of faces taken out of it, within tolerance.
@@ -265,7 +314,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the subject, the sequence or one of its faces is null.</exception>
         public static GeoFace2[] Subtract(GeoFace2 subject, IEnumerable<GeoFace2> tools, Tolerance tolerance)
         {
-            if (tools == null) throw new ArgumentNullException(nameof(tools));
+            if (tools == null)
+                throw new ArgumentNullException(nameof(tools));
 
             Operand subjectOperand = Of(subject, nameof(subject));
             List<Operand> operands = new List<Operand>();
@@ -288,7 +338,11 @@ namespace GeometryHelper.Core
         /// </summary>
         private sealed class Operand
         {
-            public Operand(IEnumerable<GeoPoint2> vertices, GeoPoint2 first, Func<GeoPoint2, int, Tolerance, List<List<GeoPoint2>>> region)
+            public Operand(
+                IEnumerable<GeoPoint2> vertices,
+                GeoPoint2 first,
+                Func<GeoPoint2, int, Tolerance, List<List<GeoPoint2>>> region
+            )
             {
                 Vertices = vertices;
                 First = first;
@@ -304,14 +358,18 @@ namespace GeometryHelper.Core
 
         private static Operand Of(GeoPolygon2 polygon, string name)
         {
-            if (polygon == null) throw new ArgumentNullException(name);
+            if (polygon == null)
+                throw new ArgumentNullException(name);
 
-            return new Operand(polygon.Vertices, polygon[0], (origin, precision, tolerance) => ClipperRegion.RegionOf(polygon, origin, precision, tolerance));
+            return new Operand(polygon.Vertices, polygon[0], (origin, precision, tolerance) =>
+                ClipperRegion.RegionOf(polygon, origin, precision, tolerance)
+            );
         }
 
         private static Operand Of(GeoFace2 face, string name)
         {
-            if (face == null) throw new ArgumentNullException(name);
+            if (face == null)
+                throw new ArgumentNullException(name);
 
             List<GeoPoint2> vertices = new List<GeoPoint2>(face.Boundary.Vertices);
 
@@ -320,16 +378,26 @@ namespace GeometryHelper.Core
                 vertices.AddRange(hole.Vertices);
             }
 
-            return new Operand(vertices, face.Boundary[0], (origin, precision, tolerance) => ClipperRegion.RegionOf(face, origin, precision, tolerance));
+            return new Operand(vertices, face.Boundary[0], (origin, precision, tolerance) =>
+                ClipperRegion.RegionOf(face, origin, precision, tolerance)
+            );
         }
 
         /// <summary>
         /// Lays every operand out in one frame, has Clipper2 combine the subjects with the clips under the
         /// positive rule, and builds the faces of the result.
         /// </summary>
-        private static GeoFace2[] Combine(ClipType clipType, IReadOnlyList<Operand> subjects, IReadOnlyList<Operand> clips, Tolerance tolerance)
+        private static GeoFace2[] Combine(
+            ClipType clipType,
+            IReadOnlyList<Operand> subjects,
+            IReadOnlyList<Operand> clips,
+            Tolerance tolerance
+        )
         {
-            Operand anchor = subjects.Count > 0 ? subjects[0] : clips != null && clips.Count > 0 ? clips[0] : null;
+            Operand anchor =
+                subjects.Count > 0 ? subjects[0]
+                : clips != null && clips.Count > 0 ? clips[0]
+                : null;
 
             if (anchor == null)
             {
@@ -363,7 +431,14 @@ namespace GeometryHelper.Core
 
             // Every operand's loops wind once round its own region, so the positive rule reads the subjects, and
             // separately the clips, as the union of their regions however they overlap.
-            List<LoopGroup> groups = ClipperRegion.Execute(clipType, subjectLoops, clipLoops, Clipper.FillRule.Positive, precision, tolerance);
+            List<LoopGroup> groups = ClipperRegion.Execute(
+                clipType,
+                subjectLoops,
+                clipLoops,
+                Clipper.FillRule.Positive,
+                precision,
+                tolerance
+            );
             return ClipperRegion.ToFaces(groups, origin, false);
         }
 
@@ -399,7 +474,11 @@ namespace GeometryHelper.Core
             GeoPoint2 origin = polygon[0];
             int precision = ClipperRegion.GetPrecision(ClipperRegion.Extent(polygon.Vertices, origin));
             List<LoopGroup> groups = ClipperRegion.Resolve(
-                new[] { ClipperRegion.ToLocal(polygon.Vertices, origin) }, Clipper.FillRule.EvenOdd, precision, tolerance);
+                new[] { ClipperRegion.ToLocal(polygon.Vertices, origin) },
+                Clipper.FillRule.EvenOdd,
+                precision,
+                tolerance
+            );
 
             return ClipperRegion.ToFaces(groups, origin, false);
         }

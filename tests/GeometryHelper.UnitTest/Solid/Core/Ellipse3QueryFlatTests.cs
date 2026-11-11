@@ -35,7 +35,13 @@ namespace GeometryHelper.UnitTest.Solid
         /// The chord from the rim point at t = 0.3 to the one at t = 2.5, a plane leaning 60 degrees about it, and the
         /// direction W in that plane square to the chord, so that shapes can be stood on the chord's line.
         /// </summary>
-        private static void Standing(Specimen e, out GeoPoint3 first, out GeoPoint3 second, out GeoVector3 chord, out GeoVector3 w)
+        private static void Standing(
+            Specimen e,
+            out GeoPoint3 first,
+            out GeoPoint3 second,
+            out GeoVector3 chord,
+            out GeoVector3 w
+        )
         {
             first = e.Rim(0.3);
             second = e.Rim(2.5);
@@ -66,7 +72,12 @@ namespace GeometryHelper.UnitTest.Solid
             var found = new List<GeoPoint3>();
             foreach (GeoLine3 edge in edges)
             {
-                foreach (GeoPoint2 point in flat.GetIntersections(new GeoLine2(e.Foot(edge.StartPoint), e.Foot(edge.EndPoint)), Tol))
+                foreach (
+                    GeoPoint2 point in flat.GetIntersections(
+                        new GeoLine2(e.Foot(edge.StartPoint), e.Foot(edge.EndPoint)),
+                        Tol
+                    )
+                )
                 {
                     GeoPoint3 lifted = e.Lift(point);
                     if (!found.Any(p => p.DistanceTo(lifted) <= Tol.EqualPoint))
@@ -90,7 +101,10 @@ namespace GeometryHelper.UnitTest.Solid
             Standing(e, out GeoPoint3 first, out GeoPoint3 second, out GeoVector3 chord, out GeoVector3 w);
             GeoPoint3 middle = first.Add(chord.Multiply(0.5));
             var triangle = new GeoTriangle3(
-                first.Add(chord.Multiply(-0.5)).Add(w.Multiply(-20)), second.Add(chord.Multiply(0.5)).Add(w.Multiply(-20)), middle.Add(w.Multiply(200)));
+                first.Add(chord.Multiply(-0.5)).Add(w.Multiply(-20)),
+                second.Add(chord.Multiply(0.5)).Add(w.Multiply(-20)),
+                middle.Add(w.Multiply(200))
+            );
 
             GeoPoint3[] crossings = e.Build().GetIntersections(triangle, Tol);
 
@@ -112,7 +126,8 @@ namespace GeometryHelper.UnitTest.Solid
             var triangle = new GeoTriangle3(
                 first.Add(chord.Multiply(-0.5)).Add(w.Multiply(-20)).Add(shift),
                 second.Add(chord.Multiply(0.5)).Add(w.Multiply(-20)).Add(shift),
-                middle.Add(w.Multiply(200)).Add(shift));
+                middle.Add(w.Multiply(200)).Add(shift)
+            );
 
             GeoPoint3 point = Assert.Single(e.Build().GetIntersections(triangle, Tol));
 
@@ -127,7 +142,10 @@ namespace GeometryHelper.UnitTest.Solid
             Standing(e, out GeoPoint3 first, out _, out GeoVector3 chord, out GeoVector3 w);
             GeoPoint3 middle = first.Add(chord.Multiply(0.5));
             var triangle = new GeoTriangle3(
-                middle.Add(chord.Multiply(-0.1)).Add(w.Multiply(-20)), middle.Add(chord.Multiply(0.1)).Add(w.Multiply(-20)), middle.Add(w.Multiply(30)));
+                middle.Add(chord.Multiply(-0.1)).Add(w.Multiply(-20)),
+                middle.Add(chord.Multiply(0.1)).Add(w.Multiply(-20)),
+                middle.Add(w.Multiply(30))
+            );
 
             Assert.Empty(e.Build().GetIntersections(triangle, Tol));
             Assert.False(e.Build().CollidesWith(triangle, Tol));
@@ -141,8 +159,11 @@ namespace GeometryHelper.UnitTest.Solid
             Specimen e = Tilted();
             Standing(e, out GeoPoint3 first, out GeoPoint3 second, out GeoVector3 chord, out GeoVector3 w);
             var polygon = new GeoPolygon3(
-                first.Add(chord.Multiply(-0.3)).Add(w.Multiply(-30)), second.Add(chord.Multiply(0.3)).Add(w.Multiply(-30)),
-                second.Add(chord.Multiply(0.3)).Add(w.Multiply(30)), first.Add(chord.Multiply(-0.3)).Add(w.Multiply(30)));
+                first.Add(chord.Multiply(-0.3)).Add(w.Multiply(-30)),
+                second.Add(chord.Multiply(0.3)).Add(w.Multiply(-30)),
+                second.Add(chord.Multiply(0.3)).Add(w.Multiply(30)),
+                first.Add(chord.Multiply(-0.3)).Add(w.Multiply(30))
+            );
 
             GeoPoint3[] crossings = e.Build().GetIntersections(polygon, Tol);
 
@@ -159,11 +180,18 @@ namespace GeometryHelper.UnitTest.Solid
             Standing(e, out GeoPoint3 first, out GeoPoint3 second, out GeoVector3 chord, out GeoVector3 w);
             GeoVector3 along = chord.Normalize();
             var outline = new GeoPolygon3(
-                first.Add(chord.Multiply(-0.3)).Add(w.Multiply(-30)), second.Add(chord.Multiply(0.3)).Add(w.Multiply(-30)),
-                second.Add(chord.Multiply(0.3)).Add(w.Multiply(30)), first.Add(chord.Multiply(-0.3)).Add(w.Multiply(30)));
-            GeoPolygon3 Square(GeoPoint3 about) => new GeoPolygon3(
-                about.Add(along.Multiply(-10)).Add(w.Multiply(-10)), about.Add(along.Multiply(10)).Add(w.Multiply(-10)),
-                about.Add(along.Multiply(10)).Add(w.Multiply(10)), about.Add(along.Multiply(-10)).Add(w.Multiply(10)));
+                first.Add(chord.Multiply(-0.3)).Add(w.Multiply(-30)),
+                second.Add(chord.Multiply(0.3)).Add(w.Multiply(-30)),
+                second.Add(chord.Multiply(0.3)).Add(w.Multiply(30)),
+                first.Add(chord.Multiply(-0.3)).Add(w.Multiply(30))
+            );
+            GeoPolygon3 Square(GeoPoint3 about) =>
+                new GeoPolygon3(
+                    about.Add(along.Multiply(-10)).Add(w.Multiply(-10)),
+                    about.Add(along.Multiply(10)).Add(w.Multiply(-10)),
+                    about.Add(along.Multiply(10)).Add(w.Multiply(10)),
+                    about.Add(along.Multiply(-10)).Add(w.Multiply(10))
+                );
             var face = new GeoFace3(outline, new[] { Square(first) });
 
             GeoPoint3 point = Assert.Single(e.Build().GetIntersections(face, Tol));
@@ -193,7 +221,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoPoint3[] crossings = e.Build().GetIntersections(triangle, Tol);
 
-            SamePointsInOrder(EdgeByEdge(e, new[] { triangle.GetEdgeAt(0), triangle.GetEdgeAt(1), triangle.GetEdgeAt(2) }), crossings, Close);
+            SamePointsInOrder(
+                EdgeByEdge(e, new[] { triangle.GetEdgeAt(0), triangle.GetEdgeAt(1), triangle.GetEdgeAt(2) }),
+                crossings,
+                Close
+            );
             Assert.Contains(crossings, p => p.DistanceTo(e.At(AtFifty, -50, 0)) <= Close);
             Assert.Contains(crossings, p => p.DistanceTo(e.At(-50, 100 * Math.Sqrt(1 - 1.0 / 36), 0)) <= Close);
             Assert.True(e.Build().CollidesWith(triangle, Tol));
@@ -236,7 +268,17 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPoint3[] crossings = e.Build().GetIntersections(polygon, Tol);
 
             SamePointsInOrder(EdgeByEdge(e, polygon.GetEdges()), crossings, Close);
-            SamePoints(new[] { e.At(100, -AtHundred, 0), e.At(100, AtHundred, 0), e.At(-100, AtHundred, 0), e.At(-100, -AtHundred, 0) }, crossings, Close);
+            SamePoints(
+                new[]
+                {
+                    e.At(100, -AtHundred, 0),
+                    e.At(100, AtHundred, 0),
+                    e.At(-100, AtHundred, 0),
+                    e.At(-100, -AtHundred, 0),
+                },
+                crossings,
+                Close
+            );
             Assert.True(e.Build().CollidesWith(polygon, Tol));
         }
 
@@ -246,13 +288,19 @@ namespace GeometryHelper.UnitTest.Solid
             // The outline (±400, ±200) holds the ellipse; the hole from (200, -50) to (350, 50) is cut by the rim on its
             // two long sides, at (259.8, ±50).
             Specimen e = Tilted();
-            var face = new GeoFace3(FramePolygon(e, 0, -400, -200, 400, -200, 400, 200, -400, 200),
-                new[] { FramePolygon(e, 0, 200, -50, 350, -50, 350, 50, 200, 50) });
+            var face = new GeoFace3(
+                FramePolygon(e, 0, -400, -200, 400, -200, 400, 200, -400, 200),
+                new[] { FramePolygon(e, 0, 200, -50, 350, -50, 350, 50, 200, 50) }
+            );
 
             GeoPoint3[] crossings = e.Build().GetIntersections(face, Tol);
 
             SamePoints(new[] { e.At(AtFifty, -50, 0), e.At(AtFifty, 50, 0) }, crossings, Close);
-            SamePointsInOrder(EdgeByEdge(e, face.Boundary.GetEdges().Concat(face.Holes.SelectMany(h => h.GetEdges()))), crossings, Close);
+            SamePointsInOrder(
+                EdgeByEdge(e, face.Boundary.GetEdges().Concat(face.Holes.SelectMany(h => h.GetEdges()))),
+                crossings,
+                Close
+            );
             Assert.True(e.Build().CollidesWith(face, Tol));
         }
 
@@ -260,8 +308,10 @@ namespace GeometryHelper.UnitTest.Solid
         public void AnEllipseLyingInTheHoleOfACoplanarFaceTouchesNothing()
         {
             Specimen e = Tilted();
-            var face = new GeoFace3(FramePolygon(e, 0, -1000, -1000, 1000, -1000, 1000, 1000, -1000, 1000),
-                new[] { FramePolygon(e, 0, -400, -200, 400, -200, 400, 200, -400, 200) });
+            var face = new GeoFace3(
+                FramePolygon(e, 0, -1000, -1000, 1000, -1000, 1000, 1000, -1000, 1000),
+                new[] { FramePolygon(e, 0, -400, -200, 400, -200, 400, 200, -400, 200) }
+            );
 
             Assert.Empty(e.Build().GetIntersections(face, Tol));
             Assert.False(e.Build().CollidesWith(face, Tol));
@@ -272,8 +322,10 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The rim lies on the material all round; the hole (±20, ±20) is inside the disc and is cut by nothing.
             Specimen e = Tilted();
-            var face = new GeoFace3(FramePolygon(e, 0, -400, -200, 400, -200, 400, 200, -400, 200),
-                new[] { FramePolygon(e, 0, -20, -20, 20, -20, 20, 20, -20, 20) });
+            var face = new GeoFace3(
+                FramePolygon(e, 0, -400, -200, 400, -200, 400, 200, -400, 200),
+                new[] { FramePolygon(e, 0, -20, -20, 20, -20, 20, 20, -20, 20) }
+            );
 
             Assert.Empty(e.Build().GetIntersections(face, Tol));
             Assert.True(e.Build().CollidesWith(face, Tol));
@@ -290,8 +342,11 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPolygon3 flat = FramePolygon(e, 0, -50, -50, 400, -50, -50, 150);
             var inPlane = new GeoTriangle3(flat.Vertices[0], flat.Vertices[1], flat.Vertices[2]);
 
-            SamePointsInOrder(EdgeByEdge(e, new[] { inPlane.GetEdgeAt(0), inPlane.GetEdgeAt(1), inPlane.GetEdgeAt(2) }),
-                e.Build().GetIntersections(triangle, Tol), 0.0002);
+            SamePointsInOrder(
+                EdgeByEdge(e, new[] { inPlane.GetEdgeAt(0), inPlane.GetEdgeAt(1), inPlane.GetEdgeAt(2) }),
+                e.Build().GetIntersections(triangle, Tol),
+                0.0002
+            );
         }
 
         #endregion

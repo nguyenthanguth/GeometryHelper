@@ -19,9 +19,7 @@ namespace GeometryHelper.Dxf
         private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 90, 70, 71, 72 });
 
         internal DxfRasterVariables(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets or sets whether the frames of the images are shown (group 70), as AutoCAD's <c>ImageFrame</c>: written as the
@@ -37,12 +35,15 @@ namespace GeometryHelper.Dxf
                 int frame = Whole(70, 0);
                 return frame >= 0 && frame <= 3 ? (DxfFrameSetting)frame : DxfFrameSetting.ImageFrameInvalid;
             }
-
             set
             {
                 if (value < DxfFrameSetting.ImageFrameOff || value > DxfFrameSetting.ImageFrameOnNoPlot)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The frame of the images is set to one of ImageFrameOff to ImageFrameOnNoPlot.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "The frame of the images is set to one of ImageFrameOff to ImageFrameOnNoPlot."
+                    );
                 }
 
                 Set(70, (int)value, ImageFrame == value);
@@ -62,12 +63,15 @@ namespace GeometryHelper.Dxf
                 int quality = Whole(71, 1);
                 return quality == 0 || quality == 1 ? (DxfImageQuality)quality : DxfImageQuality.Invalid;
             }
-
             set
             {
                 if (value != DxfImageQuality.Draft && value != DxfImageQuality.High)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The images are shown in draft or high quality.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "The images are shown in draft or high quality."
+                    );
                 }
 
                 Set(71, (int)value, ImageQuality == value);
@@ -89,12 +93,15 @@ namespace GeometryHelper.Dxf
                 int unit = Whole(72, 0);
                 return unit >= 0 && unit <= 20 ? (DxfUnit)unit : DxfUnit.None;
             }
-
             set
             {
                 if (value < DxfUnit.None || value > DxfUnit.Parsecs)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The unit images are scaled in is one of DxfUnit.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "The unit images are scaled in is one of DxfUnit."
+                    );
                 }
 
                 Set(72, (int)value, UserScale == value);
@@ -103,14 +110,21 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gives the variables as a line for debugging: their type, their handle and their three settings.</summary>
         /// <returns>The line, such as <c>RASTERVARIABLES 19A ImageFrameAbove High None</c>.</returns>
-        public override string ToString() => "RASTERVARIABLES " + (Handle ?? string.Empty) + " " + ImageFrame + " " + ImageQuality + " " + UserScale;
+        public override string ToString() =>
+            "RASTERVARIABLES " + (Handle ?? string.Empty) + " " + ImageFrame + " " + ImageQuality + " " + UserScale;
 
         /// <summary>Writes a setting where it changes, in AutoCAD's order of the groups; nothing where it is the one read.</summary>
         private void Set(int code, int value, bool same)
         {
             if (!same)
             {
-                InFile("be changed").SetValues(Item, new[] { new KeyValuePair<int, string>(code, value.ToString(CultureInfo.InvariantCulture)) }, Order, false);
+                InFile("be changed")
+                    .SetValues(
+                        Item,
+                        new[] { new KeyValuePair<int, string>(code, value.ToString(CultureInfo.InvariantCulture)) },
+                        Order,
+                        false
+                    );
             }
         }
 
@@ -128,6 +142,9 @@ namespace GeometryHelper.Dxf
             return null;
         }
 
-        private int Whole(int code, int fallback) => int.TryParse(Text(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+        private int Whole(int code, int fallback) =>
+            int.TryParse(Text(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : fallback;
     }
 }

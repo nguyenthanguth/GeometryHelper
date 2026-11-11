@@ -41,7 +41,10 @@ namespace GeometryHelper.UnitTest.Plane
 
             GeoPolylineArc2 one = Assert.Single(offset);
             Assert.True(one.StartPoint.DistanceTo(P(0, -0.3)) <= Tenth.EqualPoint, "starts at " + one.StartPoint);
-            Assert.True(one.EndPoint.DistanceTo(P(-7.2562595666843315, 5.155984084068723)) <= Tenth.EqualPoint, "ends at " + one.EndPoint);
+            Assert.True(
+                one.EndPoint.DistanceTo(P(-7.2562595666843315, 5.155984084068723)) <= Tenth.EqualPoint,
+                "ends at " + one.EndPoint
+            );
             Assert.True(WorstOffDistance(PiecesOf(one), PiecesOf(chain), 0.3) <= Tenth.EqualPoint);
         }
 

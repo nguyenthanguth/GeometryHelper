@@ -17,16 +17,30 @@ namespace GeometryHelper.UnitTest.Packing
         private const double Slack = 1e-6;
 
         // Each scene packed from each corner it may start from.
-        public static IEnumerable<object[]> Seeds() => Enumerable.Range(1, 40).SelectMany(seed =>
-            new[] { SheetCorner.UpperLeft, SheetCorner.UpperRight, SheetCorner.LowerLeft, SheetCorner.LowerRight }.Select(corner => new object[] { seed, corner }));
+        public static IEnumerable<object[]> Seeds() =>
+            Enumerable
+                .Range(1, 40)
+                .SelectMany(seed =>
+                    new[]
+                    {
+                        SheetCorner.UpperLeft,
+                        SheetCorner.UpperRight,
+                        SheetCorner.LowerLeft,
+                        SheetCorner.LowerRight,
+                    }.Select(corner => new object[] { seed, corner })
+                );
 
         private static (List<GeoRectangle2[]> Groups, Sheet Sheet, PackOptions Options) Scene(int seed)
         {
             var random = new Random(seed);
             PaperSize[] sizes = { PaperSize.A0, PaperSize.A1, PaperSize.A2, PaperSize.A3, PaperSize.A4 };
-            Sheet sheet = random.Next(5) == 0
-                ? Sheet.Custom(100 + random.Next(900), 100 + random.Next(700))
-                : new Sheet(sizes[random.Next(sizes.Length)], random.Next(3) == 0 ? SheetOrientation.Portrait : SheetOrientation.Landscape);
+            Sheet sheet =
+                random.Next(5) == 0
+                    ? Sheet.Custom(100 + random.Next(900), 100 + random.Next(700))
+                    : new Sheet(
+                        sizes[random.Next(sizes.Length)],
+                        random.Next(3) == 0 ? SheetOrientation.Portrait : SheetOrientation.Landscape
+                    );
             sheet.Scale = random.Next(3) == 0 ? 1.0 : new[] { 10.0, 20.0, 25.0, 50.0 }[random.Next(4)];
             sheet.OffsetLeft = random.Next(25);
             sheet.OffsetRight = random.Next(15);
@@ -44,13 +58,24 @@ namespace GeometryHelper.UnitTest.Packing
             for (int g = 0; g < count; g++)
             {
                 int members = random.Next(8) == 0 ? 0 : 1 + random.Next(random.Next(4) == 0 ? 12 : 4);
-                groups.Add(Enumerable.Range(0, members).Select(i =>
-                {
-                    double big = random.Next(15) == 0 ? 1.1 : 0.45;
-                    double w = usableWidth * (0.02 + random.NextDouble() * big), h = usableHeight * (0.02 + random.NextDouble() * big);
-                    double angle = random.Next(6) == 0 ? random.NextDouble() * Math.PI : 0.0;
-                    return new GeoRectangle2(new GeoPoint2(random.Next(-100000, 100000), random.Next(-100000, 100000)), w, h, angle);
-                }).ToArray());
+                groups.Add(
+                    Enumerable
+                        .Range(0, members)
+                        .Select(i =>
+                        {
+                            double big = random.Next(15) == 0 ? 1.1 : 0.45;
+                            double w = usableWidth * (0.02 + random.NextDouble() * big),
+                                h = usableHeight * (0.02 + random.NextDouble() * big);
+                            double angle = random.Next(6) == 0 ? random.NextDouble() * Math.PI : 0.0;
+                            return new GeoRectangle2(
+                                new GeoPoint2(random.Next(-100000, 100000), random.Next(-100000, 100000)),
+                                w,
+                                h,
+                                angle
+                            );
+                        })
+                        .ToArray()
+                );
             }
 
             var options = new PackOptions
@@ -81,7 +106,8 @@ namespace GeometryHelper.UnitTest.Packing
             PackResult result = SheetPacker.Pack(groups, sheet, options);
 
             double tolerance = Slack * Math.Max(sheet.Width, sheet.Height);
-            double spacing = options.Spacing * sheet.Scale, groupSpacing = options.GroupSpacing * sheet.Scale;
+            double spacing = options.Spacing * sheet.Scale,
+                groupSpacing = options.GroupSpacing * sheet.Scale;
             SheetFrame first = result.Sheets[0];
             var placed = new List<(int Group, int Sheet, (double MinX, double MinY, double MaxX, double MaxY) Box)>();
             for (int g = 0; g < groups.Count; g++)
@@ -92,7 +118,9 @@ namespace GeometryHelper.UnitTest.Packing
                     GeoRectangle2 box = groups[g][i];
                     PackPlacement placement = result.Placements[g][i];
                     var round = Round(box);
-                    bool fits = round.MaxX - round.MinX <= first.UsableArea.Width + tolerance && round.MaxY - round.MinY <= first.UsableArea.Height + tolerance;
+                    bool fits =
+                        round.MaxX - round.MinX <= first.UsableArea.Width + tolerance
+                        && round.MaxY - round.MinY <= first.UsableArea.Height + tolerance;
 
                     // Every box that fits a sheet is placed, and only those.
                     Assert.True(placement.Placed == fits, $"group {g} box {i}: fits {fits}, placed {placement.Placed}");
@@ -110,9 +138,13 @@ namespace GeometryHelper.UnitTest.Packing
                     Assert.InRange(placement.SheetIndex, 0, result.Sheets.Count - 1);
                     GeoRectangle2 area = result.Sheets[placement.SheetIndex].UsableArea;
                     var moved = Round(placement.ViewBox);
-                    Assert.True(moved.MinX >= area.LowerLeft.X - tolerance && moved.MinY >= area.LowerLeft.Y - tolerance
-                        && moved.MaxX <= area.UpperRight.X + tolerance && moved.MaxY <= area.UpperRight.Y + tolerance,
-                        $"group {g} box {i} out of sheet {placement.SheetIndex}");
+                    Assert.True(
+                        moved.MinX >= area.LowerLeft.X - tolerance
+                            && moved.MinY >= area.LowerLeft.Y - tolerance
+                            && moved.MaxX <= area.UpperRight.X + tolerance
+                            && moved.MaxY <= area.UpperRight.Y + tolerance,
+                        $"group {g} box {i} out of sheet {placement.SheetIndex}"
+                    );
                     placed.Add((g, placement.SheetIndex, moved));
                 }
             }
@@ -137,8 +169,15 @@ namespace GeometryHelper.UnitTest.Packing
                     double gap = (sameGroup ? Math.Min(spacing, groupSpacing) : groupSpacing) - tolerance;
                     var p = placed[a].Box;
                     var q = placed[b].Box;
-                    bool apart = p.MaxX + gap <= q.MinX || q.MaxX + gap <= p.MinX || p.MaxY + gap <= q.MinY || q.MaxY + gap <= p.MinY;
-                    Assert.True(apart, $"seed {seed}: boxes of groups {placed[a].Group} and {placed[b].Group} on sheet {placed[a].Sheet}");
+                    bool apart =
+                        p.MaxX + gap <= q.MinX
+                        || q.MaxX + gap <= p.MinX
+                        || p.MaxY + gap <= q.MinY
+                        || q.MaxY + gap <= p.MinY;
+                    Assert.True(
+                        apart,
+                        $"seed {seed}: boxes of groups {placed[a].Group} and {placed[b].Group} on sheet {placed[a].Sheet}"
+                    );
                 }
             }
 
@@ -157,10 +196,26 @@ namespace GeometryHelper.UnitTest.Packing
         public void AThousandBoxes_PackQuickly()
         {
             var random = new Random(5);
-            var groups = Enumerable.Range(0, 200)
-                .Select(g => Enumerable.Range(0, 5).Select(i => new GeoRectangle2(new GeoPoint2(0, 0), 20 + random.Next(150), 15 + random.Next(100))).ToArray())
+            var groups = Enumerable
+                .Range(0, 200)
+                .Select(g =>
+                    Enumerable
+                        .Range(0, 5)
+                        .Select(i => new GeoRectangle2(
+                            new GeoPoint2(0, 0),
+                            20 + random.Next(150),
+                            15 + random.Next(100)
+                        ))
+                        .ToArray()
+                )
                 .ToList();
-            var sheet = new Sheet(PaperSize.A1) { OffsetLeft = 20, OffsetRight = 10, OffsetTop = 10, OffsetBottom = 10 };
+            var sheet = new Sheet(PaperSize.A1)
+            {
+                OffsetLeft = 20,
+                OffsetRight = 10,
+                OffsetTop = 10,
+                OffsetBottom = 10,
+            };
 
             SheetPacker.Pack(groups.Take(5).ToList(), sheet);
             var watch = Stopwatch.StartNew();
@@ -179,13 +234,26 @@ namespace GeometryHelper.UnitTest.Packing
         public void PackedLargestFirst_FillingEarlierSheets_TheBoxesTakeNearlyTheFewestSheets()
         {
             var random = new Random(5);
-            var groups = Enumerable.Range(0, 1000)
-                .Select(g => new[] { new GeoRectangle2(new GeoPoint2(0, 0), 20 + random.Next(150), 15 + random.Next(100)) })
+            var groups = Enumerable
+                .Range(0, 1000)
+                .Select(g =>
+                    new[] { new GeoRectangle2(new GeoPoint2(0, 0), 20 + random.Next(150), 15 + random.Next(100)) }
+                )
                 .ToList();
-            var sheet = new Sheet(PaperSize.A1) { OffsetLeft = 20, OffsetRight = 10, OffsetTop = 10, OffsetBottom = 10 };
+            var sheet = new Sheet(PaperSize.A1)
+            {
+                OffsetLeft = 20,
+                OffsetRight = 10,
+                OffsetTop = 10,
+                OffsetBottom = 10,
+            };
             double fewest = Math.Ceiling(groups.Sum(g => g[0].Area) / ((841.0 - 30.0) * (594.0 - 20.0)));
 
-            PackResult result = SheetPacker.Pack(groups, sheet, new PackOptions { LargestGroupsFirst = true, FillEarlierSheets = true });
+            PackResult result = SheetPacker.Pack(
+                groups,
+                sheet,
+                new PackOptions { LargestGroupsFirst = true, FillEarlierSheets = true }
+            );
 
             Assert.True(result.Sheets.Count <= fewest + 1, $"{result.Sheets.Count} sheets, at least {fewest}");
             Assert.True(result.Utilization > 0.9, $"filled {result.Utilization:P1}");

@@ -58,7 +58,12 @@ namespace GeometryHelper.Benchmarks
         private readonly Action<ResultSignature, object> _sign;
         private readonly Func<object, string> _describe;
 
-        private Fixture(Func<object> run, Action<ResultSignature, object> sign, Func<object, string> describe, string note)
+        private Fixture(
+            Func<object> run,
+            Action<ResultSignature, object> sign,
+            Func<object, string> describe,
+            string note
+        )
         {
             _run = run;
             _sign = sign;
@@ -79,7 +84,12 @@ namespace GeometryHelper.Benchmarks
         /// <param name="sign">Writes every observable value of a result into a signature, in order.</param>
         /// <param name="describe">Says in a few words what a result holds, for the report: 49 hard, 49 touching.</param>
         /// <param name="note">What is worth knowing of the inputs; null for nothing.</param>
-        internal static Fixture Of<T>(Func<T> run, Action<ResultSignature, T> sign, Func<T, string> describe, string note)
+        internal static Fixture Of<T>(
+            Func<T> run,
+            Action<ResultSignature, T> sign,
+            Func<T, string> describe,
+            string note
+        )
         {
             if (run == null)
             {
@@ -96,7 +106,12 @@ namespace GeometryHelper.Benchmarks
                 throw new ArgumentNullException(nameof(describe));
             }
 
-            return new Fixture(() => run(), (signature, result) => sign(signature, (T)result), result => describe((T)result), note);
+            return new Fixture(
+                () => run(),
+                (signature, result) => sign(signature, (T)result),
+                result => describe((T)result),
+                note
+            );
         }
 
         /// <summary>

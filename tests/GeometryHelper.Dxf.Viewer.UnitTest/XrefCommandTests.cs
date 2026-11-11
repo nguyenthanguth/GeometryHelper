@@ -17,7 +17,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     /// </summary>
     public class XrefCommandTests : IDisposable
     {
-        private readonly string _folder = Path.Combine(Path.GetTempPath(), "gk", "xref-" + Guid.NewGuid().ToString("N"));
+        private readonly string _folder = Path.Combine(
+            Path.GetTempPath(),
+            "gk",
+            "xref-" + Guid.NewGuid().ToString("N")
+        );
 
         public XrefCommandTests()
         {
@@ -44,7 +48,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             DxfDatabase database = CadTemplate.CreateMetric();
             database.LayerTable.Add(new DxfLayerTableRecord { Name = "GRID" });
-            database.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1000, 0, 0)) { Layer = "GRID" });
+            database.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1000, 0, 0)) { Layer = "GRID" }
+            );
             database.ModelSpace.AppendEntity(new DxfCircle(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 100.0));
             more?.Invoke(database);
             string path = Path.Combine(_folder, "xref", name + ".dxf");
@@ -154,8 +160,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Session(document);
 
             Run(session, "-XR", "A", grid, P(0, 0), Enter, Enter, Enter);
-            Assert.Contains("Enter an option [?/Bind/Detach/Path/pathType/Unload/Reload/Overlay/Attach] <Attach>: A", session.History);
-            Assert.Contains("Specify insertion point or [Scale/X/Y/Z/Rotate/PScale/PX/PY/PZ/PRotate]:", session.History);
+            Assert.Contains(
+                "Enter an option [?/Bind/Detach/Path/pathType/Unload/Reload/Overlay/Attach] <Attach>: A",
+                session.History
+            );
+            Assert.Contains(
+                "Specify insertion point or [Scale/X/Y/Z/Rotate/PScale/PX/PY/PZ/PRotate]:",
+                session.History
+            );
             Assert.Contains("Enter X scale factor, specify opposite corner, or [Corner/XYZ] <1>:", session.History);
             Assert.Contains("Enter Y scale factor <use X scale factor>:", session.History);
             Assert.Contains("Specify rotation angle <0>:", session.History);
@@ -165,7 +177,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             int at = session.History.ToList().LastIndexOf("Xref name                         Xref Type    Path");
             Assert.True(at > 0);
             Assert.Equal("----------------------            ---------    ----------", session.History[at + 1]);
-            Assert.Equal("\"grid\"                            Attach       ..\\xref\\grid.dxf", session.History[at + 2]);
+            Assert.Equal(
+                "\"grid\"                            Attach       ..\\xref\\grid.dxf",
+                session.History[at + 2]
+            );
             Assert.Equal("Total Xref(s): 1", session.History[at + 3]);
 
             Run(session, "-XREF", "T", "grid", "F");
@@ -190,7 +205,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(document.Database.LayerTable["grid|GRID"].IsResolved);
 
             Run(session, "-XREF", "B", "grid");
-            Assert.Contains("Bind is not offered: a DXF external reference is shown, never written into the drawing.", session.History);
+            Assert.Contains(
+                "Bind is not offered: a DXF external reference is shown, never written into the drawing.",
+                session.History
+            );
 
             Run(session, "-XREF", "D", "grid");
             Assert.False(document.Database.BlockTable.Has("grid"));
@@ -218,11 +236,25 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             string grid = Grid("x", d =>
             {
-                var dashed = new DxfLinetypeTableRecord { Name = "DASHED", AsciiDescription = "Dashed __ __", NumDashes = 2 };
+                var dashed = new DxfLinetypeTableRecord
+                {
+                    Name = "DASHED",
+                    AsciiDescription = "Dashed __ __",
+                    NumDashes = 2,
+                };
                 dashed.SetDashLengthAt(0, 0.5);
                 dashed.SetDashLengthAt(1, -0.25);
                 d.LinetypeTable.Add(dashed);
-                d.LayerTable.Add(new DxfLayerTableRecord { Name = "WALL", ColorIndex = 3, LinetypeName = "DASHED", LineWeight = DxfLineWeight.LineWeight050, IsPlottable = false });
+                d.LayerTable.Add(
+                    new DxfLayerTableRecord
+                    {
+                        Name = "WALL",
+                        ColorIndex = 3,
+                        LinetypeName = "DASHED",
+                        LineWeight = DxfLineWeight.LineWeight050,
+                        IsPlottable = false,
+                    }
+                );
                 d.LayerTable["WALL"].Description = "walls";
             });
             CadDocument document = Host();
@@ -274,7 +306,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfBlockTableRecord plan = document.Database.BlockTable["plan"];
             Assert.True(plan.IsFromOverlayReference);
             Assert.Contains("Overlay Xref \"plan\": ..\\xref\\plan.dxf", session.History);
-            List<DisplayPolyline2> lines = Items<DisplayPolyline2>(document).Where(p => p.Layer.EndsWith("|GRID", StringComparison.Ordinal)).ToList();
+            List<DisplayPolyline2> lines = Items<DisplayPolyline2>(document)
+                .Where(p => p.Layer.EndsWith("|GRID", StringComparison.Ordinal))
+                .ToList();
             Assert.Contains(lines, p => p.Layer == "plan|GRID" && p.Xy[1] == 0.0);
             Assert.Contains(lines, p => p.Layer == "column|GRID" && p.Xy[1] == 5000.0);
             Assert.DoesNotContain(lines, p => p.Layer == "survey|GRID");
@@ -291,8 +325,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Grid("survey");
             string plan = Grid("plan", d =>
             {
-                d.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 5000, 0), d.AttachXref("column.dxf", "column")));
-                d.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 9000, 0), d.OverlayXref("survey.dxf", "survey")));
+                d.ModelSpace.AppendEntity(
+                    new DxfBlockReference(new GeoPoint3(0, 5000, 0), d.AttachXref("column.dxf", "column"))
+                );
+                d.ModelSpace.AppendEntity(
+                    new DxfBlockReference(new GeoPoint3(0, 9000, 0), d.OverlayXref("survey.dxf", "survey"))
+                );
             });
             CadDocument document = Host();
             CadCommandSession session = Session(document);
@@ -309,17 +347,27 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(Path.Combine(_folder, "xref", "column.dxf"), rows[1].FoundAt);
 
             Run(session, "-XREF", "U", "plan");
-            Assert.Equal(new[] { "plan Unloaded", "column Orphaned" }, document.Xrefs.GetReferences().Select(r => r.ToString()).ToArray());
+            Assert.Equal(
+                new[] { "plan Unloaded", "column Orphaned" },
+                document.Xrefs.GetReferences().Select(r => r.ToString()).ToArray()
+            );
             Run(session, "-XREF", "R", "plan");
             File.Delete(Path.Combine(_folder, "xref", "column.dxf"));
-            Assert.Equal(new[] { "plan Loaded", "column Not Found" }, document.Xrefs.GetReferences().Select(r => r.ToString()).ToArray());
+            Assert.Equal(
+                new[] { "plan Loaded", "column Not Found" },
+                document.Xrefs.GetReferences().Select(r => r.ToString()).ToArray()
+            );
         }
 
         [Fact]
         public void ADrawingThatReferencesItself_IsDrawnOnce()
         {
             string loop = Path.Combine(_folder, "xref", "loop.dxf");
-            Grid("loop", d => d.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 300, 0), d.AttachXref("loop.dxf", "loop"))));
+            Grid("loop", d =>
+                d.ModelSpace.AppendEntity(
+                    new DxfBlockReference(new GeoPoint3(0, 300, 0), d.AttachXref("loop.dxf", "loop"))
+                )
+            );
             CadDocument document = CadDocument.Open(loop);
 
             Assert.Single(Items<DisplayPolyline2>(document), p => p.Layer == "GRID");
@@ -363,7 +411,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "-XREF", "A", grid, P(0, 0), Enter, Enter, Enter);
             Assert.Single(Items<DisplayArc2>(document));
 
-            Grid(more: d => d.ModelSpace.AppendEntity(new DxfCircle(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 50.0)));
+            Grid(more: d =>
+                d.ModelSpace.AppendEntity(new DxfCircle(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 50.0))
+            );
             File.SetLastWriteTimeUtc(grid, DateTime.UtcNow.AddMinutes(1));
 
             CadExternalReference changed = Assert.Single(document.Xrefs.GetReferences());
@@ -443,9 +493,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             request.PathType = CadPathType.None;
             Assert.Equal("grid.dxf", request.SavedPath);
 
-            Assert.Equal(".\\grid.dxf", CadXrefManager.PathFor("D:\\Plans\\grid.dxf", CadPathType.Relative, "D:\\Plans"));
-            Assert.Equal(".\\xref\\grid.dxf", CadXrefManager.PathFor("D:\\Plans\\xref\\grid.dxf", CadPathType.Relative, "D:\\Plans\\"));
-            Assert.Equal("..\\..\\grid.dxf", CadXrefManager.PathFor("D:\\grid.dxf", CadPathType.Relative, "D:\\Plans\\A"));
+            Assert.Equal(
+                ".\\grid.dxf",
+                CadXrefManager.PathFor("D:\\Plans\\grid.dxf", CadPathType.Relative, "D:\\Plans")
+            );
+            Assert.Equal(
+                ".\\xref\\grid.dxf",
+                CadXrefManager.PathFor("D:\\Plans\\xref\\grid.dxf", CadPathType.Relative, "D:\\Plans\\")
+            );
+            Assert.Equal(
+                "..\\..\\grid.dxf",
+                CadXrefManager.PathFor("D:\\grid.dxf", CadPathType.Relative, "D:\\Plans\\A")
+            );
             Assert.Equal("E:\\grid.dxf", CadXrefManager.PathFor("E:\\grid.dxf", CadPathType.Relative, "D:\\Plans"));
             Assert.Equal(CadPathType.Full, CadXrefManager.PathTypeOf("D:\\Plans\\grid.dxf"));
             Assert.Equal(CadPathType.Relative, CadXrefManager.PathTypeOf("..\\grid.dxf"));
@@ -463,7 +522,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string big = Path.Combine(_folder, "xref", "big.dxf");
             File.WriteAllText(big, BigDrawing.Text(100000));
             DxfDatabase host = CadTemplate.CreateMetric();
-            host.ModelSpace.AppendEntity(new DxfBlockReference(GeoPoint3.Origin, host.AttachXref("..\\xref\\big.dxf", "big")));
+            host.ModelSpace.AppendEntity(
+                new DxfBlockReference(GeoPoint3.Origin, host.AttachXref("..\\xref\\big.dxf", "big"))
+            );
             string hostPath = Path.Combine(_folder, "plans", "host.dxf");
             Directory.CreateDirectory(Path.GetDirectoryName(hostPath));
             host.Save(hostPath);
@@ -486,8 +547,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 referenced = Math.Min(referenced, watch.Elapsed.TotalMilliseconds);
             }
 
-            Assert.True(directCount == referencedCount, directCount + " items alone, " + referencedCount + " referenced.");
-            Assert.True(referenced <= 2.0 * direct, "Shown as an external reference in " + referenced.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " ms, opened alone in " + direct.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " ms.");
+            Assert.True(
+                directCount == referencedCount,
+                directCount + " items alone, " + referencedCount + " referenced."
+            );
+            Assert.True(
+                referenced <= 2.0 * direct,
+                "Shown as an external reference in "
+                    + referenced.ToString("0", System.Globalization.CultureInfo.InvariantCulture)
+                    + " ms, opened alone in "
+                    + direct.ToString("0", System.Globalization.CultureInfo.InvariantCulture)
+                    + " ms."
+            );
         }
 
         [Fact]
@@ -502,7 +573,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "-XREF", "A", grid, P(0, 0), Enter, Enter, Enter);
 
             Run(session, "-XREF", "A", "grid=" + other);
-            Assert.Contains("Xref \"grid\" names another file: give this one a name of its own, as name=path.", session.History);
+            Assert.Contains(
+                "Xref \"grid\" names another file: give this one a name of its own, as name=path.",
+                session.History
+            );
             Run(session, "-XREF", "A", broken);
             Assert.Contains("Error: Unable to load " + Path.GetFullPath(broken) + ".", session.History);
             Run(session, "-XREF", "A", grid, P(500, 0), Enter, Enter, Enter);

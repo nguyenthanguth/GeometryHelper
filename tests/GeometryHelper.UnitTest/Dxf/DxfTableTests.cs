@@ -66,7 +66,15 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Null(table.Alignment(1, 1));
                 Assert.Null(table.TextHeight(2, 0));
                 Assert.Null(table.ContentColor(1, 0));
-                Assert.Equal(new[] { DxfTableStyleOverride.CellAlignment, DxfTableStyleOverride.CellTextStyle, DxfTableStyleOverride.CellTextHeight }, table.CellStyleOverrides(1, 0));
+                Assert.Equal(
+                    new[]
+                    {
+                        DxfTableStyleOverride.CellAlignment,
+                        DxfTableStyleOverride.CellTextStyle,
+                        DxfTableStyleOverride.CellTextHeight,
+                    },
+                    table.CellStyleOverrides(1, 0)
+                );
                 Assert.Empty(table.CellStyleOverrides(1, 1));
 
                 Assert.Equal("BOLT", table.GetBlockTableRecord(2, 1).Name);
@@ -99,7 +107,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 if (text == DxfDimensionDrawings.R2018)
                 {
-                    Assert.Contains("301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nCount\n 94\n0\n300\n\n302\nCount\n304\nACVALUE_END\n", record, StringComparison.Ordinal);
+                    Assert.Contains(
+                        "301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nCount\n 94\n0\n300\n\n302\nCount\n304\nACVALUE_END\n",
+                        record,
+                        StringComparison.Ordinal
+                    );
                 }
                 else
                 {
@@ -107,7 +119,17 @@ namespace GeometryHelper.UnitTest.Dxf
                 }
 
                 // AutoCAD 2021 writes the pieces of a cell's text in 3 before R2007 and of its value in 2 from R2007 on.
-                Assert.Contains("\n  " + (text == DxfDimensionDrawings.R2018 ? "2" : "3") + "\n" + new string('x', 250) + "\n  1\n" + new string('x', 50) + "\n", record, StringComparison.Ordinal);
+                Assert.Contains(
+                    "\n  "
+                        + (text == DxfDimensionDrawings.R2018 ? "2" : "3")
+                        + "\n"
+                        + new string('x', 250)
+                        + "\n  1\n"
+                        + new string('x', 50)
+                        + "\n",
+                    record,
+                    StringComparison.Ordinal
+                );
 
                 DxfTable read = Table(DxfDatabase.Parse(saved));
                 Assert.Equal("Count", read.TextString(1, 1));
@@ -119,7 +141,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 Refused<ArgumentException>(() => read.SetTextString(0, 0, "a\nb"), "one line");
 
                 // The block AutoCAD drew the table with is left as it was.
-                Assert.Equal(Records(text).Where(r => r.Contains("\n330\nE6\n")), Records(saved).Where(r => r.Contains("\n330\nE6\n")));
+                Assert.Equal(
+                    Records(text).Where(r => r.Contains("\n330\nE6\n")),
+                    Records(saved).Where(r => r.Contains("\n330\nE6\n"))
+                );
             }
         }
 
@@ -155,8 +180,26 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfTable table = Table(db);
 
-            Assert.Equal(new[] { new GeoPoint3(340, -110, 0), new GeoPoint3(370, -110, 0), new GeoPoint3(370, -118, 0), new GeoPoint3(340, -118, 0) }, table.GetCellExtents(1, 1, false));
-            Assert.Equal(new[] { new GeoPoint3(300, -100, 0), new GeoPoint3(370, -100, 0), new GeoPoint3(370, -110, 0), new GeoPoint3(300, -110, 0) }, table.GetCellExtents(0, 1, true));
+            Assert.Equal(
+                new[]
+                {
+                    new GeoPoint3(340, -110, 0),
+                    new GeoPoint3(370, -110, 0),
+                    new GeoPoint3(370, -118, 0),
+                    new GeoPoint3(340, -118, 0),
+                },
+                table.GetCellExtents(1, 1, false)
+            );
+            Assert.Equal(
+                new[]
+                {
+                    new GeoPoint3(300, -100, 0),
+                    new GeoPoint3(370, -100, 0),
+                    new GeoPoint3(370, -110, 0),
+                    new GeoPoint3(300, -110, 0),
+                },
+                table.GetCellExtents(0, 1, true)
+            );
             Assert.Null(table.TableStyle);
 
             DxfAttributeDefinition size = db.BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single();
@@ -183,7 +226,9 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
             DxfTable table = Table(db);
 
-            table.TransformBy(GeoTransform3.Translation(new GeoVector3(5.0, 0.0, 0.0)) * GeoTransform3.RotationZ(Math.PI / 2.0));
+            table.TransformBy(
+                GeoTransform3.Translation(new GeoVector3(5.0, 0.0, 0.0)) * GeoTransform3.RotationZ(Math.PI / 2.0)
+            );
 
             Assert.Equal(100.0 + 5.0, table.Position.X, 12);
             Assert.Equal(300.0, table.Position.Y, 12);
@@ -192,7 +237,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfLine top = table.BlockTableRecord.OfType<DxfLine>().First();
             Assert.Equal(0.0, top.EndPoint.X, 12);
             Assert.Equal(70.0, top.EndPoint.Y, 12);
-            Refused<ArgumentException>(() => table.TransformBy(GeoTransform3.Scaling(2.0, 1.0, 1.0)), "scaled alike in every direction");
+            Refused<ArgumentException>(
+                () => table.TransformBy(GeoTransform3.Scaling(2.0, 1.0, 1.0)),
+                "scaled alike in every direction"
+            );
             Assert.Equal("Parts", Table(DxfDatabase.Parse(db.ToText())).TextString(0, 0));
         }
 
@@ -204,7 +252,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfEntity same = table.Clone();
             source.ModelSpace.AppendEntity(same);
-            Assert.Contains("179\n1\n331\n4C\n300\nM12\n", Records(source.ToText()).Single(r => HandleOf(r) == same.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "179\n1\n331\n4C\n300\nM12\n",
+                Records(source.ToText()).Single(r => HandleOf(r) == same.Handle),
+                StringComparison.Ordinal
+            );
 
             DxfDatabase other = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             DxfEntity copy = table.Clone();
@@ -262,13 +314,25 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfTable table = Table(DxfDatabase.Parse(text));
 
             // 177 = 1 + 0x10 + 0x20 + 0x80: the alignment, the text style and height, and the colour of the right border.
-            Assert.Equal(new[] { DxfTableStyleOverride.CellAlignment, DxfTableStyleOverride.CellTextStyle, DxfTableStyleOverride.CellTextHeight, DxfTableStyleOverride.CellRightGridColor }, table.CellStyleOverrides(1, 0));
+            Assert.Equal(
+                new[]
+                {
+                    DxfTableStyleOverride.CellAlignment,
+                    DxfTableStyleOverride.CellTextStyle,
+                    DxfTableStyleOverride.CellTextHeight,
+                    DxfTableStyleOverride.CellRightGridColor,
+                },
+                table.CellStyleOverrides(1, 0)
+            );
         }
 
         [Fact]
         public void TheTablesOwnPart_StandsAfterItsLastCell_AndIsNotTakenForTheCells()
         {
-            string text = DxfDimensionDrawings.R2000.Replace("331\n4C\n300\nM12\n", "331\n4C\n300\nM12\n 70\n1\n280\n1\n170\n4\n  7\nGH_TXT2\n");
+            string text = DxfDimensionDrawings.R2000.Replace(
+                "331\n4C\n300\nM12\n",
+                "331\n4C\n300\nM12\n 70\n1\n280\n1\n170\n4\n  7\nGH_TXT2\n"
+            );
             DxfTable table = Table(DxfDatabase.Parse(text));
 
             Assert.Equal(DxfFlowDirection.BottomToTop, table.FlowDirection);
@@ -276,13 +340,22 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(DxfRowType.HeaderRow, table.RowType(0));
             Assert.Null(table.Alignment(2, 1));
             Assert.Null(table.TextStyle(2, 1));
-            Assert.Equal("M12", table.GetBlockAttributeValue(2, 1, DxfDatabase.Parse(text).BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single()));
+            Assert.Equal(
+                "M12",
+                table.GetBlockAttributeValue(
+                    2,
+                    1,
+                    DxfDatabase.Parse(text).BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single()
+                )
+            );
         }
 
         [Fact]
         public void ASizeTheFileHoldsOutOfRange_SetAsItIsRead_WritesNothing()
         {
-            string text = DxfDimensionDrawings.R2000.Replace("141\n10.0\n", "141\n0.0\n").Replace("340\n48\n144\n1.0\n", "340\n48\n144\n0.0\n");
+            string text = DxfDimensionDrawings
+                .R2000.Replace("141\n10.0\n", "141\n0.0\n")
+                .Replace("340\n48\n144\n1.0\n", "340\n48\n144\n0.0\n");
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfTable table = Table(db);
 
@@ -298,11 +371,22 @@ namespace GeometryHelper.UnitTest.Dxf
         public void EveryCellOfALongTable_IsReadInTimeLinearInItsCells()
         {
             // 1 000 rows of 2 columns: the record is read once for all of them, not once a cell.
-            string cells = string.Concat(Enumerable.Range(0, 2000).Select(i => "171\n1\n172\n0\n173\n0\n174\n0\n175\n0\n176\n0\n177\n0\n178\n0\n145\n0.0\n  1\nC" + i + "\n"));
+            string cells = string.Concat(
+                Enumerable
+                    .Range(0, 2000)
+                    .Select(i =>
+                        "171\n1\n172\n0\n173\n0\n174\n0\n175\n0\n176\n0\n177\n0\n178\n0\n145\n0.0\n  1\nC" + i + "\n"
+                    )
+            );
             string rows = string.Concat(Enumerable.Repeat("141\n8.0\n", 1000));
-            string text = "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1015\n  9\n$HANDSEED\n  5\n100\n  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n"
+            string text =
+                "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1015\n  9\n$HANDSEED\n  5\n100\n  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n"
                 + "  0\nACAD_TABLE\n  5\n50\n100\nAcDbEntity\n  8\n0\n100\nAcDbBlockReference\n  2\n*T1\n 10\n0.0\n 20\n0.0\n 30\n0.0\n100\nAcDbTable\n"
-                + " 91\n1000\n 92\n2\n" + rows + "142\n40.0\n142\n30.0\n" + cells + "  0\nENDSEC\n  0\nEOF\n";
+                + " 91\n1000\n 92\n2\n"
+                + rows
+                + "142\n40.0\n142\n30.0\n"
+                + cells
+                + "  0\nENDSEC\n  0\nEOF\n";
             DxfTable table = Table(DxfDatabase.Parse(text));
             var watch = System.Diagnostics.Stopwatch.StartNew();
             int length = 0;
@@ -323,15 +407,23 @@ namespace GeometryHelper.UnitTest.Dxf
         private static GeoPoint3 Placed(DxfTable table, GeoPoint3 point)
         {
             GeoVector3 n = table.Normal;
-            GeoVector3 x = Math.Abs(n.X) < 1.0 / 64.0 && Math.Abs(n.Y) < 1.0 / 64.0 ? new GeoVector3(0, 1, 0).CrossProduct(n) : new GeoVector3(0, 0, 1).CrossProduct(n);
+            GeoVector3 x =
+                Math.Abs(n.X) < 1.0 / 64.0 && Math.Abs(n.Y) < 1.0 / 64.0
+                    ? new GeoVector3(0, 1, 0).CrossProduct(n)
+                    : new GeoVector3(0, 0, 1).CrossProduct(n);
             x = x.Divide(x.Length);
             GeoVector3 y = n.CrossProduct(x);
             y = y.Divide(y.Length);
             GeoPoint3 p = table.Position;
-            return new GeoPoint3(p.X + x.X * point.X + y.X * point.Y + n.X * point.Z, p.Y + x.Y * point.X + y.Y * point.Y + n.Y * point.Z, p.Z + x.Z * point.X + y.Z * point.Y + n.Z * point.Z);
+            return new GeoPoint3(
+                p.X + x.X * point.X + y.X * point.Y + n.X * point.Z,
+                p.Y + x.Y * point.X + y.Y * point.Y + n.Y * point.Z,
+                p.Z + x.Z * point.X + y.Z * point.Y + n.Z * point.Z
+            );
         }
 
-        private static void Refused<T>(Action action, string part) where T : Exception
+        private static void Refused<T>(Action action, string part)
+            where T : Exception
         {
             T refused = Assert.Throws<T>(action);
             Assert.Contains(part, refused.Message, StringComparison.Ordinal);

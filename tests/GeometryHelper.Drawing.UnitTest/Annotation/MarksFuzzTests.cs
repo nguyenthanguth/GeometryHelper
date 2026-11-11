@@ -27,7 +27,9 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             var failures = new List<string>();
             var leftOut = new List<string>();
             var watch = Stopwatch.StartNew();
-            int marks = 0, partMarks = 0, wanted = 0;
+            int marks = 0,
+                partMarks = 0,
+                wanted = 0;
             double[] scales = { 1, 5, 10, 20 };
 
             for (int seed = 0; seed < 500; seed++)
@@ -41,7 +43,9 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
                 {
                     Marked marked = Mark(objects, frame, scale);
                     marks += marked.Marks.Count;
-                    failures.AddRange(Marker.FindOverlaps(marked.Marks, marked.Dimensions, Tol).Select(o => seed + ": " + o));
+                    failures.AddRange(
+                        Marker.FindOverlaps(marked.Marks, marked.Dimensions, Tol).Select(o => seed + ": " + o)
+                    );
                     failures.AddRange(LeadersOffTheirObjects(marked).Select(o => seed + ": " + o));
 
                     // One mark at most for each object, and only for objects with a visible line.
@@ -59,11 +63,16 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
                     {
                         if (!seen.Contains(mark.ObjectId))
                         {
-                            failures.Add(seed + ": " + mark.Id + " marks " + mark.ObjectId + ", which has no visible line");
+                            failures.Add(
+                                seed + ": " + mark.Id + " marks " + mark.ObjectId + ", which has no visible line"
+                            );
                         }
                     }
 
-                    if (marked.Marks.SelectMany(m => m.ObjectIds).Distinct().Count() != marked.Marks.Sum(m => m.ObjectIds.Count))
+                    if (
+                        marked.Marks.SelectMany(m => m.ObjectIds).Distinct().Count()
+                        != marked.Marks.Sum(m => m.ObjectIds.Count)
+                    )
                     {
                         failures.Add(seed + ": an object is marked twice");
                     }
@@ -83,7 +92,9 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
                 }
             }
 
-            _output.WriteLine($"500 cases, {marks} marks, {partMarks} of them of the {wanted} parts seen, {watch.Elapsed.TotalSeconds:0.0} s, {failures.Count} failures");
+            _output.WriteLine(
+                $"500 cases, {marks} marks, {partMarks} of them of the {wanted} parts seen, {watch.Elapsed.TotalSeconds:0.0} s, {failures.Count} failures"
+            );
             _output.WriteLine("Marks left out, no place found: " + string.Join(", ", leftOut));
             failures.Take(20).ToList().ForEach(_output.WriteLine);
             Assert.Empty(failures);
@@ -100,8 +111,12 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
 
             for (int i = 0; i < count; i++)
             {
-                int x = random.Next(0, 40) * 10, y = random.Next(0, 40) * 10, z = random.Next(0, 40) * 10;
-                int dx = random.Next(2, 60) * 10, dy = random.Next(2, 40) * 10, dz = random.Next(1, 30) * 10;
+                int x = random.Next(0, 40) * 10,
+                    y = random.Next(0, 40) * 10,
+                    z = random.Next(0, 40) * 10;
+                int dx = random.Next(2, 60) * 10,
+                    dy = random.Next(2, 40) * 10,
+                    dz = random.Next(1, 30) * 10;
                 string id = "P" + i;
                 var frame = new GeoCoordinateSystem3(new GeoPoint3(x, y, z), GeoVector3.XAxis, GeoVector3.YAxis);
                 GeoSolid3 body;
@@ -123,20 +138,49 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
                     }
 
                     firstHole = centres[0];
-                    body = GeoSolid3.Extrude(new GeoFace2(Rectangle(0, 0, dx, dy), centres.Select(c => Circle(c.X, c.Y, 11, 24)).ToArray()), frame, dz, Tol);
+                    body = GeoSolid3.Extrude(
+                        new GeoFace2(Rectangle(0, 0, dx, dy), centres.Select(c => Circle(c.X, c.Y, 11, 24)).ToArray()),
+                        frame,
+                        dz,
+                        Tol
+                    );
                 }
                 else
                 {
                     body = Box(x, y, z, x + dx, y + dy, z + dz);
                 }
 
-                objects.Add(new DrawingObject(id, DrawingObjectKind.Part, body, frame, mark: "M" + (i % 3), parentId: "A", isMain: i == 0));
+                objects.Add(
+                    new DrawingObject(
+                        id,
+                        DrawingObjectKind.Part,
+                        body,
+                        frame,
+                        mark: "M" + (i % 3),
+                        parentId: "A",
+                        isMain: i == 0
+                    )
+                );
 
                 if (holes && random.Next(2) == 0)
                 {
                     var start = new GeoPoint3(x + firstHole.X, y + firstHole.Y, z - 15);
-                    GeoSolid3 bolt = GeoSolid3.Cylinder(start, new GeoPoint3(x + firstHole.X, y + firstHole.Y, z + dz + 15), 10, 24, Tol);
-                    objects.Add(new DrawingObject(id + "-bolt", DrawingObjectKind.Bolt, bolt, new GeoCoordinateSystem3(start, GeoVector3.ZAxis, GeoVector3.XAxis), parentId: "A"));
+                    GeoSolid3 bolt = GeoSolid3.Cylinder(
+                        start,
+                        new GeoPoint3(x + firstHole.X, y + firstHole.Y, z + dz + 15),
+                        10,
+                        24,
+                        Tol
+                    );
+                    objects.Add(
+                        new DrawingObject(
+                            id + "-bolt",
+                            DrawingObjectKind.Bolt,
+                            bolt,
+                            new GeoCoordinateSystem3(start, GeoVector3.ZAxis, GeoVector3.XAxis),
+                            parentId: "A"
+                        )
+                    );
                 }
             }
 

@@ -52,7 +52,7 @@ namespace GeometryHelper.UnitTest.Solid
             {
                 new GeoPoint3(1.0, 5.0, -2.0),
                 new GeoPoint3(-3.0, 0.0, 4.0),
-                new GeoPoint3(0.0, 2.0, 0.0)
+                new GeoPoint3(0.0, 2.0, 0.0),
             };
 
             GeoAabb3 box = GeoAabb3.FromPoints(points);
@@ -162,10 +162,7 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The Y direction given here is not square to X. A box built from it must still come out with
             // three mutually perpendicular unit axes.
-            GeoObb3 box = new GeoObb3(
-                GeoPoint3.Origin, 2.0, 2.0, 2.0,
-                GeoVector3.XAxis,
-                new GeoVector3(0.5, 1.0, 0.0));
+            GeoObb3 box = new GeoObb3(GeoPoint3.Origin, 2.0, 2.0, 2.0, GeoVector3.XAxis, new GeoVector3(0.5, 1.0, 0.0));
 
             Assert.True(box.AxisX.IsUnitLength());
             Assert.True(box.AxisY.IsUnitLength());
@@ -179,8 +176,9 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void ParallelAxesAreRejectedBecauseTheyDoNotSpanAFrame()
         {
-            Assert.Throws<ArgumentException>(() => new GeoObb3(
-                GeoPoint3.Origin, 1.0, 1.0, 1.0, GeoVector3.XAxis, GeoVector3.XAxis));
+            Assert.Throws<ArgumentException>(() =>
+                new GeoObb3(GeoPoint3.Origin, 1.0, 1.0, 1.0, GeoVector3.XAxis, GeoVector3.XAxis)
+            );
         }
 
         [Fact]
@@ -218,9 +216,13 @@ namespace GeometryHelper.UnitTest.Solid
         public void LocateSeparatesInteriorSurfaceAndOutsideInTheLocalFrame()
         {
             GeoObb3 box = new GeoObb3(
-                GeoPoint3.Origin, 10.0, 10.0, 10.0,
+                GeoPoint3.Origin,
+                10.0,
+                10.0,
+                10.0,
                 new GeoVector3(1.0, 1.0, 0.0),
-                new GeoVector3(-1.0, 1.0, 0.0));
+                new GeoVector3(-1.0, 1.0, 0.0)
+            );
 
             Assert.Equal(PointLocation.Inside, box.Locate(GeoPoint3.Origin));
             Assert.Equal(PointLocation.OnSide, box.Locate(box.Center.Add(box.AxisX.Multiply(5.0))));
@@ -250,9 +252,13 @@ namespace GeometryHelper.UnitTest.Solid
         public void BoundingBoxOfARotatedBoxIsLargerThanTheBoxItself()
         {
             GeoObb3 rotated = new GeoObb3(
-                GeoPoint3.Origin, 10.0, 2.0, 2.0,
+                GeoPoint3.Origin,
+                10.0,
+                2.0,
+                2.0,
                 new GeoVector3(1.0, 1.0, 0.0),
-                new GeoVector3(-1.0, 1.0, 0.0));
+                new GeoVector3(-1.0, 1.0, 0.0)
+            );
 
             Assert.True(rotated.GetAabb().Volume > rotated.Volume);
         }
@@ -273,9 +279,13 @@ namespace GeometryHelper.UnitTest.Solid
         public void ARotatedBoxAlsoTurnsIntoASolidOfTheSameVolume()
         {
             GeoObb3 box = new GeoObb3(
-                new GeoPoint3(7.0, -3.0, 2.0), 10.0, 4.0, 2.0,
+                new GeoPoint3(7.0, -3.0, 2.0),
+                10.0,
+                4.0,
+                2.0,
                 new GeoVector3(1.0, 1.0, 1.0),
-                new GeoVector3(0.0, 1.0, 0.0));
+                new GeoVector3(0.0, 1.0, 0.0)
+            );
 
             Assert.Equal(box.Volume, box.ToSolid().GetVolume(), 6);
             Assert.True(box.ToSolid().IsClosed());
@@ -308,30 +318,51 @@ namespace GeometryHelper.UnitTest.Solid
             GeoObb3 alongX = new GeoObb3(GeoPoint3.Origin, 20.0, 1.0, 1.0);
 
             GeoObb3 diagonalClose = new GeoObb3(
-                new GeoPoint3(0.0, 0.0, 1.2), 20.0, 1.0, 1.0,
+                new GeoPoint3(0.0, 0.0, 1.2),
+                20.0,
+                1.0,
+                1.0,
                 new GeoVector3(1.0, 1.0, 0.0),
-                new GeoVector3(-1.0, 1.0, 0.0));
+                new GeoVector3(-1.0, 1.0, 0.0)
+            );
 
             GeoObb3 diagonalFar = new GeoObb3(
-                new GeoPoint3(0.0, 0.0, 5.0), 20.0, 1.0, 1.0,
+                new GeoPoint3(0.0, 0.0, 5.0),
+                20.0,
+                1.0,
+                1.0,
                 new GeoVector3(1.0, 1.0, 0.0),
-                new GeoVector3(-1.0, 1.0, 0.0));
+                new GeoVector3(-1.0, 1.0, 0.0)
+            );
 
             Assert.False(alongX.CollidesWith(diagonalClose));
             Assert.False(alongX.CollidesWith(diagonalFar));
-            Assert.True(alongX.CollidesWith(new GeoObb3(
-                GeoPoint3.Origin, 20.0, 1.0, 1.0,
-                new GeoVector3(1.0, 1.0, 0.0),
-                new GeoVector3(-1.0, 1.0, 0.0))));
+            Assert.True(
+                alongX.CollidesWith(
+                    new GeoObb3(
+                        GeoPoint3.Origin,
+                        20.0,
+                        1.0,
+                        1.0,
+                        new GeoVector3(1.0, 1.0, 0.0),
+                        new GeoVector3(-1.0, 1.0, 0.0)
+                    )
+                )
+            );
         }
 
         [Fact]
         public void CollisionIsSymmetric()
         {
             GeoObb3 first = new GeoObb3(GeoPoint3.Origin, 10.0, 10.0, 10.0);
-            GeoObb3 second = new GeoObb3(new GeoPoint3(7.0, 3.0, 1.0), 6.0, 6.0, 6.0,
+            GeoObb3 second = new GeoObb3(
+                new GeoPoint3(7.0, 3.0, 1.0),
+                6.0,
+                6.0,
+                6.0,
                 new GeoVector3(1.0, 2.0, 0.0),
-                new GeoVector3(-2.0, 1.0, 0.0));
+                new GeoVector3(-2.0, 1.0, 0.0)
+            );
 
             Assert.Equal(first.CollidesWith(second), second.CollidesWith(first));
         }
@@ -341,12 +372,24 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoObb3 box = new GeoObb3(GeoPoint3.Origin, 10.0, 10.0, 10.0);
 
-            Assert.True(GeometryHelper.Core.Collision3.CollidesWith(
-                new GeoLine3(new GeoPoint3(-20.0, 0.0, 0.0), new GeoPoint3(20.0, 0.0, 0.0)), box));
-            Assert.True(GeometryHelper.Core.Collision3.CollidesWith(
-                new GeoLine3(GeoPoint3.Origin, new GeoPoint3(1.0, 1.0, 1.0)), box));
-            Assert.False(GeometryHelper.Core.Collision3.CollidesWith(
-                new GeoLine3(new GeoPoint3(-20.0, 20.0, 0.0), new GeoPoint3(20.0, 20.0, 0.0)), box));
+            Assert.True(
+                GeometryHelper.Core.Collision3.CollidesWith(
+                    new GeoLine3(new GeoPoint3(-20.0, 0.0, 0.0), new GeoPoint3(20.0, 0.0, 0.0)),
+                    box
+                )
+            );
+            Assert.True(
+                GeometryHelper.Core.Collision3.CollidesWith(
+                    new GeoLine3(GeoPoint3.Origin, new GeoPoint3(1.0, 1.0, 1.0)),
+                    box
+                )
+            );
+            Assert.False(
+                GeometryHelper.Core.Collision3.CollidesWith(
+                    new GeoLine3(new GeoPoint3(-20.0, 20.0, 0.0), new GeoPoint3(20.0, 20.0, 0.0)),
+                    box
+                )
+            );
         }
 
         [Fact]
@@ -378,7 +421,8 @@ namespace GeometryHelper.UnitTest.Solid
         public void TransformingABoxMovesItAndKeepsItsVolumeUnderARigidMotion()
         {
             GeoObb3 box = new GeoObb3(GeoPoint3.Origin, 2.0, 4.0, 6.0);
-            GeoTransform3 motion = GeoTransform3.Translation(new GeoVector3(10.0, 0.0, 0.0))
+            GeoTransform3 motion = GeoTransform3
+                .Translation(new GeoVector3(10.0, 0.0, 0.0))
                 .Multiply(GeoTransform3.RotationZ(Math.PI / 3.0));
 
             GeoObb3 moved = box.TransformBy(motion);

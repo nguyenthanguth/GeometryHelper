@@ -35,12 +35,18 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [Theory]
         [InlineData(0.004, 0.002, 0.005)]
         [InlineData(0.04, 0.02, 0.05)]
-        public void AStripOfTheTopMissing_WithABladeStandingInIt_IsRefusedAsStillOpen_AtTheBlade(double strip, double blade, double gap)
+        public void AStripOfTheTopMissing_WithABladeStandingInIt_IsRefusedAsStillOpen_AtTheBlade(
+            double strip,
+            double blade,
+            double gap
+        )
         {
             // The strip is within the welds' reach: welded shut, the top's halves would meet through the blade, valid and
             // crossing it. No weld crosses the body, and no fill is allowed, so the body is still open where the blade
             // stands through the top: the gap is not too wide, it is blocked.
-            var body = new GeoSolid3(ClosingTestBodies.BoxWithAStripOfTheTopMissing(strip).Faces.Concat(ClosingTestBodies.BladeFaces(blade)));
+            var body = new GeoSolid3(
+                ClosingTestBodies.BoxWithAStripOfTheTopMissing(strip).Faces.Concat(ClosingTestBodies.BladeFaces(blade))
+            );
 
             GeoPoint3 at = AssertRefused(body, new SolidClosingOptions(Fine, gap), ClosingFailure.StillOpen);
             AssertOnTheBlade(at, blade);
@@ -52,7 +58,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
         public void AStripOfTheTopMissing_WithNoBlade_IsWeldedShut(double strip, double gap)
         {
             // The corners across the strip at each end made one: two welds as long as the strip is wide, and the box again.
-            SolidClosing3 report = AssertClosed(ClosingTestBodies.BoxWithAStripOfTheTopMissing(strip), new SolidClosingOptions(Fine, gap), out GeoSolid3 closed);
+            SolidClosing3 report = AssertClosed(
+                ClosingTestBodies.BoxWithAStripOfTheTopMissing(strip),
+                new SolidClosingOptions(Fine, gap),
+                out GeoSolid3 closed
+            );
             Assert.Equal(2, report.Repairs.Count);
             Assert.All(report.Repairs, repair => Assert.Equal(SolidRepairKind.Weld, repair.Kind));
             Assert.All(report.Repairs, repair => Assert.InRange(repair.Size, strip - 1E-9, strip + 1E-9));
@@ -62,7 +72,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [Theory]
         [InlineData(0.004, 0.002, 0.005)]
         [InlineData(0.04, 0.02, 0.05)]
-        public void AStripOfTheTopMissing_WithTheBladeBeyondTheFront_ClearOfItByMoreThanTheWeldsReach_IsWeldedShut_TheBladeKept(double strip, double blade, double gap)
+        public void AStripOfTheTopMissing_WithTheBladeBeyondTheFront_ClearOfItByMoreThanTheWeldsReach_IsWeldedShut_TheBladeKept(
+            double strip,
+            double blade,
+            double gap
+        )
         {
             // The blade stands through the top's plane in line with the strip, out beyond the box's front and clear of it by
             // a fifth more than the welds reach: the welded top crosses nothing, and the blade is kept as it is.
@@ -79,22 +93,35 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [Theory]
         [InlineData(0.004, 0.0016, 0.005)]
         [InlineData(0.04, 0.02, 0.05)]
-        public void AStripOfTheTopMissing_WithABladeStandingInIt_FillsAllowed_IsRefusedAsStillOpen_AtTheBlade(double strip, double blade, double gap)
+        public void AStripOfTheTopMissing_WithABladeStandingInIt_FillsAllowed_IsRefusedAsStillOpen_AtTheBlade(
+            double strip,
+            double blade,
+            double gap
+        )
         {
             // Neither a weld nor a fill closes the strip across the blade: a face across the strip would cross it as the
             // welded top would. In the strip 0.004 wide the blade is 0.0016 thick, its walls 0.0012 in from the strip's
             // edges: half the strip, they would stand the point tolerance in, and whether a face across the strip crosses
             // them would be a rounding's call.
-            var body = new GeoSolid3(ClosingTestBodies.BoxWithAStripOfTheTopMissing(strip).Faces.Concat(ClosingTestBodies.BladeFaces(blade)));
+            var body = new GeoSolid3(
+                ClosingTestBodies.BoxWithAStripOfTheTopMissing(strip).Faces.Concat(ClosingTestBodies.BladeFaces(blade))
+            );
 
-            GeoPoint3 at = AssertRefused(body, new SolidClosingOptions(Fine, gap, double.PositiveInfinity, 0.0, FillStrategy.WhenUnambiguous), ClosingFailure.StillOpen);
+            GeoPoint3 at = AssertRefused(
+                body,
+                new SolidClosingOptions(Fine, gap, double.PositiveInfinity, 0.0, FillStrategy.WhenUnambiguous),
+                ClosingFailure.StillOpen
+            );
             AssertOnTheBlade(at, blade);
         }
 
         [Theory]
         [InlineData(0.004, 0.005)]
         [InlineData(0.04, 0.05)]
-        public void AStripOfTheTopMissing_WithARidgeLyingAcrossIt_IsWeldedShut_TheTopTouchingTheRidgeAlongAnEdge(double strip, double gap)
+        public void AStripOfTheTopMissing_WithARidgeLyingAcrossIt_IsWeldedShut_TheTopTouchingTheRidgeAlongAnEdge(
+            double strip,
+            double gap
+        )
         {
             // The ridge of the crossing tests lies on the top's plane across the strip, along its lowest edge from x = 13 to
             // 17: the welded top touches it along that edge, crosses none of it, and the ridge is kept. 6 000 and 24.
@@ -115,7 +142,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
         [InlineData(0.04, 0.05, -0.5)]
         [InlineData(0.04, 0.05, 0.0)]
         [InlineData(0.04, 0.05, 0.5)]
-        public void AStripOfTheTopMissing_WithAPyramidOnItsTipAtTheStripsEnd_IsWeldedShut_TheTopTouchingItAtAPoint(double strip, double gap, double across)
+        public void AStripOfTheTopMissing_WithAPyramidOnItsTipAtTheStripsEnd_IsWeldedShut_TheTopTouchingItAtAPoint(
+            double strip,
+            double gap,
+            double across
+        )
         {
             // The pyramid of the crossing tests stands on its tip at the strip's end on the front, on the corner of the top's
             // left half, in the middle of the strip, or on the corner of its right half: whichever corner the weld keeps, the
@@ -176,7 +207,7 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         // Within a millionth of what it should hold.
-        private static void AssertVolume(double expected, GeoSolid3 closed)
-            => Assert.InRange(closed.GetVolume(Fine), expected * (1.0 - 1E-6), expected * (1.0 + 1E-6));
+        private static void AssertVolume(double expected, GeoSolid3 closed) =>
+            Assert.InRange(closed.GetVolume(Fine), expected * (1.0 - 1E-6), expected * (1.0 + 1E-6));
     }
 }

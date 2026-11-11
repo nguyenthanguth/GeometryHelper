@@ -70,13 +70,31 @@ namespace GeometryHelper.Dxf
 
         /// <summary>The spline of a degree, knots, control points and weights (null for a spline that is not rational).</summary>
         /// <exception cref="InvalidOperationException">Thrown when the counts do not make a spline: fewer control points than the degree and one, or knots not that count and the degree and one, or weights not one to each point, or knots that go down.</exception>
-        internal DxfNurbs(int degree, IReadOnlyList<double> knots, IReadOnlyList<GeoPoint3> points, IReadOnlyList<double> weights)
+        internal DxfNurbs(
+            int degree,
+            IReadOnlyList<double> knots,
+            IReadOnlyList<GeoPoint3> points,
+            IReadOnlyList<double> weights
+        )
         {
             int n = points.Count;
 
-            if (degree < 1 || n < degree + 1 || knots.Count != n + degree + 1 || (weights != null && weights.Count != 0 && weights.Count != n))
+            if (
+                degree < 1
+                || n < degree + 1
+                || knots.Count != n + degree + 1
+                || (weights != null && weights.Count != 0 && weights.Count != n)
+            )
             {
-                throw new InvalidOperationException("The spline's degree, knots, control points and weights do not make a spline: degree " + degree + ", " + knots.Count + " knots, " + n + " control points.");
+                throw new InvalidOperationException(
+                    "The spline's degree, knots, control points and weights do not make a spline: degree "
+                        + degree
+                        + ", "
+                        + knots.Count
+                        + " knots, "
+                        + n
+                        + " control points."
+                );
             }
 
             for (int i = 1; i < knots.Count; i++)
@@ -156,7 +174,18 @@ namespace GeometryHelper.Dxf
         private void Evaluate(double t, int span, out GeoPoint3 point, out GeoVector3 first, out GeoVector3 second)
         {
             double[,] ders = Derivatives(span, t, 2);
-            double ax = 0, ay = 0, az = 0, aw = 0, dx = 0, dy = 0, dz = 0, dw = 0, ex = 0, ey = 0, ez = 0, ew = 0;
+            double ax = 0,
+                ay = 0,
+                az = 0,
+                aw = 0,
+                dx = 0,
+                dy = 0,
+                dz = 0,
+                dw = 0,
+                ex = 0,
+                ey = 0,
+                ez = 0,
+                ew = 0;
 
             for (int j = 0; j <= _p; j++)
             {
@@ -177,8 +206,12 @@ namespace GeometryHelper.Dxf
                 ew += ders[2, j] * w;
             }
 
-            double px = ax / aw, py = ay / aw, pz = az / aw;
-            double fx = (dx - dw * px) / aw, fy = (dy - dw * py) / aw, fz = (dz - dw * pz) / aw;
+            double px = ax / aw,
+                py = ay / aw,
+                pz = az / aw;
+            double fx = (dx - dw * px) / aw,
+                fy = (dy - dw * py) / aw,
+                fz = (dz - dw * pz) / aw;
             double sx = (ex - 2.0 * dw * fx - ew * px) / aw;
             double sy = (ey - 2.0 * dw * fy - ew * py) / aw;
             double sz = (ez - 2.0 * dw * fz - ew * pz) / aw;
@@ -341,8 +374,12 @@ namespace GeometryHelper.Dxf
         /// <summary>Whether the control points lie within a box whose diagonal is a distance at most, the spline in it.</summary>
         internal bool SpreadWithin(double distance)
         {
-            double minX = double.PositiveInfinity, minY = double.PositiveInfinity, minZ = double.PositiveInfinity;
-            double maxX = double.NegativeInfinity, maxY = double.NegativeInfinity, maxZ = double.NegativeInfinity;
+            double minX = double.PositiveInfinity,
+                minY = double.PositiveInfinity,
+                minZ = double.PositiveInfinity;
+            double maxX = double.NegativeInfinity,
+                maxY = double.NegativeInfinity,
+                maxZ = double.NegativeInfinity;
 
             foreach (GeoPoint3 c in _points)
             {
@@ -354,7 +391,9 @@ namespace GeometryHelper.Dxf
                 maxZ = Math.Max(maxZ, c.Z);
             }
 
-            double dx = maxX - minX, dy = maxY - minY, dz = maxZ - minZ;
+            double dx = maxX - minX,
+                dy = maxY - minY,
+                dz = maxZ - minZ;
             return Math.Sqrt(dx * dx + dy * dy + dz * dz) <= distance;
         }
 
@@ -419,7 +458,10 @@ namespace GeometryHelper.Dxf
                     next = 0.5 * (low + high);
                 }
 
-                if (Math.Abs(next - t) <= 1E-15 * Math.Max(1.0, Math.Abs(t)) || high - low <= 1E-15 * Math.Max(1.0, Math.Abs(t)))
+                if (
+                    Math.Abs(next - t) <= 1E-15 * Math.Max(1.0, Math.Abs(t))
+                    || high - low <= 1E-15 * Math.Max(1.0, Math.Abs(t))
+                )
                 {
                     return next;
                 }

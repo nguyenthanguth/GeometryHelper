@@ -71,7 +71,8 @@ namespace GeometryHelper.UnitTest.Solid
             /// The point an offset from the rim point at t, out along the rim's normal in the plane, and h above the
             /// plane: in-plane it lies exactly that offset from the rim (<see cref="Ellipse2Oracle.OffRim"/>).
             /// </summary>
-            public GeoPoint3 OffRim(double t, double offset, double h) => Lift(Ellipse2Oracle.OffRim(Flat(), t, offset)).Add(N.Multiply(h));
+            public GeoPoint3 OffRim(double t, double offset, double h) =>
+                Lift(Ellipse2Oracle.OffRim(Flat(), t, offset)).Add(N.Multiply(h));
 
             /// <summary>Reads a point in the frame.</summary>
             public void Read(GeoPoint3 point, out double u, out double v, out double h)
@@ -94,15 +95,28 @@ namespace GeometryHelper.UnitTest.Solid
         /// 300 by 100 about (40, -25, 60), tilted so that no axis lines up with X, Y or Z: N = (1, 2, 2)/3,
         /// U = (2, 1, -2)/3 and V = N × U = (-2, 2, -1)/3, all three rational, so the frame is orthonormal to rounding.
         /// </summary>
-        public static Specimen Tilted() => new Specimen(
-            new GeoPoint3(40, -25, 60), new GeoVector3(2.0 / 3, 1.0 / 3, -2.0 / 3), new GeoVector3(-2.0 / 3, 2.0 / 3, -1.0 / 3), 300, 100);
+        public static Specimen Tilted() =>
+            new Specimen(
+                new GeoPoint3(40, -25, 60),
+                new GeoVector3(2.0 / 3, 1.0 / 3, -2.0 / 3),
+                new GeoVector3(-2.0 / 3, 2.0 / 3, -1.0 / 3),
+                300,
+                100
+            );
 
         /// <summary>The same frame as <see cref="Tilted"/> with other radii.</summary>
-        public static Specimen Tilted(double a, double b) => new Specimen(
-            new GeoPoint3(40, -25, 60), new GeoVector3(2.0 / 3, 1.0 / 3, -2.0 / 3), new GeoVector3(-2.0 / 3, 2.0 / 3, -1.0 / 3), a, b);
+        public static Specimen Tilted(double a, double b) =>
+            new Specimen(
+                new GeoPoint3(40, -25, 60),
+                new GeoVector3(2.0 / 3, 1.0 / 3, -2.0 / 3),
+                new GeoVector3(-2.0 / 3, 2.0 / 3, -1.0 / 3),
+                a,
+                b
+            );
 
         /// <summary>An ellipse of the given radii about (40, -25, 60) in the plane z = 60, its major axis along X.</summary>
-        public static Specimen Upright(double a, double b) => new Specimen(new GeoPoint3(40, -25, 60), GeoVector3.XAxis, GeoVector3.YAxis, a, b);
+        public static Specimen Upright(double a, double b) =>
+            new Specimen(new GeoPoint3(40, -25, 60), GeoVector3.XAxis, GeoVector3.YAxis, a, b);
 
         /// <summary>
         /// A circle of radius 300 about (40, -25, 60) whose plane holds X and the direction 60 degrees up from Y,
@@ -112,7 +126,11 @@ namespace GeometryHelper.UnitTest.Solid
         public static GeoCircle3 CircleTiltedSixty(double degrees = 60)
         {
             double angle = degrees * Math.PI / 180;
-            return new GeoCircle3(new GeoPoint3(40, -25, 60), new GeoVector3(0, -Math.Sin(angle), Math.Cos(angle)), 300);
+            return new GeoCircle3(
+                new GeoPoint3(40, -25, 60),
+                new GeoVector3(0, -Math.Sin(angle), Math.Cos(angle)),
+                300
+            );
         }
 
         #endregion
@@ -174,8 +192,10 @@ namespace GeometryHelper.UnitTest.Solid
             int kMin = 0;
             for (int k = 1; k < samples; k++)
             {
-                if (along(k * step) > along(kMax * step)) kMax = k;
-                if (along(k * step) < along(kMin * step)) kMin = k;
+                if (along(k * step) > along(kMax * step))
+                    kMax = k;
+                if (along(k * step) < along(kMin * step))
+                    kMin = k;
             }
 
             high = along(Golden(along, (kMax - 1) * step, (kMax + 1) * step, false));
@@ -302,7 +322,14 @@ namespace GeometryHelper.UnitTest.Solid
         /// with the frame of the axis (u, v) about the midpoint, and the half chord (du, dv), the centre is
         /// (-offset dv / ratio, ratio offset du) and the major radius √((du - cu)² + ((dv - cv) / ratio)²).
         /// </summary>
-        public static Specimen ThroughTwo(GeoPoint3 first, GeoPoint3 second, GeoVector3 normal, double axisTurnRad, double ratio, double offset)
+        public static Specimen ThroughTwo(
+            GeoPoint3 first,
+            GeoPoint3 second,
+            GeoVector3 normal,
+            double axisTurnRad,
+            double ratio,
+            double offset
+        )
         {
             GeoVector3 n = normal.Normalize();
             GeoVector3 chord = first.GetVectorTo(second);
@@ -327,7 +354,14 @@ namespace GeometryHelper.UnitTest.Solid
         /// M = N × D, the axis is U = D cos α + M sin α, where tan α = b cos t0 / (a sin t0) makes the tangent's part along
         /// M vanish, and the centre is the point less a cos t0 U + b sin t0 V.
         /// </summary>
-        public static Specimen TouchingLineAt(GeoPoint3 point, GeoVector3 along, GeoVector3 normal, double a, double b, double t0)
+        public static Specimen TouchingLineAt(
+            GeoPoint3 point,
+            GeoVector3 along,
+            GeoVector3 normal,
+            double a,
+            double b,
+            double t0
+        )
         {
             GeoVector3 n = normal.Normalize();
             GeoVector3 d = along.Normalize();
@@ -366,7 +400,11 @@ namespace GeometryHelper.UnitTest.Solid
         /// Asserts that two lists of crossings name the same places in the same order, each point within a distance of
         /// its partner.
         /// </summary>
-        public static void SamePointsInOrder(IReadOnlyList<GeoPoint3> expected, IReadOnlyList<GeoPoint3> actual, double within)
+        public static void SamePointsInOrder(
+            IReadOnlyList<GeoPoint3> expected,
+            IReadOnlyList<GeoPoint3> actual,
+            double within
+        )
         {
             Assert.Equal(expected.Count, actual.Count);
             for (int i = 0; i < expected.Count; i++)
@@ -387,7 +425,10 @@ namespace GeometryHelper.UnitTest.Solid
             foreach (GeoPoint3 point in expected)
             {
                 GeoPoint3 nearest = left.OrderBy(p => p.DistanceTo(point)).First();
-                Assert.True(nearest.DistanceTo(point) <= within, $"expected {point}, nearest found {nearest}, {nearest.DistanceTo(point):E2} apart");
+                Assert.True(
+                    nearest.DistanceTo(point) <= within,
+                    $"expected {point}, nearest found {nearest}, {nearest.DistanceTo(point):E2} apart"
+                );
                 left.Remove(nearest);
             }
         }
@@ -406,9 +447,20 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>The kinds of random case, each a pair type of decision 20 placed so its answer is known.</summary>
         internal static readonly string[] QueryKinds =
         {
-            "plane across", "plane nearly one", "plane touching", "segment across", "segment piercing", "segment through the disc",
-            "ray piercing", "ellipse across", "circle across", "arc across", "ellipse nearly one", "ellipse touching the line",
-            "ellipse in one plane", "ellipse a ten-thousandth apart",
+            "plane across",
+            "plane nearly one",
+            "plane touching",
+            "segment across",
+            "segment piercing",
+            "segment through the disc",
+            "ray piercing",
+            "ellipse across",
+            "circle across",
+            "arc across",
+            "ellipse nearly one",
+            "ellipse touching the line",
+            "ellipse in one plane",
+            "ellipse a ten-thousandth apart",
         };
 
         /// <summary>Asks the ellipse to try a crossing.</summary>
@@ -479,14 +531,27 @@ namespace GeometryHelper.UnitTest.Solid
             double close = 1E-9 * scale;
             const double nearlyOne = Tolerance.DefaultEqualPoint;
             const double graze = 1E-4;
-            double t1 = Draw(random, 0, Turn), t2 = Draw(random, 0, Turn);
-            GeoPoint3 first = e.Rim(t1), second = e.Rim(t2);
+            double t1 = Draw(random, 0, Turn),
+                t2 = Draw(random, 0, Turn);
+            GeoPoint3 first = e.Rim(t1),
+                second = e.Rim(t2);
             GeoVector3 chord = first.GetVectorTo(second);
             string where = $"ellipse {e.A:R} x {e.B:R} about {e.Center} N {e.N} U {e.U}, t {t1:R}, {t2:R}";
-            var made = new QueryCase { Kind = kind, Ellipse = e, Within = close };
+            var made = new QueryCase
+            {
+                Kind = kind,
+                Ellipse = e,
+                Within = close,
+            };
 
-            bool across = kind != "plane touching" && kind != "segment piercing" && kind != "segment through the disc"
-                && kind != "ray piercing" && kind != "ellipse touching the line" && kind != "ellipse in one plane" && kind != "ellipse a ten-thousandth apart";
+            bool across =
+                kind != "plane touching"
+                && kind != "segment piercing"
+                && kind != "segment through the disc"
+                && kind != "ray piercing"
+                && kind != "ellipse touching the line"
+                && kind != "ellipse in one plane"
+                && kind != "ellipse a ten-thousandth apart";
             if (across && !ChordClear(e, t1, t2))
             {
                 return null;
@@ -537,12 +602,16 @@ namespace GeometryHelper.UnitTest.Solid
 
                 case "segment across":
                 {
-                    double before = Draw(random, 0.05, 0.5), after = Draw(random, 0.05, 0.5);
+                    double before = Draw(random, 0.05, 0.5),
+                        after = Draw(random, 0.05, 0.5);
                     var line = new GeoLine3(first.Add(chord.Multiply(-before)), second.Add(chord.Multiply(after)));
 
                     // The circle reads a near graze by the discriminant against the square of the segment's length, so a
                     // chord whose half is under the tolerance times that length is one point to it: keep clear of it.
-                    if (Math.Min(before, after) * chord.Length < Clear || (circle && 0.5 * chord.Length < 2 * Tolerance.DefaultEqualPoint * line.Length))
+                    if (
+                        Math.Min(before, after) * chord.Length < Clear
+                        || (circle && 0.5 * chord.Length < 2 * Tolerance.DefaultEqualPoint * line.Length)
+                    )
                     {
                         return null;
                     }
@@ -563,8 +632,12 @@ namespace GeometryHelper.UnitTest.Solid
                 case "ray piercing":
                 case "segment through the disc":
                 {
-                    double tilt = Draw(random, 0, 80) * Math.PI / 180, turn = Draw(random, 0, Turn);
-                    GeoVector3 d = e.N.Multiply(Math.Cos(tilt)).Add(e.U.Multiply(Math.Sin(tilt) * Math.Cos(turn))).Add(e.V.Multiply(Math.Sin(tilt) * Math.Sin(turn)));
+                    double tilt = Draw(random, 0, 80) * Math.PI / 180,
+                        turn = Draw(random, 0, Turn);
+                    GeoVector3 d = e
+                        .N.Multiply(Math.Cos(tilt))
+                        .Add(e.U.Multiply(Math.Sin(tilt) * Math.Cos(turn)))
+                        .Add(e.V.Multiply(Math.Sin(tilt) * Math.Sin(turn)));
                     GeoPoint3 through = first;
                     if (kind == "segment through the disc")
                     {
@@ -576,13 +649,18 @@ namespace GeometryHelper.UnitTest.Solid
                         }
                     }
 
-                    double below = Draw(random, 1, 100), above = Draw(random, 1, 100);
+                    double below = Draw(random, 1, 100),
+                        above = Draw(random, 1, 100);
 
                     // The circle reads a line nearly touching its sphere by the same length-scaled band: a line through a
                     // rim point whose other crossing of the sphere is under the tolerance times its length away is one
                     // point to it, the foot of the centre, off the rim. Keep the circle's cases clear of that.
                     double length = kind == "ray piercing" ? 1.0 : below + above;
-                    if (circle && Math.Abs(e.Center.GetVectorTo(through).DotProduct(d)) < 2 * Tolerance.DefaultEqualPoint * length)
+                    if (
+                        circle
+                        && Math.Abs(e.Center.GetVectorTo(through).DotProduct(d))
+                            < 2 * Tolerance.DefaultEqualPoint * length
+                    )
                     {
                         return null;
                     }
@@ -604,7 +682,8 @@ namespace GeometryHelper.UnitTest.Solid
                         var line = new GeoLine3(through.Add(d.Multiply(-below)), through.Add(d.Multiply(above)));
                         made.Cross = (x, t) => x.GetIntersections(line, t);
                         made.Collide = (x, t) => x.CollidesWith(line, t);
-                        made.Try = (GeoEllipse3 x, Tolerance t, out GeoPoint3[] f) => x.TryIntersectWith(line, out f, t);
+                        made.Try = (GeoEllipse3 x, Tolerance t, out GeoPoint3[] f) =>
+                            x.TryIntersectWith(line, out f, t);
                         made.CircleCross = t => AsCircle(e).GetIntersections(line, t);
                         made.CircleCollide = t => AsCircle(e).CollidesWith(line, t);
                     }
@@ -617,16 +696,31 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     double lean = kind == "ellipse across" ? Draw(random, 5, 90) : Math.Pow(10, Draw(random, -3, 0));
                     double sign = random.NextDouble() < 0.5 ? -1 : 1;
-                    Specimen other = ThroughTwo(first, second, LeanAbout(e, chord, sign * lean * Math.PI / 180),
-                        Draw(random, 0, Math.PI), circle ? 1.0 : Math.Pow(10, Draw(random, -2, 0)), Draw(random, -1.5, 1.5));
-                    if (other.B < 0.1 || other.A > 5000 || StandOff(e, other.N) < 5 * Tolerance.DefaultEqualPlanar
-                        || StandOff(other, e.N) < 5 * Tolerance.DefaultEqualPlanar || !CurvesClear(e, other, new[] { first, second }))
+                    Specimen other = ThroughTwo(
+                        first,
+                        second,
+                        LeanAbout(e, chord, sign * lean * Math.PI / 180),
+                        Draw(random, 0, Math.PI),
+                        circle ? 1.0 : Math.Pow(10, Draw(random, -2, 0)),
+                        Draw(random, -1.5, 1.5)
+                    );
+                    if (
+                        other.B < 0.1
+                        || other.A > 5000
+                        || StandOff(e, other.N) < 5 * Tolerance.DefaultEqualPlanar
+                        || StandOff(other, e.N) < 5 * Tolerance.DefaultEqualPlanar
+                        || !CurvesClear(e, other, new[] { first, second })
+                    )
                     {
                         return null;
                     }
 
-                    made.Description = $"{where}, lean {sign * lean:R} deg, other {other.A:R} x {other.B:R} about {other.Center} U {other.U}";
-                    made.Expected = kind == "ellipse across" ? Along(e.N.CrossProduct(other.N), first, second) : new[] { first, second };
+                    made.Description =
+                        $"{where}, lean {sign * lean:R} deg, other {other.A:R} x {other.B:R} about {other.Center} U {other.U}";
+                    made.Expected =
+                        kind == "ellipse across"
+                            ? Along(e.N.CrossProduct(other.N), first, second)
+                            : new[] { first, second };
                     made.Ordered = kind == "ellipse across";
                     made.Collides = true;
                     made.IllConditioned = kind == "ellipse nearly one";
@@ -639,8 +733,19 @@ namespace GeometryHelper.UnitTest.Solid
                 case "arc across":
                 {
                     double lean = Draw(random, 5, 90) * (random.NextDouble() < 0.5 ? -1 : 1);
-                    GeoCircle3 partner = CircleThroughTwo(first, second, LeanAbout(e, chord, lean * Math.PI / 180), Draw(random, -1.5, 1.5) * chord.Length);
-                    var asSpecimen = new Specimen(partner.Center, partner.Center.GetVectorTo(first).Normalize(), partner.Normal.CrossProduct(partner.Center.GetVectorTo(first).Normalize()), partner.Radius, partner.Radius);
+                    GeoCircle3 partner = CircleThroughTwo(
+                        first,
+                        second,
+                        LeanAbout(e, chord, lean * Math.PI / 180),
+                        Draw(random, -1.5, 1.5) * chord.Length
+                    );
+                    var asSpecimen = new Specimen(
+                        partner.Center,
+                        partner.Center.GetVectorTo(first).Normalize(),
+                        partner.Normal.CrossProduct(partner.Center.GetVectorTo(first).Normalize()),
+                        partner.Radius,
+                        partner.Radius
+                    );
                     if (partner.Radius > 5000 || !CurvesClear(e, asSpecimen, new[] { first, second }))
                     {
                         return null;
@@ -650,20 +755,26 @@ namespace GeometryHelper.UnitTest.Solid
                     made.Ordered = true;
                     if (kind == "circle across")
                     {
-                        made.Description = $"{where}, lean {lean:R} deg, circle {partner.Radius:R} about {partner.Center}";
+                        made.Description =
+                            $"{where}, lean {lean:R} deg, circle {partner.Radius:R} about {partner.Center}";
                         made.Expected = Along(e.N.CrossProduct(partner.Normal), first, second);
                         made.Cross = (x, t) => x.GetIntersections(partner, t);
                         made.Collide = (x, t) => x.CollidesWith(partner, t);
-                        made.Try = (GeoEllipse3 x, Tolerance t, out GeoPoint3[] f) => x.TryIntersectWith(partner, out f, t);
+                        made.Try = (GeoEllipse3 x, Tolerance t, out GeoPoint3[] f) =>
+                            x.TryIntersectWith(partner, out f, t);
                         made.CircleCross = t => AsCircle(e).GetIntersections(partner, t);
                         made.CircleCollide = t => AsCircle(e).CollidesWith(partner, t);
                         return made;
                     }
 
                     // An arc of the circle over both points, by its far side, or about the first only.
-                    GeoPoint3 far = partner.Center.Add(first.Add(chord.Multiply(0.5)).GetVectorTo(partner.Center).Normalize().Multiply(partner.Radius));
+                    GeoPoint3 far = partner.Center.Add(
+                        first.Add(chord.Multiply(0.5)).GetVectorTo(partner.Center).Normalize().Multiply(partner.Radius)
+                    );
                     GeoVector3 toSecond = partner.Center.GetVectorTo(second);
-                    double secondAt = Math.Abs(Math.Atan2(toSecond.DotProduct(asSpecimen.V), toSecond.DotProduct(asSpecimen.U)));
+                    double secondAt = Math.Abs(
+                        Math.Atan2(toSecond.DotProduct(asSpecimen.V), toSecond.DotProduct(asSpecimen.U))
+                    );
                     bool both = random.NextDouble() < 0.5;
                     double half = Math.Min(0.3, 0.5 * secondAt);
                     if ((!both && (secondAt - half) * partner.Radius < Clear) || half * partner.Radius < Clear)
@@ -673,8 +784,13 @@ namespace GeometryHelper.UnitTest.Solid
 
                     GeoArc3 arc = both
                         ? GeoArc3.FromThreePoints(first, far, second)
-                        : GeoArc3.FromThreePoints(asSpecimen.Rim(-half), asSpecimen.Rim(0.3 * half), asSpecimen.Rim(half));
-                    made.Description = $"{where}, lean {lean:R} deg, arc of {partner.Radius:R} about {partner.Center}, {(both ? "over both" : "about the first")}";
+                        : GeoArc3.FromThreePoints(
+                            asSpecimen.Rim(-half),
+                            asSpecimen.Rim(0.3 * half),
+                            asSpecimen.Rim(half)
+                        );
+                    made.Description =
+                        $"{where}, lean {lean:R} deg, arc of {partner.Radius:R} about {partner.Center}, {(both ? "over both" : "about the first")}";
                     made.Expected = both ? Along(arc.Normal.CrossProduct(e.N), first, second) : new[] { first };
                     made.Cross = (x, t) => x.GetIntersections(arc, t);
                     made.Collide = (x, t) => x.CollidesWith(arc, t);
@@ -690,14 +806,26 @@ namespace GeometryHelper.UnitTest.Solid
                     double along = Draw(random, 0.2, 1.5) * e.A * (random.NextDouble() < 0.5 ? -1 : 1);
                     double lean = Draw(random, 5, 90) * (random.NextDouble() < 0.5 ? -1 : 1);
                     GeoPoint3 beyond = first.Add(line.Multiply(along));
-                    Specimen other = ThroughTwo(first, beyond, LeanAbout(e, line, lean * Math.PI / 180),
-                        Draw(random, 0, Math.PI), circle ? 1.0 : Math.Pow(10, Draw(random, -2, 0)), Draw(random, -1.5, 1.5));
-                    if (other.B < 0.1 || other.A > 5000 || RimDistance(e, beyond) < Clear || !CurvesClear(e, other, new[] { first }))
+                    Specimen other = ThroughTwo(
+                        first,
+                        beyond,
+                        LeanAbout(e, line, lean * Math.PI / 180),
+                        Draw(random, 0, Math.PI),
+                        circle ? 1.0 : Math.Pow(10, Draw(random, -2, 0)),
+                        Draw(random, -1.5, 1.5)
+                    );
+                    if (
+                        other.B < 0.1
+                        || other.A > 5000
+                        || RimDistance(e, beyond) < Clear
+                        || !CurvesClear(e, other, new[] { first })
+                    )
                     {
                         return null;
                     }
 
-                    made.Description = $"{where}, along {along:R}, lean {lean:R} deg, other {other.A:R} x {other.B:R} about {other.Center} U {other.U}";
+                    made.Description =
+                        $"{where}, along {along:R}, lean {lean:R} deg, other {other.A:R} x {other.B:R} about {other.Center} U {other.U}";
                     made.Expected = new[] { first };
                     made.Collides = true;
                     made.IllConditioned = true;
@@ -711,18 +839,36 @@ namespace GeometryHelper.UnitTest.Solid
                 {
                     double turn = Draw(random, 0, Math.PI);
                     GeoVector3 u = e.U.Multiply(Math.Cos(turn)).Add(e.V.Multiply(Math.Sin(turn)));
-                    double a = circle ? e.A * Math.Pow(10, Draw(random, -1, 0.3)) : e.A * Math.Pow(10, Draw(random, -1, 0.3));
+                    double a = circle
+                        ? e.A * Math.Pow(10, Draw(random, -1, 0.3))
+                        : e.A * Math.Pow(10, Draw(random, -1, 0.3));
                     double b = circle ? a : Math.Max(0.1, a * Math.Pow(10, Draw(random, -2, 0)));
                     double lift = kind == "ellipse in one plane" ? 0.0 : (random.NextDouble() < 0.5 ? -1E-4 : 1E-4);
-                    var inPlane = new Specimen(e.At(Draw(random, -1.5, 1.5) * e.A, Draw(random, -1.5, 1.5) * e.B, 0), u, e.N.CrossProduct(u), Math.Max(a, b), Math.Min(a, b));
-                    var other = new Specimen(inPlane.Center.Add(e.N.Multiply(lift)), inPlane.U, inPlane.V, inPlane.A, inPlane.B);
-                    GeoPoint3[] crossings = Ellipse2Oracle.RimCrossings(e.Flat(), Ellipse2Oracle.SideOfEllipse(LaidOutIn(e, inPlane))).Select(e.Lift).ToArray();
+                    var inPlane = new Specimen(
+                        e.At(Draw(random, -1.5, 1.5) * e.A, Draw(random, -1.5, 1.5) * e.B, 0),
+                        u,
+                        e.N.CrossProduct(u),
+                        Math.Max(a, b),
+                        Math.Min(a, b)
+                    );
+                    var other = new Specimen(
+                        inPlane.Center.Add(e.N.Multiply(lift)),
+                        inPlane.U,
+                        inPlane.V,
+                        inPlane.A,
+                        inPlane.B
+                    );
+                    GeoPoint3[] crossings = Ellipse2Oracle
+                        .RimCrossings(e.Flat(), Ellipse2Oracle.SideOfEllipse(LaidOutIn(e, inPlane)))
+                        .Select(e.Lift)
+                        .ToArray();
                     if (!PointsApart(crossings) || !CurvesClear(e, inPlane, crossings))
                     {
                         return null;
                     }
 
-                    made.Description = $"{where}, other {other.A:R} x {other.B:R} about {other.Center} U {other.U}, lifted {lift:R}";
+                    made.Description =
+                        $"{where}, other {other.A:R} x {other.B:R} about {other.Center} U {other.U}, lifted {lift:R}";
                     made.Expected = crossings;
                     made.Collides = crossings.Length > 0;
                     made.Within = lift == 0.0 ? close : nearlyOne;
@@ -745,7 +891,8 @@ namespace GeometryHelper.UnitTest.Solid
         internal static double StandOff(Specimen e, GeoVector3 normal)
         {
             GeoVector3 n = normal.Normalize();
-            double alongU = e.A * n.DotProduct(e.U), alongV = e.B * n.DotProduct(e.V);
+            double alongU = e.A * n.DotProduct(e.U),
+                alongV = e.B * n.DotProduct(e.V);
             return Math.Sqrt(alongU * alongU + alongV * alongV);
         }
 
@@ -787,7 +934,9 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static GeoVector3 RandomUnit(Random random)
         {
-            double z = Draw(random, -1, 1), phi = Draw(random, 0, Turn), s = Math.Sqrt(1 - z * z);
+            double z = Draw(random, -1, 1),
+                phi = Draw(random, 0, Turn),
+                s = Math.Sqrt(1 - z * z);
             return new GeoVector3(s * Math.Cos(phi), s * Math.Sin(phi), z);
         }
 
@@ -799,20 +948,26 @@ namespace GeometryHelper.UnitTest.Solid
         /// </summary>
         private static bool ChordClear(Specimen e, double t1, double t2)
         {
-            GeoPoint3 first = e.Rim(t1), second = e.Rim(t2);
+            GeoPoint3 first = e.Rim(t1),
+                second = e.Rim(t2);
             if (first.DistanceTo(second) < Clear)
             {
                 return false;
             }
 
             GeoVector3 along = first.GetVectorTo(second).Normalize();
-            double low = t1 < t2 ? t1 : t2, high = t1 < t2 ? t2 : t1;
-            double inner = 0, outer = 0;
+            double low = t1 < t2 ? t1 : t2,
+                high = t1 < t2 ? t2 : t1;
+            double inner = 0,
+                outer = 0;
             for (int k = 1; k < 512; k++)
             {
                 double s = k / 512.0;
                 inner = Math.Max(inner, along.CrossProduct(first.GetVectorTo(e.Rim(low + s * (high - low)))).Length);
-                outer = Math.Max(outer, along.CrossProduct(first.GetVectorTo(e.Rim(high + s * (Turn - (high - low))))).Length);
+                outer = Math.Max(
+                    outer,
+                    along.CrossProduct(first.GetVectorTo(e.Rim(high + s * (Turn - (high - low))))).Length
+                );
             }
 
             return inner >= Clear && outer >= Clear;
@@ -844,7 +999,10 @@ namespace GeometryHelper.UnitTest.Solid
         {
             foreach (GeoPoint3 point in shared)
             {
-                if (RimDistance(first, point) > 1E-9 * (first.A + second.A + 1) || RimDistance(second, point) > 1E-9 * (first.A + second.A + 1))
+                if (
+                    RimDistance(first, point) > 1E-9 * (first.A + second.A + 1)
+                    || RimDistance(second, point) > 1E-9 * (first.A + second.A + 1)
+                )
                 {
                     return false;
                 }
@@ -892,12 +1050,15 @@ namespace GeometryHelper.UnitTest.Solid
         /// </summary>
         internal static double FlatDistance(double a, double b, double x, double y)
         {
-            double y0 = Math.Abs(x), y1 = Math.Abs(y);
+            double y0 = Math.Abs(x),
+                y1 = Math.Abs(y);
             if (y1 > 0)
             {
                 if (y0 > 0)
                 {
-                    double z0 = y0 / a, z1 = y1 / b, g = z0 * z0 + z1 * z1 - 1;
+                    double z0 = y0 / a,
+                        z1 = y1 / b,
+                        g = z0 * z0 + z1 * z1 - 1;
                     if (g == 0)
                     {
                         return 0;
@@ -916,7 +1077,8 @@ namespace GeometryHelper.UnitTest.Solid
                             break;
                         }
 
-                        double ratio0 = n0 / (s + r0), ratio1 = z1 / (s + 1);
+                        double ratio0 = n0 / (s + r0),
+                            ratio1 = z1 / (s + 1);
                         double f = ratio0 * ratio0 + ratio1 * ratio1 - 1;
                         if (f > 0)
                         {
@@ -932,18 +1094,21 @@ namespace GeometryHelper.UnitTest.Solid
                         }
                     }
 
-                    double x0 = r0 * y0 / (s + r0), x1 = y1 / (s + 1);
+                    double x0 = r0 * y0 / (s + r0),
+                        x1 = y1 / (s + 1);
                     return Math.Sqrt((x0 - y0) * (x0 - y0) + (x1 - y1) * (x1 - y1));
                 }
 
                 return Math.Abs(y1 - b);
             }
 
-            double numer = a * y0, denom = a * a - b * b;
+            double numer = a * y0,
+                denom = a * a - b * b;
             if (numer < denom)
             {
                 double xa = numer / denom;
-                double px = a * xa, py = b * Math.Sqrt(1 - xa * xa);
+                double px = a * xa,
+                    py = b * Math.Sqrt(1 - xa * xa);
                 return Math.Sqrt((px - y0) * (px - y0) + py * py);
             }
 

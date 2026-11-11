@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
+using GeometryHelper.Arranging;
 using GeometryHelper.Geometry;
 using Xunit;
-using GeometryHelper.Arranging;
 
 namespace GeometryHelper.UnitTest.Arranging
 {
@@ -28,7 +28,12 @@ namespace GeometryHelper.UnitTest.Arranging
             var leader = new GeoLine2(0.0, 0.0, 40.0, 0.0);
             var shared = new List<GeoPolygon2>
             {
-                new GeoPolygon2(new GeoPoint2(-5.0, 30.0), new GeoPoint2(5.0, 30.0), new GeoPoint2(5.0, 40.0), new GeoPoint2(-5.0, 40.0))
+                new GeoPolygon2(
+                    new GeoPoint2(-5.0, 30.0),
+                    new GeoPoint2(5.0, 30.0),
+                    new GeoPoint2(5.0, 40.0),
+                    new GeoPoint2(-5.0, 40.0)
+                ),
             };
 
             var items = new List<ArrangeItem>();
@@ -55,7 +60,7 @@ namespace GeometryHelper.UnitTest.Arranging
             var lines = new List<GeoLine2>
             {
                 new GeoLine2(-100.0, 10.0, 100.0, 10.0),
-                new GeoLine2(-100.0, -10.0, 100.0, -10.0)
+                new GeoLine2(-100.0, -10.0, 100.0, -10.0),
             };
             var polygons = new List<GeoPolygon2>();
 
@@ -83,17 +88,19 @@ namespace GeometryHelper.UnitTest.Arranging
                 items[i].OffsetBottom = 7.0;
             }
 
-            var before = items.Select(item => new
-            {
-                item.Box,
-                item.Leader,
-                item.OffsetTop,
-                item.OffsetBottom,
-                Polygons = item.BlockPolygons,
-                PolygonsHeld = item.BlockPolygons.ToArray(),
-                Lines = item.BlockLines,
-                LinesHeld = item.BlockLines.ToArray(),
-            }).ToList();
+            var before = items
+                .Select(item => new
+                {
+                    item.Box,
+                    item.Leader,
+                    item.OffsetTop,
+                    item.OffsetBottom,
+                    Polygons = item.BlockPolygons,
+                    PolygonsHeld = item.BlockPolygons.ToArray(),
+                    Lines = item.BlockLines,
+                    LinesHeld = item.BlockLines.ToArray(),
+                })
+                .ToList();
 
             ArrangeResult[] results = Arranger.Run(items, OneRow());
 
@@ -126,17 +133,20 @@ namespace GeometryHelper.UnitTest.Arranging
 
             var answers = new ArrangeResult[6][];
             var errors = new Exception[answers.Length];
-            List<Thread> threads = Enumerable.Range(0, answers.Length).Select(k => new Thread(() =>
-            {
-                try
+            List<Thread> threads = Enumerable
+                .Range(0, answers.Length)
+                .Select(k => new Thread(() =>
                 {
-                    answers[k] = Arranger.Run(items, options);
-                }
-                catch (Exception e)
-                {
-                    errors[k] = e;
-                }
-            })).ToList();
+                    try
+                    {
+                        answers[k] = Arranger.Run(items, options);
+                    }
+                    catch (Exception e)
+                    {
+                        errors[k] = e;
+                    }
+                }))
+                .ToList();
 
             threads.ForEach(t => t.Start());
             threads.ForEach(t => t.Join());
@@ -151,8 +161,10 @@ namespace GeometryHelper.UnitTest.Arranging
             ArrangeItem first = LabelOn(new GeoLine2(0.0, 0.0, 40.0, 0.0));
             ArrangeItem second = LabelOn(new GeoLine2(200.0, 0.0, 240.0, 0.0));
 
-            ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { first, null, second },
-                new ArrangeOptions { RowGap = 5.0 });
+            ArrangeResult[] results = Arranger.Run(
+                new List<ArrangeItem> { first, null, second },
+                new ArrangeOptions { RowGap = 5.0 }
+            );
 
             Assert.Equal(3, results.Length);
             Assert.Equal(default(ArrangeResult), results[1]);
@@ -173,7 +185,12 @@ namespace GeometryHelper.UnitTest.Arranging
         [Fact]
         public void TheSecondPassKeepsClearOfTheRegionsOfEveryItem()
         {
-            var region = new GeoPolygon2(new GeoPoint2(-100.0, 1.0), new GeoPoint2(200.0, 1.0), new GeoPoint2(200.0, 30.0), new GeoPoint2(-100.0, 30.0));
+            var region = new GeoPolygon2(
+                new GeoPoint2(-100.0, 1.0),
+                new GeoPoint2(200.0, 1.0),
+                new GeoPoint2(200.0, 30.0),
+                new GeoPoint2(-100.0, 30.0)
+            );
             var options = new ArrangeOptions
             {
                 PerpendicularLevels = 1,

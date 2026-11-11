@@ -30,7 +30,12 @@ namespace GeometryHelper.Drawing.Wpf
         /// <param name="tolerance">The tolerance drawings are made within.</param>
         /// <returns>The model drawing.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the workspace, the view model or the sources are null.</exception>
-        public static DrawingWorkspace AddModelDrawings(this CadWorkspace workspace, MainViewModel model, IEnumerable<IDrawingSourceProvider> sources, Tolerance tolerance)
+        public static DrawingWorkspace AddModelDrawings(
+            this CadWorkspace workspace,
+            MainViewModel model,
+            IEnumerable<IDrawingSourceProvider> sources,
+            Tolerance tolerance
+        )
         {
             if (workspace == null)
             {
@@ -40,7 +45,8 @@ namespace GeometryHelper.Drawing.Wpf
             var drawings = new DrawingWorkspace(model, sources, tolerance);
             drawings.TabContent = new DrawingRibbonTab { DataContext = drawings };
             drawings.Deferrer = work => workspace.Dispatcher.BeginInvoke(DispatcherPriority.Normal, work);
-            drawings.DialogRequested += (s, e) => workspace.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() => Show(workspace, e.Model)));
+            drawings.DialogRequested += (s, e) =>
+                workspace.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() => Show(workspace, e.Model)));
             return drawings;
         }
 
@@ -50,13 +56,14 @@ namespace GeometryHelper.Drawing.Wpf
         /// </summary>
         /// <param name="tolerance">The tolerance the test bodies are built within.</param>
         /// <returns>The sources.</returns>
-        public static IReadOnlyList<IDrawingSourceProvider> DefaultSources(Tolerance tolerance) => new IDrawingSourceProvider[]
-        {
-            new TestBodiesSourceProvider(tolerance),
-            new TestBodiesSourceProvider(tolerance, changed: true),
-            UnconnectedSourceProvider.TeklaStructures,
-            UnconnectedSourceProvider.IfcFile,
-        };
+        public static IReadOnlyList<IDrawingSourceProvider> DefaultSources(Tolerance tolerance) =>
+            new IDrawingSourceProvider[]
+            {
+                new TestBodiesSourceProvider(tolerance),
+                new TestBodiesSourceProvider(tolerance, changed: true),
+                UnconnectedSourceProvider.TeklaStructures,
+                UnconnectedSourceProvider.IfcFile,
+            };
 
         /// <summary>Makes the window of a dialog's view model, not shown.</summary>
         /// <param name="model">The view model: of New drawing, Update from model, Drawing settings, Export, Run plugin or a message.</param>
@@ -79,7 +86,10 @@ namespace GeometryHelper.Drawing.Wpf
                 case PluginRunViewModel run:
                     return new PluginRunDialog(run);
                 default:
-                    throw new ArgumentException("No dialog shows a " + (model?.GetType().Name ?? "null") + ".", nameof(model));
+                    throw new ArgumentException(
+                        "No dialog shows a " + (model?.GetType().Name ?? "null") + ".",
+                        nameof(model)
+                    );
             }
         }
 

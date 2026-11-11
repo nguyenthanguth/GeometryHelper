@@ -36,7 +36,11 @@ namespace GeometryHelper.UnitTest.Dxf
             // The new layout's flags 688 (viewports first, lineweights, plot styles, standard scale): 4 and 64 on, 16 off.
             string record = Records(db.ToText()).Single(r => HandleOf(r) == plan.Handle);
             Assert.Contains("  2\nGeometryHelper PDF\n", record, StringComparison.Ordinal);
-            Assert.Contains(" 48\n120\n 49\n60\n140\n7620\n141\n5360\n142\n1.0\n143\n20\n 70\n740\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                " 48\n120\n 49\n60\n140\n7620\n141\n5360\n142\n1.0\n143\n20\n 70\n740\n",
+                record,
+                StringComparison.Ordinal
+            );
             Assert.Contains("  7\nmonochrome.ctb\n 75\n23\n", record, StringComparison.Ordinal);
             Assert.Contains("147\n0.05\n", record, StringComparison.Ordinal);
             Assert.Contains(" 74\n4\n", record, StringComparison.Ordinal);
@@ -100,7 +104,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<InvalidOperationException>(() => loose.PlotConfigurationName = "x");
             Assert.Throws<InvalidOperationException>(() => loose.CurrentStyleSheet = "x");
             Assert.Throws<InvalidOperationException>(() => loose.PlotType = DxfPlotType.Extents);
-            Assert.Throws<InvalidOperationException>(() => loose.PlotWindowArea = new DxfExtents2d(new GeoPoint2(0, 0), new GeoPoint2(1, 1)));
+            Assert.Throws<InvalidOperationException>(() =>
+                loose.PlotWindowArea = new DxfExtents2d(new GeoPoint2(0, 0), new GeoPoint2(1, 1))
+            );
             Assert.Throws<InvalidOperationException>(() => loose.CustomPrintScale = new DxfCustomScale(1, 2));
             Assert.Throws<InvalidOperationException>(() => loose.StdScaleType = DxfStdScaleType.StdScale1To2);
             Assert.Throws<InvalidOperationException>(() => loose.PlotCentered = true);
@@ -115,8 +121,12 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<ArgumentException>(() => plan.PlotType = (DxfPlotType)6);
             Assert.Throws<ArgumentException>(() => plan.StdScaleType = (DxfStdScaleType)34);
             Assert.Throws<ArgumentOutOfRangeException>(() => plan.CustomPrintScale = new DxfCustomScale(0, 20));
-            Assert.Throws<ArgumentOutOfRangeException>(() => plan.CustomPrintScale = new DxfCustomScale(1, double.PositiveInfinity));
-            Assert.Throws<ArgumentOutOfRangeException>(() => plan.PlotWindowArea = new DxfExtents2d(new GeoPoint2(double.NaN, 0), new GeoPoint2(1, 1)));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                plan.CustomPrintScale = new DxfCustomScale(1, double.PositiveInfinity)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                plan.PlotWindowArea = new DxfExtents2d(new GeoPoint2(double.NaN, 0), new GeoPoint2(1, 1))
+            );
             Assert.Equal(before, db.ToText());
         }
 

@@ -63,7 +63,12 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
             }
 
             GeoPoint2 second = c.Input.Point;
-            c.Apply(null, s => s.Append(c.Space, new DxfLine(new GeoPoint3(first.X, first.Y, 0.0), new GeoPoint3(second.X, second.Y, 0.0))));
+            c.Apply(null, s =>
+                s.Append(
+                    c.Space,
+                    new DxfLine(new GeoPoint3(first.X, first.Y, 0.0), new GeoPoint3(second.X, second.Y, 0.0))
+                )
+            );
         }
 
         /// <summary>Adds the layer Temp through the document's own layer editor, not the context, then fails.</summary>

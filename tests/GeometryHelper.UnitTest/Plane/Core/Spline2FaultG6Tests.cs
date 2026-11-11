@@ -58,12 +58,18 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(0.0, true)]
         [InlineData(0.3, true)]
         [InlineData(0.7, true)]
-        public void APolylineOnALineBetweenLobesToEitherSide_CrossesItOnceWhereItComesOnIt_HoweverTurned(double angle, bool reversed)
+        public void APolylineOnALineBetweenLobesToEitherSide_CrossesItOnceWhereItComesOnIt_HoweverTurned(
+            double angle,
+            bool reversed
+        )
         {
             // Over the line by 3E-4 at the start, on it from 10 to 50, under it by 3E-4 from 60: the line comes first of the two, and
             // its earlier lobe is the one before 10.
             GeoSpline2 line = GeoSpline2.FromControlPoints(1, new[] { P(0, 0), P(100, 0) });
-            GeoSpline2 polyline = GeoSpline2.FromControlPoints(1, new[] { P(0, 3E-4), P(10, 0), P(50, 0), P(60, -3E-4), P(100, -3E-4) });
+            GeoSpline2 polyline = GeoSpline2.FromControlPoints(
+                1,
+                new[] { P(0, 3E-4), P(10, 0), P(50, 0), P(60, -3E-4), P(100, -3E-4) }
+            );
 
             foreach (GeoPoint2[] places in Asked(reversed ? polyline.Reverse() : polyline, line, angle))
             {
@@ -80,7 +86,10 @@ namespace GeometryHelper.UnitTest.Plane
             // Over the line by 3E-4 before 20 and by 3E-4 to 4.5E-4 after 50, on it between, and away from it by half a unit at either
             // end, where it leaves the tolerance of the line.
             GeoSpline2 line = GeoSpline2.FromControlPoints(1, new[] { P(-1, 0), P(81, 0) });
-            GeoSpline2 polyline = GeoSpline2.FromControlPoints(1, new[] { P(-10, 0.5), P(0, 3E-4), P(20, 0), P(50, 0), P(60, 3E-4), P(80, 4.5E-4), P(90, 0.5) });
+            GeoSpline2 polyline = GeoSpline2.FromControlPoints(
+                1,
+                new[] { P(-10, 0.5), P(0, 3E-4), P(20, 0), P(50, 0), P(60, 3E-4), P(80, 4.5E-4), P(90, 0.5) }
+            );
 
             foreach (GeoPoint2[] places in Asked(polyline, line, angle))
             {
@@ -97,7 +106,12 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(-5E-4, 1E-4, 0.7, 2)]
         [InlineData(2E-4, -6E-4, 0.0, 3)]
         [InlineData(2E-4, -6E-4, 0.7, 3)]
-        public void ACopyOfASplineThatCrossesItselfMovedAFewTenThousandths_CrossesItAtTheLoopsOwnCrossing(double x, double y, double angle, int count)
+        public void ACopyOfASplineThatCrossesItselfMovedAFewTenThousandths_CrossesItAtTheLoopsOwnCrossing(
+            double x,
+            double y,
+            double angle,
+            int count
+        )
         {
             // The cubic crosses itself at (50, 42.857) at 74 degrees; its copy's other branch crosses it there, twice, within the
             // tolerance of each other, which is one place; besides it the copy crosses where the cubic's tangent runs along the move,
@@ -147,15 +161,30 @@ namespace GeometryHelper.UnitTest.Plane
             // overlap, at its end or before it.
             GeoSpline2 line = GeoSpline2.FromControlPoints(1, new[] { P(-1, 0), P(81, 0) });
             double lobe = 0.3 * tolerance;
-            GeoSpline2 polyline = GeoSpline2.FromControlPoints(1, new[]
-            {
-                P(-10, 0.5), P(0, lobe), P(20, 0), P(50, 0), P(60, lobe), P(80, 1.5 * lobe), P(90, 0.5), P(90, 5), P(at, 5), P(at, -5),
-            });
+            GeoSpline2 polyline = GeoSpline2.FromControlPoints(
+                1,
+                new[]
+                {
+                    P(-10, 0.5),
+                    P(0, lobe),
+                    P(20, 0),
+                    P(50, 0),
+                    P(60, lobe),
+                    P(80, 1.5 * lobe),
+                    P(90, 0.5),
+                    P(90, 5),
+                    P(at, 5),
+                    P(at, -5),
+                }
+            );
             var tol = new Tolerance(tolerance, 1E-5);
 
             foreach (double angle in new[] { 0.0, 0.7 })
             {
-                foreach (GeoPoint2[] places in AskedAt(polyline, line, angle, tol).Concat(AskedAt(polyline.Reverse(), line, angle, tol)))
+                foreach (
+                    GeoPoint2[] places in AskedAt(polyline, line, angle, tol)
+                        .Concat(AskedAt(polyline.Reverse(), line, angle, tol))
+                )
                 {
                     Assert.InRange(Assert.Single(places).DistanceTo(P(at, 0)), 0.0, 1E-6);
                 }
@@ -167,19 +196,24 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(-2E-6, 30.0)]
         [InlineData(0.0, 50.0)]
         [InlineData(-2E-6, 50.0)]
-        public void APolylineOnALineBetweenLobesToEitherSideThatComesBackSquareAcrossIt_CrossesItTwice(double dip, double at)
+        public void APolylineOnALineBetweenLobesToEitherSideThatComesBackSquareAcrossIt_CrossesItTwice(
+            double dip,
+            double at
+        )
         {
             // On the line from 10 to 50, or 2E-6 under it at 50, between a lobe over it and one under it, and then back square across
             // it at 30, inside the overlap, or at 50, its end: at 10 and there.
             GeoSpline2 line = GeoSpline2.FromControlPoints(1, new[] { P(0, 0), P(100, 0) });
-            GeoSpline2 polyline = GeoSpline2.FromControlPoints(1, new[]
-            {
-                P(0, 3E-4), P(10, 0), P(50, dip), P(60, -3E-4), P(100, -3E-4), P(120, -5), P(at, -5), P(at, 5),
-            });
+            GeoSpline2 polyline = GeoSpline2.FromControlPoints(
+                1,
+                new[] { P(0, 3E-4), P(10, 0), P(50, dip), P(60, -3E-4), P(100, -3E-4), P(120, -5), P(at, -5), P(at, 5) }
+            );
 
             foreach (double angle in new[] { 0.0, 0.7 })
             {
-                foreach (GeoPoint2[] places in Asked(polyline, line, angle).Concat(Asked(polyline.Reverse(), line, angle)))
+                foreach (
+                    GeoPoint2[] places in Asked(polyline, line, angle).Concat(Asked(polyline.Reverse(), line, angle))
+                )
                 {
                     Assert.Equal(2, places.Length);
                     Assert.Contains(places, p => p.DistanceTo(P(10, 0)) <= 1E-6);
@@ -199,18 +233,30 @@ namespace GeometryHelper.UnitTest.Plane
             GeoSpline2 line = GeoSpline2.FromControlPoints(1, new[] { P(0, 0), P(100, 0) });
             double lobe = 0.3 * tolerance;
             double hair = 5E-3 * tolerance;
-            GeoSpline2 before = GeoSpline2.FromControlPoints(1, new[] { P(0, lobe), P(10, 0), P(20, -hair), P(30, 0), P(50, 0), P(60, -lobe), P(100, -lobe) });
-            GeoSpline2 after = GeoSpline2.FromControlPoints(1, new[] { P(0, lobe), P(10, 0), P(30, 0), P(35, hair), P(40, 0), P(50, -lobe), P(100, -lobe) });
+            GeoSpline2 before = GeoSpline2.FromControlPoints(
+                1,
+                new[] { P(0, lobe), P(10, 0), P(20, -hair), P(30, 0), P(50, 0), P(60, -lobe), P(100, -lobe) }
+            );
+            GeoSpline2 after = GeoSpline2.FromControlPoints(
+                1,
+                new[] { P(0, lobe), P(10, 0), P(30, 0), P(35, hair), P(40, 0), P(50, -lobe), P(100, -lobe) }
+            );
             var tol = new Tolerance(tolerance, 1E-5);
 
             foreach (double angle in new[] { 0.0, 0.3, 0.7, 2.0 })
             {
-                foreach (GeoPoint2[] places in AskedAt(before, line, angle, tol).Concat(AskedAt(before.Reverse(), line, angle, tol)))
+                foreach (
+                    GeoPoint2[] places in AskedAt(before, line, angle, tol)
+                        .Concat(AskedAt(before.Reverse(), line, angle, tol))
+                )
                 {
                     Assert.InRange(Assert.Single(places).DistanceTo(P(10, 0)), 0.0, 1E-5);
                 }
 
-                foreach (GeoPoint2[] places in AskedAt(after, line, angle, tol).Concat(AskedAt(after.Reverse(), line, angle, tol)))
+                foreach (
+                    GeoPoint2[] places in AskedAt(after, line, angle, tol)
+                        .Concat(AskedAt(after.Reverse(), line, angle, tol))
+                )
                 {
                     Assert.InRange(Assert.Single(places).DistanceTo(P(40, 0)), 0.0, 1E-5);
                 }
@@ -224,16 +270,27 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(10.0, 100, 1E-2)]
         [InlineData(2.0, 170, 1E-3)]
         [InlineData(1.5, 150, 1E-3)]
-        public void ACircleSplineAgainstThePolygonInscribedInIt_MeetsItNowhereAtItsSeam(double radius, int corners, double tolerance)
+        public void ACircleSplineAgainstThePolygonInscribedInIt_MeetsItNowhereAtItsSeam(
+            double radius,
+            int corners,
+            double tolerance
+        )
         {
             // The polygon's corners lie on the circle, one of them on its seam at (radius, 0), and its sides within the tolerance of
             // it: the two lie along each other all round and meet nowhere, the corner on the seam no more than any other.
             GeoSpline2 circle = GeoSpline2.FromCircle(new GeoCircle2(P(0, 0), radius));
-            GeoSpline2 polygon = GeoSpline2.FromPolyline(new GeoPolyline2(Enumerable.Range(0, corners + 1).Select(i =>
-            {
-                double angle = 2 * Math.PI * (i % corners) / corners;
-                return P(radius * Math.Cos(angle), radius * Math.Sin(angle));
-            }).ToArray()));
+            GeoSpline2 polygon = GeoSpline2.FromPolyline(
+                new GeoPolyline2(
+                    Enumerable
+                        .Range(0, corners + 1)
+                        .Select(i =>
+                        {
+                            double angle = 2 * Math.PI * (i % corners) / corners;
+                            return P(radius * Math.Cos(angle), radius * Math.Sin(angle));
+                        })
+                        .ToArray()
+                )
+            );
             var tol = new Tolerance(tolerance, 1E-5);
 
             Assert.Empty(circle.GetIntersections(polygon, tol));

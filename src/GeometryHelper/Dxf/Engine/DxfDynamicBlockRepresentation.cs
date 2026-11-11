@@ -59,14 +59,22 @@ namespace GeometryHelper.Dxf
 
             if (!insert.IsResident || insert.IsErased || insert.Item.File.Database == null)
             {
-                throw new InvalidOperationException("The INSERT of " + insert.Name + " is in no drawing, or is erased, and its dynamic properties are not set.");
+                throw new InvalidOperationException(
+                    "The INSERT of "
+                        + insert.Name
+                        + " is in no drawing, or is erased, and its dynamic properties are not set."
+                );
             }
 
             DxfBlockTableRecord dynamic = insert.DynamicBlockTableRecord;
 
             if (!insert.IsDynamicBlock)
             {
-                throw new InvalidOperationException("The INSERT " + insert.Handle + " places no dynamic block, or is scaled unlike along its axes, which AutoCAD does not take as a dynamic block's.");
+                throw new InvalidOperationException(
+                    "The INSERT "
+                        + insert.Handle
+                        + " places no dynamic block, or is scaled unlike along its axes, which AutoCAD does not take as a dynamic block's."
+                );
             }
 
             Block block = Block.Of(dynamic);
@@ -114,11 +122,17 @@ namespace GeometryHelper.Dxf
                 }
                 else if (values.TryGetValue(property.Node, out double[] now) && property.Part < now.Length)
                 {
-                    double read = property.Value is short flag ? flag : property.Value is double number ? number : double.NaN;
+                    double read =
+                        property.Value is short flag ? flag
+                        : property.Value is double number ? number
+                        : double.NaN;
 
                     if (!double.IsNaN(read))
                     {
-                        now[property.Part] = property.UnitsType == DxfDynamicBlockReferencePropertyUnitsType.Distance ? read / scale : read;
+                        now[property.Part] =
+                            property.UnitsType == DxfDynamicBlockReferencePropertyUnitsType.Distance
+                                ? read / scale
+                                : read;
                     }
                 }
             }
@@ -133,9 +147,23 @@ namespace GeometryHelper.Dxf
             foreach (Param parameter in block.Parameters)
             {
                 // A constraint parameter's base point is where the block's constraints put it, which a value set may move.
-                if (!(parameter is Spot) && !(parameter is Dimensional) && bases.TryGetValue(parameter.Id, out double[] saved) && !new GeoPoint3(saved[0], saved[1], saved[2]).IsEqualTo(parameter.BaseNow(carried), Tolerance.Default))
+                if (
+                    !(parameter is Spot)
+                    && !(parameter is Dimensional)
+                    && bases.TryGetValue(parameter.Id, out double[] saved)
+                    && !new GeoPoint3(saved[0], saved[1], saved[2]).IsEqualTo(
+                        parameter.BaseNow(carried),
+                        Tolerance.Default
+                    )
+                )
                 {
-                    throw new NotSupportedException("The INSERT " + insert.Handle + " keeps a base point of a parameter of the block " + dynamic.Name + " away from the block's own, as a grip moved it: the library works a block out from its own base points, and does not set it.");
+                    throw new NotSupportedException(
+                        "The INSERT "
+                            + insert.Handle
+                            + " keeps a base point of a parameter of the block "
+                            + dynamic.Name
+                            + " away from the block's own, as a grip moved it: the library works a block out from its own base points, and does not set it."
+                    );
                 }
             }
 
@@ -160,7 +188,11 @@ namespace GeometryHelper.Dxf
 
             if (matched && (lookup != null || given != null || block.Sheet.HasUsers))
             {
-                throw new NotSupportedException("The block " + dynamic.Name + " has a block properties table its properties must match: the library sets its row and the parameters of its columns, not a lookup or a user parameter of it, nor a table of a column of a user parameter or of the visibility state, whose working the library was not shown.");
+                throw new NotSupportedException(
+                    "The block "
+                        + dynamic.Name
+                        + " has a block properties table its properties must match: the library sets its row and the parameters of its columns, not a lookup or a user parameter of it, nor a table of a column of a user parameter or of the visibility state, whose working the library was not shown."
+                );
             }
 
             if (row)
@@ -169,18 +201,37 @@ namespace GeometryHelper.Dxf
 
                 if (index < 0 || index >= block.Sheet.Count)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A block properties table is set to the index of one of its rows, from 0 up to " + (block.Sheet.Count - 1).ToString(CultureInfo.InvariantCulture) + ", as AutoCAD 2021 refused any other (eInvalidInput).");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A block properties table is set to the index of one of its rows, from 0 up to "
+                            + (block.Sheet.Count - 1).ToString(CultureInfo.InvariantCulture)
+                            + ", as AutoCAD 2021 refused any other (eInvalidInput)."
+                    );
                 }
 
                 block.Sheet.Choose((int)index, values, users, texts, block.Visibility, ref state);
             }
             else if (given != null)
             {
-                users[node] = given.IsText ? value as string ?? throw new ArgumentException("A user parameter of text is set by a string; a " + value.GetType().Name + " is not one.", nameof(value)) : (object)Number(value);
+                users[node] = given.IsText
+                    ? value as string
+                        ?? throw new ArgumentException(
+                            "A user parameter of text is set by a string; a " + value.GetType().Name + " is not one.",
+                            nameof(value)
+                        )
+                    : (object)Number(value);
             }
             else if (lookup != null)
             {
-                string label = value as string ?? throw new ArgumentException("A lookup property is set by the label of a row, a string; a " + value.GetType().Name + " is not one.", nameof(value));
+                string label =
+                    value as string
+                    ?? throw new ArgumentException(
+                        "A lookup property is set by the label of a row, a string; a "
+                            + value.GetType().Name
+                            + " is not one.",
+                        nameof(value)
+                    );
                 lookup.Choose(label, values, labels, dynamic.Name);
             }
             else if (asked is Linear linear)
@@ -190,7 +241,11 @@ namespace GeometryHelper.Dxf
 
                 if (!(taken / scale > Tolerance.Default.EqualPoint))
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A distance of a linear parameter is above the point tolerance once taken to its value set.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A distance of a linear parameter is above the point tolerance once taken to its value set."
+                    );
                 }
 
                 values[node][0] = taken / scale;
@@ -201,7 +256,11 @@ namespace GeometryHelper.Dxf
 
                 if (!(distance / scale > Tolerance.Default.EqualPoint))
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A distance of an XY parameter is above the point tolerance once taken to its value set.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A distance of an XY parameter is above the point tolerance once taken to its value set."
+                    );
                 }
 
                 values[node][part] = distance / scale;
@@ -214,7 +273,11 @@ namespace GeometryHelper.Dxf
 
                     if (!(distance / scale > Tolerance.Default.EqualPoint))
                     {
-                        throw new ArgumentOutOfRangeException(nameof(value), value, "A distance of a polar parameter is above the point tolerance once taken to its value set.");
+                        throw new ArgumentOutOfRangeException(
+                            nameof(value),
+                            value,
+                            "A distance of a polar parameter is above the point tolerance once taken to its value set."
+                        );
                     }
 
                     values[node][0] = distance / scale;
@@ -230,7 +293,11 @@ namespace GeometryHelper.Dxf
 
                 if (!(distance / scale > Tolerance.Default.EqualPoint))
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A distance of a constraint parameter is above the point tolerance once taken to its value set.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A distance of a constraint parameter is above the point tolerance once taken to its value set."
+                    );
                 }
 
                 values[node][0] = distance / scale;
@@ -249,9 +316,20 @@ namespace GeometryHelper.Dxf
             }
             else if (block.Visibility != null && block.Visibility.Id == node)
             {
-                string named = value as string ?? throw new ArgumentException("A visibility state is set by its name, a string; a " + value.GetType().Name + " is not one.", nameof(value));
-                State found = block.Visibility.States.Find(s => string.Equals(s.Name, named.Trim(), StringComparison.OrdinalIgnoreCase));
-                state = found?.Name ?? throw new ArgumentException("The visibility parameter " + block.Visibility.Name + " has no state named " + named + ".", nameof(value));
+                string named =
+                    value as string
+                    ?? throw new ArgumentException(
+                        "A visibility state is set by its name, a string; a " + value.GetType().Name + " is not one.",
+                        nameof(value)
+                    );
+                State found = block.Visibility.States.Find(s =>
+                    string.Equals(s.Name, named.Trim(), StringComparison.OrdinalIgnoreCase)
+                );
+                state = found?.Name
+                    ?? throw new ArgumentException(
+                        "The visibility parameter " + block.Visibility.Name + " has no state named " + named + ".",
+                        nameof(value)
+                    );
             }
             else
             {
@@ -268,9 +346,17 @@ namespace GeometryHelper.Dxf
             // D27), so the library was not shown what a row does to them.
             foreach (Param parameter in block.Parameters)
             {
-                if (parameter is Dimensional && parameter.Id != node && !Dimensional.Same(before[parameter.Id][0], values[parameter.Id][0]))
+                if (
+                    parameter is Dimensional
+                    && parameter.Id != node
+                    && !Dimensional.Same(before[parameter.Id][0], values[parameter.Id][0])
+                )
                 {
-                    throw new NotSupportedException("A block properties table of the block " + dynamic.Name + " sets a constraint parameter, which AutoCAD 2021 did not work the block's constraints out for: the library sets a constraint parameter by itself.");
+                    throw new NotSupportedException(
+                        "A block properties table of the block "
+                            + dynamic.Name
+                            + " sets a constraint parameter, which AutoCAD 2021 did not work the block's constraints out for: the library sets a constraint parameter by itself."
+                    );
                 }
             }
 
@@ -294,7 +380,13 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            List<KeyValuePair<DxfAttributeReference, GeoTransform3>> follow = Followed(insert, dynamic, block, before, values);
+            List<KeyValuePair<DxfAttributeReference, GeoTransform3>> follow = Followed(
+                insert,
+                dynamic,
+                block,
+                before,
+                values
+            );
             DxfBlockConstraints.Solution solution = Solve(block, values, dynamic);
             Write(insert, dynamic, block, values, state, labels, users, solution);
 
@@ -332,7 +424,12 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private static void Remember(DxfBlockReference insert, DxfDynamicBlockReferenceProperty property)
         {
-            DxfDBDictionary cache = DxfDynamicProperties.Entry(DxfDynamicProperties.Entry(insert.ExtensionDictionary, "AcDbBlockRepresentation") as DxfDBDictionary, "AppDataCache") as DxfDBDictionary;
+            DxfDBDictionary cache =
+                DxfDynamicProperties.Entry(
+                    DxfDynamicProperties.Entry(insert.ExtensionDictionary, "AcDbBlockRepresentation")
+                        as DxfDBDictionary,
+                    "AppDataCache"
+                ) as DxfDBDictionary;
 
             if (!(DxfDynamicProperties.Entry(cache, "ACAD_ENHANCEDBLOCKHISTORY") is DxfXrecord history))
             {
@@ -354,7 +451,9 @@ namespace GeometryHelper.Dxf
                     break;
             }
 
-            history.AppendKept(new[] { new DxfTypedValue(1071, property.Node), new DxfTypedValue(300, property.PropertyName), kept });
+            history.AppendKept(
+                new[] { new DxfTypedValue(1071, property.Node), new DxfTypedValue(300, property.PropertyName), kept }
+            );
         }
 
         /// <summary>A whole number given as a row's index: a <see cref="short"/>, an <see cref="int"/>, a <see cref="long"/> or a <see cref="byte"/>.</summary>
@@ -371,7 +470,12 @@ namespace GeometryHelper.Dxf
                 case byte b:
                     return b;
                 default:
-                    throw new ArgumentException("A block properties table is set by the index of a row, a whole number; a " + value.GetType().Name + " is not one.", nameof(value));
+                    throw new ArgumentException(
+                        "A block properties table is set by the index of a row, a whole number; a "
+                            + value.GetType().Name
+                            + " is not one.",
+                        nameof(value)
+                    );
             }
         }
 
@@ -401,12 +505,20 @@ namespace GeometryHelper.Dxf
                     number = (double)m;
                     break;
                 default:
-                    throw new ArgumentException("A distance or an angle is set as a number; a " + value.GetType().Name + " is not one.", nameof(value));
+                    throw new ArgumentException(
+                        "A distance or an angle is set as a number; a " + value.GetType().Name + " is not one.",
+                        nameof(value)
+                    );
             }
 
             if (!Guard.IsFinite(number))
             {
-                throw new ArgumentException("A distance or an angle is set as a finite number; " + number.ToString("R", CultureInfo.InvariantCulture) + " is not.", nameof(value));
+                throw new ArgumentException(
+                    "A distance or an angle is set as a finite number; "
+                        + number.ToString("R", CultureInfo.InvariantCulture)
+                        + " is not.",
+                    nameof(value)
+                );
             }
 
             return number;
@@ -432,12 +544,19 @@ namespace GeometryHelper.Dxf
                     flag = b;
                     break;
                 default:
-                    throw new ArgumentException("A flip state is set as a whole number, 0 or 1; a " + value.GetType().Name + " is not one.", nameof(value));
+                    throw new ArgumentException(
+                        "A flip state is set as a whole number, 0 or 1; a " + value.GetType().Name + " is not one.",
+                        nameof(value)
+                    );
             }
 
             if (flag != 0 && flag != 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(value), value, "A flip state is 0, not flipped, or 1, flipped.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    "A flip state is 0, not flipped, or 1, flipped."
+                );
             }
 
             return flag;
@@ -516,7 +635,13 @@ namespace GeometryHelper.Dxf
         /// along, as AutoCAD 2021 left them (x1). Refused with <see cref="NotSupportedException"/> where ATTDEFs of one tag the
         /// INSERT has an ATTRIB of change apart.
         /// </summary>
-        private static List<KeyValuePair<DxfAttributeReference, GeoTransform3>> Followed(DxfBlockReference insert, DxfBlockTableRecord dynamic, Block block, Dictionary<string, double[]> before, Dictionary<string, double[]> values)
+        private static List<KeyValuePair<DxfAttributeReference, GeoTransform3>> Followed(
+            DxfBlockReference insert,
+            DxfBlockTableRecord dynamic,
+            Block block,
+            Dictionary<string, double[]> before,
+            Dictionary<string, double[]> values
+        )
         {
             var follow = new List<KeyValuePair<DxfAttributeReference, GeoTransform3>>();
 
@@ -543,18 +668,36 @@ namespace GeometryHelper.Dxf
                 GeoTransform3 turned = null;
                 bool locked = definition.LockPositionInBlock;
 
-                if (locked && block.Actions.Exists(a => ((a.Kind == ActionKind.Scale || a.Kind == ActionKind.Rotate) && Holds(a, entity.Handle))
-                    || (a.Kind == ActionKind.PolarStretch && (Holds(a, entity.Handle) || a.Turned.Exists(h => string.Equals(h, entity.Handle, StringComparison.OrdinalIgnoreCase))))))
+                if (
+                    locked
+                    && block.Actions.Exists(a =>
+                        ((a.Kind == ActionKind.Scale || a.Kind == ActionKind.Rotate) && Holds(a, entity.Handle))
+                        || (
+                            a.Kind == ActionKind.PolarStretch
+                            && (
+                                Holds(a, entity.Handle)
+                                || a.Turned.Exists(h =>
+                                    string.Equals(h, entity.Handle, StringComparison.OrdinalIgnoreCase)
+                                )
+                            )
+                        )
+                    )
+                )
                 {
                     GeoTransform3 now = Placed(block, entity.Handle, values);
                     GeoTransform3 then = Placed(block, entity.Handle, before);
-                    turned = now.IsEqualTo(then, Exactly) ? GeoTransform3.Identity : now.Multiply(then.Inverse(Tolerance.Default));
+                    turned = now.IsEqualTo(then, Exactly)
+                        ? GeoTransform3.Identity
+                        : now.Multiply(then.Inverse(Tolerance.Default));
                 }
                 else if (locked)
                 {
                     foreach (BlockAction action in block.Actions)
                     {
-                        if ((action.Kind == ActionKind.Move || action.Kind == ActionKind.Stretch) && Holds(action, entity.Handle))
+                        if (
+                            (action.Kind == ActionKind.Move || action.Kind == ActionKind.Stretch)
+                            && Holds(action, entity.Handle)
+                        )
                         {
                             double[] from = Change(block, action, before);
                             double[] to = Change(block, action, values);
@@ -588,9 +731,15 @@ namespace GeometryHelper.Dxf
                 else if (!apart.Contains(tag))
                 {
                     GeoTransform3 seen = turns.TryGetValue(tag, out GeoTransform3 kept) ? kept : null;
-                    bool agree = turned == null && seen == null
-                        ? Math.Abs(changes[tag][0] - change[0]) <= slack && Math.Abs(changes[tag][1] - change[1]) <= slack
-                        : Agree(seen ?? GeoTransform3.Translation(new GeoVector3(changes[tag][0], changes[tag][1], 0.0)), turned ?? GeoTransform3.Translation(new GeoVector3(change[0], change[1], 0.0)));
+                    bool agree =
+                        turned == null && seen == null
+                            ? Math.Abs(changes[tag][0] - change[0]) <= slack
+                                && Math.Abs(changes[tag][1] - change[1]) <= slack
+                            : Agree(
+                                seen
+                                    ?? GeoTransform3.Translation(new GeoVector3(changes[tag][0], changes[tag][1], 0.0)),
+                                turned ?? GeoTransform3.Translation(new GeoVector3(change[0], change[1], 0.0))
+                            );
 
                     if (!agree)
                     {
@@ -610,19 +759,37 @@ namespace GeometryHelper.Dxf
 
                 if (apart.Contains(tag))
                 {
-                    throw new NotSupportedException("The block " + dynamic.Name + " has attribute definitions of the tag " + attribute.Tag + " that its actions move apart: the INSERT's attribute of that tag has no one move to follow, and is not set.");
+                    throw new NotSupportedException(
+                        "The block "
+                            + dynamic.Name
+                            + " has attribute definitions of the tag "
+                            + attribute.Tag
+                            + " that its actions move apart: the INSERT's attribute of that tag has no one move to follow, and is not set."
+                    );
                 }
 
                 if (turns.TryGetValue(tag, out GeoTransform3 turned))
                 {
                     if (!turned.IsIdentity(Exactly))
                     {
-                        follow.Add(new KeyValuePair<DxfAttributeReference, GeoTransform3>(attribute, placing.Multiply(turned).Multiply(placing.Inverse(Tolerance.Default))));
+                        follow.Add(
+                            new KeyValuePair<DxfAttributeReference, GeoTransform3>(
+                                attribute,
+                                placing.Multiply(turned).Multiply(placing.Inverse(Tolerance.Default))
+                            )
+                        );
                     }
                 }
                 else if (changes.TryGetValue(tag, out double[] change) && (change[0] != 0.0 || change[1] != 0.0))
                 {
-                    follow.Add(new KeyValuePair<DxfAttributeReference, GeoTransform3>(attribute, GeoTransform3.Translation(origin.GetVectorTo(placing.Transform(new GeoPoint3(change[0], change[1], 0.0))))));
+                    follow.Add(
+                        new KeyValuePair<DxfAttributeReference, GeoTransform3>(
+                            attribute,
+                            GeoTransform3.Translation(
+                                origin.GetVectorTo(placing.Transform(new GeoPoint3(change[0], change[1], 0.0)))
+                            )
+                        )
+                    );
                 }
             }
 
@@ -630,9 +797,12 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether an action works on an entity of the block: among its entities, or, of a stretch, among those it holds.</summary>
-        private static bool Holds(BlockAction action, string handle)
-            => action.Entities.Exists(h => string.Equals(h, handle, StringComparison.OrdinalIgnoreCase))
-            || (action.Kind == ActionKind.Stretch && action.Held.Exists(h => string.Equals(h.Key, handle, StringComparison.OrdinalIgnoreCase)));
+        private static bool Holds(BlockAction action, string handle) =>
+            action.Entities.Exists(h => string.Equals(h, handle, StringComparison.OrdinalIgnoreCase))
+            || (
+                action.Kind == ActionKind.Stretch
+                && action.Held.Exists(h => string.Equals(h.Key, handle, StringComparison.OrdinalIgnoreCase))
+            );
 
         /// <summary>
         /// What the actions of the block give an entity of one point at the values given, in the order of the graph, as
@@ -646,7 +816,10 @@ namespace GeometryHelper.Dxf
 
             foreach (BlockAction action in block.Actions)
             {
-                bool turnedOnly = action.Kind == ActionKind.PolarStretch && !Holds(action, handle) && action.Turned.Exists(h => string.Equals(h, handle, StringComparison.OrdinalIgnoreCase));
+                bool turnedOnly =
+                    action.Kind == ActionKind.PolarStretch
+                    && !Holds(action, handle)
+                    && action.Turned.Exists(h => string.Equals(h, handle, StringComparison.OrdinalIgnoreCase));
 
                 if (!Holds(action, handle) && !turnedOnly)
                 {
@@ -657,14 +830,21 @@ namespace GeometryHelper.Dxf
 
                 if (action.Kind == ActionKind.PolarStretch)
                 {
-                    step = ((Polar)block.Parameters.Find(p => p.Id == action.Parameter)).Turned(values[action.Parameter], turnedOnly);
+                    step = ((Polar)block.Parameters.Find(p => p.Id == action.Parameter)).Turned(
+                        values[action.Parameter],
+                        turnedOnly
+                    );
                 }
                 else if (action.Kind == ActionKind.Stretch)
                 {
                     double[] change = Change(block, action, values);
                     step = GeoTransform3.Translation(new GeoVector3(change[0], change[1], 0.0));
                 }
-                else if (action.Kind == ActionKind.Move || action.Kind == ActionKind.Scale || action.Kind == ActionKind.Rotate)
+                else if (
+                    action.Kind == ActionKind.Move
+                    || action.Kind == ActionKind.Scale
+                    || action.Kind == ActionKind.Rotate
+                )
                 {
                     step = Transform(block.Parameters.Find(p => p.Id == action.Parameter), action, values);
                 }
@@ -708,7 +888,16 @@ namespace GeometryHelper.Dxf
         /// places it, else a new one, the solution of its constraints written into it where there is one; then its
         /// representation data and cache written.
         /// </summary>
-        private static void Write(DxfBlockReference insert, DxfBlockTableRecord dynamic, Block block, Dictionary<string, double[]> values, string state, Dictionary<string, string> labels, Dictionary<string, object> users, DxfBlockConstraints.Solution solution)
+        private static void Write(
+            DxfBlockReference insert,
+            DxfBlockTableRecord dynamic,
+            Block block,
+            Dictionary<string, double[]> values,
+            string state,
+            Dictionary<string, string> labels,
+            Dictionary<string, object> users,
+            DxfBlockConstraints.Solution solution
+        )
         {
             DxfFile file = insert.Item.File;
             DxfDatabase database = file.Database;
@@ -741,7 +930,12 @@ namespace GeometryHelper.Dxf
             }
             else
             {
-                anonymous = new DxfBlockTableRecord { Name = database.BlockTable.FreeAnonymousName("*U"), MadeFlags = 1, Origin = dynamic.Origin };
+                anonymous = new DxfBlockTableRecord
+                {
+                    Name = database.BlockTable.FreeAnonymousName("*U"),
+                    MadeFlags = 1,
+                    Origin = dynamic.Origin,
+                };
 
                 if (file.Supports(1021))
                 {
@@ -749,7 +943,12 @@ namespace GeometryHelper.Dxf
                 }
 
                 database.BlockTable.AddAnonymous(anonymous);
-                anonymous.XData = new[] { new DxfTypedValue(1001, "AcDbBlockRepBTag"), new DxfTypedValue(1070, "1"), new DxfTypedValue(1005, dynamic.Handle) };
+                anonymous.XData = new[]
+                {
+                    new DxfTypedValue(1001, "AcDbBlockRepBTag"),
+                    new DxfTypedValue(1070, "1"),
+                    new DxfTypedValue(1005, dynamic.Handle),
+                };
             }
 
             var sources = new List<DxfEntity>(dynamic);
@@ -859,7 +1058,11 @@ namespace GeometryHelper.Dxf
         /// each parameter given its two points as the solution places them. Null where every constraint parameter keeps the
         /// block's own distance, the copies then left as the block has them.
         /// </summary>
-        private static DxfBlockConstraints.Solution Solve(Block block, Dictionary<string, double[]> values, DxfBlockTableRecord dynamic)
+        private static DxfBlockConstraints.Solution Solve(
+            Block block,
+            Dictionary<string, double[]> values,
+            DxfBlockTableRecord dynamic
+        )
         {
             List<Param> dimensions = block.Parameters.FindAll(p => p is Dimensional);
 
@@ -870,7 +1073,11 @@ namespace GeometryHelper.Dxf
 
             if (block.Constraints == null || dimensions.Exists(p => ((Dimensional)p).Dimension == null))
             {
-                throw new NotSupportedException("A constraint parameter of the block " + dynamic.Name + " drives no dimensional constraint the library reads in the block's associative network.");
+                throw new NotSupportedException(
+                    "A constraint parameter of the block "
+                        + dynamic.Name
+                        + " drives no dimensional constraint the library reads in the block's associative network."
+                );
             }
 
             var bases = new Dictionary<string, GeoPoint3>(StringComparer.OrdinalIgnoreCase);
@@ -892,7 +1099,14 @@ namespace GeometryHelper.Dxf
             foreach (Param parameter in dimensions)
             {
                 var dimensional = (Dimensional)parameter;
-                block.Constraints.Places(dimensional.Dimension, solution, dimensional.Base, dimensional.End, out GeoPoint3 basePoint, out GeoPoint3 endPoint);
+                block.Constraints.Places(
+                    dimensional.Dimension,
+                    solution,
+                    dimensional.Base,
+                    dimensional.End,
+                    out GeoPoint3 basePoint,
+                    out GeoPoint3 endPoint
+                );
                 dimensional.PlacedBase = basePoint;
                 dimensional.PlacedEnd = endPoint;
             }
@@ -932,7 +1146,11 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                GeoTransform3 transform = Transform(block.Parameters.Find(p => p.Id == action.Parameter), action, values);
+                GeoTransform3 transform = Transform(
+                    block.Parameters.Find(p => p.Id == action.Parameter),
+                    action,
+                    values
+                );
 
                 if (transform == null)
                 {
@@ -943,9 +1161,16 @@ namespace GeometryHelper.Dxf
                 // (plugin D30, x1).
                 foreach (string handle in action.Entities)
                 {
-                    if (copyOf.TryGetValue(handle, out DxfEntity copy) && !(copy is DxfAttributeDefinition definition && !definition.LockPositionInBlock))
+                    if (
+                        copyOf.TryGetValue(handle, out DxfEntity copy)
+                        && !(copy is DxfAttributeDefinition definition && !definition.LockPositionInBlock)
+                    )
                     {
-                        copy.TransformBy(action.Kind == ActionKind.Flip && copy is DxfAttributeDefinition flipped ? Readable(flipped, transform) : transform);
+                        copy.TransformBy(
+                            action.Kind == ActionKind.Flip && copy is DxfAttributeDefinition flipped
+                                ? Readable(flipped, transform)
+                                : transform
+                        );
                     }
                 }
             }
@@ -954,10 +1179,17 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>How far a flip at the values given moves an attribute definition of the block, as <see cref="Readable"/> moves it; nought where it is not flipped.</summary>
-        private static GeoVector3 Flipped(Block block, BlockAction flip, Dictionary<string, double[]> values, DxfAttributeDefinition definition)
+        private static GeoVector3 Flipped(
+            Block block,
+            BlockAction flip,
+            Dictionary<string, double[]> values,
+            DxfAttributeDefinition definition
+        )
         {
             GeoTransform3 mirror = Transform(block.Parameters.Find(p => p.Id == flip.Parameter), flip, values);
-            return mirror == null ? new GeoVector3(0.0, 0.0, 0.0) : Readable(definition, mirror).Transform(new GeoPoint3(0.0, 0.0, 0.0)).ToVector();
+            return mirror == null
+                ? new GeoVector3(0.0, 0.0, 0.0)
+                : Readable(definition, mirror).Transform(new GeoPoint3(0.0, 0.0, 0.0)).ToVector();
         }
 
         /// <summary>
@@ -971,7 +1203,11 @@ namespace GeometryHelper.Dxf
 
             if (!by.HasValue)
             {
-                throw new NotSupportedException("A flip mirrors the attribute definition " + definition.Tag + ", whose words the drawing's fonts do not measure, or not across their baseline: the library does not work out where AutoCAD keeps it readable.");
+                throw new NotSupportedException(
+                    "A flip mirrors the attribute definition "
+                        + definition.Tag
+                        + ", whose words the drawing's fonts do not measure, or not across their baseline: the library does not work out where AutoCAD keeps it readable."
+                );
             }
 
             return GeoTransform3.Translation(by.Value);
@@ -991,13 +1227,17 @@ namespace GeometryHelper.Dxf
             {
                 case ActionKind.Move:
                     double[] move = action.ByBase ? new double[2] : action.Factored(parameter.Moved(now));
-                    return move[0] == 0.0 && move[1] == 0.0 ? null : GeoTransform3.Translation(new GeoVector3(move[0], move[1], 0.0));
+                    return move[0] == 0.0 && move[1] == 0.0
+                        ? null
+                        : GeoTransform3.Translation(new GeoVector3(move[0], move[1], 0.0));
                 case ActionKind.Scale:
                     double factor = now[0] / parameter.Own[0];
                     return factor == 1.0 ? null : GeoTransform3.Scaling(parameter.Base, factor);
                 case ActionKind.Rotate:
                     double angle = now[0] - parameter.Own[0];
-                    return angle == 0.0 ? null : GeoTransform3.RotationAxis(parameter.Base, new GeoVector3(0, 0, 1), angle);
+                    return angle == 0.0
+                        ? null
+                        : GeoTransform3.RotationAxis(parameter.Base, new GeoVector3(0, 0, 1), angle);
                 default:
                     if (now[0] != 1.0)
                     {
@@ -1015,7 +1255,12 @@ namespace GeometryHelper.Dxf
         /// moves by them all. A line moves its start or end, a polyline its vertex; an entity of one point moves whole; an arc
         /// held by both ends moves whole, by one end has that end moved, as <see cref="Bend"/> says.
         /// </summary>
-        private static void Stretch(Block block, List<BlockAction> stretches, Dictionary<string, double[]> values, Dictionary<string, DxfEntity> copyOf)
+        private static void Stretch(
+            Block block,
+            List<BlockAction> stretches,
+            Dictionary<string, double[]> values,
+            Dictionary<string, DxfEntity> copyOf
+        )
         {
             // The moves of each entity's points, by the entity's handle and the point's index; summed in the order of the graph.
             var moves = new Dictionary<string, SortedDictionary<int, double[]>>(StringComparer.OrdinalIgnoreCase);
@@ -1084,7 +1329,10 @@ namespace GeometryHelper.Dxf
                     else if (copy is DxfPolyline polyline)
                     {
                         GeoPoint3 at = polyline.GetPoint3dAt(move.Key);
-                        GeoPoint3 inPlane = DxfEntity.WorldToOcs(polyline.Normal, new GeoPoint3(at.X + move.Value[0], at.Y + move.Value[1], at.Z));
+                        GeoPoint3 inPlane = DxfEntity.WorldToOcs(
+                            polyline.Normal,
+                            new GeoPoint3(at.X + move.Value[0], at.Y + move.Value[1], at.Z)
+                        );
                         polyline.SetPointAt(move.Key, new GeoPoint2(inPlane.X, inPlane.Y));
                     }
                     else
@@ -1092,7 +1340,9 @@ namespace GeometryHelper.Dxf
                         // An entity moved whole: every point it has is held, and moves alike, so the first tells the move.
                         if (move.Value[0] != 0.0 || move.Value[1] != 0.0)
                         {
-                            copy.TransformBy(GeoTransform3.Translation(new GeoVector3(move.Value[0], move.Value[1], 0.0)));
+                            copy.TransformBy(
+                                GeoTransform3.Translation(new GeoVector3(move.Value[0], move.Value[1], 0.0))
+                            );
                         }
 
                         break;
@@ -1113,7 +1363,12 @@ namespace GeometryHelper.Dxf
         /// turned and moved, or turned only, so; one not locked stays where it is, as AutoCAD 2021 worked them out (plugin
         /// D34, e7 and e8).
         /// </summary>
-        private static void PolarStretch(Polar parameter, BlockAction action, Dictionary<string, double[]> values, Dictionary<string, DxfEntity> copyOf)
+        private static void PolarStretch(
+            Polar parameter,
+            BlockAction action,
+            Dictionary<string, double[]> values,
+            Dictionary<string, DxfEntity> copyOf
+        )
         {
             double[] now = values[parameter.Id];
             GeoTransform3 full = parameter.Turned(now, false);
@@ -1151,7 +1406,8 @@ namespace GeometryHelper.Dxf
                 {
                     GeoTransform3 start = entity.Value.Contains(0) ? full : turn;
                     GeoTransform3 end = entity.Value.Contains(1) ? full : turn;
-                    GeoPoint3 from = line.StartPoint, to = line.EndPoint;
+                    GeoPoint3 from = line.StartPoint,
+                        to = line.EndPoint;
                     line.StartPoint = start == null ? from : start.Transform(from);
                     line.EndPoint = end == null ? to : end.Transform(to);
                 }
@@ -1163,7 +1419,10 @@ namespace GeometryHelper.Dxf
 
                         if (move != null)
                         {
-                            GeoPoint3 inPlane = DxfEntity.WorldToOcs(polyline.Normal, move.Transform(polyline.GetPoint3dAt(i)));
+                            GeoPoint3 inPlane = DxfEntity.WorldToOcs(
+                                polyline.Normal,
+                                move.Transform(polyline.GetPoint3dAt(i))
+                            );
                             polyline.SetPointAt(i, new GeoPoint2(inPlane.X, inPlane.Y));
                         }
                     }
@@ -1214,11 +1473,13 @@ namespace GeometryHelper.Dxf
             GeoPoint3 from = arc.StartPoint;
             GeoPoint3 to = arc.EndPoint;
             GeoPoint3 middle = arc.GetPointAtParameter((arc.StartParam + arc.EndParam) / 2.0);
-            double cx = to.X - from.X, cy = to.Y - from.Y;
+            double cx = to.X - from.X,
+                cy = to.Y - from.Y;
             double chord = Math.Sqrt(cx * cx + cy * cy);
             var a = new GeoPoint3(from.X + start[0], from.Y + start[1], from.Z);
             var b = new GeoPoint3(to.X + end[0], to.Y + end[1], to.Z);
-            double nx = b.X - a.X, ny = b.Y - a.Y;
+            double nx = b.X - a.X,
+                ny = b.Y - a.Y;
             double reach = Math.Sqrt(nx * nx + ny * ny);
 
             if (!(chord > 0.0) || !(reach > Tolerance.Default.EqualPoint))
@@ -1228,10 +1489,12 @@ namespace GeometryHelper.Dxf
             }
 
             // The height of the middle off the chord, signed to the left of the chord from the start to the end, kept.
-            double height = ((middle.X - (from.X + to.X) / 2.0) * -cy + (middle.Y - (from.Y + to.Y) / 2.0) * cx) / chord;
+            double height =
+                ((middle.X - (from.X + to.X) / 2.0) * -cy + (middle.Y - (from.Y + to.Y) / 2.0) * cx) / chord;
             double half = reach / 2.0;
             double radius = (half * half + height * height) / (2.0 * Math.Abs(height));
-            double lx = -ny / reach, ly = nx / reach;
+            double lx = -ny / reach,
+                ly = nx / reach;
             double off = height - Math.Sign(height) * radius;
             var centre = new GeoPoint3((a.X + b.X) / 2.0 + lx * off, (a.Y + b.Y) / 2.0 + ly * off, from.Z);
             GeoVector3 normal = arc.Normal;
@@ -1257,7 +1520,13 @@ namespace GeometryHelper.Dxf
         /// arrays (AcDbBlockArrayActionTag, 1070 1, after the entity's own tag), without which AutoCAD 2021 refused to set the
         /// INSERT again (eInvalidInput, plugin v21, 24e-c and 24e-d).
         /// </summary>
-        private static void Copy(Block block, Dictionary<string, double[]> values, Dictionary<string, DxfEntity> copyOf, DxfDatabase database, DxfBlockTableRecord anonymous)
+        private static void Copy(
+            Block block,
+            Dictionary<string, double[]> values,
+            Dictionary<string, DxfEntity> copyOf,
+            DxfDatabase database,
+            DxfBlockTableRecord anonymous
+        )
         {
             double slack = Tolerance.Default.EqualPoint;
 
@@ -1278,7 +1547,13 @@ namespace GeometryHelper.Dxf
 
                     for (int i = 1; i < count; i++)
                     {
-                        offsets.Add(new GeoVector3(linear.UnitX * i * action.Columns, linear.UnitY * i * action.Columns, linear.UnitZ * i * action.Columns));
+                        offsets.Add(
+                            new GeoVector3(
+                                linear.UnitX * i * action.Columns,
+                                linear.UnitY * i * action.Columns,
+                                linear.UnitZ * i * action.Columns
+                            )
+                        );
                     }
                 }
                 else
@@ -1293,7 +1568,9 @@ namespace GeometryHelper.Dxf
                         {
                             if (i > 0 || j > 0)
                             {
-                                offsets.Add(new GeoVector3(signs[0] * i * action.Columns, signs[1] * j * action.Rows, 0.0));
+                                offsets.Add(
+                                    new GeoVector3(signs[0] * i * action.Columns, signs[1] * j * action.Rows, 0.0)
+                                );
                             }
                         }
                     }
@@ -1310,7 +1587,11 @@ namespace GeometryHelper.Dxf
 
                         DxfEntity copied = database.WblockCloneObjects(new[] { copy }, anonymous)[0];
                         copied.TransformBy(GeoTransform3.Translation(offset));
-                        copied.XData = new[] { new DxfTypedValue(1001, "AcDbBlockArrayActionTag"), new DxfTypedValue(1070, "1") };
+                        copied.XData = new[]
+                        {
+                            new DxfTypedValue(1001, "AcDbBlockArrayActionTag"),
+                            new DxfTypedValue(1070, "1"),
+                        };
                     }
                 }
             }
@@ -1328,14 +1609,30 @@ namespace GeometryHelper.Dxf
         /// offset (40), as AutoCAD 2021 kept 1.5707963267948966 for a move of a quarter turn, and moved along x, unturned, the
         /// circle of an INSERT whose record held nought (plugin v21, 24e-b).
         /// </summary>
-        private static void Cache(DxfBlockReference insert, DxfBlockTableRecord dynamic, Block block, Dictionary<string, double[]> values, string state, Dictionary<string, string> labels, Dictionary<string, object> users)
+        private static void Cache(
+            DxfBlockReference insert,
+            DxfBlockTableRecord dynamic,
+            Block block,
+            Dictionary<string, double[]> values,
+            string state,
+            Dictionary<string, string> labels,
+            Dictionary<string, object> users
+        )
         {
             DxfFile file = insert.Item.File;
             insert.CreateExtensionDictionary();
             DxfDBDictionary representation = Child(insert.ExtensionDictionary, "AcDbBlockRepresentation");
             DxfDBObject data = DxfDynamicProperties.Entry(representation, "AcDbRepData");
 
-            if (data?.Item == null || data.Item.Type != "ACDB_BLOCKREPRESENTATION_DATA" || !string.Equals(file.ValueOf(data.Item, 340)?.Trim(), dynamic.Handle, StringComparison.OrdinalIgnoreCase))
+            if (
+                data?.Item == null
+                || data.Item.Type != "ACDB_BLOCKREPRESENTATION_DATA"
+                || !string.Equals(
+                    file.ValueOf(data.Item, 340)?.Trim(),
+                    dynamic.Handle,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
             {
                 representation.Add("AcDbRepData", "ACDB_BLOCKREPRESENTATION_DATA", b =>
                 {
@@ -1358,7 +1655,11 @@ namespace GeometryHelper.Dxf
                 {
                     foreach (BlockAction flip in dimensional.Flips)
                     {
-                        GeoTransform3 mirror = Transform(block.Parameters.Find(p => p.Id == flip.Parameter), flip, values);
+                        GeoTransform3 mirror = Transform(
+                            block.Parameters.Find(p => p.Id == flip.Parameter),
+                            flip,
+                            values
+                        );
 
                         if (mirror != null)
                         {
@@ -1372,7 +1673,12 @@ namespace GeometryHelper.Dxf
 
             foreach (Param parameter in block.Parameters)
             {
-                written.AddRange(parameter.Records(values[parameter.Id], carried.TryGetValue(parameter.Id, out double[] shift) ? shift : null));
+                written.AddRange(
+                    parameter.Records(
+                        values[parameter.Id],
+                        carried.TryGetValue(parameter.Id, out double[] shift) ? shift : null
+                    )
+                );
             }
 
             foreach (BlockAction action in block.Actions)
@@ -1413,7 +1719,12 @@ namespace GeometryHelper.Dxf
             {
                 List<KeyValuePair<int, string>> groups = Head(LookupKey);
                 Point(groups, lookup.Location);
-                groups.Add(new KeyValuePair<int, string>(1, labels.TryGetValue(lookup.Id, out string label) ? label : lookup.Table.Label(lookup.Id, values)));
+                groups.Add(
+                    new KeyValuePair<int, string>(
+                        1,
+                        labels.TryGetValue(lookup.Id, out string label) ? label : lookup.Table.Label(lookup.Id, values)
+                    )
+                );
                 written.Add(new KeyValuePair<string, List<KeyValuePair<int, string>>>(lookup.Id, groups));
             }
 
@@ -1430,7 +1741,11 @@ namespace GeometryHelper.Dxf
                 List<KeyValuePair<int, string>> groups = Head(UserKey);
                 Point(groups, user.Location);
                 object now = users.TryGetValue(user.Id, out object given) ? given : user.Own;
-                groups.Add(now is double real ? new KeyValuePair<int, string>(40, Real(real)) : new KeyValuePair<int, string>(1, Convert.ToString(now, CultureInfo.InvariantCulture)));
+                groups.Add(
+                    now is double real
+                        ? new KeyValuePair<int, string>(40, Real(real))
+                        : new KeyValuePair<int, string>(1, Convert.ToString(now, CultureInfo.InvariantCulture))
+                );
                 written.Add(new KeyValuePair<string, List<KeyValuePair<int, string>>>(user.Id, groups));
             }
 
@@ -1466,13 +1781,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The head of a record of the cache: the two numbers of its kind, then 25 and 104, as AutoCAD writes them.</summary>
-        private static List<KeyValuePair<int, string>> Head(string[] key) => new List<KeyValuePair<int, string>>
-        {
-            new KeyValuePair<int, string>(1071, key[0]),
-            new KeyValuePair<int, string>(1071, key[1]),
-            new KeyValuePair<int, string>(70, "25"),
-            new KeyValuePair<int, string>(70, "104"),
-        };
+        private static List<KeyValuePair<int, string>> Head(string[] key) =>
+            new List<KeyValuePair<int, string>>
+            {
+                new KeyValuePair<int, string>(1071, key[0]),
+                new KeyValuePair<int, string>(1071, key[1]),
+                new KeyValuePair<int, string>(70, "25"),
+                new KeyValuePair<int, string>(70, "104"),
+            };
 
         private static void Point(List<KeyValuePair<int, string>> groups, GeoPoint3 point)
         {
@@ -1484,11 +1800,17 @@ namespace GeometryHelper.Dxf
         private static string Real(double value) => Numbers.Exact(value + 0.0);
 
         /// <summary>A record of the cache, by the node's id.</summary>
-        private static KeyValuePair<string, List<KeyValuePair<int, string>>> Record(string id, List<KeyValuePair<int, string>> groups)
-            => new KeyValuePair<string, List<KeyValuePair<int, string>>>(id, groups);
+        private static KeyValuePair<string, List<KeyValuePair<int, string>>> Record(
+            string id,
+            List<KeyValuePair<int, string>> groups
+        ) => new KeyValuePair<string, List<KeyValuePair<int, string>>>(id, groups);
 
         /// <summary>A record of a parameter of two points: its key, the base point, the end point and the normal down (0, 0, -1), as AutoCAD writes them.</summary>
-        private static List<KeyValuePair<int, string>> PointsRecord(string[] key, GeoPoint3 basePoint, GeoPoint3 endPoint)
+        private static List<KeyValuePair<int, string>> PointsRecord(
+            string[] key,
+            GeoPoint3 basePoint,
+            GeoPoint3 endPoint
+        )
         {
             List<KeyValuePair<int, string>> groups = Head(key);
             Point(groups, basePoint);
@@ -1545,7 +1867,9 @@ namespace GeometryHelper.Dxf
 
                 if (graph?.Item == null || graph.Item.Type != "ACAD_EVALUATION_GRAPH")
                 {
-                    throw new NotSupportedException("The block " + dynamic.Name + " has no evaluation graph to work out.");
+                    throw new NotSupportedException(
+                        "The block " + dynamic.Name + " has no evaluation graph to work out."
+                    );
                 }
 
                 DxfFile file = graph.Item.File;
@@ -1558,7 +1882,9 @@ namespace GeometryHelper.Dxf
                     }
 
                     IReadOnlyList<DxfTypedValue> groups = node.Groups;
-                    string id = DxfDynamicProperties.Text(DxfDynamicProperties.Section(groups, "AcDbEvalExpr"), 90)?.Trim();
+                    string id = DxfDynamicProperties
+                        .Text(DxfDynamicProperties.Section(groups, "AcDbEvalExpr"), 90)
+                        ?.Trim();
                     int before = block.Parameters.Count;
 
                     switch (node.Type)
@@ -1635,14 +1961,21 @@ namespace GeometryHelper.Dxf
                         case "ACDB_DYNAMICBLOCKPROXYNODE":
                             break;
                         default:
-                            throw new NotSupportedException("The block " + dynamic.Name + " holds a " + node.Type + ", which the library does not work out: it works out linear, XY, polar, point, rotation, flip, visibility and lookup parameters with stretch, polar stretch, move, scale, rotate, flip, array and lookup actions, alignment and base point parameters, horizontal, vertical and radial constraint parameters, and a block properties table with the user parameters it makes.");
+                            throw new NotSupportedException(
+                                "The block "
+                                    + dynamic.Name
+                                    + " holds a "
+                                    + node.Type
+                                    + ", which the library does not work out: it works out linear, XY, polar, point, rotation, flip, visibility and lookup parameters with stretch, polar stretch, move, scale, rotate, flip, array and lookup actions, alignment and base point parameters, horizontal, vertical and radial constraint parameters, and a block properties table with the user parameters it makes."
+                            );
                     }
 
                     if (block.Parameters.Count > before)
                     {
                         block.Parameters[before].Grips = Param.GripsOf(groups);
                         block.Parameters[before].Handle = node.Handle;
-                        block.Parameters[before].Chains = Param.FlagsOf(DxfDynamicProperties.Section(groups, "AcDbBlockParameter"), 281) != 0;
+                        block.Parameters[before].Chains =
+                            Param.FlagsOf(DxfDynamicProperties.Section(groups, "AcDbBlockParameter"), 281) != 0;
                     }
                 }
 
@@ -1662,7 +1995,14 @@ namespace GeometryHelper.Dxf
                 {
                     KeyValuePair<string, IReadOnlyList<DxfTypedValue>> table = tables.Find(t => t.Key == lookup.Action);
                     lookup.Table = block.Lookups.Find(l => l.Action == lookup.Action && l.Table != null)?.Table
-                        ?? Table.Of(table.Value ?? throw new NotSupportedException("A lookup parameter of the block " + dynamic.Name + " names no lookup action of it."), block, dynamic.Name);
+                        ?? Table.Of(
+                            table.Value
+                                ?? throw new NotSupportedException(
+                                    "A lookup parameter of the block " + dynamic.Name + " names no lookup action of it."
+                                ),
+                            block,
+                            dynamic.Name
+                        );
                 }
 
                 // A move or a polar stretch may list its own parameter's grips among what it moves, as AutoCAD's point sample and
@@ -1691,23 +2031,51 @@ namespace GeometryHelper.Dxf
 
                         if (action.Kind == ActionKind.Flip)
                         {
-                            if (!(carried is Dimensional dimensional) || !action.Entities.Exists(h => string.Equals(h, carried.Handle, StringComparison.OrdinalIgnoreCase)))
+                            if (
+                                !(carried is Dimensional dimensional)
+                                || !action.Entities.Exists(h =>
+                                    string.Equals(h, carried.Handle, StringComparison.OrdinalIgnoreCase)
+                                )
+                            )
                             {
-                                throw new NotSupportedException("A flip of the block " + dynamic.Name + " carries a parameter the library does not work out carried: it works out a constraint parameter held by the flip.");
+                                throw new NotSupportedException(
+                                    "A flip of the block "
+                                        + dynamic.Name
+                                        + " carries a parameter the library does not work out carried: it works out a constraint parameter held by the flip."
+                                );
                             }
 
                             dimensional.Flips.Add(action);
-                            action.Entities.RemoveAll(h => string.Equals(h, carried.Handle, StringComparison.OrdinalIgnoreCase) || (grips.TryGetValue(h, out string grip) && carried.Grips.Contains(grip)));
+                            action.Entities.RemoveAll(h =>
+                                string.Equals(h, carried.Handle, StringComparison.OrdinalIgnoreCase)
+                                || (grips.TryGetValue(h, out string grip) && carried.Grips.Contains(grip))
+                            );
                             continue;
                         }
 
-                        if (!(carried is Linear) || carried.Id == action.Parameter || carried.Chains || !action.Entities.Exists(h => string.Equals(h, carried.Handle, StringComparison.OrdinalIgnoreCase))
-                            || block.Actions.Exists(a => a.Parameter == id && a.Kind != ActionKind.Stretch && a.Kind != ActionKind.Move))
+                        if (
+                            !(carried is Linear)
+                            || carried.Id == action.Parameter
+                            || carried.Chains
+                            || !action.Entities.Exists(h =>
+                                string.Equals(h, carried.Handle, StringComparison.OrdinalIgnoreCase)
+                            )
+                            || block.Actions.Exists(a =>
+                                a.Parameter == id && a.Kind != ActionKind.Stretch && a.Kind != ActionKind.Move
+                            )
+                        )
                         {
-                            throw new NotSupportedException("A move of the block " + dynamic.Name + " carries a parameter the library does not work out carried: it works out a linear parameter, other than the move's own, held by the move, of no chained actions, followed by stretches and moves only.");
+                            throw new NotSupportedException(
+                                "A move of the block "
+                                    + dynamic.Name
+                                    + " carries a parameter the library does not work out carried: it works out a linear parameter, other than the move's own, held by the move, of no chained actions, followed by stretches and moves only."
+                            );
                         }
 
-                        action.Entities.RemoveAll(h => string.Equals(h, carried.Handle, StringComparison.OrdinalIgnoreCase) || (grips.TryGetValue(h, out string grip) && carried.Grips.Contains(grip)));
+                        action.Entities.RemoveAll(h =>
+                            string.Equals(h, carried.Handle, StringComparison.OrdinalIgnoreCase)
+                            || (grips.TryGetValue(h, out string grip) && carried.Grips.Contains(grip))
+                        );
                     }
                 }
 
@@ -1720,7 +2088,11 @@ namespace GeometryHelper.Dxf
 
                 if (sheets.Count > 1)
                 {
-                    throw new NotSupportedException("The block " + dynamic.Name + " has two block properties tables, where AutoCAD's Block Editor gives a block one.");
+                    throw new NotSupportedException(
+                        "The block "
+                            + dynamic.Name
+                            + " has two block properties tables, where AutoCAD's Block Editor gives a block one."
+                    );
                 }
 
                 if (sheets.Count == 1)
@@ -1740,22 +2112,40 @@ namespace GeometryHelper.Dxf
 
                 foreach (BlockAction action in block.Actions)
                 {
-                    if (action.Kind != ActionKind.Flip && (action.Entities.Exists(flipped.Contains) || action.Held.Exists(h => flipped.Contains(h.Key))))
+                    if (
+                        action.Kind != ActionKind.Flip
+                        && (
+                            action.Entities.Exists(flipped.Contains) || action.Held.Exists(h => flipped.Contains(h.Key))
+                        )
+                    )
                     {
-                        throw new NotSupportedException("The block " + dynamic.Name + " flips an entity another action moves, which AutoCAD 2021 worked out from the INSERT's last state rather than from the block: the library does not work it out.");
+                        throw new NotSupportedException(
+                            "The block "
+                                + dynamic.Name
+                                + " flips an entity another action moves, which AutoCAD 2021 worked out from the INSERT's last state rather than from the block: the library does not work it out."
+                        );
                     }
                 }
 
                 // An entity a rotate or a scale works on and a stretch or a move holds is not worked out: AutoCAD 2021 stretched
                 // such an entity from where its last set left it (plugin v21, 24e-g).
                 var turned = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                block.Actions.FindAll(a => a.Kind == ActionKind.Rotate || a.Kind == ActionKind.Scale).ForEach(a => turned.UnionWith(a.Entities));
+                block
+                    .Actions.FindAll(a => a.Kind == ActionKind.Rotate || a.Kind == ActionKind.Scale)
+                    .ForEach(a => turned.UnionWith(a.Entities));
 
                 foreach (BlockAction action in block.Actions)
                 {
-                    if ((action.Kind == ActionKind.Stretch || action.Kind == ActionKind.Move) && (action.Entities.Exists(turned.Contains) || action.Held.Exists(h => turned.Contains(h.Key))))
+                    if (
+                        (action.Kind == ActionKind.Stretch || action.Kind == ActionKind.Move)
+                        && (action.Entities.Exists(turned.Contains) || action.Held.Exists(h => turned.Contains(h.Key)))
+                    )
                     {
-                        throw new NotSupportedException("The block " + dynamic.Name + " turns or scales an entity a stretch or a move holds, which AutoCAD 2021 worked out from the INSERT's last state rather than from the block: the library does not work it out.");
+                        throw new NotSupportedException(
+                            "The block "
+                                + dynamic.Name
+                                + " turns or scales an entity a stretch or a move holds, which AutoCAD 2021 worked out from the INSERT's last state rather than from the block: the library does not work it out."
+                        );
                     }
                 }
 
@@ -1764,9 +2154,19 @@ namespace GeometryHelper.Dxf
                 {
                     foreach (BlockAction action in block.Actions)
                     {
-                        if (action != array && (action.Entities.Exists(array.Entities.Contains) || action.Held.Exists(h => array.Entities.Contains(h.Key))))
+                        if (
+                            action != array
+                            && (
+                                action.Entities.Exists(array.Entities.Contains)
+                                || action.Held.Exists(h => array.Entities.Contains(h.Key))
+                            )
+                        )
                         {
-                            throw new NotSupportedException("The block " + dynamic.Name + " copies by an array an entity another action works on, an order no sample of AutoCAD shows: the library does not work it out.");
+                            throw new NotSupportedException(
+                                "The block "
+                                    + dynamic.Name
+                                    + " copies by an array an entity another action works on, an order no sample of AutoCAD shows: the library does not work it out."
+                            );
                         }
                     }
                 }
@@ -1780,9 +2180,20 @@ namespace GeometryHelper.Dxf
 
                     foreach (BlockAction action in block.Actions)
                     {
-                        if (action != polar && (action.Entities.Exists(own.Contains) || action.Turned.Exists(own.Contains) || action.Held.Exists(h => own.Contains(h.Key))))
+                        if (
+                            action != polar
+                            && (
+                                action.Entities.Exists(own.Contains)
+                                || action.Turned.Exists(own.Contains)
+                                || action.Held.Exists(h => own.Contains(h.Key))
+                            )
+                        )
                         {
-                            throw new NotSupportedException("The block " + dynamic.Name + " turns by a polar stretch an entity another action works on, an order no sample of AutoCAD shows: the library does not work it out.");
+                            throw new NotSupportedException(
+                                "The block "
+                                    + dynamic.Name
+                                    + " turns by a polar stretch an entity another action works on, an order no sample of AutoCAD shows: the library does not work it out."
+                            );
                         }
                     }
                 }
@@ -1815,15 +2226,23 @@ namespace GeometryHelper.Dxf
             internal bool Chains { get; set; }
 
             /// <summary>The base point now: the block's own, moved by what the moves carrying the parameter give it.</summary>
-            internal GeoPoint3 BaseNow(Dictionary<string, double[]> carried)
-                => carried.TryGetValue(Id, out double[] shift) ? new GeoPoint3(Base.X + shift[0], Base.Y + shift[1], Base.Z) : Base;
+            internal GeoPoint3 BaseNow(Dictionary<string, double[]> carried) =>
+                carried.TryGetValue(Id, out double[] shift)
+                    ? new GeoPoint3(Base.X + shift[0], Base.Y + shift[1], Base.Z)
+                    : Base;
 
             /// <summary>The node ids of the grips a parameter lists: the 91s of a parameter of two points, the 93 of one of one point; nought left out.</summary>
             internal static HashSet<string> GripsOf(IReadOnlyList<DxfTypedValue> groups)
             {
                 var grips = new HashSet<string>(StringComparer.Ordinal);
-                DxfDynamicProperties.Section(groups, "AcDbBlock2PtParameter").FindAll(g => g.TypeCode == 91).ForEach(g => grips.Add(g.Value?.Trim()));
-                DxfDynamicProperties.Section(groups, "AcDbBlock1PtParameter").FindAll(g => g.TypeCode == 93).ForEach(g => grips.Add(g.Value?.Trim()));
+                DxfDynamicProperties
+                    .Section(groups, "AcDbBlock2PtParameter")
+                    .FindAll(g => g.TypeCode == 91)
+                    .ForEach(g => grips.Add(g.Value?.Trim()));
+                DxfDynamicProperties
+                    .Section(groups, "AcDbBlock1PtParameter")
+                    .FindAll(g => g.TypeCode == 93)
+                    .ForEach(g => grips.Add(g.Value?.Trim()));
                 grips.Remove("0");
                 grips.Remove(null);
                 return grips;
@@ -1833,10 +2252,19 @@ namespace GeometryHelper.Dxf
             internal virtual double[] Moved(double[] now) => new double[2];
 
             /// <summary>The records of the cache the parameter gives, at the value given, carried by the move given (in x and y), or by none where it is null.</summary>
-            internal abstract IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried);
+            internal abstract IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(
+                double[] now,
+                double[] carried
+            );
 
             /// <summary>The base point and the end point of a parameter of two points, read; refused where they cannot be read or its distance is measured from its middle.</summary>
-            protected static void TwoPoints(Param parameter, IReadOnlyList<DxfTypedValue> groups, string id, string kind, string block)
+            protected static void TwoPoints(
+                Param parameter,
+                IReadOnlyList<DxfTypedValue> groups,
+                string id,
+                string kind,
+                string block
+            )
             {
                 List<DxfTypedValue> two = DxfDynamicProperties.Section(groups, "AcDbBlock2PtParameter");
                 double[] from = DxfDynamicProperties.PointOf(two, 1010);
@@ -1845,7 +2273,13 @@ namespace GeometryHelper.Dxf
 
                 if (id == null || from == null || to == null || (location != null && location != "0"))
                 {
-                    throw new NotSupportedException("A " + kind + " parameter of the block " + block + " is not one the library works out: its points cannot be read, or its distance is measured from its middle.");
+                    throw new NotSupportedException(
+                        "A "
+                            + kind
+                            + " parameter of the block "
+                            + block
+                            + " is not one the library works out: its points cannot be read, or its distance is measured from its middle."
+                    );
                 }
 
                 parameter.Id = id;
@@ -1854,12 +2288,19 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>A whole number of a code of a subclass; nought where there is none.</summary>
-            internal static int FlagsOf(List<DxfTypedValue> own, int code)
-                => int.TryParse(DxfDynamicProperties.Text(own, code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags) ? flags : 0;
+            internal static int FlagsOf(List<DxfTypedValue> own, int code) =>
+                int.TryParse(
+                    DxfDynamicProperties.Text(own, code)?.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int flags
+                )
+                    ? flags
+                    : 0;
 
             /// <summary>A real of a code of a subclass; the value given where there is none.</summary>
-            internal static double RealOf(List<DxfTypedValue> own, int code, double none)
-                => DxfDynamicProperties.Number(DxfDynamicProperties.Text(own, code), out double number) ? number : none;
+            internal static double RealOf(List<DxfTypedValue> own, int code, double none) =>
+                DxfDynamicProperties.Number(DxfDynamicProperties.Text(own, code), out double number) ? number : none;
         }
 
         /// <summary>A linear parameter: its node's id, its base point, the unit direction to its end point, its distance and its value set.</summary>
@@ -1884,23 +2325,42 @@ namespace GeometryHelper.Dxf
 
                 if (id == null || from == null || to == null || (location != null && location != "0"))
                 {
-                    throw new NotSupportedException("A linear parameter of the block " + block + " is not one the library works out: its points cannot be read, or its distance is measured from its middle.");
+                    throw new NotSupportedException(
+                        "A linear parameter of the block "
+                            + block
+                            + " is not one the library works out: its points cannot be read, or its distance is measured from its middle."
+                    );
                 }
 
-                double dx = to[0] - from[0], dy = to[1] - from[1], dz = to[2] - from[2];
+                double dx = to[0] - from[0],
+                    dy = to[1] - from[1],
+                    dz = to[2] - from[2];
                 double length = Math.Sqrt(dx * dx + dy * dy + dz * dz);
 
                 if (!(length > 0.0))
                 {
-                    throw new NotSupportedException("A linear parameter of the block " + block + " has its end point on its base point.");
+                    throw new NotSupportedException(
+                        "A linear parameter of the block " + block + " has its end point on its base point."
+                    );
                 }
 
                 var linear = new Linear
                 {
-                    Id = id, Base = new GeoPoint3(from[0], from[1], from[2]), End = new GeoPoint3(to[0], to[1], to[2]), Distance = length, UnitX = dx / length, UnitY = dy / length, UnitZ = dz / length,
+                    Id = id,
+                    Base = new GeoPoint3(from[0], from[1], from[2]),
+                    End = new GeoPoint3(to[0], to[1], to[2]),
+                    Distance = length,
+                    UnitX = dx / length,
+                    UnitY = dy / length,
+                    UnitZ = dz / length,
                     Own = new[] { length },
                 };
-                linear._set = Allowed.Of(DxfDynamicProperties.Section(groups, "AcDbBlockLinearParameter"), 96, 141, 175);
+                linear._set = Allowed.Of(
+                    DxfDynamicProperties.Section(groups, "AcDbBlockLinearParameter"),
+                    96,
+                    141,
+                    175
+                );
                 return linear;
             }
 
@@ -1911,11 +2371,19 @@ namespace GeometryHelper.Dxf
                 return new[] { UnitX * change, UnitY * change };
             }
 
-            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried)
+            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(
+                double[] now,
+                double[] carried
+            )
             {
                 double distance = now[0];
-                GeoPoint3 from = carried == null ? Base : new GeoPoint3(Base.X + carried[0], Base.Y + carried[1], Base.Z);
-                var end = new GeoPoint3(from.X + UnitX * distance, from.Y + UnitY * distance, from.Z + UnitZ * distance);
+                GeoPoint3 from =
+                    carried == null ? Base : new GeoPoint3(Base.X + carried[0], Base.Y + carried[1], Base.Z);
+                var end = new GeoPoint3(
+                    from.X + UnitX * distance,
+                    from.Y + UnitY * distance,
+                    from.Z + UnitZ * distance
+                );
                 yield return Record(Id, PointsRecord(LinearKey, from, end));
             }
 
@@ -1952,16 +2420,36 @@ namespace GeometryHelper.Dxf
                 GeoPoint3 from = dimensional.Base;
                 GeoPoint3 to = dimensional.End;
                 bool radial = type == "BLOCKRADIALCONSTRAINTPARAMETER";
-                dimensional._key = radial ? RadialKey : type == "BLOCKHORIZONTALCONSTRAINTPARAMETER" ? HorizontalKey : VerticalKey;
-                dimensional.Own = new[] { radial ? from.DistanceTo(to) : type == "BLOCKHORIZONTALCONSTRAINTPARAMETER" ? Math.Abs(to.X - from.X) : Math.Abs(to.Y - from.Y) };
-                dimensional._set = Allowed.Of(DxfDynamicProperties.Section(groups, radial ? "AcDbBlockRadialConstraintParameter" : "AcDbBlockLinearConstraintParameter"), 96, 141, 175);
+                dimensional._key =
+                    radial ? RadialKey
+                    : type == "BLOCKHORIZONTALCONSTRAINTPARAMETER" ? HorizontalKey
+                    : VerticalKey;
+                dimensional.Own = new[]
+                {
+                    radial ? from.DistanceTo(to)
+                    : type == "BLOCKHORIZONTALCONSTRAINTPARAMETER" ? Math.Abs(to.X - from.X)
+                    : Math.Abs(to.Y - from.Y),
+                };
+                dimensional._set = Allowed.Of(
+                    DxfDynamicProperties.Section(
+                        groups,
+                        radial ? "AcDbBlockRadialConstraintParameter" : "AcDbBlockLinearConstraintParameter"
+                    ),
+                    96,
+                    141,
+                    175
+                );
                 return dimensional;
             }
 
             /// <summary>Whether two distances are the same, to 1E-12 of the larger or of 1: a constraint parameter at such a distance keeps the block's own geometry.</summary>
-            internal static bool Same(double a, double b) => Math.Abs(a - b) <= 1E-12 * Math.Max(1.0, Math.Max(Math.Abs(a), Math.Abs(b)));
+            internal static bool Same(double a, double b) =>
+                Math.Abs(a - b) <= 1E-12 * Math.Max(1.0, Math.Max(Math.Abs(a), Math.Abs(b)));
 
-            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried)
+            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(
+                double[] now,
+                double[] carried
+            )
             {
                 List<KeyValuePair<int, string>> groups = PointsRecord(_key, PlacedBase ?? Base, PlacedEnd ?? End);
 
@@ -2003,7 +2491,12 @@ namespace GeometryHelper.Dxf
 
                     if (group.TypeCode == flags)
                     {
-                        int.TryParse(group.Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out set._flags);
+                        int.TryParse(
+                            group.Value?.Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out set._flags
+                        );
                     }
                     else if (group.TypeCode == first)
                     {
@@ -2019,9 +2512,18 @@ namespace GeometryHelper.Dxf
                     }
                     else if (group.TypeCode == count)
                     {
-                        int.TryParse(group.Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out listed);
+                        int.TryParse(
+                            group.Value?.Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out listed
+                        );
                     }
-                    else if (group.TypeCode == first + 3 && listed > set._list.Count && DxfDynamicProperties.Number(group.Value, out number))
+                    else if (
+                        group.TypeCode == first + 3
+                        && listed > set._list.Count
+                        && DxfDynamicProperties.Number(group.Value, out number)
+                    )
                     {
                         set._list.Add(number);
                     }
@@ -2144,7 +2646,11 @@ namespace GeometryHelper.Dxf
                 if (value < low - slack || value > high + slack)
                 {
                     double off = Round(value, low) - Round(value, high);
-                    return Normal(off < -slack ? low : off > slack ? high : Tie(low, high, value));
+                    return Normal(
+                        off < -slack ? low
+                        : off > slack ? high
+                        : Tie(low, high, value)
+                    );
                 }
 
                 double taken = value;
@@ -2155,7 +2661,10 @@ namespace GeometryHelper.Dxf
                     double below = _minimum + Math.Floor(steps) * _increment;
                     double above = below + _increment;
                     double gap = (value - below) - (above - value);
-                    taken = gap < -slack ? below : gap > slack ? above : Tie(below, above, value);
+                    taken =
+                        gap < -slack ? below
+                        : gap > slack ? above
+                        : Tie(below, above, value);
                 }
 
                 return Normal(Math.Min(Math.Max(taken, low), high));
@@ -2170,7 +2679,8 @@ namespace GeometryHelper.Dxf
             /// </summary>
             private static double Tie(double first, double second, double value)
             {
-                double behind = Normal(value - first), other = Normal(value - second);
+                double behind = Normal(value - first),
+                    other = Normal(value - second);
 
                 if (Math.Abs(behind - other) <= Tolerance.Default.EqualVector)
                 {
@@ -2201,13 +2711,18 @@ namespace GeometryHelper.Dxf
                 var planar = new Planar();
                 TwoPoints(planar, groups, id, "XY", block);
                 List<DxfTypedValue> own = DxfDynamicProperties.Section(groups, "AcDbBlockXYParameter");
-                double dx = planar.End.X - planar.Base.X, dy = planar.End.Y - planar.Base.Y;
+                double dx = planar.End.X - planar.Base.X,
+                    dy = planar.End.Y - planar.Base.Y;
                 planar._x = Allowed.Of(own, 96, 142, 175);
                 planar._y = Allowed.Of(own, 97, 146, 176);
 
                 if (!(Math.Abs(dx) > 0.0) || !(Math.Abs(dy) > 0.0))
                 {
-                    throw new NotSupportedException("An XY parameter of the block " + block + " has its end point level with its base point along x or along y.");
+                    throw new NotSupportedException(
+                        "An XY parameter of the block "
+                            + block
+                            + " has its end point level with its base point along x or along y."
+                    );
                 }
 
                 planar._signX = dx > 0.0 ? 1.0 : -1.0;
@@ -2220,12 +2735,17 @@ namespace GeometryHelper.Dxf
             internal double[] Signs => new[] { _signX, _signY };
 
             /// <summary>A distance along x (part 0) or y (part 1), in the INSERT's units, taken to its value set, as <see cref="Allowed.Distance"/> says.</summary>
-            internal double Take(int part, double value, double scale) => (part == 0 ? _x : _y).Distance(value, scale, Own[part] * scale);
+            internal double Take(int part, double value, double scale) =>
+                (part == 0 ? _x : _y).Distance(value, scale, Own[part] * scale);
 
             /// <summary>The move of the end point: each distance now less the block's own, the way the end point lies.</summary>
-            internal override double[] Moved(double[] now) => new[] { _signX * (now[0] - Own[0]), _signY * (now[1] - Own[1]) };
+            internal override double[] Moved(double[] now) =>
+                new[] { _signX * (now[0] - Own[0]), _signY * (now[1] - Own[1]) };
 
-            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried)
+            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(
+                double[] now,
+                double[] carried
+            )
             {
                 var end = new GeoPoint3(Base.X + _signX * now[0], Base.Y + _signY * now[1], End.Z);
                 yield return Record(Id, PointsRecord(XYKey, Base, end));
@@ -2237,21 +2757,37 @@ namespace GeometryHelper.Dxf
         {
             internal static Spot Of(IReadOnlyList<DxfTypedValue> groups, string id, string block)
             {
-                double[] at = DxfDynamicProperties.PointOf(DxfDynamicProperties.Section(groups, "AcDbBlock1PtParameter"), 1010);
+                double[] at = DxfDynamicProperties.PointOf(
+                    DxfDynamicProperties.Section(groups, "AcDbBlock1PtParameter"),
+                    1010
+                );
 
                 if (id == null || at == null)
                 {
-                    throw new NotSupportedException("A point parameter of the block " + block + " is not one the library works out: its position cannot be read.");
+                    throw new NotSupportedException(
+                        "A point parameter of the block "
+                            + block
+                            + " is not one the library works out: its position cannot be read."
+                    );
                 }
 
                 var point = new GeoPoint3(at[0], at[1], at[2]);
-                return new Spot { Id = id, Base = point, End = point, Own = new[] { at[0], at[1] } };
+                return new Spot
+                {
+                    Id = id,
+                    Base = point,
+                    End = point,
+                    Own = new[] { at[0], at[1] },
+                };
             }
 
             /// <summary>The move of the position: where it is now less the block's own.</summary>
             internal override double[] Moved(double[] now) => new[] { now[0] - Own[0], now[1] - Own[1] };
 
-            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried)
+            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(
+                double[] now,
+                double[] carried
+            )
             {
                 List<KeyValuePair<int, string>> groups = Head(PointKey);
                 Point(groups, new GeoPoint3(now[0], now[1], Base.Z));
@@ -2277,15 +2813,22 @@ namespace GeometryHelper.Dxf
 
                 if (basis == null)
                 {
-                    throw new NotSupportedException("A rotation parameter of the block " + block + " is not one the library works out: its base angle cannot be read.");
+                    throw new NotSupportedException(
+                        "A rotation parameter of the block "
+                            + block
+                            + " is not one the library works out: its base angle cannot be read."
+                    );
                 }
 
-                double dx = turning.End.X - turning.Base.X, dy = turning.End.Y - turning.Base.Y;
+                double dx = turning.End.X - turning.Base.X,
+                    dy = turning.End.Y - turning.Base.Y;
                 turning._radius = Math.Sqrt(dx * dx + dy * dy);
 
                 if (!(turning._radius > 0.0))
                 {
-                    throw new NotSupportedException("A rotation parameter of the block " + block + " has its end point on its base point.");
+                    throw new NotSupportedException(
+                        "A rotation parameter of the block " + block + " has its end point on its base point."
+                    );
                 }
 
                 turning._baseAngle = new GeoPoint3(basis[0], basis[1], basis[2]);
@@ -2297,7 +2840,10 @@ namespace GeometryHelper.Dxf
             /// <summary>An angle taken to the value set, as <see cref="Allowed.Angle"/> says.</summary>
             internal double Take(double value) => _set.Angle(value, Own[0]);
 
-            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried)
+            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(
+                double[] now,
+                double[] carried
+            )
             {
                 double angle = _from + now[0];
                 var end = new GeoPoint3(Base.X + _radius * Math.Cos(angle), Base.Y + _radius * Math.Sin(angle), End.Z);
@@ -2321,11 +2867,14 @@ namespace GeometryHelper.Dxf
                 var polar = new Polar();
                 TwoPoints(polar, groups, id, "polar", block);
                 List<DxfTypedValue> own = DxfDynamicProperties.Section(groups, "AcDbBlockPolarParameter");
-                double dx = polar.End.X - polar.Base.X, dy = polar.End.Y - polar.Base.Y;
+                double dx = polar.End.X - polar.Base.X,
+                    dy = polar.End.Y - polar.Base.Y;
 
                 if (!(Math.Abs(dx) + Math.Abs(dy) > 0.0))
                 {
-                    throw new NotSupportedException("A polar parameter of the block " + block + " has its end point over its base point.");
+                    throw new NotSupportedException(
+                        "A polar parameter of the block " + block + " has its end point over its base point."
+                    );
                 }
 
                 polar._distance = Allowed.Of(own, 96, 141, 175);
@@ -2335,10 +2884,12 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>A distance (part 0), in the INSERT's units, or an angle (part 1), taken to its value set, as <see cref="Allowed"/> says.</summary>
-            internal double Take(int part, double value, double scale) => part == 0 ? _distance.Distance(value, scale, Own[0] * scale) : _angle.Angle(value, Own[1]);
+            internal double Take(int part, double value, double scale) =>
+                part == 0 ? _distance.Distance(value, scale, Own[0] * scale) : _angle.Angle(value, Own[1]);
 
             /// <summary>The end point at the distance and the angle given, level with the block's own along z.</summary>
-            internal GeoPoint3 EndAt(double[] now) => new GeoPoint3(Base.X + now[0] * Math.Cos(now[1]), Base.Y + now[0] * Math.Sin(now[1]), End.Z);
+            internal GeoPoint3 EndAt(double[] now) =>
+                new GeoPoint3(Base.X + now[0] * Math.Cos(now[1]), Base.Y + now[0] * Math.Sin(now[1]), End.Z);
 
             /// <summary>The move of the end point, which a stretch or a move tied to it follows: where it is now less the block's own; none at the block's own values.</summary>
             internal override double[] Moved(double[] now)
@@ -2368,10 +2919,17 @@ namespace GeometryHelper.Dxf
                 }
 
                 GeoTransform3 turn = GeoTransform3.RotationAxis(Base, new GeoVector3(0, 0, 1), angle);
-                return change == 0.0 ? turn : GeoTransform3.Translation(new GeoVector3(change * Math.Cos(now[1]), change * Math.Sin(now[1]), 0.0)).Multiply(turn);
+                return change == 0.0
+                    ? turn
+                    : GeoTransform3
+                        .Translation(new GeoVector3(change * Math.Cos(now[1]), change * Math.Sin(now[1]), 0.0))
+                        .Multiply(turn);
             }
 
-            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried)
+            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(
+                double[] now,
+                double[] carried
+            )
             {
                 List<KeyValuePair<int, string>> groups = PointsRecord(PolarKey, Base, EndAt(now));
                 Point(groups, new GeoPoint3(Base.X + 10.0, Base.Y, Base.Z));
@@ -2388,18 +2946,27 @@ namespace GeometryHelper.Dxf
             {
                 var mirror = new Mirror();
                 TwoPoints(mirror, groups, id, "flip", block);
-                mirror._grip = DxfDynamicProperties.Text(DxfDynamicProperties.Section(groups, "AcDbBlock2PtParameter"), 91)?.Trim();
+                mirror._grip = DxfDynamicProperties
+                    .Text(DxfDynamicProperties.Section(groups, "AcDbBlock2PtParameter"), 91)
+                    ?.Trim();
 
                 if (!(Math.Abs(mirror.End.X - mirror.Base.X) + Math.Abs(mirror.End.Y - mirror.Base.Y) > 0.0))
                 {
-                    throw new NotSupportedException("A flip parameter of the block " + block + " has its reflection line of no length along x and y.");
+                    throw new NotSupportedException(
+                        "A flip parameter of the block "
+                            + block
+                            + " has its reflection line of no length along x and y."
+                    );
                 }
 
                 mirror.Own = new[] { 0.0 };
                 return mirror;
             }
 
-            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried)
+            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(
+                double[] now,
+                double[] carried
+            )
             {
                 string state = now[0] == 1.0 ? "1" : "0";
                 List<KeyValuePair<int, string>> groups = PointsRecord(FlipKey, Base, End);
@@ -2464,12 +3031,16 @@ namespace GeometryHelper.Dxf
             internal static BlockAction PolarStretched(IReadOnlyList<DxfTypedValue> groups, string id, string block)
             {
                 var stretch = new BlockAction { Id = id, Kind = ActionKind.PolarStretch };
-                DxfDynamicProperties.Section(groups, "AcDbBlockAction").FindAll(g => g.TypeCode == 330).ForEach(g => stretch.Entities.Add(g.Value?.Trim()));
+                DxfDynamicProperties
+                    .Section(groups, "AcDbBlockAction")
+                    .FindAll(g => g.TypeCode == 330)
+                    .ForEach(g => stretch.Entities.Add(g.Value?.Trim()));
                 List<DxfTypedValue> own = DxfDynamicProperties.Section(groups, "AcDbBlockPolarStretchAction");
                 var nodes = new List<string>();
                 var connections = new List<string>();
                 int codes = 0;
-                double multiplier = 1.0, angle = 0.0;
+                double multiplier = 1.0,
+                    angle = 0.0;
                 bool held = false;
 
                 foreach (DxfTypedValue group in own)
@@ -2504,7 +3075,11 @@ namespace GeometryHelper.Dxf
                             stretch.Held.Add(new KeyValuePair<string, List<int>>(text, new List<int>()));
                             break;
                         case 76:
-                            if (held && stretch.Held.Count > 0 && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index))
+                            if (
+                                held
+                                && stretch.Held.Count > 0
+                                && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index)
+                            )
                             {
                                 stretch.Held[stretch.Held.Count - 1].Value.Add(index);
                             }
@@ -2525,10 +3100,23 @@ namespace GeometryHelper.Dxf
 
                 double slack = Tolerance.Default.EqualVector;
 
-                if (id == null || nodes.Count != 6 || nodes.Exists(n => n == null || n != nodes[0]) || connections.Count != 6 || connections[0] != "EndXDelta" || connections[1] != "EndYDelta"
-                    || codes != 0 || Math.Abs(multiplier - 1.0) > slack || Math.Abs(angle) > slack)
+                if (
+                    id == null
+                    || nodes.Count != 6
+                    || nodes.Exists(n => n == null || n != nodes[0])
+                    || connections.Count != 6
+                    || connections[0] != "EndXDelta"
+                    || connections[1] != "EndYDelta"
+                    || codes != 0
+                    || Math.Abs(multiplier - 1.0) > slack
+                    || Math.Abs(angle) > slack
+                )
                 {
-                    throw new NotSupportedException("A polar stretch of the block " + block + " is not one the library works out: it works out a polar stretch by the end point of a polar parameter, of the distance multiplier 1 and the angle offset nought.");
+                    throw new NotSupportedException(
+                        "A polar stretch of the block "
+                            + block
+                            + " is not one the library works out: it works out a polar stretch by the end point of a polar parameter, of the distance multiplier 1 and the angle offset nought."
+                    );
                 }
 
                 stretch.Parameter = nodes[0];
@@ -2545,8 +3133,13 @@ namespace GeometryHelper.Dxf
                     return move;
                 }
 
-                double cos = Math.Cos(Offset), sin = Math.Sin(Offset);
-                return new[] { Multiplier * (cos * move[0] - sin * move[1]), Multiplier * (sin * move[0] + cos * move[1]) };
+                double cos = Math.Cos(Offset),
+                    sin = Math.Sin(Offset);
+                return new[]
+                {
+                    Multiplier * (cos * move[0] - sin * move[1]),
+                    Multiplier * (sin * move[0] + cos * move[1]),
+                };
             }
 
             // The connections and the numbers read, checked against the parameter once the graph is read.
@@ -2561,7 +3154,8 @@ namespace GeometryHelper.Dxf
                 var stretch = new BlockAction { Id = id, Kind = ActionKind.Stretch };
                 List<DxfTypedValue> own = DxfDynamicProperties.Section(groups, "AcDbBlockStretchAction");
                 bool entities = false;
-                double multiplier = 1.0, angle = 0.0;
+                double multiplier = 1.0,
+                    angle = 0.0;
                 int parameters = 0;
 
                 foreach (DxfTypedValue group in own)
@@ -2589,7 +3183,11 @@ namespace GeometryHelper.Dxf
                             stretch.Held.Add(new KeyValuePair<string, List<int>>(text, new List<int>()));
                             break;
                         case 94:
-                            if (entities && stretch.Held.Count > 0 && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index))
+                            if (
+                                entities
+                                && stretch.Held.Count > 0
+                                && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index)
+                            )
                             {
                                 stretch.Held[stretch.Held.Count - 1].Value.Add(index);
                             }
@@ -2614,9 +3212,19 @@ namespace GeometryHelper.Dxf
                 double slack = Tolerance.Default.EqualVector;
                 stretch.ByBase = stretch._xBy == "BaseXDelta" && stretch._yBy == "BaseYDelta";
 
-                if (id == null || stretch._x == null || stretch._x != stretch._y || !(stretch.ByBase || (stretch._xBy == "EndXDelta" && stretch._yBy == "EndYDelta")) || parameters != 0)
+                if (
+                    id == null
+                    || stretch._x == null
+                    || stretch._x != stretch._y
+                    || !(stretch.ByBase || (stretch._xBy == "EndXDelta" && stretch._yBy == "EndYDelta"))
+                    || parameters != 0
+                )
                 {
-                    throw new NotSupportedException("A stretch of the block " + block + " is not one the library works out: it works out a stretch by the end point or the base point of a linear, an XY or a polar parameter, moving no other parameter.");
+                    throw new NotSupportedException(
+                        "A stretch of the block "
+                            + block
+                            + " is not one the library works out: it works out a stretch by the end point or the base point of a linear, an XY or a polar parameter, moving no other parameter."
+                    );
                 }
 
                 stretch.Parameter = stretch._x;
@@ -2661,7 +3269,8 @@ namespace GeometryHelper.Dxf
                     action._yBy = DxfDynamicProperties.Text(own, 302)?.Trim();
                     action._xyType = Param.FlagsOf(own, 280);
                     action.ByBase = action._xBy == "BaseXDelta" && action._yBy == "BaseYDelta";
-                    double multiplier = Param.RealOf(own, 140, 1.0), angle = Param.RealOf(own, 141, 0.0);
+                    double multiplier = Param.RealOf(own, 140, 1.0),
+                        angle = Param.RealOf(own, 141, 0.0);
                     action.Multiplier = Math.Abs(multiplier - 1.0) <= slack ? 1.0 : multiplier;
                     action.Offset = Math.Abs(angle) <= slack ? 0.0 : angle;
                     known = carried == action.Carried.Count && !action.Carried.Contains(null);
@@ -2676,8 +3285,12 @@ namespace GeometryHelper.Dxf
                     action._yBy = DxfDynamicProperties.Text(own, 302)?.Trim();
                     action.Rows = Param.RealOf(own, 140, 0.0);
                     action.Columns = Param.RealOf(own, 141, 0.0);
-                    known = action._xBy == "Base" && action._yBy == "End" && action.Columns > Tolerance.Default.EqualPoint
-                        && DxfDynamicProperties.Text(own, 94)?.Trim() == action._x && DxfDynamicProperties.Text(own, 95)?.Trim() == action._x;
+                    known =
+                        action._xBy == "Base"
+                        && action._yBy == "End"
+                        && action.Columns > Tolerance.Default.EqualPoint
+                        && DxfDynamicProperties.Text(own, 94)?.Trim() == action._x
+                        && DxfDynamicProperties.Text(own, 95)?.Trim() == action._x;
                 }
                 else if (type == "BLOCKFLIPACTION")
                 {
@@ -2695,21 +3308,53 @@ namespace GeometryHelper.Dxf
                     bool scale = type == "BLOCKSCALEACTION";
                     action.Kind = scale ? ActionKind.Scale : ActionKind.Rotate;
                     List<DxfTypedValue> basis = DxfDynamicProperties.Section(groups, "AcDbBlockActionWithBasePt");
-                    List<DxfTypedValue> own = DxfDynamicProperties.Section(groups, scale ? "AcDbBlockScaleAction" : "AcDbBlockRotationAction");
+                    List<DxfTypedValue> own = DxfDynamicProperties.Section(
+                        groups,
+                        scale ? "AcDbBlockScaleAction" : "AcDbBlockRotationAction"
+                    );
                     double[] offset = DxfDynamicProperties.PointOf(basis, 1011);
                     double[] added = DxfDynamicProperties.PointOf(basis, 1012) ?? new double[3];
-                    offset = offset == null ? null : new[] { Math.Abs(offset[0]) + Math.Abs(added[0]), Math.Abs(offset[1]) + Math.Abs(added[1]), Math.Abs(offset[2]) + Math.Abs(added[2]) };
+                    offset =
+                        offset == null
+                            ? null
+                            : new[]
+                            {
+                                Math.Abs(offset[0]) + Math.Abs(added[0]),
+                                Math.Abs(offset[1]) + Math.Abs(added[1]),
+                                Math.Abs(offset[2]) + Math.Abs(added[2]),
+                            };
                     action._x = DxfDynamicProperties.Text(basis, 92)?.Trim();
                     action._y = DxfDynamicProperties.Text(own, 94)?.Trim();
                     action._xBy = DxfDynamicProperties.Text(basis, 301)?.Trim();
                     action._yBy = DxfDynamicProperties.Text(own, 303)?.Trim();
-                    known = DxfDynamicProperties.Text(basis, 93)?.Trim() == action._x && action._xBy == "UpdatedBaseX" && action._yBy == (scale ? "Scale" : "AngleDelta")
-                        && Param.FlagsOf(basis, 280) == 1 && offset != null && Math.Abs(offset[0]) + Math.Abs(offset[1]) + Math.Abs(offset[2]) <= slack;
+                    known =
+                        DxfDynamicProperties.Text(basis, 93)?.Trim() == action._x
+                        && action._xBy == "UpdatedBaseX"
+                        && action._yBy == (scale ? "Scale" : "AngleDelta")
+                        && Param.FlagsOf(basis, 280) == 1
+                        && offset != null
+                        && Math.Abs(offset[0]) + Math.Abs(offset[1]) + Math.Abs(offset[2]) <= slack;
                 }
 
-                if (id == null || action._x == null || action._x != action._y || (action.Kind != ActionKind.Move && action.Kind != ActionKind.Flip && (carried != 0 || action.Carried.Count != 0)) || !known)
+                if (
+                    id == null
+                    || action._x == null
+                    || action._x != action._y
+                    || (
+                        action.Kind != ActionKind.Move
+                        && action.Kind != ActionKind.Flip
+                        && (carried != 0 || action.Carried.Count != 0)
+                    )
+                    || !known
+                )
                 {
-                    throw new NotSupportedException("A " + type + " of the block " + block + " is not one the library works out: it works out a move, a scale and a rotate about the parameter's base point, a flip and an array of a column offset, each of entities only, a move carrying linear parameters and a flip carrying constraint parameters.");
+                    throw new NotSupportedException(
+                        "A "
+                            + type
+                            + " of the block "
+                            + block
+                            + " is not one the library works out: it works out a move, a scale and a rotate about the parameter's base point, a flip and an array of a column offset, each of entities only, a move carrying linear parameters and a flip carrying constraint parameters."
+                    );
                 }
 
                 action.Parameter = action._x;
@@ -2737,7 +3382,12 @@ namespace GeometryHelper.Dxf
                         fits = end && (_xyType == 0 || !(parameter is Planar));
                         break;
                     case ActionKind.Move:
-                        fits = _xyType == 0 && ((end && ((_xBy == "EndXDelta" && _yBy == "EndYDelta") || ByBase)) || (parameter is Spot && _xBy == "XDelta" && _yBy == "YDelta"));
+                        fits =
+                            _xyType == 0
+                            && (
+                                (end && ((_xBy == "EndXDelta" && _yBy == "EndYDelta") || ByBase))
+                                || (parameter is Spot && _xBy == "XDelta" && _yBy == "YDelta")
+                            );
                         break;
                     case ActionKind.Scale:
                         fits = parameter is Linear;
@@ -2758,7 +3408,13 @@ namespace GeometryHelper.Dxf
 
                 if (!fits)
                 {
-                    throw new NotSupportedException("A " + Kind.ToString().ToLowerInvariant() + " action of the block " + name + " follows a parameter or a connection the library does not work out for it.");
+                    throw new NotSupportedException(
+                        "A "
+                            + Kind.ToString().ToLowerInvariant()
+                            + " action of the block "
+                            + name
+                            + " follows a parameter or a connection the library does not work out for it."
+                    );
                 }
 
                 var acted = new List<string>(Entities);
@@ -2767,9 +3423,32 @@ namespace GeometryHelper.Dxf
                 foreach (string handle in acted)
                 {
                     // An attribute definition a flip mirrors is worked out where the drawing's fonts measure its words.
-                    if (Kind != ActionKind.Stretch && (!entities.TryGetValue(handle, out DxfEntity entity) || entity is DxfUnknownEntity || entity is DxfOle2Frame || (entity is DxfAttributeDefinition definition && Kind != ActionKind.Move && Kind != ActionKind.Scale && Kind != ActionKind.Rotate && Kind != ActionKind.PolarStretch && !(Kind == ActionKind.Flip && definition.IsMeasured))))
+                    if (
+                        Kind != ActionKind.Stretch
+                        && (
+                            !entities.TryGetValue(handle, out DxfEntity entity)
+                            || entity is DxfUnknownEntity
+                            || entity is DxfOle2Frame
+                            || (
+                                entity is DxfAttributeDefinition definition
+                                && Kind != ActionKind.Move
+                                && Kind != ActionKind.Scale
+                                && Kind != ActionKind.Rotate
+                                && Kind != ActionKind.PolarStretch
+                                && !(Kind == ActionKind.Flip && definition.IsMeasured)
+                            )
+                        )
+                    )
                     {
-                        throw new NotSupportedException("A " + Kind.ToString().ToLowerInvariant() + " action of the block " + name + " works on " + handle + ", which is not an entity of the block the library works out: it may be another parameter or a grip, moved with it.");
+                        throw new NotSupportedException(
+                            "A "
+                                + Kind.ToString().ToLowerInvariant()
+                                + " action of the block "
+                                + name
+                                + " works on "
+                                + handle
+                                + ", which is not an entity of the block the library works out: it may be another parameter or a grip, moved with it."
+                        );
                     }
                 }
 
@@ -2778,12 +3457,25 @@ namespace GeometryHelper.Dxf
                     entities.TryGetValue(held.Key, out DxfEntity entity);
                     List<GeoPoint3> points = entity == null ? null : DxfBlockTableRecord.StretchPoints(entity, true);
                     int count = points?.Count ?? 0;
-                    bool whole = entity is DxfLine || entity is DxfPolyline || held.Value.Count == count || (Kind == ActionKind.Stretch && entity is DxfArc arc && DxfBlockTableRecord.Flat(arc.Normal));
+                    bool whole =
+                        entity is DxfLine
+                        || entity is DxfPolyline
+                        || held.Value.Count == count
+                        || (Kind == ActionKind.Stretch && entity is DxfArc arc && DxfBlockTableRecord.Flat(arc.Normal));
 
                     if (count == 0 || held.Value.Exists(i => i < 0 || i >= count) || !whole)
                     {
-                        throw new NotSupportedException("A " + (Kind == ActionKind.Stretch ? "stretch" : "polar stretch") + " of the block " + name + " holds the entity " + held.Key + ", which is not one the library works out with the points it names: lines and polylines by their points, arcs by both ends"
-                            + (Kind == ActionKind.Stretch ? " or, lying flat, by one" : string.Empty) + ", circles, texts, multiline texts and INSERTs by their one point.");
+                        throw new NotSupportedException(
+                            "A "
+                                + (Kind == ActionKind.Stretch ? "stretch" : "polar stretch")
+                                + " of the block "
+                                + name
+                                + " holds the entity "
+                                + held.Key
+                                + ", which is not one the library works out with the points it names: lines and polylines by their points, arcs by both ends"
+                                + (Kind == ActionKind.Stretch ? " or, lying flat, by one" : string.Empty)
+                                + ", circles, texts, multiline texts and INSERTs by their one point."
+                        );
                     }
                 }
             }
@@ -2802,19 +3494,38 @@ namespace GeometryHelper.Dxf
 
             internal static Looked Of(IReadOnlyList<DxfTypedValue> groups, string id, string block)
             {
-                double[] at = DxfDynamicProperties.PointOf(DxfDynamicProperties.Section(groups, "AcDbBlock1PtParameter"), 1010);
-                string action = DxfDynamicProperties.Text(DxfDynamicProperties.Section(groups, "AcDbBlockLookUpParameter"), 94)?.Trim();
+                double[] at = DxfDynamicProperties.PointOf(
+                    DxfDynamicProperties.Section(groups, "AcDbBlock1PtParameter"),
+                    1010
+                );
+                string action = DxfDynamicProperties
+                    .Text(DxfDynamicProperties.Section(groups, "AcDbBlockLookUpParameter"), 94)
+                    ?.Trim();
 
                 if (id == null || at == null || action == null)
                 {
-                    throw new NotSupportedException("A lookup parameter of the block " + block + " is not one the library works out: its location or its action cannot be read.");
+                    throw new NotSupportedException(
+                        "A lookup parameter of the block "
+                            + block
+                            + " is not one the library works out: its location or its action cannot be read."
+                    );
                 }
 
-                return new Looked { Id = id, Location = new GeoPoint3(at[0], at[1], at[2]), Action = action };
+                return new Looked
+                {
+                    Id = id,
+                    Location = new GeoPoint3(at[0], at[1], at[2]),
+                    Action = action,
+                };
             }
 
             /// <summary>Sets the inputs and the lookups of the table to the row of a label of this lookup's column, as <see cref="Table.Choose"/> says.</summary>
-            internal void Choose(string label, Dictionary<string, double[]> values, Dictionary<string, string> labels, string block) => Table.Choose(this, label, values, labels, block);
+            internal void Choose(
+                string label,
+                Dictionary<string, double[]> values,
+                Dictionary<string, string> labels,
+                string block
+            ) => Table.Choose(this, label, values, labels, block);
         }
 
         /// <summary>
@@ -2835,7 +3546,8 @@ namespace GeometryHelper.Dxf
             {
                 var table = new Table();
                 List<DxfTypedValue> own = DxfDynamicProperties.Section(groups, "AcDbBlockLookupAction");
-                int rows = Param.FlagsOf(own, 92), width = Param.FlagsOf(own, 93);
+                int rows = Param.FlagsOf(own, 92),
+                    width = Param.FlagsOf(own, 93);
                 var cells = new List<string>();
 
                 foreach (DxfTypedValue group in own)
@@ -2887,16 +3599,33 @@ namespace GeometryHelper.Dxf
                     string connection = column.Connection;
                     bool known = column.LookedUp
                         ? connection == "lookupString" && block.Lookups.Exists(l => l.Id == column.Node)
-                        : ((parameter is Linear || parameter is Polar) && connection == "UpdatedDistance") || (parameter is Spot && (connection == "UpdatedX" || connection == "UpdatedY"))
-                            || (parameter is Planar && (connection == "UpdatedDistanceX" || connection == "UpdatedDistanceY")) || ((parameter is Polar || parameter is Turning) && connection == "UpdatedAngle");
+                        : ((parameter is Linear || parameter is Polar) && connection == "UpdatedDistance")
+                            || (parameter is Spot && (connection == "UpdatedX" || connection == "UpdatedY"))
+                            || (
+                                parameter is Planar
+                                && (connection == "UpdatedDistanceX" || connection == "UpdatedDistanceY")
+                            )
+                            || ((parameter is Polar || parameter is Turning) && connection == "UpdatedAngle");
 
-                    if (!known || (!column.LookedUp && table._rows.Exists(r => !DxfDynamicProperties.Number(r[c], out _))))
+                    if (
+                        !known
+                        || (!column.LookedUp && table._rows.Exists(r => !DxfDynamicProperties.Number(r[c], out _)))
+                    )
                     {
-                        throw new NotSupportedException("A lookup table of the block " + name + " has a column the library does not work out: it works out inputs of a linear or a polar parameter's distance, a point parameter's x and y, an XY parameter's distances and a polar or a rotation parameter's angle, of numbers, and lookup parameters looked up.");
+                        throw new NotSupportedException(
+                            "A lookup table of the block "
+                                + name
+                                + " has a column the library does not work out: it works out inputs of a linear or a polar parameter's distance, a point parameter's x and y, an XY parameter's distances and a polar or a rotation parameter's angle, of numbers, and lookup parameters looked up."
+                        );
                     }
 
                     column.IsAngle = connection == "UpdatedAngle";
-                    column.Part = connection == "UpdatedY" || connection == "UpdatedDistanceY" || (parameter is Polar && column.IsAngle) ? 1 : 0;
+                    column.Part =
+                        connection == "UpdatedY"
+                        || connection == "UpdatedDistanceY"
+                        || (parameter is Polar && column.IsAngle)
+                            ? 1
+                            : 0;
                 }
 
                 return table;
@@ -2927,7 +3656,9 @@ namespace GeometryHelper.Dxf
                         {
                             DxfDynamicProperties.Number(row[c], out double cell);
                             double now = values[_columns[c].Node][_columns[c].Part];
-                            all = Math.Abs(cell - now) <= (_columns[c].IsAngle ? Tolerance.Default.EqualVector : Tolerance.Default.EqualPoint);
+                            all =
+                                Math.Abs(cell - now)
+                                <= (_columns[c].IsAngle ? Tolerance.Default.EqualVector : Tolerance.Default.EqualPoint);
                         }
                     }
 
@@ -2960,15 +3691,29 @@ namespace GeometryHelper.Dxf
             /// of the first whose cell is the label, both trimmed and letters of either case the same, and each lookup of the
             /// table to its cell of that row, as the table holds it; refuses a label of no row.
             /// </summary>
-            internal void Choose(Looked lookup, string label, Dictionary<string, double[]> values, Dictionary<string, string> labels, string block)
+            internal void Choose(
+                Looked lookup,
+                string label,
+                Dictionary<string, double[]> values,
+                Dictionary<string, string> labels,
+                string block
+            )
             {
                 int column = _columns.FindIndex(c => c.LookedUp && c.Node == lookup.Id);
-                string[] chosen = column < 0 ? null : _rows.Find(r => string.Equals(r[column], label, StringComparison.Ordinal))
-                    ?? _rows.Find(r => string.Equals(r[column].Trim(), label.Trim(), StringComparison.OrdinalIgnoreCase));
+                string[] chosen =
+                    column < 0
+                        ? null
+                        : _rows.Find(r => string.Equals(r[column], label, StringComparison.Ordinal))
+                            ?? _rows.Find(r =>
+                                string.Equals(r[column].Trim(), label.Trim(), StringComparison.OrdinalIgnoreCase)
+                            );
 
                 if (chosen == null)
                 {
-                    throw new ArgumentException("The lookup table of the block " + block + " has no row labelled " + label + ".", "value");
+                    throw new ArgumentException(
+                        "The lookup table of the block " + block + " has no row labelled " + label + ".",
+                        "value"
+                    );
                 }
 
                 for (int c = 0; c < _columns.Count; c++)
@@ -3025,14 +3770,33 @@ namespace GeometryHelper.Dxf
             {
                 List<DxfTypedValue> own = DxfDynamicProperties.Section(groups, "AcDbBlockUserParameter");
                 string type = DxfDynamicProperties.Text(own, 170)?.Trim();
-                double[] at = DxfDynamicProperties.PointOf(DxfDynamicProperties.Section(groups, "AcDbBlock1PtParameter"), 1010) ?? new double[3];
+                double[] at = DxfDynamicProperties.PointOf(
+                    DxfDynamicProperties.Section(groups, "AcDbBlock1PtParameter"),
+                    1010
+                ) ?? new double[3];
                 DxfItem variable = file.ObjectItem(DxfDynamicProperties.Text(own, 330));
-                List<DxfTypedValue> held = variable?.Type == "ACDBASSOCVARIABLE" ? DxfDynamicProperties.Section(variable.Groups, "AcDbAssocVariable") : new List<DxfTypedValue>();
-                int code = type == "5" ? 1 : type == "3" ? 40 : 0;
+                List<DxfTypedValue> held =
+                    variable?.Type == "ACDBASSOCVARIABLE"
+                        ? DxfDynamicProperties.Section(variable.Groups, "AcDbAssocVariable")
+                        : new List<DxfTypedValue>();
+                int code =
+                    type == "5" ? 1
+                    : type == "3" ? 40
+                    : 0;
 
-                if (id == null || code == 0 || held.Count < 6 || held[5].TypeCode != code || (held[2].Value ?? string.Empty).Trim().Length > 0 && code == 1)
+                if (
+                    id == null
+                    || code == 0
+                    || held.Count < 6
+                    || held[5].TypeCode != code
+                    || (held[2].Value ?? string.Empty).Trim().Length > 0 && code == 1
+                )
                 {
-                    throw new NotSupportedException("A user parameter of the block " + block + " is not one the library works out: it works out a user parameter of a text or a real a block properties table made, of no expression.");
+                    throw new NotSupportedException(
+                        "A user parameter of the block "
+                            + block
+                            + " is not one the library works out: it works out a user parameter of a text or a real a block properties table made, of no expression."
+                    );
                 }
 
                 object value;
@@ -3047,10 +3811,19 @@ namespace GeometryHelper.Dxf
                 }
                 else
                 {
-                    throw new NotSupportedException("A user parameter of the block " + block + " keeps a value the library cannot read.");
+                    throw new NotSupportedException(
+                        "A user parameter of the block " + block + " keeps a value the library cannot read."
+                    );
                 }
 
-                return new User { Id = id, Location = new GeoPoint3(at[0], at[1], at[2]), IsText = code == 1, Own = value, Variable = variable.Handle };
+                return new User
+                {
+                    Id = id,
+                    Location = new GeoPoint3(at[0], at[1], at[2]),
+                    IsText = code == 1,
+                    Own = value,
+                    Variable = variable.Handle,
+                };
             }
         }
 
@@ -3081,13 +3854,21 @@ namespace GeometryHelper.Dxf
 
             internal bool MustMatch => _table.MustMatch;
 
-            internal static Sheet Of(string id, IReadOnlyList<DxfTypedValue> groups, Block block, Dictionary<string, DxfEntity> entities, string name)
+            internal static Sheet Of(
+                string id,
+                IReadOnlyList<DxfTypedValue> groups,
+                Block block,
+                Dictionary<string, DxfEntity> entities,
+                string name
+            )
             {
                 var sheet = new Sheet { Id = id, _table = DxfPropertiesTable.Of(groups) };
 
                 if (id == null || sheet._table == null)
                 {
-                    throw new NotSupportedException("The block properties table of the block " + name + " cannot be read whole.");
+                    throw new NotSupportedException(
+                        "The block properties table of the block " + name + " cannot be read whole."
+                    );
                 }
 
                 foreach (DxfPropertiesTable.Column column in sheet._table.Columns)
@@ -3096,29 +3877,56 @@ namespace GeometryHelper.Dxf
                     string connection = column.Connection;
                     string tag = null;
                     bool user = false;
-                    bool shown = !column.IsAttribute && connection == "VisibilityState" && block.Visibility != null && block.Visibility.Id == column.Node;
+                    bool shown =
+                        !column.IsAttribute
+                        && connection == "VisibilityState"
+                        && block.Visibility != null
+                        && block.Visibility.Id == column.Node;
 
                     if (column.IsAttribute)
                     {
-                        tag = entities.TryGetValue(column.Handle, out DxfEntity entity) && entity is DxfAttributeDefinition definition ? definition.Tag ?? string.Empty : null;
+                        tag =
+                            entities.TryGetValue(column.Handle, out DxfEntity entity)
+                            && entity is DxfAttributeDefinition definition
+                                ? definition.Tag ?? string.Empty
+                                : null;
                     }
                     else if (connection == "UserVariable")
                     {
                         user = block.Users.Exists(u => u.Id == column.Node);
                     }
 
-                    bool known = column.IsAttribute ? tag != null : user || shown
-                        || ((parameter is Linear || parameter is Polar || parameter is Dimensional) && connection == "UpdatedDistance") || (parameter is Spot && (connection == "UpdatedX" || connection == "UpdatedY"))
-                        || (parameter is Planar && (connection == "UpdatedDistanceX" || connection == "UpdatedDistanceY")) || ((parameter is Polar || parameter is Turning) && connection == "UpdatedAngle");
+                    bool known = column.IsAttribute
+                        ? tag != null
+                        : user
+                            || shown
+                            || (
+                                (parameter is Linear || parameter is Polar || parameter is Dimensional)
+                                && connection == "UpdatedDistance"
+                            )
+                            || (parameter is Spot && (connection == "UpdatedX" || connection == "UpdatedY"))
+                            || (
+                                parameter is Planar
+                                && (connection == "UpdatedDistanceX" || connection == "UpdatedDistanceY")
+                            )
+                            || ((parameter is Polar || parameter is Turning) && connection == "UpdatedAngle");
 
                     if (!known)
                     {
-                        throw new NotSupportedException("The block properties table of the block " + name + " has a column the library does not work out: it works out a linear, a polar or a constraint parameter's distance, an XY parameter's distances, a polar or a rotation parameter's angle, a point parameter's x and y, user parameters, the visibility state and attribute definitions.");
+                        throw new NotSupportedException(
+                            "The block properties table of the block "
+                                + name
+                                + " has a column the library does not work out: it works out a linear, a polar or a constraint parameter's distance, an XY parameter's distances, a polar or a rotation parameter's angle, a point parameter's x and y, user parameters, the visibility state and attribute definitions."
+                        );
                     }
 
                     bool angle = connection == "UpdatedAngle";
                     sheet._nodes.Add(column.Node);
-                    sheet._parts.Add(connection == "UpdatedY" || connection == "UpdatedDistanceY" || (parameter is Polar && angle) ? 1 : 0);
+                    sheet._parts.Add(
+                        connection == "UpdatedY" || connection == "UpdatedDistanceY" || (parameter is Polar && angle)
+                            ? 1
+                            : 0
+                    );
                     sheet._angles.Add(angle);
                     sheet._tags.Add(tag);
                     sheet._users.Add(user);
@@ -3129,11 +3937,14 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>The index of the first row of the values and the visibility state given, as <see cref="DxfPropertiesTable.Row"/> says; -1 where none holds them.</summary>
-            internal int Row(Dictionary<string, double[]> values, Dictionary<string, object> users, string state) => _table.Row(column =>
-            {
-                int c = _table.Columns.IndexOf(column);
-                return _states[c] ? state : _users[c] ? (users.TryGetValue(_nodes[c], out object user) ? user : null) : (object)values[_nodes[c]][_parts[c]];
-            });
+            internal int Row(Dictionary<string, double[]> values, Dictionary<string, object> users, string state) =>
+                _table.Row(column =>
+                {
+                    int c = _table.Columns.IndexOf(column);
+                    return _states[c] ? state
+                        : _users[c] ? (users.TryGetValue(_nodes[c], out object user) ? user : null)
+                        : (object)values[_nodes[c]][_parts[c]];
+                });
 
             /// <summary>
             /// Sets each column to its cell of a row, as AutoCAD 2021 set the library's table and its Parking sample's (plugin
@@ -3142,7 +3953,14 @@ namespace GeometryHelper.Dxf
             /// cell of an attribute definition's column gives its attribute an empty text, as AutoCAD 2021 gave MARK (plugin
             /// D26b); another empty cell leaves its column as it is, and so does a cell not of its column's kind.
             /// </summary>
-            internal void Choose(int row, Dictionary<string, double[]> values, Dictionary<string, object> users, Dictionary<string, string> texts, Visible visibility, ref string state)
+            internal void Choose(
+                int row,
+                Dictionary<string, double[]> values,
+                Dictionary<string, object> users,
+                Dictionary<string, string> texts,
+                Visible visibility,
+                ref string state
+            )
             {
                 object[] cells = _table.Rows[row];
 
@@ -3162,7 +3980,11 @@ namespace GeometryHelper.Dxf
 
                     if (_states[c])
                     {
-                        State named = cell is string text ? visibility.States.Find(s => string.Equals(s.Name, text.Trim(), StringComparison.OrdinalIgnoreCase)) : null;
+                        State named = cell is string text
+                            ? visibility.States.Find(s =>
+                                string.Equals(s.Name, text.Trim(), StringComparison.OrdinalIgnoreCase)
+                            )
+                            : null;
                         state = named?.Name ?? state;
                     }
                     else if (_tags[c] != null)
@@ -3223,7 +4045,11 @@ namespace GeometryHelper.Dxf
                     {
                         if (_tags[c] == null && first[c] != null)
                         {
-                            all = DxfPropertiesTable.Same(_table.Rows[r][c], c == set ? (object)asked : first[c], _angles[c]);
+                            all = DxfPropertiesTable.Same(
+                                _table.Rows[r][c],
+                                c == set ? (object)asked : first[c],
+                                _angles[c]
+                            );
                         }
                     }
 
@@ -3258,7 +4084,10 @@ namespace GeometryHelper.Dxf
                 {
                     for (int b = a + 1; b < _table.Rows.Count; b++)
                     {
-                        if (_table.Rows[a][column] != null && DxfPropertiesTable.Same(_table.Rows[a][column], _table.Rows[b][column], _angles[column]))
+                        if (
+                            _table.Rows[a][column] != null
+                            && DxfPropertiesTable.Same(_table.Rows[a][column], _table.Rows[b][column], _angles[column])
+                        )
                         {
                             return false;
                         }
@@ -3286,7 +4115,12 @@ namespace GeometryHelper.Dxf
                 {
                     object unmatched = _table.Columns[c].Unmatched;
 
-                    if (_users[c] && unmatched != null && users.TryGetValue(_nodes[c], out object now) && now?.GetType() == unmatched.GetType())
+                    if (
+                        _users[c]
+                        && unmatched != null
+                        && users.TryGetValue(_nodes[c], out object now)
+                        && now?.GetType() == unmatched.GetType()
+                    )
                     {
                         users[_nodes[c]] = unmatched;
                     }
@@ -3309,7 +4143,10 @@ namespace GeometryHelper.Dxf
 
             internal static Visible Of(IReadOnlyList<DxfTypedValue> groups, string id)
             {
-                double[] at = DxfDynamicProperties.PointOf(DxfDynamicProperties.Section(groups, "AcDbBlock1PtParameter"), 1010) ?? new double[3];
+                double[] at = DxfDynamicProperties.PointOf(
+                    DxfDynamicProperties.Section(groups, "AcDbBlock1PtParameter"),
+                    1010
+                ) ?? new double[3];
                 var visible = new Visible { Id = id, Location = new GeoPoint3(at[0], at[1], at[2]) };
 
                 foreach (DxfTypedValue group in DxfDynamicProperties.Section(groups, "AcDbBlockVisibilityParameter"))
@@ -3337,7 +4174,9 @@ namespace GeometryHelper.Dxf
 
                 if (id == null || visible.States.Count == 0)
                 {
-                    throw new NotSupportedException("A visibility parameter of no state, or of no id, is not worked out.");
+                    throw new NotSupportedException(
+                        "A visibility parameter of no state, or of no id, is not worked out."
+                    );
                 }
 
                 return visible;

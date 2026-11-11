@@ -26,7 +26,8 @@ namespace GeometryHelper.Geometry
         /// Gets the shortest segment leaving this point and landing on a ball, within a tolerance.
         /// </summary>
         /// <returns>The segment of <see cref="GeoSphere3.GetShortestLineTo(GeoPoint3, Tolerance)"/> turned round, so that it leaves this point and lands on the surface of the ball.</returns>
-        public GeoLine3 GetShortestLineTo(GeoSphere3 sphere, Tolerance tolerance) => sphere.GetShortestLineTo(this, tolerance).Reverse();
+        public GeoLine3 GetShortestLineTo(GeoSphere3 sphere, Tolerance tolerance) =>
+            sphere.GetShortestLineTo(this, tolerance).Reverse();
 
         #endregion
     }

@@ -14,7 +14,17 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static partial class CadCommands
     {
-        private static readonly string[] LayerStateOptions = { "?", "Save", "Restore", "Edit", "Name", "Delete", "Import", "EXport" };
+        private static readonly string[] LayerStateOptions =
+        {
+            "?",
+            "Save",
+            "Restore",
+            "Edit",
+            "Name",
+            "Delete",
+            "Import",
+            "EXport",
+        };
 
         /// <summary>LAYERSTATE: the Layer States Manager, its changes one undo step; with no window, -LAYER's stAte prompts.</summary>
         private static IEnumerable<CadPrompt> LayerStateManager(CadCommandContext c)
@@ -44,7 +54,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (request.Action == CadDialogAction.Ok && CadLayerStates.Find(c.Database, request.Selected) != null)
             {
-                DxfViewport viewport = request.AsViewportOverrides ? CadViewportLayerEditor.TargetViewport(c.Document) : null;
+                DxfViewport viewport = request.AsViewportOverrides
+                    ? CadViewportLayerEditor.TargetViewport(c.Document)
+                    : null;
 
                 if (viewport != null && string.CompareOrdinal(c.Database.Version, "AC1015") >= 0)
                 {
@@ -62,18 +74,27 @@ namespace GeometryHelper.Dxf.Viewer
         {
             request.States = CadLayerStates.Rows(c.Database, !request.HideXrefStates);
 
-            if (request.Selected != null && !request.States.Any(s => string.Equals(s.Name, request.Selected, StringComparison.OrdinalIgnoreCase)))
+            if (
+                request.Selected != null
+                && !request.States.Any(s => string.Equals(s.Name, request.Selected, StringComparison.OrdinalIgnoreCase))
+            )
             {
                 request.Selected = null;
             }
 
-            CadLayerStateRow same = request.States.FirstOrDefault(s => s.SameAsDrawing && (s.Mask & CadLayerStates.LastRestored) != 0)
-                ?? request.States.FirstOrDefault(s => s.SameAsDrawing);
+            CadLayerStateRow same = request.States.FirstOrDefault(s =>
+                s.SameAsDrawing && (s.Mask & CadLayerStates.LastRestored) != 0
+            ) ?? request.States.FirstOrDefault(s => s.SameAsDrawing);
             request.Current = same?.Name ?? "*UNSAVED*";
         }
 
         /// <summary>A change of the dialog's made at once, an edit of the command's step; what it says where it is refused, else null.</summary>
-        private static string ChangeLayerStateInDialog(CadCommandContext c, CadLayerStatesRequest request, string what, string[] texts)
+        private static string ChangeLayerStateInDialog(
+            CadCommandContext c,
+            CadLayerStatesRequest request,
+            string what,
+            string[] texts
+        )
         {
             string chosen = CadLayerStates.NameOf(c.Database, request.Selected);
 
@@ -98,7 +119,8 @@ namespace GeometryHelper.Dxf.Viewer
                     request.Selected = name;
                     return null;
                 case "Import":
-                    return ImportLayerStates(c, texts[0], out List<string> read) ?? Chosen(request, read.LastOrDefault());
+                    return ImportLayerStates(c, texts[0], out List<string> read)
+                        ?? Chosen(request, read.LastOrDefault());
             }
 
             if (chosen == null)
@@ -129,12 +151,18 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     c.OpenUndoStep();
-                    c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Layer state", chosen, typed) }, s => CadLayerStates.Rename(s.Database, chosen, typed));
+                    c.Apply(
+                        new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Layer state", chosen, typed) },
+                        s => CadLayerStates.Rename(s.Database, chosen, typed)
+                    );
                     request.Selected = typed;
                     return null;
                 case "Delete":
                     c.OpenUndoStep();
-                    c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Layer state", chosen, null) }, s => CadLayerStates.Delete(s.Database, chosen));
+                    c.Apply(
+                        new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Layer state", chosen, null) },
+                        s => CadLayerStates.Delete(s.Database, chosen)
+                    );
                     request.Selected = null;
                     return null;
                 case "Mask":
@@ -145,7 +173,19 @@ namespace GeometryHelper.Dxf.Viewer
                     if (written != had)
                     {
                         c.OpenUndoStep();
-                        c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Layer state mask", chosen, Values(written)) }, s => CadLayerStates.SetMask(CadLayerStates.Find(s.Database, chosen), written));
+                        c.Apply(
+                            new[]
+                            {
+                                new CadEditRecord(
+                                    CadEditRecordKind.TableChanged,
+                                    null,
+                                    "Layer state mask",
+                                    chosen,
+                                    Values(written)
+                                ),
+                            },
+                            s => CadLayerStates.SetMask(CadLayerStates.Find(s.Database, chosen), written)
+                        );
                     }
 
                     return null;
@@ -202,7 +242,13 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (CadLayerStates.Find(c.Database, name) != null)
                     {
-                        yield return CadPrompt.ForKeyword("Layer state \"" + CadLayerStates.NameOf(c.Database, name) + "\" already exists. Overwrite?", new[] { "Yes", "No" }, "No");
+                        yield return CadPrompt.ForKeyword(
+                            "Layer state \""
+                                + CadLayerStates.NameOf(c.Database, name)
+                                + "\" already exists. Overwrite?",
+                            new[] { "Yes", "No" },
+                            "No"
+                        );
 
                         if (!c.Input.Is("Yes"))
                         {
@@ -225,8 +271,14 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (option == "Import")
                 {
-                    yield return CadPrompt.ForString("Enter file name to import", Path.GetFileNameWithoutExtension(c.Document.FileName ?? "Drawing1"));
-                    string file = c.Input.Kind == CadInputKind.Text ? c.Input.Text : Path.GetFileNameWithoutExtension(c.Document.FileName ?? "Drawing1");
+                    yield return CadPrompt.ForString(
+                        "Enter file name to import",
+                        Path.GetFileNameWithoutExtension(c.Document.FileName ?? "Drawing1")
+                    );
+                    string file =
+                        c.Input.Kind == CadInputKind.Text
+                            ? c.Input.Text
+                            : Path.GetFileNameWithoutExtension(c.Document.FileName ?? "Drawing1");
                     string said = ImportLayerStates(c, file, out _);
 
                     if (said != null)
@@ -237,7 +289,12 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                string verb = option == "Restore" ? "restore" : option == "Edit" ? "edit" : option == "Name" ? "rename" : option == "Delete" ? "delete" : "export";
+                string verb =
+                    option == "Restore" ? "restore"
+                    : option == "Edit" ? "edit"
+                    : option == "Name" ? "rename"
+                    : option == "Delete" ? "delete"
+                    : "export";
                 var chosen = new Ref<string>();
 
                 foreach (CadPrompt prompt in AskLayerState(c, "Enter name of layer state to " + verb + " or", chosen))
@@ -270,7 +327,19 @@ namespace GeometryHelper.Dxf.Viewer
                         if (edited.Value != had)
                         {
                             c.OpenUndoStep();
-                            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Layer state mask", state, Values(edited.Value)) }, s => CadLayerStates.SetMask(CadLayerStates.Find(s.Database, state), edited.Value));
+                            c.Apply(
+                                new[]
+                                {
+                                    new CadEditRecord(
+                                        CadEditRecordKind.TableChanged,
+                                        null,
+                                        "Layer state mask",
+                                        state,
+                                        Values(edited.Value)
+                                    ),
+                                },
+                                s => CadLayerStates.SetMask(CadLayerStates.Find(s.Database, state), edited.Value)
+                            );
                         }
 
                         break;
@@ -290,13 +359,34 @@ namespace GeometryHelper.Dxf.Viewer
                         else
                         {
                             c.OpenUndoStep();
-                            Said(c, c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Layer state", state, typed) }, s => CadLayerStates.Rename(s.Database, state, typed)));
+                            Said(
+                                c,
+                                c.Apply(
+                                    new[]
+                                    {
+                                        new CadEditRecord(
+                                            CadEditRecordKind.TableChanged,
+                                            null,
+                                            "Layer state",
+                                            state,
+                                            typed
+                                        ),
+                                    },
+                                    s => CadLayerStates.Rename(s.Database, state, typed)
+                                )
+                            );
                         }
 
                         break;
                     case "Delete":
                         c.OpenUndoStep();
-                        c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Layer state", state, null) }, s => CadLayerStates.Delete(s.Database, state));
+                        c.Apply(
+                            new[]
+                            {
+                                new CadEditRecord(CadEditRecordKind.TableChanged, null, "Layer state", state, null),
+                            },
+                            s => CadLayerStates.Delete(s.Database, state)
+                        );
                         break;
                     default:
                         yield return CadPrompt.ForString("Export state to file name", state);
@@ -334,7 +424,10 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 string name = c.Input.Text.Trim();
-                string found = CadLayerStates.Rows(c.Database, true).Select(r => r.Name).FirstOrDefault(n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase));
+                string found = CadLayerStates
+                    .Rows(c.Database, true)
+                    .Select(r => r.Name)
+                    .FirstOrDefault(n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase));
 
                 if (found == null)
                 {
@@ -350,7 +443,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The properties a state restores listed, Yes or No, and switched one by one as typed, until Enter.</summary>
         private static IEnumerable<CadPrompt> StatesToChange(CadCommandContext c, Ref<int> mask)
         {
-            string[] keywords = { "On", "Frozen", "Lock", "Plot", "Newvpfreeze", "Color", "lineType", "lineWeight", "TRansparency", "plotStyle" };
+            string[] keywords =
+            {
+                "On",
+                "Frozen",
+                "Lock",
+                "Plot",
+                "Newvpfreeze",
+                "Color",
+                "lineType",
+                "lineWeight",
+                "TRansparency",
+                "plotStyle",
+            };
 
             while (true)
             {
@@ -389,13 +494,21 @@ namespace GeometryHelper.Dxf.Viewer
         private static void SaveLayerState(CadCommandContext c, string name, string description, int mask)
         {
             c.OpenUndoStep();
-            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Layer state", null, name) }, s => CadLayerStates.Save(s.Database, name, description, mask));
+            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Layer state", null, name) }, s =>
+                CadLayerStates.Save(s.Database, name, description, mask)
+            );
         }
 
         /// <summary>A state restored into the layers, an edit of the command's step.</summary>
         internal static void RestoreLayerState(CadCommandContext c, string name, bool turnOffMissing)
         {
-            var planned = new List<CadEditRecord> { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Restore layer state", null, name) { IsLayerLook = true } };
+            var planned = new List<CadEditRecord>
+            {
+                new CadEditRecord(CadEditRecordKind.TableChanged, null, "Restore layer state", null, name)
+                {
+                    IsLayerLook = true,
+                },
+            };
             c.OpenUndoStep();
             c.Apply(planned, s => CadLayerStates.Restore(s.Database, name, turnOffMissing));
         }
@@ -404,7 +517,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// A state restored into one viewport of a layout as overrides of its layers and layers frozen there, an edit of the
         /// command's step: the layers themselves are left alone.
         /// </summary>
-        private static void RestoreLayerStateInViewport(CadCommandContext c, string name, DxfViewport viewport, bool turnOffMissing)
+        private static void RestoreLayerStateInViewport(
+            CadCommandContext c,
+            string name,
+            DxfViewport viewport,
+            bool turnOffMissing
+        )
         {
             string handle = viewport.Handle;
             var planned = new List<CadEditRecord>
@@ -413,7 +531,14 @@ namespace GeometryHelper.Dxf.Viewer
                 new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "VP Freeze", null, name),
             };
             c.OpenUndoStep();
-            c.Apply(planned, s => CadLayerStates.RestoreAsOverrides(s.Database, name, (DxfViewport)s.Document.FindEntity(handle), turnOffMissing));
+            c.Apply(planned, s =>
+                CadLayerStates.RestoreAsOverrides(
+                    s.Database,
+                    name,
+                    (DxfViewport)s.Document.FindEntity(handle),
+                    turnOffMissing
+                )
+            );
         }
 
         /// <summary>The states of a .las file read in, an edit of the command's step; what it says where it cannot, else null.</summary>
@@ -429,15 +554,25 @@ namespace GeometryHelper.Dxf.Viewer
                 path = CadLayerStates.LasPath(c.Document, typed);
                 text = File.ReadAllText(path);
             }
-            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException || exception is NotSupportedException)
+            catch (Exception exception)
+                when (exception is IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is ArgumentException
+                    || exception is NotSupportedException
+                )
             {
-                GeometryHelperLog.Debug("CadCommands: the layer states file " + path + " could not be read: " + exception.Message);
+                GeometryHelperLog.Debug(
+                    "CadCommands: the layer states file " + path + " could not be read: " + exception.Message
+                );
                 return "Cannot find file \"" + path + "\".";
             }
 
             List<string> names = null;
             c.OpenUndoStep();
-            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Import layer states", null, path) }, s => names = CadLayerStates.Import(s.Database, text));
+            c.Apply(
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Import layer states", null, path) },
+                s => names = CadLayerStates.Import(s.Database, text)
+            );
 
             if (names == null)
             {
@@ -460,9 +595,17 @@ namespace GeometryHelper.Dxf.Viewer
                 File.WriteAllText(path, CadLayerStates.ExportText(c.Database, name));
                 return null;
             }
-            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException || exception is NotSupportedException)
+            catch (Exception exception)
+                when (exception is IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is ArgumentException
+                    || exception is NotSupportedException
+                )
             {
-                GeometryHelperLog.Warn("CadCommands: the layer state " + name + " could not be written to " + path + ".", exception);
+                GeometryHelperLog.Warn(
+                    "CadCommands: the layer state " + name + " could not be written to " + path + ".",
+                    exception
+                );
                 return "Cannot write file \"" + path + "\".";
             }
         }

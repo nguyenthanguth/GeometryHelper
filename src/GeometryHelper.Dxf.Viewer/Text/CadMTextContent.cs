@@ -13,9 +13,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     public sealed class CadMTextLook : IEquatable<CadMTextLook>
     {
-        private CadMTextLook()
-        {
-        }
+        private CadMTextLook() { }
 
         /// <summary>Gets the look of words with no code: everything the MTEXT's own.</summary>
         public static CadMTextLook Plain { get; } = new CadMTextLook();
@@ -76,24 +74,26 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="bold">Whether bold.</param>
         /// <param name="italic">Whether italic.</param>
         /// <returns>The new look.</returns>
-        public CadMTextLook WithTrueType(string family, bool bold, bool italic) => Change(l =>
-        {
-            l.Font = string.IsNullOrEmpty(family) ? null : family;
-            l.IsShx = false;
-            l.Bold = bold;
-            l.Italic = italic;
-        });
+        public CadMTextLook WithTrueType(string family, bool bold, bool italic) =>
+            Change(l =>
+            {
+                l.Font = string.IsNullOrEmpty(family) ? null : family;
+                l.IsShx = false;
+                l.Bold = bold;
+                l.Italic = italic;
+            });
 
         /// <summary>Gives the look with an SHX font, which is neither bold nor italic.</summary>
         /// <param name="file">The file, as romans; null for the style's font.</param>
         /// <returns>The new look.</returns>
-        public CadMTextLook WithShx(string file) => Change(l =>
-        {
-            l.Font = string.IsNullOrEmpty(file) ? null : file;
-            l.IsShx = l.Font != null;
-            l.Bold = false;
-            l.Italic = false;
-        });
+        public CadMTextLook WithShx(string file) =>
+            Change(l =>
+            {
+                l.Font = string.IsNullOrEmpty(file) ? null : file;
+                l.IsShx = l.Font != null;
+                l.Bold = false;
+                l.Italic = false;
+            });
 
         /// <summary>Gives the look underlined or not.</summary>
         /// <param name="on">Whether underlined.</param>
@@ -113,20 +113,22 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gives the look in a colour of the index (0 ByBlock, 256 ByLayer), any true colour dropped; null for the MTEXT's own.</summary>
         /// <param name="index">The index.</param>
         /// <returns>The new look.</returns>
-        public CadMTextLook WithColorIndex(int? index) => Change(l =>
-        {
-            l.ColorIndex = index;
-            l.TrueColor = null;
-        });
+        public CadMTextLook WithColorIndex(int? index) =>
+            Change(l =>
+            {
+                l.ColorIndex = index;
+                l.TrueColor = null;
+            });
 
         /// <summary>Gives the look in a true colour, 0xRRGGBB, any colour index dropped; null for none.</summary>
         /// <param name="rgb">The colour.</param>
         /// <returns>The new look.</returns>
-        public CadMTextLook WithTrueColor(int? rgb) => Change(l =>
-        {
-            l.TrueColor = rgb & 0xFFFFFF;
-            l.ColorIndex = null;
-        });
+        public CadMTextLook WithTrueColor(int? rgb) =>
+            Change(l =>
+            {
+                l.TrueColor = rgb & 0xFFFFFF;
+                l.ColorIndex = null;
+            });
 
         /// <summary>Gives the look of a height in drawing units; null for the MTEXT's.</summary>
         /// <param name="height">The height.</param>
@@ -157,10 +159,23 @@ namespace GeometryHelper.Dxf.Viewer
         public bool Equals(CadMTextLook other)
         {
             // Values as written, compared exactly: two runs are one where their codes read the same.
-            return other != null && string.Equals(Font, other.Font, StringComparison.OrdinalIgnoreCase) && IsShx == other.IsShx && Bold == other.Bold
-                && Italic == other.Italic && Charset == other.Charset && Pitch == other.Pitch && Underline == other.Underline && Overline == other.Overline
-                && Strikethrough == other.Strikethrough && ColorIndex == other.ColorIndex && TrueColor == other.TrueColor && Height == other.Height
-                && Oblique == other.Oblique && Tracking == other.Tracking && WidthFactor == other.WidthFactor && Align == other.Align;
+            return other != null
+                && string.Equals(Font, other.Font, StringComparison.OrdinalIgnoreCase)
+                && IsShx == other.IsShx
+                && Bold == other.Bold
+                && Italic == other.Italic
+                && Charset == other.Charset
+                && Pitch == other.Pitch
+                && Underline == other.Underline
+                && Overline == other.Overline
+                && Strikethrough == other.Strikethrough
+                && ColorIndex == other.ColorIndex
+                && TrueColor == other.TrueColor
+                && Height == other.Height
+                && Oblique == other.Oblique
+                && Tracking == other.Tracking
+                && WidthFactor == other.WidthFactor
+                && Align == other.Align;
         }
 
         /// <inheritdoc/>
@@ -172,7 +187,14 @@ namespace GeometryHelper.Dxf.Viewer
             unchecked
             {
                 int hash = StringComparer.OrdinalIgnoreCase.GetHashCode(Font ?? string.Empty);
-                hash = (hash * 31) + (Bold ? 1 : 0) + (Italic ? 2 : 0) + (Underline ? 4 : 0) + (Overline ? 8 : 0) + (Strikethrough ? 16 : 0) + (IsShx ? 32 : 0);
+                hash =
+                    (hash * 31)
+                    + (Bold ? 1 : 0)
+                    + (Italic ? 2 : 0)
+                    + (Underline ? 4 : 0)
+                    + (Overline ? 8 : 0)
+                    + (Strikethrough ? 16 : 0)
+                    + (IsShx ? 32 : 0);
                 hash = (hash * 31) + (ColorIndex ?? -1);
                 hash = (hash * 31) + (TrueColor ?? -1);
                 hash = (hash * 31) + (Height ?? 0.0).GetHashCode();
@@ -180,15 +202,16 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        internal CadMTextLook WithFontCode(string font, bool shx, bool bold, bool italic, int? charset, int? pitch) => Change(l =>
-        {
-            l.Font = font;
-            l.IsShx = shx;
-            l.Bold = bold;
-            l.Italic = italic;
-            l.Charset = charset;
-            l.Pitch = pitch;
-        });
+        internal CadMTextLook WithFontCode(string font, bool shx, bool bold, bool italic, int? charset, int? pitch) =>
+            Change(l =>
+            {
+                l.Font = font;
+                l.IsShx = shx;
+                l.Bold = bold;
+                l.Italic = italic;
+                l.Charset = charset;
+                l.Pitch = pitch;
+            });
 
         private CadMTextLook Change(Action<CadMTextLook> change)
         {
@@ -343,7 +366,12 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 // The font and the width set before the first letter are what the words drawn whole take; a bold or italic face is not.
-                return first == null || (!first.Bold && !first.Italic && first.WithTrueType(null, false, false).WithWidthFactor(null).IsPlain);
+                return first == null
+                    || (
+                        !first.Bold
+                        && !first.Italic
+                        && first.WithTrueType(null, false, false).WithWidthFactor(null).IsPlain
+                    );
             }
         }
 
@@ -476,7 +504,12 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                if (merged.Count > 0 && run.Code == null && merged[merged.Count - 1].Code == null && merged[merged.Count - 1].Look.Equals(run.Look))
+                if (
+                    merged.Count > 0
+                    && run.Code == null
+                    && merged[merged.Count - 1].Code == null
+                    && merged[merged.Count - 1].Look.Equals(run.Look)
+                )
                 {
                     merged[merged.Count - 1] = new CadMTextRun(merged[merged.Count - 1].Text + run.Text, run.Look);
                 }
@@ -499,15 +532,27 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 if (look.IsShx)
                 {
-                    codes.Append("\\F").Append(look.Font).Append("|c").Append((look.Charset ?? 0).ToString(CultureInfo.InvariantCulture)).Append(';');
+                    codes
+                        .Append("\\F")
+                        .Append(look.Font)
+                        .Append("|c")
+                        .Append((look.Charset ?? 0).ToString(CultureInfo.InvariantCulture))
+                        .Append(';');
                 }
                 else
                 {
-                    codes.Append("\\f").Append(look.Font ?? string.Empty)
-                        .Append("|b").Append(look.Bold ? '1' : '0')
-                        .Append("|i").Append(look.Italic ? '1' : '0')
-                        .Append("|c").Append((look.Charset ?? 0).ToString(CultureInfo.InvariantCulture))
-                        .Append("|p").Append((look.Pitch ?? 34).ToString(CultureInfo.InvariantCulture)).Append(';');
+                    codes
+                        .Append("\\f")
+                        .Append(look.Font ?? string.Empty)
+                        .Append("|b")
+                        .Append(look.Bold ? '1' : '0')
+                        .Append("|i")
+                        .Append(look.Italic ? '1' : '0')
+                        .Append("|c")
+                        .Append((look.Charset ?? 0).ToString(CultureInfo.InvariantCulture))
+                        .Append("|p")
+                        .Append((look.Pitch ?? 34).ToString(CultureInfo.InvariantCulture))
+                        .Append(';');
                 }
             }
 
@@ -517,12 +562,18 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (look.TrueColor.HasValue)
             {
-                codes.Append("\\c").Append(Swap(look.TrueColor.Value).ToString(CultureInfo.InvariantCulture)).Append(';');
+                codes
+                    .Append("\\c")
+                    .Append(Swap(look.TrueColor.Value).ToString(CultureInfo.InvariantCulture))
+                    .Append(';');
             }
 
             if (look.Height.HasValue)
             {
-                codes.Append("\\H").Append(Number(height > 0.0 ? look.Height.Value / height : look.Height.Value)).Append(height > 0.0 ? "x;" : ";");
+                codes
+                    .Append("\\H")
+                    .Append(Number(height > 0.0 ? look.Height.Value / height : look.Height.Value))
+                    .Append(height > 0.0 ? "x;" : ";");
             }
 
             if (look.Oblique.HasValue)
@@ -532,12 +583,18 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (look.Tracking.HasValue)
             {
-                codes.Append("\\T").Append(look.Tracking.Value.ToString("0.0000", CultureInfo.InvariantCulture)).Append(';');
+                codes
+                    .Append("\\T")
+                    .Append(look.Tracking.Value.ToString("0.0000", CultureInfo.InvariantCulture))
+                    .Append(';');
             }
 
             if (look.WidthFactor.HasValue)
             {
-                codes.Append("\\W").Append(look.WidthFactor.Value.ToString("0.0000", CultureInfo.InvariantCulture)).Append(';');
+                codes
+                    .Append("\\W")
+                    .Append(look.WidthFactor.Value.ToString("0.0000", CultureInfo.InvariantCulture))
+                    .Append(';');
             }
 
             if (look.Align.HasValue)
@@ -545,8 +602,14 @@ namespace GeometryHelper.Dxf.Viewer
                 codes.Append("\\A").Append(look.Align.Value.ToString(CultureInfo.InvariantCulture)).Append(';');
             }
 
-            string on = (look.Underline ? "\\L" : string.Empty) + (look.Overline ? "\\O" : string.Empty) + (look.Strikethrough ? "\\K" : string.Empty);
-            string off = (look.Strikethrough ? "\\k" : string.Empty) + (look.Overline ? "\\o" : string.Empty) + (look.Underline ? "\\l" : string.Empty);
+            string on =
+                (look.Underline ? "\\L" : string.Empty)
+                + (look.Overline ? "\\O" : string.Empty)
+                + (look.Strikethrough ? "\\K" : string.Empty);
+            string off =
+                (look.Strikethrough ? "\\k" : string.Empty)
+                + (look.Overline ? "\\o" : string.Empty)
+                + (look.Underline ? "\\l" : string.Empty);
 
             if (codes.Length == 0)
             {
@@ -655,8 +718,16 @@ namespace GeometryHelper.Dxf.Viewer
                         _at += 2;
                         return;
                     case 'U':
-                        if (_at + 7 <= _text.Length && _text[_at + 2] == '+'
-                            && int.TryParse(_text.Substring(_at + 3, 4), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int unicode))
+                        if (
+                            _at + 7 <= _text.Length
+                            && _text[_at + 2] == '+'
+                            && int.TryParse(
+                                _text.Substring(_at + 3, 4),
+                                NumberStyles.HexNumber,
+                                CultureInfo.InvariantCulture,
+                                out int unicode
+                            )
+                        )
                         {
                             Symbol(((char)unicode).ToString(), _text.Substring(_at, 7));
                             _at += 7;
@@ -698,7 +769,9 @@ namespace GeometryHelper.Dxf.Viewer
                     case 'W':
                         if (TryNumber(value, out double width, out bool widthTimes) && width > 0.0)
                         {
-                            _look = _look.WithWidthFactor(widthTimes ? (_look.WidthFactor ?? _styleWidth) * width : width);
+                            _look = _look.WithWidthFactor(
+                                widthTimes ? (_look.WidthFactor ?? _styleWidth) * width : width
+                            );
                         }
 
                         break;
@@ -717,7 +790,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                         break;
                     case 'C':
-                        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index) && index >= 0 && index <= 257)
+                        if (
+                            int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index)
+                            && index >= 0
+                            && index <= 257
+                        )
                         {
                             _look = _look.WithColorIndex(index);
                         }
@@ -731,7 +808,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                         break;
                     case 'A':
-                        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int align) && align >= 0 && align <= 2)
+                        if (
+                            int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int align)
+                            && align >= 0
+                            && align <= 2
+                        )
                         {
                             _look = _look.WithAlign(align == 0 ? (int?)null : align);
                         }
@@ -759,7 +840,15 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     string part = parts[i].Trim();
 
-                    if (part.Length < 2 || !int.TryParse(part.Substring(1), NumberStyles.Integer, CultureInfo.InvariantCulture, out int number))
+                    if (
+                        part.Length < 2
+                        || !int.TryParse(
+                            part.Substring(1),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out int number
+                        )
+                    )
                     {
                         continue;
                     }
@@ -781,7 +870,14 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
-                _look = _look.WithFontCode(name.Length == 0 ? null : name, shx && name.Length > 0, !shx && bold, !shx && italic, charset, shx ? null : pitch);
+                _look = _look.WithFontCode(
+                    name.Length == 0 ? null : name,
+                    shx && name.Length > 0,
+                    !shx && bold,
+                    !shx && italic,
+                    charset,
+                    shx ? null : pitch
+                );
             }
 
             private void ParagraphCode(string written, string value)
@@ -805,14 +901,21 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 // The x before the first item says every value is in text heights: it stays with the items kept when its own is taken out.
-                if (kept.Count > 0 && kept.Count < parts.Length && parts[0].TrimStart().StartsWith("x", StringComparison.Ordinal) && !kept[0].StartsWith("x", StringComparison.Ordinal))
+                if (
+                    kept.Count > 0
+                    && kept.Count < parts.Length
+                    && parts[0].TrimStart().StartsWith("x", StringComparison.Ordinal)
+                    && !kept[0].StartsWith("x", StringComparison.Ordinal)
+                )
                 {
                     kept[0] = "x" + kept[0];
                 }
 
                 if (kept.Count > 0 && !(kept.Count == 1 && kept[0] == "x"))
                 {
-                    _paragraphCodes = (_paragraphCodes ?? string.Empty) + (kept.Count == parts.Length ? written : "\\p" + string.Join(",", kept) + ";");
+                    _paragraphCodes =
+                        (_paragraphCodes ?? string.Empty)
+                        + (kept.Count == parts.Length ? written : "\\p" + string.Join(",", kept) + ";");
                 }
             }
 
@@ -876,7 +979,9 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 Flush();
                 // An alignment holds from the paragraph it is set in on, as AutoCAD keeps it.
-                _paragraphs.Add(new CadMTextParagraph(_runs, _alignment, _paragraphCodes) { StartsColumn = _startsColumn });
+                _paragraphs.Add(
+                    new CadMTextParagraph(_runs, _alignment, _paragraphCodes) { StartsColumn = _startsColumn }
+                );
                 _startsColumn = false;
                 _runs = new List<CadMTextRun>();
                 _paragraphCodes = null;
@@ -906,7 +1011,9 @@ namespace GeometryHelper.Dxf.Viewer
                     text = text.Substring(0, text.Length - 1);
                 }
 
-                return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out number) && !double.IsNaN(number) && !double.IsInfinity(number);
+                return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out number)
+                    && !double.IsNaN(number)
+                    && !double.IsInfinity(number);
             }
         }
     }

@@ -64,7 +64,18 @@ namespace GeometryHelper.Core
             private readonly double _depth;
             private readonly Tolerance _tolerance;
 
-            internal Shape(List<GeoEdge2> edges, bool closed, Spans spans, Region region, double sideways, double slack, double depth, List<Piece> offset, List<Mitre> mitres, Tolerance tolerance)
+            internal Shape(
+                List<GeoEdge2> edges,
+                bool closed,
+                Spans spans,
+                Region region,
+                double sideways,
+                double slack,
+                double depth,
+                List<Piece> offset,
+                List<Mitre> mitres,
+                Tolerance tolerance
+            )
             {
                 double distance = Math.Abs(sideways);
 
@@ -135,9 +146,15 @@ namespace GeometryHelper.Core
                 }
 
                 _left[edge] = TryMove(_edges[edge], _distance, _tolerance, out GeoEdge2 left) ? left : (GeoEdge2?)null;
-                _right[edge] = TryMove(_edges[edge], -_distance, _tolerance, out GeoEdge2 right) ? right : (GeoEdge2?)null;
-                _leftBoxes[edge] = _left[edge].HasValue ? Box.Of(_left[edge].Value).Grown(_tolerance.EqualPoint) : Box.Empty;
-                _rightBoxes[edge] = _right[edge].HasValue ? Box.Of(_right[edge].Value).Grown(_tolerance.EqualPoint) : Box.Empty;
+                _right[edge] = TryMove(_edges[edge], -_distance, _tolerance, out GeoEdge2 right)
+                    ? right
+                    : (GeoEdge2?)null;
+                _leftBoxes[edge] = _left[edge].HasValue
+                    ? Box.Of(_left[edge].Value).Grown(_tolerance.EqualPoint)
+                    : Box.Empty;
+                _rightBoxes[edge] = _right[edge].HasValue
+                    ? Box.Of(_right[edge].Value).Grown(_tolerance.EqualPoint)
+                    : Box.Empty;
                 _movedReady[edge] = true;
             }
 
@@ -153,8 +170,12 @@ namespace GeometryHelper.Core
 
                 foreach (Mitre mitre in _mitres)
                 {
-                    Box first = mitre.StraightFirst ? Box.Of(mitre.Before).With(mitre.First) : Box.Of(CurveMeet2.Stretch(mitre.Before, mitre.First, true));
-                    Box second = mitre.StraightSecond ? Box.Of(mitre.After).With(mitre.Second) : Box.Of(CurveMeet2.Stretch(mitre.After, mitre.Second, false));
+                    Box first = mitre.StraightFirst
+                        ? Box.Of(mitre.Before).With(mitre.First)
+                        : Box.Of(CurveMeet2.Stretch(mitre.Before, mitre.First, true));
+                    Box second = mitre.StraightSecond
+                        ? Box.Of(mitre.After).With(mitre.Second)
+                        : Box.Of(CurveMeet2.Stretch(mitre.After, mitre.Second, false));
 
                     _mitreBoxes.Add(first.With(second).With(_vertices[mitre.Corner]).Grown(_slack));
                 }
@@ -287,7 +308,9 @@ namespace GeometryHelper.Core
             /// </summary>
             private bool BeyondChordAt(int corner, GeoPoint2 point)
             {
-                return _chords[corner].HasValue && InWedge(_chords[corner].Value, corner, point) && BeyondChord(corner, point);
+                return _chords[corner].HasValue
+                    && InWedge(_chords[corner].Value, corner, point)
+                    && BeyondChord(corner, point);
             }
 
             /// <summary>
@@ -329,7 +352,8 @@ namespace GeometryHelper.Core
             /// Determines whether a point lies on the side of the region the offset goes to, which is always so for a shape
             /// that is one loop, whose pieces are moved to that side.
             /// </summary>
-            internal bool OnTheOffsetSide(GeoPoint2 point) => _region == null || _region.Holds(point) == _region.WantInside;
+            internal bool OnTheOffsetSide(GeoPoint2 point) =>
+                _region == null || _region.Holds(point) == _region.WantInside;
 
             /// <summary>
             /// Determines whether a point lies inside the point of a miter, by more than the depth: the slack, or, in a second reading of an
@@ -346,7 +370,11 @@ namespace GeometryHelper.Core
 
                 _mitreOrder = _mitreOrder ?? new BoxOrder(boxes);
 
-                for (int k = _mitreOrder.CountUpTo(point) - 1, read = 0; k >= 0 && _mitreOrder.Reaches(k, point); k--, read++)
+                for (
+                    int k = _mitreOrder.CountUpTo(point) - 1, read = 0;
+                    k >= 0 && _mitreOrder.Reaches(k, point);
+                    k--, read++
+                )
                 {
                     if (read == BoxOrder.Many && _mitreOrder.TryHolding(point, k + 1, _holding))
                     {
@@ -402,13 +430,30 @@ namespace GeometryHelper.Core
                 Mitre mitre = _mitres[index];
                 GeoEdge2 first = mitre.StraightFirst
                     ? new GeoEdge2(mitre.Before.EndPoint, mitre.First)
-                    : Beyond(CurveMeet2.Stretch(mitre.Before, mitre.First, true), mitre.Before.EndPoint, true, _tolerance);
+                    : Beyond(
+                        CurveMeet2.Stretch(mitre.Before, mitre.First, true),
+                        mitre.Before.EndPoint,
+                        true,
+                        _tolerance
+                    );
                 GeoEdge2 second = mitre.StraightSecond
                     ? new GeoEdge2(mitre.Second, mitre.After.StartPoint)
-                    : Beyond(CurveMeet2.Stretch(mitre.After, mitre.Second, false), mitre.After.StartPoint, false, _tolerance);
+                    : Beyond(
+                        CurveMeet2.Stretch(mitre.After, mitre.Second, false),
+                        mitre.After.StartPoint,
+                        false,
+                        _tolerance
+                    );
 
                 GeoPoint2[] starts = mitre.Square
-                    ? new[] { _vertices[mitre.Corner], first.StartPoint, first.EndPoint, second.StartPoint, second.EndPoint }
+                    ? new[]
+                    {
+                        _vertices[mitre.Corner],
+                        first.StartPoint,
+                        first.EndPoint,
+                        second.StartPoint,
+                        second.EndPoint,
+                    }
                     : new[] { _vertices[mitre.Corner], first.StartPoint, second.StartPoint, second.EndPoint };
                 double[] bulges = mitre.Square
                     ? new[] { 0.0, first.Bulge, 0.0, second.Bulge, 0.0 }
@@ -426,7 +471,9 @@ namespace GeometryHelper.Core
 
                 // Its corners are counted within the tolerance of the offset and its edges kept, so a miter smaller than the
                 // global tolerance still bounds the offset at a finer one.
-                _mitreLoops[index] = GeoPolygonArc2.TryFromEdges(starts, bulges, _tolerance, out GeoPolygonArc2 loop) ? loop : null;
+                _mitreLoops[index] = GeoPolygonArc2.TryFromEdges(starts, bulges, _tolerance, out GeoPolygonArc2 loop)
+                    ? loop
+                    : null;
 
                 return _mitreLoops[index];
             }
@@ -495,16 +542,19 @@ namespace GeometryHelper.Core
 
             private Carrier Own(int edge) => (_own[edge] ?? (_own[edge] = new Carrier(_edges[edge]))).Value;
 
-            private Carrier Left(int edge) => (_leftCarriers[edge] ?? (_leftCarriers[edge] = new Carrier(_left[edge].Value))).Value;
+            private Carrier Left(int edge) =>
+                (_leftCarriers[edge] ?? (_leftCarriers[edge] = new Carrier(_left[edge].Value))).Value;
 
-            private Carrier Right(int edge) => (_rightCarriers[edge] ?? (_rightCarriers[edge] = new Carrier(_right[edge].Value))).Value;
+            private Carrier Right(int edge) =>
+                (_rightCarriers[edge] ?? (_rightCarriers[edge] = new Carrier(_right[edge].Value))).Value;
 
             /// <summary>
             /// Determines whether the circle of the distance about a vertex bounds the offset at a point of it.
             /// </summary>
             private bool CircleBounds(int corner, GeoPoint2 point)
             {
-                return InCone(corner, point) && !(_chords[corner].HasValue && InWedge(_chords[corner].Value, corner, point));
+                return InCone(corner, point)
+                    && !(_chords[corner].HasValue && InWedge(_chords[corner].Value, corner, point));
             }
 
             /// <summary>
@@ -514,7 +564,9 @@ namespace GeometryHelper.Core
             private bool InCone(int corner, GeoPoint2 point)
             {
                 GeoVector2 towards = _vertices[corner].GetVectorTo(point);
-                int incoming = _closed ? (corner == _spans.First[corner] ? _spans.Last[corner] : corner - 1) : corner - 1;
+                int incoming = _closed
+                    ? (corner == _spans.First[corner] ? _spans.Last[corner] : corner - 1)
+                    : corner - 1;
                 int outgoing = _closed || corner < _edges.Count ? corner : -1;
 
                 if (incoming >= 0)
@@ -636,9 +688,16 @@ namespace GeometryHelper.Core
                 }
             }
 
-            private int Next(int edge) => _closed ? (edge == _spans.Last[edge] ? _spans.First[edge] : edge + 1) : edge + 1;
+            private int Next(int edge) =>
+                _closed ? (edge == _spans.Last[edge] ? _spans.First[edge] : edge + 1) : edge + 1;
 
-            private static void AddCrossings(List<GeoPoint2> cuts, GeoEdge2 edge, Carrier carrier, Carrier curve, Tolerance tolerance)
+            private static void AddCrossings(
+                List<GeoPoint2> cuts,
+                GeoEdge2 edge,
+                Carrier carrier,
+                Carrier curve,
+                Tolerance tolerance
+            )
             {
                 foreach (GeoPoint2 at in carrier.Meet(curve, tolerance))
                 {
@@ -650,8 +709,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets where two edges cross, as <see cref="Carrier.Meet(Carrier, Tolerance)"/> reads it.
         /// </summary>
-        private static GeoPoint2[] CrossingsOf(GeoEdge2 first, GeoEdge2 second, Tolerance tolerance)
-            => new Carrier(first).Meet(new Carrier(second), tolerance);
+        private static GeoPoint2[] CrossingsOf(GeoEdge2 first, GeoEdge2 second, Tolerance tolerance) =>
+            new Carrier(first).Meet(new Carrier(second), tolerance);
 
         /// <summary>
         /// An edge with the arc it draws worked out once, since the pruning asks the same edges over and over; it
@@ -677,7 +736,9 @@ namespace GeometryHelper.Core
             /// </summary>
             internal GeoPoint2 Closest(GeoPoint2 point, Tolerance tolerance)
             {
-                return _edge.IsArc ? Arc2.ProjectToArc(_arc, point, tolerance) : Projection2.ProjectToLine(_edge.ToLine(), point, tolerance);
+                return _edge.IsArc
+                    ? Arc2.ProjectToArc(_arc, point, tolerance)
+                    : Projection2.ProjectToLine(_edge.ToLine(), point, tolerance);
             }
 
             /// <summary>
@@ -815,7 +876,9 @@ namespace GeometryHelper.Core
 
                 Array.Sort(_order, (one, other) =>
                 {
-                    int byStart = (alongX ? boxes[one].MinX : boxes[one].MinY).CompareTo(alongX ? boxes[other].MinX : boxes[other].MinY);
+                    int byStart = (alongX ? boxes[one].MinX : boxes[one].MinY).CompareTo(
+                        alongX ? boxes[other].MinX : boxes[other].MinY
+                    );
 
                     return byStart != 0 ? byStart : one.CompareTo(other);
                 });
@@ -857,7 +920,8 @@ namespace GeometryHelper.Core
             /// <summary>
             /// Gets how many boxes start at or before a point along the axis.
             /// </summary>
-            internal int CountUpTo(GeoPoint2 point) => _starts == null ? _order.Length : CountUpTo(_alongX ? point.X : point.Y);
+            internal int CountUpTo(GeoPoint2 point) =>
+                _starts == null ? _order.Length : CountUpTo(_alongX ? point.X : point.Y);
 
             /// <summary>
             /// Gets the indices of the boxes that overlap a box along the axis, or only those of them that overlap it where they
@@ -1056,7 +1120,10 @@ namespace GeometryHelper.Core
                 _alongAxis[kind] += count;
                 _inTree[kind] += found;
 
-                if (_alongAxis[kind] > 16L * _order.Length + 1024L && _inTree[kind] * (kind == Points ? 16L : 4L) > _alongAxis[kind])
+                if (
+                    _alongAxis[kind] > 16L * _order.Length + 1024L
+                    && _inTree[kind] * (kind == Points ? 16L : 4L) > _alongAxis[kind]
+                )
                 {
                     _treeless[kind] = true;
                 }
@@ -1128,7 +1195,8 @@ namespace GeometryHelper.Core
             /// <summary>
             /// Determines whether any box up to a place in the order reaches as far as a point along the axis.
             /// </summary>
-            internal bool Reaches(int place, GeoPoint2 point) => _reaches == null || _reaches[place] >= (_alongX ? point.X : point.Y);
+            internal bool Reaches(int place, GeoPoint2 point) =>
+                _reaches == null || _reaches[place] >= (_alongX ? point.X : point.Y);
         }
 
         /// <summary>
@@ -1144,7 +1212,13 @@ namespace GeometryHelper.Core
                 MaxY = maxY;
             }
 
-            internal static Box Empty => new Box(double.PositiveInfinity, double.PositiveInfinity, double.NegativeInfinity, double.NegativeInfinity);
+            internal static Box Empty =>
+                new Box(
+                    double.PositiveInfinity,
+                    double.PositiveInfinity,
+                    double.NegativeInfinity,
+                    double.NegativeInfinity
+                );
 
             internal double MinX { get; }
 
@@ -1157,12 +1231,17 @@ namespace GeometryHelper.Core
             /// <summary>
             /// Gets a value indicating whether every side of the box lies at a finite place.
             /// </summary>
-            internal bool IsFinite => Guard.IsFinite(MinX) && Guard.IsFinite(MinY) && Guard.IsFinite(MaxX) && Guard.IsFinite(MaxY);
+            internal bool IsFinite =>
+                Guard.IsFinite(MinX) && Guard.IsFinite(MinY) && Guard.IsFinite(MaxX) && Guard.IsFinite(MaxY);
 
             /// <summary>
             /// Gets a value indicating whether the box is <see cref="Empty"/>, or that grown or shrunk by a finite amount.
             /// </summary>
-            internal bool IsEmpty => double.IsPositiveInfinity(MinX) && double.IsPositiveInfinity(MinY) && double.IsNegativeInfinity(MaxX) && double.IsNegativeInfinity(MaxY);
+            internal bool IsEmpty =>
+                double.IsPositiveInfinity(MinX)
+                && double.IsPositiveInfinity(MinY)
+                && double.IsNegativeInfinity(MaxX)
+                && double.IsNegativeInfinity(MaxY);
 
             /// <summary>
             /// Gets a box holding an edge: its chord grown by how far an arc of at most a half turn bulges off it,
@@ -1172,7 +1251,12 @@ namespace GeometryHelper.Core
             {
                 GeoPoint2 start = edge.StartPoint;
                 GeoPoint2 end = edge.EndPoint;
-                var chord = new Box(Math.Min(start.X, end.X), Math.Min(start.Y, end.Y), Math.Max(start.X, end.X), Math.Max(start.Y, end.Y));
+                var chord = new Box(
+                    Math.Min(start.X, end.X),
+                    Math.Min(start.Y, end.Y),
+                    Math.Max(start.X, end.X),
+                    Math.Max(start.Y, end.Y)
+                );
 
                 if (!edge.IsArc)
                 {
@@ -1191,22 +1275,32 @@ namespace GeometryHelper.Core
                 return Around(arc.Center, arc.Radius);
             }
 
-            internal static Box Around(GeoPoint2 centre, double radius)
-                => new Box(centre.X - radius, centre.Y - radius, centre.X + radius, centre.Y + radius);
+            internal static Box Around(GeoPoint2 centre, double radius) =>
+                new Box(centre.X - radius, centre.Y - radius, centre.X + radius, centre.Y + radius);
 
             internal Box Grown(double by) => new Box(MinX - by, MinY - by, MaxX + by, MaxY + by);
 
-            internal Box With(Box other)
-                => new Box(Math.Min(MinX, other.MinX), Math.Min(MinY, other.MinY), Math.Max(MaxX, other.MaxX), Math.Max(MaxY, other.MaxY));
+            internal Box With(Box other) =>
+                new Box(
+                    Math.Min(MinX, other.MinX),
+                    Math.Min(MinY, other.MinY),
+                    Math.Max(MaxX, other.MaxX),
+                    Math.Max(MaxY, other.MaxY)
+                );
 
-            internal Box With(GeoPoint2 point)
-                => new Box(Math.Min(MinX, point.X), Math.Min(MinY, point.Y), Math.Max(MaxX, point.X), Math.Max(MaxY, point.Y));
+            internal Box With(GeoPoint2 point) =>
+                new Box(
+                    Math.Min(MinX, point.X),
+                    Math.Min(MinY, point.Y),
+                    Math.Max(MaxX, point.X),
+                    Math.Max(MaxY, point.Y)
+                );
 
-            internal bool Overlaps(Box other)
-                => MinX <= other.MaxX && other.MinX <= MaxX && MinY <= other.MaxY && other.MinY <= MaxY;
+            internal bool Overlaps(Box other) =>
+                MinX <= other.MaxX && other.MinX <= MaxX && MinY <= other.MaxY && other.MinY <= MaxY;
 
-            internal bool Holds(GeoPoint2 point)
-                => point.X >= MinX && point.X <= MaxX && point.Y >= MinY && point.Y <= MaxY;
+            internal bool Holds(GeoPoint2 point) =>
+                point.X >= MinX && point.X <= MaxX && point.Y >= MinY && point.Y <= MaxY;
         }
     }
 }

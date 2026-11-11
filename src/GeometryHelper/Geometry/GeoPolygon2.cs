@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -59,9 +59,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vertices">List of vertices.</param>
         public GeoPolygon2(IEnumerable<GeoPoint2> vertices)
-            : this(vertices, Tolerance.Global)
-        {
-        }
+            : this(vertices, Tolerance.Global) { }
 
         /// <summary>
         /// Initializes a polygon from a list of vertices, a vertex going only where it lands within a tolerance of the
@@ -74,7 +72,8 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         internal GeoPolygon2(IEnumerable<GeoPoint2> vertices, Tolerance tolerance)
         {
-            if (vertices == null) throw new ArgumentNullException(nameof(vertices));
+            if (vertices == null)
+                throw new ArgumentNullException(nameof(vertices));
 
             // Drop consecutive duplicates within tolerance so no zero-length edge survives. GeoPolyline2
             // filters the same way; comparing exactly would let (0,0),(0,0),(1,1) through as a valid
@@ -105,9 +104,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Initializes a new polygon directly from parameter vertices.
         /// </summary>
-        public GeoPolygon2(params GeoPoint2[] vertices) : this((IEnumerable<GeoPoint2>)vertices)
-        {
-        }
+        public GeoPolygon2(params GeoPoint2[] vertices)
+            : this((IEnumerable<GeoPoint2>)vertices) { }
 
         /// <summary>
         /// Initializes a polygon from vertices that have already been filtered and validated.
@@ -237,7 +235,8 @@ namespace GeometryHelper.Geometry
         /// points of their own as well.
         /// </para>
         /// </remarks>
-        public GeoTriangle2[] TriangulateSurface(Tolerance tolerance) => Triangulation2.Triangulate(new GeoFace2(this), tolerance);
+        public GeoTriangle2[] TriangulateSurface(Tolerance tolerance) =>
+            Triangulation2.Triangulate(new GeoFace2(this), tolerance);
 
         /// <summary>
         /// Breaks the polygon into faces of a kind, using the default tolerance. A grid needs the size of its cells, which
@@ -246,14 +245,16 @@ namespace GeometryHelper.Geometry
         /// <param name="kind">The kind of faces.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
         /// <exception cref="ArgumentException">Thrown for <see cref="Meshing.MeshKind.Grid"/>, which needs the size of its cells.</exception>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshKind kind) => Meshing.Mesh2.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Tolerance.Global);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshKind kind) =>
+            Meshing.Mesh2.ToMesh(this, Meshing.Mesh2.OptionsFor(kind), Tolerance.Global);
 
         /// <summary>
         /// Breaks the polygon into faces as the options say, using the default tolerance.
         /// </summary>
         /// <param name="options">How to break it up.</param>
         /// <returns>The mesh; one with no faces when there is no area.</returns>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options) => Meshing.Mesh2.ToMesh(this, options, Tolerance.Global);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options) =>
+            Meshing.Mesh2.ToMesh(this, options, Tolerance.Global);
 
         /// <summary>
         /// Breaks the polygon into faces as the options say, within a tolerance: triangles, the cells of a grid, strips or
@@ -270,7 +271,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A polygon crossing itself is read as <see cref="MakeValid()"/> reads it.
         /// </remarks>
-        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) => Meshing.Mesh2.ToMesh(this, options, tolerance);
+        public Meshing.GeoMesh2 ToMesh(Meshing.MeshOptions options, Tolerance tolerance) =>
+            Meshing.Mesh2.ToMesh(this, options, tolerance);
 
         /// <summary>
         /// Gets a value indicating whether the vertices of the polygon run clockwise.
@@ -417,12 +419,14 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the arc length from the first vertex of this polygon perimeter to a normalized parameter.
         /// </summary>
-        public double GetDistanceAtParameter(double parameter) => Parametrization2.GetDistanceAtParameter(this, parameter);
+        public double GetDistanceAtParameter(double parameter) =>
+            Parametrization2.GetDistanceAtParameter(this, parameter);
 
         /// <summary>
         /// Gets the normalized parameter at an arc length measured from the first vertex of this polygon perimeter.
         /// </summary>
-        public double GetParameterAtDistance(double distance) => Parametrization2.GetParameterAtDistance(this, distance);
+        public double GetParameterAtDistance(double distance) =>
+            Parametrization2.GetParameterAtDistance(this, distance);
 
         /// <summary>
         /// Translates the polygon by a displacement vector.
@@ -473,7 +477,8 @@ namespace GeometryHelper.Geometry
         /// Checks whether the polygon contains a point (accepts points on the boundary).
         /// Uses the Ray Casting algorithm (shoots a horizontal ray and counts intersections).
         /// </summary>
-        public bool Contains(GeoPoint2 GeoPoint2, Tolerance tolerance) => Containment2.Contains(this, GeoPoint2, tolerance);
+        public bool Contains(GeoPoint2 GeoPoint2, Tolerance tolerance) =>
+            Containment2.Contains(this, GeoPoint2, tolerance);
 
         /// <summary>
         /// Classifies the location of a point relative to this polygon (Inside, OutSide, or OnSide) using default tolerance.
@@ -483,7 +488,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Classifies the location of a point relative to this polygon (Inside, OutSide, or OnSide) within tolerance.
         /// </summary>
-        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) => Containment2.Locate(this, point, tolerance);
+        public PointLocation Locate(GeoPoint2 point, Tolerance tolerance) =>
+            Containment2.Locate(this, point, tolerance);
 
         /// <summary>
         /// Checks whether the polygon entirely contains a polyline using default tolerance.
@@ -493,7 +499,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether the polygon entirely contains a polyline within tolerance.
         /// </summary>
-        public bool Contains(GeoPolyline2 polyline, Tolerance tolerance) => Containment2.Contains(this, polyline, tolerance);
+        public bool Contains(GeoPolyline2 polyline, Tolerance tolerance) =>
+            Containment2.Contains(this, polyline, tolerance);
 
         /// <summary>
         /// Checks whether this polygon is simple, using default tolerance: no edge crosses or touches another
@@ -512,37 +519,43 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="distance">How far the boundary moves: outward when positive, inward when negative.</param>
         /// <returns>The boundary loops of the offset region: none, one, or several; holes wound the other way.</returns>
-        public GeoPolygon2[] Offset(double distance) => Offset2.Offset(this, distance, OffsetOptions.Default, Tolerance.Global);
+        public GeoPolygon2[] Offset(double distance) =>
+            Offset2.Offset(this, distance, OffsetOptions.Default, Tolerance.Global);
 
         /// <summary>
         /// Grows this polygon by a distance, or shrinks it when the distance is negative, with sharp corners,
         /// within tolerance.
         /// </summary>
-        public GeoPolygon2[] Offset(double distance, Tolerance tolerance) => Offset2.Offset(this, distance, OffsetOptions.Default, tolerance);
+        public GeoPolygon2[] Offset(double distance, Tolerance tolerance) =>
+            Offset2.Offset(this, distance, OffsetOptions.Default, tolerance);
 
         /// <summary>
         /// Grows this polygon by a distance, or shrinks it when the distance is negative, with the given
         /// corners, using default tolerance.
         /// </summary>
-        public GeoPolygon2[] Offset(double distance, OffsetJoin join) => Offset2.Offset(this, distance, new OffsetOptions(join), Tolerance.Global);
+        public GeoPolygon2[] Offset(double distance, OffsetJoin join) =>
+            Offset2.Offset(this, distance, new OffsetOptions(join), Tolerance.Global);
 
         /// <summary>
         /// Grows this polygon by a distance, or shrinks it when the distance is negative, with the given
         /// corners, within tolerance.
         /// </summary>
-        public GeoPolygon2[] Offset(double distance, OffsetJoin join, Tolerance tolerance) => Offset2.Offset(this, distance, new OffsetOptions(join), tolerance);
+        public GeoPolygon2[] Offset(double distance, OffsetJoin join, Tolerance tolerance) =>
+            Offset2.Offset(this, distance, new OffsetOptions(join), tolerance);
 
         /// <summary>
         /// Grows this polygon by a distance, or shrinks it when the distance is negative, as the options say,
         /// using default tolerance.
         /// </summary>
-        public GeoPolygon2[] Offset(double distance, OffsetOptions options) => Offset2.Offset(this, distance, options, Tolerance.Global);
+        public GeoPolygon2[] Offset(double distance, OffsetOptions options) =>
+            Offset2.Offset(this, distance, options, Tolerance.Global);
 
         /// <summary>
         /// Grows this polygon by a distance, or shrinks it when the distance is negative, as the options say,
         /// within tolerance.
         /// </summary>
-        public GeoPolygon2[] Offset(double distance, OffsetOptions options, Tolerance tolerance) => Offset2.Offset(this, distance, options, tolerance);
+        public GeoPolygon2[] Offset(double distance, OffsetOptions options, Tolerance tolerance) =>
+            Offset2.Offset(this, distance, options, tolerance);
 
         /// <summary>
         /// Gets the region covered by this polygon or another, using default tolerance. See <see cref="Boolean2"/>.
@@ -562,7 +575,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the region covered by both this polygon and another, within tolerance.
         /// </summary>
-        public GeoFace2[] Intersect(GeoPolygon2 other, Tolerance tolerance) => Boolean2.Intersect(this, other, tolerance);
+        public GeoFace2[] Intersect(GeoPolygon2 other, Tolerance tolerance) =>
+            Boolean2.Intersect(this, other, tolerance);
 
         /// <summary>
         /// Gets the region of this polygon with another taken out of it, using default tolerance.
@@ -583,7 +597,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the region of this polygon with every one of a set of polygons taken out of it, within tolerance.
         /// </summary>
-        public GeoFace2[] Subtract(IEnumerable<GeoPolygon2> tools, Tolerance tolerance) => Boolean2.Subtract(this, tools, tolerance);
+        public GeoFace2[] Subtract(IEnumerable<GeoPolygon2> tools, Tolerance tolerance) =>
+            Boolean2.Subtract(this, tools, tolerance);
 
         /// <summary>
         /// Gets the region covered by exactly one of this polygon and another, using default tolerance.
@@ -612,7 +627,8 @@ namespace GeometryHelper.Geometry
         /// <returns>true if the current polygon is equal to the other parameter; otherwise, false.</returns>
         public bool Equals(GeoPolygon2 other)
         {
-            if (other == null || other.VertexCount != VertexCount) return false;
+            if (other == null || other.VertexCount != VertexCount)
+                return false;
             for (int i = 0; i < _vertices.Length; i++)
             {
                 if (!_vertices[i].Equals(other._vertices[i]))
@@ -773,20 +789,28 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Chamfers every corner that has room for it, within a tolerance.
         /// </summary>
-        public GeoPolygon2 Chamfer(double distance1, double distance2, Tolerance tolerance) => Corner2.Chamfer(this, distance1, distance2, tolerance);
+        public GeoPolygon2 Chamfer(double distance1, double distance2, Tolerance tolerance) =>
+            Corner2.Chamfer(this, distance1, distance2, tolerance);
 
         /// <summary>
         /// Chamfers one corner, using the default tolerance.
         /// </summary>
         /// <returns>true if the corner had room for the cut; otherwise, false.</returns>
-        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolygon2 result) => Corner2.TryChamferAt(this, index, distance1, distance2, out result);
+        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolygon2 result) =>
+            Corner2.TryChamferAt(this, index, distance1, distance2, out result);
 
         /// <summary>
         /// Chamfers one corner, within a tolerance.
         /// </summary>
         /// <returns>true if the corner had room for the cut; otherwise, false.</returns>
-        public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolygon2 result, Tolerance tolerance) => Corner2.TryChamferAt(this, index, distance1, distance2, out result, tolerance);
-        
+        public bool TryChamferAt(
+            int index,
+            double distance1,
+            double distance2,
+            out GeoPolygon2 result,
+            Tolerance tolerance
+        ) => Corner2.TryChamferAt(this, index, distance1, distance2, out result, tolerance);
+
         /// <summary>
         /// Rounds every corner of the loop by the same radius.
         /// </summary>
@@ -803,24 +827,27 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Rounds the corners of the loop, one radius each.
         /// </summary>
-        public GeoPolygonArc2 Fillet(System.Collections.Generic.IReadOnlyList<double> radii) => Corner2.Fillet(this, radii);
+        public GeoPolygonArc2 Fillet(System.Collections.Generic.IReadOnlyList<double> radii) =>
+            Corner2.Fillet(this, radii);
 
         /// <summary>
         /// Rounds the corners of the loop, one radius each, within a tolerance.
         /// </summary>
-        public GeoPolygonArc2 Fillet(System.Collections.Generic.IReadOnlyList<double> radii, Tolerance tolerance) => Corner2.Fillet(this, radii, tolerance);
+        public GeoPolygonArc2 Fillet(System.Collections.Generic.IReadOnlyList<double> radii, Tolerance tolerance) =>
+            Corner2.Fillet(this, radii, tolerance);
 
         /// <summary>
         /// Rounds one corner of the loop; every vertex of a loop is a corner.
         /// </summary>
-        public bool TryFilletAt(int index, double radius, out GeoPolygonArc2 result) => Corner2.TryFilletAt(this, index, radius, out result);
+        public bool TryFilletAt(int index, double radius, out GeoPolygonArc2 result) =>
+            Corner2.TryFilletAt(this, index, radius, out result);
 
         /// <summary>
         /// Rounds one corner of the loop within a tolerance; every vertex of a loop is a corner.
         /// </summary>
-        public bool TryFilletAt(int index, double radius, out GeoPolygonArc2 result, Tolerance tolerance)
-            => Corner2.TryFilletAt(this, index, radius, out result, tolerance);
-        
+        public bool TryFilletAt(int index, double radius, out GeoPolygonArc2 result, Tolerance tolerance) =>
+            Corner2.TryFilletAt(this, index, radius, out result, tolerance);
+
         /// <summary>
         /// Cuts the loop by the straight line through a segment.
         /// </summary>
@@ -829,14 +856,14 @@ namespace GeometryHelper.Geometry
         /// length is ignored: a segment crossing half the loop cuts all of it. Left and right are read from the
         /// segment's own direction, so reversing it swaps the two answers and nothing else.
         /// </remarks>
-        public bool TrySplitBy(GeoLine2 cutter, out GeoPolygon2[] left, out GeoPolygon2[] right)
-            => Splition2.TrySplitBy(this, cutter, out left, out right);
+        public bool TrySplitBy(GeoLine2 cutter, out GeoPolygon2[] left, out GeoPolygon2[] right) =>
+            Splition2.TrySplitBy(this, cutter, out left, out right);
 
         /// <summary>
         /// Cuts the loop by the straight line through a segment, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoLine2 cutter, out GeoPolygon2[] left, out GeoPolygon2[] right, Tolerance tolerance)
-            => Splition2.TrySplitBy(this, cutter, out left, out right, tolerance);
+        public bool TrySplitBy(GeoLine2 cutter, out GeoPolygon2[] left, out GeoPolygon2[] right, Tolerance tolerance) =>
+            Splition2.TrySplitBy(this, cutter, out left, out right, tolerance);
 
         /// <summary>
         /// Cuts the loop in two along a chain drawn across it.
@@ -845,13 +872,14 @@ namespace GeometryHelper.Geometry
         /// Both ends of the chain have to sit on the boundary and everything between them has to stay inside,
         /// or nothing is cut. Unlike the line, this cutter is bounded: the pieces keep the chain's own vertices.
         /// </remarks>
-        public bool TrySplitBy(GeoPolyline2 cutLine, out GeoPolygon2[] pieces) => Splition2.TrySplitBy(this, cutLine, out pieces);
+        public bool TrySplitBy(GeoPolyline2 cutLine, out GeoPolygon2[] pieces) =>
+            Splition2.TrySplitBy(this, cutLine, out pieces);
 
         /// <summary>
         /// Cuts the loop in two along a chain drawn across it, within a tolerance.
         /// </summary>
-        public bool TrySplitBy(GeoPolyline2 cutLine, out GeoPolygon2[] pieces, Tolerance tolerance)
-            => Splition2.TrySplitBy(this, cutLine, out pieces, tolerance);
+        public bool TrySplitBy(GeoPolyline2 cutLine, out GeoPolygon2[] pieces, Tolerance tolerance) =>
+            Splition2.TrySplitBy(this, cutLine, out pieces, tolerance);
 
         /// <summary>
         /// Gets the polygon running the other way round.
@@ -878,6 +906,7 @@ namespace GeometryHelper.Geometry
             // The same corners, walked the other way: there is nothing to merge.
             return new GeoPolygon2(turned, turned.Length);
         }
+
         /// <summary>
         /// Builds a spatial index over the edges of this polygon, for asking it many questions.
         /// </summary>
@@ -896,6 +925,5 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         /// <returns>The hierarchy; it is a snapshot and holds no reference back to this shape.</returns>
         public Spatial.GeoBvh2 BuildIndex() => Spatial.GeoBvh2.FromPolygon(this);
-
     }
 }

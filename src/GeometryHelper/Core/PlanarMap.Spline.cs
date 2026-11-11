@@ -27,7 +27,8 @@ namespace GeometryHelper.Core
         /// <exception cref="InvalidOperationException">Thrown when the spline stands square to the plane, so that every control point lands on one point.</exception>
         public static GeoSpline2 ProjectToSpline2(GeoCoordinateSystem3 frame, GeoSpline3 spline)
         {
-            if (spline == null) throw new ArgumentNullException(nameof(spline));
+            if (spline == null)
+                throw new ArgumentNullException(nameof(spline));
 
             var flat = new double[spline.ControlPointCount * 2];
 
@@ -40,10 +41,20 @@ namespace GeometryHelper.Core
 
             if (NurbsCurve.AllTheSame(flat, 2))
             {
-                throw new InvalidOperationException("The spline stands square to the plane, and would flatten onto one point.");
+                throw new InvalidOperationException(
+                    "The spline stands square to the plane, and would flatten onto one point."
+                );
             }
 
-            return new GeoSpline2(new NurbsCurve(2, spline.Degree, flat, spline.Curve.Knots, spline.Curve.Rational ? spline.Curve.Weights : null));
+            return new GeoSpline2(
+                new NurbsCurve(
+                    2,
+                    spline.Degree,
+                    flat,
+                    spline.Curve.Knots,
+                    spline.Curve.Rational ? spline.Curve.Weights : null
+                )
+            );
         }
 
         /// <summary>
@@ -56,7 +67,8 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the spline is null.</exception>
         public static GeoSpline3 ToSpline3(GeoCoordinateSystem3 frame, GeoSpline2 spline)
         {
-            if (spline == null) throw new ArgumentNullException(nameof(spline));
+            if (spline == null)
+                throw new ArgumentNullException(nameof(spline));
 
             var lifted = new double[spline.ControlPointCount * 3];
 
@@ -68,7 +80,15 @@ namespace GeometryHelper.Core
                 lifted[3 * i + 2] = point.Z;
             }
 
-            return new GeoSpline3(new NurbsCurve(3, spline.Degree, lifted, spline.Curve.Knots, spline.Curve.Rational ? spline.Curve.Weights : null));
+            return new GeoSpline3(
+                new NurbsCurve(
+                    3,
+                    spline.Degree,
+                    lifted,
+                    spline.Curve.Knots,
+                    spline.Curve.Rational ? spline.Curve.Weights : null
+                )
+            );
         }
 
         #endregion

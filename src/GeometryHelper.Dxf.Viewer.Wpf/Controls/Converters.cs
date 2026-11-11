@@ -31,7 +31,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="culture">Not used.</param>
         /// <returns>Nothing; it throws.</returns>
         /// <exception cref="NotSupportedException">Always.</exception>
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+            throw new NotSupportedException();
     }
 
     /// <summary>
@@ -56,7 +57,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return null;
             }
 
-            _icons = _icons ?? new ResourceDictionary { Source = new Uri("pack://application:,,,/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Icons.xaml", UriKind.Absolute) };
+            _icons = _icons
+                ?? new ResourceDictionary
+                {
+                    Source = new Uri(
+                        "pack://application:,,,/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Icons.xaml",
+                        UriKind.Absolute
+                    ),
+                };
 
             if (_icons.Contains(key))
             {
@@ -80,7 +88,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="culture">Not used.</param>
         /// <returns>Nothing; it throws.</returns>
         /// <exception cref="NotSupportedException">Always.</exception>
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+            throw new NotSupportedException();
     }
 
     /// <summary>Turns a colour given as 0xRRGGBB, as <see cref="CadLayerInfo.Rgb"/> gives it, into a brush: the swatch of a layer.</summary>
@@ -111,7 +120,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="culture">Not used.</param>
         /// <returns>Nothing; it throws.</returns>
         /// <exception cref="NotSupportedException">Always.</exception>
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+            throw new NotSupportedException();
     }
 
     /// <summary>
@@ -128,9 +138,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>The offset, a double.</returns>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            string[] parts = (parameter as string ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            double length = parts.Length > 0 && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double l) ? l : 0.0;
-            double shift = parts.Length > 1 && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double s) ? s : 0.0;
+            string[] parts = (parameter as string ?? string.Empty).Split(
+                new[] { ' ' },
+                StringSplitOptions.RemoveEmptyEntries
+            );
+            double length =
+                parts.Length > 0
+                && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double l)
+                    ? l
+                    : 0.0;
+            double shift =
+                parts.Length > 1
+                && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double s)
+                    ? s
+                    : 0.0;
             return (value is double fraction ? fraction : 0.0) * length + shift;
         }
 
@@ -141,6 +162,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="culture">Not used.</param>
         /// <returns>Nothing; it throws.</returns>
         /// <exception cref="NotSupportedException">Always.</exception>
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+            throw new NotSupportedException();
     }
 }

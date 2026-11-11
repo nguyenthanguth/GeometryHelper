@@ -17,19 +17,30 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             IReadOnlyList<DimensionPoint> points = Annotator.FindPoints(Project(objects, Top), objects, Top, Tol);
 
             DimensionPoint[] corners = points.Where(p => p.Kind == DimensionPointKind.Corner).ToArray();
-            Assert.Equal(new[] { (0.0, 0.0), (0.0, 200.0), (300.0, 0.0), (300.0, 200.0) }, corners.Select(p => (Round(p.ViewPoint.X), Round(p.ViewPoint.Y))));
+            Assert.Equal(
+                new[] { (0.0, 0.0), (0.0, 200.0), (300.0, 0.0), (300.0, 200.0) },
+                corners.Select(p => (Round(p.ViewPoint.X), Round(p.ViewPoint.Y)))
+            );
 
             // Each corner's model point is the corner of the top, the one nearest the viewer.
             Assert.All(corners, p => Near(20.0, p.ModelPoint.Z));
 
             DimensionPoint[] holes = points.Where(p => p.Kind == DimensionPointKind.HoleCentre).ToArray();
-            Assert.Equal(new[] { (50.0, 50.0), (50.0, 150.0), (250.0, 50.0), (250.0, 150.0) }, holes.Select(p => (Round(p.ViewPoint.X), Round(p.ViewPoint.Y))));
+            Assert.Equal(
+                new[] { (50.0, 50.0), (50.0, 150.0), (250.0, 50.0), (250.0, 150.0) },
+                holes.Select(p => (Round(p.ViewPoint.X), Round(p.ViewPoint.Y)))
+            );
             Assert.All(holes, p => Near(20.0, p.ModelPoint.Z));
             Assert.All(holes, p => Assert.Equal("TC1-plate", p.ObjectId));
 
             DimensionPoint[] work = points.Where(p => p.Kind == DimensionPointKind.WorkPoint).ToArray();
-            Assert.Equal(new[] { (0.0, 0.0), (300.0, 0.0) }, work.Select(p => (Round(p.ViewPoint.X), Round(p.ViewPoint.Y))));
-            Assert.DoesNotContain(points, p => p.Kind == DimensionPointKind.BoltCentre || p.Kind == DimensionPointKind.PartEnd);
+            Assert.Equal(
+                new[] { (0.0, 0.0), (300.0, 0.0) },
+                work.Select(p => (Round(p.ViewPoint.X), Round(p.ViewPoint.Y)))
+            );
+            Assert.DoesNotContain(points, p =>
+                p.Kind == DimensionPointKind.BoltCentre || p.Kind == DimensionPointKind.PartEnd
+            );
         }
 
         [Fact]
@@ -45,12 +56,19 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             Assert.All(bolts, p => Near(150.0, System.Math.Abs(p.ViewPoint.X)));
 
             IReadOnlyList<DimensionPoint> top = Annotator.FindPoints(Project(objects, Top), objects, Top, Tol);
-            DimensionPoint bolt = top.Single(p => p.Kind == DimensionPointKind.BoltCentre && p.ObjectId == "TC5-bolt-4");
+            DimensionPoint bolt = top.Single(p =>
+                p.Kind == DimensionPointKind.BoltCentre && p.ObjectId == "TC5-bolt-4"
+            );
             Near(150.0, bolt.ViewPoint.X);
             Near(150.0, bolt.ViewPoint.Y);
 
             // The base plate's hole round the bolt is a centre of its own, at the same place.
-            Assert.Contains(top, p => p.Kind == DimensionPointKind.HoleCentre && p.ObjectId == "TC5-base" && System.Math.Abs(p.ViewPoint.X - 150) <= Tol.EqualPoint && System.Math.Abs(p.ViewPoint.Y - 150) <= Tol.EqualPoint);
+            Assert.Contains(top, p =>
+                p.Kind == DimensionPointKind.HoleCentre
+                && p.ObjectId == "TC5-base"
+                && System.Math.Abs(p.ViewPoint.X - 150) <= Tol.EqualPoint
+                && System.Math.Abs(p.ViewPoint.Y - 150) <= Tol.EqualPoint
+            );
         }
 
         [Fact]
@@ -65,15 +83,30 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             };
 
             IReadOnlyList<DimensionPoint> points = Annotator.FindPoints(Project(objects, Front), objects, Front, Tol);
-            DimensionPoint[] corners = points.Where(p => p.ObjectId == "long" && p.Kind == DimensionPointKind.Corner).ToArray();
+            DimensionPoint[] corners = points
+                .Where(p => p.ObjectId == "long" && p.Kind == DimensionPointKind.Corner)
+                .ToArray();
 
-            Assert.Equal(new[] { (0.0, 0.0), (0.0, 100.0), (300.0, 0.0), (300.0, 100.0) }, corners.Select(p => (Round(p.ViewPoint.X), Round(p.ViewPoint.Y))));
+            Assert.Equal(
+                new[] { (0.0, 0.0), (0.0, 100.0), (300.0, 0.0), (300.0, 100.0) },
+                corners.Select(p => (Round(p.ViewPoint.X), Round(p.ViewPoint.Y)))
+            );
         }
 
         [Fact]
         public void EveryPointOfTheTestBodiesLiesInTheViewWhereItsModelPointProjects()
         {
-            foreach (TestBody body in new[] { TestBodies.TC1(), TestBodies.TC2(), TestBodies.TC4(), TestBodies.TC5(), TestBodies.TC6(), TestBodies.TC9() })
+            foreach (
+                TestBody body in new[]
+                {
+                    TestBodies.TC1(),
+                    TestBodies.TC2(),
+                    TestBodies.TC4(),
+                    TestBodies.TC5(),
+                    TestBodies.TC6(),
+                    TestBodies.TC9(),
+                }
+            )
             {
                 DrawingObject[] objects = Objects(body);
 
@@ -82,7 +115,11 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
                     foreach (DimensionPoint p in Annotator.FindPoints(Project(objects, frame), objects, frame, Tol))
                     {
                         GeoPoint3 local = frame.ToLocal(p.ModelPoint);
-                        Assert.True(System.Math.Abs(local.X - p.ViewPoint.X) <= Tol.EqualPoint && System.Math.Abs(local.Y - p.ViewPoint.Y) <= Tol.EqualPoint, body.Name + " " + p);
+                        Assert.True(
+                            System.Math.Abs(local.X - p.ViewPoint.X) <= Tol.EqualPoint
+                                && System.Math.Abs(local.Y - p.ViewPoint.Y) <= Tol.EqualPoint,
+                            body.Name + " " + p
+                        );
                     }
                 }
             }

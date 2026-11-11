@@ -14,7 +14,12 @@ namespace GeometryHelper.UnitTest.Dxf
     public class DxfLayerStatesAndFiltersTests
     {
         /// <summary>The filters AutoCAD makes and nests in All after the drawing's own, as AutoCAD 2021's NestedFilters gives them.</summary>
-        private static readonly string[] AutoCADsOwn = { "All Used Layers", "Unreconciled New Layers", "Viewport Overrides" };
+        private static readonly string[] AutoCADsOwn =
+        {
+            "All Used Layers",
+            "Unreconciled New Layers",
+            "Viewport Overrides",
+        };
 
         /// <summary>The R2018 drawing with the dictionaries given, each holding an XRECORD of each name, saved and read again.</summary>
         private static DxfDatabase WithDictionaries(string[] states, string[] filters)
@@ -23,7 +28,13 @@ namespace GeometryHelper.UnitTest.Dxf
             db.LayerTable.CreateExtensionDictionary();
             DxfDBDictionary extension = db.LayerTable.ExtensionDictionary;
 
-            foreach (var kept in new[] { Tuple.Create("ACAD_LAYERSTATES", states), Tuple.Create("ACAD_LAYERFILTERS", filters) })
+            foreach (
+                var kept in new[]
+                {
+                    Tuple.Create("ACAD_LAYERSTATES", states),
+                    Tuple.Create("ACAD_LAYERFILTERS", filters),
+                }
+            )
             {
                 if (kept.Item2 == null)
                 {
@@ -45,7 +56,14 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ADrawingThatKeepsNoLayerStatesOrFilters_HasNone_AndAskingChangesNothing()
         {
-            foreach (string text in new[] { DxfObjectsEzdxfDrawings.R12, DxfObjectsEzdxfDrawings.R2000, DxfObjectsEzdxfDrawings.R2018 })
+            foreach (
+                string text in new[]
+                {
+                    DxfObjectsEzdxfDrawings.R12,
+                    DxfObjectsEzdxfDrawings.R2000,
+                    DxfObjectsEzdxfDrawings.R2018,
+                }
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
                 DxfLayerStateManager states = db.LayerStateManager;
@@ -127,8 +145,14 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2018);
             db.LayerTable.CreateExtensionDictionary();
-            db.LayerTable.ExtensionDictionary.SetAt("ACAD_LAYERSTATES", new DxfXrecord { Data = new[] { new DxfTypedValue(1, "Plan") } });
-            db.LayerTable.ExtensionDictionary.SetAt("ACAD_LAYERFILTERS", new DxfXrecord { Data = new[] { new DxfTypedValue(1, "Steel") } });
+            db.LayerTable.ExtensionDictionary.SetAt(
+                "ACAD_LAYERSTATES",
+                new DxfXrecord { Data = new[] { new DxfTypedValue(1, "Plan") } }
+            );
+            db.LayerTable.ExtensionDictionary.SetAt(
+                "ACAD_LAYERFILTERS",
+                new DxfXrecord { Data = new[] { new DxfTypedValue(1, "Steel") } }
+            );
 
             Assert.Null(db.LayerStateManager.LayerStatesDictionary);
             Assert.Empty(db.LayerStateManager.GetLayerStateNames());

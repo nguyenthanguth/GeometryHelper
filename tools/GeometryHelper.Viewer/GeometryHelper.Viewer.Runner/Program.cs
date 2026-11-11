@@ -64,7 +64,9 @@ namespace GeometryHelper.Viewer.Runner
 
             if (script == null || output == null)
             {
-                Console.Error.WriteLine("Usage: GeometryHelper.Viewer.Runner script.csx --out scene.ghscene.json [--measure]");
+                Console.Error.WriteLine(
+                    "Usage: GeometryHelper.Viewer.Runner script.csx --out scene.ghscene.json [--measure]"
+                );
                 return 2;
             }
 
@@ -88,7 +90,8 @@ namespace GeometryHelper.Viewer.Runner
                     File.ReadAllText(script, Encoding.UTF8),
                     script,
                     line => Console.WriteLine("note: " + line.Replace("\r", string.Empty).Replace("\n", "\\n")),
-                    CancellationToken.None);
+                    CancellationToken.None
+                );
 
                 if (!run.Succeeded)
                 {
@@ -106,7 +109,15 @@ namespace GeometryHelper.Viewer.Runner
                 }
 
                 new SceneWriter(run.Scene).Save(output);
-                Console.WriteLine("ok: " + run.Scene.Items.Count + " item(s) on " + run.Scene.Layers.Count + " layer(s) in " + run.Elapsed.TotalSeconds.ToString("0.00", CultureInfo.InvariantCulture) + " s");
+                Console.WriteLine(
+                    "ok: "
+                        + run.Scene.Items.Count
+                        + " item(s) on "
+                        + run.Scene.Layers.Count
+                        + " layer(s) in "
+                        + run.Elapsed.TotalSeconds.ToString("0.00", CultureInfo.InvariantCulture)
+                        + " s"
+                );
                 return 0;
             }
             catch (Exception e) when (!(e is OutOfMemoryException))

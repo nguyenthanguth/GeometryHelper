@@ -46,7 +46,8 @@ namespace GeometryHelper.TeklaConvert
         /// </summary>
         /// <param name="points">The sequence of Tekla points to convert.</param>
         /// <returns>A list of converted <see cref="GeoPoint2"/>.</returns>
-        public static List<GeoPoint2> ToGeoPoint2(this IEnumerable<TSG.Point> points) => points.Select(ToGeoPoint2).ToList();
+        public static List<GeoPoint2> ToGeoPoint2(this IEnumerable<TSG.Point> points) =>
+            points.Select(ToGeoPoint2).ToList();
 
         /// <summary>
         /// Converts a Tekla point to a GeometryHelper point.
@@ -69,7 +70,8 @@ namespace GeometryHelper.TeklaConvert
         /// </summary>
         /// <param name="points">The sequence of Tekla points to convert.</param>
         /// <returns>A list of converted <see cref="GeoPoint3"/>.</returns>
-        public static List<GeoPoint3> ToGeoPoint3(this IEnumerable<TSG.Point> points) => points.Select(ToGeoPoint3).ToList();
+        public static List<GeoPoint3> ToGeoPoint3(this IEnumerable<TSG.Point> points) =>
+            points.Select(ToGeoPoint3).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper 2D point to a Tekla point (with Z = 0).
@@ -83,7 +85,8 @@ namespace GeometryHelper.TeklaConvert
         /// </summary>
         /// <param name="points">The sequence of GeometryHelper 2D points to convert.</param>
         /// <returns>A list of converted Tekla <see cref="TSG.Point"/>.</returns>
-        public static List<TSG.Point> ToTeklaPoint(this IEnumerable<GeoPoint2> points) => points.Select(ToTeklaPoint).ToList();
+        public static List<TSG.Point> ToTeklaPoint(this IEnumerable<GeoPoint2> points) =>
+            points.Select(ToTeklaPoint).ToList();
 
         /// <summary>
         /// Converts a GeometryHelper point to a Tekla point.
@@ -97,7 +100,8 @@ namespace GeometryHelper.TeklaConvert
         /// </summary>
         /// <param name="points">The sequence of GeometryHelper points to convert.</param>
         /// <returns>A list of converted Tekla <see cref="TSG.Point"/>.</returns>
-        public static List<TSG.Point> ToTeklaPoint(this IEnumerable<GeoPoint3> points) => points.Select(ToTeklaPoint).ToList();
+        public static List<TSG.Point> ToTeklaPoint(this IEnumerable<GeoPoint3> points) =>
+            points.Select(ToTeklaPoint).ToList();
 
         /// <summary>
         /// Converts a run of Tekla points into a chain.
@@ -119,8 +123,10 @@ namespace GeometryHelper.TeklaConvert
         /// <summary>
         /// Converts a run of Tekla points into a chain that may curve, bending it at each turn.
         /// </summary>
-        public static GeoPolylineArc3 ToGeoPolylineArc3(this IEnumerable<TSG.Point> points, IList<double> bendingRadii)
-            => points.ToGeoPolylineArc3(bendingRadii, Tolerance.Global);
+        public static GeoPolylineArc3 ToGeoPolylineArc3(
+            this IEnumerable<TSG.Point> points,
+            IList<double> bendingRadii
+        ) => points.ToGeoPolylineArc3(bendingRadii, Tolerance.Global);
 
         /// <summary>
         /// Converts a run of Tekla points into a chain that may curve, bending it at each turn, within a tolerance.
@@ -143,7 +149,11 @@ namespace GeometryHelper.TeklaConvert
         /// the one taking more of it gives way. Both are reported through <c>GeometryHelperLog</c> at debug
         /// level.
         /// </remarks>
-        public static GeoPolylineArc3 ToGeoPolylineArc3(this IEnumerable<TSG.Point> points, IList<double> bendingRadii, Tolerance tolerance)
+        public static GeoPolylineArc3 ToGeoPolylineArc3(
+            this IEnumerable<TSG.Point> points,
+            IList<double> bendingRadii,
+            Tolerance tolerance
+        )
         {
             if (points == null)
             {
@@ -290,7 +300,10 @@ namespace GeometryHelper.TeklaConvert
             {
                 if (point == null)
                 {
-                    throw new ArgumentException("A chain cannot be set out through a point that is not there.", nameof(points));
+                    throw new ArgumentException(
+                        "A chain cannot be set out through a point that is not there.",
+                        nameof(points)
+                    );
                 }
 
                 kept.Add(point.ToGeoPoint3());

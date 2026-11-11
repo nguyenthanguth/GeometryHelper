@@ -13,7 +13,14 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     public sealed class CadBoundaryLoop
     {
-        internal CadBoundaryLoop(IReadOnlyList<GeoPoint2> vertices, IReadOnlyList<double> bulges, object curve, IReadOnlyList<GeoPoint2> outline, IReadOnlyList<string> sources, double area)
+        internal CadBoundaryLoop(
+            IReadOnlyList<GeoPoint2> vertices,
+            IReadOnlyList<double> bulges,
+            object curve,
+            IReadOnlyList<GeoPoint2> outline,
+            IReadOnlyList<string> sources,
+            double area
+        )
         {
             Vertices = vertices;
             Bulges = bulges;
@@ -76,7 +83,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="within">The part of the drawing looked at, as AutoCAD looks at what is shown; null for all of it.</param>
         /// <returns>The loops, the outer first and then the islands by depth; or null.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document or the space is null.</exception>
-        public static IReadOnlyList<CadBoundaryLoop> Find(CadDocument document, CadSpace space, GeoPoint2 point, Tolerance tolerance, DisplayBox? within = null)
+        public static IReadOnlyList<CadBoundaryLoop> Find(
+            CadDocument document,
+            CadSpace space,
+            GeoPoint2 point,
+            Tolerance tolerance,
+            DisplayBox? within = null
+        )
         {
             if (document == null)
             {
@@ -97,7 +110,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (Cycle cycle in cycles)
             {
-                if (cycle.Area > tol * tol && Inside(cycle.Outline, point) && (outer == null || cycle.Area < outer.Area))
+                if (
+                    cycle.Area > tol * tol
+                    && Inside(cycle.Outline, point)
+                    && (outer == null || cycle.Area < outer.Area)
+                )
                 {
                     outer = cycle;
                 }
@@ -114,14 +131,24 @@ namespace GeometryHelper.Dxf.Viewer
             foreach (Cycle cycle in cycles)
             {
                 // The outline of each other group of connected objects that lies inside the outer loop is an island.
-                if (cycle.Area < -tol * tol && cycle.Component != outer.Component && Inside(outer.Outline, cycle.Outline[0]))
+                if (
+                    cycle.Area < -tol * tol
+                    && cycle.Component != outer.Component
+                    && Inside(outer.Outline, cycle.Outline[0])
+                )
                 {
                     islands.Add(cycle.ToLoop(true));
                 }
             }
 
             Nest(loops[0], islands);
-            loops.AddRange(islands.OrderBy(l => l.Depth).ThenByDescending(l => l.Area).ThenBy(l => l.Outline[0].X).ThenBy(l => l.Outline[0].Y));
+            loops.AddRange(
+                islands
+                    .OrderBy(l => l.Depth)
+                    .ThenByDescending(l => l.Area)
+                    .ThenBy(l => l.Outline[0].X)
+                    .ThenBy(l => l.Outline[0].Y)
+            );
             return loops.AsReadOnly();
         }
 
@@ -136,7 +163,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="passed">How many objects were not closed, or could not be read.</param>
         /// <returns>The loops, the outermost first.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document or the handles are null.</exception>
-        public static IReadOnlyList<CadBoundaryLoop> FromObjects(CadDocument document, IEnumerable<string> handles, Tolerance tolerance, out int passed)
+        public static IReadOnlyList<CadBoundaryLoop> FromObjects(
+            CadDocument document,
+            IEnumerable<string> handles,
+            Tolerance tolerance,
+            out int passed
+        )
         {
             if (document == null)
             {
@@ -179,7 +211,13 @@ namespace GeometryHelper.Dxf.Viewer
                 loop.Depth = loops.Count(o => o != loop && o.Area > loop.Area && o.Contains(loop.Outline[0]));
             }
 
-            return loops.OrderBy(l => l.Depth).ThenByDescending(l => l.Area).ThenBy(l => l.Outline[0].X).ThenBy(l => l.Outline[0].Y).ToList().AsReadOnly();
+            return loops
+                .OrderBy(l => l.Depth)
+                .ThenByDescending(l => l.Area)
+                .ThenBy(l => l.Outline[0].X)
+                .ThenBy(l => l.Outline[0].Y)
+                .ToList()
+                .AsReadOnly();
         }
 
         /// <summary>The loops a hatch of an island style keeps: all for Normal, the outer and the islands just inside it for Outer, the outer alone for Ignore.</summary>
@@ -188,7 +226,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>The loops kept.</returns>
         public static IReadOnlyList<CadBoundaryLoop> Kept(IEnumerable<CadBoundaryLoop> loops, DxfHatchStyle style)
         {
-            int deepest = style == DxfHatchStyle.Ignore ? 0 : style == DxfHatchStyle.Outer ? 1 : int.MaxValue;
+            int deepest =
+                style == DxfHatchStyle.Ignore ? 0
+                : style == DxfHatchStyle.Outer ? 1
+                : int.MaxValue;
             return (loops ?? Enumerable.Empty<CadBoundaryLoop>()).Where(l => l.Depth <= deepest).ToList().AsReadOnly();
         }
 
@@ -216,7 +257,8 @@ namespace GeometryHelper.Dxf.Viewer
         {
             foreach (CadBoundaryLoop island in islands)
             {
-                island.Depth = 1 + islands.Count(o => o != island && o.Area > island.Area && o.Contains(island.Outline[0]));
+                island.Depth =
+                    1 + islands.Count(o => o != island && o.Area > island.Area && o.Contains(island.Outline[0]));
             }
         }
 
@@ -245,24 +287,44 @@ namespace GeometryHelper.Dxf.Viewer
                         points[i] = flat.GetPointAtParameter(2.0 * Math.PI * i / CurvePoints);
                     }
 
-                    return new CadBoundaryLoop(Array.Empty<GeoPoint2>(), Array.Empty<double>(), ellipse.ToGeoEllipse3(), points, new[] { entity.Handle }, Math.Abs(Signed(points, null)));
+                    return new CadBoundaryLoop(
+                        Array.Empty<GeoPoint2>(),
+                        Array.Empty<double>(),
+                        ellipse.ToGeoEllipse3(),
+                        points,
+                        new[] { entity.Handle },
+                        Math.Abs(Signed(points, null))
+                    );
                 case DxfSpline spline when spline.Closed:
                     GeoSpline2 curve = spline.ToGeoSpline2(tolerance);
                     var through = new GeoPoint2[CurvePoints];
 
                     for (int i = 0; i < CurvePoints; i++)
                     {
-                        through[i] = curve.GetPointAtParameter(curve.DomainStart + (curve.DomainEnd - curve.DomainStart) * i / CurvePoints);
+                        through[i] = curve.GetPointAtParameter(
+                            curve.DomainStart + (curve.DomainEnd - curve.DomainStart) * i / CurvePoints
+                        );
                     }
 
-                    return new CadBoundaryLoop(Array.Empty<GeoPoint2>(), Array.Empty<double>(), spline.ToGeoSpline3(), through, new[] { entity.Handle }, Math.Abs(Signed(through, null)));
+                    return new CadBoundaryLoop(
+                        Array.Empty<GeoPoint2>(),
+                        Array.Empty<double>(),
+                        spline.ToGeoSpline3(),
+                        through,
+                        new[] { entity.Handle },
+                        Math.Abs(Signed(through, null))
+                    );
                 default:
                     return null;
             }
         }
 
         /// <summary>A loop of corners and bulges, its outline drawn through its arcs and its area worked out on them.</summary>
-        internal static CadBoundaryLoop Corners(IReadOnlyList<GeoPoint2> vertices, IReadOnlyList<double> bulges, IReadOnlyList<string> sources)
+        internal static CadBoundaryLoop Corners(
+            IReadOnlyList<GeoPoint2> vertices,
+            IReadOnlyList<double> bulges,
+            IReadOnlyList<string> sources
+        )
         {
             var outline = new List<GeoPoint2>();
 
@@ -272,19 +334,31 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 b = vertices[(i + 1) % vertices.Count];
                 outline.Add(a);
 
-                if (bulges[i] != 0.0 && Arc(a, b, bulges[i], out GeoPoint2 centre, out double radius, out double from, out double sweep))
+                if (
+                    bulges[i] != 0.0
+                    && Arc(a, b, bulges[i], out GeoPoint2 centre, out double radius, out double from, out double sweep)
+                )
                 {
                     int steps = Math.Max(2, (int)Math.Ceiling(Math.Abs(sweep) / (Math.PI / 32.0)));
 
                     for (int k = 1; k < steps; k++)
                     {
                         double angle = from + sweep * k / steps;
-                        outline.Add(new GeoPoint2(centre.X + radius * Math.Cos(angle), centre.Y + radius * Math.Sin(angle)));
+                        outline.Add(
+                            new GeoPoint2(centre.X + radius * Math.Cos(angle), centre.Y + radius * Math.Sin(angle))
+                        );
                     }
                 }
             }
 
-            return new CadBoundaryLoop(vertices.ToList().AsReadOnly(), bulges.ToList().AsReadOnly(), null, outline.AsReadOnly(), sources, Math.Abs(Signed(vertices, bulges)));
+            return new CadBoundaryLoop(
+                vertices.ToList().AsReadOnly(),
+                bulges.ToList().AsReadOnly(),
+                null,
+                outline.AsReadOnly(),
+                sources,
+                Math.Abs(Signed(vertices, bulges))
+            );
         }
 
         /// <summary>The area a loop of corners closes, positive counter-clockwise, its arcs' segments added: bulges null for straight edges.</summary>
@@ -298,7 +372,11 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 b = vertices[(i + 1) % vertices.Count];
                 area += (a.X * b.Y - b.X * a.Y) / 2.0;
 
-                if (bulges != null && bulges[i] != 0.0 && Arc(a, b, bulges[i], out _, out double radius, out _, out double sweep))
+                if (
+                    bulges != null
+                    && bulges[i] != 0.0
+                    && Arc(a, b, bulges[i], out _, out double radius, out _, out double sweep)
+                )
                 {
                     area += radius * radius * (sweep - Math.Sin(sweep)) / 2.0;
                 }
@@ -308,7 +386,15 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The circle of an edge of a bulge: its centre, radius, the angle it starts at and the angle it sweeps, positive counter-clockwise.</summary>
-        internal static bool Arc(GeoPoint2 a, GeoPoint2 b, double bulge, out GeoPoint2 centre, out double radius, out double from, out double sweep)
+        internal static bool Arc(
+            GeoPoint2 a,
+            GeoPoint2 b,
+            double bulge,
+            out GeoPoint2 centre,
+            out double radius,
+            out double from,
+            out double sweep
+        )
         {
             sweep = 4.0 * Math.Atan(bulge);
             double dx = b.X - a.X;
@@ -334,7 +420,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The edges of the objects of a space that may close an area: those of visible layers, within the part looked at.</summary>
         private static List<Raw> Gather(CadDocument document, CadSpace space, DisplayBox? within, double tol)
         {
-            var hidden = new HashSet<string>(document.Layers.Where(l => !l.IsOn || l.IsFrozen).Select(l => l.Name), StringComparer.OrdinalIgnoreCase);
+            var hidden = new HashSet<string>(
+                document.Layers.Where(l => !l.IsOn || l.IsFrozen).Select(l => l.Name),
+                StringComparer.OrdinalIgnoreCase
+            );
             var raws = new List<Raw>();
 
             foreach (DxfEntity entity in space.Block)
@@ -364,7 +453,12 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         Raw raw = raws[i];
 
-                        if (raw.MaxX < box.MinX - tol || raw.MinX > box.MaxX + tol || raw.MaxY < box.MinY - tol || raw.MinY > box.MaxY + tol)
+                        if (
+                            raw.MaxX < box.MinX - tol
+                            || raw.MinX > box.MaxX + tol
+                            || raw.MaxY < box.MinY - tol
+                            || raw.MinY > box.MaxY + tol
+                        )
                         {
                             raws.RemoveAt(i);
                         }
@@ -397,10 +491,22 @@ namespace GeometryHelper.Dxf.Viewer
                     raws.Add(new Raw(right, left, 1.0, handle));
                     break;
                 case DxfPolyline polyline:
-                    AddChain(polyline.Closed ? (IEnumerable<GeoEdge2>)polyline.ToGeoPolygonArc2().GetEdges() : polyline.ToGeoPolylineArc2().GetEdges(), handle, raws);
+                    AddChain(
+                        polyline.Closed
+                            ? (IEnumerable<GeoEdge2>)polyline.ToGeoPolygonArc2().GetEdges()
+                            : polyline.ToGeoPolylineArc2().GetEdges(),
+                        handle,
+                        raws
+                    );
                     break;
                 case DxfPolyline2d old:
-                    AddChain(old.Closed ? (IEnumerable<GeoEdge2>)old.ToGeoPolygonArc2().GetEdges() : old.ToGeoPolylineArc2().GetEdges(), handle, raws);
+                    AddChain(
+                        old.Closed
+                            ? (IEnumerable<GeoEdge2>)old.ToGeoPolygonArc2().GetEdges()
+                            : old.ToGeoPolylineArc2().GetEdges(),
+                        handle,
+                        raws
+                    );
                     break;
                 case DxfEllipse ellipse:
                     if (ellipse.Closed)
@@ -411,18 +517,38 @@ namespace GeometryHelper.Dxf.Viewer
                     else
                     {
                         GeoSpline2 part = ellipse.ToGeoSpline2();
-                        AddPoints(i => part.GetPointAtParameter(part.DomainStart + (part.DomainEnd - part.DomainStart) * i / CurvePoints), handle, raws);
+                        AddPoints(
+                            i =>
+                                part.GetPointAtParameter(
+                                    part.DomainStart + (part.DomainEnd - part.DomainStart) * i / CurvePoints
+                                ),
+                            handle,
+                            raws
+                        );
                     }
 
                     break;
                 case DxfSpline spline:
                     GeoSpline2 s = spline.ToGeoSpline2();
-                    AddPoints(i => s.GetPointAtParameter(s.DomainStart + (s.DomainEnd - s.DomainStart) * i / CurvePoints), handle, raws);
+                    AddPoints(
+                        i => s.GetPointAtParameter(s.DomainStart + (s.DomainEnd - s.DomainStart) * i / CurvePoints),
+                        handle,
+                        raws
+                    );
                     break;
             }
         }
 
-        private static void AddArc(GeoPoint2 start, GeoPoint2 end, GeoPoint2 centre, double radius, double from, double sweep, string handle, List<Raw> raws)
+        private static void AddArc(
+            GeoPoint2 start,
+            GeoPoint2 end,
+            GeoPoint2 centre,
+            double radius,
+            double from,
+            double sweep,
+            string handle,
+            List<Raw> raws
+        )
         {
             // An arc of more than half a turn is cut in two, so that each piece's tangent and bulge stay plain.
             if (Math.Abs(sweep) > Math.PI)
@@ -444,7 +570,16 @@ namespace GeometryHelper.Dxf.Viewer
                 if (edge.IsArc)
                 {
                     GeoArc2 arc = edge.ToArc();
-                    AddArc(edge.StartPoint, edge.EndPoint, arc.Center, arc.Radius, arc.StartAngle, arc.SweptAngle, handle, raws);
+                    AddArc(
+                        edge.StartPoint,
+                        edge.EndPoint,
+                        arc.Center,
+                        arc.Radius,
+                        arc.StartAngle,
+                        arc.SweptAngle,
+                        handle,
+                        raws
+                    );
                 }
                 else
                 {
@@ -544,7 +679,13 @@ namespace GeometryHelper.Dxf.Viewer
                     double dx = End.X - Start.X;
                     double dy = End.Y - Start.Y;
                     double length = dx * dx + dy * dy;
-                    t = length == 0.0 ? 0.0 : Math.Max(0.0, Math.Min(1.0, ((point.X - Start.X) * dx + (point.Y - Start.Y) * dy) / length));
+                    t =
+                        length == 0.0
+                            ? 0.0
+                            : Math.Max(
+                                0.0,
+                                Math.Min(1.0, ((point.X - Start.X) * dx + (point.Y - Start.Y) * dy) / length)
+                            );
                 }
                 else
                 {
@@ -625,8 +766,17 @@ namespace GeometryHelper.Dxf.Viewer
 
                 foreach (Raw raw in raws)
                 {
-                    var cuts = new List<KeyValuePair<double, GeoPoint2>>(raw.Cuts) { new KeyValuePair<double, GeoPoint2>(0.0, raw.Start), new KeyValuePair<double, GeoPoint2>(1.0, raw.End) };
-                    cuts.Sort((x, y) => x.Key.CompareTo(y.Key) != 0 ? x.Key.CompareTo(y.Key) : x.Value.X.CompareTo(y.Value.X) != 0 ? x.Value.X.CompareTo(y.Value.X) : x.Value.Y.CompareTo(y.Value.Y));
+                    var cuts = new List<KeyValuePair<double, GeoPoint2>>(raw.Cuts)
+                    {
+                        new KeyValuePair<double, GeoPoint2>(0.0, raw.Start),
+                        new KeyValuePair<double, GeoPoint2>(1.0, raw.End),
+                    };
+                    cuts.Sort(
+                        (x, y) =>
+                            x.Key.CompareTo(y.Key) != 0 ? x.Key.CompareTo(y.Key)
+                            : x.Value.X.CompareTo(y.Value.X) != 0 ? x.Value.X.CompareTo(y.Value.X)
+                            : x.Value.Y.CompareTo(y.Value.Y)
+                    );
                     int last = Node(cuts[0].Value);
                     double lastT = 0.0;
 
@@ -692,7 +842,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                 foreach (List<int> ways in outgoing)
                 {
-                    ways.Sort((x, y) => keys[x][0] != keys[y][0] ? keys[x][0].CompareTo(keys[y][0]) : keys[x][1] != keys[y][1] ? keys[x][1].CompareTo(keys[y][1]) : x.CompareTo(y));
+                    ways.Sort(
+                        (x, y) =>
+                            keys[x][0] != keys[y][0] ? keys[x][0].CompareTo(keys[y][0])
+                            : keys[x][1] != keys[y][1] ? keys[x][1].CompareTo(keys[y][1])
+                            : x.CompareTo(y)
+                    );
                 }
 
                 int[] component = Components();
@@ -782,7 +937,12 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         Raw b = raws[order[j]];
 
-                        if (a.MaxX < b.MinX - _tol || b.MaxX < a.MinX - _tol || a.MaxY < b.MinY - _tol || b.MaxY < a.MinY - _tol)
+                        if (
+                            a.MaxX < b.MinX - _tol
+                            || b.MaxX < a.MinX - _tol
+                            || a.MaxY < b.MinY - _tol
+                            || b.MaxY < a.MinY - _tol
+                        )
                         {
                             continue;
                         }
@@ -955,9 +1115,14 @@ namespace GeometryHelper.Dxf.Viewer
                 P1 = p1;
                 Bulge = bulge;
                 Source = source;
-                Middle = bulge != 0.0 && Arc(p0, p1, bulge, out GeoPoint2 centre, out double radius, out double from, out double sweep)
-                    ? new GeoPoint2(centre.X + radius * Math.Cos(from + sweep / 2.0), centre.Y + radius * Math.Sin(from + sweep / 2.0))
-                    : new GeoPoint2((p0.X + p1.X) / 2.0, (p0.Y + p1.Y) / 2.0);
+                Middle =
+                    bulge != 0.0
+                    && Arc(p0, p1, bulge, out GeoPoint2 centre, out double radius, out double from, out double sweep)
+                        ? new GeoPoint2(
+                            centre.X + radius * Math.Cos(from + sweep / 2.0),
+                            centre.Y + radius * Math.Sin(from + sweep / 2.0)
+                        )
+                        : new GeoPoint2((p0.X + p1.X) / 2.0, (p0.Y + p1.Y) / 2.0);
             }
 
             public int A { get; }

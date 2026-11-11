@@ -29,8 +29,8 @@ namespace GeometryHelper.Core
         /// <returns>
         /// true when they meet, whether at a point or along a length; false when they are apart or skew.
         /// </returns>
-        public static bool CollidesWith(GeoLine3 line1, GeoLine3 line2, Tolerance tolerance)
-            => Distance3.DistanceTo(line1, line2, tolerance) <= tolerance.EqualPoint;
+        public static bool CollidesWith(GeoLine3 line1, GeoLine3 line2, Tolerance tolerance) =>
+            Distance3.DistanceTo(line1, line2, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether a segment touches a ray.
@@ -44,8 +44,8 @@ namespace GeometryHelper.Core
         /// <param name="ray">The ray.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they meet, whether at a point or along a length; otherwise, false.</returns>
-        public static bool CollidesWith(GeoLine3 line, GeoRay3 ray, Tolerance tolerance)
-            => Distance3.DistanceTo(ray, line, tolerance) <= tolerance.EqualPoint;
+        public static bool CollidesWith(GeoLine3 line, GeoRay3 ray, Tolerance tolerance) =>
+            Distance3.DistanceTo(ray, line, tolerance) <= tolerance.EqualPoint;
 
         /// <summary>
         /// Determines whether a ray touches a segment.
@@ -59,6 +59,7 @@ namespace GeometryHelper.Core
         /// <param name="line">The segment.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they meet, whether at a point or along a length; otherwise, false.</returns>
-        public static bool CollidesWith(GeoRay3 ray, GeoLine3 line, Tolerance tolerance) => CollidesWith(line, ray, tolerance);
+        public static bool CollidesWith(GeoRay3 ray, GeoLine3 line, Tolerance tolerance) =>
+            CollidesWith(line, ray, tolerance);
     }
 }

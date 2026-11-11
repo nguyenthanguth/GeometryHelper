@@ -1,4 +1,4 @@
-﻿namespace GeometryHelper.IfcConvert.Core
+namespace GeometryHelper.IfcConvert.Core
 {
     /// <summary>
     /// Specifies the target coordinate space for converted geometry.
@@ -13,6 +13,6 @@
         /// <summary>
         /// Keeps geometry in local coordinates relative to the product's object placement.
         /// </summary>
-        Local = 1
+        Local = 1,
     }
 }

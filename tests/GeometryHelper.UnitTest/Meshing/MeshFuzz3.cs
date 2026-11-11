@@ -82,7 +82,11 @@ namespace GeometryHelper.UnitTest.Meshing
 
             double angle = r.NextDouble() * Math.PI * 2;
             double reach = far ? 7E6 : 5000;
-            var move = new GeoVector3((r.NextDouble() - 0.5) * reach, (r.NextDouble() - 0.5) * reach, (r.NextDouble() - 0.5) * (far ? 1E5 : 5000));
+            var move = new GeoVector3(
+                (r.NextDouble() - 0.5) * reach,
+                (r.NextDouble() - 0.5) * reach,
+                (r.NextDouble() - 0.5) * (far ? 1E5 : 5000)
+            );
 
             switch (r.Next(4))
             {
@@ -93,7 +97,9 @@ namespace GeometryHelper.UnitTest.Meshing
                     return GeoTransform3.Translation(move) * GeoTransform3.RotationZ(angle);
                 case 2:
                     // Standing: turned to stand up, then about Z.
-                    return GeoTransform3.Translation(move) * GeoTransform3.RotationZ(angle) * GeoTransform3.RotationX(Math.PI / 2);
+                    return GeoTransform3.Translation(move)
+                        * GeoTransform3.RotationZ(angle)
+                        * GeoTransform3.RotationX(Math.PI / 2);
                 default:
                     return GeoTransform3.Translation(move) * GeoTransform3.RotationAxis(axis, angle);
             }
@@ -111,7 +117,8 @@ namespace GeometryHelper.UnitTest.Meshing
             bool far = r.Next(5) == 0;
             bool offFlat = r.Next(4) == 0;
             GeoTransform3 placed = Placement(r, far);
-            GeoPoint3 Up(GeoPoint2 p) => placed.Transform(new GeoPoint3(p.X, p.Y, offFlat ? (r.NextDouble() - 0.5) * 0.008 : 0.0));
+            GeoPoint3 Up(GeoPoint2 p) =>
+                placed.Transform(new GeoPoint3(p.X, p.Y, offFlat ? (r.NextDouble() - 0.5) * 0.008 : 0.0));
             what = $"star {n} size {size:F0} holes {holeCount} far {far} offFlat {offFlat}";
 
             var boundary = new GeoPolygon3(outer.Select(Up).ToList(), Tol);
@@ -139,7 +146,13 @@ namespace GeometryHelper.UnitTest.Meshing
             return new MeshOptions(MeshKind.Grid, w, h, joint, angle, alignU, alignV);
         }
 
-        private static MeshPlacement3 RandomPlacement(Random r, GeoVector3 normal, GeoPoint3 near, double size, out string what)
+        private static MeshPlacement3 RandomPlacement(
+            Random r,
+            GeoVector3 normal,
+            GeoPoint3 near,
+            double size,
+            out string what
+        )
         {
             MeshPlacement3 placement;
 
@@ -158,8 +171,7 @@ namespace GeometryHelper.UnitTest.Meshing
                     do
                     {
                         d = new GeoVector3(r.NextDouble() - 0.5, r.NextDouble() - 0.5, r.NextDouble() - 0.5);
-                    }
-                    while (d.Length < 0.1 || Math.Abs(d.Normalize().DotProduct(normal)) > 0.95);
+                    } while (d.Length < 0.1 || Math.Abs(d.Normalize().DotProduct(normal)) > 0.95);
 
                     placement = MeshPlacement3.Along(d);
                     break;
@@ -183,7 +195,17 @@ namespace GeometryHelper.UnitTest.Meshing
             if (r.Next(3) == 0)
             {
                 bool far = r.Next(3) == 0;
-                placement = placement.At(far ? new GeoPoint3(0, 0, 0) : near.Add(new GeoVector3((r.NextDouble() - 0.5) * size, (r.NextDouble() - 0.5) * size, (r.NextDouble() - 0.5) * size)));
+                placement = placement.At(
+                    far
+                        ? new GeoPoint3(0, 0, 0)
+                        : near.Add(
+                            new GeoVector3(
+                                (r.NextDouble() - 0.5) * size,
+                                (r.NextDouble() - 0.5) * size,
+                                (r.NextDouble() - 0.5) * size
+                            )
+                        )
+                );
             }
 
             what = placement.ToString();
@@ -198,7 +220,9 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             made = 0;
             var r = new Random(caseSeed);
-            string shapeWhat, optionsWhat, placementWhat;
+            string shapeWhat,
+                optionsWhat,
+                placementWhat;
             GeoFace3 face;
 
             try
@@ -215,14 +239,14 @@ namespace GeometryHelper.UnitTest.Meshing
             MeshPlacement3 placement = RandomPlacement(r, face.Normal, face.Boundary[0], size, out placementWhat);
             string where = $"[{shapeWhat}; {optionsWhat}; {placementWhat}]";
 
-
             GeoMesh3 mesh;
 
             try
             {
                 mesh = face.ToMesh(options, placement, Tol);
             }
-            catch (ArgumentException e) when (e.Message.Contains("more than the") || e.Message.Contains("no larger than"))
+            catch (ArgumentException e)
+                when (e.Message.Contains("more than the") || e.Message.Contains("no larger than"))
             {
                 return null;
             }
@@ -237,7 +261,14 @@ namespace GeometryHelper.UnitTest.Meshing
 
         /// <summary>What a mesh of a flat shape promises, as a reason it fails, or null.</summary>
         /// <param name="region">The area of the material where the face's boundary crosses itself, which its own area is not.</param>
-        private static string CheckPlanar(GeoFace3 face, MeshOptions options, MeshPlacement3 placement, GeoMesh3 mesh, string where, double? region = null)
+        private static string CheckPlanar(
+            GeoFace3 face,
+            MeshOptions options,
+            MeshPlacement3 placement,
+            GeoMesh3 mesh,
+            string where,
+            double? region = null
+        )
         {
             GeoCoordinateSystem3 frame = mesh.Frame;
 
@@ -264,7 +295,10 @@ namespace GeometryHelper.UnitTest.Meshing
             {
                 GeoPoint3 local = frame.ToLocal(mesh.Vertices[v]);
 
-                if (Math.Abs(local.X - flat.Vertices[v].X) > 1E-8 * scale || Math.Abs(local.Y - flat.Vertices[v].Y) > 1E-8 * scale)
+                if (
+                    Math.Abs(local.X - flat.Vertices[v].X) > 1E-8 * scale
+                    || Math.Abs(local.Y - flat.Vertices[v].Y) > 1E-8 * scale
+                )
                 {
                     return $"vertex {v} at {local} is laid out at {flat.Vertices[v]} {where}";
                 }
@@ -362,7 +396,9 @@ namespace GeometryHelper.UnitTest.Meshing
 
             if (placement.Axes == MeshAxes.World || placement.Axes == MeshAxes.Upright)
             {
-                GeoVector3 first = frame.XAxis.Multiply(Math.Cos(-angle)).Add(frame.ZAxis.CrossProduct(frame.XAxis).Multiply(Math.Sin(-angle)));
+                GeoVector3 first = frame
+                    .XAxis.Multiply(Math.Cos(-angle))
+                    .Add(frame.ZAxis.CrossProduct(frame.XAxis).Multiply(Math.Sin(-angle)));
                 bool level = Math.Sqrt(Math.Max(0, 1 - face.Normal.Z * face.Normal.Z)) <= Math.Sin(Tol.EqualAngleRad);
 
                 if (!level && Math.Abs(first.Z) > 1E-9)
@@ -376,7 +412,8 @@ namespace GeometryHelper.UnitTest.Meshing
             {
                 GeoPoint3 o = frame.ToLocal(placement.Origin.Value);
                 double joint = options.Joint > Tol.EqualPoint ? options.Joint : 0.0;
-                double pu = options.CellWidth + joint, pv = options.CellHeight + joint;
+                double pu = options.CellWidth + joint,
+                    pv = options.CellHeight + joint;
 
                 // Measured the world's way along each axis, X before Y before Z, as the cells are laid from the origin.
                 double su = MeshPlacement3.Canonical(frame.XAxis).Equals(frame.XAxis) ? 1.0 : -1.0;
@@ -392,9 +429,16 @@ namespace GeometryHelper.UnitTest.Meshing
                     foreach (int v in mesh.GetFaceIndices(f))
                     {
                         GeoPoint2 p = flat.Vertices[v];
-                        double du = Mod(su * (p.X - o.X), pu), dv = Mod(sv * (p.Y - o.Y), pv);
-                        bool onU = du < 1E-6 * scale + Tol.EqualPoint || Math.Abs(du - options.CellWidth) < 1E-6 * scale + Tol.EqualPoint || pu - du < 1E-6 * scale + Tol.EqualPoint;
-                        bool onV = dv < 1E-6 * scale + Tol.EqualPoint || Math.Abs(dv - options.CellHeight) < 1E-6 * scale + Tol.EqualPoint || pv - dv < 1E-6 * scale + Tol.EqualPoint;
+                        double du = Mod(su * (p.X - o.X), pu),
+                            dv = Mod(sv * (p.Y - o.Y), pv);
+                        bool onU =
+                            du < 1E-6 * scale + Tol.EqualPoint
+                            || Math.Abs(du - options.CellWidth) < 1E-6 * scale + Tol.EqualPoint
+                            || pu - du < 1E-6 * scale + Tol.EqualPoint;
+                        bool onV =
+                            dv < 1E-6 * scale + Tol.EqualPoint
+                            || Math.Abs(dv - options.CellHeight) < 1E-6 * scale + Tol.EqualPoint
+                            || pv - dv < 1E-6 * scale + Tol.EqualPoint;
 
                         if (!onU && !onV)
                         {
@@ -438,13 +482,18 @@ namespace GeometryHelper.UnitTest.Meshing
         private static string Covers(GeoFace3 face, GeoMesh3 mesh, GeoMesh2 flat, bool jointed, string where)
         {
             GeoPolygon2[] faces = flat.GetFaces();
-            double minX = flat.Vertices.Min(p => p.X), maxX = flat.Vertices.Max(p => p.X);
-            double minY = flat.Vertices.Min(p => p.Y), maxY = flat.Vertices.Max(p => p.Y);
+            double minX = flat.Vertices.Min(p => p.X),
+                maxX = flat.Vertices.Max(p => p.X);
+            double minY = flat.Vertices.Min(p => p.Y),
+                maxY = flat.Vertices.Max(p => p.Y);
             var random = new Random(5);
 
             for (int k = 0; k < 300; k++)
             {
-                var p = new GeoPoint2(minX + random.NextDouble() * (maxX - minX), minY + random.NextDouble() * (maxY - minY));
+                var p = new GeoPoint2(
+                    minX + random.NextDouble() * (maxX - minX),
+                    minY + random.NextDouble() * (maxY - minY)
+                );
                 PointLocation inFace = face.Locate(mesh.Frame.ToGlobal(new GeoPoint3(p.X, p.Y, 0)), Tol);
 
                 if (inFace == PointLocation.OnSide)
@@ -471,7 +520,10 @@ namespace GeometryHelper.UnitTest.Meshing
                 {
                     double nearest = faces.Min(f => f.DistanceTo(p));
                     GeoFace2 laid = face.ProjectToFace2(mesh.Frame);
-                    double toRing = Math.Min(laid.Boundary.ToPolyline().DistanceTo(p), laid.Holes.Count > 0 ? laid.Holes.Min(h => h.ToPolyline().DistanceTo(p)) : double.MaxValue);
+                    double toRing = Math.Min(
+                        laid.Boundary.ToPolyline().DistanceTo(p),
+                        laid.Holes.Count > 0 ? laid.Holes.Min(h => h.ToPolyline().DistanceTo(p)) : double.MaxValue
+                    );
                     string inLaid = laid.Locate(p, Tol).ToString();
                     string inHoles = string.Join(",", laid.Holes.Select(h => h.Locate(p, Tol)));
                     return $"a point {p} of the face lies in {count} faces, {nearest:E3} from the nearest, {toRing:E3} from a ring, laid {inLaid} holes {inHoles}, area {mesh.Area:R} vs {face.Area:R} {where}";
@@ -500,7 +552,11 @@ namespace GeometryHelper.UnitTest.Meshing
             double[] bulges = outer.Select(_ => r.Next(3) == 0 ? (r.NextDouble() - 0.5) * 0.6 : 0.0).ToArray();
             bool far = r.Next(5) == 0;
             GeoTransform3 placed = Placement(r, far);
-            var plane = new GeoCoordinateSystem3(placed.Transform(new GeoPoint3(0, 0, 0)), placed.Transform(GeoVector3.XAxis), placed.Transform(GeoVector3.YAxis));
+            var plane = new GeoCoordinateSystem3(
+                placed.Transform(new GeoPoint3(0, 0, 0)),
+                placed.Transform(GeoVector3.XAxis),
+                placed.Transform(GeoVector3.YAxis)
+            );
             GeoPolygonArc3 loop;
 
             try
@@ -514,15 +570,23 @@ namespace GeometryHelper.UnitTest.Meshing
 
             double area = Math.Abs(loop.ToPolygonArc2().Flatten(0.0).SignedArea);
             MeshOptions options = RandomOptions(r, Math.Sqrt(area), out string optionsWhat);
-            MeshPlacement3 placement = RandomPlacement(r, loop.Normal, loop[0], Math.Sqrt(area), out string placementWhat);
-            string where = $"[arcs {n} size {size:F0} bulges {string.Join(",", bulges.Select(b => b.ToString("F2")))} far {far}; {optionsWhat}; {placementWhat}]";
+            MeshPlacement3 placement = RandomPlacement(
+                r,
+                loop.Normal,
+                loop[0],
+                Math.Sqrt(area),
+                out string placementWhat
+            );
+            string where =
+                $"[arcs {n} size {size:F0} bulges {string.Join(",", bulges.Select(b => b.ToString("F2")))} far {far}; {optionsWhat}; {placementWhat}]";
             GeoMesh3 mesh;
 
             try
             {
                 mesh = loop.ToMesh(options, placement, Tol);
             }
-            catch (ArgumentException e) when (e.Message.Contains("more than the") || e.Message.Contains("no larger than"))
+            catch (ArgumentException e)
+                when (e.Message.Contains("more than the") || e.Message.Contains("no larger than"))
             {
                 return null;
             }
@@ -614,7 +678,14 @@ namespace GeometryHelper.UnitTest.Meshing
                 case 2:
                 {
                     GeoSolid3 a = new GeoObb3(new GeoPoint3(0, 0, 0), size, 0.7 * size, 0.5 * size).ToSolid();
-                    GeoSolid3 b = new GeoObb3(new GeoPoint3(0.4 * size * (r.NextDouble() - 0.5), 0.3 * size, 0.2 * size), 0.5 * size, 0.6 * size, 0.6 * size, new GeoVector3(1, r.NextDouble() - 0.5, 0), new GeoVector3(0, 1, 0)).ToSolid();
+                    GeoSolid3 b = new GeoObb3(
+                        new GeoPoint3(0.4 * size * (r.NextDouble() - 0.5), 0.3 * size, 0.2 * size),
+                        0.5 * size,
+                        0.6 * size,
+                        0.6 * size,
+                        new GeoVector3(1, r.NextDouble() - 0.5, 0),
+                        new GeoVector3(0, 1, 0)
+                    ).ToSolid();
                     bool subtract = r.Next(2) == 0;
                     GeoSolid3 result;
                     bool ok = subtract ? a.TrySubtract(b, out result, Tol) : a.TryUnion(b, out result, Tol);
@@ -626,13 +697,20 @@ namespace GeometryHelper.UnitTest.Meshing
                 {
                     int segments = 8 + r.Next(40);
                     what = $"cylinder r {0.5 * size:F0} segments {segments} far {far}";
-                    return GeoSolid3.Cylinder(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, size), 0.5 * size, segments, Tol).TransformBy(placed);
+                    return GeoSolid3
+                        .Cylinder(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 0, size), 0.5 * size, segments, Tol)
+                        .TransformBy(placed);
                 }
 
                 case 4:
                 {
                     GeoSolid3 slab = new GeoObb3(new GeoPoint3(0, 0, 0), size, 0.8 * size, 0.1 * size + 100).ToSolid();
-                    GeoSolid3 shaft = new GeoObb3(new GeoPoint3(0.3 * size * (r.NextDouble() - 0.5), 0.3 * size * (r.NextDouble() - 0.5), 0), 0.2 * size, 0.15 * size, size).ToSolid();
+                    GeoSolid3 shaft = new GeoObb3(
+                        new GeoPoint3(0.3 * size * (r.NextDouble() - 0.5), 0.3 * size * (r.NextDouble() - 0.5), 0),
+                        0.2 * size,
+                        0.15 * size,
+                        size
+                    ).ToSolid();
                     what = $"slab with opening size {size:F0} far {far}";
                     return slab.WithOpenings(new[] { shaft }).TransformBy(placed);
                 }
@@ -642,18 +720,40 @@ namespace GeometryHelper.UnitTest.Meshing
                     // An L whose step stands a hair to either side of where a line of cells is likely to fall: up to two point
                     // tolerances.
                     double step = Math.Round(0.5 * size / 100) * 100 + (r.NextDouble() - 0.5) * 4 * Tol.EqualPoint;
-                    var l = new List<GeoPoint3> { new GeoPoint3(0, 0, 0), new GeoPoint3(size, 0, 0), new GeoPoint3(size, 0.5 * size, 0), new GeoPoint3(step, 0.5 * size, 0), new GeoPoint3(step, size, 0), new GeoPoint3(0, size, 0) };
+                    var l = new List<GeoPoint3>
+                    {
+                        new GeoPoint3(0, 0, 0),
+                        new GeoPoint3(size, 0, 0),
+                        new GeoPoint3(size, 0.5 * size, 0),
+                        new GeoPoint3(step, 0.5 * size, 0),
+                        new GeoPoint3(step, size, 0),
+                        new GeoPoint3(0, size, 0),
+                    };
                     what = $"L step {step:F4} size {size:F0} far {far}";
-                    return GeoSolid3.Extrude(new GeoPolygon3(l, Tol), new GeoVector3(0, 0, 0.6 * size), Tol).TransformBy(placed);
+                    return GeoSolid3
+                        .Extrude(new GeoPolygon3(l, Tol), new GeoVector3(0, 0, 0.6 * size), Tol)
+                        .TransformBy(placed);
                 }
 
                 default:
                 {
                     // A U whose notch splits cells in two.
                     double w = size;
-                    var u = new List<GeoPoint3> { new GeoPoint3(0, 0, 0), new GeoPoint3(w, 0, 0), new GeoPoint3(w, w, 0), new GeoPoint3(0.7 * w, w, 0), new GeoPoint3(0.7 * w, 0.35 * w, 0), new GeoPoint3(0.3 * w, 0.35 * w, 0), new GeoPoint3(0.3 * w, w, 0), new GeoPoint3(0, w, 0) };
+                    var u = new List<GeoPoint3>
+                    {
+                        new GeoPoint3(0, 0, 0),
+                        new GeoPoint3(w, 0, 0),
+                        new GeoPoint3(w, w, 0),
+                        new GeoPoint3(0.7 * w, w, 0),
+                        new GeoPoint3(0.7 * w, 0.35 * w, 0),
+                        new GeoPoint3(0.3 * w, 0.35 * w, 0),
+                        new GeoPoint3(0.3 * w, w, 0),
+                        new GeoPoint3(0, w, 0),
+                    };
                     what = $"U size {size:F0} far {far}";
-                    return GeoSolid3.Extrude(new GeoPolygon3(u, Tol), new GeoVector3(0, 0, 0.4 * w), Tol).TransformBy(placed);
+                    return GeoSolid3
+                        .Extrude(new GeoPolygon3(u, Tol), new GeoVector3(0, 0, 0.4 * w), Tol)
+                        .TransformBy(placed);
                 }
             }
         }
@@ -673,7 +773,9 @@ namespace GeometryHelper.UnitTest.Meshing
                 }
             }
 
-            CellAxis x = Axis(), y = Axis(), z = Axis();
+            CellAxis x = Axis(),
+                y = Axis(),
+                z = Axis();
             double joint = r.Next(4) == 0 ? r.NextDouble() * 0.02 * size : 0.0;
             double snap = r.Next(4) == 0 ? r.NextDouble() * 0.02 * size : 0.0;
             what = $"X {x} Y {y} Z {z} joint {joint:F2} snap {snap:F2}";
@@ -707,14 +809,14 @@ namespace GeometryHelper.UnitTest.Meshing
             MeshPlacement3 placement = RandomPlacement(r, GeoVector3.ZAxis, near, size, out string placementWhat);
             string where = $"[{bodyWhat}; {optionsWhat}; {placementWhat}]";
 
-
             GeoCellGrid3 grid;
 
             try
             {
                 grid = body.ToCells(options, placement, Tol);
             }
-            catch (ArgumentException e) when (e.Message.Contains("more than the") || e.Message.Contains("no larger than"))
+            catch (ArgumentException e)
+                when (e.Message.Contains("more than the") || e.Message.Contains("no larger than"))
             {
                 return null;
             }
@@ -736,7 +838,12 @@ namespace GeometryHelper.UnitTest.Meshing
             made = 0;
             var r = new Random(caseSeed);
             double size = 200 + r.NextDouble() * 3000;
-            var sides = new[] { size * (0.2 + r.NextDouble()), size * (0.2 + r.NextDouble()), size * (0.2 + r.NextDouble()) };
+            var sides = new[]
+            {
+                size * (0.2 + r.NextDouble()),
+                size * (0.2 + r.NextDouble()),
+                size * (0.2 + r.NextDouble()),
+            };
             int thin = r.Next(3) == 0 ? r.Next(3) : -1;
 
             if (thin >= 0)
@@ -746,8 +853,20 @@ namespace GeometryHelper.UnitTest.Meshing
 
             bool far = r.Next(5) == 0;
             bool turned = r.Next(2) == 0;
-            GeoTransform3 placed = turned ? Placement(r, far) : GeoTransform3.Translation(new GeoVector3((r.NextDouble() - 0.5) * (far ? 7E6 : 5000), (r.NextDouble() - 0.5) * (far ? 7E6 : 5000), (r.NextDouble() - 0.5) * 5000));
-            var axes = new GeoCoordinateSystem3(placed.Transform(new GeoPoint3(0, 0, 0)), placed.Transform(GeoVector3.XAxis), placed.Transform(GeoVector3.YAxis));
+            GeoTransform3 placed = turned
+                ? Placement(r, far)
+                : GeoTransform3.Translation(
+                    new GeoVector3(
+                        (r.NextDouble() - 0.5) * (far ? 7E6 : 5000),
+                        (r.NextDouble() - 0.5) * (far ? 7E6 : 5000),
+                        (r.NextDouble() - 0.5) * 5000
+                    )
+                );
+            var axes = new GeoCoordinateSystem3(
+                placed.Transform(new GeoPoint3(0, 0, 0)),
+                placed.Transform(GeoVector3.XAxis),
+                placed.Transform(GeoVector3.YAxis)
+            );
             var box = new GeoObb3(axes, sides[0], sides[1], sides[2]);
 
             if (box.IsDegenerate(Tol))
@@ -760,7 +879,13 @@ namespace GeometryHelper.UnitTest.Meshing
             if (thin >= 0 && r.Next(2) == 0)
             {
                 // A snap distance as thick as the box is thin, or more.
-                options = new CellOptions3(options.X, options.Y, options.Z, options.Joint, sides[thin] * (0.5 + 2.5 * r.NextDouble()));
+                options = new CellOptions3(
+                    options.X,
+                    options.Y,
+                    options.Z,
+                    options.Joint,
+                    sides[thin] * (0.5 + 2.5 * r.NextDouble())
+                );
                 optionsWhat += $" snap {options.SnapDistance:F3}";
             }
 
@@ -768,17 +893,27 @@ namespace GeometryHelper.UnitTest.Meshing
 
             if (r.Next(3) == 0)
             {
-                placement = placement.At(box.Center.Add(new GeoVector3((r.NextDouble() - 0.5) * size, (r.NextDouble() - 0.5) * size, (r.NextDouble() - 0.5) * size)));
+                placement = placement.At(
+                    box.Center.Add(
+                        new GeoVector3(
+                            (r.NextDouble() - 0.5) * size,
+                            (r.NextDouble() - 0.5) * size,
+                            (r.NextDouble() - 0.5) * size
+                        )
+                    )
+                );
             }
 
-            string where = $"[box {sides[0]:F3} x {sides[1]:F3} x {sides[2]:F3} turned {turned} far {far}; {optionsWhat}; {placement}]";
+            string where =
+                $"[box {sides[0]:F3} x {sides[1]:F3} x {sides[2]:F3} turned {turned} far {far}; {optionsWhat}; {placement}]";
             GeoCellGrid3 boxes;
 
             try
             {
                 boxes = box.ToCells(options, placement, Tol);
             }
-            catch (ArgumentException e) when (e.Message.Contains("more than the") || e.Message.Contains("no larger than"))
+            catch (ArgumentException e)
+                when (e.Message.Contains("more than the") || e.Message.Contains("no larger than"))
             {
                 return null;
             }
@@ -816,14 +951,19 @@ namespace GeometryHelper.UnitTest.Meshing
 
             for (int c = 0; c < boxes.CellCount; c++)
             {
-                GeoCell3 a = boxes.Cells[c], b = cells.Cells[c];
+                GeoCell3 a = boxes.Cells[c],
+                    b = cells.Cells[c];
 
                 if (a.I != b.I || a.J != b.J || a.K != b.K || a.Piece != b.Piece)
                 {
                     return $"as a box {a}, as a body {b} {where}";
                 }
 
-                if (Math.Abs(a.Volume - b.Volume) > 1E-9 * Math.Max(1, a.Volume) + 1E-14 * (box.Center.ToVector().Length + size) * a.Solid.GetSurfaceArea())
+                if (
+                    Math.Abs(a.Volume - b.Volume)
+                    > 1E-9 * Math.Max(1, a.Volume)
+                        + 1E-14 * (box.Center.ToVector().Length + size) * a.Solid.GetSurfaceArea()
+                )
                 {
                     return $"as a box {a} holds {a.Volume:R}, as a body {b.Volume:R} {where}";
                 }
@@ -837,7 +977,8 @@ namespace GeometryHelper.UnitTest.Meshing
             bool jointed = options.Joint > Tol.EqualPoint;
 
             // Measured from far out, each place along an axis is good to the rounding of the coordinates there.
-            double rounding = 1E-14 * (box.Center.ToVector().Length + size) * box.SurfaceArea + 1E-9 * Math.Max(1, box.Volume);
+            double rounding =
+                1E-14 * (box.Center.ToVector().Length + size) * box.SurfaceArea + 1E-9 * Math.Max(1, box.Volume);
 
             if (!jointed && Math.Abs(boxes.Volume - box.Volume) > rounding)
             {
@@ -870,7 +1011,15 @@ namespace GeometryHelper.UnitTest.Meshing
                     case 0:
                     {
                         // An L standing in XZ, its flange as thin along Z, its web 0.1 of it wide.
-                        var l = new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(size, 0, 0), new GeoPoint3(size, 0, thin), new GeoPoint3(0.1 * size, 0, thin), new GeoPoint3(0.1 * size, 0, 0.6 * size), new GeoPoint3(0, 0, 0.6 * size) };
+                        var l = new[]
+                        {
+                            new GeoPoint3(0, 0, 0),
+                            new GeoPoint3(size, 0, 0),
+                            new GeoPoint3(size, 0, thin),
+                            new GeoPoint3(0.1 * size, 0, thin),
+                            new GeoPoint3(0.1 * size, 0, 0.6 * size),
+                            new GeoPoint3(0, 0, 0.6 * size),
+                        };
                         body = GeoSolid3.Extrude(new GeoPolygon3(l, Tol), new GeoVector3(0, 0.3 * size, 0), Tol);
                         what = $"L flange {thin:F3} size {size:F0}";
                         break;
@@ -878,7 +1027,13 @@ namespace GeometryHelper.UnitTest.Meshing
 
                     case 1:
                     {
-                        var plate = new List<GeoPoint3> { new GeoPoint3(0, 0, 0), new GeoPoint3(size, 0, 0), new GeoPoint3(size, 0.7 * size, 0), new GeoPoint3(0, 0.7 * size, 0) };
+                        var plate = new List<GeoPoint3>
+                        {
+                            new GeoPoint3(0, 0, 0),
+                            new GeoPoint3(size, 0, 0),
+                            new GeoPoint3(size, 0.7 * size, 0),
+                            new GeoPoint3(0, 0.7 * size, 0),
+                        };
                         body = GeoSolid3.Extrude(new GeoPolygon3(plate, Tol), new GeoVector3(0, 0, thin), Tol);
                         what = $"plate {thin:F3} size {size:F0}";
                         break;
@@ -886,9 +1041,19 @@ namespace GeometryHelper.UnitTest.Meshing
 
                     default:
                     {
-                        GeoSolid3 column = new GeoObb3(new GeoPoint3(0, 0, 0.5 * size), 0.2 * size, 0.2 * size, size).ToSolid();
+                        GeoSolid3 column = new GeoObb3(
+                            new GeoPoint3(0, 0, 0.5 * size),
+                            0.2 * size,
+                            0.2 * size,
+                            size
+                        ).ToSolid();
                         double at = size * (0.2 + 0.6 * r.NextDouble());
-                        GeoSolid3 ledge = new GeoObb3(new GeoPoint3(0.2 * size, 0, at + 0.5 * thin), 0.2 * size, 0.2 * size, thin).ToSolid();
+                        GeoSolid3 ledge = new GeoObb3(
+                            new GeoPoint3(0.2 * size, 0, at + 0.5 * thin),
+                            0.2 * size,
+                            0.2 * size,
+                            thin
+                        ).ToSolid();
 
                         if (!column.TryUnion(ledge, out body, Tol))
                         {
@@ -916,11 +1081,23 @@ namespace GeometryHelper.UnitTest.Meshing
 
             if (r.Next(2) == 0)
             {
-                options = new CellOptions3(options.X, options.Y, options.Z, options.Joint, thin * (0.5 + 2.5 * r.NextDouble()));
+                options = new CellOptions3(
+                    options.X,
+                    options.Y,
+                    options.Z,
+                    options.Joint,
+                    thin * (0.5 + 2.5 * r.NextDouble())
+                );
                 optionsWhat += $" snap {options.SnapDistance:F3}";
             }
 
-            MeshPlacement3 placement = RandomPlacement(r, GeoVector3.ZAxis, body.Faces[0].Boundary[0], size, out string placementWhat);
+            MeshPlacement3 placement = RandomPlacement(
+                r,
+                GeoVector3.ZAxis,
+                body.Faces[0].Boundary[0],
+                size,
+                out string placementWhat
+            );
             string where = $"[{what} far {far}; {optionsWhat}; {placementWhat}]";
             GeoCellGrid3 grid;
 
@@ -928,7 +1105,8 @@ namespace GeometryHelper.UnitTest.Meshing
             {
                 grid = body.ToCells(options, placement, Tol);
             }
-            catch (ArgumentException e) when (e.Message.Contains("more than the") || e.Message.Contains("no larger than"))
+            catch (ArgumentException e)
+                when (e.Message.Contains("more than the") || e.Message.Contains("no larger than"))
             {
                 return null;
             }
@@ -955,7 +1133,8 @@ namespace GeometryHelper.UnitTest.Meshing
             // And measured from far out, the body's volume is good to the rounding of the coordinates where it stands: a box
             // 0.036 thick two thousand kilometres out holds as a body three billionths more or less than its cells say.
             GeoAabb3 extent = body.GetAabb();
-            slack += 1E-14 * (extent.Center.ToVector().Length + extent.Min.DistanceTo(extent.Max)) * body.GrossSurfaceArea;
+            slack +=
+                1E-14 * (extent.Center.ToVector().Length + extent.Min.DistanceTo(extent.Max)) * body.GrossSurfaceArea;
 
             if (!jointed && Math.Abs(grid.Volume - net) > slack)
             {
@@ -973,7 +1152,11 @@ namespace GeometryHelper.UnitTest.Meshing
             {
                 if (previous != null)
                 {
-                    int order = cell.K != previous.K ? cell.K.CompareTo(previous.K) : cell.J != previous.J ? cell.J.CompareTo(previous.J) : cell.I != previous.I ? cell.I.CompareTo(previous.I) : cell.Piece.CompareTo(previous.Piece);
+                    int order =
+                        cell.K != previous.K ? cell.K.CompareTo(previous.K)
+                        : cell.J != previous.J ? cell.J.CompareTo(previous.J)
+                        : cell.I != previous.I ? cell.I.CompareTo(previous.I)
+                        : cell.Piece.CompareTo(previous.Piece);
 
                     if (order <= 0)
                     {
@@ -997,7 +1180,11 @@ namespace GeometryHelper.UnitTest.Meshing
 
                 // A box's cell measures itself by arithmetic, its body by its faces, each corner of which is good to the
                 // rounding of the coordinates where it stands.
-                if (Math.Abs(cell.Solid.GetVolume() - cell.Volume) > 1E-9 * Math.Max(1, cell.Volume) + 1E-14 * box.Center.ToVector().Length * cell.Solid.GetSurfaceArea())
+                if (
+                    Math.Abs(cell.Solid.GetVolume() - cell.Volume)
+                    > 1E-9 * Math.Max(1, cell.Volume)
+                        + 1E-14 * box.Center.ToVector().Length * cell.Solid.GetSurfaceArea()
+                )
                 {
                     return $"{cell} says {cell.Volume}, its body {cell.Solid.GetVolume()} {where}";
                 }
@@ -1005,7 +1192,11 @@ namespace GeometryHelper.UnitTest.Meshing
                 // A cut moved onto a corner by the snap distance, then not made short of a tip past it: four point tolerances,
                 // or between cells a joint apart the point tolerance.
                 double tip = (jointed ? 1.0 : 4.0) * Tol.EqualPoint;
-                double reach = snap + tip + 3 * Tol.EqualPoint + 1E-9 * (box.Center.ToVector().Length + box.SizeX + box.SizeY + box.SizeZ);
+                double reach =
+                    snap
+                    + tip
+                    + 3 * Tol.EqualPoint
+                    + 1E-9 * (box.Center.ToVector().Length + box.SizeX + box.SizeY + box.SizeZ);
 
                 // The point of a needle a cut could not take off stays with the cell: no more than a couple of corners, each
                 // counted once however its faces round it, and no further out than a thousand point tolerances. The cut is
@@ -1018,7 +1209,10 @@ namespace GeometryHelper.UnitTest.Meshing
                     foreach (GeoPoint3 corner in face.Boundary.Vertices)
                     {
                         GeoPoint3 local = box.CoordinateSystem.ToLocal(corner);
-                        double beyond = Math.Max(Math.Abs(local.X) - box.ExtentX, Math.Max(Math.Abs(local.Y) - box.ExtentY, Math.Abs(local.Z) - box.ExtentZ));
+                        double beyond = Math.Max(
+                            Math.Abs(local.X) - box.ExtentX,
+                            Math.Max(Math.Abs(local.Y) - box.ExtentY, Math.Abs(local.Z) - box.ExtentZ)
+                        );
 
                         if (beyond > reach)
                         {
@@ -1109,8 +1303,10 @@ namespace GeometryHelper.UnitTest.Meshing
         {
             for (int axis = 0; axis < 3; axis++)
             {
-                if ((!double.IsNaN(a.High[axis]) && Math.Abs(a.High[axis] - b.Low[axis]) <= Tol.EqualPoint)
-                    || (!double.IsNaN(b.High[axis]) && Math.Abs(b.High[axis] - a.Low[axis]) <= Tol.EqualPoint))
+                if (
+                    (!double.IsNaN(a.High[axis]) && Math.Abs(a.High[axis] - b.Low[axis]) <= Tol.EqualPoint)
+                    || (!double.IsNaN(b.High[axis]) && Math.Abs(b.High[axis] - a.Low[axis]) <= Tol.EqualPoint)
+                )
                 {
                     return axis;
                 }
@@ -1127,14 +1323,20 @@ namespace GeometryHelper.UnitTest.Meshing
 
             for (int axis = 0; axis < 3; axis++)
             {
-                int u = (axis + 1) % 3, v = (axis + 2) % 3;
+                int u = (axis + 1) % 3,
+                    v = (axis + 2) % 3;
                 double At(GeoPoint3 p) => grid.Frame.Origin.GetVectorTo(p).DotProduct(directions[axis]);
 
                 GeoFace2 Lay(GeoFace3 face)
                 {
                     GeoPolygon2 Ring(IReadOnlyList<GeoPoint3> ring)
                     {
-                        GeoPoint2[] flat = ring.Select(p => { GeoVector3 o = grid.Frame.Origin.GetVectorTo(p); return new GeoPoint2(o.DotProduct(directions[u]), o.DotProduct(directions[v])); }).ToArray();
+                        GeoPoint2[] flat = ring.Select(p =>
+                            {
+                                GeoVector3 o = grid.Frame.Origin.GetVectorTo(p);
+                                return new GeoPoint2(o.DotProduct(directions[u]), o.DotProduct(directions[v]));
+                            })
+                            .ToArray();
                         GeoPolygon2 polygon = MeshLift3.LayOutPolygon(flat);
 
                         if (polygon == null)
@@ -1142,7 +1344,10 @@ namespace GeometryHelper.UnitTest.Meshing
                             return null;
                         }
 
-                        GeoPoint2[] corners = Enumerable.Range(0, polygon.VertexCount).Select(i => polygon[i]).ToArray();
+                        GeoPoint2[] corners = Enumerable
+                            .Range(0, polygon.VertexCount)
+                            .Select(i => polygon[i])
+                            .ToArray();
 
                         if (polygon.SignedArea < 0)
                         {
@@ -1153,7 +1358,9 @@ namespace GeometryHelper.UnitTest.Meshing
                     }
 
                     GeoPolygon2 boundary = Ring(face.Boundary.Vertices);
-                    return boundary == null ? null : new GeoFace2(boundary, face.Holes.Select(h => Ring(h.Vertices)).Where(h => h != null));
+                    return boundary == null
+                        ? null
+                        : new GeoFace2(boundary, face.Holes.Select(h => Ring(h.Vertices)).Where(h => h != null));
                 }
 
                 foreach (GeoFace3 fa in a.Solid.Faces)
@@ -1174,12 +1381,16 @@ namespace GeometryHelper.UnitTest.Meshing
 
                     foreach (GeoFace3 fb in b.Solid.Faces)
                     {
-                        if (fb.Normal.DotProduct(directions[axis]) * da > -(1 - 1E-6) || fb.Boundary.Vertices.Any(p => Math.Abs(At(p) - at) > Tol.EqualPoint))
+                        if (
+                            fb.Normal.DotProduct(directions[axis]) * da > -(1 - 1E-6)
+                            || fb.Boundary.Vertices.Any(p => Math.Abs(At(p) - at) > Tol.EqualPoint)
+                        )
                         {
                             continue;
                         }
 
-                        GeoFace2 la = Lay(fa), lb = Lay(fb);
+                        GeoFace2 la = Lay(fa),
+                            lb = Lay(fb);
 
                         if (la != null && lb != null)
                         {
@@ -1230,10 +1441,13 @@ namespace GeometryHelper.UnitTest.Meshing
 
             for (int k = 0; k < 250; k++)
             {
-                GeoPoint3 p = grid.Frame.ToGlobal(new GeoPoint3(
-                    bounds.Min.X + random.NextDouble() * bounds.SizeX,
-                    bounds.Min.Y + random.NextDouble() * bounds.SizeY,
-                    bounds.Min.Z + random.NextDouble() * bounds.SizeZ));
+                GeoPoint3 p = grid.Frame.ToGlobal(
+                    new GeoPoint3(
+                        bounds.Min.X + random.NextDouble() * bounds.SizeX,
+                        bounds.Min.Y + random.NextDouble() * bounds.SizeY,
+                        bounds.Min.Z + random.NextDouble() * bounds.SizeZ
+                    )
+                );
                 PointLocation inBody = body.Locate(p, Tol);
 
                 if (inBody == PointLocation.OnSide)
@@ -1262,7 +1476,11 @@ namespace GeometryHelper.UnitTest.Meshing
                 }
 
                 GeoPoint3 local = grid.Frame.ToLocal(p);
-                bool inACell = jointed && InLine(lines[0], local.X, inside) && InLine(lines[1], local.Y, inside) && InLine(lines[2], local.Z, inside);
+                bool inACell =
+                    jointed
+                    && InLine(lines[0], local.X, inside)
+                    && InLine(lines[1], local.Y, inside)
+                    && InLine(lines[2], local.Z, inside);
 
                 if (inBody == PointLocation.Inside && (jointed && !inACell ? count > 1 : count != 1))
                 {
@@ -1281,23 +1499,35 @@ namespace GeometryHelper.UnitTest.Meshing
         /// <summary>Where each line of cells along an axis starts and ends, from the grid's frame's origin.</summary>
         private static (double Start, double End)[] Lines(GeoCellGrid3 grid, int axis)
         {
-            int count = axis == 0 ? grid.CountX : axis == 1 ? grid.CountY : grid.CountZ;
+            int count =
+                axis == 0 ? grid.CountX
+                : axis == 1 ? grid.CountY
+                : grid.CountZ;
             var lines = new (double, double)[count];
 
             for (int i = 0; i < count; i++)
             {
                 GeoObb3 box = grid.GetBox(axis == 0 ? i : 0, axis == 1 ? i : 0, axis == 2 ? i : 0);
                 GeoPoint3 centre = grid.Frame.ToLocal(box.Center);
-                double middle = axis == 0 ? centre.X : axis == 1 ? centre.Y : centre.Z;
-                double half = 0.5 * (axis == 0 ? box.SizeX : axis == 1 ? box.SizeY : box.SizeZ);
+                double middle =
+                    axis == 0 ? centre.X
+                    : axis == 1 ? centre.Y
+                    : centre.Z;
+                double half =
+                    0.5
+                    * (
+                        axis == 0 ? box.SizeX
+                        : axis == 1 ? box.SizeY
+                        : box.SizeZ
+                    );
                 lines[i] = (middle - half, middle + half);
             }
 
             return lines;
         }
 
-        private static bool InLine((double Start, double End)[] lines, double at, double inside)
-            => lines.Any(l => at > l.Start + inside && at < l.End - inside);
+        private static bool InLine((double Start, double End)[] lines, double at, double inside) =>
+            lines.Any(l => at > l.Start + inside && at < l.End - inside);
 
         #endregion
     }

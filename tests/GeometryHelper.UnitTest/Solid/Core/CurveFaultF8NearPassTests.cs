@@ -15,7 +15,13 @@ namespace GeometryHelper.UnitTest.Solid
     {
         private static readonly Tolerance Thousandth = Tolerance.Default;
 
-        private static readonly GeoEllipse3 Flat = new GeoEllipse3(GeoPoint3.Origin, new GeoVector3(0, 0, 1), new GeoVector3(1, 0, 0), 300, 100);
+        private static readonly GeoEllipse3 Flat = new GeoEllipse3(
+            GeoPoint3.Origin,
+            new GeoVector3(0, 0, 1),
+            new GeoVector3(1, 0, 0),
+            300,
+            100
+        );
 
         private static readonly GeoCircle3 FlatCircle = new GeoCircle3(GeoPoint3.Origin, new GeoVector3(0, 0, 1), 100);
 
@@ -23,7 +29,8 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly GeoArc3 FlatArc = GeoArc3.FromThreePoints(
             new GeoPoint3(70.71067811865476, 70.71067811865476, 0),
             new GeoPoint3(0, 100, 0),
-            new GeoPoint3(-70.71067811865476, 70.71067811865476, 0));
+            new GeoPoint3(-70.71067811865476, 70.71067811865476, 0)
+        );
 
         private static readonly GeoVector3 Axis = new GeoVector3(Math.Cos(0.01), 0, -Math.Sin(0.01));
 
@@ -33,13 +40,17 @@ namespace GeometryHelper.UnitTest.Solid
         /// A circle of radius 50 leaning 0.01 radians about the Y axis, the end of its diameter along X a height above
         /// (0, 100, 0), where its rim runs along Y, square to the flat ones'.
         /// </summary>
-        private static GeoCircle3 Leaning(double above) => new GeoCircle3(new GeoPoint3(0, 100, above).Subtract(Axis.Multiply(50)), Lean, 50);
+        private static GeoCircle3 Leaning(double above) =>
+            new GeoCircle3(new GeoPoint3(0, 100, above).Subtract(Axis.Multiply(50)), Lean, 50);
 
         /// <summary>The half of that circle round the same end.</summary>
         private static GeoArc3 LeaningArc(double above)
         {
             GeoCircle3 circle = Leaning(above);
-            GeoPoint3 At(double angle) => circle.Center.Add(Axis.Multiply(50 * Math.Cos(angle))).Add(new GeoVector3(0, 1, 0).Multiply(50 * Math.Sin(angle)));
+            GeoPoint3 At(double angle) =>
+                circle
+                    .Center.Add(Axis.Multiply(50 * Math.Cos(angle)))
+                    .Add(new GeoVector3(0, 1, 0).Multiply(50 * Math.Sin(angle)));
 
             return GeoArc3.FromThreePoints(At(-1.5), At(0), At(1.5));
         }
@@ -82,7 +93,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.True(FlatCircle.CollidesWith(circle, Thousandth));
             AssertTheTouch(FlatCircle.GetIntersections(circle, Thousandth), above);
-            Assert.Equal(FlatCircle.GetIntersections(circle, Thousandth), circle.GetIntersections(FlatCircle, Thousandth));
+            Assert.Equal(
+                FlatCircle.GetIntersections(circle, Thousandth),
+                circle.GetIntersections(FlatCircle, Thousandth)
+            );
         }
 
         [Theory]
@@ -124,7 +138,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new GeoVector3(5.062732878271126E-07, -6.504263396403756E-07, 0.9999999999996604),
                 477.6240549877398,
                 1,
-                6);
+                6
+            );
 
             GeoPoint3[] first = one.GetIntersections(two, Thousandth);
             GeoPoint3[] second = two.GetIntersections(one, Thousandth);

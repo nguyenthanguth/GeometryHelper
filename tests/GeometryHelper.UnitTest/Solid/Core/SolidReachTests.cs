@@ -20,13 +20,11 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A box a hundred on each side, with its near-lower-left corner at the origin.
         /// </summary>
-        private static GeoSolid3 Box() => new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 100, 100))
-            .ToObb()
-            .ToSolid();
+        private static GeoSolid3 Box() =>
+            new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 100, 100)).ToObb().ToSolid();
 
-        private static GeoSolid3 BoxAt(double x) => new GeoAabb3(new GeoPoint3(x, 0, 0), new GeoPoint3(x + 100, 100, 100))
-            .ToObb()
-            .ToSolid();
+        private static GeoSolid3 BoxAt(double x) =>
+            new GeoAabb3(new GeoPoint3(x, 0, 0), new GeoPoint3(x + 100, 100, 100)).ToObb().ToSolid();
 
         [Fact]
         public void ASolidMeasuresTheSameWhicheverWayItIsAsked()
@@ -37,9 +35,16 @@ namespace GeometryHelper.UnitTest.Solid
             var point = new GeoPoint3(300, 50, 50);
             var line = new GeoLine3(new GeoPoint3(300, 50, 0), new GeoPoint3(300, 50, 100));
             var triangle = new GeoTriangle3(
-                new GeoPoint3(300, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(300, 100, 0));
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(300, 100, 0)
+            );
             var polygon = new GeoPolygon3(
-                new GeoPoint3(300, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 100, 0), new GeoPoint3(300, 100, 0));
+                new GeoPoint3(300, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(400, 100, 0),
+                new GeoPoint3(300, 100, 0)
+            );
             var polyline = new GeoPolyline3(new GeoPoint3(300, 0, 0), new GeoPoint3(300, 100, 0));
             var plane = new GeoPlane3(new GeoPoint3(300, 0, 0), new GeoVector3(1, 0, 0));
             var obb = new GeoAabb3(new GeoPoint3(300, 0, 0), new GeoPoint3(400, 100, 100)).ToObb();
@@ -77,7 +82,10 @@ namespace GeometryHelper.UnitTest.Solid
             var through = new GeoLine3(new GeoPoint3(-50, 50, 50), new GeoPoint3(150, 50, 50));
             var cuttingPlane = new GeoPlane3(new GeoPoint3(50, 0, 0), new GeoVector3(1, 0, 0));
             var buried = new GeoTriangle3(
-                new GeoPoint3(20, 20, 50), new GeoPoint3(80, 20, 50), new GeoPoint3(20, 80, 50));
+                new GeoPoint3(20, 20, 50),
+                new GeoPoint3(80, 20, 50),
+                new GeoPoint3(20, 80, 50)
+            );
 
             Assert.Equal(0.0, box.DistanceTo(inside), 12);
             Assert.Equal(0.0, box.DistanceTo(through), 12);
@@ -120,7 +128,11 @@ namespace GeometryHelper.UnitTest.Solid
             var clear = new GeoLine3(new GeoPoint3(300, 50, 0), new GeoPoint3(300, 50, 100));
             var polyline = new GeoPolyline3(new GeoPoint3(-50, 50, 50), new GeoPoint3(150, 50, 50));
             var polygon = new GeoPolygon3(
-                new GeoPoint3(50, -50, 50), new GeoPoint3(50, 150, 50), new GeoPoint3(50, 150, 60), new GeoPoint3(50, -50, 60));
+                new GeoPoint3(50, -50, 50),
+                new GeoPoint3(50, 150, 50),
+                new GeoPoint3(50, 150, 60),
+                new GeoPoint3(50, -50, 60)
+            );
             var face = new GeoFace3(polygon);
             var obb = new GeoAabb3(new GeoPoint3(50, 50, 50), new GeoPoint3(150, 150, 150)).ToObb();
 
@@ -187,8 +199,7 @@ namespace GeometryHelper.UnitTest.Solid
         public void NothingIsAskedOfNothing()
         {
             GeoSolid3 box = Box();
-            var polygon = new GeoPolygon3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0), new GeoPoint3(0, 1, 0));
+            var polygon = new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0), new GeoPoint3(0, 1, 0));
 
             Assert.Throws<ArgumentNullException>(() => Distance3.DistanceTo((GeoSolid3)null, polygon));
             Assert.Throws<ArgumentNullException>(() => Distance3.DistanceTo(box, (GeoPolygon3)null));

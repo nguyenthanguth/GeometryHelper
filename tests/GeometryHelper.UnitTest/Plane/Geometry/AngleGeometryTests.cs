@@ -40,6 +40,5 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(-90.0, Angle.FromRadians(from.GetSignedAngleTo(to)).Degrees, 9);
             Assert.Equal(270.0, Angle.FromRadians(from.GetSignedAngleTo(to)).Normalize().Degrees, 9);
         }
-
     }
 }

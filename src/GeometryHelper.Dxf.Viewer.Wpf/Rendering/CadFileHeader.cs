@@ -17,7 +17,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private const int HeadBytes = 256 * 1024;
         private const int TailBytes = 4 * 1024 * 1024;
 
-        private static readonly Dictionary<string, string> Releases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly Dictionary<string, string> Releases = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase
+        )
         {
             ["AC1009"] = "AutoCAD R12",
             ["AC1012"] = "AutoCAD R13",
@@ -40,7 +42,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string Version { get; }
 
         /// <summary>Gets the version in words: "AutoCAD 2018 DXF (AC1032)"; "DXF" where it was not found.</summary>
-        public string VersionText => Version == null ? "DXF"
+        public string VersionText =>
+            Version == null ? "DXF"
             : Releases.TryGetValue(Version, out string release) ? release + " DXF (" + Version.ToUpperInvariant() + ")"
             : "DXF (" + Version.ToUpperInvariant() + ")";
 
@@ -54,22 +57,40 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             try
             {
-                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                using (
+                    var stream = new FileStream(
+                        path,
+                        FileMode.Open,
+                        FileAccess.Read,
+                        FileShare.ReadWrite | FileShare.Delete
+                    )
+                )
                 {
                     byte[] head = ReadAt(stream, 0, (int)Math.Min(stream.Length, HeadBytes));
 
-                    if (Latin1(head, 0, Math.Min(head.Length, 22)).StartsWith("AutoCAD Binary DXF", StringComparison.Ordinal))
+                    if (
+                        Latin1(head, 0, Math.Min(head.Length, 22))
+                            .StartsWith("AutoCAD Binary DXF", StringComparison.Ordinal)
+                    )
                     {
                         return new CadFileHeader(null, null);
                     }
 
                     string version = Value(Lines(Latin1(head, 0, head.Length)), "$ACADVER");
                     long start = Math.Max(0L, stream.Length - TailBytes);
-                    byte[] tail = start == 0 && head.Length == stream.Length ? head : ReadAt(stream, start, (int)(stream.Length - start));
+                    byte[] tail =
+                        start == 0 && head.Length == stream.Length
+                            ? head
+                            : ReadAt(stream, start, (int)(stream.Length - start));
                     return new CadFileHeader(version, Picture(Lines(Latin1(tail, 0, tail.Length))));
                 }
             }
-            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException || exception is NotSupportedException)
+            catch (Exception exception)
+                when (exception is IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is ArgumentException
+                    || exception is NotSupportedException
+                )
             {
                 GeometryHelperLog.Debug("CadFileHeader: " + path + " could not be read: " + exception.Message);
                 return new CadFileHeader(null, null);
@@ -99,7 +120,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // The colours of the palette follow the header: those it says it uses, or all of them for 8 bits or fewer.
             int bits = headerSize >= 16 ? BitConverter.ToInt16(section, 14) : 24;
             int used = headerSize >= 36 ? BitConverter.ToInt32(section, 32) : 0;
-            int colours = used > 0 ? used : bits > 0 && bits <= 8 ? 1 << bits : 0;
+            int colours =
+                used > 0 ? used
+                : bits > 0 && bits <= 8 ? 1 << bits
+                : 0;
             int offset = 14 + headerSize + 4 * colours;
             var file = new byte[14 + section.Length];
             file[0] = (byte)'B';
@@ -204,7 +228,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 for (int k = 0; k + 1 < hex.Length; k += 2)
                 {
-                    if (!byte.TryParse(hex.Substring(k, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte value))
+                    if (
+                        !byte.TryParse(
+                            hex.Substring(k, 2),
+                            NumberStyles.HexNumber,
+                            CultureInfo.InvariantCulture,
+                            out byte value
+                        )
+                    )
                     {
                         return null;
                     }

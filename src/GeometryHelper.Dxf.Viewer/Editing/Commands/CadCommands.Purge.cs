@@ -18,8 +18,21 @@ namespace GeometryHelper.Dxf.Viewer
     {
         private static readonly string[] PurgeOptions =
         {
-            "Blocks", "Dimstyles", "Groups", "LAyers", "LTypes", "MUltileaderstyles", "Plotstyles", "SHapes", "textSTyles", "Tablestyles",
-            "Visualstyles", "Regapps", "Zero-length geometry", "Empty text objects", "All",
+            "Blocks",
+            "Dimstyles",
+            "Groups",
+            "LAyers",
+            "LTypes",
+            "MUltileaderstyles",
+            "Plotstyles",
+            "SHapes",
+            "textSTyles",
+            "Tablestyles",
+            "Visualstyles",
+            "Regapps",
+            "Zero-length geometry",
+            "Empty text objects",
+            "All",
         };
 
         /// <summary>The named kinds -PURGE All purges, in the order AutoCAD's purges them, each its keyword, its name and its name of several.</summary>
@@ -61,7 +74,8 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             yield return CadPrompt.ForString("Enter name(s) to purge", "*");
-            string pattern = c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim() : "*";
+            string pattern =
+                c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim() : "*";
             yield return CadPrompt.ForKeyword("Verify each name to be purged?", new[] { "Yes", "No" }, "Yes");
 
             if (c.Input.Kind != CadInputKind.Keyword)
@@ -104,7 +118,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                         if (verify)
                         {
-                            yield return CadPrompt.ForKeyword("Purge " + kind[1] + " \"" + item.Key + "\"?", new[] { "Yes", "No" }, "No");
+                            yield return CadPrompt.ForKeyword(
+                                "Purge " + kind[1] + " \"" + item.Key + "\"?",
+                                new[] { "Yes", "No" },
+                                "No"
+                            );
 
                             if (c.Input.Kind != CadInputKind.Keyword)
                             {
@@ -157,7 +175,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (KeyValuePair<string[], string> pair in chosen)
             {
-                records.Add(new CadEditRecord(CadEditRecordKind.TableChanged, null, "Purge " + pair.Key[1], pair.Value, null));
+                records.Add(
+                    new CadEditRecord(CadEditRecordKind.TableChanged, null, "Purge " + pair.Key[1], pair.Value, null)
+                );
             }
 
             return c.Apply(records, s =>
@@ -170,7 +190,11 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>"Deleting layer "TMP"." for each object purged, then "2 layers deleted." for each kind, in the order of the kinds.</summary>
-        private static void WritePurged(CadCommandContext c, IEnumerable<string[]> kinds, List<KeyValuePair<string[], string>> purged)
+        private static void WritePurged(
+            CadCommandContext c,
+            IEnumerable<string[]> kinds,
+            List<KeyValuePair<string[], string>> purged
+        )
         {
             foreach (string[] kind in kinds)
             {
@@ -187,7 +211,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (count > 0)
                 {
-                    c.Write(count.ToString(CultureInfo.InvariantCulture) + " " + (count == 1 ? kind[1] : kind[2]) + " deleted.");
+                    c.Write(
+                        count.ToString(CultureInfo.InvariantCulture)
+                            + " "
+                            + (count == 1 ? kind[1] : kind[2])
+                            + " deleted."
+                    );
                 }
             }
         }
@@ -263,7 +292,11 @@ namespace GeometryHelper.Dxf.Viewer
                     foreach (DxfTextStyleTableRecord style in db.TextStyleTable)
                     {
                         // A style of a file of shapes is purged as a shape file, by SHapes, which AutoCAD keeps while loaded.
-                        if (!style.IsShapeFile && !string.IsNullOrEmpty(style.Name) && !string.Equals(style.Name, db.Textstyle, StringComparison.OrdinalIgnoreCase))
+                        if (
+                            !style.IsShapeFile
+                            && !string.IsNullOrEmpty(style.Name)
+                            && !string.Equals(style.Name, db.Textstyle, StringComparison.OrdinalIgnoreCase)
+                        )
                         {
                             candidates.Add(new KeyValuePair<string, DxfDBObject>(style.Name, style));
                         }
@@ -315,11 +348,13 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            unused.Sort((a, b) =>
-            {
-                int byName = StringComparer.OrdinalIgnoreCase.Compare(a.Key, b.Key);
-                return byName != 0 ? byName : string.CompareOrdinal(a.Value.Handle, b.Value.Handle);
-            });
+            unused.Sort(
+                (a, b) =>
+                {
+                    int byName = StringComparer.OrdinalIgnoreCase.Compare(a.Key, b.Key);
+                    return byName != 0 ? byName : string.CompareOrdinal(a.Value.Handle, b.Value.Handle);
+                }
+            );
             return unused;
         }
 
@@ -366,7 +401,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (EraseEntities(c, found, what))
             {
-                c.Write(found.Count.ToString(CultureInfo.InvariantCulture) + " " + what + (found.Count == 1 ? string.Empty : "s") + " deleted.");
+                c.Write(
+                    found.Count.ToString(CultureInfo.InvariantCulture)
+                        + " "
+                        + what
+                        + (found.Count == 1 ? string.Empty : "s")
+                        + " deleted."
+                );
             }
         }
 
@@ -406,9 +447,11 @@ namespace GeometryHelper.Dxf.Viewer
                 foreach (string handle in found)
                 {
                     // An entity of a block is no entity of a space, which the gate asks about; it goes as a change of the tables.
-                    records.Add(c.Document.FindEntity(handle) != null
-                        ? new CadEditRecord(CadEditRecordKind.Erased, handle)
-                        : new CadEditRecord(CadEditRecordKind.TableChanged, null, "Purge " + what, handle, null));
+                    records.Add(
+                        c.Document.FindEntity(handle) != null
+                            ? new CadEditRecord(CadEditRecordKind.Erased, handle)
+                            : new CadEditRecord(CadEditRecordKind.TableChanged, null, "Purge " + what, handle, null)
+                    );
                 }
 
                 CadEditResult result = c.Apply(records, s =>
@@ -420,7 +463,11 @@ namespace GeometryHelper.Dxf.Viewer
                             continue;
                         }
 
-                        if (s.Database.TryGetObject(handle, out DxfDBObject value) && value is DxfEntity entity && !entity.IsErased)
+                        if (
+                            s.Database.TryGetObject(handle, out DxfDBObject value)
+                            && value is DxfEntity entity
+                            && !entity.IsErased
+                        )
                         {
                             entity.Erase();
                         }

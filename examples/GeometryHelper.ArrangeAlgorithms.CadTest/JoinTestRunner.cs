@@ -1,17 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using GeometryHelper;
-// AutoCAD ships its own Autodesk.AutoCAD.Geometry.Tolerance, and this file imports both namespaces, so the
-// two tie. The one meant here is named outright.
-using Tolerance = GeometryHelper.Tolerance;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
+using GeometryHelper;
+using GeometryHelper.CadConvert;
 using GeometryHelper.Core;
 using GeometryHelper.Geometry;
-using GeometryHelper.CadConvert;
+// AutoCAD ships its own Autodesk.AutoCAD.Geometry.Tolerance, and this file imports both namespaces, so the
+// two tie. The one meant here is named outright.
+using Tolerance = GeometryHelper.Tolerance;
 
 namespace GeometryHelper.ArrangeAlgorithms.CadTest
 {
@@ -53,18 +53,17 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
             string label,
             Func<IEnumerable<GeoLine2>, Tolerance, GeoPolyline2[]> join,
             string layerName,
-            short colorIndex)
+            short colorIndex
+        )
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
-            if (doc == null) return;
+            if (doc == null)
+                return;
             Editor ed = doc.Editor;
             Database db = doc.Database;
 
             // 1. Yêu cầu người dùng chọn tập hợp các đối tượng Line
-            TypedValue[] filter = new TypedValue[]
-            {
-                new TypedValue((int)DxfCode.Start, "LINE")
-            };
+            TypedValue[] filter = new TypedValue[] { new TypedValue((int)DxfCode.Start, "LINE") };
             SelectionFilter selectionFilter = new SelectionFilter(filter);
 
             PromptSelectionOptions selOpts = new PromptSelectionOptions();
@@ -88,8 +87,8 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
             {
                 try
                 {
-                    BlockTableRecord modelSpace = (BlockTableRecord)tr.GetObject(
-                        SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForWrite);
+                    BlockTableRecord modelSpace = (BlockTableRecord)
+                        tr.GetObject(SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForWrite);
 
                     var geoLines = new List<GeoLine2>();
                     var lineObjects = new List<Line>();
@@ -121,7 +120,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                     GeoPolyline2[] joinedPolylines = join(geoLines, Tolerance.Global);
                     watch.Stop();
 
-                    ed.WriteMessage($"\nKết quả sau khi gộp: {joinedPolylines.Length} polyline, mất {watch.ElapsedMilliseconds} ms.");
+                    ed.WriteMessage(
+                        $"\nKết quả sau khi gộp: {joinedPolylines.Length} polyline, mất {watch.ElapsedMilliseconds} ms."
+                    );
 
                     // Đảm bảo có layer cho đối tượng đã gộp
                     ObjectId joinedLayerId = SplitTestRunner.EnsureLayer(db, tr, layerName);
@@ -140,7 +141,9 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         tr.AddNewlyCreatedDBObject(polyline, true);
 
                         totalLength += geoPolyline.Length;
-                        ed.WriteMessage($"\n  - Polyline {index++}: {geoPolyline.VertexCount} đỉnh, Chiều dài: {geoPolyline.Length:F2}");
+                        ed.WriteMessage(
+                            $"\n  - Polyline {index++}: {geoPolyline.VertexCount} đỉnh, Chiều dài: {geoPolyline.Length:F2}"
+                        );
                     }
 
                     // Tổng chiều dài phải bằng tổng chiều dài các Line đầu vào: gộp không tạo thêm và
@@ -151,8 +154,10 @@ namespace GeometryHelper.ArrangeAlgorithms.CadTest
                         inputLength += geoLine.Length;
                     }
 
-                    ed.WriteMessage($"\nTổng chiều dài: vào {inputLength:F4}, ra {totalLength:F4}"
-                        + (Math.Abs(inputLength - totalLength) <= 1E-6 ? " (khớp)." : " *** LỆCH ***."));
+                    ed.WriteMessage(
+                        $"\nTổng chiều dài: vào {inputLength:F4}, ra {totalLength:F4}"
+                            + (Math.Abs(inputLength - totalLength) <= 1E-6 ? " (khớp)." : " *** LỆCH ***.")
+                    );
 
                     // Xóa các Line ban đầu đã gộp thành công
                     foreach (Line line in lineObjects)

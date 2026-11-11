@@ -18,7 +18,6 @@ namespace GeometryHelper.Dxf
         public string Celtype
         {
             get => Name("$CELTYPE", 6, "ByLayer");
-
             set
             {
                 if (value == null)
@@ -33,7 +32,10 @@ namespace GeometryHelper.Dxf
 
                 if (!File.LinetypeListed(value))
                 {
-                    throw new ArgumentException("The linetype " + value + " is not in the file's linetype table.", nameof(value));
+                    throw new ArgumentException(
+                        "The linetype " + value + " is not in the file's linetype table.",
+                        nameof(value)
+                    );
                 }
 
                 Set("$CELTYPE", 6, value);
@@ -50,7 +52,6 @@ namespace GeometryHelper.Dxf
         public DxfColor Cecolor
         {
             get => DxfColor.OfIndex(Whole("$CECOLOR", 62, 256));
-
             set
             {
                 if (value == null)
@@ -58,9 +59,16 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentNullException(nameof(value));
                 }
 
-                if (value.ColorMethod != DxfColorMethod.ByLayer && value.ColorMethod != DxfColorMethod.ByBlock && value.ColorMethod != DxfColorMethod.ByAci)
+                if (
+                    value.ColorMethod != DxfColorMethod.ByLayer
+                    && value.ColorMethod != DxfColorMethod.ByBlock
+                    && value.ColorMethod != DxfColorMethod.ByAci
+                )
                 {
-                    throw new ArgumentException("The header holds the colour of new entities as an index: by layer, by block or 1 to 255.", nameof(value));
+                    throw new ArgumentException(
+                        "The header holds the colour of new entities as an index: by layer, by block or 1 to 255.",
+                        nameof(value)
+                    );
                 }
 
                 if (!value.Equals(Cecolor))
@@ -76,7 +84,6 @@ namespace GeometryHelper.Dxf
         public DxfLineWeight Celweight
         {
             get => (DxfLineWeight)Whole("$CELWEIGHT", 370, -1);
-
             set
             {
                 if (value == Celweight)
@@ -86,7 +93,11 @@ namespace GeometryHelper.Dxf
 
                 if (!((int)value >= -3 && (int)value <= -1) && !DxfShape.IsLineweight((int)value))
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A lineweight is by layer, by block, the default or one of AutoCAD's.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "A lineweight is by layer, by block, the default or one of AutoCAD's."
+                    );
                 }
 
                 File.Requires(1015, "$CELWEIGHT", "R2000 (AC1015)");
@@ -102,7 +113,6 @@ namespace GeometryHelper.Dxf
         public bool LineWeightDisplay
         {
             get => Whole("$LWDISPLAY", 290, 0) != 0;
-
             set
             {
                 if (value != LineWeightDisplay)
@@ -122,7 +132,6 @@ namespace GeometryHelper.Dxf
         public int Saveproxygraphics
         {
             get => Whole("$PROXYGRAPHICS", 70, 1);
-
             set
             {
                 if (value == Saveproxygraphics)
@@ -141,7 +150,6 @@ namespace GeometryHelper.Dxf
         public double Ltscale
         {
             get => Real("$LTSCALE", 40, 1.0);
-
             set
             {
                 if (!Same(value, Ltscale))
@@ -191,13 +199,16 @@ namespace GeometryHelper.Dxf
         public int Splinesegs
         {
             get => Whole("$SPLINESEGS", 70, 8);
-
             set
             {
                 // The number it has changes nothing, whatever the header holds.
                 if (value != Splinesegs && (value == 0 || value < short.MinValue || value > short.MaxValue))
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "SPLINESEGS is from -32768 to 32767, not nought.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(value),
+                        value,
+                        "SPLINESEGS is from -32768 to 32767, not nought."
+                    );
                 }
 
                 SetWhole("$SPLINESEGS", 70, value, Splinesegs);
@@ -212,7 +223,13 @@ namespace GeometryHelper.Dxf
         public int Splinetype
         {
             get => Whole("$SPLINETYPE", 70, 6);
-            set => SetWhole("$SPLINETYPE", 70, value == Splinetype ? value : InRange(value, 5, 6, nameof(value)), Splinetype);
+            set =>
+                SetWhole(
+                    "$SPLINETYPE",
+                    70,
+                    value == Splinetype ? value : InRange(value, 5, 6, nameof(value)),
+                    Splinetype
+                );
         }
 
         /// <summary>
@@ -223,7 +240,6 @@ namespace GeometryHelper.Dxf
         public int Surftype
         {
             get => Whole("$SURFTYPE", 70, 6);
-
             set
             {
                 if (value != Surftype && value != 5 && value != 6 && value != 8)
@@ -256,7 +272,6 @@ namespace GeometryHelper.Dxf
         public double Pdsize
         {
             get => Real("$PDSIZE", 40, 0.0);
-
             set
             {
                 Guard.Finite(value, nameof(value), "A size has to be a finite number.");
@@ -269,7 +284,6 @@ namespace GeometryHelper.Dxf
         public double Textsize
         {
             get => Real("$TEXTSIZE", 40, 2.5);
-
             set
             {
                 if (!Same(value, Textsize))
@@ -286,7 +300,6 @@ namespace GeometryHelper.Dxf
         public string Textstyle
         {
             get => Name("$TEXTSTYLE", 7, "Standard");
-
             set
             {
                 if (value == null)
@@ -301,7 +314,10 @@ namespace GeometryHelper.Dxf
 
                 if (!TextStyleTable.Has(value))
                 {
-                    throw new ArgumentException("The text style " + value + " is not in the file's text style table.", nameof(value));
+                    throw new ArgumentException(
+                        "The text style " + value + " is not in the file's text style table.",
+                        nameof(value)
+                    );
                 }
 
                 Set("$TEXTSTYLE", 7, value);
@@ -314,7 +330,6 @@ namespace GeometryHelper.Dxf
         public string Dimstyle
         {
             get => Name("$DIMSTYLE", 2, "ISO-25");
-
             set
             {
                 if (value == null)
@@ -370,7 +385,6 @@ namespace GeometryHelper.Dxf
         public double Angbase
         {
             get => Real("$ANGBASE", 50, 0.0) * Math.PI / 180.0;
-
             set
             {
                 Guard.Finite(value, nameof(value), "An angle has to be a finite number.");
@@ -416,11 +430,13 @@ namespace GeometryHelper.Dxf
             return value.Length == 0 ? fallback : value;
         }
 
-        private double Real(string name, int code, double fallback)
-            => Numbers.TryRead(First(name, code), out double value) && Guard.IsFinite(value) ? value : fallback;
+        private double Real(string name, int code, double fallback) =>
+            Numbers.TryRead(First(name, code), out double value) && Guard.IsFinite(value) ? value : fallback;
 
-        private int Whole(string name, int code, int fallback)
-            => int.TryParse(First(name, code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+        private int Whole(string name, int code, int fallback) =>
+            int.TryParse(First(name, code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : fallback;
 
         private GeoPoint2 Point2(string name, GeoPoint2 fallback)
         {
@@ -429,7 +445,8 @@ namespace GeometryHelper.Dxf
             return x || y ? new GeoPoint2(x ? px : 0.0, y ? py : 0.0) : fallback;
         }
 
-        private void Set(string name, int code, string value) => File.SetHeader(name, new[] { new DxfTypedValue(code, value) });
+        private void Set(string name, int code, string value) =>
+            File.SetHeader(name, new[] { new DxfTypedValue(code, value) });
 
         private void SetReal(string name, int code, double value, double now)
         {
@@ -459,12 +476,22 @@ namespace GeometryHelper.Dxf
         {
             if (!value.IsValid)
             {
-                throw new ArgumentException("A point has to be of finite numbers: " + value + " is not.", nameof(value));
+                throw new ArgumentException(
+                    "A point has to be of finite numbers: " + value + " is not.",
+                    nameof(value)
+                );
             }
 
             if (!Same(value.X, now.X) || !Same(value.Y, now.Y))
             {
-                File.SetHeader(name, new[] { new DxfTypedValue(10, Numbers.Exact(value.X + 0.0)), new DxfTypedValue(20, Numbers.Exact(value.Y + 0.0)) });
+                File.SetHeader(
+                    name,
+                    new[]
+                    {
+                        new DxfTypedValue(10, Numbers.Exact(value.X + 0.0)),
+                        new DxfTypedValue(20, Numbers.Exact(value.Y + 0.0)),
+                    }
+                );
             }
         }
 
@@ -472,12 +499,21 @@ namespace GeometryHelper.Dxf
         {
             if (value < least || value > most)
             {
-                throw new ArgumentOutOfRangeException(parameter, value, "The number runs from " + least.ToString(CultureInfo.InvariantCulture) + " to " + most.ToString(CultureInfo.InvariantCulture) + ".");
+                throw new ArgumentOutOfRangeException(
+                    parameter,
+                    value,
+                    "The number runs from "
+                        + least.ToString(CultureInfo.InvariantCulture)
+                        + " to "
+                        + most.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
 
             return value;
         }
 
-        private static bool Same(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
+        private static bool Same(double a, double b) =>
+            BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
     }
 }

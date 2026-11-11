@@ -32,14 +32,80 @@ namespace GeometryHelper.Dxf
         private const string Marker = "AcDbLayout";
 
         // The groups of AcDbPlotSettings and AcDbLayout in the order AutoCAD writes them, a 100 where each marker stands.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[]
-        {
-            100, 1, 2, 4, 6, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 140, 141, 142, 143, 70, 72, 73, 74, 7, 75, 76, 77, 78, 147, 148, 149, 333,
-            100, 1, 70, 71, 10, 20, 11, 21, 12, 22, 32, 14, 24, 34, 15, 25, 35, 146, 13, 23, 33, 16, 26, 36, 17, 27, 37, 76, 330, 331, 345, 346,
-        });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(
+            new[]
+            {
+                100,
+                1,
+                2,
+                4,
+                6,
+                40,
+                41,
+                42,
+                43,
+                44,
+                45,
+                46,
+                47,
+                48,
+                49,
+                140,
+                141,
+                142,
+                143,
+                70,
+                72,
+                73,
+                74,
+                7,
+                75,
+                76,
+                77,
+                78,
+                147,
+                148,
+                149,
+                333,
+                100,
+                1,
+                70,
+                71,
+                10,
+                20,
+                11,
+                21,
+                12,
+                22,
+                32,
+                14,
+                24,
+                34,
+                15,
+                25,
+                35,
+                146,
+                13,
+                23,
+                33,
+                16,
+                26,
+                36,
+                17,
+                27,
+                37,
+                76,
+                330,
+                331,
+                345,
+                346,
+            }
+        );
 
         // The groups of a BLOCK_RECORD in the order AutoCAD writes them, after its marker AcDbSymbolTableRecord.
-        private static readonly IReadOnlyList<int> BlockRecordOrder = Array.AsReadOnly(new[] { 100, 100, 2, 340, 70, 280, 281, 310 });
+        private static readonly IReadOnlyList<int> BlockRecordOrder = Array.AsReadOnly(
+            new[] { 100, 100, 2, 340, 70, 280, 281, 310 }
+        );
 
         private string _name;
 
@@ -47,14 +113,10 @@ namespace GeometryHelper.Dxf
         /// Initializes a layout made in code, as AutoCAD's <c>Layout()</c>: give it its <see cref="LayoutName"/>, then add it to a
         /// drawing by <see cref="AddToLayoutDictionary"/> and give it the viewport of its sheet by <see cref="Initialize"/>.
         /// </summary>
-        public DxfLayout()
-        {
-        }
+        public DxfLayout() { }
 
         internal DxfLayout(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>
         /// Gets or sets the name of the layout (group 1 of AcDbLayout), as AutoCAD's <c>LayoutName</c>: <c>Model</c>,
@@ -68,7 +130,6 @@ namespace GeometryHelper.Dxf
         public string LayoutName
         {
             get => Item == null ? _name ?? string.Empty : Text(Marker, 1);
-
             set
             {
                 if (value == null)
@@ -100,9 +161,16 @@ namespace GeometryHelper.Dxf
                 var dictionary = owner == null ? null : OfObject(owner) as DxfDBDictionary;
                 string entry = dictionary?.NameOf(this);
 
-                if (entry != null && !string.Equals(entry, value, StringComparison.OrdinalIgnoreCase) && dictionary.Contains(value))
+                if (
+                    entry != null
+                    && !string.Equals(entry, value, StringComparison.OrdinalIgnoreCase)
+                    && dictionary.Contains(value)
+                )
                 {
-                    throw new ArgumentException("The drawing has a layout named " + value + " already, letters of either case the same.", nameof(value));
+                    throw new ArgumentException(
+                        "The drawing has a layout named " + value + " already, letters of either case the same.",
+                        nameof(value)
+                    );
                 }
 
                 int at = PartIndex(Marker, 1);
@@ -158,7 +226,11 @@ namespace GeometryHelper.Dxf
         /// margins, origin, units or turn (<see cref="DxfPlotSettings.CanonicalMediaName"/> and the others) has them made the
         /// sheet about its plotted area: (-7.5, -20) to (586.5, 400) for A2 on its side with margins 7.5 and 20.
         /// </summary>
-        public DxfExtents2d Limits => new DxfExtents2d(new GeoPoint2(Real(Marker, 10, 0.0), Real(Marker, 20, 0.0)), new GeoPoint2(Real(Marker, 11, 0.0), Real(Marker, 21, 0.0)));
+        public DxfExtents2d Limits =>
+            new DxfExtents2d(
+                new GeoPoint2(Real(Marker, 10, 0.0), Real(Marker, 20, 0.0)),
+                new GeoPoint2(Real(Marker, 11, 0.0), Real(Marker, 21, 0.0))
+            );
 
         /// <summary>
         /// Gets the box the entities of the layout fill as last worked out (groups 14, 24, 34 and 15, 25, 35), as AutoCAD's
@@ -213,7 +285,9 @@ namespace GeometryHelper.Dxf
         public IReadOnlyList<DxfViewport> GetViewports()
         {
             DxfBlockTableRecord block = BlockTableRecord;
-            return block == null ? new List<DxfViewport>().AsReadOnly() : block.OfType<DxfViewport>().ToList().AsReadOnly();
+            return block == null
+                ? new List<DxfViewport>().AsReadOnly()
+                : block.OfType<DxfViewport>().ToList().AsReadOnly();
         }
 
         /// <summary>
@@ -263,12 +337,20 @@ namespace GeometryHelper.Dxf
 
             if (Item != null)
             {
-                throw new InvalidOperationException("The layout " + LayoutName + " is in a drawing already, as the LAYOUT " + (Item.Handle ?? string.Empty) + ".");
+                throw new InvalidOperationException(
+                    "The layout "
+                        + LayoutName
+                        + " is in a drawing already, as the LAYOUT "
+                        + (Item.Handle ?? string.Empty)
+                        + "."
+                );
             }
 
             if (string.IsNullOrEmpty(_name))
             {
-                throw new InvalidOperationException("A layout is given its LayoutName before it is added to a drawing.");
+                throw new InvalidOperationException(
+                    "A layout is given its LayoutName before it is added to a drawing."
+                );
             }
 
             DxfFile file = toWhichDatabase.File;
@@ -276,12 +358,19 @@ namespace GeometryHelper.Dxf
 
             if (dictionary == null || dictionary.Handle == null || !file.Supports(1015))
             {
-                throw new InvalidOperationException("A DXF " + (toWhichDatabase.Version ?? "with no version") + " has no layout dictionary to add a layout to: R2000 (AC1015) brought them.");
+                throw new InvalidOperationException(
+                    "A DXF "
+                        + (toWhichDatabase.Version ?? "with no version")
+                        + " has no layout dictionary to add a layout to: R2000 (AC1015) brought them."
+                );
             }
 
             if (dictionary.Contains(_name))
             {
-                throw new ArgumentException("The drawing has a layout named " + _name + " already, letters of either case the same.", nameof(toWhichDatabase));
+                throw new ArgumentException(
+                    "The drawing has a layout named " + _name + " already, letters of either case the same.",
+                    nameof(toWhichDatabase)
+                );
             }
 
             // The layouts of the dictionary, in no order: the last tab and the blocks taken are what is asked of them.
@@ -301,11 +390,27 @@ namespace GeometryHelper.Dxf
             {
                 record = blockTableRecord.Item;
                 string name = blockTableRecord.Name ?? string.Empty;
-                string linked = record == null || blockTableRecord.IsErased || blockTableRecord.File != file || record.Type != "BLOCK_RECORD" ? null : file.ValueOf(record, 340)?.Trim() ?? string.Empty;
+                string linked =
+                    record == null
+                    || blockTableRecord.IsErased
+                    || blockTableRecord.File != file
+                    || record.Type != "BLOCK_RECORD"
+                        ? null
+                        : file.ValueOf(record, 340)?.Trim() ?? string.Empty;
 
-                if (linked == null || (linked.Length > 0 && linked != "0") || !IsNumberedPaperSpace(name) || layouts.Any(l => ReferenceEquals(l.BlockTableRecord, blockTableRecord)))
+                if (
+                    linked == null
+                    || (linked.Length > 0 && linked != "0")
+                    || !IsNumberedPaperSpace(name)
+                    || layouts.Any(l => ReferenceEquals(l.BlockTableRecord, blockTableRecord))
+                )
                 {
-                    throw new ArgumentException("A layout is added with a block of the drawing named *Paper_Space and a number that no layout has, or with none to have one made: " + name + " is not one.", nameof(blockTableRecord));
+                    throw new ArgumentException(
+                        "A layout is added with a block of the drawing named *Paper_Space and a number that no layout has, or with none to have one made: "
+                            + name
+                            + " is not one.",
+                        nameof(blockTableRecord)
+                    );
                 }
             }
             else
@@ -341,81 +446,97 @@ namespace GeometryHelper.Dxf
             string owner = record.Handle;
             string layoutName = _name;
             Bind(dictionary.Add(layoutName, "LAYOUT", b =>
-            {
-                b.Group(100, "AcDbPlotSettings");
-                b.Group(1, string.Empty);
-                b.Group(2, "none_device");
-                b.Group(4, "ISO_A3_(420.00_x_297.00_MM)");
-                b.Group(6, string.Empty);
-                b.Group(40, "7.5");
-                b.Group(41, "20.0");
-                b.Group(42, "7.5");
-                b.Group(43, "20.0");
-                b.Group(44, "420.0");
-                b.Group(45, "297.0");
-
-                foreach (int code in new[] { 46, 47, 48, 49, 140, 141 })
                 {
-                    b.Group(code, "0.0");
-                }
+                    b.Group(100, "AcDbPlotSettings");
+                    b.Group(1, string.Empty);
+                    b.Group(2, "none_device");
+                    b.Group(4, "ISO_A3_(420.00_x_297.00_MM)");
+                    b.Group(6, string.Empty);
+                    b.Group(40, "7.5");
+                    b.Group(41, "20.0");
+                    b.Group(42, "7.5");
+                    b.Group(43, "20.0");
+                    b.Group(44, "420.0");
+                    b.Group(45, "297.0");
 
-                b.Group(142, "1.0");
-                b.Group(143, "1.0");
-                b.Group(70, "688");
-                b.Group(72, "1");
-                b.Group(73, "0");
-                b.Group(74, "5");
-                b.Group(7, string.Empty);
-                b.Group(75, "16");
-                b.Group(76, "0");
-                b.Group(77, "2");
-                b.Group(78, "300");
-                b.Group(147, "1.0");
-                b.Group(148, "0.0");
-                b.Group(149, "0.0");
-                b.Group(100, Marker);
-                b.Group(1, layoutName);
-                b.Group(70, "1");
-                b.Group(71, (tab + 1).ToString(CultureInfo.InvariantCulture));
-                b.Group(10, "-7.5");
-                b.Group(20, "-20.0");
-                b.Group(11, "412.5");
-                b.Group(21, "277.0");
+                    foreach (int code in new[] { 46, 47, 48, 49, 140, 141 })
+                    {
+                        b.Group(code, "0.0");
+                    }
 
-                foreach (int code in new[] { 12, 22, 32 })
-                {
-                    b.Group(code, "0.0");
-                }
+                    b.Group(142, "1.0");
+                    b.Group(143, "1.0");
+                    b.Group(70, "688");
+                    b.Group(72, "1");
+                    b.Group(73, "0");
+                    b.Group(74, "5");
+                    b.Group(7, string.Empty);
+                    b.Group(75, "16");
+                    b.Group(76, "0");
+                    b.Group(77, "2");
+                    b.Group(78, "300");
+                    b.Group(147, "1.0");
+                    b.Group(148, "0.0");
+                    b.Group(149, "0.0");
+                    b.Group(100, Marker);
+                    b.Group(1, layoutName);
+                    b.Group(70, "1");
+                    b.Group(71, (tab + 1).ToString(CultureInfo.InvariantCulture));
+                    b.Group(10, "-7.5");
+                    b.Group(20, "-20.0");
+                    b.Group(11, "412.5");
+                    b.Group(21, "277.0");
 
-                foreach (int code in new[] { 14, 24, 34 })
-                {
-                    b.Group(code, "1E+20");
-                }
+                    foreach (int code in new[] { 12, 22, 32 })
+                    {
+                        b.Group(code, "0.0");
+                    }
 
-                foreach (int code in new[] { 15, 25, 35 })
-                {
-                    b.Group(code, "-1E+20");
-                }
+                    foreach (int code in new[] { 14, 24, 34 })
+                    {
+                        b.Group(code, "1E+20");
+                    }
 
-                b.Group(146, "0.0");
+                    foreach (int code in new[] { 15, 25, 35 })
+                    {
+                        b.Group(code, "-1E+20");
+                    }
 
-                foreach (KeyValuePair<int, string> group in new[]
-                {
-                    Pair(13, "0.0"), Pair(23, "0.0"), Pair(33, "0.0"), Pair(16, "1.0"), Pair(26, "0.0"), Pair(36, "0.0"),
-                    Pair(17, "0.0"), Pair(27, "1.0"), Pair(37, "0.0"), Pair(76, "1"),
-                })
-                {
-                    b.Group(group.Key, group.Value);
-                }
+                    b.Group(146, "0.0");
 
-                if (owner != null)
-                {
-                    b.Group(330, owner);
-                }
-            }));
+                    foreach (
+                        KeyValuePair<int, string> group in new[]
+                        {
+                            Pair(13, "0.0"),
+                            Pair(23, "0.0"),
+                            Pair(33, "0.0"),
+                            Pair(16, "1.0"),
+                            Pair(26, "0.0"),
+                            Pair(36, "0.0"),
+                            Pair(17, "0.0"),
+                            Pair(27, "1.0"),
+                            Pair(37, "0.0"),
+                            Pair(76, "1"),
+                        }
+                    )
+                    {
+                        b.Group(group.Key, group.Value);
+                    }
+
+                    if (owner != null)
+                    {
+                        b.Group(330, owner);
+                    }
+                }));
 
             file.SetValues(record, new[] { Pair(340, Handle) }, BlockRecordOrder, false);
-            GeometryHelperLog.Info("DxfLayout: the layout " + layoutName + " was added on tab " + (tab + 1).ToString(CultureInfo.InvariantCulture) + ".");
+            GeometryHelperLog.Info(
+                "DxfLayout: the layout "
+                    + layoutName
+                    + " was added on tab "
+                    + (tab + 1).ToString(CultureInfo.InvariantCulture)
+                    + "."
+            );
         }
 
         /// <summary>
@@ -445,7 +566,11 @@ namespace GeometryHelper.Dxf
 
             if (ModelType || block == null || DxfBlockTableRecord.IsModelName(block.Name ?? string.Empty))
             {
-                throw new InvalidOperationException("The layout " + LayoutName + " is Model, whose viewports are records of the VPORT table, or has no block: it is given no viewport 1.");
+                throw new InvalidOperationException(
+                    "The layout "
+                        + LayoutName
+                        + " is Model, whose viewports are records of the VPORT table, or has no block: it is given no viewport 1."
+                );
             }
 
             IReadOnlyList<DxfViewport> others = GetViewports();
@@ -470,7 +595,13 @@ namespace GeometryHelper.Dxf
 
             var center = new GeoPoint3((min.X + max.X) / 2.0, (min.Y + max.Y) / 2.0, 0.0);
             double height = (max.Y - min.Y) * 11.0 / 10.0;
-            var viewport = new DxfViewport { CenterPoint = center, Width = (max.X - min.X) * 11.0 / 10.0, Height = height, ViewHeight = height };
+            var viewport = new DxfViewport
+            {
+                CenterPoint = center,
+                Width = (max.X - min.X) * 11.0 / 10.0,
+                Height = height,
+                ViewHeight = height,
+            };
             viewport.ViewCenter = new GeoPoint2(center.X, center.Y);
             block.AppendEntity(viewport);
             viewport.MakeSheetViewport();
@@ -504,9 +635,19 @@ namespace GeometryHelper.Dxf
         {
             int at = PartIndex(Marker, 331);
 
-            if (at >= 0 && !IsErased && string.Equals(PartValue(Marker, 331)?.Trim(), handle, StringComparison.OrdinalIgnoreCase))
+            if (
+                at >= 0
+                && !IsErased
+                && string.Equals(PartValue(Marker, 331)?.Trim(), handle, StringComparison.OrdinalIgnoreCase)
+            )
             {
-                DxfViewport sheet = GetViewports().FirstOrDefault(v => v.Id == 1 && !v.IsErased && v.Handle != null && !string.Equals(v.Handle, handle, StringComparison.OrdinalIgnoreCase));
+                DxfViewport sheet = GetViewports()
+                    .FirstOrDefault(v =>
+                        v.Id == 1
+                        && !v.IsErased
+                        && v.Handle != null
+                        && !string.Equals(v.Handle, handle, StringComparison.OrdinalIgnoreCase)
+                    );
 
                 if (sheet != null)
                 {
@@ -561,12 +702,21 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gives the layout as a line for debugging: its type, handle, name and tab.</summary>
         /// <returns>The line, such as <c>LAYOUT 1E Layout1, tab 1</c>.</returns>
-        public override string ToString() => "LAYOUT " + (Handle ?? string.Empty) + " " + LayoutName + ", tab " + TabOrder.ToString(CultureInfo.InvariantCulture);
+        public override string ToString() =>
+            "LAYOUT "
+            + (Handle ?? string.Empty)
+            + " "
+            + LayoutName
+            + ", tab "
+            + TabOrder.ToString(CultureInfo.InvariantCulture);
 
         /// <summary>Whether a name is that of the block of a layout other than the one last shown, as AutoCAD names it: <c>*Paper_Space</c> and a number.</summary>
         private static bool IsNumberedPaperSpace(string name)
         {
-            if (name.Length <= DxfBlockTableRecord.PaperSpace.Length || !name.StartsWith(DxfBlockTableRecord.PaperSpace, StringComparison.OrdinalIgnoreCase))
+            if (
+                name.Length <= DxfBlockTableRecord.PaperSpace.Length
+                || !name.StartsWith(DxfBlockTableRecord.PaperSpace, StringComparison.OrdinalIgnoreCase)
+            )
             {
                 return false;
             }

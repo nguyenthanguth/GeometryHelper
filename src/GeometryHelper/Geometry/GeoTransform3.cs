@@ -110,8 +110,10 @@ namespace GeometryHelper.Geometry
             GeoTransform3 t = new GeoTransform3();
             double cos = Math.Cos(angleRad);
             double sin = Math.Sin(angleRad);
-            t._m[1, 1] = cos; t._m[1, 2] = -sin;
-            t._m[2, 1] = sin; t._m[2, 2] = cos;
+            t._m[1, 1] = cos;
+            t._m[1, 2] = -sin;
+            t._m[2, 1] = sin;
+            t._m[2, 2] = cos;
             return t;
         }
 
@@ -124,8 +126,10 @@ namespace GeometryHelper.Geometry
             GeoTransform3 t = new GeoTransform3();
             double cos = Math.Cos(angleRad);
             double sin = Math.Sin(angleRad);
-            t._m[0, 0] = cos; t._m[0, 2] = sin;
-            t._m[2, 0] = -sin; t._m[2, 2] = cos;
+            t._m[0, 0] = cos;
+            t._m[0, 2] = sin;
+            t._m[2, 0] = -sin;
+            t._m[2, 2] = cos;
             return t;
         }
 
@@ -138,8 +142,10 @@ namespace GeometryHelper.Geometry
             GeoTransform3 t = new GeoTransform3();
             double cos = Math.Cos(angleRad);
             double sin = Math.Sin(angleRad);
-            t._m[0, 0] = cos; t._m[0, 1] = -sin;
-            t._m[1, 0] = sin; t._m[1, 1] = cos;
+            t._m[0, 0] = cos;
+            t._m[0, 1] = -sin;
+            t._m[1, 0] = sin;
+            t._m[1, 1] = cos;
             return t;
         }
 
@@ -217,9 +223,7 @@ namespace GeometryHelper.Geometry
         {
             GeoVector3 offset = center.ToVector();
 
-            return Translation(offset)
-                .Multiply(Scaling(factor))
-                .Multiply(Translation(offset.Negate()));
+            return Translation(offset).Multiply(Scaling(factor)).Multiply(Translation(offset.Negate()));
         }
 
         /// <summary>
@@ -264,9 +268,18 @@ namespace GeometryHelper.Geometry
         {
             GeoTransform3 t = new GeoTransform3();
 
-            t._m[0, 0] = system.XAxis.X; t._m[0, 1] = system.YAxis.X; t._m[0, 2] = system.ZAxis.X; t._m[0, 3] = system.Origin.X;
-            t._m[1, 0] = system.XAxis.Y; t._m[1, 1] = system.YAxis.Y; t._m[1, 2] = system.ZAxis.Y; t._m[1, 3] = system.Origin.Y;
-            t._m[2, 0] = system.XAxis.Z; t._m[2, 1] = system.YAxis.Z; t._m[2, 2] = system.ZAxis.Z; t._m[2, 3] = system.Origin.Z;
+            t._m[0, 0] = system.XAxis.X;
+            t._m[0, 1] = system.YAxis.X;
+            t._m[0, 2] = system.ZAxis.X;
+            t._m[0, 3] = system.Origin.X;
+            t._m[1, 0] = system.XAxis.Y;
+            t._m[1, 1] = system.YAxis.Y;
+            t._m[1, 2] = system.ZAxis.Y;
+            t._m[1, 3] = system.Origin.Y;
+            t._m[2, 0] = system.XAxis.Z;
+            t._m[2, 1] = system.YAxis.Z;
+            t._m[2, 2] = system.ZAxis.Z;
+            t._m[2, 3] = system.Origin.Z;
 
             return t;
         }
@@ -295,9 +308,18 @@ namespace GeometryHelper.Geometry
             GeoTransform3 t = new GeoTransform3();
             GeoVector3 origin = system.Origin.ToVector();
 
-            t._m[0, 0] = system.XAxis.X; t._m[0, 1] = system.XAxis.Y; t._m[0, 2] = system.XAxis.Z; t._m[0, 3] = -system.XAxis.DotProduct(origin);
-            t._m[1, 0] = system.YAxis.X; t._m[1, 1] = system.YAxis.Y; t._m[1, 2] = system.YAxis.Z; t._m[1, 3] = -system.YAxis.DotProduct(origin);
-            t._m[2, 0] = system.ZAxis.X; t._m[2, 1] = system.ZAxis.Y; t._m[2, 2] = system.ZAxis.Z; t._m[2, 3] = -system.ZAxis.DotProduct(origin);
+            t._m[0, 0] = system.XAxis.X;
+            t._m[0, 1] = system.XAxis.Y;
+            t._m[0, 2] = system.XAxis.Z;
+            t._m[0, 3] = -system.XAxis.DotProduct(origin);
+            t._m[1, 0] = system.YAxis.X;
+            t._m[1, 1] = system.YAxis.Y;
+            t._m[1, 2] = system.YAxis.Z;
+            t._m[1, 3] = -system.YAxis.DotProduct(origin);
+            t._m[2, 0] = system.ZAxis.X;
+            t._m[2, 1] = system.ZAxis.Y;
+            t._m[2, 2] = system.ZAxis.Z;
+            t._m[2, 3] = -system.ZAxis.DotProduct(origin);
 
             return t;
         }
@@ -415,7 +437,10 @@ namespace GeometryHelper.Geometry
 
             for (int a = 0; a < 3; a++)
             {
-                double square = a == 0 ? x : a == 1 ? y : z;
+                double square =
+                    a == 0 ? x
+                    : a == 1 ? y
+                    : z;
 
                 if (!(Math.Abs(square - mean) <= 2.0 * slack))
                 {
@@ -461,13 +486,19 @@ namespace GeometryHelper.Geometry
             // the matrix about it turned into an angle.
             double mean = (xx + yy + zz) / 3.0;
             double off = xy * xy + yz * yz + zx * zx;
-            double spread = Math.Sqrt(((xx - mean) * (xx - mean) + (yy - mean) * (yy - mean) + (zz - mean) * (zz - mean) + 2.0 * off) / 6.0);
+            double spread = Math.Sqrt(
+                ((xx - mean) * (xx - mean) + (yy - mean) * (yy - mean) + (zz - mean) * (zz - mean) + 2.0 * off) / 6.0
+            );
             double largest = mean;
 
             if (spread > 0.0)
             {
-                double a = (xx - mean) / spread, b = (yy - mean) / spread, c = (zz - mean) / spread;
-                double p = xy / spread, q = yz / spread, r = zx / spread;
+                double a = (xx - mean) / spread,
+                    b = (yy - mean) / spread,
+                    c = (zz - mean) / spread;
+                double p = xy / spread,
+                    q = yz / spread,
+                    r = zx / spread;
                 double half = 0.5 * (a * (b * c - q * q) - p * (p * c - q * r) + r * (p * q - b * r));
                 double angle = Math.Acos(Math.Max(-1.0, Math.Min(1.0, half))) / 3.0;
 
@@ -482,7 +513,12 @@ namespace GeometryHelper.Geometry
                 return tolerance;
             }
 
-            return new Tolerance(tolerance.EqualPoint * Math.Min(1.0, stretch), tolerance.EqualVector, tolerance.EqualAngleRad, tolerance.EqualPlanar * Math.Max(1.0, stretch));
+            return new Tolerance(
+                tolerance.EqualPoint * Math.Min(1.0, stretch),
+                tolerance.EqualVector,
+                tolerance.EqualAngleRad,
+                tolerance.EqualPlanar * Math.Max(1.0, stretch)
+            );
         }
 
         /// <summary>
@@ -708,8 +744,8 @@ namespace GeometryHelper.Geometry
             }
 
             return sub[0, 0] * (sub[1, 1] * sub[2, 2] - sub[1, 2] * sub[2, 1])
-                 - sub[0, 1] * (sub[1, 0] * sub[2, 2] - sub[1, 2] * sub[2, 0])
-                 + sub[0, 2] * (sub[1, 0] * sub[2, 1] - sub[1, 1] * sub[2, 0]);
+                - sub[0, 1] * (sub[1, 0] * sub[2, 2] - sub[1, 2] * sub[2, 0])
+                + sub[0, 2] * (sub[1, 0] * sub[2, 1] - sub[1, 1] * sub[2, 0]);
         }
 
         #endregion
@@ -724,7 +760,8 @@ namespace GeometryHelper.Geometry
             return new GeoPoint3(
                 _m[0, 0] * point.X + _m[0, 1] * point.Y + _m[0, 2] * point.Z + _m[0, 3],
                 _m[1, 0] * point.X + _m[1, 1] * point.Y + _m[1, 2] * point.Z + _m[1, 3],
-                _m[2, 0] * point.X + _m[2, 1] * point.Y + _m[2, 2] * point.Z + _m[2, 3]);
+                _m[2, 0] * point.X + _m[2, 1] * point.Y + _m[2, 2] * point.Z + _m[2, 3]
+            );
         }
 
         /// <summary>
@@ -740,7 +777,8 @@ namespace GeometryHelper.Geometry
             return new GeoVector3(
                 _m[0, 0] * vector.X + _m[0, 1] * vector.Y + _m[0, 2] * vector.Z,
                 _m[1, 0] * vector.X + _m[1, 1] * vector.Y + _m[1, 2] * vector.Z,
-                _m[2, 0] * vector.X + _m[2, 1] * vector.Y + _m[2, 2] * vector.Z);
+                _m[2, 0] * vector.X + _m[2, 1] * vector.Y + _m[2, 2] * vector.Z
+            );
         }
 
         /// <summary>
@@ -824,14 +862,18 @@ namespace GeometryHelper.Geometry
             GeoVector3 transformedNormal = new GeoVector3(
                 inverse._m[0, 0] * n.X + inverse._m[1, 0] * n.Y + inverse._m[2, 0] * n.Z,
                 inverse._m[0, 1] * n.X + inverse._m[1, 1] * n.Y + inverse._m[2, 1] * n.Z,
-                inverse._m[0, 2] * n.X + inverse._m[1, 2] * n.Y + inverse._m[2, 2] * n.Z);
+                inverse._m[0, 2] * n.X + inverse._m[1, 2] * n.Y + inverse._m[2, 2] * n.Z
+            );
 
             // Of no length to rounding where it is no longer than the rounding of the products it is the sum of.
             double scale = 0.0;
 
             for (int c = 0; c < 3; c++)
             {
-                scale += Math.Abs(inverse._m[0, c] * n.X) + Math.Abs(inverse._m[1, c] * n.Y) + Math.Abs(inverse._m[2, c] * n.Z);
+                scale +=
+                    Math.Abs(inverse._m[0, c] * n.X)
+                    + Math.Abs(inverse._m[1, c] * n.Y)
+                    + Math.Abs(inverse._m[2, c] * n.Z);
             }
 
             double length = transformedNormal.Length;
@@ -845,7 +887,8 @@ namespace GeometryHelper.Geometry
             // Divided as the plane's constructor divides, so that a plane it would take comes out to the bit as it did.
             return GeoPlane3.FromUnitNormal(
                 Transform(plane.Origin),
-                new GeoVector3(transformedNormal.X / length, transformedNormal.Y / length, transformedNormal.Z / length));
+                new GeoVector3(transformedNormal.X / length, transformedNormal.Y / length, transformedNormal.Z / length)
+            );
         }
 
         /// <summary>
@@ -856,10 +899,7 @@ namespace GeometryHelper.Geometry
         /// </exception>
         public GeoCoordinateSystem3 Transform(GeoCoordinateSystem3 system)
         {
-            return new GeoCoordinateSystem3(
-                Transform(system.Origin),
-                Transform(system.XAxis),
-                Transform(system.YAxis));
+            return new GeoCoordinateSystem3(Transform(system.Origin), Transform(system.XAxis), Transform(system.YAxis));
         }
 
         /// <summary>
@@ -958,7 +998,10 @@ namespace GeometryHelper.Geometry
             double alongV = movedV.Length;
 
             return Math.Max(alongU, alongV) > 0.0
-                && !(GeoTransform2.RoundGap(alongU, alongV, movedU.DotProduct(movedV), radius) > Tolerance.Global.EqualPoint);
+                && !(
+                    GeoTransform2.RoundGap(alongU, alongV, movedU.DotProduct(movedV), radius)
+                    > Tolerance.Global.EqualPoint
+                );
         }
 
         /// <summary>
@@ -966,8 +1009,11 @@ namespace GeometryHelper.Geometry
         /// one length to the rounding of its numbers, as a turn, a skew or an even scaling leaves them, so that an arc in that
         /// plane is not stretched into part of an ellipse.
         /// </summary>
-        internal static bool EquallyLong(GeoVector3 movedU, GeoVector3 movedV)
-            => !(Math.Abs(movedU.LengthSquared - movedV.LengthSquared) > GeoTransform2.RoundSlack * (movedU.LengthSquared + movedV.LengthSquared) * 0.5);
+        internal static bool EquallyLong(GeoVector3 movedU, GeoVector3 movedV) =>
+            !(
+                Math.Abs(movedU.LengthSquared - movedV.LengthSquared)
+                > GeoTransform2.RoundSlack * (movedU.LengthSquared + movedV.LengthSquared) * 0.5
+            );
 
         /// <summary>
         /// Determines whether two axes of a plane, square to each other and of one length, come out of the transformation
@@ -1023,7 +1069,8 @@ namespace GeometryHelper.Geometry
             GeoVector3 x = Transform(GeoVector3.XAxis);
             GeoVector3 y = Transform(GeoVector3.YAxis);
             GeoVector3 z = Transform(GeoVector3.ZAxis);
-            bool round = KeepsBall(x, y, sphere.Radius) && KeepsBall(y, z, sphere.Radius) && KeepsBall(z, x, sphere.Radius);
+            bool round =
+                KeepsBall(x, y, sphere.Radius) && KeepsBall(y, z, sphere.Radius) && KeepsBall(z, x, sphere.Radius);
 
             if (round && KeepsLengths())
             {
@@ -1034,7 +1081,9 @@ namespace GeometryHelper.Geometry
 
             if (!(stretch > 0.0) || !round)
             {
-                throw new InvalidOperationException("This transformation stretches the sphere into an ellipsoid, or flattens it.");
+                throw new InvalidOperationException(
+                    "This transformation stretches the sphere into an ellipsoid, or flattens it."
+                );
             }
 
             return new GeoSphere3(center, sphere.Radius * stretch);
@@ -1044,8 +1093,11 @@ namespace GeometryHelper.Geometry
         /// Determines whether two axes of space come out of the transformation so nearly equally long and square to each other
         /// that a ball of a radius lands within the global point tolerance of where the transformation puts it in their plane.
         /// </summary>
-        private static bool KeepsBall(GeoVector3 movedA, GeoVector3 movedB, double radius)
-            => !(GeoTransform2.RoundGap(movedA.Length, movedB.Length, movedA.DotProduct(movedB), radius) > Tolerance.Global.EqualPoint);
+        private static bool KeepsBall(GeoVector3 movedA, GeoVector3 movedB, double radius) =>
+            !(
+                GeoTransform2.RoundGap(movedA.Length, movedB.Length, movedA.DotProduct(movedB), radius)
+                > Tolerance.Global.EqualPoint
+            );
 
         /// <summary>
         /// Transforms an ellipse in space. Every transformation that does not flatten its plane gives an ellipse, an uneven
@@ -1181,10 +1233,10 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public override string ToString()
         {
-            return $"Transform3[{_m[0, 0]:0.###} {_m[0, 1]:0.###} {_m[0, 2]:0.###} {_m[0, 3]:0.###}; " +
-                   $"{_m[1, 0]:0.###} {_m[1, 1]:0.###} {_m[1, 2]:0.###} {_m[1, 3]:0.###}; " +
-                   $"{_m[2, 0]:0.###} {_m[2, 1]:0.###} {_m[2, 2]:0.###} {_m[2, 3]:0.###}; " +
-                   $"{_m[3, 0]:0.###} {_m[3, 1]:0.###} {_m[3, 2]:0.###} {_m[3, 3]:0.###}]";
+            return $"Transform3[{_m[0, 0]:0.###} {_m[0, 1]:0.###} {_m[0, 2]:0.###} {_m[0, 3]:0.###}; "
+                + $"{_m[1, 0]:0.###} {_m[1, 1]:0.###} {_m[1, 2]:0.###} {_m[1, 3]:0.###}; "
+                + $"{_m[2, 0]:0.###} {_m[2, 1]:0.###} {_m[2, 2]:0.###} {_m[2, 3]:0.###}; "
+                + $"{_m[3, 0]:0.###} {_m[3, 1]:0.###} {_m[3, 2]:0.###} {_m[3, 3]:0.###}]";
         }
     }
 }

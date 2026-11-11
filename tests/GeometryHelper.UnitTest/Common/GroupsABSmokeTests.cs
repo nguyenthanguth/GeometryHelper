@@ -13,8 +13,8 @@ namespace GeometryHelper.UnitTest.Common
     {
         private static readonly Tolerance Tol = Tolerance.Default;
 
-        private static GeoPolygon2 Square(double x0, double y0, double x1, double y1)
-            => new GeoPolygon2(new GeoPoint2(x0, y0), new GeoPoint2(x1, y0), new GeoPoint2(x1, y1), new GeoPoint2(x0, y1));
+        private static GeoPolygon2 Square(double x0, double y0, double x1, double y1) =>
+            new GeoPolygon2(new GeoPoint2(x0, y0), new GeoPoint2(x1, y0), new GeoPoint2(x1, y1), new GeoPoint2(x0, y1));
 
         // The square 100 by 100 with a corner at the origin and a hole 40 by 40 in its middle.
         private static GeoFace2 Plate() => new GeoFace2(Square(0, 0, 100, 100), new[] { Square(30, 30, 70, 70) });
@@ -22,7 +22,12 @@ namespace GeometryHelper.UnitTest.Common
         [Fact]
         public void APointAboveAPolygonIsJoinedStraightDownAndTheLineTurnsRound()
         {
-            var square = new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 100, 0));
+            var square = new GeoPolygon3(
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(100, 100, 0),
+                new GeoPoint3(0, 100, 0)
+            );
             var point = new GeoPoint3(50, 50, 30);
 
             GeoLine3 fromSquare = square.GetShortestLineTo(point, Tol);
@@ -49,7 +54,11 @@ namespace GeometryHelper.UnitTest.Common
         public void AChainInsideABodyIsJoinedOutToTheNearestFace()
         {
             GeoSolid3 box = new GeoAabb3(GeoPoint3.Origin, new GeoPoint3(100, 100, 100)).ToObb().ToSolid();
-            var chain = new GeoPolyline3(new GeoPoint3(50, 50, 10), new GeoPoint3(50, 50, 60), new GeoPoint3(50, 70, 60));
+            var chain = new GeoPolyline3(
+                new GeoPoint3(50, 50, 10),
+                new GeoPoint3(50, 50, 60),
+                new GeoPoint3(50, 70, 60)
+            );
 
             GeoLine3 fromBox = box.GetShortestLineTo(chain, Tol);
 

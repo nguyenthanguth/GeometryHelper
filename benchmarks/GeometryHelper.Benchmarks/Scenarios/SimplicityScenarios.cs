@@ -40,7 +40,9 @@ namespace GeometryHelper.Benchmarks.Scenarios
         {
             foreach (char axis in "XYZ")
             {
-                yield return new BenchmarkCase("IsSimple.AxisTrap." + axis, 4 * Teeth, "edges", false, () => AxisTrap(axis));
+                yield return new BenchmarkCase("IsSimple.AxisTrap." + axis, 4 * Teeth, "edges", false, () =>
+                    AxisTrap(axis)
+                );
             }
 
             yield return new BenchmarkCase("IsSimple.Small", SmallCount, "polygons", false, Small);
@@ -61,7 +63,8 @@ namespace GeometryHelper.Benchmarks.Scenarios
 
             for (int i = 0; i < Teeth; i++)
             {
-                double bottom = 10.0 * i, top = bottom + 5.0;
+                double bottom = 10.0 * i,
+                    top = bottom + 5.0;
                 Add(ToothLength, bottom);
                 Add(ToothLength, top);
 
@@ -88,9 +91,12 @@ namespace GeometryHelper.Benchmarks.Scenarios
         {
             switch (axis)
             {
-                case 'X': return p;
-                case 'Y': return new GeoPoint3(p.Y, p.X, p.Z);
-                default: return new GeoPoint3(p.Z, p.Y, p.X);
+                case 'X':
+                    return p;
+                case 'Y':
+                    return new GeoPoint3(p.Y, p.X, p.Z);
+                default:
+                    return new GeoPoint3(p.Z, p.Y, p.X);
             }
         }
 
@@ -100,7 +106,12 @@ namespace GeometryHelper.Benchmarks.Scenarios
             var touching = new GeoPolygon3(Comb(true).Select(p => Along(axis, p)), Within);
             GeoPolygon3[] polygons = { simple, touching };
 
-            return Fixture.Of(() => polygons.Select(p => Intersection3.IsSimple(p, Within)).ToArray(), Sign, Describe, Pairs(simple));
+            return Fixture.Of(
+                () => polygons.Select(p => Intersection3.IsSimple(p, Within)).ToArray(),
+                Sign,
+                Describe,
+                Pairs(simple)
+            );
         }
 
         /// <summary>
@@ -114,7 +125,8 @@ namespace GeometryHelper.Benchmarks.Scenarios
 
             for (int k = 0; k < polygons.Length; k++)
             {
-                double cx = random.Next(100000), cy = random.Next(100000);
+                double cx = random.Next(100000),
+                    cy = random.Next(100000);
                 int count = 4 + random.Next(37);
                 var corners = new GeoPoint2[count];
 
@@ -129,16 +141,25 @@ namespace GeometryHelper.Benchmarks.Scenarios
 
                 if (random.Next(4) == 0)
                 {
-                    int a = random.Next(count), b = (a + 2 + random.Next(count - 3)) % count;
+                    int a = random.Next(count),
+                        b = (a + 2 + random.Next(count - 3)) % count;
                     GeoPoint2 swap = corners[a];
                     corners[a] = corners[b];
                     corners[b] = swap;
                 }
 
-                polygons[k] = new GeoPolygon3(corners.Select(p => new GeoPoint3(p.X, p.Y, 0.25 * p.X + 0.5 * p.Y)), Within);
+                polygons[k] = new GeoPolygon3(
+                    corners.Select(p => new GeoPoint3(p.X, p.Y, 0.25 * p.X + 0.5 * p.Y)),
+                    Within
+                );
             }
 
-            return Fixture.Of(() => polygons.Select(p => Intersection3.IsSimple(p, Within)).ToArray(), Sign, Describe, null);
+            return Fixture.Of(
+                () => polygons.Select(p => Intersection3.IsSimple(p, Within)).ToArray(),
+                Sign,
+                Describe,
+                null
+            );
         }
 
         /// <summary>
@@ -172,8 +193,12 @@ namespace GeometryHelper.Benchmarks.Scenarios
         {
             GeoAabb3[] boxes = polygon.GetEdges().Select(e => e.GetAabb()).ToArray();
 
-            long On(Func<GeoPoint3, double> axis)
-                => SweepPairs.Count(boxes.Select(b => axis(b.Min)).ToList(), boxes.Select(b => axis(b.Max)).ToList(), Within.EqualPoint);
+            long On(Func<GeoPoint3, double> axis) =>
+                SweepPairs.Count(
+                    boxes.Select(b => axis(b.Min)).ToList(),
+                    boxes.Select(b => axis(b.Max)).ToList(),
+                    Within.EqualPoint
+                );
 
             return SweepPairs.Describe(On(p => p.X), On(p => p.Y), On(p => p.Z)) + " (the simple comb)";
         }
@@ -188,7 +213,7 @@ namespace GeometryHelper.Benchmarks.Scenarios
             }
         }
 
-        private static string Describe(bool[] results)
-            => Report.Count(results.Count(r => r)) + " of " + Report.Count(results.Length) + " simple";
+        private static string Describe(bool[] results) =>
+            Report.Count(results.Count(r => r)) + " of " + Report.Count(results.Length) + " simple";
     }
 }

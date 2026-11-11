@@ -24,8 +24,8 @@ namespace GeometryHelper.UnitTest.Solid
         /// A bar in z = 0: along the x axis to (400, 0, 0), then up to (400, 200, 0), with a fifty radius at
         /// the one corner.
         /// </summary>
-        private static GeoPolylineArc3 Bar() => new GeoPolyline3(
-            new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0)).Fillet(50.0);
+        private static GeoPolylineArc3 Bar() =>
+            new GeoPolyline3(new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0)).Fillet(50.0);
 
         private static void AddsUp(GeoPolylineArc3 whole, GeoPolylineArc3[] pieces)
         {
@@ -51,7 +51,12 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Contains(true, pieces[1].GetEdges().Select(edge => edge.IsArc));
 
             // A break the bar never reaches leaves it whole.
-            Assert.False(bar.TrySplitBy(new GeoPlane3(new GeoPoint3(1000, 0, 0), new GeoVector3(1, 0, 0)), out GeoPolylineArc3[] whole));
+            Assert.False(
+                bar.TrySplitBy(
+                    new GeoPlane3(new GeoPoint3(1000, 0, 0), new GeoVector3(1, 0, 0)),
+                    out GeoPolylineArc3[] whole
+                )
+            );
             Assert.Single(whole);
             Assert.Equal(bar.Length, whole[0].Length, 6);
         }
@@ -74,8 +79,10 @@ namespace GeometryHelper.UnitTest.Solid
                 foreach (GeoEdge3 edge in piece.GetEdges().Where(edge => edge.IsArc))
                 {
                     Assert.Equal(50.0, edge.ToArc().Radius, 6);
-                    Assert.True(edge.ToArc().Center.IsEqualTo(new GeoPoint3(350, 50, 0), Loose),
-                        edge.ToArc().Center.ToString());
+                    Assert.True(
+                        edge.ToArc().Center.IsEqualTo(new GeoPoint3(350, 50, 0), Loose),
+                        edge.ToArc().Center.ToString()
+                    );
                 }
             }
         }
@@ -94,7 +101,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             // And the bar is shorter than the set-out it was filleted from, so the halves are shorter too.
             GeoPolyline3 setOut = new GeoPolyline3(
-                new GeoPoint3(0, 0, 0), new GeoPoint3(400, 0, 0), new GeoPoint3(400, 200, 0));
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(400, 0, 0),
+                new GeoPoint3(400, 200, 0)
+            );
 
             Assert.True(bar.Length < setOut.Length);
             Assert.True(halves[0].Length < setOut.Length / 2.0);
@@ -127,7 +137,9 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPolylineArc3 bar = Bar();
 
             // A slab reaching out to x = 300, with the start of the bar well inside it.
-            GeoSolid3 slab = new GeoAabb3(new GeoPoint3(-100, -100, -50), new GeoPoint3(300, 300, 50)).ToObb().ToSolid();
+            GeoSolid3 slab = new GeoAabb3(new GeoPoint3(-100, -100, -50), new GeoPoint3(300, 300, 50))
+                .ToObb()
+                .ToSolid();
 
             Assert.True(bar.TrySplitBy(slab, out GeoPolylineArc3[] inside, out GeoPolylineArc3[] outside));
 
@@ -157,11 +169,17 @@ namespace GeometryHelper.UnitTest.Solid
 
             // A wall square to the bar at x = 200, with a hole where the bar passes through.
             var wall = new GeoPolygon3(
-                new GeoPoint3(200, -100, -100), new GeoPoint3(200, 300, -100),
-                new GeoPoint3(200, 300, 100), new GeoPoint3(200, -100, 100));
+                new GeoPoint3(200, -100, -100),
+                new GeoPoint3(200, 300, -100),
+                new GeoPoint3(200, 300, 100),
+                new GeoPoint3(200, -100, 100)
+            );
             var hole = new GeoPolygon3(
-                new GeoPoint3(200, -20, -20), new GeoPoint3(200, 20, -20),
-                new GeoPoint3(200, 20, 20), new GeoPoint3(200, -20, 20));
+                new GeoPoint3(200, -20, -20),
+                new GeoPoint3(200, 20, -20),
+                new GeoPoint3(200, 20, 20),
+                new GeoPoint3(200, -20, 20)
+            );
 
             Assert.True(bar.TrySplitBy(new GeoFace3(wall), out GeoPolylineArc3[] cut));
             Assert.Equal(2, cut.Length);
@@ -194,21 +212,26 @@ namespace GeometryHelper.UnitTest.Solid
             Tolerance global = Tolerance.Global;
             GeoPolylineArc3 bar = Bar();
             var plane = new GeoPlane3(new GeoPoint3(200, 0, 0), new GeoVector3(1, 0, 0));
-            GeoSolid3 slab = new GeoAabb3(new GeoPoint3(-100, -100, -50), new GeoPoint3(300, 300, 50)).ToObb().ToSolid();
+            GeoSolid3 slab = new GeoAabb3(new GeoPoint3(-100, -100, -50), new GeoPoint3(300, 300, 50))
+                .ToObb()
+                .ToSolid();
 
             Assert.Equal(
                 bar.TrySplitBy(plane, out GeoPolylineArc3[] a),
-                bar.TrySplitBy(plane, out GeoPolylineArc3[] b, global));
+                bar.TrySplitBy(plane, out GeoPolylineArc3[] b, global)
+            );
             Assert.Equal(a.Length, b.Length);
 
             Assert.Equal(
                 bar.TrySplitAtDistance(100.0, out GeoPolylineArc3[] c),
-                bar.TrySplitAtDistance(100.0, out GeoPolylineArc3[] d, global));
+                bar.TrySplitAtDistance(100.0, out GeoPolylineArc3[] d, global)
+            );
             Assert.Equal(c.Length, d.Length);
 
             Assert.Equal(
                 bar.TrySplitBy(slab, out GeoPolylineArc3[] e, out _),
-                bar.TrySplitBy(slab, out GeoPolylineArc3[] f, out _, global));
+                bar.TrySplitBy(slab, out GeoPolylineArc3[] f, out _, global)
+            );
             Assert.Equal(e.Length, f.Length);
 
             Assert.Throws<ArgumentNullException>(() => ArcChain3.TrySplitBy((GeoPolylineArc3)null, plane, out _));

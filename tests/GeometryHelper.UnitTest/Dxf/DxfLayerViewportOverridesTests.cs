@@ -34,19 +34,33 @@ namespace GeometryHelper.UnitTest.Dxf
             var color = (DxfXrecord)hidden.ExtensionDictionary.GetAt("ADSK_XREC_LAYER_COLOR_OVR");
             Assert.Equal(
                 "102={ADSK_LYR_COLOR_OVERRIDE 335=40 420=-1023410175 102=} 102={ADSK_LYR_COLOR_OVERRIDE 335=41 420=-1039526882 102=}",
-                string.Join(" ", color.Data.Select(g => g.TypeCode + "=" + g.Value)));
+                string.Join(" ", color.Data.Select(g => g.TypeCode + "=" + g.Value))
+            );
             string dashed = db.LinetypeTable["DASHED"].Handle;
-            Assert.Equal("102={ADSK_LYR_LINETYPE_OVERRIDE 335=40 343=" + dashed + " 102=}", Text(hidden, "ADSK_XREC_LAYER_LINETYPE_OVR"));
-            Assert.Equal("102={ADSK_LYR_LINEWT_OVERRIDE 335=40 91=50 102=}", Text(hidden, "ADSK_XREC_LAYER_LINEWT_OVR"));
-            Assert.Equal("102={ADSK_LYR_ALPHA_OVERRIDE 335=40 440=33554559 102=}", Text(hidden, "ADSK_XREC_LAYER_ALPHA_OVR"));
+            Assert.Equal(
+                "102={ADSK_LYR_LINETYPE_OVERRIDE 335=40 343=" + dashed + " 102=}",
+                Text(hidden, "ADSK_XREC_LAYER_LINETYPE_OVR")
+            );
+            Assert.Equal(
+                "102={ADSK_LYR_LINEWT_OVERRIDE 335=40 91=50 102=}",
+                Text(hidden, "ADSK_XREC_LAYER_LINEWT_OVR")
+            );
+            Assert.Equal(
+                "102={ADSK_LYR_ALPHA_OVERRIDE 335=40 440=33554559 102=}",
+                Text(hidden, "ADSK_XREC_LAYER_ALPHA_OVR")
+            );
 
             DxfDatabase read = DxfDatabase.Parse(db.ToText());
-            DxfLayerViewportProperties back = read.LayerTable["hidden"].GetViewportOverrides(ByHandle<DxfViewport>(read, "40"));
+            DxfLayerViewportProperties back = read.LayerTable["hidden"]
+                .GetViewportOverrides(ByHandle<DxfViewport>(read, "40"));
             Assert.Equal(1, back.Color.ColorIndex);
             Assert.Equal("DASHED", back.Linetype);
             Assert.Equal(DxfLineWeight.LineWeight050, back.LineWeight);
             Assert.Equal(127, back.Transparency.Alpha);
-            Assert.Equal(0x0A141E, read.LayerTable["hidden"].GetViewportOverrides(ByHandle<DxfViewport>(read, "41")).Color.ColorValue);
+            Assert.Equal(
+                0x0A141E,
+                read.LayerTable["hidden"].GetViewportOverrides(ByHandle<DxfViewport>(read, "41")).Color.ColorValue
+            );
         }
 
         [Fact]
@@ -60,7 +74,9 @@ namespace GeometryHelper.UnitTest.Dxf
             steel.GetViewportOverrides(first).Color = DxfColor.FromColorIndex(DxfColorMethod.ByAci, 3);
 
             Assert.Equal(3, steel.GetViewportOverrides(first).Color.ColorIndex);
-            Assert.Single(Text(steel, "ADSK_XREC_LAYER_COLOR_OVR").Split(' '), g => g.StartsWith("335=", StringComparison.Ordinal));
+            Assert.Single(Text(steel, "ADSK_XREC_LAYER_COLOR_OVR").Split(' '), g =>
+                g.StartsWith("335=", StringComparison.Ordinal)
+            );
         }
 
         [Fact]
@@ -89,12 +105,18 @@ namespace GeometryHelper.UnitTest.Dxf
         public void APlotStyleOverride_IsRefusedInADrawingPlottedByColour_AndWrittenByItsEntryInOneOfNamedStyles()
         {
             DxfDatabase byColour = DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2018);
-            DxfLayerViewportProperties look = byColour.LayerTable["hidden"].GetViewportOverrides(ByHandle<DxfViewport>(byColour, "40"));
+            DxfLayerViewportProperties look = byColour
+                .LayerTable["hidden"]
+                .GetViewportOverrides(ByHandle<DxfViewport>(byColour, "40"));
             Assert.Throws<InvalidOperationException>(() => look.PlotStyleName = "Normal");
             Assert.False(look.IsPlotStyleOverridden);
             Assert.Equal("Normal", look.PlotStyleName);
 
-            DxfDatabase named = DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2018.Replace("$PSTYLEMODE\r\n290\r\n1\r\n", "$PSTYLEMODE\r\n290\r\n0\r\n").Replace("$PSTYLEMODE\n290\n1\n", "$PSTYLEMODE\n290\n0\n"));
+            DxfDatabase named = DxfDatabase.Parse(
+                DxfObjectsEzdxfDrawings
+                    .R2018.Replace("$PSTYLEMODE\r\n290\r\n1\r\n", "$PSTYLEMODE\r\n290\r\n0\r\n")
+                    .Replace("$PSTYLEMODE\n290\n1\n", "$PSTYLEMODE\n290\n0\n")
+            );
             Assert.False(named.PlotStyleMode);
             DxfLayerTableRecord hidden = named.LayerTable["hidden"];
             DxfLayerViewportProperties styled = hidden.GetViewportOverrides(ByHandle<DxfViewport>(named, "40"));
@@ -104,7 +126,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.True(styled.IsPlotStyleOverridden);
             Assert.Equal("Normal", styled.PlotStyleName);
-            Assert.Equal("102={ADSK_LYR_PLOTSTYLE_OVERRIDE 335=40 344=13 102=}", Text(hidden, "ADSK_XREC_LAYER_PLOTSTYLE_OVR"));
+            Assert.Equal(
+                "102={ADSK_LYR_PLOTSTYLE_OVERRIDE 335=40 344=13 102=}",
+                Text(hidden, "ADSK_XREC_LAYER_PLOTSTYLE_OVR")
+            );
             Assert.True(hidden.HasOverrides);
             hidden.RemoveAllOverrides();
             Assert.False(hidden.HasOverrides);
@@ -115,7 +140,8 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             string text = DxfObjectsEzdxfDrawings.R2018;
             DxfDatabase db = DxfDatabase.Parse(text);
-            DxfLayerViewportProperties look = db.LayerTable["hidden"].GetViewportOverrides(ByHandle<DxfViewport>(db, "40"));
+            DxfLayerViewportProperties look = db.LayerTable["hidden"]
+                .GetViewportOverrides(ByHandle<DxfViewport>(db, "40"));
 
             Assert.Throws<ArgumentException>(() => look.Color = DxfColor.ByLayer);
             Assert.Throws<ArgumentNullException>(() => look.Color = null);
@@ -126,7 +152,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(text, db.ToText());
         }
 
-        private static string Text(DxfLayerTableRecord layer, string key)
-            => string.Join(" ", ((DxfXrecord)layer.ExtensionDictionary.GetAt(key)).Data.Select(g => g.TypeCode + "=" + g.Value));
+        private static string Text(DxfLayerTableRecord layer, string key) =>
+            string.Join(
+                " ",
+                ((DxfXrecord)layer.ExtensionDictionary.GetAt(key)).Data.Select(g => g.TypeCode + "=" + g.Value)
+            );
     }
 }

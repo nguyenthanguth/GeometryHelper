@@ -28,8 +28,16 @@ namespace GeometryHelper.Drawing
         private readonly DrawingSource _source;
         private readonly DrawingSettings _settings;
         private readonly Tolerance _tolerance;
-        private readonly Func<IEnumerable<ProjectionInput>, GeoCoordinateSystem3, ProjectionOptions, Tolerance, ProjectedView2> _projector;
-        private readonly Dictionary<string, GeoPoint3[]> _corners = new Dictionary<string, GeoPoint3[]>(StringComparer.Ordinal);
+        private readonly Func<
+            IEnumerable<ProjectionInput>,
+            GeoCoordinateSystem3,
+            ProjectionOptions,
+            Tolerance,
+            ProjectedView2
+        > _projector;
+        private readonly Dictionary<string, GeoPoint3[]> _corners = new Dictionary<string, GeoPoint3[]>(
+            StringComparer.Ordinal
+        );
 
         /// <summary>Makes a builder of the views of a source, its lines made by <see cref="ViewProjector"/>.</summary>
         /// <param name="source">The objects drawn.</param>
@@ -37,9 +45,7 @@ namespace GeometryHelper.Drawing
         /// <param name="tolerance">The tolerance the views are made within.</param>
         /// <exception cref="ArgumentNullException">Thrown when the source or the settings are null.</exception>
         public ViewBuilder(DrawingSource source, DrawingSettings settings, Tolerance tolerance)
-            : this(source, settings, tolerance, ViewProjector.Project)
-        {
-        }
+            : this(source, settings, tolerance, ViewProjector.Project) { }
 
         /// <summary>Makes a builder of the views of a source, its lines made by a projector given.</summary>
         /// <param name="source">The objects drawn.</param>
@@ -52,7 +58,14 @@ namespace GeometryHelper.Drawing
             DrawingSource source,
             DrawingSettings settings,
             Tolerance tolerance,
-            Func<IEnumerable<ProjectionInput>, GeoCoordinateSystem3, ProjectionOptions, Tolerance, ProjectedView2> projector)
+            Func<
+                IEnumerable<ProjectionInput>,
+                GeoCoordinateSystem3,
+                ProjectionOptions,
+                Tolerance,
+                ProjectedView2
+            > projector
+        )
         {
             _source = source ?? throw new ArgumentNullException(nameof(source));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
@@ -79,7 +92,16 @@ namespace GeometryHelper.Drawing
                 }
 
                 ViewFrame3 frame = StandardViews.GetFrame(_source.Frame, kind);
-                DrawingView view = Make("V-" + kind.ToString().ToUpperInvariant(), kind, kind.ToString().ToUpperInvariant(), frame, null, null, null, scale);
+                DrawingView view = Make(
+                    "V-" + kind.ToString().ToUpperInvariant(),
+                    kind,
+                    kind.ToString().ToUpperInvariant(),
+                    frame,
+                    null,
+                    null,
+                    null,
+                    scale
+                );
 
                 if (view != null)
                 {
@@ -103,11 +125,26 @@ namespace GeometryHelper.Drawing
 
                 if (parent == null)
                 {
-                    GeometryHelperLog.Debug("ViewBuilder: the detail " + request.Name + " is of a " + request.Of + " view the drawing does not have; it is left out.");
+                    GeometryHelperLog.Debug(
+                        "ViewBuilder: the detail "
+                            + request.Name
+                            + " is of a "
+                            + request.Of
+                            + " view the drawing does not have; it is left out."
+                    );
                     continue;
                 }
 
-                DrawingView view = Make("V-DETAIL-" + Clean(request.Name), ViewKind.Detail, "DETAIL " + request.Name, parent.Frame, null, parent.Id, request.Area, scale);
+                DrawingView view = Make(
+                    "V-DETAIL-" + Clean(request.Name),
+                    ViewKind.Detail,
+                    "DETAIL " + request.Name,
+                    parent.Frame,
+                    null,
+                    parent.Id,
+                    request.Area,
+                    scale
+                );
 
                 if (view != null)
                 {
@@ -115,7 +152,14 @@ namespace GeometryHelper.Drawing
                 }
             }
 
-            GeometryHelperLog.Info(string.Format(CultureInfo.InvariantCulture, "ViewBuilder: {0} objects gave {1} views.", _source.Objects.Count, views.Count));
+            GeometryHelperLog.Info(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "ViewBuilder: {0} objects gave {1} views.",
+                    _source.Objects.Count,
+                    views.Count
+                )
+            );
             return views;
         }
 
@@ -203,7 +247,11 @@ namespace GeometryHelper.Drawing
 
             if (!(scale > 0.0) || double.IsInfinity(scale))
             {
-                throw new ArgumentOutOfRangeException(nameof(scale), scale, "A scale has to be a finite number above nought.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(scale),
+                    scale,
+                    "A scale has to be a finite number above nought."
+                );
             }
 
             return view.With(view.Kind, view.Frame, view.Crop, scale, view.Lines, Copy(view.ObjectIds));
@@ -262,9 +310,25 @@ namespace GeometryHelper.Drawing
 
             double at = low + request.Share * (high - low);
             GeoPoint3 origin = axes.Origin.Add(axes.ZAxis.Multiply(at));
-            var frame = new ViewFrame3(origin, axes.ZAxis.Negate(), axes.YAxis, 0.0, _settings.Views.SectionDepth, _tolerance);
+            var frame = new ViewFrame3(
+                origin,
+                axes.ZAxis.Negate(),
+                axes.YAxis,
+                0.0,
+                _settings.Views.SectionDepth,
+                _tolerance
+            );
             var plane = new GeoPlane3(origin, axes.ZAxis);
-            return Make("V-SECTION-" + Clean(request.Name), ViewKind.Section, "SECTION " + request.Name + "-" + request.Name, frame, plane, null, null, scale);
+            return Make(
+                "V-SECTION-" + Clean(request.Name),
+                ViewKind.Section,
+                "SECTION " + request.Name + "-" + request.Name,
+                frame,
+                plane,
+                null,
+                null,
+                scale
+            );
         }
 
         /// <summary>
@@ -277,18 +341,38 @@ namespace GeometryHelper.Drawing
             GeoLine2 line = request.CutLine.Value;
             GeoVector2 look2 = request.LookInView();
             GeoVector3 look = cs.XAxis.Multiply(look2.X).Add(cs.YAxis.Multiply(look2.Y));
-            GeoPoint3 origin = cs.Origin.Add(cs.XAxis.Multiply(line.StartPoint.X)).Add(cs.YAxis.Multiply(line.StartPoint.Y));
+            GeoPoint3 origin = cs
+                .Origin.Add(cs.XAxis.Multiply(line.StartPoint.X))
+                .Add(cs.YAxis.Multiply(line.StartPoint.Y));
 
             // Looking up or down the view, the section's up is the way the view looks from, so that it reads as a plan does.
             GeoVector3 up = Math.Abs(look2.Y) < 0.99 ? cs.YAxis : (look2.Y < 0.0 ? cs.ZAxis.Negate() : cs.ZAxis);
             var frame = new ViewFrame3(origin, look, up, 0.0, request.Depth, _tolerance);
             var plane = new GeoPlane3(origin, look.Negate());
-            return Make("V-SECTION-" + Clean(request.Name), ViewKind.Section, "SECTION " + request.Name + "-" + request.Name, frame, plane, null, null, scale);
+            return Make(
+                "V-SECTION-" + Clean(request.Name),
+                ViewKind.Section,
+                "SECTION " + request.Name + "-" + request.Name,
+                frame,
+                plane,
+                null,
+                null,
+                scale
+            );
         }
 
         private DrawingView Remake(DrawingView view, ViewKind kind, ViewFrame3 frame, GeoRectangle2? crop)
         {
-            DrawingView made = Make(view.Id, kind, view.Name, frame, view.SectionPlane, view.ParentViewId, crop, view.Scale);
+            DrawingView made = Make(
+                view.Id,
+                kind,
+                view.Name,
+                frame,
+                view.SectionPlane,
+                view.ParentViewId,
+                crop,
+                view.Scale
+            );
 
             if (made == null)
             {
@@ -300,7 +384,16 @@ namespace GeometryHelper.Drawing
         }
 
         /// <summary>Projects the objects a view's crop meets; null where the view has no lines.</summary>
-        private DrawingView Make(string id, ViewKind kind, string name, ViewFrame3 frame, GeoPlane3? section, string parentId, GeoRectangle2? crop, double scale)
+        private DrawingView Make(
+            string id,
+            ViewKind kind,
+            string name,
+            ViewFrame3 frame,
+            GeoPlane3? section,
+            string parentId,
+            GeoRectangle2? crop,
+            double scale
+        )
         {
             GeoCoordinateSystem3 cs = frame.CoordinateSystem;
             double tol = _tolerance.EqualPoint;
@@ -334,7 +427,19 @@ namespace GeometryHelper.Drawing
             }
 
             GeoRectangle2 box = crop ?? Grow(lines.Bounds, _settings.Views.CropMargin);
-            return new DrawingView(id, kind, name, frame, section, parentId, box, scale, _settings.Views.HiddenLines, lines, ids.ToArray())
+            return new DrawingView(
+                id,
+                kind,
+                name,
+                frame,
+                section,
+                parentId,
+                box,
+                scale,
+                _settings.Views.HiddenLines,
+                lines,
+                ids.ToArray()
+            )
             {
                 Box = box,
             };
@@ -343,7 +448,10 @@ namespace GeometryHelper.Drawing
         /// <summary>Whether the box of an object in a view meets a crop.</summary>
         private bool Meets(DrawingObject item, GeoCoordinateSystem3 cs, GeoRectangle2 crop, double tol)
         {
-            double x0 = double.PositiveInfinity, y0 = double.PositiveInfinity, x1 = double.NegativeInfinity, y1 = double.NegativeInfinity;
+            double x0 = double.PositiveInfinity,
+                y0 = double.PositiveInfinity,
+                x1 = double.NegativeInfinity,
+                y1 = double.NegativeInfinity;
 
             foreach (GeoPoint3 corner in Corners(item))
             {
@@ -354,8 +462,10 @@ namespace GeometryHelper.Drawing
                 y1 = Math.Max(y1, p.Y);
             }
 
-            double cx0 = crop.Center.X - crop.Width / 2.0, cx1 = crop.Center.X + crop.Width / 2.0;
-            double cy0 = crop.Center.Y - crop.Height / 2.0, cy1 = crop.Center.Y + crop.Height / 2.0;
+            double cx0 = crop.Center.X - crop.Width / 2.0,
+                cx1 = crop.Center.X + crop.Width / 2.0;
+            double cy0 = crop.Center.Y - crop.Height / 2.0,
+                cy1 = crop.Center.Y + crop.Height / 2.0;
             return x0 <= cx1 + tol && x1 >= cx0 - tol && y0 <= cy1 + tol && y1 >= cy0 - tol;
         }
 
@@ -382,8 +492,8 @@ namespace GeometryHelper.Drawing
             return corners;
         }
 
-        internal static GeoRectangle2 Grow(GeoRectangle2 box, double margin)
-            => new GeoRectangle2(box.Center, box.Width + 2.0 * margin, box.Height + 2.0 * margin);
+        internal static GeoRectangle2 Grow(GeoRectangle2 box, double margin) =>
+            new GeoRectangle2(box.Center, box.Width + 2.0 * margin, box.Height + 2.0 * margin);
 
         /// <summary>A name of a section or detail as part of an id: letters, digits, - and _ kept, others written as _.</summary>
         internal static string Clean(string name)

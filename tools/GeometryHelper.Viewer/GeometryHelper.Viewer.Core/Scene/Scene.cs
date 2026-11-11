@@ -77,7 +77,15 @@ namespace GeometryHelper.Viewer
         {
             if (double.IsNaN(value) || double.IsInfinity(value) || value < 0.0 || (positive && value == 0.0))
             {
-                throw new FormatException("The scene's " + name + " must be a finite number " + (positive ? "above nought" : "not below nought") + ", not " + value.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + ".");
+                throw new FormatException(
+                    "The scene's "
+                        + name
+                        + " must be a finite number "
+                        + (positive ? "above nought" : "not below nought")
+                        + ", not "
+                        + value.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
         }
 
@@ -113,7 +121,10 @@ namespace GeometryHelper.Viewer
                         result = work();
                     }
 
-                    note = "rebuilt and measured at 1E-12 (the library refused the shape at the tolerance of the scene: " + first.Message + ")";
+                    note =
+                        "rebuilt and measured at 1E-12 (the library refused the shape at the tolerance of the scene: "
+                        + first.Message
+                        + ")";
                     return result;
                 }
                 catch (Exception second) when (second is ArgumentException || second is InvalidOperationException)
@@ -162,13 +173,18 @@ namespace GeometryHelper.Viewer
         /// Gets the kinds of the items this viewer does not know how to draw, each once, in the order they first appear.
         /// Such items are kept in the scene and written out again unchanged.
         /// </summary>
-        public IReadOnlyList<string> UnknownKinds
-            => Items.Select(item => item.Kind).Where(kind => !SceneKinds.IsKnown(kind)).Distinct(StringComparer.Ordinal).ToList();
+        public IReadOnlyList<string> UnknownKinds =>
+            Items
+                .Select(item => item.Kind)
+                .Where(kind => !SceneKinds.IsKnown(kind))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
 
         /// <summary>
         /// Gets the layer of a name, or null where there is none.
         /// </summary>
-        public Layer FindLayer(string name) => Layers.FirstOrDefault(layer => string.Equals(layer.Name, name, StringComparison.Ordinal));
+        public Layer FindLayer(string name) =>
+            Layers.FirstOrDefault(layer => string.Equals(layer.Name, name, StringComparison.Ordinal));
     }
 
     /// <summary>

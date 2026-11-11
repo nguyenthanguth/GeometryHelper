@@ -19,7 +19,10 @@ namespace GeometryHelper.UnitTest.Solid.Core
         /// <summary>A plate 1000 by 800, its triangular hole touching the top at (350, 800) and the left side at (0, 400).</summary>
         private static GeoFace3 Face()
         {
-            var boundary = new GeoPolygon3(new[] { P(0, 0), P(1000, 0), P(1000, 800), P(350, 800), P(0, 800) }, Tolerance);
+            var boundary = new GeoPolygon3(
+                new[] { P(0, 0), P(1000, 0), P(1000, 800), P(350, 800), P(0, 800) },
+                Tolerance
+            );
             var hole = new GeoPolygon3(new[] { P(400, 250), P(350, 800), P(0, 400) }, Tolerance);
             return new GeoFace3(boundary, new[] { hole }, Tolerance);
         }

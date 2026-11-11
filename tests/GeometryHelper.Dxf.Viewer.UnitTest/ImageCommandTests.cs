@@ -18,7 +18,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     /// </summary>
     public class ImageCommandTests : IDisposable
     {
-        private readonly string _folder = Path.Combine(Path.GetTempPath(), "gk", "image-" + Guid.NewGuid().ToString("N"));
+        private readonly string _folder = Path.Combine(
+            Path.GetTempPath(),
+            "gk",
+            "image-" + Guid.NewGuid().ToString("N")
+        );
 
         public ImageCommandTests()
         {
@@ -173,7 +177,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(-1.5, picture.Vx, 9);
 
             Run(session, "-IMAGE", "A", "plain=" + other);
-            Assert.Contains("Warning: The image name plain is already in use. Use the syntax <imagename>=<filename>.", session.History);
+            Assert.Contains(
+                "Warning: The image name plain is already in use. Use the syntax <imagename>=<filename>.",
+                session.History
+            );
             Assert.Single(All<DxfRasterImage>(document.ModelSpace));
         }
 
@@ -323,8 +330,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 using (var canvas = new SKCanvas(bitmap))
                 using (var renderer = new SkiaCanvasRenderer())
                 {
-                    renderer.Render(canvas, document, document.ModelSpace, view, new CanvasOptions { Background = background });
-                    return bitmap.GetPixel((int)Math.Round(view.DrawingToScreen.X(x, y)), (int)Math.Round(view.DrawingToScreen.Y(x, y)));
+                    renderer.Render(
+                        canvas,
+                        document,
+                        document.ModelSpace,
+                        view,
+                        new CanvasOptions { Background = background }
+                    );
+                    return bitmap.GetPixel(
+                        (int)Math.Round(view.DrawingToScreen.X(x, y)),
+                        (int)Math.Round(view.DrawingToScreen.Y(x, y))
+                    );
                 }
             }
 

@@ -28,8 +28,8 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static GeoPlane3 Plane() => new GeoPlane3(new GeoPoint3(70, 0, 0), GeoVector3.XAxis);
 
-        private static GeoTriangle3 Triangle() => new GeoTriangle3(
-            new GeoPoint3(60, -20, -20), new GeoPoint3(60, 40, -20), new GeoPoint3(60, 0, 40));
+        private static GeoTriangle3 Triangle() =>
+            new GeoTriangle3(new GeoPoint3(60, -20, -20), new GeoPoint3(60, 40, -20), new GeoPoint3(60, 0, 40));
 
         [Fact]
         public void ASegmentInSpaceMeasuresTheSameWhicheverWayItIsAsked()
@@ -86,21 +86,25 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(
                 line.TryIntersectWith(Crossing(), out GeoPoint3 first),
-                line.TryIntersectWith(Crossing(), out _, Global));
+                line.TryIntersectWith(Crossing(), out _, Global)
+            );
             Assert.True(first.IsEqualTo(new GeoPoint3(50, 0, 0)));
 
             Assert.Equal(
                 line.TryIntersectWith(Crossing(), LineExtension.Both, out _),
-                line.TryIntersectWith(Crossing(), LineExtension.Both, out _, Global));
+                line.TryIntersectWith(Crossing(), LineExtension.Both, out _, Global)
+            );
 
             Assert.Equal(
                 line.TryIntersectWith(Plane(), out GeoPoint3 onPlane),
-                line.TryIntersectWith(Plane(), out _, Global));
+                line.TryIntersectWith(Plane(), out _, Global)
+            );
             Assert.True(onPlane.IsEqualTo(new GeoPoint3(70, 0, 0)));
 
             Assert.Equal(
                 line.TryIntersectWith(Triangle(), out GeoPoint3 onTriangle),
-                line.TryIntersectWith(Triangle(), out _, Global));
+                line.TryIntersectWith(Triangle(), out _, Global)
+            );
             Assert.True(onTriangle.IsEqualTo(new GeoPoint3(60, 0, 0)));
 
             // A segment that stops short of the plane does not reach it. There is no form that runs it on
@@ -132,13 +136,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(ray.IsParallelTo(Plane()), ray.IsParallelTo(Plane(), Global));
             Assert.True(ray.IsParallelTo(Plane()));
 
-            Assert.Equal(
-                ray.TryIntersectWith(Plane(), out _),
-                ray.TryIntersectWith(Plane(), out _, Global));
+            Assert.Equal(ray.TryIntersectWith(Plane(), out _), ray.TryIntersectWith(Plane(), out _, Global));
 
-            Assert.Equal(
-                ray.TryIntersectWith(Triangle(), out _),
-                ray.TryIntersectWith(Triangle(), out _, Global));
+            Assert.Equal(ray.TryIntersectWith(Triangle(), out _), ray.TryIntersectWith(Triangle(), out _, Global));
 
             // A ray running up the Y axis at x = 50 never reaches the triangle standing at x = 60.
             Assert.False(ray.TryIntersectWith(Triangle(), out _));

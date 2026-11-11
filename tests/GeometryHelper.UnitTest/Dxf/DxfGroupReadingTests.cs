@@ -36,12 +36,18 @@ namespace GeometryHelper.UnitTest.Dxf
             {
                 var insert = new DxfBlockReference(new GeoPoint3(1000 * i, 0, 0), door) { Rotation = Math.PI / 6.0 };
                 db.ModelSpace.AppendEntity(insert);
-                insert.AttributeCollection.AppendAttribute(new DxfAttributeReference(new GeoPoint3(1000 * i, 100, 0), "D" + i, "MARK", null));
+                insert.AttributeCollection.AppendAttribute(
+                    new DxfAttributeReference(new GeoPoint3(1000 * i, 100, 0), "D" + i, "MARK", null)
+                );
             }
 
             var hatch = new DxfHatch();
             hatch.SetHatchPattern(DxfHatchPatternType.PreDefined, "ANSI31");
-            hatch.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(0, 500), new GeoPoint2(30, 500), new GeoPoint2(30, 530), new GeoPoint2(0, 530) }, null);
+            hatch.AppendLoop(
+                DxfHatchLoopTypes.External,
+                new[] { new GeoPoint2(0, 500), new GeoPoint2(30, 500), new GeoPoint2(30, 530), new GeoPoint2(0, 530) },
+                null
+            );
             db.ModelSpace.AppendEntity(hatch);
 
             var polyline = new DxfPolyline();
@@ -52,8 +58,25 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             db.ModelSpace.AppendEntity(polyline);
-            db.ModelSpace.AppendEntity(new DxfPolyline2d(DxfPoly2dType.SimplePoly, new[] { new GeoPoint3(0, 900, 0), new GeoPoint3(50, 900, 0), new GeoPoint3(50, 950, 0) }, 0, false, 0, 0, new[] { 0.0, 0.0, 0.0 }));
-            db.ModelSpace.AppendEntity(new DxfDBText { Position = new GeoPoint3(0, 1000, 0), Height = 2.5, TextString = "PLAN" });
+            db.ModelSpace.AppendEntity(
+                new DxfPolyline2d(
+                    DxfPoly2dType.SimplePoly,
+                    new[] { new GeoPoint3(0, 900, 0), new GeoPoint3(50, 900, 0), new GeoPoint3(50, 950, 0) },
+                    0,
+                    false,
+                    0,
+                    0,
+                    new[] { 0.0, 0.0, 0.0 }
+                )
+            );
+            db.ModelSpace.AppendEntity(
+                new DxfDBText
+                {
+                    Position = new GeoPoint3(0, 1000, 0),
+                    Height = 2.5,
+                    TextString = "PLAN",
+                }
+            );
             db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 1100, 0), new GeoPoint3(500, 1100, 0)));
             return Opened(Saved(db));
         }
@@ -95,19 +118,34 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfBlockReference insert = db.ModelSpace.OfType<DxfBlockReference>().ElementAt(3);
             GeoTransform3 before = insert.BlockTransform;
 
-            Assert.True(before.Transform(new GeoPoint3(900, 0, 0)).IsEqualTo(new GeoPoint3(3000 + 900 * Math.Cos(Math.PI / 6.0), 900 * Math.Sin(Math.PI / 6.0), 0), Near));
+            Assert.True(
+                before
+                    .Transform(new GeoPoint3(900, 0, 0))
+                    .IsEqualTo(
+                        new GeoPoint3(3000 + 900 * Math.Cos(Math.PI / 6.0), 900 * Math.Sin(Math.PI / 6.0), 0),
+                        Near
+                    )
+            );
 
             insert.Position = new GeoPoint3(3000, 2000, 0);
-            Assert.True(insert.BlockTransform.Transform(new GeoPoint3(0, 0, 0)).IsEqualTo(new GeoPoint3(3000, 2000, 0), Near));
+            Assert.True(
+                insert.BlockTransform.Transform(new GeoPoint3(0, 0, 0)).IsEqualTo(new GeoPoint3(3000, 2000, 0), Near)
+            );
 
             insert.Rotation = 0.0;
-            Assert.True(insert.BlockTransform.Transform(new GeoPoint3(900, 0, 0)).IsEqualTo(new GeoPoint3(3900, 2000, 0), Near));
+            Assert.True(
+                insert.BlockTransform.Transform(new GeoPoint3(900, 0, 0)).IsEqualTo(new GeoPoint3(3900, 2000, 0), Near)
+            );
 
             insert.ScaleFactors = new GeoVector3(2, 2, 2);
-            Assert.True(insert.BlockTransform.Transform(new GeoPoint3(900, 0, 0)).IsEqualTo(new GeoPoint3(4800, 2000, 0), Near));
+            Assert.True(
+                insert.BlockTransform.Transform(new GeoPoint3(900, 0, 0)).IsEqualTo(new GeoPoint3(4800, 2000, 0), Near)
+            );
 
             DxfBlockReference again = Opened(Saved(db)).ModelSpace.OfType<DxfBlockReference>().ElementAt(3);
-            Assert.True(again.BlockTransform.Transform(new GeoPoint3(900, 0, 0)).IsEqualTo(new GeoPoint3(4800, 2000, 0), Near));
+            Assert.True(
+                again.BlockTransform.Transform(new GeoPoint3(900, 0, 0)).IsEqualTo(new GeoPoint3(4800, 2000, 0), Near)
+            );
         }
 
         [Fact]
@@ -119,13 +157,20 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfHatch first = db.ModelSpace.OfType<DxfHatch>().Single();
             var second = new DxfHatch();
             second.SetHatchPattern(DxfHatchPatternType.PreDefined, "ANSI31");
-            second.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(0, 500), new GeoPoint2(30, 500), new GeoPoint2(30, 530), new GeoPoint2(0, 530) }, null);
+            second.AppendLoop(
+                DxfHatchLoopTypes.External,
+                new[] { new GeoPoint2(0, 500), new GeoPoint2(30, 500), new GeoPoint2(30, 530), new GeoPoint2(0, 530) },
+                null
+            );
             db.ModelSpace.AppendEntity(second);
             first.PatternAngle = Math.PI / 4.0;
             second.PatternAngle = Math.PI / 2.0;
 
             List<string> records = Records(db.ToText());
-            Assert.Equal(records.Single(r => HandleOf(r) == first.Handle).Length, records.Single(r => HandleOf(r) == second.Handle).Length);
+            Assert.Equal(
+                records.Single(r => HandleOf(r) == first.Handle).Length,
+                records.Single(r => HandleOf(r) == second.Handle).Length
+            );
 
             for (int round = 0; round < 3; round++)
             {
@@ -148,7 +193,17 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(Math.PI / 4.0, hatch.PatternAngle, 12);
             Assert.Equal(1, hatch.NumberOfLoops);
 
-            hatch.AppendLoop(DxfHatchLoopTypes.Default, new[] { new GeoPoint2(10, 510), new GeoPoint2(20, 510), new GeoPoint2(20, 520), new GeoPoint2(10, 520) }, null);
+            hatch.AppendLoop(
+                DxfHatchLoopTypes.Default,
+                new[]
+                {
+                    new GeoPoint2(10, 510),
+                    new GeoPoint2(20, 510),
+                    new GeoPoint2(20, 520),
+                    new GeoPoint2(10, 520),
+                },
+                null
+            );
             Assert.Equal(2, hatch.NumberOfLoops);
             Assert.Equal(800.0, hatch.Area, 9);
             Assert.Equal(Math.PI / 4.0, hatch.PatternAngle, 12);

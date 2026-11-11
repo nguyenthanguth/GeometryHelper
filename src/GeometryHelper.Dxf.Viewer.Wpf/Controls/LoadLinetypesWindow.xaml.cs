@@ -31,7 +31,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="owner">The window it is shown over; null for none.</param>
         /// <param name="model">The view model.</param>
         /// <returns>True when OK was pressed.</returns>
-        public static bool Pick(Window owner, LoadLinetypesViewModel model) => new LoadLinetypesWindow(model) { Owner = owner }.ShowDialog() == true;
+        public static bool Pick(Window owner, LoadLinetypesViewModel model) =>
+            new LoadLinetypesWindow(model) { Owner = owner }.ShowDialog() == true;
 
         private void OnHeaderDown(object sender, MouseButtonEventArgs e)
         {
@@ -44,7 +45,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Browse…: a .lin file; null where none was chosen.</summary>
         private string PickFile()
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Linetype files (*.lin)|*.lin|All files (*.*)|*.*", Title = "Select Linetype File" };
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "Linetype files (*.lin)|*.lin|All files (*.*)|*.*",
+                Title = "Select Linetype File",
+            };
             return dialog.ShowDialog(this) == true ? dialog.FileName : null;
         }
 

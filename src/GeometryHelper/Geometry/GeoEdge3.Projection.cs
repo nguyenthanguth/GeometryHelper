@@ -12,7 +12,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the point of the edge nearest another point.
         /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => GetClosestPointOnBoundary(point, Tolerance.Global);
+        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) =>
+            GetClosestPointOnBoundary(point, Tolerance.Global);
 
         /// <summary>
         /// Gets the point of the edge nearest another point, within a tolerance.
@@ -38,8 +39,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentException">Thrown when this edge does not lie in the loop's plane.</exception>
-        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop)
-            => (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this).Reverse();
+        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop) =>
+            (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this).Reverse();
 
         /// <summary>
         /// Gets the shortest line from this edge to the boundary of a curved loop in the same plane, within a
@@ -48,8 +49,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentException">Thrown when this edge does not lie in the loop's plane.</exception>
-        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop, Tolerance tolerance)
-            => (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this, tolerance).Reverse();
+        public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop, Tolerance tolerance) =>
+            (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this, tolerance).Reverse();
 
         /// <summary>
         /// Gets the shortest segment joining this edge to a point, using the default tolerance.
@@ -79,7 +80,7 @@ namespace GeometryHelper.Geometry
         /// the line runs from (-50, 0, 0), 50.00000001 long, where the distance is 49.9991.
         /// </para>
         /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance)
-            => new GeoLine3(GetClosestPointOnBoundary(point, tolerance), point);
+        public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance) =>
+            new GeoLine3(GetClosestPointOnBoundary(point, tolerance), point);
     }
 }

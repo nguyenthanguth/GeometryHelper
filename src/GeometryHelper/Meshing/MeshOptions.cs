@@ -47,8 +47,13 @@ namespace GeometryHelper.Meshing
         /// Thrown when a cell size is not a finite number above nought, the joint is negative or not a finite number, or
         /// an alignment is not one of <see cref="GridAlignment"/>.
         /// </exception>
-        public static MeshOptions Grid(double cellWidth, double cellHeight, double joint = 0.0, GridAlignment alignU = GridAlignment.Start, GridAlignment alignV = GridAlignment.Start)
-            => new MeshOptions(MeshKind.Grid, cellWidth, cellHeight, joint, alignU: alignU, alignV: alignV);
+        public static MeshOptions Grid(
+            double cellWidth,
+            double cellHeight,
+            double joint = 0.0,
+            GridAlignment alignU = GridAlignment.Start,
+            GridAlignment alignV = GridAlignment.Start
+        ) => new MeshOptions(MeshKind.Grid, cellWidth, cellHeight, joint, alignU: alignU, alignV: alignV);
 
         /// <summary>
         /// A grid of cells along the X and Y axes, or along a rectangle's own sides, with a cell starting at a point.
@@ -61,8 +66,8 @@ namespace GeometryHelper.Meshing
         /// Thrown when a cell size is not a finite number above nought, the joint is negative or not a finite number, or
         /// the origin is not a finite point.
         /// </exception>
-        public static MeshOptions Grid(double cellWidth, double cellHeight, GeoPoint2 origin, double joint = 0.0)
-            => new MeshOptions(MeshKind.Grid, cellWidth, cellHeight, joint, origin: origin);
+        public static MeshOptions Grid(double cellWidth, double cellHeight, GeoPoint2 origin, double joint = 0.0) =>
+            new MeshOptions(MeshKind.Grid, cellWidth, cellHeight, joint, origin: origin);
 
         /// <summary>
         /// Initializes mesh options.
@@ -108,9 +113,15 @@ namespace GeometryHelper.Meshing
             GridAlignment alignU = GridAlignment.Start,
             GridAlignment alignV = GridAlignment.Start,
             GeoPoint2? origin = null,
-            double chordTolerance = 0.0)
+            double chordTolerance = 0.0
+        )
         {
-            if (kind != MeshKind.Triangles && kind != MeshKind.Grid && kind != MeshKind.Strips && kind != MeshKind.Convex)
+            if (
+                kind != MeshKind.Triangles
+                && kind != MeshKind.Grid
+                && kind != MeshKind.Strips
+                && kind != MeshKind.Convex
+            )
             {
                 throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown kind of mesh.");
             }
@@ -118,7 +129,11 @@ namespace GeometryHelper.Meshing
             Guard.NonNegative(cellWidth, nameof(cellWidth), SizeMessage);
             Guard.NonNegative(cellHeight, nameof(cellHeight), SizeMessage);
             Guard.NonNegative(joint, nameof(joint), "A joint has to be a finite number, and cannot be negative.");
-            Guard.NonNegative(chordTolerance, nameof(chordTolerance), "A chord tolerance has to be a finite number, and cannot be negative.");
+            Guard.NonNegative(
+                chordTolerance,
+                nameof(chordTolerance),
+                "A chord tolerance has to be a finite number, and cannot be negative."
+            );
 
             if (kind == MeshKind.Grid)
             {
@@ -136,7 +151,11 @@ namespace GeometryHelper.Meshing
 
             if (origin.HasValue && !origin.Value.IsValid)
             {
-                throw new ArgumentOutOfRangeException(nameof(origin), origin.Value, "An origin has to be a finite point.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(origin),
+                    origin.Value,
+                    "An origin has to be a finite point."
+                );
             }
 
             Kind = kind;
@@ -206,12 +225,17 @@ namespace GeometryHelper.Meshing
         /// The same options for a shape laid out in a frame whose X axis is already the grid's first axis: no angle, and a
         /// cell starting at a point of the frame, or none.
         /// </summary>
-        internal MeshOptions InFrame(GeoPoint2? origin)
-            => new MeshOptions(Kind, CellWidth, CellHeight, Joint, null, AlignU, AlignV, origin, ChordTolerance);
+        internal MeshOptions InFrame(GeoPoint2? origin) =>
+            new MeshOptions(Kind, CellWidth, CellHeight, Joint, null, AlignU, AlignV, origin, ChordTolerance);
 
         private static void CheckAlignment(GridAlignment alignment, string name)
         {
-            if (alignment != GridAlignment.Start && alignment != GridAlignment.End && alignment != GridAlignment.CenterCell && alignment != GridAlignment.CenterJoint)
+            if (
+                alignment != GridAlignment.Start
+                && alignment != GridAlignment.End
+                && alignment != GridAlignment.CenterCell
+                && alignment != GridAlignment.CenterJoint
+            )
             {
                 throw new ArgumentOutOfRangeException(name, alignment, "Unknown grid alignment.");
             }
@@ -264,15 +288,25 @@ namespace GeometryHelper.Meshing
         /// </summary>
         public override string ToString()
         {
-            string angle = AngleRad.HasValue ? AngleRad.Value.ToString(CultureInfo.InvariantCulture) : "along the shape";
+            string angle = AngleRad.HasValue
+                ? AngleRad.Value.ToString(CultureInfo.InvariantCulture)
+                : "along the shape";
             string chord = ChordTolerance > 0.0 ? ChordTolerance.ToString(CultureInfo.InvariantCulture) : "automatic";
 
             if (Kind != MeshKind.Grid)
             {
-                return string.Format(CultureInfo.InvariantCulture, "(Kind: {0}, AngleRad: {1}, ChordTolerance: {2})", Kind, angle, chord);
+                return string.Format(
+                    CultureInfo.InvariantCulture,
+                    "(Kind: {0}, AngleRad: {1}, ChordTolerance: {2})",
+                    Kind,
+                    angle,
+                    chord
+                );
             }
 
-            string place = Origin.HasValue ? "Origin: " + Origin.Value : string.Format(CultureInfo.InvariantCulture, "Align: {0}/{1}", AlignU, AlignV);
+            string place = Origin.HasValue
+                ? "Origin: " + Origin.Value
+                : string.Format(CultureInfo.InvariantCulture, "Align: {0}/{1}", AlignU, AlignV);
 
             return string.Format(
                 CultureInfo.InvariantCulture,
@@ -282,7 +316,8 @@ namespace GeometryHelper.Meshing
                 Joint,
                 angle,
                 place,
-                chord);
+                chord
+            );
         }
     }
 }

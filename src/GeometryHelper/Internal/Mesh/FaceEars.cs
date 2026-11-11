@@ -125,9 +125,11 @@ namespace GeometryHelper.Core
                 }
 
                 // Within the triangle, or on a side of it within rounding, counted as within.
-                if (Cross(x, y, p, i, w) >= -rounding * first
+                if (
+                    Cross(x, y, p, i, w) >= -rounding * first
                     && Cross(x, y, i, q, w) >= -rounding * second
-                    && Cross(x, y, q, p, w) >= -rounding * closing)
+                    && Cross(x, y, q, p, w) >= -rounding * closing
+                )
                 {
                     return false;
                 }
@@ -136,8 +138,8 @@ namespace GeometryHelper.Core
             return true;
         }
 
-        private static double Cross(double[] x, double[] y, int a, int b, int c)
-            => (x[b] - x[a]) * (y[c] - y[a]) - (y[b] - y[a]) * (x[c] - x[a]);
+        private static double Cross(double[] x, double[] y, int a, int b, int c) =>
+            (x[b] - x[a]) * (y[c] - y[a]) - (y[b] - y[a]) * (x[c] - x[a]);
 
         private static double Length(double[] x, double[] y, int a, int b)
         {

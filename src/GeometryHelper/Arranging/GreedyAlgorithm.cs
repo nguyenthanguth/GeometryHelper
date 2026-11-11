@@ -156,7 +156,14 @@ namespace GeometryHelper.Arranging
         /// <see cref="Obstacle.AnyCollides"/> gives over <c>occupied.Overlapping(region)</c>, the obstacles near the place
         /// found by the index for its own box rather than the whole neighbourhood gone over.
         /// </summary>
-        internal static bool CollidesNear(ObstacleSpatialIndex occupied, Bounds region, GeoRectangle2 moved, Tolerance tolerance, List<int> near, List<Obstacle> touching)
+        internal static bool CollidesNear(
+            ObstacleSpatialIndex occupied,
+            Bounds region,
+            GeoRectangle2 moved,
+            Tolerance tolerance,
+            List<int> near,
+            List<Obstacle> touching
+        )
         {
             occupied.Query(Bounds.Of(moved).Expand(tolerance.EqualPoint), near);
             touching.Clear();

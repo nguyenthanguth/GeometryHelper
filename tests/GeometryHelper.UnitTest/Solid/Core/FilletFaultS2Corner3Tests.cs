@@ -38,7 +38,11 @@ namespace GeometryHelper.UnitTest.Solid
             // than the angle tolerance of one degree. At (1E-4, 1E-6) Corner3 took the legs as not parallel and the frame
             // it then built took them as parallel: "The X and Y directions must not be parallel".
             var along = new GeoVector3(1, 1, 0).Normalize();
-            var bar = new GeoPolyline3(P(0, 0, 0), P(0, 0, 0) + along * 10, P(0, 0, 0) + along * 20 + new GeoVector3(0, 0, 1E-6));
+            var bar = new GeoPolyline3(
+                P(0, 0, 0),
+                P(0, 0, 0) + along * 10,
+                P(0, 0, 0) + along * 20 + new GeoVector3(0, 0, 1E-6)
+            );
 
             GeoPolylineArc3 bent = Corner3.Fillet(bar, new[] { 0.0, 200.0, 0.0 }, new Tolerance(1E-4, 1E-6));
 
@@ -58,7 +62,10 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(0.0, bent.StartPoint.DistanceTo(P(0, 0, 0)));
             Assert.Equal(0.0, bent.EndPoint.DistanceTo(P(0, 10, 0)));
             Assert.Equal(5, bent.VertexCount);
-            Assert.True(bent.Vertices[2].DistanceTo(P(10, 5, 0)) <= Tenth.EqualPoint, "the bends meet at " + bent.Vertices[2]);
+            Assert.True(
+                bent.Vertices[2].DistanceTo(P(10, 5, 0)) <= Tenth.EqualPoint,
+                "the bends meet at " + bent.Vertices[2]
+            );
             Assert.True(bent.GetEdgeAt(1).IsArc && bent.GetEdgeAt(2).IsArc, "the two bends are not both rounded");
         }
 

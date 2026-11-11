@@ -98,7 +98,13 @@ namespace GeometryHelper.Internal.Planar
         /// by 1 to its left has two: (1.414, 0) to (0.707, -0.707) and (0, 1) to (1, 1).
         /// </param>
         /// <returns>The raw offset chain, running the same way as the original.</returns>
-        public static List<GeoPoint2> BuildOpenChain(IReadOnlyList<GeoPoint2> chain, double distance, CornerStyle style, out List<bool> throughCorner, out List<(GeoPoint2 From, GeoPoint2 To)> pastTheOtherLeg)
+        public static List<GeoPoint2> BuildOpenChain(
+            IReadOnlyList<GeoPoint2> chain,
+            double distance,
+            CornerStyle style,
+            out List<bool> throughCorner,
+            out List<(GeoPoint2 From, GeoPoint2 To)> pastTheOtherLeg
+        )
         {
             int count = chain.Count;
             GeoVector2[] tangents = new GeoVector2[count - 1];
@@ -186,7 +192,15 @@ namespace GeometryHelper.Internal.Planar
         /// outgoing one. When <paramref name="throughCorner"/> is given, it gets one entry per point appended,
         /// saying whether the edge leaving that point runs through the original corner.
         /// </summary>
-        private static void AppendCorner(List<GeoPoint2> raw, List<bool> throughCorner, GeoPoint2 vertex, GeoVector2 incoming, GeoVector2 outgoing, double distance, CornerStyle style)
+        private static void AppendCorner(
+            List<GeoPoint2> raw,
+            List<bool> throughCorner,
+            GeoPoint2 vertex,
+            GeoVector2 incoming,
+            GeoVector2 outgoing,
+            double distance,
+            CornerStyle style
+        )
         {
             int before = raw.Count;
             AppendCorner(raw, vertex, incoming, outgoing, distance, style, out bool detour);
@@ -202,7 +216,15 @@ namespace GeometryHelper.Internal.Planar
             }
         }
 
-        private static void AppendCorner(List<GeoPoint2> raw, GeoPoint2 vertex, GeoVector2 incoming, GeoVector2 outgoing, double distance, CornerStyle style, out bool detour)
+        private static void AppendCorner(
+            List<GeoPoint2> raw,
+            GeoPoint2 vertex,
+            GeoVector2 incoming,
+            GeoVector2 outgoing,
+            double distance,
+            CornerStyle style,
+            out bool detour
+        )
         {
             detour = false;
             GeoVector2 normalIn = incoming.Right();
@@ -229,7 +251,10 @@ namespace GeometryHelper.Internal.Planar
             GeoVector2 toDirection = normalOut * sign;
 
             // The angle the join turns through, from one offset edge to the other: up to a half turn.
-            double angle = Math.Atan2(Math.Abs(fromDirection.Cross(toDirection)), Math.Max(-1.0, Math.Min(1.0, fromDirection.Dot(toDirection))));
+            double angle = Math.Atan2(
+                Math.Abs(fromDirection.Cross(toDirection)),
+                Math.Max(-1.0, Math.Min(1.0, fromDirection.Dot(toDirection)))
+            );
 
             if (foldBack)
             {
@@ -241,7 +266,9 @@ namespace GeometryHelper.Internal.Planar
                 case OffsetJoin.Round:
                 {
                     // A fold turns the long way round, through the direction the chain was heading.
-                    double turn = foldBack ? Math.Sign(fromDirection.Cross(incoming)) : Math.Sign(fromDirection.Cross(toDirection));
+                    double turn = foldBack
+                        ? Math.Sign(fromDirection.Cross(incoming))
+                        : Math.Sign(fromDirection.Cross(toDirection));
                     AppendArc(raw, vertex, endIn, startOut, fromDirection, radius, angle, turn, style.ArcTolerance);
                     return;
                 }
@@ -275,7 +302,16 @@ namespace GeometryHelper.Internal.Planar
         /// Cuts the corner off square, with a line lying <paramref name="reach"/> from the corner across the
         /// bisector, and appends the two points where it meets the offset edges carried on past their ends.
         /// </summary>
-        private static void AppendSquare(List<GeoPoint2> raw, GeoPoint2 endIn, GeoPoint2 startOut, GeoVector2 incoming, GeoVector2 outgoing, double radius, double angle, double reach)
+        private static void AppendSquare(
+            List<GeoPoint2> raw,
+            GeoPoint2 endIn,
+            GeoPoint2 startOut,
+            GeoVector2 incoming,
+            GeoVector2 outgoing,
+            double radius,
+            double angle,
+            double reach
+        )
         {
             // How far past the end of each offset edge the cut lies: (reach - r cos(a/2)) / sin(a/2), written
             // so that neither part loses its digits when the corner is nearly straight.
@@ -289,7 +325,17 @@ namespace GeometryHelper.Internal.Planar
         /// Appends an arc round the corner from one offset edge to the other, as chords no farther from the true
         /// arc than the arc tolerance.
         /// </summary>
-        private static void AppendArc(List<GeoPoint2> raw, GeoPoint2 center, GeoPoint2 from, GeoPoint2 to, GeoVector2 fromDirection, double radius, double angle, double turn, double arcTolerance)
+        private static void AppendArc(
+            List<GeoPoint2> raw,
+            GeoPoint2 center,
+            GeoPoint2 from,
+            GeoPoint2 to,
+            GeoVector2 fromDirection,
+            double radius,
+            double angle,
+            double turn,
+            double arcTolerance
+        )
         {
             double step = arcTolerance >= radius ? Math.PI * 0.5 : 2.0 * Math.Acos(1.0 - arcTolerance / radius);
             step = Math.Max(step, 2.0 * Math.PI / MaxSegmentsPerTurn);

@@ -21,20 +21,27 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>The gap is exact to rounding: 4E-14 of the largest coordinate here, 200, with room.</summary>
         private const double Allowance = 1E-11;
 
-        private static GeoPolygon2 Box(double left, double bottom, double right, double top) => new GeoPolygon2(
-            new GeoPoint2(left, bottom), new GeoPoint2(right, bottom), new GeoPoint2(right, top), new GeoPoint2(left, top));
+        private static GeoPolygon2 Box(double left, double bottom, double right, double top) =>
+            new GeoPolygon2(
+                new GeoPoint2(left, bottom),
+                new GeoPoint2(right, bottom),
+                new GeoPoint2(right, top),
+                new GeoPoint2(left, top)
+            );
 
         /// <summary>The square 100 by 100 with a corner at the origin.</summary>
         private static GeoPolygon2 Square() => Box(0, 0, 100, 100);
 
         /// <summary>The same square as a loop of straight edges.</summary>
-        private static GeoPolygonArc2 StraightLoop() => new GeoPolygonArc2(Square().Vertices, new[] { 0.0, 0.0, 0.0, 0.0 });
+        private static GeoPolygonArc2 StraightLoop() =>
+            new GeoPolygonArc2(Square().Vertices, new[] { 0.0, 0.0, 0.0, 0.0 });
 
         /// <summary>The square 100 by 100 with a hole 20 by 20 in its middle.</summary>
         private static GeoFace2 Plate() => new GeoFace2(Square(), new[] { Box(40, 40, 60, 60) });
 
         /// <summary>The triangle (0, 0), (100, 0), (0, 100).</summary>
-        private static GeoTriangle2 Corner() => new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(0, 100));
+        private static GeoTriangle2 Corner() =>
+            new GeoTriangle2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(0, 100));
 
         private static Tolerance At(double equalPoint) => new Tolerance(equalPoint, Tolerance.DefaultEqualVector);
 
@@ -56,7 +63,11 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         /// <summary>Both ways round the distance is the gap, and both ways round they collide exactly where it is within the tolerance.</summary>
-        private static void AssertMeasured(double gap, Tolerance tolerance, (double There, double Back, bool Collides, bool CollidesBack) m)
+        private static void AssertMeasured(
+            double gap,
+            Tolerance tolerance,
+            (double There, double Back, bool Collides, bool CollidesBack) m
+        )
         {
             AssertGap(gap, m.There);
             AssertGap(gap, m.Back);
@@ -70,14 +81,24 @@ namespace GeometryHelper.UnitTest.Plane
         {
             foreach (double equalPoint in new[] { 1E-3, 1E-4 })
             {
-                foreach (string kind in new[]
-                {
-                    "segment starting off the side", "segment ending off the side", "segment along the side",
-                    "ray starting off the side", "ray along the side", "polyline starting off the side",
-                    "polyline ending off the side", "polygon beside it", "triangle with a corner off the side",
-                    "polygon starting off the rectangle", "segment starting off the rectangle", "segment starting off the straight loop",
-                    "segment starting off the triangle",
-                })
+                foreach (
+                    string kind in new[]
+                    {
+                        "segment starting off the side",
+                        "segment ending off the side",
+                        "segment along the side",
+                        "ray starting off the side",
+                        "ray along the side",
+                        "polyline starting off the side",
+                        "polyline ending off the side",
+                        "polygon beside it",
+                        "triangle with a corner off the side",
+                        "polygon starting off the rectangle",
+                        "segment starting off the rectangle",
+                        "segment starting off the straight loop",
+                        "segment starting off the triangle",
+                    }
+                )
                 {
                     yield return new object[] { kind, equalPoint };
                 }
@@ -100,76 +121,172 @@ namespace GeometryHelper.UnitTest.Plane
                 case "segment starting off the side":
                 {
                     var line = new GeoLine2(new GeoPoint2(x, 50), new GeoPoint2(150, 50));
-                    return (gap, (Within(t, () => square.DistanceTo(line)), Within(t, () => line.DistanceTo(square)), square.CollidesWith(line, t), line.CollidesWith(square, t)));
+                    return (
+                        gap,
+                        (
+                            Within(t, () => square.DistanceTo(line)),
+                            Within(t, () => line.DistanceTo(square)),
+                            square.CollidesWith(line, t),
+                            line.CollidesWith(square, t)
+                        )
+                    );
                 }
 
                 case "segment ending off the side":
                 {
                     var line = new GeoLine2(new GeoPoint2(150, 50), new GeoPoint2(x, 50));
-                    return (gap, (Within(t, () => square.DistanceTo(line)), Within(t, () => line.DistanceTo(square)), square.CollidesWith(line, t), line.CollidesWith(square, t)));
+                    return (
+                        gap,
+                        (
+                            Within(t, () => square.DistanceTo(line)),
+                            Within(t, () => line.DistanceTo(square)),
+                            square.CollidesWith(line, t),
+                            line.CollidesWith(square, t)
+                        )
+                    );
                 }
 
                 case "segment along the side":
                 {
                     var line = new GeoLine2(new GeoPoint2(x, 20), new GeoPoint2(x, 80));
-                    return (gap, (Within(t, () => square.DistanceTo(line)), Within(t, () => line.DistanceTo(square)), square.CollidesWith(line, t), line.CollidesWith(square, t)));
+                    return (
+                        gap,
+                        (
+                            Within(t, () => square.DistanceTo(line)),
+                            Within(t, () => line.DistanceTo(square)),
+                            square.CollidesWith(line, t),
+                            line.CollidesWith(square, t)
+                        )
+                    );
                 }
 
                 case "ray starting off the side":
                 {
                     var ray = new GeoRay2(new GeoPoint2(x, 50), GeoVector2.XAxis);
-                    return (gap, (square.DistanceTo(ray, t), ray.DistanceTo(square, t), square.CollidesWith(ray, t), ray.CollidesWith(square, t)));
+                    return (
+                        gap,
+                        (
+                            square.DistanceTo(ray, t),
+                            ray.DistanceTo(square, t),
+                            square.CollidesWith(ray, t),
+                            ray.CollidesWith(square, t)
+                        )
+                    );
                 }
 
                 case "ray along the side":
                 {
                     var ray = new GeoRay2(new GeoPoint2(x, 20), GeoVector2.YAxis);
-                    return (gap, (square.DistanceTo(ray, t), ray.DistanceTo(square, t), square.CollidesWith(ray, t), ray.CollidesWith(square, t)));
+                    return (
+                        gap,
+                        (
+                            square.DistanceTo(ray, t),
+                            ray.DistanceTo(square, t),
+                            square.CollidesWith(ray, t),
+                            ray.CollidesWith(square, t)
+                        )
+                    );
                 }
 
                 case "polyline starting off the side":
                 {
                     var chain = new GeoPolyline2(new GeoPoint2(x, 50), new GeoPoint2(150, 50), new GeoPoint2(150, 80));
-                    return (gap, (Within(t, () => square.DistanceTo(chain)), Within(t, () => chain.DistanceTo(square)), square.CollidesWith(chain, t), chain.CollidesWith(square, t)));
+                    return (
+                        gap,
+                        (
+                            Within(t, () => square.DistanceTo(chain)),
+                            Within(t, () => chain.DistanceTo(square)),
+                            square.CollidesWith(chain, t),
+                            chain.CollidesWith(square, t)
+                        )
+                    );
                 }
 
                 case "polyline ending off the side":
                 {
                     var chain = new GeoPolyline2(new GeoPoint2(150, 80), new GeoPoint2(150, 50), new GeoPoint2(x, 50));
-                    return (gap, (Within(t, () => square.DistanceTo(chain)), Within(t, () => chain.DistanceTo(square)), square.CollidesWith(chain, t), chain.CollidesWith(square, t)));
+                    return (
+                        gap,
+                        (
+                            Within(t, () => square.DistanceTo(chain)),
+                            Within(t, () => chain.DistanceTo(square)),
+                            square.CollidesWith(chain, t),
+                            chain.CollidesWith(square, t)
+                        )
+                    );
                 }
 
                 case "polygon beside it":
                 {
                     GeoPolygon2 other = Box(x, 0, 200, 100);
-                    return (gap, (Within(t, () => square.DistanceTo(other)), Within(t, () => other.DistanceTo(square)), square.CollidesWith(other, t), other.CollidesWith(square, t)));
+                    return (
+                        gap,
+                        (
+                            Within(t, () => square.DistanceTo(other)),
+                            Within(t, () => other.DistanceTo(square)),
+                            square.CollidesWith(other, t),
+                            other.CollidesWith(square, t)
+                        )
+                    );
                 }
 
                 case "triangle with a corner off the side":
                 {
                     var tri = new GeoTriangle2(new GeoPoint2(x, 50), new GeoPoint2(150, 20), new GeoPoint2(150, 80));
-                    return (gap, (Within(t, () => square.DistanceTo(tri)), Within(t, () => tri.DistanceTo(square)), square.CollidesWith(tri, t), tri.CollidesWith(square, t)));
+                    return (
+                        gap,
+                        (
+                            Within(t, () => square.DistanceTo(tri)),
+                            Within(t, () => tri.DistanceTo(square)),
+                            square.CollidesWith(tri, t),
+                            tri.CollidesWith(square, t)
+                        )
+                    );
                 }
 
                 case "polygon starting off the rectangle":
                 {
                     var rect = new GeoRectangle2(0, 0, 100, 100);
                     var polygon = new GeoPolygon2(new GeoPoint2(x, 50), new GeoPoint2(150, 20), new GeoPoint2(150, 80));
-                    return (gap, (Within(t, () => rect.DistanceTo(polygon)), Within(t, () => polygon.DistanceTo(rect)), rect.CollidesWith(polygon, t), polygon.CollidesWith(rect, t)));
+                    return (
+                        gap,
+                        (
+                            Within(t, () => rect.DistanceTo(polygon)),
+                            Within(t, () => polygon.DistanceTo(rect)),
+                            rect.CollidesWith(polygon, t),
+                            polygon.CollidesWith(rect, t)
+                        )
+                    );
                 }
 
                 case "segment starting off the rectangle":
                 {
                     var rect = new GeoRectangle2(0, 0, 100, 100);
                     var line = new GeoLine2(new GeoPoint2(x, 50), new GeoPoint2(150, 50));
-                    return (gap, (Within(t, () => rect.DistanceTo(line)), Within(t, () => line.DistanceTo(rect)), rect.CollidesWith(line, t), line.CollidesWith(rect, t)));
+                    return (
+                        gap,
+                        (
+                            Within(t, () => rect.DistanceTo(line)),
+                            Within(t, () => line.DistanceTo(rect)),
+                            rect.CollidesWith(line, t),
+                            line.CollidesWith(rect, t)
+                        )
+                    );
                 }
 
                 case "segment starting off the straight loop":
                 {
                     GeoPolygonArc2 loop = StraightLoop();
                     var line = new GeoLine2(new GeoPoint2(x, 50), new GeoPoint2(150, 50));
-                    return (gap, (loop.DistanceTo(line, t), line.DistanceTo(loop, t), loop.CollidesWith(line, t), line.CollidesWith(loop, t)));
+                    return (
+                        gap,
+                        (
+                            loop.DistanceTo(line, t),
+                            line.DistanceTo(loop, t),
+                            loop.CollidesWith(line, t),
+                            line.CollidesWith(loop, t)
+                        )
+                    );
                 }
 
                 default:
@@ -177,7 +294,15 @@ namespace GeometryHelper.UnitTest.Plane
                     // Off the triangle's side y = 0, running away from it.
                     GeoTriangle2 tri = Corner();
                     var line = new GeoLine2(new GeoPoint2(50, -gap), new GeoPoint2(50, -50));
-                    return (gap, (Within(t, () => tri.DistanceTo(line)), Within(t, () => line.DistanceTo(tri)), tri.CollidesWith(line, t), line.CollidesWith(tri, t)));
+                    return (
+                        gap,
+                        (
+                            Within(t, () => tri.DistanceTo(line)),
+                            Within(t, () => line.DistanceTo(tri)),
+                            tri.CollidesWith(line, t),
+                            line.CollidesWith(tri, t)
+                        )
+                    );
                 }
             }
         }
@@ -217,44 +342,79 @@ namespace GeometryHelper.UnitTest.Plane
                 case "segment starting there":
                 {
                     var line = new GeoLine2(tip, far);
-                    return (Within(t, () => rect.DistanceTo(line)), Within(t, () => line.DistanceTo(rect)), rect.CollidesWith(line, t), line.CollidesWith(rect, t));
+                    return (
+                        Within(t, () => rect.DistanceTo(line)),
+                        Within(t, () => line.DistanceTo(rect)),
+                        rect.CollidesWith(line, t),
+                        line.CollidesWith(rect, t)
+                    );
                 }
 
                 case "segment ending there":
                 {
                     var line = new GeoLine2(far, tip);
-                    return (Within(t, () => rect.DistanceTo(line)), Within(t, () => line.DistanceTo(rect)), rect.CollidesWith(line, t), line.CollidesWith(rect, t));
+                    return (
+                        Within(t, () => rect.DistanceTo(line)),
+                        Within(t, () => line.DistanceTo(rect)),
+                        rect.CollidesWith(line, t),
+                        line.CollidesWith(rect, t)
+                    );
                 }
 
                 case "ray":
                 {
                     var ray = new GeoRay2(tip, new GeoVector2(1, 2));
-                    return (rect.DistanceTo(ray, t), ray.DistanceTo(rect, t), rect.CollidesWith(ray, t), ray.CollidesWith(rect, t));
+                    return (
+                        rect.DistanceTo(ray, t),
+                        ray.DistanceTo(rect, t),
+                        rect.CollidesWith(ray, t),
+                        ray.CollidesWith(rect, t)
+                    );
                 }
 
                 case "polyline":
                 {
                     var chain = new GeoPolyline2(left, tip, right);
-                    return (Within(t, () => rect.DistanceTo(chain)), Within(t, () => chain.DistanceTo(rect)), rect.CollidesWith(chain, t), chain.CollidesWith(rect, t));
+                    return (
+                        Within(t, () => rect.DistanceTo(chain)),
+                        Within(t, () => chain.DistanceTo(rect)),
+                        rect.CollidesWith(chain, t),
+                        chain.CollidesWith(rect, t)
+                    );
                 }
 
                 case "polygon":
                 {
                     var polygon = new GeoPolygon2(tip, right, left);
-                    return (Within(t, () => rect.DistanceTo(polygon)), Within(t, () => polygon.DistanceTo(rect)), rect.CollidesWith(polygon, t), polygon.CollidesWith(rect, t));
+                    return (
+                        Within(t, () => rect.DistanceTo(polygon)),
+                        Within(t, () => polygon.DistanceTo(rect)),
+                        rect.CollidesWith(polygon, t),
+                        polygon.CollidesWith(rect, t)
+                    );
                 }
 
                 case "triangle":
                 {
                     var tri = new GeoTriangle2(tip, right, left);
-                    return (Within(t, () => rect.DistanceTo(tri)), Within(t, () => tri.DistanceTo(rect)), rect.CollidesWith(tri, t), tri.CollidesWith(rect, t));
+                    return (
+                        Within(t, () => rect.DistanceTo(tri)),
+                        Within(t, () => tri.DistanceTo(rect)),
+                        rect.CollidesWith(tri, t),
+                        tri.CollidesWith(rect, t)
+                    );
                 }
 
                 default:
                 {
                     // Corner to corner; its corner is tip + 25 - 25, within a rounding of the tip.
                     var other = new GeoRectangle2(tip.X, tip.Y, 50, 50);
-                    return (Within(t, () => rect.DistanceTo(other)), Within(t, () => other.DistanceTo(rect)), rect.CollidesWith(other, t), other.CollidesWith(rect, t));
+                    return (
+                        Within(t, () => rect.DistanceTo(other)),
+                        Within(t, () => other.DistanceTo(rect)),
+                        rect.CollidesWith(other, t),
+                        other.CollidesWith(rect, t)
+                    );
                 }
             }
         }
@@ -354,7 +514,16 @@ namespace GeometryHelper.UnitTest.Plane
             var face = new GeoFace2(Box(100 + d, 100 + d, 200, 200));
             double gap = d * Math.Sqrt(2);
 
-            AssertMeasured(gap, Tol, (rect.DistanceTo(face, Tol), face.DistanceTo(rect, Tol), rect.CollidesWith(face, Tol), face.CollidesWith(rect, Tol)));
+            AssertMeasured(
+                gap,
+                Tol,
+                (
+                    rect.DistanceTo(face, Tol),
+                    face.DistanceTo(rect, Tol),
+                    rect.CollidesWith(face, Tol),
+                    face.CollidesWith(rect, Tol)
+                )
+            );
         }
 
         #endregion
@@ -383,36 +552,65 @@ namespace GeometryHelper.UnitTest.Plane
 
             switch (kind)
             {
-                case "segment starting on the side": return AgainstSquare(new GeoLine2(new GeoPoint2(100, 50), new GeoPoint2(150, 50)));
-                case "segment crossing the side": return AgainstSquare(new GeoLine2(new GeoPoint2(50, 50), new GeoPoint2(150, 50)));
-                case "segment starting five tolerances off": return AgainstSquare(new GeoLine2(new GeoPoint2(100.005, 50), new GeoPoint2(150, 50)));
-                case "segment inside the square": return AgainstSquare(new GeoLine2(new GeoPoint2(20, 20), new GeoPoint2(30, 40)));
+                case "segment starting on the side":
+                    return AgainstSquare(new GeoLine2(new GeoPoint2(100, 50), new GeoPoint2(150, 50)));
+                case "segment crossing the side":
+                    return AgainstSquare(new GeoLine2(new GeoPoint2(50, 50), new GeoPoint2(150, 50)));
+                case "segment starting five tolerances off":
+                    return AgainstSquare(new GeoLine2(new GeoPoint2(100.005, 50), new GeoPoint2(150, 50)));
+                case "segment inside the square":
+                    return AgainstSquare(new GeoLine2(new GeoPoint2(20, 20), new GeoPoint2(30, 40)));
 
                 case "rectangle five tolerances beside it":
                 case "rectangle half a tolerance beside it":
                 {
                     // Its left side is x + 25 - 25, within a rounding of x.
-                    var rect = new GeoRectangle2(kind.StartsWith("rectangle five", StringComparison.Ordinal) ? 100.005 : 100.0005, 20, 50, 60);
-                    return (Within(t, () => square.DistanceTo(rect)), Within(t, () => rect.DistanceTo(square)), square.CollidesWith(rect, t), rect.CollidesWith(square, t));
+                    var rect = new GeoRectangle2(
+                        kind.StartsWith("rectangle five", StringComparison.Ordinal) ? 100.005 : 100.0005,
+                        20,
+                        50,
+                        60
+                    );
+                    return (
+                        Within(t, () => square.DistanceTo(rect)),
+                        Within(t, () => rect.DistanceTo(square)),
+                        square.CollidesWith(rect, t),
+                        rect.CollidesWith(square, t)
+                    );
                 }
 
                 case "segment in the plate's hole":
                 {
                     // From (45, 45) to (55, 55): its ends are 5 from the rim's sides.
                     var line = new GeoLine2(new GeoPoint2(45, 45), new GeoPoint2(55, 55));
-                    return (plate.DistanceTo(line, t), line.DistanceTo(plate, t), plate.CollidesWith(line, t), line.CollidesWith(plate, t));
+                    return (
+                        plate.DistanceTo(line, t),
+                        line.DistanceTo(plate, t),
+                        plate.CollidesWith(line, t),
+                        line.CollidesWith(plate, t)
+                    );
                 }
 
                 case "face in the plate's hole":
                 {
                     var insert = new GeoFace2(Box(45, 45, 55, 55));
-                    return (plate.DistanceTo(insert, t), insert.DistanceTo(plate, t), plate.CollidesWith(insert, t), insert.CollidesWith(plate, t));
+                    return (
+                        plate.DistanceTo(insert, t),
+                        insert.DistanceTo(plate, t),
+                        plate.CollidesWith(insert, t),
+                        insert.CollidesWith(plate, t)
+                    );
                 }
 
                 case "rectangle holding the plate":
                 {
                     var rect = new GeoRectangle2(-10, -10, 120, 120);
-                    return (plate.DistanceTo(rect, t), rect.DistanceTo(plate, t), plate.CollidesWith(rect, t), rect.CollidesWith(plate, t));
+                    return (
+                        plate.DistanceTo(rect, t),
+                        rect.DistanceTo(plate, t),
+                        plate.CollidesWith(rect, t),
+                        rect.CollidesWith(plate, t)
+                    );
                 }
 
                 default:
@@ -420,17 +618,30 @@ namespace GeometryHelper.UnitTest.Plane
                     // Side to side, 0.0005 apart: within the tolerance, so it collides, and the distance is the gap.
                     var rect = new GeoRectangle2(0, 0, 100, 100);
                     var face = new GeoFace2(Box(100.0005, 0, 200, 100));
-                    return (rect.DistanceTo(face, t), face.DistanceTo(rect, t), rect.CollidesWith(face, t), face.CollidesWith(rect, t));
+                    return (
+                        rect.DistanceTo(face, t),
+                        face.DistanceTo(rect, t),
+                        rect.CollidesWith(face, t),
+                        face.CollidesWith(rect, t)
+                    );
                 }
             }
 
             (double, double, bool, bool) AgainstSquare(GeoLine2 line) =>
-                (Within(t, () => square.DistanceTo(line)), Within(t, () => line.DistanceTo(square)), square.CollidesWith(line, t), line.CollidesWith(square, t));
+                (
+                    Within(t, () => square.DistanceTo(line)),
+                    Within(t, () => line.DistanceTo(square)),
+                    square.CollidesWith(line, t),
+                    line.CollidesWith(square, t)
+                );
         }
 
         [Theory]
         [MemberData(nameof(ControlCases))]
-        public void ATouchACrossingAHoldAWideGapOrAHole_ReadsAsItDidAndCollidesWithinTheTolerance(string kind, double gap)
+        public void ATouchACrossingAHoldAWideGapOrAHole_ReadsAsItDidAndCollidesWithinTheTolerance(
+            string kind,
+            double gap
+        )
         {
             AssertMeasured(gap, Tol, Control(kind));
         }
@@ -440,7 +651,11 @@ namespace GeometryHelper.UnitTest.Plane
         [InlineData(20.0, 50.0, 0.0)]
         [InlineData(50.0, 50.0, 10.0)]
         [InlineData(100.005, 50.0, 0.005)]
-        public void APointOnTheRimOnTheMaterialInTheHoleOrFiveTolerancesOut_IsAsFarAsItIs(double x, double y, double gap)
+        public void APointOnTheRimOnTheMaterialInTheHoleOrFiveTolerancesOut_IsAsFarAsItIs(
+            double x,
+            double y,
+            double gap
+        )
         {
             // On the plate's outline, on its material, in the middle of its hole (10 from the rim), and five tolerances out
             // (100.005 less 100 is 0.005 to within 3E-15).

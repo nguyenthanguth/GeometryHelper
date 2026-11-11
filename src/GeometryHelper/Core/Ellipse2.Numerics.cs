@@ -153,8 +153,12 @@ namespace GeometryHelper.Core
             double factor = 1.0;
             double meanF;
             double meanD;
-            double dxF, dyF, dzF;
-            double dxD, dyD, dzD;
+            double dxF,
+                dyF,
+                dzF;
+            double dxD,
+                dyD,
+                dzD;
 
             for (int round = 0; ; round++)
             {
@@ -205,8 +209,11 @@ namespace GeometryHelper.Core
             double ec = ea - eb;
             double ed = ea - 6.0 * eb;
             double ee = ed + ec + ec;
-            rd = 3.0 * sum + factor * (1.0 + ed * (-C1 + C5 * ed - C6 * dzD * ee) + dzD * (C2 * ee + dzD * (-C3 * ec + dzD * C4 * ea)))
-                / (meanD * Math.Sqrt(meanD));
+            rd =
+                3.0 * sum
+                + factor
+                    * (1.0 + ed * (-C1 + C5 * ed - C6 * dzD * ee) + dzD * (C2 * ee + dzD * (-C3 * ec + dzD * C4 * ea)))
+                    / (meanD * Math.Sqrt(meanD));
         }
 
         /// <summary>
@@ -500,7 +507,15 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Divides one complex number by another whose squared size is given.
         /// </summary>
-        private static void Divide(double re, double im, double byRe, double byIm, double byNorm, out double quotientRe, out double quotientIm)
+        private static void Divide(
+            double re,
+            double im,
+            double byRe,
+            double byIm,
+            double byNorm,
+            out double quotientRe,
+            out double quotientIm
+        )
         {
             quotientRe = (re * byRe + im * byIm) / byNorm;
             quotientIm = (im * byRe - re * byIm) / byNorm;
@@ -516,7 +531,17 @@ namespace GeometryHelper.Core
         /// needs: it only brackets the crossings either side of it, each of which is then found to the last digit.
         /// </remarks>
         private static void Aberth(
-            double c3Re, double c3Im, double c2Re, double c2Im, double c1Re, double c1Im, double c0Re, double c0Im, double[] re, double[] im)
+            double c3Re,
+            double c3Im,
+            double c2Re,
+            double c2Im,
+            double c1Re,
+            double c1Im,
+            double c0Re,
+            double c0Im,
+            double[] re,
+            double[] im
+        )
         {
             for (int k = 0; k < 4; k++)
             {
@@ -668,7 +693,8 @@ namespace GeometryHelper.Core
         /// Newton's method from the point where the chord between the ends crosses nought, kept inside the bracket, which it
         /// halves whenever a step would leave it, so the answer is right to the last digit and never lost.
         /// </remarks>
-        internal static double Root(Wave wave, double low, double high, double atLow, double atHigh) => Root(wave, low, high, atLow, atHigh, double.NaN);
+        internal static double Root(Wave wave, double low, double high, double atLow, double atHigh) =>
+            Root(wave, low, high, atLow, atHigh, double.NaN);
 
         /// <summary>
         /// Finds the one angle between two at which a function that runs one way between them is nought, starting from an
@@ -743,7 +769,13 @@ namespace GeometryHelper.Core
         /// <param name="high">The upper end of the bracket.</param>
         /// <param name="least">The least value found.</param>
         /// <returns>The angle of the least value found.</returns>
-        internal static double Least(Func<double, double> measure, double low, double start, double high, out double least)
+        internal static double Least(
+            Func<double, double> measure,
+            double low,
+            double start,
+            double high,
+            out double least
+        )
         {
             const double Golden = 0.3819660112501051;
 

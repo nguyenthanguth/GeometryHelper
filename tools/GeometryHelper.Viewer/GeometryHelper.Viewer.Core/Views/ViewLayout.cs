@@ -326,13 +326,14 @@ namespace GeometryHelper.Viewer
         /// <summary>
         /// Takes what a layout is remembered by.
         /// </summary>
-        public ViewLayoutState Capture() => new ViewLayoutState
-        {
-            Count = Count,
-            Active = _active,
-            Modes = _slots.Select(s => s.Mode.ToString()).ToArray(),
-            Linked = _slots.Select(s => s.Linked).ToArray(),
-        };
+        public ViewLayoutState Capture() =>
+            new ViewLayoutState
+            {
+                Count = Count,
+                Active = _active,
+                Modes = _slots.Select(s => s.Mode.ToString()).ToArray(),
+                Linked = _slots.Select(s => s.Linked).ToArray(),
+            };
 
         /// <summary>
         /// Puts back what <see cref="Capture"/> took. What does not make sense is left as it is: a count that is not 1, 2 or 4, an active view that is not
@@ -348,7 +349,12 @@ namespace GeometryHelper.Viewer
 
             for (int i = 0; i < MaxViews; i++)
             {
-                if (state.Modes != null && i < state.Modes.Length && Enum.TryParse(state.Modes[i], out RenderMode mode) && Enum.IsDefined(typeof(RenderMode), mode))
+                if (
+                    state.Modes != null
+                    && i < state.Modes.Length
+                    && Enum.TryParse(state.Modes[i], out RenderMode mode)
+                    && Enum.IsDefined(typeof(RenderMode), mode)
+                )
                 {
                     _slots[i].Mode = mode;
                 }

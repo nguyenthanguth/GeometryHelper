@@ -1,8 +1,8 @@
 using System;
 using System.Linq;
 using GeometryHelper;
-using GeometryHelper.IfcConvert.Models;
 using GeometryHelper.Geometry;
+using GeometryHelper.IfcConvert.Models;
 using Xunit;
 
 namespace GeometryHelper.IfcConvert.UnitTest
@@ -48,15 +48,26 @@ namespace GeometryHelper.IfcConvert.UnitTest
             // girder came out open.
             GeoPoint3[] corners =
             {
-                new GeoPoint3(7989.99999991793, 20, 189.99900000000002), new GeoPoint3(7954.99999991793, 20, 190),
-                new GeoPoint3(257.000004518777, 19.99999999959249, 190), new GeoPoint3(257.00003389886115, 149.999999999622, 190),
-                new GeoPoint3(7954.99999991793, 150, 190), new GeoPoint3(7989.99999991793, 150, 190),
-                new GeoPoint3(7992.99999991793, 150, 190), new GeoPoint3(7992.99999991793, 20, 190),
+                new GeoPoint3(7989.99999991793, 20, 189.99900000000002),
+                new GeoPoint3(7954.99999991793, 20, 190),
+                new GeoPoint3(257.000004518777, 19.99999999959249, 190),
+                new GeoPoint3(257.00003389886115, 149.999999999622, 190),
+                new GeoPoint3(7954.99999991793, 150, 190),
+                new GeoPoint3(7989.99999991793, 150, 190),
+                new GeoPoint3(7992.99999991793, 150, 190),
+                new GeoPoint3(7992.99999991793, 20, 190),
             };
-            GeoSolid3 plate = GeoSolid3.Extrude(new GeoFace3(new GeoPolygon3(corners, Tolerance.Default)), new GeoVector3(0, 0, 10), Tolerance.Default);
+            GeoSolid3 plate = GeoSolid3.Extrude(
+                new GeoFace3(new GeoPolygon3(corners, Tolerance.Default)),
+                new GeoVector3(0, 0, 10),
+                Tolerance.Default
+            );
             IfcProductGeometry product = new IfcProductGeometry(Guid, "GIRDER", "IfcBeam", new[] { plate });
 
-            IfcProductGeometry moved = product.TransformBy(GeoTransform3.Translation(new GeoVector3(195703.959999986, 580442.140000014, -15100)), Tolerance.Default);
+            IfcProductGeometry moved = product.TransformBy(
+                GeoTransform3.Translation(new GeoVector3(195703.959999986, 580442.140000014, -15100)),
+                Tolerance.Default
+            );
 
             GeoSolid3 body = Assert.Single(moved.Solids);
             Assert.True(body.IsClosed(Tolerance.Default));
@@ -71,13 +82,24 @@ namespace GeometryHelper.IfcConvert.UnitTest
         public void TransformBy_CarriesBodiesSurfacesAndPlacement_AndLeavesTheOriginalAlone()
         {
             GeoSolid3 tetrahedron = Tetrahedron(100.0);
-            GeoFace3 surface = new GeoFace3(new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(0, 10, 0)));
+            GeoFace3 surface = new GeoFace3(
+                new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(0, 10, 0))
+            );
             GeoTransform3 placement = GeoTransform3.Translation(new GeoVector3(5, 6, 7));
             IfcProductGeometry original = new IfcProductGeometry(
-                Guid, "Wall", "IfcWall", new[] { tetrahedron }, new[] { surface }, placement, "T1", new[] { "#12 IfcExtrudedAreaSolid: note" });
+                Guid,
+                "Wall",
+                "IfcWall",
+                new[] { tetrahedron },
+                new[] { surface },
+                placement,
+                "T1",
+                new[] { "#12 IfcExtrudedAreaSolid: note" }
+            );
 
             // Turned 90 degrees about Z, then moved.
-            GeoTransform3 move = GeoTransform3.Translation(new GeoVector3(1000, -2000, 300)) * GeoTransform3.RotationZ(Math.PI / 2.0);
+            GeoTransform3 move =
+                GeoTransform3.Translation(new GeoVector3(1000, -2000, 300)) * GeoTransform3.RotationZ(Math.PI / 2.0);
 
             IfcProductGeometry moved = original.TransformBy(move);
 
@@ -105,7 +127,12 @@ namespace GeometryHelper.IfcConvert.UnitTest
         [Fact]
         public void TransformBy_AMirror_KeepsTheFacesPointingOut()
         {
-            IfcProductGeometry original = new IfcProductGeometry(Guid, "Plate", "IfcPlate", new[] { Tetrahedron(100.0) });
+            IfcProductGeometry original = new IfcProductGeometry(
+                Guid,
+                "Plate",
+                "IfcPlate",
+                new[] { Tetrahedron(100.0) }
+            );
 
             IfcProductGeometry mirrored = original.TransformBy(GeoTransform3.Mirror(GeoPlane3.YZ));
 
@@ -118,9 +145,19 @@ namespace GeometryHelper.IfcConvert.UnitTest
         [Fact]
         public void TransformBy_WhatTheTransformationCollapses_IsLeftOutWithAWarning()
         {
-            GeoFace3 surface = new GeoFace3(new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(0, 10, 0)));
+            GeoFace3 surface = new GeoFace3(
+                new GeoPolygon3(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0), new GeoPoint3(0, 10, 0))
+            );
             IfcProductGeometry original = new IfcProductGeometry(
-                Guid, "Plate", "IfcPlate", new[] { Tetrahedron(100.0) }, new[] { surface }, null, null, new[] { "#12 IfcExtrudedAreaSolid: note" });
+                Guid,
+                "Plate",
+                "IfcPlate",
+                new[] { Tetrahedron(100.0) },
+                new[] { surface },
+                null,
+                null,
+                new[] { "#12 IfcExtrudedAreaSolid: note" }
+            );
 
             // Shrunk a million times, every vertex falls within the point tolerance of the others.
             IfcProductGeometry moved = original.TransformBy(GeoTransform3.Scaling(1e-6));
@@ -143,13 +180,21 @@ namespace GeometryHelper.IfcConvert.UnitTest
 
             GeoSolid3 body = Assert.Single(moved.Solids);
             Assert.Equal(6, body.Faces.Count);
-            Assert.Equal("1 face(s) degenerated under the transformation and were left out.", Assert.Single(moved.Warnings));
+            Assert.Equal(
+                "1 face(s) degenerated under the transformation and were left out.",
+                Assert.Single(moved.Warnings)
+            );
         }
 
         [Fact]
         public void TransformBy_WithoutATransformation_Throws()
         {
-            IfcProductGeometry product = new IfcProductGeometry(Guid, "Plate", "IfcPlate", new[] { Tetrahedron(100.0) });
+            IfcProductGeometry product = new IfcProductGeometry(
+                Guid,
+                "Plate",
+                "IfcPlate",
+                new[] { Tetrahedron(100.0) }
+            );
 
             Assert.Throws<ArgumentNullException>(() => product.TransformBy(null));
         }
@@ -162,23 +207,35 @@ namespace GeometryHelper.IfcConvert.UnitTest
         /// </summary>
         internal static GeoSolid3 SliverBox()
         {
-            Tolerance construction = new Tolerance(Tolerance.DefaultEqualPoint, Tolerance.DefaultEqualPoint * Tolerance.DefaultEqualPoint);
+            Tolerance construction = new Tolerance(
+                Tolerance.DefaultEqualPoint,
+                Tolerance.DefaultEqualPoint * Tolerance.DefaultEqualPoint
+            );
 
-            GeoPoint3 b0 = new GeoPoint3(0, 0, 0), b1 = new GeoPoint3(100, 0, 0), b2 = new GeoPoint3(100, 100, 0), b3 = new GeoPoint3(0, 100, 0);
-            GeoPoint3 t0 = new GeoPoint3(0, 0, 100), t1 = new GeoPoint3(100, 0, 100), t2 = new GeoPoint3(100, 100, 100), t3 = new GeoPoint3(0, 100, 100);
-            GeoPoint3 a = new GeoPoint3(1, 0, 100), m = new GeoPoint3(0.5, 0.015, 100);
+            GeoPoint3 b0 = new GeoPoint3(0, 0, 0),
+                b1 = new GeoPoint3(100, 0, 0),
+                b2 = new GeoPoint3(100, 100, 0),
+                b3 = new GeoPoint3(0, 100, 0);
+            GeoPoint3 t0 = new GeoPoint3(0, 0, 100),
+                t1 = new GeoPoint3(100, 0, 100),
+                t2 = new GeoPoint3(100, 100, 100),
+                t3 = new GeoPoint3(0, 100, 100);
+            GeoPoint3 a = new GeoPoint3(1, 0, 100),
+                m = new GeoPoint3(0.5, 0.015, 100);
 
             // Wound so that every normal points out of the cube.
-            return new GeoSolid3(new[]
-            {
-                new GeoFace3(new GeoPolygon3(b0, b3, b2, b1)),
-                new GeoFace3(new GeoPolygon3(b0, b1, t1, t0)),
-                new GeoFace3(new GeoPolygon3(b1, b2, t2, t1)),
-                new GeoFace3(new GeoPolygon3(b2, b3, t3, t2)),
-                new GeoFace3(new GeoPolygon3(b3, b0, t0, t3)),
-                new GeoFace3(new GeoPolygon3(new[] { t0, a, m }, construction)),
-                new GeoFace3(new GeoPolygon3(t0, m, a, t1, t2, t3)),
-            });
+            return new GeoSolid3(
+                new[]
+                {
+                    new GeoFace3(new GeoPolygon3(b0, b3, b2, b1)),
+                    new GeoFace3(new GeoPolygon3(b0, b1, t1, t0)),
+                    new GeoFace3(new GeoPolygon3(b1, b2, t2, t1)),
+                    new GeoFace3(new GeoPolygon3(b2, b3, t3, t2)),
+                    new GeoFace3(new GeoPolygon3(b3, b0, t0, t3)),
+                    new GeoFace3(new GeoPolygon3(new[] { t0, a, m }, construction)),
+                    new GeoFace3(new GeoPolygon3(t0, m, a, t1, t2, t3)),
+                }
+            );
         }
 
         private static GeoSolid3 Tetrahedron(double size)
@@ -188,13 +245,15 @@ namespace GeometryHelper.IfcConvert.UnitTest
             GeoPoint3 c = new GeoPoint3(0, size, 0);
             GeoPoint3 d = new GeoPoint3(0, 0, size);
 
-            return new GeoSolid3(new[]
-            {
-                new GeoFace3(new GeoPolygon3(a, c, b)),
-                new GeoFace3(new GeoPolygon3(a, b, d)),
-                new GeoFace3(new GeoPolygon3(a, d, c)),
-                new GeoFace3(new GeoPolygon3(b, c, d)),
-            });
+            return new GeoSolid3(
+                new[]
+                {
+                    new GeoFace3(new GeoPolygon3(a, c, b)),
+                    new GeoFace3(new GeoPolygon3(a, b, d)),
+                    new GeoFace3(new GeoPolygon3(a, d, c)),
+                    new GeoFace3(new GeoPolygon3(b, c, d)),
+                }
+            );
         }
 
         private static GeoPoint3[] Vertices(GeoSolid3 solid)

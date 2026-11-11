@@ -137,7 +137,15 @@ namespace GeometryHelper.Viewer
         /// <param name="surfaces">Whether surfaces are shown; in wireframe they are not and cannot be picked.</param>
         /// <returns>The hit, or null where there is nothing under the cursor.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the primitives or the map is null.</exception>
-        public static PickHit Pick(Primitives primitives, ExactGeometry geometry, ScreenMap map, double x, double y, Func<int, bool> visible, bool surfaces)
+        public static PickHit Pick(
+            Primitives primitives,
+            ExactGeometry geometry,
+            ScreenMap map,
+            double x,
+            double y,
+            Func<int, bool> visible,
+            bool surfaces
+        )
         {
             if (primitives == null)
             {
@@ -174,7 +182,11 @@ namespace GeometryHelper.Viewer
                         continue;
                     }
 
-                    if (p.Triangles.Count > 64 && !p.Bounds.IsEmpty && !RayMeetsBox(origin, direction, forward, p.Bounds))
+                    if (
+                        p.Triangles.Count > 64
+                        && !p.Bounds.IsEmpty
+                        && !RayMeetsBox(origin, direction, forward, p.Bounds)
+                    )
                     {
                         continue;
                     }
@@ -213,24 +225,43 @@ namespace GeometryHelper.Viewer
                         continue;
                     }
 
-                    if ((w - direction * along).Length > radius + CurveRadius * map.PixelSizeAt(center + map.Forward * radius))
+                    if (
+                        (w - direction * along).Length
+                        > radius + CurveRadius * map.PixelSizeAt(center + map.Forward * radius)
+                    )
                     {
                         continue;
                     }
 
                     double gap = curve.DistanceToLine(origin, direction, forward, out Vec3 onCurve);
 
-                    if (!double.IsInfinity(gap) && map.IsInDepth(onCurve) && gap <= CurveRadius * map.PixelSizeAt(onCurve))
+                    if (
+                        !double.IsInfinity(gap)
+                        && map.IsInDepth(onCurve)
+                        && gap <= CurveRadius * map.PixelSizeAt(onCurve)
+                    )
                     {
                         double depth = map.DepthOf(onCurve);
-                        Offer(curve.ItemIndex, PickKind.Curve, onCurve, depth, depth - LineBiasPixels * map.PixelSizeAt(onCurve));
+                        Offer(
+                            curve.ItemIndex,
+                            PickKind.Curve,
+                            onCurve,
+                            depth,
+                            depth - LineBiasPixels * map.PixelSizeAt(onCurve)
+                        );
                     }
                     else if (curve.VisibleGapPixels(map, x, y, out Vec3 shown) <= CurveRadius)
                     {
                         // The point of the curve nearest the ray is behind the near plane, beyond the far plane or cut away, or the curve comes within a few pixels
                         // of the cursor only further along: it is picked by the part that shows.
                         double depth = map.DepthOf(shown);
-                        Offer(curve.ItemIndex, PickKind.Curve, shown, depth, depth - LineBiasPixels * map.PixelSizeAt(shown));
+                        Offer(
+                            curve.ItemIndex,
+                            PickKind.Curve,
+                            shown,
+                            depth,
+                            depth - LineBiasPixels * map.PixelSizeAt(shown)
+                        );
                     }
                 }
             }
@@ -282,7 +313,14 @@ namespace GeometryHelper.Viewer
         /// <param name="onCurve">The point of the curve nearest the cursor.</param>
         /// <returns>The curve within <see cref="ConicRadius"/> pixels of the cursor that is nearest it, or null.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the geometry or the map is null.</exception>
-        public static SceneCurve PickConic(ExactGeometry geometry, ScreenMap map, double x, double y, Func<int, bool> visible, out Vec3 onCurve)
+        public static SceneCurve PickConic(
+            ExactGeometry geometry,
+            ScreenMap map,
+            double x,
+            double y,
+            Func<int, bool> visible,
+            out Vec3 onCurve
+        )
         {
             if (geometry == null)
             {
@@ -308,7 +346,8 @@ namespace GeometryHelper.Viewer
                 }
 
                 double gap = curve.DistanceToLine(origin, direction, forward, out Vec3 at);
-                double pixels = double.IsInfinity(gap) || !map.IsInDepth(at) ? double.PositiveInfinity : gap / map.PixelSizeAt(at);
+                double pixels =
+                    double.IsInfinity(gap) || !map.IsInDepth(at) ? double.PositiveInfinity : gap / map.PixelSizeAt(at);
 
                 if (!(pixels <= ConicRadius))
                 {
@@ -318,7 +357,11 @@ namespace GeometryHelper.Viewer
                     Vec3 w = center - origin;
                     double along = Vec3.Dot(w, direction);
 
-                    if ((forward && along + radius < 0.0) || (w - direction * along).Length > radius + ConicRadius * map.PixelSizeAt(center + map.Forward * radius))
+                    if (
+                        (forward && along + radius < 0.0)
+                        || (w - direction * along).Length
+                            > radius + ConicRadius * map.PixelSizeAt(center + map.Forward * radius)
+                    )
                     {
                         continue;
                     }
@@ -326,7 +369,10 @@ namespace GeometryHelper.Viewer
                     pixels = curve.VisibleGapPixels(map, x, y, out at);
                 }
 
-                if (pixels <= ConicRadius && (pixels < bestPixels || (pixels == bestPixels && curve.ItemIndex < best.ItemIndex)))
+                if (
+                    pixels <= ConicRadius
+                    && (pixels < bestPixels || (pixels == bestPixels && curve.ItemIndex < best.ItemIndex))
+                )
                 {
                     best = curve;
                     bestPixels = pixels;
@@ -355,7 +401,19 @@ namespace GeometryHelper.Viewer
         /// <param name="workPlane">The work plane that a click on nothing lands on; null, or the global one, for the plane z = 0.</param>
         /// <returns>The point and how it was found; never null. A point on a work plane other than the global one is said to be on the "work plane".</returns>
         /// <exception cref="ArgumentNullException">Thrown when the primitives, the geometry or the map is null.</exception>
-        public static ResolvedPoint ResolvePoint(Primitives primitives, ExactGeometry geometry, ScreenMap map, double x, double y, SnapKinds snaps, double tolerance, Func<int, bool> visible, bool surfaces, bool groundPlane = true, WorkPlane workPlane = null)
+        public static ResolvedPoint ResolvePoint(
+            Primitives primitives,
+            ExactGeometry geometry,
+            ScreenMap map,
+            double x,
+            double y,
+            SnapKinds snaps,
+            double tolerance,
+            Func<int, bool> visible,
+            bool surfaces,
+            bool groundPlane = true,
+            WorkPlane workPlane = null
+        )
         {
             if (geometry == null)
             {
@@ -373,7 +431,14 @@ namespace GeometryHelper.Viewer
 
             if (hit != null)
             {
-                return new ResolvedPoint(hit.Point, hit.Kind == PickKind.Surface ? "surface" : hit.Kind == PickKind.Curve ? "line" : "point", null, hit.ItemIndex);
+                return new ResolvedPoint(
+                    hit.Point,
+                    hit.Kind == PickKind.Surface ? "surface"
+                        : hit.Kind == PickKind.Curve ? "line"
+                        : "point",
+                    null,
+                    hit.ItemIndex
+                );
             }
 
             map.GetRay(x, y, out Vec3 origin, out Vec3 direction);
@@ -442,10 +507,26 @@ namespace GeometryHelper.Viewer
 
             for (int axis = 0; axis < 3; axis++)
             {
-                double o = axis == 0 ? origin.X : axis == 1 ? origin.Y : origin.Z;
-                double d = axis == 0 ? direction.X : axis == 1 ? direction.Y : direction.Z;
-                double lo = (axis == 0 ? box.Min.X : axis == 1 ? box.Min.Y : box.Min.Z) - pad;
-                double hi = (axis == 0 ? box.Max.X : axis == 1 ? box.Max.Y : box.Max.Z) + pad;
+                double o =
+                    axis == 0 ? origin.X
+                    : axis == 1 ? origin.Y
+                    : origin.Z;
+                double d =
+                    axis == 0 ? direction.X
+                    : axis == 1 ? direction.Y
+                    : direction.Z;
+                double lo =
+                    (
+                        axis == 0 ? box.Min.X
+                        : axis == 1 ? box.Min.Y
+                        : box.Min.Z
+                    ) - pad;
+                double hi =
+                    (
+                        axis == 0 ? box.Max.X
+                        : axis == 1 ? box.Max.Y
+                        : box.Max.Z
+                    ) + pad;
 
                 if (Math.Abs(d) < 1E-300)
                 {

@@ -21,7 +21,11 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("R2018")]
         public void TheHandleOfADimstyle_IsItsGroup105(string version)
         {
-            DxfDatabase db = DxfDatabase.Parse(version == "R12" ? DxfFileEzdxfDrawings.R12 : version == "R2000" ? DxfFileEzdxfDrawings.R2000 : DxfFileEzdxfDrawings.R2018);
+            DxfDatabase db = DxfDatabase.Parse(
+                version == "R12" ? DxfFileEzdxfDrawings.R12
+                : version == "R2000" ? DxfFileEzdxfDrawings.R2000
+                : DxfFileEzdxfDrawings.R2018
+            );
             DxfItem standard = db.File.TableItems("DIMSTYLE").First();
 
             // ezdxf: DIMSTYLE Standard 105 2B, its 5 (DIMBLK) empty in the file of R12.
@@ -36,7 +40,8 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfItem added = db.File.AddTableRecord("DIMSTYLE", "AcDbDimStyleTableRecord", b => b.Group(2, "GH"));
 
             Assert.NotNull(added.Handle);
-            string record = Records(db.ToText()).Single(r => r.StartsWith("  0\nDIMSTYLE\n105\n" + added.Handle + "\n", StringComparison.Ordinal));
+            string record = Records(db.ToText())
+                .Single(r => r.StartsWith("  0\nDIMSTYLE\n105\n" + added.Handle + "\n", StringComparison.Ordinal));
             Assert.DoesNotContain("\n  5\n", record, StringComparison.Ordinal);
             Assert.Equal(added.Handle, DxfDatabase.Parse(db.ToText()).File.TableItems("DIMSTYLE").Last().Handle);
         }
@@ -73,8 +78,11 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // The source's dimension style renamed GH_DIM in text, its block's text on the style GH_TXT, the dimension on GH_DIMS.
             string text = DxfFileEzdxfDrawings.R2018;
-            DxfDatabase source = DxfDatabase.Parse(text.Replace("AcDbDimStyleTableRecord\n  2\nStandard\n", "AcDbDimStyleTableRecord\n  2\nGH_DIM\n").Replace("\n  3\nStandard\n", "\n  3\nGH_DIM\n")
-                .Replace("\n 71\n5\n  1\n100\n", "\n 71\n5\n  7\nGH_TXT\n  1\n100\n"));
+            DxfDatabase source = DxfDatabase.Parse(
+                text.Replace("AcDbDimStyleTableRecord\n  2\nStandard\n", "AcDbDimStyleTableRecord\n  2\nGH_DIM\n")
+                    .Replace("\n  3\nStandard\n", "\n  3\nGH_DIM\n")
+                    .Replace("\n 71\n5\n  1\n100\n", "\n 71\n5\n  7\nGH_TXT\n  1\n100\n")
+            );
             source.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "GH_TXT", FileName = "isocp.shx" });
             DxfEntity dimension = ByHandle<DxfEntity>(source, "75");
             dimension.Layer = "GH_DIMS";
@@ -87,14 +95,21 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(target.TextStyleTable.Has("GH_TXT"));
             Assert.Equal(3, target.LayerTable["GH_DIMS"].ColorIndex);
             string saved = target.ToText();
-            string style = Records(saved).Single(r => r.StartsWith("  0\nDIMSTYLE\n", StringComparison.Ordinal) && r.Contains("\n  2\nGH_DIM\n"));
+            string style = Records(saved)
+                .Single(r =>
+                    r.StartsWith("  0\nDIMSTYLE\n", StringComparison.Ordinal) && r.Contains("\n  2\nGH_DIM\n")
+                );
             Assert.StartsWith("  0\nDIMSTYLE\n105\n", style, StringComparison.Ordinal);
             Assert.Contains("100\nAcDbDimStyleTableRecord\n  2\nGH_DIM\n", style, StringComparison.Ordinal);
-            Assert.Single(Records(saved), r => r.StartsWith("  0\nDIMSTYLE\n", StringComparison.Ordinal) && r.Contains("\n  2\nStandard\n"));
+            Assert.Single(Records(saved), r =>
+                r.StartsWith("  0\nDIMSTYLE\n", StringComparison.Ordinal) && r.Contains("\n  2\nStandard\n")
+            );
 
             // A second copy finds them there: nothing is copied twice.
             target.ModelSpace.AppendEntity(dimension.Clone());
-            Assert.Single(Records(target.ToText()), r => r.StartsWith("  0\nDIMSTYLE\n", StringComparison.Ordinal) && r.Contains("\n  2\nGH_DIM\n"));
+            Assert.Single(Records(target.ToText()), r =>
+                r.StartsWith("  0\nDIMSTYLE\n", StringComparison.Ordinal) && r.Contains("\n  2\nGH_DIM\n")
+            );
             Assert.Single(target.TextStyleTable.Cast<DxfTextStyleTableRecord>(), s => s.Name == "GH_TXT");
         }
 
@@ -103,13 +118,15 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // S(2, 1) R(45°): the images of x and y are both of length √2.5, at an angle that is not square.
             double s = Math.Sqrt(0.5);
-            var shear = new GeoTransform3(new double[,]
-            {
-                { 2.0 * s, -2.0 * s, 0.0, 0.0 },
-                { s, s, 0.0, 0.0 },
-                { 0.0, 0.0, 1.0, 0.0 },
-                { 0.0, 0.0, 0.0, 1.0 },
-            });
+            var shear = new GeoTransform3(
+                new double[,]
+                {
+                    { 2.0 * s, -2.0 * s, 0.0, 0.0 },
+                    { s, s, 0.0, 0.0 },
+                    { 0.0, 0.0, 1.0, 0.0 },
+                    { 0.0, 0.0, 0.0, 1.0 },
+                }
+            );
 
             string text = DxfFileEzdxfDrawings.R2018;
             DxfDatabase db = DxfDatabase.Parse(text);
@@ -146,11 +163,17 @@ namespace GeometryHelper.UnitTest.Dxf
             // a record the source has not, and goes with its code.
             dimension.XData = new[]
             {
-                new DxfTypedValue(1001, "ACAD"), new DxfTypedValue(1000, "DSTYLE"), new DxfTypedValue(1002, "{"),
-                new DxfTypedValue(1070, "340"), new DxfTypedValue(1005, style.Handle),
-                new DxfTypedValue(1070, "342"), new DxfTypedValue(1005, arrow.Handle),
-                new DxfTypedValue(1070, "345"), new DxfTypedValue(1005, "FFFF"),
-                new DxfTypedValue(1070, "41"), new DxfTypedValue(1040, "2.5"),
+                new DxfTypedValue(1001, "ACAD"),
+                new DxfTypedValue(1000, "DSTYLE"),
+                new DxfTypedValue(1002, "{"),
+                new DxfTypedValue(1070, "340"),
+                new DxfTypedValue(1005, style.Handle),
+                new DxfTypedValue(1070, "342"),
+                new DxfTypedValue(1005, arrow.Handle),
+                new DxfTypedValue(1070, "345"),
+                new DxfTypedValue(1005, "FFFF"),
+                new DxfTypedValue(1070, "41"),
+                new DxfTypedValue(1040, "2.5"),
                 new DxfTypedValue(1002, "}"),
             };
 
@@ -162,15 +185,30 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfBlockTableRecord copiedArrow = target.BlockTable["GH_ARROW"];
             Assert.Equal(1, copiedArrow.Count);
             Assert.Equal(
-                new[] { "1001 ACAD", "1000 DSTYLE", "1002 {", "1070 340", "1005 " + copiedStyle.Handle, "1070 342", "1005 " + copiedArrow.Handle, "1070 41", "1040 2.5", "1002 }" },
-                copy.XData.Select(g => g.ToString()));
+                new[]
+                {
+                    "1001 ACAD",
+                    "1000 DSTYLE",
+                    "1002 {",
+                    "1070 340",
+                    "1005 " + copiedStyle.Handle,
+                    "1070 342",
+                    "1005 " + copiedArrow.Handle,
+                    "1070 41",
+                    "1040 2.5",
+                    "1002 }",
+                },
+                copy.XData.Select(g => g.ToString())
+            );
         }
 
         [Fact]
         public void ATextCopiedIntoAnotherDrawing_TakesItsStyleWithIt()
         {
             // The TEXT 64 put on the style GHSTYLE in text, the style added to the source.
-            DxfDatabase source = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018.Replace("\n 50\n15.0\n 72\n1\n", "\n 50\n15.0\n  7\nGHSTYLE\n 72\n1\n"));
+            DxfDatabase source = DxfDatabase.Parse(
+                DxfFileEzdxfDrawings.R2018.Replace("\n 50\n15.0\n 72\n1\n", "\n 50\n15.0\n  7\nGHSTYLE\n 72\n1\n")
+            );
             source.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "GHSTYLE", FileName = "isocp.shx" });
             DxfDBText text = ByHandle<DxfDBText>(source, "64");
             Assert.Equal("GHSTYLE", text.TextStyleName);
@@ -189,13 +227,15 @@ namespace GeometryHelper.UnitTest.Dxf
         public void AnMTextSheared_IsRefused_AndOneScaledUnlikeAlongItsAxesIsStretched()
         {
             double s = Math.Sqrt(0.5);
-            var shear = new GeoTransform3(new double[,]
-            {
-                { 2.0 * s, -2.0 * s, 0.0, 0.0 },
-                { s, s, 0.0, 0.0 },
-                { 0.0, 0.0, 1.0, 0.0 },
-                { 0.0, 0.0, 0.0, 1.0 },
-            });
+            var shear = new GeoTransform3(
+                new double[,]
+                {
+                    { 2.0 * s, -2.0 * s, 0.0, 0.0 },
+                    { s, s, 0.0, 0.0 },
+                    { 0.0, 0.0, 1.0, 0.0 },
+                    { 0.0, 0.0, 0.0, 1.0 },
+                }
+            );
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             DxfMText mtext = ByHandle<DxfMText>(db, "73");
             string before = db.ToText();
@@ -232,7 +272,8 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfEntity copy = dimension.Clone();
             target.ModelSpace.AppendEntity(copy);
 
-            string record = Records(target.ToText()).Single(r => r.StartsWith("  0\nDIMENSION\n", StringComparison.Ordinal));
+            string record = Records(target.ToText())
+                .Single(r => r.StartsWith("  0\nDIMENSION\n", StringComparison.Ordinal));
             Assert.DoesNotContain("\n100\n", record, StringComparison.Ordinal);
             Assert.Contains("  2\n*D1\n  3\nStandard\n", record, StringComparison.Ordinal);
             Assert.Contains(" 13\n0.0\n", record, StringComparison.Ordinal);
@@ -258,7 +299,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("*U2", copy.Name);
             Assert.Equal(entities, target.BlockTable["*U2"].Count);
             Assert.Equal(entities, target.BlockTable["*U1"].Count);
-            Assert.Equal(insert.GetGeometry().Count, ByHandle<DxfBlockReference>(DxfDatabase.Parse(target.ToText()), copy.Handle).GetGeometry().Count);
+            Assert.Equal(
+                insert.GetGeometry().Count,
+                ByHandle<DxfBlockReference>(DxfDatabase.Parse(target.ToText()), copy.Handle).GetGeometry().Count
+            );
         }
     }
 }

@@ -1,7 +1,7 @@
 using System;
 using GeometryHelper;
-using GeometryHelper.Enums;
 using GeometryHelper.Core;
+using GeometryHelper.Enums;
 
 namespace GeometryHelper.Geometry
 {
@@ -18,7 +18,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Checks whether this triangle touches another triangle, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoTriangle3 other, Tolerance tolerance) => Collision3.CollidesWith(this, other, tolerance);
+        public bool CollidesWith(GeoTriangle3 other, Tolerance tolerance) =>
+            Collision3.CollidesWith(this, other, tolerance);
 
         /// <summary>
         /// Checks whether this triangle touches a segment, using the default tolerance.
@@ -39,6 +40,7 @@ namespace GeometryHelper.Geometry
         /// Checks whether a ray runs into this triangle, within a tolerance.
         /// </summary>
         public bool CollidesWith(GeoRay3 ray, Tolerance tolerance) => Collision3.CollidesWith(ray, this, tolerance);
+
         /// <summary>
         /// Checks whether this triangle touches an arc, using the default tolerance.
         /// </summary>
@@ -69,10 +71,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="edge">The edge.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoEdge3 edge, Tolerance tolerance)
-            => edge.IsArc
-                ? CollidesWith(edge.ToArc(), tolerance)
-                : CollidesWith(edge.ToLine(), tolerance);
+        public bool CollidesWith(GeoEdge3 edge, Tolerance tolerance) =>
+            edge.IsArc ? CollidesWith(edge.ToArc(), tolerance) : CollidesWith(edge.ToLine(), tolerance);
 
         /// <summary>
         /// Checks whether this triangle touches a curved chain.
@@ -85,7 +85,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="chain">The curved chain.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance) => ArcChain3.CollidesWith(chain, this, tolerance);
+        public bool CollidesWith(GeoPolylineArc3 chain, Tolerance tolerance) =>
+            ArcChain3.CollidesWith(chain, this, tolerance);
 
         /// <summary>
         /// Checks whether this triangle touches a curved loop.
@@ -98,7 +99,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="loop">The curved loop.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance) => ArcChain3.CollidesWith(loop, this, tolerance);
+        public bool CollidesWith(GeoPolygonArc3 loop, Tolerance tolerance) =>
+            ArcChain3.CollidesWith(loop, this, tolerance);
 
         /// <summary>
         /// Checks whether this triangle touches a straight chain: the same answer as
@@ -112,8 +114,8 @@ namespace GeometryHelper.Geometry
         /// <see cref="GeoPolyline3.CollidesWith(GeoTriangle3, Tolerance)"/>.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
-        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance)
-            => Collision3.CollidesWith(polyline, this, tolerance);
+        public bool CollidesWith(GeoPolyline3 polyline, Tolerance tolerance) =>
+            Collision3.CollidesWith(polyline, this, tolerance);
 
         /// <summary>
         /// Checks whether this triangle and a polygon touch: the same answer as
@@ -138,7 +140,8 @@ namespace GeometryHelper.Geometry
         /// across it along y = 50 from z = -50 to 50 cross at (50, 50, 0) and (0, 50, 0).
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
-        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) => Collision3.CollidesWith(this, polygon, tolerance);
+        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) =>
+            Collision3.CollidesWith(this, polygon, tolerance);
 
         /// <summary>
         /// Checks whether this triangle and the material of a face touch: the same answer as
@@ -188,7 +191,8 @@ namespace GeometryHelper.Geometry
         /// The floor plane and the triangle with corners (0, 50, -50), (100, 50, -50) and (0, 50, 50) standing across it
         /// cross at (50, 50, 0) and (0, 50, 0); a triangle lying in the floor touches it and crosses it nowhere.
         /// </remarks>
-        public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance) => Collision3.CollidesWith(plane, this, tolerance);
+        public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance) =>
+            Collision3.CollidesWith(plane, this, tolerance);
 
         /// <summary>
         /// Checks whether this triangle and the material of a solid touch: the same answer as
@@ -215,7 +219,8 @@ namespace GeometryHelper.Geometry
         /// 100, 50); a triangle wholly inside the box crosses nothing and touches it.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the solid is null.</exception>
-        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) => Collision3.CollidesWith(this, solid, tolerance);
+        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) =>
+            Collision3.CollidesWith(this, solid, tolerance);
 
         /// <summary>
         /// Checks whether this triangle and an oriented box touch: the same answer as

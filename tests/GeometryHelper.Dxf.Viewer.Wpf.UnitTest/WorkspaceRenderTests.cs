@@ -84,7 +84,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             }
         }
 
-        private static bool Grey(int rgb) => ((rgb >> 16) & 0xFF) == (rgb & 0xFF) && ((rgb >> 8) & 0xFF) == (rgb & 0xFF) && (rgb & 0xFF) > 100;
+        private static bool Grey(int rgb) =>
+            ((rgb >> 16) & 0xFF) == (rgb & 0xFF) && ((rgb >> 8) & 0xFF) == (rgb & 0xFF) && (rgb & 0xFF) > 100;
 
         private static int Rgb(byte[] pixels, int x, int y)
         {

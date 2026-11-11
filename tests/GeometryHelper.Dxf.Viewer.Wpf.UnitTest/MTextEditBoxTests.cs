@@ -40,14 +40,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         private static CadMTextEditBox Opened(string contents, out MainViewModel model, out DisplayText2 drawn)
         {
             var database = new DxfDatabase("AC1027");
-            var mtext = new DxfMText { Location = new GeoPoint3(100, 50, 0), TextHeight = 2.5, Width = 10.0, Contents = contents };
+            var mtext = new DxfMText
+            {
+                Location = new GeoPoint3(100, 50, 0),
+                TextHeight = 2.5,
+                Width = 10.0,
+                Contents = contents,
+            };
             database.ModelSpace.AppendEntity(mtext);
             CadDocument document = CadDocument.From(database, "notes.dxf");
             model = new MainViewModel();
             model.OpenDocument(document, "notes.dxf");
             drawn = document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>().Single();
             Assert.True(model.EditTextAt(mtext.Handle));
-            var box = new CadMTextEditBox { Document = document, Model = model.TextEditor, PixelsPerUnit = 4.0 };
+            var box = new CadMTextEditBox
+            {
+                Document = document,
+                Model = model.TextEditor,
+                PixelsPerUnit = 4.0,
+            };
             box.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             return box;
         }
@@ -74,7 +85,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 // The frame hangs by the top left of the MTEXT: the attachment point at the top left of the box, inside the pad.
                 Assert.Equal(CadMTextEditBox.Pad + ((0.0 - layout.Bounds[0]) * 4.0), box.Anchor.X, 9);
-                Assert.Equal(CadMTextEditBox.RulerHeight + CadMTextEditBox.Pad + ((layout.Bounds[3] - 0.0) * 4.0), box.Anchor.Y, 9);
+                Assert.Equal(
+                    CadMTextEditBox.RulerHeight + CadMTextEditBox.Pad + ((layout.Bounds[3] - 0.0) * 4.0),
+                    box.Anchor.Y,
+                    9
+                );
             });
         }
 

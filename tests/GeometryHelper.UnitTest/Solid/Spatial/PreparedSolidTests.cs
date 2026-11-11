@@ -16,22 +16,27 @@ namespace GeometryHelper.UnitTest.Solid
     /// </summary>
     public class PreparedSolidTests
     {
-        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1)
-            => new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
+        private static GeoSolid3 Box(double x0, double y0, double z0, double x1, double y1, double z1) =>
+            new GeoAabb3(new GeoPoint3(x0, y0, z0), new GeoPoint3(x1, y1, z1)).ToObb().ToSolid();
 
         /// <summary>A plate with a square hole, a round-ish hole and a notch cut from its edge.</summary>
-        private static GeoSolid3 Plate()
-            => Box(0, 0, 0, 200, 100, 20).WithOpenings(new[]
-            {
-                Box(40, 40, -1, 60, 60, 21),
-                Box(120, 30, -1, 150, 70, 21).TransformBy(GeoTransform3.RotationAxis(new GeoPoint3(135, 50, 10), GeoVector3.ZAxis, 0.4)),
-                Box(180, -5, -1, 205, 30, 21),
-            });
+        private static GeoSolid3 Plate() =>
+            Box(0, 0, 0, 200, 100, 20)
+                .WithOpenings(
+                    new[]
+                    {
+                        Box(40, 40, -1, 60, 60, 21),
+                        Box(120, 30, -1, 150, 70, 21)
+                            .TransformBy(GeoTransform3.RotationAxis(new GeoPoint3(135, 50, 10), GeoVector3.ZAxis, 0.4)),
+                        Box(180, -5, -1, 205, 30, 21),
+                    }
+                );
 
         private static IEnumerable<GeoSolid3> Bodies()
         {
             yield return Plate();
-            yield return Box(0, 0, 0, 60, 40, 30).TransformBy(GeoTransform3.RotationAxis(new GeoPoint3(30, 20, 15), new GeoVector3(1, 2, 3), 0.7));
+            yield return Box(0, 0, 0, 60, 40, 30)
+                .TransformBy(GeoTransform3.RotationAxis(new GeoPoint3(30, 20, 15), new GeoVector3(1, 2, 3), 0.7));
 
             Assert.True(Box(0, 0, 0, 100, 30, 30).TryUnion(Box(0, 0, 0, 30, 100, 30), out GeoSolid3 ell));
             yield return ell;
@@ -61,15 +66,95 @@ namespace GeometryHelper.UnitTest.Solid
         [Fact]
         public void APointInsideATurnedBlockIsInsideThePreparedBlockToo()
         {
-            var block = new GeoSolid3(new[]
-            {
-                Face(-18.613655394218284, -45.939572033089149, 4.9079073220571363, -26.579187396095953, -26.741965246386197, -4.9410618417792254, 34.040098640504972, -3.6195412815219496, -8.8977865481281544, 42.005630642382641, -22.8171480682249, 0.95118261570820728),
-                Face(-24.298775227431165, -22.395040804968172, 55.398841773006296, 36.320510809169761, 0.72738315989607472, 51.442117066657374, 28.354978807292092, 19.924989946599027, 41.593147902821009, -32.264307229308834, -3.1974340182652234, 45.549872609169938),
-                Face(-18.613655394218284, -45.939572033089149, 4.9079073220571363, 42.005630642382641, -22.8171480682249, 0.95118261570820728, 36.320510809169761, 0.72738315989607472, 51.442117066657374, -24.298775227431165, -22.395040804968172, 55.398841773006296),
-                Face(34.040098640504972, -3.6195412815219496, -8.8977865481281544, -26.579187396095953, -26.741965246386197, -4.9410618417792254, -32.264307229308834, -3.1974340182652234, 45.549872609169938, 28.354978807292092, 19.924989946599027, 41.593147902821009),
-                Face(42.005630642382641, -22.8171480682249, 0.95118261570820728, 34.040098640504972, -3.6195412815219496, -8.8977865481281544, 28.354978807292092, 19.924989946599027, 41.593147902821009, 36.320510809169761, 0.72738315989607472, 51.442117066657374),
-                Face(-26.579187396095953, -26.741965246386197, -4.9410618417792254, -18.613655394218284, -45.939572033089149, 4.9079073220571363, -24.298775227431165, -22.395040804968172, 55.398841773006296, -32.264307229308834, -3.1974340182652234, 45.549872609169938)
-            });
+            var block = new GeoSolid3(
+                new[]
+                {
+                    Face(
+                        -18.613655394218284,
+                        -45.939572033089149,
+                        4.9079073220571363,
+                        -26.579187396095953,
+                        -26.741965246386197,
+                        -4.9410618417792254,
+                        34.040098640504972,
+                        -3.6195412815219496,
+                        -8.8977865481281544,
+                        42.005630642382641,
+                        -22.8171480682249,
+                        0.95118261570820728
+                    ),
+                    Face(
+                        -24.298775227431165,
+                        -22.395040804968172,
+                        55.398841773006296,
+                        36.320510809169761,
+                        0.72738315989607472,
+                        51.442117066657374,
+                        28.354978807292092,
+                        19.924989946599027,
+                        41.593147902821009,
+                        -32.264307229308834,
+                        -3.1974340182652234,
+                        45.549872609169938
+                    ),
+                    Face(
+                        -18.613655394218284,
+                        -45.939572033089149,
+                        4.9079073220571363,
+                        42.005630642382641,
+                        -22.8171480682249,
+                        0.95118261570820728,
+                        36.320510809169761,
+                        0.72738315989607472,
+                        51.442117066657374,
+                        -24.298775227431165,
+                        -22.395040804968172,
+                        55.398841773006296
+                    ),
+                    Face(
+                        34.040098640504972,
+                        -3.6195412815219496,
+                        -8.8977865481281544,
+                        -26.579187396095953,
+                        -26.741965246386197,
+                        -4.9410618417792254,
+                        -32.264307229308834,
+                        -3.1974340182652234,
+                        45.549872609169938,
+                        28.354978807292092,
+                        19.924989946599027,
+                        41.593147902821009
+                    ),
+                    Face(
+                        42.005630642382641,
+                        -22.8171480682249,
+                        0.95118261570820728,
+                        34.040098640504972,
+                        -3.6195412815219496,
+                        -8.8977865481281544,
+                        28.354978807292092,
+                        19.924989946599027,
+                        41.593147902821009,
+                        36.320510809169761,
+                        0.72738315989607472,
+                        51.442117066657374
+                    ),
+                    Face(
+                        -26.579187396095953,
+                        -26.741965246386197,
+                        -4.9410618417792254,
+                        -18.613655394218284,
+                        -45.939572033089149,
+                        4.9079073220571363,
+                        -24.298775227431165,
+                        -22.395040804968172,
+                        55.398841773006296,
+                        -32.264307229308834,
+                        -3.1974340182652234,
+                        45.549872609169938
+                    ),
+                }
+            );
             // A millimetre and a third inside.
             var point = new GeoPoint3(6.1005820907312369, -5.773486415592167, 12.704989168937304);
 
@@ -104,7 +189,8 @@ namespace GeometryHelper.UnitTest.Solid
                     var point = new GeoPoint3(
                         box.Min.X - 10 + rng.NextDouble() * (box.Max.X - box.Min.X + 20),
                         box.Min.Y - 10 + rng.NextDouble() * (box.Max.Y - box.Min.Y + 20),
-                        box.Min.Z - 10 + rng.NextDouble() * (box.Max.Z - box.Min.Z + 20));
+                        box.Min.Z - 10 + rng.NextDouble() * (box.Max.Z - box.Min.Z + 20)
+                    );
 
                     Assert.Equal(body.Locate(point), prepared.Locate(point));
                     Assert.Equal(body.DistanceTo(point), prepared.DistanceTo(point), 9);
@@ -115,7 +201,10 @@ namespace GeometryHelper.UnitTest.Solid
                     double reach = prepared.GetClosestPointOnBoundary(point).DistanceTo(point);
                     if (body.Locate(point) == PointLocation.OnSide)
                     {
-                        Assert.True(reach <= Tolerance.Global.EqualPoint, $"{point} is on the surface and {reach} from it");
+                        Assert.True(
+                            reach <= Tolerance.Global.EqualPoint,
+                            $"{point} is on the surface and {reach} from it"
+                        );
                     }
                     else
                     {
@@ -140,8 +229,12 @@ namespace GeometryHelper.UnitTest.Solid
                     var origin = new GeoPoint3(
                         box.Min.X - 50 + rng.NextDouble() * (box.Max.X - box.Min.X + 100),
                         box.Min.Y - 50 + rng.NextDouble() * (box.Max.Y - box.Min.Y + 100),
-                        box.Min.Z - 50 + rng.NextDouble() * (box.Max.Z - box.Min.Z + 100));
-                    var ray = new GeoRay3(origin, new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() - 0.5));
+                        box.Min.Z - 50 + rng.NextDouble() * (box.Max.Z - box.Min.Z + 100)
+                    );
+                    var ray = new GeoRay3(
+                        origin,
+                        new GeoVector3(rng.NextDouble() - 0.5, rng.NextDouble() - 0.5, rng.NextDouble() - 0.5)
+                    );
 
                     GeoPoint3[] expected = body.GetIntersections(ray);
                     GeoPoint3[] actual = prepared.GetIntersections(ray);
@@ -167,8 +260,17 @@ namespace GeometryHelper.UnitTest.Solid
 
             for (int k = 0; k < 60; k++)
             {
-                double x = rng.NextDouble() * 220 - 10, y = rng.NextDouble() * 120 - 10, z = rng.NextDouble() * 60 - 20;
-                GeoSolid3 probe = Box(x, y, z, x + 5 + rng.NextDouble() * 30, y + 5 + rng.NextDouble() * 30, z + 5 + rng.NextDouble() * 30);
+                double x = rng.NextDouble() * 220 - 10,
+                    y = rng.NextDouble() * 120 - 10,
+                    z = rng.NextDouble() * 60 - 20;
+                GeoSolid3 probe = Box(
+                    x,
+                    y,
+                    z,
+                    x + 5 + rng.NextDouble() * 30,
+                    y + 5 + rng.NextDouble() * 30,
+                    z + 5 + rng.NextDouble() * 30
+                );
                 GeoPreparedSolid3 preparedProbe = probe.Prepare();
 
                 bool collides = plate.CollidesWith(probe);
@@ -177,7 +279,11 @@ namespace GeometryHelper.UnitTest.Solid
                 Assert.Equal(collides, prepared.CollidesWith(probe));
                 Assert.Equal(plate.DistanceTo(probe), prepared.DistanceTo(preparedProbe), 6);
                 Assert.Equal(plate.DistanceTo(probe), prepared.DistanceTo(probe), 6);
-                Assert.Equal(plate.Intersect(probe).Sum(piece => piece.GetVolume()), prepared.Intersect(preparedProbe).Sum(piece => piece.GetVolume()), 6);
+                Assert.Equal(
+                    plate.Intersect(probe).Sum(piece => piece.GetVolume()),
+                    prepared.Intersect(preparedProbe).Sum(piece => piece.GetVolume()),
+                    6
+                );
             }
         }
 
@@ -186,7 +292,10 @@ namespace GeometryHelper.UnitTest.Solid
         {
             GeoSolid3 plate = Plate();
             GeoPreparedSolid3 prepared = plate.Prepare();
-            var points = Enumerable.Range(0, 400).Select(i => new GeoPoint3(i % 20 * 11.0 - 5, i / 20 * 6.0 - 5, (i * 7 % 30) - 5)).ToArray();
+            var points = Enumerable
+                .Range(0, 400)
+                .Select(i => new GeoPoint3(i % 20 * 11.0 - 5, i / 20 * 6.0 - 5, (i * 7 % 30) - 5))
+                .ToArray();
 
             PointLocation[] alone = points.Select(p => prepared.Locate(p)).ToArray();
             var together = new PointLocation[points.Length];
@@ -204,7 +313,11 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPreparedSolid3 prepared = swallowed.Prepare();
 
             Assert.Equal(1000.0, prepared.Material.GetVolume(), 9);
-            Assert.Equal(swallowed.DistanceTo(new GeoPoint3(20, 5, 5)), prepared.DistanceTo(new GeoPoint3(20, 5, 5)), 9);
+            Assert.Equal(
+                swallowed.DistanceTo(new GeoPoint3(20, 5, 5)),
+                prepared.DistanceTo(new GeoPoint3(20, 5, 5)),
+                9
+            );
         }
     }
 }

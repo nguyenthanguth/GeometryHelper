@@ -1,4 +1,4 @@
-﻿namespace Tekla2025Test
+namespace Tekla2025Test
 {
     partial class ClashReportForm
     {

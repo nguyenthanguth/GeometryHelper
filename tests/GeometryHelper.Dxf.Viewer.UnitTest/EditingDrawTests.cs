@@ -244,9 +244,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // arrowheads, and the words 300 above it.
             DisplayList2 shown = document.GetDisplay(document.ModelSpace);
             double arrow = dimensions[0].GetDimstyleData().Dimasz;
-            Assert.Contains(shown.Items.OfType<DisplayText2>(), t => t.Handle == dimensions[0].Handle && t.Text == words && t.Y > -30);
+            Assert.Contains(shown.Items.OfType<DisplayText2>(), t =>
+                t.Handle == dimensions[0].Handle && t.Text == words && t.Y > -30
+            );
             Assert.Equal(2, shown.Items.OfType<DisplayFill2>().Count(f => f.Handle == dimensions[0].Handle));
-            Assert.Contains(shown.Items.OfType<DisplayPolyline2>(), l => l.Handle == dimensions[0].Handle && l.Count == 2 && Math.Abs(l.Xy[0] - arrow) < 1E-9 && Math.Abs(l.Xy[1] + 30) < 1E-9 && Math.Abs(l.Xy[2] - (300 - arrow)) < 1E-9 && Math.Abs(l.Xy[3] + 30) < 1E-9);
+            Assert.Contains(shown.Items.OfType<DisplayPolyline2>(), l =>
+                l.Handle == dimensions[0].Handle
+                && l.Count == 2
+                && Math.Abs(l.Xy[0] - arrow) < 1E-9
+                && Math.Abs(l.Xy[1] + 30) < 1E-9
+                && Math.Abs(l.Xy[2] - (300 - arrow)) < 1E-9
+                && Math.Abs(l.Xy[3] + 30) < 1E-9
+            );
             AssertReopens(document);
         }
 
@@ -263,7 +272,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string words = session.History.Last().Substring("Dimension text = ".Length);
             Assert.StartsWith("500", words, StringComparison.Ordinal);
             Assert.EndsWith(" mm", words, StringComparison.Ordinal);
-            Assert.Contains(document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>(), t => t.Text == words);
+            Assert.Contains(document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>(), t =>
+                t.Text == words
+            );
         }
 
         [Fact]
@@ -303,7 +314,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Run(Session(document), "MLD");
 
             Assert.False(session.IsRunning);
-            Assert.Equal("The drawing has no multileader style to draw in: one made by AutoCAD's MLEADERSTYLE is needed.", session.History.Last());
+            Assert.Equal(
+                "The drawing has no multileader style to draw in: one made by AutoCAD's MLEADERSTYLE is needed.",
+                session.History.Last()
+            );
             Assert.Empty(All<DxfMLeader>(document.ModelSpace));
         }
 

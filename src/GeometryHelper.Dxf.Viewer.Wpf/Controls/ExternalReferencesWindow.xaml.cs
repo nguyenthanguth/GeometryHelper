@@ -143,7 +143,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
                 Title = "Select New Path",
-                Filter = row.IsImage ? "Images (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp" : "Drawing Exchange Format (*.dxf)|*.dxf",
+                Filter = row.IsImage
+                    ? "Images (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp"
+                    : "Drawing Exchange Format (*.dxf)|*.dxf",
                 FileName = row.Reference.FoundAt ?? string.Empty,
             };
 

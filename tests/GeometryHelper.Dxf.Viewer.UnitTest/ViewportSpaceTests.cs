@@ -25,7 +25,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return document;
         }
 
-        private static DxfViewport Viewport(CadDocument document, string handle) => Entity<DxfViewport>(document, handle);
+        private static DxfViewport Viewport(CadDocument document, string handle) =>
+            Entity<DxfViewport>(document, handle);
 
         [Fact]
         public void MspaceEntersTheViewport_LinesThenGoIntoModelSpace_AndPspaceGoesBackToThePaper()
@@ -243,7 +244,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(CadPropertyEditor.Set(document, handles, "Standard scale", "1:7").Refused);
 
             Assert.True(CadPropertyEditor.Set(document, handles, "Display locked", "Yes").Succeeded);
-            Assert.Equal("Yes", CadProperties.Describe(document, null, handles).Groups.Single(g => g.Title == "Misc").Rows.Single(r => r.Label == "Display locked").Value);
+            Assert.Equal(
+                "Yes",
+                CadProperties
+                    .Describe(document, null, handles)
+                    .Groups.Single(g => g.Title == "Misc")
+                    .Rows.Single(r => r.Label == "Display locked")
+                    .Value
+            );
             CadEditResult locked = CadPropertyEditor.Set(document, handles, "Standard scale", "1:100");
             Assert.Equal("The viewport's display is locked.", locked.Message);
             Assert.Equal(500, Viewport(document, handle).ViewHeight, 9);

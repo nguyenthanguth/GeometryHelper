@@ -24,16 +24,22 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly GeoVector3 AlongY = new GeoVector3(0, Math.Cos(Math.PI / 6), Math.Sin(Math.PI / 6));
 
         /// <summary>A tolerance small enough to keep a side 0.0006 long when the loop is built.</summary>
-        private static readonly Tolerance Build = new Tolerance(1E-9, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-9);
+        private static readonly Tolerance Build = new Tolerance(
+            1E-9,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-9
+        );
 
-        private static Tolerance At(double equalPoint) => new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
+        private static Tolerance At(double equalPoint) =>
+            new Tolerance(equalPoint, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, equalPoint);
 
         /// <summary>The point at x, y in the tilted plane.</summary>
         private static GeoPoint3 At(double x, double y) => Origin.Add(AlongX.Multiply(x)).Add(AlongY.Multiply(y));
 
         /// <summary>The loop (0, 0), (10, 0), (10, 0.0006), (0, 10), every side straight.</summary>
-        private static GeoPolygonArc3 Loop()
-            => new GeoPolygonArc3(new[] { At(0, 0), At(10, 0), At(10, 0.0006), At(0, 10) }, null, null, Build);
+        private static GeoPolygonArc3 Loop() =>
+            new GeoPolygonArc3(new[] { At(0, 0), At(10, 0), At(10, 0.0006), At(0, 10) }, null, null, Build);
 
         /// <summary>The same loop with its short side a half circle bulging out to (10.0003, 0.0003).</summary>
         private static GeoPolygonArc3 LoopWithAShortBend()
@@ -44,7 +50,8 @@ namespace GeometryHelper.UnitTest.Solid
                 new[] { At(0, 0), At(10, 0), At(10, 0.0006), At(0, 10) },
                 new[] { 0.0, bend.Bulge, 0.0, 0.0 },
                 new[] { default(GeoVector3), bend.Normal, default(GeoVector3), default(GeoVector3) },
-                Build);
+                Build
+            );
         }
 
         [Fact]
@@ -107,7 +114,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             Assert.Equal(PointLocation.OutSide, loop.Locate(outside, t));
             Assert.InRange(loop.SignedDistanceTo(outside, t), 0.0025 - 1E-11, 0.0025 + 1E-11);
-            Assert.InRange(loop.SignedDistanceTo(outside, t), loop.DistanceTo(outside, t) - 1E-11, loop.DistanceTo(outside, t) + 1E-11);
+            Assert.InRange(
+                loop.SignedDistanceTo(outside, t),
+                loop.DistanceTo(outside, t) - 1E-11,
+                loop.DistanceTo(outside, t) + 1E-11
+            );
         }
 
         [Fact]

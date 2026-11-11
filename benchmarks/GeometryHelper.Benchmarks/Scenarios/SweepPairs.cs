@@ -36,7 +36,8 @@ namespace GeometryHelper.Benchmarks.Scenarios
             {
                 // The spans after this one start no earlier, and meet it while they start within its end and the reach.
                 double end = highs[order[i]] + reach;
-                int lo = i + 1, hi = n;
+                int lo = i + 1,
+                    hi = n;
 
                 while (lo < hi)
                 {
@@ -87,9 +88,15 @@ namespace GeometryHelper.Benchmarks.Scenarios
 
             if (best > 0)
             {
-                fewest += counts[best] == 0
-                    ? ", none at all"
-                    : ", X " + ((double)counts[0] / counts[best]).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + " times as many";
+                fewest +=
+                    counts[best] == 0
+                        ? ", none at all"
+                        : ", X "
+                            + ((double)counts[0] / counts[best]).ToString(
+                                "0.#",
+                                System.Globalization.CultureInfo.InvariantCulture
+                            )
+                            + " times as many";
             }
 
             return "pairs a sweep looks at: " + string.Join(", ", parts) + fewest;

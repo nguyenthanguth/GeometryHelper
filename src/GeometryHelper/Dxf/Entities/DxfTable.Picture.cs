@@ -27,9 +27,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the rows or the columns are fewer than one, or a size is not a finite number above nought.</exception>
         /// <exception cref="ArgumentException">Thrown when the point is not finite.</exception>
         public DxfTable(GeoPoint3 position, int numRows, int numColumns, double rowHeight, double columnWidth)
-            : base("ACAD_TABLE", MadeGroups(position, numRows, numColumns, rowHeight, columnWidth))
-        {
-        }
+            : base("ACAD_TABLE", MadeGroups(position, numRows, numColumns, rowHeight, columnWidth)) { }
 
         /// <summary>
         /// Draws the table anew in the anonymous block it is drawn with, as AutoCAD's <c>RecomputeTableBlock</c>: the block's
@@ -96,7 +94,10 @@ namespace GeometryHelper.Dxf
 
             if (database == null || !file.HasMarkers)
             {
-                throw new ArgumentException("A DXF " + (file?.Version ?? "R12") + " has no tables, which came with R13 (AC1012) and later.", "entity");
+                throw new ArgumentException(
+                    "A DXF " + (file?.Version ?? "R12") + " has no tables, which came with R13 (AC1012) and later.",
+                    "entity"
+                );
             }
 
             var picture = new DxfBlockTableRecord { Name = "*T" };
@@ -164,9 +165,17 @@ namespace GeometryHelper.Dxf
 
                 foreach (DxfEntity entity in owner)
                 {
-                    string named = entity is DxfTable table ? table.PictureName : entity is DxfBlockReference insert ? insert.Name : entity is DxfDimension dimension ? dimension.PictureName : null;
+                    string named =
+                        entity is DxfTable table ? table.PictureName
+                        : entity is DxfBlockReference insert ? insert.Name
+                        : entity is DxfDimension dimension ? dimension.PictureName
+                        : null;
 
-                    if (named != null && string.Equals(named, picture.Name, StringComparison.OrdinalIgnoreCase) && ++count > 1)
+                    if (
+                        named != null
+                        && string.Equals(named, picture.Name, StringComparison.OrdinalIgnoreCase)
+                        && ++count > 1
+                    )
                     {
                         return false;
                     }
@@ -177,9 +186,19 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The groups of a table made in code after its AcDbEntity: from R2007 on in form, as AutoCAD writes a new one.</summary>
-        private static IEnumerable<DxfTypedValue> MadeGroups(GeoPoint3 position, int numRows, int numColumns, double rowHeight, double columnWidth)
+        private static IEnumerable<DxfTypedValue> MadeGroups(
+            GeoPoint3 position,
+            int numRows,
+            int numColumns,
+            double rowHeight,
+            double columnWidth
+        )
         {
-            Guard.Argument(Guard.IsFinite(position.X) && Guard.IsFinite(position.Y) && Guard.IsFinite(position.Z), nameof(position), "A table stands at a finite point.");
+            Guard.Argument(
+                Guard.IsFinite(position.X) && Guard.IsFinite(position.Y) && Guard.IsFinite(position.Z),
+                nameof(position),
+                "A table stands at a finite point."
+            );
 
             if (numRows < 1)
             {
@@ -188,11 +207,19 @@ namespace GeometryHelper.Dxf
 
             if (numColumns < 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(numColumns), numColumns, "A table has one column or more.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(numColumns),
+                    numColumns,
+                    "A table has one column or more."
+                );
             }
 
             Guard.Positive(rowHeight, nameof(rowHeight), "A row's height has to be a finite number above nought.");
-            Guard.Positive(columnWidth, nameof(columnWidth), "A column's width has to be a finite number above nought.");
+            Guard.Positive(
+                columnWidth,
+                nameof(columnWidth),
+                "A column's width has to be a finite number above nought."
+            );
             string Text(double value) => Numbers.Exact(value + 0.0);
             var groups = new List<DxfTypedValue>
             {
@@ -305,7 +332,10 @@ namespace GeometryHelper.Dxf
             for (int r = 0; r < rows; r++)
             {
                 int first = titleOn ? 1 : 0;
-                kinds[r] = titleOn && r == 0 ? 0 : headerOn && r == first ? 1 : 2;
+                kinds[r] =
+                    titleOn && r == 0 ? 0
+                    : headerOn && r == first ? 1
+                    : 2;
             }
 
             // The looks of each kind: the table's own, read once, else its style's.
@@ -346,7 +376,8 @@ namespace GeometryHelper.Dxf
 
                 int r0 = k / columns;
                 int c0 = k % columns;
-                int r1 = r0, c1 = c0;
+                int r1 = r0,
+                    c1 = c0;
 
                 while (r1 + 1 < rows && owner[(r1 + 1) * columns + c0] == k)
                 {
@@ -361,7 +392,10 @@ namespace GeometryHelper.Dxf
                 CellView cell = layout.CellAt(r0, c0);
                 int kind = kinds[r0];
                 string Look(int code, int bit, int slot) => cell.Override(code, bit) ?? style[kind][slot];
-                double left = xs[c0], right = xs[c1 + 1], top = ys[r0], bottom = ys[r1 + 1];
+                double left = xs[c0],
+                    right = xs[c1 + 1],
+                    top = ys[r0],
+                    bottom = ys[r1 + 1];
 
                 if ((Look(283, 0x02, 3) ?? "1").Trim() == "0")
                 {
@@ -375,10 +409,16 @@ namespace GeometryHelper.Dxf
                 alignment = alignment >= 1 && alignment <= 9 ? alignment : 1;
                 int across = (alignment - 1) % 3;
                 int upDown = (alignment - 1) / 3;
-                double x = across == 0 ? left + hMargin : across == 1 ? (left + right) / 2.0 : right - hMargin;
+                double x =
+                    across == 0 ? left + hMargin
+                    : across == 1 ? (left + right) / 2.0
+                    : right - hMargin;
                 double seenTop = up ? bottom : top;
                 double sign = up ? -1.0 : 1.0;
-                double y = upDown == 0 ? seenTop + sign * vMargin : upDown == 1 ? (top + bottom) / 2.0 : seenTop + sign * (bottom - top - vMargin);
+                double y =
+                    upDown == 0 ? seenTop + sign * vMargin
+                    : upDown == 1 ? (top + bottom) / 2.0
+                    : seenTop + sign * (bottom - top - vMargin);
                 GeoPoint3 at = At(x, y);
 
                 if (cell.Whole(171, 1) == 2)
@@ -406,7 +446,8 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                double height = Numbers.TryRead(Look(140, 0x20, 5), out double h) && Guard.IsFinite(h) && h > 0.0 ? h : 4.5;
+                double height =
+                    Numbers.TryRead(Look(140, 0x20, 5), out double h) && Guard.IsFinite(h) && h > 0.0 ? h : 4.5;
                 string styleName = DxfReader.NameOf(Look(7, 0x10, 1) ?? "Standard").Trim();
                 var groups = new List<DxfTypedValue>
                 {
@@ -425,7 +466,11 @@ namespace GeometryHelper.Dxf
                 bool onePiece = written.Length <= 250 && written.All(ch => ch >= ' ' && ch < 127);
                 groups.Add(new DxfTypedValue(1, onePiece ? written : string.Empty));
 
-                if (styleName.Length > 0 && !string.Equals(styleName, "Standard", StringComparison.OrdinalIgnoreCase) && database.TextStyleTable.Has(styleName))
+                if (
+                    styleName.Length > 0
+                    && !string.Equals(styleName, "Standard", StringComparison.OrdinalIgnoreCase)
+                    && database.TextStyleTable.Has(styleName)
+                )
                 {
                     groups.Add(new DxfTypedValue(7, styleName));
                 }
@@ -459,7 +504,17 @@ namespace GeometryHelper.Dxf
         /// one, else the table's own of its row's kind, else its style's: a row's top line where it is the first of its kind, its
         /// bottom where the last, else its line inside; a column's left at the table's left, its right at its right.
         /// </summary>
-        private IEnumerable<DxfEntity> GridLines(Layout layout, int rows, int columns, double[] xs, double[] ys, int[] owner, int[] kinds, string[][][] style, Func<double, double, GeoPoint3> at)
+        private IEnumerable<DxfEntity> GridLines(
+            Layout layout,
+            int rows,
+            int columns,
+            double[] xs,
+            double[] ys,
+            int[] owner,
+            int[] kinds,
+            string[][][] style,
+            Func<double, double, GeoPoint3> at
+        )
         {
             var made = new List<DxfEntity>();
             int count = Math.Min(rows * columns, layout.CellStart.Count);
@@ -488,8 +543,20 @@ namespace GeometryHelper.Dxf
             // the one below or right of it where that holds it, else the other's.
             string Held(int row, int column, int edge, int part)
             {
-                int r = row + (edge == 0 ? -1 : edge == 2 ? 1 : 0);
-                int c = column + (edge == 3 ? -1 : edge == 1 ? 1 : 0);
+                int r =
+                    row
+                    + (
+                        edge == 0 ? -1
+                        : edge == 2 ? 1
+                        : 0
+                    );
+                int c =
+                    column
+                    + (
+                        edge == 3 ? -1
+                        : edge == 1 ? 1
+                        : 0
+                    );
                 int own = row * columns + column;
                 int beside = r >= 0 && r < rows && c >= 0 && c < columns ? r * columns + c : -1;
                 bool ownFirst = edge == 0 || edge == 3;
@@ -503,19 +570,26 @@ namespace GeometryHelper.Dxf
                     return texts[12 * first + 3 * firstEdge + part];
                 }
 
-                return then >= 0 && then < count && holds[4 * then + thenEdge] ? texts[12 * then + 3 * thenEdge + part] : null;
+                return then >= 0 && then < count && holds[4 * then + thenEdge]
+                    ? texts[12 * then + 3 * thenEdge + part]
+                    : null;
             }
 
             // An edge's look: drawn or not, its colour index and its lineweight.
             Edge Of(int row, int column, int edge)
             {
                 int kind = kinds[row];
-                int line = edge == 0 ? (row == 0 || kinds[row - 1] != kind ? 0 : 1)
+                int line =
+                    edge == 0 ? (row == 0 || kinds[row - 1] != kind ? 0 : 1)
                     : edge == 2 ? (row == rows - 1 || kinds[row + 1] != kind ? 2 : 1)
                     : edge == 3 ? (column == 0 ? 3 : 4)
                     : (column == columns - 1 ? 5 : 4);
                 string Part(int part) => Held(row, column, edge, part) ?? style[kind][part][line];
-                return new Edge(WholeOf(Part(2), 1) != 0, WholeOf(Part(0), 0), WholeOf(Part(1), (int)DxfLineWeight.ByBlock));
+                return new Edge(
+                    WholeOf(Part(2), 1) != 0,
+                    WholeOf(Part(0), 0),
+                    WholeOf(Part(1), (int)DxfLineWeight.ByBlock)
+                );
             }
 
             // Across: between row r - 1 and row r, column by column.
@@ -532,7 +606,10 @@ namespace GeometryHelper.Dxf
                     {
                         Edge below = r < rows ? Of(r, c, 0) : default;
                         Edge above = r > 0 ? Of(r - 1, c, 2) : default;
-                        here = r < rows && below.Shown ? below : r > 0 && above.Shown ? above : (Edge?)null;
+                        here =
+                            r < rows && below.Shown ? below
+                            : r > 0 && above.Shown ? above
+                            : (Edge?)null;
                     }
 
                     if (run.HasValue && (!here.HasValue || !run.Value.Equals(here.Value)))
@@ -563,7 +640,10 @@ namespace GeometryHelper.Dxf
                     {
                         Edge right = c < columns ? Of(r, c, 3) : default;
                         Edge left = c > 0 ? Of(r, c - 1, 1) : default;
-                        here = c < columns && right.Shown ? right : c > 0 && left.Shown ? left : (Edge?)null;
+                        here =
+                            c < columns && right.Shown ? right
+                            : c > 0 && left.Shown ? left
+                            : (Edge?)null;
                     }
 
                     if (run.HasValue && (!here.HasValue || !run.Value.Equals(here.Value)))
@@ -614,17 +694,28 @@ namespace GeometryHelper.Dxf
                 for (int line = 0; line < 6; line++)
                 {
                     var type = (DxfGridLineType)(1 << line);
-                    lines[kind][0][line] = style == null ? "0" : style.GridColor(type, types[kind]).ColorIndex.ToString(CultureInfo.InvariantCulture);
-                    lines[kind][1][line] = style == null ? "-2" : ((int)style.GridLineWeight(type, types[kind])).ToString(CultureInfo.InvariantCulture);
-                    lines[kind][2][line] = style == null ? "1" : style.GridVisibility(type, types[kind]) ? "1" : "0";
+                    lines[kind][0][line] =
+                        style == null
+                            ? "0"
+                            : style.GridColor(type, types[kind]).ColorIndex.ToString(CultureInfo.InvariantCulture);
+                    lines[kind][1][line] =
+                        style == null
+                            ? "-2"
+                            : ((int)style.GridLineWeight(type, types[kind])).ToString(CultureInfo.InvariantCulture);
+                    lines[kind][2][line] =
+                        style == null ? "1"
+                        : style.GridVisibility(type, types[kind]) ? "1"
+                        : "0";
                 }
             }
 
             return lines;
         }
 
-        private static int WholeOf(string text, int otherwise)
-            => int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : otherwise;
+        private static int WholeOf(string text, int otherwise) =>
+            int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : otherwise;
 
         /// <summary>The look of an edge of a cell: whether it is drawn, its colour index and its lineweight.</summary>
         private readonly struct Edge : IEquatable<Edge>

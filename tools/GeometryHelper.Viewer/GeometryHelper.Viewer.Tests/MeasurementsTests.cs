@@ -54,8 +54,16 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AnAngleOfThreePoints_IsTheAngleAtTheMiddleOne_FromNoughtToAHalfTurn()
         {
-            Assert.Equal(Math.PI / 2.0, Measurements.Angle(new Vec3(10, 0, 0), new Vec3(0, 0, 0), new Vec3(0, 10, 0)).Value, 15);
-            Assert.Equal(Math.PI / 4.0, Measurements.Angle(new Vec3(1, 0, 0), new Vec3(0, 0, 0), new Vec3(1, 1, 0)).Value, 15);
+            Assert.Equal(
+                Math.PI / 2.0,
+                Measurements.Angle(new Vec3(10, 0, 0), new Vec3(0, 0, 0), new Vec3(0, 10, 0)).Value,
+                15
+            );
+            Assert.Equal(
+                Math.PI / 4.0,
+                Measurements.Angle(new Vec3(1, 0, 0), new Vec3(0, 0, 0), new Vec3(1, 1, 0)).Value,
+                15
+            );
 
             // The legs are 3 and 4 long in space; the angle is that of a 3-4-5 triangle's far corner, 36.87 degrees at the other end.
             MeasureResult three = Measurements.Angle(new Vec3(3, 0, 7), new Vec3(0, 0, 7), new Vec3(0, 4, 7));
@@ -97,15 +105,24 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AnAngleWithAPointOnTheVertex_IsRefused()
         {
-            Assert.Throws<ArgumentException>(() => Measurements.Angle(new Vec3(1, 1, 1), new Vec3(1, 1, 1), new Vec3(2, 2, 2)));
+            Assert.Throws<ArgumentException>(() =>
+                Measurements.Angle(new Vec3(1, 1, 1), new Vec3(1, 1, 1), new Vec3(2, 2, 2))
+            );
         }
 
         [Fact]
         public void TheRadiusOfACircleAndOfAnArc_IsReadFromTheirNumbers()
         {
-            var view = ViewFixture.Top(new SceneWriter()
-                .Add(new GeoCircle2(new GeoPoint2(10, 20), 37.5))
-                .Add(new GeoPolylineArc2(new[] { new GeoPoint2(0, 100), new GeoPoint2(100, 100), new GeoPoint2(100, 180) }, new[] { 0.5, 0.0, 0.0 })));
+            var view = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoCircle2(new GeoPoint2(10, 20), 37.5))
+                    .Add(
+                        new GeoPolylineArc2(
+                            new[] { new GeoPoint2(0, 100), new GeoPoint2(100, 100), new GeoPoint2(100, 180) },
+                            new[] { 0.5, 0.0, 0.0 }
+                        )
+                    )
+            );
 
             SceneCurve circle = view.Geometry.Curves[0];
             MeasureResult round = Measurements.Radius(circle, new Vec3(10 + 37.5, 20, 0));
@@ -139,7 +156,9 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void AnEllipse_HasNoOneRadius_AndAsksForBothSemiAxes()
         {
-            var view = ViewFixture.Top(new SceneWriter().Add(new GeoEllipse2(new GeoPoint2(0, 0), new GeoVector2(1, 0), 25.0, 10.0)));
+            var view = ViewFixture.Top(
+                new SceneWriter().Add(new GeoEllipse2(new GeoPoint2(0, 0), new GeoVector2(1, 0), 25.0, 10.0))
+            );
 
             MeasureResult result = Measurements.Radius(view.Geometry.Curves[0], new Vec3(25, 0, 0));
 
@@ -160,23 +179,44 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void TheCurveNearestTheCursor_IsTheOneWhoseRadiusIsAsked_NotTheSegmentBeside()
         {
-            var view = ViewFixture.Top(new SceneWriter()
-                .Add(new GeoLine2(new GeoPoint2(-100, 50), new GeoPoint2(100, 50)))
-                .Add(new GeoCircle2(new GeoPoint2(0, 0), 40.0)));
+            var view = ViewFixture.Top(
+                new SceneWriter()
+                    .Add(new GeoLine2(new GeoPoint2(-100, 50), new GeoPoint2(100, 50)))
+                    .Add(new GeoCircle2(new GeoPoint2(0, 0), 40.0))
+            );
 
             (double x, double y) = view.Pixel(new Vec3(40, 0, 0));
             SceneCurve picked = PickEngine.PickConic(view.Geometry, view.Map, x + 2.0, y, null, out Vec3 at);
 
             Assert.Equal(1, picked.ItemIndex);
             Assert.Equal(40.0, at.Length, 12);
-            Assert.Null(PickEngine.PickConic(view.Geometry, view.Map, view.Pixel(new Vec3(-60, 50, 0)).X, view.Pixel(new Vec3(-60, 50, 0)).Y, null, out _));
+            Assert.Null(
+                PickEngine.PickConic(
+                    view.Geometry,
+                    view.Map,
+                    view.Pixel(new Vec3(-60, 50, 0)).X,
+                    view.Pixel(new Vec3(-60, 50, 0)).Y,
+                    null,
+                    out _
+                )
+            );
         }
 
         [Fact]
         public void TheLibraryDistanceOfTwoItems_IsAskedUnderTheSceneToleranceAndTheSegmentComesBackFromTheFirstToTheSecond()
         {
-            var a = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
-            var b = new GeoPolygon2(new GeoPoint2(30, 2), new GeoPoint2(40, 2), new GeoPoint2(40, 12), new GeoPoint2(30, 12));
+            var a = new GeoPolygon2(
+                new GeoPoint2(0, 0),
+                new GeoPoint2(10, 0),
+                new GeoPoint2(10, 10),
+                new GeoPoint2(0, 10)
+            );
+            var b = new GeoPolygon2(
+                new GeoPoint2(30, 2),
+                new GeoPoint2(40, 2),
+                new GeoPoint2(40, 12),
+                new GeoPoint2(30, 12)
+            );
             Scene scene = new SceneWriter().Add(a, name: "left").Add(b, name: "right").Scene;
 
             LibraryDistance forward = LibraryMeasure.Between(scene, 0, 1);
@@ -246,7 +286,9 @@ namespace GeometryHelper.Viewer.Tests
             LibraryDistance mixed = LibraryMeasure.Between(scene, 0, 1);
             Assert.Null(mixed.Distance);
             Assert.Null(mixed.From);
-            Assert.Contains(mixed.Notes, n => n.Contains("no DistanceTo between GeoPoint2 and GeoLine3", StringComparison.Ordinal));
+            Assert.Contains(mixed.Notes, n =>
+                n.Contains("no DistanceTo between GeoPoint2 and GeoLine3", StringComparison.Ordinal)
+            );
 
             LibraryDistance label = LibraryMeasure.Between(scene, 0, 2);
             Assert.Null(label.Distance);

@@ -42,15 +42,25 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>True where every value is the same, the text style's letters of either case the same.</returns>
         public bool SameAs(CadTableCellStyleSettings other)
         {
-            if (other == null || !string.Equals(TextStyle, other.TextStyle, StringComparison.OrdinalIgnoreCase) || !TextHeight.Equals(other.TextHeight)
-                || !Same(TextColor, other.TextColor) || !Same(FillColor, other.FillColor) || Alignment != other.Alignment)
+            if (
+                other == null
+                || !string.Equals(TextStyle, other.TextStyle, StringComparison.OrdinalIgnoreCase)
+                || !TextHeight.Equals(other.TextHeight)
+                || !Same(TextColor, other.TextColor)
+                || !Same(FillColor, other.FillColor)
+                || Alignment != other.Alignment
+            )
             {
                 return false;
             }
 
             for (int line = 0; line < 6; line++)
             {
-                if (LineWeights[line] != other.LineWeights[line] || !Same(LineColors[line], other.LineColors[line]) || LinesShown[line] != other.LinesShown[line])
+                if (
+                    LineWeights[line] != other.LineWeights[line]
+                    || !Same(LineColors[line], other.LineColors[line])
+                    || LinesShown[line] != other.LinesShown[line]
+                )
                 {
                     return false;
                 }
@@ -59,7 +69,8 @@ namespace GeometryHelper.Dxf.Viewer
             return true;
         }
 
-        internal static bool Same(DxfColor a, DxfColor b) => a == null ? b == null : b != null && a.ColorMethod == b.ColorMethod && a.ColorIndex == b.ColorIndex;
+        internal static bool Same(DxfColor a, DxfColor b) =>
+            a == null ? b == null : b != null && a.ColorMethod == b.ColorMethod && a.ColorIndex == b.ColorIndex;
     }
 
     /// <summary>
@@ -85,10 +96,12 @@ namespace GeometryHelper.Dxf.Viewer
         public double VerticalMargin { get; set; } = 1.5;
 
         /// <summary>Gets the title's cell style.</summary>
-        public CadTableCellStyleSettings Title { get; } = new CadTableCellStyleSettings { TextHeight = 6.0, Alignment = DxfCellAlignment.MiddleCenter };
+        public CadTableCellStyleSettings Title { get; } =
+            new CadTableCellStyleSettings { TextHeight = 6.0, Alignment = DxfCellAlignment.MiddleCenter };
 
         /// <summary>Gets the header's cell style.</summary>
-        public CadTableCellStyleSettings Header { get; } = new CadTableCellStyleSettings { Alignment = DxfCellAlignment.MiddleCenter };
+        public CadTableCellStyleSettings Header { get; } =
+            new CadTableCellStyleSettings { Alignment = DxfCellAlignment.MiddleCenter };
 
         /// <summary>Gets the data's cell style.</summary>
         public CadTableCellStyleSettings Data { get; } = new CadTableCellStyleSettings();
@@ -108,7 +121,11 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfRowType.DataRow:
                     return Data;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(rowType), rowType, "A cell style is the title's, the header's or the data's.");
+                    throw new ArgumentOutOfRangeException(
+                        nameof(rowType),
+                        rowType,
+                        "A cell style is the title's, the header's or the data's."
+                    );
             }
         }
 
@@ -155,10 +172,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets whether two settings write the same style.</summary>
         /// <param name="other">The other.</param>
         /// <returns>True where every value is the same.</returns>
-        public bool SameAs(CadTableStyleSettings other)
-            => other != null && string.Equals(Description ?? string.Empty, other.Description ?? string.Empty, StringComparison.Ordinal) && FlowDirection == other.FlowDirection
-                && HorizontalMargin.Equals(other.HorizontalMargin) && VerticalMargin.Equals(other.VerticalMargin)
-                && Title.SameAs(other.Title) && Header.SameAs(other.Header) && Data.SameAs(other.Data);
+        public bool SameAs(CadTableStyleSettings other) =>
+            other != null
+            && string.Equals(Description ?? string.Empty, other.Description ?? string.Empty, StringComparison.Ordinal)
+            && FlowDirection == other.FlowDirection
+            && HorizontalMargin.Equals(other.HorizontalMargin)
+            && VerticalMargin.Equals(other.VerticalMargin)
+            && Title.SameAs(other.Title)
+            && Header.SameAs(other.Header)
+            && Data.SameAs(other.Data);
 
         /// <summary>The three kinds of row, in the order the dialog lists their cell styles: the data, the header, the title.</summary>
         internal static readonly DxfRowType[] Kinds = { DxfRowType.DataRow, DxfRowType.HeaderRow, DxfRowType.TitleRow };
@@ -198,11 +220,13 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            names.Sort((a, b) =>
-            {
-                int byCase = string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
-                return byCase != 0 ? byCase : string.CompareOrdinal(a, b);
-            });
+            names.Sort(
+                (a, b) =>
+                {
+                    int byCase = string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
+                    return byCase != 0 ? byCase : string.CompareOrdinal(a, b);
+                }
+            );
             return names;
         }
 
@@ -213,7 +237,9 @@ namespace GeometryHelper.Dxf.Viewer
         public static DxfTableStyle Find(DxfDatabase database, string name)
         {
             DxfDBDictionary styles = database?.TableStyleDictionary;
-            return styles != null && name != null && styles.Contains(name.Trim()) ? styles[name.Trim()] as DxfTableStyle : null;
+            return styles != null && name != null && styles.Contains(name.Trim())
+                ? styles[name.Trim()] as DxfTableStyle
+                : null;
         }
 
         /// <summary>Gets the name of the current table style (CTABLESTYLE), as the dictionary spells it; Standard where the drawing names none it has.</summary>
@@ -257,7 +283,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 foreach (DxfEntity entity in block)
                 {
-                    count += entity is DxfTable table && string.Equals(table.TableStyleName, name, StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+                    count +=
+                        entity is DxfTable table
+                        && string.Equals(table.TableStyleName, name, StringComparison.OrdinalIgnoreCase)
+                            ? 1
+                            : 0;
                 }
             }
 
@@ -293,8 +323,14 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Done(Array.Empty<CadEditRecord>());
             }
 
-            CadEditResult result = document.ApplyEdit("TABLESTYLE", new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "CTABLESTYLE", old, set) }, s => s.Database.Tablestyle = set);
-            return result.Succeeded ? result : CadEditResult.Refuse("\"" + set + "\" cannot be made current: " + result.Message);
+            CadEditResult result = document.ApplyEdit(
+                "TABLESTYLE",
+                new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "CTABLESTYLE", old, set) },
+                s => s.Database.Tablestyle = set
+            );
+            return result.Succeeded
+                ? result
+                : CadEditResult.Refuse("\"" + set + "\" cannot be made current: " + result.Message);
         }
 
         /// <summary>
@@ -322,7 +358,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (trimmed.IndexOfAny(new[] { '<', '>', '/', '\\', '"', ':', ';', '?', '*', '|', ',', '=', '`' }) >= 0)
             {
-                return CadEditResult.Refuse("The name \"" + trimmed + "\" has a letter AutoCAD does not take in a name.");
+                return CadEditResult.Refuse(
+                    "The name \"" + trimmed + "\" has a letter AutoCAD does not take in a name."
+                );
             }
 
             if (Find(document.Database, trimmed) != null)
@@ -331,14 +369,19 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             DxfTableStyle source = from == null ? null : Find(document.Database, from);
-            CadTableStyleSettings settings = source == null ? Standard(document.Database) : CadTableStyleSettings.Of(source);
+            CadTableStyleSettings settings =
+                source == null ? Standard(document.Database) : CadTableStyleSettings.Of(source);
             document.EnsureNamedObjectsDictionary();
-            return document.ApplyEdit("TABLESTYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New table style", null, trimmed) }, s =>
-            {
-                var style = new DxfTableStyle();
-                Dictionary(s.Database).SetAt(trimmed, style);
-                Write(style, settings);
-            });
+            return document.ApplyEdit(
+                "TABLESTYLE",
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New table style", null, trimmed) },
+                s =>
+                {
+                    var style = new DxfTableStyle();
+                    Dictionary(s.Database).SetAt(trimmed, style);
+                    Write(style, settings);
+                }
+            );
         }
 
         /// <summary>
@@ -368,7 +411,12 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse("The drawing has no table style \"" + name + "\".");
             }
 
-            if (!(settings.HorizontalMargin >= 0.0) || !(settings.VerticalMargin >= 0.0) || double.IsInfinity(settings.HorizontalMargin) || double.IsInfinity(settings.VerticalMargin))
+            if (
+                !(settings.HorizontalMargin >= 0.0)
+                || !(settings.VerticalMargin >= 0.0)
+                || double.IsInfinity(settings.HorizontalMargin)
+                || double.IsInfinity(settings.VerticalMargin)
+            )
             {
                 return CadEditResult.Refuse("Margins must be numbers of nought or more.");
             }
@@ -394,9 +442,20 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string set = style.Name;
-            var planned = new List<CadEditRecord> { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Table style " + set, null, set) };
+            var planned = new List<CadEditRecord>
+            {
+                new CadEditRecord(CadEditRecordKind.TableChanged, null, "Table style " + set, null, set),
+            };
             List<string> tables = Tables(document.Database, set);
-            planned.AddRange(tables.Select(handle => new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "Table style", set, set)));
+            planned.AddRange(
+                tables.Select(handle => new CadEditRecord(
+                    CadEditRecordKind.PropertyChanged,
+                    handle,
+                    "Table style",
+                    set,
+                    set
+                ))
+            );
             return document.ApplyEdit("TABLESTYLE", planned, s =>
             {
                 Write(Find(s.Database, set), settings);
@@ -433,7 +492,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string set = Find(document.Database, name).Name;
-            return document.ApplyEdit("TABLESTYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Delete table style", set, null) }, s => s.Database.TableStyleDictionary.Remove(set));
+            return document.ApplyEdit(
+                "TABLESTYLE",
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Delete table style", set, null) },
+                s => s.Database.TableStyleDictionary.Remove(set)
+            );
         }
 
         /// <summary>Gets why a style may not be deleted, as Delete is greyed: Standard, the current style, a style a table uses; null where it may.</summary>
@@ -465,7 +528,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             int uses = CountUses(database, style.Name);
-            return uses > 0 ? "\"" + style.Name + "\" is in use by " + uses + (uses == 1 ? " table" : " tables") + " and cannot be deleted." : null;
+            return uses > 0
+                ? "\""
+                    + style.Name
+                    + "\" is in use by "
+                    + uses
+                    + (uses == 1 ? " table" : " tables")
+                    + " and cannot be deleted."
+                : null;
         }
 
         /// <summary>
@@ -487,7 +557,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             document.EnsureNamedObjectsDictionary();
-            return document.ApplyEdit("TABLESTYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New table style", null, "Standard") }, s => EnsureStandard(s.Database));
+            return document.ApplyEdit(
+                "TABLESTYLE",
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New table style", null, "Standard") },
+                s => EnsureStandard(s.Database)
+            );
         }
 
         /// <summary>Gets the settings of AutoCAD's Standard in a drawing's units: millimetres (title 6, header and data 4.5, margins 1.5), else inches (0.25, 0.18 and 0.06).</summary>
@@ -555,7 +629,10 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 foreach (DxfEntity entity in block)
                 {
-                    if (entity is DxfTable table && string.Equals(table.TableStyleName, name, StringComparison.OrdinalIgnoreCase))
+                    if (
+                        entity is DxfTable table
+                        && string.Equals(table.TableStyleName, name, StringComparison.OrdinalIgnoreCase)
+                    )
                     {
                         handles.Add(table.Handle);
                     }

@@ -28,7 +28,8 @@ namespace GeometryHelper.Drawing
             IReadOnlyList<DroppedEdit> editsDropped,
             IReadOnlyList<DrawingPluginRun> pluginRunsToRunAgain,
             IReadOnlyList<DrawingPluginRun> pluginRunsRun,
-            IReadOnlyList<DroppedPluginRun> pluginRunsDropped)
+            IReadOnlyList<DroppedPluginRun> pluginRunsDropped
+        )
         {
             AddedObjects = addedObjects;
             RemovedObjects = removedObjects;
@@ -86,8 +87,10 @@ namespace GeometryHelper.Drawing
         public IReadOnlyList<DroppedPluginRun> PluginRunsDropped { get; }
 
         /// <inheritdoc/>
-        public override string ToString()
-            => FormattableString.Invariant($"Update: objects +{AddedObjects.Count} -{RemovedObjects.Count} ~{ChangedObjects.Count}; elements +{AddedElements.Count} -{RemovedElements.Count} ~{ChangedElements.Count}; edits kept {EditsKept.Count}, dropped {EditsDropped.Count}; plugin runs run {PluginRunsRun.Count}, to run again {PluginRunsToRunAgain.Count}, dropped {PluginRunsDropped.Count}");
+        public override string ToString() =>
+            FormattableString.Invariant(
+                $"Update: objects +{AddedObjects.Count} -{RemovedObjects.Count} ~{ChangedObjects.Count}; elements +{AddedElements.Count} -{RemovedElements.Count} ~{ChangedElements.Count}; edits kept {EditsKept.Count}, dropped {EditsDropped.Count}; plugin runs run {PluginRunsRun.Count}, to run again {PluginRunsToRunAgain.Count}, dropped {PluginRunsDropped.Count}"
+            );
     }
 
     /// <summary>A hand edit that no longer applies after an update, and why.</summary>

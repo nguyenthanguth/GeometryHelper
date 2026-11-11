@@ -40,7 +40,8 @@ namespace GeometryHelper.IfcConvert.UnitTest
         // ---------------------------------------------------------------------------------------------
 
         public static IEnumerable<object[]> AllSampleFiles() =>
-            Directory.GetFiles(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TestFiles"), "*.ifc")
+            Directory
+                .GetFiles(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TestFiles"), "*.ifc")
                 .Select(Path.GetFileName)
                 .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
                 .Select(n => new object[] { n });
@@ -62,10 +63,16 @@ namespace GeometryHelper.IfcConvert.UnitTest
                     Assert.NotNull(geometry.Warnings);
                     foreach (var solid in geometry.Solids)
                     {
-                        Assert.True(solid.GetVolume() > 0.0 && !double.IsNaN(solid.GetVolume()) && !double.IsInfinity(solid.GetVolume()),
-                            $"{geometry.IfcType} {geometry.GlobalId}: volume {solid.GetVolume()}");
-                        Assert.True(ReferenceEquals(solid, solid.TurnOutwards()),
-                            $"{geometry.IfcType} {geometry.GlobalId}: faces point inwards");
+                        Assert.True(
+                            solid.GetVolume() > 0.0
+                                && !double.IsNaN(solid.GetVolume())
+                                && !double.IsInfinity(solid.GetVolume()),
+                            $"{geometry.IfcType} {geometry.GlobalId}: volume {solid.GetVolume()}"
+                        );
+                        Assert.True(
+                            ReferenceEquals(solid, solid.TurnOutwards()),
+                            $"{geometry.IfcType} {geometry.GlobalId}: faces point inwards"
+                        );
                     }
                 }
             });
@@ -107,7 +114,12 @@ namespace GeometryHelper.IfcConvert.UnitTest
             WithModel("wall-extruded-solid.ifc", model =>
             {
                 Assert.Equal("MILLIMETRE", model.OriginalLengthUnit);
-                AssertRelative(5.0 * 0.27 * 2.0, PhysicalVolume(model, new IfcConvertOptions { TargetUnit = LengthUnit.Meters }), 1e-6, "m3");
+                AssertRelative(
+                    5.0 * 0.27 * 2.0,
+                    PhysicalVolume(model, new IfcConvertOptions { TargetUnit = LengthUnit.Meters }),
+                    1e-6,
+                    "m3"
+                );
             });
         }
 
@@ -119,8 +131,12 @@ namespace GeometryHelper.IfcConvert.UnitTest
 
             WithModel("slab-openings.ifc", model =>
             {
-                double whole = model.GetSolidsByType("IfcSlab", new IfcConvertOptions { ApplyVoids = false }).Sum(s => s.GetVolume());
-                var cutGeometry = model.GetGeometriesByType("IfcSlab", new IfcConvertOptions { ApplyVoids = true }).Single();
+                double whole = model
+                    .GetSolidsByType("IfcSlab", new IfcConvertOptions { ApplyVoids = false })
+                    .Sum(s => s.GetVolume());
+                var cutGeometry = model
+                    .GetGeometriesByType("IfcSlab", new IfcConvertOptions { ApplyVoids = true })
+                    .Single();
 
                 Assert.Empty(cutGeometry.Warnings);
                 // The round hole is tessellated, so allow half a percent of the removed volume.
@@ -144,7 +160,8 @@ namespace GeometryHelper.IfcConvert.UnitTest
         [InlineData("geographic-referencing-gk.ifc", "geographic-referencing-utm.ifc", 1e-9)]
         public void EquivalentEncodings_HaveTheSameVolume(string first, string second, double tolerance)
         {
-            double a = 0, b = 0;
+            double a = 0,
+                b = 0;
             WithModel(first, model => a = PhysicalVolume(model));
             WithModel(second, model => b = PhysicalVolume(model));
 
@@ -178,7 +195,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
             WithModel(fileName, model =>
             {
                 // Before the fix the first IfcLinearPlacement / IfcGridPlacement threw out of the enumeration.
-                var all = model.EnumerateGeometries(new IfcConvertOptions { IncludeNonPhysicalProducts = true }).ToList();
+                var all = model
+                    .EnumerateGeometries(new IfcConvertOptions { IncludeNonPhysicalProducts = true })
+                    .ToList();
 
                 Assert.Equal(model.ProductCount, all.Count);
                 Assert.Contains(all, g => g.Warnings.Any(w => w.Contains("placement cannot be evaluated")));

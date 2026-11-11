@@ -10,24 +10,194 @@ namespace GeometryHelper.Dxf
         // The groups of AcDbMLeader after its context data, in the order AutoCAD writes them: where one the record has not goes.
         private static readonly int[] TopOrder =
         {
-            270, 340, 90, 170, 91, 341, 171, 290, 291, 41, 342, 42, 172, 343, 173, 95, 174, 175, 92, 292, 344, 93, 10, 20, 30, 43, 176, 293,
-            94, 345, 330, 177, 44, 302, 294, 178, 179, 45, 271, 272, 273, 295,
+            270,
+            340,
+            90,
+            170,
+            91,
+            341,
+            171,
+            290,
+            291,
+            41,
+            342,
+            42,
+            172,
+            343,
+            173,
+            95,
+            174,
+            175,
+            92,
+            292,
+            344,
+            93,
+            10,
+            20,
+            30,
+            43,
+            176,
+            293,
+            94,
+            345,
+            330,
+            177,
+            44,
+            302,
+            294,
+            178,
+            179,
+            45,
+            271,
+            272,
+            273,
+            295,
         };
 
         // The groups of the context data before its leaders, in the order AutoCAD writes them, its MTEXT's after 290 and its block's after 296.
         private static readonly int[] ContextOrder =
         {
-            40, 10, 20, 30, 41, 140, 145, 174, 175, 176, 177, 290, 304, 11, 21, 31, 340, 12, 22, 32, 13, 23, 33, 42, 43, 44, 45, 170, 90, 171,
-            172, 91, 141, 92, 291, 292, 173, 293, 142, 143, 294, 144, 295, 296, 341, 14, 24, 34, 15, 25, 35, 16, 26, 36, 46, 93, 47, 110, 120,
-            130, 111, 121, 131, 112, 122, 132, 297,
+            40,
+            10,
+            20,
+            30,
+            41,
+            140,
+            145,
+            174,
+            175,
+            176,
+            177,
+            290,
+            304,
+            11,
+            21,
+            31,
+            340,
+            12,
+            22,
+            32,
+            13,
+            23,
+            33,
+            42,
+            43,
+            44,
+            45,
+            170,
+            90,
+            171,
+            172,
+            91,
+            141,
+            92,
+            291,
+            292,
+            173,
+            293,
+            142,
+            143,
+            294,
+            144,
+            295,
+            296,
+            341,
+            14,
+            24,
+            34,
+            15,
+            25,
+            35,
+            16,
+            26,
+            36,
+            46,
+            93,
+            47,
+            110,
+            120,
+            130,
+            111,
+            121,
+            131,
+            112,
+            122,
+            132,
+            297,
         };
 
         // The groups of a leader before its lines, in the order AutoCAD writes them.
-        private static readonly int[] LeaderOrder = { 290, 291, 10, 20, 30, 11, 21, 31, 12, 22, 32, 13, 23, 33, 90, 40 };
+        private static readonly int[] LeaderOrder =
+        {
+            290,
+            291,
+            10,
+            20,
+            30,
+            11,
+            21,
+            31,
+            12,
+            22,
+            32,
+            13,
+            23,
+            33,
+            90,
+            40,
+        };
 
         // The groups of the MTEXT of the context data and of its block, as ezdxf reads them.
-        private static readonly HashSet<int> MTextCodes = new HashSet<int> { 304, 11, 21, 31, 340, 12, 22, 32, 13, 23, 33, 42, 43, 44, 45, 170, 90, 171, 172, 91, 141, 92, 291, 292, 173, 293, 142, 143, 294, 144, 295 };
-        private static readonly HashSet<int> BlockCodes = new HashSet<int> { 341, 14, 24, 34, 15, 25, 35, 16, 26, 36, 46, 93, 47 };
+        private static readonly HashSet<int> MTextCodes = new HashSet<int>
+        {
+            304,
+            11,
+            21,
+            31,
+            340,
+            12,
+            22,
+            32,
+            13,
+            23,
+            33,
+            42,
+            43,
+            44,
+            45,
+            170,
+            90,
+            171,
+            172,
+            91,
+            141,
+            92,
+            291,
+            292,
+            173,
+            293,
+            142,
+            143,
+            294,
+            144,
+            295,
+        };
+        private static readonly HashSet<int> BlockCodes = new HashSet<int>
+        {
+            341,
+            14,
+            24,
+            34,
+            15,
+            25,
+            35,
+            16,
+            26,
+            36,
+            46,
+            93,
+            47,
+        };
 
         /// <summary>
         /// The own groups of the MULTILEADER: those before its context data, its context data with its leaders and their lines,
@@ -331,7 +501,8 @@ namespace GeometryHelper.Dxf
             return at < 0 ? fallback : PointAt(groups, at);
         }
 
-        private static KeyValuePair<int, string>[] PointGroups(int code, GeoPoint3 p) => new[] { G(code, p.X), G(code + 10, p.Y), G(code + 20, p.Z) };
+        private static KeyValuePair<int, string>[] PointGroups(int code, GeoPoint3 p) =>
+            new[] { G(code, p.X), G(code + 10, p.Y), G(code + 20, p.Z) };
 
         private static bool SamePoint(GeoPoint3 a, GeoPoint3 b) => Same(a.X, b.X) && Same(a.Y, b.Y) && Same(a.Z, b.Z);
 
@@ -339,7 +510,14 @@ namespace GeometryHelper.Dxf
         /// Sets the first group of a code in a run, or puts one after the last of those the order writes before it; null takes
         /// every one out. False where it is as it was.
         /// </summary>
-        private static bool Put(List<KeyValuePair<int, string>> groups, int code, string value, int[] order, int from = 0, int to = -1)
+        private static bool Put(
+            List<KeyValuePair<int, string>> groups,
+            int code,
+            string value,
+            int[] order,
+            int from = 0,
+            int to = -1
+        )
         {
             to = to < 0 ? groups.Count : to;
             int at = -1;
@@ -393,7 +571,15 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Sets a number in a run where it differs from the one read, to the bit.</summary>
-        private static void PutNumber(List<KeyValuePair<int, string>> groups, int code, double value, double fallback, int[] order, int from = 0, int to = -1)
+        private static void PutNumber(
+            List<KeyValuePair<int, string>> groups,
+            int code,
+            double value,
+            double fallback,
+            int[] order,
+            int from = 0,
+            int to = -1
+        )
         {
             to = to < 0 ? groups.Count : to;
             int at = groups.FindIndex(from, to - from, g => g.Key == code);
@@ -407,7 +593,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Sets a point in a run, each coordinate that differs written anew, those left out with it.</summary>
-        private static void PutPoint(List<KeyValuePair<int, string>> groups, int code, GeoPoint3 value, int[] order, int from = 0, int to = -1)
+        private static void PutPoint(
+            List<KeyValuePair<int, string>> groups,
+            int code,
+            GeoPoint3 value,
+            int[] order,
+            int from = 0,
+            int to = -1
+        )
         {
             to = to < 0 ? groups.Count : to;
             int at = groups.FindIndex(from, to - from, g => g.Key == code);
@@ -453,7 +646,13 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Where a section of the context data runs, after its flag of 1 (290 for the MTEXT, 296 for the block): its first group and the one after its last; (-1, -1) where it has none.</summary>
-        private static void Section(List<KeyValuePair<int, string>> head, int flag, HashSet<int> codes, out int from, out int to)
+        private static void Section(
+            List<KeyValuePair<int, string>> head,
+            int flag,
+            HashSet<int> codes,
+            out int from,
+            out int to
+        )
         {
             int at = head.FindIndex(g => g.Key == flag);
             from = -1;

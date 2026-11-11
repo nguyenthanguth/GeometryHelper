@@ -33,9 +33,13 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A square in the plane z = 50, overhanging the box on three sides.
         /// </summary>
-        private static GeoPolygon3 Sheet() => new GeoPolygon3(
-            new GeoPoint3(-50, 50, 50), new GeoPoint3(150, 50, 50),
-            new GeoPoint3(150, 150, 50), new GeoPoint3(-50, 150, 50));
+        private static GeoPolygon3 Sheet() =>
+            new GeoPolygon3(
+                new GeoPoint3(-50, 50, 50),
+                new GeoPoint3(150, 50, 50),
+                new GeoPoint3(150, 150, 50),
+                new GeoPoint3(-50, 150, 50)
+            );
 
         private static GeoPoint3[] Sorted(GeoPoint3[] points) =>
             points.OrderBy(point => point.X).ThenBy(point => point.Y).ThenBy(point => point.Z).ToArray();
@@ -134,7 +138,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(fromRay.IsEqualTo(new GeoPoint3(30, 40, 50), Loose));
 
             // A segment lying wholly to one side never reaches the plane.
-            Assert.False(plane.TryIntersectWith(new GeoLine3(new GeoPoint3(0, 0, 60), new GeoPoint3(100, 0, 90)), out _));
+            Assert.False(
+                plane.TryIntersectWith(new GeoLine3(new GeoPoint3(0, 0, 60), new GeoPoint3(100, 0, 90)), out _)
+            );
 
             // The cube is cut at half height, so every point that comes back is on the plane, and the plane
             // is asked the same thing the solid has always been able to answer.
@@ -170,7 +176,11 @@ namespace GeometryHelper.UnitTest.Solid
 
             // Two triangles, one flat and one standing on edge through it.
             var flat = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
-            var standing = new GeoTriangle3(new GeoPoint3(20, 20, -10), new GeoPoint3(20, 20, 10), new GeoPoint3(60, 20, 0));
+            var standing = new GeoTriangle3(
+                new GeoPoint3(20, 20, -10),
+                new GeoPoint3(20, 20, 10),
+                new GeoPoint3(60, 20, 0)
+            );
 
             Assert.True(flat.CollidesWith(standing));
             Assert.True(standing.CollidesWith(flat));
@@ -254,7 +264,11 @@ namespace GeometryHelper.UnitTest.Solid
             var plane = new GeoPlane3(new GeoPoint3(0, 0, 50), new GeoVector3(0, 0, 1));
             var ray = new GeoRay3(new GeoPoint3(-50, 50, 50), new GeoVector3(1, 0, 0));
             var flat = new GeoTriangle3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
-            var standing = new GeoTriangle3(new GeoPoint3(20, 20, -10), new GeoPoint3(20, 20, 10), new GeoPoint3(60, 20, 0));
+            var standing = new GeoTriangle3(
+                new GeoPoint3(20, 20, -10),
+                new GeoPoint3(20, 20, 10),
+                new GeoPoint3(60, 20, 0)
+            );
 
             Assert.Equal(through.CollidesWith(aabb), through.CollidesWith(aabb, global));
             Assert.Equal(through.CollidesWith(obb), through.CollidesWith(obb, global));
@@ -286,12 +300,30 @@ namespace GeometryHelper.UnitTest.Solid
             var upright = new GeoLine3(new GeoPoint3(50, 75, -50), new GeoPoint3(50, 75, 150));
             var rising = new GeoRay3(new GeoPoint3(50, 75, -50), new GeoVector3(0, 0, 1));
 
-            Assert.Equal(upright.TryIntersectWith(face, out GeoPoint3 p1), upright.TryIntersectWith(face, out GeoPoint3 q1, global));
-            Assert.Equal(upright.TryIntersectWith(sheet, out GeoPoint3 p2), upright.TryIntersectWith(sheet, out GeoPoint3 q2, global));
-            Assert.Equal(rising.TryIntersectWith(face, out GeoPoint3 p3), rising.TryIntersectWith(face, out GeoPoint3 q3, global));
-            Assert.Equal(rising.TryIntersectWith(sheet, out GeoPoint3 p4), rising.TryIntersectWith(sheet, out GeoPoint3 q4, global));
-            Assert.Equal(plane.TryIntersectWith(upright, out GeoPoint3 p5), plane.TryIntersectWith(upright, out GeoPoint3 q5, global));
-            Assert.Equal(plane.TryIntersectWith(rising, out GeoPoint3 p6), plane.TryIntersectWith(rising, out GeoPoint3 q6, global));
+            Assert.Equal(
+                upright.TryIntersectWith(face, out GeoPoint3 p1),
+                upright.TryIntersectWith(face, out GeoPoint3 q1, global)
+            );
+            Assert.Equal(
+                upright.TryIntersectWith(sheet, out GeoPoint3 p2),
+                upright.TryIntersectWith(sheet, out GeoPoint3 q2, global)
+            );
+            Assert.Equal(
+                rising.TryIntersectWith(face, out GeoPoint3 p3),
+                rising.TryIntersectWith(face, out GeoPoint3 q3, global)
+            );
+            Assert.Equal(
+                rising.TryIntersectWith(sheet, out GeoPoint3 p4),
+                rising.TryIntersectWith(sheet, out GeoPoint3 q4, global)
+            );
+            Assert.Equal(
+                plane.TryIntersectWith(upright, out GeoPoint3 p5),
+                plane.TryIntersectWith(upright, out GeoPoint3 q5, global)
+            );
+            Assert.Equal(
+                plane.TryIntersectWith(rising, out GeoPoint3 p6),
+                plane.TryIntersectWith(rising, out GeoPoint3 q6, global)
+            );
 
             foreach (var pair in new[] { (p1, q1), (p2, q2), (p3, q3), (p4, q4), (p5, q5), (p6, q6) })
             {
@@ -304,7 +336,8 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(along.GetIntersection(across), along.GetIntersection(across, global));
             Assert.Equal(
                 along.GetIntersection(across, LineExtension.Both),
-                along.GetIntersection(across, LineExtension.Both, global));
+                along.GetIntersection(across, LineExtension.Both, global)
+            );
         }
 
         [Fact]

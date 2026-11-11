@@ -21,7 +21,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="plane">The plane.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance) => ArcChain3.CollidesWith(this, plane, tolerance);
+        public bool CollidesWith(GeoPlane3 plane, Tolerance tolerance) =>
+            ArcChain3.CollidesWith(this, plane, tolerance);
 
         /// <summary>
         /// Checks whether this curved chain touches a triangle.
@@ -34,7 +35,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="triangle">The triangle.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) => ArcChain3.CollidesWith(this, triangle, tolerance);
+        public bool CollidesWith(GeoTriangle3 triangle, Tolerance tolerance) =>
+            ArcChain3.CollidesWith(this, triangle, tolerance);
 
         /// <summary>
         /// Checks whether this curved chain touches a polygon.
@@ -47,7 +49,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="polygon">The polygon.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) => ArcChain3.CollidesWith(this, polygon, tolerance);
+        public bool CollidesWith(GeoPolygon3 polygon, Tolerance tolerance) =>
+            ArcChain3.CollidesWith(this, polygon, tolerance);
 
         /// <summary>
         /// Checks whether this curved chain touches a face.
@@ -99,7 +102,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="solid">The solid.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) => ArcChain3.CollidesWith(this, solid, tolerance);
+        public bool CollidesWith(GeoSolid3 solid, Tolerance tolerance) =>
+            ArcChain3.CollidesWith(this, solid, tolerance);
 
         /// <summary>
         /// Checks whether this curved chain touches an arc.
@@ -125,8 +129,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="circle">The circle.</param>
         /// <param name="tolerance">The tolerance.</param>
-        public bool CollidesWith(GeoCircle3 circle, Tolerance tolerance) => ArcChain3.CollidesWith(this, circle, tolerance);
-
+        public bool CollidesWith(GeoCircle3 circle, Tolerance tolerance) =>
+            ArcChain3.CollidesWith(this, circle, tolerance);
 
         /// <summary>
         /// Determines whether this chain touches a segment.
@@ -136,7 +140,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this chain touches a segment, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoLine3 line, Tolerance tolerance) => Core.ArcChain3.CollidesWith(this, line, tolerance);
+        public bool CollidesWith(GeoLine3 line, Tolerance tolerance) =>
+            Core.ArcChain3.CollidesWith(this, line, tolerance);
 
         /// <summary>
         /// Determines whether this chain touches a ray.
@@ -156,7 +161,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this chain touches a curved chain, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoPolylineArc3 other, Tolerance tolerance) => Core.ArcChain3.CollidesWith(this, other, tolerance);
+        public bool CollidesWith(GeoPolylineArc3 other, Tolerance tolerance) =>
+            Core.ArcChain3.CollidesWith(this, other, tolerance);
 
         /// <summary>
         /// Determines whether this chain touches a curved loop.
@@ -166,7 +172,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this chain touches a curved loop, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoPolygonArc3 other, Tolerance tolerance) => Core.ArcChain3.CollidesWith(this, other, tolerance);
+        public bool CollidesWith(GeoPolygonArc3 other, Tolerance tolerance) =>
+            Core.ArcChain3.CollidesWith(this, other, tolerance);
 
         /// <summary>
         /// Determines whether this chain touches a straight chain.
@@ -176,7 +183,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether this chain touches a straight chain, within a tolerance.
         /// </summary>
-        public bool CollidesWith(GeoPolyline3 other, Tolerance tolerance) => Core.ArcChain3.CollidesWith(this, other, tolerance);
+        public bool CollidesWith(GeoPolyline3 other, Tolerance tolerance) =>
+            Core.ArcChain3.CollidesWith(this, other, tolerance);
 
         /// <summary>
         /// Checks whether an edge touches this curved chain: the same answer as

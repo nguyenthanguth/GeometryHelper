@@ -15,7 +15,12 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfLayerTableRecordTests
     {
-        private static readonly string[] Drawings = { DxfFileEzdxfDrawings.R12, DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 };
+        private static readonly string[] Drawings =
+        {
+            DxfFileEzdxfDrawings.R12,
+            DxfFileEzdxfDrawings.R2000,
+            DxfFileEzdxfDrawings.R2018,
+        };
 
         [Fact]
         public void ALayersDescription_IsTheSecondTextOfAcAecLayerStandard_AsAutoCADKeepsIt()
@@ -28,7 +33,11 @@ namespace GeometryHelper.UnitTest.Dxf
             steel.Description = "Columns of grid A";
 
             string saved = db.ToText();
-            Assert.EndsWith("1001\nAcAecLayerStandard\n1000\n\n1000\nColumns of grid A\n", Records(saved).Single(r => HandleOf(r) == steel.Handle), StringComparison.Ordinal);
+            Assert.EndsWith(
+                "1001\nAcAecLayerStandard\n1000\n\n1000\nColumns of grid A\n",
+                Records(saved).Single(r => HandleOf(r) == steel.Handle),
+                StringComparison.Ordinal
+            );
             DxfDatabase again = DxfDatabase.Parse(saved);
             Assert.Equal("Columns of grid A", again.LayerTable["steel"].Description);
             again.LayerTable["steel"].Description = string.Empty;
@@ -36,7 +45,12 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<ArgumentNullException>(() => steel.Description = null);
             Assert.Throws<ArgumentException>(() => steel.Description = "two\nlines");
 
-            var made = new DxfLayerTableRecord { Name = "GH_Grid", Description = "grid lines", ViewportVisibilityDefault = true };
+            var made = new DxfLayerTableRecord
+            {
+                Name = "GH_Grid",
+                Description = "grid lines",
+                ViewportVisibilityDefault = true,
+            };
             DxfDatabase r12 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R12);
             r12.LayerTable.Add(made);
             DxfLayerTableRecord read = DxfDatabase.Parse(r12.ToText()).LayerTable["GH_Grid"];
@@ -71,7 +85,11 @@ namespace GeometryHelper.UnitTest.Dxf
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, steel.Handle);
             Assert.True(DxfDatabase.Parse(saved).LayerTable["steel"].ViewportVisibilityDefault);
-            Assert.Contains(" 70\n2\n", Records(saved).Single(r => HandleOf(r) == steel.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                " 70\n2\n",
+                Records(saved).Single(r => HandleOf(r) == steel.Handle),
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -89,7 +107,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.False(new DxfLayerTableRecord { Name = "x" }.IsUsed);
 
             // A vertex of a polyline is drawn as part of it: on a layer, it uses it.
-            DxfEntity vertex = ((System.Collections.IEnumerable)ByHandle<DxfEntity>(db, "44")).Cast<DxfEntity>().First();
+            DxfEntity vertex = ((System.Collections.IEnumerable)ByHandle<DxfEntity>(db, "44"))
+                .Cast<DxfEntity>()
+                .First();
             vertex.Layer = "GH_Spare";
             Assert.True(spare.IsUsed);
             vertex.Layer = "0";
@@ -130,7 +150,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // A layer of the name added after, letters of either case the same, is a new one: the old name is free.
             db.LayerTable.Add(new DxfLayerTableRecord { Name = "STEEL" });
-            Assert.Equal(new[] { "0", "Defpoints", "Steel_S355", "Wand€Außen", "STEEL" }, DxfDatabase.Parse(db.ToText()).LayerTable.Select(l => l.Name));
+            Assert.Equal(
+                new[] { "0", "Defpoints", "Steel_S355", "Wand€Außen", "STEEL" },
+                DxfDatabase.Parse(db.ToText()).LayerTable.Select(l => l.Name)
+            );
         }
 
         [Fact]

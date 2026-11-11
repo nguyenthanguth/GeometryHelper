@@ -46,7 +46,14 @@ namespace GeometryHelper.Drawing.Annotation
         public WeldStandard WeldStandard
         {
             get => _weldStandard;
-            set => _weldStandard = Enum.IsDefined(typeof(WeldStandard), value) ? value : throw new ArgumentOutOfRangeException(nameof(WeldStandard), value, "The standard has to be one of WeldStandard.");
+            set =>
+                _weldStandard = Enum.IsDefined(typeof(WeldStandard), value)
+                    ? value
+                    : throw new ArgumentOutOfRangeException(
+                        nameof(WeldStandard),
+                        value,
+                        "The standard has to be one of WeldStandard."
+                    );
         }
 
         /// <summary>
@@ -61,13 +68,14 @@ namespace GeometryHelper.Drawing.Annotation
         /// </remarks>
         public bool LevelMarks { get; set; }
 
-        internal SymbolSettings Clone() => new SymbolSettings
-        {
-            _textHeight = _textHeight,
-            _centreLineExtension = _centreLineExtension,
-            _weldStandard = _weldStandard,
-            LevelMarks = LevelMarks,
-        };
+        internal SymbolSettings Clone() =>
+            new SymbolSettings
+            {
+                _textHeight = _textHeight,
+                _centreLineExtension = _centreLineExtension,
+                _weldStandard = _weldStandard,
+                LevelMarks = LevelMarks,
+            };
 
         private static double Positive(double value, string name)
         {

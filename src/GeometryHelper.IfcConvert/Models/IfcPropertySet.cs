@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace GeometryHelper.IfcConvert.Models
@@ -37,8 +37,8 @@ namespace GeometryHelper.IfcConvert.Models
         }
 
         /// <summary>Tries to get a property by name (case-insensitive).</summary>
-        public bool TryGetProperty(string propertyName, out IfcPropertyValue value)
-            => _properties.TryGetValue(propertyName ?? string.Empty, out value);
+        public bool TryGetProperty(string propertyName, out IfcPropertyValue value) =>
+            _properties.TryGetValue(propertyName ?? string.Empty, out value);
 
         /// <inheritdoc />
         public override string ToString() => "IfcPropertySet(" + Name + ", " + _properties.Count + " properties)";

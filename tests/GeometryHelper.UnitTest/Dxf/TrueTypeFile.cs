@@ -56,7 +56,12 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The bytes of a .ttf of the letters given, its family named as given, bold and italic as said, its letters mapped by the subtable of symbols where said.</summary>
-        internal static byte[] Font(IList<Letter> letters, string family = "GH Test", int style = 0, bool symbols = false) => Face(0, letters, family, style, symbols);
+        internal static byte[] Font(
+            IList<Letter> letters,
+            string family = "GH Test",
+            int style = 0,
+            bool symbols = false
+        ) => Face(0, letters, family, style, symbols);
 
         /// <summary>The bytes of a .ttc of two faces of the letters given, the first of the family "GH Test", the second "GH Other".</summary>
         internal static byte[] Collection(IList<Letter> letters)
@@ -82,15 +87,59 @@ namespace GeometryHelper.UnitTest.Dxf
             int n = letters.Count;
             var tables = new SortedDictionary<string, byte[]>(StringComparer.Ordinal)
             {
-                { "head", Join(U32(0x00010000), U32(0), U32(0), U32(0x5F0F3CF5), U16(0), U16(1000), new byte[16], U16(0), U16(0), U16(0), U16(0), U16(style), U16(8), U16(2), U16(1), U16(0)) },
+                {
+                    "head",
+                    Join(
+                        U32(0x00010000),
+                        U32(0),
+                        U32(0),
+                        U32(0x5F0F3CF5),
+                        U16(0),
+                        U16(1000),
+                        new byte[16],
+                        U16(0),
+                        U16(0),
+                        U16(0),
+                        U16(0),
+                        U16(style),
+                        U16(8),
+                        U16(2),
+                        U16(1),
+                        U16(0)
+                    )
+                },
                 { "hhea", Join(U32(0x00010000), U16(800), U16(-250), U16(0), U16(1000), new byte[20], U16(0), U16(n)) },
                 { "maxp", Join(U32(0x00005000), U16(n)) },
                 { "OS/2", Join(new byte[74], U16(900), U16(210)) },
                 { "hmtx", Join(letters.Select(l => Join(U16(l.Advance), U16(0))).ToArray()) },
-                { "glyf", Join(letters.Where(l => l.Box != null).Select(l => Join(U16(0), U16(l.Box[0]), U16(l.Box[1]), U16(l.Box[2]), U16(l.Box[3]))).ToArray()) },
+                {
+                    "glyf",
+                    Join(
+                        letters
+                            .Where(l => l.Box != null)
+                            .Select(l => Join(U16(0), U16(l.Box[0]), U16(l.Box[1]), U16(l.Box[2]), U16(l.Box[3])))
+                            .ToArray()
+                    )
+                },
                 { "cmap", Cmap(letters, symbols) },
                 { "name", Name(family) },
-                { "kern", Join(U16(0), U16(1), U16(0), U16(20), U16(1), U16(1), U16(6), U16(0), U16(0), U16(letters.IndexOf(letters.First(l => l.Number == ('A' | (symbols ? 0xF000 : 0))))), U16(letters.IndexOf(letters.First(l => l.Number == ('V' | (symbols ? 0xF000 : 0))))), U16(-100)) },
+                {
+                    "kern",
+                    Join(
+                        U16(0),
+                        U16(1),
+                        U16(0),
+                        U16(20),
+                        U16(1),
+                        U16(1),
+                        U16(6),
+                        U16(0),
+                        U16(0),
+                        U16(letters.IndexOf(letters.First(l => l.Number == ('A' | (symbols ? 0xF000 : 0))))),
+                        U16(letters.IndexOf(letters.First(l => l.Number == ('V' | (symbols ? 0xF000 : 0))))),
+                        U16(-100)
+                    )
+                },
             };
             var loca = new List<byte>();
             int glyph = 0;
@@ -128,13 +177,27 @@ namespace GeometryHelper.UnitTest.Dxf
         /// <summary>A cmap of one subtable of format 4, of Windows' Unicode (3, 1) or its symbols (3, 0): a segment for each letter, mapped by its delta, then the last of 0xFFFF.</summary>
         private static byte[] Cmap(IList<Letter> letters, bool symbols)
         {
-            List<KeyValuePair<int, int>> mapped = letters.Select((l, i) => new KeyValuePair<int, int>(l.Number, i)).Where(p => p.Key > 0).OrderBy(p => p.Key).ToList();
+            List<KeyValuePair<int, int>> mapped = letters
+                .Select((l, i) => new KeyValuePair<int, int>(l.Number, i))
+                .Where(p => p.Key > 0)
+                .OrderBy(p => p.Key)
+                .ToList();
             mapped.Add(new KeyValuePair<int, int>(0xFFFF, 0));
             int segments = mapped.Count;
             byte[] format4 = Join(
-                U16(4), U16(16 + (8 * segments)), U16(0), U16(2 * segments), U16(0), U16(0), U16(0),
-                Join(mapped.Select(p => U16(p.Key)).ToArray()), U16(0), Join(mapped.Select(p => U16(p.Key)).ToArray()),
-                Join(mapped.Select(p => U16(p.Key == 0xFFFF ? 1 : p.Value - p.Key)).ToArray()), Join(mapped.Select(p => U16(0)).ToArray()));
+                U16(4),
+                U16(16 + (8 * segments)),
+                U16(0),
+                U16(2 * segments),
+                U16(0),
+                U16(0),
+                U16(0),
+                Join(mapped.Select(p => U16(p.Key)).ToArray()),
+                U16(0),
+                Join(mapped.Select(p => U16(p.Key)).ToArray()),
+                Join(mapped.Select(p => U16(p.Key == 0xFFFF ? 1 : p.Value - p.Key)).ToArray()),
+                Join(mapped.Select(p => U16(0)).ToArray())
+            );
             return Join(U16(0), U16(1), U16(3), U16(symbols ? 0 : 1), U32(12), format4);
         }
 
@@ -147,7 +210,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static byte[] U16(int value) => new[] { (byte)(value >> 8), (byte)value };
 
-        private static byte[] U32(uint value) => new[] { (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value };
+        private static byte[] U32(uint value) =>
+            new[] { (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value };
 
         private static byte[] Join(params byte[][] parts) => parts.SelectMany(p => p).ToArray();
     }

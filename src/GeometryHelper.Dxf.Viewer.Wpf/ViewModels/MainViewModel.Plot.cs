@@ -114,7 +114,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 if (path != null)
                 {
-                    Plotted(sender, () => PlotDialogViewModel.Write(path, document, job.Space, job.Settings, job.Display), path);
+                    Plotted(
+                        sender,
+                        () => PlotDialogViewModel.Write(path, document, job.Space, job.Settings, job.Display),
+                        path
+                    );
                 }
             }
         }
@@ -135,7 +139,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 PlotDialogViewModel.Write(job.FileName, document, job.Space, job.Settings, job.Display);
                 e.Handled = true;
             }
-            catch (Exception exception) when (exception is InvalidOperationException || exception is System.IO.IOException || exception is UnauthorizedAccessException || exception is ArgumentException)
+            catch (Exception exception)
+                when (exception is InvalidOperationException
+                    || exception is System.IO.IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is ArgumentException
+                )
             {
                 GeometryHelperLog.Warn("MainViewModel: the plot to " + job.FileName + " was not written.", exception);
                 ((CadCommandSession)sender).Write("The plot was not written: " + exception.Message);
@@ -152,7 +161,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 plot();
                 session.Write("Plot written to " + path + ".");
             }
-            catch (Exception exception) when (exception is InvalidOperationException || exception is System.IO.IOException || exception is UnauthorizedAccessException || exception is ArgumentException)
+            catch (Exception exception)
+                when (exception is InvalidOperationException
+                    || exception is System.IO.IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is ArgumentException
+                )
             {
                 GeometryHelperLog.Warn("MainViewModel: the plot to " + path + " was not written.", exception);
                 session.Write("The plot was not written: " + exception.Message);

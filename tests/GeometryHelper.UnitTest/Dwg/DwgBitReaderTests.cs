@@ -87,10 +87,18 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.Equal(value, Of(0b0000_0000).BitDoubleDefault(value));
 
             // 01, then four bytes 78 56 34 12 that become the low four of the eight.
-            Assert.Equal(0x4059_0000_1234_5678, BitConverter.DoubleToInt64Bits(Shifted(0b01, 0x78, 0x56, 0x34, 0x12).BitDoubleDefault(value)));
+            Assert.Equal(
+                0x4059_0000_1234_5678,
+                BitConverter.DoubleToInt64Bits(Shifted(0b01, 0x78, 0x56, 0x34, 0x12).BitDoubleDefault(value))
+            );
 
             // 10, then six bytes: BC 9A become the fifth and sixth, then 78 56 34 12 the low four.
-            Assert.Equal(0x4059_9ABC_1234_5678, BitConverter.DoubleToInt64Bits(Shifted(0b10, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12).BitDoubleDefault(value)));
+            Assert.Equal(
+                0x4059_9ABC_1234_5678,
+                BitConverter.DoubleToInt64Bits(
+                    Shifted(0b10, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12).BitDoubleDefault(value)
+                )
+            );
 
             // 11: a whole raw double.
             Assert.Equal(-7.25, Shifted(0b11, BitConverter.GetBytes(-7.25)).BitDoubleDefault(value));

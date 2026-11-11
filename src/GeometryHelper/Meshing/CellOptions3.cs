@@ -28,8 +28,19 @@ namespace GeometryHelper.Meshing
         /// Thrown when a size is negative or not a finite number, the joint is negative or not a finite number, or the
         /// alignment is not one of <see cref="GridAlignment"/>.
         /// </exception>
-        public static CellOptions3 Grid(double sizeX, double sizeY, double sizeZ, double joint = 0.0, GridAlignment alignment = GridAlignment.Start)
-            => new CellOptions3(Axis(sizeX, nameof(sizeX), alignment), Axis(sizeY, nameof(sizeY), alignment), Axis(sizeZ, nameof(sizeZ), alignment), joint);
+        public static CellOptions3 Grid(
+            double sizeX,
+            double sizeY,
+            double sizeZ,
+            double joint = 0.0,
+            GridAlignment alignment = GridAlignment.Start
+        ) =>
+            new CellOptions3(
+                Axis(sizeX, nameof(sizeX), alignment),
+                Axis(sizeY, nameof(sizeY), alignment),
+                Axis(sizeZ, nameof(sizeZ), alignment),
+                joint
+            );
 
         /// <summary>
         /// Layers of a thickness up the grid's Z axis, the body left whole along X and Y, as the lifts of a pour.
@@ -41,8 +52,11 @@ namespace GeometryHelper.Meshing
         /// Thrown when the thickness is not a finite number above nought, the joint is negative or not a finite number, or
         /// the alignment is not one of <see cref="GridAlignment"/>.
         /// </exception>
-        public static CellOptions3 Layers(double thickness, double joint = 0.0, GridAlignment alignment = GridAlignment.Start)
-            => new CellOptions3(CellAxis.Whole, CellAxis.Whole, CellAxis.BySize(thickness, alignment), joint);
+        public static CellOptions3 Layers(
+            double thickness,
+            double joint = 0.0,
+            GridAlignment alignment = GridAlignment.Start
+        ) => new CellOptions3(CellAxis.Whole, CellAxis.Whole, CellAxis.BySize(thickness, alignment), joint);
 
         /// <summary>
         /// As many equal cells along each axis as asked, from the body's first side to its far one.
@@ -52,8 +66,8 @@ namespace GeometryHelper.Meshing
         /// <param name="countZ">How many cells along the grid's Z axis; one leaves the body whole that way.</param>
         /// <param name="joint">The gap between two neighbouring cells, along each axis divided; nought for none.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a count is below one, or the joint is negative or not a finite number.</exception>
-        public static CellOptions3 Divide(int countX, int countY, int countZ, double joint = 0.0)
-            => new CellOptions3(CellAxis.ByCount(countX), CellAxis.ByCount(countY), CellAxis.ByCount(countZ), joint);
+        public static CellOptions3 Divide(int countX, int countY, int countZ, double joint = 0.0) =>
+            new CellOptions3(CellAxis.ByCount(countX), CellAxis.ByCount(countY), CellAxis.ByCount(countZ), joint);
 
         /// <summary>
         /// Initializes cell options, each axis divided its own way.
@@ -78,14 +92,29 @@ namespace GeometryHelper.Meshing
         /// Thrown when the joint or the snap distance is negative or not a finite number, or the threads are neither -1 nor
         /// a positive count.
         /// </exception>
-        public CellOptions3(CellAxis x, CellAxis y, CellAxis z, double joint = 0.0, double snapDistance = 0.0, int maxDegreeOfParallelism = -1)
+        public CellOptions3(
+            CellAxis x,
+            CellAxis y,
+            CellAxis z,
+            double joint = 0.0,
+            double snapDistance = 0.0,
+            int maxDegreeOfParallelism = -1
+        )
         {
             Guard.NonNegative(joint, nameof(joint), "A joint has to be a finite number, and cannot be negative.");
-            Guard.NonNegative(snapDistance, nameof(snapDistance), "A snap distance has to be a finite number, and cannot be negative.");
+            Guard.NonNegative(
+                snapDistance,
+                nameof(snapDistance),
+                "A snap distance has to be a finite number, and cannot be negative."
+            );
 
             if (maxDegreeOfParallelism == 0 || maxDegreeOfParallelism < -1)
             {
-                throw new ArgumentOutOfRangeException(nameof(maxDegreeOfParallelism), maxDegreeOfParallelism, "Use -1 for every processor, or a positive count.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(maxDegreeOfParallelism),
+                    maxDegreeOfParallelism,
+                    "Use -1 for every processor, or a positive count."
+                );
             }
 
             X = x;
@@ -133,7 +162,10 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Gets how one of the axes is divided: 0 for X, 1 for Y, 2 for Z.
         /// </summary>
-        internal CellAxis AxisAt(int index) => index == 0 ? X : index == 1 ? Y : Z;
+        internal CellAxis AxisAt(int index) =>
+            index == 0 ? X
+            : index == 1 ? Y
+            : Z;
 
         /// <summary>
         /// Determines whether another set of options cuts a body the same way.
@@ -174,8 +206,16 @@ namespace GeometryHelper.Meshing
         /// <summary>
         /// Describes the options.
         /// </summary>
-        public override string ToString()
-            => string.Format(CultureInfo.InvariantCulture, "(X: {0}, Y: {1}, Z: {2}, Joint: {3}, Snap: {4})", X, Y, Z, Joint, SnapDistance > 0.0 ? SnapDistance.ToString(CultureInfo.InvariantCulture) : "tolerance");
+        public override string ToString() =>
+            string.Format(
+                CultureInfo.InvariantCulture,
+                "(X: {0}, Y: {1}, Z: {2}, Joint: {3}, Snap: {4})",
+                X,
+                Y,
+                Z,
+                Joint,
+                SnapDistance > 0.0 ? SnapDistance.ToString(CultureInfo.InvariantCulture) : "tolerance"
+            );
 
         private static CellAxis Axis(double size, string name, GridAlignment alignment)
         {

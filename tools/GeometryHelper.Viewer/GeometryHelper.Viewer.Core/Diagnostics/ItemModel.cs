@@ -105,8 +105,14 @@ namespace GeometryHelper.Viewer
                 }
 
                 double bulge = k < Bulges.Length ? Bulges[k] : 0.0;
-                Vec3 normal = Dimension == 2 ? new Vec3(0.0, 0.0, 1.0) : Normals != null && k < Normals.Length ? Normals[k].Normalized() : default(Vec3);
-                curves[k] = bulge == 0.0 ? SceneCurve.Segment(itemIndex, from, to) : SceneCurve.Edge(itemIndex, from, to, bulge, normal);
+                Vec3 normal =
+                    Dimension == 2 ? new Vec3(0.0, 0.0, 1.0)
+                    : Normals != null && k < Normals.Length ? Normals[k].Normalized()
+                    : default(Vec3);
+                curves[k] =
+                    bulge == 0.0
+                        ? SceneCurve.Segment(itemIndex, from, to)
+                        : SceneCurve.Edge(itemIndex, from, to, bulge, normal);
 
                 if (curves[k] == null || (bulge == 0.0 && from.Equals(to)))
                 {
@@ -187,21 +193,42 @@ namespace GeometryHelper.Viewer
 
         internal static ItemModel Read(SceneItem item, int index)
         {
-            var model = new ItemModel { Index = index, Item = item, Name = item.Name ?? item.Kind };
+            var model = new ItemModel
+            {
+                Index = index,
+                Item = item,
+                Name = item.Name ?? item.Kind,
+            };
             JsonElement d = item.Data;
 
             switch (item.Kind)
             {
-                case "GeoPolygon2": model.Chain(item.Kind, "polygon", DataJson.Points(d, "points", 2), null, null, true, 2); break;
-                case "GeoPolygon3": model.Chain(item.Kind, "polygon", DataJson.Points(d, "points", 3), null, null, true, 3); break;
-                case "GeoPolyline2": model.Chain(item.Kind, "chain", DataJson.Points(d, "points", 2), null, null, false, 2); break;
-                case "GeoPolyline3": model.Chain(item.Kind, "chain", DataJson.Points(d, "points", 3), null, null, false, 3); break;
+                case "GeoPolygon2":
+                    model.Chain(item.Kind, "polygon", DataJson.Points(d, "points", 2), null, null, true, 2);
+                    break;
+                case "GeoPolygon3":
+                    model.Chain(item.Kind, "polygon", DataJson.Points(d, "points", 3), null, null, true, 3);
+                    break;
+                case "GeoPolyline2":
+                    model.Chain(item.Kind, "chain", DataJson.Points(d, "points", 2), null, null, false, 2);
+                    break;
+                case "GeoPolyline3":
+                    model.Chain(item.Kind, "chain", DataJson.Points(d, "points", 3), null, null, false, 3);
+                    break;
 
                 case "GeoPolygonArc2":
                 case "GeoPolylineArc2":
                 {
                     Vec3[] points = DataJson.Points(d, "points", 2);
-                    model.Chain(item.Kind, item.Kind == "GeoPolygonArc2" ? "polygon" : "chain", points, DataJson.Bulges(d, points.Length), null, item.Kind == "GeoPolygonArc2", 2);
+                    model.Chain(
+                        item.Kind,
+                        item.Kind == "GeoPolygonArc2" ? "polygon" : "chain",
+                        points,
+                        DataJson.Bulges(d, points.Length),
+                        null,
+                        item.Kind == "GeoPolygonArc2",
+                        2
+                    );
                     break;
                 }
 
@@ -209,13 +236,27 @@ namespace GeometryHelper.Viewer
                 case "GeoPolylineArc3":
                 {
                     Vec3[] points = DataJson.Points(d, "points", 3);
-                    Vec3[] normals = DataJson.TryGet(d, "normals", out JsonElement list) ? DataJson.Points(list, 3) : null;
-                    model.Chain(item.Kind, item.Kind == "GeoPolygonArc3" ? "polygon" : "chain", points, DataJson.Bulges(d, points.Length), normals, item.Kind == "GeoPolygonArc3", 3);
+                    Vec3[] normals = DataJson.TryGet(d, "normals", out JsonElement list)
+                        ? DataJson.Points(list, 3)
+                        : null;
+                    model.Chain(
+                        item.Kind,
+                        item.Kind == "GeoPolygonArc3" ? "polygon" : "chain",
+                        points,
+                        DataJson.Bulges(d, points.Length),
+                        normals,
+                        item.Kind == "GeoPolygonArc3",
+                        3
+                    );
                     break;
                 }
 
-                case "GeoTriangle2": model.Chain(item.Kind, "triangle", DataJson.Points(d, "points", 2), null, null, true, 2); break;
-                case "GeoTriangle3": model.Chain(item.Kind, "triangle", DataJson.Points(d, "points", 3), null, null, true, 3); break;
+                case "GeoTriangle2":
+                    model.Chain(item.Kind, "triangle", DataJson.Points(d, "points", 2), null, null, true, 2);
+                    break;
+                case "GeoTriangle3":
+                    model.Chain(item.Kind, "triangle", DataJson.Points(d, "points", 3), null, null, true, 3);
+                    break;
 
                 case "GeoRectangle2":
                 {
@@ -226,9 +267,24 @@ namespace GeometryHelper.Viewer
                     double cos = Math.Cos(angle);
                     double sin = Math.Sin(angle);
 
-                    Vec3 Corner(double x, double y) => new Vec3(center.X + x * cos - y * sin, center.Y + x * sin + y * cos, 0.0);
+                    Vec3 Corner(double x, double y) =>
+                        new Vec3(center.X + x * cos - y * sin, center.Y + x * sin + y * cos, 0.0);
 
-                    model.Chain(item.Kind, "rectangle", new[] { Corner(-halfWidth, -halfHeight), Corner(halfWidth, -halfHeight), Corner(halfWidth, halfHeight), Corner(-halfWidth, halfHeight) }, null, null, true, 2);
+                    model.Chain(
+                        item.Kind,
+                        "rectangle",
+                        new[]
+                        {
+                            Corner(-halfWidth, -halfHeight),
+                            Corner(halfWidth, -halfHeight),
+                            Corner(halfWidth, halfHeight),
+                            Corner(-halfWidth, halfHeight),
+                        },
+                        null,
+                        null,
+                        true,
+                        2
+                    );
                     break;
                 }
 
@@ -255,23 +311,41 @@ namespace GeometryHelper.Viewer
             return model;
         }
 
-        private void Chain(string kind, string role, Vec3[] points, double[] bulges, Vec3[] normals, bool closed, int dimension)
+        private void Chain(
+            string kind,
+            string role,
+            Vec3[] points,
+            double[] bulges,
+            Vec3[] normals,
+            bool closed,
+            int dimension
+        )
         {
-            Loops.Add(new LoopData
-            {
-                Kind = kind,
-                Role = role,
-                Points = points,
-                Bulges = bulges ?? new double[points.Length],
-                Normals = normals,
-                Closed = closed,
-                Dimension = dimension,
-            });
+            Loops.Add(
+                new LoopData
+                {
+                    Kind = kind,
+                    Role = role,
+                    Points = points,
+                    Bulges = bulges ?? new double[points.Length],
+                    Normals = normals,
+                    Closed = closed,
+                    Dimension = dimension,
+                }
+            );
         }
 
         private void Solid(string kind, JsonElement d, int opening, string prefix)
         {
-            var unit = new BodyUnit { Label = opening < 0 ? "body" : "opening " + (opening + 1).ToString(System.Globalization.CultureInfo.InvariantCulture), IsSolid = true, Opening = opening };
+            var unit = new BodyUnit
+            {
+                Label =
+                    opening < 0
+                        ? "body"
+                        : "opening " + (opening + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                IsSolid = true,
+                Opening = opening,
+            };
             int face = 0;
 
             foreach (JsonElement f in DataJson.List(d, "faces"))
@@ -282,7 +356,11 @@ namespace GeometryHelper.Viewer
             Finish(unit);
 
             // The openings are bodies of their own, and are checked by asking them.
-            if (opening < 0 && DataJson.TryGet(d, "openings", out JsonElement openings) && openings.ValueKind == JsonValueKind.Array)
+            if (
+                opening < 0
+                && DataJson.TryGet(d, "openings", out JsonElement openings)
+                && openings.ValueKind == JsonValueKind.Array
+            )
             {
                 int k = 0;
 
@@ -296,14 +374,39 @@ namespace GeometryHelper.Viewer
         private void AddFace(BodyUnit unit, string kind, JsonElement f, int dimension, int face, string prefix)
         {
             var loops = new List<LoopData>();
-            var outer = new LoopData { Kind = kind, Role = prefix + "face " + (face + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " outer", Face = face, Ring = 0, Points = DataJson.Points(DataJson.Get(f, "outer"), dimension), Dimension = dimension };
+            var outer = new LoopData
+            {
+                Kind = kind,
+                Role =
+                    prefix
+                    + "face "
+                    + (face + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    + " outer",
+                Face = face,
+                Ring = 0,
+                Points = DataJson.Points(DataJson.Get(f, "outer"), dimension),
+                Dimension = dimension,
+            };
             outer.Bulges = new double[outer.Points.Length];
             loops.Add(outer);
             int ring = 1;
 
             foreach (JsonElement hole in DataJson.List(f, "holes"))
             {
-                var loop = new LoopData { Kind = kind, Role = prefix + "face " + (face + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " hole " + ring.ToString(System.Globalization.CultureInfo.InvariantCulture), Face = face, Ring = ring, Points = DataJson.Points(hole, dimension), Dimension = dimension };
+                var loop = new LoopData
+                {
+                    Kind = kind,
+                    Role =
+                        prefix
+                        + "face "
+                        + (face + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        + " hole "
+                        + ring.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    Face = face,
+                    Ring = ring,
+                    Points = DataJson.Points(hole, dimension),
+                    Dimension = dimension,
+                };
                 loop.Bulges = new double[loop.Points.Length];
                 loops.Add(loop);
                 ring++;
@@ -353,7 +456,12 @@ namespace GeometryHelper.Viewer
 
         private void Mesh(string kind, JsonElement d, int dimension)
         {
-            var unit = new BodyUnit { Label = "mesh", IsSolid = false, Vertices = DataJson.Points(d, "points", dimension) };
+            var unit = new BodyUnit
+            {
+                Label = "mesh",
+                IsSolid = false,
+                Vertices = DataJson.Points(d, "points", dimension),
+            };
             int face = 0;
 
             foreach (int[] indexes in GeometryDecoder.Faces(d))
@@ -370,7 +478,17 @@ namespace GeometryHelper.Viewer
                     points[k] = unit.Vertices[indexes[k]];
                 }
 
-                var loop = new LoopData { Kind = kind, Role = "face " + (face + 1).ToString(System.Globalization.CultureInfo.InvariantCulture), Face = face, Points = points, Bulges = new double[points.Length], Dimension = dimension, Ids = indexes, Unit = unit };
+                var loop = new LoopData
+                {
+                    Kind = kind,
+                    Role = "face " + (face + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    Face = face,
+                    Points = points,
+                    Bulges = new double[points.Length],
+                    Dimension = dimension,
+                    Ids = indexes,
+                    Unit = unit,
+                };
                 unit.Faces.Add(new List<LoopData> { loop });
                 Loops.Add(loop);
                 face++;

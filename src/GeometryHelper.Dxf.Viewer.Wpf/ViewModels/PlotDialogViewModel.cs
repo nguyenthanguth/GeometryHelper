@@ -66,7 +66,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private const string NoPageSetup = "<None>";
         private const string CustomScale = "Custom";
 
-        private static readonly NumberFormatInfo Spaced = new NumberFormatInfo { NumberGroupSeparator = " ", NumberDecimalSeparator = "." };
+        private static readonly NumberFormatInfo Spaced = new NumberFormatInfo
+        {
+            NumberGroupSeparator = " ",
+            NumberDecimalSeparator = ".",
+        };
 
         private readonly CadPlotJob _job;
         private readonly List<CadPaper> _customSizes;
@@ -86,14 +90,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="windowsPrinters">The printers of Windows to list, greyed, each its name and whether it is on the network; null for none.</param>
         /// <param name="customPixelSizes">The sizes of an image of the user's own a raster device lists after those built in, the newest first; null for none.</param>
         /// <exception cref="ArgumentNullException">Thrown when the document or the job is null.</exception>
-        public PlotDialogViewModel(CadDocument document, CadPlotJob job, bool isPageSetup = false, IEnumerable<KeyValuePair<string, bool>> windowsPrinters = null, IEnumerable<CadPaper> customPixelSizes = null)
+        public PlotDialogViewModel(
+            CadDocument document,
+            CadPlotJob job,
+            bool isPageSetup = false,
+            IEnumerable<KeyValuePair<string, bool>> windowsPrinters = null,
+            IEnumerable<CadPaper> customPixelSizes = null
+        )
         {
             Document = document ?? throw new ArgumentNullException(nameof(document));
             _job = job ?? throw new ArgumentNullException(nameof(job));
             IsPageSetup = isPageSetup;
             _settings = job.Settings.Clone();
             _settings.UseDevice(_settings.IsRaster ? _settings.DeviceName : CadPlotSettings.PdfDevice);
-            _customSizes = (customPixelSizes ?? Array.Empty<CadPaper>()).Where(p => p != null && p.IsPixels && !p.IsCustomChoice).ToList();
+            _customSizes = (customPixelSizes ?? Array.Empty<CadPaper>())
+                .Where(p => p != null && p.IsPixels && !p.IsCustomChoice)
+                .ToList();
 
             var devices = new List<PlotDeviceRow>
             {
@@ -105,9 +117,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             bool first = true;
 
-            foreach (KeyValuePair<string, bool> printer in (windowsPrinters ?? Array.Empty<KeyValuePair<string, bool>>()).OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase).ThenBy(p => p.Key, StringComparer.Ordinal))
+            foreach (
+                KeyValuePair<string, bool> printer in (windowsPrinters ?? Array.Empty<KeyValuePair<string, bool>>())
+                    .OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(p => p.Key, StringComparer.Ordinal)
+            )
             {
-                devices.Add(new PlotDeviceRow(printer.Key, printer.Value ? "Windows · network" : "Windows", false, first));
+                devices.Add(
+                    new PlotDeviceRow(printer.Key, printer.Value ? "Windows · network" : "Windows", false, first)
+                );
                 first = false;
             }
 
@@ -115,8 +133,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _mmPaper = _settings.Paper.IsPixels ? CadPaper.Default : _settings.Paper;
             Papers = PapersOf(_settings);
             Areas = Space.IsModel
-                ? new[] { new PlotAreaRow(CadPlotArea.Display, "what the view shows"), new PlotAreaRow(CadPlotArea.Extents, "every object"), new PlotAreaRow(CadPlotArea.Limits, "LIMMIN to LIMMAX"), new PlotAreaRow(CadPlotArea.Window, "two points") }
-                : new[] { new PlotAreaRow(CadPlotArea.Display, "what the view shows"), new PlotAreaRow(CadPlotArea.Extents, "every object"), new PlotAreaRow(CadPlotArea.Layout, "the sheet"), new PlotAreaRow(CadPlotArea.Window, "two points") };
+                ? new[]
+                {
+                    new PlotAreaRow(CadPlotArea.Display, "what the view shows"),
+                    new PlotAreaRow(CadPlotArea.Extents, "every object"),
+                    new PlotAreaRow(CadPlotArea.Limits, "LIMMIN to LIMMAX"),
+                    new PlotAreaRow(CadPlotArea.Window, "two points"),
+                }
+                : new[]
+                {
+                    new PlotAreaRow(CadPlotArea.Display, "what the view shows"),
+                    new PlotAreaRow(CadPlotArea.Extents, "every object"),
+                    new PlotAreaRow(CadPlotArea.Layout, "the sheet"),
+                    new PlotAreaRow(CadPlotArea.Window, "two points"),
+                };
 
             if (Space.IsModel && _settings.Area == CadPlotArea.Layout)
             {
@@ -152,12 +182,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string DpiText => IsRaster ? "96" : "300";
 
         /// <summary>Gets the words under the shaded viewport options.</summary>
-        public string ShadeNote => IsRaster ? "Grey for a raster device: the image size is set in pixels, not by DPI." : "2D only: kept grey, as AutoCAD shows them for 2D Wireframe.";
+        public string ShadeNote =>
+            IsRaster
+                ? "Grey for a raster device: the image size is set in pixels, not by DPI."
+                : "2D only: kept grey, as AutoCAD shows them for 2D Wireframe.";
 
         /// <summary>Gets the words under the plot style table.</summary>
-        public string StyleNote => IsRaster
-            ? "The image is drawn on white, as the paper; colour 7 plots black. None keeps the colours."
-            : "Monochrome: every colour plots black (as monochrome.ctb). Grayscale: colours as greys. None: as displayed.";
+        public string StyleNote =>
+            IsRaster
+                ? "The image is drawn on white, as the paper; colour 7 plots black. None keeps the colours."
+                : "Monochrome: every colour plots black (as monochrome.ctb). Grayscale: colours as greys. None: as displayed.";
 
         /// <summary>Gets the document.</summary>
         public CadDocument Document { get; }
@@ -218,7 +252,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get => Devices.First(d => string.Equals(d.Name, _settings.DeviceName, StringComparison.OrdinalIgnoreCase));
             set
             {
-                if (value != null && value.IsEnabled && !string.Equals(value.Name, _settings.DeviceName, StringComparison.OrdinalIgnoreCase))
+                if (
+                    value != null
+                    && value.IsEnabled
+                    && !string.Equals(value.Name, _settings.DeviceName, StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     bool wasRaster = _settings.IsRaster;
                     _settings.UseDevice(value.Name);
@@ -244,10 +282,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string WhereText => "File";
 
         /// <summary>Gets what it does.</summary>
-        public string DescriptionText
-            => string.Equals(_settings.DeviceName, CadPlotSettings.PngDevice, StringComparison.OrdinalIgnoreCase) ? "Writes a PNG image, lossless, one file per plot."
-                : string.Equals(_settings.DeviceName, CadPlotSettings.JpgDevice, StringComparison.OrdinalIgnoreCase) ? "Writes a JPEG image, quality 90, one file per plot; no transparency."
-                : "Writes a PDF, one page per plot; text stays searchable.";
+        public string DescriptionText =>
+            string.Equals(_settings.DeviceName, CadPlotSettings.PngDevice, StringComparison.OrdinalIgnoreCase)
+                ? "Writes a PNG image, lossless, one file per plot."
+            : string.Equals(_settings.DeviceName, CadPlotSettings.JpgDevice, StringComparison.OrdinalIgnoreCase)
+                ? "Writes a JPEG image, quality 90, one file per plot; no transparency."
+            : "Writes a PDF, one page per plot; text stays searchable.";
 
         /// <summary>
         /// Gets the entries of the Paper size list: the ISO and ANSI sheets for the PDF plotter; for a raster device the sizes
@@ -323,7 +363,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 CadPlotPage page = Page;
                 double k = PictureScale;
-                return new System.Windows.Thickness(page.Printable.MinX * k, (page.SheetHeight - page.Printable.MaxY) * k, (page.SheetWidth - page.Printable.MaxX) * k, page.Printable.MinY * k);
+                return new System.Windows.Thickness(
+                    page.Printable.MinX * k,
+                    (page.SheetHeight - page.Printable.MaxY) * k,
+                    (page.SheetWidth - page.Printable.MaxX) * k,
+                    page.Printable.MinY * k
+                );
             }
         }
 
@@ -353,7 +398,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get
             {
                 DisplayBox w = _settings.Window;
-                return w.IsEmpty ? string.Empty : "From (" + Spaced0(w.MinX) + ", " + Spaced0(w.MinY) + ") to (" + Spaced0(w.MaxX) + ", " + Spaced0(w.MaxY) + ")";
+                return w.IsEmpty
+                    ? string.Empty
+                    : "From ("
+                        + Spaced0(w.MinX)
+                        + ", "
+                        + Spaced0(w.MinY)
+                        + ") to ("
+                        + Spaced0(w.MaxX)
+                        + ", "
+                        + Spaced0(w.MaxY)
+                        + ")";
             }
         }
 
@@ -442,10 +497,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get
             {
                 double ratio = _settings.PaperUnits / _settings.DrawingUnits;
-                CadPlotScale scale = Scales.FirstOrDefault(s => Math.Abs(s.PaperUnits / s.DrawingUnits - ratio) <= 1E-9 * ratio);
+                CadPlotScale scale = Scales.FirstOrDefault(s =>
+                    Math.Abs(s.PaperUnits / s.DrawingUnits - ratio) <= 1E-9 * ratio
+                );
                 return _settings.FitToPaper || scale == null ? CustomScale : scale.Name;
             }
-
             set
             {
                 CadPlotScale scale = Scales.FirstOrDefault(s => s.Name == value);
@@ -606,8 +662,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             get
             {
-                string extension = string.Equals(_settings.DeviceName, CadPlotSettings.PngDevice, StringComparison.OrdinalIgnoreCase) ? ".png"
-                    : string.Equals(_settings.DeviceName, CadPlotSettings.JpgDevice, StringComparison.OrdinalIgnoreCase) ? ".jpg" : ".pdf";
+                string extension =
+                    string.Equals(_settings.DeviceName, CadPlotSettings.PngDevice, StringComparison.OrdinalIgnoreCase)
+                        ? ".png"
+                    : string.Equals(_settings.DeviceName, CadPlotSettings.JpgDevice, StringComparison.OrdinalIgnoreCase)
+                        ? ".jpg"
+                    : ".pdf";
                 string name = System.IO.Path.GetFileNameWithoutExtension(Document.Title) + "-" + Space.Name + extension;
 
                 foreach (char bad in System.IO.Path.GetInvalidFileNameChars())
@@ -653,12 +713,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>A plot written by the writer of its device: the image writer for GeometryHelper PNG and JPG, else the PDF writer.</summary>
-        internal static CadPlotPage Write(string path, CadDocument document, CadSpace space, CadPlotSettings settings, DisplayBox display)
-            => settings.IsRaster ? CadRasterWriter.WritePlot(path, document, space, settings, display) : CadPdfWriter.Write(path, document, space, settings, display);
+        internal static CadPlotPage Write(
+            string path,
+            CadDocument document,
+            CadSpace space,
+            CadPlotSettings settings,
+            DisplayBox display
+        ) =>
+            settings.IsRaster
+                ? CadRasterWriter.WritePlot(path, document, space, settings, display)
+                : CadPdfWriter.Write(path, document, space, settings, display);
 
         /// <summary>Makes the preview of the plot as the dialog has it, as Preview… shows it.</summary>
         /// <returns>The preview.</returns>
-        public PlotPreviewViewModel CreatePreview() => new PlotPreviewViewModel(Document, Space, _settings, _job.Display);
+        public PlotPreviewViewModel CreatePreview() =>
+            new PlotPreviewViewModel(Document, Space, _settings, _job.Display);
 
         /// <summary>Hands the settings back to the command where the dialog closed to have a window picked, or with FILEDIA 0 for the command to ask the file.</summary>
         internal void HandBack(bool asksFile = false)
@@ -680,7 +749,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The entries of the Paper size list for the settings' device.</summary>
         private IReadOnlyList<CadPaper> PapersOf(CadPlotSettings settings)
         {
-            var papers = new List<CadPaper>(settings.IsRaster ? CadPaper.PixelSizes.Concat(_customSizes) : CadPaper.Standard);
+            var papers = new List<CadPaper>(
+                settings.IsRaster ? CadPaper.PixelSizes.Concat(_customSizes) : CadPaper.Standard
+            );
 
             if (!papers.Any(p => p.IsSameAs(settings.Paper)))
             {
@@ -701,7 +772,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Papers = PapersOf(_settings);
             Raise(nameof(Papers));
 
-            foreach (string name in new[] { nameof(Device), nameof(IsRaster), nameof(PlotterText), nameof(DescriptionText), nameof(OffsetUnit), nameof(ScaleUnit), nameof(DpiText), nameof(ShadeNote), nameof(StyleNote), nameof(SuggestedFileName) })
+            foreach (
+                string name in new[]
+                {
+                    nameof(Device),
+                    nameof(IsRaster),
+                    nameof(PlotterText),
+                    nameof(DescriptionText),
+                    nameof(OffsetUnit),
+                    nameof(ScaleUnit),
+                    nameof(DpiText),
+                    nameof(ShadeNote),
+                    nameof(StyleNote),
+                    nameof(SuggestedFileName),
+                }
+            )
             {
                 Raise(name);
             }
@@ -719,12 +804,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _offsetXText = x.ToString("0.00", CultureInfo.InvariantCulture);
             _offsetYText = y.ToString("0.00", CultureInfo.InvariantCulture);
 
-            foreach (string name in new[]
-            {
-                nameof(Paper), nameof(Area), nameof(IsWindow), nameof(WindowText), nameof(Centered), nameof(IsCenterEnabled), nameof(IsOffsetEnabled),
-                nameof(OffsetXText), nameof(OffsetYText), nameof(FitToPaper), nameof(StyleTable), nameof(PlotLineweights), nameof(PlotTransparency),
-                nameof(PlotWithPlotStyles), nameof(Landscape), nameof(Portrait), nameof(UpsideDown), nameof(OrientationAngle), nameof(ScaleLineweights),
-            })
+            foreach (
+                string name in new[]
+                {
+                    nameof(Paper),
+                    nameof(Area),
+                    nameof(IsWindow),
+                    nameof(WindowText),
+                    nameof(Centered),
+                    nameof(IsCenterEnabled),
+                    nameof(IsOffsetEnabled),
+                    nameof(OffsetXText),
+                    nameof(OffsetYText),
+                    nameof(FitToPaper),
+                    nameof(StyleTable),
+                    nameof(PlotLineweights),
+                    nameof(PlotTransparency),
+                    nameof(PlotWithPlotStyles),
+                    nameof(Landscape),
+                    nameof(Portrait),
+                    nameof(UpsideDown),
+                    nameof(OrientationAngle),
+                    nameof(ScaleLineweights),
+                }
+            )
             {
                 Raise(name);
             }
@@ -738,7 +841,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 CadPlotPage page = Page;
                 _paperUnitsText = "1";
-                _drawingUnitsText = page.IsEmpty ? string.Empty : (1.0 / page.Scale).ToString("0.##", CultureInfo.InvariantCulture);
+                _drawingUnitsText = page.IsEmpty
+                    ? string.Empty
+                    : (1.0 / page.Scale).ToString("0.##", CultureInfo.InvariantCulture);
             }
             else
             {
@@ -763,8 +868,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(CanPlot));
         }
 
-        private static bool TryNumber(string text, out double value)
-            => double.TryParse((text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value) && !double.IsNaN(value) && !double.IsInfinity(value);
+        private static bool TryNumber(string text, out double value) =>
+            double.TryParse((text ?? string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+            && !double.IsNaN(value)
+            && !double.IsInfinity(value);
 
         private static string Whole(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
 

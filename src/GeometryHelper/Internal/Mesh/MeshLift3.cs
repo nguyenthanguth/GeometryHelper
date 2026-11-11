@@ -71,7 +71,13 @@ namespace GeometryHelper.Core
         /// flattened from arcs, whose chords the shape does not have.
         /// </param>
         /// <returns>Where each vertex of the mesh stands in space, in its order.</returns>
-        public static GeoPoint3[] Lift(GeoMesh2 flat, GeoCoordinateSystem3 frame, IReadOnlyList<IReadOnlyList<GeoPoint3>> rings, IReadOnlyList<GeoPoint2[]> laid, bool straight)
+        public static GeoPoint3[] Lift(
+            GeoMesh2 flat,
+            GeoCoordinateSystem3 frame,
+            IReadOnlyList<IReadOnlyList<GeoPoint3>> rings,
+            IReadOnlyList<GeoPoint2[]> laid,
+            bool straight
+        )
         {
             var corners = new Dictionary<GeoPoint2, GeoPoint3>();
             double scale = 0.0;
@@ -123,7 +129,8 @@ namespace GeometryHelper.Core
         /// </summary>
         private sealed class Sides
         {
-            private readonly List<(GeoPoint2 A, GeoPoint2 B, GeoPoint3 A3, GeoPoint3 B3)> _sides = new List<(GeoPoint2, GeoPoint2, GeoPoint3, GeoPoint3)>();
+            private readonly List<(GeoPoint2 A, GeoPoint2 B, GeoPoint3 A3, GeoPoint3 B3)> _sides =
+                new List<(GeoPoint2, GeoPoint2, GeoPoint3, GeoPoint3)>();
             private readonly Dictionary<(long, long), List<int>> _cells = new Dictionary<(long, long), List<int>>();
             private readonly double _size;
             private readonly double _reach;
@@ -211,7 +218,11 @@ namespace GeometryHelper.Core
 
                             if (ox * ox + oy * oy <= _reach * _reach)
                             {
-                                lifted = new GeoPoint3(a3.X + t * (b3.X - a3.X), a3.Y + t * (b3.Y - a3.Y), a3.Z + t * (b3.Z - a3.Z));
+                                lifted = new GeoPoint3(
+                                    a3.X + t * (b3.X - a3.X),
+                                    a3.Y + t * (b3.Y - a3.Y),
+                                    a3.Z + t * (b3.Z - a3.Z)
+                                );
                                 return true;
                             }
                         }

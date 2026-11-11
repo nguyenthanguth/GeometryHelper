@@ -49,7 +49,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             };
         }
 
-        private static string[] Handles(CadDocument document) => document.ModelSpace.Block.Select(e => e.Handle).ToArray();
+        private static string[] Handles(CadDocument document) =>
+            document.ModelSpace.Block.Select(e => e.Handle).ToArray();
 
         private static void UndoesToStart(CadDocument document, string start, string step)
         {
@@ -90,7 +91,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     r.ScaleUniformly = true;
                     r.AllowExploding = false;
                     r.Action = CadDialogAction.Ok;
-                });
+                }
+            );
 
             Run(session, "B");
             Assert.Equal("Select objects:", session.PromptText);
@@ -150,8 +152,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Bubble();
             CadCommandSession session = Start(document, "-ATTDEF");
-            Assert.Contains("Current attribute modes: Invisible=N Constant=N Verify=N Preset=N Lock position=Y Annotative=N Multiple lines=N", session.History);
-            Assert.Equal("Enter an option to change [Invisible/Constant/Verify/Preset/Lock position/Multiple lines] <done>:", session.PromptText);
+            Assert.Contains(
+                "Current attribute modes: Invisible=N Constant=N Verify=N Preset=N Lock position=Y Annotative=N Multiple lines=N",
+                session.History
+            );
+            Assert.Equal(
+                "Enter an option to change [Invisible/Constant/Verify/Preset/Lock position/Multiple lines] <done>:",
+                session.PromptText
+            );
             Run(session, Enter, "grid", "Grid letter", "A");
             Assert.Equal("Specify start point of text or [Justify/Style]:", session.PromptText);
             Run(session, "J", "MC", P(100, 100), "3.5", "0");
@@ -206,7 +214,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = WithGridBubble();
 
-            CadCommandSession session = Start(document, "ATTREQ", "0", "-INSERT", "GB", P(500, 500), Enter, Enter, Enter);
+            CadCommandSession session = Start(
+                document,
+                "ATTREQ",
+                "0",
+                "-INSERT",
+                "GB",
+                P(500, 500),
+                Enter,
+                Enter,
+                Enter
+            );
 
             Assert.False(session.IsRunning);
             Assert.DoesNotContain("Enter attribute values", session.History);
@@ -298,7 +316,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                         r.SpecifyPointOnScreen = false;
                         r.Point = new GeoPoint3(200, 0, 0);
                         r.Action = CadDialogAction.Ok;
-                    });
+                    }
+                );
 
                 Run(session, "INSERT", "D");
                 Run(session, "INSERT");
@@ -340,7 +359,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                         Assert.Equal(CadBlockObjectAction.Retain, r.ObjectAction);
                         r.FileName = file;
                         r.Action = CadDialogAction.Ok;
-                    });
+                    }
+                );
 
                 Run(session, "W", Handles(document), Enter, P(100, 70));
 
@@ -457,14 +477,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     r.Rows[0].Height = 5.0;
                     r.Rows[0].ColorIndex = 1;
                     r.Action = CadDialogAction.Ok;
-                });
+                }
+            );
 
             Run(session, "EATTEDIT");
             Assert.Equal("Select a block:", session.PromptText);
             Run(session, P(0, 40));
 
             Assert.False(session.IsRunning);
-            DxfAttributeReference attribute = Assert.Single(All<DxfBlockReference>(document.ModelSpace)).AttributeCollection.Single();
+            DxfAttributeReference attribute = Assert
+                .Single(All<DxfBlockReference>(document.ModelSpace))
+                .AttributeCollection.Single();
             Assert.Equal("D", attribute.TextString);
             Assert.Equal(5.0, attribute.Height);
             Assert.Equal(1, attribute.Color.ColorIndex);
@@ -481,11 +504,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             CadCommandSession session = Start(document, "-ATE", Enter, Enter, "GR*", Enter, new[] { handle }, Enter);
             Assert.Contains("1 attributes selected.", session.History);
-            Assert.Equal("Enter an option [Value/Position/Height/Angle/Style/Layer/Color/Next] <Next>:", session.PromptText);
+            Assert.Equal(
+                "Enter an option [Value/Position/Height/Angle/Style/Layer/Color/Next] <Next>:",
+                session.PromptText
+            );
             Run(session, "V", "R", "E", "P", P(10, 40), Enter);
 
             Assert.False(session.IsRunning);
-            DxfAttributeReference attribute = Assert.Single(All<DxfBlockReference>(document.ModelSpace)).AttributeCollection.Single();
+            DxfAttributeReference attribute = Assert
+                .Single(All<DxfBlockReference>(document.ModelSpace))
+                .AttributeCollection.Single();
             Assert.Equal("E", attribute.TextString);
             Near(new GeoPoint3(10, 40, 0), attribute.AlignmentPoint, 1E-9);
             Assert.Equal("-ATTEDIT", document.NextUndo.Name);
@@ -527,7 +555,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     r.Default = "L2";
                     r.Invisible = true;
                     r.Action = CadDialogAction.Ok;
-                });
+                }
+            );
 
             Run(session, "ATT");
             Assert.Equal("Specify text height <2.5000>:", session.PromptText);

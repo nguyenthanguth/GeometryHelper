@@ -31,7 +31,8 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the point of the outline nearest another point.
         /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => GetClosestPointOnBoundary(point, Tolerance.Global);
+        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) =>
+            GetClosestPointOnBoundary(point, Tolerance.Global);
 
         /// <summary>
         /// Gets the point of the outline nearest another point, within a tolerance.
@@ -49,8 +50,8 @@ namespace GeometryHelper.Geometry
         /// closest point is (10, 0.0001, 0), 0.00098 away, where it was (10, 0, 0), 0.000985 away.
         /// </para>
         /// </remarks>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance)
-            => ArcChain3.ClosestPoint(Edges(), point, tolerance);
+        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance) =>
+            ArcChain3.ClosestPoint(Edges(), point, tolerance);
 
         #region The joining line
 
@@ -73,8 +74,8 @@ namespace GeometryHelper.Geometry
         /// from the centre, as <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> says; beside a straight side it is
         /// as long as the distance however short the side.
         /// </remarks>
-        public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance)
-            => new GeoLine3(GetClosestPointOnBoundary(point, tolerance), point);
+        public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance) =>
+            new GeoLine3(GetClosestPointOnBoundary(point, tolerance), point);
 
         /// <summary>
         /// Gets the shortest line from this loop's boundary to a segment in the same plane.
@@ -127,7 +128,10 @@ namespace GeometryHelper.Geometry
         {
             GeoCoordinateSystem3 frame = GetFrame();
 
-            return Lift(frame, Flat(frame).GetShortestLineTo(Flatten(frame, circle, tolerance, nameof(circle)), tolerance));
+            return Lift(
+                frame,
+                Flat(frame).GetShortestLineTo(Flatten(frame, circle, tolerance, nameof(circle)), tolerance)
+            );
         }
 
         /// <summary>
@@ -312,7 +316,10 @@ namespace GeometryHelper.Geometry
         {
             GeoCoordinateSystem3 frame = GetFrame();
 
-            return PlanarMap.ToEdge3(frame, Flat(frame).GetClosestEdge(PlanarMap.ProjectToPoint2(frame, point), tolerance));
+            return PlanarMap.ToEdge3(
+                frame,
+                Flat(frame).GetClosestEdge(PlanarMap.ProjectToPoint2(frame, point), tolerance)
+            );
         }
 
         /// <summary>
@@ -330,7 +337,10 @@ namespace GeometryHelper.Geometry
         {
             GeoCoordinateSystem3 frame = FrameFor(new[] { line.StartPoint, line.EndPoint }, tolerance, nameof(line));
 
-            return PlanarMap.ToEdge3(frame, Flat(frame).GetClosestEdge(PlanarMap.ProjectToLine2(frame, line), tolerance));
+            return PlanarMap.ToEdge3(
+                frame,
+                Flat(frame).GetClosestEdge(PlanarMap.ProjectToLine2(frame, line), tolerance)
+            );
         }
 
         /// <summary>
@@ -348,7 +358,10 @@ namespace GeometryHelper.Geometry
         {
             GeoCoordinateSystem3 frame = GetFrame();
 
-            return PlanarMap.ToEdge3(frame, Flat(frame).GetClosestEdge(Flatten(frame, arc, tolerance, nameof(arc)), tolerance));
+            return PlanarMap.ToEdge3(
+                frame,
+                Flat(frame).GetClosestEdge(Flatten(frame, arc, tolerance, nameof(arc)), tolerance)
+            );
         }
 
         /// <summary>
@@ -366,7 +379,10 @@ namespace GeometryHelper.Geometry
         {
             GeoCoordinateSystem3 frame = GetFrame();
 
-            return PlanarMap.ToEdge3(frame, Flat(frame).GetClosestEdge(Flatten(frame, circle, tolerance, nameof(circle)), tolerance));
+            return PlanarMap.ToEdge3(
+                frame,
+                Flat(frame).GetClosestEdge(Flatten(frame, circle, tolerance, nameof(circle)), tolerance)
+            );
         }
 
         /// <summary>
@@ -384,7 +400,10 @@ namespace GeometryHelper.Geometry
         {
             GeoCoordinateSystem3 frame = GetFrame();
 
-            return PlanarMap.ToEdge3(frame, Flat(frame).GetClosestEdge(Flatten(frame, edge, tolerance, nameof(edge)), tolerance));
+            return PlanarMap.ToEdge3(
+                frame,
+                Flat(frame).GetClosestEdge(Flatten(frame, edge, tolerance, nameof(edge)), tolerance)
+            );
         }
 
         #endregion
@@ -444,8 +463,8 @@ namespace GeometryHelper.Geometry
         /// point. <see cref="PlanarMap.ProjectToPolygon2(GeoCoordinateSystem3, GeoPolygon3)"/> builds within the global
         /// tolerance, and is left to say what it always said of a polygon whose corners land on one another.
         /// </summary>
-        private static GeoPolygon2 FlatAsItIs(GeoCoordinateSystem3 frame, GeoPolygon3 polygon)
-            => PlanarMap.TryProjectToPolygon2(frame, polygon, default(Tolerance), out GeoPolygon2 flat)
+        private static GeoPolygon2 FlatAsItIs(GeoCoordinateSystem3 frame, GeoPolygon3 polygon) =>
+            PlanarMap.TryProjectToPolygon2(frame, polygon, default(Tolerance), out GeoPolygon2 flat)
                 ? flat
                 : PlanarMap.ProjectToPolygon2(frame, polygon);
 
@@ -453,8 +472,8 @@ namespace GeometryHelper.Geometry
         /// A face and its holes laid out in the loop's frame corner for corner: no side goes unless its ends land on the
         /// very same point.
         /// </summary>
-        private static GeoFace2 FlatAsItIs(GeoCoordinateSystem3 frame, GeoFace3 face)
-            => PlanarMap.TryProjectToFace2(frame, face, default(Tolerance), out GeoFace2 flat)
+        private static GeoFace2 FlatAsItIs(GeoCoordinateSystem3 frame, GeoFace3 face) =>
+            PlanarMap.TryProjectToFace2(frame, face, default(Tolerance), out GeoFace2 flat)
                 ? flat
                 : PlanarMap.ProjectToFace2(frame, face);
 
@@ -506,8 +525,10 @@ namespace GeometryHelper.Geometry
         /// </summary>
         private static GeoLine3 Lift(GeoCoordinateSystem3 frame, GeoLine2 line) => PlanarMap.ToLine3(frame, line);
 
-        private static string OutOfPlane(string what)
-            => "The " + what + " does not lie in the loop's plane, so there is no plane to work in. Bring them into one plane first.";
+        private static string OutOfPlane(string what) =>
+            "The "
+            + what
+            + " does not lie in the loop's plane, so there is no plane to work in. Bring them into one plane first.";
 
         #endregion
     }

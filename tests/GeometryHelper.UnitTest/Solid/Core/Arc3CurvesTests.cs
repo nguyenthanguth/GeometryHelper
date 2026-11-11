@@ -24,21 +24,22 @@ namespace GeometryHelper.UnitTest.Solid
         /// <summary>
         /// A half turn of a hundred radius in z = 0, from (100, 0, 0) over the top to (-100, 0, 0).
         /// </summary>
-        private static GeoArc3 UpperHalf() => GeoArc3.FromThreePoints(
-            new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0), new GeoPoint3(-100, 0, 0));
+        private static GeoArc3 UpperHalf() =>
+            GeoArc3.FromThreePoints(new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0), new GeoPoint3(-100, 0, 0));
 
         /// <summary>
         /// The other half of the same circle, from (-100, 0, 0) under the bottom back to (100, 0, 0).
         /// </summary>
-        private static GeoArc3 LowerHalf() => GeoArc3.FromThreePoints(
-            new GeoPoint3(-100, 0, 0), new GeoPoint3(0, -100, 0), new GeoPoint3(100, 0, 0));
+        private static GeoArc3 LowerHalf() =>
+            GeoArc3.FromThreePoints(new GeoPoint3(-100, 0, 0), new GeoPoint3(0, -100, 0), new GeoPoint3(100, 0, 0));
 
         // A plane through the origin tilted 30 degrees about X, so that the coplanar cases below are in space.
         private static readonly GeoVector3 Along = new GeoVector3(1, 0, 0);
 
         private static readonly GeoVector3 Across = new GeoVector3(0, Math.Cos(Math.PI / 6), Math.Sin(Math.PI / 6));
 
-        private static GeoPoint3 InTilted(double x, double y) => new GeoPoint3(0, 0, 0).Add(Along.Multiply(x)).Add(Across.Multiply(y));
+        private static GeoPoint3 InTilted(double x, double y) =>
+            new GeoPoint3(0, 0, 0).Add(Along.Multiply(x)).Add(Across.Multiply(y));
 
         [Fact]
         public void ACoplanarCircleAHairInsideAnotherNearlyTouchingIt_TouchesItOnce_BetweenTheRims()
@@ -52,7 +53,13 @@ namespace GeometryHelper.UnitTest.Solid
             var outer = new GeoCircle3(InTilted(0, 0), normal, 100);
             var inner = new GeoCircle3(InTilted(0.0593, 0), normal, 99.94);
 
-            foreach (GeoPoint3[] found in new[] { outer.GetIntersections(inner, tolerance), inner.GetIntersections(outer, tolerance) })
+            foreach (
+                GeoPoint3[] found in new[]
+                {
+                    outer.GetIntersections(inner, tolerance),
+                    inner.GetIntersections(outer, tolerance),
+                }
+            )
             {
                 GeoPoint3 touch = Assert.Single(found);
                 Assert.True(touch.IsEqualTo(InTilted(99.99965, 0), new Tolerance(1E-9, 1E-9)), touch.ToString());
@@ -73,7 +80,13 @@ namespace GeometryHelper.UnitTest.Solid
             var big = new GeoCircle3(InTilted(0, 0), normal, 250);
             var small = new GeoCircle3(InTilted(0, 350.0004), normal, 100);
 
-            foreach (GeoPoint3[] found in new[] { big.GetIntersections(small, tolerance), small.GetIntersections(big, tolerance) })
+            foreach (
+                GeoPoint3[] found in new[]
+                {
+                    big.GetIntersections(small, tolerance),
+                    small.GetIntersections(big, tolerance),
+                }
+            )
             {
                 GeoPoint3 touch = Assert.Single(found);
                 Assert.True(touch.IsEqualTo(InTilted(0, 250.0002), new Tolerance(1E-9, 1E-9)), touch.ToString());
@@ -95,7 +108,11 @@ namespace GeometryHelper.UnitTest.Solid
             // line the planes share was found from their distances to the world origin, which a thousandth of a degree
             // turns from the rounding of 52 000 into an error of millimetres: no point was found.
             var tolerance = Tolerance.Default;
-            var first = new GeoCircle3(new GeoPoint3(30000, 30000, 30000), new GeoVector3(0, -Math.Sin(Math.PI / 6), Math.Cos(Math.PI / 6)), 300);
+            var first = new GeoCircle3(
+                new GeoPoint3(30000, 30000, 30000),
+                new GeoVector3(0, -Math.Sin(Math.PI / 6), Math.Cos(Math.PI / 6)),
+                300
+            );
             GeoPoint3 a = first.GetPointAtAngle(0.6);
             GeoPoint3 b = first.GetPointAtAngle(2.8);
             GeoVector3 chord = a.GetVectorTo(b).Normalize();
@@ -110,7 +127,13 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPoint3 centre = middle.Add(back.Multiply(200));
             var second = new GeoCircle3(centre, normal, centre.DistanceTo(a));
 
-            foreach (GeoPoint3[] found in new[] { first.GetIntersections(second, tolerance), second.GetIntersections(first, tolerance) })
+            foreach (
+                GeoPoint3[] found in new[]
+                {
+                    first.GetIntersections(second, tolerance),
+                    second.GetIntersections(first, tolerance),
+                }
+            )
             {
                 Assert.Equal(2, found.Length);
                 Assert.Contains(found, p => p.DistanceTo(a) <= 1E-6);
@@ -128,14 +151,22 @@ namespace GeometryHelper.UnitTest.Solid
             var tolerance = new Tolerance(1E-3, 1E-5);
             GeoVector3 normal = Along.CrossProduct(Across);
             var circle = new GeoCircle3(InTilted(0, 0), normal, 100);
-            GeoArc3 half = GeoArc3.FromThreePoints(InTilted(1.5, 101.5004), InTilted(1.5 - 101.5004, 0), InTilted(1.5, -101.5004));
+            GeoArc3 half = GeoArc3.FromThreePoints(
+                InTilted(1.5, 101.5004),
+                InTilted(1.5 - 101.5004, 0),
+                InTilted(1.5, -101.5004)
+            );
 
             GeoPoint3 touch = Assert.Single(Arc3.GetIntersections(half, circle, tolerance));
             Assert.True(touch.IsEqualTo(InTilted(-100.0002, 0), new Tolerance(1E-9, 1E-9)), touch.ToString());
             Assert.True(Arc3.CollidesWith(half, circle, tolerance));
 
             // Two thousandths out it is clear of the tolerance, and nothing touches.
-            GeoArc3 clear = GeoArc3.FromThreePoints(InTilted(1.5, 101.502), InTilted(1.5 - 101.502, 0), InTilted(1.5, -101.502));
+            GeoArc3 clear = GeoArc3.FromThreePoints(
+                InTilted(1.5, 101.502),
+                InTilted(1.5 - 101.502, 0),
+                InTilted(1.5, -101.502)
+            );
             Assert.Empty(Arc3.GetIntersections(clear, circle, tolerance));
         }
 
@@ -147,20 +178,28 @@ namespace GeometryHelper.UnitTest.Solid
             // A second circle of the same radius centred at (100, 0, 0): the two circles meet at
             // (50, +-86.602540, 0), and this half sweeps the upper one.
             GeoArc3 second = GeoArc3.FromThreePoints(
-                new GeoPoint3(200, 0, 0), new GeoPoint3(100, 100, 0), new GeoPoint3(0, 0, 0));
+                new GeoPoint3(200, 0, 0),
+                new GeoPoint3(100, 100, 0),
+                new GeoPoint3(0, 0, 0)
+            );
 
             GeoPoint3[] crossings = Arc3.GetIntersections(first, second);
 
             Assert.Single(crossings);
-            Assert.True(crossings[0].IsEqualTo(new GeoPoint3(50, Math.Sqrt(100 * 100 - 50 * 50), 0), Loose),
-                crossings[0].ToString());
+            Assert.True(
+                crossings[0].IsEqualTo(new GeoPoint3(50, Math.Sqrt(100 * 100 - 50 * 50), 0), Loose),
+                crossings[0].ToString()
+            );
 
             Assert.True(Arc3.CollidesWith(first, second));
             Assert.Equal(crossings.Length, Arc3.GetIntersections(second, first).Length);
 
             // Two coplanar circles far apart share nothing.
             GeoArc3 apart = GeoArc3.FromThreePoints(
-                new GeoPoint3(1000, 0, 0), new GeoPoint3(900, 100, 0), new GeoPoint3(800, 0, 0));
+                new GeoPoint3(1000, 0, 0),
+                new GeoPoint3(900, 100, 0),
+                new GeoPoint3(800, 0, 0)
+            );
 
             Assert.Empty(Arc3.GetIntersections(first, apart));
             Assert.False(Arc3.CollidesWith(first, apart));
@@ -184,11 +223,13 @@ namespace GeometryHelper.UnitTest.Solid
             GeoArc3 quarter = GeoArc3.FromThreePoints(
                 new GeoPoint3(100, 0, 0),
                 new GeoPoint3(100 * Math.Sqrt(0.5), 100 * Math.Sqrt(0.5), 0),
-                new GeoPoint3(0, 100, 0));
+                new GeoPoint3(0, 100, 0)
+            );
             GeoArc3 farQuarter = GeoArc3.FromThreePoints(
                 new GeoPoint3(0, -100, 0),
                 new GeoPoint3(100 * Math.Sqrt(0.5), -100 * Math.Sqrt(0.5), 0),
-                new GeoPoint3(100, 0, 0));
+                new GeoPoint3(100, 0, 0)
+            );
 
             // These two share the end (100, 0, 0), so they do touch.
             Assert.True(Arc3.CollidesWith(quarter, farQuarter));
@@ -202,7 +243,10 @@ namespace GeometryHelper.UnitTest.Solid
             // A half turn standing upright in the plane y = 0, of the same radius about the same centre. The
             // two planes meet along the x axis, and both circles pass through (100, 0, 0) and (-100, 0, 0).
             GeoArc3 upright = GeoArc3.FromThreePoints(
-                new GeoPoint3(100, 0, 0), new GeoPoint3(0, 0, 100), new GeoPoint3(-100, 0, 0));
+                new GeoPoint3(100, 0, 0),
+                new GeoPoint3(0, 0, 100),
+                new GeoPoint3(-100, 0, 0)
+            );
 
             GeoPoint3[] crossings = Arc3.GetIntersections(flat, upright);
 
@@ -313,7 +357,10 @@ namespace GeometryHelper.UnitTest.Solid
             var ring = new GeoCircle3(new GeoPoint3(100, 0, 0), GeoVector3.ZAxis, 100.0);
             var about = new GeoCircle3(GeoPoint3.Origin, GeoVector3.ZAxis, 100.0);
 
-            Assert.Equal(Arc3.GetIntersections(upper, lower).Length, Arc3.GetIntersections(upper, lower, global).Length);
+            Assert.Equal(
+                Arc3.GetIntersections(upper, lower).Length,
+                Arc3.GetIntersections(upper, lower, global).Length
+            );
             Assert.Equal(Arc3.GetIntersections(upper, ring).Length, Arc3.GetIntersections(upper, ring, global).Length);
             Assert.Equal(Arc3.GetIntersections(about, ring).Length, Arc3.GetIntersections(about, ring, global).Length);
             Assert.Equal(Arc3.CollidesWith(upper, lower), Arc3.CollidesWith(upper, lower, global));

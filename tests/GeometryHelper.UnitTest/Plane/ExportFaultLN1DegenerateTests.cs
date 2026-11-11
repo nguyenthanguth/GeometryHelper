@@ -29,8 +29,11 @@ namespace GeometryHelper.UnitTest.Plane
     {
         private static readonly XNamespace Ns = "http://www.w3.org/2000/svg";
 
-        private static double[] ViewBox(string svg)
-            => ((string)XDocument.Parse(svg).Root.Attribute("viewBox")).Split(' ').Select(s => double.Parse(s, CultureInfo.InvariantCulture)).ToArray();
+        private static double[] ViewBox(string svg) =>
+            ((string)XDocument.Parse(svg).Root.Attribute("viewBox"))
+                .Split(' ')
+                .Select(s => double.Parse(s, CultureInfo.InvariantCulture))
+                .ToArray();
 
         [Fact]
         public void ARayWithNoDirection_IsRefusedByTheDxfWriter()
@@ -58,11 +61,20 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void APointAlone_AndALineWithoutEndsAlone_AreDrawnInAPictureAUnitAcross()
         {
-            Assert.Equal(new[] { -10.55, -20.55, 1.1, 1.1 }, ViewBox(new SvgWriter().Add(new GeoPoint2(-10, 20)).ToString()));
-            Assert.Equal(new[] { -0.55, -0.55, 1.1, 1.1 }, ViewBox(new SvgWriter().Add(new GeoXLine2(new GeoPoint2(0, 0), GeoVector2.YAxis)).ToString()));
+            Assert.Equal(
+                new[] { -10.55, -20.55, 1.1, 1.1 },
+                ViewBox(new SvgWriter().Add(new GeoPoint2(-10, 20)).ToString())
+            );
+            Assert.Equal(
+                new[] { -0.55, -0.55, 1.1, 1.1 },
+                ViewBox(new SvgWriter().Add(new GeoXLine2(new GeoPoint2(0, 0), GeoVector2.YAxis)).ToString())
+            );
 
             // Two points a ten-millionth apart are a picture of no size to six places too, centred between them.
-            Assert.Equal(new[] { -0.55, -0.55, 1.1, 1.1 }, ViewBox(new SvgWriter().Add(new GeoPoint2(-5E-8, 0)).Add(new GeoPoint2(5E-8, 0)).ToString()));
+            Assert.Equal(
+                new[] { -0.55, -0.55, 1.1, 1.1 },
+                ViewBox(new SvgWriter().Add(new GeoPoint2(-5E-8, 0)).Add(new GeoPoint2(5E-8, 0)).ToString())
+            );
         }
 
         [Fact]
@@ -70,18 +82,32 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // 2E-6 wide and nought high: the margin of 1E-7 would leave a view box 2E-7 high, nought at six places. The height
             // is given a unit, and the margin is 5 % of that.
-            Assert.Equal(new[] { 2.95, -3.55, 0.100002, 1.1 }, ViewBox(new SvgWriter().Add(new GeoLine2(new GeoPoint2(3, 3), new GeoPoint2(3 + 2E-6, 3))).ToString()));
-            Assert.Equal(new[] { 999999.95, -3.55, 0.100002, 1.1 }, ViewBox(new SvgWriter().Add(new GeoLine2(new GeoPoint2(1E6, 3), new GeoPoint2(1E6 + 2E-6, 3))).ToString()));
+            Assert.Equal(
+                new[] { 2.95, -3.55, 0.100002, 1.1 },
+                ViewBox(new SvgWriter().Add(new GeoLine2(new GeoPoint2(3, 3), new GeoPoint2(3 + 2E-6, 3))).ToString())
+            );
+            Assert.Equal(
+                new[] { 999999.95, -3.55, 0.100002, 1.1 },
+                ViewBox(
+                    new SvgWriter().Add(new GeoLine2(new GeoPoint2(1E6, 3), new GeoPoint2(1E6 + 2E-6, 3))).ToString()
+                )
+            );
         }
 
         [Fact]
         public void APictureWithASize_IsFittedAsBefore()
         {
             // A segment 100 long along X: 100 wide and nought high, a margin of 5 all round.
-            Assert.Equal(new[] { -5.0, -5.0, 110.0, 10.0 }, ViewBox(new SvgWriter().Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0))).ToString()));
+            Assert.Equal(
+                new[] { -5.0, -5.0, 110.0, 10.0 },
+                ViewBox(new SvgWriter().Add(new GeoLine2(new GeoPoint2(0, 0), new GeoPoint2(100, 0))).ToString())
+            );
 
             // Two points a thousandth apart: a margin of five hundred-thousandths.
-            Assert.Equal(new[] { -0.00005, -0.00005, 0.0011, 0.0001 }, ViewBox(new SvgWriter().Add(new GeoPoint2(0, 0)).Add(new GeoPoint2(0.001, 0)).ToString()));
+            Assert.Equal(
+                new[] { -0.00005, -0.00005, 0.0011, 0.0001 },
+                ViewBox(new SvgWriter().Add(new GeoPoint2(0, 0)).Add(new GeoPoint2(0.001, 0)).ToString())
+            );
         }
     }
 }

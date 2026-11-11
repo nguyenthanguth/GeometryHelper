@@ -85,7 +85,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="poly"/> lying nearest <paramref name="point"/>.</returns>
         public static GeoLine2 GetClosestEdge(GeoPolygon2 poly, GeoPoint2 point)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             return Among(poly.GetEdges(), edge => Distance2.DistanceTo(edge, point, Exactly));
         }
@@ -98,7 +99,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="poly"/> lying nearest <paramref name="line"/>.</returns>
         public static GeoLine2 GetClosestEdge(GeoPolygon2 poly, GeoLine2 line)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             return Among(poly.GetEdges(), edge => Distance2.DistanceToSide(edge, line, Tolerance.Global));
         }
@@ -111,7 +113,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="poly"/> lying nearest <paramref name="circle"/>.</returns>
         public static GeoLine2 GetClosestEdge(GeoPolygon2 poly, GeoCircle2 circle)
         {
-            if (poly == null) throw new ArgumentNullException(nameof(poly));
+            if (poly == null)
+                throw new ArgumentNullException(nameof(poly));
 
             return Among(poly.GetEdges(), edge => Distance2.DistanceTo(circle, edge, Exactly));
         }
@@ -128,7 +131,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="polyline"/> lying nearest <paramref name="point"/>.</returns>
         public static GeoLine2 GetClosestEdge(GeoPolyline2 polyline, GeoPoint2 point)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return Among(polyline.GetEdges(), edge => Distance2.DistanceTo(edge, point, Exactly));
         }
@@ -141,7 +145,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="polyline"/> lying nearest <paramref name="line"/>.</returns>
         public static GeoLine2 GetClosestEdge(GeoPolyline2 polyline, GeoLine2 line)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return Among(polyline.GetEdges(), edge => Distance2.DistanceToSide(edge, line, Tolerance.Global));
         }
@@ -154,7 +159,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="polyline"/> lying nearest <paramref name="circle"/>.</returns>
         public static GeoLine2 GetClosestEdge(GeoPolyline2 polyline, GeoCircle2 circle)
         {
-            if (polyline == null) throw new ArgumentNullException(nameof(polyline));
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
 
             return Among(polyline.GetEdges(), edge => Distance2.DistanceTo(circle, edge, Exactly));
         }
@@ -208,7 +214,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="loop"/> lying nearest <paramref name="point"/>.</returns>
         public static GeoEdge2 GetClosestEdge(GeoPolygonArc2 loop, GeoPoint2 point)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return Among(loop.GetEdges(), edge => edge.DistanceTo(point, ArcChain2.ForSide(edge, Tolerance.Global)));
         }
@@ -222,7 +229,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="loop"/> lying nearest <paramref name="point"/>.</returns>
         public static GeoEdge2 GetClosestEdge(GeoPolygonArc2 loop, GeoPoint2 point, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return Among(loop.GetEdges(), edge => edge.DistanceTo(point, ArcChain2.ForSide(edge, tolerance)));
         }
@@ -235,7 +243,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="loop"/> lying nearest <paramref name="line"/>.</returns>
         public static GeoEdge2 GetClosestEdge(GeoPolygonArc2 loop, GeoLine2 line)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return Among(loop.GetEdges(), edge => ArcChain2.GapOfSide(edge, line, Tolerance.Global));
         }
@@ -249,7 +258,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="loop"/> lying nearest <paramref name="line"/>.</returns>
         public static GeoEdge2 GetClosestEdge(GeoPolygonArc2 loop, GeoLine2 line, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return Among(loop.GetEdges(), edge => ArcChain2.GapOfSide(edge, line, tolerance));
         }
@@ -262,7 +272,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="loop"/> lying nearest <paramref name="circle"/>.</returns>
         public static GeoEdge2 GetClosestEdge(GeoPolygonArc2 loop, GeoCircle2 circle)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return Among(loop.GetEdges(), edge => edge.DistanceTo(circle, ArcChain2.ForSide(edge, Tolerance.Global)));
         }
@@ -276,7 +287,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="loop"/> lying nearest <paramref name="circle"/>.</returns>
         public static GeoEdge2 GetClosestEdge(GeoPolygonArc2 loop, GeoCircle2 circle, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return Among(loop.GetEdges(), edge => edge.DistanceTo(circle, ArcChain2.ForSide(edge, tolerance)));
         }
@@ -289,7 +301,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="loop"/> lying nearest <paramref name="arc"/>.</returns>
         public static GeoEdge2 GetClosestEdge(GeoPolygonArc2 loop, GeoArc2 arc)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return Among(loop.GetEdges(), edge => edge.DistanceTo(arc, ArcChain2.ForSide(edge, Tolerance.Global)));
         }
@@ -303,7 +316,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="loop"/> lying nearest <paramref name="arc"/>.</returns>
         public static GeoEdge2 GetClosestEdge(GeoPolygonArc2 loop, GeoArc2 arc, Tolerance tolerance)
         {
-            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
 
             return Among(loop.GetEdges(), edge => edge.DistanceTo(arc, ArcChain2.ForSide(edge, tolerance)));
         }
@@ -320,7 +334,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="chain"/> lying nearest <paramref name="point"/>.</returns>
         public static GeoEdge2 GetClosestEdge(GeoPolylineArc2 chain, GeoPoint2 point)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return Among(chain.GetEdges(), edge => edge.DistanceTo(point, ArcChain2.ForSide(edge, Tolerance.Global)));
         }
@@ -334,7 +349,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="chain"/> lying nearest <paramref name="point"/>.</returns>
         public static GeoEdge2 GetClosestEdge(GeoPolylineArc2 chain, GeoPoint2 point, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return Among(chain.GetEdges(), edge => edge.DistanceTo(point, ArcChain2.ForSide(edge, tolerance)));
         }
@@ -347,7 +363,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="chain"/> lying nearest <paramref name="line"/>.</returns>
         public static GeoEdge2 GetClosestEdge(GeoPolylineArc2 chain, GeoLine2 line)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return Among(chain.GetEdges(), edge => ArcChain2.GapOfSide(edge, line, Tolerance.Global));
         }
@@ -361,7 +378,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="chain"/> lying nearest <paramref name="line"/>.</returns>
         public static GeoEdge2 GetClosestEdge(GeoPolylineArc2 chain, GeoLine2 line, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return Among(chain.GetEdges(), edge => ArcChain2.GapOfSide(edge, line, tolerance));
         }
@@ -374,7 +392,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="chain"/> lying nearest <paramref name="circle"/>.</returns>
         public static GeoEdge2 GetClosestEdge(GeoPolylineArc2 chain, GeoCircle2 circle)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return Among(chain.GetEdges(), edge => edge.DistanceTo(circle, ArcChain2.ForSide(edge, Tolerance.Global)));
         }
@@ -388,7 +407,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="chain"/> lying nearest <paramref name="circle"/>.</returns>
         public static GeoEdge2 GetClosestEdge(GeoPolylineArc2 chain, GeoCircle2 circle, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return Among(chain.GetEdges(), edge => edge.DistanceTo(circle, ArcChain2.ForSide(edge, tolerance)));
         }
@@ -401,7 +421,8 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="chain"/> lying nearest <paramref name="arc"/>.</returns>
         public static GeoEdge2 GetClosestEdge(GeoPolylineArc2 chain, GeoArc2 arc)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return Among(chain.GetEdges(), edge => edge.DistanceTo(arc, ArcChain2.ForSide(edge, Tolerance.Global)));
         }
@@ -415,12 +436,12 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="chain"/> lying nearest <paramref name="arc"/>.</returns>
         public static GeoEdge2 GetClosestEdge(GeoPolylineArc2 chain, GeoArc2 arc, Tolerance tolerance)
         {
-            if (chain == null) throw new ArgumentNullException(nameof(chain));
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
 
             return Among(chain.GetEdges(), edge => edge.DistanceTo(arc, ArcChain2.ForSide(edge, tolerance)));
         }
 
         #endregion
-
     }
 }

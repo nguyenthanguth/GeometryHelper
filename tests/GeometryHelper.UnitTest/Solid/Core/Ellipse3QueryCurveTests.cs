@@ -52,7 +52,14 @@ namespace GeometryHelper.UnitTest.Solid
             // The second ellipse, 330.4 by 132.1, lies in the plane leaning 70 degrees about the chord between the two rim
             // points and passes through both, so the line the planes share is the chord's, and each rim meets it there.
             Pair(out Specimen e, out GeoPoint3 first, out GeoPoint3 second);
-            Specimen other = ThroughTwo(first, second, LeanAbout(e, first.GetVectorTo(second), Deg(70)), 0.3, 0.4, 0.25);
+            Specimen other = ThroughTwo(
+                first,
+                second,
+                LeanAbout(e, first.GetVectorTo(second), Deg(70)),
+                0.3,
+                0.4,
+                0.25
+            );
 
             GeoPoint3[] crossings = e.Build().GetIntersections(other.Build(), Tol);
 
@@ -62,7 +69,11 @@ namespace GeometryHelper.UnitTest.Solid
             SamePointsInOrder(crossings, tried, 0.0);
 
             // Asked the other way the line runs the other way.
-            SamePointsInOrder(Along(other.N.CrossProduct(e.N), first, second), other.Build().GetIntersections(e.Build(), Tol), Close);
+            SamePointsInOrder(
+                Along(other.N.CrossProduct(e.N), first, second),
+                other.Build().GetIntersections(e.Build(), Tol),
+                Close
+            );
         }
 
         [Fact]
@@ -72,7 +83,11 @@ namespace GeometryHelper.UnitTest.Solid
             Pair(out Specimen e, out GeoPoint3 first, out GeoPoint3 second);
             GeoCircle3 circle = CircleThroughTwo(first, second, LeanAbout(e, first.GetVectorTo(second), Deg(70)), 30);
 
-            SamePointsInOrder(Along(e.N.CrossProduct(circle.Normal), first, second), e.Build().GetIntersections(circle, Tol), Close);
+            SamePointsInOrder(
+                Along(e.N.CrossProduct(circle.Normal), first, second),
+                e.Build().GetIntersections(circle, Tol),
+                Close
+            );
             Assert.True(e.Build().CollidesWith(circle, Tol));
             Assert.True(e.Build().TryIntersectWith(circle, out _, Tol));
         }
@@ -86,18 +101,36 @@ namespace GeometryHelper.UnitTest.Solid
             GeoCircle3 circle = CircleThroughTwo(first, second, LeanAbout(e, first.GetVectorTo(second), Deg(70)), 30);
             GeoVector3 x = circle.Center.GetVectorTo(first).Normalize();
             GeoVector3 y = circle.Normal.CrossProduct(x);
-            GeoPoint3 On(double angle) => circle.Center.Add(x.Multiply(circle.Radius * Math.Cos(angle))).Add(y.Multiply(circle.Radius * Math.Sin(angle)));
-            GeoPoint3 far = circle.Center.Add(first.Add(first.GetVectorTo(second).Multiply(0.5)).GetVectorTo(circle.Center).Normalize().Multiply(circle.Radius));
+            GeoPoint3 On(double angle) =>
+                circle
+                    .Center.Add(x.Multiply(circle.Radius * Math.Cos(angle)))
+                    .Add(y.Multiply(circle.Radius * Math.Sin(angle)));
+            GeoPoint3 far = circle.Center.Add(
+                first
+                    .Add(first.GetVectorTo(second).Multiply(0.5))
+                    .GetVectorTo(circle.Center)
+                    .Normalize()
+                    .Multiply(circle.Radius)
+            );
 
             GeoArc3 both = GeoArc3.FromThreePoints(first, far, second);
-            SamePointsInOrder(Along(both.Normal.CrossProduct(e.N), first, second), e.Build().GetIntersections(both, Tol), Close);
+            SamePointsInOrder(
+                Along(both.Normal.CrossProduct(e.N), first, second),
+                e.Build().GetIntersections(both, Tol),
+                Close
+            );
 
-            GeoPoint3 one = Assert.Single(e.Build().GetIntersections(GeoArc3.FromThreePoints(On(-0.2), On(0.05), On(0.2)), Tol));
+            GeoPoint3 one = Assert.Single(
+                e.Build().GetIntersections(GeoArc3.FromThreePoints(On(-0.2), On(0.05), On(0.2)), Tol)
+            );
             Assert.True(one.DistanceTo(first) <= Close, $"{one} is {one.DistanceTo(first):E2} from {first}");
 
             GeoVector3 toFar = circle.Center.GetVectorTo(far).Normalize();
             GeoVector3 aside = circle.Normal.CrossProduct(toFar);
-            GeoPoint3 Far(double angle) => circle.Center.Add(toFar.Multiply(circle.Radius * Math.Cos(angle))).Add(aside.Multiply(circle.Radius * Math.Sin(angle)));
+            GeoPoint3 Far(double angle) =>
+                circle
+                    .Center.Add(toFar.Multiply(circle.Radius * Math.Cos(angle)))
+                    .Add(aside.Multiply(circle.Radius * Math.Sin(angle)));
             GeoArc3 neither = GeoArc3.FromThreePoints(Far(-0.2), Far(0.05), Far(0.2));
             Assert.Empty(e.Build().GetIntersections(neither, Tol));
             Assert.False(e.Build().CollidesWith(neither, Tol));
@@ -112,7 +145,14 @@ namespace GeometryHelper.UnitTest.Solid
             Specimen e = Tilted();
             GeoPoint3 touch = e.Rim(1.1);
             GeoVector3 line = Tangent(e, 1.1);
-            Specimen other = ThroughTwo(touch, touch.Add(line.Multiply(150)), LeanAbout(e, line, Deg(65)), 0.5, 0.6, -0.2);
+            Specimen other = ThroughTwo(
+                touch,
+                touch.Add(line.Multiply(150)),
+                LeanAbout(e, line, Deg(65)),
+                0.5,
+                0.6,
+                -0.2
+            );
 
             GeoPoint3 asked = Assert.Single(e.Build().GetIntersections(other.Build(), Tol));
             GeoPoint3 back = Assert.Single(other.Build().GetIntersections(e.Build(), Tol));
@@ -157,7 +197,14 @@ namespace GeometryHelper.UnitTest.Solid
             // rim's own stray from the plane through its centre; the rim reaches 0.0025 from the second plane. Laid flat
             // the rims cross at those two points only, at 60 and 65 degrees, and stay 15.9 apart elsewhere.
             Pair(out Specimen e, out GeoPoint3 first, out GeoPoint3 second);
-            Specimen other = ThroughTwo(first, second, LeanAbout(e, first.GetVectorTo(second), Deg(degrees)), 0.3, 0.5, -0.6);
+            Specimen other = ThroughTwo(
+                first,
+                second,
+                LeanAbout(e, first.GetVectorTo(second), Deg(degrees)),
+                0.3,
+                0.5,
+                -0.6
+            );
 
             SamePoints(new[] { first, second }, e.Build().GetIntersections(other.Build(), Tol), NearCoplanar);
             SamePoints(new[] { first, second }, other.Build().GetIntersections(e.Build(), Tol), NearCoplanar);
@@ -174,8 +221,16 @@ namespace GeometryHelper.UnitTest.Solid
             // a thousandth of a degree turns the rounding of 52 000 into a millimetre. Within the point tolerance here.
             Specimen near = Tilted();
             var e = new Specimen(new GeoPoint3(30000, 30000, 30000), near.U, near.V, 300, 100);
-            GeoPoint3 first = e.Rim(0.6), second = e.Rim(2.8);
-            Specimen other = ThroughTwo(first, second, LeanAbout(e, first.GetVectorTo(second), Deg(0.001)), 0.3, 0.5, -0.6);
+            GeoPoint3 first = e.Rim(0.6),
+                second = e.Rim(2.8);
+            Specimen other = ThroughTwo(
+                first,
+                second,
+                LeanAbout(e, first.GetVectorTo(second), Deg(0.001)),
+                0.3,
+                0.5,
+                -0.6
+            );
 
             SamePoints(new[] { first, second }, e.Build().GetIntersections(other.Build(), Tol), Tol.EqualPoint);
             SamePoints(new[] { first, second }, other.Build().GetIntersections(e.Build(), Tol), Tol.EqualPoint);
@@ -190,14 +245,24 @@ namespace GeometryHelper.UnitTest.Solid
             // The circle through both rim points with its centre 200 back across the chord, radius 332.3: laid flat it
             // crosses the rim at those two points only. The arc is the half of it about the first point.
             Pair(out Specimen e, out GeoPoint3 first, out GeoPoint3 second);
-            GeoCircle3 circle = CircleThroughTwo(first, second, LeanAbout(e, first.GetVectorTo(second), Deg(degrees)), -200);
+            GeoCircle3 circle = CircleThroughTwo(
+                first,
+                second,
+                LeanAbout(e, first.GetVectorTo(second), Deg(degrees)),
+                -200
+            );
             GeoVector3 x = circle.Center.GetVectorTo(first).Normalize();
             GeoVector3 y = circle.Normal.CrossProduct(x);
-            GeoPoint3 On(double angle) => circle.Center.Add(x.Multiply(circle.Radius * Math.Cos(angle))).Add(y.Multiply(circle.Radius * Math.Sin(angle)));
+            GeoPoint3 On(double angle) =>
+                circle
+                    .Center.Add(x.Multiply(circle.Radius * Math.Cos(angle)))
+                    .Add(y.Multiply(circle.Radius * Math.Sin(angle)));
 
             SamePoints(new[] { first, second }, e.Build().GetIntersections(circle, Tol), NearCoplanar);
 
-            GeoPoint3 one = Assert.Single(e.Build().GetIntersections(GeoArc3.FromThreePoints(On(-0.3), On(0.05), On(0.3)), Tol));
+            GeoPoint3 one = Assert.Single(
+                e.Build().GetIntersections(GeoArc3.FromThreePoints(On(-0.3), On(0.05), On(0.3)), Tol)
+            );
             Assert.True(one.DistanceTo(first) <= NearCoplanar, $"{one} is {one.DistanceTo(first):E2} from {first}");
         }
 
@@ -211,7 +276,14 @@ namespace GeometryHelper.UnitTest.Solid
             // across the chord, 0.00067, and by the minor radius: the readings part here, and the answer does not, the rims
             // sharing the two points either way.
             Pair(out Specimen e, out GeoPoint3 first, out GeoPoint3 second);
-            Specimen other = ThroughTwo(first, second, LeanAbout(e, first.GetVectorTo(second), Math.Asin(standOff / 300)), 0.3, 0.5, -0.6);
+            Specimen other = ThroughTwo(
+                first,
+                second,
+                LeanAbout(e, first.GetVectorTo(second), Math.Asin(standOff / 300)),
+                0.3,
+                0.5,
+                -0.6
+            );
 
             SamePoints(new[] { first, second }, e.Build().GetIntersections(other.Build(), Tol), NearCoplanar);
         }
@@ -263,7 +335,10 @@ namespace GeometryHelper.UnitTest.Solid
             var other = new Specimen(e.At(150, 40, 0), u, e.N.CrossProduct(u), 200, 80);
             GeoEllipse2 laidOut = LaidOutIn(e, other);
             GeoPoint3[] byTheEllipse2 = e.Flat().GetIntersections(laidOut, Tol).Select(e.Lift).ToArray();
-            GeoPoint3[] bySampling = Ellipse2Oracle.RimCrossings(e.Flat(), Ellipse2Oracle.SideOfEllipse(laidOut)).Select(e.Lift).ToArray();
+            GeoPoint3[] bySampling = Ellipse2Oracle
+                .RimCrossings(e.Flat(), Ellipse2Oracle.SideOfEllipse(laidOut))
+                .Select(e.Lift)
+                .ToArray();
 
             SamePoints(bySampling, byTheEllipse2, Close);
             SamePoints(bySampling, e.Build().GetIntersections(other.Build(), Tol), Close);
@@ -278,9 +353,14 @@ namespace GeometryHelper.UnitTest.Solid
             // y² = 8 437.5, the points (±118.585, ±91.856), as the 2D ellipse's own example has them.
             Specimen e = Tilted();
             var circle = new GeoCircle3(e.Center, e.N, 150);
-            double x = Math.Sqrt(14062.5), y = Math.Sqrt(8437.5);
+            double x = Math.Sqrt(14062.5),
+                y = Math.Sqrt(8437.5);
 
-            SamePoints(new[] { e.At(x, y, 0), e.At(-x, y, 0), e.At(-x, -y, 0), e.At(x, -y, 0) }, e.Build().GetIntersections(circle, Tol), Close);
+            SamePoints(
+                new[] { e.At(x, y, 0), e.At(-x, y, 0), e.At(-x, -y, 0), e.At(x, -y, 0) },
+                e.Build().GetIntersections(circle, Tol),
+                Close
+            );
             Assert.True(e.Build().CollidesWith(circle, Tol));
 
             // A quarter of that circle, from (150, 0) to (0, 150), reaches the first of them only.
@@ -295,7 +375,14 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The same ellipse, the same with its normal turned over, and the same with its major axis turned round.
             Specimen e = Tilted();
-            foreach (GeoEllipse3 same in new[] { e.Build(), e.Flipped().Build(), new Specimen(e.Center, e.U.Negate(), e.V.Negate(), 300, 100).Build() })
+            foreach (
+                GeoEllipse3 same in new[]
+                {
+                    e.Build(),
+                    e.Flipped().Build(),
+                    new Specimen(e.Center, e.U.Negate(), e.V.Negate(), 300, 100).Build(),
+                }
+            )
             {
                 Assert.Empty(e.Build().GetIntersections(same, Tol));
                 Assert.True(e.Build().CollidesWith(same, Tol));
@@ -367,7 +454,9 @@ namespace GeometryHelper.UnitTest.Solid
             // read through the length-scaled band of Arc3.cs:95 (only the touch from inside was mended, Arc3.cs:60-80).
             // The ellipses are held to the touch, as the 2D ellipse and the 2D circle give it.
             GeoEllipse3 big = GeoEllipse3.FromCircle(new GeoCircle3(GeoPoint3.Origin, GeoVector3.ZAxis, 250));
-            GeoEllipse3 small = GeoEllipse3.FromCircle(new GeoCircle3(new GeoPoint3(0, 350.0004, 0), GeoVector3.ZAxis, 100));
+            GeoEllipse3 small = GeoEllipse3.FromCircle(
+                new GeoCircle3(new GeoPoint3(0, 350.0004, 0), GeoVector3.ZAxis, 100)
+            );
 
             GeoPoint3 point = Assert.Single(big.GetIntersections(small, Tol));
 

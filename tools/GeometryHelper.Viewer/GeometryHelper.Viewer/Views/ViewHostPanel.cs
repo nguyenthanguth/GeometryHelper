@@ -30,7 +30,10 @@ namespace GeometryHelper.Viewer.Views
                 }
             }
 
-            return new Size(double.IsInfinity(availableSize.Width) ? 0.0 : availableSize.Width, double.IsInfinity(availableSize.Height) ? 0.0 : availableSize.Height);
+            return new Size(
+                double.IsInfinity(availableSize.Width) ? 0.0 : availableSize.Width,
+                double.IsInfinity(availableSize.Height) ? 0.0 : availableSize.Height
+            );
         }
 
         protected override Size ArrangeOverride(Size finalSize)
@@ -46,6 +49,7 @@ namespace GeometryHelper.Viewer.Views
             return finalSize;
         }
 
-        private UIElement FrameElement(int slot) => InternalChildren.OfType<FrameworkElement>().FirstOrDefault(e => e.Tag is int number && number == slot);
+        private UIElement FrameElement(int slot) =>
+            InternalChildren.OfType<FrameworkElement>().FirstOrDefault(e => e.Tag is int number && number == slot);
     }
 }

@@ -29,9 +29,16 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoPoint3[] probes =
             {
-                specimen.At(150, 40, 0), specimen.At(150, 40, 90), specimen.At(-280, 5, -15), specimen.At(290, -3, 0),
-                specimen.At(100, 0, 40), specimen.At(-500, 400, 250), specimen.At(0, -101, 0), specimen.At(2000, -1500, -800),
-                specimen.At(10, 99.9, 0.5), specimen.At(-299.9, 0.01, 0),
+                specimen.At(150, 40, 0),
+                specimen.At(150, 40, 90),
+                specimen.At(-280, 5, -15),
+                specimen.At(290, -3, 0),
+                specimen.At(100, 0, 40),
+                specimen.At(-500, 400, 250),
+                specimen.At(0, -101, 0),
+                specimen.At(2000, -1500, -800),
+                specimen.At(10, 99.9, 0.5),
+                specimen.At(-299.9, 0.01, 0),
             };
 
             foreach (GeoPoint3 probe in probes)
@@ -52,7 +59,15 @@ namespace GeometryHelper.UnitTest.Solid
             GeoEllipse3 ellipse = specimen.Build();
             GeoEllipse2 flat = specimen.Flat();
 
-            foreach (GeoPoint3 point in new[] { specimen.At(150, 40, 0), specimen.At(-420, 260, 0), specimen.At(250, -10, 0), specimen.At(100, 0, 0) })
+            foreach (
+                GeoPoint3 point in new[]
+                {
+                    specimen.At(150, 40, 0),
+                    specimen.At(-420, 260, 0),
+                    specimen.At(250, -10, 0),
+                    specimen.At(100, 0, 0),
+                }
+            )
             {
                 GeoPoint3 expected = specimen.Lift(flat.GetClosestPointOnBoundary(specimen.Foot(point)));
                 Assert.True(ellipse.GetClosestPointOnBoundary(point).IsEqualTo(expected, Tight));
@@ -64,13 +79,19 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // 2D decision 9 and A1: C + b V, at t = π/2, whether a is b or not, from the centre and straight above or below
             // it. The circle gives its zero-parameter point there instead (Projection3.cs:727-730).
-            foreach (Ellipse3Oracle.Specimen specimen in new[] { Ellipse3Oracle.Tilted(), Ellipse3Oracle.Tilted(200, 200) })
+            foreach (
+                Ellipse3Oracle.Specimen specimen in new[] { Ellipse3Oracle.Tilted(), Ellipse3Oracle.Tilted(200, 200) }
+            )
             {
                 GeoEllipse3 ellipse = specimen.Build();
 
                 foreach (double h in new[] { 0.0, 70.0, -70.0 })
                 {
-                    Assert.True(ellipse.GetClosestPointOnBoundary(specimen.At(0, 0, h)).IsEqualTo(specimen.At(0, specimen.B, 0), Tight));
+                    Assert.True(
+                        ellipse
+                            .GetClosestPointOnBoundary(specimen.At(0, 0, h))
+                            .IsEqualTo(specimen.At(0, specimen.B, 0), Tight)
+                    );
                 }
             }
         }
@@ -113,7 +134,9 @@ namespace GeometryHelper.UnitTest.Solid
             for (int k = 0; k < 24; k++)
             {
                 GeoPoint3 rim = specimen.Rim(0.05 + k * 2 * Math.PI / 24);
-                GeoPoint3 foot = rim.Subtract(plane.Normal.Multiply(plane.Origin.GetVectorTo(rim).DotProduct(plane.Normal)));
+                GeoPoint3 foot = rim.Subtract(
+                    plane.Normal.Multiply(plane.Origin.GetVectorTo(rim).DotProduct(plane.Normal))
+                );
 
                 Assert.InRange(Ellipse3Oracle.GapToRim(seen, foot, out double offPlane), 0.0, 1E-9);
                 Assert.Equal(0.0, offPlane, 1E-9);
@@ -139,7 +162,12 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.True(up.IsEqualTo(down, Tight));
 
             var facingDown = new GeoPlane3(GeoPoint3.Origin, new GeoVector3(0, 0, -1));
-            Assert.True(Ellipse3Oracle.CircleTiltedSixty().ProjectToPlane(facingDown).Normal.IsEqualTo(new GeoVector3(0, 0, -1), Tight));
+            Assert.True(
+                Ellipse3Oracle
+                    .CircleTiltedSixty()
+                    .ProjectToPlane(facingDown)
+                    .Normal.IsEqualTo(new GeoVector3(0, 0, -1), Tight)
+            );
         }
 
         [Fact]
@@ -154,7 +182,9 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(120.0, seen.MajorRadius, 1E-12 * 120);
             Assert.Equal(120.0, seen.MinorRadius, 1E-12 * 120);
             Assert.True(seen.MajorAxis.IsEqualTo(made.MajorAxis, Tight));
-            Assert.True(seen.GetPointAtAngle(0).IsEqualTo(made.GetPointAtAngle(0).Subtract(new GeoVector3(0, 0, 50)), Tight));
+            Assert.True(
+                seen.GetPointAtAngle(0).IsEqualTo(made.GetPointAtAngle(0).Subtract(new GeoVector3(0, 0, 50)), Tight)
+            );
 
             // An ellipse parallel to the plane is only moved onto it.
             Ellipse3Oracle.Specimen specimen = Ellipse3Oracle.Tilted();
@@ -174,9 +204,13 @@ namespace GeometryHelper.UnitTest.Solid
             foreach (GeoCircle3 circle in new[] { standing, nearly })
             {
                 Assert.Throws<InvalidOperationException>(() => circle.ProjectToPlane(GeoPlane3.XY));
-                Assert.Throws<InvalidOperationException>(() => GeoEllipse3.FromCircle(circle).ProjectToPlane(GeoPlane3.XY));
+                Assert.Throws<InvalidOperationException>(() =>
+                    GeoEllipse3.FromCircle(circle).ProjectToPlane(GeoPlane3.XY)
+                );
                 Assert.Throws<InvalidOperationException>(() => circle.ProjectToEllipse2(GeoCoordinateSystem3.Global));
-                Assert.Throws<InvalidOperationException>(() => GeoEllipse3.FromCircle(circle).ProjectToEllipse2(GeoCoordinateSystem3.Global));
+                Assert.Throws<InvalidOperationException>(() =>
+                    GeoEllipse3.FromCircle(circle).ProjectToEllipse2(GeoCoordinateSystem3.Global)
+                );
             }
         }
 
@@ -214,7 +248,11 @@ namespace GeometryHelper.UnitTest.Solid
             // The tilted 300 by 100 laid out in a frame standing at (100, 200, 300), turned and leaning: each rim point,
             // dropped onto the frame's plane and read in its coordinates, lies on the rim of what comes back.
             Ellipse3Oracle.Specimen specimen = Ellipse3Oracle.Tilted();
-            var frame = new GeoCoordinateSystem3(new GeoPoint3(100, 200, 300), new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 1));
+            var frame = new GeoCoordinateSystem3(
+                new GeoPoint3(100, 200, 300),
+                new GeoVector3(1, 1, 0),
+                new GeoVector3(-1, 1, 1)
+            );
             GeoEllipse2 laid = specimen.Build().ProjectToEllipse2(frame);
 
             for (int k = 0; k < 24; k++)
@@ -231,7 +269,11 @@ namespace GeometryHelper.UnitTest.Solid
             // centre where the frame puts (40, -25), the normal the frame's Z, the axis the frame's image of the 2D axis,
             // and each point at t the frame's image of the 2D point at t, since the frame is right-handed.
             GeoEllipse2 flat = Ellipse2Oracle.Tilted();
-            var frame = new GeoCoordinateSystem3(new GeoPoint3(100, 200, 300), new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 1));
+            var frame = new GeoCoordinateSystem3(
+                new GeoPoint3(100, 200, 300),
+                new GeoVector3(1, 1, 0),
+                new GeoVector3(-1, 1, 1)
+            );
             GeoEllipse3 lifted = flat.ToEllipse3(frame);
 
             Assert.Equal(flat.MajorRadius, lifted.MajorRadius);
@@ -243,7 +285,10 @@ namespace GeometryHelper.UnitTest.Solid
             for (int k = -4; k < 20; k++)
             {
                 double t = k * 0.39;
-                Assert.True(lifted.GetPointAtAngle(t).IsEqualTo(PlanarMap.ToPoint3(frame, flat.GetPointAtAngle(t)), Tight), $"t = {t}");
+                Assert.True(
+                    lifted.GetPointAtAngle(t).IsEqualTo(PlanarMap.ToPoint3(frame, flat.GetPointAtAngle(t)), Tight),
+                    $"t = {t}"
+                );
             }
         }
 
@@ -255,7 +300,11 @@ namespace GeometryHelper.UnitTest.Solid
             var frames = new[]
             {
                 GeoCoordinateSystem3.Global,
-                new GeoCoordinateSystem3(new GeoPoint3(100, 200, 300), new GeoVector3(1, 1, 0), new GeoVector3(-1, 1, 1)),
+                new GeoCoordinateSystem3(
+                    new GeoPoint3(100, 200, 300),
+                    new GeoVector3(1, 1, 0),
+                    new GeoVector3(-1, 1, 1)
+                ),
             };
             var ellipses = new[]
             {

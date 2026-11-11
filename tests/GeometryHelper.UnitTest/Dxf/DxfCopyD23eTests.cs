@@ -28,8 +28,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 200 * i, 0), block));
                 var set = new DxfBlockReference(new GeoPoint3(400, 200 * i, 0), block);
                 db.ModelSpace.AppendEntity(set);
-                set.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == "Width").Value = 150.0 + 10 * i;
-                db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(800, 200 * i, 0), set.AnonymousBlockTableRecord));
+                set.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == "Width").Value =
+                    150.0 + 10 * i;
+                db.ModelSpace.AppendEntity(
+                    new DxfBlockReference(new GeoPoint3(800, 200 * i, 0), set.AnonymousBlockTableRecord)
+                );
             }
 
             db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, -10, 0), new GeoPoint3(1000, -10, 0)));
@@ -53,8 +56,14 @@ namespace GeometryHelper.UnitTest.Dxf
                 block.AppendEntity(line);
             }
 
-            DxfBlockLinearParameter width = block.AddLinearParameter("Width", "Overall width of the panel", new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20,
-                DxfBlockParameterValueSet.Increments(50, 300, 10));
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                "Overall width of the panel",
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -20,
+                DxfBlockParameterValueSet.Increments(50, 300, 10)
+            );
             block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), lines.Take(3));
             return block;
         }
@@ -110,33 +119,52 @@ namespace GeometryHelper.UnitTest.Dxf
                 using (var go = new System.Threading.ManualResetEventSlim(false))
                 {
                     int r = round;
-                    var threads = Enumerable.Range(0, 8).Select(t => new System.Threading.Thread(() =>
-                    {
-                        int way = (t + r) % 4;
-                        go.Wait();
-
-                        try
+                    var threads = Enumerable
+                        .Range(0, 8)
+                        .Select(t => new System.Threading.Thread(() =>
                         {
-                            if (Copy(shared, way) != alone[way])
+                            int way = (t + r) % 4;
+                            go.Wait();
+
+                            try
                             {
-                                System.Threading.Interlocked.Increment(ref wrong);
-                            }
+                                if (Copy(shared, way) != alone[way])
+                                {
+                                    System.Threading.Interlocked.Increment(ref wrong);
+                                }
 
-                            panels[t] = shared.BlockTable["GH_PANEL1"];
-                        }
-                        catch (Exception e)
-                        {
-                            System.Threading.Interlocked.Increment(ref thrown);
-                            System.Threading.Interlocked.CompareExchange(ref first, e.GetType().Name + ": " + e.Message + e.StackTrace, null);
-                        }
-                    })).ToList();
+                                panels[t] = shared.BlockTable["GH_PANEL1"];
+                            }
+                            catch (Exception e)
+                            {
+                                System.Threading.Interlocked.Increment(ref thrown);
+                                System.Threading.Interlocked.CompareExchange(
+                                    ref first,
+                                    e.GetType().Name + ": " + e.Message + e.StackTrace,
+                                    null
+                                );
+                            }
+                        }))
+                        .ToList();
 
                     threads.ForEach(thread => thread.Start());
                     go.Set();
-                    Assert.All(threads, thread => Assert.True(thread.Join(TimeSpan.FromSeconds(60)), "A thread copying did not end."));
+                    Assert.All(threads, thread =>
+                        Assert.True(thread.Join(TimeSpan.FromSeconds(60)), "A thread copying did not end.")
+                    );
                 }
 
-                Assert.True(wrong == 0 && thrown == 0, "Round " + round + ": " + wrong + " copies came out otherwise and " + thrown + " threw, the first " + first);
+                Assert.True(
+                    wrong == 0 && thrown == 0,
+                    "Round "
+                        + round
+                        + ": "
+                        + wrong
+                        + " copies came out otherwise and "
+                        + thrown
+                        + " threw, the first "
+                        + first
+                );
                 Assert.Equal(text, shared.ToText());
                 Assert.All(panels, panel => Assert.Same(panels[0], panel));
                 Assert.Same(panels[0], shared.BlockTable.Single(b => b.Name == "GH_PANEL1"));

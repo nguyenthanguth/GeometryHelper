@@ -13,7 +13,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
 
         // Tekla-style assembly at world (100,0,0) without its own body, aggregating two 1 m3 parts
         // placed relative to it at (0,0,0) and (0,0,5).
-        private static readonly string Assembly = IfcTestFile.CommonHeader() + @"
+        private static readonly string Assembly =
+            IfcTestFile.CommonHeader()
+            + @"
 #20=IFCRECTANGLEPROFILEDEF(.AREA.,$,#5,1.,0.5);
 #21=IFCEXTRUDEDAREASOLID(#20,#8,#9,2.);
 #22=IFCSHAPEREPRESENTATION(#11,'Body','SweptSolid',(#21));
@@ -21,7 +23,9 @@ namespace GeometryHelper.IfcConvert.UnitTest
 #30=IFCCARTESIANPOINT((100.,0.,0.));
 #31=IFCAXIS2PLACEMENT3D(#30,$,$);
 #32=IFCLOCALPLACEMENT($,#31);
-#33=IFCELEMENTASSEMBLY('" + AssemblyGuid + @"',$,'Assembly',$,$,#32,$,$,$,$);
+#33=IFCELEMENTASSEMBLY('"
+            + AssemblyGuid
+            + @"',$,'Assembly',$,$,#32,$,$,$,$);
 #34=IFCLOCALPLACEMENT(#32,#8);
 #35=IFCBEAM('0000000000000000000031',$,'Part1',$,$,#34,#23,$,$);
 #36=IFCCARTESIANPOINT((0.,0.,5.));
@@ -44,7 +48,11 @@ namespace GeometryHelper.IfcConvert.UnitTest
         [Theory]
         [InlineData(CoordinateSpace.Global, 100.0, 3.5)]
         [InlineData(CoordinateSpace.Local, 0.0, 3.5)]
-        public void Assembly_CollectsAggregatedParts_WhenRequested(CoordinateSpace space, double centreX, double centreZ)
+        public void Assembly_CollectsAggregatedParts_WhenRequested(
+            CoordinateSpace space,
+            double centreX,
+            double centreZ
+        )
         {
             IfcTestFile.Run(Assembly, model =>
             {

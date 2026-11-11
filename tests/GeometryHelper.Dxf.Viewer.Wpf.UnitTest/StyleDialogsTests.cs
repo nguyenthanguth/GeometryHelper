@@ -152,10 +152,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             {
                 Assert.Equal("New dimension style: GH_25", editor.Title);
                 editor.Tab = "Symbols and arrows";
-                editor.Fields.Single(f => f.Label == "First").SelectedChoice = editor.Fields.Single(f => f.Label == "First").Choices.Single(c => c.Label == "Architectural tick");
+                editor.Fields.Single(f => f.Label == "First").SelectedChoice = editor
+                    .Fields.Single(f => f.Label == "First")
+                    .Choices.Single(c => c.Label == "Architectural tick");
                 editor.Fields.Single(f => f.Label == "Arrow size").Text = "3";
                 editor.Tab = "Primary units";
-                editor.Fields.Single(f => f.Label == "Precision" && f.Variable == "DIMDEC").SelectedChoice = editor.Fields.Single(f => f.Variable == "DIMDEC").Choices[1];
+                editor.Fields.Single(f => f.Label == "Precision" && f.Variable == "DIMDEC").SelectedChoice = editor
+                    .Fields.Single(f => f.Variable == "DIMDEC")
+                    .Choices[1];
                 return editor.Ok();
             };
 
@@ -192,7 +196,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             DimStyleManagerViewModel manager = model.CreateDimStyleManager();
 
             manager.SelectedStyle = manager.Styles.Single(s => s.Name == "GH_MODEL_10");
-            Assert.Equal("A style named GH_MODEL_… is made by the model drawing. Changing it is a hand edit that an update keeps; its settings remake the rest.", manager.Notice);
+            Assert.Equal(
+                "A style named GH_MODEL_… is made by the model drawing. Changing it is a hand edit that an update keeps; its settings remake the rest.",
+                manager.Notice
+            );
             Assert.True(manager.SelectedStyle.IsModel);
             Assert.Equal(manager.Notice, manager.CreateModify().Notice);
 

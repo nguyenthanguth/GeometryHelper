@@ -63,9 +63,15 @@ namespace GeometryHelper.Viewer
 
         private void OnGridToggled(object sender, RoutedEventArgs e) => SetGrid(GridMenu.IsChecked == true);
 
-        private void OnPropertiesToggled(object sender, RoutedEventArgs e) => SetPropertiesPane(PropertiesMenu.IsChecked == true);
+        private void OnPropertiesToggled(object sender, RoutedEventArgs e) =>
+            SetPropertiesPane(PropertiesMenu.IsChecked == true);
 
-        private void OnWatchToggled(object sender, RoutedEventArgs e) => SetMessage(WatchMenu.IsChecked == true ? "run again when the file is saved: on" : "run again when the file is saved: off");
+        private void OnWatchToggled(object sender, RoutedEventArgs e) =>
+            SetMessage(
+                WatchMenu.IsChecked == true
+                    ? "run again when the file is saved: on"
+                    : "run again when the file is saved: off"
+            );
 
         private void OnShowKeys(object sender, RoutedEventArgs e)
         {
@@ -73,7 +79,10 @@ namespace GeometryHelper.Viewer
 
             foreach (KeymapAction action in KeymapActions.All)
             {
-                text.Append(string.Join(", ", _keymap.GesturesOf(action.Name).Select(g => g.ToString())).PadRight(28)).Append(action.Name).Append(action.Implemented ? string.Empty : "  (later)").AppendLine();
+                text.Append(string.Join(", ", _keymap.GesturesOf(action.Name).Select(g => g.ToString())).PadRight(28))
+                    .Append(action.Name)
+                    .Append(action.Implemented ? string.Empty : "  (later)")
+                    .AppendLine();
             }
 
             text.AppendLine().Append("Change them by copying keymap.json to ").Append(Settings.Folder).Append('.');
@@ -84,7 +93,14 @@ namespace GeometryHelper.Viewer
                 Owner = this,
                 Width = 620,
                 Height = 700,
-                Content = new TextBox { Text = text.ToString(), IsReadOnly = true, FontFamily = new FontFamily("Consolas"), VerticalScrollBarVisibility = ScrollBarVisibility.Auto, BorderThickness = new Thickness(0) },
+                Content = new TextBox
+                {
+                    Text = text.ToString(),
+                    IsReadOnly = true,
+                    FontFamily = new FontFamily("Consolas"),
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    BorderThickness = new Thickness(0),
+                },
             };
 
             box.Show();
@@ -116,7 +132,10 @@ namespace GeometryHelper.Viewer
             }
 
             // The arrow keys move through the tree and the properties when one of them has the focus.
-            bool navigating = Keyboard.FocusedElement is TreeViewItem || Keyboard.FocusedElement is ListViewItem || Keyboard.FocusedElement is TextBox;
+            bool navigating =
+                Keyboard.FocusedElement is TreeViewItem
+                || Keyboard.FocusedElement is ListViewItem
+                || Keyboard.FocusedElement is TextBox;
 
             // 1, 2 and 3 choose the side of a comparison; with none open they are only keys.
             if (_compare == null && (action == "CompareLeft" || action == "CompareRight" || action == "CompareBoth"))
@@ -128,15 +147,44 @@ namespace GeometryHelper.Viewer
             // the text and take from it, alone or with Ctrl (by the word) and Shift (selecting). The keys of the viewer with Ctrl, Ctrl+B, Ctrl+R, stay the viewer's.
             if (Keyboard.FocusedElement is TextBox)
             {
-                bool editing = name == "Left" || name == "Right" || name == "Up" || name == "Down" || name == "Home" || name == "End" || name == "Backspace" || name == "Delete" || name == "PageUp" || name == "PageDown";
+                bool editing =
+                    name == "Left"
+                    || name == "Right"
+                    || name == "Up"
+                    || name == "Down"
+                    || name == "Home"
+                    || name == "End"
+                    || name == "Backspace"
+                    || name == "Delete"
+                    || name == "PageUp"
+                    || name == "PageDown";
 
-                if (((modifiers & ~ModifierKeys.Shift) == ModifierKeys.None && (name.Length == 1 || editing)) || (editing && (modifiers & ~(ModifierKeys.Shift | ModifierKeys.Control)) == ModifierKeys.None))
+                if (
+                    ((modifiers & ~ModifierKeys.Shift) == ModifierKeys.None && (name.Length == 1 || editing))
+                    || (editing && (modifiers & ~(ModifierKeys.Shift | ModifierKeys.Control)) == ModifierKeys.None)
+                )
                 {
                     return;
                 }
             }
 
-            if (navigating && modifiers == ModifierKeys.None && (name == "Left" || name == "Right" || name == "Up" || name == "Down" || name == "PageUp" || name == "PageDown" || name == "F" || name == "V" || name == "K" || name == "L" || name == "W"))
+            if (
+                navigating
+                && modifiers == ModifierKeys.None
+                && (
+                    name == "Left"
+                    || name == "Right"
+                    || name == "Up"
+                    || name == "Down"
+                    || name == "PageUp"
+                    || name == "PageDown"
+                    || name == "F"
+                    || name == "V"
+                    || name == "K"
+                    || name == "L"
+                    || name == "W"
+                )
+            )
             {
                 return;
             }
@@ -145,8 +193,10 @@ namespace GeometryHelper.Viewer
             Execute(action);
         }
 
-        private static string ModifierText(ModifierKeys modifiers)
-            => ((modifiers & ModifierKeys.Control) != 0 ? "Ctrl+" : string.Empty) + ((modifiers & ModifierKeys.Alt) != 0 ? "Alt+" : string.Empty) + ((modifiers & ModifierKeys.Shift) != 0 ? "Shift+" : string.Empty);
+        private static string ModifierText(ModifierKeys modifiers) =>
+            ((modifiers & ModifierKeys.Control) != 0 ? "Ctrl+" : string.Empty)
+            + ((modifiers & ModifierKeys.Alt) != 0 ? "Alt+" : string.Empty)
+            + ((modifiers & ModifierKeys.Shift) != 0 ? "Shift+" : string.Empty);
 
         private static string KeyName(Key key)
         {
@@ -172,11 +222,16 @@ namespace GeometryHelper.Viewer
 
             switch (key)
             {
-                case Key.Escape: return "Esc";
-                case Key.Return: return "Enter";
-                case Key.Prior: return "PageUp";
-                case Key.Next: return "PageDown";
-                case Key.Back: return "Backspace";
+                case Key.Escape:
+                    return "Esc";
+                case Key.Return:
+                    return "Enter";
+                case Key.Prior:
+                    return "PageUp";
+                case Key.Next:
+                    return "PageDown";
+                case Key.Back:
+                    return "Backspace";
                 case Key.Left:
                 case Key.Right:
                 case Key.Up:
@@ -203,8 +258,12 @@ namespace GeometryHelper.Viewer
             {
                 switch (action)
                 {
-                    case "OpenFile": OpenWithDialog(); break;
-                    case "SaveSceneAs": SaveSceneAs(); break;
+                    case "OpenFile":
+                        OpenWithDialog();
+                        break;
+                    case "SaveSceneAs":
+                        SaveSceneAs();
+                        break;
                     case "RunScript":
                     case "RerunScript":
                         if (_currentPath == null)
@@ -218,13 +277,25 @@ namespace GeometryHelper.Viewer
 
                         break;
 
-                    case "Compare": ShowCompareDialog(); break;
-                    case "CompareLeft": SetCompareView(CompareView.Left); break;
-                    case "CompareRight": SetCompareView(CompareView.Right); break;
-                    case "CompareBoth": SetCompareView(CompareView.Both); break;
-                    case "ExportTest": _ = ExportTestAsync(null); break;
+                    case "Compare":
+                        ShowCompareDialog();
+                        break;
+                    case "CompareLeft":
+                        SetCompareView(CompareView.Left);
+                        break;
+                    case "CompareRight":
+                        SetCompareView(CompareView.Right);
+                        break;
+                    case "CompareBoth":
+                        SetCompareView(CompareView.Both);
+                        break;
+                    case "ExportTest":
+                        _ = ExportTestAsync(null);
+                        break;
 
-                    case "ToggleDiagnostics": ToggleDiagnosticsPane(); break;
+                    case "ToggleDiagnostics":
+                        ToggleDiagnosticsPane();
+                        break;
 
                     case "Cancel":
                         // A diagnostic run is stopped before anything else; then a tool in use, or the dimensions it drew; a script that is running is stopped before those.
@@ -255,34 +326,84 @@ namespace GeometryHelper.Viewer
                         {
                             _running.Cancel();
                             SetMessage("stopping the script...");
-                            Log("Stop asked for. A script stops at its next Show, Note or Scene.Add, or where it tests Cancel; a loop that does none of these runs to its end, and no other script starts until then. Esc again, or F5, lets go of it: the window is free and the thread keeps running until it ends.");
+                            Log(
+                                "Stop asked for. A script stops at its next Show, Note or Scene.Add, or where it tests Cancel; a loop that does none of these runs to its end, and no other script starts until then. Esc again, or F5, lets go of it: the window is free and the thread keeps running until it ends."
+                            );
                         }
 
                         _model.Select(new int[0]);
                         AfterSelectionChanged(true);
                         break;
 
-                    case "ZoomIn": Active.Camera.Zoom(1.25); UpdateCamera(); break;
-                    case "ZoomOut": Active.Camera.Zoom(0.8); UpdateCamera(); break;
-                    case "PanLeft": Active.Camera.PanBy(-0.1, 0.0, Active.Aspect); UpdateCamera(); break;
-                    case "PanRight": Active.Camera.PanBy(0.1, 0.0, Active.Aspect); UpdateCamera(); break;
-                    case "PanUp": Active.Camera.PanBy(0.0, 0.1, Active.Aspect); UpdateCamera(); break;
-                    case "PanDown": Active.Camera.PanBy(0.0, -0.1, Active.Aspect); UpdateCamera(); break;
-                    case "RotateLeft": TurnCamera(RotateStep, 0.0); break;
-                    case "RotateRight": TurnCamera(-RotateStep, 0.0); break;
-                    case "RotateUp": TurnCamera(0.0, -RotateStep); break;
-                    case "RotateDown": TurnCamera(0.0, RotateStep); break;
-                    case "TogglePlan": TogglePlan(); break;
-                    case "FitAll": FitAll(); break;
-                    case "FitSelection": FitSelection(); break;
-                    case "ViewIso": SetView(StandardView.Iso); break;
-                    case "ViewTop": SetView(StandardView.Top); break;
-                    case "ViewFront": SetView(StandardView.Front); break;
-                    case "ViewRight": SetView(StandardView.Right); break;
-                    case "RenderWireframe": SetMode(RenderMode.Wireframe); break;
-                    case "RenderShaded": SetMode(RenderMode.Shaded); break;
-                    case "RenderShadedEdges": SetMode(RenderMode.ShadedEdges); break;
-                    case "RenderTransparent": SetMode(RenderMode.Transparent); break;
+                    case "ZoomIn":
+                        Active.Camera.Zoom(1.25);
+                        UpdateCamera();
+                        break;
+                    case "ZoomOut":
+                        Active.Camera.Zoom(0.8);
+                        UpdateCamera();
+                        break;
+                    case "PanLeft":
+                        Active.Camera.PanBy(-0.1, 0.0, Active.Aspect);
+                        UpdateCamera();
+                        break;
+                    case "PanRight":
+                        Active.Camera.PanBy(0.1, 0.0, Active.Aspect);
+                        UpdateCamera();
+                        break;
+                    case "PanUp":
+                        Active.Camera.PanBy(0.0, 0.1, Active.Aspect);
+                        UpdateCamera();
+                        break;
+                    case "PanDown":
+                        Active.Camera.PanBy(0.0, -0.1, Active.Aspect);
+                        UpdateCamera();
+                        break;
+                    case "RotateLeft":
+                        TurnCamera(RotateStep, 0.0);
+                        break;
+                    case "RotateRight":
+                        TurnCamera(-RotateStep, 0.0);
+                        break;
+                    case "RotateUp":
+                        TurnCamera(0.0, -RotateStep);
+                        break;
+                    case "RotateDown":
+                        TurnCamera(0.0, RotateStep);
+                        break;
+                    case "TogglePlan":
+                        TogglePlan();
+                        break;
+                    case "FitAll":
+                        FitAll();
+                        break;
+                    case "FitSelection":
+                        FitSelection();
+                        break;
+                    case "ViewIso":
+                        SetView(StandardView.Iso);
+                        break;
+                    case "ViewTop":
+                        SetView(StandardView.Top);
+                        break;
+                    case "ViewFront":
+                        SetView(StandardView.Front);
+                        break;
+                    case "ViewRight":
+                        SetView(StandardView.Right);
+                        break;
+                    case "RenderWireframe":
+                        SetMode(RenderMode.Wireframe);
+                        break;
+                    case "RenderShaded":
+                        SetMode(RenderMode.Shaded);
+                        break;
+                    case "RenderShadedEdges":
+                        SetMode(RenderMode.ShadedEdges);
+                        break;
+                    case "RenderTransparent":
+                        SetMode(RenderMode.Transparent);
+                        break;
 
                     case "HideSelected":
                         _model.SetItemsHidden(_model.Selected.ToList(), true);
@@ -318,12 +439,24 @@ namespace GeometryHelper.Viewer
                         ExecuteTool(action);
                         break;
 
-                    case "ViewLayout1": SetLayout(1); break;
-                    case "ViewLayout2": SetLayout(2); break;
-                    case "ViewLayout4": SetLayout(4); break;
-                    case "LinkViews": ToggleLink(); break;
-                    case "SaveView": SaveActiveView(); break;
-                    case "Screenshot": _ = ScreenshotWithDialogAsync(); break;
+                    case "ViewLayout1":
+                        SetLayout(1);
+                        break;
+                    case "ViewLayout2":
+                        SetLayout(2);
+                        break;
+                    case "ViewLayout4":
+                        SetLayout(4);
+                        break;
+                    case "LinkViews":
+                        ToggleLink();
+                        break;
+                    case "SaveView":
+                        SaveActiveView();
+                        break;
+                    case "Screenshot":
+                        _ = ScreenshotWithDialogAsync();
+                        break;
 
                     case "WorkPlaneThreePoints":
                     case "WorkPlaneFromFace":
@@ -343,7 +476,11 @@ namespace GeometryHelper.Viewer
 
                     default:
                         KeymapAction info = KeymapActions.All.FirstOrDefault(a => a.Name == action);
-                        SetMessage(info != null && !info.Implemented ? action + " is not in this version yet" : "nothing to do for " + action);
+                        SetMessage(
+                            info != null && !info.Implemented
+                                ? action + " is not in this version yet"
+                                : "nothing to do for " + action
+                        );
                         break;
                 }
             }
@@ -352,7 +489,6 @@ namespace GeometryHelper.Viewer
                 Log("Error in " + action + ": " + e);
             }
         }
-
 
         private void SetMode(RenderMode mode)
         {
@@ -547,7 +683,8 @@ namespace GeometryHelper.Viewer
             }
         }
 
-        private bool NeedsRebase(ViewPane pane) => _model.Scene != null && RenderSpace.NeedsRebase(pane.View.Origin, pane.Camera, Math.Max(1.0, pane.Height));
+        private bool NeedsRebase(ViewPane pane) =>
+            _model.Scene != null && RenderSpace.NeedsRebase(pane.View.Origin, pane.Camera, Math.Max(1.0, pane.Height));
 
         /// <summary>
         /// Asks for the render origin of a view to move to its target once its camera has rested a moment, if it has strayed too far.
@@ -602,7 +739,14 @@ namespace GeometryHelper.Viewer
         {
             ViewPane pane = PaneOf(sender);
 
-            if (pane == null || (e.ChangedButton != MouseButton.Left && e.ChangedButton != MouseButton.Middle && e.ChangedButton != MouseButton.Right))
+            if (
+                pane == null
+                || (
+                    e.ChangedButton != MouseButton.Left
+                    && e.ChangedButton != MouseButton.Middle
+                    && e.ChangedButton != MouseButton.Right
+                )
+            )
             {
                 return;
             }
@@ -615,7 +759,9 @@ namespace GeometryHelper.Viewer
             // A second click in quick succession is a second point while a tool waits for one, not a double click.
             if (e.ClickCount == 2 && _pickMode == PickMode.None)
             {
-                string action = _keymap.ActionFor(Gesture.Parse(ModifierText(modifiers) + ButtonPrefix(e.ChangedButton) + "DoubleClick"));
+                string action = _keymap.ActionFor(
+                    Gesture.Parse(ModifierText(modifiers) + ButtonPrefix(e.ChangedButton) + "DoubleClick")
+                );
 
                 if (action != null)
                 {
@@ -677,11 +823,18 @@ namespace GeometryHelper.Viewer
             if (!_dragging && (p - _dragStart).Length > 4.0)
             {
                 _dragging = true;
-                _dragAction = _keymap.ActionFor(Gesture.Parse(ModifierText(_dragModifiers) + ButtonPrefix(_dragButton.Value) + "Drag"));
+                _dragAction = _keymap.ActionFor(
+                    Gesture.Parse(ModifierText(_dragModifiers) + ButtonPrefix(_dragButton.Value) + "Drag")
+                );
 
                 // Shift and Ctrl held with the box drag add to the selection and toggle it, and so are not gestures of their own.
-                if (_dragAction == null && _dragButton == MouseButton.Left && _dragModifiers != ModifierKeys.None && (_dragModifiers & ~(ModifierKeys.Shift | ModifierKeys.Control)) == 0
-                    && _keymap.ActionFor(Gesture.Parse("Drag")) == "BoxSelect")
+                if (
+                    _dragAction == null
+                    && _dragButton == MouseButton.Left
+                    && _dragModifiers != ModifierKeys.None
+                    && (_dragModifiers & ~(ModifierKeys.Shift | ModifierKeys.Control)) == 0
+                    && _keymap.ActionFor(Gesture.Parse("Drag")) == "BoxSelect"
+                )
                 {
                     _dragAction = "BoxSelect";
                 }
@@ -698,7 +851,9 @@ namespace GeometryHelper.Viewer
                 }
                 else if (_dragAction != "Pan" && _dragAction != "Rotate")
                 {
-                    SetMessage(_dragAction == null ? "no action for this drag" : _dragAction + " is not in this version yet");
+                    SetMessage(
+                        _dragAction == null ? "no action for this drag" : _dragAction + " is not in this version yet"
+                    );
                 }
             }
 
@@ -807,7 +962,8 @@ namespace GeometryHelper.Viewer
             e.Handled = true;
         }
 
-        private static string ButtonPrefix(MouseButton button) => button == MouseButton.Left ? string.Empty : button.ToString();
+        private static string ButtonPrefix(MouseButton button) =>
+            button == MouseButton.Left ? string.Empty : button.ToString();
 
         private void Click(Point p, MouseButton button, ModifierKeys modifiers)
         {
@@ -829,7 +985,9 @@ namespace GeometryHelper.Viewer
                 return;
             }
 
-            PickHit hit = HasScene ? PickEngine.Pick(_model.Primitives, _geometry, MakeMap(), p.X, p.Y, _model.IsVisible, Surfaces) : null;
+            PickHit hit = HasScene
+                ? PickEngine.Pick(_model.Primitives, _geometry, MakeMap(), p.X, p.Y, _model.IsVisible, Surfaces)
+                : null;
             int index = hit == null ? -1 : hit.ItemIndex;
             var selection = new HashSet<int>(_model.Selected);
 
@@ -872,7 +1030,9 @@ namespace GeometryHelper.Viewer
         private static string Plain(double value, string format)
         {
             string text = value.ToString(format, CultureInfo.InvariantCulture);
-            return text.StartsWith("-", StringComparison.Ordinal) && text.Skip(1).All(c => c == '0' || c == '.') ? text.Substring(1) : text;
+            return text.StartsWith("-", StringComparison.Ordinal) && text.Skip(1).All(c => c == '0' || c == '.')
+                ? text.Substring(1)
+                : text;
         }
 
         /// <summary>
@@ -882,7 +1042,14 @@ namespace GeometryHelper.Viewer
         {
             double w = Math.Max(1.0, pane.Width);
             double h = Math.Max(1.0, pane.Height);
-            pane.Camera.GetRay(2.0 * p.X / w - 1.0, 1.0 - 2.0 * p.Y / h, pane.Aspect, _model.Primitives?.Bounds ?? default(Bounds3), out Vec3 origin, out Vec3 direction);
+            pane.Camera.GetRay(
+                2.0 * p.X / w - 1.0,
+                1.0 - 2.0 * p.Y / h,
+                pane.Aspect,
+                _model.Primitives?.Bounds ?? default(Bounds3),
+                out Vec3 origin,
+                out Vec3 direction
+            );
             double pixel = 2.0 * pane.Camera.Distance * pane.Camera.HalfHeightRatio / h;
             string format = "F" + RenderSpace.DecimalsFor(pixel).ToString(CultureInfo.InvariantCulture);
 
@@ -890,13 +1057,23 @@ namespace GeometryHelper.Viewer
             {
                 if (!_workPlane.TryIntersect(origin, direction, pane.Camera.Orthographic, out Vec3 onWork))
                 {
-                    CursorText.Text = "x -   y -   z 0 (the view is edge-on to the work plane, or the plane is behind it)";
+                    CursorText.Text =
+                        "x -   y -   z 0 (the view is edge-on to the work plane, or the plane is behind it)";
                     return;
                 }
 
                 Vec3 local = _workPlane.ToLocal(onWork);
-                CursorText.Text = "x " + Plain(local.X, format) + "   y " + Plain(local.Y, format) + "   z 0 (work plane)   world "
-                    + Plain(onWork.X, format) + ", " + Plain(onWork.Y, format) + ", " + Plain(onWork.Z, format);
+                CursorText.Text =
+                    "x "
+                    + Plain(local.X, format)
+                    + "   y "
+                    + Plain(local.Y, format)
+                    + "   z 0 (work plane)   world "
+                    + Plain(onWork.X, format)
+                    + ", "
+                    + Plain(onWork.Y, format)
+                    + ", "
+                    + Plain(onWork.Z, format);
                 return;
             }
 
@@ -916,7 +1093,12 @@ namespace GeometryHelper.Viewer
             }
 
             Vec3 onPlane = origin + direction * t;
-            CursorText.Text = "x " + onPlane.X.ToString(format, CultureInfo.InvariantCulture) + "   y " + onPlane.Y.ToString(format, CultureInfo.InvariantCulture) + "   z 0 (plane z = 0)";
+            CursorText.Text =
+                "x "
+                + onPlane.X.ToString(format, CultureInfo.InvariantCulture)
+                + "   y "
+                + onPlane.Y.ToString(format, CultureInfo.InvariantCulture)
+                + "   z 0 (plane z = 0)";
         }
 
         #endregion
@@ -937,10 +1119,18 @@ namespace GeometryHelper.Viewer
 
                 switch (_command.Mode.ToLowerInvariant())
                 {
-                    case "wireframe": mode = RenderMode.Wireframe; break;
-                    case "shaded": mode = RenderMode.Shaded; break;
-                    case "transparent": mode = RenderMode.Transparent; break;
-                    default: mode = RenderMode.ShadedEdges; break;
+                    case "wireframe":
+                        mode = RenderMode.Wireframe;
+                        break;
+                    case "shaded":
+                        mode = RenderMode.Shaded;
+                        break;
+                    case "transparent":
+                        mode = RenderMode.Transparent;
+                        break;
+                    default:
+                        mode = RenderMode.ShadedEdges;
+                        break;
                 }
 
                 foreach (int slot in _layout.Shown)
@@ -953,10 +1143,18 @@ namespace GeometryHelper.Viewer
             {
                 switch (_command.View.ToLowerInvariant())
                 {
-                    case "top": Active.Camera.SetView(StandardView.Top); break;
-                    case "front": Active.Camera.SetView(StandardView.Front); break;
-                    case "right": Active.Camera.SetView(StandardView.Right); break;
-                    default: Active.Camera.SetView(StandardView.Iso); break;
+                    case "top":
+                        Active.Camera.SetView(StandardView.Top);
+                        break;
+                    case "front":
+                        Active.Camera.SetView(StandardView.Front);
+                        break;
+                    case "right":
+                        Active.Camera.SetView(StandardView.Right);
+                        break;
+                    default:
+                        Active.Camera.SetView(StandardView.Iso);
+                        break;
                 }
             }
         }

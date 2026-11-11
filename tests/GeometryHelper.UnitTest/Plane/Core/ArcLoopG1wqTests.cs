@@ -21,18 +21,42 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class ArcLoopG1wqTests
     {
-        private static readonly Tolerance Billionth = new Tolerance(1E-9, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-9);
-        private static readonly Tolerance Millionth = new Tolerance(1E-6, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-6);
-        private static readonly Tolerance Tenth = new Tolerance(0.1, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 0.1);
-        private static readonly Tolerance Tight = new Tolerance(1E-12, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-12);
+        private static readonly Tolerance Billionth = new Tolerance(
+            1E-9,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-9
+        );
+        private static readonly Tolerance Millionth = new Tolerance(
+            1E-6,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-6
+        );
+        private static readonly Tolerance Tenth = new Tolerance(
+            0.1,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            0.1
+        );
+        private static readonly Tolerance Tight = new Tolerance(
+            1E-12,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-12
+        );
 
         private static readonly double Root2 = Math.Sqrt(2.0);
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
         // The rectangle 100 by 50 with every corner rounded by 0.0005 at a millionth: eight edges, four of them arcs.
-        private static GeoPolygonArc2 Rounded()
-            => Corner2.Fillet(new GeoPolygonArc2(new[] { P(0, 0), P(100, 0), P(100, 50), P(0, 50) }, null), 0.0005, Millionth);
+        private static GeoPolygonArc2 Rounded() =>
+            Corner2.Fillet(
+                new GeoPolygonArc2(new[] { P(0, 0), P(100, 0), P(100, 50), P(0, 50) }, null),
+                0.0005,
+                Millionth
+            );
 
         private static readonly double RoundedArea = 5000.0 - 0.0005 * 0.0005 * (4.0 - Math.PI);
 
@@ -172,14 +196,21 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The square of side 10 grown by 2 with chamfers, a millionth the size: within the vector tolerance the ways out
             // to the moved ends, 0.000002 long, had no direction, and the corners were rounded.
-            GeoPolygonArc2 square = GeoPolygonArc2.FromValidated(new[] { P(0, 0), P(0.00001, 0), P(0.00001, 0.00001), P(0, 0.00001) }, new double[4]);
+            GeoPolygonArc2 square = GeoPolygonArc2.FromValidated(
+                new[] { P(0, 0), P(0.00001, 0), P(0.00001, 0.00001), P(0, 0.00001) },
+                new double[4]
+            );
 
-            GeoPolygonArc2 grown = Assert.Single(Offset2.Offset(square, 0.000002, new OffsetOptions(OffsetJoin.Chamfer), Billionth));
+            GeoPolygonArc2 grown = Assert.Single(
+                Offset2.Offset(square, 0.000002, new OffsetOptions(OffsetJoin.Chamfer), Billionth)
+            );
 
             Assert.Equal(8, grown.VertexCount);
             Assert.Equal(0, ArcsOf(grown));
             Assert.Equal((196.0 - 2.0 * Math.Pow(4.0 - 2.0 * Root2, 2)) * 1E-12, grown.Area, 1E-20);
-            Assert.Contains(grown.Vertices, corner => corner.DistanceTo(P(0.000008 + 0.000002 * Root2, -0.000002)) <= 1E-15);
+            Assert.Contains(grown.Vertices, corner =>
+                corner.DistanceTo(P(0.000008 + 0.000002 * Root2, -0.000002)) <= 1E-15
+            );
         }
 
         [Fact]
@@ -187,13 +218,20 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The triangle with a 10 degree tip grown by 1, a millionth the size: its miter would reach 0.0000115 from the
             // tip, past the limit of 10, and it is squared off 0.00001 from it.
-            GeoPolygonArc2 triangle = GeoPolygonArc2.FromValidated(new[] { P(0, 0), P(0.0001, 0), P(0.0000984807753012208, 0.000017364817766693) }, new double[3]);
+            GeoPolygonArc2 triangle = GeoPolygonArc2.FromValidated(
+                new[] { P(0, 0), P(0.0001, 0), P(0.0000984807753012208, 0.000017364817766693) },
+                new double[3]
+            );
 
             GeoPolygonArc2 grown = Assert.Single(Offset2.Offset(triangle, 0.000001, OffsetOptions.Default, Billionth));
 
             Assert.Equal(4, grown.VertexCount);
-            Assert.Contains(grown.Vertices, corner => corner.DistanceTo(P(-0.00000995070971190755, -0.000001)) <= 1E-12);
-            Assert.Contains(grown.Vertices, corner => corner.DistanceTo(P(-0.00000997318424992736, -0.000000743114854953158)) <= 1E-12);
+            Assert.Contains(grown.Vertices, corner =>
+                corner.DistanceTo(P(-0.00000995070971190755, -0.000001)) <= 1E-12
+            );
+            Assert.Contains(grown.Vertices, corner =>
+                corner.DistanceTo(P(-0.00000997318424992736, -0.000000743114854953158)) <= 1E-12
+            );
         }
 
         [Fact]
@@ -201,9 +239,13 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // The L 0.001 by 0.001 with legs 0.00025 wide: its corners average to (0.000417, 0.000417), its area balances
             // at (0.000339, 0.000339).
-            var l = new GeoPolygon2(new[] { P(0, 0), P(0.001, 0), P(0.001, 0.00025), P(0.00025, 0.00025), P(0.00025, 0.001), P(0, 0.001) }, 6);
+            var l = new GeoPolygon2(
+                new[] { P(0, 0), P(0.001, 0), P(0.001, 0.00025), P(0.00025, 0.00025), P(0.00025, 0.001), P(0, 0.001) },
+                6
+            );
 
-            double along = (0.00025 * 0.001 * 0.0005 + 0.00025 * 0.00075 * 0.000125) / (0.00025 * 0.001 + 0.00025 * 0.00075);
+            double along =
+                (0.00025 * 0.001 * 0.0005 + 0.00025 * 0.00075 * 0.000125) / (0.00025 * 0.001 + 0.00025 * 0.00075);
 
             Assert.Equal(along, l.Centroid.X, 15);
             Assert.Equal(along, l.Centroid.Y, 15);

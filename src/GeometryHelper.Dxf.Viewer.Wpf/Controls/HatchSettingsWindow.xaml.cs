@@ -34,7 +34,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="owner">The window it is shown over; null for none.</param>
         /// <param name="model">The view model.</param>
         /// <returns>True when OK was pressed.</returns>
-        public static bool Show(Window owner, HatchSettingsViewModel model) => new HatchSettingsWindow(model) { Owner = owner }.ShowDialog() == true;
+        public static bool Show(Window owner, HatchSettingsViewModel model) =>
+            new HatchSettingsWindow(model) { Owner = owner }.ShowDialog() == true;
 
         private void OnHeaderDown(object sender, MouseButtonEventArgs e)
         {
@@ -47,7 +48,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Browse…: a .pat file; null where none was chosen.</summary>
         private string PickPatternFile()
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Hatch pattern files (*.pat)|*.pat|All files (*.*)|*.*", Title = "Select Pattern File" };
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "Hatch pattern files (*.pat)|*.pat|All files (*.*)|*.*",
+                Title = "Select Pattern File",
+            };
             return dialog.ShowDialog(this) == true ? dialog.FileName : null;
         }
 

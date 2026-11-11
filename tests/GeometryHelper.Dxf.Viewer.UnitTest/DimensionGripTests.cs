@@ -22,7 +22,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return document;
         }
 
-        private static string Words(DxfDimension dimension) => dimension.DimBlock.OfType<DxfMText>().Single(m => !m.IsErased).Contents;
+        private static string Words(DxfDimension dimension) =>
+            dimension.DimBlock.OfType<DxfMText>().Single(m => !m.IsErased).Contents;
 
         [Fact]
         public void ALinearDimensionHasItsTwoOriginsTheTwoEndsOfItsLineAndItsWords()
@@ -30,7 +31,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = WithDimension(out _, out string handle);
             IReadOnlyList<CadGrip> grips = CadGrips.Of(document.FindEntity(handle));
 
-            Assert.Equal(new[] { CadGripKind.DefinitionPoint, CadGripKind.DefinitionPoint, CadGripKind.DimensionLine, CadGripKind.DimensionLine, CadGripKind.Text }, grips.Select(g => g.Kind));
+            Assert.Equal(
+                new[]
+                {
+                    CadGripKind.DefinitionPoint,
+                    CadGripKind.DefinitionPoint,
+                    CadGripKind.DimensionLine,
+                    CadGripKind.DimensionLine,
+                    CadGripKind.Text,
+                },
+                grips.Select(g => g.Kind)
+            );
             Near(P(0, 0), grips[0].Point);
             Near(P(100, 0), grips[1].Point);
             Near(P(0, -30), grips[2].Point);
@@ -96,7 +107,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // As AutoCAD 2021's DIMTEDIT: the line through the point, the words above it there.
             Near(new GeoPoint3(60, -50, 0), dimension.TextPosition);
             Near(new GeoPoint3(100, -50, 0), dimension.DimLinePoint);
-            Near(new GeoPoint3(60, -50 + lift, 0), dimension.DimBlock.OfType<DxfMText>().Single(m => !m.IsErased).Location, 0.05);
+            Near(
+                new GeoPoint3(60, -50 + lift, 0),
+                dimension.DimBlock.OfType<DxfMText>().Single(m => !m.IsErased).Location,
+                0.05
+            );
             Near(P(60, -50), CadGrips.Of(dimension)[4].Point);
         }
 
@@ -129,8 +144,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             var radial = Assert.Single(All<DxfRadialDimension>(document.ModelSpace));
             var diametric = Assert.Single(All<DxfDiametricDimension>(document.ModelSpace));
 
-            Assert.Equal(new[] { CadGripKind.DefinitionPoint, CadGripKind.Text }, CadGrips.Of(radial).Select(g => g.Kind));
-            Assert.Equal(new[] { CadGripKind.DefinitionPoint, CadGripKind.DefinitionPoint, CadGripKind.Text }, CadGrips.Of(diametric).Select(g => g.Kind));
+            Assert.Equal(
+                new[] { CadGripKind.DefinitionPoint, CadGripKind.Text },
+                CadGrips.Of(radial).Select(g => g.Kind)
+            );
+            Assert.Equal(
+                new[] { CadGripKind.DefinitionPoint, CadGripKind.DefinitionPoint, CadGripKind.Text },
+                CadGrips.Of(diametric).Select(g => g.Kind)
+            );
 
             Assert.True(document.GripDrag(radial.Handle, 0, P(300, 50)).Succeeded);
             radial = Entity<DxfRadialDimension>(document, radial.Handle);
@@ -156,7 +177,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             var angular = Assert.Single(All<DxfPoint3AngularDimension>(document.ModelSpace));
             IReadOnlyList<CadGrip> grips = CadGrips.Of(angular);
 
-            Assert.Equal(new[] { CadGripKind.DefinitionPoint, CadGripKind.DefinitionPoint, CadGripKind.DefinitionPoint, CadGripKind.DimensionLine, CadGripKind.Text }, grips.Select(g => g.Kind));
+            Assert.Equal(
+                new[]
+                {
+                    CadGripKind.DefinitionPoint,
+                    CadGripKind.DefinitionPoint,
+                    CadGripKind.DefinitionPoint,
+                    CadGripKind.DimensionLine,
+                    CadGripKind.Text,
+                },
+                grips.Select(g => g.Kind)
+            );
             Near(P(0, 0), grips[0].Point);
             Assert.Equal(Math.PI / 4.0, angular.Measurement, 9);
 

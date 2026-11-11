@@ -32,7 +32,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </summary>
     public sealed class GroupManagerViewModel : ObservableObject
     {
-        private readonly ObservableCollection<GroupRowViewModel> _groups = new ObservableCollection<GroupRowViewModel>();
+        private readonly ObservableCollection<GroupRowViewModel> _groups =
+            new ObservableCollection<GroupRowViewModel>();
         private GroupRowViewModel _selected;
 
         /// <summary>Makes the dialog over a request.</summary>
@@ -80,10 +81,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool HasSelected => _selected != null;
 
         /// <summary>Gets or sets the Group Name typed.</summary>
-        public string GroupName { get => Request.GroupName; set { Request.GroupName = value ?? string.Empty; Raise(nameof(GroupName)); } }
+        public string GroupName
+        {
+            get => Request.GroupName;
+            set
+            {
+                Request.GroupName = value ?? string.Empty;
+                Raise(nameof(GroupName));
+            }
+        }
 
         /// <summary>Gets or sets the Description typed.</summary>
-        public string Description { get => Request.Description; set { Request.Description = value ?? string.Empty; Raise(nameof(Description)); } }
+        public string Description
+        {
+            get => Request.Description;
+            set
+            {
+                Request.Description = value ?? string.Empty;
+                Raise(nameof(Description));
+            }
+        }
 
         /// <summary>Gets or sets whether unnamed groups are listed.</summary>
         public bool IncludeUnnamed
@@ -98,10 +115,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets or sets whether a group New makes is selectable.</summary>
-        public bool NewSelectable { get => Request.NewSelectable; set { Request.NewSelectable = value; Raise(nameof(NewSelectable)); } }
+        public bool NewSelectable
+        {
+            get => Request.NewSelectable;
+            set
+            {
+                Request.NewSelectable = value;
+                Raise(nameof(NewSelectable));
+            }
+        }
 
         /// <summary>Gets or sets whether a group New makes is unnamed.</summary>
-        public bool NewUnnamed { get => Request.NewUnnamed; set { Request.NewUnnamed = value; Raise(nameof(NewUnnamed)); } }
+        public bool NewUnnamed
+        {
+            get => Request.NewUnnamed;
+            set
+            {
+                Request.NewUnnamed = value;
+                Raise(nameof(NewUnnamed));
+            }
+        }
 
         /// <summary>Gets what the last change said where it was refused, as "A group with this name already exists."; empty where none was.</summary>
         public string Message => Request.Message ?? string.Empty;
@@ -217,10 +250,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string Description => Row?.Description ?? string.Empty;
 
         /// <summary>Gets "Positions 0 to 3": the positions of its objects.</summary>
-        public string Positions => Row == null || Row.Count == 0 ? "No objects" : "Positions 0 to " + (Row.Count - 1).ToString(CultureInfo.InvariantCulture);
+        public string Positions =>
+            Row == null || Row.Count == 0
+                ? "No objects"
+                : "Positions 0 to " + (Row.Count - 1).ToString(CultureInfo.InvariantCulture);
 
         /// <summary>Gets the groups of the Group Name list, as Object Grouping lists them: the named ones, and the unnamed with Include Unnamed.</summary>
-        public IReadOnlyList<string> Groups => Request.Groups.Where(g => Request.IncludeUnnamed || !g.IsUnnamed || string.Equals(g.Name, Request.Selected, StringComparison.OrdinalIgnoreCase)).Select(g => g.Name).ToList();
+        public IReadOnlyList<string> Groups =>
+            Request
+                .Groups.Where(g =>
+                    Request.IncludeUnnamed
+                    || !g.IsUnnamed
+                    || string.Equals(g.Name, Request.Selected, StringComparison.OrdinalIgnoreCase)
+                )
+                .Select(g => g.Name)
+                .ToList();
 
         /// <summary>Gets or sets the group chosen in the Group Name list, which the boxes and the buttons work on; Object Grouping shows it chosen after.</summary>
         public string SelectedGroup
@@ -266,8 +310,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get
             {
                 int size = Row?.Count ?? 0;
-                return Group + " has " + size.ToString(CultureInfo.InvariantCulture) + (size == 1 ? " object" : " objects")
-                    + (size == 0 ? "." : ", numbered 0 to " + (size - 1).ToString(CultureInfo.InvariantCulture) + " in the order they were added.")
+                return Group
+                    + " has "
+                    + size.ToString(CultureInfo.InvariantCulture)
+                    + (size == 1 ? " object" : " objects")
+                    + (
+                        size == 0
+                            ? "."
+                            : ", numbered 0 to "
+                                + (size - 1).ToString(CultureInfo.InvariantCulture)
+                                + " in the order they were added."
+                    )
                     + " Highlight hides the dialog and steps through them on the canvas (Next, Previous, eXit); Enter brings it back.";
             }
         }
@@ -299,12 +352,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets or sets Number of objects, as typed.</summary>
-        public string Count { get => _count; set => Set(ref _count, value ?? string.Empty); }
+        public string Count
+        {
+            get => _count;
+            set => Set(ref _count, value ?? string.Empty);
+        }
 
         /// <summary>Gets what the last button said where it was refused.</summary>
-        public string Message { get => _message; private set => Set(ref _message, value ?? string.Empty); }
+        public string Message
+        {
+            get => _message;
+            private set => Set(ref _message, value ?? string.Empty);
+        }
 
-        private CadGroupRow Row => Request.Groups.FirstOrDefault(g => string.Equals(g.Name, Request.Selected, StringComparison.OrdinalIgnoreCase));
+        private CadGroupRow Row =>
+            Request.Groups.FirstOrDefault(g =>
+                string.Equals(g.Name, Request.Selected, StringComparison.OrdinalIgnoreCase)
+            );
 
         /// <summary>Re-Order: the objects moved as the boxes say.</summary>
         /// <returns>Whether they were moved.</returns>
@@ -346,9 +410,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>A position as typed, 0 where it does not read or is below 0.</summary>
-        private static int Position(string text) => int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? Math.Max(0, value) : 0;
+        private static int Position(string text) =>
+            int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? Math.Max(0, value)
+                : 0;
 
-        private static string Range(int low, int high) => low.ToString(CultureInfo.InvariantCulture) + "-" + Math.Max(low, high).ToString(CultureInfo.InvariantCulture);
+        private static string Range(int low, int high) =>
+            low.ToString(CultureInfo.InvariantCulture)
+            + "-"
+            + Math.Max(low, high).ToString(CultureInfo.InvariantCulture);
 
         private void RaiseRanges()
         {
@@ -362,7 +432,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private bool Numbers(out int from, out int to, out int count)
         {
-            bool read = int.TryParse(_from, NumberStyles.Integer, CultureInfo.InvariantCulture, out from)
+            bool read =
+                int.TryParse(_from, NumberStyles.Integer, CultureInfo.InvariantCulture, out from)
                 & int.TryParse(_to, NumberStyles.Integer, CultureInfo.InvariantCulture, out to)
                 & int.TryParse(_count, NumberStyles.Integer, CultureInfo.InvariantCulture, out count);
 

@@ -45,7 +45,8 @@ namespace GeometryHelper.Drawing.Annotation
 
             public double MaxY { get; set; } = double.NegativeInfinity;
 
-            public bool Contains(GeoPoint2 p, double tol) => p.X >= MinX - tol && p.X <= MaxX + tol && p.Y >= MinY - tol && p.Y <= MaxY + tol;
+            public bool Contains(GeoPoint2 p, double tol) =>
+                p.X >= MinX - tol && p.X <= MaxX + tol && p.Y >= MinY - tol && p.Y <= MaxY + tol;
 
             public double Area => (MaxX - MinX) * (MaxY - MinY);
         }
@@ -63,7 +64,12 @@ namespace GeometryHelper.Drawing.Annotation
         /// The points of every object that has a line in the view, in the order of the objects' ids; each object's points
         /// in the order of their kinds, then of X, then of Y.
         /// </summary>
-        internal static List<ObjectPoints> Find(ProjectedView2 view, IEnumerable<DrawingObject> objects, GeoCoordinateSystem3 frame, Tolerance tolerance)
+        internal static List<ObjectPoints> Find(
+            ProjectedView2 view,
+            IEnumerable<DrawingObject> objects,
+            GeoCoordinateSystem3 frame,
+            Tolerance tolerance
+        )
         {
             double tol = tolerance.EqualPoint;
             var sorted = new List<DrawingObject>();
@@ -196,7 +202,15 @@ namespace GeometryHelper.Drawing.Annotation
             foreach (GeoPoint3 vertex in polygon.Vertices)
             {
                 GeoPoint3 local = frame.ToLocal(vertex);
-                seen.Add(new Seen { X = local.X, Y = local.Y, Depth = local.Z, Model = vertex });
+                seen.Add(
+                    new Seen
+                    {
+                        X = local.X,
+                        Y = local.Y,
+                        Depth = local.Z,
+                        Model = vertex,
+                    }
+                );
             }
         }
 
@@ -231,7 +245,8 @@ namespace GeometryHelper.Drawing.Annotation
 
         private static int LowerBound(Seen[] corners, double x)
         {
-            int lo = 0, hi = corners.Length;
+            int lo = 0,
+                hi = corners.Length;
 
             while (lo < hi)
             {
@@ -329,7 +344,13 @@ namespace GeometryHelper.Drawing.Annotation
         /// The centre of each whole circle of a part, its arcs about one centre and of one radius adding up to a full turn
         /// counted as one; circles about one centre, as the two rims of a hole or the two sides of a tube's wall, give one.
         /// </summary>
-        private static void AddCircleCentres(ObjectPoints points, List<ProjectedEdge2> lines, Seen[] corners, GeoCoordinateSystem3 frame, double tol)
+        private static void AddCircleCentres(
+            ObjectPoints points,
+            List<ProjectedEdge2> lines,
+            Seen[] corners,
+            GeoCoordinateSystem3 frame,
+            double tol
+        )
         {
             var arcs = new List<GeoArc2>();
 
@@ -346,13 +367,15 @@ namespace GeometryHelper.Drawing.Annotation
                 return;
             }
 
-            arcs.Sort((a, b) =>
-            {
-                int c = a.Center.X.CompareTo(b.Center.X);
-                c = c != 0 ? c : a.Center.Y.CompareTo(b.Center.Y);
-                c = c != 0 ? c : a.Radius.CompareTo(b.Radius);
-                return c != 0 ? c : a.StartAngle.CompareTo(b.StartAngle);
-            });
+            arcs.Sort(
+                (a, b) =>
+                {
+                    int c = a.Center.X.CompareTo(b.Center.X);
+                    c = c != 0 ? c : a.Center.Y.CompareTo(b.Center.Y);
+                    c = c != 0 ? c : a.Radius.CompareTo(b.Radius);
+                    return c != 0 ? c : a.StartAngle.CompareTo(b.StartAngle);
+                }
+            );
 
             var used = new bool[arcs.Count];
             var circles = new List<GeoArc2>();
@@ -368,7 +391,11 @@ namespace GeometryHelper.Drawing.Annotation
 
                 for (int j = i; j < arcs.Count && arcs[j].Center.X <= arcs[i].Center.X + tol; j++)
                 {
-                    if (!used[j] && Math.Abs(arcs[j].Center.Y - arcs[i].Center.Y) <= tol && Math.Abs(arcs[j].Radius - arcs[i].Radius) <= tol)
+                    if (
+                        !used[j]
+                        && Math.Abs(arcs[j].Center.Y - arcs[i].Center.Y) <= tol
+                        && Math.Abs(arcs[j].Radius - arcs[i].Radius) <= tol
+                    )
                     {
                         used[j] = true;
                         turn += Math.Abs(arcs[j].SweptAngle);
@@ -406,7 +433,10 @@ namespace GeometryHelper.Drawing.Annotation
 
             for (; i < corners.Length && corners[i].X <= circle.Center.X + circle.Radius + 2.0 * tol; i++)
             {
-                double d = Math.Sqrt((corners[i].X - circle.Center.X) * (corners[i].X - circle.Center.X) + (corners[i].Y - circle.Center.Y) * (corners[i].Y - circle.Center.Y));
+                double d = Math.Sqrt(
+                    (corners[i].X - circle.Center.X) * (corners[i].X - circle.Center.X)
+                        + (corners[i].Y - circle.Center.Y) * (corners[i].Y - circle.Center.Y)
+                );
 
                 if (Math.Abs(d - circle.Radius) <= 2.0 * tol)
                 {
@@ -439,7 +469,10 @@ namespace GeometryHelper.Drawing.Annotation
 
             GeoPoint3 model = own.Origin.Add(own.XAxis.Multiply(0.5 * (min + max)));
             GeoPoint3 local = frame.ToLocal(model);
-            DimensionPointKind kind = points.Object.Kind == DrawingObjectKind.Bolt ? DimensionPointKind.BoltCentre : DimensionPointKind.HoleCentre;
+            DimensionPointKind kind =
+                points.Object.Kind == DrawingObjectKind.Bolt
+                    ? DimensionPointKind.BoltCentre
+                    : DimensionPointKind.HoleCentre;
             points.Centres.Add(new DimensionPoint(points.Object.Id, kind, new GeoPoint2(local.X, local.Y), model));
         }
 
@@ -456,7 +489,12 @@ namespace GeometryHelper.Drawing.Annotation
             }
         }
 
-        private static void AddEnd(ObjectPoints points, GeoPoint3 model, DimensionPointKind kind, GeoCoordinateSystem3 frame)
+        private static void AddEnd(
+            ObjectPoints points,
+            GeoPoint3 model,
+            DimensionPointKind kind,
+            GeoCoordinateSystem3 frame
+        )
         {
             GeoPoint3 local = frame.ToLocal(model);
             points.Ends.Add(new DimensionPoint(points.Object.Id, kind, new GeoPoint2(local.X, local.Y), model));

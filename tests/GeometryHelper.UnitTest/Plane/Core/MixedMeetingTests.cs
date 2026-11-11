@@ -15,11 +15,11 @@ namespace GeometryHelper.UnitTest.Plane
     {
         private static readonly Tolerance Tight = new Tolerance(1E-9, 1E-9);
 
-        private static GeoPolygon2 Square() => new GeoPolygon2(
-            new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
+        private static GeoPolygon2 Square() =>
+            new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100));
 
-        private static GeoPolyline2 Chain() => new GeoPolyline2(
-            new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100));
+        private static GeoPolyline2 Chain() =>
+            new GeoPolyline2(new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100));
 
         private static GeoRectangle2 Plate() => new GeoRectangle2(0, 0, 100, 100);
 
@@ -36,11 +36,25 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>
         /// A loop sitting astride the right-hand side of the square, so the two really do overlap.
         /// </summary>
-        private static GeoPolygonArc2 Straddling() => new GeoPolygonArc2(new GeoPolygon2(
-            new GeoPoint2(50, 25), new GeoPoint2(150, 25), new GeoPoint2(150, 75), new GeoPoint2(50, 75)));
+        private static GeoPolygonArc2 Straddling() =>
+            new GeoPolygonArc2(
+                new GeoPolygon2(
+                    new GeoPoint2(50, 25),
+                    new GeoPoint2(150, 25),
+                    new GeoPoint2(150, 75),
+                    new GeoPoint2(50, 75)
+                )
+            );
 
-        private static GeoPolygonArc2 Away() => new GeoPolygonArc2(new GeoPolygon2(
-            new GeoPoint2(300, 0), new GeoPoint2(400, 0), new GeoPoint2(400, 100), new GeoPoint2(300, 100)));
+        private static GeoPolygonArc2 Away() =>
+            new GeoPolygonArc2(
+                new GeoPolygon2(
+                    new GeoPoint2(300, 0),
+                    new GeoPoint2(400, 0),
+                    new GeoPoint2(400, 100),
+                    new GeoPoint2(300, 100)
+                )
+            );
 
         [Fact]
         public void APolygonCanNowBeAskedWhetherItMeetsAnArc()
@@ -101,10 +115,19 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(Collision2.CollidesWith(straddling, hole), hole.CollidesWith(straddling));
             Assert.Equal(Collision2.CollidesWith(straddling, plate.ToPolygon()), plate.CollidesWith(straddling));
 
-            Assert.Equal(Intersection2.GetIntersections(straddling, square).Length, square.GetIntersections(straddling).Length);
+            Assert.Equal(
+                Intersection2.GetIntersections(straddling, square).Length,
+                square.GetIntersections(straddling).Length
+            );
             Assert.Equal(Intersection2.GetIntersections(open, chain).Length, chain.GetIntersections(open).Length);
-            Assert.Equal(Intersection2.GetIntersections(straddling, side).Length, side.GetIntersections(straddling).Length);
-            Assert.Equal(Intersection2.GetIntersections(straddling, hole).Length, hole.GetIntersections(straddling).Length);
+            Assert.Equal(
+                Intersection2.GetIntersections(straddling, side).Length,
+                side.GetIntersections(straddling).Length
+            );
+            Assert.Equal(
+                Intersection2.GetIntersections(straddling, hole).Length,
+                hole.GetIntersections(straddling).Length
+            );
 
             // The square and the straddling loop overlap; the one out at x = 300 does not.
             Assert.True(square.CollidesWith(straddling));

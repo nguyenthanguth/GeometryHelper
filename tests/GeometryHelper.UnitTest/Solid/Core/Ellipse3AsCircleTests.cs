@@ -18,7 +18,11 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static readonly Tolerance Tight = new Tolerance(1E-9, 1E-12);
 
-        private static readonly GeoCircle3 Circle = new GeoCircle3(new GeoPoint3(100, 200, 300), new GeoVector3(1, -1, 2), 250);
+        private static readonly GeoCircle3 Circle = new GeoCircle3(
+            new GeoPoint3(100, 200, 300),
+            new GeoVector3(1, -1, 2),
+            250
+        );
 
         /// <summary>The circle as an ellipse with its axis turned 0.4 rad from the circle's zero direction.</summary>
         private static GeoEllipse3 Turned()
@@ -39,9 +43,18 @@ namespace GeometryHelper.UnitTest.Solid
 
             return new[]
             {
-                At(30, -40, 0), At(-120, 90, 0), At(r * 0.6, r * 0.8, 0), At(r * 0.6 * 1.000002, r * 0.8 * 1.000002, 0),
-                At(-r * 1.000008, 0, 0), At(0, -r * 0.999992, 0), At(400, 300, 0), At(30, -40, 0.05), At(30, -40, 0.2),
-                At(-200, 50, -80), At(900, -700, 450), At(r * 0.28, r * 0.96, 0.05),
+                At(30, -40, 0),
+                At(-120, 90, 0),
+                At(r * 0.6, r * 0.8, 0),
+                At(r * 0.6 * 1.000002, r * 0.8 * 1.000002, 0),
+                At(-r * 1.000008, 0, 0),
+                At(0, -r * 0.999992, 0),
+                At(400, 300, 0),
+                At(30, -40, 0.05),
+                At(30, -40, 0.2),
+                At(-200, 50, -80),
+                At(900, -700, 450),
+                At(r * 0.28, r * 0.96, 0.05),
             };
         }
 
@@ -70,8 +83,18 @@ namespace GeometryHelper.UnitTest.Solid
                 foreach (GeoPoint3 point in Probes())
                 {
                     Assert.Equal(Circle.DistanceTo(point), ellipse.DistanceTo(point), 1E-12 * 250);
-                    Assert.True(Circle.GetClosestPointOnSurface(point).IsEqualTo(ellipse.GetClosestPointOnSurface(point), tolerance), $"surface, {point}");
-                    Assert.True(Circle.GetClosestPointOnBoundary(point).IsEqualTo(ellipse.GetClosestPointOnBoundary(point), tolerance), $"rim, {point}");
+                    Assert.True(
+                        Circle
+                            .GetClosestPointOnSurface(point)
+                            .IsEqualTo(ellipse.GetClosestPointOnSurface(point), tolerance),
+                        $"surface, {point}"
+                    );
+                    Assert.True(
+                        Circle
+                            .GetClosestPointOnBoundary(point)
+                            .IsEqualTo(ellipse.GetClosestPointOnBoundary(point), tolerance),
+                        $"rim, {point}"
+                    );
                 }
             }
         }
@@ -128,7 +151,11 @@ namespace GeometryHelper.UnitTest.Solid
                 }
 
                 Assert.Equal(expected, ellipse.GetParameterAtPoint(point, Bands), 1E-12);
-                Assert.Equal(Circle.GetDistanceAtPoint(point, Bands), ellipse.GetDistanceAtPoint(point, Bands), 1E-12 * length);
+                Assert.Equal(
+                    Circle.GetDistanceAtPoint(point, Bands),
+                    ellipse.GetDistanceAtPoint(point, Bands),
+                    1E-12 * length
+                );
             }
         }
 
@@ -143,10 +170,14 @@ namespace GeometryHelper.UnitTest.Solid
 
             foreach (GeoPoint3 point in new[] { Circle.Center, Circle.Center.Add(Circle.Normal.Multiply(70)) })
             {
-                Assert.True(Circle.GetClosestPointOnBoundary(point).IsEqualTo(Circle.Center.Add(u.Multiply(250)), Tight));
+                Assert.True(
+                    Circle.GetClosestPointOnBoundary(point).IsEqualTo(Circle.Center.Add(u.Multiply(250)), Tight)
+                );
                 Assert.Equal(0.0, Circle.GetParameterAtPoint(point, Bands));
 
-                Assert.True(ellipse.GetClosestPointOnBoundary(point).IsEqualTo(Circle.Center.Add(v.Multiply(250)), Tight));
+                Assert.True(
+                    ellipse.GetClosestPointOnBoundary(point).IsEqualTo(Circle.Center.Add(v.Multiply(250)), Tight)
+                );
                 Assert.Equal(0.25, ellipse.GetParameterAtPoint(point, Bands), 1E-12);
             }
         }

@@ -27,23 +27,55 @@ namespace GeometryHelper.Dxf
         private const string Marker = "AcDbPlotSettings";
 
         // The groups of AcDbPlotSettings in the order AutoCAD writes them, a 100 where the marker stands.
-        private static readonly IReadOnlyList<int> PlotOrder = Array.AsReadOnly(new[]
-        {
-            100, 1, 2, 4, 6, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 140, 141, 142, 143, 70, 72, 73, 74, 7, 75, 76, 77, 78, 147, 148, 149, 333,
-        });
+        private static readonly IReadOnlyList<int> PlotOrder = Array.AsReadOnly(
+            new[]
+            {
+                100,
+                1,
+                2,
+                4,
+                6,
+                40,
+                41,
+                42,
+                43,
+                44,
+                45,
+                46,
+                47,
+                48,
+                49,
+                140,
+                141,
+                142,
+                143,
+                70,
+                72,
+                73,
+                74,
+                7,
+                75,
+                76,
+                77,
+                78,
+                147,
+                148,
+                149,
+                333,
+            }
+        );
 
         // A name of a sheet that ends in its size in millimetres, width then height, as AutoCAD's ISO_A3_(420.00_x_297.00_MM).
-        private static readonly Regex MediaSize = new Regex(@"^[A-Za-z0-9_.\-]+_\(([0-9]+(?:\.[0-9]+)?)_x_([0-9]+(?:\.[0-9]+)?)_MM\)$", RegexOptions.CultureInvariant);
+        private static readonly Regex MediaSize = new Regex(
+            @"^[A-Za-z0-9_.\-]+_\(([0-9]+(?:\.[0-9]+)?)_x_([0-9]+(?:\.[0-9]+)?)_MM\)$",
+            RegexOptions.CultureInvariant
+        );
 
         internal DxfPlotSettings(DxfItem item)
-            : base(item)
-        {
-        }
+            : base(item) { }
 
         /// <summary>Settings made in code, those of a layout made in code, given their record when it is added to a drawing.</summary>
-        private protected DxfPlotSettings()
-        {
-        }
+        private protected DxfPlotSettings() { }
 
         /// <summary>Gets the name of the page setup (group 1), as AutoCAD's <c>PlotSettingsName</c>; empty where it has none.</summary>
         public string PlotSettingsName => Text(Marker, 1);
@@ -87,7 +119,6 @@ namespace GeometryHelper.Dxf
         public string CanonicalMediaName
         {
             get => Text(Marker, 4);
-
             set
             {
                 if (value == null)
@@ -98,7 +129,13 @@ namespace GeometryHelper.Dxf
                 Match match = MediaSize.Match(value);
                 double width = match.Success ? Size(match.Groups[1].Value) : 0.0;
                 double height = match.Success ? Size(match.Groups[2].Value) : 0.0;
-                Guard.Argument(width > 0.0 && height > 0.0, nameof(value), "A sheet is named with its size in millimetres at its end, as ISO_A2_(594.00_x_420.00_MM): '" + value + "' is not one.");
+                Guard.Argument(
+                    width > 0.0 && height > 0.0,
+                    nameof(value),
+                    "A sheet is named with its size in millimetres at its end, as ISO_A2_(594.00_x_420.00_MM): '"
+                        + value
+                        + "' is not one."
+                );
                 DxfFile file = InFile("be given a sheet");
 
                 if (string.Equals(value, CanonicalMediaName, StringComparison.Ordinal))
@@ -151,8 +188,11 @@ namespace GeometryHelper.Dxf
         /// it is added, or are erased.</exception>
         public DxfExtents2d PlotPaperMargins
         {
-            get => new DxfExtents2d(new GeoPoint2(Real(Marker, 40, 0.0), Real(Marker, 41, 0.0)), new GeoPoint2(Real(Marker, 42, 0.0), Real(Marker, 43, 0.0)));
-
+            get =>
+                new DxfExtents2d(
+                    new GeoPoint2(Real(Marker, 40, 0.0), Real(Marker, 41, 0.0)),
+                    new GeoPoint2(Real(Marker, 42, 0.0), Real(Marker, 43, 0.0))
+                );
             set
             {
                 const string Message = "A margin is a finite number of millimetres, nought or more.";
@@ -196,7 +236,6 @@ namespace GeometryHelper.Dxf
         public GeoPoint2 PlotOrigin
         {
             get => new GeoPoint2(Real(Marker, 46, 0.0), Real(Marker, 47, 0.0));
-
             set
             {
                 Guard.Finite(value.X, nameof(value), "The origin of a plot is of finite numbers of millimetres.");
@@ -225,8 +264,11 @@ namespace GeometryHelper.Dxf
         /// it is added, or are erased.</exception>
         public DxfExtents2d PlotWindowArea
         {
-            get => new DxfExtents2d(new GeoPoint2(Real(Marker, 48, 0.0), Real(Marker, 49, 0.0)), new GeoPoint2(Real(Marker, 140, 0.0), Real(Marker, 141, 0.0)));
-
+            get =>
+                new DxfExtents2d(
+                    new GeoPoint2(Real(Marker, 48, 0.0), Real(Marker, 49, 0.0)),
+                    new GeoPoint2(Real(Marker, 140, 0.0), Real(Marker, 141, 0.0))
+                );
             set
             {
                 const string Message = "The corners of a window plotted are of finite numbers.";
@@ -257,7 +299,6 @@ namespace GeometryHelper.Dxf
         public DxfCustomScale CustomPrintScale
         {
             get => new DxfCustomScale(Real(Marker, 142, 1.0), Real(Marker, 143, 1.0));
-
             set
             {
                 const string Message = "A scale is of finite numbers above nought.";
@@ -285,15 +326,24 @@ namespace GeometryHelper.Dxf
         public DxfPlotPaperUnit PlotPaperUnits
         {
             get => (DxfPlotPaperUnit)Whole(Marker, 72, 0);
-
             set
             {
-                Guard.Argument(Enum.IsDefined(typeof(DxfPlotPaperUnit), value), nameof(value), "The units of a sheet are inches (0), millimetres (1) or pixels (2).");
+                Guard.Argument(
+                    Enum.IsDefined(typeof(DxfPlotPaperUnit), value),
+                    nameof(value),
+                    "The units of a sheet are inches (0), millimetres (1) or pixels (2)."
+                );
                 DxfFile file = InFile("be given units");
 
                 if (value != PlotPaperUnits)
                 {
-                    SetSheet(file, new List<KeyValuePair<int, string>> { Pair(72, ((int)value).ToString(CultureInfo.InvariantCulture)) });
+                    SetSheet(
+                        file,
+                        new List<KeyValuePair<int, string>>
+                        {
+                            Pair(72, ((int)value).ToString(CultureInfo.InvariantCulture)),
+                        }
+                    );
                 }
             }
         }
@@ -311,15 +361,24 @@ namespace GeometryHelper.Dxf
         public DxfPlotRotation PlotRotation
         {
             get => (DxfPlotRotation)Whole(Marker, 73, 0);
-
             set
             {
-                Guard.Argument(Enum.IsDefined(typeof(DxfPlotRotation), value), nameof(value), "A plot is turned by 0 (0), 90 (1), 180 (2) or 270 (3) degrees.");
+                Guard.Argument(
+                    Enum.IsDefined(typeof(DxfPlotRotation), value),
+                    nameof(value),
+                    "A plot is turned by 0 (0), 90 (1), 180 (2) or 270 (3) degrees."
+                );
                 DxfFile file = InFile("be turned");
 
                 if (value != PlotRotation)
                 {
-                    SetSheet(file, new List<KeyValuePair<int, string>> { Pair(73, ((int)value).ToString(CultureInfo.InvariantCulture)) });
+                    SetSheet(
+                        file,
+                        new List<KeyValuePair<int, string>>
+                        {
+                            Pair(73, ((int)value).ToString(CultureInfo.InvariantCulture)),
+                        }
+                    );
                 }
             }
         }
@@ -335,15 +394,24 @@ namespace GeometryHelper.Dxf
         public DxfPlotType PlotType
         {
             get => (DxfPlotType)Whole(Marker, 74, 0);
-
             set
             {
-                Guard.Argument(Enum.IsDefined(typeof(DxfPlotType), value), nameof(value), "What is plotted is the display (0), the extents (1), the limits (2), a view (3), a window (4) or the layout (5).");
+                Guard.Argument(
+                    Enum.IsDefined(typeof(DxfPlotType), value),
+                    nameof(value),
+                    "What is plotted is the display (0), the extents (1), the limits (2), a view (3), a window (4) or the layout (5)."
+                );
                 DxfFile file = InFile("be given what to plot");
 
                 if (value != PlotType)
                 {
-                    Write(file, new List<KeyValuePair<int, string>> { Pair(74, ((int)value).ToString(CultureInfo.InvariantCulture)) });
+                    Write(
+                        file,
+                        new List<KeyValuePair<int, string>>
+                        {
+                            Pair(74, ((int)value).ToString(CultureInfo.InvariantCulture)),
+                        }
+                    );
                 }
             }
         }
@@ -361,10 +429,13 @@ namespace GeometryHelper.Dxf
         public DxfStdScaleType StdScaleType
         {
             get => (DxfStdScaleType)Whole(Marker, 75, 0);
-
             set
             {
-                Guard.Argument(Enum.IsDefined(typeof(DxfStdScaleType), value), nameof(value), "A standard scale is one of DxfStdScaleType, 0 to 33.");
+                Guard.Argument(
+                    Enum.IsDefined(typeof(DxfStdScaleType), value),
+                    nameof(value),
+                    "A standard scale is one of DxfStdScaleType, 0 to 33."
+                );
                 DxfFile file = InFile("be given a standard scale");
                 var values = new List<KeyValuePair<int, string>>();
 
@@ -479,7 +550,10 @@ namespace GeometryHelper.Dxf
 
             if (now != was)
             {
-                Write(file, new List<KeyValuePair<int, string>> { Pair(70, now.ToString(CultureInfo.InvariantCulture)) });
+                Write(
+                    file,
+                    new List<KeyValuePair<int, string>> { Pair(70, now.ToString(CultureInfo.InvariantCulture)) }
+                );
             }
         }
 
@@ -516,38 +590,70 @@ namespace GeometryHelper.Dxf
         {
             switch (type)
             {
-                case DxfStdScaleType.StdScale1To128InchIs1ft: return 1.0 / 1536.0;
-                case DxfStdScaleType.StdScale1To64InchIs1ft: return 1.0 / 768.0;
-                case DxfStdScaleType.StdScale1To32InchIs1ft: return 1.0 / 384.0;
-                case DxfStdScaleType.StdScale1To16InchIs1ft: return 1.0 / 192.0;
-                case DxfStdScaleType.StdScale3To32InchIs1ft: return 1.0 / 128.0;
-                case DxfStdScaleType.StdScale1To8InchIs1ft: return 1.0 / 96.0;
-                case DxfStdScaleType.StdScale3To16InchIs1ft: return 1.0 / 64.0;
-                case DxfStdScaleType.StdScale1To4InchIs1ft: return 1.0 / 48.0;
-                case DxfStdScaleType.StdScale3To8InchIs1ft: return 1.0 / 32.0;
-                case DxfStdScaleType.StdScale1To2InchIs1ft: return 1.0 / 24.0;
-                case DxfStdScaleType.StdScale3To4InchIs1ft: return 1.0 / 16.0;
-                case DxfStdScaleType.StdScale1InchIs1ft: return 1.0 / 12.0;
-                case DxfStdScaleType.StdScale3InchIs1ft: return 1.0 / 4.0;
-                case DxfStdScaleType.StdScale6InchIs1ft: return 1.0 / 2.0;
-                case DxfStdScaleType.StdScale1To2: return 1.0 / 2.0;
-                case DxfStdScaleType.StdScale1To4: return 1.0 / 4.0;
-                case DxfStdScaleType.StdScale1To5: return 1.0 / 5.0;
-                case DxfStdScaleType.StdScale1To8: return 1.0 / 8.0;
-                case DxfStdScaleType.StdScale1To10: return 1.0 / 10.0;
-                case DxfStdScaleType.StdScale1To16: return 1.0 / 16.0;
-                case DxfStdScaleType.StdScale1To20: return 1.0 / 20.0;
-                case DxfStdScaleType.StdScale1To30: return 1.0 / 30.0;
-                case DxfStdScaleType.StdScale1To40: return 1.0 / 40.0;
-                case DxfStdScaleType.StdScale1To50: return 1.0 / 50.0;
-                case DxfStdScaleType.StdScale1To100: return 1.0 / 100.0;
-                case DxfStdScaleType.StdScale2To1: return 2.0;
-                case DxfStdScaleType.StdScale4To1: return 4.0;
-                case DxfStdScaleType.StdScale8To1: return 8.0;
-                case DxfStdScaleType.StdScale10To1: return 10.0;
-                case DxfStdScaleType.StdScale100To1: return 100.0;
-                case DxfStdScaleType.StdScale1000To1: return 1000.0;
-                default: return 1.0;
+                case DxfStdScaleType.StdScale1To128InchIs1ft:
+                    return 1.0 / 1536.0;
+                case DxfStdScaleType.StdScale1To64InchIs1ft:
+                    return 1.0 / 768.0;
+                case DxfStdScaleType.StdScale1To32InchIs1ft:
+                    return 1.0 / 384.0;
+                case DxfStdScaleType.StdScale1To16InchIs1ft:
+                    return 1.0 / 192.0;
+                case DxfStdScaleType.StdScale3To32InchIs1ft:
+                    return 1.0 / 128.0;
+                case DxfStdScaleType.StdScale1To8InchIs1ft:
+                    return 1.0 / 96.0;
+                case DxfStdScaleType.StdScale3To16InchIs1ft:
+                    return 1.0 / 64.0;
+                case DxfStdScaleType.StdScale1To4InchIs1ft:
+                    return 1.0 / 48.0;
+                case DxfStdScaleType.StdScale3To8InchIs1ft:
+                    return 1.0 / 32.0;
+                case DxfStdScaleType.StdScale1To2InchIs1ft:
+                    return 1.0 / 24.0;
+                case DxfStdScaleType.StdScale3To4InchIs1ft:
+                    return 1.0 / 16.0;
+                case DxfStdScaleType.StdScale1InchIs1ft:
+                    return 1.0 / 12.0;
+                case DxfStdScaleType.StdScale3InchIs1ft:
+                    return 1.0 / 4.0;
+                case DxfStdScaleType.StdScale6InchIs1ft:
+                    return 1.0 / 2.0;
+                case DxfStdScaleType.StdScale1To2:
+                    return 1.0 / 2.0;
+                case DxfStdScaleType.StdScale1To4:
+                    return 1.0 / 4.0;
+                case DxfStdScaleType.StdScale1To5:
+                    return 1.0 / 5.0;
+                case DxfStdScaleType.StdScale1To8:
+                    return 1.0 / 8.0;
+                case DxfStdScaleType.StdScale1To10:
+                    return 1.0 / 10.0;
+                case DxfStdScaleType.StdScale1To16:
+                    return 1.0 / 16.0;
+                case DxfStdScaleType.StdScale1To20:
+                    return 1.0 / 20.0;
+                case DxfStdScaleType.StdScale1To30:
+                    return 1.0 / 30.0;
+                case DxfStdScaleType.StdScale1To40:
+                    return 1.0 / 40.0;
+                case DxfStdScaleType.StdScale1To50:
+                    return 1.0 / 50.0;
+                case DxfStdScaleType.StdScale1To100:
+                    return 1.0 / 100.0;
+                case DxfStdScaleType.StdScale2To1:
+                    return 2.0;
+                case DxfStdScaleType.StdScale4To1:
+                    return 4.0;
+                case DxfStdScaleType.StdScale8To1:
+                    return 8.0;
+                case DxfStdScaleType.StdScale10To1:
+                    return 10.0;
+                case DxfStdScaleType.StdScale100To1:
+                    return 100.0;
+                case DxfStdScaleType.StdScale1000To1:
+                    return 1000.0;
+                default:
+                    return 1.0;
             }
         }
 
@@ -555,11 +661,10 @@ namespace GeometryHelper.Dxf
         private protected virtual IReadOnlyList<int> GroupOrder => PlotOrder;
 
         /// <summary>The sheet set anew, its size, margins, origin, units or turn: nothing for a page setup; a layout's limits made to agree.</summary>
-        private protected virtual void SheetSet(DxfFile file)
-        {
-        }
+        private protected virtual void SheetSet(DxfFile file) { }
 
-        private protected static KeyValuePair<int, string> Pair(int code, string value) => new KeyValuePair<int, string>(code, value);
+        private protected static KeyValuePair<int, string> Pair(int code, string value) =>
+            new KeyValuePair<int, string>(code, value);
 
         /// <summary>A number written as the file keeps it, exactly, a negative nought as nought.</summary>
         private protected static string Written(double value) => Numbers.Exact(value + 0.0);
@@ -581,8 +686,11 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A size of a sheet's name, as <c>594.00</c>; nought where it is not a finite number.</summary>
-        private static double Size(string text)
-            => double.TryParse(text, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double value) && Guard.IsFinite(value) ? value : 0.0;
+        private static double Size(string text) =>
+            double.TryParse(text, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double value)
+            && Guard.IsFinite(value)
+                ? value
+                : 0.0;
 
         /// <summary>Refuses margins that leave no room on a sheet of a size; a sheet of no size given takes any.</summary>
         private static void CheckRoom(DxfExtents2d margins, GeoPoint2 size, string parameter)
@@ -590,9 +698,15 @@ namespace GeometryHelper.Dxf
             if (size.X > 0.0 && size.Y > 0.0)
             {
                 Guard.Argument(
-                    margins.MinPoint.X + margins.MaxPoint.X < size.X && margins.MinPoint.Y + margins.MaxPoint.Y < size.Y,
+                    margins.MinPoint.X + margins.MaxPoint.X < size.X
+                        && margins.MinPoint.Y + margins.MaxPoint.Y < size.Y,
                     parameter,
-                    "The margins leave no room on a sheet " + size.X.ToString(CultureInfo.InvariantCulture) + " by " + size.Y.ToString(CultureInfo.InvariantCulture) + ".");
+                    "The margins leave no room on a sheet "
+                        + size.X.ToString(CultureInfo.InvariantCulture)
+                        + " by "
+                        + size.Y.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
             }
         }
 
@@ -651,14 +765,22 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A text of the part of a subclass, its escapes read as letters; empty where it has none.</summary>
-        private protected string Text(string marker, int code) => DxfReader.Decode(PartValue(marker, code) ?? string.Empty);
+        private protected string Text(string marker, int code) =>
+            DxfReader.Decode(PartValue(marker, code) ?? string.Empty);
 
         /// <summary>A number of the part of a subclass; the fallback where it has none, or not a finite number.</summary>
-        private protected double Real(string marker, int code, double fallback)
-            => Numbers.TryRead(PartValue(marker, code), out double value) && Guard.IsFinite(value) ? value : fallback;
+        private protected double Real(string marker, int code, double fallback) =>
+            Numbers.TryRead(PartValue(marker, code), out double value) && Guard.IsFinite(value) ? value : fallback;
 
         /// <summary>A whole number of the part of a subclass; the fallback where it has none, or not a whole number.</summary>
-        private protected int Whole(string marker, int code, int fallback)
-            => int.TryParse(PartValue(marker, code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+        private protected int Whole(string marker, int code, int fallback) =>
+            int.TryParse(
+                PartValue(marker, code)?.Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int value
+            )
+                ? value
+                : fallback;
     }
 }

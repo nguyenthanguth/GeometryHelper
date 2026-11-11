@@ -123,7 +123,8 @@ namespace GeometryHelper.Internal.Nurbs
         /// <summary>
         /// Adds to a list every piece whose bound is no more than a limit, in no order.
         /// </summary>
-        internal void Collect<TBound>(ref TBound region, double limit, List<int> found) where TBound : struct, IBound
+        internal void Collect<TBound>(ref TBound region, double limit, List<int> found)
+            where TBound : struct, IBound
         {
             var stack = new int[2 * 40 + 2];
             int top = 0;
@@ -215,7 +216,8 @@ namespace GeometryHelper.Internal.Nurbs
         /// limit of a visit, by going down both trees together and passing over every pair of boxes that is too far apart
         /// along with all the pieces under it.
         /// </summary>
-        internal void Pairs<TVisit>(PieceIndex other, ref TVisit visit) where TVisit : struct, IPairVisit
+        internal void Pairs<TVisit>(PieceIndex other, ref TVisit visit)
+            where TVisit : struct, IPairVisit
         {
             var stack = new int[4 * 40 + 4];
             int top = 0;
@@ -278,7 +280,10 @@ namespace GeometryHelper.Internal.Nurbs
             {
                 double below = other._min[b * _dim + k] - _max[a * _dim + k];
                 double above = _min[a * _dim + k] - other._max[b * _dim + k];
-                double gap = below > 0.0 ? below : above > 0.0 ? above : 0.0;
+                double gap =
+                    below > 0.0 ? below
+                    : above > 0.0 ? above
+                    : 0.0;
                 square += gap * gap;
             }
 
@@ -321,7 +326,10 @@ namespace GeometryHelper.Internal.Nurbs
             {
                 double low = min[at + k];
                 double high = max[at + k];
-                double gap = _query[k] < low ? low - _query[k] : _query[k] > high ? _query[k] - high : 0.0;
+                double gap =
+                    _query[k] < low ? low - _query[k]
+                    : _query[k] > high ? _query[k] - high
+                    : 0.0;
                 square += gap * gap;
             }
 

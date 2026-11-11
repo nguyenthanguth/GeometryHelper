@@ -21,7 +21,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static GeoPoint3 P3(double x, double y, double z) => new GeoPoint3(x, y, z);
 
-        private static string G(int code, string value) => code.ToString(CultureInfo.InvariantCulture).PadLeft(3) + "\n" + value + "\n";
+        private static string G(int code, string value) =>
+            code.ToString(CultureInfo.InvariantCulture).PadLeft(3) + "\n" + value + "\n";
 
         private static string G(int code, double value) => G(code, value.ToString("R", CultureInfo.InvariantCulture));
 
@@ -31,10 +32,23 @@ namespace GeometryHelper.UnitTest.Dxf
         private static DxfDatabase DrawingOf(int flags, double[] knots, GeoPoint3[] points)
         {
             var record = new StringBuilder();
-            record.Append(G(0, "SPLINE")).Append(G(5, "F00")).Append(G(330, "17")).Append(G(100, "AcDbEntity")).Append(G(8, "0")).Append(G(100, "AcDbSpline"))
-                .Append(G(210, "0.0")).Append(G(220, "0.0")).Append(G(230, "1.0")).Append(G(70, flags.ToString(CultureInfo.InvariantCulture))).Append(G(71, "3"))
-                .Append(G(72, knots.Length.ToString(CultureInfo.InvariantCulture))).Append(G(73, points.Length.ToString(CultureInfo.InvariantCulture)))
-                .Append(G(74, "0")).Append(G(42, "0.000000001")).Append(G(43, "0.0000000001"));
+            record
+                .Append(G(0, "SPLINE"))
+                .Append(G(5, "F00"))
+                .Append(G(330, "17"))
+                .Append(G(100, "AcDbEntity"))
+                .Append(G(8, "0"))
+                .Append(G(100, "AcDbSpline"))
+                .Append(G(210, "0.0"))
+                .Append(G(220, "0.0"))
+                .Append(G(230, "1.0"))
+                .Append(G(70, flags.ToString(CultureInfo.InvariantCulture)))
+                .Append(G(71, "3"))
+                .Append(G(72, knots.Length.ToString(CultureInfo.InvariantCulture)))
+                .Append(G(73, points.Length.ToString(CultureInfo.InvariantCulture)))
+                .Append(G(74, "0"))
+                .Append(G(42, "0.000000001"))
+                .Append(G(43, "0.0000000001"));
 
             foreach (double knot in knots)
             {
@@ -46,26 +60,54 @@ namespace GeometryHelper.UnitTest.Dxf
                 record.Append(G(10, point.X)).Append(G(20, point.Y)).Append(G(30, point.Z));
             }
 
-            string text = DxfFileEzdxfDrawings.R2018.Replace("\r\n", "\n").Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nF01\n")
-                .Replace("  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n", record + "  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n");
+            string text = DxfFileEzdxfDrawings
+                .R2018.Replace("\r\n", "\n")
+                .Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nF01\n")
+                .Replace(
+                    "  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n",
+                    record + "  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n"
+                );
             return DxfDatabase.Parse(text);
         }
 
         // AutoCAD's closed cubic through (0, 0), (40, 0), (50, 30) and (10, 25), its knots the chords, as its v14-17v.dxf holds it.
         private static readonly GeoPoint3[] ClampedPoints =
         {
-            P3(1.6E-15, 0, 0), P3(4.7622651293465061, -9.8751694805472585, 0), P3(44.579653578015218, -10.52612047361797, 0),
-            P3(60.524970764674258, 41.580682103876377, 0), P3(8.5624146039839744, 34.009365277659363, 0), P3(-3.205697822100078, 6.6474268938914758, 0),
+            P3(1.6E-15, 0, 0),
+            P3(4.7622651293465061, -9.8751694805472585, 0),
+            P3(44.579653578015218, -10.52612047361797, 0),
+            P3(60.524970764674258, 41.580682103876377, 0),
+            P3(8.5624146039839744, 34.009365277659363, 0),
+            P3(-3.205697822100078, 6.6474268938914758, 0),
             P3(1.6E-15, 0, 0),
         };
 
-        private static readonly double[] ClampedKnots = { 0.0, 0, 0, 0, 40, 71.6227766016838, 111.9340653431765, 138.859889378849, 138.859889378849, 138.859889378849, 138.859889378849 };
+        private static readonly double[] ClampedKnots =
+        {
+            0.0,
+            0,
+            0,
+            0,
+            40,
+            71.6227766016838,
+            111.9340653431765,
+            138.859889378849,
+            138.859889378849,
+            138.859889378849,
+            138.859889378849,
+        };
 
         /// <summary>
         /// The cubic of <see cref="ClampedPoints"/> of a group 70, a control point moved up as given, then the whole scaled about
         /// the origin and moved along x.
         /// </summary>
-        private static DxfDatabase ClampedDrawing(int flags, int moved = -1, double by = 0.0, double scale = 1.0, double shift = 0.0)
+        private static DxfDatabase ClampedDrawing(
+            int flags,
+            int moved = -1,
+            double by = 0.0,
+            double scale = 1.0,
+            double shift = 0.0
+        )
         {
             GeoPoint3[] points = ClampedPoints.ToArray();
 
@@ -74,11 +116,20 @@ namespace GeometryHelper.UnitTest.Dxf
                 points[moved] = P3(points[moved].X, points[moved].Y + by, 0);
             }
 
-            return DrawingOf(flags, ClampedKnots.Select(k => k * scale).ToArray(), points.Select(p => P3(p.X * scale + shift, p.Y * scale, 0)).ToArray());
+            return DrawingOf(
+                flags,
+                ClampedKnots.Select(k => k * scale).ToArray(),
+                points.Select(p => P3(p.X * scale + shift, p.Y * scale, 0)).ToArray()
+            );
         }
 
-        private static DxfSpline Clamped(int flags, int moved = -1, double by = 0.0, double scale = 1.0, double shift = 0.0)
-            => ByHandle<DxfSpline>(ClampedDrawing(flags, moved, by, scale, shift), "F00");
+        private static DxfSpline Clamped(
+            int flags,
+            int moved = -1,
+            double by = 0.0,
+            double scale = 1.0,
+            double shift = 0.0
+        ) => ByHandle<DxfSpline>(ClampedDrawing(flags, moved, by, scale, shift), "F00");
 
         #region Point 17t: the seam of a spline of the flag 2048 off by millionths
 
@@ -89,7 +140,13 @@ namespace GeometryHelper.UnitTest.Dxf
             // off by 4.1E-6 to 4.1E-2: AutoCAD read none of the four as periodic, each closed, of 7 control points.
             foreach (double by in new[] { 1E-6, 1E-4, 1E-3, 1E-2 })
             {
-                foreach (DxfDatabase db in new[] { ClampedDrawing(2059, 1, by), DxfDatabase.Parse(ClampedDrawing(2059, 1, by).ToText()) })
+                foreach (
+                    DxfDatabase db in new[]
+                    {
+                        ClampedDrawing(2059, 1, by),
+                        DxfDatabase.Parse(ClampedDrawing(2059, 1, by).ToText()),
+                    }
+                )
                 {
                     DxfSpline spline = ByHandle<DxfSpline>(db, "F00");
                     Assert.False(spline.IsPeriodic, "moved by " + by.ToString("R", CultureInfo.InvariantCulture));
@@ -123,7 +180,10 @@ namespace GeometryHelper.UnitTest.Dxf
             // the seam is read within AutoCAD's own point tolerance of 1E-10, whatever the size of a spline of 61.5.
             foreach (double by in new[] { 1E-12, 1E-11 })
             {
-                Assert.True(Clamped(2059, 1, by).IsPeriodic, "moved by " + by.ToString("R", CultureInfo.InvariantCulture));
+                Assert.True(
+                    Clamped(2059, 1, by).IsPeriodic,
+                    "moved by " + by.ToString("R", CultureInfo.InvariantCulture)
+                );
             }
 
             foreach (double by in new[] { 1E-10, 1E-9, 1E-8, 1E-7 })
@@ -145,7 +205,11 @@ namespace GeometryHelper.UnitTest.Dxf
             GeoPoint3[] points = spline.NurbsData.GetControlPoints().ToArray();
             double a = degrees * Math.PI / 180.0;
             GeoVector3 arm = points[0].GetVectorTo(points[1]);
-            points[1] = P3(points[0].X + arm.X * Math.Cos(a) - arm.Y * Math.Sin(a), points[0].Y + arm.X * Math.Sin(a) + arm.Y * Math.Cos(a), points[0].Z);
+            points[1] = P3(
+                points[0].X + arm.X * Math.Cos(a) - arm.Y * Math.Sin(a),
+                points[0].Y + arm.X * Math.Sin(a) + arm.Y * Math.Cos(a),
+                points[0].Z
+            );
             return (spline, points);
         }
 
@@ -209,9 +273,19 @@ namespace GeometryHelper.UnitTest.Dxf
             // degree through an even count of points), and wrote its periodic cubic: 70 3115, degree 3, 7 control points and 11
             // knots, those of its closed cubic through the same points to 1E-14, read again periodic, 5 points at its knots.
             DxfDatabase db = ClampedDrawing(1035);
-            ByHandle<DxfSpline>(db, "F00").FitData = new DxfFitData(Ring, 2, 1E-10) { KnotParam = DxfKnotParameterizationEnum.Chord, Periodic = true };
+            ByHandle<DxfSpline>(db, "F00").FitData = new DxfFitData(Ring, 2, 1E-10)
+            {
+                KnotParam = DxfKnotParameterizationEnum.Chord,
+                Periodic = true,
+            };
 
-            foreach (DxfSpline read in new[] { ByHandle<DxfSpline>(db, "F00"), ByHandle<DxfSpline>(DxfDatabase.Parse(db.ToText()), "F00") })
+            foreach (
+                DxfSpline read in new[]
+                {
+                    ByHandle<DxfSpline>(db, "F00"),
+                    ByHandle<DxfSpline>(DxfDatabase.Parse(db.ToText()), "F00"),
+                }
+            )
             {
                 Assert.Equal("3115", Flags(read));
                 Assert.Equal(3, read.Degree);
@@ -221,7 +295,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 for (int i = 0; i < 7; i++)
                 {
-                    Assert.True(ClampedPoints[i].IsEqualTo(read.GetControlPointAt(i), Tight), "control point " + i + ": " + read.GetControlPointAt(i));
+                    Assert.True(
+                        ClampedPoints[i].IsEqualTo(read.GetControlPointAt(i), Tight),
+                        "control point " + i + ": " + read.GetControlPointAt(i)
+                    );
                 }
 
                 Assert.Equal(11, read.Knots.Count);
@@ -240,9 +317,21 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // AutoCAD fitted its periodic cubic where it was asked a degree 2 (17v); asked any degree, the library fits the cubic,
             // as degree 3 fits it through the same six points.
-            GeoPoint3[] ring = { P3(0, 0, 0), P3(40, 0, 0), P3(55, 12, 0), P3(50, 30, 0), P3(10, 25, 0), P3(-5, 10, 0) };
+            GeoPoint3[] ring =
+            {
+                P3(0, 0, 0),
+                P3(40, 0, 0),
+                P3(55, 12, 0),
+                P3(50, 30, 0),
+                P3(10, 25, 0),
+                P3(-5, 10, 0),
+            };
             DxfSpline cubic = Clamped(1035);
-            cubic.FitData = new DxfFitData(ring, 3, 1E-10) { KnotParam = DxfKnotParameterizationEnum.Chord, Periodic = true };
+            cubic.FitData = new DxfFitData(ring, 3, 1E-10)
+            {
+                KnotParam = DxfKnotParameterizationEnum.Chord,
+                Periodic = true,
+            };
 
             Assert.Equal("3115", Flags(cubic));
             Assert.Equal(3, cubic.Degree);
@@ -250,7 +339,11 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (int degree in new[] { 1, 2, 4, 5 })
             {
                 DxfSpline spline = Clamped(1035);
-                spline.FitData = new DxfFitData(ring, degree, 1E-10) { KnotParam = DxfKnotParameterizationEnum.Chord, Periodic = true };
+                spline.FitData = new DxfFitData(ring, degree, 1E-10)
+                {
+                    KnotParam = DxfKnotParameterizationEnum.Chord,
+                    Periodic = true,
+                };
 
                 Assert.Equal("3115", Flags(spline));
                 Assert.Equal(3, spline.Degree);
@@ -259,7 +352,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 for (int i = 0; i < cubic.NumControlPoints; i++)
                 {
-                    Assert.True(cubic.GetControlPointAt(i).IsEqualTo(spline.GetControlPointAt(i), Tight), "degree " + degree + ", control point " + i);
+                    Assert.True(
+                        cubic.GetControlPointAt(i).IsEqualTo(spline.GetControlPointAt(i), Tight),
+                        "degree " + degree + ", control point " + i
+                    );
                 }
 
                 Assert.Equal(cubic.Knots, spline.Knots);

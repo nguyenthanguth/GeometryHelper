@@ -14,7 +14,7 @@ namespace GeometryHelper.Clipper
         Miter,
         Square,
         Bevel,
-        Round
+        Round,
     }
 
     /// <summary>
@@ -28,7 +28,7 @@ namespace GeometryHelper.Clipper
         Joined,
         Butt,
         Square,
-        Round
+        Round,
     }
 
     /// <summary>
@@ -62,7 +62,7 @@ namespace GeometryHelper.Clipper
 
                 bool isJoined = ((endType == EndType.Polygon) || (endType == EndType.Joined));
                 inPaths = new Paths64(paths.Count);
-                foreach(Path64 path in paths)
+                foreach (Path64 path in paths)
                     inPaths.Add(Clipper2.StripDuplicates(path, isJoined));
 
                 if (endType == EndType.Polygon)
@@ -143,8 +143,7 @@ namespace GeometryHelper.Clipper
         /// A distance chosen vertex by vertex, from the path, the unit normals of its edges, the vertex and the one
         /// before it.
         /// </summary>
-        public delegate double DeltaCallback64(Path64 path,
-            PathD path_norms, int currPt, int prevPt);
+        public delegate double DeltaCallback64(Path64 path, PathD path_norms, int currPt, int prevPt);
 
         /// <summary>
         /// When set, asked for the distance at each vertex in place of the one Execute is given.
@@ -155,9 +154,12 @@ namespace GeometryHelper.Clipper
         /// An offsetter with the miter limit, two unless given, the arc tolerance, and whether the closing union keeps
         /// collinear points and reverses the answer.
         /// </summary>
-        public ClipperOffset(double miterLimit = 2.0,
-            double arcTolerance = 0.0, bool
-            preserveCollinear = false, bool reverseSolution = false)
+        public ClipperOffset(
+            double miterLimit = 2.0,
+            double arcTolerance = 0.0,
+            bool preserveCollinear = false,
+            bool reverseSolution = false
+        )
         {
             MiterLimit = miterLimit;
             ArcTolerance = arcTolerance;
@@ -180,7 +182,8 @@ namespace GeometryHelper.Clipper
         public void AddPath(Path64 path, JoinType joinType, EndType endType)
         {
             int cnt = path.Count;
-            if (cnt == 0) return;
+            if (cnt == 0)
+                return;
             Paths64 pp = new Paths64(1) { path };
             AddPaths(pp, joinType, endType);
         }
@@ -191,7 +194,8 @@ namespace GeometryHelper.Clipper
         public void AddPaths(Paths64 paths, JoinType joinType, EndType endType)
         {
             int cnt = paths.Count;
-            if (cnt == 0) return;
+            if (cnt == 0)
+                return;
             _groupList.Add(new Group(paths, joinType, endType));
         }
 
@@ -228,26 +232,27 @@ namespace GeometryHelper.Clipper
         /// </summary>
         private void ExecuteInternal(double delta)
         {
-            if (_groupList.Count == 0) return;
+            if (_groupList.Count == 0)
+                return;
             _solution.EnsureCapacity(CalcSolutionCapacity());
 
             // make sure the offset delta is significant
             if (Math.Abs(delta) < 0.5)
             {
                 foreach (Group group in _groupList)
-                    foreach (Path64 path in group.inPaths)
-                        _solution.Add(path);
+                foreach (Path64 path in group.inPaths)
+                    _solution.Add(path);
                 return;
             }
 
             _delta = delta;
-            _mitLimSqr = (MiterLimit <= 1 ?
-                2.0 : 2.0 / Clipper2.Sqr(MiterLimit));
+            _mitLimSqr = (MiterLimit <= 1 ? 2.0 : 2.0 / Clipper2.Sqr(MiterLimit));
 
             foreach (Group group in _groupList)
                 DoGroupOffset(group);
 
-            if (_groupList.Count == 0) return;
+            if (_groupList.Count == 0)
+                return;
 
             bool pathsReversed = CheckPathsReversed();
             FillRule fillRule = pathsReversed ? FillRule.Negative : FillRule.Positive;
@@ -261,7 +266,6 @@ namespace GeometryHelper.Clipper
                 c.Execute(ClipType.Union, fillRule, _solutionTree);
             else
                 c.Execute(ClipType.Union, fillRule, _solution);
-
         }
 
         /// <summary>
@@ -294,7 +298,8 @@ namespace GeometryHelper.Clipper
         {
             double dx = (pt2.X - pt1.X);
             double dy = (pt2.Y - pt1.Y);
-            if ((dx == 0) && (dy == 0)) return new PointD();
+            if ((dx == 0) && (dy == 0))
+                return new PointD();
 
             double f = 1.0 / Math.Sqrt(dx * dx + dy * dy);
             dx *= f;
@@ -327,12 +332,13 @@ namespace GeometryHelper.Clipper
                 double a = double.MaxValue;
                 foreach (Point64 pt in paths[i])
                 {
-                    if ((pt.Y < botPt.Y) ||
-                        ((pt.Y == botPt.Y) && (pt.X >= botPt.X))) continue;
+                    if ((pt.Y < botPt.Y) || ((pt.Y == botPt.Y) && (pt.X >= botPt.X)))
+                        continue;
                     if (a == double.MaxValue)
                     {
                         a = Clipper2.Area(paths[i]);
-                        if (a == 0) break; // invalid closed path so break from inner loop
+                        if (a == 0)
+                            break; // invalid closed path so break from inner loop
                         isNegArea = a < 0;
                     }
                     idx = i;
@@ -385,9 +391,10 @@ namespace GeometryHelper.Clipper
         private static PointD NormalizeVector(PointD vec)
         {
             double h = Hypotenuse(vec.x, vec.y);
-            if (AlmostZero(h)) return new PointD(0,0);
+            if (AlmostZero(h))
+                return new PointD(0, 0);
             double inverseHypot = 1 / h;
-            return new PointD(vec.x* inverseHypot, vec.y* inverseHypot);
+            return new PointD(vec.x * inverseHypot, vec.y * inverseHypot);
         }
 
         /// <summary>
@@ -405,8 +412,7 @@ namespace GeometryHelper.Clipper
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Point64 GetPerpendic(Point64 pt, PointD norm)
         {
-            return new Point64(pt.X + norm.x * _groupDelta,
-                pt.Y + norm.y * _groupDelta);
+            return new Point64(pt.X + norm.x * _groupDelta, pt.Y + norm.y * _groupDelta);
         }
 
         /// <summary>
@@ -415,8 +421,7 @@ namespace GeometryHelper.Clipper
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private PointD GetPerpendicD(Point64 pt, PointD norm)
         {
-            return new PointD(pt.X + norm.x * _groupDelta,
-                pt.Y + norm.y * _groupDelta);
+            return new PointD(pt.X + norm.x * _groupDelta, pt.Y + norm.y * _groupDelta);
         }
 
         /// <summary>
@@ -426,25 +431,18 @@ namespace GeometryHelper.Clipper
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DoBevel(Path64 path, int j, int k)
         {
-            Point64 pt1, pt2;
+            Point64 pt1,
+                pt2;
             if (j == k)
             {
                 double absDelta = Math.Abs(_groupDelta);
-                pt1 = new Point64(
-                    path[j].X - absDelta * _normals[j].x,
-                    path[j].Y - absDelta * _normals[j].y);
-                pt2 = new Point64(
-                    path[j].X + absDelta * _normals[j].x,
-                    path[j].Y + absDelta * _normals[j].y);
+                pt1 = new Point64(path[j].X - absDelta * _normals[j].x, path[j].Y - absDelta * _normals[j].y);
+                pt2 = new Point64(path[j].X + absDelta * _normals[j].x, path[j].Y + absDelta * _normals[j].y);
             }
             else
             {
-                pt1 = new Point64(
-                    path[j].X + _groupDelta * _normals[k].x,
-                    path[j].Y + _groupDelta * _normals[k].y);
-                pt2 = new Point64(
-                    path[j].X + _groupDelta * _normals[j].x,
-                    path[j].Y + _groupDelta * _normals[j].y);
+                pt1 = new Point64(path[j].X + _groupDelta * _normals[k].x, path[j].Y + _groupDelta * _normals[k].y);
+                pt2 = new Point64(path[j].X + _groupDelta * _normals[j].x, path[j].Y + _groupDelta * _normals[j].y);
             }
             pathOut.Add(pt1);
             pathOut.Add(pt2);
@@ -466,7 +464,8 @@ namespace GeometryHelper.Clipper
             {
                 vec = GetAvgUnitVector(
                     new PointD(-_normals[k].y, _normals[k].x),
-                    new PointD(_normals[j].y, -_normals[j].x));
+                    new PointD(_normals[j].y, -_normals[j].x)
+                );
             }
 
             double absDelta = Math.Abs(_groupDelta);
@@ -482,9 +481,7 @@ namespace GeometryHelper.Clipper
 
             if (j == k)
             {
-                PointD pt4 = new PointD(
-                    pt3.x + vec.x * _groupDelta,
-                    pt3.y + vec.y * _groupDelta);
+                PointD pt4 = new PointD(pt3.x + vec.x * _groupDelta, pt3.y + vec.y * _groupDelta);
                 InternalClipper.GetLineIntersectPt(pt1, pt2, pt3, pt4, out PointD pt);
                 //get the second intersect point through reflecion
                 pathOut.Add(new Point64(ReflectPoint(pt, ptQ)));
@@ -507,9 +504,12 @@ namespace GeometryHelper.Clipper
         private void DoMiter(Path64 path, int j, int k, double cosA)
         {
             double q = _groupDelta / (cosA + 1);
-            pathOut.Add(new Point64(
+            pathOut.Add(
+                new Point64(
                     path[j].X + (_normals[k].x + _normals[j].x) * q,
-                    path[j].Y + (_normals[k].y + _normals[j].y) * q));
+                    path[j].Y + (_normals[k].y + _normals[j].y) * q
+                )
+            );
         }
 
         /// <summary>
@@ -529,19 +529,23 @@ namespace GeometryHelper.Clipper
                 double stepsPer360 = Math.PI / Math.Acos(1 - arcTol / absDelta);
                 _stepSin = Math.Sin((2 * Math.PI) / stepsPer360);
                 _stepCos = Math.Cos((2 * Math.PI) / stepsPer360);
-                if (_groupDelta < 0.0) _stepSin = -_stepSin;
+                if (_groupDelta < 0.0)
+                    _stepSin = -_stepSin;
                 _stepsPerRad = stepsPer360 / (2 * Math.PI);
             }
 
             Point64 pt = path[j];
             PointD offsetVec = new PointD(_normals[k].x * _groupDelta, _normals[k].y * _groupDelta);
-            if (j == k) offsetVec.Negate();
+            if (j == k)
+                offsetVec.Negate();
             pathOut.Add(new Point64(pt.X + offsetVec.x, pt.Y + offsetVec.y));
-            int steps = (int) Math.Ceiling(_stepsPerRad * Math.Abs(angle));
+            int steps = (int)Math.Ceiling(_stepsPerRad * Math.Abs(angle));
             for (int i = 1; i < steps; i++) // ie 1 less than steps
             {
-                offsetVec = new PointD(offsetVec.x * _stepCos - _stepSin * offsetVec.y,
-                        offsetVec.x * _stepSin + offsetVec.y * _stepCos);
+                offsetVec = new PointD(
+                    offsetVec.x * _stepCos - _stepSin * offsetVec.y,
+                    offsetVec.x * _stepSin + offsetVec.y * _stepCos
+                );
                 pathOut.Add(new Point64(pt.X + offsetVec.x, pt.Y + offsetVec.y));
             }
             pathOut.Add(GetPerpendic(pt, _normals[j]));
@@ -555,7 +559,8 @@ namespace GeometryHelper.Clipper
         {
             int cnt = path.Count;
             _normals.Clear();
-            if (cnt == 0) return;
+            if (cnt == 0)
+                return;
             _normals.EnsureCapacity(cnt);
             for (int i = 0; i < cnt - 1; i++)
                 _normals.Add(GetUnitNormal(path[i], path[i + 1]));
@@ -569,7 +574,11 @@ namespace GeometryHelper.Clipper
         /// </summary>
         private void OffsetPoint(Group group, Path64 path, int j, ref int k)
         {
-            if (path[j] == path[k]) { k = j; return; }
+            if (path[j] == path[k])
+            {
+                k = j;
+                return;
+            }
 
             // Let A = change in angle where edges join
             // A == 0: ie no change in angle (flat join)
@@ -578,13 +587,16 @@ namespace GeometryHelper.Clipper
             // cos(A) < 0: change in angle is more than 90 degree
             double sinA = InternalClipper.CrossProduct(_normals[j], _normals[k]);
             double cosA = InternalClipper.DotProduct(_normals[j], _normals[k]);
-            if (sinA > 1.0) sinA = 1.0;
-            else if (sinA < -1.0) sinA = -1.0;
+            if (sinA > 1.0)
+                sinA = 1.0;
+            else if (sinA < -1.0)
+                sinA = -1.0;
 
             if (DeltaCallback != null)
             {
                 _groupDelta = DeltaCallback(path, _normals, j, k);
-                if (group.pathsReversed) _groupDelta = -_groupDelta;
+                if (group.pathsReversed)
+                    _groupDelta = -_groupDelta;
             }
             if (Math.Abs(_groupDelta) < Tolerance)
             {
@@ -608,25 +620,26 @@ namespace GeometryHelper.Clipper
                 // almost straight - less than 2.5 degree (#424, #482, #526 & #724)
                 DoMiter(path, j, k, cosA);
             }
-            else switch (_joinType)
-            {
-                // miter unless the angle is sufficiently acute to exceed ML
-                case JoinType.Miter when cosA > _mitLimSqr - 1:
-                    DoMiter(path, j, k, cosA);
-                    break;
-                case JoinType.Miter:
-                    DoSquare(path, j, k);
-                    break;
-                case JoinType.Round:
-                    DoRound(path, j, k, Math.Atan2(sinA, cosA));
-                    break;
-                case JoinType.Bevel:
-                    DoBevel(path, j, k);
-                    break;
-                default:
-                    DoSquare(path, j, k);
-                    break;
-            }
+            else
+                switch (_joinType)
+                {
+                    // miter unless the angle is sufficiently acute to exceed ML
+                    case JoinType.Miter when cosA > _mitLimSqr - 1:
+                        DoMiter(path, j, k, cosA);
+                        break;
+                    case JoinType.Miter:
+                        DoSquare(path, j, k);
+                        break;
+                    case JoinType.Round:
+                        DoRound(path, j, k, Math.Atan2(sinA, cosA));
+                        break;
+                    case JoinType.Bevel:
+                        DoBevel(path, j, k);
+                        break;
+                    default:
+                        DoSquare(path, j, k);
+                        break;
+                }
 
             k = j;
         }
@@ -638,7 +651,8 @@ namespace GeometryHelper.Clipper
         private void OffsetPolygon(Group group, Path64 path)
         {
             pathOut = new Path64();
-            int cnt = path.Count, prev = cnt - 1;
+            int cnt = path.Count,
+                prev = cnt - 1;
             for (int i = 0; i < cnt; i++)
                 OffsetPoint(group, path, i, ref prev);
             _solution.Add(pathOut);
@@ -714,7 +728,7 @@ namespace GeometryHelper.Clipper
                 }
 
             // offset the left side going back
-            for (int i = highI -1, k = highI; i > 0; i--)
+            for (int i = highI - 1, k = highI; i > 0; i--)
                 OffsetPoint(group, path, i, ref k);
 
             _solution.Add(pathOut);
@@ -731,7 +745,8 @@ namespace GeometryHelper.Clipper
             {
                 // a straight path (2 points) can now also be 'polygon' offset
                 // where the ends will be treated as (180 deg.) joins
-                if (group.lowestPathIdx < 0) _delta = Math.Abs(_delta);
+                if (group.lowestPathIdx < 0)
+                    _delta = Math.Abs(_delta);
                 _groupDelta = (group.pathsReversed) ? -_delta : _delta;
             }
             else
@@ -748,7 +763,8 @@ namespace GeometryHelper.Clipper
                 double stepsPer360 = Math.PI / Math.Acos(1 - arcTol / absDelta);
                 _stepSin = Math.Sin((2 * Math.PI) / stepsPer360);
                 _stepCos = Math.Cos((2 * Math.PI) / stepsPer360);
-                if (_groupDelta < 0.0) _stepSin = -_stepSin;
+                if (_groupDelta < 0.0)
+                    _stepSin = -_stepSin;
                 _stepsPerRad = stepsPer360 / (2 * Math.PI);
             }
 
@@ -769,19 +785,20 @@ namespace GeometryHelper.Clipper
                         if (DeltaCallback != null)
                         {
                             _groupDelta = DeltaCallback(p, _normals, 0, 0);
-                            if (group.pathsReversed) _groupDelta = -_groupDelta;
+                            if (group.pathsReversed)
+                                _groupDelta = -_groupDelta;
                             absDelta = Math.Abs(_groupDelta);
                         }
 
                         // single vertex so build a circle or square ...
                         if (group.endType == EndType.Round)
                         {
-                            int steps = (int) Math.Ceiling(_stepsPerRad * 2 * Math.PI);
+                            int steps = (int)Math.Ceiling(_stepsPerRad * 2 * Math.PI);
                             pathOut = Clipper2.Ellipse(pt, absDelta, absDelta, steps);
                         }
                         else
                         {
-                            int d = (int) Math.Ceiling(_groupDelta);
+                            int d = (int)Math.Ceiling(_groupDelta);
                             Rect64 r = new Rect64(pt.X - d, pt.Y - d, pt.X + d, pt.Y + d);
                             pathOut = r.AsPath();
                         }
@@ -789,9 +806,7 @@ namespace GeometryHelper.Clipper
                         continue; // end of offsetting a single point
                     }
                     case 2 when group.endType == EndType.Joined:
-                        _endType = (group.joinType == JoinType.Round) ?
-                            EndType.Round :
-                            EndType.Square;
+                        _endType = (group.joinType == JoinType.Round) ? EndType.Round : EndType.Square;
                         break;
                 }
 
@@ -811,5 +826,4 @@ namespace GeometryHelper.Clipper
             }
         }
     }
-
 } // namespace

@@ -71,7 +71,11 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // 5 by 3: the root of 1 - 9/25 is exactly four fifths. 3 by 1: the root of 8/9, 0.9428. A circle: nought.
             Assert.Equal(0.8, new GeoEllipse2(new GeoPoint2(0, 0), GeoVector2.XAxis, 5, 3).Eccentricity, 1E-15);
-            Assert.Equal(Math.Sqrt(8.0) / 3.0, new GeoEllipse2(new GeoPoint2(0, 0), GeoVector2.XAxis, 3, 1).Eccentricity, 1E-15);
+            Assert.Equal(
+                Math.Sqrt(8.0) / 3.0,
+                new GeoEllipse2(new GeoPoint2(0, 0), GeoVector2.XAxis, 3, 1).Eccentricity,
+                1E-15
+            );
             Assert.Equal(0.0, new GeoEllipse2(new GeoPoint2(0, 0), GeoVector2.YAxis, 4, 4).Eccentricity);
         }
 

@@ -21,8 +21,10 @@ namespace GeometryHelper.Drawing
     /// </remarks>
     public sealed class DrawingObject
     {
-        private static readonly IReadOnlyDictionary<string, string> NoAttributes =
-            new ReadOnlyDictionary<string, string>(new SortedDictionary<string, string>(StringComparer.Ordinal));
+        private static readonly IReadOnlyDictionary<string, string> NoAttributes = new ReadOnlyDictionary<
+            string,
+            string
+        >(new SortedDictionary<string, string>(StringComparer.Ordinal));
 
         /// <summary>
         /// Makes an object of the model.
@@ -57,7 +59,8 @@ namespace GeometryHelper.Drawing
             string material = null,
             string parentId = null,
             bool isMain = false,
-            IEnumerable<KeyValuePair<string, string>> attributes = null)
+            IEnumerable<KeyValuePair<string, string>> attributes = null
+        )
         {
             if (id == null)
             {
@@ -71,12 +74,19 @@ namespace GeometryHelper.Drawing
 
             if (!Enum.IsDefined(typeof(DrawingObjectKind), kind))
             {
-                throw new ArgumentOutOfRangeException(nameof(kind), kind, "The kind has to be one of DrawingObjectKind.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(kind),
+                    kind,
+                    "The kind has to be one of DrawingObjectKind."
+                );
             }
 
             if (!frame.IsValid)
             {
-                throw new ArgumentException("The frame has to have three unit axes square to each other.", nameof(frame));
+                throw new ArgumentException(
+                    "The frame has to have three unit axes square to each other.",
+                    nameof(frame)
+                );
             }
 
             Id = id;
@@ -128,7 +138,9 @@ namespace GeometryHelper.Drawing
         /// </summary>
         public IReadOnlyDictionary<string, string> Attributes { get; }
 
-        private static IReadOnlyDictionary<string, string> ReadAttributes(IEnumerable<KeyValuePair<string, string>> attributes)
+        private static IReadOnlyDictionary<string, string> ReadAttributes(
+            IEnumerable<KeyValuePair<string, string>> attributes
+        )
         {
             var sorted = new SortedDictionary<string, string>(StringComparer.Ordinal);
 
@@ -141,7 +153,10 @@ namespace GeometryHelper.Drawing
 
                 if (sorted.ContainsKey(attribute.Key))
                 {
-                    throw new ArgumentException("The attribute \"" + attribute.Key + "\" is given twice.", nameof(attributes));
+                    throw new ArgumentException(
+                        "The attribute \"" + attribute.Key + "\" is given twice.",
+                        nameof(attributes)
+                    );
                 }
 
                 sorted.Add(attribute.Key, attribute.Value);

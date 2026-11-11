@@ -18,15 +18,22 @@ namespace GeometryHelper.UnitTest.Plane
     /// </remarks>
     public class ConvertG1wtTests
     {
-        private static readonly Tolerance Millionth = new Tolerance(1E-6, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-6);
+        private static readonly Tolerance Millionth = new Tolerance(
+            1E-6,
+            Tolerance.DefaultEqualVector,
+            Tolerance.DefaultEqualAngleRad,
+            1E-6
+        );
 
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
         // The triangle (0, 0), (10, 0), (10, 10) with every corner cut by 0.0003 at a millionth: six corners.
-        private static GeoPolygon2 Cut() => Corner2.Chamfer(new GeoPolygon2(P(0, 0), P(10, 0), P(10, 10)), 0.0003, 0.0003, Millionth);
+        private static GeoPolygon2 Cut() =>
+            Corner2.Chamfer(new GeoPolygon2(P(0, 0), P(10, 0), P(10, 10)), 0.0003, 0.0003, Millionth);
 
         // The chain (0, 0), (10, 0), (10, 10) with its corner cut by 0.0003 at a millionth: four vertices.
-        private static GeoPolyline2 CutChain() => Corner2.Chamfer(new GeoPolyline2(P(0, 0), P(10, 0), P(10, 10)), 0.0003, 0.0003, Millionth);
+        private static GeoPolyline2 CutChain() =>
+            Corner2.Chamfer(new GeoPolyline2(P(0, 0), P(10, 0), P(10, 10)), 0.0003, 0.0003, Millionth);
 
         [Fact]
         public void ATriangleCutByThreeTenThousandthsAtAMillionthAsAChain_RunsItsSixCornersAndBackToTheFirst()
@@ -76,8 +83,8 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         // The square 10 across from (100, 100), as a chain ending a gap off its start along x.
-        private static GeoPolyline2 SquareEndingOff(double gap)
-            => new GeoPolyline2(P(100, 100), P(110, 100), P(110, 110), P(100, 110), P(100 + gap, 100));
+        private static GeoPolyline2 SquareEndingOff(double gap) =>
+            new GeoPolyline2(P(100, 100), P(110, 100), P(110, 110), P(100, 110), P(100 + gap, 100));
 
         [Fact]
         public void AChainRoundASquareEndingAMillionthOfAMillionthOffItsStart_IsThatSquare()
@@ -109,11 +116,19 @@ namespace GeometryHelper.UnitTest.Plane
             double x0 = Math.Sqrt(12.0 * 12.0 - 4.0 * 4.0);
             double corner = Math.Atan2(4.0, x0);
             double end = Math.PI / 2 + (Math.PI / 2 - corner) / 2;
-            GeoTransform2 place = GeoTransform2.Translation(new GeoVector2(30 * scale, 40 * scale)) * GeoTransform2.Rotation(P(0, 0), 0.5);
+            GeoTransform2 place =
+                GeoTransform2.Translation(new GeoVector2(30 * scale, 40 * scale))
+                * GeoTransform2.Rotation(P(0, 0), 0.5);
 
             return new GeoPolylineArc2(
-                new[] { P(-0.5 * x0 * scale, 4.0 * scale), P(x0 * scale, 4.0 * scale), P(12.0 * Math.Cos(end) * scale, 12.0 * Math.Sin(end) * scale) }.Select(place.Transform),
-                new[] { 0.0, Math.Tan((end - corner) / 4), 0.0 });
+                new[]
+                {
+                    P(-0.5 * x0 * scale, 4.0 * scale),
+                    P(x0 * scale, 4.0 * scale),
+                    P(12.0 * Math.Cos(end) * scale, 12.0 * Math.Sin(end) * scale),
+                }.Select(place.Transform),
+                new[] { 0.0, Math.Tan((end - corner) / 4), 0.0 }
+            );
         }
 
         [Fact]
@@ -121,8 +136,20 @@ namespace GeometryHelper.UnitTest.Plane
         {
             double radius = 4.0 + 0.25E-4;
 
-            bool full = Cap(1.0).TryFilletAt(1, radius, out _, new Tolerance(1E-4, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-4));
-            bool small = Cap(1E-3).TryFilletAt(1, radius * 1E-3, out _, new Tolerance(1E-7, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-7));
+            bool full = Cap(1.0)
+                .TryFilletAt(
+                    1,
+                    radius,
+                    out _,
+                    new Tolerance(1E-4, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-4)
+                );
+            bool small = Cap(1E-3)
+                .TryFilletAt(
+                    1,
+                    radius * 1E-3,
+                    out _,
+                    new Tolerance(1E-7, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-7)
+                );
 
             Assert.False(full);
             Assert.False(small);
@@ -133,8 +160,20 @@ namespace GeometryHelper.UnitTest.Plane
         {
             double radius = 3.5;
 
-            bool full = Cap(1.0).TryFilletAt(1, radius, out GeoPolylineArc2 rounded, new Tolerance(1E-4, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-4));
-            bool small = Cap(1E-3).TryFilletAt(1, radius * 1E-3, out GeoPolylineArc2 roundedSmall, new Tolerance(1E-7, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-7));
+            bool full = Cap(1.0)
+                .TryFilletAt(
+                    1,
+                    radius,
+                    out GeoPolylineArc2 rounded,
+                    new Tolerance(1E-4, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-4)
+                );
+            bool small = Cap(1E-3)
+                .TryFilletAt(
+                    1,
+                    radius * 1E-3,
+                    out GeoPolylineArc2 roundedSmall,
+                    new Tolerance(1E-7, Tolerance.DefaultEqualVector, Tolerance.DefaultEqualAngleRad, 1E-7)
+                );
 
             Assert.True(full);
             Assert.True(small);

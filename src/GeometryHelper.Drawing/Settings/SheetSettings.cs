@@ -95,7 +95,11 @@ namespace GeometryHelper.Drawing
         {
             if (!(value >= 0.0) || double.IsInfinity(value))
             {
-                throw new ArgumentOutOfRangeException(name, value, "The value has to be a finite number of nought or more.");
+                throw new ArgumentOutOfRangeException(
+                    name,
+                    value,
+                    "The value has to be a finite number of nought or more."
+                );
             }
 
             return value;

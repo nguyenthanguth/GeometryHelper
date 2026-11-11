@@ -38,20 +38,31 @@ namespace GeometryHelper.Viewer
             {
                 if (_command.Headless)
                 {
-                    Log("view '" + view.Name + "' is not kept beside the script: " + path + " would be inside a Git repository, which a run with no window does not write to.");
+                    Log(
+                        "view '"
+                            + view.Name
+                            + "' is not kept beside the script: "
+                            + path
+                            + " would be inside a Git repository, which a run with no window does not write to."
+                    );
                     return;
                 }
 
                 MessageBoxResult answer = MessageBox.Show(
                     this,
-                    "The views you save are kept in a file beside the script, and this folder is inside a Git repository. The file holds only views of the camera, but a view can point at a model that must never be committed.\n\nKeep the views in\n" + path + "\n?",
+                    "The views you save are kept in a file beside the script, and this folder is inside a Git repository. The file holds only views of the camera, but a view can point at a model that must never be committed.\n\nKeep the views in\n"
+                        + path
+                        + "\n?",
                     "Keep the views beside the script",
                     MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning);
+                    MessageBoxImage.Warning
+                );
 
                 if (answer != MessageBoxResult.Yes)
                 {
-                    Log("view '" + view.Name + "' is kept in this scene only; it is lost when the script is run again.");
+                    Log(
+                        "view '" + view.Name + "' is kept in this scene only; it is lost when the script is run again."
+                    );
                     return;
                 }
 
@@ -68,9 +79,13 @@ namespace GeometryHelper.Viewer
                     Log("warning: " + warning);
                 }
 
-                Log(kept
-                    ? "view '" + view.Name + "' kept in " + path + "; it comes back when the script is run again."
-                    : "view '" + view.Name + "' is kept in this scene only; it is lost when the script is run again.");
+                Log(
+                    kept
+                        ? "view '" + view.Name + "' kept in " + path + "; it comes back when the script is run again."
+                        : "view '"
+                            + view.Name
+                            + "' is kept in this scene only; it is lost when the script is run again."
+                );
             }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
             {
@@ -99,7 +114,12 @@ namespace GeometryHelper.Viewer
             if (kept.Count > 0)
             {
                 SavedViewsFile.Merge(scene, kept);
-                Log("views saved in the window: " + kept.Count.ToString(CultureInfo.InvariantCulture) + " came back from " + Path.GetFileName(SavedViewsFile.PathFor(scriptPath)));
+                Log(
+                    "views saved in the window: "
+                        + kept.Count.ToString(CultureInfo.InvariantCulture)
+                        + " came back from "
+                        + Path.GetFileName(SavedViewsFile.PathFor(scriptPath))
+                );
             }
         }
     }

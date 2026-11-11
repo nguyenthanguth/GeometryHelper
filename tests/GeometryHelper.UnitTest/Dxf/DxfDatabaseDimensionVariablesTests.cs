@@ -18,14 +18,28 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfDatabaseDimensionVariablesTests
     {
-        private static readonly string[] Drawings = { DxfDimensionDrawings.R12, DxfDimensionDrawings.R2000, DxfDimensionDrawings.R2018 };
+        private static readonly string[] Drawings =
+        {
+            DxfDimensionDrawings.R12,
+            DxfDimensionDrawings.R2000,
+            DxfDimensionDrawings.R2018,
+        };
 
         private static readonly Row[] Rows =
         {
             Of("$DIMADEC", 70, 1015, db => db.Dimadec, (db, v) => db.Dimadec = v, 0, -1),
             Of("$DIMALT", 70, 1009, db => db.Dimalt, (db, v) => db.Dimalt = v, false, true),
             Of("$DIMALTD", 70, 1009, db => db.Dimaltd, (db, v) => db.Dimaltd = v, 3, 1),
-            Of("$DIMALTF", 40, 1009, db => db.Dimaltf, (db, v) => db.Dimaltf = v, 1.0 / 25.4, 25.4, written: 0.03937007874),
+            Of(
+                "$DIMALTF",
+                40,
+                1009,
+                db => db.Dimaltf,
+                (db, v) => db.Dimaltf = v,
+                1.0 / 25.4,
+                25.4,
+                written: 0.03937007874
+            ),
             Of("$DIMALTRND", 40, 1015, db => db.Dimaltrnd, (db, v) => db.Dimaltrnd = v, 0.0, 0.5),
             Of("$DIMALTTD", 70, 1015, db => db.Dimalttd, (db, v) => db.Dimalttd = v, 3, 4),
             Of("$DIMALTTZ", 70, 1015, db => db.Dimalttz, (db, v) => db.Dimalttz = v, 0, 12),
@@ -43,9 +57,25 @@ namespace GeometryHelper.UnitTest.Dxf
             OfBlock("$DIMBLK1", 1009, db => db.Dimblk1, (db, v) => db.Dimblk1 = v, "_DOT"),
             OfBlock("$DIMBLK2", 1009, db => db.Dimblk2, (db, v) => db.Dimblk2 = v, "_OPEN"),
             Of("$DIMCEN", 40, 1009, db => db.Dimcen, (db, v) => db.Dimcen = v, 2.5, -1.5),
-            Of("$DIMCLRD", 70, 1009, db => db.Dimclrd, (db, v) => db.Dimclrd = v, DxfColor.ByBlock, DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1)),
+            Of(
+                "$DIMCLRD",
+                70,
+                1009,
+                db => db.Dimclrd,
+                (db, v) => db.Dimclrd = v,
+                DxfColor.ByBlock,
+                DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1)
+            ),
             Of("$DIMCLRE", 70, 1009, db => db.Dimclre, (db, v) => db.Dimclre = v, DxfColor.ByBlock, DxfColor.ByLayer),
-            Of("$DIMCLRT", 70, 1009, db => db.Dimclrt, (db, v) => db.Dimclrt = v, DxfColor.ByBlock, DxfColor.FromColorIndex(DxfColorMethod.ByAci, 5)),
+            Of(
+                "$DIMCLRT",
+                70,
+                1009,
+                db => db.Dimclrt,
+                (db, v) => db.Dimclrt = v,
+                DxfColor.ByBlock,
+                DxfColor.FromColorIndex(DxfColorMethod.ByAci, 5)
+            ),
             Of("$DIMDEC", 70, 1015, db => db.Dimdec, (db, v) => db.Dimdec = v, 2, 4),
             Of("$DIMDLE", 40, 1009, db => db.Dimdle, (db, v) => db.Dimdle = v, 0.0, 1.25),
             Of("$DIMDLI", 40, 1009, db => db.Dimdli, (db, v) => db.Dimdli = v, 3.75, 7.0),
@@ -56,7 +86,16 @@ namespace GeometryHelper.UnitTest.Dxf
             Of("$DIMFXL", 40, 1021, db => db.Dimfxlen, (db, v) => db.Dimfxlen = v, 1.0, 5.0),
             Of("$DIMFXLON", 70, 1021, db => db.DimfxlenOn, (db, v) => db.DimfxlenOn = v, false, true),
             Of("$DIMGAP", 40, 1009, db => db.Dimgap, (db, v) => db.Dimgap = v, 0.625, -1.0),
-            Of("$DIMJOGANG", 40, 1021, db => db.Dimjogang, (db, v) => db.Dimjogang = v, Math.PI / 4.0, Math.PI / 3.0, written: 0.785398163397),
+            Of(
+                "$DIMJOGANG",
+                40,
+                1021,
+                db => db.Dimjogang,
+                (db, v) => db.Dimjogang = v,
+                Math.PI / 4.0,
+                Math.PI / 3.0,
+                written: 0.785398163397
+            ),
             Of("$DIMJUST", 70, 1015, db => db.Dimjust, (db, v) => db.Dimjust = v, 0, 3),
             OfBlock("$DIMLDRBLK", 1015, db => db.Dimldrblk, (db, v) => db.Dimldrblk = v, "_DOT"),
             Of("$DIMLFAC", 40, 1009, db => db.Dimlfac, (db, v) => db.Dimlfac = v, 1.0, 100.0),
@@ -65,8 +104,24 @@ namespace GeometryHelper.UnitTest.Dxf
             OfLinetype("$DIMLTEX2", db => db.Dimltex2, (db, v) => db.Dimltex2 = v, "CENTER"),
             OfLinetype("$DIMLTYPE", db => db.Dimltype, (db, v) => db.Dimltype = v, "CENTER"),
             Of("$DIMLUNIT", 70, 1015, db => db.Dimlunit, (db, v) => db.Dimlunit = v, 2, 4),
-            Of("$DIMLWD", 70, 1015, db => db.Dimlwd, (db, v) => db.Dimlwd = v, DxfLineWeight.ByBlock, DxfLineWeight.LineWeight035),
-            Of("$DIMLWE", 70, 1015, db => db.Dimlwe, (db, v) => db.Dimlwe = v, DxfLineWeight.ByBlock, DxfLineWeight.LineWeight018),
+            Of(
+                "$DIMLWD",
+                70,
+                1015,
+                db => db.Dimlwd,
+                (db, v) => db.Dimlwd = v,
+                DxfLineWeight.ByBlock,
+                DxfLineWeight.LineWeight035
+            ),
+            Of(
+                "$DIMLWE",
+                70,
+                1015,
+                db => db.Dimlwe,
+                (db, v) => db.Dimlwe = v,
+                DxfLineWeight.ByBlock,
+                DxfLineWeight.LineWeight018
+            ),
             Of("$DIMPOST", 1, 1009, db => db.Dimpost, (db, v) => db.Dimpost = v, string.Empty, "<> mm"),
             Of("$DIMRND", 40, 1009, db => db.Dimrnd, (db, v) => db.Dimrnd = v, 0.0, 0.5),
             Of("$DIMSAH", 70, 1009, db => db.Dimsah, (db, v) => db.Dimsah = v, false, true),
@@ -81,7 +136,15 @@ namespace GeometryHelper.UnitTest.Dxf
             Of("$DIMTDEC", 70, 1015, db => db.Dimtdec, (db, v) => db.Dimtdec = v, 2, 3),
             Of("$DIMTFAC", 40, 1009, db => db.Dimtfac, (db, v) => db.Dimtfac = v, 1.0, 0.7),
             Of("$DIMTFILL", 70, 1021, db => db.Dimtfill, (db, v) => db.Dimtfill = v, 0, 2),
-            Of("$DIMTFILLCLR", 70, 1021, db => db.Dimtfillclr, (db, v) => db.Dimtfillclr = v, DxfColor.ByBlock, DxfColor.FromColorIndex(DxfColorMethod.ByAci, 3)),
+            Of(
+                "$DIMTFILLCLR",
+                70,
+                1021,
+                db => db.Dimtfillclr,
+                (db, v) => db.Dimtfillclr = v,
+                DxfColor.ByBlock,
+                DxfColor.FromColorIndex(DxfColorMethod.ByAci, 3)
+            ),
             Of("$DIMTIH", 70, 1009, db => db.Dimtih, (db, v) => db.Dimtih = v, false, true),
             Of("$DIMTIX", 70, 1009, db => db.Dimtix, (db, v) => db.Dimtix = v, false, true),
             Of("$DIMTM", 40, 1009, db => db.Dimtm, (db, v) => db.Dimtm = v, 0.0, 0.05),
@@ -115,9 +178,16 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 foreach (Row row in Rows)
                 {
-                    Assert.True(db.GetHeader(row.Variable) != null || !db.File.Supports(row.Since), db.Version + " " + row.Variable + " is not in the drawing.");
-                    object expected = db.GetHeader(row.Variable) != null && row.Written != null ? row.Written : Fallback(db, row);
-                    Assert.Equal(db.Version + " " + row.Variable + " " + Show(expected), db.Version + " " + row.Variable + " " + Show(row.Get(db)));
+                    Assert.True(
+                        db.GetHeader(row.Variable) != null || !db.File.Supports(row.Since),
+                        db.Version + " " + row.Variable + " is not in the drawing."
+                    );
+                    object expected =
+                        db.GetHeader(row.Variable) != null && row.Written != null ? row.Written : Fallback(db, row);
+                    Assert.Equal(
+                        db.Version + " " + row.Variable + " " + Show(expected),
+                        db.Version + " " + row.Variable + " " + Show(row.Get(db))
+                    );
                 }
             }
         }
@@ -190,9 +260,16 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDimStyleTableRecord back = DxfDatabase.Parse(other.ToText()).GetDimstyleData();
             standard = DxfDatabase.Parse(other.ToText()).DimStyleTable["Standard"];
 
-            foreach (var property in typeof(DxfDimStyleTableRecord).GetProperties().Where(p => p.CanWrite && p.Name.StartsWith("Dim", StringComparison.Ordinal)))
+            foreach (
+                var property in typeof(DxfDimStyleTableRecord)
+                    .GetProperties()
+                    .Where(p => p.CanWrite && p.Name.StartsWith("Dim", StringComparison.Ordinal))
+            )
             {
-                Assert.Equal(property.Name + " " + Show(property.GetValue(standard)), property.Name + " " + Show(property.GetValue(back)));
+                Assert.Equal(
+                    property.Name + " " + Show(property.GetValue(standard)),
+                    property.Name + " " + Show(property.GetValue(back))
+                );
             }
         }
 
@@ -203,7 +280,12 @@ namespace GeometryHelper.UnitTest.Dxf
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
                 Row[] held = Rows.Where(r => db.File.Supports(r.Since)).ToArray();
-                Assert.Equal(text == DxfDimensionDrawings.R12 ? 41 : text == DxfDimensionDrawings.R2000 ? 66 : 77, held.Length);
+                Assert.Equal(
+                    text == DxfDimensionDrawings.R12 ? 41
+                        : text == DxfDimensionDrawings.R2000 ? 66
+                        : 77,
+                    held.Length
+                );
 
                 foreach (Row row in held)
                 {
@@ -216,7 +298,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 foreach (Row row in held)
                 {
-                    Assert.Equal(row.Variable + " " + Show(row.Changed(again)), row.Variable + " " + Show(row.Get(again)));
+                    Assert.Equal(
+                        row.Variable + " " + Show(row.Changed(again)),
+                        row.Variable + " " + Show(row.Get(again))
+                    );
                     Assert.Equal(row.Code, again.GetHeader(row.Variable)[0].TypeCode);
                 }
 
@@ -237,7 +322,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 foreach (Row row in held)
                 {
-                    Assert.Equal(row.Variable + " " + Show(row.Changed(addedAgain)), row.Variable + " " + Show(row.Get(addedAgain)));
+                    Assert.Equal(
+                        row.Variable + " " + Show(row.Changed(addedAgain)),
+                        row.Variable + " " + Show(row.Get(addedAgain))
+                    );
                 }
             }
         }
@@ -245,7 +333,11 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void EveryVariableSetToTheValueItHas_ChangesNoByte()
         {
-            foreach (string text in Drawings.Concat(Drawings.Select(t => Rows.Aggregate(t, (u, row) => Without(u, row.Variable)))))
+            foreach (
+                string text in Drawings.Concat(
+                    Drawings.Select(t => Rows.Aggregate(t, (u, row) => Without(u, row.Variable)))
+                )
+            )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
 
@@ -282,9 +374,15 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             DxfDatabase r2000 = DxfDatabase.Parse(DxfDimensionDrawings.R2000);
-            InvalidOperationException refused = Assert.Throws<InvalidOperationException>(() => r2000.Dimtxtdirection = true);
+            InvalidOperationException refused = Assert.Throws<InvalidOperationException>(() =>
+                r2000.Dimtxtdirection = true
+            );
             Assert.Contains("R2010 (AC1024)", refused.Message, StringComparison.Ordinal);
-            Assert.Contains("R2004 (AC1018)", Assert.Throws<InvalidOperationException>(() => r2000.DimAssoc = 1).Message, StringComparison.Ordinal);
+            Assert.Contains(
+                "R2004 (AC1018)",
+                Assert.Throws<InvalidOperationException>(() => r2000.DimAssoc = 1).Message,
+                StringComparison.Ordinal
+            );
         }
 
         [Fact]
@@ -346,7 +444,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AnArrowheadNamedWithoutItsUnderscore_IsItsBlock_AndOneTheDrawingHasNot_IsNull()
         {
-            string text = DxfDimensionDrawings.R2018.Replace("$DIMBLK\n  1\n\n", "$DIMBLK\n  1\nARCHTICK\n").Replace("$DIMBLK1\n  1\n\n", "$DIMBLK1\n  1\n_NONE\n");
+            string text = DxfDimensionDrawings
+                .R2018.Replace("$DIMBLK\n  1\n\n", "$DIMBLK\n  1\nARCHTICK\n")
+                .Replace("$DIMBLK1\n  1\n\n", "$DIMBLK1\n  1\n_NONE\n");
             Assert.NotEqual(DxfDimensionDrawings.R2018, text);
             DxfDatabase db = DxfDatabase.Parse(text);
 
@@ -369,7 +469,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void GetDimstyleData_GivesTheHeaderAsAStyleInNoTable()
         {
-            string text = DxfDimensionDrawings.R2018.Replace("$DIMASZ\n 40\n2.5\n", "$DIMASZ\n 40\n3.5\n").Replace("$DIMBLK\n  1\n\n", "$DIMBLK\n  1\n_DOT\n");
+            string text = DxfDimensionDrawings
+                .R2018.Replace("$DIMASZ\n 40\n2.5\n", "$DIMASZ\n 40\n3.5\n")
+                .Replace("$DIMBLK\n  1\n\n", "$DIMBLK\n  1\n_DOT\n");
             DxfDatabase db = DxfDatabase.Parse(text);
 
             DxfDimStyleTableRecord data = db.GetDimstyleData();
@@ -412,7 +514,23 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfDimStyleTableRecord written = again.DimStyleTable["GH_DIM"];
                 Assert.Equal("ISO-25", again.Dimstyle);
 
-                foreach (string name in new[] { "Dimasz", "Dimtxt", "Dimexo", "Dimexe", "Dimgap", "Dimscale", "Dimtad", "Dimzin", "Dimclrd", "Dimsah", "Dimtol", "Dimpost" })
+                foreach (
+                    string name in new[]
+                    {
+                        "Dimasz",
+                        "Dimtxt",
+                        "Dimexo",
+                        "Dimexe",
+                        "Dimgap",
+                        "Dimscale",
+                        "Dimtad",
+                        "Dimzin",
+                        "Dimclrd",
+                        "Dimsah",
+                        "Dimtol",
+                        "Dimpost",
+                    }
+                )
                 {
                     Assert.Equal(name + " " + Show(Value(written, name)), name + " " + Show(Value(data, name)));
                 }
@@ -505,21 +623,39 @@ namespace GeometryHelper.UnitTest.Dxf
             Differ(text, saved, out List<string> gone, out List<string> come);
             Assert.Contains("\n  2\nGH_DIM\n", Assert.Single(gone), StringComparison.Ordinal);
             string record = Assert.Single(come);
-            Assert.True(record.IndexOf("\n294\n1\n", StringComparison.Ordinal) > record.IndexOf("\n290\n", StringComparison.Ordinal));
-            Assert.True(record.IndexOf("\n294\n1\n", StringComparison.Ordinal) < record.IndexOf("\n340\n", StringComparison.Ordinal));
+            Assert.True(
+                record.IndexOf("\n294\n1\n", StringComparison.Ordinal)
+                    > record.IndexOf("\n290\n", StringComparison.Ordinal)
+            );
+            Assert.True(
+                record.IndexOf("\n294\n1\n", StringComparison.Ordinal)
+                    < record.IndexOf("\n340\n", StringComparison.Ordinal)
+            );
             Assert.True(DxfDatabase.Parse(saved).DimStyleTable["GH_DIM"].Dimtxtdirection);
 
             // A style made in code is written with it in R2018, after DIMFXLON (290), off where it is given none; without it in
             // R2000, and refused there.
             var made = new DxfDimStyleTableRecord { Name = "GH_RTL", Dimtxtdirection = true };
             db.DimStyleTable.Add(made);
-            Assert.Contains("\n294\n1\n", Records(db.ToText()).Single(r => r.Contains("\n  2\nGH_RTL\n")), StringComparison.Ordinal);
+            Assert.Contains(
+                "\n294\n1\n",
+                Records(db.ToText()).Single(r => r.Contains("\n  2\nGH_RTL\n")),
+                StringComparison.Ordinal
+            );
             db.DimStyleTable.Add(new DxfDimStyleTableRecord { Name = "GH_PLAIN" });
-            Assert.Contains("\n290\n0\n294\n0\n371\n", Records(db.ToText()).Single(r => r.Contains("\n  2\nGH_PLAIN\n")), StringComparison.Ordinal);
+            Assert.Contains(
+                "\n290\n0\n294\n0\n371\n",
+                Records(db.ToText()).Single(r => r.Contains("\n  2\nGH_PLAIN\n")),
+                StringComparison.Ordinal
+            );
 
             DxfDatabase r2000 = DxfDatabase.Parse(DxfDimensionDrawings.R2000);
             r2000.DimStyleTable.Add(new DxfDimStyleTableRecord { Name = "GH_LTR" });
-            Assert.DoesNotContain("\n294\n", Records(r2000.ToText()).Single(r => r.Contains("\n  2\nGH_LTR\n")), StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "\n294\n",
+                Records(r2000.ToText()).Single(r => r.Contains("\n  2\nGH_LTR\n")),
+                StringComparison.Ordinal
+            );
             Assert.Throws<InvalidOperationException>(() => r2000.DimStyleTable["GH_DIM"].Dimtxtdirection = true);
         }
 
@@ -535,11 +671,18 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "61");
-            Assert.Contains("1070\n294\n1070\n1\n", Records(saved).Single(r => HandleOf(r) == "61"), StringComparison.Ordinal);
+            Assert.Contains(
+                "1070\n294\n1070\n1\n",
+                Records(saved).Single(r => HandleOf(r) == "61"),
+                StringComparison.Ordinal
+            );
             Assert.True(ByHandle<DxfRotatedDimension>(DxfDatabase.Parse(saved), "61").Dimtxtdirection);
             Assert.True(dim.GetDimstyleData().Dimtxtdirection);
 
-            Assert.Throws<InvalidOperationException>(() => ByHandle<DxfRotatedDimension>(DxfDatabase.Parse(DxfDimensionDrawings.R2000), "61").Dimtxtdirection = true);
+            Assert.Throws<InvalidOperationException>(() =>
+                ByHandle<DxfRotatedDimension>(DxfDatabase.Parse(DxfDimensionDrawings.R2000), "61").Dimtxtdirection =
+                    true
+            );
         }
 
         [Fact]
@@ -588,7 +731,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfDatabase same = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
             var kept = (DxfDimension)source.WblockCloneObjects(new DxfEntity[] { dim }, same.ModelSpace).Single();
-            Assert.Contains("1070\n294\n1070\n1\n", Records(same.ToText()).Single(r => HandleOf(r) == kept.Handle), StringComparison.Ordinal);
+            Assert.Contains(
+                "1070\n294\n1070\n1\n",
+                Records(same.ToText()).Single(r => HandleOf(r) == kept.Handle),
+                StringComparison.Ordinal
+            );
 
             // A leader's alike.
             DxfDatabase leaders = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
@@ -596,10 +743,19 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDimStyleTableRecord data = leader.GetDimstyleData();
             data.Dimtxtdirection = true;
             leader.SetDimstyleData(data);
-            Assert.Contains("1070\n294\n1070\n1\n", Records(leaders.ToText()).Single(r => HandleOf(r) == "B3"), StringComparison.Ordinal);
+            Assert.Contains(
+                "1070\n294\n1070\n1\n",
+                Records(leaders.ToText()).Single(r => HandleOf(r) == "B3"),
+                StringComparison.Ordinal
+            );
             DxfDatabase olderLeaders = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2000);
-            var leaderCopy = (DxfLeader)leaders.WblockCloneObjects(new DxfEntity[] { leader }, olderLeaders.ModelSpace).Single();
-            Assert.DoesNotContain("1070\n294\n", Records(olderLeaders.ToText()).Single(r => HandleOf(r) == leaderCopy.Handle), StringComparison.Ordinal);
+            var leaderCopy = (DxfLeader)
+                leaders.WblockCloneObjects(new DxfEntity[] { leader }, olderLeaders.ModelSpace).Single();
+            Assert.DoesNotContain(
+                "1070\n294\n",
+                Records(olderLeaders.ToText()).Single(r => HandleOf(r) == leaderCopy.Handle),
+                StringComparison.Ordinal
+            );
         }
 
         #endregion
@@ -724,7 +880,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 // An arrowhead of the drawing, by its handle; one of another drawing refused, nothing written.
                 DxfDatabase again = DxfDatabase.Parse(saved);
                 DxfLeader leader = ByHandle<DxfLeader>(again, "B3");
-                DxfBlockTableRecord block = again.BlockTable.Cast<DxfBlockTableRecord>().First(b => !b.IsLayout && !b.IsAnonymous);
+                DxfBlockTableRecord block = again
+                    .BlockTable.Cast<DxfBlockTableRecord>()
+                    .First(b => !b.IsLayout && !b.IsAnonymous);
                 DxfDimStyleTableRecord foreign = leader.GetDimstyleData();
                 foreign.Dimldrblk = DxfDatabase.Parse(saved).BlockTable[block.Name];
                 Assert.Throws<ArgumentException>(() => leader.SetDimstyleData(foreign));
@@ -734,13 +892,21 @@ namespace GeometryHelper.UnitTest.Dxf
                 own.Dimldrblk = block;
                 leader.SetDimstyleData(own);
                 Assert.Same(block, leader.Dimldrblk);
-                Assert.Contains("1070\n341\n1005\n" + block.Handle + "\n", Records(again.ToText()).Single(r => HandleOf(r) == "B3"), StringComparison.Ordinal);
+                Assert.Contains(
+                    "1070\n341\n1005\n" + block.Handle + "\n",
+                    Records(again.ToText()).Single(r => HandleOf(r) == "B3"),
+                    StringComparison.Ordinal
+                );
 
                 // None again: the handle 0, the closed filled arrow.
                 own.Dimldrblk = null;
                 leader.SetDimstyleData(own);
                 Assert.Null(leader.Dimldrblk);
-                Assert.Contains("1070\n341\n1005\n0\n", Records(again.ToText()).Single(r => HandleOf(r) == "B3"), StringComparison.Ordinal);
+                Assert.Contains(
+                    "1070\n341\n1005\n0\n",
+                    Records(again.ToText()).Single(r => HandleOf(r) == "B3"),
+                    StringComparison.Ordinal
+                );
             }
         }
 
@@ -770,7 +936,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
         #region Helpers
 
-        private static object Value(DxfDimStyleTableRecord style, string name) => typeof(DxfDimStyleTableRecord).GetProperty(name).GetValue(style);
+        private static object Value(DxfDimStyleTableRecord style, string name) =>
+            typeof(DxfDimStyleTableRecord).GetProperty(name).GetValue(style);
 
         /// <summary>
         /// The value a variable reads where the header gives none: AutoCAD's metric drawing's where the file's version has it,
@@ -783,7 +950,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 return row.Fallback(db);
             }
 
-            string name = row.Variable == "$DIMFXL" ? "Dimfxlen" : row.Variable == "$DIMFXLON" ? "DimfxlenOn"
+            string name =
+                row.Variable == "$DIMFXL" ? "Dimfxlen"
+                : row.Variable == "$DIMFXLON" ? "DimfxlenOn"
                 : "Dim" + row.Variable.Substring(4).ToLowerInvariant();
             return Value(new DxfDimStyleTableRecord(), name);
         }
@@ -821,8 +990,17 @@ namespace GeometryHelper.UnitTest.Dxf
             }
         }
 
-        private static Row Of<T>(string variable, int code, int since, Func<DxfDatabase, T> get, Action<DxfDatabase, T> set, T fallback, T changed, object written = null)
-            => new Row
+        private static Row Of<T>(
+            string variable,
+            int code,
+            int since,
+            Func<DxfDatabase, T> get,
+            Action<DxfDatabase, T> set,
+            T fallback,
+            T changed,
+            object written = null
+        ) =>
+            new Row
             {
                 Variable = variable,
                 Code = code,
@@ -835,8 +1013,14 @@ namespace GeometryHelper.UnitTest.Dxf
                 Written = written,
             };
 
-        private static Row OfBlock(string variable, int since, Func<DxfDatabase, DxfBlockTableRecord> get, Action<DxfDatabase, DxfBlockTableRecord> set, string changed)
-            => new Row
+        private static Row OfBlock(
+            string variable,
+            int since,
+            Func<DxfDatabase, DxfBlockTableRecord> get,
+            Action<DxfDatabase, DxfBlockTableRecord> set,
+            string changed
+        ) =>
+            new Row
             {
                 Variable = variable,
                 Code = 1,
@@ -849,8 +1033,13 @@ namespace GeometryHelper.UnitTest.Dxf
                 Written = null,
             };
 
-        private static Row OfLinetype(string variable, Func<DxfDatabase, DxfLinetypeTableRecord> get, Action<DxfDatabase, DxfLinetypeTableRecord> set, string changed)
-            => new Row
+        private static Row OfLinetype(
+            string variable,
+            Func<DxfDatabase, DxfLinetypeTableRecord> get,
+            Action<DxfDatabase, DxfLinetypeTableRecord> set,
+            string changed
+        ) =>
+            new Row
             {
                 Variable = variable,
                 Code = 6,
@@ -863,8 +1052,13 @@ namespace GeometryHelper.UnitTest.Dxf
                 Written = null,
             };
 
-        private static Row OfTextStyle(string variable, Func<DxfDatabase, DxfTextStyleTableRecord> get, Action<DxfDatabase, DxfTextStyleTableRecord> set, string changed)
-            => new Row
+        private static Row OfTextStyle(
+            string variable,
+            Func<DxfDatabase, DxfTextStyleTableRecord> get,
+            Action<DxfDatabase, DxfTextStyleTableRecord> set,
+            string changed
+        ) =>
+            new Row
             {
                 Variable = variable,
                 Code = 7,

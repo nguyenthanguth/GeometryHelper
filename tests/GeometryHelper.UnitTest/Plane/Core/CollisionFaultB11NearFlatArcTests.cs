@@ -24,8 +24,8 @@ namespace GeometryHelper.UnitTest.Plane
         private static GeoEdge2 FlatEdge(double bulge) => new GeoEdge2(P(0, 0), P(100, 0), bulge);
 
         /// <summary>How far a point lies from the circle of radius 40 about (50, 30), worked out here.</summary>
-        private static double OffTheArcsCircle(GeoPoint2 point)
-            => Math.Abs(Math.Sqrt((point.X - 50) * (point.X - 50) + (point.Y - 30) * (point.Y - 30)) - 40);
+        private static double OffTheArcsCircle(GeoPoint2 point) =>
+            Math.Abs(Math.Sqrt((point.X - 50) * (point.X - 50) + (point.Y - 30) * (point.Y - 30)) - 40);
 
         [Theory]
         [InlineData(1E-4)]
@@ -97,7 +97,11 @@ namespace GeometryHelper.UnitTest.Plane
             // The edge about 5 long runs down beside the circle of radius 24.39, 0.00012 from its rim at its middle.
             // Asked from the edge's huge circle, the two circles' crossings came out where neither is, and one landed on
             // the edge: they collided at a tolerance of 1E-4.
-            var edge = new GeoEdge2(P(9.0409113657676077, 30.839478704537957), P(8.86641338255969, 25.842524586892253), -1E-07);
+            var edge = new GeoEdge2(
+                P(9.0409113657676077, 30.839478704537957),
+                P(8.86641338255969, 25.842524586892253),
+                -1E-07
+            );
             var circle = new GeoCircle2(P(33.429356028060134, 30.839478704537953), 24.388324662292526);
 
             Assert.Equal(0.00012, edge.DistanceTo(circle, TenThousandth), 7);

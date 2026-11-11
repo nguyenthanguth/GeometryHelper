@@ -88,11 +88,22 @@ namespace GeometryHelper.Dxf.Viewer
             // The box of a DIMGAP below nought goes with the words: the four sides after them drawn again about them.
             int index = words == null ? -1 : picture.IndexOf(words);
 
-            if (style.Dimgap < 0.0 && index >= 0 && index + 4 < picture.Count && picture.Skip(index + 1).Take(4).All(e => e is DxfLine))
+            if (
+                style.Dimgap < 0.0
+                && index >= 0
+                && index + 4 < picture.Count
+                && picture.Skip(index + 1).Take(4).All(e => e is DxfLine)
+            )
             {
                 double scale = style.Dimscale > 0.0 ? style.Dimscale : 1.0;
                 double width = WordsWidth(style, words.Contents, words.TextHeight, out double tall);
-                List<DxfLine> sides = Frame(P2(words.Location), words.Rotation, width, tall, Math.Abs(style.Dimgap) * scale);
+                List<DxfLine> sides = Frame(
+                    P2(words.Location),
+                    words.Rotation,
+                    width,
+                    tall,
+                    Math.Abs(style.Dimgap) * scale
+                );
 
                 for (int i = 0; i < 4; i++)
                 {
@@ -103,16 +114,36 @@ namespace GeometryHelper.Dxf.Viewer
             return picture;
         }
 
-        private static List<DxfEntity> KindPicture(DxfDimension dimension, DxfDimStyleTableRecord style, double textHeight)
+        private static List<DxfEntity> KindPicture(
+            DxfDimension dimension,
+            DxfDimStyleTableRecord style,
+            double textHeight
+        )
         {
             switch (dimension)
             {
                 case DxfRotatedDimension rotated:
-                    return LinearPicture(dimension, style, textHeight, P2(rotated.XLine1Point), P2(rotated.XLine2Point), P2(rotated.DimLinePoint), rotated.Rotation);
+                    return LinearPicture(
+                        dimension,
+                        style,
+                        textHeight,
+                        P2(rotated.XLine1Point),
+                        P2(rotated.XLine2Point),
+                        P2(rotated.DimLinePoint),
+                        rotated.Rotation
+                    );
                 case DxfAlignedDimension aligned:
                     GeoPoint2 a = P2(aligned.XLine1Point);
                     GeoPoint2 b = P2(aligned.XLine2Point);
-                    return LinearPicture(dimension, style, textHeight, a, b, P2(aligned.DimLinePoint), Math.Atan2(b.Y - a.Y, b.X - a.X));
+                    return LinearPicture(
+                        dimension,
+                        style,
+                        textHeight,
+                        a,
+                        b,
+                        P2(aligned.DimLinePoint),
+                        Math.Atan2(b.Y - a.Y, b.X - a.X)
+                    );
                 case DxfOrdinateDimension ordinate:
                     return OrdinatePicture(dimension, style, textHeight, ordinate);
                 case DxfRadialDimension radial:
@@ -120,9 +151,25 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfDiametricDimension diametric:
                     GeoPoint2 chord = P2(diametric.ChordPoint);
                     GeoPoint2 far = P2(diametric.FarChordPoint);
-                    return RadialPicture(dimension, style, textHeight, new GeoPoint2((chord.X + far.X) / 2.0, (chord.Y + far.Y) / 2.0), chord, true);
+                    return RadialPicture(
+                        dimension,
+                        style,
+                        textHeight,
+                        new GeoPoint2((chord.X + far.X) / 2.0, (chord.Y + far.Y) / 2.0),
+                        chord,
+                        true
+                    );
                 case DxfPoint3AngularDimension three:
-                    return AngularPicture(dimension, style, textHeight, null, null, P2(three.CenterPoint), new[] { P2(three.XLine1Point), P2(three.XLine2Point) }, P2(three.ArcPoint));
+                    return AngularPicture(
+                        dimension,
+                        style,
+                        textHeight,
+                        null,
+                        null,
+                        P2(three.CenterPoint),
+                        new[] { P2(three.XLine1Point), P2(three.XLine2Point) },
+                        P2(three.ArcPoint)
+                    );
                 case DxfArcDimension arcLength:
                     return ArcLengthPicture(arcLength, style, textHeight);
                 case DxfRadialDimensionLarge jogged:
@@ -131,14 +178,31 @@ namespace GeometryHelper.Dxf.Viewer
                     var first = new DxfLine(two.XLine1Start, two.XLine1End);
                     var second = new DxfLine(two.XLine2Start, two.XLine2End);
                     return Meet(first, second, new Tolerance(1E-9, 1E-9), out GeoPoint2 vertex)
-                        ? AngularPicture(dimension, style, textHeight, first, second, vertex, new GeoPoint2[2], P2(two.ArcPoint))
+                        ? AngularPicture(
+                            dimension,
+                            style,
+                            textHeight,
+                            first,
+                            second,
+                            vertex,
+                            new GeoPoint2[2],
+                            P2(two.ArcPoint)
+                        )
                         : null;
                 default:
                     return null;
             }
         }
 
-        private static List<DxfEntity> LinearPicture(DxfDimension dimension, DxfDimStyleTableRecord style, double textHeight, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 onLine, double angle)
+        private static List<DxfEntity> LinearPicture(
+            DxfDimension dimension,
+            DxfDimStyleTableRecord style,
+            double textHeight,
+            GeoPoint2 p1,
+            GeoPoint2 p2,
+            GeoPoint2 onLine,
+            double angle
+        )
         {
             var along = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
             double measured = Math.Abs((p2 - p1).X * along.X + (p2 - p1).Y * along.Y);
@@ -154,7 +218,19 @@ namespace GeometryHelper.Dxf.Viewer
             string words = Formatted(dimension, measured, string.Empty);
             GeoPoint2? jog = JogOf(dimension);
             GeoPoint2? placed = dimension.UsingDefaultTextPosition ? (GeoPoint2?)null : P2(dimension.TextPosition);
-            return Linear(style, style.Dimscale, textHeight, p1, p2, q1, q2, words, placed, jog, jog.HasValue ? JogHeight(dimension, style, textHeight) : 0.0);
+            return Linear(
+                style,
+                style.Dimscale,
+                textHeight,
+                p1,
+                p2,
+                q1,
+                q2,
+                words,
+                placed,
+                jog,
+                jog.HasValue ? JogHeight(dimension, style, textHeight) : 0.0
+            );
         }
 
         /// <summary>
@@ -165,7 +241,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal static double ObliqueOf(DxfDimension dimension)
         {
-            double oblique = dimension is DxfRotatedDimension rotated ? rotated.Oblique : dimension is DxfAlignedDimension aligned ? aligned.Oblique : 0.0;
+            double oblique =
+                dimension is DxfRotatedDimension rotated ? rotated.Oblique
+                : dimension is DxfAlignedDimension aligned ? aligned.Oblique
+                : 0.0;
             return oblique == 0.0 ? 0.0 : LineAngleOf(dimension) + oblique;
         }
 
@@ -180,7 +259,10 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfRotatedDimension rotated:
                     return rotated.Rotation;
                 case DxfAlignedDimension aligned:
-                    return Math.Atan2(aligned.XLine2Point.Y - aligned.XLine1Point.Y, aligned.XLine2Point.X - aligned.XLine1Point.X);
+                    return Math.Atan2(
+                        aligned.XLine2Point.Y - aligned.XLine1Point.Y,
+                        aligned.XLine2Point.X - aligned.XLine1Point.X
+                    );
                 default:
                     return 0.0;
             }
@@ -247,7 +329,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// MTEXT's place along the chord), as the record keeps no point of them, or from the text's place where it was moved
         /// (flag 128); on the rim where the block has none. Words moved under DIMTMOVE 2 stand at the text's place itself.
         /// </summary>
-        private static List<DxfEntity> RadialPicture(DxfDimension dimension, DxfDimStyleTableRecord style, double textHeight, GeoPoint2 center, GeoPoint2 chord, bool diameter)
+        private static List<DxfEntity> RadialPicture(
+            DxfDimension dimension,
+            DxfDimStyleTableRecord style,
+            double textHeight,
+            GeoPoint2 center,
+            GeoPoint2 chord,
+            bool diameter
+        )
         {
             double radius = (chord - center).Length;
 
@@ -258,16 +347,42 @@ namespace GeometryHelper.Dxf.Viewer
 
             GeoVector2 outward = (chord - center) / radius;
             DxfMText words = dimension.DimBlock.OfType<DxfMText>().FirstOrDefault();
-            GeoPoint2? placed = !dimension.UsingDefaultTextPosition ? P2(dimension.TextPosition) : words == null ? (GeoPoint2?)null : P2(words.Location);
-            double reach = placed == null ? radius : (placed.Value - center).X * outward.X + (placed.Value - center).Y * outward.Y;
+            GeoPoint2? placed =
+                !dimension.UsingDefaultTextPosition ? P2(dimension.TextPosition)
+                : words == null ? (GeoPoint2?)null
+                : P2(words.Location);
+            double reach =
+                placed == null ? radius : (placed.Value - center).X * outward.X + (placed.Value - center).Y * outward.Y;
             // Words put off the line under DIMTMOVE 2 stand where they were put.
             bool free = !dimension.UsingDefaultTextPosition && dimension.Dimtmove == 2;
             GeoPoint2 location = free ? placed.Value : center + outward * reach;
             GeoPoint2 far = center - outward * radius;
-            return Radial(style, style.Dimscale, textHeight, center, radius, chord, far, location, diameter, Formatted(dimension, diameter ? 2.0 * radius : radius, diameter ? "%%c" : "R"), !dimension.UsingDefaultTextPosition, free);
+            return Radial(
+                style,
+                style.Dimscale,
+                textHeight,
+                center,
+                radius,
+                chord,
+                far,
+                location,
+                diameter,
+                Formatted(dimension, diameter ? 2.0 * radius : radius, diameter ? "%%c" : "R"),
+                !dimension.UsingDefaultTextPosition,
+                free
+            );
         }
 
-        private static List<DxfEntity> AngularPicture(DxfDimension dimension, DxfDimStyleTableRecord style, double textHeight, DxfLine first, DxfLine second, GeoPoint2 vertex, GeoPoint2[] points, GeoPoint2 location)
+        private static List<DxfEntity> AngularPicture(
+            DxfDimension dimension,
+            DxfDimStyleTableRecord style,
+            double textHeight,
+            DxfLine first,
+            DxfLine second,
+            GeoPoint2 vertex,
+            GeoPoint2[] points,
+            GeoPoint2 location
+        )
         {
             var rays = new GeoVector2[2];
             var near = new double[2];
@@ -281,7 +396,19 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint2? placed = dimension.UsingDefaultTextPosition ? (GeoPoint2?)null : P2(dimension.TextPosition);
-            return Angular(style, style.Dimscale, textHeight, vertex, radius, from, sweep, near, far, Formatted(dimension, sweep, string.Empty), placed);
+            return Angular(
+                style,
+                style.Dimscale,
+                textHeight,
+                vertex,
+                radius,
+                from,
+                sweep,
+                near,
+                far,
+                Formatted(dimension, sweep, string.Empty),
+                placed
+            );
         }
 
         /// <summary>The words of a dimension of a drawing: the measurement as it writes it, in place of the &lt;&gt; of its own text.</summary>
@@ -318,13 +445,34 @@ namespace GeometryHelper.Dxf.Viewer
 
             database.ModelSpace.AppendEntity(new DxfCircle(P3(new GeoPoint2(56, 10)), new GeoVector3(0, 0, 1), 12.0));
             database.ModelSpace.AppendEntity(new DxfLine(P3(new GeoPoint2(0, -40)), P3(new GeoPoint2(36, -40))));
-            database.ModelSpace.AppendEntity(new DxfLine(P3(new GeoPoint2(0, -40)), P3(new GeoPoint2(18, -40 + 31.176914536239792))));
+            database.ModelSpace.AppendEntity(
+                new DxfLine(P3(new GeoPoint2(0, -40)), P3(new GeoPoint2(18, -40 + 31.176914536239792)))
+            );
 
-            Sample(database, style, new DxfRotatedDimension(0.0, P3(part[3]), P3(part[2]), P3(new GeoPoint2(16, 32)), string.Empty, null));
+            Sample(
+                database,
+                style,
+                new DxfRotatedDimension(0.0, P3(part[3]), P3(part[2]), P3(new GeoPoint2(16, 32)), string.Empty, null)
+            );
             GeoVector2 toward = new GeoVector2(1, 1) / Math.Sqrt(2.0);
             GeoPoint2 chord = new GeoPoint2(56, 10) + toward * 12.0;
-            Sample(database, style, new DxfRadialDimension(P3(new GeoPoint2(56, 10)), P3(chord), 8.0, string.Empty, null));
-            Sample(database, style, new DxfPoint3AngularDimension(P3(new GeoPoint2(0, -40)), P3(new GeoPoint2(36, -40)), P3(new GeoPoint2(18, -40 + 31.176914536239792)), P3(new GeoPoint2(24, -26)), string.Empty, null));
+            Sample(
+                database,
+                style,
+                new DxfRadialDimension(P3(new GeoPoint2(56, 10)), P3(chord), 8.0, string.Empty, null)
+            );
+            Sample(
+                database,
+                style,
+                new DxfPoint3AngularDimension(
+                    P3(new GeoPoint2(0, -40)),
+                    P3(new GeoPoint2(36, -40)),
+                    P3(new GeoPoint2(18, -40 + 31.176914536239792)),
+                    P3(new GeoPoint2(24, -26)),
+                    string.Empty,
+                    null
+                )
+            );
         }
 
         /// <summary>Adds one sample dimension with an empty block of its own, then draws its picture into the block.</summary>
@@ -341,7 +489,14 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 center = P2(radial.Center);
                 GeoPoint2 rim = P2(radial.ChordPoint);
                 GeoVector2 outward = (rim - center) / (rim - center).Length;
-                block.AppendEntity(new DxfMText { Location = P3(rim + outward * radial.LeaderLength), TextHeight = 1.0, Contents = string.Empty });
+                block.AppendEntity(
+                    new DxfMText
+                    {
+                        Location = P3(rim + outward * radial.LeaderLength),
+                        TextHeight = 1.0,
+                        Contents = string.Empty,
+                    }
+                );
             }
 
             database.ModelSpace.AppendEntity(dimension);

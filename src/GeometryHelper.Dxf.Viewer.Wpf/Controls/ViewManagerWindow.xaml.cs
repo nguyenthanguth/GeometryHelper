@@ -19,7 +19,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Model = model ?? throw new ArgumentNullException(nameof(model));
             InitializeComponent();
             DataContext = model;
-            model.ShowNewView = view => new NewViewWindow(view) { Owner = this }.ShowDialog() == true && view.Request.Action == CadDialogAction.SelectObjects;
+            model.ShowNewView = view =>
+                new NewViewWindow(view) { Owner = this }.ShowDialog() == true
+                && view.Request.Action == CadDialogAction.SelectObjects;
             Loaded += (sender, e) =>
             {
                 // Back from New View's Define window: New View again, with the window picked.

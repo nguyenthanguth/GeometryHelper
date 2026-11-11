@@ -19,7 +19,15 @@ namespace GeometryHelper.UnitTest.Plane
     {
         private static readonly GeoRectangle2 Plate = new GeoRectangle2(new GeoPoint2(1000, 2000), 100, 50, 0.3);
 
-        private static GeoTransform2 Map(double a, double b, double c, double d) => new GeoTransform2(new double[,] { { a, b, 0 }, { c, d, 0 }, { 0, 0, 1 } });
+        private static GeoTransform2 Map(double a, double b, double c, double d) =>
+            new GeoTransform2(
+                new double[,]
+                {
+                    { a, b, 0 },
+                    { c, d, 0 },
+                    { 0, 0, 1 },
+                }
+            );
 
         private static double WorstCorner(GeoRectangle2 rectangle, GeoTransform2 map)
         {
@@ -55,7 +63,8 @@ namespace GeometryHelper.UnitTest.Plane
         [Fact]
         public void ATurnRoundedToAFloatOnItsOwnScaled1E5_MovesIt()
         {
-            double c = (float)Math.Cos(0.7), s = (float)Math.Sin(0.7);
+            double c = (float)Math.Cos(0.7),
+                s = (float)Math.Sin(0.7);
 
             Assert.True(WorstCorner(Plate, Map(c * 1E5, -s * 1E5, s * 1E5, c * 1E5)) < 1E-6);
         }

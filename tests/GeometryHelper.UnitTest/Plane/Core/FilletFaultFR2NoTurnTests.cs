@@ -23,9 +23,11 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>
         /// A bent bar: 100 along, a quarter turn of radius 50 to the left, and 100 up, every joint tangent.
         /// </summary>
-        private static GeoPolylineArc2 BentBar() => new GeoPolylineArc2(
-            new[] { P(0, 0), P(100, 0), P(150, 50), P(150, 150) },
-            new[] { 0.0, Math.Tan(Math.PI / 8.0), 0.0, 0.0 });
+        private static GeoPolylineArc2 BentBar() =>
+            new GeoPolylineArc2(
+                new[] { P(0, 0), P(100, 0), P(150, 50), P(150, 150) },
+                new[] { 0.0, Math.Tan(Math.PI / 8.0), 0.0, 0.0 }
+            );
 
         private static void AssertUnchanged(GeoPolylineArc2 source, GeoPolylineArc2 result)
         {
@@ -45,8 +47,14 @@ namespace GeometryHelper.UnitTest.Plane
         public void AStraightRunningOnIntoATangentArc_IsLeftAsItIs(double radius, double point)
         {
             var chain = new GeoPolylineArc2(
-                new[] { P(-16.469603272373604, 9.1351020658086526), P(-12.948015227449066, 4.53966078708154), P(-11.931565295119594, 4.47675571380048) },
-                new[] { 0.0, 0.45567259435258689, 0.0 });
+                new[]
+                {
+                    P(-16.469603272373604, 9.1351020658086526),
+                    P(-12.948015227449066, 4.53966078708154),
+                    P(-11.931565295119594, 4.47675571380048),
+                },
+                new[] { 0.0, 0.45567259435258689, 0.0 }
+            );
 
             var tolerance = new Tolerance(point, 1E-5);
 
@@ -73,7 +81,8 @@ namespace GeometryHelper.UnitTest.Plane
 
             var bar = new GeoPolylineArc2(
                 new[] { P(0, 0), P(100, 0), P(100 + chord * Math.Cos(heading), chord * Math.Sin(heading)) },
-                new[] { 0.0, Math.Tan(Math.PI / 8.0), 0.0 });
+                new[] { 0.0, Math.Tan(Math.PI / 8.0), 0.0 }
+            );
 
             AssertUnchanged(bar, Corner2.Fillet(bar, 20.0, Tolerance.Default));
 
@@ -88,7 +97,10 @@ namespace GeometryHelper.UnitTest.Plane
             // default angle tolerance of 1°.
             double bulge = Math.Tan(181.0 * Math.PI / 180.0 / 4.0);
 
-            var slot = new GeoPolygonArc2(new[] { P(0, 0), P(100, 0), P(100, 40), P(0, 40) }, new[] { 0.0, bulge, 0.0, bulge });
+            var slot = new GeoPolygonArc2(
+                new[] { P(0, 0), P(100, 0), P(100, 40), P(0, 40) },
+                new[] { 0.0, bulge, 0.0, bulge }
+            );
 
             GeoPolygonArc2 filleted = Corner2.Fillet(slot, 10.0, Tolerance.Default);
 
@@ -107,7 +119,8 @@ namespace GeometryHelper.UnitTest.Plane
             // The bar turns a further quarter to the left at (150, 150), a real corner between two straights.
             var bar = new GeoPolylineArc2(
                 new[] { P(0, 0), P(100, 0), P(150, 50), P(150, 150), P(50, 150) },
-                new[] { 0.0, Math.Tan(Math.PI / 8.0), 0.0, 0.0, 0.0 });
+                new[] { 0.0, Math.Tan(Math.PI / 8.0), 0.0, 0.0, 0.0 }
+            );
 
             GeoPolylineArc2 filleted = Corner2.Fillet(bar, 20.0, Tolerance.Default);
 

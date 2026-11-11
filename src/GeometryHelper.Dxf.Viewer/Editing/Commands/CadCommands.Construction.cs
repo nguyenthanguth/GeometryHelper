@@ -63,15 +63,22 @@ namespace GeometryHelper.Dxf.Viewer
                 // The half of the turn counter-clockwise from the start point's way to the end point's.
                 GeoVector2 Bisecting(GeoPoint2 end)
                 {
-                    double half = CadGrips.Sweep(Math.Atan2(start.Y, start.X), Math.Atan2(end.Y - vertex.Y, end.X - vertex.X)) / 2.0;
+                    double half =
+                        CadGrips.Sweep(Math.Atan2(start.Y, start.X), Math.Atan2(end.Y - vertex.Y, end.X - vertex.X))
+                        / 2.0;
                     double angle = Math.Atan2(start.Y, start.X) + half;
                     return new GeoVector2(Math.Cos(angle), Math.Sin(angle));
                 }
 
                 while (true)
                 {
-                    yield return CadPrompt.ForPoint("Specify angle end point", vertex)
-                        .Previewing(CadPreview.MakingOne(c, input => Current(c, Aimed(new DxfXline(), vertex, Bisecting(input.Point)))));
+                    yield return CadPrompt
+                        .ForPoint("Specify angle end point", vertex)
+                        .Previewing(
+                            CadPreview.MakingOne(c, input =>
+                                Current(c, Aimed(new DxfXline(), vertex, Bisecting(input.Point)))
+                            )
+                        );
 
                     if (!c.Input.IsPoint)
                     {
@@ -92,13 +99,17 @@ namespace GeometryHelper.Dxf.Viewer
             GeoVector2 along = way;
 
             // The XLINE through the point at the cursor, as it is made: along the way of Hor, Ver or Ang, or from the first point.
-            DxfEntity Previewed(GeoPoint2 at)
-                => through == null ? Current(c, Aimed(new DxfXline(), at, along))
-                    : (at - through.Value).Length > c.Session.Tolerance.EqualPoint ? Current(c, Aimed(new DxfXline(), through.Value, at - through.Value)) : null;
+            DxfEntity Previewed(GeoPoint2 at) =>
+                through == null ? Current(c, Aimed(new DxfXline(), at, along))
+                : (at - through.Value).Length > c.Session.Tolerance.EqualPoint
+                    ? Current(c, Aimed(new DxfXline(), through.Value, at - through.Value))
+                : null;
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify through point", from).Previewing(CadPreview.MakingOne(c, input => Previewed(input.Point)));
+                yield return CadPrompt
+                    .ForPoint("Specify through point", from)
+                    .Previewing(CadPreview.MakingOne(c, input => Previewed(input.Point)));
 
                 if (!c.Input.IsPoint)
                 {
@@ -130,8 +141,15 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify through point", from)
-                    .Previewing(CadPreview.MakingOne(c, input => (input.Point - from).Length > c.Session.Tolerance.EqualPoint ? Current(c, Aimed(new DxfRay(), from, input.Point - from)) : null));
+                yield return CadPrompt
+                    .ForPoint("Specify through point", from)
+                    .Previewing(
+                        CadPreview.MakingOne(c, input =>
+                            (input.Point - from).Length > c.Session.Tolerance.EqualPoint
+                                ? Current(c, Aimed(new DxfRay(), from, input.Point - from))
+                                : null
+                        )
+                    );
 
                 if (!c.Input.IsPoint)
                 {
@@ -181,7 +199,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForInteger("Enter number of sides", null, sides.ToString(CultureInfo.InvariantCulture));
+                yield return CadPrompt.ForInteger(
+                    "Enter number of sides",
+                    null,
+                    sides.ToString(CultureInfo.InvariantCulture)
+                );
 
                 if (c.Input.IsNone)
                 {
@@ -217,8 +239,15 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 GeoPoint2 first = c.Input.Point;
-                yield return CadPrompt.ForPoint("Specify second endpoint of edge", first)
-                    .Previewing(CadPreview.MakingOne(c, input => (input.Point - first).Length <= c.Session.Tolerance.EqualPoint ? null : PolygonOf(c, OnEdge(first, input.Point, sides))));
+                yield return CadPrompt
+                    .ForPoint("Specify second endpoint of edge", first)
+                    .Previewing(
+                        CadPreview.MakingOne(c, input =>
+                            (input.Point - first).Length <= c.Session.Tolerance.EqualPoint
+                                ? null
+                                : PolygonOf(c, OnEdge(first, input.Point, sides))
+                        )
+                    );
 
                 if (!c.Input.IsPoint || (c.Input.Point - first).Length <= c.Session.Tolerance.EqualPoint)
                 {
@@ -231,7 +260,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 GeoPoint2 center = c.Input.Point;
                 string offered = c.Remembered("polygon.circumscribed", 0.0) != 0.0 ? "C" : "I";
-                yield return CadPrompt.ForKeyword("Enter an option", new[] { "Inscribed in circle", "Circumscribed about circle" }, offered);
+                yield return CadPrompt.ForKeyword(
+                    "Enter an option",
+                    new[] { "Inscribed in circle", "Circumscribed about circle" },
+                    offered
+                );
 
                 if (c.Input.Kind != CadInputKind.Keyword)
                 {
@@ -245,21 +278,36 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2[] Round(CadInput input)
                 {
                     var round = new GeoPoint2[sides];
-                    double toward = Typed(input) ? -Math.PI / 2.0 + (about ? 0.0 : step / 2.0) : Math.Atan2(input.Point.Y - center.Y, input.Point.X - center.X);
+                    double toward = Typed(input)
+                        ? -Math.PI / 2.0 + (about ? 0.0 : step / 2.0)
+                        : Math.Atan2(input.Point.Y - center.Y, input.Point.X - center.X);
                     double first = about ? toward - step / 2.0 : toward;
                     double reach = Math.Abs(input.Number) / (about ? Math.Cos(step / 2.0) : 1.0);
 
                     for (int i = 0; i < sides; i++)
                     {
                         double angle = first + i * step;
-                        round[i] = new GeoPoint2(center.X + reach * Math.Cos(angle), center.Y + reach * Math.Sin(angle));
+                        round[i] = new GeoPoint2(
+                            center.X + reach * Math.Cos(angle),
+                            center.Y + reach * Math.Sin(angle)
+                        );
                     }
 
                     return round;
                 }
 
-                yield return CadPrompt.ForDistance("Specify radius of circle", center)
-                    .Previewing(CadPreview.MakingOne(c, input => Math.Abs(input.Number) <= c.Session.Tolerance.EqualPoint ? null : PolygonOf(c, Round(input)), true));
+                yield return CadPrompt
+                    .ForDistance("Specify radius of circle", center)
+                    .Previewing(
+                        CadPreview.MakingOne(
+                            c,
+                            input =>
+                                Math.Abs(input.Number) <= c.Session.Tolerance.EqualPoint
+                                    ? null
+                                    : PolygonOf(c, Round(input)),
+                            true
+                        )
+                    );
 
                 if (c.Input.Kind != CadInputKind.Number || Math.Abs(c.Input.Number) <= c.Session.Tolerance.EqualPoint)
                 {
@@ -287,7 +335,10 @@ namespace GeometryHelper.Dxf.Viewer
             for (int i = 1; i < sides; i++)
             {
                 corners[i] = corners[i - 1] + side;
-                side = new GeoVector2(side.X * Math.Cos(step) - side.Y * Math.Sin(step), side.X * Math.Sin(step) + side.Y * Math.Cos(step));
+                side = new GeoVector2(
+                    side.X * Math.Cos(step) - side.Y * Math.Sin(step),
+                    side.X * Math.Sin(step) + side.Y * Math.Cos(step)
+                );
             }
 
             return corners;
@@ -360,7 +411,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify center of donut or <exit>").Previewing(CadPreview.MakingOne(c, input => Make(input.Point)));
+                yield return CadPrompt
+                    .ForPoint("Specify center of donut or <exit>")
+                    .Previewing(CadPreview.MakingOne(c, input => Make(input.Point)));
 
                 if (!c.Input.IsPoint)
                 {
@@ -373,7 +426,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Whether a number was typed, rather than a point picked or typed, as a radius typed lays a polygon level.</summary>
-        private static bool Typed(CadInput input)
-            => input.Text != null && double.TryParse(input.Text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out _);
+        private static bool Typed(CadInput input) =>
+            input.Text != null
+            && double.TryParse(input.Text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out _);
     }
 }

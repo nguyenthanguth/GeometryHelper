@@ -74,7 +74,10 @@ namespace GeometryHelper.Internal.Nurbs
 
                 for (int piece = 0; piece < pieces.Count; piece++)
                 {
-                    if (piece == nearest || BoxDistance(pieces, piece, query) > bestDistance + TieShare * (bestDistance + Scale))
+                    if (
+                        piece == nearest
+                        || BoxDistance(pieces, piece, query) > bestDistance + TieShare * (bestDistance + Scale)
+                    )
                     {
                         continue;
                     }
@@ -100,7 +103,10 @@ namespace GeometryHelper.Internal.Nurbs
                 {
                     int piece = near[i];
 
-                    if (piece == nearest || BoxDistance(pieces, piece, query) > bestDistance + TieShare * (bestDistance + Scale))
+                    if (
+                        piece == nearest
+                        || BoxDistance(pieces, piece, query) > bestDistance + TieShare * (bestDistance + Scale)
+                    )
                     {
                         continue;
                     }
@@ -155,7 +161,10 @@ namespace GeometryHelper.Internal.Nurbs
             {
                 double low = pieces.BoxMin[piece * dim + k];
                 double high = pieces.BoxMax[piece * dim + k];
-                double gap = query[k] < low ? low - query[k] : query[k] > high ? query[k] - high : 0.0;
+                double gap =
+                    query[k] < low ? low - query[k]
+                    : query[k] > high ? query[k] - high
+                    : 0.0;
                 square += gap * gap;
             }
 
@@ -188,7 +197,14 @@ namespace GeometryHelper.Internal.Nurbs
         /// <param name="numerators">The numerator of each coordinate of the piece, measured from the point.</param>
         /// <param name="weights">The weights of the piece, or null when it is not rational.</param>
         /// <param name="scale">The size of the numbers the polynomial was worked out from, which its rounding goes by.</param>
-        private static double[] PointSlope(BezierPieces pieces, int piece, double[] query, out double[][] numerators, out double[] weights, out double scale)
+        private static double[] PointSlope(
+            BezierPieces pieces,
+            int piece,
+            double[] query,
+            out double[][] numerators,
+            out double[] weights,
+            out double scale
+        )
         {
             int p = pieces.Degree;
             int dim = pieces.Dim;
@@ -244,14 +260,28 @@ namespace GeometryHelper.Internal.Nurbs
         /// <summary>
         /// Finds the nearest point of one piece to a point and offers it, with the ends of the piece, to the best so far.
         /// </summary>
-        private void Solve(BezierPieces pieces, int piece, double[] query, List<double> roots, ref double bestDistance, ref double bestParameter)
+        private void Solve(
+            BezierPieces pieces,
+            int piece,
+            double[] query,
+            List<double> roots,
+            ref double bestDistance,
+            ref double bestParameter
+        )
         {
             int p = pieces.Degree;
             int dim = pieces.Dim;
             double from = pieces.From[piece];
             double span = pieces.To[piece] - from;
 
-            double[] slope = PointSlope(pieces, piece, query, out double[][] numerators, out double[] weights, out double scale);
+            double[] slope = PointSlope(
+                pieces,
+                piece,
+                query,
+                out double[][] numerators,
+                out double[] weights,
+                out double scale
+            );
 
             roots.Clear();
             Bernstein.FindRoots(slope, NoiseShare * scale, roots);
@@ -308,7 +338,15 @@ namespace GeometryHelper.Internal.Nurbs
             }
         }
 
-        private void ConsiderEnd(BezierPieces pieces, int piece, int index, double[] query, double parameter, ref double bestDistance, ref double bestParameter)
+        private void ConsiderEnd(
+            BezierPieces pieces,
+            int piece,
+            int index,
+            double[] query,
+            double parameter,
+            ref double bestDistance,
+            ref double bestParameter
+        )
         {
             int dim = pieces.Dim;
             int at = pieces.PointOffset(piece) + index * dim;
